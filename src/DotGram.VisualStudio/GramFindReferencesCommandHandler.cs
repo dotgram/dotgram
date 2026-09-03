@@ -52,16 +52,33 @@ sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCo
 		ThreadHelper.ThrowIfNotOnUIThread();
 		if (args.SubjectBuffer.ContentType.IsOfType("CSharp"))
 		{
-			var position = args.TextView.Caret.Position.BufferPosition
-				.TranslateTo(args.SubjectBuffer.CurrentSnapshot, PointTrackingMode.Negative).Position;
-			var references = ThreadHelper.JoinableTaskFactory.Run(() =>
-				new RoslynGramCompletion(args.SubjectBuffer, Workspace, Documents)
-					.FindReferencesAsync(position, CancellationToken.None));
-			if (references is null)
-				return false;
+			try
+			{
+				var position = args.TextView.Caret.Position.BufferPosition
+					.TranslateTo(args.SubjectBuffer.CurrentSnapshot, PointTrackingMode.Negative).Position;
+				var references = ThreadHelper.JoinableTaskFactory.Run(() =>
+					new RoslynGramCompletion(args.SubjectBuffer, Workspace, Documents)
+						.FindReferencesAsync(
+							position,
+							CancellationToken.None,
+							message => ActivityLog.LogError("DotGram.VisualStudio", message)));
+				if (references is null)
+				{
+					ActivityLog.LogWarning("DotGram.VisualStudio", "C# Find All References found no symbol at the caret.");
+					return false;
+				}
 
-			Show(references);
-			return true;
+				ActivityLog.LogInformation(
+					"DotGram.VisualStudio",
+					$"C# Find All References found {references.References.Count} results for {references.Name}.");
+				Show(references);
+				return true;
+			}
+			catch (Exception exception) when (exception is not OutOfMemoryException)
+			{
+				ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
+				return false;
+			}
 		}
 
 		var found = Target(args);
