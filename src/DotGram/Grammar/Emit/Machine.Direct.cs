@@ -489,6 +489,8 @@ sealed partial class Machine
 		DirectGuardNeeds(rules);
 		DirectArms(rules);
 
+		_directRules = rules;
+
 		// Cleared before the entries: an entry's call to a rule written in place that
 		// still needs a reader is a wanted reader too.
 		_readersWanted.Clear();
@@ -1566,7 +1568,10 @@ sealed partial class Machine
 			if (_owner is null)
 				return;
 
-			code.Line($"ways.Begin({machine.DirectArm(_owner, factory)}, pos, p);");
+			code.Line(
+				machine.DirectPositions(machine._directRules)
+					? $"ways.Begin({machine.DirectArm(_owner, factory)}, pos, p);"
+					: $"ways.Begin({machine.DirectArm(_owner, factory)});");
 
 			// A fold step's first member is the value so far — the record of the base or of
 			// the step before it — and each of its members is the one thing the step

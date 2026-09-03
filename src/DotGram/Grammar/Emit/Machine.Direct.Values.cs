@@ -324,6 +324,9 @@ sealed partial class Machine
 	readonly Dictionary<(RuleSymbol Rule, int Factory), int> _directArms = [];
 	readonly List<(RuleSymbol Rule, int Factory)>            _directArmed = [];
 
+	/// <summary>The rules a direct rendering is being written for, for the record's shape.</summary>
+	internal IReadOnlyList<RuleSymbol> _directRules = [];
+
 	/// <summary>Which arm a rule's alternative writes its record under.</summary>
 	public int DirectArm(RuleSymbol rule, int factory) => _directArms[(rule, factory)];
 
@@ -353,12 +356,17 @@ sealed partial class Machine
 	/// asks for the text or the span, or a terminal the lexer measured and a machine of
 	/// its own rereads. Where none does, the two loads are not made.
 	/// </summary>
-	bool DirectPositions(IReadOnlyList<RuleSymbol> rules)
+	public bool DirectPositions(IReadOnlyList<RuleSymbol> rules)
 	{
 		foreach (var rule in rules)
 		{
-			if (!Valued(rule) || IsExtent(rule))
+			if (!Valued(rule))
 				continue;
+
+			// An extent's value is the span its record stands on; nothing else is read
+			// from it, and nothing else would be there to read.
+			if (IsExtent(rule))
+				return true;
 
 			if (_reread is not null && _reread.Contains(rule))
 				return true;
@@ -552,7 +560,7 @@ sealed partial class Machine
 					file.Line();
 					file.Line("if (!live[at]) continue;");
 					file.Line();
-					file.Line("var read = at + 4;");
+					file.Line($"var read = at + {(DirectPositions(rules) ? 4 : 2)};");
 					file.Line();
 					using (file.Block("switch (log[at + 1])"))
 						foreach (var (rule, factory) in _directArmed)
@@ -600,13 +608,15 @@ sealed partial class Machine
 					file.Line();
 				}
 
-				if (DirectPositions(rules))
+				var placed = DirectPositions(rules);
+
+				if (placed)
 				{
 					file.Line("var start = log[at + 2];");
 					file.Line("var end   = log[at + 3];");
 				}
 
-				file.Line("var read  = at + 4;");
+				file.Line($"var read  = at + {(placed ? 4 : 2)};");
 				file.Line();
 
 				if (twice)

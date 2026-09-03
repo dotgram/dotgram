@@ -11812,3 +11812,30 @@ documents actually does.
 
 What it costs is stated rather than hidden: a thread that has read one large document holds
 its arrays until it reads another.
+
+## Built: a record that stands nowhere in particular
+
+A record's header was length, arm, start, end. The two positions are where the rule read,
+and they are read back by exactly three things: a factory that asks for the matched text,
+a factory that asks for its span, and a terminal the lexer measured that a machine of its
+own rereads. A grammar with none of those writes two integers per record and never looks
+at them again. Standard SQL is such a grammar, and so are twenty of the twenty-one others
+here; `FixParser`, which keeps spans, is the one that is not.
+
+The header is two integers there now, and the walk reads its members from `at + 2`. It is
+per machine and decided once: the record's shape is the same for every arm of one walk,
+which is what lets the walk step from record to record without asking what shape this one
+is.
+
+| input | before | now | by hand | ratio |
+| --- | --: | --: | --: | --: |
+| `a = 1` | 177 ns | 168 | 46 | 3.6 |
+| `(a + b) * c > d` | 340 | 331 | 102 | 3.2 |
+| `x = 1 AND y IS NOT NULL` | 339 | 296 | 123 | 2.4 |
+| 64 predicates joined by `AND` | 11,126 | 10,457 | 4,270 | 2.45 |
+| 64 operands joined by `+` | 4,567 | 4,280 | 1,897 | 2.26 |
+
+And on the input that made the case for looking at the log at all: two hundred thousand
+predicates, three and three-quarter megabytes, seventy-one milliseconds becomes sixty-two.
+A third of the log is gone, and a walk over a third less of it is a walk that misses the
+cache a third less often.

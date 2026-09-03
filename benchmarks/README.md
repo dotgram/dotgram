@@ -579,6 +579,12 @@ those are on the path:
 | `x = 1 AND y IS NOT NULL` | 308 | 121 | 2.6 |
 | 64 predicates joined by `AND` | 11,098 | 4,271 | 2.6 |
 
+Then a record stopped carrying the two positions it stood on, which are read back only by
+a factory that asks for the matched text or its span and by a terminal a machine of its
+own rereads. Twenty of the twenty-two grammars here ask for none of them. A third of the
+log went with it: 168 ns on `a = 1`, 10,457 on the sixty-four predicates, and 71
+milliseconds down to 62 on the four-megabyte input.
+
 ### 2026-09-04: what a huge input costs
 
 `--big` reads one search condition at five sizes up to about four megabytes and prints

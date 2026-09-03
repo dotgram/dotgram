@@ -2496,7 +2496,7 @@ namespace DotGram.Snapshots
 			}
 			p++;
 			b0 = p;
-			ways.Begin(0, pos, p);
+			ways.Begin(0);
 			ways.Put(a0, b0);
 			ways.End(rb);
 			fold = ways.Last;
@@ -2534,7 +2534,7 @@ namespace DotGram.Snapshots
 			if (ways.Cursor > s3 && ways.Retry(s3)) goto L7_again;
 			goto L6_failed;
 			L9_on: ;
-			ways.Begin(1, pos, p);
+			ways.Begin(1);
 			ways.Put(fold);
 			ways.Put(r1);
 			ways.End(rb);
@@ -2589,7 +2589,7 @@ namespace DotGram.Snapshots
 
 				if (!live[at]) continue;
 
-				var read = at + 4;
+				var read = at + 2;
 
 				switch (log[at + 1])
 				{
@@ -2616,7 +2616,7 @@ namespace DotGram.Snapshots
 			{
 				if (!live[at]) continue;
 
-				var read  = at + 4;
+				var read  = at + 2;
 
 				switch (log[at + 1])
 				{
@@ -5382,6 +5382,21 @@ namespace DotGram.Snapshots
 			/// because the walk at the end wants both together and asking twice cost a
 			/// switch inside a switch — two jump tables where a record needs one.
 			/// </remarks>
+			/// <summary>
+			/// Opens a record that stands nowhere in particular: where nothing a machine
+			/// builds is a span of the input, and no factory it runs asks where it read,
+			/// the two positions are two integers written and never looked at.
+			/// </summary>
+			internal void Begin(int arm)
+			{
+				if (LogCount + 2 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 2);
+
+				_record = LogCount;
+				Log[LogCount++] = 0;
+				Log[LogCount++] = arm;
+			}
+
 			internal void Begin(int arm, int start, int end)
 			{
 				if (LogCount + 4 > Log.Length)

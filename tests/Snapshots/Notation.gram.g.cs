@@ -424,7 +424,7 @@ namespace DotGram.Snapshots
 			if (q0 < 0) goto Fail;
 			p = q0;
 			r0 = ways.Last;
-			ways.Begin(0, pos, p);
+			ways.Begin(0);
 			ways.Put(r0);
 			ways.End(rb);
 			return p;
@@ -470,7 +470,7 @@ namespace DotGram.Snapshots
 			}
 			if (p > (m0 + 1)) { if (ways.Cursor < ways.Count) { d0 = ways.Items[ways.Cursor * 2]; ways.Cursor++; } else { ways.Open(p - (m0 + 1)); d0 = 0; } p -= d0; }
 			b0 = p;
-			ways.Begin(1, pos, p);
+			ways.Begin(1);
 			ways.Put(a0, b0);
 			ways.End(rb);
 			return p;
@@ -503,7 +503,7 @@ namespace DotGram.Snapshots
 
 				if (!live[at]) continue;
 
-				var read = at + 4;
+				var read = at + 2;
 
 				switch (log[at + 1])
 				{
@@ -527,7 +527,7 @@ namespace DotGram.Snapshots
 			{
 				if (!live[at]) continue;
 
-				var read  = at + 4;
+				var read  = at + 2;
 
 				switch (log[at + 1])
 				{
@@ -797,7 +797,7 @@ namespace DotGram.Snapshots
 			}
 			if (p > (m0 + 1)) { if (ways.Cursor < ways.Count) { d0 = ways.Items[ways.Cursor * 2]; ways.Cursor++; } else { ways.Open(p - (m0 + 1)); d0 = 0; } p -= d0; }
 			b0 = p;
-			ways.Begin(0, pos, p);
+			ways.Begin(0);
 			ways.Put(a0, b0);
 			ways.End(rb);
 			return p;
@@ -830,7 +830,7 @@ namespace DotGram.Snapshots
 
 				if (!live[at]) continue;
 
-				var read = at + 4;
+				var read = at + 2;
 
 				switch (log[at + 1])
 				{
@@ -848,7 +848,7 @@ namespace DotGram.Snapshots
 			{
 				if (!live[at]) continue;
 
-				var read  = at + 4;
+				var read  = at + 2;
 
 				switch (log[at + 1])
 				{
@@ -1017,7 +1017,7 @@ namespace DotGram.Snapshots
 			}
 			if (p > (m0 + 1)) { if (ways.Cursor < ways.Count) { d0 = ways.Items[ways.Cursor * 2]; ways.Cursor++; } else { ways.Open(p - (m0 + 1)); d0 = 0; } p -= d0; }
 			b0 = p;
-			ways.Begin(0, pos, p);
+			ways.Begin(0);
 			ways.Put(a0, b0);
 			ways.End(rb);
 			return p;
@@ -1050,7 +1050,7 @@ namespace DotGram.Snapshots
 
 				if (!live[at]) continue;
 
-				var read = at + 4;
+				var read = at + 2;
 
 				switch (log[at + 1])
 				{
@@ -1068,7 +1068,7 @@ namespace DotGram.Snapshots
 			{
 				if (!live[at]) continue;
 
-				var read  = at + 4;
+				var read  = at + 2;
 
 				switch (log[at + 1])
 				{
@@ -1348,7 +1348,7 @@ namespace DotGram.Snapshots
 			if (ways.Cursor > s2 && ways.Retry(s2)) goto L3_again;
 			goto L1_undo;
 			L5_on: ;
-			ways.Begin(0, pos, p);
+			ways.Begin(0);
 			ways.Put(r0);
 			ways.End(rb);
 			fold = ways.Last;
@@ -1368,7 +1368,7 @@ namespace DotGram.Snapshots
 				goto L9_failed;
 			}
 			p += 2;
-			ways.Begin(1, pos, p);
+			ways.Begin(1);
 			ways.Put(fold);
 			ways.End(rb);
 			fold = ways.Last;
@@ -1428,7 +1428,7 @@ namespace DotGram.Snapshots
 				goto Fail;
 			}
 			b0 = p;
-			ways.Begin(2, pos, p);
+			ways.Begin(2);
 			ways.Put(a0, b0);
 			ways.End(rb);
 			return p;
@@ -1461,7 +1461,7 @@ namespace DotGram.Snapshots
 
 				if (!live[at]) continue;
 
-				var read = at + 4;
+				var read = at + 2;
 
 				switch (log[at + 1])
 				{
@@ -1491,7 +1491,7 @@ namespace DotGram.Snapshots
 			{
 				if (!live[at]) continue;
 
-				var read  = at + 4;
+				var read  = at + 2;
 
 				switch (log[at + 1])
 				{
@@ -2476,6 +2476,21 @@ namespace DotGram.Snapshots
 			/// because the walk at the end wants both together and asking twice cost a
 			/// switch inside a switch — two jump tables where a record needs one.
 			/// </remarks>
+			/// <summary>
+			/// Opens a record that stands nowhere in particular: where nothing a machine
+			/// builds is a span of the input, and no factory it runs asks where it read,
+			/// the two positions are two integers written and never looked at.
+			/// </summary>
+			internal void Begin(int arm)
+			{
+				if (LogCount + 2 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 2);
+
+				_record = LogCount;
+				Log[LogCount++] = 0;
+				Log[LogCount++] = arm;
+			}
+
 			internal void Begin(int arm, int start, int end)
 			{
 				if (LogCount + 4 > Log.Length)
