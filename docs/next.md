@@ -12557,47 +12557,45 @@ and the tree is the same. The remaining distance is in the walk that builds the 
 the shapes the notation makes a person write differently from how they would by hand — and
 those are grammar questions, not emitter ones.
 
-## Profiled: the distance to the hand-written parser, halved between two things
+## Profiled: the distance to the hand-written parser is one pass it does not make
 
 With one rendering by methods left, both parsers profiled on the same input — the
 sixty-four predicates, fifteen seconds of `--spin` each, sampling — and read per parse:
+11.81 us generated against 3.89 by hand.
 
-| | generated | by hand |
-| --- | --: | --: |
-| whole parse | 11.81 us | 3.89 us |
-| the lexer | 1.48 | 1.16 |
-| recognizing | ~4.1 | ~1.4 |
-| building the tree | 5.20 | — |
+Two things in the generated parser have no counterpart in the hand-written one at all:
 
-**The building half has no counterpart in the hand-written parser at all.** It records
-what it read on a log and walks the log at the end, building each value from the records
-under it; the hand-written one builds where it reads. That walk is forty-four percent of
-the parse. Nothing in it is obviously wasted — it is a loop stepping record to record, a
-switch on the arm, a few loads and a call into the author's own C# — which is what makes
-it the architecture rather than a defect.
+| | us per parse | what it is |
+| --- | --: | --- |
+| `Materialize_DotGram_Direct` | 2.99 | the walk over the log that builds every value |
+| `Array.Clear` of the value tables | 0.72 | putting them back for the next parse |
 
-**And the recognizing half is about three times the hand-written one too**, so the ratio
-is not one problem: it is the same ratio twice, once in reading and once in building.
+**Three and a half microseconds, thirty percent of the parse, spent on a pass the
+hand-written parser does not make** — it builds each node where it reads it. Nothing in
+the walk is wasted: a loop stepping record to record, a switch on the arm, a few loads
+and a call into the author's own C#. What it costs is what it is.
 
-**What eager construction would and would not buy.** Building the value where the record
-is written, rather than logging and walking, needs the construction to be committed:
-nothing that can still fail may reach back over it, because a factory is the author's code
-and must not run for a derivation that is not the answer
-(`Construction_runs_only_for_the_accepted_derivation`). Over kinds a rule's answer stands,
-so what can abandon a record is an enclosing alternative or turn that fails after it — and
-those are exactly the places the reader already puts the log back. But a rule that has
-answered can still be abandoned by its caller, and transitively "nothing can fail after
-this" holds only on the rightmost spine of the publication. So eagerness is available
-where it is proved and nowhere else, and how much of a real grammar that covers is the
-measurement to make before writing any of it.
+Everything else divides about as one would hope. Lexing is 1.47 against 1.17. Recognizing
+is 3.85 against 2.31, which is 1.7x and not the three the totals suggest. The factories
+themselves are 0.79, and both parsers pay them.
 
-**What is contained, and worth doing whatever is decided about the walk.** The value
-tables are indexed by a record's offset in the log and sized to the log's length in words,
-so three tables are cleared over four times the slots that were ever written — about
-seven percent of the parse in `Array.Clear`. Only record starts hold anything, and the log
-itself says where they are.
+**A measurement to be careful with.** Grouping the two profiles by hand put `String.Substring`
+at 0.92 in the generated parser and 0.00 in the hand-written one, which looked like the
+hand-written one avoiding a cut per operand. It does not — it cuts one per name and one
+per literal, the same hundred and twenty-eight — and what the profile is saying is that
+its allocations landed in `[Native or optimized code]`, which is 5.13 against a 3.89 total
+and is the sampler's catch-all rather than a cost. Anything read out of that bucket is not
+a comparison.
 
-**One thing measured and kept for what it is rather than for speed.** A refusal at the
-furthest position is a tie and a tie was appended to a list — the same wanted set once per
-alternative that wanted it, on a parse that goes on to succeed. Said once now. The ratios
-did not move; the message is better and the list stops growing.
+**Why the walk cannot simply go.** The language promises it: a `=>` construction is
+deferred until recognition has selected the accepted derivation, and an alternative
+abandoned by backtracking does not invoke an unrequested construction (§7.3, §12). That
+promise is load-bearing — it is exactly what lets an author write a factory that is not
+safe for speculative invocation, where a `when` guard and an external recognizer must be.
+Building where the record is written would break it for every grammar, and proving a
+construction committed is only possible on the rightmost spine of a publication: a rule
+that has answered can still be abandoned by its caller, transitively, all the way up.
+
+So the walk stays until either it is made cheaper or the notation is given a way for an
+author to say that a particular construction may run speculatively — which is a language
+question and not an emitter one.
