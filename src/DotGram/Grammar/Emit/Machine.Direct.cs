@@ -1774,9 +1774,7 @@ sealed partial class Machine
 			else
 			{
 				code.Line(
-					"if (!global::System.MemoryExtensions.Equals(" +
-					$"text.Slice(p, {text.Length}), {Spanned(text)}, " +
-					"global::System.StringComparison.OrdinalIgnoreCase))");
+					$"if (!global::System.MemoryExtensions.Equals(text.Slice(p, {text.Length}), {Spanned(text)}, global::System.StringComparison.OrdinalIgnoreCase))");
 				using (code.Block(""))
 					Refused(code, "p", name, fail);
 			}
