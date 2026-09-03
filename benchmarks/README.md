@@ -763,3 +763,42 @@ followed the input, so a record the window cut in half looked like a record that
 match, and the stream closed a repetition that had not ended after a hundred and fourteen
 records of a hundred thousand (docs/next.md, "a scanner that matched threw away how far it
 had looked"). Nothing caught it until every benchmark in the repository was run at once.
+
+## How a deferred construction is carried
+
+`DeferredShape.cs`. A `=>` is deferred until recognition has selected the accepted
+derivation (docs/syntax.md §7.3) — that is what lets an author write a factory that is not
+safe for speculative invocation, where a `when` guard must be. Deferring is not in
+question; how it is carried is. Today it is a log, a record per construction holding the
+arm and where its arguments are, walked at the end with a switch over every arm the
+grammar has.
+
+One tree in five shapes: a hundred and twenty-eight leaves cut from the input, sixty-four
+pairs over them and a spine of sixty-three joins, which is `a0 = 1 AND a1 = 1 AND …`.
+`--filter *DeferredShape* --inProcess`, 2026-09-03:
+
+| | mean | ratio | allocated |
+| --- | --: | --: | --: |
+| eager — built where read, no deferral | 1.782 us | 0.64 | 11.91 KB |
+| dense — values by which record, not where it sits | 2.686 us | 0.96 | 11.91 KB |
+| switched — the log as it is now | 2.789 us | 1.00 | 11.91 KB |
+| called — a table of delegates the generator wrote | 3.227 us | 1.16 | 11.91 KB |
+| closures — a tree of them built while reading | 4.181 us | 1.50 | 36.86 KB |
+
+**Deferral costs a little over half again on top of building, and none of the other ways
+of carrying it is better.** A table of delegates — written once at class initialization, so
+nothing is allocated per parse, which the allocation column confirms — loses sixteen
+percent to the jump table: an indirect call through a delegate is dearer than an indirect
+jump through a table, even a sparse one. Closures built while reading lose half and three
+times the allocation, which is the cost of an object per node beyond the node.
+
+Indexing values by which record they are rather than by where the record sits in the log
+is worth four percent, not the four times its footprint suggests: the tables shrink but
+nothing was waiting on them.
+
+**What the floor says about the real parser.** The generated SQL parser spends about 5.4 us
+building — the walk, the cuts, the factories and clearing the tables — where this lean
+log-and-walk over the same tree spends 2.79. So there is about a factor of two in our own
+bookkeeping and only a third in the deferral, which is the opposite of the way it looked
+from the profile alone: the walk is not expensive because it defers, it is expensive
+because of what it carries.

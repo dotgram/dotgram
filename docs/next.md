@@ -12599,3 +12599,44 @@ that has answered can still be abandoned by its caller, transitively, all the wa
 So the walk stays until either it is made cheaper or the notation is given a way for an
 author to say that a particular construction may run speculatively — which is a language
 question and not an emitter one.
+
+## Measured: deferral is not what the walk costs
+
+The profile said the walk over the log is thirty percent of a generated SQL parse and has
+no counterpart in the hand-written one, and the reading of that was that deferring the
+construction is what costs. It is not, and `DeferredShape.cs` says so: one tree, five ways
+to carry the deferred call, in a synthetic lean enough that nothing but the shape is being
+compared.
+
+| | mean | ratio |
+| --- | --: | --: |
+| built where read, no deferral at all | 1.782 us | 0.64 |
+| values by which record, not where it sits | 2.686 us | 0.96 |
+| the log as it is now | 2.789 us | 1.00 |
+| a table of delegates the generator wrote | 3.227 us | 1.16 |
+| a tree of closures built while reading | 4.181 us | 1.50 |
+
+**Three things this settles.**
+
+The way the deferred call is carried is already the best of the four tried. A table of
+delegates written at generation time — which allocates nothing per parse, and the
+allocation column proves it — is sixteen percent worse than the switch, because an
+indirect call through a delegate is dearer than an indirect jump through a jump table.
+Closures built while reading are half again worse and allocate three times as much.
+
+Deferral itself costs about a third over building eagerly. Not thirty percent of the
+parse: a third of the building, which for SQL is nearer eight percent of the whole. So
+even a language that let a construction run speculatively would buy less than the profile
+suggested, and it would buy it by taking away the one thing that lets a factory be written
+without thinking about speculation.
+
+And the real materializer costs about twice this synthetic one for the same tree. That is
+where the room is, and it is ours: the positions a record carries where nothing reads
+them, the `Live` and `Built` arrays, the `Held<T>` indirection, three tables where the
+values of one parse are of one kind at a time. None of it is the architecture — all of it
+is bookkeeping that grew with the features that needed it and is paid by the grammars that
+do not.
+
+So the answer to "should the generator build where it reads, as a person does" is: it
+would help less than it looks, and the same work is available without touching the
+language.
