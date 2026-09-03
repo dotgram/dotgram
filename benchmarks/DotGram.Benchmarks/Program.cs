@@ -2,6 +2,8 @@
 
 using BenchmarkDotNet.Running;
 
+using DotGram.Parsers;
+
 namespace DotGram.Benchmarks;
 
 /// <summary>
@@ -16,6 +18,43 @@ static class Program
 {
 	static void Main(string[] args)
 	{
+		// `--lexers [rounds] [iterations]` is the two lexers alone, the generated one
+		// measured by refusing the parse at its first token. See SqlAgainst.Lexers.
+		if (args.Length > 0 && args[0] == "--lexers")
+		{
+			SqlAgainst.Lexers(
+				args.Length > 1 && int.TryParse(args[1], out var rounds) ? rounds : 7,
+				args.Length > 2 && int.TryParse(args[2], out var runs) ? runs : 300_000);
+
+			return;
+		}
+
+		// `--spin [seconds] [input] [hand]` is not a benchmark either: it reads one SQL
+		// input over and over, long enough for a profiler to attach and sample. Which
+		// input is an index into SqlAgainst.Inputs, and `hand` runs the hand-written
+		// parser instead of the generated one, so the two profiles can be read against
+		// each other — where the generated one spends time the other has no line for is
+		// where the generator's own machinery is.
+		if (args.Length > 0 && args[0] == "--spin")
+		{
+			var seconds = args.Length > 1 && int.TryParse(args[1], out var given) ? given : 20;
+			var which   = args.Length > 2 && int.TryParse(args[2], out var index) ? index : 4;
+			var byHand  = args.Length > 3 && args[3] == "hand";
+			var text    = SqlAgainst.Inputs[which];
+			var until   = DateTime.UtcNow.AddSeconds(seconds);
+			var read    = 0;
+
+			while (DateTime.UtcNow < until)
+				for (var i = 0; i < 2000; i++)
+					read += byHand
+						? HandSqlTokens.Parse(text) ? 1 : 0
+						: SqlStandard92.TryParseSearchCondition(text).IsSuccess ? 1 : 0;
+
+			Console.WriteLine($"{read:N0} parses of \"{text}\"");
+
+			return;
+		}
+
 		// `--depth N` is not a benchmark: it is one run that either prints `ok` or takes
 		// the process with it, so that a caller can walk N up and find where nesting stops
 		// being possible. See Nesting.cs.

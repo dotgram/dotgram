@@ -96,18 +96,40 @@ sealed partial class Machine
 			return shaped;
 		}
 
-		for (var i = 0; i < members.Count; i++)
+		// Every other record holds what its factory names, and nothing else. A rule of
+		// several alternatives has one member per capture name across all of them, and a
+		// record written for one alternative used to carry the lot: `ValueExpressionPrimary`
+		// in standard SQL wrote five, four of them absent, on every one of its eight
+		// alternatives — and the walk at the end read five back. Which member belongs to
+		// which alternative is what the factory's parameters already say.
+		if (factory >= 0 && factory < _factories[rule].Count)
 		{
-			var member = members[i];
-			var shape  = member.Rule is null
-				? member.Slots.Any(repeated.Contains) ? MemberShape.Pieces : MemberShape.Text
-				: member.IsSequence ? MemberShape.Records : MemberShape.Record;
+			var made = _factories[rule][factory];
 
-			shaped.Add(new DirectMember(member, i, shape, member.Slots));
+			foreach (var wanted in made.Members)
+			{
+				if (wanted.Name == "parserText" || wanted.Name == made.Accumulator)
+					continue;
+
+				for (var i = 0; i < members.Count; i++)
+					if (members[i].Name == wanted.Name)
+						shaped.Add(new DirectMember(members[i], i, Shaped(members[i], wanted.Slots, repeated), wanted.Slots));
+			}
+
+			return shaped;
 		}
+
+		for (var i = 0; i < members.Count; i++)
+			shaped.Add(new DirectMember(members[i], i, Shaped(members[i], members[i].Slots, repeated), members[i].Slots));
 
 		return shaped;
 	}
+
+	/// <summary>How a record holds one member: the text it stands on, or the record it names.</summary>
+	static MemberShape Shaped(ResultMember member, IReadOnlyList<int> slots, HashSet<int> repeated) =>
+		member.Rule is null
+			? slots.Any(repeated.Contains) ? MemberShape.Pieces : MemberShape.Text
+			: member.IsSequence ? MemberShape.Records : MemberShape.Record;
 
 	/// <summary>The capture slots of a rule under its fold's loop: those a step writes, rule-local.</summary>
 	HashSet<int> DirectStepSlots(RuleSymbol rule)
@@ -180,6 +202,205 @@ sealed partial class Machine
 		return layout.Slots.Count <= 60;
 	}
 
+	/// <summary>
+	/// Whether a record can be in the log that the root does not reach, so that the walk
+	/// has to find out which ones before building any.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A valued rule that matched writes a record whether or not its caller kept the
+	/// value, and §7.2 says a factory runs only for what the answer is made of — so the
+	/// walk marks what the root reaches, back to front, before building anything. That is
+	/// a pass over every record, an array of flags the width of the log, and a switch per
+	/// record to say what it names.
+	/// </para>
+	/// <para>
+	/// None of it is needed where every call to a valued rule is captured: then every
+	/// record in the log is one somebody kept, and the root reaches all of them. Which is
+	/// nearly every grammar that builds — a value nobody captures is a value written for
+	/// nothing, and an author who wrote one meant to capture it.
+	/// </para>
+	/// <para>
+	/// A lookahead is the exception and is refused here: what it read is put back, but its
+	/// records are not, so a record inside one may be in the log with nothing naming it.
+	/// </para>
+	/// </remarks>
+	bool DirectStrays(IReadOnlyList<RuleSymbol> rules)
+	{
+		// Over characters a rule's answer can be taken back after it has answered — the
+		// publication's own reader runs again from the start when the whole input was not
+		// read — and the record it wrote stays in the log. Over kinds nothing is taken
+		// back (docs/syntax.md §4), so what is in the log is what was read.
+		if (!OverKinds)
+			return true;
+
+		foreach (var rule in rules)
+			if (_graph.Bodies.TryGetValue(rule, out var body) && Strays(body, false))
+				return true;
+
+		return false;
+
+		bool Strays(Node node, bool kept)
+		{
+			switch (node)
+			{
+				case Node.Call(var called, _):
+					return Valued(called) && !kept;
+
+				case Node.Capture(_, var held):
+					return Strays(
+						held,
+						held is Node.Call(var one, _) && Valued(one) ||
+						held is Node.Repeat(Node.Call(var many, _), _, _) && Valued(many));
+
+				case Node.Lookahead(_, var inside):
+					return NodeWalk.Descendants(inside)
+						.Any(one => one is Node.Call(var seen, _) && Valued(seen));
+
+				case Node.Construct(var built, _):
+					return Strays(built, kept);
+
+				case Node.Sequence(var parts):
+					return parts.Any(part => Strays(part, false));
+
+				case Node.Choice(var alternatives):
+					return alternatives.Any(one => Strays(one, kept));
+
+				case Node.Repeat(var repeated, _, _):
+					return Strays(repeated, kept);
+
+				case Node.Atomic(var body):
+					return Strays(body, kept);
+
+				case Node.Marked(var body, _):
+					return Strays(body, kept);
+
+				default:
+					return false;
+			}
+		}
+	}
+
+	/// <summary>
+	/// Whether an alternative's value is exactly the value of the one rule it called, so
+	/// that it needs no record of its own.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A ladder is written as a rule per level, and every level but the top hands its
+	/// operand up unchanged: <c>SearchCondition = … | t: BooleanTerm =&gt; @(t)</c>. Written
+	/// out, that was a record saying which rule and which alternative, a slot holding the
+	/// record below, and a walk that read the slot back and called a factory whose whole
+	/// body is <c>t</c>. Standard SQL has fourteen alternatives of that shape, and reading
+	/// <c>a = 1</c> went through nine of them.
+	/// </para>
+	/// <para>
+	/// Nothing is written now, and the rule's value is the record its callee left — which
+	/// is what <c>ways.Last</c> already holds, and what a caller capturing this rule
+	/// already reads. The types have to be the same for that to be true, so they are
+	/// checked rather than assumed.
+	/// </para>
+	/// </remarks>
+	bool DirectForwards(RuleSymbol? rule, int factory)
+	{
+		if (rule is null || factory < 0 || IsExtent(rule) || _reread is not null && _reread.Contains(rule))
+			return false;
+
+		var factories = _factories[rule];
+
+		if (factory >= factories.Count)
+			return false;
+
+		var made = factories[factory];
+
+		// A fold's step leads with the value so far, and an ambient argument is something
+		// the record's own positions answer. Neither is the callee's value.
+		if (made.Accumulator is not null ||
+			CSharpEmitter.WantsText(_graph, made) ||
+			CSharpEmitter.Asks(_graph, made, "parserSpan") ||
+			CSharpEmitter.Asks(_graph, made, "parserInput") ||
+			_graph.Context is not null && CSharpEmitter.Asks(_graph, made, "context") ||
+			_graph.State is not null && CSharpEmitter.Asks(_graph, made, "parserState"))
+		{
+			return false;
+		}
+
+		if (made.Of is not Node.Construct(var body, Construction.Expression(var text, _)))
+			return false;
+
+		if (Alone(body) is not Node.Capture(var name, Node.Call(var called, { Count: 0 })))
+			return false;
+
+		return Valued(called) &&
+			_results.QualifiedOf(called) == _results.QualifiedOf(rule) &&
+			Bare(text) == (Keywords.Contains(name) ? "@" + name : name);
+	}
+
+	/// <summary>
+	/// An expression with the parentheses around the whole of it taken off, which is how
+	/// <c>=&gt; @(v)</c> reaches here from some places and not others.
+	/// </summary>
+	static string Bare(string text)
+	{
+		text = text.Trim();
+
+		while (text.Length > 2 && text[0] == '(' && text[text.Length - 1] == ')')
+		{
+			var depth = 0;
+
+			for (var i = 0; i < text.Length - 1; i++)
+			{
+				depth += text[i] == '(' ? 1 : text[i] == ')' ? -1 : 0;
+
+				if (depth == 0)
+					return text;
+			}
+
+			text = text.Substring(1, text.Length - 2).Trim();
+		}
+
+		return text;
+	}
+
+	/// <summary>
+	/// The one operand an alternative is made of, where the seam woven around it is all
+	/// that stands beside it (§4.5) — or the node itself where it is not a sequence.
+	/// </summary>
+	Node? Alone(Node body)
+	{
+		if (body is not Node.Sequence(var parts))
+			return body;
+
+		Node? only = null;
+
+		foreach (var part in parts)
+		{
+			if (part is Node.Empty or Node.Glue or Node.Behind ||
+				part is Node.Call(var seam, { Count: 0 }) && ReferenceEquals(seam, _seam))
+			{
+				continue;
+			}
+
+			if (only is not null)
+				return null;
+
+			only = part;
+		}
+
+		return only;
+	}
+
+	/// <summary>C#'s reserved words, for the parameter a capture's name becomes.</summary>
+	static readonly HashSet<string> Keywords = ["base", "string", "object", "int", "value", "default", "params"];
+
+	/// <summary>Where a direct walk writes a rule's value: into the table's held slot.</summary>
+	string DirectInto(string type, string index) =>
+		ValueInto(type, index) + (TableFor(type) >= 0 ? ".Value" : "");
+
+	/// <summary>Where a direct walk reads one back.</summary>
+	string DirectFrom(string type, string index) =>
+		ValueFrom(type, index) + (TableFor(type) >= 0 ? ".Value" : "");
+
 	/// <summary>The materializer for one direct machine: a walk over the log, a switch per rule.</summary>
 	string RenderDirectMaterializer(IReadOnlyList<RuleSymbol> rules)
 	{
@@ -189,6 +410,10 @@ sealed partial class Machine
 
 		var folds = rules.Any(rule => Valued(rule) && _graph.Folds.ContainsKey(rule));
 
+		// The marking pass reads the factory wherever a record's members depend on it: a
+		// fold, and any rule of several alternatives now that each writes its own.
+		var chooses = folds || rules.Any(rule => Valued(rule) && _factories[rule].Count > 1);
+
 		// The root is the record whose value is wanted — the last one written, at the end;
 		// a captured rule's, for a guard. `from` is where the walk may begin: a guard's
 		// captures were recorded since its rule began, and nothing before that reaches them.
@@ -197,42 +422,59 @@ sealed partial class Machine
 			$"{WaysType} ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from" +
 			$"{InputParameter}{TokensParameter}{ContextParameter})"))
 		{
-			file.Line("values.Room(ways.LogCount);");
+			// A guard builds while the text is read, so the walk at the end must know what
+			// it already built; where no guard builds, nothing is ever built twice and the
+			// flags and the clearing of them are work for a question with one answer.
+			var twice  = _directBuilds;
+			var strays = DirectStrays(rules);
+
+			file.Line($"values.Room(ways.LogCount{(strays ? "" : ", live: false")});");
 			file.Line();
 			file.Line("var log   = ways.Log;");
-			file.Line("var live  = values.Live;");
-			file.Line("var built = values.Built;");
+
+			if (strays)
+				file.Line("var live  = values.Live;");
+
+			if (twice)
+			{
+				file.Line("var built = values.Built;");
+				file.Line();
+				// A record above the watermark was written since anything was built: whatever
+				// its flag says is about a record that was put back with the log.
+				file.Line("global::System.Array.Clear(built, ways.Built, ways.LogCount - ways.Built);");
+			}
+
 			file.Line();
-			// A record above the watermark was written since anything was built: whatever
-			// its flag says is about a record that was put back with the log.
-			file.Line("global::System.Array.Clear(built, ways.Built, ways.LogCount - ways.Built);");
-			file.Line();
+
 			// What the root reaches, and nothing else: a valued rule that matched without being
 			// captured is in the log, and its factory must not run (docs/syntax.md §7.2).
-			file.Line("var starts = values.Starts;");
-			file.Line("var listed = 0;");
-			file.Line();
-			file.Line("for (var at = from; at < ways.LogCount; at += log[at])");
-			file.Then("starts[listed++] = at;");
-			file.Line();
-			file.Line("live[root] = true;");
-			file.Line();
-			using (file.Block("for (var back = listed - 1; back >= 0; back--)"))
+			if (strays)
 			{
-				file.Line("var at = starts[back];");
+				file.Line("var starts = values.Starts;");
+				file.Line("var listed = 0;");
 				file.Line();
-				file.Line("if (!live[at]) continue;");
+				file.Line("for (var at = from; at < ways.LogCount; at += log[at])");
+				file.Then("starts[listed++] = at;");
 				file.Line();
-				file.Line("var read = at + 5;");
+				file.Line("live[root] = true;");
+				file.Line();
+				using (file.Block("for (var back = listed - 1; back >= 0; back--)"))
+				{
+					file.Line("var at = starts[back];");
+					file.Line();
+					file.Line("if (!live[at]) continue;");
+					file.Line();
+					file.Line("var read = at + 5;");
 
-				if (folds)
-					file.Line("var factory = log[at + 2];");
+					if (chooses)
+						file.Line("var factory = log[at + 2];");
 
-				file.Line();
-				using (file.Block("switch (log[at + 1])"))
-					foreach (var rule in rules)
-						if (Valued(rule))
-							MarkDirectRule(file, rule);
+					file.Line();
+					using (file.Block("switch (log[at + 1])"))
+						foreach (var rule in rules)
+							if (Valued(rule))
+								MarkDirectRule(file, rule);
+				}
 			}
 
 			for (var i = 0; i < _valueTypes.Count; i++)
@@ -265,15 +507,27 @@ sealed partial class Machine
 					file.Line();
 				}
 
-				file.Line("if (!live[at] || built[at]) continue;");
-				file.Line();
+				if (strays || twice)
+				{
+					file.Line(
+						"if (" +
+						string.Join(" || ", new[] { strays ? "!live[at]" : null, twice ? "built[at]" : null }
+							.Where(one => one is not null)) +
+						") continue;");
+					file.Line();
+				}
+
 				file.Line("var factory = log[at + 2];");
 				file.Line("var start   = log[at + 3];");
 				file.Line("var end     = log[at + 4];");
 				file.Line("var read    = at + 5;");
 				file.Line();
-				file.Line("built[at] = true;");
-				file.Line();
+
+				if (twice)
+				{
+					file.Line("built[at] = true;");
+					file.Line();
+				}
 
 				using (file.Block("switch (log[at + 1])"))
 					foreach (var rule in rules)
@@ -281,8 +535,11 @@ sealed partial class Machine
 							MaterializeDirectRule(file, rule);
 			}
 
-			file.Line();
-			file.Line("ways.Built = ways.LogCount;");
+			if (twice)
+			{
+				file.Line();
+				file.Line("ways.Built = ways.LogCount;");
+			}
 		}
 
 		return file.ToString();
@@ -326,7 +583,7 @@ sealed partial class Machine
 			{
 				// A terminal that builds: the lexer measured it, and the character machine of its
 				// own builds it from the text.
-				file.Line($"{ValueInto(type, "at")} = Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram({Cut("start", "end - start")});");
+				file.Line($"{DirectInto(type, "at")} = Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram({Cut("start", "end - start")});");
 				file.Line("break;");
 
 				return;
@@ -354,7 +611,7 @@ sealed partial class Machine
 								ReadMember(file, member);
 
 							file.Line(
-								$"{ValueInto(type, "at")} = " +
+								$"{DirectInto(type, "at")} = " +
 								$"{factories[factoryIndex].Method}({string.Join(", ", DirectArguments(rule, factories[factoryIndex], shaped))});");
 							file.Line("break;");
 						}
@@ -365,12 +622,12 @@ sealed partial class Machine
 				return;
 			}
 
-			foreach (var member in members)
-				ReadMember(file, member);
-
 			if (factories.Count == 0)
 			{
-				file.Line($"{ValueInto(type, "at")} = new {type}(");
+				foreach (var member in members)
+					ReadMember(file, member);
+
+				file.Line($"{DirectInto(type, "at")} = new {type}(");
 
 				using (file.Indent())
 					for (var i = 0; i < members.Count; i++)
@@ -380,22 +637,35 @@ sealed partial class Machine
 			}
 			else if (factories.Count == 1)
 			{
+				var shaped = DirectMembers(rule, 0);
+
+				foreach (var member in shaped)
+					ReadMember(file, member);
+
 				file.Line(
-					$"{ValueInto(type, "at")} = " +
-					$"{factories[0].Method}({string.Join(", ", DirectArguments(rule, factories[0], members))});");
+					$"{DirectInto(type, "at")} = " +
+					$"{factories[0].Method}({string.Join(", ", DirectArguments(rule, factories[0], shaped))});");
 			}
 			else
 			{
+				// Each alternative reads its own members, which is what it wrote. The block
+				// is what lets two of them declare `captured0` for two different members.
 				using (file.Block("switch (factory)"))
 					for (var factoryIndex = 0; factoryIndex < factories.Count; factoryIndex++)
 					{
+						var shaped = DirectMembers(rule, factoryIndex);
+
 						file.Line($"case {factoryIndex}:");
 
 						using (file.Indent())
+						using (file.Block(""))
 						{
+							foreach (var member in shaped)
+								ReadMember(file, member);
+
 							file.Line(
-								$"{ValueInto(type, "at")} = " +
-								$"{factories[factoryIndex].Method}({string.Join(", ", DirectArguments(rule, factories[factoryIndex], members))});");
+								$"{DirectInto(type, "at")} = " +
+								$"{factories[factoryIndex].Method}({string.Join(", ", DirectArguments(rule, factories[factoryIndex], shaped))});");
 							file.Line("break;");
 						}
 					}
@@ -437,8 +707,31 @@ sealed partial class Machine
 					}
 			}
 			else if (!IsExtent(rule) && (_reread is null || !_reread.Contains(rule)))
-				foreach (var member in DirectMembers(rule))
-					MarkMember(file, member);
+			{
+				var factories = _factories[rule];
+
+				if (factories.Count > 1)
+				{
+					using (file.Block("switch (factory)"))
+						for (var factoryIndex = 0; factoryIndex < factories.Count; factoryIndex++)
+						{
+							file.Line($"case {factoryIndex}:");
+
+							using (file.Indent())
+							{
+								foreach (var member in DirectMembers(rule, factoryIndex))
+									MarkMember(file, member);
+
+								file.Line("break;");
+							}
+						}
+				}
+				else
+				{
+					foreach (var member in DirectMembers(rule, factories.Count == 1 ? 0 : -1))
+						MarkMember(file, member);
+				}
+			}
 
 			file.Line("break;");
 		}
@@ -571,7 +864,7 @@ sealed partial class Machine
 		type == "SourceSpan"
 			? Span($"log[{record} + 3]", $"log[{record} + 4] - log[{record} + 3]")
 			: TableFor(type) is var table && table >= 0
-				? $"values{table}[{record}]"
+				? $"values{table}[{record}].Value"
 				: throw new InvalidOperationException($"No value table for '{type}'.");
 
 	/// <summary>The factory's arguments, in the order the factory's parameters were written.</summary>

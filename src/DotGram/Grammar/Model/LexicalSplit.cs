@@ -313,15 +313,20 @@ public sealed class LexicalSplit
 		/// and therefore loud. Nothing says <c>Powers</c> would be.
 		/// </para>
 		/// </remarks>
-		readonly Dictionary<Node, Node> _became = [];
+		/// <summary>
+		/// By identity, because the dictionaries being remapped are: the normalizer keys
+		/// <c>Powers</c>, <c>Recoveries</c> and a fold's accumulators by the node object,
+		/// so two call sites a grammar wrote the same way are two keys with two values.
+		/// Keyed by structure this collapsed them into one — every call to a climbing rule
+		/// took the strength of whichever site was rewritten last, and a parenthesized
+		/// operand was read at the strength of the operator around it.
+		/// </summary>
+		readonly Dictionary<Node, Node> _became = new(NodeIdentity.Instance);
 
 		Node Rewrite(Node node, RuleSymbol owner, List<string> blocked)
 		{
 			var into = Rewritten(node, owner, blocked);
 
-			// By structure, so two nodes a grammar wrote the same way share one entry — which
-			// is right: they rewrite the same way too, and the dictionaries being remapped
-			// could not have told them apart in the first place.
 			_became[node] = into;
 
 			return into;
@@ -351,7 +356,7 @@ public sealed class LexicalSplit
 		/// <summary>Every dictionary key that survived, said in the new graph's terms.</summary>
 		Dictionary<Node, T> Remapped<T>(IReadOnlyDictionary<Node, T> from)
 		{
-			var into = new Dictionary<Node, T>(from.Count);
+			var into = new Dictionary<Node, T>(from.Count, NodeIdentity.Instance);
 
 			foreach (var one in from)
 				if (_became.TryGetValue(one.Key, out var became))

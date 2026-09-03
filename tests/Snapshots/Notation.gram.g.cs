@@ -488,9 +488,6 @@ namespace DotGram.Snapshots
 
 			var log   = ways.Log;
 			var live  = values.Live;
-			var built = values.Built;
-
-			global::System.Array.Clear(built, ways.Built, ways.LogCount - ways.Built);
 
 			var starts = values.Starts;
 			var listed = 0;
@@ -528,23 +525,21 @@ namespace DotGram.Snapshots
 
 			for (var at = from; at < ways.LogCount; at += log[at])
 			{
-				if (!live[at] || built[at]) continue;
+				if (!live[at]) continue;
 
 				var factory = log[at + 2];
 				var start   = log[at + 3];
 				var end     = log[at + 4];
 				var read    = at + 5;
 
-				built[at] = true;
-
 				switch (log[at + 1])
 				{
 					case 1:
 					{
 						var record0 = log[read++];
-						var captured0 = values0[record0];
+						var captured0 = values0[record0].Value;
 
-						values0[at] = Construct_Padded_Word_value1(captured0!);
+						values0[at].Value = Construct_Padded_Word_value1(captured0!);
 						break;
 					}
 					case 2:
@@ -553,13 +548,11 @@ namespace DotGram.Snapshots
 						var to0   = log[read++];
 						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
 
-						values0[at] = Construct_Word(captured0!);
+						values0[at].Value = Construct_Word(captured0!);
 						break;
 					}
 				}
 			}
-
-			ways.Built = ways.LogCount;
 		}
 
 		static int Recognize_Marked_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
@@ -825,9 +818,6 @@ namespace DotGram.Snapshots
 
 			var log   = ways.Log;
 			var live  = values.Live;
-			var built = values.Built;
-
-			global::System.Array.Clear(built, ways.Built, ways.LogCount - ways.Built);
 
 			var starts = values.Starts;
 			var listed = 0;
@@ -859,14 +849,12 @@ namespace DotGram.Snapshots
 
 			for (var at = from; at < ways.LogCount; at += log[at])
 			{
-				if (!live[at] || built[at]) continue;
+				if (!live[at]) continue;
 
 				var factory = log[at + 2];
 				var start   = log[at + 3];
 				var end     = log[at + 4];
 				var read    = at + 5;
-
-				built[at] = true;
 
 				switch (log[at + 1])
 				{
@@ -876,13 +864,11 @@ namespace DotGram.Snapshots
 						var to0   = log[read++];
 						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
 
-						values0[at] = Construct_Word(captured0!);
+						values0[at].Value = Construct_Word(captured0!);
 						break;
 					}
 				}
 			}
-
-			ways.Built = ways.LogCount;
 		}
 
 		/// <summary>The whole input as <c>List</c>, read by methods.</summary>
@@ -1055,9 +1041,6 @@ namespace DotGram.Snapshots
 
 			var log   = ways.Log;
 			var live  = values.Live;
-			var built = values.Built;
-
-			global::System.Array.Clear(built, ways.Built, ways.LogCount - ways.Built);
 
 			var starts = values.Starts;
 			var listed = 0;
@@ -1089,14 +1072,12 @@ namespace DotGram.Snapshots
 
 			for (var at = from; at < ways.LogCount; at += log[at])
 			{
-				if (!live[at] || built[at]) continue;
+				if (!live[at]) continue;
 
 				var factory = log[at + 2];
 				var start   = log[at + 3];
 				var end     = log[at + 4];
 				var read    = at + 5;
-
-				built[at] = true;
 
 				switch (log[at + 1])
 				{
@@ -1106,13 +1087,11 @@ namespace DotGram.Snapshots
 						var to0   = log[read++];
 						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
 
-						values0[at] = Construct_Word(captured0!);
+						values0[at].Value = Construct_Word(captured0!);
 						break;
 					}
 				}
 			}
-
-			ways.Built = ways.LogCount;
 		}
 
 		static int Recognize_Ab_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
@@ -1188,7 +1167,7 @@ namespace DotGram.Snapshots
 				}
 
 				Materialize_DotGram_Primary_Direct(ways, text, values, ways.Last, 0);
-				value = values.V1[ways.Last];
+				value = values.V1[ways.Last].Value;
 
 				return end;
 			}
@@ -1273,10 +1252,6 @@ namespace DotGram.Snapshots
 			if (q0 < 0) goto L5_failed;
 			p = q0;
 			r0 = ways.Last;
-			ways.Begin(0, 0, pos, p);
-			ways.Put(r0);
-			ways.Put(r1);
-			ways.End(rb);
 			goto L0_took;
 			L5_failed:
 			p = m0;
@@ -1301,10 +1276,6 @@ namespace DotGram.Snapshots
 			if (q0 < 0) goto L9_failed;
 			p = q0;
 			r1 = ways.Last;
-			ways.Begin(0, 1, pos, p);
-			ways.Put(r0);
-			ways.Put(r1);
-			ways.End(rb);
 			goto L0_took;
 			L9_failed:
 			p = m0;
@@ -1484,9 +1455,6 @@ namespace DotGram.Snapshots
 
 			var log   = ways.Log;
 			var live  = values.Live;
-			var built = values.Built;
-
-			global::System.Array.Clear(built, ways.Built, ways.LogCount - ways.Built);
 
 			var starts = values.Starts;
 			var listed = 0;
@@ -1509,10 +1477,17 @@ namespace DotGram.Snapshots
 				{
 					case 0:
 					{
-						if (log[read] >= 0) live[log[read]] = true;
-						read++;
-						if (log[read] >= 0) live[log[read]] = true;
-						read++;
+						switch (factory)
+						{
+							case 0:
+								if (log[read] >= 0) live[log[read]] = true;
+								read++;
+								break;
+							case 1:
+								if (log[read] >= 0) live[log[read]] = true;
+								read++;
+								break;
+						}
 						break;
 					}
 					case 2:
@@ -1542,33 +1517,35 @@ namespace DotGram.Snapshots
 
 			for (var at = from; at < ways.LogCount; at += log[at])
 			{
-				if (!live[at] || built[at]) continue;
+				if (!live[at]) continue;
 
 				var factory = log[at + 2];
 				var start   = log[at + 3];
 				var end     = log[at + 4];
 				var read    = at + 5;
 
-				built[at] = true;
-
 				switch (log[at + 1])
 				{
 					case 0:
 					{
-						var record0 = log[read++];
-						int? captured0 = record0 < 0 ? default(int?) : values1[record0];
-
-						var record1 = log[read++];
-						int? captured1 = record1 < 0 ? default(int?) : values1[record1];
-
 						switch (factory)
 						{
 							case 0:
-								values1[at] = Construct_Primary((int)captured0!);
-								break;
+								{
+									var record0 = log[read++];
+									int? captured0 = record0 < 0 ? default(int?) : values1[record0].Value;
+
+									values1[at].Value = Construct_Primary((int)captured0!);
+									break;
+								}
 							case 1:
-								values1[at] = Construct_Primary_1((int)captured1!);
-								break;
+								{
+									var record1 = log[read++];
+									int? captured1 = record1 < 0 ? default(int?) : values1[record1].Value;
+
+									values1[at].Value = Construct_Primary_1((int)captured1!);
+									break;
+								}
 						}
 						break;
 					}
@@ -1579,15 +1556,15 @@ namespace DotGram.Snapshots
 							case 0:
 								{
 									var record0 = log[read++];
-									var captured0 = values1[record0];
+									var captured0 = values1[record0].Value;
 
-									values1[at] = Construct_Call(captured0!);
+									values1[at].Value = Construct_Call(captured0!);
 									break;
 								}
 							case 1:
 								{
 									var accumulated = log[read++];
-									values1[at] = Construct_Call_1(values1[accumulated]);
+									values1[at].Value = Construct_Call_1(values1[accumulated].Value);
 									break;
 								}
 						}
@@ -1599,13 +1576,11 @@ namespace DotGram.Snapshots
 						var to0   = log[read++];
 						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
 
-						values1[at] = Construct_Number(captured0!);
+						values1[at].Value = Construct_Number(captured0!);
 						break;
 					}
 				}
 			}
-
-			ways.Built = ways.LogCount;
 		}
 
 		static int Recognize_DotGram_Word(global::System.ReadOnlySpan<char> text, int pos, int state, int rootRule, bool whole, bool materialize, ref Failure failure, out object? recognized)
@@ -2684,8 +2659,8 @@ namespace DotGram.Snapshots
 
 		sealed class DirectValues
 		{
-			internal string[] V0 = new string[16];
-			internal int[] V1 = new int[16];
+			internal Held<string>[] V0 = new Held<string>[16];
+			internal Held<int>[] V1 = new Held<int>[16];
 			internal bool[] Live   = new bool[16];
 			internal int[]  Starts = new int[16];
 			internal bool[] Built  = new bool[16];
@@ -2716,7 +2691,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>Room for a value at every index below the count; what was built stays built.</summary>
-			internal void Room(int count)
+			internal void Room(int count, bool live = true)
 			{
 				if (count > _used) _used = count;
 				if (Live.Length < count)
@@ -2727,7 +2702,7 @@ namespace DotGram.Snapshots
 					global::System.Array.Copy(Built, built, Built.Length);
 					Built  = built;
 				}
-				else
+				else if (live)
 					global::System.Array.Clear(Live, 0, count);
 				if (V0.Length < count)
 					global::System.Array.Resize(ref V0, global::System.Math.Max(count, V0.Length * 2));
@@ -2735,6 +2710,14 @@ namespace DotGram.Snapshots
 					global::System.Array.Resize(ref V1, global::System.Math.Max(count, V1.Length * 2));
 			}
 		}
+
+		/// <summary>One value in a table, in a struct so that storing it asks nothing.</summary>
+		#pragma warning disable CS0649 // a table nothing writes still declares the field
+		struct Held<T>
+		{
+			internal T Value;
+		}
+		#pragma warning restore CS0649
 
 		private sealed class Parser
 		{

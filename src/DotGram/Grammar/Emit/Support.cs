@@ -1192,6 +1192,14 @@ public static partial class CSharpEmitter
 	/// <c>Parser</c>, kept here without the arena around them. Rented per parse and kept
 	/// per thread, cleared on the way back so a pooled table holds no document alive.
 	/// </summary>
+	/// <remarks>
+	/// Each table holds its values in a one-field struct rather than directly. An array of
+	/// a reference type is covariant in .NET — a <c>Derived[]</c> is a <c>Base[]</c> — so
+	/// every store into one asks the runtime whether the value fits the array it is going
+	/// into, and the answer cannot be known at compile time for a table held in a field.
+	/// The check was a tenth of what building a tree cost. An array of structs is not
+	/// covariant, and a store into a field of one asks nothing.
+	/// </remarks>
 	internal static string DirectValuesClass(IReadOnlyList<string> valueTypes, string? stateType = null)
 	{
 		var text = new StringBuilder();
@@ -1199,16 +1207,8 @@ public static partial class CSharpEmitter
 		text.Append("sealed class DirectValues\n{\n");
 
 		for (var i = 0; i < valueTypes.Count; i++)
-		{
-			// An element type that is itself an array puts the count before its own brackets.
-			var bracket = valueTypes[i].IndexOf('[');
-			var created = bracket < 0
-				? valueTypes[i] + "[16]"
-				: valueTypes[i].Substring(0, bracket) + "[16]" + valueTypes[i].Substring(bracket);
-
-			text.Append("\tinternal ").Append(valueTypes[i]).Append("[] V").Append(i)
-				.Append(" = new ").Append(created).Append(";\n");
-		}
+			text.Append("\tinternal Held<").Append(valueTypes[i]).Append(">[] V").Append(i)
+				.Append(" = new Held<").Append(valueTypes[i]).Append(">[16];\n");
 
 		text.Append("\tinternal bool[] Live   = new bool[16];\n");
 		text.Append("\tinternal int[]  Starts = new int[16];\n");
@@ -1231,14 +1231,19 @@ public static partial class CSharpEmitter
 
 		text.Append("\t\tvalues._used = 0;\n\t\t_spare = values;\n\t}\n\n");
 		text.Append("\t/// <summary>Room for a value at every index below the count; what was built stays built.</summary>\n");
-		text.Append("\tinternal void Room(int count)\n\t{\n\t\tif (count > _used) _used = count;\n");
-		text.Append("\t\tif (Live.Length < count)\n\t\t{\n\t\t\tLive   = new bool[global::System.Math.Max(count, Live.Length * 2)];\n\t\t\tStarts = new int[Live.Length];\n\t\t\tvar built = new bool[Live.Length];\n\t\t\tglobal::System.Array.Copy(Built, built, Built.Length);\n\t\t\tBuilt  = built;\n\t\t}\n\t\telse\n\t\t\tglobal::System.Array.Clear(Live, 0, count);\n");
+		text.Append("\tinternal void Room(int count, bool live = true)\n\t{\n\t\tif (count > _used) _used = count;\n");
+		text.Append("\t\tif (Live.Length < count)\n\t\t{\n\t\t\tLive   = new bool[global::System.Math.Max(count, Live.Length * 2)];\n\t\t\tStarts = new int[Live.Length];\n\t\t\tvar built = new bool[Live.Length];\n\t\t\tglobal::System.Array.Copy(Built, built, Built.Length);\n\t\t\tBuilt  = built;\n\t\t}\n\t\telse if (live)\n\t\t\tglobal::System.Array.Clear(Live, 0, count);\n");
 
 		for (var i = 0; i < valueTypes.Count; i++)
 			text.Append("\t\tif (V").Append(i).Append(".Length < count)\n\t\t\tglobal::System.Array.Resize(ref V").Append(i)
 				.Append(", global::System.Math.Max(count, V").Append(i).Append(".Length * 2));\n");
 
-		text.Append("\t}\n}\n");
+		text.Append("\t}\n}\n\n");
+
+		text.Append("/// <summary>One value in a table, in a struct so that storing it asks nothing.</summary>\n");
+		text.Append("#pragma warning disable CS0649 // a table nothing writes still declares the field\n");
+		text.Append("struct Held<T>\n{\n\tinternal T Value;\n}\n");
+		text.Append("#pragma warning restore CS0649\n");
 
 		return text.ToString().Replace("\n", Lines.Ending);
 	}

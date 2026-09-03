@@ -57,19 +57,55 @@ sealed partial class Machine
 	/// </summary>
 	public bool CanDirect(IReadOnlyList<Publication> publications)
 	{
+		Refusal = null;
+
 		if (publications.Count == 0)
-			return false;
+			return Refused(null, "there is nothing published");
 
 		foreach (var publication in publications)
-			if (publication.Kind != PublishKind.Parse || !DirectReachable(publication.Rule))
+		{
+			if (publication.Kind != PublishKind.Parse)
+				return Refused(publication.Rule, $"it is published with '{Directive(publication.Kind)}'");
+
+			if (!DirectReachable(publication.Rule))
 				return false;
+		}
 
 		// A guard handed a value builds it from the log while the text is read, and a
 		// factory that asks for the input would have to be handed it there: not yet.
 		DirectGuardNeeds(DirectRules(publications));
 
-		return !(_directBuilds && UsesInput);
+		return !_directBuilds || !UsesInput ||
+			Refused(null, "a guard is handed a value whose factory asks for the input");
 	}
+
+	/// <summary>
+	/// Why the methods could not be written, where they could not: a rule and what about
+	/// it, in words a grammar's author can act on. Null where they were.
+	/// </summary>
+	/// <remarks>
+	/// Kept because the answer matters beyond the emitter's own choice. Over kinds the
+	/// language says a rule's answer stands (docs/syntax.md §4), and it is the methods
+	/// that say it: a machine that falls back to the engine backtracks as it always did,
+	/// so the grammar is told (GRAM5005) rather than left to differ silently.
+	/// </remarks>
+	public (RuleSymbol? Rule, string Why)? Refusal { get; private set; }
+
+	bool Refused(RuleSymbol? rule, string why)
+	{
+		Refusal ??= (rule, why);
+
+		return false;
+	}
+
+	static string Directive(PublishKind kind) => kind switch
+	{
+		PublishKind.Find => "find",
+		_                => kind.ToString().ToLowerInvariant(),
+	};
+
+	/// <summary>What a machine that could not be written as methods is refused for (§4, over kinds).</summary>
+	public const string Backtracks = "GRAM5005";
 
 	bool DirectReachable(RuleSymbol root)
 	{
@@ -85,11 +121,14 @@ sealed partial class Machine
 			if (!seen.Add(rule))
 				continue;
 
-			if (_graph.Climbing.ContainsKey(rule) || _graph.Externals.ContainsKey(rule) ||
-				!_graph.Bodies.TryGetValue(rule, out var body) || !DirectValuedRule(rule))
-			{
-				return false;
-			}
+			if (_graph.Externals.ContainsKey(rule))
+				return Refused(rule, "it is an external recognizer that keeps a value");
+
+			if (!_graph.Bodies.TryGetValue(rule, out var body))
+				return Refused(rule, "it has no body here");
+
+			if (!DirectValuedRule(rule))
+				return Refused(rule, "of what it builds");
 
 			var bodies = new List<Node> { body };
 
@@ -100,7 +139,7 @@ sealed partial class Machine
 				foreach (var node in NodeWalk.Descendants(one))
 				{
 					if (_graph.Recoveries.ContainsKey(node))
-						return false;
+						return Refused(rule, "it recovers from a bad element");
 
 					switch (node)
 					{
@@ -114,26 +153,26 @@ sealed partial class Machine
 						// What a lookahead saw is a capture the engine compiles as a machine
 						// of its own; not here yet.
 						case Node.Capture(_, Node.Lookahead):
-							return false;
+							return Refused(rule, "it captures what a lookahead saw");
 
 						case Node.Capture or Node.Construct or Node.Marked:
 							break;
 
 						case Node.Guard guard:
 							if (!DirectGuard(rule, guard))
-								return false;
+								return Refused(rule, "of what one of its guards is handed");
 
 							break;
 
 						case Node.Call(var called, var arguments):
 							if (arguments.Count > 0)
-								return false;
+								return Refused(rule, "it calls a rule with arguments");
 
 							pending.Push(called);
 							break;
 
 						default:
-							return false;
+							return Refused(rule, $"of a {node.GetType().Name.ToLowerInvariant()} in it");
 					}
 				}
 		}
@@ -240,6 +279,22 @@ sealed partial class Machine
 		(_directBuilds ? ", values" : "") +
 		((_directGuards || _directGlue) && OverKinds ? TokensArgument : "") +
 		(DirectReaderContext ? ContextArgument : "");
+
+	/// <summary>
+	/// The strength a rule written with binding powers is read at, where it is one
+	/// (§4.3.1). Last of the parameters rather than beside the position, because every
+	/// other reader in the file has the same shape without it.
+	/// </summary>
+	string DirectStrength(RuleSymbol rule) => _graph.Climbing.ContainsKey(rule) ? ", int power" : "";
+
+	/// <summary>
+	/// The strength a call reads its operand at: what <c>&lt;&lt;</c> or <c>&gt;&gt;</c>
+	/// recorded against this call, and 0 — everything — where it recorded nothing.
+	/// </summary>
+	string DirectStrengthOf(Node call, RuleSymbol called) =>
+		_graph.Climbing.ContainsKey(called)
+			? ", " + (_graph.Powers.TryGetValue(call, out var requested) ? requested : 0)
+			: "";
 
 	/// <summary>What the entry's own reader takes: the tokens whenever there are tokens, and what the readers take.</summary>
 	string DirectCoreParameters =>
@@ -359,6 +414,12 @@ sealed partial class Machine
 	/// </summary>
 	bool DirectSplittable(RuleSymbol rule)
 	{
+		// A climbing rule's alternatives are gated by the strength the reader was asked
+		// at, and a method of its own would have to be handed it: not worth a parameter
+		// on every part for a rule whose alternatives are one operator each.
+		if (_graph.Climbing.ContainsKey(rule))
+			return false;
+
 		if (_graph.Folds.ContainsKey(rule) || _graph.Bodies[rule] is not Node.Choice(var alternatives) || alternatives.Count < 2)
 			return false;
 
@@ -499,7 +560,7 @@ sealed partial class Machine
 			using (file.Block(
 				$"static int {ReaderOf(rule)}(" +
 				$"global::System.ReadOnlySpan<char> text, int pos, " +
-				$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters})"))
+				$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters}{DirectStrength(rule)})"))
 			{
 				file.Write(body);
 			}
@@ -554,6 +615,8 @@ sealed partial class Machine
 		var type   = _results.QualifiedOf(rule);
 		var valued = type is not null;
 		var value  = valued ? $", out {type} value" : "";
+		var climbs = _graph.Climbing.ContainsKey(rule);
+		var asked  = climbs ? ", power" : "";
 
 		file.Line($"/// <summary>The whole input as <c>{rule.Name}</c>, read by methods.</summary>");
 
@@ -561,7 +624,7 @@ sealed partial class Machine
 		// tokens, the context (CSharpEmitter.EmitPublication).
 		using (file.Block(
 			$"static int {CSharpEmitter.MethodOf(rule)}_Whole(" +
-			$"global::System.ReadOnlySpan<char> text, int pos, " +
+			$"global::System.ReadOnlySpan<char> text, int pos{(climbs ? ", int power" : "")}, " +
 			$"ref {CSharpEmitter.FailureType} failure{value}{InputParameter}{TokensParameter}{ContextParameter})"))
 		{
 			file.Line($"var ways = {WaysType}.Rent();");
@@ -579,7 +642,7 @@ sealed partial class Machine
 				file.Line("try");
 
 				using (file.Block(""))
-					file.Line($"end = {core}(text, pos, ref failure, ways{DirectCoreArguments});");
+					file.Line($"end = {core}(text, pos, ref failure, ways{DirectCoreArguments}{asked});");
 
 				// An input nested deeper than this thread's stack allows is read again on a
 				// thread with a deep one. The span cannot cross to another thread, so the
@@ -614,7 +677,7 @@ sealed partial class Machine
 					file.Line("var reader = new global::System.Threading.Thread(");
 					file.Line(
 						$"\t() => got = {core}(copied, from, ref deep, deeper{TokensLocals}" +
-						$"{(_directBuilds ? ", built" : "")}{(DirectReaderContext ? ", held" : "")}),");
+						$"{(_directBuilds ? ", built" : "")}{(DirectReaderContext ? ", held" : "")}{asked}),");
 					file.Line($"\t{DeepStack});");
 					file.Line();
 					file.Line("reader.Start();");
@@ -638,7 +701,7 @@ sealed partial class Machine
 					file.Line();
 					file.Line($"{DirectMaterializer}(ways, text, values, ways.Last, 0{InputArgument}{TokensArgument}{ContextArgument});");
 					file.Line(
-						$"value = {(IsExtent(rule) ? RecordValue(type!, "ways.Last").Replace("log[", "ways.Log[") : ValueFrom(type!, "ways.Last").Replace("values", "values.V"))};");
+						$"value = {(IsExtent(rule) ? RecordValue(type!, "ways.Last").Replace("log[", "ways.Log[") : DirectFrom(type!, "ways.Last").Replace("values", "values.V"))};");
 					file.Line();
 				}
 
@@ -662,9 +725,11 @@ sealed partial class Machine
 		using (file.Block(
 			$"static int {core}(" +
 			$"global::System.ReadOnlySpan<char> text, int pos, " +
-			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectCoreParameters})"))
+			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectCoreParameters}{DirectStrength(rule)})"))
 		{
-			file.Write(new DirectWriter(this) { Commits = OverKinds }.Render(body, FollowSets.Continuation.End, whole: true));
+			file.Write(
+				new DirectWriter(this) { Commits = OverKinds, Enters = climbs ? rule : null }
+					.Render(body, FollowSets.Continuation.End, whole: true));
 		}
 
 		file.Line();
@@ -1194,8 +1259,24 @@ sealed partial class Machine
 		/// </summary>
 		public bool? Commits { get; init; }
 
+		/// <summary>
+		/// The rule this reader enters at the strength it was itself asked at: the
+		/// publication's own root, where a climbing rule is published (§4.3.1).
+		/// </summary>
+		public RuleSymbol? Enters { get; init; }
+
 		void Emit(Writer code, Node node, string fail, FollowSets.Continuation following, bool loaded = false)
 		{
+			// An alternative of a rule written with binding powers is entered only at a
+			// strength it allows. Refused without a word: what could not be entered here
+			// was never expected here, and the alternatives after it still can be.
+			if (machine._owners.TryGetValue(node, out var climbs) &&
+				_graph.Climbing.TryGetValue(climbs, out var levels) &&
+				levels.TryGetValue(node, out var level))
+			{
+				code.Line($"if ({level} < power) goto {fail};");
+			}
+
 			if (Parts is not null && Parts.TryGetValue(node, out var part))
 			{
 				var result = $"q{_calls++}";
@@ -1396,7 +1477,9 @@ sealed partial class Machine
 					if (from is not null && machine._backEdges.Contains((from, called)))
 						code.Line("global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();");
 
-					code.Line($"{result} = {machine.ReaderOf(called)}(text, p, ref failure, ways{machine.DirectReaderArguments});");
+					code.Line(
+						$"{result} = {machine.ReaderOf(called)}(text, p, ref failure, ways{machine.DirectReaderArguments}" +
+						$"{(ReferenceEquals(called, Enters) ? ", power" : machine.DirectStrengthOf(node, called))});");
 					code.Line($"if ({result} < 0) goto {fail};");
 					Consumed(code, $"p = {result};");
 
@@ -1408,9 +1491,24 @@ sealed partial class Machine
 					break;
 
 				case Node.Construct(var built, _):
+				{
 					Emit(code, built, fail, following, loaded);
-					EmitRecord(code, machine._constructs[node]);
+
+					var factory = machine._constructs[node];
+
+					// The value is the callee's, so the record is the callee's too.
+					if (machine.DirectForwards(_owner, factory))
+					{
+						if (_owner is not null && _graph.Folds.ContainsKey(_owner))
+							code.Line("fold = ways.Last;");
+					}
+					else
+					{
+						EmitRecord(code, factory);
+					}
+
 					break;
+				}
 
 				default:
 					throw new InvalidOperationException(
@@ -1620,7 +1718,7 @@ sealed partial class Machine
 		string ValueAt(string type, string record) =>
 			type == "SourceSpan"
 				? machine.RecordValue(type, record).Replace("log[", "ways.Log[")
-				: $"values.V{machine.TableFor(type)}[{record}]";
+				: $"values.V{machine.TableFor(type)}[{record}].Value";
 
 		/// <summary>
 		/// The local of the first slot that was captured, where a member has several — one
@@ -1691,9 +1789,7 @@ sealed partial class Machine
 			else
 			{
 				code.Line(
-					"if (!global::System.MemoryExtensions.Equals(" +
-					$"text.Slice(p, {text.Length}), {Spanned(text)}, " +
-					"global::System.StringComparison.OrdinalIgnoreCase))");
+					$"if (!global::System.MemoryExtensions.Equals(text.Slice(p, {text.Length}), {Spanned(text)}, global::System.StringComparison.OrdinalIgnoreCase))");
 				using (code.Block(""))
 					Refused(code, "p", name, fail);
 			}
@@ -1746,7 +1842,7 @@ sealed partial class Machine
 			for (var i = parts.Count - 1; i >= 0; i--)
 			{
 				tails[i] = safe;
-				safe     = safe && Infallible(parts[i]);
+				safe     = safe && machine.Infallible(parts[i]);
 			}
 
 			for (var i = 0; i < parts.Count; i++)
@@ -1997,42 +2093,6 @@ sealed partial class Machine
 			using (code.Block(""))
 				for (var j = at + 1; j < chosen.Count; j++)
 					code.Line($"case {j}: goto {chosen[j]};");
-		}
-
-		/// <summary>
-		/// Whether the node cannot fail wherever it stands: nothing, an optional or a star,
-		/// a sequence of such, a choice with such an alternative, or a call to a rule whose
-		/// body is such — the seam between operands, most often. What a part like this
-		/// follows can be committed: no failure will come from it.
-		/// </summary>
-		bool Infallible(Node node) => Infallible(node, []);
-
-		bool Infallible(Node node, HashSet<RuleSymbol> visiting)
-		{
-			switch (node)
-			{
-				case Node.Empty:
-					return true;
-				case Node.Repeat(_, var min, _):
-					return min == 0;
-				case Node.Sequence(var parts):
-					return parts.All(part => Infallible(part, visiting));
-				case Node.Choice(var alternatives):
-					return alternatives.Any(alternative => Infallible(alternative, visiting));
-				case Node.Atomic(var body):
-					return Infallible(body, visiting);
-				case Node.Marked(var body, _):
-					return Infallible(body, visiting);
-				case Node.Capture(_, var body):
-					return Infallible(body, visiting);
-				case Node.Construct(var body, _):
-					return Infallible(body, visiting);
-				case Node.Call(var rule, { Count: 0 }):
-					return visiting.Add(rule) && _graph.Bodies.TryGetValue(rule, out var called) &&
-						Infallible(called, visiting);
-				default:
-					return false;
-			}
 		}
 
 		/// <summary>

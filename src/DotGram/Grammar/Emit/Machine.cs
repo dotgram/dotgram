@@ -3056,9 +3056,7 @@ sealed partial class Machine
 
 			if (rest.Length > 1)
 				tests.Add(
-					"global::System.MemoryExtensions.SequenceEqual(text.Slice(" +
-					$"{(shared.Length == 0 ? "p" : $"p + {shared.Length}")}, {rest.Length}), " +
-					$"{Spanned(rest)})");
+					$"global::System.MemoryExtensions.SequenceEqual(text.Slice({(shared.Length == 0 ? "p" : $"p + {shared.Length}")}, {rest.Length}), {Spanned(rest)})");
 			else if (rest.Length == 1)
 				tests.Add($"{At(shared.Length)} == {CSharpEmitter.Char(rest[0])}");
 

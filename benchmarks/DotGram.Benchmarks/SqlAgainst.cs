@@ -138,11 +138,12 @@ static class SqlAgainst
 	/// day's parser.
 	/// </summary>
 	/// <remarks>
-	/// The first two are the comparison: both tokenize and then read tokens, so what is
-	/// between them is the reader. The third is there so the reader's own share of the
-	/// second can be had by subtraction. The fourth reads a fraction of the language and
-	/// is what the first day's ratios were divided by, kept so a reader can see what they
-	/// were made of.
+	/// The first two are the comparison: both tokenize, read tokens and build the same
+	/// tree, so what is between them is the reader and the building. The third is there so
+	/// the lexer's share can be taken off both. The fourth reads a fraction of the
+	/// language and builds nothing — it is what the first day's ratios were divided by,
+	/// kept so a reader can see what they were made of, and it is not a yardstick for
+	/// anything measured now.
 	/// </remarks>
 	static readonly (string Name, Func<string, int> Measure)[] Methods =
 	[
@@ -163,8 +164,10 @@ static class SqlAgainst
 
 		foreach (var text in Corpus.Concat(Inputs))
 		{
-			var generated = SqlStandard92.TryParseSearchCondition(text).IsSuccess;
-			var handed    = HandSqlTokens.Parse(text);
+			var made      = SqlStandard92.TryParseSearchCondition(text);
+			var built     = HandSqlTokens.Build(text);
+			var generated = made.IsSuccess;
+			var handed    = built is not null;
 			var original  = HandSqlOriginal.Parse(text);
 
 			if (generated != handed)
@@ -173,6 +176,17 @@ static class SqlAgainst
 					$"About \"{text}\": the generated parser says {Said(generated)} and the hand-written " +
 					$"one says {Said(handed)}. They do not read the same language, and a ratio between " +
 					"them would be a fiction.");
+			}
+
+			// And the same tree, not merely the same answer: both build now, and building
+			// is most of what is being measured.
+			if (generated && SqlTree.Show(made.Value) is var one && SqlTree.Show(built) is var other &&
+				one != other)
+			{
+				throw new InvalidOperationException(
+					$"About \"{text}\": the two parsers read it the same and build it differently.\n" +
+					$"  generated {one}\n" +
+					$"  by hand   {other}");
 			}
 
 			// The first day's parser is held only to what it was ever checked against — the
@@ -189,13 +203,78 @@ static class SqlAgainst
 			}
 		}
 
-		Console.WriteLine($"Both read the same language over {Corpus.Length + Inputs.Length} shapes.");
+		Console.WriteLine(
+			$"Both read the same language and build the same tree over {Corpus.Length + Inputs.Length} shapes.");
 		Console.WriteLine($"The first day's parser reads the {Inputs.Length} benchmark inputs and parts from them on {parted.Count}:");
 
 		foreach (var line in parted)
 			Console.WriteLine(line);
 
 		static string Said(bool yes) => yes ? "yes" : "no";
+	}
+
+	/// <summary>
+	/// The two lexers alone, which the generated one can be asked for after all.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A generated parser tokenizes the whole input before it reads a token of it, and it
+	/// does so whether or not the reading gets anywhere. So an input the reader refuses at
+	/// its first token costs the lexer and nothing else — put a <c>)</c> in front, where a
+	/// search condition cannot begin, and what is left over the same input without it is
+	/// the tokenizing.
+	/// </para>
+	/// <para>
+	/// Which retires the assumption the totals used to rest on. The reader's share was had
+	/// by subtracting the hand-written lexer from both sides and supposing two lexers doing
+	/// the same work cost about the same. They do not, and now the numbers say by how much.
+	/// </para>
+	/// </remarks>
+	public static void Lexers(int rounds, int iterations)
+	{
+		Agree();
+
+		Console.WriteLine();
+		Console.WriteLine($"{"",-36} {"generated",11} {"by hand",11}   ratio");
+
+		foreach (var input in Inputs)
+		{
+			// The `)` is refused at the first token, so what a parse of it costs is the
+			// entry and one refusal — the same for every input, and subtracted from both.
+			var refused = ")" + input;
+			var alone   = ")";
+
+			var taken = new List<double>[4];
+
+			for (var i = 0; i < taken.Length; i++)
+				taken[i] = [];
+
+			var measures = new Func<string, int>[]
+			{
+				static one => SqlStandard92.TryParseSearchCondition(one).IsSuccess ? 1 : 0,
+				static one => HandSqlTokens.LexOnly(one),
+			};
+
+			for (var warm = 0; warm < 2; warm++)
+				foreach (var measure in measures)
+				{
+					Time(refused, measure, iterations);
+					Time(alone, measure, iterations);
+				}
+
+			for (var round = 0; round < rounds; round++)
+				for (var i = 0; i < measures.Length; i++)
+				{
+					taken[i * 2].Add(Time(refused, measures[i], iterations));
+					taken[i * 2 + 1].Add(Time(alone, measures[i], iterations));
+				}
+
+			var made = Median(taken[0]) - Median(taken[1]);
+			var hand = Median(taken[2]) - Median(taken[3]);
+			var shown = input.Length <= 34 ? input : input.Substring(0, 31) + "...";
+
+			Console.WriteLine($"{shown,-36} {made,8:N1} ns {hand,8:N1} ns   {made / hand,5:N2}x");
+		}
 	}
 
 	/// <summary>What the loop and the indirect call cost with no parsing under them.</summary>

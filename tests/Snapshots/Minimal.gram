@@ -89,8 +89,9 @@ Committed : @string = t: ({ "ab" | "a" } & 'b') => @(t)
 
 // ── Precedence climbing ─────────────────────────────────────────────────────────────
 //
-// Left recursion with binding powers: the rewrite turns the rule into a climb, calls
-// carry the power, and a level too weak refuses without consuming.
+// Left recursion with binding powers: the rewrite turns the rule into a climb, the
+// reader takes the strength it is read at, calls carry the power, and a level too weak
+// refuses without consuming. Read by methods like everything else here.
 
 Sum : @int = l: Sum & '+' & r: Sum << 1 => @(l + r)
             | d: ['0'..'9']             => @(int.Parse(d))

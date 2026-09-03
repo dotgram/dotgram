@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -114,7 +113,7 @@ public sealed class SemanticTests
 		Assert.Equal(expected, Matches(
 			"trivia = [' ']*" + '\n' +
 			"Start = A & (',' & A)*" + '\n' +
-			"A = ['a'..'z']+", input));
+			"A = ['a'..'z']+".AsDotGram(), input));
 
 	/// <summary>
 	/// A repetition of one thing is a lexeme, and is not spaced.
@@ -224,6 +223,106 @@ public sealed class SemanticTests
 			EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseStart", input);
 
 		Assert.Equal(expected, match.IsSuccess);
+	}
+
+	// ── A split half the methods refuse is told it will backtrack ────────────
+
+	/// <summary>
+	/// Over kinds a rule's answer stands (§4), and it is the methods that say it. A
+	/// syntactic half the methods cannot write runs on the engine, which backtracks —
+	/// so the grammar is told, and told which rule cost it that.
+	/// </summary>
+	/// <remarks>
+	/// <c>recover</c> is the shape used here because it is the plainest of the several
+	/// the direct rendering still hands back. Over characters the same grammar says
+	/// nothing: backtracking is what reading characters means.
+	/// </remarks>
+	[Theory]
+	[InlineData(false, false)]
+	[InlineData(true,  true)]
+	public void A_split_half_the_methods_refuse_is_told_it_backtracks(bool lexical, bool warned)
+	{
+		var feed = string.Join(
+			"\n",
+			"trivia = { ' '* }",
+			"namespace Lexical",
+			"{",
+			"\ttrivia = none",
+			"\tName = ['a'..'z']+",
+			"}",
+			"Row   = Lexical.Name & ';'",
+			"Start = Row* recover ';' & eof",
+			"parse Start");
+
+		var result = GramCompiler.Compile(
+			feed,
+			new GramCompilerOptions
+			{
+				ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = lexical,
+			});
+
+		Assert.Empty(result.Diagnostics.Where(one => one.Severity == GramSeverity.Error));
+
+		var backtracks = result.Diagnostics.Where(one => one.Id == "GRAM5005").ToArray();
+
+		Assert.Equal(warned, backtracks.Length > 0);
+
+		if (warned)
+			Assert.Contains("recovers from a bad element", backtracks[0].Message, StringComparison.Ordinal);
+	}
+
+	// ── A split grammar keeps every call site's own strength ─────────────────
+
+	/// <summary>
+	/// Binding powers over kinds. The operand inside the parentheses is read at full
+	/// strength, whatever the operator around it binds at — which is what a call site of
+	/// its own means (§4.3.1).
+	/// </summary>
+	/// <remarks>
+	/// It was not, and only over kinds: the lexical split rewrites every node, and the map
+	/// from what a node was to what it became was keyed by structure, so two calls to the
+	/// same rule were one key. Every call took the strength of whichever site was rewritten
+	/// last, and <c>(a + b) * c</c> was read with the parenthesized operand at the strength
+	/// of the <c>*</c> around it, which refuses the <c>+</c>. Over characters the same
+	/// grammar was always right, which is why both halves are asked here.
+	/// </remarks>
+	[Theory]
+	[InlineData(false, "(a + b) * c")]
+	[InlineData(true,  "(a + b) * c")]
+	[InlineData(false, "a * (b + c)")]
+	[InlineData(true,  "a * (b + c)")]
+	[InlineData(false, "a + b * c")]
+	[InlineData(true,  "a + b * c")]
+	public void A_call_site_of_a_climbing_rule_keeps_its_own_strength(bool lexical, string input)
+	{
+		var arithmetic = string.Join(
+			"\n",
+			"trivia = { ' '* }",
+			"namespace Lexical",
+			"{",
+			"\ttrivia = none",
+			"\tName = ['a'..'z']+",
+			"}",
+			"Start = Expr & eof",
+			"Expr = Expr & '+' & Expr << 1",
+			"     | Expr & '*' & Expr << 2",
+			"     | Prim",
+			"Prim = Lexical.Name | '(' & Expr & ')'",
+			"parse Start");
+
+		var result = GramCompiler.Compile(
+			arithmetic,
+			new GramCompilerOptions
+			{
+				ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = lexical,
+			});
+
+		Assert.Empty(result.Diagnostics.Where(one => one.Severity != GramSeverity.Info));
+
+		var match = EmittedCode.Match(
+			EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseStart", input);
+
+		Assert.True(match.IsSuccess, $"{input} was refused.");
 	}
 
 	// ── Over kinds a rule's answer stands, unless the rule says otherwise ─────

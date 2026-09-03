@@ -289,7 +289,7 @@ namespace DotGram.Snapshots
 				}
 
 				Materialize_DotGram_Feed_Direct(ways, text, values, ways.Last, 0);
-				value = values.V0[ways.Last];
+				value = values.V0[ways.Last].Value;
 
 				return end;
 			}
@@ -1035,9 +1035,6 @@ namespace DotGram.Snapshots
 
 			var log   = ways.Log;
 			var live  = values.Live;
-			var built = values.Built;
-
-			global::System.Array.Clear(built, ways.Built, ways.LogCount - ways.Built);
 
 			var starts = values.Starts;
 			var listed = 0;
@@ -1093,21 +1090,19 @@ namespace DotGram.Snapshots
 
 			for (var at = from; at < ways.LogCount; at += log[at])
 			{
-				if (!live[at] || built[at]) continue;
+				if (!live[at]) continue;
 
 				var factory = log[at + 2];
 				var start   = log[at + 3];
 				var end     = log[at + 4];
 				var read    = at + 5;
 
-				built[at] = true;
-
 				switch (log[at + 1])
 				{
 					case 0:
 					{
 						var record0 = log[read++];
-						var captured0 = values3[record0];
+						var captured0 = values3[record0].Value;
 
 						var count1 = log[read++];
 						var captured1 = new global::DotGram.Snapshots.Feed.Row[count1];
@@ -1115,13 +1110,13 @@ namespace DotGram.Snapshots
 						for (var item = 0; item < count1; item++)
 						{
 							var record1 = log[read++];
-							captured1[item] = values2[record1];
+							captured1[item] = values2[record1].Value;
 						}
 
 						var record2 = log[read++];
-						var captured2 = values1[record2];
+						var captured2 = values1[record2].Value;
 
-						values0[at] = new global::DotGram.Snapshots.Feed.FeedValue(
+						values0[at].Value = new global::DotGram.Snapshots.Feed.FeedValue(
 							captured0!,
 							captured1!,
 							captured2!);
@@ -1133,7 +1128,7 @@ namespace DotGram.Snapshots
 						var to0   = log[read++];
 						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
 
-						values3[at] = new global::DotGram.Snapshots.Feed.Header(
+						values3[at].Value = new global::DotGram.Snapshots.Feed.Header(
 							captured0!);
 						break;
 					}
@@ -1147,7 +1142,7 @@ namespace DotGram.Snapshots
 						var to1   = log[read++];
 						var captured1 = from1 < 0 ? string.Empty : text.Slice(from1, to1 - from1).ToString();
 
-						values2[at] = new global::DotGram.Snapshots.Feed.Row(
+						values2[at].Value = new global::DotGram.Snapshots.Feed.Row(
 							captured0!,
 							captured1!);
 						break;
@@ -1158,14 +1153,12 @@ namespace DotGram.Snapshots
 						var to0   = log[read++];
 						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
 
-						values1[at] = new global::DotGram.Snapshots.Feed.Trailer(
+						values1[at].Value = new global::DotGram.Snapshots.Feed.Trailer(
 							captured0!);
 						break;
 					}
 				}
 			}
-
-			ways.Built = ways.LogCount;
 		}
 
 		static int Recognize_DotGram_Name(global::System.ReadOnlySpan<char> text, int pos, int state, int rootRule, bool whole, bool materialize, ref Failure failure, out object? recognized)
@@ -2762,10 +2755,10 @@ namespace DotGram.Snapshots
 
 		sealed class DirectValues
 		{
-			internal global::DotGram.Snapshots.Feed.FeedValue[] V0 = new global::DotGram.Snapshots.Feed.FeedValue[16];
-			internal global::DotGram.Snapshots.Feed.Trailer[] V1 = new global::DotGram.Snapshots.Feed.Trailer[16];
-			internal global::DotGram.Snapshots.Feed.Row[] V2 = new global::DotGram.Snapshots.Feed.Row[16];
-			internal global::DotGram.Snapshots.Feed.Header[] V3 = new global::DotGram.Snapshots.Feed.Header[16];
+			internal Held<global::DotGram.Snapshots.Feed.FeedValue>[] V0 = new Held<global::DotGram.Snapshots.Feed.FeedValue>[16];
+			internal Held<global::DotGram.Snapshots.Feed.Trailer>[] V1 = new Held<global::DotGram.Snapshots.Feed.Trailer>[16];
+			internal Held<global::DotGram.Snapshots.Feed.Row>[] V2 = new Held<global::DotGram.Snapshots.Feed.Row>[16];
+			internal Held<global::DotGram.Snapshots.Feed.Header>[] V3 = new Held<global::DotGram.Snapshots.Feed.Header>[16];
 			internal bool[] Live   = new bool[16];
 			internal int[]  Starts = new int[16];
 			internal bool[] Built  = new bool[16];
@@ -2798,7 +2791,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>Room for a value at every index below the count; what was built stays built.</summary>
-			internal void Room(int count)
+			internal void Room(int count, bool live = true)
 			{
 				if (count > _used) _used = count;
 				if (Live.Length < count)
@@ -2809,7 +2802,7 @@ namespace DotGram.Snapshots
 					global::System.Array.Copy(Built, built, Built.Length);
 					Built  = built;
 				}
-				else
+				else if (live)
 					global::System.Array.Clear(Live, 0, count);
 				if (V0.Length < count)
 					global::System.Array.Resize(ref V0, global::System.Math.Max(count, V0.Length * 2));
@@ -2821,6 +2814,14 @@ namespace DotGram.Snapshots
 					global::System.Array.Resize(ref V3, global::System.Math.Max(count, V3.Length * 2));
 			}
 		}
+
+		/// <summary>One value in a table, in a struct so that storing it asks nothing.</summary>
+		#pragma warning disable CS0649 // a table nothing writes still declares the field
+		struct Held<T>
+		{
+			internal T Value;
+		}
+		#pragma warning restore CS0649
 
 		private sealed class Parser
 		{

@@ -11397,3 +11397,278 @@ syntactic half that cannot be read by methods — `find`, `stream`, `recover`, a
 still runs on the engine, which backtracks as it always did. Neither split grammar in
 the repository has such a rule, and the day one does is the day the engine learns to
 commit or the compiler learns to say no.
+
+## Measured: the ladder is not the cost, and collapsing it is a loss
+
+The plan after the tape was the ladder. Reading `a = 1`, the SQL recognizer walks
+thirteen rules from a search condition down to a column reference and walks them twice,
+once for each operand, where the hand-written parser climbs three levels of binding
+power. Two to one on the totals, and five to one on the reader alone once the lexer is
+subtracted from both. The obvious next move was to collapse a chain of `X = X op Y | Y`
+rules into one climbing loop, the way the hand-written parser is written.
+
+**Climbing had to reach the methods first**, since the direct rendering refused a rule
+of binding powers outright and refusing it put the whole grammar on the engine. A
+climbing reader now takes the strength it is read at, an alternative below that strength
+jumps to the choice's next without recording a refusal, and a call carries what `<<` or
+`>>` recorded against it. Nothing else changed shape: the fold that left recursion
+becomes is what the direct path already read. Three examples left the engine with it.
+
+**Then the experiment, before building the detection that would make it automatic.**
+`SqlStandard92`'s two ladders were rewritten by hand with binding powers — four boolean
+levels into one rule of `OR`, `AND`, prefix `NOT` and the `IS` tail, three value levels
+into one of `+ - ||`, `* /` and the sign. Same language, checked; the generated file
+fell from 41,143 lines to 15,619. And it is slower:
+
+| input | levels as rules | one climbing rule |
+| --- | --: | --: |
+| `a = 1` | 41 ns | 96 |
+| `(a + b) * c > d` | 75 | 122 |
+| 64 predicates joined by `AND` | 2,597 | 2,678 |
+| 64 operands joined by `+` | 950 | 1,285 |
+
+**Because the ladder was never thirteen calls.** The budget writes a rule in place
+wherever a method has room, so twelve of the thirteen levels are already inside one
+method, and what each contributes is its loop's test against a token already in a
+register. A climbing rule is the opposite: it cannot be written in place, because its
+alternatives are gated by a strength that is a parameter, and it cannot be split into
+parts for the same reason — so every operand becomes a real call with a prologue, and
+`a = 1` pays two of them where it paid none. Precedence climbing is what a person writes
+because a person is not going to write thirteen methods; it is not what is fastest once
+the thirteen are one method anyway.
+
+So the ladder collapse is not worth building, and the entry stands as the reason not to
+try it again.
+
+**What the experiment did find is a bug, and only over kinds.** The lexical split
+rewrites every node of the grammar into the kinds it will read, and it kept a map from
+what each node was to what it became. That map was keyed by structure, deliberately, on
+the argument that two nodes a grammar wrote the same way could not be told apart by the
+dictionaries being remapped. They can: the normalizer keys `Powers`, `Recoveries` and a
+fold's accumulators by the node object, so two calls to the same rule are two keys with
+two values. Collapsed to one, every call to a climbing rule took the strength of
+whichever call site was rewritten last — and `(a + b) * c` was read with the
+parenthesized operand at the strength of the `*` around it, which refuses the `+`. It
+had never shown because no split grammar had used binding powers until this experiment
+did. Keyed by identity now, both there and in the remapped dictionaries, with a theory
+that asks the same three shapes of both halves.
+
+**And a hypothesis for next time, from the same numbers.** Fitting the two ends: the
+difference on the sixty-four predicates is about 1.1 ns per token, and on `a = 1` it is
+22 ns over three tokens. Nineteen of those twenty-two are fixed — paid once per parse
+regardless of length — which is the whole of what the hand-written parser spends on that
+input. That is where to look: the tape rented and returned, the values table rented
+beside it, the try, the catch for a deep stack and the finally, and the failure struct.
+Not the reader.
+
+## Built: the gap over kinds says so out loud
+
+The entry that made a rule's answer stand over kinds named a gap and left it: the
+statement is about the language, the readers honour it, and a syntactic half the readers
+cannot write falls back to the engine, which backtracks as it always did. Neither split
+grammar in the repository has such a rule, so nothing was wrong — but a grammar that
+reads one way and runs the other is the kind of thing that is discovered years later by
+somebody debugging a parse.
+
+`GRAM5005` is that grammar being told. Over kinds, a machine written by neither the flat
+path nor the methods is a warning naming the rule and what about it was refused: a
+recovery, a stream, a `find`, a captured lookahead, a guard handed what a reader cannot
+hand it, or a rule called with arguments. The refusal was a bare `false` in seven places
+and is a reason now, which is worth having on its own — "cannot be read by methods" is
+not a thing an author can act on, and "`Row` recovers from a bad element" is.
+
+A warning and not an error, because the parse is correct: it is ordered choice over
+characters, which is what the engine implements and what the notation meant everywhere
+until this week. What is not correct is the promise, and the promise is what the message
+is about.
+
+## Built: SQL builds a tree, and building is where the distance is
+
+Everything measured until now was recognition. Both sides answered yes or no, neither
+built anything, and the machinery that makes a value — the log a parse writes, and the
+walk over it afterwards — had never appeared in a number. That is most of what this
+generator is, and it was invisible.
+
+`SqlStandard92` builds now. Every production of §6 through §8 carries a construction,
+into a flat tree of nine records: one base, one level of descendants, what distinguishes
+an `OR` from a `*` written as a field rather than as a type. A predicate holds its
+operands in an array and says which predicate it is, so `x BETWEEN a AND b` is a kind and
+three operands rather than a record of its own — a visitor over forty productions is a
+thing a consumer regrets, and the fortieth production breaking every visitor already
+written is how it goes wrong.
+
+One shape in the grammar is worth naming. The row on the left of a predicate is read once
+for all nine of them (§8.1's note), so the tail is built without its first operand and
+`Predicated` writes the row into the slot the tail left empty. One record and one array
+per predicate, which is what a person writes; the alternative was a record built and then
+copied.
+
+`HandSqlTokens` builds the same tree, and `Agree` holds it to that: over all forty-two
+shapes the two answer the same *and* render identically. So the numbers below are two
+ways of making one tree, and nothing else.
+
+| input | generated | by hand | ratio |
+| --- | --: | --: | --: |
+| `a = 1` | 465 ns | 46 ns | 10.1 |
+| `(a + b) * c > d` | 803 | 101 | 7.9 |
+| `x = 1 AND y IS NOT NULL` | 789 | 121 | 6.5 |
+| 64 predicates joined by `AND` | 26,016 | 4,282 | 6.1 |
+| 64 operands joined by `+` | 8,177 | 1,933 | 4.2 |
+
+**Four to ten times, where recognition was one to two.** And it is not allocation: a
+parse of `a` allocates 72 bytes, the node and its string and nothing else; sixty-four
+operands allocate 9,176 bytes for a hundred and ninety objects, which is what the tree
+weighs to the byte. It is about thirty-five nanoseconds per node beyond what allocating
+that node costs, and it is spent in the materializer — sizing the value tables, clearing
+the built marks, listing every record the log holds, marking the live ones back to front,
+and then a switch per record to reach the factory.
+
+So the direction changes. Recognition was worth the last four entries and is now within
+a small factor of a person; building has never been looked at and is six times behind.
+Three things to weigh next, in the order they look worth it:
+
+- **The record a rule writes when it only forwards.** `ValueExpressionPrimary` reading a
+  column reference builds a node that is exactly the node its callee built, and writes a
+  record to say so. Every level of a ladder that hands its operand up does this. A
+  forwarding alternative could hand back the child's record rather than making one.
+- **The two passes.** The log is walked to list the records, walked back to mark what is
+  live, and walked again to build. A parse that commits — which every reader over kinds
+  now does — cannot have dead records in the log at all, so the liveness pass is
+  answering a question that no longer has two answers.
+- **The switch per record.** A record names a rule and a factory and is dispatched
+  through two nested switches. What a person writes is a call at the site that knew.
+
+None of that is measured yet, which is the same mistake this entry is about. The yardstick
+is in place now, so it will be.
+
+## Built: three things the walk was doing for nothing
+
+The entry before this one said building was four to ten times behind a person and named
+three guesses at why. Two of the three were wrong, and a profiler said so in ten minutes.
+It should have been the first instrument reached for rather than the fourth: dotTrace
+sampling the same twenty seconds of the generated parser and of the hand-written one, side
+by side, is the whole method — where the generated profile has a line the other has no
+line for, that is the generator's own machinery and nothing else.
+
+Three lines were like that. None of them was a guess from the last entry.
+
+**A record carried every member of its rule, not the members its factory names.** A rule
+of several alternatives has one member per capture name across all of them, and the record
+written for one alternative held the lot: `ValueExpressionPrimary` in standard SQL wrote
+five, four of them absent, on each of its eight alternatives, each picked out by a chain of
+ternaries — and the walk read five back. Which member belongs to which alternative is what
+the factory's parameter list already says, and a fold's steps already used it. Now every
+factory does. 465 ns to 375 on `a = 1`.
+
+**The walk marked what the root reaches, and it could not fail to reach it.** A valued rule
+that matched writes a record whether or not its caller kept the value, and §7.2 says a
+factory runs only for what the answer is made of — so the walk listed every record, marked
+backwards from the root, and built only the marked. That is two passes and an array of
+flags the width of the log, answering a question with one answer wherever every call to a
+valued rule is captured. Which is nearly every grammar that builds: a value nobody captures
+is a value written for nothing. Over characters it stays, and has to — a publication's own
+reader runs again from the start when the whole input was not read, and the record it wrote
+before that stays in the log. `GeneratorDriverTests` said so before the measurement did,
+which is what that test is for. A second flag array, for what a guard already built, is
+written only where a guard builds.
+
+**And the tables were covariant.** A value table is one array per type, indexed by record,
+held in a field. An array of a reference type is covariant in .NET — a `Derived[]` is a
+`Base[]` — so every store into one asks the runtime whether the value fits the array it is
+going into, and for an array reached through a field the answer is not known at compile
+time. `CastHelpers.StelemRef_Helper` was a tenth of the whole parse. The hand-written
+parser builds the same nodes into the same kind of array and pays nothing, because its
+arrays are allocated where they are filled and the JIT can see it. A one-field struct
+around each slot ends it: an array of structs is not covariant, and a store into a field of
+one asks nothing.
+
+| input | before | now | by hand |
+| --- | --: | --: | --: |
+| `a = 1` | 465 ns | 272 | 45 |
+| `(a + b) * c > d` | 803 | 481 | 103 |
+| `x = 1 AND y IS NOT NULL` | 789 | 502 | 130 |
+| 64 predicates joined by `AND` | 26,016 | 18,180 | 4,764 |
+| 64 operands joined by `+` | 8,177 | 6,165 | 2,096 |
+
+Four to ten times behind is three to six now. What the profiler says is left, in order:
+the walk itself at an eighth of the parse, the value tables being cleared on the way back
+at a twentieth — three tables cleared to the width of the log where one of them holds
+nearly everything — and a switch on the rule inside a switch on the factory where one
+switch on a number that names both would do.
+
+`--spin` in the benchmarks reads one SQL input in a loop for a profiler to sample, the
+generated parser or the hand-written one, so the next round of this can start where this
+one did.
+
+## Measured: the generated lexer is the half that is already there
+
+The totals rested on an assumption for a fortnight: the generated tokenizer was not
+reachable from the benchmark, so the reader's own share was had by subtracting the
+hand-written lexer from both sides and supposing two lexers doing the same work cost about
+the same. They do not, and the assumption was never needed. A generated parser tokenizes
+the whole input before it reads a token of it and does so whether or not the reading gets
+anywhere, so an input the reader refuses at its first token costs the lexer and nothing
+else: a `)` in front, where a search condition cannot begin, and what is left over the
+same input without it is the tokenizing.
+
+| input | generated | by hand | ratio |
+| --- | --: | --: | --: |
+| `a = 1` | 7.1 ns | 7.6 | 0.93 |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 57.4 | 36.1 | 1.59 |
+| `x = 1 AND y IS NOT NULL` | 31.7 | 44.7 | 0.71 |
+| 64 predicates joined by `AND` | 1,082 | 1,596 | 0.68 |
+| 64 operands joined by `+` | 548 | 871 | 0.63 |
+
+**Words to the automaton, punctuation to the person.** The generated lexer is one
+automaton over a state table, and a keyword is a path through it like any other: `AND`
+costs what three characters cost, and so does a name. The hand-written one switches on the
+character, which beats a table load for a bracket, and then classifies every word it has
+read by its length and its first letter — work the automaton never does because it did
+the classifying while it read. Sixty-four brackets and digits and the person is 1.6 times
+ahead; sixty-four names and sixty-three `AND`s and the automaton is.
+
+So the lexical half of this generator is at or past what a person writes, and the whole of
+the distance is in the other half: reading and building, five to seven times, each side
+divided by its own lexer.
+
+## Built: a level that only hands its operand up writes nothing
+
+A ladder is a rule per level, and every level but the top hands its operand up unchanged:
+
+```dotgram
+SearchCondition = left: SearchCondition & "OR"i & right: BooleanTerm => @(...)
+                | t: BooleanTerm                                     => @(t)
+```
+
+That second alternative used to cost a record saying which rule and which alternative,
+a slot holding the record below it, a walk that read the slot back, and a call to a
+factory whose entire body is `t`. Standard SQL has eighteen alternatives of that shape,
+and reading `a = 1` went through nine of them.
+
+They write nothing now. The rule's value is the record its callee left, which is what
+`ways.Last` already holds and what a caller capturing the rule already reads — so there
+is nothing to write down and nothing to read back. The test is on the alternative rather
+than the rule, because a rule can have one alternative that forwards and another that
+builds, and `Predicate` in this grammar has both. What it asks: the alternative is one
+capture of one call and the seam woven around it; the factory names that capture and
+nothing else, no text, no span, no context, no accumulator; and the two rules' value
+types are the same, which is what makes the callee's record answer for the caller's.
+
+Two spellings had to be allowed for. The C# a construction carries reaches the emitter as
+the text between `@(` and `)` from some places and with those parentheses still on it from
+others, so `t` and `(t)` both have to read as "hands back `t`". That was found by marking
+the sites the test fired at and counting them: four, where the grammar plainly has
+eighteen.
+
+| input | before | now | by hand | ratio |
+| --- | --: | --: | --: | --: |
+| `a = 1` | 272 ns | 198 | 45 | 4.4 |
+| `(a + b) * c > d` | 481 | 378 | 102 | 3.7 |
+| `x = 1 AND y IS NOT NULL` | 502 | 380 | 128 | 3.0 |
+| 64 predicates joined by `AND` | 18,180 | 12,945 | 4,630 | 2.8 |
+| 64 operands joined by `+` | 6,165 | 5,364 | 2,136 | 2.5 |
+
+**Ten times behind a person a week ago, and between two and a half and four now** — with
+both sides building the same tree, node for node, checked over forty-two shapes before
+anything is timed. Sixty-six records are written where eighty-four were, and the eighteen
+that went were the ones whose only content was which rule wrote them.

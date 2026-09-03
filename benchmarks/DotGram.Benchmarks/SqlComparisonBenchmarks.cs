@@ -34,9 +34,9 @@ namespace DotGram.Benchmarks;
 /// are half of reading the same language.
 /// </item>
 /// <item>
-/// <b>The same answer.</b> All recognize and none builds: the generated side is
-/// asked through <c>TryParseSearchCondition</c>, whose value is the extent, so nothing is
-/// materialized on any of them.
+/// <b>The same answer.</b> Both build the same tree, and <c>Agree</c> holds them to it:
+/// over all forty-two shapes the two render identically (<c>SqlTree.cs</c>), so what is
+/// between them is two ways of making one tree and nothing else.
 /// </item>
 /// <item>
 /// <b>The same input.</b> A string in, a bool out, each doing its own lexing inside. The
