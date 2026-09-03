@@ -114,13 +114,17 @@ readonly struct Only<TPair> : IBuilds
 /// <b>What it comes to.</b> At four hundred pairs, against the tape:
 /// </para>
 /// <code>
-/// recognize, tape           12.0 us      48,936 B    1.00x
-/// recognize, closures       20.9 us     153,624 B    1.73x
-/// recognize, structs         9.5 us      16,272 B    0.79x
+/// recognize, tape            8.5 us      48,936 B    1.00x
+/// recognize, closures       17.3 us     153,624 B    2.04x
+/// recognize, structs         5.9 us      16,272 B    0.70x
+/// recognize, boxed          11.0 us      44,792 B    1.29x
+/// recognize, classes        10.0 us      44,792 B    1.18x
 ///
-/// construct, table          62.6 us     859,192 B    1.00x
-/// construct, closures       59.3 us     846,368 B    0.95x
-/// construct, structs        54.8 us     846,368 B    0.88x
+/// construct, table          60.5 us     859,192 B    1.00x
+/// construct, closures       58.7 us     846,368 B    0.97x
+/// construct, structs        54.3 us     846,368 B    0.90x
+/// construct, boxed          57.6 us     846,368 B    0.95x
+/// construct, classes        57.0 us     846,368 B    0.94x
 /// </code>
 /// <para>
 /// Ahead on both phases and a third of the tape's allocation, which is the one number
@@ -132,8 +136,9 @@ readonly struct Only<TPair> : IBuilds
 /// So the technique reaches exactly as far as the shape is statically bounded. A grammar
 /// that recurses into itself somewhere other than a fold — <c>Expr = '(' &amp; Expr &amp;
 /// ')'</c> — has a derivation whose type is as deep as its input, and there the boxing is
-/// unavoidable. That is the answer to whether this generalizes: it does not, and where it
-/// does not it is worse than a closure.
+/// unavoidable. That is the answer to whether this generalizes: it does not. But falling
+/// back is not falling far — <see cref="Boxed"/> is 1.29x and <see cref="Classes"/> 1.18x
+/// where this is 0.70x, and both are well ahead of a closure. The cliff is a step.
 /// </para>
 /// </remarks>
 sealed class Unboxed

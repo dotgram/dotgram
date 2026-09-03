@@ -63,6 +63,26 @@ static class Program
 		if (held)
 			Console.WriteLine($"            value \"{unboxed.Construct()}\", after {Author.Constructions} of them");
 
+		Author.Forget();
+
+		var boxed  = new Boxed(input);
+		var inside = boxed.Recognize();
+
+		Console.WriteLine($"  boxed:    read {inside}, and the author's code has run {Author.Constructions} times");
+
+		if (inside)
+			Console.WriteLine($"            value \"{boxed.Construct()}\", after {Author.Constructions} of them");
+
+		Author.Forget();
+
+		var classes = new Classes(input);
+		var linked  = classes.Recognize();
+
+		Console.WriteLine($"  classes:  read {linked}, and the author's code has run {Author.Constructions} times");
+
+		if (linked)
+			Console.WriteLine($"            value \"{classes.Construct()}\", after {Author.Constructions} of them");
+
 		Console.WriteLine();
 	}
 
@@ -94,6 +114,12 @@ static class Program
 
 		var held   = new Phase();
 		var folded = new Phase();
+
+		var inside = new Phase();
+		var opened = new Phase();
+
+		var linked = new Phase();
+		var walked = new Phase();
 
 		for (var round = 0; round < rounds + 200; round++)
 		{
@@ -160,6 +186,42 @@ static class Program
 
 				GC.KeepAlive(value);
 			}
+
+			{
+				var boxed = new Boxed(input);
+				var watch = Phase.Start();
+
+				if (!boxed.Recognize())
+					throw new InvalidOperationException("The boxed reader did not read the input.");
+
+				if (measured) inside.Add(watch);
+
+				watch = Phase.Start();
+
+				var value = boxed.Construct();
+
+				if (measured) opened.Add(watch);
+
+				GC.KeepAlive(value);
+			}
+
+			{
+				var classes = new Classes(input);
+				var watch   = Phase.Start();
+
+				if (!classes.Recognize())
+					throw new InvalidOperationException("The class reader did not read the input.");
+
+				if (measured) linked.Add(watch);
+
+				watch = Phase.Start();
+
+				var value = classes.Construct();
+
+				if (measured) walked.Add(watch);
+
+				GC.KeepAlive(value);
+			}
 		}
 
 		Console.WriteLine(Unboxed.Sizes());
@@ -171,11 +233,15 @@ static class Program
 		Row("recognize, tape",     read,     read);
 		Row("recognize, closures", arranged, read);
 		Row("recognize, structs",  held,     read);
+		Row("recognize, boxed",    inside,   read);
+		Row("recognize, classes",  linked,   read);
 		Console.WriteLine();
 		Row("construct, table",    built,    built);
 		Row("construct, stack",    piled,    built);
 		Row("construct, closures", called,   built);
 		Row("construct, structs",  folded,   built);
+		Row("construct, boxed",    opened,   built);
+		Row("construct, classes",  walked,   built);
 
 		void Row(string what, Phase phase, Phase against) =>
 			Console.WriteLine(
