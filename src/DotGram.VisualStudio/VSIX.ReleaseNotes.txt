@@ -1,4 +1,4 @@
-DotGram language support 0.1.43
+DotGram language support 0.1.44
 
 Initial preview for Visual Studio 18.
 

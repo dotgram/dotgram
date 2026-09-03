@@ -18,7 +18,7 @@ namespace DotGram.VisualStudio;
 [Name("DotGram Find References command")]
 [ContentType(GramContentType.Name)]
 [ContentType("CSharp")]
-[Order(Before = "default")]
+[Order(Before = "Find References Command Handler")]
 sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCommandArgs>
 {
 	[Import]
