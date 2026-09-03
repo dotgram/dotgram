@@ -2367,76 +2367,6 @@ namespace DotGram.Snapshots
 			return -1;
 		}
 
-		/// <summary>The whole input as <c>Sum</c>, read by methods.</summary>
-		static int Recognize_Sum_Whole(global::System.ReadOnlySpan<char> text, int pos, int power, ref Failure failure, out int value)
-		{
-			var ways = Ways.Rent();
-			var values = DirectValues.Rent();
-
-			try
-			{
-				var end = Recognize_Sum_Whole_Read(text, pos, ref failure, ways, power);
-
-				if (end < 0)
-				{
-					value = default!;
-
-					return end;
-				}
-
-				Materialize_DotGram_Sum_Direct(ways, text, values, ways.Last, 0);
-				value = values.V1[ways.Last].Value;
-
-				return end;
-			}
-			finally
-			{
-				Ways.Return(ways);
-				DirectValues.Return(values);
-			}
-		}
-
-		/// <summary>The whole input as <c>Sum</c>, and the way back into it.</summary>
-		static int Recognize_Sum_Whole_Read(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways, int power)
-		{
-			var s  = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
-
-			while (true)
-			{
-				var q = Recognize_Sum_Whole_Read_Body(text, pos, ref failure, ways, power);
-
-				if (q >= 0)
-					return q;
-
-				ways.LogCount  = lm;
-				ways.RefsCount = rb;
-
-				if (ways.Cursor > s && ways.Retry(s))
-					continue;
-
-				return -1;
-			}
-		}
-
-		/// <summary>What <c>Sum</c> is read by, whichever stack it is read on.</summary>
-		static int Recognize_Sum_Whole_Read_Body(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways, int power)
-		{
-			var p = pos;
-			var rb = ways.RefsCount;
-			global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
-			var q0 = Read_Sum_Sum(text, p, ref failure, ways, power);
-			if (q0 < 0) return -1;
-			p = q0;
-			if (p != text.Length)
-			{
-				Refuse_DotGram(ref failure, p, null, ways);
-				return -1;
-			}
-			return p;
-		}
-
 		/// <summary><c>Sum</c>, and the way back into it.</summary>
 		static int Read_Sum_Sum(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways, int power)
 		{
@@ -2578,6 +2508,76 @@ namespace DotGram.Snapshots
 			ways.Put(r1);
 			ways.End(rb);
 			fold = ways.Last;
+			return p;
+		}
+
+		/// <summary>The whole input as <c>Sum</c>, read by methods.</summary>
+		static int Recognize_Sum_Whole(global::System.ReadOnlySpan<char> text, int pos, int power, ref Failure failure, out int value)
+		{
+			var ways = Ways.Rent();
+			var values = DirectValues.Rent();
+
+			try
+			{
+				var end = Recognize_Sum_Whole_Read(text, pos, ref failure, ways, power);
+
+				if (end < 0)
+				{
+					value = default!;
+
+					return end;
+				}
+
+				Materialize_DotGram_Sum_Direct(ways, text, values, ways.Last, 0);
+				value = values.V1[ways.Last].Value;
+
+				return end;
+			}
+			finally
+			{
+				Ways.Return(ways);
+				DirectValues.Return(values);
+			}
+		}
+
+		/// <summary>The whole input as <c>Sum</c>, and the way back into it.</summary>
+		static int Recognize_Sum_Whole_Read(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways, int power)
+		{
+			var s  = ways.Cursor;
+			var lm = ways.LogCount;
+			var rb = ways.RefsCount;
+
+			while (true)
+			{
+				var q = Recognize_Sum_Whole_Read_Body(text, pos, ref failure, ways, power);
+
+				if (q >= 0)
+					return q;
+
+				ways.LogCount  = lm;
+				ways.RefsCount = rb;
+
+				if (ways.Cursor > s && ways.Retry(s))
+					continue;
+
+				return -1;
+			}
+		}
+
+		/// <summary>What <c>Sum</c> is read by, whichever stack it is read on.</summary>
+		static int Recognize_Sum_Whole_Read_Body(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways, int power)
+		{
+			var p = pos;
+			var rb = ways.RefsCount;
+			global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
+			var q0 = Read_Sum_Sum(text, p, ref failure, ways, power);
+			if (q0 < 0) return -1;
+			p = q0;
+			if (p != text.Length)
+			{
+				Refuse_DotGram(ref failure, p, null, ways);
+				return -1;
+			}
 			return p;
 		}
 

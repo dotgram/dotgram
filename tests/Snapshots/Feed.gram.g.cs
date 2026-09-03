@@ -249,75 +249,6 @@ namespace DotGram.Snapshots
 			public string Count { get; }
 		}
 
-		/// <summary>The whole input as <c>Feed</c>, read by methods.</summary>
-		static int Recognize_Feed_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.FeedValue value)
-		{
-			var ways = Ways.Rent();
-			var values = DirectValues.Rent();
-
-			try
-			{
-				var end = Recognize_Feed_Whole_Read(text, pos, ref failure, ways);
-
-				if (end < 0)
-				{
-					value = default!;
-
-					return end;
-				}
-
-				Materialize_DotGram_Feed_Direct(ways, text, values, ways.Last, 0);
-				value = values.V0[ways.Last].Value;
-
-				return end;
-			}
-			finally
-			{
-				Ways.Return(ways);
-				DirectValues.Return(values);
-			}
-		}
-
-		/// <summary>The whole input as <c>Feed</c>, and the way back into it.</summary>
-		static int Recognize_Feed_Whole_Read(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var s  = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
-
-			while (true)
-			{
-				var q = Recognize_Feed_Whole_Read_Body(text, pos, ref failure, ways);
-
-				if (q >= 0)
-					return q;
-
-				ways.LogCount  = lm;
-				ways.RefsCount = rb;
-
-				if (ways.Cursor > s && ways.Retry(s))
-					continue;
-
-				return -1;
-			}
-		}
-
-		/// <summary>What <c>Feed</c> is read by, whichever stack it is read on.</summary>
-		static int Recognize_Feed_Whole_Read_Body(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var p = pos;
-			var rb = ways.RefsCount;
-			var q0 = Read_Feed_Feed(text, p, ref failure, ways);
-			if (q0 < 0) return -1;
-			p = q0;
-			if (p != text.Length)
-			{
-				Refuse_DotGram(ref failure, p, null, ways);
-				return -1;
-			}
-			return p;
-		}
-
 		/// <summary><c>Feed</c>, and the way back into it.</summary>
 		static int Read_Feed_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
 		{
@@ -369,23 +300,6 @@ namespace DotGram.Snapshots
 					break;
 				}
 
-				var w0 = -1;
-				var d0 = 0;
-
-				if (ways.Cursor < ways.Count)
-				{
-					w0 = ways.Cursor;
-					d0 = ways.Items[w0 * 2];
-					ways.Cursor++;
-				}
-				else
-				{
-					w0 = ways.Open(1);
-				}
-
-				if (d0 == 1)
-					break;
-
 				var s2  = ways.Cursor;
 				var lm2 = ways.LogCount;
 				var rr2 = ways.RefsCount;
@@ -409,7 +323,6 @@ namespace DotGram.Snapshots
 
 				if (q1 < 0)
 				{
-					ways.Next(w0, 1);
 
 					break;
 				}
@@ -496,32 +409,8 @@ namespace DotGram.Snapshots
 			return p;
 		}
 
-		/// <summary><c>Sep</c>, and the way back into it.</summary>
+		/// <summary><c>Sep</c>, read by a method of its own.</summary>
 		static int Read_Sep_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var s  = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
-
-			while (true)
-			{
-				var q = Read_Sep_Feed_Body(text, pos, ref failure, ways);
-
-				if (q >= 0)
-					return q;
-
-				ways.LogCount  = lm;
-				ways.RefsCount = rb;
-
-				if (ways.Cursor > s && ways.Retry(s))
-					continue;
-
-				return -1;
-			}
-		}
-
-		/// <summary>What <c>Sep</c> is, one reading of it at a time.</summary>
-		static int Read_Sep_Feed_Body(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
 		{
 			var p = pos;
 			if ((uint)p >= (uint)text.Length || text[p] != '|')
@@ -533,32 +422,8 @@ namespace DotGram.Snapshots
 			return p;
 		}
 
-		/// <summary><c>Date</c>, and the way back into it.</summary>
+		/// <summary><c>Date</c>, read by a method of its own.</summary>
 		static int Read_Date_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var s  = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
-
-			while (true)
-			{
-				var q = Read_Date_Feed_Body(text, pos, ref failure, ways);
-
-				if (q >= 0)
-					return q;
-
-				ways.LogCount  = lm;
-				ways.RefsCount = rb;
-
-				if (ways.Cursor > s && ways.Retry(s))
-					continue;
-
-				return -1;
-			}
-		}
-
-		/// <summary>What <c>Date</c> is, one reading of it at a time.</summary>
-		static int Read_Date_Feed_Body(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
 		{
 			var p = pos;
 			var c = '\0';
@@ -587,25 +452,16 @@ namespace DotGram.Snapshots
 					break;
 				}
 
-				var s2  = ways.Cursor;
 				var lm2 = ways.LogCount;
 				var rr2 = ways.RefsCount;
 				var q0 = -1;
 
-				while (true)
+				q0 = Read_Date_Feed_Part0(text, p, ref failure, ways);
+
+				if (q0 < 0)
 				{
-					q0 = Read_Date_Feed_Part0(text, p, ref failure, ways);
-
-					if (q0 >= 0)
-						break;
-
 					ways.LogCount  = lm2;
 					ways.RefsCount = rr2;
-
-					if (ways.Cursor > s2 && ways.Retry(s2))
-						continue;
-
-					break;
 				}
 
 				if (q0 < 0)
@@ -650,25 +506,16 @@ namespace DotGram.Snapshots
 					break;
 				}
 
-				var s5  = ways.Cursor;
 				var lm5 = ways.LogCount;
 				var rr5 = ways.RefsCount;
 				var q1 = -1;
 
-				while (true)
+				q1 = Read_Date_Feed_Part1(text, p, ref failure, ways);
+
+				if (q1 < 0)
 				{
-					q1 = Read_Date_Feed_Part1(text, p, ref failure, ways);
-
-					if (q1 >= 0)
-						break;
-
 					ways.LogCount  = lm5;
 					ways.RefsCount = rr5;
-
-					if (ways.Cursor > s5 && ways.Retry(s5))
-						continue;
-
-					break;
 				}
 
 				if (q1 < 0)
@@ -713,25 +560,16 @@ namespace DotGram.Snapshots
 					break;
 				}
 
-				var s8  = ways.Cursor;
 				var lm8 = ways.LogCount;
 				var rr8 = ways.RefsCount;
 				var q2 = -1;
 
-				while (true)
+				q2 = Read_Date_Feed_Part2(text, p, ref failure, ways);
+
+				if (q2 < 0)
 				{
-					q2 = Read_Date_Feed_Part2(text, p, ref failure, ways);
-
-					if (q2 >= 0)
-						break;
-
 					ways.LogCount  = lm8;
 					ways.RefsCount = rr8;
-
-					if (ways.Cursor > s8 && ways.Retry(s8))
-						continue;
-
-					break;
 				}
 
 				if (q2 < 0)
@@ -778,32 +616,8 @@ namespace DotGram.Snapshots
 			return p;
 		}
 
-		/// <summary><c>Digit</c>, and the way back into it.</summary>
+		/// <summary><c>Digit</c>, read by a method of its own.</summary>
 		static int Read_Digit_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var s  = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
-
-			while (true)
-			{
-				var q = Read_Digit_Feed_Body(text, pos, ref failure, ways);
-
-				if (q >= 0)
-					return q;
-
-				ways.LogCount  = lm;
-				ways.RefsCount = rb;
-
-				if (ways.Cursor > s && ways.Retry(s))
-					continue;
-
-				return -1;
-			}
-		}
-
-		/// <summary>What <c>Digit</c> is, one reading of it at a time.</summary>
-		static int Read_Digit_Feed_Body(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
 		{
 			var p = pos;
 			var c = '\0';
@@ -884,20 +698,12 @@ namespace DotGram.Snapshots
 				var lm1 = ways.LogCount;
 				var rr1 = ways.RefsCount;
 
-				while (true)
+				q0 = Read_eol_Feed_Part0(text, p, ref failure, ways);
+
+				if (q0 < 0)
 				{
-					q0 = Read_eol_Feed_Part0(text, p, ref failure, ways);
-
-					if (q0 >= 0)
-						break;
-
 					ways.LogCount  = lm1;
 					ways.RefsCount = rr1;
-
-					if (ways.Cursor > s1 && ways.Retry(s1))
-						continue;
-
-					break;
 				}
 
 				if (q0 < 0)
@@ -909,20 +715,12 @@ namespace DotGram.Snapshots
 				var lm2 = ways.LogCount;
 				var rr2 = ways.RefsCount;
 
-				while (true)
+				q0 = Read_eol_Feed_Part1(text, p, ref failure, ways);
+
+				if (q0 < 0)
 				{
-					q0 = Read_eol_Feed_Part1(text, p, ref failure, ways);
-
-					if (q0 >= 0)
-						break;
-
 					ways.LogCount  = lm2;
 					ways.RefsCount = rr2;
-
-					if (ways.Cursor > s2 && ways.Retry(s2))
-						continue;
-
-					break;
 				}
 
 				if (q0 < 0)
@@ -934,20 +732,12 @@ namespace DotGram.Snapshots
 				var lm3 = ways.LogCount;
 				var rr3 = ways.RefsCount;
 
-				while (true)
+				q0 = Read_eol_Feed_Part2(text, p, ref failure, ways);
+
+				if (q0 < 0)
 				{
-					q0 = Read_eol_Feed_Part2(text, p, ref failure, ways);
-
-					if (q0 >= 0)
-						break;
-
 					ways.LogCount  = lm3;
 					ways.RefsCount = rr3;
-
-					if (ways.Cursor > s3 && ways.Retry(s3))
-						continue;
-
-					break;
 				}
 			}
 
@@ -1130,32 +920,8 @@ namespace DotGram.Snapshots
 			return p;
 		}
 
-		/// <summary><c>Amount</c>, and the way back into it.</summary>
+		/// <summary><c>Amount</c>, read by a method of its own.</summary>
 		static int Read_Amount_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var s  = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
-
-			while (true)
-			{
-				var q = Read_Amount_Feed_Body(text, pos, ref failure, ways);
-
-				if (q >= 0)
-					return q;
-
-				ways.LogCount  = lm;
-				ways.RefsCount = rb;
-
-				if (ways.Cursor > s && ways.Retry(s))
-					continue;
-
-				return -1;
-			}
-		}
-
-		/// <summary>What <c>Amount</c> is, one reading of it at a time.</summary>
-		static int Read_Amount_Feed_Body(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
 		{
 			var p = pos;
 			var c = '\0';
@@ -1178,47 +944,20 @@ namespace DotGram.Snapshots
 					break;
 				}
 
-				var w0 = -1;
-				var d0 = 0;
-
-				if (ways.Cursor < ways.Count)
-				{
-					w0 = ways.Cursor;
-					d0 = ways.Items[w0 * 2];
-					ways.Cursor++;
-				}
-				else
-				{
-					w0 = ways.Open(1);
-				}
-
-				if (d0 == 1)
-					break;
-
-				var s2  = ways.Cursor;
 				var lm2 = ways.LogCount;
 				var rr2 = ways.RefsCount;
 				var q0 = -1;
 
-				while (true)
+				q0 = Read_Amount_Feed_Part0(text, p, ref failure, ways);
+
+				if (q0 < 0)
 				{
-					q0 = Read_Amount_Feed_Part0(text, p, ref failure, ways);
-
-					if (q0 >= 0)
-						break;
-
 					ways.LogCount  = lm2;
 					ways.RefsCount = rr2;
-
-					if (ways.Cursor > s2 && ways.Retry(s2))
-						continue;
-
-					break;
 				}
 
 				if (q0 < 0)
 				{
-					ways.Next(w0, 1);
 
 					break;
 				}
@@ -1248,52 +987,20 @@ namespace DotGram.Snapshots
 					break;
 				}
 
-				var w3 = -1;
-				var d3 = 0;
-
-				if (t1 >= 1)
-				{
-					if (ways.Cursor < ways.Count)
-					{
-						w3 = ways.Cursor;
-						d3 = ways.Items[w3 * 2];
-						ways.Cursor++;
-					}
-					else
-					{
-						w3 = ways.Open(1);
-					}
-
-					if (d3 == 1)
-						break;
-				}
-
-				var s5  = ways.Cursor;
 				var lm5 = ways.LogCount;
 				var rr5 = ways.RefsCount;
 				var q1 = -1;
 
-				while (true)
+				q1 = Read_Amount_Feed_Part1(text, p, ref failure, ways);
+
+				if (q1 < 0)
 				{
-					q1 = Read_Amount_Feed_Part1(text, p, ref failure, ways);
-
-					if (q1 >= 0)
-						break;
-
 					ways.LogCount  = lm5;
 					ways.RefsCount = rr5;
-
-					if (ways.Cursor > s5 && ways.Retry(s5))
-						continue;
-
-					break;
 				}
 
 				if (q1 < 0)
 				{
-					if (t1 >= 1)
-						ways.Next(w3, 1);
-
 					if (t1 < 1)
 						return -1;
 
@@ -1322,47 +1029,20 @@ namespace DotGram.Snapshots
 					break;
 				}
 
-				var w6 = -1;
-				var d6 = 0;
-
-				if (ways.Cursor < ways.Count)
-				{
-					w6 = ways.Cursor;
-					d6 = ways.Items[w6 * 2];
-					ways.Cursor++;
-				}
-				else
-				{
-					w6 = ways.Open(1);
-				}
-
-				if (d6 == 1)
-					break;
-
-				var s8  = ways.Cursor;
 				var lm8 = ways.LogCount;
 				var rr8 = ways.RefsCount;
 				var q2 = -1;
 
-				while (true)
+				q2 = Read_Amount_Feed_Part2(text, p, ref failure, ways);
+
+				if (q2 < 0)
 				{
-					q2 = Read_Amount_Feed_Part2(text, p, ref failure, ways);
-
-					if (q2 >= 0)
-						break;
-
 					ways.LogCount  = lm8;
 					ways.RefsCount = rr8;
-
-					if (ways.Cursor > s8 && ways.Retry(s8))
-						continue;
-
-					break;
 				}
 
 				if (q2 < 0)
 				{
-					ways.Next(w6, 1);
 
 					break;
 				}
@@ -1432,25 +1112,16 @@ namespace DotGram.Snapshots
 					break;
 				}
 
-				var s2  = ways.Cursor;
 				var lm2 = ways.LogCount;
 				var rr2 = ways.RefsCount;
 				var q0 = -1;
 
-				while (true)
+				q0 = Read_Amount_Feed_Part3(text, p, ref failure, ways);
+
+				if (q0 < 0)
 				{
-					q0 = Read_Amount_Feed_Part3(text, p, ref failure, ways);
-
-					if (q0 >= 0)
-						break;
-
 					ways.LogCount  = lm2;
 					ways.RefsCount = rr2;
-
-					if (ways.Cursor > s2 && ways.Retry(s2))
-						continue;
-
-					break;
 				}
 
 				if (q0 < 0)
@@ -1531,32 +1202,8 @@ namespace DotGram.Snapshots
 			return p;
 		}
 
-		/// <summary><c>Count</c>, and the way back into it.</summary>
+		/// <summary><c>Count</c>, read by a method of its own.</summary>
 		static int Read_Count_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var s  = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
-
-			while (true)
-			{
-				var q = Read_Count_Feed_Body(text, pos, ref failure, ways);
-
-				if (q >= 0)
-					return q;
-
-				ways.LogCount  = lm;
-				ways.RefsCount = rb;
-
-				if (ways.Cursor > s && ways.Retry(s))
-					continue;
-
-				return -1;
-			}
-		}
-
-		/// <summary>What <c>Count</c> is, one reading of it at a time.</summary>
-		static int Read_Count_Feed_Body(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
 		{
 			var p = pos;
 			var c = '\0';
@@ -1582,52 +1229,20 @@ namespace DotGram.Snapshots
 					break;
 				}
 
-				var w0 = -1;
-				var d0 = 0;
-
-				if (t0 >= 1)
-				{
-					if (ways.Cursor < ways.Count)
-					{
-						w0 = ways.Cursor;
-						d0 = ways.Items[w0 * 2];
-						ways.Cursor++;
-					}
-					else
-					{
-						w0 = ways.Open(1);
-					}
-
-					if (d0 == 1)
-						break;
-				}
-
-				var s2  = ways.Cursor;
 				var lm2 = ways.LogCount;
 				var rr2 = ways.RefsCount;
 				var q0 = -1;
 
-				while (true)
+				q0 = Read_Count_Feed_Part0(text, p, ref failure, ways);
+
+				if (q0 < 0)
 				{
-					q0 = Read_Count_Feed_Part0(text, p, ref failure, ways);
-
-					if (q0 >= 0)
-						break;
-
 					ways.LogCount  = lm2;
 					ways.RefsCount = rr2;
-
-					if (ways.Cursor > s2 && ways.Retry(s2))
-						continue;
-
-					break;
 				}
 
 				if (q0 < 0)
 				{
-					if (t0 >= 1)
-						ways.Next(w0, 1);
-
 					if (t0 < 1)
 						return -1;
 
@@ -1650,32 +1265,8 @@ namespace DotGram.Snapshots
 			return p;
 		}
 
-		/// <summary><c>eof</c>, and the way back into it.</summary>
+		/// <summary><c>eof</c>, read by a method of its own.</summary>
 		static int Read_eof_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var s  = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
-
-			while (true)
-			{
-				var q = Read_eof_Feed_Body(text, pos, ref failure, ways);
-
-				if (q >= 0)
-					return q;
-
-				ways.LogCount  = lm;
-				ways.RefsCount = rb;
-
-				if (ways.Cursor > s && ways.Retry(s))
-					continue;
-
-				return -1;
-			}
-		}
-
-		/// <summary>What <c>eof</c> is, one reading of it at a time.</summary>
-		static int Read_eof_Feed_Body(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
 		{
 			var p = pos;
 			var s0  = ways.Cursor;
@@ -1704,6 +1295,75 @@ namespace DotGram.Snapshots
 			}
 			c = text[p];
 			p++;
+			return p;
+		}
+
+		/// <summary>The whole input as <c>Feed</c>, read by methods.</summary>
+		static int Recognize_Feed_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.FeedValue value)
+		{
+			var ways = Ways.Rent();
+			var values = DirectValues.Rent();
+
+			try
+			{
+				var end = Recognize_Feed_Whole_Read(text, pos, ref failure, ways);
+
+				if (end < 0)
+				{
+					value = default!;
+
+					return end;
+				}
+
+				Materialize_DotGram_Feed_Direct(ways, text, values, ways.Last, 0);
+				value = values.V0[ways.Last].Value;
+
+				return end;
+			}
+			finally
+			{
+				Ways.Return(ways);
+				DirectValues.Return(values);
+			}
+		}
+
+		/// <summary>The whole input as <c>Feed</c>, and the way back into it.</summary>
+		static int Recognize_Feed_Whole_Read(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
+		{
+			var s  = ways.Cursor;
+			var lm = ways.LogCount;
+			var rb = ways.RefsCount;
+
+			while (true)
+			{
+				var q = Recognize_Feed_Whole_Read_Body(text, pos, ref failure, ways);
+
+				if (q >= 0)
+					return q;
+
+				ways.LogCount  = lm;
+				ways.RefsCount = rb;
+
+				if (ways.Cursor > s && ways.Retry(s))
+					continue;
+
+				return -1;
+			}
+		}
+
+		/// <summary>What <c>Feed</c> is read by, whichever stack it is read on.</summary>
+		static int Recognize_Feed_Whole_Read_Body(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
+		{
+			var p = pos;
+			var rb = ways.RefsCount;
+			var q0 = Read_Feed_Feed(text, p, ref failure, ways);
+			if (q0 < 0) return -1;
+			p = q0;
+			if (p != text.Length)
+			{
+				Refuse_DotGram(ref failure, p, null, ways);
+				return -1;
+			}
 			return p;
 		}
 

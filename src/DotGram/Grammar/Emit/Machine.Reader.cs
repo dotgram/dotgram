@@ -44,6 +44,84 @@ sealed partial class Machine
 	const string Refusing = "Refuse_DotGram";
 
 	/// <summary>
+	/// The rules a way back has to be written into: the ones that put something on the
+	/// tape, and the ones that call them.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A way back is a loop that calls the body again after moving the tape on, and it can
+	/// only do something where there is something on the tape to move. A rule that opens no
+	/// way, and calls nothing that opens one, has one reading and is written as one method.
+	/// </para>
+	/// <para>
+	/// A caller is included even though the callee has a way back of its own: the callee
+	/// answered and the caller failed after it, and asking the callee for its next answer
+	/// is the caller running again from the top with the tape moved on.
+	/// </para>
+	/// </remarks>
+	/// <summary>
+	/// The rules that put something on the tape, once it is known — null while the first
+	/// pass is still finding out, which is read as "assume any of them might".
+	/// </summary>
+	HashSet<RuleSymbol>? _opens;
+
+	HashSet<RuleSymbol> Opens(
+		IReadOnlyList<RuleSymbol> rules,
+		Dictionary<RuleSymbol, (string Body, List<(string Name, string Taken, string Body)> Parts)> written)
+	{
+		var opens = new HashSet<RuleSymbol>();
+
+		foreach (var rule in rules)
+		{
+			var (body, parts) = written[rule];
+
+			if (Writes(body) || parts.Exists(one => Writes(one.Body)))
+				opens.Add(rule);
+		}
+
+		// A rule that calls one is one, which takes as many passes as the call chain is
+		// deep and settles because nothing is ever taken out.
+		for (var again = true; again; )
+		{
+			again = false;
+
+			foreach (var rule in rules)
+				if (!opens.Contains(rule) &&
+					NodeWalk.Descendants(_graph.Bodies[rule])
+						.Any(one => one is Node.Call(var called, _) && opens.Contains(called)))
+				{
+					opens.Add(rule);
+					again = true;
+				}
+		}
+
+		return opens;
+
+		static bool Writes(string text) => text.Contains("ways.Open(", StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// Whether anything under a node can put something on the tape: a rule it calls that
+	/// does, once the first pass has said which those are.
+	/// </summary>
+	bool Opens(Node node) =>
+		_opens is null ||
+		NodeWalk.Descendants(node).Any(one => one is Node.Call(var called, _) && _opens.Contains(called));
+
+	/// <summary>
+	/// What may follow a rule where it is called, which is what says whether a run inside
+	/// it can ever be asked for a shorter reading.
+	/// </summary>
+	FollowSets.Continuation FollowOf(RuleSymbol rule)
+	{
+		_follows ??= FollowSets.Of(_graph);
+
+		return _follows.TryGetValue(rule, out var following)
+			? following
+			: FollowSets.Continuation.All;
+	}
+
+	/// <summary>
 	/// How many methods the rule being written has been cut into.
 	/// </summary>
 	/// <remarks>
@@ -67,22 +145,41 @@ sealed partial class Machine
 
 		_directRules = rules;
 
-		foreach (var publication in publications)
+		// Written before any of it is emitted, because whether a rule needs a way back into
+		// it depends on what the rules it calls turned out to write.
+		var written = new Dictionary<RuleSymbol, (string Body, List<(string Name, string Taken, string Body)> Parts)>();
+
+		foreach (var rule in rules)
 		{
-			if (seen.Add(publication.Rule))
-				RenderReaderEntry(file, publication.Rule);
+			_seam       = FollowSets.SeamOf(rule, _graph);
+			_readerPart = 0;
+
+			var reader = new ReaderWriter(this, rule);
+
+			written[rule] = (reader.Render(_graph.Bodies[rule], FollowOf(rule)), reader.Parts);
+		}
+
+		_opens = Opens(rules, written);
+
+		// Written again, because a part that cannot open a way needs no loop around it and
+		// the first pass could not know which those were.
+		foreach (var rule in rules)
+		{
+			_seam       = FollowSets.SeamOf(rule, _graph);
+			_readerPart = 0;
+
+			var reader = new ReaderWriter(this, rule);
+
+			written[rule] = (reader.Render(_graph.Bodies[rule], FollowOf(rule)), reader.Parts);
 		}
 
 		foreach (var rule in rules)
 		{
 			_seam = FollowSets.SeamOf(rule, _graph);
 
-			_readerPart = 0;
-
-			var reader = new ReaderWriter(this, rule);
-			var body   = reader.Render(_graph.Bodies[rule]);
-			var tape   = !OverKinds || rule.GivesBack;
-			var inner  = tape ? ReaderOf(rule) + "_Body" : ReaderOf(rule);
+			var (body, parts) = written[rule];
+			var tape          = _opens.Contains(rule);
+			var inner         = tape ? ReaderOf(rule) + "_Body" : ReaderOf(rule);
 
 			if (tape)
 				RenderWayBack(file, rule, DirectStrength(rule), seal: OverKinds);
@@ -102,7 +199,7 @@ sealed partial class Machine
 
 			file.Line();
 
-			foreach (var (name, taken, part) in reader.Parts)
+			foreach (var (name, taken, part) in parts)
 			{
 				file.Line($"/// <summary>One alternative of <c>{rule.Name}</c>, read where it stood.</summary>");
 
@@ -117,6 +214,12 @@ sealed partial class Machine
 
 				file.Line();
 			}
+		}
+
+		foreach (var publication in publications)
+		{
+			if (seen.Add(publication.Rule))
+				RenderReaderEntry(file, publication.Rule);
 		}
 
 		if (rules.Any(Valued))
@@ -295,22 +398,25 @@ sealed partial class Machine
 		// answered with less than all of it, and then it is asked for its next answer
 		// rather than refused. Without this the very first reading that reached the end
 		// short was the last, whatever the tape still had to offer.
-		if (!OverKinds)
+		var tape = _opens is null || _opens.Contains(rule) ||
+			(_graph.Trivia.TryGetValue(rule, out var around) && Opens(around));
+
+		if (tape)
 			RenderWayBack(file, core + "_Read", $"/// <summary>The whole input as <c>{rule.Name}</c>, and the way back into it.</summary>", DirectStrength(rule));
 
 		file.Line($"/// <summary>What <c>{rule.Name}</c> is read by, whichever stack it is read on.</summary>");
 
 		using (file.Block(
-			$"static int {core}_Read{(OverKinds ? "" : "_Body")}(" +
+			$"static int {core}_Read{(tape ? "_Body" : "")}(" +
 			$"global::System.ReadOnlySpan<char> text, int pos, " +
 			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters}{DirectStrength(rule)})"))
 		{
 			var reader = new ReaderWriter(this, rule);
-			var body   = _graph.Trivia.TryGetValue(rule, out var around)
-				? new Node.Sequence([around, new Node.Call(rule, []), around])
+			var body   = _graph.Trivia.TryGetValue(rule, out var seam)
+				? new Node.Sequence([seam, new Node.Call(rule, []), seam])
 				: (Node)new Node.Call(rule, []);
 
-			file.Write(reader.Render(body, whole: true));
+			file.Write(reader.Render(body, FollowSets.Continuation.End, whole: true));
 		}
 
 		file.Line();
@@ -420,13 +526,13 @@ sealed partial class Machine
 		/// <summary>Whether this method writes a record, and so needs the side stack mark.</summary>
 		bool _records;
 
-		public string Render(Node body, bool whole = false)
+		public string Render(Node body, FollowSets.Continuation following, bool whole = false)
 		{
 			var code = new Writer(0);
 
 			_entry = whole;
 
-			Emit(code, body);
+			Emit(code, body, following);
 
 			// A rule whose value is the record of its captures and nothing more has no
 			// construction to write that record at, so it is written where the rule ends —
@@ -508,7 +614,7 @@ sealed partial class Machine
 		/// choice used to do over again: its own bounds check and its own read of the
 		/// character the switch had just read.
 		/// </param>
-		void Emit(Writer code, Node node, bool loaded = false)
+		void Emit(Writer code, Node node, FollowSets.Continuation following, bool loaded = false)
 		{
 			// An alternative of a rule written with binding powers is entered only at a
 			// strength it allows. Refused without a word: what could not be entered here was
@@ -551,18 +657,32 @@ sealed partial class Machine
 					EmitElement(code, element, loaded);
 					break;
 
+				// What follows a part is the parts after it, and past the last of them
+				// whatever follows the sequence — read backwards, which is the only order
+				// in which that is known.
 				case Node.Sequence(var parts):
+				{
+					var follows = new FollowSets.Continuation[parts.Count];
+					var next    = following;
+
+					for (var i = parts.Count - 1; i >= 0; i--)
+					{
+						follows[i] = next;
+						next       = FollowSets.Precedes(parts[i], next, _graph, machine._seam);
+					}
+
 					for (var i = 0; i < parts.Count; i++)
-						Emit(code, parts[i], loaded && i == 0);
+						Emit(code, parts[i], follows[i], loaded && i == 0);
 
 					break;
+				}
 
 				case Node.Choice(var alternatives):
-					EmitChoice(code, alternatives);
+					EmitChoice(code, alternatives, following);
 					break;
 
 				case Node.Repeat repeat:
-					EmitRepeat(code, repeat);
+					EmitRepeat(code, repeat, following);
 					break;
 
 				case Node.Call(var called, _):
@@ -574,7 +694,7 @@ sealed partial class Machine
 					break;
 
 				case Node.Capture(_, var held):
-					EmitCapture(code, node, held, loaded);
+					EmitCapture(code, node, held, following, loaded);
 					break;
 
 				// A look at the character behind, which reads into `c`: where the token in
@@ -615,7 +735,7 @@ sealed partial class Machine
 					break;
 
 				case Node.Atomic(var kept):
-					EmitAtomic(code, kept, loaded);
+					EmitAtomic(code, kept, following, loaded);
 					break;
 
 				case Node.Guard guard:
@@ -629,14 +749,14 @@ sealed partial class Machine
 					var site = machine.MarkSite(text);
 
 					code.Line($"ways.Mark(-1, {site}, p);");
-					Emit(code, marked, loaded);
+					Emit(code, marked, following, loaded);
 					code.Line($"ways.Mark(-2, {site}, p);");
 
 					break;
 				}
 
 				case Node.Construct(var built, _):
-					Emit(code, built, loaded);
+					Emit(code, built, following, loaded);
 					EmitRecord(code, machine._constructs[node]);
 					break;
 
@@ -647,7 +767,8 @@ sealed partial class Machine
 		}
 
 		/// <summary>What the rule keeps of what it read: a record it names, or the text.</summary>
-		void EmitCapture(Writer code, Node capture, Node held, bool loaded = false)
+		void EmitCapture(
+			Writer code, Node capture, Node held, FollowSets.Continuation following, bool loaded = false)
 		{
 			// Slots are numbered across the whole machine and members are numbered inside
 			// one rule, so the rule's first slot is where the two meet (Machine.Direct.cs).
@@ -656,7 +777,7 @@ sealed partial class Machine
 
 			if (member is null)
 			{
-				Emit(code, held, loaded);
+				Emit(code, held, following, loaded);
 
 				return;
 			}
@@ -665,12 +786,12 @@ sealed partial class Machine
 			{
 				case MemberShape.Text:
 					code.Line($"a{slot} = p;");
-					Emit(code, held, loaded);
+					Emit(code, held, following, loaded);
 					code.Line($"b{slot} = p;");
 					break;
 
 				case MemberShape.Record:
-					Emit(code, held, loaded);
+					Emit(code, held, following, loaded);
 					code.Line($"r{slot} = ways.Last;");
 					break;
 
@@ -679,12 +800,12 @@ sealed partial class Machine
 				// rule shares, so nothing has to be handed between them.
 				case MemberShape.Pieces:
 					code.Line($"a{slot} = p;");
-					Emit(code, held, loaded);
+					Emit(code, held, following, loaded);
 					code.Line($"ways.Push({slot}, a{slot}, p);");
 					break;
 
 				case MemberShape.Records:
-					Emit(code, held, loaded);
+					Emit(code, held, following, loaded);
 					code.Line($"ways.Push({slot}, ways.Last, -1);");
 					break;
 
@@ -855,11 +976,11 @@ sealed partial class Machine
 		/// the reader. Where it does not, every alternative but the last becomes a method,
 		/// because <c>-1</c> is how one tells its caller to try the next.
 		/// </remarks>
-		void EmitChoice(Writer code, IReadOnlyList<Node> alternatives)
+		void EmitChoice(Writer code, IReadOnlyList<Node> alternatives, FollowSets.Continuation following)
 		{
 			if (alternatives.Count == 1)
 			{
-				Emit(code, alternatives[0]);
+				Emit(code, alternatives[0], following);
 
 				return;
 			}
@@ -900,7 +1021,7 @@ sealed partial class Machine
 							// apart by, so they are tried in order — and a group that fails
 							// fails the choice, no other group's first set holding the token
 							// that chose this one.
-							EmitAmong(code, group.Members, loaded: true);
+							EmitAmong(code, group.Members, following, loaded: true);
 							code.Line("break;");
 						}
 					}
@@ -914,7 +1035,7 @@ sealed partial class Machine
 				return;
 			}
 
-			EmitAmong(code, alternatives);
+			EmitAmong(code, alternatives, following);
 		}
 
 		/// <summary>
@@ -925,11 +1046,12 @@ sealed partial class Machine
 		/// jump out of the middle of this one. Called at the top of a choice nothing can
 		/// dispatch, and inside a group of one that can.
 		/// </remarks>
-		void EmitAmong(Writer code, IReadOnlyList<Node> alternatives, bool loaded = false)
+		void EmitAmong(
+			Writer code, IReadOnlyList<Node> alternatives, FollowSets.Continuation following, bool loaded = false)
 		{
 			if (alternatives.Count == 1)
 			{
-				Emit(code, alternatives[0], loaded);
+				Emit(code, alternatives[0], following);
 
 				return;
 			}
@@ -961,7 +1083,7 @@ sealed partial class Machine
 
 			if (_tape)
 			{
-				EmitChoiceOverCharacters(code, alternatives, tried);
+				EmitChoiceOverCharacters(code, alternatives, tried, following);
 
 				return;
 			}
@@ -1016,7 +1138,7 @@ sealed partial class Machine
 
 			for (var i = 0; i < alternatives.Count - 1; i++)
 			{
-				var (part, undo) = Called(alternatives[i]);
+				var (part, undo, _) = Called(alternatives[i], following);
 
 				using (code.Block($"if ({tried} < 0)"))
 				{
@@ -1061,7 +1183,7 @@ sealed partial class Machine
 			{
 				// The one written in place, and the only one that can still use the token
 				// the dispatch read: what came before it was a method, which reads its own.
-				Emit(code, alternatives[alternatives.Count - 1], loaded);
+				Emit(code, alternatives[alternatives.Count - 1], following, loaded);
 				code.Line($"{tried} = p;");
 			}
 
@@ -1114,7 +1236,8 @@ sealed partial class Machine
 		/// it says. An alternative that fails where it stands moves the way on itself, so
 		/// the run continues into the next without the tape having to be asked again.
 		/// </remarks>
-		void EmitChoiceOverCharacters(Writer code, IReadOnlyList<Node> alternatives, string tried)
+		void EmitChoiceOverCharacters(
+			Writer code, IReadOnlyList<Node> alternatives, string tried, FollowSets.Continuation following)
 		{
 			var way  = $"w{_ways}";
 			var took = $"d{_ways++}";
@@ -1153,26 +1276,45 @@ sealed partial class Machine
 					code.Line($"var rr{segment} = ways.RefsCount;");
 					code.Line();
 
-					var (call, undo) = Called(alternatives[i]);
+					var (call, undo, opens) = Called(alternatives[i], following);
 
-					using (code.Block("while (true)"))
+					if (opens)
 					{
+						using (code.Block("while (true)"))
+						{
+							code.Line($"{tried} = {call};");
+							code.Line();
+							code.Line($"if ({tried} >= 0)");
+							code.Then("break;");
+							code.Line();
+							LogBack(code, $"lm{segment}");
+							code.Line($"ways.RefsCount = rr{segment};");
+
+							if (undo.Length > 0)
+								code.Line(undo);
+
+							code.Line();
+							code.Line($"if (ways.Cursor > s{segment} && ways.Retry(s{segment}))");
+							code.Then("continue;");
+							code.Line();
+							code.Line("break;");
+						}
+					}
+					else
+					{
+						// Nothing under it goes on the tape, so it has one reading and asking
+						// for another is a loop that can only go round once.
 						code.Line($"{tried} = {call};");
 						code.Line();
-						code.Line($"if ({tried} >= 0)");
-						code.Then("break;");
-						code.Line();
-						LogBack(code, $"lm{segment}");
-						code.Line($"ways.RefsCount = rr{segment};");
 
-						if (undo.Length > 0)
-							code.Line(undo);
+						using (code.Block($"if ({tried} < 0)"))
+						{
+							LogBack(code, $"lm{segment}");
+							code.Line($"ways.RefsCount = rr{segment};");
 
-						code.Line();
-						code.Line($"if (ways.Cursor > s{segment} && ways.Retry(s{segment}))");
-						code.Then("continue;");
-						code.Line();
-						code.Line("break;");
+							if (undo.Length > 0)
+								code.Line(undo);
+						}
 					}
 
 					if (i < alternatives.Count - 1)
@@ -1210,7 +1352,7 @@ sealed partial class Machine
 		/// nothing at either width tried (benchmarks/README.md).
 		/// </para>
 		/// </remarks>
-		string Calling(Node part) => Called(part).Call;
+		string Calling(Node part, FollowSets.Continuation following) => Called(part, following).Call;
 
 		/// <summary>
 		/// The call, and what has to be put back where it failed.
@@ -1221,7 +1363,7 @@ sealed partial class Machine
 		/// Leaving it is the defect this exists for: the alternative after it writes a
 		/// record naming the position, and gets the abandoned one.
 		/// </remarks>
-		(string Call, string Undo) Called(Node part)
+		(string Call, string Undo, bool Opens) Called(Node part, FollowSets.Continuation following)
 		{
 			var (captured, used) = Reaches(part);
 			var elsewhere        = Elsewhere(part);
@@ -1236,7 +1378,9 @@ sealed partial class Machine
 			var name  = machine.ReaderOf(owner) + "_Part" + machine._readerPart++;
 			var apart = new ReaderWriter(machine, owner, given, taken, _folds);
 
-			Parts.Add((name, Handing(given, taken, "int "), apart.Render(part)));
+			var written = apart.Render(part, following);
+
+			Parts.Add((name, Handing(given, taken, "int "), written));
 
 			foreach (var made in apart.Parts)
 				Parts.Add(made);
@@ -1247,10 +1391,17 @@ sealed partial class Machine
 				foreach (var name2 in Names(slot))
 					undo.Append(name2).Append(" = -1; ");
 
+			// What it wrote itself, what its own parts wrote, and what the rules it calls
+			// were found to write.
+			var opens = written.Contains("ways.Open(", StringComparison.Ordinal) ||
+				apart.Parts.Exists(one => one.Body.Contains("ways.Open(", StringComparison.Ordinal)) ||
+				machine.Opens(part);
+
 			return (
 				$"{name}(text, p, ref failure, ways{machine.DirectReaderArguments}" +
 					$"{Handing(given, taken, "")})",
-				undo.ToString().TrimEnd());
+				undo.ToString().TrimEnd(),
+				opens);
 		}
 
 		/// <summary>The positions handed over, as a signature or as a call.</summary>
@@ -1392,16 +1543,29 @@ sealed partial class Machine
 			return used;
 		}
 
-		void EmitRepeat(Writer code, Node.Repeat repeat)
+		void EmitRepeat(Writer code, Node.Repeat repeat, FollowSets.Continuation following)
 		{
 			var (body, min, max) = repeat;
 
+			// What a turn is followed by is another turn, or what follows the loop where
+			// this was the last.
+			var inside = new FollowSets.Continuation(
+				FirstSets.Of(body, _graph).Or(following.Plain),
+				following.AfterSeam);
+
 			if (_tape)
 			{
+				// A repetition that can never be asked for a shorter reading writes nothing
+				// on the tape: what ends it is not a failure and there is no turn owed. The
+				// rendering this replaces asked the same question in the same words; this
+				// one had stopped asking, and wrote a way for every run in every grammar.
+				var settled = max == min ||
+					Determinism.NeverGivesBack(repeat, following, _graph, machine._seam);
+
 				if (body is Node.Element element)
-					EmitRun(code, element, min, max);
+					EmitRun(code, element, min, max, settled);
 				else
-					EmitTurns(code, repeat);
+					EmitTurns(code, repeat, inside, settled);
 
 				return;
 			}
@@ -1438,7 +1602,7 @@ sealed partial class Machine
 
 				var turn = $"q{_calls++}";
 				var back = _gathers || _logs ? _ways++ : -1;
-				var (call, undo) = Called(body);
+				var (call, undo, _) = Called(body, inside);
 
 				if (back >= 0)
 				{
@@ -1499,15 +1663,25 @@ sealed partial class Machine
 		/// and hands back what the tape says.
 		/// </para>
 		/// </remarks>
-		void EmitRun(Writer code, Node.Element element, int min, int? max)
+		/// <param name="settled">
+		/// Whether nothing after the run can ever want a character it took, in which case
+		/// there is no shorter reading to offer and nothing goes on the tape.
+		/// </param>
+		void EmitRun(Writer code, Node.Element element, int min, int? max, bool settled)
 		{
 			var name  = machine.DeclareExpected([element.ToString()]);
 			var first = FirstSets.Of(element, _graph);
 			var mark  = $"m{_marks++}";
 
+			// Where the run has no ceiling, no floor and nothing to give back, nobody ever
+			// asks where it started, and writing it down is a local the consumer's compiler
+			// would rightly warn about.
+			var counted = max is not null || min > 0 || !settled;
+
 			_character = true;
 
-			code.Line($"var {mark} = p;");
+			if (counted)
+				code.Line($"var {mark} = p;");
 
 			using (code.Block("while (true)"))
 			{
@@ -1545,8 +1719,8 @@ sealed partial class Machine
 				code.Line();
 			}
 
-			// A run of a fixed count stops where it was told to, and has nothing to give.
-			if (max == min)
+			// A run nothing can ask for a shorter reading of has nothing to give.
+			if (settled)
 				return;
 
 			var floor = min == 0 ? mark : $"({mark} + {min})";
@@ -1593,7 +1767,11 @@ sealed partial class Machine
 		/// repetition.
 		/// </para>
 		/// </remarks>
-		void EmitTurns(Writer code, Node.Repeat repeat)
+		/// <param name="settled">
+		/// Whether nothing after the loop can ever want what a turn took, in which case no
+		/// turn is owed and the loop writes nothing on the tape.
+		/// </param>
+		void EmitTurns(Writer code, Node.Repeat repeat, FollowSets.Continuation inside, bool settled)
 		{
 			var (body, min, max) = repeat;
 
@@ -1602,7 +1780,7 @@ sealed partial class Machine
 
 			var turn     = min > 0 || max is not null ? $"t{_turns++}" : null;
 			var nullable = FirstSets.Nullable(body, _graph);
-			var (call, undo) = Called(body);
+			var (call, undo, opens) = Called(body, inside);
 
 			if (turn is not null)
 				code.Line($"var {turn} = 0;");
@@ -1656,9 +1834,8 @@ sealed partial class Machine
 					code.Line();
 				}
 
-				// A count with no range in it has no turn to give back: it stops where it
-				// was told to and nowhere else, so there is no way to record.
-				var records = max != min;
+				// A loop nothing can ask a turn back from has no way to record.
+				var records = !settled;
 
 				if (records)
 				{
@@ -1696,26 +1873,42 @@ sealed partial class Machine
 				var segment = _ways++;
 				var took    = $"q{_calls++}";
 
-				code.Line($"var s{segment}  = ways.Cursor;");
+				if (opens)
+					code.Line($"var s{segment}  = ways.Cursor;");
+
 				code.Line($"var lm{segment} = ways.LogCount;");
 				code.Line($"var rr{segment} = ways.RefsCount;");
 				code.Line($"var {took} = -1;");
 				code.Line();
 
-				using (code.Block("while (true)"))
+				if (opens)
+				{
+					using (code.Block("while (true)"))
+					{
+						code.Line($"{took} = {call};");
+						code.Line();
+						code.Line($"if ({took} >= 0)");
+						code.Then("break;");
+						code.Line();
+						LogBack(code, $"lm{segment}");
+						code.Line($"ways.RefsCount = rr{segment};");
+						code.Line();
+						code.Line($"if (ways.Cursor > s{segment} && ways.Retry(s{segment}))");
+						code.Then("continue;");
+						code.Line();
+						code.Line("break;");
+					}
+				}
+				else
 				{
 					code.Line($"{took} = {call};");
 					code.Line();
-					code.Line($"if ({took} >= 0)");
-					code.Then("break;");
-					code.Line();
-					LogBack(code, $"lm{segment}");
-					code.Line($"ways.RefsCount = rr{segment};");
-					code.Line();
-					code.Line($"if (ways.Cursor > s{segment} && ways.Retry(s{segment}))");
-					code.Then("continue;");
-					code.Line();
-					code.Line("break;");
+
+					using (code.Block($"if ({took} < 0)"))
+					{
+						LogBack(code, $"lm{segment}");
+						code.Line($"ways.RefsCount = rr{segment};");
+					}
 				}
 
 				code.Line();
@@ -1777,18 +1970,18 @@ sealed partial class Machine
 		/// rendering does not. Over characters the group is asked for a reading until it has
 		/// one, and then what it decided is sealed: nothing after it may come back into it.
 		/// </remarks>
-		void EmitAtomic(Writer code, Node kept, bool loaded)
+		void EmitAtomic(Writer code, Node kept, FollowSets.Continuation following, bool loaded)
 		{
 			if (!_tape)
 			{
-				Emit(code, kept, loaded);
+				Emit(code, kept, following, loaded);
 
 				return;
 			}
 
-			var segment      = _ways++;
-			var took         = $"q{_calls++}";
-			var (call, undo) = Called(kept);
+			var segment             = _ways++;
+			var took                = $"q{_calls++}";
+			var (call, undo, opens) = Called(kept, following);
 
 			code.Line($"var s{segment}  = ways.Cursor;");
 			code.Line($"var lm{segment} = ways.LogCount;");
@@ -1952,7 +2145,7 @@ sealed partial class Machine
 		void EmitLookahead(Writer code, bool positive, Node inside)
 		{
 			var seen         = $"q{_calls++}";
-			var (call, undo) = Called(inside);
+			var (call, undo, _) = Called(inside, FollowSets.Continuation.All);
 
 			// What a look recorded is dropped whether it saw or not: its outcome is one bit,
 			// and what it captured on the way to it is not the rule's. Over the tape, what it

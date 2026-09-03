@@ -12640,3 +12640,55 @@ do not.
 So the answer to "should the generator build where it reads, as a person does" is: it
 would help less than it looks, and the same work is available without touching the
 language.
+
+## The tape was still unconditional
+
+The shape had become methods and the `goto` was gone, and the code still read like an
+automaton: every rule got a way back written into it, every alternative got a retry loop
+around it, and every repetition wrote a way on the tape. The first generator this project
+had — five hundred and thirty-five lines, recovered at `4ca0e41^` — is a function per node
+and nothing else: a sequence is `p = f(text, p); if (p < 0) return -1;`, a choice tries
+each alternative from the same `p`, a repetition is a `while`. It was fast at once, and it
+had no values; the automaton came in with them and brought the tape with it.
+
+The reader had inherited the tape without inheriting the question the direct writer asked
+before writing it. `Determinism.NeverGivesBack(repeat, following, graph, seam)` decides
+whether anything after a repetition can ever want a character it took, and the direct
+writer called it; the reader wrote the tape unconditionally, because it never carried a
+follow set to ask with.
+
+**What it took.** The continuation now travels: `Render`, `Emit`, `EmitChoice`,
+`EmitAmong`, `EmitCapture`, `EmitAtomic`, `EmitRepeat` and `Called` all take what may
+follow the node they write, a sequence computes its parts' follows backwards the way
+`FollowSets.Precedes` does, and a rule's own follow comes from `FollowSets.Of`. `EmitRun`
+and `EmitTurns` take the answer as a `settled` flag and write nothing on the tape when it
+holds. Then, because a way back into a rule is only worth writing where something under it
+can be on the tape, the reader renders every rule twice: once to find out what got
+written, and once knowing.
+
+**Two holes in the analysis, both about a look.** Neither was visible while the tape was
+unconditional, and `ReferenceDifferentialTests` found both within a minute of it not being.
+
+A look consumes nothing, so `FirstSets.Of` answers `None` for it — deliberately, because
+what a sequence begins with is the operand *after* the look. `FollowSets.Precedes` took
+that at face value and walked straight past it, so a run standing before a look was told
+only what followed the look. It reads: `Start = (['a'..'b'] & ?= [^ 'a' | 'c']) | …` over
+`"b  "`, where the trivia after `b` must give back a space for the look to have one to
+read. `Precedes` now has a case for it, and the answer is the same for a refusal as for a
+demand — a `?!` has to see the characters it refuses before it can say they are not there,
+and where they are not there the rest reads them instead.
+
+The other is the entry. A publication is entered through the shape the entry method is
+written in — the namespace's trivia, the rule, the trivia again — and `FollowSets.Of`
+walked rule bodies only. The leading application was therefore never told anything, and
+`Start = ?! […] & …` over `" cba"` needs it to give back the leading space so that the
+refusal is refused. The fixed point now walks those entry shapes alongside the bodies.
+
+**What it bought.** `Feed` fell from 3894 lines to 3554 and `Notation` from 3425 to 3234,
+and what went is tape: nine retry loops, sixteen `_Body` wrappers and four `ways.Open` in
+`Notation` alone. A minimal deferred grammar comes out as plain recursive descent —
+`ways.Open` nowhere, `ways.Retry` nowhere, `ways.Cursor` nowhere.
+
+SQL is unchanged, and that is the honest half: over kinds it was already tape-free, so
+this is a gain for grammars read over characters and not for the yardstick. The remaining
+SQL distance is where it was — the walk over the log, and the bookkeeping around it.
