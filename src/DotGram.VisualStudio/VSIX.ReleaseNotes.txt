@@ -1,4 +1,4 @@
-DotGram language support 0.1.39
+DotGram language support 0.1.40
 
 Initial preview for Visual Studio 18.
 
@@ -25,3 +25,4 @@ Initial preview for Visual Studio 18.
   standalone grammar C# expressions.
 - Qualified C# member navigation resolves the containing type before falling back to
   a same-named symbol in another type.
+- F12 on a C# host member finds its unqualified use in that host's standalone grammar.

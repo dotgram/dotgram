@@ -34,4 +34,27 @@ public sealed class RoslynGramCompletionTests
 		var field = Assert.IsAssignableFrom<IFieldSymbol>(symbol);
 		Assert.Equal("SqlPredicateKind", field.ContainingType.Name);
 	}
+
+	[Fact]
+	public async Task UnqualifiedMemberBelongsToStandaloneGrammarHost()
+	{
+		using var workspace = new AdhocWorkspace();
+		var project = workspace.AddProject("Navigation", LanguageNames.CSharp)
+			.AddMetadataReference(MetadataReference.CreateFromFile(typeof(object).Assembly.Location))
+			.AddDocument("Host.cs", """
+				namespace Example;
+				public static class GrammarHost { private static decimal Raise(decimal value) => value; }
+				public static class OtherHost { private static decimal Raise(decimal value) => value; }
+				""").Project;
+		var compilation = await project.GetCompilationAsync(TestContext.Current.CancellationToken);
+		var host = compilation!.GetTypeByMetadataName("Example.GrammarHost")!;
+		var member = host.GetMembers("Raise")[0];
+		var other = compilation.GetTypeByMetadataName("Example.OtherHost")!.GetMembers("Raise")[0];
+		const string expression = "Raise(value, 1)";
+		var position = expression.IndexOf("Raise", StringComparison.Ordinal) + 1;
+
+		Assert.True(RoslynGramCompletion.IsUnqualifiedHostMember(expression, position, member, host));
+		Assert.False(RoslynGramCompletion.IsUnqualifiedHostMember(expression, position, other, host));
+		Assert.False(RoslynGramCompletion.IsUnqualifiedHostMember("Other.Raise(value)", 7, member, host));
+	}
 }

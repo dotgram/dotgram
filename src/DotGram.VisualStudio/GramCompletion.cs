@@ -627,6 +627,9 @@ sealed class RoslynGramCompletion(
 		foreach (var grammar in project.AdditionalDocuments.Where(document =>
 			document.FilePath?.EndsWith(".gram", StringComparison.OrdinalIgnoreCase) == true))
 		{
+			var grammarHost = grammar.FilePath is null
+				? null
+				: await HostTypeAsync(project, FileName(grammar.FilePath), cancellationToken).ConfigureAwait(false);
 			var text = await grammar.GetTextAsync(cancellationToken).ConfigureAwait(false);
 			var source = text.ToString();
 			for (var position = source.IndexOf(symbol.Name, StringComparison.Ordinal);
@@ -643,9 +646,8 @@ sealed class RoslynGramCompletion(
 					expression,
 					position - expressionStart,
 					cancellationToken).ConfigureAwait(false);
-				if (!SymbolEqualityComparer.Default.Equals(
-					referenced?.OriginalDefinition,
-					symbol.OriginalDefinition))
+				if (!SymbolEqualityComparer.Default.Equals(referenced?.OriginalDefinition, symbol.OriginalDefinition) &&
+					!IsUnqualifiedHostMember(expression, position - expressionStart, symbol, grammarHost))
 					continue;
 
 				var location = text.Lines.GetLinePosition(position);
@@ -656,6 +658,23 @@ sealed class RoslynGramCompletion(
 		}
 
 		return null;
+	}
+
+	internal static bool IsUnqualifiedHostMember(
+		string expression,
+		int position,
+		ISymbol symbol,
+		INamedTypeSymbol? grammarHost)
+	{
+		if (grammarHost is null || !SymbolEqualityComparer.Default.Equals(symbol.ContainingType, grammarHost))
+			return false;
+
+		var root = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(expression).GetRoot();
+		var boundedPosition = Math.Max(0, Math.Min(position, root.FullSpan.End - 1));
+		var name = root.FindToken(boundedPosition).Parent?.AncestorsAndSelf()
+			.OfType<IdentifierNameSyntax>()
+			.FirstOrDefault(candidate => candidate.Span.Contains(boundedPosition));
+		return name?.Identifier.ValueText == symbol.Name && name.Parent is not MemberAccessExpressionSyntax;
 	}
 
 	static async Task<ISymbol?> SymbolInExpressionAsync(
@@ -687,7 +706,14 @@ sealed class RoslynGramCompletion(
 		if (!documents.TryGetTextDocument(buffer, out var textDocument) || textDocument.FilePath is null)
 			return null;
 
-		var grammarFile = Path.GetFileName(textDocument.FilePath);
+		return await HostTypeAsync(project, Path.GetFileName(textDocument.FilePath), cancellationToken).ConfigureAwait(false);
+	}
+
+	static async Task<INamedTypeSymbol?> HostTypeAsync(
+		Project project,
+		string grammarFile,
+		CancellationToken cancellationToken)
+	{
 		foreach (var document in project.Documents)
 		{
 			var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
