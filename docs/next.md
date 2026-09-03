@@ -12131,3 +12131,77 @@ the new.
 found it was not a test and not a review: it was running every benchmark in the repository
 at once, including the ones nobody runs. Two of the three bugs this week came out of
 measurements taken for another purpose entirely.
+
+## Built: the tape as a loop, and the reader reads characters
+
+Over kinds a rule's answer stands, so the reader needed no way back and had none. Over
+characters it does: a run that swallowed a character something after it wanted has to hand
+it back, and an alternative that matched has to give way to the next when what follows
+cannot be read. Both are the same thing — asking a rule that has already answered for its
+next answer — and both are what the tape is for.
+
+The rendering this replaces writes that as a label at the top and a jump to it from the
+bottom. Here a rule is two methods:
+
+```csharp
+static int Read_Start(ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
+{
+    var s  = ways.Cursor;
+    var lm = ways.LogCount;
+    var rb = ways.RefsCount;
+
+    while (true)
+    {
+        var q = Read_Start_Body(text, pos, ref failure, ways);
+
+        if (q >= 0)
+            return q;
+
+        ways.LogCount  = lm;
+        ways.RefsCount = rb;
+
+        if (ways.Cursor > s && ways.Retry(s))
+            continue;
+
+        return -1;
+    }
+}
+```
+
+What makes the second call different from the first is the tape: every decision the body
+took is on it, and a replay reads them back rather than taking them again. So the loop
+turns until the body answers or until nothing on the tape has anywhere left to move.
+
+**One segment for the rule, where the rendering beside this one has one per construct.**
+`Retry` takes the latest way with an alternative left wherever it stands, so a segment per
+rule already reaches every way opened inside it. What the finer segments buy is running
+less of the rule over again, and that is a measurement rather than an assumption — it is
+not made here.
+
+**Three things needed the tape and got it.** A run of one element is read in place now,
+as the loop it is rather than a method a turn, and hands back the difference between where
+it stopped and the fewest turns it was allowed — one number on the tape, not a way per
+character. A choice records which alternative it took, so a failure after it can come back
+and ask for the next. And a look seals what it decided inside, because its outcome is one
+bit and a second reading can only say the same.
+
+**The one that was not obvious.** An alternative has to be asked for every reading it has
+before the choice moves on. Without that the way the choice stands on is spent while a run
+inside the alternative still had a shorter reading to give, and that reading becomes
+unreachable — the tape says the choice has moved past the alternative the run is in. So
+each alternative is called in a loop of its own, and only when that loop is out of readings
+does the choice move on. `A_run_inside_an_alternative` on `aab` is the case: it wants the
+first alternative with its run one character shorter, and without this it never gets there.
+
+**What is still refused, and it is the interesting one.** A repetition of anything longer
+than a single element. A run of characters hands back a count; a run of *rules* has to hand
+back a turn, which is a way per turn rather than one number for the lot. That is the next
+thing, and it is what stands between this and reading SQL.
+
+The tests are the same trick as everywhere else in `ReaderTests`: one grammar compiled both
+ways, the same input, the answers compared. Ten shapes chosen for the combinations nobody
+thought of, each against thirty-two inputs, plus the named cases for the defects above —
+and an assertion that the reader actually wrote the grammar, since a grammar it declined
+would compare the old rendering with itself and pass without reading a thing. Two of the
+ten had to be rewritten when that assertion went in: they were simple enough to lower to
+one flat method and never reached the reader at all.

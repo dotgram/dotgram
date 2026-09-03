@@ -101,13 +101,25 @@ sealed partial class Machine
 				}
 		}
 
-		// The way back is a loop over a tape, and the loop is written but the tape is not.
-		if (!OverKinds)
-			return Unreadable(null, "it reads characters, where a rule's answer can be taken back");
+		// Over kinds a rule's answer stands, so there is no way back to write and nothing
+		// on the tape. Over characters there is, and what it can give back so far is a
+		// character at a time: a repetition of one element hands back the difference by
+		// arithmetic, where a repetition of anything longer needs a way for every turn.
+		if (OverKinds)
+		{
+			foreach (var publication in publications)
+				if (publication.Rule.GivesBack)
+					return Unreadable(publication.Rule, "it is marked '?' and gives back");
 
-		foreach (var publication in publications)
-			if (publication.Rule.GivesBack)
-				return Unreadable(publication.Rule, "it is marked '?' and gives back");
+			return true;
+		}
+
+		foreach (var rule in DirectRules(publications))
+			foreach (var node in NodeWalk.Descendants(_graph.Bodies[rule]))
+				if (node is Node.Repeat(var repeated, _, _) && repeated is not Node.Element)
+					return Unreadable(
+						rule, "it repeats something longer than one character, and a turn of that " +
+						"is given back by a way rather than by arithmetic");
 
 		return true;
 	}
@@ -160,11 +172,18 @@ sealed partial class Machine
 
 			var reader = new ReaderWriter(this, rule);
 			var body   = reader.Render(_graph.Bodies[rule]);
+			var inner  = OverKinds ? ReaderOf(rule) : ReaderOf(rule) + "_Body";
 
-			file.Line($"/// <summary><c>{rule.Name}</c>, read by a method of its own.</summary>");
+			if (!OverKinds)
+				RenderWayBack(file, rule);
+
+			file.Line(
+				OverKinds
+					? $"/// <summary><c>{rule.Name}</c>, read by a method of its own.</summary>"
+					: $"/// <summary>What <c>{rule.Name}</c> is, one reading of it at a time.</summary>");
 
 			using (file.Block(
-				$"static int {ReaderOf(rule)}(" +
+				$"static int {inner}(" +
 				$"global::System.ReadOnlySpan<char> text, int pos, " +
 				$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters})"))
 			{
@@ -197,6 +216,67 @@ sealed partial class Machine
 		}
 
 		return file.ToString();
+	}
+
+	/// <summary>
+	/// The way back into a rule: the tape, as a loop.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Over characters a rule's answer does not stand. A repetition that swallowed a
+	/// character something after it needed has to hand it back, and an alternative that
+	/// matched has to give way to the next when what follows cannot be read — which is
+	/// asking a rule that has already answered for its next answer.
+	/// </para>
+	/// <para>
+	/// The rendering this replaces wrote that as a label at the top of the rule and a jump
+	/// to it from the bottom. Here the rule is two methods: what it is, and the way back
+	/// into it. The body is called until it answers or until the tape has nothing left to
+	/// move on, and the tape is what makes a second call different from the first — every
+	/// decision the body took is recorded on it, and a replay reads them back rather than
+	/// taking them again (<c>Support.cs</c>, <c>Ways.Retry</c>).
+	/// </para>
+	/// <para>
+	/// One segment for the rule and not one per construct, which the rendering beside this
+	/// one has. <c>Retry</c> takes the latest way with an alternative left wherever it
+	/// stands, so a segment per rule reaches every way opened inside it; what the finer
+	/// segments buy is running less of the rule again, and that is a measurement to make
+	/// rather than a thing to assume.
+	/// </para>
+	/// </remarks>
+	void RenderWayBack(Writer file, RuleSymbol rule)
+	{
+		file.Line($"/// <summary><c>{rule.Name}</c>, and the way back into it.</summary>");
+
+		using (file.Block(
+			$"static int {ReaderOf(rule)}(" +
+			$"global::System.ReadOnlySpan<char> text, int pos, " +
+			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters})"))
+		{
+			file.Line("var s  = ways.Cursor;");
+			file.Line("var lm = ways.LogCount;");
+			file.Line("var rb = ways.RefsCount;");
+			file.Line();
+
+			using (file.Block("while (true)"))
+			{
+				file.Line(
+					$"var q = {ReaderOf(rule)}_Body(text, pos, ref failure, ways{DirectReaderArguments});");
+				file.Line();
+				file.Line("if (q >= 0)");
+				file.Then("return q;");
+				file.Line();
+				file.Line("ways.LogCount  = lm;");
+				file.Line("ways.RefsCount = rb;");
+				file.Line();
+				file.Line("if (ways.Cursor > s && ways.Retry(s))");
+				file.Then("continue;");
+				file.Line();
+				file.Line("return -1;");
+			}
+		}
+
+		file.Line();
 	}
 
 	/// <summary>The whole input as one rule, which is what a publication asks for.</summary>
@@ -309,6 +389,10 @@ sealed partial class Machine
 		public List<(string Name, string Taken, string Body)> Parts { get; } = [];
 
 		bool _character;
+
+		/// <summary>Ways opened and marks taken, which only a reading over characters has.</summary>
+		int _ways;
+		int _marks;
 
 		/// <summary>Whether this method writes a record, and so needs the side stack mark.</summary>
 		bool _records;
@@ -605,6 +689,13 @@ sealed partial class Machine
 			// is a number rather than a jump out of the middle of this one.
 			var tried = $"q{_calls++}";
 
+			if (!machine.OverKinds)
+			{
+				EmitChoiceOverCharacters(code, alternatives, tried);
+
+				return;
+			}
+
 			code.Line($"var {tried} = -1;");
 
 			for (var i = 0; i < alternatives.Count - 1; i++)
@@ -621,6 +712,89 @@ sealed partial class Machine
 				code.Line($"{tried} = p;");
 			}
 
+			code.Line($"p = {tried};");
+		}
+
+		/// <summary>
+		/// A choice over characters: which alternative was taken is on the tape, so that a
+		/// failure after the choice can come back and ask for the next one.
+		/// </summary>
+		/// <remarks>
+		/// The first reading opens a way standing at the first alternative and reaching to
+		/// the last; a reading that is a replay finds the way already there and takes what
+		/// it says. An alternative that fails where it stands moves the way on itself, so
+		/// the run continues into the next without the tape having to be asked again.
+		/// </remarks>
+		void EmitChoiceOverCharacters(Writer code, IReadOnlyList<Node> alternatives, string tried)
+		{
+			var way  = $"w{_ways}";
+			var took = $"d{_ways++}";
+
+			code.Line($"var {way}  = -1;");
+			code.Line($"var {took} = 0;");
+
+			using (code.Block("if (ways.Cursor < ways.Count)"))
+			{
+				code.Line($"{way}  = ways.Cursor;");
+				code.Line($"{took} = ways.Items[{way} * 2];");
+				code.Line("ways.Cursor++;");
+			}
+
+			code.Line("else");
+
+			using (code.Block(""))
+				code.Line($"{way} = ways.Open(0, {alternatives.Count - 1});");
+
+			code.Line();
+			code.Line($"var {tried} = -1;");
+
+			for (var i = 0; i < alternatives.Count; i++)
+			{
+				using (code.Block($"if ({tried} < 0 && {took} <= {i})"))
+				{
+					// An alternative is asked for every reading it has before the choice
+					// moves on. Without this the way the choice stands on is spent while a
+					// run inside the alternative still had a shorter reading to give, and
+					// that reading becomes unreachable: the tape says the choice has moved
+					// past the alternative it was in.
+					var segment = _ways++;
+
+					code.Line($"var s{segment}  = ways.Cursor;");
+					code.Line($"var lm{segment} = ways.LogCount;");
+					code.Line($"var rr{segment} = ways.RefsCount;");
+					code.Line();
+
+					var call = Calling(alternatives[i]);
+
+					using (code.Block("while (true)"))
+					{
+						code.Line($"{tried} = {call};");
+						code.Line();
+						code.Line($"if ({tried} >= 0)");
+						code.Then("break;");
+						code.Line();
+						code.Line($"ways.LogCount  = lm{segment};");
+						code.Line($"ways.RefsCount = rr{segment};");
+						code.Line();
+						code.Line($"if (ways.Cursor > s{segment} && ways.Retry(s{segment}))");
+						code.Then("continue;");
+						code.Line();
+						code.Line("break;");
+					}
+
+					if (i < alternatives.Count - 1)
+					{
+						code.Line();
+						code.Line($"if ({tried} < 0)");
+						code.Then($"ways.Next({way}, {i + 1}, {alternatives.Count - 1});");
+					}
+				}
+			}
+
+			code.Line();
+			code.Line($"if ({tried} < 0)");
+			code.Then("return -1;");
+			code.Line();
 			code.Line($"p = {tried};");
 		}
 
@@ -736,6 +910,13 @@ sealed partial class Machine
 		void EmitRepeat(Writer code, Node.Repeat repeat)
 		{
 			var (body, min, max) = repeat;
+
+			if (!machine.OverKinds && body is Node.Element element)
+			{
+				EmitRun(code, element, min, max);
+
+				return;
+			}
 			var turns = min > 0 || max is not null ? $"t{_calls++}" : null;
 
 			if (turns is not null)
@@ -771,11 +952,106 @@ sealed partial class Machine
 			}
 		}
 
+		/// <summary>
+		/// A run of one element, read where it stands and given back a character at a time.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// A method a turn is what a repetition of anything else costs, and for a character
+		/// class it is all cost: the turn is a bounds check, a read and a test. So it is
+		/// written as the loop it is.
+		/// </para>
+		/// <para>
+		/// And the loop takes everything it can, which is not always what the rule wanted.
+		/// What it can give back is the difference between where it stopped and the fewest
+		/// turns it was allowed — one number, so the tape carries how many characters were
+		/// handed back rather than a way for each. Replayed, the run reaches the same end
+		/// and hands back what the tape says.
+		/// </para>
+		/// </remarks>
+		void EmitRun(Writer code, Node.Element element, int min, int? max)
+		{
+			var name  = machine.DeclareExpected([element.ToString()]);
+			var first = FirstSets.Of(element, _graph);
+			var mark  = $"m{_marks++}";
+
+			_character = true;
+
+			code.Line($"var {mark} = p;");
+
+			using (code.Block("while (true)"))
+			{
+				if (max is { } limit)
+				{
+					code.Line($"if (p - {mark} >= {limit})");
+					code.Then("break;");
+					code.Line();
+				}
+
+				code.Line("if ((uint)p >= (uint)text.Length)");
+				code.Then("break;");
+				code.Line();
+				code.Line("c = text[p];");
+				code.Line();
+				code.Line($"if (!({machine.RangesTest(first.Ranges, machine.Tabulate)}))");
+				code.Then("break;");
+				code.Line();
+				code.Line("p++;");
+			}
+
+			code.Line();
+
+			if (min > 0)
+			{
+				using (code.Block($"if (p < {mark} + {min})"))
+					Refused(code, name);
+
+				code.Line();
+			}
+
+			var floor = min == 0 ? mark : $"({mark} + {min})";
+			var gave  = $"d{_ways++}";
+
+			using (code.Block($"if (p > {floor})"))
+			{
+				code.Line($"var {gave} = 0;");
+				code.Line();
+
+				using (code.Block("if (ways.Cursor < ways.Count)"))
+				{
+					code.Line($"{gave} = ways.Items[ways.Cursor * 2];");
+					code.Line("ways.Cursor++;");
+				}
+
+				code.Line("else");
+
+				using (code.Block(""))
+					code.Line($"ways.Open(p - {floor});");
+
+				code.Line();
+				code.Line($"p -= {gave};");
+			}
+		}
+
 		void EmitLookahead(Writer code, bool positive, Node inside)
 		{
 			var seen = $"q{_calls++}";
 
-			code.Line($"var {seen} = {Calling(inside)};");
+			if (machine.OverKinds)
+			{
+				code.Line($"var {seen} = {Calling(inside)};");
+			}
+			else
+			{
+				// What a look decided is its own and nothing after it may reopen: its
+				// outcome is one bit, and a second reading of it can only say the same.
+				var segment = $"s{_ways++}";
+
+				code.Line($"var {segment} = ways.Cursor;");
+				code.Line($"var {seen} = {Calling(inside)};");
+				code.Line($"ways.Seal({segment});");
+			}
+
 			code.Line();
 			code.Line($"if ({seen} {(positive ? "<" : ">=")} 0)");
 			code.Then("return -1;");

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using DotGram.Generation;
@@ -173,6 +174,146 @@ public sealed class ReaderTests
 		Assert.DoesNotContain("goto", Reading(written, "Read_Value"), StringComparison.Ordinal);
 	}
 
+	/// <summary>A run that swallowed what came after it hands a character back.</summary>
+	/// <remarks>
+	/// Over characters a rule's answer does not stand: <c>['a'..'z']+</c> takes all three
+	/// of <c>aaa</c>, the <c>'a'</c> after it has nothing left, and the run has to be asked
+	/// for a shorter reading. That is the tape, and here it is a loop.
+	/// </remarks>
+	[Theory]
+	[InlineData("aaa")]
+	[InlineData("a")]
+	[InlineData("ab")]
+	[InlineData("")]
+	public void A_run_gives_a_character_back(string input) =>
+		Characters("Start = ['a'..'z']+ & 'a' & eof", input);
+
+	/// <summary>And gives back as many as it has to.</summary>
+	[Theory]
+	[InlineData("aaaa")]
+	[InlineData("aaa")]
+	[InlineData("aa")]
+	public void A_run_gives_back_as_many_as_it_must(string input) =>
+		Characters("Start = ['a'..'z']* & 'a' & 'a' & 'a' & eof", input);
+
+	/// <summary>An alternative that matched gives way to the next one.</summary>
+	/// <remarks>
+	/// Both alternatives read <c>a</c>, so the first matches wherever the second would,
+	/// and only what follows the choice can tell them apart. The tape is what lets the
+	/// second be reached at all.
+	/// </remarks>
+	[Theory]
+	[InlineData("ab")]
+	[InlineData("ac")]
+	[InlineData("ad")]
+	public void An_alternative_gives_way_to_the_next(string input) =>
+		Characters("Start = ('a' & 'b' | 'a' & 'c') & eof", input);
+
+	/// <summary>A run inside an alternative, given back after the choice moved on.</summary>
+	[Theory]
+	[InlineData("aab")]
+	[InlineData("aac")]
+	[InlineData("ac")]
+	public void A_run_inside_an_alternative(string input) =>
+		Characters("Start = (['a'..'z']+ & 'b' | ['a'..'z']+ & 'c') & eof", input);
+
+	/// <summary>A look decides once, and what it decided is not reopened.</summary>
+	[Theory]
+	[InlineData("abc")]
+	[InlineData("xbc")]
+	public void A_look_over_characters(string input) =>
+		Characters("Start = ?!'x' & ['a'..'z']+ & eof", input);
+
+	/// <summary>One rule calling another, each with a way back of its own.</summary>
+	[Theory]
+	[InlineData("aaa")]
+	[InlineData("aab")]
+	[InlineData("ab")]
+	public void A_rule_over_characters_calling_a_rule(string input) =>
+		Characters("Start = Run & 'a' & eof\nRun = ['a'..'z']+", input);
+
+	/// <summary>
+	/// Shapes that make the tape work, each against every input, both ways.
+	/// </summary>
+	/// <remarks>
+	/// The cases above are one defect each. This one is the opposite: nothing here is aimed
+	/// at anything, and what it is for is the combinations nobody thought of — a run inside
+	/// an alternative inside a rule called from a run, and the like. Every grammar is asked
+	/// every input, and the two renderings have to agree about all of them.
+	/// </remarks>
+	[Theory]
+	[InlineData("Start = ['a'..'b']+ & 'a' & 'b' & eof")]
+	[InlineData("Start = ['a'..'b']* & ['a'..'b']* & 'a' & eof")]
+	[InlineData("Start = (['a'..'b']+ | 'a') & ['a'..'b']+ & eof")]
+	[InlineData("Start = ('a' & 'a' | 'a') & ['a'..'b']+ & 'b' & eof")]
+	[InlineData("Start = Run & Run & eof\nRun = ['a'..'b']+")]
+	[InlineData("Start = Run & 'b' & eof\nRun = ['a'..'b']+ | 'a' & 'a'")]
+	[InlineData("Start = (Run & 'b' | Run & 'a') & eof\nRun = ['a'..'b']*")]
+	[InlineData("Start = ?!('a' & 'a') & ['a'..'b']+ & 'a' & eof")]
+	[InlineData("Start = ['a'..'b']{1,3} & 'a' & eof")]
+	[InlineData("Start = ('a' | 'b')+ & 'b' & eof")]
+	public void Every_input_reads_the_same_both_ways(string grammar)
+	{
+		// A grammar the reader declined would compare the old rendering with itself and
+		// pass without reading a thing.
+		Assert.Contains(
+			"Read_Start_Body",
+			Written(grammar + Line + "parse Start", reader: true, lexical: false),
+			StringComparison.Ordinal);
+
+		foreach (var input in Inputs)
+			Characters(grammar, input);
+	}
+
+	/// <summary>Everything up to four characters of <c>a</c> and <c>b</c>, and a stray one.</summary>
+	static IEnumerable<string> Inputs
+	{
+		get
+		{
+			yield return "";
+			yield return "c";
+
+			for (var length = 1; length <= 4; length++)
+				for (var n = 0; n < 1 << length; n++)
+				{
+					var one = new char[length];
+
+					for (var at = 0; at < length; at++)
+						one[at] = (n >> at & 1) == 0 ? 'a' : 'b';
+
+					yield return new string(one);
+				}
+		}
+	}
+
+	/// <summary>
+	/// The same grammar read both ways over characters, and the same answer out of both.
+	/// </summary>
+	/// <remarks>
+	/// No <c>Lexical</c>: what is being read here is the input itself, which is the half
+	/// the reader learned last.
+	/// </remarks>
+	static void Characters(string grammar, string input)
+	{
+		var whole = grammar + "\nparse Start";
+
+		Assert.Equal(
+			Reads(whole, input, reader: false, lexical: false),
+			Reads(whole, input, reader: true, lexical: false));
+	}
+
+	/// <summary>That the reader wrote the half that reads characters too.</summary>
+	[Fact]
+	public void The_reader_writes_no_jumps_over_characters()
+	{
+		var grammar = "Start = (['a'..'z']+ & 'b' | ['a'..'z']+ & 'c') & eof\nparse Start";
+		var written = Written(grammar, reader: true, lexical: false);
+
+		Assert.DoesNotContain("goto", Reading(written, "Read_Start"), StringComparison.Ordinal);
+		Assert.DoesNotContain("goto", Reading(written, "Read_Start_Body"), StringComparison.Ordinal);
+		Assert.Contains("ways.Retry", Reading(written, "Read_Start"), StringComparison.Ordinal);
+	}
+
 	/// <summary>
 	/// That the reader wrote it, and not the rendering it stands beside.
 	/// </summary>
@@ -247,12 +388,13 @@ public sealed class ReaderTests
 		Assert.Equal(Reads(whole, input, reader: false), Reads(whole, input, reader: true));
 	}
 
-	static bool Reads(string grammar, string input, bool reader) =>
+	static bool Reads(string grammar, string input, bool reader, bool lexical = true) =>
 		EmittedCode
-			.Match(EmittedCode.Compile(Written(grammar, reader)), "Grammar", "TryParseStart", input)
+			.Match(
+				EmittedCode.Compile(Written(grammar, reader, lexical)), "Grammar", "TryParseStart", input)
 			.IsSuccess;
 
-	static string Written(string grammar, bool reader)
+	static string Written(string grammar, bool reader, bool lexical = true)
 	{
 		var result = GramCompiler.Compile(
 			grammar,
@@ -260,7 +402,7 @@ public sealed class ReaderTests
 			{
 				ClassName     = "Grammar",
 				CSharpScanner = RoslynCSharpScanner.Instance,
-				Lexical       = true,
+				Lexical       = lexical,
 				Reader        = reader,
 			});
 
