@@ -645,12 +645,46 @@ sealed class EmbeddedGrammarBufferAnalysis
 				return false;
 
 			_snapshot = snapshot;
-			_classifications = classifications;
+			_classifications = MergeProvisionalClassifications(_classifications, classifications);
 			_braces = braces;
 			_foldingRanges = foldingRanges;
 		}
 
 		return true;
+	}
+
+	internal static IReadOnlyList<HostClassification> MergeProvisionalClassifications(
+		IReadOnlyList<HostClassification> previous,
+		IReadOnlyList<HostClassification> provisional)
+	{
+		if (previous.Count == 0 || provisional.Count == 0)
+			return provisional.Count == 0 ? previous : provisional;
+
+		var current = provisional.OrderBy(static item => item.Span.Start).ToArray();
+		var old = previous.OrderBy(static item => item.Span.Start).ToArray();
+		var maximumEnds = new int[current.Length];
+		for (var index = 0; index < current.Length; index++)
+			maximumEnds[index] = Math.Max(index == 0 ? 0 : maximumEnds[index - 1], current[index].Span.End);
+
+		var merged = new List<HostClassification>(current);
+		foreach (var candidate in old)
+		{
+			var low = 0;
+			var high = current.Length;
+			while (low < high)
+			{
+				var middle = low + (high - low) / 2;
+				if (current[middle].Span.Start < candidate.Span.End)
+					low = middle + 1;
+				else
+					high = middle;
+			}
+
+			if (low == 0 || maximumEnds[low - 1] <= candidate.Span.Start)
+				merged.Add(candidate);
+		}
+
+		return merged.OrderBy(static item => item.Span.Start).ToArray();
 	}
 
 	async Task NotifyChangedAsync(ITextSnapshot snapshot)

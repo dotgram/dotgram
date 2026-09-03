@@ -457,11 +457,21 @@ sealed class RoslynGramCompletion(
 		if (model is null)
 			return false;
 
-		var symbol = await SymbolFinder.FindSymbolAtPositionAsync(
-			model,
-			Before.Length + position,
-			workspace,
-			cancellationToken).ConfigureAwait(false);
+		var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+		var absolutePosition = Before.Length + position;
+		var token = root?.FindToken(Math.Max(0, Math.Min(absolutePosition, root.FullSpan.End - 1)));
+		var symbol = token?.Parent?.AncestorsAndSelf()
+			.Select(node => model.GetSymbolInfo(node, cancellationToken))
+			.Select(info => info.Symbol ?? info.CandidateSymbols
+				.OrderByDescending(static candidate => candidate is IFieldSymbol)
+				.ThenByDescending(static candidate => candidate is IPropertySymbol)
+				.FirstOrDefault())
+			.FirstOrDefault(static candidate => candidate is not null) ??
+			await SymbolFinder.FindSymbolAtPositionAsync(
+				model,
+				absolutePosition,
+				workspace,
+				cancellationToken).ConfigureAwait(false);
 		if (symbol is not null && await RoslynSymbolNavigation.NavigateAsync(
 			workspace, symbol, project, cancellationToken).ConfigureAwait(false))
 			return true;
@@ -527,7 +537,9 @@ sealed class RoslynGramCompletion(
 			await SymbolFinder.FindSymbolAtPositionAsync(
 				model, boundedPosition, workspace, cancellationToken).ConfigureAwait(false);
 		if (symbol is not IMethodSymbol method)
-			return null;
+			return symbol is null
+				? null
+				: await GrammarReferenceSourceAsync(symbol, document.Project, cancellationToken).ConfigureAwait(false);
 
 		var names = method.Name.StartsWith("Try", StringComparison.Ordinal) && method.Name.Length > 3
 			? new[] { method.Name, method.Name.Substring(3) }
@@ -577,8 +589,71 @@ sealed class RoslynGramCompletion(
 			}
 		}
 
+		return await GrammarReferenceSourceAsync(method, document.Project, cancellationToken).ConfigureAwait(false);
+	}
+
+	async Task<GeneratedApiSource?> GrammarReferenceSourceAsync(
+		ISymbol symbol,
+		Project project,
+		CancellationToken cancellationToken)
+	{
+		foreach (var grammar in project.AdditionalDocuments.Where(document =>
+			document.FilePath?.EndsWith(".gram", StringComparison.OrdinalIgnoreCase) == true))
+		{
+			var text = await grammar.GetTextAsync(cancellationToken).ConfigureAwait(false);
+			var source = text.ToString();
+			for (var position = source.IndexOf(symbol.Name, StringComparison.Ordinal);
+				position >= 0;
+				position = source.IndexOf(symbol.Name, position + symbol.Name.Length, StringComparison.Ordinal))
+			{
+				if (!IsIdentifier(source, position, symbol.Name.Length) ||
+					!GramCSharpCompletionContext.TryGetExpression(
+						source, position, out var expression, out var expressionStart, out _, out _))
+					continue;
+
+				var referenced = await SymbolInExpressionAsync(
+					project,
+					expression,
+					position - expressionStart,
+					cancellationToken).ConfigureAwait(false);
+				if (!SymbolEqualityComparer.Default.Equals(
+					referenced?.OriginalDefinition,
+					symbol.OriginalDefinition))
+					continue;
+
+				var location = text.Lines.GetLinePosition(position);
+				return grammar.FilePath is null
+					? null
+					: new GeneratedApiSource(grammar.FilePath, location.Line, location.Character);
+			}
+		}
+
 		return null;
 	}
+
+	static async Task<ISymbol?> SymbolInExpressionAsync(
+		Project project,
+		string expression,
+		int position,
+		CancellationToken cancellationToken)
+	{
+		var document = SyntheticDocument(project, expression);
+		var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+		var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+		if (model is null || root is null)
+			return null;
+
+		var absolute = Before.Length + position;
+		var token = root.FindToken(Math.Max(0, Math.Min(absolute, root.FullSpan.End - 1)));
+		return token.Parent?.AncestorsAndSelf()
+			.Select(node => model.GetSymbolInfo(node, cancellationToken))
+			.Select(info => info.Symbol ?? info.CandidateSymbols.FirstOrDefault())
+			.FirstOrDefault(static candidate => candidate is not null);
+	}
+
+	static bool IsIdentifier(string source, int position, int length) =>
+		(position == 0 || !IsIdentifierCharacter(source[position - 1])) &&
+		(position + length == source.Length || !IsIdentifierCharacter(source[position + length]));
 
 	async Task<INamedTypeSymbol?> HostTypeAsync(Project project, CancellationToken cancellationToken)
 	{
