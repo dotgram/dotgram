@@ -252,6 +252,15 @@ public sealed class ReaderTests
 	[InlineData("Start = ?!('a' & 'a') & ['a'..'b']+ & 'a' & eof")]
 	[InlineData("Start = ['a'..'b']{1,3} & 'a' & eof")]
 	[InlineData("Start = ('a' | 'b')+ & 'b' & eof")]
+	[InlineData("Start = ('a' & 'b')* & 'a' & eof")]
+	[InlineData("Start = ('a' & 'b' | 'a')+ & 'b' & eof")]
+	[InlineData("Start = Pair* & 'a' & eof" + Line + "Pair = 'a' & 'b' | 'a' & 'a'")]
+	[InlineData("Start = ('a'* & 'b')* & 'a' & eof")]
+	[InlineData("Start = ('a' | 'a' & 'b')* & ['a'..'b']+ & eof")]
+	[InlineData("Start = ('a' & 'b'){1,2} & 'a' & eof")]
+	[InlineData("Start = (('a' | 'b') & 'a')* & 'b' & eof")]
+	[InlineData("Start = (Run & 'b')* & 'a' & eof" + Line + "Run = ['a'..'b']+")]
+	[InlineData("Start = ('a' & ['a'..'b']*)+ & 'b' & eof")]
 	public void Every_input_reads_the_same_both_ways(string grammar)
 	{
 		// A grammar the reader declined would compare the old rendering with itself and

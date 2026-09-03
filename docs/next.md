@@ -12205,3 +12205,37 @@ and an assertion that the reader actually wrote the grammar, since a grammar it 
 would compare the old rendering with itself and pass without reading a thing. Two of the
 ten had to be rewritten when that assertion went in: they were simple enough to lower to
 one flat method and never reached the reader at all.
+
+## Built: a way for every turn, and what is left between the reader and SQL
+
+A run of characters gives back a count, because every turn of it is one character and a
+shorter run is the same scan stopped earlier. A turn of anything else is not a character
+and not the same size as its neighbours, so what has to be handed back is the turn itself.
+The tape carries that as a way per turn, each standing at "went round again" and reaching
+to "stopped here", opened before the turn and only where stopping is a reading the
+repetition actually has — below the minimum it is not.
+
+Structurally it is the alternative's rule over again: the turn is asked for every reading
+it has before it is called spent, and only then does the way that offered it say "stopped
+here". Fifteen shapes in `ReaderTests` against thirty-four inputs each, all compared
+against the rendering beside it.
+
+**A latent bug it turned up, in the reader itself.** Declaring an expectation array is not
+asking for one: what gets written into the file is what something wrote a reference to,
+and `_expectedUsed` is what says so. Only the direct writer ever marked it. Every
+expectation the reader has written so far happened to be one the analysis had already
+marked for its own reasons; the first one that was not — a literal inside an alternative
+inside a repetition — came out as a reference to an array that was never declared. The
+reader marks its own now.
+
+**And the answer to "how far is SQL".** Asked with `Reader = true`, the whole SQL grammar
+now says exactly one thing:
+
+```
+GRAM5006: The reader was asked for and could not write 'SearchCondition' because it folds.
+```
+
+One refusal, and it is the ladder — the left recursion the normalizer rewrites into a fold.
+Everything else about that grammar the reader can write. So folds are what is next, and
+after them the yardstick can be read both ways and compared tree against tree, which is the
+comparison this whole exercise has been walking towards.

@@ -114,13 +114,6 @@ sealed partial class Machine
 			return true;
 		}
 
-		foreach (var rule in DirectRules(publications))
-			foreach (var node in NodeWalk.Descendants(_graph.Bodies[rule]))
-				if (node is Node.Repeat(var repeated, _, _) && repeated is not Node.Element)
-					return Unreadable(
-						rule, "it repeats something longer than one character, and a turn of that " +
-						"is given back by a way rather than by arithmetic");
-
 		return true;
 	}
 
@@ -393,6 +386,7 @@ sealed partial class Machine
 		/// <summary>Ways opened and marks taken, which only a reading over characters has.</summary>
 		int _ways;
 		int _marks;
+		int _turns;
 
 		/// <summary>Whether this method writes a record, and so needs the side stack mark.</summary>
 		bool _records;
@@ -911,9 +905,12 @@ sealed partial class Machine
 		{
 			var (body, min, max) = repeat;
 
-			if (!machine.OverKinds && body is Node.Element element)
+			if (!machine.OverKinds)
 			{
-				EmitRun(code, element, min, max);
+				if (body is Node.Element element)
+					EmitRun(code, element, min, max);
+				else
+					EmitTurns(code, repeat);
 
 				return;
 			}
@@ -1033,6 +1030,147 @@ sealed partial class Machine
 			}
 		}
 
+		/// <summary>
+		/// A repetition of anything longer than one element, over characters: a way for
+		/// every turn.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// What a run of characters gives back is a count, because every turn of it is one
+		/// character and a shorter run is the same scan stopped earlier. A turn of anything
+		/// else is not a character and not the same size as its neighbours, so what has to
+		/// be given back is the turn itself — and the tape carries that as a way per turn,
+		/// each standing at "went round again" and reaching to "stopped here".
+		/// </para>
+		/// <para>
+		/// The way is opened before the turn rather than after it, and only where stopping
+		/// is allowed: below the minimum there is nothing to offer, because stopping there
+		/// is not a reading the repetition has. A turn that fails spends its own way — the
+		/// way now says "stopped here" — and a turn that fails below the minimum fails the
+		/// repetition.
+		/// </para>
+		/// </remarks>
+		void EmitTurns(Writer code, Node.Repeat repeat)
+		{
+			var (body, min, max) = repeat;
+
+			if (max == 0)
+				return;
+
+			var turn     = min > 0 || max is not null ? $"t{_turns++}" : null;
+			var nullable = FirstSets.Nullable(body, _graph);
+			var call     = Calling(body);
+
+			if (turn is not null)
+				code.Line($"var {turn} = 0;");
+
+			using (code.Block("while (true)"))
+			{
+				if (max is { } limit)
+				{
+					code.Line($"if ({turn} >= {limit})");
+					code.Then("break;");
+					code.Line();
+				}
+
+				var way   = _ways++;
+				var stops = min > 0 ? $"{turn} >= {min}" : null;
+
+				code.Line($"var w{way} = -1;");
+				code.Line($"var d{way} = 0;");
+				code.Line();
+
+				// Below the minimum there is nothing to offer: stopping there is not a
+				// reading the repetition has.
+				var offering = stops is null ? null : code.Block($"if ({stops})");
+
+				using (code.Block("if (ways.Cursor < ways.Count)"))
+				{
+					code.Line($"w{way} = ways.Cursor;");
+					code.Line($"d{way} = ways.Items[w{way} * 2];");
+					code.Line("ways.Cursor++;");
+				}
+
+				code.Line("else");
+
+				using (code.Block(""))
+					code.Line($"w{way} = ways.Open(1);");
+
+				code.Line();
+				code.Line($"if (d{way} == 1)");
+				code.Then("break;");
+
+				offering?.Dispose();
+
+				code.Line();
+
+				// The turn is asked for every reading it has before it is called spent,
+				// which is the alternative's rule (EmitChoiceOverCharacters) over again.
+				var segment = _ways++;
+				var took    = $"q{_calls++}";
+
+				code.Line($"var s{segment}  = ways.Cursor;");
+				code.Line($"var lm{segment} = ways.LogCount;");
+				code.Line($"var rr{segment} = ways.RefsCount;");
+				code.Line($"var {took} = -1;");
+				code.Line();
+
+				using (code.Block("while (true)"))
+				{
+					code.Line($"{took} = {call};");
+					code.Line();
+					code.Line($"if ({took} >= 0)");
+					code.Then("break;");
+					code.Line();
+					code.Line($"ways.LogCount  = lm{segment};");
+					code.Line($"ways.RefsCount = rr{segment};");
+					code.Line();
+					code.Line($"if (ways.Cursor > s{segment} && ways.Retry(s{segment}))");
+					code.Then("continue;");
+					code.Line();
+					code.Line("break;");
+				}
+
+				code.Line();
+
+				using (code.Block($"if ({took} < 0)"))
+				{
+					if (stops is null)
+					{
+						code.Line($"ways.Next(w{way}, 1);");
+					}
+					else
+					{
+						// The turn is spent, so the way that offered it now says "stopped
+						// here" — and a turn short of the minimum is not a stop but a
+						// refusal, which the body has already said everything about.
+						code.Line($"if ({stops})");
+						code.Then($"ways.Next(w{way}, 1);");
+						code.Line();
+						code.Line($"if ({turn} < {min})");
+						code.Then("return -1;");
+					}
+
+					code.Line();
+					code.Line("break;");
+				}
+
+				code.Line();
+
+				if (nullable)
+				{
+					code.Line($"if ({took} == p)");
+					code.Then("break;");
+					code.Line();
+				}
+
+				code.Line($"p = {took};");
+
+				if (turn is not null)
+					code.Line($"{turn}++;");
+			}
+		}
+
 		void EmitLookahead(Writer code, bool positive, Node inside)
 		{
 			var seen = $"q{_calls++}";
@@ -1059,6 +1197,11 @@ sealed partial class Machine
 
 		void Refused(Writer code, string expected)
 		{
+			// Declaring the array is not asking for it: what is written out is what
+			// something wrote a reference to, and until the reader said so the only thing
+			// that ever did was the rendering beside it.
+			machine._expectedUsed.Add(expected);
+
 			code.Line($"{Refusing}(ref failure, p, {expected}, ways);");
 			code.Line("return -1;");
 		}
