@@ -12556,3 +12556,48 @@ generated SQL parser against the hand-written one is 1.5–3.2×, the lexer is a
 and the tree is the same. The remaining distance is in the walk that builds the tree and in
 the shapes the notation makes a person write differently from how they would by hand — and
 those are grammar questions, not emitter ones.
+
+## Profiled: the distance to the hand-written parser, halved between two things
+
+With one rendering by methods left, both parsers profiled on the same input — the
+sixty-four predicates, fifteen seconds of `--spin` each, sampling — and read per parse:
+
+| | generated | by hand |
+| --- | --: | --: |
+| whole parse | 11.81 us | 3.89 us |
+| the lexer | 1.48 | 1.16 |
+| recognizing | ~4.1 | ~1.4 |
+| building the tree | 5.20 | — |
+
+**The building half has no counterpart in the hand-written parser at all.** It records
+what it read on a log and walks the log at the end, building each value from the records
+under it; the hand-written one builds where it reads. That walk is forty-four percent of
+the parse. Nothing in it is obviously wasted — it is a loop stepping record to record, a
+switch on the arm, a few loads and a call into the author's own C# — which is what makes
+it the architecture rather than a defect.
+
+**And the recognizing half is about three times the hand-written one too**, so the ratio
+is not one problem: it is the same ratio twice, once in reading and once in building.
+
+**What eager construction would and would not buy.** Building the value where the record
+is written, rather than logging and walking, needs the construction to be committed:
+nothing that can still fail may reach back over it, because a factory is the author's code
+and must not run for a derivation that is not the answer
+(`Construction_runs_only_for_the_accepted_derivation`). Over kinds a rule's answer stands,
+so what can abandon a record is an enclosing alternative or turn that fails after it — and
+those are exactly the places the reader already puts the log back. But a rule that has
+answered can still be abandoned by its caller, and transitively "nothing can fail after
+this" holds only on the rightmost spine of the publication. So eagerness is available
+where it is proved and nowhere else, and how much of a real grammar that covers is the
+measurement to make before writing any of it.
+
+**What is contained, and worth doing whatever is decided about the walk.** The value
+tables are indexed by a record's offset in the log and sized to the log's length in words,
+so three tables are cleared over four times the slots that were ever written — about
+seven percent of the parse in `Array.Clear`. Only record starts hold anything, and the log
+itself says where they are.
+
+**One thing measured and kept for what it is rather than for speed.** A refusal at the
+furthest position is a tie and a tie was appended to a list — the same wanted set once per
+alternative that wanted it, on a parse that goes on to succeed. Said once now. The ratios
+did not move; the message is better and the list stops growing.
