@@ -11540,3 +11540,62 @@ Three things to weigh next, in the order they look worth it:
 
 None of that is measured yet, which is the same mistake this entry is about. The yardstick
 is in place now, so it will be.
+
+## Built: three things the walk was doing for nothing
+
+The entry before this one said building was four to ten times behind a person and named
+three guesses at why. Two of the three were wrong, and a profiler said so in ten minutes.
+It should have been the first instrument reached for rather than the fourth: dotTrace
+sampling the same twenty seconds of the generated parser and of the hand-written one, side
+by side, is the whole method — where the generated profile has a line the other has no
+line for, that is the generator's own machinery and nothing else.
+
+Three lines were like that. None of them was a guess from the last entry.
+
+**A record carried every member of its rule, not the members its factory names.** A rule
+of several alternatives has one member per capture name across all of them, and the record
+written for one alternative held the lot: `ValueExpressionPrimary` in standard SQL wrote
+five, four of them absent, on each of its eight alternatives, each picked out by a chain of
+ternaries — and the walk read five back. Which member belongs to which alternative is what
+the factory's parameter list already says, and a fold's steps already used it. Now every
+factory does. 465 ns to 375 on `a = 1`.
+
+**The walk marked what the root reaches, and it could not fail to reach it.** A valued rule
+that matched writes a record whether or not its caller kept the value, and §7.2 says a
+factory runs only for what the answer is made of — so the walk listed every record, marked
+backwards from the root, and built only the marked. That is two passes and an array of
+flags the width of the log, answering a question with one answer wherever every call to a
+valued rule is captured. Which is nearly every grammar that builds: a value nobody captures
+is a value written for nothing. Over characters it stays, and has to — a publication's own
+reader runs again from the start when the whole input was not read, and the record it wrote
+before that stays in the log. `GeneratorDriverTests` said so before the measurement did,
+which is what that test is for. A second flag array, for what a guard already built, is
+written only where a guard builds.
+
+**And the tables were covariant.** A value table is one array per type, indexed by record,
+held in a field. An array of a reference type is covariant in .NET — a `Derived[]` is a
+`Base[]` — so every store into one asks the runtime whether the value fits the array it is
+going into, and for an array reached through a field the answer is not known at compile
+time. `CastHelpers.StelemRef_Helper` was a tenth of the whole parse. The hand-written
+parser builds the same nodes into the same kind of array and pays nothing, because its
+arrays are allocated where they are filled and the JIT can see it. A one-field struct
+around each slot ends it: an array of structs is not covariant, and a store into a field of
+one asks nothing.
+
+| input | before | now | by hand |
+| --- | --: | --: | --: |
+| `a = 1` | 465 ns | 272 | 45 |
+| `(a + b) * c > d` | 803 | 481 | 103 |
+| `x = 1 AND y IS NOT NULL` | 789 | 502 | 130 |
+| 64 predicates joined by `AND` | 26,016 | 18,180 | 4,764 |
+| 64 operands joined by `+` | 8,177 | 6,165 | 2,096 |
+
+Four to ten times behind is three to six now. What the profiler says is left, in order:
+the walk itself at an eighth of the parse, the value tables being cleared on the way back
+at a twentieth — three tables cleared to the width of the log where one of them holds
+nearly everything — and a switch on the rule inside a switch on the factory where one
+switch on a number that names both would do.
+
+`--spin` in the benchmarks reads one SQL input in a loop for a profiler to sample, the
+generated parser or the hand-written one, so the next round of this can start where this
+one did.

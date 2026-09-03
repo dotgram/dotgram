@@ -2407,7 +2407,7 @@ namespace DotGram.Snapshots
 				}
 
 				Materialize_DotGram_Sum_Direct(ways, text, values, ways.Last, 0);
-				value = values.V1[ways.Last];
+				value = values.V1[ways.Last].Value;
 
 				return end;
 			}
@@ -2498,7 +2498,6 @@ namespace DotGram.Snapshots
 			b0 = p;
 			ways.Begin(0, 0, pos, p);
 			ways.Put(a0, b0);
-			ways.Collect(rb, 2L, false);
 			ways.End(rb);
 			fold = ways.Last;
 			L3_turn:
@@ -2575,9 +2574,6 @@ namespace DotGram.Snapshots
 
 			var log   = ways.Log;
 			var live  = values.Live;
-			var built = values.Built;
-
-			global::System.Array.Clear(built, ways.Built, ways.LogCount - ways.Built);
 
 			var starts = values.Starts;
 			var listed = 0;
@@ -2604,9 +2600,6 @@ namespace DotGram.Snapshots
 						{
 							case 0:
 								read += 2;
-								for (var item = 0; item < log[read]; item++)
-									live[log[read + 1 + item]] = true;
-								read += 1 + log[read];
 								break;
 							case 1:
 								live[log[read]] = true;
@@ -2625,14 +2618,12 @@ namespace DotGram.Snapshots
 
 			for (var at = from; at < ways.LogCount; at += log[at])
 			{
-				if (!live[at] || built[at]) continue;
+				if (!live[at]) continue;
 
 				var factory = log[at + 2];
 				var start   = log[at + 3];
 				var end     = log[at + 4];
 				var read    = at + 5;
-
-				built[at] = true;
 
 				switch (log[at + 1])
 				{
@@ -2646,25 +2637,16 @@ namespace DotGram.Snapshots
 									var to0   = log[read++];
 									var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
 
-									var count1 = log[read++];
-									var captured1 = new int[count1];
-
-									for (var item = 0; item < count1; item++)
-									{
-										var record1 = log[read++];
-										captured1[item] = values1[record1];
-									}
-
-									values1[at] = Construct_Sum(captured0!);
+									values1[at].Value = Construct_Sum(captured0!);
 									break;
 								}
 							case 1:
 								{
 									var accumulated = log[read++];
 									var record1 = log[read++];
-									var captured1 = values1[record1];
+									var captured1 = values1[record1].Value;
 
-									values1[at] = Construct_Sum_1(values1[accumulated], captured1!);
+									values1[at].Value = Construct_Sum_1(values1[accumulated].Value, captured1!);
 									break;
 								}
 						}
@@ -2672,8 +2654,6 @@ namespace DotGram.Snapshots
 					}
 				}
 			}
-
-			ways.Built = ways.LogCount;
 		}
 
 		static int Recognize_Either_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
@@ -5538,9 +5518,9 @@ namespace DotGram.Snapshots
 
 		sealed class DirectValues
 		{
-			internal string[] V0 = new string[16];
-			internal int[] V1 = new int[16];
-			internal string[][] V2 = new string[16][];
+			internal Held<string>[] V0 = new Held<string>[16];
+			internal Held<int>[] V1 = new Held<int>[16];
+			internal Held<string[]>[] V2 = new Held<string[]>[16];
 			internal bool[] Live   = new bool[16];
 			internal int[]  Starts = new int[16];
 			internal bool[] Built  = new bool[16];
@@ -5572,7 +5552,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>Room for a value at every index below the count; what was built stays built.</summary>
-			internal void Room(int count)
+			internal void Room(int count, bool live = true)
 			{
 				if (count > _used) _used = count;
 				if (Live.Length < count)
@@ -5583,7 +5563,7 @@ namespace DotGram.Snapshots
 					global::System.Array.Copy(Built, built, Built.Length);
 					Built  = built;
 				}
-				else
+				else if (live)
 					global::System.Array.Clear(Live, 0, count);
 				if (V0.Length < count)
 					global::System.Array.Resize(ref V0, global::System.Math.Max(count, V0.Length * 2));
@@ -5593,6 +5573,14 @@ namespace DotGram.Snapshots
 					global::System.Array.Resize(ref V2, global::System.Math.Max(count, V2.Length * 2));
 			}
 		}
+
+		/// <summary>One value in a table, in a struct so that storing it asks nothing.</summary>
+		#pragma warning disable CS0649 // a table nothing writes still declares the field
+		struct Held<T>
+		{
+			internal T Value;
+		}
+		#pragma warning restore CS0649
 
 		private sealed class Parser
 		{

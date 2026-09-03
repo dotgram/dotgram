@@ -701,7 +701,7 @@ sealed partial class Machine
 					file.Line();
 					file.Line($"{DirectMaterializer}(ways, text, values, ways.Last, 0{InputArgument}{TokensArgument}{ContextArgument});");
 					file.Line(
-						$"value = {(IsExtent(rule) ? RecordValue(type!, "ways.Last").Replace("log[", "ways.Log[") : ValueFrom(type!, "ways.Last").Replace("values", "values.V"))};");
+						$"value = {(IsExtent(rule) ? RecordValue(type!, "ways.Last").Replace("log[", "ways.Log[") : DirectFrom(type!, "ways.Last").Replace("values", "values.V"))};");
 					file.Line();
 				}
 
@@ -1703,7 +1703,7 @@ sealed partial class Machine
 		string ValueAt(string type, string record) =>
 			type == "SourceSpan"
 				? machine.RecordValue(type, record).Replace("log[", "ways.Log[")
-				: $"values.V{machine.TableFor(type)}[{record}]";
+				: $"values.V{machine.TableFor(type)}[{record}].Value";
 
 		/// <summary>
 		/// The local of the first slot that was captured, where a member has several — one
