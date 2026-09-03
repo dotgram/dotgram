@@ -10,6 +10,7 @@ using DotGram.Language;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.ComponentModelHost;
 using Microsoft.VisualStudio.Editor;
+using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text;
@@ -72,7 +73,10 @@ public sealed class DotGramPackage : AsyncPackage, IVsRunningDocTableEvents3
 	public const string PackageGuid = "10462EA6-7017-4214-BD5B-4A8EB9DA54B6";
 	readonly Dictionary<IVsWindowFrame, GramCodeWindowManager> _windows = [];
 	IVsRunningDocumentTable? _documents;
+	IVsRegisterPriorityCommandTarget? _commands;
+	GramPriorityCommandTarget? _commandTarget;
 	uint _documentEvents;
+	uint _commandCookie;
 
 	protected override async Task InitializeAsync(
 		CancellationToken cancellationToken,
@@ -82,6 +86,17 @@ public sealed class DotGramPackage : AsyncPackage, IVsRunningDocTableEvents3
 		_documents = await GetServiceAsync(typeof(SVsRunningDocumentTable)) as IVsRunningDocumentTable
 			?? throw new InvalidOperationException("Visual Studio running document table is unavailable.");
 		_documents.AdviseRunningDocTableEvents(this, out _documentEvents);
+		var componentModel = ServiceProvider.GlobalProvider.GetService(typeof(SComponentModel)) as IComponentModel
+			?? throw new InvalidOperationException("Visual Studio component model is unavailable.");
+		var textManager = await GetServiceAsync(typeof(SVsTextManager)) as IVsTextManager
+			?? throw new InvalidOperationException("Visual Studio text manager is unavailable.");
+		_commands = await GetServiceAsync(typeof(SVsRegisterPriorityCommandTarget)) as IVsRegisterPriorityCommandTarget
+			?? throw new InvalidOperationException("Visual Studio priority command service is unavailable.");
+		_commandTarget = new GramPriorityCommandTarget(
+			textManager,
+			componentModel.GetService<IVsEditorAdaptersFactoryService>(),
+			componentModel.GetService<GramCSharpFindReferencesService>());
+		ErrorHandler.ThrowOnFailure(_commands.RegisterPriorityCommandTarget(0, _commandTarget, out _commandCookie));
 		ActivityLog.LogInformation("DotGram.VisualStudio", "Native navigation experiment initialized.");
 	}
 
@@ -90,6 +105,10 @@ public sealed class DotGramPackage : AsyncPackage, IVsRunningDocTableEvents3
 		ThreadHelper.ThrowIfNotOnUIThread();
 		if (disposing)
 		{
+			if (_commandCookie != 0)
+				_commands?.UnregisterPriorityCommandTarget(_commandCookie);
+			_commandCookie = 0;
+			_commandTarget = null;
 			foreach (var window in _windows.Values)
 				window.RemoveAdornments();
 			_windows.Clear();
@@ -168,6 +187,50 @@ public sealed class DotGramPackage : AsyncPackage, IVsRunningDocTableEvents3
 		uint newItemId,
 		string newMoniker) => VSConstants.S_OK;
 	public int OnBeforeSave(uint cookie) => VSConstants.S_OK;
+}
+
+sealed class GramPriorityCommandTarget(
+	IVsTextManager textManager,
+	IVsEditorAdaptersFactoryService adapters,
+	GramCSharpFindReferencesService references) : IOleCommandTarget
+{
+	const int NotSupported = unchecked((int)0x80040100);
+
+	public int QueryStatus(ref Guid commandGroup, uint commandCount, OLECMD[] commands, IntPtr commandText)
+	{
+		ThreadHelper.ThrowIfNotOnUIThread();
+		if (commandCount != 1 || !IsFindReferences(commandGroup, commands[0].cmdID) || ActiveCSharpView() is null)
+			return NotSupported;
+
+		commands[0].cmdf = (uint)(OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED);
+		return VSConstants.S_OK;
+	}
+
+	public int Exec(ref Guid commandGroup, uint commandId, uint options, IntPtr input, IntPtr output)
+	{
+		ThreadHelper.ThrowIfNotOnUIThread();
+		if (!IsFindReferences(commandGroup, commandId) || ActiveCSharpView() is not { } view)
+			return NotSupported;
+
+		ActivityLog.LogInformation(
+			"DotGram.VisualStudio",
+			$"Priority Find References command {commandGroup:B}/{commandId}.");
+		return references.Find(view) ? VSConstants.S_OK : NotSupported;
+	}
+
+	IWpfTextView? ActiveCSharpView()
+	{
+		ThreadHelper.ThrowIfNotOnUIThread();
+		return ErrorHandler.Succeeded(textManager.GetActiveView(1, null, out var nativeView)) &&
+			adapters.GetWpfTextView(nativeView) is { } view &&
+			view.TextBuffer.ContentType.IsOfType("CSharp")
+				? view
+				: null;
+	}
+
+	static bool IsFindReferences(Guid group, uint commandId) =>
+		group == VSConstants.GUID_VSStandardCommandSet97 &&
+		commandId == (uint)VSConstants.VSStd97CmdID.FindReferences;
 }
 
 sealed class GramCodeWindowManager(IVsCodeWindow codeWindow) : IVsCodeWindowManager

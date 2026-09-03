@@ -29,13 +29,7 @@ sealed class GramRenameViewListener : IWpfTextViewCreationListener
 	ITextDocumentFactoryService Documents { get; set; } = null!;
 
 	[Import]
-	ITextBufferFactoryService Buffers { get; set; } = null!;
-
-	[Import]
-	IContentTypeRegistryService ContentTypes { get; set; } = null!;
-
-	[Import(typeof(SVsServiceProvider))]
-	System.IServiceProvider Services { get; set; } = null!;
+	GramCSharpFindReferencesService FindReferences { get; set; } = null!;
 
 	public void TextViewCreated(IWpfTextView view)
 	{
@@ -56,14 +50,33 @@ sealed class GramRenameViewListener : IWpfTextViewCreationListener
 					position,
 					EmbeddedGrammarBufferAnalysis.For(view.TextBuffer, Workspace, Documents));
 		Func<bool>? findReferences = view.TextBuffer.ContentType.IsOfType("CSharp")
-			? () => FindReferences(view)
+			? () => FindReferences.Find(view)
 			: null;
 		var filter = new GramRenameCommandFilter(view, target, findReferences);
 		adapter.AddCommandFilter(filter, out var next);
 		filter.Next = next;
 	}
+}
 
-	bool FindReferences(IWpfTextView view)
+[Export]
+sealed class GramCSharpFindReferencesService
+{
+	[Import]
+	VisualStudioWorkspace Workspace { get; set; } = null!;
+
+	[Import]
+	ITextDocumentFactoryService Documents { get; set; } = null!;
+
+	[Import]
+	ITextBufferFactoryService Buffers { get; set; } = null!;
+
+	[Import]
+	IContentTypeRegistryService ContentTypes { get; set; } = null!;
+
+	[Import(typeof(SVsServiceProvider))]
+	System.IServiceProvider Services { get; set; } = null!;
+
+	public bool Find(IWpfTextView view)
 	{
 		ThreadHelper.ThrowIfNotOnUIThread();
 		try
@@ -81,7 +94,7 @@ sealed class GramRenameViewListener : IWpfTextViewCreationListener
 
 			ActivityLog.LogInformation(
 				"DotGram.VisualStudio",
-				$"Native C# Find All References found {references.References.Count} results for {references.Name}.");
+				$"C# Find All References found {references.References.Count} results for {references.Name}.");
 			GramFindReferencesCommandHandler.Show(references, Services, Buffers, ContentTypes);
 			return true;
 		}
