@@ -213,6 +213,70 @@ static class SqlAgainst
 		static string Said(bool yes) => yes ? "yes" : "no";
 	}
 
+	/// <summary>
+	/// The two lexers alone, which the generated one can be asked for after all.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A generated parser tokenizes the whole input before it reads a token of it, and it
+	/// does so whether or not the reading gets anywhere. So an input the reader refuses at
+	/// its first token costs the lexer and nothing else — put a <c>)</c> in front, where a
+	/// search condition cannot begin, and what is left over the same input without it is
+	/// the tokenizing.
+	/// </para>
+	/// <para>
+	/// Which retires the assumption the totals used to rest on. The reader's share was had
+	/// by subtracting the hand-written lexer from both sides and supposing two lexers doing
+	/// the same work cost about the same. They do not, and now the numbers say by how much.
+	/// </para>
+	/// </remarks>
+	public static void Lexers(int rounds, int iterations)
+	{
+		Agree();
+
+		Console.WriteLine();
+		Console.WriteLine($"{"",-36} {"generated",11} {"by hand",11}   ratio");
+
+		foreach (var input in Inputs)
+		{
+			// The `)` is refused at the first token, so what a parse of it costs is the
+			// entry and one refusal — the same for every input, and subtracted from both.
+			var refused = ")" + input;
+			var alone   = ")";
+
+			var taken = new List<double>[4];
+
+			for (var i = 0; i < taken.Length; i++)
+				taken[i] = [];
+
+			var measures = new Func<string, int>[]
+			{
+				static one => SqlStandard92.TryParseSearchCondition(one).IsSuccess ? 1 : 0,
+				static one => HandSqlTokens.LexOnly(one),
+			};
+
+			for (var warm = 0; warm < 2; warm++)
+				foreach (var measure in measures)
+				{
+					Time(refused, measure, iterations);
+					Time(alone, measure, iterations);
+				}
+
+			for (var round = 0; round < rounds; round++)
+				for (var i = 0; i < measures.Length; i++)
+				{
+					taken[i * 2].Add(Time(refused, measures[i], iterations));
+					taken[i * 2 + 1].Add(Time(alone, measures[i], iterations));
+				}
+
+			var made = Median(taken[0]) - Median(taken[1]);
+			var hand = Median(taken[2]) - Median(taken[3]);
+			var shown = input.Length <= 34 ? input : input.Substring(0, 31) + "...";
+
+			Console.WriteLine($"{shown,-36} {made,8:N1} ns {hand,8:N1} ns   {made / hand,5:N2}x");
+		}
+	}
+
 	/// <summary>What the loop and the indirect call cost with no parsing under them.</summary>
 	static int Nothing(string input) => input.Length & 1;
 

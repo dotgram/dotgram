@@ -11599,3 +11599,34 @@ switch on a number that names both would do.
 `--spin` in the benchmarks reads one SQL input in a loop for a profiler to sample, the
 generated parser or the hand-written one, so the next round of this can start where this
 one did.
+
+## Measured: the generated lexer is the half that is already there
+
+The totals rested on an assumption for a fortnight: the generated tokenizer was not
+reachable from the benchmark, so the reader's own share was had by subtracting the
+hand-written lexer from both sides and supposing two lexers doing the same work cost about
+the same. They do not, and the assumption was never needed. A generated parser tokenizes
+the whole input before it reads a token of it and does so whether or not the reading gets
+anywhere, so an input the reader refuses at its first token costs the lexer and nothing
+else: a `)` in front, where a search condition cannot begin, and what is left over the
+same input without it is the tokenizing.
+
+| input | generated | by hand | ratio |
+| --- | --: | --: | --: |
+| `a = 1` | 7.1 ns | 7.6 | 0.93 |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 57.4 | 36.1 | 1.59 |
+| `x = 1 AND y IS NOT NULL` | 31.7 | 44.7 | 0.71 |
+| 64 predicates joined by `AND` | 1,082 | 1,596 | 0.68 |
+| 64 operands joined by `+` | 548 | 871 | 0.63 |
+
+**Words to the automaton, punctuation to the person.** The generated lexer is one
+automaton over a state table, and a keyword is a path through it like any other: `AND`
+costs what three characters cost, and so does a name. The hand-written one switches on the
+character, which beats a table load for a bracket, and then classifies every word it has
+read by its length and its first letter — work the automaton never does because it did
+the classifying while it read. Sixty-four brackets and digits and the person is 1.6 times
+ahead; sixty-four names and sixty-three `AND`s and the automaton is.
+
+So the lexical half of this generator is at or past what a person writes, and the whole of
+the distance is in the other half: reading and building, five to seven times, each side
+divided by its own lexer.

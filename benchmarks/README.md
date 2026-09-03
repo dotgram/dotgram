@@ -468,6 +468,9 @@ below is a difference in how the same tree gets made.
 | 64 operands joined by `+` | 8,177 | 1,933 | 939 | 4.2 |
 | `(a + b) * c >`, refused | 314 | 126 | 24 | 2.5 |
 
+The generated column is the day this was first measured; the section below has it again
+after the walk was looked at with a profiler.
+
 **Four to ten times, where recognition was one to two.** Building is where this generator
 actually stands against a person, and it had never been measured. The allocation is not
 the reason: a parse of `a` allocates 72 bytes, which is the node and its string and
@@ -480,6 +483,51 @@ then a switch per record to call the factory.
 The day-one column is dropped from this table. It builds nothing and reads a quarter of
 the language, so beside two parsers that build the whole of it, it would be three
 different questions in one row. It keeps its own section below.
+
+### 2026-09-04: the walk, profiled, and the two lexers measured apart
+
+`--spin [seconds] [input] [hand]` reads one SQL input in a loop for a profiler to attach
+to, either parser. Two dotTrace snapshots of the same twenty seconds, one of each, read
+side by side: a line the generated profile has and the hand-written one has none for is
+the generator's own machinery. Three such lines were doing work with one possible answer,
+and `docs/next.md` says what they were. Building went from 465 ns to 272 on `a = 1` and
+from 26.0 to 18.2 microseconds on the sixty-four predicates.
+
+**And the assumption in the paragraph above is retired.** A generated parser tokenizes
+the whole input before it reads a token of it, and does so whether or not the reading
+gets anywhere — so an input the reader refuses at its first token costs the lexer and
+nothing else. Put a `)` in front, where a search condition cannot begin, and what is left
+over the same input without it is the tokenizing. `--lexers` does that:
+
+| input | generated | by hand | ratio |
+| --- | --: | --: | --: |
+| `a = 1` | 7.1 ns | 7.6 ns | 0.93 |
+| `(a + b) * c > d` | 24.6 | 21.5 | 1.15 |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 57.4 | 36.1 | 1.59 |
+| `x = 1 AND y IS NOT NULL` | 31.7 | 44.7 | 0.71 |
+| 64 predicates joined by `AND` | 1,082 | 1,596 | 0.68 |
+| 64 operands joined by `+` | 548 | 871 | 0.63 |
+| `(a + b) * c >`, refused | 21.2 | 18.5 | 1.15 |
+
+**The generated lexer wins wherever there are words and loses wherever there is
+punctuation.** It is one automaton over a state table, and a keyword is a path through it
+like any other — `AND` costs what three characters cost, and so does a name. The
+hand-written one switches on the character, which is cheaper per bracket than a table
+load, and then classifies each word it has read by its length and first letter, which is
+work the automaton never does. Sixty-four brackets and digits: the hand lexer is 1.6 times
+faster. Sixty-four names and sixty-three `AND`s: the generated one is.
+
+So the totals divide honestly now, each side by its own lexer:
+
+| input | generated, reading and building | by hand | ratio |
+| --- | --: | --: | --: |
+| `a = 1` | 271 ns | 37 | 7.2 |
+| `x = 1 AND y IS NOT NULL` | 439 | 77 | 5.7 |
+| 64 predicates joined by `AND` | 15,508 | 2,653 | 5.8 |
+| 64 operands joined by `+` | 5,195 | 1,046 | 5.0 |
+
+Which is where the distance is, and all of it: the lexical half of this generator is
+already at or past what a person writes, and what is behind is reading and building.
 
 ### The first day's parser, recovered
 

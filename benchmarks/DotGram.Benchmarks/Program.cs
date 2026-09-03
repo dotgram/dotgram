@@ -18,6 +18,17 @@ static class Program
 {
 	static void Main(string[] args)
 	{
+		// `--lexers [rounds] [iterations]` is the two lexers alone, the generated one
+		// measured by refusing the parse at its first token. See SqlAgainst.Lexers.
+		if (args.Length > 0 && args[0] == "--lexers")
+		{
+			SqlAgainst.Lexers(
+				args.Length > 1 && int.TryParse(args[1], out var rounds) ? rounds : 7,
+				args.Length > 2 && int.TryParse(args[2], out var runs) ? runs : 300_000);
+
+			return;
+		}
+
 		// `--spin [seconds] [input] [hand]` is not a benchmark either: it reads one SQL
 		// input over and over, long enough for a profiler to attach and sample. Which
 		// input is an index into SqlAgainst.Inputs, and `hand` runs the hand-written
