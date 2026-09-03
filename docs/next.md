@@ -11792,3 +11792,23 @@ outsized document does not leave every thread holding its buffers; the hand-writ
 keeps whatever it grew, for ever. That is most of the remaining difference in the allocated
 column, and it is a difference of policy rather than of efficiency. Neither is obviously
 right.
+
+## Built: the token store is kept, like everything else a parse grows
+
+The measurement above left one thing undecided and Igor decided it: whatever is faster is
+right. A generated parser used to let go of a token store larger than sixty-five thousand
+entries, so that one outsized document would not leave every thread holding its buffers.
+Nothing else a parse grows behaves that way — the tape of ways back and the value tables
+are kept whatever they reach — and the cap was buying the arrays again on every parse of a
+large document: nine and a half megabytes of the fifty-four a four-megabyte input
+allocates.
+
+It is kept now. Sixty-three and a half megabytes become fifty-four, which is within nine
+percent of what the hand-written parser allocates for the same document, and the time is
+the same to within the noise of three runs: 71.7, 69.2 and 71.9 milliseconds against 68.8
+before. So the honest statement is that keeping does not make a single parse faster; it
+stops the parse after it paying for arrays it already had, which is what a thread reading
+documents actually does.
+
+What it costs is stated rather than hidden: a thread that has read one large document holds
+its arrays until it reads another.

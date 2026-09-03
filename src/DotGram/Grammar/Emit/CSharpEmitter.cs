@@ -1097,14 +1097,13 @@ public static partial class CSharpEmitter
 		file.Line("/// <summary>The last set this thread used — one slot, taken out while in use.</summary>");
 		file.Line("/// <remarks>");
 		file.Line("/// Taken out rather than shared, so a parse reached from inside another — a guard");
-		file.Line("/// that parses, a value that does — gets its own. Let go rather than kept when it");
-		file.Line("/// grew past what an ordinary input needs, so one outsized document does not leave");
-		file.Line("/// every thread holding its buffers for ever.");
+		file.Line("/// that parses, a value that does — gets its own. Kept whatever it grew to, the");
+		file.Line("/// way the tape and the value tables are: a thread that has read one large");
+		file.Line("/// document is a thread that may read another, and buying the arrays again every");
+		file.Line("/// time was ten megabytes a parse on a document of four.");
 		file.Line("/// </remarks>");
 		file.Line("[global::System.ThreadStatic]");
 		file.Line("static Tokens_DotGram? _spareTokens;");
-		file.Line();
-		file.Line("const int KeptTokens = 65536;");
 		file.Line();
 
 		using (file.Block("static Tokens_DotGram Rented_DotGram()"))
@@ -1123,8 +1122,7 @@ public static partial class CSharpEmitter
 
 		using (file.Block("static void Recycle_DotGram(Tokens_DotGram tokens)"))
 		{
-			file.Line("if (tokens.Kinds.Length <= KeptTokens)");
-			file.Then("_spareTokens = tokens;");
+			file.Line("_spareTokens = tokens;");
 		}
 
 		file.Line();

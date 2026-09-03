@@ -600,11 +600,13 @@ now, and the generated column allocated 4.2, 22.1, 44.5 and 92.0 megabytes befor
 
 **The ratio widens with size** — two times a person at a thousand predicates, three and a
 half at two hundred thousand — and the working set is why: the log at that size is tens of
-megabytes and every walk over it is a walk out of cache. And the two disagree about what to
-keep. A generated parser lets go of a token store larger than sixty-five thousand entries,
-so one outsized document does not leave every thread holding its buffers; the hand-written
-one keeps whatever it grew. That is most of what remains in the allocated column, and it is
-a difference of policy rather than of efficiency.
+megabytes and every walk over it is a walk out of cache. The two used to disagree about what to keep: a generated
+parser let go of a token store larger than sixty-five thousand entries, so one outsized
+document would not leave every thread holding its buffers. It keeps whatever it grew now,
+the way the tape and the value tables already did, which takes another nine and a half
+megabytes off the four-megabyte parse — 63.6 to 54.1 — and costs nothing measurable in
+time. What it costs instead is that a thread which has read one large document holds its
+arrays until it reads another.
 
 ### The first day's parser, recovered
 
