@@ -12355,3 +12355,55 @@ of a character already in a register. Carrying "the token is in hand" into the a
 takes both out, and the seven inputs moved by less than the noise between runs. It is kept
 because the test it removes is one nobody would have written by hand, which is what this
 rendering is for; it is not kept for the speed, and there was none.
+
+## Profiled: where the reader's last third went, and it went to three places
+
+The reader read SQL at one and a half times the rendering beside it, and nothing in the
+emitted code said why. So dotTrace, sampling, fifteen seconds of `--spin` on the sixty-four
+predicates, both renderings, and the two snapshots side by side per parse: 16.2 µs read by
+the reader against 12.1 µs — a gap of 4.1 µs, of which the profile puts a name on 3.7.
+
+**Refusals nobody asked for, 1.9 µs.** `List<string[]>.AddWithResize` at 4.5% of the
+reader's time and zero of the other's. It is `Failure.ExpectedMore`: a refusal at the same
+position as the furthest one so far is a tie, and a tie is appended to a list. On a parse
+that *succeeds*. The reader was recording a refusal every time a repetition's turn was tried
+and did not begin — and the SQL ladder has nine levels, each of whose loops asks for its own
+operator at the same token, so every operand cost nine refusals at one position, eight ties,
+and a list to hold them. The rendering beside it never tries the turn: it looks at the token
+first and leaves the loop quietly. The reader looks first now — a repetition's turn and an
+optional's alternatives are behind a test on the token in hand, and what ends a repetition
+is once again not a failure.
+
+**A log that was never put back, 0.9 µs.** `DirectValues.Return` at 0.93 µs in the reader
+and 0.01 in the other. Returning the value tables clears them to `_used`, and `_used` is
+sized to the log, and the reader's log grew with every alternative that failed: nothing was
+wrong — the walk at the end follows references and an abandoned record has none — but the
+tables were sized to garbage and cleared for it. The log is put back where an alternative or
+a turn fails, as the rendering beside it has always done.
+
+**Three tape methods the JIT would not compile in, 0.7 µs.** `Ways.Begin`, `Put` and `End`
+show up as their own frames in the reader's profile and nowhere in the other's. The same
+methods, so it is not their size: it is that the reader's rules absorb their inlined parts
+and run out of the budget the JIT gives one method for inlining, and the tape calls at the
+end are what gets left out. `AggressiveInlining` on the three — which is the attribute that
+measured to nothing on the constructions three days ago, and here is the case that was
+missing: a callee that just misses the heuristic in a caller that has spent its budget.
+
+After the three, read by the reader against the hand-written parser:
+
+| | the rendering beside | the reader, before | the reader, now |
+| --- | --: | --: | --: |
+| `a = 1` | 2.9× | 2.3× | 2.8× |
+| `(a + b) * c > d` | 3.2× | 4.8× | 2.6× |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 3.4× | 4.3× | 3.0× |
+| `x = 1 AND y IS NOT NULL` | 2.4× | 4.2× | 2.7× |
+| 64 predicates | 2.4× | 3.5× | 2.2× |
+| 64 operands | 2.2× | 3.1× | 1.9× |
+
+**The reader is at the rendering it replaces**, and past it on the long inputs. What was
+four times is nothing, and the last third of it was found in an afternoon with a profiler
+where a week of reading emitted code would not have found the first item at all — nobody
+reads a successful parse for its refusals.
+
+The flag is still off in `DotGram.Parsers`: turning it on for good is the moment the old
+rendering goes, and that is a decision and not a measurement.

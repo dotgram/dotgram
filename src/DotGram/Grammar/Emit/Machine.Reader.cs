@@ -380,6 +380,19 @@ sealed partial class Machine
 		/// </remarks>
 		readonly bool _folds = machine._graph.Folds.ContainsKey(owner);
 
+		/// <summary>
+		/// Whether anything in this reading writes a record, and so a failed attempt can
+		/// leave records on the log that nothing will ever refer to.
+		/// </summary>
+		/// <remarks>
+		/// The log is put back when it does. Nothing was wrong while it was not — the walk
+		/// at the end follows references and an abandoned record has none — but the log
+		/// grew with every alternative that failed, the value tables were sized to it, and
+		/// returning them cleared what had never been used. Half a microsecond a parse on
+		/// the SQL yardstick, measured (docs/next.md).
+		/// </remarks>
+		readonly bool _logs = machine._directRules is { } rules && rules.Any(machine.Valued);
+
 		/// <summary>Whether anything the rule keeps is gathered across the turns of a repetition.</summary>
 		readonly bool _gathers = machine.DirectMembers(owner)
 			.Exists(one => one.Shape is MemberShape.Pieces or MemberShape.Records);
@@ -789,6 +802,25 @@ sealed partial class Machine
 				return;
 			}
 
+			// An optional is a choice whose last alternative is nothing, and trying the
+			// others where the token in hand cannot begin any of them is a refusal for
+			// each — recorded, and on a tie between them allocated — for a reading that was
+			// always going to be the empty one. So the token is looked at first, which is
+			// the door the rendering beside this one has always had.
+			var door = alternatives[alternatives.Count - 1] is Node.Empty
+				? Door(alternatives.Take(alternatives.Count - 1))
+				: null;
+
+			IDisposable? opened = null;
+
+			if (door is not null)
+			{
+				opened = code.Block("if ((uint)p < (uint)text.Length)");
+				code.Line("c = text[p];");
+				code.Line();
+				opened = new Both(opened, code.Block($"if ({door})"));
+			}
+
 			code.Line($"var {tried} = -1;");
 
 			for (var i = 0; i < alternatives.Count - 1; i++)
@@ -797,13 +829,19 @@ sealed partial class Machine
 
 				using (code.Block($"if ({tried} < 0)"))
 				{
-					// What an alternative that failed pushed is not the rule's, and the
-					// record written after it collects everything pushed since it began.
-					var back = _gathers ? _ways++ : -1;
+					// What an alternative that failed wrote is not the rule's: what it
+					// pushed, the record written after it would collect, and what it
+					// logged would size the value tables.
+					var back = _gathers || _logs ? _ways++ : -1;
 
 					if (back >= 0)
 					{
-						code.Line($"var rr{back} = ways.RefsCount;");
+						if (_gathers)
+							code.Line($"var rr{back} = ways.RefsCount;");
+
+						if (_logs)
+							code.Line($"var lm{back} = ways.LogCount;");
+
 						code.Line();
 					}
 
@@ -815,8 +853,11 @@ sealed partial class Machine
 
 						using (code.Block($"if ({tried} < 0)"))
 						{
-							if (back >= 0)
+							if (_gathers && back >= 0)
 								code.Line($"ways.RefsCount = rr{back};");
+
+							if (_logs && back >= 0)
+								code.Line($"ways.LogCount = lm{back};");
 
 							if (undo.Length > 0)
 								code.Line(undo);
@@ -834,6 +875,42 @@ sealed partial class Machine
 			}
 
 			code.Line($"p = {tried};");
+
+			opened?.Dispose();
+		}
+
+		/// <summary>Two blocks, closed in the order they were opened in reverse.</summary>
+		sealed class Both(IDisposable outer, IDisposable inner) : IDisposable
+		{
+			public void Dispose()
+			{
+				inner.Dispose();
+				outer.Dispose();
+			}
+		}
+
+		/// <summary>
+		/// The test that the token in hand can begin one of the alternatives, or null where
+		/// the first sets cannot say.
+		/// </summary>
+		string? Door(IEnumerable<Node> alternatives)
+		{
+			FirstSets.First? whole = null;
+
+			foreach (var alternative in alternatives)
+			{
+				if (machine.Decidable(alternative) is not { Ends: false } first)
+					return null;
+
+				whole = whole is null ? first : whole.Or(first);
+			}
+
+			if (whole is null)
+				return null;
+
+			_character = true;
+
+			return machine.RangesTest(whole.Ranges, machine.Tabulate);
 		}
 
 		/// <summary>
@@ -1081,13 +1158,35 @@ sealed partial class Machine
 					code.Line();
 				}
 
+				// The turn is not tried where the token in hand cannot begin it. What ends
+				// a repetition is not a failure, and trying the turn made it one: a
+				// refusal recorded at the token, and — nine levels of a ladder each asking
+				// for their operator at the same token — a tie between them, which
+				// allocates. This is the door the rendering beside this one has always had.
+				if (Door([body]) is { } door)
+				{
+					code.Line("if ((uint)p >= (uint)text.Length)");
+					code.Then("break;");
+					code.Line();
+					code.Line("c = text[p];");
+					code.Line();
+					code.Line($"if (!({door}))");
+					code.Then("break;");
+					code.Line();
+				}
+
 				var turn = $"q{_calls++}";
-				var back = _gathers ? _ways++ : -1;
+				var back = _gathers || _logs ? _ways++ : -1;
 				var (call, undo) = Called(body);
 
 				if (back >= 0)
 				{
-					code.Line($"var rr{back} = ways.RefsCount;");
+					if (_gathers)
+						code.Line($"var rr{back} = ways.RefsCount;");
+
+					if (_logs)
+						code.Line($"var lm{back} = ways.LogCount;");
+
 					code.Line();
 				}
 
@@ -1096,8 +1195,11 @@ sealed partial class Machine
 
 				using (code.Block($"if ({turn} < 0 || {turn} == p)"))
 				{
-					if (back >= 0)
+					if (_gathers && back >= 0)
 						code.Line($"ways.RefsCount = rr{back};");
+
+					if (_logs && back >= 0)
+						code.Line($"ways.LogCount = lm{back};");
 
 					if (undo.Length > 0)
 						code.Line(undo);

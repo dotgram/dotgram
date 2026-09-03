@@ -5393,6 +5393,7 @@ namespace DotGram.Snapshots
 			/// builds is a span of the input, and no factory it runs asks where it read,
 			/// the two positions are two integers written and never looked at.
 			/// </summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void Begin(int arm)
 			{
 				if (LogCount + 2 > Log.Length)
@@ -5403,6 +5404,7 @@ namespace DotGram.Snapshots
 				Log[LogCount++] = arm;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void Begin(int arm, int start, int end)
 			{
 				if (LogCount + 4 > Log.Length)
@@ -5415,6 +5417,7 @@ namespace DotGram.Snapshots
 				Log[LogCount++] = end;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void Put(int value)
 			{
 				if (LogCount + 1 > Log.Length)
@@ -5423,6 +5426,7 @@ namespace DotGram.Snapshots
 				Log[LogCount++] = value;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void Put(int a, int b)
 			{
 				if (LogCount + 2 > Log.Length)
@@ -5433,6 +5437,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>Closes the record: its length goes in front, and it becomes the last.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void End(int refs)
 			{
 				Log[_record] = LogCount - _record;
