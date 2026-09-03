@@ -59,9 +59,6 @@ sealed partial class Machine
 			if (_graph.Externals.ContainsKey(rule))
 				return Unreadable(rule, "it is an external recognizer");
 
-			if (IsExtent(rule))
-				return Unreadable(rule, "its value is the text it matched");
-
 			foreach (var node in NodeWalk.Descendants(_graph.Bodies[rule]))
 				switch (node)
 				{
@@ -330,7 +327,9 @@ sealed partial class Machine
 						$"{DirectMaterializer}(ways, text, values, ways.Last, 0" +
 						$"{InputArgument}{TokensArgument}{ContextArgument});");
 					file.Line(
-						$"value = {DirectFrom(type!, "ways.Last").Replace("values", "values.V")};");
+						// An extent's value is the span its record stands on; every other value is
+						// in the tables the walk filled.
+						$"value = {(IsExtent(rule) ? RecordValue(type!, "ways.Last").Replace("log[", "ways.Log[") : DirectFrom(type!, "ways.Last").Replace("values", "values.V"))};");
 					file.Line();
 				}
 
