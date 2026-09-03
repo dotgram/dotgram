@@ -12463,3 +12463,51 @@ message.
 
 `Feed` and `Notation` are the two snapshots the reader now renders — 163 and 89 jumps before,
 62 and 24 after, and what is left is the lexer's own automaton.
+
+## Built: the reader reads every grammar in the repository
+
+Five constructs stood between the reader and the last of the parsers and examples, and a
+survey — every `[Gram]` in `examples/` and `src/DotGram.Parsers/`, compiled with
+`Reader = true` and asked for its `GRAM5006` — said which grammars each one held back:
+atomic groups (`trivia = { ' '* }` over characters, in Gram and Selector), climbs (the
+three calculators), guards (Xml and the expression language), marks (the expression
+language again), and a rule marked `?` over kinds (the same, its `NamedType`). The survey
+is a test now, `ReaderCoverageTests`, and the day it goes red is the day somebody wrote a
+grammar the reader cannot write.
+
+**An atomic group** over kinds says nothing the rendering does not — every reading is
+already the only one. Over characters it is asked for a reading until it has one and then
+sealed: a part in a loop of its own, and `ways.Seal` when the loop is out.
+
+**A climb** is a strength every method of the rule takes and an alternative refuses without
+a word where its level is below it — `if (level < power) return -1;` is the whole of it,
+plus the call carrying what `<<` or `>>` recorded against it and the entry carrying what it
+was asked. The parameter machinery from the shared head took the strength as one more thing
+handed over.
+
+**A guard** is the rendering beside this one's, with this one's names: the rule's start and
+its log mark handed to a part as `start` and `lmark`, the refs mark as `refs`, the members a
+guard reads counted as uses of them so that they arrive — and one thing that was not there:
+where the log is put back, the watermark of what a guard built goes back with it. A value a
+guard built in a derivation that was then abandoned is not the value of the record the next
+derivation writes at the same place, and `A_cached_guard_value_is_discarded_with_its_derivation`
+is the test that said so.
+
+**A mark** is two `ways.Mark` around the body; it goes with the log wherever the log is put
+back, which the reader already did.
+
+**A rule marked `?` over kinds gives back inside itself**, which is the sentence from the
+other rendering that made this the smallest of the five. Its choices and runs are recorded,
+its own failures retried, and once it has answered the answer stands and is sealed — a
+caller, which commits, is never sent back into it. So it is written the way a rule over
+characters is written, and nothing else in the machine changes.
+
+**Two things found on the way that were not on the list.** A `Collect` in a part was
+collecting from the part's own refs mark and not the rule's, so what an earlier part had
+pushed was not the rule's — the rule's mark is handed on now. And the record takes
+whichever of a member's slots was written, so the analysis of what a part hands out has to
+name every slot of a member and not its first.
+
+What is left of the direct path is what nothing in the repository reaches: an external
+recognizer that builds, and a rule whose value is the text it matched. Both are in
+`CanRead`'s refusals still, and both are small. After them `Machine.Direct.cs` goes.

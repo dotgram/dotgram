@@ -306,6 +306,7 @@ namespace DotGram.Snapshots
 		static int Recognize_Feed_Whole_Read_Body(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
 		{
 			var p = pos;
+			var rb = ways.RefsCount;
 			var q0 = Read_Feed_Feed(text, p, ref failure, ways);
 			if (q0 < 0) return -1;
 			p = q0;
@@ -392,7 +393,7 @@ namespace DotGram.Snapshots
 
 				while (true)
 				{
-					q1 = Read_Feed_Feed_Part0(text, p, ref failure, ways);
+					q1 = Read_Feed_Feed_Part0(text, p, ref failure, ways, rb);
 
 					if (q1 >= 0)
 						break;
@@ -431,7 +432,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>One alternative of <c>Feed</c>, read where it stood.</summary>
-		static int Read_Feed_Feed_Part0(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
+		static int Read_Feed_Feed_Part0(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways, int refs)
 		{
 			var p = pos;
 			var q0 = Read_Row_Feed(text, p, ref failure, ways);

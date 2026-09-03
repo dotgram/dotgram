@@ -56,11 +56,6 @@ sealed partial class Machine
 
 		foreach (var rule in DirectRules(publications))
 		{
-			// A climb is entered at a strength, which is what the rendering beside this one
-			// learned last and this one has not.
-			if (_graph.Climbing.ContainsKey(rule))
-				return Unreadable(rule, "it climbs");
-
 			if (_graph.Externals.ContainsKey(rule))
 				return Unreadable(rule, "it is an external recognizer");
 
@@ -84,7 +79,7 @@ sealed partial class Machine
 					case Node.Call(_, { Count: 0 }):
 						break;
 
-					case Node.Capture or Node.Construct:
+					case Node.Capture or Node.Construct or Node.Atomic or Node.Guard or Node.Marked:
 						break;
 
 					default:
@@ -96,17 +91,6 @@ sealed partial class Machine
 		// on the tape. Over characters there is, and what it can give back so far is a
 		// character at a time: a repetition of one element hands back the difference by
 		// arithmetic, where a repetition of anything longer needs a way for every turn.
-		if (OverKinds)
-		{
-			// Any rule of the reading and not only the published ones: a way back into a
-			// marked rule is the tape, and the tape is not written over kinds.
-			foreach (var rule in DirectRules(publications))
-				if (rule.GivesBack)
-					return Unreadable(rule, "it is marked '?' and gives back");
-
-			return true;
-		}
-
 		return true;
 	}
 
@@ -158,20 +142,21 @@ sealed partial class Machine
 
 			var reader = new ReaderWriter(this, rule);
 			var body   = reader.Render(_graph.Bodies[rule]);
-			var inner  = OverKinds ? ReaderOf(rule) : ReaderOf(rule) + "_Body";
+			var tape   = !OverKinds || rule.GivesBack;
+			var inner  = tape ? ReaderOf(rule) + "_Body" : ReaderOf(rule);
 
-			if (!OverKinds)
-				RenderWayBack(file, rule);
+			if (tape)
+				RenderWayBack(file, rule, DirectStrength(rule), seal: OverKinds);
 
 			file.Line(
-				OverKinds
-					? $"/// <summary><c>{rule.Name}</c>, read by a method of its own.</summary>"
-					: $"/// <summary>What <c>{rule.Name}</c> is, one reading of it at a time.</summary>");
+				tape
+					? $"/// <summary>What <c>{rule.Name}</c> is, one reading of it at a time.</summary>"
+					: $"/// <summary><c>{rule.Name}</c>, read by a method of its own.</summary>");
 
 			using (file.Block(
 				$"static int {inner}(" +
 				$"global::System.ReadOnlySpan<char> text, int pos, " +
-				$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters})"))
+				$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters}{DirectStrength(rule)})"))
 			{
 				file.Write(body);
 			}
@@ -230,17 +215,22 @@ sealed partial class Machine
 	/// rather than a thing to assume.
 	/// </para>
 	/// </remarks>
-	void RenderWayBack(Writer file, RuleSymbol rule) =>
-		RenderWayBack(file, ReaderOf(rule), $"/// <summary><c>{rule.Name}</c>, and the way back into it.</summary>");
+	void RenderWayBack(Writer file, RuleSymbol rule, string strength, bool seal = false) =>
+		RenderWayBack(file, ReaderOf(rule), $"/// <summary><c>{rule.Name}</c>, and the way back into it.</summary>", strength, seal);
 
-	void RenderWayBack(Writer file, string name, string summary)
+	/// <param name="seal">
+	/// Whether the ways the body opened are sealed once it has answered: a rule marked
+	/// <c>?</c> over kinds gives back inside itself, and once it has answered the answer
+	/// stands. Sealed rather than dropped, so that a replay reads the same decisions.
+	/// </param>
+	void RenderWayBack(Writer file, string name, string summary, string strength, bool seal = false)
 	{
 		file.Line(summary);
 
 		using (file.Block(
 			$"static int {name}(" +
 			$"global::System.ReadOnlySpan<char> text, int pos, " +
-			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters})"))
+			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters}{strength})"))
 		{
 			file.Line("var s  = ways.Cursor;");
 			file.Line("var lm = ways.LogCount;");
@@ -250,12 +240,29 @@ sealed partial class Machine
 			using (file.Block("while (true)"))
 			{
 				file.Line(
-					$"var q = {name}_Body(text, pos, ref failure, ways{DirectReaderArguments});");
+					$"var q = {name}_Body(text, pos, ref failure, ways{DirectReaderArguments}{(strength.Length > 0 ? ", power" : "")});");
 				file.Line();
-				file.Line("if (q >= 0)");
-				file.Then("return q;");
+				if (seal)
+				{
+					using (file.Block("if (q >= 0)"))
+					{
+						file.Line("ways.Seal(s);");
+						file.Line();
+						file.Line("return q;");
+					}
+				}
+				else
+				{
+					file.Line("if (q >= 0)");
+					file.Then("return q;");
+				}
+
 				file.Line();
 				file.Line("ways.LogCount  = lm;");
+
+				if (_directBuilds)
+					file.Line("if (ways.Built > lm) ways.Built = lm;");
+
 				file.Line("ways.RefsCount = rb;");
 				file.Line();
 				file.Line("if (ways.Cursor > s && ways.Retry(s))");
@@ -277,12 +284,16 @@ sealed partial class Machine
 		var type   = _results.QualifiedOf(rule);
 		var valued = type is not null;
 		var value  = valued ? $", out {type} value" : "";
+		var climbs = _graph.Climbing.ContainsKey(rule);
+		var asked  = climbs ? ", power" : "";
 
 		file.Line($"/// <summary>The whole input as <c>{rule.Name}</c>, read by methods.</summary>");
 
+		// The parameters in the order the wrapper hands them: the strength beside the
+		// position, then the value, the input, the tokens, the context (CSharpEmitter.EmitPublication).
 		using (file.Block(
 			$"static int {core}(" +
-			$"global::System.ReadOnlySpan<char> text, int pos, " +
+			$"global::System.ReadOnlySpan<char> text, int pos{(climbs ? ", int power" : "")}, " +
 			$"ref {CSharpEmitter.FailureType} failure{value}{InputParameter}{TokensParameter}{ContextParameter})"))
 		{
 			var reader = new ReaderWriter(this, rule);
@@ -302,7 +313,7 @@ sealed partial class Machine
 
 			using (file.Block("try"))
 			{
-				file.Line($"var end = {core}_Read(text, pos, ref failure, ways{DirectReaderArguments});");
+				file.Line($"var end = {core}_Read(text, pos, ref failure, ways{DirectReaderArguments}{asked});");
 				file.Line();
 
 				if (valued)
@@ -344,14 +355,14 @@ sealed partial class Machine
 		// rather than refused. Without this the very first reading that reached the end
 		// short was the last, whatever the tape still had to offer.
 		if (!OverKinds)
-			RenderWayBack(file, core + "_Read", $"/// <summary>The whole input as <c>{rule.Name}</c>, and the way back into it.</summary>");
+			RenderWayBack(file, core + "_Read", $"/// <summary>The whole input as <c>{rule.Name}</c>, and the way back into it.</summary>", DirectStrength(rule));
 
 		file.Line($"/// <summary>What <c>{rule.Name}</c> is read by, whichever stack it is read on.</summary>");
 
 		using (file.Block(
 			$"static int {core}_Read{(OverKinds ? "" : "_Body")}(" +
 			$"global::System.ReadOnlySpan<char> text, int pos, " +
-			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters})"))
+			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters}{DirectStrength(rule)})"))
 		{
 			var reader = new ReaderWriter(this, rule);
 			var body   = _graph.Trivia.TryGetValue(rule, out var around)
@@ -409,6 +420,31 @@ sealed partial class Machine
 		readonly bool _part = given is not null;
 
 		/// <summary>
+		/// Whether the rule is written with binding powers (§4.3.1), and so is entered at a
+		/// strength: every method of it takes <c>power</c>, and an alternative below the
+		/// strength asked for is refused without a word.
+		/// </summary>
+		readonly bool _climbs = machine._graph.Climbing.ContainsKey(owner);
+
+		/// <summary>Whether this is the entry's own reading, which calls the rule at the strength it was asked.</summary>
+		bool _entry;
+
+		/// <summary>
+		/// Whether this rule writes on the tape: every rule over characters, and over kinds
+		/// the one marked <c>?</c> (§4), which gives back inside itself — its choices and
+		/// runs are recorded, its own failures are retried, and once it has answered the
+		/// answer stands and is sealed. A caller, which commits, is never sent back into it.
+		/// </summary>
+		readonly bool _tape = !machine.OverKinds || owner.GivesBack;
+
+		/// <summary>
+		/// Whether the rule has a <c>when</c> in it (§7.7), which reads what the rule has
+		/// captured so far and the text from where the rule began: every method of the rule
+		/// is handed the rule's start and its log mark for that.
+		/// </summary>
+		readonly bool _guarded = NodeWalk.Descendants(machine._graph.Bodies[owner]).Any(static one => one is Node.Guard);
+
+		/// <summary>
 		/// Whether anything in this reading writes a record, and so a failed attempt can
 		/// leave records on the log that nothing will ever refer to.
 		/// </summary>
@@ -447,6 +483,8 @@ sealed partial class Machine
 		{
 			var code = new Writer(0);
 
+			_entry = whole;
+
 			Emit(code, body);
 
 			// A rule whose value is the record of its captures and nothing more has no
@@ -475,7 +513,10 @@ sealed partial class Machine
 			if (_character)
 				head.Line("var c = '\\0';");
 
-			if (_records)
+			// The refs mark: where this method writes a record, and where the rule gathers
+			// and this is its body, which hands the mark to every part whether or not it
+			// writes one itself.
+			if (_records || (_gathers && !_part))
 				head.Line("var rb = ways.RefsCount;");
 
 			// Only where something in the method names it: a rule folds, but a method of it
@@ -483,6 +524,11 @@ sealed partial class Machine
 			// and a local nothing reads is an error in somebody else's build.
 			if (_folds && !handed && written.Contains("fold", StringComparison.Ordinal))
 				head.Line("var fold = -1;");
+
+			// Where the log stood when the rule began, for a guard that builds a value from
+			// what has been recorded since.
+			if (_guarded && !_part)
+				head.Line("var lm = ways.LogCount;");
 
 			foreach (var slot in _kept.OrderBy(static one => one))
 			{
@@ -523,6 +569,18 @@ sealed partial class Machine
 		/// </param>
 		void Emit(Writer code, Node node, bool loaded = false)
 		{
+			// An alternative of a rule written with binding powers is entered only at a
+			// strength it allows. Refused without a word: what could not be entered here was
+			// never expected here, and the alternatives after it still can be.
+			if (machine._owners.TryGetValue(node, out var climbs) &&
+				_graph.Climbing.TryGetValue(climbs, out var levels) &&
+				levels.TryGetValue(node, out var level))
+			{
+				code.Line($"if ({level} < power)");
+				code.Then("return -1;");
+				code.Line();
+			}
+
 			switch (node)
 			{
 				case Node.Empty:
@@ -567,7 +625,7 @@ sealed partial class Machine
 					break;
 
 				case Node.Call(var called, _):
-					EmitCall(code, called);
+					EmitCall(code, node, called);
 					break;
 
 				case Node.Lookahead(var positive, var inside):
@@ -614,6 +672,27 @@ sealed partial class Machine
 					}
 
 					break;
+
+				case Node.Atomic(var kept):
+					EmitAtomic(code, kept, loaded);
+					break;
+
+				case Node.Guard guard:
+					EmitGuard(code, guard);
+					break;
+
+				// A mark is a record of its own: it goes with the log wherever the log is put
+				// back, which is the whole of what an abandoned reading owes it (§7.8).
+				case Node.Marked(var marked, var text):
+				{
+					var site = machine.MarkSite(text);
+
+					code.Line($"ways.Mark(-1, {site}, p);");
+					Emit(code, marked, loaded);
+					code.Line($"ways.Mark(-2, {site}, p);");
+
+					break;
+				}
 
 				case Node.Construct(var built, _):
 					Emit(code, built, loaded);
@@ -677,6 +756,9 @@ sealed partial class Machine
 				_kept.Add(slot);
 		}
 
+		/// <summary>Where the rule's pushes begin: this method's own mark in the body, the handed one in a part.</summary>
+		string Refs => _part && _gathers ? "refs" : "rb";
+
 		/// <summary>
 		/// The one of a member's slots that was written: the same name in two alternatives is
 		/// one member with a slot per alternative, and the record takes whichever is set.
@@ -724,8 +806,8 @@ sealed partial class Machine
 				code.Line(member.Shape switch
 				{
 					MemberShape.Text    => $"ways.Put({First("a", "a", member.Slots)}, {First("a", "b", member.Slots)});",
-					MemberShape.Pieces  => $"ways.Collect(rb, {member.Mask}L, true);",
-					MemberShape.Records => $"ways.Collect(rb, {member.Mask}L, false);",
+					MemberShape.Pieces  => $"ways.Collect({Refs}, {member.Mask}L, true);",
+					MemberShape.Records => $"ways.Collect({Refs}, {member.Mask}L, false);",
 					_                   => $"ways.Put({First("r", "r", member.Slots)});",
 				});
 
@@ -800,15 +882,22 @@ sealed partial class Machine
 			code.Line("p++;");
 		}
 
-		void EmitCall(Writer code, RuleSymbol called)
+		void EmitCall(Writer code, Node call, RuleSymbol called)
 		{
 			var result = $"q{_calls++}";
 
 			if (machine._backEdges.Contains((owner, called)))
 				code.Line("global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();");
 
+			// The strength the operand is read at: what `<<` or `>>` recorded against this
+			// call, everything where nothing was recorded, and for the entry's own call of
+			// the rule it reads through, whatever the entry was asked.
+			var strength = _entry && ReferenceEquals(called, owner) && _graph.Climbing.ContainsKey(called)
+				? ", power"
+				: machine.DirectStrengthOf(call, called);
+
 			code.Line(
-				$"var {result} = {machine.ReaderOf(called)}(text, p, ref failure, ways{machine.DirectReaderArguments});");
+				$"var {result} = {machine.ReaderOf(called)}(text, p, ref failure, ways{machine.DirectReaderArguments}{strength});");
 			code.Line($"if ({result} < 0) return -1;");
 			code.Line($"p = {result};");
 		}
@@ -929,7 +1018,7 @@ sealed partial class Machine
 				code.Line();
 			}
 
-			if (!machine.OverKinds)
+			if (_tape)
 			{
 				EmitChoiceOverCharacters(code, alternatives, tried);
 
@@ -1018,7 +1107,7 @@ sealed partial class Machine
 								code.Line($"ways.RefsCount = rr{back};");
 
 							if (_logs && back >= 0)
-								code.Line($"ways.LogCount = lm{back};");
+								LogBack(code, $"lm{back}");
 
 							if (undo.Length > 0)
 								code.Line(undo);
@@ -1132,7 +1221,7 @@ sealed partial class Machine
 						code.Line($"if ({tried} >= 0)");
 						code.Then("break;");
 						code.Line();
-						code.Line($"ways.LogCount  = lm{segment};");
+						LogBack(code, $"lm{segment}");
 						code.Line($"ways.RefsCount = rr{segment};");
 
 						if (undo.Length > 0)
@@ -1231,9 +1320,23 @@ sealed partial class Machine
 			if (_folds)
 				text.Append(", ref ").Append(type).Append("fold");
 
-			// The rule's start, for the records a part writes; the body's is its own `pos`.
-			if (_positions)
+			// The rule's start, for the records a part writes and the text a guard reads; the
+			// body's is its own `pos`.
+			if (_positions || _guarded)
 				text.Append(", ").Append(type.Length > 0 ? "int start" : _part ? "start" : "pos");
+
+			// And the rule's log mark, for what a guard builds.
+			if (_guarded)
+				text.Append(", ").Append(type.Length > 0 ? "int lmark" : _part ? "lmark" : "lm");
+
+			// The strength the rule was entered at, which every method of it reads.
+			if (_climbs)
+				text.Append(", ").Append(type).Append("power");
+
+			// Where the rule gathers across turns, what a record collects is everything pushed
+			// since the rule began — not since the part did — so the rule's mark is handed on.
+			if (_gathers)
+				text.Append(", ").Append(type.Length > 0 ? "int refs" : _part ? "refs" : "rb");
 
 			foreach (var slot in given)
 				foreach (var name in Names(slot))
@@ -1295,10 +1398,20 @@ sealed partial class Machine
 					captured.Add(slot);
 				}
 
+				// Every slot of a member and not its first: the record takes whichever of a
+				// member's slots was written, so it names all of them.
 				if (one is Node.Construct && !machine.DirectForwards(owner, machine._constructs[one]))
 					foreach (var member in machine.DirectMembers(owner, machine._constructs[one]))
 						if (Handed(member.Slots[0]))
-							used.Add(member.Slots[0]);
+							foreach (var named in member.Slots)
+								used.Add(named);
+
+				// A guard reads what the rule has captured so far.
+				if (one is Node.Guard guard)
+					foreach (var (_, slots) in machine.GuardMembers(owner, guard))
+						foreach (var named in slots)
+							if (Handed(named))
+								used.Add(named);
 			}
 
 			return (captured, used);
@@ -1324,7 +1437,15 @@ sealed partial class Machine
 				{
 					foreach (var member in machine.DirectMembers(owner, machine._constructs[one]))
 						if (Handed(member.Slots[0]))
-							used.Add(member.Slots[0]);
+							foreach (var slot in member.Slots)
+								used.Add(slot);
+				}
+				else if (!mine.Contains(one) && one is Node.Guard guard)
+				{
+					foreach (var (_, slots) in machine.GuardMembers(owner, guard))
+						foreach (var slot in slots)
+							if (Handed(slot))
+								used.Add(slot);
 				}
 
 			return used;
@@ -1334,7 +1455,7 @@ sealed partial class Machine
 		{
 			var (body, min, max) = repeat;
 
-			if (!machine.OverKinds)
+			if (_tape)
 			{
 				if (body is Node.Element element)
 					EmitRun(code, element, min, max);
@@ -1398,7 +1519,7 @@ sealed partial class Machine
 						code.Line($"ways.RefsCount = rr{back};");
 
 					if (_logs && back >= 0)
-						code.Line($"ways.LogCount = lm{back};");
+						LogBack(code, $"lm{back}");
 
 					if (undo.Length > 0)
 						code.Line(undo);
@@ -1647,7 +1768,7 @@ sealed partial class Machine
 					code.Line($"if ({took} >= 0)");
 					code.Then("break;");
 					code.Line();
-					code.Line($"ways.LogCount  = lm{segment};");
+					LogBack(code, $"lm{segment}");
 					code.Line($"ways.RefsCount = rr{segment};");
 					code.Line();
 					code.Line($"if (ways.Cursor > s{segment} && ways.Retry(s{segment}))");
@@ -1707,11 +1828,191 @@ sealed partial class Machine
 			}
 		}
 
+		/// <summary>
+		/// A group in braces: its first reading is its only one.
+		/// </summary>
+		/// <remarks>
+		/// Over kinds every reading is already the only one, and the braces say nothing the
+		/// rendering does not. Over characters the group is asked for a reading until it has
+		/// one, and then what it decided is sealed: nothing after it may come back into it.
+		/// </remarks>
+		void EmitAtomic(Writer code, Node kept, bool loaded)
+		{
+			if (!_tape)
+			{
+				Emit(code, kept, loaded);
+
+				return;
+			}
+
+			var segment      = _ways++;
+			var took         = $"q{_calls++}";
+			var (call, undo) = Called(kept);
+
+			code.Line($"var s{segment}  = ways.Cursor;");
+			code.Line($"var lm{segment} = ways.LogCount;");
+			code.Line($"var rr{segment} = ways.RefsCount;");
+			code.Line($"var {took} = -1;");
+			code.Line();
+
+			using (code.Block("while (true)"))
+			{
+				code.Line($"{took} = {call};");
+				code.Line();
+				code.Line($"if ({took} >= 0)");
+				code.Then("break;");
+				code.Line();
+				LogBack(code, $"lm{segment}");
+				code.Line($"ways.RefsCount = rr{segment};");
+
+				if (undo.Length > 0)
+					code.Line(undo);
+
+				code.Line();
+				code.Line($"if (ways.Cursor > s{segment} && ways.Retry(s{segment}))");
+				code.Then("continue;");
+				code.Line();
+				code.Line("break;");
+			}
+
+			code.Line();
+			code.Line($"if ({took} < 0)");
+			code.Then("return -1;");
+			code.Line();
+			code.Line($"ways.Seal(s{segment});");
+			code.Line($"p = {took};");
+		}
+
+		/// <summary>
+		/// A <c>when</c>, run where it stands with what the rule has captured so far (§7.7).
+		/// </summary>
+		/// <remarks>
+		/// A text capture is cut from the locals that hold it; a captured rule's value is
+		/// built now, from the records already in the log, and stays built — the walk at
+		/// the end skips what a guard built, so no factory runs twice. The predicate itself
+		/// is a method of its own under a <c>#line</c> pointing at the grammar, handed the
+		/// captures by name. A refused guard is a failure with nothing expected.
+		/// </remarks>
+		void EmitGuard(Writer code, Node.Guard guard)
+		{
+			var rule       = machine._owners[guard];
+			var method     = $"Recognize_DotGram{machine._tag}_Guard" + machine._guards++;
+			var helper     = new Writer(0);
+			var parameters = new List<string>();
+			var arguments  = new List<string>();
+			var text       = guard.Text;
+			var begun      = _part ? "start" : "pos";
+			var mark       = _part ? "lmark" : "lm";
+
+			if (CSharpEmitter.Uses(_graph, text, "parserText"))
+			{
+				parameters.Add("string parserText");
+				arguments.Add(machine.Cut(begun, $"p - {begun}"));
+			}
+
+			if (CSharpEmitter.Uses(_graph, text, "parserSpan"))
+			{
+				parameters.Add("SourceSpan parserSpan");
+				arguments.Add(machine.Span(begun, $"p - {begun}"));
+			}
+
+			if (_graph.ContextOf(rule) is { } contract && CSharpEmitter.Uses(_graph, text, "context"))
+			{
+				parameters.Add($"{contract} context");
+				arguments.Add("context");
+			}
+
+			foreach (var (member, slots) in machine.GuardMembers(rule, guard))
+			{
+				var handed = $"g{_guardLocals++}";
+				var type   = member.Rule is null ? "string" : machine._results.ValueOf(member.Rule);
+
+				parameters.Add(
+					$"{type}{(member.IsSequence ? "[]" : member.IsOptional ? "?" : "")} " +
+					ResultTypes.ParameterOf(member));
+				arguments.Add(handed);
+
+				if (member.Rule is null)
+				{
+					code.Line($"var {handed}From = {First("a", "a", slots)};");
+					code.Line($"var {handed}To   = {First("a", "b", slots)};");
+					code.Line(
+						$"var {handed} = {handed}From < 0 ? {(member.IsOptional ? "null" : "string.Empty")} : " +
+						machine.Cut($"{handed}From", $"{handed}To - {handed}From") + ";");
+
+					continue;
+				}
+
+				var build = type == "SourceSpan"
+					? ""
+					: $"{machine.DirectMaterializer}(ways, text, values, {{0}}, {mark}" +
+						$"{machine.TokensArgument}{machine.ContextArgument});";
+
+				if (!member.IsSequence)
+				{
+					code.Line($"var {handed}At = {First("r", "r", slots)};");
+
+					if (build.Length > 0)
+						code.Line($"if ({handed}At >= 0) {string.Format(build, handed + "At")}");
+
+					code.Line(member.IsOptional
+						? $"{type}? {handed} = {handed}At < 0 ? default({type}?) : {ValueAt(type, handed + "At")};"
+						: $"var {handed} = {ValueAt(type, handed + "At")};");
+
+					continue;
+				}
+
+				// Gathered turn by turn on the tape, and collected here the way the rule's end
+				// would collect them.
+				var bits    = 0L;
+				var bracket = type.IndexOf('[');
+
+				foreach (var slot in slots)
+					bits |= 1L << slot;
+
+				code.Line($"var {handed}Count = 0;");
+				code.Line($"for (var at = {Refs}; at < ways.RefsCount; at += 3)");
+				code.Then($"if (({bits}L & (1L << ways.Refs[at])) != 0) {handed}Count++;");
+				code.Line(
+					$"var {handed} = new {(bracket < 0 ? type : type.Substring(0, bracket))}[{handed}Count]" +
+					$"{(bracket < 0 ? "" : type.Substring(bracket))};");
+				code.Line($"{handed}Count = 0;");
+
+				using (code.Block($"for (var at = {Refs}; at < ways.RefsCount; at += 3)"))
+				{
+					code.Line($"if (({bits}L & (1L << ways.Refs[at])) == 0) continue;");
+
+					if (build.Length > 0)
+						code.Line(string.Format(build, "ways.Refs[at + 1]"));
+
+					code.Line($"{handed}[{handed}Count++] = {ValueAt(type, "ways.Refs[at + 1]")};");
+				}
+			}
+
+			helper.Line($"static bool {method}({string.Join(", ", parameters)}) =>");
+			CSharpEmitter.Handed(helper, machine._lines, guard.At, text + ";");
+			machine._extra.Add(helper.ToString());
+
+			using (code.Block($"if (!{method}({string.Join(", ", arguments)}))"))
+			{
+				code.Line($"{Refusing}(ref failure, p, null, ways);");
+				code.Line("return -1;");
+			}
+		}
+
+		int _guardLocals;
+
+		/// <summary>A record's value as a guard sees it: from the tables, or for an extent the record itself.</summary>
+		string ValueAt(string type, string record) =>
+			type == "SourceSpan"
+				? machine.RecordValue(type, record).Replace("log[", "ways.Log[")
+				: $"values.V{machine.TableFor(type)}[{record}].Value";
+
 		void EmitLookahead(Writer code, bool positive, Node inside)
 		{
 			var seen = $"q{_calls++}";
 
-			if (machine.OverKinds)
+			if (!_tape)
 			{
 				code.Line($"var {seen} = {Calling(inside)};");
 			}
@@ -1729,6 +2030,20 @@ sealed partial class Machine
 			code.Line();
 			code.Line($"if ({seen} {(positive ? "<" : ">=")} 0)");
 			code.Then("return -1;");
+		}
+
+		/// <summary>
+		/// The log put back to a count — and with it the watermark of what a guard built,
+		/// where anything builds: a record above the watermark is one written since, and
+		/// a value a guard built in a derivation that was then abandoned is not the value
+		/// of the record the next derivation writes at the same place.
+		/// </summary>
+		void LogBack(Writer code, string count)
+		{
+			code.Line($"ways.LogCount  = {count};");
+
+			if (machine._directBuilds)
+				code.Line($"if (ways.Built > {count}) ways.Built = {count};");
 		}
 
 		/// <summary>A refusal recorded and not acted on: what was wanted here, for the message.</summary>
