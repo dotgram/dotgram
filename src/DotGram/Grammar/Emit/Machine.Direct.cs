@@ -910,13 +910,21 @@ sealed partial class Machine
 
 			var fallible = inner.ToString().Contains("goto Fail;", StringComparison.Ordinal);
 
-			code.Line("Again:");
-			code.Line("p = pos;");
-
-			if (valued)
+			// The way back into the reader from its own failure path: the position and the
+			// log put back to where the rule began, and everything run again. A reader that
+			// commits has no such path — nothing sends it back — and the three assignments
+			// that opened it were three stores per call undoing what the two lines above
+			// had just done.
+			if (!_commits)
 			{
-				LogBack(code, "lm");
-				code.Line("ways.RefsCount = rb;");
+				code.Line("Again:");
+				code.Line("p = pos;");
+
+				if (valued)
+				{
+					LogBack(code, "lm");
+					code.Line("ways.RefsCount = rb;");
+				}
 			}
 
 			code.Write(inner.ToString());
@@ -953,7 +961,9 @@ sealed partial class Machine
 			if (_character)
 				head.Line("var c = '\\0';");
 
-			head.Line($"var {segment} = ways.Cursor;");
+			// The segment the reader's own failure path retries from, where it has one.
+			if (!_commits || machine.OverKinds && owner is { GivesBack: true })
+				head.Line($"var {segment} = ways.Cursor;");
 
 			if (valued || guarded)
 			{

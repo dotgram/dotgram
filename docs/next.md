@@ -11839,3 +11839,37 @@ And on the input that made the case for looking at the log at all: two hundred t
 predicates, three and three-quarter megabytes, seventy-one milliseconds becomes sixty-two.
 A third of the log is gone, and a walk over a third less of it is a walk that misses the
 cache a third less often.
+
+## Built: a reader that commits has no way back into itself
+
+Every reader opened with the same four lines: a label, the position put back to where the
+rule began, and the log and the side stack put back with it. That is the door a failure
+path comes in by — the reader runs itself again from the start with one way back
+advanced. A reader that commits has no such path: nothing sends it back. The label was
+already being dropped as unreachable and the three assignments were left behind, undoing
+what the two lines above them had just done, on every call.
+
+They are written only where something can jump to them now, and the segment the retry
+would have started from is declared only there too.
+
+165 ns on `a = 1` against 168, 10.5 microseconds against 10.8 on the sixty-four
+predicates. Small, and worth having for what it is as much as for what it saves: four
+lines of a reader that meant nothing.
+
+**And a peephole that was tried and taken out**, because it is the argument for something
+larger. A repetition writes down where a turn began and the alternative that is its body
+writes the same three things down again with nothing in between, six stores a turn where
+three would do. Reading the later names as the earlier ones is sound if each is written in
+one place — and since the alternatives of a choice were given one numbering to share, a
+name is written in as many places as there are alternatives that use it. The rewrite was
+wrong for exactly one input in the corpus, `CAST(x AS VARCHAR(20)) = 'a'`, and the test
+suite said so.
+
+That is a fair verdict on the shape rather than on the peephole. A reader is a flat graph
+of labels and jumps, and every question about it has to be asked of the whole method: is
+this label reached, is this assignment read, are these two names the same value here. Four
+passes exist to answer such questions by rewriting text — dead jumps, dead labels, dead
+marks, unused locals — and a fifth was wrong. The engine needed that shape, because one
+machine with a thousand states is a graph and nothing else. Methods do not: a person
+writing this parser writes blocks and early returns, and the hand-written yardstick in
+`benchmarks/` is exactly that and is two to three times faster.
