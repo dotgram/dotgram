@@ -460,7 +460,9 @@ sealed class RoslynGramCompletion(
 		var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 		var absolutePosition = Before.Length + position;
 		var token = root?.FindToken(Math.Max(0, Math.Min(absolutePosition, root.FullSpan.End - 1)));
-		var symbol = token?.Parent?.AncestorsAndSelf()
+		var symbol = await QualifiedMemberAsync(
+			project, expression, position, cancellationToken).ConfigureAwait(false) ??
+			token?.Parent?.AncestorsAndSelf()
 			.Select(node => model.GetSymbolInfo(node, cancellationToken))
 			.Select(info => info.Symbol ?? info.CandidateSymbols
 				.OrderByDescending(static candidate => candidate is IFieldSymbol)
@@ -493,6 +495,31 @@ sealed class RoslynGramCompletion(
 				return true;
 
 		return false;
+	}
+
+	internal static async Task<ISymbol?> QualifiedMemberAsync(
+		Project project,
+		string expression,
+		int position,
+		CancellationToken cancellationToken)
+	{
+		var tree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(expression, cancellationToken: cancellationToken);
+		var root = await tree.GetRootAsync(cancellationToken).ConfigureAwait(false);
+		var boundedPosition = Math.Max(0, Math.Min(position, root.FullSpan.End - 1));
+		var member = root.FindToken(boundedPosition).Parent?.AncestorsAndSelf()
+			.OfType<MemberAccessExpressionSyntax>()
+			.FirstOrDefault(candidate => candidate.Name.Span.Contains(boundedPosition));
+		if (member?.Expression is not IdentifierNameSyntax typeName)
+			return null;
+
+		var declarations = await SymbolFinder.FindDeclarationsAsync(
+			project, typeName.Identifier.ValueText, ignoreCase: false, cancellationToken).ConfigureAwait(false);
+		return declarations
+			.OfType<INamedTypeSymbol>()
+			.SelectMany(type => type.GetMembers(member.Name.Identifier.ValueText))
+			.OrderByDescending(static candidate => candidate is IFieldSymbol)
+			.ThenByDescending(static candidate => candidate is IPropertySymbol)
+			.FirstOrDefault();
 	}
 
 	public async Task<GeneratedApiSource?> GeneratedApiSourceAsync(

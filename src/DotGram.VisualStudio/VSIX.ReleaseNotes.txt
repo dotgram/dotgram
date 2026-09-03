@@ -1,4 +1,4 @@
-DotGram language support 0.1.38
+DotGram language support 0.1.39
 
 Initial preview for Visual Studio 18.
 
@@ -23,3 +23,5 @@ Initial preview for Visual Studio 18.
 - Provisional analysis preserves existing colors while a line edit is being analyzed.
 - C# symbol navigation prefers exact members and can find matching references in
   standalone grammar C# expressions.
+- Qualified C# member navigation resolves the containing type before falling back to
+  a same-named symbol in another type.
