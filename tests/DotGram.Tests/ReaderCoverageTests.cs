@@ -15,15 +15,15 @@ namespace DotGram.Tests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The reader is the rendering, and the one it replaced stays only for what the reader
-/// declines. This says that nothing shipped or shown declines: every parser and every
-/// example, read out of the files they live in with <c>Reader = true</c>, which is the
-/// setting that is told where it declined (<c>GRAM5006</c>).
+/// The reader is the rendering by methods, and what it does not read the engine does.
+/// This says that nothing shipped or shown falls to the engine: every parser and every
+/// example, read out of the files they live in, comes out as methods and not as a machine
+/// of states.
 /// </para>
 /// <para>
-/// A decline is not a failure of the build — the older rendering writes what the reader
-/// will not — so nothing else would say. This does, and the day it goes red is the day
-/// somebody wrote a grammar the reader cannot yet write.
+/// Falling to the engine is not a failure of the build, and for an unsplit grammar nothing
+/// else says so. This does, and the day it goes red is the day somebody wrote a grammar the
+/// methods cannot yet read.
 /// </para>
 /// <para>
 /// What it cannot ask about is a grammar that needs the symbol resolver to compile at
@@ -61,7 +61,6 @@ public sealed class ReaderCoverageTests
 						ClassName     = "Probe",
 						CSharpScanner = RoslynCSharpScanner.Instance,
 						Lexical       = lexical,
-						Reader        = true,
 					});
 
 				if (result.Diagnostics.Any(one => one.Severity == GramSeverity.Error))
@@ -71,9 +70,27 @@ public sealed class ReaderCoverageTests
 					continue;
 				}
 
-				foreach (var one in result.Diagnostics)
-					if (one.Id == "GRAM5006")
-						declined.Add($"{Path.GetFileName(file)}: {one.Message}");
+				// A stream, a find and a recovery are the engine's by design: a method cannot
+				// be suspended, and those three have to be. A grammar that publishes one is on
+				// the engine for that reason and not for want of a reader — and whether a
+				// publication streams is the retention analysis's answer, not a word in the
+				// grammar, so it is read off the overload the analysis wrote.
+				if (result.Sources[0].Text.Contains("global::System.IO.TextReader input)", StringComparison.Ordinal) ||
+					System.Text.RegularExpressions.Regex.IsMatch(grammar, @"^\s*find\s|recover", System.Text.RegularExpressions.RegexOptions.Multiline))
+				{
+					continue;
+				}
+
+				// The engine is one method over a state, and its entry is the one signature the
+				// methods never write. The machine tagged `_Value` is not counted: it is the
+				// character-side reading of a terminal that builds, and it is the engine's by
+				// design (`LexicalSplit.Valued`).
+				if (System.Text.RegularExpressions.Regex.IsMatch(
+					result.Sources[0].Text,
+					@"static int Recognize_DotGram(?!_Value)\w*\(global::System\.ReadOnlySpan<char> text, int pos, int state"))
+				{
+					declined.Add($"{Path.GetFileName(file)}: read by the engine");
+				}
 			}
 
 		Assert.True(seen >= 20, $"Only {seen} grammars were found under examples/ and src/DotGram.Parsers/.");

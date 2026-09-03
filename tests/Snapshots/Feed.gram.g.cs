@@ -1678,8 +1678,13 @@ namespace DotGram.Snapshots
 		static int Read_eof_Feed_Body(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
 		{
 			var p = pos;
-			var s0 = ways.Cursor;
+			var s0  = ways.Cursor;
+			var lm0 = ways.LogCount;
+			var rr0 = ways.RefsCount;
 			var q0 = Read_eof_Feed_Part0(text, p, ref failure, ways);
+
+			ways.LogCount  = lm0;
+			ways.RefsCount = rr0;
 			ways.Seal(s0);
 
 			if (q0 >= 0)

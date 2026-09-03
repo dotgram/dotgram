@@ -110,7 +110,6 @@ These do not say a grammar is wrong. They say what it will not be given, and why
 | `GRAM5003` | A generated method is left past the size at which the JIT stops optimizing it. | A warning: the parser is correct and several times slower than it needs to be. The message names the estimate, the budget the generator divides methods under, and what to split to restore optimization. |
 | `GRAM5004` | `Lexical = true` was asked for and the grammar cannot be cut in two. | Information, not a warning: the parser is the one it would have been without the request, and nothing the author wrote is wrong. The message says which of the four it is — no trivia at all, so there is nothing to tell a token from a character; a terminal that is not a regular language; a `find`, which hunts through characters for a place to begin; or a `trivia` not written in braces, the seam between tokens being skipped by the scanner braces ask for. |
 | `GRAM5005` | A split grammar's syntactic half cannot be read by methods, so it runs on the shared engine. | A warning: over kinds a rule's answer stands (docs/syntax.md §4), and it is the methods that say so — on the engine a choice that has matched can be revisited when something later fails. The parse is correct as ordered choice over characters; it is the committed reading the notation promises over kinds that is not what runs. The message names the rule and what about it the methods refused: a recovery, a stream, a `find`, a captured lookahead, a guard handed what a reader cannot hand it, or a rule called with arguments. |
-| `GRAM5006` | `Reader = true` was asked for and the reader could not write a machine, so it is written the way it was before the reader existed. | Information, not a warning: the parser is the one the rendering beside it writes, and nothing the author wrote is wrong. The message names the rule and what about it the reader could not write yet — the reader grows one construct at a time, and this says where its edge is. |
 
 ## Retired numbers
 
@@ -123,6 +122,7 @@ Not reused, and listed so that a suppression written against one is recognizable
 | `GRAM3017` | One `context` per assembly. Replaced by `GRAM3019`, which asks about a composition rather than an assembly. |
 | `GRAM3018` | One `state` per assembly. Replaced by `GRAM3020`, likewise. |
 | `GRAM4004` | Retired before release. |
+| `GRAM5006` | Said that the reader — the rendering by methods written the way a person writes them — was asked for and declined a grammar, which the older rendering by methods then wrote. The reader is the only rendering by methods now, and what it does not read the engine does, which `GRAM5005` reports. |
 
 `GRAM0001` is the one number that has been used twice. It reported a check that no longer
 exists, and now reports the generator itself failing.

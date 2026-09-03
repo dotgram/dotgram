@@ -411,11 +411,9 @@ public sealed class ReaderTests
 			"Pair = Lexical.Name & '=' & Value\n" +
 			"Value = Lexical.Digits & Lexical.Name | Lexical.Digits | Lexical.Name";
 		var written = Written(Lexical + grammar + "\nparse Start", reader: true);
-		var before  = Written(Lexical + grammar + "\nparse Start", reader: false);
 
-		// The lexer is one automaton either way and jumps between its states; what differs
-		// is the reader, so the reader is what is looked at.
-		Assert.Contains("goto", Reading(before, "Recognize_Start_Read"), StringComparison.Ordinal);
+		// The lexer is one automaton and jumps between its states; what is looked at is the
+		// reader.
 		Assert.DoesNotContain("goto", Reading(written, "Read_Start"), StringComparison.Ordinal);
 		Assert.DoesNotContain("goto", Reading(written, "Read_Value"), StringComparison.Ordinal);
 	}
@@ -484,7 +482,7 @@ public sealed class ReaderTests
 				ClassName     = "Grammar",
 				CSharpScanner = RoslynCSharpScanner.Instance,
 				Lexical       = lexical,
-				Reader        = reader,
+				Direct        = reader,
 			});
 
 		Assert.Empty(result.Diagnostics.Where(one => one.Severity == GramSeverity.Error));

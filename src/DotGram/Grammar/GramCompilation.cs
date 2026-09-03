@@ -126,10 +126,4 @@ public sealed class GramCompilerOptions
 	/// (<c>Machine.Reader.cs</c>) rather than by the rendering it is replacing. Off by
 	/// default while the reader is being taught the rest of the language.
 	/// </summary>
-	/// <summary>
-	/// Whether the methods are written the way a person would have written them, where
-	/// they can be. Null takes the reader and says nothing where it declines; true asks
-	/// for it and is told where it declines (GRAM5006); false keeps the older rendering.
-	/// </summary>
-	public bool? Reader { get; set; }
 }

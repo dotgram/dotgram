@@ -43,64 +43,6 @@ sealed partial class Machine
 	/// <summary>The refusal recorder the emitted readers call.</summary>
 	const string Refusing = "Refuse_DotGram";
 
-	/// <summary>Whether every publication in a group can be written as a reader.</summary>
-	public bool CanRead(IReadOnlyList<Publication> publications)
-	{
-		Unread = null;
-
-		if (publications.Count == 0)
-			return Unreadable(null, "there is nothing published");
-
-		if (!CanDirect(publications))
-			return Unreadable(Refusal?.Rule, Refusal?.Why ?? "the methods refused it");
-
-		foreach (var rule in DirectRules(publications))
-		{
-			if (_graph.Externals.ContainsKey(rule))
-				return Unreadable(rule, "it is an external recognizer");
-
-			foreach (var node in NodeWalk.Descendants(_graph.Bodies[rule]))
-				switch (node)
-				{
-					case Node.Empty or Node.Literal or Node.Element or Node.Sequence
-						or Node.Choice or Node.Repeat or Node.Glue or Node.Behind:
-						break;
-
-					case Node.Lookahead(_, var inside) when !NodeWalk.Descendants(inside)
-						.Any(static one => one is Node.Capture or Node.Construct or Node.Guard):
-						break;
-
-					case Node.External { HasValue: false }:
-						break;
-
-					case Node.Call(_, { Count: 0 }):
-						break;
-
-					case Node.Capture or Node.Construct or Node.Atomic or Node.Guard or Node.Marked:
-						break;
-
-					default:
-						return Unreadable(rule, $"of a node it cannot write: {node.GetType().Name.ToLowerInvariant()}");
-				}
-		}
-
-		// Over kinds a rule's answer stands, so there is no way back to write and nothing
-		// on the tape. Over characters there is, and what it can give back so far is a
-		// character at a time: a repetition of one element hands back the difference by
-		// arithmetic, where a repetition of anything longer needs a way for every turn.
-		return true;
-	}
-
-	/// <summary>Why the reader could not write a machine, where it could not.</summary>
-	public (RuleSymbol? Rule, string Why)? Unread { get; private set; }
-
-	bool Unreadable(RuleSymbol? rule, string why)
-	{
-		Unread ??= (rule, why);
-
-		return false;
-	}
-
 	/// <summary>
 	/// How many methods the rule being written has been cut into.
 	/// </summary>
@@ -2009,22 +1951,30 @@ sealed partial class Machine
 
 		void EmitLookahead(Writer code, bool positive, Node inside)
 		{
-			var seen = $"q{_calls++}";
+			var seen         = $"q{_calls++}";
+			var (call, undo) = Called(inside);
 
-			if (!_tape)
-			{
-				code.Line($"var {seen} = {Calling(inside)};");
-			}
-			else
-			{
-				// What a look decided is its own and nothing after it may reopen: its
-				// outcome is one bit, and a second reading of it can only say the same.
-				var segment = $"s{_ways++}";
+			// What a look recorded is dropped whether it saw or not: its outcome is one bit,
+			// and what it captured on the way to it is not the rule's. Over the tape, what it
+			// decided is also sealed — nothing after it may reopen it, because a second
+			// reading of it can only say the same.
+			var mark = _ways++;
 
-				code.Line($"var {segment} = ways.Cursor;");
-				code.Line($"var {seen} = {Calling(inside)};");
-				code.Line($"ways.Seal({segment});");
-			}
+			if (_tape)
+				code.Line($"var s{mark}  = ways.Cursor;");
+
+			code.Line($"var lm{mark} = ways.LogCount;");
+			code.Line($"var rr{mark} = ways.RefsCount;");
+			code.Line($"var {seen} = {call};");
+			code.Line();
+			LogBack(code, $"lm{mark}");
+			code.Line($"ways.RefsCount = rr{mark};");
+
+			if (undo.Length > 0)
+				code.Line(undo);
+
+			if (_tape)
+				code.Line($"ways.Seal(s{mark});");
 
 			code.Line();
 			code.Line($"if ({seen} {(positive ? "<" : ">=")} 0)");

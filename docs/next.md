@@ -12511,3 +12511,48 @@ name every slot of a member and not its first.
 What is left of the direct path is what nothing in the repository reaches: an external
 recognizer that builds, and a rule whose value is the text it matched. Both are in
 `CanRead`'s refusals still, and both are small. After them `Machine.Direct.cs` goes.
+
+## Built: the direct path goes
+
+`Machine.Direct.cs` was two thousand five hundred and eighty-seven lines and is three
+hundred and eighty-nine. What went is the writer — one method per rule, a construct a
+labelled region, a failure a jump, and the four passes that took the dead jumps, labels,
+marks and locals back out — and its entry, and the helpers only it used. What stays is the
+gate and the plumbing both renderings needed and the reader still does: `CanDirect`, which
+says whether a publication may be read by methods at all and why not (`GRAM5005`), the
+parameters a method takes beyond the text and the position, the strength a climb is entered
+at, the members a guard reads, the back edges that need a stack check.
+
+There is one rendering by methods now, and it has no `goto` in it. What the methods do not
+read the engine does — a stream, a `find`, a recovery, a captured lookahead, a call with
+arguments, an external that builds — and that is the engine's by design and not for want of
+a reader: a method cannot be suspended, and those have to be.
+
+**The `Reader` option went with it.** Added four days ago as the way to ask for the reader,
+made a default two days ago, made three states yesterday so that a decline was told only
+where it was asked for — and today there is nothing to ask for and nothing to decline into.
+`GRAM5006` is retired. `Direct = false` still keeps a grammar on the engine, which is what
+the reader's own tests now compare against: two implementations of the notation with
+nothing in common but the semantics, which is a better oracle than the one they had.
+
+**Two small things it took to close the gate.** A lookahead with a capture inside it: the
+reader had refused those and the other rendering had not, and what it wanted was to drop
+what the look recorded whether it saw or not — its outcome is one bit, and what it captured
+on the way is not the rule's. And an extent, whose value is the span its record stands on
+and not anything in the tables: the entry reads it from the record, as the other did.
+
+**And the survey found what the survey had hidden.** `ReaderCoverageTests` compiles every
+grammar under `examples/` and `src/DotGram.Parsers/` and says which ones fall to the engine.
+Asked before the deletion, with `GRAM5006` as its signal, it had said "read" of two grammars
+that were on the engine all along — `GRAM5006` was only raised when the reader was *asked*,
+and the reader was only asked once the methods gate had said yes, so a grammar the gate
+refused looked exactly like one the reader wrote. The test reads the emitted code now, for
+the one signature the methods never write: the engine's own entry, a method over a state.
+Nothing shipped or shown has it, except the four feeds that recover or `find` and the
+character-side reading of a terminal that builds, which are the engine's on purpose.
+
+1758 tests. What is next is not more reader: it is what the whole exercise was for. The
+generated SQL parser against the hand-written one is 1.5–3.2×, the lexer is at or ahead,
+and the tree is the same. The remaining distance is in the walk that builds the tree and in
+the shapes the notation makes a person write differently from how they would by hand — and
+those are grammar questions, not emitter ones.

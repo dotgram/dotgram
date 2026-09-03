@@ -145,7 +145,7 @@ public static partial class CSharpEmitter
 	public static string Emit(
 		RecognitionGraph graph, string className, string? @namespace = null, ILineMap? lines = null,
 		ICollection<GramDiagnostic>? diagnostics = null, int? partSize = null,
-		LexicalSplit? lexical = null, bool direct = true, bool? reader = null)
+		LexicalSplit? lexical = null, bool direct = true)
 	{
 		var overKinds = lexical is not null;
 		var directAllowed = direct;
@@ -199,19 +199,8 @@ public static partial class CSharpEmitter
 				!group.Publications.Any(publication => Streams(graph, publication, overKinds)) &&
 				made.CanDirect(group.Publications);
 
-			// The reader writes what it can, where it was asked for; everything else is
-			// written the way it was before it existed.
-			var asReader = asMethods && reader != false && made.CanRead(group.Publications);
-
-			if (reader == true && !asReader && diagnostics is not null && made.Unread is var (why, said))
-				diagnostics.Add(new GramDiagnostic(
-					"GRAM5006",
-					$"The reader was asked for and could not write '{(why ?? group.Publications[0].Rule).Name}' " +
-					$"because {said}.",
-					0, 0, GramSeverity.Info));
-
 			machines.Add(new Compiled(
-				made, group.Publications, "Recognize_DotGram" + tag, tag, lowered, asMethods, asReader));
+				made, group.Publications, "Recognize_DotGram" + tag, tag, lowered, asMethods));
 		}
 
 		// A second machine over the characters, for the terminals whose value the lexer
@@ -587,10 +576,7 @@ public static partial class CSharpEmitter
 
 		if (compiled.Direct)
 		{
-			file.Write(
-				compiled.Reader
-					? machine.RenderReader(compiled.Publications)
-					: machine.RenderDirect(compiled.Publications));
+			file.Write(machine.RenderReader(compiled.Publications));
 
 			return;
 		}
@@ -1900,8 +1886,7 @@ public static partial class CSharpEmitter
 		string Engine,
 		string Tag,
 		bool Flat,
-		bool Direct = false,
-		bool Reader = true);
+		bool Direct = false);
 
 	/// <summary>
 	/// The published rules, each with its own publications, in the order they were written.
