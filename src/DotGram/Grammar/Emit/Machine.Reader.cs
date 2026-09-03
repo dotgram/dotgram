@@ -56,11 +56,8 @@ sealed partial class Machine
 
 		foreach (var rule in DirectRules(publications))
 		{
-			// A fold accumulates across turns and a climb is entered at a strength; both
-			// are what the rendering beside this one learned last and this one has not.
-			if (_graph.Folds.ContainsKey(rule))
-				return Unreadable(rule, "it folds");
-
+			// A climb is entered at a strength, which is what the rendering beside this one
+			// learned last and this one has not.
 			if (_graph.Climbing.ContainsKey(rule))
 				return Unreadable(rule, "it climbs");
 
@@ -69,12 +66,6 @@ sealed partial class Machine
 
 			if (IsExtent(rule))
 				return Unreadable(rule, "its value is the text it matched");
-
-			// A capture gathered across the turns of a repetition lives on the side stack
-			// until the rule ends, which is a second place to put things and not yet here.
-			foreach (var member in DirectMembers(rule))
-				if (member.Shape is MemberShape.Pieces or MemberShape.Records)
-					return Unreadable(rule, $"'{member.Member.Name}' is gathered across turns");
 
 			foreach (var node in NodeWalk.Descendants(_graph.Bodies[rule]))
 				switch (node)
@@ -370,9 +361,29 @@ sealed partial class Machine
 	/// </remarks>
 	/// <param name="given">Positions the rule captured before this part, which it only reads.</param>
 	/// <param name="taken">Positions this part captures and something after it reads.</param>
+	/// <param name="handed">
+	/// Whether the value built so far arrived as an argument, which every part of a folded
+	/// rule but its body does.
+	/// </param>
 	sealed class ReaderWriter(
-		Machine machine, RuleSymbol owner, IReadOnlyList<int>? given = null, IReadOnlyList<int>? taken = null)
+		Machine machine, RuleSymbol owner, IReadOnlyList<int>? given = null,
+		IReadOnlyList<int>? taken = null, bool handed = false)
 	{
+		/// <summary>
+		/// Whether the rule was left-recursive, and so is a base and a loop of steps over it.
+		/// </summary>
+		/// <remarks>
+		/// A step's record leads with the value built so far — the record of the base or of
+		/// the step before it (§4.3) — which is one local, written after every record the
+		/// rule makes and read by the next step. The rule's body and every part of it are
+		/// separate methods here, so the local is handed between them by reference.
+		/// </remarks>
+		readonly bool _folds = machine._graph.Folds.ContainsKey(owner);
+
+		/// <summary>Whether anything the rule keeps is gathered across the turns of a repetition.</summary>
+		readonly bool _gathers = machine.DirectMembers(owner)
+			.Exists(one => one.Shape is MemberShape.Pieces or MemberShape.Records);
+
 		readonly RecognitionGraph _graph = machine._graph;
 
 		/// <summary>What stands in this method already, and so is not declared in it.</summary>
@@ -418,22 +429,31 @@ sealed partial class Machine
 			if (_records)
 				head.Line("var rb = ways.RefsCount;");
 
+			if (_folds && !handed)
+				head.Line("var fold = -1;");
+
 			foreach (var slot in _kept.OrderBy(static one => one))
 			{
 				// A position handed in is already a name in this method.
 				if (_handed.Contains(slot))
 					continue;
 
-				var member = machine.MemberOfSlot(owner, slot);
+				switch (machine.MemberOfSlot(owner, slot)?.Shape)
+				{
+					case MemberShape.Text:
+						head.Line($"var a{slot} = -1;");
+						head.Line($"var b{slot} = -1;");
+						break;
 
-				if (member?.Shape == MemberShape.Text)
-				{
-					head.Line($"var a{slot} = -1;");
-					head.Line($"var b{slot} = -1;");
-				}
-				else
-				{
-					head.Line($"var r{slot} = -1;");
+					// Where it was pushed from is all a gathered run of text keeps: the end
+					// is the position the push is written at.
+					case MemberShape.Pieces:
+						head.Line($"var a{slot} = -1;");
+						break;
+
+					default:
+						head.Line($"var r{slot} = -1;");
+						break;
 				}
 			}
 
@@ -522,31 +542,65 @@ sealed partial class Machine
 					code.Line($"r{slot} = ways.Last;");
 					break;
 
+				// What a repetition gathers is pushed as it goes and collected when the
+				// record is written: the pushes are on the tape, which every method of the
+				// rule shares, so nothing has to be handed between them.
+				case MemberShape.Pieces:
+					code.Line($"a{slot} = p;");
+					Emit(code, held);
+					code.Line($"ways.Push({slot}, a{slot}, p);");
+					break;
+
+				case MemberShape.Records:
+					Emit(code, held);
+					code.Line($"ways.Push({slot}, ways.Last, -1);");
+					break;
+
 				default:
 					throw new InvalidOperationException(
 						$"A {member.Shape} capture passed CanRead and the reader cannot keep it.");
 			}
 
-			_kept.Add(slot);
+			if (member.Shape != MemberShape.Records)
+				_kept.Add(slot);
 		}
 
 		/// <summary>The rule's record: which arm wrote it, and each member the factory names.</summary>
 		void EmitRecord(Writer code, int factory)
 		{
+			// An alternative that only hands its operand up writes no record of its own, and
+			// the operand's is the value: for a folded rule that is what the step after it
+			// builds on, so the local still moves.
 			if (machine.DirectForwards(owner, factory))
+			{
+				if (_folds)
+					code.Line("fold = ways.Last;");
+
 				return;
+			}
 
 			_records = true;
 
 			code.Line($"ways.Begin({machine.DirectArm(owner, factory)});");
 
+			// A fold step's first member is the value so far, and each of the rest is the
+			// one thing the step captured (§4.3).
+			if (machine.IsStep(owner, factory))
+				code.Line("ways.Put(fold);");
+
 			foreach (var member in machine.DirectMembers(owner, factory))
-				code.Line(
-					member.Shape == MemberShape.Text
-						? $"ways.Put(a{member.Slots[0]}, b{member.Slots[0]});"
-						: $"ways.Put(r{member.Slots[0]});");
+				code.Line(member.Shape switch
+				{
+					MemberShape.Text    => $"ways.Put(a{member.Slots[0]}, b{member.Slots[0]});",
+					MemberShape.Pieces  => $"ways.Collect(rb, {member.Mask}L, true);",
+					MemberShape.Records => $"ways.Collect(rb, {member.Mask}L, false);",
+					_                   => $"ways.Put(r{member.Slots[0]});",
+				});
 
 			code.Line("ways.End(rb);");
+
+			if (_folds)
+				code.Line("fold = ways.Last;");
 		}
 
 		readonly HashSet<int> _kept = [];
@@ -697,7 +751,25 @@ sealed partial class Machine
 				var part = Calling(alternatives[i]);
 
 				using (code.Block($"if ({tried} < 0)"))
-					code.Line($"{tried} = {part};");
+				{
+					// What an alternative that failed pushed is not the rule's, and the
+					// record written after it collects everything pushed since it began.
+					if (_gathers)
+					{
+						var back = _ways++;
+
+						code.Line($"var rr{back} = ways.RefsCount;");
+						code.Line();
+						code.Line($"{tried} = {part};");
+						code.Line();
+						code.Line($"if ({tried} < 0)");
+						code.Then($"ways.RefsCount = rr{back};");
+					}
+					else
+					{
+						code.Line($"{tried} = {part};");
+					}
+				}
 			}
 
 			using (code.Block($"if ({tried} < 0)"))
@@ -824,7 +896,7 @@ sealed partial class Machine
 				_kept.Add(slot);
 
 			var name  = machine.ReaderOf(owner) + "_Part" + machine._readerPart++;
-			var apart = new ReaderWriter(machine, owner, given, taken);
+			var apart = new ReaderWriter(machine, owner, given, taken, _folds);
 
 			Parts.Add((name, Handing(given, taken, "int "), apart.Render(part)));
 
@@ -839,6 +911,9 @@ sealed partial class Machine
 		string Handing(IReadOnlyList<int> given, IReadOnlyList<int> taken, string type)
 		{
 			var text = new System.Text.StringBuilder();
+
+			if (_folds)
+				text.Append(", ref ").Append(type).Append("fold");
 
 			foreach (var slot in given)
 				foreach (var name in Names(slot))
@@ -929,11 +1004,24 @@ sealed partial class Machine
 				}
 
 				var turn = $"q{_calls++}";
+				var back = _gathers ? _ways++ : -1;
+
+				if (back >= 0)
+				{
+					code.Line($"var rr{back} = ways.RefsCount;");
+					code.Line();
+				}
 
 				code.Line($"var {turn} = {Calling(body)};");
 				code.Line();
-				code.Line($"if ({turn} < 0 || {turn} == p)");
-				code.Then("break;");
+
+				using (code.Block($"if ({turn} < 0 || {turn} == p)"))
+				{
+					if (back >= 0)
+						code.Line($"ways.RefsCount = rr{back};");
+
+					code.Line("break;");
+				}
 				code.Line();
 				code.Line($"p = {turn};");
 

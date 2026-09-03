@@ -12239,3 +12239,39 @@ One refusal, and it is the ladder — the left recursion the normalizer rewrites
 Everything else about that grammar the reader can write. So folds are what is next, and
 after them the yardstick can be read both ways and compared tree against tree, which is the
 comparison this whole exercise has been walking towards.
+
+## Built: folds and gathered captures, and the reader can write the whole of SQL
+
+Two things stood between the reader and the yardstick, and both turned out smaller than
+the refusals made them sound.
+
+**A fold** — what a left-recursive rule became, a base and a loop of steps over it — needs
+one local: the record of the value built so far. A step's record leads with it, and every
+record the rule makes becomes it. The reader's body and its parts are separate methods, so
+the local is handed between them by reference, which the parameter machinery from the
+shared head already knew how to do. The one thing that was not obvious: an alternative that
+only hands its operand up writes no record of its own, and the operand's record is the
+value — so the local still has to move, or the first step builds on nothing.
+
+**A capture gathered across turns** — a list — needed no side stack at all, which is what
+the refusal had claimed. Each turn pushes what it kept onto the tape and the record
+collects everything pushed since it began, and the tape is shared by every method of the
+rule, so nothing has to be handed anywhere. What a turn or an alternative that failed
+pushed is not the rule's, so the caller puts the tape back.
+
+**And the gate had been asking the wrong question of a folded rule.** A step's capture is
+written once per turn and consumed there, so it is a value; only the rule-wide view of it
+looks like a sequence. Asked per factory it is what it is.
+
+**Where that leaves the reader.** Asked of the whole SQL grammar — four hundred lines, nine
+levels of ladder, lists, folds, forty-two shapes of predicate — it now writes all of it and
+says nothing. That is one hundred and forty-nine methods and no jumps outside the lexer's
+own automaton.
+
+**What it does not yet say is whether both renderings build the same tree**, which is the
+question worth asking and the one this has been walking towards. It needs a harness this
+does not have: the generator resolves the types a construction names against a real Roslyn
+compilation, and a grammar compiled on its own in a test has no symbol resolver to do it
+with — a standalone build of the SQL parser comes out with the arms subtly wrong and fails
+inside the author's own C#. The comparison wants the reader turned on for a real build,
+and that is next.

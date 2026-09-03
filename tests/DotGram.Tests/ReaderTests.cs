@@ -144,6 +144,78 @@ public sealed class ReaderTests
 		Assert.Contains("ref int", head, StringComparison.Ordinal);
 	}
 
+	/// <summary>A capture gathered across the turns of a repetition.</summary>
+	/// <remarks>
+	/// A list. Each turn pushes what it kept onto the tape and the record collects
+	/// everything pushed since it began — and the tape is shared by every method of the
+	/// rule, so nothing has to be handed between them. What a turn that failed pushed is
+	/// not the rule's, so the caller puts the tape back.
+	/// </remarks>
+	[Theory]
+	[InlineData("a")]
+	[InlineData("a b")]
+	[InlineData("a b c")]
+	[InlineData("")]
+	public void A_capture_gathered_across_turns(string input) =>
+		Same(
+			"Start : @string = only: List & eof => @(only)" + Line +
+			"List : @string = first: Lexical.Name & rest: Lexical.Name*" +
+			" => @(first + string.Concat(rest))",
+			input);
+
+	/// <summary>The same, where each turn keeps a record rather than a run of text.</summary>
+	[Theory]
+	[InlineData("a")]
+	[InlineData("a, 1")]
+	[InlineData("a, 1, 2")]
+	public void A_record_gathered_across_turns(string input) =>
+		Same(
+			"Start : @string = only: List & eof => @(only)" + Line +
+			"List : @string = first: Lexical.Name & rest: Tail* => @(first + string.Concat(rest))" + Line +
+			"Tail : @string = ',' & one: Lexical.Digits => @(one)",
+			input);
+
+	/// <summary>A left-recursive rule, which is a base and a loop of steps over it.</summary>
+	/// <remarks>
+	/// The normalizer rewrites <c>E = E + T | T</c> into the base and a loop of tails, and
+	/// each tail takes the value built so far under the name it captured the rule by. That
+	/// value is one local, written after every record the rule makes and read by the next
+	/// step — and the rule's body and its parts are separate methods here, so it is handed
+	/// between them by reference.
+	/// </remarks>
+	[Theory]
+	[InlineData("1")]
+	[InlineData("1 + 2")]
+	[InlineData("1 + 2 + 3")]
+	[InlineData("1 + 2 * 3")]
+	[InlineData("1 +")]
+	public void A_rule_that_folds(string input) =>
+		Same(Folded, input);
+
+	/// <summary>Two levels of a ladder, both left-recursive.</summary>
+	const string Folded =
+		"Start : @string = only: Sum & eof => @(only)" + Line +
+		"Sum : @string = l: Sum & '+' & r: Product => @(l + \"+\" + r) | one: Product => @(one)" + Line +
+		"Product : @string = l: Product & '*' & r: Lexical.Digits => @(l + \"*\" + r)" +
+		" | one: Value => @(one)" + Line +
+		"Value : @string = a: Lexical.Digits => @(a) | b: Lexical.Name => @(b)";
+
+	/// <summary>That the reader wrote the fold, and not the rendering it stands beside.</summary>
+	[Fact]
+	public void The_reader_writes_the_value_so_far_into_a_step()
+	{
+		var written = Written(Lexical + Folded + Line + "parse Start", reader: true);
+
+		// The base is the rule's own method and the steps are the loop's parts, so the
+		// value so far is written into a step and handed to it.
+		Assert.Contains(
+			"ref int fold", Reading(written, "Read_Sum_Part0"), StringComparison.Ordinal);
+		Assert.Contains(
+			"ways.Put(fold);", Reading(written, "Read_Sum_Part0"), StringComparison.Ordinal);
+		Assert.DoesNotContain("goto", Reading(written, "Read_Sum"), StringComparison.Ordinal);
+		Assert.DoesNotContain("goto", Reading(written, "Read_Sum_Part0"), StringComparison.Ordinal);
+	}
+
 	/// <summary>A value the alternative that failed had already begun to build.</summary>
 	/// <remarks>
 	/// <c>Pair</c> writes its record and then <c>Item</c>'s first alternative fails on what
