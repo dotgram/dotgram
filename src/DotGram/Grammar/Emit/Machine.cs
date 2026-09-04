@@ -231,9 +231,11 @@ sealed partial class Machine
 	public Machine(
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, bool starves = false,
 		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "", int? partSize = null,
-		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null)
+		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null,
+		CarrierKind carrier = CarrierKind.Tape)
 	{
 		_graph = graph;
+		_carrierKind = carrier;
 		_results = results;
 		_lines = lines;
 		_starves = starves;

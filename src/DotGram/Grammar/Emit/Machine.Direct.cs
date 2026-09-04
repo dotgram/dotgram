@@ -251,12 +251,12 @@ sealed partial class Machine
 
 	/// <summary>What a reader takes beyond the text, the position, the failure and the tape.</summary>
 	string DirectReaderParameters =>
-		(_directBuilds ? ", DirectValues values" : "") +
+		Carrier.ReaderParameter +
 		((_directGuards || _directGlue) && OverKinds ? TokensParameter : "") +
 		(DirectReaderContext ? ContextParameter : "");
 
 	string DirectReaderArguments =>
-		(_directBuilds ? ", values" : "") +
+		Carrier.ReaderArgument +
 		((_directGuards || _directGlue) && OverKinds ? TokensArgument : "") +
 		(DirectReaderContext ? ContextArgument : "");
 

@@ -868,17 +868,35 @@ sealed partial class Machine
 				? $"values{table}[{record}].Value"
 				: throw new InvalidOperationException($"No value table for '{type}'.");
 
-	/// <summary>The factory's arguments, in the order the factory's parameters were written.</summary>
-	List<string> DirectArguments(RuleSymbol rule, Factory factory, IReadOnlyList<DirectMember> members)
+	/// <summary>The factory's arguments as the walk over the log supplies them.</summary>
+	List<string> DirectArguments(RuleSymbol rule, Factory factory, IReadOnlyList<DirectMember> members) =>
+		DirectArguments(
+			rule, factory, members,
+			() => Cut("start", "end - start"), () => Span("start", "end - start"),
+			() => RecordValue(_results.QualifiedOf(rule)!, "accumulated"),
+			static member => $"captured{member.Index}");
+
+	/// <summary>
+	/// The factory's arguments, in the order the factory's parameters were written, from
+	/// whatever the carrier has each member as.
+	/// </summary>
+	/// <remarks>
+	/// The text, the span and the accumulator are asked for rather than handed in, because
+	/// asking is not free: <see cref="Span"/> has the file emit the helper that makes one,
+	/// and a grammar that never asked for a span must not be made to compile it.
+	/// </remarks>
+	List<string> DirectArguments(
+		RuleSymbol rule, Factory factory, IReadOnlyList<DirectMember> members,
+		Func<string> text, Func<string> span, Func<string> accumulator, Func<DirectMember, string> value)
 	{
 		var arguments = new List<string>();
 
 		// In the order the factory's parameters are written (CSharpEmitter.EmitFactory).
 		if (CSharpEmitter.WantsText(_graph, factory))
-			arguments.Add(Cut("start", "end - start"));
+			arguments.Add(text());
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserSpan"))
-			arguments.Add(Span("start", "end - start"));
+			arguments.Add(span());
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserInput"))
 			arguments.Add("parserInput");
@@ -892,7 +910,7 @@ sealed partial class Machine
 				: "default");
 
 		if (factory.Accumulator is not null)
-			arguments.Add(RecordValue(_results.QualifiedOf(rule)!, "accumulated"));
+			arguments.Add(accumulator());
 
 		foreach (var wanted in factory.Members)
 		{
@@ -904,8 +922,8 @@ sealed partial class Machine
 				{
 					arguments.Add(
 						!wanted.IsOptional && member.Member is { Rule: not null, IsOptional: true }
-							? $"({_results.ValueOf(member.Member.Rule)})captured{member.Index}!"
-							: $"captured{member.Index}{(wanted.IsOptional ? "" : "!")}");
+							? $"({_results.ValueOf(member.Member.Rule)}){value(member)}!"
+							: $"{value(member)}{(wanted.IsOptional ? "" : "!")}");
 					break;
 				}
 		}

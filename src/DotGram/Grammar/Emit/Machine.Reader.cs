@@ -275,8 +275,10 @@ sealed partial class Machine
 			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters}{strength})"))
 		{
 			file.Line("var s  = ways.Cursor;");
-			file.Line(Carrier.MarkRecords("lm"));
-			file.Line(Carrier.MarkGathered("rb"));
+			foreach (var line in Carrier.MarkRecords("lm"))
+				file.Line(line);
+			foreach (var line in Carrier.MarkGathered(null, "rb"))
+				file.Line(line);
 			file.Line();
 
 			using (file.Block("while (true)"))
@@ -303,7 +305,8 @@ sealed partial class Machine
 				foreach (var line in Carrier.UnwindRecords("lm"))
 					file.Line(line);
 
-				file.Line(Carrier.UnwindGathered("rb"));
+				foreach (var line in Carrier.UnwindGathered(null, "rb"))
+					file.Line(line);
 				file.Line();
 				file.Line("if (ways.Cursor > s && ways.Retry(s))");
 				file.Then("continue;");
@@ -558,8 +561,18 @@ sealed partial class Machine
 			// The refs mark: where this method writes a record, and where the rule gathers
 			// and this is its body, which hands the mark to every part whether or not it
 			// writes one itself.
+			// The lists a rule gathers into, where the carrier keeps them as such: the body's
+			// own, handed to every part of it.
+			if (_gathers && !_part)
+				foreach (var member in machine.DirectMembers(owner))
+					if (member.Shape is MemberShape.Pieces or MemberShape.Records)
+						foreach (var slot in member.Slots)
+							foreach (var line in machine.Carrier.DeclareGathered(slot, member.Shape == MemberShape.Pieces ? "string" : machine._results.ValueOf(member.Member.Rule)))
+								head.Line(line);
+
 			if (_records || (_gathers && !_part))
-				head.Line(machine.Carrier.MarkGathered("rb"));
+				foreach (var line in machine.Carrier.MarkGathered(owner, "rb"))
+					head.Line(line);
 
 			// Only where something in the method names it: a rule folds, but a method of it
 			// that neither writes a record nor hands the value on has nothing to do with it,
@@ -570,7 +583,8 @@ sealed partial class Machine
 			// Where the log stood when the rule began, for a guard that builds a value from
 			// what has been recorded since.
 			if (_guarded && !_part)
-				head.Line(machine.Carrier.MarkRecords("lm"));
+				foreach (var line in machine.Carrier.MarkRecords("lm"))
+					head.Line(line);
 
 			foreach (var slot in _kept.OrderBy(static one => one))
 			{
@@ -743,9 +757,9 @@ sealed partial class Machine
 				{
 					var site = machine.MarkSite(text);
 
-					code.Line(machine.Carrier.Mark(-1, site));
+					Carried(code, machine.Carrier.Mark(-1, site));
 					Emit(code, marked, following, loaded);
-					code.Line(machine.Carrier.Mark(-2, site));
+					Carried(code, machine.Carrier.Mark(-2, site));
 
 					break;
 				}
@@ -787,7 +801,7 @@ sealed partial class Machine
 
 				case MemberShape.Record:
 					Emit(code, held, following, loaded);
-					code.Line($"r{slot} = {machine.Carrier.Last};");
+					code.Line($"r{slot} = {machine.Carrier.Last(ValueTypeOf(slot))};");
 					break;
 
 				// What a repetition gathers is pushed as it goes and collected when the
@@ -796,12 +810,12 @@ sealed partial class Machine
 				case MemberShape.Pieces:
 					code.Line($"a{slot} = p;");
 					Emit(code, held, following, loaded);
-					code.Line(machine.Carrier.PushText(slot, $"a{slot}", "p"));
+					Carried(code, machine.Carrier.PushText(slot, $"a{slot}", "p"));
 					break;
 
 				case MemberShape.Records:
 					Emit(code, held, following, loaded);
-					code.Line(machine.Carrier.PushRecord(slot));
+					Carried(code, machine.Carrier.PushRecord(slot, ValueTypeOf(slot)));
 					break;
 
 				default:
@@ -842,36 +856,37 @@ sealed partial class Machine
 			if (factory >= 0 && machine.DirectForwards(owner, factory))
 			{
 				if (_folds)
-					code.Line($"fold = {machine.Carrier.Last};");
+					code.Line($"fold = {machine.Carrier.Last(machine._results.ValueOf(owner))};");
 
 				return;
 			}
 
 			_records = true;
 
-			code.Line(machine.Carrier.Begin(
-				machine.DirectArm(owner, factory),
+			Carried(code, machine.Carrier.Begin(
+				owner, factory,
 				_positions ? (_part ? "start" : "pos") : null,
 				_positions ? "p" : null));
 
 			// A fold step's first member is the value so far, and each of the rest is the
 			// one thing the step captured (§4.3).
 			if (machine.IsStep(owner, factory))
-				code.Line(machine.Carrier.PutAccumulator());
+				Carried(code, machine.Carrier.PutAccumulator());
 
 			foreach (var member in machine.DirectMembers(owner, factory))
-				code.Line(member.Shape switch
+				Carried(code, member.Shape switch
 				{
-					MemberShape.Text    => machine.Carrier.PutText(First("a", "a", member.Slots), First("a", "b", member.Slots)),
-					MemberShape.Pieces  => machine.Carrier.Collect(Refs, member.Mask, true),
-					MemberShape.Records => machine.Carrier.Collect(Refs, member.Mask, false),
-					_                   => machine.Carrier.PutRecord(First("r", "r", member.Slots)),
+					MemberShape.Text    => machine.Carrier.PutText(member, First("a", "a", member.Slots), First("a", "b", member.Slots)),
+					MemberShape.Pieces  => machine.Carrier.Collect(member, Refs, true),
+					MemberShape.Records => machine.Carrier.Collect(member, Refs, false),
+					_                   => machine.Carrier.PutRecord(
+						member, machine.Carrier.FirstRecord(member.Slots, machine._results.ValueOf(member.Member.Rule))),
 				});
 
-			code.Line(machine.Carrier.End("rb"));
+			Carried(code, machine.Carrier.End("rb"));
 
 			if (_folds)
-				code.Line($"fold = {machine.Carrier.Last};");
+				code.Line($"fold = {machine.Carrier.Last(machine._results.ValueOf(owner))};");
 		}
 
 		readonly HashSet<int> _kept = [];
@@ -1145,10 +1160,12 @@ sealed partial class Machine
 					if (back >= 0)
 					{
 						if (_gathers)
-							code.Line(machine.Carrier.MarkGathered($"rr{back}"));
+							foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{back}"))
+								code.Line(line);
 
 						if (_logs)
-							code.Line(machine.Carrier.MarkRecords($"lm{back}"));
+							foreach (var line in machine.Carrier.MarkRecords($"lm{back}"))
+								code.Line(line);
 
 						code.Line();
 					}
@@ -1162,7 +1179,8 @@ sealed partial class Machine
 						using (code.Block($"if ({tried} < 0)"))
 						{
 							if (_gathers && back >= 0)
-								code.Line(machine.Carrier.UnwindGathered($"rr{back}"));
+								foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{back}"))
+									code.Line(line);
 
 							if (_logs && back >= 0)
 								LogBack(code, $"lm{back}");
@@ -1267,8 +1285,10 @@ sealed partial class Machine
 					var segment = _ways++;
 
 					code.Line($"var s{segment}  = ways.Cursor;");
-					code.Line(machine.Carrier.MarkRecords($"lm{segment}"));
-					code.Line(machine.Carrier.MarkGathered($"rr{segment}"));
+					foreach (var line in machine.Carrier.MarkRecords($"lm{segment}"))
+						code.Line(line);
+					foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
+						code.Line(line);
 					code.Line();
 
 					var (call, undo, opens) = Called(alternatives[i], following);
@@ -1283,7 +1303,8 @@ sealed partial class Machine
 							code.Then("break;");
 							code.Line();
 							LogBack(code, $"lm{segment}");
-							code.Line(machine.Carrier.UnwindGathered($"rr{segment}"));
+							foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{segment}"))
+								code.Line(line);
 
 							if (undo.Length > 0)
 								code.Line(undo);
@@ -1305,7 +1326,8 @@ sealed partial class Machine
 						using (code.Block($"if ({tried} < 0)"))
 						{
 							LogBack(code, $"lm{segment}");
-							code.Line(machine.Carrier.UnwindGathered($"rr{segment}"));
+							foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{segment}"))
+								code.Line(line);
 
 							if (undo.Length > 0)
 								code.Line(undo);
@@ -1423,7 +1445,7 @@ sealed partial class Machine
 			// Where the rule gathers across turns, what a record collects is everything pushed
 			// since the rule began — not since the part did — so the rule's mark is handed on.
 			if (_gathers)
-				text.Append(", ").Append(type.Length > 0 ? "int refs" : _part ? "refs" : "rb");
+				text.Append(machine.Carrier.GatherHanding(owner, type.Length > 0, !_part));
 
 			foreach (var slot in given)
 				foreach (var name in Names(slot))
@@ -1617,10 +1639,12 @@ sealed partial class Machine
 				if (back >= 0)
 				{
 					if (_gathers)
-						code.Line(machine.Carrier.MarkGathered($"rr{back}"));
+						foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{back}"))
+							code.Line(line);
 
 					if (_logs)
-						code.Line(machine.Carrier.MarkRecords($"lm{back}"));
+						foreach (var line in machine.Carrier.MarkRecords($"lm{back}"))
+							code.Line(line);
 
 					code.Line();
 				}
@@ -1631,7 +1655,8 @@ sealed partial class Machine
 				using (code.Block($"if ({turn} < 0 || {turn} == p)"))
 				{
 					if (_gathers && back >= 0)
-						code.Line(machine.Carrier.UnwindGathered($"rr{back}"));
+						foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{back}"))
+							code.Line(line);
 
 					if (_logs && back >= 0)
 						LogBack(code, $"lm{back}");
@@ -1886,8 +1911,10 @@ sealed partial class Machine
 				if (opens)
 					code.Line($"var s{segment}  = ways.Cursor;");
 
-				code.Line(machine.Carrier.MarkRecords($"lm{segment}"));
-				code.Line(machine.Carrier.MarkGathered($"rr{segment}"));
+				foreach (var line in machine.Carrier.MarkRecords($"lm{segment}"))
+					code.Line(line);
+				foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
+					code.Line(line);
 				code.Line($"var {took} = -1;");
 				code.Line();
 
@@ -1901,7 +1928,8 @@ sealed partial class Machine
 						code.Then("break;");
 						code.Line();
 						LogBack(code, $"lm{segment}");
-						code.Line(machine.Carrier.UnwindGathered($"rr{segment}"));
+						foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{segment}"))
+							code.Line(line);
 						code.Line();
 						code.Line($"if (ways.Cursor > s{segment} && ways.Retry(s{segment}))");
 						code.Then("continue;");
@@ -1917,7 +1945,8 @@ sealed partial class Machine
 					using (code.Block($"if ({took} < 0)"))
 					{
 						LogBack(code, $"lm{segment}");
-						code.Line(machine.Carrier.UnwindGathered($"rr{segment}"));
+						foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{segment}"))
+							code.Line(line);
 					}
 				}
 
@@ -1994,8 +2023,10 @@ sealed partial class Machine
 			var (call, undo, opens) = Called(kept, following);
 
 			code.Line($"var s{segment}  = ways.Cursor;");
-			code.Line(machine.Carrier.MarkRecords($"lm{segment}"));
-			code.Line(machine.Carrier.MarkGathered($"rr{segment}"));
+			foreach (var line in machine.Carrier.MarkRecords($"lm{segment}"))
+				code.Line(line);
+			foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{segment}"))
+				code.Line(line);
 			code.Line($"var {took} = -1;");
 			code.Line();
 
@@ -2007,7 +2038,8 @@ sealed partial class Machine
 				code.Then("break;");
 				code.Line();
 				LogBack(code, $"lm{segment}");
-				code.Line(machine.Carrier.UnwindGathered($"rr{segment}"));
+				foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{segment}"))
+					code.Line(line);
 
 				if (undo.Length > 0)
 					code.Line(undo);
@@ -2093,13 +2125,13 @@ sealed partial class Machine
 
 				if (!member.IsSequence)
 				{
-					code.Line($"var {handed}At = {First("r", "r", slots)};");
+					code.Line($"var {handed}At = {machine.Carrier.FirstRecord(slots, type)};");
 
 					if (build.Length > 0)
-						code.Line($"if ({handed}At >= 0) {string.Format(build, handed + "At")}");
+						code.Line($"if (!({machine.Carrier.Absent(handed + "At")})) {string.Format(build, handed + "At")}");
 
 					code.Line(member.IsOptional
-						? $"{type}? {handed} = {handed}At < 0 ? default({type}?) : {ValueAt(type, handed + "At")};"
+						? $"{type}? {handed} = {machine.Carrier.Absent(handed + "At")} ? default({type}?) : {ValueAt(type, handed + "At")};"
 						: $"var {handed} = {ValueAt(type, handed + "At")};");
 
 					continue;
@@ -2107,12 +2139,7 @@ sealed partial class Machine
 
 				// Gathered turn by turn on the tape, and collected here the way the rule's end
 				// would collect them.
-				var bits = 0L;
-
-				foreach (var slot in slots)
-					bits |= 1L << slot;
-
-				machine.Carrier.Gathered(code, Refs, bits, handed, type, build);
+				machine.Carrier.Gathered(code, Refs, slots, handed, type, build);
 			}
 
 			helper.Line($"static bool {method}({string.Join(", ", parameters)}) =>");
@@ -2145,12 +2172,15 @@ sealed partial class Machine
 			if (_tape)
 				code.Line($"var s{mark}  = ways.Cursor;");
 
-			code.Line(machine.Carrier.MarkRecords($"lm{mark}"));
-			code.Line(machine.Carrier.MarkGathered($"rr{mark}"));
+			foreach (var line in machine.Carrier.MarkRecords($"lm{mark}"))
+				code.Line(line);
+			foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{mark}"))
+				code.Line(line);
 			code.Line($"var {seen} = {call};");
 			code.Line();
 			LogBack(code, $"lm{mark}");
-			code.Line(machine.Carrier.UnwindGathered($"rr{mark}"));
+			foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{mark}"))
+				code.Line(line);
 
 			if (undo.Length > 0)
 				code.Line(undo);
@@ -2169,6 +2199,13 @@ sealed partial class Machine
 		/// a value a guard built in a derivation that was then abandoned is not the value
 		/// of the record the next derivation writes at the same place.
 		/// </summary>
+		/// <summary>A line the carrier may have nothing to say at.</summary>
+		static void Carried(Writer code, string text)
+		{
+			if (text.Length > 0)
+				code.Line(text);
+		}
+
 		void LogBack(Writer code, string count)
 		{
 			foreach (var line in machine.Carrier.UnwindRecords(count))

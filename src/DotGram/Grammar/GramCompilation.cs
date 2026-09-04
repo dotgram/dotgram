@@ -122,6 +122,14 @@ public sealed class GramCompilerOptions
 	public bool Direct { get; set; } = true;
 
 	/// <summary>
+	/// How a reader carries what it has read until the author's constructions run
+	/// (<see cref="CarrierKind"/>). The tape by default, which keeps §7.3; the others are
+	/// the author's choice, and a grammar a chosen carrier cannot carry is compiled on the
+	/// tape instead.
+	/// </summary>
+	public CarrierKind Carrier { get; set; } = CarrierKind.Tape;
+
+	/// <summary>
 	/// Whether a publication the reader can write is written by it
 	/// (<c>Machine.Reader.cs</c>) rather than by the rendering it is replacing. Off by
 	/// default while the reader is being taught the rest of the language.

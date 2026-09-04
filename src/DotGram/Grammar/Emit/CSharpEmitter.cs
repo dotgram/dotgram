@@ -145,7 +145,7 @@ public static partial class CSharpEmitter
 	public static string Emit(
 		RecognitionGraph graph, string className, string? @namespace = null, ILineMap? lines = null,
 		ICollection<GramDiagnostic>? diagnostics = null, int? partSize = null,
-		LexicalSplit? lexical = null, bool direct = true)
+		LexicalSplit? lexical = null, bool direct = true, CarrierKind carrier = CarrierKind.Tape)
 	{
 		var overKinds = lexical is not null;
 		var directAllowed = direct;
@@ -173,7 +173,7 @@ public static partial class CSharpEmitter
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
-				lexical?.Valued);
+				lexical?.Valued, carrier);
 
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one
@@ -464,8 +464,19 @@ public static partial class CSharpEmitter
 			file.Write(DirectSupport);
 			file.Line();
 
-			file.Write(DirectValuesClass(tables, graph.State));
-			file.Line();
+			// Each carrier's own store, where a machine carries that way: the tables the walk
+			// fills, or the registers an eager parse hands values through.
+			if (machines.Exists(static compiled => compiled.Direct && !compiled.Machine.CarriesEagerly))
+			{
+				file.Write(DirectValuesClass(tables, graph.State));
+				file.Line();
+			}
+
+			if (machines.Exists(static compiled => compiled.Direct && compiled.Machine.CarriesEagerly))
+			{
+				file.Write(Machine.EagerValuesClass(tables));
+				file.Line();
+			}
 		}
 
 		// The engine's runtime — the pooled parser, its arena and the pooling hooks over it —
