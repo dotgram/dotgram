@@ -12778,24 +12778,35 @@ yardstick `Ways` is doing one job, the value log, and the whole of it is what a 
 design replaces. That is the thirty percent the profile put on the walk, and nothing
 less.
 
-*SQL is classes, not structs.* Twenty-two of its twenty-eight valued rules sit on two
-cycles — the expression grammar is `ValueExpression → Term → Factor → Primary →
-( ValueExpression )` all the way down — so the by-value nesting that made `Mixed` half
-the cost of the tape in the lab has six rules to work with here, all of them leaves of
-eight bytes. What SQL gets from the redesign is the *other* half of what the lab found:
-dispatch resolved at generation time, one object per node instead of a log record per
-member plus a table entry per record, and folds as arrays — five of them. The lab's
-`Classes` reading is the nearer model, and it measured 0.46 to 0.77 of the tape on
-reading and level with it on the whole parse. The expectation for SQL should be set
-from that row and not from `Mixed`'s.
+*SQL is classes on the cycles, not structs.* Twenty-two of its twenty-eight valued rules
+sit on two cycles — the expression grammar is `ValueExpression → Term → Factor →
+Primary → ( ValueExpression )` all the way down — so the by-value nesting that made
+`Mixed` half the cost of the tape in the lab has six rules to work with here, all of them
+leaves of eight bytes. What SQL gets from the redesign is dispatch resolved at generation
+time, one object per expression node instead of a log record per member plus a table
+entry per record, the leaves inside those objects by value, and folds as arrays — five of
+them. That is the shape of the lab's `Mix2`, not of its `Classes`: `Mix2` makes a class
+of what sits on the cycle and nothing else, and measured 0.31 of the tape on reading and
+0.79 to 0.81 on the whole parse. `Classes` makes an object of every node, leaves and fold
+steps included, and measured 0.48 — a fifth again slower than `Mix2` and 2.2 times slower
+than `Pooled`, and the order of the three is exactly the order of their allocations per
+pair: none, one, five.
+
+That one allocation per node is also the ceiling. `Pooled` gets to 0.22 because nothing in
+it is an object; SQL's nodes have to be, so it does not get there by this route. What the
+second stage has to find out for SQL is how few allocations per node a class-on-the-cycle
+design can be driven to — by cutting each cycle at one rule and nesting the rest by value
+(two classes and twenty-six structs, against copies of hundreds of bytes), by pooling the
+node objects themselves and returning them after construction as `Pooled` returns its
+arrays, or by arenas, which lost on time in the lab to indirection but lost some of it to
+a rewind SQL never needs. All three exist by hand for `Deferred` with the parenthesis and
+can be measured there before any of them is generated.
 
 *The cut is a choice, and the estimate depends on it.* Every rule on a cycle is a class
-here; the alternative is to cut each cycle at one rule and let the rest nest by value,
-which turns two classes and twenty-six structs out of the same graph — and turns
-`PredicateTail`'s ninety-six bytes into a struct holding `ValueExpression` holding `Term`
-holding `Factor`, hundreds of bytes copied at every hand-over. The report sizes a cycle
-member as a reference and so cannot say which cut is cheaper; that is the first thing
-the second stage measures, on a grammar small enough to try both.
+in the report, and the report sizes a cycle member as a reference; the minimal cut above
+would turn `PredicateTail`'s ninety-six bytes into a struct holding `ValueExpression`
+holding `Term` holding `Factor`, and the report cannot size that. Which cut is cheaper is
+the first thing the second stage measures, on a grammar small enough to try both.
 
 **On the shape of the generators.** The first stage does not touch emission, so it does
 not split anything. It does say where the split falls: the two over-kinds grammars are
