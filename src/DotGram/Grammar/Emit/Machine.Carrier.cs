@@ -48,6 +48,14 @@ sealed partial class Machine
 
 		public override string UnwindGathered(string name) => $"ways.RefsCount = {name};";
 
+		public override string DeclareRecordLocal(int slot, string valueType) => $"var r{slot} = -1;";
+
+		public override string DeclareAccumulator(string valueType) => "var fold = -1;";
+
+		public override string RecordLocalType(string valueType) => "int ";
+
+		public override string ResetRecordLocal(int slot) => $"r{slot} = -1;";
+
 		public override string Begin(int arm, string? start, string? end) =>
 			start is null ? $"ways.Begin({arm});" : $"ways.Begin({arm}, {start}, {end});";
 

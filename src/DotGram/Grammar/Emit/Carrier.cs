@@ -46,6 +46,23 @@ abstract class Carrier
 	/// <summary>The gathered references put back to a mark.</summary>
 	public abstract string UnwindGathered(string name);
 
+	// ---- the locals a value is kept in ---------------------------------------------------------
+
+	/// <summary>
+	/// The local a captured record is kept in until the rule's own record is written — on
+	/// the tape an index, elsewhere the value itself.
+	/// </summary>
+	public abstract string DeclareRecordLocal(int slot, string valueType);
+
+	/// <summary>The local a fold's value so far is kept in (§4.3).</summary>
+	public abstract string DeclareAccumulator(string valueType);
+
+	/// <summary>The type of either, with a trailing space, for a parameter that hands it on.</summary>
+	public abstract string RecordLocalType(string valueType);
+
+	/// <summary>A record local put back to nothing, when the part that wrote it failed.</summary>
+	public abstract string ResetRecordLocal(int slot);
+
 	// ---- a record -------------------------------------------------------------------------
 
 	/// <summary>A record of one alternative of a rule begun, with the span it stands on where those are kept.</summary>

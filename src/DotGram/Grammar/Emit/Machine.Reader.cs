@@ -565,7 +565,7 @@ sealed partial class Machine
 			// that neither writes a record nor hands the value on has nothing to do with it,
 			// and a local nothing reads is an error in somebody else's build.
 			if (_folds && !handed && written.Contains("fold", StringComparison.Ordinal))
-				head.Line("var fold = -1;");
+				head.Line(machine.Carrier.DeclareAccumulator(machine._results.ValueOf(owner)));
 
 			// Where the log stood when the rule began, for a guard that builds a value from
 			// what has been recorded since.
@@ -592,7 +592,7 @@ sealed partial class Machine
 						break;
 
 					default:
-						head.Line($"var r{slot} = -1;");
+						head.Line(machine.Carrier.DeclareRecordLocal(slot, ValueTypeOf(slot)));
 						break;
 				}
 			}
@@ -1384,7 +1384,7 @@ sealed partial class Machine
 
 			foreach (var slot in taken)
 				foreach (var name2 in Names(slot))
-					undo.Append(name2).Append(" = -1; ");
+					undo.Append(name2[0] == 'r' ? machine.Carrier.ResetRecordLocal(slot) : name2 + " = -1;").Append(' ');
 
 			// What it wrote itself, what its own parts wrote, and what the rules it calls
 			// were found to write.
@@ -1405,7 +1405,7 @@ sealed partial class Machine
 			var text = new System.Text.StringBuilder();
 
 			if (_folds)
-				text.Append(", ref ").Append(type).Append("fold");
+				text.Append(", ref ").Append(Typed(type, machine.Carrier.RecordLocalType(machine._results.ValueOf(owner)))).Append("fold");
 
 			// The rule's start, for the records a part writes and the text a guard reads; the
 			// body's is its own `pos`.
@@ -1427,14 +1427,29 @@ sealed partial class Machine
 
 			foreach (var slot in given)
 				foreach (var name in Names(slot))
-					text.Append(", ").Append(type).Append(name);
+					text.Append(", ").Append(TypeOf(type, slot, name)).Append(name);
 
 			foreach (var slot in taken)
 				foreach (var name in Names(slot))
-					text.Append(", ref ").Append(type).Append(name);
+					text.Append(", ref ").Append(TypeOf(type, slot, name)).Append(name);
 
 			return text.ToString();
 		}
+
+		/// <summary>
+		/// What a handed local is declared as: a position is an <c>int</c> whatever carries the
+		/// values, a record is whatever the carrier keeps one in — and nothing at all where
+		/// this is the argument list rather than the parameters.
+		/// </summary>
+		string TypeOf(string type, int slot, string name) =>
+			name[0] == 'r' ? Typed(type, machine.Carrier.RecordLocalType(ValueTypeOf(slot))) : type;
+
+		/// <summary>The carrier's type where a type is wanted, nothing where it is not.</summary>
+		static string Typed(string type, string carried) => type.Length > 0 ? carried : "";
+
+		/// <summary>The value type of the rule a slot captures, as the results name it.</summary>
+		string ValueTypeOf(int slot) =>
+			machine._results.ValueOf(machine.MemberOfSlot(owner, slot)?.Member.Rule);
 
 		/// <summary>What a position is called: two names where it is a run of text, one where it is a record.</summary>
 		IEnumerable<string> Names(int slot)
