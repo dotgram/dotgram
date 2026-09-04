@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using BenchmarkDotNet.Running;
 
@@ -66,6 +66,8 @@ static class Program
 
 		Agrees("closures", new Closures(input), read, expected);
 		Agrees("mixed",    new Mixed   (input), read, expected);
+		Agrees("mix2",     new Mix2    (input), read, expected);
+		Agrees("pooled",   new Pooled  (input), read, expected);
 		Agrees("arenas",   new Arenas  (input), read, expected);
 		Agrees("boxed",    new Boxed   (input), read, expected);
 		Agrees("classes",  new Classes (input), read, expected);

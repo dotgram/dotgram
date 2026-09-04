@@ -52,6 +52,32 @@ static class Inputs
 /// </para>
 /// <code>
 ///                 Pairs         Mean    Ratio      Gen0      Gen1      Gen2   Allocated
+/// Mixed               5       34.8 ns     0.47    0.0041         -         -       208 B
+/// Mix2                5       35.6 ns     0.48    0.0062         -         -       312 B
+/// Pooled              5       43.1 ns     0.58    0.0036         -         -       184 B
+/// Boxed               5       62.1 ns     0.84    0.0116         -         -       584 B
+/// Tape                5       73.8 ns     1.00    0.0124         -         -       624 B
+/// Closures            5      157.5 ns     2.13    0.0393    0.0002         -     1,976 B
+///
+/// Pooled          1,000    6,438.6 ns     0.22    0.0763         -         -     3,967 B
+/// Mix2            1,000    9,107.5 ns     0.31    1.0681    0.1678         -    53,792 B
+/// Mixed           1,000   10,530.3 ns     0.36    1.0529    0.1068         -    53,000 B
+/// Arenas          1,000   11,885.6 ns     0.40    1.7242    0.2441         -    86,808 B
+/// Classes         1,000   13,463.5 ns     0.46    2.2888    0.7172         -   115,144 B
+/// Tape            1,000   29,380.3 ns     1.00   31.2195   31.2195   31.2195   196,666 B
+/// Closures        1,000   32,952.7 ns     1.12    7.9346    4.4556         -   399,656 B
+///
+/// Pooled         10,000   68,104.8 ns     0.35    0.7324    0.1221         -    35,090 B
+/// Mix2           10,000   81,864.8 ns     0.42   10.6201    7.4463         -   538,416 B
+/// Classes        10,000  149,857.9 ns     0.77   22.9492   17.5781         - 1,151,848 B
+/// Boxed          10,000  171,199.0 ns     0.88   22.9492   17.5781         - 1,151,848 B
+/// Tape           10,000  195,373.2 ns     1.00  392.3340  392.3340  392.3340 1,573,109 B
+/// Mixed          10,000  215,563.9 ns     1.10  199.9512  199.9512  199.9512   823,931 B
+/// Arenas         10,000  240,123.7 ns     1.23  249.7559  249.7559  249.7559 1,344,892 B
+/// Closures       10,000  413,233.1 ns     2.12   79.5898   73.7305         - 3,999,176 B
+/// </code>
+/// <code>
+///                 Pairs         Mean    Ratio      Gen0      Gen1      Gen2   Allocated
 /// Tape                5       73.8 ns     1.00    0.0124         -         -       624 B
 /// Mixed               5       35.8 ns     0.48    0.0041         -         -       208 B
 /// Classes             5       80.5 ns     1.09    0.0116         -         -       584 B
@@ -71,22 +97,27 @@ static class Inputs
 /// Closures       10,000  428,714.3 ns     2.03   79.5898   73.7305         - 3,999,176 B
 /// </code>
 /// <para>
-/// <b>The order reverses, and the large object heap is what reverses it.</b> Up to a
-/// hundred pairs the readings that keep their derivation in arrays win, exactly as the
-/// byte counts say they should: <c>Mixed</c> at half the tape and a third of its
-/// allocation. At a thousand the tape has already doubled its one <c>Record[]</c> past
-/// eighty-five kilobytes and every parse is now allocating a large object — thirty-one
-/// gen2 collections per thousand operations — and it falls behind everything but the
-/// closures. At ten thousand the value readings are there too, and the two that allocate
-/// an object per node and no array at all, <c>Classes</c> and <c>Boxed</c>, are ahead of
-/// all of them.
+/// <b>The order changes with the size, and the large object heap is what changes it.</b>
+/// Up to a hundred pairs the readings that keep their derivation in arrays win, exactly as
+/// the byte counts say they should. At a thousand the tape has already doubled its one
+/// <c>Record[]</c> past eighty-five kilobytes and takes thirty-one gen2 collections per
+/// thousand parses, and it falls behind everything but the closures. At ten thousand
+/// <c>Mixed</c> and <c>Arenas</c> are there too, and the readings that allocate an object
+/// per node and no array at all — <c>Classes</c> and <c>Boxed</c> — go past them.
 /// </para>
 /// <para>
-/// Which is not a verdict against arrays. It is a verdict against <em>growing a fresh one
-/// per parse</em>: nothing here pools anything, and an array that were rented and returned
-/// would never be allocated at this size at all, where an object per node has to be. The
-/// engine's <c>Ways.Rent()</c> is that, and this is the measurement that says it is not an
-/// optimization but the thing that keeps the representation standing.
+/// Which is not a verdict against arrays but against growing a fresh one per parse.
+/// <see cref="Threshold"/> is the experiment that says so, and <see cref="Pooled"/> is the
+/// control: the same array, rented and returned, and the cliff is gone and the curve is a
+/// straight line. It leads at every size but the smallest, on a thirtieth of the tape's
+/// allocation. The engine's <c>Ways.Rent()</c> is that, and this is the measurement saying
+/// it is not an optimization but what keeps the representation standing.
+/// </para>
+/// <para>
+/// <see cref="Mix2"/> is the other answer, and it needs nothing to own: no array, so no
+/// array to rent — <c>Pair</c> is a class and the run of steps is threaded through the
+/// elements. Half the cost of <c>Mixed</c> at ten thousand pairs and two thirds of its
+/// allocation, with no lifetime to manage and no pool to be right about.
 /// </para>
 /// </remarks>
 [MemoryDiagnoser]
@@ -111,6 +142,19 @@ public class Recognizing
 	[Benchmark] public bool Closures() => new Closures(_input).Recognize();
 
 	[Benchmark] public bool Mixed() => new Mixed(_input).Recognize();
+
+	[Benchmark] public bool Mix2() => new Mix2(_input).Recognize();
+
+	[Benchmark]
+	public bool Pooled()
+	{
+		var reading = new Pooled(_input);
+		var read    = reading.Recognize();
+
+		reading.Return();
+
+		return read;
+	}
 
 	[Benchmark] public bool Arenas() => new Arenas(_input).Recognize();
 
@@ -218,6 +262,16 @@ public class Parsing
 	}
 
 	[Benchmark]
+	public string Mix2()
+	{
+		var reading = new Mix2(_input);
+
+		reading.Recognize();
+
+		return reading.Construct();
+	}
+
+	[Benchmark]
 	public string Arenas()
 	{
 		var reading = new Arenas(_input);
@@ -245,5 +299,61 @@ public class Parsing
 		reading.Recognize();
 
 		return reading.Construct();
+	}
+}
+
+/// <summary>
+/// The one question the other two leave open: was <see cref="Mixed"/>'s slowdown at ten
+/// thousand pairs the large object heap, or something else?
+/// </summary>
+/// <remarks>
+/// <para>
+/// A <c>Pair</c> is twenty-four bytes and the array of steps doubles, so its capacities
+/// are 4, 8, … 2,048 at forty-nine kilobytes and 4,096 at ninety-eight — over the
+/// eighty-five kilobyte line. The top-level fold has one step per element, so the first
+/// large object is allocated somewhere just past two thousand pairs and not before. Four
+/// sizes astride that is the experiment: if the cliff is at the same place as the
+/// threshold, the reading was right.
+/// </para>
+/// <para>
+/// <see cref="Pooled"/> is the control, differing from <see cref="Mixed"/> in nothing but
+/// renting the array instead of making one, and <see cref="Mix2"/> is the other answer —
+/// no array at all, the run threaded through the elements. Recognition only: this is about
+/// where a representation is written, not about the author's concatenation.
+/// </para>
+/// </remarks>
+[MemoryDiagnoser]
+public class Threshold
+{
+	[Params(1_000, 2_000, 3_000, 4_000)]
+	public int Pairs;
+
+	string _input = "";
+
+	[GlobalSetup]
+	public void Setup() => _input = Inputs.Of(Pairs);
+
+	[Benchmark(Baseline = true)]
+	public bool Mixed() => new Mixed(_input).Recognize();
+
+	[Benchmark]
+	public bool Pooled()
+	{
+		var reading = new Pooled(_input);
+		var read    = reading.Recognize();
+
+		reading.Return();
+
+		return read;
+	}
+
+	[Benchmark] public bool Mix2() => new Mix2(_input).Recognize();
+
+	[Benchmark]
+	public bool Tape()
+	{
+		var reader = new Reader(_input);
+
+		return reader.Recognize();
 	}
 }
