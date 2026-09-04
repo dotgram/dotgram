@@ -12808,6 +12808,55 @@ would turn `PredicateTail`'s ninety-six bytes into a struct holding `ValueExpres
 holding `Term` holding `Factor`, and the report cannot size that. Which cut is cheaper is
 the first thing the second stage measures, on a grammar small enough to try both.
 
+**The carrier is an option, and there are four of them.** What the lab compared were ways
+of carrying a deferred construction, and the recognition that reads into them is the same
+for all: `Machine.Reader.cs` touches the tape through eleven operations at some fifty
+sites — `Begin`, `Put`, `End`, `Last`, `Push`, `Collect`, `Mark`, `Built`, `Log`,
+`LogCount`, `RefsCount` — and nowhere else. That is a seam, hard-wired today to one
+implementation. Behind it the algorithms do not change: determinism, follow sets,
+dispatch, folds, ways, failures. What changes is how a value is held, where a fold's
+steps go, how a subtree is built, and what a failed alternative leaves behind. Two things
+are not only form and the seam has to carry them: a carrier that pools makes the result
+single-use and needs a `Return`, which is a change to the public contract; and a `when`
+needs a subtree built in the middle of the parse, so `Build(handle)` is part of the
+interface and not only its end.
+
+The carriers, chosen by the author and defaulted by analysis and by target framework:
+
+- *Classes* — an object per node, leaves included. 0.48 of the tape. Applies to every
+  grammar, and the safe default where the JIT cannot be trusted with structs.
+- *PooledLearns* — structs by value, folds as rented arrays that start at the longest run
+  the process has seen. 0.21. Applies only where nothing is on a cycle, which is
+  twenty-one grammars of thirty-four and neither of the two over kinds; `Shapes.Of` says
+  which.
+- *Mix2* — a class for what sits on a cycle and nothing else, leaves by value inside it,
+  the fold threaded through its elements. 0.31, no pool and nothing to own. The shape the
+  report draws for SQL.
+- *Eager* — no deferral at all: `=>` runs when its alternative is read, the value is the
+  author's object, `Build` is identity, and an abandoned alternative is garbage. The
+  largest lever measured — 0.64 of the deferred log in `DeferredShape`, and the
+  hand-written SQL parser is eager and 2.6 times the generated one. What it gives up is
+  not determinism: on one input with one grammar the factories are called in one
+  sequence, every time. It gives up §7.3 — a factory runs once per node of the accepted
+  derivation — and runs instead once per node of every derivation tried, each call
+  well-formed and some of them discarded. Invisible to a pure allocation, visible and
+  reproducible to a counter. So it is never the default and always the author's
+  declaration: my factories are pure, as a `when` is already the author's own. A grammar
+  extension to say so per rule comes after there is something to say it about.
+
+The tape stays a fifth, behind the same seam, until the third stage — it is the only one
+that streams, finds and recovers.
+
+Order for the second stage: the tape through the seam first, with every snapshot
+identical, which is the cheapest proof the seam holds; then Eager, not as a default but
+as the ceiling — if eager SQL is level with the hand-written parser the whole remaining
+gap is the price of deferral and the three deferred carriers are measured against a known
+mark, and if it is not the remainder is in recognition and is worth knowing before a
+carrier is written; then Mix2, then PooledLearns, then Classes. Every carrier answers the
+same agreement test the lab's `Program.Show` runs — one value and one verdict on every
+input, or it does not ship — and a benchmark leg on .NET Framework 4.8 before any of them
+is a default there.
+
 **On the shape of the generators.** The first stage does not touch emission, so it does
 not split anything. It does say where the split falls: the two over-kinds grammars are
 where every rule is a class and no rule needs a way, and the thirty-two over characters
