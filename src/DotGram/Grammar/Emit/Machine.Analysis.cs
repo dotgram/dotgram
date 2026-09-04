@@ -329,16 +329,24 @@ sealed partial class Machine
 	/// into by testing the groups in turn.
 	/// </para>
 	/// <para>
-	/// What has to hold is that the sets partition: any two are the same set or share no
-	/// character. Then an alternative outside the chosen group cannot match here whatever
-	/// order it was written in, so leaving it untried is not a reordering of the choice but
-	/// the removal of alternatives that were going to fail. Within a group the written order
-	/// is kept exactly, and so is every way back between them.
+	/// A group is the alternatives a character can begin, in the order they were written:
+	/// the characters are cut wherever any first set begins or ends, and between two cuts
+	/// every character begins the same alternatives. An alternative outside the chosen
+	/// group cannot match here whatever order it was written in, so leaving it untried is
+	/// not a reordering of the choice but the removal of alternatives that were going to
+	/// fail. Within a group the written order is kept exactly, and so is every way back
+	/// between them. Sets that overlap without being equal — <c>NOT? BETWEEN</c>,
+	/// <c>NOT? IN</c> and <c>NOT? LIKE</c>, which share <c>NOT</c> and nothing else — put
+	/// the shared character in a group of the three and each other character in a group
+	/// of its own, which is the switch a person writes; before, they were the one shape
+	/// that could not be dispatched, and a predicate's tail was tried alternative by
+	/// alternative on every clause of the SQL yardstick.
 	/// </para>
 	/// <para>
-	/// The partition is also what makes the group's own chain cheaper than the same chain
-	/// standing alone — see the <c>proven</c> argument of <c>CompileChainedChoice</c>. Both
-	/// halves of that follow from the switch being the only way in.
+	/// Every member of a group admits every character that chooses it, which is what makes
+	/// the group's own chain cheaper than the same chain standing alone — see the
+	/// <c>proven</c> argument of <c>CompileChainedChoice</c>. Both halves of that follow
+	/// from the switch being the only way in.
 	/// </para>
 	/// </remarks>
 	/// <param name="least">
@@ -352,48 +360,80 @@ sealed partial class Machine
 		if (alternatives.Count < least)
 			return null;
 
-		var groups = new List<(FirstSets.First Set, List<Node> Members)>();
-		var named  = 0;
+		var sets = new FirstSets.First[alternatives.Count];
+		var cuts = new SortedSet<int>();
 
-		foreach (var alternative in alternatives)
+		for (var i = 0; i < alternatives.Count; i++)
 		{
 			// `Ends` is not a character and cannot be switched on; the rest of what makes a
 			// first set unusable `Decidable` already refuses.
-			if (Decidable(alternative) is not { Ends: false } set)
+			if (Decidable(alternatives[i]) is not { Ends: false } set)
 				return null;
 
-			var joined = false;
-
-			foreach (var group in groups)
-			{
-				if (FirstSets.Same(group.Set, set))
-				{
-					group.Members.Add(alternative);
-					joined = true;
-
-					break;
-				}
-
-				// Overlapping without being equal is the one shape that cannot be dispatched:
-				// a character in both would have to choose a group, and either choice skips
-				// an alternative that could have matched.
-				if (group.Set.Overlaps(set))
-					return null;
-			}
-
-			if (joined)
-				continue;
+			sets[i] = set;
 
 			foreach (var range in set.Ranges)
-				named += range.To - range.From + 1;
-
-			if (named > Switched)
-				return null;
-
-			groups.Add((set, [alternative]));
+			{
+				cuts.Add(range.From);
+				cuts.Add(range.To + 1);
+			}
 		}
 
-		return groups.Count < least ? null : groups;
+		// Between two cuts every character begins the same alternatives, and a group is
+		// those alternatives — one group per distinct set of them, its characters the
+		// stretches that chose it, in the order the characters come.
+		var groups = new List<(List<CharRange> Ranges, List<Node> Members)>();
+		var index  = new Dictionary<string, int>(StringComparer.Ordinal);
+		var named  = 0;
+		var from   = -1;
+
+		foreach (var cut in cuts)
+		{
+			if (from >= 0)
+			{
+				var key     = "";
+				var members = new List<Node>();
+
+				for (var i = 0; i < sets.Length; i++)
+					if (Admits(sets[i], (char)from))
+					{
+						key += i.ToString(System.Globalization.CultureInfo.InvariantCulture) + ",";
+						members.Add(alternatives[i]);
+					}
+
+				if (key.Length > 0)
+				{
+					named += cut - from;
+
+					if (named > Switched)
+						return null;
+
+					if (!index.TryGetValue(key, out var at))
+					{
+						index[key] = at = groups.Count;
+						groups.Add(([], members));
+					}
+
+					groups[at].Ranges.Add(new CharRange((char)from, (char)(cut - 1)));
+				}
+			}
+
+			from = cut;
+		}
+
+		if (groups.Count < least)
+			return null;
+
+		return groups.ConvertAll(static group => (FirstSets.First.Chars(group.Ranges), group.Members));
+
+		static bool Admits(FirstSets.First set, char c)
+		{
+			foreach (var range in set.Ranges)
+				if (range.From <= c && c <= range.To)
+					return true;
+
+			return false;
+		}
 	}
 
 	/// <summary>

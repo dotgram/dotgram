@@ -1986,21 +1986,42 @@ public sealed class CSharpEmitterTests
 	}
 
 	/// <summary>
-	/// Sets that overlap without being equal are not dispatched at all.
+	/// Sets that overlap without being equal are cut where they overlap.
 	/// </summary>
 	/// <remarks>
-	/// A character in two groups would have to pick one, and either pick skips an
-	/// alternative that could have matched. Nothing here tries to be clever about it: the
-	/// chain is compiled, which is what always happened.
+	/// A character in two sets would have to pick one group, and either pick skips an
+	/// alternative that could have matched — so it picks neither, and is a group of the
+	/// two: <c>b</c> and <c>c</c> begin both of the first alternatives, and a switch on
+	/// them tries those two in written order; <c>a</c> begins only the first, <c>d</c>
+	/// only the second. Six groups where the sets had five, and a switch where there
+	/// used to be a chain.
 	/// </remarks>
 	[Fact]
-	public void Overlapping_groups_keep_the_chain()
+	public void Overlapping_groups_are_cut_where_they_overlap()
 	{
 		var source = Emit("""
 			Start = ['a'..'c'] & "nd" | ['b'..'d'] & "ll" | "either" | "for" | "given"
 			""");
 
-		Assert.DoesNotContain("switch (c)", source, StringComparison.Ordinal);
+		Assert.Contains("switch (c)", source, StringComparison.Ordinal);
+		Assert.Contains("case 'b': case 'c': ", source, StringComparison.Ordinal);
+	}
+
+	[Theory]
+	[InlineData("and", true)]
+	[InlineData("bnd", true)]
+	[InlineData("cll", true)]
+	[InlineData("dll", true)]
+	[InlineData("all", false)]
+	[InlineData("dnd", false)]
+	[InlineData("either", true)]
+	public void A_character_in_two_sets_tries_both_alternatives_in_order(string input, bool matches)
+	{
+		var (matched, _) = Run("""
+			Start = ['a'..'c'] & "nd" | ['b'..'d'] & "ll" | "either" | "for" | "given"
+			""", input);
+
+		Assert.Equal(matches, matched);
 	}
 
 	/// <summary>

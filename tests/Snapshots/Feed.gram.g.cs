@@ -659,6 +659,11 @@ namespace DotGram.Snapshots
 				c = text[p];
 				switch (c)
 				{
+					case '\n': 
+						{
+							p += 1;
+							break;
+						}
 					case '\r': 
 						{
 							var w0  = -1;
@@ -711,11 +716,6 @@ namespace DotGram.Snapshots
 								return -1;
 
 							p = q0;
-							break;
-						}
-					case '\n': 
-						{
-							p += 1;
 							break;
 						}
 					default:
