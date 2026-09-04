@@ -12939,3 +12939,87 @@ parse is accepted. That is the cost `CarrierKind.Eager` names, seen in a
 number: on an input that succeeds, allocation the parse would have made anyway; on one that
 does not, allocation for nothing. The two smallest inputs move by a third between runs of
 this harness and are not read for more than their sign.
+
+**Second stage, third step: the recognizer, taken to the hand-written parser's shape.**
+With deferral out of the way the whole of the gap was the reader, and this step took it
+down by editing the emitted SQL reader by hand — a copy of the generated file dropped into
+a scratch project beside `HandSqlTokens` as plain source, each candidate edit a class of
+its own so that one BenchmarkDotNet run measured them all beside each other — and porting
+into the generator what paid. The steps, each a commit, each measured on the yardstick's
+long condition and long sum against the hand-written parser (round-robin, `--hand 21`):
+
+| step                                                                                       | condition   | sum         |
+|--------------------------------------------------------------------------------------------|-------------|-------------|
+| the eager ceiling, as measured above                                                       | 1.76        | 1.40        |
+| gather onto a stack per type, not a `List<T>` per rule (`1e1294c`)                          | 1.56        | 1.44        |
+| inline a rule of a few tokens; trust the switch that chose the branch (`211b5e9`)           | 1.49        | 1.27        |
+| the reader is a `ref struct`; a call between rules passes a position (`1ad7d57`)            | 1.50        | 1.27        |
+| a switch on two groups in the reader, where the automaton wants four (`00050cd`)            | 1.40        | 1.25        |
+| the registers are fields of the reader, not of the store it rents (`d64cf29`)               | 1.29        | 1.17        |
+| an alternative that is one call is that call; a look the switch answered is skipped (`ecffda8`) | 1.18    | 1.06        |
+| dispatch where the first sets overlap, cutting them where they do (`25bd308`)               | 1.18        | 1.02        |
+| no local for a capture nothing reads (`4e88a06`)                                            | 1.21        | 1.04        |
+
+Three of them are worth a sentence each.
+
+*The write barrier.* A value goes from callee to caller through a register of its type,
+and every valued rule writes one. As a field of `EagerValues`, an object on the heap, each
+write went through the collector's write barrier; as a field of the reader, a `ref struct`
+on the stack, it is a store. That was a fifth of the long condition, and the largest single
+step since the eager carrier itself. The seam grew `ReaderRegisters` for it, and the tape,
+which hands an index through the ways, declares none.
+
+*The method around a call.* `p: Predicate => @(p)` is one call and a construction that is
+the identity, and the reader wrote a method around it — a position taken, the call, a
+capture into a local nothing read, the position returned — and the yardstick's hot path
+went through three of them a clause. It is the call now. What stays a method: a back edge,
+whose stack guard is a statement; an alternative of a rule read at a strength, which
+refuses below its own; and a capture a turn pushes, since the push is the turn's work.
+
+*The overlap.* A choice was switched on its first token only where the first sets of its
+alternatives partitioned, and `NOT? BETWEEN | NOT? IN | NOT? LIKE` was the one shape left
+to the chain — the tail of every predicate tried alternative by alternative, a call and a
+refusal each. The characters are cut wherever any set begins or ends now; between two cuts
+every character begins the same alternatives, and those, in written order, are its group.
+`NOT` is a group of the three, `BETWEEN` a group of one. On `x = 1 AND y IS NOT NULL` that
+was 1.51 to 1.31; the long inputs, whose predicates all take the first alternative, did not
+move.
+
+What was tried in the copy and did not pay, so that nobody tries it again: writing an
+optional token in place rather than as a turn of a loop (nothing); writing the turn of a
+fold in place rather than as a method (a tenth on the sum in the copy, but the marking and
+unwinding of a stack the fold never pushed on was the part that paid, and that was ported
+alone); dropping the value expression primary's eight dead locals (nothing measurable,
+ported for the code it removes). A precedence-climbing rewrite of the ladder under the
+generator reads slower than the ladder (1.62 against 1.40 at the time) because its bases —
+`NOT`, a predicate, a parenthesis — cannot be dispatched while a predicate and a
+parenthesis both begin with `(`; the ladder stays.
+
+**Where it stands, and what the profile says is left.** Sampled with `dotnet-trace`
+(`--spin 6 4 eager` against `--spin 6 4 hand`, `dotnet-trace report … topN`): on the long
+condition the generated tokenizer is 27% of the eager parse where the hand-written lexer
+is 41% of its own, so the lexer is the faster half, and the reader is 1.47 of the
+hand-written reader. The reader's time sits in the rules that dispatch — `Predicate`,
+`RowValueConstructor`, its element, the value expression primary, `PredicateTail`, 46% of
+the parse between them — which are the ladder's levels: nine calls per operand where the
+hand-written parser makes six, its `Value` folding two levels into one climb and its
+`Primary` reading a name where the grammar has a column reference over a qualified name
+over an identifier. That is the gap that remains, and it is structural: closing it means
+either inlining a level at its call sites or the climbing emission, and the climbing
+grammar has to be rewritten first.
+
+Two smaller things. The per-parse fixed cost — three thread-static pools rented and
+returned, four `Array.Clear` calls on a store that is usually empty — is about nine
+nanoseconds, a sixth of the short input's gap; one pool for the three would take most of
+it. And the harness matters more than it should: BenchmarkDotNet, one input per process,
+puts the same parsers at 1.46 on the condition, 1.37 on the sum and 1.60 on the short
+input, because the hand-written parser is faster in isolation (3.1 against 4.4
+microseconds) while the eager one barely moves (4.5 against 5.3). The round-robin warms
+every parser on every input in one process, and the suspicion is tiered PGO shaping the
+hand-written parser's two large methods to the input it is measured on; not settled.
+Every ratio in this document is the round-robin's unless it says otherwise.
+
+One thing the yardstick found about itself: `HandSqlTokens` does not read the datetime
+literals — `DATE '2020-01-01'` is refused by hand and read by the grammar. It is outside
+the forty-two shapes `Agree()` holds the two to, so no ratio quoted here rests on it, but
+the hand-written parser reads a smaller language there than the grammar does.
