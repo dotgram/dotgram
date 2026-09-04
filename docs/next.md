@@ -13050,6 +13050,34 @@ every parser on every input in one process, and the suspicion is tiered PGO shap
 hand-written parser's two large methods to the input it is measured on; not settled.
 Every ratio in this document is the round-robin's unless it says otherwise.
 
+**The immediate carrier carries marks.** §7.8 was the first of the three shapes it
+refused, and it turns out to be the shape the tape works hardest for and this one gets
+nearly free. The tape writes a mark down as a pair of records on the log and the walk at
+the end replays them into a stack, so that a factory can be handed what stood over it;
+here the value is built while the mark stands, so the stack *is* the answer — an array in
+the rented store and how deep it stands in a field of the reader. A reading abandoned
+after pushing one puts the depth back where the tape puts back its log, which the reader
+already does at every place a reading can be abandoned, so backtracking cost nothing to
+say. What is left refused is recovery and extents.
+
+Two things the shape found. The depth is read from the declaration of a `state` and not
+from `UsesMarks`, which counts the sites written so far and therefore answers differently
+before and after the mark it is about to write — a walk that runs after everything is
+written may ask it, and a reader that builds as it reads may not. And a stack of a value
+type that is itself an array was allocated `new E[][8]`, which is not C#; the size goes in
+the first rank whatever the element is, and a rule whose value is a sequence gathered
+across turns is exactly that type.
+
+**What the largest grammar said about it.** `ExpressionLanguage` compiles on the immediate
+carrier now and does not run on it: `Math.Max(x, 1)` throws, because `Name`'s construction
+calls `State.Named`, which throws for a name it does not know, and `Math` is a name the
+grammar reads with a different alternative. On the tape the abandoned alternative's
+construction never runs; here it runs and throws. That is the carrier's one term — a
+factory is called once per derivation *tried* — meeting a factory that is not pure, and
+the fault is the grammar's rather than the carrier's: a name that may not be one is a
+question for a `when`, which refuses, and not for a `=>`, which cannot. Until that is
+written the language has no immediate reading to hold a hand-written one against.
+
 The carrier is called `Immediate` from here on — `CarrierKind.Immediate`,
 `GramCarrier.Immediate`, `ImmediateCarrier`, `ImmediateSql`. Every entry above calls it
 `Eager`, which is what it was called when they were written; the word named the timing and

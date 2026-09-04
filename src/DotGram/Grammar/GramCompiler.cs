@@ -93,7 +93,7 @@ public static class GramCompiler
 				CSharpEmitter.Emit(
 					lexical?.Syntax ?? graph, options.ClassName, options.Namespace, options.LineMap,
 					diagnostics, options.PartSize, lexical, options.Direct, options.Carrier,
-					options.Suffix)));
+					options.Suffix, options.SharedTypes)));
 
 		return new GramCompilation(sources, OnePerPosition(diagnostics));
 	}

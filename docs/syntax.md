@@ -1424,6 +1424,10 @@ public static partial class Sql { }
 `Sql.ParseQuery` is the first; `Sql.Immediate.ParseQuery` is the second. Two files come
 out, one per attribute.
 
+A second attribute that names no grammar takes the first's, which is the shape this is
+for: `[Gram(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]` on its own is the
+class's own grammar, compiled the other way.
+
 **Why a class rather than a suffix on the method names.** Everything a parser needs is
 emitted beside it (§6.2), and a file's share of that — the match, the failure, the lexer,
 the value tables — is written once and named for what it is. Two compilations in one
@@ -1431,6 +1435,13 @@ scope would collide on every one of them. A class is a scope, so nothing collide
 neither compilation can see the other. What the host itself declares stays in reach:
 a nested class reads the static members of the class around it by their simple names,
 which is what a grammar's `=>` calls are.
+
+**What the host's own C# names is the host's.** `SourceSpan` (§7.5) and `Match<T>` (§6.1)
+appear in the signatures a grammar calls and a caller reads, so where a class carries
+several grammars they are written once, in the class itself, and every scope reads them
+from around it. Otherwise a factory handing a span to a method of the host would be
+handing it a type of the same name that is not the same type, and neither compilation
+would build.
 
 Two attributes wanting the same scope — the same `Suffix`, or neither having one — is
 refused (`GRAM0006`), because one of them would silently win.

@@ -70,6 +70,14 @@ public sealed class CarrierTests
 			"parse Start\n",
 			["12", "1234", "", "x"]),
 
+		("marks laid over an operand",
+			"state : @int\n" +
+			"Start : @string = '(' & inner: Start with state @(9) & ';' => @(\"<\" + inner + \">\")\n" +
+			"                | '(' & inner: Start with state @(1) & ')' => @(\"(\" + inner + \")\")\n" +
+			"                | t: ['a'..'z']+ => @(string.Join(\",\", parserState.ToArray()) + \":\" + t)\n" +
+			"parse Start\n",
+			["a", "(a)", "((a))", "(a;", "(a"]),
+
 		("a member that may be missing",
 			"Start : @string = a: Name & b: Digits? => @(a + (b ?? \"-\"))\n" +
 			"Name : @string = t: ['a'..'z']+ => @(t)\n" +

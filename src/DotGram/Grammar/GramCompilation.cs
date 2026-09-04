@@ -145,6 +145,13 @@ public sealed class GramCompilerOptions
 	public string? Suffix { get; set; }
 
 	/// <summary>
+	/// Which compilation of a host writes the types the host's own C# names — the span
+	/// (§7.5) and the match (§6.1). Null where the host has one grammar and they are its
+	/// own; true for the one that writes them for every other; false for the others.
+	/// </summary>
+	public bool? SharedTypes { get; set; }
+
+	/// <summary>
 	/// Whether a publication the reader can write is written by it
 	/// (<c>Machine.Reader.cs</c>) rather than by the rendering it is replacing. Off by
 	/// default while the reader is being taught the rest of the language.

@@ -904,8 +904,13 @@ sealed partial class Machine
 		if (_graph.Context is not null && CSharpEmitter.Asks(_graph, factory, "context"))
 			arguments.Add("context");
 
+		// The stack as it stands, where there is one. `UsesMarks` counts the sites written
+		// so far, which is an answer that changes as the emission goes; a reader that builds
+		// as it reads asks this question while it is still writing them, and would hand one
+		// construction the marks and the next `default`. Where the reader carries the stack
+		// itself it is there whenever a state is declared, and that is the question asked.
 		if (_graph.State is not null && CSharpEmitter.Asks(_graph, factory, "parserState"))
-			arguments.Add(UsesMarks
+			arguments.Add(UsesMarks || CarriesImmediately
 				? $"new global::System.ReadOnlySpan<{_graph.State}>(values.MarkState, 0, marked)"
 				: "default");
 

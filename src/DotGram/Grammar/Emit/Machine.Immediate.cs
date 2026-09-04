@@ -23,13 +23,20 @@ sealed partial class Machine
 	/// the collector's write barrier — a fifth of the parse, measured on the SQL yardstick.
 	/// </para>
 	/// </remarks>
-	internal static string ImmediateValuesClass(IReadOnlyList<string> valueTypes)
+	internal static string ImmediateValuesClass(IReadOnlyList<string> valueTypes, string? stateType = null)
 	{
 		var text = new StringBuilder();
 
 		text.Append("/// <summary>What an immediate parse gathers on: a stack per value type, and one for text (Machine.Immediate.cs).</summary>\n");
 		text.Append("sealed class ImmediateValues\n{\n");
 		Stack(text, "string", "Text");
+
+		// The marks standing over what is being read (§7.8). An array here rather than in
+		// the reader because it grows and is worth keeping between parses; how deep it
+		// stands is the reader's own field, being written at every mark.
+		if (stateType is not null)
+			text.Append("\tinternal ").Append(stateType).Append("[] MarkState = new ")
+				.Append(stateType).Append("[8];\n\n");
 
 		for (var i = 0; i < valueTypes.Count; i++)
 			Stack(text, valueTypes[i], i.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
@@ -52,7 +59,16 @@ sealed partial class Machine
 
 		static void Stack(StringBuilder text, string type, string tag)
 		{
-			text.Append("\tinternal ").Append(type).Append("[] Stack").Append(tag).Append(" = new ").Append(type).Append("[8];\n");
+			// `new T[8]` where the element type is itself an array is written `new E[8][]`,
+			// not `new E[][8]`: the size goes in the first rank, whatever the element is.
+			// A rule whose value is a sequence gathered across turns is exactly that type.
+			var rank = type.IndexOf('[');
+			var core = rank < 0 ? type : type.Substring(0, rank);
+			var rest = rank < 0 ? ""   : type.Substring(rank);
+
+			string Made(string count) => "new " + core + "[" + count + "]" + rest;
+
+			text.Append("\tinternal ").Append(type).Append("[] Stack").Append(tag).Append(" = ").Append(Made("8")).Append(";\n");
 			text.Append("\tinternal int Count").Append(tag).Append(";\n");
 			text.Append("\tinternal int High").Append(tag).Append(";\n\n");
 			text.Append("\tinternal void Push").Append(tag).Append('(').Append(type).Append(" item)\n\t{\n");
@@ -69,7 +85,7 @@ sealed partial class Machine
 			text.Append("\tinternal ").Append(type).Append("[] Peek").Append(tag).Append("(int from)\n\t{\n");
 			text.Append("\t\tvar count = Count").Append(tag).Append(" - from;\n\n");
 			text.Append("\t\tif (count == 0)\n\t\t\treturn global::System.Array.Empty<").Append(type).Append(">();\n\n");
-			text.Append("\t\tvar taken = new ").Append(type).Append("[count];\n\n");
+			text.Append("\t\tvar taken = ").Append(Made("count")).Append(";\n\n");
 			text.Append("\t\tglobal::System.Array.Copy(Stack").Append(tag).Append(", from, taken, 0, count);\n\n");
 			text.Append("\t\treturn taken;\n\t}\n\n");
 		}
@@ -147,6 +163,12 @@ sealed partial class Machine
 			{
 				for (var i = 0; i < machine._valueTypes.Count; i++)
 					yield return (machine._valueTypes[i], "last" + i.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
+
+				// How deep the §7.8 marks stand. A field for the same reason the registers
+				// are: it is written at every mark, and a mark is written wherever the
+				// grammar puts one — which in a language with `checked(...)` is a hot path.
+				if (Marks)
+					yield return ("int", "marked");
 			}
 		}
 
@@ -164,7 +186,14 @@ sealed partial class Machine
 			return text.ToString();
 		}
 
-		public override IEnumerable<string> MarkRecords(string name) => [];
+		/// <remarks>
+		/// Nothing is written down that an abandoned reading could leave behind — except how
+		/// deep the marks stand, which is a stack the reader pushes on and a failed attempt
+		/// left standing. Taken and put back wherever the tape takes and puts back its log,
+		/// which is every place a reading may be abandoned.
+		/// </remarks>
+		public override IEnumerable<string> MarkRecords(string name) =>
+			Marks ? [$"var {name} = marked;"] : [];
 
 		/// <remarks>A failed turn has pushed onto the stacks; the mark is where they stood.</remarks>
 		public override IEnumerable<string> MarkGathered(RuleSymbol? owner, string name)
@@ -176,7 +205,19 @@ sealed partial class Machine
 				yield return $"var {name}_{stack} = values.Count{stack};";
 		}
 
-		public override IEnumerable<string> UnwindRecords(string name) => [];
+		public override IEnumerable<string> UnwindRecords(string name) =>
+			Marks ? [$"marked = {name};"] : [];
+
+		/// <summary>
+		/// Whether this parser carries §7.8 marks: whether a state type is declared at all.
+		/// </summary>
+		/// <remarks>
+		/// The declaration and not <see cref="Machine.UsesMarks"/>, which counts the sites
+		/// the reader has written so far and therefore answers differently before and after
+		/// the mark it is about to write. A grammar that declares a state and places none
+		/// keeps an integer nothing moves, which is what an empty span costs.
+		/// </remarks>
+		bool Marks => machine._graph.State is not null;
 
 		public override IEnumerable<string> UnwindGathered(RuleSymbol? owner, string name)
 		{
@@ -321,8 +362,16 @@ sealed partial class Machine
 		public override string PushRecord(int slot, string valueType) =>
 			$"values.Push{StackOf(valueType)}({Last(valueType)});";
 
+		/// <remarks>
+		/// A live stack rather than a pair of records on a log. The tape writes the mark down
+		/// and the walk at the end replays it into a stack to know what stood over a value;
+		/// here the value is built while the mark stands, so the stack is the answer as it is.
+		/// </remarks>
 		public override string Mark(int kind, int site) =>
-			throw new InvalidOperationException("The immediate carrier does not carry marks; Refuses should have said so.");
+			kind == -1
+				? $"if (marked == values.MarkState.Length) global::System.Array.Resize(ref values.MarkState, marked * 2); " +
+					$"values.MarkState[marked++] = {machine._marks[site]};"
+				: "marked--;";
 
 		public override string Materialize(string record, string sinceMark) => "";
 
@@ -356,9 +405,6 @@ sealed partial class Machine
 
 		public override string? Refuses()
 		{
-			if (machine.UsesMarks || machine._graph.State is not null)
-				return "it uses marks";
-
 			if (machine._graph.Recoveries.Count > 0)
 				return "it recovers";
 

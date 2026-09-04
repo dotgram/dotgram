@@ -400,6 +400,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			Direct         = host.Direct,
 			Carrier        = (CarrierKind)host.Carrier,
 			Suffix         = host.Suffix,
+			SharedTypes    = host.Shared,
 		});
 
 		foreach (var diagnostic in result.Diagnostics)
@@ -663,7 +664,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		bool      Direct     = true,
 		int       Carrier    = 0,
 		string?   Suffix     = null,
-		bool      Repeated   = false)
+		bool      Repeated   = false,
+		bool?     Shared     = null)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -742,7 +744,26 @@ public sealed class GramGenerator : IIncrementalGenerator
 			{
 				var host = From(candidate, attribute);
 
-				hosts.Add(host with { Repeated = !taken.Add(host.Suffix ?? "") });
+				// A second attribute that says nothing about where its grammar is takes the
+				// first one's, which is what writing it that way means: the same grammar,
+				// compiled differently. Only the spelling is inherited, so a diagnostic
+				// still points at the text somebody wrote, wherever they wrote it.
+				if (host.Source is null && host.Literal is null && hosts.Count > 0)
+					host = host with
+					{
+						Source    = hosts[0].Source,
+						Literal   = hosts[0].Literal,
+						LiteralAt = hosts[0].LiteralAt,
+					};
+
+				hosts.Add(host with
+				{
+					Repeated = !taken.Add(host.Suffix ?? ""),
+
+					// The first writes what the host's own C# names; the rest read it from the
+					// class around them. Null where there is nothing to share it with.
+					Shared   = candidate.Attributes.Length > 1 ? hosts.Count == 0 : null,
+				});
 			}
 
 			return hosts.ToImmutable();

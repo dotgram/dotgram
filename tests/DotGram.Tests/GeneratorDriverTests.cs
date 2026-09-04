@@ -1893,18 +1893,24 @@ public sealed class GeneratorDriverTests
 	[Fact]
 	public void A_second_grammar_on_a_class_is_compiled_into_a_class_of_its_own()
 	{
+		// Both grammars hand a span to a method of the host, which is what says the span is
+		// the host's type and not one per compilation: two of them would not be the same
+		// type, and neither would compile.
 		const string source = """"
 			using DotGram;
 
 			[Gram("""
-				Start : @string = t: ['a'..'z']+ => @(t)
+				Start : @string = t: ['a'..'z']+ => @(Seen(t, parserSpan))
 				parse Start
 				""")]
 			[Gram("""
-				Start : @string = t: ['0'..'9']+ => @(t)
+				Start : @string = t: ['0'..'9']+ => @(Seen(t, parserSpan))
 				parse Start
 				""", Suffix = "Digits")]
-			public static partial class Twice;
+			public static partial class Twice
+			{
+				internal static string Seen(string t, SourceSpan at) => t + "@" + at.Length;
+			}
 			"""";
 
 		var built = Build(source);
@@ -1912,12 +1918,39 @@ public sealed class GeneratorDriverTests
 		var host   = built.GetType("Twice")!.GetMethod("ParseStart", [typeof(string)])!;
 		var nested = built.GetType("Twice+Digits")!.GetMethod("ParseStart", [typeof(string)])!;
 
-		Assert.Equal("abc", host.Invoke(null, ["abc"]));
-		Assert.Equal("123", nested.Invoke(null, ["123"]));
+		Assert.Equal("abc@3", host.Invoke(null, ["abc"]));
+		Assert.Equal("123@3", nested.Invoke(null, ["123"]));
 
 		// Two languages, not one read twice: each class reads its own and refuses the other.
 		Assert.Throws<TargetInvocationException>(() => host.Invoke(null, ["123"]));
 		Assert.Throws<TargetInvocationException>(() => nested.Invoke(null, ["abc"]));
+	}
+
+	/// <summary>
+	/// A second attribute that names no grammar takes the first's, which is what the
+	/// shape is for: one grammar, compiled two ways.
+	/// </summary>
+	[Fact]
+	public void A_second_grammar_that_names_none_is_the_first_one_again()
+	{
+		const string source = """"
+			using DotGram;
+
+			[Gram("""
+				Start : @string = t: ['a'..'z']+ => @(t)
+				parse Start
+				""")]
+			[Gram(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+			public static partial class Both;
+			"""";
+
+		var built = Build(source);
+
+		var tape      = built.GetType("Both")!.GetMethod("ParseStart", [typeof(string)])!;
+		var immediate = built.GetType("Both+Immediate")!.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal("abc", tape.Invoke(null, ["abc"]));
+		Assert.Equal("abc", immediate.Invoke(null, ["abc"]));
 	}
 
 	/// <summary>Two grammars cannot share one scope, and are told so rather than colliding.</summary>

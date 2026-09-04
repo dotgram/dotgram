@@ -148,7 +148,7 @@ public static partial class CSharpEmitter
 		RecognitionGraph graph, string className, string? @namespace = null, ILineMap? lines = null,
 		ICollection<GramDiagnostic>? diagnostics = null, int? partSize = null,
 		LexicalSplit? lexical = null, bool direct = true, CarrierKind carrier = CarrierKind.Tape,
-		string? suffix = null)
+		string? suffix = null, bool? shared = null)
 	{
 		var overKinds = lexical is not null;
 		var directAllowed = direct;
@@ -269,9 +269,27 @@ public static partial class CSharpEmitter
 		// own, because a file's support — the match, the failure, the lexer, the value tables
 		// — is written once and named for what it is, and two copies in one scope would
 		// collide name for name. Written out here rather than declared by the author, so it
-		// is `public static` and not the `private` a nested class would default to.
+		// is `public static` and not the `private` a nested class would default to, and
+		// `partial` so that the pooling hooks it declares have somewhere to be written.
+		// The types the host's own C# names — the span a factory is handed, and the match a
+		// caller reads — belong to the host and not to a compilation of it. Where there are
+		// several they are written here, outside every scope, by the first: a nested class
+		// reads them by their simple names, and a grammar whose `=>` hands a span to a
+		// method of the host would otherwise be handing it a type of the same name that is
+		// not the same type. Unconditionally, because what the others need is not known
+		// here — a struct nothing names costs a compilation nothing.
+		if (shared == true)
+		{
+			file.Write(SourceSpanStruct);
+			file.Line();
+			file.Write(OutcomeEnum);
+			file.Line();
+			file.Write(MatchStruct);
+			file.Line();
+		}
+
 		if (suffix is { Length: > 0 })
-			scope.Push(file.Block($"public static class {suffix}"));
+			scope.Push(file.Block($"public static partial class {suffix}"));
 
 		foreach (var compiled in machines)
 			foreach (var publication in compiled.Publications)
@@ -412,13 +430,13 @@ public static partial class CSharpEmitter
 			}
 		// The source graph too, where there is one: a rule that names a span may have moved
 		// into the second read, and the type it names is the file's either way.
-		if (UsesSourceSpan(graph) || lexical is not null && UsesSourceSpan(lexical.Source))
+		if (shared is null && (UsesSourceSpan(graph) || lexical is not null && UsesSourceSpan(lexical.Source)))
 		{
 			file.Write(SourceSpanStruct);
 			file.Line();
 		}
 
-		if (graph.Publications.Count > 0)
+		if (shared is null && graph.Publications.Count > 0)
 		{
 			file.Write(OutcomeEnum);
 			file.Line();
@@ -486,7 +504,7 @@ public static partial class CSharpEmitter
 
 			if (machines.Exists(static compiled => compiled.Direct && compiled.Machine.CarriesImmediately))
 			{
-				file.Write(Machine.ImmediateValuesClass(tables));
+				file.Write(Machine.ImmediateValuesClass(tables, graph.State));
 				file.Line();
 			}
 		}
