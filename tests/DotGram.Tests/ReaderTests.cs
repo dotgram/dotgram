@@ -128,11 +128,26 @@ public sealed class ReaderTests
 		"Value : @string = k: \"let\" & a: Lexical.Name & b: Value => @(k + a)" +
 		" | k: \"let\" & c: Lexical.Digits => @(k + c)";
 
+	/// <summary>
+	/// The same two alternatives, with tails the token in hand cannot tell apart — so that
+	/// the choice between them is written as one attempt after another, each a method of its
+	/// own, and the head has to be handed to it.
+	/// </summary>
+	/// <remarks>
+	/// <see cref="Shared"/>'s tails begin with a name and a number, and a reader switches on
+	/// that and writes each tail where it stands, the head's positions in scope and nothing
+	/// handed anywhere. That is the better reading and not what this test is about.
+	/// </remarks>
+	const string SharedAlike =
+		"Start : @string = only: Value & eof => @(only)" + Line +
+		"Value : @string = k: \"let\" & a: Lexical.Name & b: Value => @(k + a)" +
+		" | k: \"let\" & c: Lexical.Name => @(k + c)";
+
 	/// <summary>That the head really was handed over, in both directions.</summary>
 	[Fact]
 	public void The_reader_hands_a_shared_head_to_the_alternative()
 	{
-		var written = Written(Lexical + Shared + Line + "parse Start", reader: true);
+		var written = Written(Lexical + SharedAlike + Line + "parse Start", reader: true);
 		var head    = Reading(written, "Read_Value_Part0");
 
 		head = head.Substring(0, head.IndexOf(')'));

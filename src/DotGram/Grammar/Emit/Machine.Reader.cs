@@ -1108,7 +1108,7 @@ sealed partial class Machine
 				return;
 			}
 
-			if (machine.Dispatchable(alternatives) is { } groups)
+			if (machine.Dispatchable(alternatives, least: 2) is { } groups)
 			{
 				var name = machine.DeclareExpected([machine.PredictedDisplay(alternatives)]);
 

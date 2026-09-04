@@ -687,80 +687,77 @@ namespace DotGram.Snapshots
 					return -1;
 				}
 				c = text[p];
-
-				if (!(c == '\n' || c == '\r'))
+				switch (c)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected21, ways);
-					return -1;
+					case '\r': 
+						{
+							if (!(c == '\r'))
+							{
+								Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected22, ways);
+								return -1;
+							}
+
+							var w0  = -1;
+							var d0 = 0;
+							if (ways.Cursor < ways.Count)
+							{
+								w0  = ways.Cursor;
+								d0 = ways.Items[w0 * 2];
+								ways.Cursor++;
+							}
+							else
+							{
+								w0 = ways.Open(0, 1);
+							}
+
+							var q0 = -1;
+							if (q0 < 0 && d0 <= 0)
+							{
+								var s1  = ways.Cursor;
+								var lm1 = ways.LogCount;
+								var rr1 = ways.RefsCount;
+
+								q0 = Read_eol_Feed_Part0(p);
+
+								if (q0 < 0)
+								{
+									ways.LogCount  = lm1;
+									ways.RefsCount = rr1;
+								}
+
+								if (q0 < 0)
+									ways.Next(w0, 1, 1);
+							}
+							if (q0 < 0 && d0 <= 1)
+							{
+								var s2  = ways.Cursor;
+								var lm2 = ways.LogCount;
+								var rr2 = ways.RefsCount;
+
+								q0 = Read_eol_Feed_Part1(p);
+
+								if (q0 < 0)
+								{
+									ways.LogCount  = lm2;
+									ways.RefsCount = rr2;
+								}
+							}
+
+							if (q0 < 0)
+								return -1;
+
+							p = q0;
+							break;
+						}
+					case '\n': 
+						{
+							p += 1;
+							break;
+						}
+					default:
+						Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected21, ways);
+						return -1;
 				}
-
-				var w0  = -1;
-				var d0 = 0;
-				if (ways.Cursor < ways.Count)
-				{
-					w0  = ways.Cursor;
-					d0 = ways.Items[w0 * 2];
-					ways.Cursor++;
-				}
-				else
-				{
-					w0 = ways.Open(0, 2);
-				}
-
-				var q0 = -1;
-				if (q0 < 0 && d0 <= 0)
-				{
-					var s1  = ways.Cursor;
-					var lm1 = ways.LogCount;
-					var rr1 = ways.RefsCount;
-
-					q0 = Read_eol_Feed_Part0(p);
-
-					if (q0 < 0)
-					{
-						ways.LogCount  = lm1;
-						ways.RefsCount = rr1;
-					}
-
-					if (q0 < 0)
-						ways.Next(w0, 1, 2);
-				}
-				if (q0 < 0 && d0 <= 1)
-				{
-					var s2  = ways.Cursor;
-					var lm2 = ways.LogCount;
-					var rr2 = ways.RefsCount;
-
-					q0 = Read_eol_Feed_Part1(p);
-
-					if (q0 < 0)
-					{
-						ways.LogCount  = lm2;
-						ways.RefsCount = rr2;
-					}
-
-					if (q0 < 0)
-						ways.Next(w0, 2, 2);
-				}
-				if (q0 < 0 && d0 <= 2)
-				{
-					var s3  = ways.Cursor;
-					var lm3 = ways.LogCount;
-					var rr3 = ways.RefsCount;
-
-					q0 = Read_eol_Feed_Part2(p);
-
-					if (q0 < 0)
-					{
-						ways.LogCount  = lm3;
-						ways.RefsCount = rr3;
-					}
-				}
-
-				if (q0 < 0)
-					return -1;
-
-				p = q0;
 				return p;
 			}
 
@@ -779,19 +776,6 @@ namespace DotGram.Snapshots
 
 			/// <summary>One alternative of <c>eol</c>, read where it stood.</summary>
 			public int Read_eol_Feed_Part1(int pos)
-			{
-				var p = pos;
-				if ((uint)p >= (uint)text.Length || text[p] != '\n')
-				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected6, ways);
-					return -1;
-				}
-				p += 1;
-				return p;
-			}
-
-			/// <summary>One alternative of <c>eol</c>, read where it stood.</summary>
-			public int Read_eol_Feed_Part2(int pos)
 			{
 				var p = pos;
 				if ((uint)p >= (uint)text.Length || text[p] != '\r')
@@ -2274,6 +2258,8 @@ namespace DotGram.Snapshots
 		static readonly string[] Recognize_DotGram_Feed_Expected20 = { "'H'" };
 
 		static readonly string[] Recognize_DotGram_Feed_Expected21 = { "['\\r' | '\\n' | '\\r']" };
+
+		static readonly string[] Recognize_DotGram_Feed_Expected22 = { "['\\r' | '\\r']" };
 
 		static readonly string[] Recognize_DotGram_Name_Expected0 = { "[^ '\\n' | '\\r' | '|']" };
 

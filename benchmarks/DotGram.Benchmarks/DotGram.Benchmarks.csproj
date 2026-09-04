@@ -20,6 +20,8 @@
 
 	<ItemGroup>
 		<PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+		<!-- Hardware counters (SqlCounters.cs) come from ETW, which this package wraps. -->
+		<PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.14.0" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -341,9 +341,15 @@ sealed partial class Machine
 	/// halves of that follow from the switch being the only way in.
 	/// </para>
 	/// </remarks>
-	List<(FirstSets.First Set, List<Node> Members)>? Dispatchable(IReadOnlyList<Node> alternatives)
+	/// <param name="least">
+	/// How many groups make a switch worth writing. Four for the automaton, where the
+	/// alternatives it would replace are tests over characters; two for the reader, where
+	/// each is a call into a method that refuses, and a person would have switched on the
+	/// token.
+	/// </param>
+	List<(FirstSets.First Set, List<Node> Members)>? Dispatchable(IReadOnlyList<Node> alternatives, int least = Grouped)
 	{
-		if (alternatives.Count < Grouped)
+		if (alternatives.Count < least)
 			return null;
 
 		var groups = new List<(FirstSets.First Set, List<Node> Members)>();
@@ -387,7 +393,7 @@ sealed partial class Machine
 			groups.Add((set, [alternative]));
 		}
 
-		return groups.Count < Grouped ? null : groups;
+		return groups.Count < least ? null : groups;
 	}
 
 	/// <summary>
