@@ -137,7 +137,7 @@ public sealed class ShapesTests
 		{
 			var grammars = file.EndsWith(".gram", StringComparison.Ordinal)
 				? [(File.ReadAllText(file), false)]
-				: ReaderCoverageTests.Grammars(File.ReadAllText(file)).ToList();
+				: ReaderCoverageTests.Grammars(file).ToList();
 
 			foreach (var (text, lexical) in grammars)
 			{

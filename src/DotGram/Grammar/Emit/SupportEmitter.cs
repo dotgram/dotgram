@@ -129,6 +129,32 @@ public static class SupportEmitter
 				/// items and keeps a fifth as many ways back.
 				/// </remarks>
 				public bool Lexical { get; set; }
+
+				/// <summary>
+				/// How the reader carries what it has read until the constructions run.
+				/// </summary>
+				/// <remarks>
+				/// The tape unless set, which keeps §7.3: a construction runs once, for the
+				/// derivation that was accepted. The others are the author's to choose, and
+				/// what each gives up is written on it. A grammar the chosen carrier cannot
+				/// carry is compiled on the tape.
+				/// </remarks>
+				public GramCarrier Carrier { get; set; }
+			}
+
+			/// <summary>How a generated reader carries what it has read (docs/next.md, the redesign).</summary>
+			internal enum GramCarrier
+			{
+				/// <summary>Records on a tape, built into values once the parse is accepted. The default.</summary>
+				Tape,
+
+				/// <summary>
+				/// No deferral: a construction runs the moment its alternative has been read,
+				/// and one abandoned afterwards has already run. Once per derivation tried
+				/// rather than once per derivation accepted — invisible to a pure allocation,
+				/// visible to a counter. For factories the author knows to be pure.
+				/// </summary>
+				Eager,
 			}
 
 			/// <summary>

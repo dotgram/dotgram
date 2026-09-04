@@ -26,4 +26,11 @@
 		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<!-- The grammars as files the generator reads: a .gram beside the class that hosts
+		     it, so that another project can point the generator at the same text and compile
+		     it another way — which is what DotGram.Benchmarks does with the SQL grammar. -->
+		<AdditionalFiles Include="SqlStandard92.gram" />
+	</ItemGroup>
+
 </Project>

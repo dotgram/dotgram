@@ -381,6 +381,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			PartSize       = host.PartSize == 0 ? null : host.PartSize,
 			Lexical        = host.Lexical,
 			Direct         = host.Direct,
+			Carrier        = (CarrierKind)host.Carrier,
 		});
 
 		foreach (var diagnostic in result.Diagnostics)
@@ -641,7 +642,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<Included> Includes = default,
 		int       PartSize   = 0,
 		bool      Lexical    = false,
-		bool      Direct     = true)
+		bool      Direct     = true,
+		int       Carrier    = 0)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -736,6 +738,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.FirstOrDefault(static named => named.Key == nameof(Host.Direct))
 				.Value.Value as bool? ?? true;
 
+			// Which carrier the author chose (docs/next.md, the redesign). An enum constant
+			// reaches an analyzer as its underlying integer, and nought is the tape.
+			var carrier = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.Carrier))
+				.Value.Value as int? ?? 0;
+
 			// A request, like `Lexical`: a grammar the reader cannot write is written the
 			// way it was before the reader existed and told so (GRAM5006).
 			// The literal as written, kept beside the value it decodes to. A diagnostic
@@ -785,7 +793,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Includes:   new EquatableArray<Included>(Inherited(type)),
 				PartSize:   partSize,
 				Lexical:    lexical,
-				Direct:     direct);
+				Direct:     direct,
+				Carrier:    carrier);
 		}
 
 		/// <summary>Every grammar up the base chain, nearest first.</summary>

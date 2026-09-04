@@ -50,7 +50,7 @@ public sealed class ReaderCoverageTests
 		var unresolved = 0;
 
 		foreach (var file in files)
-			foreach (var (grammar, lexical) in Grammars(File.ReadAllText(file)))
+			foreach (var (grammar, lexical) in Grammars(file))
 			{
 				seen++;
 
@@ -104,13 +104,33 @@ public sealed class ReaderCoverageTests
 	/// so does this — which is what makes a grammar written across lines under <c>[Gram(</c>
 	/// the same grammar the generator reads.
 	/// </remarks>
-	internal static IEnumerable<(string Grammar, bool Lexical)> Grammars(string source)
+	/// <summary>
+	/// Every grammar a source file hosts: the text written inside <c>[Gram("""…""")]</c>, or the
+	/// <c>.gram</c> file beside it that <c>[Gram("Name.gram")]</c> names.
+	/// </summary>
+	internal static IEnumerable<(string Grammar, bool Lexical)> Grammars(string path)
 	{
-		var text = source.Replace("\r\n", "\n").Split('\n');
+		var text = File.ReadAllText(path).Replace("\r\n", "\n").Split('\n');
 
 		for (var i = 0; i < text.Length; i++)
 		{
-			if (!text[i].TrimStart().StartsWith("[Gram(\"\"\"", StringComparison.Ordinal))
+			// The path form: one line, the file's name in quotes, the rest of the attribute after.
+			var line = text[i].TrimStart();
+
+			if (line.StartsWith("[Gram(\"", StringComparison.Ordinal) &&
+				line.IndexOf(".gram\"", StringComparison.Ordinal) is var at && at > 0)
+			{
+				var name = line.Substring(7, at + 5 - 7);
+				var beside = Path.Combine(Path.GetDirectoryName(path)!, name);
+
+				yield return (
+					File.ReadAllText(beside).Replace("\r\n", "\n"),
+					line.Contains("Lexical = true", StringComparison.Ordinal));
+
+				continue;
+			}
+
+			if (!line.StartsWith("[Gram(\"\"\"", StringComparison.Ordinal))
 				continue;
 
 			var j = i + 1;
