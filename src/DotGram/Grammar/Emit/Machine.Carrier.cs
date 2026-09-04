@@ -184,8 +184,12 @@ sealed partial class Machine
 		/// <summary>The value a record holds, as a guard sees it.</summary>
 		public abstract string ValueOf(string type, string record);
 
-		/// <summary>The gathered members of the given slots as one array, for a guard that names a sequence member.</summary>
-		public abstract void Gathered(Writer code, string from, IReadOnlyList<int> slots, string handed, string type, string build);
+		/// <summary>
+		/// The gathered members of the given slots as one array, for a guard that names a
+		/// sequence member; <paramref name="text"/> where the member is pieces of text rather
+		/// than records.
+		/// </summary>
+		public abstract void Gathered(Writer code, string from, IReadOnlyList<int> slots, string handed, string type, string build, bool text);
 
 		/// <summary>What an entry rents before reading, beside the ways.</summary>
 		public abstract IEnumerable<string> Rent();
@@ -341,7 +345,7 @@ sealed partial class Machine
 		/// Gathered turn by turn on the tape, and collected here the way the rule's end would
 		/// collect them: counted first so the array is the right size, then visited.
 		/// </remarks>
-		public override void Gathered(Writer code, string from, IReadOnlyList<int> slots, string handed, string type, string build)
+		public override void Gathered(Writer code, string from, IReadOnlyList<int> slots, string handed, string type, string build, bool text)
 		{
 			var bits    = MaskOf(slots);
 			var bracket = type.IndexOf('[');

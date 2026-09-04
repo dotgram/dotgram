@@ -2139,7 +2139,7 @@ sealed partial class Machine
 
 				// Gathered turn by turn on the tape, and collected here the way the rule's end
 				// would collect them.
-				machine.Carrier.Gathered(code, Refs, slots, handed, type, build);
+				machine.Carrier.Gathered(code, Refs, slots, handed, type, build, member.Rule is null);
 			}
 
 			helper.Line($"static bool {method}({string.Join(", ", parameters)}) =>");

@@ -27,6 +27,15 @@ sealed partial class Machine
 		for (var i = 0; i < valueTypes.Count; i++)
 			text.Append("\tinternal ").Append(valueTypes[i]).Append(" Last").Append(i).Append(" = default!;\n");
 
+		// A stack per type for what a rule gathers across turns, and one for pieces of text,
+		// marked and unwound by count like the tape's references and taken as one array when
+		// the record is written — the one allocation a hand-written parser makes for a list.
+		text.Append('\n');
+		Stack(text, "string", "Text");
+
+		for (var i = 0; i < valueTypes.Count; i++)
+			Stack(text, valueTypes[i], i.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
+
 		text.Append("\n\t[global::System.ThreadStatic]\n\tstatic EagerValues? _spare;\n\n");
 		text.Append("\tinternal static EagerValues Rent()\n\t{\n\t\tvar spare = _spare;\n\n\t\tif (spare == null)\n\t\t\treturn new EagerValues();\n\n\t\t_spare = null;\n\n\t\treturn spare;\n\t}\n\n");
 		text.Append("\tinternal static void Return(EagerValues values)\n\t{\n");
@@ -34,12 +43,42 @@ sealed partial class Machine
 		for (var i = 0; i < valueTypes.Count; i++)
 			text.Append("\t\tvalues.Last").Append(i).Append(" = default!;\n");
 
+		text.Append("\t\tglobal::System.Array.Clear(values.StackText, 0, values.HighText);\n\t\tvalues.CountText = values.HighText = 0;\n");
+
+		for (var i = 0; i < valueTypes.Count; i++)
+			text.Append("\t\tglobal::System.Array.Clear(values.Stack").Append(i).Append(", 0, values.High").Append(i).Append(");\n")
+				.Append("\t\tvalues.Count").Append(i).Append(" = values.High").Append(i).Append(" = 0;\n");
+
 		text.Append("\t\t_spare = values;\n\t}\n\n");
 		text.Append("\t/// <summary>Whether a local a record would have been kept in was never written.</summary>\n");
 		text.Append("\tinternal static bool IsDefault<T>(T value) => global::System.Collections.Generic.EqualityComparer<T>.Default.Equals(value, default!);\n");
 		text.Append("}\n");
 
 		return text.ToString().Replace("\n", Lines.Ending);
+
+		static void Stack(StringBuilder text, string type, string tag)
+		{
+			text.Append("\tinternal ").Append(type).Append("[] Stack").Append(tag).Append(" = new ").Append(type).Append("[8];\n");
+			text.Append("\tinternal int Count").Append(tag).Append(";\n");
+			text.Append("\tinternal int High").Append(tag).Append(";\n\n");
+			text.Append("\tinternal void Push").Append(tag).Append('(').Append(type).Append(" item)\n\t{\n");
+			text.Append("\t\tif (Count").Append(tag).Append(" == Stack").Append(tag).Append(".Length)\n");
+			text.Append("\t\t\tglobal::System.Array.Resize(ref Stack").Append(tag).Append(", Count").Append(tag).Append(" * 2);\n\n");
+			text.Append("\t\tStack").Append(tag).Append("[Count").Append(tag).Append("++] = item;\n\n");
+			text.Append("\t\tif (Count").Append(tag).Append(" > High").Append(tag).Append(") High").Append(tag).Append(" = Count").Append(tag).Append(";\n\t}\n\n");
+			text.Append("\t/// <summary>What was pushed since the mark, as one array, and the stack back at the mark.</summary>\n");
+			text.Append("\tinternal ").Append(type).Append("[] Take").Append(tag).Append("(int from)\n\t{\n");
+			text.Append("\t\tvar taken = Peek").Append(tag).Append("(from);\n\n");
+			text.Append("\t\tCount").Append(tag).Append(" = from;\n\n");
+			text.Append("\t\treturn taken;\n\t}\n\n");
+			text.Append("\t/// <summary>What was pushed since the mark, as one array, the stack left as it is.</summary>\n");
+			text.Append("\tinternal ").Append(type).Append("[] Peek").Append(tag).Append("(int from)\n\t{\n");
+			text.Append("\t\tvar count = Count").Append(tag).Append(" - from;\n\n");
+			text.Append("\t\tif (count == 0)\n\t\t\treturn global::System.Array.Empty<").Append(type).Append(">();\n\n");
+			text.Append("\t\tvar taken = new ").Append(type).Append("[count];\n\n");
+			text.Append("\t\tglobal::System.Array.Copy(Stack").Append(tag).Append(", from, taken, 0, count);\n\n");
+			text.Append("\t\treturn taken;\n\t}\n\n");
+		}
 	}
 
 	/// <summary>
@@ -93,26 +132,30 @@ sealed partial class Machine
 			(machine.UsesInput ? machine.InputArgument : "") +
 			(machine.UsesContext ? machine.ContextArgument : "");
 
+		/// <remarks>
+		/// The marks of the stacks the rule gathers on, so that a part collects from where the
+		/// rule began and not from where the part did.
+		/// </remarks>
 		public override string GatherHanding(RuleSymbol owner, bool declared, bool inBody)
 		{
 			var text = new StringBuilder();
 
-			foreach (var (slot, element) in GatheredSlots(owner))
-				text.Append(declared ? $", global::System.Collections.Generic.List<{element}> g{slot}" : $", g{slot}");
+			foreach (var stack in GatheredStacks(owner))
+				text.Append(declared ? $", int refs_{stack}" : inBody ? $", rb_{stack}" : $", refs_{stack}");
 
 			return text.ToString();
 		}
 
 		public override IEnumerable<string> MarkRecords(string name) => [];
 
-		/// <remarks>A failed turn has pushed into the lists; the mark is where they stood.</remarks>
+		/// <remarks>A failed turn has pushed onto the stacks; the mark is where they stood.</remarks>
 		public override IEnumerable<string> MarkGathered(RuleSymbol? owner, string name)
 		{
 			if (owner is null)
 				yield break;
 
-			foreach (var (slot, _) in GatheredSlots(owner))
-				yield return $"var {name}_{slot} = g{slot}.Count;";
+			foreach (var stack in GatheredStacks(owner))
+				yield return $"var {name}_{stack} = values.Count{stack};";
 		}
 
 		public override IEnumerable<string> UnwindRecords(string name) => [];
@@ -122,18 +165,15 @@ sealed partial class Machine
 			if (owner is null)
 				yield break;
 
-			foreach (var (slot, _) in GatheredSlots(owner))
-				yield return $"g{slot}.RemoveRange({name}_{slot}, g{slot}.Count - {name}_{slot});";
+			foreach (var stack in GatheredStacks(owner))
+				yield return $"values.Count{stack} = {name}_{stack};";
 		}
 
 		public override string DeclareRecordLocal(int slot, string valueType) => $"{valueType} r{slot} = default!;";
 
 		public override string DeclareAccumulator(string valueType) => $"{valueType} fold = default!;";
 
-		public override IEnumerable<string> DeclareGathered(int slot, string elementType)
-		{
-			yield return $"var g{slot} = new global::System.Collections.Generic.List<{elementType}>();";
-		}
+		public override IEnumerable<string> DeclareGathered(int slot, string elementType) => [];
 
 		public override string RecordLocalType(string valueType) => valueType + " ";
 
@@ -189,24 +229,18 @@ sealed partial class Machine
 			return "";
 		}
 
+		/// <summary>
+		/// What the rule pushed since it began, taken off its type's stack as one array — the
+		/// text joined where the member is pieces of it.
+		/// </summary>
 		public override string Collect(DirectMember member, string from, bool pairs)
 		{
-			_puts.Add((member, Joined(member.Slots, pairs)));
+			var stack = pairs ? "Text" : StackOf(machine._results.ValueOf(member.Member.Rule));
+			var taken = $"values.Take{stack}({from}_{stack})";
+
+			_puts.Add((member, pairs ? $"string.Concat({taken})" : taken));
 
 			return "";
-		}
-
-		/// <summary>The lists of a member's slots as one value: the text joined, or the records as an array.</summary>
-		static string Joined(IReadOnlyList<int> slots, bool pairs)
-		{
-			if (slots.Count == 1)
-				return pairs ? $"string.Concat(g{slots[0]})" : $"g{slots[0]}.ToArray()";
-
-			var all = string.Join(", ", slots.Select(static slot => $"g{slot}"));
-
-			return pairs
-				? $"string.Concat({string.Join(", ", slots.Select(static slot => $"string.Concat(g{slot})"))})"
-				: $"global::System.Linq.Enumerable.ToArray(global::System.Linq.Enumerable.Concat({all}))";
 		}
 
 		/// <summary>The construction, called now, its result in the register of the rule's type.</summary>
@@ -264,9 +298,10 @@ sealed partial class Machine
 		public override string Last(string valueType) => $"values.Last{machine.TableFor(valueType)}";
 
 		public override string PushText(int slot, string from, string to) =>
-			$"g{slot}.Add({machine.Cut(from, $"{to} - {from}")});";
+			$"values.PushText({machine.Cut(from, $"{to} - {from}")});";
 
-		public override string PushRecord(int slot, string valueType) => $"g{slot}.Add({Last(valueType)});";
+		public override string PushRecord(int slot, string valueType) =>
+			$"values.Push{StackOf(valueType)}({Last(valueType)});";
 
 		public override string Mark(int kind, int site) =>
 			throw new InvalidOperationException("The eager carrier does not carry marks; Refuses should have said so.");
@@ -275,8 +310,13 @@ sealed partial class Machine
 
 		public override string ValueOf(string type, string record) => record;
 
-		public override void Gathered(Writer code, string from, IReadOnlyList<int> slots, string handed, string type, string build) =>
-			code.Line($"var {handed} = {Joined(slots, pairs: false)};");
+		/// <remarks>Peeked rather than taken: the record written later collects the same items.</remarks>
+		public override void Gathered(Writer code, string from, IReadOnlyList<int> slots, string handed, string type, string build, bool text)
+		{
+			var stack = text ? "Text" : StackOf(type);
+
+			code.Line($"var {handed} = values.Peek{stack}({from}_{stack});");
+		}
 
 		public override IEnumerable<string> Rent()
 		{
@@ -310,13 +350,29 @@ sealed partial class Machine
 			return null;
 		}
 
-		/// <summary>The slots a rule gathers into, with what each gathers.</summary>
-		IEnumerable<(int Slot, string Element)> GatheredSlots(RuleSymbol owner)
+		/// <summary>The stacks a rule gathers on — one per type its gathered members have, and the text's.</summary>
+		IEnumerable<string> GatheredStacks(RuleSymbol owner)
 		{
+			var seen = new HashSet<string>(StringComparer.Ordinal);
+
 			foreach (var member in machine.DirectMembers(owner))
-				if (member.Shape is MemberShape.Pieces or MemberShape.Records)
-					foreach (var slot in member.Slots)
-						yield return (slot, member.Shape == MemberShape.Pieces ? "string" : machine._results.ValueOf(member.Member.Rule));
+			{
+				var stack = member.Shape switch
+				{
+					MemberShape.Pieces  => "Text",
+					MemberShape.Records => StackOf(machine._results.ValueOf(member.Member.Rule)),
+					_                   => null,
+				};
+
+				if (stack is not null && seen.Add(stack))
+					yield return stack;
+			}
 		}
+
+		/// <summary>The stack a type's gathered values go on: the one numbered as its table is.</summary>
+		string StackOf(string valueType) =>
+			machine.TableFor(valueType) is var table && table >= 0
+				? table.ToString(System.Globalization.CultureInfo.InvariantCulture)
+				: throw new InvalidOperationException($"No value table for '{valueType}'.");
 	}
 }
