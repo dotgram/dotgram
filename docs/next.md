@@ -12692,3 +12692,114 @@ and what went is tape: nine retry loops, sixteen `_Body` wrappers and four `ways
 SQL is unchanged, and that is the honest half: over kinds it was already tape-free, so
 this is a gain for grammars read over characters and not for the yardstick. The remaining
 SQL distance is where it was — the walk over the log, and the bookkeeping around it.
+
+## The redesign: values as typed shapes
+
+What `benchmarks/DotGram.HandDeferred` settled, in the order the readings were written:
+a deferred construction can be carried as a closure, a tape, a struct held by value, a
+class, or an index into an arena, and the difference between them is paid where the
+derivation is *written*, not where it is built — construction is the author's own code
+and comes out within a tenth for all of them. Writing it as a struct nested by value
+inside its parent is the cheapest where the type is statically bounded, a class is the
+cheapest where it is not, a fold is an array of one element type and neither, and the
+array wants renting rather than growing — a fresh one per parse walks into the large
+object heap at a thousand pairs, which is where every array reading lost to every
+object reading. The engine's `Ways.Rent()` already keeps its arrays; what it does not
+have is the rest.
+
+**Decisions taken before the plan, so that the plan does not reopen them.**
+
+- A `when` may materialize. The guard is the author's own parser logic injected into the
+  match, so a value it asks for is built when it asks and the author answers for what
+  that construction does. §7.3's promise is about constructions nobody requested, and a
+  guard requests.
+- Streaming and reading without a lexer are debugged after the rest, not alongside it.
+- If the modes want different generators, they get different generators sharing modules
+  — not one generator steered by flags. `Machine.Reader.cs` is steered by eleven of them
+  today (`_committed`, `_commits`, `_logs`, `_gathers`, `_tape`, `_positions`, `_part`,
+  `_folds`, `_guarded`, `_climbs`, `_entry`) and that is the shape being left.
+
+**The stages, each with a measurable exit.**
+
+1. *Analysis, no emission.* For every rule: struct or class, by whether it can reach
+   itself; fold or not; guarded, gathering, climbing; an estimate of the struct's size;
+   and whether the emitter had to write a way back into it. For every publication: parse
+   or find, streamed or not. Run over every grammar in the repository, with the SQL
+   yardstick in full. This is `Shapes.Of` and `ShapesTests`, and the numbers are below.
+2. *Shapes for grammars with no guard and no gathering* — the class the lab was in.
+   `Minimal` and `Deferred` as snapshots, the differential test as the guard. This is
+   where shapes meet ways: an abandoned shape is a local nobody reads, so the two
+   should coexist without either knowing about the other, and this is where that gets
+   found out.
+3. *Guards, gathering, climbing*, one at a time, each with its own answer to how a value
+   is had before the derivation is accepted. Under the first decision above, a guard's
+   answer is "build it".
+4. *SQL*, and `--hand` against the hand-written parser on the same inputs.
+
+The materializer, `Live`, `Built`, `Held<T>` and the three tables go only after the third
+stage; until then they stand beside the shapes.
+
+**What the first stage says.** Thirty-four grammars, two of them over kinds:
+
+```text
+571 rules, 306 valued, 187 structs, 119 classes in 21 cycles;
+36 folds, 12 guarded, 79 gathering, 4 climbing; 212 rules on ways;
+72 entries, 9 streaming, 4 grammars recover
+```
+
+Across the repository a valued rule is a struct three times in five. Across the SQL
+yardstick it is the other way round, and by more:
+
+```text
+SqlStandard92, over kinds: 40 rules, 28 valued, 6 structs, 22 classes in 2 cycles;
+5 folds, 0 guarded, 8 gathering, 0 climbing; 0 on ways
+
+rule                         carrier bytes  texts records seqs  flags
+PredicateTail                Class      96      5       7    0
+ValueFunction                Class      80      4       6    0
+CaseExpression               Class      56      0       7    2
+ValueExpressionPrimary       Class      40      0       5    0
+RowValueConstructor          Class      32      0       4    1
+BooleanTest                  Class      24      2       1    2  fold
+ValueExpression              Class      24      1       2    2  fold
+Term                         Class      24      1       2    2  fold
+SearchCondition              Class      16      0       2    1  fold
+BooleanTerm                  Class      16      0       2    1  fold
+…
+UnsignedLiteral              Struct      8      1       0    0
+ColumnReference              Struct      8      1       0    0
+```
+
+Three things follow, and the second is the one that changes the second stage.
+
+*SQL is already tape-free for ways.* Not one of its forty rules got a way back written
+into it — over kinds, `Determinism` proves every repetition and every choice. So in the
+yardstick `Ways` is doing one job, the value log, and the whole of it is what a shape
+design replaces. That is the thirty percent the profile put on the walk, and nothing
+less.
+
+*SQL is classes, not structs.* Twenty-two of its twenty-eight valued rules sit on two
+cycles — the expression grammar is `ValueExpression → Term → Factor → Primary →
+( ValueExpression )` all the way down — so the by-value nesting that made `Mixed` half
+the cost of the tape in the lab has six rules to work with here, all of them leaves of
+eight bytes. What SQL gets from the redesign is the *other* half of what the lab found:
+dispatch resolved at generation time, one object per node instead of a log record per
+member plus a table entry per record, and folds as arrays — five of them. The lab's
+`Classes` reading is the nearer model, and it measured 0.46 to 0.77 of the tape on
+reading and level with it on the whole parse. The expectation for SQL should be set
+from that row and not from `Mixed`'s.
+
+*The cut is a choice, and the estimate depends on it.* Every rule on a cycle is a class
+here; the alternative is to cut each cycle at one rule and let the rest nest by value,
+which turns two classes and twenty-six structs out of the same graph — and turns
+`PredicateTail`'s ninety-six bytes into a struct holding `ValueExpression` holding `Term`
+holding `Factor`, hundreds of bytes copied at every hand-over. The report sizes a cycle
+member as a reference and so cannot say which cut is cheaper; that is the first thing
+the second stage measures, on a grammar small enough to try both.
+
+**On the shape of the generators.** The first stage does not touch emission, so it does
+not split anything. It does say where the split falls: the two over-kinds grammars are
+where every rule is a class and no rule needs a way, and the thirty-two over characters
+are where structs, folds, ways and streaming all live. Those are two generators, not one
+with a flag, and the second is the one with the harder problems — but the first is the
+one with the yardstick, and it is the one to write first.

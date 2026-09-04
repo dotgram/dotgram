@@ -104,7 +104,7 @@ public sealed class ReaderCoverageTests
 	/// so does this — which is what makes a grammar written across lines under <c>[Gram(</c>
 	/// the same grammar the generator reads.
 	/// </remarks>
-	static IEnumerable<(string Grammar, bool Lexical)> Grammars(string source)
+	internal static IEnumerable<(string Grammar, bool Lexical)> Grammars(string source)
 	{
 		var text = source.Replace("\r\n", "\n").Split('\n');
 
@@ -132,7 +132,7 @@ public sealed class ReaderCoverageTests
 		}
 	}
 
-	static string Root(string from)
+	internal static string Root(string from)
 	{
 		var at = new DirectoryInfo(from);
 
