@@ -170,6 +170,23 @@ static class ExpressionAgainst
 		"(char c) => 'a'",
 		"(char c) => '\\n'",
 
+		// What is left of the language: the constructs a person writes rarely and a
+		// parser has to read all the same.
+		"(int x) => { try { x += 1; } catch (Exception e) { x = 0; } x }",
+		"(int x) => { try { x += 1; } catch (Exception e) { x = 0; } finally { x += 1; } x }",
+		"(int x) => { try { x += 1; } finally { x += 1; } x }",
+		"(int x) => { if (x < 0) throw new Exception(\"no\"); x }",
+		"(int x) => new System.Collections.Generic.List<int>()",
+		"(int x) => new System.Collections.Generic.List<int> { x, 1 }",
+		"(int x) => new System.Collections.Generic.Dictionary<int, string> { { x, \"a\" } }",
+		"(int x) => new System.Text.StringBuilder(16).Length",
+		"(int x) => System.Convert.ToString(x)",
+		"(int x) => { int[] a = new int[2]; a[0] = x; a[0] }",
+		"(int x) => ++x",
+		"(int x) => --x",
+		"(int x) => x++",
+		"(int x) => x--",
+
 		// And the refusals: a refusal is an answer, and has to be the same answer.
 		"(int x) => x *",
 		"(int x) =>",
