@@ -30,6 +30,37 @@ namespace DotGram.HandDeferred;
 /// all, against the tape's one and the closures' allocation.
 /// </para>
 /// <para>
+/// <b>The arenas are rented, and it makes them slower.</b> That was not the expectation.
+/// Six arrays are six chances to allocate a large object, and unpooled this was the
+/// slowest reading of all at ten thousand pairs — 1.23 of the tape where <see cref="Mixed"/>
+/// with its one array was 1.10 — so a slot per arena, taken on the way in and given back
+/// on the way out, ought to have been the same win it is for <see cref="Pooled"/>. The
+/// allocation went where it was supposed to: a hundred and twenty bytes a parse at every
+/// size, which is the <c>Arenas</c> object and nothing else. The time went the wrong way.
+/// </para>
+/// <code>
+///                    5 pairs    10 pairs   100 pairs  1,000 pairs
+/// rented              68.3 ns    146.3 ns   2,225.9 ns  23,105.9 ns
+/// afresh              82.4 ns    164.6 ns   1,347.6 ns  12,879.6 ns
+/// </code>
+/// <para>
+/// <c>ArenasFresh</c> in the benchmarks is that second row: the same code, the same slots,
+/// the pool simply never given anything back, so every parse allocates. It is twice as
+/// fast from a hundred pairs up. So the cost is the reuse itself and not the plumbing
+/// around it — which is what a control is for, and it is the opposite of what the same
+/// experiment says about <see cref="Pooled"/>, where renting the one array is a third
+/// faster.
+/// </para>
+/// <para>
+/// The difference between those two is the number of arenas, which makes the likeliest
+/// reading locality: memory that was just allocated was just touched, and .NET bump-
+/// allocates, so six fresh arrays lie next to each other and are in cache by the time
+/// anything is written to them. Six pooled arrays have been promoted and scattered, and
+/// every parse walks to six places instead of one. That is a hypothesis and not a
+/// measurement — what would settle it is cache-miss counters, which is not something this
+/// project has reached for yet.
+/// </para>
+/// <para>
 /// <b>What it gives up.</b> The tape's single forward loop. There is no one order across
 /// six arrays, so building walks from the root — and a walk has a depth. The fold is kept
 /// flat by hand, with the left spine unwound onto a stack that is reused across the whole
@@ -111,14 +142,26 @@ sealed class Arenas : IReading
 		public Nested(Sum inner) => Inner = inner;
 	}
 
+	// One slot per arena, per thread. An arena is taken on the way in and given back on
+	// the way out, keeping whatever size it grew to, so a second parse of the same shape
+	// allocates nothing at all. There is no need for the size buckets `Pooled` has to
+	// keep: only one `Arenas` reads at a time on a thread, so one slot is the whole pool.
+	[ThreadStatic] static Name[]?    _freeNames;
+	[ThreadStatic] static Digits[]?  _freeDigits;
+	[ThreadStatic] static Only[]?    _freeOnlys;
+	[ThreadStatic] static Step[]?    _freeSteps;
+	[ThreadStatic] static Binding[]? _freeBindings;
+	[ThreadStatic] static Nested[]?  _freeNesteds;
+	[ThreadStatic] static int[]?     _freeSpine;
+
 	readonly string _text;
 
-	Name[]    _names    = new Name[8];
-	Digits[]  _digits   = new Digits[8];
-	Only[]    _onlys    = new Only[8];
-	Step[]    _steps    = new Step[8];
-	Binding[] _bindings = new Binding[8];
-	Nested[]  _nesteds  = new Nested[4];
+	Name[]    _names;
+	Digits[]  _digits;
+	Only[]    _onlys;
+	Step[]    _steps;
+	Binding[] _bindings;
+	Nested[]  _nesteds;
 
 	int _nameCount;
 	int _digitCount;
@@ -129,14 +172,59 @@ sealed class Arenas : IReading
 
 	Sum _root;
 
-	public Arenas(string text) => _text = text;
+	public Arenas(string text)
+	{
+		_text = text;
+
+		_names    = Take(ref _freeNames,    8);
+		_digits   = Take(ref _freeDigits,   8);
+		_onlys    = Take(ref _freeOnlys,    8);
+		_steps    = Take(ref _freeSteps,    8);
+		_bindings = Take(ref _freeBindings, 8);
+		_nesteds  = Take(ref _freeNesteds,  4);
+		_spine    = Take(ref _freeSpine,    8);
+
+		static T[] Take<T>(ref T[]? slot, int least)
+		{
+			var one = slot ?? new T[least];
+
+			slot = null;
+
+			return one;
+		}
+	}
 
 	/// <summary>Reads the whole input into the arenas and builds none of it.</summary>
 	public bool Recognize()
 	{
 		var end = Read_Sum(Skip(0), out _root);
+		var all = end >= 0 && Skip(end) == _text.Length;
 
-		return end >= 0 && Skip(end) == _text.Length;
+		if (!all)
+			Return();
+
+		return all;
+	}
+
+	/// <summary>
+	/// Hands the arenas back, at whatever size they grew to.
+	/// </summary>
+	/// <remarks>
+	/// <see cref="Construct"/> calls it, and so does a failed <see cref="Recognize"/>. A
+	/// successful one cannot: until the shapes have been built, the arenas are the
+	/// derivation. So a caller that stops after reading has to call this, and one that
+	/// does not is measuring a pool that is always empty — which is exactly how
+	/// <see cref="Pooled"/> came out identical to <see cref="Mixed"/> twice.
+	/// </remarks>
+	public void Return()
+	{
+		_freeNames    = _names;
+		_freeDigits   = _digits;
+		_freeOnlys    = _onlys;
+		_freeSteps    = _steps;
+		_freeBindings = _bindings;
+		_freeNesteds  = _nesteds;
+		_freeSpine    = _spine;
 	}
 
 	// ---- reading -----------------------------------------------------------------------
@@ -270,11 +358,18 @@ sealed class Arenas : IReading
 
 	// ---- building ----------------------------------------------------------------------
 
-	int[] _spine = new int[8];
+	int[] _spine;
 	int   _top;
 
-	/// <summary>Walks from the root, by index.</summary>
-	public string Construct() => Build(_root);
+	/// <summary>Walks from the root, by index, and gives the arenas back.</summary>
+	public string Construct()
+	{
+		var value = Build(_root);
+
+		Return();
+
+		return value;
+	}
 
 	/// <summary>
 	/// A <c>Sum</c>, with its left spine unwound onto a stack rather than onto the call

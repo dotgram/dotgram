@@ -123,7 +123,7 @@ static class Inputs
 [MemoryDiagnoser]
 public class Recognizing
 {
-	[Params(5, 20, 100, 1_000, 10_000)]
+	[Params(5, 10, 100, 1_000)]
 	public int Pairs;
 
 	string _input = "";
@@ -138,8 +138,6 @@ public class Recognizing
 
 		return reader.Recognize();
 	}
-
-	[Benchmark] public bool Closures() => new Closures(_input).Recognize();
 
 	[Benchmark] public bool Mixed() => new Mixed(_input).Recognize();
 
@@ -156,7 +154,28 @@ public class Recognizing
 		return read;
 	}
 
-	[Benchmark] public bool Arenas() => new Arenas(_input).Recognize();
+	[Benchmark]
+	public bool Arenas()
+	{
+		var reading = new Arenas(_input);
+		var read    = reading.Recognize();
+
+		reading.Return();
+
+		return read;
+	}
+
+	/// <summary>
+	/// The same reading with the same plumbing and the pool never given anything back, so
+	/// every parse allocates its arenas afresh.
+	/// </summary>
+	/// <remarks>
+	/// The control for <see cref="Arenas"/>, the way <see cref="Pooled"/> is the control
+	/// for <see cref="Mixed"/> — and it earns its place, because pooling the arenas made
+	/// them slower and this is what says the plumbing is not why.
+	/// </remarks>
+	[Benchmark]
+	public bool ArenasFresh() => new Arenas(_input).Recognize();
 
 	[Benchmark] public bool Boxed() => new Boxed(_input).Recognize();
 
@@ -212,7 +231,7 @@ public class Recognizing
 [SimpleJob(RunStrategy.Throughput, launchCount: 1, warmupCount: 3, iterationCount: 5)]
 public class Parsing
 {
-	[Params(5, 20, 100, 1_000, 10_000)]
+	[Params(5, 10, 100, 1_000)]
 	public int Pairs;
 
 	string _input = "";
@@ -239,16 +258,6 @@ public class Parsing
 		reader.Recognize();
 
 		return reader.ConstructOnAStack();
-	}
-
-	[Benchmark]
-	public string Closures()
-	{
-		var reading = new Closures(_input);
-
-		reading.Recognize();
-
-		return reading.Construct();
 	}
 
 	[Benchmark]
