@@ -1328,7 +1328,7 @@ public class DeferredShape
 	/// here to price the deferral, not as a candidate.
 	/// </summary>
 	[Benchmark]
-	public Made eager()
+	public Made immediate()
 	{
 		var text   = _text;
 		var at     = _at;

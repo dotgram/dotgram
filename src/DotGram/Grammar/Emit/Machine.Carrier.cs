@@ -29,22 +29,22 @@ sealed partial class Machine
 			if (field is not null)
 				return field;
 
-			if (_carrierKind == CarrierKind.Eager)
+			if (_carrierKind == CarrierKind.Immediate)
 			{
-				var eager = new EagerCarrier(this);
+				var immediate = new ImmediateCarrier(this);
 
-				if (eager.Refuses() is { } why)
+				if (immediate.Refuses() is { } why)
 					CarrierRefusal = why;
 				else
-					return field = eager;
+					return field = immediate;
 			}
 
 			return field = new TapeCarrier(this);
 		}
 	}
 
-	/// <summary>Whether values are built as they are read rather than after (<see cref="CarrierKind.Eager"/>).</summary>
-	internal bool CarriesEagerly => Carrier is EagerCarrier;
+	/// <summary>Whether values are built as they are read rather than after (<see cref="CarrierKind.Immediate"/>).</summary>
+	internal bool CarriesImmediately => Carrier is ImmediateCarrier;
 
 	/// <summary>
 	/// How a reader carries what it read until the derivation is accepted and the author's

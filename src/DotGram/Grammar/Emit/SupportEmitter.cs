@@ -154,7 +154,7 @@ public static class SupportEmitter
 				/// rather than once per derivation accepted — invisible to a pure allocation,
 				/// visible to a counter. For factories the author knows to be pure.
 				/// </summary>
-				Eager,
+				Immediate,
 			}
 
 			/// <summary>

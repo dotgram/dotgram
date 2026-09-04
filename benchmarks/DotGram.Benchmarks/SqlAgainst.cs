@@ -104,7 +104,7 @@ static class SqlAgainst
 
 		// Both readings of the grammar against the hand-written parser: what the tape costs
 		// over it, and what building as you read costs over it.
-		Console.WriteLine("   tape/hand  eager/hand");
+		Console.WriteLine("   tape/hand  immediate/hand");
 
 		foreach (var input in Inputs)
 		{
@@ -154,7 +154,7 @@ static class SqlAgainst
 	static readonly (string Name, Func<string, int> Measure)[] Methods =
 	[
 		("generated", static input => SqlStandard92.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
-		("eager",     static input => EagerSql.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
+		("immediate",     static input => ImmediateSql.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
 		("by hand",   static input => HandSqlTokens.Parse(input) ? 1 : 0),
 		("its lexer", static input => HandSqlTokens.LexOnly(input)),
 		("day one",   static input => HandSqlOriginal.Parse(input) ? 1 : 0),
@@ -196,19 +196,19 @@ static class SqlAgainst
 					$"  by hand   {other}");
 			}
 
-			// And the eager carrier: the same grammar, the same tree, built as it is read.
-			var eager = EagerSql.TryParseSearchCondition(text);
+			// And the immediate carrier: the same grammar, the same tree, built as it is read.
+			var immediate = ImmediateSql.TryParseSearchCondition(text);
 
-			if (eager.IsSuccess != generated)
+			if (immediate.IsSuccess != generated)
 				throw new InvalidOperationException(
-					$"About \"{text}\": the tape says {Said(generated)} and the eager carrier says " +
-					$"{Said(eager.IsSuccess)}.");
+					$"About \"{text}\": the tape says {Said(generated)} and the immediate carrier says " +
+					$"{Said(immediate.IsSuccess)}.");
 
-			if (generated && SqlTree.Show(made.Value) != SqlTree.Show(eager.Value))
+			if (generated && SqlTree.Show(made.Value) != SqlTree.Show(immediate.Value))
 				throw new InvalidOperationException(
 					$"About \"{text}\": the two carriers read it the same and build it differently.\n" +
 					$"  tape  {SqlTree.Show(made.Value)}\n" +
-					$"  eager {SqlTree.Show(eager.Value)}");
+					$"  immediate {SqlTree.Show(immediate.Value)}");
 
 			// The first day's parser is held only to what it was ever checked against — the
 			// benchmark inputs — and its departures over the corpus are shown, because they

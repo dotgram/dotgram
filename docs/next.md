@@ -13050,6 +13050,11 @@ every parser on every input in one process, and the suspicion is tiered PGO shap
 hand-written parser's two large methods to the input it is measured on; not settled.
 Every ratio in this document is the round-robin's unless it says otherwise.
 
+The carrier is called `Immediate` from here on — `CarrierKind.Immediate`,
+`GramCarrier.Immediate`, `ImmediateCarrier`, `ImmediateSql`. Every entry above calls it
+`Eager`, which is what it was called when they were written; the word named the timing and
+not the thing, and "immediate" is the plain opposite of the deferral it does without.
+
 One thing the yardstick found about itself: `HandSqlTokens` does not read the datetime
 literals — `DATE '2020-01-01'` is refused by hand and read by the grammar. It is outside
 the forty-two shapes `Agree()` holds the two to, so no ratio quoted here rests on it, but

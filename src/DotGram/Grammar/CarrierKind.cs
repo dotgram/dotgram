@@ -30,5 +30,5 @@ public enum CarrierKind
 	/// which a pure allocation never notices and a counter does. For authors who know their
 	/// factories are pure; never chosen for them.
 	/// </summary>
-	Eager,
+	Immediate,
 }

@@ -98,7 +98,7 @@ static class Program
 			var seconds = args.Length > 1 && int.TryParse(args[1], out var given) ? given : 20;
 			var which   = args.Length > 2 && int.TryParse(args[2], out var index) ? index : 4;
 			var byHand  = args.Length > 3 && args[3] == "hand";
-			var eagerly = args.Length > 3 && args[3] == "eager";
+			var immediately = args.Length > 3 && args[3] == "immediate";
 			var text    = SqlAgainst.Inputs[which];
 			var until   = DateTime.UtcNow.AddSeconds(seconds);
 			var read    = 0;
@@ -106,7 +106,7 @@ static class Program
 			while (DateTime.UtcNow < until)
 				for (var i = 0; i < 2000; i++)
 					read += byHand  ? HandSqlTokens.Parse(text) ? 1 : 0 :
-					        eagerly ? EagerSql.TryParseSearchCondition(text).IsSuccess ? 1 : 0 :
+					        immediately ? ImmediateSql.TryParseSearchCondition(text).IsSuccess ? 1 : 0 :
 					                  SqlStandard92.TryParseSearchCondition(text).IsSuccess ? 1 : 0;
 
 			Console.WriteLine($"{read:N0} parses of \"{text}\"");

@@ -13,7 +13,7 @@ namespace DotGram.Benchmarks;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Timing says the eager parser is half again the hand-written one and not where. A
+/// Timing says the immediate parser is half again the hand-written one and not where. A
 /// sampling profile charges half of everything to native code it cannot attribute, and a
 /// tracing profile charges by the call, which the hand-written parser makes fewer and
 /// smaller of. The counters divide the question instead: a parser that retires more
@@ -42,7 +42,7 @@ public class SqlCounters
 	public bool Hand() => HandSqlTokens.Parse(Long);
 
 	[Benchmark]
-	public bool Eager() => EagerSql.TryParseSearchCondition(Long).IsSuccess;
+	public bool Immediate() => ImmediateSql.TryParseSearchCondition(Long).IsSuccess;
 
 	[Benchmark]
 	public bool Tape() => SqlStandard92.TryParseSearchCondition(Long).IsSuccess;

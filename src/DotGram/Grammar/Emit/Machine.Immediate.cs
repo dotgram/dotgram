@@ -9,7 +9,7 @@ namespace DotGram.Grammar.Emit;
 
 sealed partial class Machine
 {
-	/// <summary>The class an eager parser rents: the stacks a rule gathers on, one per value type and one for text.</summary>
+	/// <summary>The class an immediate parser rents: the stacks a rule gathers on, one per value type and one for text.</summary>
 	/// <remarks>
 	/// <para>
 	/// A stack per type for what a rule gathers across turns, and one for pieces of text,
@@ -18,25 +18,25 @@ sealed partial class Machine
 	/// </para>
 	/// <para>
 	/// The registers a value is handed through from callee to caller are not here but in the
-	/// reader itself (<see cref="EagerCarrier.ReaderRegisters"/>): a reader writes one for
+	/// reader itself (<see cref="ImmediateCarrier.ReaderRegisters"/>): a reader writes one for
 	/// every value it builds, and written into this class, on the heap, each went through
 	/// the collector's write barrier — a fifth of the parse, measured on the SQL yardstick.
 	/// </para>
 	/// </remarks>
-	internal static string EagerValuesClass(IReadOnlyList<string> valueTypes)
+	internal static string ImmediateValuesClass(IReadOnlyList<string> valueTypes)
 	{
 		var text = new StringBuilder();
 
-		text.Append("/// <summary>What an eager parse gathers on: a stack per value type, and one for text (Machine.Eager.cs).</summary>\n");
-		text.Append("sealed class EagerValues\n{\n");
+		text.Append("/// <summary>What an immediate parse gathers on: a stack per value type, and one for text (Machine.Immediate.cs).</summary>\n");
+		text.Append("sealed class ImmediateValues\n{\n");
 		Stack(text, "string", "Text");
 
 		for (var i = 0; i < valueTypes.Count; i++)
 			Stack(text, valueTypes[i], i.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
 
-		text.Append("\n\t[global::System.ThreadStatic]\n\tstatic EagerValues? _spare;\n\n");
-		text.Append("\tinternal static EagerValues Rent()\n\t{\n\t\tvar spare = _spare;\n\n\t\tif (spare == null)\n\t\t\treturn new EagerValues();\n\n\t\t_spare = null;\n\n\t\treturn spare;\n\t}\n\n");
-		text.Append("\tinternal static void Return(EagerValues values)\n\t{\n");
+		text.Append("\n\t[global::System.ThreadStatic]\n\tstatic ImmediateValues? _spare;\n\n");
+		text.Append("\tinternal static ImmediateValues Rent()\n\t{\n\t\tvar spare = _spare;\n\n\t\tif (spare == null)\n\t\t\treturn new ImmediateValues();\n\n\t\t_spare = null;\n\n\t\treturn spare;\n\t}\n\n");
+		text.Append("\tinternal static void Return(ImmediateValues values)\n\t{\n");
 		text.Append("\t\tglobal::System.Array.Clear(values.StackText, 0, values.HighText);\n\t\tvalues.CountText = values.HighText = 0;\n");
 
 		for (var i = 0; i < valueTypes.Count; i++)
@@ -86,7 +86,7 @@ sealed partial class Machine
 	/// when the reader reaches the end of an alternative it calls the construction with those
 	/// locals as arguments and puts the result in the register for its type. An abandoned
 	/// alternative has already called its construction — that is the one thing this carrier
-	/// gives up, and <see cref="CarrierKind.Eager"/> says who is answerable for it — and
+	/// gives up, and <see cref="CarrierKind.Immediate"/> says who is answerable for it — and
 	/// leaves nothing to unwind, because nothing it made is anywhere but in locals about to
 	/// go out of scope.
 	/// </para>
@@ -100,7 +100,7 @@ sealed partial class Machine
 	/// the second carrier can add.
 	/// </para>
 	/// </remarks>
-	sealed class EagerCarrier(Machine machine) : ValueCarrier
+	sealed class ImmediateCarrier(Machine machine) : ValueCarrier
 	{
 		// The record under construction: what Begin was told, and the members put since.
 		RuleSymbol? _rule;
@@ -118,7 +118,7 @@ sealed partial class Machine
 		{
 			get
 			{
-				yield return ("EagerValues", "values");
+				yield return ("ImmediateValues", "values");
 
 				if (machine.OverKinds)
 					foreach (var token in Machine.TokenState)
@@ -197,7 +197,7 @@ sealed partial class Machine
 
 		public override string ResetRecordLocal(int slot) => $"r{slot} = default!;";
 
-		public override string Absent(string local) => $"EagerValues.IsDefault({local})";
+		public override string Absent(string local) => $"ImmediateValues.IsDefault({local})";
 
 		public override string FirstRecord(IReadOnlyList<int> slots, string valueType)
 		{
@@ -207,7 +207,7 @@ sealed partial class Machine
 			var chain = $"default({valueType})!";
 
 			for (var i = slots.Count - 1; i >= 0; i--)
-				chain = $"!EagerValues.IsDefault(r{slots[i]}) ? r{slots[i]} : {chain}";
+				chain = $"!ImmediateValues.IsDefault(r{slots[i]}) ? r{slots[i]} : {chain}";
 
 			return $"({chain})";
 		}
@@ -322,7 +322,7 @@ sealed partial class Machine
 			$"values.Push{StackOf(valueType)}({Last(valueType)});";
 
 		public override string Mark(int kind, int site) =>
-			throw new InvalidOperationException("The eager carrier does not carry marks; Refuses should have said so.");
+			throw new InvalidOperationException("The immediate carrier does not carry marks; Refuses should have said so.");
 
 		public override string Materialize(string record, string sinceMark) => "";
 
@@ -338,12 +338,12 @@ sealed partial class Machine
 
 		public override IEnumerable<string> Rent()
 		{
-			yield return "var values = EagerValues.Rent();";
+			yield return "var values = ImmediateValues.Rent();";
 		}
 
 		public override IEnumerable<string> Return()
 		{
-			yield return "EagerValues.Return(values);";
+			yield return "ImmediateValues.Return(values);";
 		}
 
 		/// <remarks>Read off the reader, which is what the register is a field of.</remarks>

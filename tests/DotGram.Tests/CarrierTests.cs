@@ -80,28 +80,28 @@ public sealed class CarrierTests
 
 	public static IEnumerable<object[]> Every() => Shapes.Select(one => new object[] { one.Name });
 
-	/// <summary>The eager carrier agrees with the tape on every shape and every input.</summary>
+	/// <summary>The immediate carrier agrees with the tape on every shape and every input.</summary>
 	[Theory]
 	[MemberData(nameof(Every))]
-	public void Eager_agrees_with_the_tape(string name)
+	public void Immediate_agrees_with_the_tape(string name)
 	{
 		var (_, grammar, inputs) = Shapes.Single(one => one.Name == name);
 
 		var tape  = Compiled(grammar, CarrierKind.Tape);
-		var eager = Compiled(grammar, CarrierKind.Eager);
+		var immediate = Compiled(grammar, CarrierKind.Immediate);
 
-		Assert.Contains("EagerValues", eager.Source, StringComparison.Ordinal);
-		Assert.DoesNotContain("Materialize_DotGram", eager.Source, StringComparison.Ordinal);
-		Assert.DoesNotContain("DirectValues", eager.Source, StringComparison.Ordinal);
+		Assert.Contains("ImmediateValues", immediate.Source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Materialize_DotGram", immediate.Source, StringComparison.Ordinal);
+		Assert.DoesNotContain("DirectValues", immediate.Source, StringComparison.Ordinal);
 
 		foreach (var input in inputs)
 		{
 			var expected = EmittedCode.Match(tape.Assembly,  "Carried.Probe", "TryParseStart", input);
-			var actual   = EmittedCode.Match(eager.Assembly, "Carried.Probe", "TryParseStart", input);
+			var actual   = EmittedCode.Match(immediate.Assembly, "Carried.Probe", "TryParseStart", input);
 
 			Assert.True(
 				expected.IsSuccess == actual.IsSuccess,
-				$"{name} on \"{input}\": the tape says {expected.IsSuccess}, eager says {actual.IsSuccess}.");
+				$"{name} on \"{input}\": the tape says {expected.IsSuccess}, immediate says {actual.IsSuccess}.");
 
 			if (expected.IsSuccess)
 				Assert.Equal(ValueOf(expected), ValueOf(actual));

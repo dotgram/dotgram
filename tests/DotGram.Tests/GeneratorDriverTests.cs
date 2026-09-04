@@ -1107,7 +1107,7 @@ public sealed class GeneratorDriverTests
 		// No trailing 'x', so the whole parse fails and Accept: — the only place a value is
 		// ever constructed — is never reached. Inner has nothing before it left to
 		// backtrack into the moment it returns, which once made it eligible for a since-
-		// removed eager-construction optimization; Built() must still never run for a
+		// removed immediate-construction optimization; Built() must still never run for a
 		// derivation whose surrounding parse does not succeed (docs/implementation.md §3).
 		Assert.Throws<TargetInvocationException>(
 			() => type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["1"]));
@@ -1118,10 +1118,10 @@ public sealed class GeneratorDriverTests
 	public void A_rule_before_an_atomic_group_is_not_constructed_before_the_parse_is_accepted()
 	{
 		// Prefix has a live alternative (`none`) still available when { 'x' } closes; a
-		// since-removed eager-construction analysis treated any successful atomic group as
+		// since-removed immediate-construction analysis treated any successful atomic group as
 		// committing everything before it, which is not what the runtime commit actually
 		// does — the atomic group only discards entries created inside itself. Value would
-		// have been wrongly eligible for eager construction under that analysis, even
+		// have been wrongly eligible for immediate construction under that analysis, even
 		// though Prefix's own alternative can still be reached if the parse fails after it.
 		var type = Build("""
 			[DotGram.Gram("Prefix = 'a' | none\nValue : @int = 'b' => @Built()\nStart = Prefix & { 'x' } & Value & 'z'\nparse Start")]

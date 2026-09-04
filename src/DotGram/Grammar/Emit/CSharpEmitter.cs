@@ -467,16 +467,16 @@ public static partial class CSharpEmitter
 			file.Line();
 
 			// Each carrier's own store, where a machine carries that way: the tables the walk
-			// fills, or the registers an eager parse hands values through.
-			if (machines.Exists(static compiled => compiled.Direct && !compiled.Machine.CarriesEagerly))
+			// fills, or the registers an immediate parse hands values through.
+			if (machines.Exists(static compiled => compiled.Direct && !compiled.Machine.CarriesImmediately))
 			{
 				file.Write(DirectValuesClass(tables, graph.State));
 				file.Line();
 			}
 
-			if (machines.Exists(static compiled => compiled.Direct && compiled.Machine.CarriesEagerly))
+			if (machines.Exists(static compiled => compiled.Direct && compiled.Machine.CarriesImmediately))
 			{
-				file.Write(Machine.EagerValuesClass(tables));
+				file.Write(Machine.ImmediateValuesClass(tables));
 				file.Line();
 			}
 		}
@@ -1696,7 +1696,7 @@ public static partial class CSharpEmitter
 	/// wrong in both directions. `@(Log("parserInput"))` claimed the whole input and so
 	/// refused the grammar its flat rendering; `@(other.context)` claimed the context,
 	/// because a dot is not an identifier character. A graph built without a scanner, or an
-	/// expression that would not parse, still gets the old answer — which is over-eager
+	/// expression that would not parse, still gets the old answer — which is over-immediate
 	/// rather than absent, and so adds a parameter rather than dropping one.
 	/// </para>
 	/// </remarks>
