@@ -22,6 +22,16 @@ namespace DotGram.HandDeferred;
 /// dereference. The dispatch is a <c>switch</c> on it and the call after that is direct.
 /// </para>
 /// <para>
+/// <b>And a group costs nothing to keep.</b> Every other reading makes an object per
+/// <c>Sum</c> — per parenthesis in the input — and cannot pool it, because until the parse
+/// is built that object is the answer and giving it back would be throwing the derivation
+/// away. So their allocation grows with the number of groups: <see cref="Pooled"/>, which
+/// pools its arrays perfectly, still goes from 184 bytes to four kilobytes as the
+/// parentheses go from none to sixty-six. Here a <c>Sum</c> is an index into an arena that
+/// was already rented, so it is not an allocation at all, and the figure stays at a
+/// hundred and twenty bytes whatever the input does.
+/// </para>
+/// <para>
 /// <b>Nothing is ever rewound.</b> The tape has to put itself back when a reading fails,
 /// because it builds forwards over everything it holds and a record it never wrote must
 /// not be there. This builds from the root by index, so a shape nobody points at is never
@@ -45,20 +55,27 @@ namespace DotGram.HandDeferred;
 /// </code>
 /// <para>
 /// <c>ArenasFresh</c> in the benchmarks is that second row: the same code, the same slots,
-/// the pool simply never given anything back, so every parse allocates. It is twice as
-/// fast from a hundred pairs up. So the cost is the reuse itself and not the plumbing
-/// around it — which is what a control is for, and it is the opposite of what the same
-/// experiment says about <see cref="Pooled"/>, where renting the one array is a third
-/// faster.
+/// the pool simply never given anything back, so every parse allocates. On that input it
+/// is twice as fast from a hundred pairs up, which says the cost is the reuse and not the
+/// plumbing around it.
 /// </para>
 /// <para>
-/// The difference between those two is the number of arenas, which makes the likeliest
-/// reading locality: memory that was just allocated was just touched, and .NET bump-
-/// allocates, so six fresh arrays lie next to each other and are in cache by the time
-/// anything is written to them. Six pooled arrays have been promoted and scattered, and
-/// every parse walks to six places instead of one. That is a hypothesis and not a
-/// measurement — what would settle it is cache-miss counters, which is not something this
-/// project has reached for yet.
+/// <b>And on another input it is the other way round.</b> <see cref="Nesting"/> runs the
+/// same thousand pairs folded one, five and ten levels deep instead of laid out flat, and
+/// there the rented arenas are the faster of the two — 7.8 against 9.5 microseconds at
+/// five levels, 8.9 against 11.2 at ten. Same code, same arena sizes, near enough the same
+/// number of records. Two inputs of the same length disagree about whether reusing the
+/// arrays helps, and the flat result reproduced across two separate runs, so it is not
+/// noise in the ordinary sense.
+/// </para>
+/// <para>
+/// So the honest state of it: on the flat input renting measured slower, on the nested one
+/// faster, and nothing here explains which. The reading first offered — that six pooled
+/// arrays are scattered where six freshly bump-allocated ones lie together and are already
+/// in cache — survives the flat half and says nothing about the other. It is left written
+/// down as the thing to test, with cache-miss counters, rather than as the answer. The one
+/// number that does not move is the allocation: a hundred and twenty bytes a parse at every
+/// size and every depth, which is the <c>Arenas</c> object and nothing else.
 /// </para>
 /// <para>
 /// <b>What it gives up.</b> The tape's single forward loop. There is no one order across

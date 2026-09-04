@@ -30,6 +30,53 @@ static class Inputs
 
 		return written.ToString();
 	}
+
+	/// <summary>
+	/// The same pairs, but nested to a given depth: a run at every level, and the last
+	/// element of each run a parenthesised run one level down.
+	/// </summary>
+	/// <remarks>
+	/// <see cref="Of(int)"/> is nearly flat — one element in sixteen parenthesised, and
+	/// none at all below sixteen pairs, so the two smallest sizes in every other table
+	/// have no recursion in them whatever. This is the other axis: the same amount of
+	/// input, folded into itself instead of laid out.
+	/// </remarks>
+	public static string Of(int pairs, int depth)
+	{
+		var written = new StringBuilder();
+
+		Emit(written, pairs, depth);
+
+		return written.ToString();
+
+		static void Emit(StringBuilder written, int pairs, int depth)
+		{
+			var here = depth <= 0 ? pairs : Math.Max(1, pairs / (depth + 1));
+
+			if (here >= pairs)
+			{
+				here  = pairs;
+				depth = 0;
+			}
+
+			for (var i = 0; i < here; i++)
+			{
+				if (i > 0)
+					written.Append(" + ");
+
+				written.Append("ab = ").Append(i % 10);
+			}
+
+			if (depth <= 0)
+				return;
+
+			written.Append(" + (");
+
+			Emit(written, pairs - here, depth - 1);
+
+			written.Append(')');
+		}
+	}
 }
 
 /// <summary>
@@ -365,4 +412,73 @@ public class Threshold
 
 		return reader.Recognize();
 	}
+}
+
+/// <summary>
+/// The axis the other tables do not have: how deep the input nests, at the same length.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Everywhere else the input is a long run with one element in sixteen parenthesised,
+/// which below sixteen pairs is no recursion at all. That flatters whatever handles a run
+/// well and says nothing about the part of the grammar the whole project turned on — the
+/// parenthesis, which is the recursion §4.3 cannot fold away.
+/// </para>
+/// <para>
+/// A thousand pairs in every case, folded one, five and ten levels deep. Each level
+/// carries a <c>Sum</c> of its own, so the depth is also how many objects the readings
+/// that keep a <c>Sum</c> have to make, and how deep the walk goes at build time.
+/// Recognition only: this is about where a representation is written.
+/// </para>
+/// </remarks>
+[MemoryDiagnoser]
+public class Nesting
+{
+	[Params(1, 5, 10)]
+	public int Depth;
+
+	string _input = "";
+
+	[GlobalSetup]
+	public void Setup() => _input = Inputs.Of(1_000, Depth);
+
+	[Benchmark(Baseline = true)]
+	public bool Tape()
+	{
+		var reader = new Reader(_input);
+
+		return reader.Recognize();
+	}
+
+	[Benchmark] public bool Mixed() => new Mixed(_input).Recognize();
+
+	[Benchmark] public bool Mix2() => new Mix2(_input).Recognize();
+
+	[Benchmark]
+	public bool Pooled()
+	{
+		var reading = new Pooled(_input);
+		var read    = reading.Recognize();
+
+		reading.Return();
+
+		return read;
+	}
+
+	[Benchmark]
+	public bool Arenas()
+	{
+		var reading = new Arenas(_input);
+		var read    = reading.Recognize();
+
+		reading.Return();
+
+		return read;
+	}
+
+	[Benchmark] public bool ArenasFresh() => new Arenas(_input).Recognize();
+
+	[Benchmark] public bool Boxed() => new Boxed(_input).Recognize();
+
+	[Benchmark] public bool Classes() => new Classes(_input).Recognize();
 }
