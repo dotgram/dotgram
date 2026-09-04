@@ -160,6 +160,20 @@ static class Program
 			return;
 		}
 
+		// `--el [rounds] [iterations]` is the same for the expression language: the two
+		// readings of its grammar against the hand-written parser in HandExpression.cs,
+		// round-robin, after checking that all three read the same language. See
+		// ExpressionAgainst.cs.
+		if (args.Length >= 1 && args[0] == "--el")
+		{
+			var rounds     = args.Length >= 2 && int.TryParse(args[1], out var turns) ? turns : 7;
+			var iterations = args.Length >= 3 && int.TryParse(args[2], out var runs)  ? runs  : 20_000;
+
+			ExpressionAgainst.Run(rounds, iterations);
+
+			return;
+		}
+
 		// `--against [rounds] [iterations]` is not a benchmark either: it measures the URL
 		// comparison round-robin instead of one method at a time, so that the ratios hold
 		// on a machine that is not idle. See Against.cs.

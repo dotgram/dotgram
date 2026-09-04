@@ -462,7 +462,8 @@ namespace DotGram.Parsers;
 	// text is read, and the jump looks it up when it is built. It has to be that way round
 	// here too, because a `break` is built before the loop that holds it.
 	While : @Expression
-		= "while" & '(' & test: Expression & ')' & body: Statement
+		= "while" & '(' & test: Expression & ')'
+		& when @(context.Opening(parserSpan)) & body: Statement
 		& when @(context.Loops(parserSpan))
 		=> @(Expression.Loop(
 			Expression.Condition(
@@ -475,7 +476,8 @@ namespace DotGram.Parsers;
 	// test. So this one places the label itself, with `Expression.Label`, and leaves the
 	// loop's own continue unused.
 	DoWhile : @Expression
-		= "do" & body: Statement & "while" & '(' & test: Expression & ')' & ';'
+		= "do" & when @(context.Opening(parserSpan)) & body: Statement
+		& "while" & '(' & test: Expression & ')' & ';'
 		& when @(context.Loops(parserSpan))
 		=> @(Expression.Loop(
 			Expression.Block(
@@ -493,7 +495,7 @@ namespace DotGram.Parsers;
 	// declares the variable the initializer assigns.
 	For : @Expression
 		= "for" & '(' & init: Statement & test: Expression & ';' & step: Expression & ')'
-		& body: Statement
+		& when @(context.Opening(parserSpan)) & body: Statement
 		& when @(context.Loops(parserSpan) && context.Scoped(parserSpan))
 		=> @(context.Block(
 			new[] { init }, parserSpan,
@@ -509,7 +511,9 @@ namespace DotGram.Parsers;
 	// case leaves the switch and not the loop around it. So it records an extent of its own
 	// and puts the label the jumps go to after itself.
 	Switch : @Expression
-		= "switch" & '(' & value: Expression & ')' & '{' & cases: Case* & fallback: Fallback? & '}'
+		= "switch" & '(' & value: Expression & ')' & '{'
+		& when @(context.Breaking(parserSpan))
+		& cases: Case* & fallback: Fallback? & '}'
 		& when @(context.Breaks(parserSpan))
 		=> @(Expression.Block(
 			Expression.Switch(typeof(void), value, fallback, null, cases),
@@ -1671,7 +1675,7 @@ public static partial class ExpressionLanguage
 		/// <summary>A loop, which a <c>break</c> and a <c>continue</c> may both name.</summary>
 		public bool Loops(SourceSpan span)
 		{
-			(_loops ??= []).Add(new Scope(span.Start, span.Start + span.Length));
+			Close(_loops ??= [], span);
 
 			return Breaks(span);
 		}
@@ -1679,9 +1683,54 @@ public static partial class ExpressionLanguage
 		/// <summary>A switch, which only a <c>break</c> may name.</summary>
 		public bool Breaks(SourceSpan span)
 		{
-			(_breakables ??= []).Add(new Scope(span.Start, span.Start + span.Length));
+			Close(_breakables ??= [], span);
 
 			return true;
+		}
+
+		/// <summary>
+		/// A loop begun: everything from here on is inside it until it says where it ends.
+		/// </summary>
+		/// <remarks>
+		/// A jump names the loop it is written in, and a loop knows how far it reaches only
+		/// once its body has been read — so a reading that builds the jump where it stands
+		/// would ask about a loop nothing has recorded yet. Written down twice instead:
+		/// once where the loop begins, reaching to the end of the text, and once where it
+		/// ends, with the extent it turned out to have. The label is keyed by where the
+		/// loop begins, which is the same before and after, so a jump built under the open
+		/// extent and one built under the closed one name the same label.
+		///
+		/// Nothing is lost where a reading defers instead. The open extent is replaced by
+		/// the closed one, and until it is, the only positions inside it are the ones being
+		/// read — which are the loop's own body.
+		/// </remarks>
+		public bool Opening(SourceSpan span)
+		{
+			(_loops ??= []).Add(new Scope(span.Start, int.MaxValue));
+
+			return Breaking(span);
+		}
+
+		/// <summary>The same for a switch, which only a <c>break</c> may name.</summary>
+		public bool Breaking(SourceSpan span)
+		{
+			(_breakables ??= []).Add(new Scope(span.Start, int.MaxValue));
+
+			return true;
+		}
+
+		/// <summary>The extent an <see cref="Opening"/> left open, given the one it has.</summary>
+		static void Close(List<Scope> among, SourceSpan span)
+		{
+			for (var i = among.Count - 1; i >= 0; i--)
+				if (among[i].From == span.Start && among[i].To == int.MaxValue)
+				{
+					among[i] = new Scope(span.Start, span.Start + span.Length);
+
+					return;
+				}
+
+			among.Add(new Scope(span.Start, span.Start + span.Length));
 		}
 
 		/// <summary>Where a <c>break</c> written here goes.</summary>

@@ -13097,6 +13097,32 @@ characters rather than over tokens, and a text member came out cut one short. Ev
 second attribute does not say it now takes from the first; what it does say is the
 difference, which is the whole of what writing a second one means.
 
+**The expression language gets a yardstick of its own.** `HandExpression.cs` is what
+`HandSqlTokens.cs` is to SQL: a lexer over the whole input and a recursive descent over
+the tokens, calling the same factories the grammar's `=>` calls and handing the same
+`State` the same spans. What is compared is the reading and not the building — a second
+implementation of scopes and names would be a second thing to be wrong — and two shapes in
+it are a person's rather than a grammar's: the ten levels of C#'s ladder are one loop over
+a precedence, and the suffixes of a postfix chain are a loop rather than a left recursion.
+`--el [rounds] [iterations]` holds all three readings to one language over a hundred and
+twenty shapes and then times them round-robin. Early: the tape reads at 1.4 to 2.8 of the
+hand-written parser and the immediate carrier at 1.2 to 1.9, with the two purely
+arithmetic inputs moving between runs by more than the difference between them — a parse
+here allocates a tree and the collector lands where it lands, and the harness will need to
+say more about that before those two rows are worth quoting.
+
+Writing it found the third place the grammar rested on deferral, and the one that could
+not be answered where the other two were. `break` and `continue` name the loop they are
+written in; a loop knows how far it reaches only once its body has been read; so a reading
+that builds a jump where it stands asks about a loop nothing has recorded yet. A `when` at
+the end cannot answer that — the question is asked before it runs. So the extent is
+written down twice: `Opening` where the loop begins, reaching to the end of the text, and
+`Loops` where it ends, with the extent it turned out to have. The label is keyed by where
+the loop begins, which is the same both times, so a jump built under the open extent and
+one built under the closed one name the same label; and while the extent is open the only
+positions inside it are the ones being read, which are the loop's own body. Nothing
+changes for a reading that defers.
+
 The carrier is called `Immediate` from here on — `CarrierKind.Immediate`,
 `GramCarrier.Immediate`, `ImmediateCarrier`, `ImmediateSql`. Every entry above calls it
 `Eager`, which is what it was called when they were written; the word named the timing and

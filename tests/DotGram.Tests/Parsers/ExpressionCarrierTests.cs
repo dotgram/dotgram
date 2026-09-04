@@ -62,6 +62,15 @@ public sealed class ExpressionCarrierTests
 		"(int x) => new int[] { x, 1 }.Length",
 		"(string s) => s == null ? 0 : s.Length",
 
+		// A jump names the loop it is written in, and a loop knows how far it reaches only
+		// once its body is read: the shape a reading that builds where it reads has to be
+		// told about before it meets one.
+		"(int n) => { int sum = 0; for (int i = 0; i < n; i++) { if (i % 2 == 0) continue; sum += i; } sum }",
+		"(int n) => { while (true) { if (n > 3) break; n += 1; } n }",
+		"(int n) => { do { n += 1; if (n > 3) break; } while (n < 10); n }",
+		"(int n) => { switch (n) { case 1: n = 10; break; default: n = 0; break; } n }",
+		"(int n) => { while (n < 9) { while (n < 5) { n += 2; } n += 1; } n }",
+
 		// And the refusals: a refusal is an answer and has to be the same answer.
 		"(int x) => x *",
 		"(int x) => { x += 1;",
