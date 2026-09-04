@@ -224,7 +224,7 @@ sealed partial class Machine
 
 		if (rules.Any(Valued))
 		{
-			file.Write(RenderDirectMaterializer(rules));
+			file.Write(Carrier.RenderBuilder(rules));
 			file.Line();
 		}
 
@@ -275,8 +275,8 @@ sealed partial class Machine
 			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters}{strength})"))
 		{
 			file.Line("var s  = ways.Cursor;");
-			file.Line("var lm = ways.LogCount;");
-			file.Line("var rb = ways.RefsCount;");
+			file.Line(Carrier.MarkRecords("lm"));
+			file.Line(Carrier.MarkGathered("rb"));
 			file.Line();
 
 			using (file.Block("while (true)"))
@@ -300,12 +300,10 @@ sealed partial class Machine
 				}
 
 				file.Line();
-				file.Line("ways.LogCount  = lm;");
+				foreach (var line in Carrier.UnwindRecords("lm"))
+					file.Line(line);
 
-				if (_directBuilds)
-					file.Line("if (ways.Built > lm) ways.Built = lm;");
-
-				file.Line("ways.RefsCount = rb;");
+				file.Line(Carrier.UnwindGathered("rb"));
 				file.Line();
 				file.Line("if (ways.Cursor > s && ways.Retry(s))");
 				file.Then("continue;");
@@ -349,7 +347,8 @@ sealed partial class Machine
 			file.Line($"var ways = {WaysType}.Rent();");
 
 			if (valued)
-				file.Line("var values = DirectValues.Rent();");
+				foreach (var line in Carrier.Rent())
+					file.Line(line);
 
 			file.Line();
 
@@ -368,13 +367,8 @@ sealed partial class Machine
 					}
 
 					file.Line();
-					file.Line(
-						$"{DirectMaterializer}(ways, text, values, ways.Last, 0" +
-						$"{InputArgument}{TokensArgument}{ContextArgument});");
-					file.Line(
-						// An extent's value is the span its record stands on; every other value is
-						// in the tables the walk filled.
-						$"value = {(IsExtent(rule) ? RecordValue(type!, "ways.Last").Replace("log[", "ways.Log[") : DirectFrom(type!, "ways.Last").Replace("values", "values.V"))};");
+					foreach (var line in Carrier.BuildRoot(type!, IsExtent(rule)))
+						file.Line(line);
 					file.Line();
 				}
 
@@ -388,7 +382,8 @@ sealed partial class Machine
 				file.Line($"{WaysType}.Return(ways);");
 
 				if (valued)
-					file.Line("DirectValues.Return(values);");
+					foreach (var line in Carrier.Return())
+						file.Line(line);
 			}
 		}
 
@@ -564,7 +559,7 @@ sealed partial class Machine
 			// and this is its body, which hands the mark to every part whether or not it
 			// writes one itself.
 			if (_records || (_gathers && !_part))
-				head.Line("var rb = ways.RefsCount;");
+				head.Line(machine.Carrier.MarkGathered("rb"));
 
 			// Only where something in the method names it: a rule folds, but a method of it
 			// that neither writes a record nor hands the value on has nothing to do with it,
@@ -575,7 +570,7 @@ sealed partial class Machine
 			// Where the log stood when the rule began, for a guard that builds a value from
 			// what has been recorded since.
 			if (_guarded && !_part)
-				head.Line("var lm = ways.LogCount;");
+				head.Line(machine.Carrier.MarkRecords("lm"));
 
 			foreach (var slot in _kept.OrderBy(static one => one))
 			{
@@ -748,9 +743,9 @@ sealed partial class Machine
 				{
 					var site = machine.MarkSite(text);
 
-					code.Line($"ways.Mark(-1, {site}, p);");
+					code.Line(machine.Carrier.Mark(-1, site));
 					Emit(code, marked, following, loaded);
-					code.Line($"ways.Mark(-2, {site}, p);");
+					code.Line(machine.Carrier.Mark(-2, site));
 
 					break;
 				}
@@ -792,7 +787,7 @@ sealed partial class Machine
 
 				case MemberShape.Record:
 					Emit(code, held, following, loaded);
-					code.Line($"r{slot} = ways.Last;");
+					code.Line($"r{slot} = {machine.Carrier.Last};");
 					break;
 
 				// What a repetition gathers is pushed as it goes and collected when the
@@ -801,12 +796,12 @@ sealed partial class Machine
 				case MemberShape.Pieces:
 					code.Line($"a{slot} = p;");
 					Emit(code, held, following, loaded);
-					code.Line($"ways.Push({slot}, a{slot}, p);");
+					code.Line(machine.Carrier.PushText(slot, $"a{slot}", "p"));
 					break;
 
 				case MemberShape.Records:
 					Emit(code, held, following, loaded);
-					code.Line($"ways.Push({slot}, ways.Last, -1);");
+					code.Line(machine.Carrier.PushRecord(slot));
 					break;
 
 				default:
@@ -847,36 +842,36 @@ sealed partial class Machine
 			if (factory >= 0 && machine.DirectForwards(owner, factory))
 			{
 				if (_folds)
-					code.Line("fold = ways.Last;");
+					code.Line($"fold = {machine.Carrier.Last};");
 
 				return;
 			}
 
 			_records = true;
 
-			code.Line(
-				_positions
-					? $"ways.Begin({machine.DirectArm(owner, factory)}, {(_part ? "start" : "pos")}, p);"
-					: $"ways.Begin({machine.DirectArm(owner, factory)});");
+			code.Line(machine.Carrier.Begin(
+				machine.DirectArm(owner, factory),
+				_positions ? (_part ? "start" : "pos") : null,
+				_positions ? "p" : null));
 
 			// A fold step's first member is the value so far, and each of the rest is the
 			// one thing the step captured (§4.3).
 			if (machine.IsStep(owner, factory))
-				code.Line("ways.Put(fold);");
+				code.Line(machine.Carrier.PutAccumulator());
 
 			foreach (var member in machine.DirectMembers(owner, factory))
 				code.Line(member.Shape switch
 				{
-					MemberShape.Text    => $"ways.Put({First("a", "a", member.Slots)}, {First("a", "b", member.Slots)});",
-					MemberShape.Pieces  => $"ways.Collect({Refs}, {member.Mask}L, true);",
-					MemberShape.Records => $"ways.Collect({Refs}, {member.Mask}L, false);",
-					_                   => $"ways.Put({First("r", "r", member.Slots)});",
+					MemberShape.Text    => machine.Carrier.PutText(First("a", "a", member.Slots), First("a", "b", member.Slots)),
+					MemberShape.Pieces  => machine.Carrier.Collect(Refs, member.Mask, true),
+					MemberShape.Records => machine.Carrier.Collect(Refs, member.Mask, false),
+					_                   => machine.Carrier.PutRecord(First("r", "r", member.Slots)),
 				});
 
-			code.Line("ways.End(rb);");
+			code.Line(machine.Carrier.End("rb"));
 
 			if (_folds)
-				code.Line("fold = ways.Last;");
+				code.Line($"fold = {machine.Carrier.Last};");
 		}
 
 		readonly HashSet<int> _kept = [];
@@ -1150,10 +1145,10 @@ sealed partial class Machine
 					if (back >= 0)
 					{
 						if (_gathers)
-							code.Line($"var rr{back} = ways.RefsCount;");
+							code.Line(machine.Carrier.MarkGathered($"rr{back}"));
 
 						if (_logs)
-							code.Line($"var lm{back} = ways.LogCount;");
+							code.Line(machine.Carrier.MarkRecords($"lm{back}"));
 
 						code.Line();
 					}
@@ -1167,7 +1162,7 @@ sealed partial class Machine
 						using (code.Block($"if ({tried} < 0)"))
 						{
 							if (_gathers && back >= 0)
-								code.Line($"ways.RefsCount = rr{back};");
+								code.Line(machine.Carrier.UnwindGathered($"rr{back}"));
 
 							if (_logs && back >= 0)
 								LogBack(code, $"lm{back}");
@@ -1272,8 +1267,8 @@ sealed partial class Machine
 					var segment = _ways++;
 
 					code.Line($"var s{segment}  = ways.Cursor;");
-					code.Line($"var lm{segment} = ways.LogCount;");
-					code.Line($"var rr{segment} = ways.RefsCount;");
+					code.Line(machine.Carrier.MarkRecords($"lm{segment}"));
+					code.Line(machine.Carrier.MarkGathered($"rr{segment}"));
 					code.Line();
 
 					var (call, undo, opens) = Called(alternatives[i], following);
@@ -1288,7 +1283,7 @@ sealed partial class Machine
 							code.Then("break;");
 							code.Line();
 							LogBack(code, $"lm{segment}");
-							code.Line($"ways.RefsCount = rr{segment};");
+							code.Line(machine.Carrier.UnwindGathered($"rr{segment}"));
 
 							if (undo.Length > 0)
 								code.Line(undo);
@@ -1310,7 +1305,7 @@ sealed partial class Machine
 						using (code.Block($"if ({tried} < 0)"))
 						{
 							LogBack(code, $"lm{segment}");
-							code.Line($"ways.RefsCount = rr{segment};");
+							code.Line(machine.Carrier.UnwindGathered($"rr{segment}"));
 
 							if (undo.Length > 0)
 								code.Line(undo);
@@ -1607,10 +1602,10 @@ sealed partial class Machine
 				if (back >= 0)
 				{
 					if (_gathers)
-						code.Line($"var rr{back} = ways.RefsCount;");
+						code.Line(machine.Carrier.MarkGathered($"rr{back}"));
 
 					if (_logs)
-						code.Line($"var lm{back} = ways.LogCount;");
+						code.Line(machine.Carrier.MarkRecords($"lm{back}"));
 
 					code.Line();
 				}
@@ -1621,7 +1616,7 @@ sealed partial class Machine
 				using (code.Block($"if ({turn} < 0 || {turn} == p)"))
 				{
 					if (_gathers && back >= 0)
-						code.Line($"ways.RefsCount = rr{back};");
+						code.Line(machine.Carrier.UnwindGathered($"rr{back}"));
 
 					if (_logs && back >= 0)
 						LogBack(code, $"lm{back}");
@@ -1876,8 +1871,8 @@ sealed partial class Machine
 				if (opens)
 					code.Line($"var s{segment}  = ways.Cursor;");
 
-				code.Line($"var lm{segment} = ways.LogCount;");
-				code.Line($"var rr{segment} = ways.RefsCount;");
+				code.Line(machine.Carrier.MarkRecords($"lm{segment}"));
+				code.Line(machine.Carrier.MarkGathered($"rr{segment}"));
 				code.Line($"var {took} = -1;");
 				code.Line();
 
@@ -1891,7 +1886,7 @@ sealed partial class Machine
 						code.Then("break;");
 						code.Line();
 						LogBack(code, $"lm{segment}");
-						code.Line($"ways.RefsCount = rr{segment};");
+						code.Line(machine.Carrier.UnwindGathered($"rr{segment}"));
 						code.Line();
 						code.Line($"if (ways.Cursor > s{segment} && ways.Retry(s{segment}))");
 						code.Then("continue;");
@@ -1907,7 +1902,7 @@ sealed partial class Machine
 					using (code.Block($"if ({took} < 0)"))
 					{
 						LogBack(code, $"lm{segment}");
-						code.Line($"ways.RefsCount = rr{segment};");
+						code.Line(machine.Carrier.UnwindGathered($"rr{segment}"));
 					}
 				}
 
@@ -1984,8 +1979,8 @@ sealed partial class Machine
 			var (call, undo, opens) = Called(kept, following);
 
 			code.Line($"var s{segment}  = ways.Cursor;");
-			code.Line($"var lm{segment} = ways.LogCount;");
-			code.Line($"var rr{segment} = ways.RefsCount;");
+			code.Line(machine.Carrier.MarkRecords($"lm{segment}"));
+			code.Line(machine.Carrier.MarkGathered($"rr{segment}"));
 			code.Line($"var {took} = -1;");
 			code.Line();
 
@@ -1997,7 +1992,7 @@ sealed partial class Machine
 				code.Then("break;");
 				code.Line();
 				LogBack(code, $"lm{segment}");
-				code.Line($"ways.RefsCount = rr{segment};");
+				code.Line(machine.Carrier.UnwindGathered($"rr{segment}"));
 
 				if (undo.Length > 0)
 					code.Line(undo);
@@ -2079,8 +2074,7 @@ sealed partial class Machine
 
 				var build = type == "SourceSpan"
 					? ""
-					: $"{machine.DirectMaterializer}(ways, text, values, {{0}}, {mark}" +
-						$"{machine.TokensArgument}{machine.ContextArgument});";
+					: machine.Carrier.Materialize("{0}", mark);
 
 				if (!member.IsSequence)
 				{
@@ -2098,29 +2092,12 @@ sealed partial class Machine
 
 				// Gathered turn by turn on the tape, and collected here the way the rule's end
 				// would collect them.
-				var bits    = 0L;
-				var bracket = type.IndexOf('[');
+				var bits = 0L;
 
 				foreach (var slot in slots)
 					bits |= 1L << slot;
 
-				code.Line($"var {handed}Count = 0;");
-				code.Line($"for (var at = {Refs}; at < ways.RefsCount; at += 3)");
-				code.Then($"if (({bits}L & (1L << ways.Refs[at])) != 0) {handed}Count++;");
-				code.Line(
-					$"var {handed} = new {(bracket < 0 ? type : type.Substring(0, bracket))}[{handed}Count]" +
-					$"{(bracket < 0 ? "" : type.Substring(bracket))};");
-				code.Line($"{handed}Count = 0;");
-
-				using (code.Block($"for (var at = {Refs}; at < ways.RefsCount; at += 3)"))
-				{
-					code.Line($"if (({bits}L & (1L << ways.Refs[at])) == 0) continue;");
-
-					if (build.Length > 0)
-						code.Line(string.Format(build, "ways.Refs[at + 1]"));
-
-					code.Line($"{handed}[{handed}Count++] = {ValueAt(type, "ways.Refs[at + 1]")};");
-				}
+				machine.Carrier.Gathered(code, Refs, bits, handed, type, build);
 			}
 
 			helper.Line($"static bool {method}({string.Join(", ", parameters)}) =>");
@@ -2136,11 +2113,8 @@ sealed partial class Machine
 
 		int _guardLocals;
 
-		/// <summary>A record's value as a guard sees it: from the tables, or for an extent the record itself.</summary>
-		string ValueAt(string type, string record) =>
-			type == "SourceSpan"
-				? machine.RecordValue(type, record).Replace("log[", "ways.Log[")
-				: $"values.V{machine.TableFor(type)}[{record}].Value";
+		/// <summary>A record's value as a guard sees it.</summary>
+		string ValueAt(string type, string record) => machine.Carrier.ValueOf(type, record);
 
 		void EmitLookahead(Writer code, bool positive, Node inside)
 		{
@@ -2156,12 +2130,12 @@ sealed partial class Machine
 			if (_tape)
 				code.Line($"var s{mark}  = ways.Cursor;");
 
-			code.Line($"var lm{mark} = ways.LogCount;");
-			code.Line($"var rr{mark} = ways.RefsCount;");
+			code.Line(machine.Carrier.MarkRecords($"lm{mark}"));
+			code.Line(machine.Carrier.MarkGathered($"rr{mark}"));
 			code.Line($"var {seen} = {call};");
 			code.Line();
 			LogBack(code, $"lm{mark}");
-			code.Line($"ways.RefsCount = rr{mark};");
+			code.Line(machine.Carrier.UnwindGathered($"rr{mark}"));
 
 			if (undo.Length > 0)
 				code.Line(undo);
@@ -2182,10 +2156,8 @@ sealed partial class Machine
 		/// </summary>
 		void LogBack(Writer code, string count)
 		{
-			code.Line($"ways.LogCount  = {count};");
-
-			if (machine._directBuilds)
-				code.Line($"if (ways.Built > {count}) ways.Built = {count};");
+			foreach (var line in machine.Carrier.UnwindRecords(count))
+				code.Line(line);
 		}
 
 		/// <summary>A refusal recorded and not acted on: what was wanted here, for the message.</summary>

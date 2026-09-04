@@ -12863,3 +12863,23 @@ where every rule is a class and no rule needs a way, and the thirty-two over cha
 are where structs, folds, ways and streaming all live. Those are two generators, not one
 with a flag, and the second is the one with the harder problems — but the first is the
 one with the yardstick, and it is the one to write first.
+
+**Second stage, first step: the tape is behind a seam.** `Emit/Carrier.cs` is the
+abstract surface — marks and unwinding, a record begun and its members put, gathering, a
+§7.8 mark, materialization for a guard, what an entry rents and returns and how it builds
+its root, and the builder itself — and `Machine.Carrier.cs` is the tape answering every
+one of those with the string the reader used to write itself. The reader now writes none
+of them: every site that touched the log or the gathered references goes through
+`machine.Carrier`, and the snapshots are identical to the byte, which is the whole of the
+claim this step makes.
+
+What the seam is not yet. It is exactly as fine-grained as the reader's emissions were —
+two marks and two unwindings rather than one of each, because the tape has two stores and
+the reader marks them at different sites under different conditions — and a carrier that
+keeps its values in locals will answer all four with nothing. The runtime `Ways` class
+still hosts both halves, the alternatives and the values, in one type; the reader still
+decides *whether* to emit at a site from its own flags (`_records`, `_gathers`, `_logs`,
+`_positions`), which are the tape's concerns as much as the grammar's; and the ways
+operations — `Open`, `Retry`, `Cursor`, `Seal`, `Next` — are written literally, as they
+should be, since they are not the carrier's. The second carrier is what says which of
+those has to move, and it is Eager, next.
