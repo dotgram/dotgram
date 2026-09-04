@@ -1117,7 +1117,19 @@ sealed partial class Machine
 
 			code.Line(
 				$"var {result} = {machine.ReaderOf(called)}(p{strength});");
-			code.Line($"if ({result} < 0) return -1;");
+
+			if (_refuseWith is { } expected)
+			{
+				_refuseWith = null;
+
+				using (code.Block($"if ({result} < 0)"))
+					Refused(code, expected);
+			}
+			else
+			{
+				code.Line($"if ({result} < 0) return -1;");
+			}
+
 			code.Line($"p = {result};");
 		}
 
@@ -1154,10 +1166,22 @@ sealed partial class Machine
 
 				code.Line("c = text[p];");
 
+				// The widest group is the one the jump table exists for: name its characters
+				// and the compiler builds a table spanning them, an indirect branch the
+				// processor guesses at. Where that group is one alternative whose reading
+				// begins with a call, it needs no labels — the call tests the character
+				// itself, and a character no group holds is a character that call refuses.
+				// What is left is a handful of labels the compiler compares in a line.
+				var widest = Widest(groups);
+
 				using (code.Block("switch (c)"))
 				{
-					foreach (var group in groups)
+					for (var g = 0; g < groups.Count; g++)
 					{
+						if (g == widest)
+							continue;
+
+						var group  = groups[g];
 						var labels = "";
 
 						foreach (var range in group.Set.Ranges)
@@ -1188,8 +1212,28 @@ sealed partial class Machine
 
 					code.Line("default:");
 
-					using (code.Indent())
-						Refused(code, name);
+					if (widest < 0)
+					{
+						using (code.Indent())
+							Refused(code, name);
+					}
+					else
+					{
+						using (code.Indent())
+						using (code.Block(""))
+						{
+							// The call that begins it answers for the characters no group
+							// holds, and says so in its own words. The choice adds what it
+							// wanted here, so that the message is no poorer than the one the
+							// labels would have given: recorded at the position the call was
+							// made from, it merges with the call's refusal where the call
+							// refused there and is dropped where it read on.
+							_refuseWith = name;
+							Emit(code, groups[widest].Members[0], following);
+							_refuseWith = null;
+							code.Line("break;");
+						}
+					}
 				}
 
 				return;
@@ -1197,6 +1241,74 @@ sealed partial class Machine
 
 			EmitAmong(code, alternatives, following);
 		}
+
+		/// <summary>
+		/// The group to write as <c>default:</c>: the widest, where its one alternative is
+		/// read by a call before anything else is read at all.
+		/// </summary>
+		/// <remarks>
+		/// Soundness is the call's. A character reaching <c>default:</c> begins no
+		/// alternative, so it begins neither this one nor — the call being first and reading
+		/// something — the rule the call names, which therefore refuses it. Anything that
+		/// could match before the call, a look for one, would leave that argument short.
+		/// </remarks>
+		int Widest(List<(FirstSets.First Set, List<Node> Members)> groups)
+		{
+			var found = -1;
+			var width = 0;
+
+			for (var i = 0; i < groups.Count; i++)
+			{
+				var wide = 0;
+
+				foreach (var range in groups[i].Set.Ranges)
+					wide += range.To - range.From + 1;
+
+				if (wide > width)
+				{
+					found = i;
+					width = wide;
+				}
+			}
+
+			return found >= 0 && groups[found].Members.Count == 1 &&
+				Leads(groups[found].Members[0]) is { } call &&
+				machine.Decidable(call) is { Ends: false }
+					? found
+					: -1;
+		}
+
+		/// <summary>The call a part reads before it reads anything else, where it is one.</summary>
+		static Node.Call? Leads(Node part)
+		{
+			while (true)
+				switch (part)
+				{
+					case Node.Call call:
+						return call;
+
+					case Node.Capture(_, var held):
+						part = held;
+						break;
+
+					case Node.Construct(var built, _):
+						part = built;
+						break;
+
+					case Node.Sequence(var parts) when parts.Count > 0:
+						part = parts[0];
+						break;
+
+					default:
+						return null;
+				}
+		}
+
+		/// <summary>
+		/// What the next call is to record when it refuses, over what the rule it names
+		/// recorded: set while the group written as <c>default:</c> is being written.
+		/// </summary>
+		string? _refuseWith;
 
 		/// <summary>
 		/// Alternatives with nothing to tell them apart by: one attempt after another.
