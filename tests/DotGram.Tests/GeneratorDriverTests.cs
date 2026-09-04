@@ -1884,6 +1884,67 @@ public sealed class GeneratorDriverTests
 		});
 	}
 
+	// ── Two grammars on one class ────────────────────────────────────────────
+
+	/// <summary>
+	/// A class may carry several grammars, and each is a compilation of its own in a class
+	/// of its own — which is how one host offers the same grammar compiled two ways.
+	/// </summary>
+	[Fact]
+	public void A_second_grammar_on_a_class_is_compiled_into_a_class_of_its_own()
+	{
+		const string source = """"
+			using DotGram;
+
+			[Gram("""
+				Start : @string = t: ['a'..'z']+ => @(t)
+				parse Start
+				""")]
+			[Gram("""
+				Start : @string = t: ['0'..'9']+ => @(t)
+				parse Start
+				""", Suffix = "Digits")]
+			public static partial class Twice;
+			"""";
+
+		var built = Build(source);
+
+		var host   = built.GetType("Twice")!.GetMethod("ParseStart", [typeof(string)])!;
+		var nested = built.GetType("Twice+Digits")!.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal("abc", host.Invoke(null, ["abc"]));
+		Assert.Equal("123", nested.Invoke(null, ["123"]));
+
+		// Two languages, not one read twice: each class reads its own and refuses the other.
+		Assert.Throws<TargetInvocationException>(() => host.Invoke(null, ["123"]));
+		Assert.Throws<TargetInvocationException>(() => nested.Invoke(null, ["abc"]));
+	}
+
+	/// <summary>Two grammars cannot share one scope, and are told so rather than colliding.</summary>
+	[Fact]
+	public void Two_grammars_wanting_one_scope_are_refused()
+	{
+		var run = RunGenerator(
+			""""
+			using DotGram;
+
+			[Gram("""
+				Start = 'a'+
+				parse Start
+				""")]
+			[Gram("""
+				Start = 'b'+
+				parse Start
+				""")]
+			public static partial class Crowded;
+			"""");
+
+		var refusal = Assert.Single(run.Diagnostics.Where(static one => one.Id == "GRAM0006"));
+
+		Assert.Equal(DiagnosticSeverity.Error, refusal.Severity);
+		Assert.Contains("Crowded", refusal.GetMessage(), StringComparison.Ordinal);
+	}
+
 	// ── Where a C# error lands (§7.6) ────────────────────────────────────────────
 
 	[Fact]

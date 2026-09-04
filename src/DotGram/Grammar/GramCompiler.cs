@@ -87,10 +87,13 @@ public static class GramCompiler
 
 		if (!HasErrors(diagnostics))
 			sources.Add(new GeneratedSource(
-				$"{options.ClassName}.gram.g.cs",
+				options.Suffix is { Length: > 0 } suffix
+					? $"{options.ClassName}.{suffix}.gram.g.cs"
+					: $"{options.ClassName}.gram.g.cs",
 				CSharpEmitter.Emit(
 					lexical?.Syntax ?? graph, options.ClassName, options.Namespace, options.LineMap,
-					diagnostics, options.PartSize, lexical, options.Direct, options.Carrier)));
+					diagnostics, options.PartSize, lexical, options.Direct, options.Carrier,
+					options.Suffix)));
 
 		return new GramCompilation(sources, OnePerPosition(diagnostics));
 	}

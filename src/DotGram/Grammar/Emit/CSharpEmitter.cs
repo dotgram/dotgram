@@ -147,7 +147,8 @@ public static partial class CSharpEmitter
 	public static string Emit(
 		RecognitionGraph graph, string className, string? @namespace = null, ILineMap? lines = null,
 		ICollection<GramDiagnostic>? diagnostics = null, int? partSize = null,
-		LexicalSplit? lexical = null, bool direct = true, CarrierKind carrier = CarrierKind.Tape)
+		LexicalSplit? lexical = null, bool direct = true, CarrierKind carrier = CarrierKind.Tape,
+		string? suffix = null)
 	{
 		var overKinds = lexical is not null;
 		var directAllowed = direct;
@@ -157,7 +158,8 @@ public static partial class CSharpEmitter
 
 		var file    = new Writer(0);
 		var scope   = new Stack<IDisposable>();
-		var results = new ResultTypes(graph, className, @namespace);
+		var scoped  = suffix is { Length: > 0 } ? className + "." + suffix : className;
+		var results = new ResultTypes(graph, scoped, @namespace);
 		// One machine per published rule. `parse R` and `find R` share one — the same rule,
 		// two entry states — while two publications of different rules get one each, even
 		// where both call a third rule, which is then compiled into both. `parse R with
@@ -216,7 +218,7 @@ public static partial class CSharpEmitter
 		var valuing = lexical is { Valued.Count: > 0 }
 			? new Machine(
 				lexical.Source,
-				new ResultTypes(lexical.Source, className, @namespace),
+				new ResultTypes(lexical.Source, scoped, @namespace),
 				lines,
 				only: Rereads(lexical),
 				tag: "_Value")
@@ -262,6 +264,14 @@ public static partial class CSharpEmitter
 
 		foreach (var name in className.Split('.'))
 			scope.Push(file.Block($"partial class {name}"));
+
+		// A second compilation of the same grammar in the same host goes in a class of its
+		// own, because a file's support — the match, the failure, the lexer, the value tables
+		// — is written once and named for what it is, and two copies in one scope would
+		// collide name for name. Written out here rather than declared by the author, so it
+		// is `public static` and not the `private` a nested class would default to.
+		if (suffix is { Length: > 0 })
+			scope.Push(file.Block($"public static class {suffix}"));
 
 		foreach (var compiled in machines)
 			foreach (var publication in compiled.Publications)

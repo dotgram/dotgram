@@ -44,6 +44,7 @@ that thing is what the notation already means in C# or in .NET regular expressio
   - [6.2 Why the signatures use BCL types only](#62-why-the-signatures-use-bcl-types-only)
   - [6.3 The input type picks the execution mode](#63-the-input-type-picks-the-execution-mode)
   - [6.4 `PartSize`, the one thing a host may tune](#64-partsize-the-one-thing-a-host-may-tune)
+  - [6.5 `Suffix`, a second grammar on the same class](#65-suffix-a-second-grammar-on-the-same-class)
 - [7. The bond with C#](#7-the-bond-with-c)
   - [7.1 Recognizer signatures and C# values](#71-recognizer-signatures-and-c-values)
   - [7.2 What the C# side must guarantee](#72-what-the-c-side-must-guarantee)
@@ -1408,6 +1409,38 @@ Whether to divide *at all* is not tunable and is not the same question — a gra
 small enough to hold in one method is faster that way, and dividing one that did not
 need it costs about a quarter where failing to divide one that did costs four times
 over. The generator decides that from the size it estimates.
+
+### 6.5 `Suffix`, a second grammar on the same class
+
+`[Gram]` may be written more than once. Each is a compilation of its own, and all but
+one name the class it goes into:
+
+```csharp
+[Gram("Sql.gram", Lexical = true)]
+[Gram("Sql.gram", Lexical = true, Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+public static partial class Sql { }
+```
+
+`Sql.ParseQuery` is the first; `Sql.Immediate.ParseQuery` is the second. Two files come
+out, one per attribute.
+
+**Why a class rather than a suffix on the method names.** Everything a parser needs is
+emitted beside it (§6.2), and a file's share of that — the match, the failure, the lexer,
+the value tables — is written once and named for what it is. Two compilations in one
+scope would collide on every one of them. A class is a scope, so nothing collides and
+neither compilation can see the other. What the host itself declares stays in reach:
+a nested class reads the static members of the class around it by their simple names,
+which is what a grammar's `=>` calls are.
+
+Two attributes wanting the same scope — the same `Suffix`, or neither having one — is
+refused (`GRAM0006`), because one of them would silently win.
+
+The value types a grammar generates are the compilation's own, so two compilations of a
+grammar that builds its own types build two families of them. Where the types are
+written by hand and named with `@`, both build the same ones, which is what makes two
+carriers over one grammar comparable at all.
+
+---
 
 ---
 

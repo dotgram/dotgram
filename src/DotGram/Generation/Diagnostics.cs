@@ -61,6 +61,24 @@ static class Diagnostics
 		isEnabledByDefault: true,
 		description:        "A grammar is included by being wrapped in a namespace, and a namespace is named by an identifier. A dotted name would mean nesting, which is written in the grammar itself.");
 
+	public static readonly DiagnosticDescriptor RepeatedGrammarScope = new(
+		id:                 "GRAM0006",
+		title:              "Two grammars on one class want the same scope",
+		messageFormat:      "'{0}' carries two [Gram] attributes with the same Suffix; give one of them a Suffix of its own",
+		category:           Category,
+		defaultSeverity:    DiagnosticSeverity.Error,
+		isEnabledByDefault: true,
+		description:        "Each [Gram] on a class is a compilation of its own and needs a scope of its own: one may go in the class itself, and every other names a nested class with Suffix.");
+
+	public static readonly DiagnosticDescriptor InvalidGrammarScope = new(
+		id:                 "GRAM0007",
+		title:              "The name a grammar is compiled under is not an identifier",
+		messageFormat:      "'{0}' cannot be compiled into '{1}'; that has to be one identifier",
+		category:           Category,
+		defaultSeverity:    DiagnosticSeverity.Error,
+		isEnabledByDefault: true,
+		description:        "Suffix names a nested class, and a class is named by an identifier.");
+
 	/// <summary>
 	/// The descriptor for an id, made once and kept.
 	/// </summary>

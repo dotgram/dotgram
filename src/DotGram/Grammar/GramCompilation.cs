@@ -130,6 +130,21 @@ public sealed class GramCompilerOptions
 	public CarrierKind Carrier { get; set; } = CarrierKind.Tape;
 
 	/// <summary>
+	/// The nested class this compilation goes into, where the host holds more than one
+	/// (<c>[Gram(Suffix = "...")]</c>). Null puts it in the host class itself.
+	/// </summary>
+	/// <remarks>
+	/// A host with two grammars — the same one compiled two ways, usually — cannot put
+	/// both in one scope: a file's support is written once and named for what it is, so a
+	/// second copy of <c>Match&lt;T&gt;</c>, of the failure, of the lexer and of the value
+	/// tables would collide with the first, name for name. A class of its own is a scope
+	/// of its own. What the host declares stays in reach either way: a nested class reads
+	/// the static members of the class around it by their simple names, which is what a
+	/// grammar's <c>=&gt;</c> calls are.
+	/// </remarks>
+	public string? Suffix { get; set; }
+
+	/// <summary>
 	/// Whether a publication the reader can write is written by it
 	/// (<c>Machine.Reader.cs</c>) rather than by the rendering it is replacing. Off by
 	/// default while the reader is being taught the rest of the language.

@@ -54,7 +54,13 @@ public static class SupportEmitter
 		namespace DotGram
 		{
 			/// <summary>Marks a partial class as the host of a grammar.</summary>
-			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+			/// <remarks>
+			/// More than one may be written, and then all but one need a <c>Suffix</c>: each
+			/// is a compilation of its own, in a nested class of that name and in a file of
+			/// its own. That is how one host offers the same grammar compiled two ways —
+			/// two carriers, say — for a caller to choose between.
+			/// </remarks>
+			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 			internal sealed class GramAttribute : global::System.Attribute
 			{
@@ -80,6 +86,19 @@ public static class SupportEmitter
 				/// on the answer.
 				/// </remarks>
 				public string? IncludedAs { get; set; }
+
+				/// <summary>
+				/// The nested class this compilation goes into, where the host has more
+				/// than one. One identifier; the host class itself where nothing is said.
+				/// </summary>
+				/// <remarks>
+				/// Two compilations cannot share a scope — a file's support is written
+				/// once and named for what it is — so the second gets a class, and its
+				/// parse methods are reached through it: <c>Sql.Immediate.TryParseR</c>.
+				/// What the host declares is still in reach from inside, a nested class
+				/// reading the static members around it by their simple names.
+				/// </remarks>
+				public string? Suffix { get; set; }
 
 				/// <summary>
 				/// How large the parts of a divided recognizer are aimed to be, in the

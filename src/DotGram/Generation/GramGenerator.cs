@@ -53,7 +53,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		var hosts = context.SyntaxProvider.ForAttributeWithMetadataName(
 			GramAttribute,
 			static (node, _) => node is ClassDeclarationSyntax,
-			static (candidate, _) => Host.From(candidate));
+			static (candidate, _) => Host.All(candidate))
+			.SelectMany(static (all, _) => all);
 
 		var files = context.AdditionalTextsProvider
 			.Where(static file => file.Path.EndsWith(GramFileExtension, StringComparison.OrdinalIgnoreCase))
@@ -282,6 +283,22 @@ public sealed class GramGenerator : IIncrementalGenerator
 			reports.Add(Report.Of(
 				Diagnostics.InvalidIncludedName, host.Location, host.ClassName, included));
 
+		// Said about the host for the same reason: a scope named twice, or named with
+		// something that is not a class's name, is settled before a grammar is read.
+		if (host.Repeated)
+		{
+			reports.Add(Report.Of(Diagnostics.RepeatedGrammarScope, host.Location, host.ClassName));
+
+			return new Grammar(host, null, null, default, default, Values(reports));
+		}
+
+		if (host.Suffix is { Length: > 0 } scope && !IsIdentifier(scope))
+		{
+			reports.Add(Report.Of(Diagnostics.InvalidGrammarScope, host.Location, host.ClassName, scope));
+
+			return new Grammar(host, null, null, default, default, Values(reports));
+		}
+
 		if (!TryResolveGrammar(reports, host, files, out var own, out var path))
 			return new Grammar(host, null, null, default, default, Values(reports));
 
@@ -382,6 +399,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			Lexical        = host.Lexical,
 			Direct         = host.Direct,
 			Carrier        = (CarrierKind)host.Carrier,
+			Suffix         = host.Suffix,
 		});
 
 		foreach (var diagnostic in result.Diagnostics)
@@ -643,7 +661,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 		int       PartSize   = 0,
 		bool      Lexical    = false,
 		bool      Direct     = true,
-		int       Carrier    = 0)
+		int       Carrier    = 0,
+		string?   Suffix     = null,
+		bool      Repeated   = false)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -706,11 +726,32 @@ public sealed class GramGenerator : IIncrementalGenerator
 				? "<" + string.Join(", ", parameters.Parameters.Select(static p => p.Identifier.ValueText)) + ">"
 				: "";
 
-		public static Host From(GeneratorAttributeSyntaxContext candidate)
+		/// <summary>One host per <c>[Gram]</c> the class carries, in the order written.</summary>
+		/// <remarks>
+		/// Several are several compilations of the class, each in a nested class of its own
+		/// and a file of its own. A suffix written twice, or left off twice, would name one
+		/// scope twice; the second one to do it is marked here and told so where the rest of
+		/// the host's own diagnostics are said.
+		/// </remarks>
+		public static ImmutableArray<Host> All(GeneratorAttributeSyntaxContext candidate)
+		{
+			var hosts = ImmutableArray.CreateBuilder<Host>(candidate.Attributes.Length);
+			var taken = new HashSet<string>(StringComparer.Ordinal);
+
+			foreach (var attribute in candidate.Attributes)
+			{
+				var host = From(candidate, attribute);
+
+				hosts.Add(host with { Repeated = !taken.Add(host.Suffix ?? "") });
+			}
+
+			return hosts.ToImmutable();
+		}
+
+		static Host From(GeneratorAttributeSyntaxContext candidate, AttributeData attribute)
 		{
 			var type        = (INamedTypeSymbol)candidate.TargetSymbol;
 			var declaration = (ClassDeclarationSyntax)candidate.TargetNode;
-			var attribute   = candidate.Attributes[0];
 
 			var source = attribute.ConstructorArguments.Length == 1
 				? attribute.ConstructorArguments[0].Value as string
@@ -743,6 +784,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 			var carrier = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.Carrier))
 				.Value.Value as int? ?? 0;
+
+			// Which nested class this compilation goes into, where the host has more than
+			// one grammar. Null is the host class itself, which one of them may be.
+			var suffix = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.Suffix))
+				.Value.Value as string;
 
 			// A request, like `Lexical`: a grammar the reader cannot write is written the
 			// way it was before the reader existed and told so (GRAM5006).
@@ -781,7 +828,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Namespace: type.ContainingNamespace.IsGlobalNamespace
 					? null
 					: type.ContainingNamespace.ToDisplayString(),
-				HintName:  type.ToDisplayString().Replace('<', '_').Replace('>', '_'),
+				HintName:  type.ToDisplayString().Replace('<', '_').Replace('>', '_') +
+					(suffix is { Length: > 0 } ? "." + suffix : ""),
 				IsPartial: isPartial,
 				Source:    source,
 				Location:  attribute.ApplicationSyntaxReference is { } reference
@@ -794,7 +842,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 				PartSize:   partSize,
 				Lexical:    lexical,
 				Direct:     direct,
-				Carrier:    carrier);
+				Carrier:    carrier,
+				Suffix:     suffix);
 		}
 
 		/// <summary>Every grammar up the base chain, nearest first.</summary>
@@ -821,10 +870,17 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 			for (var above = type.BaseType; above is not null; above = above.BaseType)
 			{
-				var attribute = above
+				// The one compiled into the base class itself where there are several: a
+				// grammar including another names a class, and what that class publishes
+				// under a scope of its own is that scope's, not the class's.
+				var grammars = above
 					.GetAttributes()
-					.FirstOrDefault(static candidate =>
-						candidate.AttributeClass?.ToDisplayString() == GramAttribute);
+					.Where(static candidate =>
+						candidate.AttributeClass?.ToDisplayString() == GramAttribute)
+					.ToList();
+
+				var attribute = grammars.Find(static candidate =>
+					candidate.NamedArguments.All(static named => named.Key != nameof(Host.Suffix)));
 
 				if (attribute is null)
 					continue;
