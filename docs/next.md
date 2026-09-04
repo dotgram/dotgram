@@ -13068,15 +13068,34 @@ type that is itself an array was allocated `new E[][8]`, which is not C#; the si
 the first rank whatever the element is, and a rule whose value is a sequence gathered
 across turns is exactly that type.
 
-**What the largest grammar said about it.** `ExpressionLanguage` compiles on the immediate
-carrier now and does not run on it: `Math.Max(x, 1)` throws, because `Name`'s construction
-calls `State.Named`, which throws for a name it does not know, and `Math` is a name the
-grammar reads with a different alternative. On the tape the abandoned alternative's
-construction never runs; here it runs and throws. That is the carrier's one term — a
-factory is called once per derivation *tried* — meeting a factory that is not pure, and
-the fault is the grammar's rather than the carrier's: a name that may not be one is a
-question for a `when`, which refuses, and not for a `=>`, which cannot. Until that is
-written the language has no immediate reading to hold a hand-written one against.
+**What the largest grammar said about it, and what it cost to answer.**
+`ExpressionLanguage` compiled on the immediate carrier at once and did not run on it:
+`Math.Max(x, 1)` threw, because `Name`'s construction calls `State.Named`, which throws
+for a name it does not know, and `Math` is a name the grammar reads with a different
+alternative. `s.Trim()` threw for the same reason one rule along — `Target` reads `s` and
+a member `Trim` on the way to finding out it is a call, and `Expression.PropertyOrField`
+throws for a method. On the tape the abandoned readings' constructions never run; here
+they run and throw.
+
+That is the carrier's one term — a factory is called once per derivation *tried* — meeting
+two factories that are not pure, and the fault is the grammar's rather than the carrier's.
+Both are now questions for a `when`, which refuses, rather than for a `=>`, which cannot:
+`context.Knows(name, parserSpan)` beside `Named`, and `ExpressionLanguage.Has(n, member)`
+beside `Member`, each asking exactly what the construction beside it is about to do. Two
+things follow that are worth having on the tape too. `TryParse` no longer throws where a
+name is undeclared, which §6.1 said it should not; and the refusal is a parse decision, so
+`Parse` gets the message from the state — the furthest name refused — rather than from an
+exception thrown out of the middle of a walk. `Postfix` needed nothing: its call form is
+written before its member form, so the throwing one is never reached.
+
+`ExpressionLanguage` now carries `[Gram(Carrier = GramCarrier.Immediate, Suffix =
+"Immediate")]` beside its own, and `ExpressionCarrierTests` holds the two to one language
+over twenty-six inputs. Which is what a second attribute is for, and it found its own
+defect on the way: an attribute that says nothing takes the first's grammar, but it was
+taking only the grammar — not `Lexical`, so the second reading was compiled over
+characters rather than over tokens, and a text member came out cut one short. Everything a
+second attribute does not say it now takes from the first; what it does say is the
+difference, which is the whole of what writing a second one means.
 
 The carrier is called `Immediate` from here on — `CarrierKind.Immediate`,
 `GramCarrier.Immediate`, `ImmediateCarrier`, `ImmediateSql`. Every entry above calls it

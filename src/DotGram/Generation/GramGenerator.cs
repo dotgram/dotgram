@@ -742,19 +742,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 			foreach (var attribute in candidate.Attributes)
 			{
-				var host = From(candidate, attribute);
-
-				// A second attribute that says nothing about where its grammar is takes the
-				// first one's, which is what writing it that way means: the same grammar,
-				// compiled differently. Only the spelling is inherited, so a diagnostic
-				// still points at the text somebody wrote, wherever they wrote it.
-				if (host.Source is null && host.Literal is null && hosts.Count > 0)
-					host = host with
-					{
-						Source    = hosts[0].Source,
-						Literal   = hosts[0].Literal,
-						LiteralAt = hosts[0].LiteralAt,
-					};
+				// Everything a second attribute does not say, it takes from the first: the
+				// grammar, whether it is read as tokens, how it is divided. That is what
+				// writing a second one means — the same parser, compiled differently — and
+				// what it does say is the difference. The first has nothing to take from.
+				var host = From(candidate, attribute, hosts.Count > 0 ? hosts[0] : null);
 
 				hosts.Add(host with
 				{
@@ -769,7 +761,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			return hosts.ToImmutable();
 		}
 
-		static Host From(GeneratorAttributeSyntaxContext candidate, AttributeData attribute)
+		static Host From(GeneratorAttributeSyntaxContext candidate, AttributeData attribute, Host? first = null)
 		{
 			var type        = (INamedTypeSymbol)candidate.TargetSymbol;
 			var declaration = (ClassDeclarationSyntax)candidate.TargetNode;
@@ -777,6 +769,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 			var source = attribute.ConstructorArguments.Length == 1
 				? attribute.ConstructorArguments[0].Value as string
 				: null;
+
+			var named = source is null && first is not null;
 
 			var includedAs = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.IncludedAs))
@@ -788,23 +782,23 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// unreasonable — see `Machine.PartSize`.
 			var partSize = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.PartSize))
-				.Value.Value as int? ?? 0;
+				.Value.Value as int? ?? first?.PartSize ?? 0;
 
 			// A request and not a setting: a grammar that cannot be cut in two is compiled
 			// over characters and told why (GRAM5004), so nothing written here fails a build.
 			var lexical = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.Lexical))
-				.Value.Value as bool? ?? false;
+				.Value.Value as bool? ?? first?.Lexical ?? false;
 
 			var direct = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.Direct))
-				.Value.Value as bool? ?? true;
+				.Value.Value as bool? ?? first?.Direct ?? true;
 
 			// Which carrier the author chose (docs/next.md, the redesign). An enum constant
 			// reaches an analyzer as its underlying integer, and nought is the tape.
 			var carrier = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.Carrier))
-				.Value.Value as int? ?? 0;
+				.Value.Value as int? ?? first?.Carrier ?? 0;
 
 			// Which nested class this compilation goes into, where the host has more than
 			// one grammar. Null is the host class itself, which one of them may be.
@@ -852,12 +846,15 @@ public sealed class GramGenerator : IIncrementalGenerator
 				HintName:  type.ToDisplayString().Replace('<', '_').Replace('>', '_') +
 					(suffix is { Length: > 0 } ? "." + suffix : ""),
 				IsPartial: isPartial,
-				Source:    source,
+				Source:    named ? first!.Value.Source : source,
 				Location:  attribute.ApplicationSyntaxReference is { } reference
 					? Microsoft.CodeAnalysis.Location.Create(reference.SyntaxTree, reference.Span)
 					: declaration.Identifier.GetLocation(),
-				Literal:    written == default ? null : written.Text,
-				LiteralAt:  written == default ? 0    : written.SpanStart,
+				// The spelling stays the first's where the grammar is: a diagnostic carries an
+				// offset into the grammar, and putting it where the author can see it means
+				// finding it in the text they actually wrote.
+				Literal:    named ? first!.Value.Literal   : written == default ? null : written.Text,
+				LiteralAt:  named ? first!.Value.LiteralAt : written == default ? 0    : written.SpanStart,
 				IncludedAs: includedAs,
 				Includes:   new EquatableArray<Included>(Inherited(type)),
 				PartSize:   partSize,

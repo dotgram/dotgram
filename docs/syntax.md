@@ -1424,9 +1424,10 @@ public static partial class Sql { }
 `Sql.ParseQuery` is the first; `Sql.Immediate.ParseQuery` is the second. Two files come
 out, one per attribute.
 
-A second attribute that names no grammar takes the first's, which is the shape this is
-for: `[Gram(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]` on its own is the
-class's own grammar, compiled the other way.
+Everything a second attribute does not say it takes from the first — the grammar, whether
+it is read as tokens, how it is divided — and what it does say is the difference. That is
+the shape this is for: `[Gram(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]` on
+its own is the class's own parser, compiled the other way and no other way.
 
 **Why a class rather than a suffix on the method names.** Everything a parser needs is
 emitted beside it (§6.2), and a file's share of that — the match, the failure, the lexer,

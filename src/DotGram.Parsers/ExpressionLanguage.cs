@@ -591,8 +591,13 @@ namespace DotGram.Parsers;
 	// name is read once for each and so is every alternative of `Assignment` that begins
 	// with this. One reading is the same language here because a member begins with '.',
 	// which a name cannot contain.
+	// The guard is what lets an assignment read its target before it knows which operator
+	// follows: `s.Trim()` is read here as `s` and a member `Trim` on the way to finding out
+	// it is a call, and a construction that threw for a name that is not a property would
+	// only work because it runs after the parse. What the guard asks is what the
+	// construction is about to do, so the two cannot drift.
 	Target : @Expression
-		= n: Name & ('.' & member: Word)?
+		= n: Name & ('.' & member: Word)? & when @(ExpressionLanguage.Has(n, member))
 		=> @(member is null ? n : ExpressionLanguage.Member(n, member))
 
 	// `?:` groups to the right and its condition is one level tighter, so `a ?? b ? c : d`
@@ -824,10 +829,24 @@ namespace DotGram.Parsers;
 
 		| n: Name    => @(n)
 
-	Name : @Expression = ?!Keyword & name: Word => @(context.Named(name, parserSpan))
+	// The guard is what makes this rule readable speculatively, which it has to be: an
+	// assignment reads its target as a name before it knows which operator follows, and
+	// `Math.Max(x, 1)` reads `Math` as one before `NamedType` gets a look. A `=>` that
+	// threw for a name the next alternative reads perfectly well would only work because
+	// it runs after the parse; a `when` refuses while it is being read, which is what the
+	// rule means anyway — a name is a name where something declares it.
+	Name : @Expression = ?!Keyword & name: Word & when @(context.Knows(name, parserSpan))
+	                   => @(context.Named(name, parserSpan))
 
 	parse Lambda as ParseLambda
 	""", Lexical = true)]
+
+// The same grammar with the constructions run where they are read rather than after
+// the parse is accepted (§6.5). It is here to be measured and to be held against the
+// reading above: the two must answer alike on every input, which is what
+// ExpressionCarrierTests asks. Nothing in this language needs a construction deferred —
+// the one place that did, a name resolved by a factory that threw, is a `when` now.
+[Gram(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
 public static partial class ExpressionLanguage
 {
 	// ParseLambda and TryParseLambda are generated here.
@@ -840,7 +859,20 @@ public static partial class ExpressionLanguage
 	/// <c>System.Linq.Expressions</c> itself, in its own words: this language holds no
 	/// opinion the API does not already hold.
 	/// </exception>
-	public static LambdaExpression Parse(string text) => ParseLambda(text, new State());
+	public static LambdaExpression Parse(string text)
+	{
+		var state = new State();
+		var match = TryParseLambda(text, state);
+
+		if (match.IsSuccess)
+			return match.Value!;
+
+		// A name nothing declares is refused by `Name`'s guard like anything else, and what
+		// the parser then says is that it wanted an expression here. It is the state that
+		// knows why, so where the parse ended exactly where a name was refused, it is the
+		// state that says it.
+		throw new FormatException(state.Refused() ?? match.Error!);
+	}
 
 	/// <summary>The same, answering rather than throwing where the text is not this language.</summary>
 	/// <remarks>
@@ -1028,6 +1060,40 @@ public static partial class ExpressionLanguage
 	/// either: a guard runs while the text is read and the operand of a fold is not built
 	/// until after, so the only place that can ask the operand what it is, is here.
 	/// </remarks>
+	/// <summary>Whether <see cref="Member"/> would have something to build, asked before it runs.</summary>
+	/// <remarks>
+	/// The same searches <c>Expression.PropertyOrField</c> makes, in the same order — every
+	/// type up the chain for a property or a field by that exact name, then again ignoring
+	/// case — because what this answers has to be what that one does. No member is not an
+	/// error here: it means this reading is not a member access, and something else will
+	/// read the text.
+	/// </remarks>
+	public static bool Has(Expression target, string? name)
+	{
+		if (target is null)
+			throw new ArgumentNullException(nameof(target));
+
+		if (name is null)
+			return true;
+
+		if (target.Type.IsArray && string.Equals(name, "Length", StringComparison.Ordinal))
+			return true;
+
+		const BindingFlags Any = BindingFlags.Instance | BindingFlags.Static |
+			BindingFlags.Public | BindingFlags.DeclaredOnly;
+
+		for (var type = target.Type; type is not null; type = type.BaseType)
+			if (type.GetProperty(name, Any) is not null || type.GetField(name, Any) is not null)
+				return true;
+
+		for (var type = target.Type; type is not null; type = type.BaseType)
+			if (type.GetProperty(name, Any | BindingFlags.IgnoreCase) is not null ||
+				type.GetField(name, Any | BindingFlags.IgnoreCase) is not null)
+				return true;
+
+		return false;
+	}
+
 	public static Expression Member(Expression target, string name)
 	{
 		if (target is null)
@@ -1486,7 +1552,57 @@ public static partial class ExpressionLanguage
 		/// </para>
 		/// <para>A parameter is written outside every block and is therefore in all of them.</para>
 		/// </remarks>
-		public ParameterExpression Named(string name, SourceSpan at)
+		public ParameterExpression Named(string name, SourceSpan at) =>
+			Find(name, at) ?? throw new FormatException(NothingNamed(name));
+
+		/// <summary>
+		/// Whether that name means a variable where it is written — the same question
+		/// <see cref="Named"/> answers, asked before anything is built of it.
+		/// </summary>
+		/// <remarks>
+		/// A `Name` is read speculatively: `Math.Max(x, 1)` reads `Math` as one before
+		/// finding out it is a type, and every compound assignment reads its target as one
+		/// before finding out which operator follows. A construction that throws for a name
+		/// the next alternative reads perfectly well is a construction that only works
+		/// because it runs late — true of the tape and not of a carrier that builds where it
+		/// reads (`CarrierKind.Immediate`), and not something a grammar should rest on
+		/// either way. So the rule refuses instead, in a `when`, and what is refused is
+		/// remembered here: a name nothing declares is worth saying so about, and a parse
+		/// that ends there has no other way to say it.
+		/// </remarks>
+		public bool Knows(string name, SourceSpan at)
+		{
+			if (Find(name, at) is not null)
+				return true;
+
+			if (at.Start >= _unknownAt)
+			{
+				_unknownAt = at.Start;
+				_unknown   = name;
+			}
+
+			return false;
+		}
+
+		int     _unknownAt = -1;
+		string? _unknown;
+
+		/// <summary>
+		/// What to say about a parse that refused a name, or null where it refused none and
+		/// the parser's own message is the one to give.
+		/// </summary>
+		/// <remarks>
+		/// The furthest name refused, and not the one standing where the parse gave up: a
+		/// refused name leaves the reading with nowhere to go, and where it stops after that
+		/// is a fact about the rest of the text rather than about the mistake. `x + y` with
+		/// no `y` gives up at the end of the input, four characters past the word that is
+		/// the reason.
+		/// </remarks>
+		public string? Refused() => _unknown is { } name ? NothingNamed(name) : null;
+
+		static string NothingNamed(string name) => $"nothing named '{name}' is declared here.";
+
+		ParameterExpression? Find(string name, SourceSpan at)
 		{
 			var use   = at.Start;
 			var found = default(ParameterExpression);
@@ -1517,7 +1633,7 @@ public static partial class ExpressionLanguage
 				}
 			}
 
-			return found ?? throw new FormatException($"nothing named '{name}' is declared here.");
+			return found;
 		}
 
 		/// <summary>The innermost block a position stands in, or none for the lambda itself.</summary>
