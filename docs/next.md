@@ -12959,8 +12959,9 @@ long condition and long sum against the hand-written parser (round-robin, `--han
 | an alternative that is one call is that call; a look the switch answered is skipped (`ecffda8`) | 1.18    | 1.06        |
 | dispatch where the first sets overlap, cutting them where they do (`25bd308`)               | 1.18        | 1.02        |
 | no local for a capture nothing reads (`4e88a06`)                                            | 1.21        | 1.04        |
+| the widest group of a dispatch is the switch's `default:` (`958b09b`)                       | 1.04        | 1.04        |
 
-Three of them are worth a sentence each.
+Four of them are worth a sentence each.
 
 *The write barrier.* A value goes from callee to caller through a register of its type,
 and every valued rule writes one. As a field of `EagerValues`, an object on the heap, each
@@ -12985,6 +12986,28 @@ every character begins the same alternatives, and those, in written order, are i
 was 1.51 to 1.31; the long inputs, whose predicates all take the first alternative, did not
 move.
 
+*The jump table.* Having won the dispatch, the reader paid for it. A choice named every
+character of every group as a case label, and the SQL rules on the hot path have eighty of
+them and more — the predicate, the row value constructor's element, the value expression
+primary — so the compiler built a jump table spanning the whole span, an indirect branch
+the processor guesses at over a table wide enough to be a cache line of its own. Almost all
+of those labels belong to one group, and that group is one alternative that begins with a
+call. It needs no labels: the call tests the character itself, and a character that reaches
+the `default:` begins no alternative, so it begins neither that one nor the rule the call
+names, which therefore refuses it. Two labels are left in the element's switch, `NULL` and
+`DEFAULT`, and the compiler compares them in a line. That is 1.21 to 1.04 on the long
+condition and 1.28 to 1.20 on the short one — the largest step since the write barrier, and
+none of it in the parser's shape, all of it in what the shape compiles to.
+
+The message is what the widening could have cost. A character in no group used to be
+refused by the choice, in the choice's own words; now the call refuses it in the call's,
+which say less. So the choice records what it wanted at the position the call was made
+from: at the same position that merges with the call's refusal, and where the call read on
+and failed further along it is dropped, the deeper refusal being the better one. The
+argument is the call's in every part, so the widening is only taken where the group's
+alternative is read by a call *before anything else is read at all* — a look ahead of it
+would leave the argument short.
+
 What was tried in the copy and did not pay, so that nobody tries it again: writing an
 optional token in place rather than as a turn of a loop (nothing); writing the turn of a
 fold in place rather than as a method (a tenth on the sum in the copy, but the marking and
@@ -12995,18 +13018,26 @@ generator reads slower than the ladder (1.62 against 1.40 at the time) because i
 `NOT`, a predicate, a parenthesis — cannot be dispatched while a predicate and a
 parenthesis both begin with `(`; the ladder stays.
 
-**Where it stands, and what the profile says is left.** Sampled with `dotnet-trace`
-(`--spin 6 4 eager` against `--spin 6 4 hand`, `dotnet-trace report … topN`): on the long
-condition the generated tokenizer is 27% of the eager parse where the hand-written lexer
-is 41% of its own, so the lexer is the faster half, and the reader is 1.47 of the
-hand-written reader. The reader's time sits in the rules that dispatch — `Predicate`,
-`RowValueConstructor`, its element, the value expression primary, `PredicateTail`, 46% of
-the parse between them — which are the ladder's levels: nine calls per operand where the
-hand-written parser makes six, its `Value` folding two levels into one climb and its
-`Primary` reading a name where the grammar has a column reference over a qualified name
-over an identifier. That is the gap that remains, and it is structural: closing it means
-either inlining a level at its call sites or the climbing emission, and the climbing
-grammar has to be rewritten first.
+**The ladder is not the gap.** The profile said the time was in the rules that dispatch —
+the predicate, the row value constructor and its element, the value expression primary,
+the predicate's tail, 46% of the parse between them — and those are the ladder's levels:
+nine calls an operand where the hand-written parser makes six, its `Value` folding two
+levels into one climb and its `Primary` reading a name where the grammar has a column
+reference over a qualified name over an identifier. So the copy was edited to have the
+hand-written parser's levels and no others: `SearchCondition` and `BooleanTerm` merged into
+one climb over `OR` and `AND`, `ValueExpression` and `Term` into one over `+ -` and `* /`,
+the column reference read as a name where it is called. Agreement held over 66 shapes,
+eighteen of them written for this — `a OR b AND c OR d`, `a - b + c > 0`, `a * b / c * d > 0`
+— and the timing did not move: 1.50 against 1.48 on the long condition and 0.60 against
+0.60 on the sum, with the climb *worse* on the short input (139 to 154 ns) and on the
+nested one (247 to 257 ns).
+
+The reason is that the ladder was never what it looks like. `A = A op B | B` is lowered to
+a loop over `B`, so a level costs one call for the whole expression, not one call for every
+operand; the levels are already collapsed, and collapsing them again in the grammar only
+adds the strength test the climb needs. What those rules spend is not the calling. It is
+the dispatch inside them — which is what the widening above went after, and it took the
+long condition from 1.21 to 1.04 with the levels left exactly where they are.
 
 Two smaller things. The per-parse fixed cost — three thread-static pools rented and
 returned, four `Array.Clear` calls on a store that is usually empty — is about nine
