@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Threading;
 
 namespace DotGram.HandDeferred;
 
@@ -138,12 +139,86 @@ sealed class Pooled : IReading
 	/// </remarks>
 	readonly int _first;
 
+	/// <summary>
+	/// Whether a run asks for as much as the longest run any parse has needed so far,
+	/// rather than for <see cref="_first"/> and then doubling its way up.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The pool already keeps whatever size an array grew to, so the memory is there;
+	/// what it does not do is hand it over on the first ask, because the buckets are by
+	/// size and a request for four gets a four. One integer fixes that: remember the
+	/// longest run yet seen and start every run there. A run that would have doubled its
+	/// way from four to a thousand — nine borrows and eight copies of everything written
+	/// so far — takes one borrow and copies nothing.
+	/// </para>
+	/// <para>
+	/// It is a guess about the next input from the last one, so it can be wrong in the
+	/// direction of holding more memory than a parse needs: every run alive at once asks
+	/// for the high-water size, and a deeply nested input has one run alive per level.
+	/// Pooled, so it costs the high-water mark and not an allocation.
+	/// </para>
+	/// <para>
+	/// <b>And it is the one thing in this project that moved every size at once.</b>
+	/// Against the same reading without it, over a flat input:
+	/// </para>
+	/// <code>
+	/// | Method       | Pairs | Mean        | Error      | Allocated |
+	/// | Pooled       | 5     |    44.54 ns |   0.500 ns |     192 B |
+	/// | PooledLearns | 5     |    44.36 ns |   0.432 ns |     192 B |
+	/// | Pooled       | 10    |    88.89 ns |   0.599 ns |     192 B |
+	/// | PooledLearns | 10    |    68.56 ns |   1.181 ns |     192 B |
+	/// | Pooled       | 100   |   717.41 ns |  13.290 ns |     616 B |
+	/// | PooledLearns | 100   |   583.91 ns |   3.447 ns |     528 B |
+	/// | Pooled       | 1000  | 6,299.12 ns | 119.889 ns |    4072 B |
+	/// | PooledLearns | 1000  | 5,856.63 ns | 115.836 ns |    3832 B |
+	/// </code>
+	/// <para>
+	/// Twenty-three percent at ten pairs, nineteen at a hundred, seven at a thousand, and
+	/// every gap several times its error. The largest is at the smallest size that has a
+	/// run at all, which is the opposite of where it was looked for: what is saved is not
+	/// the copying — nine doublings of a thousand elements come to a third of a microsecond
+	/// — but the <em>borrows</em>, and a run of nine steps that took three now takes one.
+	/// </para>
+	/// <para>
+	/// The single-threaded benchmark cannot show what sharing the mark is for; what it does
+	/// show is that the compare-and-exchange costs nothing measurable, which it should not,
+	/// happening once per run rather than once per element.
+	/// </para>
+	/// </remarks>
+	readonly bool _learns;
+
+	/// <summary>The longest run any parse has needed, on any thread.</summary>
+	/// <remarks>
+	/// <para>
+	/// Shared rather than per thread, unlike the arrays it sizes. The arrays have to be
+	/// per thread or every borrow would need a lock; this is one integer read once and
+	/// written at most once per run, so it can be shared, and sharing is what it is for —
+	/// a thread pool where every thread has to meet its own long input before it stops
+	/// doubling has not learned anything.
+	/// </para>
+	/// <para>
+	/// A lost update would cost one extra doubling and nothing else, so the barrier is not
+	/// load-bearing; it is here because a maximum written by many hands is worth writing
+	/// exactly when exactness is this cheap.
+	/// </para>
+	/// <para>
+	/// What it does cost is coupling: one long document teaches every later parse on every
+	/// thread to ask for a long array. That is memory held rather than memory allocated —
+	/// the arrays come from the pool either way — but it is held for the life of the
+	/// process, and a smaller-is-better answer here would be a decaying mark rather than a
+	/// maximum.
+	/// </para>
+	/// </remarks>
+	static int _wanted;
+
 	Run? _root;
 
-	public Pooled(string text, int first = 4)
+	public Pooled(string text, int first = 4, bool learns = false)
 	{
-		_text  = text;
-		_first = first;
+		_text   = text;
+		_first  = first;
+		_learns = learns;
 	}
 
 	/// <summary>Reads the whole input. What it borrowed goes back before it answers no.</summary>
@@ -172,6 +247,9 @@ sealed class Pooled : IReading
 
 	Pair[] Borrow(int least)
 	{
+		if (_learns && Volatile.Read(ref _wanted) is var wanted && wanted > least)
+			least = wanted;
+
 		var size = 4;
 
 		while (size < least)
@@ -257,6 +335,17 @@ sealed class Pooled : IReading
 			steps[count++] = right;
 			end            = next;
 		}
+
+		if (_learns)
+			for (var seen = Volatile.Read(ref _wanted); count > seen; )
+			{
+				var was = Interlocked.CompareExchange(ref _wanted, count, seen);
+
+				if (was == seen)
+					break;
+
+				seen = was;
+			}
 
 		made = new Run(start, steps, count);
 

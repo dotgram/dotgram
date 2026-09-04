@@ -201,6 +201,18 @@ public class Recognizing
 		return read;
 	}
 
+	/// <summary>The same, asking for as much as the last parse turned out to need.</summary>
+	[Benchmark]
+	public bool PooledLearns()
+	{
+		var reading = new Pooled(_input, learns: true);
+		var read    = reading.Recognize();
+
+		reading.Return();
+
+		return read;
+	}
+
 	[Benchmark]
 	public bool Arenas()
 	{
