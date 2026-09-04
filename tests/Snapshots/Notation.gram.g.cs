@@ -876,6 +876,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>Sep_With1</c>, read by a method of its own.</summary>
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 		static int Read_Sep_With1_List_With1(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
 		{
 			var p = pos;
@@ -1177,6 +1178,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>Sep</c>, read by a method of its own.</summary>
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 		static int Read_Sep_List(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
 		{
 			var p = pos;

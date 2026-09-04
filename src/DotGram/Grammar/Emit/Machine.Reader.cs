@@ -44,6 +44,37 @@ sealed partial class Machine
 	const string Refusing = "Refuse_DotGram";
 
 	/// <summary>
+	/// Whether a rule is a token or a few tokens and nothing else — no rule under it, no
+	/// repetition, no guard, no look — so that its reader is what a hand-written parser would
+	/// write inline where it is called.
+	/// </summary>
+	bool Trivial(RuleSymbol rule)
+	{
+		var leaves = 0;
+
+		foreach (var node in NodeWalk.Descendants(_graph.Bodies[rule]))
+		{
+			switch (node)
+			{
+				case Node.Call:
+				case Node.Repeat:
+				case Node.Guard:
+				case Node.Lookahead:
+				case Node.Behind:
+				case Node.External:
+					return false;
+
+				case Node.Literal:
+				case Node.Element:
+					leaves++;
+					break;
+			}
+		}
+
+		return leaves > 0 && leaves <= 8;
+	}
+
+	/// <summary>
 	/// The rules a way back has to be written into: the ones that put something on the
 	/// tape, and the ones that call them.
 	/// </summary>
@@ -188,6 +219,15 @@ sealed partial class Machine
 				tape
 					? $"/// <summary>What <c>{rule.Name}</c> is, one reading of it at a time.</summary>"
 					: $"/// <summary><c>{rule.Name}</c>, read by a method of its own.</summary>");
+
+			// A rule that is a token or a choice of tokens is what a hand-written parser
+			// writes as a test where it stands; asked for as a call, it costs the call. The
+			// JIT inlines a method this small on its own only while the refusals inside it
+			// keep it under its budget, and a choice of six tokens with six of them does not.
+			if (!tape && Trivial(rule))
+				file.Line(
+					"[global::System.Runtime.CompilerServices.MethodImpl(" +
+					"global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
 
 			using (file.Block(
 				$"static int {inner}(" +
@@ -901,7 +941,16 @@ sealed partial class Machine
 			if (text.Length == 1)
 			{
 				// The token the dispatch read is the one this wants, and is in a register:
-				// there is nothing to bound and nothing to read.
+				// there is nothing to bound and nothing to read. And where the case label that
+				// brought the reading here admits nothing but this token, there is nothing to
+				// test either — the switch was the test.
+				if (loaded && Chosen(FirstSets.Of(node, _graph)))
+				{
+					code.Line($"p += {text.Length};");
+
+					return;
+				}
+
 				var read = loaded
 					? folded ? "global::System.Char.ToUpperInvariant(c)" : "c"
 					: folded ? "global::System.Char.ToUpperInvariant(text[p])" : "text[p]";
@@ -930,6 +979,13 @@ sealed partial class Machine
 			code.Line($"p += {text.Length};");
 		}
 
+		/// <summary>
+		/// Whether every token the enclosing switch could have chosen this group by is one the
+		/// set admits — so that a test against the set, made on that token, could only pass.
+		/// </summary>
+		bool Chosen(FirstSets.First admits) =>
+			_dispatched is { } chosen && chosen.IsKnown && admits.IsKnown && admits.Covers(chosen);
+
 		void EmitElement(Writer code, Node.Element element, bool loaded = false)
 		{
 			var name  = machine.DeclareExpected([element.ToString()]);
@@ -947,7 +1003,9 @@ sealed partial class Machine
 
 			var test = CSharpEmitter.Test(element, machine.Tabulate);
 
-			if (!string.Equals(test, "true", StringComparison.Ordinal))
+			// Not where the case label that brought the reading here admits nothing the
+			// element would refuse: the switch was the test.
+			if (!string.Equals(test, "true", StringComparison.Ordinal) && !(loaded && Chosen(first)))
 				using (code.Block($"if (!({test}))"))
 					Refused(code, name);
 
@@ -1031,7 +1089,9 @@ sealed partial class Machine
 							// apart by, so they are tried in order — and a group that fails
 							// fails the choice, no other group's first set holding the token
 							// that chose this one.
+							_dispatched = group.Set;
 							EmitAmong(code, group.Members, following, loaded: true);
+							_dispatched = null;
 							code.Line("break;");
 						}
 					}
@@ -1056,12 +1116,19 @@ sealed partial class Machine
 		/// jump out of the middle of this one. Called at the top of a choice nothing can
 		/// dispatch, and inside a group of one that can.
 		/// </remarks>
+		/// <summary>
+		/// The token the enclosing <c>switch</c> chose this group by, while the group is being
+		/// written: an alternative whose first test admits exactly those tokens has nothing to
+		/// test, the case label having done it.
+		/// </summary>
+		FirstSets.First? _dispatched;
+
 		void EmitAmong(
 			Writer code, IReadOnlyList<Node> alternatives, FollowSets.Continuation following, bool loaded = false)
 		{
 			if (alternatives.Count == 1)
 			{
-				Emit(code, alternatives[0], following);
+				Emit(code, alternatives[0], following, loaded);
 
 				return;
 			}
