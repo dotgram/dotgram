@@ -903,6 +903,18 @@ sealed partial class Machine
 				return;
 			}
 
+			// A capture nothing reads — `v: Primary => @(v)` hands the operand up through
+			// the register, and its local was written on every reading and read on none
+			// — is the reading and no local: a frame of eight references nothing reads is
+			// eight words zeroed on every call, and the value expression primary of SQL
+			// had exactly that.
+			if (member.Shape is MemberShape.Text or MemberShape.Record && !ReadAnywhere.Contains(slot))
+			{
+				Emit(code, held, following, loaded);
+
+				return;
+			}
+
 			switch (member.Shape)
 			{
 				case MemberShape.Text:
@@ -938,6 +950,11 @@ sealed partial class Machine
 			if (member.Shape != MemberShape.Records)
 				_kept.Add(slot);
 		}
+
+		/// <summary>The slots some record or guard of the rule reads, wherever it stands.</summary>
+		HashSet<int> ReadAnywhere => _readAnywhere ??= Elsewhere(new Node.Empty());
+
+		HashSet<int>? _readAnywhere;
 
 		/// <summary>Where the rule's pushes begin: this method's own mark in the body, the handed one in a part.</summary>
 		string Refs => _part && _gathers ? "refs" : "rb";
