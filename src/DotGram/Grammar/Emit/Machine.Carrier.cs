@@ -92,6 +92,16 @@ sealed partial class Machine
 		public string ReaderArgument => string.Concat(ReaderState.Select(one => $", {one.Name}"));
 
 		/// <summary>
+		/// What the reader keeps for itself and writes as it goes: fields of its own, made
+		/// empty when it is made and handed to nobody. A carrier that passes values between
+		/// readers through a register puts the register here rather than in its store: the
+		/// reader is a <c>ref struct</c> on the stack, and a reference written into it is a
+		/// plain store, where one written into an object on the heap goes through the
+		/// collector's write barrier — and a parser writes one for every value it builds.
+		/// </summary>
+		public virtual IEnumerable<(string Type, string Name)> ReaderRegisters => [];
+
+		/// <summary>
 		/// What a part of a rule that gathers is handed so that it can gather into the same
 		/// place, each item with its leading comma: declarations where <paramref name="declared"/>,
 		/// arguments otherwise, named as the body names them where <paramref name="inBody"/>.

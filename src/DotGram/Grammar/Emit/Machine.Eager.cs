@@ -9,28 +9,26 @@ namespace DotGram.Grammar.Emit;
 
 sealed partial class Machine
 {
-	/// <summary>The class an eager parser rents: one register per value type, holding the last value built of it.</summary>
+	/// <summary>The class an eager parser rents: the stacks a rule gathers on, one per value type and one for text.</summary>
 	/// <remarks>
-	/// The tape hands a value from callee to caller through <c>ways.Last</c>, an index into a
-	/// log; this hands it through a field of the value's own type. It is sound for the same
-	/// reason the index is: every valued rule writes its own record last, after everything it
-	/// captured, so when a reader returns the register of its type holds its value and nothing
-	/// has come between.
+	/// <para>
+	/// A stack per type for what a rule gathers across turns, and one for pieces of text,
+	/// marked and unwound by count like the tape's references and taken as one array when
+	/// the record is written — the one allocation a hand-written parser makes for a list.
+	/// </para>
+	/// <para>
+	/// The registers a value is handed through from callee to caller are not here but in the
+	/// reader itself (<see cref="EagerCarrier.ReaderRegisters"/>): a reader writes one for
+	/// every value it builds, and written into this class, on the heap, each went through
+	/// the collector's write barrier — a fifth of the parse, measured on the SQL yardstick.
+	/// </para>
 	/// </remarks>
 	internal static string EagerValuesClass(IReadOnlyList<string> valueTypes)
 	{
 		var text = new StringBuilder();
 
-		text.Append("/// <summary>What an eager parse hands between its readers: the last value built of each type (Machine.Eager.cs).</summary>\n");
+		text.Append("/// <summary>What an eager parse gathers on: a stack per value type, and one for text (Machine.Eager.cs).</summary>\n");
 		text.Append("sealed class EagerValues\n{\n");
-
-		for (var i = 0; i < valueTypes.Count; i++)
-			text.Append("\tinternal ").Append(valueTypes[i]).Append(" Last").Append(i).Append(" = default!;\n");
-
-		// A stack per type for what a rule gathers across turns, and one for pieces of text,
-		// marked and unwound by count like the tape's references and taken as one array when
-		// the record is written — the one allocation a hand-written parser makes for a list.
-		text.Append('\n');
 		Stack(text, "string", "Text");
 
 		for (var i = 0; i < valueTypes.Count; i++)
@@ -39,10 +37,6 @@ sealed partial class Machine
 		text.Append("\n\t[global::System.ThreadStatic]\n\tstatic EagerValues? _spare;\n\n");
 		text.Append("\tinternal static EagerValues Rent()\n\t{\n\t\tvar spare = _spare;\n\n\t\tif (spare == null)\n\t\t\treturn new EagerValues();\n\n\t\t_spare = null;\n\n\t\treturn spare;\n\t}\n\n");
 		text.Append("\tinternal static void Return(EagerValues values)\n\t{\n");
-
-		for (var i = 0; i < valueTypes.Count; i++)
-			text.Append("\t\tvalues.Last").Append(i).Append(" = default!;\n");
-
 		text.Append("\t\tglobal::System.Array.Clear(values.StackText, 0, values.HighText);\n\t\tvalues.CountText = values.HighText = 0;\n");
 
 		for (var i = 0; i < valueTypes.Count; i++)
@@ -116,7 +110,7 @@ sealed partial class Machine
 		bool _accumulated;
 
 		/// <remarks>
-		/// The registers, and everything a construction called inside a reader may ask for:
+		/// The stacks, and everything a construction called inside a reader may ask for:
 		/// the tokens over kinds, since a text member is cut where it is read; the input and
 		/// the context where any factory names them.
 		/// </remarks>
@@ -135,6 +129,24 @@ sealed partial class Machine
 
 				if (machine.UsesContext)
 					yield return (machine._graph.Context!, "context");
+			}
+		}
+
+		/// <summary>One register per value type, holding the last value built of it.</summary>
+		/// <remarks>
+		/// The tape hands a value from callee to caller through <c>ways.Last</c>, an index
+		/// into a log; this hands it through a field of the value's own type. It is sound for
+		/// the same reason the index is: every valued rule writes its own record last, after
+		/// everything it captured, so when a reader returns the register of its type holds
+		/// its value and nothing has come between. A field of the reader and not of the
+		/// store it rents, for the reason <see cref="ValueCarrier.ReaderRegisters"/> gives.
+		/// </remarks>
+		public override IEnumerable<(string Type, string Name)> ReaderRegisters
+		{
+			get
+			{
+				for (var i = 0; i < machine._valueTypes.Count; i++)
+					yield return (machine._valueTypes[i], "last" + i.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
 			}
 		}
 
@@ -254,7 +266,7 @@ sealed partial class Machine
 		{
 			var rule = _rule ?? throw new InvalidOperationException("A record ended that never began.");
 			var type = machine._results.QualifiedOf(rule)!;
-			var into = $"values.Last{machine.TableFor(type)}";
+			var into = Last(type);
 
 			// A terminal that builds, over kinds: the lexer measured it, and the character
 			// machine of its own builds it from the text — now rather than in the walk.
@@ -301,7 +313,7 @@ sealed partial class Machine
 			}
 		}
 
-		public override string Last(string valueType) => $"values.Last{machine.TableFor(valueType)}";
+		public override string Last(string valueType) => $"last{machine.TableFor(valueType)}";
 
 		public override string PushText(int slot, string from, string to) =>
 			$"values.PushText({machine.Cut(from, $"{to} - {from}")});";
@@ -334,9 +346,10 @@ sealed partial class Machine
 			yield return "EagerValues.Return(values);";
 		}
 
+		/// <remarks>Read off the reader, which is what the register is a field of.</remarks>
 		public override IEnumerable<string> BuildRoot(string type, bool extent)
 		{
-			yield return $"value = {Last(type)};";
+			yield return $"value = reader.{Last(type)};";
 		}
 
 		public override string RenderBuilder(IReadOnlyList<RuleSymbol> rules) => "";

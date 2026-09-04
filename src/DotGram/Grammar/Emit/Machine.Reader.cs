@@ -366,7 +366,8 @@ sealed partial class Machine
 
 	/// <summary>
 	/// The reader: every rule and every part of one as a method, and what they all read from
-	/// as fields — the text, the failure, the ways, and whatever the carrier has them hold.
+	/// as fields — the text, the failure, the ways, whatever the carrier has them hold, and
+	/// the registers the carrier has them hand values through.
 	/// </summary>
 	/// <remarks>
 	/// A <c>ref struct</c>, so that it may hold the text as a span and live where a
@@ -376,7 +377,8 @@ sealed partial class Machine
 	/// </remarks>
 	void RenderReaderStruct(Writer file, Writer members)
 	{
-		var state = Carrier.ReaderState.ToList();
+		var state     = Carrier.ReaderState.ToList();
+		var registers = Carrier.ReaderRegisters.ToList();
 
 		file.Line("/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>");
 
@@ -388,6 +390,9 @@ sealed partial class Machine
 
 			foreach (var (type, name) in state)
 				file.Line($"readonly {type} {name};");
+
+			foreach (var (type, name) in registers)
+				file.Line($"internal {type} {name};");
 
 			file.Line();
 
@@ -401,6 +406,9 @@ sealed partial class Machine
 
 				foreach (var (_, name) in state)
 					file.Line($"this.{name} = {name};");
+
+				foreach (var (_, name) in registers)
+					file.Line($"this.{name} = default!;");
 			}
 
 			file.Line();
