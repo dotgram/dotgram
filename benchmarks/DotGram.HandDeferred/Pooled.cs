@@ -126,9 +126,25 @@ sealed class Pooled : IReading
 
 	readonly List<Pair[]> _borrowed = [];
 
+	/// <summary>
+	/// What a run asks for before it knows how long it is.
+	/// </summary>
+	/// <remarks>
+	/// Four is what an array that is going to be grown anyway would start at, and it is
+	/// wrong here for a reason the flat inputs hid: a parenthesised group is a run of its
+	/// own, so an input with many small groups asks for a first array as many times, and
+	/// each one that outgrows four asks again. Sixteen costs nothing — the arrays come
+	/// from a pool and are handed back — and skips two rounds of that.
+	/// </remarks>
+	readonly int _first;
+
 	Run? _root;
 
-	public Pooled(string text) => _text = text;
+	public Pooled(string text, int first = 4)
+	{
+		_text  = text;
+		_first = first;
+	}
 
 	/// <summary>Reads the whole input. What it borrowed goes back before it answers no.</summary>
 	public bool Recognize()
@@ -227,7 +243,7 @@ sealed class Pooled : IReading
 
 			if (steps is null)
 			{
-				steps = Borrow(4);
+				steps = Borrow(_first);
 			}
 			else if (count == steps.Length)
 			{

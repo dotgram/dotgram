@@ -426,12 +426,50 @@ public class Threshold
 /// </para>
 /// <para>
 /// A thousand pairs in every case, folded one, five and ten levels deep. Each level
-/// carries a <c>Sum</c> of its own, so the depth is also how many objects the readings
-/// that keep a <c>Sum</c> have to make, and how deep the walk goes at build time.
-/// Recognition only: this is about where a representation is written.
+/// carries a <c>Sum</c> of its own, so the depth is how many objects the readings that
+/// keep a <c>Sum</c> have to make — and, at build time, how deep the walk goes, which is
+/// why this measures the whole parse and not reading alone.
+/// </para>
+/// <para>
+/// Reading alone, measured before this class was turned round, went like this — the
+/// tape's own cost being flat in depth, everything that makes an object per group getting
+/// worse with it, and the arenas holding at a hundred and twenty bytes throughout:
+/// </para>
+/// <code>
+///              Depth         Mean    Ratio   Allocated
+/// Pooled           1       5.8 us     0.50       480 B
+/// Mix2             1       7.8 us     0.67    48,160 B
+/// Arenas           1      10.7 us     0.93       120 B
+/// Tape             1      11.6 us     1.00    98,328 B
+/// Boxed            1      14.8 us     1.28   112,072 B
+///
+/// Pooled          10       7.9 us     0.83     2,848 B
+/// Mix2            10       7.8 us     0.83    48,952 B
+/// Arenas          10       8.9 us     0.94       120 B
+/// Tape            10       9.5 us     1.00    98,328 B
+/// Boxed           10      15.0 us     1.58   112,504 B
+/// </code>
+/// <para>
+/// Whole, it comes out compressed the way <see cref="Parsing"/> does, and for the same
+/// reason — 0.77 to 1.04, against 0.50 to 1.58 for reading alone. What depth moves most is
+/// not any representation but the author's own quadratic: one level means two runs of five
+/// hundred and ten levels means eleven runs of ninety, so the concatenation has a fifth of
+/// the work to do and the whole parse falls from a hundred and forty-nine microseconds to
+/// sixty-three. <c>Boxed</c> and <c>Classes</c>, half again worse than the tape at reading
+/// ten levels deep, come out level with it once building is included.
+/// </para>
+/// <para>
+/// <c>Pooled16</c> asks for sixteen where a run starts instead of four, on the thought that
+/// a group is a run of its own and an input full of groups pays the first doublings once
+/// per group. It does not show: 145.6 against 151.6 microseconds at one level, 70.2 against
+/// 68.4 at five, 50.4 against 48.4 at ten, with error bars of two to fifteen. The
+/// arithmetic says why — eleven groups of ninety pairs skip two doublings each, so
+/// twenty-two borrows in a parse of fifty thousand nanoseconds. Kept as a measured
+/// negative rather than removed.
 /// </para>
 /// </remarks>
 [MemoryDiagnoser]
+[SimpleJob(RunStrategy.Throughput, launchCount: 1, warmupCount: 3, iterationCount: 5)]
 public class Nesting
 {
 	[Params(1, 5, 10)]
@@ -443,42 +481,83 @@ public class Nesting
 	public void Setup() => _input = Inputs.Of(1_000, Depth);
 
 	[Benchmark(Baseline = true)]
-	public bool Tape()
+	public string Tape()
 	{
 		var reader = new Reader(_input);
 
-		return reader.Recognize();
+		reader.Recognize();
+
+		return reader.Construct();
 	}
 
-	[Benchmark] public bool Mixed() => new Mixed(_input).Recognize();
+	[Benchmark]
+	public string Mixed()
+	{
+		var reading = new Mixed(_input);
 
-	[Benchmark] public bool Mix2() => new Mix2(_input).Recognize();
+		reading.Recognize();
+
+		return reading.Construct();
+	}
 
 	[Benchmark]
-	public bool Pooled()
+	public string Mix2()
+	{
+		var reading = new Mix2(_input);
+
+		reading.Recognize();
+
+		return reading.Construct();
+	}
+
+	[Benchmark]
+	public string Pooled()
 	{
 		var reading = new Pooled(_input);
-		var read    = reading.Recognize();
 
-		reading.Return();
+		reading.Recognize();
 
-		return read;
+		return reading.Construct();
+	}
+
+	/// <summary>The same, asking for sixteen where a run starts rather than four.</summary>
+	[Benchmark]
+	public string Pooled16()
+	{
+		var reading = new Pooled(_input, 16);
+
+		reading.Recognize();
+
+		return reading.Construct();
 	}
 
 	[Benchmark]
-	public bool Arenas()
+	public string Arenas()
 	{
 		var reading = new Arenas(_input);
-		var read    = reading.Recognize();
 
-		reading.Return();
+		reading.Recognize();
 
-		return read;
+		return reading.Construct();
 	}
 
-	[Benchmark] public bool ArenasFresh() => new Arenas(_input).Recognize();
+	[Benchmark]
+	public string Boxed()
+	{
+		var reading = new Boxed(_input);
 
-	[Benchmark] public bool Boxed() => new Boxed(_input).Recognize();
+		reading.Recognize();
 
-	[Benchmark] public bool Classes() => new Classes(_input).Recognize();
+		return reading.Construct();
+	}
+
+	[Benchmark]
+	public string Classes()
+	{
+		var reading = new Classes(_input);
+
+		reading.Recognize();
+
+		return reading.Construct();
+	}
 }
