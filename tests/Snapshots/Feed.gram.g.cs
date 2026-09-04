@@ -471,7 +471,7 @@ namespace DotGram.Snapshots
 					var rr2 = ways.RefsCount;
 					var q0 = -1;
 
-					q0 = Read_Date_Feed_Part0(p);
+					q0 = Read_Digit_Feed(p);
 
 					if (q0 < 0)
 					{
@@ -525,7 +525,7 @@ namespace DotGram.Snapshots
 					var rr5 = ways.RefsCount;
 					var q1 = -1;
 
-					q1 = Read_Date_Feed_Part1(p);
+					q1 = Read_Digit_Feed(p);
 
 					if (q1 < 0)
 					{
@@ -579,7 +579,7 @@ namespace DotGram.Snapshots
 					var rr8 = ways.RefsCount;
 					var q2 = -1;
 
-					q2 = Read_Date_Feed_Part2(p);
+					q2 = Read_Digit_Feed(p);
 
 					if (q2 < 0)
 					{
@@ -598,36 +598,6 @@ namespace DotGram.Snapshots
 					p = q2;
 					t2++;
 				}
-				return p;
-			}
-
-			/// <summary>One alternative of <c>Date</c>, read where it stood.</summary>
-			public int Read_Date_Feed_Part0(int pos)
-			{
-				var p = pos;
-				var q0 = Read_Digit_Feed(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				return p;
-			}
-
-			/// <summary>One alternative of <c>Date</c>, read where it stood.</summary>
-			public int Read_Date_Feed_Part1(int pos)
-			{
-				var p = pos;
-				var q0 = Read_Digit_Feed(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				return p;
-			}
-
-			/// <summary>One alternative of <c>Date</c>, read where it stood.</summary>
-			public int Read_Date_Feed_Part2(int pos)
-			{
-				var p = pos;
-				var q0 = Read_Digit_Feed(p);
-				if (q0 < 0) return -1;
-				p = q0;
 				return p;
 			}
 
@@ -691,12 +661,6 @@ namespace DotGram.Snapshots
 				{
 					case '\r': 
 						{
-							if (!(c == '\r'))
-							{
-								Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected22, ways);
-								return -1;
-							}
-
 							var w0  = -1;
 							var d0 = 0;
 							if (ways.Cursor < ways.Count)
@@ -991,7 +955,7 @@ namespace DotGram.Snapshots
 					var rr5 = ways.RefsCount;
 					var q1 = -1;
 
-					q1 = Read_Amount_Feed_Part1(p);
+					q1 = Read_Digit_Feed(p);
 
 					if (q1 < 0)
 					{
@@ -1033,7 +997,7 @@ namespace DotGram.Snapshots
 					var rr8 = ways.RefsCount;
 					var q2 = -1;
 
-					q2 = Read_Amount_Feed_Part2(p);
+					q2 = Read_Amount_Feed_Part1(p);
 
 					if (q2 < 0)
 					{
@@ -1068,16 +1032,6 @@ namespace DotGram.Snapshots
 
 			/// <summary>One alternative of <c>Amount</c>, read where it stood.</summary>
 			public int Read_Amount_Feed_Part1(int pos)
-			{
-				var p = pos;
-				var q0 = Read_Digit_Feed(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				return p;
-			}
-
-			/// <summary>One alternative of <c>Amount</c>, read where it stood.</summary>
-			public int Read_Amount_Feed_Part2(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -1116,7 +1070,7 @@ namespace DotGram.Snapshots
 					var rr2 = ways.RefsCount;
 					var q0 = -1;
 
-					q0 = Read_Amount_Feed_Part3(p);
+					q0 = Read_Digit_Feed(p);
 
 					if (q0 < 0)
 					{
@@ -1135,16 +1089,6 @@ namespace DotGram.Snapshots
 					p = q0;
 					t0++;
 				}
-				return p;
-			}
-
-			/// <summary>One alternative of <c>Amount</c>, read where it stood.</summary>
-			public int Read_Amount_Feed_Part3(int pos)
-			{
-				var p = pos;
-				var q0 = Read_Digit_Feed(p);
-				if (q0 < 0) return -1;
-				p = q0;
 				return p;
 			}
 
@@ -1233,7 +1177,7 @@ namespace DotGram.Snapshots
 					var rr2 = ways.RefsCount;
 					var q0 = -1;
 
-					q0 = Read_Count_Feed_Part0(p);
+					q0 = Read_Digit_Feed(p);
 
 					if (q0 < 0)
 					{
@@ -1252,16 +1196,6 @@ namespace DotGram.Snapshots
 					p = q0;
 					t0++;
 				}
-				return p;
-			}
-
-			/// <summary>One alternative of <c>Count</c>, read where it stood.</summary>
-			public int Read_Count_Feed_Part0(int pos)
-			{
-				var p = pos;
-				var q0 = Read_Digit_Feed(p);
-				if (q0 < 0) return -1;
-				p = q0;
 				return p;
 			}
 
@@ -2258,8 +2192,6 @@ namespace DotGram.Snapshots
 		static readonly string[] Recognize_DotGram_Feed_Expected20 = { "'H'" };
 
 		static readonly string[] Recognize_DotGram_Feed_Expected21 = { "['\\r' | '\\n' | '\\r']" };
-
-		static readonly string[] Recognize_DotGram_Feed_Expected22 = { "['\\r' | '\\r']" };
 
 		static readonly string[] Recognize_DotGram_Name_Expected0 = { "[^ '\\n' | '\\r' | '|']" };
 

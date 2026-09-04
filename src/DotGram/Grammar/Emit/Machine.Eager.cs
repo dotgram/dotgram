@@ -370,12 +370,22 @@ sealed partial class Machine
 		}
 
 		/// <summary>The stacks a rule gathers on — one per type its gathered members have, and the text's.</summary>
+		/// <remarks>
+		/// Not the captures of a fold's steps: a step's is written once a turn and built into
+		/// the value so far there and then (§4.3), so it is a sequence to the walk over the
+		/// tape's records and never on a stack here — and a rule that only folds marked and
+		/// unwound a stack it never pushed on, every turn.
+		/// </remarks>
 		IEnumerable<string> GatheredStacks(RuleSymbol owner)
 		{
-			var seen = new HashSet<string>(StringComparer.Ordinal);
+			var seen  = new HashSet<string>(StringComparer.Ordinal);
+			var steps = machine.DirectStepSlots(owner);
 
 			foreach (var member in machine.DirectMembers(owner))
 			{
+				if (member.Slots.All(steps.Contains))
+					continue;
+
 				var stack = member.Shape switch
 				{
 					MemberShape.Pieces  => "Text",

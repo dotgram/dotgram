@@ -1479,7 +1479,7 @@ namespace DotGram.Snapshots
 					var lm1 = ways.LogCount;
 					var rr1 = ways.RefsCount;
 
-					q0 = Read_Primary_Primary_Part0(p);
+					q0 = Read_Call_Primary(p);
 
 					if (q0 < 0)
 					{
@@ -1496,7 +1496,7 @@ namespace DotGram.Snapshots
 					var lm2 = ways.LogCount;
 					var rr2 = ways.RefsCount;
 
-					q0 = Read_Primary_Primary_Part1(p);
+					q0 = Read_Number_Primary(p);
 
 					if (q0 < 0)
 					{
@@ -1509,30 +1509,6 @@ namespace DotGram.Snapshots
 					return -1;
 
 				p = q0;
-				return p;
-			}
-
-			/// <summary>One alternative of <c>Primary</c>, read where it stood.</summary>
-			public int Read_Primary_Primary_Part0(int pos)
-			{
-				var p = pos;
-				var r0 = -1;
-				var q0 = Read_Call_Primary(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				r0 = ways.Last;
-				return p;
-			}
-
-			/// <summary>One alternative of <c>Primary</c>, read where it stood.</summary>
-			public int Read_Primary_Primary_Part1(int pos)
-			{
-				var p = pos;
-				var r1 = -1;
-				var q0 = Read_Number_Primary(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				r1 = ways.Last;
 				return p;
 			}
 

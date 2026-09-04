@@ -783,8 +783,17 @@ sealed partial class Machine
 						next       = FollowSets.Precedes(parts[i], next, _graph, machine._seam);
 					}
 
+					// The token the dispatch read is still in hand past a look, which moves
+					// nothing: the part after it is the first to consume, and reads as if it
+					// had been first.
+					var still = loaded;
+
 					for (var i = 0; i < parts.Count; i++)
-						Emit(code, parts[i], follows[i], loaded && i == 0);
+					{
+						Emit(code, parts[i], follows[i], still);
+
+						still = still && parts[i] is Node.Lookahead or Node.Empty;
+					}
 
 					break;
 				}
@@ -802,7 +811,7 @@ sealed partial class Machine
 					break;
 
 				case Node.Lookahead(var positive, var inside):
-					EmitLookahead(code, positive, inside);
+					EmitLookahead(code, positive, inside, loaded);
 					break;
 
 				case Node.Capture(_, var held):
@@ -1105,7 +1114,8 @@ sealed partial class Machine
 		/// Where the choice dispatches, an alternative that fails is a choice that fails —
 		/// no other could have matched here — so each is written where it stands and ends
 		/// the reader. Where it does not, every alternative but the last becomes a method,
-		/// because <c>-1</c> is how one tells its caller to try the next.
+		/// because <c>-1</c> is how one tells its caller to try the next — or, where it is
+		/// one call to a rule and nothing more, is that call, which answers the same way.
 		/// </remarks>
 		void EmitChoice(Writer code, IReadOnlyList<Node> alternatives, FollowSets.Continuation following)
 		{
@@ -1202,7 +1212,10 @@ sealed partial class Machine
 			// refused here and as one thing — the expectation the rendering beside this one
 			// reports — rather than alternative by alternative, each recording its own
 			// refusal at the same place and the message listing them all.
-			if (alternatives[alternatives.Count - 1] is not Node.Empty && Door(alternatives) is { } gate)
+			// Not where the case label that brought the reading here admits nothing the door
+			// would refuse: the switch was the door.
+			if (alternatives[alternatives.Count - 1] is not Node.Empty &&
+				Doorway(alternatives) is { } gate && !(loaded && Chosen(gate)))
 			{
 				var whole = machine.DeclareExpected([machine.PredictedDisplay(alternatives)]);
 
@@ -1215,7 +1228,9 @@ sealed partial class Machine
 					code.Line();
 				}
 
-				using (code.Block($"if (!({gate}))"))
+				_character = true;
+
+				using (code.Block($"if (!({machine.RangesTest(gate.Ranges, machine.Tabulate)}))"))
 					Refused(code, whole);
 
 				code.Line();
@@ -1274,50 +1289,50 @@ sealed partial class Machine
 				}
 			}
 
-			code.Line($"var {tried} = -1;");
-
 			for (var i = 0; i < alternatives.Count - 1; i++)
 			{
 				var (part, undo, _) = Called(alternatives[i], following);
 
-				using (code.Block($"if ({tried} < 0)"))
+				// The first attempt is made; each after it, only where the one before failed.
+				using (i == 0 ? null : code.Block($"if ({tried} < 0)"))
 				{
 					// What an alternative that failed wrote is not the rule's: what it
 					// pushed, the record written after it would collect, and what it
 					// logged would size the value tables.
-					var back = _gathers || _logs ? _ways++ : -1;
+					var back   = _gathers || _logs ? _ways++ : -1;
+					var marks  = new List<string>();
+					var unwind = new List<string>();
 
-					if (back >= 0)
+					if (_gathers && back >= 0)
 					{
-						if (_gathers)
-							foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{back}"))
-								code.Line(line);
-
-						if (_logs)
-							foreach (var line in machine.Carrier.MarkRecords($"lm{back}"))
-								code.Line(line);
-
-						code.Line();
+						marks.AddRange(machine.Carrier.MarkGathered(owner, $"rr{back}"));
+						unwind.AddRange(machine.Carrier.UnwindGathered(owner, $"rr{back}"));
 					}
 
-					code.Line($"{tried} = {part};");
+					if (_logs && back >= 0)
+					{
+						marks.AddRange(machine.Carrier.MarkRecords($"lm{back}"));
+						unwind.AddRange(machine.Carrier.UnwindRecords($"lm{back}"));
+					}
 
-					if (back >= 0 || undo.Length > 0)
+					if (undo.Length > 0)
+						unwind.Add(undo);
+
+					foreach (var line in marks)
+						code.Line(line);
+
+					if (marks.Count > 0)
+						code.Line();
+
+					code.Line(i == 0 ? $"var {tried} = {part};" : $"{tried} = {part};");
+
+					if (unwind.Count > 0)
 					{
 						code.Line();
 
 						using (code.Block($"if ({tried} < 0)"))
-						{
-							if (_gathers && back >= 0)
-								foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{back}"))
-									code.Line(line);
-
-							if (_logs && back >= 0)
-								LogBack(code, $"lm{back}");
-
-							if (undo.Length > 0)
-								code.Line(undo);
-						}
+							foreach (var line in unwind)
+								code.Line(line);
 					}
 				}
 			}
@@ -1351,6 +1366,17 @@ sealed partial class Machine
 		/// </summary>
 		string? Door(IEnumerable<Node> alternatives)
 		{
+			if (Doorway(alternatives) is not { } whole)
+				return null;
+
+			_character = true;
+
+			return machine.RangesTest(whole.Ranges, machine.Tabulate);
+		}
+
+		/// <summary>The tokens that can begin one of the alternatives, or null where the first sets cannot say.</summary>
+		FirstSets.First? Doorway(IEnumerable<Node> alternatives)
+		{
 			FirstSets.First? whole = null;
 
 			foreach (var alternative in alternatives)
@@ -1361,12 +1387,7 @@ sealed partial class Machine
 				whole = whole is null ? first : whole.Or(first);
 			}
 
-			if (whole is null)
-				return null;
-
-			_character = true;
-
-			return machine.RangesTest(whole.Ranges, machine.Tabulate);
+			return whole;
 		}
 
 		/// <summary>
@@ -1518,6 +1539,21 @@ sealed partial class Machine
 			var taken = captured.Where(elsewhere.Contains).OrderBy(static one => one).ToList();
 			var given = used.Where(one => !captured.Contains(one)).OrderBy(static one => one).ToList();
 
+			// A part that is one call and nothing else is that call. The method it would be
+			// is the call between a position taken and a position returned, and a capture
+			// no record outside reads — `p: Predicate => @(p)` is one, its construction
+			// having been the identity — and the yardstick's hot path went through three of
+			// them a clause. Not for a back edge, which the call as a statement guards, and
+			// not in a rule read at a strength, whose alternatives refuse below theirs.
+			if (taken.Count == 0 && !_climbs && Bare(part) is { } bare &&
+				!machine._backEdges.Contains((owner, bare.Rule)))
+			{
+				return (
+					$"{machine.ReaderOf(bare.Rule)}(p{machine.DirectStrengthOf(bare, bare.Rule)})",
+					"",
+					machine.Opens(part));
+			}
+
 			// What the part hands back is a local of this method, so this method declares it.
 			foreach (var slot in taken)
 				_kept.Add(slot);
@@ -1548,6 +1584,39 @@ sealed partial class Machine
 				$"{name}(p{Handing(given, taken, "")})",
 				undo.ToString().TrimEnd(),
 				opens);
+		}
+
+		/// <summary>
+		/// The call a part is, where it is one call under captures and nothing more — captures
+		/// into locals, that is: one a turn pushes is the work of the turn, and stays a method.
+		/// A construction that only hands the operand up is nothing more too, except in a
+		/// rule that folds, where the part moves the value so far along.
+		/// </summary>
+		Node.Call? Bare(Node part)
+		{
+			while (true)
+			{
+				if (part is Node.Capture(_, var held))
+				{
+					if (!Handed(machine._captureSlots[part] - machine._captureOffsets[owner]))
+						return null;
+
+					part = held;
+				}
+				else if (part is Node.Construct(var built, _) && !_folds &&
+					machine.DirectForwards(owner, machine._constructs[part]))
+				{
+					part = built;
+				}
+				else if (part is Node.Sequence(var nodes) && nodes.Count == 1)
+				{
+					part = nodes[0];
+				}
+				else
+				{
+					return part as Node.Call;
+				}
+			}
 		}
 
 		/// <summary>The positions handed over, as a signature or as a call.</summary>
@@ -2287,8 +2356,18 @@ sealed partial class Machine
 		/// <summary>A record's value as a guard sees it.</summary>
 		string ValueAt(string type, string record) => machine.Carrier.ValueOf(type, record);
 
-		void EmitLookahead(Writer code, bool positive, Node inside)
+		void EmitLookahead(Writer code, bool positive, Node inside, bool loaded = false)
 		{
+			// A negative look whose subject cannot begin with any token the case label
+			// admits has been answered by the label: `?!Reserved & RegularIdentifier` is
+			// dispatched on the word's kind, and inside the group the reserved kinds chose
+			// there is nothing left to look for.
+			if (!positive && loaded && _dispatched is { IsKnown: true } chosen &&
+				machine.Decidable(inside) is { Ends: false } subject && !subject.Overlaps(chosen))
+			{
+				return;
+			}
+
 			var seen         = $"q{_calls++}";
 			var (call, undo, _) = Called(inside, FollowSets.Continuation.All);
 
