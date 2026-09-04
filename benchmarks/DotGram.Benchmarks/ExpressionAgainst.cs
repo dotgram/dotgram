@@ -214,6 +214,14 @@ static class ExpressionAgainst
 
 		Console.WriteLine("   tape/hand  immediate/hand");
 
+		// Every method over every input before any of them is measured. Warming one input
+		// at a time leaves the first one paying for the whole process coming up to speed:
+		// it read a third slower than the same input read again at the end, which is a
+		// third of the difference this table is about.
+		foreach (var input in Inputs)
+			foreach (var (_, measure) in Methods)
+				Time(input, measure, iterations);
+
 		foreach (var input in Inputs)
 		{
 			var taken = new List<double>[Methods.Length];
@@ -340,6 +348,12 @@ static class ExpressionAgainst
 
 	static int Nothing(string input) => input.Length & 1;
 
+	/// <remarks>
+	/// Nothing is done about the collector between samples, and that was tried: settling
+	/// the heap before each one costs the sample its warm caches, which for the lexer —
+	/// a hundred nanoseconds a call — was worth more than the noise it removed. What the
+	/// noise wanted was longer samples, and the default iteration count is what gives them.
+	/// </remarks>
 	static double Time(string input, Func<string, int> measure, int iterations)
 	{
 		_input = input;
