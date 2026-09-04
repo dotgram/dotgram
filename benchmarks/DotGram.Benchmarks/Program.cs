@@ -114,6 +114,19 @@ static class Program
 			return;
 		}
 
+		// `--elspin [seconds] [input] [hand|immediate]` is `--spin` for the expression
+		// language: one input read over and over, long enough for a profiler to sample.
+		// See ExpressionAgainst.cs for the inputs, by index.
+		if (args.Length > 0 && args[0] == "--elspin")
+		{
+			var seconds = args.Length > 1 && int.TryParse(args[1], out var given) ? given : 20;
+			var which   = args.Length > 2 && int.TryParse(args[2], out var index) ? index : 7;
+
+			ExpressionAgainst.Spin(seconds, which, args.Length > 3 ? args[3] : "tape");
+
+			return;
+		}
+
 		// `--depth N` is not a benchmark: it is one run that either prints `ok` or takes
 		// the process with it, so that a caller can walk N up and find where nesting stops
 		// being possible. See Nesting.cs.

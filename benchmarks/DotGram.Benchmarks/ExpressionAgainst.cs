@@ -44,6 +44,14 @@ static class ExpressionAgainst
 		"(int n) => { int sum = 0; for (int i = 0; i < n; i++) { sum += i; } sum }",
 		"(int x) => ((((x + 1) + 1) + 1) + 1)",
 		"(int x) => x * x -",
+
+		// One parenthesis more each time, and nothing else: what a parenthesis costs is
+		// one descent of the operator ladder, so the slope of these four is what a level
+		// of it costs each reading.
+		"(int x) => x",
+		"(int x) => (((x)))",
+		"(int x) => (((((x)))))",
+		"(int x) => (((((((x)))))))",
 	];
 
 	/// <summary>
@@ -251,6 +259,34 @@ static class ExpressionAgainst
 
 			Report(input, [.. taken.Select(times => Median(times) - overhead)]);
 		}
+	}
+
+	/// <summary>
+	/// One input read over and over, for a profiler rather than for a number.
+	/// </summary>
+	/// <remarks>
+	/// One reading at a time, and the same input: three parsers through one process would
+	/// share every line a profile is attributed to, and two inputs through one parser
+	/// would share the parser's.
+	/// </remarks>
+	public static void Spin(int seconds, int which, string reading)
+	{
+		var text  = Inputs[which];
+		var until = DateTime.UtcNow.AddSeconds(seconds);
+		var read  = 0;
+
+		_input = text;
+
+		while (DateTime.UtcNow < until)
+			for (var i = 0; i < 2000; i++)
+				read += reading switch
+				{
+					"hand"      => HandExpression.Parse(text) ? 1 : 0,
+					"immediate" => Read(true)  ? 1 : 0,
+					_           => Read(false) ? 1 : 0,
+				};
+
+		Console.WriteLine($"{read:N0} {reading} readings of \"{text}\"");
 	}
 
 	static readonly (string Name, Func<string, int> Measure)[] Methods =
