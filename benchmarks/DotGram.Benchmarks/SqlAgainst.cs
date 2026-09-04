@@ -97,8 +97,14 @@ static class SqlAgainst
 		Agree();
 
 		Console.WriteLine();
-		Console.WriteLine(
-			$"{"",-36} {"generated",11} {"by hand",11} {"its lexer",11} {"day one",11}   ratio");
+		Console.Write($"{"",-36}");
+
+		foreach (var (name, _) in Methods)
+			Console.Write($" {name,11}");
+
+		// Both readings of the grammar against the hand-written parser: what the tape costs
+		// over it, and what building as you read costs over it.
+		Console.WriteLine("   tape/hand  eager/hand");
 
 		foreach (var input in Inputs)
 		{
@@ -148,6 +154,7 @@ static class SqlAgainst
 	static readonly (string Name, Func<string, int> Measure)[] Methods =
 	[
 		("generated", static input => SqlStandard92.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
+		("eager",     static input => EagerSql.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
 		("by hand",   static input => HandSqlTokens.Parse(input) ? 1 : 0),
 		("its lexer", static input => HandSqlTokens.LexOnly(input)),
 		("day one",   static input => HandSqlOriginal.Parse(input) ? 1 : 0),
@@ -188,6 +195,20 @@ static class SqlAgainst
 					$"  generated {one}\n" +
 					$"  by hand   {other}");
 			}
+
+			// And the eager carrier: the same grammar, the same tree, built as it is read.
+			var eager = EagerSql.TryParseSearchCondition(text);
+
+			if (eager.IsSuccess != generated)
+				throw new InvalidOperationException(
+					$"About \"{text}\": the tape says {Said(generated)} and the eager carrier says " +
+					$"{Said(eager.IsSuccess)}.");
+
+			if (generated && SqlTree.Show(made.Value) != SqlTree.Show(eager.Value))
+				throw new InvalidOperationException(
+					$"About \"{text}\": the two carriers read it the same and build it differently.\n" +
+					$"  tape  {SqlTree.Show(made.Value)}\n" +
+					$"  eager {SqlTree.Show(eager.Value)}");
 
 			// The first day's parser is held only to what it was ever checked against — the
 			// benchmark inputs — and its departures over the corpus are shown, because they
@@ -303,7 +324,7 @@ static class SqlAgainst
 		foreach (var median in medians)
 			Console.Write($" {median,8:N1} ns");
 
-		Console.WriteLine($"   {medians[0] / medians[1],5:N2}x");
+		Console.WriteLine($"   {medians[0] / medians[2],8:N2}x {medians[1] / medians[2],9:N2}x");
 	}
 
 	static double Median(List<double> times)

@@ -48,4 +48,11 @@
 		<ProjectReference Include="..\..\src\DotGram.Parsers\DotGram.Parsers.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<!-- The SQL grammar once more, compiled eagerly (EagerSql.cs): the same file
+		     DotGram.Parsers hosts, linked rather than copied so that it cannot drift, read by
+		     the generator here under another carrier (docs/next.md, the redesign). -->
+		<AdditionalFiles Include="..\..\src\DotGram.Parsers\SqlStandard92.gram" Link="SqlStandard92.gram" />
+	</ItemGroup>
+
 </Project>

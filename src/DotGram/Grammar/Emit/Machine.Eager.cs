@@ -63,8 +63,8 @@ sealed partial class Machine
 	/// <para>
 	/// <b>What it does not carry yet</b>, and refuses so that the tape does instead: marks
 	/// and parser state (§7.8), extents (a <c>SourceSpan</c>-typed rule has no record to be
-	/// the span of), recovery, and the valuing of a terminal over kinds. Each is a shape the
-	/// first measurement did not need and the second carrier can add.
+	/// the span of), and recovery. Each is a shape the first measurement did not need and
+	/// the second carrier can add.
 	/// </para>
 	/// </remarks>
 	sealed class EagerCarrier(Machine machine) : ValueCarrier
@@ -76,9 +76,22 @@ sealed partial class Machine
 		readonly List<(DirectMember Member, string Value)> _puts = [];
 		bool _accumulated;
 
-		public override string ReaderParameter => ", EagerValues values";
+		/// <remarks>
+		/// The registers, and everything a construction called inside a reader may ask for:
+		/// the tokens over kinds, since a text member is cut where it is read; the input and
+		/// the context where any factory names them.
+		/// </remarks>
+		public override string ReaderParameter =>
+			", EagerValues values" +
+			(machine.OverKinds ? machine.TokensParameter : "") +
+			(machine.UsesInput ? machine.InputParameter : "") +
+			(machine.UsesContext ? machine.ContextParameter : "");
 
-		public override string ReaderArgument => ", values";
+		public override string ReaderArgument =>
+			", values" +
+			(machine.OverKinds ? machine.TokensArgument : "") +
+			(machine.UsesInput ? machine.InputArgument : "") +
+			(machine.UsesContext ? machine.ContextArgument : "");
 
 		public override string GatherHanding(RuleSymbol owner, bool declared, bool inBody)
 		{
@@ -203,6 +216,16 @@ sealed partial class Machine
 			var type = machine._results.QualifiedOf(rule)!;
 			var into = $"values.Last{machine.TableFor(type)}";
 
+			// A terminal that builds, over kinds: the lexer measured it, and the character
+			// machine of its own builds it from the text — now rather than in the walk.
+			if (machine._reread is not null && machine._reread.Contains(rule))
+			{
+				if (_start is null)
+					throw new InvalidOperationException($"'{rule.Name}' builds from its text and its reader keeps no positions.");
+
+				return $"{into} = Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram({machine.Cut(_start, $"{_end} - {_start}")});";
+			}
+
 			// The span an alternative stands on, where the record would have carried one —
 			// asked for only by a factory that wants it, since asking has the file emit the
 			// helper that makes one.
@@ -279,9 +302,6 @@ sealed partial class Machine
 
 			if (machine._graph.Recoveries.Count > 0)
 				return "it recovers";
-
-			if (machine._reread is not null)
-				return "a terminal builds over kinds";
 
 			foreach (var rule in machine._rules)
 				if (machine.IsExtent(rule))

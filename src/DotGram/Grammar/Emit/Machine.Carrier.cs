@@ -76,10 +76,15 @@ sealed partial class Machine
 	{
 		// ---- what a reader is handed ---------------------------------------------------------
 
-		/// <summary>The parameter every reader takes for the carrier's own store, or nothing.</summary>
+		/// <summary>
+		/// What every reader takes beyond the text, the position, the failure and the ways:
+		/// the carrier's own store, and whatever the carrier needs the reader to have — the
+		/// tokens where it cuts text over kinds, the input and the context where it calls a
+		/// construction that asks for them.
+		/// </summary>
 		public abstract string ReaderParameter { get; }
 
-		/// <summary>And the argument that fills it.</summary>
+		/// <summary>And the arguments that fill them.</summary>
 		public abstract string ReaderArgument { get; }
 
 		/// <summary>
@@ -221,9 +226,21 @@ sealed partial class Machine
 	/// </remarks>
 	sealed class TapeCarrier(Machine machine) : ValueCarrier
 	{
-		public override string ReaderParameter => machine._directBuilds ? ", DirectValues values" : "";
+		/// <remarks>
+		/// The tables where a guard builds; the tokens where a guard or a glue asks about
+		/// text over kinds; the context where a guard names it or builds a value whose
+		/// factory might. Nothing else, because the tape cuts no text and calls no
+		/// construction in a reader — the walk at the end has its own parameters.
+		/// </remarks>
+		public override string ReaderParameter =>
+			(machine._directBuilds ? ", DirectValues values" : "") +
+			((machine._directGuards || machine._directGlue) && machine.OverKinds ? machine.TokensParameter : "") +
+			(machine.DirectReaderContext ? machine.ContextParameter : "");
 
-		public override string ReaderArgument => machine._directBuilds ? ", values" : "";
+		public override string ReaderArgument =>
+			(machine._directBuilds ? ", values" : "") +
+			((machine._directGuards || machine._directGlue) && machine.OverKinds ? machine.TokensArgument : "") +
+			(machine.DirectReaderContext ? machine.ContextArgument : "");
 
 		/// <remarks>
 		/// Where the rule gathers across turns, what a record collects is everything pushed

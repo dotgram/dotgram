@@ -12883,3 +12883,59 @@ decides *whether* to emit at a site from its own flags (`_records`, `_gathers`, 
 operations — `Open`, `Retry`, `Cursor`, `Seal`, `Next` — are written literally, as they
 should be, since they are not the carrier's. The second carrier is what says which of
 those has to move, and it is Eager, next.
+
+**Second stage, second step: the eager carrier, and the ceiling it sets.** `EagerCarrier`
+is the second answer behind the seam: no record, a captured value in a reader local of its
+own type, a gathered member in a list, a fold's value so far in the accumulator itself, and
+at the end of an alternative the construction called with those locals and its result put
+in a register for its type — `EagerValues.Last{k}`, the same hand-over the tape makes
+through `ways.Last` and sound for the same reason. It refuses marks, parser state, extents
+and recovery and leaves those to the tape; it carries the terminals that build over kinds,
+which is what SQL is made of. `CarrierTests` is the agreement test — a fold, a cycle,
+records and text gathered, a guard over a record, a member that may be missing — and eager
+and tape answer alike on every input. `[Gram(Carrier = GramCarrier.Eager)]` chooses it.
+
+To measure it on the yardstick the SQL grammar moved out of `SqlStandard92.cs` into
+`SqlStandard92.gram` beside it, and the tree it builds moved out of the parser altogether:
+`SqlNode` is one class with its eleven descendants nested inside it and the statics that
+make them — `Compared`, `TruthOf`, `Listed` and the rest — on it, public, so that any
+parser of the language builds the same tree by the same code. The generated parser, the
+hand-written one and the eager copy in `DotGram.Benchmarks` now share every line of it. The
+symbol resolver learned that `Outer.Inner` in a grammar is `Outer+Inner` in metadata along
+the way.
+
+`--hand 21`, the eager copy beside the tape and the hand-written parser, both readings
+checked against the hand-written tree over the forty-two shapes first:
+
+```text
+                                       generated       eager     by hand   tape/hand  eager/hand
+a0 = 1 AND a1 = 1 AND a2 = 1 AN...   12,794.7 ns  8,772.0 ns  4,975.1 ns       2.57x      1.76x
+a0 + a1 + a2 + a3 + a4 + a5 + a...    4,405.9 ns  3,071.9 ns  2,193.1 ns       2.01x      1.40x
+((((a + 1) * 2) - 3) / 4) + b > 0       601.2 ns    446.6 ns    182.8 ns       3.29x      2.44x
+x = 1 AND y IS NOT NULL                 344.0 ns    274.6 ns    129.2 ns       2.66x      2.13x
+(a + b) * c >                           199.2 ns    313.1 ns    131.4 ns       1.52x      2.38x
+```
+
+Three things it settles.
+
+*Deferral costs what the profile said.* On the long inputs eager takes thirty percent off
+the tape — 12.8 to 8.8 microseconds, 4.4 to 3.1 — which is the share the profile put on the
+walk over the log. The profile was right, and this is the most any deferred carrier can
+recover by carrying the deferral better: the deferred carriers are now measured against
+1.76 and 1.40, not against the hand-written parser.
+
+*The larger part of the gap is not deferral.* Eager builds exactly as the hand-written
+parser does, where it reads, into the same tree by the same statics — and is still 1.76
+times behind it on the long condition and 1.40 on the long sum. What is left is the
+recognizer: how the reader reads, not how it carries. The old split — lexing 1.3, reading
+1.7, values 17 — has lost its third term and kept its second, and the second is now the
+whole of the question.
+
+*Building where you read is paid for on the inputs that are refused.* `(a + b) * c >` is
+the one input the parser rejects, and eager is the slowest reading of it: 313 nanoseconds
+against the tape's 199, because the text members of the alternatives it tried were cut into
+strings before anything knew they would be thrown away. The tape cuts nothing until the
+parse is accepted. That is the cost `CarrierKind.Eager` names, seen in a
+number: on an input that succeeds, allocation the parse would have made anyway; on one that
+does not, allocation for nothing. The two smallest inputs move by a third between runs of
+this harness and are not read for more than their sign.

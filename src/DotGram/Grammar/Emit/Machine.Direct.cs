@@ -250,15 +250,9 @@ sealed partial class Machine
 	bool DirectReaderContext => UsesContext && (_directGuardContext || _directBuilds);
 
 	/// <summary>What a reader takes beyond the text, the position, the failure and the tape.</summary>
-	string DirectReaderParameters =>
-		Carrier.ReaderParameter +
-		((_directGuards || _directGlue) && OverKinds ? TokensParameter : "") +
-		(DirectReaderContext ? ContextParameter : "");
+	string DirectReaderParameters => Carrier.ReaderParameter;
 
-	string DirectReaderArguments =>
-		Carrier.ReaderArgument +
-		((_directGuards || _directGlue) && OverKinds ? TokensArgument : "") +
-		(DirectReaderContext ? ContextArgument : "");
+	string DirectReaderArguments => Carrier.ReaderArgument;
 
 	/// <summary>
 	/// The strength a rule written with binding powers is read at, where it is one
