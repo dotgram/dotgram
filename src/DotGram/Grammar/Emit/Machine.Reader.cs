@@ -204,6 +204,10 @@ sealed partial class Machine
 			written[rule] = (reader.Render(_graph.Bodies[rule], FollowOf(rule)), reader.Parts);
 		}
 
+		// The rules and their parts are members of one reader, which holds what they all read
+		// from: a call between them passes a position and nothing else.
+		var members = new Writer(0);
+
 		foreach (var rule in rules)
 		{
 			_seam = FollowSets.SeamOf(rule, _graph);
@@ -213,9 +217,9 @@ sealed partial class Machine
 			var inner         = tape ? ReaderOf(rule) + "_Body" : ReaderOf(rule);
 
 			if (tape)
-				RenderWayBack(file, rule, DirectStrength(rule), seal: OverKinds);
+				RenderWayBack(members, rule, DirectStrength(rule), seal: OverKinds);
 
-			file.Line(
+			members.Line(
 				tape
 					? $"/// <summary>What <c>{rule.Name}</c> is, one reading of it at a time.</summary>"
 					: $"/// <summary><c>{rule.Name}</c>, read by a method of its own.</summary>");
@@ -225,42 +229,40 @@ sealed partial class Machine
 			// JIT inlines a method this small on its own only while the refusals inside it
 			// keep it under its budget, and a choice of six tokens with six of them does not.
 			if (!tape && Trivial(rule))
-				file.Line(
+				members.Line(
 					"[global::System.Runtime.CompilerServices.MethodImpl(" +
 					"global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
 
-			using (file.Block(
-				$"static int {inner}(" +
-				$"global::System.ReadOnlySpan<char> text, int pos, " +
-				$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters}{DirectStrength(rule)})"))
+			using (members.Block($"public int {inner}(int pos{DirectStrength(rule)})"))
 			{
-				file.Write(body);
+				members.Write(body);
 			}
 
-			file.Line();
+			members.Line();
 
 			foreach (var (name, taken, part) in parts)
 			{
-				file.Line($"/// <summary>One alternative of <c>{rule.Name}</c>, read where it stood.</summary>");
+				members.Line($"/// <summary>One alternative of <c>{rule.Name}</c>, read where it stood.</summary>");
 
-				using (file.Block(
-					$"static int {name}(" +
-					$"global::System.ReadOnlySpan<char> text, int pos, " +
-					$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways" +
-					$"{DirectReaderParameters}{taken})"))
+				using (members.Block($"public int {name}(int pos{taken})"))
 				{
-					file.Write(part);
+					members.Write(part);
 				}
 
-				file.Line();
+				members.Line();
 			}
 		}
+
+		var entries = new Writer(0);
 
 		foreach (var publication in publications)
 		{
 			if (seen.Add(publication.Rule))
-				RenderReaderEntry(file, publication.Rule);
+				RenderReaderEntry(entries, members, publication.Rule);
 		}
+
+		RenderReaderStruct(file, members);
+		file.Write(entries.ToString());
 
 		if (rules.Any(Valued))
 		{
@@ -309,10 +311,7 @@ sealed partial class Machine
 	{
 		file.Line(summary);
 
-		using (file.Block(
-			$"static int {name}(" +
-			$"global::System.ReadOnlySpan<char> text, int pos, " +
-			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters}{strength})"))
+		using (file.Block($"public int {name}(int pos{strength})"))
 		{
 			file.Line("var s  = ways.Cursor;");
 			foreach (var line in Carrier.MarkRecords("lm"))
@@ -324,7 +323,7 @@ sealed partial class Machine
 			using (file.Block("while (true)"))
 			{
 				file.Line(
-					$"var q = {name}_Body(text, pos, ref failure, ways{DirectReaderArguments}{(strength.Length > 0 ? ", power" : "")});");
+					$"var q = {name}_Body(pos{(strength.Length > 0 ? ", power" : "")});");
 				file.Line();
 				if (seal)
 				{
@@ -358,8 +357,61 @@ sealed partial class Machine
 		file.Line();
 	}
 
+	/// <summary>The name of the reader the rules of this machine are members of.</summary>
+	string ReaderStruct => "Reader_DotGram" + _tag;
+
+	/// <summary>The tokens, as a reader over kinds holds them.</summary>
+	internal static readonly (string Type, string Name)[] TokenState =
+		[("string", "parserSource"), ("int[]", "parserStarts"), ("int[]", "parserLengths")];
+
+	/// <summary>
+	/// The reader: every rule and every part of one as a method, and what they all read from
+	/// as fields — the text, the failure, the ways, and whatever the carrier has them hold.
+	/// </summary>
+	/// <remarks>
+	/// A <c>ref struct</c>, so that it may hold the text as a span and live where a
+	/// hand-written reader lives, on the stack of the call that made it. Before this every
+	/// reader took eight parameters and passed them on to every reader it called; now a call
+	/// between two of them passes a position, and the state is loaded once.
+	/// </remarks>
+	void RenderReaderStruct(Writer file, Writer members)
+	{
+		var state = Carrier.ReaderState.ToList();
+
+		file.Line("/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>");
+
+		using (file.Block($"private ref struct {ReaderStruct}"))
+		{
+			file.Line("readonly global::System.ReadOnlySpan<char> text;");
+			file.Line($"internal {CSharpEmitter.FailureType} failure;");
+			file.Line($"readonly {WaysType} ways;");
+
+			foreach (var (type, name) in state)
+				file.Line($"readonly {type} {name};");
+
+			file.Line();
+
+			using (file.Block(
+				$"internal {ReaderStruct}(global::System.ReadOnlySpan<char> text, {WaysType} ways" +
+				string.Concat(state.Select(one => $", {one.Type} {one.Name}")) + ")"))
+			{
+				file.Line("this.text    = text;");
+				file.Line("this.failure = default;");
+				file.Line("this.ways    = ways;");
+
+				foreach (var (_, name) in state)
+					file.Line($"this.{name} = {name};");
+			}
+
+			file.Line();
+			file.Write(members.ToString());
+		}
+
+		file.Line();
+	}
+
 	/// <summary>The whole input as one rule, which is what a publication asks for.</summary>
-	void RenderReaderEntry(Writer file, RuleSymbol rule)
+	void RenderReaderEntry(Writer file, Writer members, RuleSymbol rule)
 	{
 		_seam = FollowSets.SeamOf(rule, _graph);
 
@@ -397,7 +449,13 @@ sealed partial class Machine
 
 			using (file.Block("try"))
 			{
-				file.Line($"var end = {core}_Read(text, pos, ref failure, ways{DirectReaderArguments}{asked});");
+				file.Line($"var reader = new {ReaderStruct}(text, ways{Carrier.ReaderArgument});");
+				file.Line();
+				file.Line("reader.failure = failure;");
+				file.Line();
+				file.Line($"var end = reader.{core}_Read(pos{asked});");
+				file.Line();
+				file.Line("failure = reader.failure;");
 				file.Line();
 
 				if (valued)
@@ -440,24 +498,21 @@ sealed partial class Machine
 			(_graph.Trivia.TryGetValue(rule, out var around) && Opens(around));
 
 		if (tape)
-			RenderWayBack(file, core + "_Read", $"/// <summary>The whole input as <c>{rule.Name}</c>, and the way back into it.</summary>", DirectStrength(rule));
+			RenderWayBack(members, core + "_Read", $"/// <summary>The whole input as <c>{rule.Name}</c>, and the way back into it.</summary>", DirectStrength(rule));
 
-		file.Line($"/// <summary>What <c>{rule.Name}</c> is read by, whichever stack it is read on.</summary>");
+		members.Line($"/// <summary>What <c>{rule.Name}</c> is read by, whichever stack it is read on.</summary>");
 
-		using (file.Block(
-			$"static int {core}_Read{(tape ? "_Body" : "")}(" +
-			$"global::System.ReadOnlySpan<char> text, int pos, " +
-			$"ref {CSharpEmitter.FailureType} failure, {WaysType} ways{DirectReaderParameters}{DirectStrength(rule)})"))
+		using (members.Block($"public int {core}_Read{(tape ? "_Body" : "")}(int pos{DirectStrength(rule)})"))
 		{
 			var reader = new ReaderWriter(this, rule);
 			var body   = _graph.Trivia.TryGetValue(rule, out var seam)
 				? new Node.Sequence([seam, new Node.Call(rule, []), seam])
 				: (Node)new Node.Call(rule, []);
 
-			file.Write(reader.Render(body, FollowSets.Continuation.End, whole: true));
+			members.Write(reader.Render(body, FollowSets.Continuation.End, whole: true));
 		}
 
-		file.Line();
+		members.Line();
 	}
 
 	/// <summary>
@@ -1027,7 +1082,7 @@ sealed partial class Machine
 				: machine.DirectStrengthOf(call, called);
 
 			code.Line(
-				$"var {result} = {machine.ReaderOf(called)}(text, p, ref failure, ways{machine.DirectReaderArguments}{strength});");
+				$"var {result} = {machine.ReaderOf(called)}(p{strength});");
 			code.Line($"if ({result} < 0) return -1;");
 			code.Line($"p = {result};");
 		}
@@ -1482,8 +1537,7 @@ sealed partial class Machine
 				machine.Opens(part);
 
 			return (
-				$"{name}(text, p, ref failure, ways{machine.DirectReaderArguments}" +
-					$"{Handing(given, taken, "")})",
+				$"{name}(p{Handing(given, taken, "")})",
 				undo.ToString().TrimEnd(),
 				opens);
 		}

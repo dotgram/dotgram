@@ -2367,148 +2367,205 @@ namespace DotGram.Snapshots
 			return -1;
 		}
 
-		/// <summary><c>Sum</c>, and the way back into it.</summary>
-		static int Read_Sum_Sum(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways, int power)
+		/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>
+		private ref struct Reader_DotGram_Sum
 		{
-			var s  = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
+			readonly global::System.ReadOnlySpan<char> text;
+			internal Failure failure;
+			readonly Ways ways;
 
-			while (true)
+			internal Reader_DotGram_Sum(global::System.ReadOnlySpan<char> text, Ways ways)
 			{
-				var q = Read_Sum_Sum_Body(text, pos, ref failure, ways, power);
-
-				if (q >= 0)
-					return q;
-
-				ways.LogCount  = lm;
-				ways.RefsCount = rb;
-
-				if (ways.Cursor > s && ways.Retry(s))
-					continue;
-
-				return -1;
+				this.text    = text;
+				this.failure = default;
+				this.ways    = ways;
 			}
-		}
 
-		/// <summary>What <c>Sum</c> is, one reading of it at a time.</summary>
-		static int Read_Sum_Sum_Body(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways, int power)
-		{
-			var p = pos;
-			var c = '\0';
-			var rb = ways.RefsCount;
-			var fold = -1;
-			var a0 = -1;
-			var b0 = -1;
-			a0 = p;
-			if ((uint)p >= (uint)text.Length)
+			/// <summary><c>Sum</c>, and the way back into it.</summary>
+			public int Read_Sum_Sum(int pos, int power)
 			{
-				Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected1, ways);
-				return -1;
-			}
-			c = text[p];
-			if (!(((c >= '0' && c <= '9'))))
-			{
-				Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected1, ways);
-				return -1;
-			}
-			p++;
-			b0 = p;
-			ways.Begin(0);
-			ways.Put(a0, b0);
-			ways.End(rb);
-			fold = ways.Last;
-			while (true)
-			{
-				var o1 = (uint)p < (uint)text.Length;
-
-				if (o1)
-				{
-					c = text[p];
-					o1 = c == '+';
-				}
-
-				if (!o1)
-				{
-					break;
-				}
-
-				var w0 = -1;
-				var d0 = 0;
-
-				if (ways.Cursor < ways.Count)
-				{
-					w0 = ways.Cursor;
-					d0 = ways.Items[w0 * 2];
-					ways.Cursor++;
-				}
-				else
-				{
-					w0 = ways.Open(1);
-				}
-
-				if (d0 == 1)
-					break;
-
-				var s2  = ways.Cursor;
-				var lm2 = ways.LogCount;
-				var rr2 = ways.RefsCount;
-				var q0 = -1;
+				var s  = ways.Cursor;
+				var lm = ways.LogCount;
+				var rb = ways.RefsCount;
 
 				while (true)
 				{
-					q0 = Read_Sum_Sum_Part0(text, p, ref failure, ways, ref fold, power, rb);
+					var q = Read_Sum_Sum_Body(pos, power);
 
-					if (q0 >= 0)
-						break;
+					if (q >= 0)
+						return q;
 
-					ways.LogCount  = lm2;
-					ways.RefsCount = rr2;
+					ways.LogCount  = lm;
+					ways.RefsCount = rb;
 
-					if (ways.Cursor > s2 && ways.Retry(s2))
+					if (ways.Cursor > s && ways.Retry(s))
 						continue;
 
-					break;
+					return -1;
 				}
-
-				if (q0 < 0)
-				{
-					ways.Next(w0, 1);
-
-					break;
-				}
-
-				p = q0;
 			}
-			return p;
-		}
 
-		/// <summary>One alternative of <c>Sum</c>, read where it stood.</summary>
-		static int Read_Sum_Sum_Part0(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways, ref int fold, int power, int refs)
-		{
-			var p = pos;
-			var rb = ways.RefsCount;
-			var r1 = -1;
-			if (1 < power)
-				return -1;
-
-			if ((uint)p >= (uint)text.Length || text[p] != '+')
+			/// <summary>What <c>Sum</c> is, one reading of it at a time.</summary>
+			public int Read_Sum_Sum_Body(int pos, int power)
 			{
-				Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected0, ways);
-				return -1;
+				var p = pos;
+				var c = '\0';
+				var rb = ways.RefsCount;
+				var fold = -1;
+				var a0 = -1;
+				var b0 = -1;
+				a0 = p;
+				if ((uint)p >= (uint)text.Length)
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected1, ways);
+					return -1;
+				}
+				c = text[p];
+				if (!(((c >= '0' && c <= '9'))))
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected1, ways);
+					return -1;
+				}
+				p++;
+				b0 = p;
+				ways.Begin(0);
+				ways.Put(a0, b0);
+				ways.End(rb);
+				fold = ways.Last;
+				while (true)
+				{
+					var o1 = (uint)p < (uint)text.Length;
+
+					if (o1)
+					{
+						c = text[p];
+						o1 = c == '+';
+					}
+
+					if (!o1)
+					{
+						break;
+					}
+
+					var w0 = -1;
+					var d0 = 0;
+
+					if (ways.Cursor < ways.Count)
+					{
+						w0 = ways.Cursor;
+						d0 = ways.Items[w0 * 2];
+						ways.Cursor++;
+					}
+					else
+					{
+						w0 = ways.Open(1);
+					}
+
+					if (d0 == 1)
+						break;
+
+					var s2  = ways.Cursor;
+					var lm2 = ways.LogCount;
+					var rr2 = ways.RefsCount;
+					var q0 = -1;
+
+					while (true)
+					{
+						q0 = Read_Sum_Sum_Part0(p, ref fold, power, rb);
+
+						if (q0 >= 0)
+							break;
+
+						ways.LogCount  = lm2;
+						ways.RefsCount = rr2;
+
+						if (ways.Cursor > s2 && ways.Retry(s2))
+							continue;
+
+						break;
+					}
+
+					if (q0 < 0)
+					{
+						ways.Next(w0, 1);
+
+						break;
+					}
+
+					p = q0;
+				}
+				return p;
 			}
-			p += 1;
-			global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
-			var q0 = Read_Sum_Sum(text, p, ref failure, ways, 2);
-			if (q0 < 0) return -1;
-			p = q0;
-			r1 = ways.Last;
-			ways.Begin(1);
-			ways.Put(fold);
-			ways.Put(r1);
-			ways.End(rb);
-			fold = ways.Last;
-			return p;
+
+			/// <summary>One alternative of <c>Sum</c>, read where it stood.</summary>
+			public int Read_Sum_Sum_Part0(int pos, ref int fold, int power, int refs)
+			{
+				var p = pos;
+				var rb = ways.RefsCount;
+				var r1 = -1;
+				if (1 < power)
+					return -1;
+
+				if ((uint)p >= (uint)text.Length || text[p] != '+')
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected0, ways);
+					return -1;
+				}
+				p += 1;
+				global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
+				var q0 = Read_Sum_Sum(p, 2);
+				if (q0 < 0) return -1;
+				p = q0;
+				r1 = ways.Last;
+				ways.Begin(1);
+				ways.Put(fold);
+				ways.Put(r1);
+				ways.End(rb);
+				fold = ways.Last;
+				return p;
+			}
+
+			/// <summary>The whole input as <c>Sum</c>, and the way back into it.</summary>
+			public int Recognize_Sum_Whole_Read(int pos, int power)
+			{
+				var s  = ways.Cursor;
+				var lm = ways.LogCount;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Recognize_Sum_Whole_Read_Body(pos, power);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>Sum</c> is read by, whichever stack it is read on.</summary>
+			public int Recognize_Sum_Whole_Read_Body(int pos, int power)
+			{
+				var p = pos;
+				var rb = ways.RefsCount;
+				global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
+				var q0 = Read_Sum_Sum(p, power);
+				if (q0 < 0) return -1;
+				p = q0;
+				if (p != text.Length)
+				{
+					Refuse_DotGram(ref failure, p, null, ways);
+					return -1;
+				}
+				return p;
+			}
+
 		}
 
 		/// <summary>The whole input as <c>Sum</c>, read by methods.</summary>
@@ -2519,7 +2576,13 @@ namespace DotGram.Snapshots
 
 			try
 			{
-				var end = Recognize_Sum_Whole_Read(text, pos, ref failure, ways, power);
+				var reader = new Reader_DotGram_Sum(text, ways);
+
+				reader.failure = failure;
+
+				var end = reader.Recognize_Sum_Whole_Read(pos, power);
+
+				failure = reader.failure;
 
 				if (end < 0)
 				{
@@ -2538,47 +2601,6 @@ namespace DotGram.Snapshots
 				Ways.Return(ways);
 				DirectValues.Return(values);
 			}
-		}
-
-		/// <summary>The whole input as <c>Sum</c>, and the way back into it.</summary>
-		static int Recognize_Sum_Whole_Read(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways, int power)
-		{
-			var s  = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
-
-			while (true)
-			{
-				var q = Recognize_Sum_Whole_Read_Body(text, pos, ref failure, ways, power);
-
-				if (q >= 0)
-					return q;
-
-				ways.LogCount  = lm;
-				ways.RefsCount = rb;
-
-				if (ways.Cursor > s && ways.Retry(s))
-					continue;
-
-				return -1;
-			}
-		}
-
-		/// <summary>What <c>Sum</c> is read by, whichever stack it is read on.</summary>
-		static int Recognize_Sum_Whole_Read_Body(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways, int power)
-		{
-			var p = pos;
-			var rb = ways.RefsCount;
-			global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
-			var q0 = Read_Sum_Sum(text, p, ref failure, ways, power);
-			if (q0 < 0) return -1;
-			p = q0;
-			if (p != text.Length)
-			{
-				Refuse_DotGram(ref failure, p, null, ways);
-				return -1;
-			}
-			return p;
 		}
 
 		/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>

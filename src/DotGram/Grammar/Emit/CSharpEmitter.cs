@@ -129,6 +129,8 @@ public static partial class CSharpEmitter
 		"static int ", "static bool ", "static void ", "static string ",
 		"internal static int ", "internal static bool ", "internal static void ",
 		"public static ",
+		// The reader's members, and the reader's own constructor.
+		"public int ", "internal ",
 		"int ", "bool ", "void ",
 	];
 

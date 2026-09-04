@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using DotGram.Grammar.Binding;
 
@@ -77,15 +78,18 @@ sealed partial class Machine
 		// ---- what a reader is handed ---------------------------------------------------------
 
 		/// <summary>
-		/// What every reader takes beyond the text, the position, the failure and the ways:
-		/// the carrier's own store, and whatever the carrier needs the reader to have — the
-		/// tokens where it cuts text over kinds, the input and the context where it calls a
-		/// construction that asks for them.
+		/// What every reader holds beyond the text, the failure and the ways: the carrier's
+		/// own store, and whatever the carrier needs the reader to have — the tokens where it
+		/// cuts text over kinds, the input and the context where it calls a construction that
+		/// asks for them. Fields of the reader, handed to it once when it is made.
 		/// </summary>
-		public abstract string ReaderParameter { get; }
+		public abstract IEnumerable<(string Type, string Name)> ReaderState { get; }
 
-		/// <summary>And the arguments that fill them.</summary>
-		public abstract string ReaderArgument { get; }
+		/// <summary>The state as parameters, each with its leading comma.</summary>
+		public string ReaderParameter => string.Concat(ReaderState.Select(one => $", {one.Type} {one.Name}"));
+
+		/// <summary>And as the arguments that fill them.</summary>
+		public string ReaderArgument => string.Concat(ReaderState.Select(one => $", {one.Name}"));
 
 		/// <summary>
 		/// What a part of a rule that gathers is handed so that it can gather into the same
@@ -236,15 +240,21 @@ sealed partial class Machine
 		/// factory might. Nothing else, because the tape cuts no text and calls no
 		/// construction in a reader — the walk at the end has its own parameters.
 		/// </remarks>
-		public override string ReaderParameter =>
-			(machine._directBuilds ? ", DirectValues values" : "") +
-			((machine._directGuards || machine._directGlue) && machine.OverKinds ? machine.TokensParameter : "") +
-			(machine.DirectReaderContext ? machine.ContextParameter : "");
+		public override IEnumerable<(string Type, string Name)> ReaderState
+		{
+			get
+			{
+				if (machine._directBuilds)
+					yield return ("DirectValues", "values");
 
-		public override string ReaderArgument =>
-			(machine._directBuilds ? ", values" : "") +
-			((machine._directGuards || machine._directGlue) && machine.OverKinds ? machine.TokensArgument : "") +
-			(machine.DirectReaderContext ? machine.ContextArgument : "");
+				if ((machine._directGuards || machine._directGlue) && machine.OverKinds)
+					foreach (var token in Machine.TokenState)
+						yield return token;
+
+				if (machine.DirectReaderContext)
+					yield return (machine._graph.Context!, "context");
+			}
+		}
 
 		/// <remarks>
 		/// Where the rule gathers across turns, what a record collects is everything pushed

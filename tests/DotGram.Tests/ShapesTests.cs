@@ -189,7 +189,7 @@ public sealed class ShapesTests
 	static HashSet<RuleSymbol> WaysIn(string generated, RecognitionGraph graph)
 	{
 		var named = new HashSet<string>(
-			Regex.Matches(generated, @"static int Read_([A-Za-z][A-Za-z0-9]*)(?:_[A-Za-z0-9]+)*_Body\(")
+			Regex.Matches(generated, @"(?:static|public) int Read_([A-Za-z][A-Za-z0-9]*)(?:_[A-Za-z0-9]+)*_Body\(")
 				.Select(one => one.Groups[1].Value));
 
 		return new HashSet<RuleSymbol>(graph.Rules.Where(one => named.Contains(one.Name)));

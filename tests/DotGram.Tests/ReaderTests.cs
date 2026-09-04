@@ -421,7 +421,12 @@ public sealed class ReaderTests
 	/// <summary>One method out of an emitted file, by its braces.</summary>
 	static string Reading(string source, string name)
 	{
-		var at = source.IndexOf("static int " + name + "(", StringComparison.Ordinal);
+		// A rule's reader is a member of the reader struct; the entry it is reached through
+		// is a static method of the host. Either is what a test wants to read.
+		var at = source.IndexOf("public int " + name + "(", StringComparison.Ordinal);
+
+		if (at < 0)
+			at = source.IndexOf("static int " + name + "(", StringComparison.Ordinal);
 
 		Assert.True(at >= 0, name + " is not in the emitted file.");
 

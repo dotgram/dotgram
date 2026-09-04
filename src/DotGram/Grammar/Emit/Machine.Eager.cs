@@ -120,17 +120,23 @@ sealed partial class Machine
 		/// the tokens over kinds, since a text member is cut where it is read; the input and
 		/// the context where any factory names them.
 		/// </remarks>
-		public override string ReaderParameter =>
-			", EagerValues values" +
-			(machine.OverKinds ? machine.TokensParameter : "") +
-			(machine.UsesInput ? machine.InputParameter : "") +
-			(machine.UsesContext ? machine.ContextParameter : "");
+		public override IEnumerable<(string Type, string Name)> ReaderState
+		{
+			get
+			{
+				yield return ("EagerValues", "values");
 
-		public override string ReaderArgument =>
-			", values" +
-			(machine.OverKinds ? machine.TokensArgument : "") +
-			(machine.UsesInput ? machine.InputArgument : "") +
-			(machine.UsesContext ? machine.ContextArgument : "");
+				if (machine.OverKinds)
+					foreach (var token in Machine.TokenState)
+						yield return token;
+
+				if (machine.UsesInput)
+					yield return ("string", "parserInput");
+
+				if (machine.UsesContext)
+					yield return (machine._graph.Context!, "context");
+			}
+		}
 
 		/// <remarks>
 		/// The marks of the stacks the rule gathers on, so that a part collects from where the
