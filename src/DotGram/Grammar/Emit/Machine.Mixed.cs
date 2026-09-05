@@ -78,9 +78,6 @@ sealed partial class Machine
 				if (NodeWalk.Descendants(machine._graph.Bodies[rule]).Any(one => one is Node.Guard))
 					return $"'{rule.Name}' has a guard";
 
-				foreach (var member in Union(rule))
-					if (member.Shape is MemberShape.Pieces or MemberShape.Records)
-						return $"'{rule.Name}' gathers '{member.Member.Name}' across turns";
 			}
 
 			return null;
@@ -129,17 +126,112 @@ sealed partial class Machine
 			}
 		}
 
-		public override IEnumerable<(string Type, string Name)> ReaderState => [];
+		public override IEnumerable<(string Type, string Name)> ReaderState
+		{
+			get
+			{
+				if (Gathers)
+					yield return ("MixedValues", "values");
+			}
+		}
 
-		public override string GatherHanding(RuleSymbol owner, bool declared, bool inBody) => "";
+		/// <summary>Whether anything in this machine gathers, and so rents a store.</summary>
+		bool Gathers => Stacks.Count > 0;
+
+		/// <summary>
+		/// The stacks a repetition gathers on: one per rule whose values are gathered
+		/// somewhere, and one for the runs of text.
+		/// </summary>
+		/// <remarks>
+		/// A fold's run is threaded through its own turns and needs no stack; this is the
+		/// other kind of run, the one a `*` makes, whose elements are not links in a chain
+		/// and have nowhere to point. Pushed as they are read and taken as one array when
+		/// the record is written, which is what the immediate carrier does — and what a
+		/// hand-written parser does, being the one allocation a list costs.
+		/// </remarks>
+		IReadOnlyList<(string Name, string Element)> Stacks
+		{
+			get
+			{
+				if (_stacks is not null)
+					return _stacks;
+
+				var found = new List<(string Name, string Element)>();
+
+				foreach (var rule in Shaped)
+					foreach (var member in Union(rule).Concat(Union(rule, steps: true)))
+					{
+						var stack =
+							member.Shape == MemberShape.Pieces  ? "Spans" :
+							member.Shape == MemberShape.Records ? Named(member.Member.Rule!) :
+							                                      null;
+
+						if (stack is not null && !found.Exists(one => one.Name == stack))
+							found.Add((stack, Element(member)));
+					}
+
+				return _stacks = found;
+			}
+		}
+
+		IReadOnlyList<(string Name, string Element)>? _stacks;
+
+		/// <summary>The stack a member is gathered on, and what one element of it is.</summary>
+		string Stack(DirectMember member) =>
+			member.Shape == MemberShape.Pieces ? "Spans" : Named(member.Member.Rule!);
+
+		string Element(DirectMember member) =>
+			member.Shape == MemberShape.Pieces ? "long" : Held(member.Member.Rule!);
+
+		/// <remarks>
+		/// Where the stacks stood when the rule began, so that a part collects from there
+		/// and not from where the part did. The same mark the immediate carrier hands over.
+		/// </remarks>
+		public override string GatherHanding(RuleSymbol owner, bool declared, bool inBody)
+		{
+			var text = new System.Text.StringBuilder();
+
+			foreach (var stack in Gathered(owner))
+				text.Append(declared ? $", int refs_{stack}" : inBody ? $", rb_{stack}" : $", refs_{stack}");
+
+			return text.ToString();
+		}
+
+		/// <summary>The stacks one rule gathers on, in one order.</summary>
+		IEnumerable<string> Gathered(RuleSymbol owner)
+		{
+			var seen = new List<string>();
+
+			foreach (var member in Union(owner).Concat(Union(owner, steps: true)))
+				if (member.Shape is MemberShape.Pieces or MemberShape.Records && !seen.Contains(Stack(member)))
+				{
+					seen.Add(Stack(member));
+
+					yield return Stack(member);
+				}
+		}
 
 		public override IEnumerable<string> MarkRecords(string name) => [];
 
-		public override IEnumerable<string> MarkGathered(RuleSymbol? owner, string name) => [];
+		public override IEnumerable<string> MarkGathered(RuleSymbol? owner, string name)
+		{
+			if (owner is null)
+				yield break;
+
+			foreach (var stack in Gathered(owner))
+				yield return $"var {name}_{stack} = values.Count{stack};";
+		}
 
 		public override IEnumerable<string> UnwindRecords(string name) => [];
 
-		public override IEnumerable<string> UnwindGathered(RuleSymbol? owner, string name) => [];
+		public override IEnumerable<string> UnwindGathered(RuleSymbol? owner, string name)
+		{
+			if (owner is null)
+				yield break;
+
+			foreach (var stack in Gathered(owner))
+				yield return $"values.Count{stack} = {name}_{stack};";
+		}
 
 		public override string DeclareRecordLocal(int slot, RuleSymbol rule) => $"{Held(rule)} r{slot} = default;";
 
@@ -248,9 +340,120 @@ sealed partial class Machine
 
 		public override string Last(RuleSymbol rule) => Register(rule);
 
-		public override IEnumerable<string> Rent() => [];
+		public override IEnumerable<string> Rent()
+		{
+			if (Gathers)
+				yield return "var values = MixedValues.Rent();";
+		}
 
-		public override IEnumerable<string> Return() => [];
+		public override IEnumerable<string> Return()
+		{
+			if (Gathers)
+				yield return "MixedValues.Return(values);";
+		}
+
+		/// <summary>What a parse rents to gather on: a stack per kind of thing gathered.</summary>
+		/// <remarks>
+		/// Only the stacks, and only where something gathers. What a rule read is in the
+		/// reader and in the shapes it made; this is the one thing a run of elements has
+		/// nowhere else to go, the elements of a `*` being unable to point at one another
+		/// the way a fold's turns can.
+		/// </remarks>
+		public override string RenderStore(IReadOnlyList<string> valueTypes, string? stateType)
+		{
+			if (!Gathers)
+				return "";
+
+			var file = new Writer(0);
+
+			file.Line("/// <summary>What a mixed parse gathers on: a stack per kind of element (Machine.Mixed.cs).</summary>");
+
+			using (file.Block("sealed class MixedValues"))
+			{
+				foreach (var (stack, element) in Stacks)
+					Stacked(file, stack, element);
+
+				file.Line("[global::System.ThreadStatic]");
+				file.Line("static MixedValues? _spare;");
+				file.Line();
+
+				using (file.Block("internal static MixedValues Rent()"))
+				{
+					file.Line("var spare = _spare;");
+					file.Line();
+					file.Line("if (spare == null)");
+					file.Then("return new MixedValues();");
+					file.Line();
+					file.Line("_spare = null;");
+					file.Line();
+					file.Line("return spare;");
+				}
+
+				file.Line();
+
+				using (file.Block("internal static void Return(MixedValues values)"))
+				{
+					foreach (var (stack, _) in Stacks)
+					{
+						// Only what something was pushed on: the rest are asked, which is a
+						// compare, rather than told, which was a call.
+						using (file.Block($"if (values.High{stack} > 0)"))
+						{
+							if (stack != "Spans")
+								file.Line($"global::System.Array.Clear(values.Stack{stack}, 0, values.High{stack});");
+
+							file.Line($"values.Count{stack} = values.High{stack} = 0;");
+						}
+
+						file.Line();
+					}
+
+					file.Line("_spare = values;");
+				}
+			}
+
+			return file.ToString();
+		}
+
+		/// <summary>One stack: what is on it, how much of it, and how much it has ever held.</summary>
+		static void Stacked(Writer file, string stack, string element)
+		{
+			file.Line($"internal {element}[] Stack{stack} = new {element}[8];");
+			file.Line($"internal int Count{stack};");
+			file.Line($"internal int High{stack};");
+			file.Line();
+
+			using (file.Block($"internal void Push{stack}({element} item)"))
+			{
+				file.Line($"if (Count{stack} == Stack{stack}.Length)");
+				file.Then($"global::System.Array.Resize(ref Stack{stack}, Count{stack} * 2);");
+				file.Line();
+				file.Line($"Stack{stack}[Count{stack}++] = item;");
+				file.Line();
+				file.Line($"if (Count{stack} > High{stack}) High{stack} = Count{stack};");
+			}
+
+			file.Line();
+			file.Line("/// <summary>What was pushed since the mark, as one array, and the stack back at it.</summary>");
+
+			using (file.Block($"internal {element}[] Take{stack}(int from)"))
+			{
+				file.Line($"var count = Count{stack} - from;");
+				file.Line();
+				file.Line("if (count == 0)");
+				file.Then($"return global::System.Array.Empty<{element}>();");
+				file.Line();
+				file.Line($"var taken = new {element}[count];");
+				file.Line();
+				file.Line($"global::System.Array.Copy(Stack{stack}, from, taken, 0, count);");
+				file.Line();
+				file.Line($"Count{stack} = from;");
+				file.Line();
+				file.Line("return taken;");
+			}
+
+			file.Line();
+		}
 
 		public override IEnumerable<string> BuildRoot(RuleSymbol rule, string type, bool extent)
 		{
@@ -418,6 +621,8 @@ sealed partial class Machine
 
 				using (file.Block(""))
 					Builds(file, rule, ways, steps, null);
+
+				Gatherings(file, rule, Union(rule, steps));
 			}
 
 			file.Line();
@@ -476,6 +681,8 @@ sealed partial class Machine
 
 				using (file.Block(""))
 					Builds(file, rule, ways, steps: true, accumulator: "value");
+
+				Gatherings(file, rule, Union(rule, steps: true));
 			}
 
 			file.Line();
@@ -553,6 +760,55 @@ sealed partial class Machine
 			file.Line();
 		}
 
+		/// <summary>
+		/// What a gathered member is worth: the elements it kept, each asked what it is
+		/// worth, in an array of the author's own — or, for pieces of text, cut and joined.
+		/// </summary>
+		void Gatherings(Writer file, RuleSymbol rule, IReadOnlyList<DirectMember> members)
+		{
+			foreach (var member in members)
+			{
+				if (member.Shape is not (MemberShape.Pieces or MemberShape.Records))
+					continue;
+
+				var made = member.Shape == MemberShape.Pieces
+					? "string"
+					: machine._results.ValueOf(member.Member.Rule) + "[]";
+
+				file.Line();
+				file.Line($"private {made} Gathered{member.Index}(global::System.ReadOnlySpan<char> text)");
+
+				using (file.Block(""))
+				{
+					if (member.Shape == MemberShape.Pieces)
+					{
+						file.Line($"var made = new string[this._g{member.Index}.Length];");
+						file.Line();
+
+						using (file.Block("for (var one = 0; one < made.Length; one++)"))
+						{
+							file.Line($"var span = this._g{member.Index}[one];");
+							file.Line("var from = (int)(span >> 32);");
+							file.Line();
+							file.Line("made[one] = text.Slice(from, (int)(uint)span - from).ToString();");
+						}
+
+						file.Line();
+						file.Line("return string.Concat(made);");
+					}
+					else
+					{
+						file.Line($"var made = new {machine._results.ValueOf(member.Member.Rule)}[this._g{member.Index}.Length];");
+						file.Line();
+						file.Line("for (var one = 0; one < made.Length; one++)");
+						file.Then($"made[one] = this._g{member.Index}[one]{(Reference(member.Member.Rule!) ? "!" : "")}.Build(text);");
+						file.Line();
+						file.Line("return made;");
+					}
+				}
+			}
+		}
+
 		/// <summary>One way of making a shape: its own fields filled, and the rest left absent.</summary>
 		void Maker(
 			Writer file, RuleSymbol rule, string name,
@@ -620,6 +876,10 @@ sealed partial class Machine
 					yield return ("int", $"_a{member.Index}");
 					yield return ("int", $"_b{member.Index}");
 				}
+				else if (member.Shape is MemberShape.Pieces or MemberShape.Records)
+				{
+					yield return (Element(member) + "[]", $"_g{member.Index}");
+				}
 				else
 				{
 					yield return (Held(member.Member.Rule!), $"_m{member.Index}");
@@ -643,7 +903,9 @@ sealed partial class Machine
 			return $"{made.Method}({string.Join(", ", arguments)})";
 
 			string Value(DirectMember member) =>
-				member.Shape == MemberShape.Text
+				member.Shape is MemberShape.Pieces or MemberShape.Records
+					? $"this.Gathered{member.Index}(text)"
+				: member.Shape == MemberShape.Text
 					? $"(this._a{member.Index} < 0 ? {(member.Member.IsOptional ? "null" : "string.Empty")} : " +
 						$"text.Slice(this._a{member.Index}, this._b{member.Index} - this._a{member.Index}).ToString())"
 					: member.Member.IsOptional
@@ -659,14 +921,26 @@ sealed partial class Machine
 		// What the shapes written so far do not need, and Refuses keeps the machine from
 		// asking for.
 
-		/// <remarks>A turn of a fold is linked where it is made; nothing waits to be collected.</remarks>
+		/// <remarks>The stacks are the store's; a rule declares only where it began on them.</remarks>
 		public override IEnumerable<string> DeclareGathered(int slot, string elementType) => [];
 
-		public override string Collect(DirectMember member, string from, bool pairs) => throw Unwritten();
+		public override string Collect(DirectMember member, string from, bool pairs)
+		{
+			_puts.Add((member, $"values.Take{Stack(member)}({from}_{Stack(member)})"));
 
-		public override string PushText(int slot, string from, string to) => throw Unwritten();
+			return "";
+		}
 
-		public override string PushRecord(int slot, RuleSymbol rule) => throw Unwritten();
+		/// <remarks>
+		/// Where the piece stands and not what it says, in one number: the text is cut when
+		/// it is built, like every other run of text here, so a reading given back has cut
+		/// nothing.
+		/// </remarks>
+		public override string PushText(int slot, string from, string to) =>
+			$"values.PushSpans(((long){from} << 32) | (uint){to});";
+
+		public override string PushRecord(int slot, RuleSymbol rule) =>
+			$"values.Push{Named(rule)}({Register(rule)});";
 
 		public override string Mark(int kind, int site) => throw Unwritten();
 

@@ -13210,10 +13210,20 @@ rule carries between its turns and hands its parts by reference, and `Folded`, w
 is worth once the turns stop. The tape and the immediate carrier answer with the accumulator
 they already had and with nothing.
 
-It carries four shapes now — a rule that builds one way, a rule that builds several, a rule
-that can reach itself, and a fold, all out of runs of text and of other rules' values, over
-characters — and refuses everything else by name: a guard, a gathered member, a mark, an
-extent, a recovery, a rule read at a strength, a reading over tokens. What it refuses the tape carries, and `CarrierTests`
+**And what a `*` gathers**, which is the other kind of run and does not thread: the
+elements of a repetition cannot point at one another the way a fold's turns can, having no
+order among themselves to hang the links on. So they go on a stack as they are read — one
+per kind of element, in a store the parse rents — and are taken as one array where the
+record is written, which is what the immediate carrier does and what a hand-written parser
+does, a list costing one allocation. A run of text keeps where its pieces stand and not what
+they say: two positions in one `long`, cut and joined when the value is built, so a reading
+given back has cut nothing.
+
+It carries five shapes now — a rule that builds one way, a rule that builds several, a rule
+that can reach itself, a fold, and a member gathered across turns, all over characters — and
+refuses three: a guard, a mark, and the two that the immediate carrier refuses as well, an
+extent and a recovery. A rule read at a strength and a reading over tokens are refused too,
+and neither is a shape: they are the next two after these. What it refuses the tape carries, and `CarrierTests`
 holds it to the tape's answers on what it carries and to being refused on what it does not,
 so the test does not have to be edited as the list shortens. A second test names the shape
 it does carry, so the first cannot pass by carrying nothing.

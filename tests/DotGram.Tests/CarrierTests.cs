@@ -245,6 +245,27 @@ public sealed class CarrierTests
 	}
 
 	/// <summary>
+	/// What a repetition gathers is pushed on a stack as it is read and taken as one array
+	/// where the record is written; a run of text keeps where its pieces stand, not what
+	/// they say.
+	/// </summary>
+	[Fact]
+	public void What_a_repetition_gathers_is_taken_as_one_array()
+	{
+		var (records, _) = Compiled(Shapes.Single(one => one.Name == "records gathered").Grammar, CarrierKind.Mixed);
+		var (pieces,  _) = Compiled(Shapes.Single(one => one.Name == "text gathered").Grammar,   CarrierKind.Mixed);
+
+		Assert.Contains("sealed class MixedValues",       records, StringComparison.Ordinal);
+		Assert.Contains("values.PushShape_Name(",         records, StringComparison.Ordinal);
+		Assert.Contains("private readonly Shape_Name[] _g", records, StringComparison.Ordinal);
+		Assert.DoesNotContain("Materialize_DotGram",      records, StringComparison.Ordinal);
+
+		Assert.Contains("values.PushSpans(",              pieces,  StringComparison.Ordinal);
+		Assert.Contains("private readonly long[] _g",       pieces,  StringComparison.Ordinal);
+		Assert.DoesNotContain("Materialize_DotGram",      pieces,  StringComparison.Ordinal);
+	}
+
+	/// <summary>
 	/// A carrier that cannot carry a grammar is not an error: the tape carries it instead,
 	/// and the machine keeps the reason for whoever asks.
 	/// </summary>
