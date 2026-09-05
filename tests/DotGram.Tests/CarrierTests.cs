@@ -78,6 +78,14 @@ public sealed class CarrierTests
 			"parse Start\n",
 			["a", "(a)", "((a))", "(a;", "(a"]),
 
+		("a rule that builds two ways",
+			"Start : @string = a: Name & b: Digits? => @(\"n\" + a + (b ?? \"-\"))\n" +
+			"                | d: Digits & c: Name? => @(\"d\" + d + (c ?? \"-\"))\n" +
+			"Name : @string = t: ['a'..'z']+ => @(t)\n" +
+			"Digits : @string = t: ['0'..'9']+ => @(t)\n" +
+			"parse Start\n",
+			["ab12", "12ab", "ab", "12", "", "1a2"]),
+
 		("a member that may be missing",
 			"Start : @string = a: Name & b: Digits? => @(a + (b ?? \"-\"))\n" +
 			"Name : @string = t: ['a'..'z']+ => @(t)\n" +
@@ -176,6 +184,22 @@ public sealed class CarrierTests
 			if (expected.IsSuccess)
 				Assert.Equal(ValueOf(expected), ValueOf(actual));
 		}
+	}
+
+	/// <summary>
+	/// A rule that builds several ways is one shape and a byte saying which, rather than a
+	/// shape for each and a virtual call to build it.
+	/// </summary>
+	[Fact]
+	public void A_shape_of_several_constructions_says_which_it_holds()
+	{
+		var (source, _) = Compiled(Shapes.Single(one => one.Name == "a rule that builds two ways").Grammar, CarrierKind.Mixed);
+
+		Assert.Contains("private readonly byte which;", source, StringComparison.Ordinal);
+		Assert.Contains("switch (this.which)",          source, StringComparison.Ordinal);
+		Assert.Contains("Shape_Start.Of0(",             source, StringComparison.Ordinal);
+		Assert.Contains("Shape_Start.Of1(",             source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Materialize_DotGram",    source, StringComparison.Ordinal);
 	}
 
 	/// <summary>

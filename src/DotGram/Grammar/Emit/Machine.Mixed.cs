@@ -78,13 +78,10 @@ sealed partial class Machine
 				if (machine._graph.Calls.Recurses(rule))
 					return $"'{rule.Name}' can reach itself";
 
-				if (machine._factories[rule].Count > 1)
-					return $"'{rule.Name}' builds more than one way";
-
 				if (NodeWalk.Descendants(machine._graph.Bodies[rule]).Any(one => one is Node.Guard))
 					return $"'{rule.Name}' has a guard";
 
-				foreach (var member in machine.DirectMembers(rule, 0))
+				foreach (var member in Union(rule))
 					if (member.Shape is MemberShape.Pieces or MemberShape.Records)
 						return $"'{rule.Name}' gathers '{member.Member.Name}' across turns";
 			}
@@ -178,7 +175,7 @@ sealed partial class Machine
 			var rule = _rule ?? throw new InvalidOperationException("A record ended that never began.");
 			var made = machine.DirectMembers(rule, _factory).Select(Value);
 
-			return $"{Register(rule)} = new {Named(rule)}({string.Join(", ", made)});";
+			return $"{Register(rule)} = {Named(rule)}.{Maker(Which(rule, _factory))}({string.Join(", ", made)});";
 
 			string Value(DirectMember member)
 			{
@@ -201,18 +198,54 @@ sealed partial class Machine
 			yield return $"value = reader.{Register(rule)}.Build(text);";
 		}
 
+		/// <summary>How many things a rule's shape may be.</summary>
+		/// <remarks>
+		/// A rule with no <c>=&gt;</c> builds its own type out of its members, which is one
+		/// way of being like any other.
+		/// </remarks>
+		int Ways(RuleSymbol rule) => Math.Max(1, machine._factories[rule].Count);
+
+		/// <summary>Which of them a factory is, and which factory that way is.</summary>
+		int Which(RuleSymbol rule, int factory) => machine._factories[rule].Count == 0 ? 0 : factory;
+
+		int Factory(RuleSymbol rule, int which) => machine._factories[rule].Count == 0 ? -1 : which;
+
+		static string Maker(int which) => "Of" + which.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+		/// <summary>Every member of every construction, each named once and in one order.</summary>
+		IReadOnlyList<DirectMember> Union(RuleSymbol rule)
+		{
+			var union = new List<DirectMember>();
+
+			for (var which = 0; which < Ways(rule); which++)
+				foreach (var member in machine.DirectMembers(rule, Factory(rule, which)))
+					if (!union.Exists(one => one.Index == member.Index))
+						union.Add(member);
+
+			union.Sort((a, b) => a.Index.CompareTo(b.Index));
+
+			return union;
+		}
+
 		/// <summary>
-		/// One shape per rule: what it read, and what it is worth once the parse is accepted.
+		/// One shape per rule: what it read, which way it read it, and what it is worth once
+		/// the parse is accepted.
 		/// </summary>
+		/// <remarks>
+		/// One type for the rule and a byte saying which construction it holds, rather than a
+		/// type per construction and a virtual call to build it. The fields are the union of
+		/// the constructions', so a rule of thirty alternatives has a shape wide enough for
+		/// all of them; whether that is worth what it saves is what the yardsticks are for
+		/// (docs/next.md).
+		/// </remarks>
 		public override string RenderBuilder(IReadOnlyList<RuleSymbol> rules)
 		{
 			var file = new Writer(0);
 
 			foreach (var rule in Shaped)
 			{
-				var members = machine.DirectMembers(rule, 0);
-				var fields  = Fields(members).ToList();
-				var taken   = fields.Select(one => one.Type + " " + one.Name.Substring(1));
+				var fields = Fields(Union(rule)).ToList();
+				var ways   = Ways(rule);
 
 				file.Line($"/// <summary>What <c>{rule.Name}</c> read, and what it is worth (Machine.Mixed.cs).</summary>");
 
@@ -221,18 +254,55 @@ sealed partial class Machine
 					foreach (var (type, name) in fields)
 						file.Line($"private readonly {type} {name};");
 
+					if (ways > 1)
+						file.Line("private readonly byte which;");
+
 					// A shape read is a shape made, and one never made is a member that was
 					// not there. A struct has no null to say that with, so it says it here.
 					file.Line("private readonly bool read;");
 					file.Line();
-					file.Line($"internal {Named(rule)}({string.Join(", ", taken)})");
+
+					var taken = fields.ConvertAll(one => one.Type + " " + one.Name.Substring(1));
+
+					if (ways > 1)
+						taken.Insert(0, "byte which");
+
+					file.Line($"private {Named(rule)}({string.Join(", ", taken)})");
 
 					using (file.Block(""))
 					{
+						if (ways > 1)
+							file.Line("this.which = which;");
+
 						foreach (var (_, name) in fields)
 							file.Line($"this.{name} = {name.Substring(1)};");
 
 						file.Line("this.read = true;");
+					}
+
+					for (var which = 0; which < ways; which++)
+					{
+						var mine   = Fields(machine.DirectMembers(rule, Factory(rule, which))).ToList();
+						var passed = new List<string>();
+
+						if (ways > 1)
+							passed.Add(which.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+						// What a construction does not have, as what stands for absent: a
+						// run of text that was never read begins nowhere.
+						foreach (var (_, name) in fields)
+							passed.Add(
+								mine.Exists(one => one.Name == name) ? name.Substring(1) :
+								name[1] == 'm'                       ? "default" :
+								                                       "-1");
+
+						file.Line();
+						file.Line(
+							$"internal static {Named(rule)} {Maker(which)}(" +
+							$"{string.Join(", ", mine.ConvertAll(one => one.Type + " " + one.Name.Substring(1)))})");
+
+						using (file.Block(""))
+							file.Line($"return new {Named(rule)}({string.Join(", ", passed)});");
 					}
 
 					file.Line();
@@ -242,7 +312,30 @@ sealed partial class Machine
 					file.Line($"internal {machine._results.ValueOf(rule)} Build(global::System.ReadOnlySpan<char> text)");
 
 					using (file.Block(""))
-						file.Line($"return {Built(rule, members)};");
+					{
+						if (ways == 1)
+						{
+							file.Line($"return {Built(rule, Factory(rule, 0))};");
+						}
+						else
+						{
+							using (file.Block("switch (this.which)"))
+							{
+								for (var which = 0; which < ways - 1; which++)
+								{
+									file.Line($"case {which}:");
+
+									using (file.Indent())
+										file.Line($"return {Built(rule, which)};");
+								}
+
+								file.Line("default:");
+
+								using (file.Indent())
+									file.Line($"return {Built(rule, ways - 1)};");
+							}
+						}
+					}
 				}
 
 				file.Line();
@@ -269,20 +362,21 @@ sealed partial class Machine
 				}
 		}
 
-		/// <summary>The construction, over the fields the shape kept.</summary>
-		string Built(RuleSymbol rule, IReadOnlyList<DirectMember> members)
+		/// <summary>One construction, over the fields the shape kept for it.</summary>
+		string Built(RuleSymbol rule, int factory)
 		{
-			var factories = machine._factories[rule];
+			var members = machine.DirectMembers(rule, factory);
 
-			if (factories.Count == 0)
+			if (factory < 0)
 				return $"new {machine._results.QualifiedOf(rule)!}({string.Join(", ", members.Select(Value))})";
 
+			var made      = machine._factories[rule][factory];
 			var arguments = machine.DirectArguments(
-				rule, factories[0], members,
+				rule, made, members,
 				() => "text.ToString()", () => "default",
 				() => "default!", Value);
 
-			return $"{factories[0].Method}({string.Join(", ", arguments)})";
+			return $"{made.Method}({string.Join(", ", arguments)})";
 
 			string Value(DirectMember member) =>
 				member.Shape == MemberShape.Text

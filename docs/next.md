@@ -13159,10 +13159,17 @@ private readonly struct Shape_Start
 }
 ```
 
-It carries one shape — a rule that builds one way, out of runs of text and of other rules'
-values, over characters — and refuses everything else by name: a fold, a cycle, a rule that
-builds several ways, a guard, a gathered member, a mark, an extent, a recovery, a rule read
-at a strength, a reading over tokens. What it refuses the tape carries, and `CarrierTests`
+A rule that builds several ways is one shape and a byte saying which, rather than a shape
+for each and a virtual call to build it: the fields are the union of the constructions', the
+maker per construction fills its own and leaves the rest at what stands for absent, and
+`Build` switches. Whether the union is too wide where a rule has thirty of them — `Primary`
+at 88 bytes — is the question the yardsticks will answer, and the shapes are the carrier's
+own types, so cutting those few per construction later is a change to one file.
+
+It carries two shapes now — a rule that builds one way, and a rule that builds several,
+both out of runs of text and of other rules' values, over characters — and refuses
+everything else by name: a fold, a cycle, a guard, a gathered member, a mark, an extent, a
+recovery, a rule read at a strength, a reading over tokens. What it refuses the tape carries, and `CarrierTests`
 holds it to the tape's answers on what it carries and to being refused on what it does not,
 so the test does not have to be edited as the list shortens. A second test names the shape
 it does carry, so the first cannot pass by carrying nothing.
