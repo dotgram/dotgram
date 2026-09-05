@@ -13133,6 +13133,35 @@ after, `(((x)))` 1.52 of the hand-written parser before and 1.43 after, the deep
 and 1.75. The SQL yardstick does not move, and says why itself: its reader opens no ways at
 all and had no wrappers to lose.
 
+**Where the tape's time is, measured by taking things away.** Two experiments, each one
+line of the emitter and both thrown away afterwards.
+
+The store's clearing — every value table emptied when a parse hands it back — costs
+**nothing measurable**: with the clears removed the yardstick does not move. Standard SQL has
+three value tables and a single-pass walk (no live marking: over kinds nothing is taken
+back, and `DirectStrays` already knows), so what looked like the obvious fixed cost was
+never one.
+
+The walk is **half of the tape**. With the root built as `default` — the reading and the log
+writes intact, the walk gone — the tape reads at 1.06 to 1.90 of the hand-written parser:
+
+| | tape | of it, the walk | tape reading only, against hand |
+| --- | --: | --: | --: |
+| the 64-clause condition | 10,248 ns | 5,138 ns | 1.44 |
+| the 64-term sum | 3,856 ns | 2,202 ns | 1.06 |
+| `x = 1 AND y IS NOT NULL` | 273 ns | 118 ns | 1.39 |
+| `a = 1` | 154 ns | 72 ns | 1.78 |
+
+So writing the log while reading is nearly free — on the sum the tape's *reader* is 1.06 of
+the hand-written parser, cheaper than the immediate carrier's 1.31, which is building as it
+goes. Everything the tape costs over the immediate carrier is the walk, and everything the
+walk costs is what it does per record: read the kind, take an unpredictable indirect branch
+through a switch of fifty arms, read the members back out of the log, call the factory, and
+store the result into a table on the heap — which is a write barrier a node, the very thing
+that was a fifth of the parse when the registers lived there (`d64cf29`).
+
+That is where the next work is, and it is not where any of it has been.
+
 **The third carrier carries its first shape.** `MixedCarrier` is behind the same seam the
 other two are, and what it emits for a rule is a `readonly struct` holding what the rule
 read — two integers where a member is a run of text, the captured rule's own shape where it
