@@ -566,7 +566,7 @@ sealed partial class Machine
 		// captures were recorded since its rule began, and nothing before that reaches them.
 		using (file.Block(
 			$"static void {DirectMaterializer}(" +
-			$"{WaysType} ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from" +
+			$"{WaysType} ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first" +
 			$"{InputParameter}{TokensParameter}{ContextParameter})"))
 		{
 			// A guard builds while the text is read, so the walk at the end must know what
@@ -575,7 +575,7 @@ sealed partial class Machine
 			var twice  = _directBuilds;
 			var strays = DirectStrays(rules);
 
-			file.Line($"values.Room(ways.LogCount{(strays ? "" : ", live: false")});");
+			file.Line($"values.Room(ways.Records{(strays ? "" : ", live: false")});");
 			file.Line();
 			file.Line("var log   = ways.Log;");
 
@@ -588,7 +588,7 @@ sealed partial class Machine
 				file.Line();
 				// A record above the watermark was written since anything was built: whatever
 				// its flag says is about a record that was put back with the log.
-				file.Line("global::System.Array.Clear(built, ways.Built, ways.LogCount - ways.Built);");
+				file.Line("global::System.Array.Clear(built, ways.Built, ways.Records - ways.Built);");
 			}
 
 			file.Line();
@@ -607,9 +607,10 @@ sealed partial class Machine
 				file.Line();
 				using (file.Block("for (var back = listed - 1; back >= 0; back--)"))
 				{
-					file.Line("var at = starts[back];");
+					file.Line("var at   = starts[back];");
+					file.Line("var slot = first + back;");
 					file.Line();
-					file.Line("if (!live[at]) continue;");
+					file.Line("if (!live[slot]) continue;");
 					file.Line();
 					file.Line($"var read = at + {(DirectPositions(rules) ? 4 : 2)};");
 					file.Line();
@@ -636,7 +637,7 @@ sealed partial class Machine
 				file.Line();
 			}
 
-			using (file.Block("for (var at = from; at < ways.LogCount; at += log[at])"))
+			using (file.Block("for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)"))
 			{
 				if (UsesMarks)
 				{
@@ -653,7 +654,7 @@ sealed partial class Machine
 				{
 					file.Line(
 						"if (" +
-						string.Join(" || ", new[] { strays ? "!live[at]" : null, twice ? "built[at]" : null }
+						string.Join(" || ", new[] { strays ? "!live[slot]" : null, twice ? "built[slot]" : null }
 							.Where(one => one is not null)) +
 						") continue;");
 					file.Line();
@@ -672,7 +673,7 @@ sealed partial class Machine
 
 				if (twice)
 				{
-					file.Line("built[at] = true;");
+					file.Line("built[slot] = true;");
 					file.Line();
 				}
 
@@ -684,7 +685,7 @@ sealed partial class Machine
 			if (twice)
 			{
 				file.Line();
-				file.Line("ways.Built = ways.LogCount;");
+				file.Line("ways.Built = ways.Records;");
 			}
 		}
 
@@ -730,7 +731,7 @@ sealed partial class Machine
 			{
 				// A terminal that builds: the lexer measured it, and the character machine of its
 				// own builds it from the text.
-				file.Line($"{DirectInto(type, "at")} = Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram({Cut("start", "end - start")});");
+				file.Line($"{DirectInto(type, "slot")} = Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram({Cut("start", "end - start")});");
 				file.Line("break;");
 
 				return;
@@ -747,7 +748,7 @@ sealed partial class Machine
 
 			if (factory < 0)
 			{
-				file.Line($"{DirectInto(type, "at")} = new {type}(");
+				file.Line($"{DirectInto(type, "slot")} = new {type}(");
 
 				using (file.Indent())
 					for (var i = 0; i < shaped.Count; i++)
@@ -760,7 +761,7 @@ sealed partial class Machine
 				var made = _factories[rule][factory];
 
 				file.Line(
-					$"{DirectInto(type, "at")} = " +
+					$"{DirectInto(type, "slot")} = " +
 					$"{made.Method}({string.Join(", ", DirectArguments(rule, made, shaped))});");
 			}
 
@@ -790,8 +791,12 @@ sealed partial class Machine
 	}
 
 	/// <summary>Steps over one member of a record, marking what it names as reached.</summary>
-	static void MarkMember(Writer file, DirectMember member)
+	void MarkMember(Writer file, DirectMember member)
 	{
+		// An extent stands for its own record and is never built, so its liveness is
+		// nobody's question — and what the log holds for it is a place, not a number.
+		var extent = member.Member.Rule is { } rule && IsExtent(rule);
+
 		switch (member.Shape)
 		{
 			case MemberShape.Text:
@@ -803,13 +808,19 @@ sealed partial class Machine
 				break;
 
 			case MemberShape.Record:
-				file.Line("if (log[read] >= 0) live[log[read]] = true;");
+				if (!extent)
+					file.Line("if (log[read] >= 0) live[log[read]] = true;");
+
 				file.Line("read++;");
 				break;
 
 			case MemberShape.Records:
-				file.Line("for (var item = 0; item < log[read]; item++)");
-				file.Then("live[log[read + 1 + item]] = true;");
+				if (!extent)
+				{
+					file.Line("for (var item = 0; item < log[read]; item++)");
+					file.Then("live[log[read + 1 + item]] = true;");
+				}
+
 				file.Line("read += 1 + log[read];");
 				break;
 		}

@@ -122,6 +122,12 @@ sealed partial class Machine
 		/// <summary>Locals remembering where the records stood, to put them back to.</summary>
 		public abstract IEnumerable<string> MarkRecords(string name);
 
+		/// <summary>
+		/// What <see cref="MarkRecords"/> declares, named: a rule read in parts hands its
+		/// mark down to them, and how many numbers that is depends on the carrier.
+		/// </summary>
+		public virtual IReadOnlyList<string> RecordMarks(string name) => [name];
+
 		/// <summary>Locals remembering where the gathered members of the rule stood.</summary>
 		public abstract IEnumerable<string> MarkGathered(RuleSymbol? owner, string name);
 
@@ -347,9 +353,12 @@ sealed partial class Machine
 		public override string GatherHanding(RuleSymbol owner, bool declared, bool inBody) =>
 			declared ? ", int refs" : inBody ? ", rb" : ", refs";
 
+		public override IReadOnlyList<string> RecordMarks(string name) => [name, name + "R"];
+
 		public override IEnumerable<string> MarkRecords(string name)
 		{
-			yield return $"var {name} = ways.LogCount;";
+			yield return $"var {name}  = ways.LogCount;";
+			yield return $"var {name}R = ways.Records;";
 		}
 
 		public override IEnumerable<string> MarkGathered(RuleSymbol? owner, string name)
@@ -366,9 +375,10 @@ sealed partial class Machine
 		public override IEnumerable<string> UnwindRecords(string name)
 		{
 			yield return $"ways.LogCount  = {name};";
+			yield return $"ways.Records   = {name}R;";
 
 			if (machine._directBuilds)
-				yield return $"if (ways.Built > {name}) ways.Built = {name};";
+				yield return $"if (ways.Built > {name}R) ways.Built = {name}R;";
 		}
 
 		public override IEnumerable<string> UnwindGathered(RuleSymbol? owner, string name)
@@ -401,10 +411,17 @@ sealed partial class Machine
 			return $"({chain})";
 		}
 
-		public override string Begin(RuleSymbol rule, int factory, string? start, string? end) =>
-			start is null
-				? $"ways.Begin({machine.DirectArm(rule, factory)});"
-				: $"ways.Begin({machine.DirectArm(rule, factory)}, {start}, {end});";
+		public override string Begin(RuleSymbol rule, int factory, string? start, string? end)
+		{
+			_rule = rule;
+
+			return start is null
+					? $"ways.Begin({machine.DirectArm(rule, factory)});"
+					: $"ways.Begin({machine.DirectArm(rule, factory)}, {start}, {end});";
+		}
+
+		/// <summary>The rule whose record is open, for <see cref="End"/> to name it by.</summary>
+		RuleSymbol? _rule;
 
 		public override string PutAccumulator() => "ways.Put(fold);";
 
@@ -415,7 +432,10 @@ sealed partial class Machine
 		public override string Collect(DirectMember member, string from, bool pairs) =>
 			$"ways.Collect({from}, {member.Mask}L, {(pairs ? "true" : "false")});";
 
-		public override string End(string gatheredFrom) => $"ways.End({gatheredFrom});";
+		public override string End(string gatheredFrom) =>
+			_rule is { } rule && machine.IsExtent(rule)
+				? $"ways.EndAt({gatheredFrom});"
+				: $"ways.End({gatheredFrom});";
 
 		public override string Last(RuleSymbol rule) => "ways.Last";
 
@@ -426,7 +446,7 @@ sealed partial class Machine
 		public override string Mark(int kind, int site) => $"ways.Mark({kind}, {site}, p);";
 
 		public override string Materialize(string record, string sinceMark) =>
-			$"{machine.DirectMaterializer}(ways, text, values, {record}, {sinceMark}" +
+			$"{machine.DirectMaterializer}(ways, text, values, {record}, {sinceMark}, {sinceMark}R" +
 			$"{machine.TokensArgument}{machine.ContextArgument});";
 
 		/// <summary>From the tables, or for an extent the record itself.</summary>
@@ -483,7 +503,7 @@ sealed partial class Machine
 		public override IEnumerable<string> BuildRoot(RuleSymbol rule, string type, bool extent)
 		{
 			yield return
-				$"{machine.DirectMaterializer}(ways, text, values, ways.Last, 0" +
+				$"{machine.DirectMaterializer}(ways, text, values, ways.Last, 0, 0" +
 				$"{machine.InputArgument}{machine.TokensArgument}{machine.ContextArgument});";
 
 			yield return

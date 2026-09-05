@@ -1784,7 +1784,13 @@ sealed partial class Machine
 
 			// And the rule's log mark, for what a guard builds.
 			if (_guarded)
-				text.Append(", ").Append(type.Length > 0 ? "int lmark" : _part ? "lmark" : "lm");
+			{
+				var declared = machine.Carrier.RecordMarks("lmark");
+				var passed   = machine.Carrier.RecordMarks(_part ? "lmark" : "lm");
+
+				for (var one = 0; one < declared.Count; one++)
+					text.Append(", ").Append(type.Length > 0 ? "int " + declared[one] : passed[one]);
+			}
 
 			// The strength the rule was entered at, which every method of it reads.
 			if (_climbs)
