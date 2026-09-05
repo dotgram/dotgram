@@ -112,7 +112,15 @@ sealed partial class Machine
 
 		// A rule that calls one is one, which takes as many passes as the call chain is
 		// deep and settles because nothing is ever taken out.
-		for (var again = true; again; )
+		//
+		// Not over kinds, where a rule's answer stands (§4). There a rule that gives back
+		// does so inside itself: the loop around it asks its body again until it answers or
+		// until the tape has nothing left to move on, and seals what it opened the moment it
+		// does answer. So by the time such a rule has returned there is nothing under it for
+		// a caller to retry — it was sealed or it was exhausted — and a caller that opens no
+		// way of its own needs no way back into it. The whole of an expression grammar's
+		// ladder was written twice over for one repetition at the bottom of it.
+		for (var again = !OverKinds; again; )
 		{
 			again = false;
 

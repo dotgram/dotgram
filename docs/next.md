@@ -13114,10 +13114,24 @@ does the reading, so seven rules are fourteen calls and seven pairs of `Cursor`/
 The hand-written parser has no ways at all, backtracking only where the language makes it
 and by remembering an integer.
 
-The emitter already knows whether anything under a part opens a way — `Machine.Opens`, and
-the `ways.Open(` the rendering is searched for — so the wrapper can be written only where
-a way can be opened. That is the next thing, and it is not this grammar's: every rule of
-every grammar is paying for it.
+The emitter already knew whether anything under a part opens a way — `Machine.Opens`, and
+the `ways.Open(` the rendering is searched for — and marked every caller of such a rule as
+one too. Over kinds that is more than is needed, and §4 is why: a rule's answer stands
+there, so a rule that gives back does so inside itself. Its loop asks its body again until
+it answers or until the tape has nothing left to move on, and seals what it opened the
+moment it answers. By the time it has returned there is nothing under it left to retry, so
+a caller that opens no way of its own needs no way back into it. The fixed point stops at
+the rule that opens.
+
+The whole of the expression grammar was written twice over for one repetition at the
+bottom of it: `NamedType`, which reads a dotted name and hands a part of it back where the
+whole names no type, is the only rule in the language that opens a way, and every rule that
+can reach it — the ladder, the unary, the postfix, the primary, the statements, the lambda
+— carried a loop and a `Cursor`/`Seal` pair for it. One way-back is left. Measured both
+ways in one sitting: a parenthesis costs the immediate reading 72 nanoseconds before and 63
+after, `(((x)))` 1.52 of the hand-written parser before and 1.43 after, the deepest 1.81
+and 1.75. The SQL yardstick does not move, and says why itself: its reader opens no ways at
+all and had no wrappers to lose.
 
 **The expression language gets a yardstick of its own.** `HandExpression.cs` is what
 `HandSqlTokens.cs` is to SQL: a lexer over the whole input and a recursive descent over
