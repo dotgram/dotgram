@@ -13433,3 +13433,56 @@ One thing the yardstick found about itself: `HandSqlTokens` does not read the da
 literals — `DATE '2020-01-01'` is refused by hand and read by the grammar. It is outside
 the forty-two shapes `Agree()` holds the two to, so no ratio quoted here rests on it, but
 the hand-written parser reads a smaller language there than the grammar does.
+
+## Built: a record is named by its number
+
+Half of what the tape costs is the walk at the end, and a good part of the walk was the
+shape of the tables it builds into. A record's value was kept at the log offset the record
+began at, so each table was as long as the *log*: on the sixty-four clause condition that
+is 2,684 entries a table, three tables, sixty-four kilobytes for the six hundred-odd
+records that actually hold something. Nothing of it fits in the first cache, and every
+store and every read of a member went somewhere else in it.
+
+A record carries a number now. `Ways` counts them as it writes them, `Last` is the number
+and not the place, and the walk hands each record the next number as it steps — so the
+tables are as long as there are records, four or five times shorter, and the walk fills
+them front to back. The way back saves and restores the count along with the log, which
+costs SQL nothing (it opens no ways at all) and the expression language two integers where
+it already saved one.
+
+The one thing still named by where it stands is an extent. Its value *is* its record —
+read straight out of the log by whoever captured it, never put in a table — so `EndAt`
+closes such a record with the place instead of the number, and the marking pass steps over
+an extent member without touching a liveness flag it has no number for.
+
+The long condition goes from 2.62 of the hand-written parser to 2.45, the sum from 2.18 to
+2.13, and one parenthesis of the expression language from 3.00 to 2.54.
+
+## Built: a construction is told its own slots
+
+`Before` is where an abandoned attempt is put back to, and that point stands in front of
+the whole choice — which is right for unwinding and wrong for asking what an alternative
+captured. Asked the second question, it answered with every slot the siblings in front of
+it had written, and the `=>` built them into a chain of tests over locals its own reading
+can never have filled: one test per sibling, quadratic in the alternatives. Eleven of them
+in the expression language's `Assignment` wrote sixty-six.
+
+An alternative's slots are now the ones captured under it, plus those of a head that
+left-factoring moved out in front of the choice it stands in. Where the answer got narrower
+the reader got simpler with it: an alternative that names only its own captures writes its
+record where it stands, so a shared head goes down by value and nothing comes back.
+
+No measured time either way — the JIT was already dropping the dead half of the chain.
+What it buys is smaller emitted code and a factory that is told the truth.
+
+## Measured wrong: an experiment that moved the other rows
+
+On the way there, `Assignment` was cut down to `= c: Conditional` to find out what its
+eleven alternatives cost, and a parenthesis appeared to get 28% cheaper. It did not. The
+expression yardstick measures round-robin, and cutting the rule made two of its inputs fail
+instead of parse — so every other row was timed against a different cache and a different
+predictor. The reading is worthless.
+
+The rule for this harness: an experiment that changes **what the corpus parses** cannot be
+compared row by row against a run where it parsed. Take the row out of the corpus, or
+measure something that keeps every row answering the same.
