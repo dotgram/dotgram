@@ -59,6 +59,31 @@ public sealed class ShapesTests
 		Assert.Equal(Shapes.Carrier.None,   Rule(report, "trivia").Carrier);
 	}
 
+	/// <summary>
+	/// How many things a rule's shape may turn out to be, which is what a carrier keeping
+	/// typed shapes has to know before it can emit one.
+	/// </summary>
+	/// <remarks>
+	/// A rule with one construction needs no field to say which it is, and where it is off
+	/// every cycle it can be held by value inside whatever captured it. A rule with several
+	/// is a choice, and a shape for it is one type wide enough for all of them or a type
+	/// for each.
+	/// </remarks>
+	[Fact]
+	public void A_rule_says_how_many_things_its_shape_may_be()
+	{
+		var report = Shapes.Of(Graph(Deferred));
+
+		// `Sum` is the fold: a base and a step, two `=>` between them. `Pair` is one here
+		// and two in the grammar with the parenthesis in it.
+		Assert.Equal(2, Rule(report, "Sum").Constructions);
+		Assert.Equal(1, Rule(report, "Pair").Constructions);
+		Assert.Equal(1, Rule(report, "Name").Constructions);
+		Assert.Equal(0, Rule(report, "trivia").Constructions);
+
+		Assert.Equal(2, Rule(Shapes.Of(Graph(Parenthesised)), "Pair").Constructions);
+	}
+
 	/// <summary>The parenthesis closes the cycle, and both rules on it become classes.</summary>
 	[Fact]
 	public void A_parenthesis_puts_Sum_and_Pair_on_a_cycle()

@@ -60,9 +60,26 @@ public static class Shapes
 	/// What the shape's fields come to: eight for a span or a reference, the whole of a
 	/// struct member nested by value. An estimate of what a copy costs, not a layout.
 	/// </param>
+	/// <param name="Constructions">
+	/// How many <c>=&gt;</c> the rule has, which is how many things its shape may turn out
+	/// to be.
+	/// </param>
+	/// <remarks>
+	/// <para>
+	/// <see cref="Constructions"/> is the question a carrier that keeps typed shapes has to
+	/// ask before it can emit one. A rule with a single construction is one thing: its shape
+	/// needs no field to say which, and where the rule is off every cycle it can be held by
+	/// value inside whatever captured it, so a leaf costs no allocation at all. A rule with
+	/// several is a choice, and a shape for it is either one type wide enough for all of
+	/// them and a field saying which — a direct call to build it, and the fields of thirty
+	/// alternatives in an object on the path of every operand — or a type per construction
+	/// and a virtual call to build it. The two grammars here have both extremes in them, so
+	/// the report says the number rather than the answer.
+	/// </para>
+	/// </remarks>
 	public sealed record Rule(
 		RuleSymbol Symbol, Carrier Carrier, bool Folds, bool Guarded, bool Climbs,
-		int Texts, int Records, int Sequences, int Bytes);
+		int Texts, int Records, int Sequences, int Bytes, int Constructions);
 
 	/// <summary>Rules that can reach one another, and so cannot all be values.</summary>
 	public sealed record Cycle(IReadOnlyList<RuleSymbol> Rules);
@@ -146,7 +163,8 @@ public static class Shapes
 				Guarded: NodeWalk.Descendants(graph.Bodies[rule]).Any(one => one is Node.Guard),
 				Climbs:  graph.Climbing.ContainsKey(rule),
 				texts, records, sequences,
-				Bytes:   carrier == Carrier.None ? 0 : SizeOf(rule)));
+				Bytes:   carrier == Carrier.None ? 0 : SizeOf(rule),
+				Constructions: Constructions(graph.Bodies[rule])));
 		}
 
 		var cycles = calls.Components
@@ -161,6 +179,32 @@ public static class Shapes
 		return new Report(rules, cycles, entries, graph.Recoveries.Count > 0);
 
 		bool IsRecord(ResultMember member) => member.Rule is not null && valued.Contains(member.Rule);
+
+		// Every `=>` under the rule, and not the alternatives it has: a choice whose
+		// branches build nothing of their own is one thing however it is written, and a
+		// construction nested inside a repetition is still one of the rule's own.
+		static int Constructions(Node body)
+		{
+			var count = body is Node.Construct ? 1 : 0;
+
+			foreach (var child in Inside(body))
+				count += Constructions(child);
+
+			return count;
+
+			static IEnumerable<Node> Inside(Node node) =>
+				node switch
+				{
+					Node.Choice(var nodes)      => nodes,
+					Node.Sequence(var nodes)    => nodes,
+					Node.Capture(_, var body)   => [body],
+					Node.Construct(var body, _) => [body],
+					Node.Repeat(var body, _, _) => [body],
+					Node.Atomic(var body)       => [body],
+					Node.Lookahead(_, var body) => [body],
+					_                           => [],
+				};
+		}
 
 		// A span and a reference are both eight bytes; a struct nested by value is as big as
 		// it is, all the way down — which terminates because anything on a cycle is a

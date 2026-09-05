@@ -13133,6 +13133,37 @@ after, `(((x)))` 1.52 of the hand-written parser before and 1.43 after, the deep
 and 1.75. The SQL yardstick does not move, and says why itself: its reader opens no ways at
 all and had no wrappers to lose.
 
+**Asking the report what a third carrier would have to emit.** The reader having come to
+within a fifth to a half of the hand-written parsers, what is left is the deferral, and the
+next carrier is the second stage's own next step. `Shapes` was written for exactly this
+question and answers most of it already — which rules are on a cycle and must be
+references, which are off every cycle and can be values, what the fields come to. One thing
+it did not say, and the emitter cannot start without: how many `=>` a rule has, which is how
+many things its shape may turn out to be. It says it now.
+
+| | shapes | one construction | two to four | five and up | held by value |
+| --- | --: | --: | --: | --: | --: |
+| the expression language | 73 | 44 | 20 | 9 | 25 |
+| SQL | 28 | 8 | 16 | 4 | 3 |
+| RFC 3986 | 6 | 3 | 3 | 0 | 3 |
+
+Which settles the shape of the work, if not the shape of the types. A rule with one
+construction needs no field to say which it is, and off a cycle it is held by value inside
+whatever captured it — a leaf that costs no allocation at all. That is most of them. A rule
+with several is a choice, and a shape for it is either one type wide enough for all of them
+and a byte saying which, or a type per construction and a virtual call to build it. The
+first is what the lab measured as `Mix2` and is the simpler thing to emit; the second is
+what it measured as `Classes`, and half of the difference between the two numbers is that
+one allocates for leaves as well.
+
+And the fat shapes are three rules, not a class of them: `Primary` at 88 bytes over
+thirty-one constructions, `PredicateTail` at 96 over seven, `ValueFunction` at 80 over
+sixteen. Width is not alternatives — `Assignment` has thirteen constructions and 32 bytes,
+because they all capture the same two things. So the first carrier is one type per rule,
+measured on both yardsticks, and the three fat ones are cut per construction afterwards if
+the measurement says they matter. The shapes are the carrier's own types and do not cross
+the seam, so that is a change to one file rather than to the reader.
+
 **And an optional is not a loop.** A repetition of at most one turn was written as one
 all the same: a counter, a test of it at the top, an increment at the bottom and a jump
 backwards the reader never takes. `?` is in every grammar there is — eighteen of them in
