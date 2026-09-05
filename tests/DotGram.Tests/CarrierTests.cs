@@ -78,6 +78,15 @@ public sealed class CarrierTests
 			"parse Start\n",
 			["a", "(a)", "((a))", "(a;", "(a"]),
 
+		("two captures of one folding rule",
+			"trivia = ' '*\n" +
+			"Start : @string = l: Sum & '=' & r: Sum => @(l + \"/\" + r)\n" +
+			"Sum : @string = a: Sum & '+' & b: Name => @(a + \"+\" + b)\n" +
+			"              | one: Name => @(one)\n" +
+			"Name : @string = t: ['a'..'z']+ => @(t)\n" +
+			"parse Start\n",
+			["a = b", "a + b = c", "a = b + c", "a + b = c + d", "a ="]),
+
 		("a rule that reaches itself",
 			"trivia = ' '*\n" +
 			"Start : @string = '(' & inner: Start & ')' => @(\"(\" + inner + \")\")\n" +

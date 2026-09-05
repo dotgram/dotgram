@@ -174,6 +174,20 @@ public static class SupportEmitter
 				/// visible to a counter. For factories the author knows to be pure.
 				/// </summary>
 				Immediate,
+
+				/// <summary>
+				/// Deferral without a tape: what a rule read is kept in a typed shape of
+				/// its own, and the constructions run over those shapes once the parse is
+				/// accepted. Keeps §7.3 as the tape does — a factory runs once per node of
+				/// the accepted derivation — and pays for it in fields of a known type
+				/// rather than in a log and a walk over it.
+				/// </summary>
+				/// <remarks>
+				/// A grammar it cannot carry is compiled on the tape and told why. What it
+				/// does not carry: a rule whose value is the extent it matched, a recovery,
+				/// a mark (§7.8), and a rule read at a strength.
+				/// </remarks>
+				Mixed,
 			}
 
 			/// <summary>

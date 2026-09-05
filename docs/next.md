@@ -13226,11 +13226,31 @@ is worth is one call away — `Materialize` is nothing at all and `ValueOf` is `
 Refused only where the guard reads a *gathered* member: what is on the stacks is what has
 been pushed, and taking it is what writing the record does.
 
-It carries six shapes now — a rule that builds one way, a rule that builds several, a rule
-that can reach itself, a fold, a member gathered across turns, and a guard over a capture,
-all over characters — and refuses a mark, an extent and a recovery, the last two being what
-the immediate carrier refuses as well. A rule read at a strength and a reading over tokens
-are refused too, and neither is a shape: they are what is left after these. What it refuses the tape carries, and `CarrierTests`
+**And a reading over tokens**, which is what both yardsticks are: a shape is handed the
+tokens' own text and where each of them stood instead of the text, and `Machine.Cut` writes
+the same expression inside a shape as it writes inside the reader. That was the last thing
+between the carrier and the SQL grammar — and the SQL grammar then said something the
+character-level shapes never had to.
+
+**What a shape is keyed by, asked properly.** `ValueExpressionPrimary` writes
+`t: UnsignedLiteral => @(t)` beside `t: GeneralValueSpecification => @(t)`: one member,
+captured in two places, and the two places read two different rules. A shape is per rule, so
+there is no one type for that field to be — and the tape and the immediate carrier never
+meet the question, because they hand values about by value type and both of those build a
+`SqlNode`. It showed itself as a wrong tree rather than a wrong build: `a = 1` came back as
+`(Comparison Equal (name a) (name a))`, the register for the rule the model named holding
+what the last reading of *that* rule left there. Three answers are possible and none is
+free: a field per place rather than per member, which the model cannot spell because it says
+which member a capture belongs to and not which rule was read there; an interface the shapes
+implement, which is a virtual call and, for a shape held by value, a box; or a shape keyed by
+value type for such members alone, which is the tape's answer arriving through the back door.
+Refused for now, and the question written down where it will be answered.
+
+It carries six shapes — a rule that builds one way, a rule that builds several, a rule that
+can reach itself, a fold, a member gathered across turns, and a guard over a capture — over
+characters and over tokens both. It refuses a mark, an extent, a recovery, a rule read at a
+strength, a terminal built again from its text, and a member captured in several places. The
+last is what stands between it and a yardstick. What it refuses the tape carries, and `CarrierTests`
 holds it to the tape's answers on what it carries and to being refused on what it does not,
 so the test does not have to be edited as the list shortens. A second test names the shape
 it does carry, so the first cannot pass by carrying nothing.

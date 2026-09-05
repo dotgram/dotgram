@@ -58,9 +58,6 @@ sealed partial class Machine
 
 		public override string? Refuses()
 		{
-			if (machine.OverKinds)
-				return "it reads tokens";
-
 			if (machine._graph.Recoveries.Count > 0)
 				return "it recovers";
 
@@ -69,6 +66,11 @@ sealed partial class Machine
 
 			foreach (var rule in Shaped)
 			{
+				// A terminal the lexer measured and a machine of its own builds from the
+				// text: its shape would have to keep where it stood, and does not yet.
+				if (machine._reread is not null && machine._reread.Contains(rule))
+					return $"'{rule.Name}' is built again from its text";
+
 				if (machine.IsExtent(rule))
 					return $"'{rule.Name}' is an extent";
 
@@ -83,6 +85,16 @@ sealed partial class Machine
 						if (member.Shape is MemberShape.Pieces or MemberShape.Records)
 							return $"'{rule.Name}' has a guard and gathers '{member.Member.Name}'";
 
+				// A member captured in several places may be several rules' values — `t:
+				// UnsignedLiteral => @(t)` beside `t: GeneralValueSpecification => @(t)` —
+				// and a shape is per rule, so there is no one type for the field to be. The
+				// tape and the immediate carrier never meet this: they hand values about by
+				// value type, and both of those build the same one. What it wants is a field
+				// per place rather than per member, and the model says which member a
+				// capture belongs to but not which rule was read there (docs/next.md).
+				foreach (var member in Union(rule).Concat(Union(rule, steps: true)))
+					if (member.Shape == MemberShape.Record && member.Slots.Count > 1)
+						return $"'{rule.Name}' captures '{member.Member.Name}' in several places";
 			}
 
 			return null;
@@ -112,6 +124,24 @@ sealed partial class Machine
 
 		/// <summary>A shape as a member or a local holds it: nullable where it is a reference.</summary>
 		string Held(RuleSymbol rule) => Named(rule) + (Reference(rule) ? "?" : "");
+
+		/// <summary>
+		/// What a shape is handed to be built from, and what it is handed at a call: the
+		/// text where the reading is over characters, and the tokens' own text and where
+		/// each of them stood where it is over kinds.
+		/// </summary>
+		/// <remarks>
+		/// The names are the reader's, so that <c>Machine.Cut</c> writes the same expression
+		/// inside a shape as it writes inside the reader — there being one right way to cut
+		/// a run of text out of a reading, and no reason for this to know which it is.
+		/// </remarks>
+		string Taking =>
+			machine.OverKinds
+				? "string parserSource, int[] parserStarts, int[] parserLengths"
+				: "global::System.ReadOnlySpan<char> text";
+
+		string Given =>
+			machine.OverKinds ? "parserSource, parserStarts, parserLengths" : "text";
 
 		/// <summary>Nothing there, said the way the shape says it.</summary>
 		string Nothing(RuleSymbol rule, string local) =>
@@ -462,7 +492,7 @@ sealed partial class Machine
 
 		public override IEnumerable<string> BuildRoot(RuleSymbol rule, string type, bool extent)
 		{
-			yield return $"value = reader.{Register(rule)}.Build(text);";
+			yield return $"value = reader.{Register(rule)}.Build({Given});";
 		}
 
 		/// <summary>Whether §4.3 turned the rule into a base and a run of turns.</summary>
@@ -622,7 +652,7 @@ sealed partial class Machine
 					file.Line();
 				}
 
-				file.Line($"internal {machine._results.ValueOf(rule)} Build(global::System.ReadOnlySpan<char> text)");
+				file.Line($"internal {machine._results.ValueOf(rule)} Build({Taking})");
 
 				using (file.Block(""))
 					Builds(file, rule, ways, steps, null);
@@ -682,7 +712,7 @@ sealed partial class Machine
 				file.Line();
 				file.Line(
 					$"internal {machine._results.ValueOf(rule)} Build(" +
-					$"{machine._results.ValueOf(rule)} value, global::System.ReadOnlySpan<char> text)");
+					$"{machine._results.ValueOf(rule)} value, {Taking})");
 
 				using (file.Block(""))
 					Builds(file, rule, ways, steps: true, accumulator: "value");
@@ -740,20 +770,20 @@ sealed partial class Machine
 					file.Line();
 				}
 
-				file.Line($"internal {machine._results.ValueOf(rule)} Build(global::System.ReadOnlySpan<char> text)");
+				file.Line($"internal {machine._results.ValueOf(rule)} Build({Taking})");
 
 				using (file.Block(""))
 				{
 					// Counted rather than tested against null: the count is known when the
 					// turns are done and costs nothing to keep, and the loop then has one
 					// exit. A frame per turn is what this is written to avoid.
-					file.Line("var value = this._base.Build(text);");
+					file.Line($"var value = this._base.Build({Given});");
 					file.Line("var step  = this._first;");
 					file.Line();
 
 					using (file.Block("for (var turn = 0; turn < this._count; turn++)"))
 					{
-						file.Line("value = step!.Build(value, text);");
+						file.Line($"value = step!.Build(value, {Given});");
 						file.Line("step  = step.Next;");
 					}
 
@@ -781,7 +811,7 @@ sealed partial class Machine
 					: machine._results.ValueOf(member.Member.Rule) + "[]";
 
 				file.Line();
-				file.Line($"private {made} Gathered{member.Index}(global::System.ReadOnlySpan<char> text)");
+				file.Line($"private {made} Gathered{member.Index}({Taking})");
 
 				using (file.Block(""))
 				{
@@ -795,7 +825,7 @@ sealed partial class Machine
 							file.Line($"var span = this._g{member.Index}[one];");
 							file.Line("var from = (int)(span >> 32);");
 							file.Line();
-							file.Line("made[one] = text.Slice(from, (int)(uint)span - from).ToString();");
+							file.Line($"made[one] = {machine.Cut("from", "(int)(uint)span - from")};");
 						}
 
 						file.Line();
@@ -806,7 +836,7 @@ sealed partial class Machine
 						file.Line($"var made = new {machine._results.ValueOf(member.Member.Rule)}[this._g{member.Index}.Length];");
 						file.Line();
 						file.Line("for (var one = 0; one < made.Length; one++)");
-						file.Then($"made[one] = this._g{member.Index}[one]{(Reference(member.Member.Rule!) ? "!" : "")}.Build(text);");
+						file.Then($"made[one] = this._g{member.Index}[one]{(Reference(member.Member.Rule!) ? "!" : "")}.Build({Given});");
 						file.Line();
 						file.Line("return made;");
 					}
@@ -827,11 +857,12 @@ sealed partial class Machine
 
 			// What a construction does not have, as what stands for absent: a run of text
 			// that was never read begins nowhere.
-			foreach (var (_, field) in fields)
+			foreach (var (kind, field) in fields)
 				passed.Add(
 					mine.Exists(one => one.Name == field) ? field.Substring(1) :
-					field[1] == 'm'                       ? "default" :
-					                                        "-1");
+					field[1] == 'a' || field[1] == 'b'    ? "-1" :
+					field[1] == 'g'                       ? Empty(kind) :
+					                                        "default");
 
 			file.Line();
 			file.Line(
@@ -841,6 +872,14 @@ sealed partial class Machine
 			using (file.Block(""))
 				file.Line($"return new {name}({string.Join(", ", passed)});");
 		}
+
+		/// <summary>
+		/// A run nothing gathered. Not <c>default</c>, which for an array is null and which
+		/// a construction reading it would have to be told about; the empty one is shared
+		/// and costs nothing.
+		/// </summary>
+		static string Empty(string kind) =>
+			$"global::System.Array.Empty<{kind.Substring(0, kind.Length - 2)}>()";
 
 		/// <summary>What a shape is worth: one construction, or a switch over which it holds.</summary>
 		void Builds(Writer file, RuleSymbol rule, int ways, bool steps, string? accumulator)
@@ -909,13 +948,13 @@ sealed partial class Machine
 
 			string Value(DirectMember member) =>
 				member.Shape is MemberShape.Pieces or MemberShape.Records
-					? $"this.Gathered{member.Index}(text)"
+					? $"this.Gathered{member.Index}({Given})"
 				: member.Shape == MemberShape.Text
 					? $"(this._a{member.Index} < 0 ? {(member.Member.IsOptional ? "null" : "string.Empty")} : " +
-						$"text.Slice(this._a{member.Index}, this._b{member.Index} - this._a{member.Index}).ToString())"
+						machine.Cut($"this._a{member.Index}", $"this._b{member.Index} - this._a{member.Index}") + ")"
 					: member.Member.IsOptional
-						? $"({Nothing(member.Member.Rule!, "this._m" + member.Index)} ? default : this._m{member.Index}{Sure(member)}.Build(text))"
-						: $"this._m{member.Index}{Sure(member)}.Build(text)";
+						? $"({Nothing(member.Member.Rule!, "this._m" + member.Index)} ? default : this._m{member.Index}{Sure(member)}.Build({Given}))"
+						: $"this._m{member.Index}{Sure(member)}.Build({Given})";
 
 			// A shape held by reference is nullable where it stands, and read only where
 			// the reading that filled it happened: the compiler is told so rather than
@@ -961,7 +1000,7 @@ sealed partial class Machine
 		/// construction is not called twice by anything else. §7.3 counts what an accepted
 		/// derivation runs, and a guard is not one of those.
 		/// </remarks>
-		public override string ValueOf(RuleSymbol rule, string record) => $"{record}.Build(text)";
+		public override string ValueOf(RuleSymbol rule, string record) => $"{record}.Build({Given})";
 
 		public override void Gathered(
 			Writer code, string from, IReadOnlyList<int> slots, string handed, string type, string build, bool text) =>
