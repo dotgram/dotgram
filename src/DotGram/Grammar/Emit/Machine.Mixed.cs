@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using DotGram.Grammar.Binding;
+using DotGram.Grammar.Model;
 
 namespace DotGram.Grammar.Emit;
 
@@ -30,59 +32,277 @@ sealed partial class Machine
 	/// language's seventy-three, and every one of RFC 3986's.
 	/// </para>
 	/// <para>
-	/// <b>What it carries so far: nothing.</b> The shapes are written one at a time, each
-	/// with <c>CarrierTests</c> holding it to the same language as the tape, and until a
-	/// shape is written this refuses it and the tape carries it instead. That is the order
-	/// the immediate carrier was built in and the reason it was never wrong on the way.
+	/// <b>What it carries so far</b>: a rule that builds one way, out of runs of text and of
+	/// other rules' values, over characters. Everything else is refused and the tape carries
+	/// it — the list is <see cref="MixedCarrier.Refuses"/>, and it shortens a shape at a
+	/// time, each with <c>CarrierTests</c> holding it to the same language as the tape. That
+	/// is the order the immediate carrier was built in and the reason it was never wrong on
+	/// the way.
 	/// </para>
 	/// </remarks>
 	sealed class MixedCarrier(Machine machine) : ValueCarrier
 	{
-		public override string? Refuses() => "the shapes are not written yet";
+		// The record under construction: what Begin was told, and the members put since —
+		// the same bookkeeping the immediate carrier does, ending in a shape rather than in
+		// a call to the author.
+		RuleSymbol? _rule;
+		int _factory;
+		readonly List<(DirectMember Member, string Value)> _puts = [];
 
-		// Everything below is asked only of a carrier the machine chose, and the machine
-		// chooses this one for nothing yet. Each answer arrives with the shape it belongs
-		// to, and until then saying so is better than answering wrongly.
+		/// <summary>
+		/// Which shapes are not written. Everything named here is left to the tape, and this
+		/// is the list that shortens as they are written.
+		/// </summary>
+		public override string? Refuses()
+		{
+			if (machine.OverKinds)
+				return "it reads tokens";
 
-		public override IEnumerable<(string Type, string Name)> ReaderState => throw Unwritten();
+			if (machine._graph.Recoveries.Count > 0)
+				return "it recovers";
 
-		public override string GatherHanding(RuleSymbol owner, bool declared, bool inBody) => throw Unwritten();
+			if (machine._graph.State is not null)
+				return "it lays marks over what it reads";
 
-		public override IEnumerable<string> MarkRecords(string name) => throw Unwritten();
+			foreach (var rule in Shaped)
+			{
+				if (machine.IsExtent(rule))
+					return $"'{rule.Name}' is an extent";
 
-		public override IEnumerable<string> MarkGathered(RuleSymbol? owner, string name) => throw Unwritten();
+				if (machine._graph.Folds.ContainsKey(rule))
+					return $"'{rule.Name}' folds";
 
-		public override IEnumerable<string> UnwindRecords(string name) => throw Unwritten();
+				if (machine._graph.Climbing.ContainsKey(rule))
+					return $"'{rule.Name}' is read at a strength";
 
-		public override IEnumerable<string> UnwindGathered(RuleSymbol? owner, string name) => throw Unwritten();
+				if (machine._graph.Calls.Recurses(rule))
+					return $"'{rule.Name}' can reach itself";
 
-		public override string DeclareRecordLocal(int slot, RuleSymbol rule) => throw Unwritten();
+				if (machine._factories[rule].Count > 1)
+					return $"'{rule.Name}' builds more than one way";
+
+				if (NodeWalk.Descendants(machine._graph.Bodies[rule]).Any(one => one is Node.Guard))
+					return $"'{rule.Name}' has a guard";
+
+				foreach (var member in machine.DirectMembers(rule, 0))
+					if (member.Shape is MemberShape.Pieces or MemberShape.Records)
+						return $"'{rule.Name}' gathers '{member.Member.Name}' across turns";
+			}
+
+			return null;
+		}
+
+		/// <summary>The rules that have a shape: the ones the reader reads and that build.</summary>
+		IEnumerable<RuleSymbol> Shaped =>
+			(machine._directRules ?? machine._rules).Where(machine.Valued);
+
+		/// <summary>What a rule's shape is called, and the reader's field holding the last one.</summary>
+		static string Named(RuleSymbol rule) => "Shape_" + CSharpEmitter.IdentifierOf(rule);
+
+		static string Register(RuleSymbol rule) => "shape_" + CSharpEmitter.IdentifierOf(rule);
+
+		/// <remarks>
+		/// A field per rule rather than one per value type: two rules may build the same type
+		/// and their shapes are still two types. Fields of the reader for the reason
+		/// <see cref="ValueCarrier.ReaderRegisters"/> gives.
+		/// </remarks>
+		public override IEnumerable<(string Type, string Name)> ReaderRegisters
+		{
+			get
+			{
+				foreach (var rule in Shaped)
+					yield return (Named(rule), Register(rule));
+			}
+		}
+
+		public override IEnumerable<(string Type, string Name)> ReaderState => [];
+
+		public override string GatherHanding(RuleSymbol owner, bool declared, bool inBody) => "";
+
+		public override IEnumerable<string> MarkRecords(string name) => [];
+
+		public override IEnumerable<string> MarkGathered(RuleSymbol? owner, string name) => [];
+
+		public override IEnumerable<string> UnwindRecords(string name) => [];
+
+		public override IEnumerable<string> UnwindGathered(RuleSymbol? owner, string name) => [];
+
+		public override string DeclareRecordLocal(int slot, RuleSymbol rule) => $"{Named(rule)} r{slot} = default;";
+
+		public override string RecordLocalType(RuleSymbol rule) => Named(rule) + " ";
+
+		public override string ResetRecordLocal(int slot) => $"r{slot} = default;";
+
+		public override string Absent(string local) => $"{local}.IsNothing";
+
+		public override string FirstRecord(IReadOnlyList<int> slots, RuleSymbol rule)
+		{
+			if (slots.Count == 1)
+				return $"r{slots[0]}";
+
+			var chain = "default";
+
+			for (var i = slots.Count - 1; i >= 0; i--)
+				chain = $"!r{slots[i]}.IsNothing ? r{slots[i]} : {chain}";
+
+			return chain;
+		}
+
+		public override string Begin(RuleSymbol rule, int factory, string? start, string? end)
+		{
+			_rule    = rule;
+			_factory = factory;
+			_puts.Clear();
+
+			return "";
+		}
+
+		/// <remarks>Where it stands and not what it says: the text is cut when it is built.</remarks>
+		public override string PutText(DirectMember member, string from, string to)
+		{
+			_puts.Add((member, $"{from}, {to}"));
+
+			return "";
+		}
+
+		public override string PutRecord(DirectMember member, string record)
+		{
+			_puts.Add((member, record));
+
+			return "";
+		}
+
+		/// <summary>The shape, made now; what it is worth is asked for after the parse.</summary>
+		public override string End(string gatheredFrom)
+		{
+			var rule = _rule ?? throw new InvalidOperationException("A record ended that never began.");
+			var made = machine.DirectMembers(rule, _factory).Select(Value);
+
+			return $"{Register(rule)} = new {Named(rule)}({string.Join(", ", made)});";
+
+			string Value(DirectMember member)
+			{
+				foreach (var (put, value) in _puts)
+					if (ReferenceEquals(put, member) || put.Index == member.Index)
+						return value;
+
+				throw new InvalidOperationException($"Member '{member.Member.Name}' of '{rule.Name}' was never put.");
+			}
+		}
+
+		public override string Last(RuleSymbol rule) => Register(rule);
+
+		public override IEnumerable<string> Rent() => [];
+
+		public override IEnumerable<string> Return() => [];
+
+		public override IEnumerable<string> BuildRoot(RuleSymbol rule, string type, bool extent)
+		{
+			yield return $"value = reader.{Register(rule)}.Build(text);";
+		}
+
+		/// <summary>
+		/// One shape per rule: what it read, and what it is worth once the parse is accepted.
+		/// </summary>
+		public override string RenderBuilder(IReadOnlyList<RuleSymbol> rules)
+		{
+			var file = new Writer(0);
+
+			foreach (var rule in Shaped)
+			{
+				var members = machine.DirectMembers(rule, 0);
+				var fields  = Fields(members).ToList();
+				var taken   = fields.Select(one => one.Type + " " + one.Name.Substring(1));
+
+				file.Line($"/// <summary>What <c>{rule.Name}</c> read, and what it is worth (Machine.Mixed.cs).</summary>");
+
+				using (file.Block($"private readonly struct {Named(rule)}"))
+				{
+					foreach (var (type, name) in fields)
+						file.Line($"private readonly {type} {name};");
+
+					// A shape read is a shape made, and one never made is a member that was
+					// not there. A struct has no null to say that with, so it says it here.
+					file.Line("private readonly bool read;");
+					file.Line();
+					file.Line($"internal {Named(rule)}({string.Join(", ", taken)})");
+
+					using (file.Block(""))
+					{
+						foreach (var (_, name) in fields)
+							file.Line($"this.{name} = {name.Substring(1)};");
+
+						file.Line("this.read = true;");
+					}
+
+					file.Line();
+					file.Line("/// <summary>Whether the reading that would have made this one ever happened.</summary>");
+					file.Line("internal bool IsNothing { get { return !this.read; } }");
+					file.Line();
+					file.Line($"internal {machine._results.ValueOf(rule)} Build(global::System.ReadOnlySpan<char> text)");
+
+					using (file.Block(""))
+						file.Line($"return {Built(rule, members)};");
+				}
+
+				file.Line();
+			}
+
+			return file.ToString();
+		}
+
+		/// <summary>
+		/// A shape's fields, in the order its constructor takes them: two integers where a
+		/// member is a run of text, and the captured rule's own shape where it is a record.
+		/// </summary>
+		static IEnumerable<(string Type, string Name)> Fields(IReadOnlyList<DirectMember> members)
+		{
+			foreach (var member in members)
+				if (member.Shape == MemberShape.Text)
+				{
+					yield return ("int", $"_a{member.Index}");
+					yield return ("int", $"_b{member.Index}");
+				}
+				else
+				{
+					yield return (Named(member.Member.Rule!), $"_m{member.Index}");
+				}
+		}
+
+		/// <summary>The construction, over the fields the shape kept.</summary>
+		string Built(RuleSymbol rule, IReadOnlyList<DirectMember> members)
+		{
+			var factories = machine._factories[rule];
+
+			if (factories.Count == 0)
+				return $"new {machine._results.QualifiedOf(rule)!}({string.Join(", ", members.Select(Value))})";
+
+			var arguments = machine.DirectArguments(
+				rule, factories[0], members,
+				() => "text.ToString()", () => "default",
+				() => "default!", Value);
+
+			return $"{factories[0].Method}({string.Join(", ", arguments)})";
+
+			string Value(DirectMember member) =>
+				member.Shape == MemberShape.Text
+					? $"(this._a{member.Index} < 0 ? {(member.Member.IsOptional ? "null" : "string.Empty")} : " +
+						$"text.Slice(this._a{member.Index}, this._b{member.Index} - this._a{member.Index}).ToString())"
+					: member.Member.IsOptional
+						? $"(this._m{member.Index}.IsNothing ? default : this._m{member.Index}.Build(text))"
+						: $"this._m{member.Index}.Build(text)";
+		}
+
+		// What the shapes written so far do not need, and Refuses keeps the machine from
+		// asking for.
 
 		public override string DeclareAccumulator(RuleSymbol rule) => throw Unwritten();
 
 		public override IEnumerable<string> DeclareGathered(int slot, string elementType) => throw Unwritten();
 
-		public override string RecordLocalType(RuleSymbol rule) => throw Unwritten();
-
-		public override string ResetRecordLocal(int slot) => throw Unwritten();
-
-		public override string Absent(string local) => throw Unwritten();
-
-		public override string FirstRecord(IReadOnlyList<int> slots, RuleSymbol rule) => throw Unwritten();
-
-		public override string Begin(RuleSymbol rule, int factory, string? start, string? end) => throw Unwritten();
-
 		public override string PutAccumulator() => throw Unwritten();
 
-		public override string PutText(DirectMember member, string from, string to) => throw Unwritten();
-
-		public override string PutRecord(DirectMember member, string record) => throw Unwritten();
-
 		public override string Collect(DirectMember member, string from, bool pairs) => throw Unwritten();
-
-		public override string End(string gatheredFrom) => throw Unwritten();
-
-		public override string Last(RuleSymbol rule) => throw Unwritten();
 
 		public override string PushText(int slot, string from, string to) => throw Unwritten();
 
@@ -97,14 +317,6 @@ sealed partial class Machine
 		public override void Gathered(
 			Writer code, string from, IReadOnlyList<int> slots, string handed, string type, string build, bool text) =>
 			throw Unwritten();
-
-		public override IEnumerable<string> Rent() => throw Unwritten();
-
-		public override IEnumerable<string> Return() => throw Unwritten();
-
-		public override IEnumerable<string> BuildRoot(string type, bool extent) => throw Unwritten();
-
-		public override string RenderBuilder(IReadOnlyList<RuleSymbol> rules) => throw Unwritten();
 
 		static InvalidOperationException Unwritten() =>
 			new($"The mixed carrier was asked to carry something it refuses ({nameof(Machine)}.Mixed.cs).");

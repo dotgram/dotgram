@@ -13133,6 +13133,45 @@ after, `(((x)))` 1.52 of the hand-written parser before and 1.43 after, the deep
 and 1.75. The SQL yardstick does not move, and says why itself: its reader opens no ways at
 all and had no wrappers to lose.
 
+**The third carrier carries its first shape.** `MixedCarrier` is behind the same seam the
+other two are, and what it emits for a rule is a `readonly struct` holding what the rule
+read — two integers where a member is a run of text, the captured rule's own shape where it
+is a record — and a `Build` that calls the construction over those fields. §7.3 is kept: a
+factory runs once per node of the accepted derivation, and what it runs over is fields of a
+known type rather than integers read back out of a log. A shape is a value held inside
+whatever captured it, so a leaf allocates nothing at all.
+
+```csharp
+private readonly struct Shape_Start
+{
+	private readonly Shape_Name _m0;
+	private readonly Shape_Digits _m1;
+	private readonly bool read;
+
+	internal Shape_Start(Shape_Name m0, Shape_Digits m1) { … }
+
+	internal bool IsNothing { get { return !this.read; } }
+
+	internal string Build(global::System.ReadOnlySpan<char> text)
+	{
+		return Construct_Start(this._m0.Build(text), this._m1.IsNothing ? default : this._m1.Build(text));
+	}
+}
+```
+
+It carries one shape — a rule that builds one way, out of runs of text and of other rules'
+values, over characters — and refuses everything else by name: a fold, a cycle, a rule that
+builds several ways, a guard, a gathered member, a mark, an extent, a recovery, a rule read
+at a strength, a reading over tokens. What it refuses the tape carries, and `CarrierTests`
+holds it to the tape's answers on what it carries and to being refused on what it does not,
+so the test does not have to be edited as the list shortens. A second test names the shape
+it does carry, so the first cannot pass by carrying nothing.
+
+Two things the seam learned on the way. `BuildRoot` is told the rule and not only the type,
+because a shape is per rule and two rules may build one type. And the store a parse rents is
+the carrier's to render — the tape's tables, the immediate carrier's stacks, nothing at all
+for this one — where the emitter used to switch on which of two carriers it was.
+
 **Asking the report what a third carrier would have to emit.** The reader having come to
 within a fifth to a half of the hand-written parsers, what is left is the deferral, and the
 next carrier is the second stage's own next step. `Shapes` was written for exactly this

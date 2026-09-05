@@ -484,7 +484,7 @@ sealed partial class Machine
 					}
 
 					file.Line();
-					foreach (var line in Carrier.BuildRoot(type!, IsExtent(rule)))
+					foreach (var line in Carrier.BuildRoot(rule, type!, IsExtent(rule)))
 						file.Line(line);
 					file.Line();
 				}

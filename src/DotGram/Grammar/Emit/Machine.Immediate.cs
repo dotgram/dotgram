@@ -412,12 +412,15 @@ sealed partial class Machine
 		}
 
 		/// <remarks>Read off the reader, which is what the register is a field of.</remarks>
-		public override IEnumerable<string> BuildRoot(string type, bool extent)
+		public override IEnumerable<string> BuildRoot(RuleSymbol rule, string type, bool extent)
 		{
 			yield return $"value = reader.{Register(type)};";
 		}
 
 		public override string RenderBuilder(IReadOnlyList<RuleSymbol> rules) => "";
+
+		public override string RenderStore(IReadOnlyList<string> valueTypes, string? stateType) =>
+			ImmediateValuesClass(valueTypes, stateType);
 
 		public override string? Refuses()
 		{

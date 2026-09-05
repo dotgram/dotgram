@@ -494,17 +494,27 @@ public static partial class CSharpEmitter
 			file.Write(DirectSupport);
 			file.Line();
 
-			// Each carrier's own store, where a machine carries that way: the tables the walk
-			// fills, or the registers an immediate parse hands values through.
-			if (machines.Exists(static compiled => compiled.Direct && !compiled.Machine.CarriesImmediately))
+			// Each carrier's own store, where its machines rent one: the tables the tape's
+			// walk fills, or the stacks an immediate parse gathers on. Asked of the carrier
+			// rather than switched on here, so that a carrier renting nothing — one that
+			// keeps what it read in the reader — writes nothing, and two machines carrying
+			// the same way write it once.
+			var stores = new List<string>();
+
+			foreach (var compiled in machines)
 			{
-				file.Write(DirectValuesClass(tables, graph.State));
-				file.Line();
+				if (!compiled.Direct)
+					continue;
+
+				var store = compiled.Machine.CarrierStore(tables, graph.State);
+
+				if (store.Length > 0 && !stores.Contains(store))
+					stores.Add(store);
 			}
 
-			if (machines.Exists(static compiled => compiled.Direct && compiled.Machine.CarriesImmediately))
+			foreach (var store in stores)
 			{
-				file.Write(Machine.ImmediateValuesClass(tables, graph.State));
+				file.Write(store);
 				file.Line();
 			}
 		}

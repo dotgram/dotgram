@@ -117,6 +117,68 @@ public sealed class CarrierTests
 	}
 
 	/// <summary>
+	/// What the mixed carrier carries today, so that the theory above cannot pass by
+	/// carrying nothing.
+	/// </summary>
+	/// <remarks>
+	/// This is the list that grows as the shapes are written, and the one line to change
+	/// when one is. A rule that builds one way, out of runs of text and of other rules'
+	/// values, is the first of them.
+	/// </remarks>
+	[Fact]
+	public void The_mixed_carrier_carries_a_rule_that_builds_one_way()
+	{
+		var (source, _) = Compiled(Shapes.Single(one => one.Name == "a member that may be missing").Grammar, CarrierKind.Mixed);
+
+		Assert.Contains("private readonly struct Shape_Start", source, StringComparison.Ordinal);
+		Assert.Contains("value = reader.shape_Start.Build(text);", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Materialize_DotGram", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("DirectValues", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The mixed carrier agrees with the tape on every shape it carries, and leaves the
+	/// rest to the tape.
+	/// </summary>
+	/// <remarks>
+	/// One test for both, because which of the two a shape is changes as the carrier is
+	/// written and the test should not have to be edited when it does. A shape it carries
+	/// is held to the tape's answers; a shape it refuses is held only to being refused,
+	/// which is what the fallback below is about.
+	/// </remarks>
+	[Theory]
+	[MemberData(nameof(Every))]
+	public void Mixed_agrees_with_the_tape_on_what_it_carries(string name)
+	{
+		var (_, grammar, inputs) = Shapes.Single(one => one.Name == name);
+
+		var tape  = Compiled(grammar, CarrierKind.Tape);
+		var mixed = Compiled(grammar, CarrierKind.Mixed);
+
+		if (!mixed.Source.Contains("Shape_", StringComparison.Ordinal))
+		{
+			Assert.Contains("Materialize_DotGram", mixed.Source, StringComparison.Ordinal);
+
+			return;
+		}
+
+		Assert.DoesNotContain("Materialize_DotGram", mixed.Source, StringComparison.Ordinal);
+
+		foreach (var input in inputs)
+		{
+			var expected = EmittedCode.Match(tape.Assembly,  "Carried.Probe", "TryParseStart", input);
+			var actual   = EmittedCode.Match(mixed.Assembly, "Carried.Probe", "TryParseStart", input);
+
+			Assert.True(
+				expected.IsSuccess == actual.IsSuccess,
+				$"{name} on \"{input}\": the tape says {expected.IsSuccess}, mixed says {actual.IsSuccess}.");
+
+			if (expected.IsSuccess)
+				Assert.Equal(ValueOf(expected), ValueOf(actual));
+		}
+	}
+
+	/// <summary>
 	/// A carrier that cannot carry a grammar is not an error: the tape carries it instead,
 	/// and the machine keeps the reason for whoever asks.
 	/// </summary>

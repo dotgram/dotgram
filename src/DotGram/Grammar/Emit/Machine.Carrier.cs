@@ -51,6 +51,10 @@ sealed partial class Machine
 	/// <summary>Whether values are built as they are read rather than after (<see cref="CarrierKind.Immediate"/>).</summary>
 	internal bool CarriesImmediately => Carrier is ImmediateCarrier;
 
+	/// <summary>The class this machine's carrier rents, or nothing where it rents none.</summary>
+	internal string CarrierStore(IReadOnlyList<string> valueTypes, string? stateType) =>
+		Carrier.RenderStore(valueTypes, stateType);
+
 	/// <summary>
 	/// How a reader carries what it read until the derivation is accepted and the author's
 	/// constructions can run.
@@ -217,10 +221,19 @@ sealed partial class Machine
 		public abstract IEnumerable<string> Return();
 
 		/// <summary>The whole derivation built into the entry's value.</summary>
-		public abstract IEnumerable<string> BuildRoot(string type, bool extent);
+		public abstract IEnumerable<string> BuildRoot(RuleSymbol rule, string type, bool extent);
 
 		/// <summary>The code that builds records into values, once per file; nothing where values are built as they are read.</summary>
 		public abstract string RenderBuilder(IReadOnlyList<RuleSymbol> rules);
+
+		/// <summary>The class a parse rents to carry with, where the carrier rents one.</summary>
+		/// <remarks>
+		/// Written once for the file however many machines are in it, so two machines
+		/// carrying the same way must render the same text — which they do, both being
+		/// asked with the file's own union of value types. A carrier that keeps everything
+		/// in the reader rents nothing and renders nothing.
+		/// </remarks>
+		public virtual string RenderStore(IReadOnlyList<string> valueTypes, string? stateType) => "";
 
 		/// <summary>Why this carrier cannot carry the machine's rules, or null where it can.</summary>
 		public abstract string? Refuses();
@@ -411,7 +424,7 @@ sealed partial class Machine
 		/// An extent's value is the span its record stands on; every other value is in the
 		/// tables the walk filled.
 		/// </remarks>
-		public override IEnumerable<string> BuildRoot(string type, bool extent)
+		public override IEnumerable<string> BuildRoot(RuleSymbol rule, string type, bool extent)
 		{
 			yield return
 				$"{machine.DirectMaterializer}(ways, text, values, ways.Last, 0" +
@@ -422,6 +435,9 @@ sealed partial class Machine
 		}
 
 		public override string RenderBuilder(IReadOnlyList<RuleSymbol> rules) => machine.RenderDirectMaterializer(rules);
+
+		public override string RenderStore(IReadOnlyList<string> valueTypes, string? stateType) =>
+			CSharpEmitter.DirectValuesClass(valueTypes, stateType);
 
 		public override string? Refuses() => null;
 	}
