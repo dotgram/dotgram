@@ -241,24 +241,25 @@ sealed partial class Machine
 				yield return $"values.Count{stack} = {name}_{stack};";
 		}
 
-		public override string DeclareRecordLocal(int slot, string valueType) => $"{valueType} r{slot} = default!;";
+		public override string DeclareRecordLocal(int slot, RuleSymbol rule) =>
+			$"{machine._results.ValueOf(rule)} r{slot} = default!;";
 
-		public override string DeclareAccumulator(string valueType) => $"{valueType} fold = default!;";
+		public override string DeclareAccumulator(RuleSymbol rule) => $"{machine._results.ValueOf(rule)} fold = default!;";
 
 		public override IEnumerable<string> DeclareGathered(int slot, string elementType) => [];
 
-		public override string RecordLocalType(string valueType) => valueType + " ";
+		public override string RecordLocalType(RuleSymbol rule) => machine._results.ValueOf(rule) + " ";
 
 		public override string ResetRecordLocal(int slot) => $"r{slot} = default!;";
 
 		public override string Absent(string local) => $"ImmediateValues.IsDefault({local})";
 
-		public override string FirstRecord(IReadOnlyList<int> slots, string valueType)
+		public override string FirstRecord(IReadOnlyList<int> slots, RuleSymbol rule)
 		{
 			if (slots.Count == 1)
 				return $"r{slots[0]}";
 
-			var chain = $"default({valueType})!";
+			var chain = $"default({machine._results.ValueOf(rule)})!";
 
 			for (var i = slots.Count - 1; i >= 0; i--)
 				chain = $"!ImmediateValues.IsDefault(r{slots[i]}) ? r{slots[i]} : {chain}";
@@ -320,7 +321,7 @@ sealed partial class Machine
 		{
 			var rule = _rule ?? throw new InvalidOperationException("A record ended that never began.");
 			var type = machine._results.QualifiedOf(rule)!;
-			var into = Last(type);
+			var into = Register(type);
 
 			// A terminal that builds, over kinds: the lexer measured it, and the character
 			// machine of its own builds it from the text — now rather than in the walk.
@@ -367,13 +368,15 @@ sealed partial class Machine
 			}
 		}
 
-		public override string Last(string valueType) => $"last{machine.TableFor(valueType)}";
+		public override string Last(RuleSymbol rule) => Register(machine._results.ValueOf(rule));
+
+		string Register(string valueType) => $"last{machine.TableFor(valueType)}";
 
 		public override string PushText(int slot, string from, string to) =>
 			$"values.PushText({machine.Cut(from, $"{to} - {from}")});";
 
-		public override string PushRecord(int slot, string valueType) =>
-			$"values.Push{StackOf(valueType)}({Last(valueType)});";
+		public override string PushRecord(int slot, RuleSymbol rule) =>
+			$"values.Push{StackOf(machine._results.ValueOf(rule))}({Last(rule)});";
 
 		/// <remarks>
 		/// A live stack rather than a pair of records on a log. The tape writes the mark down
@@ -388,7 +391,7 @@ sealed partial class Machine
 
 		public override string Materialize(string record, string sinceMark) => "";
 
-		public override string ValueOf(string type, string record) => record;
+		public override string ValueOf(RuleSymbol rule, string record) => record;
 
 		/// <remarks>Peeked rather than taken: the record written later collects the same items.</remarks>
 		public override void Gathered(Writer code, string from, IReadOnlyList<int> slots, string handed, string type, string build, bool text)
@@ -411,7 +414,7 @@ sealed partial class Machine
 		/// <remarks>Read off the reader, which is what the register is a field of.</remarks>
 		public override IEnumerable<string> BuildRoot(string type, bool extent)
 		{
-			yield return $"value = reader.{Last(type)};";
+			yield return $"value = reader.{Register(type)};";
 		}
 
 		public override string RenderBuilder(IReadOnlyList<RuleSymbol> rules) => "";

@@ -128,16 +128,16 @@ sealed partial class Machine
 		/// The local a captured record is kept in until the rule's own record is written — on
 		/// the tape an index, elsewhere the value itself.
 		/// </summary>
-		public abstract string DeclareRecordLocal(int slot, string valueType);
+		public abstract string DeclareRecordLocal(int slot, RuleSymbol rule);
 
 		/// <summary>The local a fold's value so far is kept in (§4.3).</summary>
-		public abstract string DeclareAccumulator(string valueType);
+		public abstract string DeclareAccumulator(RuleSymbol rule);
 
 		/// <summary>What the body of a rule that gathers into a slot declares for it, beside the position it keeps.</summary>
 		public abstract IEnumerable<string> DeclareGathered(int slot, string elementType);
 
 		/// <summary>The type of a record local, with a trailing space, for a parameter that hands it on.</summary>
-		public abstract string RecordLocalType(string valueType);
+		public abstract string RecordLocalType(RuleSymbol rule);
 
 		/// <summary>A record local put back to nothing, when the part that wrote it failed.</summary>
 		public abstract string ResetRecordLocal(int slot);
@@ -150,7 +150,7 @@ sealed partial class Machine
 		/// alternatives is one member with a slot per alternative, and the record takes
 		/// whichever is set.
 		/// </summary>
-		public abstract string FirstRecord(IReadOnlyList<int> slots, string valueType);
+		public abstract string FirstRecord(IReadOnlyList<int> slots, RuleSymbol rule);
 
 		// ---- a record -----------------------------------------------------------------------
 
@@ -177,7 +177,7 @@ sealed partial class Machine
 		public abstract string End(string gatheredFrom);
 
 		/// <summary>An expression for the value of the record most recently closed, of the type.</summary>
-		public abstract string Last(string valueType);
+		public abstract string Last(RuleSymbol rule);
 
 		// ---- gathering ----------------------------------------------------------------------
 
@@ -185,7 +185,7 @@ sealed partial class Machine
 		public abstract string PushText(int slot, string from, string to);
 
 		/// <summary>One record pushed for a member gathered across turns.</summary>
-		public abstract string PushRecord(int slot, string valueType);
+		public abstract string PushRecord(int slot, RuleSymbol rule);
 
 		/// <summary>A §7.8 mark, opened or closed, at the position.</summary>
 		public abstract string Mark(int kind, int site);
@@ -196,7 +196,7 @@ sealed partial class Machine
 		public abstract string Materialize(string record, string sinceMark);
 
 		/// <summary>The value a record holds, as a guard sees it.</summary>
-		public abstract string ValueOf(string type, string record);
+		public abstract string ValueOf(RuleSymbol rule, string record);
 
 		/// <summary>
 		/// The gathered members of the given slots as one array, for a guard that names a
@@ -302,19 +302,19 @@ sealed partial class Machine
 			yield return $"ways.RefsCount = {name};";
 		}
 
-		public override string DeclareRecordLocal(int slot, string valueType) => $"var r{slot} = -1;";
+		public override string DeclareRecordLocal(int slot, RuleSymbol rule) => $"var r{slot} = -1;";
 
-		public override string DeclareAccumulator(string valueType) => "var fold = -1;";
+		public override string DeclareAccumulator(RuleSymbol rule) => "var fold = -1;";
 
 		public override IEnumerable<string> DeclareGathered(int slot, string elementType) => [];
 
-		public override string RecordLocalType(string valueType) => "int ";
+		public override string RecordLocalType(RuleSymbol rule) => "int ";
 
 		public override string ResetRecordLocal(int slot) => $"r{slot} = -1;";
 
 		public override string Absent(string local) => $"{local} < 0";
 
-		public override string FirstRecord(IReadOnlyList<int> slots, string valueType)
+		public override string FirstRecord(IReadOnlyList<int> slots, RuleSymbol rule)
 		{
 			if (slots.Count == 1)
 				return $"r{slots[0]}";
@@ -343,11 +343,11 @@ sealed partial class Machine
 
 		public override string End(string gatheredFrom) => $"ways.End({gatheredFrom});";
 
-		public override string Last(string valueType) => "ways.Last";
+		public override string Last(RuleSymbol rule) => "ways.Last";
 
 		public override string PushText(int slot, string from, string to) => $"ways.Push({slot}, {from}, {to});";
 
-		public override string PushRecord(int slot, string valueType) => $"ways.Push({slot}, ways.Last, -1);";
+		public override string PushRecord(int slot, RuleSymbol rule) => $"ways.Push({slot}, ways.Last, -1);";
 
 		public override string Mark(int kind, int site) => $"ways.Mark({kind}, {site}, p);";
 
@@ -356,7 +356,10 @@ sealed partial class Machine
 			$"{machine.TokensArgument}{machine.ContextArgument});";
 
 		/// <summary>From the tables, or for an extent the record itself.</summary>
-		public override string ValueOf(string type, string record) =>
+		public override string ValueOf(RuleSymbol rule, string record) =>
+			ValueOfType(machine._results.ValueOf(rule), record);
+
+		string ValueOfType(string type, string record) =>
 			type == "SourceSpan"
 				? machine.RecordValue(type, record).Replace("log[", "ways.Log[")
 				: $"values.V{machine.TableFor(type)}[{record}].Value";
@@ -385,7 +388,7 @@ sealed partial class Machine
 				if (build.Length > 0)
 					code.Line(string.Format(build, "ways.Refs[at + 1]"));
 
-				code.Line($"{handed}[{handed}Count++] = {ValueOf(type, "ways.Refs[at + 1]")};");
+				code.Line($"{handed}[{handed}Count++] = {ValueOfType(type, "ways.Refs[at + 1]")};");
 			}
 		}
 

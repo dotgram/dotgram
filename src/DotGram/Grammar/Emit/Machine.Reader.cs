@@ -689,7 +689,7 @@ sealed partial class Machine
 			// that neither writes a record nor hands the value on has nothing to do with it,
 			// and a local nothing reads is an error in somebody else's build.
 			if (_folds && !handed && written.Contains("fold", StringComparison.Ordinal))
-				head.Line(machine.Carrier.DeclareAccumulator(machine._results.ValueOf(owner)));
+				head.Line(machine.Carrier.DeclareAccumulator(owner));
 
 			// Where the log stood when the rule began, for a guard that builds a value from
 			// what has been recorded since.
@@ -717,7 +717,7 @@ sealed partial class Machine
 						break;
 
 					default:
-						head.Line(machine.Carrier.DeclareRecordLocal(slot, ValueTypeOf(slot)));
+						head.Line(machine.Carrier.DeclareRecordLocal(slot, RuleOfSlot(slot)));
 						break;
 				}
 			}
@@ -933,7 +933,7 @@ sealed partial class Machine
 
 				case MemberShape.Record:
 					Emit(code, held, following, loaded);
-					code.Line($"r{slot} = {machine.Carrier.Last(ValueTypeOf(slot))};");
+					code.Line($"r{slot} = {machine.Carrier.Last(RuleOfSlot(slot))};");
 					break;
 
 				// What a repetition gathers is pushed as it goes and collected when the
@@ -947,7 +947,7 @@ sealed partial class Machine
 
 				case MemberShape.Records:
 					Emit(code, held, following, loaded);
-					Carried(code, machine.Carrier.PushRecord(slot, ValueTypeOf(slot)));
+					Carried(code, machine.Carrier.PushRecord(slot, RuleOfSlot(slot)));
 					break;
 
 				default:
@@ -993,7 +993,7 @@ sealed partial class Machine
 			if (factory >= 0 && machine.DirectForwards(owner, factory))
 			{
 				if (_folds)
-					code.Line($"fold = {machine.Carrier.Last(machine._results.ValueOf(owner))};");
+					code.Line($"fold = {machine.Carrier.Last(owner)};");
 
 				return;
 			}
@@ -1017,13 +1017,13 @@ sealed partial class Machine
 					MemberShape.Pieces  => machine.Carrier.Collect(member, Refs, true),
 					MemberShape.Records => machine.Carrier.Collect(member, Refs, false),
 					_                   => machine.Carrier.PutRecord(
-						member, machine.Carrier.FirstRecord(member.Slots, machine._results.ValueOf(member.Member.Rule))),
+						member, machine.Carrier.FirstRecord(member.Slots, member.Member.Rule!)),
 				});
 
 			Carried(code, machine.Carrier.End("rb"));
 
 			if (_folds)
-				code.Line($"fold = {machine.Carrier.Last(machine._results.ValueOf(owner))};");
+				code.Line($"fold = {machine.Carrier.Last(owner)};");
 		}
 
 		readonly HashSet<int> _kept = [];
@@ -1762,7 +1762,7 @@ sealed partial class Machine
 			var text = new System.Text.StringBuilder();
 
 			if (_folds)
-				text.Append(", ref ").Append(Typed(type, machine.Carrier.RecordLocalType(machine._results.ValueOf(owner)))).Append("fold");
+				text.Append(", ref ").Append(Typed(type, machine.Carrier.RecordLocalType(owner))).Append("fold");
 
 			// The rule's start, for the records a part writes and the text a guard reads; the
 			// body's is its own `pos`.
@@ -1799,14 +1799,19 @@ sealed partial class Machine
 		/// this is the argument list rather than the parameters.
 		/// </summary>
 		string TypeOf(string type, int slot, string name) =>
-			name[0] == 'r' ? Typed(type, machine.Carrier.RecordLocalType(ValueTypeOf(slot))) : type;
+			name[0] == 'r' ? Typed(type, machine.Carrier.RecordLocalType(RuleOfSlot(slot))) : type;
 
 		/// <summary>The carrier's type where a type is wanted, nothing where it is not.</summary>
 		static string Typed(string type, string carried) => type.Length > 0 ? carried : "";
 
-		/// <summary>The value type of the rule a slot captures, as the results name it.</summary>
-		string ValueTypeOf(int slot) =>
-			machine._results.ValueOf(machine.MemberOfSlot(owner, slot)?.Member.Rule);
+		/// <summary>The rule whose value a slot holds, which is what a carrier is asked about.</summary>
+		/// <remarks>
+		/// The rule and not the type it was projected to: two rules may build the same type,
+		/// and a carrier that keeps a shape per rule has to tell them apart. The tape and the
+		/// immediate carrier project it back themselves, which is where the projection
+		/// belongs — it is an answer about how they carry, not about what the reader read.
+		/// </remarks>
+		RuleSymbol RuleOfSlot(int slot) => machine.MemberOfSlot(owner, slot)!.Member.Rule!;
 
 		/// <summary>What a position is called: two names where it is a run of text, one where it is a record.</summary>
 		IEnumerable<string> Names(int slot)
@@ -2537,14 +2542,14 @@ sealed partial class Machine
 
 				if (!member.IsSequence)
 				{
-					code.Line($"var {handed}At = {machine.Carrier.FirstRecord(slots, type)};");
+					code.Line($"var {handed}At = {machine.Carrier.FirstRecord(slots, member.Rule!)};");
 
 					if (build.Length > 0)
 						code.Line($"if (!({machine.Carrier.Absent(handed + "At")})) {string.Format(build, handed + "At")}");
 
 					code.Line(member.IsOptional
-						? $"{type}? {handed} = {machine.Carrier.Absent(handed + "At")} ? default({type}?) : {ValueAt(type, handed + "At")};"
-						: $"var {handed} = {ValueAt(type, handed + "At")};");
+						? $"{type}? {handed} = {machine.Carrier.Absent(handed + "At")} ? default({type}?) : {ValueAt(member.Rule!, handed + "At")};"
+						: $"var {handed} = {ValueAt(member.Rule!, handed + "At")};");
 
 					continue;
 				}
@@ -2568,7 +2573,7 @@ sealed partial class Machine
 		int _guardLocals;
 
 		/// <summary>A record's value as a guard sees it.</summary>
-		string ValueAt(string type, string record) => machine.Carrier.ValueOf(type, record);
+		string ValueAt(RuleSymbol rule, string record) => machine.Carrier.ValueOf(rule, record);
 
 		void EmitLookahead(Writer code, bool positive, Node inside, bool loaded = false)
 		{
