@@ -88,13 +88,6 @@ sealed partial class Machine
 						if (member.Shape is MemberShape.Pieces or MemberShape.Records)
 							return $"'{rule.Name}' has a guard and gathers '{member.Member.Name}'";
 
-				// And the places a member is gathered from have to read one rule: what goes
-				// on a stack is a shape, a shape is per rule, and a run is one array.
-				foreach (var member in Union(rule).Concat(Union(rule, steps: true)))
-					if (member.Shape == MemberShape.Records && member.Slots.Count > 1)
-						foreach (var slot in member.Slots)
-							if (!ReferenceEquals(machine.RuleAt(rule, slot), machine.RuleAt(rule, member.Slots[0])))
-								return $"'{rule.Name}' gathers '{member.Member.Name}' from several rules";
 			}
 
 			return null;
@@ -103,6 +96,9 @@ sealed partial class Machine
 		/// <summary>The rules that have a shape: the ones the reader reads and that build.</summary>
 		IEnumerable<RuleSymbol> Shaped =>
 			(machine._directRules ?? machine._rules).Where(machine.Valued);
+
+		/// <summary>The method a run's field is built by, named after the field.</summary>
+		static string Named(string field) => "Gathered" + field.Substring(2);
 
 		/// <summary>What a rule's shape is called, and the reader's field holding the last one.</summary>
 		static string Named(RuleSymbol rule, string? part = null) =>
@@ -199,12 +195,9 @@ sealed partial class Machine
 						if (member.Shape is not (MemberShape.Pieces or MemberShape.Records))
 							continue;
 
-						var stack = Stack(rule, member);
-
-						if (!found.Exists(one => one.Name == stack))
-							found.Add((
-								stack,
-								member.Shape == MemberShape.Pieces ? "long" : Held(Element(rule, member))));
+						foreach (var (stack, element) in Runs(rule, member))
+							if (!found.Exists(one => one.Name == stack))
+								found.Add((stack, element));
 					}
 
 				return _stacks = found;
@@ -227,6 +220,30 @@ sealed partial class Machine
 		RuleSymbol Element(RuleSymbol owner, DirectMember member) =>
 			machine.RuleAt(owner, member.Slots[0]) ?? member.Member.Rule!;
 
+		/// <summary>
+		/// The stacks one gathered member wants: one, or one for every place it is gathered
+		/// from where the places read different rules.
+		/// </summary>
+		IEnumerable<(string Name, string Element)> Runs(RuleSymbol owner, DirectMember member)
+		{
+			if (member.Shape == MemberShape.Pieces)
+			{
+				yield return ("Spans", "long");
+
+				yield break;
+			}
+
+			if (Places(owner, member) is { Count: > 0 } places)
+			{
+				foreach (var slot in places)
+					yield return (Named(machine.RuleAt(owner, slot)!), Held(machine.RuleAt(owner, slot)!));
+
+				yield break;
+			}
+
+			yield return (Stack(owner, member), Held(Element(owner, member)));
+		}
+
 		/// <remarks>
 		/// Where the stacks stood when the rule began, so that a part collects from there
 		/// and not from where the part did. The same mark the immediate carrier hands over.
@@ -247,12 +264,14 @@ sealed partial class Machine
 			var seen = new List<string>();
 
 			foreach (var member in Union(owner).Concat(Union(owner, steps: true)))
-				if (member.Shape is MemberShape.Pieces or MemberShape.Records && !seen.Contains(Stack(owner, member)))
-				{
-					seen.Add(Stack(owner, member));
+				if (member.Shape is MemberShape.Pieces or MemberShape.Records)
+					foreach (var (stack, _) in Runs(owner, member))
+						if (!seen.Contains(stack))
+						{
+							seen.Add(stack);
 
-					yield return Stack(owner, member);
-				}
+							yield return stack;
+						}
 		}
 
 		public override IEnumerable<string> MarkRecords(string name) => [];
@@ -516,7 +535,7 @@ sealed partial class Machine
 		/// </summary>
 		IReadOnlyList<int> Places(RuleSymbol owner, DirectMember member)
 		{
-			if (member.Shape != MemberShape.Record)
+			if (member.Shape is not (MemberShape.Record or MemberShape.Records))
 				return [];
 
 			// The member as the whole rule sees it: one construction knows only its own
@@ -867,43 +886,55 @@ sealed partial class Machine
 				if (member.Shape is not (MemberShape.Pieces or MemberShape.Records))
 					continue;
 
-				var made = member.Shape == MemberShape.Pieces
-					? "string"
-					: machine._results.ValueOf(member.Member.Rule) + "[]";
-
-				file.Line();
-				file.Line($"private {made} Gathered{member.Index}({Taking})");
-
-				using (file.Block(""))
+				if (member.Shape == MemberShape.Records && Places(rule, member) is { Count: > 0 } places)
 				{
-					if (member.Shape == MemberShape.Pieces)
-					{
-						file.Line($"var made = new string[this._g{member.Index}.Length];");
-						file.Line();
+					foreach (var slot in places)
+						Gathering(file, rule, member, $"_g{member.Index}_{slot}", machine.RuleAt(rule, slot)!);
 
-						using (file.Block("for (var one = 0; one < made.Length; one++)"))
-						{
-							file.Line($"var span = this._g{member.Index}[one];");
-							file.Line("var from = (int)(span >> 32);");
-							file.Line();
-							file.Line($"made[one] = {machine.Cut("from", "(int)(uint)span - from")};");
-						}
-
-						file.Line();
-						file.Line("return string.Concat(made);");
-					}
-					else
-					{
-						file.Line($"var made = new {machine._results.ValueOf(member.Member.Rule)}[this._g{member.Index}.Length];");
-						file.Line();
-						file.Line("for (var one = 0; one < made.Length; one++)");
-						file.Then(
-						$"made[one] = this._g{member.Index}[one]" +
-						$"{(Reference(Element(rule, member)) ? "!" : "")}.Build({Given});");
-						file.Line();
-						file.Line("return made;");
-					}
+					continue;
 				}
+
+				Gathering(
+					file, rule, member, $"_g{member.Index}",
+					member.Shape == MemberShape.Pieces ? null : Element(rule, member));
+			}
+		}
+
+		/// <summary>One run, as the author's own array or as the text its pieces join into.</summary>
+		void Gathering(Writer file, RuleSymbol rule, DirectMember member, string run, RuleSymbol? element)
+		{
+			var made = element is null ? "string" : machine._results.ValueOf(member.Member.Rule) + "[]";
+
+			file.Line();
+			file.Line($"private {made} {Named(run)}({Taking})");
+
+			using (file.Block(""))
+			{
+				if (element is null)
+				{
+					file.Line($"var made = new string[this.{run}.Length];");
+					file.Line();
+
+					using (file.Block("for (var one = 0; one < made.Length; one++)"))
+					{
+						file.Line($"var span = this.{run}[one];");
+						file.Line("var from = (int)(span >> 32);");
+						file.Line();
+						file.Line($"made[one] = {machine.Cut("from", "(int)(uint)span - from")};");
+					}
+
+					file.Line();
+					file.Line("return string.Concat(made);");
+
+					return;
+				}
+
+				file.Line($"var made = new {machine._results.ValueOf(member.Member.Rule)}[this.{run}.Length];");
+				file.Line();
+				file.Line("for (var one = 0; one < made.Length; one++)");
+				file.Then($"made[one] = this.{run}[one]{(Reference(element) ? "!" : "")}.Build({Given});");
+				file.Line();
+				file.Line("return made;");
 			}
 		}
 
@@ -985,9 +1016,21 @@ sealed partial class Machine
 				}
 				else if (member.Shape is MemberShape.Pieces or MemberShape.Records)
 				{
-					yield return (
-						(member.Shape == MemberShape.Pieces ? "long" : Held(Element(owner, member))) + "[]",
-						$"_g{member.Index}");
+					// A run per place where the places read different rules: `CASE WHEN` and
+					// `CASE x WHEN` gather their whens from two rules, and one reading of the
+					// rule gathers from one of them, its alternative having chosen.
+					if (Places(owner, member) is { Count: > 0 } runs)
+					{
+						foreach (var slot in runs)
+							if (member.Slots.Contains(slot))
+								yield return (Held(machine.RuleAt(owner, slot)!) + "[]", $"_g{member.Index}_{slot}");
+					}
+					else
+					{
+						yield return (
+							(member.Shape == MemberShape.Pieces ? "long" : Held(Element(owner, member))) + "[]",
+							$"_g{member.Index}");
+					}
 				}
 				else if (Places(owner, member) is { Count: > 0 } places)
 				{
@@ -1021,7 +1064,7 @@ sealed partial class Machine
 
 			string Value(DirectMember member)
 			{
-				if (Places(rule, member) is { Count: > 0 } places)
+				if (member.Shape == MemberShape.Record && Places(rule, member) is { Count: > 0 } places)
 				{
 					var chain = "default";
 
@@ -1040,7 +1083,7 @@ sealed partial class Machine
 
 			string Held(DirectMember member) =>
 				member.Shape is MemberShape.Pieces or MemberShape.Records
-					? $"this.Gathered{member.Index}({Given})"
+					? $"this.{Named(Places(rule, member) is { Count: > 0 } ? $"_g{member.Index}_{member.Slots[0]}" : $"_g{member.Index}")}({Given})"
 				: member.Shape == MemberShape.Text
 					? $"(this._a{member.Index} < 0 ? {(member.Member.IsOptional ? "null" : "string.Empty")} : " +
 						machine.Cut($"this._a{member.Index}", $"this._b{member.Index} - this._a{member.Index}") + ")"

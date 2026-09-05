@@ -104,7 +104,7 @@ static class SqlAgainst
 
 		// Both readings of the grammar against the hand-written parser: what the tape costs
 		// over it, and what building as you read costs over it.
-		Console.WriteLine("   tape/hand  immediate/hand");
+		Console.WriteLine("   tape/hand  immediate/hand  mixed/hand");
 
 		// Every method over every input before any of them is measured. Warming one input
 		// at a time leaves the first one paying for the whole process coming up to speed,
@@ -162,7 +162,8 @@ static class SqlAgainst
 	static readonly (string Name, Func<string, int> Measure)[] Methods =
 	[
 		("generated", static input => SqlStandard92.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
-		("immediate",     static input => ImmediateSql.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
+		("immediate", static input => ImmediateSql.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
+		("mixed",     static input => MixedSql.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
 		("by hand",   static input => HandSqlTokens.Parse(input) ? 1 : 0),
 		("its lexer", static input => HandSqlTokens.LexOnly(input)),
 		("day one",   static input => HandSqlOriginal.Parse(input) ? 1 : 0),
@@ -217,6 +218,19 @@ static class SqlAgainst
 					$"About \"{text}\": the two carriers read it the same and build it differently.\n" +
 					$"  tape  {SqlTree.Show(made.Value)}\n" +
 					$"  immediate {SqlTree.Show(immediate.Value)}");
+
+			// And the mixed carrier: deferred as the tape is, over a typed shape per rule.
+			var mixed = MixedSql.TryParseSearchCondition(text);
+
+			if (mixed.IsSuccess != generated)
+				throw new InvalidOperationException(
+					$"About \"{text}\": the tape says {Said(generated)} and the mixed carrier says " +
+					$"{Said(mixed.IsSuccess)}.");
+
+			if (generated && SqlTree.Show(made.Value) != SqlTree.Show(mixed.Value))
+				throw new InvalidOperationException(
+					$"About \"{text}\": the tape and the mixed carrier read it the same and build it "
+					+ $"differently.\n  tape  {SqlTree.Show(made.Value)}\n  mixed {SqlTree.Show(mixed.Value)}");
 
 			// The first day's parser is held only to what it was ever checked against — the
 			// benchmark inputs — and its departures over the corpus are shown, because they
@@ -332,7 +346,8 @@ static class SqlAgainst
 		foreach (var median in medians)
 			Console.Write($" {median,8:N1} ns");
 
-		Console.WriteLine($"   {medians[0] / medians[2],8:N2}x {medians[1] / medians[2],9:N2}x");
+		Console.WriteLine(
+			$"   {medians[0] / medians[3],8:N2}x {medians[1] / medians[3],9:N2}x {medians[2] / medians[3],9:N2}x");
 	}
 
 	static double Median(List<double> times)

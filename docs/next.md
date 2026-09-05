@@ -13263,12 +13263,44 @@ happened here, the SQL yardstick reading 2.6 for a "mixed" column that was the t
 once per reason, and said after the readers are written, because which carrier a machine
 took is settled by what it turned out to hold and nothing before that knows.
 
+A member *gathered* from several rules is a run per place, for the same reason and by the
+same means — and the places turn out never to interleave: `CASE WHEN` and `CASE x WHEN`
+gather their whens from two rules, and one reading of the rule gathers from one of them, its
+alternative having chosen. So there is a stack per place and a run per place, and which one a
+construction reads is known where it is written rather than at run time.
+
+**And then the number.** The carrier carries standard SQL now — it agrees with the tape on
+all forty-two shapes — and it is **slower than the tape**:
+
+| | tape/hand | immediate/hand | mixed/hand |
+| --- | --: | --: | --: |
+| `a = 1` | 3.28 | 1.53 | 4.81 |
+| `x = 1 AND y IS NOT NULL` | 2.63 | 1.33 | 3.71 |
+| the 64-clause condition | 2.57 | 1.19 | 3.03 |
+| the 64-term sum | 2.15 | 1.16 | 2.19 |
+
+Which is the opposite of what the lab measured, and the lab was not wrong: it measured a
+grammar of four rules where every shape was a struct off every cycle, held by value inside
+its parent, and the run threaded through its own turns. Standard SQL is twenty-two classes
+and six structs — `Shapes` said so before a line was written — so a shape per node is an
+allocation per node where the tape writes integers into one array it already owns, and the
+six structs are copies of up to ninety-six bytes through the reader's locals and into their
+parents' fields. `Mix2`'s 0.31 was the shape of `Deferred.gram`, not the shape of a
+language.
+
+That is what the second stage exists to find out, and finding it out is worth more than the
+carrier: **deferral done as typed shapes is not cheaper than deferral done as a log, on a
+grammar whose rules are mostly on cycles.** What would be worth trying next is the other end
+of the report — `PooledLearns`, which the lab measured at 0.21 and which applies where
+nothing is on a cycle, twenty-one grammars of thirty-four — and, before that, asking the
+report what fraction of a real grammar's *nodes* are on cycles rather than what fraction of
+its rules are.
+
 It carries six shapes — a rule that builds one way, a rule that builds several, a rule that
 can reach itself, a fold, a member gathered across turns, and a guard over a capture — over
-characters and over tokens both, and a member captured in several places that read several
-rules. It refuses a mark, an extent, a recovery, a rule read at a strength, a terminal built
-again from its text, and a member gathered from several rules. The last is what stands
-between it and the SQL yardstick. What it refuses the tape carries, and `CarrierTests`
+characters and over tokens both, and a member captured or gathered in several places that
+read several rules. It refuses a mark, an extent, a recovery, a rule read at a strength, and
+a terminal built again from its text. What it refuses the tape carries, and `CarrierTests`
 holds it to the tape's answers on what it carries and to being refused on what it does not,
 so the test does not have to be edited as the list shortens. A second test names the shape
 it does carry, so the first cannot pass by carrying nothing.
