@@ -688,8 +688,14 @@ sealed partial class Machine
 			// Only where something in the method names it: a rule folds, but a method of it
 			// that neither writes a record nor hands the value on has nothing to do with it,
 			// and a local nothing reads is an error in somebody else's build.
-			if (_folds && !handed && written.Contains("fold", StringComparison.Ordinal))
-				head.Line(machine.Carrier.DeclareAccumulator(owner));
+			if (_folds && !handed)
+				foreach (var (_, name) in machine.Carrier.FoldState(owner))
+					if (written.Contains(name, StringComparison.Ordinal))
+					{
+						head.Line(machine.Carrier.DeclareAccumulator(owner));
+
+						break;
+					}
 
 			// Where the log stood when the rule began, for a guard that builds a value from
 			// what has been recorded since.
@@ -993,7 +999,7 @@ sealed partial class Machine
 			if (factory >= 0 && machine.ForwardsInPlace(owner, factory))
 			{
 				if (_folds)
-					code.Line($"fold = {machine.Carrier.Last(owner)};");
+					Carried(code, machine.Carrier.Accumulated(owner));
 
 				return;
 			}
@@ -1023,7 +1029,7 @@ sealed partial class Machine
 			Carried(code, machine.Carrier.End("rb"));
 
 			if (_folds)
-				code.Line($"fold = {machine.Carrier.Last(owner)};");
+				Carried(code, machine.Carrier.Accumulated(owner));
 		}
 
 		readonly HashSet<int> _kept = [];
@@ -1762,7 +1768,8 @@ sealed partial class Machine
 			var text = new System.Text.StringBuilder();
 
 			if (_folds)
-				text.Append(", ref ").Append(Typed(type, machine.Carrier.RecordLocalType(owner))).Append("fold");
+				foreach (var (carried, name) in machine.Carrier.FoldState(owner))
+					text.Append(", ref ").Append(Typed(type, carried)).Append(name);
 
 			// The rule's start, for the records a part writes and the text a guard reads; the
 			// body's is its own `pos`.

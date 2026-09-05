@@ -142,6 +142,28 @@ sealed partial class Machine
 		/// <summary>The local a fold's value so far is kept in (§4.3).</summary>
 		public abstract string DeclareAccumulator(RuleSymbol rule);
 
+		/// <summary>
+		/// What a folding rule carries from one turn to the next, and hands its parts by
+		/// reference — a turn writes its record inside a part, so whatever the turns share
+		/// has to reach it.
+		/// </summary>
+		/// <remarks>
+		/// One accumulator holding the value so far, for a carrier that builds the fold as
+		/// it goes or writes each turn on top of the last. A carrier keeping the turns as a
+		/// run of their own carries the run instead: where it begins, where it ends, and how
+		/// long it is. The names are the carrier's and appear nowhere else.
+		/// </remarks>
+		public virtual IEnumerable<(string Type, string Name)> FoldState(RuleSymbol owner) =>
+			[(RecordLocalType(owner), "fold")];
+
+		/// <summary>What a turn does with the value it has just written, if anything.</summary>
+		/// <remarks>
+		/// The value so far moves to what the turn wrote, which is what the turn after it
+		/// builds on. A carrier keeping the turns as a run has already linked it and has
+		/// nothing to say here.
+		/// </remarks>
+		public virtual string Accumulated(RuleSymbol owner) => $"fold = {Last(owner)};";
+
 		/// <summary>What the body of a rule that gathers into a slot declares for it, beside the position it keeps.</summary>
 		public abstract IEnumerable<string> DeclareGathered(int slot, string elementType);
 
