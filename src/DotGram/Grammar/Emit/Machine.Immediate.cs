@@ -43,12 +43,16 @@ sealed partial class Machine
 
 		text.Append("\n\t[global::System.ThreadStatic]\n\tstatic ImmediateValues? _spare;\n\n");
 		text.Append("\tinternal static ImmediateValues Rent()\n\t{\n\t\tvar spare = _spare;\n\n\t\tif (spare == null)\n\t\t\treturn new ImmediateValues();\n\n\t\t_spare = null;\n\n\t\treturn spare;\n\t}\n\n");
+		// Only the stacks something was pushed on. A grammar has a stack per value type and
+		// a parse gathers on one or two of them; the rest are asked whether they are empty,
+		// which is a compare, rather than told to empty themselves, which was a call. The
+		// high-water mark is the question: nothing is pushed without raising it, and the
+		// count never stands above it.
 		text.Append("\tinternal static void Return(ImmediateValues values)\n\t{\n");
-		text.Append("\t\tglobal::System.Array.Clear(values.StackText, 0, values.HighText);\n\t\tvalues.CountText = values.HighText = 0;\n");
+		Emptied(text, "Text");
 
 		for (var i = 0; i < valueTypes.Count; i++)
-			text.Append("\t\tglobal::System.Array.Clear(values.Stack").Append(i).Append(", 0, values.High").Append(i).Append(");\n")
-				.Append("\t\tvalues.Count").Append(i).Append(" = values.High").Append(i).Append(" = 0;\n");
+			Emptied(text, i.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
 
 		text.Append("\t\t_spare = values;\n\t}\n\n");
 		text.Append("\t/// <summary>Whether a local a record would have been kept in was never written.</summary>\n");
@@ -56,6 +60,15 @@ sealed partial class Machine
 		text.Append("}\n");
 
 		return text.ToString().Replace("\n", Lines.Ending);
+
+		static void Emptied(StringBuilder text, string tag)
+		{
+			text.Append("\t\tif (values.High").Append(tag).Append(" > 0)\n\t\t{\n");
+			text.Append("\t\t\tglobal::System.Array.Clear(values.Stack").Append(tag)
+				.Append(", 0, values.High").Append(tag).Append(");\n");
+			text.Append("\t\t\tvalues.Count").Append(tag).Append(" = values.High").Append(tag).Append(" = 0;\n");
+			text.Append("\t\t}\n\n");
+		}
 
 		static void Stack(StringBuilder text, string type, string tag)
 		{
