@@ -31,4 +31,17 @@ public enum CarrierKind
 	/// factories are pure; never chosen for them.
 	/// </summary>
 	Immediate,
+
+	/// <summary>
+	/// Deferral without a tape: what a rule read is kept in a typed shape of its own, and
+	/// the author's constructions run over those shapes once the parse is accepted. Keeps
+	/// §7.3 as the tape does, and pays for it in fields of a known type rather than in a
+	/// log and a walk over it.
+	/// </summary>
+	/// <remarks>
+	/// Written one shape at a time, and it carries none of them yet: a grammar asking for
+	/// it is compiled on the tape and told which shape it was refused for. Not offered on
+	/// <c>[Gram]</c> until there is something to offer.
+	/// </remarks>
+	Mixed,
 }

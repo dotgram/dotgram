@@ -116,6 +116,25 @@ public sealed class CarrierTests
 		}
 	}
 
+	/// <summary>
+	/// A carrier that cannot carry a grammar is not an error: the tape carries it instead,
+	/// and the machine keeps the reason for whoever asks.
+	/// </summary>
+	/// <remarks>
+	/// The mixed carrier carries nothing yet — its shapes are written one at a time — so it
+	/// is the one to ask this of. What the test is really about is the fallback, which every
+	/// carrier after this one will need on the way to being finished.
+	/// </remarks>
+	[Fact]
+	public void A_carrier_that_refuses_a_grammar_leaves_it_to_the_tape()
+	{
+		var (source, _) = Compiled(Shapes[0].Grammar, CarrierKind.Mixed);
+
+		Assert.Contains("DirectValues",         source, StringComparison.Ordinal);
+		Assert.Contains("Materialize_DotGram",  source, StringComparison.Ordinal);
+		Assert.DoesNotContain("ImmediateValues", source, StringComparison.Ordinal);
+	}
+
 	static string? ValueOf(object match) =>
 		match.GetType().GetProperty("Value")?.GetValue(match)?.ToString();
 

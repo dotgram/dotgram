@@ -29,17 +29,22 @@ sealed partial class Machine
 			if (field is not null)
 				return field;
 
-			if (_carrierKind == CarrierKind.Immediate)
+			if (Asked() is { } asked)
 			{
-				var immediate = new ImmediateCarrier(this);
-
-				if (immediate.Refuses() is { } why)
+				if (asked.Refuses() is { } why)
 					CarrierRefusal = why;
 				else
-					return field = immediate;
+					return field = asked;
 			}
 
 			return field = new TapeCarrier(this);
+
+			ValueCarrier? Asked() => _carrierKind switch
+			{
+				CarrierKind.Immediate => new ImmediateCarrier(this),
+				CarrierKind.Mixed     => new MixedCarrier(this),
+				_                     => null,
+			};
 		}
 	}
 
