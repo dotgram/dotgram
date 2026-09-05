@@ -77,6 +77,9 @@ public sealed class CaptureLayout
 	/// <summary>The slot a <see cref="Node.Capture"/> writes.</summary>
 	public int SlotOf(Node capture) => _slotOf[capture];
 
+	/// <summary>The slot a capture writes, or -1 where this layout numbered none for it.</summary>
+	public int SlotOrNone(Node capture) => _slotOf.TryGetValue(capture, out var slot) ? slot : -1;
+
 	/// <summary>
 	/// How many slots were already settled when this node began — so the slots from here
 	/// on are exactly the ones an attempt at it could have written.

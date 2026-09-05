@@ -143,20 +143,28 @@ public sealed class ReaderTests
 		"Value : @string = k: \"let\" & a: Lexical.Name & b: Value => @(k + a)" +
 		" | k: \"let\" & c: Lexical.Name => @(k + c)";
 
-	/// <summary>That the head really was handed over, in both directions.</summary>
+	/// <summary>That the head was handed over, and that the tail keeps what it caught.</summary>
+	/// <remarks>
+	/// One direction only. The head is read once and its positions are handed down by
+	/// value; nothing comes back, because the alternative writes its own record where it
+	/// stands — a <c>=&gt;</c> names its own slots and no sibling's, so there is nothing
+	/// left for the choice above to build afterwards out of what the tail caught.
+	/// </remarks>
 	[Fact]
 	public void The_reader_hands_a_shared_head_to_the_alternative()
 	{
 		var written = Written(Lexical + SharedAlike + Line + "parse Start", reader: true);
-		var head    = Reading(written, "Read_Value_Part0");
-
-		head = head.Substring(0, head.IndexOf(')'));
+		var part    = Reading(written, "Read_Value_Part0");
+		var head    = part.Substring(0, part.IndexOf(')'));
 
 		// What the head is read into, which the tail did not read and only uses.
 		Assert.Contains("int a0, int b0", head, StringComparison.Ordinal);
 
-		// What the tail captures and the construction after the choice reads.
-		Assert.Contains("ref int", head, StringComparison.Ordinal);
+		// By value, because what the tail caught stays with the tail.
+		Assert.DoesNotContain("ref int", head, StringComparison.Ordinal);
+
+		// And the head is part of the record the tail writes for itself.
+		Assert.Contains("ways.Put(a0, b0);", part, StringComparison.Ordinal);
 	}
 
 	/// <summary>A capture gathered across the turns of a repetition.</summary>

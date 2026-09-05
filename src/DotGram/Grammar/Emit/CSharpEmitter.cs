@@ -1395,17 +1395,25 @@ public static partial class CSharpEmitter
 
 			var from    = layout.Before(node);
 			var to      = layout.After(node);
+			var own     = Writes(layout, node);
 			var visible = new List<ResultMember>();
 
-			// Only what this alternative could have captured, and optional only where this
-			// alternative may skip it. A sibling's captures are neither its business nor
-			// ever written when it is the one that matched.
+			// Only what this alternative wrote, and optional only where this alternative may
+			// skip it. A sibling's captures are neither its business nor ever written when it
+			// is the one that matched.
+			//
+			// The range alone does not say that. Before is where an abandoned attempt is put
+			// back to, which is in front of the whole choice, so every alternative's range
+			// begins at the first one's and a `=>` was handed a chain of tests over slots its
+			// own reading can never have filled — one per sibling in front of it, which is
+			// quadratic in the alternatives. Eleven of them in the expression language's
+			// `Assignment` wrote sixty-six tests where eleven would do.
 			foreach (var member in graph.Results[rule])
 			{
 				var mine = new List<int>();
 
 				foreach (var slot in member.Slots)
-					if (slot >= from && slot < to)
+					if (slot >= from && slot < to && own.Contains(slot))
 						mine.Add(slot);
 
 				if (mine.Count > 0)
@@ -1430,6 +1438,30 @@ public static partial class CSharpEmitter
 		}
 
 		return found;
+	}
+
+	/// <summary>
+	/// The slots one alternative writes: those captured under it, and those of the head
+	/// a left-factoring moved out in front of the choice it stands in, which is as much
+	/// its own as what it kept.
+	/// </summary>
+	static HashSet<int> Writes(CaptureLayout layout, Node alternative)
+	{
+		var found = new HashSet<int>();
+
+		Gather(alternative);
+
+		if (layout.SharedHead(alternative) is { } head)
+			Gather(head);
+
+		return found;
+
+		void Gather(Node node)
+		{
+			foreach (var one in NodeWalk.Descendants(node))
+				if (one is Node.Capture && layout.SlotOrNone(one) is var slot && slot >= 0)
+					found.Add(slot);
+		}
 	}
 
 	/// <summary>Where a rule's captures are, with its fold loop known for what it is.</summary>
