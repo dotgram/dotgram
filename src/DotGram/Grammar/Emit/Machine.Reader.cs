@@ -1936,6 +1936,17 @@ sealed partial class Machine
 
 				return;
 			}
+			// At most one turn is not a loop, and writing it as one costs a counter nothing
+			// reads, a test of it at the top and a jump backwards the reader never takes.
+			// What a person writes is an `if`, and `?` is in every grammar there is — the
+			// expression language alone had eighteen of them.
+			if (min == 0 && max == 1)
+			{
+				EmitOnce(code, body, inside);
+
+				return;
+			}
+
 			var turns = min > 0 || max is not null ? $"t{_calls++}" : null;
 
 			if (turns is not null)
@@ -2014,6 +2025,72 @@ sealed partial class Machine
 				code.Line($"if ({turns} < {min})");
 				code.Then("return -1;");
 			}
+		}
+
+		/// <summary>
+		/// A repetition of at most one turn: the turn, under the test that says it is there.
+		/// </summary>
+		/// <remarks>
+		/// The same three things the loop does — the door, the turn, and putting back what a
+		/// turn that read nothing gathered — with the loop taken away. A turn that fails is
+		/// no failure here either: it is the repetition ending, which for this one means it
+		/// was not written.
+		/// </remarks>
+		void EmitOnce(Writer code, Node body, FollowSets.Continuation inside)
+		{
+			var scopes = new Stack<IDisposable>();
+
+			if (Door([body]) is { } door)
+			{
+				_character = true;
+
+				scopes.Push(code.Block("if ((uint)p < (uint)text.Length)"));
+				code.Line("c = text[p];");
+				code.Line();
+				scopes.Push(code.Block($"if ({door})"));
+			}
+
+			var turn = $"q{_calls++}";
+			var back = _gathers || _logs ? _ways++ : -1;
+			var (call, undo, _) = Called(body, inside);
+
+			if (back >= 0)
+			{
+				if (_gathers)
+					foreach (var line in machine.Carrier.MarkGathered(owner, $"rr{back}"))
+						code.Line(line);
+
+				if (_logs)
+					foreach (var line in machine.Carrier.MarkRecords($"lm{back}"))
+						code.Line(line);
+
+				code.Line();
+			}
+
+			code.Line($"var {turn} = {call};");
+			code.Line();
+
+			var undone = _gathers && back >= 0 || _logs && back >= 0 || undo.Length > 0;
+
+			using (code.Block($"if ({turn} >= 0 && {turn} != p)"))
+				code.Line($"p = {turn};");
+
+			if (undone)
+				using (code.Block("else"))
+				{
+					if (_gathers && back >= 0)
+						foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{back}"))
+							code.Line(line);
+
+					if (_logs && back >= 0)
+						LogBack(code, $"lm{back}");
+
+					if (undo.Length > 0)
+						code.Line(undo);
+				}
+
+			while (scopes.Count > 0)
+				scopes.Pop().Dispose();
 		}
 
 		/// <summary>

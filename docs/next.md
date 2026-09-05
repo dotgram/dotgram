@@ -13133,6 +13133,34 @@ after, `(((x)))` 1.52 of the hand-written parser before and 1.43 after, the deep
 and 1.75. The SQL yardstick does not move, and says why itself: its reader opens no ways at
 all and had no wrappers to lose.
 
+**And an optional is not a loop.** A repetition of at most one turn was written as one
+all the same: a counter, a test of it at the top, an increment at the bottom and a jump
+backwards the reader never takes. `?` is in every grammar there is — eighteen of them in
+the expression language alone — and what a person writes there is an `if`. It is one now,
+and the emitted rule reads like one:
+
+```csharp
+if ((uint)p < (uint)text.Length)
+{
+	c = text[p];
+
+	if (c == 'A')
+	{
+		var q1 = Read_Coalesce_Part0(p, pos, ref r1);
+
+		if (q1 >= 0 && q1 != p)
+			p = q1;
+		else
+			r1 = default!;
+	}
+}
+```
+
+A parenthesis: 63 nanoseconds to 57. `(((x)))` 1.43 of the hand-written parser to 1.35,
+the deepest 1.75 to 1.61. SQL does not move — it has few optionals on its hot path — and
+the three steps of the day together took a descent of the expression grammar from 94
+nanoseconds to 57, against 28 by hand.
+
 **The expression language gets a yardstick of its own.** `HandExpression.cs` is what
 `HandSqlTokens.cs` is to SQL: a lexer over the whole input and a recursive descent over
 the tokens, calling the same factories the grammar's `=>` calls and handing the same
