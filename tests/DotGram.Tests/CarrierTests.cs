@@ -225,6 +225,26 @@ public sealed class CarrierTests
 	}
 
 	/// <summary>
+	/// A fold is a base and a run of turns threaded through the turns themselves, and what
+	/// it is worth is one loop over that run rather than a frame per turn.
+	/// </summary>
+	/// <remarks>
+	/// A chain built the other way round would read the same language and put a depth limit
+	/// where the tape has none: a thousand terms would be a thousand frames.
+	/// </remarks>
+	[Fact]
+	public void A_fold_is_a_run_threaded_through_its_own_turns()
+	{
+		var (source, _) = Compiled(Shapes.Single(one => one.Name == "a fold").Grammar, CarrierKind.Mixed);
+
+		Assert.Contains("private sealed class Step_Start",  source, StringComparison.Ordinal);
+		Assert.Contains("internal Step_Start? Next;",       source, StringComparison.Ordinal);
+		Assert.Contains("private readonly struct Base_Start", source, StringComparison.Ordinal);
+		Assert.Contains("for (var turn = 0; turn < this._count; turn++)", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Materialize_DotGram",       source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
 	/// A carrier that cannot carry a grammar is not an error: the tape carries it instead,
 	/// and the machine keeps the reason for whoever asks.
 	/// </summary>
@@ -236,7 +256,7 @@ public sealed class CarrierTests
 	[Fact]
 	public void A_carrier_that_refuses_a_grammar_leaves_it_to_the_tape()
 	{
-		var (source, _) = Compiled(Shapes[0].Grammar, CarrierKind.Mixed);
+		var (source, _) = Compiled(Shapes.Single(one => one.Name == "a guard over a record").Grammar, CarrierKind.Mixed);
 
 		Assert.Contains("DirectValues",         source, StringComparison.Ordinal);
 		Assert.Contains("Materialize_DotGram",  source, StringComparison.Ordinal);

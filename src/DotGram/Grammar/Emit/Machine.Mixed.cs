@@ -72,9 +72,6 @@ sealed partial class Machine
 				if (machine.IsExtent(rule))
 					return $"'{rule.Name}' is an extent";
 
-				if (machine._graph.Folds.ContainsKey(rule))
-					return $"'{rule.Name}' folds";
-
 				if (machine._graph.Climbing.ContainsKey(rule))
 					return $"'{rule.Name}' is read at a strength";
 
@@ -94,7 +91,8 @@ sealed partial class Machine
 			(machine._directRules ?? machine._rules).Where(machine.Valued);
 
 		/// <summary>What a rule's shape is called, and the reader's field holding the last one.</summary>
-		static string Named(RuleSymbol rule) => "Shape_" + CSharpEmitter.IdentifierOf(rule);
+		static string Named(RuleSymbol rule, string? part = null) =>
+			(part ?? "Shape") + "_" + CSharpEmitter.IdentifierOf(rule);
 
 		static string Register(RuleSymbol rule) => "shape_" + CSharpEmitter.IdentifierOf(rule);
 
@@ -189,12 +187,28 @@ sealed partial class Machine
 		}
 
 		/// <summary>The shape, made now; what it is worth is asked for after the parse.</summary>
+		/// <remarks>
+		/// A turn of a fold is not the rule's value but one link of its run: made, hung on
+		/// the end of what is there, and counted. The rule's own shape is assembled when the
+		/// turns are done (<see cref="Folded"/>).
+		/// </remarks>
 		public override string End(string gatheredFrom)
 		{
 			var rule = _rule ?? throw new InvalidOperationException("A record ended that never began.");
 			var made = machine.DirectMembers(rule, _factory).Select(Value);
+			var call = $"{string.Join(", ", made)}";
 
-			return $"{Register(rule)} = {Named(rule)}.{Maker(Which(rule, _factory))}({string.Join(", ", made)});";
+			if (!Folds(rule))
+				return $"{Register(rule)} = {Named(rule)}.{Maker(Which(rule, _factory))}({call});";
+
+			if (!machine.IsStep(rule, _factory))
+				return $"{Base(rule)} = {Named(rule, "Base")}.{Maker(Turn(rule, _factory))}({call});";
+
+			var link = $"{Named(rule, "Step")} made = {Named(rule, "Step")}.{Maker(Turn(rule, _factory))}({call});";
+
+			return
+				$"{link} if ({Last(rule, "last")} == null) {Last(rule, "first")} = made; " +
+				$"else {Last(rule, "last")}.Next = made; {Last(rule, "last")} = made; {Last(rule, "count")}++;";
 
 			string Value(DirectMember member)
 			{
@@ -205,6 +219,32 @@ sealed partial class Machine
 				throw new InvalidOperationException($"Member '{member.Member.Name}' of '{rule.Name}' was never put.");
 			}
 		}
+
+		/// <summary>The rule's own shape, once its turns are done: the base, the run, its length.</summary>
+		public override string Folded(RuleSymbol owner) =>
+			Folds(owner)
+				? $"{Register(owner)} = {Named(owner)}.Of({Base(owner)}, {Last(owner, "first")}, {Last(owner, "count")});"
+				: "";
+
+		/// <remarks>
+		/// The run, and not the value so far: a turn is linked where it is made, so there is
+		/// nothing to move afterwards. The base waits here too, because the rule's shape is
+		/// made of all four at once and a shape is not written twice.
+		/// </remarks>
+		public override IEnumerable<(string Type, string Name)> FoldState(RuleSymbol owner)
+		{
+			yield return ($"{Named(owner, "Base")} ", Base(owner));
+			yield return ($"{Named(owner, "Step")}? ", Last(owner, "first"));
+			yield return ($"{Named(owner, "Step")}? ", Last(owner, "last"));
+			yield return ("int ", Last(owner, "count"));
+		}
+
+		public override string Accumulated(RuleSymbol owner) => "";
+
+		public override string DeclareAccumulator(RuleSymbol rule) =>
+			string.Join(" ", FoldState(rule).Select(one => $"{one.Type}{one.Name} = default;"));
+
+		public override string PutAccumulator() => "";
 
 		public override string Last(RuleSymbol rule) => Register(rule);
 
@@ -217,27 +257,62 @@ sealed partial class Machine
 			yield return $"value = reader.{Register(rule)}.Build(text);";
 		}
 
+		/// <summary>Whether §4.3 turned the rule into a base and a run of turns.</summary>
+		bool Folds(RuleSymbol rule) => machine._graph.Folds.ContainsKey(rule);
+
+		/// <summary>The locals a folding rule carries, named after it.</summary>
+		static string Base(RuleSymbol rule) => "base_" + CSharpEmitter.IdentifierOf(rule);
+
+		static string Last(RuleSymbol rule, string what) => what + "_" + CSharpEmitter.IdentifierOf(rule);
+
 		/// <summary>How many things a rule's shape may be.</summary>
 		/// <remarks>
 		/// A rule with no <c>=&gt;</c> builds its own type out of its members, which is one
-		/// way of being like any other.
+		/// way of being like any other. A folding rule has two counts, its bases' and its
+		/// turns', because they are two shapes.
 		/// </remarks>
-		int Ways(RuleSymbol rule) => Math.Max(1, machine._factories[rule].Count);
+		int Ways(RuleSymbol rule) => Math.Max(1, Constructions(rule, steps: false).Count);
 
-		/// <summary>Which of them a factory is, and which factory that way is.</summary>
+		int Turns(RuleSymbol rule) => Constructions(rule, steps: true).Count;
+
+		/// <summary>The factories of a rule that are turns of its fold, or that are not.</summary>
+		List<int> Constructions(RuleSymbol rule, bool steps)
+		{
+			var found = new List<int>();
+
+			for (var i = 0; i < machine._factories[rule].Count; i++)
+				if (machine.IsStep(rule, i) == steps)
+					found.Add(i);
+
+			return found;
+		}
+
+		/// <summary>Which of its kind a factory is, and which factory that one is.</summary>
 		int Which(RuleSymbol rule, int factory) => machine._factories[rule].Count == 0 ? 0 : factory;
 
-		int Factory(RuleSymbol rule, int which) => machine._factories[rule].Count == 0 ? -1 : which;
+		int Turn(RuleSymbol rule, int factory) =>
+			machine._factories[rule].Count == 0 ? 0 : Constructions(rule, machine.IsStep(rule, factory)).IndexOf(factory);
+
+		int Factory(RuleSymbol rule, int which, bool steps)
+		{
+			var found = Constructions(rule, steps);
+
+			return found.Count == 0 ? -1 : found[which];
+		}
 
 		static string Maker(int which) => "Of" + which.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-		/// <summary>Every member of every construction, each named once and in one order.</summary>
-		IReadOnlyList<DirectMember> Union(RuleSymbol rule)
+		/// <summary>Every member of every construction of one kind, each named once and in one order.</summary>
+		IReadOnlyList<DirectMember> Union(RuleSymbol rule, bool steps = false)
 		{
 			var union = new List<DirectMember>();
+			var found = Constructions(rule, steps);
 
-			for (var which = 0; which < Ways(rule); which++)
-				foreach (var member in machine.DirectMembers(rule, Factory(rule, which)))
+			if (found.Count == 0)
+				found.Add(-1);
+
+			foreach (var factory in found)
+				foreach (var member in machine.DirectMembers(rule, factory))
 					if (!union.Exists(one => one.Index == member.Index))
 						union.Add(member);
 
@@ -248,7 +323,8 @@ sealed partial class Machine
 
 		/// <summary>
 		/// One shape per rule: what it read, which way it read it, and what it is worth once
-		/// the parse is accepted.
+		/// the parse is accepted. A folding rule has three — the base, one turn of the run,
+		/// and the rule itself, which is the base and the run and how long it is.
 		/// </summary>
 		/// <remarks>
 		/// One type for the rule and a byte saying which construction it holds, rather than a
@@ -263,115 +339,273 @@ sealed partial class Machine
 
 			foreach (var rule in Shaped)
 			{
-				var fields = Fields(Union(rule)).ToList();
-				var ways   = Ways(rule);
-
-				file.Line($"/// <summary>What <c>{rule.Name}</c> read, and what it is worth (Machine.Mixed.cs).</summary>");
-
-				using (file.Block(
-					Reference(rule)
-						? $"private sealed class {Named(rule)}"
-						: $"private readonly struct {Named(rule)}"))
+				if (Folds(rule))
 				{
-					foreach (var (type, name) in fields)
-						file.Line($"private readonly {type} {name};");
+					Shape(file, rule, "Base", steps: false);
+					Turned(file, rule);
+					Run(file, rule);
 
-					if (ways > 1)
-						file.Line("private readonly byte which;");
-
-					// A shape read is a shape made, and one never made is a member that was
-					// not there. A class says that by being null; a struct has no null to
-					// say it with, so it says it here.
-					if (!Reference(rule))
-						file.Line("private readonly bool read;");
-
-					file.Line();
-
-					var taken = fields.ConvertAll(one => one.Type + " " + one.Name.Substring(1));
-
-					if (ways > 1)
-						taken.Insert(0, "byte which");
-
-					file.Line($"private {Named(rule)}({string.Join(", ", taken)})");
-
-					using (file.Block(""))
-					{
-						if (ways > 1)
-							file.Line("this.which = which;");
-
-						foreach (var (_, name) in fields)
-							file.Line($"this.{name} = {name.Substring(1)};");
-
-						if (!Reference(rule))
-							file.Line("this.read = true;");
-					}
-
-					for (var which = 0; which < ways; which++)
-					{
-						var mine   = Fields(machine.DirectMembers(rule, Factory(rule, which))).ToList();
-						var passed = new List<string>();
-
-						if (ways > 1)
-							passed.Add(which.ToString(System.Globalization.CultureInfo.InvariantCulture));
-
-						// What a construction does not have, as what stands for absent: a
-						// run of text that was never read begins nowhere.
-						foreach (var (_, name) in fields)
-							passed.Add(
-								mine.Exists(one => one.Name == name) ? name.Substring(1) :
-								name[1] == 'm'                       ? "default" :
-								                                       "-1");
-
-						file.Line();
-						file.Line(
-							$"internal static {Named(rule)} {Maker(which)}(" +
-							$"{string.Join(", ", mine.ConvertAll(one => one.Type + " " + one.Name.Substring(1)))})");
-
-						using (file.Block(""))
-							file.Line($"return new {Named(rule)}({string.Join(", ", passed)});");
-					}
-
-					file.Line();
-
-					if (!Reference(rule))
-					{
-						file.Line("/// <summary>Whether the reading that would have made this one ever happened.</summary>");
-						file.Line("internal bool IsNothing { get { return !this.read; } }");
-						file.Line();
-					}
-					file.Line($"internal {machine._results.ValueOf(rule)} Build(global::System.ReadOnlySpan<char> text)");
-
-					using (file.Block(""))
-					{
-						if (ways == 1)
-						{
-							file.Line($"return {Built(rule, Factory(rule, 0))};");
-						}
-						else
-						{
-							using (file.Block("switch (this.which)"))
-							{
-								for (var which = 0; which < ways - 1; which++)
-								{
-									file.Line($"case {which}:");
-
-									using (file.Indent())
-										file.Line($"return {Built(rule, which)};");
-								}
-
-								file.Line("default:");
-
-								using (file.Indent())
-									file.Line($"return {Built(rule, ways - 1)};");
-							}
-						}
-					}
+					continue;
 				}
 
-				file.Line();
+				Shape(file, rule, null, steps: false);
 			}
 
 			return file.ToString();
+		}
+
+		/// <summary>A shape that holds one reading of a rule and knows what it is worth.</summary>
+		void Shape(Writer file, RuleSymbol rule, string? part, bool steps)
+		{
+			var fields = Fields(Union(rule, steps)).ToList();
+			var ways   = Math.Max(1, Constructions(rule, steps).Count);
+			var name   = Named(rule, part);
+			var value  = part is null;
+
+			file.Line($"/// <summary>What <c>{rule.Name}</c> read, and what it is worth (Machine.Mixed.cs).</summary>");
+
+			using (file.Block(
+				Reference(rule) && value
+					? $"private sealed class {name}"
+					: $"private readonly struct {name}"))
+			{
+				foreach (var (type, field) in fields)
+					file.Line($"private readonly {type} {field};");
+
+				if (ways > 1)
+					file.Line("private readonly byte which;");
+
+				// A shape read is a shape made, and one never made is a member that was not
+				// there. A class says that by being null; a struct has no null to say it
+				// with, so it says it here.
+				if (!(Reference(rule) && value))
+					file.Line("private readonly bool read;");
+
+				file.Line();
+
+				var taken = fields.ConvertAll(one => one.Type + " " + one.Name.Substring(1));
+
+				if (ways > 1)
+					taken.Insert(0, "byte which");
+
+				file.Line($"private {name}({string.Join(", ", taken)})");
+
+				using (file.Block(""))
+				{
+					if (ways > 1)
+						file.Line("this.which = which;");
+
+					foreach (var (_, field) in fields)
+						file.Line($"this.{field} = {field.Substring(1)};");
+
+					if (!(Reference(rule) && value))
+						file.Line("this.read = true;");
+				}
+
+				for (var which = 0; which < ways; which++)
+					Maker(file, rule, name, fields, ways, which, steps);
+
+				file.Line();
+
+				if (!(Reference(rule) && value))
+				{
+					file.Line("/// <summary>Whether the reading that would have made this one ever happened.</summary>");
+					file.Line("internal bool IsNothing { get { return !this.read; } }");
+					file.Line();
+				}
+
+				file.Line($"internal {machine._results.ValueOf(rule)} Build(global::System.ReadOnlySpan<char> text)");
+
+				using (file.Block(""))
+					Builds(file, rule, ways, steps, null);
+			}
+
+			file.Line();
+		}
+
+		/// <summary>One turn of a fold: what it captured, and the turn after it.</summary>
+		/// <remarks>
+		/// A class, and the only shape here that is one whatever the rule is: the run is
+		/// threaded through its own turns, so a turn has to be something the turn before it
+		/// can point at. That is what makes the run cost nothing beside the turns — no array
+		/// grown per parse, and nothing to grow it into the large object heap.
+		/// </remarks>
+		void Turned(Writer file, RuleSymbol rule)
+		{
+			var fields = Fields(Union(rule, steps: true)).ToList();
+			var ways   = Turns(rule);
+			var name   = Named(rule, "Step");
+
+			file.Line($"/// <summary>One turn of <c>{rule.Name}</c>'s fold, and the turn after it (Machine.Mixed.cs).</summary>");
+
+			using (file.Block($"private sealed class {name}"))
+			{
+				foreach (var (type, field) in fields)
+					file.Line($"private readonly {type} {field};");
+
+				if (ways > 1)
+					file.Line("private readonly byte which;");
+
+				file.Line();
+				file.Line($"internal {name}? Next;");
+				file.Line();
+
+				var taken = fields.ConvertAll(one => one.Type + " " + one.Name.Substring(1));
+
+				if (ways > 1)
+					taken.Insert(0, "byte which");
+
+				file.Line($"private {name}({string.Join(", ", taken)})");
+
+				using (file.Block(""))
+				{
+					if (ways > 1)
+						file.Line("this.which = which;");
+
+					foreach (var (_, field) in fields)
+						file.Line($"this.{field} = {field.Substring(1)};");
+				}
+
+				for (var which = 0; which < ways; which++)
+					Maker(file, rule, name, fields, ways, which, steps: true);
+
+				file.Line();
+				file.Line(
+					$"internal {machine._results.ValueOf(rule)} Build(" +
+					$"{machine._results.ValueOf(rule)} value, global::System.ReadOnlySpan<char> text)");
+
+				using (file.Block(""))
+					Builds(file, rule, ways, steps: true, accumulator: "value");
+			}
+
+			file.Line();
+		}
+
+		/// <summary>The rule itself: the base, the run over it, and how long the run is.</summary>
+		void Run(Writer file, RuleSymbol rule)
+		{
+			var name = Named(rule);
+			var step = Named(rule, "Step");
+			var made = Named(rule, "Base");
+
+			file.Line($"/// <summary>What <c>{rule.Name}</c> read: a base and a run of turns over it (Machine.Mixed.cs).</summary>");
+
+			using (file.Block(
+				Reference(rule) ? $"private sealed class {name}" : $"private readonly struct {name}"))
+			{
+				file.Line($"private readonly {made} _base;");
+				file.Line($"private readonly {step}? _first;");
+				file.Line("private readonly int _count;");
+
+				if (!Reference(rule))
+					file.Line("private readonly bool read;");
+
+				file.Line();
+				file.Line($"private {name}({made} one, {step}? first, int count)");
+
+				using (file.Block(""))
+				{
+					file.Line("this._base  = one;");
+					file.Line("this._first = first;");
+					file.Line("this._count = count;");
+
+					if (!Reference(rule))
+						file.Line("this.read = true;");
+				}
+
+				file.Line();
+				file.Line($"internal static {name} Of({made} one, {step}? first, int count)");
+
+				using (file.Block(""))
+					file.Line($"return new {name}(one, first, count);");
+
+				file.Line();
+
+				if (!Reference(rule))
+				{
+					file.Line("/// <summary>Whether the reading that would have made this one ever happened.</summary>");
+					file.Line("internal bool IsNothing { get { return !this.read; } }");
+					file.Line();
+				}
+
+				file.Line($"internal {machine._results.ValueOf(rule)} Build(global::System.ReadOnlySpan<char> text)");
+
+				using (file.Block(""))
+				{
+					// Counted rather than tested against null: the count is known when the
+					// turns are done and costs nothing to keep, and the loop then has one
+					// exit. A frame per turn is what this is written to avoid.
+					file.Line("var value = this._base.Build(text);");
+					file.Line("var step  = this._first;");
+					file.Line();
+
+					using (file.Block("for (var turn = 0; turn < this._count; turn++)"))
+					{
+						file.Line("value = step!.Build(value, text);");
+						file.Line("step  = step.Next;");
+					}
+
+					file.Line();
+					file.Line("return value;");
+				}
+			}
+
+			file.Line();
+		}
+
+		/// <summary>One way of making a shape: its own fields filled, and the rest left absent.</summary>
+		void Maker(
+			Writer file, RuleSymbol rule, string name,
+			IReadOnlyList<(string Type, string Name)> fields, int ways, int which, bool steps)
+		{
+			var mine   = Fields(machine.DirectMembers(rule, Factory(rule, which, steps))).ToList();
+			var passed = new List<string>();
+
+			if (ways > 1)
+				passed.Add(which.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+			// What a construction does not have, as what stands for absent: a run of text
+			// that was never read begins nowhere.
+			foreach (var (_, field) in fields)
+				passed.Add(
+					mine.Exists(one => one.Name == field) ? field.Substring(1) :
+					field[1] == 'm'                       ? "default" :
+					                                        "-1");
+
+			file.Line();
+			file.Line(
+				$"internal static {name} {Maker(which)}(" +
+				$"{string.Join(", ", mine.ConvertAll(one => one.Type + " " + one.Name.Substring(1)))})");
+
+			using (file.Block(""))
+				file.Line($"return new {name}({string.Join(", ", passed)});");
+		}
+
+		/// <summary>What a shape is worth: one construction, or a switch over which it holds.</summary>
+		void Builds(Writer file, RuleSymbol rule, int ways, bool steps, string? accumulator)
+		{
+			if (ways == 1)
+			{
+				file.Line($"return {Built(rule, Factory(rule, 0, steps), accumulator)};");
+
+				return;
+			}
+
+			using (file.Block("switch (this.which)"))
+			{
+				for (var which = 0; which < ways - 1; which++)
+				{
+					file.Line($"case {which}:");
+
+					using (file.Indent())
+						file.Line($"return {Built(rule, Factory(rule, which, steps), accumulator)};");
+				}
+
+				file.Line("default:");
+
+				using (file.Indent())
+					file.Line($"return {Built(rule, Factory(rule, ways - 1, steps), accumulator)};");
+			}
 		}
 
 		/// <summary>
@@ -393,7 +627,7 @@ sealed partial class Machine
 		}
 
 		/// <summary>One construction, over the fields the shape kept for it.</summary>
-		string Built(RuleSymbol rule, int factory)
+		string Built(RuleSymbol rule, int factory, string? accumulator)
 		{
 			var members = machine.DirectMembers(rule, factory);
 
@@ -404,7 +638,7 @@ sealed partial class Machine
 			var arguments = machine.DirectArguments(
 				rule, made, members,
 				() => "text.ToString()", () => "default",
-				() => "default!", Value);
+				() => accumulator ?? "default!", Value);
 
 			return $"{made.Method}({string.Join(", ", arguments)})";
 
@@ -413,18 +647,20 @@ sealed partial class Machine
 					? $"(this._a{member.Index} < 0 ? {(member.Member.IsOptional ? "null" : "string.Empty")} : " +
 						$"text.Slice(this._a{member.Index}, this._b{member.Index} - this._a{member.Index}).ToString())"
 					: member.Member.IsOptional
-						? $"({Nothing(member.Member.Rule!, "this._m" + member.Index)} ? default : this._m{member.Index}.Build(text))"
-						: $"this._m{member.Index}.Build(text)";
+						? $"({Nothing(member.Member.Rule!, "this._m" + member.Index)} ? default : this._m{member.Index}{Sure(member)}.Build(text))"
+						: $"this._m{member.Index}{Sure(member)}.Build(text)";
+
+			// A shape held by reference is nullable where it stands, and read only where
+			// the reading that filled it happened: the compiler is told so rather than
+			// warning about it in somebody else's build.
+			string Sure(DirectMember member) => Reference(member.Member.Rule!) ? "!" : "";
 		}
 
 		// What the shapes written so far do not need, and Refuses keeps the machine from
 		// asking for.
 
-		public override string DeclareAccumulator(RuleSymbol rule) => throw Unwritten();
-
-		public override IEnumerable<string> DeclareGathered(int slot, string elementType) => throw Unwritten();
-
-		public override string PutAccumulator() => throw Unwritten();
+		/// <remarks>A turn of a fold is linked where it is made; nothing waits to be collected.</remarks>
+		public override IEnumerable<string> DeclareGathered(int slot, string elementType) => [];
 
 		public override string Collect(DirectMember member, string from, bool pairs) => throw Unwritten();
 

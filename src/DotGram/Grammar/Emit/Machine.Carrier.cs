@@ -164,6 +164,14 @@ sealed partial class Machine
 		/// </remarks>
 		public virtual string Accumulated(RuleSymbol owner) => $"fold = {Last(owner)};";
 
+		/// <summary>What a folding rule is worth once its turns are done, if anything.</summary>
+		/// <remarks>
+		/// A carrier that builds the fold as it goes has the value already and says nothing
+		/// here. A carrier keeping the turns as a run has the base, the run and its length
+		/// in hand and nothing holding them together: this is where they become the rule.
+		/// </remarks>
+		public virtual string Folded(RuleSymbol owner) => "";
+
 		/// <summary>What the body of a rule that gathers into a slot declares for it, beside the position it keeps.</summary>
 		public abstract IEnumerable<string> DeclareGathered(int slot, string elementType);
 

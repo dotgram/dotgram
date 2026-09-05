@@ -13181,10 +13181,39 @@ writes after all. Asked at the reader's four sites and not inside `DirectForward
 carrier is chosen from what the machine turned out to hold, and the analysis runs before it
 does — asking early answers about a machine that is not built yet, and the answer is cached.
 
-It carries three shapes now — a rule that builds one way, a rule that builds several, and a
-rule that can reach itself, all out of runs of text and of other rules' values, over
-characters — and refuses everything else by name: a fold, a guard, a gathered member, a
-mark, an extent, a recovery, a rule read at a strength, a reading over tokens. What it refuses the tape carries, and `CarrierTests`
+**And the fold, which is the shape the whole thing was for.** §4.3 turns left recursion
+into a base and a run of turns, and the turns reach the carrier as a chain — each one
+pointing at the one before. Building that chain is a frame per turn, which would put a
+depth limit where the tape has none: a thousand terms, a thousand frames. So the run is
+threaded forward through the turns as they are read — a turn is a class with a `Next`, the
+rule holds where the run begins and how long it is, and what the rule is worth is one loop:
+
+```csharp
+var value = this._base.Build(text);
+var step  = this._first;
+
+for (var turn = 0; turn < this._count; turn++)
+{
+	value = step!.Build(value, text);
+	step  = step.Next;
+}
+```
+
+No array grown per parse, and so nothing to grow into the large object heap, which is what
+went wrong for the array readings in the lab at ten thousand pairs. It is the one idea
+`Mix2` had that its name is for: once a turn is a reference, the run is free. A folding rule
+is three shapes — the base, one turn, and the rule, which is the base and the run and its
+length — and that is `Only`, `Pair` and `Sum` in the lab, written by a generator this time.
+
+It cost the seam two more questions and neither is the tape's: `FoldState`, what a folding
+rule carries between its turns and hands its parts by reference, and `Folded`, what the rule
+is worth once the turns stop. The tape and the immediate carrier answer with the accumulator
+they already had and with nothing.
+
+It carries four shapes now — a rule that builds one way, a rule that builds several, a rule
+that can reach itself, and a fold, all out of runs of text and of other rules' values, over
+characters — and refuses everything else by name: a guard, a gathered member, a mark, an
+extent, a recovery, a rule read at a strength, a reading over tokens. What it refuses the tape carries, and `CarrierTests`
 holds it to the tape's answers on what it carries and to being refused on what it does not,
 so the test does not have to be edited as the list shortens. A second test names the shape
 it does carry, so the first cannot pass by carrying nothing.

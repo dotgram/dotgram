@@ -650,6 +650,12 @@ sealed partial class Machine
 			if (!whole && !_part && machine.RecordsAtEnd(owner))
 				EmitRecord(code, -1);
 
+			// And a folding rule is worth its base and the turns over it, which is known
+			// where the turns stop — the loop being an ordinary repetition, the only place
+			// that knows is after the body.
+			if (!whole && !_part && _folds)
+				Carried(code, machine.Carrier.Folded(owner));
+
 			if (whole)
 			{
 				using (code.Block("if (p != text.Length)"))
