@@ -235,6 +235,18 @@ sealed partial class Machine
 		/// </remarks>
 		public virtual string RenderStore(IReadOnlyList<string> valueTypes, string? stateType) => "";
 
+		/// <summary>
+		/// Whether a value handed up unchanged is already where the caller will look for it.
+		/// </summary>
+		/// <remarks>
+		/// The tape and the immediate carrier hand a value between rules through a register
+		/// of its <em>type</em>, so <c>A = a: B =&gt; @(a)</c> leaves it exactly where a
+		/// caller capturing an <c>A</c> reads, and the alternative writes nothing of its own
+		/// — a rule and a method saved at every level of a ladder. A carrier that hands it
+		/// through a register of the <em>rule</em> has two registers there and no such luck.
+		/// </remarks>
+		public virtual bool ForwardsInPlace => true;
+
 		/// <summary>Why this carrier cannot carry the machine's rules, or null where it can.</summary>
 		public abstract string? Refuses();
 

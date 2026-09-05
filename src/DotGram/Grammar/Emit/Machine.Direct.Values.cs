@@ -402,6 +402,16 @@ sealed partial class Machine
 	/// checked rather than assumed.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// The same, asked where the answer decides what the reader writes rather than what the
+	/// walk reads: a carrier that hands a value between rules by rule and not by type has
+	/// the caller looking somewhere the callee never wrote, and the alternative has to
+	/// write after all. Asked here and not inside, because the carrier is chosen from what
+	/// the machine turned out to hold and the analysis runs before it does.
+	/// </summary>
+	bool ForwardsInPlace(RuleSymbol? rule, int factory) =>
+		Carrier.ForwardsInPlace && DirectForwards(rule, factory);
+
 	bool DirectForwards(RuleSymbol? rule, int factory)
 	{
 		if (rule is null || factory < 0 || IsExtent(rule) || _reread is not null && _reread.Contains(rule))

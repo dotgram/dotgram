@@ -53,6 +53,9 @@ sealed partial class Machine
 		/// Which shapes are not written. Everything named here is left to the tape, and this
 		/// is the list that shortens as they are written.
 		/// </summary>
+		/// <remarks>A register per rule, so a value handed up is not where the caller reads.</remarks>
+		public override bool ForwardsInPlace => false;
+
 		public override string? Refuses()
 		{
 			if (machine.OverKinds)
@@ -75,9 +78,6 @@ sealed partial class Machine
 				if (machine._graph.Climbing.ContainsKey(rule))
 					return $"'{rule.Name}' is read at a strength";
 
-				if (machine._graph.Calls.Recurses(rule))
-					return $"'{rule.Name}' can reach itself";
-
 				if (NodeWalk.Descendants(machine._graph.Bodies[rule]).Any(one => one is Node.Guard))
 					return $"'{rule.Name}' has a guard";
 
@@ -97,6 +97,25 @@ sealed partial class Machine
 		static string Named(RuleSymbol rule) => "Shape_" + CSharpEmitter.IdentifierOf(rule);
 
 		static string Register(RuleSymbol rule) => "shape_" + CSharpEmitter.IdentifierOf(rule);
+
+		/// <summary>
+		/// Whether a rule's shape is a reference: whether the rule can be reached from
+		/// itself, which is the whole of the question.
+		/// </summary>
+		/// <remarks>
+		/// A value cannot contain itself, so something on every cycle has to be one. Nothing
+		/// off a cycle needs to be, and those are held inside whatever captured them — which
+		/// is where the leaves are, and why they cost no allocation. Left recursion is not a
+		/// cycle for this: §4.3 turned it into a loop before the reader saw it.
+		/// </remarks>
+		bool Reference(RuleSymbol rule) => machine._graph.Calls.Recurses(rule);
+
+		/// <summary>A shape as a member or a local holds it: nullable where it is a reference.</summary>
+		string Held(RuleSymbol rule) => Named(rule) + (Reference(rule) ? "?" : "");
+
+		/// <summary>Nothing there, said the way the shape says it.</summary>
+		string Nothing(RuleSymbol rule, string local) =>
+			Reference(rule) ? $"{local} == null" : $"{local}.IsNothing";
 
 		/// <remarks>
 		/// A field per rule rather than one per value type: two rules may build the same type
@@ -124,9 +143,9 @@ sealed partial class Machine
 
 		public override IEnumerable<string> UnwindGathered(RuleSymbol? owner, string name) => [];
 
-		public override string DeclareRecordLocal(int slot, RuleSymbol rule) => $"{Named(rule)} r{slot} = default;";
+		public override string DeclareRecordLocal(int slot, RuleSymbol rule) => $"{Held(rule)} r{slot} = default;";
 
-		public override string RecordLocalType(RuleSymbol rule) => Named(rule) + " ";
+		public override string RecordLocalType(RuleSymbol rule) => Held(rule) + " ";
 
 		public override string ResetRecordLocal(int slot) => $"r{slot} = default;";
 
@@ -140,7 +159,7 @@ sealed partial class Machine
 			var chain = "default";
 
 			for (var i = slots.Count - 1; i >= 0; i--)
-				chain = $"!r{slots[i]}.IsNothing ? r{slots[i]} : {chain}";
+				chain = $"!({Nothing(rule, "r" + slots[i])}) ? r{slots[i]} : {chain}";
 
 			return chain;
 		}
@@ -249,7 +268,10 @@ sealed partial class Machine
 
 				file.Line($"/// <summary>What <c>{rule.Name}</c> read, and what it is worth (Machine.Mixed.cs).</summary>");
 
-				using (file.Block($"private readonly struct {Named(rule)}"))
+				using (file.Block(
+					Reference(rule)
+						? $"private sealed class {Named(rule)}"
+						: $"private readonly struct {Named(rule)}"))
 				{
 					foreach (var (type, name) in fields)
 						file.Line($"private readonly {type} {name};");
@@ -258,8 +280,11 @@ sealed partial class Machine
 						file.Line("private readonly byte which;");
 
 					// A shape read is a shape made, and one never made is a member that was
-					// not there. A struct has no null to say that with, so it says it here.
-					file.Line("private readonly bool read;");
+					// not there. A class says that by being null; a struct has no null to
+					// say it with, so it says it here.
+					if (!Reference(rule))
+						file.Line("private readonly bool read;");
+
 					file.Line();
 
 					var taken = fields.ConvertAll(one => one.Type + " " + one.Name.Substring(1));
@@ -277,7 +302,8 @@ sealed partial class Machine
 						foreach (var (_, name) in fields)
 							file.Line($"this.{name} = {name.Substring(1)};");
 
-						file.Line("this.read = true;");
+						if (!Reference(rule))
+							file.Line("this.read = true;");
 					}
 
 					for (var which = 0; which < ways; which++)
@@ -306,9 +332,13 @@ sealed partial class Machine
 					}
 
 					file.Line();
-					file.Line("/// <summary>Whether the reading that would have made this one ever happened.</summary>");
-					file.Line("internal bool IsNothing { get { return !this.read; } }");
-					file.Line();
+
+					if (!Reference(rule))
+					{
+						file.Line("/// <summary>Whether the reading that would have made this one ever happened.</summary>");
+						file.Line("internal bool IsNothing { get { return !this.read; } }");
+						file.Line();
+					}
 					file.Line($"internal {machine._results.ValueOf(rule)} Build(global::System.ReadOnlySpan<char> text)");
 
 					using (file.Block(""))
@@ -348,7 +378,7 @@ sealed partial class Machine
 		/// A shape's fields, in the order its constructor takes them: two integers where a
 		/// member is a run of text, and the captured rule's own shape where it is a record.
 		/// </summary>
-		static IEnumerable<(string Type, string Name)> Fields(IReadOnlyList<DirectMember> members)
+		IEnumerable<(string Type, string Name)> Fields(IReadOnlyList<DirectMember> members)
 		{
 			foreach (var member in members)
 				if (member.Shape == MemberShape.Text)
@@ -358,7 +388,7 @@ sealed partial class Machine
 				}
 				else
 				{
-					yield return (Named(member.Member.Rule!), $"_m{member.Index}");
+					yield return (Held(member.Member.Rule!), $"_m{member.Index}");
 				}
 		}
 
@@ -383,7 +413,7 @@ sealed partial class Machine
 					? $"(this._a{member.Index} < 0 ? {(member.Member.IsOptional ? "null" : "string.Empty")} : " +
 						$"text.Slice(this._a{member.Index}, this._b{member.Index} - this._a{member.Index}).ToString())"
 					: member.Member.IsOptional
-						? $"(this._m{member.Index}.IsNothing ? default : this._m{member.Index}.Build(text))"
+						? $"({Nothing(member.Member.Rule!, "this._m" + member.Index)} ? default : this._m{member.Index}.Build(text))"
 						: $"this._m{member.Index}.Build(text)";
 		}
 

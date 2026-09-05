@@ -78,6 +78,14 @@ public sealed class CarrierTests
 			"parse Start\n",
 			["a", "(a)", "((a))", "(a;", "(a"]),
 
+		("a rule that reaches itself",
+			"trivia = ' '*\n" +
+			"Start : @string = '(' & inner: Start & ')' => @(\"(\" + inner + \")\")\n" +
+			"                | t: Name => @(t)\n" +
+			"Name : @string = t: ['a'..'z']+ => @(t)\n" +
+			"parse Start\n",
+			["a", "(a)", "( ( a ) )", "(a", ""]),
+
 		("a rule that builds two ways",
 			"Start : @string = a: Name & b: Digits? => @(\"n\" + a + (b ?? \"-\"))\n" +
 			"                | d: Digits & c: Name? => @(\"d\" + d + (c ?? \"-\"))\n" +
@@ -200,6 +208,20 @@ public sealed class CarrierTests
 		Assert.Contains("Shape_Start.Of0(",             source, StringComparison.Ordinal);
 		Assert.Contains("Shape_Start.Of1(",             source, StringComparison.Ordinal);
 		Assert.DoesNotContain("Materialize_DotGram",    source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A rule that can be reached from itself is a class, because a value cannot contain
+	/// itself; everything off every cycle stays a value held inside whatever captured it.
+	/// </summary>
+	[Fact]
+	public void A_shape_that_can_reach_itself_is_a_class()
+	{
+		var (source, _) = Compiled(Shapes.Single(one => one.Name == "a rule that reaches itself").Grammar, CarrierKind.Mixed);
+
+		Assert.Contains("private sealed class Shape_Start",   source, StringComparison.Ordinal);
+		Assert.Contains("private readonly struct Shape_Name", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Materialize_DotGram",          source, StringComparison.Ordinal);
 	}
 
 	/// <summary>

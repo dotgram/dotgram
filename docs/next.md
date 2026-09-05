@@ -13166,10 +13166,25 @@ maker per construction fills its own and leaves the rest at what stands for abse
 at 88 bytes — is the question the yardsticks will answer, and the shapes are the carrier's
 own types, so cutting those few per construction later is a change to one file.
 
-It carries two shapes now — a rule that builds one way, and a rule that builds several,
-both out of runs of text and of other rules' values, over characters — and refuses
-everything else by name: a fold, a cycle, a guard, a gathered member, a mark, an extent, a
-recovery, a rule read at a strength, a reading over tokens. What it refuses the tape carries, and `CarrierTests`
+And a rule that can be reached from itself is a class, because a value cannot contain
+itself. Everything off every cycle stays a value held inside whatever captured it, which is
+where the leaves are and why they cost no allocation; a class says "not there" by being
+null, where a struct has to carry a flag to say it. Left recursion is not a cycle for this
+— §4.3 turned it into a loop before the reader saw it.
+
+That one cost the seam a question. The tape and the immediate carrier hand a value between
+rules through a register of its *type*, so `A = a: B => @(a)` leaves it exactly where a
+caller capturing an `A` reads and the alternative writes nothing of its own — a rule and a
+method saved at every level of a ladder. A carrier with a register per *rule* has two
+registers there and no such luck, so it says `ForwardsInPlace` is false and the alternative
+writes after all. Asked at the reader's four sites and not inside `DirectForwards`: the
+carrier is chosen from what the machine turned out to hold, and the analysis runs before it
+does — asking early answers about a machine that is not built yet, and the answer is cached.
+
+It carries three shapes now — a rule that builds one way, a rule that builds several, and a
+rule that can reach itself, all out of runs of text and of other rules' values, over
+characters — and refuses everything else by name: a fold, a guard, a gathered member, a
+mark, an extent, a recovery, a rule read at a strength, a reading over tokens. What it refuses the tape carries, and `CarrierTests`
 holds it to the tape's answers on what it carries and to being refused on what it does not,
 so the test does not have to be edited as the list shortens. A second test names the shape
 it does carry, so the first cannot pass by carrying nothing.

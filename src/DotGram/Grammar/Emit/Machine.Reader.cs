@@ -990,7 +990,7 @@ sealed partial class Machine
 			// An alternative that only hands its operand up writes no record of its own, and
 			// the operand's is the value: for a folded rule that is what the step after it
 			// builds on, so the local still moves.
-			if (factory >= 0 && machine.DirectForwards(owner, factory))
+			if (factory >= 0 && machine.ForwardsInPlace(owner, factory))
 			{
 				if (_folds)
 					code.Line($"fold = {machine.Carrier.Last(owner)};");
@@ -1741,7 +1741,7 @@ sealed partial class Machine
 					part = held;
 				}
 				else if (part is Node.Construct(var built, _) && !_folds &&
-					machine.DirectForwards(owner, machine._constructs[part]))
+					machine.ForwardsInPlace(owner, machine._constructs[part]))
 				{
 					part = built;
 				}
@@ -1864,7 +1864,7 @@ sealed partial class Machine
 
 				// Every slot of a member and not its first: the record takes whichever of a
 				// member's slots was written, so it names all of them.
-				if (one is Node.Construct && !machine.DirectForwards(owner, machine._constructs[one]))
+				if (one is Node.Construct && !machine.ForwardsInPlace(owner, machine._constructs[one]))
 					foreach (var member in machine.DirectMembers(owner, machine._constructs[one]))
 						if (Handed(member.Slots[0]))
 							foreach (var named in member.Slots)
@@ -1897,7 +1897,7 @@ sealed partial class Machine
 
 			foreach (var one in NodeWalk.Descendants(_graph.Bodies[owner]))
 				if (!mine.Contains(one) && one is Node.Construct &&
-					!machine.DirectForwards(owner, machine._constructs[one]))
+					!machine.ForwardsInPlace(owner, machine._constructs[one]))
 				{
 					foreach (var member in machine.DirectMembers(owner, machine._constructs[one]))
 						if (Handed(member.Slots[0]))
