@@ -106,6 +106,14 @@ static class SqlAgainst
 		// over it, and what building as you read costs over it.
 		Console.WriteLine("   tape/hand  immediate/hand");
 
+		// Every method over every input before any of them is measured. Warming one input
+		// at a time leaves the first one paying for the whole process coming up to speed,
+		// and the first row said so: eleven times the hand-written parser one run and
+		// twice it the next, for a reading the other rows put at one and a half.
+		foreach (var input in Inputs)
+			foreach (var (_, measure) in Methods)
+				Time(input, measure, iterations);
+
 		foreach (var input in Inputs)
 		{
 			var taken = new List<double>[Methods.Length];
