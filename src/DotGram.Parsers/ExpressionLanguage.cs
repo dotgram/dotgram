@@ -623,70 +623,54 @@ namespace DotGram.Parsers;
 		  => @(ExpressionLanguage.Chosen(test, then, otherwise))
 
 	Coalesce : @Expression
-		= left: Or & ("??" & right: Coalesce)?
+		= left: Binary & ("??" & right: Coalesce)?
 		  => @(ExpressionLanguage.Coalesced(left, right))
 
-	Or  : @Expression = left: Or  & "||" & right: And   => @(Expression.OrElse(left, right))
-	                  | a: And                          => @(a)
-
-	And : @Expression = left: And & "&&" & right: BitOr => @(Expression.AndAlso(left, right))
-	                  | b: BitOr                        => @(b)
-
-	// The bitwise three sit between `&&` and `==`, where C# puts them. `|` and `&` each
-	// begin a two-character operator one level out, and the lookahead is what tells them
-	// apart — cheaper than letting `a || b` be read as `a | (| b)` and unwound by
-	// backtracking, and clearer about why it is not.
-	BitOr  : @Expression = left: BitOr  & '|' & ?!'|' & right: BitXor  => @(Expression.Or(left, right))
-	                     | x: BitXor                                   => @(x)
-
-	BitXor : @Expression = left: BitXor & '^' & right: BitAnd          => @(Expression.ExclusiveOr(left, right))
-	                     | a: BitAnd                                   => @(a)
-
-	BitAnd : @Expression = left: BitAnd & '&' & ?!'&' & right: Equality => @(Expression.And(left, right))
-	                     | e: Equality                                  => @(e)
-
-	Equality : @Expression
-		= left: Equality & "==" & right: Relational => @(Expression.Equal(left, right))
-		| left: Equality & "!=" & right: Relational => @(Expression.NotEqual(left, right))
-		| r: Relational                             => @(r)
-
-	// `>` and `>>` are told apart the same way, and here the lookahead earns more: the
-	// shift is a level tighter, so without it `a >> b` is read as `a > (> b)` and only
-	// the second `>` says otherwise.
+	// C#'s ladder, from `||` down to `*`, as one rule with the strengths written down
+	// (§4.3.1) rather than as ten rules stacked on one another. The language and the tree
+	// are the same either way; what is not the same is what it costs to reach an operand.
+	// Written as levels there are ten calls and ten first-set tests between an assignment
+	// and a name, every one of them for every operand a text has — measured at 94
+	// nanoseconds a parenthesis against a hand-written parser's 30, which is the whole of
+	// what the two differed by (docs/next.md).
 	//
-	// The shift below is written as two `>` glued rather than as one `">>"`, and that is
-	// what lets `List<List<int>>` close two argument lists with the same two characters
-	// C# closes them with. A literal `">>"` is a token, and a token cannot be half spent:
-	// the type argument list wants one `>` and would be handed a shift. Written this way
-	// there is no `>>` for the lexer to make, `~` says the two stand with nothing between
-	// them, and `a > > b` is refused exactly as C# refuses it.
-	Relational : @Expression
-		= left: Relational & "is" &        type : Type  => @(Expression.TypeIs(left, type))
-		| left: Relational & "as" &        type : Type  => @(Expression.TypeAs(left, type))
-		| left: Relational & "<=" &        right: Shift => @(Expression.LessThanOrEqual(left, right))
-		| left: Relational & ">=" &        right: Shift => @(Expression.GreaterThanOrEqual(left, right))
-		| left: Relational & '<' & ?!'<' & right: Shift => @(Expression.LessThan(left, right))
-		| left: Relational & '>' & ?!'>' & right: Shift => @(Expression.GreaterThan(left, right))
-		| s: Shift                                      => @(s)
-
-	Shift : @Expression
-		= left: Shift & '<' ~ '<' & right: Additive => @(Expression.LeftShift(left, right))
-		| left: Shift & '>' ~ '>' & right: Additive => @(Expression.RightShift(left, right))
-		| a: Additive                               => @(a)
-
-	Additive : @Expression
-		= left: Additive & '+' & right: Multiplicative
+	// Three of the alternatives need a word about the character they begin with. `|` and
+	// `&` each begin a two-character operator one level out, and the lookahead is what
+	// tells them apart — cheaper than letting `a || b` be read as `a | (| b)` and unwound
+	// by backtracking, and clearer about why it is not. `>` is the same and earns more:
+	// the shift is a level tighter, so without the lookahead `a >> b` reads as `a > (> b)`.
+	//
+	// And the shift is written as two `>` glued rather than as one `">>"`, which is what
+	// lets `List<List<int>>` close two argument lists with the same two characters C#
+	// closes them with. A literal `">>"` is a token, and a token cannot be half spent: the
+	// type argument list wants one `>` and would be handed a shift. Written this way there
+	// is no `>>` for the lexer to make, `~` says the two stand with nothing between them,
+	// and `a > > b` is refused exactly as C# refuses it.
+	Binary : @Expression
+		= left: Binary & "||" & right: Binary        << 1  => @(Expression.OrElse(left, right))
+		| left: Binary & "&&" & right: Binary        << 2  => @(Expression.AndAlso(left, right))
+		| left: Binary & '|' & ?!'|' & right: Binary << 3  => @(Expression.Or(left, right))
+		| left: Binary & '^' & right: Binary         << 4  => @(Expression.ExclusiveOr(left, right))
+		| left: Binary & '&' & ?!'&' & right: Binary << 5  => @(Expression.And(left, right))
+		| left: Binary & "==" & right: Binary        << 6  => @(Expression.Equal(left, right))
+		| left: Binary & "!=" & right: Binary        << 6  => @(Expression.NotEqual(left, right))
+		| left: Binary & "is" & type: Type           << 7  => @(Expression.TypeIs(left, type))
+		| left: Binary & "as" & type: Type           << 7  => @(Expression.TypeAs(left, type))
+		| left: Binary & "<=" & right: Binary        << 7  => @(Expression.LessThanOrEqual(left, right))
+		| left: Binary & ">=" & right: Binary        << 7  => @(Expression.GreaterThanOrEqual(left, right))
+		| left: Binary & '<' & ?!'<' & right: Binary << 7  => @(Expression.LessThan(left, right))
+		| left: Binary & '>' & ?!'>' & right: Binary << 7  => @(Expression.GreaterThan(left, right))
+		| left: Binary & '<' ~ '<' & right: Binary   << 8  => @(Expression.LeftShift(left, right))
+		| left: Binary & '>' ~ '>' & right: Binary   << 8  => @(Expression.RightShift(left, right))
+		| left: Binary & '+' & right: Binary         << 9
 		  => @(ExpressionLanguage.Add(left, right, parserState))
-		| left: Additive & '-' & right: Multiplicative
+		| left: Binary & '-' & right: Binary         << 9
 		  => @(ExpressionLanguage.Subtract(left, right, parserState))
-		| m: Multiplicative                            => @(m)
-
-	Multiplicative : @Expression
-		= left: Multiplicative & '*' & right: Unary
+		| left: Binary & '*' & right: Binary         << 10
 		  => @(ExpressionLanguage.Multiply(left, right, parserState))
-		| left: Multiplicative & '/' & right: Unary => @(Expression.Divide(left, right))
-		| left: Multiplicative & '%' & right: Unary => @(Expression.Modulo(left, right))
-		| u: Unary                                  => @(u)
+		| left: Binary & '/' & right: Binary         << 10 => @(Expression.Divide(left, right))
+		| left: Binary & '%' & right: Binary         << 10 => @(Expression.Modulo(left, right))
+		| u: Unary                                          => @(u)
 
 	// `++` and `--` before `+` and `-`, so that `--x` is one operator and not two, and over
 	// a name for the same reason assignment is: they write to what they read.

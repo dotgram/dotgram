@@ -13097,6 +13097,28 @@ characters rather than over tokens, and a text member came out cut one short. Ev
 second attribute does not say it now takes from the first; what it does say is the
 difference, which is the whole of what writing a second one means.
 
+**The ladder, written as strengths.** C#'s ten left-associative levels are one rule with
+`<< n` beside each alternative now (§4.3.1) rather than ten rules stacked on one another.
+The language and the tree are the same — a hundred and thirty-four shapes say so — and
+what a parenthesis costs went from 163 nanoseconds to 131 on the tape and from 94 to 73
+read immediately, against the hand-written parser's 27. Every ratio moved with it: the
+short inputs by five to eight percent, `(((x)))` from 1.70 to 1.47.
+
+Which is real and is not the story. After the rewrite the two have the same shape —
+assignment, conditional, coalesce, the ladder, unary, postfix, primary, seven rules each —
+and the generated one is still 2.7 times the hand-written one per descent. So what is left
+is not how many rules there are; it is what a rule costs. Reading the emitted code says
+where: **every rule on the descent is two methods.** A rule that may give back is written
+as a loop — take `ways.Cursor`, call the body, seal it or retry — around the body that
+does the reading, so seven rules are fourteen calls and seven pairs of `Cursor`/`Seal`.
+The hand-written parser has no ways at all, backtracking only where the language makes it
+and by remembering an integer.
+
+The emitter already knows whether anything under a part opens a way — `Machine.Opens`, and
+the `ways.Open(` the rendering is searched for — so the wrapper can be written only where
+a way can be opened. That is the next thing, and it is not this grammar's: every rule of
+every grammar is paying for it.
+
 **The expression language gets a yardstick of its own.** `HandExpression.cs` is what
 `HandSqlTokens.cs` is to SQL: a lexer over the whole input and a recursive descent over
 the tokens, calling the same factories the grammar's `=>` calls and handing the same
