@@ -167,6 +167,9 @@ public static class GramCompiler
 	/// <summary>The grammar was sound and still could not be cut in two.</summary>
 	public const string NotCut = "GRAM5004";
 
+	/// <summary>The carrier the author asked for could not carry the grammar.</summary>
+	public const string CarrierRefused = "GRAM5007";
+
 	/// <summary>
 	/// One error per position, in the order they were raised.
 	/// </summary>

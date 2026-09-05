@@ -288,6 +288,44 @@ public sealed class CarrierTests
 	}
 
 	/// <summary>
+	/// One member captured in two places that read two rules is two fields, because a shape
+	/// is per rule and the two are two types.
+	/// </summary>
+	/// <remarks>
+	/// The tape and the immediate carrier never meet this: they hand values about by value
+	/// type, and both places build what the member is declared as.
+	/// </remarks>
+	[Fact]
+	public void A_member_captured_in_two_places_is_two_fields()
+	{
+		const string Twice =
+			"trivia = ' '*\n" +
+			"Start : @string = t: Word & x: Digits? => @(\"w:\" + t + (x ?? \"-\"))\n" +
+			"                | t: Digits & y: Word? => @(\"d:\" + t + (y ?? \"-\"))\n" +
+			"Word : @string = t: ['a'..'z']+ => @(t)\n" +
+			"Digits : @string = t: ['0'..'9']+ => @(t)\n" +
+			"parse Start\n";
+
+		var tape  = Compiled(Twice, CarrierKind.Tape);
+		var mixed = Compiled(Twice, CarrierKind.Mixed);
+
+		Assert.Contains("Shape_Word",   mixed.Source, StringComparison.Ordinal);
+		Assert.Contains("Shape_Digits", mixed.Source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Materialize_DotGram", mixed.Source, StringComparison.Ordinal);
+
+		foreach (var input in new[] { "abc", "abc12", "123", "123abc", "", "a1b" })
+		{
+			var expected = EmittedCode.Match(tape.Assembly,  "Carried.Probe", "TryParseStart", input);
+			var actual   = EmittedCode.Match(mixed.Assembly, "Carried.Probe", "TryParseStart", input);
+
+			Assert.Equal(expected.IsSuccess, actual.IsSuccess);
+
+			if (expected.IsSuccess)
+				Assert.Equal(ValueOf(expected), ValueOf(actual));
+		}
+	}
+
+	/// <summary>
 	/// A carrier that cannot carry a grammar is not an error: the tape carries it instead,
 	/// and the machine keeps the reason for whoever asks.
 	/// </summary>

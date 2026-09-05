@@ -277,6 +277,20 @@ sealed partial class Machine
 		/// </remarks>
 		public virtual bool ForwardsInPlace => true;
 
+		/// <summary>
+		/// Whether a capture is asked about by the rule read there rather than by the rule
+		/// the member names.
+		/// </summary>
+		/// <remarks>
+		/// One member may be captured in two places that read two different rules —
+		/// `t: UnsignedLiteral =&gt; @(t)` beside `t: GeneralValueSpecification =&gt; @(t)` —
+		/// and the results name one of them for the member. A carrier handing values about by
+		/// value type may take that name: both rules build the type the member is declared
+		/// as, so the register is the same register either way. One keeping a shape per rule
+		/// may not, the two shapes being two types.
+		/// </remarks>
+		public virtual bool ByPlace => false;
+
 		/// <summary>Why this carrier cannot carry the machine's rules, or null where it can.</summary>
 		public abstract string? Refuses();
 

@@ -13239,18 +13239,36 @@ there is no one type for that field to be — and the tape and the immediate car
 meet the question, because they hand values about by value type and both of those build a
 `SqlNode`. It showed itself as a wrong tree rather than a wrong build: `a = 1` came back as
 `(Comparison Equal (name a) (name a))`, the register for the rule the model named holding
-what the last reading of *that* rule left there. Three answers are possible and none is
-free: a field per place rather than per member, which the model cannot spell because it says
-which member a capture belongs to and not which rule was read there; an interface the shapes
-implement, which is a virtual call and, for a shape held by value, a box; or a shape keyed by
-value type for such members alone, which is the tape's answer arriving through the back door.
-Refused for now, and the question written down where it will be answered.
+what the last reading of *that* rule left there.
+
+The answer is a field per place rather than per member, and the reason it looked impossible
+is that the *results* do not say which rule a capture reads — they say which member it
+belongs to. The *body* says: `Machine.RuleAt` walks it for the capture with that slot and
+reads the call under it. So a member captured in two places that read two rules is two
+fields, one typed by each, and what it is worth is the first of them that was read. The
+reader asks by place too, which the carrier says it wants (`ByPlace`) and the other two
+decline: they hand values about by value type, both places build the type the member is
+declared as, and the register is the same register either way.
+
+That leaves the same question about a member *gathered* from several rules, where the
+elements would be two types and the run one array. `CaseExpression` in standard SQL is one —
+`whens` from `SearchedWhen` and from `SimpleWhen` — and it is what the carrier refuses SQL
+for today. A run of two types wants either two runs and a merge, or the interface and the
+virtual call.
+
+**A carrier not used now says so.** `GRAM5007`, information rather than a warning: the
+parser that comes out is correct and is the one the tape would have written, but a carrier
+chosen and silently not used is a measurement about to be misread — which is exactly what
+happened here, the SQL yardstick reading 2.6 for a "mixed" column that was the tape. Said
+once per reason, and said after the readers are written, because which carrier a machine
+took is settled by what it turned out to hold and nothing before that knows.
 
 It carries six shapes — a rule that builds one way, a rule that builds several, a rule that
 can reach itself, a fold, a member gathered across turns, and a guard over a capture — over
-characters and over tokens both. It refuses a mark, an extent, a recovery, a rule read at a
-strength, a terminal built again from its text, and a member captured in several places. The
-last is what stands between it and a yardstick. What it refuses the tape carries, and `CarrierTests`
+characters and over tokens both, and a member captured in several places that read several
+rules. It refuses a mark, an extent, a recovery, a rule read at a strength, a terminal built
+again from its text, and a member gathered from several rules. The last is what stands
+between it and the SQL yardstick. What it refuses the tape carries, and `CarrierTests`
 holds it to the tape's answers on what it carries and to being refused on what it does not,
 so the test does not have to be edited as the list shortens. A second test names the shape
 it does carry, so the first cannot pass by carrying nothing.

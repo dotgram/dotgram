@@ -1824,7 +1824,10 @@ sealed partial class Machine
 		/// immediate carrier project it back themselves, which is where the projection
 		/// belongs — it is an answer about how they carry, not about what the reader read.
 		/// </remarks>
-		RuleSymbol RuleOfSlot(int slot) => machine.MemberOfSlot(owner, slot)!.Member.Rule!;
+		RuleSymbol RuleOfSlot(int slot) =>
+			machine.Carrier.ByPlace && machine.RuleAt(owner, slot) is { } read
+				? read
+				: machine.MemberOfSlot(owner, slot)!.Member.Rule!;
 
 		/// <summary>What a position is called: two names where it is a run of text, one where it is a record.</summary>
 		IEnumerable<string> Names(int slot)

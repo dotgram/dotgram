@@ -533,6 +533,31 @@ public static partial class CSharpEmitter
 				machines.Exists(static compiled => compiled.Machine.UsesMarks),
 				tables));
 
+		// A carrier the author asked for and did not get, said once per reason and said here:
+		// which carrier a machine took is settled by what it turned out to hold, and nothing
+		// before the readers are written knows. Information
+		// and not a warning: the parser that comes out is correct and is the one the tape
+		// would have written, and nothing the author did is wrong — but a carrier chosen and
+		// silently not used is a measurement about to be misread.
+		if (carrier != CarrierKind.Tape && diagnostics is not null)
+		{
+			var refused = new List<string>();
+
+			foreach (var compiled in machines)
+				if (compiled.Machine.CarrierRefusal is { } why && !refused.Contains(why))
+				{
+					refused.Add(why);
+
+					diagnostics.Add(new GramDiagnostic(
+						GramCompiler.CarrierRefused,
+						$"This grammar is carried on the tape rather than as {carrier}: {why}. " +
+						"The parser is the one it would have been without the request.",
+						0,
+						0,
+						GramSeverity.Info));
+				}
+		}
+
 		while (scope.Count > 0)
 			scope.Pop().Dispose();
 

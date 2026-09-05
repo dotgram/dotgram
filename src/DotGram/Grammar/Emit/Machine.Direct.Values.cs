@@ -178,6 +178,47 @@ sealed partial class Machine
 		return null;
 	}
 
+	/// <summary>The rule a capture of the owner reads, or none where it reads text.</summary>
+	/// <remarks>
+	/// The results say which member a capture belongs to; they do not say which rule was read
+	/// there, and one member may be captured in two places that read two different rules —
+	/// <c>t: UnsignedLiteral =&gt; @(t)</c> beside <c>t: GeneralValueSpecification =&gt; @(t)</c>.
+	/// A carrier handing values about by value type never has to ask, both of those building
+	/// the type the member is declared as; one keeping a shape per rule has to, and the body
+	/// is where the answer is.
+	/// </remarks>
+	internal RuleSymbol? RuleAt(RuleSymbol owner, int slot)
+	{
+		if (_read.TryGetValue((owner, slot), out var known))
+			return known;
+
+		var found = default(RuleSymbol);
+
+		foreach (var node in NodeWalk.Descendants(_graph.Bodies[owner]))
+			if (node is Node.Capture(_, var held) &&
+				_captureSlots.TryGetValue(node, out var at) &&
+				at - _captureOffsets[owner] == slot)
+			{
+				found = Called(held);
+
+				break;
+			}
+
+		return _read[(owner, slot)] = found;
+
+		static RuleSymbol? Called(Node node) =>
+			node switch
+			{
+				Node.Call(var rule, _)                        => rule,
+				Node.Construct(var body, _)                   => Called(body),
+				Node.Atomic(var body)                         => Called(body),
+				Node.Sequence(var parts) when parts.Count == 1 => Called(parts[0]),
+				_                                             => null,
+			};
+	}
+
+	readonly Dictionary<(RuleSymbol Owner, int Slot), RuleSymbol?> _read = [];
+
 	/// <summary>Whether a rule keeps a value at all, and so writes a record.</summary>
 	bool Valued(RuleSymbol rule) => ValueRule(rule) >= 0;
 
