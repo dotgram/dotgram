@@ -13219,11 +13219,18 @@ does, a list costing one allocation. A run of text keeps where its pieces stand 
 they say: two positions in one `long`, cut and joined when the value is built, so a reading
 given back has cut nothing.
 
-It carries five shapes now — a rule that builds one way, a rule that builds several, a rule
-that can reach itself, a fold, and a member gathered across turns, all over characters — and
-refuses three: a guard, a mark, and the two that the immediate carrier refuses as well, an
-extent and a recovery. A rule read at a strength and a reading over tokens are refused too,
-and neither is a shape: they are the next two after these. What it refuses the tape carries, and `CarrierTests`
+**A guard costs it nothing**, which is the one place a typed shape is plainly better than a
+log. A `when` reading a capture reads it before the derivation is accepted, and the tape has
+to walk its log for that one record to answer; here the shape is already there and what it
+is worth is one call away — `Materialize` is nothing at all and `ValueOf` is `Build(text)`.
+Refused only where the guard reads a *gathered* member: what is on the stacks is what has
+been pushed, and taking it is what writing the record does.
+
+It carries six shapes now — a rule that builds one way, a rule that builds several, a rule
+that can reach itself, a fold, a member gathered across turns, and a guard over a capture,
+all over characters — and refuses a mark, an extent and a recovery, the last two being what
+the immediate carrier refuses as well. A rule read at a strength and a reading over tokens
+are refused too, and neither is a shape: they are what is left after these. What it refuses the tape carries, and `CarrierTests`
 holds it to the tape's answers on what it carries and to being refused on what it does not,
 so the test does not have to be edited as the list shortens. A second test names the shape
 it does carry, so the first cannot pass by carrying nothing.

@@ -2558,10 +2558,10 @@ sealed partial class Machine
 					code.Line($"var {handed}At = {machine.Carrier.FirstRecord(slots, member.Rule!)};");
 
 					if (build.Length > 0)
-						code.Line($"if (!({machine.Carrier.Absent(handed + "At")})) {string.Format(build, handed + "At")}");
+						code.Line($"if (!({machine.Carrier.Absent(member.Rule!, handed + "At")})) {string.Format(build, handed + "At")}");
 
 					code.Line(member.IsOptional
-						? $"{type}? {handed} = {machine.Carrier.Absent(handed + "At")} ? default({type}?) : {ValueAt(member.Rule!, handed + "At")};"
+						? $"{type}? {handed} = {machine.Carrier.Absent(member.Rule!, handed + "At")} ? default({type}?) : {ValueAt(member.Rule!, handed + "At")};"
 						: $"var {handed} = {ValueAt(member.Rule!, handed + "At")};");
 
 					continue;

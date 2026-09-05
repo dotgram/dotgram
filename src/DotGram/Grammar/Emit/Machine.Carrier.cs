@@ -182,7 +182,7 @@ sealed partial class Machine
 		public abstract string ResetRecordLocal(int slot);
 
 		/// <summary>Whether a record local was never written.</summary>
-		public abstract string Absent(string local);
+		public abstract string Absent(RuleSymbol rule, string local);
 
 		/// <summary>
 		/// The one of a member's record slots that was written: the same name in two
@@ -372,7 +372,7 @@ sealed partial class Machine
 
 		public override string ResetRecordLocal(int slot) => $"r{slot} = -1;";
 
-		public override string Absent(string local) => $"{local} < 0";
+		public override string Absent(RuleSymbol rule, string local) => $"{local} < 0";
 
 		public override string FirstRecord(IReadOnlyList<int> slots, RuleSymbol rule)
 		{

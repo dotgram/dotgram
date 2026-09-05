@@ -75,8 +75,13 @@ sealed partial class Machine
 				if (machine._graph.Climbing.ContainsKey(rule))
 					return $"'{rule.Name}' is read at a strength";
 
+				// A guard over a gathered member asks for the run before the record is
+				// written, which is the one thing the stacks cannot answer: what is on them
+				// is what has been pushed, and taking it is what writing the record does.
 				if (NodeWalk.Descendants(machine._graph.Bodies[rule]).Any(one => one is Node.Guard))
-					return $"'{rule.Name}' has a guard";
+					foreach (var member in Union(rule).Concat(Union(rule, steps: true)))
+						if (member.Shape is MemberShape.Pieces or MemberShape.Records)
+							return $"'{rule.Name}' has a guard and gathers '{member.Member.Name}'";
 
 			}
 
@@ -239,7 +244,7 @@ sealed partial class Machine
 
 		public override string ResetRecordLocal(int slot) => $"r{slot} = default;";
 
-		public override string Absent(string local) => $"{local}.IsNothing";
+		public override string Absent(RuleSymbol rule, string local) => Nothing(rule, local);
 
 		public override string FirstRecord(IReadOnlyList<int> slots, RuleSymbol rule)
 		{
@@ -944,9 +949,19 @@ sealed partial class Machine
 
 		public override string Mark(int kind, int site) => throw Unwritten();
 
-		public override string Materialize(string record, string sinceMark) => throw Unwritten();
+		/// <remarks>
+		/// Nothing: a shape is a shape the moment it is made, and what it is worth is one
+		/// call away. This is where the tape does its walk over the log for one record.
+		/// </remarks>
+		public override string Materialize(string record, string sinceMark) => "";
 
-		public override string ValueOf(RuleSymbol rule, string record) => throw Unwritten();
+		/// <remarks>
+		/// Built where the guard stands, and again where the rule's own value is: a guard
+		/// that reads a capture reads it before the derivation is accepted, and a
+		/// construction is not called twice by anything else. §7.3 counts what an accepted
+		/// derivation runs, and a guard is not one of those.
+		/// </remarks>
+		public override string ValueOf(RuleSymbol rule, string record) => $"{record}.Build(text)";
 
 		public override void Gathered(
 			Writer code, string from, IReadOnlyList<int> slots, string handed, string type, string build, bool text) =>

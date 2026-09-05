@@ -266,6 +266,19 @@ public sealed class CarrierTests
 	}
 
 	/// <summary>
+	/// A guard that reads a captured value costs a shape nothing extra: the shape is there,
+	/// and what it is worth is one call away.
+	/// </summary>
+	[Fact]
+	public void A_guard_reads_a_shape_by_building_it()
+	{
+		var (source, _) = Compiled(Shapes.Single(one => one.Name == "a guard over a record").Grammar, CarrierKind.Mixed);
+
+		Assert.Contains(".Build(text)",              source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Materialize_DotGram", source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
 	/// A carrier that cannot carry a grammar is not an error: the tape carries it instead,
 	/// and the machine keeps the reason for whoever asks.
 	/// </summary>
@@ -277,7 +290,13 @@ public sealed class CarrierTests
 	[Fact]
 	public void A_carrier_that_refuses_a_grammar_leaves_it_to_the_tape()
 	{
-		var (source, _) = Compiled(Shapes.Single(one => one.Name == "a guard over a record").Grammar, CarrierKind.Mixed);
+		// A rule whose value is the extent it matched, which no carrier but the tape
+		// carries and none is going to: there is no record for the span to be the span of.
+		const string Extent =
+			"Start : @SourceSpan = ['a'..'z']+\n" +
+			"parse Start\n";
+
+		var (source, _) = Compiled(Extent, CarrierKind.Mixed);
 
 		Assert.Contains("DirectValues",         source, StringComparison.Ordinal);
 		Assert.Contains("Materialize_DotGram",  source, StringComparison.Ordinal);

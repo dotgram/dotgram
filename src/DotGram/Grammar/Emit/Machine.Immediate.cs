@@ -252,7 +252,7 @@ sealed partial class Machine
 
 		public override string ResetRecordLocal(int slot) => $"r{slot} = default!;";
 
-		public override string Absent(string local) => $"ImmediateValues.IsDefault({local})";
+		public override string Absent(RuleSymbol rule, string local) => $"ImmediateValues.IsDefault({local})";
 
 		public override string FirstRecord(IReadOnlyList<int> slots, RuleSymbol rule)
 		{
