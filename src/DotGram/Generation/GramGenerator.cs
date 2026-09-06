@@ -399,6 +399,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			Lexical        = host.Lexical,
 			Direct         = host.Direct,
 			Carrier        = (CarrierKind)host.Carrier,
+			Stacks         = host.Stacks,
 			Suffix         = host.Suffix,
 			SharedTypes    = host.Shared,
 		});
@@ -663,6 +664,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		bool      Lexical    = false,
 		bool      Direct     = true,
 		int       Carrier    = 0,
+		int       Stacks     = 0,
 		string?   Suffix     = null,
 		bool      Repeated   = false,
 		bool?     Shared     = null)
@@ -800,6 +802,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.FirstOrDefault(static named => named.Key == nameof(Host.Carrier))
 				.Value.Value as int? ?? first?.Carrier ?? 0;
 
+			// How many stacks a parse may take past the one it began on. Nought is as many
+			// as there is memory for, which is the default.
+			var stacks = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.Stacks))
+				.Value.Value as int? ?? first?.Stacks ?? 0;
+
 			// Which nested class this compilation goes into, where the host has more than
 			// one grammar. Null is the host class itself, which one of them may be.
 			var suffix = attribute.NamedArguments
@@ -861,6 +869,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Lexical:    lexical,
 				Direct:     direct,
 				Carrier:    carrier,
+				Stacks:     stacks,
 				Suffix:     suffix);
 		}
 

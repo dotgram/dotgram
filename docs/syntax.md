@@ -44,7 +44,8 @@ that thing is what the notation already means in C# or in .NET regular expressio
   - [6.2 Why the signatures use BCL types only](#62-why-the-signatures-use-bcl-types-only)
   - [6.3 The input type picks the execution mode](#63-the-input-type-picks-the-execution-mode)
   - [6.4 `PartSize`, the one thing a host may tune](#64-partsize-the-one-thing-a-host-may-tune)
-  - [6.5 `Suffix`, a second grammar on the same class](#65-suffix-a-second-grammar-on-the-same-class)
+  - [6.5 `Stacks`, how deep a reading may go](#65-stacks-how-deep-a-reading-may-go)
+  - [6.6 `Suffix`, a second grammar on the same class](#66-suffix-a-second-grammar-on-the-same-class)
 - [7. The bond with C#](#7-the-bond-with-c)
   - [7.1 Recognizer signatures and C# values](#71-recognizer-signatures-and-c-values)
   - [7.2 What the C# side must guarantee](#72-what-the-c-side-must-guarantee)
@@ -1410,7 +1411,34 @@ small enough to hold in one method is faster that way, and dividing one that did
 need it costs about a quarter where failing to divide one that did costs four times
 over. The generator decides that from the size it estimates.
 
-### 6.5 `Suffix`, a second grammar on the same class
+### 6.5 `Stacks`, how deep a reading may go
+
+A grammar that recurses can be handed input the author did not write: a thousand brackets,
+or a hundred thousand. Recursive descent reads that on the machine stack, and a machine
+stack ends.
+
+So a rule a cycle re-enters probes the stack as it begins — once in every sixty-four
+entries, because the runtime reserves far more than sixty-four frames of a reader — and
+where the margin has gone the reading is **carried onto a stack of its own and goes on from
+that rule**. Nothing is re-read and nothing is lost. A reading deep enough to run the new
+stack low takes another, and by default it may take them for as long as there is memory to
+take one with.
+
+Say how many is enough where that is not what you want:
+
+```csharp
+[Gram("…", Stacks = 4)]
+public partial class MyParser { }
+```
+
+Past that many the parse fails with `InsufficientExecutionStackException`, which is what it
+did before it could carry on at all. Zero, the default, is no limit. A reading that never
+goes deep takes none whatever this says, and a grammar with no cycle in it never probes.
+
+One thing is not carried: a reading over a window (§6.3) has no whole input to hand to
+another stack, so a streamed parse that runs low fails as it always did.
+
+### 6.6 `Suffix`, a second grammar on the same class
 
 `[Gram]` may be written more than once. Each is a compilation of its own, and all but
 one name the class it goes into:

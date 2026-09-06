@@ -148,7 +148,7 @@ public static partial class CSharpEmitter
 		RecognitionGraph graph, string className, string? @namespace = null, ILineMap? lines = null,
 		ICollection<GramDiagnostic>? diagnostics = null, int? partSize = null,
 		LexicalSplit? lexical = null, bool direct = true, CarrierKind carrier = CarrierKind.Tape,
-		string? suffix = null, bool? shared = null)
+		int stacks = 0, string? suffix = null, bool? shared = null)
 	{
 		var overKinds = lexical is not null;
 		var directAllowed = direct;
@@ -177,7 +177,7 @@ public static partial class CSharpEmitter
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
-				lexical?.Valued, carrier);
+				lexical?.Valued, carrier, stacks);
 
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one

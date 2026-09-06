@@ -167,6 +167,60 @@ public sealed class ReaderTests
 		Assert.Contains("ways.Put(a0, b0);", part, StringComparison.Ordinal);
 	}
 
+
+	/// <summary>A grammar that recurses carries a reading onto a new stack when this one runs low.</summary>
+	/// <remarks>
+	/// The probe is at the top of the rule a back edge re-enters and fires once in every
+	/// sixty-four entries; where the runtime says the margin has gone, the reading is
+	/// carried onto a stack of its own and goes on from that rule rather than being
+	/// thrown away. What is asserted here is the shape of it, since the input that makes
+	/// it fire is a hundred thousand brackets and belongs in a benchmark rather than a
+	/// test (<c>--depth</c>).
+	/// </remarks>
+	[Fact]
+	public void A_reading_that_runs_the_stack_low_goes_on_over_a_new_one()
+	{
+		var written = Written(Lexical + Deep + Line + "parse Start", reader: true);
+
+		// Probed at the rule and not at the call, once in sixty-four entries.
+		Assert.Contains(
+			"if ((probes++ & 63) == 0 && !global::System.Runtime.CompilerServices" +
+			".RuntimeHelpers.TryEnsureSufficientExecutionStack())",
+			written, StringComparison.Ordinal);
+
+		// And carried over rather than given up on.
+		Assert.Contains("Deepen_DotGram(pos, ", written, StringComparison.Ordinal);
+		Assert.Contains("new global::System.Threading.Thread(deep.Run, 16 * 1024 * 1024)", written, StringComparison.Ordinal);
+
+		// Nothing says how many stacks are enough, so nothing counts them.
+		Assert.DoesNotContain("this.stacks", written, StringComparison.Ordinal);
+	}
+
+	/// <summary>And stops where the author said how many stacks were enough.</summary>
+	[Fact]
+	public void A_reading_takes_no_more_stacks_than_it_was_allowed()
+	{
+		var result = GramCompiler.Compile(
+			Lexical + Deep + Line + "parse Start",
+			new GramCompilerOptions
+			{
+				ClassName     = "Grammar",
+				CSharpScanner = RoslynCSharpScanner.Instance,
+				Lexical       = true,
+				Stacks        = 2,
+			});
+
+		var written = Assert.Single(result.Sources).Text;
+
+		Assert.Contains("if (this.stacks >= 2)", written, StringComparison.Ordinal);
+		Assert.Contains("deep.stacks = this.stacks + 1;", written, StringComparison.Ordinal);
+	}
+
+	/// <summary>A rule that reaches itself, which is what makes a reading able to run out of stack.</summary>
+	const string Deep =
+		"Start : @string = only: Value & eof => @(only)" + Line +
+		"Value : @string = '(' & v: Value & ')' => @(v) | t: Lexical.Name => @(t)";
+
 	/// <summary>A capture gathered across the turns of a repetition.</summary>
 	/// <remarks>
 	/// A list. Each turn pushes what it kept onto the tape and the record collects

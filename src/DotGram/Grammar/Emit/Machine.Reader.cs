@@ -518,6 +518,14 @@ sealed partial class Machine
 			file.Line("if (this.whole.IsEmpty)");
 			file.Then("throw new global::System.InsufficientExecutionStackException();");
 			file.Line();
+
+			if (_stacks > 0)
+			{
+				file.Line("// As many as the author said were enough, and no more.");
+				file.Line($"if (this.stacks >= {_stacks})");
+				file.Then("throw new global::System.InsufficientExecutionStackException();");
+				file.Line();
+			}
 			file.Line($"var deep = new Deep_DotGram{_tag}();");
 			file.Line();
 			file.Line("deep.whole  = this.whole;");
@@ -527,6 +535,10 @@ sealed partial class Machine
 				file.Line($"deep.{name} = this.{name};");
 
 			file.Line("deep.probes = this.probes;");
+
+			if (_stacks > 0)
+				file.Line("deep.stacks = this.stacks + 1;");
+
 			file.Line("deep.pos    = pos;");
 			file.Line("deep.which  = which;");
 			file.Line("deep.power  = power;");
@@ -575,6 +587,10 @@ sealed partial class Machine
 				file.Line($"internal {type} {name} = default!;");
 
 			file.Line("internal int probes;");
+
+			if (_stacks > 0)
+				file.Line("internal int stacks;");
+
 			file.Line("internal int pos;");
 			file.Line("internal int which;");
 			file.Line("internal int power;");
@@ -596,6 +612,10 @@ sealed partial class Machine
 							file.Line($"reader.{name} = this.{name};");
 
 					file.Line("reader.probes = this.probes;");
+
+					if (_stacks > 0)
+						file.Line("reader.stacks = this.stacks;");
+
 					file.Line();
 
 					using (file.Block("switch (this.which)"))
@@ -656,6 +676,12 @@ sealed partial class Machine
 			{
 				file.Line("/// <summary>How many entries to a rule that can reach itself, for the stack probe.</summary>");
 				file.Line("internal int probes;");
+
+				if (_stacks > 0)
+				{
+					file.Line("/// <summary>How many stacks this reading has taken past the one it began on.</summary>");
+					file.Line("internal int stacks;");
+				}
 			}
 
 			file.Line($"readonly {WaysType} ways;");
@@ -685,6 +711,9 @@ sealed partial class Machine
 				// A C# 8 struct auto-defaults nothing, and the floor is C# 8.
 				if (Probes)
 					file.Line("this.probes  = 0;");
+
+					if (_stacks > 0)
+						file.Line("this.stacks  = 0;");
 
 				foreach (var (_, name) in state)
 					file.Line($"this.{name} = {name};");

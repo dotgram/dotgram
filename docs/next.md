@@ -13941,3 +13941,17 @@ its failure and its registers did.
 
 Neutral where it does not fire: SQL's immediate carrier 4,175 ns against 4,199 on the long
 condition, the sum 1,917 against 1,981.
+
+## Built: `Stacks`, where the author says how many is enough
+
+Carrying a reading onto a new stack has no natural end: a hundred thousand brackets take one
+stack, a million take a few more, and nothing stops. That is the right default — the parse
+answers rather than failing, and it stops when the machine does — but it is not the only
+thing an author may want, so `[Gram(Stacks = 4)]` says how many stacks a parse may take past
+the one it began on. Past that it fails with `InsufficientExecutionStackException`, which is
+what it did before it could carry on at all.
+
+Zero, the default, is no limit, and then nothing counts them: no field in the reader, none in
+the state that crosses, no test in `Deepen`. Written down in §6.5 and pinned by two tests —
+one that the probe and the carrying are emitted, one that a limit emits the count and the
+test that reads it.

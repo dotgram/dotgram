@@ -232,10 +232,11 @@ sealed partial class Machine
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, bool starves = false,
 		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "", int? partSize = null,
 		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null,
-		CarrierKind carrier = CarrierKind.Tape)
+		CarrierKind carrier = CarrierKind.Tape, int stacks = 0)
 	{
 		_graph = graph;
 		_carrierKind = carrier;
+		_stacks = stacks;
 		_results = results;
 		_lines = lines;
 		_starves = starves;
@@ -739,6 +740,12 @@ sealed partial class Machine
 	/// reason every other supplied name is — §8.2 matches by name.
 	/// </remarks>
 	public bool UsesInput { get; private set; }
+
+	/// <summary>
+	/// How many stacks a parse may take past the one it began on, or nought for as many
+	/// as there is memory for (<c>[Gram(Stacks = …)]</c>).
+	/// </summary>
+	readonly int _stacks;
 
 	string InputParameter => UsesInput ? ", string parserInput" : "";
 

@@ -159,6 +159,23 @@ public static class SupportEmitter
 				/// carry is compiled on the tape.
 				/// </remarks>
 				public GramCarrier Carrier { get; set; }
+
+				/// <summary>
+				/// How many stacks one parse may take beyond the one it began on.
+				/// </summary>
+				/// <remarks>
+				/// A grammar that recurses on input the author did not write can be handed a
+				/// thousand brackets. Where the stack it is reading on runs low the reading
+				/// carries on over a stack of its own, and a reading deep enough to run that
+				/// one low takes another — by default for as long as there is memory to take
+				/// one with.
+				///
+				/// Set it to say how many is enough. Past that many the parse fails with
+				/// `InsufficientExecutionStackException`, which is what it always did. Zero,
+				/// the default, is no limit; one is a single extra stack; a reading that never
+				/// goes deep takes none whatever this says.
+				/// </remarks>
+				public int Stacks { get; set; }
 			}
 
 			/// <summary>How a generated reader carries what it has read (docs/next.md, the redesign).</summary>

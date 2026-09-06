@@ -130,6 +130,17 @@ public sealed class GramCompilerOptions
 	public CarrierKind Carrier { get; set; } = CarrierKind.Tape;
 
 	/// <summary>
+	/// How many stacks one parse may take beyond the one it began on, or nought for as
+	/// many as there is memory for.
+	/// </summary>
+	/// <remarks>
+	/// A reading that runs its stack low carries on over a stack of its own; this is
+	/// where that stops and the parse fails with <c>InsufficientExecutionStackException</c>
+	/// instead, which is what it did before it could carry on at all.
+	/// </remarks>
+	public int Stacks { get; set; }
+
+	/// <summary>
 	/// The nested class this compilation goes into, where the host holds more than one
 	/// (<c>[Gram(Suffix = "...")]</c>). Null puts it in the host class itself.
 	/// </summary>
