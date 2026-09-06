@@ -13766,3 +13766,65 @@ The obstacle is that a second reading is not always free: a grammar with §7.7 c
 host reads its `State` back after a refusal. So it is a decision with a precondition — no
 context, no state, no recovery, not streamed — which is another row for the solver's table
 rather than a thing to switch on for everyone.
+
+## Measured: the reader, taken apart — and the operator strings nobody asked for
+
+The totals had been flattering the reader, and `--lexers` said so: the generated lexer is
+**faster** than the hand-written one — 1,125 ns against 1,625 on the sixty-four clause
+condition, 563 against 889 on the sum, 0.63 to 0.78 of it on everything large. Take the
+lexer off both sides and the generated reader stands at 1.3 to 1.7 of the hand-written one,
+not the 1.16 the whole-parser ratio shows. That mode already existed and this session wrote
+it a second time before noticing; the numbers below are its.
+
+So the reader was taken apart the way the tape was. Emitting `string.Empty` for every cut of
+text took the immediate carrier from 4,555 ns to 3,606 on the long condition and from 2,053
+to 1,436 on the sum — a fifth to a third of the parse spent cutting strings. But the two
+cutters are the same code, `source.Substring(began, ended - began)` on one side and
+`_text.Substring(...)` on the other, so the question was not what a cut costs but how many
+there are.
+
+`--bytes`, new here and worth keeping: what a parse allocates, per method, beside what it
+costs. It named the difference exactly.
+
+```
+a0 = 1 AND a1 = 1 AND …    generated 16,856 b    by hand 15,320 b    +1,536 b
+a0 + a1 + a2 + …            generated  7,784 b    by hand  6,248 b    +1,536 b
+```
+
+1,536 is sixty-four times twenty-four, and twenty-four bytes is a string of one character.
+Sixty-four operators, sixty-four strings. The grammar writes `op: CompOp`, `op: ('*' | '/')`,
+`sign: ['+' | '-']?` — every operator captured as the text it stands on, for a factory that
+turns it straight into an enum — and the hand-written parser reads the token's kind and takes
+the enum without ever making the string.
+
+**The fix belongs to the generator and not to the grammar.** A cut of one character is an
+operator, a bracket, or a name of one letter, and a grammar makes the same handful over and
+over. `Text_DotGram` keeps them:
+
+```csharp
+if (ended - began == 1 && source[began] < 128)
+{
+    var one = source[began];
+
+    return Letters_DotGram[one] ??= source.Substring(began, 1);
+}
+```
+
+Filled where it is missed; two threads that miss the same character write the same string, so
+the race is between two answers that are equal.
+
+| | before | after | |
+| --- | --: | --: | --- |
+| `a = 1` | 71.9 ns | 60.1 | 1.57 to 1.31 of hand |
+| `(a + b) * c > d` | 153.2 | 124.3 | 1.52 to 1.23 |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 290.9 | 231.3 | 1.63 to 1.31 |
+| sixty-four clauses | 4,555 | 4,152 | 1.16 to 1.08 |
+| sixty-four clauses, on the tape | 10,790 | 9,073 | |
+
+And the allocation turned over: the generated parser now allocates **less** than the
+hand-written one on every input — 13,784 bytes against 15,320 on the long condition —
+because the hand-written parser still cuts a fresh string for every one-letter name.
+
+Only the reading over kinds has it. Over characters a cut is `text.Slice(from, length)
+.ToString()` written inline at each site, with no helper to put the table in; that is the
+same win waiting for the same treatment.

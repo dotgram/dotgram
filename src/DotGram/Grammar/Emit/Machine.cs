@@ -793,6 +793,13 @@ sealed partial class Machine
 	{
 		var helper = new Writer(1);
 
+		helper.Line("/// <summary>The strings of one character, made once each rather than per cut.</summary>");
+		helper.Line("/// <remarks>");
+		helper.Line("/// Filled where it is missed. Two threads that miss the same character write");
+		helper.Line("/// the same string, so the race is between two answers that are equal.");
+		helper.Line("/// </remarks>");
+		helper.Line($"static readonly string[] Letters_DotGram{_tag} = new string[128];");
+		helper.Line();
 		helper.Line("/// <summary>The text a run of tokens came from.</summary>");
 
 		using (helper.Block(
@@ -804,6 +811,20 @@ sealed partial class Machine
 			helper.Line();
 			helper.Line("var began = starts[from];");
 			helper.Line("var ended = starts[from + length - 1] + lengths[from + length - 1];");
+			helper.Line();
+
+			// A cut of one character is an operator, a bracket, or a name of one letter,
+			// and a grammar makes the same handful of them over and over. Standard SQL
+			// captures every operator as the text it stands on, so sixty-four comparisons
+			// were sixty-four strings of one character — 1,536 bytes a parse that the
+			// hand-written parser reading the same tokens never allocates.
+			using (helper.Block("if (ended - began == 1 && source[began] < 128)"))
+			{
+				helper.Line("var one = source[began];");
+				helper.Line();
+				helper.Line($"return Letters_DotGram{_tag}[one] ??= source.Substring(began, 1);");
+			}
+
 			helper.Line();
 			helper.Line("return source.Substring(began, ended - began);");
 		}

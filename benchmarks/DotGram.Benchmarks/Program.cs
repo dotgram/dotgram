@@ -76,6 +76,15 @@ static class Program
 			return;
 		}
 
+		// `--bytes [iterations]` is what each parse allocates, which a ratio of times
+		// cannot say. See SqlAgainst.Bytes.
+		if (args.Length > 0 && args[0] == "--bytes")
+		{
+			SqlAgainst.Bytes(args.Length > 1 && int.TryParse(args[1], out var runs0) ? runs0 : 2000);
+
+			return;
+		}
+
 		// `--lexers [rounds] [iterations]` is the two lexers alone, the generated one
 		// measured by refusing the parse at its first token. See SqlAgainst.Lexers.
 		if (args.Length > 0 && args[0] == "--lexers")

@@ -321,6 +321,55 @@ static class SqlAgainst
 	}
 
 	/// <summary>What the loop and the indirect call cost with no parsing under them.</summary>
+	/// <summary>What each parse allocates, which is the other half of what it costs.</summary>
+	/// <remarks>
+	/// A ratio of times says one parser is dearer and not what it is dear at. Bytes say
+	/// it plainly: two parsers building the same tree allocate the same for the tree, so
+	/// whatever is left over is something one of them makes and the other does not.
+	/// </remarks>
+	public static void Bytes(int iterations)
+	{
+		Agree();
+
+		Console.WriteLine();
+		Console.Write($"{"",-36}");
+
+		foreach (var (name, _) in Methods)
+			Console.Write($" {name,11}");
+
+		Console.WriteLine("   over hand");
+
+		foreach (var input in Inputs)
+		{
+			var taken = new double[Methods.Length];
+
+			for (var i = 0; i < Methods.Length; i++)
+			{
+				Methods[i].Measure(input);
+
+				var before = GC.GetAllocatedBytesForCurrentThread();
+				var sink   = 0;
+
+				for (var one = 0; one < iterations; one++)
+					sink += Methods[i].Measure(input);
+
+				taken[i] = (GC.GetAllocatedBytesForCurrentThread() - before) / (double)iterations;
+
+				if (sink < 0)
+					Console.Write("");
+			}
+
+			var shown = input.Length <= 34 ? input : input.Substring(0, 31) + "...";
+
+			Console.Write($"{shown,-36}");
+
+			foreach (var one in taken)
+				Console.Write($" {one,8:N0} b ");
+
+			Console.WriteLine($"    {taken[1] - taken[3],+8:N0} b");
+		}
+	}
+
 	static int Nothing(string input) => input.Length & 1;
 
 	static double Time(string input, Func<string, int> measure, int iterations)
