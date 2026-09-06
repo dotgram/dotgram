@@ -13852,3 +13852,27 @@ Reverted. Kept here so the next person does not spend the afternoon on it: the c
 path has the same hole and no grammar in this repository falls into it. A grammar that
 captures single characters over characters would, and if one ever ships the change is four
 lines and this is where they are.
+
+## Measured: the stack guard is a tenth of a deep parenthesis, and the yardstick has none
+
+`EmitCall` writes `RuntimeHelpers.EnsureSufficientExecutionStack()` at every back edge — 79
+places in the expression language, 33 in standard SQL. `HandExpression` and `HandSqlTokens`
+write it nowhere.
+
+Taken out, the deep parentheses get about a tenth cheaper and nothing else moves:
+
+| | with the guard | without |
+| --- | --: | --: |
+| `(((((((x)))))))` | 668 ns, 1.32 of hand | 600 ns, 1.20 |
+| `(((((x)))))` | 545, 1.25 | 483, 1.15 |
+| everything else | — | inside the noise |
+
+So it stays, and it goes on the list beside §7.3: another thing the generated parser
+promises and the hand-written one does not. A grammar that recurses on input the author did
+not write is a grammar that can be handed a thousand brackets, and `--depth` is there
+because it was.
+
+If it ever has to be cheaper, the shape is not to drop it but to probe less often — the
+runtime reserves a margin far larger than one frame, so a check every sixteenth frame bounds
+the stack as well as a check at every one. What that needs and this does not have is a depth
+the emitted reader carries, which is a field and two more edits at every return.
