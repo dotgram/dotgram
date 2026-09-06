@@ -1240,9 +1240,11 @@ public sealed class CSharpEmitterTests
 		var source = Emit("Start = a: 'x'\nparse Start");
 
 		// A new furthest position costs a reference assignment, not an allocation —
-		// the whole point of the split (Support.cs's own ExpectedField remarks).
+		// the whole point of the split (Support.cs's own ExpectedField remarks). The
+		// tie list is emptied rather than dropped, so a parse that ties again does not
+		// buy a second one.
 		Assert.Contains("failure.Expected = expected;", source);
-		Assert.Contains("failure.ExpectedMore = null;", source);
+		Assert.Contains("failure.ExpectedMore?.Clear();", source);
 
 		// A tie allocates, but only the list of arrays, and only on the tie itself.
 		Assert.Contains(

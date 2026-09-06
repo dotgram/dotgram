@@ -1253,7 +1253,7 @@ sealed partial class Machine
 				{
 					file.Line("failure.Position = p;");
 					file.Line("failure.Expected = expected;");
-					file.Line("failure.ExpectedMore = null;");
+					file.Line("failure.ExpectedMore?.Clear();");
 				}
 				file.Line("else if (lookahead < 0 && p == failure.Position && expected != null)");
 				using (file.Block(""))

@@ -143,7 +143,7 @@ sealed partial class Machine
 				{
 					file.Line("failure.Position = p;");
 					file.Line("failure.Expected = expected;");
-					file.Line("failure.ExpectedMore = null;");
+					file.Line("failure.ExpectedMore?.Clear();");
 				}
 				using (file.Block("else if (p == failure.Position && expected != null)"))
 				{

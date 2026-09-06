@@ -3010,7 +3010,7 @@ namespace DotGram.Snapshots
 				{
 					failure.Position = p;
 					failure.Expected = expected;
-					failure.ExpectedMore = null;
+					failure.ExpectedMore?.Clear();
 				}
 				else if (lookahead < 0 && p == failure.Position && expected != null)
 				{
@@ -3990,7 +3990,9 @@ namespace DotGram.Snapshots
 
 			/// <summary>
 			/// A second array and beyond, where more than one terminal tied for the
-			/// furthest position. Null until an actual tie needs one.
+			/// furthest position. Null until an actual tie needs one, and emptied rather
+			/// than dropped when the furthest position moves on: a parse that ties once
+			/// tends to tie again, and a list per tie was an allocation per operand.
 			/// </summary>
 			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
 		}

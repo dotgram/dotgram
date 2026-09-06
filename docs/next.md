@@ -13737,3 +13737,32 @@ hold the rest are not shared prefixes at all — `WHEN … THEN` refusing in the
 `RowValueConstructor` before a `PredicateTail` that may not be there, and the parenthesized
 row. Those are ordered choice doing what ordered choice is for, and factoring has nothing to
 say about them.
+
+## Built: the list of what else was expected is kept, not made again
+
+Recording a refusal costs nothing on SQL and between a fifth and a quarter of an
+expression-language parse. The measurement that says so is `Refuse_DotGram` made to return
+at once: EL's deepest parenthesis went from 1.59 of the hand-written parser to 1.23 on the
+immediate carrier, and SQL did not move at all. The reason is the grammar and not the
+feature — SQL's choices are dispatched on a token and almost never refuse, the expression
+language's are ordered attempts and refuse constantly.
+
+Half of it was one allocation. `Expected` is replaced when the furthest position advances
+and added to when a terminal ties with it, and the additions go in a `List<string[]>` that
+was **dropped and made again** on every advance. A parse that ties once tends to tie again —
+`Assignment` refuses at the same token from two alternatives before `Conditional` is even
+reached — so that is a list per operand.
+
+The list is emptied now instead of dropped. Nothing else changes: the same arrays go in it,
+in the same order, and every message reads the same. EL's deepest parenthesis 1.59 to 1.42
+immediately and 2.59 to 2.35 on the tape; `(((((x)))))` 1.51 to 1.43; SQL unmoved.
+
+**What is left of it.** The other half is the recording itself — the compare against the
+furthest position and the two stores — and that cannot be made cheaper, only skipped. A
+parse that succeeds never reads any of it, so the shape that costs nothing is a fast reading
+that records nothing and a second reading, with recording on, run only when the first fails.
+The obstacle is that a second reading is not always free: a grammar with §7.7 context or
+§7.8 state handed in from outside would run its guards twice, and the expression language's
+host reads its `State` back after a refusal. So it is a decision with a precondition — no
+context, no state, no recovery, not streamed — which is another row for the solver's table
+rather than a thing to switch on for everyone.
