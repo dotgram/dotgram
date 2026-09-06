@@ -13486,3 +13486,131 @@ predictor. The reading is worthless.
 The rule for this harness: an experiment that changes **what the corpus parses** cannot be
 compared row by row against a run where it parsed. Take the row out of the corpus, or
 measure something that keeps every row answering the same.
+
+## The plan: a solver, not a better emitter
+
+The residue against the hand-written parsers is not a difference in algorithm. Both read
+the same tokens with the same recursive descent and build the same tree. What differs is
+**when the design questions are answered**. For each of them — does this rule get a method
+of its own? where does its value live? is this choice a switch or a run of attempts? does
+this failure have to be written down? is this operand handed over or read again? — a
+person answers *per site*, knowing the grammar, which paths are hot, and what the caller
+already has in hand. The generator answers *once per machine*, with a rule that is correct
+everywhere and best nowhere.
+
+None of those answers is about correctness. Every alternative preserves the language and
+the tree. So the residue is the price of a uniform answer, and it is recoverable without
+changing the notation or the semantics.
+
+**The measurement that says so.** Recording a refusal — the furthest failure and what was
+expected there, which is how a parse that fails explains itself — costs nothing on SQL and
+between a fifth and a quarter of an expression-language parse:
+
+| | SQL tape | SQL immediate | EL `(((((((x)))))))` immediate | EL tape |
+| --- | --: | --: | --: | --: |
+| refusals recorded | 2.45 | 1.17 | 1.57 | 2.54 |
+| not recorded | 2.39 | 1.17 | 1.23 | 2.19 |
+
+The reason is the grammar, not the feature: SQL's choices are dispatched on a token and
+almost never refuse, the expression language's are ordered attempts and refuse constantly.
+One decision, two grammars, opposite answers — and the generator has the fact that tells
+them apart (`Dispatchable` already knows which choices became switches) and does not
+consult it.
+
+**The second measurement, larger.** `.work/shapes.txt`: `SqlStandard92` has **0 rules on
+ways** and `ExpressionLanguage` has **1** out of sixty. A rule not on a way cannot be
+re-read after its construction ran, which is exactly the precondition §7.3 asks for before
+a value may be built where it is read. The log exists to defer construction until the
+derivation is accepted; for SQL there is nothing to defer, and the difference between
+carrying it and not is 2.45 against 1.17. Across all thirty-four grammars in the
+repository, 168 rules of 562 are on ways — so for three rules in four the deferral is
+bought and not used.
+
+### The one real asymmetry
+
+A person knows the workload. They know a name is more common than a keyword, that a parse
+usually succeeds, that `a = 1 AND …` is the shape that arrives. The generator knows only
+the grammar. Everything else on the list is a decision the generator could make and does
+not; this one needs either a static proxy (first-set entropy, cycle membership, arm counts,
+whether a choice dispatches) or a sample of real input. That is the only place where
+closing the gap asks for something the compiler does not already hold.
+
+### The decision space
+
+Each row is a question the generator answers once and a person answers per site. "Worth"
+is what has been measured, not what is hoped.
+
+| question | today | what a person does | worth |
+| --- | --- | --- | --- |
+| defer the construction? | one carrier per machine, Tape by default | builds where it reads unless the reading can be abandoned | SQL 2.45 -> 1.17 |
+| write the refusal down? | always | never; a failed parse explains itself by other means | EL 1.57 -> 1.23, SQL 0 |
+| a method per rule? | always, plus Parts | inlines a rule that is one call or one token test | unmeasured |
+| where does a value live? | one answer per carrier | register, caller's local, log, or a field of the parent | Mixed says it is per rule |
+| what shape is the choice? | switch where the first sets are disjoint, else attempts | also: peek two tokens, commit after one | mostly done |
+| what does a parse cost before it starts? | rent the tape and the tables, always | nothing at all for a small input | `a = 1` at 3.1 of hand |
+| how is a repetition read? | counted loop; `?` is an `if` | unrolls the first turn, or writes do/while | `?` done |
+| when is captured text cut? | at once, into a string | when the factory needs it | unmeasured |
+| the ladder | a rule per level, `<< n` where the author wrote it | one loop over a precedence | measured, no: §4.3 already folds |
+
+### The solver
+
+Not a heuristic pass over the emitter. Four parts, and the separation between the first two
+is what lets the set of choices stay open.
+
+**Facts.** One record per rule and per decision point, computed from the graph:
+on a cycle; on a way; reachable only from committed positions; number of constructions;
+number of arms and whether they dispatch; first-set overlap; value is a struct or a class;
+size in bytes; how many places capture it; whether a guard reads it; recursion bound.
+`Shapes.Of` is a third of this already and is the place to grow it.
+
+**Legality.** A strategy declares a predicate over the facts, and it is a *proof*, not a
+preference: `Immediate` is legal for a rule iff no way back can re-enter it after its
+construction ran. The solver may only choose among legal strategies, so a wrong preference
+costs time and never correctness. This is what makes an unbounded set of strategies safe to
+add to: a new one carries its own precondition and cannot break the ones already there.
+
+**Preference.** A cost model — a handful of micro-costs calibrated once (a call, an
+indirect jump through a jump table, an array load, a write barrier, an allocation, a string
+cut) against a static frequency estimate. Its job is only to *rank candidates*. Nothing it
+says is ever quoted as a result: this session and the `DeferredShape` lab both showed a
+model number missing the real one by three times in size and once in sign.
+
+**Search and proof.** The decisions interact — the carrier decides where values live, which
+decides whether a rule can be inlined — so it is not one greedy pass. Order the questions by
+legality dependency, run greedy within that order, and do a small local search over the
+pairs known to interact. Bound it by compile time. Then verify: **the tape is the reference
+implementation**, and every configuration must build the identical tree over the corpus.
+`CarrierTests` and the two `Agree()` harnesses do this for three carriers today; the
+property to generalize is "N randomly chosen legal configurations agree with the reference".
+
+**And it must be readable.** A `.decisions` report next to the generated file, saying for
+each rule what was chosen and which fact decided it, plus a pragma in the grammar to pin any
+of it. A solver whose reasoning cannot be read is a solver that cannot be argued with.
+
+### Stages, each with a gate
+
+0. **Facts and the report.** No change in behaviour. Gate: for `SqlStandard92` the report
+   says 28 valued rules, 0 on ways, therefore 28 could build where they read.
+1. **The two measured levers, decided automatically, pinnable.** The carrier chosen per
+   machine from the facts; refusal recording off where the choices dispatch, with a second
+   reading for the message when a parse fails. Gate: SQL tape to ~1.2, EL parenthesis to
+   ~1.25, every test and both agreements green.
+2. **The carrier per rule.** The one expression-language rule on a way keeps the log; the
+   other fifty-nine build where they read. Gate: EL immediate under 1.2 everywhere, the
+   tree unchanged.
+3. **The cost model, calibrated, and the greedy solver** over the rest of the table:
+   inlining, value placement, per-parse setup, when text is cut. Gate: no row of either
+   yardstick worse than before, and the sum better.
+4. **Facts from a corpus.** `[Gram(Corpus = …)]`: the generator reads sample inputs at
+   compile time, runs the reference parser over them counting which alternative was taken,
+   how often each rule refused, how deep it went — and the static proxies become
+   measurements. This is the part that answers the one real asymmetry, and the part most
+   likely to be wrong; it comes last for that reason.
+
+### What this does not promise
+
+Parity on every row. A grammar whose rules genuinely sit on ways has to defer, and deferral
+costs about a third over building eagerly — that is measured and it is the language's price,
+not the generator's. What the plan claims is that the *three rules in four* that pay it for
+nothing should stop paying it, and that every other row of the table is a decision we are
+declining to make rather than one we cannot.
