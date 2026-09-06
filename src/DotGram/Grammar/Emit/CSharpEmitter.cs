@@ -304,7 +304,8 @@ public static partial class CSharpEmitter
 					compiled.Machine.Ties,
 					compiled.Machine.UsesInput,
 					compiled.Machine.UsesContext ? graph.Context : null,
-					overKinds);
+					overKinds,
+					compiled.Direct && compiled.Machine.Probes);
 
 				file.Line();
 			}
@@ -892,7 +893,7 @@ public static partial class CSharpEmitter
 
 	static void EmitPublication(
 		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat,
-		bool ties, bool input, string? context, bool overKinds = false)
+		bool ties, bool input, string? context, bool overKinds = false, bool probes = false)
 	{
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
@@ -911,7 +912,8 @@ public static partial class CSharpEmitter
 		// A rule of binding powers is asked at strength 0, which admits all of it (§4.3.1).
 		var hands = (climbs ? ", 0" : "") +
 			(built is null ? ", ref failure" : ", ref failure, out var recognized") +
-			(input ? ", input" : "") + (overKinds ? ", source, starts, lengths" : "") + gives;
+			(input ? ", input" : "") + (overKinds ? ", source, starts, lengths" : "") + gives +
+			(probes ? ", parserWhole" : "");
 
 		// The same call from a window, where there is no whole input to hand over — and no
 		// rule under it that could ask for one, because a publication whose rules do is
@@ -923,7 +925,8 @@ public static partial class CSharpEmitter
 		// out was a recognizer called with one argument short, in generated code.
 		var streamedHands = (climbs ? ", 0" : "") +
 			(built is null ? ", ref failure" : ", ref failure, out var recognized") +
-			(input ? ", null!" : "") + gives;
+			(input ? ", null!" : "") + gives +
+			(probes ? ", default" : "");
 
 		// Over kinds a position is a token, so what a publication hands back has to be cut
 		// from the text the tokens came from rather than from what the machine was reading —
@@ -1001,6 +1004,14 @@ public static partial class CSharpEmitter
 				overKinds
 					? "var text    = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);"
 					: "var text    = global::System.MemoryExtensions.AsSpan(input);");
+
+			// The same characters again, in the one shape that may be handed to another
+			// thread: what a reading that runs the stack low goes on with.
+			if (probes)
+				file.Line(
+					overKinds
+						? "var parserWhole = new global::System.ReadOnlyMemory<char>(tokens.Kinds, 0, count);"
+						: "var parserWhole = global::System.MemoryExtensions.AsMemory(input);");
 
 			// Carried through every recognizer this call reaches, so that what comes back
 			// is the furthest the input was followed and not merely "no".

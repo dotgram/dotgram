@@ -225,7 +225,9 @@ sealed partial class Machine
 			var inner         = tape ? ReaderOf(rule) + "_Body" : ReaderOf(rule);
 
 			if (tape)
-				RenderWayBack(members, rule, DirectStrength(rule), seal: OverKinds, deepens: Deepens(rule));
+				RenderWayBack(
+					members, rule, DirectStrength(rule), seal: OverKinds,
+					deepens: Deepens(rule) ? rule : null);
 
 			members.Line(
 				tape
@@ -246,7 +248,7 @@ sealed partial class Machine
 				// The rule the way back into itself goes through, so the probe stands here and
 				// not at the call: one line a rule instead of one at every place that calls it.
 				if (!tape && Deepens(rule))
-					Probe(members);
+					Probe(members, rule);
 
 				members.Write(body);
 			}
@@ -313,7 +315,7 @@ sealed partial class Machine
 	/// </para>
 	/// </remarks>
 	void RenderWayBack(
-		Writer file, RuleSymbol rule, string strength, bool seal = false, bool deepens = false) =>
+		Writer file, RuleSymbol rule, string strength, bool seal = false, RuleSymbol? deepens = null) =>
 		RenderWayBack(
 			file, ReaderOf(rule), $"/// <summary><c>{rule.Name}</c>, and the way back into it.</summary>",
 			strength, seal, deepens);
@@ -323,11 +325,7 @@ sealed partial class Machine
 	{
 		foreach (var (_, called) in _backEdges)
 			if (ReferenceEquals(called, rule))
-			{
-				_probes = true;
-
 				return true;
-			}
 
 		return false;
 	}
@@ -349,16 +347,29 @@ sealed partial class Machine
 	/// about a tenth of a deeply parenthesized parse (docs/next.md).
 	/// </para>
 	/// </remarks>
-	static void Probe(Writer file)
+	void Probe(Writer file, RuleSymbol rule)
 	{
-		file.Line("if ((probes++ & 63) == 0)");
-		file.Then(
-			"global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();");
+		var power = _graph.Climbing.ContainsKey(rule) ? ", power" : ", 0";
+
+		file.Line(
+			"if ((probes++ & 63) == 0 && !global::System.Runtime.CompilerServices" +
+			".RuntimeHelpers.TryEnsureSufficientExecutionStack())");
+		file.Then($"return Deepen_DotGram{_tag}(pos, {DeepOf(rule)}{power});");
 		file.Line();
 	}
 
-	/// <summary>Whether any rule of this machine probes the stack, so the reader counts.</summary>
-	bool _probes;
+	/// <summary>Which of the rules that probe the stack this one is, for the switch that resumes it.</summary>
+	int DeepOf(RuleSymbol rule)
+	{
+		if (!_deep.TryGetValue(rule, out var which))
+			_deep[rule] = which = _deep.Count;
+
+		return which;
+	}
+
+	readonly Dictionary<RuleSymbol, int> _deep = [];
+
+	bool? _probes;
 
 	/// <param name="seal">
 	/// Whether the ways the body opened are sealed once it has answered: a rule marked
@@ -367,14 +378,14 @@ sealed partial class Machine
 	/// </param>
 	void RenderWayBack(
 		Writer file, string name, string summary, string strength, bool seal = false,
-		bool deepens = false)
+		RuleSymbol? deepens = null)
 	{
 		file.Line(summary);
 
 		using (file.Block($"public int {name}(int pos{strength})"))
 		{
-			if (deepens)
-				Probe(file);
+			if (deepens is not null)
+				Probe(file, deepens);
 
 			file.Line("var s  = ways.Cursor;");
 			foreach (var line in Carrier.MarkRecords("lm"))
@@ -420,6 +431,197 @@ sealed partial class Machine
 		file.Line();
 	}
 
+	/// <summary>The whole input, handed to a reader that may have to go on with it elsewhere.</summary>
+	string WholeParameter => Probes ? ", global::System.ReadOnlyMemory<char> parserWhole" : "";
+
+	internal string WholeArgument => Probes ? ", parserWhole" : "";
+
+	/// <summary>
+	/// Whether any rule this machine reads can reach itself, and so whether its reader
+	/// probes the stack and is handed the input to go on with elsewhere.
+	/// </summary>
+	/// <remarks>
+	/// Asked of the call graph rather than of the back edges, because the publications are
+	/// written before the recognizers are and the back edges are found while writing them.
+	/// A back edge means a cycle, so this is true wherever one is, which is what the two
+	/// halves of the signature have to agree about.
+	/// </remarks>
+	internal bool Probes
+	{
+		get
+		{
+			if (_probes is { } known)
+				return known;
+
+			var calls = new CallGraph(_rules, Reached);
+
+			_probes = false;
+
+			foreach (var rule in _rules)
+				if (calls.Recurses(rule))
+				{
+					_probes = true;
+
+					break;
+				}
+
+			return _probes.Value;
+
+			IEnumerable<RuleSymbol> Reached(RuleSymbol rule)
+			{
+				if (!_graph.Bodies.TryGetValue(rule, out var body))
+					yield break;
+
+				foreach (var node in NodeWalk.Descendants(body))
+					if (node is Node.Call(var called, _) && _rules.Contains(called))
+						yield return called;
+			}
+		}
+	}
+
+	/// <summary>
+	/// A reading that ran the stack low, carried onto a stack of its own and gone on with
+	/// there rather than thrown away.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The reader is a <c>ref struct</c> and holds the input as a span, and a span belongs
+	/// to the thread whose stack it was made on. So what crosses is everything else — the
+	/// tape, the tables, the registers, the failure, the position — together with the input
+	/// as a <c>ReadOnlyMemory</c>, and the reader is made again on the other side.
+	/// </para>
+	/// <para>
+	/// One thread a low stack rather than one a parse: the probe fires once in sixty-four
+	/// entries and only when the runtime says the margin has gone, so a reading that never
+	/// goes deep never makes one. A reading that goes deeper still probes again on the new
+	/// stack and takes another, and so on for as long as there is memory to take one with.
+	/// </para>
+	/// <para>
+	/// What is not carried is a reading over a window (§6.3): there is no whole input to
+	/// hand over, and the stack running out there is what it always was.
+	/// </para>
+	/// </remarks>
+	void RenderDeepening(
+		Writer file, IReadOnlyList<(string Type, string Name)> state,
+		IReadOnlyList<(string Type, string Name)> registers)
+	{
+		var carried = new List<(string Type, string Name)>(state) { (CSharpEmitter.FailureType, "failure") };
+
+		carried.AddRange(registers);
+
+		file.Line();
+		file.Line("/// <summary>Carries this reading onto a stack of its own and answers with what it read.</summary>");
+
+		using (file.Block($"internal int Deepen_DotGram{_tag}(int pos, int which, int power)"))
+		{
+			file.Line("// Nothing to carry it onto: a reading over a window has no whole input.");
+			file.Line("if (this.whole.IsEmpty)");
+			file.Then("throw new global::System.InsufficientExecutionStackException();");
+			file.Line();
+			file.Line($"var deep = new Deep_DotGram{_tag}();");
+			file.Line();
+			file.Line("deep.whole  = this.whole;");
+			file.Line("deep.ways   = this.ways;");
+
+			foreach (var (_, name) in carried)
+				file.Line($"deep.{name} = this.{name};");
+
+			file.Line("deep.probes = this.probes;");
+			file.Line("deep.pos    = pos;");
+			file.Line("deep.which  = which;");
+			file.Line("deep.power  = power;");
+			file.Line();
+			file.Line("var thread = new global::System.Threading.Thread(deep.Run, 16 * 1024 * 1024);");
+			file.Line();
+			file.Line("thread.Start();");
+			file.Line("thread.Join();");
+			file.Line();
+
+			// Back into the reading that asked: what it hands over is readonly and did not
+			// move, and what it works with did.
+			file.Line("this.failure = deep.failure;");
+
+			foreach (var (_, name) in registers)
+				file.Line($"this.{name} = deep.{name};");
+
+			file.Line("this.probes = deep.probes;");
+			file.Line();
+			file.Line("if (deep.thrown != null)");
+			file.Then(
+				"global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(deep.thrown).Throw();");
+			file.Line();
+			file.Line("return deep.end;");
+		}
+	}
+
+	/// <summary>The state of a reading, in a shape that may be handed to another thread.</summary>
+	void RenderDeep(
+		Writer file, IReadOnlyList<(string Type, string Name)> state,
+		IReadOnlyList<(string Type, string Name)> registers)
+	{
+		var carried = new List<(string Type, string Name)>(state) { (CSharpEmitter.FailureType, "failure") };
+
+		carried.AddRange(registers);
+
+		file.Line();
+		file.Line("/// <summary>A reading, in a shape another thread can pick up (Machine.Reader.cs).</summary>");
+
+		using (file.Block($"private sealed class Deep_DotGram{_tag}"))
+		{
+			file.Line("internal global::System.ReadOnlyMemory<char> whole;");
+			file.Line($"internal {WaysType} ways = default!;");
+
+			foreach (var (type, name) in carried)
+				file.Line($"internal {type} {name} = default!;");
+
+			file.Line("internal int probes;");
+			file.Line("internal int pos;");
+			file.Line("internal int which;");
+			file.Line("internal int power;");
+			file.Line("internal int end;");
+			file.Line("internal global::System.Exception? thrown;");
+			file.Line();
+
+			using (file.Block("internal void Run()"))
+			{
+				using (file.Block("try"))
+				{
+					file.Line(
+						$"var reader = new {ReaderStruct}(this.whole.Span, this.ways" +
+						string.Concat(state.Select(one => $", this.{one.Name}")) + ", this.whole);");
+					file.Line();
+
+					foreach (var (_, name) in carried)
+						if (state.All(one => one.Name != name))
+							file.Line($"reader.{name} = this.{name};");
+
+					file.Line("reader.probes = this.probes;");
+					file.Line();
+
+					using (file.Block("switch (this.which)"))
+						foreach (var one in _deep.OrderBy(each => each.Value))
+						{
+							var asked = _graph.Climbing.ContainsKey(one.Key) ? ", this.power" : "";
+
+							file.Line(
+								$"case {one.Value}: this.end = reader.{ReaderOf(one.Key)}(this.pos{asked}); break;");
+						}
+
+					file.Line();
+
+					foreach (var (_, name) in carried)
+						if (state.All(one => one.Name != name))
+							file.Line($"this.{name} = reader.{name};");
+
+					file.Line("this.probes = reader.probes;");
+				}
+
+				using (file.Block("catch (global::System.Exception caught)"))
+					file.Line("this.thrown = caught;");
+			}
+		}
+	}
+
 	/// <summary>The name of the reader the rules of this machine are members of.</summary>
 	string ReaderStruct => "Reader_DotGram" + _tag;
 
@@ -450,13 +652,19 @@ sealed partial class Machine
 			file.Line("readonly global::System.ReadOnlySpan<char> text;");
 			file.Line($"internal {CSharpEmitter.FailureType} failure;");
 
-			if (_probes)
+			if (Probes)
 			{
 				file.Line("/// <summary>How many entries to a rule that can reach itself, for the stack probe.</summary>");
-				file.Line("int probes;");
+				file.Line("internal int probes;");
 			}
 
 			file.Line($"readonly {WaysType} ways;");
+
+			if (Probes)
+			{
+				file.Line("/// <summary>The whole input, for a reading that has to go on with it elsewhere.</summary>");
+				file.Line("readonly global::System.ReadOnlyMemory<char> whole;");
+			}
 
 			foreach (var (type, name) in state)
 				file.Line($"readonly {type} {name};");
@@ -468,14 +676,14 @@ sealed partial class Machine
 
 			using (file.Block(
 				$"internal {ReaderStruct}(global::System.ReadOnlySpan<char> text, {WaysType} ways" +
-				string.Concat(state.Select(one => $", {one.Type} {one.Name}")) + ")"))
+				string.Concat(state.Select(one => $", {one.Type} {one.Name}")) + WholeParameter + ")"))
 			{
 				file.Line("this.text    = text;");
 				file.Line("this.failure = default;");
 				file.Line("this.ways    = ways;");
 
 				// A C# 8 struct auto-defaults nothing, and the floor is C# 8.
-				if (_probes)
+				if (Probes)
 					file.Line("this.probes  = 0;");
 
 				foreach (var (_, name) in state)
@@ -483,11 +691,20 @@ sealed partial class Machine
 
 				foreach (var (_, name) in registers)
 					file.Line($"this.{name} = default!;");
+
+				if (Probes)
+					file.Line("this.whole   = parserWhole;");
 			}
+
+			if (Probes)
+				RenderDeepening(file, state, registers);
 
 			file.Line();
 			file.Write(members.ToString());
 		}
+
+		if (Probes)
+			RenderDeep(file, state, registers);
 
 		file.Line();
 	}
@@ -511,7 +728,7 @@ sealed partial class Machine
 		using (file.Block(
 			$"static int {core}(" +
 			$"global::System.ReadOnlySpan<char> text, int pos{(climbs ? ", int power" : "")}, " +
-			$"ref {CSharpEmitter.FailureType} failure{value}{InputParameter}{TokensParameter}{ContextParameter})"))
+			$"ref {CSharpEmitter.FailureType} failure{value}{InputParameter}{TokensParameter}{ContextParameter}{WholeParameter})"))
 		{
 			var reader = new ReaderWriter(this, rule);
 			var body   = _graph.Trivia.TryGetValue(rule, out var seam)
@@ -531,7 +748,7 @@ sealed partial class Machine
 
 			using (file.Block("try"))
 			{
-				file.Line($"var reader = new {ReaderStruct}(text, ways{Carrier.ReaderArgument});");
+				file.Line($"var reader = new {ReaderStruct}(text, ways{Carrier.ReaderArgument}{WholeArgument});");
 				file.Line();
 				file.Line("reader.failure = failure;");
 				file.Line();

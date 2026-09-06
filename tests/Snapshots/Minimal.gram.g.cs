@@ -599,9 +599,10 @@ namespace DotGram.Snapshots
 		public static Match<int> TryParseSum(string input)
 		{
 			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var parserWhole = global::System.MemoryExtensions.AsMemory(input);
 			var failure = new Failure();
 
-			var end = Recognize_Sum_Whole(text, 0, 0, ref failure, out var recognized);
+			var end = Recognize_Sum_Whole(text, 0, 0, ref failure, out var recognized, parserWhole);
 
 			if (end < 0)
 			{
@@ -2373,22 +2374,56 @@ namespace DotGram.Snapshots
 			readonly global::System.ReadOnlySpan<char> text;
 			internal Failure failure;
 			/// <summary>How many entries to a rule that can reach itself, for the stack probe.</summary>
-			int probes;
+			internal int probes;
 			readonly Ways ways;
+			/// <summary>The whole input, for a reading that has to go on with it elsewhere.</summary>
+			readonly global::System.ReadOnlyMemory<char> whole;
 
-			internal Reader_DotGram_Sum(global::System.ReadOnlySpan<char> text, Ways ways)
+			internal Reader_DotGram_Sum(global::System.ReadOnlySpan<char> text, Ways ways, global::System.ReadOnlyMemory<char> parserWhole)
 			{
 				this.text    = text;
 				this.failure = default;
 				this.ways    = ways;
 				this.probes  = 0;
+				this.whole   = parserWhole;
+			}
+
+			/// <summary>Carries this reading onto a stack of its own and answers with what it read.</summary>
+			internal int Deepen_DotGram_Sum(int pos, int which, int power)
+			{
+				// Nothing to carry it onto: a reading over a window has no whole input.
+				if (this.whole.IsEmpty)
+					throw new global::System.InsufficientExecutionStackException();
+
+				var deep = new Deep_DotGram_Sum();
+
+				deep.whole  = this.whole;
+				deep.ways   = this.ways;
+				deep.failure = this.failure;
+				deep.probes = this.probes;
+				deep.pos    = pos;
+				deep.which  = which;
+				deep.power  = power;
+
+				var thread = new global::System.Threading.Thread(deep.Run, 16 * 1024 * 1024);
+
+				thread.Start();
+				thread.Join();
+
+				this.failure = deep.failure;
+				this.probes = deep.probes;
+
+				if (deep.thrown != null)
+					global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(deep.thrown).Throw();
+
+				return deep.end;
 			}
 
 			/// <summary><c>Sum</c>, and the way back into it.</summary>
 			public int Read_Sum_Sum(int pos, int power)
 			{
-				if ((probes++ & 63) == 0)
-					global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
+				if ((probes++ & 63) == 0 && !global::System.Runtime.CompilerServices.RuntimeHelpers.TryEnsureSufficientExecutionStack())
+					return Deepen_DotGram_Sum(pos, 0, power);
 
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
@@ -2578,15 +2613,52 @@ namespace DotGram.Snapshots
 
 		}
 
+		/// <summary>A reading, in a shape another thread can pick up (Machine.Reader.cs).</summary>
+		private sealed class Deep_DotGram_Sum
+		{
+			internal global::System.ReadOnlyMemory<char> whole;
+			internal Ways ways = default!;
+			internal Failure failure = default!;
+			internal int probes;
+			internal int pos;
+			internal int which;
+			internal int power;
+			internal int end;
+			internal global::System.Exception? thrown;
+
+			internal void Run()
+			{
+				try
+				{
+					var reader = new Reader_DotGram_Sum(this.whole.Span, this.ways, this.whole);
+
+					reader.failure = this.failure;
+					reader.probes = this.probes;
+
+					switch (this.which)
+					{
+						case 0: this.end = reader.Read_Sum_Sum(this.pos, this.power); break;
+					}
+
+					this.failure = reader.failure;
+					this.probes = reader.probes;
+				}
+				catch (global::System.Exception caught)
+				{
+					this.thrown = caught;
+				}
+			}
+		}
+
 		/// <summary>The whole input as <c>Sum</c>, read by methods.</summary>
-		static int Recognize_Sum_Whole(global::System.ReadOnlySpan<char> text, int pos, int power, ref Failure failure, out int value)
+		static int Recognize_Sum_Whole(global::System.ReadOnlySpan<char> text, int pos, int power, ref Failure failure, out int value, global::System.ReadOnlyMemory<char> parserWhole)
 		{
 			var ways = Ways.Rent();
 			var values = DirectValues.Rent();
 
 			try
 			{
-				var reader = new Reader_DotGram_Sum(text, ways);
+				var reader = new Reader_DotGram_Sum(text, ways, parserWhole);
 
 				reader.failure = failure;
 

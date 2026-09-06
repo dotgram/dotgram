@@ -13899,3 +13899,45 @@ begins.
 
 A C# 8 struct auto-defaults nothing, so the counter is assigned in the reader's constructor —
 74 tests said so before they said anything else.
+
+## Built: a reading that runs the stack low goes on with it elsewhere
+
+`EnsureSufficientExecutionStack` threw, and the throw came out through the whole descent and
+out of `TryParse`: a thousand brackets cost the parse. It does not any more. The probe is
+`TryEnsureSufficientExecutionStack` now, and where it says no the reading is carried onto a
+stack of its own and goes on from the rule it was in:
+
+```csharp
+public int Read_Binary(int pos, int power)
+{
+    if ((probes++ & 63) == 0 && !RuntimeHelpers.TryEnsureSufficientExecutionStack())
+        return Deepen_DotGram(pos, 4, power);
+```
+
+`--depth 1000000` and `--depth 4000000` both threw before and both answer `ok` now. There is
+no ceiling: a reading deep enough to run the new stack low probes again and takes another,
+for as long as there is memory to take one with.
+
+**What crosses, and what cannot.** The reader is a `ref struct` and holds the input as a span,
+and a span belongs to the thread whose stack it was made on. So everything else crosses — the
+tape, the tables, the registers, the failure, the position — in a class shaped like the
+reader, and the reader is made again on the other side. The input crosses as a
+`ReadOnlyMemory<char>`, made once beside the span it is the same characters as and handed down
+from the publication; `.Span` on the far side is the same reading of the same array.
+
+Three things the shape decided.
+
+**A window has no whole input** (§6.3), so a streamed reading hands `default` and `Deepen`
+throws exactly as it always did — one test on a path that was already exceptional.
+
+**`Probes` is asked of the call graph, not of the back edges.** The publications are written
+before the recognizers and the back edges are found while writing them, so the two halves of
+the signature would have disagreed. A back edge means a cycle, so a cycle is what both halves
+agree about. And only a reading rendered as a reader takes the parameter at all — the
+automaton and the flat rendering have no reader to hand it to, which 26 tests said clearly.
+
+**Only what can change comes back.** What the reader is handed is readonly and did not move;
+its failure and its registers did.
+
+Neutral where it does not fire: SQL's immediate carrier 4,175 ns against 4,199 on the long
+condition, the sum 1,917 against 1,981.
