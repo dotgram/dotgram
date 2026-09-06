@@ -13687,3 +13687,53 @@ than a defect to be optimized away. Three ways out, and the report is what tells
 The third is where the work is, and it is the same auto-factoring that is already on the
 list. What has changed is that there is now a report saying exactly which five sites to
 factor and what each of them is holding hostage.
+
+## Built: left-factoring shares a prefix, not a head
+
+The pass compared one node. Two alternatives of a lexical grammar begin with a word
+boundary, a keyword, a lookahead for the end of that word, and the trivia between tokens —
+four nodes before anything tells them apart — and `SameShape` knew none of `Behind`,
+`Lookahead` or `Element`, so it did not find even the first. `CASE x WHEN` and `CASE WHEN`
+in standard SQL each read the keyword for themselves, and the one tried first unwound the
+log for the one tried second.
+
+A run is now the longest common prefix over the alternatives that share it, and the emitted
+reader reads the keyword once and switches on the token after it:
+
+```csharp
+case '4':                     // CASE, read once
+    p += 1;
+    c = text[p];
+    switch (c)
+    {
+        case '7':             // WHEN — the searched form
+```
+
+Three things bound it, and each is a bug that was hit on the way.
+
+**The prefix has to read something.** A lookbehind shared by every alternative of a rule is
+a run of them all with a prefix of one node that consumes nothing: folding it moves every
+alternative a level down and saves not one comparison. Rejected, so the pass looks past it
+and finds the pair that really does share a keyword.
+
+**Past the first node it may not be a capture.** One head survives a fold and the rest are
+dropped; the name a capture binds is what `Renamable` answers for, and it answers for one.
+
+**Past a prefix of one, every alternative keeps a tail.** An alternative folded away to
+nothing is an empty alternative in the residue, which matches everywhere — and a repetition
+above it becomes a loop that reads nothing. That one cost an hour: the test host spun at a
+hundred percent with no failure and no output, and what named it was a sampled trace whose
+only non-waiting frame was `dynamicClass.lambda_method` — a compiled emitted parser, looping.
+A prefix of one keeps the old shape, empty tails and all, which is what `Committed` exists to
+answer for; the cap applies only above it.
+
+`Replay` learns the matching fact: a choice whose alternatives are told apart by their first
+token does not replace a failed reading with a sibling's, so a reading put back there is lost
+rather than replayed.
+
+**What it did not do.** Neither yardstick moves: their inputs reach none of the newly folded
+rules. And SQL still stands at one valued rule of twenty-eight, because the three sites that
+hold the rest are not shared prefixes at all — `WHEN … THEN` refusing in the middle of a `+`,
+`RowValueConstructor` before a `PredicateTail` that may not be there, and the parenthesized
+row. Those are ordered choice doing what ordered choice is for, and factoring has nothing to
+say about them.
