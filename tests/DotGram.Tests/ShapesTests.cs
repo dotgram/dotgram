@@ -179,14 +179,15 @@ public sealed class ShapesTests
 				var graph  = split?.Syntax ?? whole;
 				var report = Shapes.Of(graph, overKinds: split is not null);
 				var ways   = WaysIn(compiled.Sources[0].Text, graph);
+				var stands = Replay.Of(graph);
 
 				seen++;
-				totals.Add(report, ways, split is not null);
+				totals.Add(report, ways, stands, split is not null);
 
 				var name = Path.GetFileNameWithoutExtension(file) +
 					(grammars.Count > 1 ? $" #{grammars.IndexOf((text, lexical)) + 1}" : "");
 
-				written.Append($"{name,-32} {(split is not null ? "kinds" : "chars"),-5}  {report.Summary()}; {ways.Count} on ways\n");
+				written.Append($"{name,-32} {(split is not null ? "kinds" : "chars"),-5}  {report.Summary()}; {ways.Count} on ways; {Standing(report, stands)} build where read (stands/keeps/valued)\n");
 
 				// The yardstick, in full: the grammar whose generated parser is measured against
 				// the hand-written one.
@@ -194,6 +195,7 @@ public sealed class ShapesTests
 				{
 					tables.Append($"\n=== {name}\n{report.Table()}");
 					tables.Append($"on ways: {string.Join(", ", ways.Select(one => one.Name).OrderBy(one => one, StringComparer.Ordinal))}\n");
+					tables.Append(Replayed(report, stands));
 				}
 			}
 		}
@@ -204,6 +206,38 @@ public sealed class ShapesTests
 		File.WriteAllText(Path.Combine(root, ".work", "shapes.txt"), written.ToString());
 
 		Assert.True(seen >= 20, $"Only {seen} grammars were reported.");
+	}
+
+	/// <summary>How many of a grammar's valued rules could build where they are read.</summary>
+	static string Standing(Shapes.Report report, Replay.Report stands)
+	{
+		var valued = report.Rules.Where(one => one.Carrier != Shapes.Carrier.None).ToList();
+
+		return $"{valued.Count(one => stands.Stands(one.Symbol))}"
+			+ $"/{valued.Count(one => stands.Keeps(one.Symbol))}/{valued.Count}";
+	}
+
+	/// <summary>Why each valued rule of the yardstick may be read where the reading does not stand.</summary>
+	static string Replayed(Shapes.Report report, Replay.Report stands)
+	{
+		var written = new StringBuilder("builds where read: ");
+		var valued  = report.Rules.Where(one => one.Carrier != Shapes.Carrier.None)
+			.OrderBy(one => one.Symbol.Name, StringComparer.Ordinal).ToList();
+
+		written.Append(string.Join(
+			", ",
+			valued.Where(one => stands.Stands(one.Symbol)).Select(one => one.Symbol.Name)));
+		written.Append("\n\nreplayed:\n");
+
+		foreach (var one in valued)
+		{
+			if (stands.Stands(one.Symbol))
+				continue;
+
+			written.Append($"  {one.Symbol.Name,-30} {stands.Rules[one.Symbol]}\n");
+		}
+
+		return written.ToString();
 	}
 
 	/// <summary>
@@ -223,9 +257,10 @@ public sealed class ShapesTests
 	sealed class Totals
 	{
 		int _grammars, _rules, _valued, _structs, _classes, _cycles, _folds, _guarded, _gathering, _climbing;
-		int _entries, _streaming, _recovering, _onWays, _overKinds;
+		int _entries, _streaming, _recovering, _onWays, _overKinds, _standing;
 
-		public void Add(Shapes.Report report, HashSet<RuleSymbol> ways, bool overKinds)
+		public void Add(
+			Shapes.Report report, HashSet<RuleSymbol> ways, Replay.Report stands, bool overKinds)
 		{
 			_grammars++;
 			_rules      += report.Rules.Count;
@@ -241,6 +276,8 @@ public sealed class ShapesTests
 			_streaming  += report.Entries.Count(one => one.Streams);
 			_recovering += report.Recovers ? 1 : 0;
 			_onWays     += ways.Count;
+			_standing   += report.Rules.Count(
+				one => one.Carrier != Shapes.Carrier.None && stands.Stands(one.Symbol));
 			_overKinds  += overKinds ? 1 : 0;
 		}
 
@@ -248,6 +285,7 @@ public sealed class ShapesTests
 			$"{_grammars} grammars ({_overKinds} over kinds): {_rules} rules, {_valued} valued, " +
 			$"{_structs} structs, {_classes} classes in {_cycles} cycles; {_folds} folds, {_guarded} guarded, " +
 			$"{_gathering} gathering, {_climbing} climbing; {_onWays} on ways; " +
+			$"{_standing} of the valued build where read; " +
 			$"{_entries} entries, {_streaming} streaming, {_recovering} grammars recover\n";
 	}
 

@@ -13614,3 +13614,76 @@ costs about a third over building eagerly — that is measured and it is the lan
 not the generator's. What the plan claims is that the *three rules in four* that pay it for
 nothing should stop paying it, and that every other row of the table is a decision we are
 declining to make rather than one we cannot.
+
+## Built: which readings stand, and what the yardstick has been measuring
+
+Stage 0 of the plan above is the fact the carrier is chosen by, and it is now computed:
+`Grammar/Model/Replay.cs` answers, for every rule of a graph, whether a reading of it is
+always on the derivation that accepted. Three grades — it stands; it is *lost* only where
+the parse as a whole fails and hands nothing back; it is *replaced*, read and then thrown
+away while the parse goes on to succeed by another route — because only the third is a
+construction running on a derivation that did not stand.
+
+The report is in `.work/shapes.txt` beside the shapes:
+
+```
+SqlStandard92       28 valued; 0 on ways;  1/1/28  build where read (stands/keeps/valued)
+ExpressionLanguage  60 valued; 1 on ways;  6/7/60
+34 grammars         297 valued;            93 of the valued build where read
+```
+
+One rule in twenty-eight for SQL. And the reasons say it is not spread thin: **five sites
+in the grammar make the whole tree speculative**, and everything else is `Under` them.
+
+- `Predicate = row: RowValueConstructor & tail: PredicateTail`, standing as an alternative
+  of `BooleanPrimary` beside `'(' & SearchCondition & ')'`. The tail can refuse, and then
+  the other alternative reads the same text again.
+- `CASE`, twice: `"CASE" & operand: ValueExpression & whens: SimpleWhen+` before
+  `"CASE" & whens: SearchedWhen+`, and `SimpleWhen = "WHEN" & test: ValueExpression &
+  "THEN" & …` inside the `+`, where a turn that fails ends the repetition and the parse
+  goes on.
+- `RowValueConstructor`'s parenthesized row, and `Result` under the `CASE`s.
+
+### What this says about the yardstick
+
+`HandSqlTokens.BooleanPrimary` is this:
+
+```csharp
+var at = Predicate(i, out node);
+
+if (at >= 0)
+    return at;
+
+if (Kind(i) != Open)
+    return -1;
+
+at = SearchCondition(i + 1, out node);
+```
+
+`Predicate` calls `RowValueConstructor`, which builds `SqlNode`s, and then may refuse — and
+the nodes are dropped on the floor. **The hand-written parser does not keep §7.3 at all.**
+It builds where it reads and throws away what did not stand, which is exactly what the
+immediate carrier does and exactly what the tape exists not to do.
+
+So `tape / hand` has never been a ratio between two parsers doing the same work. It is the
+price of a promise only one of them makes: that a `=>` runs once, on the derivation that
+accepted, so that an author may write one that is not safe to run speculatively. The ratio
+that compares like with like is `immediate / hand`, and that one is **1.02 to 1.21** on the
+large SQL inputs and 1.06 to 1.27 on the expression language's.
+
+That does not make the tape's cost acceptable — it makes it a *contract* to be chosen rather
+than a defect to be optimized away. Three ways out, and the report is what tells them apart:
+
+1. **Where a rule stands, build where it is read.** Free, sound, no declaration. Ninety-three
+   valued rules across the repository qualify today; one of SQL's twenty-eight.
+2. **Where a rule is only ever lost, decide by what a construction does.** A value built on a
+   parse that then fails is handed to nobody; only an effect beyond the value can tell. That
+   is a narrower promise than §7.3 and a much cheaper one.
+3. **Where a rule is replaced, change the grammar or factor it automatically.** SQL's five
+   sites are the classic ambiguities — a predicate against a parenthesized condition, `CASE x
+   WHEN` against `CASE WHEN` — and each is a left-factoring the compiler could do. Factored,
+   the whole tree becomes rule 1, and the strong promise costs nothing.
+
+The third is where the work is, and it is the same auto-factoring that is already on the
+list. What has changed is that there is now a report saying exactly which five sites to
+factor and what each of them is holding hostage.
