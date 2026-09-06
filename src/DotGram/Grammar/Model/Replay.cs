@@ -158,9 +158,15 @@ public static class Replay
 				// A call inside an alternative stood unless something after it in that same
 				// alternative failed, which the sequence above is what says. What the choice
 				// adds is somewhere for such a failure to go: every alternative but the last
-				// has one behind it, and a reading put back there is replaced, not lost.
+				// has one behind it, and a reading put back there is replaced, not lost —
+				// unless the first token tells the alternatives apart, and then the one that
+				// began is the only one that could have, and no sibling replaces it.
+				var apart = Exclusive(alternatives, graph);
+
 				for (var i = 0; i < alternatives.Count; i++)
-					Walk(alternatives[i], taken, elsewhere || i + 1 < alternatives.Count, graph, found);
+					Walk(
+						alternatives[i], taken, elsewhere || !apart && i + 1 < alternatives.Count,
+						graph, found);
 
 				break;
 
@@ -199,6 +205,45 @@ public static class Replay
 
 				break;
 		}
+	}
+
+	/// <summary>
+	/// Whether at most one of these alternatives can begin where the choice stands: none
+	/// of them matches nothing, and no two of them begin with the same token.
+	/// </summary>
+	/// <remarks>
+	/// Where that holds, an alternative that failed cannot be replaced by a sibling: the
+	/// sibling would refuse at the very first token. The reading is still put back, but
+	/// nothing takes its place and the parse fails — which is <see cref="Because.Losing"/>
+	/// and not <see cref="Because.Follows"/>. This is the same fact the emitter asks
+	/// before it writes a choice as a switch, asked of the graph rather than of the
+	/// reader, so a report of it stands before anything is emitted.
+	/// </remarks>
+	static bool Exclusive(IReadOnlyList<Node> alternatives, RecognitionGraph graph)
+	{
+		if (alternatives.Count < 2)
+			return true;
+
+		var firsts = new FirstSets.First[alternatives.Count];
+
+		for (var i = 0; i < alternatives.Count; i++)
+		{
+			// One that matches nothing can stand in for any of the others.
+			if (FirstSets.Nullable(alternatives[i], graph))
+				return false;
+
+			firsts[i] = FirstSets.Of(alternatives[i], graph);
+
+			if (!firsts[i].IsKnown)
+				return false;
+		}
+
+		for (var i = 0; i < firsts.Length; i++)
+			for (var j = i + 1; j < firsts.Length; j++)
+				if (firsts[i].Overlaps(firsts[j]))
+					return false;
+
+		return true;
 	}
 
 	/// <summary>The reason already known, or the new one where nothing was known.</summary>

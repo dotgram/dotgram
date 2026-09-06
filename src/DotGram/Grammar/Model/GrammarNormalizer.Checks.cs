@@ -134,6 +134,15 @@ public sealed partial class GrammarNormalizer
 			(Node.Capture(_, var a), Node.Capture(_, var b))       => SameShape(a, b),
 			(Node.Call(var a, { Count: 0 }), Node.Call(var b, { Count: 0 })) => a == b,
 			(Node.Literal a, Node.Literal b)                       => a == b,
+			(Node.Element a, Node.Element b)                       => SameSet(a, b),
+			(Node.Behind(var a), Node.Behind(var b))               => SameSet(a, b),
+			(Node.Empty, Node.Empty)                               => true,
+			(Node.Glue, Node.Glue)                                 => true,
+
+			// A lookahead reads nothing, so two of the same shape are the same
+			// condition on what follows and may be shared like anything else.
+			(Node.Lookahead(var ap, var a), Node.Lookahead(var bp, var b))
+				=> ap == bp && SameShape(a, b),
 			(Node.Atomic(var a), Node.Atomic(var b))               => SameShape(a, b),
 
 			// The marks themselves are not compared: a mark changes nothing about what is
@@ -142,6 +151,18 @@ public sealed partial class GrammarNormalizer
 
 			_                                                      => false,
 		};
+
+	/// <summary>The same set of characters, compared by what is in it.</summary>
+	/// <remarks>
+	/// <see cref="Node.Element"/> is a record whose ranges are a list, so its own equality
+	/// compares that list by reference — two identical sets written twice are never equal
+	/// by it, which is exactly the case this asks about.
+	/// </remarks>
+	static bool SameSet(Node.Element one, Node.Element other) =>
+		one.IsNegated == other.IsNegated &&
+		one.Ranges.SequenceEqual(other.Ranges) &&
+		one.Categories.SequenceEqual(other.Categories) &&
+		one.References.SequenceEqual(other.References);
 
 	/// <summary>Whether reading this can reach that rule again, so the cost compounds.</summary>
 	bool Reaches(Node from, RuleSymbol rule)
