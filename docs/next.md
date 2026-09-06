@@ -13876,3 +13876,26 @@ If it ever has to be cheaper, the shape is not to drop it but to probe less ofte
 runtime reserves a margin far larger than one frame, so a check every sixteenth frame bounds
 the stack as well as a check at every one. What that needs and this does not have is a depth
 the emitted reader carries, which is a field and two more edits at every return.
+
+## Built: the stack is probed at the rule, once in sixty-four entries
+
+`EmitCall` wrote `EnsureSufficientExecutionStack()` at every back edge — 79 places in the
+expression language, 33 in standard SQL. It stands at the top of the rule now, and only for
+a rule a back edge re-enters: **10 places and 3**. And it is counted, `(probes++ & 63) == 0`,
+because the runtime reserves far more than sixty-four frames of a reader and a probe every
+sixty-fourth entry bounds the depth exactly as well as one at every entry.
+
+**It is neutral, and the earlier reading of what the guard costs was half wrong.** Taking the
+probe out altogether had moved the deep parentheses about a tenth; probing one time in
+sixty-four does not move them at all. The counter now ticks at the top of a rule, and a rule
+is entered more often than a back edge is taken — so what the probes stopped costing, the
+counting started. On SQL the tape went 9,073 to 8,869 ns on the long condition and the rest
+is inside the noise.
+
+Kept anyway, and not for the time. A probe at the top of a method is a place a reading can be
+**resumed** from, and a probe at a call site is not: the next step is for a stack that has run
+low to carry on rather than to throw away the parse, and that needs the check where the frame
+begins.
+
+A C# 8 struct auto-defaults nothing, so the counter is assigned in the reader's constructor —
+74 tests said so before they said anything else.

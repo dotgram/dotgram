@@ -225,7 +225,7 @@ sealed partial class Machine
 			var inner         = tape ? ReaderOf(rule) + "_Body" : ReaderOf(rule);
 
 			if (tape)
-				RenderWayBack(members, rule, DirectStrength(rule), seal: OverKinds);
+				RenderWayBack(members, rule, DirectStrength(rule), seal: OverKinds, deepens: Deepens(rule));
 
 			members.Line(
 				tape
@@ -243,6 +243,11 @@ sealed partial class Machine
 
 			using (members.Block($"public int {inner}(int pos{DirectStrength(rule)})"))
 			{
+				// The rule the way back into itself goes through, so the probe stands here and
+				// not at the call: one line a rule instead of one at every place that calls it.
+				if (!tape && Deepens(rule))
+					Probe(members);
+
 				members.Write(body);
 			}
 
@@ -307,20 +312,70 @@ sealed partial class Machine
 	/// rather than a thing to assume.
 	/// </para>
 	/// </remarks>
-	void RenderWayBack(Writer file, RuleSymbol rule, string strength, bool seal = false) =>
-		RenderWayBack(file, ReaderOf(rule), $"/// <summary><c>{rule.Name}</c>, and the way back into it.</summary>", strength, seal);
+	void RenderWayBack(
+		Writer file, RuleSymbol rule, string strength, bool seal = false, bool deepens = false) =>
+		RenderWayBack(
+			file, ReaderOf(rule), $"/// <summary><c>{rule.Name}</c>, and the way back into it.</summary>",
+			strength, seal, deepens);
+
+	/// <summary>Whether a way back into this rule can reach it again, and so deepen the stack.</summary>
+	bool Deepens(RuleSymbol rule)
+	{
+		foreach (var (_, called) in _backEdges)
+			if (ReferenceEquals(called, rule))
+			{
+				_probes = true;
+
+				return true;
+			}
+
+		return false;
+	}
+
+	/// <summary>
+	/// The stack, probed once in every sixty-four entries to a rule that can reach
+	/// itself, rather than at every call that could.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A grammar that recurses on input the author did not write can be handed a
+	/// thousand brackets, so the probe stays; what it does not have to be is one probe
+	/// per call. The runtime reserves far more than sixty-four frames of a reader,
+	/// so a probe every sixty-fourth entry bounds the depth exactly as well as one at
+	/// every entry and costs a counter and a mask.
+	/// </para>
+	/// <para>
+	/// Measured at 79 places in the expression language and 33 in standard SQL, worth
+	/// about a tenth of a deeply parenthesized parse (docs/next.md).
+	/// </para>
+	/// </remarks>
+	static void Probe(Writer file)
+	{
+		file.Line("if ((probes++ & 63) == 0)");
+		file.Then(
+			"global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();");
+		file.Line();
+	}
+
+	/// <summary>Whether any rule of this machine probes the stack, so the reader counts.</summary>
+	bool _probes;
 
 	/// <param name="seal">
 	/// Whether the ways the body opened are sealed once it has answered: a rule marked
 	/// <c>?</c> over kinds gives back inside itself, and once it has answered the answer
 	/// stands. Sealed rather than dropped, so that a replay reads the same decisions.
 	/// </param>
-	void RenderWayBack(Writer file, string name, string summary, string strength, bool seal = false)
+	void RenderWayBack(
+		Writer file, string name, string summary, string strength, bool seal = false,
+		bool deepens = false)
 	{
 		file.Line(summary);
 
 		using (file.Block($"public int {name}(int pos{strength})"))
 		{
+			if (deepens)
+				Probe(file);
+
 			file.Line("var s  = ways.Cursor;");
 			foreach (var line in Carrier.MarkRecords("lm"))
 				file.Line(line);
@@ -394,6 +449,13 @@ sealed partial class Machine
 		{
 			file.Line("readonly global::System.ReadOnlySpan<char> text;");
 			file.Line($"internal {CSharpEmitter.FailureType} failure;");
+
+			if (_probes)
+			{
+				file.Line("/// <summary>How many entries to a rule that can reach itself, for the stack probe.</summary>");
+				file.Line("int probes;");
+			}
+
 			file.Line($"readonly {WaysType} ways;");
 
 			foreach (var (type, name) in state)
@@ -411,6 +473,10 @@ sealed partial class Machine
 				file.Line("this.text    = text;");
 				file.Line("this.failure = default;");
 				file.Line("this.ways    = ways;");
+
+				// A C# 8 struct auto-defaults nothing, and the floor is C# 8.
+				if (_probes)
+					file.Line("this.probes  = 0;");
 
 				foreach (var (_, name) in state)
 					file.Line($"this.{name} = {name};");
@@ -1124,9 +1190,6 @@ sealed partial class Machine
 		void EmitCall(Writer code, Node call, RuleSymbol called)
 		{
 			var result = $"q{_calls++}";
-
-			if (machine._backEdges.Contains((owner, called)))
-				code.Line("global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();");
 
 			// The strength the operand is read at: what `<<` or `>>` recorded against this
 			// call, everything where nothing was recorded, and for the entry's own call of

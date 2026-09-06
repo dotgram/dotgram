@@ -2372,6 +2372,8 @@ namespace DotGram.Snapshots
 		{
 			readonly global::System.ReadOnlySpan<char> text;
 			internal Failure failure;
+			/// <summary>How many entries to a rule that can reach itself, for the stack probe.</summary>
+			int probes;
 			readonly Ways ways;
 
 			internal Reader_DotGram_Sum(global::System.ReadOnlySpan<char> text, Ways ways)
@@ -2379,11 +2381,15 @@ namespace DotGram.Snapshots
 				this.text    = text;
 				this.failure = default;
 				this.ways    = ways;
+				this.probes  = 0;
 			}
 
 			/// <summary><c>Sum</c>, and the way back into it.</summary>
 			public int Read_Sum_Sum(int pos, int power)
 			{
+				if ((probes++ & 63) == 0)
+					global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
+
 				var s  = ways.Cursor;
 				var lm  = ways.LogCount;
 				var lmR = ways.Records;
@@ -2516,7 +2522,6 @@ namespace DotGram.Snapshots
 					return -1;
 				}
 				p += 1;
-				global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
 				var q0 = Read_Sum_Sum(p, 2);
 				if (q0 < 0) return -1;
 				p = q0;
@@ -2560,7 +2565,6 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				var rb = ways.RefsCount;
-				global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
 				var q0 = Read_Sum_Sum(p, power);
 				if (q0 < 0) return -1;
 				p = q0;
