@@ -13828,3 +13828,27 @@ because the hand-written parser still cuts a fresh string for every one-letter n
 Only the reading over kinds has it. Over characters a cut is `text.Slice(from, length)
 .ToString()` written inline at each site, with no helper to put the table in; that is the
 same win waiting for the same treatment.
+
+## Measured: the same table over characters buys nothing here
+
+The token path keeps its one-character strings, so the character path was given the same
+treatment — a `Cut_DotGram` helper with the same table behind it, in place of the
+`text.Slice(from, length).ToString()` written at each site.
+
+`Rfc3986` is the repository's only character-mode parser that ships, and it says no:
+
+```
+http://a.b/c?d=e#f                       368 b -> 344 b
+https://user:pw@example.com:8080/…       576 b -> 576 b
+/a/b/c                                   272 b -> 272 b
+```
+
+One string on one input of five, and every time within noise. The reason is the grammar
+rather than the change: `Rfc3986` captures a scheme, a host, a path — whole runs — and
+almost never a single character. The token grammars are the opposite because an operator
+*is* a token, and that is where the win was.
+
+Reverted. Kept here so the next person does not spend the afternoon on it: the character
+path has the same hole and no grammar in this repository falls into it. A grammar that
+captures single characters over characters would, and if one ever ships the change is four
+lines and this is where they are.
