@@ -201,8 +201,7 @@ namespace DotGram.Parsers;
 		// `0xFFUL` and `0b1UL` are one rule specialized three times and not three rules.
 		Unsigned    (N) : @string = t: N & ['u' | 'U'] => @(t)
 		SignedLong  (N) : @string = t: N & ['l' | 'L'] => @(t)
-		UnsignedLong(N) : @string
-			= t: N & (['u' | 'U'] & ['l' | 'L'] | ['l' | 'L'] & ['u' | 'U']) => @(t)
+		UnsignedLong(N) : @string = t: N & (['u' | 'U'] & ['l' | 'L'] | ['l' | 'L'] & ['u' | 'U']) => @(t)
 
 		Decimals : @string = t: Number & ['m' | 'M'] => @(t)
 		Doubles  : @string = t: Number & ['d' | 'D'] => @(t)
@@ -253,8 +252,7 @@ namespace DotGram.Parsers;
 
 	Lambda : @LambdaExpression
 		= '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>" & body: Value
-		=> @(Expression.Lambda(
-			context.Returning(body), ExpressionLanguage.Taking(first, rest)))
+		=> @(Expression.Lambda(context.Returning(body), ExpressionLanguage.Taking(first, rest)))
 
 	// Each type names itself in C#, so `typeof(int)` is checked where it is written and
 	// a word that is no type is not a declaration — the grammar refusing that reading
