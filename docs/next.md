@@ -14499,3 +14499,44 @@ question without choosing it, so `GRAM5008` can ask before it offers. A grammar 
 reader is not offered one; a grammar the carrier would refuse is not offered one. What is
 left is an offer that means something.
 
+## An extent is two positions the reader already has
+
+`Carrier = GramCarrier.Immediate` refused any grammar with a `@SourceSpan`-typed rule in
+it, for a reason that reads oddly once written down: *an extent has no record to be the span
+of*. It has no record because it needs none. The tape reads an extent off the record the rule
+stands on — that is `Ways.EndAt`, and `Materialize` never puts an extent anywhere, because
+the record's own two positions are the answer. The immediate carrier has those two positions
+as reader locals already: `Begin` is handed them (`DirectPositions` returns true for an
+extent for exactly this reason), and `End` has a `Span()` helper it was using for factories
+that ask for `parserSpan`.
+
+So the whole of it is one arm in `End`:
+
+```csharp
+if (machine.IsExtent(rule))
+    return $"{into} = {Span()};";
+```
+
+and a register to put it in. Not a numbered one: `SourceSpan` is deliberately left out of
+the value tables (`CollectValueTypes` skips it by name) because nothing ever stores a span,
+so the register is `lastSpan`, and it stands only where the grammar has an extent.
+
+**What is still refused, and now says which.** An extent *collected across the turns of a
+repetition* — `spans: Where*` — would gather onto a stack of spans, and there is no such
+stack for the same reason there is no table. `GRAM5007` says so in those words rather than
+refusing every grammar that mentions a span:
+
+```
+'Where' is an extent collected across turns
+```
+
+`CarrierTests` gained an extent shape, held to the tape's answers on every input by the
+theory that was already there — and the theory asserts the carrier was actually taken, so a
+shape that quietly fell back could not pass it.
+
+**Recovery is the other half and is not a carrier's problem.** A recovering grammar is
+refused by `CanDirect` before a carrier is ever asked — "it recovers from a bad element" —
+so teaching `ImmediateCarrier` to carry a recovery would change nothing at all until the
+reader itself learns to recover. That is the reader's driver, not the carrier's store, and
+it is a piece of work of a different size.
+

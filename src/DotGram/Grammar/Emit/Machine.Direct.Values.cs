@@ -69,6 +69,23 @@ sealed partial class Machine
 	/// how the step's factory takes it (§4.3), and the record of a base holding what the
 	/// rule collects, as the base's factory takes it.
 	/// </summary>
+	/// <summary>Whether any rule collects this one across the turns of a repetition.</summary>
+	/// <remarks>
+	/// Which is a stack to gather on, of the collected rule's own type. Asked by the
+	/// immediate carrier about an extent: it can carry one as a value, having the two
+	/// positions in hand, and cannot gather one, there being no stack of spans — nothing
+	/// else ever stores a span, so the value tables leave the type out.
+	/// </remarks>
+	bool Gathered(RuleSymbol rule)
+	{
+		foreach (var owner in _rules)
+			foreach (var member in DirectMembers(owner))
+				if (member.Shape == MemberShape.Records && ReferenceEquals(member.Member.Rule, rule))
+					return true;
+
+		return false;
+	}
+
 	List<DirectMember> DirectMembers(RuleSymbol rule, int factory = -1)
 	{
 		var members  = _graph.Results[rule];

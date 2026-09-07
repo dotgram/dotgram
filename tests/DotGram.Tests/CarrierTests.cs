@@ -64,6 +64,18 @@ public sealed class CarrierTests
 			"parse Start\n",
 			["ab,cd,e", "ab", "ab,,cd", ""]),
 
+		// An extent has no record to be the span of and needs none: the two positions are
+		// the reader's own locals. Read here beside a rule that builds and a rule that
+		// collects, because what a carrier does to one it must do to all three.
+		("an extent",
+			"trivia = ' '*\n" +
+			"Where : @SourceSpan = ['a'..'z']+\n" +
+			"Name  : @string     = t: ['a'..'z']+ => @(t)\n" +
+			"Pair  : @string     = n: Name & '=' & w: Where => @(n + \"@\" + w.Start + \":\" + w.Length)\n" +
+			"Start : @string     = first: Pair & (',' & rest: Pair)* => @(first + string.Join(\"|\", rest))\n" +
+			"parse Start\n",
+			["ab=cd", "ab = cd , ef = gh", "ab=", "", "ab=cd,"]),
+
 		("a guard over a record",
 			"Start : @string = d: Digits & when @(d.Length < 3) => @(\"<\" + d + \">\")\n" +
 			"Digits : @string = t: ['0'..'9']+ => @(t)\n" +

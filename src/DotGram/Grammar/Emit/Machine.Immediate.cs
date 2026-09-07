@@ -123,10 +123,11 @@ sealed partial class Machine
 	/// A guard costs nothing extra here: what it asks for has been built already.
 	/// </para>
 	/// <para>
-	/// <b>What it does not carry yet</b>, and refuses so that the tape does instead: marks
-	/// and parser state (§7.8), extents (a <c>SourceSpan</c>-typed rule has no record to be
-	/// the span of), and recovery. Each is a shape the first measurement did not need and
-	/// the second carrier can add.
+	/// <b>What it does not carry yet</b>, and refuses so that the tape does instead:
+	/// recovery, and an extent collected across the turns of a repetition — the stack to
+	/// collect on would be a stack of spans, and nothing else ever stores one. A single
+	/// extent is carried: a <c>SourceSpan</c>-typed rule has no record to be the span of,
+	/// and needs none, the two positions being the reader's own locals.
 	/// </para>
 	/// </remarks>
 	sealed class ImmediateCarrier(Machine machine) : ValueCarrier
@@ -176,6 +177,12 @@ sealed partial class Machine
 			{
 				for (var i = 0; i < machine._valueTypes.Count; i++)
 					yield return (machine._valueTypes[i], "last" + i.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
+
+				// A span is not one of the tables — nothing stores one, the tape reading an
+				// extent off the record it stands on — so its register is named rather than
+				// numbered, and stands only where the grammar has an extent to put in it.
+				if (machine._rules.Any(machine.IsExtent))
+					yield return ("SourceSpan", "lastSpan");
 
 				// How deep the §7.8 marks stand. A field for the same reason the registers
 				// are: it is written at every mark, and a mark is written wherever the
@@ -341,6 +348,12 @@ sealed partial class Machine
 			string Text() => start is null ? "string.Empty" : machine.Cut(start, $"{end} - {start}");
 			string Span() => start is null ? "default" : machine.Span(start, $"{end} - {start}");
 
+			// An extent is where it matched and nothing else — no members to pass and no
+			// factory to call. The tape reads it off the record the rule stands on; here the
+			// two positions are the reader's own locals and the span is made from them.
+			if (machine.IsExtent(rule))
+				return $"{into} = {Span()};";
+
 			if (_factory < 0)
 			{
 				// No `=>`: the value is the members, in the order the rule lists them.
@@ -370,7 +383,8 @@ sealed partial class Machine
 
 		public override string Last(RuleSymbol rule) => Register(machine._results.ValueOf(rule));
 
-		string Register(string valueType) => $"last{machine.TableFor(valueType)}";
+		string Register(string valueType) =>
+			valueType == "SourceSpan" ? "lastSpan" : $"last{machine.TableFor(valueType)}";
 
 		public override string PushText(int slot, string from, string to) =>
 			$"values.PushText({machine.Cut(from, $"{to} - {from}")});";
@@ -427,9 +441,13 @@ sealed partial class Machine
 			if (machine._graph.Recoveries.Count > 0)
 				return "it recovers";
 
+			// An extent is carried: its value is the two positions the reader already has.
+			// Collecting one is not, and for a reason worth saying rather than hiding — the
+			// stack to collect on would be a stack of spans, and there is no table for one
+			// because nothing else ever stores a span.
 			foreach (var rule in machine._rules)
-				if (machine.IsExtent(rule))
-					return $"'{rule.Name}' is an extent";
+				if (machine.IsExtent(rule) && machine.Gathered(rule))
+					return $"'{rule.Name}' is an extent collected across turns";
 
 			return null;
 		}
