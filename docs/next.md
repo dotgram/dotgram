@@ -15387,3 +15387,48 @@ Both are fixed the same way, with the lookahead the standard's own `Identifier` 
 against its reserved words: `?!SourceClause & Identifier`. The tell is always the same, and
 it is a bad one — the parse stops one token *past* the clause that was swallowed, so the
 position names the wrong thing and nothing looks wrong at the place the mistake is.
+
+## The drawing inside `MATCH`
+
+The largest single thing left on the work list, and the only part of T-SQL that is not an
+expression language at all. `MATCH` takes a picture: nodes are names, edges are names in
+parentheses, and an arrow says which way an edge points.
+
+```sql
+WHERE MATCH(Person1-(friend)->Person0<-(friend2)-Person2)
+WHERE MATCH(SHORTEST_PATH(Person1(-(fo)->Person2){1,3}))
+WHERE MATCH(LAST_NODE(n1) = LAST_NODE(n2))
+```
+
+Forty lines of notation for the whole of it: the simple pattern and its chains, `AND` as
+the only connective a drawing has, `SHORTEST_PATH` and the arbitrary-length pattern it takes
+written edge-first or node-first, both quantifiers, and the predicate that compares the last
+node of two paths. Beside it, `FOR PATH` on a source and `WITHIN GROUP (GRAPH PATH)` on a
+call, which are how the rest of the statement knows a path is being walked.
+
+**The arrows are two characters read as two, and that is the one interesting decision in
+it.** Writing `<-` as a lexeme would produce that token everywhere, and `a <-1` — a
+comparison against a negative number — would stop being one. There is nothing to pay for
+reading them separately, because a drawing appears only inside `MATCH (…)`: the only thing
+admitted that nobody writes is a space between the two characters. There is a theory for
+`a <-1` beside the theories for the drawings, so the trade is checked rather than asserted.
+
+And a `$` in front of a name is part of it: `$PARTITION.f1(x)` names an index's partition
+function, and `$node_id`, `$edge_id`, `$from_id` and `$to_id` are the columns a graph table
+has that nobody declared.
+
+### Where that leaves it
+
+```
+                                     ScriptDom   the engine
+of what the other parser calls a query   74.4%
+both read                                            1478
+the engine reads and this does not                    377
+this reads and the engine does not                     36
+```
+
+**68.5% to 74.4%**, and the work list against the engine is 377 where it was 643 two
+sessions ago. What is left in it is mostly the rowset functions with argument grammars of
+their own — `OPENROWSET (BULK …)`, `OPENJSON (…) WITH (col INT '$.path')`, `SEMANTICKEYPHRASETABLE`,
+`CHANGETABLE`, `OPENXML` — which are a dozen small languages rather than one, and the
+`AI_GENERATE_EMBEDDINGS (… USE MODEL m)` family.

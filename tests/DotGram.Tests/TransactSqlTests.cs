@@ -406,6 +406,56 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>The smaller shapes the work list named, one line of grammar each.</summary>
+	[Theory]
+	[InlineData("SELECT CASE a WHEN NULL THEN 1 ELSE 2 END FROM t")]
+	[InlineData("SELECT CASE tz WHEN NULL THEN d AT TIME ZONE 'UTC' ELSE d END FROM t")]
+	[InlineData("SELECT * FROM .[MyDb].dbo.t1")]
+	[InlineData("SELECT [db].$PARTITION.f1 (@a) FROM t")]
+	[InlineData("SELECT $PARTITION.f1 (12 + 1) FROM t")]
+	[InlineData("SELECT * FROM master..sysprocesses AS p CROSS APPLY ::fn_get_sql (p.sql_handle) AS s")]
+	[InlineData("WITH XMLNAMESPACES (DEFAULT 'u') SELECT c1 FROM t1")]
+	[InlineData("WITH XMLNAMESPACES ('u' AS ns) SELECT c1 FROM t1 FOR XML AUTO")]
+	[InlineData("SELECT a FROM t WHERE a IS DISTINCT FROM ANY (SELECT b FROM u)")]
+	[InlineData("SELECT a FROM t WHERE a IS NOT DISTINCT FROM ALL (SELECT b FROM u)")]
+	public void The_smaller_shapes_read(string input)
+	{
+		var match = TransactSql.TryParseSelect(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>The graph pattern, which is a drawing rather than an expression.</summary>
+	/// <remarks>
+	/// Every one of these is from the published `MATCH` syntax or its examples. The arrows
+	/// are two characters read as two: a `&lt;-` lexeme would be produced everywhere, and
+	/// `a &lt;-1` would stop being a comparison with a negative number.
+	/// </remarks>
+	[Theory]
+	[InlineData("SELECT p2.name FROM Person p1, friend, Person p2 WHERE MATCH (p1-(friend)->p2)")]
+	[InlineData("SELECT p2.name FROM Person p1, friend, Person p2 WHERE MATCH (p2<-(friend)-p1)")]
+	[InlineData("SELECT a FROM P p1, f f1, P p2, f f2, P p0 WHERE MATCH (p1-(f1)->p0<-(f2)-p2)")]
+	[InlineData("SELECT a FROM P p1, f f1, P p2, f f2, P p0 WHERE MATCH (p1-(f1)->p0 AND p2-(f2)->p0)")]
+	[InlineData("SELECT a FROM P p1, f, P p2, P p3 WHERE MATCH (p1-(f)->p2-(f)->p3)")]
+	[InlineData("SELECT a FROM P p1, f FOR PATH AS fo, P FOR PATH AS p2 WHERE MATCH (SHORTEST_PATH (p1(-(fo)->p2){1,3}))")]
+	[InlineData("SELECT a FROM P p1, f FOR PATH AS fo, P FOR PATH AS p2 WHERE MATCH (SHORTEST_PATH (p1(-(fo)->p2)+))")]
+	[InlineData("SELECT a FROM N n1, E e, N n2 WHERE MATCH (LAST_NODE (n1)-(e)->n2)")]
+	[InlineData("SELECT a FROM N n1, N n2 WHERE MATCH (LAST_NODE (n1) = LAST_NODE (n2))")]
+	[InlineData("SELECT a FROM P p1, f, P p2 WHERE MATCH (p1-(f)->p2) AND p1.name = 'Alice'")]
+	[InlineData("SELECT STRING_AGG (p2.name, '->') WITHIN GROUP (GRAPH PATH) FROM P p2")]
+	[InlineData("SELECT $node_id FROM Person")]
+	[InlineData("SELECT p.$edge_id, p.$from_id, p.$to_id FROM friend AS p")]
+
+	// And the comparison the arrows must not have taken away.
+	[InlineData("SELECT a FROM t WHERE a < -1")]
+	[InlineData("SELECT a FROM t WHERE a <-1")]
+	public void The_graph_pattern_reads(string input)
+	{
+		var match = TransactSql.TryParseSelect(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	// ── And builds the standard's tree ───────────────────────────────────────────
 
 	/// <summary>

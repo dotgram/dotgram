@@ -94,6 +94,14 @@ TsqlReserved = ("ADD"i | "ALL"i | "ALTER"i | "AND"i | "ANY"i | "AS"i | "ASC"i | 
 	| "WITH"i | "WRITETEXT"i)
 	& ?!Sql92.Lexical.IdentifierPart
 
+// ── §6.20's simple when, widened ───────────────────────────────────────────
+//
+// `CASE x WHEN NULL THEN …` compares against the null nothing equals, which is useless
+// and legal — the standard's `<when operand>` is a value expression and null is not one,
+// and T-SQL admits it where the standard does not.
+TsqlSimpleWhen : @SqlNode.When
+	= "WHEN"i & test: Result & "THEN"i & result: Result => @(new SqlNode.When(test, result))
+
 // ── §7.10's query expression, narrowed ─────────────────────────────────────
 //
 // **`ALL` belongs to `UNION` and to nothing else.** The standard writes it on all three
@@ -118,10 +126,23 @@ TsqlQueryExpression : @SqlNode
 // them. Written as a dot that stands in front of another dot rather than as an optional
 // name, so that `t.*` still ends where it did — a name that could end with a dot would
 // eat the one the star needs.
-TsqlQualifiedName = Identifier & NamePart*
+TsqlQualifiedName
+	= Identifier     & NamePart*
+	| PartitionName  & NamePart*
+	| SystemFunction & NamePart*
+	| NamePart+
 
 NamePart     = '.' & NamePartName
-NamePartName = Identifier | ?='.'
+NamePartName = Identifier | PartitionName | ?='.'
+
+// A name the `$` is part of rather than the money literal it opens elsewhere:
+// `$PARTITION.f1(x)` names an index's partition function, and `$node_id`, `$edge_id`,
+// `$from_id` and `$to_id` are the columns a graph table has and nobody declared.
+PartitionName = '$' & Identifier
+
+// The older spelling of a system table-valued function, which puts the `::` in front of
+// the name instead of between two of them: `CROSS APPLY ::fn_get_sql (h)`.
+SystemFunction = "::" & Identifier
 
 // ── §5.2's identifier, widened ──────────────────────────────────────────────
 //
@@ -283,6 +304,7 @@ CallTail
 	| Over
 Nulls       = "RESPECT"i & "NULLS"i | "IGNORE"i & "NULLS"i
 WithinGroup = "WITHIN"i & "GROUP"i & '(' & OrderByClause & ')'
+			| "WITHIN"i & "GROUP"i & '(' & "GRAPH"i & "PATH"i & ')'
 
 // The window a call is computed over. Read and dropped, as `TOP` is: it says which
 // rows the call sees and not what the call is, and the tree this grammar builds is
@@ -371,12 +393,17 @@ TsqlPredicate : @SqlNode
 	| name: ("CONTAINS"i | "FREETEXT"i | "TSEQUAL"i | "REGEXP_LIKE"i | "UPDATE"i)
 	  & '(' & args: Arguments? & ')'
 		=> @(new SqlNode.Call(name, args ?? SqlNode.None))
+	| m: GraphMatch => @(m)
 	| row: RowValueConstructor & tail: PredicateTail => @(SqlNode.Predicated(row, tail))
 	| left: RowValueConstructor & "IS"i & negated: "NOT"i? & "DISTINCT"i & "FROM"i
-	  & right: RowValueConstructor
+	  & other: DistinctTail
 		=> @(new SqlNode.Predicate(
 				 SqlPredicateKind.Comparison, negated is not null,
-				 new SqlNode[] { left, right }, null, "DISTINCT"))
+				 new SqlNode[] { left, other }, null, "DISTINCT"))
+
+DistinctTail : @SqlNode
+	= q: Quantifier & sub: TableSubquery => @(sub)
+	| right: RowValueConstructor         => @(right)
 
 // ── §7.9's query specification, widened ─────────────────────────────────────
 //
@@ -555,6 +582,7 @@ PivotNames = QualifiedName & (',' & QualifiedName)*
 // Which version of a temporal table to read. `FOR` is reserved, so nothing here can be
 // mistaken for the correlation name it stands in front of.
 SystemTime = "FOR"i & "SYSTEM_TIME"i & SystemTimeWhen
+		   | "FOR"i & "PATH"i
 
 SystemTimeWhen
 	= "AS"i & "OF"i & ValueExpression
@@ -666,7 +694,14 @@ TsqlDirectSelect : @SqlNode
 //
 // The definition is a query expression and not a whole statement: the syntax forbids a
 // `WITH` inside a `WITH`, and writing it that way is how the grammar says so.
-WithClause    = "WITH"i & CteDefinition & (',' & CteDefinition)*
+WithClause    = "WITH"i & XmlNamespaces & (',' & CteDefinition)*
+			  | "WITH"i & CteDefinition & (',' & CteDefinition)*
+
+// The namespaces a `FOR XML` may use, declared where a named query is declared and in
+// the same breath as one.
+XmlNamespaces = "XMLNAMESPACES"i & '(' & XmlNamespace & (',' & XmlNamespace)* & ')'
+XmlNamespace  = "DEFAULT"i & ValueExpression
+			  | ValueExpression & "AS"i & Identifier
 CteDefinition = Identifier & ('(' & ColumnList & ')')? & "AS"i & '(' & CteBody & ')'
 CteBody       = QueryExpression & OrderByClause? & OffsetFetch?
 
@@ -706,6 +741,7 @@ namespace Dialect with (
 	DirectSelect              = TsqlDirectSelect,
 	QualifiedName             = TsqlQualifiedName,
 	QueryExpression           = TsqlQueryExpression,
+	SimpleWhen                = TsqlSimpleWhen,
 	DataType                  = TsqlDataType,
 	Predicate                 = TsqlPredicate)
 {
@@ -719,3 +755,62 @@ parse Dialect.Select    as ParseSelect
 parse Dialect.Query     as ParseQuery
 parse Dialect.Condition as ParseSearchCondition
 parse Dialect.Value     as ParseValueExpression
+
+// ── The graph pattern, which is a language of its own ───────────────────────
+//
+// `MATCH` is a predicate whose operand is not an expression at all: it is a drawing.
+// Nodes are names, edges are names in parentheses, and an arrow between them says which
+// way the edge points — `Person1-(friend)->Person2`. Written from the published `MATCH`
+// syntax, and the whole of it is here: the simple pattern, the arbitrary-length one that
+// `SHORTEST_PATH` takes, its two quantifiers, and the predicate that compares the last
+// node of two paths.
+//
+// **The arrows are written as two characters and not as one lexeme, deliberately.** A
+// `<-` token would be produced everywhere, and `a <-1` — a comparison with a negative
+// number — would stop being one. There is no ambiguity to pay for it: a drawing appears
+// only inside `MATCH (…)`, so the two characters can be read as two and the only thing
+// admitted that nobody writes is a space between them.
+GraphMatch : @SqlNode
+	= "MATCH"i & '(' & p: GraphPattern & ')' => @(new SqlNode.Call("MATCH", p))
+
+GraphPattern : @SqlNode[]
+	= first: GraphAnd & (',' & rest: GraphAnd)* => @(SqlNode.Listed(first, rest))
+
+// `AND` inside a drawing joins two drawings, and it is the only connective there is:
+// the syntax says `OR` and `NOT` are not supported in a pattern.
+GraphAnd : @SqlNode
+	= first: GraphItem & ("AND"i & rest: GraphItem)* => @(first)
+
+GraphItem : @SqlNode
+	= "SHORTEST_PATH"i & '(' & p: GraphAnd & ')' => @(p)
+	| '(' & p: GraphAnd & ')'                    => @(p)
+	| p: GraphLengthPattern & n: GraphNode       => @(n)
+	| head: GraphNode & t: GraphItemTail         => @(head)
+
+GraphItemTail : @SqlNode
+	= '=' & n: GraphNode  => @(n)
+	| s: GraphStep+       => @(s[0])
+
+GraphStep : @SqlNode
+	= e: GraphEdge & n: GraphNode => @(n)
+	| p: GraphLengthPattern       => @(p)
+
+// A node is a table's name or the alias it was given in the `FROM` clause, and
+// `LAST_NODE` names the far end of a path rather than a table.
+GraphNode : @SqlNode
+	= "LAST_NODE"i & '(' & name: QualifiedName & ')' => @(new SqlNode.Column(name))
+	| name: QualifiedName                            => @(new SqlNode.Column(name))
+
+// An edge points one way or the other and must say which.
+GraphEdge
+	= '<' & '-' & '(' & QualifiedName & ')' & '-'
+	| '-' & '(' & QualifiedName & ')' & '-' & '>'
+
+// The pattern `SHORTEST_PATH` repeats, with the regular expression's own two quantifiers.
+// It is written edge first or node first, and the difference is which end the node that
+// bounds it stands at.
+GraphLengthPattern : @SqlNode
+	= '(' & s: GraphStep+ & ')' & GraphQuantifier => @(s[0])
+	| '(' & n: GraphNode & GraphEdge & ')' & GraphQuantifier => @(n)
+
+GraphQuantifier = '+' | '{' & Sql92.Lexical.Digits & ',' & Sql92.Lexical.Digits & '}'
