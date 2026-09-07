@@ -8,7 +8,7 @@ using Sql92;
 // grammar is attached to; what is written here is only where T-SQL differs, and
 // §5.1's rebinding is what makes the difference reach every rule that leads to it.
 //
-// Five rules replace five of the standard's. Nothing else is restated and nothing
+// Seven rules replace seven of the standard's. Nothing else is restated and nothing
 // is copied: a query expression, a join, a predicate and the whole value tower are
 // the ones already read against the standard, reading a dialect's identifiers and
 // a dialect's primaries because the substitution rewrote every call inside them.
@@ -41,6 +41,11 @@ namespace Tsql
 	// A local variable, a parameter, and the two `@@` spellings of a built-in.
 	// One rule: what tells them apart is the catalogue and not the syntax.
 	Variable = '@' & '@'? & Sql92.Lexical.IdentifierStart & Sql92.Lexical.IdentifierPart*
+
+	// Money, written with the sign the culture uses, and a binary string written the
+	// way T-SQL writes one. Neither is a lexeme of the standard.
+	MoneyLiteral  = ['$' | '£' | '¥' | '€'] & ['+' | '-']? & Sql92.Lexical.Digits & ('.' & Sql92.Lexical.Digits?)?
+	BinaryLiteral = '0' & 'x'i & ['0'..'9' | 'a'..'f' | 'A'..'F']*
 
 	// A temporary table, local or global. The name is otherwise ordinary.
 	TemporaryName = '#' & '#'? & Sql92.Lexical.IdentifierStart & Sql92.Lexical.IdentifierPart*
@@ -121,34 +126,170 @@ TsqlValueSpecification : @SqlNode
 // invocation it does not define; T-SQL's are ordinary calls on a qualified name,
 // which is one alternative and has to stand after the named ones — `COUNT(*)` is
 // a set function and not a call to something called `COUNT`.
+//
+// A postfix stands outside the choice rather than on each arm of it: `AT TIME ZONE`
+// applies to whatever was just read, which is one rule around the core and not
+// twelve inside it.
 TsqlValuePrimary : @SqlNode
+	= p: TsqlPrimaryCore & Member* & zone: AtTimeZone?
+		=> @(zone is null ? p : new SqlNode.Call("AT TIME ZONE", new SqlNode[] { p, zone }))
+
+AtTimeZone : @SqlNode = "AT"i & "TIME"i & "ZONE"i & v: TsqlPrimaryCore => @(v)
+
+TsqlPrimaryCore : @SqlNode
 	= '(' & v: ValueExpression & ')' => @(v)
-	| c: CaseExpression              => @(c)
-	| c: CastSpecification           => @(c)
-	| f: ValueFunction               => @(f)
-	| f: SetFunctionSpecification & Over? => @(f)
-	| q: ScalarSubquery              => @(q)
-	| f: FunctionCall & Over?        => @(f)
-	| v: UnsignedValueSpecification  => @(v)
-	| n: ColumnReference             => @(n)
+	| c: CaseExpression                        => @(c)
+	| c: TsqlCast                              => @(c)
+	| f: ValueFunction                         => @(f)
+	| f: TsqlValueFunction                     => @(f)
+	| f: SetFunctionSpecification & CallTail?                    => @(f)
+	| q: ScalarSubquery                        => @(q)
+	| n: NextValue                             => @(n)
+	| f: FunctionCall                          => @(f)
+	| t: Tsql.MoneyLiteral                     => @(new SqlNode.Literal(SqlLiteralKind.Number, t))
+	| t: Tsql.BinaryLiteral                    => @(new SqlNode.Literal(SqlLiteralKind.Hex, t))
+	| v: UnsignedValueSpecification            => @(v)
+	| n: ColumnReference                       => @(n)
+
+// A property or a method reached through a name: `(c1).SomeProperty`, `t::a`,
+// `dbo.[type 1]::[Property]`. Read and dropped, as a collate clause is — what it
+// names is a type's member, which is a catalogue's business and not this tree's.
+// Written as a postfix because a qualified name has already eaten every `.` it
+// could, so this fires only where one is left over.
+Member = ("::" | '.') & Identifier & ('(' & Arguments? & ')')?
+
+// §6.10's cast, widened, and the T-SQL spellings that are casts under other names.
+// `CONVERT` is a different rule and not a wider one: the standard's takes a value and
+// a character set, T-SQL's takes a type and a value, in that order.
+TsqlCast : @SqlNode
+	= "CAST"i     & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new SqlNode.Call("CAST", new SqlNode[] { v }, type))
+	| "TRY_CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new SqlNode.Call("TRY_CAST", new SqlNode[] { v }, type))
+	| name: ("TRY_CONVERT"i | "CONVERT"i) & '(' & type: DataType & ',' & v: ValueExpression
+	  & (',' & style: ValueExpression)? & ')'
+		=> @(new SqlNode.Call(name, style is null ? new SqlNode[] { v } : new SqlNode[] { v, style }, type))
+	| name: ("TRY_PARSE"i | "PARSE"i) & '(' & v: ValueExpression & "AS"i & type: DataType
+	  & ("USING"i & ValueExpression)? & ')'
+		=> @(new SqlNode.Call(name, new SqlNode[] { v }, type))
+
+// The T-SQL functions with a syntax of their own rather than an argument list, which
+// is the same reason §6.16's are written out in the standard. What they have in common
+// is a condition standing where a value would: `IIF` takes one, and a value expression
+// cannot be one.
+TsqlValueFunction : @SqlNode
+	= "IIF"i & '(' & c: SearchCondition & ',' & a: ValueExpression & ',' & b: ValueExpression & ')'
+		=> @(new SqlNode.Call("IIF", new SqlNode[] { c, a, b }))
+	| "CHOOSE"i & '(' & at: ValueExpression & ',' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
+		=> @(new SqlNode.Call("CHOOSE", SqlNode.Listed(at, SqlNode.Listed(first, rest))))
+
+// A sequence, read where a value stands. `FOR` here is not the `FOR` of `FOR JSON`;
+// it is the middle of one three-word name.
+NextValue : @SqlNode
+	= "NEXT"i & "VALUE"i & "FOR"i & name: QualifiedName & CallTail?
+		=> @(new SqlNode.Call("NEXT VALUE FOR", SqlNode.None, name))
 
 // A call to something this grammar has never heard of, which is most of them: the
 // name is a catalogue's business and the arguments are values.
 FunctionCall : @SqlNode
-	= name: QualifiedName & '(' & quantifier: SetQuantifier? & args: Arguments? & ')'
+	= name: QualifiedName & '(' & quantifier: SetQuantifier? & args: Arguments? & ')' & CallTail?
 		=> @(new SqlNode.Call(name, args ?? SqlNode.None, SqlNode.Distinctly(quantifier)))
+
+// What may follow a call: which rows of a window it sees when they are null, what a
+// set function inside a window is ordered by, and the window itself. All three read and
+// dropped for the same reason `OVER` is.
+//
+// Written out as alternatives of a rule rather than as three optionals in a sequence,
+// and that is the shape it has to have. **A choice inside a sequence or a repetition does
+// not come back**: `Nulls? & WithinGroup? & Over?` read `RESPECT NULLS` and then refused
+// `OVER ()`, and `(Nulls | WithinGroup | Over)*` did the same. Alternatives of a rule do
+// come back — which is what makes the two spellings different languages here and not two
+// ways of writing one. The same thing shapes `WindowFrame` below.
+CallTail
+	= Nulls & Over
+	| WithinGroup & Over
+	| Nulls
+	| WithinGroup
+	| Over
+Nulls       = "RESPECT"i & "NULLS"i | "IGNORE"i & "NULLS"i
+WithinGroup = "WITHIN"i & "GROUP"i & '(' & OrderByClause & ')'
 
 // The window a call is computed over. Read and dropped, as `TOP` is: it says which
 // rows the call sees and not what the call is, and the tree this grammar builds is
-// the standard's. Frames — `ROWS BETWEEN ...` — are not here yet.
+// the standard's. A window may also be named, and the name is declared by the query's
+// own `WINDOW` clause.
 Over = "OVER"i & '('
 	   & ("PARTITION"i & "BY"i & ValueExpression & (',' & ValueExpression)*)?
 	   & OrderByClause?
+	   & WindowFrame?
 	   & ')'
+	 | "OVER"i & Identifier
+
+// A window frame: how far either side of the current row the window reaches.
+WindowFrame
+	= ("ROWS"i | "RANGE"i) & "BETWEEN"i & FrameBound & "AND"i & FrameBound
+	| ("ROWS"i | "RANGE"i) & FrameBound
+
+FrameBound
+	= "UNBOUNDED"i & ("PRECEDING"i | "FOLLOWING"i)
+	| "CURRENT"i & "ROW"i
+	| ValueExpression & ("PRECEDING"i | "FOLLOWING"i)
 
 Arguments : @SqlNode[]
 	= '*' => @(new SqlNode[] { new SqlNode.Star(null) })
 	| first: ValueExpression & (',' & rest: ValueExpression)* => @(SqlNode.Listed(first, rest))
+
+// ── §6.1's data type, widened ───────────────────────────────────────────────
+//
+// Restated rather than called, as every replacement here is. What T-SQL adds is a
+// third of the list — the money, the two blobs, the four datetimes, the spatial
+// three — and one thing that is not a type at all: `MAX` where a length stands,
+// which says the largest the type allows rather than a number of characters.
+//
+// A bare qualified name stands last, and it is not a catch-all by accident: a type in
+// T-SQL may be one somebody declared, and no parser can tell without the catalogue.
+// What keeps it from swallowing everything is that the only place a type is read is
+// after `AS` inside a cast.
+TsqlDataType
+	= ("CHARACTER"i & "VARYING"i? | "CHAR"i & "VARYING"i? | "VARCHAR"i
+	  | "NATIONAL"i & ("CHARACTER"i | "CHAR"i) & "VARYING"i? | "NCHAR"i & "VARYING"i? | "NVARCHAR"i
+	  | "BINARY"i & "VARYING"i? | "VARBINARY"i | "VECTOR"i) & TsqlLength?
+	| ("NUMERIC"i | "DECIMAL"i | "DEC"i)
+	  & ('(' & Sql92.Lexical.Digits & (',' & Sql92.Lexical.Digits)? & ')')?
+	| "FLOAT"i & ('(' & Sql92.Lexical.Digits & ')')?
+	| ("DATETIME2"i | "DATETIMEOFFSET"i | "TIME"i | "TIMESTAMP"i)
+	  & ('(' & Sql92.Lexical.Digits & ')')? & ("WITH"i & "TIME"i & "ZONE"i)?
+	| "INTEGER"i | "INT"i | "SMALLINT"i | "TINYINT"i | "BIGINT"i | "BIT"i
+	| "REAL"i | "DOUBLE"i & "PRECISION"i | "MONEY"i | "SMALLMONEY"i
+	| "DATE"i | "DATETIME"i | "SMALLDATETIME"i
+	| "TEXT"i | "NTEXT"i | "IMAGE"i | "XML"i | "JSON"i
+	| "UNIQUEIDENTIFIER"i | "SQL_VARIANT"i | "ROWVERSION"i | "SYSNAME"i
+	| "GEOGRAPHY"i | "GEOMETRY"i | "HIERARCHYID"i
+	| "INTERVAL"i & IntervalQualifier
+	| QualifiedName & TsqlLength?
+
+TsqlLength = '(' & (Sql92.Lexical.Digits | "MAX"i) & ')'
+
+// ── §8's predicate, widened ─────────────────────────────────────────────────
+//
+// Two things T-SQL has that the standard does not. `IS [NOT] DISTINCT FROM` compares
+// two rows treating null as a value, and it stands after the standard's tail rather
+// than inside it: `IS NOT NULL` and `IS NOT DISTINCT FROM` share three words, and the
+// tail is the rule that reads the first of them.
+//
+// And a handful of functions that yield a truth rather than a value. A call cannot
+// stand where a condition does in general — `WHERE f(x)` is not T-SQL either — so
+// they are named, exactly as §6.16's functions are named on the value side.
+TsqlPredicate : @SqlNode
+	= "EXISTS"i & q: TableSubquery => @(new SqlNode.Predicate(SqlPredicateKind.Exists, false, new SqlNode[] { q }))
+	| "UNIQUE"i & q: TableSubquery => @(new SqlNode.Predicate(SqlPredicateKind.Unique, false, new SqlNode[] { q }))
+	| name: ("CONTAINS"i | "FREETEXT"i | "TSEQUAL"i | "REGEXP_LIKE"i | "UPDATE"i)
+	  & '(' & args: Arguments? & ')'
+		=> @(new SqlNode.Call(name, args ?? SqlNode.None))
+	| row: RowValueConstructor & tail: PredicateTail => @(SqlNode.Predicated(row, tail))
+	| left: RowValueConstructor & "IS"i & negated: "NOT"i? & "DISTINCT"i & "FROM"i
+	  & right: RowValueConstructor
+		=> @(new SqlNode.Predicate(
+				 SqlPredicateKind.Comparison, negated is not null,
+				 new SqlNode[] { left, right }, null, "DISTINCT"))
 
 // ── §7.9's query specification, widened ─────────────────────────────────────
 //
@@ -192,7 +333,9 @@ namespace Dialect with (
 	GeneralValueSpecification = TsqlValueSpecification,
 	ValueExpressionPrimary    = TsqlValuePrimary,
 	QuerySpecification        = TsqlQuerySpecification,
-	TablePrimary              = TsqlTablePrimary)
+	TablePrimary              = TsqlTablePrimary,
+	DataType                  = TsqlDataType,
+	Predicate                 = TsqlPredicate)
 {
 	Select    : @SqlNode = q: Sql92.DirectSelect    => @(q)
 	Query     : @SqlNode = q: Sql92.QueryExpression => @(q)

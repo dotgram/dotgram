@@ -137,6 +137,88 @@ public sealed class TransactSqlTests
 		Assert.True(TransactSql  .TryParseSelect(input).IsSuccess, input);
 	}
 
+	// ── The value layer ─────────────────────────────────────────────────────────
+
+	/// <summary>
+	/// What T-SQL puts where a value goes, and the standard does not.
+	/// </summary>
+	/// <remarks>
+	/// Every one of these came off the list <c>--kinds</c> makes: of the statements
+	/// Microsoft's parser calls a query, what stood where this one stopped. So the theory is
+	/// the work list, and a row of it that stops failing is a row that stops appearing.
+	/// </remarks>
+	[Theory]
+
+	// The types a cast may name, and `MAX` where a length stands.
+	[InlineData("SELECT CAST (a AS VARCHAR (MAX)) FROM t")]
+	[InlineData("SELECT CAST (a AS NVARCHAR (300)) FROM t")]
+	[InlineData("SELECT CAST (a AS VARBINARY (20)) FROM t")]
+	[InlineData("SELECT CAST (a AS DATETIME2) FROM t")]
+	[InlineData("SELECT CAST (a AS JSON) FROM t")]
+	[InlineData("SELECT CAST (a AS VECTOR (3)) FROM t")]
+	[InlineData("SELECT CAST (a AS MONEY) FROM t")]
+	[InlineData("SELECT CAST (a AS dbo.MyType) FROM t")]
+
+	// And the casts that are casts under another name.
+	[InlineData("SELECT TRY_CAST ('12345' AS INT)")]
+	[InlineData("SELECT CONVERT (INT, a) FROM t")]
+	[InlineData("SELECT CONVERT (VARCHAR (10), a, 121) FROM t")]
+	[InlineData("SELECT TRY_CONVERT (INT, a) FROM t")]
+
+	// The literals.
+	[InlineData("SELECT $492050157978986.2129")]
+	[InlineData("SELECT 0xabcdef")]
+	[InlineData("SELECT SET_BIT (0x00, 2) AS VARBIN1")]
+
+	// A condition where a value stands, which is what `IIF` needs and a value cannot be.
+	[InlineData("SELECT IIF (3 > 4, 'A', 'B')")]
+	[InlineData("SELECT IIF (NOT a > 1, 1, 0) FROM t")]
+	[InlineData("SELECT CHOOSE (2, 'a', 'b', 'c')")]
+
+	// A truth where a condition stands, which is the same trade on the other side.
+	[InlineData("SELECT a FROM t WHERE CONTAINS (b, 'foo')")]
+	[InlineData("SELECT a FROM t WHERE FREETEXT ((b), 'vital safety')")]
+	[InlineData("SELECT 1 WHERE REGEXP_LIKE ('abc', '^a')")]
+	[InlineData("SELECT CASE WHEN REGEXP_LIKE ('abc', '^a') THEN 1 ELSE 0 END")]
+	[InlineData("SELECT a FROM t WHERE b IS NOT DISTINCT FROM 1")]
+	[InlineData("SELECT a FROM t WHERE b IS DISTINCT FROM 1")]
+
+	// A member of whatever was just read.
+	[InlineData("SELECT (c1).SomeProperty FROM t")]
+	[InlineData("SELECT t::a FROM u")]
+	[InlineData("SELECT dbo.[type 1]::[Property] FROM t")]
+	[InlineData("SELECT c1.f1().SomeProperty FROM t")]
+
+	// A time zone, and a sequence.
+	[InlineData("SELECT a AT TIME ZONE 'UTC' FROM t")]
+	[InlineData("SELECT CAST ('1212-12-12 12:12:12' AS DATETIME2) AT TIME ZONE @tz")]
+	[InlineData("SELECT NEXT VALUE FOR seq1")]
+	[InlineData("SELECT NEXT VALUE FOR seq1 OVER (ORDER BY a) FROM t")]
+
+	// And everything a window may say.
+	[InlineData("SELECT COUNT (a) OVER (ORDER BY b) FROM t")]
+	[InlineData("SELECT COUNT (a) OVER (ROWS UNBOUNDED PRECEDING) FROM t")]
+	[InlineData("SELECT COUNT (a) OVER (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM t")]
+	[InlineData("SELECT COUNT (a) OVER (ROWS 1 PRECEDING) FROM t")]
+	[InlineData("SELECT COUNT (a) OVER (RANGE CURRENT ROW) FROM t")]
+	[InlineData("SELECT FIRST_VALUE (a) OVER () FROM t")]
+	[InlineData("SELECT FIRST_VALUE (a) RESPECT NULLS FROM t")]
+	[InlineData("SELECT FIRST_VALUE (a) RESPECT NULLS OVER Win1 FROM t")]
+	[InlineData("SELECT FIRST_VALUE (a) IGNORE NULLS OVER () FROM t")]
+	[InlineData("SELECT FIRST_VALUE (a) WITHIN GROUP (ORDER BY a) OVER () FROM t")]
+	[InlineData("SELECT FIRST_VALUE (a) RESPECT NULLS OVER () FROM t")]
+	[InlineData("SELECT COUNT (a) OVER (ORDER BY b ROWS 1 PRECEDING) FROM t")]
+	[InlineData("SELECT COUNT (a) OVER (ORDER BY b ROWS BETWEEN 1 FOLLOWING AND 1 FOLLOWING) FROM t")]
+	[InlineData("SELECT COUNT (a) OVER (ORDER BY b RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM t")]
+	[InlineData("SELECT SUM (a) OVER Win1 FROM t")]
+	[InlineData("SELECT STRING_AGG (a, ',') WITHIN GROUP (ORDER BY a) FROM t")]
+	public void The_value_layer_reads(string input)
+	{
+		var match = TransactSql.TryParseSelect(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	// ── And builds the standard's tree ───────────────────────────────────────────
 
 	/// <summary>

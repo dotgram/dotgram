@@ -86,6 +86,7 @@ static class Kinds
 		var counted  = new Dictionary<string, (int Total, int Read)>(StringComparer.Ordinal);
 		var missed   = new Dictionary<string, List<string>>(StringComparer.Ordinal);
 		var overRead = new List<string>();
+		var stopped  = new Dictionary<string, (int Count, List<string> Like)>(StringComparer.Ordinal);
 
 		foreach (var file in files)
 		{
@@ -135,11 +136,41 @@ static class Kinds
 
 					if (some.Count < shown)
 						some.Add(Corpus.One(one));
+
+					// And for the one kind this grammar is about, where it stopped — which
+					// names the feature, where the kind only names the statement.
+					if (kind == nameof(SelectStatement))
+					{
+						var why = Corpus.Stopped(one, (int)TransactSql.TryParseSelect(one).Position);
+
+						var (count, like) = stopped.TryGetValue(why, out var before)
+							? before
+							: (0, new List<string>());
+
+						if (like.Count < shown)
+							like.Add(Corpus.One(one));
+
+						stopped[why] = (count + 1, like);
+					}
 				}
 			}
 		}
 
 		Report(version, files.Length, whole, refused, counted, missed, overRead, shown);
+
+		Console.WriteLine();
+		Console.WriteLine(
+			$"  of the {counted.GetValueOrDefault(nameof(SelectStatement)).Total} it calls a query, " +
+			$"where the {stopped.Values.Sum(static one => one.Count)} refusals stopped");
+		Console.WriteLine();
+
+		foreach (var (why, one) in stopped.OrderByDescending(one => one.Value.Count).ThenBy(one => one.Key))
+		{
+			Console.WriteLine($"  {one.Count,5}  stops at {why}");
+
+			foreach (var example in one.Like.Take(shown))
+				Console.WriteLine($"           {example}");
+		}
 	}
 
 	static void Report(

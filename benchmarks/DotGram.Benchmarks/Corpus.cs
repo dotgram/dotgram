@@ -171,7 +171,7 @@ static class Corpus
 	}
 
 	/// <summary>What stands where the reading stopped: a word, or the character itself.</summary>
-	static string Stopped(string statement, int at)
+	internal static string Stopped(string statement, int at)
 	{
 		while (at < statement.Length && char.IsWhiteSpace(statement[at]))
 			at++;
