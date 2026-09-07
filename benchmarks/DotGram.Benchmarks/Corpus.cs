@@ -34,8 +34,10 @@ namespace DotGram.Benchmarks;
 /// </remarks>
 static class Corpus
 {
-	public static void Run(string root, int shown)
+	public static void Run(string? root, int shown)
 	{
+		root ??= Checked();
+
 		if (!Directory.Exists(root))
 		{
 			Console.WriteLine($"No corpus at {root}.");
@@ -43,44 +45,67 @@ static class Corpus
 			return;
 		}
 
-		var files   = Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories);
+		var statements = new List<string>();
+
+		var files = Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories);
+
+		foreach (var file in files)
+			statements.AddRange(Queries(File.ReadAllText(file)));
+
+		// Both, and in that order: the standard is what the dialect is a dialect of,
+		// and the only number worth anything here is the difference between them.
+		Read("SQL-92", files.Length, statements, shown, static one =>
+		{
+			var match = SqlStandard92.TryParseSelect(one);
+
+			return match.IsSuccess ? -1 : (int)match.Position;
+		});
+
+		Read("T-SQL", files.Length, statements, shown, static one =>
+		{
+			var match = TransactSql.TryParseSelect(one);
+
+			return match.IsSuccess ? -1 : (int)match.Position;
+		});
+	}
+
+	/// <summary>What one parser made of the statements, and where it stopped.</summary>
+	static void Read(
+		string name, int files, List<string> statements, int shown, Func<string, int> reader)
+	{
 		var read    = 0;
-		var queries = 0;
 		var counted = new Dictionary<string, int>(StringComparer.Ordinal);
 		var like    = new Dictionary<string, List<string>>(StringComparer.Ordinal);
 
-		foreach (var file in files)
-			foreach (var one in Queries(File.ReadAllText(file)))
+		foreach (var one in statements)
+		{
+			var stopped = reader(one);
+
+			if (stopped < 0)
 			{
-				queries++;
+				read++;
 
-				var match = SqlStandard92.TryParseSelect(one);
-
-				if (match.IsSuccess)
-				{
-					read++;
-
-					continue;
-				}
-
-				// What stood where the reading stopped, which names the feature: `TOP`,
-				// `APPLY`, `OVER`, `[`. The message cannot — over kinds an expectation is a
-				// token kind, and a kind is a character nobody wrote.
-				var why = Stopped(one, (int)match.Position);
-
-				counted[why] = counted.TryGetValue(why, out var already) ? already + 1 : 1;
-
-				if (!like.TryGetValue(why, out var some))
-					like[why] = some = [];
-
-				if (some.Count < shown)
-					some.Add(One(one));
+				continue;
 			}
+
+			// What stood where the reading stopped, which names the feature: `TOP`,
+			// `APPLY`, `OVER`, `[`. The message cannot — over kinds an expectation is a
+			// token kind, and a kind is a character nobody wrote.
+			var why = Stopped(one, stopped);
+
+			counted[why] = counted.TryGetValue(why, out var already) ? already + 1 : 1;
+
+			if (!like.TryGetValue(why, out var some))
+				like[why] = some = [];
+
+			if (some.Count < shown)
+				some.Add(One(one));
+		}
 
 		Console.WriteLine();
 		Console.WriteLine(
-			$"{files.Length} files, {queries} query-shaped statements, " +
-			$"{read} read ({(queries == 0 ? 0 : 100.0 * read / queries):F1}%)");
+			$"{name,-6}  {files} files, {statements.Count} query-shaped statements, " +
+			$"{read} read ({(statements.Count == 0 ? 0 : 100.0 * read / statements.Count):F1}%)");
 		Console.WriteLine();
 
 		foreach (var (why, count) in counted.OrderByDescending(one => one.Value).ThenBy(one => one.Key))
@@ -182,5 +207,23 @@ static class Corpus
 			at++;
 
 		return at == 0 ? null : statement.Substring(0, at).ToUpperInvariant();
+	}
+
+	/// <summary>The copy kept in the repository, which is what `--corpus` reads by default.</summary>
+	/// <remarks>
+	/// Found by walking up to the solution rather than by a path relative to the binary:
+	/// the working directory a benchmark is launched from is whatever the launcher felt
+	/// like, and `bin/Release/net10.0` is not where the corpus lives.
+	/// </remarks>
+	static string Checked()
+	{
+		var at = new DirectoryInfo(AppContext.BaseDirectory);
+
+		while (at is not null && !File.Exists(Path.Combine(at.FullName, "DotGram.slnx")))
+			at = at.Parent;
+
+		return at is null
+			? Path.Combine("tests", "Corpus", "ScriptDom")
+			: Path.Combine(at.FullName, "tests", "Corpus", "ScriptDom");
 	}
 }

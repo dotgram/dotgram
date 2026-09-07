@@ -180,14 +180,20 @@ static class Program
 		// twice — a rule a level, and one rule with binding powers (§4.3.1) — over the same
 		// inputs, so that what climbing is worth is known before a grammar is rewritten to
 		// use it. See Ladders.cs.
-		// `--corpus <path> [shown]` is not a benchmark at all: it reads somebody else's
-		// `.sql` files — ScriptDom's, say — cuts the query-shaped statements out of them
-		// and says what SqlStandard92 makes of each, grouping the refusals by what was
-		// expected where the reading stopped. Every other test here was written beside the
-		// grammar it tests; this one was not. See Corpus.cs.
-		if (args.Length >= 2 && args[0] == "--corpus")
+		// `--corpus [path] [shown]` is not a benchmark at all: it reads somebody else's
+		// `.sql` files, cuts the query-shaped statements out of them and says what each
+		// parser makes of each, grouping the refusals by what stood where the reading
+		// stopped. Every other test here was written beside the grammar it tests; this one
+		// was not. Without a path it reads the copy in `tests/Corpus/ScriptDom`, which is
+		// ScriptDom's own suite kept byte for byte. See Corpus.cs.
+		if (args.Length >= 1 && args[0] == "--corpus")
 		{
-			Corpus.Run(args[1], args.Length >= 3 && int.TryParse(args[2], out var some) ? some : 2);
+			var named = args.Length >= 2 && !int.TryParse(args[1], out _);
+			var at    = named ? 2 : 1;
+
+			Corpus.Run(
+				named ? args[1] : null,
+				args.Length > at && int.TryParse(args[at], out var some) ? some : 2);
 
 			return;
 		}

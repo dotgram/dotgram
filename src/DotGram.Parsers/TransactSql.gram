@@ -1,0 +1,206 @@
+@using System;
+@using DotGram.Parsers;
+
+using Sql92;
+
+// A dialect, and this file is the whole of what makes it one. The rules of
+// ISO/IEC 9075:1992 come from `SqlStandard92.gram`, inherited by the class this
+// grammar is attached to; what is written here is only where T-SQL differs, and
+// §5.1's rebinding is what makes the difference reach every rule that leads to it.
+//
+// Five rules replace five of the standard's. Nothing else is restated and nothing
+// is copied: a query expression, a join, a predicate and the whole value tower are
+// the ones already read against the standard, reading a dialect's identifiers and
+// a dialect's primaries because the substitution rewrote every call inside them.
+
+// ── What the wrapper does not carry across ──────────────────────────────────
+//
+// A grammar this one inherits is wrapped in a namespace of its own, and §4.5 is
+// exactly that a namespace keeps its own trivia. So the standard's whitespace and
+// its word boundary belong to the standard's rules, and the rules written here
+// need their own — the same two, said again, pointing at the same lexemes.
+//
+// Not saying them is not an error and that is the trap: rules without a boundary
+// read their keywords as punctuation, and a grammar that reads `USERS` as `USER`
+// followed by `S` is wrong in a way nothing in it looks wrong.
+wordboundary = Sql92.Lexical.IdentifierPart
+trivia       = { (Sql92.Whitespace | Sql92.LineComment | Sql92.BlockComment)* }
+
+// ── The lexemes T-SQL has and the standard does not ─────────────────────────
+//
+// A namespace with no trivia, so a token is its characters — the same shape
+// `Sql92.Lexical` has, and a separate one because a grammar declares its own.
+namespace Tsql
+{
+	trivia = none
+
+	// A delimited identifier written the way T-SQL writes it, with `]]` for a
+	// bracket inside — the same escape the standard's `""` is.
+	BracketedIdentifier = '[' & ("]]" | [^ ']'])* & ']'
+
+	// A local variable, a parameter, and the two `@@` spellings of a built-in.
+	// One rule: what tells them apart is the catalogue and not the syntax.
+	Variable = '@' & '@'? & Sql92.Lexical.IdentifierStart & Sql92.Lexical.IdentifierPart*
+
+	// A temporary table, local or global. The name is otherwise ordinary.
+	TemporaryName = '#' & '#'? & Sql92.Lexical.IdentifierStart & Sql92.Lexical.IdentifierPart*
+}
+
+// ── What T-SQL reserves ─────────────────────────────────────────────────────
+//
+// A different list and not a longer one. The standard reserves `NATURAL`, `MATCH`
+// and `CAST`, which T-SQL does not; T-SQL reserves `TOP`, `OPTION` and `OVER`,
+// which the standard has never heard of. So it replaces rather than adds, and the
+// standard's own list stands where the standard's rules still read.
+//
+// All hundred and sixty-nine of them, where `Sql92.Reserved` is a curated part of
+// §5.2 — "the part this layer can be confused by". Curating it here was tried and
+// is what let `SELECT TOP` read as a column called `TOP` and `FROM t OPTION (x)`
+// read as a correlation named `OPTION` with a column list: both are refusals in
+// any real T-SQL, and neither looked wrong. The list is Microsoft's own, taken
+// from the token table its parser generator is fed (`TSqlTokenTypes.g`), where a
+// word being a token at all is exactly what makes it unavailable as a name.
+TsqlReserved = ("ADD"i | "ALL"i | "ALTER"i | "AND"i | "ANY"i | "AS"i | "ASC"i | "AUTHORIZATION"i
+	| "BACKUP"i | "BEGIN"i | "BETWEEN"i | "BREAK"i | "BROWSE"i | "BULK"i | "BY"i
+	| "CASCADE"i | "CASE"i | "CHECK"i | "CHECKPOINT"i | "CLOSE"i | "CLUSTERED"i
+	| "COALESCE"i | "COLLATE"i | "COLUMN"i | "COMMIT"i | "COMPUTE"i | "CONSTRAINT"i
+	| "CONTAINS"i | "CONTAINSTABLE"i | "CONTINUE"i | "CONVERT"i | "CREATE"i | "CROSS"i
+	| "CURRENT"i | "CURRENT_DATE"i | "CURRENT_TIME"i | "CURRENT_TIMESTAMP"i
+	| "CURRENT_USER"i | "CURSOR"i | "DATABASE"i | "DBCC"i | "DEALLOCATE"i | "DECLARE"i
+	| "DEFAULT"i | "DELETE"i | "DENY"i | "DESC"i | "DISTINCT"i | "DISTRIBUTED"i
+	| "DOUBLE"i | "DROP"i | "ELSE"i | "END"i | "ERRLVL"i | "ESCAPE"i | "EXCEPT"i
+	| "EXEC"i | "EXECUTE"i | "EXISTS"i | "EXIT"i | "FETCH"i | "FILE"i | "FILLFACTOR"i
+	| "FOR"i | "FOREIGN"i | "FREETEXT"i | "FREETEXTTABLE"i | "FROM"i | "FULL"i
+	| "FUNCTION"i | "GOTO"i | "GRANT"i | "GROUP"i | "HAVING"i | "HOLDLOCK"i
+	| "IDENTITY"i | "IDENTITYCOL"i | "IDENTITY_INSERT"i | "IF"i | "IN"i | "INDEX"i
+	| "INNER"i | "INSERT"i | "INTERSECT"i | "INTO"i | "IS"i | "JOIN"i | "KEY"i | "KILL"i
+	| "LEFT"i | "LIKE"i | "LINENO"i | "NATIONAL"i | "NOCHECK"i | "NONCLUSTERED"i
+	| "NOT"i | "NULL"i | "NULLIF"i | "OF"i | "OFF"i | "OFFSETS"i | "ON"i | "OPEN"i
+	| "OPENDATASOURCE"i | "OPENQUERY"i | "OPENROWSET"i | "OPENXML"i | "OPTION"i | "OR"i
+	| "ORDER"i | "OUTER"i | "OVER"i | "PERCENT"i | "PLAN"i | "PRIMARY"i | "PRINT"i
+	| "PROC"i | "PROCEDURE"i | "PUBLIC"i | "RAISERROR"i | "READ"i | "READTEXT"i
+	| "RECONFIGURE"i | "REFERENCES"i | "REPLICATION"i | "RESTORE"i | "RESTRICT"i
+	| "RETURN"i | "REVOKE"i | "RIGHT"i | "ROLLBACK"i | "ROWCOUNT"i | "ROWGUIDCOL"i
+	| "RULE"i | "SAVE"i | "SCHEMA"i | "SELECT"i | "SESSION_USER"i | "SET"i | "SETUSER"i
+	| "SHUTDOWN"i | "SOME"i | "STATISTICS"i | "SYSTEM_USER"i | "TABLE"i | "TEXTSIZE"i
+	| "THEN"i | "TO"i | "TOP"i | "TRAN"i | "TRANSACTION"i | "TRIGGER"i | "TRUNCATE"i
+	| "TSEQUAL"i | "UNION"i | "UNIQUE"i | "UPDATE"i | "UPDATETEXT"i | "USE"i | "USER"i
+	| "VALUES"i | "VARYING"i | "VIEW"i | "WAITFOR"i | "WHEN"i | "WHERE"i | "WHILE"i
+	| "WITH"i | "WRITETEXT"i)
+	& ?!Sql92.Lexical.IdentifierPart
+
+// ── §5.2's identifier, widened ──────────────────────────────────────────────
+//
+// The standard's two spellings and the two more T-SQL admits. The lookahead
+// stands in front of the regular one only, exactly as it does in the standard:
+// a bracketed name may be a reserved word, and that is what brackets are for.
+TsqlIdentifier
+	= ?!TsqlReserved & Sql92.Lexical.RegularIdentifier
+	| Sql92.Lexical.DelimitedIdentifier
+	| Tsql.BracketedIdentifier
+	| Tsql.TemporaryName
+
+// ── §6.3's general value specification, widened ─────────────────────────────
+//
+// A variable stands where a parameter does, which is what the standard's rule is
+// for. Its own alternatives are restated rather than called: a replacement that
+// named the rule it replaces would be rewritten into itself.
+TsqlValueSpecification : @SqlNode
+	= t: (':' & Identifier & ("INDICATOR"i? & ':' & Identifier)?)
+		=> @(new SqlNode.Literal(SqlLiteralKind.Parameter, t))
+	| '?'
+		=> @(new SqlNode.Literal(SqlLiteralKind.Parameter, "?"))
+	| t: Tsql.Variable
+		=> @(new SqlNode.Literal(SqlLiteralKind.Parameter, t))
+	| t: ("USER"i | "CURRENT_USER"i | "SESSION_USER"i | "SYSTEM_USER"i | "VALUE"i)
+		=> @(new SqlNode.Literal(SqlLiteralKind.Special, t))
+
+// ── §6.11's value expression primary, widened ───────────────────────────────
+//
+// The standard names every function it has and leaves the rest to a routine
+// invocation it does not define; T-SQL's are ordinary calls on a qualified name,
+// which is one alternative and has to stand after the named ones — `COUNT(*)` is
+// a set function and not a call to something called `COUNT`.
+TsqlValuePrimary : @SqlNode
+	= '(' & v: ValueExpression & ')' => @(v)
+	| c: CaseExpression              => @(c)
+	| c: CastSpecification           => @(c)
+	| f: ValueFunction               => @(f)
+	| f: SetFunctionSpecification & Over? => @(f)
+	| q: ScalarSubquery              => @(q)
+	| f: FunctionCall & Over?        => @(f)
+	| v: UnsignedValueSpecification  => @(v)
+	| n: ColumnReference             => @(n)
+
+// A call to something this grammar has never heard of, which is most of them: the
+// name is a catalogue's business and the arguments are values.
+FunctionCall : @SqlNode
+	= name: QualifiedName & '(' & quantifier: SetQuantifier? & args: Arguments? & ')'
+		=> @(new SqlNode.Call(name, args ?? SqlNode.None, SqlNode.Distinctly(quantifier)))
+
+// The window a call is computed over. Read and dropped, as `TOP` is: it says which
+// rows the call sees and not what the call is, and the tree this grammar builds is
+// the standard's. Frames — `ROWS BETWEEN ...` — are not here yet.
+Over = "OVER"i & '('
+	   & ("PARTITION"i & "BY"i & ValueExpression & (',' & ValueExpression)*)?
+	   & OrderByClause?
+	   & ')'
+
+Arguments : @SqlNode[]
+	= '*' => @(new SqlNode[] { new SqlNode.Star(null) })
+	| first: ValueExpression & (',' & rest: ValueExpression)* => @(SqlNode.Listed(first, rest))
+
+// ── §7.9's query specification, widened ─────────────────────────────────────
+//
+// Two differences and both are about what may be left out. T-SQL's `FROM` is
+// optional — `SELECT 1` is a query — and `TOP` stands between the quantifier and
+// the select list. The count is read and dropped, as the standard's collate
+// clause is: it says how many rows come back and not what they are, and the tree
+// this grammar builds is the standard's.
+TsqlQuerySpecification : @SqlNode
+	= "SELECT"i & quantifier: SetQuantifier? & Top? & columns: SelectList
+	  & from: FromClause? & where: WhereClause? & group: GroupByClause? & having: HavingClause?
+		=> @(new SqlNode.Query(
+				 SqlNode.Distinctly(quantifier) == "DISTINCT", columns, from ?? SqlNode.None,
+				 where, group ?? SqlNode.None, having))
+
+Top = "TOP"i & ('(' & ValueExpression & ')' | Sql92.Lexical.UnsignedNumericLiteral)
+	  & "PERCENT"i? & ("WITH"i & "TIES"i)?
+
+// ── §7.4's table primary, widened ───────────────────────────────────────────
+//
+// A table-valued function stands where a table does, which the standard leaves to a
+// routine invocation it does not define. Its arguments are read and dropped for the
+// same reason `TOP` is: what the tree says is where the rows come from.
+TsqlTablePrimary : @SqlNode
+	= name: QualifiedName & ('(' & Arguments? & ')')?
+	  & ("AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?)?
+		=> @(new SqlNode.Source(name, null, alias, columns))
+	| t: Tsql.Variable & ("AS"i? & alias: Identifier)?
+		=> @(new SqlNode.Source(t, null, alias, null))
+	| derived: TableSubquery & "AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?
+		=> @(new SqlNode.Source(null, derived, alias, columns))
+	| '(' & j: TableReference & ')' => @(j)
+
+// ── What the dialect is, said once ──────────────────────────────────────────
+//
+// One header, and every rule reachable from inside it reads T-SQL. The four entry
+// points are the standard's own, called through the substitution rather than
+// rewritten — which is the whole claim this file makes.
+namespace Dialect with (
+	Identifier                = TsqlIdentifier,
+	GeneralValueSpecification = TsqlValueSpecification,
+	ValueExpressionPrimary    = TsqlValuePrimary,
+	QuerySpecification        = TsqlQuerySpecification,
+	TablePrimary              = TsqlTablePrimary)
+{
+	Select    : @SqlNode = q: Sql92.DirectSelect    => @(q)
+	Query     : @SqlNode = q: Sql92.QueryExpression => @(q)
+	Condition : @SqlNode = c: Sql92.SearchCondition => @(c)
+	Value     : @SqlNode = v: Sql92.ValueExpression => @(v)
+}
+
+parse Dialect.Select    as ParseSelect
+parse Dialect.Query     as ParseQuery
+parse Dialect.Condition as ParseSearchCondition
+parse Dialect.Value     as ParseValueExpression

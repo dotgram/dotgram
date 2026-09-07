@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -42,6 +43,12 @@ public sealed class ReaderCoverageTests
 		var files = Directory.GetFiles(Path.Combine(root, "examples"), "*.cs", SearchOption.AllDirectories)
 			.Concat(Directory.GetFiles(Path.Combine(root, "src", "DotGram.Parsers"), "*.cs"))
 			.Where(one => !one.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar))
+
+			// A host that derives from another carries half a grammar: what it reads comes
+			// from the base and is joined onto its own by the generator, so the text beside
+			// it does not compile alone and is not meant to.
+			.Where(one => !Regex.IsMatch(File.ReadAllText(one), @"partial class \w+\s*:\s*\w"))
+
 			.OrderBy(one => one, StringComparer.Ordinal)
 			.ToList();
 

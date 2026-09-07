@@ -132,14 +132,30 @@ public sealed class GrammarBinder
 	/// </summary>
 	GrammarNamespace? _standard;
 
-	GrammarBinder(ISymbolResolver symbols) => _symbols = symbols;
+	/// <summary>
+	/// Where the host's own grammar ends and what it inherited begins, or
+	/// <see cref="int.MaxValue"/> where nothing was inherited.
+	/// </summary>
+	/// <remarks>
+	/// Only publication reads it. An included grammar's rules are the point of
+	/// including it and are declared like any others; its <c>parse</c> directives are
+	/// the base class's own public API, already generated there, and are left where
+	/// they were written.
+	/// </remarks>
+	readonly int _own;
 
-	public static GrammarModel Bind(GrammarFile file, ISymbolResolver? symbols = null)
+	GrammarBinder(ISymbolResolver symbols, int own)
+	{
+		_symbols = symbols;
+		_own     = own;
+	}
+
+	public static GrammarModel Bind(GrammarFile file, ISymbolResolver? symbols = null, int? own = null)
 	{
 		if (file is null)
 			throw new ArgumentNullException(nameof(file));
 
-		var binder   = new GrammarBinder(symbols ?? PermissiveSymbolResolver.Instance);
+		var binder   = new GrammarBinder(symbols ?? PermissiveSymbolResolver.Instance, own ?? int.MaxValue);
 		var standard = binder.CreateStandardLibrary();
 		var global   = new GrammarNamespace("", standard);
 
@@ -376,6 +392,12 @@ public sealed class GrammarBinder
 					break;
 
 				case Decl.Publish publish:
+
+					// A directive in a grammar this one inherited (§5.1): the class that
+					// wrote it published it already, and publishing it again here would name
+					// a method on a derived class after a rule the dialect did not rebind.
+					if (publish.At.Position >= _own)
+						break;
 
 					if (ns.LookupQualified(publish.RuleName) is not { } published)
 					{

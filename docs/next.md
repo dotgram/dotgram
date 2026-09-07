@@ -15066,3 +15066,129 @@ statements, and the only gap it exposes in §6 through §8 and §7 is a collate 
 is the strongest thing anybody has said about this grammar, because nobody here wrote the
 corpus.
 
+
+## A dialect, and what it took to be one
+
+Standard SQL reads 5.3% of that corpus and every group at the top of the list is T-SQL. So
+the next thing is T-SQL — and the question worth answering is not whether it can be written
+but whether it can be written *as a dialect*: one file that says where it differs, over a
+grammar it does not touch.
+
+`TransactSql.gram` is 206 lines against `SqlStandard92.gram`'s 529, and 42 of those lines
+are a list of reserved words and the note above it. Five rules replace five of the
+standard's:
+
+```dotgram
+namespace Dialect with (
+    Identifier                = TsqlIdentifier,
+    GeneralValueSpecification = TsqlValueSpecification,
+    ValueExpressionPrimary    = TsqlValuePrimary,
+    QuerySpecification        = TsqlQuerySpecification,
+    TablePrimary              = TsqlTablePrimary)
+{
+    Select    : @SqlNode = q: Sql92.DirectSelect    => @(q)
+    Query     : @SqlNode = q: Sql92.QueryExpression => @(q)
+    Condition : @SqlNode = c: Sql92.SearchCondition => @(c)
+    Value     : @SqlNode = v: Sql92.ValueExpression => @(v)
+}
+```
+
+That is the whole of it. A query expression, a join, a predicate and the value tower are the
+standard's own, unmodified and uncopied, reading a dialect's identifiers and a dialect's
+primaries because §5.1's substitution rewrote every call inside them. **What the file adds is
+`[bracketed]` names, `@variables`, `#temporary` ones, an optional `FROM`, `TOP`, `OVER`, an
+ordinary function call and a table-valued one** — and the reach of that is a theory of its
+own: a bracketed name inside a join condition, a variable inside a `HAVING`, a `TOP` inside a
+derived table. None of those rules is named anywhere in the header.
+
+### Four things in the generator had to give
+
+The mechanism was there — `[Gram(IncludedAs = "Sql92")]` and a base class whose grammar is
+spliced onto the derived one — and had never carried a real dialect. Four things broke, and
+each of them is one line of behaviour.
+
+**A `parse` outside the block published the wrong rule.** `parse Dialect.Select as ParseSelect`
+stands *outside* `namespace Dialect`, and `RemapPublications` asked only where the directive
+was written. So a whole header of rebindings compiled into a parser built as though none of
+them were there — and the same rebindings written on the directive itself worked perfectly.
+Both sites are asked now: the directive's own, then the rule's.
+
+```csharp
+var clone =
+    CloneAt(NearestSite(publication.DeclaredIn),     publication.Rule, remap) ??
+    CloneAt(NearestSite(publication.Rule.Namespace), publication.Rule, remap);
+```
+
+**A base's `parse` directives were published twice.** The included text carries the base's own
+`parse Select as ParseSelect`, and binding it again put a second `ParseSelect` on the derived
+class — the base's rule, not the dialect's reading of it, which is the opposite of what a
+dialect is for. The binder now knows where the host's own text ends (`Own`) and leaves what
+follows to the class that wrote it.
+
+**CS0108, and who should be reading it.** A dialect names its publications what the base named
+its own, and in C# that is hiding. The warning asks whether it was intended; it was, and it is
+answered in the generated file rather than left to a consumer who did not write the code it is
+about.
+
+**And `ReaderCoverageTests` had to learn that a host can carry half a grammar.** It compiles
+every `.gram` beside every parser class on its own; a dialect's does not compile alone and is
+not meant to.
+
+### The reserved words, which is where the tests earned their keep
+
+The dialect read, and the first two theories written against it failed:
+
+```
+SELECT TOP
+SELECT a FROM t OPTION (RECOMPILE)
+```
+
+Both were *accepted*. `TOP` became a column called `TOP`, and `OPTION (RECOMPILE)` became a
+correlation named `OPTION` with a column list — which is exactly what SQL-92 says those
+characters are, and exactly what T-SQL says they are not. Neither looked wrong. Nothing in
+the corpus run had pointed at them, because a statement that reads is not counted twice.
+
+`Sql92.Reserved` is deliberately a *curated* part of §5.2 — "the part this layer can be
+confused by" — and curating the T-SQL list the same way is what produced those two. So it is
+not curated: **all 169 of them**, taken from `TSqlTokenTypes.g`, the token table Microsoft
+feeds its own parser generator, where a word being a token at all is what makes it
+unavailable as a name.
+
+And it *replaces* rather than adds. The standard reserves `NATURAL`, `MATCH` and `CAST`,
+which T-SQL does not; T-SQL reserves `TOP`, `OPTION` and `OVER`, which the standard has never
+heard of. Two lists, not one list and a supplement.
+
+### What it reads
+
+```
+SQL-92  1086 files, 1896 query-shaped statements, 101 read (5.3%)
+T-SQL   1086 files, 1896 query-shaped statements, 573 read (30.2%)
+```
+
+**5.3% to 30.2%, on a corpus nobody here wrote**, for 206 lines that name five rules. The
+three largest groups the standard stopped on — `'('` at 767, `'@'` at 243, `'['` at 120 — are
+gone entirely.
+
+The reserved words cost seven statements (580 before them, 573 after) and every one of the
+seven was reading a keyword as a name. What they bought is worth more than the seven: the
+refusals now point at features rather than at swallowed words. `SELECT c1 INTO t2 ON fg FROM t1`
+used to stop at `t2`, saying nothing; it stops at `INTO` now, which is a `SELECT INTO` and a
+thing to go and write.
+
+What is left, in order: `OPTION (...)` and the table hints, `CROSS APPLY`, `FOR JSON` and
+`FOR XML`, `IIF` and the other functions with syntax of their own, `PIVOT`/`UNPIVOT`, `SELECT
+INTO`, `GROUP BY CUBE`/`ROLLUP`, window frames, `OPENROWSET` and friends, `::`, `$`, graph
+`MATCH`. None of it is a hole in the dialect mechanism; all of it is grammar to write.
+
+### The corpus is ours to keep now
+
+ScriptDom is MIT, so it is copied into `tests/Corpus/ScriptDom` — 1086 files, byte for byte,
+with Microsoft's notice beside them and exempt from this repository's line-ending
+normalization, fifteen of them being UTF-16. `--corpus` reads that copy when it is given no
+path, so the number above is reproducible without a checkout of somebody else's repository
+sitting at a particular place on a particular disk.
+
+The directory names are the reason to keep the whole of it rather than the query-shaped
+part: `Baselines80` through `Baselines180` are Microsoft's own partition of T-SQL by parser
+version, which is a specification of what each version added, written by the people who
+implemented it.

@@ -31,6 +31,7 @@
 		     it, so that another project can point the generator at the same text and compile
 		     it another way — which is what DotGram.Benchmarks does with the SQL grammar. -->
 		<AdditionalFiles Include="SqlStandard92.gram" />
+		<AdditionalFiles Include="TransactSql.gram" />
 	</ItemGroup>
 
 </Project>

@@ -44,7 +44,7 @@ namespace DotGram.Parsers;
 /// right first is what makes that decision about the tree rather than about the parse.
 /// </para>
 /// </remarks>
-[Gram("SqlStandard92.gram", Lexical = true)]
-public static partial class SqlStandard92
+[Gram("SqlStandard92.gram", Lexical = true, IncludedAs = "Sql92")]
+public abstract partial class SqlStandard92
 {
 }

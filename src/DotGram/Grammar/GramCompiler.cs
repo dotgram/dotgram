@@ -47,7 +47,7 @@ public static class GramCompiler
 
 		diagnostics.AddRange(parsed.Diagnostics);
 
-		var model = GrammarBinder.Bind(parsed.File, options.SymbolResolver);
+		var model = GrammarBinder.Bind(parsed.File, options.SymbolResolver, options.Own);
 		var graph = GrammarNormalizer.Normalize(model, options.SymbolResolver, options.CSharpScanner);
 
 		// What the later stages made of a declaration whose syntax did not come out is
@@ -97,7 +97,7 @@ public static class GramCompiler
 				CSharpEmitter.Emit(
 					lexical?.Syntax ?? graph, options.ClassName, options.Namespace, options.LineMap,
 					diagnostics, options.PartSize, lexical, options.Direct, options.Carrier, options.Stacks,
-					options.Suffix, options.SharedTypes)));
+					options.Suffix, options.SharedTypes, options.Inherits)));
 
 		return new GramCompilation(sources, OnePerPosition(diagnostics));
 	}

@@ -372,6 +372,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 		var host    = grammar.Host;
 		var reports = ImmutableArray.CreateBuilder<Report>();
 
+		// More than one piece means a base's grammar was joined onto this one, which is
+		// what makes this class a dialect: its parser stands beside the base's and names
+		// its members the same. A base whose grammar could not be found leaves one piece
+		// and nothing to stand beside, which is the right answer either way.
+		var inherits = grammar.Pieces.Items.Length > 1;
+
 		// What the first stage had to say, carried rather than dropped. Every report it
 		// used to make came with an early return — no text, so the branch above hands them
 		// on — and the first one that could stand beside a grammar that reads perfectly
@@ -402,6 +408,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 			Stacks         = host.Stacks,
 			Suffix         = host.Suffix,
 			SharedTypes    = host.Shared,
+			Inherits       = inherits,
+			Own            = inherits ? grammar.Pieces.Items[0].Length : null,
 		});
 
 		foreach (var diagnostic in result.Diagnostics)
