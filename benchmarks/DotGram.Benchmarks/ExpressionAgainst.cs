@@ -52,6 +52,17 @@ static class ExpressionAgainst
 		"(int x) => (((x)))",
 		"(int x) => (((((x)))))",
 		"(int x) => (((((((x)))))))",
+
+		// The same shape twice over, once with a literal for the right operand and once
+		// with a name: what separates the two rows is one number, and for a while what
+		// separated them was a hundred nanoseconds of reading that number again with a
+		// machine of its own. Kept because the pair is the shortest proof there is that a
+		// parenthesis and an operator cost the generated reader what they cost a person.
+		"(int x) => (x + 1)",
+		"(int x) => (((x + 1) + 1) + 1)",
+
+		"(int x) => (x + x)",
+		"(int x) => (((x + x) + x) + x)",
 	];
 
 	/// <summary>

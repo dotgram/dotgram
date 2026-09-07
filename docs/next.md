@@ -13955,3 +13955,74 @@ Zero, the default, is no limit, and then nothing counts them: no field in the re
 the state that crosses, no test in `Deepen`. Written down in §6.5 and pinned by two tests —
 one that the probe and the carrying are emitted, one that a limit emits the count and the
 test that reads it.
+
+## Built: a token whose value is its own text is not read twice
+
+The worst row of the expression yardstick was `((((x + 1) + 1) + 1) + 1)` at 1.60 of the
+hand-written parser, where a bare parenthesis was 1.33 and bare arithmetic 1.30. Neither
+explains it, so the two were separated: one parenthesis and one operator more at a time.
+
+```
+(x + 1)              gen  575   hand 448     ((x + 1) + 1)  756 / 502    (((x + 1) + 1) + 1)  955 / 603
+```
+
++181, +166, +170 nanoseconds a level for the generated reader against +72, +74, +76 by hand.
+Linear on both sides, so nothing was compounding — a level simply cost 2.3 times more. And a
+bare parenthesis costs 45.6 against 28.1, so what the operator itself added was 124 against
+46.
+
+Then the operand was changed and nothing else:
+
+| | generated | by hand | |
+| --- | --: | --: | --: |
+| `(x + x)` | 494 ns | 497 | **0.99** |
+| `((x + x) + x)` | 630 | 630 | **1.00** |
+| `(((x + x) + x) + x)` | 763 | 757 | **1.01** |
+
+The parenthesis, the operator, the climb, the descent — all of it costs the generated reader
+exactly what it costs a person. **The whole gap was one number literal.**
+
+Here is what a number cost:
+
+```csharp
+last2 = Value_Lexical_Dec_DotGram(Text_DotGram(parserSource, parserStarts, parserLengths, pos, p - pos));
+
+static string Value_Lexical_Dec_DotGram(string token)
+{
+    var failure = new Failure();
+
+    return Reread_Lexical_Dec_DotGram(AsSpan(token), 0, ref failure, out string value) < 0 ? default! : value;
+}
+```
+
+A string cut from the source, then **the value automaton run over it** to recognize a number
+the lexer had already recognized, a boxed result and a cast — all to reach
+`Dec : @string = t: DecRun => @(t.Replace("_", ""))`.
+
+And that rule names one capture, and every character it reads is inside it. So `t` **is** the
+token, and there is nothing to read again:
+
+```csharp
+static string Value_Lexical_Dec_DotGram(string token) => Construct_Lexical_Dec(token);
+```
+
+`Verbatim` in `CSharpEmitter` is the condition, and it is narrow on purpose: one construction,
+one capture, every character the rule reads inside it, and nothing supplied — no `parserText`,
+no `parserSpan`, no context, no state. `Dec` and `Real` pass; `Hex = "0x"i & '_'* & t: HexRun`
+reads two characters outside its capture and keeps its second reading. Four of the expression
+language's thirty-eight rereads go.
+
+| | before | after |
+| --- | --: | --: |
+| `(x + 1)` | 1.38 | **1.05** |
+| `(((x + 1) + 1) + 1)` | 1.58 | **1.09** |
+| `((((x + 1) + 1) + 1) + 1)` | 1.60 | **1.13** |
+| `(x + y) * 3 - x / 5` | 1.25 | **0.98** |
+| `{ x += 1; x *= 2; return x; }` | 1.21 | **0.91** |
+| the `for` loop | 1.17 | **1.06** |
+
+SQL does not move: its lexical rules do not have the shape.
+
+The pair `(x + 1)` / `(x + x)` stays in the yardstick. It is the shortest proof there is that
+a parenthesis and an operator cost the generated reader what they cost a person, and it is
+what would catch this coming back.

@@ -2124,6 +2124,84 @@ public static partial class CSharpEmitter
 	/// parse carries on rather than a parser throwing at its own inconsistency.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// The construction of a lexical rule whose value is its own text put through the
+	/// author's C#, or null where reading it again is what the value needs.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A token's value is normally had by reading the token again with a machine of its
+	/// own: the lexer answered with a kind and kept none of the shape inside it, and the
+	/// <c>=&gt;</c> names captures that shape held. But a rule like <c>Dec : @string =
+	/// t: DecRun =&gt; @(t.Replace("_", ""))</c> names one capture, and every character
+	/// the rule reads is inside it — so <c>t</c> <b>is</b> the token, and the second
+	/// reading answers a question already answered.
+	/// </para>
+	/// <para>
+	/// It was not free: every integer in an expression cost a string cut, a run of the
+	/// value automaton over it, a boxed result and a cast. Measured on the expression
+	/// language, an operand that is a number cost about a hundred nanoseconds more than
+	/// one that is a name, where the hand-written parser pays the same for both
+	/// (docs/next.md).
+	/// </para>
+	/// <para>
+	/// Refused where the construction wants anything the token alone cannot answer: a
+	/// supplied name, the grammar's state, a second capture, a capture of a rule rather
+	/// than of text, or one character read outside the capture — <c>Hex = "0x"i &amp;
+	/// t: HexRun</c> reads two, and its <c>t</c> is not its token.
+	/// </para>
+	/// </remarks>
+	static string? Verbatim(RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
+	{
+		var factories = FactoriesOf(graph, results, rule);
+
+		if (factories.Count != 1 || !graph.Bodies.TryGetValue(rule, out var body))
+			return null;
+
+		var factory = factories[0];
+
+		// Anything supplied is something the token does not say.
+		if (WantsText(graph, factory) || Asks(graph, factory, "parserSpan") ||
+			Asks(graph, factory, "parserInput") || Asks(graph, factory, "context") ||
+			Asks(graph, factory, "parserState"))
+		{
+			return null;
+		}
+
+		if (factory.Members.Count != 1 || factory.Members[0].Rule is not null ||
+			factory.Members[0].IsSequence)
+		{
+			return null;
+		}
+
+		Node? capture = null;
+
+		foreach (var node in NodeWalk.Descendants(body))
+			if (node is Node.Capture)
+			{
+				if (capture is not null)
+					return null;
+
+				capture = node;
+			}
+
+		if (capture is null)
+			return null;
+
+		// Every character the rule reads has to be inside the capture, or what the
+		// capture holds is not what the token holds.
+		var inside = NodeWalk.ByIdentity(NodeWalk.Descendants(capture));
+
+		foreach (var node in NodeWalk.Descendants(body))
+			if (node is Node.Literal or Node.Element or Node.External or Node.Call &&
+				!inside.Contains(node))
+			{
+				return null;
+			}
+
+		return factory.Method;
+	}
+
 	static string Rereading(LexicalSplit lexical, Machine valuing)
 	{
 		var file   = new Writer(1);
@@ -2153,6 +2231,18 @@ public static partial class CSharpEmitter
 		{
 			var type = valuing.Results.QualifiedOf(rule)!;
 			var read = "Reread_" + IdentifierOf(rule) + "_DotGram";
+
+			// Where the token is the whole of what the construction can be told, there is
+			// nothing to read again and the construction is called on the text itself.
+			if (Verbatim(lexical.Source, valuing.Results, rule) is { } made)
+			{
+				file.Line($"/// <summary>What the text of one <c>{rule.Name}</c> token is worth.</summary>");
+				file.Line("/// <remarks>The token itself: the capture spans it, so nothing about how it was read is wanted.</remarks>");
+				file.Line($"static {type} Value_{IdentifierOf(rule)}_DotGram(string token) => {made}(token);");
+				file.Line();
+
+				continue;
+			}
 
 			file.Write(valuing.RenderWrapper(rule, read, engine, whole: true));
 			file.Line();
