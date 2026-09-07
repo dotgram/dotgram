@@ -61,11 +61,7 @@ static class Engine
 		if (connection is null)
 			return;
 
-		using (var parseOnly = connection.CreateCommand())
-		{
-			parseOnly.CommandText = "SET PARSEONLY ON";
-			parseOnly.ExecuteNonQuery();
-		}
+		ParseOnly(connection);
 
 		var both     = 0;
 		var engine   = 0;   // the engine reads it and this does not — the work list
@@ -132,11 +128,34 @@ static class Engine
 		Report(version, both, engine, ours, neither, gaps, overRead, said, shown);
 	}
 
+	/// <summary>Puts the connection into the mode where it reads and does nothing else.</summary>
+	static void ParseOnly(SqlConnection connection)
+	{
+		using var command = connection.CreateCommand();
+
+		command.CommandText = "SET PARSEONLY ON";
+		command.ExecuteNonQuery();
+	}
+
 	/// <summary>
 	/// The message the engine answered with, or zero where it had nothing to say.
 	/// </summary>
+	/// <remarks>
+	/// A statement in this corpus can take the connection down with it — a severity the
+	/// server ends the session over rather than answers. So the state is checked before each
+	/// one and the session is built again where it has gone, which costs nothing on the
+	/// thousands that do not and is the difference between a number and a stack trace.
+	/// </remarks>
 	static int Answer(SqlConnection connection, string statement)
 	{
+		if (connection.State != ConnectionState.Open)
+		{
+			connection.Close();
+			connection.Open();
+
+			ParseOnly(connection);
+		}
+
 		using var command = connection.CreateCommand();
 
 		command.CommandText = statement;

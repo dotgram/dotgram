@@ -68,7 +68,20 @@ static class Kinds
 	/// </summary>
 	internal static bool Modelled(string kind) =>
 		kind is nameof(SelectStatement) or nameof(InsertStatement) or nameof(UpdateStatement)
-			or nameof(DeleteStatement) or nameof(MergeStatement);
+			or nameof(DeleteStatement) or nameof(MergeStatement) or nameof(BulkInsertStatement)
+			or nameof(BeginEndBlockStatement) or nameof(IfStatement) or nameof(WhileStatement)
+			or nameof(TryCatchStatement) or nameof(DeclareVariableStatement)
+			or nameof(DeclareTableVariableStatement) or nameof(DeclareCursorStatement)
+			or nameof(SetVariableStatement) or nameof(ExecuteStatement)
+			or nameof(BeginTransactionStatement) or nameof(CommitTransactionStatement)
+			or nameof(RollbackTransactionStatement) or nameof(SaveTransactionStatement)
+			or nameof(SetTransactionIsolationLevelStatement) or nameof(SetIdentityInsertStatement)
+			or nameof(SetRowCountStatement) or nameof(SetTextSizeStatement)
+			or nameof(PredicateSetStatement) or nameof(SetCommandStatement)
+			or nameof(PrintStatement) or nameof(ReturnStatement) or nameof(ThrowStatement)
+			or nameof(RaiseErrorStatement) or nameof(GoToStatement) or nameof(BreakStatement)
+			or nameof(ContinueStatement) or nameof(WaitForStatement) or nameof(UseStatement)
+			or nameof(CheckpointStatement);
 
 	public static void Run(string? root, string version, int shown)
 	{

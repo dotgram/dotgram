@@ -196,6 +196,54 @@ public abstract record SqlNode
 	/// </summary>
 	public sealed record Assign(string Target, string? Operator, SqlNode Value) : SqlNode;
 
+	// ---- the procedural level ----------------------------------------------------------------
+	//
+	// Structure gets a record and shapelessness does not. A block holds statements, a
+	// conditional holds two, a declaration holds a list — each of those is a shape and each
+	// has one. `PRINT`, `RETURN`, `GOTO`, `BREAK`, `THROW`, `WAITFOR` and `USE` are a word and
+	// some values and nothing else, and giving each of them a record of its own would be
+	// seven names for one shape rather than seven shapes.
+
+	/// <summary>`BEGIN … END`, and the body of anything that has one.</summary>
+	public sealed record Block(SqlNode[] Statements) : SqlNode;
+
+	/// <summary>`IF … ELSE`, where either arm is one statement and a block is one.</summary>
+	public sealed record If(SqlNode Condition, SqlNode Then, SqlNode? Else) : SqlNode;
+
+	/// <summary>`WHILE`, and the one statement it repeats.</summary>
+	public sealed record While(SqlNode Condition, SqlNode Body) : SqlNode;
+
+	/// <summary>`BEGIN TRY … END TRY BEGIN CATCH … END CATCH`.</summary>
+	public sealed record TryCatch(SqlNode[] Tried, SqlNode[] Caught) : SqlNode;
+
+	/// <summary>One `DECLARE`, which may declare several.</summary>
+	public sealed record Declare(SqlNode[] Variables) : SqlNode;
+
+	/// <summary>
+	/// One variable: its name, the type as written, and what it was given to start with.
+	/// </summary>
+	public sealed record Declared(string Name, string? Type, SqlNode? Value) : SqlNode;
+
+	/// <summary>
+	/// A `SET` that names a setting rather than a variable — the option as written, and the
+	/// value where one was given.
+	/// </summary>
+	public sealed record Setting(string Option, SqlNode? Value) : SqlNode;
+
+	/// <summary>A transaction begun, committed, rolled back or saved, and its name.</summary>
+	public sealed record Transaction(string Kind, string? Name) : SqlNode;
+
+	/// <summary>
+	/// `EXECUTE`: what is called, with what, and the variable the return code goes to.
+	/// </summary>
+	public sealed record Execute(string? Into, string Name, SqlNode[] Arguments) : SqlNode;
+
+	/// <summary>
+	/// A statement that is a word and some values: `PRINT`, `RETURN`, `GOTO`, `BREAK`,
+	/// `CONTINUE`, `THROW`, `RAISERROR`, `WAITFOR`, `USE`, `CHECKPOINT`.
+	/// </summary>
+	public sealed record Command(string Word, SqlNode[] Arguments) : SqlNode;
+
 	// ---- how a parser makes these ------------------------------------------------------------
 
 	/// <summary>What a call with no arguments is handed, once rather than per call.</summary>

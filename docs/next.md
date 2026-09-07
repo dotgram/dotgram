@@ -15538,3 +15538,53 @@ and the name winning. The list is in `SourceClause`, and anything added after a 
 belongs on it. It is worth saying once more that the tell is bad — the parse stops one token
 *past* what was swallowed, so the reported position names the wrong thing and nothing looks
 wrong where the mistake is.
+
+## The procedural level, which had to come first
+
+`CREATE PROCEDURE` is a header and a body. So is `CREATE TRIGGER`, and so is
+`CREATE FUNCTION` — 272 statements of the corpus between them, and not one of them readable
+until the body is. `INSERT … EXEC` is the same thing in miniature, and it is why `INSERT`
+sat at 39% when everything around it was in the eighties.
+
+So the frame was written before the rest: blocks, `IF`, `WHILE`, `TRY`/`CATCH`, `DECLARE`
+in its four spellings, `SET` in its two, `EXECUTE` in its four, the transaction statements,
+`BULK INSERT`, and the nine that are a word and some values.
+
+**Structure gets a record and shapelessness does not.** A block holds statements, a
+conditional holds two, a declaration holds a list — each of those is a shape and each has
+one. `PRINT`, `RETURN`, `GOTO`, `BREAK`, `CONTINUE`, `THROW`, `RAISERROR`, `WAITFOR`, `USE`
+and `CHECKPOINT` are a word and some values and nothing else; giving each a record of its
+own would be ten names for one shape rather than ten shapes.
+
+```
+                            count    read
+BulkInsertStatement            70      70   100.0%
+PredicateSetStatement          56      56   100.0%
+IfStatement                    16      16   100.0%
+DeclareVariableStatement      102      96    94.1%
+SetVariableStatement           64      50    78.1%
+ExecuteStatement               42      26    61.9%
+```
+
+Of everything ScriptDom found in the corpus, **23.2% to 28.8%**; of the kinds this grammar
+has a rule for, the engine and this one agree on 2,265 of 2,860.
+
+### The fifth of a kind, and the first that is not about a name
+
+`EXEC dbo.p AT linked` stopped at `linked`. `AT` is not reserved, so it was read as an
+argument — and then the clause it had just eaten was what the parse wanted next. The four
+before it were all an *optional name* swallowing a clause; this one is an *optional list*
+doing it, which is the same defect wearing different clothes:
+
+> an optional thing stands in front of a clause, the clause's first word could belong to the
+> optional thing, and the optional thing takes it.
+
+The cure is always a lookahead and the tell is always bad — the parse stops one token past
+what was swallowed, so the reported position names the wrong thing.
+
+### And the harness learned to survive the corpus
+
+A statement in there can take the connection down with it: a severity the server ends the
+session over rather than answers. `--engine` now checks the state before each statement and
+builds the session again where it has gone, which costs nothing on the thousands that do not
+and is the difference between a number and a stack trace.

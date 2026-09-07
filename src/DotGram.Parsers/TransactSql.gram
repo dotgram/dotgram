@@ -950,6 +950,7 @@ StatementBody : @SqlNode
 	| s: TsqlUpdate   => @(s)
 	| s: TsqlDelete   => @(s)
 	| s: TsqlMerge    => @(s)
+	| s: Procedural   => @(s)
 	| s: DirectSelect => @(s)
 
 // What a statement writes to. Narrower than a table primary on purpose: the syntax gives
@@ -969,6 +970,7 @@ TsqlInsert : @SqlNode
 InsertRows : @SqlNode
 	= "DEFAULT"i & "VALUES"i    => @(new SqlNode.Row(SqlNode.None))
 	| v: TableValueConstructor  => @(v)
+	| e: ExecuteStatement       => @(e)
 	| q: QueryExpression        => @(q)
 
 // ── §UPDATE ─────────────────────────────────────────────────────────────────
@@ -1067,3 +1069,198 @@ OutputList = OutputItem & (',' & OutputItem)*
 
 OutputItem = QualifiedName & '.' & '*'
 		   | ValueExpression & TsqlAsClause?
+
+// ── The procedural level ────────────────────────────────────────────────────
+//
+// The frame everything else stands inside. It is worth writing before the rest of the
+// statement language and not after: `CREATE PROCEDURE`, `CREATE TRIGGER` and
+// `CREATE FUNCTION` are a header and a body, and the body is this — so none of the three
+// can be read at all until it exists, and `INSERT … EXEC` cannot either.
+//
+// Everything here was written from the published syntax and every form put to the engine.
+
+Procedural : @SqlNode
+	= s: TryCatchStatement    => @(s)
+	| s: TransactionStatement => @(s)
+	| s: StatementBlock       => @(s)
+	| s: ConditionalStatement => @(s)
+	| s: LoopStatement        => @(s)
+	| s: DeclareStatement     => @(s)
+	| s: SetStatement         => @(s)
+	| s: ExecuteStatement     => @(s)
+	| s: BulkInsertStatement  => @(s)
+	| s: SimpleCommand        => @(s)
+
+StatementList : @SqlNode[] = s: TsqlStatement+ => @(s)
+
+// `BEGIN TRY` and `BEGIN TRANSACTION` open with the same word as a block, so both stand
+// in front of it.
+TryCatchStatement : @SqlNode
+	= "BEGIN"i & "TRY"i & tried: StatementList & "END"i & "TRY"i
+	  & "BEGIN"i & "CATCH"i & caught: StatementList & "END"i & "CATCH"i
+		=> @(new SqlNode.TryCatch(tried, caught))
+
+StatementBlock : @SqlNode
+	= "BEGIN"i & body: StatementList & "END"i => @(new SqlNode.Block(body))
+
+ConditionalStatement : @SqlNode
+	= "IF"i & c: SearchCondition & then: TsqlStatement & ("ELSE"i & other: TsqlStatement)?
+		=> @(new SqlNode.If(c, then, other))
+
+LoopStatement : @SqlNode
+	= "WHILE"i & c: SearchCondition & body: TsqlStatement => @(new SqlNode.While(c, body))
+
+// ── Transactions ────────────────────────────────────────────────────────────
+TransactionStatement : @SqlNode
+	= "BEGIN"i & "DISTRIBUTED"i & TranWord & name: TranName? & TranMark?
+		=> @(new SqlNode.Transaction("BEGIN DISTRIBUTED", name))
+	| "BEGIN"i & TranWord & name: TranName? & TranMark?
+		=> @(new SqlNode.Transaction("BEGIN", name))
+	| "COMMIT"i & TranWord? & name: TranName? & TranDelayed?
+		=> @(new SqlNode.Transaction("COMMIT", name))
+	| "ROLLBACK"i & TranWord? & name: TranName?
+		=> @(new SqlNode.Transaction("ROLLBACK", name))
+	| "SAVE"i & TranWord & name: TranName
+		=> @(new SqlNode.Transaction("SAVE", name))
+
+TranWord    = "TRANSACTION"i | "TRAN"i | "WORK"i
+TranMark    = "WITH"i & "MARK"i & ValueExpression?
+TranDelayed = "WITH"i & '(' & Identifier & '=' & Identifier & ')'
+
+TranName : @string = t: Identifier => @(t) | t: Tsql.Variable => @(t)
+
+// ── Declarations ────────────────────────────────────────────────────────────
+DeclareStatement : @SqlNode
+	= "DECLARE"i & name: Identifier & "CURSOR"i & CursorOption* & "FOR"i & CursorBody
+		=> @(new SqlNode.Declare(new SqlNode[] { new SqlNode.Declared(name, "CURSOR", null) }))
+	| "DECLARE"i & first: Declaration & (',' & rest: Declaration)*
+		=> @(new SqlNode.Declare(SqlNode.Listed(first, rest)))
+
+Declaration : @SqlNode
+	= name: Tsql.Variable & "AS"i? & d: DeclaredAs => @(d with { Name = name })
+
+DeclaredAs : @SqlNode.Declared
+	= "TABLE"i & '(' & TableBody & ')'          => @(new SqlNode.Declared("", "TABLE", null))
+	| "CURSOR"i                                 => @(new SqlNode.Declared("", "CURSOR", null))
+	| type: DataType & ('=' & v: SetValue)?     => @(new SqlNode.Declared("", type, v))
+
+CursorOption = "LOCAL"i | "GLOBAL"i | "FORWARD_ONLY"i | "SCROLL"i | "STATIC"i | "KEYSET"i
+			 | "DYNAMIC"i | "FAST_FORWARD"i | "READ_ONLY"i | "SCROLL_LOCKS"i | "OPTIMISTIC"i
+			 | "TYPE_WARNING"i | "INSENSITIVE"i
+
+CursorBody = QueryExpression & OrderByClause? & CursorFor?
+CursorFor  = "FOR"i & "UPDATE"i & ("OF"i & ColumnList)?
+		   | "FOR"i & "READ"i & "ONLY"i
+
+// The columns a table variable declares, which is the beginning of `CREATE TABLE` and
+// meant to grow into it.
+TableBody    = TableElement & (',' & TableElement)*
+TableElement     = Identifier & TableElementTail
+TableElementTail = "AS"i & ValueExpression & ColumnOption*
+				 | DataType & ColumnOption*
+
+ColumnOption = "NOT"i & "NULL"i
+			 | "NULL"i
+			 | "PRIMARY"i & "KEY"i & IndexOrder? & ('(' & ColumnList & ')')?
+			 | "UNIQUE"i & IndexOrder? & ('(' & ColumnList & ')')?
+			 | "IDENTITY"i & ('(' & Arguments & ')')?
+			 | "DEFAULT"i & ValueExpression
+			 | "COLLATE"i & QualifiedName
+			 | "CHECK"i & '(' & SearchCondition & ')'
+			 | "ROWGUIDCOL"i
+			 | "SPARSE"i
+			 | "FILESTREAM"i
+			 | "PERSISTED"i
+			 | "INDEX"i & Identifier & IndexOrder?
+
+IndexOrder = "CLUSTERED"i | "NONCLUSTERED"i
+
+// ── SET ─────────────────────────────────────────────────────────────────────
+//
+// Two statements share the word: one assigns a variable, the other names a setting. The
+// options that are reserved words stand in front, since the general form reads a name.
+SetStatement : @SqlNode
+	= "SET"i & "TRANSACTION"i & "ISOLATION"i & "LEVEL"i & level: IsolationLevel
+		=> @(new SqlNode.Setting("TRANSACTION ISOLATION LEVEL", new SqlNode.Column(level)))
+	| "SET"i & "IDENTITY_INSERT"i & name: QualifiedName & OnOff
+		=> @(new SqlNode.Setting("IDENTITY_INSERT", new SqlNode.Column(name)))
+	| "SET"i & option: SetReserved & v: ValueExpression
+		=> @(new SqlNode.Setting(option, v))
+	| "SET"i & name: Tsql.Variable & v: AssignTail
+		=> @(new SqlNode.Assign(name, null, v))
+	| "SET"i & option: SetOptions & OnOff?
+		=> @(new SqlNode.Setting(option, null))
+
+SetReserved = "ROWCOUNT"i | "TEXTSIZE"i | "OFFSETS"i | "STATISTICS"i | "USER"i
+SetOptions  = Identifier & (',' & Identifier)*
+OnOff       = "ON"i | "OFF"i
+
+IsolationLevel = "READ"i & "UNCOMMITTED"i | "READ"i & "COMMITTED"i | "REPEATABLE"i & "READ"i
+			   | "SNAPSHOT"i | "SERIALIZABLE"i
+
+// ── EXECUTE ─────────────────────────────────────────────────────────────────
+ExecuteStatement : @SqlNode = ExecWord & e: ExecuteBody => @(e)
+
+ExecuteBody : @SqlNode
+	= "AS"i & Identifier & '=' & ValueExpression & ExecWith?
+		=> @(new SqlNode.Execute(null, "AS", SqlNode.None))
+	| '(' & args: Arguments & ')' & ExecAt? & ExecWith?
+		=> @(new SqlNode.Execute(null, "(", args))
+	| into: ExecReturn? & name: ExecName & args: ExecArguments? & ExecAt? & ExecWith?
+		=> @(new SqlNode.Execute(into, name, args ?? SqlNode.None))
+
+ExecWord   = "EXECUTE"i | "EXEC"i
+ExecReturn : @string = t: Tsql.Variable & '=' => @(t)
+ExecName   : @string = t: QualifiedName => @(t) | t: Tsql.Variable => @(t)
+ExecAt     = "AT"i & QualifiedName
+ExecWith   = "WITH"i & ExecOption & (',' & ExecOption)*
+ExecOption = "RESULT"i & "SETS"i & "NONE"i
+		   | "RESULT"i & "SETS"i & "UNDEFINED"i
+		   | Identifier
+
+ExecArguments : @SqlNode[]
+	= first: ExecArgument & (',' & rest: ExecArgument)* => @(SqlNode.Listed(first, rest))
+
+// The lookahead is the fifth of its kind and the first that is not about a name: `AT` is
+// not reserved, so `EXEC dbo.p AT linked` read `AT` as an argument and then wanted the
+// clause it had just eaten. The shape is the same wherever an optional list stands in
+// front of a clause whose first word could belong to the list.
+ExecArgument : @SqlNode
+	= name: Tsql.Variable & '=' & v: ExecValue & "OUTPUT"i? => @(new SqlNode.Selected(v, name))
+	| ?!"AT"i & v: ExecValue & "OUTPUT"i?                   => @(v)
+
+ExecValue : @SqlNode
+	= "DEFAULT"i => @(SqlNode.DefaultValue)
+	| "NULL"i    => @(SqlNode.NullValue)
+	| v: ValueExpression => @(v)
+
+// ── BULK INSERT ─────────────────────────────────────────────────────────────
+BulkInsertStatement : @SqlNode
+	= "BULK"i & "INSERT"i & target: DmlTarget & "FROM"i & file: ValueExpression
+	  & ("WITH"i & '(' & BulkOption & (',' & BulkOption)* & ')')?
+		=> @(new SqlNode.Insert(target, null, file))
+
+BulkOption = "ORDER"i & '(' & SortSpecification & (',' & SortSpecification)* & ')'
+		   | Identifier & BulkOptionTail?
+
+BulkOptionTail = '=' & ValueExpression | '(' & Arguments & ')'
+
+// ── A word and some values ──────────────────────────────────────────────────
+SimpleCommand : @SqlNode
+	= "PRINT"i & v: ValueExpression      => @(new SqlNode.Command("PRINT", new SqlNode[] { v }))
+	| "RETURN"i & v: ValueExpression?    => @(new SqlNode.Command("RETURN", v is null ? SqlNode.None : new SqlNode[] { v }))
+	| "THROW"i & args: Arguments?        => @(new SqlNode.Command("THROW", args ?? SqlNode.None))
+	| "GOTO"i & name: Identifier         => @(new SqlNode.Command("GOTO", new SqlNode[] { new SqlNode.Column(name) }))
+	| "BREAK"i                           => @(new SqlNode.Command("BREAK", SqlNode.None))
+	| "CONTINUE"i                        => @(new SqlNode.Command("CONTINUE", SqlNode.None))
+	| "CHECKPOINT"i & v: ValueExpression? => @(new SqlNode.Command("CHECKPOINT", v is null ? SqlNode.None : new SqlNode[] { v }))
+	| "USE"i & name: QualifiedName       => @(new SqlNode.Command("USE", new SqlNode[] { new SqlNode.Column(name) }))
+	| "RAISERROR"i & '(' & args: Arguments & ')' & RaiseWith?
+		=> @(new SqlNode.Command("RAISERROR", args))
+	| "RAISERROR"i & args: Arguments & RaiseWith?
+		=> @(new SqlNode.Command("RAISERROR", args))
+	| "WAITFOR"i & WaitKind & v: ValueExpression
+		=> @(new SqlNode.Command("WAITFOR", new SqlNode[] { v }))
+
+RaiseWith = "WITH"i & Identifier & (',' & Identifier)*
+WaitKind  = "DELAY"i | "TIME"i

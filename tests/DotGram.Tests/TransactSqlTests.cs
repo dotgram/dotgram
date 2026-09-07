@@ -600,6 +600,73 @@ public sealed class TransactSqlTests
 		Assert.True (TransactSql.TryParseStatement(input).IsSuccess, input);
 	}
 
+	/// <summary>The procedural level: the frame everything else stands inside.</summary>
+	/// <remarks>
+	/// Written before the rest of the statement language and not after, because
+	/// `CREATE PROCEDURE`, `CREATE TRIGGER` and `CREATE FUNCTION` are a header and a body and
+	/// the body is this — so none of the three can be read at all until it exists, and
+	/// `INSERT … EXEC` cannot either.
+	/// </remarks>
+	[Theory]
+	[InlineData("BEGIN SELECT 1 END")]
+	[InlineData("BEGIN SELECT 1; SELECT 2; END")]
+	[InlineData("IF @a > 1 SELECT 1")]
+	[InlineData("IF @a > 1 BEGIN SELECT 1 END ELSE BEGIN SELECT 2 END")]
+	[InlineData("WHILE @a > 1 BEGIN SET @a = @a - 1; IF @a = 5 BREAK; ELSE CONTINUE; END")]
+	[InlineData("BEGIN TRY SELECT 1 END TRY BEGIN CATCH THROW END CATCH")]
+
+	[InlineData("DECLARE @a INT")]
+	[InlineData("DECLARE @a AS REAL = 1.2")]
+	[InlineData("DECLARE @a INT, @b NVARCHAR (50) = N'x', @c AS TABLE (id INT NOT NULL, n VARCHAR (30))")]
+	[InlineData("DECLARE @t TABLE (a INT IDENTITY (1, 5) NOT NULL, b AS a * 2, c MONEY DEFAULT 0)")]
+	[InlineData("DECLARE c CURSOR LOCAL FAST_FORWARD FOR SELECT a FROM t")]
+	[InlineData("DECLARE @c AS CURSOR")]
+
+	[InlineData("SET @a = 1")]
+	[InlineData("SET @a += 1")]
+	[InlineData("SET @a = (SELECT MAX (b) FROM t)")]
+	[InlineData("SET ANSI_NULLS ON")]
+	[InlineData("SET ANSI_NULLS, QUOTED_IDENTIFIER OFF")]
+	[InlineData("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED")]
+	[InlineData("SET IDENTITY_INSERT dbo.t ON")]
+	[InlineData("SET ROWCOUNT 100")]
+	[InlineData("SET TEXTSIZE 2048")]
+
+	[InlineData("EXEC dbo.p")]
+	[InlineData("EXECUTE dbo.p @a = 1, @b = DEFAULT, @c OUTPUT")]
+	[InlineData("EXEC @rc = dbo.p 1, 2")]
+	[InlineData("EXEC (N'SELECT 1')")]
+	[InlineData("EXEC dbo.p WITH RECOMPILE")]
+	[InlineData("EXEC dbo.p AT linked")]
+	[InlineData("INSERT INTO t (a) EXEC dbo.p")]
+
+	[InlineData("BEGIN TRANSACTION")]
+	[InlineData("BEGIN TRAN t1 WITH MARK N'x'")]
+	[InlineData("BEGIN DISTRIBUTED TRANSACTION")]
+	[InlineData("COMMIT")]
+	[InlineData("COMMIT TRANSACTION t1")]
+	[InlineData("ROLLBACK TRAN @v")]
+	[InlineData("SAVE TRANSACTION s1")]
+
+	[InlineData("PRINT 'Number of rows is ' + CAST (@@ROWCOUNT AS CHAR (3))")]
+	[InlineData("RETURN")]
+	[InlineData("RETURN 1")]
+	[InlineData("GOTO label1")]
+	[InlineData("THROW 51000, 'x', 1")]
+	[InlineData("RAISERROR ('x', 16, 1) WITH NOWAIT")]
+	[InlineData("WAITFOR DELAY '00:00:02'")]
+	[InlineData("USE master")]
+	[InlineData("CHECKPOINT")]
+
+	[InlineData("BULK INSERT t FROM 'f.dat'")]
+	[InlineData("BULK INSERT dbo.t FROM 'f.dat' WITH (FIELDTERMINATOR = ',', FIRSTROW = 2, TABLOCK)")]
+	public void The_procedural_level_reads(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	// ── And builds the standard's tree ───────────────────────────────────────────
 
 	/// <summary>
