@@ -290,6 +290,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>What <c>Feed</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Feed_Feed_Body(int pos)
 			{
 				var p = pos;
@@ -400,6 +401,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>What <c>Header</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Header_Feed_Body(int pos)
 			{
 				var p = pos;
@@ -580,6 +582,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>What <c>eol</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_eol_Feed_Body(int pos)
 			{
 				var p = pos;
@@ -715,6 +718,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>What <c>Row</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Row_Feed_Body(int pos)
 			{
 				var p = pos;
@@ -782,6 +786,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>What <c>Name</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Name_Feed_Body(int pos)
 			{
 				var p = pos;
@@ -976,6 +981,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>What <c>Trailer</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Trailer_Feed_Body(int pos)
 			{
 				var p = pos;

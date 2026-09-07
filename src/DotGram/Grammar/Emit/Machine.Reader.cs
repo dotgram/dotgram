@@ -238,7 +238,17 @@ sealed partial class Machine
 			// writes as a test where it stands; asked for as a call, it costs the call. The
 			// JIT inlines a method this small on its own only while the refusals inside it
 			// keep it under its budget, and a choice of six tokens with six of them does not.
-			if (!tape && Trivial(rule))
+			//
+			// A body is asked for from one place and one only — the way back into it, written
+			// just above — so the same thing is said of every one of them, whatever its size.
+			// Nothing is written twice by it: a method the runtime never calls is a method it
+			// never compiles, so what the reader has is one method a rule where it had two,
+			// which is the shape a person writing the parser would have written to begin with.
+			// Worth a quarter of a character parse over the notation grammar, and it is halved
+			// calls rather than anything cleverer: `Name` reaches `Identifier` reaches a class,
+			// with a seam between each, and every one of those was two calls where it needed
+			// one.
+			if (tape || Trivial(rule))
 				members.Line(
 					"[global::System.Runtime.CompilerServices.MethodImpl(" +
 					"global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");

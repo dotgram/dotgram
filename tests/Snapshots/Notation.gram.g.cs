@@ -384,6 +384,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>What <c>Hashed</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Hashed_Hashed_Body(int pos)
 			{
 				var p = pos;
@@ -420,6 +421,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>What <c>Padded_Word_value1</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Padded_Word_value1_Hashed_Body(int pos)
 			{
 				var p = pos;
@@ -462,6 +464,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>What <c>Word</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Word_Hashed_Body(int pos)
 			{
 				var p = pos;
@@ -779,6 +782,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>What <c>List_With1</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_List_With1_List_With1_Body(int pos)
 			{
 				var p = pos;
@@ -875,6 +879,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>What <c>Word</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Word_List_With1_Body(int pos)
 			{
 				var p = pos;
@@ -1112,6 +1117,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>What <c>List</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_List_List_Body(int pos)
 			{
 				var p = pos;
@@ -1208,6 +1214,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>What <c>Word</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Word_List_Body(int pos)
 			{
 				var p = pos;
@@ -1471,6 +1478,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>What <c>Primary</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Primary_Primary_Body(int pos)
 			{
 				var p = pos;

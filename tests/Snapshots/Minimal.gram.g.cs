@@ -2449,6 +2449,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>What <c>Sum</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			public int Read_Sum_Sum_Body(int pos, int power)
 			{
 				var p = pos;

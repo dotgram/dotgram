@@ -14313,8 +14313,64 @@ own with tiering off:
 rows quantizing — five microseconds against a stopwatch — and not something the ASCII table
 can have done.
 
-**What is still there.** A seam still costs three method calls: `Read_trivia` wraps
-`Read_trivia_Body` in a retry loop that cannot fire, because the body seals before it
-returns; the body wraps `Read_trivia_Part0` in another. A rule whose body is a single atomic
-group needs neither, and that is the next one to take.
+**What was still there.** Two method calls a rule, where a person writing the parser would
+have written one — and that is the next section.
+
+## Two methods a rule, and one call site between them
+
+A rule over characters is written as two methods: the way back into it, and what it is.
+
+```csharp
+public int Read_Name(int pos)
+{
+    var s = ways.Cursor;
+
+    while (true)
+    {
+        var q = Read_Name_Body(pos);
+
+        if (q >= 0)
+            return q;
+
+        if (ways.Cursor > s && ways.Retry(s))
+            continue;
+
+        return -1;
+    }
+}
+```
+
+`Name` reaches `Identifier` reaches a character class, with a seam between each, and every
+one of those was two calls where a hand-written parser makes one. Reading `Alpha & Beta` on
+a line came to seven calls; the hand-written parser compares a token kind.
+
+A body is asked for from one place and one only — the loop written just above it — so it is
+marked `AggressiveInlining`, whatever its size. The size argument that holds for a helper
+copied to a dozen call sites does not hold here: there is one call site, and a method the
+runtime never calls is a method it never compiles. What the reader has afterwards is one
+method a rule where it had two.
+
+Worth a quarter of a character parse, which is more than the three changes above it put
+together:
+
+| | before today | after | tape, after |
+| --- | --: | --: | --: |
+| `Csv.gram` | 1.30x | **0.81x** | 1.04x |
+| `Notation.gram` | 1.36x | **0.86x** | 1.14x |
+| `Minimal.gram` | 1.43x | **0.94x** | 1.25x |
+| `Feed.gram` | 1.97x | 1.22x | 1.72x |
+| `Url.gram` | 2.33x | 1.36x | 1.91x |
+| a reference operand | 2.60x | 1.45x | 2.06x |
+| eight of them on a line | 3.06x | 1.62x | 2.40x |
+| a string literal operand | 1.43x | 1.09x | 1.60x |
+| an element set | 1.17x | 0.88x | 1.20x |
+
+Standard SQL is unchanged by it, and expectedly so: over kinds a rule keeps the loop only
+where it gives back, which is eight rules of the forty. `--hand` reads 1.59, 1.63, 1.99,
+1.53, 1.36, 1.52, 1.50 against 1.64, 1.59, 1.86, 1.54, 1.39, 1.50, 1.57 — the same numbers
+through the noise of a round-robin.
+
+The comparison is a scale and not a verdict: the hand-written `GramParser` builds the
+compiler's own tree with positions and diagnostics where the generated one builds the
+example's records. A number below one says the two are close, not that the generator won.
 
