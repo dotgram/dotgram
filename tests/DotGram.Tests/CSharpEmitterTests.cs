@@ -1123,7 +1123,7 @@ public sealed class CSharpEmitterTests
 		// that builds — that the tape is deferring what nothing here needs deferred — and
 		// that is a different subject.
 		var told = Assert.Single(
-			result.Diagnostics.Where(static one => one.Id != GramCompiler.TapeNotNeeded));
+			result.Diagnostics, static one => one.Id != GramCompiler.TapeNotNeeded);
 
 		Assert.Equal(Retention.NotStreamable, told.Id);
 		Assert.Equal(GramSeverity.Info,       told.Severity);
@@ -1158,7 +1158,7 @@ public sealed class CSharpEmitterTests
 		// that builds — that the tape is deferring what nothing here needs deferred — and
 		// that is a different subject.
 		var told = Assert.Single(
-			result.Diagnostics.Where(static one => one.Id != GramCompiler.TapeNotNeeded));
+			result.Diagnostics, static one => one.Id != GramCompiler.TapeNotNeeded);
 
 		Assert.Equal(Retention.NotStreamable, told.Id);
 		Assert.Equal(GramSeverity.Info,       told.Severity);
@@ -1178,7 +1178,7 @@ public sealed class CSharpEmitterTests
 		// that builds — that the tape is deferring what nothing here needs deferred — and
 		// that is a different subject.
 		var told = Assert.Single(
-			result.Diagnostics.Where(static one => one.Id != GramCompiler.TapeNotNeeded));
+			result.Diagnostics, static one => one.Id != GramCompiler.TapeNotNeeded);
 
 		Assert.Equal(Retention.NotStreamable, told.Id);
 		Assert.Equal(GramSeverity.Info,       told.Severity);

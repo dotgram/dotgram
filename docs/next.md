@@ -14143,3 +14143,38 @@ diagnostic list. `EmittedCode.Quiet` is what they say now: nothing above `Info`,
 the whole list breaks whenever the compiler learns to offer something new. Three tests kept
 `Assert.Single` and exclude `GRAM5008` by id — their subject is `GRAM5001`, which is `Info`
 itself, so severity was the wrong sieve there.
+
+## Fixed: a line a grammar writes twice gets its directive back
+
+`Expression.Loop` in the expression language had no `#line` over it, and neither did ten
+other constructions: `Arguments`, `Elements`, `Indices`, `If`, `IfValue`, `Conditional`,
+`While`, `DoWhile`, `For`, `NamedType` and one alternative of `Primary`. Every other
+construction in the file had one.
+
+Nothing about those rules explains it — `Conditional` and `Coalesce` are written in the same
+shape and one had a directive and the other did not — and the same grammar compiled from a
+`.gram` file gave every one of them a directive. What differed was the map. A grammar inside
+`[Gram("""…""")]` has no file, so `InlineLineMap` finds a line by looking for its text in the
+spelling of the literal, and refused where it found the text twice:
+
+```csharp
+var at = spelling.IndexOf(text, StringComparison.Ordinal);
+
+if (at < 0 || spelling.IndexOf(text, at + 1, StringComparison.Ordinal) >= 0)
+    return false;
+```
+
+Which is the right instinct — a directive pointing at the wrong line is worse than none —
+and the wrong rule. The lines that lost their directive are the ones written more than once:
+`=> @(ExpressionLanguage.Listed(first, rest))` five times over, `=> @(…Chosen(test, then,
+otherwise))` three, `=> @(Expression.Loop(` twice. A grammar of any size has them.
+
+The decoded value's lines stand in the spelling **in the order they were written**, so each
+is looked for from where the one before it was found, and a repeated line is then found at
+its own occurrence. Where a line is not found where it should be — escapes written
+differently from what they decode to — the place after it is no longer known, so the order is
+given up there and the rest of the file is asked the older question. Never a guess, still.
+
+All eleven have their directive now, and the three `Listed` rules point at lines 331, 355 and
+368 rather than all at 331. A test in `GeneratorDriverTests` writes one construction twice,
+makes both wrong, and asks that the two C# errors land on the two lines that wrote them.

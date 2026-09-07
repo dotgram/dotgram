@@ -2019,6 +2019,50 @@ public sealed class GeneratorDriverTests
 		Assert.Contains("Missing", error.GetMessage(), StringComparison.Ordinal);
 	}
 
+	/// <summary>And a line the grammar writes twice lands on the one it was written from.</summary>
+	/// <remarks>
+	/// An inline grammar has no file, so its lines are found by looking for them in the
+	/// spelling of the literal (<c>InlineLineMap</c>). Looking for each from where the one
+	/// before it was found is what makes a repeated line answerable: searching the whole
+	/// spelling instead finds two and refuses, which cost the expression language eleven of
+	/// its constructions their directive — <c>=&gt; @(ExpressionLanguage.Listed(first,
+	/// rest))</c> is written there five times over.
+	/// </remarks>
+	[Fact]
+	public void A_line_the_grammar_writes_twice_lands_where_it_was_written()
+	{
+		// Two rules constructing exactly alike, which is what a grammar of any size has.
+		RunGenerator(
+		""""
+		using DotGram;
+
+		[Gram("""
+			One  : @int = d: ['0'..'9']+
+			  => @(Missing(d))
+			Two  : @int = d: ['0'..'9']+
+			  => @(Missing(d))
+			Start: @int = a: One & b: Two => @(a + b)
+			parse Start
+			""")]
+		public partial class Twice;
+		"""",
+			out var output);
+
+		// `Missing` does not exist, so both constructions are errors — and the two land on
+		// the two lines that wrote them rather than both on the first or neither anywhere.
+		var lines = output
+			.GetDiagnostics(TestContext.Current.CancellationToken)
+			.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+			.Select(static diagnostic => diagnostic.Location.GetMappedLineSpan())
+			.Where(static at => at.Path == "GeneratorDriverTest.cs")
+			.Select(static at => at.StartLinePosition.Line)
+			.Distinct()
+			.OrderBy(static one => one)
+			.ToArray();
+
+		Assert.Equal(new[] { 4, 6 }, lines);
+	}
+
 	// ── What re-runs, and when ───────────────────────────────────────────────────
 
 	/// <summary>
