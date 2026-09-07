@@ -14417,3 +14417,44 @@ The rule's own declaration knows what it was called, so that is what the publica
 now. `Notation.gram`'s snapshot has carried the leak since `parse List with (Comma = (',' |
 ';')) as Loose` was written into it.
 
+## A rule nothing reaches
+
+`GRAM4018`. A rule can be declared and never read: renamed in one place and not the other,
+left behind when a publication was deleted, written for an alternative that was rewritten
+past it. Nothing said so.
+
+**What counts as reaching one is more than a call**, and each of the three that are not was
+a false report before it was not:
+
+* a **rebinding** names its replacement and nothing else does — `with (Word = AsciiWord)` is
+  the whole of what reaches `AsciiWord`, and it reaches it as surely as a call would;
+* an **element set** draws a rule's items into itself — `[Digit | '_']` is one set
+  afterwards and names nothing, so the merge writes down what it dissolved;
+* **`trivia` and `wordboundary`** are never asked about at all. Declaring one is
+  configuration rather than a rule anything calls (§4.5, §4.6): a grammar that sets
+  whitespace handling and has no seam to weave it into has still said what it meant. What
+  they are made of is reached through them, since a seam is a call by the time this runs.
+
+**Where it is asked matters twice.** It runs straight after lowering rather than with the
+other checks at the end, because by the end several passes have rewritten the calls it would
+be reading: a specialization clones a rule and leaves the original reachable only through a
+publication, and `CollapseTransparent` replaces a call to a rule that only forwards with what
+it forwarded, emptying the rule it collapsed. Neither is anything an author did.
+
+And it is **raised** where `Retention` and the first-set checks are — last, and only where
+nothing else went wrong. What called a rule may be the declaration whose syntax did not come
+out, and one mistake told as two is what `A_stray_character_is_not_reported_seven_times`
+exists to prevent. The graph carries them apart in `WhenSound` for that. A grammar that
+publishes nothing is not asked either: everything in it is unreached, which says nothing
+about any of it — what that grammar is missing is a publication.
+
+**One hit across the repository**, and a real one. `DotGram.Compatibility`'s grammar declares
+
+```dotgram
+Where : @SourceSpan = ['a'..'z']+
+```
+
+to make the emitter write an extent, and nothing published it. So the emitter wrote
+`Construct_Where` and no recognizer at all: the file has been claiming to exercise a shape it
+never emitted. `parse Where as Span` now, and the extent is there.
+

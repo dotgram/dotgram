@@ -71,6 +71,10 @@ public static class GramCompiler
 		// answering a question they are not asking yet.
 		if (!HasErrors(diagnostics))
 		{
+			foreach (var diagnostic in graph.WhenSound)
+				if (!Inside(broken, diagnostic))
+					diagnostics.Add(diagnostic);
+
 			diagnostics.AddRange(Retention.Check(graph));
 			diagnostics.AddRange(FirstSets.Check(graph));
 		}

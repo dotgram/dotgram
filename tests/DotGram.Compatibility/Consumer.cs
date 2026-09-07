@@ -9,7 +9,9 @@ namespace DotGram.Compatibility
 	// type built from captures, a construction expression, a guard, a repetition collecting
 	// into a sequence, an extent, and a publication of each kind.
 	//
-	// Nothing here is called. If it compiles, the claim this project makes is true.
+	// Nothing here is called from C#. If it compiles, the claim this project makes is
+	// true — and every rule is published, because a rule nothing reaches is a rule the
+	// generator never emits a recognizer for, which exercises nothing (GRAM4018 said so).
 	//
 	// Written in C# 8 itself — a block namespace, concatenated strings, an ordinary
 	// constructor — because this project's netstandard2.0 build compiles at the floor the
@@ -30,6 +32,7 @@ namespace DotGram.Compatibility
 		"Where  : @SourceSpan = ['a'..'z']+\n" +
 		"\n" +
 		"parse Doc\n" +
+		"parse Where as Span\n" +
 		"find Key as AllKeys")]
 	public partial class Settings
 	{

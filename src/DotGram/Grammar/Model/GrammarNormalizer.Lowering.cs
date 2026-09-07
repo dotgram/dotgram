@@ -919,11 +919,19 @@ public sealed partial class GrammarNormalizer
 				return;
 			}
 
+			// The rule is gone from here the moment its ranges are: `[Digit | '_']` is one
+			// set afterwards and names nothing. Written down, because naming a rule inside a
+			// set is using it, and nothing after this could tell (GRAM4018).
+			_mergedElements.Add(rule);
+
 			into.AddRange(theirRanges);
 			alsoInto.AddRange(theirCategories);
 			unresolved.AddRange(theirReferences);
 		}
 	}
+
+	/// <summary>Rules an element set drew its own items from, which dissolves them.</summary>
+	readonly HashSet<RuleSymbol> _mergedElements = [];
 
 	/// <summary>
 	/// Sorts and merges ranges: `'a' | 'b'` becomes `'a'..'b'`, a range swallows what it

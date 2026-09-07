@@ -451,6 +451,18 @@ public sealed class RecognitionGraph(
 	public IReadOnlyList<GramDiagnostic>         Diagnostics { get; } = diagnostics;
 
 	/// <summary>
+	/// What is worth saying only about a grammar that is otherwise sound.
+	/// </summary>
+	/// <remarks>
+	/// A rule nothing reaches (GRAM4018) is the one of these so far, and a declaration
+	/// whose syntax did not come out can make one of any rule below it: what called it is
+	/// the rule that broke. Held apart so the compiler can raise them where it already
+	/// raises what §6.3 and the first sets have to say — after everything else, and only
+	/// where nothing else went wrong (implementation.md §0).
+	/// </remarks>
+	public IReadOnlyList<GramDiagnostic> WhenSound { get; init; } = [];
+
+	/// <summary>
 	/// What each rule's value is made of: one member per capture name, in the order the
 	/// notation writes them. Empty for a rule that captures nothing — its value is the
 	/// text it matched (§4.1 case 4).

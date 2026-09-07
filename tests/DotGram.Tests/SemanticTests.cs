@@ -1308,13 +1308,91 @@ public sealed class SemanticTests
 				: string.Join(", ", diagnostics.Select(diagnostic => diagnostic.ToString()))));
 	}
 
+	// ── A rule nothing reaches (GRAM4018) ────────────────────────────────────────
+
+	/// <summary>A rule no publication, call or rebinding reaches is said out loud.</summary>
+	[Fact]
+	public void A_rule_nothing_reaches_is_reported()
+	{
+		var told = Assert.Single(Compile(
+			"""
+			Start = 'a'
+			Stray = 'b'
+			parse Start
+			""").Diagnostics);
+
+		Assert.Equal(GrammarNormalizer.UnusedRule, told.Id);
+		Assert.Contains("Stray", told.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>And a call is not the only way to reach one.</summary>
+	/// <remarks>
+	/// A rebinding names its replacement and nothing else does; an element set draws a
+	/// rule's items into itself and the rule is gone from the tree afterwards; a seam and
+	/// a word boundary are calls by the time this is asked, so what <c>trivia</c> is made
+	/// of is reached through <c>trivia</c>, and <c>wordboundary</c> is never asked about
+	/// at all. Each of these was a false report before it was not.
+	/// </remarks>
+	[Fact]
+	public void And_a_call_is_not_the_only_way_to_reach_one() =>
+		EmittedCode.Quiet(Compile(
+			"""
+			using Lexical;
+
+			namespace Lexical
+			{
+				trivia = none
+
+				Digit = ['0'..'9']
+				Space = ' '
+			}
+
+			trivia = Space*
+			wordboundary = ['a'..'z']
+
+			Number = [Digit | '_']+
+			Other  = ['x'..'z']+
+			Start  = Number
+
+			parse Start with (Number = Other) as Loose
+			parse Start
+			""").Diagnostics);
+
+	/// <summary>A grammar that was refused is not told what else it might tidy.</summary>
+	/// <remarks>
+	/// What called the rule may be the declaration that did not come out. <c>Header</c> is
+	/// unreadable here and <c>Digit</c> is reached from nowhere else, so reporting it would
+	/// be one mistake told as two (implementation.md §0).
+	/// </remarks>
+	[Fact]
+	public void And_a_grammar_that_broke_is_asked_nothing() =>
+		Assert.DoesNotContain(
+			Compile(OneStrayCharacter).Diagnostics,
+			diagnostic => diagnostic.Id == GrammarNormalizer.UnusedRule);
+
+	/// <summary>And a grammar with nothing published is asked nothing either.</summary>
+	/// <remarks>
+	/// Every rule in it is unreached, which says nothing about any of them. What that
+	/// grammar is missing is a publication, and that is a different remark.
+	/// </remarks>
+	[Fact]
+	public void And_a_grammar_that_publishes_nothing_is_asked_nothing() =>
+		EmittedCode.Quiet(Compile("Start = 'a'\nStray = 'b'").Diagnostics);
+
 	// ── Parameterized rules (§4.2) ───────────────────────────────────────────────
 
 	const string Listing =
 		"List(item, sep) = item & (sep & item)*\n" +
 		"Word  = ['a'..'z']+\n" +
-		"Comma = ','\n" +
-		"Semi  = ';'\n";
+		"Comma = ','\n";
+
+	/// <summary>A second separator, for the one test that passes two.</summary>
+	/// <remarks>
+	/// Out of <see cref="Listing"/> because a rule nothing reaches is now said out loud
+	/// (GRAM4018), and a fixture shared by four tests should not make three of them
+	/// declare a rule they never pass.
+	/// </remarks>
+	const string Separator = "Semi  = ';'\n";
 
 	[Fact]
 	public void A_rule_may_take_another_rule_as_a_parameter() =>
@@ -1328,7 +1406,7 @@ public sealed class SemanticTests
 		// Two specializations of one rule, side by side in one grammar, which is the whole
 		// point of writing `List` once.
 		Assert.True(Matches(
-			Listing + "Start = List(Word, Comma) & ' ' & List(Word, Semi)",
+			Listing + Separator + "Start = List(Word, Comma) & ' ' & List(Word, Semi)",
 			"ab,cd ef;gh"));
 
 	[Fact]

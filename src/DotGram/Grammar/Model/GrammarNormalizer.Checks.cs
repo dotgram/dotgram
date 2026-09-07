@@ -10,6 +10,124 @@ namespace DotGram.Grammar.Model;
 /// </summary>
 public sealed partial class GrammarNormalizer
 {
+	/// <summary>A rule nothing reaches, reported once, where it was declared.</summary>
+	/// <remarks>
+	/// <para>
+	/// What reaches a rule is a publication, a call from a rule already reached, or a
+	/// rebinding naming it as a replacement — <c>with (Word = AsciiWord)</c> is the only
+	/// thing in a grammar that reaches <c>AsciiWord</c>, and it reaches it as surely as a
+	/// call would. A seam and a word boundary are calls like any other by the time this
+	/// runs, so what <c>trivia</c> is made of is reached through <c>trivia</c>.
+	/// </para>
+	/// <para>
+	/// The standard library's own names are never reported. Declaring <c>trivia</c> or
+	/// <c>wordboundary</c> is configuration rather than a rule anything calls (§4.5,
+	/// §4.6): a grammar that sets whitespace handling and then has no seam to weave it
+	/// into has still said what it meant, and a grammar with no keyword in it has still
+	/// said what a word is.
+	/// </para>
+	/// <para>
+	/// A warning and not a refusal. An unreached rule is dead grammar — a rule renamed
+	/// in one place and not the other, a publication deleted, an alternative rewritten
+	/// past its last operand — and it is also what a grammar under construction looks
+	/// like halfway through being written.
+	/// </para>
+	/// </remarks>
+	void CheckUnused()
+	{
+		// A grammar that publishes nothing has no roots, so everything in it is unreached
+		// and saying so of every rule says nothing. What that grammar is missing is a
+		// publication, which is a different remark and not this one.
+		if (_model.Publications.Count == 0)
+			return;
+
+		var reached = new HashSet<RuleSymbol>();
+		var pending = new Stack<RuleSymbol>();
+
+		foreach (var publication in _model.Publications)
+			Enter(publication.Rule);
+
+		foreach (var rule in _rules)
+			if (Array.IndexOf(GrammarBinder.StandardLibrary, rule.Name) >= 0)
+				Enter(rule);
+
+		foreach (var replacement in Replacements())
+			Enter(replacement);
+
+		foreach (var merged in _mergedElements)
+			Enter(merged);
+
+		while (pending.Count > 0)
+		{
+			var rule = pending.Pop();
+
+			if (!_bodies.TryGetValue(rule, out var body))
+				continue;
+
+			Follow(body);
+
+			if (_trivia.TryGetValue(rule, out var seam))
+				Follow(seam);
+		}
+
+		foreach (var rule in _rules)
+			if (rule.Declaration is { } declared && !reached.Contains(rule) &&
+				Array.IndexOf(GrammarBinder.StandardLibrary, rule.Name) < 0)
+			{
+				Remark(
+					UnusedRule,
+					$"Nothing reaches '{rule.Name}': no publication names it, no rule the grammar " +
+					"reads calls it, and no rebinding puts it in place of one. Publish it, call it, " +
+					"or delete it.",
+					declared.At);
+			}
+
+		void Enter(RuleSymbol rule)
+		{
+			if (reached.Add(rule))
+				pending.Push(rule);
+		}
+
+		void Follow(Node from)
+		{
+			foreach (var node in NodeWalk.Descendants(from))
+			{
+				if (node is Node.Call(var called, _))
+					Enter(called);
+
+				// A recovery's synchronizer hangs off the repetition rather than standing in
+				// it, so walking the body alone never meets it.
+				if (_recoveries.TryGetValue(node, out var recovery))
+					Follow(recovery.Sync);
+			}
+		}
+	}
+
+	/// <summary>Every rule a rebinding anywhere in the grammar puts in place of another.</summary>
+	IEnumerable<RuleSymbol> Replacements()
+	{
+		foreach (var site in _pendingWith)
+			foreach (var replacement in site.Targets.Values)
+				yield return replacement;
+
+		foreach (var publication in _model.Publications)
+			foreach (var replacement in publication.Rebindings.Values)
+				yield return replacement;
+
+		foreach (var replacement in Headers(_model.Root))
+			yield return replacement;
+
+		static IEnumerable<RuleSymbol> Headers(GrammarNamespace ns)
+		{
+			foreach (var rebinding in ns.OwnRebindings)
+				yield return rebinding.Right;
+
+			foreach (var nested in ns.Nested)
+				foreach (var replacement in Headers(nested))
+					yield return replacement;
+		}
+	}
+
 	void Check()
 	{
 		var doors = Doors.ByRule(_rules, _bodies);
