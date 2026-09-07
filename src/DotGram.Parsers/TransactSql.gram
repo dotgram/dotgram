@@ -94,6 +94,35 @@ TsqlReserved = ("ADD"i | "ALL"i | "ALTER"i | "AND"i | "ANY"i | "AS"i | "ASC"i | 
 	| "WITH"i | "WRITETEXT"i)
 	& ?!Sql92.Lexical.IdentifierPart
 
+// ── §7.10's query expression, narrowed ─────────────────────────────────────
+//
+// **`ALL` belongs to `UNION` and to nothing else.** The standard writes it on all three
+// set operators and the dialect inherited that; SQL Server answers `The 'ALL' version of
+// the EXCEPT operator is not supported` and says the same of `INTERSECT`. `CORRESPONDING`
+// goes with it: it is SQL-92 and T-SQL has never had it.
+//
+// The strengths are the standard's own — `INTERSECT` tighter than the two beside it, all
+// three to the left (§4.3.1).
+TsqlQueryExpression : @SqlNode
+	= left: TsqlQueryExpression & "UNION"i & all: "ALL"i? & right: TsqlQueryExpression  << 1
+		=> @(new SqlNode.Binary(SqlNode.Combined("UNION", all), left, right))
+	| left: TsqlQueryExpression & "EXCEPT"i & right: TsqlQueryExpression                << 1
+		=> @(new SqlNode.Binary(SqlNode.Combined("EXCEPT", null), left, right))
+	| left: TsqlQueryExpression & "INTERSECT"i & right: TsqlQueryExpression             << 2
+		=> @(new SqlNode.Binary(SqlNode.Combined("INTERSECT", null), left, right))
+	| q: QueryPrimary => @(q)
+
+// ── §6.4's qualified name, widened ─────────────────────────────────────────
+//
+// A part may be left out: `myDb..t2` names a database and a table and no schema between
+// them. Written as a dot that stands in front of another dot rather than as an optional
+// name, so that `t.*` still ends where it did — a name that could end with a dot would
+// eat the one the star needs.
+TsqlQualifiedName = Identifier & NamePart*
+
+NamePart     = '.' & NamePartName
+NamePartName = Identifier | ?='.'
+
 // ── §5.2's identifier, widened ──────────────────────────────────────────────
 //
 // The standard's two spellings and the two more T-SQL admits. The lookahead
@@ -176,11 +205,52 @@ TsqlCast : @SqlNode
 // is the same reason §6.16's are written out in the standard. What they have in common
 // is a condition standing where a value would: `IIF` takes one, and a value expression
 // cannot be one.
+//
+// And the JSON constructors, which have three things an argument list has not: a key
+// written with `:` rather than a comma, a clause saying what a null does, and a type to
+// return. All three are from the published syntax of `JSON_OBJECT`.
 TsqlValueFunction : @SqlNode
 	= "IIF"i & '(' & c: SearchCondition & ',' & a: ValueExpression & ',' & b: ValueExpression & ')'
 		=> @(new SqlNode.Call("IIF", new SqlNode[] { c, a, b }))
 	| "CHOOSE"i & '(' & at: ValueExpression & ',' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
 		=> @(new SqlNode.Call("CHOOSE", SqlNode.Listed(at, SqlNode.Listed(first, rest))))
+	| name: JsonObjectName & '(' & body: JsonObjectBody? & ')' & CallTail?
+		=> @(new SqlNode.Call(name, body ?? SqlNode.None))
+	| name: JsonArrayName & '(' & body: JsonArrayBody? & ')' & CallTail?
+		=> @(new SqlNode.Call(name, body ?? SqlNode.None))
+
+// **The null clause needs something to be null.** The published syntax makes the key
+// values and the clause independently optional — `JSON_OBJECT ( [ <json_key_value>
+// [ , ...n ] ] [ json_null_clause ] [ RETURNING json ] )` — so `JSON_OBJECT(NULL ON NULL)`
+// reads by the documentation and is answered by SQL Server 2025 with `Incorrect syntax near
+// the keyword 'ON'`. The engine is right and the syntax block is wrong, which is the first
+// thing found on that side rather than in a parser.
+JsonObjectBody : @SqlNode[]
+	= pairs: JsonKeyValues & JsonNullClause? & JsonReturning? => @(pairs)
+	| JsonReturning => @(SqlNode.None)
+
+JsonArrayBody : @SqlNode[]
+	= items: Arguments & JsonOrder? & JsonNullClause? & JsonReturning? => @(items)
+	| JsonReturning => @(SqlNode.None)
+
+JsonObjectName = "JSON_OBJECT"i | "JSON_OBJECTAGG"i
+JsonArrayName  = "JSON_ARRAY"i  | "JSON_ARRAYAGG"i
+
+JsonKeyValues : @SqlNode[]
+	= first: JsonKeyValue & (',' & rest: JsonKeyValue)* => @(SqlNode.Listed(first, rest))
+
+// `json_key_name : value_expression` — the one place in T-SQL where a colon joins two
+// values rather than introducing a parameter.
+JsonKeyValue : @SqlNode
+	= key: ValueExpression & ':' & v: JsonValue => @(new SqlNode.Row(new SqlNode[] { key, v }))
+
+// A key's value may be the null a value expression is not — `'type':NULL` is the case
+// the `ABSENT ON NULL` clause exists for.
+JsonValue : @SqlNode = "NULL"i => @(SqlNode.NullValue) | v: ValueExpression => @(v)
+
+JsonNullClause = "NULL"i & "ON"i & "NULL"i | "ABSENT"i & "ON"i & "NULL"i
+JsonReturning  = "RETURNING"i & DataType
+JsonOrder      = "ORDER"i & "BY"i & ValueExpression & ("ASC"i | "DESC"i)?
 
 // A sequence, read where a value stands. `FOR` here is not the `FOR` of `FOR JSON`;
 // it is the middle of one three-word name.
@@ -191,7 +261,8 @@ NextValue : @SqlNode
 // A call to something this grammar has never heard of, which is most of them: the
 // name is a catalogue's business and the arguments are values.
 FunctionCall : @SqlNode
-	= name: QualifiedName & '(' & quantifier: SetQuantifier? & args: Arguments? & ')' & CallTail?
+	= name: QualifiedName & '(' & quantifier: SetQuantifier? & args: Arguments? & JsonReturning? & ')'
+	  & CallTail?
 		=> @(new SqlNode.Call(name, args ?? SqlNode.None, SqlNode.Distinctly(quantifier)))
 
 // What may follow a call: which rows of a window it sees when they are null, what a
@@ -218,11 +289,20 @@ WithinGroup = "WITHIN"i & "GROUP"i & '(' & OrderByClause & ')'
 // the standard's. A window may also be named, and the name is declared by the query's
 // own `WINDOW` clause.
 Over = "OVER"i & '('
+	   & WindowName?
 	   & ("PARTITION"i & "BY"i & ValueExpression & (',' & ValueExpression)*)?
 	   & OrderByClause?
 	   & WindowFrame?
 	   & ')'
 	 | "OVER"i & Identifier
+
+// The name of a window declared by the query's `WINDOW` clause, standing where the
+// window itself would. Guarded the same way a correlation name is and for the same
+// reason: `PARTITION`, `ROWS` and `RANGE` are not reserved words, so without the
+// lookahead the name swallowed the clause that follows it and every frame stopped
+// reading — which is exactly what happened when this was written without one.
+WindowName   = ?!WindowClause & Identifier
+WindowClause = "PARTITION"i | "ROWS"i | "RANGE"i
 
 // A window frame: how far either side of the current row the window reaches.
 WindowFrame
@@ -558,7 +638,9 @@ HintString = Sql92.Lexical.NationalCharacterStringLiteral | Sql92.Lexical.Charac
 
 VariableValue = Tsql.Variable & VariableValueTail
 
-VariableValueTail = '=' & ValueExpression | "UNKNOWN"i
+VariableValueTail = '=' & HintValue | "UNKNOWN"i
+
+HintValue = "NULL"i | ValueExpression
 
 // §7.4's table sample: how much of a source to read, in rows or in per cent, and the
 // seed that makes the choice repeatable. Read and dropped for the same reason a hint is.
@@ -574,8 +656,19 @@ TableRepeatable = "REPEATABLE"i & '(' & ValueExpression & ')'
 // Where the clauses that belong to the statement rather than to the query go: how many
 // rows to skip and take, what shape to return them in, and how to run the whole thing.
 TsqlDirectSelect : @SqlNode
-	= q: QueryExpression & by: OrderByClause? & OffsetFetch? & ForClause? & QueryHints?
+	= WithClause? & q: QueryExpression & by: OrderByClause? & OffsetFetch? & ForClause? & QueryHints?
 		=> @(by is null ? q : new SqlNode.Ordered(q, by))
+
+// §7's `WITH <common_table_expression>`: a query given a name in front of the statement
+// that uses it. Read and dropped — what it names is a query the tree already holds no
+// place for, and putting one in is a question about the shape of `SqlNode` rather than
+// about the grammar.
+//
+// The definition is a query expression and not a whole statement: the syntax forbids a
+// `WITH` inside a `WITH`, and writing it that way is how the grammar says so.
+WithClause    = "WITH"i & CteDefinition & (',' & CteDefinition)*
+CteDefinition = Identifier & ('(' & ColumnList & ')')? & "AS"i & '(' & CteBody & ')'
+CteBody       = QueryExpression & OrderByClause? & OffsetFetch?
 
 // `FETCH` without `OFFSET` in front of it is not a clause: the engine answers
 // `Incorrect syntax`, though ScriptDom reads it. The corpus statement that asked for it was
@@ -611,6 +704,8 @@ namespace Dialect with (
 	SelectSublist             = TsqlSelectSublist,
 	GroupByClause             = TsqlGroupByClause,
 	DirectSelect              = TsqlDirectSelect,
+	QualifiedName             = TsqlQualifiedName,
+	QueryExpression           = TsqlQueryExpression,
 	DataType                  = TsqlDataType,
 	Predicate                 = TsqlPredicate)
 {

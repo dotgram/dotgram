@@ -15335,3 +15335,55 @@ So the two sources are authorities over different things, and the split is clean
 compatibility level 100, so the two oldest versions have no engine that can be asked about
 them and ScriptDom's parsers are the last written-down reading of those languages. From 100
 up the engine can be asked, and what it says outranks what any parser thinks.
+
+## The JSON constructors, a named query, and two things the sources disagreed about
+
+Written from the published syntax, checked against the engine, and both halves earned
+their keep.
+
+**What went in.** `JSON_OBJECT` and `JSON_ARRAY` with their aggregate spellings — the one
+place in T-SQL where a colon joins two values instead of introducing a parameter, and two
+clauses an argument list has not: what a null does, and what type comes back. `RETURNING`
+on an ordinary call, which is how `JSON_VALUE` says it. `WITH <common_table_expression>`,
+which is a query given a name in front of the statement that uses it. A window named inside
+its own parentheses. `OPTIMIZE FOR (@v = NULL)`. And a qualified name with a part left out —
+`myDb..t2` — written as a dot standing in front of another dot rather than as an optional
+name, so that `t.*` still ends where it did.
+
+Of the statements ScriptDom calls a query, **61.6% to 68.5%**; against the engine, 1,362 of
+2,036 read on both sides where 1,212 did.
+
+### Two disagreements, and they point in opposite directions
+
+**The documentation is wrong about `JSON_OBJECT`.** Its syntax block makes the key values
+and the null clause independently optional:
+
+```
+JSON_OBJECT ( [ <json_key_value> [ , ...n ] ] [ json_null_clause ] [ RETURNING json ] )
+```
+
+so `JSON_OBJECT(NULL ON NULL)` reads by the specification. SQL Server 2025 answers
+`Incorrect syntax near the keyword 'ON'`. The clause needs something to be null, the block
+does not say so, and the grammar now says what the engine says.
+
+**And `ALL` belongs to `UNION` and to nothing else.** The standard writes it on all three set
+operators and the dialect had inherited that without anybody asking; the engine answers
+`The 'ALL' version of the EXCEPT operator is not supported`, and the same of `INTERSECT`.
+`CORRESPONDING` went with them — SQL-92, never T-SQL. Three more narrowings a refusal count
+would never have shown, and the over-acceptance cell fell from 46 to 32 for them.
+
+### A shape that keeps recurring
+
+Three times now the same defect, and it is worth naming because it will happen again. A word
+that is **not reserved** stands at the head of a clause, an optional name stands in the same
+position, and the name eats the clause:
+
+| the name | the clause it ate |
+| --- | --- |
+| a correlation name | `PIVOT`, `UNPIVOT`, `TABLESAMPLE`, `WINDOW` |
+| a window name inside `OVER (…)` | `PARTITION`, `ROWS`, `RANGE` |
+
+Both are fixed the same way, with the lookahead the standard's own `Identifier` already uses
+against its reserved words: `?!SourceClause & Identifier`. The tell is always the same, and
+it is a bad one — the parse stops one token *past* the clause that was swallowed, so the
+position names the wrong thing and nothing looks wrong at the place the mistake is.

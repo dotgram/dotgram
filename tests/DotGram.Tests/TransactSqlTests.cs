@@ -302,6 +302,9 @@ public sealed class TransactSqlTests
 	[Theory]
 	[InlineData("SELECT a FROM t NATURAL FULL JOIN u")]
 	[InlineData("SELECT a FROM t INNER JOIN u USING (id, k)")]
+	[InlineData("SELECT a FROM t EXCEPT ALL SELECT b FROM u")]
+	[InlineData("SELECT a FROM t INTERSECT ALL SELECT b FROM u")]
+	[InlineData("SELECT a FROM t UNION CORRESPONDING SELECT b FROM u")]
 	[InlineData("SELECT a FROM t JOIN u USING (id)")]
 	public void What_is_the_standard_and_not_the_dialect_is_refused(string input)
 	{
@@ -335,6 +338,8 @@ public sealed class TransactSqlTests
 	/// </remarks>
 	[Theory]
 	[InlineData("SELECT * FROM t1 INNER LOCAL MERGE JOIN t10 ON t1.c1 = t10.c1")]
+	[InlineData("SELECT JSON_OBJECT (NULL ON NULL)")]
+	[InlineData("SELECT JSON_ARRAY (NULL ON NULL)")]
 	[InlineData("SELECT a FROM t ORDER BY a FETCH NEXT 2 ROWS ONLY")]
 	[InlineData("SELECT trim(*) FROM t")]
 	[InlineData("SELECT c1 FROM t1 AS a WITH (NOLOCK) TABLESAMPLE (10 PERCENT)")]
@@ -358,6 +363,43 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT c1 FROM t1 GROUP BY GROUPING SETS ((CUBE (c1), ROLLUP (c1), c1), (c1), ())")]
 	[InlineData("SELECT c1 FROM t1 GROUP BY c1 WITH (DISTRIBUTED_AGG)")]
 	public void The_published_clauses_read(string input)
+	{
+		var match = TransactSql.TryParseSelect(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>The JSON constructors, a named query, and three smaller things.</summary>
+	/// <remarks>
+	/// All written from the published syntax. `JSON_OBJECT` is the one place in T-SQL where
+	/// a colon joins two values instead of introducing a parameter, and it carries two
+	/// clauses an argument list has not — what a null does, and what type comes back.
+	/// </remarks>
+	[Theory]
+	[InlineData("SELECT JSON_OBJECT ()")]
+	[InlineData("SELECT JSON_OBJECT ('name':'value', 'type':1)")]
+	[InlineData("SELECT JSON_OBJECT ('name':'value', 'type':NULL ABSENT ON NULL)")]
+	[InlineData("SELECT JSON_OBJECT ('a':1 RETURNING json)")]
+	[InlineData("SELECT JSON_OBJECT ('name':JSON_ARRAY (1, 2))")]
+	[InlineData("SELECT JSON_OBJECT ('name':JSON_OBJECT ('id':1))")]
+	[InlineData("SELECT JSON_ARRAY (1, 2 NULL ON NULL)")]
+	[InlineData("SELECT JSON_ARRAYAGG (name ABSENT ON NULL) OVER (PARTITION BY dept) FROM t")]
+	[InlineData("SELECT JSON_VALUE ('c', '$' RETURNING INT)")]
+
+	// A query given a name in front of the statement that uses it.
+	[InlineData("WITH cte AS (SELECT * FROM t) SELECT * FROM cte")]
+	[InlineData("WITH cte (a, b) AS (SELECT x, y FROM t) SELECT a FROM cte")]
+	[InlineData("WITH a AS (SELECT 1 AS x), b AS (SELECT 2 AS y) SELECT * FROM a, b")]
+	[InlineData("WITH r (n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM r) SELECT n FROM r OPTION (MAXRECURSION 2)")]
+	[InlineData("WITH c AS (SELECT TOP 1 a FROM t ORDER BY a) SELECT * FROM c")]
+
+	// And three smaller ones the work list named.
+	[InlineData("SELECT * FROM t1 OPTION (OPTIMIZE FOR (@v1 = 20, @v2 = NULL))")]
+	[InlineData("SELECT SUM (c1) OVER (Win1 ORDER BY c1) FROM t1 WINDOW Win1 AS (PARTITION BY c1)")]
+	[InlineData("SELECT c1 INTO myDb..t2 FROM t1")]
+	[InlineData("SELECT * FROM myDb..t1")]
+	[InlineData("SELECT t.* FROM myDb..t1 AS t")]
+	public void The_json_and_named_query_layer_reads(string input)
 	{
 		var match = TransactSql.TryParseSelect(input);
 
