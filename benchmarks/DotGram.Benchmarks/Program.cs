@@ -180,6 +180,27 @@ static class Program
 		// twice — a rule a level, and one rule with binding powers (§4.3.1) — over the same
 		// inputs, so that what climbing is worth is known before a grammar is rewritten to
 		// use it. See Ladders.cs.
+		// `--engine [path] [version] [shown]` puts the same corpus to SQL Server itself,
+		// which is the only source here that is not somebody's reading of the language.
+		// `SET PARSEONLY ON` asks it whether a statement is syntax, compiling nothing and
+		// needing no schema. Four cells come out and three of them say something: the work
+		// list with an authority behind it, a defect here where this reads what the engine
+		// will not, and a finding about ScriptDom where it reads what the engine will not.
+		// Needs a server on the machine, and says so where there is none. See Engine.cs.
+		if (args.Length >= 1 && args[0] == "--engine")
+		{
+			var rest  = args.Skip(1).ToArray();
+			var named = rest.Length >= 1 && (rest[0].Contains('/') || rest[0].Contains('\\'));
+			var first = named ? 1 : 0;
+
+			Engine.Run(
+				named ? rest[0] : null,
+				rest.Length > first ? rest[first] : "170",
+				rest.Length > first + 1 && int.TryParse(rest[first + 1], out var few) ? few : 1);
+
+			return;
+		}
+
 		// `--kinds [path] [version] [shown]` is the same corpus read the other way round: it
 		// asks ScriptDom to split each file into statements, which is the one thing only a
 		// T-SQL parser can do, and tallies what this dialect makes of each kind. What comes

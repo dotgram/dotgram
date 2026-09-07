@@ -46,7 +46,7 @@ static class Kinds
 	/// these derives from <c>TSqlParser</c> and carries a whole grammar of its own, where
 	/// the twelve differ by what one version added to the one before it.
 	/// </remarks>
-	static TSqlParser? Version(string named) => named switch
+	internal static TSqlParser? Version(string named) => named switch
 	{
 		"80"  => new TSql80Parser (true),
 		"90"  => new TSql90Parser (true),

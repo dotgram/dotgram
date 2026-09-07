@@ -142,7 +142,8 @@ TsqlPrimaryCore : @SqlNode
 	| c: TsqlCast                              => @(c)
 	| f: ValueFunction                         => @(f)
 	| f: TsqlValueFunction                     => @(f)
-	| f: SetFunctionSpecification & CallTail?                    => @(f)
+	| f: CountStar & CallTail?                 => @(f)
+	| f: SetFunctionSpecification & CallTail?  => @(f)
 	| q: ScalarSubquery                        => @(q)
 	| n: NextValue                             => @(n)
 	| f: FunctionCall                          => @(f)
@@ -233,9 +234,15 @@ FrameBound
 	| "CURRENT"i & "ROW"i
 	| ValueExpression & ("PRECEDING"i | "FOLLOWING"i)
 
+// A `*` is not an argument. It stands inside three names and no others, and reading it as
+// one made `trim(*)` a call — which SQL Server answers with `Incorrect syntax near '*'`,
+// found by putting the corpus to the engine rather than to another parser.
 Arguments : @SqlNode[]
-	= '*' => @(new SqlNode[] { new SqlNode.Star(null) })
-	| first: ValueExpression & (',' & rest: ValueExpression)* => @(SqlNode.Listed(first, rest))
+	= first: ValueExpression & (',' & rest: ValueExpression)* => @(SqlNode.Listed(first, rest))
+
+CountStar : @SqlNode
+	= name: ("COUNT_BIG"i | "CHECKSUM"i) & '(' & '*' & ')'
+		=> @(new SqlNode.Call(name, SqlNode.None, "*"))
 
 // ── §6.1's data type, widened ───────────────────────────────────────────────
 //
@@ -570,8 +577,10 @@ TsqlDirectSelect : @SqlNode
 	= q: QueryExpression & by: OrderByClause? & OffsetFetch? & ForClause? & QueryHints?
 		=> @(by is null ? q : new SqlNode.Ordered(q, by))
 
+// `FETCH` without `OFFSET` in front of it is not a clause: the engine answers
+// `Incorrect syntax`, though ScriptDom reads it. The corpus statement that asked for it was
+// wrong to, and reading it was over-acceptance rather than coverage.
 OffsetFetch = "OFFSET"i & ValueExpression & RowWord & FetchClause?
-			| FetchClause
 
 FetchClause = "FETCH"i & "APPROXIMATE"i & FetchAt & ValueExpression & RowWord & "ONLY"i
 			| "FETCH"i & FetchAt & ValueExpression & RowWord & "ONLY"i

@@ -30,6 +30,12 @@
 		     where one statement of a script ends and the next begins, which is what
 		     makes a comparison per statement possible at all. -->
 		<PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="180.102.0" />
+
+		<!-- The third source, and the only one that is not somebody's reading of the
+		     language: the engine itself. `SET PARSEONLY ON` asks it whether a statement is
+		     syntax, which needs no schema and runs nothing (Engine.cs). Benchmarks only,
+		     like ScriptDom, and the harness says so and moves on where no server answers. -->
+		<PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.2" />
 	</ItemGroup>
 
 	<ItemGroup>

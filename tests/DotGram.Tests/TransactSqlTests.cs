@@ -262,7 +262,6 @@ public sealed class TransactSqlTests
 	// How many rows, what shape, and how to run it.
 	[InlineData("SELECT * FROM T ORDER BY a OFFSET 5 ROWS FETCH NEXT 2 ROWS ONLY")]
 	[InlineData("SELECT a FROM t ORDER BY a OFFSET 5 ROWS")]
-	[InlineData("SELECT a FROM t ORDER BY a FETCH APPROXIMATE NEXT 2 ROWS ONLY")]
 	[InlineData("SELECT * FROM t1 FOR JSON AUTO")]
 	[InlineData("SELECT * FROM t1 FOR JSON PATH, ROOT ('r')")]
 	[InlineData("SELECT * FROM t1 FOR XML AUTO, ELEMENTS")]
@@ -336,6 +335,8 @@ public sealed class TransactSqlTests
 	/// </remarks>
 	[Theory]
 	[InlineData("SELECT * FROM t1 INNER LOCAL MERGE JOIN t10 ON t1.c1 = t10.c1")]
+	[InlineData("SELECT a FROM t ORDER BY a FETCH NEXT 2 ROWS ONLY")]
+	[InlineData("SELECT trim(*) FROM t")]
 	[InlineData("SELECT c1 FROM t1 AS a WITH (NOLOCK) TABLESAMPLE (10 PERCENT)")]
 	public void What_the_engine_refuses_this_refuses_too(string input) =>
 		Assert.False(TransactSql.TryParseSelect(input).IsSuccess, input);

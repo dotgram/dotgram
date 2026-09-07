@@ -15278,3 +15278,60 @@ half of correctness that a refusal count cannot see, and `--corpus` had no way t
 
 **Nothing.** Of 8,317 statements of 310 kinds, the dialect reads as a query exactly the ones
 Microsoft's parser calls a query, and none of the others.
+
+## A third source, and it is the engine
+
+Two parsers can disagree and neither is evidence. There is a SQL Server 2025 on this
+machine, and `SET PARSEONLY ON` asks it whether a statement is syntax — compiling nothing,
+resolving no schema, running nothing. That is exactly the question, and the answer outranks
+anybody's reading of the documentation.
+
+`--engine [path] [version] [shown]` puts the corpus to it, on a database whose compatibility
+level is the version being asked about. Four cells come out and three of them say something:
+
+```
+against the engine at compatibility level 170, on what TSql170Parser calls a query
+
+  2036 statements
+    1212  both read
+     643  the engine reads and this does not — the work list
+      34  this reads and the engine does not — a defect here
+     147  neither, which is the corpus being a corpus of errors too
+```
+
+**The 34 was 323 when the harness was first run, and the difference is all classification.**
+`PARSEONLY` compiles nothing and still resolves some names: 260 statements were answered with
+`Must declare the scalar variable`, because a statement cut out of a script leaves its
+`DECLARE` behind. A function nobody has heard of, a table that does not exist, two locking
+hints that contradict each other, a window function without an `ORDER BY` — all of them are
+the engine having an opinion about what a statement *named*, after reading it. So the harness
+sorts by message number and prints the tally, which is what makes the classification
+auditable rather than a claim.
+
+### What it found
+
+**Two over-acceptances here.** `SELECT trim(*)` read as a call, because `*` was an argument
+to anything rather than a thing that stands inside three names; the engine answers `Incorrect
+syntax near '*'`. And `FETCH` without an `OFFSET` in front of it, which was written in to
+make one corpus statement read and is not a clause.
+
+**And things ScriptDom reads that the engine will not.** `INNER LOCAL MERGE JOIN` —
+`'LOCAL' is not a recognized join option`. `FETCH APPROXIMATE` and `TOP … WITH APPROXIMATE`,
+which do not exist in SQL Server 2025 at all. `OPTION (BYPASS OPTIMIZER_QUEUE)`,
+`OPTION (SHRINKDB PLAN)`, `OPTION (USEPLAN 2)`. Most of these are Fabric or PDW or an
+undocumented internal hint rather than a defect in ScriptDom — but that is the point: a
+corpus written by one parser's authors contains that parser's whole surface, and only a
+third source can tell which part of it is SQL Server.
+
+### And what the level does and does not gate
+
+Worth knowing before the numbers are read. The engine has **one** parser, and the
+compatibility level gates part of what it reads and not all of it. The `WINDOW` clause is
+refused below 160; `FOR JSON`, `OFFSET`/`FETCH`, `IS DISTINCT FROM` and `FOR SYSTEM_TIME` all
+read at 100.
+
+So the two sources are authorities over different things, and the split is clean:
+**ScriptDom for 80 and 90, the engine for 100 and above.** SQL Server 2025 will not go below
+compatibility level 100, so the two oldest versions have no engine that can be asked about
+them and ScriptDom's parsers are the last written-down reading of those languages. From 100
+up the engine can be asked, and what it says outranks what any parser thinks.
