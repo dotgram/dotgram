@@ -118,9 +118,7 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT a AS x, b y FROM t")]
 	[InlineData("SELECT a FROM t, u")]
 	[InlineData("SELECT a FROM t LEFT OUTER JOIN u ON t.id = u.id")]
-	[InlineData("SELECT a FROM t NATURAL FULL JOIN u")]
 	[InlineData("SELECT a FROM t CROSS JOIN u")]
-	[InlineData("SELECT a FROM t INNER JOIN u USING (id, k)")]
 	[InlineData("SELECT a FROM (SELECT b FROM u) AS d (c)")]
 	[InlineData("SELECT COUNT(*) FROM t GROUP BY a, b HAVING COUNT(*) > 1")]
 	[InlineData("SELECT (SELECT MAX(b) FROM u) FROM t")]
@@ -252,7 +250,6 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT * FROM t1 CROSS APPLY (SELECT * FROM u) AS x")]
 	[InlineData("SELECT * FROM t1 OUTER APPLY dbo.f (t1.a) AS x")]
 	[InlineData("SELECT * FROM t1 INNER HASH JOIN t10 ON t1.c1 = t10.c1")]
-	[InlineData("SELECT * FROM t1 INNER LOCAL MERGE JOIN t10 ON t1.c1 = t10.c1")]
 	[InlineData("SELECT * FROM t1 INNER REMOTE JOIN t10 ON t1.c1 = t10.c1")]
 	[InlineData("SELECT c1 FROM t1 AS table1 WITH (INDEX (0, 1, ind2), HOLDLOCK, NOLOCK)")]
 	[InlineData("SELECT * FROM t WITH (FORCESEEK (i134 (c1, c3, c4)))")]
@@ -280,6 +277,86 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT * FROM t WHERE c1 = 3 OPTION (TABLE HINT (t, FORCESCAN))")]
 	[InlineData("SELECT * FROM t1 OPTION (PARAMETERIZATION SIMPLE, RECOMPILE, EXPAND VIEWS)")]
 	public void The_query_layer_reads(string input)
+	{
+		var match = TransactSql.TryParseSelect(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>And what the standard reads, the dialect is right to refuse.</summary>
+	/// <remarks>
+	/// <para>
+	/// A dialect narrows as well as widens, and nothing here was measuring that: a refusal
+	/// count sees only what is not read, never what is read and should not be. These came
+	/// out of writing the `FROM` clause from the published syntax rather than from the
+	/// corpus, and every one was checked against SQL Server 2025 itself — `SET PARSEONLY
+	/// ON` and the statement, which asks the engine the one question this is about.
+	/// </para>
+	/// <para>
+	/// `NATURAL JOIN` and `USING` are SQL-92 and are not T-SQL at all; the engine reads the
+	/// first as a correlation name and refuses what follows, and the second as an old-style
+	/// table hint list. A sample stands before the hints and not after. And a bare
+	/// parenthesised list after a table name is a hint list, not a column alias list —
+	/// which is why the standard's spelling of a correlation may not be written here.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("SELECT a FROM t NATURAL FULL JOIN u")]
+	[InlineData("SELECT a FROM t INNER JOIN u USING (id, k)")]
+	[InlineData("SELECT a FROM t JOIN u USING (id)")]
+	public void What_is_the_standard_and_not_the_dialect_is_refused(string input)
+	{
+		Assert.True (SqlStandard92.TryParseSelect(input).IsSuccess, input);
+		Assert.False(TransactSql  .TryParseSelect(input).IsSuccess, input);
+	}
+
+	/// <summary>What the engine refuses, this refuses too.</summary>
+	/// <remarks>
+	/// <para>
+	/// Each of these was written into the grammar from the corpus or from a guess about the
+	/// order of two clauses, and each was taken back out after SQL Server 2025 was asked —
+	/// `SET PARSEONLY ON` and the statement, which is the one question a syntax has an
+	/// answer to and needs no schema to answer.
+	/// </para>
+	/// <para>
+	/// The first is a finding rather than a correction: <c>INNER LOCAL MERGE JOIN</c> is in
+	/// ScriptDom's own test corpus, and the engine answers
+	/// <c>'LOCAL' is not a recognized join option</c>. The other parser reads something the
+	/// server does not, which is what comparing three sources is for and what comparing two
+	/// could never have shown.
+	/// </para>
+	/// <para>
+	/// One the engine refuses and this does not, deliberately: <c>FROM t1 AS a (c2)</c> is
+	/// answered with <c>"c2" is not a recognized table hints option</c>, which settles that
+	/// the parentheses are the old spelling of a hint list and not a column alias list — but
+	/// refusing it is a check against the list of hint names, and this grammar reads a hint
+	/// name as an identifier on purpose (see <c>TableHint</c>). So the shape is right here
+	/// and the vocabulary is not checked, which is a looseness and not a defect.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("SELECT * FROM t1 INNER LOCAL MERGE JOIN t10 ON t1.c1 = t10.c1")]
+	[InlineData("SELECT c1 FROM t1 AS a WITH (NOLOCK) TABLESAMPLE (10 PERCENT)")]
+	public void What_the_engine_refuses_this_refuses_too(string input) =>
+		Assert.False(TransactSql.TryParseSelect(input).IsSuccess, input);
+
+	// ── The temporal and grouping clauses ───────────────────────────────────────
+
+	/// <summary>What the published `FROM` and `GROUP BY` say and the examples did not.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM T FOR SYSTEM_TIME AS OF '01/02/03'")]
+	[InlineData("SELECT * FROM T FOR SYSTEM_TIME FROM '2013-01-01' TO '2014-01-01'")]
+	[InlineData("SELECT * FROM T FOR SYSTEM_TIME BETWEEN '2013-01-01' AND '2014-01-01'")]
+	[InlineData("SELECT * FROM T FOR SYSTEM_TIME CONTAINED IN ('2013-01-01', '2014-01-01')")]
+	[InlineData("SELECT * FROM T FOR SYSTEM_TIME ALL WHERE ManagerID = 5")]
+	[InlineData("SELECT * FROM T FOR SYSTEM_TIME AS OF @at AS d WHERE d.a = 1")]
+	[InlineData("SELECT c1 FROM t1 GROUP BY () WITH CUBE")]
+	[InlineData("SELECT c1 FROM t1 GROUP BY c1 WITH ROLLUP")]
+	[InlineData("SELECT c1 FROM t1 GROUP BY c1, c2 WITH CUBE")]
+	[InlineData("SELECT c1 FROM t1 GROUP BY ROLLUP ((c1, c2), c3)")]
+	[InlineData("SELECT c1 FROM t1 GROUP BY GROUPING SETS ((CUBE (c1), ROLLUP (c1), c1), (c1), ())")]
+	[InlineData("SELECT c1 FROM t1 GROUP BY c1 WITH (DISTRIBUTED_AGG)")]
+	public void The_published_clauses_read(string input)
 	{
 		var match = TransactSql.TryParseSelect(input);
 

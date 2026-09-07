@@ -347,84 +347,142 @@ TsqlAsClause : @string = "AS"i & t: TsqlAlias => @(t) | t: TsqlAlias => @(t)
 
 // ── §7.7's group by, widened ────────────────────────────────────────────────
 //
-// The standard groups by columns. T-SQL groups by sets of them, and says so three ways.
+// Written from the published `GROUP BY` syntax rather than from what the corpus
+// happened to contain, which is what caught the nesting: a `ROLLUP` or a `CUBE` takes
+// group-by expressions and not grouping sets, and only a `GROUPING SETS` list may hold
+// another `ROLLUP` or `CUBE`. The two spellings are separate rules here because the
+// specification makes them separate — `GROUP BY GROUPING SETS (GROUPING SETS (a))` is
+// legal SQL-2006 and is refused by T-SQL, and refusing it is the point.
+//
+// And the older spelling beside the ISO one: `WITH CUBE` and `WITH ROLLUP` say after
+// the list what `CUBE (…)` and `ROLLUP (…)` say in front of it.
 TsqlGroupByClause : @SqlNode[]
 	= "GROUP"i & "BY"i & "ALL"i & first: TsqlGrouping & (',' & rest: TsqlGrouping)*
 		=> @(SqlNode.Listed(first, rest))
-	| "GROUP"i & "BY"i & first: TsqlGrouping & (',' & rest: TsqlGrouping)*
+	| "GROUP"i & "BY"i & first: TsqlGrouping & (',' & rest: TsqlGrouping)* & GroupWith?
 		=> @(SqlNode.Listed(first, rest))
 
+GroupWith = "WITH"i & "CUBE"i | "WITH"i & "ROLLUP"i | "WITH"i & '(' & Identifier & ')'
+
 TsqlGrouping : @SqlNode
-	= "CUBE"i     & '(' & first: TsqlGrouping & (',' & rest: TsqlGrouping)* & ')' => @(new SqlNode.Call("CUBE",   SqlNode.Listed(first, rest)))
-	| "ROLLUP"i   & '(' & first: TsqlGrouping & (',' & rest: TsqlGrouping)* & ')' => @(new SqlNode.Call("ROLLUP", SqlNode.Listed(first, rest)))
-	| "GROUPING"i & "SETS"i & '(' & first: TsqlGrouping & (',' & rest: TsqlGrouping)* & ')'
+	= "CUBE"i     & g: GroupList => @(new SqlNode.Call("CUBE",   g))
+	| "ROLLUP"i   & g: GroupList => @(new SqlNode.Call("ROLLUP", g))
+	| "GROUPING"i & "SETS"i & '(' & first: GroupingSet & (',' & rest: GroupingSet)* & ')'
 		=> @(new SqlNode.Call("GROUPING SETS", SqlNode.Listed(first, rest)))
-	| '(' & ')' => @(new SqlNode.Row(SqlNode.None))
-	| '(' & first: TsqlGrouping & (',' & rest: TsqlGrouping)* & ')' => @(new SqlNode.Row(SqlNode.Listed(first, rest)))
-	| c: ValueExpression & Collate? => @(c)
+	| e: GroupByExpression => @(e)
+
+GroupList : @SqlNode[]
+	= '(' & first: GroupByExpression & (',' & rest: GroupByExpression)* & ')'
+		=> @(SqlNode.Listed(first, rest))
+
+// A column, or a list of them standing as one — and the empty list, which is the grand
+// total and the one grouping that names nothing.
+GroupByExpression : @SqlNode
+	= '(' & ')' => @(new SqlNode.Row(SqlNode.None))
+	| '(' & first: TsqlGroupingColumn & (',' & rest: TsqlGroupingColumn)* & ')'
+		=> @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+	| c: TsqlGroupingColumn => @(c)
+
+TsqlGroupingColumn : @SqlNode = c: ValueExpression & Collate? => @(c)
+
+// One entry of a `GROUPING SETS` list: a cube, a rollup, a list of those, or a plain
+// group-by expression. A grouping set inside a grouping set is not here, deliberately.
+GroupingSet : @SqlNode
+	= "CUBE"i   & g: GroupList => @(new SqlNode.Call("CUBE",   g))
+	| "ROLLUP"i & g: GroupList => @(new SqlNode.Call("ROLLUP", g))
+	| '(' & first: GroupingSetItem & (',' & rest: GroupingSetItem)* & ')'
+		=> @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+	| e: GroupByExpression => @(e)
+
+GroupingSetItem : @SqlNode
+	= "CUBE"i   & g: GroupList => @(new SqlNode.Call("CUBE",   g))
+	| "ROLLUP"i & g: GroupList => @(new SqlNode.Call("ROLLUP", g))
+	| e: GroupByExpression => @(e)
 
 // ── §7.5's joined table, widened ────────────────────────────────────────────
+//
+// **T-SQL has neither `NATURAL JOIN` nor `USING`, and a qualified join must say `ON`.**
+// The published `<joined_table>` is three forms and no more: a join with a condition, a
+// cross join, and an apply. The dialect read all three of the standard's extra spellings
+// until this was written from the syntax rather than from what the corpus contained —
+// which is over-acceptance, the half of correctness a refusal count cannot see.
 //
 // `APPLY` is a join whose right side is read once per row of its left, which is a
 // question about evaluation and not about shape — so the tree says `CROSS JOIN` and the
 // word is not kept. A join hint says which algorithm to use and is dropped for the same
-// reason `OPTION` is.
+// reason `OPTION` is; the syntax puts it inside the join type, so a hint without a type
+// is not a join.
 TsqlTableReference : @SqlNode
 	= left: TsqlTableReference & "CROSS"i & "JOIN"i & right: TablePrimary
 		=> @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
-	| left: TsqlTableReference & "UNION"i & "JOIN"i & right: TablePrimary
-		=> @(new SqlNode.Join(SqlJoin.Union, false, left, right))
 	| left: TsqlTableReference & "CROSS"i & "APPLY"i & right: TablePrimary
 		=> @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
 	| left: TsqlTableReference & "OUTER"i & "APPLY"i & right: TablePrimary
 		=> @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
-	| left: TsqlTableReference & natural: "NATURAL"i? & kind: JoinType? & JoinHint? & "JOIN"i
-	  & right: TablePrimary
-	  & ("ON"i & on: SearchCondition
-	    | "USING"i & '(' & columns: ColumnList & ')')?
-		=> @(SqlNode.Joining(kind, natural, left, right, on, columns))
+	| left: TsqlTableReference & kind: TsqlJoinType? & "JOIN"i & right: TablePrimary
+	  & "ON"i & on: SearchCondition
+		=> @(SqlNode.Joining(kind, null, left, right, on, null))
 	| t: TablePrimary => @(t)
 
-JoinHint = "LOCAL"i & "HASH"i | "LOCAL"i & "LOOP"i | "LOCAL"i & "MERGE"i | "LOCAL"i
-	| "HASH"i | "LOOP"i | "MERGE"i | "REMOTE"i | "REDUCE"i | "REPLICATE"i | "REDISTRIBUTE"i
+TsqlJoinType : @string
+	= t: JoinType & JoinHint? => @(t)
+
+JoinHint = "HASH"i | "LOOP"i | "MERGE"i | "REMOTE"i | "REDUCE"i | "REPLICATE"i | "REDISTRIBUTE"i
 
 // ── §7.4's table primary, widened ───────────────────────────────────────────
 //
-// A table-valued function stands where a table does, which the standard leaves to a
-// routine invocation it does not define. Its arguments are read and dropped for the same
-// reason `TOP` is: what the tree says is where the rows come from.
+// The published order, which is not the order the examples suggested: a temporal clause
+// stands before the correlation name, and a sample before the hints. Writing the hints
+// first was accepted here until the syntax said otherwise, and whether ScriptDom accepts
+// them the other way round is a question worth asking of it rather than of us.
 TsqlTablePrimary : @SqlNode
-	= name: QualifiedName & ('(' & Arguments? & ')')?
-	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)? & TableSuffix?
+	= name: QualifiedName & SystemTime? & ('(' & Arguments? & ')')?
+	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
+	  & TableSample? & TableHints? & PivotSuffix?
 		=> @(new SqlNode.Source(name, null, alias, columns))
-	| t: Tsql.Variable & ("AS"i? & alias: CorrelationName)? & TableSuffix?
+	| t: Tsql.Variable & ("AS"i? & alias: CorrelationName)? & TableSample? & TableHints?
 		=> @(new SqlNode.Source(t, null, alias, null))
 	| derived: TableSubquery & "AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?
-	  & TableSuffix?
+	  & PivotSuffix?
 		=> @(new SqlNode.Source(null, derived, alias, columns))
-	| '(' & j: TableReference & ')' & TableSuffix? => @(j)
+	| '(' & j: TableReference & ')' & TableSample? & TableHints?
+		=> @(j)
 
-// A correlation name is an identifier, and not one of the four words that begin a clause
-// of their own after a source. None of the four is reserved — a column may be called
-// `WINDOW` — but a name is what stands *after* a source, and `FROM t PIVOT (...)` has no
-// name in it. Without the lookahead the pivot became the correlation and the parse
-// stopped one token later, saying nothing about why.
+// The published syntax makes a pivoted table a source of its own — `table_source PIVOT
+// (…) [AS] alias` — which is left recursion, and §4.3 folds that only where the rule
+// recurses on itself. So it is written as what follows a primary instead, which reads
+// the same language wherever a pivot is applied to one source rather than to a join.
+//
+// The alias is required and not optional, which the syntax says and the examples did
+// not: `PIVOT (…)` with nothing after it is not a table source.
+PivotSuffix = Pivot | Unpivot
+
+Pivot = "PIVOT"i & '(' & ValueExpression & "FOR"i & QualifiedName
+		& "IN"i & '(' & PivotNames & ')' & ')' & "AS"i? & CorrelationName
+
+Unpivot = "UNPIVOT"i & '(' & QualifiedName & "FOR"i & QualifiedName
+		  & "IN"i & '(' & PivotNames & ')' & ')' & "AS"i? & CorrelationName
+
+PivotNames = QualifiedName & (',' & QualifiedName)*
+
+// Which version of a temporal table to read. `FOR` is reserved, so nothing here can be
+// mistaken for the correlation name it stands in front of.
+SystemTime = "FOR"i & "SYSTEM_TIME"i & SystemTimeWhen
+
+SystemTimeWhen
+	= "AS"i & "OF"i & ValueExpression
+	| "FROM"i & ValueExpression & "TO"i & ValueExpression
+	| "BETWEEN"i & ValueExpression & "AND"i & ValueExpression
+	| "CONTAINED"i & "IN"i & '(' & ValueExpression & ',' & ValueExpression & ')'
+	| "ALL"i
+
+// A correlation name is an identifier, and not one of the words that begin a clause of
+// its own after a source. None of them is reserved — a column may be called `WINDOW` —
+// but a name is what stands *after* a source, and `FROM t PIVOT (…)` has no name in it.
+// Without the lookahead the pivot became the correlation and the parse stopped one token
+// later, saying nothing about why.
 CorrelationName = ?!SourceClause & Identifier
 SourceClause    = "WINDOW"i | "PIVOT"i | "UNPIVOT"i | "TABLESAMPLE"i
-
-// What may be said about a source after it is named: which index and which locks to use,
-// how much of it to read, and the two ways of turning rows into columns and back.
-//
-// Every one of them is read and dropped. A hint says how the rows are to be fetched and
-// not which rows they are; a sample says how many; and the tree this grammar builds is
-// the standard's, which has nowhere to put any of it.
-TableSuffix
-	= TableHints & TableSample
-	| TableSample & TableHints
-	| TableHints
-	| TableSample
-	| Pivot
-	| Unpivot
 
 // **Transcribed from `TSql170.g`'s own `tableHint` and `optimizerHints`, and that makes
 // these two rules weaker evidence than the rest of this file.** A rule written from the
@@ -503,17 +561,6 @@ TableSample = "TABLESAMPLE"i & "SYSTEM"i & SampleSize & TableRepeatable?
 SampleSize      = '(' & ValueExpression & SampleUnit? & ')'
 SampleUnit      = "PERCENT"i | "ROWS"i
 TableRepeatable = "REPEATABLE"i & '(' & ValueExpression & ')'
-
-// Turning rows into columns and back. What stands inside the parentheses is an
-// aggregate, a column and the values that become column names; none of the three reaches
-// the tree, because a pivot says how the rows this grammar already found are arranged.
-Pivot   = "PIVOT"i & '(' & ValueExpression & "FOR"i & QualifiedName
-		  & "IN"i & '(' & PivotNames & ')' & ')' & SourceAlias?
-Unpivot = "UNPIVOT"i & '(' & QualifiedName & "FOR"i & QualifiedName
-		  & "IN"i & '(' & PivotNames & ')' & ')' & SourceAlias?
-
-PivotNames  = QualifiedName & (',' & QualifiedName)*
-SourceAlias = "AS"i & Identifier | Identifier
 
 // ── §13.1's direct select, widened ──────────────────────────────────────────
 //
