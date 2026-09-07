@@ -14922,3 +14922,49 @@ is `[NOT] <boolean test>` — one `NOT`, not a run of them, which is what SQL-92
 A prefix with a binding power recurses, so `NOT NOT a` would have started reading, and the
 grammar would have been accepting more than the standard for a change that did not pay.
 
+## A run reads a row of its own
+
+The run took the entered state's row out of `Scan_Cells` — a window into tens of thousands
+of `short` cells, which is what the loop above it reads and what it waits on. The keyword
+shortcut, on its way to being taken back out, said this in passing: giving the run two
+hundred and fifty-six bytes of its own recovered most of what reading that row had cost, and
+0.58 ns a character is what the trivia seam already gets for exactly that shape.
+
+So it does. One row per state that runs, shared by content — a language has one idea of what
+a word carries on with, and every looping state of its keyword trie has the same one — and a
+byte a state saying which row. Standard SQL comes to **seven rows, 1,792 bytes**, against
+five hundred and twenty-eight states.
+
+```csharp
+if (again)
+{
+    var over = Scan_Runs[state] << 8;
+
+    while (p < text.Length)
+    {
+        var ahead = text[p];
+
+        if (ahead > 255 || Scan_Running[over + ahead] == 0)
+            break;
+
+        p++;
+    }
+}
+```
+
+Measured against the row it replaces, in one process:
+
+```
+                     own/row
+a whole predicate      0.89x
+named as people do     0.90x
+and a string           0.91x
+a long one             0.93x
+a string               0.96x
+everything else   0.98 - 1.01x
+```
+
+**No row is worse.** It is the first change of the day with no trade in it: no branch added,
+no shape changed, the same loop reading a smaller table. Seven to eleven per cent off the
+tokenizing wherever a token is long enough to run, and nothing anywhere else.
+

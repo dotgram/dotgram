@@ -92,6 +92,7 @@ public static class LexerEmitter
 
 		var text = new Writer();
 
+		Runs(text, machine, tag);
 		Accepting(text, machine, tag);
 		text.Line();
 		Table(text, tag);
@@ -589,6 +590,91 @@ public static class LexerEmitter
 			text.Line(line.ToString().TrimEnd());
 	}
 
+	/// <summary>
+	/// What a state that goes back to itself carries on with: one row of two hundred and
+	/// fifty-six bytes for each such state, and where each state's row is.
+	/// </summary>
+	/// <remarks>
+	/// The run first read the state table, which is what the loop above reads: a window
+	/// into tens of thousands of <c>short</c> cells, and a load that misses where a small
+	/// one would not. Measured, that was 1.2 ns a character against the 0.58 the trivia
+	/// seam pays for its own two hundred and fifty-six bytes. So a run gets a row of its
+	/// own, and there are as many rows as there are states that run — five or ten in a
+	/// language, against five hundred states.
+	/// </remarks>
+	static void Runs(Writer text, LexicalAutomaton machine, string tag)
+	{
+		var at   = new byte[machine.Next.Count];
+		var rows = new List<byte[]>();
+
+		for (var state = 0; state < machine.Next.Count; state++)
+		{
+			var row = default(byte[]);
+
+			foreach (var (on, to) in machine.From(state))
+			{
+				if (to != state)
+					continue;
+
+				row = new byte[Reach * 2];
+
+				foreach (var range in on)
+					for (int c = range.From; c <= range.To && c < row.Length; c++)
+						row[c] = 1;
+			}
+
+			// Rows are shared by content: a language has one idea of what a word carries on
+			// with, and every state of its keyword trie that loops has the same one.
+			if (row is null)
+				continue;
+
+			var same = rows.FindIndex(one => one.AsSpan().SequenceEqual(row));
+
+			if (same < 0)
+			{
+				if (rows.Count == byte.MaxValue)
+					continue;
+
+				same = rows.Count;
+				rows.Add(row);
+			}
+
+			at[state] = (byte)same;
+		}
+
+		text.Line("/// <summary>Which row of Scan_Running each state runs over.</summary>");
+		Bytes(text, $"Scan{tag}_Runs", at);
+		text.Line();
+		text.Line("/// <summary>What each run carries on with, a row of 256 bytes each.</summary>");
+		Bytes(text, $"Scan{tag}_Running", [.. rows.SelectMany(one => one)]);
+		text.Line();
+	}
+
+	/// <summary>One byte array, wrapped at a readable width.</summary>
+	static void Bytes(Writer text, string name, IReadOnlyList<byte> values)
+	{
+		text.Line($"static readonly byte[] {name} =");
+
+		using (text.Braces("", ";"))
+		{
+			var row = new StringBuilder("\t");
+
+			foreach (var one in values)
+			{
+				row.Append(one).Append(", ");
+
+				if (row.Length < 92)
+					continue;
+
+				text.Line(row.ToString().TrimEnd());
+				row.Clear().Append('\t');
+			}
+
+			if (row.Length > 1)
+				text.Line(row.ToString().TrimEnd());
+		}
+	}
+
 	static void Accepting(Writer text, LexicalAutomaton machine, string tag)
 	{
 		text.Line("/// <summary>The kind each state accepts, one-based; 0 where it accepts none.</summary>");
@@ -726,19 +812,14 @@ public static class LexerEmitter
 
 				using (text.Braces())
 				{
-					text.Line($"var stay = Scan{tag}_States[state];");
-					text.Line("var from = (int)(stay >> 32);");
-					text.Line("var into = (int)stay;");
+					text.Line($"var over = Scan{tag}_Runs[state] << 8;");
 					text.Line();
 
 					using (text.Braces("while (p < text.Length)", ""))
 					{
-						text.Line("var ahead = text[p] - from;");
+						text.Line("var ahead = text[p];");
 						text.Line();
-						text.Line(
-							Class is null
-								? $"if ((uint)ahead >= {Reach}u || Scan{tag}_Cells[into + ahead] != state)"
-								: $"if ((uint)ahead >= {Reach}u || Scan{tag}_Cells[into + Scan{tag}_Class[ahead]] != state)");
+						text.Line($"if (ahead > {Reach * 2 - 1} || Scan{tag}_Running[over + ahead] == 0)");
 
 						using (text.Indent())
 							text.Line("break;");
@@ -747,7 +828,6 @@ public static class LexerEmitter
 						text.Line("p++;");
 					}
 				}
-
 				text.Line();
 				text.Line($"var accepts = Scan{tag}_Accepts[state];");
 				text.Line();
