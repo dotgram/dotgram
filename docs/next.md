@@ -14026,3 +14026,45 @@ SQL does not move: its lexical rules do not have the shape.
 The pair `(x + 1)` / `(x + x)` stays in the yardstick. It is the shortest proof there is that
 a parenthesis and an operator cost the generated reader what they cost a person, and it is
 what would catch this coming back.
+
+## Measured: what is left, and where it is
+
+Two measurements taken after the literal stopped being read twice, to say what the frontier
+is rather than guess at it.
+
+**SQL's short rows are not a fixed cost.** `a = 1` reads at 1.31 of the hand-written parser
+and the sixty-four clause condition at 1.10, which looks like an entry fee. It is not — one
+clause more at a time:
+
+| clauses | immediate | by hand | added | added |
+| --: | --: | --: | --: | --: |
+| 1 | 61.5 ns | 47.0 | — | — |
+| 2 | 136.0 | 93.4 | +74.5 | +46.4 |
+| 3 | 194.3 | 147.6 | +58.3 | +54.2 |
+| 4 | 258.5 | 198.2 | +64.2 | +50.6 |
+
+Sixty-five nanoseconds a clause against fifty, and both lines pass through about zero. So
+there is no entry fee to remove: the reading costs 1.30 a clause at this size. At sixty-four
+clauses the same reading costs 65.6 against 59.5 — 1.10 — because the *hand-written* parser
+slows down there, from fifty nanoseconds a clause to fifty-nine, and the generated one does
+not. Which is worth saying plainly: **the ratio improves at scale because the yardstick gets
+worse, not because the generated parser gets better.**
+
+**The tape is between two fifths and a half walk.** With the root built as `default` —
+everything read and every record written, nothing walked:
+
+| | tape | its reader alone | the walk |
+| --- | --: | --: | --: |
+| sixty-four clauses | 8,842 ns | 5,073 (1.37 of hand) | 3,770, 43% |
+| sixty-four terms | 3,339 | 1,766 (1.13) | 1,573, 47% |
+| `a = 1` | 137.8 | 84.5 (1.83) | 53, 39% |
+
+And of the walk, two thirds is the construction, which the hand-written parser pays too. So
+what is left to take out of the tape is about a seventh of it, and the rest is what §7.3
+costs. On the long condition the tape's reader alone (5,073) is dearer than the immediate
+carrier's *whole* parse (4,193): writing the log costs more than building the tree.
+
+Which settles what the frontier is. The immediate carrier reads at 0.91 to 1.13 on the rows
+that look like real input, and the remaining rows differ by ten or twenty nanoseconds with
+the noise close behind. The tape is a contract, not a defect, and the way out of it is
+choosing the carrier — which `[Gram(Carrier = …)]` is.
