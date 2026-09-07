@@ -14178,3 +14178,83 @@ given up there and the rest of the file is asked the older question. Never a gue
 All eleven have their directive now, and the three `Listed` rules point at lines 331, 355 and
 368 rather than all at 331. A test in `GeneratorDriverTests` writes one construction twice,
 makes both wrong, and asks that the two C# errors land on the two lines that wrote them.
+
+## A named character class is still one character
+
+The third yardstick is the notation reading itself: `GramParser` is written by hand and is
+what the compiler runs, `GramGrammar` is generated from the grammar of `.gram`, and
+`SelfHostingTests` already holds them side by side. It is the one that reads **characters**,
+and nothing this year had been measured against it.
+
+Two things had to be fixed before it said anything. Timing the readings in one round-robin
+loop moved every row by a factor of four between runs — the shape of the loop was being
+measured, not the parser in it — so each reading gets a loop of its own. And the whole probe
+runs under `DOTNET_TieredCompilation=0`: with tiering on, a warm-up of three hundred parses
+still left some of the reading at tier 0 and the numbers moved by half between runs. Under
+both, the rows repeat to within a per cent.
+
+**The carrier was not the answer here.** The tape is 1.4x to 2.9x of the hand-written
+reading over the five snapshot grammars; `Carrier = GramCarrier.Immediate`, which brought SQL
+and the expression language to 0.91-1.13, takes about a fifth off and leaves 1.3x to 2.3x.
+Whatever the residue of a character grammar is, it is not the value carrier.
+
+So: a line of `.gram` of one shape, at a hundred lines and at five hundred, and the
+difference over four hundred is what one more line of that shape costs. Per operand, against
+the hand-written reading:
+
+```
+a string literal    1.43x
+an element set      1.17x
+a reference         2.60x   <- and a grammar is mostly references
+```
+
+`Reference` reaches `Name`, `Name` reaches `Identifier`, and `Identifier` is
+`Word & WordOrDigit*` — the ordinary way to write the ordinary thing. What that repetition
+compiled to, per character of a name:
+
+```csharp
+if (o1) { c = text[p]; o1 = Recognize_DotGram_In(Recognize_DotGram_Set6, c); }
+if (!o1) break;
+
+if (ways.Cursor < ways.Count) { w0 = ways.Cursor; d0 = ways.Items[w0 * 2]; ways.Cursor++; }
+else                          { w0 = ways.Open(1); }
+if (d0 == 1) break;
+
+q1 = Read_Lexical_WordOrDigit(p);      // which tests the same character again
+```
+
+A way opened per character, a call per character, and the class asked twice. `EmitRun` has
+written that as a loop with `p++` and one way for the whole run since the reader was written
+— and it was asked for only where the repetition's body was **literally** a `Node.Element`.
+A body that is a rule naming a class went to `EmitTurns`, the rendering for turns that are
+not all alike.
+
+`RunTest` was already the question — "what one-character test is this body, if it is one" —
+and it already looks through a call, a sequence of one, and a choice whose alternatives each
+take one character. `EmitRepeat` asks it now instead of pattern-matching the node:
+
+```csharp
+if (machine.RunTest(body) is { } test)
+    EmitRun(code, body, test, min, max, settled);
+else
+    EmitTurns(code, repeat, inside, settled);
+```
+
+A reference operand went from 2.60x to 2.13x, eight of them on a line from 3.01x to 2.54x,
+and over the corpus:
+
+| | tape before | tape | immediate before | immediate |
+| --- | --: | --: | --: | --: |
+| `Csv.gram` | 1.54x | 1.41x | 1.30x | 1.11x |
+| `Notation.gram` | 1.68x | 1.50x | 1.36x | 1.21x |
+| `Minimal.gram` | 1.78x | 1.63x | 1.43x | 1.28x |
+| `Feed.gram` | 2.46x | 2.21x | 1.97x | 1.72x |
+| `Url.gram` | 2.88x | 2.54x | 2.33x | 1.98x |
+
+The snapshot of `Feed.gram` lost two hundred lines to it, and `Digit{4}` — four turns, four
+calls, four sets of log marks — is a loop with `p - m0 >= 4` in it.
+
+The comparison is a scale rather than a verdict, and `SelfHostingTests` says why: the hand
+parser builds the compiler's own tree with positions and diagnostics, the generated one
+builds the example's records.
+

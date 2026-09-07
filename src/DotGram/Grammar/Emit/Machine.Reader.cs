@@ -2265,8 +2265,13 @@ sealed partial class Machine
 				var settled = max == min ||
 					Determinism.NeverGivesBack(repeat, following, _graph, machine._seam);
 
-				if (body is Node.Element element)
-					EmitRun(code, element, min, max, settled);
+				// A body that is one character is a run whether it was spelled out or named.
+				// A grammar names its classes far more often than it writes them: `Identifier
+				// = Word & WordOrDigit*` is the ordinary way to write the ordinary thing, and
+				// asking only whether the body was literally an element sent every one of them
+				// through the machinery for turns that are not all alike.
+				if (machine.RunTest(body) is { } test)
+					EmitRun(code, body, test, min, max, settled);
 				else
 					EmitTurns(code, repeat, inside, settled);
 
@@ -2430,13 +2435,14 @@ sealed partial class Machine
 		}
 
 		/// <summary>
-		/// A run of one element, read where it stands and given back a character at a time.
+		/// A run of one character, read where it stands and given back a character at a time.
 		/// </summary>
 		/// <remarks>
 		/// <para>
 		/// A method a turn is what a repetition of anything else costs, and for a character
 		/// class it is all cost: the turn is a bounds check, a read and a test. So it is
-		/// written as the loop it is.
+		/// written as the loop it is — whether the class was spelled out or named, which
+		/// is what <see cref="Machine.RunTest"/> answers.
 		/// </para>
 		/// <para>
 		/// And the loop takes everything it can, which is not always what the rule wanted.
@@ -2446,15 +2452,17 @@ sealed partial class Machine
 		/// and hands back what the tape says.
 		/// </para>
 		/// </remarks>
+		/// <param name="test">
+		/// The one-character test the body is, from <see cref="Machine.RunTest"/>.
+		/// </param>
 		/// <param name="settled">
 		/// Whether nothing after the run can ever want a character it took, in which case
 		/// there is no shorter reading to offer and nothing goes on the tape.
 		/// </param>
-		void EmitRun(Writer code, Node.Element element, int min, int? max, bool settled)
+		void EmitRun(Writer code, Node body, string test, int min, int? max, bool settled)
 		{
-			var name  = machine.DeclareExpected([element.ToString()]);
-			var first = FirstSets.Of(element, _graph);
-			var mark  = $"m{_marks++}";
+			var name = machine.DeclareExpected([body.ToString()]);
+			var mark = $"m{_marks++}";
 
 			// Where the run has no ceiling, no floor and nothing to give back, nobody ever
 			// asks where it started, and writing it down is a local the consumer's compiler
@@ -2480,7 +2488,6 @@ sealed partial class Machine
 				code.Line();
 				code.Line("c = text[p];");
 				code.Line();
-				var test = CSharpEmitter.Test(element, machine.Tabulate);
 
 				if (!string.Equals(test, "true", StringComparison.Ordinal))
 				{

@@ -448,168 +448,87 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				var c = '\0';
-				var t0 = 0;
+				var m0 = p;
 				while (true)
 				{
-					if (t0 >= 4)
+					if (p - m0 >= 4)
 						break;
 
-					var o1 = (uint)p < (uint)text.Length;
-
-					if (o1)
-					{
-						c = text[p];
-						o1 = (c >= '0' && c <= '9');
-					}
-
-					if (!o1)
-					{
-						if (t0 < 4)
-						{
-							Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected12, ways);
-							return -1;
-						}
-
+					if ((uint)p >= (uint)text.Length)
 						break;
-					}
 
-					var lm2  = ways.LogCount;
-					var lm2R = ways.Records;
-					var rr2 = ways.RefsCount;
-					var q0 = -1;
+					c = text[p];
 
-					q0 = Read_Digit_Feed(p);
-
-					if (q0 < 0)
-					{
-						ways.LogCount  = lm2;
-						ways.Records   = lm2R;
-						ways.RefsCount = rr2;
-					}
-
-					if (q0 < 0)
-					{
-						if (t0 < 4)
-							return -1;
-
+					if (!(((c >= '0' && c <= '9'))))
 						break;
-					}
 
-					p = q0;
-					t0++;
+					p++;
 				}
+
+				if (p < m0 + 4)
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected12, ways);
+					return -1;
+				}
+
 				if ((uint)p >= (uint)text.Length || text[p] != '-')
 				{
 					Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected18, ways);
 					return -1;
 				}
 				p += 1;
-				var t1 = 0;
+				var m1 = p;
 				while (true)
 				{
-					if (t1 >= 2)
+					if (p - m1 >= 2)
 						break;
 
-					var o4 = (uint)p < (uint)text.Length;
-
-					if (o4)
-					{
-						c = text[p];
-						o4 = (c >= '0' && c <= '9');
-					}
-
-					if (!o4)
-					{
-						if (t1 < 2)
-						{
-							Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected12, ways);
-							return -1;
-						}
-
+					if ((uint)p >= (uint)text.Length)
 						break;
-					}
 
-					var lm5  = ways.LogCount;
-					var lm5R = ways.Records;
-					var rr5 = ways.RefsCount;
-					var q1 = -1;
+					c = text[p];
 
-					q1 = Read_Digit_Feed(p);
-
-					if (q1 < 0)
-					{
-						ways.LogCount  = lm5;
-						ways.Records   = lm5R;
-						ways.RefsCount = rr5;
-					}
-
-					if (q1 < 0)
-					{
-						if (t1 < 2)
-							return -1;
-
+					if (!(((c >= '0' && c <= '9'))))
 						break;
-					}
 
-					p = q1;
-					t1++;
+					p++;
 				}
+
+				if (p < m1 + 2)
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected12, ways);
+					return -1;
+				}
+
 				if ((uint)p >= (uint)text.Length || text[p] != '-')
 				{
 					Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected18, ways);
 					return -1;
 				}
 				p += 1;
-				var t2 = 0;
+				var m2 = p;
 				while (true)
 				{
-					if (t2 >= 2)
+					if (p - m2 >= 2)
 						break;
 
-					var o7 = (uint)p < (uint)text.Length;
-
-					if (o7)
-					{
-						c = text[p];
-						o7 = (c >= '0' && c <= '9');
-					}
-
-					if (!o7)
-					{
-						if (t2 < 2)
-						{
-							Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected12, ways);
-							return -1;
-						}
-
+					if ((uint)p >= (uint)text.Length)
 						break;
-					}
 
-					var lm8  = ways.LogCount;
-					var lm8R = ways.Records;
-					var rr8 = ways.RefsCount;
-					var q2 = -1;
+					c = text[p];
 
-					q2 = Read_Digit_Feed(p);
-
-					if (q2 < 0)
-					{
-						ways.LogCount  = lm8;
-						ways.Records   = lm8R;
-						ways.RefsCount = rr8;
-					}
-
-					if (q2 < 0)
-					{
-						if (t2 < 2)
-							return -1;
-
+					if (!(((c >= '0' && c <= '9'))))
 						break;
-					}
 
-					p = q2;
-					t2++;
+					p++;
 				}
+
+				if (p < m2 + 2)
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected12, ways);
+					return -1;
+				}
+
 				return p;
 			}
 
@@ -911,6 +830,43 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				var c = '\0';
+				var m0 = p;
+				while (true)
+				{
+					if (p - m0 >= 1)
+						break;
+
+					if ((uint)p >= (uint)text.Length)
+						break;
+
+					c = text[p];
+
+					if (!(c == '-'))
+						break;
+
+					p++;
+				}
+
+				var m1 = p;
+				while (true)
+				{
+					if ((uint)p >= (uint)text.Length)
+						break;
+
+					c = text[p];
+
+					if (!(((c >= '0' && c <= '9'))))
+						break;
+
+					p++;
+				}
+
+				if (p < m1 + 1)
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected12, ways);
+					return -1;
+				}
+
 				var t0 = 0;
 				while (true)
 				{
@@ -922,7 +878,7 @@ namespace DotGram.Snapshots
 					if (o1)
 					{
 						c = text[p];
-						o1 = c == '-';
+						o1 = c == '.';
 					}
 
 					if (!o1)
@@ -953,113 +909,11 @@ namespace DotGram.Snapshots
 					p = q0;
 					t0++;
 				}
-				var t1 = 0;
-				while (true)
-				{
-					var o4 = (uint)p < (uint)text.Length;
-
-					if (o4)
-					{
-						c = text[p];
-						o4 = (c >= '0' && c <= '9');
-					}
-
-					if (!o4)
-					{
-						if (t1 < 1)
-						{
-							Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected12, ways);
-							return -1;
-						}
-
-						break;
-					}
-
-					var lm5  = ways.LogCount;
-					var lm5R = ways.Records;
-					var rr5 = ways.RefsCount;
-					var q1 = -1;
-
-					q1 = Read_Digit_Feed(p);
-
-					if (q1 < 0)
-					{
-						ways.LogCount  = lm5;
-						ways.Records   = lm5R;
-						ways.RefsCount = rr5;
-					}
-
-					if (q1 < 0)
-					{
-						if (t1 < 1)
-							return -1;
-
-						break;
-					}
-
-					p = q1;
-					t1++;
-				}
-				var t2 = 0;
-				while (true)
-				{
-					if (t2 >= 1)
-						break;
-
-					var o7 = (uint)p < (uint)text.Length;
-
-					if (o7)
-					{
-						c = text[p];
-						o7 = c == '.';
-					}
-
-					if (!o7)
-					{
-						break;
-					}
-
-					var lm8  = ways.LogCount;
-					var lm8R = ways.Records;
-					var rr8 = ways.RefsCount;
-					var q2 = -1;
-
-					q2 = Read_Amount_Feed_Part1(p);
-
-					if (q2 < 0)
-					{
-						ways.LogCount  = lm8;
-						ways.Records   = lm8R;
-						ways.RefsCount = rr8;
-					}
-
-					if (q2 < 0)
-					{
-
-						break;
-					}
-
-					p = q2;
-					t2++;
-				}
 				return p;
 			}
 
 			/// <summary>One alternative of <c>Amount</c>, read where it stood.</summary>
 			public int Read_Amount_Feed_Part0(int pos)
-			{
-				var p = pos;
-				if ((uint)p >= (uint)text.Length || text[p] != '-')
-				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected18, ways);
-					return -1;
-				}
-				p += 1;
-				return p;
-			}
-
-			/// <summary>One alternative of <c>Amount</c>, read where it stood.</summary>
-			public int Read_Amount_Feed_Part1(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -1069,56 +923,29 @@ namespace DotGram.Snapshots
 					return -1;
 				}
 				p += 1;
-				var t0 = 0;
+				var m0 = p;
 				while (true)
 				{
-					if (t0 >= 2)
+					if (p - m0 >= 2)
 						break;
 
-					var o1 = (uint)p < (uint)text.Length;
-
-					if (o1)
-					{
-						c = text[p];
-						o1 = (c >= '0' && c <= '9');
-					}
-
-					if (!o1)
-					{
-						if (t0 < 2)
-						{
-							Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected12, ways);
-							return -1;
-						}
-
+					if ((uint)p >= (uint)text.Length)
 						break;
-					}
 
-					var lm2  = ways.LogCount;
-					var lm2R = ways.Records;
-					var rr2 = ways.RefsCount;
-					var q0 = -1;
+					c = text[p];
 
-					q0 = Read_Digit_Feed(p);
-
-					if (q0 < 0)
-					{
-						ways.LogCount  = lm2;
-						ways.Records   = lm2R;
-						ways.RefsCount = rr2;
-					}
-
-					if (q0 < 0)
-					{
-						if (t0 < 2)
-							return -1;
-
+					if (!(((c >= '0' && c <= '9'))))
 						break;
-					}
 
-					p = q0;
-					t0++;
+					p++;
 				}
+
+				if (p < m0 + 2)
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected12, ways);
+					return -1;
+				}
+
 				return p;
 			}
 
@@ -1183,53 +1010,26 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				var c = '\0';
-				var t0 = 0;
+				var m0 = p;
 				while (true)
 				{
-					var o1 = (uint)p < (uint)text.Length;
-
-					if (o1)
-					{
-						c = text[p];
-						o1 = (c >= '0' && c <= '9');
-					}
-
-					if (!o1)
-					{
-						if (t0 < 1)
-						{
-							Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected12, ways);
-							return -1;
-						}
-
+					if ((uint)p >= (uint)text.Length)
 						break;
-					}
 
-					var lm2  = ways.LogCount;
-					var lm2R = ways.Records;
-					var rr2 = ways.RefsCount;
-					var q0 = -1;
+					c = text[p];
 
-					q0 = Read_Digit_Feed(p);
-
-					if (q0 < 0)
-					{
-						ways.LogCount  = lm2;
-						ways.Records   = lm2R;
-						ways.RefsCount = rr2;
-					}
-
-					if (q0 < 0)
-					{
-						if (t0 < 1)
-							return -1;
-
+					if (!(((c >= '0' && c <= '9'))))
 						break;
-					}
 
-					p = q0;
-					t0++;
+					p++;
 				}
+
+				if (p < m0 + 1)
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Feed_Expected12, ways);
+					return -1;
+				}
+
 				return p;
 			}
 
