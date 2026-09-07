@@ -191,7 +191,7 @@ static class Corpus
 	}
 
 	/// <summary>One statement on one line, short enough to read in a list.</summary>
-	static string One(string statement)
+	internal static string One(string statement)
 	{
 		var flat = string.Join(" ", statement.Split('\n').Select(one => one.Trim()));
 
@@ -215,7 +215,7 @@ static class Corpus
 	/// the working directory a benchmark is launched from is whatever the launcher felt
 	/// like, and `bin/Release/net10.0` is not where the corpus lives.
 	/// </remarks>
-	static string Checked()
+	internal static string Checked()
 	{
 		var at = new DirectoryInfo(AppContext.BaseDirectory);
 

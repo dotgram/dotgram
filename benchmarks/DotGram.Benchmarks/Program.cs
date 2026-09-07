@@ -180,6 +180,26 @@ static class Program
 		// twice — a rule a level, and one rule with binding powers (§4.3.1) — over the same
 		// inputs, so that what climbing is worth is known before a grammar is rewritten to
 		// use it. See Ladders.cs.
+		// `--kinds [path] [version] [shown]` is the same corpus read the other way round: it
+		// asks ScriptDom to split each file into statements, which is the one thing only a
+		// T-SQL parser can do, and tallies what this dialect makes of each kind. What comes
+		// out is a work list ordered by how often the corpus needs the thing, and a count of
+		// the opposite defect — a statement read here as a query and called something else
+		// there. See Kinds.cs.
+		if (args.Length >= 1 && args[0] == "--kinds")
+		{
+			var rest  = args.Skip(1).ToArray();
+			var named = rest.Length >= 1 && (rest[0].Contains('/') || rest[0].Contains('\\'));
+			var first = named ? 1 : 0;
+
+			Kinds.Run(
+				named ? rest[0] : null,
+				rest.Length > first ? rest[first] : "170",
+				rest.Length > first + 1 && int.TryParse(rest[first + 1], out var few) ? few : 1);
+
+			return;
+		}
+
 		// `--corpus [path] [shown]` is not a benchmark at all: it reads somebody else's
 		// `.sql` files, cuts the query-shaped statements out of them and says what each
 		// parser makes of each, grouping the refusals by what stood where the reading

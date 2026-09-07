@@ -15192,3 +15192,89 @@ The directory names are the reason to keep the whole of it rather than the query
 part: `Baselines80` through `Baselines180` are Microsoft's own partition of T-SQL by parser
 version, which is a specification of what each version added, written by the people who
 implemented it.
+
+## The other parser, asked the same questions
+
+The plan for T-SQL is all twelve versions in full, measured against ScriptDom for what it
+reads and for what it costs. Three decisions were taken before any of it was written.
+
+**A chain of dialects rather than twelve copies.** `TransactSql180 : TransactSql170 : … :
+TransactSql80 : SqlStandard92`, each `.gram` saying only its own delta. Microsoft's twelve
+parsers are flat — every one of them derives from `TSqlParser` and carries a whole
+regenerated ANTLR grammar, from ten thousand lines at 80 to thirty-six thousand at 180 —
+and the whole point of §5.1 is that this need not be. It was probed before it was chosen:
+a three-level chain, each level rebinding the base's original seam to its own extension of
+the level below, compiles and reads. Zero takes letters, One adds digits, Two adds an
+underscored word, and each reads everything the level under it reads.
+
+One wrinkle came out of the probe and is worth fixing before the chain is twelve deep. A
+dialect's published rule is unreachable in the compilation of the dialect above it: the
+inherited `parse` is suppressed, correctly, and GRAM4018 then says nothing reaches the rule
+it named. A warning, not an error, and a wrong one.
+
+**The language first, the versions after.** One `TransactSql` covering queries, DML, DDL,
+batches and the procedural level, and only then cut into the chain — because cutting is
+cheap. `Baselines80` through `Baselines180` are already a statement of what each version
+added, written by the people who implemented it.
+
+**And the speed comparison will say what each side is building.** ScriptDom builds a full
+AST with token positions and error recovery; this grammar builds a tenth of that. A bare
+ratio flatters this side, and the flattery belongs in the report rather than in a footnote
+under it.
+
+### `--kinds`, which is the work list
+
+`--corpus` cuts query-shaped fragments out by hand, because splitting T-SQL properly needs a
+T-SQL parser. There is one on the shelf now — `Microsoft.SqlServer.TransactSql.ScriptDom`,
+referenced from `benchmarks/` and from nowhere else, since nothing that ships may depend on
+it and nothing has to.
+
+So ScriptDom splits, and every statement it hands back is one it understood. The denominator
+stops being a guess about where a statement ended, and every row of the table is a thing
+somebody's parser has a name for:
+
+```
+against ScriptDom, TSql170Parser
+
+  1086 files, 954 read whole and 132 not; 8317 statements of 310 kinds
+
+  kind                                        count    read    share
+  ------------------------------------------------------------------
+  SelectStatement                              2036     626    30.7%
+  CreateTableStatement                          631       0     0.0%
+  AlterDatabaseSetStatement                     252       0     0.0%
+  AlterTableAlterColumnStatement                144       0     0.0%
+  CreateProcedureStatement                      142       0     0.0%
+  CreateIndexStatement                          140       0     0.0%
+  ------------------------------------------------------------------
+                                               8317     626     7.5%
+```
+
+**30.7% against `--corpus`'s 30.2%** on the same statements, which is the two harnesses
+agreeing about the one thing they both measure — and the small gap is the hand-cut
+denominator being slightly wrong, as it was always going to be.
+
+7.5% of everything, and the zeroes are the point: **the table is a work list ordered by how
+often the corpus needs the thing.** A `CREATE TABLE` is wanted three hundred times more often
+than an `OPEN MASTER KEY`.
+
+It runs at any version, and the older ones are a different corpus rather than a smaller one:
+
+| | files read whole | statements | read here |
+| --- | --: | --: | --: |
+| `TSql80Parser` | 193 | 1,768 | 14.6% |
+| `TSql90Parser` | 378 | 3,161 | 8.4% |
+| `TSql130Parser` | 757 | 6,436 | 7.3% |
+| `TSql180Parser` | 958 | 8,359 | 7.5% |
+
+The 80 column reads higher because what an eighty-era parser understands whole is the
+query-heavy part of the corpus, and everything since is statements.
+
+### And the direction nothing else was asking
+
+The harness counts the opposite defect too: a statement ScriptDom calls something other than
+a query, read here as one. Over-acceptance is a defect whatever the corpus says — it is the
+half of correctness that a refusal count cannot see, and `--corpus` had no way to ask it.
+
+**Nothing.** Of 8,317 statements of 310 kinds, the dialect reads as a query exactly the ones
+Microsoft's parser calls a query, and none of the others.
