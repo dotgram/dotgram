@@ -29,6 +29,49 @@ public sealed class ExpressionLanguageTests
 	public void An_expression_body_reads_and_runs(string text, int argument, int expected) =>
 		Assert.Equal(expected, ExpressionLanguage.Compile<Func<int, int>>(text)(argument));
 
+	/// <summary>
+	/// The same language with its identifiers spelled in ASCII, which is one line of
+	/// grammar and no second grammar (§5.1).
+	/// </summary>
+	/// <remarks>
+	/// <c>parse Lambda with (Word = AsciiWord)</c> clones what the directive reaches and
+	/// rewrites every call inside the clones, so every rule that reads a word — a
+	/// parameter, a member, a type, a label, a name — reads the narrower one, while
+	/// <c>ParseLambda</c> beside it goes on reading whatever Unicode calls a letter.
+	/// There is one <c>Word</c> rule in the file and one grammar; what separates the two
+	/// readings is the binding.
+	/// </remarks>
+	[Theory]
+	[InlineData("(int x) => x + 1",        true)]
+	[InlineData("(int _x1) => _x1 * 2",    true)]
+	[InlineData("(int x) => x.ToString()", true)]
+	[InlineData("(int naïve) => naïve",    false)]
+	[InlineData("(int счёт) => счёт + 1",  false)]
+	public void A_publication_may_narrow_what_a_word_is(string text, bool ascii)
+	{
+		// Every one of them is this language; only some of them are this language written
+		// in ASCII.
+		Assert.True(
+			ExpressionLanguage.TryParseLambda(text, new ExpressionLanguage.State()).IsSuccess);
+
+		Assert.Equal(
+			ascii,
+			ExpressionLanguage.TryParseAsciiLambda(text, new ExpressionLanguage.State()).IsSuccess);
+	}
+
+	/// <summary>And what it reads it builds, which is the half a refusal cannot show.</summary>
+	[Fact]
+	public void And_the_narrowed_reading_builds_what_the_other_one_does()
+	{
+		const string Text = "(int x) => (x + 1) * 2";
+
+		var wide   = ExpressionLanguage.TryParseLambda     (Text, new ExpressionLanguage.State()).Value!;
+		var narrow = ExpressionLanguage.TryParseAsciiLambda(Text, new ExpressionLanguage.State()).Value!;
+
+		Assert.Equal(wide.ToString(), narrow.ToString());
+		Assert.Equal(8, narrow.Compile().DynamicInvoke(3));
+	}
+
 	[Fact]
 	public void Precedence_is_C_sharp_precedence() =>
 		// One rule per level (§4.3's default), so `*` binds tighter than `+` and the

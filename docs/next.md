@@ -14374,3 +14374,46 @@ The comparison is a scale and not a verdict: the hand-written `GramParser` build
 compiler's own tree with positions and diagnostics where the generated one builds the
 example's records. A number below one says the two are close, not that the generator won.
 
+## Asking the expression language for ASCII, and what fell out
+
+One line of grammar, to see whether the notation could say it:
+
+```dotgram
+parse Lambda with (Word = AsciiWord) as ParseAsciiLambda
+```
+
+It can, and it does what it should — `(int x) => x + 1` reads both ways, `(int naïve) =>
+naïve` only one, and every rule that reads a word reads the narrower one: a parameter, a
+member, a type, a label, a name. The two publications are one grammar and one `Word` rule,
+and what separates them is the binding.
+
+**Where the replacement is written matters, and the language already says so.** An
+expression on the right of a `with` becomes a rule declared where the `with` is, so it
+reads the trivia surrounding the directive — which out at the top of that file spaces its
+operands. A word whose letters may be spaced apart is not a word, so `AsciiWord` is
+declared inside `namespace Lexical`, where `trivia = none`, and the binding names it.
+
+**It did not compile.** `GRAM0001` — the generator falling over with `Unhandled node kind:
+Behind`. §5.1's substitution clones every rule the site reaches and rewrites the calls
+inside the clones, and the clone is a switch over node kinds; it named every kind but two.
+`Node.Behind` is the `?<!wordboundary` §4.6 weaves in front of a word literal, and
+`Node.Glue` is what `~` leaves between two operands that may not be spaced. Both were added
+to the model after the two switches were written, and no grammar in the repository had
+reached the combination — a `with` above a keyword — until this one did.
+
+Two switches, in `GrammarNormalizer.With.cs` and `GrammarNormalizer.Namespaces.cs`, and a
+test that is a keyword, a glue and a substitution over both.
+
+**And a name that appeared nowhere the author wrote it.** A publication with a `with`
+publishes a clone, and the clone is called `Lambda_With1`. That name was in the public XML
+doc a consumer reads in IntelliSense, and in the message a refusal gives:
+
+```
+/// <summary>Parses the whole input as <c>Lambda_With1</c>.</summary>
+Input does not match 'Lambda_With1'.
+```
+
+The rule's own declaration knows what it was called, so that is what the publication says
+now. `Notation.gram`'s snapshot has carried the leak since `parse List with (Comma = (',' |
+';')) as Loose` was written into it.
+

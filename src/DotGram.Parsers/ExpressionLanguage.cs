@@ -137,6 +137,13 @@ namespace DotGram.Parsers;
 
 		Word = [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']*
 
+		// The same word with the alphabet named rather than asked for by category, for
+		// the publication below that reads only it. Declared here, inside `trivia =
+		// none`, and not written into the `with` itself: a substitution written on a
+		// `parse` reads the trivia surrounding the directive (§5.1), which out there
+		// spaces its operands — and a word whose letters may be spaced apart is not one.
+		AsciiWord = ['a'..'z' | 'A'..'Z' | '_'] & ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']*
+
 		// What this language reserves. `Name` refuses these, which is the whole of what
 		// makes a keyword one: C# says an identifier is a word that is not a keyword, and
 		// leaving it to the order of alternatives only works where the keyword's own
@@ -825,6 +832,13 @@ namespace DotGram.Parsers;
 	                   => @(context.Named(name, parserSpan))
 
 	parse Lambda as ParseLambda
+
+	// The same language with its identifiers spelled in ASCII, and one line to say so
+	// (§5.1). A binding on a publication clones what the directive reaches and rewrites
+	// every call inside the clones, so every rule that reads a word — a parameter, a
+	// member, a type, a label, a name — reads this one, while `ParseLambda` beside it
+	// goes on reading what Unicode calls a letter.
+	parse Lambda with (Word = AsciiWord) as ParseAsciiLambda
 	""", Lexical = true)]
 
 // The same grammar with the constructions run where they are read rather than after
