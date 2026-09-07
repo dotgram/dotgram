@@ -14678,3 +14678,56 @@ So the scanner has to know *statically* which states run, which means the token 
 written the way the seam beside it already is: the class as the test it is, the run as a loop
 the compiler can see. That is `LexerEmitter` writing code instead of a table, and the number
 it is aiming at is the 0.58 ns a space it already achieves ten lines away.
+
+## Considered: the keyword trie out of the character path
+
+After the run, the scanner is about 1.2 ns a character inside a run and 2.2 outside one,
+against 0.58 for the seam beside it. What is left outside the runs is mostly the **keyword
+trie**: five hundred and twenty-eight states exist to tell `AND` from `ANY` from a name, and
+every word walks them, keyword or not, one table step a character.
+
+A hand-written lexer does not. `HandSqlTokens` runs the word's class in a loop and then asks
+`Keyword(span)` — a switch on length, a switch on the first letter folded to lower case, and
+a compare or three. Its own remark says why not a hash: *"a name that is not a keyword is
+refused by its length or its first letter and compared against nothing, which is where a
+hashed lookup lost to the first day's parser on inputs made of names."*
+
+**Priced by taking it out.** A copy of the generated scanner that reads a word as a word and
+never tells it from a keyword — deliberately wrong, and it tokenizes the same characters —
+lexes:
+
+```
+                       with the trie   without   by hand
+named as people do          0.045 us  0.033 us  0.025 us
+and a string                0.059 us  0.041 us  0.025 us
+a whole predicate           0.080 us  0.055 us  0.046 us
+a cast                      0.083 us  0.061 us  0.048 us
+a null test                 0.048 us  0.032 us  0.037 us
+```
+
+Another **16–33% of lexing**, landing at 0.87–1.78 of the hand-written lexer — `a0 IS NOT
+NULL`, which is nothing but keywords, comes out *faster* than the hand-written one. The
+keyword lookup has to be added back, and the hand parser is the evidence that it is cheap:
+two branches for a word that is not a keyword.
+
+**And the condition it has to be sound under, which SQL fails in general and passes in
+particular.** A word start does not always begin a word:
+
+```dotgram
+NationalCharacterStringLiteral = 'N'i & QuotedString          -- N'abc'
+BitStringLiteral               = 'B'i & '\'' & ['0' | '1']* & '\''
+HexStringLiteral               = 'X'i & '\'' & …
+CharacterStringLiteral         = ('_' & RegularIdentifier)? & QuotedString
+DateLiteral                    = "DATE"i & Space & QuotedString
+```
+
+At `N`, `B`, `X`, `_` and `D` the longest match may run past the word and into a quoted
+string. So the shortcut cannot be taken for a grammar; it has to be taken **per first
+character**, and only where the sub-automaton reachable from the start on that character is
+the keyword trie and the identifier run and nothing else. For standard SQL that is every
+letter but five — and `customer_id`, `order_status`, `invoice_total` all begin with one of
+them, which is why the measurement above is what it is.
+
+That analysis is `LexicalAutomaton`'s to make and `LexerEmitter`'s to act on, and it is a
+second way of scanning rather than a change to the one there is. Not started.
+
