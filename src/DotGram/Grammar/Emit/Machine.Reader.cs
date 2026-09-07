@@ -2773,9 +2773,18 @@ sealed partial class Machine
 				return;
 			}
 
+			// Inside, nothing follows. "Nothing after it may come back into it" is a statement
+			// about the continuation, and the group's contents are entitled to hear it: what
+			// ends the group is the seal, so a repetition standing at the end of one is never
+			// asked for a shorter reading and owes no way per turn. `trivia = { (Space |
+			// LineComment | BlockComment)* }` is the shape this is written for, and it is in
+			// every grammar that spaces its operands: it was opening a way for every character
+			// of whitespace and sealing all of them a moment later. What follows inside the
+			// group is threaded as it always was — `{ A* & B }` still hands B's first set to
+			// the star before it.
 			var segment             = _ways++;
 			var took                = $"q{_calls++}";
-			var (call, undo, opens) = Called(kept, following);
+			var (call, undo, opens) = Called(kept, FollowSets.Continuation.None);
 
 			code.Line($"var s{segment}  = ways.Cursor;");
 			foreach (var line in machine.Carrier.MarkRecords($"lm{segment}"))

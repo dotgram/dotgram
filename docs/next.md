@@ -14258,3 +14258,16 @@ The comparison is a scale rather than a verdict, and `SelfHostingTests` says why
 parser builds the compiler's own tree with positions and diagnostics, the generated one
 builds the example's records.
 
+## Inside a brace, nothing follows
+
+`trivia = { (Space | LineComment | BlockComment)* }` is in every grammar that spaces its
+operands, and it was opening a way for every character of whitespace and sealing all of them
+a moment later. The way is what a repetition owes when something after it could ask for a
+shorter reading; `Determinism.NeverGivesBack` decides that, and it was being asked the wrong
+question — what follows the group, rather than what follows inside it.
+
+Braces mean the group's first reading is its only one. "Nothing after it may come back into
+it" was already written in `EmitAtomic`'s own remarks, and the group's contents are entitled
+to hear it, so the continuation threaded into them is `Continuation.None`. What follows
+*inside* is threaded as it always was: `{ A* & B }` still hands B's first set to the star
+before it, and only a repetition standing at the end of a group loses its way per turn.
