@@ -906,7 +906,11 @@ public static partial class CSharpEmitter
 		var gives = context is null ? "" : ", context";
 
 		var method = publication.MethodName;
-		var name   = publication.Rule.Name;
+		// What the author called it, which is not always what the rule is called by now: a
+		// publication carrying `with (...)` publishes a clone of the rule, and `Lambda_With1`
+		// is a name that appears nowhere in the grammar and should appear nowhere a reader
+		// looks — not in the summary, and not in what a refusal says.
+		var name   = publication.Rule.Declaration?.Name ?? publication.Rule.Name;
 		var built  = results.QualifiedOf(publication.Rule);
 		var value  = built ?? "string";
 		var match  = $"{MatchType}<{value}>";

@@ -77,9 +77,9 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(recognized, 0, end);
 		}
 
-		/// <summary>Parses the whole input as <c>List_With1</c>.</summary>
+		/// <summary>Parses the whole input as <c>List</c>.</summary>
 		/// <exception cref="global::System.FormatException">
-		/// The input is not <c>List_With1</c>. <c>TryLoose</c> answers instead.
+		/// The input is not <c>List</c>. <c>TryLoose</c> answers instead.
 		/// </exception>
 		public static string Loose(string input)
 		{
@@ -91,7 +91,7 @@ namespace DotGram.Snapshots
 			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
 		}
 
-		/// <summary>Parses the whole input as <c>List_With1</c>, answering rather than throwing.</summary>
+		/// <summary>Parses the whole input as <c>List</c>, answering rather than throwing.</summary>
 		public static Match<string> TryLoose(string input)
 		{
 			var text    = global::System.MemoryExtensions.AsSpan(input);
@@ -105,7 +105,7 @@ namespace DotGram.Snapshots
 
 				var otherwise = starved
 					? "Expected more input."
-					: "Input does not match 'List_With1'.";
+					: "Input does not match 'List'.";
 
 				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
 			}
