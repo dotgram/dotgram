@@ -219,6 +219,73 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	// ── The query layer ─────────────────────────────────────────────────────────
+
+	/// <summary>What T-SQL puts around a query, and the standard does not.</summary>
+	/// <remarks>
+	/// The clauses that belong to the statement rather than to the query — how many rows to
+	/// skip, what shape to return them in, how to run it — and the three places inside one
+	/// where T-SQL says more than §7 does: a select list that may assign, a group by that
+	/// groups by sets, and a from clause that may apply, hint and pivot.
+	/// </remarks>
+	[Theory]
+
+	// What the query returns, and where it puts it.
+	[InlineData("SELECT @a += 1")]
+	[InlineData("SELECT @a = b FROM t")]
+	[InlineData("SELECT alias = b FROM t")]
+	[InlineData("SELECT b AS 'Original string' FROM t")]
+	[InlineData("SELECT c1 INTO t2 FROM t1")]
+	[InlineData("SELECT c1 INTO t2 ON fg FROM t1")]
+	[InlineData("SELECT TOP 10 WITH APPROXIMATE a FROM t ORDER BY a")]
+
+	// The windows a select list may name rather than write out.
+	[InlineData("SELECT SUM (c1) OVER Win1 FROM t1 WINDOW Win1 AS (PARTITION BY c1)")]
+
+	// Grouping by sets of columns rather than by columns.
+	[InlineData("SELECT a FROM t GROUP BY CUBE (a)")]
+	[InlineData("SELECT a FROM t GROUP BY ROLLUP (a, b)")]
+	[InlineData("SELECT a FROM t GROUP BY GROUPING SETS ((CUBE (a), ROLLUP (b), c), (a), ())")]
+	[InlineData("SELECT a FROM t GROUP BY ALL ()")]
+
+	// Applying, hinting, sampling and pivoting a source.
+	[InlineData("SELECT * FROM t1 CROSS APPLY (SELECT * FROM u) AS x")]
+	[InlineData("SELECT * FROM t1 OUTER APPLY dbo.f (t1.a) AS x")]
+	[InlineData("SELECT * FROM t1 INNER HASH JOIN t10 ON t1.c1 = t10.c1")]
+	[InlineData("SELECT * FROM t1 INNER LOCAL MERGE JOIN t10 ON t1.c1 = t10.c1")]
+	[InlineData("SELECT * FROM t1 INNER REMOTE JOIN t10 ON t1.c1 = t10.c1")]
+	[InlineData("SELECT c1 FROM t1 AS table1 WITH (INDEX (0, 1, ind2), HOLDLOCK, NOLOCK)")]
+	[InlineData("SELECT * FROM t WITH (FORCESEEK (i134 (c1, c3, c4)))")]
+	[InlineData("SELECT TOP (5) * FROM r WITH (SPATIAL_WINDOW_MAX_CELLS = 512)")]
+	[InlineData("SELECT * FROM t1 TABLESAMPLE (12 ROWS)")]
+	[InlineData("SELECT * FROM fun2 TABLESAMPLE SYSTEM (12 PERCENT) REPEATABLE (100)")]
+	[InlineData("SELECT VendorID, [164] AS Emp1 FROM t PIVOT (SUM (a) FOR b IN ([164])) AS pvt")]
+	[InlineData("SELECT a, b FROM (SELECT * FROM t) AS d UNPIVOT (v FOR k IN (x, y)) AS u")]
+
+	// How many rows, what shape, and how to run it.
+	[InlineData("SELECT * FROM T ORDER BY a OFFSET 5 ROWS FETCH NEXT 2 ROWS ONLY")]
+	[InlineData("SELECT a FROM t ORDER BY a OFFSET 5 ROWS")]
+	[InlineData("SELECT a FROM t ORDER BY a FETCH APPROXIMATE NEXT 2 ROWS ONLY")]
+	[InlineData("SELECT * FROM t1 FOR JSON AUTO")]
+	[InlineData("SELECT * FROM t1 FOR JSON PATH, ROOT ('r')")]
+	[InlineData("SELECT * FROM t1 FOR XML AUTO, ELEMENTS")]
+	[InlineData("SELECT * FROM t1 FOR BROWSE")]
+	[InlineData("SELECT a FROM t OPTION (RECOMPILE)")]
+	[InlineData("SELECT * FROM t1 OPTION (MERGE UNION, HASH JOIN)")]
+	[InlineData("SELECT * FROM t1 OPTION (HASH GROUP, CONCAT UNION, LOOP JOIN, FAST 10, FORCE ORDER)")]
+	[InlineData("SELECT * FROM t1 OPTION (MAX_GRANT_PERCENT = 50)")]
+	[InlineData("SELECT * FROM t1 OPTION (OPTIMIZE FOR (@v1 = 20, @v2 = UNKNOWN))")]
+	[InlineData("SELECT * FROM t1 OPTION (USE PLAN N'zzz')")]
+	[InlineData("SELECT * FROM t1 OPTION (USE HINT ('DISABLE_OPTIMIZED_NESTED_LOOP'))")]
+	[InlineData("SELECT * FROM t WHERE c1 = 3 OPTION (TABLE HINT (t, FORCESCAN))")]
+	[InlineData("SELECT * FROM t1 OPTION (PARAMETERIZATION SIMPLE, RECOMPILE, EXPAND VIEWS)")]
+	public void The_query_layer_reads(string input)
+	{
+		var match = TransactSql.TryParseSelect(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	// ── And builds the standard's tree ───────────────────────────────────────────
 
 	/// <summary>
@@ -332,9 +399,6 @@ public sealed class TransactSqlTests
 
 	/// <summary>And what is not read yet is refused, where the reading stopped.</summary>
 	[Theory]
-	[InlineData("SELECT * FROM t1 CROSS APPLY (SELECT * FROM u)")]
-	[InlineData("SELECT * FROM t1 FOR JSON AUTO")]
-	[InlineData("SELECT a FROM t OPTION (RECOMPILE)")]
 	[InlineData("SELECT TOP")]
 	[InlineData("SELECT [a")]
 	[InlineData("SELECT @")]

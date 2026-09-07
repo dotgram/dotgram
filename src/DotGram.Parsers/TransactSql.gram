@@ -8,7 +8,7 @@ using Sql92;
 // grammar is attached to; what is written here is only where T-SQL differs, and
 // §5.1's rebinding is what makes the difference reach every rule that leads to it.
 //
-// Seven rules replace seven of the standard's. Nothing else is restated and nothing
+// Eleven rules replace eleven of the standard's. Nothing else is restated and nothing
 // is copied: a query expression, a join, a predicate and the whole value tower are
 // the ones already read against the standard, reading a dialect's identifiers and
 // a dialect's primaries because the substitution rewrote every call inside them.
@@ -293,35 +293,252 @@ TsqlPredicate : @SqlNode
 
 // ── §7.9's query specification, widened ─────────────────────────────────────
 //
-// Two differences and both are about what may be left out. T-SQL's `FROM` is
-// optional — `SELECT 1` is a query — and `TOP` stands between the quantifier and
-// the select list. The count is read and dropped, as the standard's collate
-// clause is: it says how many rows come back and not what they are, and the tree
-// this grammar builds is the standard's.
+// What may be left out and what may be added. T-SQL's `FROM` is optional — `SELECT 1`
+// is a query — `TOP` stands between the quantifier and the select list, `INTO` names a
+// table the rows are written to rather than returned from, and a `WINDOW` clause at the
+// end declares the windows the select list named. The count and the windows are read
+// and dropped, as the standard's collate clause is: they say how many rows come back
+// and how a call sees them, not what the rows are.
 TsqlQuerySpecification : @SqlNode
-	= "SELECT"i & quantifier: SetQuantifier? & Top? & columns: SelectList
+	= "SELECT"i & quantifier: SetQuantifier? & Top? & columns: SelectList & Into?
 	  & from: FromClause? & where: WhereClause? & group: GroupByClause? & having: HavingClause?
+	  & Window?
 		=> @(new SqlNode.Query(
 				 SqlNode.Distinctly(quantifier) == "DISTINCT", columns, from ?? SqlNode.None,
 				 where, group ?? SqlNode.None, having))
 
-Top = "TOP"i & ('(' & ValueExpression & ')' | Sql92.Lexical.UnsignedNumericLiteral)
-	  & "PERCENT"i? & ("WITH"i & "TIES"i)?
+// Written as alternatives of a rule rather than one sequence with a choice inside it,
+// for the reason `CallTail` gives.
+Top = "TOP"i & '(' & ValueExpression & ')' & TopSuffix?
+	| "TOP"i & Sql92.Lexical.UnsignedNumericLiteral & TopSuffix?
+
+TopSuffix = "PERCENT"i & TopWith? | TopWith
+TopWith   = "WITH"i & "TIES"i | "WITH"i & "APPROXIMATE"i | "WITH"i & "APPROX"i
+
+// §7.9 has nowhere to put this: the rows go into a table instead of coming back, and
+// the filegroup says where that table's pages live.
+Into = "INTO"i & QualifiedName & ("ON"i & Identifier)?
+
+// The windows a call may name instead of writing out.
+Window       = "WINDOW"i & WindowDef & (',' & WindowDef)*
+WindowDef    = Identifier & "AS"i & '(' & WindowBody & ')'
+WindowBody   = WindowPart*
+WindowPart   = "PARTITION"i & "BY"i & ValueExpression & (',' & ValueExpression)*
+             | OrderByClause
+             | WindowFrame
+             | Identifier
+
+// ── §7.9's select list, widened ─────────────────────────────────────────────
+//
+// Two things stand where a value does. A variable takes the value rather than the query
+// returning it — `SELECT @a += 1` is an assignment written as a query — and an alias may
+// be written in front with `=` rather than behind with `AS`. And an alias may be a
+// string, which the standard does not allow and every dialect does.
+TsqlSelectSublist : @SqlNode
+	= qualifier: QualifiedName & '.' & '*'        => @(new SqlNode.Star(qualifier))
+	| into: Tsql.Variable & AssignOp & v: ValueExpression => @(new SqlNode.Selected(v, into))
+	| label: TsqlAlias & '=' & v: ValueExpression  => @(new SqlNode.Selected(v, label))
+	| v: ValueExpression & alias: TsqlAsClause?    => @(new SqlNode.Selected(v, alias))
+
+AssignOp = '=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^="
+
+TsqlAlias    : @string = t: Identifier => @(t) | t: Sql92.Lexical.CharacterStringLiteral => @(t)
+TsqlAsClause : @string = "AS"i & t: TsqlAlias => @(t) | t: TsqlAlias => @(t)
+
+// ── §7.7's group by, widened ────────────────────────────────────────────────
+//
+// The standard groups by columns. T-SQL groups by sets of them, and says so three ways.
+TsqlGroupByClause : @SqlNode[]
+	= "GROUP"i & "BY"i & "ALL"i & first: TsqlGrouping & (',' & rest: TsqlGrouping)*
+		=> @(SqlNode.Listed(first, rest))
+	| "GROUP"i & "BY"i & first: TsqlGrouping & (',' & rest: TsqlGrouping)*
+		=> @(SqlNode.Listed(first, rest))
+
+TsqlGrouping : @SqlNode
+	= "CUBE"i     & '(' & first: TsqlGrouping & (',' & rest: TsqlGrouping)* & ')' => @(new SqlNode.Call("CUBE",   SqlNode.Listed(first, rest)))
+	| "ROLLUP"i   & '(' & first: TsqlGrouping & (',' & rest: TsqlGrouping)* & ')' => @(new SqlNode.Call("ROLLUP", SqlNode.Listed(first, rest)))
+	| "GROUPING"i & "SETS"i & '(' & first: TsqlGrouping & (',' & rest: TsqlGrouping)* & ')'
+		=> @(new SqlNode.Call("GROUPING SETS", SqlNode.Listed(first, rest)))
+	| '(' & ')' => @(new SqlNode.Row(SqlNode.None))
+	| '(' & first: TsqlGrouping & (',' & rest: TsqlGrouping)* & ')' => @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+	| c: ValueExpression & Collate? => @(c)
+
+// ── §7.5's joined table, widened ────────────────────────────────────────────
+//
+// `APPLY` is a join whose right side is read once per row of its left, which is a
+// question about evaluation and not about shape — so the tree says `CROSS JOIN` and the
+// word is not kept. A join hint says which algorithm to use and is dropped for the same
+// reason `OPTION` is.
+TsqlTableReference : @SqlNode
+	= left: TsqlTableReference & "CROSS"i & "JOIN"i & right: TablePrimary
+		=> @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
+	| left: TsqlTableReference & "UNION"i & "JOIN"i & right: TablePrimary
+		=> @(new SqlNode.Join(SqlJoin.Union, false, left, right))
+	| left: TsqlTableReference & "CROSS"i & "APPLY"i & right: TablePrimary
+		=> @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
+	| left: TsqlTableReference & "OUTER"i & "APPLY"i & right: TablePrimary
+		=> @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
+	| left: TsqlTableReference & natural: "NATURAL"i? & kind: JoinType? & JoinHint? & "JOIN"i
+	  & right: TablePrimary
+	  & ("ON"i & on: SearchCondition
+	    | "USING"i & '(' & columns: ColumnList & ')')?
+		=> @(SqlNode.Joining(kind, natural, left, right, on, columns))
+	| t: TablePrimary => @(t)
+
+JoinHint = "LOCAL"i & "HASH"i | "LOCAL"i & "LOOP"i | "LOCAL"i & "MERGE"i | "LOCAL"i
+	| "HASH"i | "LOOP"i | "MERGE"i | "REMOTE"i | "REDUCE"i | "REPLICATE"i | "REDISTRIBUTE"i
 
 // ── §7.4's table primary, widened ───────────────────────────────────────────
 //
 // A table-valued function stands where a table does, which the standard leaves to a
-// routine invocation it does not define. Its arguments are read and dropped for the
-// same reason `TOP` is: what the tree says is where the rows come from.
+// routine invocation it does not define. Its arguments are read and dropped for the same
+// reason `TOP` is: what the tree says is where the rows come from.
 TsqlTablePrimary : @SqlNode
 	= name: QualifiedName & ('(' & Arguments? & ')')?
-	  & ("AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?)?
+	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)? & TableSuffix?
 		=> @(new SqlNode.Source(name, null, alias, columns))
-	| t: Tsql.Variable & ("AS"i? & alias: Identifier)?
+	| t: Tsql.Variable & ("AS"i? & alias: CorrelationName)? & TableSuffix?
 		=> @(new SqlNode.Source(t, null, alias, null))
-	| derived: TableSubquery & "AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?
+	| derived: TableSubquery & "AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?
+	  & TableSuffix?
 		=> @(new SqlNode.Source(null, derived, alias, columns))
-	| '(' & j: TableReference & ')' => @(j)
+	| '(' & j: TableReference & ')' & TableSuffix? => @(j)
+
+// A correlation name is an identifier, and not one of the four words that begin a clause
+// of their own after a source. None of the four is reserved — a column may be called
+// `WINDOW` — but a name is what stands *after* a source, and `FROM t PIVOT (...)` has no
+// name in it. Without the lookahead the pivot became the correlation and the parse
+// stopped one token later, saying nothing about why.
+CorrelationName = ?!SourceClause & Identifier
+SourceClause    = "WINDOW"i | "PIVOT"i | "UNPIVOT"i | "TABLESAMPLE"i
+
+// What may be said about a source after it is named: which index and which locks to use,
+// how much of it to read, and the two ways of turning rows into columns and back.
+//
+// Every one of them is read and dropped. A hint says how the rows are to be fetched and
+// not which rows they are; a sample says how many; and the tree this grammar builds is
+// the standard's, which has nowhere to put any of it.
+TableSuffix
+	= TableHints & TableSample
+	| TableSample & TableHints
+	| TableHints
+	| TableSample
+	| Pivot
+	| Unpivot
+
+// **Transcribed from `TSql170.g`'s own `tableHint` and `optimizerHints`, and that makes
+// these two rules weaker evidence than the rest of this file.** A rule written from the
+// other parser's grammar cannot disagree with the other parser: the comparison stops
+// being a comparison and becomes a check that the transcription was faithful. Everywhere
+// else here the source is the published syntax, so a difference is a finding — a bug on
+// one side or the other — and that is the whole point of measuring against ScriptDom at
+// all. These two are marked because they are the exception.
+//
+// What the shape says, and a list of hint names would not: `HOLDLOCK`, `INDEX`, `MERGE`,
+// `ORDER`, `GROUP`, `PLAN`, `USE`, `TABLE` and `JOIN` arrive as the reserved words they
+// are, and every other hint — `NOLOCK`, `FORCESEEK`, `RECOMPILE`, `MAXDOP` — is an
+// ordinary identifier. So the rule is about which words are keywords and not about which
+// hints exist, and adding a hint to T-SQL does not change it.
+//
+// All of it is read and dropped: a hint says how the rows are to be fetched and never
+// which rows they are, and the tree this grammar builds is the standard's.
+TableHints = "WITH"i & '(' & TableHint & (',' & TableHint)* & ')'
+
+TableHint
+	= "HOLDLOCK"i
+	| "INDEX"i & IndexArgument
+	| Identifier & TableHintTail?
+
+TableHintTail
+	= '(' & IndexValue & TableHintRest & ')'
+	| '=' & Sql92.Lexical.UnsignedNumericLiteral
+
+TableHintRest = '(' & ColumnList & ')' | (',' & IndexValue)*
+
+IndexArgument
+	= '=' & IndexValue
+	| '(' & IndexValue & (',' & IndexValue)* & ')'
+
+IndexValue = Identifier | Sql92.Lexical.UnsignedNumericLiteral
+
+QueryHints = "OPTION"i & '(' & QueryHint & (',' & QueryHint)* & ')'
+
+QueryHint
+	= "MERGE"i & MergeWhat
+	| "ORDER"i & "GROUP"i
+	| "USE"i & UseWhat
+	| "TABLE"i & Identifier & '(' & QualifiedName & (',' & TableHint)* & ')'
+	| Identifier & QueryHintTail?
+
+MergeWhat = "JOIN"i | "UNION"i
+UseWhat   = "PLAN"i & HintString
+		  | Identifier & '(' & HintString & (',' & HintString)* & ')'
+
+QueryHintTail
+	= "JOIN"i
+	| "UNION"i
+	| "ORDER"i
+	| "GROUP"i
+	| "PLAN"i
+	| "FOR"i & OptimizeFor
+	| '=' & ValueExpression
+	| Sql92.Lexical.UnsignedNumericLiteral
+	| Identifier
+
+OptimizeFor
+	= '(' & VariableValue & (',' & VariableValue)* & ')'
+	| Identifier
+
+HintString = Sql92.Lexical.NationalCharacterStringLiteral | Sql92.Lexical.CharacterStringLiteral
+
+VariableValue = Tsql.Variable & VariableValueTail
+
+VariableValueTail = '=' & ValueExpression | "UNKNOWN"i
+
+// §7.4's table sample: how much of a source to read, in rows or in per cent, and the
+// seed that makes the choice repeatable. Read and dropped for the same reason a hint is.
+TableSample = "TABLESAMPLE"i & "SYSTEM"i & SampleSize & TableRepeatable?
+			| "TABLESAMPLE"i & SampleSize & TableRepeatable?
+
+SampleSize      = '(' & ValueExpression & SampleUnit? & ')'
+SampleUnit      = "PERCENT"i | "ROWS"i
+TableRepeatable = "REPEATABLE"i & '(' & ValueExpression & ')'
+
+// Turning rows into columns and back. What stands inside the parentheses is an
+// aggregate, a column and the values that become column names; none of the three reaches
+// the tree, because a pivot says how the rows this grammar already found are arranged.
+Pivot   = "PIVOT"i & '(' & ValueExpression & "FOR"i & QualifiedName
+		  & "IN"i & '(' & PivotNames & ')' & ')' & SourceAlias?
+Unpivot = "UNPIVOT"i & '(' & QualifiedName & "FOR"i & QualifiedName
+		  & "IN"i & '(' & PivotNames & ')' & ')' & SourceAlias?
+
+PivotNames  = QualifiedName & (',' & QualifiedName)*
+SourceAlias = "AS"i & Identifier | Identifier
+
+// ── §13.1's direct select, widened ──────────────────────────────────────────
+//
+// Where the clauses that belong to the statement rather than to the query go: how many
+// rows to skip and take, what shape to return them in, and how to run the whole thing.
+TsqlDirectSelect : @SqlNode
+	= q: QueryExpression & by: OrderByClause? & OffsetFetch? & ForClause? & QueryHints?
+		=> @(by is null ? q : new SqlNode.Ordered(q, by))
+
+OffsetFetch = "OFFSET"i & ValueExpression & RowWord & FetchClause?
+			| FetchClause
+
+FetchClause = "FETCH"i & "APPROXIMATE"i & FetchAt & ValueExpression & RowWord & "ONLY"i
+			| "FETCH"i & FetchAt & ValueExpression & RowWord & "ONLY"i
+
+FetchAt = "NEXT"i | "FIRST"i
+RowWord = "ROWS"i | "ROW"i
+
+ForClause = "FOR"i & "BROWSE"i
+		  | "FOR"i & "JSON"i & ForOption & (',' & ForOption)*
+		  | "FOR"i & "XML"i  & ForOption & (',' & ForOption)*
+
+ForOption = Identifier & ForOptionTail?
+
+ForOptionTail = '(' & ValueExpression & ')' | '=' & ValueExpression
 
 // ── What the dialect is, said once ──────────────────────────────────────────
 //
@@ -334,6 +551,10 @@ namespace Dialect with (
 	ValueExpressionPrimary    = TsqlValuePrimary,
 	QuerySpecification        = TsqlQuerySpecification,
 	TablePrimary              = TsqlTablePrimary,
+	TableReference            = TsqlTableReference,
+	SelectSublist             = TsqlSelectSublist,
+	GroupByClause             = TsqlGroupByClause,
+	DirectSelect              = TsqlDirectSelect,
 	DataType                  = TsqlDataType,
 	Predicate                 = TsqlPredicate)
 {
