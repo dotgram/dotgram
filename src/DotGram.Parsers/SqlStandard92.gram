@@ -1,4 +1,4 @@
-@using System;
+﻿@using System;
 @using DotGram.Parsers;
 
 using Lexical;
@@ -198,17 +198,26 @@ RowValueConstructorElement : @SqlNode
 // precedence, and `||` is simply admitted at the additive level where the standard
 // gives it a ladder of its own.
 
+// One rule where there were three, each alternative stating its own strength (§4.3.1)
+// rather than naming the level below it. What the ladder cost was every level of it at
+// every bracket: `((((a + 1) * 2) - 3) / 4)` re-entered the tower five times and paid
+// the additive and multiplicative levels on the way down whether an operator of that
+// strength was there or not. Measured on an arithmetic language written both ways
+// (benchmarks, `--ladders`), climbing is a fifth off nested input and eight per cent
+// onto flat; this tower is deeper than that one, and the numbers are in docs/next.md.
+//
+// The strengths are the standard's own precedence and nothing else: additive and
+// concatenation bind loosest and to the left, multiplicative tighter and to the left, a
+// sign tightest and to the right — so `-a * b` is `(-a) * b`, which is what the three
+// rules said by having the sign apply to a primary.
 ValueExpression : @SqlNode
-    = left: ValueExpression & op: ('+' | '-' | "||") & right: Term => @(new SqlNode.Binary(SqlNode.Additive(op), left, right))
-    | t: Term => @(t)
-
-Term : @SqlNode
-    = left: Term & op: ('*' | '/') & right: Factor => @(new SqlNode.Binary(SqlNode.Multiplicative(op), left, right))
-    | f: Factor => @(f)
-
-Factor : @SqlNode
-    = sign: ['+' | '-']? & v: ValueExpressionPrimary
-        => @(sign is null ? v : new SqlNode.Unary(SqlNode.Signed(sign), v))
+    = left: ValueExpression & op: ('+' | '-' | "||") & right: ValueExpression   << 1
+        => @(new SqlNode.Binary(SqlNode.Additive(op), left, right))
+    | left: ValueExpression & op: ('*' | '/') & right: ValueExpression           << 2
+        => @(new SqlNode.Binary(SqlNode.Multiplicative(op), left, right))
+    | sign: ['+' | '-'] & v: ValueExpression                                     >> 3
+        => @(new SqlNode.Unary(SqlNode.Signed(sign), v))
+    | p: ValueExpressionPrimary => @(p)
 
 // §6.11 <value expression primary>, in the standard's order, plus the value functions
 // §6.16 through §6.18 fold into <numeric primary>, <string value expression> and

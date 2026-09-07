@@ -45,6 +45,43 @@ public sealed class SqlStandard92Tests
 	}
 
 	/// <summary>
+	/// And it groups the way §6.11 says, which the tower states as three strengths
+	/// rather than three rules (§4.3.1).
+	/// </summary>
+	/// <remarks>
+	/// Reading a thing and building the right thing are two questions, and the theory
+	/// above asks only the first. What binding powers put at risk is the second: a sign
+	/// that took the whole product instead of the operand beside it would still read.
+	/// </remarks>
+	[Theory]
+	[InlineData("a + b * c",   "(a Add (b Multiply c))")]
+	[InlineData("a * b + c",   "((a Multiply b) Add c)")]
+	[InlineData("a - b - c",   "((a Subtract b) Subtract c)")]
+	[InlineData("a / b / c",   "((a Divide b) Divide c)")]
+	[InlineData("(a + b) * c", "((a Add b) Multiply c)")]
+	[InlineData("-a * b",      "((Negate a) Multiply b)")]
+	[InlineData("-a + b",      "((Negate a) Add b)")]
+	[InlineData("a * -b",      "(a Multiply (Negate b))")]
+	[InlineData("a || b || c", "((a Concatenate b) Concatenate c)")]
+	public void And_groups_the_way_the_standard_says(string input, string shape)
+	{
+		var read = SqlStandard92.TryParseValueExpression(input);
+
+		Assert.True(read.IsSuccess, input);
+		Assert.Equal(shape, Shape(read.Value!));
+	}
+
+	/// <summary>A value expression as parentheses and operator names, for comparing.</summary>
+	static string Shape(SqlNode node) => node switch
+	{
+		SqlNode.Binary(var op, var left, var right) => $"({Shape(left)} {op} {Shape(right)})",
+		SqlNode.Unary (var op, var operand)         => $"({op} {Shape(operand)})",
+		SqlNode.Column(var text)                    => text,
+		SqlNode.Literal(_, var text)                => text,
+		_                                           => node.GetType().Name,
+	};
+
+	/// <summary>
 	/// A word the standard does not reserve is a name, and a word it reserves is not.
 	/// </summary>
 	/// <remarks>

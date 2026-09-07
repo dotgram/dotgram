@@ -14831,8 +14831,59 @@ default"* now has a number on both sides of it: the engine costs about eight per
 there is nothing to climb, and saves a fifth where there is.
 
 That is a fifth of the nesting gap and not the whole of it — this language has four levels
-where standard SQL's has twelve, so the deeper ladder should give up more, but nothing here
-says it gives up all 1.59. Rewriting `SqlStandard92.gram`'s value tower with binding powers
-is the experiment that would say, and it is a change to a shipping parser rather than a
-measurement, so it waits to be asked for.
+where standard SQL's has three inside the value tower and a longer chain around it. So the
+tower was rewritten, and it gave up much more than a fifth.
+
+### The tower, written as three strengths instead of three rules
+
+```dotgram
+ValueExpression : @SqlNode
+    = left: ValueExpression & op: ('+' | '-' | "||") & right: ValueExpression   << 1
+        => @(new SqlNode.Binary(SqlNode.Additive(op), left, right))
+    | left: ValueExpression & op: ('*' | '/') & right: ValueExpression           << 2
+        => @(new SqlNode.Binary(SqlNode.Multiplicative(op), left, right))
+    | sign: ['+' | '-'] & v: ValueExpression                                     >> 3
+        => @(new SqlNode.Unary(SqlNode.Signed(sign), v))
+    | p: ValueExpressionPrimary => @(p)
+```
+
+`Term` and `Factor` are gone; nothing else in the grammar named them. The strengths are the
+standard's own precedence and the associativity is which way the arrow points — so `-a * b`
+is `(-a) * b`, which is what the three rules said by having the sign apply to a primary
+rather than to an expression.
+
+**What it was worth.** Parsing over kinds, before and after, with the tokenizing off both
+sides:
+
+| | before | after |
+| --- | --: | --: |
+| nested five deep | 1.59x | **1.14x** |
+| a chain of eight | 1.37x | 1.27x |
+| a case of three | 1.21x | 1.09x |
+| a whole predicate | 1.41x | 1.17x |
+| a cast | 1.30x | 1.08x |
+| a list of eight | 0.97x | **0.81x** |
+| a list of three | 1.06x | 0.91x |
+
+And on `--hand`, which reads whole parses of the project's own inputs:
+
+| | tape before | tape | immediate before | immediate | mixed before | mixed |
+| --- | --: | --: | --: | --: | --: | --: |
+| `a = 1` | 2.72x | 2.27x | 1.65x | 1.48x | 3.70x | 2.32x |
+| `(a + b) * c > d` | 2.46x | 2.14x | 1.76x | 1.49x | 3.04x | 2.12x |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 3.03x | 2.25x | 2.04x | 1.62x | 3.56x | 2.27x |
+| 64 predicates | 2.24x | 1.92x | 1.43x | 1.27x | 2.83x | 1.91x |
+| 64 additions | 2.19x | 1.97x | 1.58x | 1.53x | 2.32x | 1.93x |
+
+A quarter off the deepest input on the tape and a fifth on the immediate carrier, and the
+mixed carrier — which was paying the ladder hardest — is a third better. The gain is larger
+than `--ladders` measured because the ladder was not only three levels deep but stood under
+every one of the thirty-odd places the grammar names a value expression.
+
+**Reading a thing and building the right thing are two questions**, and the tests asked only
+the first: the theory in `SqlStandard92Tests` says a search condition reads and nothing about
+the tree. Binding powers put the second at risk — a sign that took the whole product instead
+of the operand beside it would still read — so there is a theory now that pins the shape of
+nine of them, `-a * b` among them. `SqlAgainst.Agree()` was the only thing checking it, and
+it is in the benchmarks rather than in CI.
 
