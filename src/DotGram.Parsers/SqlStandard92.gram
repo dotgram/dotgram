@@ -359,24 +359,138 @@ QualifiedName = Identifier & (('.' & Identifier))*
 // follows one — a different question, and one that refuses `x IN (1, 2)`.
 Identifier = ?!Reserved & RegularIdentifier | DelimitedIdentifier
 
-// ── The seam where the query level will go ─────────────────────────────────
+// ── §7 Query expressions ───────────────────────────────────────────────────
 //
-// §7.9 <query specification> and everything above it are the next layer up, and this
-// grammar is the layer below. A subquery is left as a rule that reads a parenthesized
-// run rather than a query — so the language is closed and testable now, and the seam
-// is visible in the text rather than being a hole nobody remembers.
-//
-// What it accepts is wider than SQL, deliberately: anything balanced that opens with
-// one of the three words a query begins with. That is the one place this grammar is
-// knowingly wrong, and it is wrong in the direction that cannot mask a bug in the rest
-// of it. The opening word is what tells a subquery from a parenthesized expression at
-// the second token, so the choice between them needs no way back; a query expression
-// that is itself parenthesized, `((SELECT 1))`, is the one form this leaves out.
-TableSubquery  : @SqlNode = q: Subquery => @(new SqlNode.Subquery(q))
-ScalarSubquery : @SqlNode = q: Subquery => @(new SqlNode.Subquery(q))
+// The level this grammar used to hold a place for. A subquery was a rule that read a
+// balanced run of characters and handed the text over; it is a query now, and the two
+// productions that named it are the standard's own.
 
-Subquery = '(' & ("SELECT"i | "VALUES"i | "TABLE"i) & (Balanced | [^ '(' | ')'])* & ')'
-Balanced = '(' & (Balanced | [^ '(' | ')'])* & ')'
+// §7.13 <subquery>, and the two §7.11-§7.12 spellings of it that differ only in what
+// they may return — which is a question about the query and not about its syntax, so
+// both read the same thing and the standard's names are kept for the reader.
+TableSubquery  : @SqlNode = q: Subquery => @(q)
+ScalarSubquery : @SqlNode = q: Subquery => @(q)
+
+Subquery : @SqlNode = '(' & q: QueryExpression & ')' => @(q)
+
+// §7.10. UNION and EXCEPT bind alike and looser than INTERSECT, and all three are left
+// associative — the same three strengths the value tower states, said the same way
+// (§4.3.1). CORRESPONDING is read and dropped: it names columns by matching rather than
+// by position, which is a question for whatever resolves names.
+QueryExpression : @SqlNode
+    = left: QueryExpression & op: ("UNION"i | "EXCEPT"i) & all: "ALL"i? & Corresponding?
+      & right: QueryExpression                                                     << 1
+        => @(new SqlNode.Binary(SqlNode.Combined(op, all), left, right))
+    | left: QueryExpression & op: "INTERSECT"i & all: "ALL"i? & Corresponding?
+      & right: QueryExpression                                                     << 2
+        => @(new SqlNode.Binary(SqlNode.Combined(op, all), left, right))
+    | q: QueryPrimary => @(q)
+
+Corresponding = "CORRESPONDING"i & ("BY"i & '(' & ColumnList & ')')?
+
+// §7.10 <non-join query primary>, and the parenthesized form that lets a query
+// expression stand where a primary does.
+QueryPrimary : @SqlNode
+    = q: QuerySpecification            => @(q)
+    | v: TableValueConstructor         => @(v)
+    | "TABLE"i & name: QualifiedName   => @(new SqlNode.Source(name, null, null, null))
+    | '(' & q: QueryExpression & ')'   => @(q)
+
+// §7.2. A row of one value may be written without its parentheses, which is what makes
+// `VALUES 1, 2` two rows of one column rather than one row of two.
+TableValueConstructor : @SqlNode
+    = "VALUES"i & first: RowValueConstructor & (',' & rest: RowValueConstructor)*
+        => @(new SqlNode.TableValue(SqlNode.Listed(first, rest)))
+
+// §7.9 <query specification> with §7.3 <table expression> folded into it: the clauses
+// are optional rather than alternative, so one record holds them and what tells one
+// query from another is which of them are empty (SqlSyntax.cs).
+QuerySpecification : @SqlNode
+    = "SELECT"i & quantifier: SetQuantifier? & columns: SelectList
+      & from: FromClause & where: WhereClause? & group: GroupByClause? & having: HavingClause?
+        => @(new SqlNode.Query(
+                 SqlNode.Distinctly(quantifier) == "DISTINCT", columns, from,
+                 where, group ?? SqlNode.None, having))
+
+// §7.9 <select list>. A bare `*` is every column of every table in the FROM clause, and
+// `t.*` every column of one — neither is a column reference, so neither is read as one.
+SelectList : @SqlNode[]
+    = '*' => @(new SqlNode[] { new SqlNode.Star(null) })
+    | first: SelectSublist & (',' & rest: SelectSublist)* => @(SqlNode.Listed(first, rest))
+
+SelectSublist : @SqlNode
+    = qualifier: QualifiedName & '.' & '*'   => @(new SqlNode.Star(qualifier))
+    | v: ValueExpression & name: AsClause?   => @(new SqlNode.Selected(v, name))
+
+AsClause = "AS"i? & Identifier
+
+// §7.4. The comma list is a cross join written the older way, and it is kept as a list
+// rather than folded into joins: what the standard writes is what the tree says.
+FromClause : @SqlNode[]
+    = "FROM"i & first: TableReference & (',' & rest: TableReference)*
+        => @(SqlNode.Listed(first, rest))
+
+// §7.5 <joined table>, left recursive so that §4.3 folds it and the table at the head
+// is read once however many joins follow it.
+TableReference : @SqlNode
+    = left: TableReference & "CROSS"i & "JOIN"i & right: TablePrimary
+        => @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
+    | left: TableReference & "UNION"i & "JOIN"i & right: TablePrimary
+        => @(new SqlNode.Join(SqlJoin.Union, false, left, right))
+    | left: TableReference & natural: "NATURAL"i? & kind: JoinType? & "JOIN"i & right: TablePrimary
+      & ("ON"i & on: SearchCondition
+        | "USING"i & '(' & columns: ColumnList & ')')?
+        => @(SqlNode.Joining(kind, natural, left, right, on, columns))
+    | t: TablePrimary => @(t)
+
+JoinType = ("LEFT"i | "RIGHT"i | "FULL"i) & "OUTER"i? | "INNER"i
+
+// §7.4 <table reference> without a join: a named table or a derived one, and the name
+// it is known by inside the query.
+// The correlation (§6.3) is written where it is read rather than as a rule of its own:
+// its column list renames what the source produces, so it belongs to the reference.
+TablePrimary : @SqlNode
+    = name: QualifiedName & ("AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?)?
+        => @(new SqlNode.Source(name, null, alias, columns))
+    | derived: TableSubquery & "AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?
+        => @(new SqlNode.Source(null, derived, alias, columns))
+    | '(' & j: TableReference & ')' => @(j)
+
+// A name as a value of its own, so that a list of them gathers into an array rather
+// than into the text between the first and the last (§4.1 case 4).
+ColumnName : @string   = t: Identifier => @(t)
+ColumnList : @string[] = first: ColumnName & (',' & rest: ColumnName)* => @(SqlNode.Named(first, rest))
+
+WhereClause  : @SqlNode = "WHERE"i  & c: SearchCondition => @(c)
+HavingClause : @SqlNode = "HAVING"i & c: SearchCondition => @(c)
+
+// §7.7. A grouping column may carry a collation, which says how it is compared rather
+// than what it is, so it is read and dropped.
+GroupByClause : @SqlNode[]
+    = "GROUP"i & "BY"i & first: GroupingColumn & (',' & rest: GroupingColumn)*
+        => @(SqlNode.Listed(first, rest))
+
+GroupingColumn : @SqlNode = c: ColumnReference & Collate? => @(c)
+
+Collate = "COLLATE"i & QualifiedName
+
+// §13.1 <order by clause>, and §19's direct select that carries one. Outside §7, and
+// here because a query somebody writes has one and a query expression may not hold it.
+DirectSelect : @SqlNode
+    = q: QueryExpression & by: OrderByClause? => @(by is null ? q : new SqlNode.Ordered(q, by))
+
+OrderByClause : @SqlNode[]
+    = "ORDER"i & "BY"i & first: SortSpecification & (',' & rest: SortSpecification)*
+        => @(SqlNode.Listed(first, rest))
+
+SortSpecification : @SqlNode
+    = v: SortKey & Collate? & order: ("ASC"i | "DESC"i)?
+        => @(new SqlNode.Sorted(v, SqlNode.Descending(order)))
+
+// §13.1 sorts by a column or by its position in the select list.
+SortKey : @SqlNode
+    = c: ColumnReference          => @(c)
+    | t: UnsignedNumericLiteral   => @(new SqlNode.Literal(SqlLiteralKind.Number, t))
 
 // ── §5.2 Reserved words ────────────────────────────────────────────────────
 //
@@ -385,22 +499,27 @@ Balanced = '(' & (Balanced | [^ '(' | ')'])* & ')'
 // a word that begins or continues an expression or a predicate, the functions
 // included: with them reserved, a name and a function begin with different tokens,
 // and the choice of a primary is decided by its first token without a way back.
-Reserved = ("AND"i | "ALL"i | "ANY"i | "AS"i | "AVG"i | "BETWEEN"i | "BIT_LENGTH"i
+Reserved = ("AND"i | "ALL"i | "ANY"i | "AS"i | "ASC"i | "AVG"i | "BETWEEN"i | "BIT_LENGTH"i
          | "BOTH"i | "BY"i
          | "CASE"i | "CAST"i | "CHAR_LENGTH"i | "CHARACTER_LENGTH"i | "COALESCE"i
-         | "CONVERT"i | "COUNT"i | "CROSS"i | "CURRENT_DATE"i
+         | "COLLATE"i | "CONVERT"i | "CORRESPONDING"i | "COUNT"i | "CROSS"i | "CURRENT_DATE"i
          | "CURRENT_TIME"i | "CURRENT_TIMESTAMP"i | "CURRENT_USER"i
-         | "DEFAULT"i | "DISTINCT"i | "ELSE"i | "END"i | "ESCAPE"i | "EXISTS"i
+         | "DEFAULT"i | "DESC"i | "DISTINCT"i | "ELSE"i | "END"i | "ESCAPE"i | "EXCEPT"i | "EXISTS"i
          | "EXTRACT"i | "FALSE"i | "FOR"i | "FROM"i | "FULL"i | "GROUP"i | "HAVING"i
-         | "IN"i | "INTERVAL"i | "IS"i | "JOIN"i | "LEADING"i | "LIKE"i | "LOWER"i
+         | "IN"i | "INNER"i | "INTERSECT"i | "INTERVAL"i | "IS"i | "JOIN"i
+         | "LEADING"i | "LEFT"i | "LIKE"i | "LOWER"i
          | "MATCH"i | "MAX"i | "MIN"i
-         | "NOT"i | "NULL"i | "NULLIF"i | "OCTET_LENGTH"i | "ON"i | "OR"i | "ORDER"i
+         | "NATURAL"i | "NOT"i | "NULL"i | "NULLIF"i | "OCTET_LENGTH"i | "ON"i | "OR"i
+         | "ORDER"i | "OUTER"i
          | "OVERLAPS"i
-         | "PARTIAL"i | "POSITION"i | "SELECT"i | "SESSION_USER"i | "SOME"i
+         | "PARTIAL"i | "POSITION"i | "RIGHT"i | "SELECT"i | "SESSION_USER"i | "SOME"i
          | "SUBSTRING"i | "SUM"i | "SYSTEM_USER"i | "TABLE"i
-         | "THEN"i | "TRAILING"i | "TRANSLATE"i | "TRIM"i | "TRUE"i | "UNIQUE"i | "UNKNOWN"i
+         | "THEN"i | "TRAILING"i | "TRANSLATE"i | "TRIM"i | "TRUE"i | "UNION"i
+         | "UNIQUE"i | "UNKNOWN"i
          | "UPPER"i | "USER"i | "USING"i | "VALUE"i | "VALUES"i | "WHEN"i | "WHERE"i)
          & ?!IdentifierPart
 
+parse DirectSelect as ParseSelect
+parse QueryExpression as ParseQuery
 parse SearchCondition as ParseSearchCondition
 parse ValueExpression as ParseValueExpression

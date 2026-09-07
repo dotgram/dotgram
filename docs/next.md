@@ -14968,3 +14968,49 @@ everything else   0.98 - 1.01x
 no shape changed, the same loop reading a smaller table. Seven to eleven per cent off the
 tokenizing wherever a token is long enough to run, and nothing anywhere else.
 
+## §7, and the seam that was holding a place for it
+
+`SqlStandard92.gram` covered §6 and §8 — value expressions and predicates — and could not
+read a `SELECT`. Where a subquery stood it had this, under a heading that said what it was:
+
+```dotgram
+// ── The seam where the query level will go ──────────────────────────────────
+TableSubquery : @SqlNode = q: Subquery => @(new SqlNode.Subquery(q))
+Subquery = '(' & ("SELECT"i | "VALUES"i | "TABLE"i) & (Balanced | [^ '(' | ')'])* & ')'
+```
+
+A balanced run of characters, kept as text, and the file said so: *"the one place this
+grammar is knowingly wrong"*. It is a query now.
+
+**What §7 came to: 119 lines of notation.** The query expression with its three set
+operators, the query specification with every clause, the select list with `*` and `t.*` and
+`AS`, the from clause, all five joins with `NATURAL`, `ON` and `USING`, derived tables with
+their correlation and column names, `GROUP BY`, `HAVING`, the table value constructor, and
+§13.1's `ORDER BY` on top. The whole grammar is 525 lines where it was 406.
+
+Two things are worth saying about how it went.
+
+**The set operators are the value tower again.** §7.10 gives `UNION` and `EXCEPT` one
+strength and `INTERSECT` a tighter one, all three to the left — which is three numbers on one
+rule (§4.3.1), the same shape the value tower was rewritten into an hour before. The
+boolean tower stayed a ladder for the reason measured there: a condition is a list and an
+expression nests. A query expression nests.
+
+**A list of names needed a rule to be a list.** `first: Identifier & (',' & rest: Identifier)*`
+gathers into the *text between the first and the last*, because `Identifier` is a recognizer
+and not a rule with a value — §4.1 case 4, working exactly as written. `ColumnName : @string
+= t: Identifier => @(t)` is what makes the repetition a `string[]`. Obvious afterwards, and
+not before.
+
+Everything else went in as it reads. Twenty inputs — every join form, nested subqueries in
+three positions, set operators with precedence, `VALUES`, `TABLE`, `ORDER BY`, a scalar
+subquery in the select list — read on the first attempt, which says more about the notation
+than any of the measurements do.
+
+**What it cost the layer below: nothing on the immediate carrier.** `--hand` reads 1.43,
+1.44, 1.49, 1.37, 1.28, 1.50, 1.20 against 1.42, 1.46, 1.51, 1.39, 1.37, 1.53, 1.30 before.
+The tape is another matter — 2.14x to 2.63x on `a = 1` — and that is worth knowing on its
+own: **the walk is sensitive to how large the grammar is and the reader is not**, even for an
+input that reaches none of the new rules. The arms a walk dispatches over are the whole
+grammar's; the methods a reader calls are the ones the input goes through.
+

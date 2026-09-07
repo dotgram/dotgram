@@ -98,6 +98,54 @@ public abstract record SqlNode
 	/// </remarks>
 	public sealed record Subquery(string Text) : SqlNode;
 
+	// ---- §7, the query level -----------------------------------------------------------------
+
+	/// <summary>§7.9 <c>SELECT</c>, and the clauses under it.</summary>
+	/// <remarks>
+	/// One record for the whole of a query specification and its table expression, because
+	/// the clauses are optional rather than alternative: what tells one query from another
+	/// is which of them are empty. <see cref="From"/> holds the table references the
+	/// standard writes as a comma list, which is a cross join said the older way.
+	/// </remarks>
+	public sealed record Query(
+		bool Distinct,
+		SqlNode[] Columns,
+		SqlNode[] From,
+		SqlNode? Where,
+		SqlNode[] GroupBy,
+		SqlNode? Having) : SqlNode;
+
+	/// <summary>One entry of a select list: what it is, and what it is called.</summary>
+	public sealed record Selected(SqlNode Value, string? Name) : SqlNode;
+
+	/// <summary><c>*</c>, or <c>t.*</c> — which is no column, so it is not one.</summary>
+	public sealed record Star(string? Qualifier) : SqlNode;
+
+	/// <summary>
+	/// §7.4 one entry of a <c>FROM</c> clause: a table by name or a query standing where
+	/// one does, the name it is known by there, and the names its columns are given.
+	/// </summary>
+	public sealed record Source(
+		string? Table, SqlNode? Derived, string? Name, string[]? Columns) : SqlNode;
+
+	/// <summary>§7.5 two sources and the join between them.</summary>
+	/// <remarks>
+	/// <see cref="On"/> where the join was qualified by a condition, <see cref="Using"/>
+	/// where it named columns, and neither for a cross or a natural join.
+	/// </remarks>
+	public sealed record Join(
+		SqlJoin Kind, bool Natural, SqlNode Left, SqlNode Right,
+		SqlNode? On = null, string[]? Using = null) : SqlNode;
+
+	/// <summary>§7.2 <c>VALUES (…), (…)</c> — a table written out.</summary>
+	public sealed record TableValue(SqlNode[] Rows) : SqlNode;
+
+	/// <summary>§13.1 a query and the order its rows are asked for in.</summary>
+	public sealed record Ordered(SqlNode Of, SqlNode[] By) : SqlNode;
+
+	/// <summary>One <c>ORDER BY</c> entry: what to sort by, and which way.</summary>
+	public sealed record Sorted(SqlNode Value, bool Down) : SqlNode;
+
 	// ---- how a parser makes these ------------------------------------------------------------
 
 	/// <summary>What a call with no arguments is handed, once rather than per call.</summary>
@@ -134,6 +182,58 @@ public abstract record SqlNode
 		tail.Operands[0] = left;
 
 		return tail;
+	}
+
+	/// <summary>Which set operator was written, and whether it keeps duplicates.</summary>
+	public static SqlOperator Combined(string operatorText, string? all) =>
+		operatorText.ToUpperInvariant() switch
+		{
+			"UNION"     => all is null ? SqlOperator.Union     : SqlOperator.UnionAll,
+			"EXCEPT"    => all is null ? SqlOperator.Except    : SqlOperator.ExceptAll,
+			_           => all is null ? SqlOperator.Intersect : SqlOperator.IntersectAll,
+		};
+
+	/// <summary>Whether a sort specification asked for descending order (§13.1).</summary>
+	public static bool Descending(string? order) =>
+		string.Equals(order, "DESC", StringComparison.OrdinalIgnoreCase);
+
+	/// <summary>A join from the words around it: the kind, and which of the two tails it had.</summary>
+	public static Join Joining(
+		string? kind, string? natural, SqlNode left, SqlNode right, SqlNode? on, string[]? columns) =>
+		new(Joined(kind), natural is not null, left, right, on, columns);
+
+	/// <summary>Which join was written, from the words in front of <c>JOIN</c>.</summary>
+	/// <remarks><c>OUTER</c> is noise beside <c>LEFT</c>, <c>RIGHT</c> and <c>FULL</c> (§7.5).</remarks>
+	public static SqlJoin Joined(string? kind)
+	{
+		// The text is the whole of what was written, `LEFT OUTER` and not `LEFT`, so the
+		// first word is what is asked about.
+		if (kind is null)
+			return SqlJoin.Inner;
+
+		if (kind.StartsWith("LEFT", StringComparison.OrdinalIgnoreCase))
+			return SqlJoin.Left;
+
+		if (kind.StartsWith("RIGHT", StringComparison.OrdinalIgnoreCase))
+			return SqlJoin.Right;
+
+		return kind.StartsWith("FULL", StringComparison.OrdinalIgnoreCase)
+			? SqlJoin.Full
+			: SqlJoin.Inner;
+	}
+
+	/// <summary>A head and a tail of names as one array, the way <see cref="Listed"/> does nodes.</summary>
+	public static string[] Named(string first, string[]? rest)
+	{
+		if (rest is null || rest.Length == 0)
+			return [first];
+
+		var all = new string[rest.Length + 1];
+
+		all[0] = first;
+		rest.CopyTo(all, 1);
+
+		return all;
 	}
 
 	public static SqlOperator Additive(string operatorText) => operatorText switch
@@ -216,6 +316,15 @@ public enum SqlOperator
 	Add, Subtract, Concatenate, Multiply, Divide,
 	Negate, Identity,
 	Equal, NotEqual, Less, LessOrEqual, Greater, GreaterOrEqual,
+
+	/// <summary>§7.10, where the operands are tables rather than values.</summary>
+	Union, UnionAll, Except, ExceptAll, Intersect, IntersectAll,
+}
+
+/// <summary>Which join (§7.5).</summary>
+public enum SqlJoin
+{
+	Cross, Inner, Left, Right, Full, Union,
 }
 
 /// <summary>
