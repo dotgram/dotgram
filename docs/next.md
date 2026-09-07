@@ -14789,3 +14789,50 @@ each case its own loop and its own lookup, and no loop for the reading to fall o
 is the table replaced rather than short-circuited, and the measurement that would justify it
 is still the seam's 0.58 ns a character against the token machine's 1.2 in a run.
 
+## The other half: what the reading over kinds costs, by shape
+
+With the tokenizing taken off both sides, `--slope` says the parse over kinds is 0.97 to
+1.59 of the hand-written one — and the spread is the finding, not the middle. Heavier terms,
+where the parse is most of what is measured:
+
+```
+                     parsing   by hand   parse
+a list of eight     0.312 us  0.322 us   0.97x
+a list of three     0.162 us  0.153 us   1.06x
+a case of three     0.361 us  0.299 us   1.21x
+a chain of eight    0.302 us  0.221 us   1.37x
+nested five deep    0.284 us  0.178 us   1.59x
+```
+
+**A list is at parity. Nesting is the worst thing it does.** `HandSqlTokens` says why in
+its own first line — *"a lexer into kinds, and precedence climbing over those"* — where
+`SqlStandard92.gram` is written as a rule per level. A bracket re-enters the ladder from the
+top and pays every one of its twelve levels whether anything at that level is there or not;
+a climb pays a loop.
+
+### What climbing is worth, before rewriting anything to use it
+
+§4.3.1 already offers the other shape, so it can be measured rather than argued about.
+`--ladders` is one arithmetic language written twice — four rules with a level each, and one
+rule whose alternatives state their own strength — over the same inputs, both building the
+same tree:
+
+```
+input                                                       levels  climbing   climb/levels
+1 + 2 * 3 - 4 / 5                                          0.385 us   0.411 us     1.07x
+(1 + 2) * (3 - 4)                                          0.358 us   0.330 us     0.92x
+((((1 + 2) * 3) - 4) / 5) + 6                              0.548 us   0.434 us     0.79x
+((((((((1 + 2) * 3) - 4) / 5) + 6) * 7) - 8) / 9) + 10     0.933 us   0.760 us     0.81x
+```
+
+**Nineteen per cent off nested input and eight per cent onto flat**, steady across runs. So
+§6.24's *"they cost a precedence-climbing engine at run time, which is why they are not the
+default"* now has a number on both sides of it: the engine costs about eight per cent where
+there is nothing to climb, and saves a fifth where there is.
+
+That is a fifth of the nesting gap and not the whole of it — this language has four levels
+where standard SQL's has twelve, so the deeper ladder should give up more, but nothing here
+says it gives up all 1.59. Rewriting `SqlStandard92.gram`'s value tower with binding powers
+is the experiment that would say, and it is a change to a shipping parser rather than a
+measurement, so it waits to be asked for.
+

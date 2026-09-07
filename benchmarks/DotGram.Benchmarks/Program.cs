@@ -176,6 +176,17 @@ static class Program
 		// Run it under DOTNET_TieredCompilation=0 — with tiering on, three hundred warm-up
 		// parses still leave part of the reading at tier 0 and the rows move by half between
 		// runs. See SqlSlope.cs.
+		// `--ladders [parses]` is not a benchmark either: one arithmetic language written
+		// twice — a rule a level, and one rule with binding powers (§4.3.1) — over the same
+		// inputs, so that what climbing is worth is known before a grammar is rewritten to
+		// use it. See Ladders.cs.
+		if (args.Length >= 1 && args[0] == "--ladders")
+		{
+			Ladders.Run(args.Length >= 2 && int.TryParse(args[1], out var over) ? over : 401);
+
+			return;
+		}
+
 		if (args.Length >= 1 && args[0] == "--slope")
 		{
 			SqlSlope.Run(args.Length >= 2 && int.TryParse(args[1], out var reads) ? reads : 201);

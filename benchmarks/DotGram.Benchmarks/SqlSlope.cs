@@ -67,6 +67,13 @@ static class SqlSlope
 		("named as people do", "customer_id{0} = 42"),
 		("and a string",       "order_status{0} = 'SHIPPED'"),
 		("a whole predicate",  "invoice_total{0} BETWEEN 1000 AND 20000"),
+
+		// Heavier terms, where the parse is most of the term and the lexer's share of the
+		// noise is small. What the reading over kinds costs is what these say.
+		("a list of eight",    "a{0} IN (1, 2, 3, 4, 5, 6, 7, 8)"),
+		("nested five deep",   "((((a{0} + 1) * 2) - 3) / 4) > 0"),
+		("a case of three",    "CASE WHEN a{0} > 1 THEN 2 WHEN a{0} > 3 THEN 4 ELSE 5 END = 6"),
+		("a chain of eight",   "a{0} + b + c + d + e + f + g + h > 0"),
 	];
 
 	public static void Run(int parses)
