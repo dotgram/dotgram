@@ -217,7 +217,11 @@ ValueExpression : @SqlNode
         => @(new SqlNode.Binary(SqlNode.Multiplicative(op), left, right))
     | sign: ['+' | '-'] & v: ValueExpression                                     >> 3
         => @(new SqlNode.Unary(SqlNode.Signed(sign), v))
-    | p: ValueExpressionPrimary => @(p)
+    // §6.11 <character factor> is a primary and a collate clause, which says how it is
+    // compared rather than what it is — read and dropped, as in a GROUP BY. Written on
+    // the primary rather than as a strength of its own because that is where the
+    // standard puts it, and nothing binds tighter than a primary anyway.
+    | p: ValueExpressionPrimary & Collate? => @(p)
 
 // §6.11 <value expression primary>, in the standard's order, plus the value functions
 // §6.16 through §6.18 fold into <numeric primary>, <string value expression> and

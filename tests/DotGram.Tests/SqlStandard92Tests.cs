@@ -74,6 +74,10 @@ public sealed class SqlStandard92Tests
 	[InlineData("VALUES (1, 2), (3, 4)")]
 	[InlineData("TABLE t")]
 	[InlineData("(SELECT a FROM t)")]
+	// §6.11 <character factor>: a collate clause says how a value is compared rather than
+	// what it is, so it is read and dropped. Found by ScriptDom's corpus (`--corpus`).
+	[InlineData("SELECT a COLLATE SQL_Latin1_General_CP1_CI_AS FROM t")]
+	[InlineData("SELECT a FROM t WHERE b COLLATE X = c")]
 	public void A_query_reads(string input) =>
 		Assert.True(SqlStandard92.TryParseSelect(input).IsSuccess, input);
 

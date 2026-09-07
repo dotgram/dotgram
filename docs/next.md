@@ -15014,3 +15014,55 @@ own: **the walk is sensitive to how large the grammar is and the reader is not**
 input that reaches none of the new rules. The arms a walk dispatches over are the whole
 grammar's; the methods a reader calls are the ones the input goes through.
 
+## Somebody else's corpus
+
+Every test in this repository was written here, which is the one thing wrong with all of
+them: a grammar and its tests written by the same hand agree about what the language is.
+Microsoft's ScriptDom ships a T-SQL parser with about eleven hundred `.sql` files behind it,
+written by people who had never heard of this one.
+
+`--corpus <path>` cuts the query-shaped statements out of them — batches at `GO`, statements
+at `;`, and what is left that begins the way a query does — reads each with
+`SqlStandard92.ParseSelect`, and groups the refusals by **what stood where the reading
+stopped**. Not by the message: over kinds an expectation is a token kind, and a kind is a
+character nobody wrote.
+
+```
+1086 files, 1896 query-shaped statements, 101 read (5.3%)
+
+    767  stops at '('     SELECT dbo.MyAgg(ALL c1, c2, 10) OVER ()
+    243  stops at '@'     SELECT @a += 1
+    120  stops at '['     SELECT [a] COLLATE some_collation, [b] AS ColumnA
+     82  stops at FOR     SELECT * FROM t1 FOR JSON AUTO
+     58  stops at MATCH   SELECT * FROM NODE AS N WHERE MATCH(N-(E)->N2)
+     48  stops at the end SELECT 1
+     43  stops at WHERE   SELECT (SELECT 1 WHERE (IIF (1 > 0, 1, 0)) = 1)
+     36  stops at ALL     SELECT c1 FROM t1 GROUP BY ALL ()
+     31  stops at APPLY   SELECT * FROM t1 CROSS APPLY (SELECT * FROM sys.objects)
+```
+
+**5.3% is not a coverage number and reading it as one would be a mistake.** The corpus is a
+T-SQL parser's own test suite: it is made of the things T-SQL has and the standard does not.
+A user-defined function call, a `@variable`, a `[bracketed]` identifier, `FOR JSON`, graph
+`MATCH`, `CROSS APPLY` — none of them is SQL-92, and refusing them is the grammar being
+right. `SELECT 1` is refused too, and correctly: §7.9's `<query specification>` requires a
+`<table expression>`, so a select with no `FROM` is not standard SQL either.
+
+**What it was for is the other direction, and it found one thing.** Walking down the list
+looking for a group that is not a dialect:
+
+```
+      4  stops at COLLATE
+           SELECT CAST (12 AS FLOAT) COLLATE SQL_Latin1_General_CP1_CI_AS
+           SELECT USER COLLATE SQL_Latin1_General_CP1_CI_AS, CURRENT_USER
+```
+
+That one is ours. §6.11's `<character factor>` is a primary and a collate clause, and the
+tower had the clause on a grouping column and on a sort key and not where the standard also
+puts it. One line of grammar, and two theories that pin it.
+
+Everything else at the top of the list is T-SQL. An external corpus of nineteen hundred real
+statements, and the only gap it exposes in §6 through §8 and §7 is a collate clause — which
+is the strongest thing anybody has said about this grammar, because nobody here wrote the
+corpus.
+
