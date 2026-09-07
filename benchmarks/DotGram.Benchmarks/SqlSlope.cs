@@ -24,6 +24,15 @@ namespace DotGram.Benchmarks;
 /// generated lexer against the hand-written one, per term.
 /// </para>
 /// <para>
+/// <b>The steadiest reading here is the generated lexer against itself.</b> The two
+/// shapes that differ only in the length of one name, and the two that differ only in
+/// the spaces between three tokens, say what the token machine costs a character and
+/// what the seam costs one — both inside the same file, so nothing about the other
+/// parser enters into it. The hand-written lexer is the noisiest column, being the
+/// cheapest thing measured: it moves by a fifth between runs where the generated
+/// columns hold to a per cent.
+/// </para>
+/// <para>
 /// Each reading is timed in a loop of its own and the whole thing wants
 /// <c>DOTNET_TieredCompilation=0</c>: interleaved, or with tiering on, every row moves by
 /// half between runs.
@@ -49,6 +58,10 @@ static class SqlSlope
 		// a character costs can be told from what a token costs.
 		("a short name",        "a{0} = 1"),
 		("a long one",          "averyveryverylongname{0} = 1"),
+
+		// And the same three tokens with six more spaces between them, so that what the
+		// seam costs a character can be told from what the token machine costs one.
+		("  spaced out",        "a{0}    =    1"),
 	];
 
 	public static void Run(int parses)
@@ -77,8 +90,8 @@ static class SqlSlope
 		}
 
 		Console.WriteLine(
-			$"{"shape",-21} {"by hand",9} {"tape",9} {"immediate",9} | " +
-			$"{"lexed",9} {"by hand",9}   now/hand  lex/hand");
+			$"{"shape",-21} {"whole",9} {"by hand",9} | {"lexing",9} {"by hand",9} | " +
+			$"{"parsing",9} {"by hand",9}   whole   lex   parse");
 
 		foreach (var (name, term) in Shapes)
 		{
@@ -92,9 +105,14 @@ static class SqlSlope
 			var lexed = (two.Lexed - one.Lexed) / over * 1000;
 			var mine  = (two.Mine  - one.Mine ) / over * 1000;
 
+			// What is left when the tokenizing is taken off each side, which is the half the
+			// scanner is not answerable for.
+			var read = now  - mine;
+			var theirs = hand - lexed;
+
 			Console.WriteLine(
-				$"{name,-21} {hand,7:F3} us {tape,7:F3} us {now,7:F3} us | " +
-				$"{mine,7:F3} us {lexed,7:F3} us   {now / hand,6:F2}x  {mine / lexed,6:F2}x");
+				$"{name,-21} {now,7:F3} us {hand,7:F3} us | {mine,7:F3} us {lexed,7:F3} us | " +
+				$"{read,7:F3} us {theirs,7:F3} us  {now / hand,5:F2}x {mine / lexed,5:F2}x {read / theirs,5:F2}x");
 		}
 	}
 

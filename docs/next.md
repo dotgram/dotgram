@@ -14584,6 +14584,43 @@ increment.
 generated parser *allocates less* than the hand-written one on every input (`--bytes`), so
 the gap is not garbage either.
 
+### The two halves, told apart
+
+`--slope` now takes the tokenizing off both sides — the generated one by the `)` trick, the
+hand-written one by `LexOnly` — so what is left on each side is the parse:
+
+```
+shape                     whole   by hand |    lexing   by hand |   parsing   by hand   whole   lex   parse
+a name and a number     0.113 us   0.082 us |   0.030 us   0.021 us |   0.083 us   0.061 us   1.38x  1.44x  1.36x
+  and two more          0.227 us   0.162 us |   0.070 us   0.039 us |   0.157 us   0.123 us   1.41x  1.80x  1.28x
+parenthesized           0.227 us   0.150 us |   0.069 us   0.038 us |   0.159 us   0.113 us   1.52x  1.83x  1.41x
+a list of three         0.227 us   0.193 us |   0.070 us   0.038 us |   0.158 us   0.155 us   1.18x  1.82x  1.02x
+a cast                  0.190 us   0.137 us |   0.074 us   0.043 us |   0.116 us   0.094 us   1.39x  1.73x  1.23x
+a long one              0.164 us   0.084 us |   0.079 us   0.026 us |   0.085 us   0.059 us   1.94x  3.06x  1.45x
+  spaced out            0.116 us   0.084 us |   0.034 us   0.023 us |   0.082 us   0.060 us   1.38x  1.43x  1.36x
+```
+
+**Parsing is 1.02–1.47. Lexing is 1.26–3.06.** The reading of the grammar over kinds is
+close to a person's; the reading of the characters into tokens is not.
+
+### The proof is inside one file
+
+The hand-written lexer is the noisiest column here, being the cheapest thing measured — it
+moves by a fifth between runs where the generated columns hold to a per cent. It is also not
+needed. The generated parser contains **both** kinds of scanner, and the last three rows
+weigh them against each other:
+
+* `a{i}    =    1` against `a{i} = 1` — the same three tokens, six more spaces: **0.58 ns a
+  space**. That is `Scan_trivia_Seam`, which the ordinary machine emits as *code*: a byte
+  table for the class, a test, `p++`, in a goto-threaded loop.
+* `averyveryverylongname{i} = 1` against `a{i} = 1` — the same three tokens, twenty-two more
+  characters inside one of them: **2.2 ns a character**. That is `Scan`, which `LexerEmitter`
+  emits as a *table*: the state's row, then the cell, then the accept — three dependent loads
+  and a conditional write, per character.
+
+Four times the price for the same shape of work, from one generator, in one file. Whatever
+else is true about DFAs, this file already knows how to write the fast form.
+
 ### Tried and not kept: a run on a self-transition
 
 A state whose way on is back to itself is a run of one class, and the table says the same
@@ -14602,3 +14639,17 @@ branch the loop has to ask about. That is a different scanner, not a patch to th
 the number that justifies it is the one above: a quarter of a nanosecond a character is what
 it is being measured against.
 
+
+
+### And a second one: the tax is the branch, not the call
+
+The run above was first written as a call to `Scan_Run`, then written out inline with the
+row and the cell already in hand. Both are the same: 41% off a long identifier, five to ten
+per cent onto every short-token shape, steady across runs. A compare and a branch in a loop
+that waits on a dependent load chain is not free, and a run entered and immediately left is
+all cost.
+
+So the scanner has to know *statically* which states run, which means the token machine
+written the way the seam beside it already is: the class as the test it is, the run as a loop
+the compiler can see. That is `LexerEmitter` writing code instead of a table, and the number
+it is aiming at is the 0.58 ns a space it already achieves ten lines away.
