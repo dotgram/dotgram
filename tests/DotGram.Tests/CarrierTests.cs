@@ -350,6 +350,91 @@ public sealed class CarrierTests
 		Assert.DoesNotContain("ImmediateValues", source, StringComparison.Ordinal);
 	}
 
+	// ── What is said about a carrier, and what is offered ────────────────────────
+
+	/// <summary>A carrier asked for and not used says so, refused or not.</summary>
+	/// <remarks>
+	/// It used to say so only where a carrier refused the grammar. A carrier is what a
+	/// reader holds, and over a machine that has no reader it is not refused but never
+	/// asked — the file that comes out is the same file byte for byte, and nothing said
+	/// anything at all. An author changing the attribute and measuring would have measured
+	/// the tape twice.
+	/// </remarks>
+	[Fact]
+	public void A_carrier_that_carried_nothing_says_so()
+	{
+		// Read a window at a time, which the engine does and a reader does not.
+		var told = Assert.Single(Diagnostics(
+			"""
+			Name : @string = t: ['a'..'z']+ => @(t)
+			find Name as AllNames
+			""",
+			CarrierKind.Immediate));
+
+		Assert.Equal(GramCompiler.CarrierRefused, told.Id);
+		Assert.Equal(GramSeverity.Info,           told.Severity);
+		Assert.Contains("window",                 told.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>And the tape is not offered away where the offer would be refused.</summary>
+	/// <remarks>
+	/// One compiler saying "take this carrier" and then "you cannot have it" about one
+	/// grammar is advice contradicted by a refusal, which is worse than either alone.
+	/// </remarks>
+	[Fact]
+	public void And_is_not_offered_where_it_would_be_refused()
+	{
+		const string Recovering =
+			"""
+			Row   : @string   = t: ['a'..'z']* & eol => @(t)
+			Sheet : @string[] = rows: Row* recover eol => @(parserText)
+			                  => @(rows)
+			parse Sheet
+			""";
+
+		// On the tape, nothing offers the carrier away.
+		Assert.DoesNotContain(
+			Diagnostics(Recovering, CarrierKind.Tape),
+			one => one.Id == GramCompiler.TapeNotNeeded);
+
+		// And asking for it anyway says so, naming what stands in the way. Recovery keeps
+		// this grammar off the reader altogether, so that is the answer rather than the
+		// carrier's own refusal for the same reason — one obstacle, said once.
+		var told = Assert.Single(Diagnostics(Recovering, CarrierKind.Immediate));
+
+		Assert.Equal(GramCompiler.CarrierRefused, told.Id);
+		Assert.Contains("recover",                told.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>And it is still offered where it could be taken.</summary>
+	[Fact]
+	public void And_is_offered_where_it_could_be_taken()
+	{
+		const string Plain =
+			"""
+			Start : @string = first: Name & (',' & rest: Name)*
+			                => @(first + "|" + string.Join("|", rest))
+			Name  : @string = t: ['a'..'z']+ => @(t)
+			parse Start
+			""";
+
+		var told = Assert.Single(Diagnostics(Plain, CarrierKind.Tape));
+
+		Assert.Equal(GramCompiler.TapeNotNeeded, told.Id);
+
+		// And taking it is silent, which is what an offer worth making looks like.
+		Assert.Empty(Diagnostics(Plain, CarrierKind.Immediate));
+	}
+
+	static IReadOnlyList<GramDiagnostic> Diagnostics(string grammar, CarrierKind carrier) =>
+		GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName     = "Probe",
+			Namespace     = "Carried",
+			CSharpScanner = RoslynCSharpScanner.Instance,
+			Carrier       = carrier,
+		}).Diagnostics;
+
 	static string? ValueOf(object match) =>
 		match.GetType().GetProperty("Value")?.GetValue(match)?.ToString();
 

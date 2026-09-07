@@ -48,6 +48,19 @@ sealed partial class Machine
 		}
 	}
 
+	/// <summary>Why the carrier named could not carry this machine, or null where it could.</summary>
+	/// <remarks>
+	/// Asked without choosing it. <see cref="Carrier"/> settles what this machine uses and
+	/// keeps the answer; this is the same question about a carrier the machine was not
+	/// given, which is what an offer of one has to know before it is made.
+	/// </remarks>
+	public string? WouldRefuse(CarrierKind kind) => kind switch
+	{
+		CarrierKind.Immediate => new ImmediateCarrier(this).Refuses(),
+		CarrierKind.Mixed     => new MixedCarrier(this).Refuses(),
+		_                     => null,
+	};
+
 	/// <summary>Whether values are built as they are read rather than after (<see cref="CarrierKind.Immediate"/>).</summary>
 	internal bool CarriesImmediately => Carrier is ImmediateCarrier;
 

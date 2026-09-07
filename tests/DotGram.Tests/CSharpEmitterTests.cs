@@ -1119,11 +1119,9 @@ public sealed class CSharpEmitterTests
 				CSharpScanner = RoslynCSharpScanner.Instance,
 			});
 
-		// The one this asks about. Beside it stands what the compiler offers every grammar
-		// that builds — that the tape is deferring what nothing here needs deferred — and
-		// that is a different subject.
-		var told = Assert.Single(
-			result.Diagnostics, static one => one.Id != GramCompiler.TapeNotNeeded);
+		// The one this asks about, and the only one: what the tape defers is offered only
+		// to a grammar a carrier could carry, and a `find` is read on the engine.
+		var told = Assert.Single(result.Diagnostics);
 
 		Assert.Equal(Retention.NotStreamable, told.Id);
 		Assert.Equal(GramSeverity.Info,       told.Severity);
@@ -1154,11 +1152,9 @@ public sealed class CSharpEmitterTests
 				CSharpScanner = RoslynCSharpScanner.Instance,
 			});
 
-		// The one this asks about. Beside it stands what the compiler offers every grammar
-		// that builds — that the tape is deferring what nothing here needs deferred — and
-		// that is a different subject.
-		var told = Assert.Single(
-			result.Diagnostics, static one => one.Id != GramCompiler.TapeNotNeeded);
+		// The one this asks about, and the only one: what the tape defers is offered only
+		// to a grammar a carrier could carry, and a `find` is read on the engine.
+		var told = Assert.Single(result.Diagnostics);
 
 		Assert.Equal(Retention.NotStreamable, told.Id);
 		Assert.Equal(GramSeverity.Info,       told.Severity);
@@ -1174,11 +1170,9 @@ public sealed class CSharpEmitterTests
 			"Start = any* & 'z'\nfind Start",
 			new GramCompilerOptions { ClassName = "Grammar" });
 
-		// The one this asks about. Beside it stands what the compiler offers every grammar
-		// that builds — that the tape is deferring what nothing here needs deferred — and
-		// that is a different subject.
-		var told = Assert.Single(
-			result.Diagnostics, static one => one.Id != GramCompiler.TapeNotNeeded);
+		// The one this asks about, and the only one: what the tape defers is offered only
+		// to a grammar a carrier could carry, and a `find` is read on the engine.
+		var told = Assert.Single(result.Diagnostics);
 
 		Assert.Equal(Retention.NotStreamable, told.Id);
 		Assert.Equal(GramSeverity.Info,       told.Severity);

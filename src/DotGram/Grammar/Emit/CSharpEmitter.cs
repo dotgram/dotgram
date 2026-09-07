@@ -536,31 +536,52 @@ public static partial class CSharpEmitter
 
 		// A carrier the author asked for and did not get, said once per reason and said here:
 		// which carrier a machine took is settled by what it turned out to hold, and nothing
-		// before the readers are written knows. Information
-		// and not a warning: the parser that comes out is correct and is the one the tape
-		// would have written, and nothing the author did is wrong — but a carrier chosen and
-		// silently not used is a measurement about to be misread.
+		// before the readers are written knows. Information and not a warning: the parser
+		// that comes out is correct and is the one the tape would have written, and nothing
+		// the author did is wrong — but a carrier chosen and silently not used is a
+		// measurement about to be misread.
 		if (carrier != CarrierKind.Tape && diagnostics is not null)
 		{
+			// Two ways to end up on the tape after asking not to be, and only one of them
+			// used to be said. A carrier that refuses a machine says so. A machine with no
+			// reader does not refuse the carrier — it never asks it — and the file that came
+			// out was the same file byte for byte in silence. Asked only where *no* machine in
+			// the grammar is read by methods: one `find` beside a `parse` is a machine on the
+			// engine next to one the carrier is carrying, which is GRAM5005's subject.
+			var reader  = machines.Exists(static one => one.Direct);
 			var refused = new List<string>();
 
 			foreach (var compiled in machines)
-				if (compiled.Machine.CarrierRefusal is { } why && !refused.Contains(why))
-				{
-					refused.Add(why);
+			{
+				var why = compiled.Machine.CarrierRefusal ??
+					(reader ? null : Unread(compiled, graph, overKinds, carrier));
 
-					diagnostics.Add(new GramDiagnostic(
-						GramCompiler.CarrierRefused,
-						$"This grammar is carried on the tape rather than as {carrier}: {why}. " +
-						"The parser is the one it would have been without the request.",
-						0,
-						0,
-						GramSeverity.Info));
-				}
+				if (why is null || refused.Contains(why))
+					continue;
+
+				refused.Add(why);
+
+				diagnostics.Add(new GramDiagnostic(
+					GramCompiler.CarrierRefused,
+					$"This grammar is carried on the tape rather than as {carrier}: {why}. " +
+					"The parser is the one it would have been without the request.",
+					0,
+					0,
+					GramSeverity.Info));
+			}
 		}
 		else if (carrier == CarrierKind.Tape && diagnostics is not null && machines.Count > 0)
 		{
-			Deferring(graph, results, diagnostics);
+			// Offered only where taking it would do something. A grammar the methods refused
+			// gets the same file whichever carrier is asked for, and one the carrier itself
+			// would refuse gets told so a moment after being told to ask — advice and a
+			// refusal of the same thing, from one compiler, about one grammar.
+			var carrying = machines.FindAll(static one => one.Direct);
+			var takeable = carrying.Count > 0 && carrying.TrueForAll(
+				static one => one.Machine.WouldRefuse(CarrierKind.Immediate) is null);
+
+			if (takeable)
+				Deferring(graph, results, diagnostics);
 		}
 
 		while (scope.Count > 0)
@@ -1552,6 +1573,34 @@ public static partial class CSharpEmitter
 			0,
 			GramSeverity.Info));
 	}
+
+	/// <summary>
+	/// Why this machine has no reader for a carrier to be a property of, or null where it
+	/// has one.
+	/// </summary>
+	/// <remarks>
+	/// The words are <see cref="Machine.Refusal"/>'s, which GRAM5005 already says over
+	/// kinds; over characters they were worked out and never spoken, so a carrier asked for
+	/// over such a grammar changed nothing and said nothing.
+	/// </remarks>
+	static string? Unread(
+		Compiled compiled, RecognitionGraph graph, bool overKinds, CarrierKind carrier) =>
+		compiled.Direct ? null :
+
+		// The carrier's own answer first, where it has one. Several of these can be true
+		// of one grammar at once — a recovering rule keeps it off the reader and would
+		// also be refused by the carrier — and the one worth saying is the one that names
+		// what to change to get what was asked for.
+		compiled.Machine.WouldRefuse(carrier) ??
+
+		(compiled.Flat ? "it needs no arena at all — no recursion, no backtracking and no " +
+				"construction held back — so it is compiled flat, and a carrier carries what a " +
+				"reader holds" :
+			compiled.Publications.Any(one => Streams(graph, one, overKinds))
+				? "it is read a window at a time, which the engine does" :
+			compiled.Machine.Refusal is var (rule, why)
+				? (rule is null ? "it" : $"'{rule.Name}'") + $" cannot be read by methods because {why}"
+				: "it is not read by methods");
 
 	/// <summary>Where a rule's captures are, with its fold loop known for what it is.</summary>
 	static CaptureLayout LayoutOf(RecognitionGraph graph, ResultTypes results, RuleSymbol rule) =>

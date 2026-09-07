@@ -14458,3 +14458,44 @@ to make the emitter write an extent, and nothing published it. So the emitter wr
 `Construct_Where` and no recognizer at all: the file has been claiming to exercise a shape it
 never emitted. `parse Where as Span` now, and the extent is there.
 
+## Advice that could not be taken
+
+`GRAM5008` tells a grammar the tape is holding its constructions back for a promise it does
+not need, and offers `Carrier = GramCarrier.Immediate`. Asked of the five snapshot grammars,
+it offered it to three. Taking it up:
+
+```
+Csv.gram      Tape       GRAM5008: take Immediate, it is worth two fifths of a parse
+Csv.gram      Immediate  chars=43705   ← the same 43,705 characters the tape wrote
+Url.gram      Tape       GRAM5008: the same
+Url.gram      Immediate  chars=137363  ← the same parser, byte for byte
+Minimal.gram  Tape       GRAM5008: the same
+Minimal.gram  Immediate  GRAM5007: carried on the tape: it recovers
+```
+
+Three offers, three bad endings. `Minimal` is advised a carrier and refused it a moment
+later, by one compiler about one grammar. `Csv` and `Url` change the attribute, get the same
+parser and are told **nothing whatever** — which is worse than a refusal, because an author
+who then measures measures the tape twice and writes the number down.
+
+**A carrier is what a reader holds.** Over a machine the methods did not take, it is not
+refused; it is never asked. `GRAM5007` fired only where a carrier had refused something, and
+a machine that never reached one had nothing to refuse. So it is asked the other question
+too — is any part of this grammar read by methods at all — and the reasons were already
+written down and never spoken: `Machine.Refusal`, which `GRAM5005` says over kinds and
+nothing said over characters.
+
+Only where *no* machine is read by methods. One `find` beside a `parse` is a machine on the
+engine next to one the carrier is carrying, and saying the carrier did nothing there would be
+false. Three tests in `CSharpEmitterTests` had been excluding `GRAM5008` by id to get at the
+diagnostic they were about; they ask for `Assert.Single` again.
+
+And where several reasons are true at once — a recovering grammar is kept off the reader
+*and* refused by the carrier — the carrier's own answer is the one given, because it names
+what to change.
+
+**The offer is made only where it could be taken.** `WouldRefuse` asks a carrier the
+question without choosing it, so `GRAM5008` can ask before it offers. A grammar with no
+reader is not offered one; a grammar the carrier would refuse is not offered one. What is
+left is an offer that means something.
+
