@@ -369,6 +369,16 @@ public sealed partial class GrammarNormalizer
 	/// let whichever rule's identity-keyed metadata is built second silently clobber the
 	/// first's (§19).
 	/// </remarks>
+	/// <summary>A fresh <see cref="Node.Element"/> saying what this one says.</summary>
+	/// <remarks>
+	/// An element is a leaf, so a clone of one is a copy of its four fields — and it is
+	/// copied rather than shared for the reason every other node is (§19). The one inside
+	/// a <see cref="Node.Behind"/> is reached through this because a look-behind holds an
+	/// element rather than a node, and the switches cannot recurse into it.
+	/// </remarks>
+	internal static Node.Element Same(Node.Element element) =>
+		new(element.IsNegated, element.Ranges, element.Categories, element.References);
+
 	Node CloneAndRewrite(
 		Node node,
 		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
@@ -378,6 +388,7 @@ public sealed partial class GrammarNormalizer
 		var clone = node switch
 		{
 			Node.Empty                                                              => new Node.Empty    (),
+			Node.Glue                                                               => Node.Glue.Instance,
 			Node.Element  (var negated, var ranges, var categories, var references) => new Node.Element  (negated, ranges, categories, references),
 			Node.Literal  (var text) { IgnoreCase: var ignoreCase }                 => new Node.Literal  (text) { IgnoreCase = ignoreCase },
 			Node.Guard    (var text, var at)                                        => new Node.Guard    (text, at),
@@ -388,6 +399,7 @@ public sealed partial class GrammarNormalizer
 			Node.Marked   (var body, var text)                                      => new Node.Marked   (CloneAndRewrite(body, targets, cloneMap, siteName), text),
 			Node.Repeat   (var body, var min, var max)                              => new Node.Repeat   (CloneAndRewrite(body, targets, cloneMap, siteName), min, max),
 			Node.Lookahead(var positive, var body)                                  => new Node.Lookahead(positive, CloneAndRewrite(body, targets, cloneMap, siteName)),
+			Node.Behind   (var test)                                                => new Node.Behind   (Same(test)),
 			Node.Capture  (var name, var body)                                      => new Node.Capture  (name, CloneAndRewrite(body, targets, cloneMap, siteName)),
 			Node.Construct(var body, var how)                                       => new Node.Construct(CloneAndRewrite(body, targets, cloneMap, siteName), how),
 			// CallTo, not a bare `new Node.Call`: a rebinding's right side may be a

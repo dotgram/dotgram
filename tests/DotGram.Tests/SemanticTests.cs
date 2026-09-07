@@ -1619,6 +1619,39 @@ public sealed class SemanticTests
 	}
 
 	/// <summary>
+	/// A substitution reaches through a word boundary and through glue, rather than
+	/// falling over them.
+	/// </summary>
+	/// <remarks>
+	/// §5.1 clones every rule a `with` site reaches and rewrites the calls inside the
+	/// clones, and the clone was a switch over node kinds naming every one but two: the
+	/// `?&lt;!wordboundary` §4.6 weaves in front of a word literal, and the glue `~` leaves
+	/// between two operands that may not be spaced. A grammar holding either, with a
+	/// `with` anywhere above it, did not compile at all — GRAM0001, the generator falling
+	/// over — which the expression language found by asking for its own identifiers in
+	/// ASCII.
+	/// </remarks>
+	[Theory]
+	[InlineData("if ->",  true)]
+	[InlineData("if - >", false)]
+	[InlineData("if +>",  false)]
+	public void A_substitution_reaches_through_a_boundary_and_through_glue(
+		string input, bool expected) =>
+		// Nothing after `if` is a word character, so §4.6 weaves the boundary around the
+		// keyword and around nothing else — the point here is the shape of the tree the
+		// substitution has to copy, not what the boundary itself decides.
+		Assert.Equal(expected, Matches(
+			"""
+			wordboundary = ['a'..'z']
+			trivia = ' '*
+			A     = '+'
+			B     = '-'
+			Word  = "if" & A ~ '>'
+			Start = Word with (A = B)
+			""",
+			input));
+
+	/// <summary>
 	/// A turn with no seam of its own is still not spaced, which is what keeps a lexeme one.
 	/// </summary>
 	/// <remarks>
