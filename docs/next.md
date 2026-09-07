@@ -14887,3 +14887,38 @@ of the operand beside it would still read — so there is a theory now that pins
 nine of them, `-a * b` among them. `SqlAgainst.Agree()` was the only thing checking it, and
 it is in the benchmarks rather than in CI.
 
+## And the tower above it, which does not pay
+
+The same transformation was tried on the boolean tower — `SearchCondition` (OR),
+`BooleanTerm` (AND) and `BooleanFactor` (NOT), three more rules a level, with every search
+condition descending all of them to reach a predicate. `HandSqlTokens` reads *"OR and AND in
+one loop over a precedence rather than a rule each"*, so the shape it wants is the same.
+
+It reads and it agrees, and it is slower. Parsing over kinds, with the value tower climbing
+either way:
+
+```
+                     value tower   and the boolean one
+a name and a number        1.18x                 1.26x
+a null test                1.29x                 1.43x
+a whole predicate          1.17x                 1.28x
+a string                   1.17x                 1.30x
+a list of eight            0.81x                 0.87x
+nested five deep           1.14x                 1.17x
+```
+
+**Climbing pays where things nest and costs where they chain**, which `--ladders` already
+said — a fifth off nested input and eight per cent onto flat — and a search condition in
+real SQL is a flat chain of `AND`s with no brackets in it at all. `--slope` joins its terms
+with `AND`, so every term paid the engine and nothing climbed; `--hand` is a wash, its
+sixty-four-predicate row going 1.27x to 1.37x on the immediate carrier while the nested one
+went 1.62x to 1.51x.
+
+So it is taken back out, and the value tower is kept. The two towers look alike and are not:
+an expression nests because brackets nest, and a condition is a list.
+
+There is a language question behind it as well, which the numbers made moot. `BooleanFactor`
+is `[NOT] <boolean test>` — one `NOT`, not a run of them, which is what SQL-92 §8.12 says.
+A prefix with a binding power recurses, so `NOT NOT a` would have started reading, and the
+grammar would have been accepting more than the standard for a change that did not pay.
+
