@@ -702,8 +702,52 @@ public static class LexerEmitter
 					text.Line("goto Done;");
 
 				text.Line();
+				text.Line("var again = next == state;");
+				text.Line();
 				text.Line("state = next;");
 				text.Line("p++;");
+				text.Line();
+
+				// A transition back where it came from is a run of one class, and the table says
+				// the same thing about every character of it — the same next state, and so the
+				// same accept. Taken here, the row is read once instead of once a character and
+				// the accept written once instead of overwritten at each: one load a character
+				// where the loop above waits on three that depend on one another.
+				//
+				// The compare is not free and there is no way to have the run without it: it was
+				// tried as a table of which states run, as a call, and written out with the row
+				// already in hand, and all three measure alike (docs/next.md). A branch in a loop
+				// that waits on a dependent chain costs two to ten per cent, and a run entered
+				// and left at once is all cost. The trade is against how long a token is: a name
+				// of one letter pays it, and `customer_id` is read a fifth faster, `1000` and a
+				// quoted string likewise. Four or five characters is where it turns.
+				text.Line("// A run of one class, which the row above already decided.");
+				text.Line("if (again)");
+
+				using (text.Braces())
+				{
+					text.Line($"var stay = Scan{tag}_States[state];");
+					text.Line("var from = (int)(stay >> 32);");
+					text.Line("var into = (int)stay;");
+					text.Line();
+
+					using (text.Braces("while (p < text.Length)", ""))
+					{
+						text.Line("var ahead = text[p] - from;");
+						text.Line();
+						text.Line(
+							Class is null
+								? $"if ((uint)ahead >= {Reach}u || Scan{tag}_Cells[into + ahead] != state)"
+								: $"if ((uint)ahead >= {Reach}u || Scan{tag}_Cells[into + Scan{tag}_Class[ahead]] != state)");
+
+						using (text.Indent())
+							text.Line("break;");
+
+						text.Line();
+						text.Line("p++;");
+					}
+				}
+
 				text.Line();
 				text.Line($"var accepts = Scan{tag}_Accepts[state];");
 				text.Line();

@@ -62,6 +62,11 @@ static class SqlSlope
 		// And the same three tokens with six more spaces between them, so that what the
 		// seam costs a character can be told from what the token machine costs one.
 		("  spaced out",        "a{0}    =    1"),
+
+		// What a person actually writes, for the shapes above are all short on purpose.
+		("named as people do", "customer_id{0} = 42"),
+		("and a string",       "order_status{0} = 'SHIPPED'"),
+		("a whole predicate",  "invoice_total{0} BETWEEN 1000 AND 20000"),
 	];
 
 	public static void Run(int parses)

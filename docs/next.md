@@ -14621,23 +14621,48 @@ weigh them against each other:
 Four times the price for the same shape of work, from one generator, in one file. Whatever
 else is true about DFAs, this file already knows how to write the fast form.
 
-### Tried and not kept: a run on a self-transition
+### The run, and what it is traded against
 
 A state whose way on is back to itself is a run of one class, and the table says the same
 thing about every character of it. Taking the run where it starts — `next == state`, then a
 loop with the row and the cell hoisted — is 0.55 ns a character against the 2.2 of stepping
 the table, and takes **41% off a long identifier**: `lex/hand` 2.91 to 1.71.
 
-It also costs about **ten per cent on every short-token shape**, consistently across runs,
-and SQL's own tokens are short. One compare and a branch in a loop that waits on a dependent
-load chain is not free, and a run that is entered and immediately left is all cost.
+It also costs a few per cent on every short-token shape, consistently. One compare and a
+branch in a loop that waits on a dependent load chain is not free, and a run entered and left
+at once is all cost. It was tried three ways — a table of which states run, a call, and the
+loop written out with the row already in hand — and all three measure alike, so the compare
+is the price and there is no arrangement that avoids it.
 
-So the run is right and testing for it at run time is not. What would pay is the scanner
-emitted as **code** rather than as a table — a method a state, with each state's own class
-written out as the test it is, so that a run is a loop the compiler can see rather than a
-branch the loop has to ask about. That is a different scanner, not a patch to this one, and
-the number that justifies it is the one above: a quarter of a nanosecond a character is what
-it is being measured against.
+**What the shapes above did not say is that they are all named `a0`.** Measured against what
+a person writes, in one process, with and without:
+
+```
+                        lexing    no run   with/without
+a short name           0.032 us  0.031 us      1.03x
+a string               0.042 us  0.038 us      1.10x
+named as people do     0.044 us  0.055 us      0.80x
+and a string           0.058 us  0.068 us      0.85x
+a whole predicate      0.080 us  0.088 us      0.90x
+a long one             0.047 us  0.080 us      0.58x
+```
+
+`customer_id{i} = 42` is read a fifth faster, `order_status{i} = 'SHIPPED'` a seventh,
+`invoice_total{i} BETWEEN 1000 AND 20000` a tenth; a name of one letter pays two to ten per
+cent. **Four or five characters is where it turns**, and identifiers, numbers and quoted
+strings are longer than that. So it is kept, and the three realistic shapes are in `--slope`
+so that the trade is in front of whoever runs it.
+
+At the whole-parse level the loss is invisible and so is much of the win: `--hand` reads
+1.63, 1.62, 1.89, 1.49, 1.40, 1.52, 1.47 against 1.59, 1.63, 1.99, 1.53, 1.36, 1.52, 1.50
+before it — the same numbers through the noise of a round-robin, because its inputs are
+`a0 = 1` sixty-four times over.
+
+**The ceiling is still the seam.** 0.58 ns a space against, now, about 1.2 ns a character in
+a run and 2.2 outside one. What would close the rest is the token machine written the way the
+seam is — the class as the test it is, the run as a loop the compiler sees rather than one
+the loop asks about. That is `LexerEmitter` writing code instead of a table, and it is a
+different scanner rather than a patch to this one.
 
 
 
