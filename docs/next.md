@@ -15432,3 +15432,55 @@ sessions ago. What is left in it is mostly the rowset functions with argument gr
 their own — `OPENROWSET (BULK …)`, `OPENJSON (…) WITH (col INT '$.path')`, `SEMANTICKEYPHRASETABLE`,
 `CHANGETABLE`, `OPENXML` — which are a dozen small languages rather than one, and the
 `AI_GENERATE_EMBEDDINGS (… USE MODEL m)` family.
+
+## A dozen small languages, and the escapes ODBC left behind
+
+The rowset functions are the last of the query level and they are not one thing.
+`OPENJSON` takes a schema, `OPENROWSET` a file and a list of options, `CHANGETABLE` a word
+and then a table, and the full-text four a column list where a value would stand. What they
+share is only the shape around them — a name, parentheses and a correlation — so that is
+written once and each argument grammar sits inside it.
+
+The published `OPENJSON` gives the shape two of them share:
+
+```
+OPENJSON( jsonExpression [ , path ] )  [ <with_clause> ]
+<with_clause> ::= WITH ( { colName type [ column_path ] [ AS JSON ] } [ ,...n ] )
+```
+
+which is `OPENXML`'s schema declaration as well. **The option vocabulary is left open**, as
+it is for the table hints and for the same reason: `SINGLE_NCLOB`, `FORMATFILE`, `CHANGES`,
+`LANGUAGE` are a catalogue rather than a language, and adding one to T-SQL does not change
+the grammar.
+
+With them, four things that had nothing to do with rowsets and everything to do with the
+same corpus rows: ODBC's escapes — `{ fn convert (@a, sql_int) }` and the four typed
+literals, `{ oj … }` in a `FROM` — `USE MODEL` on an AI function, `||=` now that `||`
+concatenates, and `NULL` and `DEFAULT` where an argument stands.
+
+**The name inside `{ fn … }` is ODBC's and not this language's**, so a word T-SQL reserves
+may stand there. `{ fn convert (…) }` is not the `CONVERT` of §6.10 and does not obey its
+shape; `{ fn database () }` calls something whose name is a keyword. Written as its own
+small rule with its own small list of names.
+
+### Where the query level stands
+
+```
+                                       before   after
+of what ScriptDom calls a query          74.4%   85.9%
+the engine reads and this does not         377     204
+this reads and the engine does not          36      69
+```
+
+**The over-acceptance nearly doubled, and almost none of it is a defect.** Reading the
+sixty-nine: `OPENROWSET (PROVIDER = 'CosmosDB', …)`, `FORMAT = 'PARQUET'`,
+`PARSER_VERSION`, `TOP … WITH APPROXIMATE`, `OPTION (BYPASS OPTIMIZER_QUEUE)`. These are
+Synapse, Fabric and PDW — T-SQL that ScriptDom covers because ScriptDom covers all of them,
+and that a 2025 engine on this machine has never heard of.
+
+That is worth saying plainly rather than filing as a number: **the engine is the authority
+on SQL Server and not on T-SQL.** The corpus is one parser's whole surface, the engine is
+one product's, and where they differ neither is wrong. What the harness can do is keep the
+difference visible, which is why the message tally is printed — `FORMAT = 'PARQUET'` is
+answered with `Connector prefix 'f1' is not supported`, a complaint about what was named
+rather than about the syntax, and it was miscounted as a defect until the tally showed it.

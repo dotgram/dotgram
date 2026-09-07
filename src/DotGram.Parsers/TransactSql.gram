@@ -197,10 +197,34 @@ TsqlPrimaryCore : @SqlNode
 	| q: ScalarSubquery                        => @(q)
 	| n: NextValue                             => @(n)
 	| f: FunctionCall                          => @(f)
+	| e: OdbcEscape                            => @(e)
 	| t: Tsql.MoneyLiteral                     => @(new SqlNode.Literal(SqlLiteralKind.Number, t))
 	| t: Tsql.BinaryLiteral                    => @(new SqlNode.Literal(SqlLiteralKind.Hex, t))
 	| v: UnsignedValueSpecification            => @(v)
 	| n: ColumnReference                       => @(n)
+
+// ODBC's escapes, which every driver has understood since before this language had a
+// standard and which SQL Server still reads: a function called the portable way, and the
+// four typed literals. `{ FN convert (@a, sql_int) }` is answered by the engine with a
+// complaint about the ODBC type name, which is it having read the escape and then
+// disagreeing about what was named inside it.
+OdbcEscape : @SqlNode
+	= '{' & "FN"i & f: OdbcFunction & '}' => @(f)
+	| '{' & kind: OdbcLiteralKind & t: Sql92.Lexical.CharacterStringLiteral & '}'
+		=> @(new SqlNode.Literal(SqlLiteralKind.Text, t))
+
+OdbcLiteralKind = "TS"i | "D"i | "T"i | "GUID"i
+
+// The name inside `{ fn … }` is ODBC's and not this language's, so a word T-SQL reserves
+// may stand there: `{ fn convert (@a, sql_int) }` calls ODBC's two-argument `convert`,
+// which is not the `CONVERT` of §6.10 and does not have to obey its shape.
+OdbcFunction : @SqlNode
+	= name: OdbcName & '(' & args: Arguments? & ')' => @(new SqlNode.Call(name, args ?? SqlNode.None))
+	| v: ValueExpression => @(v)
+
+OdbcName = "CONVERT"i | "DATABASE"i | "LEFT"i | "RIGHT"i | "USER"i
+		 | "CURRENT_DATE"i | "CURRENT_TIME"i | "CURRENT_TIMESTAMP"i | "CURRENT_USER"i
+		 | Identifier
 
 // A property or a method reached through a name: `(c1).SomeProperty`, `t::a`,
 // `dbo.[type 1]::[Property]`. Read and dropped, as a collate clause is — what it
@@ -269,6 +293,12 @@ JsonKeyValue : @SqlNode
 // the `ABSENT ON NULL` clause exists for.
 JsonValue : @SqlNode = "NULL"i => @(SqlNode.NullValue) | v: ValueExpression => @(v)
 
+// Which model an AI function is computed with, written after its arguments rather than
+// as one of them: `AI_GENERATE_EMBEDDINGS ('text' USE MODEL MyModel)`.
+UseModel = "USE"i & "MODEL"i & QualifiedName & UseModelParameters?
+
+UseModelParameters = "PARAMETERS"i & ValueExpression
+
 JsonNullClause = "NULL"i & "ON"i & "NULL"i | "ABSENT"i & "ON"i & "NULL"i
 JsonReturning  = "RETURNING"i & DataType
 JsonOrder      = "ORDER"i & "BY"i & ValueExpression & ("ASC"i | "DESC"i)?
@@ -282,8 +312,8 @@ NextValue : @SqlNode
 // A call to something this grammar has never heard of, which is most of them: the
 // name is a catalogue's business and the arguments are values.
 FunctionCall : @SqlNode
-	= name: QualifiedName & '(' & quantifier: SetQuantifier? & args: Arguments? & JsonReturning? & ')'
-	  & CallTail?
+	= name: QualifiedName & '(' & quantifier: SetQuantifier? & args: Arguments? & UseModel?
+	  & JsonReturning? & ')' & CallTail?
 		=> @(new SqlNode.Call(name, args ?? SqlNode.None, SqlNode.Distinctly(quantifier)))
 
 // What may follow a call: which rows of a window it sees when they are null, what a
@@ -339,8 +369,16 @@ FrameBound
 // A `*` is not an argument. It stands inside three names and no others, and reading it as
 // one made `trim(*)` a call — which SQL Server answers with `Incorrect syntax near '*'`,
 // found by putting the corpus to the engine rather than to another parser.
+// An argument may be either of the two words a value expression is not: `string_split
+// (NULL, N',')` and `dbo.f (DEFAULT, 1)` are both read by the engine, and §7.1's
+// `<row value constructor element>` is where the standard says the same thing.
 Arguments : @SqlNode[]
-	= first: ValueExpression & (',' & rest: ValueExpression)* => @(SqlNode.Listed(first, rest))
+	= first: Argument & (',' & rest: Argument)* => @(SqlNode.Listed(first, rest))
+
+Argument : @SqlNode
+	= "NULL"i    => @(SqlNode.NullValue)
+	| "DEFAULT"i => @(SqlNode.DefaultValue)
+	| v: ValueExpression => @(v)
 
 CountStar : @SqlNode
 	= name: ("COUNT_BIG"i | "CHECKSUM"i) & '(' & '*' & ')'
@@ -454,7 +492,7 @@ TsqlSelectSublist : @SqlNode
 	| label: TsqlAlias & '=' & v: ValueExpression  => @(new SqlNode.Selected(v, label))
 	| v: ValueExpression & alias: TsqlAsClause?    => @(new SqlNode.Selected(v, alias))
 
-AssignOp = '=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^="
+AssignOp = '=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "||="
 
 TsqlAlias    : @string = t: Identifier => @(t) | t: Sql92.Lexical.CharacterStringLiteral => @(t)
 TsqlAsClause : @string = "AS"i & t: TsqlAlias => @(t) | t: TsqlAlias => @(t)
@@ -550,7 +588,9 @@ JoinHint = "HASH"i | "LOOP"i | "MERGE"i | "REMOTE"i | "REDUCE"i | "REPLICATE"i |
 // first was accepted here until the syntax said otherwise, and whether ScriptDom accepts
 // them the other way round is a question worth asking of it rather than of us.
 TsqlTablePrimary : @SqlNode
-	= name: QualifiedName & SystemTime? & ('(' & Arguments? & ')')?
+	= f: RowsetFunction & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
+		=> @(new SqlNode.Source(null, f, alias, columns))
+	| name: QualifiedName & SystemTime? & ('(' & Arguments? & ')')?
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & TableSample? & TableHints? & PivotSuffix?
 		=> @(new SqlNode.Source(name, null, alias, columns))
@@ -561,6 +601,7 @@ TsqlTablePrimary : @SqlNode
 		=> @(new SqlNode.Source(null, derived, alias, columns))
 	| '(' & j: TableReference & ')' & TableSample? & TableHints?
 		=> @(j)
+	| '{' & "OJ"i & j: TableReference & '}' => @(j)
 
 // The published syntax makes a pivoted table a source of its own — `table_source PIVOT
 // (…) [AS] alias` — which is left recursion, and §4.3 folds that only where the rule
@@ -814,3 +855,68 @@ GraphLengthPattern : @SqlNode
 	| '(' & n: GraphNode & GraphEdge & ')' & GraphQuantifier => @(n)
 
 GraphQuantifier = '+' | '{' & Sql92.Lexical.Digits & ',' & Sql92.Lexical.Digits & '}'
+
+// ── The rowset functions ────────────────────────────────────────────────────
+//
+// A dozen small languages rather than one. Each is a name followed by an argument list
+// that is not an argument list: `OPENJSON` takes a schema, `OPENROWSET` takes a file and
+// a list of options, `CHANGETABLE` takes a word and then a table, and the full-text four
+// take a column list where a value would stand.
+//
+// What they share is the shape around them — a name, parentheses, and a correlation — so
+// they are one alternative of the table primary with a rule each inside it.
+
+// `OPENJSON ( json [ , path ] ) [ WITH ( colName type [ path ] [ AS JSON ] , … ) ]`, and
+// `OPENXML`'s schema declaration, which is the same shape with a different fourth part.
+// The two are written as one rule because the syntax of the two is one shape.
+RowsetSchema = "WITH"i & '(' & SchemaColumn & (',' & SchemaColumn)* & ')'
+			 | "WITH"i & QualifiedName
+
+SchemaColumn = Identifier & DataType & SchemaPath? & SchemaAsJson?
+
+SchemaPath   = Sql92.Lexical.NationalCharacterStringLiteral
+			 | Sql92.Lexical.CharacterStringLiteral
+SchemaAsJson = "AS"i & "JSON"i
+
+// What may stand where one of these functions takes an argument. The published syntax of
+// each names its own options — `SINGLE_NCLOB`, `FORMATFILE`, `CHANGES`, `LANGUAGE` — and
+// the shape they all have is a word, a word and a value, a name, a list of names, or an
+// ordinary value. So the shape is written and the vocabulary is left open, exactly as it
+// is for the table hints and for the same reason: a name here is a catalogue's business,
+// and adding one to T-SQL does not change the grammar.
+RowsetArguments : @SqlNode[]
+	= first: RowsetArgument & (',' & rest: RowsetArgument)* => @(SqlNode.Listed(first, rest))
+
+RowsetArgument : @SqlNode
+	= '*'                                        => @(new SqlNode.Star(null))
+	| n: RowsetOrder                             => @(n)
+	| "BULK"i & v: RowsetValue                   => @(v)
+	| name: Identifier & '=' & v: RowsetValue    => @(new SqlNode.Selected(v, name))
+	| word: Identifier & v: RowsetValue          => @(v)
+	| '(' & first: RowsetArgument & (',' & rest: RowsetArgument)* & ')'
+		=> @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+	| v: RowsetValue                             => @(v)
+
+// `ORDER ( c1 ASC, c2 DESC ) [ UNIQUE ]` says a bulk source is already sorted.
+RowsetOrder : @SqlNode
+	= "ORDER"i & '(' & first: SortSpecification & (',' & rest: SortSpecification)* & ')'
+	  & "UNIQUE"i?
+		=> @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+
+// A provider's arguments may be joined by semicolons rather than commas — a connection
+// string written as three pieces, which is `OPENROWSET`'s oldest spelling.
+RowsetValue : @SqlNode
+	= v: ValueExpression & (';' & ValueExpression)+ => @(v)
+	| "NULL"i    => @(SqlNode.NullValue)
+	| "DEFAULT"i => @(SqlNode.DefaultValue)
+	| v: ValueExpression => @(v)
+
+RowsetFunction : @SqlNode
+	= name: RowsetName & '(' & args: RowsetArguments? & ')' & RowsetSchema?
+		=> @(new SqlNode.Call(name, args ?? SqlNode.None))
+
+RowsetName
+	= "OPENROWSET"i | "OPENQUERY"i | "OPENDATASOURCE"i | "OPENXML"i | "OPENJSON"i
+	| "CHANGETABLE"i | "CONTAINSTABLE"i | "FREETEXTTABLE"i
+	| "SEMANTICKEYPHRASETABLE"i | "SEMANTICSIMILARITYTABLE"i | "SEMANTICSIMILARITYDETAILSTABLE"i
+	| "PREDICT"i | "VECTOR_SEARCH"i | "GENERATE_SERIES"i | "STRING_SPLIT"i

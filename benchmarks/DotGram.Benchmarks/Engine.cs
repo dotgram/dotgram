@@ -164,8 +164,10 @@ static class Engine
 	/// <c>PARSEONLY</c> compiles nothing, and it still resolves some names: an undeclared
 	/// variable (137) is far and away the commonest thing in this corpus, since a statement
 	/// cut out of a script leaves its <c>DECLARE</c> behind. A function nobody has heard of
-	/// (195), a table (208) or a column (207) that does not exist, and two locking hints that
-	/// contradict each other (1047) are the same kind of thing: the statement was read, and
+	/// (195), a table (208) or a column (207) that does not exist, two locking hints that
+	/// contradict each other (1047), a window function with no `ORDER BY` (4112), a hint
+	/// name it does not know (10715), and a bulk format it cannot apply to the file it was
+	/// given (5369, 5371, 5374) are all the same kind of thing: the statement was read, and
 	/// the engine then had an opinion about what it named.
 	/// <para>
 	/// The set is small and open on purpose, and the report tallies every message number it
@@ -173,7 +175,10 @@ static class Engine
 	/// </para>
 	/// </remarks>
 	static bool AboutNames(int message) =>
-		message is 137 or 195 or 207 or 208 or 1047 or 4104 or 4112 or 4145 or 10715;
+		message is 137 or 195 or 207 or 208 or 1047
+			or 4104 or 4112 or 4145
+			or 5369 or 5371 or 5374
+			or 10715;
 
 	/// <summary>
 	/// The local engine, on a database whose compatibility level is the version being asked

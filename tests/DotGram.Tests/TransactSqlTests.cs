@@ -456,6 +456,55 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>The rowset functions, and the escapes ODBC left behind.</summary>
+	/// <remarks>
+	/// A dozen small languages rather than one: `OPENJSON` takes a schema, `OPENROWSET` a
+	/// file and a list of options, `CHANGETABLE` a word and then a table, and the full-text
+	/// four a column list where a value would stand. What they share is the shape around
+	/// them, so it is written once and the option names are left to the catalogue — the
+	/// same trade the table hints make, and for the same reason.
+	/// </remarks>
+	[Theory]
+
+	// The schema a rowset function may declare, which `OPENJSON` and `OPENXML` share.
+	[InlineData("SELECT c1 FROM OPENJSON (@j) WITH (c1 INT '$.a.b[2]')")]
+	[InlineData("SELECT * FROM OPENJSON (@j, 'lax $.location') WITH (street VARCHAR (500), lon INT '$.geo.longitude') AS location")]
+	[InlineData("SELECT * FROM OPENJSON (@j) WITH ([Order] NVARCHAR (MAX) AS JSON)")]
+	[InlineData("SELECT * FROM OPENJSON (@var)")]
+	[InlineData("SELECT * FROM OPENXML (@idoc, '/ROOT/Customer', 1) WITH (CustomerID VARCHAR (10) '@id')")]
+	[InlineData("SELECT * FROM OPENXML (@idoc, '/root', 1) WITH Customers")]
+
+	// A bulk source, its options, and the older spelling that joins a provider by semicolons.
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'df1', SINGLE_NCLOB) AS a")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'df1', SINGLE_NCLOB, ORDER (c1 ASC)) AS a")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f', FORMATFILE = 'x', FIRSTROW = 2, ORDER (c1 ASC, c2 DESC) UNIQUE) AS a")]
+	[InlineData("SELECT a.* FROM OPENROWSET ('SQLOLEDB', N'seattle1'; 'manager'; 'MyPass', 'SELECT 1') AS a")]
+	[InlineData("SELECT * FROM OPENQUERY (OracleSvr, 'SELECT name FROM joe.titles') AS a")]
+
+	// The tracking and full-text four, which take a word and then a table.
+	[InlineData("SELECT * FROM CHANGETABLE (CHANGES t1, 10) AS a")]
+	[InlineData("SELECT * FROM CHANGETABLE (VERSION s1.d1.dbo.t1, (c1), (1)) AS a")]
+	[InlineData("SELECT * FROM CHANGETABLE (VERSION z..t1, (c1, c2), ('a', 'b')) AS a (z1, z2)")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t1, PROPERTY (c1, 'p'), 'foo', LANGUAGE 1033, 5) AS k")]
+	[InlineData("SELECT * FROM SEMANTICKEYPHRASETABLE (db1.s1.t1, (c1, c2, c3), -10) AS k")]
+	[InlineData("SELECT * FROM SEMANTICKEYPHRASETABLE (t1, *) AS t_alias")]
+	[InlineData("SELECT * FROM STRING_SPLIT (NULL, N',')")]
+
+	// What a model is asked for, and the escapes every driver has understood since before
+	// this language had a standard.
+	[InlineData("SELECT AI_GENERATE_EMBEDDINGS ('text' USE MODEL MyDefaultModel)")]
+	[InlineData("SELECT { FN convert (@a, sql_int) }, { FN database () }")]
+	[InlineData("SELECT { d '2020-01-01' }, { ts '2020-01-01 00:00:00' }")]
+	[InlineData("SELECT * FROM { oj t LEFT OUTER JOIN u ON t.a = u.a }")]
+	[InlineData("SELECT @a ||= 1")]
+	[InlineData("SELECT dbo.f (DEFAULT, 1)")]
+	public void The_rowset_functions_read(string input)
+	{
+		var match = TransactSql.TryParseSelect(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	// ── And builds the standard's tree ───────────────────────────────────────────
 
 	/// <summary>
