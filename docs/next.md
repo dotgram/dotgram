@@ -14068,3 +14068,41 @@ Which settles what the frontier is. The immediate carrier reads at 0.91 to 1.13 
 that look like real input, and the remaining rows differ by ten or twenty nanoseconds with
 the noise close behind. The tape is a contract, not a defect, and the way out of it is
 choosing the carrier — which `[Gram(Carrier = …)]` is.
+
+## Measured: SQL's parentheses and operators are already at parity
+
+`(a + b) * c > d` was the highest row left, at 1.55 of the hand-written parser. Taken apart
+by the same method — one thing more at a time — it turns out not to be a row about anything.
+
+A parenthesis:
+
+| | immediate | by hand | added | added |
+| --- | --: | --: | --: | --: |
+| `a + b > 0` | 89.5 ns | 66.1 | — | — |
+| `(a + b) > 0` | 102.9 | 75.5 | +13.4 | +9.4 |
+| `((a + b)) > 0` | 113.9 | 84.8 | +11.0 | +9.3 |
+| `(((a + b))) > 0` | 123.1 | 93.9 | +9.2 | +9.1 |
+
+A term:
+
+| | immediate | by hand | added | added |
+| --- | --: | --: | --: | --: |
+| `a > 0` | 80.9 ns | 45.2 | — | — |
+| `a + b > 0` | 102.7 | 67.3 | +21.8 | +22.1 |
+| `a + b + c > 0` | 126.3 | 86.9 | +23.6 | +19.6 |
+| `a + b + c + d > 0` | 148.6 | 110.2 | +22.3 | +23.3 |
+
+Nine nanoseconds a parenthesis on both sides, twenty-two a term on both sides. And in the
+same run `(a + b) * c > d` read at 1.24 rather than 1.55 — the row swings by a quarter
+between runs, which is most of what made it look like the worst one.
+
+What is left is the floor: the smallest condition there is, `a > 0`, at 80.9 against 45.2.
+That is a descent of about twenty-five rules on each side and the difference is under two
+nanoseconds a rule — and at sixty-four clauses the same descent measures 65.6 against 59.5,
+which is six tenths of a nanosecond a rule. A fifty-nanosecond parse cannot be measured to
+better than the spread these rows already show, so this line stops here: **on SQL the reading
+of a parenthesis, of an operator and of a clause each cost what they cost a person, and the
+residue is below what the yardstick can resolve.**
+
+SQL also reads no token twice — it has no `Value_…_DotGram` at all, so the `Verbatim` win of
+the entry above is the expression language's alone.
