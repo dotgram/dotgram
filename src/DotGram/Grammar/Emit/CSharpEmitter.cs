@@ -558,6 +558,10 @@ public static partial class CSharpEmitter
 						GramSeverity.Info));
 				}
 		}
+		else if (carrier == CarrierKind.Tape && diagnostics is not null && machines.Count > 0)
+		{
+			Deferring(graph, results, diagnostics);
+		}
 
 		while (scope.Count > 0)
 			scope.Pop().Dispose();
@@ -1473,6 +1477,76 @@ public static partial class CSharpEmitter
 				if (one is Node.Capture && layout.SlotOrNone(one) is var slot && slot >= 0)
 					found.Add(slot);
 		}
+	}
+
+	/// <summary>
+	/// What the tape is being kept for, said once where it may not be worth keeping.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The tape holds every construction until the parse has accepted, which is what §7.3
+	/// promises and what lets an author write a <c>=&gt;</c> that is not safe to run for a
+	/// derivation that then failed. It is not free: the walk that runs them is two fifths of
+	/// a parse of standard SQL, and the reader that writes the log costs more again than a
+	/// reader that simply builds (docs/next.md).
+	/// </para>
+	/// <para>
+	/// <see cref="Replay"/> says which of those constructions the promise is doing any work
+	/// for. Where it is doing none the grammar is paying for a promise it is not using, and
+	/// this says so outright; where it is doing some, this says how much and for which rules,
+	/// so that an author whose constructions are ordinary — a <c>new</c> and nothing else,
+	/// which most are — decides with the facts rather than with a rumour.
+	/// </para>
+	/// <para>
+	/// Information and not a warning: nothing here is wrong, and a grammar whose author
+	/// weighed this and kept the tape is a grammar that got it right.
+	/// </para>
+	/// </remarks>
+	static void Deferring(
+		RecognitionGraph graph, ResultTypes results, ICollection<GramDiagnostic> diagnostics)
+	{
+		var stands   = new List<RuleSymbol>();
+		var replayed = new List<RuleSymbol>();
+		var report   = Replay.Of(graph);
+
+		foreach (var rule in graph.Rules)
+		{
+			if (results.QualifiedOf(rule) is null)
+				continue;
+
+			(report.Keeps(rule) ? stands : replayed).Add(rule);
+		}
+
+		// A grammar that builds nothing has no constructions to defer and no walk to run.
+		if (stands.Count + replayed.Count == 0)
+			return;
+
+		// The ones to name are the ones something could be done about: a rule read
+		// speculatively because something after it can refuse, and not the two dozen above
+		// it that are read speculatively because it is.
+		var roots = replayed
+			.OrderBy(one => report.Rules[one] == Replay.Because.Under ? 1 : 0)
+			.Select(static one => one.Name)
+			.ToList();
+
+		var named = string.Join(", ", roots.Take(3)) +
+			(roots.Count > 3 ? " and " + (roots.Count - 3) + " more" : "");
+
+		diagnostics.Add(new GramDiagnostic(
+			GramCompiler.TapeNotNeeded,
+			replayed.Count == 0
+				? "Nothing this grammar builds is ever read for a derivation that did not stand, so " +
+					"the tape is holding constructions back for a promise nothing here needs (§7.3). " +
+					"Carrier = GramCarrier.Immediate builds where it reads, keeps that promise, and puts " +
+					"down a walk that is about two fifths of a parse."
+				: replayed.Count + " of the " + (stands.Count + replayed.Count) + " rules this grammar " +
+					"builds are read for derivations that may not stand — " + named + " — so under " +
+					"Carrier = GramCarrier.Immediate their constructions would run for readings that were " +
+					"then given up. A construction that only builds does not mind, and for one that does " +
+					"not mind that carrier puts down a walk of about two fifths of a parse.",
+			0,
+			0,
+			GramSeverity.Info));
 	}
 
 	/// <summary>Where a rule's captures are, with its fold loop known for what it is.</summary>

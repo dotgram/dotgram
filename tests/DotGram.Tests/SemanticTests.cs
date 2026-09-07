@@ -496,7 +496,7 @@ public sealed class SemanticTests
 	{
 		var result = Compile(grammar + "\nparse Start");
 
-		Assert.Empty(
+		EmittedCode.Quiet(
 			expected is null
 				? result.Diagnostics
 				: result.Diagnostics.Where(one => one.Id != expected).ToArray());
@@ -717,7 +717,7 @@ public sealed class SemanticTests
 	{
 		var result = Compile(grammar);
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		return EmittedCode.Compile(result.Sources[0].Text)
 			.GetType("Grammar")!
@@ -1240,7 +1240,7 @@ public sealed class SemanticTests
 	/// </remarks>
 	[Fact]
 	public void A_context_inside_a_namespace_is_that_grammar_own_contract() =>
-		Assert.Empty(
+		EmittedCode.Quiet(
 			Compile(
 				"""
 				namespace Inner
@@ -1741,7 +1741,7 @@ public sealed class SemanticTests
 		// a mistyped capture in that one position. What it cost is the reason it is gone:
 		// resolving C# means keeping up with C#, and every construct this compiler does not
 		// know becomes a construct the language forbids for no reason of its own.
-		Assert.Empty(Compile(
+		EmittedCode.Quiet(Compile(
 			"@using System.Globalization;\n"
 			+ "Start : @int = d: ['0'..'9']+ => " + construction + "\n"
 			+ "parse Start").Diagnostics);
@@ -1847,7 +1847,7 @@ public sealed class SemanticTests
 			parse Word
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -1882,7 +1882,7 @@ public sealed class SemanticTests
 			parse (A & B) as Spaced
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -1905,7 +1905,7 @@ public sealed class SemanticTests
 			parse (v: Padded(Word, '#') => @(v)) as Marked : @string
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -1938,7 +1938,7 @@ public sealed class SemanticTests
 			parse List as Tight
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -1968,7 +1968,7 @@ public sealed class SemanticTests
 			parse Start
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -2002,7 +2002,7 @@ public sealed class SemanticTests
 			parse Marked
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -2024,7 +2024,7 @@ public sealed class SemanticTests
 			parse Query
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -2973,7 +2973,7 @@ public sealed class SemanticTests
 	{
 		var result = Compile(grammar + "\nparse Start");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		return result.Sources[0].Text;
 	}
@@ -3062,7 +3062,7 @@ public sealed class SemanticTests
 			parse Sheet
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var source = result.Sources[0].Text;
 
@@ -3097,7 +3097,7 @@ public sealed class SemanticTests
 	public void And_the_same_repetition_without_one_is_fine() =>
 		// §8.3: no `=>`, so nothing is collected and the rejection goes to the hook. The
 		// sequence that is not there is not needed.
-		Assert.Empty(Compile("""
+		EmittedCode.Quiet(Compile("""
 			Row   = ['a'..'z']+ & eol
 			Start = rows: Row* recover eol
 			parse Start
@@ -3137,7 +3137,7 @@ public sealed class SemanticTests
 			parse Chain
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3176,7 +3176,7 @@ public sealed class SemanticTests
 			parse Primary
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3199,7 +3199,7 @@ public sealed class SemanticTests
 			parse Call as Applied
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3221,7 +3221,7 @@ public sealed class SemanticTests
 			parse List
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3383,7 +3383,7 @@ public sealed class SemanticTests
 			}
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3409,7 +3409,7 @@ public sealed class SemanticTests
 			parse Start as Plain
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3432,7 +3432,7 @@ public sealed class SemanticTests
 			parse Start with (D = E) as Swapped
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3457,7 +3457,7 @@ public sealed class SemanticTests
 			parse Start with (A = B, Inner = Other) as Swapped
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3485,7 +3485,7 @@ public sealed class SemanticTests
 			parse Mid as Tight
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3508,7 +3508,7 @@ public sealed class SemanticTests
 			parse Start with (WrapA = WrapB) as Bracketed
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 		var match    = EmittedCode.Match(assembly, "Grammar", "TryBracketed", "[7]");
@@ -3537,7 +3537,7 @@ public sealed class SemanticTests
 			parse Start as Plain
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3574,7 +3574,7 @@ public sealed class SemanticTests
 			}
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3633,7 +3633,7 @@ public sealed class SemanticTests
 			parse Pair with (trivia = none) as TightPair
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 

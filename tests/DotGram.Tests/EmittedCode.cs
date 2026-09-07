@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
@@ -42,6 +43,17 @@ static class EmittedCode
 		CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp8);
 
 	/// <summary>The generated source, plus the partial class it is a half of.</summary>
+	/// <summary>Nothing was wrong with the grammar: what it was merely told does not count.</summary>
+	/// <remarks>
+	/// <c>Info</c> is what the compiler offers rather than what it objects to — that a
+	/// carrier was refused (GRAM5007), that the tape is deferring what nothing needs
+	/// deferred (GRAM5008), that a stream was not available (§6.3). A test about whether a
+	/// grammar compiles is about everything else, and a test that asserted on the whole
+	/// list would break whenever the compiler learned to offer something new.
+	/// </remarks>
+	public static void Quiet(IEnumerable<GramDiagnostic> diagnostics) =>
+		Assert.DoesNotContain(diagnostics, static one => one.Severity != GramSeverity.Info);
+
 	public static Assembly Compile(string source, string className = "Grammar", string? @namespace = null)
 	{
 		var declaration = @namespace is null

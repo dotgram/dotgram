@@ -186,7 +186,7 @@ public sealed class SpliceTests
 
 		var result = Compiled(text, map);
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 		Assert.NotEmpty(result.Sources);
 	}
 
@@ -280,7 +280,7 @@ public sealed class SpliceTests
 			grammar,
 			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		// The host half a grammar with a `context` needs, written here because the
 		// generated code names it and nothing else supplies it.

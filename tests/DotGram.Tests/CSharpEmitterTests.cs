@@ -1119,7 +1119,11 @@ public sealed class CSharpEmitterTests
 				CSharpScanner = RoslynCSharpScanner.Instance,
 			});
 
-		var told = Assert.Single(result.Diagnostics);
+		// The one this asks about. Beside it stands what the compiler offers every grammar
+		// that builds — that the tape is deferring what nothing here needs deferred — and
+		// that is a different subject.
+		var told = Assert.Single(
+			result.Diagnostics.Where(static one => one.Id != GramCompiler.TapeNotNeeded));
 
 		Assert.Equal(Retention.NotStreamable, told.Id);
 		Assert.Equal(GramSeverity.Info,       told.Severity);
@@ -1150,7 +1154,11 @@ public sealed class CSharpEmitterTests
 				CSharpScanner = RoslynCSharpScanner.Instance,
 			});
 
-		var told = Assert.Single(result.Diagnostics);
+		// The one this asks about. Beside it stands what the compiler offers every grammar
+		// that builds — that the tape is deferring what nothing here needs deferred — and
+		// that is a different subject.
+		var told = Assert.Single(
+			result.Diagnostics.Where(static one => one.Id != GramCompiler.TapeNotNeeded));
 
 		Assert.Equal(Retention.NotStreamable, told.Id);
 		Assert.Equal(GramSeverity.Info,       told.Severity);
@@ -1166,7 +1174,11 @@ public sealed class CSharpEmitterTests
 			"Start = any* & 'z'\nfind Start",
 			new GramCompilerOptions { ClassName = "Grammar" });
 
-		var told = Assert.Single(result.Diagnostics);
+		// The one this asks about. Beside it stands what the compiler offers every grammar
+		// that builds — that the tape is deferring what nothing here needs deferred — and
+		// that is a different subject.
+		var told = Assert.Single(
+			result.Diagnostics.Where(static one => one.Id != GramCompiler.TapeNotNeeded));
 
 		Assert.Equal(Retention.NotStreamable, told.Id);
 		Assert.Equal(GramSeverity.Info,       told.Severity);
@@ -1183,7 +1195,7 @@ public sealed class CSharpEmitterTests
 
 	[Fact]
 	public void A_rule_that_streams_is_told_nothing() =>
-		Assert.Empty(GramCompiler.Compile(
+		EmittedCode.Quiet(GramCompiler.Compile(
 			"Start = ['0'..'9']+\nfind Start",
 			new GramCompilerOptions { ClassName = "Grammar" }).Diagnostics);
 
@@ -1192,7 +1204,7 @@ public sealed class CSharpEmitterTests
 		// The reason there is a fact about this compiler rather than about the grammar in
 		// front of it. Saying it on every build of every grammar would be noise, and
 		// docs/status.md is where it belongs.
-		Assert.Empty(GramCompiler.Compile(
+		EmittedCode.Quiet(GramCompiler.Compile(
 			"Start = any* & 'z'\nparse Start",
 			new GramCompilerOptions { ClassName = "Grammar" }).Diagnostics);
 

@@ -386,7 +386,7 @@ public sealed class GramParserTests
 		var result = GramParser.Parse(
 			GramLexer.Tokenize("Word = ['a'..'z']+\nparse ('a' | 'b') as Ab", null));
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var rules = result.File.Decls.OfType<Decl.Rule>().Select(rule => rule.Name);
 
@@ -401,7 +401,7 @@ public sealed class GramParserTests
 		// what it has always meant and what the method name is still derived from.
 		var result = GramParser.Parse(GramLexer.Tokenize("Word = ['a'..'z']+\nparse Word", null));
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 		Assert.Single(result.File.Decls.OfType<Decl.Rule>());
 		Assert.Null(Assert.Single(result.File.Decls.OfType<Decl.Publish>()).Alias);
 	}
@@ -415,7 +415,7 @@ public sealed class GramParserTests
 		var result = GramParser.Parse(
 			GramLexer.Tokenize("parse(item) = item & ';'\nfind = 'f'\nStart = parse('a') & find", null));
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 		Assert.Equal(["parse", "find", "Start"], result.File.Decls.OfType<Decl.Rule>().Select(rule => rule.Name));
 		Assert.Empty(result.File.Decls.OfType<Decl.Publish>());
 	}
@@ -438,7 +438,7 @@ public sealed class GramParserTests
 			Number : @int   = ['0'..'9']+
 			"""));
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 		Assert.Equal(7, result.File.Decls.Count);
 	}
 }

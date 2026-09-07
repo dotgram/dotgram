@@ -96,7 +96,7 @@ public sealed class RegexDifferentialTests
 			grammar,
 			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 

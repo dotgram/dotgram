@@ -170,6 +170,9 @@ public static class GramCompiler
 	/// <summary>The carrier the author asked for could not carry the grammar.</summary>
 	public const string CarrierRefused = "GRAM5007";
 
+	/// <summary>The tape is holding constructions back for a promise the grammar may not need.</summary>
+	public const string TapeNotNeeded = "GRAM5008";
+
 	/// <summary>
 	/// One error per position, in the order they were raised.
 	/// </summary>

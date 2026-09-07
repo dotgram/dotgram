@@ -190,7 +190,7 @@ public sealed class UrlTests
 			grammar,
 			new GramCompilerOptions { ClassName = "Url", CSharpScanner = RoslynCSharpScanner.Instance });
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		return EmittedCode.Compile(result.Sources[0].Text, "Url");
 	});

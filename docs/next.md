@@ -14106,3 +14106,40 @@ residue is below what the yardstick can resolve.**
 
 SQL also reads no token twice — it has no `Value_…_DotGram` at all, so the `Verbatim` win of
 the entry above is the expression language's alone.
+
+## Built: the compiler says what the tape is being kept for
+
+Everything measured says the same thing twice over: the immediate carrier reads at 0.91 to
+1.13 where the input looks real, and the tape is two fifths to a half a walk. The tape is
+not a defect — it is §7.3, a construction runs once and only on the derivation that stood —
+but a grammar whose constructions are a `new` and nothing else is buying a promise it does
+not need, and nothing told its author so.
+
+`GRAM5008` does, at `Info`, once per compilation, and it asks `Replay` rather than guessing.
+Where nothing is read speculatively it says so outright:
+
+> Nothing this grammar builds is ever read for a derivation that did not stand, so the tape
+> is holding constructions back for a promise nothing here needs (§7.3). `Carrier =
+> GramCarrier.Immediate` builds where it reads, keeps that promise, and puts down a walk
+> that is about two fifths of a parse.
+
+and where something is, it names the **roots** rather than the consequences:
+
+> 27 of the 28 rules this grammar builds are read for derivations that may not stand —
+> `RowValueConstructor`, `RowValueConstructorElement`, `ValueExpression` and 24 more — so
+> under `Carrier = GramCarrier.Immediate` their constructions would run for readings that
+> were then given up. A construction that only builds does not mind, and for one that does
+> not mind that carrier puts down a walk of about two fifths of a parse.
+
+Those three are exactly the sites `Replay` found months of measurement ago; the two dozen
+above them are `Under` and there is nothing to do about them but fix the three. Ordering the
+names by whether the reason is `Under` is the whole difference between a message that reads
+like advice and one that reads like a list.
+
+**What it cost.** Three per cent of compilation — ten compiles of standard SQL went from
+3,923 ms to 4,033 — and 215 tests, every one of them an `Assert.Empty` over the whole
+diagnostic list. `EmittedCode.Quiet` is what they say now: nothing above `Info`, because
+`Info` is what the compiler offers rather than what it objects to, and a test that asserts on
+the whole list breaks whenever the compiler learns to offer something new. Three tests kept
+`Assert.Single` and exclude `GRAM5008` by id — their subject is `GRAM5001`, which is `Info`
+itself, so severity was the wrong sieve there.
