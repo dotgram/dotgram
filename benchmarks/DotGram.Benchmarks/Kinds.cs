@@ -62,6 +62,14 @@ static class Kinds
 		_     => null,
 	};
 
+	/// <summary>
+	/// The kinds this grammar has a rule for, which is what the two interesting cells are
+	/// about: a refusal here is work to do, and reading anything else is a defect.
+	/// </summary>
+	internal static bool Modelled(string kind) =>
+		kind is nameof(SelectStatement) or nameof(InsertStatement) or nameof(UpdateStatement)
+			or nameof(DeleteStatement) or nameof(MergeStatement);
+
 	public static void Run(string? root, string version, int shown)
 	{
 		root ??= Corpus.Checked();
@@ -112,21 +120,18 @@ static class Kinds
 			{
 				var kind = statement.GetType().Name;
 
-				// The fragment carries its terminator, and a publication reads the whole of
-				// what it is given: a statement separator is the script's punctuation and not
-				// the statement's, so it comes off here rather than being read as a refusal.
-				var one  = text.Substring(statement.StartOffset, statement.FragmentLength)
-					.TrimEnd()
-					.TrimEnd(';')
-					.TrimEnd();
+				// The fragment carries its terminator, and it is kept: `A MERGE statement must
+				// be terminated by a semi-colon` is the engine's own answer, so the separator
+				// is part of the statement for at least one of them and the grammar reads it.
+				var one  = text.Substring(statement.StartOffset, statement.FragmentLength).TrimEnd();
 
-				var ours = TransactSql.TryParseSelect(one).IsSuccess;
+				var ours = TransactSql.TryParseStatement(one).IsSuccess;
 
 				var (total, already) = counted.TryGetValue(kind, out var seen) ? seen : (0, 0);
 
 				counted[kind] = (total + 1, already + (ours ? 1 : 0));
 
-				if (ours && kind != nameof(SelectStatement))
+				if (ours && !Modelled(kind))
 					overRead.Add(Corpus.One(one));
 
 				if (!ours)
@@ -137,11 +142,11 @@ static class Kinds
 					if (some.Count < shown)
 						some.Add(Corpus.One(one));
 
-					// And for the one kind this grammar is about, where it stopped — which
+					// And for the kinds this grammar is about, where it stopped — which
 					// names the feature, where the kind only names the statement.
-					if (kind == nameof(SelectStatement))
+					if (Modelled(kind))
 					{
-						var why = Corpus.Stopped(one, (int)TransactSql.TryParseSelect(one).Position);
+						var why = Corpus.Stopped(one, (int)TransactSql.TryParseStatement(one).Position);
 
 						var (count, like) = stopped.TryGetValue(why, out var before)
 							? before
@@ -160,7 +165,7 @@ static class Kinds
 
 		Console.WriteLine();
 		Console.WriteLine(
-			$"  of the {counted.GetValueOrDefault(nameof(SelectStatement)).Total} it calls a query, " +
+			$"  of the kinds this grammar has a rule for, " +
 			$"where the {stopped.Values.Sum(static one => one.Count)} refusals stopped");
 		Console.WriteLine();
 

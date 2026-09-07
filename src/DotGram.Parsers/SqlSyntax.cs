@@ -146,6 +146,56 @@ public abstract record SqlNode
 	/// <summary>One <c>ORDER BY</c> entry: what to sort by, and which way.</summary>
 	public sealed record Sorted(SqlNode Value, bool Down) : SqlNode;
 
+	// ---- the statements ----------------------------------------------------------------------
+	//
+	// One record per kind, beside the others rather than under a base of their own, which is
+	// what this ADT is: one root and one level of descendants. A statement is a node like any
+	// other because a statement holds queries and a query holds statements — `INSERT … SELECT`
+	// one way and `SELECT … FROM (MERGE … OUTPUT …)` the other.
+	//
+	// What is read and dropped keeps growing, and it is worth naming here rather than only in
+	// the grammar: `TOP`, `OVER`, the hints, the windows, a named query's `WITH`, and now
+	// `OUTPUT`. Each is a decoration on how a statement runs or what it returns rather than on
+	// what it is, and each would be a field on four records here. When one of them is wanted,
+	// it is one field — but none is wanted yet, and a field nobody reads is a field that drifts.
+
+	/// <summary>Rows written into a table, from a list, a query or nothing at all.</summary>
+	/// <remarks>
+	/// <see cref="Rows"/> is a <see cref="TableValue"/> where they were written out, a query
+	/// where they come from one, and a <see cref="Row"/> of nothing for `DEFAULT VALUES`.
+	/// </remarks>
+	public sealed record Insert(SqlNode? Target, string[]? Columns, SqlNode Rows) : SqlNode;
+
+	/// <summary>Rows changed in place: what to change, to what, and which rows.</summary>
+	/// <remarks>
+	/// <see cref="From"/> is T-SQL's extension and not the standard's: a second `FROM` naming
+	/// the tables the rows to change are found by joining.
+	/// </remarks>
+	public sealed record Update(
+		SqlNode? Target, SqlNode[] Set, SqlNode[] From, SqlNode? Where) : SqlNode;
+
+	/// <summary>Rows removed, and the same two ways of saying which.</summary>
+	public sealed record Delete(SqlNode? Target, SqlNode[] From, SqlNode? Where) : SqlNode;
+
+	/// <summary>
+	/// One statement that inserts, updates and deletes, according to what a join found.
+	/// </summary>
+	public sealed record Merge(
+		SqlNode? Target, SqlNode Using, SqlNode On, SqlNode[] Whens) : SqlNode;
+
+	/// <summary>
+	/// One arm of a merge: whether it fired on a match, which side the match was missing
+	/// from, what else had to be true, and what to do.
+	/// </summary>
+	public sealed record MergeWhen(
+		bool OnMatch, string? By, SqlNode? Condition, SqlNode Action) : SqlNode;
+
+	/// <summary>
+	/// One entry of a `SET`: what is assigned, the operator it was assigned with where that
+	/// was not a plain `=`, and the value.
+	/// </summary>
+	public sealed record Assign(string Target, string? Operator, SqlNode Value) : SqlNode;
+
 	// ---- how a parser makes these ------------------------------------------------------------
 
 	/// <summary>What a call with no arguments is handed, once rather than per call.</summary>

@@ -15484,3 +15484,57 @@ one product's, and where they differ neither is wrong. What the harness can do i
 difference visible, which is why the message tally is printed — `FORMAT = 'PARQUET'` is
 answered with `Connector prefix 'f1' is not supported`, a complaint about what was named
 rather than about the syntax, and it was miscounted as a defect until the tally showed it.
+
+## The statements that write
+
+The query level was the whole of this grammar until now. The four statements that change
+rows are written on top of it rather than beside it: an `INSERT` takes a query, an `UPDATE`
+takes a `FROM` clause, a `MERGE` takes a table source and two search conditions. Almost
+nothing in them is new — what is new is the frame around what was already read.
+
+**One record per kind, beside the others rather than under a base of their own**, which is
+what this ADT is and has been: one root and one level of descendants. A statement is a node
+like any other because a statement holds queries and a query holds statements — `INSERT …
+SELECT` one way, and a `MERGE` standing where a derived table does the other. There is one
+new publication, `ParseStatement`, and the four query ones are untouched.
+
+```
+                     count    read
+SelectStatement       2036    1748   85.9%
+UpdateStatement         86      68   79.1%
+DeleteStatement         64      56   87.5%
+MergeStatement          30      26   86.7%
+InsertStatement         66      26   39.4%
+```
+
+`INSERT` is the odd one and the reason is known: `INSERT … EXEC`, which needs the
+procedural level that is not written yet.
+
+### Two things the engine settled
+
+**A `MERGE` must end in a semicolon**, and both harnesses had been cutting it off. `A MERGE
+statement must be terminated by a semi-colon (;)` is the engine's own answer, so the
+separator belongs to the statement for at least one of them — and stripping it before the
+parse had made every merge in the corpus look like a defect on this side. The grammar reads
+the terminator where it stands now, and the harnesses hand the statement over whole.
+
+**And `DEFAULT` is assigned, not compounded.** `SET c1 -= DEFAULT` reads by the shape and is
+answered with `DEFAULT is not allowed on the right hand side of "-="` — a rule about the
+operator rather than about the value, so it is written on the operator.
+
+### The fourth time, and it will not be the last
+
+`MERGE t USING u` stopped at `u`, because `USING` is not reserved and was taken as the
+correlation name of `t`. That is the fourth word to do it, after `PIVOT`, `WINDOW` and
+`ROWS`:
+
+| the name | what it swallowed |
+| --- | --- |
+| a correlation name | `PIVOT`, `UNPIVOT`, `TABLESAMPLE`, `WINDOW`, `USING` |
+| a window name inside `OVER (…)` | `PARTITION`, `ROWS`, `RANGE` |
+
+The shape never varies: a word that begins a clause, an optional name in the same position,
+and the name winning. The list is in `SourceClause`, and anything added after a source
+belongs on it. It is worth saying once more that the tell is bad — the parse stops one token
+*past* what was swallowed, so the reported position names the wrong thing and nothing looks
+wrong where the mistake is.

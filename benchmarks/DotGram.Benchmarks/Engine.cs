@@ -86,15 +86,12 @@ static class Engine
 
 			foreach (var statement in script.Batches.SelectMany(static batch => batch.Statements))
 			{
-				if (statement is not SelectStatement)
+				if (!Kinds.Modelled(statement.GetType().Name))
 					continue;
 
-				var one = text.Substring(statement.StartOffset, statement.FragmentLength)
-					.TrimEnd()
-					.TrimEnd(';')
-					.TrimEnd();
+				var one = text.Substring(statement.StartOffset, statement.FragmentLength).TrimEnd();
 
-				var here    = TransactSql.TryParseSelect(one).IsSuccess;
+				var here    = TransactSql.TryParseStatement(one).IsSuccess;
 				var message = Answer(connection, one);
 				var says    = message == 0 || AboutNames(message);
 
@@ -109,7 +106,7 @@ static class Engine
 				{
 					engine++;
 
-					var why = Corpus.Stopped(one, (int)TransactSql.TryParseSelect(one).Position);
+					var why = Corpus.Stopped(one, (int)TransactSql.TryParseStatement(one).Position);
 
 					var (count, like) = gaps.TryGetValue(why, out var before) ? before : (0, new List<string>());
 
@@ -256,7 +253,7 @@ static class Engine
 		Console.WriteLine();
 		Console.WriteLine(
 			$"against the engine at compatibility level {version}, " +
-			$"on what TSql{version}Parser calls a query");
+			$"on the kinds this grammar has a rule for");
 		Console.WriteLine();
 		Console.WriteLine($"  {all} statements");
 		Console.WriteLine($"  {both,6}  both read");

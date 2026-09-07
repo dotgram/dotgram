@@ -505,6 +505,101 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	// ── The statements that change rows ─────────────────────────────────────────
+
+	/// <summary>The four statements that write, read through the one entry point.</summary>
+	/// <remarks>
+	/// The query level was the whole of this grammar until now, and these are written on top
+	/// of it rather than beside it: an `INSERT` takes a query, an `UPDATE` takes a `FROM`
+	/// clause, a `MERGE` takes a table source and two search conditions. Almost nothing is
+	/// new — what is new is the frame around what was already read.
+	/// </remarks>
+	[Theory]
+	[InlineData("INSERT INTO t VALUES (1, 2), (DEFAULT, 0), (NULL, NULL)")]
+	[InlineData("INSERT t (a, b) SELECT x, y FROM u")]
+	[InlineData("INSERT INTO t DEFAULT VALUES")]
+	[InlineData("INSERT TOP (10) INTO t (a) SELECT x FROM u")]
+	[InlineData("INSERT INTO t (a) OUTPUT INSERTED.a INTO @v VALUES (1)")]
+	[InlineData("INSERT INTO t WITH (TABLOCK) (a) VALUES (1)")]
+
+	[InlineData("UPDATE t SET a = 1")]
+	[InlineData("UPDATE t SET a = 1, b = DEFAULT, c = NULL WHERE d > 0")]
+	[InlineData("UPDATE TOP (10) t SET a = a * 1.25, b = GETDATE ()")]
+	[InlineData("UPDATE t SET a += 1, b -= 2, c ||= 'x'")]
+	[InlineData("UPDATE t SET @v = a = 1")]
+	[InlineData("UPDATE t SET @v += 1")]
+	[InlineData("UPDATE t SET s.DocumentSummary.WRITE (N'features', 28, 10)")]
+	[InlineData("UPDATE t SET a = 1 OUTPUT DELETED.a, INSERTED.a INTO @v FROM t AS x JOIN u ON x.id = u.id")]
+	[InlineData("UPDATE t SET a = 1 WHERE CURRENT OF GLOBAL c1")]
+	[InlineData("UPDATE @rows SET a = 1")]
+	[InlineData("WITH c AS (SELECT * FROM t) UPDATE c SET a = 1")]
+
+	[InlineData("DELETE FROM t")]
+	[InlineData("DELETE t WHERE a > 1")]
+	[InlineData("DELETE TOP (20) FROM t WHERE d < '20020701'")]
+	[InlineData("DELETE t OUTPUT DELETED.* WHERE a = 1")]
+	[InlineData("DELETE x FROM t AS x INNER JOIN u ON x.id = u.id WHERE u.a > 1")]
+	[InlineData("DELETE t WHERE CURRENT OF c1")]
+	[InlineData("DELETE OPENQUERY (srv, 'SELECT a FROM t')")]
+
+	[InlineData("MERGE t AS d USING u AS s ON d.id = s.id WHEN MATCHED THEN UPDATE SET d.a = s.a")]
+	[InlineData("MERGE INTO t USING u ON t.id = u.id WHEN MATCHED THEN DELETE")]
+	[InlineData("MERGE t USING u ON t.id = u.id WHEN NOT MATCHED THEN INSERT (a) VALUES (1)")]
+	[InlineData("MERGE t USING u ON t.id = u.id WHEN NOT MATCHED BY TARGET THEN INSERT DEFAULT VALUES")]
+	[InlineData("MERGE t USING u ON t.id = u.id WHEN NOT MATCHED BY SOURCE THEN DELETE")]
+	[InlineData("MERGE t USING (SELECT a, b FROM v) AS s (a, b) ON t.a = s.a WHEN MATCHED AND t.q <= 0 THEN DELETE WHEN MATCHED THEN UPDATE SET t.q = s.b")]
+	[InlineData("MERGE TOP (5) t USING u ON t.id = u.id WHEN MATCHED THEN DELETE OUTPUT $ACTION, DELETED.a")]
+	public void The_statements_that_write_read(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>And a statement holds a query, and a query holds a statement.</summary>
+	/// <remarks>
+	/// Which is why they are one ADT and not two: `INSERT … SELECT` one way, and a merge
+	/// standing where a derived table does the other.
+	/// </remarks>
+	[Fact]
+	public void A_statement_and_a_query_hold_each_other()
+	{
+		var written = Assert.IsType<SqlNode.Insert>(
+			TransactSql.TryParseStatement("INSERT INTO t (a) SELECT b FROM u WHERE b > 1").Value);
+
+		Assert.Equal(new[] { "a" }, written.Columns);
+
+		var query = Assert.IsType<SqlNode.Query>(written.Rows);
+
+		Assert.Equal("u", Assert.IsType<SqlNode.Source>(Assert.Single(query.From)).Table);
+		Assert.NotNull(query.Where);
+
+		var merged = Assert.IsType<SqlNode.Merge>(
+			TransactSql.TryParseStatement(
+				"MERGE t USING u ON t.id = u.id WHEN MATCHED THEN UPDATE SET a = 1").Value);
+
+		var arm = Assert.IsType<SqlNode.MergeWhen>(Assert.Single(merged.Whens));
+
+		Assert.True(arm.OnMatch);
+		Assert.Null(arm.Condition);
+
+		var change = Assert.IsType<SqlNode.Update>(arm.Action);
+
+		Assert.Equal("a", Assert.IsType<SqlNode.Assign>(Assert.Single(change.Set)).Target);
+	}
+
+	/// <summary>And the query entry point still reads only queries.</summary>
+	[Theory]
+	[InlineData("INSERT INTO t VALUES (1)")]
+	[InlineData("UPDATE t SET a = 1")]
+	[InlineData("DELETE FROM t")]
+	[InlineData("MERGE t USING u ON t.id = u.id WHEN MATCHED THEN DELETE")]
+	public void What_writes_is_not_a_query(string input)
+	{
+		Assert.False(TransactSql.TryParseSelect   (input).IsSuccess, input);
+		Assert.True (TransactSql.TryParseStatement(input).IsSuccess, input);
+	}
+
 	// ── And builds the standard's tree ───────────────────────────────────────────
 
 	/// <summary>
