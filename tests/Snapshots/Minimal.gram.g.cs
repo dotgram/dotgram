@@ -3694,7 +3694,7 @@ namespace DotGram.Snapshots
 					goto Fail;
 				}
 				c = text[p];
-				if (!((global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == global::System.Globalization.UnicodeCategory.UppercaseLetter)))
+				if (!((c < 128 ? (c >= 'A' && c <= 'Z') : (global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == global::System.Globalization.UnicodeCategory.UppercaseLetter))))
 				{
 					expected = Recognize_DotGram_Upper_Expected0;
 					goto Fail;
@@ -3711,7 +3711,7 @@ namespace DotGram.Snapshots
 					goto S6;
 				}
 				c = text[p];
-				if (!((global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == global::System.Globalization.UnicodeCategory.UppercaseLetter)))
+				if (!((c < 128 ? (c >= 'A' && c <= 'Z') : (global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == global::System.Globalization.UnicodeCategory.UppercaseLetter))))
 				{
 					expected = Recognize_DotGram_Upper_Expected0;
 					goto S6;

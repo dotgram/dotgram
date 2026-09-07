@@ -14271,3 +14271,50 @@ it" was already written in `EmitAtomic`'s own remarks, and the group's contents 
 to hear it, so the continuation threaded into them is `Continuation.None`. What follows
 *inside* is threaded as it always was: `{ A* & B }` still hands B's first set to the star
 before it, and only a repetition standing at the end of a group loses its way per turn.
+
+## The ASCII half of a class, from a table
+
+`Word = [\p{L} | '_']` is a call into `CharUnicodeInfo` and a mask test, taken once for
+every character of every name a grammar reads. `Tabulate` has emitted a byte table for a
+class since the classes were written, and declines for any class that reaches past 255 —
+which every Unicode category does, so the characters programs are actually written in paid
+for the ones they are not.
+
+Below 128 the answer is a lookup, and it is a lookup that can be baked: the categories of
+ASCII are settled by the standard and cannot drift between the compiler that wrote the table
+and the runtime that reads it. Latin-1's are as settled in practice, and "in practice" is
+the wrong footing for a table in a consumer's assembly, so the line is at 128. Above it, the
+test that was there before:
+
+```csharp
+c < 128 ? Recognize_DotGram_Class2[c] != 0 : ((1 << (int)…GetUnicodeCategory(c)) & 0x11F) != 0
+```
+
+Where the ASCII half is a range or two it is written out rather than tabulated — `\p{Lu}` in
+`Minimal.gram` is `c < 128 ? (c >= 'A' && c <= 'Z') : …`, which is the whole of that
+snapshot's diff.
+
+## Where the three of them leave it
+
+Against the hand-written `GramParser`, immediate carrier, each reading timed in a loop of its
+own with tiering off:
+
+| | before | a named run | inside a brace | the ASCII half |
+| --- | --: | --: | --: | --: |
+| `Csv.gram` | 1.30x | 1.11x | 1.04x | 1.10x |
+| `Notation.gram` | 1.36x | 1.21x | 1.13x | 1.10x |
+| `Minimal.gram` | 1.43x | 1.28x | 1.17x | 1.18x |
+| `Feed.gram` | 1.97x | 1.72x | 1.62x | 1.55x |
+| `Url.gram` | 2.33x | 1.98x | 1.87x | 1.76x |
+| a reference operand | 2.60x | 2.13x | 2.09x | 1.85x |
+| eight of them on a line | 3.06x | 2.54x | 2.51x | 2.13x |
+
+`Csv.gram` and `Minimal.gram` moving the wrong way in the last column is the two smallest
+rows quantizing — five microseconds against a stopwatch — and not something the ASCII table
+can have done.
+
+**What is still there.** A seam still costs three method calls: `Read_trivia` wraps
+`Read_trivia_Body` in a retry loop that cannot fire, because the body seals before it
+returns; the body wraps `Read_trivia_Part0` in another. A rule whose body is a single atomic
+group needs neither, and that is the next one to take.
+

@@ -2500,21 +2500,19 @@ public static partial class CSharpEmitter
 				if (!categories.Contains(name))
 					categories.Add(name);
 
+		var mask = 0;
+
+		foreach (var name in categories)
+			mask |= 1 << (int)Enum.Parse(typeof(System.Globalization.UnicodeCategory), name);
+
 		if (categories.Count == 1)
 			tests.Add(
 				"global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == " +
 				$"global::System.Globalization.UnicodeCategory.{categories[0]}");
 		else if (categories.Count > 1)
-		{
-			var mask = 0;
-
-			foreach (var name in categories)
-				mask |= 1 << (int)Enum.Parse(typeof(System.Globalization.UnicodeCategory), name);
-
 			tests.Add(
 				"((1 << (int)global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c)) & " +
 				$"0x{mask:X}) != 0");
-		}
 
 		// §7.1's element predicate: `bool M(char c)` asks the same question about one item
 		// that a range does, so it joins the set as one more test. Written as the grammar
@@ -2530,9 +2528,82 @@ public static partial class CSharpEmitter
 		if (tests.Count == 0)
 			return element.IsNegated ? "true" : "false";
 
-		var test = string.Join(" || ", tests);
+		var test  = string.Join(" || ", tests);
+		var whole = element.IsNegated ? $"!({test})" : $"({test})";
 
-		return element.IsNegated ? $"!({test})" : $"({test})";
+		// A category is a call into `CharUnicodeInfo` and a mask test, taken once for every
+		// character of every name a grammar reads. Below 128 the answer is a lookup — and
+		// fixed there, because the categories of ASCII are settled by the standard and
+		// cannot drift between the compiler that wrote the table and the runtime that
+		// reads it. Above it the test that was there before, unchanged.
+		if (tabulate is null || element.Categories.Count == 0 || element.References.Count > 0)
+			return whole;
+
+		var low = Ascii(element, mask);
+
+		if (low.Count == 0)
+			return $"(c >= {AsciiSize} && {whole})";
+
+		if (low.Count == 1 && low[0].From == ' ' && low[0].To == AsciiSize - 1)
+			return $"(c < {AsciiSize} || {whole})";
+
+		var reached = tabulate(low) is { } named
+			? $"{named}[c] != 0"
+			: string.Join(" || ", low.Select(static one => one.IsSingle
+				? $"c == {Char(one.From)}"
+				: $"(c >= {Char(one.From)} && c <= {Char(one.To)})"));
+
+		return $"(c < {AsciiSize} ? {reached} : {whole})";
+	}
+
+	/// <summary>How far up a class is answered from a table rather than by asking Unicode.</summary>
+	/// <remarks>
+	/// ASCII and no further, deliberately. The general categories of Latin-1 are as settled
+	/// as ASCII's in practice, but "in practice" is the wrong footing for a table baked into
+	/// a consumer's assembly by one runtime and read by another: below 128 the answer is not
+	/// a fact about a Unicode version.
+	/// </remarks>
+	internal const int AsciiSize = 128;
+
+	/// <summary>The characters below <see cref="AsciiSize"/> an element admits, as ranges.</summary>
+	/// <param name="mask">The element's categories, as a bit per <c>UnicodeCategory</c>.</param>
+	static IReadOnlyList<CharRange> Ascii(Node.Element element, int mask)
+	{
+		var found = new List<CharRange>();
+		var from  = -1;
+
+		for (var c = 0; c <= AsciiSize; c++)
+		{
+			var takes = c < AsciiSize && Admits(element, mask, (char)c);
+
+			if (takes && from < 0)
+				from = c;
+			else if (!takes && from >= 0)
+			{
+				found.Add(new CharRange((char)from, (char)(c - 1)));
+				from = -1;
+			}
+		}
+
+		return found;
+	}
+
+	/// <summary>Whether an element with no C# predicate in it admits a character.</summary>
+	static bool Admits(Node.Element element, int mask, char c)
+	{
+		var takes = false;
+
+		foreach (var range in element.Ranges)
+			if (c >= range.From && c <= range.To)
+			{
+				takes = true;
+				break;
+			}
+
+		if (!takes && mask != 0)
+			takes = (1 << (int)System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) & mask) != 0;
+
+		return takes != element.IsNegated;
 	}
 
 	/// <summary>
