@@ -169,6 +169,20 @@ static class Program
 			return;
 		}
 
+		// `--slope [parses]` is not a benchmark either, and is the one that answers "why":
+		// one shape of predicate at two lengths, timed in a loop per reading, with the
+		// difference over the count being what one more of that shape costs. A ratio over a
+		// whole input mixes a fixed cost, a shape mixture and a size; a slope is one shape.
+		// Run it under DOTNET_TieredCompilation=0 — with tiering on, three hundred warm-up
+		// parses still leave part of the reading at tier 0 and the rows move by half between
+		// runs. See SqlSlope.cs.
+		if (args.Length >= 1 && args[0] == "--slope")
+		{
+			SqlSlope.Run(args.Length >= 2 && int.TryParse(args[1], out var reads) ? reads : 201);
+
+			return;
+		}
+
 		// `--hand [rounds] [iterations]` is not a benchmark either: it measures the SQL
 		// recognizer against the hand-written one in HandSqlTokens.cs, round-robin, after
 		// checking that the two read the same language. See SqlAgainst.cs.

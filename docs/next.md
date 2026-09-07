@@ -14540,3 +14540,65 @@ so teaching `ImmediateCarrier` to carry a recovery would change nothing at all u
 reader itself learns to recover. That is the reader's driver, not the carrier's store, and
 it is a piece of work of a different size.
 
+## Where the reading over kinds spends its extra third
+
+The four character-path changes above left the notation reading at 0.81–1.36 of the
+hand-written one. Standard SQL got none of them — over kinds a rule keeps its loop only
+where it gives back, eight of forty — so it is where the largest number left in the project
+is, and `--slope` is the pair method pointed at it. One shape of predicate, joined by `AND`,
+at 32 terms and at 160; the difference over the count is what one more term costs. The lexer
+comes out of it by `SqlAgainst.Lexers`' trick — a `)` in front is refused at the first token
+and the input is tokenized all the same, and over a slope the entry cancels.
+
+```
+shape                   by hand      tape immediate |     lexed   by hand   now/hand  lex/hand
+a name and a number     0.070 us   0.148 us   0.095 us |   0.024 us   0.017 us     1.34x    1.41x
+  and one operator      0.110 us   0.247 us   0.153 us |   0.046 us   0.029 us     1.39x    1.59x
+  and two more          0.167 us   0.385 us   0.230 us |   0.075 us   0.045 us     1.37x    1.68x
+parenthesized           0.162 us   0.349 us   0.234 us |   0.074 us   0.041 us     1.44x    1.79x
+a null test             0.082 us   0.153 us   0.113 us |   0.045 us   0.037 us     1.37x    1.21x
+a list of three         0.205 us   0.339 us   0.239 us |   0.073 us   0.042 us     1.17x    1.72x
+a cast                  0.145 us   0.278 us   0.195 us |   0.077 us   0.048 us     1.35x    1.58x
+a string                0.087 us   0.188 us   0.126 us |   0.039 us   0.027 us     1.44x    1.43x
+a short name            0.086 us   0.184 us   0.117 us |   0.032 us   0.023 us     1.36x    1.41x
+a long one              0.094 us   0.236 us   0.173 us |   0.083 us   0.029 us     1.84x    2.86x
+```
+
+**Nothing blows up, which is itself the finding.** Every shape is within 1.17–1.44, where
+the character path had a reference operand at 2.60 beside a literal at 1.43. A flat ratio is
+not a construct being read badly; it is a tax paid per token.
+
+**Half of it is the scanner**, and the last two rows say so plainly. They are the same three
+tokens with twenty-two more characters in the first:
+
+* by hand: 29 − 23 = **6 ns for 22 characters**, a quarter of a nanosecond each;
+* generated: 83 − 32 = **51 ns for 22 characters**, two and a quarter each.
+
+Ten to one per character, hidden on ordinary SQL because SQL's tokens are short. The
+generated scanner is a table-driven DFA and pays three dependent loads a character — the
+state's row, the cell, the accept — where a hand-written lexer pays one class test and an
+increment.
+
+**Two things it is not.** Recording what a parse refused costs nothing: a copy with
+`Refuse_DotGram` emptied reads within one per cent of the real one on every shape. And the
+generated parser *allocates less* than the hand-written one on every input (`--bytes`), so
+the gap is not garbage either.
+
+### Tried and not kept: a run on a self-transition
+
+A state whose way on is back to itself is a run of one class, and the table says the same
+thing about every character of it. Taking the run where it starts — `next == state`, then a
+loop with the row and the cell hoisted — is 0.55 ns a character against the 2.2 of stepping
+the table, and takes **41% off a long identifier**: `lex/hand` 2.91 to 1.71.
+
+It also costs about **ten per cent on every short-token shape**, consistently across runs,
+and SQL's own tokens are short. One compare and a branch in a loop that waits on a dependent
+load chain is not free, and a run that is entered and immediately left is all cost.
+
+So the run is right and testing for it at run time is not. What would pay is the scanner
+emitted as **code** rather than as a table — a method a state, with each state's own class
+written out as the test it is, so that a run is a loop the compiler can see rather than a
+branch the loop has to ask about. That is a different scanner, not a patch to this one, and
+the number that justifies it is the one above: a quarter of a nanosecond a character is what
+it is being measured against.
+
