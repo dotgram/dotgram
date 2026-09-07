@@ -14728,6 +14728,64 @@ the keyword trie and the identifier run and nothing else. For standard SQL that 
 letter but five — and `customer_id`, `order_status`, `invoice_total` all begin with one of
 them, which is why the measurement above is what it is.
 
-That analysis is `LexicalAutomaton`'s to make and `LexerEmitter`'s to act on, and it is a
-second way of scanning rather than a change to the one there is. Not started.
+### Built, measured, and taken back out
+
+The analysis works. `WordScan.Of` asks, of every group of first characters state zero
+distinguishes: are the states reachable from it all over one class, all landing back inside
+it, all accepting, with one sink looping to itself — and are the words that accept anything
+else finitely many? Over standard SQL it answers for **twenty-one groups** and refuses
+exactly five letters and the underscore:
+
+```
+starts 'A''a'  parts 402 ranges  plain 135  words  5  e.g. Si, LLi, NDi, NYi
+starts 'C''c'  parts 402 ranges  plain 135  words 14  e.g. ASEi, ASTi, HARi, OUNTi
+starts 'I''i'  parts 402 ranges  plain 135  words  6  e.g. Ni, Si, NTi, NTEGERi
+…                                                    (B, D, N, T, X and _ absent)
+```
+
+The emission was written three ways and none of them paid.
+
+**A test per group in front of the loop** — twenty-one comparisons before every token that
+is not a word. Three to eight times slower than the table it replaced. Obvious in hindsight.
+
+**The machine's own first step, with a byte read off the state it named.** Sound, and the
+byte is nearly free. But the first step has to be *peeled out of the loop* to hang anything
+on it, and a copy with the peel and the word never taken measures **seven per cent** worse
+than no peel at all: what it costs is not the byte but the loop's shape, which was tight and
+is now a prologue and a loop starting from a variable state.
+
+**The run reading a class of its own** rather than the entered state's row, which is a
+window into a `short` array of tens of thousands of cells. Two hundred and fifty-six bytes
+of its own, the shape the seam has — and that recovered most of what the row had cost.
+
+Measured against itself in one process, with and without the word ever taken:
+
+```
+                       word/none
+and a string               0.80x
+named as people do         0.84x
+a long one                 0.85x
+a whole predicate          0.93x
+a name and a number        1.10x
+parenthesized              1.10x
+a list of three            1.10x
+```
+
+Seven to twenty per cent off a realistic name, four to ten per cent onto everything else —
+the same shape of trade the run itself has, on a thinner margin, and stacked on top of it.
+`--hand` reads 1.65, 1.76, 2.04, 1.59, 1.43, 1.58, 1.55 against 1.63, 1.62, 1.89, 1.49,
+1.40, 1.52, 1.47 with the run alone: worse on every row of the yardstick.
+
+So it is taken back out. **What the ceiling promised was 16 to 33 per cent and what the
+thing delivers is half of that**, because the ceiling had no peeled step and tested its class
+with arithmetic rather than a load. The parts that were priced separately say where the rest
+went: the lookup is 0 to 7 per cent (a copy that answers "a name" to every word measures
+within that), the class table is what the seam pays, and the peel is seven.
+
+**What would have to be different.** The word cannot be taken by asking at run time whether
+this is a word — that question costs more than the trie it saves, twice over now. It would
+have to be the scanner's *shape*: state zero written as code, a case per first character,
+each case its own loop and its own lookup, and no loop for the reading to fall out of. That
+is the table replaced rather than short-circuited, and the measurement that would justify it
+is still the seam's 0.58 ns a character against the token machine's 1.2 in a run.
 
