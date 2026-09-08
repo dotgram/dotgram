@@ -405,13 +405,16 @@ TsqlDataType
 	| "INTEGER"i | "INT"i | "SMALLINT"i | "TINYINT"i | "BIGINT"i | "BIT"i
 	| "REAL"i | "DOUBLE"i & "PRECISION"i | "MONEY"i | "SMALLMONEY"i
 	| "DATE"i | "DATETIME"i | "SMALLDATETIME"i
-	| "TEXT"i | "NTEXT"i | "IMAGE"i | "XML"i | "JSON"i
+	| "TEXT"i | "NTEXT"i | "IMAGE"i | "JSON"i
+	| "XML"i & ('(' & XmlContent? & QualifiedName & ')')?
 	| "UNIQUEIDENTIFIER"i | "SQL_VARIANT"i | "ROWVERSION"i | "SYSNAME"i
 	| "GEOGRAPHY"i | "GEOMETRY"i | "HIERARCHYID"i
 	| "INTERVAL"i & IntervalQualifier
 	| QualifiedName & TsqlLength?
 
 TsqlLength = '(' & (Sql92.Lexical.Digits | "MAX"i) & ')'
+
+XmlContent = "CONTENT"i | "DOCUMENT"i
 
 // ── §8's predicate, widened ─────────────────────────────────────────────────
 //
@@ -739,11 +742,14 @@ TsqlDirectSelect : @SqlNode
 //
 // The definition is a query expression and not a whole statement: the syntax forbids a
 // `WITH` inside a `WITH`, and writing it that way is how the grammar says so.
-WithClause    = "WITH"i & XmlNamespaces & (',' & CteDefinition)*
+WithClause    = "WITH"i & ChangeTrackingContext
+			  | "WITH"i & XmlNamespaces & (',' & CteDefinition)*
 			  | "WITH"i & CteDefinition & (',' & CteDefinition)*
 
 // The namespaces a `FOR XML` may use, declared where a named query is declared and in
 // the same breath as one.
+ChangeTrackingContext = "CHANGE_TRACKING_CONTEXT"i & '(' & ValueExpression & ')'
+
 XmlNamespaces = "XMLNAMESPACES"i & '(' & XmlNamespace & (',' & XmlNamespace)* & ')'
 XmlNamespace  = "DEFAULT"i & ValueExpression
 			  | ValueExpression & "AS"i & Identifier
@@ -1120,7 +1126,9 @@ TryCatchStatement : @SqlNode
 		=> @(new SqlNode.TryCatch(tried, caught))
 
 StatementBlock : @SqlNode
-	= "BEGIN"i & body: StatementList & "END"i => @(new SqlNode.Block(body))
+	= "BEGIN"i & "ATOMIC"i & "WITH"i & '(' & OptionList & ')' & body: StatementList & "END"i
+		=> @(new SqlNode.Block(body))
+	| "BEGIN"i & body: StatementList & "END"i => @(new SqlNode.Block(body))
 
 ConditionalStatement : @SqlNode
 	= "IF"i & c: SearchCondition & then: TsqlStatement & ("ELSE"i & other: TsqlStatement)?
@@ -1144,7 +1152,7 @@ TransactionStatement : @SqlNode
 
 TranWord    = "TRANSACTION"i | "TRAN"i | "WORK"i
 TranMark    = "WITH"i & "MARK"i & ValueExpression?
-TranDelayed = "WITH"i & '(' & Identifier & '=' & Identifier & ')'
+TranDelayed = "WITH"i & '(' & OptionList & ')'
 
 TranName : @string = t: Identifier => @(t) | t: Tsql.Variable => @(t)
 
@@ -1159,9 +1167,9 @@ Declaration : @SqlNode
 	= name: Tsql.Variable & "AS"i? & d: DeclaredAs => @(d with { Name = name })
 
 DeclaredAs : @SqlNode.Declared
-	= "TABLE"i & '(' & TableBody & ')'          => @(new SqlNode.Declared("", "TABLE", null))
-	| "CURSOR"i                                 => @(new SqlNode.Declared("", "CURSOR", null))
-	| type: DataType & ('=' & v: SetValue)?     => @(new SqlNode.Declared("", type, v))
+	= "TABLE"i & '(' & TableBody & ')'                    => @(new SqlNode.Declared("", "TABLE", null))
+	| "CURSOR"i                                           => @(new SqlNode.Declared("", "CURSOR", null))
+	| type: DataType & NullSpec? & ('=' & v: SetValue)?   => @(new SqlNode.Declared("", type, v))
 
 CursorOption = "LOCAL"i | "GLOBAL"i | "FORWARD_ONLY"i | "SCROLL"i | "STATIC"i | "KEYSET"i
 			 | "DYNAMIC"i | "FAST_FORWARD"i | "READ_ONLY"i | "SCROLL_LOCKS"i | "OPTIMISTIC"i
@@ -1176,8 +1184,8 @@ IndexOrder = "CLUSTERED"i | "NONCLUSTERED"i
 // `GENERATED ALWAYS AS { ROW | TRANSACTION_ID | SEQUENCE_NUMBER } { START | END }`, and
 // `END` is a reserved word — so the two ends are named rather than read as identifiers,
 // which is what the published syntax says they are anyway.
-GeneratedWhat = "ROW"i | "TRANSACTION_ID"i | "SEQUENCE_NUMBER"i
-GeneratedWhen = "START"i | "END"i
+GeneratedWhat = word
+GeneratedWhen = word
 
 // ── SET ─────────────────────────────────────────────────────────────────────
 //
@@ -1192,7 +1200,11 @@ SetStatement : @SqlNode
 		=> @(new SqlNode.Setting(option, v))
 	| "SET"i & name: Tsql.Variable & v: AssignTail
 		=> @(new SqlNode.Assign(name, null, v))
-	| "SET"i & option: SetOptions & OnOff?
+	| "SET"i & option: SetOptions & OnOff
+		=> @(new SqlNode.Setting(option, null))
+	| "SET"i & option: SetOptions & v: ValueExpression
+		=> @(new SqlNode.Setting(option, v))
+	| "SET"i & option: SetOptions
 		=> @(new SqlNode.Setting(option, null))
 
 SetReserved = "ROWCOUNT"i | "TEXTSIZE"i | "OFFSETS"i | "STATISTICS"i | "USER"i
@@ -1282,7 +1294,10 @@ WaitKind  = "DELAY"i | "TIME"i
 // syntaxes rather than one written twice; and a file table has no columns at all, its
 // shape being the one the feature gives it.
 CreateTableStatement : @SqlNode
-	= "CREATE"i & "TABLE"i & name: QualifiedName & TableAs? & '(' & body: TableBody & ')'
+	= "CREATE"i & "TABLE"i & name: QualifiedName & ('(' & columns: ColumnList & ')')?
+	  & OptionsWith & "AS"i & q: DirectSelect
+		=> @(new SqlNode.CreateTable(name, new SqlNode[] { q }))
+	| "CREATE"i & "TABLE"i & name: QualifiedName & TableAs? & '(' & body: TableBody & ')'
 	  & TableAs? & TablePlacement* & OptionsWith?
 		=> @(new SqlNode.CreateTable(name, body))
 	| "CREATE"i & "TABLE"i & name: QualifiedName & TableAs & TablePlacement* & OptionsWith?
@@ -1295,6 +1310,7 @@ TablePlacement = "ON"i & PlacementTarget
 			   | "FILESTREAM_ON"i & PlacementTarget
 
 PlacementTarget = "DEFAULT"i
+				| Sql92.Lexical.CharacterStringLiteral
 				| Sql92.Lexical.DelimitedIdentifier
 				| Identifier & ('(' & ColumnList & ')')?
 
@@ -1302,6 +1318,9 @@ OptionsWith = "WITH"i & '(' & OptionList & ')'
 OptionList  = OptionSetting & (',' & OptionSetting)*
 
 OptionSetting = "DEFAULT"i & '=' & OptionValue
+			  | "MOVE"i & "TO"i & PlacementTarget
+			  | "PARTITION"i & '(' & Identifier & "RANGE"i & LeftOrRight?
+				& "FOR"i & "VALUES"i & '(' & Arguments? & ')' & ')'
 			  | OptionName & OptionTail?
 
 // An option's name is not an identifier: `WITH (FILLFACTOR = 80)` names a word T-SQL
@@ -1310,7 +1329,15 @@ OptionSetting = "DEFAULT"i & '=' & OptionValue
 // says (§4.6). It was twelve reserved words written out beside `Identifier`, which was a
 // catalogue of what SQL Server happened to have called its options and went stale on its
 // own.
-OptionName = word
+//
+// A run of them, because the published syntax says a run in four places: `MOVE TO`,
+// `CLUSTERED COLUMNSTORE INDEX`, `TRANSACTION ISOLATION LEVEL = SNAPSHOT` inside a
+// `BEGIN ATOMIC WITH`, and every one of the two hundred database settings. Where it ends
+// is the syntax: `ON` and `OFF` are what an option is set to rather than part of its
+// name, and `WITH` begins the clause after the list.
+OptionName = (?!OptionEnd & word)+
+
+OptionEnd  = "WITH"i | OnOff
 
 OptionTail = '=' & OptionValue & OnPartitions?
 		   | OnOff & ('(' & OptionList & ')')?
@@ -1324,6 +1351,7 @@ OptionValue : @SqlNode
 	| "OFF"i & ('(' & OptionList & ')')? => @(new SqlNode.Column("OFF"))
 	| "ON"i  & ('(' & OptionList & ')')? => @(new SqlNode.Column("ON"))
 	| name: Identifier & '(' & OptionList & ')' => @(new SqlNode.Column(name))
+	| '(' & OptionList & ')' => @(SqlNode.NullValue)
 	| v: ValueExpression & OptionUnit? => @(v)
 	| w: word => @(new SqlNode.Column(w))
 
@@ -1359,6 +1387,7 @@ ColumnTail
 	= "FILESTREAM"i
 	| "COLLATE"i & QualifiedName
 	| "SPARSE"i
+	| "HIDDEN"i
 	| "MASKED"i & "WITH"i & '(' & OptionList & ')'
 	| "IDENTITY"i & ('(' & Arguments & ')')?
 	| "NOT"i & "FOR"i & "REPLICATION"i
@@ -1369,19 +1398,27 @@ ColumnTail
 	| "ENCRYPTED"i & "WITH"i & '(' & OptionList & ')'
 	| "PERSISTED"i
 	| "COLUMN_SET"i & "FOR"i & "ALL_SPARSE_COLUMNS"i
-	| "CONSTRAINT"i & Identifier & ConstraintBody
+	| "CONSTRAINT"i & Identifier & NamedConstraint
 	| c: ConstraintBody
 	| i: TableIndex
 
+// The published syntax gives a nullability a constraint name of its own, and nothing else
+// about a nullability suggests it can have one.
+NamedConstraint = NullSpec | ConstraintBody
+
+NullSpec = "NOT"i & "NULL"i | "NULL"i
+
 // ── Constraints ─────────────────────────────────────────────────────────────
 ConstraintBody : @SqlNode.Constraint
-	= "PRIMARY"i & "KEY"i & IndexOrder? & columns: IndexColumns? & IndexWith? & IndexOn?
+	= "PRIMARY"i & "KEY"i & IndexOrder? & "HASH"i? & columns: IndexColumns?
+	  & IndexWith? & IndexOn? & Enforced?
 		=> @(SqlNode.Constrained("PRIMARY KEY", columns, null))
-	| "UNIQUE"i & IndexOrder? & columns: IndexColumns? & IndexWith? & IndexOn?
+	| "UNIQUE"i & IndexOrder? & "HASH"i? & columns: IndexColumns?
+	  & IndexWith? & IndexOn? & Enforced?
 		=> @(SqlNode.Constrained("UNIQUE", columns, null))
-	| "FOREIGN"i & "KEY"i & columns: IndexColumns? & References
+	| "FOREIGN"i & "KEY"i & columns: IndexColumns? & References & Enforced?
 		=> @(SqlNode.Constrained("FOREIGN KEY", columns, null))
-	| References
+	| References & Enforced?
 		=> @(SqlNode.Constrained("REFERENCES", null, null))
 	| "CHECK"i & ("NOT"i & "FOR"i & "REPLICATION"i)? & '(' & c: SearchCondition & ')'
 		=> @(SqlNode.Constrained("CHECK", null, c))
@@ -1389,6 +1426,10 @@ ConstraintBody : @SqlNode.Constraint
 		=> @(SqlNode.Constrained("CONNECTION", null, null))
 	| "DEFAULT"i & v: ValueExpression & ("FOR"i & Identifier)?
 		=> @(SqlNode.Constrained("DEFAULT", null, v))
+
+// A key a warehouse declares and does not check. Not the box's syntax and refused there,
+// which is where the version chain will put it.
+Enforced = "NOT"i? & "ENFORCED"i
 
 // Which node tables an edge may join, which is the one constraint only a graph has.
 EdgePair = QualifiedName & "TO"i & QualifiedName
@@ -1436,13 +1477,17 @@ AlterTableStatement : @SqlNode
 		=> @(a with { Name = name })
 
 AlterTableAction : @SqlNode.AlterTable
-	= "ADD"i & body: TableBody
+	= "ADD"i & c: ConstraintBody & "FOR"i & Identifier
+		=> @(SqlNode.Altered("ADD", new SqlNode[] { c }))
+	| "ADD"i & "CONSTRAINT"i & name: Identifier & c: ConstraintBody & "FOR"i & Identifier
+		=> @(SqlNode.Altered("ADD", new SqlNode[] { c with { Name = name } }))
+	| "ADD"i & body: TableBody
 		=> @(SqlNode.Altered("ADD", body))
 	| "WITH"i & CheckWord & "ADD"i & body: TableBody
 		=> @(SqlNode.Altered("ADD", body))
-	| "ALTER"i & "COLUMN"i & column: ColumnDefinition
+	| "ALTER"i & "COLUMN"i & column: ColumnDefinition & OptionsWith?
 		=> @(SqlNode.Altered("ALTER COLUMN", new SqlNode[] { column }))
-	| "ALTER"i & "COLUMN"i & name: Identifier & word: AlterColumnWord
+	| "ALTER"i & "COLUMN"i & name: Identifier & flag: AlterColumnWord & OptionsWith?
 		=> @(SqlNode.Altered("ALTER COLUMN", null))
 	| "DROP"i & first: DropTarget & (',' & rest: DropTarget)*
 		=> @(SqlNode.Altered("DROP", SqlNode.Listed(first, rest)))
@@ -1450,6 +1495,14 @@ AlterTableAction : @SqlNode.AlterTable
 		=> @(SqlNode.Altered("CHECK", null))
 	| EnableWord & "TRIGGER"i & ConstraintNames
 		=> @(SqlNode.Altered("TRIGGER", null))
+	| EnableWord & "CHANGE_TRACKING"i & OptionsWith?
+		=> @(SqlNode.Altered("CHANGE_TRACKING", null))
+	| EnableWord & "FILETABLE_NAMESPACE"i
+		=> @(SqlNode.Altered("FILETABLE_NAMESPACE", null))
+	| "ALTER"i & "INDEX"i & Identifier & "REBUILD"i & IndexOrder? & OptionsWith?
+		=> @(SqlNode.Altered("ALTER INDEX", null))
+	| SplitOrMerge & "RANGE"i & '(' & SetValue & ')'
+		=> @(SqlNode.Altered("RANGE", null))
 	| "SET"i & '(' & OptionList & ')'
 		=> @(SqlNode.Altered("SET", null))
 	| "REBUILD"i & ("PARTITION"i & '=' & PartitionWhich)? & OptionsWith?
@@ -1458,8 +1511,14 @@ AlterTableAction : @SqlNode.AlterTable
 	  & ("PARTITION"i & ValueExpression)? & OptionsWith?
 		=> @(SqlNode.Altered("SWITCH", null))
 
-AlterColumnWord  = "ADD"i & ColumnTail | "DROP"i & ColumnTail
+AlterColumnWord  = "ADD"i & AlterColumnFlag | "DROP"i & AlterColumnFlag
+
+AlterColumnFlag  = "MASKED"i & ("WITH"i & '(' & OptionList & ')')?
+				 | "HIDDEN"i
+				 | ColumnTail
 CheckWord        = "CHECK"i | "NOCHECK"i
+SplitOrMerge     = "SPLIT"i | "MERGE"i
+LeftOrRight      = "LEFT"i | "RIGHT"i
 EnableWord       = "ENABLE"i | "DISABLE"i
 ConstraintNames  = "ALL"i | Identifier & (',' & Identifier)*
 PartitionWhich   = "ALL"i | ValueExpression
@@ -1512,7 +1571,7 @@ RoutineParameters : @SqlNode[]
 		=> @(SqlNode.Listed(first, rest))
 
 RoutineParameter : @SqlNode
-	= name: Tsql.Variable & "AS"i? & type: DataType & "VARYING"i? & "NULL"i?
+	= name: Tsql.Variable & "AS"i? & type: DataType & "VARYING"i? & NullSpec?
 	  & ('=' & v: SetValue)? & ParameterWay*
 		=> @(new SqlNode.Parameter(name, type, v))
 
@@ -1523,7 +1582,12 @@ RoutineOptions = "WITH"i & RoutineOption & (',' & RoutineOption)*
 RoutineOption = "EXECUTE"i & "AS"i & ExecuteAsWho
 			  | "RETURNS"i & "NULL"i & "ON"i & "NULL"i & "INPUT"i
 			  | "CALLED"i & "ON"i & "NULL"i & "INPUT"i
-			  | Identifier
+
+			  // One word and not a run of them, unlike an option inside brackets: this
+			  // list is not bracketed and `AS` follows it, so a run would take the `AS`
+			  // and the body behind it. What the published syntax names here is one word
+			  // anyway — `ENCRYPTION`, `SCHEMABINDING`, `NATIVE_COMPILATION`, `INLINE = ON`.
+			  | word & OptionTail?
 
 ExecuteAsWho = "CALLER"i | "SELF"i | "OWNER"i
 			 | Sql92.Lexical.CharacterStringLiteral
@@ -1584,7 +1648,10 @@ TriggerEvent : @string
 
 // ── CREATE VIEW ─────────────────────────────────────────────────────────────
 ViewStatement : @SqlNode
-	= "VIEW"i & name: QualifiedName & ('(' & columns: ColumnList & ')')? & RoutineOptions?
+	= "MATERIALIZED"i & "VIEW"i & name: QualifiedName & OptionsWith?
+	  & "AS"i & q: DirectSelect
+		=> @(new SqlNode.CreateView(name, null, q))
+	| "VIEW"i & name: QualifiedName & ('(' & columns: ColumnList & ')')? & RoutineOptions?
 	  & "AS"i & q: DirectSelect & ("WITH"i & "CHECK"i & "OPTION"i)?
 		=> @(new SqlNode.CreateView(name, columns, q))
 
@@ -1594,7 +1661,15 @@ ViewStatement : @SqlNode
 // thing said in the same words, so the columns, the options, the placement and the
 // filter are shared and only the header is new.
 CreateIndexStatement : @SqlNode
-	= "CREATE"i & "UNIQUE"i? & IndexOrder? & "INDEX"i & name: Identifier
+	= "CREATE"i & "SELECTIVE"i & "XML"i & "INDEX"i & name: Identifier?
+	  & "ON"i & on: QualifiedName & '(' & ColumnList & ')'
+	  & ("WITH"i & XmlNamespaces)? & paths: SelectivePaths & IndexWith?
+		=> @(new SqlNode.CreateIndex(name ?? "", on, null))
+	| "CREATE"i & "PRIMARY"i? & "XML"i & "INDEX"i & name: Identifier
+	  & "ON"i & on: QualifiedName & columns: IndexColumns
+	  & XmlIndexUsing? & IndexWith?
+		=> @(new SqlNode.CreateIndex(name, on, columns))
+	| "CREATE"i & "UNIQUE"i? & IndexOrder? & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
 	  & ("INCLUDE"i & '(' & ColumnList & ')')?
 	  & ("WHERE"i & SearchCondition)?
@@ -1609,10 +1684,40 @@ CreateIndexStatement : @SqlNode
 
 // `ALTER INDEX` names one index or all of them, and then says what to do.
 AlterIndexStatement : @SqlNode
-	= "ALTER"i & "INDEX"i & name: IndexTarget & "ON"i & on: QualifiedName & a: AlterIndexAction
+	= "ALTER"i & "INDEX"i & name: IndexTarget & "ON"i & on: QualifiedName
+	  & ("WITH"i & XmlNamespaces)? & SelectivePaths & IndexWith?
+		=> @(new SqlNode.AlterIndex(name, on, "FOR"))
+	| "ALTER"i & "INDEX"i & name: IndexTarget & "ON"i & on: QualifiedName & a: AlterIndexAction
 		=> @(new SqlNode.AlterIndex(name, on, a))
 
 IndexTarget : @string = "ALL"i => @("ALL") | t: Identifier => @(t)
+
+XmlIndexUsing = "USING"i & "XML"i & "INDEX"i & Identifier & ("FOR"i & word)?
+
+// `FOR ( name = '/a/b' AS XQUERY 'xs:double' MAXLENGTH (200) SINGLETON, … )`, and the
+// three ways `ALTER INDEX` changes one of them.
+SelectivePaths : @string[]
+	= "FOR"i & '(' & first: SelectivePath & (',' & rest: SelectivePath)* & ')'
+		=> @(SqlNode.Named(first, rest))
+
+SelectivePath : @string
+	= "ADD"i & p: PromotedPath          => @(p)
+	| "ALTER"i & "PATH"i & p: PromotedPath => @(p)
+	| "REMOVE"i & name: Identifier      => @(name)
+	| p: PromotedPath                   => @(p)
+
+PromotedPath : @string
+	= name: Identifier & '=' & path: Sql92.Lexical.CharacterStringLiteral & PathHint*
+		=> @(name)
+	| path: Sql92.Lexical.CharacterStringLiteral & PathHint*
+		=> @(path)
+
+PathHint = "AS"i & "XQUERY"i & Sql92.Lexical.CharacterStringLiteral? & PathLength?
+		 | "AS"i & "SQL"i & DataType
+		 | "SINGLETON"i
+		 | "AS"i & word
+
+PathLength = "MAXLENGTH"i & '(' & Sql92.Lexical.UnsignedNumericLiteral & ')'
 
 AlterIndexAction : @string
 	= "REBUILD"i & ("PARTITION"i & '=' & PartitionWhich)? & IndexWith? => @("REBUILD")
@@ -1747,9 +1852,7 @@ FileGroupAction = "DEFAULT"i | "NAME"i & '=' & Identifier | word
 DatabaseOption : @SqlNode
 	= name: DatabaseOptionName & v: DatabaseOptionValue? => @(new SqlNode.Setting(name, v))
 
-DatabaseOptionName : @string = t: (?!DatabaseOptionEnd & word)+ => @(t)
-
-DatabaseOptionEnd = "WITH"i | OnOff
+DatabaseOptionName : @string = t: OptionName => @(t)
 
 DatabaseOptionValue : @SqlNode
 	= '=' & v: OptionValue              => @(v)

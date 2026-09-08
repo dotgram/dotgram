@@ -895,6 +895,98 @@ public sealed class TransactSqlTests
 	public void And_what_only_begins_like_a_database_is_left_alone(string input) =>
 		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
 
+	/// <summary>What a second reading of the published syntax found missing.</summary>
+	/// <remarks>
+	/// Written clause by clause against Microsoft's own blocks rather than from the corpus:
+	/// each of these is a line of `<column_definition>`, `<column_constraint>`,
+	/// `ALTER TABLE`, `CREATE PROCEDURE` or `<data_type>` that the grammar did not have.
+	/// The corpus is what noticed; the syntax is what said what to write.
+	/// </remarks>
+	[Theory]
+	// `<data_type>`: xml takes a schema collection where everything else takes a precision.
+	[InlineData("CREATE TABLE t (c1 XML (CONTENT dbo.sc), c2 XML (sc), c3 XML)")]
+
+	// `[ [ CONSTRAINT constraint_name ] { NULL | NOT NULL } ]` — a nullability may be named.
+	[InlineData("CREATE TABLE t (c1 INT CONSTRAINT nn NOT NULL)")]
+
+	// `GENERATED ALWAYS AS { ROW | TRANSACTION_ID | SEQUENCE_NUMBER } { START | END } [ HIDDEN ]`,
+	// and the two words the ledger adds to that list.
+	[InlineData("CREATE TABLE t (a DATETIME2 GENERATED ALWAYS AS ROW START HIDDEN NOT NULL)")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c1 VARBINARY (85) GENERATED ALWAYS AS SUSER_SID START")]
+
+	// `HIDDEN` stands with `SPARSE` and the rest, after `ADD` and `DROP` and on its own.
+	[InlineData("ALTER TABLE t ALTER COLUMN c1 INT HIDDEN NULL")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c1 ADD HIDDEN")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c1 DROP MASKED")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c1 ADD ROWGUIDCOL WITH (ONLINE = ON)")]
+
+	// The published `ALTER TABLE` actions that were not there.
+	[InlineData("ALTER TABLE t ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON)")]
+	[InlineData("ALTER TABLE t DISABLE FILETABLE_NAMESPACE")]
+	[InlineData("ALTER TABLE t ALTER INDEX ix REBUILD WITH (BUCKET_COUNT = 1)")]
+	[InlineData("ALTER TABLE t MERGE RANGE (NULL)")]
+	[InlineData("ALTER TABLE t SPLIT RANGE (10)")]
+	[InlineData("ALTER TABLE t DROP CONSTRAINT c WITH (MOVE TO fg, ONLINE = ON)")]
+
+	// `DECLARE` gives a variable a nullability, which nothing about a variable suggests.
+	[InlineData("DECLARE @v AS INT NOT NULL = 4")]
+	[InlineData("DECLARE @v AS INT NULL")]
+
+	// `[ NULL | NOT NULL ] [ = default ]`, in that order, from the natively compiled form.
+	[InlineData("CREATE PROCEDURE p @p1 INT, @p2 INT NULL = NULL, @p3 INT NOT NULL AS SELECT 1")]
+	[InlineData("CREATE PROCEDURE p WITH NATIVE_COMPILATION, SCHEMABINDING AS " +
+		"BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL = SNAPSHOT, LANGUAGE = N'us_english') SELECT 1 END")]
+
+	// An option's name is a run of words in four places at once, and its value may be a list.
+	[InlineData("ALTER DATABASE db SET QUERY_STORE (CLEANUP_POLICY = (STALE_QUERY_THRESHOLD_DAYS = 367))")]
+	[InlineData("CREATE TABLE t (a INT) WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = HASH(a))")]
+
+	// The selective XML index, which is the one index whose shape is its own.
+	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (path1 = '/a/b')")]
+	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) WITH XMLNAMESPACES ('urn:a' AS ns) " +
+		"FOR (p1 = '/a/b' AS XQUERY 'xs:double', p2 = '/a/c' AS XQUERY 'xs:string' MAXLENGTH (200) SINGLETON, " +
+		"p3 = '/a/d' AS SQL NVARCHAR (100)) WITH (PAD_INDEX = ON)")]
+	[InlineData("ALTER INDEX sxi ON t FOR (REMOVE path1)")]
+	[InlineData("ALTER INDEX sxi ON t WITH XMLNAMESPACES ('urn:a' AS ns) FOR (ADD p9 = '/a/e')")]
+	[InlineData("CREATE PRIMARY XML INDEX pxi ON t (c)")]
+	[InlineData("CREATE XML INDEX xi ON t (c) USING XML INDEX pxi FOR PATH")]
+
+	// A warehouse's table and view, which say the distribution before the query.
+	[InlineData("CREATE TABLE dbo.t1 (c1, c2) WITH (DISTRIBUTION = ROUND_ROBIN) AS SELECT a, b FROM u")]
+	[InlineData("CREATE MATERIALIZED VIEW v WITH (DISTRIBUTION = HASH(c5)) AS SELECT c5 FROM t")]
+
+	// `<collate clause>` follows a character expression and not only a bare column.
+	[InlineData("SELECT a COLLATE Albanian_BIN")]
+	[InlineData("SELECT (a) COLLATE Albanian_BIN")]
+	[InlineData("SELECT t.a COLLATE Albanian_BIN")]
+
+	// `WITH CHANGE_TRACKING_CONTEXT ( context )` in front of the statement, on its own.
+	[InlineData("WITH CHANGE_TRACKING_CONTEXT (0xff) INSERT INTO t (a) VALUES (1)")]
+
+	// `SET LANGUAGE us_english` — a setting and one value, which a third of them take.
+	[InlineData("SET LANGUAGE us_english")]
+	[InlineData("SET DATEFORMAT mdy")]
+	[InlineData("COMMIT TRANSACTION WITH (DELAYED_DURABILITY = ON)")]
+	public void The_published_syntax_reads(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>And where the engine and ScriptDom disagree, the engine wins above 90.</summary>
+	/// <remarks>
+	/// ScriptDom reads a cursor variable with a default and a `CHANGE_TRACKING_CONTEXT`
+	/// joined to a named query by a comma. The engine answers `Incorrect syntax` to both,
+	/// and the published syntax gives neither — a cursor has no default, and the context
+	/// stands in front of the statement on its own.
+	/// </remarks>
+	[Theory]
+	[InlineData("DECLARE @c AS CURSOR = 'x'")]
+	[InlineData("WITH CHANGE_TRACKING_CONTEXT (0xff), c (a) AS (SELECT a FROM t) INSERT INTO u (a) SELECT a FROM c")]
+	public void And_what_only_ScriptDom_reads_is_refused(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
 	// ── And builds the standard's tree ───────────────────────────────────────────
 
 	/// <summary>

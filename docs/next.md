@@ -15827,3 +15827,87 @@ by both.
 `SERVICE_OBJECTIVE`, `ELASTIC_POOL`, `AS COPY OF` — twenty-four of them come back as
 `Msg 40514`, which is SQL Server saying the statement belongs to a database it is not. The
 same category as the Fabric and PDW surface found earlier, and not a defect on either side.
+
+## Reading the published syntax again, clause by clause
+
+The last few waves were written from what the corpus refused, which finds features in the
+order somebody's test file happens to mention them. This one went the other way: fetch
+Microsoft's own syntax blocks for the statements already implemented and diff them against
+the rules, line by line. Twenty-odd divergences, most of them one line each, and every one
+is a clause the published grammar has and this did not.
+
+**`<data_type>`.** `xml` takes a schema collection where every other type takes a
+precision — `xml ( [ CONTENT | DOCUMENT ] xml_schema_collection )` — and `XML` was in the
+list of types that take nothing.
+
+**`<column_definition>`.** `[ [ CONSTRAINT constraint_name ] { NULL | NOT NULL } ]`: a
+nullability may carry a constraint name, which nothing else about a nullability suggests.
+`GENERATED ALWAYS AS { ROW | TRANSACTION_ID | SEQUENCE_NUMBER } { START | END } [ HIDDEN ]`
+was written as those three words and the ledger says two more; which words they are is a
+catalogue, that there are two of them is the syntax, so it reads two words. `HIDDEN` stands
+with `SPARSE` and the rest.
+
+**`ALTER TABLE`.** `{ ADD | DROP } { ROWGUIDCOL | PERSISTED | NOT FOR REPLICATION | SPARSE
+| HIDDEN }` and `{ ADD | DROP } MASKED [ WITH ( … ) ]` — `HIDDEN` and a bare `MASKED` were
+missing, and so was the `[ WITH ( ONLINE = ON | OFF ) ]` that follows either shape of the
+clause. `{ ENABLE | DISABLE } CHANGE_TRACKING`, `FILETABLE_NAMESPACE`, the memory-optimized
+`ALTER INDEX … REBUILD`, and Synapse's `{ SPLIT | MERGE } RANGE (v)` were not there at all.
+
+**`CREATE PROCEDURE`.** The natively compiled form gives a parameter `[ NULL | NOT NULL ]`
+before its default, and a body that is `BEGIN ATOMIC WITH ( <set_option> [ ,…n ] )`.
+`DECLARE` gives a variable the same nullability, which is the published syntax and not
+something a corpus would suggest.
+
+**The selective XML index**, which is the one index whose shape is its own: it says which
+paths inside the column it promotes, each a string with an optional type hint, and its
+`WITH XMLNAMESPACES` stands *in front of* the `FOR` it belongs to — the only place in
+T-SQL where a `WITH` precedes its own clause.
+
+## An option's name is a run of words
+
+The one thing the audit changed rather than added. `word` had made an option's name one
+word; the published syntax says a run of them in four places at once —
+
+```
+MOVE TO { partition_scheme_name ( column_name ) | filegroup | "default" }
+CLUSTERED COLUMNSTORE INDEX
+TRANSACTION ISOLATION LEVEL = { SNAPSHOT | REPEATABLE READ | SERIALIZABLE }
+```
+
+— plus every one of the two hundred database settings, which had a rule of their own for
+exactly this reason. Now they share it, and where the run ends is the syntax rather than a
+list: `ON` and `OFF` are what an option is set to, `WITH` begins the clause after it.
+
+**And where it must stay one word, it says so.** A routine's option list is not bracketed
+and `AS` follows it, so a run there takes the `AS` and the whole body behind it. The
+published syntax names one word in that position anyway. This is the third time the same
+trap has been paid for — an optional or repeated thing swallowing the clause after it, and
+the parse then stopping one token past what it ate — and it is still the notation's turn to
+say something about it.
+
+## What the engine settled
+
+Two places where ScriptDom reads what SQL Server refuses, and the rule is that above
+compatibility level 90 the engine is the authority:
+
+- `DECLARE @c AS CURSOR = 'x'` — ScriptDom takes `CURSOR` for a type name and lets it have
+  a default. The published syntax gives a cursor variable no default and the engine answers
+  `Incorrect syntax`.
+- `WITH CHANGE_TRACKING_CONTEXT (0xff), cte (a) AS (…) INSERT …` — the published syntax puts
+  the context in front of the statement on its own, not comma-joined to a named query.
+
+Both were read here for a wave and are refused now.
+
+Of everything in the corpus, **52.5% to 58.0%**, and 4,284 statements read by both this
+grammar and the engine. The over-reading that is left is almost entirely other products'
+surface — Synapse's distributions, Fabric's `CREATE MATERIALIZED VIEW`, Azure's `EDITION`
+and `SERVICE_OBJECTIVE`, the ledger's `GENERATED ALWAYS AS SUSER_SID` — which is what the
+version chain is for and not a defect while there is one dialect.
+
+## Open: a member and then anything
+
+`SELECT t::a` reads and `SELECT t::a + 1` does not, nor `SELECT t::a COLLATE X`, nor
+`t::a AT TIME ZONE 'x'`. A member reached through `::` is read and then the value tower
+will not continue over it — `t.a + 1` is fine, so it is the `Member*` suffix and not the
+name. Sixty-odd statements of the corpus, and worth its own look: it is either the climb
+not seeing what a rebound primary consumed, or the suffix committing where it should not.
