@@ -15588,3 +15588,55 @@ A statement in there can take the connection down with it: a severity the server
 session over rather than answers. `--engine` now checks the state before each statement and
 builds the session again where it has gone, which costs nothing on the thousands that do not
 and is the difference between a number and a stack trace.
+
+## The tables, and the method that would not fit
+
+`CREATE TABLE` is the largest single kind in the corpus — 631 statements, twice all the DML
+together — and it pulls the most behind it: a column definition is what `ALTER TABLE … ADD`
+adds and what `ALTER TABLE … ALTER COLUMN` changes, and the body a table variable declares
+is the same thing smaller. So the body written for `DECLARE @t TABLE` grew into the real
+one, and `ALTER TABLE`'s nine actions were written beside it.
+
+The option lists — `WITH (DATA_COMPRESSION = PAGE ON PARTITIONS (1 TO 4))`,
+`WITH (FILLFACTOR = 80)` — are a shape with an open vocabulary, as the table hints are and
+for the same reason. Two things the published syntax settled that a guess would not have:
+`GENERATED ALWAYS AS { ROW | TRANSACTION_ID | SEQUENCE_NUMBER } { START | END }` names its
+words, and `END` is reserved, so they cannot be read as identifiers. And an option's *name*
+can be a reserved word too — `FILLFACTOR` is one — which an identifier cannot be.
+
+```
+                                   count    read
+CreateTableStatement                 631     259   41.0%
+AlterTableAddTableElementStatement    95      48   50.5%
+AlterTableAlterColumnStatement       144      38   26.4%
+```
+
+Of everything in the corpus, **28.8% to 34.4%**.
+
+### And the generator ran out of method
+
+Adding them put the statement entry point's materializer past two thousand basic blocks, and
+the build stopped on `GRAM5003`. The cause took a while and was not where the message
+pointed.
+
+**The direct walk had no division at all.** The tape's materializer divides its rules into
+methods under a budget — RyuJIT stops optimizing past about two thousand — and the direct
+walk was one method however many rules it held. So no rule was too big and the advice had
+nothing to answer: the method was the sum of all of them.
+
+**And the walk around the arms is most of what a large one costs.** Of the 2,132 the arms
+were about 800. A division triggered by the arms' own total therefore never fires, and one
+counted from them says one part where the method needs two. So the method is measured whole
+— rendered undivided, counted, rendered again in parts only where the count says it must be
+— and the count is two at least, because what moving an arm out buys is its body while what
+stays behind is a label.
+
+The parts are local functions, as the tape's are; `text` is handed over because a span
+cannot be a field of the frame a local function captures, and so are `read` and `slot`.
+
+**The guard against it coming back is the build.** `DotGram.Parsers` treats warnings as
+errors, so a materializer left over the limit stops it — which is how this was found. A unit
+test would have been better and there is not one: a synthetic grammar of alternatives is
+compiled on the tape rather than as methods, and one written as a chain deep enough
+overflows the generator's own stack while compiling it. That last is worth writing down on
+its own.

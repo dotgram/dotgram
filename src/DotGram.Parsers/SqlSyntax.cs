@@ -244,10 +244,57 @@ public abstract record SqlNode
 	/// </summary>
 	public sealed record Command(string Word, SqlNode[] Arguments) : SqlNode;
 
+	// ---- the tables ---------------------------------------------------------------------------
+
+	/// <summary>A table declared: its name, and the columns, constraints and indexes in it.</summary>
+	public sealed record CreateTable(string Name, SqlNode[] Elements) : SqlNode;
+
+	/// <summary>
+	/// One column: its name, the type as written, the expression where it is computed rather
+	/// than stored, and what is said about it after that.
+	/// </summary>
+	public sealed record Field(
+		string Name, string? Type, SqlNode? Computed, SqlNode[] Constraints) : SqlNode;
+
+	/// <summary>
+	/// A constraint or an index, written on a column or on the table: its name where it was
+	/// given one, which kind it is, and the columns it names.
+	/// </summary>
+	public sealed record Constraint(
+		string? Name, string Kind, string[]? Columns, SqlNode? Check) : SqlNode;
+
+	/// <summary>A table changed: its name, what is being done, and to what.</summary>
+	public sealed record AlterTable(string Name, string Action, SqlNode[] Elements) : SqlNode;
+
 	// ---- how a parser makes these ------------------------------------------------------------
 
 	/// <summary>What a call with no arguments is handed, once rather than per call.</summary>
 	public static readonly SqlNode[] None = [];
+
+	// The statements build through these rather than inline in their `=>`, and that is not
+	// style: `GRAM5003` said the materializing method for the statement entry point was past
+	// the size at which the JIT stops optimizing, and the diagnostic's own advice is to build
+	// the value in a method of your own. Eleven `new SqlNode.Command(word, v is null ? None :
+	// new SqlNode[] { v })` in one switch is a great deal of emitted branching for very
+	// little said; one call each is the same tree and a fraction of the code.
+
+	/// <summary>A statement that is a word and one value, or a word and none.</summary>
+	public static Command Commanded(string word, SqlNode? value) =>
+		new(word, value is null ? None : [value]);
+
+	/// <summary>The same where the values arrived as a list that may not be there.</summary>
+	public static Command Commanded(string word, SqlNode[]? values) => new(word, values ?? None);
+
+	/// <summary>A constraint written without a name, which is most of them.</summary>
+	public static Constraint Constrained(string kind, string[]? columns, SqlNode? check) =>
+		new(null, kind, columns, check);
+
+	/// <summary>A named thing dropped or declared, where only the name and the kind matter.</summary>
+	public static Constraint Marked(string kind, string? name) => new(name, kind, null, null);
+
+	/// <summary>An alteration before the table it is applied to is known.</summary>
+	public static AlterTable Altered(string action, SqlNode[]? elements) =>
+		new("", action, elements ?? None);
 
 	/// <summary>The two words that stand where a value does and are always the same node.</summary>
 	public static readonly SqlNode NullValue    = new Literal(SqlLiteralKind.Null,    "NULL");

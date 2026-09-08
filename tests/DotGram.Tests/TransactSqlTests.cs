@@ -667,6 +667,84 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>Tables declared and tables changed, which share their column definitions.</summary>
+	/// <remarks>
+	/// The largest single kind in the corpus and the one that pulls the most behind it: a
+	/// column definition is what `ALTER TABLE … ADD` adds and what `ALTER TABLE … ALTER
+	/// COLUMN` changes, and the table body a variable declares is the same thing smaller.
+	/// The option lists are written as a shape with an open vocabulary, as the table hints
+	/// are and for the same reason.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE TABLE t (a INT)")]
+	[InlineData("CREATE TABLE dbo.t (a INT NOT NULL, b NVARCHAR (50) NULL)")]
+	[InlineData("CREATE TABLE t (a INT IDENTITY (1, 5) NOT NULL, b AS a * 2 PERSISTED)")]
+	[InlineData("CREATE TABLE t (a INT SPARSE, b NCHAR (10) COLLATE Albanian_BIN, c VARBINARY (MAX) FILESTREAM)")]
+	[InlineData("CREATE TABLE t (a INT CONSTRAINT pk PRIMARY KEY CLUSTERED)")]
+	[InlineData("CREATE TABLE t (a INT, CONSTRAINT pk PRIMARY KEY (a ASC, b DESC) WITH (FILLFACTOR = 80) ON [PRIMARY])")]
+	[InlineData("CREATE TABLE t (a INT, b INT, FOREIGN KEY (a) REFERENCES u (id) ON DELETE CASCADE ON UPDATE NO ACTION)")]
+	[InlineData("CREATE TABLE t (a INT REFERENCES u (id) NOT FOR REPLICATION)")]
+	[InlineData("CREATE TABLE t (a INT, CHECK (a > 0))")]
+	[InlineData("CREATE TABLE t (a INT DEFAULT 0, b INT CONSTRAINT df DEFAULT 1)")]
+	[InlineData("CREATE TABLE t (a INT, INDEX ix NONCLUSTERED (a) WHERE a > 0 WITH (DATA_COMPRESSION = PAGE))")]
+	[InlineData("CREATE TABLE t (a INT, INDEX ix CLUSTERED COLUMNSTORE ORDER (a))")]
+	[InlineData("CREATE TABLE t (a INT, s DATETIME2 GENERATED ALWAYS AS ROW START, e DATETIME2 GENERATED ALWAYS AS ROW END, PERIOD FOR SYSTEM_TIME (s, e)) WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.h))")]
+	[InlineData("CREATE TABLE t (a INT) ON ps (a) TEXTIMAGE_ON [PRIMARY]")]
+	[InlineData("CREATE TABLE t (a XML COLUMN_SET FOR ALL_SPARSE_COLUMNS)")]
+	[InlineData("CREATE TABLE t (a INT) WITH (DATA_COMPRESSION = PAGE ON PARTITIONS (1 TO 4, 6))")]
+
+	[InlineData("ALTER TABLE t ADD c5 VARBINARY (MAX) FILESTREAM")]
+	[InlineData("ALTER TABLE t ADD CONSTRAINT pk PRIMARY KEY (a)")]
+	[InlineData("ALTER TABLE t WITH NOCHECK ADD CHECK (a > 0)")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c1 INT NOT NULL")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c1 ADD SPARSE")]
+	[InlineData("ALTER TABLE t DROP COLUMN a, CONSTRAINT c")]
+	[InlineData("ALTER TABLE t DROP CONSTRAINT IF EXISTS c")]
+	[InlineData("ALTER TABLE t NOCHECK CONSTRAINT ALL")]
+	[InlineData("ALTER TABLE t ENABLE TRIGGER tr1, tr2")]
+	[InlineData("ALTER TABLE t SET (SYSTEM_VERSIONING = OFF)")]
+	[InlineData("ALTER TABLE t REBUILD PARTITION = ALL WITH (DATA_COMPRESSION = ROW)")]
+	[InlineData("ALTER TABLE t SWITCH PARTITION 1 TO u PARTITION 2")]
+
+	// And the table a variable declares, which is the same body read the same way.
+	[InlineData("DECLARE @t TABLE (a INT PRIMARY KEY, b AS a * 2, CHECK (a > 0))")]
+	public void The_table_statements_read(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>And a table says what is in it.</summary>
+	[Fact]
+	public void A_created_table_says_its_columns()
+	{
+		var made = Assert.IsType<SqlNode.CreateTable>(
+			TransactSql.TryParseStatement(
+				"CREATE TABLE dbo.t (a INT NOT NULL, b AS a * 2, CONSTRAINT pk PRIMARY KEY (a))").Value);
+
+		Assert.Equal("dbo.t", made.Name);
+		Assert.Equal(3, made.Elements.Length);
+
+		var first = Assert.IsType<SqlNode.Field>(made.Elements[0]);
+
+		Assert.Equal("a", first.Name);
+		Assert.Equal("INT", first.Type);
+		Assert.Null(first.Computed);
+
+		var second = Assert.IsType<SqlNode.Field>(made.Elements[1]);
+
+		Assert.Equal("b", second.Name);
+		Assert.Null(second.Type);
+		Assert.NotNull(second.Computed);
+
+		var third = Assert.IsType<SqlNode.Constraint>(made.Elements[2]);
+
+		Assert.Equal("pk", third.Name);
+		Assert.Equal("PRIMARY KEY", third.Kind);
+		Assert.Equal(new[] { "a" }, third.Columns);
+	}
+
 	// ── And builds the standard's tree ───────────────────────────────────────────
 
 	/// <summary>

@@ -81,7 +81,12 @@ static class Kinds
 			or nameof(PrintStatement) or nameof(ReturnStatement) or nameof(ThrowStatement)
 			or nameof(RaiseErrorStatement) or nameof(GoToStatement) or nameof(BreakStatement)
 			or nameof(ContinueStatement) or nameof(WaitForStatement) or nameof(UseStatement)
-			or nameof(CheckpointStatement);
+			or nameof(CheckpointStatement)
+			or nameof(CreateTableStatement) or nameof(AlterTableAddTableElementStatement)
+			or nameof(AlterTableAlterColumnStatement) or nameof(AlterTableDropTableElementStatement)
+			or nameof(AlterTableConstraintModificationStatement)
+			or nameof(AlterTableTriggerModificationStatement) or nameof(AlterTableSetStatement)
+			or nameof(AlterTableRebuildStatement) or nameof(AlterTableSwitchStatement);
 
 	public static void Run(string? root, string version, int shown)
 	{

@@ -1079,17 +1079,30 @@ OutputItem = QualifiedName & '.' & '*'
 //
 // Everything here was written from the published syntax and every form put to the engine.
 
+// Split in two, and not for tidiness: with all of it in one rule the generator answered
+// GRAM5003 — one materializing method of 2,132 basic blocks, past the point where the JIT
+// stops optimizing and runs it several times slower than it needs to. Two rules are two
+// methods, and each is inside the budget. It is the first time this grammar has been large
+// enough for that to happen, and it will not be the last.
 Procedural : @SqlNode
+	= s: ControlStatement    => @(s)
+	| s: DefinitionStatement => @(s)
+
+ControlStatement : @SqlNode
 	= s: TryCatchStatement    => @(s)
 	| s: TransactionStatement => @(s)
 	| s: StatementBlock       => @(s)
 	| s: ConditionalStatement => @(s)
 	| s: LoopStatement        => @(s)
-	| s: DeclareStatement     => @(s)
+	| s: SimpleCommand        => @(s)
+
+DefinitionStatement : @SqlNode
+	= s: DeclareStatement     => @(s)
 	| s: SetStatement         => @(s)
 	| s: ExecuteStatement     => @(s)
 	| s: BulkInsertStatement  => @(s)
-	| s: SimpleCommand        => @(s)
+	| s: CreateTableStatement => @(s)
+	| s: AlterTableStatement  => @(s)
 
 StatementList : @SqlNode[] = s: TsqlStatement+ => @(s)
 
@@ -1152,28 +1165,13 @@ CursorBody = QueryExpression & OrderByClause? & CursorFor?
 CursorFor  = "FOR"i & "UPDATE"i & ("OF"i & ColumnList)?
 		   | "FOR"i & "READ"i & "ONLY"i
 
-// The columns a table variable declares, which is the beginning of `CREATE TABLE` and
-// meant to grow into it.
-TableBody    = TableElement & (',' & TableElement)*
-TableElement     = Identifier & TableElementTail
-TableElementTail = "AS"i & ValueExpression & ColumnOption*
-				 | DataType & ColumnOption*
-
-ColumnOption = "NOT"i & "NULL"i
-			 | "NULL"i
-			 | "PRIMARY"i & "KEY"i & IndexOrder? & ('(' & ColumnList & ')')?
-			 | "UNIQUE"i & IndexOrder? & ('(' & ColumnList & ')')?
-			 | "IDENTITY"i & ('(' & Arguments & ')')?
-			 | "DEFAULT"i & ValueExpression
-			 | "COLLATE"i & QualifiedName
-			 | "CHECK"i & '(' & SearchCondition & ')'
-			 | "ROWGUIDCOL"i
-			 | "SPARSE"i
-			 | "FILESTREAM"i
-			 | "PERSISTED"i
-			 | "INDEX"i & Identifier & IndexOrder?
-
 IndexOrder = "CLUSTERED"i | "NONCLUSTERED"i
+
+// `GENERATED ALWAYS AS { ROW | TRANSACTION_ID | SEQUENCE_NUMBER } { START | END }`, and
+// `END` is a reserved word — so the two ends are named rather than read as identifiers,
+// which is what the published syntax says they are anyway.
+GeneratedWhat = "ROW"i | "TRANSACTION_ID"i | "SEQUENCE_NUMBER"i
+GeneratedWhen = "START"i | "END"i
 
 // ── SET ─────────────────────────────────────────────────────────────────────
 //
@@ -1247,20 +1245,200 @@ BulkOptionTail = '=' & ValueExpression | '(' & Arguments & ')'
 
 // ── A word and some values ──────────────────────────────────────────────────
 SimpleCommand : @SqlNode
-	= "PRINT"i & v: ValueExpression      => @(new SqlNode.Command("PRINT", new SqlNode[] { v }))
-	| "RETURN"i & v: ValueExpression?    => @(new SqlNode.Command("RETURN", v is null ? SqlNode.None : new SqlNode[] { v }))
-	| "THROW"i & args: Arguments?        => @(new SqlNode.Command("THROW", args ?? SqlNode.None))
-	| "GOTO"i & name: Identifier         => @(new SqlNode.Command("GOTO", new SqlNode[] { new SqlNode.Column(name) }))
-	| "BREAK"i                           => @(new SqlNode.Command("BREAK", SqlNode.None))
-	| "CONTINUE"i                        => @(new SqlNode.Command("CONTINUE", SqlNode.None))
-	| "CHECKPOINT"i & v: ValueExpression? => @(new SqlNode.Command("CHECKPOINT", v is null ? SqlNode.None : new SqlNode[] { v }))
-	| "USE"i & name: QualifiedName       => @(new SqlNode.Command("USE", new SqlNode[] { new SqlNode.Column(name) }))
+	= "PRINT"i & v: ValueExpression      => @(SqlNode.Commanded("PRINT", v))
+	| "RETURN"i & v: ValueExpression?    => @(SqlNode.Commanded("RETURN", v))
+	| "THROW"i & args: Arguments?        => @(SqlNode.Commanded("THROW", args))
+	| "GOTO"i & name: Identifier         => @(SqlNode.Commanded("GOTO", new SqlNode.Column(name)))
+	| "BREAK"i                           => @(SqlNode.Commanded("BREAK", (SqlNode?)null))
+	| "CONTINUE"i                        => @(SqlNode.Commanded("CONTINUE", (SqlNode?)null))
+	| "CHECKPOINT"i & v: ValueExpression? => @(SqlNode.Commanded("CHECKPOINT", v))
+	| "USE"i & name: QualifiedName       => @(SqlNode.Commanded("USE", new SqlNode.Column(name)))
 	| "RAISERROR"i & '(' & args: Arguments & ')' & RaiseWith?
-		=> @(new SqlNode.Command("RAISERROR", args))
+		=> @(SqlNode.Commanded("RAISERROR", args))
 	| "RAISERROR"i & args: Arguments & RaiseWith?
-		=> @(new SqlNode.Command("RAISERROR", args))
+		=> @(SqlNode.Commanded("RAISERROR", args))
 	| "WAITFOR"i & WaitKind & v: ValueExpression
-		=> @(new SqlNode.Command("WAITFOR", new SqlNode[] { v }))
+		=> @(SqlNode.Commanded("WAITFOR", v))
 
 RaiseWith = "WITH"i & Identifier & (',' & Identifier)*
 WaitKind  = "DELAY"i | "TIME"i
+
+// ── CREATE TABLE, and the column definitions everything shares ──────────────
+//
+// The largest single kind in the corpus, and the one that pulls the most behind it: a
+// column definition is what `ALTER TABLE … ADD` adds and what `ALTER TABLE … ALTER COLUMN`
+// changes, and the table body a variable declares is the same thing smaller.
+//
+// The option lists — `WITH (DATA_COMPRESSION = PAGE, …)`, `WITH (FILLFACTOR = 80)` — are
+// written as a shape with an open vocabulary, as the table hints are and for the same
+// reason: the names are a catalogue, and adding one to T-SQL does not change the grammar.
+CreateTableStatement : @SqlNode
+	= "CREATE"i & "TABLE"i & name: QualifiedName & ("AS"i & Identifier)?
+	  & '(' & body: TableBody & ')'
+	  & TablePlacement* & OptionsWith?
+		=> @(new SqlNode.CreateTable(name, body))
+
+TablePlacement = "ON"i & PlacementTarget
+			   | "TEXTIMAGE_ON"i & PlacementTarget
+			   | "FILESTREAM_ON"i & PlacementTarget
+
+PlacementTarget = "DEFAULT"i
+				| Sql92.Lexical.DelimitedIdentifier
+				| Identifier & ('(' & ColumnList & ')')?
+
+OptionsWith = "WITH"i & '(' & OptionList & ')'
+OptionList  = OptionSetting & (',' & OptionSetting)*
+
+OptionSetting = "DEFAULT"i & '=' & OptionValue
+			  | OptionName & OptionTail?
+
+// An option's name is an ordinary identifier except where it is a word T-SQL reserves,
+// and a few are: `WITH (FILLFACTOR = 80)` names one, and an identifier cannot be it. The
+// list is short because most option names — `DATA_COMPRESSION`, `SYSTEM_VERSIONING`,
+// `HISTORY_TABLE` — are not reserved and never needed saying.
+OptionName = Identifier
+		   | "FILLFACTOR"i | "STATISTICS"i | "IDENTITY"i | "KEY"i | "CHECK"i
+		   | "INDEX"i | "TABLE"i | "VIEW"i | "SCHEMA"i | "USER"i | "FILE"i | "PLAN"i
+
+OptionTail = '=' & OptionValue & OnPartitions?
+		   | '(' & OptionList & ')'
+
+OptionValue = "NULL"i
+			| "OFF"i & ('(' & OptionList & ')')?
+			| "ON"i  & ('(' & OptionList & ')')?
+			| Identifier & '(' & OptionList & ')'
+			| v: ValueExpression
+
+OnPartitions   = "ON"i & "PARTITIONS"i & '(' & PartitionRange & (',' & PartitionRange)* & ')'
+PartitionRange = ValueExpression & ("TO"i & ValueExpression)?
+
+// ── The body ────────────────────────────────────────────────────────────────
+TableBody : @SqlNode[]
+	= first: TableElement & (',' & rest: TableElement)* => @(SqlNode.Listed(first, rest))
+
+TableElement : @SqlNode
+	= "PERIOD"i & "FOR"i & "SYSTEM_TIME"i & '(' & columns: ColumnList & ')'
+		=> @(SqlNode.Constrained("PERIOD", columns, null))
+	| i: TableIndex                                => @(i)
+	| "CONSTRAINT"i & name: Identifier & c: ConstraintBody => @(c with { Name = name })
+	| c: ConstraintBody                            => @(c)
+	| f: ColumnDefinition                          => @(f)
+
+ColumnDefinition : @SqlNode
+	= name: Identifier & f: ColumnBody => @(f with { Name = name })
+
+ColumnBody : @SqlNode.Field
+	= "AS"i & v: ValueExpression & ColumnTail*
+		=> @(new SqlNode.Field("", null, v, SqlNode.None))
+	| type: DataType & ColumnTail*
+		=> @(new SqlNode.Field("", type, null, SqlNode.None))
+
+// What may be said about a column after its type. Read and dropped, all of it: none of it
+// says what the column is, and the tree holds the name, the type and the expression.
+ColumnTail
+	= "FILESTREAM"i
+	| "COLLATE"i & QualifiedName
+	| "SPARSE"i
+	| "MASKED"i & "WITH"i & '(' & OptionList & ')'
+	| "IDENTITY"i & ('(' & Arguments & ')')?
+	| "NOT"i & "FOR"i & "REPLICATION"i
+	| "NOT"i & "NULL"i
+	| "NULL"i
+	| "GENERATED"i & "ALWAYS"i & "AS"i & GeneratedWhat & GeneratedWhen & "HIDDEN"i?
+	| "ROWGUIDCOL"i
+	| "ENCRYPTED"i & "WITH"i & '(' & OptionList & ')'
+	| "PERSISTED"i
+	| "COLUMN_SET"i & "FOR"i & "ALL_SPARSE_COLUMNS"i
+	| "CONSTRAINT"i & Identifier & ConstraintBody
+	| c: ConstraintBody
+	| i: TableIndex
+
+// ── Constraints ─────────────────────────────────────────────────────────────
+ConstraintBody : @SqlNode.Constraint
+	= "PRIMARY"i & "KEY"i & IndexOrder? & columns: IndexColumns? & IndexWith? & IndexOn?
+		=> @(SqlNode.Constrained("PRIMARY KEY", columns, null))
+	| "UNIQUE"i & IndexOrder? & columns: IndexColumns? & IndexWith? & IndexOn?
+		=> @(SqlNode.Constrained("UNIQUE", columns, null))
+	| "FOREIGN"i & "KEY"i & columns: IndexColumns? & References
+		=> @(SqlNode.Constrained("FOREIGN KEY", columns, null))
+	| References
+		=> @(SqlNode.Constrained("REFERENCES", null, null))
+	| "CHECK"i & ("NOT"i & "FOR"i & "REPLICATION"i)? & '(' & c: SearchCondition & ')'
+		=> @(SqlNode.Constrained("CHECK", null, c))
+	| "DEFAULT"i & v: ValueExpression & ("FOR"i & Identifier)?
+		=> @(SqlNode.Constrained("DEFAULT", null, v))
+
+References      = "REFERENCES"i & QualifiedName & ('(' & ColumnList & ')')? & ReferenceAction*
+ReferenceAction = "ON"i & DeleteOrUpdate & RefAction
+				| "NOT"i & "FOR"i & "REPLICATION"i
+
+DeleteOrUpdate = "DELETE"i | "UPDATE"i
+RefAction      = "NO"i & "ACTION"i | "CASCADE"i | "SET"i & "NULL"i | "SET"i & "DEFAULT"i
+
+IndexColumns : @string[] = '(' & first: IndexColumn & (',' & rest: IndexColumn)* & ')'
+	=> @(SqlNode.Named(first, rest))
+
+IndexColumn : @string = t: Identifier & ("ASC"i | "DESC"i)? => @(t)
+
+IndexWith = "WITH"i & "FILLFACTOR"i & '=' & ValueExpression
+		  | "WITH"i & '(' & OptionList & ')'
+
+IndexOn = "ON"i & PlacementTarget
+
+// ── An index written inside the table ───────────────────────────────────────
+TableIndex : @SqlNode
+	= "INDEX"i & name: Identifier & "UNIQUE"i? & IndexOrder? & "COLUMNSTORE"i?
+	  & columns: IndexColumns?
+	  & ("ORDER"i & '(' & ColumnList & ')')?
+	  & ("INCLUDE"i & '(' & ColumnList & ')')?
+	  & ("WHERE"i & SearchCondition)?
+	  & IndexWith? & IndexOn? & ("FILESTREAM_ON"i & PlacementTarget)?
+		=> @(new SqlNode.Constraint(name, "INDEX", columns, null))
+
+// ── ALTER TABLE ─────────────────────────────────────────────────────────────
+//
+// Nine actions and they share nothing but the header, so the header is read once and each
+// action says which it is. What the tree keeps is the table, the word, and the elements
+// where the action has any.
+AlterTableStatement : @SqlNode
+	= "ALTER"i & "TABLE"i & name: QualifiedName & a: AlterTableAction
+		=> @(a with { Name = name })
+
+AlterTableAction : @SqlNode.AlterTable
+	= "ADD"i & body: TableBody
+		=> @(SqlNode.Altered("ADD", body))
+	| "WITH"i & CheckWord & "ADD"i & body: TableBody
+		=> @(SqlNode.Altered("ADD", body))
+	| "ALTER"i & "COLUMN"i & column: ColumnDefinition
+		=> @(SqlNode.Altered("ALTER COLUMN", new SqlNode[] { column }))
+	| "ALTER"i & "COLUMN"i & name: Identifier & word: AlterColumnWord
+		=> @(SqlNode.Altered("ALTER COLUMN", null))
+	| "DROP"i & first: DropTarget & (',' & rest: DropTarget)*
+		=> @(SqlNode.Altered("DROP", SqlNode.Listed(first, rest)))
+	| CheckWord & "CONSTRAINT"i & ConstraintNames
+		=> @(SqlNode.Altered("CHECK", null))
+	| EnableWord & "TRIGGER"i & ConstraintNames
+		=> @(SqlNode.Altered("TRIGGER", null))
+	| "SET"i & '(' & OptionList & ')'
+		=> @(SqlNode.Altered("SET", null))
+	| "REBUILD"i & ("PARTITION"i & '=' & PartitionWhich)? & OptionsWith?
+		=> @(SqlNode.Altered("REBUILD", null))
+	| "SWITCH"i & ("PARTITION"i & ValueExpression)? & "TO"i & QualifiedName
+	  & ("PARTITION"i & ValueExpression)? & OptionsWith?
+		=> @(SqlNode.Altered("SWITCH", null))
+
+AlterColumnWord  = "ADD"i & ColumnTail | "DROP"i & ColumnTail
+CheckWord        = "CHECK"i | "NOCHECK"i
+EnableWord       = "ENABLE"i | "DISABLE"i
+ConstraintNames  = "ALL"i | Identifier & (',' & Identifier)*
+PartitionWhich   = "ALL"i | ValueExpression
+
+DropTarget : @SqlNode
+	= "COLUMN"i & name: Identifier     => @(SqlNode.Marked("COLUMN", name))
+	| "CONSTRAINT"i & IfExists? & name: Identifier & OptionsWith?
+		=> @(SqlNode.Marked("CONSTRAINT", name))
+	| "INDEX"i & name: Identifier      => @(SqlNode.Marked("INDEX", name))
+	| "PERIOD"i & "FOR"i & "SYSTEM_TIME"i => @(SqlNode.Marked("PERIOD", null))
+	| name: Identifier & OptionsWith?  => @(SqlNode.Marked("CONSTRAINT", name))
+
+IfExists = "IF"i & "EXISTS"i
