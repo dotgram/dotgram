@@ -15,6 +15,7 @@ using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
 using Microsoft.VisualStudio.LanguageServices;
+using Microsoft.VisualStudio.Shell;
 
 namespace DotGram.VisualStudio;
 
@@ -320,6 +321,7 @@ sealed class GramBufferAnalysis
 			_document      = null;
 		}
 
+		await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 		Changed?.Invoke(_buffer.CurrentSnapshot);
 	}
 

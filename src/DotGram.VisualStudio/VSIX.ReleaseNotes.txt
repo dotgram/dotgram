@@ -1,4 +1,4 @@
-DotGram language support 0.1.50
+DotGram language support 0.1.51
 
 Initial preview for Visual Studio 18.
 
@@ -23,6 +23,8 @@ Initial preview for Visual Studio 18.
 - File names in `[Gram("Language.gram")]` are no longer analyzed as embedded grammar text.
 - Standalone dialect files are analyzed together with the primary grammars inherited
   by their C# hosts, including bases that also carry suffixed `[Gram]` compilations.
+- Standalone diagnostics and colors refresh immediately when inherited project context
+  becomes available, without requiring the editor viewport to be scrolled.
 - DSL `StringSyntax` annotations also work on extension receivers and immediate field
   or property initializers.
 - Provisional analysis preserves existing colors while a line edit is being analyzed.
