@@ -16334,3 +16334,29 @@ Only the body's own alternatives inherit the rule's continuation. Anything neste
 followed by the rest of the shape around it, which is a question this does not ask and
 would answer wrongly by borrowing.
 
+### And one of the eighteen was a bug
+
+The diagnostic says an optional *can* take what follows it; whether it does is a question
+for the parser. Put to it, three of the four the follow half found read perfectly well —
+ordered choice at the rule level gives the alternative back and another one reads it — and
+one did not:
+
+```sql
+CREATE INDEX ix ON t (a) WITH PAD_INDEX ON ps (a)
+```
+
+The old unbracketed `WITH`, and `PAD_INDEX` was set to the `ON` that began the placement
+after it, with the placement left to nobody.
+
+**The guard is a refusal and not a demand**, which took two tries. A lookahead for a comma
+or a bracket — *this run of words is a value only where something proves it ended* — is
+right inside brackets and wrong outside them, because a list without brackets ends at the
+terminator and its last option has neither. It cost fourteen statements of the corpus
+before the number said so. What a bare switch may not be followed by is a **placement**:
+`WITH PAD_INDEX ON ps (a)` is an option and then the filegroup it goes on, and `WITH
+TRUSTWORTHY ON` is an option set to on. Said that way it costs nothing and fixes the bug.
+
+Of everything in the corpus, **82.1%**, and 5,978 statements read by both this grammar and
+the engine. The eighteen the diagnostic names are in the test suite now — the one that bit
+and the five that do not — so a reader of the list knows which kind each is.
+

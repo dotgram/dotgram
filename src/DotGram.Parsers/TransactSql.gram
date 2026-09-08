@@ -1373,11 +1373,26 @@ OptionEnd  = "WITH"i | OnOff
 
 // Two words at least, which is what tells a run from a name: one word is a name and a
 // qualified one begins with a word, so a run of one would take `dbo` out of `dbo.h`.
-OptionWords = OptionWord & OptionWord+
+// And a run of words is a value only where the comma or the bracket proves the run ended.
+// Without that it takes the clause after an unbracketed list — `ALGORITHM = AES_256
+// ENCRYPTION BY PASSWORD = 'p'` read the encryption as three more words of the algorithm.
+// Where the list ends at the terminator its last value is one word, which is every value a
+// list without brackets is written with.
+OptionWords = OptionWord & OptionWord+ & ?=(',' | ')')
 
+// A bare `ON` is a value only where the list goes on or ends. `CREATE INDEX … WITH
+// PAD_INDEX ON ps (a)` is the old unbracketed `WITH` and then a placement, and without the
+// lookahead the `ON` was read as what `PAD_INDEX` is set to — which GRAM5009 said, and the
+// engine confirmed by refusing what came out.
 OptionTail = '=' & OptionValue & OnPartitions?
-		   | OnOff & ('(' & OptionList & ')')?
+		   | OnOff & SwitchTail
 		   | '(' & OptionList & ')'
+
+// Said as a refusal rather than as a demand, because a list without brackets ends at the
+// terminator and a lookahead for a comma would refuse its last option. What a bare switch
+// may not be followed by is a placement: `WITH PAD_INDEX ON ps (a)` is an option and then
+// the filegroup it goes on, and `WITH TRUSTWORTHY ON` is an option set to on.
+SwitchTail = '(' & OptionList & ')' | ?!PlacementTarget
 
 // Typed, because what a setting is set to is the interesting half of `SET MAXDOP = 4`
 // and the only half a name does not already say. `ON` and `OFF` are values here and not

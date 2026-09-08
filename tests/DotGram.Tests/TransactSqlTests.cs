@@ -1509,6 +1509,29 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>What GRAM5009 named, put to the parser.</summary>
+	/// <remarks>
+	/// The diagnostic says an optional can take what follows it; whether it does is a
+	/// question for the parser, and these are the answers. The old unbracketed `WITH` did:
+	/// `PAD_INDEX` was set to the `ON` that began the placement after it, and the placement
+	/// was left to nobody. The others do not — ordered choice at the rule level gives the
+	/// alternative back and another one reads it — and they are here because a reader of the
+	/// diagnostic's list deserves to know which kind each of the eighteen is.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE INDEX ix ON t (a) WITH PAD_INDEX ON ps (a)")]
+	[InlineData("CREATE INDEX ix ON t (a) WITH (PAD_INDEX = ON) ON ps (a)")]
+	[InlineData("BEGIN INSERT INTO t (a) OUTPUT inserted.a VALUES (1) PRINT 1 END")]
+	[InlineData("BEGIN DELETE FROM t OUTPUT deleted.a PRINT 1 END")]
+	[InlineData("BEGIN BEGIN TRAN WITH MARK PRINT 1 END")]
+	[InlineData("CREATE SYMMETRIC KEY k WITH ALGORITHM = AES_256 ENCRYPTION BY PASSWORD = 'p'")]
+	public void What_the_diagnostic_named_reads(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	// ── And builds the standard's tree ───────────────────────────────────────────
 
 	/// <summary>
