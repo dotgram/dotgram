@@ -16360,3 +16360,91 @@ Of everything in the corpus, **82.1%**, and 5,978 statements read by both this g
 the engine. The eighteen the diagnostic names are in the test suite now — the one that bit
 and the five that do not — so a reader of the list knows which kind each is.
 
+## The tree became five trees
+
+`SqlNode` was one root with two hundred descendants, and it typed nothing. Every field of
+every node was a `SqlNode`, so `InsertStatement.Rows` accepted a `PrintStatement`,
+`TableReference.Derived` accepted a column reference, and `QuerySpecification.From` accepted
+a literal. Each of those was a defect the compiler could not see, and three of them were
+actually there.
+
+The standard does not work that way. §7 puts a `<query expression>` where a table belongs
+and §6 puts a `<value expression>` where a value belongs, and the two are not
+interchangeable. So the roots are the standard's own categories:
+
+| Root | What it is | Nodes |
+| --- | --- | --- |
+| `Statement` | §13 and most of a dialect's reference | 184 |
+| `Query` | §7, what produces rows | 9 |
+| `Expression` | §6 the value level and §8 the predicates | 29 |
+| `TableReference` | §7.6, what a `FROM` is read over | 4 |
+| `Clause` | the pieces that are none of the four | 11 |
+
+**Relations by aggregation, never by inheritance.** A subquery is not a kind of query; it is
+an expression that holds one — `Expression.Subquery(Query)`. A statement that returns rows
+is not a kind of query; it is a statement that holds one — `Statement.Select(Query, …)`.
+Nothing derives from anything but its own root, and no root derives from another.
+
+**As many roots as there are sublanguages, and five is what today's surface needs.** A JSON
+path, an XQuery inside `FOR XML`, the drawing inside `MATCH (…)` and a full-text `CONTAINS`
+are each a language with a grammar of its own; each will get a root of its own when it is
+kept rather than read and dropped. Adding one breaks nothing, which is the other half of
+having no universal base.
+
+### What the compiler found the moment it could
+
+Six type errors, and every one of them was the tree lying:
+
+- `TABLE t` built a `TableReference` where a query belonged. It is `<explicit table>`, a
+  query primary — now `Query.ExplicitTable`.
+- `INSERT … EXEC p` put a statement in the rows slot. A procedure standing where a query
+  stands is an aggregation, not a coincidence — `Query.FromExecute(Statement.Execute)`.
+- `BULK INSERT t FROM 'f'` put a string literal there — `Query.FromFile(Expression)`.
+- `SET @a = 1` built a `SetClause`, which is a piece of an `UPDATE`. It is a statement:
+  `Statement.SetVariable`.
+- `CREATE STATISTICS` and `UPDATE STATISTICS` built a `ConstraintDefinition`. Two
+  statements, two records.
+- `CREATE TABLE … AS SELECT` put a statement in the element list —
+  `Statement.CreateTableAsSelect`.
+
+None of the six was reachable as a bug — every one of them read the right text and built a
+tree a consumer would have had to guess at. That is the whole argument for the shape.
+
+### A record per production, an enum only where the standard has one
+
+The nine predicates of §8 were one record with a kind and an array of operands. They are
+nine records now, with their operands named: `Between(Value, Negated, Low, High)` says what
+`Operands[2]` did not. `BinaryExpression(SqlOperator, …)` is gone the same way — the standard
+writes `<numeric value expression> ::= … <plus sign> <term>` as its own production, so
+`Expression.Add` is a record.
+
+`SqlOperator` is gone with it and `SqlComparison` took the part that was right: `<comp op>`
+*is* a production of the standard, so a comparison carries an enum and nothing else does.
+`SqlPredicateKind` is gone entirely.
+
+The left operand of a predicate is still read once for all of them and filled in afterwards
+— that is what §4.3's folding is for — but it is a `with` on a record now rather than a write
+into `Operands[0]`. It costs the same two allocations the array did and the tree is typed.
+
+### The tree moved to `DotGram.Parsers.Sql`
+
+`Expression` collides with `System.Linq.Expressions.Expression`, which
+`ExpressionLanguage.cs` uses in the same namespace. A namespace of its own is the honest fix
+rather than an alias: the AST is a different thing from the parsers that build it. `Sql` the
+static helper became `Syntax` so that the namespace and the class do not share a name.
+
+### And it costs nothing
+
+Of the corpus, **82.1%** — the same statement for statement. All 2,650 tests pass. The
+generated parser and the hand-written yardstick still render identical trees over every
+input `SqlAgainst.Agree` holds them to; the yardstick was ported node for node, and its
+subquery — the one thing a parser of §6 and §8 cannot build — is a `TextQuery : Query`
+declared in the benchmark, which is what having no sealed root is for.
+
+Against ScriptDom the ratio went from 2.35× to **2.68×** and the allocation from 729 B to
+**715 B** per statement. Both sides measured slower in absolute terms on this run than on
+the last, the machine being busy; the ratio is the number that means anything.
+
+`docs/ast.md` is regenerated: 237 rows, each naming its root, its source and the production
+or page it is named after, and `AstReferenceTests` now finds the roots by reflection so that
+a sixth added and left out of the reference fails the build.

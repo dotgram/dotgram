@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 
 using DotGram.Parsers;
+using DotGram.Parsers.Sql;
 
 using Xunit;
 
@@ -568,28 +569,28 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_statement_and_a_query_hold_each_other()
 	{
-		var written = Assert.IsType<SqlNode.InsertStatement>(
+		var written = Assert.IsType<Statement.Insert>(
 			TransactSql.TryParseStatement("INSERT INTO t (a) SELECT b FROM u WHERE b > 1").Value);
 
 		Assert.Equal(new[] { "a" }, written.Columns);
 
-		var query = Assert.IsType<SqlNode.QuerySpecification>(written.Rows);
+		var query = Assert.IsType<Query.Specification>(written.Rows);
 
-		Assert.Equal("u", Assert.IsType<SqlNode.TableReference>(Assert.Single(query.From)).Table);
+		Assert.Equal("u", Assert.IsType<TableReference.Named>(Assert.Single(query.From)).Table);
 		Assert.NotNull(query.Where);
 
-		var merged = Assert.IsType<SqlNode.MergeStatement>(
+		var merged = Assert.IsType<Statement.Merge>(
 			TransactSql.TryParseStatement(
 				"MERGE t USING u ON t.id = u.id WHEN MATCHED THEN UPDATE SET a = 1").Value);
 
-		var arm = Assert.IsType<SqlNode.MergeWhenClause>(Assert.Single(merged.Whens));
+		var arm = Assert.IsType<Clause.MergeWhen>(Assert.Single(merged.Whens));
 
 		Assert.True(arm.OnMatch);
 		Assert.Null(arm.Condition);
 
-		var change = Assert.IsType<SqlNode.UpdateStatement>(arm.Action);
+		var change = Assert.IsType<Statement.Update>(arm.Action);
 
-		Assert.Equal("a", Assert.IsType<SqlNode.SetClause>(Assert.Single(change.Set)).Target);
+		Assert.Equal("a", Assert.IsType<Clause.Set>(Assert.Single(change.Set)).Target);
 	}
 
 	/// <summary>And the query entry point still reads only queries.</summary>
@@ -730,26 +731,26 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_created_table_says_its_columns()
 	{
-		var made = Assert.IsType<SqlNode.TableDefinition>(
+		var made = Assert.IsType<Statement.TableDefinition>(
 			TransactSql.TryParseStatement(
 				"CREATE TABLE dbo.t (a INT NOT NULL, b AS a * 2, CONSTRAINT pk PRIMARY KEY (a))").Value);
 
 		Assert.Equal("dbo.t", made.Name);
 		Assert.Equal(3, made.Elements.Length);
 
-		var first = Assert.IsType<SqlNode.ColumnDefinition>(made.Elements[0]);
+		var first = Assert.IsType<Clause.ColumnDefinition>(made.Elements[0]);
 
 		Assert.Equal("a", first.Name);
 		Assert.Equal("INT", first.Type);
 		Assert.Null(first.Computed);
 
-		var second = Assert.IsType<SqlNode.ColumnDefinition>(made.Elements[1]);
+		var second = Assert.IsType<Clause.ColumnDefinition>(made.Elements[1]);
 
 		Assert.Equal("b", second.Name);
 		Assert.Null(second.Type);
 		Assert.NotNull(second.Computed);
 
-		var third = Assert.IsType<SqlNode.ConstraintDefinition>(made.Elements[2]);
+		var third = Assert.IsType<Clause.ConstraintDefinition>(made.Elements[2]);
 
 		Assert.Equal("pk", third.Name);
 		Assert.Equal("PRIMARY KEY", third.Kind);
@@ -895,7 +896,7 @@ public sealed class TransactSqlTests
 	/// </remarks>
 	[Theory]
 	[InlineData("ALTER DATABASE ENCRYPTION KEY REGENERATE WITH ALGORITHM = AES_256",
-		"AlterDatabaseEncryptionKeyStatement")]
+		"AlterDatabaseEncryptionKey")]
 	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = AES_128 ENCRYPTION BY SERVER CERTIFICATE c1",
 		"DatabaseEncryptionKeyDefinition")]
 	public void And_what_only_begins_like_a_database_is_read_as_itself(string input, string node)
@@ -1279,7 +1280,7 @@ public sealed class TransactSqlTests
 
 	/// <summary>Every word the grammar reads after `DROP` has a record to be read into.</summary>
 	/// <remarks>
-	/// `DropKind` in the grammar and `SqlNode.Dropped` in the tree are two spellings of one
+	/// `DropKind` in the grammar and `Statement.Dropped` in the tree are two spellings of one
 	/// catalogue and have to agree. Nothing in either says so, so this does: the words are
 	/// taken out of the grammar itself, every one of them is put to the parser, and what
 	/// comes back has to be a record of its own rather than one shared by two of them.
@@ -1300,10 +1301,9 @@ public sealed class TransactSqlTests
 
 			Assert.True(match.IsSuccess, input);
 
-			var made = Assert.IsAssignableFrom<SqlNode>(match.Value).GetType().Name;
+			var made = Assert.IsAssignableFrom<Statement>(match.Value).GetType().Name;
 
 			Assert.StartsWith("Drop", made, StringComparison.Ordinal);
-			Assert.EndsWith("Statement", made, StringComparison.Ordinal);
 
 			// `PROC` and `PROCEDURE` are the one statement written two ways, and nothing
 			// else here may share a record: two kinds reading into one is the catalogue
@@ -1356,39 +1356,39 @@ public sealed class TransactSqlTests
 	/// in it until the tree was made to say what the grammar says.
 	/// </remarks>
 	[Theory]
-	[InlineData("PRINT 1",                          "PrintStatement")]
-	[InlineData("RETURN",                           "ReturnStatement")]
-	[InlineData("BREAK",                            "BreakStatement")]
-	[InlineData("GOTO done",                        "GoToStatement")]
-	[InlineData("USE master",                       "UseStatement")]
-	[InlineData("WAITFOR DELAY '00:01'",            "WaitForStatement")]
-	[InlineData("RAISERROR ('x', 1, 1)",            "RaiseErrorStatement")]
+	[InlineData("PRINT 1",                          "Print")]
+	[InlineData("RETURN",                           "Return")]
+	[InlineData("BREAK",                            "Break")]
+	[InlineData("GOTO done",                        "GoTo")]
+	[InlineData("USE master",                       "Use")]
+	[InlineData("WAITFOR DELAY '00:01'",            "WaitFor")]
+	[InlineData("RAISERROR ('x', 1, 1)",            "RaiseError")]
 
-	[InlineData("DROP TABLE t",                     "DropTableStatement")]
-	[InlineData("DROP VIEW v",                      "DropViewStatement")]
-	[InlineData("DROP PROC p",                      "DropProcedureStatement")]
-	[InlineData("DROP INDEX ix ON t",               "DropIndexStatement")]
-	[InlineData("DROP MASTER KEY",                  "DropMasterKeyStatement")]
+	[InlineData("DROP TABLE t",                     "DropTable")]
+	[InlineData("DROP VIEW v",                      "DropView")]
+	[InlineData("DROP PROC p",                      "DropProcedure")]
+	[InlineData("DROP INDEX ix ON t",               "DropIndex")]
+	[InlineData("DROP MASTER KEY",                  "DropMasterKey")]
 
-	[InlineData("GRANT SELECT ON t TO u",           "GrantStatement")]
-	[InlineData("DENY SELECT ON t TO u",            "DenyStatement")]
-	[InlineData("REVOKE SELECT ON t FROM u",        "RevokeStatement")]
+	[InlineData("GRANT SELECT ON t TO u",           "Grant")]
+	[InlineData("DENY SELECT ON t TO u",            "Deny")]
+	[InlineData("REVOKE SELECT ON t FROM u",        "Revoke")]
 
-	[InlineData("SET TRANSACTION ISOLATION LEVEL SNAPSHOT", "SetTransactionIsolationLevelStatement")]
-	[InlineData("SET IDENTITY_INSERT t ON",         "SetIdentityInsertStatement")]
-	[InlineData("SET ANSI_NULLS, ANSI_PADDING ON",  "SetOptionStatement")]
-	[InlineData("SET LANGUAGE us_english",          "SetCommandStatement")]
+	[InlineData("SET TRANSACTION ISOLATION LEVEL SNAPSHOT", "SetTransactionIsolationLevel")]
+	[InlineData("SET IDENTITY_INSERT t ON",         "SetIdentityInsert")]
+	[InlineData("SET ANSI_NULLS, ANSI_PADDING ON",  "SetOption")]
+	[InlineData("SET LANGUAGE us_english",          "SetCommand")]
 
-	[InlineData("CREATE DATABASE d",                "CreateDatabaseStatement")]
-	[InlineData("ALTER DATABASE d SET MAXDOP = 1",  "AlterDatabaseSetStatement")]
-	[InlineData("ALTER DATABASE d COLLATE Estonian_CS_AS", "AlterDatabaseCollateStatement")]
-	[InlineData("ALTER DATABASE d MODIFY NAME = e", "AlterDatabaseModifyNameStatement")]
-	[InlineData("ALTER DATABASE d REBUILD LOG",     "AlterDatabaseRebuildLogStatement")]
+	[InlineData("CREATE DATABASE d",                "CreateDatabase")]
+	[InlineData("ALTER DATABASE d SET MAXDOP = 1",  "AlterDatabaseSet")]
+	[InlineData("ALTER DATABASE d COLLATE Estonian_CS_AS", "AlterDatabaseCollate")]
+	[InlineData("ALTER DATABASE d MODIFY NAME = e", "AlterDatabaseModifyName")]
+	[InlineData("ALTER DATABASE d REBUILD LOG",     "AlterDatabaseRebuildLog")]
 
-	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p'", "CreateLoginStatement")]
-	[InlineData("CREATE USER u",                    "CreateUserStatement")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p'", "CreateLogin")]
+	[InlineData("CREATE USER u",                    "CreateUser")]
 	[InlineData("CREATE SCHEMA s",                  "SchemaDefinition")]
-	[InlineData("ALTER AUTHORIZATION ON t TO u",    "AlterAuthorizationStatement")]
+	[InlineData("ALTER AUTHORIZATION ON t TO u",    "AlterAuthorization")]
 
 	[InlineData("CREATE EXTERNAL FILE FORMAT f WITH (FORMAT_TYPE = PARQUET)", "ExternalFileFormatDefinition")]
 	[InlineData("CREATE WORKLOAD GROUP g",          "WorkloadGroupDefinition")]
@@ -1397,10 +1397,10 @@ public sealed class TransactSqlTests
 
 	[InlineData("CREATE TABLE t (a INT)",           "TableDefinition")]
 	[InlineData("CREATE VIEW v AS SELECT a FROM t", "ViewDefinition")]
-	[InlineData("SELECT a FROM t",                  "QuerySpecification")]
-	[InlineData("SELECT a FROM t ORDER BY a",       "SelectStatement")]
-	[InlineData("INSERT INTO t (a) VALUES (1)",     "InsertStatement")]
-	[InlineData("BEGIN PRINT 1 END",                "CompoundStatement")]
+	[InlineData("SELECT a FROM t",                  "Select")]
+	[InlineData("SELECT a FROM t ORDER BY a",       "Select")]
+	[InlineData("INSERT INTO t (a) VALUES (1)",     "Insert")]
+	[InlineData("BEGIN PRINT 1 END",                "Compound")]
 	public void A_statement_is_the_record_its_production_is_named_after(string input, string node)
 	{
 		var match = TransactSql.TryParseStatement(input);
@@ -1540,15 +1540,14 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_call_says_its_name_and_its_arguments()
 	{
-		var query = Assert.IsType<SqlNode.QuerySpecification>(
-			TransactSql.TryParseSelect("SELECT dbo.f(a, 1) FROM t").Value);
+		var query = Selected("SELECT dbo.f(a, 1) FROM t");
 
-		var call = Assert.IsType<SqlNode.RoutineInvocation>(
-			Assert.IsType<SqlNode.DerivedColumn>(Assert.Single(query.Columns)).Value);
+		var call = Assert.IsType<Expression.RoutineInvocation>(
+			Assert.IsType<Clause.DerivedColumn>(Assert.Single(query.Columns)).Value);
 
 		Assert.Equal("dbo.f", call.Name);
 		Assert.Equal(2, call.Arguments.Length);
-		Assert.Equal("a", Assert.IsType<SqlNode.ColumnReference>(call.Arguments[0]).Text);
+		Assert.Equal("a", Assert.IsType<Expression.ColumnReference>(call.Arguments[0]).Text);
 	}
 
 	/// <summary>A variable is a parameter, which is the rule it was widened into.</summary>
@@ -1557,10 +1556,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT @@ROWCOUNT", "@@ROWCOUNT")]
 	public void A_variable_stands_where_a_parameter_does(string input, string text)
 	{
-		var query = Assert.IsType<SqlNode.QuerySpecification>(TransactSql.TryParseSelect(input).Value);
+		var query = Selected(input);
 
-		var literal = Assert.IsType<SqlNode.Literal>(
-			Assert.IsType<SqlNode.DerivedColumn>(Assert.Single(query.Columns)).Value);
+		var literal = Assert.IsType<Expression.Literal>(
+			Assert.IsType<Clause.DerivedColumn>(Assert.Single(query.Columns)).Value);
 
 		Assert.Equal(SqlLiteralKind.Parameter, literal.Kind);
 		Assert.Equal(text, literal.Text);
@@ -1579,20 +1578,21 @@ public sealed class TransactSqlTests
 	{
 		// Node by node rather than query by query: a `Query` holds arrays, and a record
 		// compares those by reference, so two readings of the same text are never equal.
-		var topped = Query("SELECT TOP 10 PERCENT a FROM t");
-		var plain  = Query("SELECT a FROM t");
+		var topped = Selected("SELECT TOP 10 PERCENT a FROM t");
+		var plain  = Selected("SELECT a FROM t");
 
 		Assert.Equal(Assert.Single(plain.Columns), Assert.Single(topped.Columns));
 		Assert.Equal(Assert.Single(plain.From),    Assert.Single(topped.From));
 
 		Assert.Equal(
-			Assert.Single(Query("SELECT COUNT(*) FROM t")                      .Columns),
-			Assert.Single(Query("SELECT COUNT(*) OVER (PARTITION BY b) FROM t").Columns));
+			Assert.Single(Selected("SELECT COUNT(*) FROM t")                      .Columns),
+			Assert.Single(Selected("SELECT COUNT(*) OVER (PARTITION BY b) FROM t").Columns));
 	}
 
 	/// <summary>What the dialect read, where it was a query.</summary>
-	static SqlNode.QuerySpecification Query(string input) =>
-		Assert.IsType<SqlNode.QuerySpecification>(TransactSql.TryParseSelect(input).Value);
+	static Query.Specification Selected(string input) =>
+		Assert.IsType<Query.Specification>(
+			Assert.IsType<Statement.Select>(TransactSql.TryParseSelect(input).Value).Of);
 
 	/// <summary>A bracketed name may be a reserved word, which is what brackets are for.</summary>
 	/// <remarks>
@@ -1602,13 +1602,12 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_bracketed_name_may_be_a_reserved_word()
 	{
-		var query = Assert.IsType<SqlNode.QuerySpecification>(
-			TransactSql.TryParseSelect("SELECT [select] FROM t").Value);
+		var query = Selected("SELECT [select] FROM t");
 
 		Assert.Equal(
 			"[select]",
-			Assert.IsType<SqlNode.ColumnReference>(
-				Assert.IsType<SqlNode.DerivedColumn>(Assert.Single(query.Columns)).Value).Text);
+			Assert.IsType<Expression.ColumnReference>(
+				Assert.IsType<Clause.DerivedColumn>(Assert.Single(query.Columns)).Value).Text);
 
 		Assert.False(TransactSql.TryParseSelect("SELECT select FROM t").IsSuccess);
 	}
@@ -1617,10 +1616,8 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_table_variable_is_a_source()
 	{
-		var query = Assert.IsType<SqlNode.QuerySpecification>(
-			TransactSql.TryParseSelect("SELECT a FROM @rows AS r").Value);
-
-		var source = Assert.IsType<SqlNode.TableReference>(Assert.Single(query.From));
+		var query  = Selected("SELECT a FROM @rows AS r");
+		var source = Assert.IsType<TableReference.Named>(Assert.Single(query.From));
 
 		Assert.Equal("@rows", source.Table);
 		Assert.Equal("r", source.Name);

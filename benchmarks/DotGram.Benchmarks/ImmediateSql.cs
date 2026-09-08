@@ -19,7 +19,7 @@ namespace DotGram.Benchmarks;
 /// </para>
 /// <para>
 /// It is not the shipped parser and could not be: immediate construction calls a factory once
-/// per derivation tried, and <see cref="SqlNode"/>'s factories happen to be pure, which is
+/// per derivation tried, and the tree's factories happen to be pure, which is
 /// what makes the comparison fair rather than what makes it safe.
 /// </para>
 /// </remarks>
