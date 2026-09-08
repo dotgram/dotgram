@@ -77,9 +77,9 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(recognized, 0, end);
 		}
 
-		/// <summary>Parses the whole input as <c>List_With1</c>.</summary>
+		/// <summary>Parses the whole input as <c>List</c>.</summary>
 		/// <exception cref="global::System.FormatException">
-		/// The input is not <c>List_With1</c>. <c>TryLoose</c> answers instead.
+		/// The input is not <c>List</c>. <c>TryLoose</c> answers instead.
 		/// </exception>
 		public static string Loose(string input)
 		{
@@ -91,7 +91,7 @@ namespace DotGram.Snapshots
 			throw new global::System.FormatException(match.Error + " at " + match.Position.ToString());
 		}
 
-		/// <summary>Parses the whole input as <c>List_With1</c>, answering rather than throwing.</summary>
+		/// <summary>Parses the whole input as <c>List</c>, answering rather than throwing.</summary>
 		public static Match<string> TryLoose(string input)
 		{
 			var text    = global::System.MemoryExtensions.AsSpan(input);
@@ -105,7 +105,7 @@ namespace DotGram.Snapshots
 
 				var otherwise = starved
 					? "Expected more input."
-					: "Input does not match 'List_With1'.";
+					: "Input does not match 'List'.";
 
 				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
 			}
@@ -343,6 +343,222 @@ namespace DotGram.Snapshots
                                                 (t + '#');
 #line default
 
+		/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>
+		private ref struct Reader_DotGram_Hashed
+		{
+			readonly global::System.ReadOnlySpan<char> text;
+			internal Failure failure;
+			readonly Ways ways;
+
+			internal Reader_DotGram_Hashed(global::System.ReadOnlySpan<char> text, Ways ways)
+			{
+				this.text    = text;
+				this.failure = default;
+				this.ways    = ways;
+			}
+
+			/// <summary><c>Hashed</c>, and the way back into it.</summary>
+			public int Read_Hashed_Hashed(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Read_Hashed_Hashed_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>Hashed</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			public int Read_Hashed_Hashed_Body(int pos)
+			{
+				var p = pos;
+				var q0 = Read_Padded_Word_value1_Hashed(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				return p;
+			}
+
+			/// <summary><c>Padded_Word_value1</c>, and the way back into it.</summary>
+			public int Read_Padded_Word_value1_Hashed(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Read_Padded_Word_value1_Hashed_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>Padded_Word_value1</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			public int Read_Padded_Word_value1_Hashed_Body(int pos)
+			{
+				var p = pos;
+				var rb = ways.RefsCount;
+				var r0 = -1;
+				var q0 = Read_Word_Hashed(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				r0 = ways.Last;
+				ways.Begin(0);
+				ways.Put(r0);
+				ways.End(rb);
+				return p;
+			}
+
+			/// <summary><c>Word</c>, and the way back into it.</summary>
+			public int Read_Word_Hashed(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Read_Word_Hashed_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>Word</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			public int Read_Word_Hashed_Body(int pos)
+			{
+				var p = pos;
+				var c = '\0';
+				var rb = ways.RefsCount;
+				var a0 = -1;
+				var b0 = -1;
+				a0 = p;
+				var m0 = p;
+				while (true)
+				{
+					if ((uint)p >= (uint)text.Length)
+						break;
+
+					c = text[p];
+
+					if (!(((c >= 'a' && c <= 'z'))))
+						break;
+
+					p++;
+				}
+
+				if (p < m0 + 1)
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected0, ways);
+					return -1;
+				}
+
+				if (p > (m0 + 1))
+				{
+					var d0 = 0;
+
+					if (ways.Cursor < ways.Count)
+					{
+						d0 = ways.Items[ways.Cursor * 2];
+						ways.Cursor++;
+					}
+					else
+					{
+						ways.Open(p - (m0 + 1));
+					}
+
+					p -= d0;
+				}
+				b0 = p;
+				ways.Begin(1);
+				ways.Put(a0, b0);
+				ways.End(rb);
+				return p;
+			}
+
+			/// <summary>The whole input as <c>Hashed</c>, and the way back into it.</summary>
+			public int Recognize_Hashed_Whole_Read(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Recognize_Hashed_Whole_Read_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>Hashed</c> is read by, whichever stack it is read on.</summary>
+			public int Recognize_Hashed_Whole_Read_Body(int pos)
+			{
+				var p = pos;
+				var q0 = Read_Hashed_Hashed(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				if (p != text.Length)
+				{
+					Refuse_DotGram(ref failure, p, null, ways);
+					return -1;
+				}
+				return p;
+			}
+
+		}
+
 		/// <summary>The whole input as <c>Hashed</c>, read by methods.</summary>
 		static int Recognize_Hashed_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
@@ -350,29 +566,13 @@ namespace DotGram.Snapshots
 
 			try
 			{
-				int end;
+				var reader = new Reader_DotGram_Hashed(text, ways);
 
-				try
-				{
-					end = Recognize_Hashed_Read(text, pos, ref failure, ways);
-				}
-				catch (global::System.InsufficientExecutionStackException)
-				{
-					var from   = pos;
-					var copied = text.ToArray();
-					var deep   = failure;
-					var deeper = Ways.Rent();
-					var got    = -1;
-					var reader = new global::System.Threading.Thread(
-						() => got = Recognize_Hashed_Read(copied, from, ref deep, deeper),
-						268435456);
+				reader.failure = failure;
 
-					reader.Start();
-					reader.Join();
-					failure = deep;
-					ways    = deeper;
-					end     = got;
-				}
+				var end = reader.Recognize_Hashed_Whole_Read(pos);
+
+				failure = reader.failure;
 
 				return end;
 			}
@@ -382,109 +582,10 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		/// <summary>What <c>Hashed</c> is read by, whichever stack it is read on.</summary>
-		static int Recognize_Hashed_Read(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var p = pos;
-			var s0 = ways.Cursor;
-			var q0 = 0;
-
-			Again:
-			p = pos;
-			q0 = Read_Padded_Word_value1_Hashed(text, p, ref failure, ways);
-			if (q0 < 0) goto Fail;
-			p = q0;
-			if (p != text.Length)
-			{
-				Refuse_DotGram(ref failure, p, null, ways);
-				goto Fail;
-			}
-			return p;
-			Fail:
-			if (ways.Cursor > s0 && ways.Retry(s0)) goto Again;
-			return -1;
-		}
-
-		/// <summary><c>Padded_Word_value1</c>, read by a method of its own.</summary>
-		static int Read_Padded_Word_value1_Hashed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var p = pos;
-			var s0 = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
-			var q0 = 0;
-			var r0 = -1;
-
-			Again:
-			p = pos;
-			r0 = -1;
-			ways.LogCount  = lm;
-			ways.RefsCount = rb;
-			q0 = Read_Word_Hashed(text, p, ref failure, ways);
-			if (q0 < 0) goto Fail;
-			p = q0;
-			r0 = ways.Last;
-			ways.Begin(1, 0, pos, p);
-			ways.Put(r0);
-			ways.End(rb);
-			return p;
-			Fail:
-			if (ways.Cursor > s0 && ways.Retry(s0)) goto Again;
-			ways.LogCount  = lm;
-			ways.RefsCount = rb;
-			return -1;
-		}
-
-		/// <summary><c>Word</c>, read by a method of its own.</summary>
-		static int Read_Word_Hashed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var p = pos;
-			var c = '\0';
-			var s0 = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
-			var m0 = 0;
-			var d0 = 0;
-			var a0 = -1;
-			var b0 = -1;
-
-			Again:
-			p = pos;
-			a0 = -1;
-			b0 = -1;
-			ways.LogCount  = lm;
-			ways.RefsCount = rb;
-			a0 = p;
-			m0 = p;
-			while (true)
-			{
-				if ((uint)p >= (uint)text.Length) break;
-				c = text[p];
-				if (!(((c >= 'a' && c <= 'z')))) break;
-				p++;
-			}
-			if (p < (m0 + 1))
-			{
-				Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected0, ways);
-				goto Fail;
-			}
-			if (p > (m0 + 1)) { if (ways.Cursor < ways.Count) { d0 = ways.Items[ways.Cursor * 2]; ways.Cursor++; } else { ways.Open(p - (m0 + 1)); d0 = 0; } p -= d0; }
-			b0 = p;
-			ways.Begin(2, 0, pos, p);
-			ways.Put(a0, b0);
-			ways.End(rb);
-			return p;
-			Fail:
-			if (ways.Cursor > s0 && ways.Retry(s0)) goto Again;
-			ways.LogCount  = lm;
-			ways.RefsCount = rb;
-			return -1;
-		}
-
 		/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>
-		static void Materialize_DotGram_Hashed_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from)
+		static void Materialize_DotGram_Hashed_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first)
 		{
-			values.Room(ways.LogCount);
+			values.Room(ways.Records);
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -499,21 +600,22 @@ namespace DotGram.Snapshots
 
 			for (var back = listed - 1; back >= 0; back--)
 			{
-				var at = starts[back];
+				var at   = starts[back];
+				var slot = first + back;
 
-				if (!live[at]) continue;
+				if (!live[slot]) continue;
 
-				var read = at + 5;
+				var read = at + 2;
 
 				switch (log[at + 1])
 				{
-					case 1:
+					case 0:
 					{
 						if (log[read] >= 0) live[log[read]] = true;
 						read++;
 						break;
 					}
-					case 2:
+					case 1:
 					{
 						read += 2;
 						break;
@@ -523,32 +625,29 @@ namespace DotGram.Snapshots
 			var values0 = values.V0;
 			var values1 = values.V1;
 
-			for (var at = from; at < ways.LogCount; at += log[at])
+			for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
 			{
-				if (!live[at]) continue;
+				if (!live[slot]) continue;
 
-				var factory = log[at + 2];
-				var start   = log[at + 3];
-				var end     = log[at + 4];
-				var read    = at + 5;
+				var read  = at + 2;
 
 				switch (log[at + 1])
 				{
-					case 1:
+					case 0:
 					{
 						var record0 = log[read++];
 						var captured0 = values0[record0].Value;
 
-						values0[at].Value = Construct_Padded_Word_value1(captured0!);
+						values0[slot].Value = Construct_Padded_Word_value1(captured0!);
 						break;
 					}
-					case 2:
+					case 1:
 					{
 						var from0 = log[read++];
 						var to0   = log[read++];
 						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
 
-						values0[at].Value = Construct_Word(captured0!);
+						values0[slot].Value = Construct_Word(captured0!);
 						break;
 					}
 				}
@@ -642,6 +741,260 @@ namespace DotGram.Snapshots
 			return -1;
 		}
 
+		/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>
+		private ref struct Reader_DotGram_List_With1
+		{
+			readonly global::System.ReadOnlySpan<char> text;
+			internal Failure failure;
+			readonly Ways ways;
+
+			internal Reader_DotGram_List_With1(global::System.ReadOnlySpan<char> text, Ways ways)
+			{
+				this.text    = text;
+				this.failure = default;
+				this.ways    = ways;
+			}
+
+			/// <summary><c>List_With1</c>, and the way back into it.</summary>
+			public int Read_List_With1_List_With1(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Read_List_With1_List_With1_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>List_With1</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			public int Read_List_With1_List_With1_Body(int pos)
+			{
+				var p = pos;
+				var c = '\0';
+				var q0 = Read_Word_List_With1(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				while (true)
+				{
+					var o1 = (uint)p < (uint)text.Length;
+
+					if (o1)
+					{
+						c = text[p];
+						o1 = c == ',' || c == ';';
+					}
+
+					if (!o1)
+					{
+						break;
+					}
+
+					var s2  = ways.Cursor;
+					var lm2  = ways.LogCount;
+					var lm2R = ways.Records;
+					var rr2 = ways.RefsCount;
+					var q1 = -1;
+
+					while (true)
+					{
+						q1 = Read_List_With1_List_With1_Part0(p);
+
+						if (q1 >= 0)
+							break;
+
+						ways.LogCount  = lm2;
+						ways.Records   = lm2R;
+						ways.RefsCount = rr2;
+
+						if (ways.Cursor > s2 && ways.Retry(s2))
+							continue;
+
+						break;
+					}
+
+					if (q1 < 0)
+					{
+
+						break;
+					}
+
+					p = q1;
+				}
+				return p;
+			}
+
+			/// <summary>One alternative of <c>List_With1</c>, read where it stood.</summary>
+			public int Read_List_With1_List_With1_Part0(int pos)
+			{
+				var p = pos;
+				var q0 = Read_Sep_With1_List_With1(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				var q1 = Read_Word_List_With1(p);
+				if (q1 < 0) return -1;
+				p = q1;
+				return p;
+			}
+
+			/// <summary><c>Word</c>, and the way back into it.</summary>
+			public int Read_Word_List_With1(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Read_Word_List_With1_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>Word</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			public int Read_Word_List_With1_Body(int pos)
+			{
+				var p = pos;
+				var c = '\0';
+				var rb = ways.RefsCount;
+				var a0 = -1;
+				var b0 = -1;
+				a0 = p;
+				var m0 = p;
+				while (true)
+				{
+					if ((uint)p >= (uint)text.Length)
+						break;
+
+					c = text[p];
+
+					if (!(((c >= 'a' && c <= 'z'))))
+						break;
+
+					p++;
+				}
+
+				if (p < m0 + 1)
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_List_With1_Expected1, ways);
+					return -1;
+				}
+
+				if (p > (m0 + 1))
+				{
+					var d0 = 0;
+
+					if (ways.Cursor < ways.Count)
+					{
+						d0 = ways.Items[ways.Cursor * 2];
+						ways.Cursor++;
+					}
+					else
+					{
+						ways.Open(p - (m0 + 1));
+					}
+
+					p -= d0;
+				}
+				b0 = p;
+				ways.Begin(0);
+				ways.Put(a0, b0);
+				ways.End(rb);
+				return p;
+			}
+
+			/// <summary><c>Sep_With1</c>, read by a method of its own.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			public int Read_Sep_With1_List_With1(int pos)
+			{
+				var p = pos;
+				var c = '\0';
+				if ((uint)p >= (uint)text.Length)
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_List_With1_Expected2, ways);
+					return -1;
+				}
+				c = text[p];
+				if (!((c == ',' || c == ';')))
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_List_With1_Expected2, ways);
+					return -1;
+				}
+				p++;
+				return p;
+			}
+
+			/// <summary>The whole input as <c>List_With1</c>, and the way back into it.</summary>
+			public int Recognize_List_With1_Whole_Read(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Recognize_List_With1_Whole_Read_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>List_With1</c> is read by, whichever stack it is read on.</summary>
+			public int Recognize_List_With1_Whole_Read_Body(int pos)
+			{
+				var p = pos;
+				var q0 = Read_List_With1_List_With1(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				if (p != text.Length)
+				{
+					Refuse_DotGram(ref failure, p, null, ways);
+					return -1;
+				}
+				return p;
+			}
+
+		}
+
 		/// <summary>The whole input as <c>List_With1</c>, read by methods.</summary>
 		static int Recognize_List_With1_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
@@ -649,29 +1002,13 @@ namespace DotGram.Snapshots
 
 			try
 			{
-				int end;
+				var reader = new Reader_DotGram_List_With1(text, ways);
 
-				try
-				{
-					end = Recognize_List_With1_Read(text, pos, ref failure, ways);
-				}
-				catch (global::System.InsufficientExecutionStackException)
-				{
-					var from   = pos;
-					var copied = text.ToArray();
-					var deep   = failure;
-					var deeper = Ways.Rent();
-					var got    = -1;
-					var reader = new global::System.Threading.Thread(
-						() => got = Recognize_List_With1_Read(copied, from, ref deep, deeper),
-						268435456);
+				reader.failure = failure;
 
-					reader.Start();
-					reader.Join();
-					failure = deep;
-					ways    = deeper;
-					end     = got;
-				}
+				var end = reader.Recognize_List_With1_Whole_Read(pos);
+
+				failure = reader.failure;
 
 				return end;
 			}
@@ -681,140 +1018,10 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		/// <summary>What <c>List_With1</c> is read by, whichever stack it is read on.</summary>
-		static int Recognize_List_With1_Read(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var p = pos;
-			var c = '\0';
-			var s0 = ways.Cursor;
-			var m0 = 0;
-			var m1 = 0;
-			var m2 = 0;
-			var s1 = 0;
-			var lm1 = 0;
-			var rr1 = 0;
-			var s2 = 0;
-			var lm2 = 0;
-			var rr2 = 0;
-			var s3 = 0;
-			var lm3 = 0;
-			var rr3 = 0;
-			var q0 = 0;
-			var q1 = 0;
-
-			Again:
-			p = pos;
-			m0 = p;
-			s1 = ways.Cursor;
-			lm1 = ways.LogCount;
-			rr1 = ways.RefsCount;
-			L0_again:
-			q0 = Read_Word_List_With1(text, p, ref failure, ways);
-			if (q0 < 0) goto L1_undo;
-			p = q0;
-			L3_turn:
-			m1 = p;
-			s2 = ways.Cursor;
-			lm2 = ways.LogCount;
-			rr2 = ways.RefsCount;
-			L5_again:
-			m2 = p;
-			s3 = ways.Cursor;
-			lm3 = ways.LogCount;
-			rr3 = ways.RefsCount;
-			L7_again:
-			if ((uint)p >= (uint)text.Length)
-			{
-				goto L8_undo;
-			}
-			c = text[p];
-			if (!((c == ',' || c == ';')))
-			{
-				goto L8_undo;
-			}
-			p++;
-			q1 = Read_Word_List_With1(text, p, ref failure, ways);
-			if (q1 < 0) goto L8_undo;
-			p = q1;
-			goto L3_turn;
-			L8_undo:
-			p = m2;
-			ways.LogCount  = lm3;
-			ways.RefsCount = rr3;
-			if (ways.Cursor > s3 && ways.Retry(s3)) goto L7_again;
-			p = m1;
-			ways.LogCount  = lm2;
-			ways.RefsCount = rr2;
-			if (ways.Cursor > s2 && ways.Retry(s2)) goto L5_again;
-			goto L2_on;
-			L1_undo:
-			p = m0;
-			ways.LogCount  = lm1;
-			ways.RefsCount = rr1;
-			if (ways.Cursor > s1 && ways.Retry(s1)) goto L0_again;
-			goto Fail;
-			L2_on: ;
-			if (p != text.Length)
-			{
-				Refuse_DotGram(ref failure, p, null, ways);
-				goto Fail;
-			}
-			return p;
-			Fail:
-			if (ways.Cursor > s0 && ways.Retry(s0)) goto Again;
-			return -1;
-		}
-
-		/// <summary><c>Word</c>, read by a method of its own.</summary>
-		static int Read_Word_List_With1(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var p = pos;
-			var c = '\0';
-			var s0 = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
-			var m0 = 0;
-			var d0 = 0;
-			var a0 = -1;
-			var b0 = -1;
-
-			Again:
-			p = pos;
-			a0 = -1;
-			b0 = -1;
-			ways.LogCount  = lm;
-			ways.RefsCount = rb;
-			a0 = p;
-			m0 = p;
-			while (true)
-			{
-				if ((uint)p >= (uint)text.Length) break;
-				c = text[p];
-				if (!(((c >= 'a' && c <= 'z')))) break;
-				p++;
-			}
-			if (p < (m0 + 1))
-			{
-				Refuse_DotGram(ref failure, p, Recognize_DotGram_List_With1_Expected1, ways);
-				goto Fail;
-			}
-			if (p > (m0 + 1)) { if (ways.Cursor < ways.Count) { d0 = ways.Items[ways.Cursor * 2]; ways.Cursor++; } else { ways.Open(p - (m0 + 1)); d0 = 0; } p -= d0; }
-			b0 = p;
-			ways.Begin(1, 0, pos, p);
-			ways.Put(a0, b0);
-			ways.End(rb);
-			return p;
-			Fail:
-			if (ways.Cursor > s0 && ways.Retry(s0)) goto Again;
-			ways.LogCount  = lm;
-			ways.RefsCount = rb;
-			return -1;
-		}
-
 		/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>
-		static void Materialize_DotGram_List_With1_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from)
+		static void Materialize_DotGram_List_With1_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first)
 		{
-			values.Room(ways.LogCount);
+			values.Room(ways.Records);
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -829,15 +1036,16 @@ namespace DotGram.Snapshots
 
 			for (var back = listed - 1; back >= 0; back--)
 			{
-				var at = starts[back];
+				var at   = starts[back];
+				var slot = first + back;
 
-				if (!live[at]) continue;
+				if (!live[slot]) continue;
 
-				var read = at + 5;
+				var read = at + 2;
 
 				switch (log[at + 1])
 				{
-					case 1:
+					case 0:
 					{
 						read += 2;
 						break;
@@ -847,28 +1055,272 @@ namespace DotGram.Snapshots
 			var values0 = values.V0;
 			var values1 = values.V1;
 
-			for (var at = from; at < ways.LogCount; at += log[at])
+			for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
 			{
-				if (!live[at]) continue;
+				if (!live[slot]) continue;
 
-				var factory = log[at + 2];
-				var start   = log[at + 3];
-				var end     = log[at + 4];
-				var read    = at + 5;
+				var read  = at + 2;
 
 				switch (log[at + 1])
 				{
-					case 1:
+					case 0:
 					{
 						var from0 = log[read++];
 						var to0   = log[read++];
 						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
 
-						values0[at].Value = Construct_Word(captured0!);
+						values0[slot].Value = Construct_Word(captured0!);
 						break;
 					}
 				}
 			}
+		}
+
+		/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>
+		private ref struct Reader_DotGram_List
+		{
+			readonly global::System.ReadOnlySpan<char> text;
+			internal Failure failure;
+			readonly Ways ways;
+
+			internal Reader_DotGram_List(global::System.ReadOnlySpan<char> text, Ways ways)
+			{
+				this.text    = text;
+				this.failure = default;
+				this.ways    = ways;
+			}
+
+			/// <summary><c>List</c>, and the way back into it.</summary>
+			public int Read_List_List(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Read_List_List_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>List</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			public int Read_List_List_Body(int pos)
+			{
+				var p = pos;
+				var c = '\0';
+				var q0 = Read_Word_List(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				while (true)
+				{
+					var o1 = (uint)p < (uint)text.Length;
+
+					if (o1)
+					{
+						c = text[p];
+						o1 = c == ',';
+					}
+
+					if (!o1)
+					{
+						break;
+					}
+
+					var s2  = ways.Cursor;
+					var lm2  = ways.LogCount;
+					var lm2R = ways.Records;
+					var rr2 = ways.RefsCount;
+					var q1 = -1;
+
+					while (true)
+					{
+						q1 = Read_List_List_Part0(p);
+
+						if (q1 >= 0)
+							break;
+
+						ways.LogCount  = lm2;
+						ways.Records   = lm2R;
+						ways.RefsCount = rr2;
+
+						if (ways.Cursor > s2 && ways.Retry(s2))
+							continue;
+
+						break;
+					}
+
+					if (q1 < 0)
+					{
+
+						break;
+					}
+
+					p = q1;
+				}
+				return p;
+			}
+
+			/// <summary>One alternative of <c>List</c>, read where it stood.</summary>
+			public int Read_List_List_Part0(int pos)
+			{
+				var p = pos;
+				var q0 = Read_Sep_List(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				var q1 = Read_Word_List(p);
+				if (q1 < 0) return -1;
+				p = q1;
+				return p;
+			}
+
+			/// <summary><c>Word</c>, and the way back into it.</summary>
+			public int Read_Word_List(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Read_Word_List_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>Word</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			public int Read_Word_List_Body(int pos)
+			{
+				var p = pos;
+				var c = '\0';
+				var rb = ways.RefsCount;
+				var a0 = -1;
+				var b0 = -1;
+				a0 = p;
+				var m0 = p;
+				while (true)
+				{
+					if ((uint)p >= (uint)text.Length)
+						break;
+
+					c = text[p];
+
+					if (!(((c >= 'a' && c <= 'z'))))
+						break;
+
+					p++;
+				}
+
+				if (p < m0 + 1)
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_List_Expected1, ways);
+					return -1;
+				}
+
+				if (p > (m0 + 1))
+				{
+					var d0 = 0;
+
+					if (ways.Cursor < ways.Count)
+					{
+						d0 = ways.Items[ways.Cursor * 2];
+						ways.Cursor++;
+					}
+					else
+					{
+						ways.Open(p - (m0 + 1));
+					}
+
+					p -= d0;
+				}
+				b0 = p;
+				ways.Begin(0);
+				ways.Put(a0, b0);
+				ways.End(rb);
+				return p;
+			}
+
+			/// <summary><c>Sep</c>, read by a method of its own.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			public int Read_Sep_List(int pos)
+			{
+				var p = pos;
+				if ((uint)p >= (uint)text.Length || text[p] != ',')
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_List_Expected0, ways);
+					return -1;
+				}
+				p += 1;
+				return p;
+			}
+
+			/// <summary>The whole input as <c>List</c>, and the way back into it.</summary>
+			public int Recognize_List_Whole_Read(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Recognize_List_Whole_Read_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>List</c> is read by, whichever stack it is read on.</summary>
+			public int Recognize_List_Whole_Read_Body(int pos)
+			{
+				var p = pos;
+				var q0 = Read_List_List(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				if (p != text.Length)
+				{
+					Refuse_DotGram(ref failure, p, null, ways);
+					return -1;
+				}
+				return p;
+			}
+
 		}
 
 		/// <summary>The whole input as <c>List</c>, read by methods.</summary>
@@ -878,29 +1330,13 @@ namespace DotGram.Snapshots
 
 			try
 			{
-				int end;
+				var reader = new Reader_DotGram_List(text, ways);
 
-				try
-				{
-					end = Recognize_List_Read(text, pos, ref failure, ways);
-				}
-				catch (global::System.InsufficientExecutionStackException)
-				{
-					var from   = pos;
-					var copied = text.ToArray();
-					var deep   = failure;
-					var deeper = Ways.Rent();
-					var got    = -1;
-					var reader = new global::System.Threading.Thread(
-						() => got = Recognize_List_Read(copied, from, ref deep, deeper),
-						268435456);
+				reader.failure = failure;
 
-					reader.Start();
-					reader.Join();
-					failure = deep;
-					ways    = deeper;
-					end     = got;
-				}
+				var end = reader.Recognize_List_Whole_Read(pos);
+
+				failure = reader.failure;
 
 				return end;
 			}
@@ -910,134 +1346,10 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		/// <summary>What <c>List</c> is read by, whichever stack it is read on.</summary>
-		static int Recognize_List_Read(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var p = pos;
-			var s0 = ways.Cursor;
-			var m0 = 0;
-			var m1 = 0;
-			var m2 = 0;
-			var s1 = 0;
-			var lm1 = 0;
-			var rr1 = 0;
-			var s2 = 0;
-			var lm2 = 0;
-			var rr2 = 0;
-			var s3 = 0;
-			var lm3 = 0;
-			var rr3 = 0;
-			var q0 = 0;
-			var q1 = 0;
-
-			Again:
-			p = pos;
-			m0 = p;
-			s1 = ways.Cursor;
-			lm1 = ways.LogCount;
-			rr1 = ways.RefsCount;
-			L0_again:
-			q0 = Read_Word_List(text, p, ref failure, ways);
-			if (q0 < 0) goto L1_undo;
-			p = q0;
-			L3_turn:
-			m1 = p;
-			s2 = ways.Cursor;
-			lm2 = ways.LogCount;
-			rr2 = ways.RefsCount;
-			L5_again:
-			m2 = p;
-			s3 = ways.Cursor;
-			lm3 = ways.LogCount;
-			rr3 = ways.RefsCount;
-			L7_again:
-			if ((uint)p >= (uint)text.Length || text[p] != ',')
-			{
-				goto L8_undo;
-			}
-			p += 1;
-			q1 = Read_Word_List(text, p, ref failure, ways);
-			if (q1 < 0) goto L8_undo;
-			p = q1;
-			goto L3_turn;
-			L8_undo:
-			p = m2;
-			ways.LogCount  = lm3;
-			ways.RefsCount = rr3;
-			if (ways.Cursor > s3 && ways.Retry(s3)) goto L7_again;
-			p = m1;
-			ways.LogCount  = lm2;
-			ways.RefsCount = rr2;
-			if (ways.Cursor > s2 && ways.Retry(s2)) goto L5_again;
-			goto L2_on;
-			L1_undo:
-			p = m0;
-			ways.LogCount  = lm1;
-			ways.RefsCount = rr1;
-			if (ways.Cursor > s1 && ways.Retry(s1)) goto L0_again;
-			goto Fail;
-			L2_on: ;
-			if (p != text.Length)
-			{
-				Refuse_DotGram(ref failure, p, null, ways);
-				goto Fail;
-			}
-			return p;
-			Fail:
-			if (ways.Cursor > s0 && ways.Retry(s0)) goto Again;
-			return -1;
-		}
-
-		/// <summary><c>Word</c>, read by a method of its own.</summary>
-		static int Read_Word_List(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var p = pos;
-			var c = '\0';
-			var s0 = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
-			var m0 = 0;
-			var d0 = 0;
-			var a0 = -1;
-			var b0 = -1;
-
-			Again:
-			p = pos;
-			a0 = -1;
-			b0 = -1;
-			ways.LogCount  = lm;
-			ways.RefsCount = rb;
-			a0 = p;
-			m0 = p;
-			while (true)
-			{
-				if ((uint)p >= (uint)text.Length) break;
-				c = text[p];
-				if (!(((c >= 'a' && c <= 'z')))) break;
-				p++;
-			}
-			if (p < (m0 + 1))
-			{
-				Refuse_DotGram(ref failure, p, Recognize_DotGram_List_Expected1, ways);
-				goto Fail;
-			}
-			if (p > (m0 + 1)) { if (ways.Cursor < ways.Count) { d0 = ways.Items[ways.Cursor * 2]; ways.Cursor++; } else { ways.Open(p - (m0 + 1)); d0 = 0; } p -= d0; }
-			b0 = p;
-			ways.Begin(1, 0, pos, p);
-			ways.Put(a0, b0);
-			ways.End(rb);
-			return p;
-			Fail:
-			if (ways.Cursor > s0 && ways.Retry(s0)) goto Again;
-			ways.LogCount  = lm;
-			ways.RefsCount = rb;
-			return -1;
-		}
-
 		/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>
-		static void Materialize_DotGram_List_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from)
+		static void Materialize_DotGram_List_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first)
 		{
-			values.Room(ways.LogCount);
+			values.Room(ways.Records);
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -1052,15 +1364,16 @@ namespace DotGram.Snapshots
 
 			for (var back = listed - 1; back >= 0; back--)
 			{
-				var at = starts[back];
+				var at   = starts[back];
+				var slot = first + back;
 
-				if (!live[at]) continue;
+				if (!live[slot]) continue;
 
-				var read = at + 5;
+				var read = at + 2;
 
 				switch (log[at + 1])
 				{
-					case 1:
+					case 0:
 					{
 						read += 2;
 						break;
@@ -1070,24 +1383,21 @@ namespace DotGram.Snapshots
 			var values0 = values.V0;
 			var values1 = values.V1;
 
-			for (var at = from; at < ways.LogCount; at += log[at])
+			for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
 			{
-				if (!live[at]) continue;
+				if (!live[slot]) continue;
 
-				var factory = log[at + 2];
-				var start   = log[at + 3];
-				var end     = log[at + 4];
-				var read    = at + 5;
+				var read  = at + 2;
 
 				switch (log[at + 1])
 				{
-					case 1:
+					case 0:
 					{
 						var from0 = log[read++];
 						var to0   = log[read++];
 						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
 
-						values0[at].Value = Construct_Word(captured0!);
+						values0[slot].Value = Construct_Word(captured0!);
 						break;
 					}
 				}
@@ -1127,6 +1437,281 @@ namespace DotGram.Snapshots
 			return -1;
 		}
 
+		/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>
+		private ref struct Reader_DotGram_Primary
+		{
+			readonly global::System.ReadOnlySpan<char> text;
+			internal Failure failure;
+			readonly Ways ways;
+
+			internal Reader_DotGram_Primary(global::System.ReadOnlySpan<char> text, Ways ways)
+			{
+				this.text    = text;
+				this.failure = default;
+				this.ways    = ways;
+			}
+
+			/// <summary><c>Primary</c>, and the way back into it.</summary>
+			public int Read_Primary_Primary(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Read_Primary_Primary_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>Primary</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			public int Read_Primary_Primary_Body(int pos)
+			{
+				var p = pos;
+				var c = '\0';
+				if ((uint)p >= (uint)text.Length)
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected2, ways);
+					return -1;
+				}
+				c = text[p];
+
+				if (!((c >= '0' && c <= '9')))
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected2, ways);
+					return -1;
+				}
+
+				var w0  = -1;
+				var d0 = 0;
+				if (ways.Cursor < ways.Count)
+				{
+					w0  = ways.Cursor;
+					d0 = ways.Items[w0 * 2];
+					ways.Cursor++;
+				}
+				else
+				{
+					w0 = ways.Open(0, 1);
+				}
+
+				var q0 = -1;
+				if (q0 < 0 && d0 <= 0)
+				{
+					var s1  = ways.Cursor;
+					var lm1  = ways.LogCount;
+					var lm1R = ways.Records;
+					var rr1 = ways.RefsCount;
+
+					q0 = Read_Call_Primary(p);
+
+					if (q0 < 0)
+					{
+						ways.LogCount  = lm1;
+						ways.Records   = lm1R;
+						ways.RefsCount = rr1;
+					}
+
+					if (q0 < 0)
+						ways.Next(w0, 1, 1);
+				}
+				if (q0 < 0 && d0 <= 1)
+				{
+					var s2  = ways.Cursor;
+					var lm2  = ways.LogCount;
+					var lm2R = ways.Records;
+					var rr2 = ways.RefsCount;
+
+					q0 = Read_Number_Primary(p);
+
+					if (q0 < 0)
+					{
+						ways.LogCount  = lm2;
+						ways.Records   = lm2R;
+						ways.RefsCount = rr2;
+					}
+				}
+
+				if (q0 < 0)
+					return -1;
+
+				p = q0;
+				return p;
+			}
+
+			/// <summary><c>Call</c>, read by a method of its own.</summary>
+			public int Read_Call_Primary(int pos)
+			{
+				var p = pos;
+				var c = '\0';
+				var rb = ways.RefsCount;
+				var fold = -1;
+				var r0 = -1;
+				var q0 = Read_Number_Primary(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				r0 = ways.Last;
+				if ((uint)(p + 2) > (uint)text.Length || !global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("()")))
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected1, ways);
+					return -1;
+				}
+				p += 2;
+				ways.Begin(0);
+				ways.Put(r0);
+				ways.End(rb);
+				fold = ways.Last;
+				while (true)
+				{
+					var o1 = (uint)p < (uint)text.Length;
+
+					if (o1)
+					{
+						c = text[p];
+						o1 = c == '(';
+					}
+
+					if (!o1)
+					{
+						break;
+					}
+
+					var lm2  = ways.LogCount;
+					var lm2R = ways.Records;
+					var rr2 = ways.RefsCount;
+					var q1 = -1;
+
+					q1 = Read_Call_Primary_Part0(p, ref fold);
+
+					if (q1 < 0)
+					{
+						ways.LogCount  = lm2;
+						ways.Records   = lm2R;
+						ways.RefsCount = rr2;
+					}
+
+					if (q1 < 0)
+					{
+
+						break;
+					}
+
+					p = q1;
+				}
+				return p;
+			}
+
+			/// <summary>One alternative of <c>Call</c>, read where it stood.</summary>
+			public int Read_Call_Primary_Part0(int pos, ref int fold)
+			{
+				var p = pos;
+				var rb = ways.RefsCount;
+				if ((uint)(p + 2) > (uint)text.Length || !global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("()")))
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected1, ways);
+					return -1;
+				}
+				p += 2;
+				ways.Begin(1);
+				ways.Put(fold);
+				ways.End(rb);
+				fold = ways.Last;
+				return p;
+			}
+
+			/// <summary><c>Number</c>, read by a method of its own.</summary>
+			public int Read_Number_Primary(int pos)
+			{
+				var p = pos;
+				var c = '\0';
+				var rb = ways.RefsCount;
+				var a0 = -1;
+				var b0 = -1;
+				a0 = p;
+				var m0 = p;
+				while (true)
+				{
+					if ((uint)p >= (uint)text.Length)
+						break;
+
+					c = text[p];
+
+					if (!(((c >= '0' && c <= '9'))))
+						break;
+
+					p++;
+				}
+
+				if (p < m0 + 1)
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected0, ways);
+					return -1;
+				}
+
+				b0 = p;
+				ways.Begin(2);
+				ways.Put(a0, b0);
+				ways.End(rb);
+				return p;
+			}
+
+			/// <summary>The whole input as <c>Primary</c>, and the way back into it.</summary>
+			public int Recognize_Primary_Whole_Read(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Recognize_Primary_Whole_Read_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>Primary</c> is read by, whichever stack it is read on.</summary>
+			public int Recognize_Primary_Whole_Read_Body(int pos)
+			{
+				var p = pos;
+				var q0 = Read_Primary_Primary(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				if (p != text.Length)
+				{
+					Refuse_DotGram(ref failure, p, null, ways);
+					return -1;
+				}
+				return p;
+			}
+
+		}
+
 		/// <summary>The whole input as <c>Primary</c>, read by methods.</summary>
 		static int Recognize_Primary_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value)
 		{
@@ -1135,29 +1720,13 @@ namespace DotGram.Snapshots
 
 			try
 			{
-				int end;
+				var reader = new Reader_DotGram_Primary(text, ways);
 
-				try
-				{
-					end = Recognize_Primary_Read(text, pos, ref failure, ways);
-				}
-				catch (global::System.InsufficientExecutionStackException)
-				{
-					var from   = pos;
-					var copied = text.ToArray();
-					var deep   = failure;
-					var deeper = Ways.Rent();
-					var got    = -1;
-					var reader = new global::System.Threading.Thread(
-						() => got = Recognize_Primary_Read(copied, from, ref deep, deeper),
-						268435456);
+				reader.failure = failure;
 
-					reader.Start();
-					reader.Join();
-					failure = deep;
-					ways    = deeper;
-					end     = got;
-				}
+				var end = reader.Recognize_Primary_Whole_Read(pos);
+
+				failure = reader.failure;
 
 				if (end < 0)
 				{
@@ -1166,7 +1735,7 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				Materialize_DotGram_Primary_Direct(ways, text, values, ways.Last, 0);
+				Materialize_DotGram_Primary_Direct(ways, text, values, ways.Last, 0, 0);
 				value = values.V1[ways.Last].Value;
 
 				return end;
@@ -1178,280 +1747,10 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		/// <summary>What <c>Primary</c> is read by, whichever stack it is read on.</summary>
-		static int Recognize_Primary_Read(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var p = pos;
-			var s0 = ways.Cursor;
-			var q0 = 0;
-
-			Again:
-			p = pos;
-			q0 = Read_Primary_Primary(text, p, ref failure, ways);
-			if (q0 < 0) goto Fail;
-			p = q0;
-			if (p != text.Length)
-			{
-				Refuse_DotGram(ref failure, p, null, ways);
-				goto Fail;
-			}
-			return p;
-			Fail:
-			if (ways.Cursor > s0 && ways.Retry(s0)) goto Again;
-			return -1;
-		}
-
-		/// <summary><c>Primary</c>, read by a method of its own.</summary>
-		static int Read_Primary_Primary(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var p = pos;
-			var c = '\0';
-			var s0 = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
-			var m0 = 0;
-			var s1 = 0;
-			var lm1 = 0;
-			var rr1 = 0;
-			var w0 = 0;
-			var d0 = 0;
-			var q0 = 0;
-			var r0 = -1;
-			var r1 = -1;
-
-			Again:
-			p = pos;
-			r0 = -1;
-			r1 = -1;
-			ways.LogCount  = lm;
-			ways.RefsCount = rb;
-			if ((uint)p >= (uint)text.Length)
-			{
-				Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected2, ways);
-				goto Fail;
-			}
-			c = text[p];
-			m0 = p;
-			w0 = -1;
-			if (!((c >= '0' && c <= '9')))
-			{
-				goto L2_alt;
-			}
-			if (ways.Cursor < ways.Count) { w0 = ways.Cursor; d0 = ways.Items[w0 * 2]; ways.Cursor++; }
-			else { w0 = ways.Open(0, 1); d0 = 0; }
-			switch (d0)
-			{
-				case 1: goto L2_alt;
-			}
-			s1 = ways.Cursor;
-			lm1 = ways.LogCount;
-			rr1 = ways.RefsCount;
-			L4_again:
-			c = text[p];
-			q0 = Read_Call_Primary(text, p, ref failure, ways);
-			if (q0 < 0) goto L5_failed;
-			p = q0;
-			r0 = ways.Last;
-			goto L0_took;
-			L5_failed:
-			p = m0;
-			ways.LogCount  = lm1;
-			ways.RefsCount = rr1;
-			r0 = -1;
-			if (ways.Cursor > s1 && ways.Retry(s1)) goto L4_again;
-			ways.Next(w0, 1, 1);
-			L2_alt:
-			c = text[p];
-			if (!((c >= '0' && c <= '9')))
-			{
-				Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected2, ways);
-				goto Fail;
-			}
-			s1 = ways.Cursor;
-			lm1 = ways.LogCount;
-			rr1 = ways.RefsCount;
-			L8_again:
-			c = text[p];
-			q0 = Read_Number_Primary(text, p, ref failure, ways);
-			if (q0 < 0) goto L9_failed;
-			p = q0;
-			r1 = ways.Last;
-			goto L0_took;
-			L9_failed:
-			p = m0;
-			ways.LogCount  = lm1;
-			ways.RefsCount = rr1;
-			r1 = -1;
-			if (ways.Cursor > s1 && ways.Retry(s1)) goto L8_again;
-			goto Fail;
-			L0_took: ;
-			return p;
-			Fail:
-			if (ways.Cursor > s0 && ways.Retry(s0)) goto Again;
-			ways.LogCount  = lm;
-			ways.RefsCount = rb;
-			return -1;
-		}
-
-		/// <summary><c>Call</c>, read by a method of its own.</summary>
-		static int Read_Call_Primary(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var p = pos;
-			var s0 = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
-			var m0 = 0;
-			var m1 = 0;
-			var m2 = 0;
-			var s1 = 0;
-			var lm1 = 0;
-			var rr1 = 0;
-			var s2 = 0;
-			var lm2 = 0;
-			var rr2 = 0;
-			var s3 = 0;
-			var lm3 = 0;
-			var rr3 = 0;
-			var q0 = 0;
-			var r0 = -1;
-			var fold = -1;
-
-			Again:
-			p = pos;
-			r0 = -1;
-			fold = -1;
-			ways.LogCount  = lm;
-			ways.RefsCount = rb;
-			m0 = p;
-			s1 = ways.Cursor;
-			lm1 = ways.LogCount;
-			rr1 = ways.RefsCount;
-			L0_again:
-			m1 = p;
-			s2 = ways.Cursor;
-			lm2 = ways.LogCount;
-			rr2 = ways.RefsCount;
-			L3_again:
-			q0 = Read_Number_Primary(text, p, ref failure, ways);
-			if (q0 < 0) goto L4_undo;
-			p = q0;
-			r0 = ways.Last;
-			if (text.Length - p < 2)
-			{
-				failure.OutOfInput = p + 1;
-				Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected1, ways);
-				goto L4_undo;
-			}
-			if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("()")))
-			{
-				Refuse_DotGram(ref failure, Reach_DotGram(text, p, global::System.MemoryExtensions.AsSpan("()")), Recognize_DotGram_Primary_Expected1, ways);
-				goto L4_undo;
-			}
-			p += 2;
-			goto L5_on;
-			L4_undo:
-			p = m1;
-			ways.LogCount  = lm2;
-			ways.RefsCount = rr2;
-			r0 = -1;
-			if (ways.Cursor > s2 && ways.Retry(s2)) goto L3_again;
-			goto L1_undo;
-			L5_on: ;
-			ways.Begin(2, 0, pos, p);
-			ways.Put(r0);
-			ways.End(rb);
-			fold = ways.Last;
-			L6_turn:
-			m2 = p;
-			s3 = ways.Cursor;
-			lm3 = ways.LogCount;
-			rr3 = ways.RefsCount;
-			L8_again:
-			if (text.Length - p < 2)
-			{
-				failure.OutOfInput = p + 1;
-				goto L9_failed;
-			}
-			if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("()")))
-			{
-				goto L9_failed;
-			}
-			p += 2;
-			ways.Begin(2, 1, pos, p);
-			ways.Put(fold);
-			ways.End(rb);
-			fold = ways.Last;
-			goto L6_turn;
-			L9_failed:
-			p = m2;
-			ways.LogCount  = lm3;
-			ways.RefsCount = rr3;
-			if (ways.Cursor > s3 && ways.Retry(s3)) goto L8_again;
-			goto L2_on;
-			L1_undo:
-			p = m0;
-			ways.LogCount  = lm1;
-			ways.RefsCount = rr1;
-			r0 = -1;
-			if (ways.Cursor > s1 && ways.Retry(s1)) goto L0_again;
-			goto Fail;
-			L2_on: ;
-			return p;
-			Fail:
-			if (ways.Cursor > s0 && ways.Retry(s0)) goto Again;
-			ways.LogCount  = lm;
-			ways.RefsCount = rb;
-			return -1;
-		}
-
-		/// <summary><c>Number</c>, read by a method of its own.</summary>
-		static int Read_Number_Primary(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
-		{
-			var p = pos;
-			var c = '\0';
-			var s0 = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
-			var m0 = 0;
-			var a0 = -1;
-			var b0 = -1;
-
-			Again:
-			p = pos;
-			a0 = -1;
-			b0 = -1;
-			ways.LogCount  = lm;
-			ways.RefsCount = rb;
-			a0 = p;
-			m0 = p;
-			while (true)
-			{
-				if ((uint)p >= (uint)text.Length) break;
-				c = text[p];
-				if (!(((c >= '0' && c <= '9')))) break;
-				p++;
-			}
-			if (p < (m0 + 1))
-			{
-				Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected0, ways);
-				goto Fail;
-			}
-			b0 = p;
-			ways.Begin(1, 0, pos, p);
-			ways.Put(a0, b0);
-			ways.End(rb);
-			return p;
-			Fail:
-			if (ways.Cursor > s0 && ways.Retry(s0)) goto Again;
-			ways.LogCount  = lm;
-			ways.RefsCount = rb;
-			return -1;
-		}
-
 		/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>
-		static void Materialize_DotGram_Primary_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from)
+		static void Materialize_DotGram_Primary_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first)
 		{
-			values.Room(ways.LogCount);
+			values.Room(ways.Records);
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -1466,46 +1765,28 @@ namespace DotGram.Snapshots
 
 			for (var back = listed - 1; back >= 0; back--)
 			{
-				var at = starts[back];
+				var at   = starts[back];
+				var slot = first + back;
 
-				if (!live[at]) continue;
+				if (!live[slot]) continue;
 
-				var read = at + 5;
-				var factory = log[at + 2];
+				var read = at + 2;
 
 				switch (log[at + 1])
 				{
 					case 0:
 					{
-						switch (factory)
-						{
-							case 0:
-								if (log[read] >= 0) live[log[read]] = true;
-								read++;
-								break;
-							case 1:
-								if (log[read] >= 0) live[log[read]] = true;
-								read++;
-								break;
-						}
-						break;
-					}
-					case 2:
-					{
-						switch (factory)
-						{
-							case 0:
-								if (log[read] >= 0) live[log[read]] = true;
-								read++;
-								break;
-							case 1:
-								live[log[read]] = true;
-								read++;
-								break;
-						}
+						if (log[read] >= 0) live[log[read]] = true;
+						read++;
 						break;
 					}
 					case 1:
+					{
+						live[log[read]] = true;
+						read++;
+						break;
+					}
+					case 2:
 					{
 						read += 2;
 						break;
@@ -1515,68 +1796,35 @@ namespace DotGram.Snapshots
 			var values0 = values.V0;
 			var values1 = values.V1;
 
-			for (var at = from; at < ways.LogCount; at += log[at])
+			for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
 			{
-				if (!live[at]) continue;
+				if (!live[slot]) continue;
 
-				var factory = log[at + 2];
-				var start   = log[at + 3];
-				var end     = log[at + 4];
-				var read    = at + 5;
+				var read  = at + 2;
 
 				switch (log[at + 1])
 				{
 					case 0:
 					{
-						switch (factory)
-						{
-							case 0:
-								{
-									var record0 = log[read++];
-									int? captured0 = record0 < 0 ? default(int?) : values1[record0].Value;
+						var record0 = log[read++];
+						var captured0 = values1[record0].Value;
 
-									values1[at].Value = Construct_Primary((int)captured0!);
-									break;
-								}
-							case 1:
-								{
-									var record1 = log[read++];
-									int? captured1 = record1 < 0 ? default(int?) : values1[record1].Value;
-
-									values1[at].Value = Construct_Primary_1((int)captured1!);
-									break;
-								}
-						}
-						break;
-					}
-					case 2:
-					{
-						switch (factory)
-						{
-							case 0:
-								{
-									var record0 = log[read++];
-									var captured0 = values1[record0].Value;
-
-									values1[at].Value = Construct_Call(captured0!);
-									break;
-								}
-							case 1:
-								{
-									var accumulated = log[read++];
-									values1[at].Value = Construct_Call_1(values1[accumulated].Value);
-									break;
-								}
-						}
+						values1[slot].Value = Construct_Call(captured0!);
 						break;
 					}
 					case 1:
+					{
+						var accumulated = log[read++];
+						values1[slot].Value = Construct_Call_1(values1[accumulated].Value);
+						break;
+					}
+					case 2:
 					{
 						var from0 = log[read++];
 						var to0   = log[read++];
 						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
 
-						values1[at].Value = Construct_Number(captured0!);
+						values1[slot].Value = Construct_Number(captured0!);
 						break;
 					}
 				}
@@ -1726,7 +1974,7 @@ namespace DotGram.Snapshots
 				{
 					failure.Position = p;
 					failure.Expected = expected;
-					failure.ExpectedMore = null;
+					failure.ExpectedMore?.Clear();
 				}
 				else if (lookahead < 0 && p == failure.Position && expected != null)
 				{
@@ -1851,7 +2099,7 @@ namespace DotGram.Snapshots
 
 		static readonly string[] Recognize_DotGram_Primary_Expected1 = { "\"()\"" };
 
-		static readonly string[] Recognize_DotGram_Primary_Expected2 = { "p: Call => (p)", "n: Number => (n)" };
+		static readonly string[] Recognize_DotGram_Primary_Expected2 = { "['0'..'9' | '0'..'9']" };
 
 		static void Materialize_DotGram_Word(global::System.ReadOnlySpan<char> text, Parser parser, ParserArena entries)
 		{
@@ -2158,7 +2406,9 @@ namespace DotGram.Snapshots
 
 			/// <summary>
 			/// A second array and beyond, where more than one terminal tied for the
-			/// furthest position. Null until an actual tie needs one.
+			/// furthest position. Null until an actual tie needs one, and emptied rather
+			/// than dropped when the furthest position moves on: a parse that ties once
+			/// tends to tie again, and a list per tie was an allocation per operand.
 			/// </summary>
 			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
 		}
@@ -2406,7 +2656,16 @@ namespace DotGram.Snapshots
 			/// <summary>How much of the log is written.</summary>
 			internal int LogCount;
 
-			/// <summary>Where the record most recently finished begins: the value a caller captures.</summary>
+			/// <summary>How many records the log holds: the number the next one is given.</summary>
+			/// <remarks>
+			/// A record is named by its number and not by where it was written, so that the
+			/// tables the walk builds into are as long as there are records and not as long as
+			/// the log. On a real grammar that is four or five times shorter, which is the
+			/// difference between a table that fits in the first cache and one that does not.
+			/// </remarks>
+			internal int Records;
+
+			/// <summary>Which record finished most recently: the number a caller captures.</summary>
 			internal int Last = -1;
 
 			/// <summary>
@@ -2425,7 +2684,9 @@ namespace DotGram.Snapshots
 			/// <summary>How much of the side stack is in use.</summary>
 			internal int RefsCount;
 
+			/// <summary>Where the record being written begins, and which record it is.</summary>
 			int _record;
+			int _number;
 
 			[global::System.ThreadStatic]
 			static Ways? _spare;
@@ -2442,6 +2703,7 @@ namespace DotGram.Snapshots
 				spare.Cursor = 0;
 				spare.Lookahead = 0;
 				spare.LogCount  = 0;
+				spare.Records   = 0;
 				spare.RefsCount = 0;
 				spare.Last      = -1;
 				spare.Built     = 0;
@@ -2529,20 +2791,46 @@ namespace DotGram.Snapshots
 					Items[way * 2 + 1] = Items[way * 2];
 			}
 
-			/// <summary>Opens a record: its length is written when it ends.</summary>
-			internal void Begin(int rule, int factory, int start, int end)
+			/// <summary>
+			/// Opens a record: its length is written when it ends.
+			/// </summary>
+			/// <remarks>
+			/// One number says which rule wrote it and which of that rule's alternatives,
+			/// because the walk at the end wants both together and asking twice cost a
+			/// switch inside a switch — two jump tables where a record needs one.
+			/// </remarks>
+			/// <summary>
+			/// Opens a record that stands nowhere in particular: where nothing a machine
+			/// builds is a span of the input, and no factory it runs asks where it read,
+			/// the two positions are two integers written and never looked at.
+			/// </summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			internal void Begin(int arm)
 			{
-				if (LogCount + 5 > Log.Length)
-					global::System.Array.Resize(ref Log, Log.Length * 2 + 5);
+				if (LogCount + 2 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 2);
 
 				_record = LogCount;
+				_number = Records++;
 				Log[LogCount++] = 0;
-				Log[LogCount++] = rule;
-				Log[LogCount++] = factory;
+				Log[LogCount++] = arm;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			internal void Begin(int arm, int start, int end)
+			{
+				if (LogCount + 4 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 4);
+
+				_record = LogCount;
+				_number = Records++;
+				Log[LogCount++] = 0;
+				Log[LogCount++] = arm;
 				Log[LogCount++] = start;
 				Log[LogCount++] = end;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void Put(int value)
 			{
 				if (LogCount + 1 > Log.Length)
@@ -2551,6 +2839,7 @@ namespace DotGram.Snapshots
 				Log[LogCount++] = value;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void Put(int a, int b)
 			{
 				if (LogCount + 2 > Log.Length)
@@ -2561,7 +2850,21 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>Closes the record: its length goes in front, and it becomes the last.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void End(int refs)
+			{
+				Log[_record] = LogCount - _record;
+				Last         = _number;
+				RefsCount    = refs;
+			}
+
+			/// <summary>
+			/// The record closed, and named by where it stands rather than by its number:
+			/// an extent is the one thing whose value is the record itself, read straight
+			/// out of the log by whoever captured it, and never put in a table.
+			/// </summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			internal void EndAt(int refs)
 			{
 				Log[_record] = LogCount - _record;
 				Last         = _record;
@@ -2577,6 +2880,8 @@ namespace DotGram.Snapshots
 			{
 				if (LogCount + 5 > Log.Length)
 					global::System.Array.Resize(ref Log, Log.Length * 2 + 5);
+
+				Records++;
 
 				Log[LogCount++] = 5;
 				Log[LogCount++] = kind;
@@ -2632,11 +2937,22 @@ namespace DotGram.Snapshots
 			{
 				failure.Position     = at;
 				failure.Expected     = expected;
-				failure.ExpectedMore = null;
+				failure.ExpectedMore?.Clear();
 			}
-			else if (at == failure.Position && expected != null)
+			else if (at == failure.Position && expected != null && !ReferenceEquals(expected, failure.Expected))
 			{
-				(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
+				// The same set said twice is one thing wanted, not two. A rule refused at the
+				// furthest position by several of its alternatives says the same set from
+				// each, and a message listing it once is the message; a list holding it
+				// several times is a list that grew on a parse that went on to succeed.
+				var more = failure.ExpectedMore;
+
+				if (more == null)
+					failure.ExpectedMore = more = new global::System.Collections.Generic.List<string[]>();
+				else if (more.Count > 0 && ReferenceEquals(more[more.Count - 1], expected))
+					return;
+
+				more.Add(expected);
 			}
 		}
 

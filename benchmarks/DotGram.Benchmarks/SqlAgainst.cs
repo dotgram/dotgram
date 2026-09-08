@@ -97,8 +97,22 @@ static class SqlAgainst
 		Agree();
 
 		Console.WriteLine();
-		Console.WriteLine(
-			$"{"",-36} {"generated",11} {"by hand",11} {"its lexer",11} {"day one",11}   ratio");
+		Console.Write($"{"",-36}");
+
+		foreach (var (name, _) in Methods)
+			Console.Write($" {name,11}");
+
+		// Both readings of the grammar against the hand-written parser: what the tape costs
+		// over it, and what building as you read costs over it.
+		Console.WriteLine("   tape/hand  immediate/hand  mixed/hand");
+
+		// Every method over every input before any of them is measured. Warming one input
+		// at a time leaves the first one paying for the whole process coming up to speed,
+		// and the first row said so: eleven times the hand-written parser one run and
+		// twice it the next, for a reading the other rows put at one and a half.
+		foreach (var input in Inputs)
+			foreach (var (_, measure) in Methods)
+				Time(input, measure, iterations);
 
 		foreach (var input in Inputs)
 		{
@@ -148,6 +162,8 @@ static class SqlAgainst
 	static readonly (string Name, Func<string, int> Measure)[] Methods =
 	[
 		("generated", static input => SqlStandard92.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
+		("immediate", static input => ImmediateSql.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
+		("mixed",     static input => MixedSql.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
 		("by hand",   static input => HandSqlTokens.Parse(input) ? 1 : 0),
 		("its lexer", static input => HandSqlTokens.LexOnly(input)),
 		("day one",   static input => HandSqlOriginal.Parse(input) ? 1 : 0),
@@ -188,6 +204,33 @@ static class SqlAgainst
 					$"  generated {one}\n" +
 					$"  by hand   {other}");
 			}
+
+			// And the immediate carrier: the same grammar, the same tree, built as it is read.
+			var immediate = ImmediateSql.TryParseSearchCondition(text);
+
+			if (immediate.IsSuccess != generated)
+				throw new InvalidOperationException(
+					$"About \"{text}\": the tape says {Said(generated)} and the immediate carrier says " +
+					$"{Said(immediate.IsSuccess)}.");
+
+			if (generated && SqlTree.Show(made.Value) != SqlTree.Show(immediate.Value))
+				throw new InvalidOperationException(
+					$"About \"{text}\": the two carriers read it the same and build it differently.\n" +
+					$"  tape  {SqlTree.Show(made.Value)}\n" +
+					$"  immediate {SqlTree.Show(immediate.Value)}");
+
+			// And the mixed carrier: deferred as the tape is, over a typed shape per rule.
+			var mixed = MixedSql.TryParseSearchCondition(text);
+
+			if (mixed.IsSuccess != generated)
+				throw new InvalidOperationException(
+					$"About \"{text}\": the tape says {Said(generated)} and the mixed carrier says " +
+					$"{Said(mixed.IsSuccess)}.");
+
+			if (generated && SqlTree.Show(made.Value) != SqlTree.Show(mixed.Value))
+				throw new InvalidOperationException(
+					$"About \"{text}\": the tape and the mixed carrier read it the same and build it "
+					+ $"differently.\n  tape  {SqlTree.Show(made.Value)}\n  mixed {SqlTree.Show(mixed.Value)}");
 
 			// The first day's parser is held only to what it was ever checked against — the
 			// benchmark inputs — and its departures over the corpus are shown, because they
@@ -278,6 +321,55 @@ static class SqlAgainst
 	}
 
 	/// <summary>What the loop and the indirect call cost with no parsing under them.</summary>
+	/// <summary>What each parse allocates, which is the other half of what it costs.</summary>
+	/// <remarks>
+	/// A ratio of times says one parser is dearer and not what it is dear at. Bytes say
+	/// it plainly: two parsers building the same tree allocate the same for the tree, so
+	/// whatever is left over is something one of them makes and the other does not.
+	/// </remarks>
+	public static void Bytes(int iterations)
+	{
+		Agree();
+
+		Console.WriteLine();
+		Console.Write($"{"",-36}");
+
+		foreach (var (name, _) in Methods)
+			Console.Write($" {name,11}");
+
+		Console.WriteLine("   over hand");
+
+		foreach (var input in Inputs)
+		{
+			var taken = new double[Methods.Length];
+
+			for (var i = 0; i < Methods.Length; i++)
+			{
+				Methods[i].Measure(input);
+
+				var before = GC.GetAllocatedBytesForCurrentThread();
+				var sink   = 0;
+
+				for (var one = 0; one < iterations; one++)
+					sink += Methods[i].Measure(input);
+
+				taken[i] = (GC.GetAllocatedBytesForCurrentThread() - before) / (double)iterations;
+
+				if (sink < 0)
+					Console.Write("");
+			}
+
+			var shown = input.Length <= 34 ? input : input.Substring(0, 31) + "...";
+
+			Console.Write($"{shown,-36}");
+
+			foreach (var one in taken)
+				Console.Write($" {one,8:N0} b ");
+
+			Console.WriteLine($"    {taken[1] - taken[3],+8:N0} b");
+		}
+	}
+
 	static int Nothing(string input) => input.Length & 1;
 
 	static double Time(string input, Func<string, int> measure, int iterations)
@@ -303,7 +395,8 @@ static class SqlAgainst
 		foreach (var median in medians)
 			Console.Write($" {median,8:N1} ns");
 
-		Console.WriteLine($"   {medians[0] / medians[1],5:N2}x");
+		Console.WriteLine(
+			$"   {medians[0] / medians[3],8:N2}x {medians[1] / medians[3],9:N2}x {medians[2] / medians[3],9:N2}x");
 	}
 
 	static double Median(List<double> times)

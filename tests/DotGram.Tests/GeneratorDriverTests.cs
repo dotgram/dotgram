@@ -1145,7 +1145,7 @@ public sealed class GeneratorDriverTests
 		// No trailing 'x', so the whole parse fails and Accept: — the only place a value is
 		// ever constructed — is never reached. Inner has nothing before it left to
 		// backtrack into the moment it returns, which once made it eligible for a since-
-		// removed eager-construction optimization; Built() must still never run for a
+		// removed immediate-construction optimization; Built() must still never run for a
 		// derivation whose surrounding parse does not succeed (docs/implementation.md §3).
 		Assert.Throws<TargetInvocationException>(
 			() => type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["1"]));
@@ -1156,10 +1156,10 @@ public sealed class GeneratorDriverTests
 	public void A_rule_before_an_atomic_group_is_not_constructed_before_the_parse_is_accepted()
 	{
 		// Prefix has a live alternative (`none`) still available when { 'x' } closes; a
-		// since-removed eager-construction analysis treated any successful atomic group as
+		// since-removed immediate-construction analysis treated any successful atomic group as
 		// committing everything before it, which is not what the runtime commit actually
 		// does — the atomic group only discards entries created inside itself. Value would
-		// have been wrongly eligible for eager construction under that analysis, even
+		// have been wrongly eligible for immediate construction under that analysis, even
 		// though Prefix's own alternative can still be reached if the parse fails after it.
 		var type = Build("""
 			[DotGram.Gram("Prefix = 'a' | none\nValue : @int = 'b' => @Built()\nStart = Prefix & { 'x' } & Value & 'z'\nparse Start")]
@@ -1922,6 +1922,100 @@ public sealed class GeneratorDriverTests
 		});
 	}
 
+	// ── Two grammars on one class ────────────────────────────────────────────
+
+	/// <summary>
+	/// A class may carry several grammars, and each is a compilation of its own in a class
+	/// of its own — which is how one host offers the same grammar compiled two ways.
+	/// </summary>
+	[Fact]
+	public void A_second_grammar_on_a_class_is_compiled_into_a_class_of_its_own()
+	{
+		// Both grammars hand a span to a method of the host, which is what says the span is
+		// the host's type and not one per compilation: two of them would not be the same
+		// type, and neither would compile.
+		const string source = """"
+			using DotGram;
+
+			[Gram("""
+				Start : @string = t: ['a'..'z']+ => @(Seen(t, parserSpan))
+				parse Start
+				""")]
+			[Gram("""
+				Start : @string = t: ['0'..'9']+ => @(Seen(t, parserSpan))
+				parse Start
+				""", Suffix = "Digits")]
+			public static partial class Twice
+			{
+				internal static string Seen(string t, SourceSpan at) => t + "@" + at.Length;
+			}
+			"""";
+
+		var built = Build(source);
+
+		var host   = built.GetType("Twice")!.GetMethod("ParseStart", [typeof(string)])!;
+		var nested = built.GetType("Twice+Digits")!.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal("abc@3", host.Invoke(null, ["abc"]));
+		Assert.Equal("123@3", nested.Invoke(null, ["123"]));
+
+		// Two languages, not one read twice: each class reads its own and refuses the other.
+		Assert.Throws<TargetInvocationException>(() => host.Invoke(null, ["123"]));
+		Assert.Throws<TargetInvocationException>(() => nested.Invoke(null, ["abc"]));
+	}
+
+	/// <summary>
+	/// A second attribute that names no grammar takes the first's, which is what the
+	/// shape is for: one grammar, compiled two ways.
+	/// </summary>
+	[Fact]
+	public void A_second_grammar_that_names_none_is_the_first_one_again()
+	{
+		const string source = """"
+			using DotGram;
+
+			[Gram("""
+				Start : @string = t: ['a'..'z']+ => @(t)
+				parse Start
+				""")]
+			[Gram(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+			public static partial class Both;
+			"""";
+
+		var built = Build(source);
+
+		var tape      = built.GetType("Both")!.GetMethod("ParseStart", [typeof(string)])!;
+		var immediate = built.GetType("Both+Immediate")!.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal("abc", tape.Invoke(null, ["abc"]));
+		Assert.Equal("abc", immediate.Invoke(null, ["abc"]));
+	}
+
+	/// <summary>Two grammars cannot share one scope, and are told so rather than colliding.</summary>
+	[Fact]
+	public void Two_grammars_wanting_one_scope_are_refused()
+	{
+		var run = RunGenerator(
+			""""
+			using DotGram;
+
+			[Gram("""
+				Start = 'a'+
+				parse Start
+				""")]
+			[Gram("""
+				Start = 'b'+
+				parse Start
+				""")]
+			public static partial class Crowded;
+			"""");
+
+		var refusal = Assert.Single(run.Diagnostics.Where(static one => one.Id == "GRAM0006"));
+
+		Assert.Equal(DiagnosticSeverity.Error, refusal.Severity);
+		Assert.Contains("Crowded", refusal.GetMessage(), StringComparison.Ordinal);
+	}
+
 	// ── Where a C# error lands (§7.6) ────────────────────────────────────────────
 
 	[Fact]
@@ -1961,6 +2055,50 @@ public sealed class GeneratorDriverTests
 		Assert.Equal(41, at.StartLinePosition.Character);
 
 		Assert.Contains("Missing", error.GetMessage(), StringComparison.Ordinal);
+	}
+
+	/// <summary>And a line the grammar writes twice lands on the one it was written from.</summary>
+	/// <remarks>
+	/// An inline grammar has no file, so its lines are found by looking for them in the
+	/// spelling of the literal (<c>InlineLineMap</c>). Looking for each from where the one
+	/// before it was found is what makes a repeated line answerable: searching the whole
+	/// spelling instead finds two and refuses, which cost the expression language eleven of
+	/// its constructions their directive — <c>=&gt; @(ExpressionLanguage.Listed(first,
+	/// rest))</c> is written there five times over.
+	/// </remarks>
+	[Fact]
+	public void A_line_the_grammar_writes_twice_lands_where_it_was_written()
+	{
+		// Two rules constructing exactly alike, which is what a grammar of any size has.
+		RunGenerator(
+		""""
+		using DotGram;
+
+		[Gram("""
+			One  : @int = d: ['0'..'9']+
+			  => @(Missing(d))
+			Two  : @int = d: ['0'..'9']+
+			  => @(Missing(d))
+			Start: @int = a: One & b: Two => @(a + b)
+			parse Start
+			""")]
+		public partial class Twice;
+		"""",
+			out var output);
+
+		// `Missing` does not exist, so both constructions are errors — and the two land on
+		// the two lines that wrote them rather than both on the first or neither anywhere.
+		var lines = output
+			.GetDiagnostics(TestContext.Current.CancellationToken)
+			.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+			.Select(static diagnostic => diagnostic.Location.GetMappedLineSpan())
+			.Where(static at => at.Path == "GeneratorDriverTest.cs")
+			.Select(static at => at.StartLinePosition.Line)
+			.Distinct()
+			.OrderBy(static one => one)
+			.ToArray();
+
+		Assert.Equal(new[] { 4, 6 }, lines);
 	}
 
 	// ── What re-runs, and when ───────────────────────────────────────────────────

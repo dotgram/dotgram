@@ -394,7 +394,7 @@ public sealed partial class GrammarNormalizer
 
 		for (var at = 0; at < alternatives.Count; at++)
 		{
-			var last = Run(alternatives, at, owner);
+			var last = Run(alternatives, at, graph, owner);
 
 			if (last > at)
 			{
@@ -457,7 +457,7 @@ public sealed partial class GrammarNormalizer
 	readonly HashSet<RuleSymbol> _declined = [];
 
 	/// <summary>How far a run of alternatives sharing one leading operand reaches.</summary>
-	int Run(IReadOnlyList<Node> alternatives, int from, RuleSymbol owner)
+	int Run(IReadOnlyList<Node> alternatives, int from, RecognitionGraph graph, RuleSymbol owner)
 	{
 		if (Spoken(alternatives[from], owner) ||
 			!Splits(alternatives[from], out _, out var head, out _) ||
@@ -472,13 +472,97 @@ public sealed partial class GrammarNormalizer
 				!Splits(alternatives[at], out _, out var other, out _) ||
 				!Movable(other) ||
 				!SameShape(head, other) ||
-				!Renamable(alternatives[at], Named(head)))
+				!Renamable(alternatives[at], Named(head)) ||
+				Reads(alternatives, from, at, graph) == 0)
 				break;
 
 			last = at;
 		}
 
 		return last;
+	}
+
+	/// <summary>
+	/// How much of a run of alternatives is one and the same prefix — and zero where
+	/// sharing it would read nothing, which is a rearrangement that costs a reader a
+	/// nesting level and saves it nothing.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A prefix and not a head. Two alternatives of a lexical grammar begin with a word
+	/// boundary, a keyword, a lookahead for the end of that word, and the trivia between
+	/// tokens — four nodes before anything tells them apart — and sharing only the first
+	/// of those leaves the keyword read twice, which is what it cost `CASE x WHEN` and
+	/// `CASE WHEN` in standard SQL.
+	/// </para>
+	/// <para>
+	/// Only the first node of the prefix may be a capture. What follows it is dropped
+	/// from every alternative but one, and the name a capture binds is not this pass's
+	/// to move: the one head that survives is handled by <see cref="Renamable"/>, and a
+	/// second would need the author's C# rewritten.
+	/// </para>
+	/// </remarks>
+	static int Reads(
+		IReadOnlyList<Node> alternatives, int from, int last, RecognitionGraph graph)
+	{
+		var parts = Parts(alternatives[from]);
+		var take  = parts.Count;
+		var room  = parts.Count - 1;
+
+		for (var at = from + 1; at <= last; at++)
+		{
+			var mine = Parts(alternatives[at]);
+
+			if (mine.Count < take)
+				take = mine.Count;
+
+			if (mine.Count - 1 < room)
+				room = mine.Count - 1;
+
+			for (var one = 0; one < take; one++)
+				if (!SameShape(parts[one], mine[one]))
+				{
+					take = one;
+
+					break;
+				}
+		}
+
+		if (take >= parts.Count)
+			take = parts.Count - 1;
+
+		// A prefix of more than one node is shared only where every alternative keeps a
+		// tail. One folded away to nothing is an empty alternative in the residue, which
+		// matches everywhere and turns a repetition above it into a loop that reads
+		// nothing — a generated parser that never answers. A prefix of one is the shape
+		// this pass always had, empty tails and all, and `Committed` is what answers for
+		// them.
+		if (take > 1 && take > room)
+			take = room > 0 ? room : 1;
+
+		var reads = false;
+
+		for (var one = 0; one < take; one++)
+		{
+			if (!Movable(parts[one]) || one > 0 && parts[one] is Node.Capture)
+			{
+				take = one;
+
+				break;
+			}
+
+			reads |= parts[one] is not (Node.Behind or Node.Lookahead or Node.Empty or Node.Glue);
+		}
+
+		return reads ? take : 0;
+	}
+
+	/// <summary>An alternative as the nodes it is a sequence of, its construction set aside.</summary>
+	static IReadOnlyList<Node> Parts(Node alternative)
+	{
+		var inner = alternative is Node.Construct(var built, _) ? built : alternative;
+
+		return inner is Node.Sequence(var parts) ? parts : [inner];
 	}
 
 	/// <summary>
@@ -492,10 +576,14 @@ public sealed partial class GrammarNormalizer
 		var tails = new List<Node>(last - from + 1);
 		var after = FollowSets.Continuation.None;
 		var named = Named(Head(alternatives[from]));
+		var take  = Reads(alternatives, from, last, graph);
+
+		if (take == 0)
+			return null;
 
 		for (var at = from; at <= last; at++)
 		{
-			Splits(alternatives[at], out var how, out var mine, out var tail);
+			Splits(alternatives[at], take, out var how, out var mine, out var tail);
 
 			var rest = tail ?? new Node.Empty();
 
@@ -510,7 +598,7 @@ public sealed partial class GrammarNormalizer
 			tails.Add(how is null ? rest : new Node.Construct(rest, how));
 		}
 
-		Splits(alternatives[from], out _, out var head, out _);
+		Splits(alternatives[from], take, out _, out var head, out _);
 
 		// The whole condition. Reading it once instead of once per alternative is the same
 		// reading only where there was one reading to begin with.
@@ -714,7 +802,11 @@ public sealed partial class GrammarNormalizer
 			(fold.Accumulators.ContainsKey(alternative) || ReferenceEquals(fold.Loop, alternative));
 
 	/// <summary>An alternative as its leading operand and what comes after it.</summary>
-	static bool Splits(Node alternative, out Construction? how, out Node head, out Node? tail)
+	static bool Splits(Node alternative, out Construction? how, out Node head, out Node? tail) =>
+		Splits(alternative, 1, out how, out head, out tail);
+
+	/// <summary>An alternative as its leading <paramref name="take"/> nodes and what follows them.</summary>
+	static bool Splits(Node alternative, int take, out Construction? how, out Node head, out Node? tail)
 	{
 		how = null;
 
@@ -736,12 +828,12 @@ public sealed partial class GrammarNormalizer
 				return false;
 			}
 
-			head = parts[0];
-			tail = parts.Count switch
+			head = take == 1 ? parts[0] : new Node.Sequence([.. parts.Take(take)]);
+			tail = (parts.Count - take) switch
 			{
-				1 => null,
-				2 => parts[1],
-				_ => new Node.Sequence([.. parts.Skip(1)]),
+				0 => null,
+				1 => parts[take],
+				_ => new Node.Sequence([.. parts.Skip(take)]),
 			};
 
 			return true;
@@ -754,7 +846,18 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>The name the operand is captured under, or the empty string for none.</summary>
-	static string Named(Node head) => head is Node.Capture(var name, _) ? name : "";
+	/// <remarks>
+	/// A shared prefix of several nodes is one node here, and the name it goes under is the
+	/// name its first node binds — the rest of the prefix is a keyword, a boundary, the
+	/// trivia between tokens, and binds nothing.
+	/// </remarks>
+	static string Named(Node head) =>
+		head switch
+		{
+			Node.Sequence({ Count: > 0 } parts) => Named(parts[0]),
+			Node.Capture(var name, _)           => name,
+			_                                   => "",
+		};
 
 	/// <summary>
 	/// Whether an alternative can live with the run's operand being called something else.

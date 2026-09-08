@@ -551,6 +551,69 @@ there were eighty-four.
 and four now.** Both sides build the same tree, node for node, and `Agree()` says so over
 forty-two shapes before anything is timed.
 
+### 2026-09-04, and one jump table instead of two
+
+A record used to say which rule wrote it and which alternative of that rule, and the walk
+switched on the one and then on the other. It carries one number naming both now, and
+switches once: two indirect branches per record become one, on a stream whose next kind
+nothing can predict. The header lost an integer with it, the positions a record stands on
+are loaded only where some arm reads them, and an alternative that forwards needs no arm.
+
+| input | generated | by hand | ratio |
+| --- | --: | --: | --: |
+| `a = 1` | 180 ns | 45 | 4.0 |
+| `(a + b) * c > d` | 345 | 105 | 3.3 |
+| `x = 1 AND y IS NOT NULL` | 334 | 129 | 2.6 |
+| 64 predicates joined by `AND` | 11,895 | 4,563 | 2.6 |
+| 64 operands joined by `+` | 4,802 | 2,020 | 2.4 |
+
+And a choice of many alternatives dispatches with a switch rather than a chain of tests —
+the engine had that and the methods did not. Twenty-nine data types, twenty-three value
+functions, fourteen predicate tails, one indexed jump each. Five to seven percent where
+those are on the path:
+
+| input | generated | by hand | ratio |
+| --- | --: | --: | --: |
+| `a = 1` | 179 ns | 46 | 3.9 |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 676 | 181 | 3.7 |
+| `x = 1 AND y IS NOT NULL` | 308 | 121 | 2.6 |
+| 64 predicates joined by `AND` | 11,098 | 4,271 | 2.6 |
+
+Then a record stopped carrying the two positions it stood on, which are read back only by
+a factory that asks for the matched text or its span and by a terminal a machine of its
+own rereads. Twenty of the twenty-two grammars here ask for none of them. A third of the
+log went with it: 168 ns on `a = 1`, 10,457 on the sixty-four predicates, and 71
+milliseconds down to 62 on the four-megabyte input.
+
+### 2026-09-04: what a huge input costs
+
+`--big` reads one search condition at five sizes up to about four megabytes and prints
+what each parse took and allocated. Neither lexer is lazy: the hand-written one calls
+`Lex` over the whole input before it reads a token, exactly as the generated one does.
+
+| predicates | text | generated | allocated | by hand | allocated |
+| --- | --: | --: | --: | --: | --: |
+| 1,000 | 0.01 MB | 0.6 ms | 0.3 MB | 0.3 ms | 0.2 MB |
+| 10,000 | 0.16 | 4.9 | 2.6 | 2.3 | 2.4 |
+| 50,000 | 0.88 | 11.4 | 15.5 | 2.6 | 12.1 |
+| 100,000 | 1.79 | 21.8 | 31.1 | 5.4 | 24.3 |
+| 200,000 | 3.79 | 68.8 | 63.6 | 19.5 | 49.5 |
+
+Both used to size their token arrays by the number of characters in the input, which is a
+bound four or more times what a document needs: four megabytes of SQL asked for
+thirty-eight of arrays and filled nine. They are sized by the tokens there turn out to be
+now, and the generated column allocated 4.2, 22.1, 44.5 and 92.0 megabytes before.
+
+**The ratio widens with size** — two times a person at a thousand predicates, three and a
+half at two hundred thousand — and the working set is why: the log at that size is tens of
+megabytes and every walk over it is a walk out of cache. The two used to disagree about what to keep: a generated
+parser let go of a token store larger than sixty-five thousand entries, so one outsized
+document would not leave every thread holding its buffers. It keeps whatever it grew now,
+the way the tape and the value tables already did, which takes another nine and a half
+megabytes off the four-megabyte parse — 63.6 to 54.1 — and costs nothing measurable in
+time. What it costs instead is that a thread which has read one large document holds its
+arrays until it reads another.
+
 ### The first day's parser, recovered
 
 `HandSqlOriginal.cs` is the parser the first day's ratios were divided by, recovered from
@@ -583,3 +646,159 @@ One grammar, one machine, and the hand-written half is the third version of it, 
 switch on the first token most of the distance from the first version to here and
 precedence climbing the rest. Read the table as what this generator leaves on the table
 for this grammar, not as a general claim about generated parsers.
+
+## How an alternative that begins like its siblings is written
+
+`AlternativeShape.cs`. Over kinds a choice is usually decided by the first token, and then
+nothing is tried in order at all. What is left is the minority the normalizer factors:
+alternatives that begin alike, whose shared head is read — and, if it is captured,
+captured — before the choice. Each of them then has to be able to say "not me, try the
+next" from halfway through, and there are three ways to write that without a jump: a
+method of its own that says it by returning a number, a local function that says the same
+and reaches the head by capturing it, or a staircase of nested `if`s written in place,
+where saying it is falling off the end of the staircase.
+
+Three alternatives of twelve tokens, two of which run to their last token and fail there,
+over a head of two or ten captured positions. `--filter *AlternativeShape*`, 2026-09-03:
+
+| | head of 2 | head of 10 |
+| --- | --: | --: |
+| a method of its own | 20.09 us | 28.11 us |
+| a local function | 20.07 us | 28.07 us |
+| written in place, a staircase | 24.95 us | 33.80 us |
+| a method the JIT may not compile in | 33.02 us | 44.33 us |
+
+**Writing it in place is the slowest of the three that anyone would write**, by 20–24%,
+and it is slower at both head widths. That is the opposite of what "a call costs
+something" suggests, and the last row says why: the call costs nothing because the JIT
+compiles the part into its caller, and a part it is forbidden to compile in costs 58–64%.
+So the question is not whether to extract but whether what is extracted stays small
+enough to be put back — which is the same fact `Machine.Sizes.cs` was built around,
+arriving from the other end.
+
+**How wide the shared head is turns out not to be the axis.** Ten captured positions cost
+more than two, but they cost the same more in all three shapes, so passing them as
+arguments is not what it costs. That is the thing this was built to find out, because it
+is the one argument against extracting: the parameters. There is no case against them.
+
+**A local function is not a third option.** Roslyn compiles it to an ordinary static
+method taking a struct closure by reference — it is the first shape with every captured
+local passed by reference rather than the read-only ones by value, and it cannot capture
+the input at all, because a `ReadOnlySpan` may not go into a closure (CS9108). It measures
+the same because it is the same, and it is kept in the table so that nobody has to ask
+again.
+
+`AlternativeLength.cs` below measures the boundary this does not: how long the alternative
+may be before the JIT stops compiling it in.
+
+## How long an alternative may be before a method of its own stops being free
+
+The table above leaves one thing open, and it is the thing that could have made extracting
+wrong. A method costs nothing while the JIT compiles it into its caller, and 58-64% where
+it may not. So: how long may the alternative be before it stops? Above that length the
+reader would be paying, and nothing would say so.
+
+The same alternative at five lengths, each as an ordinary method and as one the JIT is
+forbidden to compile in. While the two differ, the ordinary one is being compiled in.
+`--filter *AlternativeLength*`, 2026-09-03:
+
+| tokens in the alternative | a method of its own | one that may not be compiled in | ratio |
+| --: | --: | --: | --: |
+| 4 | 6.78 us | 15.81 us | 2.33 |
+| 8 | 10.24 us | 19.52 us | 1.91 |
+| 16 | 18.35 us | 26.72 us | 1.46 |
+| 32 | 37.44 us | 44.11 us | 1.18 |
+| 64 | 90.72 us | 90.74 us | 1.00 |
+
+**The line is between 32 and 64 tokens**, and at 64 the two are the same to within a
+fiftieth of a percent — the JIT has stopped, and there is nothing left to lose.
+
+**And the penalty for being past it is nothing, because it arrives already spent.** The
+call costs a constant — about 1 ns, the same at every length — while the alternative's own
+work grows with it. So the 58-64% of the first table is what a *short* alternative would
+pay if it were not compiled in, and a short alternative always is. By the time the JIT
+gives up, the call it will not remove has become a rounding error.
+
+Which closes the question the first table opened, and closes it by saying there is nothing
+to guard. There is no length at which writing the alternative in place becomes the better
+choice: below the line the call is free, above it the call is negligible, and the staircase
+is 20-24% worse throughout. The emitter needs no size check here, and this is the reason it
+has none.
+
+For scale: the longest alternative in the SQL grammar is around a dozen elements, so a real
+grammar is not near this at all.
+
+One thing neither table measures: a working set larger than a cache. Everything here is 48
+KB of tokens read through a log that wraps, so what is being compared is register
+allocation and branch layout. On a megabyte of input, a shape that is three times the code
+for the same reading may pay for it in the instruction cache, and that is a different
+question — `--big` is where it would be asked, once the reader can write the SQL parser.
+
+## A settlement feed, whole against a part at a time
+
+`WideFeedBenchmarks.cs`. Forty-seven fields a record, converted as they are read — `long`,
+`int`, `decimal`, `DateOnly`, `DateTime`, an enum and a good deal of text — so what is
+measured is the whole job and not a recognizer handing back substrings for somebody else to
+parse. Three doors: the whole file as one string, a `TextReader`, and `File.ReadLines`.
+`--filter *WideFeed* --job short`, 2026-09-03:
+
+| records | | mean | allocated |
+| --: | --- | --: | --: |
+| 100,000 | string | 265.1 ms | 592.76 MB |
+| | TextReader | 183.2 ms | 109.19 MB |
+| | File.ReadLines | 198.4 ms | 214.83 MB |
+| 1,000,000 | string | 3,161.5 ms | 5376.69 MB |
+| | TextReader | 1,878.2 ms | 1105.66 MB |
+| | File.ReadLines | 1,970.5 ms | 2174.62 MB |
+
+**Streaming is not the slower door.** It is 0.59-0.69× the time and a fifth of the
+allocation, and the allocation is the reason for the time: the whole-string parse collects
+in the second generation at both sizes (2,000 and 8,000 gen-2 collections) and the streamed
+one never leaves the first. Reading a feed a record at a time is what the window is for,
+and here it costs nothing to use — it pays.
+
+**These rows could not be produced until 2026-09-03**, which is the thing worth remembering
+about them. Both sizes failed in setup: a scanner that matched threw away how far it had
+followed the input, so a record the window cut in half looked like a record that did not
+match, and the stream closed a repetition that had not ended after a hundred and fourteen
+records of a hundred thousand (docs/next.md, "a scanner that matched threw away how far it
+had looked"). Nothing caught it until every benchmark in the repository was run at once.
+
+## How a deferred construction is carried
+
+`DeferredShape.cs`. A `=>` is deferred until recognition has selected the accepted
+derivation (docs/syntax.md §7.3) — that is what lets an author write a factory that is not
+safe for speculative invocation, where a `when` guard must be. Deferring is not in
+question; how it is carried is. Today it is a log, a record per construction holding the
+arm and where its arguments are, walked at the end with a switch over every arm the
+grammar has.
+
+One tree in five shapes: a hundred and twenty-eight leaves cut from the input, sixty-four
+pairs over them and a spine of sixty-three joins, which is `a0 = 1 AND a1 = 1 AND …`.
+`--filter *DeferredShape* --inProcess`, 2026-09-03:
+
+| | mean | ratio | allocated |
+| --- | --: | --: | --: |
+| eager — built where read, no deferral | 1.782 us | 0.64 | 11.91 KB |
+| dense — values by which record, not where it sits | 2.686 us | 0.96 | 11.91 KB |
+| switched — the log as it is now | 2.789 us | 1.00 | 11.91 KB |
+| called — a table of delegates the generator wrote | 3.227 us | 1.16 | 11.91 KB |
+| closures — a tree of them built while reading | 4.181 us | 1.50 | 36.86 KB |
+
+**Deferral costs a little over half again on top of building, and none of the other ways
+of carrying it is better.** A table of delegates — written once at class initialization, so
+nothing is allocated per parse, which the allocation column confirms — loses sixteen
+percent to the jump table: an indirect call through a delegate is dearer than an indirect
+jump through a table, even a sparse one. Closures built while reading lose half and three
+times the allocation, which is the cost of an object per node beyond the node.
+
+Indexing values by which record they are rather than by where the record sits in the log
+is worth four percent, not the four times its footprint suggests: the tables shrink but
+nothing was waiting on them.
+
+**What the floor says about the real parser.** The generated SQL parser spends about 5.4 us
+building — the walk, the cuts, the factories and clearing the tables — where this lean
+log-and-walk over the same tree spends 2.79. So there is about a factor of two in our own
+bookkeeping and only a third in the deferral, which is the opposite of the way it looked
+from the profile alone: the walk is not expensive because it defers, it is expensive
+because of what it carries.

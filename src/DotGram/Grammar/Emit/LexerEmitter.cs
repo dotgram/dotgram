@@ -92,6 +92,7 @@ public static class LexerEmitter
 
 		var text = new Writer();
 
+		Runs(text, machine, tag);
 		Accepting(text, machine, tag);
 		text.Line();
 		Table(text, tag);
@@ -194,17 +195,30 @@ public static class LexerEmitter
 		text.Line();
 	}
 
-	static readonly List<string>             Bounds = [];
-	static readonly Dictionary<string, int>  Named  = [];
-	static readonly List<string>             Low    = [];
-	static readonly Dictionary<string, int>  Lows   = [];
-	static readonly List<string>             Edges  = [];
-	static readonly Dictionary<string, int>  Edged  = [];
+	// One scanner is written at a time and these are its scratch, held apart from the
+	// signatures of the two dozen methods that reach for them. They are per-thread and not
+	// per-process because a compiler runs generators over several compilations at once, and
+	// two scanners sharing one of these lists write each other's tables.
+	[ThreadStatic] static List<string>?            _bounds;
+	[ThreadStatic] static Dictionary<string, int>? _named;
+	[ThreadStatic] static List<string>?            _low;
+	[ThreadStatic] static Dictionary<string, int>? _lows;
+	[ThreadStatic] static List<string>?            _edges;
+	[ThreadStatic] static Dictionary<string, int>? _edged;
+
+	static List<string>            Bounds => _bounds ??= [];
+	static Dictionary<string, int> Named  => _named  ??= [];
+	static List<string>            Low    => _low    ??= [];
+	static Dictionary<string, int> Lows   => _lows   ??= [];
+	static List<string>            Edges  => _edges  ??= [];
+	static Dictionary<string, int> Edged  => _edged  ??= [];
+
 	/// <summary>Whether any state is numbered past what a <c>short</c> holds.</summary>
-	static bool Wide;
+	[ThreadStatic] static bool Wide;
 
 	/// <summary>Whether a character below ASCII can reach the case being written.</summary>
-	static bool Reached = true;
+	/// <remarks><see cref="Emit"/> sets it, so the thread it is new on does not have to.</remarks>
+	[ThreadStatic] static bool Reached;
 
 	/// <summary>
 	/// How wide one state's row may be.
@@ -314,9 +328,11 @@ public static class LexerEmitter
 	/// </remarks>
 	const int Roomy = 131072;
 
-	static readonly List<(int Low, int[] Row)> Rows = [];
+	[ThreadStatic] static List<(int Low, int[] Row)>? _rows;
 
-	static byte[]? Class;
+	static List<(int Low, int[] Row)> Rows => _rows ??= [];
+
+	[ThreadStatic] static byte[]? Class;
 
 	static void Table(Writer text, string tag)
 	{
@@ -574,6 +590,91 @@ public static class LexerEmitter
 			text.Line(line.ToString().TrimEnd());
 	}
 
+	/// <summary>
+	/// What a state that goes back to itself carries on with: one row of two hundred and
+	/// fifty-six bytes for each such state, and where each state's row is.
+	/// </summary>
+	/// <remarks>
+	/// The run first read the state table, which is what the loop above reads: a window
+	/// into tens of thousands of <c>short</c> cells, and a load that misses where a small
+	/// one would not. Measured, that was 1.2 ns a character against the 0.58 the trivia
+	/// seam pays for its own two hundred and fifty-six bytes. So a run gets a row of its
+	/// own, and there are as many rows as there are states that run — five or ten in a
+	/// language, against five hundred states.
+	/// </remarks>
+	static void Runs(Writer text, LexicalAutomaton machine, string tag)
+	{
+		var at   = new byte[machine.Next.Count];
+		var rows = new List<byte[]>();
+
+		for (var state = 0; state < machine.Next.Count; state++)
+		{
+			var row = default(byte[]);
+
+			foreach (var (on, to) in machine.From(state))
+			{
+				if (to != state)
+					continue;
+
+				row = new byte[Reach * 2];
+
+				foreach (var range in on)
+					for (int c = range.From; c <= range.To && c < row.Length; c++)
+						row[c] = 1;
+			}
+
+			// Rows are shared by content: a language has one idea of what a word carries on
+			// with, and every state of its keyword trie that loops has the same one.
+			if (row is null)
+				continue;
+
+			var same = rows.FindIndex(one => one.AsSpan().SequenceEqual(row));
+
+			if (same < 0)
+			{
+				if (rows.Count == byte.MaxValue)
+					continue;
+
+				same = rows.Count;
+				rows.Add(row);
+			}
+
+			at[state] = (byte)same;
+		}
+
+		text.Line("/// <summary>Which row of Scan_Running each state runs over.</summary>");
+		Bytes(text, $"Scan{tag}_Runs", at);
+		text.Line();
+		text.Line("/// <summary>What each run carries on with, a row of 256 bytes each.</summary>");
+		Bytes(text, $"Scan{tag}_Running", [.. rows.SelectMany(one => one)]);
+		text.Line();
+	}
+
+	/// <summary>One byte array, wrapped at a readable width.</summary>
+	static void Bytes(Writer text, string name, IReadOnlyList<byte> values)
+	{
+		text.Line($"static readonly byte[] {name} =");
+
+		using (text.Braces("", ";"))
+		{
+			var row = new StringBuilder("\t");
+
+			foreach (var one in values)
+			{
+				row.Append(one).Append(", ");
+
+				if (row.Length < 92)
+					continue;
+
+				text.Line(row.ToString().TrimEnd());
+				row.Clear().Append('\t');
+			}
+
+			if (row.Length > 1)
+				text.Line(row.ToString().TrimEnd());
+		}
+	}
+
 	static void Accepting(Writer text, LexicalAutomaton machine, string tag)
 	{
 		text.Line("/// <summary>The kind each state accepts, one-based; 0 where it accepts none.</summary>");
@@ -687,8 +788,46 @@ public static class LexerEmitter
 					text.Line("goto Done;");
 
 				text.Line();
+				text.Line("var again = next == state;");
+				text.Line();
 				text.Line("state = next;");
 				text.Line("p++;");
+				text.Line();
+
+				// A transition back where it came from is a run of one class, and the table says
+				// the same thing about every character of it — the same next state, and so the
+				// same accept. Taken here, the row is read once instead of once a character and
+				// the accept written once instead of overwritten at each: one load a character
+				// where the loop above waits on three that depend on one another.
+				//
+				// The compare is not free and there is no way to have the run without it: it was
+				// tried as a table of which states run, as a call, and written out with the row
+				// already in hand, and all three measure alike (docs/next.md). A branch in a loop
+				// that waits on a dependent chain costs two to ten per cent, and a run entered
+				// and left at once is all cost. The trade is against how long a token is: a name
+				// of one letter pays it, and `customer_id` is read a fifth faster, `1000` and a
+				// quoted string likewise. Four or five characters is where it turns.
+				text.Line("// A run of one class, which the row above already decided.");
+				text.Line("if (again)");
+
+				using (text.Braces())
+				{
+					text.Line($"var over = Scan{tag}_Runs[state] << 8;");
+					text.Line();
+
+					using (text.Braces("while (p < text.Length)", ""))
+					{
+						text.Line("var ahead = text[p];");
+						text.Line();
+						text.Line($"if (ahead > {Reach * 2 - 1} || Scan{tag}_Running[over + ahead] == 0)");
+
+						using (text.Indent())
+							text.Line("break;");
+
+						text.Line();
+						text.Line("p++;");
+					}
+				}
 				text.Line();
 				text.Line($"var accepts = Scan{tag}_Accepts[state];");
 				text.Line();
@@ -825,7 +964,13 @@ public static class LexerEmitter
 	/// <summary>How many ranges are worth writing out before a search is shorter.</summary>
 	const int Written = 4;
 
-	static string Tag = "";
+	[ThreadStatic] static string? _tag;
+
+	static string Tag
+	{
+		get => _tag ?? "";
+		set => _tag = value;
+	}
 
 	/// <summary>
 	/// A wide set, cut at the top of ASCII so that its halves can be shared apart.

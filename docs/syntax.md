@@ -44,6 +44,8 @@ that thing is what the notation already means in C# or in .NET regular expressio
   - [6.2 Why the signatures use BCL types only](#62-why-the-signatures-use-bcl-types-only)
   - [6.3 The input type picks the execution mode](#63-the-input-type-picks-the-execution-mode)
   - [6.4 `PartSize`, the one thing a host may tune](#64-partsize-the-one-thing-a-host-may-tune)
+  - [6.5 `Stacks`, how deep a reading may go](#65-stacks-how-deep-a-reading-may-go)
+  - [6.6 `Suffix`, a second grammar on the same class](#66-suffix-a-second-grammar-on-the-same-class)
 - [7. The bond with C#](#7-the-bond-with-c)
   - [7.1 Recognizer signatures and C# values](#71-recognizer-signatures-and-c-values)
   - [7.2 What the C# side must guarantee](#72-what-the-c-side-must-guarantee)
@@ -1408,6 +1410,77 @@ Whether to divide *at all* is not tunable and is not the same question — a gra
 small enough to hold in one method is faster that way, and dividing one that did not
 need it costs about a quarter where failing to divide one that did costs four times
 over. The generator decides that from the size it estimates.
+
+### 6.5 `Stacks`, how deep a reading may go
+
+A grammar that recurses can be handed input the author did not write: a thousand brackets,
+or a hundred thousand. Recursive descent reads that on the machine stack, and a machine
+stack ends.
+
+So a rule a cycle re-enters probes the stack as it begins — once in every sixty-four
+entries, because the runtime reserves far more than sixty-four frames of a reader — and
+where the margin has gone the reading is **carried onto a stack of its own and goes on from
+that rule**. Nothing is re-read and nothing is lost. A reading deep enough to run the new
+stack low takes another, and by default it may take them for as long as there is memory to
+take one with.
+
+Say how many is enough where that is not what you want:
+
+```csharp
+[Gram("…", Stacks = 4)]
+public partial class MyParser { }
+```
+
+Past that many the parse fails with `InsufficientExecutionStackException`, which is what it
+did before it could carry on at all. Zero, the default, is no limit. A reading that never
+goes deep takes none whatever this says, and a grammar with no cycle in it never probes.
+
+One thing is not carried: a reading over a window (§6.3) has no whole input to hand to
+another stack, so a streamed parse that runs low fails as it always did.
+
+### 6.6 `Suffix`, a second grammar on the same class
+
+`[Gram]` may be written more than once. Each is a compilation of its own, and all but
+one name the class it goes into:
+
+```csharp
+[Gram("Sql.gram", Lexical = true)]
+[Gram("Sql.gram", Lexical = true, Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+public static partial class Sql { }
+```
+
+`Sql.ParseQuery` is the first; `Sql.Immediate.ParseQuery` is the second. Two files come
+out, one per attribute.
+
+Everything a second attribute does not say it takes from the first — the grammar, whether
+it is read as tokens, how it is divided — and what it does say is the difference. That is
+the shape this is for: `[Gram(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]` on
+its own is the class's own parser, compiled the other way and no other way.
+
+**Why a class rather than a suffix on the method names.** Everything a parser needs is
+emitted beside it (§6.2), and a file's share of that — the match, the failure, the lexer,
+the value tables — is written once and named for what it is. Two compilations in one
+scope would collide on every one of them. A class is a scope, so nothing collides and
+neither compilation can see the other. What the host itself declares stays in reach:
+a nested class reads the static members of the class around it by their simple names,
+which is what a grammar's `=>` calls are.
+
+**What the host's own C# names is the host's.** `SourceSpan` (§7.5) and `Match<T>` (§6.1)
+appear in the signatures a grammar calls and a caller reads, so where a class carries
+several grammars they are written once, in the class itself, and every scope reads them
+from around it. Otherwise a factory handing a span to a method of the host would be
+handing it a type of the same name that is not the same type, and neither compilation
+would build.
+
+Two attributes wanting the same scope — the same `Suffix`, or neither having one — is
+refused (`GRAM0006`), because one of them would silently win.
+
+The value types a grammar generates are the compilation's own, so two compilations of a
+grammar that builds its own types build two families of them. Where the types are
+written by hand and named with `@`, both build the same ones, which is what makes two
+carriers over one grammar comparable at all.
+
+---
 
 ---
 

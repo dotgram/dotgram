@@ -54,7 +54,13 @@ public static class SupportEmitter
 		namespace DotGram
 		{
 			/// <summary>Marks a partial class as the host of a grammar.</summary>
-			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+			/// <remarks>
+			/// More than one may be written, and then all but one need a <c>Suffix</c>: each
+			/// is a compilation of its own, in a nested class of that name and in a file of
+			/// its own. That is how one host offers the same grammar compiled two ways —
+			/// two carriers, say — for a caller to choose between.
+			/// </remarks>
+			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 			internal sealed class GramAttribute : global::System.Attribute
 			{
@@ -80,6 +86,19 @@ public static class SupportEmitter
 				/// on the answer.
 				/// </remarks>
 				public string? IncludedAs { get; set; }
+
+				/// <summary>
+				/// The nested class this compilation goes into, where the host has more
+				/// than one. One identifier; the host class itself where nothing is said.
+				/// </summary>
+				/// <remarks>
+				/// Two compilations cannot share a scope — a file's support is written
+				/// once and named for what it is — so the second gets a class, and its
+				/// parse methods are reached through it: <c>Sql.Immediate.TryParseR</c>.
+				/// What the host declares is still in reach from inside, a nested class
+				/// reading the static members around it by their simple names.
+				/// </remarks>
+				public string? Suffix { get; set; }
 
 				/// <summary>
 				/// How large the parts of a divided recognizer are aimed to be, in the
@@ -129,6 +148,63 @@ public static class SupportEmitter
 				/// items and keeps a fifth as many ways back.
 				/// </remarks>
 				public bool Lexical { get; set; }
+
+				/// <summary>
+				/// How the reader carries what it has read until the constructions run.
+				/// </summary>
+				/// <remarks>
+				/// The tape unless set, which keeps §7.3: a construction runs once, for the
+				/// derivation that was accepted. The others are the author's to choose, and
+				/// what each gives up is written on it. A grammar the chosen carrier cannot
+				/// carry is compiled on the tape.
+				/// </remarks>
+				public GramCarrier Carrier { get; set; }
+
+				/// <summary>
+				/// How many stacks one parse may take beyond the one it began on.
+				/// </summary>
+				/// <remarks>
+				/// A grammar that recurses on input the author did not write can be handed a
+				/// thousand brackets. Where the stack it is reading on runs low the reading
+				/// carries on over a stack of its own, and a reading deep enough to run that
+				/// one low takes another — by default for as long as there is memory to take
+				/// one with.
+				///
+				/// Set it to say how many is enough. Past that many the parse fails with
+				/// `InsufficientExecutionStackException`, which is what it always did. Zero,
+				/// the default, is no limit; one is a single extra stack; a reading that never
+				/// goes deep takes none whatever this says.
+				/// </remarks>
+				public int Stacks { get; set; }
+			}
+
+			/// <summary>How a generated reader carries what it has read (docs/next.md, the redesign).</summary>
+			internal enum GramCarrier
+			{
+				/// <summary>Records on a tape, built into values once the parse is accepted. The default.</summary>
+				Tape,
+
+				/// <summary>
+				/// No deferral: a construction runs the moment its alternative has been read,
+				/// and one abandoned afterwards has already run. Once per derivation tried
+				/// rather than once per derivation accepted — invisible to a pure allocation,
+				/// visible to a counter. For factories the author knows to be pure.
+				/// </summary>
+				Immediate,
+
+				/// <summary>
+				/// Deferral without a tape: what a rule read is kept in a typed shape of
+				/// its own, and the constructions run over those shapes once the parse is
+				/// accepted. Keeps §7.3 as the tape does — a factory runs once per node of
+				/// the accepted derivation — and pays for it in fields of a known type
+				/// rather than in a log and a walk over it.
+				/// </summary>
+				/// <remarks>
+				/// A grammar it cannot carry is compiled on the tape and told why. What it
+				/// does not carry: a rule whose value is the extent it matched, a recovery,
+				/// a mark (§7.8), and a rule read at a strength.
+				/// </remarks>
+				Mixed,
 			}
 
 			/// <summary>

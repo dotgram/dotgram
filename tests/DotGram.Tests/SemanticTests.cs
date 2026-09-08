@@ -496,7 +496,7 @@ public sealed class SemanticTests
 	{
 		var result = Compile(grammar + "\nparse Start");
 
-		Assert.Empty(
+		EmittedCode.Quiet(
 			expected is null
 				? result.Diagnostics
 				: result.Diagnostics.Where(one => one.Id != expected).ToArray());
@@ -717,7 +717,7 @@ public sealed class SemanticTests
 	{
 		var result = Compile(grammar);
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		return EmittedCode.Compile(result.Sources[0].Text)
 			.GetType("Grammar")!
@@ -1240,7 +1240,7 @@ public sealed class SemanticTests
 	/// </remarks>
 	[Fact]
 	public void A_context_inside_a_namespace_is_that_grammar_own_contract() =>
-		Assert.Empty(
+		EmittedCode.Quiet(
 			Compile(
 				"""
 				namespace Inner
@@ -1308,13 +1308,91 @@ public sealed class SemanticTests
 				: string.Join(", ", diagnostics.Select(diagnostic => diagnostic.ToString()))));
 	}
 
+	// ── A rule nothing reaches (GRAM4018) ────────────────────────────────────────
+
+	/// <summary>A rule no publication, call or rebinding reaches is said out loud.</summary>
+	[Fact]
+	public void A_rule_nothing_reaches_is_reported()
+	{
+		var told = Assert.Single(Compile(
+			"""
+			Start = 'a'
+			Stray = 'b'
+			parse Start
+			""").Diagnostics);
+
+		Assert.Equal(GrammarNormalizer.UnusedRule, told.Id);
+		Assert.Contains("Stray", told.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>And a call is not the only way to reach one.</summary>
+	/// <remarks>
+	/// A rebinding names its replacement and nothing else does; an element set draws a
+	/// rule's items into itself and the rule is gone from the tree afterwards; a seam and
+	/// a word boundary are calls by the time this is asked, so what <c>trivia</c> is made
+	/// of is reached through <c>trivia</c>, and <c>wordboundary</c> is never asked about
+	/// at all. Each of these was a false report before it was not.
+	/// </remarks>
+	[Fact]
+	public void And_a_call_is_not_the_only_way_to_reach_one() =>
+		EmittedCode.Quiet(Compile(
+			"""
+			using Lexical;
+
+			namespace Lexical
+			{
+				trivia = none
+
+				Digit = ['0'..'9']
+				Space = ' '
+			}
+
+			trivia = Space*
+			wordboundary = ['a'..'z']
+
+			Number = [Digit | '_']+
+			Other  = ['x'..'z']+
+			Start  = Number
+
+			parse Start with (Number = Other) as Loose
+			parse Start
+			""").Diagnostics);
+
+	/// <summary>A grammar that was refused is not told what else it might tidy.</summary>
+	/// <remarks>
+	/// What called the rule may be the declaration that did not come out. <c>Header</c> is
+	/// unreadable here and <c>Digit</c> is reached from nowhere else, so reporting it would
+	/// be one mistake told as two (implementation.md §0).
+	/// </remarks>
+	[Fact]
+	public void And_a_grammar_that_broke_is_asked_nothing() =>
+		Assert.DoesNotContain(
+			Compile(OneStrayCharacter).Diagnostics,
+			diagnostic => diagnostic.Id == GrammarNormalizer.UnusedRule);
+
+	/// <summary>And a grammar with nothing published is asked nothing either.</summary>
+	/// <remarks>
+	/// Every rule in it is unreached, which says nothing about any of them. What that
+	/// grammar is missing is a publication, and that is a different remark.
+	/// </remarks>
+	[Fact]
+	public void And_a_grammar_that_publishes_nothing_is_asked_nothing() =>
+		EmittedCode.Quiet(Compile("Start = 'a'\nStray = 'b'").Diagnostics);
+
 	// ── Parameterized rules (§4.2) ───────────────────────────────────────────────
 
 	const string Listing =
 		"List(item, sep) = item & (sep & item)*\n" +
 		"Word  = ['a'..'z']+\n" +
-		"Comma = ','\n" +
-		"Semi  = ';'\n";
+		"Comma = ','\n";
+
+	/// <summary>A second separator, for the one test that passes two.</summary>
+	/// <remarks>
+	/// Out of <see cref="Listing"/> because a rule nothing reaches is now said out loud
+	/// (GRAM4018), and a fixture shared by four tests should not make three of them
+	/// declare a rule they never pass.
+	/// </remarks>
+	const string Separator = "Semi  = ';'\n";
 
 	[Fact]
 	public void A_rule_may_take_another_rule_as_a_parameter() =>
@@ -1328,7 +1406,7 @@ public sealed class SemanticTests
 		// Two specializations of one rule, side by side in one grammar, which is the whole
 		// point of writing `List` once.
 		Assert.True(Matches(
-			Listing + "Start = List(Word, Comma) & ' ' & List(Word, Semi)",
+			Listing + Separator + "Start = List(Word, Comma) & ' ' & List(Word, Semi)",
 			"ab,cd ef;gh"));
 
 	[Fact]
@@ -1619,6 +1697,39 @@ public sealed class SemanticTests
 	}
 
 	/// <summary>
+	/// A substitution reaches through a word boundary and through glue, rather than
+	/// falling over them.
+	/// </summary>
+	/// <remarks>
+	/// §5.1 clones every rule a `with` site reaches and rewrites the calls inside the
+	/// clones, and the clone was a switch over node kinds naming every one but two: the
+	/// `?&lt;!wordboundary` §4.6 weaves in front of a word literal, and the glue `~` leaves
+	/// between two operands that may not be spaced. A grammar holding either, with a
+	/// `with` anywhere above it, did not compile at all — GRAM0001, the generator falling
+	/// over — which the expression language found by asking for its own identifiers in
+	/// ASCII.
+	/// </remarks>
+	[Theory]
+	[InlineData("if ->",  true)]
+	[InlineData("if - >", false)]
+	[InlineData("if +>",  false)]
+	public void A_substitution_reaches_through_a_boundary_and_through_glue(
+		string input, bool expected) =>
+		// Nothing after `if` is a word character, so §4.6 weaves the boundary around the
+		// keyword and around nothing else — the point here is the shape of the tree the
+		// substitution has to copy, not what the boundary itself decides.
+		Assert.Equal(expected, Matches(
+			"""
+			wordboundary = ['a'..'z']
+			trivia = ' '*
+			A     = '+'
+			B     = '-'
+			Word  = "if" & A ~ '>'
+			Start = Word with (A = B)
+			""",
+			input));
+
+	/// <summary>
 	/// A turn with no seam of its own is still not spaced, which is what keeps a lexeme one.
 	/// </summary>
 	/// <remarks>
@@ -1741,7 +1852,7 @@ public sealed class SemanticTests
 		// a mistyped capture in that one position. What it cost is the reason it is gone:
 		// resolving C# means keeping up with C#, and every construct this compiler does not
 		// know becomes a construct the language forbids for no reason of its own.
-		Assert.Empty(Compile(
+		EmittedCode.Quiet(Compile(
 			"@using System.Globalization;\n"
 			+ "Start : @int = d: ['0'..'9']+ => " + construction + "\n"
 			+ "parse Start").Diagnostics);
@@ -1847,7 +1958,7 @@ public sealed class SemanticTests
 			parse Word
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -1882,7 +1993,7 @@ public sealed class SemanticTests
 			parse (A & B) as Spaced
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -1905,7 +2016,7 @@ public sealed class SemanticTests
 			parse (v: Padded(Word, '#') => @(v)) as Marked : @string
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -1938,7 +2049,7 @@ public sealed class SemanticTests
 			parse List as Tight
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -1968,7 +2079,7 @@ public sealed class SemanticTests
 			parse Start
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -2002,7 +2113,7 @@ public sealed class SemanticTests
 			parse Marked
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -2024,7 +2135,7 @@ public sealed class SemanticTests
 			parse Query
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -2973,7 +3084,7 @@ public sealed class SemanticTests
 	{
 		var result = Compile(grammar + "\nparse Start");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		return result.Sources[0].Text;
 	}
@@ -3062,7 +3173,7 @@ public sealed class SemanticTests
 			parse Sheet
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var source = result.Sources[0].Text;
 
@@ -3097,7 +3208,7 @@ public sealed class SemanticTests
 	public void And_the_same_repetition_without_one_is_fine() =>
 		// §8.3: no `=>`, so nothing is collected and the rejection goes to the hook. The
 		// sequence that is not there is not needed.
-		Assert.Empty(Compile("""
+		EmittedCode.Quiet(Compile("""
 			Row   = ['a'..'z']+ & eol
 			Start = rows: Row* recover eol
 			parse Start
@@ -3137,7 +3248,7 @@ public sealed class SemanticTests
 			parse Chain
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3176,7 +3287,7 @@ public sealed class SemanticTests
 			parse Primary
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3199,7 +3310,7 @@ public sealed class SemanticTests
 			parse Call as Applied
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3221,7 +3332,7 @@ public sealed class SemanticTests
 			parse List
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3383,7 +3494,7 @@ public sealed class SemanticTests
 			}
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3409,7 +3520,7 @@ public sealed class SemanticTests
 			parse Start as Plain
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3432,7 +3543,7 @@ public sealed class SemanticTests
 			parse Start with (D = E) as Swapped
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3457,7 +3568,7 @@ public sealed class SemanticTests
 			parse Start with (A = B, Inner = Other) as Swapped
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3485,7 +3596,7 @@ public sealed class SemanticTests
 			parse Mid as Tight
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3508,7 +3619,7 @@ public sealed class SemanticTests
 			parse Start with (WrapA = WrapB) as Bracketed
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 		var match    = EmittedCode.Match(assembly, "Grammar", "TryBracketed", "[7]");
@@ -3537,7 +3648,7 @@ public sealed class SemanticTests
 			parse Start as Plain
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3574,7 +3685,7 @@ public sealed class SemanticTests
 			}
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 
@@ -3633,7 +3744,7 @@ public sealed class SemanticTests
 			parse Pair with (trivia = none) as TightPair
 			""");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var assembly = EmittedCode.Compile(result.Sources[0].Text);
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
@@ -41,7 +42,17 @@ static class EmittedCode
 	static readonly CSharpParseOptions Floor =
 		CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp8);
 
-	/// <summary>The generated source, plus the partial class it is a half of.</summary>
+	/// <summary>Nothing was wrong with the grammar: what it was merely told does not count.</summary>
+	/// <remarks>
+	/// <c>Info</c> is what the compiler offers rather than what it objects to — that a
+	/// carrier was refused (GRAM5007), that the tape is deferring what nothing needs
+	/// deferred (GRAM5008), that a stream was not available (§6.3). A test about whether a
+	/// grammar compiles is about everything else, and a test that asserted on the whole
+	/// list would break whenever the compiler learned to offer something new.
+	/// </remarks>
+	public static void Quiet(IEnumerable<GramDiagnostic> diagnostics) =>
+		Assert.DoesNotContain(diagnostics, static one => one.Severity != GramSeverity.Info);
+
 	public static Assembly Compile(
 		string source,
 		string className = "Grammar",
@@ -138,6 +149,25 @@ static class EmittedCode
 
 		foreach (var match in found)
 			values.Add(match!.GetType().GetProperty("Value")!.GetValue(match));
+
+		return [.. values];
+	}
+
+	/// <summary>The parts a streaming publication hands back, or the whole array it does.</summary>
+	public static object?[] Streamed(
+		Assembly assembly, string className, string method, string input, Type? over = null)
+	{
+		var type   = assembly.GetType(className)!;
+		var taking = over ?? typeof(string);
+
+		var parts = (System.Collections.IEnumerable)type
+			.GetMethod(method, [taking])!
+			.Invoke(null, [over is null ? (object)input : new StringReader(input)])!;
+
+		var values = new System.Collections.Generic.List<object?>();
+
+		foreach (var part in parts)
+			values.Add(part);
 
 		return [.. values];
 	}

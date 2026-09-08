@@ -62,7 +62,7 @@ public sealed class CommittedResidueTests
 	{
 		var result = Compile(Pair + "\nparse Start");
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 		Assert.Equal(
 			expected,
 			EmittedCode.Match(

@@ -11672,3 +11672,3919 @@ eighteen.
 both sides building the same tree, node for node, checked over forty-two shapes before
 anything is timed. Sixty-six records are written where eighty-four were, and the eighteen
 that went were the ones whose only content was which rule wrote them.
+
+## Built: one number for the arm, and one jump table
+
+The walk over the log read a record's rule, switched on it, read the record's alternative,
+switched on that, and only then knew what the record held. Two jump tables per record,
+which is two indirect branches on a stream of records whose next kind the predictor has no
+way to guess.
+
+They are one now. A record carries a single number naming the rule and the alternative
+together, and the walk switches on it once. The number is handed out before a line is
+written, because the readers name an arm as they are rendered and the walk names the same
+arms afterwards, and two dictionaries filled on demand from two places would agree only by
+luck.
+
+The header shrank with it: length, arm, start, end, where it was length, rule, alternative,
+start, end. One integer less written per record and one less read.
+
+Two smaller things went at the same time. The positions a record stands on were loaded on
+every record and used by almost none — a factory that asks for the matched text or its
+span, and a terminal the lexer measured that a machine of its own rereads, and nothing
+else — so they are loaded only where some arm wants them, which in standard SQL is
+nowhere. And an alternative that forwards writes no record, so the walk needed no arm for
+it: the arms for those went too, and with them the rules all of whose alternatives forward.
+
+| input | before | now | by hand | ratio |
+| --- | --: | --: | --: | --: |
+| `a = 1` | 198 ns | 180 | 45 | 4.0 |
+| `(a + b) * c > d` | 378 | 345 | 105 | 3.3 |
+| `x = 1 AND y IS NOT NULL` | 380 | 334 | 129 | 2.6 |
+| 64 predicates joined by `AND` | 12,945 | 11,895 | 4,563 | 2.6 |
+| 64 operands joined by `+` | 5,364 | 4,802 | 2,020 | 2.4 |
+
+Removing the two position loads on its own measured nothing, which is what said the cost
+was the branches rather than the reads: a load from an array the walk is already stepping
+through is very nearly free, and an indirect branch it cannot predict is not.
+
+## Built: the methods learned the switch the engine already had
+
+Asked whether the parser could be table-driven the way the lexer is, the answer divides.
+The lexical language is regular, so one state and one character decide the next state and
+a table is the whole machine. The syntactic language is not: nesting needs a stack, and
+the table-driven shape for that is LR, which is a different notation rather than a
+different implementation of this one. LR has no ordered choice — it has conflicts, which
+the author must resolve — where §12 promises the first alternative that matches. It has no
+place for an unbounded `?=` or `?!`, and none at all for a `when` that runs while the text
+is read and consults the world: `ExpressionLanguage` resolves a dotted name through real
+reflection as it reads and hands back a segment at a time until the type resolves. Both
+grammars in this repository would stop being expressible.
+
+What LR would genuinely give is that a reduce holds its children on the stack, so a factory
+is called with them in hand and there is no record and no second pass. That is an argument
+for building eagerly, not for LR, and it is kept for that.
+
+**What was available inside the shape we have was a switch, and the engine already had it.**
+`Machine.Analysis.cs` gathers a choice's alternatives by what they can begin with and, from
+four groups up, the engine dispatches into them with `switch (c)`. The methods never learned
+it: a choice of many alternatives was a chain of tests walked one at a time, and standard
+SQL's data types are twenty-nine of them, its value functions twenty-three, its predicate
+tails fourteen.
+
+They dispatch now. The groups partition — two first sets are the same set or share nothing
+— so an alternative outside the chosen group could not have matched here whatever order it
+was written in, and skipping it is the removal of alternatives that were going to fail
+rather than a reordering of the choice. Inside a group the written order stands, ways back
+and all. Over kinds a token is a small number, so the switch is a jump table: one indexed
+jump where there were up to twenty-nine comparisons.
+
+| input | before | now | by hand | ratio |
+| --- | --: | --: | --: | --: |
+| `a = 1` | 180 ns | 179 | 46 | 3.9 |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 722 | 676 | 181 | 3.7 |
+| `x = 1 AND y IS NOT NULL` | 334 | 308 | 121 | 2.6 |
+| 64 predicates joined by `AND` | 11,895 | 11,098 | 4,271 | 2.6 |
+
+Five to seven percent where the wide dispatches are on the path, and nothing on `a = 1`,
+which does not reach one. The six widest readers took a switch each; what is left of their
+chains is the alternatives that begin the same way, which no switch can divide.
+
+## Measured: what a huge input costs, and the array that was four times too big
+
+The lazy-lexer question was really a question about large documents, so `--big` reads one
+search condition at five sizes up to about four megabytes and says what each parse took and
+allocated. Neither lexer is lazy — the hand-written one calls `Lex` over the whole input
+before it reads a token, exactly as the generated one does — so what large means here is
+the same for both.
+
+What it found was not about laziness. **Both sized their token arrays by the number of
+characters in the input.** A token is several characters, so that is a bound four or more
+times what a document needs: three and three-quarter megabytes of SQL asked for
+thirty-eight megabytes of arrays and filled nine. The arrays are sized by the tokens there
+turn out to be now — a quarter of the length as the first guess, doubling where the guess
+was low, which for ordinary text never grows at all.
+
+| predicates | text | generated | allocated | by hand | allocated |
+| --- | --: | --: | --: | --: | --: |
+| 1,000 | 0.01 MB | 0.6 ms | 0.3 MB | 0.3 ms | 0.2 MB |
+| 10,000 | 0.16 | 4.9 | 2.6 | 2.3 | 2.4 |
+| 50,000 | 0.88 | 11.4 | 15.5 | 2.6 | 12.1 |
+| 100,000 | 1.79 | 21.8 | 31.1 | 5.4 | 24.3 |
+| 200,000 | 3.79 | 68.8 | 63.6 | 19.5 | 49.5 |
+
+The generated column allocated 4.2, 22.1, 44.5 and 92.0 megabytes before, and takes the
+same time as it did: the peak is a third smaller and nothing is slower for it.
+
+**Which is the answer to the lazy question, with numbers rather than an opinion.** On a
+four-megabyte input the generated parser now allocates sixty-four megabytes, and the token
+store is ten of them. The rest is the log a parse writes and the value tables it fills, both
+proportional to the records rather than the tokens, and both alive until the tree is built.
+A lazy lexer would cap the smaller half of the smaller half. If large documents are ever
+the thing to make cheap, the log is where the memory is.
+
+Two things worth writing down beside the numbers. **The ratio widens with size** — two
+times a person at a thousand predicates and three and a half at two hundred thousand — and
+the working set is the reason, not the reader: the log at that size is tens of megabytes
+and every walk over it is a walk out of cache. And **the two disagree about what to keep**.
+A generated parser lets go of a token store larger than sixty-five thousand entries so one
+outsized document does not leave every thread holding its buffers; the hand-written one
+keeps whatever it grew, for ever. That is most of the remaining difference in the allocated
+column, and it is a difference of policy rather than of efficiency. Neither is obviously
+right.
+
+## Built: the token store is kept, like everything else a parse grows
+
+The measurement above left one thing undecided and Igor decided it: whatever is faster is
+right. A generated parser used to let go of a token store larger than sixty-five thousand
+entries, so that one outsized document would not leave every thread holding its buffers.
+Nothing else a parse grows behaves that way — the tape of ways back and the value tables
+are kept whatever they reach — and the cap was buying the arrays again on every parse of a
+large document: nine and a half megabytes of the fifty-four a four-megabyte input
+allocates.
+
+It is kept now. Sixty-three and a half megabytes become fifty-four, which is within nine
+percent of what the hand-written parser allocates for the same document, and the time is
+the same to within the noise of three runs: 71.7, 69.2 and 71.9 milliseconds against 68.8
+before. So the honest statement is that keeping does not make a single parse faster; it
+stops the parse after it paying for arrays it already had, which is what a thread reading
+documents actually does.
+
+What it costs is stated rather than hidden: a thread that has read one large document holds
+its arrays until it reads another.
+
+## Built: a record that stands nowhere in particular
+
+A record's header was length, arm, start, end. The two positions are where the rule read,
+and they are read back by exactly three things: a factory that asks for the matched text,
+a factory that asks for its span, and a terminal the lexer measured that a machine of its
+own rereads. A grammar with none of those writes two integers per record and never looks
+at them again. Standard SQL is such a grammar, and so are twenty of the twenty-one others
+here; `FixParser`, which keeps spans, is the one that is not.
+
+The header is two integers there now, and the walk reads its members from `at + 2`. It is
+per machine and decided once: the record's shape is the same for every arm of one walk,
+which is what lets the walk step from record to record without asking what shape this one
+is.
+
+| input | before | now | by hand | ratio |
+| --- | --: | --: | --: | --: |
+| `a = 1` | 177 ns | 168 | 46 | 3.6 |
+| `(a + b) * c > d` | 340 | 331 | 102 | 3.2 |
+| `x = 1 AND y IS NOT NULL` | 339 | 296 | 123 | 2.4 |
+| 64 predicates joined by `AND` | 11,126 | 10,457 | 4,270 | 2.45 |
+| 64 operands joined by `+` | 4,567 | 4,280 | 1,897 | 2.26 |
+
+And on the input that made the case for looking at the log at all: two hundred thousand
+predicates, three and three-quarter megabytes, seventy-one milliseconds becomes sixty-two.
+A third of the log is gone, and a walk over a third less of it is a walk that misses the
+cache a third less often.
+
+## Built: a reader that commits has no way back into itself
+
+Every reader opened with the same four lines: a label, the position put back to where the
+rule began, and the log and the side stack put back with it. That is the door a failure
+path comes in by — the reader runs itself again from the start with one way back
+advanced. A reader that commits has no such path: nothing sends it back. The label was
+already being dropped as unreachable and the three assignments were left behind, undoing
+what the two lines above them had just done, on every call.
+
+They are written only where something can jump to them now, and the segment the retry
+would have started from is declared only there too.
+
+165 ns on `a = 1` against 168, 10.5 microseconds against 10.8 on the sixty-four
+predicates. Small, and worth having for what it is as much as for what it saves: four
+lines of a reader that meant nothing.
+
+**And a peephole that was tried and taken out**, because it is the argument for something
+larger. A repetition writes down where a turn began and the alternative that is its body
+writes the same three things down again with nothing in between, six stores a turn where
+three would do. Reading the later names as the earlier ones is sound if each is written in
+one place — and since the alternatives of a choice were given one numbering to share, a
+name is written in as many places as there are alternatives that use it. The rewrite was
+wrong for exactly one input in the corpus, `CAST(x AS VARCHAR(20)) = 'a'`, and the test
+suite said so.
+
+That is a fair verdict on the shape rather than on the peephole. A reader is a flat graph
+of labels and jumps, and every question about it has to be asked of the whole method: is
+this label reached, is this assignment read, are these two names the same value here. Four
+passes exist to answer such questions by rewriting text — dead jumps, dead labels, dead
+marks, unused locals — and a fifth was wrong. The engine needed that shape, because one
+machine with a thousand states is a graph and nothing else. Methods do not: a person
+writing this parser writes blocks and early returns, and the hand-written yardstick in
+`benchmarks/` is exactly that and is two to three times faster.
+
+## Built: the reader, and the first thing it is written in
+
+The rendering by methods was grown out of the automaton and kept its vocabulary: a rule is
+a method, but inside it a construct is a labelled region and a failure is a jump. That is
+the right shape for one machine of a thousand states, which is a graph and nothing else.
+For a method it is a graph nobody asked for, and the cost of it showed up as four passes
+that take dead jumps, dead labels, dead marks and unused locals back out — and a fifth that
+was written last week, was wrong, and was wrong because a question about one construct had
+to be asked of the whole method.
+
+So a second rendering, written as the thing itself rather than as the automaton in
+disguise. A sequence is statements one after another. A failure is `return -1`. A
+repetition is a `while`. A choice is a switch on what the alternatives begin with, or one
+attempt after another where the first token does not divide them — and an alternative that
+can fail halfway and has a sibling after it becomes a method of its own, because a number
+is how it tells its caller to try the next.
+
+That last is the part that decides what it costs, and it costs less than it sounds. Where
+a choice dispatches on the token, no alternative needs a method at all: failing the one the
+token chose is failing the choice, since no other could have matched there. Extraction is
+for alternatives that begin alike and must be tried in order, and over kinds those are the
+minority.
+
+What it writes for `Value = Digits & Name | Digits | Name`, which the normalizer has
+already factored into two:
+
+```csharp
+static int Read_Value(ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
+{
+    var p = pos;
+    var q0 = -1;
+
+    if (q0 < 0)
+        q0 = Read_Value_Part0(text, p, ref failure, ways);
+
+    if (q0 < 0)
+    {
+        if ((uint)p >= (uint)text.Length || text[p] != '\u0003')
+        {
+            Refuse_DotGram(ref failure, p, Expected2, ways);
+
+            return -1;
+        }
+
+        p += 1;
+        q0 = p;
+    }
+
+    p = q0;
+
+    return p;
+}
+```
+
+It reads recognition over kinds and nothing else yet: no value kept, no guard, no mark, no
+fold, no climb, and no tape — over kinds a rule's answer stands (§4), so there is nothing
+to put back but the position and the position is the caller's own copy. `CanRead` is the
+gate and refuses rather than guesses. It is off unless asked for, and `ReaderTests` asks:
+every case is one grammar compiled both ways and asked the same question, with the answers
+compared rather than either being checked against what a test author expected. One case
+looks at the code instead, because a reader that quietly declined would pass all the
+others.
+
+**And it found a bug on its first day, in the rendering it is not replacing.** A grammar
+simple enough to lower, in a file split into a lexer and a syntactic half, emitted a
+whole-input entry taking the text and the failure and nothing else, while the publication
+calling it passed the source and the token positions too. It did not compile. Nothing had
+ever been both split and simple enough to lower, so nothing had asked.
+
+**What comes next, and the shape of the answer.** Values first: a reader that records what
+it read is a reader that can be held to the same tree as the one beside it, which is the
+comparison that actually proves two renderings agree — the same trick `Agree` already plays
+between the generated SQL parser and the hand-written one, and `SqlTree.Show` is already
+written. Then the tape, as a loop rather than a label, so that reading characters can move
+too. Then the rendering this replaces goes.
+
+## Built: the reader keeps a value, and a race it walked into on the way
+
+The reader records now. A capture over text writes the two positions it spans, a capture
+over a rule writes where its record landed, and a construction writes the record itself —
+the same tape and the same materializer the rendering beside it uses, so the two can be
+asked for the same tree and compared. `ReaderTests` does exactly that: a grammar compiled
+both ways, the same input, and the values equal rather than merely both accepted.
+
+One case in that file is there for the tape and not for the value. `Item = x: Pair &
+Digits => @(x) | y: Name => @(y)` builds `Pair`'s record, fails on the digits that do not
+follow, and then builds the second alternative over a tape that is not empty. Nothing of
+the abandoned record may reach the answer, and the count of references taken at the top of
+the method is what makes sure it does not.
+
+**Where the reader stops, and why it is the interesting place.** A rule whose alternatives
+begin alike is factored by the normalizer, so the head is read once before the choice — and
+if that head is captured, the record an alternative writes names something the alternative
+did not read. An alternative written as a method of its own cannot see a local of the
+method that called it. So `CanRead` refuses that shape and says so, and the way through is
+to hand those positions over as arguments, which is the next thing this rendering learns.
+It is not a corner: a grammar of any size is mostly rules like that, SQL first among them.
+
+`CanRead` says why now, in every case, and `GRAM5006` reports it. A gate that only returns
+false is a gate nobody can follow.
+
+**The race.** Adding seven tests turned another test red — a lexer that read one character
+where it should have read seven, and a different one each run. `LexerEmitter` is a static
+class, and the tables it builds while writing a scanner were lists belonging to the class.
+One scanner at a time was the assumption and nothing had ever broken it, but a compiler
+runs generators over several compilations at once and in one process, and two scanners
+overlapping take each other's rows. They are per-thread now. The test that proves it emits
+two scanners in parallel forty times and compares them to the two written apart; it fails
+on the old code with `Collection was modified` and passes on the new.
+
+That is the second bug the reader has found in code it does not touch, which is an argument
+for the exercise beyond what it is for. Two renderings of the same grammar are a test
+neither one could be alone.
+
+## Built: a part is handed the head it did not read, and measured before it was
+
+The reader's remaining refusal was the shared head. A head every alternative captures under
+one name is read once, before the choice (`GrammarNormalizer.Factoring.cs`), and what is
+left of each alternative is a tail. A tail written as a method of its own cannot see that
+head — it is a local of the method that called it — so the record the tail writes named
+something the tail had not read, and `CanRead` refused the shape.
+
+It hands them over now, in two directions told apart because the difference is worth an
+argument. A position the tail only reads goes by value; one the tail captures and a
+construction after the choice reads goes by reference, and is the same local seen from two
+methods. `Read_Value_Part0(text, pos, ref failure, ways, int a0, int b0, ref int a1, ref
+int b1, ref int r2)` is what that comes to.
+
+**The measurement came first, because there was an argument against it.** Handing four or
+six positions to every alternative of every factored rule sounds like what a generated
+parser does that a person would not, and the obvious alternative — writing the alternative
+in place, as a staircase of nested `if`s — has no parameters at all. `AlternativeShape.cs`
+prices the three shapes over three alternatives of twelve tokens, two of which run to their
+end and fail there:
+
+| | head of 2 | head of 10 |
+| --- | --: | --: |
+| a method of its own | 20.09 us | 28.11 us |
+| a local function | 20.07 us | 28.07 us |
+| written in place, a staircase | 24.95 us | 33.80 us |
+| a method the JIT may not compile in | 33.02 us | 44.33 us |
+
+Writing it in place is the slowest of the three anyone would write, at both widths. The
+last row says why the call is free: the JIT compiles the part into its caller, and a part
+it may not compile in costs 58–64%. So the question was never whether to extract but
+whether what is extracted stays small enough to be put back — which is the fact
+`Machine.Sizes.cs` was built around, arriving from the other end.
+
+And the width of the head is not the axis. Ten positions cost more than two, but the same
+more in all three shapes, so passing them is not what costs. The one argument against
+handing them over is the one the table takes away.
+
+**A local function is not a third option**, which is worth writing down because it looks
+like one. Roslyn compiles it to an ordinary static method taking a struct closure by
+reference: it is the first shape with every captured local passed by reference rather than
+the read-only ones by value, and it cannot capture the input at all, because a
+`ReadOnlySpan` may not go into a closure (CS9108).
+
+**And an idea that measured to nothing.** Marking every `Construct_` method
+`AggressiveInlining` — they are one expression each, and the trivial ones are `=> t;` —
+moved seven SQL inputs by at most 3% over 21 rounds, mostly the wrong way. The JIT was
+already compiling them in. The attribute is a lever for a method that just misses the
+heuristic, and neither the constructions nor the reader's parts are that; nothing here
+found a case that is.
+
+**One bug found on the way, in code that has been right since before the reader.** A part
+that extracts a part of its own — a choice inside an alternative, a repetition inside one —
+was numbered from a counter belonging to the writer, and a nested writer starts at zero. Two
+methods, one name. The counter belongs to the rule now.
+
+## Measured: there is no length at which extracting an alternative becomes wrong
+
+The shape table left one thing open, and it was the thing that could have made the whole
+decision wrong. A method of its own costs nothing while the JIT compiles it into its
+caller, and 58-64% where it may not. So how long may the alternative be before the JIT
+stops, and what does the reader do above that length?
+
+The same alternative at five lengths, each as an ordinary method and as one the JIT is
+forbidden to compile in:
+
+| tokens | a method of its own | one that may not be compiled in | ratio |
+| --: | --: | --: | --: |
+| 4 | 6.78 us | 15.81 us | 2.33 |
+| 8 | 10.24 us | 19.52 us | 1.91 |
+| 16 | 18.35 us | 26.72 us | 1.46 |
+| 32 | 37.44 us | 44.11 us | 1.18 |
+| 64 | 90.72 us | 90.74 us | 1.00 |
+
+The line is between 32 and 64 tokens. And the answer to the second half is: nothing, and
+that is not an oversight. The call costs a constant — about 1 ns, the same at every
+length — while the alternative's own work grows with it, so the 58-64% is what a *short*
+alternative would pay if it were not compiled in, and a short alternative always is. By
+the time the JIT gives up, the call has become a rounding error.
+
+So the emitter asks nothing about the size of a part, and this is the reason rather than
+an omission. Below the line the call is free; above it the call is negligible; and the
+staircase written in place is 20-24% worse throughout. The longest alternative in the SQL
+grammar is around a dozen elements, which is not near the line at all.
+
+What neither table measures is a working set larger than a cache. Both are 48 KB of tokens
+through a log that wraps, so what they compare is register allocation and branch layout. A
+shape that is three times the code for the same reading could pay for that in the
+instruction cache on a megabyte of input, and `--big` is where that would be asked — once
+the reader can write the SQL parser.
+
+## Fixed: a scanner that matched threw away how far it had looked
+
+Running every benchmark at once turned up a parser that reads a feed of a hundred thousand
+records and stops after a hundred and fourteen. `Settlements.ParseFeed(TextReader)` threw
+`Input does not match 'Trailer'`; the string overload read the same file whole. Not a
+regression from anything recent — it reproduces as far back as the reader's own first
+commit — and not about size either: two hundred records fail at the same character as a
+hundred thousand.
+
+It is about alignment. Padding the header by 144 characters and the same feed reads
+through. The trace at the moment it gave up says the rest:
+
+```
+start=4055 len=4096 ended=False end=-1 pos=4095 starved=False outof=0
+```
+
+The window ends at 4096 and the record it holds ends `…|18.` — cut in the middle of
+`price: Money`, which is `Digits & ('.' & Digits)?`. `Money` is in braces and captured by
+nobody, so it compiles to a scanner: a recognizer with nothing written down, which follows
+the input, gives it back to itself as it tries the ways through, and returns one number.
+On a refusal that number carries the furthest it reached — `-1 - furthest`, and the
+comment above it says why: "what a refusal has to report is the furthest it reached and
+not the place it happened to stop". On a match it returns where it ended and **the furthest
+is thrown away**.
+
+So the scan matched `18`, having followed the input to 4096 inside the fraction it then
+abandoned, and reported 2. The caller failed on the `.` at 4095 — one short of the end —
+and `Failure.Position`, whose whole contract is "the furthest position the input was
+followed to", said 4095. The streaming driver reads "one short of the end" as a real
+refusal rather than a window that ran out, so it did not extend, closed `Row*` at a
+repetition that had not ended, and refused at the `Trailer` that was not there yet.
+
+**Which is the bad kind of bug.** A repetition ending is not an error. This grammar happens
+to have a trailer to fail on; one without would have handed back a feed silently cut to a
+hundred and fourteen records.
+
+The fix is where the loss is. A scanner now says whether its reading ran into the end of
+the input — `if (p >= text.Length || furthest >= text.Length) failure.Starved = true;`
+before it returns — and the driver already knew what to do with that. Only where something
+streams, because only a stream can use the answer, and asking costs a store on a path that
+is otherwise free. Positions and expectations are untouched, so no message anywhere
+changes; the URL benchmark is 96–196 ns against 97–199 before it.
+
+`A_record_the_window_cut_in_half_is_read_whole` is the test, over seven alignments because
+the defect needs the cut to land inside the fraction and which record that is depends on
+what pushed the rest along. One alignment fails on the old emitter and all seven pass on
+the new.
+
+**And the general lesson, which is the reason this sat here so long.** The thing that
+found it was not a test and not a review: it was running every benchmark in the repository
+at once, including the ones nobody runs. Two of the three bugs this week came out of
+measurements taken for another purpose entirely.
+
+## Built: the tape as a loop, and the reader reads characters
+
+Over kinds a rule's answer stands, so the reader needed no way back and had none. Over
+characters it does: a run that swallowed a character something after it wanted has to hand
+it back, and an alternative that matched has to give way to the next when what follows
+cannot be read. Both are the same thing — asking a rule that has already answered for its
+next answer — and both are what the tape is for.
+
+The rendering this replaces writes that as a label at the top and a jump to it from the
+bottom. Here a rule is two methods:
+
+```csharp
+static int Read_Start(ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways)
+{
+    var s  = ways.Cursor;
+    var lm = ways.LogCount;
+    var rb = ways.RefsCount;
+
+    while (true)
+    {
+        var q = Read_Start_Body(text, pos, ref failure, ways);
+
+        if (q >= 0)
+            return q;
+
+        ways.LogCount  = lm;
+        ways.RefsCount = rb;
+
+        if (ways.Cursor > s && ways.Retry(s))
+            continue;
+
+        return -1;
+    }
+}
+```
+
+What makes the second call different from the first is the tape: every decision the body
+took is on it, and a replay reads them back rather than taking them again. So the loop
+turns until the body answers or until nothing on the tape has anywhere left to move.
+
+**One segment for the rule, where the rendering beside this one has one per construct.**
+`Retry` takes the latest way with an alternative left wherever it stands, so a segment per
+rule already reaches every way opened inside it. What the finer segments buy is running
+less of the rule over again, and that is a measurement rather than an assumption — it is
+not made here.
+
+**Three things needed the tape and got it.** A run of one element is read in place now,
+as the loop it is rather than a method a turn, and hands back the difference between where
+it stopped and the fewest turns it was allowed — one number on the tape, not a way per
+character. A choice records which alternative it took, so a failure after it can come back
+and ask for the next. And a look seals what it decided inside, because its outcome is one
+bit and a second reading can only say the same.
+
+**The one that was not obvious.** An alternative has to be asked for every reading it has
+before the choice moves on. Without that the way the choice stands on is spent while a run
+inside the alternative still had a shorter reading to give, and that reading becomes
+unreachable — the tape says the choice has moved past the alternative the run is in. So
+each alternative is called in a loop of its own, and only when that loop is out of readings
+does the choice move on. `A_run_inside_an_alternative` on `aab` is the case: it wants the
+first alternative with its run one character shorter, and without this it never gets there.
+
+**What is still refused, and it is the interesting one.** A repetition of anything longer
+than a single element. A run of characters hands back a count; a run of *rules* has to hand
+back a turn, which is a way per turn rather than one number for the lot. That is the next
+thing, and it is what stands between this and reading SQL.
+
+The tests are the same trick as everywhere else in `ReaderTests`: one grammar compiled both
+ways, the same input, the answers compared. Ten shapes chosen for the combinations nobody
+thought of, each against thirty-two inputs, plus the named cases for the defects above —
+and an assertion that the reader actually wrote the grammar, since a grammar it declined
+would compare the old rendering with itself and pass without reading a thing. Two of the
+ten had to be rewritten when that assertion went in: they were simple enough to lower to
+one flat method and never reached the reader at all.
+
+## Built: a way for every turn, and what is left between the reader and SQL
+
+A run of characters gives back a count, because every turn of it is one character and a
+shorter run is the same scan stopped earlier. A turn of anything else is not a character
+and not the same size as its neighbours, so what has to be handed back is the turn itself.
+The tape carries that as a way per turn, each standing at "went round again" and reaching
+to "stopped here", opened before the turn and only where stopping is a reading the
+repetition actually has — below the minimum it is not.
+
+Structurally it is the alternative's rule over again: the turn is asked for every reading
+it has before it is called spent, and only then does the way that offered it say "stopped
+here". Fifteen shapes in `ReaderTests` against thirty-four inputs each, all compared
+against the rendering beside it.
+
+**A latent bug it turned up, in the reader itself.** Declaring an expectation array is not
+asking for one: what gets written into the file is what something wrote a reference to,
+and `_expectedUsed` is what says so. Only the direct writer ever marked it. Every
+expectation the reader has written so far happened to be one the analysis had already
+marked for its own reasons; the first one that was not — a literal inside an alternative
+inside a repetition — came out as a reference to an array that was never declared. The
+reader marks its own now.
+
+**And the answer to "how far is SQL".** Asked with `Reader = true`, the whole SQL grammar
+now says exactly one thing:
+
+```
+GRAM5006: The reader was asked for and could not write 'SearchCondition' because it folds.
+```
+
+One refusal, and it is the ladder — the left recursion the normalizer rewrites into a fold.
+Everything else about that grammar the reader can write. So folds are what is next, and
+after them the yardstick can be read both ways and compared tree against tree, which is the
+comparison this whole exercise has been walking towards.
+
+## Built: folds and gathered captures, and the reader can write the whole of SQL
+
+Two things stood between the reader and the yardstick, and both turned out smaller than
+the refusals made them sound.
+
+**A fold** — what a left-recursive rule became, a base and a loop of steps over it — needs
+one local: the record of the value built so far. A step's record leads with it, and every
+record the rule makes becomes it. The reader's body and its parts are separate methods, so
+the local is handed between them by reference, which the parameter machinery from the
+shared head already knew how to do. The one thing that was not obvious: an alternative that
+only hands its operand up writes no record of its own, and the operand's record is the
+value — so the local still has to move, or the first step builds on nothing.
+
+**A capture gathered across turns** — a list — needed no side stack at all, which is what
+the refusal had claimed. Each turn pushes what it kept onto the tape and the record
+collects everything pushed since it began, and the tape is shared by every method of the
+rule, so nothing has to be handed anywhere. What a turn or an alternative that failed
+pushed is not the rule's, so the caller puts the tape back.
+
+**And the gate had been asking the wrong question of a folded rule.** A step's capture is
+written once per turn and consumed there, so it is a value; only the rule-wide view of it
+looks like a sequence. Asked per factory it is what it is.
+
+**Where that leaves the reader.** Asked of the whole SQL grammar — four hundred lines, nine
+levels of ladder, lists, folds, forty-two shapes of predicate — it now writes all of it and
+says nothing. That is one hundred and forty-nine methods and no jumps outside the lexer's
+own automaton.
+
+**What it does not yet say is whether both renderings build the same tree**, which is the
+question worth asking and the one this has been walking towards. It needs a harness this
+does not have: the generator resolves the types a construction names against a real Roslyn
+compilation, and a grammar compiled on its own in a test has no symbol resolver to do it
+with — a standalone build of the SQL parser comes out with the arms subtly wrong and fails
+inside the author's own C#. The comparison wants the reader turned on for a real build,
+and that is next.
+
+## Measured: the reader reads SQL, builds the right tree, and is four times too slow
+
+`Reader` is a named argument on `[Gram]` now, beside `Direct` and `Lexical`, and off unless
+asked for — which is what let the question be asked properly. Turned on for
+`SqlStandard92`, the whole test suite passes: seventeen hundred and fifty-eight tests
+including every assertion about the SQL tree, and `SqlAgainst.Agree` — which compares the
+generated tree against the hand-written parser's, node for node, over the corpus — says
+nothing.
+
+**So the reader reads four hundred lines of somebody else's language and builds the same
+tree the rendering beside it does.** That is what this exercise was for, and it is done.
+
+**And it is four times slower than the rendering it replaces.** Against the hand-written
+parser the generated one was 2.2–3.4×; read by the reader it is 7.3–14.3×:
+
+| | by hand | the rendering beside | the reader |
+| --- | --: | --: | --: |
+| `a = 1` | 46.3 ns | 2.9× | 14.3× |
+| `(a + b) * c > d` | 103.1 ns | 3.2× | 11.1× |
+| `x = 1 AND y IS NOT NULL` | 121.0 ns | 2.4× | 8.8× |
+| 64 predicates | 4,237.8 ns | 2.4× | 8.2× |
+| 64 operands | 1,921.0 ns | 2.2× | 7.3× |
+
+The reason is in the emitted code and needs no profiler. `Read_PredicateTail` tries seven
+alternatives one after another, each a call; the rendering beside it dispatches on the
+token and goes straight to the one that could match. The reader has a dispatch and does not
+use it here: it is written for a choice where every group of the first-token division holds
+exactly one alternative, and in a real grammar most groups hold several. So the next thing
+is dispatch that switches to a group rather than to an alternative, which the machinery
+already computes (`Machine.Analysis.cs`) and only this rendering does not ask for.
+
+The flag is off again in `DotGram.Parsers`. It stays a proving ground, not a shipping
+decision, and four times slower is not a thing to ship while the reason for it is a piece
+of work rather than a mystery.
+
+**Two defects the SQL grammar found that seventy small ones had not.** A position handed
+to a part by reference is written by the part whether the part goes on to answer or not, so
+an alternative that failed left what it had written behind — and the alternative after it
+wrote a record naming that position and got the abandoned one. Every small test had one
+alternative that could write to a handed position; SQL has predicates with two. And a rule
+that folds declared the local for the value so far in every method of itself, including the
+ones that neither write a record nor hand it on — a local nothing reads, which is an error
+in a build that treats warnings as errors, and the first such build was the parsers project.
+
+## Built: dispatch to a group, which was most of the reader's four times
+
+The reader had a dispatch and would not use it. `Dispatchable` divides a choice by what one
+token can tell apart and already puts several alternatives in a group where they begin
+alike; the reader asked for groups of exactly one and fell back to trying every alternative
+in order otherwise, which in a real grammar is almost always. `Read_PredicateTail` was
+seven calls where the rendering beside it was a jump table.
+
+A group is now what the switch reaches, and inside a group the members are tried in order —
+which is sound and worth writing down: no other group's first set holds the token that
+chose this one, so a group that fails fails the choice. The same code that tries a whole
+choice in order tries a group in order, and over characters it is the same code with the
+tape, so a group of several keeps its way back while a group of one needs none.
+
+Against the hand-written parser, read by the reader:
+
+| | the rendering beside | the reader, before | the reader, now |
+| --- | --: | --: | --: |
+| `a = 1` | 2.9× | 14.3× | 2.3× |
+| `(a + b) * c > d` | 3.2× | 11.1× | 4.8× |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 3.4× | 10.7× | 4.3× |
+| `x = 1 AND y IS NOT NULL` | 2.4× | 8.8× | 4.2× |
+| 64 predicates | 2.4× | 8.2× | 3.5× |
+| 64 operands | 2.2× | 7.3× | 3.1× |
+
+**Four times became one and a half.** What is left is a real gap and no longer an obvious
+one: the emitted code has no redundant call, no redundant test and no jump, and where the
+remaining third goes is a question for the profiler rather than for reading.
+
+**And one change that measured to nothing.** After the switch has read the token, the
+alternative it dispatched to was reading it again — its own bounds check and its own load
+of a character already in a register. Carrying "the token is in hand" into the alternative
+takes both out, and the seven inputs moved by less than the noise between runs. It is kept
+because the test it removes is one nobody would have written by hand, which is what this
+rendering is for; it is not kept for the speed, and there was none.
+
+## Profiled: where the reader's last third went, and it went to three places
+
+The reader read SQL at one and a half times the rendering beside it, and nothing in the
+emitted code said why. So dotTrace, sampling, fifteen seconds of `--spin` on the sixty-four
+predicates, both renderings, and the two snapshots side by side per parse: 16.2 µs read by
+the reader against 12.1 µs — a gap of 4.1 µs, of which the profile puts a name on 3.7.
+
+**Refusals nobody asked for, 1.9 µs.** `List<string[]>.AddWithResize` at 4.5% of the
+reader's time and zero of the other's. It is `Failure.ExpectedMore`: a refusal at the same
+position as the furthest one so far is a tie, and a tie is appended to a list. On a parse
+that *succeeds*. The reader was recording a refusal every time a repetition's turn was tried
+and did not begin — and the SQL ladder has nine levels, each of whose loops asks for its own
+operator at the same token, so every operand cost nine refusals at one position, eight ties,
+and a list to hold them. The rendering beside it never tries the turn: it looks at the token
+first and leaves the loop quietly. The reader looks first now — a repetition's turn and an
+optional's alternatives are behind a test on the token in hand, and what ends a repetition
+is once again not a failure.
+
+**A log that was never put back, 0.9 µs.** `DirectValues.Return` at 0.93 µs in the reader
+and 0.01 in the other. Returning the value tables clears them to `_used`, and `_used` is
+sized to the log, and the reader's log grew with every alternative that failed: nothing was
+wrong — the walk at the end follows references and an abandoned record has none — but the
+tables were sized to garbage and cleared for it. The log is put back where an alternative or
+a turn fails, as the rendering beside it has always done.
+
+**Three tape methods the JIT would not compile in, 0.7 µs.** `Ways.Begin`, `Put` and `End`
+show up as their own frames in the reader's profile and nowhere in the other's. The same
+methods, so it is not their size: it is that the reader's rules absorb their inlined parts
+and run out of the budget the JIT gives one method for inlining, and the tape calls at the
+end are what gets left out. `AggressiveInlining` on the three — which is the attribute that
+measured to nothing on the constructions three days ago, and here is the case that was
+missing: a callee that just misses the heuristic in a caller that has spent its budget.
+
+After the three, read by the reader against the hand-written parser:
+
+| | the rendering beside | the reader, before | the reader, now |
+| --- | --: | --: | --: |
+| `a = 1` | 2.9× | 2.3× | 2.8× |
+| `(a + b) * c > d` | 3.2× | 4.8× | 2.6× |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 3.4× | 4.3× | 3.0× |
+| `x = 1 AND y IS NOT NULL` | 2.4× | 4.2× | 2.7× |
+| 64 predicates | 2.4× | 3.5× | 2.2× |
+| 64 operands | 2.2× | 3.1× | 1.9× |
+
+**The reader is at the rendering it replaces**, and past it on the long inputs. What was
+four times is nothing, and the last third of it was found in an afternoon with a profiler
+where a week of reading emitted code would not have found the first item at all — nobody
+reads a successful parse for its refusals.
+
+The flag is still off in `DotGram.Parsers`: turning it on for good is the moment the old
+rendering goes, and that is a decision and not a measurement.
+
+## Built: the reader is the rendering, and what turning it on for everyone found
+
+`Reader` on `[Gram]` has three states now and defaults to the one that was not there before:
+unset takes the reader wherever `CanRead` says yes and says nothing where it says no; `true`
+asks for it and is told where it declined (`GRAM5006`); `false` keeps the rendering the
+reader is replacing. Only a request is told, because a decline is not news when nobody
+asked — and with the reader the default, forty-seven tests that assert a clean grammar
+compiles with no diagnostic at all were suddenly being told.
+
+SQL is read by the reader without a word in its grammar, at 1.5–3.2× the hand-written
+parser against the 2.2–3.4× of the rendering beside it — better on the long inputs, within
+noise on the short. The old direct path is still there, and still runs wherever the reader
+declines: climbs, externals that build, extents, guards, marks, atomic groups, captured
+lookaheads, calls with arguments, and a rule marked `?` over kinds. That is the list between
+here and deleting it.
+
+**What the switch found, which seventy small grammars and one large one had not.** Every
+one of these was a real defect in the reader, and every one of them lived in a shape the
+targeted tests did not happen to have.
+
+- *A rule without a construction writes no record.* Its value is the record of its
+  captures, written where the rule ends — `RecordsAtEnd` — and the reader only wrote
+  records at constructions. The materializer walked from a root of −1. Every grammar in the
+  semantics tests that leaves the value implicit went that way.
+- *Records without positions where the walk reads them.* Where a factory asks for the text
+  or the span, or a terminal is reread from its span, the walk reads a four-word header, and
+  the reader wrote two. The rule's start is handed to a part as `start`, because a part's own
+  `pos` is not it.
+- *A member named in two alternatives is one member with two slots*, and the record takes
+  whichever was written. The reader read the first slot always.
+- *The end-of-rule record reads every member from outside every part*, which the analysis
+  of what a part has to hand back did not know, so a capture inside a part was never handed
+  out and the body named a local it did not have.
+- *No way back at the whole input.* Over characters the rule may answer with less than all
+  of it, and the entry then has to ask for the next answer rather than refuse. The reader's
+  entry refused, and the very first reading that came up short was the last — which is what
+  the differential test's seed 3 was saying.
+- *An element is more than its ranges.* Categories, the author's own predicates, negation:
+  the reader tested ranges alone and an element set of one predicate came out as `()`.
+- *`~` was nothing.* Over kinds the next token has to begin where the last one ended.
+- *A rule marked `?` anywhere in the reading, not only among the published ones*, needs the
+  tape the reader does not write over kinds.
+- *A door on a turn over characters that did not check the minimum*: `('a'+)+` on `b` left
+  the loop with no turns and went on as if it had one.
+
+And two things about messages rather than answers, because the semantics tests compare the
+reader's answer to the rendering beside it word for word. A choice whose alternatives the
+token in hand can begin none of is refused as one thing — the combined expectation the other
+rendering reports — rather than alternative by alternative. And a door that does not open on
+an optional still notes what it wanted, without failing: the other rendering records the
+first test of the alternative it did not take, and a message that leaves it out is a worse
+message.
+
+`Feed` and `Notation` are the two snapshots the reader now renders — 163 and 89 jumps before,
+62 and 24 after, and what is left is the lexer's own automaton.
+
+## Built: the reader reads every grammar in the repository
+
+Five constructs stood between the reader and the last of the parsers and examples, and a
+survey — every `[Gram]` in `examples/` and `src/DotGram.Parsers/`, compiled with
+`Reader = true` and asked for its `GRAM5006` — said which grammars each one held back:
+atomic groups (`trivia = { ' '* }` over characters, in Gram and Selector), climbs (the
+three calculators), guards (Xml and the expression language), marks (the expression
+language again), and a rule marked `?` over kinds (the same, its `NamedType`). The survey
+is a test now, `ReaderCoverageTests`, and the day it goes red is the day somebody wrote a
+grammar the reader cannot write.
+
+**An atomic group** over kinds says nothing the rendering does not — every reading is
+already the only one. Over characters it is asked for a reading until it has one and then
+sealed: a part in a loop of its own, and `ways.Seal` when the loop is out.
+
+**A climb** is a strength every method of the rule takes and an alternative refuses without
+a word where its level is below it — `if (level < power) return -1;` is the whole of it,
+plus the call carrying what `<<` or `>>` recorded against it and the entry carrying what it
+was asked. The parameter machinery from the shared head took the strength as one more thing
+handed over.
+
+**A guard** is the rendering beside this one's, with this one's names: the rule's start and
+its log mark handed to a part as `start` and `lmark`, the refs mark as `refs`, the members a
+guard reads counted as uses of them so that they arrive — and one thing that was not there:
+where the log is put back, the watermark of what a guard built goes back with it. A value a
+guard built in a derivation that was then abandoned is not the value of the record the next
+derivation writes at the same place, and `A_cached_guard_value_is_discarded_with_its_derivation`
+is the test that said so.
+
+**A mark** is two `ways.Mark` around the body; it goes with the log wherever the log is put
+back, which the reader already did.
+
+**A rule marked `?` over kinds gives back inside itself**, which is the sentence from the
+other rendering that made this the smallest of the five. Its choices and runs are recorded,
+its own failures retried, and once it has answered the answer stands and is sealed — a
+caller, which commits, is never sent back into it. So it is written the way a rule over
+characters is written, and nothing else in the machine changes.
+
+**Two things found on the way that were not on the list.** A `Collect` in a part was
+collecting from the part's own refs mark and not the rule's, so what an earlier part had
+pushed was not the rule's — the rule's mark is handed on now. And the record takes
+whichever of a member's slots was written, so the analysis of what a part hands out has to
+name every slot of a member and not its first.
+
+What is left of the direct path is what nothing in the repository reaches: an external
+recognizer that builds, and a rule whose value is the text it matched. Both are in
+`CanRead`'s refusals still, and both are small. After them `Machine.Direct.cs` goes.
+
+## Built: the direct path goes
+
+`Machine.Direct.cs` was two thousand five hundred and eighty-seven lines and is three
+hundred and eighty-nine. What went is the writer — one method per rule, a construct a
+labelled region, a failure a jump, and the four passes that took the dead jumps, labels,
+marks and locals back out — and its entry, and the helpers only it used. What stays is the
+gate and the plumbing both renderings needed and the reader still does: `CanDirect`, which
+says whether a publication may be read by methods at all and why not (`GRAM5005`), the
+parameters a method takes beyond the text and the position, the strength a climb is entered
+at, the members a guard reads, the back edges that need a stack check.
+
+There is one rendering by methods now, and it has no `goto` in it. What the methods do not
+read the engine does — a stream, a `find`, a recovery, a captured lookahead, a call with
+arguments, an external that builds — and that is the engine's by design and not for want of
+a reader: a method cannot be suspended, and those have to be.
+
+**The `Reader` option went with it.** Added four days ago as the way to ask for the reader,
+made a default two days ago, made three states yesterday so that a decline was told only
+where it was asked for — and today there is nothing to ask for and nothing to decline into.
+`GRAM5006` is retired. `Direct = false` still keeps a grammar on the engine, which is what
+the reader's own tests now compare against: two implementations of the notation with
+nothing in common but the semantics, which is a better oracle than the one they had.
+
+**Two small things it took to close the gate.** A lookahead with a capture inside it: the
+reader had refused those and the other rendering had not, and what it wanted was to drop
+what the look recorded whether it saw or not — its outcome is one bit, and what it captured
+on the way is not the rule's. And an extent, whose value is the span its record stands on
+and not anything in the tables: the entry reads it from the record, as the other did.
+
+**And the survey found what the survey had hidden.** `ReaderCoverageTests` compiles every
+grammar under `examples/` and `src/DotGram.Parsers/` and says which ones fall to the engine.
+Asked before the deletion, with `GRAM5006` as its signal, it had said "read" of two grammars
+that were on the engine all along — `GRAM5006` was only raised when the reader was *asked*,
+and the reader was only asked once the methods gate had said yes, so a grammar the gate
+refused looked exactly like one the reader wrote. The test reads the emitted code now, for
+the one signature the methods never write: the engine's own entry, a method over a state.
+Nothing shipped or shown has it, except the four feeds that recover or `find` and the
+character-side reading of a terminal that builds, which are the engine's on purpose.
+
+1758 tests. What is next is not more reader: it is what the whole exercise was for. The
+generated SQL parser against the hand-written one is 1.5–3.2×, the lexer is at or ahead,
+and the tree is the same. The remaining distance is in the walk that builds the tree and in
+the shapes the notation makes a person write differently from how they would by hand — and
+those are grammar questions, not emitter ones.
+
+## Profiled: the distance to the hand-written parser is one pass it does not make
+
+With one rendering by methods left, both parsers profiled on the same input — the
+sixty-four predicates, fifteen seconds of `--spin` each, sampling — and read per parse:
+11.81 us generated against 3.89 by hand.
+
+Two things in the generated parser have no counterpart in the hand-written one at all:
+
+| | us per parse | what it is |
+| --- | --: | --- |
+| `Materialize_DotGram_Direct` | 2.99 | the walk over the log that builds every value |
+| `Array.Clear` of the value tables | 0.72 | putting them back for the next parse |
+
+**Three and a half microseconds, thirty percent of the parse, spent on a pass the
+hand-written parser does not make** — it builds each node where it reads it. Nothing in
+the walk is wasted: a loop stepping record to record, a switch on the arm, a few loads
+and a call into the author's own C#. What it costs is what it is.
+
+Everything else divides about as one would hope. Lexing is 1.47 against 1.17. Recognizing
+is 3.85 against 2.31, which is 1.7x and not the three the totals suggest. The factories
+themselves are 0.79, and both parsers pay them.
+
+**A measurement to be careful with.** Grouping the two profiles by hand put `String.Substring`
+at 0.92 in the generated parser and 0.00 in the hand-written one, which looked like the
+hand-written one avoiding a cut per operand. It does not — it cuts one per name and one
+per literal, the same hundred and twenty-eight — and what the profile is saying is that
+its allocations landed in `[Native or optimized code]`, which is 5.13 against a 3.89 total
+and is the sampler's catch-all rather than a cost. Anything read out of that bucket is not
+a comparison.
+
+**Why the walk cannot simply go.** The language promises it: a `=>` construction is
+deferred until recognition has selected the accepted derivation, and an alternative
+abandoned by backtracking does not invoke an unrequested construction (§7.3, §12). That
+promise is load-bearing — it is exactly what lets an author write a factory that is not
+safe for speculative invocation, where a `when` guard and an external recognizer must be.
+Building where the record is written would break it for every grammar, and proving a
+construction committed is only possible on the rightmost spine of a publication: a rule
+that has answered can still be abandoned by its caller, transitively, all the way up.
+
+So the walk stays until either it is made cheaper or the notation is given a way for an
+author to say that a particular construction may run speculatively — which is a language
+question and not an emitter one.
+
+## Measured: deferral is not what the walk costs
+
+The profile said the walk over the log is thirty percent of a generated SQL parse and has
+no counterpart in the hand-written one, and the reading of that was that deferring the
+construction is what costs. It is not, and `DeferredShape.cs` says so: one tree, five ways
+to carry the deferred call, in a synthetic lean enough that nothing but the shape is being
+compared.
+
+| | mean | ratio |
+| --- | --: | --: |
+| built where read, no deferral at all | 1.782 us | 0.64 |
+| values by which record, not where it sits | 2.686 us | 0.96 |
+| the log as it is now | 2.789 us | 1.00 |
+| a table of delegates the generator wrote | 3.227 us | 1.16 |
+| a tree of closures built while reading | 4.181 us | 1.50 |
+
+**Three things this settles.**
+
+The way the deferred call is carried is already the best of the four tried. A table of
+delegates written at generation time — which allocates nothing per parse, and the
+allocation column proves it — is sixteen percent worse than the switch, because an
+indirect call through a delegate is dearer than an indirect jump through a jump table.
+Closures built while reading are half again worse and allocate three times as much.
+
+Deferral itself costs about a third over building eagerly. Not thirty percent of the
+parse: a third of the building, which for SQL is nearer eight percent of the whole. So
+even a language that let a construction run speculatively would buy less than the profile
+suggested, and it would buy it by taking away the one thing that lets a factory be written
+without thinking about speculation.
+
+And the real materializer costs about twice this synthetic one for the same tree. That is
+where the room is, and it is ours: the positions a record carries where nothing reads
+them, the `Live` and `Built` arrays, the `Held<T>` indirection, three tables where the
+values of one parse are of one kind at a time. None of it is the architecture — all of it
+is bookkeeping that grew with the features that needed it and is paid by the grammars that
+do not.
+
+So the answer to "should the generator build where it reads, as a person does" is: it
+would help less than it looks, and the same work is available without touching the
+language.
+
+## The tape was still unconditional
+
+The shape had become methods and the `goto` was gone, and the code still read like an
+automaton: every rule got a way back written into it, every alternative got a retry loop
+around it, and every repetition wrote a way on the tape. The first generator this project
+had — five hundred and thirty-five lines, recovered at `4ca0e41^` — is a function per node
+and nothing else: a sequence is `p = f(text, p); if (p < 0) return -1;`, a choice tries
+each alternative from the same `p`, a repetition is a `while`. It was fast at once, and it
+had no values; the automaton came in with them and brought the tape with it.
+
+The reader had inherited the tape without inheriting the question the direct writer asked
+before writing it. `Determinism.NeverGivesBack(repeat, following, graph, seam)` decides
+whether anything after a repetition can ever want a character it took, and the direct
+writer called it; the reader wrote the tape unconditionally, because it never carried a
+follow set to ask with.
+
+**What it took.** The continuation now travels: `Render`, `Emit`, `EmitChoice`,
+`EmitAmong`, `EmitCapture`, `EmitAtomic`, `EmitRepeat` and `Called` all take what may
+follow the node they write, a sequence computes its parts' follows backwards the way
+`FollowSets.Precedes` does, and a rule's own follow comes from `FollowSets.Of`. `EmitRun`
+and `EmitTurns` take the answer as a `settled` flag and write nothing on the tape when it
+holds. Then, because a way back into a rule is only worth writing where something under it
+can be on the tape, the reader renders every rule twice: once to find out what got
+written, and once knowing.
+
+**Two holes in the analysis, both about a look.** Neither was visible while the tape was
+unconditional, and `ReferenceDifferentialTests` found both within a minute of it not being.
+
+A look consumes nothing, so `FirstSets.Of` answers `None` for it — deliberately, because
+what a sequence begins with is the operand *after* the look. `FollowSets.Precedes` took
+that at face value and walked straight past it, so a run standing before a look was told
+only what followed the look. It reads: `Start = (['a'..'b'] & ?= [^ 'a' | 'c']) | …` over
+`"b  "`, where the trivia after `b` must give back a space for the look to have one to
+read. `Precedes` now has a case for it, and the answer is the same for a refusal as for a
+demand — a `?!` has to see the characters it refuses before it can say they are not there,
+and where they are not there the rest reads them instead.
+
+The other is the entry. A publication is entered through the shape the entry method is
+written in — the namespace's trivia, the rule, the trivia again — and `FollowSets.Of`
+walked rule bodies only. The leading application was therefore never told anything, and
+`Start = ?! […] & …` over `" cba"` needs it to give back the leading space so that the
+refusal is refused. The fixed point now walks those entry shapes alongside the bodies.
+
+**What it bought.** `Feed` fell from 3894 lines to 3554 and `Notation` from 3425 to 3234,
+and what went is tape: nine retry loops, sixteen `_Body` wrappers and four `ways.Open` in
+`Notation` alone. A minimal deferred grammar comes out as plain recursive descent —
+`ways.Open` nowhere, `ways.Retry` nowhere, `ways.Cursor` nowhere.
+
+SQL is unchanged, and that is the honest half: over kinds it was already tape-free, so
+this is a gain for grammars read over characters and not for the yardstick. The remaining
+SQL distance is where it was — the walk over the log, and the bookkeeping around it.
+
+## The redesign: values as typed shapes
+
+What `benchmarks/DotGram.HandDeferred` settled, in the order the readings were written:
+a deferred construction can be carried as a closure, a tape, a struct held by value, a
+class, or an index into an arena, and the difference between them is paid where the
+derivation is *written*, not where it is built — construction is the author's own code
+and comes out within a tenth for all of them. Writing it as a struct nested by value
+inside its parent is the cheapest where the type is statically bounded, a class is the
+cheapest where it is not, a fold is an array of one element type and neither, and the
+array wants renting rather than growing — a fresh one per parse walks into the large
+object heap at a thousand pairs, which is where every array reading lost to every
+object reading. The engine's `Ways.Rent()` already keeps its arrays; what it does not
+have is the rest.
+
+**Decisions taken before the plan, so that the plan does not reopen them.**
+
+- A `when` may materialize. The guard is the author's own parser logic injected into the
+  match, so a value it asks for is built when it asks and the author answers for what
+  that construction does. §7.3's promise is about constructions nobody requested, and a
+  guard requests.
+- Streaming and reading without a lexer are debugged after the rest, not alongside it.
+- If the modes want different generators, they get different generators sharing modules
+  — not one generator steered by flags. `Machine.Reader.cs` is steered by eleven of them
+  today (`_committed`, `_commits`, `_logs`, `_gathers`, `_tape`, `_positions`, `_part`,
+  `_folds`, `_guarded`, `_climbs`, `_entry`) and that is the shape being left.
+
+**The stages, each with a measurable exit.**
+
+1. *Analysis, no emission.* For every rule: struct or class, by whether it can reach
+   itself; fold or not; guarded, gathering, climbing; an estimate of the struct's size;
+   and whether the emitter had to write a way back into it. For every publication: parse
+   or find, streamed or not. Run over every grammar in the repository, with the SQL
+   yardstick in full. This is `Shapes.Of` and `ShapesTests`, and the numbers are below.
+2. *Shapes for grammars with no guard and no gathering* — the class the lab was in.
+   `Minimal` and `Deferred` as snapshots, the differential test as the guard. This is
+   where shapes meet ways: an abandoned shape is a local nobody reads, so the two
+   should coexist without either knowing about the other, and this is where that gets
+   found out.
+3. *Guards, gathering, climbing*, one at a time, each with its own answer to how a value
+   is had before the derivation is accepted. Under the first decision above, a guard's
+   answer is "build it".
+4. *SQL*, and `--hand` against the hand-written parser on the same inputs.
+
+The materializer, `Live`, `Built`, `Held<T>` and the three tables go only after the third
+stage; until then they stand beside the shapes.
+
+**What the first stage says.** Thirty-four grammars, two of them over kinds:
+
+```text
+571 rules, 306 valued, 187 structs, 119 classes in 21 cycles;
+36 folds, 12 guarded, 79 gathering, 4 climbing; 212 rules on ways;
+72 entries, 9 streaming, 4 grammars recover
+```
+
+Across the repository a valued rule is a struct three times in five. Across the SQL
+yardstick it is the other way round, and by more:
+
+```text
+SqlStandard92, over kinds: 40 rules, 28 valued, 6 structs, 22 classes in 2 cycles;
+5 folds, 0 guarded, 8 gathering, 0 climbing; 0 on ways
+
+rule                         carrier bytes  texts records seqs  flags
+PredicateTail                Class      96      5       7    0
+ValueFunction                Class      80      4       6    0
+CaseExpression               Class      56      0       7    2
+ValueExpressionPrimary       Class      40      0       5    0
+RowValueConstructor          Class      32      0       4    1
+BooleanTest                  Class      24      2       1    2  fold
+ValueExpression              Class      24      1       2    2  fold
+Term                         Class      24      1       2    2  fold
+SearchCondition              Class      16      0       2    1  fold
+BooleanTerm                  Class      16      0       2    1  fold
+…
+UnsignedLiteral              Struct      8      1       0    0
+ColumnReference              Struct      8      1       0    0
+```
+
+Three things follow, and the second is the one that changes the second stage.
+
+*SQL is already tape-free for ways.* Not one of its forty rules got a way back written
+into it — over kinds, `Determinism` proves every repetition and every choice. So in the
+yardstick `Ways` is doing one job, the value log, and the whole of it is what a shape
+design replaces. That is the thirty percent the profile put on the walk, and nothing
+less.
+
+*SQL is classes on the cycles, not structs.* Twenty-two of its twenty-eight valued rules
+sit on two cycles — the expression grammar is `ValueExpression → Term → Factor →
+Primary → ( ValueExpression )` all the way down — so the by-value nesting that made
+`Mixed` half the cost of the tape in the lab has six rules to work with here, all of them
+leaves of eight bytes. What SQL gets from the redesign is dispatch resolved at generation
+time, one object per expression node instead of a log record per member plus a table
+entry per record, the leaves inside those objects by value, and folds as arrays — five of
+them. That is the shape of the lab's `Mix2`, not of its `Classes`: `Mix2` makes a class
+of what sits on the cycle and nothing else, and measured 0.31 of the tape on reading and
+0.79 to 0.81 on the whole parse. `Classes` makes an object of every node, leaves and fold
+steps included, and measured 0.48 — a fifth again slower than `Mix2` and 2.2 times slower
+than `Pooled`, and the order of the three is exactly the order of their allocations per
+pair: none, one, five.
+
+That one allocation per node is also the ceiling. `Pooled` gets to 0.22 because nothing in
+it is an object; SQL's nodes have to be, so it does not get there by this route. What the
+second stage has to find out for SQL is how few allocations per node a class-on-the-cycle
+design can be driven to — by cutting each cycle at one rule and nesting the rest by value
+(two classes and twenty-six structs, against copies of hundreds of bytes), by pooling the
+node objects themselves and returning them after construction as `Pooled` returns its
+arrays, or by arenas, which lost on time in the lab to indirection but lost some of it to
+a rewind SQL never needs. All three exist by hand for `Deferred` with the parenthesis and
+can be measured there before any of them is generated.
+
+*The cut is a choice, and the estimate depends on it.* Every rule on a cycle is a class
+in the report, and the report sizes a cycle member as a reference; the minimal cut above
+would turn `PredicateTail`'s ninety-six bytes into a struct holding `ValueExpression`
+holding `Term` holding `Factor`, and the report cannot size that. Which cut is cheaper is
+the first thing the second stage measures, on a grammar small enough to try both.
+
+**The carrier is an option, and there are four of them.** What the lab compared were ways
+of carrying a deferred construction, and the recognition that reads into them is the same
+for all: `Machine.Reader.cs` touches the tape through eleven operations at some fifty
+sites — `Begin`, `Put`, `End`, `Last`, `Push`, `Collect`, `Mark`, `Built`, `Log`,
+`LogCount`, `RefsCount` — and nowhere else. That is a seam, hard-wired today to one
+implementation. Behind it the algorithms do not change: determinism, follow sets,
+dispatch, folds, ways, failures. What changes is how a value is held, where a fold's
+steps go, how a subtree is built, and what a failed alternative leaves behind. Two things
+are not only form and the seam has to carry them: a carrier that pools makes the result
+single-use and needs a `Return`, which is a change to the public contract; and a `when`
+needs a subtree built in the middle of the parse, so `Build(handle)` is part of the
+interface and not only its end.
+
+The carriers, chosen by the author and defaulted by analysis and by target framework:
+
+- *Classes* — an object per node, leaves included. 0.48 of the tape. Applies to every
+  grammar, and the safe default where the JIT cannot be trusted with structs.
+- *PooledLearns* — structs by value, folds as rented arrays that start at the longest run
+  the process has seen. 0.21. Applies only where nothing is on a cycle, which is
+  twenty-one grammars of thirty-four and neither of the two over kinds; `Shapes.Of` says
+  which.
+- *Mix2* — a class for what sits on a cycle and nothing else, leaves by value inside it,
+  the fold threaded through its elements. 0.31, no pool and nothing to own. The shape the
+  report draws for SQL.
+- *Eager* — no deferral at all: `=>` runs when its alternative is read, the value is the
+  author's object, `Build` is identity, and an abandoned alternative is garbage. The
+  largest lever measured — 0.64 of the deferred log in `DeferredShape`, and the
+  hand-written SQL parser is eager and 2.6 times the generated one. What it gives up is
+  not determinism: on one input with one grammar the factories are called in one
+  sequence, every time. It gives up §7.3 — a factory runs once per node of the accepted
+  derivation — and runs instead once per node of every derivation tried, each call
+  well-formed and some of them discarded. Invisible to a pure allocation, visible and
+  reproducible to a counter. So it is never the default and always the author's
+  declaration: my factories are pure, as a `when` is already the author's own. A grammar
+  extension to say so per rule comes after there is something to say it about.
+
+The tape stays a fifth, behind the same seam, until the third stage — it is the only one
+that streams, finds and recovers.
+
+Order for the second stage: the tape through the seam first, with every snapshot
+identical, which is the cheapest proof the seam holds; then Eager, not as a default but
+as the ceiling — if eager SQL is level with the hand-written parser the whole remaining
+gap is the price of deferral and the three deferred carriers are measured against a known
+mark, and if it is not the remainder is in recognition and is worth knowing before a
+carrier is written; then Mix2, then PooledLearns, then Classes. Every carrier answers the
+same agreement test the lab's `Program.Show` runs — one value and one verdict on every
+input, or it does not ship — and a benchmark leg on .NET Framework 4.8 before any of them
+is a default there.
+
+**On the shape of the generators.** The first stage does not touch emission, so it does
+not split anything. It does say where the split falls: the two over-kinds grammars are
+where every rule is a class and no rule needs a way, and the thirty-two over characters
+are where structs, folds, ways and streaming all live. Those are two generators, not one
+with a flag, and the second is the one with the harder problems — but the first is the
+one with the yardstick, and it is the one to write first.
+
+**Second stage, first step: the tape is behind a seam.** `Emit/Carrier.cs` is the
+abstract surface — marks and unwinding, a record begun and its members put, gathering, a
+§7.8 mark, materialization for a guard, what an entry rents and returns and how it builds
+its root, and the builder itself — and `Machine.Carrier.cs` is the tape answering every
+one of those with the string the reader used to write itself. The reader now writes none
+of them: every site that touched the log or the gathered references goes through
+`machine.Carrier`, and the snapshots are identical to the byte, which is the whole of the
+claim this step makes.
+
+What the seam is not yet. It is exactly as fine-grained as the reader's emissions were —
+two marks and two unwindings rather than one of each, because the tape has two stores and
+the reader marks them at different sites under different conditions — and a carrier that
+keeps its values in locals will answer all four with nothing. The runtime `Ways` class
+still hosts both halves, the alternatives and the values, in one type; the reader still
+decides *whether* to emit at a site from its own flags (`_records`, `_gathers`, `_logs`,
+`_positions`), which are the tape's concerns as much as the grammar's; and the ways
+operations — `Open`, `Retry`, `Cursor`, `Seal`, `Next` — are written literally, as they
+should be, since they are not the carrier's. The second carrier is what says which of
+those has to move, and it is Eager, next.
+
+**Second stage, second step: the eager carrier, and the ceiling it sets.** `EagerCarrier`
+is the second answer behind the seam: no record, a captured value in a reader local of its
+own type, a gathered member in a list, a fold's value so far in the accumulator itself, and
+at the end of an alternative the construction called with those locals and its result put
+in a register for its type — `EagerValues.Last{k}`, the same hand-over the tape makes
+through `ways.Last` and sound for the same reason. It refuses marks, parser state, extents
+and recovery and leaves those to the tape; it carries the terminals that build over kinds,
+which is what SQL is made of. `CarrierTests` is the agreement test — a fold, a cycle,
+records and text gathered, a guard over a record, a member that may be missing — and eager
+and tape answer alike on every input. `[Gram(Carrier = GramCarrier.Eager)]` chooses it.
+
+To measure it on the yardstick the SQL grammar moved out of `SqlStandard92.cs` into
+`SqlStandard92.gram` beside it, and the tree it builds moved out of the parser altogether:
+`SqlNode` is one class with its eleven descendants nested inside it and the statics that
+make them — `Compared`, `TruthOf`, `Listed` and the rest — on it, public, so that any
+parser of the language builds the same tree by the same code. The generated parser, the
+hand-written one and the eager copy in `DotGram.Benchmarks` now share every line of it. The
+symbol resolver learned that `Outer.Inner` in a grammar is `Outer+Inner` in metadata along
+the way.
+
+`--hand 21`, the eager copy beside the tape and the hand-written parser, both readings
+checked against the hand-written tree over the forty-two shapes first:
+
+```text
+                                       generated       eager     by hand   tape/hand  eager/hand
+a0 = 1 AND a1 = 1 AND a2 = 1 AN...   12,794.7 ns  8,772.0 ns  4,975.1 ns       2.57x      1.76x
+a0 + a1 + a2 + a3 + a4 + a5 + a...    4,405.9 ns  3,071.9 ns  2,193.1 ns       2.01x      1.40x
+((((a + 1) * 2) - 3) / 4) + b > 0       601.2 ns    446.6 ns    182.8 ns       3.29x      2.44x
+x = 1 AND y IS NOT NULL                 344.0 ns    274.6 ns    129.2 ns       2.66x      2.13x
+(a + b) * c >                           199.2 ns    313.1 ns    131.4 ns       1.52x      2.38x
+```
+
+Three things it settles.
+
+*Deferral costs what the profile said.* On the long inputs eager takes thirty percent off
+the tape — 12.8 to 8.8 microseconds, 4.4 to 3.1 — which is the share the profile put on the
+walk over the log. The profile was right, and this is the most any deferred carrier can
+recover by carrying the deferral better: the deferred carriers are now measured against
+1.76 and 1.40, not against the hand-written parser.
+
+*The larger part of the gap is not deferral.* Eager builds exactly as the hand-written
+parser does, where it reads, into the same tree by the same statics — and is still 1.76
+times behind it on the long condition and 1.40 on the long sum. What is left is the
+recognizer: how the reader reads, not how it carries. The old split — lexing 1.3, reading
+1.7, values 17 — has lost its third term and kept its second, and the second is now the
+whole of the question.
+
+*Building where you read is paid for on the inputs that are refused.* `(a + b) * c >` is
+the one input the parser rejects, and eager is the slowest reading of it: 313 nanoseconds
+against the tape's 199, because the text members of the alternatives it tried were cut into
+strings before anything knew they would be thrown away. The tape cuts nothing until the
+parse is accepted. That is the cost `CarrierKind.Eager` names, seen in a
+number: on an input that succeeds, allocation the parse would have made anyway; on one that
+does not, allocation for nothing. The two smallest inputs move by a third between runs of
+this harness and are not read for more than their sign.
+
+**Second stage, third step: the recognizer, taken to the hand-written parser's shape.**
+With deferral out of the way the whole of the gap was the reader, and this step took it
+down by editing the emitted SQL reader by hand — a copy of the generated file dropped into
+a scratch project beside `HandSqlTokens` as plain source, each candidate edit a class of
+its own so that one BenchmarkDotNet run measured them all beside each other — and porting
+into the generator what paid. The steps, each a commit, each measured on the yardstick's
+long condition and long sum against the hand-written parser (round-robin, `--hand 21`):
+
+| step                                                                                       | condition   | sum         |
+|--------------------------------------------------------------------------------------------|-------------|-------------|
+| the eager ceiling, as measured above                                                       | 1.76        | 1.40        |
+| gather onto a stack per type, not a `List<T>` per rule (`1e1294c`)                          | 1.56        | 1.44        |
+| inline a rule of a few tokens; trust the switch that chose the branch (`211b5e9`)           | 1.49        | 1.27        |
+| the reader is a `ref struct`; a call between rules passes a position (`1ad7d57`)            | 1.50        | 1.27        |
+| a switch on two groups in the reader, where the automaton wants four (`00050cd`)            | 1.40        | 1.25        |
+| the registers are fields of the reader, not of the store it rents (`d64cf29`)               | 1.29        | 1.17        |
+| an alternative that is one call is that call; a look the switch answered is skipped (`ecffda8`) | 1.18    | 1.06        |
+| dispatch where the first sets overlap, cutting them where they do (`25bd308`)               | 1.18        | 1.02        |
+| no local for a capture nothing reads (`4e88a06`)                                            | 1.21        | 1.04        |
+| the widest group of a dispatch is the switch's `default:` (`958b09b`)                       | 1.04        | 1.04        |
+
+Four of them are worth a sentence each.
+
+*The write barrier.* A value goes from callee to caller through a register of its type,
+and every valued rule writes one. As a field of `EagerValues`, an object on the heap, each
+write went through the collector's write barrier; as a field of the reader, a `ref struct`
+on the stack, it is a store. That was a fifth of the long condition, and the largest single
+step since the eager carrier itself. The seam grew `ReaderRegisters` for it, and the tape,
+which hands an index through the ways, declares none.
+
+*The method around a call.* `p: Predicate => @(p)` is one call and a construction that is
+the identity, and the reader wrote a method around it — a position taken, the call, a
+capture into a local nothing read, the position returned — and the yardstick's hot path
+went through three of them a clause. It is the call now. What stays a method: a back edge,
+whose stack guard is a statement; an alternative of a rule read at a strength, which
+refuses below its own; and a capture a turn pushes, since the push is the turn's work.
+
+*The overlap.* A choice was switched on its first token only where the first sets of its
+alternatives partitioned, and `NOT? BETWEEN | NOT? IN | NOT? LIKE` was the one shape left
+to the chain — the tail of every predicate tried alternative by alternative, a call and a
+refusal each. The characters are cut wherever any set begins or ends now; between two cuts
+every character begins the same alternatives, and those, in written order, are its group.
+`NOT` is a group of the three, `BETWEEN` a group of one. On `x = 1 AND y IS NOT NULL` that
+was 1.51 to 1.31; the long inputs, whose predicates all take the first alternative, did not
+move.
+
+*The jump table.* Having won the dispatch, the reader paid for it. A choice named every
+character of every group as a case label, and the SQL rules on the hot path have eighty of
+them and more — the predicate, the row value constructor's element, the value expression
+primary — so the compiler built a jump table spanning the whole span, an indirect branch
+the processor guesses at over a table wide enough to be a cache line of its own. Almost all
+of those labels belong to one group, and that group is one alternative that begins with a
+call. It needs no labels: the call tests the character itself, and a character that reaches
+the `default:` begins no alternative, so it begins neither that one nor the rule the call
+names, which therefore refuses it. Two labels are left in the element's switch, `NULL` and
+`DEFAULT`, and the compiler compares them in a line. That is 1.21 to 1.04 on the long
+condition and 1.28 to 1.20 on the short one — the largest step since the write barrier, and
+none of it in the parser's shape, all of it in what the shape compiles to.
+
+The message is what the widening could have cost. A character in no group used to be
+refused by the choice, in the choice's own words; now the call refuses it in the call's,
+which say less. So the choice records what it wanted at the position the call was made
+from: at the same position that merges with the call's refusal, and where the call read on
+and failed further along it is dropped, the deeper refusal being the better one. The
+argument is the call's in every part, so the widening is only taken where the group's
+alternative is read by a call *before anything else is read at all* — a look ahead of it
+would leave the argument short.
+
+What was tried in the copy and did not pay, so that nobody tries it again: writing an
+optional token in place rather than as a turn of a loop (nothing); writing the turn of a
+fold in place rather than as a method (a tenth on the sum in the copy, but the marking and
+unwinding of a stack the fold never pushed on was the part that paid, and that was ported
+alone); dropping the value expression primary's eight dead locals (nothing measurable,
+ported for the code it removes). A precedence-climbing rewrite of the ladder under the
+generator reads slower than the ladder (1.62 against 1.40 at the time) because its bases —
+`NOT`, a predicate, a parenthesis — cannot be dispatched while a predicate and a
+parenthesis both begin with `(`; the ladder stays.
+
+**The ladder is not the gap.** The profile said the time was in the rules that dispatch —
+the predicate, the row value constructor and its element, the value expression primary,
+the predicate's tail, 46% of the parse between them — and those are the ladder's levels:
+nine calls an operand where the hand-written parser makes six, its `Value` folding two
+levels into one climb and its `Primary` reading a name where the grammar has a column
+reference over a qualified name over an identifier. So the copy was edited to have the
+hand-written parser's levels and no others: `SearchCondition` and `BooleanTerm` merged into
+one climb over `OR` and `AND`, `ValueExpression` and `Term` into one over `+ -` and `* /`,
+the column reference read as a name where it is called. Agreement held over 66 shapes,
+eighteen of them written for this — `a OR b AND c OR d`, `a - b + c > 0`, `a * b / c * d > 0`
+— and the timing did not move: 1.50 against 1.48 on the long condition and 0.60 against
+0.60 on the sum, with the climb *worse* on the short input (139 to 154 ns) and on the
+nested one (247 to 257 ns).
+
+The reason is that the ladder was never what it looks like. `A = A op B | B` is lowered to
+a loop over `B`, so a level costs one call for the whole expression, not one call for every
+operand; the levels are already collapsed, and collapsing them again in the grammar only
+adds the strength test the climb needs. What those rules spend is not the calling. It is
+the dispatch inside them — which is what the widening above went after, and it took the
+long condition from 1.21 to 1.04 with the levels left exactly where they are.
+
+Two smaller things. The per-parse fixed cost — three thread-static pools rented and
+returned, four `Array.Clear` calls on a store that is usually empty — is about nine
+nanoseconds, a sixth of the short input's gap; one pool for the three would take most of
+it. And the harness matters more than it should: BenchmarkDotNet, one input per process,
+puts the same parsers at 1.46 on the condition, 1.37 on the sum and 1.60 on the short
+input, because the hand-written parser is faster in isolation (3.1 against 4.4
+microseconds) while the eager one barely moves (4.5 against 5.3). The round-robin warms
+every parser on every input in one process, and the suspicion is tiered PGO shaping the
+hand-written parser's two large methods to the input it is measured on; not settled.
+Every ratio in this document is the round-robin's unless it says otherwise.
+
+**The immediate carrier carries marks.** §7.8 was the first of the three shapes it
+refused, and it turns out to be the shape the tape works hardest for and this one gets
+nearly free. The tape writes a mark down as a pair of records on the log and the walk at
+the end replays them into a stack, so that a factory can be handed what stood over it;
+here the value is built while the mark stands, so the stack *is* the answer — an array in
+the rented store and how deep it stands in a field of the reader. A reading abandoned
+after pushing one puts the depth back where the tape puts back its log, which the reader
+already does at every place a reading can be abandoned, so backtracking cost nothing to
+say. What is left refused is recovery and extents.
+
+Two things the shape found. The depth is read from the declaration of a `state` and not
+from `UsesMarks`, which counts the sites written so far and therefore answers differently
+before and after the mark it is about to write — a walk that runs after everything is
+written may ask it, and a reader that builds as it reads may not. And a stack of a value
+type that is itself an array was allocated `new E[][8]`, which is not C#; the size goes in
+the first rank whatever the element is, and a rule whose value is a sequence gathered
+across turns is exactly that type.
+
+**What the largest grammar said about it, and what it cost to answer.**
+`ExpressionLanguage` compiled on the immediate carrier at once and did not run on it:
+`Math.Max(x, 1)` threw, because `Name`'s construction calls `State.Named`, which throws
+for a name it does not know, and `Math` is a name the grammar reads with a different
+alternative. `s.Trim()` threw for the same reason one rule along — `Target` reads `s` and
+a member `Trim` on the way to finding out it is a call, and `Expression.PropertyOrField`
+throws for a method. On the tape the abandoned readings' constructions never run; here
+they run and throw.
+
+That is the carrier's one term — a factory is called once per derivation *tried* — meeting
+two factories that are not pure, and the fault is the grammar's rather than the carrier's.
+Both are now questions for a `when`, which refuses, rather than for a `=>`, which cannot:
+`context.Knows(name, parserSpan)` beside `Named`, and `ExpressionLanguage.Has(n, member)`
+beside `Member`, each asking exactly what the construction beside it is about to do. Two
+things follow that are worth having on the tape too. `TryParse` no longer throws where a
+name is undeclared, which §6.1 said it should not; and the refusal is a parse decision, so
+`Parse` gets the message from the state — the furthest name refused — rather than from an
+exception thrown out of the middle of a walk. `Postfix` needed nothing: its call form is
+written before its member form, so the throwing one is never reached.
+
+`ExpressionLanguage` now carries `[Gram(Carrier = GramCarrier.Immediate, Suffix =
+"Immediate")]` beside its own, and `ExpressionCarrierTests` holds the two to one language
+over twenty-six inputs. Which is what a second attribute is for, and it found its own
+defect on the way: an attribute that says nothing takes the first's grammar, but it was
+taking only the grammar — not `Lexical`, so the second reading was compiled over
+characters rather than over tokens, and a text member came out cut one short. Everything a
+second attribute does not say it now takes from the first; what it does say is the
+difference, which is the whole of what writing a second one means.
+
+**The ladder, written as strengths.** C#'s ten left-associative levels are one rule with
+`<< n` beside each alternative now (§4.3.1) rather than ten rules stacked on one another.
+The language and the tree are the same — a hundred and thirty-four shapes say so — and
+what a parenthesis costs went from 163 nanoseconds to 131 on the tape and from 94 to 73
+read immediately, against the hand-written parser's 27. Every ratio moved with it: the
+short inputs by five to eight percent, `(((x)))` from 1.70 to 1.47.
+
+Which is real and is not the story. After the rewrite the two have the same shape —
+assignment, conditional, coalesce, the ladder, unary, postfix, primary, seven rules each —
+and the generated one is still 2.7 times the hand-written one per descent. So what is left
+is not how many rules there are; it is what a rule costs. Reading the emitted code says
+where: **every rule on the descent is two methods.** A rule that may give back is written
+as a loop — take `ways.Cursor`, call the body, seal it or retry — around the body that
+does the reading, so seven rules are fourteen calls and seven pairs of `Cursor`/`Seal`.
+The hand-written parser has no ways at all, backtracking only where the language makes it
+and by remembering an integer.
+
+The emitter already knew whether anything under a part opens a way — `Machine.Opens`, and
+the `ways.Open(` the rendering is searched for — and marked every caller of such a rule as
+one too. Over kinds that is more than is needed, and §4 is why: a rule's answer stands
+there, so a rule that gives back does so inside itself. Its loop asks its body again until
+it answers or until the tape has nothing left to move on, and seals what it opened the
+moment it answers. By the time it has returned there is nothing under it left to retry, so
+a caller that opens no way of its own needs no way back into it. The fixed point stops at
+the rule that opens.
+
+The whole of the expression grammar was written twice over for one repetition at the
+bottom of it: `NamedType`, which reads a dotted name and hands a part of it back where the
+whole names no type, is the only rule in the language that opens a way, and every rule that
+can reach it — the ladder, the unary, the postfix, the primary, the statements, the lambda
+— carried a loop and a `Cursor`/`Seal` pair for it. One way-back is left. Measured both
+ways in one sitting: a parenthesis costs the immediate reading 72 nanoseconds before and 63
+after, `(((x)))` 1.52 of the hand-written parser before and 1.43 after, the deepest 1.81
+and 1.75. The SQL yardstick does not move, and says why itself: its reader opens no ways at
+all and had no wrappers to lose.
+
+**Where the tape's time is, measured by taking things away.** Two experiments, each one
+line of the emitter and both thrown away afterwards.
+
+The store's clearing — every value table emptied when a parse hands it back — costs
+**nothing measurable**: with the clears removed the yardstick does not move. Standard SQL has
+three value tables and a single-pass walk (no live marking: over kinds nothing is taken
+back, and `DirectStrays` already knows), so what looked like the obvious fixed cost was
+never one.
+
+The walk is **half of the tape**. With the root built as `default` — the reading and the log
+writes intact, the walk gone — the tape reads at 1.06 to 1.90 of the hand-written parser:
+
+| | tape | of it, the walk | tape reading only, against hand |
+| --- | --: | --: | --: |
+| the 64-clause condition | 10,248 ns | 5,138 ns | 1.44 |
+| the 64-term sum | 3,856 ns | 2,202 ns | 1.06 |
+| `x = 1 AND y IS NOT NULL` | 273 ns | 118 ns | 1.39 |
+| `a = 1` | 154 ns | 72 ns | 1.78 |
+
+So writing the log while reading is nearly free — on the sum the tape's *reader* is 1.06 of
+the hand-written parser, cheaper than the immediate carrier's 1.31, which is building as it
+goes. Everything the tape costs over the immediate carrier is the walk, and everything the
+walk costs is what it does per record: read the kind, take an unpredictable indirect branch
+through a switch of fifty arms, read the members back out of the log, call the factory, and
+store the result into a table on the heap — which is a write barrier a node, the very thing
+that was a fifth of the parse when the registers lived there (`d64cf29`).
+
+That is where the next work is, and it is not where any of it has been.
+
+**The third carrier carries its first shape.** `MixedCarrier` is behind the same seam the
+other two are, and what it emits for a rule is a `readonly struct` holding what the rule
+read — two integers where a member is a run of text, the captured rule's own shape where it
+is a record — and a `Build` that calls the construction over those fields. §7.3 is kept: a
+factory runs once per node of the accepted derivation, and what it runs over is fields of a
+known type rather than integers read back out of a log. A shape is a value held inside
+whatever captured it, so a leaf allocates nothing at all.
+
+```csharp
+private readonly struct Shape_Start
+{
+	private readonly Shape_Name _m0;
+	private readonly Shape_Digits _m1;
+	private readonly bool read;
+
+	internal Shape_Start(Shape_Name m0, Shape_Digits m1) { … }
+
+	internal bool IsNothing { get { return !this.read; } }
+
+	internal string Build(global::System.ReadOnlySpan<char> text)
+	{
+		return Construct_Start(this._m0.Build(text), this._m1.IsNothing ? default : this._m1.Build(text));
+	}
+}
+```
+
+A rule that builds several ways is one shape and a byte saying which, rather than a shape
+for each and a virtual call to build it: the fields are the union of the constructions', the
+maker per construction fills its own and leaves the rest at what stands for absent, and
+`Build` switches. Whether the union is too wide where a rule has thirty of them — `Primary`
+at 88 bytes — is the question the yardsticks will answer, and the shapes are the carrier's
+own types, so cutting those few per construction later is a change to one file.
+
+And a rule that can be reached from itself is a class, because a value cannot contain
+itself. Everything off every cycle stays a value held inside whatever captured it, which is
+where the leaves are and why they cost no allocation; a class says "not there" by being
+null, where a struct has to carry a flag to say it. Left recursion is not a cycle for this
+— §4.3 turned it into a loop before the reader saw it.
+
+That one cost the seam a question. The tape and the immediate carrier hand a value between
+rules through a register of its *type*, so `A = a: B => @(a)` leaves it exactly where a
+caller capturing an `A` reads and the alternative writes nothing of its own — a rule and a
+method saved at every level of a ladder. A carrier with a register per *rule* has two
+registers there and no such luck, so it says `ForwardsInPlace` is false and the alternative
+writes after all. Asked at the reader's four sites and not inside `DirectForwards`: the
+carrier is chosen from what the machine turned out to hold, and the analysis runs before it
+does — asking early answers about a machine that is not built yet, and the answer is cached.
+
+**And the fold, which is the shape the whole thing was for.** §4.3 turns left recursion
+into a base and a run of turns, and the turns reach the carrier as a chain — each one
+pointing at the one before. Building that chain is a frame per turn, which would put a
+depth limit where the tape has none: a thousand terms, a thousand frames. So the run is
+threaded forward through the turns as they are read — a turn is a class with a `Next`, the
+rule holds where the run begins and how long it is, and what the rule is worth is one loop:
+
+```csharp
+var value = this._base.Build(text);
+var step  = this._first;
+
+for (var turn = 0; turn < this._count; turn++)
+{
+	value = step!.Build(value, text);
+	step  = step.Next;
+}
+```
+
+No array grown per parse, and so nothing to grow into the large object heap, which is what
+went wrong for the array readings in the lab at ten thousand pairs. It is the one idea
+`Mix2` had that its name is for: once a turn is a reference, the run is free. A folding rule
+is three shapes — the base, one turn, and the rule, which is the base and the run and its
+length — and that is `Only`, `Pair` and `Sum` in the lab, written by a generator this time.
+
+It cost the seam two more questions and neither is the tape's: `FoldState`, what a folding
+rule carries between its turns and hands its parts by reference, and `Folded`, what the rule
+is worth once the turns stop. The tape and the immediate carrier answer with the accumulator
+they already had and with nothing.
+
+**And what a `*` gathers**, which is the other kind of run and does not thread: the
+elements of a repetition cannot point at one another the way a fold's turns can, having no
+order among themselves to hang the links on. So they go on a stack as they are read — one
+per kind of element, in a store the parse rents — and are taken as one array where the
+record is written, which is what the immediate carrier does and what a hand-written parser
+does, a list costing one allocation. A run of text keeps where its pieces stand and not what
+they say: two positions in one `long`, cut and joined when the value is built, so a reading
+given back has cut nothing.
+
+**A guard costs it nothing**, which is the one place a typed shape is plainly better than a
+log. A `when` reading a capture reads it before the derivation is accepted, and the tape has
+to walk its log for that one record to answer; here the shape is already there and what it
+is worth is one call away — `Materialize` is nothing at all and `ValueOf` is `Build(text)`.
+Refused only where the guard reads a *gathered* member: what is on the stacks is what has
+been pushed, and taking it is what writing the record does.
+
+**And a reading over tokens**, which is what both yardsticks are: a shape is handed the
+tokens' own text and where each of them stood instead of the text, and `Machine.Cut` writes
+the same expression inside a shape as it writes inside the reader. That was the last thing
+between the carrier and the SQL grammar — and the SQL grammar then said something the
+character-level shapes never had to.
+
+**What a shape is keyed by, asked properly.** `ValueExpressionPrimary` writes
+`t: UnsignedLiteral => @(t)` beside `t: GeneralValueSpecification => @(t)`: one member,
+captured in two places, and the two places read two different rules. A shape is per rule, so
+there is no one type for that field to be — and the tape and the immediate carrier never
+meet the question, because they hand values about by value type and both of those build a
+`SqlNode`. It showed itself as a wrong tree rather than a wrong build: `a = 1` came back as
+`(Comparison Equal (name a) (name a))`, the register for the rule the model named holding
+what the last reading of *that* rule left there.
+
+The answer is a field per place rather than per member, and the reason it looked impossible
+is that the *results* do not say which rule a capture reads — they say which member it
+belongs to. The *body* says: `Machine.RuleAt` walks it for the capture with that slot and
+reads the call under it. So a member captured in two places that read two rules is two
+fields, one typed by each, and what it is worth is the first of them that was read. The
+reader asks by place too, which the carrier says it wants (`ByPlace`) and the other two
+decline: they hand values about by value type, both places build the type the member is
+declared as, and the register is the same register either way.
+
+That leaves the same question about a member *gathered* from several rules, where the
+elements would be two types and the run one array. `CaseExpression` in standard SQL is one —
+`whens` from `SearchedWhen` and from `SimpleWhen` — and it is what the carrier refuses SQL
+for today. A run of two types wants either two runs and a merge, or the interface and the
+virtual call.
+
+**A carrier not used now says so.** `GRAM5007`, information rather than a warning: the
+parser that comes out is correct and is the one the tape would have written, but a carrier
+chosen and silently not used is a measurement about to be misread — which is exactly what
+happened here, the SQL yardstick reading 2.6 for a "mixed" column that was the tape. Said
+once per reason, and said after the readers are written, because which carrier a machine
+took is settled by what it turned out to hold and nothing before that knows.
+
+A member *gathered* from several rules is a run per place, for the same reason and by the
+same means — and the places turn out never to interleave: `CASE WHEN` and `CASE x WHEN`
+gather their whens from two rules, and one reading of the rule gathers from one of them, its
+alternative having chosen. So there is a stack per place and a run per place, and which one a
+construction reads is known where it is written rather than at run time.
+
+**And then the number.** The carrier carries standard SQL now — it agrees with the tape on
+all forty-two shapes — and it is **slower than the tape**:
+
+| | tape/hand | immediate/hand | mixed/hand |
+| --- | --: | --: | --: |
+| `a = 1` | 3.28 | 1.53 | 4.81 |
+| `x = 1 AND y IS NOT NULL` | 2.63 | 1.33 | 3.71 |
+| the 64-clause condition | 2.57 | 1.19 | 3.03 |
+| the 64-term sum | 2.15 | 1.16 | 2.19 |
+
+Which is the opposite of what the lab measured, and the lab was not wrong: it measured a
+grammar of four rules where every shape was a struct off every cycle, held by value inside
+its parent, and the run threaded through its own turns. Standard SQL is twenty-two classes
+and six structs — `Shapes` said so before a line was written — so a shape per node is an
+allocation per node where the tape writes integers into one array it already owns, and the
+six structs are copies of up to ninety-six bytes through the reader's locals and into their
+parents' fields. `Mix2`'s 0.31 was the shape of `Deferred.gram`, not the shape of a
+language.
+
+That is what the second stage exists to find out, and finding it out is worth more than the
+carrier: **deferral done as typed shapes is not cheaper than deferral done as a log, on a
+grammar whose rules are mostly on cycles.** What would be worth trying next is the other end
+of the report — `PooledLearns`, which the lab measured at 0.21 and which applies where
+nothing is on a cycle, twenty-one grammars of thirty-four — and, before that, asking the
+report what fraction of a real grammar's *nodes* are on cycles rather than what fraction of
+its rules are.
+
+It carries six shapes — a rule that builds one way, a rule that builds several, a rule that
+can reach itself, a fold, a member gathered across turns, and a guard over a capture — over
+characters and over tokens both, and a member captured or gathered in several places that
+read several rules. It refuses a mark, an extent, a recovery, a rule read at a strength, and
+a terminal built again from its text. What it refuses the tape carries, and `CarrierTests`
+holds it to the tape's answers on what it carries and to being refused on what it does not,
+so the test does not have to be edited as the list shortens. A second test names the shape
+it does carry, so the first cannot pass by carrying nothing.
+
+Two things the seam learned on the way. `BuildRoot` is told the rule and not only the type,
+because a shape is per rule and two rules may build one type. And the store a parse rents is
+the carrier's to render — the tape's tables, the immediate carrier's stacks, nothing at all
+for this one — where the emitter used to switch on which of two carriers it was.
+
+**Asking the report what a third carrier would have to emit.** The reader having come to
+within a fifth to a half of the hand-written parsers, what is left is the deferral, and the
+next carrier is the second stage's own next step. `Shapes` was written for exactly this
+question and answers most of it already — which rules are on a cycle and must be
+references, which are off every cycle and can be values, what the fields come to. One thing
+it did not say, and the emitter cannot start without: how many `=>` a rule has, which is how
+many things its shape may turn out to be. It says it now.
+
+| | shapes | one construction | two to four | five and up | held by value |
+| --- | --: | --: | --: | --: | --: |
+| the expression language | 73 | 44 | 20 | 9 | 25 |
+| SQL | 28 | 8 | 16 | 4 | 3 |
+| RFC 3986 | 6 | 3 | 3 | 0 | 3 |
+
+Which settles the shape of the work, if not the shape of the types. A rule with one
+construction needs no field to say which it is, and off a cycle it is held by value inside
+whatever captured it — a leaf that costs no allocation at all. That is most of them. A rule
+with several is a choice, and a shape for it is either one type wide enough for all of them
+and a byte saying which, or a type per construction and a virtual call to build it. The
+first is what the lab measured as `Mix2` and is the simpler thing to emit; the second is
+what it measured as `Classes`, and half of the difference between the two numbers is that
+one allocates for leaves as well.
+
+And the fat shapes are three rules, not a class of them: `Primary` at 88 bytes over
+thirty-one constructions, `PredicateTail` at 96 over seven, `ValueFunction` at 80 over
+sixteen. Width is not alternatives — `Assignment` has thirteen constructions and 32 bytes,
+because they all capture the same two things. So the first carrier is one type per rule,
+measured on both yardsticks, and the three fat ones are cut per construction afterwards if
+the measurement says they matter. The shapes are the carrier's own types and do not cross
+the seam, so that is a change to one file rather than to the reader.
+
+**And an optional is not a loop.** A repetition of at most one turn was written as one
+all the same: a counter, a test of it at the top, an increment at the bottom and a jump
+backwards the reader never takes. `?` is in every grammar there is — eighteen of them in
+the expression language alone — and what a person writes there is an `if`. It is one now,
+and the emitted rule reads like one:
+
+```csharp
+if ((uint)p < (uint)text.Length)
+{
+	c = text[p];
+
+	if (c == 'A')
+	{
+		var q1 = Read_Coalesce_Part0(p, pos, ref r1);
+
+		if (q1 >= 0 && q1 != p)
+			p = q1;
+		else
+			r1 = default!;
+	}
+}
+```
+
+A parenthesis: 63 nanoseconds to 57. `(((x)))` 1.43 of the hand-written parser to 1.35,
+the deepest 1.75 to 1.61. SQL does not move — it has few optionals on its hot path — and
+the three steps of the day together took a descent of the expression grammar from 94
+nanoseconds to 57, against 28 by hand.
+
+**The expression language gets a yardstick of its own.** `HandExpression.cs` is what
+`HandSqlTokens.cs` is to SQL: a lexer over the whole input and a recursive descent over
+the tokens, calling the same factories the grammar's `=>` calls and handing the same
+`State` the same spans. What is compared is the reading and not the building — a second
+implementation of scopes and names would be a second thing to be wrong — and two shapes in
+it are a person's rather than a grammar's: the ten levels of C#'s ladder are one loop over
+a precedence, and the suffixes of a postfix chain are a loop rather than a left recursion.
+`--el [rounds] [iterations]` holds all three readings to one language over a hundred and
+twenty shapes and then times them round-robin. Early: the tape reads at 1.4 to 2.8 of the
+hand-written parser and the immediate carrier at 1.2 to 1.9, with the two purely
+arithmetic inputs moving between runs by more than the difference between them — a parse
+here allocates a tree and the collector lands where it lands, and the harness will need to
+say more about that before those two rows are worth quoting.
+
+Writing it found the third place the grammar rested on deferral, and the one that could
+not be answered where the other two were. `break` and `continue` name the loop they are
+written in; a loop knows how far it reaches only once its body has been read; so a reading
+that builds a jump where it stands asks about a loop nothing has recorded yet. A `when` at
+the end cannot answer that — the question is asked before it runs. So the extent is
+written down twice: `Opening` where the loop begins, reaching to the end of the text, and
+`Loops` where it ends, with the extent it turned out to have. The label is keyed by where
+the loop begins, which is the same both times, so a jump built under the open extent and
+one built under the closed one name the same label; and while the extent is open the only
+positions inside it are the ones being read, which are the loop's own body. Nothing
+changes for a reading that defers.
+
+The carrier is called `Immediate` from here on — `CarrierKind.Immediate`,
+`GramCarrier.Immediate`, `ImmediateCarrier`, `ImmediateSql`. Every entry above calls it
+`Eager`, which is what it was called when they were written; the word named the timing and
+not the thing, and "immediate" is the plain opposite of the deferral it does without.
+
+One thing the yardstick found about itself: `HandSqlTokens` does not read the datetime
+literals — `DATE '2020-01-01'` is refused by hand and read by the grammar. It is outside
+the forty-two shapes `Agree()` holds the two to, so no ratio quoted here rests on it, but
+the hand-written parser reads a smaller language there than the grammar does.
+
+## Built: a record is named by its number
+
+Half of what the tape costs is the walk at the end, and a good part of the walk was the
+shape of the tables it builds into. A record's value was kept at the log offset the record
+began at, so each table was as long as the *log*: on the sixty-four clause condition that
+is 2,684 entries a table, three tables, sixty-four kilobytes for the six hundred-odd
+records that actually hold something. Nothing of it fits in the first cache, and every
+store and every read of a member went somewhere else in it.
+
+A record carries a number now. `Ways` counts them as it writes them, `Last` is the number
+and not the place, and the walk hands each record the next number as it steps — so the
+tables are as long as there are records, four or five times shorter, and the walk fills
+them front to back. The way back saves and restores the count along with the log, which
+costs SQL nothing (it opens no ways at all) and the expression language two integers where
+it already saved one.
+
+The one thing still named by where it stands is an extent. Its value *is* its record —
+read straight out of the log by whoever captured it, never put in a table — so `EndAt`
+closes such a record with the place instead of the number, and the marking pass steps over
+an extent member without touching a liveness flag it has no number for.
+
+The long condition goes from 2.62 of the hand-written parser to 2.45, the sum from 2.18 to
+2.13, and one parenthesis of the expression language from 3.00 to 2.54.
+
+## Built: a construction is told its own slots
+
+`Before` is where an abandoned attempt is put back to, and that point stands in front of
+the whole choice — which is right for unwinding and wrong for asking what an alternative
+captured. Asked the second question, it answered with every slot the siblings in front of
+it had written, and the `=>` built them into a chain of tests over locals its own reading
+can never have filled: one test per sibling, quadratic in the alternatives. Eleven of them
+in the expression language's `Assignment` wrote sixty-six.
+
+An alternative's slots are now the ones captured under it, plus those of a head that
+left-factoring moved out in front of the choice it stands in. Where the answer got narrower
+the reader got simpler with it: an alternative that names only its own captures writes its
+record where it stands, so a shared head goes down by value and nothing comes back.
+
+No measured time either way — the JIT was already dropping the dead half of the chain.
+What it buys is smaller emitted code and a factory that is told the truth.
+
+## Measured wrong: an experiment that moved the other rows
+
+On the way there, `Assignment` was cut down to `= c: Conditional` to find out what its
+eleven alternatives cost, and a parenthesis appeared to get 28% cheaper. It did not. The
+expression yardstick measures round-robin, and cutting the rule made two of its inputs fail
+instead of parse — so every other row was timed against a different cache and a different
+predictor. The reading is worthless.
+
+The rule for this harness: an experiment that changes **what the corpus parses** cannot be
+compared row by row against a run where it parsed. Take the row out of the corpus, or
+measure something that keeps every row answering the same.
+
+## The plan: a solver, not a better emitter
+
+The residue against the hand-written parsers is not a difference in algorithm. Both read
+the same tokens with the same recursive descent and build the same tree. What differs is
+**when the design questions are answered**. For each of them — does this rule get a method
+of its own? where does its value live? is this choice a switch or a run of attempts? does
+this failure have to be written down? is this operand handed over or read again? — a
+person answers *per site*, knowing the grammar, which paths are hot, and what the caller
+already has in hand. The generator answers *once per machine*, with a rule that is correct
+everywhere and best nowhere.
+
+None of those answers is about correctness. Every alternative preserves the language and
+the tree. So the residue is the price of a uniform answer, and it is recoverable without
+changing the notation or the semantics.
+
+**The measurement that says so.** Recording a refusal — the furthest failure and what was
+expected there, which is how a parse that fails explains itself — costs nothing on SQL and
+between a fifth and a quarter of an expression-language parse:
+
+| | SQL tape | SQL immediate | EL `(((((((x)))))))` immediate | EL tape |
+| --- | --: | --: | --: | --: |
+| refusals recorded | 2.45 | 1.17 | 1.57 | 2.54 |
+| not recorded | 2.39 | 1.17 | 1.23 | 2.19 |
+
+The reason is the grammar, not the feature: SQL's choices are dispatched on a token and
+almost never refuse, the expression language's are ordered attempts and refuse constantly.
+One decision, two grammars, opposite answers — and the generator has the fact that tells
+them apart (`Dispatchable` already knows which choices became switches) and does not
+consult it.
+
+**The second measurement, larger.** `.work/shapes.txt`: `SqlStandard92` has **0 rules on
+ways** and `ExpressionLanguage` has **1** out of sixty. A rule not on a way cannot be
+re-read after its construction ran, which is exactly the precondition §7.3 asks for before
+a value may be built where it is read. The log exists to defer construction until the
+derivation is accepted; for SQL there is nothing to defer, and the difference between
+carrying it and not is 2.45 against 1.17. Across all thirty-four grammars in the
+repository, 168 rules of 562 are on ways — so for three rules in four the deferral is
+bought and not used.
+
+### The one real asymmetry
+
+A person knows the workload. They know a name is more common than a keyword, that a parse
+usually succeeds, that `a = 1 AND …` is the shape that arrives. The generator knows only
+the grammar. Everything else on the list is a decision the generator could make and does
+not; this one needs either a static proxy (first-set entropy, cycle membership, arm counts,
+whether a choice dispatches) or a sample of real input. That is the only place where
+closing the gap asks for something the compiler does not already hold.
+
+### The decision space
+
+Each row is a question the generator answers once and a person answers per site. "Worth"
+is what has been measured, not what is hoped.
+
+| question | today | what a person does | worth |
+| --- | --- | --- | --- |
+| defer the construction? | one carrier per machine, Tape by default | builds where it reads unless the reading can be abandoned | SQL 2.45 -> 1.17 |
+| write the refusal down? | always | never; a failed parse explains itself by other means | EL 1.57 -> 1.23, SQL 0 |
+| a method per rule? | always, plus Parts | inlines a rule that is one call or one token test | unmeasured |
+| where does a value live? | one answer per carrier | register, caller's local, log, or a field of the parent | Mixed says it is per rule |
+| what shape is the choice? | switch where the first sets are disjoint, else attempts | also: peek two tokens, commit after one | mostly done |
+| what does a parse cost before it starts? | rent the tape and the tables, always | nothing at all for a small input | `a = 1` at 3.1 of hand |
+| how is a repetition read? | counted loop; `?` is an `if` | unrolls the first turn, or writes do/while | `?` done |
+| when is captured text cut? | at once, into a string | when the factory needs it | unmeasured |
+| the ladder | a rule per level, `<< n` where the author wrote it | one loop over a precedence | measured, no: §4.3 already folds |
+
+### The solver
+
+Not a heuristic pass over the emitter. Four parts, and the separation between the first two
+is what lets the set of choices stay open.
+
+**Facts.** One record per rule and per decision point, computed from the graph:
+on a cycle; on a way; reachable only from committed positions; number of constructions;
+number of arms and whether they dispatch; first-set overlap; value is a struct or a class;
+size in bytes; how many places capture it; whether a guard reads it; recursion bound.
+`Shapes.Of` is a third of this already and is the place to grow it.
+
+**Legality.** A strategy declares a predicate over the facts, and it is a *proof*, not a
+preference: `Immediate` is legal for a rule iff no way back can re-enter it after its
+construction ran. The solver may only choose among legal strategies, so a wrong preference
+costs time and never correctness. This is what makes an unbounded set of strategies safe to
+add to: a new one carries its own precondition and cannot break the ones already there.
+
+**Preference.** A cost model — a handful of micro-costs calibrated once (a call, an
+indirect jump through a jump table, an array load, a write barrier, an allocation, a string
+cut) against a static frequency estimate. Its job is only to *rank candidates*. Nothing it
+says is ever quoted as a result: this session and the `DeferredShape` lab both showed a
+model number missing the real one by three times in size and once in sign.
+
+**Search and proof.** The decisions interact — the carrier decides where values live, which
+decides whether a rule can be inlined — so it is not one greedy pass. Order the questions by
+legality dependency, run greedy within that order, and do a small local search over the
+pairs known to interact. Bound it by compile time. Then verify: **the tape is the reference
+implementation**, and every configuration must build the identical tree over the corpus.
+`CarrierTests` and the two `Agree()` harnesses do this for three carriers today; the
+property to generalize is "N randomly chosen legal configurations agree with the reference".
+
+**And it must be readable.** A `.decisions` report next to the generated file, saying for
+each rule what was chosen and which fact decided it, plus a pragma in the grammar to pin any
+of it. A solver whose reasoning cannot be read is a solver that cannot be argued with.
+
+### Stages, each with a gate
+
+0. **Facts and the report.** No change in behaviour. Gate: for `SqlStandard92` the report
+   says 28 valued rules, 0 on ways, therefore 28 could build where they read.
+1. **The two measured levers, decided automatically, pinnable.** The carrier chosen per
+   machine from the facts; refusal recording off where the choices dispatch, with a second
+   reading for the message when a parse fails. Gate: SQL tape to ~1.2, EL parenthesis to
+   ~1.25, every test and both agreements green.
+2. **The carrier per rule.** The one expression-language rule on a way keeps the log; the
+   other fifty-nine build where they read. Gate: EL immediate under 1.2 everywhere, the
+   tree unchanged.
+3. **The cost model, calibrated, and the greedy solver** over the rest of the table:
+   inlining, value placement, per-parse setup, when text is cut. Gate: no row of either
+   yardstick worse than before, and the sum better.
+4. **Facts from a corpus.** `[Gram(Corpus = …)]`: the generator reads sample inputs at
+   compile time, runs the reference parser over them counting which alternative was taken,
+   how often each rule refused, how deep it went — and the static proxies become
+   measurements. This is the part that answers the one real asymmetry, and the part most
+   likely to be wrong; it comes last for that reason.
+
+### What this does not promise
+
+Parity on every row. A grammar whose rules genuinely sit on ways has to defer, and deferral
+costs about a third over building eagerly — that is measured and it is the language's price,
+not the generator's. What the plan claims is that the *three rules in four* that pay it for
+nothing should stop paying it, and that every other row of the table is a decision we are
+declining to make rather than one we cannot.
+
+## Built: which readings stand, and what the yardstick has been measuring
+
+Stage 0 of the plan above is the fact the carrier is chosen by, and it is now computed:
+`Grammar/Model/Replay.cs` answers, for every rule of a graph, whether a reading of it is
+always on the derivation that accepted. Three grades — it stands; it is *lost* only where
+the parse as a whole fails and hands nothing back; it is *replaced*, read and then thrown
+away while the parse goes on to succeed by another route — because only the third is a
+construction running on a derivation that did not stand.
+
+The report is in `.work/shapes.txt` beside the shapes:
+
+```
+SqlStandard92       28 valued; 0 on ways;  1/1/28  build where read (stands/keeps/valued)
+ExpressionLanguage  60 valued; 1 on ways;  6/7/60
+34 grammars         297 valued;            93 of the valued build where read
+```
+
+One rule in twenty-eight for SQL. And the reasons say it is not spread thin: **five sites
+in the grammar make the whole tree speculative**, and everything else is `Under` them.
+
+- `Predicate = row: RowValueConstructor & tail: PredicateTail`, standing as an alternative
+  of `BooleanPrimary` beside `'(' & SearchCondition & ')'`. The tail can refuse, and then
+  the other alternative reads the same text again.
+- `CASE`, twice: `"CASE" & operand: ValueExpression & whens: SimpleWhen+` before
+  `"CASE" & whens: SearchedWhen+`, and `SimpleWhen = "WHEN" & test: ValueExpression &
+  "THEN" & …` inside the `+`, where a turn that fails ends the repetition and the parse
+  goes on.
+- `RowValueConstructor`'s parenthesized row, and `Result` under the `CASE`s.
+
+### What this says about the yardstick
+
+`HandSqlTokens.BooleanPrimary` is this:
+
+```csharp
+var at = Predicate(i, out node);
+
+if (at >= 0)
+    return at;
+
+if (Kind(i) != Open)
+    return -1;
+
+at = SearchCondition(i + 1, out node);
+```
+
+`Predicate` calls `RowValueConstructor`, which builds `SqlNode`s, and then may refuse — and
+the nodes are dropped on the floor. **The hand-written parser does not keep §7.3 at all.**
+It builds where it reads and throws away what did not stand, which is exactly what the
+immediate carrier does and exactly what the tape exists not to do.
+
+So `tape / hand` has never been a ratio between two parsers doing the same work. It is the
+price of a promise only one of them makes: that a `=>` runs once, on the derivation that
+accepted, so that an author may write one that is not safe to run speculatively. The ratio
+that compares like with like is `immediate / hand`, and that one is **1.02 to 1.21** on the
+large SQL inputs and 1.06 to 1.27 on the expression language's.
+
+That does not make the tape's cost acceptable — it makes it a *contract* to be chosen rather
+than a defect to be optimized away. Three ways out, and the report is what tells them apart:
+
+1. **Where a rule stands, build where it is read.** Free, sound, no declaration. Ninety-three
+   valued rules across the repository qualify today; one of SQL's twenty-eight.
+2. **Where a rule is only ever lost, decide by what a construction does.** A value built on a
+   parse that then fails is handed to nobody; only an effect beyond the value can tell. That
+   is a narrower promise than §7.3 and a much cheaper one.
+3. **Where a rule is replaced, change the grammar or factor it automatically.** SQL's five
+   sites are the classic ambiguities — a predicate against a parenthesized condition, `CASE x
+   WHEN` against `CASE WHEN` — and each is a left-factoring the compiler could do. Factored,
+   the whole tree becomes rule 1, and the strong promise costs nothing.
+
+The third is where the work is, and it is the same auto-factoring that is already on the
+list. What has changed is that there is now a report saying exactly which five sites to
+factor and what each of them is holding hostage.
+
+## Built: left-factoring shares a prefix, not a head
+
+The pass compared one node. Two alternatives of a lexical grammar begin with a word
+boundary, a keyword, a lookahead for the end of that word, and the trivia between tokens —
+four nodes before anything tells them apart — and `SameShape` knew none of `Behind`,
+`Lookahead` or `Element`, so it did not find even the first. `CASE x WHEN` and `CASE WHEN`
+in standard SQL each read the keyword for themselves, and the one tried first unwound the
+log for the one tried second.
+
+A run is now the longest common prefix over the alternatives that share it, and the emitted
+reader reads the keyword once and switches on the token after it:
+
+```csharp
+case '4':                     // CASE, read once
+    p += 1;
+    c = text[p];
+    switch (c)
+    {
+        case '7':             // WHEN — the searched form
+```
+
+Three things bound it, and each is a bug that was hit on the way.
+
+**The prefix has to read something.** A lookbehind shared by every alternative of a rule is
+a run of them all with a prefix of one node that consumes nothing: folding it moves every
+alternative a level down and saves not one comparison. Rejected, so the pass looks past it
+and finds the pair that really does share a keyword.
+
+**Past the first node it may not be a capture.** One head survives a fold and the rest are
+dropped; the name a capture binds is what `Renamable` answers for, and it answers for one.
+
+**Past a prefix of one, every alternative keeps a tail.** An alternative folded away to
+nothing is an empty alternative in the residue, which matches everywhere — and a repetition
+above it becomes a loop that reads nothing. That one cost an hour: the test host spun at a
+hundred percent with no failure and no output, and what named it was a sampled trace whose
+only non-waiting frame was `dynamicClass.lambda_method` — a compiled emitted parser, looping.
+A prefix of one keeps the old shape, empty tails and all, which is what `Committed` exists to
+answer for; the cap applies only above it.
+
+`Replay` learns the matching fact: a choice whose alternatives are told apart by their first
+token does not replace a failed reading with a sibling's, so a reading put back there is lost
+rather than replayed.
+
+**What it did not do.** Neither yardstick moves: their inputs reach none of the newly folded
+rules. And SQL still stands at one valued rule of twenty-eight, because the three sites that
+hold the rest are not shared prefixes at all — `WHEN … THEN` refusing in the middle of a `+`,
+`RowValueConstructor` before a `PredicateTail` that may not be there, and the parenthesized
+row. Those are ordered choice doing what ordered choice is for, and factoring has nothing to
+say about them.
+
+## Built: the list of what else was expected is kept, not made again
+
+Recording a refusal costs nothing on SQL and between a fifth and a quarter of an
+expression-language parse. The measurement that says so is `Refuse_DotGram` made to return
+at once: EL's deepest parenthesis went from 1.59 of the hand-written parser to 1.23 on the
+immediate carrier, and SQL did not move at all. The reason is the grammar and not the
+feature — SQL's choices are dispatched on a token and almost never refuse, the expression
+language's are ordered attempts and refuse constantly.
+
+Half of it was one allocation. `Expected` is replaced when the furthest position advances
+and added to when a terminal ties with it, and the additions go in a `List<string[]>` that
+was **dropped and made again** on every advance. A parse that ties once tends to tie again —
+`Assignment` refuses at the same token from two alternatives before `Conditional` is even
+reached — so that is a list per operand.
+
+The list is emptied now instead of dropped. Nothing else changes: the same arrays go in it,
+in the same order, and every message reads the same. EL's deepest parenthesis 1.59 to 1.42
+immediately and 2.59 to 2.35 on the tape; `(((((x)))))` 1.51 to 1.43; SQL unmoved.
+
+**What is left of it.** The other half is the recording itself — the compare against the
+furthest position and the two stores — and that cannot be made cheaper, only skipped. A
+parse that succeeds never reads any of it, so the shape that costs nothing is a fast reading
+that records nothing and a second reading, with recording on, run only when the first fails.
+The obstacle is that a second reading is not always free: a grammar with §7.7 context or
+§7.8 state handed in from outside would run its guards twice, and the expression language's
+host reads its `State` back after a refusal. So it is a decision with a precondition — no
+context, no state, no recovery, not streamed — which is another row for the solver's table
+rather than a thing to switch on for everyone.
+
+## Measured: the reader, taken apart — and the operator strings nobody asked for
+
+The totals had been flattering the reader, and `--lexers` said so: the generated lexer is
+**faster** than the hand-written one — 1,125 ns against 1,625 on the sixty-four clause
+condition, 563 against 889 on the sum, 0.63 to 0.78 of it on everything large. Take the
+lexer off both sides and the generated reader stands at 1.3 to 1.7 of the hand-written one,
+not the 1.16 the whole-parser ratio shows. That mode already existed and this session wrote
+it a second time before noticing; the numbers below are its.
+
+So the reader was taken apart the way the tape was. Emitting `string.Empty` for every cut of
+text took the immediate carrier from 4,555 ns to 3,606 on the long condition and from 2,053
+to 1,436 on the sum — a fifth to a third of the parse spent cutting strings. But the two
+cutters are the same code, `source.Substring(began, ended - began)` on one side and
+`_text.Substring(...)` on the other, so the question was not what a cut costs but how many
+there are.
+
+`--bytes`, new here and worth keeping: what a parse allocates, per method, beside what it
+costs. It named the difference exactly.
+
+```
+a0 = 1 AND a1 = 1 AND …    generated 16,856 b    by hand 15,320 b    +1,536 b
+a0 + a1 + a2 + …            generated  7,784 b    by hand  6,248 b    +1,536 b
+```
+
+1,536 is sixty-four times twenty-four, and twenty-four bytes is a string of one character.
+Sixty-four operators, sixty-four strings. The grammar writes `op: CompOp`, `op: ('*' | '/')`,
+`sign: ['+' | '-']?` — every operator captured as the text it stands on, for a factory that
+turns it straight into an enum — and the hand-written parser reads the token's kind and takes
+the enum without ever making the string.
+
+**The fix belongs to the generator and not to the grammar.** A cut of one character is an
+operator, a bracket, or a name of one letter, and a grammar makes the same handful over and
+over. `Text_DotGram` keeps them:
+
+```csharp
+if (ended - began == 1 && source[began] < 128)
+{
+    var one = source[began];
+
+    return Letters_DotGram[one] ??= source.Substring(began, 1);
+}
+```
+
+Filled where it is missed; two threads that miss the same character write the same string, so
+the race is between two answers that are equal.
+
+| | before | after | |
+| --- | --: | --: | --- |
+| `a = 1` | 71.9 ns | 60.1 | 1.57 to 1.31 of hand |
+| `(a + b) * c > d` | 153.2 | 124.3 | 1.52 to 1.23 |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 290.9 | 231.3 | 1.63 to 1.31 |
+| sixty-four clauses | 4,555 | 4,152 | 1.16 to 1.08 |
+| sixty-four clauses, on the tape | 10,790 | 9,073 | |
+
+And the allocation turned over: the generated parser now allocates **less** than the
+hand-written one on every input — 13,784 bytes against 15,320 on the long condition —
+because the hand-written parser still cuts a fresh string for every one-letter name.
+
+Only the reading over kinds has it. Over characters a cut is `text.Slice(from, length)
+.ToString()` written inline at each site, with no helper to put the table in; that is the
+same win waiting for the same treatment.
+
+## Measured: the same table over characters buys nothing here
+
+The token path keeps its one-character strings, so the character path was given the same
+treatment — a `Cut_DotGram` helper with the same table behind it, in place of the
+`text.Slice(from, length).ToString()` written at each site.
+
+`Rfc3986` is the repository's only character-mode parser that ships, and it says no:
+
+```
+http://a.b/c?d=e#f                       368 b -> 344 b
+https://user:pw@example.com:8080/…       576 b -> 576 b
+/a/b/c                                   272 b -> 272 b
+```
+
+One string on one input of five, and every time within noise. The reason is the grammar
+rather than the change: `Rfc3986` captures a scheme, a host, a path — whole runs — and
+almost never a single character. The token grammars are the opposite because an operator
+*is* a token, and that is where the win was.
+
+Reverted. Kept here so the next person does not spend the afternoon on it: the character
+path has the same hole and no grammar in this repository falls into it. A grammar that
+captures single characters over characters would, and if one ever ships the change is four
+lines and this is where they are.
+
+## Measured: the stack guard is a tenth of a deep parenthesis, and the yardstick has none
+
+`EmitCall` writes `RuntimeHelpers.EnsureSufficientExecutionStack()` at every back edge — 79
+places in the expression language, 33 in standard SQL. `HandExpression` and `HandSqlTokens`
+write it nowhere.
+
+Taken out, the deep parentheses get about a tenth cheaper and nothing else moves:
+
+| | with the guard | without |
+| --- | --: | --: |
+| `(((((((x)))))))` | 668 ns, 1.32 of hand | 600 ns, 1.20 |
+| `(((((x)))))` | 545, 1.25 | 483, 1.15 |
+| everything else | — | inside the noise |
+
+So it stays, and it goes on the list beside §7.3: another thing the generated parser
+promises and the hand-written one does not. A grammar that recurses on input the author did
+not write is a grammar that can be handed a thousand brackets, and `--depth` is there
+because it was.
+
+If it ever has to be cheaper, the shape is not to drop it but to probe less often — the
+runtime reserves a margin far larger than one frame, so a check every sixteenth frame bounds
+the stack as well as a check at every one. What that needs and this does not have is a depth
+the emitted reader carries, which is a field and two more edits at every return.
+
+## Built: the stack is probed at the rule, once in sixty-four entries
+
+`EmitCall` wrote `EnsureSufficientExecutionStack()` at every back edge — 79 places in the
+expression language, 33 in standard SQL. It stands at the top of the rule now, and only for
+a rule a back edge re-enters: **10 places and 3**. And it is counted, `(probes++ & 63) == 0`,
+because the runtime reserves far more than sixty-four frames of a reader and a probe every
+sixty-fourth entry bounds the depth exactly as well as one at every entry.
+
+**It is neutral, and the earlier reading of what the guard costs was half wrong.** Taking the
+probe out altogether had moved the deep parentheses about a tenth; probing one time in
+sixty-four does not move them at all. The counter now ticks at the top of a rule, and a rule
+is entered more often than a back edge is taken — so what the probes stopped costing, the
+counting started. On SQL the tape went 9,073 to 8,869 ns on the long condition and the rest
+is inside the noise.
+
+Kept anyway, and not for the time. A probe at the top of a method is a place a reading can be
+**resumed** from, and a probe at a call site is not: the next step is for a stack that has run
+low to carry on rather than to throw away the parse, and that needs the check where the frame
+begins.
+
+A C# 8 struct auto-defaults nothing, so the counter is assigned in the reader's constructor —
+74 tests said so before they said anything else.
+
+## Built: a reading that runs the stack low goes on with it elsewhere
+
+`EnsureSufficientExecutionStack` threw, and the throw came out through the whole descent and
+out of `TryParse`: a thousand brackets cost the parse. It does not any more. The probe is
+`TryEnsureSufficientExecutionStack` now, and where it says no the reading is carried onto a
+stack of its own and goes on from the rule it was in:
+
+```csharp
+public int Read_Binary(int pos, int power)
+{
+    if ((probes++ & 63) == 0 && !RuntimeHelpers.TryEnsureSufficientExecutionStack())
+        return Deepen_DotGram(pos, 4, power);
+```
+
+`--depth 1000000` and `--depth 4000000` both threw before and both answer `ok` now. There is
+no ceiling: a reading deep enough to run the new stack low probes again and takes another,
+for as long as there is memory to take one with.
+
+**What crosses, and what cannot.** The reader is a `ref struct` and holds the input as a span,
+and a span belongs to the thread whose stack it was made on. So everything else crosses — the
+tape, the tables, the registers, the failure, the position — in a class shaped like the
+reader, and the reader is made again on the other side. The input crosses as a
+`ReadOnlyMemory<char>`, made once beside the span it is the same characters as and handed down
+from the publication; `.Span` on the far side is the same reading of the same array.
+
+Three things the shape decided.
+
+**A window has no whole input** (§6.3), so a streamed reading hands `default` and `Deepen`
+throws exactly as it always did — one test on a path that was already exceptional.
+
+**`Probes` is asked of the call graph, not of the back edges.** The publications are written
+before the recognizers and the back edges are found while writing them, so the two halves of
+the signature would have disagreed. A back edge means a cycle, so a cycle is what both halves
+agree about. And only a reading rendered as a reader takes the parameter at all — the
+automaton and the flat rendering have no reader to hand it to, which 26 tests said clearly.
+
+**Only what can change comes back.** What the reader is handed is readonly and did not move;
+its failure and its registers did.
+
+Neutral where it does not fire: SQL's immediate carrier 4,175 ns against 4,199 on the long
+condition, the sum 1,917 against 1,981.
+
+## Built: `Stacks`, where the author says how many is enough
+
+Carrying a reading onto a new stack has no natural end: a hundred thousand brackets take one
+stack, a million take a few more, and nothing stops. That is the right default — the parse
+answers rather than failing, and it stops when the machine does — but it is not the only
+thing an author may want, so `[Gram(Stacks = 4)]` says how many stacks a parse may take past
+the one it began on. Past that it fails with `InsufficientExecutionStackException`, which is
+what it did before it could carry on at all.
+
+Zero, the default, is no limit, and then nothing counts them: no field in the reader, none in
+the state that crosses, no test in `Deepen`. Written down in §6.5 and pinned by two tests —
+one that the probe and the carrying are emitted, one that a limit emits the count and the
+test that reads it.
+
+## Built: a token whose value is its own text is not read twice
+
+The worst row of the expression yardstick was `((((x + 1) + 1) + 1) + 1)` at 1.60 of the
+hand-written parser, where a bare parenthesis was 1.33 and bare arithmetic 1.30. Neither
+explains it, so the two were separated: one parenthesis and one operator more at a time.
+
+```
+(x + 1)              gen  575   hand 448     ((x + 1) + 1)  756 / 502    (((x + 1) + 1) + 1)  955 / 603
+```
+
++181, +166, +170 nanoseconds a level for the generated reader against +72, +74, +76 by hand.
+Linear on both sides, so nothing was compounding — a level simply cost 2.3 times more. And a
+bare parenthesis costs 45.6 against 28.1, so what the operator itself added was 124 against
+46.
+
+Then the operand was changed and nothing else:
+
+| | generated | by hand | |
+| --- | --: | --: | --: |
+| `(x + x)` | 494 ns | 497 | **0.99** |
+| `((x + x) + x)` | 630 | 630 | **1.00** |
+| `(((x + x) + x) + x)` | 763 | 757 | **1.01** |
+
+The parenthesis, the operator, the climb, the descent — all of it costs the generated reader
+exactly what it costs a person. **The whole gap was one number literal.**
+
+Here is what a number cost:
+
+```csharp
+last2 = Value_Lexical_Dec_DotGram(Text_DotGram(parserSource, parserStarts, parserLengths, pos, p - pos));
+
+static string Value_Lexical_Dec_DotGram(string token)
+{
+    var failure = new Failure();
+
+    return Reread_Lexical_Dec_DotGram(AsSpan(token), 0, ref failure, out string value) < 0 ? default! : value;
+}
+```
+
+A string cut from the source, then **the value automaton run over it** to recognize a number
+the lexer had already recognized, a boxed result and a cast — all to reach
+`Dec : @string = t: DecRun => @(t.Replace("_", ""))`.
+
+And that rule names one capture, and every character it reads is inside it. So `t` **is** the
+token, and there is nothing to read again:
+
+```csharp
+static string Value_Lexical_Dec_DotGram(string token) => Construct_Lexical_Dec(token);
+```
+
+`Verbatim` in `CSharpEmitter` is the condition, and it is narrow on purpose: one construction,
+one capture, every character the rule reads inside it, and nothing supplied — no `parserText`,
+no `parserSpan`, no context, no state. `Dec` and `Real` pass; `Hex = "0x"i & '_'* & t: HexRun`
+reads two characters outside its capture and keeps its second reading. Four of the expression
+language's thirty-eight rereads go.
+
+| | before | after |
+| --- | --: | --: |
+| `(x + 1)` | 1.38 | **1.05** |
+| `(((x + 1) + 1) + 1)` | 1.58 | **1.09** |
+| `((((x + 1) + 1) + 1) + 1)` | 1.60 | **1.13** |
+| `(x + y) * 3 - x / 5` | 1.25 | **0.98** |
+| `{ x += 1; x *= 2; return x; }` | 1.21 | **0.91** |
+| the `for` loop | 1.17 | **1.06** |
+
+SQL does not move: its lexical rules do not have the shape.
+
+The pair `(x + 1)` / `(x + x)` stays in the yardstick. It is the shortest proof there is that
+a parenthesis and an operator cost the generated reader what they cost a person, and it is
+what would catch this coming back.
+
+## Measured: what is left, and where it is
+
+Two measurements taken after the literal stopped being read twice, to say what the frontier
+is rather than guess at it.
+
+**SQL's short rows are not a fixed cost.** `a = 1` reads at 1.31 of the hand-written parser
+and the sixty-four clause condition at 1.10, which looks like an entry fee. It is not — one
+clause more at a time:
+
+| clauses | immediate | by hand | added | added |
+| --: | --: | --: | --: | --: |
+| 1 | 61.5 ns | 47.0 | — | — |
+| 2 | 136.0 | 93.4 | +74.5 | +46.4 |
+| 3 | 194.3 | 147.6 | +58.3 | +54.2 |
+| 4 | 258.5 | 198.2 | +64.2 | +50.6 |
+
+Sixty-five nanoseconds a clause against fifty, and both lines pass through about zero. So
+there is no entry fee to remove: the reading costs 1.30 a clause at this size. At sixty-four
+clauses the same reading costs 65.6 against 59.5 — 1.10 — because the *hand-written* parser
+slows down there, from fifty nanoseconds a clause to fifty-nine, and the generated one does
+not. Which is worth saying plainly: **the ratio improves at scale because the yardstick gets
+worse, not because the generated parser gets better.**
+
+**The tape is between two fifths and a half walk.** With the root built as `default` —
+everything read and every record written, nothing walked:
+
+| | tape | its reader alone | the walk |
+| --- | --: | --: | --: |
+| sixty-four clauses | 8,842 ns | 5,073 (1.37 of hand) | 3,770, 43% |
+| sixty-four terms | 3,339 | 1,766 (1.13) | 1,573, 47% |
+| `a = 1` | 137.8 | 84.5 (1.83) | 53, 39% |
+
+And of the walk, two thirds is the construction, which the hand-written parser pays too. So
+what is left to take out of the tape is about a seventh of it, and the rest is what §7.3
+costs. On the long condition the tape's reader alone (5,073) is dearer than the immediate
+carrier's *whole* parse (4,193): writing the log costs more than building the tree.
+
+Which settles what the frontier is. The immediate carrier reads at 0.91 to 1.13 on the rows
+that look like real input, and the remaining rows differ by ten or twenty nanoseconds with
+the noise close behind. The tape is a contract, not a defect, and the way out of it is
+choosing the carrier — which `[Gram(Carrier = …)]` is.
+
+## Measured: SQL's parentheses and operators are already at parity
+
+`(a + b) * c > d` was the highest row left, at 1.55 of the hand-written parser. Taken apart
+by the same method — one thing more at a time — it turns out not to be a row about anything.
+
+A parenthesis:
+
+| | immediate | by hand | added | added |
+| --- | --: | --: | --: | --: |
+| `a + b > 0` | 89.5 ns | 66.1 | — | — |
+| `(a + b) > 0` | 102.9 | 75.5 | +13.4 | +9.4 |
+| `((a + b)) > 0` | 113.9 | 84.8 | +11.0 | +9.3 |
+| `(((a + b))) > 0` | 123.1 | 93.9 | +9.2 | +9.1 |
+
+A term:
+
+| | immediate | by hand | added | added |
+| --- | --: | --: | --: | --: |
+| `a > 0` | 80.9 ns | 45.2 | — | — |
+| `a + b > 0` | 102.7 | 67.3 | +21.8 | +22.1 |
+| `a + b + c > 0` | 126.3 | 86.9 | +23.6 | +19.6 |
+| `a + b + c + d > 0` | 148.6 | 110.2 | +22.3 | +23.3 |
+
+Nine nanoseconds a parenthesis on both sides, twenty-two a term on both sides. And in the
+same run `(a + b) * c > d` read at 1.24 rather than 1.55 — the row swings by a quarter
+between runs, which is most of what made it look like the worst one.
+
+What is left is the floor: the smallest condition there is, `a > 0`, at 80.9 against 45.2.
+That is a descent of about twenty-five rules on each side and the difference is under two
+nanoseconds a rule — and at sixty-four clauses the same descent measures 65.6 against 59.5,
+which is six tenths of a nanosecond a rule. A fifty-nanosecond parse cannot be measured to
+better than the spread these rows already show, so this line stops here: **on SQL the reading
+of a parenthesis, of an operator and of a clause each cost what they cost a person, and the
+residue is below what the yardstick can resolve.**
+
+SQL also reads no token twice — it has no `Value_…_DotGram` at all, so the `Verbatim` win of
+the entry above is the expression language's alone.
+
+## Built: the compiler says what the tape is being kept for
+
+Everything measured says the same thing twice over: the immediate carrier reads at 0.91 to
+1.13 where the input looks real, and the tape is two fifths to a half a walk. The tape is
+not a defect — it is §7.3, a construction runs once and only on the derivation that stood —
+but a grammar whose constructions are a `new` and nothing else is buying a promise it does
+not need, and nothing told its author so.
+
+`GRAM5008` does, at `Info`, once per compilation, and it asks `Replay` rather than guessing.
+Where nothing is read speculatively it says so outright:
+
+> Nothing this grammar builds is ever read for a derivation that did not stand, so the tape
+> is holding constructions back for a promise nothing here needs (§7.3). `Carrier =
+> GramCarrier.Immediate` builds where it reads, keeps that promise, and puts down a walk
+> that is about two fifths of a parse.
+
+and where something is, it names the **roots** rather than the consequences:
+
+> 27 of the 28 rules this grammar builds are read for derivations that may not stand —
+> `RowValueConstructor`, `RowValueConstructorElement`, `ValueExpression` and 24 more — so
+> under `Carrier = GramCarrier.Immediate` their constructions would run for readings that
+> were then given up. A construction that only builds does not mind, and for one that does
+> not mind that carrier puts down a walk of about two fifths of a parse.
+
+Those three are exactly the sites `Replay` found months of measurement ago; the two dozen
+above them are `Under` and there is nothing to do about them but fix the three. Ordering the
+names by whether the reason is `Under` is the whole difference between a message that reads
+like advice and one that reads like a list.
+
+**What it cost.** Three per cent of compilation — ten compiles of standard SQL went from
+3,923 ms to 4,033 — and 215 tests, every one of them an `Assert.Empty` over the whole
+diagnostic list. `EmittedCode.Quiet` is what they say now: nothing above `Info`, because
+`Info` is what the compiler offers rather than what it objects to, and a test that asserts on
+the whole list breaks whenever the compiler learns to offer something new. Three tests kept
+`Assert.Single` and exclude `GRAM5008` by id — their subject is `GRAM5001`, which is `Info`
+itself, so severity was the wrong sieve there.
+
+## Fixed: a line a grammar writes twice gets its directive back
+
+`Expression.Loop` in the expression language had no `#line` over it, and neither did ten
+other constructions: `Arguments`, `Elements`, `Indices`, `If`, `IfValue`, `Conditional`,
+`While`, `DoWhile`, `For`, `NamedType` and one alternative of `Primary`. Every other
+construction in the file had one.
+
+Nothing about those rules explains it — `Conditional` and `Coalesce` are written in the same
+shape and one had a directive and the other did not — and the same grammar compiled from a
+`.gram` file gave every one of them a directive. What differed was the map. A grammar inside
+`[Gram("""…""")]` has no file, so `InlineLineMap` finds a line by looking for its text in the
+spelling of the literal, and refused where it found the text twice:
+
+```csharp
+var at = spelling.IndexOf(text, StringComparison.Ordinal);
+
+if (at < 0 || spelling.IndexOf(text, at + 1, StringComparison.Ordinal) >= 0)
+    return false;
+```
+
+Which is the right instinct — a directive pointing at the wrong line is worse than none —
+and the wrong rule. The lines that lost their directive are the ones written more than once:
+`=> @(ExpressionLanguage.Listed(first, rest))` five times over, `=> @(…Chosen(test, then,
+otherwise))` three, `=> @(Expression.Loop(` twice. A grammar of any size has them.
+
+The decoded value's lines stand in the spelling **in the order they were written**, so each
+is looked for from where the one before it was found, and a repeated line is then found at
+its own occurrence. Where a line is not found where it should be — escapes written
+differently from what they decode to — the place after it is no longer known, so the order is
+given up there and the rest of the file is asked the older question. Never a guess, still.
+
+All eleven have their directive now, and the three `Listed` rules point at lines 331, 355 and
+368 rather than all at 331. A test in `GeneratorDriverTests` writes one construction twice,
+makes both wrong, and asks that the two C# errors land on the two lines that wrote them.
+
+## A named character class is still one character
+
+The third yardstick is the notation reading itself: `GramParser` is written by hand and is
+what the compiler runs, `GramGrammar` is generated from the grammar of `.gram`, and
+`SelfHostingTests` already holds them side by side. It is the one that reads **characters**,
+and nothing this year had been measured against it.
+
+Two things had to be fixed before it said anything. Timing the readings in one round-robin
+loop moved every row by a factor of four between runs — the shape of the loop was being
+measured, not the parser in it — so each reading gets a loop of its own. And the whole probe
+runs under `DOTNET_TieredCompilation=0`: with tiering on, a warm-up of three hundred parses
+still left some of the reading at tier 0 and the numbers moved by half between runs. Under
+both, the rows repeat to within a per cent.
+
+**The carrier was not the answer here.** The tape is 1.4x to 2.9x of the hand-written
+reading over the five snapshot grammars; `Carrier = GramCarrier.Immediate`, which brought SQL
+and the expression language to 0.91-1.13, takes about a fifth off and leaves 1.3x to 2.3x.
+Whatever the residue of a character grammar is, it is not the value carrier.
+
+So: a line of `.gram` of one shape, at a hundred lines and at five hundred, and the
+difference over four hundred is what one more line of that shape costs. Per operand, against
+the hand-written reading:
+
+```
+a string literal    1.43x
+an element set      1.17x
+a reference         2.60x   <- and a grammar is mostly references
+```
+
+`Reference` reaches `Name`, `Name` reaches `Identifier`, and `Identifier` is
+`Word & WordOrDigit*` — the ordinary way to write the ordinary thing. What that repetition
+compiled to, per character of a name:
+
+```csharp
+if (o1) { c = text[p]; o1 = Recognize_DotGram_In(Recognize_DotGram_Set6, c); }
+if (!o1) break;
+
+if (ways.Cursor < ways.Count) { w0 = ways.Cursor; d0 = ways.Items[w0 * 2]; ways.Cursor++; }
+else                          { w0 = ways.Open(1); }
+if (d0 == 1) break;
+
+q1 = Read_Lexical_WordOrDigit(p);      // which tests the same character again
+```
+
+A way opened per character, a call per character, and the class asked twice. `EmitRun` has
+written that as a loop with `p++` and one way for the whole run since the reader was written
+— and it was asked for only where the repetition's body was **literally** a `Node.Element`.
+A body that is a rule naming a class went to `EmitTurns`, the rendering for turns that are
+not all alike.
+
+`RunTest` was already the question — "what one-character test is this body, if it is one" —
+and it already looks through a call, a sequence of one, and a choice whose alternatives each
+take one character. `EmitRepeat` asks it now instead of pattern-matching the node:
+
+```csharp
+if (machine.RunTest(body) is { } test)
+    EmitRun(code, body, test, min, max, settled);
+else
+    EmitTurns(code, repeat, inside, settled);
+```
+
+A reference operand went from 2.60x to 2.13x, eight of them on a line from 3.01x to 2.54x,
+and over the corpus:
+
+| | tape before | tape | immediate before | immediate |
+| --- | --: | --: | --: | --: |
+| `Csv.gram` | 1.54x | 1.41x | 1.30x | 1.11x |
+| `Notation.gram` | 1.68x | 1.50x | 1.36x | 1.21x |
+| `Minimal.gram` | 1.78x | 1.63x | 1.43x | 1.28x |
+| `Feed.gram` | 2.46x | 2.21x | 1.97x | 1.72x |
+| `Url.gram` | 2.88x | 2.54x | 2.33x | 1.98x |
+
+The snapshot of `Feed.gram` lost two hundred lines to it, and `Digit{4}` — four turns, four
+calls, four sets of log marks — is a loop with `p - m0 >= 4` in it.
+
+The comparison is a scale rather than a verdict, and `SelfHostingTests` says why: the hand
+parser builds the compiler's own tree with positions and diagnostics, the generated one
+builds the example's records.
+
+## Inside a brace, nothing follows
+
+`trivia = { (Space | LineComment | BlockComment)* }` is in every grammar that spaces its
+operands, and it was opening a way for every character of whitespace and sealing all of them
+a moment later. The way is what a repetition owes when something after it could ask for a
+shorter reading; `Determinism.NeverGivesBack` decides that, and it was being asked the wrong
+question — what follows the group, rather than what follows inside it.
+
+Braces mean the group's first reading is its only one. "Nothing after it may come back into
+it" was already written in `EmitAtomic`'s own remarks, and the group's contents are entitled
+to hear it, so the continuation threaded into them is `Continuation.None`. What follows
+*inside* is threaded as it always was: `{ A* & B }` still hands B's first set to the star
+before it, and only a repetition standing at the end of a group loses its way per turn.
+
+## The ASCII half of a class, from a table
+
+`Word = [\p{L} | '_']` is a call into `CharUnicodeInfo` and a mask test, taken once for
+every character of every name a grammar reads. `Tabulate` has emitted a byte table for a
+class since the classes were written, and declines for any class that reaches past 255 —
+which every Unicode category does, so the characters programs are actually written in paid
+for the ones they are not.
+
+Below 128 the answer is a lookup, and it is a lookup that can be baked: the categories of
+ASCII are settled by the standard and cannot drift between the compiler that wrote the table
+and the runtime that reads it. Latin-1's are as settled in practice, and "in practice" is
+the wrong footing for a table in a consumer's assembly, so the line is at 128. Above it, the
+test that was there before:
+
+```csharp
+c < 128 ? Recognize_DotGram_Class2[c] != 0 : ((1 << (int)…GetUnicodeCategory(c)) & 0x11F) != 0
+```
+
+Where the ASCII half is a range or two it is written out rather than tabulated — `\p{Lu}` in
+`Minimal.gram` is `c < 128 ? (c >= 'A' && c <= 'Z') : …`, which is the whole of that
+snapshot's diff.
+
+## Where the three of them leave it
+
+Against the hand-written `GramParser`, immediate carrier, each reading timed in a loop of its
+own with tiering off:
+
+| | before | a named run | inside a brace | the ASCII half |
+| --- | --: | --: | --: | --: |
+| `Csv.gram` | 1.30x | 1.11x | 1.04x | 1.10x |
+| `Notation.gram` | 1.36x | 1.21x | 1.13x | 1.10x |
+| `Minimal.gram` | 1.43x | 1.28x | 1.17x | 1.18x |
+| `Feed.gram` | 1.97x | 1.72x | 1.62x | 1.55x |
+| `Url.gram` | 2.33x | 1.98x | 1.87x | 1.76x |
+| a reference operand | 2.60x | 2.13x | 2.09x | 1.85x |
+| eight of them on a line | 3.06x | 2.54x | 2.51x | 2.13x |
+
+`Csv.gram` and `Minimal.gram` moving the wrong way in the last column is the two smallest
+rows quantizing — five microseconds against a stopwatch — and not something the ASCII table
+can have done.
+
+**What was still there.** Two method calls a rule, where a person writing the parser would
+have written one — and that is the next section.
+
+## Two methods a rule, and one call site between them
+
+A rule over characters is written as two methods: the way back into it, and what it is.
+
+```csharp
+public int Read_Name(int pos)
+{
+    var s = ways.Cursor;
+
+    while (true)
+    {
+        var q = Read_Name_Body(pos);
+
+        if (q >= 0)
+            return q;
+
+        if (ways.Cursor > s && ways.Retry(s))
+            continue;
+
+        return -1;
+    }
+}
+```
+
+`Name` reaches `Identifier` reaches a character class, with a seam between each, and every
+one of those was two calls where a hand-written parser makes one. Reading `Alpha & Beta` on
+a line came to seven calls; the hand-written parser compares a token kind.
+
+A body is asked for from one place and one only — the loop written just above it — so it is
+marked `AggressiveInlining`, whatever its size. The size argument that holds for a helper
+copied to a dozen call sites does not hold here: there is one call site, and a method the
+runtime never calls is a method it never compiles. What the reader has afterwards is one
+method a rule where it had two.
+
+Worth a quarter of a character parse, which is more than the three changes above it put
+together:
+
+| | before today | after | tape, after |
+| --- | --: | --: | --: |
+| `Csv.gram` | 1.30x | **0.81x** | 1.04x |
+| `Notation.gram` | 1.36x | **0.86x** | 1.14x |
+| `Minimal.gram` | 1.43x | **0.94x** | 1.25x |
+| `Feed.gram` | 1.97x | 1.22x | 1.72x |
+| `Url.gram` | 2.33x | 1.36x | 1.91x |
+| a reference operand | 2.60x | 1.45x | 2.06x |
+| eight of them on a line | 3.06x | 1.62x | 2.40x |
+| a string literal operand | 1.43x | 1.09x | 1.60x |
+| an element set | 1.17x | 0.88x | 1.20x |
+
+Standard SQL is unchanged by it, and expectedly so: over kinds a rule keeps the loop only
+where it gives back, which is eight rules of the forty. `--hand` reads 1.59, 1.63, 1.99,
+1.53, 1.36, 1.52, 1.50 against 1.64, 1.59, 1.86, 1.54, 1.39, 1.50, 1.57 — the same numbers
+through the noise of a round-robin.
+
+The comparison is a scale and not a verdict: the hand-written `GramParser` builds the
+compiler's own tree with positions and diagnostics where the generated one builds the
+example's records. A number below one says the two are close, not that the generator won.
+
+## Asking the expression language for ASCII, and what fell out
+
+One line of grammar, to see whether the notation could say it:
+
+```dotgram
+parse Lambda with (Word = AsciiWord) as ParseAsciiLambda
+```
+
+It can, and it does what it should — `(int x) => x + 1` reads both ways, `(int naïve) =>
+naïve` only one, and every rule that reads a word reads the narrower one: a parameter, a
+member, a type, a label, a name. The two publications are one grammar and one `Word` rule,
+and what separates them is the binding.
+
+**Where the replacement is written matters, and the language already says so.** An
+expression on the right of a `with` becomes a rule declared where the `with` is, so it
+reads the trivia surrounding the directive — which out at the top of that file spaces its
+operands. A word whose letters may be spaced apart is not a word, so `AsciiWord` is
+declared inside `namespace Lexical`, where `trivia = none`, and the binding names it.
+
+**It did not compile.** `GRAM0001` — the generator falling over with `Unhandled node kind:
+Behind`. §5.1's substitution clones every rule the site reaches and rewrites the calls
+inside the clones, and the clone is a switch over node kinds; it named every kind but two.
+`Node.Behind` is the `?<!wordboundary` §4.6 weaves in front of a word literal, and
+`Node.Glue` is what `~` leaves between two operands that may not be spaced. Both were added
+to the model after the two switches were written, and no grammar in the repository had
+reached the combination — a `with` above a keyword — until this one did.
+
+Two switches, in `GrammarNormalizer.With.cs` and `GrammarNormalizer.Namespaces.cs`, and a
+test that is a keyword, a glue and a substitution over both.
+
+**And a name that appeared nowhere the author wrote it.** A publication with a `with`
+publishes a clone, and the clone is called `Lambda_With1`. That name was in the public XML
+doc a consumer reads in IntelliSense, and in the message a refusal gives:
+
+```
+/// <summary>Parses the whole input as <c>Lambda_With1</c>.</summary>
+Input does not match 'Lambda_With1'.
+```
+
+The rule's own declaration knows what it was called, so that is what the publication says
+now. `Notation.gram`'s snapshot has carried the leak since `parse List with (Comma = (',' |
+';')) as Loose` was written into it.
+
+## A rule nothing reaches
+
+`GRAM4018`. A rule can be declared and never read: renamed in one place and not the other,
+left behind when a publication was deleted, written for an alternative that was rewritten
+past it. Nothing said so.
+
+**What counts as reaching one is more than a call**, and each of the three that are not was
+a false report before it was not:
+
+* a **rebinding** names its replacement and nothing else does — `with (Word = AsciiWord)` is
+  the whole of what reaches `AsciiWord`, and it reaches it as surely as a call would;
+* an **element set** draws a rule's items into itself — `[Digit | '_']` is one set
+  afterwards and names nothing, so the merge writes down what it dissolved;
+* **`trivia` and `wordboundary`** are never asked about at all. Declaring one is
+  configuration rather than a rule anything calls (§4.5, §4.6): a grammar that sets
+  whitespace handling and has no seam to weave it into has still said what it meant. What
+  they are made of is reached through them, since a seam is a call by the time this runs.
+
+**Where it is asked matters twice.** It runs straight after lowering rather than with the
+other checks at the end, because by the end several passes have rewritten the calls it would
+be reading: a specialization clones a rule and leaves the original reachable only through a
+publication, and `CollapseTransparent` replaces a call to a rule that only forwards with what
+it forwarded, emptying the rule it collapsed. Neither is anything an author did.
+
+And it is **raised** where `Retention` and the first-set checks are — last, and only where
+nothing else went wrong. What called a rule may be the declaration whose syntax did not come
+out, and one mistake told as two is what `A_stray_character_is_not_reported_seven_times`
+exists to prevent. The graph carries them apart in `WhenSound` for that. A grammar that
+publishes nothing is not asked either: everything in it is unreached, which says nothing
+about any of it — what that grammar is missing is a publication.
+
+**One hit across the repository**, and a real one. `DotGram.Compatibility`'s grammar declares
+
+```dotgram
+Where : @SourceSpan = ['a'..'z']+
+```
+
+to make the emitter write an extent, and nothing published it. So the emitter wrote
+`Construct_Where` and no recognizer at all: the file has been claiming to exercise a shape it
+never emitted. `parse Where as Span` now, and the extent is there.
+
+## Advice that could not be taken
+
+`GRAM5008` tells a grammar the tape is holding its constructions back for a promise it does
+not need, and offers `Carrier = GramCarrier.Immediate`. Asked of the five snapshot grammars,
+it offered it to three. Taking it up:
+
+```
+Csv.gram      Tape       GRAM5008: take Immediate, it is worth two fifths of a parse
+Csv.gram      Immediate  chars=43705   ← the same 43,705 characters the tape wrote
+Url.gram      Tape       GRAM5008: the same
+Url.gram      Immediate  chars=137363  ← the same parser, byte for byte
+Minimal.gram  Tape       GRAM5008: the same
+Minimal.gram  Immediate  GRAM5007: carried on the tape: it recovers
+```
+
+Three offers, three bad endings. `Minimal` is advised a carrier and refused it a moment
+later, by one compiler about one grammar. `Csv` and `Url` change the attribute, get the same
+parser and are told **nothing whatever** — which is worse than a refusal, because an author
+who then measures measures the tape twice and writes the number down.
+
+**A carrier is what a reader holds.** Over a machine the methods did not take, it is not
+refused; it is never asked. `GRAM5007` fired only where a carrier had refused something, and
+a machine that never reached one had nothing to refuse. So it is asked the other question
+too — is any part of this grammar read by methods at all — and the reasons were already
+written down and never spoken: `Machine.Refusal`, which `GRAM5005` says over kinds and
+nothing said over characters.
+
+Only where *no* machine is read by methods. One `find` beside a `parse` is a machine on the
+engine next to one the carrier is carrying, and saying the carrier did nothing there would be
+false. Three tests in `CSharpEmitterTests` had been excluding `GRAM5008` by id to get at the
+diagnostic they were about; they ask for `Assert.Single` again.
+
+And where several reasons are true at once — a recovering grammar is kept off the reader
+*and* refused by the carrier — the carrier's own answer is the one given, because it names
+what to change.
+
+**The offer is made only where it could be taken.** `WouldRefuse` asks a carrier the
+question without choosing it, so `GRAM5008` can ask before it offers. A grammar with no
+reader is not offered one; a grammar the carrier would refuse is not offered one. What is
+left is an offer that means something.
+
+## An extent is two positions the reader already has
+
+`Carrier = GramCarrier.Immediate` refused any grammar with a `@SourceSpan`-typed rule in
+it, for a reason that reads oddly once written down: *an extent has no record to be the span
+of*. It has no record because it needs none. The tape reads an extent off the record the rule
+stands on — that is `Ways.EndAt`, and `Materialize` never puts an extent anywhere, because
+the record's own two positions are the answer. The immediate carrier has those two positions
+as reader locals already: `Begin` is handed them (`DirectPositions` returns true for an
+extent for exactly this reason), and `End` has a `Span()` helper it was using for factories
+that ask for `parserSpan`.
+
+So the whole of it is one arm in `End`:
+
+```csharp
+if (machine.IsExtent(rule))
+    return $"{into} = {Span()};";
+```
+
+and a register to put it in. Not a numbered one: `SourceSpan` is deliberately left out of
+the value tables (`CollectValueTypes` skips it by name) because nothing ever stores a span,
+so the register is `lastSpan`, and it stands only where the grammar has an extent.
+
+**What is still refused, and now says which.** An extent *collected across the turns of a
+repetition* — `spans: Where*` — would gather onto a stack of spans, and there is no such
+stack for the same reason there is no table. `GRAM5007` says so in those words rather than
+refusing every grammar that mentions a span:
+
+```
+'Where' is an extent collected across turns
+```
+
+`CarrierTests` gained an extent shape, held to the tape's answers on every input by the
+theory that was already there — and the theory asserts the carrier was actually taken, so a
+shape that quietly fell back could not pass it.
+
+**Recovery is the other half and is not a carrier's problem.** A recovering grammar is
+refused by `CanDirect` before a carrier is ever asked — "it recovers from a bad element" —
+so teaching `ImmediateCarrier` to carry a recovery would change nothing at all until the
+reader itself learns to recover. That is the reader's driver, not the carrier's store, and
+it is a piece of work of a different size.
+
+## Where the reading over kinds spends its extra third
+
+The four character-path changes above left the notation reading at 0.81–1.36 of the
+hand-written one. Standard SQL got none of them — over kinds a rule keeps its loop only
+where it gives back, eight of forty — so it is where the largest number left in the project
+is, and `--slope` is the pair method pointed at it. One shape of predicate, joined by `AND`,
+at 32 terms and at 160; the difference over the count is what one more term costs. The lexer
+comes out of it by `SqlAgainst.Lexers`' trick — a `)` in front is refused at the first token
+and the input is tokenized all the same, and over a slope the entry cancels.
+
+```
+shape                   by hand      tape immediate |     lexed   by hand   now/hand  lex/hand
+a name and a number     0.070 us   0.148 us   0.095 us |   0.024 us   0.017 us     1.34x    1.41x
+  and one operator      0.110 us   0.247 us   0.153 us |   0.046 us   0.029 us     1.39x    1.59x
+  and two more          0.167 us   0.385 us   0.230 us |   0.075 us   0.045 us     1.37x    1.68x
+parenthesized           0.162 us   0.349 us   0.234 us |   0.074 us   0.041 us     1.44x    1.79x
+a null test             0.082 us   0.153 us   0.113 us |   0.045 us   0.037 us     1.37x    1.21x
+a list of three         0.205 us   0.339 us   0.239 us |   0.073 us   0.042 us     1.17x    1.72x
+a cast                  0.145 us   0.278 us   0.195 us |   0.077 us   0.048 us     1.35x    1.58x
+a string                0.087 us   0.188 us   0.126 us |   0.039 us   0.027 us     1.44x    1.43x
+a short name            0.086 us   0.184 us   0.117 us |   0.032 us   0.023 us     1.36x    1.41x
+a long one              0.094 us   0.236 us   0.173 us |   0.083 us   0.029 us     1.84x    2.86x
+```
+
+**Nothing blows up, which is itself the finding.** Every shape is within 1.17–1.44, where
+the character path had a reference operand at 2.60 beside a literal at 1.43. A flat ratio is
+not a construct being read badly; it is a tax paid per token.
+
+**Half of it is the scanner**, and the last two rows say so plainly. They are the same three
+tokens with twenty-two more characters in the first:
+
+* by hand: 29 − 23 = **6 ns for 22 characters**, a quarter of a nanosecond each;
+* generated: 83 − 32 = **51 ns for 22 characters**, two and a quarter each.
+
+Ten to one per character, hidden on ordinary SQL because SQL's tokens are short. The
+generated scanner is a table-driven DFA and pays three dependent loads a character — the
+state's row, the cell, the accept — where a hand-written lexer pays one class test and an
+increment.
+
+**Two things it is not.** Recording what a parse refused costs nothing: a copy with
+`Refuse_DotGram` emptied reads within one per cent of the real one on every shape. And the
+generated parser *allocates less* than the hand-written one on every input (`--bytes`), so
+the gap is not garbage either.
+
+### The two halves, told apart
+
+`--slope` now takes the tokenizing off both sides — the generated one by the `)` trick, the
+hand-written one by `LexOnly` — so what is left on each side is the parse:
+
+```
+shape                     whole   by hand |    lexing   by hand |   parsing   by hand   whole   lex   parse
+a name and a number     0.113 us   0.082 us |   0.030 us   0.021 us |   0.083 us   0.061 us   1.38x  1.44x  1.36x
+  and two more          0.227 us   0.162 us |   0.070 us   0.039 us |   0.157 us   0.123 us   1.41x  1.80x  1.28x
+parenthesized           0.227 us   0.150 us |   0.069 us   0.038 us |   0.159 us   0.113 us   1.52x  1.83x  1.41x
+a list of three         0.227 us   0.193 us |   0.070 us   0.038 us |   0.158 us   0.155 us   1.18x  1.82x  1.02x
+a cast                  0.190 us   0.137 us |   0.074 us   0.043 us |   0.116 us   0.094 us   1.39x  1.73x  1.23x
+a long one              0.164 us   0.084 us |   0.079 us   0.026 us |   0.085 us   0.059 us   1.94x  3.06x  1.45x
+  spaced out            0.116 us   0.084 us |   0.034 us   0.023 us |   0.082 us   0.060 us   1.38x  1.43x  1.36x
+```
+
+**Parsing is 1.02–1.47. Lexing is 1.26–3.06.** The reading of the grammar over kinds is
+close to a person's; the reading of the characters into tokens is not.
+
+### The proof is inside one file
+
+The hand-written lexer is the noisiest column here, being the cheapest thing measured — it
+moves by a fifth between runs where the generated columns hold to a per cent. It is also not
+needed. The generated parser contains **both** kinds of scanner, and the last three rows
+weigh them against each other:
+
+* `a{i}    =    1` against `a{i} = 1` — the same three tokens, six more spaces: **0.58 ns a
+  space**. That is `Scan_trivia_Seam`, which the ordinary machine emits as *code*: a byte
+  table for the class, a test, `p++`, in a goto-threaded loop.
+* `averyveryverylongname{i} = 1` against `a{i} = 1` — the same three tokens, twenty-two more
+  characters inside one of them: **2.2 ns a character**. That is `Scan`, which `LexerEmitter`
+  emits as a *table*: the state's row, then the cell, then the accept — three dependent loads
+  and a conditional write, per character.
+
+Four times the price for the same shape of work, from one generator, in one file. Whatever
+else is true about DFAs, this file already knows how to write the fast form.
+
+### The run, and what it is traded against
+
+A state whose way on is back to itself is a run of one class, and the table says the same
+thing about every character of it. Taking the run where it starts — `next == state`, then a
+loop with the row and the cell hoisted — is 0.55 ns a character against the 2.2 of stepping
+the table, and takes **41% off a long identifier**: `lex/hand` 2.91 to 1.71.
+
+It also costs a few per cent on every short-token shape, consistently. One compare and a
+branch in a loop that waits on a dependent load chain is not free, and a run entered and left
+at once is all cost. It was tried three ways — a table of which states run, a call, and the
+loop written out with the row already in hand — and all three measure alike, so the compare
+is the price and there is no arrangement that avoids it.
+
+**What the shapes above did not say is that they are all named `a0`.** Measured against what
+a person writes, in one process, with and without:
+
+```
+                        lexing    no run   with/without
+a short name           0.032 us  0.031 us      1.03x
+a string               0.042 us  0.038 us      1.10x
+named as people do     0.044 us  0.055 us      0.80x
+and a string           0.058 us  0.068 us      0.85x
+a whole predicate      0.080 us  0.088 us      0.90x
+a long one             0.047 us  0.080 us      0.58x
+```
+
+`customer_id{i} = 42` is read a fifth faster, `order_status{i} = 'SHIPPED'` a seventh,
+`invoice_total{i} BETWEEN 1000 AND 20000` a tenth; a name of one letter pays two to ten per
+cent. **Four or five characters is where it turns**, and identifiers, numbers and quoted
+strings are longer than that. So it is kept, and the three realistic shapes are in `--slope`
+so that the trade is in front of whoever runs it.
+
+At the whole-parse level the loss is invisible and so is much of the win: `--hand` reads
+1.63, 1.62, 1.89, 1.49, 1.40, 1.52, 1.47 against 1.59, 1.63, 1.99, 1.53, 1.36, 1.52, 1.50
+before it — the same numbers through the noise of a round-robin, because its inputs are
+`a0 = 1` sixty-four times over.
+
+**The ceiling is still the seam.** 0.58 ns a space against, now, about 1.2 ns a character in
+a run and 2.2 outside one. What would close the rest is the token machine written the way the
+seam is — the class as the test it is, the run as a loop the compiler sees rather than one
+the loop asks about. That is `LexerEmitter` writing code instead of a table, and it is a
+different scanner rather than a patch to this one.
+
+
+
+### And a second one: the tax is the branch, not the call
+
+The run above was first written as a call to `Scan_Run`, then written out inline with the
+row and the cell already in hand. Both are the same: 41% off a long identifier, five to ten
+per cent onto every short-token shape, steady across runs. A compare and a branch in a loop
+that waits on a dependent load chain is not free, and a run entered and immediately left is
+all cost.
+
+So the scanner has to know *statically* which states run, which means the token machine
+written the way the seam beside it already is: the class as the test it is, the run as a loop
+the compiler can see. That is `LexerEmitter` writing code instead of a table, and the number
+it is aiming at is the 0.58 ns a space it already achieves ten lines away.
+
+## Considered: the keyword trie out of the character path
+
+After the run, the scanner is about 1.2 ns a character inside a run and 2.2 outside one,
+against 0.58 for the seam beside it. What is left outside the runs is mostly the **keyword
+trie**: five hundred and twenty-eight states exist to tell `AND` from `ANY` from a name, and
+every word walks them, keyword or not, one table step a character.
+
+A hand-written lexer does not. `HandSqlTokens` runs the word's class in a loop and then asks
+`Keyword(span)` — a switch on length, a switch on the first letter folded to lower case, and
+a compare or three. Its own remark says why not a hash: *"a name that is not a keyword is
+refused by its length or its first letter and compared against nothing, which is where a
+hashed lookup lost to the first day's parser on inputs made of names."*
+
+**Priced by taking it out.** A copy of the generated scanner that reads a word as a word and
+never tells it from a keyword — deliberately wrong, and it tokenizes the same characters —
+lexes:
+
+```
+                       with the trie   without   by hand
+named as people do          0.045 us  0.033 us  0.025 us
+and a string                0.059 us  0.041 us  0.025 us
+a whole predicate           0.080 us  0.055 us  0.046 us
+a cast                      0.083 us  0.061 us  0.048 us
+a null test                 0.048 us  0.032 us  0.037 us
+```
+
+Another **16–33% of lexing**, landing at 0.87–1.78 of the hand-written lexer — `a0 IS NOT
+NULL`, which is nothing but keywords, comes out *faster* than the hand-written one. The
+keyword lookup has to be added back, and the hand parser is the evidence that it is cheap:
+two branches for a word that is not a keyword.
+
+**And the condition it has to be sound under, which SQL fails in general and passes in
+particular.** A word start does not always begin a word:
+
+```dotgram
+NationalCharacterStringLiteral = 'N'i & QuotedString          -- N'abc'
+BitStringLiteral               = 'B'i & '\'' & ['0' | '1']* & '\''
+HexStringLiteral               = 'X'i & '\'' & …
+CharacterStringLiteral         = ('_' & RegularIdentifier)? & QuotedString
+DateLiteral                    = "DATE"i & Space & QuotedString
+```
+
+At `N`, `B`, `X`, `_` and `D` the longest match may run past the word and into a quoted
+string. So the shortcut cannot be taken for a grammar; it has to be taken **per first
+character**, and only where the sub-automaton reachable from the start on that character is
+the keyword trie and the identifier run and nothing else. For standard SQL that is every
+letter but five — and `customer_id`, `order_status`, `invoice_total` all begin with one of
+them, which is why the measurement above is what it is.
+
+### Built, measured, and taken back out
+
+The analysis works. `WordScan.Of` asks, of every group of first characters state zero
+distinguishes: are the states reachable from it all over one class, all landing back inside
+it, all accepting, with one sink looping to itself — and are the words that accept anything
+else finitely many? Over standard SQL it answers for **twenty-one groups** and refuses
+exactly five letters and the underscore:
+
+```
+starts 'A''a'  parts 402 ranges  plain 135  words  5  e.g. Si, LLi, NDi, NYi
+starts 'C''c'  parts 402 ranges  plain 135  words 14  e.g. ASEi, ASTi, HARi, OUNTi
+starts 'I''i'  parts 402 ranges  plain 135  words  6  e.g. Ni, Si, NTi, NTEGERi
+…                                                    (B, D, N, T, X and _ absent)
+```
+
+The emission was written three ways and none of them paid.
+
+**A test per group in front of the loop** — twenty-one comparisons before every token that
+is not a word. Three to eight times slower than the table it replaced. Obvious in hindsight.
+
+**The machine's own first step, with a byte read off the state it named.** Sound, and the
+byte is nearly free. But the first step has to be *peeled out of the loop* to hang anything
+on it, and a copy with the peel and the word never taken measures **seven per cent** worse
+than no peel at all: what it costs is not the byte but the loop's shape, which was tight and
+is now a prologue and a loop starting from a variable state.
+
+**The run reading a class of its own** rather than the entered state's row, which is a
+window into a `short` array of tens of thousands of cells. Two hundred and fifty-six bytes
+of its own, the shape the seam has — and that recovered most of what the row had cost.
+
+Measured against itself in one process, with and without the word ever taken:
+
+```
+                       word/none
+and a string               0.80x
+named as people do         0.84x
+a long one                 0.85x
+a whole predicate          0.93x
+a name and a number        1.10x
+parenthesized              1.10x
+a list of three            1.10x
+```
+
+Seven to twenty per cent off a realistic name, four to ten per cent onto everything else —
+the same shape of trade the run itself has, on a thinner margin, and stacked on top of it.
+`--hand` reads 1.65, 1.76, 2.04, 1.59, 1.43, 1.58, 1.55 against 1.63, 1.62, 1.89, 1.49,
+1.40, 1.52, 1.47 with the run alone: worse on every row of the yardstick.
+
+So it is taken back out. **What the ceiling promised was 16 to 33 per cent and what the
+thing delivers is half of that**, because the ceiling had no peeled step and tested its class
+with arithmetic rather than a load. The parts that were priced separately say where the rest
+went: the lookup is 0 to 7 per cent (a copy that answers "a name" to every word measures
+within that), the class table is what the seam pays, and the peel is seven.
+
+**What would have to be different.** The word cannot be taken by asking at run time whether
+this is a word — that question costs more than the trie it saves, twice over now. It would
+have to be the scanner's *shape*: state zero written as code, a case per first character,
+each case its own loop and its own lookup, and no loop for the reading to fall out of. That
+is the table replaced rather than short-circuited, and the measurement that would justify it
+is still the seam's 0.58 ns a character against the token machine's 1.2 in a run.
+
+## The other half: what the reading over kinds costs, by shape
+
+With the tokenizing taken off both sides, `--slope` says the parse over kinds is 0.97 to
+1.59 of the hand-written one — and the spread is the finding, not the middle. Heavier terms,
+where the parse is most of what is measured:
+
+```
+                     parsing   by hand   parse
+a list of eight     0.312 us  0.322 us   0.97x
+a list of three     0.162 us  0.153 us   1.06x
+a case of three     0.361 us  0.299 us   1.21x
+a chain of eight    0.302 us  0.221 us   1.37x
+nested five deep    0.284 us  0.178 us   1.59x
+```
+
+**A list is at parity. Nesting is the worst thing it does.** `HandSqlTokens` says why in
+its own first line — *"a lexer into kinds, and precedence climbing over those"* — where
+`SqlStandard92.gram` is written as a rule per level. A bracket re-enters the ladder from the
+top and pays every one of its twelve levels whether anything at that level is there or not;
+a climb pays a loop.
+
+### What climbing is worth, before rewriting anything to use it
+
+§4.3.1 already offers the other shape, so it can be measured rather than argued about.
+`--ladders` is one arithmetic language written twice — four rules with a level each, and one
+rule whose alternatives state their own strength — over the same inputs, both building the
+same tree:
+
+```
+input                                                       levels  climbing   climb/levels
+1 + 2 * 3 - 4 / 5                                          0.385 us   0.411 us     1.07x
+(1 + 2) * (3 - 4)                                          0.358 us   0.330 us     0.92x
+((((1 + 2) * 3) - 4) / 5) + 6                              0.548 us   0.434 us     0.79x
+((((((((1 + 2) * 3) - 4) / 5) + 6) * 7) - 8) / 9) + 10     0.933 us   0.760 us     0.81x
+```
+
+**Nineteen per cent off nested input and eight per cent onto flat**, steady across runs. So
+§6.24's *"they cost a precedence-climbing engine at run time, which is why they are not the
+default"* now has a number on both sides of it: the engine costs about eight per cent where
+there is nothing to climb, and saves a fifth where there is.
+
+That is a fifth of the nesting gap and not the whole of it — this language has four levels
+where standard SQL's has three inside the value tower and a longer chain around it. So the
+tower was rewritten, and it gave up much more than a fifth.
+
+### The tower, written as three strengths instead of three rules
+
+```dotgram
+ValueExpression : @SqlNode
+    = left: ValueExpression & op: ('+' | '-' | "||") & right: ValueExpression   << 1
+        => @(new SqlNode.Binary(SqlNode.Additive(op), left, right))
+    | left: ValueExpression & op: ('*' | '/') & right: ValueExpression           << 2
+        => @(new SqlNode.Binary(SqlNode.Multiplicative(op), left, right))
+    | sign: ['+' | '-'] & v: ValueExpression                                     >> 3
+        => @(new SqlNode.Unary(SqlNode.Signed(sign), v))
+    | p: ValueExpressionPrimary => @(p)
+```
+
+`Term` and `Factor` are gone; nothing else in the grammar named them. The strengths are the
+standard's own precedence and the associativity is which way the arrow points — so `-a * b`
+is `(-a) * b`, which is what the three rules said by having the sign apply to a primary
+rather than to an expression.
+
+**What it was worth.** Parsing over kinds, before and after, with the tokenizing off both
+sides:
+
+| | before | after |
+| --- | --: | --: |
+| nested five deep | 1.59x | **1.14x** |
+| a chain of eight | 1.37x | 1.27x |
+| a case of three | 1.21x | 1.09x |
+| a whole predicate | 1.41x | 1.17x |
+| a cast | 1.30x | 1.08x |
+| a list of eight | 0.97x | **0.81x** |
+| a list of three | 1.06x | 0.91x |
+
+And on `--hand`, which reads whole parses of the project's own inputs:
+
+| | tape before | tape | immediate before | immediate | mixed before | mixed |
+| --- | --: | --: | --: | --: | --: | --: |
+| `a = 1` | 2.72x | 2.27x | 1.65x | 1.48x | 3.70x | 2.32x |
+| `(a + b) * c > d` | 2.46x | 2.14x | 1.76x | 1.49x | 3.04x | 2.12x |
+| `((((a + 1) * 2) - 3) / 4) + b > 0` | 3.03x | 2.25x | 2.04x | 1.62x | 3.56x | 2.27x |
+| 64 predicates | 2.24x | 1.92x | 1.43x | 1.27x | 2.83x | 1.91x |
+| 64 additions | 2.19x | 1.97x | 1.58x | 1.53x | 2.32x | 1.93x |
+
+A quarter off the deepest input on the tape and a fifth on the immediate carrier, and the
+mixed carrier — which was paying the ladder hardest — is a third better. The gain is larger
+than `--ladders` measured because the ladder was not only three levels deep but stood under
+every one of the thirty-odd places the grammar names a value expression.
+
+**Reading a thing and building the right thing are two questions**, and the tests asked only
+the first: the theory in `SqlStandard92Tests` says a search condition reads and nothing about
+the tree. Binding powers put the second at risk — a sign that took the whole product instead
+of the operand beside it would still read — so there is a theory now that pins the shape of
+nine of them, `-a * b` among them. `SqlAgainst.Agree()` was the only thing checking it, and
+it is in the benchmarks rather than in CI.
+
+## And the tower above it, which does not pay
+
+The same transformation was tried on the boolean tower — `SearchCondition` (OR),
+`BooleanTerm` (AND) and `BooleanFactor` (NOT), three more rules a level, with every search
+condition descending all of them to reach a predicate. `HandSqlTokens` reads *"OR and AND in
+one loop over a precedence rather than a rule each"*, so the shape it wants is the same.
+
+It reads and it agrees, and it is slower. Parsing over kinds, with the value tower climbing
+either way:
+
+```
+                     value tower   and the boolean one
+a name and a number        1.18x                 1.26x
+a null test                1.29x                 1.43x
+a whole predicate          1.17x                 1.28x
+a string                   1.17x                 1.30x
+a list of eight            0.81x                 0.87x
+nested five deep           1.14x                 1.17x
+```
+
+**Climbing pays where things nest and costs where they chain**, which `--ladders` already
+said — a fifth off nested input and eight per cent onto flat — and a search condition in
+real SQL is a flat chain of `AND`s with no brackets in it at all. `--slope` joins its terms
+with `AND`, so every term paid the engine and nothing climbed; `--hand` is a wash, its
+sixty-four-predicate row going 1.27x to 1.37x on the immediate carrier while the nested one
+went 1.62x to 1.51x.
+
+So it is taken back out, and the value tower is kept. The two towers look alike and are not:
+an expression nests because brackets nest, and a condition is a list.
+
+There is a language question behind it as well, which the numbers made moot. `BooleanFactor`
+is `[NOT] <boolean test>` — one `NOT`, not a run of them, which is what SQL-92 §8.12 says.
+A prefix with a binding power recurses, so `NOT NOT a` would have started reading, and the
+grammar would have been accepting more than the standard for a change that did not pay.
+
+## A run reads a row of its own
+
+The run took the entered state's row out of `Scan_Cells` — a window into tens of thousands
+of `short` cells, which is what the loop above it reads and what it waits on. The keyword
+shortcut, on its way to being taken back out, said this in passing: giving the run two
+hundred and fifty-six bytes of its own recovered most of what reading that row had cost, and
+0.58 ns a character is what the trivia seam already gets for exactly that shape.
+
+So it does. One row per state that runs, shared by content — a language has one idea of what
+a word carries on with, and every looping state of its keyword trie has the same one — and a
+byte a state saying which row. Standard SQL comes to **seven rows, 1,792 bytes**, against
+five hundred and twenty-eight states.
+
+```csharp
+if (again)
+{
+    var over = Scan_Runs[state] << 8;
+
+    while (p < text.Length)
+    {
+        var ahead = text[p];
+
+        if (ahead > 255 || Scan_Running[over + ahead] == 0)
+            break;
+
+        p++;
+    }
+}
+```
+
+Measured against the row it replaces, in one process:
+
+```
+                     own/row
+a whole predicate      0.89x
+named as people do     0.90x
+and a string           0.91x
+a long one             0.93x
+a string               0.96x
+everything else   0.98 - 1.01x
+```
+
+**No row is worse.** It is the first change of the day with no trade in it: no branch added,
+no shape changed, the same loop reading a smaller table. Seven to eleven per cent off the
+tokenizing wherever a token is long enough to run, and nothing anywhere else.
+
+## §7, and the seam that was holding a place for it
+
+`SqlStandard92.gram` covered §6 and §8 — value expressions and predicates — and could not
+read a `SELECT`. Where a subquery stood it had this, under a heading that said what it was:
+
+```dotgram
+// ── The seam where the query level will go ──────────────────────────────────
+TableSubquery : @SqlNode = q: Subquery => @(new SqlNode.Subquery(q))
+Subquery = '(' & ("SELECT"i | "VALUES"i | "TABLE"i) & (Balanced | [^ '(' | ')'])* & ')'
+```
+
+A balanced run of characters, kept as text, and the file said so: *"the one place this
+grammar is knowingly wrong"*. It is a query now.
+
+**What §7 came to: 119 lines of notation.** The query expression with its three set
+operators, the query specification with every clause, the select list with `*` and `t.*` and
+`AS`, the from clause, all five joins with `NATURAL`, `ON` and `USING`, derived tables with
+their correlation and column names, `GROUP BY`, `HAVING`, the table value constructor, and
+§13.1's `ORDER BY` on top. The whole grammar is 525 lines where it was 406.
+
+Two things are worth saying about how it went.
+
+**The set operators are the value tower again.** §7.10 gives `UNION` and `EXCEPT` one
+strength and `INTERSECT` a tighter one, all three to the left — which is three numbers on one
+rule (§4.3.1), the same shape the value tower was rewritten into an hour before. The
+boolean tower stayed a ladder for the reason measured there: a condition is a list and an
+expression nests. A query expression nests.
+
+**A list of names needed a rule to be a list.** `first: Identifier & (',' & rest: Identifier)*`
+gathers into the *text between the first and the last*, because `Identifier` is a recognizer
+and not a rule with a value — §4.1 case 4, working exactly as written. `ColumnName : @string
+= t: Identifier => @(t)` is what makes the repetition a `string[]`. Obvious afterwards, and
+not before.
+
+Everything else went in as it reads. Twenty inputs — every join form, nested subqueries in
+three positions, set operators with precedence, `VALUES`, `TABLE`, `ORDER BY`, a scalar
+subquery in the select list — read on the first attempt, which says more about the notation
+than any of the measurements do.
+
+**What it cost the layer below: nothing on the immediate carrier.** `--hand` reads 1.43,
+1.44, 1.49, 1.37, 1.28, 1.50, 1.20 against 1.42, 1.46, 1.51, 1.39, 1.37, 1.53, 1.30 before.
+The tape is another matter — 2.14x to 2.63x on `a = 1` — and that is worth knowing on its
+own: **the walk is sensitive to how large the grammar is and the reader is not**, even for an
+input that reaches none of the new rules. The arms a walk dispatches over are the whole
+grammar's; the methods a reader calls are the ones the input goes through.
+
+## Somebody else's corpus
+
+Every test in this repository was written here, which is the one thing wrong with all of
+them: a grammar and its tests written by the same hand agree about what the language is.
+Microsoft's ScriptDom ships a T-SQL parser with about eleven hundred `.sql` files behind it,
+written by people who had never heard of this one.
+
+`--corpus <path>` cuts the query-shaped statements out of them — batches at `GO`, statements
+at `;`, and what is left that begins the way a query does — reads each with
+`SqlStandard92.ParseSelect`, and groups the refusals by **what stood where the reading
+stopped**. Not by the message: over kinds an expectation is a token kind, and a kind is a
+character nobody wrote.
+
+```
+1086 files, 1896 query-shaped statements, 101 read (5.3%)
+
+    767  stops at '('     SELECT dbo.MyAgg(ALL c1, c2, 10) OVER ()
+    243  stops at '@'     SELECT @a += 1
+    120  stops at '['     SELECT [a] COLLATE some_collation, [b] AS ColumnA
+     82  stops at FOR     SELECT * FROM t1 FOR JSON AUTO
+     58  stops at MATCH   SELECT * FROM NODE AS N WHERE MATCH(N-(E)->N2)
+     48  stops at the end SELECT 1
+     43  stops at WHERE   SELECT (SELECT 1 WHERE (IIF (1 > 0, 1, 0)) = 1)
+     36  stops at ALL     SELECT c1 FROM t1 GROUP BY ALL ()
+     31  stops at APPLY   SELECT * FROM t1 CROSS APPLY (SELECT * FROM sys.objects)
+```
+
+**5.3% is not a coverage number and reading it as one would be a mistake.** The corpus is a
+T-SQL parser's own test suite: it is made of the things T-SQL has and the standard does not.
+A user-defined function call, a `@variable`, a `[bracketed]` identifier, `FOR JSON`, graph
+`MATCH`, `CROSS APPLY` — none of them is SQL-92, and refusing them is the grammar being
+right. `SELECT 1` is refused too, and correctly: §7.9's `<query specification>` requires a
+`<table expression>`, so a select with no `FROM` is not standard SQL either.
+
+**What it was for is the other direction, and it found one thing.** Walking down the list
+looking for a group that is not a dialect:
+
+```
+      4  stops at COLLATE
+           SELECT CAST (12 AS FLOAT) COLLATE SQL_Latin1_General_CP1_CI_AS
+           SELECT USER COLLATE SQL_Latin1_General_CP1_CI_AS, CURRENT_USER
+```
+
+That one is ours. §6.11's `<character factor>` is a primary and a collate clause, and the
+tower had the clause on a grouping column and on a sort key and not where the standard also
+puts it. One line of grammar, and two theories that pin it.
+
+Everything else at the top of the list is T-SQL. An external corpus of nineteen hundred real
+statements, and the only gap it exposes in §6 through §8 and §7 is a collate clause — which
+is the strongest thing anybody has said about this grammar, because nobody here wrote the
+corpus.
+
+
+## A dialect, and what it took to be one
+
+Standard SQL reads 5.3% of that corpus and every group at the top of the list is T-SQL. So
+the next thing is T-SQL — and the question worth answering is not whether it can be written
+but whether it can be written *as a dialect*: one file that says where it differs, over a
+grammar it does not touch.
+
+`TransactSql.gram` is 206 lines against `SqlStandard92.gram`'s 529, and 42 of those lines
+are a list of reserved words and the note above it. Five rules replace five of the
+standard's:
+
+```dotgram
+namespace Dialect with (
+    Identifier                = TsqlIdentifier,
+    GeneralValueSpecification = TsqlValueSpecification,
+    ValueExpressionPrimary    = TsqlValuePrimary,
+    QuerySpecification        = TsqlQuerySpecification,
+    TablePrimary              = TsqlTablePrimary)
+{
+    Select    : @SqlNode = q: Sql92.DirectSelect    => @(q)
+    Query     : @SqlNode = q: Sql92.QueryExpression => @(q)
+    Condition : @SqlNode = c: Sql92.SearchCondition => @(c)
+    Value     : @SqlNode = v: Sql92.ValueExpression => @(v)
+}
+```
+
+That is the whole of it. A query expression, a join, a predicate and the value tower are the
+standard's own, unmodified and uncopied, reading a dialect's identifiers and a dialect's
+primaries because §5.1's substitution rewrote every call inside them. **What the file adds is
+`[bracketed]` names, `@variables`, `#temporary` ones, an optional `FROM`, `TOP`, `OVER`, an
+ordinary function call and a table-valued one** — and the reach of that is a theory of its
+own: a bracketed name inside a join condition, a variable inside a `HAVING`, a `TOP` inside a
+derived table. None of those rules is named anywhere in the header.
+
+### Four things in the generator had to give
+
+The mechanism was there — `[Gram(IncludedAs = "Sql92")]` and a base class whose grammar is
+spliced onto the derived one — and had never carried a real dialect. Four things broke, and
+each of them is one line of behaviour.
+
+**A `parse` outside the block published the wrong rule.** `parse Dialect.Select as ParseSelect`
+stands *outside* `namespace Dialect`, and `RemapPublications` asked only where the directive
+was written. So a whole header of rebindings compiled into a parser built as though none of
+them were there — and the same rebindings written on the directive itself worked perfectly.
+Both sites are asked now: the directive's own, then the rule's.
+
+```csharp
+var clone =
+    CloneAt(NearestSite(publication.DeclaredIn),     publication.Rule, remap) ??
+    CloneAt(NearestSite(publication.Rule.Namespace), publication.Rule, remap);
+```
+
+**A base's `parse` directives were published twice.** The included text carries the base's own
+`parse Select as ParseSelect`, and binding it again put a second `ParseSelect` on the derived
+class — the base's rule, not the dialect's reading of it, which is the opposite of what a
+dialect is for. The binder now knows where the host's own text ends (`Own`) and leaves what
+follows to the class that wrote it.
+
+**CS0108, and who should be reading it.** A dialect names its publications what the base named
+its own, and in C# that is hiding. The warning asks whether it was intended; it was, and it is
+answered in the generated file rather than left to a consumer who did not write the code it is
+about.
+
+**And `ReaderCoverageTests` had to learn that a host can carry half a grammar.** It compiles
+every `.gram` beside every parser class on its own; a dialect's does not compile alone and is
+not meant to.
+
+### The reserved words, which is where the tests earned their keep
+
+The dialect read, and the first two theories written against it failed:
+
+```
+SELECT TOP
+SELECT a FROM t OPTION (RECOMPILE)
+```
+
+Both were *accepted*. `TOP` became a column called `TOP`, and `OPTION (RECOMPILE)` became a
+correlation named `OPTION` with a column list — which is exactly what SQL-92 says those
+characters are, and exactly what T-SQL says they are not. Neither looked wrong. Nothing in
+the corpus run had pointed at them, because a statement that reads is not counted twice.
+
+`Sql92.Reserved` is deliberately a *curated* part of §5.2 — "the part this layer can be
+confused by" — and curating the T-SQL list the same way is what produced those two. So it is
+not curated: **all 169 of them**, taken from `TSqlTokenTypes.g`, the token table Microsoft
+feeds its own parser generator, where a word being a token at all is what makes it
+unavailable as a name.
+
+And it *replaces* rather than adds. The standard reserves `NATURAL`, `MATCH` and `CAST`,
+which T-SQL does not; T-SQL reserves `TOP`, `OPTION` and `OVER`, which the standard has never
+heard of. Two lists, not one list and a supplement.
+
+### What it reads
+
+```
+SQL-92  1086 files, 1896 query-shaped statements, 101 read (5.3%)
+T-SQL   1086 files, 1896 query-shaped statements, 573 read (30.2%)
+```
+
+**5.3% to 30.2%, on a corpus nobody here wrote**, for 206 lines that name five rules. The
+three largest groups the standard stopped on — `'('` at 767, `'@'` at 243, `'['` at 120 — are
+gone entirely.
+
+The reserved words cost seven statements (580 before them, 573 after) and every one of the
+seven was reading a keyword as a name. What they bought is worth more than the seven: the
+refusals now point at features rather than at swallowed words. `SELECT c1 INTO t2 ON fg FROM t1`
+used to stop at `t2`, saying nothing; it stops at `INTO` now, which is a `SELECT INTO` and a
+thing to go and write.
+
+What is left, in order: `OPTION (...)` and the table hints, `CROSS APPLY`, `FOR JSON` and
+`FOR XML`, `IIF` and the other functions with syntax of their own, `PIVOT`/`UNPIVOT`, `SELECT
+INTO`, `GROUP BY CUBE`/`ROLLUP`, window frames, `OPENROWSET` and friends, `::`, `$`, graph
+`MATCH`. None of it is a hole in the dialect mechanism; all of it is grammar to write.
+
+### The corpus is ours to keep now
+
+ScriptDom is MIT, so it is copied into `tests/Corpus/ScriptDom` — 1086 files, byte for byte,
+with Microsoft's notice beside them and exempt from this repository's line-ending
+normalization, fifteen of them being UTF-16. `--corpus` reads that copy when it is given no
+path, so the number above is reproducible without a checkout of somebody else's repository
+sitting at a particular place on a particular disk.
+
+The directory names are the reason to keep the whole of it rather than the query-shaped
+part: `Baselines80` through `Baselines180` are Microsoft's own partition of T-SQL by parser
+version, which is a specification of what each version added, written by the people who
+implemented it.
+
+## The other parser, asked the same questions
+
+The plan for T-SQL is all twelve versions in full, measured against ScriptDom for what it
+reads and for what it costs. Three decisions were taken before any of it was written.
+
+**A chain of dialects rather than twelve copies.** `TransactSql180 : TransactSql170 : … :
+TransactSql80 : SqlStandard92`, each `.gram` saying only its own delta. Microsoft's twelve
+parsers are flat — every one of them derives from `TSqlParser` and carries a whole
+regenerated ANTLR grammar, from ten thousand lines at 80 to thirty-six thousand at 180 —
+and the whole point of §5.1 is that this need not be. It was probed before it was chosen:
+a three-level chain, each level rebinding the base's original seam to its own extension of
+the level below, compiles and reads. Zero takes letters, One adds digits, Two adds an
+underscored word, and each reads everything the level under it reads.
+
+One wrinkle came out of the probe and is worth fixing before the chain is twelve deep. A
+dialect's published rule is unreachable in the compilation of the dialect above it: the
+inherited `parse` is suppressed, correctly, and GRAM4018 then says nothing reaches the rule
+it named. A warning, not an error, and a wrong one.
+
+**The language first, the versions after.** One `TransactSql` covering queries, DML, DDL,
+batches and the procedural level, and only then cut into the chain — because cutting is
+cheap. `Baselines80` through `Baselines180` are already a statement of what each version
+added, written by the people who implemented it.
+
+**And the speed comparison will say what each side is building.** ScriptDom builds a full
+AST with token positions and error recovery; this grammar builds a tenth of that. A bare
+ratio flatters this side, and the flattery belongs in the report rather than in a footnote
+under it.
+
+### `--kinds`, which is the work list
+
+`--corpus` cuts query-shaped fragments out by hand, because splitting T-SQL properly needs a
+T-SQL parser. There is one on the shelf now — `Microsoft.SqlServer.TransactSql.ScriptDom`,
+referenced from `benchmarks/` and from nowhere else, since nothing that ships may depend on
+it and nothing has to.
+
+So ScriptDom splits, and every statement it hands back is one it understood. The denominator
+stops being a guess about where a statement ended, and every row of the table is a thing
+somebody's parser has a name for:
+
+```
+against ScriptDom, TSql170Parser
+
+  1086 files, 954 read whole and 132 not; 8317 statements of 310 kinds
+
+  kind                                        count    read    share
+  ------------------------------------------------------------------
+  SelectStatement                              2036     626    30.7%
+  CreateTableStatement                          631       0     0.0%
+  AlterDatabaseSetStatement                     252       0     0.0%
+  AlterTableAlterColumnStatement                144       0     0.0%
+  CreateProcedureStatement                      142       0     0.0%
+  CreateIndexStatement                          140       0     0.0%
+  ------------------------------------------------------------------
+                                               8317     626     7.5%
+```
+
+**30.7% against `--corpus`'s 30.2%** on the same statements, which is the two harnesses
+agreeing about the one thing they both measure — and the small gap is the hand-cut
+denominator being slightly wrong, as it was always going to be.
+
+7.5% of everything, and the zeroes are the point: **the table is a work list ordered by how
+often the corpus needs the thing.** A `CREATE TABLE` is wanted three hundred times more often
+than an `OPEN MASTER KEY`.
+
+It runs at any version, and the older ones are a different corpus rather than a smaller one:
+
+| | files read whole | statements | read here |
+| --- | --: | --: | --: |
+| `TSql80Parser` | 193 | 1,768 | 14.6% |
+| `TSql90Parser` | 378 | 3,161 | 8.4% |
+| `TSql130Parser` | 757 | 6,436 | 7.3% |
+| `TSql180Parser` | 958 | 8,359 | 7.5% |
+
+The 80 column reads higher because what an eighty-era parser understands whole is the
+query-heavy part of the corpus, and everything since is statements.
+
+### And the direction nothing else was asking
+
+The harness counts the opposite defect too: a statement ScriptDom calls something other than
+a query, read here as one. Over-acceptance is a defect whatever the corpus says — it is the
+half of correctness that a refusal count cannot see, and `--corpus` had no way to ask it.
+
+**Nothing.** Of 8,317 statements of 310 kinds, the dialect reads as a query exactly the ones
+Microsoft's parser calls a query, and none of the others.
+
+## A third source, and it is the engine
+
+Two parsers can disagree and neither is evidence. There is a SQL Server 2025 on this
+machine, and `SET PARSEONLY ON` asks it whether a statement is syntax — compiling nothing,
+resolving no schema, running nothing. That is exactly the question, and the answer outranks
+anybody's reading of the documentation.
+
+`--engine [path] [version] [shown]` puts the corpus to it, on a database whose compatibility
+level is the version being asked about. Four cells come out and three of them say something:
+
+```
+against the engine at compatibility level 170, on what TSql170Parser calls a query
+
+  2036 statements
+    1212  both read
+     643  the engine reads and this does not — the work list
+      34  this reads and the engine does not — a defect here
+     147  neither, which is the corpus being a corpus of errors too
+```
+
+**The 34 was 323 when the harness was first run, and the difference is all classification.**
+`PARSEONLY` compiles nothing and still resolves some names: 260 statements were answered with
+`Must declare the scalar variable`, because a statement cut out of a script leaves its
+`DECLARE` behind. A function nobody has heard of, a table that does not exist, two locking
+hints that contradict each other, a window function without an `ORDER BY` — all of them are
+the engine having an opinion about what a statement *named*, after reading it. So the harness
+sorts by message number and prints the tally, which is what makes the classification
+auditable rather than a claim.
+
+### What it found
+
+**Two over-acceptances here.** `SELECT trim(*)` read as a call, because `*` was an argument
+to anything rather than a thing that stands inside three names; the engine answers `Incorrect
+syntax near '*'`. And `FETCH` without an `OFFSET` in front of it, which was written in to
+make one corpus statement read and is not a clause.
+
+**And things ScriptDom reads that the engine will not.** `INNER LOCAL MERGE JOIN` —
+`'LOCAL' is not a recognized join option`. `FETCH APPROXIMATE` and `TOP … WITH APPROXIMATE`,
+which do not exist in SQL Server 2025 at all. `OPTION (BYPASS OPTIMIZER_QUEUE)`,
+`OPTION (SHRINKDB PLAN)`, `OPTION (USEPLAN 2)`. Most of these are Fabric or PDW or an
+undocumented internal hint rather than a defect in ScriptDom — but that is the point: a
+corpus written by one parser's authors contains that parser's whole surface, and only a
+third source can tell which part of it is SQL Server.
+
+### And what the level does and does not gate
+
+Worth knowing before the numbers are read. The engine has **one** parser, and the
+compatibility level gates part of what it reads and not all of it. The `WINDOW` clause is
+refused below 160; `FOR JSON`, `OFFSET`/`FETCH`, `IS DISTINCT FROM` and `FOR SYSTEM_TIME` all
+read at 100.
+
+So the two sources are authorities over different things, and the split is clean:
+**ScriptDom for 80 and 90, the engine for 100 and above.** SQL Server 2025 will not go below
+compatibility level 100, so the two oldest versions have no engine that can be asked about
+them and ScriptDom's parsers are the last written-down reading of those languages. From 100
+up the engine can be asked, and what it says outranks what any parser thinks.
+
+## The JSON constructors, a named query, and two things the sources disagreed about
+
+Written from the published syntax, checked against the engine, and both halves earned
+their keep.
+
+**What went in.** `JSON_OBJECT` and `JSON_ARRAY` with their aggregate spellings — the one
+place in T-SQL where a colon joins two values instead of introducing a parameter, and two
+clauses an argument list has not: what a null does, and what type comes back. `RETURNING`
+on an ordinary call, which is how `JSON_VALUE` says it. `WITH <common_table_expression>`,
+which is a query given a name in front of the statement that uses it. A window named inside
+its own parentheses. `OPTIMIZE FOR (@v = NULL)`. And a qualified name with a part left out —
+`myDb..t2` — written as a dot standing in front of another dot rather than as an optional
+name, so that `t.*` still ends where it did.
+
+Of the statements ScriptDom calls a query, **61.6% to 68.5%**; against the engine, 1,362 of
+2,036 read on both sides where 1,212 did.
+
+### Two disagreements, and they point in opposite directions
+
+**The documentation is wrong about `JSON_OBJECT`.** Its syntax block makes the key values
+and the null clause independently optional:
+
+```
+JSON_OBJECT ( [ <json_key_value> [ , ...n ] ] [ json_null_clause ] [ RETURNING json ] )
+```
+
+so `JSON_OBJECT(NULL ON NULL)` reads by the specification. SQL Server 2025 answers
+`Incorrect syntax near the keyword 'ON'`. The clause needs something to be null, the block
+does not say so, and the grammar now says what the engine says.
+
+**And `ALL` belongs to `UNION` and to nothing else.** The standard writes it on all three set
+operators and the dialect had inherited that without anybody asking; the engine answers
+`The 'ALL' version of the EXCEPT operator is not supported`, and the same of `INTERSECT`.
+`CORRESPONDING` went with them — SQL-92, never T-SQL. Three more narrowings a refusal count
+would never have shown, and the over-acceptance cell fell from 46 to 32 for them.
+
+### A shape that keeps recurring
+
+Three times now the same defect, and it is worth naming because it will happen again. A word
+that is **not reserved** stands at the head of a clause, an optional name stands in the same
+position, and the name eats the clause:
+
+| the name | the clause it ate |
+| --- | --- |
+| a correlation name | `PIVOT`, `UNPIVOT`, `TABLESAMPLE`, `WINDOW` |
+| a window name inside `OVER (…)` | `PARTITION`, `ROWS`, `RANGE` |
+
+Both are fixed the same way, with the lookahead the standard's own `Identifier` already uses
+against its reserved words: `?!SourceClause & Identifier`. The tell is always the same, and
+it is a bad one — the parse stops one token *past* the clause that was swallowed, so the
+position names the wrong thing and nothing looks wrong at the place the mistake is.
+
+## The drawing inside `MATCH`
+
+The largest single thing left on the work list, and the only part of T-SQL that is not an
+expression language at all. `MATCH` takes a picture: nodes are names, edges are names in
+parentheses, and an arrow says which way an edge points.
+
+```sql
+WHERE MATCH(Person1-(friend)->Person0<-(friend2)-Person2)
+WHERE MATCH(SHORTEST_PATH(Person1(-(fo)->Person2){1,3}))
+WHERE MATCH(LAST_NODE(n1) = LAST_NODE(n2))
+```
+
+Forty lines of notation for the whole of it: the simple pattern and its chains, `AND` as
+the only connective a drawing has, `SHORTEST_PATH` and the arbitrary-length pattern it takes
+written edge-first or node-first, both quantifiers, and the predicate that compares the last
+node of two paths. Beside it, `FOR PATH` on a source and `WITHIN GROUP (GRAPH PATH)` on a
+call, which are how the rest of the statement knows a path is being walked.
+
+**The arrows are two characters read as two, and that is the one interesting decision in
+it.** Writing `<-` as a lexeme would produce that token everywhere, and `a <-1` — a
+comparison against a negative number — would stop being one. There is nothing to pay for
+reading them separately, because a drawing appears only inside `MATCH (…)`: the only thing
+admitted that nobody writes is a space between the two characters. There is a theory for
+`a <-1` beside the theories for the drawings, so the trade is checked rather than asserted.
+
+And a `$` in front of a name is part of it: `$PARTITION.f1(x)` names an index's partition
+function, and `$node_id`, `$edge_id`, `$from_id` and `$to_id` are the columns a graph table
+has that nobody declared.
+
+### Where that leaves it
+
+```
+                                     ScriptDom   the engine
+of what the other parser calls a query   74.4%
+both read                                            1478
+the engine reads and this does not                    377
+this reads and the engine does not                     36
+```
+
+**68.5% to 74.4%**, and the work list against the engine is 377 where it was 643 two
+sessions ago. What is left in it is mostly the rowset functions with argument grammars of
+their own — `OPENROWSET (BULK …)`, `OPENJSON (…) WITH (col INT '$.path')`, `SEMANTICKEYPHRASETABLE`,
+`CHANGETABLE`, `OPENXML` — which are a dozen small languages rather than one, and the
+`AI_GENERATE_EMBEDDINGS (… USE MODEL m)` family.
+
+## A dozen small languages, and the escapes ODBC left behind
+
+The rowset functions are the last of the query level and they are not one thing.
+`OPENJSON` takes a schema, `OPENROWSET` a file and a list of options, `CHANGETABLE` a word
+and then a table, and the full-text four a column list where a value would stand. What they
+share is only the shape around them — a name, parentheses and a correlation — so that is
+written once and each argument grammar sits inside it.
+
+The published `OPENJSON` gives the shape two of them share:
+
+```
+OPENJSON( jsonExpression [ , path ] )  [ <with_clause> ]
+<with_clause> ::= WITH ( { colName type [ column_path ] [ AS JSON ] } [ ,...n ] )
+```
+
+which is `OPENXML`'s schema declaration as well. **The option vocabulary is left open**, as
+it is for the table hints and for the same reason: `SINGLE_NCLOB`, `FORMATFILE`, `CHANGES`,
+`LANGUAGE` are a catalogue rather than a language, and adding one to T-SQL does not change
+the grammar.
+
+With them, four things that had nothing to do with rowsets and everything to do with the
+same corpus rows: ODBC's escapes — `{ fn convert (@a, sql_int) }` and the four typed
+literals, `{ oj … }` in a `FROM` — `USE MODEL` on an AI function, `||=` now that `||`
+concatenates, and `NULL` and `DEFAULT` where an argument stands.
+
+**The name inside `{ fn … }` is ODBC's and not this language's**, so a word T-SQL reserves
+may stand there. `{ fn convert (…) }` is not the `CONVERT` of §6.10 and does not obey its
+shape; `{ fn database () }` calls something whose name is a keyword. Written as its own
+small rule with its own small list of names.
+
+### Where the query level stands
+
+```
+                                       before   after
+of what ScriptDom calls a query          74.4%   85.9%
+the engine reads and this does not         377     204
+this reads and the engine does not          36      69
+```
+
+**The over-acceptance nearly doubled, and almost none of it is a defect.** Reading the
+sixty-nine: `OPENROWSET (PROVIDER = 'CosmosDB', …)`, `FORMAT = 'PARQUET'`,
+`PARSER_VERSION`, `TOP … WITH APPROXIMATE`, `OPTION (BYPASS OPTIMIZER_QUEUE)`. These are
+Synapse, Fabric and PDW — T-SQL that ScriptDom covers because ScriptDom covers all of them,
+and that a 2025 engine on this machine has never heard of.
+
+That is worth saying plainly rather than filing as a number: **the engine is the authority
+on SQL Server and not on T-SQL.** The corpus is one parser's whole surface, the engine is
+one product's, and where they differ neither is wrong. What the harness can do is keep the
+difference visible, which is why the message tally is printed — `FORMAT = 'PARQUET'` is
+answered with `Connector prefix 'f1' is not supported`, a complaint about what was named
+rather than about the syntax, and it was miscounted as a defect until the tally showed it.
+
+## The statements that write
+
+The query level was the whole of this grammar until now. The four statements that change
+rows are written on top of it rather than beside it: an `INSERT` takes a query, an `UPDATE`
+takes a `FROM` clause, a `MERGE` takes a table source and two search conditions. Almost
+nothing in them is new — what is new is the frame around what was already read.
+
+**One record per kind, beside the others rather than under a base of their own**, which is
+what this ADT is and has been: one root and one level of descendants. A statement is a node
+like any other because a statement holds queries and a query holds statements — `INSERT …
+SELECT` one way, and a `MERGE` standing where a derived table does the other. There is one
+new publication, `ParseStatement`, and the four query ones are untouched.
+
+```
+                     count    read
+SelectStatement       2036    1748   85.9%
+UpdateStatement         86      68   79.1%
+DeleteStatement         64      56   87.5%
+MergeStatement          30      26   86.7%
+InsertStatement         66      26   39.4%
+```
+
+`INSERT` is the odd one and the reason is known: `INSERT … EXEC`, which needs the
+procedural level that is not written yet.
+
+### Two things the engine settled
+
+**A `MERGE` must end in a semicolon**, and both harnesses had been cutting it off. `A MERGE
+statement must be terminated by a semi-colon (;)` is the engine's own answer, so the
+separator belongs to the statement for at least one of them — and stripping it before the
+parse had made every merge in the corpus look like a defect on this side. The grammar reads
+the terminator where it stands now, and the harnesses hand the statement over whole.
+
+**And `DEFAULT` is assigned, not compounded.** `SET c1 -= DEFAULT` reads by the shape and is
+answered with `DEFAULT is not allowed on the right hand side of "-="` — a rule about the
+operator rather than about the value, so it is written on the operator.
+
+### The fourth time, and it will not be the last
+
+`MERGE t USING u` stopped at `u`, because `USING` is not reserved and was taken as the
+correlation name of `t`. That is the fourth word to do it, after `PIVOT`, `WINDOW` and
+`ROWS`:
+
+| the name | what it swallowed |
+| --- | --- |
+| a correlation name | `PIVOT`, `UNPIVOT`, `TABLESAMPLE`, `WINDOW`, `USING` |
+| a window name inside `OVER (…)` | `PARTITION`, `ROWS`, `RANGE` |
+
+The shape never varies: a word that begins a clause, an optional name in the same position,
+and the name winning. The list is in `SourceClause`, and anything added after a source
+belongs on it. It is worth saying once more that the tell is bad — the parse stops one token
+*past* what was swallowed, so the reported position names the wrong thing and nothing looks
+wrong where the mistake is.
+
+## The procedural level, which had to come first
+
+`CREATE PROCEDURE` is a header and a body. So is `CREATE TRIGGER`, and so is
+`CREATE FUNCTION` — 272 statements of the corpus between them, and not one of them readable
+until the body is. `INSERT … EXEC` is the same thing in miniature, and it is why `INSERT`
+sat at 39% when everything around it was in the eighties.
+
+So the frame was written before the rest: blocks, `IF`, `WHILE`, `TRY`/`CATCH`, `DECLARE`
+in its four spellings, `SET` in its two, `EXECUTE` in its four, the transaction statements,
+`BULK INSERT`, and the nine that are a word and some values.
+
+**Structure gets a record and shapelessness does not.** A block holds statements, a
+conditional holds two, a declaration holds a list — each of those is a shape and each has
+one. `PRINT`, `RETURN`, `GOTO`, `BREAK`, `CONTINUE`, `THROW`, `RAISERROR`, `WAITFOR`, `USE`
+and `CHECKPOINT` are a word and some values and nothing else; giving each a record of its
+own would be ten names for one shape rather than ten shapes.
+
+```
+                            count    read
+BulkInsertStatement            70      70   100.0%
+PredicateSetStatement          56      56   100.0%
+IfStatement                    16      16   100.0%
+DeclareVariableStatement      102      96    94.1%
+SetVariableStatement           64      50    78.1%
+ExecuteStatement               42      26    61.9%
+```
+
+Of everything ScriptDom found in the corpus, **23.2% to 28.8%**; of the kinds this grammar
+has a rule for, the engine and this one agree on 2,265 of 2,860.
+
+### The fifth of a kind, and the first that is not about a name
+
+`EXEC dbo.p AT linked` stopped at `linked`. `AT` is not reserved, so it was read as an
+argument — and then the clause it had just eaten was what the parse wanted next. The four
+before it were all an *optional name* swallowing a clause; this one is an *optional list*
+doing it, which is the same defect wearing different clothes:
+
+> an optional thing stands in front of a clause, the clause's first word could belong to the
+> optional thing, and the optional thing takes it.
+
+The cure is always a lookahead and the tell is always bad — the parse stops one token past
+what was swallowed, so the reported position names the wrong thing.
+
+### And the harness learned to survive the corpus
+
+A statement in there can take the connection down with it: a severity the server ends the
+session over rather than answers. `--engine` now checks the state before each statement and
+builds the session again where it has gone, which costs nothing on the thousands that do not
+and is the difference between a number and a stack trace.

@@ -20,6 +20,22 @@
 
 	<ItemGroup>
 		<PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+		<!-- Hardware counters (SqlCounters.cs) come from ETW, which this package wraps. -->
+		<PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.14.0" />
+
+		<!-- The library being compared against (Against.cs). It lives here and nowhere
+		     else: nothing that ships may depend on it, and nothing has to — what it is
+		     for is being a second opinion about what T-SQL is, held by people who wrote
+		     a T-SQL parser before this one existed. It is also the only authority on
+		     where one statement of a script ends and the next begins, which is what
+		     makes a comparison per statement possible at all. -->
+		<PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="180.102.0" />
+
+		<!-- The third source, and the only one that is not somebody's reading of the
+		     language: the engine itself. `SET PARSEONLY ON` asks it whether a statement is
+		     syntax, which needs no schema and runs nothing (Engine.cs). Benchmarks only,
+		     like ScriptDom, and the harness says so and moves on where no server answers. -->
+		<PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.2" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -46,6 +62,13 @@
 		     target framework. What DotGram.Parsers was built with and what would be
 		     generated here are the same C#. -->
 		<ProjectReference Include="..\..\src\DotGram.Parsers\DotGram.Parsers.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- The SQL grammar once more, compiled eagerly (EagerSql.cs): the same file
+		     DotGram.Parsers hosts, linked rather than copied so that it cannot drift, read by
+		     the generator here under another carrier (docs/next.md, the redesign). -->
+		<AdditionalFiles Include="..\..\src\DotGram.Parsers\SqlStandard92.gram" Link="SqlStandard92.gram" />
 	</ItemGroup>
 
 </Project>

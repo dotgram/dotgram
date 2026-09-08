@@ -1,4 +1,4 @@
-# Diagnostics
+﻿# Diagnostics
 
 Every message .Gram reports carries an identifier, so it can be looked up, suppressed, or
 argued with. This is the list.
@@ -28,6 +28,8 @@ underlined where it was written, in the base's own file — see §5.1.
 | `GRAM0003` | No grammar file for a `[Gram]` class. | Add the `.gram` file, or add it to the project as `<AdditionalFiles Include="…" />`. |
 | `GRAM0004` | More than one grammar file matches. | Two additional files answer to the same name. Name one of them in the attribute: `[Gram("Feed.gram")]`. |
 | `GRAM0005` | The name a grammar is included under is not an identifier. | `[Gram(IncludedAs = "…")]` names the namespace an inheriting grammar reaches this one through, so it has to be one identifier. |
+| `GRAM0006` | Two grammars on one class want the same scope. | Each `[Gram]` on a class is a compilation of its own and needs a scope of its own: one may go in the class itself, and every other names a nested class with `Suffix`. |
+| `GRAM0007` | The name a grammar is compiled under is not an identifier. | `[Gram(Suffix = "…")]` names a nested class, and a class is named by an identifier. |
 
 ## GRAM1xxx — reading the characters
 
@@ -98,6 +100,7 @@ underlined where it was written, in the base's own file — see §5.1.
 | `GRAM4015` | An external recognizer has more than one value-returning overload with different `T`. | Bare `@Name` cannot say which is meant; give it one such overload, or none (§7.1). |
 | `GRAM4016` | Two alternatives begin with the same operand, and that operand leads back to the rule. | **A warning, and a choice rather than a mistake.** Ordered choice reads the operand once for each alternative, so the reading doubles at every level of nesting. Written as one alternative with the rest of the longer one optional it is read once — but that is a different grammar wherever the operand can give back. See §4.5 on saying a lexeme is read once. |
 | `GRAM4017` | Two rules each contain a `with` that reaches the other. | Neither can be specialized against the other already specialized. Give one of them the rebinding the other was going to apply, or write the substitution as a `namespace Name with (…)` block around both (§5.1). |
+| `GRAM4018` | A rule nothing reaches. | A warning: nothing published names it, no rule the grammar reads calls it, no element set drew its items from it, and no rebinding puts it in place of one — so nothing it says is ever read. Publish it, call it, or delete it. Said only about a grammar that is otherwise sound, because a declaration whose syntax did not come out can leave any rule below it unreached; and never about `trivia`, `wordboundary` or the rest of the standard library, which are configuration rather than rules a grammar calls. A grammar that publishes nothing is not asked at all. |
 
 ## GRAM5xxx — what a grammar gets
 
@@ -109,6 +112,8 @@ These do not say a grammar is wrong. They say what it will not be given, and why
 | `GRAM5002` | A repetition can begin with the same input as what follows it. | A warning: the reading is ambiguous where the two overlap, and the parser resolves it by order rather than by meaning. |
 | `GRAM5003` | A generated method is left past the size at which the JIT stops optimizing it. | A warning: the parser is correct and several times slower than it needs to be. The message names the estimate, the budget the generator divides methods under, and what to split to restore optimization. |
 | `GRAM5004` | `Lexical = true` was asked for and the grammar cannot be cut in two. | Information, not a warning: the parser is the one it would have been without the request, and nothing the author wrote is wrong. The message says which of the four it is — no trivia at all, so there is nothing to tell a token from a character; a terminal that is not a regular language; a `find`, which hunts through characters for a place to begin; or a `trivia` not written in braces, the seam between tokens being skipped by the scanner braces ask for. |
+| `GRAM5008` | The tape is holding constructions back for a promise this grammar may not need. | The tape defers every construction until the parse has accepted (docs/syntax.md §7.3), and the walk that runs them is about two fifths of a parse. This says how much of that promise is doing any work: which rules, if any, are read for derivations that may not stand, and which are not. Where none are, `Carrier = GramCarrier.Immediate` builds where it reads and keeps §7.3; where some are, it keeps §7.3 for the rest and runs those constructions for readings that were then given up — which a construction that only builds does not mind. **Offered only where it could be taken:** a carrier is what a reader holds, so a grammar no part of which is read by methods is not offered one, and neither is a grammar the carrier would refuse (`GRAM5007`) — advice contradicted a moment later by a refusal of the same thing is worse than either alone. Information, not a warning: the tape is a sound default and a grammar that weighed this and kept it got it right. |
+| `GRAM5007` | The carrier asked for is not the one used. | The parser is compiled on the tape instead and is the one it would have been without the request; the message names what stood in the way. Two things can: the carrier refuses the grammar — it recovers, or a rule of it is an extent collected across the turns of a repetition — or nothing in the grammar is read by methods at all, since a carrier is what a reader holds. The second used to be silent, and an author who changed the attribute and measured measured the tape twice. Where several are true at once the carrier's own answer is the one given, being the one that names what to change. A `find` beside a `parse` is not one of these: it is a machine on the engine next to one the carrier is carrying, which is `GRAM5005`. Information, not a warning. |
 | `GRAM5005` | A split grammar's syntactic half cannot be read by methods, so it runs on the shared engine. | A warning: over kinds a rule's answer stands (docs/syntax.md §4), and it is the methods that say so — on the engine a choice that has matched can be revisited when something later fails. The parse is correct as ordered choice over characters; it is the committed reading the notation promises over kinds that is not what runs. The message names the rule and what about it the methods refused: a recovery, a stream, a `find`, a captured lookahead, a guard handed what a reader cannot hand it, or a rule called with arguments. |
 
 ## Retired numbers
@@ -122,6 +127,7 @@ Not reused, and listed so that a suppression written against one is recognizable
 | `GRAM3017` | One `context` per assembly. Replaced by `GRAM3019`, which asks about a composition rather than an assembly. |
 | `GRAM3018` | One `state` per assembly. Replaced by `GRAM3020`, likewise. |
 | `GRAM4004` | Retired before release. |
+| `GRAM5006` | Said that the reader — the rendering by methods written the way a person writes them — was asked for and declined a grammar, which the older rendering by methods then wrote. The reader is the only rendering by methods now, and what it does not read the engine does, which `GRAM5005` reports. |
 
 `GRAM0001` is the one number that has been used twice. It reported a check that no longer
 exists, and now reports the generator itself failing.

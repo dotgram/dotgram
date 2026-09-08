@@ -721,7 +721,9 @@ public static partial class CSharpEmitter
 
 			/// <summary>
 			/// A second array and beyond, where more than one terminal tied for the
-			/// furthest position. Null until an actual tie needs one.
+			/// furthest position. Null until an actual tie needs one, and emptied rather
+			/// than dropped when the furthest position moves on: a parse that ties once
+			/// tends to tie again, and a list per tie was an allocation per operand.
 			/// </summary>
 			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
 		""";
@@ -1372,7 +1374,16 @@ public static partial class CSharpEmitter
 			/// <summary>How much of the log is written.</summary>
 			internal int LogCount;
 
-			/// <summary>Where the record most recently finished begins: the value a caller captures.</summary>
+			/// <summary>How many records the log holds: the number the next one is given.</summary>
+			/// <remarks>
+			/// A record is named by its number and not by where it was written, so that the
+			/// tables the walk builds into are as long as there are records and not as long as
+			/// the log. On a real grammar that is four or five times shorter, which is the
+			/// difference between a table that fits in the first cache and one that does not.
+			/// </remarks>
+			internal int Records;
+
+			/// <summary>Which record finished most recently: the number a caller captures.</summary>
 			internal int Last = -1;
 
 			/// <summary>
@@ -1391,7 +1402,9 @@ public static partial class CSharpEmitter
 			/// <summary>How much of the side stack is in use.</summary>
 			internal int RefsCount;
 
+			/// <summary>Where the record being written begins, and which record it is.</summary>
 			int _record;
+			int _number;
 
 			[global::System.ThreadStatic]
 			static Ways? _spare;
@@ -1408,6 +1421,7 @@ public static partial class CSharpEmitter
 				spare.Cursor = 0;
 				spare.Lookahead = 0;
 				spare.LogCount  = 0;
+				spare.Records   = 0;
 				spare.RefsCount = 0;
 				spare.Last      = -1;
 				spare.Built     = 0;
@@ -1495,20 +1509,46 @@ public static partial class CSharpEmitter
 					Items[way * 2 + 1] = Items[way * 2];
 			}
 
-			/// <summary>Opens a record: its length is written when it ends.</summary>
-			internal void Begin(int rule, int factory, int start, int end)
+			/// <summary>
+			/// Opens a record: its length is written when it ends.
+			/// </summary>
+			/// <remarks>
+			/// One number says which rule wrote it and which of that rule's alternatives,
+			/// because the walk at the end wants both together and asking twice cost a
+			/// switch inside a switch — two jump tables where a record needs one.
+			/// </remarks>
+			/// <summary>
+			/// Opens a record that stands nowhere in particular: where nothing a machine
+			/// builds is a span of the input, and no factory it runs asks where it read,
+			/// the two positions are two integers written and never looked at.
+			/// </summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			internal void Begin(int arm)
 			{
-				if (LogCount + 5 > Log.Length)
-					global::System.Array.Resize(ref Log, Log.Length * 2 + 5);
+				if (LogCount + 2 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 2);
 
 				_record = LogCount;
+				_number = Records++;
 				Log[LogCount++] = 0;
-				Log[LogCount++] = rule;
-				Log[LogCount++] = factory;
+				Log[LogCount++] = arm;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			internal void Begin(int arm, int start, int end)
+			{
+				if (LogCount + 4 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 4);
+
+				_record = LogCount;
+				_number = Records++;
+				Log[LogCount++] = 0;
+				Log[LogCount++] = arm;
 				Log[LogCount++] = start;
 				Log[LogCount++] = end;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void Put(int value)
 			{
 				if (LogCount + 1 > Log.Length)
@@ -1517,6 +1557,7 @@ public static partial class CSharpEmitter
 				Log[LogCount++] = value;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void Put(int a, int b)
 			{
 				if (LogCount + 2 > Log.Length)
@@ -1527,7 +1568,21 @@ public static partial class CSharpEmitter
 			}
 
 			/// <summary>Closes the record: its length goes in front, and it becomes the last.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void End(int refs)
+			{
+				Log[_record] = LogCount - _record;
+				Last         = _number;
+				RefsCount    = refs;
+			}
+
+			/// <summary>
+			/// The record closed, and named by where it stands rather than by its number:
+			/// an extent is the one thing whose value is the record itself, read straight
+			/// out of the log by whoever captured it, and never put in a table.
+			/// </summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			internal void EndAt(int refs)
 			{
 				Log[_record] = LogCount - _record;
 				Last         = _record;
@@ -1543,6 +1598,8 @@ public static partial class CSharpEmitter
 			{
 				if (LogCount + 5 > Log.Length)
 					global::System.Array.Resize(ref Log, Log.Length * 2 + 5);
+
+				Records++;
 
 				Log[LogCount++] = 5;
 				Log[LogCount++] = kind;
@@ -1598,11 +1655,22 @@ public static partial class CSharpEmitter
 			{
 				failure.Position     = at;
 				failure.Expected     = expected;
-				failure.ExpectedMore = null;
+				failure.ExpectedMore?.Clear();
 			}
-			else if (at == failure.Position && expected != null)
+			else if (at == failure.Position && expected != null && !ReferenceEquals(expected, failure.Expected))
 			{
-				(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
+				// The same set said twice is one thing wanted, not two. A rule refused at the
+				// furthest position by several of its alternatives says the same set from
+				// each, and a message listing it once is the message; a list holding it
+				// several times is a list that grew on a parse that went on to succeed.
+				var more = failure.ExpectedMore;
+
+				if (more == null)
+					failure.ExpectedMore = more = new global::System.Collections.Generic.List<string[]>();
+				else if (more.Count > 0 && ReferenceEquals(more[more.Count - 1], expected))
+					return;
+
+				more.Add(expected);
 			}
 		}
 

@@ -1,0 +1,529 @@
+﻿@using System;
+@using DotGram.Parsers;
+
+using Lexical;
+
+// ── §5 Lexical elements ─────────────────────────────────────────────────────
+//
+// A namespace with no trivia, so a token is its characters and nothing may stand
+// between them (§4.5). Everything outside it may be spaced and commented freely.
+namespace Lexical
+{
+	trivia = none
+
+	// §5.2. A regular identifier is a letter and then letters, digits or underscores;
+	// a delimited one is anything between double quotes, with "" for a quote inside.
+	// The standard's <identifier body> admits <identifier part> beyond ASCII, which is
+	// what \p{L} and \p{Nd} say here.
+	IdentifierStart     = [\p{L} | '_']
+	IdentifierPart      = [\p{L} | \p{Nd} | '_']
+	RegularIdentifier   = IdentifierStart & IdentifierPart*
+	DelimitedIdentifier = '"' & ("\"\"" | [^ '"'])* & '"'
+
+	// §5.3 <unsigned numeric literal>. An exact numeric has an optional point; an
+	// approximate one is a mantissa and an exponent. Written in that order so that
+	// `1E5` is read whole rather than as `1` and something the parse cannot place.
+	Digits                    = ['0'..'9']+
+	ExactNumericLiteral       = Digits & ('.' & Digits?)? | '.' & Digits
+	ApproximateNumericLiteral = ExactNumericLiteral & 'E'i & ['+' | '-']? & Digits
+	UnsignedNumericLiteral    = ApproximateNumericLiteral | ExactNumericLiteral
+
+	// §5.3 <character string literal>, with '' for a quote inside. The optional
+	// introducer names a character set.
+	CharacterStringLiteral         = ('_' & RegularIdentifier)? & QuotedString
+	QuotedString                   = '\'' & ("''" | [^ '\''])* & '\''
+	NationalCharacterStringLiteral = 'N'i & QuotedString
+	BitStringLiteral               = 'B'i & '\'' & ['0' | '1']* & '\''
+	HexStringLiteral               = 'X'i & '\'' & ['0'..'9' | 'a'..'f' | 'A'..'F']* & '\''
+
+	// §5.3 <datetime literal> and <interval literal> carry their type in front of the
+	// string, which is what tells them from a character string.
+	DateLiteral      = "DATE"i      & Space & QuotedString
+	TimeLiteral      = "TIME"i      & Space & QuotedString
+	TimestampLiteral = "TIMESTAMP"i & Space & QuotedString
+	Space            = (' ' | '\t' | '\r' | '\n')+
+}
+
+// §5.2, and the reason the keywords below are literals rather than a rule: a keyword
+// is a whole word, so `ANDY` is an identifier and not `AND` followed by `Y`. §4.6
+// weaves this beside every word literal without it being written again.
+wordboundary = IdentifierPart
+
+// §5.4 <comment> is `--` to the end of the line; §5.2 allows the bracketed form in
+// later editions and it costs nothing to read.
+trivia       = { (Whitespace | LineComment | BlockComment)* }
+
+Whitespace   = [' ' | '\t' | '\r' | '\n']+
+LineComment  = "--" & [^ '\n' | '\r']*
+BlockComment = "/*" & (?!"*/" & any)* & "*/"
+
+// ── §8 Predicates, and the tower the standard calls a search condition ──────
+//
+// The names are the standard's, production for production: <search condition> over
+// <boolean term> over <boolean factor> over <boolean test> over <boolean primary>.
+// Left recursive where the standard is left recursive, which §4.3 folds into a loop,
+// so the operand at the head is read once however many operators follow it.
+
+SearchCondition : @SqlNode
+    = left: SearchCondition & "OR"i & right: BooleanTerm => @(new SqlNode.Binary(SqlOperator.Or, left, right))
+    | t: BooleanTerm                                     => @t
+
+BooleanTerm : @SqlNode
+    = left: BooleanTerm & "AND"i & right: BooleanFactor => @(new SqlNode.Binary(SqlOperator.And, left, right))
+    | f: BooleanFactor                                  => @f
+
+BooleanFactor : @SqlNode
+    = negated: "NOT"i? & t: BooleanTest => @(negated is null ? t : new SqlNode.Unary(SqlOperator.Not, t))
+
+// §8.13 <boolean test>. `IS TRUE` and its fellows, and the standard allows them to
+// stack — `x IS TRUE IS NOT FALSE` is legal — so this repeats rather than being one
+// optional tail.
+// Left recursive rather than a repetition, so that §4.3 folds it and each test is
+// built around what stood to its left. The two read the same language.
+BooleanTest : @SqlNode
+    = operand: BooleanTest & "IS"i & negated: "NOT"i? & truth: TruthValue => @(new SqlNode.TruthTest(operand, negated is not null, SqlNode.TruthOf(truth)))
+    | p: BooleanPrimary => @(p)
+
+TruthValue  = "TRUE"i | "FALSE"i | "UNKNOWN"i
+
+BooleanPrimary : @SqlNode = p: Predicate => @(p) | '(' & c: SearchCondition & ')' => @(c)
+
+// §8.1. Written in the order the standard lists them, except that the ones sharing a
+// left operand are gathered: <row value constructor> opens six of the nine, and
+// reading it once for all of them is what §4.3's folding is for. The three that do
+// not — EXISTS, UNIQUE and the LIKE whose operand is narrower — stand on their own.
+Predicate : @SqlNode
+    = "EXISTS"i                & q:    TableSubquery => @(new SqlNode.Predicate(SqlPredicateKind.Exists, false, new SqlNode[] { q }))
+    | "UNIQUE"i                & q:    TableSubquery => @(new SqlNode.Predicate(SqlPredicateKind.Unique, false, new SqlNode[] { q }))
+    | row: RowValueConstructor & tail: PredicateTail => @(SqlNode.Predicated(row, tail))
+
+// What may follow a row on the left of a predicate. One rule so that the row is read
+// once: written as six alternatives of <predicate> each beginning with <row value
+// constructor>, a row would be read six times before the parse found out which
+// predicate it was in — and a row holds whole value expressions.
+//
+// Every alternative leaves its first operand empty and `Predicated` writes the row
+// into it, so a predicate is one record and one array however it was written.
+PredicateTail : @SqlNode.Predicate
+          // §8.2 <comparison predicate> and §8.8 <quantified comparison predicate>
+          // share their operator, and differ only in what stands on the right.
+          // The two comparison forms share their operator, so it is read once and
+          // what may follow it is the choice — which is the same grammar written the
+          // way GRAM4016 asks for, and a row on the right is not cheap to read twice.
+          = op: CompOp & ( some: Quantifier & sub: TableSubquery | right: RowValueConstructor ) =>
+              @(some is null
+                 ? new SqlNode.Predicate(SqlPredicateKind.Comparison, false, new SqlNode[] { null!, right! }, SqlNode.Compared(op))
+                 : new SqlNode.Predicate(SqlPredicateKind.Quantified, false, new SqlNode[] { null!, sub!   }, SqlNode.Compared(op), SqlNode.Quantified(some)))
+
+          // §8.3 <between predicate>
+          | negated: "NOT"i? & "BETWEEN"i & low: RowValueConstructor & "AND"i & high: RowValueConstructor =>
+              @(new SqlNode.Predicate(
+                  SqlPredicateKind.Between, negated is not null,
+                  new SqlNode[] { null!, low, high }))
+
+          // §8.4 <in predicate>
+          | negated: "NOT"i? & "IN"i & values: InPredicateValue =>
+              @(new SqlNode.Predicate(
+                  SqlPredicateKind.In, negated is not null,
+                  new SqlNode[] { null!, values }))
+
+          // §8.5 <like predicate>. The standard narrows both sides to character
+          // strings; that is a type rule and not a syntax one, so it is not written
+          // here — see the note on the collapsed towers above.
+          | negated: "NOT"i? & "LIKE"i & pattern: ValueExpression & ("ESCAPE"i & escape: ValueExpression)? =>
+              @(new SqlNode.Predicate(
+                  SqlPredicateKind.Like, negated is not null,
+                  escape is null
+                      ? new SqlNode[] { null!, pattern }
+                      : new SqlNode[] { null!, pattern, escape }))
+
+          // §8.6 <null predicate>
+          | "IS"i & negated: "NOT"i? & "NULL"i => @(new SqlNode.Predicate(SqlPredicateKind.IsNull, negated is not null, new SqlNode[] { null! }))
+
+          // §8.10 <match predicate>
+          | "MATCH"i & unique: "UNIQUE"i? & kind: ("PARTIAL"i | "FULL"i)? & sub: TableSubquery =>
+              @(new SqlNode.Predicate(
+                  SqlPredicateKind.Match,
+                  false,
+                  new SqlNode[] { null!, sub },
+                  null,
+                  SqlNode.Matched(unique, kind)))
+
+          // §8.12 <overlaps predicate>
+          | "OVERLAPS"i & right: RowValueConstructor =>
+              @(new SqlNode.Predicate(SqlPredicateKind.Overlaps, false, new SqlNode[] { null!, right }))
+
+CompOp      = "<>" | "<=" | ">=" | '=' | '<' | '>'
+Quantifier = "ALL"i | "SOME"i | "ANY"i
+
+InPredicateValue : @SqlNode
+    = q: TableSubquery => @(q)
+    | '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
+      => @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+
+// ── §7.1 Row value constructor ─────────────────────────────────────────────
+//
+// A predicate compares rows, and a single value is a row of one — which is why
+// `a = 1` and `(a, b) = (1, 2)` are one production in the standard rather than two.
+//
+// The single value stands first, and the order is about cost and not about meaning:
+// a row of several needs a comma the single form cannot read, so the two never match
+// the same text and either order accepts the same language. Written the other way
+// round, `(a + 1) * 2` was read to its end as the first element of a row, refused at
+// the missing comma, and read again as a value — once per level of parentheses.
+
+RowValueConstructor : @SqlNode
+    = e: RowValueConstructorElement => @e
+    | '(' & first: RowValueConstructorElement & (',' & rest: RowValueConstructorElement)+ & ')' => @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+    | q: TableSubquery => @q
+
+RowValueConstructorElement : @SqlNode
+    = v: ValueExpression => @(v)
+    | "NULL"i    => @(SqlNode.NullValue)
+    | "DEFAULT"i => @(SqlNode.DefaultValue)
+
+// ── §6.11 Value expression ─────────────────────────────────────────────────
+//
+// **One tower where the standard has four, and this is a deliberate divergence.**
+// §6.11 defines <value expression> as a choice of <numeric value expression>,
+// <string value expression>, <datetime value expression> and <interval value
+// expression>, each with a ladder of its own, and all four bottoming out in the same
+// <value expression primary>. So `a + b` matches the numeric ladder and the datetime
+// one at once, and which it is depends on the types of `a` and `b` — which a parser
+// does not know and the standard does not expect it to: §6.11 is a description of
+// syntax modulo type resolution, not a grammar anybody can run.
+//
+// Every implementation collapses the four into one untyped ladder, and so does this.
+// What is lost is nothing syntactic: the four ladders have the same shape and the same
+// precedence, and `||` is simply admitted at the additive level where the standard
+// gives it a ladder of its own.
+
+// One rule where there were three, each alternative stating its own strength (§4.3.1)
+// rather than naming the level below it. What the ladder cost was every level of it at
+// every bracket: `((((a + 1) * 2) - 3) / 4)` re-entered the tower five times and paid
+// the additive and multiplicative levels on the way down whether an operator of that
+// strength was there or not. Measured on an arithmetic language written both ways
+// (benchmarks, `--ladders`), climbing is a fifth off nested input and eight per cent
+// onto flat; this tower is deeper than that one, and the numbers are in docs/next.md.
+//
+// The strengths are the standard's own precedence and nothing else: additive and
+// concatenation bind loosest and to the left, multiplicative tighter and to the left, a
+// sign tightest and to the right — so `-a * b` is `(-a) * b`, which is what the three
+// rules said by having the sign apply to a primary.
+ValueExpression : @SqlNode
+    = left: ValueExpression & op: ('+' | '-' | "||") & right: ValueExpression   << 1
+        => @(new SqlNode.Binary(SqlNode.Additive(op), left, right))
+    | left: ValueExpression & op: ('*' | '/') & right: ValueExpression           << 2
+        => @(new SqlNode.Binary(SqlNode.Multiplicative(op), left, right))
+    | sign: ['+' | '-'] & v: ValueExpression                                     >> 3
+        => @(new SqlNode.Unary(SqlNode.Signed(sign), v))
+    // §6.11 <character factor> is a primary and a collate clause, which says how it is
+    // compared rather than what it is — read and dropped, as in a GROUP BY. Written on
+    // the primary rather than as a strength of its own because that is where the
+    // standard puts it, and nothing binds tighter than a primary anyway.
+    | p: ValueExpressionPrimary & Collate? => @(p)
+
+// §6.11 <value expression primary>, in the standard's order, plus the value functions
+// §6.16 through §6.18 fold into <numeric primary>, <string value expression> and
+// <datetime value expression>. Gathered here because they are all primaries once the
+// towers are one.
+ValueExpressionPrimary : @SqlNode
+    = '(' & v: ValueExpression & ')' => @(v)
+    | c: CaseExpression              => @(c)
+    | c: CastSpecification           => @(c)
+    | f: ValueFunction               => @(f)
+    | f: SetFunctionSpecification    => @(f)
+    | q: ScalarSubquery              => @(q)
+    | v: UnsignedValueSpecification  => @(v)
+    | n: ColumnReference             => @(n)
+
+// ── §6.9 Set function, §6.16-6.18 value functions ──────────────────────────
+
+// COUNT(*) is its own shape; the rest take a set quantifier and a value expression.
+SetFunctionSpecification : @SqlNode
+    = "COUNT"i & '(' & '*' & ')' => @(new SqlNode.Call("COUNT", SqlNode.None, "*"))
+    | name: SetFunctionType & '(' & quantifier: SetQuantifier? & v: ValueExpression & ')'
+        => @(new SqlNode.Call(
+            SqlNode.Aggregate(name), new SqlNode[] { v },
+            SqlNode.Distinctly(quantifier)))
+
+SetFunctionType = "AVG"i | "MAX"i | "MIN"i | "SUM"i | "COUNT"i
+SetQuantifier   = "DISTINCT"i | "ALL"i
+
+// The functions the standard spells out rather than leaving to <routine invocation>.
+// Each is a keyword and a fixed shape, which is why they are here and not a call.
+ValueFunction : @SqlNode
+    = "POSITION"i         & '(' & a: ValueExpression & "IN"i & b: ValueExpression & ')'    => @(new SqlNode.Call("POSITION", new SqlNode[] { a, b }))
+    | "EXTRACT"i          & '(' & field: ExtractField & "FROM"i & v: ValueExpression & ')' => @(new SqlNode.Call("EXTRACT", new SqlNode[] { v }, field))
+    | "CHAR_LENGTH"i      & '(' & v: ValueExpression & ')'                                 => @(new SqlNode.Call("CHAR_LENGTH", new SqlNode[] { v }))
+    | "CHARACTER_LENGTH"i & '(' & v: ValueExpression & ')'                            => @(new SqlNode.Call("CHARACTER_LENGTH", new SqlNode[] { v }))
+    | "OCTET_LENGTH"i     & '(' & v: ValueExpression & ')'                                => @(new SqlNode.Call("OCTET_LENGTH", new SqlNode[] { v }))
+    | "BIT_LENGTH"i       & '(' & v: ValueExpression & ')'                                 => @(new SqlNode.Call("BIT_LENGTH", new SqlNode[] { v }))
+    | "SUBSTRING"i        & '(' & v: ValueExpression & "FROM"i & from: ValueExpression
+                          & ("FOR"i & length: ValueExpression)? & ')'
+        => @(new SqlNode.Call(
+            "SUBSTRING",
+            length is null
+                ? new SqlNode[] { v, from }
+                : new SqlNode[] { v, from, length }))
+    | "UPPER"i     & '(' & v: ValueExpression & ')'                                  => @(new SqlNode.Call("UPPER", new SqlNode[] { v }))
+    | "LOWER"i     & '(' & v: ValueExpression & ')'                                  => @(new SqlNode.Call("LOWER", new SqlNode[] { v }))
+    | "CONVERT"i   & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new SqlNode.Call("CONVERT", new SqlNode[] { v }, name))
+    | "TRANSLATE"i & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new SqlNode.Call("TRANSLATE", new SqlNode[] { v }, name))
+    | "TRIM"i      & '(' & how: TrimSpecification? & what: ValueExpression?
+                   & "FROM"i & v: ValueExpression & ')'
+        => @(new SqlNode.Call(
+            "TRIM",
+            what is null ? new SqlNode[] { v } : new SqlNode[] { what, v },
+            how))
+    | "TRIM"i        & '(' & v: ValueExpression & ')'      => @(new SqlNode.Call("TRIM", new SqlNode[] { v }))
+    | "CURRENT_DATE"i                                      => @(new SqlNode.Call("CURRENT_DATE", SqlNode.None))
+    | "CURRENT_TIME"i      & ('(' & digits: Digits & ')')? => @(new SqlNode.Call("CURRENT_TIME", SqlNode.None, digits))
+    | "CURRENT_TIMESTAMP"i & ('(' & digits: Digits & ')')? => @(new SqlNode.Call("CURRENT_TIMESTAMP", SqlNode.None, digits))
+
+ExtractField      = "YEAR"i | "MONTH"i | "DAY"i | "HOUR"i | "MINUTE"i | "SECOND"i | "TIMEZONE_HOUR"i | "TIMEZONE_MINUTE"i
+TrimSpecification = "LEADING"i | "TRAILING"i | "BOTH"i
+
+// ── §6.20 Case expression, §6.10 Cast ──────────────────────────────────────
+//
+// The standard's <case abbreviation> — NULLIF and COALESCE — is part of <case
+// expression>, not something beside it, and is written here where the standard puts
+// it.
+CaseExpression : @SqlNode
+    = "NULLIF"i   & '(' & a: ValueExpression & ',' & b: ValueExpression & ')'                           => @(new SqlNode.Call("NULLIF", new SqlNode[] { a, b }))
+    | "COALESCE"i & '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'                 => @(new SqlNode.Call("COALESCE", SqlNode.Listed(first, rest)))
+    | "CASE"i & operand: ValueExpression & whens: SimpleWhen+ & ("ELSE"i & otherwise: Result)? & "END"i => @(new SqlNode.Case(operand, whens, otherwise))
+    | "CASE"i & whens: SearchedWhen+ & ("ELSE"i & otherwise: Result)? & "END"i                          => @(new SqlNode.Case(null, whens, otherwise))
+
+SimpleWhen   : @SqlNode.When = "WHEN"i & test: ValueExpression & "THEN"i & result: Result => @(new SqlNode.When(test, result))
+SearchedWhen : @SqlNode.When = "WHEN"i & test: SearchCondition & "THEN"i & result: Result => @(new SqlNode.When(test, result))
+
+Result            : @SqlNode = v: ValueExpression => @(v) | "NULL"i => @(SqlNode.NullValue)
+CastSpecification : @SqlNode = "CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new SqlNode.Call("CAST", new SqlNode[] { v }, type))
+CastOperand       : @SqlNode = v: ValueExpression => @(v) | "NULL"i => @(SqlNode.NullValue)
+
+// ── §6.1 Data type, cut to what a CAST target can be ───────────────────────
+
+DataType
+    = ("CHARACTER"i & "VARYING"i? | "CHAR"i & "VARYING"i? | "VARCHAR"i) & Length? & ("CHARACTER"i & "SET"i & QualifiedName)?
+    | ("NATIONAL"i & ("CHARACTER"i | "CHAR"i) & "VARYING"i? | "NCHAR"i & "VARYING"i?) & Length?
+    | ("BIT"i & "VARYING"i?) & Length?
+    | ("NUMERIC"i | "DECIMAL"i | "DEC"i) & ('(' & Digits & (',' & Digits)? & ')')?
+    | "INTEGER"i | "INT"i | "SMALLINT"i
+    | ("FLOAT"i & ('(' & Digits & ')')?) | "REAL"i | ("DOUBLE"i & "PRECISION"i)
+    | "DATE"i
+    | ("TIME"i | "TIMESTAMP"i) & ('(' & Digits & ')')? & ("WITH"i & "TIME"i & "ZONE"i)?
+    | "INTERVAL"i & IntervalQualifier
+
+Length = '(' & Digits & ')'
+
+// §10.1 <interval qualifier>, which is what an INTERVAL type and an interval literal
+// both end with.
+IntervalQualifier   = SingleDatetimeField & ("TO"i & SingleDatetimeField)?
+SingleDatetimeField = ExtractField & ('(' & Digits & (',' & Digits)? & ')')?
+
+// ── §6.3 Value specification, §6.4 Column reference ────────────────────────
+
+UnsignedValueSpecification : @SqlNode = v: UnsignedLiteral => @(v) | v: GeneralValueSpecification => @(v)
+
+UnsignedLiteral : @SqlNode
+    = t: UnsignedNumericLiteral         => @(new SqlNode.Literal(SqlLiteralKind.Number,    t))
+    | t: CharacterStringLiteral         => @(new SqlNode.Literal(SqlLiteralKind.Text,      t))
+    | t: NationalCharacterStringLiteral => @(new SqlNode.Literal(SqlLiteralKind.National,  t))
+    | t: BitStringLiteral               => @(new SqlNode.Literal(SqlLiteralKind.Bit,       t))
+    | t: HexStringLiteral               => @(new SqlNode.Literal(SqlLiteralKind.Hex,       t))
+    | t: DateLiteral                    => @(new SqlNode.Literal(SqlLiteralKind.Date,      t))
+    | t: TimeLiteral                    => @(new SqlNode.Literal(SqlLiteralKind.Time,      t))
+    | t: TimestampLiteral               => @(new SqlNode.Literal(SqlLiteralKind.Timestamp, t))
+    | t: IntervalLiteral                => @(new SqlNode.Literal(SqlLiteralKind.Interval,  t))
+
+// §5.3. The sign belongs to the literal here and not to <factor>, which is what lets
+// `INTERVAL -'1' DAY` read.
+IntervalLiteral = "INTERVAL"i & ['+' | '-']? & QuotedString & IntervalQualifier
+
+// §6.3 <general value specification>: the parameters and the niladic functions that
+// stand where a value does.
+GeneralValueSpecification : @SqlNode
+    = t: (':' & Identifier & ("INDICATOR"i? & ':' & Identifier)?)
+        => @(new SqlNode.Literal(SqlLiteralKind.Parameter, t))
+    | '?'
+        => @(new SqlNode.Literal(SqlLiteralKind.Parameter, "?"))
+    | t: ("USER"i | "CURRENT_USER"i | "SESSION_USER"i | "SYSTEM_USER"i | "VALUE"i)
+        => @(new SqlNode.Literal(SqlLiteralKind.Special, t))
+
+// §6.4. A column reference is a qualified name, and how many parts it has is a
+// question about a catalogue rather than about syntax — so the syntax admits the
+// depth the standard allows and says nothing about what the parts mean.
+ColumnReference : @SqlNode = name: QualifiedName => @(new SqlNode.Column(name))
+
+QualifiedName = Identifier & (('.' & Identifier))*
+
+// The lookahead stands in front: an identifier is a word that is *not* reserved,
+// which is what 5.2 says. Behind it, it would be asking whether a reserved word
+// follows one — a different question, and one that refuses `x IN (1, 2)`.
+Identifier = ?!Reserved & RegularIdentifier | DelimitedIdentifier
+
+// ── §7 Query expressions ───────────────────────────────────────────────────
+//
+// The level this grammar used to hold a place for. A subquery was a rule that read a
+// balanced run of characters and handed the text over; it is a query now, and the two
+// productions that named it are the standard's own.
+
+// §7.13 <subquery>, and the two §7.11-§7.12 spellings of it that differ only in what
+// they may return — which is a question about the query and not about its syntax, so
+// both read the same thing and the standard's names are kept for the reader.
+TableSubquery  : @SqlNode = q: Subquery => @(q)
+ScalarSubquery : @SqlNode = q: Subquery => @(q)
+
+Subquery : @SqlNode = '(' & q: QueryExpression & ')' => @(q)
+
+// §7.10. UNION and EXCEPT bind alike and looser than INTERSECT, and all three are left
+// associative — the same three strengths the value tower states, said the same way
+// (§4.3.1). CORRESPONDING is read and dropped: it names columns by matching rather than
+// by position, which is a question for whatever resolves names.
+QueryExpression : @SqlNode
+    = left: QueryExpression & op: ("UNION"i | "EXCEPT"i) & all: "ALL"i? & Corresponding?
+      & right: QueryExpression                                                     << 1
+        => @(new SqlNode.Binary(SqlNode.Combined(op, all), left, right))
+    | left: QueryExpression & op: "INTERSECT"i & all: "ALL"i? & Corresponding?
+      & right: QueryExpression                                                     << 2
+        => @(new SqlNode.Binary(SqlNode.Combined(op, all), left, right))
+    | q: QueryPrimary => @(q)
+
+Corresponding = "CORRESPONDING"i & ("BY"i & '(' & ColumnList & ')')?
+
+// §7.10 <non-join query primary>, and the parenthesized form that lets a query
+// expression stand where a primary does.
+QueryPrimary : @SqlNode
+    = q: QuerySpecification            => @(q)
+    | v: TableValueConstructor         => @(v)
+    | "TABLE"i & name: QualifiedName   => @(new SqlNode.Source(name, null, null, null))
+    | '(' & q: QueryExpression & ')'   => @(q)
+
+// §7.2. A row of one value may be written without its parentheses, which is what makes
+// `VALUES 1, 2` two rows of one column rather than one row of two.
+TableValueConstructor : @SqlNode
+    = "VALUES"i & first: RowValueConstructor & (',' & rest: RowValueConstructor)*
+        => @(new SqlNode.TableValue(SqlNode.Listed(first, rest)))
+
+// §7.9 <query specification> with §7.3 <table expression> folded into it: the clauses
+// are optional rather than alternative, so one record holds them and what tells one
+// query from another is which of them are empty (SqlSyntax.cs).
+QuerySpecification : @SqlNode
+    = "SELECT"i & quantifier: SetQuantifier? & columns: SelectList
+      & from: FromClause & where: WhereClause? & group: GroupByClause? & having: HavingClause?
+        => @(new SqlNode.Query(
+                 SqlNode.Distinctly(quantifier) == "DISTINCT", columns, from,
+                 where, group ?? SqlNode.None, having))
+
+// §7.9 <select list>. A bare `*` is every column of every table in the FROM clause, and
+// `t.*` every column of one — neither is a column reference, so neither is read as one.
+SelectList : @SqlNode[]
+    = '*' => @(new SqlNode[] { new SqlNode.Star(null) })
+    | first: SelectSublist & (',' & rest: SelectSublist)* => @(SqlNode.Listed(first, rest))
+
+SelectSublist : @SqlNode
+    = qualifier: QualifiedName & '.' & '*'   => @(new SqlNode.Star(qualifier))
+    | v: ValueExpression & name: AsClause?   => @(new SqlNode.Selected(v, name))
+
+AsClause = "AS"i? & Identifier
+
+// §7.4. The comma list is a cross join written the older way, and it is kept as a list
+// rather than folded into joins: what the standard writes is what the tree says.
+FromClause : @SqlNode[]
+    = "FROM"i & first: TableReference & (',' & rest: TableReference)*
+        => @(SqlNode.Listed(first, rest))
+
+// §7.5 <joined table>, left recursive so that §4.3 folds it and the table at the head
+// is read once however many joins follow it.
+TableReference : @SqlNode
+    = left: TableReference & "CROSS"i & "JOIN"i & right: TablePrimary
+        => @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
+    | left: TableReference & "UNION"i & "JOIN"i & right: TablePrimary
+        => @(new SqlNode.Join(SqlJoin.Union, false, left, right))
+    | left: TableReference & natural: "NATURAL"i? & kind: JoinType? & "JOIN"i & right: TablePrimary
+      & ("ON"i & on: SearchCondition
+        | "USING"i & '(' & columns: ColumnList & ')')?
+        => @(SqlNode.Joining(kind, natural, left, right, on, columns))
+    | t: TablePrimary => @(t)
+
+JoinType = ("LEFT"i | "RIGHT"i | "FULL"i) & "OUTER"i? | "INNER"i
+
+// §7.4 <table reference> without a join: a named table or a derived one, and the name
+// it is known by inside the query.
+// The correlation (§6.3) is written where it is read rather than as a rule of its own:
+// its column list renames what the source produces, so it belongs to the reference.
+TablePrimary : @SqlNode
+    = name: QualifiedName & ("AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?)?
+        => @(new SqlNode.Source(name, null, alias, columns))
+    | derived: TableSubquery & "AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?
+        => @(new SqlNode.Source(null, derived, alias, columns))
+    | '(' & j: TableReference & ')' => @(j)
+
+// A name as a value of its own, so that a list of them gathers into an array rather
+// than into the text between the first and the last (§4.1 case 4).
+ColumnName : @string   = t: Identifier => @(t)
+ColumnList : @string[] = first: ColumnName & (',' & rest: ColumnName)* => @(SqlNode.Named(first, rest))
+
+WhereClause  : @SqlNode = "WHERE"i  & c: SearchCondition => @(c)
+HavingClause : @SqlNode = "HAVING"i & c: SearchCondition => @(c)
+
+// §7.7. A grouping column may carry a collation, which says how it is compared rather
+// than what it is, so it is read and dropped.
+GroupByClause : @SqlNode[]
+    = "GROUP"i & "BY"i & first: GroupingColumn & (',' & rest: GroupingColumn)*
+        => @(SqlNode.Listed(first, rest))
+
+GroupingColumn : @SqlNode = c: ColumnReference & Collate? => @(c)
+
+Collate = "COLLATE"i & QualifiedName
+
+// §13.1 <order by clause>, and §19's direct select that carries one. Outside §7, and
+// here because a query somebody writes has one and a query expression may not hold it.
+DirectSelect : @SqlNode
+    = q: QueryExpression & by: OrderByClause? => @(by is null ? q : new SqlNode.Ordered(q, by))
+
+OrderByClause : @SqlNode[]
+    = "ORDER"i & "BY"i & first: SortSpecification & (',' & rest: SortSpecification)*
+        => @(SqlNode.Listed(first, rest))
+
+SortSpecification : @SqlNode
+    = v: SortKey & Collate? & order: ("ASC"i | "DESC"i)?
+        => @(new SqlNode.Sorted(v, SqlNode.Descending(order)))
+
+// §13.1 sorts by a column or by its position in the select list.
+SortKey : @SqlNode
+    = c: ColumnReference          => @(c)
+    | t: UnsignedNumericLiteral   => @(new SqlNode.Literal(SqlLiteralKind.Number, t))
+
+// ── §5.2 Reserved words ────────────────────────────────────────────────────
+//
+// What an identifier may not be. The standard's list is long and most of it belongs
+// to the statement level; what is here is the part this layer can be confused by —
+// a word that begins or continues an expression or a predicate, the functions
+// included: with them reserved, a name and a function begin with different tokens,
+// and the choice of a primary is decided by its first token without a way back.
+Reserved = ("AND"i | "ALL"i | "ANY"i | "AS"i | "ASC"i | "AVG"i | "BETWEEN"i | "BIT_LENGTH"i
+         | "BOTH"i | "BY"i
+         | "CASE"i | "CAST"i | "CHAR_LENGTH"i | "CHARACTER_LENGTH"i | "COALESCE"i
+         | "COLLATE"i | "CONVERT"i | "CORRESPONDING"i | "COUNT"i | "CROSS"i | "CURRENT_DATE"i
+         | "CURRENT_TIME"i | "CURRENT_TIMESTAMP"i | "CURRENT_USER"i
+         | "DEFAULT"i | "DESC"i | "DISTINCT"i | "ELSE"i | "END"i | "ESCAPE"i | "EXCEPT"i | "EXISTS"i
+         | "EXTRACT"i | "FALSE"i | "FOR"i | "FROM"i | "FULL"i | "GROUP"i | "HAVING"i
+         | "IN"i | "INNER"i | "INTERSECT"i | "INTERVAL"i | "IS"i | "JOIN"i
+         | "LEADING"i | "LEFT"i | "LIKE"i | "LOWER"i
+         | "MATCH"i | "MAX"i | "MIN"i
+         | "NATURAL"i | "NOT"i | "NULL"i | "NULLIF"i | "OCTET_LENGTH"i | "ON"i | "OR"i
+         | "ORDER"i | "OUTER"i
+         | "OVERLAPS"i
+         | "PARTIAL"i | "POSITION"i | "RIGHT"i | "SELECT"i | "SESSION_USER"i | "SOME"i
+         | "SUBSTRING"i | "SUM"i | "SYSTEM_USER"i | "TABLE"i
+         | "THEN"i | "TRAILING"i | "TRANSLATE"i | "TRIM"i | "TRUE"i | "UNION"i
+         | "UNIQUE"i | "UNKNOWN"i
+         | "UPPER"i | "USER"i | "USING"i | "VALUE"i | "VALUES"i | "WHEN"i | "WHERE"i)
+         & ?!IdentifierPart
+
+parse DirectSelect as ParseSelect
+parse QueryExpression as ParseQuery
+parse SearchCondition as ParseSearchCondition
+parse ValueExpression as ParseValueExpression

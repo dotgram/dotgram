@@ -97,7 +97,7 @@ public sealed class LineDirectiveTests
 				LineMap       = path is null ? null : new GrammarLineMap(grammar, path),
 			});
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		return Assert.Single(result.Sources).Text;
 	}

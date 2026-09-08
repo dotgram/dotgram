@@ -599,9 +599,10 @@ namespace DotGram.Snapshots
 		public static Match<int> TryParseSum(string input)
 		{
 			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var parserWhole = global::System.MemoryExtensions.AsMemory(input);
 			var failure = new Failure();
 
-			var end = Recognize_Sum_Whole(text, 0, 0, ref failure, out var recognized);
+			var end = Recognize_Sum_Whole(text, 0, 0, ref failure, out var recognized, parserWhole);
 
 			if (end < 0)
 			{
@@ -1229,7 +1230,7 @@ namespace DotGram.Snapshots
 			{
 				failure.Position = p;
 				failure.Expected = expected;
-				failure.ExpectedMore = null;
+				failure.ExpectedMore?.Clear();
 			}
 			else if (p == failure.Position && expected != null)
 			{
@@ -1388,7 +1389,7 @@ namespace DotGram.Snapshots
 			{
 				failure.Position = p;
 				failure.Expected = expected;
-				failure.ExpectedMore = null;
+				failure.ExpectedMore?.Clear();
 			}
 			else if (p == failure.Position && expected != null)
 			{
@@ -1510,7 +1511,7 @@ namespace DotGram.Snapshots
 			{
 				failure.Position = p;
 				failure.Expected = expected;
-				failure.ExpectedMore = null;
+				failure.ExpectedMore?.Clear();
 			}
 			else if (p == failure.Position && expected != null)
 			{
@@ -2367,37 +2368,304 @@ namespace DotGram.Snapshots
 			return -1;
 		}
 
+		/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>
+		private ref struct Reader_DotGram_Sum
+		{
+			readonly global::System.ReadOnlySpan<char> text;
+			internal Failure failure;
+			/// <summary>How many entries to a rule that can reach itself, for the stack probe.</summary>
+			internal int probes;
+			readonly Ways ways;
+			/// <summary>The whole input, for a reading that has to go on with it elsewhere.</summary>
+			readonly global::System.ReadOnlyMemory<char> whole;
+
+			internal Reader_DotGram_Sum(global::System.ReadOnlySpan<char> text, Ways ways, global::System.ReadOnlyMemory<char> parserWhole)
+			{
+				this.text    = text;
+				this.failure = default;
+				this.ways    = ways;
+				this.probes  = 0;
+				this.whole   = parserWhole;
+			}
+
+			/// <summary>Carries this reading onto a stack of its own and answers with what it read.</summary>
+			internal int Deepen_DotGram_Sum(int pos, int which, int power)
+			{
+				// Nothing to carry it onto: a reading over a window has no whole input.
+				if (this.whole.IsEmpty)
+					throw new global::System.InsufficientExecutionStackException();
+
+				var deep = new Deep_DotGram_Sum();
+
+				deep.whole  = this.whole;
+				deep.ways   = this.ways;
+				deep.failure = this.failure;
+				deep.probes = this.probes;
+				deep.pos    = pos;
+				deep.which  = which;
+				deep.power  = power;
+
+				var thread = new global::System.Threading.Thread(deep.Run, 16 * 1024 * 1024);
+
+				thread.Start();
+				thread.Join();
+
+				this.failure = deep.failure;
+				this.probes = deep.probes;
+
+				if (deep.thrown != null)
+					global::System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(deep.thrown).Throw();
+
+				return deep.end;
+			}
+
+			/// <summary><c>Sum</c>, and the way back into it.</summary>
+			public int Read_Sum_Sum(int pos, int power)
+			{
+				if ((probes++ & 63) == 0 && !global::System.Runtime.CompilerServices.RuntimeHelpers.TryEnsureSufficientExecutionStack())
+					return Deepen_DotGram_Sum(pos, 0, power);
+
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Read_Sum_Sum_Body(pos, power);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>Sum</c> is, one reading of it at a time.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			public int Read_Sum_Sum_Body(int pos, int power)
+			{
+				var p = pos;
+				var c = '\0';
+				var rb = ways.RefsCount;
+				var fold = -1;
+				var a0 = -1;
+				var b0 = -1;
+				a0 = p;
+				if ((uint)p >= (uint)text.Length)
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected1, ways);
+					return -1;
+				}
+				c = text[p];
+				if (!(((c >= '0' && c <= '9'))))
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected1, ways);
+					return -1;
+				}
+				p++;
+				b0 = p;
+				ways.Begin(0);
+				ways.Put(a0, b0);
+				ways.End(rb);
+				fold = ways.Last;
+				while (true)
+				{
+					var o1 = (uint)p < (uint)text.Length;
+
+					if (o1)
+					{
+						c = text[p];
+						o1 = c == '+';
+					}
+
+					if (!o1)
+					{
+						break;
+					}
+
+					var w0 = -1;
+					var d0 = 0;
+
+					if (ways.Cursor < ways.Count)
+					{
+						w0 = ways.Cursor;
+						d0 = ways.Items[w0 * 2];
+						ways.Cursor++;
+					}
+					else
+					{
+						w0 = ways.Open(1);
+					}
+
+					if (d0 == 1)
+						break;
+
+					var s2  = ways.Cursor;
+					var lm2  = ways.LogCount;
+					var lm2R = ways.Records;
+					var rr2 = ways.RefsCount;
+					var q0 = -1;
+
+					while (true)
+					{
+						q0 = Read_Sum_Sum_Part0(p, ref fold, power, rb);
+
+						if (q0 >= 0)
+							break;
+
+						ways.LogCount  = lm2;
+						ways.Records   = lm2R;
+						ways.RefsCount = rr2;
+
+						if (ways.Cursor > s2 && ways.Retry(s2))
+							continue;
+
+						break;
+					}
+
+					if (q0 < 0)
+					{
+						ways.Next(w0, 1);
+
+						break;
+					}
+
+					p = q0;
+				}
+				return p;
+			}
+
+			/// <summary>One alternative of <c>Sum</c>, read where it stood.</summary>
+			public int Read_Sum_Sum_Part0(int pos, ref int fold, int power, int refs)
+			{
+				var p = pos;
+				var rb = ways.RefsCount;
+				var r1 = -1;
+				if (1 < power)
+					return -1;
+
+				if ((uint)p >= (uint)text.Length || text[p] != '+')
+				{
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected0, ways);
+					return -1;
+				}
+				p += 1;
+				var q0 = Read_Sum_Sum(p, 2);
+				if (q0 < 0) return -1;
+				p = q0;
+				r1 = ways.Last;
+				ways.Begin(1);
+				ways.Put(fold);
+				ways.Put(r1);
+				ways.End(rb);
+				fold = ways.Last;
+				return p;
+			}
+
+			/// <summary>The whole input as <c>Sum</c>, and the way back into it.</summary>
+			public int Recognize_Sum_Whole_Read(int pos, int power)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Recognize_Sum_Whole_Read_Body(pos, power);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>Sum</c> is read by, whichever stack it is read on.</summary>
+			public int Recognize_Sum_Whole_Read_Body(int pos, int power)
+			{
+				var p = pos;
+				var rb = ways.RefsCount;
+				var q0 = Read_Sum_Sum(p, power);
+				if (q0 < 0) return -1;
+				p = q0;
+				if (p != text.Length)
+				{
+					Refuse_DotGram(ref failure, p, null, ways);
+					return -1;
+				}
+				return p;
+			}
+
+		}
+
+		/// <summary>A reading, in a shape another thread can pick up (Machine.Reader.cs).</summary>
+		private sealed class Deep_DotGram_Sum
+		{
+			internal global::System.ReadOnlyMemory<char> whole;
+			internal Ways ways = default!;
+			internal Failure failure = default!;
+			internal int probes;
+			internal int pos;
+			internal int which;
+			internal int power;
+			internal int end;
+			internal global::System.Exception? thrown;
+
+			internal void Run()
+			{
+				try
+				{
+					var reader = new Reader_DotGram_Sum(this.whole.Span, this.ways, this.whole);
+
+					reader.failure = this.failure;
+					reader.probes = this.probes;
+
+					switch (this.which)
+					{
+						case 0: this.end = reader.Read_Sum_Sum(this.pos, this.power); break;
+					}
+
+					this.failure = reader.failure;
+					this.probes = reader.probes;
+				}
+				catch (global::System.Exception caught)
+				{
+					this.thrown = caught;
+				}
+			}
+		}
+
 		/// <summary>The whole input as <c>Sum</c>, read by methods.</summary>
-		static int Recognize_Sum_Whole(global::System.ReadOnlySpan<char> text, int pos, int power, ref Failure failure, out int value)
+		static int Recognize_Sum_Whole(global::System.ReadOnlySpan<char> text, int pos, int power, ref Failure failure, out int value, global::System.ReadOnlyMemory<char> parserWhole)
 		{
 			var ways = Ways.Rent();
 			var values = DirectValues.Rent();
 
 			try
 			{
-				int end;
+				var reader = new Reader_DotGram_Sum(text, ways, parserWhole);
 
-				try
-				{
-					end = Recognize_Sum_Read(text, pos, ref failure, ways, power);
-				}
-				catch (global::System.InsufficientExecutionStackException)
-				{
-					var from   = pos;
-					var copied = text.ToArray();
-					var deep   = failure;
-					var deeper = Ways.Rent();
-					var got    = -1;
-					var reader = new global::System.Threading.Thread(
-						() => got = Recognize_Sum_Read(copied, from, ref deep, deeper, power),
-						268435456);
+				reader.failure = failure;
 
-					reader.Start();
-					reader.Join();
-					failure = deep;
-					ways    = deeper;
-					end     = got;
-				}
+				var end = reader.Recognize_Sum_Whole_Read(pos, power);
+
+				failure = reader.failure;
 
 				if (end < 0)
 				{
@@ -2406,7 +2674,7 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				Materialize_DotGram_Sum_Direct(ways, text, values, ways.Last, 0);
+				Materialize_DotGram_Sum_Direct(ways, text, values, ways.Last, 0, 0);
 				value = values.V1[ways.Last].Value;
 
 				return end;
@@ -2418,159 +2686,10 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		/// <summary>What <c>Sum</c> is read by, whichever stack it is read on.</summary>
-		static int Recognize_Sum_Read(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways, int power)
-		{
-			var p = pos;
-			var s0 = ways.Cursor;
-			var q0 = 0;
-
-			Again:
-			p = pos;
-			q0 = Read_Sum_Sum(text, p, ref failure, ways, power);
-			if (q0 < 0) goto Fail;
-			p = q0;
-			if (p != text.Length)
-			{
-				Refuse_DotGram(ref failure, p, null, ways);
-				goto Fail;
-			}
-			return p;
-			Fail:
-			if (ways.Cursor > s0 && ways.Retry(s0)) goto Again;
-			return -1;
-		}
-
-		/// <summary><c>Sum</c>, read by a method of its own.</summary>
-		static int Read_Sum_Sum(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, Ways ways, int power)
-		{
-			var p = pos;
-			var c = '\0';
-			var s0 = ways.Cursor;
-			var lm = ways.LogCount;
-			var rb = ways.RefsCount;
-			var m0 = 0;
-			var m1 = 0;
-			var m2 = 0;
-			var s1 = 0;
-			var lm1 = 0;
-			var rr1 = 0;
-			var s2 = 0;
-			var lm2 = 0;
-			var rr2 = 0;
-			var s3 = 0;
-			var lm3 = 0;
-			var rr3 = 0;
-			var w0 = 0;
-			var d0 = 0;
-			var q0 = 0;
-			var a0 = -1;
-			var b0 = -1;
-			var r1 = -1;
-			var fold = -1;
-
-			Again:
-			p = pos;
-			a0 = -1;
-			b0 = -1;
-			r1 = -1;
-			fold = -1;
-			ways.LogCount  = lm;
-			ways.RefsCount = rb;
-			m0 = p;
-			s1 = ways.Cursor;
-			lm1 = ways.LogCount;
-			rr1 = ways.RefsCount;
-			L0_again:
-			a0 = p;
-			if ((uint)p >= (uint)text.Length)
-			{
-				Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected1, ways);
-				goto L1_undo;
-			}
-			c = text[p];
-			if (!(((c >= '0' && c <= '9'))))
-			{
-				Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected1, ways);
-				goto L1_undo;
-			}
-			p++;
-			b0 = p;
-			ways.Begin(0, 0, pos, p);
-			ways.Put(a0, b0);
-			ways.End(rb);
-			fold = ways.Last;
-			L3_turn:
-			r1 = -1;
-			{ if (ways.Cursor < ways.Count) { w0 = ways.Cursor; d0 = ways.Items[w0 * 2]; ways.Cursor++; } else { w0 = ways.Open(1); d0 = 0; } if (d0 == 1) goto L4_done; }
-			m1 = p;
-			s2 = ways.Cursor;
-			lm2 = ways.LogCount;
-			rr2 = ways.RefsCount;
-			L5_again:
-			if (1 < power) goto L6_failed;
-			m2 = p;
-			s3 = ways.Cursor;
-			lm3 = ways.LogCount;
-			rr3 = ways.RefsCount;
-			L7_again:
-			if ((uint)p >= (uint)text.Length || text[p] != '+')
-			{
-				Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected0, ways);
-				goto L8_undo;
-			}
-			p += 1;
-			global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
-			q0 = Read_Sum_Sum(text, p, ref failure, ways, 2);
-			if (q0 < 0) goto L8_undo;
-			p = q0;
-			r1 = ways.Last;
-			goto L9_on;
-			L8_undo:
-			p = m2;
-			ways.LogCount  = lm3;
-			ways.RefsCount = rr3;
-			r1 = -1;
-			if (ways.Cursor > s3 && ways.Retry(s3)) goto L7_again;
-			goto L6_failed;
-			L9_on: ;
-			ways.Begin(0, 1, pos, p);
-			ways.Put(fold);
-			ways.Put(r1);
-			ways.End(rb);
-			fold = ways.Last;
-			goto L3_turn;
-			L6_failed:
-			p = m1;
-			ways.LogCount  = lm2;
-			ways.RefsCount = rr2;
-			r1 = -1;
-			if (ways.Cursor > s2 && ways.Retry(s2)) goto L5_again;
-			ways.Next(w0, 1);
-			L4_done: ;
-			goto L2_on;
-			L1_undo:
-			p = m0;
-			ways.LogCount  = lm1;
-			ways.RefsCount = rr1;
-			a0 = -1;
-			b0 = -1;
-			r1 = -1;
-			if (ways.Cursor > s1 && ways.Retry(s1)) goto L0_again;
-			goto Fail;
-			L2_on: ;
-			return p;
-			Fail:
-			if (ways.Cursor > s0 && ways.Retry(s0)) goto Again;
-			ways.LogCount  = lm;
-			ways.RefsCount = rb;
-			return -1;
-		}
-
 		/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>
-		static void Materialize_DotGram_Sum_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from)
+		static void Materialize_DotGram_Sum_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first)
 		{
-			values.Room(ways.LogCount);
+			values.Room(ways.Records);
 
 			var log   = ways.Log;
 			var live  = values.Live;
@@ -2585,29 +2704,26 @@ namespace DotGram.Snapshots
 
 			for (var back = listed - 1; back >= 0; back--)
 			{
-				var at = starts[back];
+				var at   = starts[back];
+				var slot = first + back;
 
-				if (!live[at]) continue;
+				if (!live[slot]) continue;
 
-				var read = at + 5;
-				var factory = log[at + 2];
+				var read = at + 2;
 
 				switch (log[at + 1])
 				{
 					case 0:
 					{
-						switch (factory)
-						{
-							case 0:
-								read += 2;
-								break;
-							case 1:
-								live[log[read]] = true;
-								read++;
-								if (log[read] >= 0) live[log[read]] = true;
-								read++;
-								break;
-						}
+						read += 2;
+						break;
+					}
+					case 1:
+					{
+						live[log[read]] = true;
+						read++;
+						if (log[read] >= 0) live[log[read]] = true;
+						read++;
 						break;
 					}
 				}
@@ -2616,40 +2732,30 @@ namespace DotGram.Snapshots
 			var values1 = values.V1;
 			var values2 = values.V2;
 
-			for (var at = from; at < ways.LogCount; at += log[at])
+			for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
 			{
-				if (!live[at]) continue;
+				if (!live[slot]) continue;
 
-				var factory = log[at + 2];
-				var start   = log[at + 3];
-				var end     = log[at + 4];
-				var read    = at + 5;
+				var read  = at + 2;
 
 				switch (log[at + 1])
 				{
 					case 0:
 					{
-						switch (factory)
-						{
-							case 0:
-								{
-									var from0 = log[read++];
-									var to0   = log[read++];
-									var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
+						var from0 = log[read++];
+						var to0   = log[read++];
+						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
 
-									values1[at].Value = Construct_Sum(captured0!);
-									break;
-								}
-							case 1:
-								{
-									var accumulated = log[read++];
-									var record1 = log[read++];
-									var captured1 = values1[record1].Value;
+						values1[slot].Value = Construct_Sum(captured0!);
+						break;
+					}
+					case 1:
+					{
+						var accumulated = log[read++];
+						var record1 = log[read++];
+						var captured1 = values1[record1].Value;
 
-									values1[at].Value = Construct_Sum_1(values1[accumulated].Value, captured1!);
-									break;
-								}
-						}
+						values1[slot].Value = Construct_Sum_1(values1[accumulated].Value, captured1!);
 						break;
 					}
 				}
@@ -3280,7 +3386,7 @@ namespace DotGram.Snapshots
 
 				S22:
 				{
-					var scanned = Scan_eof_Sheet(text, p);
+					var scanned = Scan_eof_Sheet(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -3365,7 +3471,7 @@ namespace DotGram.Snapshots
 				{
 					failure.Position = p;
 					failure.Expected = expected;
-					failure.ExpectedMore = null;
+					failure.ExpectedMore?.Clear();
 				}
 				else if (lookahead < 0 && p == failure.Position && expected != null)
 				{
@@ -3467,7 +3573,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>eof</c>, recognized with nothing written down.</summary>
-		static int Scan_eof_Sheet(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_eof_Sheet(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var mark0 = 0;
@@ -3478,6 +3584,8 @@ namespace DotGram.Snapshots
 			p = mark0;
 			goto Refuse;
 			L0_absent: ;
+
+			if (p >= text.Length) failure.Starved = true;
 
 			return p;
 
@@ -3587,7 +3695,7 @@ namespace DotGram.Snapshots
 					goto Fail;
 				}
 				c = text[p];
-				if (!((global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == global::System.Globalization.UnicodeCategory.UppercaseLetter)))
+				if (!((c < 128 ? (c >= 'A' && c <= 'Z') : (global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == global::System.Globalization.UnicodeCategory.UppercaseLetter))))
 				{
 					expected = Recognize_DotGram_Upper_Expected0;
 					goto Fail;
@@ -3604,7 +3712,7 @@ namespace DotGram.Snapshots
 					goto S6;
 				}
 				c = text[p];
-				if (!((global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == global::System.Globalization.UnicodeCategory.UppercaseLetter)))
+				if (!((c < 128 ? (c >= 'A' && c <= 'Z') : (global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == global::System.Globalization.UnicodeCategory.UppercaseLetter))))
 				{
 					expected = Recognize_DotGram_Upper_Expected0;
 					goto S6;
@@ -3641,7 +3749,7 @@ namespace DotGram.Snapshots
 			var flat0_0End = 0;
 
 			{
-				p = Scan_Spaced_trivia_Spaced_Pair(text, p);
+				p = Scan_Spaced_trivia_Spaced_Pair(text, p, ref failure);
 			}
 
 			{
@@ -3687,7 +3795,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				p = Scan_Spaced_trivia_Spaced_Pair(text, p);
+				p = Scan_Spaced_trivia_Spaced_Pair(text, p, ref failure);
 			}
 
 			{
@@ -3715,7 +3823,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				p = Scan_Spaced_trivia_Spaced_Pair(text, p);
+				p = Scan_Spaced_trivia_Spaced_Pair(text, p, ref failure);
 			}
 
 			{
@@ -3766,7 +3874,7 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				p = Scan_Spaced_trivia_Spaced_Pair(text, p);
+				p = Scan_Spaced_trivia_Spaced_Pair(text, p, ref failure);
 				goto Accept;
 			}
 
@@ -3784,7 +3892,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>wordboundary</c>, recognized with nothing written down.</summary>
-		static int Scan_Spaced_wordboundary_Spaced_Pair(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_Spaced_wordboundary_Spaced_Pair(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var c = '\0';
@@ -3794,6 +3902,8 @@ namespace DotGram.Snapshots
 			if (!(((c >= 'a' && c <= 'z')))) goto Refuse;
 			p++;
 
+			if (p >= text.Length) failure.Starved = true;
+
 			return p;
 
 			Refuse:
@@ -3801,7 +3911,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary><c>trivia</c>, recognized with nothing written down.</summary>
-		static int Scan_Spaced_trivia_Spaced_Pair(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_Spaced_trivia_Spaced_Pair(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var c = '\0';
@@ -3828,6 +3938,8 @@ namespace DotGram.Snapshots
 			goto L0_turn;
 			L1_done:
 			;
+
+			if (p >= text.Length) failure.Starved = true;
 
 			return p;
 		}
@@ -3978,7 +4090,7 @@ namespace DotGram.Snapshots
 				{
 					failure.Position = p;
 					failure.Expected = expected;
-					failure.ExpectedMore = null;
+					failure.ExpectedMore?.Clear();
 				}
 				else if (lookahead < 0 && p == failure.Position && expected != null)
 				{
@@ -4979,7 +5091,9 @@ namespace DotGram.Snapshots
 
 			/// <summary>
 			/// A second array and beyond, where more than one terminal tied for the
-			/// furthest position. Null until an actual tie needs one.
+			/// furthest position. Null until an actual tie needs one, and emptied rather
+			/// than dropped when the furthest position moves on: a parse that ties once
+			/// tends to tie again, and a list per tie was an allocation per operand.
 			/// </summary>
 			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
 		}
@@ -5265,7 +5379,16 @@ namespace DotGram.Snapshots
 			/// <summary>How much of the log is written.</summary>
 			internal int LogCount;
 
-			/// <summary>Where the record most recently finished begins: the value a caller captures.</summary>
+			/// <summary>How many records the log holds: the number the next one is given.</summary>
+			/// <remarks>
+			/// A record is named by its number and not by where it was written, so that the
+			/// tables the walk builds into are as long as there are records and not as long as
+			/// the log. On a real grammar that is four or five times shorter, which is the
+			/// difference between a table that fits in the first cache and one that does not.
+			/// </remarks>
+			internal int Records;
+
+			/// <summary>Which record finished most recently: the number a caller captures.</summary>
 			internal int Last = -1;
 
 			/// <summary>
@@ -5284,7 +5407,9 @@ namespace DotGram.Snapshots
 			/// <summary>How much of the side stack is in use.</summary>
 			internal int RefsCount;
 
+			/// <summary>Where the record being written begins, and which record it is.</summary>
 			int _record;
+			int _number;
 
 			[global::System.ThreadStatic]
 			static Ways? _spare;
@@ -5301,6 +5426,7 @@ namespace DotGram.Snapshots
 				spare.Cursor = 0;
 				spare.Lookahead = 0;
 				spare.LogCount  = 0;
+				spare.Records   = 0;
 				spare.RefsCount = 0;
 				spare.Last      = -1;
 				spare.Built     = 0;
@@ -5388,20 +5514,46 @@ namespace DotGram.Snapshots
 					Items[way * 2 + 1] = Items[way * 2];
 			}
 
-			/// <summary>Opens a record: its length is written when it ends.</summary>
-			internal void Begin(int rule, int factory, int start, int end)
+			/// <summary>
+			/// Opens a record: its length is written when it ends.
+			/// </summary>
+			/// <remarks>
+			/// One number says which rule wrote it and which of that rule's alternatives,
+			/// because the walk at the end wants both together and asking twice cost a
+			/// switch inside a switch — two jump tables where a record needs one.
+			/// </remarks>
+			/// <summary>
+			/// Opens a record that stands nowhere in particular: where nothing a machine
+			/// builds is a span of the input, and no factory it runs asks where it read,
+			/// the two positions are two integers written and never looked at.
+			/// </summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			internal void Begin(int arm)
 			{
-				if (LogCount + 5 > Log.Length)
-					global::System.Array.Resize(ref Log, Log.Length * 2 + 5);
+				if (LogCount + 2 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 2);
 
 				_record = LogCount;
+				_number = Records++;
 				Log[LogCount++] = 0;
-				Log[LogCount++] = rule;
-				Log[LogCount++] = factory;
+				Log[LogCount++] = arm;
+			}
+
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			internal void Begin(int arm, int start, int end)
+			{
+				if (LogCount + 4 > Log.Length)
+					global::System.Array.Resize(ref Log, Log.Length * 2 + 4);
+
+				_record = LogCount;
+				_number = Records++;
+				Log[LogCount++] = 0;
+				Log[LogCount++] = arm;
 				Log[LogCount++] = start;
 				Log[LogCount++] = end;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void Put(int value)
 			{
 				if (LogCount + 1 > Log.Length)
@@ -5410,6 +5562,7 @@ namespace DotGram.Snapshots
 				Log[LogCount++] = value;
 			}
 
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void Put(int a, int b)
 			{
 				if (LogCount + 2 > Log.Length)
@@ -5420,7 +5573,21 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>Closes the record: its length goes in front, and it becomes the last.</summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 			internal void End(int refs)
+			{
+				Log[_record] = LogCount - _record;
+				Last         = _number;
+				RefsCount    = refs;
+			}
+
+			/// <summary>
+			/// The record closed, and named by where it stands rather than by its number:
+			/// an extent is the one thing whose value is the record itself, read straight
+			/// out of the log by whoever captured it, and never put in a table.
+			/// </summary>
+			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+			internal void EndAt(int refs)
 			{
 				Log[_record] = LogCount - _record;
 				Last         = _record;
@@ -5436,6 +5603,8 @@ namespace DotGram.Snapshots
 			{
 				if (LogCount + 5 > Log.Length)
 					global::System.Array.Resize(ref Log, Log.Length * 2 + 5);
+
+				Records++;
 
 				Log[LogCount++] = 5;
 				Log[LogCount++] = kind;
@@ -5491,11 +5660,22 @@ namespace DotGram.Snapshots
 			{
 				failure.Position     = at;
 				failure.Expected     = expected;
-				failure.ExpectedMore = null;
+				failure.ExpectedMore?.Clear();
 			}
-			else if (at == failure.Position && expected != null)
+			else if (at == failure.Position && expected != null && !ReferenceEquals(expected, failure.Expected))
 			{
-				(failure.ExpectedMore ??= new global::System.Collections.Generic.List<string[]>()).Add(expected);
+				// The same set said twice is one thing wanted, not two. A rule refused at the
+				// furthest position by several of its alternatives says the same set from
+				// each, and a message listing it once is the message; a list holding it
+				// several times is a list that grew on a parse that went on to succeed.
+				var more = failure.ExpectedMore;
+
+				if (more == null)
+					failure.ExpectedMore = more = new global::System.Collections.Generic.List<string[]>();
+				else if (more.Count > 0 && ReferenceEquals(more[more.Count - 1], expected))
+					return;
+
+				more.Add(expected);
 			}
 		}
 

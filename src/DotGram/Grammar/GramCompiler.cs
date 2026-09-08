@@ -47,7 +47,7 @@ public static class GramCompiler
 
 		diagnostics.AddRange(parsed.Diagnostics);
 
-		var model = GrammarBinder.Bind(parsed.File, options.SymbolResolver);
+		var model = GrammarBinder.Bind(parsed.File, options.SymbolResolver, options.Own);
 		var graph = GrammarNormalizer.Normalize(model, options.SymbolResolver, options.CSharpScanner);
 
 		// What the later stages made of a declaration whose syntax did not come out is
@@ -71,6 +71,10 @@ public static class GramCompiler
 		// answering a question they are not asking yet.
 		if (!HasErrors(diagnostics))
 		{
+			foreach (var diagnostic in graph.WhenSound)
+				if (!Inside(broken, diagnostic))
+					diagnostics.Add(diagnostic);
+
 			diagnostics.AddRange(Retention.Check(graph));
 			diagnostics.AddRange(FirstSets.Check(graph));
 		}
@@ -87,10 +91,13 @@ public static class GramCompiler
 
 		if (!HasErrors(diagnostics))
 			sources.Add(new GeneratedSource(
-				$"{options.ClassName}.gram.g.cs",
+				options.Suffix is { Length: > 0 } suffix
+					? $"{options.ClassName}.{suffix}.gram.g.cs"
+					: $"{options.ClassName}.gram.g.cs",
 				CSharpEmitter.Emit(
 					lexical?.Syntax ?? graph, options.ClassName, options.Namespace, options.LineMap,
-					diagnostics, options.PartSize, lexical, options.Direct,
+					diagnostics, options.PartSize, lexical, options.Direct, options.Carrier, options.Stacks,
+					options.Suffix, options.SharedTypes, options.Inherits,
 					options.LanguageId, options.LanguageSource, options.LanguageClassifications,
 					options.LanguageRecognitionContract)));
 
@@ -165,6 +172,12 @@ public static class GramCompiler
 
 	/// <summary>The grammar was sound and still could not be cut in two.</summary>
 	public const string NotCut = "GRAM5004";
+
+	/// <summary>The carrier the author asked for could not carry the grammar.</summary>
+	public const string CarrierRefused = "GRAM5007";
+
+	/// <summary>The tape is holding constructions back for a promise the grammar may not need.</summary>
+	public const string TapeNotNeeded = "GRAM5008";
 
 	/// <summary>
 	/// One error per position, in the order they were raised.

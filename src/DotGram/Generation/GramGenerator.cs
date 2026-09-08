@@ -53,7 +53,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		var hosts = context.SyntaxProvider.ForAttributeWithMetadataName(
 			GramAttribute,
 			static (node, _) => node is ClassDeclarationSyntax,
-			static (candidate, _) => Host.From(candidate));
+			static (candidate, _) => Host.All(candidate))
+			.SelectMany(static (all, _) => all);
 
 		var files = context.AdditionalTextsProvider
 			.Where(static file => file.Path.EndsWith(GramFileExtension, StringComparison.OrdinalIgnoreCase))
@@ -282,6 +283,22 @@ public sealed class GramGenerator : IIncrementalGenerator
 			reports.Add(Report.Of(
 				Diagnostics.InvalidIncludedName, host.Location, host.ClassName, included));
 
+		// Said about the host for the same reason: a scope named twice, or named with
+		// something that is not a class's name, is settled before a grammar is read.
+		if (host.Repeated)
+		{
+			reports.Add(Report.Of(Diagnostics.RepeatedGrammarScope, host.Location, host.ClassName));
+
+			return new Grammar(host, null, null, default, default, Values(reports));
+		}
+
+		if (host.Suffix is { Length: > 0 } scope && !IsIdentifier(scope))
+		{
+			reports.Add(Report.Of(Diagnostics.InvalidGrammarScope, host.Location, host.ClassName, scope));
+
+			return new Grammar(host, null, null, default, default, Values(reports));
+		}
+
 		if (!TryResolveGrammar(reports, host, files, out var own, out var path))
 			return new Grammar(host, null, null, default, default, Values(reports));
 
@@ -355,6 +372,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 		var host    = grammar.Host;
 		var reports = ImmutableArray.CreateBuilder<Report>();
 
+		// More than one piece means a base's grammar was joined onto this one, which is
+		// what makes this class a dialect: its parser stands beside the base's and names
+		// its members the same. A base whose grammar could not be found leaves one piece
+		// and nothing to stand beside, which is the right answer either way.
+		var inherits = grammar.Pieces.Items.Length > 1;
+
 		// What the first stage had to say, carried rather than dropped. Every report it
 		// used to make came with an early return — no text, so the branch above hands them
 		// on — and the first one that could stand beside a grammar that reads perfectly
@@ -385,6 +408,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 			PartSize       = host.PartSize == 0 ? null : host.PartSize,
 			Lexical        = host.Lexical,
 			Direct         = host.Direct,
+			Carrier        = (CarrierKind)host.Carrier,
+			Stacks         = host.Stacks,
+			Suffix         = host.Suffix,
+			SharedTypes    = host.Shared,
+			Inherits       = inherits,
+			Own            = inherits ? grammar.Pieces.Items[0].Length : null,
 		});
 
 		foreach (var diagnostic in result.Diagnostics)
@@ -648,7 +677,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<Included> Includes = default,
 		int       PartSize   = 0,
 		bool      Lexical    = false,
-		bool      Direct     = true)
+		bool      Direct     = true,
+		int       Carrier    = 0,
+		int       Stacks     = 0,
+		string?   Suffix     = null,
+		bool      Repeated   = false,
+		bool?     Shared     = null)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -711,15 +745,49 @@ public sealed class GramGenerator : IIncrementalGenerator
 				? "<" + string.Join(", ", parameters.Parameters.Select(static p => p.Identifier.ValueText)) + ">"
 				: "";
 
-		public static Host From(GeneratorAttributeSyntaxContext candidate)
+		/// <summary>One host per <c>[Gram]</c> the class carries, in the order written.</summary>
+		/// <remarks>
+		/// Several are several compilations of the class, each in a nested class of its own
+		/// and a file of its own. A suffix written twice, or left off twice, would name one
+		/// scope twice; the second one to do it is marked here and told so where the rest of
+		/// the host's own diagnostics are said.
+		/// </remarks>
+		public static ImmutableArray<Host> All(GeneratorAttributeSyntaxContext candidate)
+		{
+			var hosts = ImmutableArray.CreateBuilder<Host>(candidate.Attributes.Length);
+			var taken = new HashSet<string>(StringComparer.Ordinal);
+
+			foreach (var attribute in candidate.Attributes)
+			{
+				// Everything a second attribute does not say, it takes from the first: the
+				// grammar, whether it is read as tokens, how it is divided. That is what
+				// writing a second one means — the same parser, compiled differently — and
+				// what it does say is the difference. The first has nothing to take from.
+				var host = From(candidate, attribute, hosts.Count > 0 ? hosts[0] : null);
+
+				hosts.Add(host with
+				{
+					Repeated = !taken.Add(host.Suffix ?? ""),
+
+					// The first writes what the host's own C# names; the rest read it from the
+					// class around them. Null where there is nothing to share it with.
+					Shared   = candidate.Attributes.Length > 1 ? hosts.Count == 0 : null,
+				});
+			}
+
+			return hosts.ToImmutable();
+		}
+
+		static Host From(GeneratorAttributeSyntaxContext candidate, AttributeData attribute, Host? first = null)
 		{
 			var type        = (INamedTypeSymbol)candidate.TargetSymbol;
 			var declaration = (ClassDeclarationSyntax)candidate.TargetNode;
-			var attribute   = candidate.Attributes[0];
 
 			var source = attribute.ConstructorArguments.Length == 1
 				? attribute.ConstructorArguments[0].Value as string
 				: null;
+
+			var named = source is null && first is not null;
 
 			var includedAs = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.IncludedAs))
@@ -743,18 +811,38 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// unreasonable — see `Machine.PartSize`.
 			var partSize = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.PartSize))
-				.Value.Value as int? ?? 0;
+				.Value.Value as int? ?? first?.PartSize ?? 0;
 
 			// A request and not a setting: a grammar that cannot be cut in two is compiled
 			// over characters and told why (GRAM5004), so nothing written here fails a build.
 			var lexical = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.Lexical))
-				.Value.Value as bool? ?? false;
+				.Value.Value as bool? ?? first?.Lexical ?? false;
 
 			var direct = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.Direct))
-				.Value.Value as bool? ?? true;
+				.Value.Value as bool? ?? first?.Direct ?? true;
 
+			// Which carrier the author chose (docs/next.md, the redesign). An enum constant
+			// reaches an analyzer as its underlying integer, and nought is the tape.
+			var carrier = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.Carrier))
+				.Value.Value as int? ?? first?.Carrier ?? 0;
+
+			// How many stacks a parse may take past the one it began on. Nought is as many
+			// as there is memory for, which is the default.
+			var stacks = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.Stacks))
+				.Value.Value as int? ?? first?.Stacks ?? 0;
+
+			// Which nested class this compilation goes into, where the host has more than
+			// one grammar. Null is the host class itself, which one of them may be.
+			var suffix = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.Suffix))
+				.Value.Value as string;
+
+			// A request, like `Lexical`: a grammar the reader cannot write is written the
+			// way it was before the reader existed and told so (GRAM5006).
 			// The literal as written, kept beside the value it decodes to. A diagnostic
 			// carries an offset into the value; putting it where the author can see it
 			// means finding that place in the spelling, and the spelling is the only thing
@@ -790,22 +878,29 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Namespace: type.ContainingNamespace.IsGlobalNamespace
 					? null
 					: type.ContainingNamespace.ToDisplayString(),
-				HintName:  type.ToDisplayString().Replace('<', '_').Replace('>', '_'),
+				HintName:  type.ToDisplayString().Replace('<', '_').Replace('>', '_') +
+					(suffix is { Length: > 0 } ? "." + suffix : ""),
 				IsPartial: isPartial,
-				Source:    source,
+				Source:    named ? first!.Value.Source : source,
 				LanguageId: languageId,
 				LanguageClassifications: classifications,
 				LanguageRecognitionContract: recognitionContract,
 				Location:  attribute.ApplicationSyntaxReference is { } reference
 					? Microsoft.CodeAnalysis.Location.Create(reference.SyntaxTree, reference.Span)
 					: declaration.Identifier.GetLocation(),
-				Literal:    written == default ? null : written.Text,
-				LiteralAt:  written == default ? 0    : written.SpanStart,
+				// The spelling stays the first's where the grammar is: a diagnostic carries an
+				// offset into the grammar, and putting it where the author can see it means
+				// finding it in the text they actually wrote.
+				Literal:    named ? first!.Value.Literal   : written == default ? null : written.Text,
+				LiteralAt:  named ? first!.Value.LiteralAt : written == default ? 0    : written.SpanStart,
 				IncludedAs: includedAs,
 				Includes:   new EquatableArray<Included>(Inherited(type)),
 				PartSize:   partSize,
 				Lexical:    lexical,
-				Direct:     direct);
+				Direct:     direct,
+				Carrier:    carrier,
+				Stacks:     stacks,
+				Suffix:     suffix);
 		}
 
 		static string? Classification(AttributeData attribute)
@@ -859,10 +954,17 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 			for (var above = type.BaseType; above is not null; above = above.BaseType)
 			{
-				var attribute = above
+				// The one compiled into the base class itself where there are several: a
+				// grammar including another names a class, and what that class publishes
+				// under a scope of its own is that scope's, not the class's.
+				var grammars = above
 					.GetAttributes()
-					.FirstOrDefault(static candidate =>
-						candidate.AttributeClass?.ToDisplayString() == GramAttribute);
+					.Where(static candidate =>
+						candidate.AttributeClass?.ToDisplayString() == GramAttribute)
+					.ToList();
+
+				var attribute = grammars.Find(static candidate =>
+					candidate.NamedArguments.All(static named => named.Key != nameof(Host.Suffix)));
 
 				if (attribute is null)
 					continue;

@@ -262,6 +262,7 @@ public sealed partial class GrammarNormalizer
 		Node rebuilt = node switch
 		{
 			Node.Empty                                                              => new Node.Empty(),
+			Node.Glue                                                               => Node.Glue.Instance,
 			Node.Element  (var negated, var ranges, var categories, var references) => new Node.Element(negated, ranges, categories, references),
 			Node.Literal  (var text) { IgnoreCase: var ignoreCase }                 => new Node.Literal(text) { IgnoreCase = ignoreCase },
 			Node.Guard    (var text, var at)                                        => new Node.Guard(text, at),
@@ -272,6 +273,7 @@ public sealed partial class GrammarNormalizer
 			Node.Marked   (var body, var text)                                      => new Node.Marked(SpliceWithSites(body, rewrites), text),
 			Node.Repeat   (var body, var min, var max)                              => new Node.Repeat(SpliceWithSites(body, rewrites), min, max),
 			Node.Lookahead(var positive, var body)                                  => new Node.Lookahead(positive, SpliceWithSites(body, rewrites)),
+			Node.Behind   (var test)                                                => new Node.Behind(Same(test)),
 			Node.Capture  (var name, var body)                                      => new Node.Capture(name, SpliceWithSites(body, rewrites)),
 			Node.Construct(var body, var how)                                       => new Node.Construct(SpliceWithSites(body, rewrites), how),
 			// Left unrewritten here — no targets/cloneMap apply at this level. A call that

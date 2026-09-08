@@ -77,10 +77,28 @@ public static class FollowSets
 		foreach (var rule in graph.Rules)
 			follow[rule] = Continuation.None;
 
+		// A publication is entered through the shape the entry method is written in — the
+		// namespace's trivia, the rule, the trivia again — and that leading application is
+		// a call site like any other. Left out of the walk, the trivia is never told that a
+		// look may stand right behind it and want to read what the trivia would otherwise
+		// swallow.
+		var entries = new List<(Node Body, Continuation After, RuleSymbol? Seam)>();
+
 		foreach (var publication in graph.Publications)
-			if (follow.ContainsKey(publication.Rule))
-				follow[publication.Rule] = follow[publication.Rule].Or(
-					publication.Kind == PublishKind.Parse ? Continuation.End : Continuation.All);
+		{
+			if (!follow.ContainsKey(publication.Rule))
+				continue;
+
+			var after = publication.Kind == PublishKind.Parse ? Continuation.End : Continuation.All;
+
+			if (graph.Trivia.TryGetValue(publication.Rule, out var around))
+				entries.Add((
+					new Node.Sequence([around, new Node.Call(publication.Rule, []), around]),
+					after,
+					SeamOf(publication.Rule, graph)));
+			else
+				follow[publication.Rule] = follow[publication.Rule].Or(after);
+		}
 
 		// Round and round until nothing new is said. Each round can only add — the union of
 		// what a rule was told and what this round tells it — so the sets grow towards a
@@ -89,6 +107,9 @@ public static class FollowSets
 		for (var round = 0; round <= graph.Rules.Count + 1; round++)
 		{
 			var settled = true;
+
+			foreach (var (body, after, seam) in entries)
+				Contribute(body, after, seam);
 
 			foreach (var rule in graph.Rules)
 				if (graph.Bodies.TryGetValue(rule, out var body))
@@ -219,6 +240,27 @@ public static class FollowSets
 					merged = merged.Or(Precedes(alternative, after, graph, seam));
 
 				return merged;
+			}
+
+			// A look consumes nothing but it still reads, so what stands before it is
+			// followed by what the look reads as well as by what follows the look. A
+			// refusal reads too: it has to see the characters it refuses before it can say
+			// they are not there, and where they are not there the rest reads them
+			// instead. Either way the answer is the same union, and leaving it out is what
+			// let a run before a look be called settled when the look was about to want a
+			// character the run had taken.
+			case Node.Lookahead(_, var watched):
+			{
+				var read  = FirstSets.Of(watched, graph);
+				var plain = read.Or(Plainly(node, after.Plain, graph));
+
+				var seamFirst = seam is not null && graph.Bodies.TryGetValue(seam, out var body)
+					? FirstSets.Of(body, graph)
+					: FirstSets.First.None;
+
+				var past = read.Overlaps(seamFirst) ? FirstSets.First.All : read;
+
+				return new Continuation(plain, past.Or(after.AfterSeam));
 			}
 
 			case Node.Capture(_, var captured):  return Precedes(captured, after, graph, seam);

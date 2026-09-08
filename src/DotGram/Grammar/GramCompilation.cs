@@ -132,4 +132,96 @@ public sealed class GramCompilerOptions
 	/// which is what a test of the engine, or a comparison against it, asks for.
 	/// </summary>
 	public bool Direct { get; set; } = true;
+
+	/// <summary>
+	/// How a reader carries what it has read until the author's constructions run
+	/// (<see cref="CarrierKind"/>). The tape by default, which keeps §7.3; the others are
+	/// the author's choice, and a grammar a chosen carrier cannot carry is compiled on the
+	/// tape instead.
+	/// </summary>
+	public CarrierKind Carrier { get; set; } = CarrierKind.Tape;
+
+	/// <summary>
+	/// How many stacks one parse may take beyond the one it began on, or nought for as
+	/// many as there is memory for.
+	/// </summary>
+	/// <remarks>
+	/// A reading that runs its stack low carries on over a stack of its own; this is
+	/// where that stops and the parse fails with <c>InsufficientExecutionStackException</c>
+	/// instead, which is what it did before it could carry on at all.
+	/// </remarks>
+	public int Stacks { get; set; }
+
+	/// <summary>
+	/// The nested class this compilation goes into, where the host holds more than one
+	/// (<c>[Gram(Suffix = "...")]</c>). Null puts it in the host class itself.
+	/// </summary>
+	/// <remarks>
+	/// A host with two grammars — the same one compiled two ways, usually — cannot put
+	/// both in one scope: a file's support is written once and named for what it is, so a
+	/// second copy of <c>Match&lt;T&gt;</c>, of the failure, of the lexer and of the value
+	/// tables would collide with the first, name for name. A class of its own is a scope
+	/// of its own. What the host declares stays in reach either way: a nested class reads
+	/// the static members of the class around it by their simple names, which is what a
+	/// grammar's <c>=&gt;</c> calls are.
+	/// </remarks>
+	public string? Suffix { get; set; }
+
+	/// <summary>
+	/// Which compilation of a host writes the types the host's own C# names — the span
+	/// (§7.5) and the match (§6.1). Null where the host has one grammar and they are its
+	/// own; true for the one that writes them for every other; false for the others.
+	/// </summary>
+	public bool? SharedTypes { get; set; }
+
+	/// <summary>
+	/// Whether the host inherits a grammar from a base class, so that what this
+	/// compilation writes stands beside a parser the base already wrote.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A dialect is a class that inherits a grammar and publishes its own reading of
+	/// it — T-SQL over standard SQL. Both classes are whole parsers, and the derived
+	/// one names its members what the base named its own: <c>ParseSelect</c> is
+	/// <c>ParseSelect</c> in either. In C# that is hiding, and hiding is exactly what
+	/// a dialect means — <c>TransactSql.ParseSelect</c> reads T-SQL — so the warning
+	/// asking whether it was intended is answered here rather than left to the
+	/// consumer, who did not write the code it is about.
+	/// </para>
+	/// <para>
+	/// The support types are hidden too, and are not shared instead: a base declares
+	/// them only where it publishes something (<see cref="SharedTypes"/>), so a host
+	/// that went without its own would have none at all wherever it inherits a grammar
+	/// that publishes nothing — which is the ordinary shape of a grammar written to be
+	/// inherited. Each class carries its own, and the values they hold — the trees the
+	/// author's own <c>=&gt;</c> builds — are the same types either way.
+	/// </para>
+	/// </remarks>
+	public bool Inherits { get; set; }
+
+	/// <summary>
+	/// How much of the text is the host's own, where the rest of it was included from
+	/// a base. Null when all of it is, which is every grammar that inherits nothing.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// What it decides is publication: a <c>parse</c> written past this point belongs to
+	/// the grammar that was included, and that grammar's own class already published it.
+	/// Publishing it again here would put a second method of the same name on a derived
+	/// class — and it would be the base's rule, not the dialect's reading of it, which
+	/// is the opposite of what a dialect is for. A host takes its base's rules and
+	/// publishes what it means to publish.
+	/// </para>
+	/// <para>
+	/// One number rather than a set of ranges, because the joined text puts the host's
+	/// own grammar first and everything included after it (<see cref="GrammarSplice"/>).
+	/// </para>
+	/// </remarks>
+	public int? Own { get; set; }
+
+	/// <summary>
+	/// Whether a publication the reader can write is written by it
+	/// (<c>Machine.Reader.cs</c>) rather than by the rendering it is replacing. Off by
+	/// default while the reader is being taught the rest of the language.
+	/// </summary>
 }

@@ -7,3 +7,8 @@
 *.jpg binary
 *.dll binary
 *.snk binary
+
+# Somebody else's corpus, kept byte for byte. Fifteen of the files are UTF-16 and
+# normalizing line endings would corrupt them; more to the point, the whole value
+# of a corpus written elsewhere is that it is the text they wrote and not ours.
+tests/Corpus/ScriptDom/** -text

@@ -50,7 +50,7 @@ sealed partial class Machine
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
-			$"ref {CSharpEmitter.FailureType} failure{ContextParameter})"))
+			$"ref {CSharpEmitter.FailureType} failure{InputParameter}{TokensParameter}{ContextParameter})"))
 		{
 			file.Line("var p = pos;");
 
@@ -143,7 +143,7 @@ sealed partial class Machine
 				{
 					file.Line("failure.Position = p;");
 					file.Line("failure.Expected = expected;");
-					file.Line("failure.ExpectedMore = null;");
+					file.Line("failure.ExpectedMore?.Clear();");
 				}
 				using (file.Block("else if (p == failure.Position && expected != null)"))
 				{
@@ -393,7 +393,8 @@ sealed partial class Machine
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
-			$"ref {CSharpEmitter.FailureType} failure, out {type} value{ContextParameter})"))
+			$"ref {CSharpEmitter.FailureType} failure, out {type} value" +
+			$"{InputParameter}{TokensParameter}{ContextParameter})"))
 		{
 			file.Line("var p = pos;");
 

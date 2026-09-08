@@ -69,6 +69,23 @@ sealed partial class Machine
 	/// how the step's factory takes it (§4.3), and the record of a base holding what the
 	/// rule collects, as the base's factory takes it.
 	/// </summary>
+	/// <summary>Whether any rule collects this one across the turns of a repetition.</summary>
+	/// <remarks>
+	/// Which is a stack to gather on, of the collected rule's own type. Asked by the
+	/// immediate carrier about an extent: it can carry one as a value, having the two
+	/// positions in hand, and cannot gather one, there being no stack of spans — nothing
+	/// else ever stores a span, so the value tables leave the type out.
+	/// </remarks>
+	bool Gathered(RuleSymbol rule)
+	{
+		foreach (var owner in _rules)
+			foreach (var member in DirectMembers(owner))
+				if (member.Shape == MemberShape.Records && ReferenceEquals(member.Member.Rule, rule))
+					return true;
+
+		return false;
+	}
+
 	List<DirectMember> DirectMembers(RuleSymbol rule, int factory = -1)
 	{
 		var members  = _graph.Results[rule];
@@ -178,6 +195,47 @@ sealed partial class Machine
 		return null;
 	}
 
+	/// <summary>The rule a capture of the owner reads, or none where it reads text.</summary>
+	/// <remarks>
+	/// The results say which member a capture belongs to; they do not say which rule was read
+	/// there, and one member may be captured in two places that read two different rules —
+	/// <c>t: UnsignedLiteral =&gt; @(t)</c> beside <c>t: GeneralValueSpecification =&gt; @(t)</c>.
+	/// A carrier handing values about by value type never has to ask, both of those building
+	/// the type the member is declared as; one keeping a shape per rule has to, and the body
+	/// is where the answer is.
+	/// </remarks>
+	internal RuleSymbol? RuleAt(RuleSymbol owner, int slot)
+	{
+		if (_read.TryGetValue((owner, slot), out var known))
+			return known;
+
+		var found = default(RuleSymbol);
+
+		foreach (var node in NodeWalk.Descendants(_graph.Bodies[owner]))
+			if (node is Node.Capture(_, var held) &&
+				_captureSlots.TryGetValue(node, out var at) &&
+				at - _captureOffsets[owner] == slot)
+			{
+				found = Called(held);
+
+				break;
+			}
+
+		return _read[(owner, slot)] = found;
+
+		static RuleSymbol? Called(Node node) =>
+			node switch
+			{
+				Node.Call(var rule, _)                        => rule,
+				Node.Construct(var body, _)                   => Called(body),
+				Node.Atomic(var body)                         => Called(body),
+				Node.Sequence(var parts) when parts.Count == 1 => Called(parts[0]),
+				_                                             => null,
+			};
+	}
+
+	readonly Dictionary<(RuleSymbol Owner, int Slot), RuleSymbol?> _read = [];
+
 	/// <summary>Whether a rule keeps a value at all, and so writes a record.</summary>
 	bool Valued(RuleSymbol rule) => ValueRule(rule) >= 0;
 
@@ -282,6 +340,107 @@ sealed partial class Machine
 	}
 
 	/// <summary>
+	/// Every record a machine can write, numbered: one arm per rule and alternative that
+	/// writes one. The record carries this number and the walk switches on it once.
+	/// </summary>
+	/// <remarks>
+	/// Numbered before a line is written, because the readers name an arm as they are
+	/// rendered and the walk names the same arms afterwards. Allocated on demand from
+	/// two places, the two would agree only by luck.
+	/// </remarks>
+	void DirectArms(IReadOnlyList<RuleSymbol> rules)
+	{
+		_directArms.Clear();
+		_directArmed.Clear();
+
+		foreach (var rule in rules)
+		{
+			if (!DirectRecords(rule))
+				continue;
+
+			var factories = _factories[rule];
+
+			if (factories.Count == 0)
+			{
+				Armed(rule, -1);
+
+				continue;
+			}
+
+			for (var i = 0; i < factories.Count; i++)
+				if (!DirectForwards(rule, i))
+					Armed(rule, i);
+		}
+
+		void Armed(RuleSymbol rule, int factory)
+		{
+			_directArms[(rule, factory)] = _directArms.Count;
+			_directArmed.Add((rule, factory));
+		}
+	}
+
+	readonly Dictionary<(RuleSymbol Rule, int Factory), int> _directArms = [];
+	readonly List<(RuleSymbol Rule, int Factory)>            _directArmed = [];
+
+	/// <summary>The rules a direct rendering is being written for, for the record's shape.</summary>
+	internal IReadOnlyList<RuleSymbol> _directRules = [];
+
+	/// <summary>Which arm a rule's alternative writes its record under.</summary>
+	public int DirectArm(RuleSymbol rule, int factory) => _directArms[(rule, factory)];
+
+	/// <summary>
+	/// Whether a rule writes a record at all: one whose every alternative hands its
+	/// operand up writes none, and the walk needs no arm for it.
+	/// </summary>
+	bool DirectRecords(RuleSymbol rule)
+	{
+		if (!Valued(rule))
+			return false;
+
+		var factories = _factories[rule];
+
+		if (factories.Count == 0)
+			return true;
+
+		for (var i = 0; i < factories.Count; i++)
+			if (!DirectForwards(rule, i))
+				return true;
+
+		return false;
+	}
+
+	/// <summary>
+	/// Whether any arm of the walk reads the positions a record stands on: a factory that
+	/// asks for the text or the span, or a terminal the lexer measured and a machine of
+	/// its own rereads. Where none does, the two loads are not made.
+	/// </summary>
+	public bool DirectPositions(IReadOnlyList<RuleSymbol> rules)
+	{
+		foreach (var rule in rules)
+		{
+			if (!Valued(rule))
+				continue;
+
+			// An extent's value is the span its record stands on; nothing else is read
+			// from it, and nothing else would be there to read.
+			if (IsExtent(rule))
+				return true;
+
+			if (_reread is not null && _reread.Contains(rule))
+				return true;
+
+			foreach (var factory in _factories[rule])
+				if (CSharpEmitter.WantsText(_graph, factory) ||
+					CSharpEmitter.Asks(_graph, factory, "parserSpan"))
+				{
+					return true;
+				}
+		}
+
+		return false;
+	}
+
+	/// <summary>
 	/// Whether an alternative's value is exactly the value of the one rule it called, so
 	/// that it needs no record of its own.
 	/// </summary>
@@ -301,6 +460,16 @@ sealed partial class Machine
 	/// checked rather than assumed.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// The same, asked where the answer decides what the reader writes rather than what the
+	/// walk reads: a carrier that hands a value between rules by rule and not by type has
+	/// the caller looking somewhere the callee never wrote, and the alternative has to
+	/// write after all. Asked here and not inside, because the carrier is chosen from what
+	/// the machine turned out to hold and the analysis runs before it does.
+	/// </summary>
+	bool ForwardsInPlace(RuleSymbol? rule, int factory) =>
+		Carrier.ForwardsInPlace && DirectForwards(rule, factory);
+
 	bool DirectForwards(RuleSymbol? rule, int factory)
 	{
 		if (rule is null || factory < 0 || IsExtent(rule) || _reread is not null && _reread.Contains(rule))
@@ -408,18 +577,13 @@ sealed partial class Machine
 
 		file.Line("/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>");
 
-		var folds = rules.Any(rule => Valued(rule) && _graph.Folds.ContainsKey(rule));
-
-		// The marking pass reads the factory wherever a record's members depend on it: a
-		// fold, and any rule of several alternatives now that each writes its own.
-		var chooses = folds || rules.Any(rule => Valued(rule) && _factories[rule].Count > 1);
 
 		// The root is the record whose value is wanted — the last one written, at the end;
 		// a captured rule's, for a guard. `from` is where the walk may begin: a guard's
 		// captures were recorded since its rule began, and nothing before that reaches them.
 		using (file.Block(
 			$"static void {DirectMaterializer}(" +
-			$"{WaysType} ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from" +
+			$"{WaysType} ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first" +
 			$"{InputParameter}{TokensParameter}{ContextParameter})"))
 		{
 			// A guard builds while the text is read, so the walk at the end must know what
@@ -428,7 +592,7 @@ sealed partial class Machine
 			var twice  = _directBuilds;
 			var strays = DirectStrays(rules);
 
-			file.Line($"values.Room(ways.LogCount{(strays ? "" : ", live: false")});");
+			file.Line($"values.Room(ways.Records{(strays ? "" : ", live: false")});");
 			file.Line();
 			file.Line("var log   = ways.Log;");
 
@@ -441,7 +605,7 @@ sealed partial class Machine
 				file.Line();
 				// A record above the watermark was written since anything was built: whatever
 				// its flag says is about a record that was put back with the log.
-				file.Line("global::System.Array.Clear(built, ways.Built, ways.LogCount - ways.Built);");
+				file.Line("global::System.Array.Clear(built, ways.Built, ways.Records - ways.Built);");
 			}
 
 			file.Line();
@@ -460,20 +624,16 @@ sealed partial class Machine
 				file.Line();
 				using (file.Block("for (var back = listed - 1; back >= 0; back--)"))
 				{
-					file.Line("var at = starts[back];");
+					file.Line("var at   = starts[back];");
+					file.Line("var slot = first + back;");
 					file.Line();
-					file.Line("if (!live[at]) continue;");
+					file.Line("if (!live[slot]) continue;");
 					file.Line();
-					file.Line("var read = at + 5;");
-
-					if (chooses)
-						file.Line("var factory = log[at + 2];");
-
+					file.Line($"var read = at + {(DirectPositions(rules) ? 4 : 2)};");
 					file.Line();
 					using (file.Block("switch (log[at + 1])"))
-						foreach (var rule in rules)
-							if (Valued(rule))
-								MarkDirectRule(file, rule);
+						foreach (var (rule, factory) in _directArmed)
+							MarkDirectArm(file, rule, factory);
 				}
 			}
 
@@ -494,7 +654,7 @@ sealed partial class Machine
 				file.Line();
 			}
 
-			using (file.Block("for (var at = from; at < ways.LogCount; at += log[at])"))
+			using (file.Block("for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)"))
 			{
 				if (UsesMarks)
 				{
@@ -511,34 +671,38 @@ sealed partial class Machine
 				{
 					file.Line(
 						"if (" +
-						string.Join(" || ", new[] { strays ? "!live[at]" : null, twice ? "built[at]" : null }
+						string.Join(" || ", new[] { strays ? "!live[slot]" : null, twice ? "built[slot]" : null }
 							.Where(one => one is not null)) +
 						") continue;");
 					file.Line();
 				}
 
-				file.Line("var factory = log[at + 2];");
-				file.Line("var start   = log[at + 3];");
-				file.Line("var end     = log[at + 4];");
-				file.Line("var read    = at + 5;");
+				var placed = DirectPositions(rules);
+
+				if (placed)
+				{
+					file.Line("var start = log[at + 2];");
+					file.Line("var end   = log[at + 3];");
+				}
+
+				file.Line($"var read  = at + {(placed ? 4 : 2)};");
 				file.Line();
 
 				if (twice)
 				{
-					file.Line("built[at] = true;");
+					file.Line("built[slot] = true;");
 					file.Line();
 				}
 
 				using (file.Block("switch (log[at + 1])"))
-					foreach (var rule in rules)
-						if (Valued(rule))
-							MaterializeDirectRule(file, rule);
+					foreach (var (rule, factory) in _directArmed)
+						MaterializeDirectArm(file, rule, factory);
 			}
 
 			if (twice)
 			{
 				file.Line();
-				file.Line("ways.Built = ways.LogCount;");
+				file.Line("ways.Built = ways.Records;");
 			}
 		}
 
@@ -562,14 +726,15 @@ sealed partial class Machine
 		file.Then("marked--;");
 	}
 
-	void MaterializeDirectRule(Writer file, RuleSymbol rule)
+	/// <summary>
+	/// One arm of the walk: a rule and the alternative that wrote the record, which
+	/// together are the one number the record carries.
+	/// </summary>
+	void MaterializeDirectArm(Writer file, RuleSymbol rule, int factory)
 	{
-		var type      = _results.QualifiedOf(rule)!;
-		var members   = DirectMembers(rule);
-		var factories = _factories[rule];
-		var fold      = _graph.Folds.ContainsKey(rule);
+		var type = _results.QualifiedOf(rule)!;
 
-		using (file.Block($"case {_ruleIds[rule]}:"))
+		using (file.Block($"case {DirectArm(rule, factory)}:"))
 		{
 			if (IsExtent(rule))
 			{
@@ -583,154 +748,59 @@ sealed partial class Machine
 			{
 				// A terminal that builds: the lexer measured it, and the character machine of its
 				// own builds it from the text.
-				file.Line($"{DirectInto(type, "at")} = Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram({Cut("start", "end - start")});");
+				file.Line($"{DirectInto(type, "slot")} = Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram({Cut("start", "end - start")});");
 				file.Line("break;");
 
 				return;
 			}
 
-			// A fold's records differ by what wrote them: a step's leads with the value so
-			// far and holds each member singly (§4.3), so each factory reads its own.
-			if (fold)
+			var shaped = DirectMembers(rule, factory);
+
+			// A fold's step leads with the value so far (§4.3).
+			if (IsStep(rule, factory))
+				file.Line("var accumulated = log[read++];");
+
+			foreach (var member in shaped)
+				ReadMember(file, member);
+
+			if (factory < 0)
 			{
-				using (file.Block("switch (factory)"))
-					for (var factoryIndex = 0; factoryIndex < factories.Count; factoryIndex++)
-					{
-						var step   = IsStep(rule, factoryIndex);
-						var shaped = DirectMembers(rule, factoryIndex);
-
-						file.Line($"case {factoryIndex}:");
-
-						using (file.Indent())
-						using (file.Block(""))
-						{
-							if (step)
-								file.Line("var accumulated = log[read++];");
-
-							foreach (var member in shaped)
-								ReadMember(file, member);
-
-							file.Line(
-								$"{DirectInto(type, "at")} = " +
-								$"{factories[factoryIndex].Method}({string.Join(", ", DirectArguments(rule, factories[factoryIndex], shaped))});");
-							file.Line("break;");
-						}
-					}
-
-				file.Line("break;");
-
-				return;
-			}
-
-			if (factories.Count == 0)
-			{
-				foreach (var member in members)
-					ReadMember(file, member);
-
-				file.Line($"{DirectInto(type, "at")} = new {type}(");
+				file.Line($"{DirectInto(type, "slot")} = new {type}(");
 
 				using (file.Indent())
-					for (var i = 0; i < members.Count; i++)
+					for (var i = 0; i < shaped.Count; i++)
 						file.Line(
-							$"captured{i}{(members[i].Member.IsOptional ? "" : "!")}" +
-							(i + 1 < members.Count ? "," : ");"));
-			}
-			else if (factories.Count == 1)
-			{
-				var shaped = DirectMembers(rule, 0);
-
-				foreach (var member in shaped)
-					ReadMember(file, member);
-
-				file.Line(
-					$"{DirectInto(type, "at")} = " +
-					$"{factories[0].Method}({string.Join(", ", DirectArguments(rule, factories[0], shaped))});");
+							$"captured{shaped[i].Index}{(shaped[i].Member.IsOptional ? "" : "!")}" +
+							(i + 1 < shaped.Count ? "," : ");"));
 			}
 			else
 			{
-				// Each alternative reads its own members, which is what it wrote. The block
-				// is what lets two of them declare `captured0` for two different members.
-				using (file.Block("switch (factory)"))
-					for (var factoryIndex = 0; factoryIndex < factories.Count; factoryIndex++)
-					{
-						var shaped = DirectMembers(rule, factoryIndex);
+				var made = _factories[rule][factory];
 
-						file.Line($"case {factoryIndex}:");
-
-						using (file.Indent())
-						using (file.Block(""))
-						{
-							foreach (var member in shaped)
-								ReadMember(file, member);
-
-							file.Line(
-								$"{DirectInto(type, "at")} = " +
-								$"{factories[factoryIndex].Method}({string.Join(", ", DirectArguments(rule, factories[factoryIndex], shaped))});");
-							file.Line("break;");
-						}
-					}
+				file.Line(
+					$"{DirectInto(type, "slot")} = " +
+					$"{made.Method}({string.Join(", ", DirectArguments(rule, made, shaped))});");
 			}
 
 			file.Line("break;");
 		}
 	}
 
-	/// <summary>Marks what one record names as reached, given that the record itself is.</summary>
-	void MarkDirectRule(Writer file, RuleSymbol rule)
+	/// <summary>Marks what one arm's record names as reached, given that the record itself is.</summary>
+	void MarkDirectArm(Writer file, RuleSymbol rule, int factory)
 	{
-		using (file.Block($"case {_ruleIds[rule]}:"))
+		using (file.Block($"case {DirectArm(rule, factory)}:"))
 		{
-			if (_graph.Folds.ContainsKey(rule))
+			if (!IsExtent(rule) && (_reread is null || !_reread.Contains(rule)))
 			{
-				var factories = _factories[rule];
-
-				using (file.Block("switch (factory)"))
-					for (var factoryIndex = 0; factoryIndex < factories.Count; factoryIndex++)
-					{
-						var step = IsStep(rule, factoryIndex);
-
-						file.Line($"case {factoryIndex}:");
-
-						using (file.Indent())
-						{
-							if (step)
-							{
-								file.Line("live[log[read]] = true;");
-								file.Line("read++;");
-							}
-
-							foreach (var member in DirectMembers(rule, factoryIndex))
-								MarkMember(file, member);
-
-							file.Line("break;");
-						}
-					}
-			}
-			else if (!IsExtent(rule) && (_reread is null || !_reread.Contains(rule)))
-			{
-				var factories = _factories[rule];
-
-				if (factories.Count > 1)
+				if (IsStep(rule, factory))
 				{
-					using (file.Block("switch (factory)"))
-						for (var factoryIndex = 0; factoryIndex < factories.Count; factoryIndex++)
-						{
-							file.Line($"case {factoryIndex}:");
-
-							using (file.Indent())
-							{
-								foreach (var member in DirectMembers(rule, factoryIndex))
-									MarkMember(file, member);
-
-								file.Line("break;");
-							}
-						}
+					file.Line("live[log[read]] = true;");
+					file.Line("read++;");
 				}
-				else
-				{
-					foreach (var member in DirectMembers(rule, factories.Count == 1 ? 0 : -1))
-						MarkMember(file, member);
-				}
+
+				foreach (var member in DirectMembers(rule, factory))
+					MarkMember(file, member);
 			}
 
 			file.Line("break;");
@@ -738,8 +808,12 @@ sealed partial class Machine
 	}
 
 	/// <summary>Steps over one member of a record, marking what it names as reached.</summary>
-	static void MarkMember(Writer file, DirectMember member)
+	void MarkMember(Writer file, DirectMember member)
 	{
+		// An extent stands for its own record and is never built, so its liveness is
+		// nobody's question — and what the log holds for it is a place, not a number.
+		var extent = member.Member.Rule is { } rule && IsExtent(rule);
+
 		switch (member.Shape)
 		{
 			case MemberShape.Text:
@@ -751,13 +825,19 @@ sealed partial class Machine
 				break;
 
 			case MemberShape.Record:
-				file.Line("if (log[read] >= 0) live[log[read]] = true;");
+				if (!extent)
+					file.Line("if (log[read] >= 0) live[log[read]] = true;");
+
 				file.Line("read++;");
 				break;
 
 			case MemberShape.Records:
-				file.Line("for (var item = 0; item < log[read]; item++)");
-				file.Then("live[log[read + 1 + item]] = true;");
+				if (!extent)
+				{
+					file.Line("for (var item = 0; item < log[read]; item++)");
+					file.Then("live[log[read + 1 + item]] = true;");
+				}
+
 				file.Line("read += 1 + log[read];");
 				break;
 		}
@@ -862,22 +942,40 @@ sealed partial class Machine
 	/// <summary>The value a record holds: from its type's table, or for an extent the record itself.</summary>
 	string RecordValue(string type, string record) =>
 		type == "SourceSpan"
-			? Span($"log[{record} + 3]", $"log[{record} + 4] - log[{record} + 3]")
+			? Span($"log[{record} + 2]", $"log[{record} + 3] - log[{record} + 2]")
 			: TableFor(type) is var table && table >= 0
 				? $"values{table}[{record}].Value"
 				: throw new InvalidOperationException($"No value table for '{type}'.");
 
-	/// <summary>The factory's arguments, in the order the factory's parameters were written.</summary>
-	List<string> DirectArguments(RuleSymbol rule, Factory factory, IReadOnlyList<DirectMember> members)
+	/// <summary>The factory's arguments as the walk over the log supplies them.</summary>
+	List<string> DirectArguments(RuleSymbol rule, Factory factory, IReadOnlyList<DirectMember> members) =>
+		DirectArguments(
+			rule, factory, members,
+			() => Cut("start", "end - start"), () => Span("start", "end - start"),
+			() => RecordValue(_results.QualifiedOf(rule)!, "accumulated"),
+			static member => $"captured{member.Index}");
+
+	/// <summary>
+	/// The factory's arguments, in the order the factory's parameters were written, from
+	/// whatever the carrier has each member as.
+	/// </summary>
+	/// <remarks>
+	/// The text, the span and the accumulator are asked for rather than handed in, because
+	/// asking is not free: <see cref="Span"/> has the file emit the helper that makes one,
+	/// and a grammar that never asked for a span must not be made to compile it.
+	/// </remarks>
+	List<string> DirectArguments(
+		RuleSymbol rule, Factory factory, IReadOnlyList<DirectMember> members,
+		Func<string> text, Func<string> span, Func<string> accumulator, Func<DirectMember, string> value)
 	{
 		var arguments = new List<string>();
 
 		// In the order the factory's parameters are written (CSharpEmitter.EmitFactory).
 		if (CSharpEmitter.WantsText(_graph, factory))
-			arguments.Add(Cut("start", "end - start"));
+			arguments.Add(text());
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserSpan"))
-			arguments.Add(Span("start", "end - start"));
+			arguments.Add(span());
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserInput"))
 			arguments.Add("parserInput");
@@ -885,13 +983,18 @@ sealed partial class Machine
 		if (_graph.Context is not null && CSharpEmitter.Asks(_graph, factory, "context"))
 			arguments.Add("context");
 
+		// The stack as it stands, where there is one. `UsesMarks` counts the sites written
+		// so far, which is an answer that changes as the emission goes; a reader that builds
+		// as it reads asks this question while it is still writing them, and would hand one
+		// construction the marks and the next `default`. Where the reader carries the stack
+		// itself it is there whenever a state is declared, and that is the question asked.
 		if (_graph.State is not null && CSharpEmitter.Asks(_graph, factory, "parserState"))
-			arguments.Add(UsesMarks
+			arguments.Add(UsesMarks || CarriesImmediately
 				? $"new global::System.ReadOnlySpan<{_graph.State}>(values.MarkState, 0, marked)"
 				: "default");
 
 		if (factory.Accumulator is not null)
-			arguments.Add(RecordValue(_results.QualifiedOf(rule)!, "accumulated"));
+			arguments.Add(accumulator());
 
 		foreach (var wanted in factory.Members)
 		{
@@ -903,8 +1006,8 @@ sealed partial class Machine
 				{
 					arguments.Add(
 						!wanted.IsOptional && member.Member is { Rule: not null, IsOptional: true }
-							? $"({_results.ValueOf(member.Member.Rule)})captured{member.Index}!"
-							: $"captured{member.Index}{(wanted.IsOptional ? "" : "!")}");
+							? $"({_results.ValueOf(member.Member.Rule)}){value(member)}!"
+							: $"{value(member)}{(wanted.IsOptional ? "" : "!")}");
 					break;
 				}
 		}

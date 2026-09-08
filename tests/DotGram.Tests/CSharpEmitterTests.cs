@@ -984,6 +984,62 @@ public sealed class CSharpEmitterTests
 				typeof(TextReader)));
 	}
 
+	/// <summary>
+	/// A record the window cut in half is read whole, whatever it was cut in the middle of.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// What this is for. A scanner reports how far it followed the input when it refuses
+	/// and used to throw that away when it matched — so a <c>Money</c> reading <c>18.25</c>
+	/// out of a window ending at <c>18.</c> matched <c>18</c>, and the caller's failure on
+	/// the <c>.</c> after it looked like an ordinary mismatch one short of the end. A
+	/// stream reads "one short of the end" as a real refusal, closed a repetition that had
+	/// not ended, and refused the input at whatever came next.
+	/// </para>
+	/// <para>
+	/// Every alignment, because the defect is one: it needs the cut to land inside the
+	/// fraction, and which record that is depends on how the header pushed the rest along.
+	/// A single input would have been a coin toss.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData(0)]
+	[InlineData(1)]
+	[InlineData(2)]
+	[InlineData(3)]
+	[InlineData(4)]
+	[InlineData(5)]
+	[InlineData(6)]
+	public void A_record_the_window_cut_in_half_is_read_whole(int shift)
+	{
+		var text = "H" + new string('x', shift) + Line +
+			string.Concat(Enumerable.Repeat("R18.25" + Line, Buffer / 3)) + "T" + Line;
+
+		var assembly = EmittedCode.Compile(Emit(Feed));
+
+		Assert.Equal(
+			EmittedCode.Streamed(assembly, "Grammar", "ParseFeed", text),
+			EmittedCode.Streamed(assembly, "Grammar", "ParseFeed", text, typeof(TextReader)));
+	}
+
+	/// <summary>One line, written where a grammar string cannot carry an escape.</summary>
+	const string Line = "\n";
+
+	/// <summary>
+	/// A feed whose records end in a fraction the window can cut, read one part at a time.
+	/// </summary>
+	/// <remarks>
+	/// <c>Money</c> is in braces and captured by nobody, which is what makes it a scanner —
+	/// the shape that used to lose how far it had followed.
+	/// </remarks>
+	const string Feed =
+		"Feed : @string[] = Header & Row* & Trailer & eof" + Line +
+		"Header : @string = \"H\" & ['x']* & eol => @(\"H\")" + Line +
+		"Row : @string = \"R\" & Money & eol => @(\"R\")" + Line +
+		"Money = { ['0'..'9']+ & ('.' & ['0'..'9']+)? }" + Line +
+		"Trailer : @string = \"T\" & eol => @(\"T\")" + Line +
+		"parse Feed" + Line;
+
 	[Fact]
 	public void An_occurrence_longer_than_the_window_grows_it()
 	{
@@ -1063,6 +1119,8 @@ public sealed class CSharpEmitterTests
 				CSharpScanner = RoslynCSharpScanner.Instance,
 			});
 
+		// The one this asks about, and the only one: what the tape defers is offered only
+		// to a grammar a carrier could carry, and a `find` is read on the engine.
 		var told = Assert.Single(result.Diagnostics);
 
 		Assert.Equal(Retention.NotStreamable, told.Id);
@@ -1094,6 +1152,8 @@ public sealed class CSharpEmitterTests
 				CSharpScanner = RoslynCSharpScanner.Instance,
 			});
 
+		// The one this asks about, and the only one: what the tape defers is offered only
+		// to a grammar a carrier could carry, and a `find` is read on the engine.
 		var told = Assert.Single(result.Diagnostics);
 
 		Assert.Equal(Retention.NotStreamable, told.Id);
@@ -1110,6 +1170,8 @@ public sealed class CSharpEmitterTests
 			"Start = any* & 'z'\nfind Start",
 			new GramCompilerOptions { ClassName = "Grammar" });
 
+		// The one this asks about, and the only one: what the tape defers is offered only
+		// to a grammar a carrier could carry, and a `find` is read on the engine.
 		var told = Assert.Single(result.Diagnostics);
 
 		Assert.Equal(Retention.NotStreamable, told.Id);
@@ -1127,7 +1189,7 @@ public sealed class CSharpEmitterTests
 
 	[Fact]
 	public void A_rule_that_streams_is_told_nothing() =>
-		Assert.Empty(GramCompiler.Compile(
+		EmittedCode.Quiet(GramCompiler.Compile(
 			"Start = ['0'..'9']+\nfind Start",
 			new GramCompilerOptions { ClassName = "Grammar" }).Diagnostics);
 
@@ -1136,7 +1198,7 @@ public sealed class CSharpEmitterTests
 		// The reason there is a fact about this compiler rather than about the grammar in
 		// front of it. Saying it on every build of every grammar would be noise, and
 		// docs/status.md is where it belongs.
-		Assert.Empty(GramCompiler.Compile(
+		EmittedCode.Quiet(GramCompiler.Compile(
 			"Start = any* & 'z'\nparse Start",
 			new GramCompilerOptions { ClassName = "Grammar" }).Diagnostics);
 
@@ -1184,9 +1246,11 @@ public sealed class CSharpEmitterTests
 		var source = Emit("Start = a: 'x'\nparse Start");
 
 		// A new furthest position costs a reference assignment, not an allocation —
-		// the whole point of the split (Support.cs's own ExpectedField remarks).
+		// the whole point of the split (Support.cs's own ExpectedField remarks). The
+		// tie list is emptied rather than dropped, so a parse that ties again does not
+		// buy a second one.
 		Assert.Contains("failure.Expected = expected;", source);
-		Assert.Contains("failure.ExpectedMore = null;", source);
+		Assert.Contains("failure.ExpectedMore?.Clear();", source);
 
 		// A tie allocates, but only the list of arrays, and only on the tie itself.
 		Assert.Contains(
@@ -1930,21 +1994,42 @@ public sealed class CSharpEmitterTests
 	}
 
 	/// <summary>
-	/// Sets that overlap without being equal are not dispatched at all.
+	/// Sets that overlap without being equal are cut where they overlap.
 	/// </summary>
 	/// <remarks>
-	/// A character in two groups would have to pick one, and either pick skips an
-	/// alternative that could have matched. Nothing here tries to be clever about it: the
-	/// chain is compiled, which is what always happened.
+	/// A character in two sets would have to pick one group, and either pick skips an
+	/// alternative that could have matched — so it picks neither, and is a group of the
+	/// two: <c>b</c> and <c>c</c> begin both of the first alternatives, and a switch on
+	/// them tries those two in written order; <c>a</c> begins only the first, <c>d</c>
+	/// only the second. Six groups where the sets had five, and a switch where there
+	/// used to be a chain.
 	/// </remarks>
 	[Fact]
-	public void Overlapping_groups_keep_the_chain()
+	public void Overlapping_groups_are_cut_where_they_overlap()
 	{
 		var source = Emit("""
 			Start = ['a'..'c'] & "nd" | ['b'..'d'] & "ll" | "either" | "for" | "given"
 			""");
 
-		Assert.DoesNotContain("switch (c)", source, StringComparison.Ordinal);
+		Assert.Contains("switch (c)", source, StringComparison.Ordinal);
+		Assert.Contains("case 'b': case 'c': ", source, StringComparison.Ordinal);
+	}
+
+	[Theory]
+	[InlineData("and", true)]
+	[InlineData("bnd", true)]
+	[InlineData("cll", true)]
+	[InlineData("dll", true)]
+	[InlineData("all", false)]
+	[InlineData("dnd", false)]
+	[InlineData("either", true)]
+	public void A_character_in_two_sets_tries_both_alternatives_in_order(string input, bool matches)
+	{
+		var (matched, _) = Run("""
+			Start = ['a'..'c'] & "nd" | ['b'..'d'] & "ll" | "either" | "for" | "given"
+			""", input);
+
+		Assert.Equal(matches, matched);
 	}
 
 	/// <summary>

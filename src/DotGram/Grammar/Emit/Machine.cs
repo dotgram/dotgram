@@ -231,9 +231,12 @@ sealed partial class Machine
 	public Machine(
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, bool starves = false,
 		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "", int? partSize = null,
-		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null)
+		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null,
+		CarrierKind carrier = CarrierKind.Tape, int stacks = 0)
 	{
 		_graph = graph;
+		_carrierKind = carrier;
+		_stacks = stacks;
 		_results = results;
 		_lines = lines;
 		_starves = starves;
@@ -738,6 +741,12 @@ sealed partial class Machine
 	/// </remarks>
 	public bool UsesInput { get; private set; }
 
+	/// <summary>
+	/// How many stacks a parse may take past the one it began on, or nought for as many
+	/// as there is memory for (<c>[Gram(Stacks = …)]</c>).
+	/// </summary>
+	readonly int _stacks;
+
 	string InputParameter => UsesInput ? ", string parserInput" : "";
 
 	string InputArgument  => UsesInput ? ", parserInput" : "";
@@ -791,6 +800,13 @@ sealed partial class Machine
 	{
 		var helper = new Writer(1);
 
+		helper.Line("/// <summary>The strings of one character, made once each rather than per cut.</summary>");
+		helper.Line("/// <remarks>");
+		helper.Line("/// Filled where it is missed. Two threads that miss the same character write");
+		helper.Line("/// the same string, so the race is between two answers that are equal.");
+		helper.Line("/// </remarks>");
+		helper.Line($"static readonly string[] Letters_DotGram{_tag} = new string[128];");
+		helper.Line();
 		helper.Line("/// <summary>The text a run of tokens came from.</summary>");
 
 		using (helper.Block(
@@ -802,6 +818,20 @@ sealed partial class Machine
 			helper.Line();
 			helper.Line("var began = starts[from];");
 			helper.Line("var ended = starts[from + length - 1] + lengths[from + length - 1];");
+			helper.Line();
+
+			// A cut of one character is an operator, a bracket, or a name of one letter,
+			// and a grammar makes the same handful of them over and over. Standard SQL
+			// captures every operator as the text it stands on, so sixty-four comparisons
+			// were sixty-four strings of one character — 1,536 bytes a parse that the
+			// hand-written parser reading the same tokens never allocates.
+			using (helper.Block("if (ended - began == 1 && source[began] < 128)"))
+			{
+				helper.Line("var one = source[began];");
+				helper.Line();
+				helper.Line($"return Letters_DotGram{_tag}[one] ??= source.Substring(began, 1);");
+			}
+
 			helper.Line();
 			helper.Line("return source.Substring(began, ended - began);");
 		}
@@ -1251,7 +1281,7 @@ sealed partial class Machine
 				{
 					file.Line("failure.Position = p;");
 					file.Line("failure.Expected = expected;");
-					file.Line("failure.ExpectedMore = null;");
+					file.Line("failure.ExpectedMore?.Clear();");
 				}
 				file.Line("else if (lookahead < 0 && p == failure.Position && expected != null)");
 				using (file.Block(""))
@@ -2048,13 +2078,13 @@ sealed partial class Machine
 							? inside
 							: _graph.Bodies[rule]))
 					{
-						atScan.Line($"p = {scanner}(text, p);");
+						atScan.Line($"p = {scanner}(text, p{ScannerArguments});");
 					}
 					else
 					{
 						var arrayName = DeclareExpected([rule.Name]);
 
-						atScan.Line($"var scanned = {scanner}(text, p);");
+						atScan.Line($"var scanned = {scanner}(text, p{ScannerArguments});");
 						atScan.Line("if (scanned < 0)");
 
 						using (atScan.Block(""))

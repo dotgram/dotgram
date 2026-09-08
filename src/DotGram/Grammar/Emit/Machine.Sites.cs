@@ -20,7 +20,7 @@ namespace DotGram.Grammar.Emit;
 /// the site compiles the callee's body in place, the callee's captures record into
 /// slots of the site's own, and the materializer builds the member by calling the
 /// callee's factory over those spans directly. Nothing about the site is written that
-/// was not already paid for, which is the lesson the eager experiment bought: the
+/// was not already paid for, which is the lesson the immediate experiment bought: the
 /// ceremony's cost is the writing, and only a generation-time decision writes less.
 /// </para>
 /// <para>

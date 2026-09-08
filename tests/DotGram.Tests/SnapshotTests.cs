@@ -53,7 +53,7 @@ public sealed class SnapshotTests
 				LineMap   = new GrammarLineMap(text, name + ".gram"),
 			});
 
-		Assert.Empty(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics);
 
 		var actual   = Assert.Single(result.Sources).Text;
 		var expected = Path.Combine(Directory, name + ".gram.g.cs");

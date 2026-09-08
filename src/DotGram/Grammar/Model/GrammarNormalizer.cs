@@ -50,12 +50,16 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	public const string CircularWith        = "GRAM4017";
 
+	/// <summary>A rule nothing reaches, so nothing it says is ever read.</summary>
+	public const string UnusedRule          = "GRAM4018";
+
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
 	readonly Dictionary<RuleSymbol, bool>                      _nullable    = [];
 	readonly Dictionary<RuleSymbol, IReadOnlyList<ResultMember>> _results   = [];
 	readonly Dictionary<RuleSymbol, string>                    _types       = [];
 	readonly List<GramDiagnostic>                              _diagnostics = [];
+	readonly List<GramDiagnostic>                              _whenSound   = [];
 	readonly List<RuleSymbol>                                  _rules       = [];
 
 	readonly ISymbolResolver _resolver;
@@ -96,6 +100,14 @@ public sealed partial class GrammarNormalizer
 
 		normalizer.Collect(model.Root);
 		normalizer.LowerAll();
+
+		// Here and not with the other checks, which run at the end: this one asks what the
+		// author wrote, and by the end several passes have rewritten the calls it would be
+		// reading. A specialization clones a rule and leaves the original reachable only
+		// through a publication; `CollapseTransparent` replaces a call to a rule that only
+		// forwards with what it forwarded, and the rule it emptied is then reached by
+		// nothing. Neither is anything an author did, and neither is worth reporting.
+		normalizer.CheckUnused();
 
 		// All three before RewriteLeftRecursion(), for the reason already there — a
 		// clone's self-call must resolve to the clone before left-recursion rewriting
@@ -186,6 +198,7 @@ public sealed partial class GrammarNormalizer
 			Context    = (normalizer._context ?? model.Context)?.Name,
 			State      = (normalizer._state ?? model.State)?.Name,
 			FreeNames  = FreeNames(normalizer._bodies.Values, scanner),
+			WhenSound  = normalizer._whenSound,
 		};
 	}
 
@@ -235,6 +248,10 @@ public sealed partial class GrammarNormalizer
 		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Error));
 
 	/// <summary>The same, for a grammar that is correct and will be slower than it reads.</summary>
+	/// <summary>Said only where the grammar is otherwise sound (<c>WhenSound</c>).</summary>
+	void Remark(string id, string message, Location at) =>
+		_whenSound.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Warning));
+
 	void Warn(string id, string message, Location at) =>
 		_diagnostics.Add(new GramDiagnostic(id, message, at.Position, at.Length, GramSeverity.Warning));
 

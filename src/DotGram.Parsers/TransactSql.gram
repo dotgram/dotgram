@@ -1,0 +1,1266 @@
+@using System;
+@using DotGram.Parsers;
+
+using Sql92;
+
+// A dialect, and this file is the whole of what makes it one. The rules of
+// ISO/IEC 9075:1992 come from `SqlStandard92.gram`, inherited by the class this
+// grammar is attached to; what is written here is only where T-SQL differs, and
+// §5.1's rebinding is what makes the difference reach every rule that leads to it.
+//
+// Eleven rules replace eleven of the standard's. Nothing else is restated and nothing
+// is copied: a query expression, a join, a predicate and the whole value tower are
+// the ones already read against the standard, reading a dialect's identifiers and
+// a dialect's primaries because the substitution rewrote every call inside them.
+
+// ── What the wrapper does not carry across ──────────────────────────────────
+//
+// A grammar this one inherits is wrapped in a namespace of its own, and §4.5 is
+// exactly that a namespace keeps its own trivia. So the standard's whitespace and
+// its word boundary belong to the standard's rules, and the rules written here
+// need their own — the same two, said again, pointing at the same lexemes.
+//
+// Not saying them is not an error and that is the trap: rules without a boundary
+// read their keywords as punctuation, and a grammar that reads `USERS` as `USER`
+// followed by `S` is wrong in a way nothing in it looks wrong.
+wordboundary = Sql92.Lexical.IdentifierPart
+trivia       = { (Sql92.Whitespace | Sql92.LineComment | Sql92.BlockComment)* }
+
+// ── The lexemes T-SQL has and the standard does not ─────────────────────────
+//
+// A namespace with no trivia, so a token is its characters — the same shape
+// `Sql92.Lexical` has, and a separate one because a grammar declares its own.
+namespace Tsql
+{
+	trivia = none
+
+	// A delimited identifier written the way T-SQL writes it, with `]]` for a
+	// bracket inside — the same escape the standard's `""` is.
+	BracketedIdentifier = '[' & ("]]" | [^ ']'])* & ']'
+
+	// A local variable, a parameter, and the two `@@` spellings of a built-in.
+	// One rule: what tells them apart is the catalogue and not the syntax.
+	Variable = '@' & '@'? & Sql92.Lexical.IdentifierStart & Sql92.Lexical.IdentifierPart*
+
+	// Money, written with the sign the culture uses, and a binary string written the
+	// way T-SQL writes one. Neither is a lexeme of the standard.
+	MoneyLiteral  = ['$' | '£' | '¥' | '€'] & ['+' | '-']? & Sql92.Lexical.Digits & ('.' & Sql92.Lexical.Digits?)?
+	BinaryLiteral = '0' & 'x'i & ['0'..'9' | 'a'..'f' | 'A'..'F']*
+
+	// A temporary table, local or global. The name is otherwise ordinary.
+	TemporaryName = '#' & '#'? & Sql92.Lexical.IdentifierStart & Sql92.Lexical.IdentifierPart*
+}
+
+// ── What T-SQL reserves ─────────────────────────────────────────────────────
+//
+// A different list and not a longer one. The standard reserves `NATURAL`, `MATCH`
+// and `CAST`, which T-SQL does not; T-SQL reserves `TOP`, `OPTION` and `OVER`,
+// which the standard has never heard of. So it replaces rather than adds, and the
+// standard's own list stands where the standard's rules still read.
+//
+// All hundred and sixty-nine of them, where `Sql92.Reserved` is a curated part of
+// §5.2 — "the part this layer can be confused by". Curating it here was tried and
+// is what let `SELECT TOP` read as a column called `TOP` and `FROM t OPTION (x)`
+// read as a correlation named `OPTION` with a column list: both are refusals in
+// any real T-SQL, and neither looked wrong. The list is Microsoft's own, taken
+// from the token table its parser generator is fed (`TSqlTokenTypes.g`), where a
+// word being a token at all is exactly what makes it unavailable as a name.
+TsqlReserved = ("ADD"i | "ALL"i | "ALTER"i | "AND"i | "ANY"i | "AS"i | "ASC"i | "AUTHORIZATION"i
+	| "BACKUP"i | "BEGIN"i | "BETWEEN"i | "BREAK"i | "BROWSE"i | "BULK"i | "BY"i
+	| "CASCADE"i | "CASE"i | "CHECK"i | "CHECKPOINT"i | "CLOSE"i | "CLUSTERED"i
+	| "COALESCE"i | "COLLATE"i | "COLUMN"i | "COMMIT"i | "COMPUTE"i | "CONSTRAINT"i
+	| "CONTAINS"i | "CONTAINSTABLE"i | "CONTINUE"i | "CONVERT"i | "CREATE"i | "CROSS"i
+	| "CURRENT"i | "CURRENT_DATE"i | "CURRENT_TIME"i | "CURRENT_TIMESTAMP"i
+	| "CURRENT_USER"i | "CURSOR"i | "DATABASE"i | "DBCC"i | "DEALLOCATE"i | "DECLARE"i
+	| "DEFAULT"i | "DELETE"i | "DENY"i | "DESC"i | "DISTINCT"i | "DISTRIBUTED"i
+	| "DOUBLE"i | "DROP"i | "ELSE"i | "END"i | "ERRLVL"i | "ESCAPE"i | "EXCEPT"i
+	| "EXEC"i | "EXECUTE"i | "EXISTS"i | "EXIT"i | "FETCH"i | "FILE"i | "FILLFACTOR"i
+	| "FOR"i | "FOREIGN"i | "FREETEXT"i | "FREETEXTTABLE"i | "FROM"i | "FULL"i
+	| "FUNCTION"i | "GOTO"i | "GRANT"i | "GROUP"i | "HAVING"i | "HOLDLOCK"i
+	| "IDENTITY"i | "IDENTITYCOL"i | "IDENTITY_INSERT"i | "IF"i | "IN"i | "INDEX"i
+	| "INNER"i | "INSERT"i | "INTERSECT"i | "INTO"i | "IS"i | "JOIN"i | "KEY"i | "KILL"i
+	| "LEFT"i | "LIKE"i | "LINENO"i | "NATIONAL"i | "NOCHECK"i | "NONCLUSTERED"i
+	| "NOT"i | "NULL"i | "NULLIF"i | "OF"i | "OFF"i | "OFFSETS"i | "ON"i | "OPEN"i
+	| "OPENDATASOURCE"i | "OPENQUERY"i | "OPENROWSET"i | "OPENXML"i | "OPTION"i | "OR"i
+	| "ORDER"i | "OUTER"i | "OVER"i | "PERCENT"i | "PLAN"i | "PRIMARY"i | "PRINT"i
+	| "PROC"i | "PROCEDURE"i | "PUBLIC"i | "RAISERROR"i | "READ"i | "READTEXT"i
+	| "RECONFIGURE"i | "REFERENCES"i | "REPLICATION"i | "RESTORE"i | "RESTRICT"i
+	| "RETURN"i | "REVOKE"i | "RIGHT"i | "ROLLBACK"i | "ROWCOUNT"i | "ROWGUIDCOL"i
+	| "RULE"i | "SAVE"i | "SCHEMA"i | "SELECT"i | "SESSION_USER"i | "SET"i | "SETUSER"i
+	| "SHUTDOWN"i | "SOME"i | "STATISTICS"i | "SYSTEM_USER"i | "TABLE"i | "TEXTSIZE"i
+	| "THEN"i | "TO"i | "TOP"i | "TRAN"i | "TRANSACTION"i | "TRIGGER"i | "TRUNCATE"i
+	| "TSEQUAL"i | "UNION"i | "UNIQUE"i | "UPDATE"i | "UPDATETEXT"i | "USE"i | "USER"i
+	| "VALUES"i | "VARYING"i | "VIEW"i | "WAITFOR"i | "WHEN"i | "WHERE"i | "WHILE"i
+	| "WITH"i | "WRITETEXT"i)
+	& ?!Sql92.Lexical.IdentifierPart
+
+// ── §6.20's simple when, widened ───────────────────────────────────────────
+//
+// `CASE x WHEN NULL THEN …` compares against the null nothing equals, which is useless
+// and legal — the standard's `<when operand>` is a value expression and null is not one,
+// and T-SQL admits it where the standard does not.
+TsqlSimpleWhen : @SqlNode.When
+	= "WHEN"i & test: Result & "THEN"i & result: Result => @(new SqlNode.When(test, result))
+
+// ── §7.10's query expression, narrowed ─────────────────────────────────────
+//
+// **`ALL` belongs to `UNION` and to nothing else.** The standard writes it on all three
+// set operators and the dialect inherited that; SQL Server answers `The 'ALL' version of
+// the EXCEPT operator is not supported` and says the same of `INTERSECT`. `CORRESPONDING`
+// goes with it: it is SQL-92 and T-SQL has never had it.
+//
+// The strengths are the standard's own — `INTERSECT` tighter than the two beside it, all
+// three to the left (§4.3.1).
+TsqlQueryExpression : @SqlNode
+	= left: TsqlQueryExpression & "UNION"i & all: "ALL"i? & right: TsqlQueryExpression  << 1
+		=> @(new SqlNode.Binary(SqlNode.Combined("UNION", all), left, right))
+	| left: TsqlQueryExpression & "EXCEPT"i & right: TsqlQueryExpression                << 1
+		=> @(new SqlNode.Binary(SqlNode.Combined("EXCEPT", null), left, right))
+	| left: TsqlQueryExpression & "INTERSECT"i & right: TsqlQueryExpression             << 2
+		=> @(new SqlNode.Binary(SqlNode.Combined("INTERSECT", null), left, right))
+	| q: QueryPrimary => @(q)
+
+// ── §6.4's qualified name, widened ─────────────────────────────────────────
+//
+// A part may be left out: `myDb..t2` names a database and a table and no schema between
+// them. Written as a dot that stands in front of another dot rather than as an optional
+// name, so that `t.*` still ends where it did — a name that could end with a dot would
+// eat the one the star needs.
+TsqlQualifiedName
+	= Identifier     & NamePart*
+	| PartitionName  & NamePart*
+	| SystemFunction & NamePart*
+	| NamePart+
+
+NamePart     = '.' & NamePartName
+NamePartName = Identifier | PartitionName | ?='.'
+
+// A name the `$` is part of rather than the money literal it opens elsewhere:
+// `$PARTITION.f1(x)` names an index's partition function, and `$node_id`, `$edge_id`,
+// `$from_id` and `$to_id` are the columns a graph table has and nobody declared.
+PartitionName = '$' & Identifier
+
+// The older spelling of a system table-valued function, which puts the `::` in front of
+// the name instead of between two of them: `CROSS APPLY ::fn_get_sql (h)`.
+SystemFunction = "::" & Identifier
+
+// ── §5.2's identifier, widened ──────────────────────────────────────────────
+//
+// The standard's two spellings and the two more T-SQL admits. The lookahead
+// stands in front of the regular one only, exactly as it does in the standard:
+// a bracketed name may be a reserved word, and that is what brackets are for.
+TsqlIdentifier
+	= ?!TsqlReserved & Sql92.Lexical.RegularIdentifier
+	| Sql92.Lexical.DelimitedIdentifier
+	| Tsql.BracketedIdentifier
+	| Tsql.TemporaryName
+
+// ── §6.3's general value specification, widened ─────────────────────────────
+//
+// A variable stands where a parameter does, which is what the standard's rule is
+// for. Its own alternatives are restated rather than called: a replacement that
+// named the rule it replaces would be rewritten into itself.
+TsqlValueSpecification : @SqlNode
+	= t: (':' & Identifier & ("INDICATOR"i? & ':' & Identifier)?)
+		=> @(new SqlNode.Literal(SqlLiteralKind.Parameter, t))
+	| '?'
+		=> @(new SqlNode.Literal(SqlLiteralKind.Parameter, "?"))
+	| t: Tsql.Variable
+		=> @(new SqlNode.Literal(SqlLiteralKind.Parameter, t))
+	| t: ("USER"i | "CURRENT_USER"i | "SESSION_USER"i | "SYSTEM_USER"i | "VALUE"i)
+		=> @(new SqlNode.Literal(SqlLiteralKind.Special, t))
+
+// ── §6.11's value expression primary, widened ───────────────────────────────
+//
+// The standard names every function it has and leaves the rest to a routine
+// invocation it does not define; T-SQL's are ordinary calls on a qualified name,
+// which is one alternative and has to stand after the named ones — `COUNT(*)` is
+// a set function and not a call to something called `COUNT`.
+//
+// A postfix stands outside the choice rather than on each arm of it: `AT TIME ZONE`
+// applies to whatever was just read, which is one rule around the core and not
+// twelve inside it.
+TsqlValuePrimary : @SqlNode
+	= p: TsqlPrimaryCore & Member* & zone: AtTimeZone?
+		=> @(zone is null ? p : new SqlNode.Call("AT TIME ZONE", new SqlNode[] { p, zone }))
+
+AtTimeZone : @SqlNode = "AT"i & "TIME"i & "ZONE"i & v: TsqlPrimaryCore => @(v)
+
+TsqlPrimaryCore : @SqlNode
+	= '(' & v: ValueExpression & ')' => @(v)
+	| c: CaseExpression                        => @(c)
+	| c: TsqlCast                              => @(c)
+	| f: ValueFunction                         => @(f)
+	| f: TsqlValueFunction                     => @(f)
+	| f: CountStar & CallTail?                 => @(f)
+	| f: SetFunctionSpecification & CallTail?  => @(f)
+	| q: ScalarSubquery                        => @(q)
+	| n: NextValue                             => @(n)
+	| f: FunctionCall                          => @(f)
+	| e: OdbcEscape                            => @(e)
+	| t: Tsql.MoneyLiteral                     => @(new SqlNode.Literal(SqlLiteralKind.Number, t))
+	| t: Tsql.BinaryLiteral                    => @(new SqlNode.Literal(SqlLiteralKind.Hex, t))
+	| v: UnsignedValueSpecification            => @(v)
+	| n: ColumnReference                       => @(n)
+
+// ODBC's escapes, which every driver has understood since before this language had a
+// standard and which SQL Server still reads: a function called the portable way, and the
+// four typed literals. `{ FN convert (@a, sql_int) }` is answered by the engine with a
+// complaint about the ODBC type name, which is it having read the escape and then
+// disagreeing about what was named inside it.
+OdbcEscape : @SqlNode
+	= '{' & "FN"i & f: OdbcFunction & '}' => @(f)
+	| '{' & kind: OdbcLiteralKind & t: Sql92.Lexical.CharacterStringLiteral & '}'
+		=> @(new SqlNode.Literal(SqlLiteralKind.Text, t))
+
+OdbcLiteralKind = "TS"i | "D"i | "T"i | "GUID"i
+
+// The name inside `{ fn … }` is ODBC's and not this language's, so a word T-SQL reserves
+// may stand there: `{ fn convert (@a, sql_int) }` calls ODBC's two-argument `convert`,
+// which is not the `CONVERT` of §6.10 and does not have to obey its shape.
+OdbcFunction : @SqlNode
+	= name: OdbcName & '(' & args: Arguments? & ')' => @(new SqlNode.Call(name, args ?? SqlNode.None))
+	| v: ValueExpression => @(v)
+
+OdbcName = "CONVERT"i | "DATABASE"i | "LEFT"i | "RIGHT"i | "USER"i
+		 | "CURRENT_DATE"i | "CURRENT_TIME"i | "CURRENT_TIMESTAMP"i | "CURRENT_USER"i
+		 | Identifier
+
+// A property or a method reached through a name: `(c1).SomeProperty`, `t::a`,
+// `dbo.[type 1]::[Property]`. Read and dropped, as a collate clause is — what it
+// names is a type's member, which is a catalogue's business and not this tree's.
+// Written as a postfix because a qualified name has already eaten every `.` it
+// could, so this fires only where one is left over.
+Member = ("::" | '.') & Identifier & ('(' & Arguments? & ')')?
+
+// §6.10's cast, widened, and the T-SQL spellings that are casts under other names.
+// `CONVERT` is a different rule and not a wider one: the standard's takes a value and
+// a character set, T-SQL's takes a type and a value, in that order.
+TsqlCast : @SqlNode
+	= "CAST"i     & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new SqlNode.Call("CAST", new SqlNode[] { v }, type))
+	| "TRY_CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new SqlNode.Call("TRY_CAST", new SqlNode[] { v }, type))
+	| name: ("TRY_CONVERT"i | "CONVERT"i) & '(' & type: DataType & ',' & v: ValueExpression
+	  & (',' & style: ValueExpression)? & ')'
+		=> @(new SqlNode.Call(name, style is null ? new SqlNode[] { v } : new SqlNode[] { v, style }, type))
+	| name: ("TRY_PARSE"i | "PARSE"i) & '(' & v: ValueExpression & "AS"i & type: DataType
+	  & ("USING"i & ValueExpression)? & ')'
+		=> @(new SqlNode.Call(name, new SqlNode[] { v }, type))
+
+// The T-SQL functions with a syntax of their own rather than an argument list, which
+// is the same reason §6.16's are written out in the standard. What they have in common
+// is a condition standing where a value would: `IIF` takes one, and a value expression
+// cannot be one.
+//
+// And the JSON constructors, which have three things an argument list has not: a key
+// written with `:` rather than a comma, a clause saying what a null does, and a type to
+// return. All three are from the published syntax of `JSON_OBJECT`.
+TsqlValueFunction : @SqlNode
+	= "IIF"i & '(' & c: SearchCondition & ',' & a: ValueExpression & ',' & b: ValueExpression & ')'
+		=> @(new SqlNode.Call("IIF", new SqlNode[] { c, a, b }))
+	| "CHOOSE"i & '(' & at: ValueExpression & ',' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
+		=> @(new SqlNode.Call("CHOOSE", SqlNode.Listed(at, SqlNode.Listed(first, rest))))
+	| name: JsonObjectName & '(' & body: JsonObjectBody? & ')' & CallTail?
+		=> @(new SqlNode.Call(name, body ?? SqlNode.None))
+	| name: JsonArrayName & '(' & body: JsonArrayBody? & ')' & CallTail?
+		=> @(new SqlNode.Call(name, body ?? SqlNode.None))
+
+// **The null clause needs something to be null.** The published syntax makes the key
+// values and the clause independently optional — `JSON_OBJECT ( [ <json_key_value>
+// [ , ...n ] ] [ json_null_clause ] [ RETURNING json ] )` — so `JSON_OBJECT(NULL ON NULL)`
+// reads by the documentation and is answered by SQL Server 2025 with `Incorrect syntax near
+// the keyword 'ON'`. The engine is right and the syntax block is wrong, which is the first
+// thing found on that side rather than in a parser.
+JsonObjectBody : @SqlNode[]
+	= pairs: JsonKeyValues & JsonNullClause? & JsonReturning? => @(pairs)
+	| JsonReturning => @(SqlNode.None)
+
+JsonArrayBody : @SqlNode[]
+	= items: Arguments & JsonOrder? & JsonNullClause? & JsonReturning? => @(items)
+	| JsonReturning => @(SqlNode.None)
+
+JsonObjectName = "JSON_OBJECT"i | "JSON_OBJECTAGG"i
+JsonArrayName  = "JSON_ARRAY"i  | "JSON_ARRAYAGG"i
+
+JsonKeyValues : @SqlNode[]
+	= first: JsonKeyValue & (',' & rest: JsonKeyValue)* => @(SqlNode.Listed(first, rest))
+
+// `json_key_name : value_expression` — the one place in T-SQL where a colon joins two
+// values rather than introducing a parameter.
+JsonKeyValue : @SqlNode
+	= key: ValueExpression & ':' & v: JsonValue => @(new SqlNode.Row(new SqlNode[] { key, v }))
+
+// A key's value may be the null a value expression is not — `'type':NULL` is the case
+// the `ABSENT ON NULL` clause exists for.
+JsonValue : @SqlNode = "NULL"i => @(SqlNode.NullValue) | v: ValueExpression => @(v)
+
+// Which model an AI function is computed with, written after its arguments rather than
+// as one of them: `AI_GENERATE_EMBEDDINGS ('text' USE MODEL MyModel)`.
+UseModel = "USE"i & "MODEL"i & QualifiedName & UseModelParameters?
+
+UseModelParameters = "PARAMETERS"i & ValueExpression
+
+JsonNullClause = "NULL"i & "ON"i & "NULL"i | "ABSENT"i & "ON"i & "NULL"i
+JsonReturning  = "RETURNING"i & DataType
+JsonOrder      = "ORDER"i & "BY"i & ValueExpression & ("ASC"i | "DESC"i)?
+
+// A sequence, read where a value stands. `FOR` here is not the `FOR` of `FOR JSON`;
+// it is the middle of one three-word name.
+NextValue : @SqlNode
+	= "NEXT"i & "VALUE"i & "FOR"i & name: QualifiedName & CallTail?
+		=> @(new SqlNode.Call("NEXT VALUE FOR", SqlNode.None, name))
+
+// A call to something this grammar has never heard of, which is most of them: the
+// name is a catalogue's business and the arguments are values.
+FunctionCall : @SqlNode
+	= name: QualifiedName & '(' & quantifier: SetQuantifier? & args: Arguments? & UseModel?
+	  & JsonReturning? & ')' & CallTail?
+		=> @(new SqlNode.Call(name, args ?? SqlNode.None, SqlNode.Distinctly(quantifier)))
+
+// What may follow a call: which rows of a window it sees when they are null, what a
+// set function inside a window is ordered by, and the window itself. All three read and
+// dropped for the same reason `OVER` is.
+//
+// Written out as alternatives of a rule rather than as three optionals in a sequence,
+// and that is the shape it has to have. **A choice inside a sequence or a repetition does
+// not come back**: `Nulls? & WithinGroup? & Over?` read `RESPECT NULLS` and then refused
+// `OVER ()`, and `(Nulls | WithinGroup | Over)*` did the same. Alternatives of a rule do
+// come back — which is what makes the two spellings different languages here and not two
+// ways of writing one. The same thing shapes `WindowFrame` below.
+CallTail
+	= Nulls & Over
+	| WithinGroup & Over
+	| Nulls
+	| WithinGroup
+	| Over
+Nulls       = "RESPECT"i & "NULLS"i | "IGNORE"i & "NULLS"i
+WithinGroup = "WITHIN"i & "GROUP"i & '(' & OrderByClause & ')'
+			| "WITHIN"i & "GROUP"i & '(' & "GRAPH"i & "PATH"i & ')'
+
+// The window a call is computed over. Read and dropped, as `TOP` is: it says which
+// rows the call sees and not what the call is, and the tree this grammar builds is
+// the standard's. A window may also be named, and the name is declared by the query's
+// own `WINDOW` clause.
+Over = "OVER"i & '('
+	   & WindowName?
+	   & ("PARTITION"i & "BY"i & ValueExpression & (',' & ValueExpression)*)?
+	   & OrderByClause?
+	   & WindowFrame?
+	   & ')'
+	 | "OVER"i & Identifier
+
+// The name of a window declared by the query's `WINDOW` clause, standing where the
+// window itself would. Guarded the same way a correlation name is and for the same
+// reason: `PARTITION`, `ROWS` and `RANGE` are not reserved words, so without the
+// lookahead the name swallowed the clause that follows it and every frame stopped
+// reading — which is exactly what happened when this was written without one.
+WindowName   = ?!WindowClause & Identifier
+WindowClause = "PARTITION"i | "ROWS"i | "RANGE"i
+
+// A window frame: how far either side of the current row the window reaches.
+WindowFrame
+	= ("ROWS"i | "RANGE"i) & "BETWEEN"i & FrameBound & "AND"i & FrameBound
+	| ("ROWS"i | "RANGE"i) & FrameBound
+
+FrameBound
+	= "UNBOUNDED"i & ("PRECEDING"i | "FOLLOWING"i)
+	| "CURRENT"i & "ROW"i
+	| ValueExpression & ("PRECEDING"i | "FOLLOWING"i)
+
+// A `*` is not an argument. It stands inside three names and no others, and reading it as
+// one made `trim(*)` a call — which SQL Server answers with `Incorrect syntax near '*'`,
+// found by putting the corpus to the engine rather than to another parser.
+// An argument may be either of the two words a value expression is not: `string_split
+// (NULL, N',')` and `dbo.f (DEFAULT, 1)` are both read by the engine, and §7.1's
+// `<row value constructor element>` is where the standard says the same thing.
+Arguments : @SqlNode[]
+	= first: Argument & (',' & rest: Argument)* => @(SqlNode.Listed(first, rest))
+
+Argument : @SqlNode
+	= "NULL"i    => @(SqlNode.NullValue)
+	| "DEFAULT"i => @(SqlNode.DefaultValue)
+	| v: ValueExpression => @(v)
+
+CountStar : @SqlNode
+	= name: ("COUNT_BIG"i | "CHECKSUM"i) & '(' & '*' & ')'
+		=> @(new SqlNode.Call(name, SqlNode.None, "*"))
+
+// ── §6.1's data type, widened ───────────────────────────────────────────────
+//
+// Restated rather than called, as every replacement here is. What T-SQL adds is a
+// third of the list — the money, the two blobs, the four datetimes, the spatial
+// three — and one thing that is not a type at all: `MAX` where a length stands,
+// which says the largest the type allows rather than a number of characters.
+//
+// A bare qualified name stands last, and it is not a catch-all by accident: a type in
+// T-SQL may be one somebody declared, and no parser can tell without the catalogue.
+// What keeps it from swallowing everything is that the only place a type is read is
+// after `AS` inside a cast.
+TsqlDataType
+	= ("CHARACTER"i & "VARYING"i? | "CHAR"i & "VARYING"i? | "VARCHAR"i
+	  | "NATIONAL"i & ("CHARACTER"i | "CHAR"i) & "VARYING"i? | "NCHAR"i & "VARYING"i? | "NVARCHAR"i
+	  | "BINARY"i & "VARYING"i? | "VARBINARY"i | "VECTOR"i) & TsqlLength?
+	| ("NUMERIC"i | "DECIMAL"i | "DEC"i)
+	  & ('(' & Sql92.Lexical.Digits & (',' & Sql92.Lexical.Digits)? & ')')?
+	| "FLOAT"i & ('(' & Sql92.Lexical.Digits & ')')?
+	| ("DATETIME2"i | "DATETIMEOFFSET"i | "TIME"i | "TIMESTAMP"i)
+	  & ('(' & Sql92.Lexical.Digits & ')')? & ("WITH"i & "TIME"i & "ZONE"i)?
+	| "INTEGER"i | "INT"i | "SMALLINT"i | "TINYINT"i | "BIGINT"i | "BIT"i
+	| "REAL"i | "DOUBLE"i & "PRECISION"i | "MONEY"i | "SMALLMONEY"i
+	| "DATE"i | "DATETIME"i | "SMALLDATETIME"i
+	| "TEXT"i | "NTEXT"i | "IMAGE"i | "XML"i | "JSON"i
+	| "UNIQUEIDENTIFIER"i | "SQL_VARIANT"i | "ROWVERSION"i | "SYSNAME"i
+	| "GEOGRAPHY"i | "GEOMETRY"i | "HIERARCHYID"i
+	| "INTERVAL"i & IntervalQualifier
+	| QualifiedName & TsqlLength?
+
+TsqlLength = '(' & (Sql92.Lexical.Digits | "MAX"i) & ')'
+
+// ── §8's predicate, widened ─────────────────────────────────────────────────
+//
+// Two things T-SQL has that the standard does not. `IS [NOT] DISTINCT FROM` compares
+// two rows treating null as a value, and it stands after the standard's tail rather
+// than inside it: `IS NOT NULL` and `IS NOT DISTINCT FROM` share three words, and the
+// tail is the rule that reads the first of them.
+//
+// And a handful of functions that yield a truth rather than a value. A call cannot
+// stand where a condition does in general — `WHERE f(x)` is not T-SQL either — so
+// they are named, exactly as §6.16's functions are named on the value side.
+TsqlPredicate : @SqlNode
+	= "EXISTS"i & q: TableSubquery => @(new SqlNode.Predicate(SqlPredicateKind.Exists, false, new SqlNode[] { q }))
+	| "UNIQUE"i & q: TableSubquery => @(new SqlNode.Predicate(SqlPredicateKind.Unique, false, new SqlNode[] { q }))
+	| name: ("CONTAINS"i | "FREETEXT"i | "TSEQUAL"i | "REGEXP_LIKE"i | "UPDATE"i)
+	  & '(' & args: Arguments? & ')'
+		=> @(new SqlNode.Call(name, args ?? SqlNode.None))
+	| m: GraphMatch => @(m)
+	| row: RowValueConstructor & tail: PredicateTail => @(SqlNode.Predicated(row, tail))
+	| left: RowValueConstructor & "IS"i & negated: "NOT"i? & "DISTINCT"i & "FROM"i
+	  & other: DistinctTail
+		=> @(new SqlNode.Predicate(
+				 SqlPredicateKind.Comparison, negated is not null,
+				 new SqlNode[] { left, other }, null, "DISTINCT"))
+
+DistinctTail : @SqlNode
+	= q: Quantifier & sub: TableSubquery => @(sub)
+	| right: RowValueConstructor         => @(right)
+
+// ── §7.9's query specification, widened ─────────────────────────────────────
+//
+// What may be left out and what may be added. T-SQL's `FROM` is optional — `SELECT 1`
+// is a query — `TOP` stands between the quantifier and the select list, `INTO` names a
+// table the rows are written to rather than returned from, and a `WINDOW` clause at the
+// end declares the windows the select list named. The count and the windows are read
+// and dropped, as the standard's collate clause is: they say how many rows come back
+// and how a call sees them, not what the rows are.
+TsqlQuerySpecification : @SqlNode
+	= "SELECT"i & quantifier: SetQuantifier? & Top? & columns: SelectList & Into?
+	  & from: FromClause? & where: WhereClause? & group: GroupByClause? & having: HavingClause?
+	  & Window?
+		=> @(new SqlNode.Query(
+				 SqlNode.Distinctly(quantifier) == "DISTINCT", columns, from ?? SqlNode.None,
+				 where, group ?? SqlNode.None, having))
+
+// Written as alternatives of a rule rather than one sequence with a choice inside it,
+// for the reason `CallTail` gives.
+Top = "TOP"i & '(' & ValueExpression & ')' & TopSuffix?
+	| "TOP"i & Sql92.Lexical.UnsignedNumericLiteral & TopSuffix?
+
+TopSuffix = "PERCENT"i & TopWith? | TopWith
+TopWith   = "WITH"i & "TIES"i | "WITH"i & "APPROXIMATE"i | "WITH"i & "APPROX"i
+
+// §7.9 has nowhere to put this: the rows go into a table instead of coming back, and
+// the filegroup says where that table's pages live.
+Into = "INTO"i & QualifiedName & ("ON"i & Identifier)?
+
+// The windows a call may name instead of writing out.
+Window       = "WINDOW"i & WindowDef & (',' & WindowDef)*
+WindowDef    = Identifier & "AS"i & '(' & WindowBody & ')'
+WindowBody   = WindowPart*
+WindowPart   = "PARTITION"i & "BY"i & ValueExpression & (',' & ValueExpression)*
+             | OrderByClause
+             | WindowFrame
+             | Identifier
+
+// ── §7.9's select list, widened ─────────────────────────────────────────────
+//
+// Two things stand where a value does. A variable takes the value rather than the query
+// returning it — `SELECT @a += 1` is an assignment written as a query — and an alias may
+// be written in front with `=` rather than behind with `AS`. And an alias may be a
+// string, which the standard does not allow and every dialect does.
+TsqlSelectSublist : @SqlNode
+	= qualifier: QualifiedName & '.' & '*'        => @(new SqlNode.Star(qualifier))
+	| into: Tsql.Variable & AssignOp & v: ValueExpression => @(new SqlNode.Selected(v, into))
+	| label: TsqlAlias & '=' & v: ValueExpression  => @(new SqlNode.Selected(v, label))
+	| v: ValueExpression & alias: TsqlAsClause?    => @(new SqlNode.Selected(v, alias))
+
+AssignOp = '=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "||="
+
+TsqlAlias    : @string = t: Identifier => @(t) | t: Sql92.Lexical.CharacterStringLiteral => @(t)
+TsqlAsClause : @string = "AS"i & t: TsqlAlias => @(t) | t: TsqlAlias => @(t)
+
+// ── §7.7's group by, widened ────────────────────────────────────────────────
+//
+// Written from the published `GROUP BY` syntax rather than from what the corpus
+// happened to contain, which is what caught the nesting: a `ROLLUP` or a `CUBE` takes
+// group-by expressions and not grouping sets, and only a `GROUPING SETS` list may hold
+// another `ROLLUP` or `CUBE`. The two spellings are separate rules here because the
+// specification makes them separate — `GROUP BY GROUPING SETS (GROUPING SETS (a))` is
+// legal SQL-2006 and is refused by T-SQL, and refusing it is the point.
+//
+// And the older spelling beside the ISO one: `WITH CUBE` and `WITH ROLLUP` say after
+// the list what `CUBE (…)` and `ROLLUP (…)` say in front of it.
+TsqlGroupByClause : @SqlNode[]
+	= "GROUP"i & "BY"i & "ALL"i & first: TsqlGrouping & (',' & rest: TsqlGrouping)*
+		=> @(SqlNode.Listed(first, rest))
+	| "GROUP"i & "BY"i & first: TsqlGrouping & (',' & rest: TsqlGrouping)* & GroupWith?
+		=> @(SqlNode.Listed(first, rest))
+
+GroupWith = "WITH"i & "CUBE"i | "WITH"i & "ROLLUP"i | "WITH"i & '(' & Identifier & ')'
+
+TsqlGrouping : @SqlNode
+	= "CUBE"i     & g: GroupList => @(new SqlNode.Call("CUBE",   g))
+	| "ROLLUP"i   & g: GroupList => @(new SqlNode.Call("ROLLUP", g))
+	| "GROUPING"i & "SETS"i & '(' & first: GroupingSet & (',' & rest: GroupingSet)* & ')'
+		=> @(new SqlNode.Call("GROUPING SETS", SqlNode.Listed(first, rest)))
+	| e: GroupByExpression => @(e)
+
+GroupList : @SqlNode[]
+	= '(' & first: GroupByExpression & (',' & rest: GroupByExpression)* & ')'
+		=> @(SqlNode.Listed(first, rest))
+
+// A column, or a list of them standing as one — and the empty list, which is the grand
+// total and the one grouping that names nothing.
+GroupByExpression : @SqlNode
+	= '(' & ')' => @(new SqlNode.Row(SqlNode.None))
+	| '(' & first: TsqlGroupingColumn & (',' & rest: TsqlGroupingColumn)* & ')'
+		=> @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+	| c: TsqlGroupingColumn => @(c)
+
+TsqlGroupingColumn : @SqlNode = c: ValueExpression & Collate? => @(c)
+
+// One entry of a `GROUPING SETS` list: a cube, a rollup, a list of those, or a plain
+// group-by expression. A grouping set inside a grouping set is not here, deliberately.
+GroupingSet : @SqlNode
+	= "CUBE"i   & g: GroupList => @(new SqlNode.Call("CUBE",   g))
+	| "ROLLUP"i & g: GroupList => @(new SqlNode.Call("ROLLUP", g))
+	| '(' & first: GroupingSetItem & (',' & rest: GroupingSetItem)* & ')'
+		=> @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+	| e: GroupByExpression => @(e)
+
+GroupingSetItem : @SqlNode
+	= "CUBE"i   & g: GroupList => @(new SqlNode.Call("CUBE",   g))
+	| "ROLLUP"i & g: GroupList => @(new SqlNode.Call("ROLLUP", g))
+	| e: GroupByExpression => @(e)
+
+// ── §7.5's joined table, widened ────────────────────────────────────────────
+//
+// **T-SQL has neither `NATURAL JOIN` nor `USING`, and a qualified join must say `ON`.**
+// The published `<joined_table>` is three forms and no more: a join with a condition, a
+// cross join, and an apply. The dialect read all three of the standard's extra spellings
+// until this was written from the syntax rather than from what the corpus contained —
+// which is over-acceptance, the half of correctness a refusal count cannot see.
+//
+// `APPLY` is a join whose right side is read once per row of its left, which is a
+// question about evaluation and not about shape — so the tree says `CROSS JOIN` and the
+// word is not kept. A join hint says which algorithm to use and is dropped for the same
+// reason `OPTION` is; the syntax puts it inside the join type, so a hint without a type
+// is not a join.
+TsqlTableReference : @SqlNode
+	= left: TsqlTableReference & "CROSS"i & "JOIN"i & right: TablePrimary
+		=> @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
+	| left: TsqlTableReference & "CROSS"i & "APPLY"i & right: TablePrimary
+		=> @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
+	| left: TsqlTableReference & "OUTER"i & "APPLY"i & right: TablePrimary
+		=> @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
+	| left: TsqlTableReference & kind: TsqlJoinType? & "JOIN"i & right: TablePrimary
+	  & "ON"i & on: SearchCondition
+		=> @(SqlNode.Joining(kind, null, left, right, on, null))
+	| t: TablePrimary => @(t)
+
+TsqlJoinType : @string
+	= t: JoinType & JoinHint? => @(t)
+
+JoinHint = "HASH"i | "LOOP"i | "MERGE"i | "REMOTE"i | "REDUCE"i | "REPLICATE"i | "REDISTRIBUTE"i
+
+// ── §7.4's table primary, widened ───────────────────────────────────────────
+//
+// The published order, which is not the order the examples suggested: a temporal clause
+// stands before the correlation name, and a sample before the hints. Writing the hints
+// first was accepted here until the syntax said otherwise, and whether ScriptDom accepts
+// them the other way round is a question worth asking of it rather than of us.
+TsqlTablePrimary : @SqlNode
+	= f: RowsetFunction & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
+		=> @(new SqlNode.Source(null, f, alias, columns))
+	| name: QualifiedName & SystemTime? & ('(' & Arguments? & ')')?
+	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
+	  & TableSample? & TableHints? & PivotSuffix?
+		=> @(new SqlNode.Source(name, null, alias, columns))
+	| t: Tsql.Variable & ("AS"i? & alias: CorrelationName)? & TableSample? & TableHints?
+		=> @(new SqlNode.Source(t, null, alias, null))
+	| derived: TableSubquery & "AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?
+	  & PivotSuffix?
+		=> @(new SqlNode.Source(null, derived, alias, columns))
+	| '(' & j: TableReference & ')' & TableSample? & TableHints?
+		=> @(j)
+	| '{' & "OJ"i & j: TableReference & '}' => @(j)
+
+// The published syntax makes a pivoted table a source of its own — `table_source PIVOT
+// (…) [AS] alias` — which is left recursion, and §4.3 folds that only where the rule
+// recurses on itself. So it is written as what follows a primary instead, which reads
+// the same language wherever a pivot is applied to one source rather than to a join.
+//
+// The alias is required and not optional, which the syntax says and the examples did
+// not: `PIVOT (…)` with nothing after it is not a table source.
+PivotSuffix = Pivot | Unpivot
+
+Pivot = "PIVOT"i & '(' & ValueExpression & "FOR"i & QualifiedName
+		& "IN"i & '(' & PivotNames & ')' & ')' & "AS"i? & CorrelationName
+
+Unpivot = "UNPIVOT"i & '(' & QualifiedName & "FOR"i & QualifiedName
+		  & "IN"i & '(' & PivotNames & ')' & ')' & "AS"i? & CorrelationName
+
+PivotNames = QualifiedName & (',' & QualifiedName)*
+
+// Which version of a temporal table to read. `FOR` is reserved, so nothing here can be
+// mistaken for the correlation name it stands in front of.
+SystemTime = "FOR"i & "SYSTEM_TIME"i & SystemTimeWhen
+		   | "FOR"i & "PATH"i
+
+SystemTimeWhen
+	= "AS"i & "OF"i & ValueExpression
+	| "FROM"i & ValueExpression & "TO"i & ValueExpression
+	| "BETWEEN"i & ValueExpression & "AND"i & ValueExpression
+	| "CONTAINED"i & "IN"i & '(' & ValueExpression & ',' & ValueExpression & ')'
+	| "ALL"i
+
+// A correlation name is an identifier, and not one of the words that begin a clause of
+// its own after a source. None of them is reserved — a column may be called `WINDOW` —
+// but a name is what stands *after* a source, and `FROM t PIVOT (…)` has no name in it.
+// Without the lookahead the pivot became the correlation and the parse stopped one token
+// later, saying nothing about why.
+//
+// `USING` joined them when `MERGE` was written, and it is the fourth word to do so. The
+// shape is always the same: a word that begins a clause, an optional name in the same
+// position, and the name winning. Anything added after a source belongs on this list.
+CorrelationName = ?!SourceClause & Identifier
+SourceClause    = "WINDOW"i | "PIVOT"i | "UNPIVOT"i | "TABLESAMPLE"i | "USING"i
+
+// **Transcribed from `TSql170.g`'s own `tableHint` and `optimizerHints`, and that makes
+// these two rules weaker evidence than the rest of this file.** A rule written from the
+// other parser's grammar cannot disagree with the other parser: the comparison stops
+// being a comparison and becomes a check that the transcription was faithful. Everywhere
+// else here the source is the published syntax, so a difference is a finding — a bug on
+// one side or the other — and that is the whole point of measuring against ScriptDom at
+// all. These two are marked because they are the exception.
+//
+// What the shape says, and a list of hint names would not: `HOLDLOCK`, `INDEX`, `MERGE`,
+// `ORDER`, `GROUP`, `PLAN`, `USE`, `TABLE` and `JOIN` arrive as the reserved words they
+// are, and every other hint — `NOLOCK`, `FORCESEEK`, `RECOMPILE`, `MAXDOP` — is an
+// ordinary identifier. So the rule is about which words are keywords and not about which
+// hints exist, and adding a hint to T-SQL does not change it.
+//
+// All of it is read and dropped: a hint says how the rows are to be fetched and never
+// which rows they are, and the tree this grammar builds is the standard's.
+TableHints = "WITH"i & '(' & TableHint & (',' & TableHint)* & ')'
+
+TableHint
+	= "HOLDLOCK"i
+	| "INDEX"i & IndexArgument
+	| Identifier & TableHintTail?
+
+TableHintTail
+	= '(' & IndexValue & TableHintRest & ')'
+	| '=' & Sql92.Lexical.UnsignedNumericLiteral
+
+TableHintRest = '(' & ColumnList & ')' | (',' & IndexValue)*
+
+IndexArgument
+	= '=' & IndexValue
+	| '(' & IndexValue & (',' & IndexValue)* & ')'
+
+IndexValue = Identifier | Sql92.Lexical.UnsignedNumericLiteral
+
+QueryHints = "OPTION"i & '(' & QueryHint & (',' & QueryHint)* & ')'
+
+QueryHint
+	= "MERGE"i & MergeWhat
+	| "ORDER"i & "GROUP"i
+	| "USE"i & UseWhat
+	| "TABLE"i & Identifier & '(' & QualifiedName & (',' & TableHint)* & ')'
+	| Identifier & QueryHintTail?
+
+MergeWhat = "JOIN"i | "UNION"i
+UseWhat   = "PLAN"i & HintString
+		  | Identifier & '(' & HintString & (',' & HintString)* & ')'
+
+QueryHintTail
+	= "JOIN"i
+	| "UNION"i
+	| "ORDER"i
+	| "GROUP"i
+	| "PLAN"i
+	| "FOR"i & OptimizeFor
+	| '=' & ValueExpression
+	| Sql92.Lexical.UnsignedNumericLiteral
+	| Identifier
+
+OptimizeFor
+	= '(' & VariableValue & (',' & VariableValue)* & ')'
+	| Identifier
+
+HintString = Sql92.Lexical.NationalCharacterStringLiteral | Sql92.Lexical.CharacterStringLiteral
+
+VariableValue = Tsql.Variable & VariableValueTail
+
+VariableValueTail = '=' & HintValue | "UNKNOWN"i
+
+HintValue = "NULL"i | ValueExpression
+
+// §7.4's table sample: how much of a source to read, in rows or in per cent, and the
+// seed that makes the choice repeatable. Read and dropped for the same reason a hint is.
+TableSample = "TABLESAMPLE"i & "SYSTEM"i & SampleSize & TableRepeatable?
+			| "TABLESAMPLE"i & SampleSize & TableRepeatable?
+
+SampleSize      = '(' & ValueExpression & SampleUnit? & ')'
+SampleUnit      = "PERCENT"i | "ROWS"i
+TableRepeatable = "REPEATABLE"i & '(' & ValueExpression & ')'
+
+// ── §13.1's direct select, widened ──────────────────────────────────────────
+//
+// Where the clauses that belong to the statement rather than to the query go: how many
+// rows to skip and take, what shape to return them in, and how to run the whole thing.
+TsqlDirectSelect : @SqlNode
+	= WithClause? & q: QueryExpression & by: OrderByClause? & OffsetFetch? & ForClause? & QueryHints?
+		=> @(by is null ? q : new SqlNode.Ordered(q, by))
+
+// §7's `WITH <common_table_expression>`: a query given a name in front of the statement
+// that uses it. Read and dropped — what it names is a query the tree already holds no
+// place for, and putting one in is a question about the shape of `SqlNode` rather than
+// about the grammar.
+//
+// The definition is a query expression and not a whole statement: the syntax forbids a
+// `WITH` inside a `WITH`, and writing it that way is how the grammar says so.
+WithClause    = "WITH"i & XmlNamespaces & (',' & CteDefinition)*
+			  | "WITH"i & CteDefinition & (',' & CteDefinition)*
+
+// The namespaces a `FOR XML` may use, declared where a named query is declared and in
+// the same breath as one.
+XmlNamespaces = "XMLNAMESPACES"i & '(' & XmlNamespace & (',' & XmlNamespace)* & ')'
+XmlNamespace  = "DEFAULT"i & ValueExpression
+			  | ValueExpression & "AS"i & Identifier
+CteDefinition = Identifier & ('(' & ColumnList & ')')? & "AS"i & '(' & CteBody & ')'
+CteBody       = QueryExpression & OrderByClause? & OffsetFetch?
+
+// `FETCH` without `OFFSET` in front of it is not a clause: the engine answers
+// `Incorrect syntax`, though ScriptDom reads it. The corpus statement that asked for it was
+// wrong to, and reading it was over-acceptance rather than coverage.
+OffsetFetch = "OFFSET"i & ValueExpression & RowWord & FetchClause?
+
+FetchClause = "FETCH"i & "APPROXIMATE"i & FetchAt & ValueExpression & RowWord & "ONLY"i
+			| "FETCH"i & FetchAt & ValueExpression & RowWord & "ONLY"i
+
+FetchAt = "NEXT"i | "FIRST"i
+RowWord = "ROWS"i | "ROW"i
+
+ForClause = "FOR"i & "BROWSE"i
+		  | "FOR"i & "JSON"i & ForOption & (',' & ForOption)*
+		  | "FOR"i & "XML"i  & ForOption & (',' & ForOption)*
+
+ForOption = Identifier & ForOptionTail?
+
+ForOptionTail = '(' & ValueExpression & ')' | '=' & ValueExpression
+
+// ── What the dialect is, said once ──────────────────────────────────────────
+//
+// One header, and every rule reachable from inside it reads T-SQL. The four entry
+// points are the standard's own, called through the substitution rather than
+// rewritten — which is the whole claim this file makes.
+namespace Dialect with (
+	Identifier                = TsqlIdentifier,
+	GeneralValueSpecification = TsqlValueSpecification,
+	ValueExpressionPrimary    = TsqlValuePrimary,
+	QuerySpecification        = TsqlQuerySpecification,
+	TablePrimary              = TsqlTablePrimary,
+	TableReference            = TsqlTableReference,
+	SelectSublist             = TsqlSelectSublist,
+	GroupByClause             = TsqlGroupByClause,
+	DirectSelect              = TsqlDirectSelect,
+	QualifiedName             = TsqlQualifiedName,
+	QueryExpression           = TsqlQueryExpression,
+	SimpleWhen                = TsqlSimpleWhen,
+	DataType                  = TsqlDataType,
+	Predicate                 = TsqlPredicate)
+{
+	Select    : @SqlNode = q: Sql92.DirectSelect    => @(q)
+	Query     : @SqlNode = q: Sql92.QueryExpression => @(q)
+	Condition : @SqlNode = c: Sql92.SearchCondition => @(c)
+	Value     : @SqlNode = v: Sql92.ValueExpression => @(v)
+	Statement : @SqlNode = s: TsqlStatement         => @(s)
+}
+
+parse Dialect.Select    as ParseSelect
+parse Dialect.Query     as ParseQuery
+parse Dialect.Condition as ParseSearchCondition
+parse Dialect.Value     as ParseValueExpression
+parse Dialect.Statement as ParseStatement
+
+// ── The graph pattern, which is a language of its own ───────────────────────
+//
+// `MATCH` is a predicate whose operand is not an expression at all: it is a drawing.
+// Nodes are names, edges are names in parentheses, and an arrow between them says which
+// way the edge points — `Person1-(friend)->Person2`. Written from the published `MATCH`
+// syntax, and the whole of it is here: the simple pattern, the arbitrary-length one that
+// `SHORTEST_PATH` takes, its two quantifiers, and the predicate that compares the last
+// node of two paths.
+//
+// **The arrows are written as two characters and not as one lexeme, deliberately.** A
+// `<-` token would be produced everywhere, and `a <-1` — a comparison with a negative
+// number — would stop being one. There is no ambiguity to pay for it: a drawing appears
+// only inside `MATCH (…)`, so the two characters can be read as two and the only thing
+// admitted that nobody writes is a space between them.
+GraphMatch : @SqlNode
+	= "MATCH"i & '(' & p: GraphPattern & ')' => @(new SqlNode.Call("MATCH", p))
+
+GraphPattern : @SqlNode[]
+	= first: GraphAnd & (',' & rest: GraphAnd)* => @(SqlNode.Listed(first, rest))
+
+// `AND` inside a drawing joins two drawings, and it is the only connective there is:
+// the syntax says `OR` and `NOT` are not supported in a pattern.
+GraphAnd : @SqlNode
+	= first: GraphItem & ("AND"i & rest: GraphItem)* => @(first)
+
+GraphItem : @SqlNode
+	= "SHORTEST_PATH"i & '(' & p: GraphAnd & ')' => @(p)
+	| '(' & p: GraphAnd & ')'                    => @(p)
+	| p: GraphLengthPattern & n: GraphNode       => @(n)
+	| head: GraphNode & t: GraphItemTail         => @(head)
+
+GraphItemTail : @SqlNode
+	= '=' & n: GraphNode  => @(n)
+	| s: GraphStep+       => @(s[0])
+
+GraphStep : @SqlNode
+	= e: GraphEdge & n: GraphNode => @(n)
+	| p: GraphLengthPattern       => @(p)
+
+// A node is a table's name or the alias it was given in the `FROM` clause, and
+// `LAST_NODE` names the far end of a path rather than a table.
+GraphNode : @SqlNode
+	= "LAST_NODE"i & '(' & name: QualifiedName & ')' => @(new SqlNode.Column(name))
+	| name: QualifiedName                            => @(new SqlNode.Column(name))
+
+// An edge points one way or the other and must say which.
+GraphEdge
+	= '<' & '-' & '(' & QualifiedName & ')' & '-'
+	| '-' & '(' & QualifiedName & ')' & '-' & '>'
+
+// The pattern `SHORTEST_PATH` repeats, with the regular expression's own two quantifiers.
+// It is written edge first or node first, and the difference is which end the node that
+// bounds it stands at.
+GraphLengthPattern : @SqlNode
+	= '(' & s: GraphStep+ & ')' & GraphQuantifier => @(s[0])
+	| '(' & n: GraphNode & GraphEdge & ')' & GraphQuantifier => @(n)
+
+GraphQuantifier = '+' | '{' & Sql92.Lexical.Digits & ',' & Sql92.Lexical.Digits & '}'
+
+// ── The rowset functions ────────────────────────────────────────────────────
+//
+// A dozen small languages rather than one. Each is a name followed by an argument list
+// that is not an argument list: `OPENJSON` takes a schema, `OPENROWSET` takes a file and
+// a list of options, `CHANGETABLE` takes a word and then a table, and the full-text four
+// take a column list where a value would stand.
+//
+// What they share is the shape around them — a name, parentheses, and a correlation — so
+// they are one alternative of the table primary with a rule each inside it.
+
+// `OPENJSON ( json [ , path ] ) [ WITH ( colName type [ path ] [ AS JSON ] , … ) ]`, and
+// `OPENXML`'s schema declaration, which is the same shape with a different fourth part.
+// The two are written as one rule because the syntax of the two is one shape.
+RowsetSchema = "WITH"i & '(' & SchemaColumn & (',' & SchemaColumn)* & ')'
+			 | "WITH"i & QualifiedName
+
+SchemaColumn = Identifier & DataType & SchemaPath? & SchemaAsJson?
+
+SchemaPath   = Sql92.Lexical.NationalCharacterStringLiteral
+			 | Sql92.Lexical.CharacterStringLiteral
+SchemaAsJson = "AS"i & "JSON"i
+
+// What may stand where one of these functions takes an argument. The published syntax of
+// each names its own options — `SINGLE_NCLOB`, `FORMATFILE`, `CHANGES`, `LANGUAGE` — and
+// the shape they all have is a word, a word and a value, a name, a list of names, or an
+// ordinary value. So the shape is written and the vocabulary is left open, exactly as it
+// is for the table hints and for the same reason: a name here is a catalogue's business,
+// and adding one to T-SQL does not change the grammar.
+RowsetArguments : @SqlNode[]
+	= first: RowsetArgument & (',' & rest: RowsetArgument)* => @(SqlNode.Listed(first, rest))
+
+RowsetArgument : @SqlNode
+	= '*'                                        => @(new SqlNode.Star(null))
+	| n: RowsetOrder                             => @(n)
+	| "BULK"i & v: RowsetValue                   => @(v)
+	| name: Identifier & '=' & v: RowsetValue    => @(new SqlNode.Selected(v, name))
+	| word: Identifier & v: RowsetValue          => @(v)
+	| '(' & first: RowsetArgument & (',' & rest: RowsetArgument)* & ')'
+		=> @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+	| v: RowsetValue                             => @(v)
+
+// `ORDER ( c1 ASC, c2 DESC ) [ UNIQUE ]` says a bulk source is already sorted.
+RowsetOrder : @SqlNode
+	= "ORDER"i & '(' & first: SortSpecification & (',' & rest: SortSpecification)* & ')'
+	  & "UNIQUE"i?
+		=> @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+
+// A provider's arguments may be joined by semicolons rather than commas — a connection
+// string written as three pieces, which is `OPENROWSET`'s oldest spelling.
+RowsetValue : @SqlNode
+	= v: ValueExpression & (';' & ValueExpression)+ => @(v)
+	| "NULL"i    => @(SqlNode.NullValue)
+	| "DEFAULT"i => @(SqlNode.DefaultValue)
+	| v: ValueExpression => @(v)
+
+RowsetFunction : @SqlNode
+	= name: RowsetName & '(' & args: RowsetArguments? & ')' & RowsetSchema?
+		=> @(new SqlNode.Call(name, args ?? SqlNode.None))
+
+RowsetName
+	= "OPENROWSET"i | "OPENQUERY"i | "OPENDATASOURCE"i | "OPENXML"i | "OPENJSON"i
+	| "CHANGETABLE"i | "CONTAINSTABLE"i | "FREETEXTTABLE"i
+	| "SEMANTICKEYPHRASETABLE"i | "SEMANTICSIMILARITYTABLE"i | "SEMANTICSIMILARITYDETAILSTABLE"i
+	| "PREDICT"i | "VECTOR_SEARCH"i | "GENERATE_SERIES"i | "STRING_SPLIT"i
+
+// ── The statements that change rows ─────────────────────────────────────────
+//
+// The query level was the whole of this grammar until now, and the four statements that
+// write are written on top of it rather than beside it: an `INSERT` takes a query, an
+// `UPDATE` takes a `FROM` clause, a `MERGE` takes a table source and two search
+// conditions. Almost nothing here is new — what is new is the frame around what was
+// already read.
+//
+// `OUTPUT` is read and dropped, as `TOP` and the hints are. It says what a statement
+// hands back rather than what it does, and it would be a fifth field on four records
+// that nothing yet reads.
+// The terminator is part of the statement and not of the script, at least for one of
+// them: SQL Server answers `A MERGE statement must be terminated by a semi-colon (;)`.
+// So it is read here where it stands rather than cut off before the parse — cutting it
+// off is what made every merge in the corpus look like a defect on this side.
+TsqlStatement : @SqlNode
+	= WithClause? & s: StatementBody & ';'? => @(s)
+
+StatementBody : @SqlNode
+	= s: TsqlInsert   => @(s)
+	| s: TsqlUpdate   => @(s)
+	| s: TsqlDelete   => @(s)
+	| s: TsqlMerge    => @(s)
+	| s: Procedural   => @(s)
+	| s: DirectSelect => @(s)
+
+// What a statement writes to. Narrower than a table primary on purpose: the syntax gives
+// a target no correlation and no sample, and `UPDATE t AS x SET …` is not T-SQL.
+DmlTarget : @SqlNode
+	= f: RowsetFunction                 => @(f)
+	| t: Tsql.Variable & TableHints?    => @(new SqlNode.Column(t))
+	| name: QualifiedName & TableHints? => @(new SqlNode.Column(name))
+
+// ── §INSERT ─────────────────────────────────────────────────────────────────
+TsqlInsert : @SqlNode
+	= "INSERT"i & Top? & "INTO"i? & target: DmlTarget
+	  & ('(' & columns: ColumnList & ')')? & OutputClause?
+	  & rows: InsertRows
+		=> @(new SqlNode.Insert(target, columns, rows))
+
+InsertRows : @SqlNode
+	= "DEFAULT"i & "VALUES"i    => @(new SqlNode.Row(SqlNode.None))
+	| v: TableValueConstructor  => @(v)
+	| e: ExecuteStatement       => @(e)
+	| q: QueryExpression        => @(q)
+
+// ── §UPDATE ─────────────────────────────────────────────────────────────────
+TsqlUpdate : @SqlNode
+	= "UPDATE"i & Top? & target: DmlTarget
+	  & "SET"i & sets: Assignments & OutputClause?
+	  & from: FromClause? & where: DmlWhere? & QueryHints?
+		=> @(new SqlNode.Update(target, sets, from ?? SqlNode.None, where))
+
+Assignments : @SqlNode[]
+	= first: Assignment & (',' & rest: Assignment)* => @(SqlNode.Listed(first, rest))
+
+// Everything the syntax allows on the left of a `SET`, which is more than a column: a
+// variable, a variable and a column at once, a member of a user-defined type, and a
+// method called on one. `.WRITE (…)` needs no rule of its own — a qualified name has
+// already eaten the dot, so what is left is a call.
+Assignment : @SqlNode
+	= to: Tsql.Variable   & v: AssignTail       => @(new SqlNode.Assign(to, null, v))
+	| to: QualifiedName   & v: ColumnAssignTail => @(new SqlNode.Assign(to, null, v))
+
+// `DEFAULT` is assigned and not compounded: the engine answers `DEFAULT is not allowed
+// on the right hand side of "-="`, which is a rule about the operator rather than about
+// the value, so it is written on the operator.
+AssignTail : @SqlNode
+	= '=' & c: QualifiedName & AssignOp & v: SetValue => @(v)
+	| '=' & v: AssignedValue                          => @(v)
+	| AssignOp & v: SetValue                          => @(v)
+
+ColumnAssignTail : @SqlNode
+	= '(' & args: Arguments? & ')' => @(args is null ? SqlNode.NullValue : args[0])
+	| '=' & v: AssignedValue       => @(v)
+	| AssignOp & v: SetValue       => @(v)
+
+AssignedValue : @SqlNode
+	= "DEFAULT"i => @(SqlNode.DefaultValue)
+	| v: SetValue => @(v)
+
+SetValue : @SqlNode
+	= "NULL"i    => @(SqlNode.NullValue)
+	| v: ValueExpression => @(v)
+
+// A `WHERE` that may name a cursor's current row instead of a condition.
+DmlWhere : @SqlNode
+	= "WHERE"i & "CURRENT"i & "OF"i & "GLOBAL"i? & name: QualifiedName => @(new SqlNode.Column(name))
+	| "WHERE"i & c: SearchCondition => @(c)
+
+// ── §DELETE ─────────────────────────────────────────────────────────────────
+TsqlDelete : @SqlNode
+	= "DELETE"i & Top? & "FROM"i? & target: DmlTarget & OutputClause?
+	  & from: FromClause? & where: DmlWhere? & QueryHints?
+		=> @(new SqlNode.Delete(target, from ?? SqlNode.None, where))
+
+// ── §MERGE ──────────────────────────────────────────────────────────────────
+//
+// Three shapes of arm and they are not interchangeable: a match and a missing target may
+// insert, a missing source may update or delete, and the syntax says which is which.
+TsqlMerge : @SqlNode
+	= "MERGE"i & Top? & "INTO"i? & target: DmlTarget & ("AS"i? & alias: CorrelationName)?
+	  & "USING"i & source: TableReference
+	  & "ON"i & on: SearchCondition
+	  & whens: MergeArm+ & OutputClause? & QueryHints?
+		=> @(new SqlNode.Merge(target, source, on, whens))
+
+MergeArm : @SqlNode
+	= "WHEN"i & "MATCHED"i & ("AND"i & c: SearchCondition)? & "THEN"i & a: MergeChange
+		=> @(new SqlNode.MergeWhen(true, null, c, a))
+	| "WHEN"i & "NOT"i & "MATCHED"i & "BY"i & "SOURCE"i & ("AND"i & c: SearchCondition)?
+	  & "THEN"i & a: MergeChange
+		=> @(new SqlNode.MergeWhen(false, "SOURCE", c, a))
+	| "WHEN"i & "NOT"i & "MATCHED"i & ("BY"i & "TARGET"i)? & ("AND"i & c: SearchCondition)?
+	  & "THEN"i & a: MergeInsert
+		=> @(new SqlNode.MergeWhen(false, "TARGET", c, a))
+
+MergeChange : @SqlNode
+	= "UPDATE"i & "SET"i & sets: Assignments
+		=> @(new SqlNode.Update(null, sets, SqlNode.None, null))
+	| "DELETE"i
+		=> @(new SqlNode.Delete(null, SqlNode.None, null))
+
+MergeInsert : @SqlNode
+	= "INSERT"i & ('(' & columns: ColumnList & ')')? & rows: MergeInsertRows
+		=> @(new SqlNode.Insert(null, columns, rows))
+
+MergeInsertRows : @SqlNode
+	= "DEFAULT"i & "VALUES"i   => @(new SqlNode.Row(SqlNode.None))
+	| v: TableValueConstructor => @(v)
+
+// ── The output clause, shared by all four ───────────────────────────────────
+//
+// Read and dropped. What it names is `INSERTED`, `DELETED` or a table of the `FROM`
+// clause, and `$action` for a merge — all of them ordinary names once `$` is part of one.
+OutputClause = "OUTPUT"i & OutputList & "INTO"i & DmlTarget & ('(' & ColumnList & ')')? & OutputClause?
+			 | "OUTPUT"i & OutputList
+
+OutputList = OutputItem & (',' & OutputItem)*
+
+OutputItem = QualifiedName & '.' & '*'
+		   | ValueExpression & TsqlAsClause?
+
+// ── The procedural level ────────────────────────────────────────────────────
+//
+// The frame everything else stands inside. It is worth writing before the rest of the
+// statement language and not after: `CREATE PROCEDURE`, `CREATE TRIGGER` and
+// `CREATE FUNCTION` are a header and a body, and the body is this — so none of the three
+// can be read at all until it exists, and `INSERT … EXEC` cannot either.
+//
+// Everything here was written from the published syntax and every form put to the engine.
+
+Procedural : @SqlNode
+	= s: TryCatchStatement    => @(s)
+	| s: TransactionStatement => @(s)
+	| s: StatementBlock       => @(s)
+	| s: ConditionalStatement => @(s)
+	| s: LoopStatement        => @(s)
+	| s: DeclareStatement     => @(s)
+	| s: SetStatement         => @(s)
+	| s: ExecuteStatement     => @(s)
+	| s: BulkInsertStatement  => @(s)
+	| s: SimpleCommand        => @(s)
+
+StatementList : @SqlNode[] = s: TsqlStatement+ => @(s)
+
+// `BEGIN TRY` and `BEGIN TRANSACTION` open with the same word as a block, so both stand
+// in front of it.
+TryCatchStatement : @SqlNode
+	= "BEGIN"i & "TRY"i & tried: StatementList & "END"i & "TRY"i
+	  & "BEGIN"i & "CATCH"i & caught: StatementList & "END"i & "CATCH"i
+		=> @(new SqlNode.TryCatch(tried, caught))
+
+StatementBlock : @SqlNode
+	= "BEGIN"i & body: StatementList & "END"i => @(new SqlNode.Block(body))
+
+ConditionalStatement : @SqlNode
+	= "IF"i & c: SearchCondition & then: TsqlStatement & ("ELSE"i & other: TsqlStatement)?
+		=> @(new SqlNode.If(c, then, other))
+
+LoopStatement : @SqlNode
+	= "WHILE"i & c: SearchCondition & body: TsqlStatement => @(new SqlNode.While(c, body))
+
+// ── Transactions ────────────────────────────────────────────────────────────
+TransactionStatement : @SqlNode
+	= "BEGIN"i & "DISTRIBUTED"i & TranWord & name: TranName? & TranMark?
+		=> @(new SqlNode.Transaction("BEGIN DISTRIBUTED", name))
+	| "BEGIN"i & TranWord & name: TranName? & TranMark?
+		=> @(new SqlNode.Transaction("BEGIN", name))
+	| "COMMIT"i & TranWord? & name: TranName? & TranDelayed?
+		=> @(new SqlNode.Transaction("COMMIT", name))
+	| "ROLLBACK"i & TranWord? & name: TranName?
+		=> @(new SqlNode.Transaction("ROLLBACK", name))
+	| "SAVE"i & TranWord & name: TranName
+		=> @(new SqlNode.Transaction("SAVE", name))
+
+TranWord    = "TRANSACTION"i | "TRAN"i | "WORK"i
+TranMark    = "WITH"i & "MARK"i & ValueExpression?
+TranDelayed = "WITH"i & '(' & Identifier & '=' & Identifier & ')'
+
+TranName : @string = t: Identifier => @(t) | t: Tsql.Variable => @(t)
+
+// ── Declarations ────────────────────────────────────────────────────────────
+DeclareStatement : @SqlNode
+	= "DECLARE"i & name: Identifier & "CURSOR"i & CursorOption* & "FOR"i & CursorBody
+		=> @(new SqlNode.Declare(new SqlNode[] { new SqlNode.Declared(name, "CURSOR", null) }))
+	| "DECLARE"i & first: Declaration & (',' & rest: Declaration)*
+		=> @(new SqlNode.Declare(SqlNode.Listed(first, rest)))
+
+Declaration : @SqlNode
+	= name: Tsql.Variable & "AS"i? & d: DeclaredAs => @(d with { Name = name })
+
+DeclaredAs : @SqlNode.Declared
+	= "TABLE"i & '(' & TableBody & ')'          => @(new SqlNode.Declared("", "TABLE", null))
+	| "CURSOR"i                                 => @(new SqlNode.Declared("", "CURSOR", null))
+	| type: DataType & ('=' & v: SetValue)?     => @(new SqlNode.Declared("", type, v))
+
+CursorOption = "LOCAL"i | "GLOBAL"i | "FORWARD_ONLY"i | "SCROLL"i | "STATIC"i | "KEYSET"i
+			 | "DYNAMIC"i | "FAST_FORWARD"i | "READ_ONLY"i | "SCROLL_LOCKS"i | "OPTIMISTIC"i
+			 | "TYPE_WARNING"i | "INSENSITIVE"i
+
+CursorBody = QueryExpression & OrderByClause? & CursorFor?
+CursorFor  = "FOR"i & "UPDATE"i & ("OF"i & ColumnList)?
+		   | "FOR"i & "READ"i & "ONLY"i
+
+// The columns a table variable declares, which is the beginning of `CREATE TABLE` and
+// meant to grow into it.
+TableBody    = TableElement & (',' & TableElement)*
+TableElement     = Identifier & TableElementTail
+TableElementTail = "AS"i & ValueExpression & ColumnOption*
+				 | DataType & ColumnOption*
+
+ColumnOption = "NOT"i & "NULL"i
+			 | "NULL"i
+			 | "PRIMARY"i & "KEY"i & IndexOrder? & ('(' & ColumnList & ')')?
+			 | "UNIQUE"i & IndexOrder? & ('(' & ColumnList & ')')?
+			 | "IDENTITY"i & ('(' & Arguments & ')')?
+			 | "DEFAULT"i & ValueExpression
+			 | "COLLATE"i & QualifiedName
+			 | "CHECK"i & '(' & SearchCondition & ')'
+			 | "ROWGUIDCOL"i
+			 | "SPARSE"i
+			 | "FILESTREAM"i
+			 | "PERSISTED"i
+			 | "INDEX"i & Identifier & IndexOrder?
+
+IndexOrder = "CLUSTERED"i | "NONCLUSTERED"i
+
+// ── SET ─────────────────────────────────────────────────────────────────────
+//
+// Two statements share the word: one assigns a variable, the other names a setting. The
+// options that are reserved words stand in front, since the general form reads a name.
+SetStatement : @SqlNode
+	= "SET"i & "TRANSACTION"i & "ISOLATION"i & "LEVEL"i & level: IsolationLevel
+		=> @(new SqlNode.Setting("TRANSACTION ISOLATION LEVEL", new SqlNode.Column(level)))
+	| "SET"i & "IDENTITY_INSERT"i & name: QualifiedName & OnOff
+		=> @(new SqlNode.Setting("IDENTITY_INSERT", new SqlNode.Column(name)))
+	| "SET"i & option: SetReserved & v: ValueExpression
+		=> @(new SqlNode.Setting(option, v))
+	| "SET"i & name: Tsql.Variable & v: AssignTail
+		=> @(new SqlNode.Assign(name, null, v))
+	| "SET"i & option: SetOptions & OnOff?
+		=> @(new SqlNode.Setting(option, null))
+
+SetReserved = "ROWCOUNT"i | "TEXTSIZE"i | "OFFSETS"i | "STATISTICS"i | "USER"i
+SetOptions  = Identifier & (',' & Identifier)*
+OnOff       = "ON"i | "OFF"i
+
+IsolationLevel = "READ"i & "UNCOMMITTED"i | "READ"i & "COMMITTED"i | "REPEATABLE"i & "READ"i
+			   | "SNAPSHOT"i | "SERIALIZABLE"i
+
+// ── EXECUTE ─────────────────────────────────────────────────────────────────
+ExecuteStatement : @SqlNode = ExecWord & e: ExecuteBody => @(e)
+
+ExecuteBody : @SqlNode
+	= "AS"i & Identifier & '=' & ValueExpression & ExecWith?
+		=> @(new SqlNode.Execute(null, "AS", SqlNode.None))
+	| '(' & args: Arguments & ')' & ExecAt? & ExecWith?
+		=> @(new SqlNode.Execute(null, "(", args))
+	| into: ExecReturn? & name: ExecName & args: ExecArguments? & ExecAt? & ExecWith?
+		=> @(new SqlNode.Execute(into, name, args ?? SqlNode.None))
+
+ExecWord   = "EXECUTE"i | "EXEC"i
+ExecReturn : @string = t: Tsql.Variable & '=' => @(t)
+ExecName   : @string = t: QualifiedName => @(t) | t: Tsql.Variable => @(t)
+ExecAt     = "AT"i & QualifiedName
+ExecWith   = "WITH"i & ExecOption & (',' & ExecOption)*
+ExecOption = "RESULT"i & "SETS"i & "NONE"i
+		   | "RESULT"i & "SETS"i & "UNDEFINED"i
+		   | Identifier
+
+ExecArguments : @SqlNode[]
+	= first: ExecArgument & (',' & rest: ExecArgument)* => @(SqlNode.Listed(first, rest))
+
+// The lookahead is the fifth of its kind and the first that is not about a name: `AT` is
+// not reserved, so `EXEC dbo.p AT linked` read `AT` as an argument and then wanted the
+// clause it had just eaten. The shape is the same wherever an optional list stands in
+// front of a clause whose first word could belong to the list.
+ExecArgument : @SqlNode
+	= name: Tsql.Variable & '=' & v: ExecValue & "OUTPUT"i? => @(new SqlNode.Selected(v, name))
+	| ?!"AT"i & v: ExecValue & "OUTPUT"i?                   => @(v)
+
+ExecValue : @SqlNode
+	= "DEFAULT"i => @(SqlNode.DefaultValue)
+	| "NULL"i    => @(SqlNode.NullValue)
+	| v: ValueExpression => @(v)
+
+// ── BULK INSERT ─────────────────────────────────────────────────────────────
+BulkInsertStatement : @SqlNode
+	= "BULK"i & "INSERT"i & target: DmlTarget & "FROM"i & file: ValueExpression
+	  & ("WITH"i & '(' & BulkOption & (',' & BulkOption)* & ')')?
+		=> @(new SqlNode.Insert(target, null, file))
+
+BulkOption = "ORDER"i & '(' & SortSpecification & (',' & SortSpecification)* & ')'
+		   | Identifier & BulkOptionTail?
+
+BulkOptionTail = '=' & ValueExpression | '(' & Arguments & ')'
+
+// ── A word and some values ──────────────────────────────────────────────────
+SimpleCommand : @SqlNode
+	= "PRINT"i & v: ValueExpression      => @(new SqlNode.Command("PRINT", new SqlNode[] { v }))
+	| "RETURN"i & v: ValueExpression?    => @(new SqlNode.Command("RETURN", v is null ? SqlNode.None : new SqlNode[] { v }))
+	| "THROW"i & args: Arguments?        => @(new SqlNode.Command("THROW", args ?? SqlNode.None))
+	| "GOTO"i & name: Identifier         => @(new SqlNode.Command("GOTO", new SqlNode[] { new SqlNode.Column(name) }))
+	| "BREAK"i                           => @(new SqlNode.Command("BREAK", SqlNode.None))
+	| "CONTINUE"i                        => @(new SqlNode.Command("CONTINUE", SqlNode.None))
+	| "CHECKPOINT"i & v: ValueExpression? => @(new SqlNode.Command("CHECKPOINT", v is null ? SqlNode.None : new SqlNode[] { v }))
+	| "USE"i & name: QualifiedName       => @(new SqlNode.Command("USE", new SqlNode[] { new SqlNode.Column(name) }))
+	| "RAISERROR"i & '(' & args: Arguments & ')' & RaiseWith?
+		=> @(new SqlNode.Command("RAISERROR", args))
+	| "RAISERROR"i & args: Arguments & RaiseWith?
+		=> @(new SqlNode.Command("RAISERROR", args))
+	| "WAITFOR"i & WaitKind & v: ValueExpression
+		=> @(new SqlNode.Command("WAITFOR", new SqlNode[] { v }))
+
+RaiseWith = "WITH"i & Identifier & (',' & Identifier)*
+WaitKind  = "DELAY"i | "TIME"i

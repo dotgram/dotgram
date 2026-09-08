@@ -369,6 +369,16 @@ public sealed partial class GrammarNormalizer
 	/// let whichever rule's identity-keyed metadata is built second silently clobber the
 	/// first's (§19).
 	/// </remarks>
+	/// <summary>A fresh <see cref="Node.Element"/> saying what this one says.</summary>
+	/// <remarks>
+	/// An element is a leaf, so a clone of one is a copy of its four fields — and it is
+	/// copied rather than shared for the reason every other node is (§19). The one inside
+	/// a <see cref="Node.Behind"/> is reached through this because a look-behind holds an
+	/// element rather than a node, and the switches cannot recurse into it.
+	/// </remarks>
+	internal static Node.Element Same(Node.Element element) =>
+		new(element.IsNegated, element.Ranges, element.Categories, element.References);
+
 	Node CloneAndRewrite(
 		Node node,
 		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
@@ -378,6 +388,7 @@ public sealed partial class GrammarNormalizer
 		var clone = node switch
 		{
 			Node.Empty                                                              => new Node.Empty    (),
+			Node.Glue                                                               => Node.Glue.Instance,
 			Node.Element  (var negated, var ranges, var categories, var references) => new Node.Element  (negated, ranges, categories, references),
 			Node.Literal  (var text) { IgnoreCase: var ignoreCase }                 => new Node.Literal  (text) { IgnoreCase = ignoreCase },
 			Node.Guard    (var text, var at)                                        => new Node.Guard    (text, at),
@@ -388,6 +399,7 @@ public sealed partial class GrammarNormalizer
 			Node.Marked   (var body, var text)                                      => new Node.Marked   (CloneAndRewrite(body, targets, cloneMap, siteName), text),
 			Node.Repeat   (var body, var min, var max)                              => new Node.Repeat   (CloneAndRewrite(body, targets, cloneMap, siteName), min, max),
 			Node.Lookahead(var positive, var body)                                  => new Node.Lookahead(positive, CloneAndRewrite(body, targets, cloneMap, siteName)),
+			Node.Behind   (var test)                                                => new Node.Behind   (Same(test)),
 			Node.Capture  (var name, var body)                                      => new Node.Capture  (name, CloneAndRewrite(body, targets, cloneMap, siteName)),
 			Node.Construct(var body, var how)                                       => new Node.Construct(CloneAndRewrite(body, targets, cloneMap, siteName), how),
 			// CallTo, not a bare `new Node.Call`: a rebinding's right side may be a
@@ -476,28 +488,47 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
-	/// Remaps a `parse`/`find` directive declared inside a bound namespace to the clone it
-	/// meant, once one exists — the reason <see cref="Publication.DeclaredIn"/> exists at
-	/// all.
+	/// Remaps a `parse`/`find` directive to the clone it meant, once one exists.
 	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Two ways a directive can mean a specialization, and both are asked. Where it is
+	/// written *inside* a bound namespace, the site is its own and what it names is
+	/// whatever that site cloned, the rule's own namespace notwithstanding — the reason
+	/// <see cref="Publication.DeclaredIn"/> exists at all.
+	/// </para>
+	/// <para>
+	/// Where it is written *outside* and names a rule of a bound namespace
+	/// — <c>parse Dialect.Select as ParseSelect</c> — the site is the rule's. Asking only
+	/// the directive's own published the unspecialized rule and said nothing: a whole
+	/// header of rebindings, a parser built as though none of them were written, and the
+	/// same rebindings on the directive itself working perfectly. A dialect is exactly
+	/// this shape — one header, and the entry points published beside it.
+	/// </para>
+	/// </remarks>
 	void RemapPublications(Dictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> remap)
 	{
 		var remapped = new List<Publication>(_model.Publications.Count);
 
 		foreach (var publication in _model.Publications)
 		{
-			var site = NearestSite(publication.DeclaredIn);
+			var clone =
+				CloneAt(NearestSite(publication.DeclaredIn), publication.Rule, remap) ??
+				CloneAt(NearestSite(publication.Rule.Namespace), publication.Rule, remap);
 
-			remapped.Add(
-				site is not null &&
-				remap.TryGetValue(site, out var cloneMap) &&
-				cloneMap.TryGetValue(publication.Rule, out var clone)
-					? publication with { Rule = clone }
-					: publication);
+			remapped.Add(clone is null ? publication : publication with { Rule = clone });
 		}
 
 		_publications = remapped;
 	}
+
+	/// <summary>What one site made of a rule, or null where it made nothing of it.</summary>
+	static RuleSymbol? CloneAt(
+		GrammarNamespace? site,
+		RuleSymbol rule,
+		Dictionary<GrammarNamespace, IReadOnlyDictionary<RuleSymbol, RuleSymbol>> remap) =>
+		site is not null && remap.TryGetValue(site, out var cloneMap) &&
+		cloneMap.TryGetValue(rule, out var clone) ? clone : null;
 
 	static GrammarNamespace? NearestSite(GrammarNamespace from)
 	{

@@ -253,6 +253,19 @@ public sealed class RoslynSymbolResolver(Compilation compilation, string? host =
 		if (_compilation.GetTypeByMetadataName(name) is { } found)
 			return found;
 
+		// A type nested in another is `Outer+Inner` in metadata and `Outer.Inner` in C#, and
+		// a grammar writes C#. Which of the dots is the one between the containing type and
+		// the nested one is not known from the text — `A.B.C` is a namespace `A` with a type
+		// `B` holding `C` as readily as a namespace `A.B` holding `C` — so every split is
+		// tried, rightmost first, since a namespace is the longer prefix more often than not.
+		for (var dot = name.LastIndexOf('.'); dot > 0; dot = name.LastIndexOf('.', dot - 1))
+		{
+			var metadata = name.Substring(0, dot) + "+" + name.Substring(dot + 1).Replace('.', '+');
+
+			if (_compilation.GetTypeByMetadataName(metadata) is { } inner)
+				return inner;
+		}
+
 		// `GetTypeByMetadataName` answers null when the name is ambiguous as well as when
 		// it is unknown, and the two deserve different treatment. Two types of one name is
 		// something C# reports itself (CS0101, or CS0104 at the use), so saying "no C# type

@@ -1,0 +1,533 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
+using DotGram.Grammar.Binding;
+
+namespace DotGram.Grammar.Emit;
+
+sealed partial class Machine
+{
+	/// <summary>Which carrier the host asked for; what it gets is <see cref="Carrier"/>.</summary>
+	readonly CarrierKind _carrierKind;
+
+	/// <summary>Why the carrier asked for was not the one used, or null.</summary>
+	public string? CarrierRefusal { get; private set; }
+
+	/// <summary>How this machine's readers carry what they read.</summary>
+	/// <remarks>
+	/// A property of the machine rather than of a reader because every method of every rule in
+	/// a file has to agree on it: a part hands its marks to the body and the entry builds what
+	/// the rules recorded. Chosen once, the first time it is asked for, which is after the
+	/// machine knows its rules — and the tape where the one asked for cannot carry them, with
+	/// the reason kept for whoever asks.
+	/// </remarks>
+	ValueCarrier Carrier
+	{
+		get
+		{
+			if (field is not null)
+				return field;
+
+			if (Asked() is { } asked)
+			{
+				if (asked.Refuses() is { } why)
+					CarrierRefusal = why;
+				else
+					return field = asked;
+			}
+
+			return field = new TapeCarrier(this);
+
+			ValueCarrier? Asked() => _carrierKind switch
+			{
+				CarrierKind.Immediate => new ImmediateCarrier(this),
+				CarrierKind.Mixed     => new MixedCarrier(this),
+				_                     => null,
+			};
+		}
+	}
+
+	/// <summary>Why the carrier named could not carry this machine, or null where it could.</summary>
+	/// <remarks>
+	/// Asked without choosing it. <see cref="Carrier"/> settles what this machine uses and
+	/// keeps the answer; this is the same question about a carrier the machine was not
+	/// given, which is what an offer of one has to know before it is made.
+	/// </remarks>
+	public string? WouldRefuse(CarrierKind kind) => kind switch
+	{
+		CarrierKind.Immediate => new ImmediateCarrier(this).Refuses(),
+		CarrierKind.Mixed     => new MixedCarrier(this).Refuses(),
+		_                     => null,
+	};
+
+	/// <summary>Whether values are built as they are read rather than after (<see cref="CarrierKind.Immediate"/>).</summary>
+	internal bool CarriesImmediately => Carrier is ImmediateCarrier;
+
+	/// <summary>The class this machine's carrier rents, or nothing where it rents none.</summary>
+	internal string CarrierStore(IReadOnlyList<string> valueTypes, string? stateType) =>
+		Carrier.RenderStore(valueTypes, stateType);
+
+	/// <summary>
+	/// How a reader carries what it read until the derivation is accepted and the author's
+	/// constructions can run.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The reader recognizes; something else holds the pieces of the value it is not yet
+	/// allowed to build. Today that something is the tape — a log of records and a stack of
+	/// gathered references, both on <c>Ways</c> — and until this seam was cut the reader wrote
+	/// the tape's own calls at some fifty sites. Behind this type it writes the same fifty
+	/// sites, and what they turn into is the carrier's business.
+	/// </para>
+	/// <para>
+	/// Every method returns the C# to emit, or nothing where a carrier has nothing to do at
+	/// that site: a carrier that keeps values in locals has no store to mark and nothing to
+	/// put back when an alternative fails. The names are for what a site <em>means</em> — a
+	/// record begun, a member put in it, the store put back to a mark — and not for how the
+	/// tape does it, so that another carrier can answer the same questions differently
+	/// (<c>docs/next.md</c>, the redesign; <see cref="CarrierKind"/> for the ones offered).
+	/// </para>
+	/// <para>
+	/// Marks and unwindings come in two because the tape has two stores and the reader marks
+	/// them at different sites under different conditions; where a rule gathers, the second
+	/// store is the one a failed turn has to be taken back out of, whatever the carrier keeps
+	/// it in. A carrier with one store, or none, answers the other with nothing.
+	/// </para>
+	/// </remarks>
+	abstract class ValueCarrier
+	{
+		// ---- what a reader is handed ---------------------------------------------------------
+
+		/// <summary>
+		/// What every reader holds beyond the text, the failure and the ways: the carrier's
+		/// own store, and whatever the carrier needs the reader to have — the tokens where it
+		/// cuts text over kinds, the input and the context where it calls a construction that
+		/// asks for them. Fields of the reader, handed to it once when it is made.
+		/// </summary>
+		public abstract IEnumerable<(string Type, string Name)> ReaderState { get; }
+
+		/// <summary>The state as parameters, each with its leading comma.</summary>
+		public string ReaderParameter => string.Concat(ReaderState.Select(one => $", {one.Type} {one.Name}"));
+
+		/// <summary>And as the arguments that fill them.</summary>
+		public string ReaderArgument => string.Concat(ReaderState.Select(one => $", {one.Name}"));
+
+		/// <summary>
+		/// What the reader keeps for itself and writes as it goes: fields of its own, made
+		/// empty when it is made and handed to nobody. A carrier that passes values between
+		/// readers through a register puts the register here rather than in its store: the
+		/// reader is a <c>ref struct</c> on the stack, and a reference written into it is a
+		/// plain store, where one written into an object on the heap goes through the
+		/// collector's write barrier — and a parser writes one for every value it builds.
+		/// </summary>
+		public virtual IEnumerable<(string Type, string Name)> ReaderRegisters => [];
+
+		/// <summary>
+		/// What a part of a rule that gathers is handed so that it can gather into the same
+		/// place, each item with its leading comma: declarations where <paramref name="declared"/>,
+		/// arguments otherwise, named as the body names them where <paramref name="inBody"/>.
+		/// </summary>
+		public abstract string GatherHanding(RuleSymbol owner, bool declared, bool inBody);
+
+		// ---- marks and unwinding -------------------------------------------------------------
+
+		/// <summary>Locals remembering where the records stood, to put them back to.</summary>
+		public abstract IEnumerable<string> MarkRecords(string name);
+
+		/// <summary>
+		/// What <see cref="MarkRecords"/> declares, named: a rule read in parts hands its
+		/// mark down to them, and how many numbers that is depends on the carrier.
+		/// </summary>
+		public virtual IReadOnlyList<string> RecordMarks(string name) => [name];
+
+		/// <summary>Locals remembering where the gathered members of the rule stood.</summary>
+		public abstract IEnumerable<string> MarkGathered(RuleSymbol? owner, string name);
+
+		/// <summary>The records put back to a mark — and with them whatever a guard built above it.</summary>
+		public abstract IEnumerable<string> UnwindRecords(string name);
+
+		/// <summary>The gathered members put back to a mark.</summary>
+		public abstract IEnumerable<string> UnwindGathered(RuleSymbol? owner, string name);
+
+		// ---- the locals a value is kept in -----------------------------------------------------
+
+		/// <summary>
+		/// The local a captured record is kept in until the rule's own record is written — on
+		/// the tape an index, elsewhere the value itself.
+		/// </summary>
+		public abstract string DeclareRecordLocal(int slot, RuleSymbol rule);
+
+		/// <summary>The local a fold's value so far is kept in (§4.3).</summary>
+		public abstract string DeclareAccumulator(RuleSymbol rule);
+
+		/// <summary>
+		/// What a folding rule carries from one turn to the next, and hands its parts by
+		/// reference — a turn writes its record inside a part, so whatever the turns share
+		/// has to reach it.
+		/// </summary>
+		/// <remarks>
+		/// One accumulator holding the value so far, for a carrier that builds the fold as
+		/// it goes or writes each turn on top of the last. A carrier keeping the turns as a
+		/// run of their own carries the run instead: where it begins, where it ends, and how
+		/// long it is. The names are the carrier's and appear nowhere else.
+		/// </remarks>
+		public virtual IEnumerable<(string Type, string Name)> FoldState(RuleSymbol owner) =>
+			[(RecordLocalType(owner), "fold")];
+
+		/// <summary>What a turn does with the value it has just written, if anything.</summary>
+		/// <remarks>
+		/// The value so far moves to what the turn wrote, which is what the turn after it
+		/// builds on. A carrier keeping the turns as a run has already linked it and has
+		/// nothing to say here.
+		/// </remarks>
+		public virtual string Accumulated(RuleSymbol owner) => $"fold = {Last(owner)};";
+
+		/// <summary>What a folding rule is worth once its turns are done, if anything.</summary>
+		/// <remarks>
+		/// A carrier that builds the fold as it goes has the value already and says nothing
+		/// here. A carrier keeping the turns as a run has the base, the run and its length
+		/// in hand and nothing holding them together: this is where they become the rule.
+		/// </remarks>
+		public virtual string Folded(RuleSymbol owner) => "";
+
+		/// <summary>What the body of a rule that gathers into a slot declares for it, beside the position it keeps.</summary>
+		public abstract IEnumerable<string> DeclareGathered(int slot, string elementType);
+
+		/// <summary>The type of a record local, with a trailing space, for a parameter that hands it on.</summary>
+		public abstract string RecordLocalType(RuleSymbol rule);
+
+		/// <summary>A record local put back to nothing, when the part that wrote it failed.</summary>
+		public abstract string ResetRecordLocal(int slot);
+
+		/// <summary>Whether a record local was never written.</summary>
+		public abstract string Absent(RuleSymbol rule, string local);
+
+		/// <summary>
+		/// The one of a member's record slots that was written: the same name in two
+		/// alternatives is one member with a slot per alternative, and the record takes
+		/// whichever is set.
+		/// </summary>
+		public abstract string FirstRecord(IReadOnlyList<int> slots, RuleSymbol rule);
+
+		// ---- a record -----------------------------------------------------------------------
+
+		/// <summary>
+		/// A record of one alternative of a rule begun, with the span it stands on where those
+		/// are kept. What follows, up to <see cref="End"/>, is its members in the order the rule
+		/// lists them.
+		/// </summary>
+		public abstract string Begin(RuleSymbol rule, int factory, string? start, string? end);
+
+		/// <summary>The value so far, as a fold step's first member (§4.3).</summary>
+		public abstract string PutAccumulator();
+
+		/// <summary>A member that is a span of text.</summary>
+		public abstract string PutText(DirectMember member, string from, string to);
+
+		/// <summary>A member that is another record.</summary>
+		public abstract string PutRecord(DirectMember member, string record);
+
+		/// <summary>A member gathered across a repetition: everything pushed since the rule began, in its slots.</summary>
+		public abstract string Collect(DirectMember member, string from, bool pairs);
+
+		/// <summary>The record closed.</summary>
+		public abstract string End(string gatheredFrom);
+
+		/// <summary>An expression for the value of the record most recently closed, of the type.</summary>
+		public abstract string Last(RuleSymbol rule);
+
+		// ---- gathering ----------------------------------------------------------------------
+
+		/// <summary>One piece of text pushed for a member gathered across turns.</summary>
+		public abstract string PushText(int slot, string from, string to);
+
+		/// <summary>One record pushed for a member gathered across turns.</summary>
+		public abstract string PushRecord(int slot, RuleSymbol rule);
+
+		/// <summary>A §7.8 mark, opened or closed, at the position.</summary>
+		public abstract string Mark(int kind, int site);
+
+		// ---- building -----------------------------------------------------------------------
+
+		/// <summary>A record built into a value where the reader is, for a guard that asks (§3.6); nothing where it already is one.</summary>
+		public abstract string Materialize(string record, string sinceMark);
+
+		/// <summary>The value a record holds, as a guard sees it.</summary>
+		public abstract string ValueOf(RuleSymbol rule, string record);
+
+		/// <summary>
+		/// The gathered members of the given slots as one array, for a guard that names a
+		/// sequence member; <paramref name="text"/> where the member is pieces of text rather
+		/// than records.
+		/// </summary>
+		public abstract void Gathered(Writer code, string from, IReadOnlyList<int> slots, string handed, string type, string build, bool text);
+
+		/// <summary>What an entry rents before reading, beside the ways.</summary>
+		public abstract IEnumerable<string> Rent();
+
+		/// <summary>And returns after.</summary>
+		public abstract IEnumerable<string> Return();
+
+		/// <summary>The whole derivation built into the entry's value.</summary>
+		public abstract IEnumerable<string> BuildRoot(RuleSymbol rule, string type, bool extent);
+
+		/// <summary>The code that builds records into values, once per file; nothing where values are built as they are read.</summary>
+		public abstract string RenderBuilder(IReadOnlyList<RuleSymbol> rules);
+
+		/// <summary>The class a parse rents to carry with, where the carrier rents one.</summary>
+		/// <remarks>
+		/// Written once for the file however many machines are in it, so two machines
+		/// carrying the same way must render the same text — which they do, both being
+		/// asked with the file's own union of value types. A carrier that keeps everything
+		/// in the reader rents nothing and renders nothing.
+		/// </remarks>
+		public virtual string RenderStore(IReadOnlyList<string> valueTypes, string? stateType) => "";
+
+		/// <summary>
+		/// Whether a value handed up unchanged is already where the caller will look for it.
+		/// </summary>
+		/// <remarks>
+		/// The tape and the immediate carrier hand a value between rules through a register
+		/// of its <em>type</em>, so <c>A = a: B =&gt; @(a)</c> leaves it exactly where a
+		/// caller capturing an <c>A</c> reads, and the alternative writes nothing of its own
+		/// — a rule and a method saved at every level of a ladder. A carrier that hands it
+		/// through a register of the <em>rule</em> has two registers there and no such luck.
+		/// </remarks>
+		public virtual bool ForwardsInPlace => true;
+
+		/// <summary>
+		/// Whether a capture is asked about by the rule read there rather than by the rule
+		/// the member names.
+		/// </summary>
+		/// <remarks>
+		/// One member may be captured in two places that read two different rules —
+		/// `t: UnsignedLiteral =&gt; @(t)` beside `t: GeneralValueSpecification =&gt; @(t)` —
+		/// and the results name one of them for the member. A carrier handing values about by
+		/// value type may take that name: both rules build the type the member is declared
+		/// as, so the register is the same register either way. One keeping a shape per rule
+		/// may not, the two shapes being two types.
+		/// </remarks>
+		public virtual bool ByPlace => false;
+
+		/// <summary>Why this carrier cannot carry the machine's rules, or null where it can.</summary>
+		public abstract string? Refuses();
+
+		/// <summary>The slots of a member, as a mask the tape collects by.</summary>
+		protected static long MaskOf(IReadOnlyList<int> slots)
+		{
+			var mask = 0L;
+
+			foreach (var slot in slots)
+				mask |= 1L << slot;
+
+			return mask;
+		}
+	}
+
+	/// <summary>
+	/// The tape: records in a log and gathered references on a stack, both on <c>Ways</c>,
+	/// built into values by a walk over the log once the derivation is accepted.
+	/// </summary>
+	/// <remarks>
+	/// Every string here is what the reader wrote itself before the seam was cut, character
+	/// for character, and the snapshots are what say so. The tape is the carrier that
+	/// streams, finds and recovers — the others cannot yet — and it stays behind the seam
+	/// for as long as that is true (<c>docs/next.md</c>).
+	/// </remarks>
+	sealed class TapeCarrier(Machine machine) : ValueCarrier
+	{
+		/// <remarks>
+		/// The tables where a guard builds; the tokens where a guard or a glue asks about
+		/// text over kinds; the context where a guard names it or builds a value whose
+		/// factory might. Nothing else, because the tape cuts no text and calls no
+		/// construction in a reader — the walk at the end has its own parameters.
+		/// </remarks>
+		public override IEnumerable<(string Type, string Name)> ReaderState
+		{
+			get
+			{
+				if (machine._directBuilds)
+					yield return ("DirectValues", "values");
+
+				if ((machine._directGuards || machine._directGlue) && machine.OverKinds)
+					foreach (var token in Machine.TokenState)
+						yield return token;
+
+				if (machine.DirectReaderContext)
+					yield return (machine._graph.Context!, "context");
+			}
+		}
+
+		/// <remarks>
+		/// Where the rule gathers across turns, what a record collects is everything pushed
+		/// since the rule began — not since the part did — so the rule's mark is handed on.
+		/// </remarks>
+		public override string GatherHanding(RuleSymbol owner, bool declared, bool inBody) =>
+			declared ? ", int refs" : inBody ? ", rb" : ", refs";
+
+		public override IReadOnlyList<string> RecordMarks(string name) => [name, name + "R"];
+
+		public override IEnumerable<string> MarkRecords(string name)
+		{
+			yield return $"var {name}  = ways.LogCount;";
+			yield return $"var {name}R = ways.Records;";
+		}
+
+		public override IEnumerable<string> MarkGathered(RuleSymbol? owner, string name)
+		{
+			yield return $"var {name} = ways.RefsCount;";
+		}
+
+		/// <remarks>
+		/// With the watermark of what a guard built, where anything builds: a record above
+		/// the watermark is one written since, and a value a guard built in a derivation that
+		/// was then abandoned is not the value of the record the next derivation writes at
+		/// the same place.
+		/// </remarks>
+		public override IEnumerable<string> UnwindRecords(string name)
+		{
+			yield return $"ways.LogCount  = {name};";
+			yield return $"ways.Records   = {name}R;";
+
+			if (machine._directBuilds)
+				yield return $"if (ways.Built > {name}R) ways.Built = {name}R;";
+		}
+
+		public override IEnumerable<string> UnwindGathered(RuleSymbol? owner, string name)
+		{
+			yield return $"ways.RefsCount = {name};";
+		}
+
+		public override string DeclareRecordLocal(int slot, RuleSymbol rule) => $"var r{slot} = -1;";
+
+		public override string DeclareAccumulator(RuleSymbol rule) => "var fold = -1;";
+
+		public override IEnumerable<string> DeclareGathered(int slot, string elementType) => [];
+
+		public override string RecordLocalType(RuleSymbol rule) => "int ";
+
+		public override string ResetRecordLocal(int slot) => $"r{slot} = -1;";
+
+		public override string Absent(RuleSymbol rule, string local) => $"{local} < 0";
+
+		public override string FirstRecord(IReadOnlyList<int> slots, RuleSymbol rule)
+		{
+			if (slots.Count == 1)
+				return $"r{slots[0]}";
+
+			var chain = "-1";
+
+			for (var i = slots.Count - 1; i >= 0; i--)
+				chain = $"r{slots[i]} >= 0 ? r{slots[i]} : {chain}";
+
+			return $"({chain})";
+		}
+
+		public override string Begin(RuleSymbol rule, int factory, string? start, string? end)
+		{
+			_rule = rule;
+
+			return start is null
+					? $"ways.Begin({machine.DirectArm(rule, factory)});"
+					: $"ways.Begin({machine.DirectArm(rule, factory)}, {start}, {end});";
+		}
+
+		/// <summary>The rule whose record is open, for <see cref="End"/> to name it by.</summary>
+		RuleSymbol? _rule;
+
+		public override string PutAccumulator() => "ways.Put(fold);";
+
+		public override string PutText(DirectMember member, string from, string to) => $"ways.Put({from}, {to});";
+
+		public override string PutRecord(DirectMember member, string record) => $"ways.Put({record});";
+
+		public override string Collect(DirectMember member, string from, bool pairs) =>
+			$"ways.Collect({from}, {member.Mask}L, {(pairs ? "true" : "false")});";
+
+		public override string End(string gatheredFrom) =>
+			_rule is { } rule && machine.IsExtent(rule)
+				? $"ways.EndAt({gatheredFrom});"
+				: $"ways.End({gatheredFrom});";
+
+		public override string Last(RuleSymbol rule) => "ways.Last";
+
+		public override string PushText(int slot, string from, string to) => $"ways.Push({slot}, {from}, {to});";
+
+		public override string PushRecord(int slot, RuleSymbol rule) => $"ways.Push({slot}, ways.Last, -1);";
+
+		public override string Mark(int kind, int site) => $"ways.Mark({kind}, {site}, p);";
+
+		public override string Materialize(string record, string sinceMark) =>
+			$"{machine.DirectMaterializer}(ways, text, values, {record}, {sinceMark}, {sinceMark}R" +
+			$"{machine.TokensArgument}{machine.ContextArgument});";
+
+		/// <summary>From the tables, or for an extent the record itself.</summary>
+		public override string ValueOf(RuleSymbol rule, string record) =>
+			ValueOfType(machine._results.ValueOf(rule), record);
+
+		string ValueOfType(string type, string record) =>
+			type == "SourceSpan"
+				? machine.RecordValue(type, record).Replace("log[", "ways.Log[")
+				: $"values.V{machine.TableFor(type)}[{record}].Value";
+
+		/// <remarks>
+		/// Gathered turn by turn on the tape, and collected here the way the rule's end would
+		/// collect them: counted first so the array is the right size, then visited.
+		/// </remarks>
+		public override void Gathered(Writer code, string from, IReadOnlyList<int> slots, string handed, string type, string build, bool text)
+		{
+			var bits    = MaskOf(slots);
+			var bracket = type.IndexOf('[');
+
+			code.Line($"var {handed}Count = 0;");
+			code.Line($"for (var at = {from}; at < ways.RefsCount; at += 3)");
+			code.Then($"if (({bits}L & (1L << ways.Refs[at])) != 0) {handed}Count++;");
+			code.Line(
+				$"var {handed} = new {(bracket < 0 ? type : type.Substring(0, bracket))}[{handed}Count]" +
+				$"{(bracket < 0 ? "" : type.Substring(bracket))};");
+			code.Line($"{handed}Count = 0;");
+
+			using (code.Block($"for (var at = {from}; at < ways.RefsCount; at += 3)"))
+			{
+				code.Line($"if (({bits}L & (1L << ways.Refs[at])) == 0) continue;");
+
+				if (build.Length > 0)
+					code.Line(string.Format(build, "ways.Refs[at + 1]"));
+
+				code.Line($"{handed}[{handed}Count++] = {ValueOfType(type, "ways.Refs[at + 1]")};");
+			}
+		}
+
+		public override IEnumerable<string> Rent()
+		{
+			yield return "var values = DirectValues.Rent();";
+		}
+
+		public override IEnumerable<string> Return()
+		{
+			yield return "DirectValues.Return(values);";
+		}
+
+		/// <remarks>
+		/// An extent's value is the span its record stands on; every other value is in the
+		/// tables the walk filled.
+		/// </remarks>
+		public override IEnumerable<string> BuildRoot(RuleSymbol rule, string type, bool extent)
+		{
+			yield return
+				$"{machine.DirectMaterializer}(ways, text, values, ways.Last, 0, 0" +
+				$"{machine.InputArgument}{machine.TokensArgument}{machine.ContextArgument});";
+
+			yield return
+				$"value = {(extent ? machine.RecordValue(type, "ways.Last").Replace("log[", "ways.Log[") : machine.DirectFrom(type, "ways.Last").Replace("values", "values.V"))};";
+		}
+
+		public override string RenderBuilder(IReadOnlyList<RuleSymbol> rules) => machine.RenderDirectMaterializer(rules);
+
+		public override string RenderStore(IReadOnlyList<string> valueTypes, string? stateType) =>
+			CSharpEmitter.DirectValuesClass(valueTypes, stateType);
+
+		public override string? Refuses() => null;
+	}
+}

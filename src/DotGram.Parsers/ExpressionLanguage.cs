@@ -137,6 +137,13 @@ namespace DotGram.Parsers;
 
 		Word = [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']*
 
+		// The same word with the alphabet named rather than asked for by category, for
+		// the publication below that reads only it. Declared here, inside `trivia =
+		// none`, and not written into the `with` itself: a substitution written on a
+		// `parse` reads the trivia surrounding the directive (§5.1), which out there
+		// spaces its operands — and a word whose letters may be spaced apart is not one.
+		AsciiWord = ['a'..'z' | 'A'..'Z' | '_'] & ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']*
+
 		// What this language reserves. `Name` refuses these, which is the whole of what
 		// makes a keyword one: C# says an identifier is a word that is not a keyword, and
 		// leaving it to the order of alternatives only works where the keyword's own
@@ -201,8 +208,7 @@ namespace DotGram.Parsers;
 		// `0xFFUL` and `0b1UL` are one rule specialized three times and not three rules.
 		Unsigned    (N) : @string = t: N & ['u' | 'U'] => @(t)
 		SignedLong  (N) : @string = t: N & ['l' | 'L'] => @(t)
-		UnsignedLong(N) : @string
-			= t: N & (['u' | 'U'] & ['l' | 'L'] | ['l' | 'L'] & ['u' | 'U']) => @(t)
+		UnsignedLong(N) : @string = t: N & (['u' | 'U'] & ['l' | 'L'] | ['l' | 'L'] & ['u' | 'U']) => @(t)
 
 		Decimals : @string = t: Number & ['m' | 'M'] => @(t)
 		Doubles  : @string = t: Number & ['d' | 'D'] => @(t)
@@ -253,8 +259,7 @@ namespace DotGram.Parsers;
 
 	Lambda : @LambdaExpression
 		= '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>" & body: Value
-		=> @(Expression.Lambda(
-			context.Returning(body), ExpressionLanguage.Taking(first, rest)))
+		=> @(Expression.Lambda(context.Returning(body), ExpressionLanguage.Taking(first, rest)))
 
 	// Each type names itself in C#, so `typeof(int)` is checked where it is written and
 	// a word that is no type is not a declaration — the grammar refusing that reading
@@ -458,7 +463,8 @@ namespace DotGram.Parsers;
 	// text is read, and the jump looks it up when it is built. It has to be that way round
 	// here too, because a `break` is built before the loop that holds it.
 	While : @Expression
-		= "while" & '(' & test: Expression & ')' & body: Statement
+		= "while" & '(' & test: Expression & ')'
+		& when @(context.Opening(parserSpan)) & body: Statement
 		& when @(context.Loops(parserSpan))
 		=> @(Expression.Loop(
 			Expression.Condition(
@@ -471,7 +477,8 @@ namespace DotGram.Parsers;
 	// test. So this one places the label itself, with `Expression.Label`, and leaves the
 	// loop's own continue unused.
 	DoWhile : @Expression
-		= "do" & body: Statement & "while" & '(' & test: Expression & ')' & ';'
+		= "do" & when @(context.Opening(parserSpan)) & body: Statement
+		& "while" & '(' & test: Expression & ')' & ';'
 		& when @(context.Loops(parserSpan))
 		=> @(Expression.Loop(
 			Expression.Block(
@@ -489,7 +496,7 @@ namespace DotGram.Parsers;
 	// declares the variable the initializer assigns.
 	For : @Expression
 		= "for" & '(' & init: Statement & test: Expression & ';' & step: Expression & ')'
-		& body: Statement
+		& when @(context.Opening(parserSpan)) & body: Statement
 		& when @(context.Loops(parserSpan) && context.Scoped(parserSpan))
 		=> @(context.Block(
 			new[] { init }, parserSpan,
@@ -505,7 +512,9 @@ namespace DotGram.Parsers;
 	// case leaves the switch and not the loop around it. So it records an extent of its own
 	// and puts the label the jumps go to after itself.
 	Switch : @Expression
-		= "switch" & '(' & value: Expression & ')' & '{' & cases: Case* & fallback: Fallback? & '}'
+		= "switch" & '(' & value: Expression & ')' & '{'
+		& when @(context.Breaking(parserSpan))
+		& cases: Case* & fallback: Fallback? & '}'
 		& when @(context.Breaks(parserSpan))
 		=> @(Expression.Block(
 			Expression.Switch(typeof(void), value, fallback, null, cases),
@@ -587,8 +596,13 @@ namespace DotGram.Parsers;
 	// name is read once for each and so is every alternative of `Assignment` that begins
 	// with this. One reading is the same language here because a member begins with '.',
 	// which a name cannot contain.
+	// The guard is what lets an assignment read its target before it knows which operator
+	// follows: `s.Trim()` is read here as `s` and a member `Trim` on the way to finding out
+	// it is a call, and a construction that threw for a name that is not a property would
+	// only work because it runs after the parse. What the guard asks is what the
+	// construction is about to do, so the two cannot drift.
 	Target : @Expression
-		= n: Name & ('.' & member: Word)?
+		= n: Name & ('.' & member: Word)? & when @(ExpressionLanguage.Has(n, member))
 		=> @(member is null ? n : ExpressionLanguage.Member(n, member))
 
 	// `?:` groups to the right and its condition is one level tighter, so `a ?? b ? c : d`
@@ -610,70 +624,54 @@ namespace DotGram.Parsers;
 		  => @(ExpressionLanguage.Chosen(test, then, otherwise))
 
 	Coalesce : @Expression
-		= left: Or & ("??" & right: Coalesce)?
+		= left: Binary & ("??" & right: Coalesce)?
 		  => @(ExpressionLanguage.Coalesced(left, right))
 
-	Or  : @Expression = left: Or  & "||" & right: And   => @(Expression.OrElse(left, right))
-	                  | a: And                          => @(a)
-
-	And : @Expression = left: And & "&&" & right: BitOr => @(Expression.AndAlso(left, right))
-	                  | b: BitOr                        => @(b)
-
-	// The bitwise three sit between `&&` and `==`, where C# puts them. `|` and `&` each
-	// begin a two-character operator one level out, and the lookahead is what tells them
-	// apart — cheaper than letting `a || b` be read as `a | (| b)` and unwound by
-	// backtracking, and clearer about why it is not.
-	BitOr  : @Expression = left: BitOr  & '|' & ?!'|' & right: BitXor  => @(Expression.Or(left, right))
-	                     | x: BitXor                                   => @(x)
-
-	BitXor : @Expression = left: BitXor & '^' & right: BitAnd          => @(Expression.ExclusiveOr(left, right))
-	                     | a: BitAnd                                   => @(a)
-
-	BitAnd : @Expression = left: BitAnd & '&' & ?!'&' & right: Equality => @(Expression.And(left, right))
-	                     | e: Equality                                  => @(e)
-
-	Equality : @Expression
-		= left: Equality & "==" & right: Relational => @(Expression.Equal(left, right))
-		| left: Equality & "!=" & right: Relational => @(Expression.NotEqual(left, right))
-		| r: Relational                             => @(r)
-
-	// `>` and `>>` are told apart the same way, and here the lookahead earns more: the
-	// shift is a level tighter, so without it `a >> b` is read as `a > (> b)` and only
-	// the second `>` says otherwise.
+	// C#'s ladder, from `||` down to `*`, as one rule with the strengths written down
+	// (§4.3.1) rather than as ten rules stacked on one another. The language and the tree
+	// are the same either way; what is not the same is what it costs to reach an operand.
+	// Written as levels there are ten calls and ten first-set tests between an assignment
+	// and a name, every one of them for every operand a text has — measured at 94
+	// nanoseconds a parenthesis against a hand-written parser's 30, which is the whole of
+	// what the two differed by (docs/next.md).
 	//
-	// The shift below is written as two `>` glued rather than as one `">>"`, and that is
-	// what lets `List<List<int>>` close two argument lists with the same two characters
-	// C# closes them with. A literal `">>"` is a token, and a token cannot be half spent:
-	// the type argument list wants one `>` and would be handed a shift. Written this way
-	// there is no `>>` for the lexer to make, `~` says the two stand with nothing between
-	// them, and `a > > b` is refused exactly as C# refuses it.
-	Relational : @Expression
-		= left: Relational & "is" &        type : Type  => @(Expression.TypeIs(left, type))
-		| left: Relational & "as" &        type : Type  => @(Expression.TypeAs(left, type))
-		| left: Relational & "<=" &        right: Shift => @(Expression.LessThanOrEqual(left, right))
-		| left: Relational & ">=" &        right: Shift => @(Expression.GreaterThanOrEqual(left, right))
-		| left: Relational & '<' & ?!'<' & right: Shift => @(Expression.LessThan(left, right))
-		| left: Relational & '>' & ?!'>' & right: Shift => @(Expression.GreaterThan(left, right))
-		| s: Shift                                      => @(s)
-
-	Shift : @Expression
-		= left: Shift & '<' ~ '<' & right: Additive => @(Expression.LeftShift(left, right))
-		| left: Shift & '>' ~ '>' & right: Additive => @(Expression.RightShift(left, right))
-		| a: Additive                               => @(a)
-
-	Additive : @Expression
-		= left: Additive & '+' & right: Multiplicative
+	// Three of the alternatives need a word about the character they begin with. `|` and
+	// `&` each begin a two-character operator one level out, and the lookahead is what
+	// tells them apart — cheaper than letting `a || b` be read as `a | (| b)` and unwound
+	// by backtracking, and clearer about why it is not. `>` is the same and earns more:
+	// the shift is a level tighter, so without the lookahead `a >> b` reads as `a > (> b)`.
+	//
+	// And the shift is written as two `>` glued rather than as one `">>"`, which is what
+	// lets `List<List<int>>` close two argument lists with the same two characters C#
+	// closes them with. A literal `">>"` is a token, and a token cannot be half spent: the
+	// type argument list wants one `>` and would be handed a shift. Written this way there
+	// is no `>>` for the lexer to make, `~` says the two stand with nothing between them,
+	// and `a > > b` is refused exactly as C# refuses it.
+	Binary : @Expression
+		= left: Binary & "||" & right: Binary        << 1  => @(Expression.OrElse(left, right))
+		| left: Binary & "&&" & right: Binary        << 2  => @(Expression.AndAlso(left, right))
+		| left: Binary & '|' & ?!'|' & right: Binary << 3  => @(Expression.Or(left, right))
+		| left: Binary & '^' & right: Binary         << 4  => @(Expression.ExclusiveOr(left, right))
+		| left: Binary & '&' & ?!'&' & right: Binary << 5  => @(Expression.And(left, right))
+		| left: Binary & "==" & right: Binary        << 6  => @(Expression.Equal(left, right))
+		| left: Binary & "!=" & right: Binary        << 6  => @(Expression.NotEqual(left, right))
+		| left: Binary & "is" & type: Type           << 7  => @(Expression.TypeIs(left, type))
+		| left: Binary & "as" & type: Type           << 7  => @(Expression.TypeAs(left, type))
+		| left: Binary & "<=" & right: Binary        << 7  => @(Expression.LessThanOrEqual(left, right))
+		| left: Binary & ">=" & right: Binary        << 7  => @(Expression.GreaterThanOrEqual(left, right))
+		| left: Binary & '<' & ?!'<' & right: Binary << 7  => @(Expression.LessThan(left, right))
+		| left: Binary & '>' & ?!'>' & right: Binary << 7  => @(Expression.GreaterThan(left, right))
+		| left: Binary & '<' ~ '<' & right: Binary   << 8  => @(Expression.LeftShift(left, right))
+		| left: Binary & '>' ~ '>' & right: Binary   << 8  => @(Expression.RightShift(left, right))
+		| left: Binary & '+' & right: Binary         << 9
 		  => @(ExpressionLanguage.Add(left, right, parserState))
-		| left: Additive & '-' & right: Multiplicative
+		| left: Binary & '-' & right: Binary         << 9
 		  => @(ExpressionLanguage.Subtract(left, right, parserState))
-		| m: Multiplicative                            => @(m)
-
-	Multiplicative : @Expression
-		= left: Multiplicative & '*' & right: Unary
+		| left: Binary & '*' & right: Binary         << 10
 		  => @(ExpressionLanguage.Multiply(left, right, parserState))
-		| left: Multiplicative & '/' & right: Unary => @(Expression.Divide(left, right))
-		| left: Multiplicative & '%' & right: Unary => @(Expression.Modulo(left, right))
-		| u: Unary                                  => @(u)
+		| left: Binary & '/' & right: Binary         << 10 => @(Expression.Divide(left, right))
+		| left: Binary & '%' & right: Binary         << 10 => @(Expression.Modulo(left, right))
+		| u: Unary                                          => @(u)
 
 	// `++` and `--` before `+` and `-`, so that `--x` is one operator and not two, and over
 	// a name for the same reason assignment is: they write to what they read.
@@ -820,10 +818,31 @@ namespace DotGram.Parsers;
 
 		| n: Name    => @(n)
 
-	Name : @Expression = ?!Keyword & name: Word => @(context.Named(name, parserSpan))
+	// The guard is what makes this rule readable speculatively, which it has to be: an
+	// assignment reads its target as a name before it knows which operator follows, and
+	// `Math.Max(x, 1)` reads `Math` as one before `NamedType` gets a look. A `=>` that
+	// threw for a name the next alternative reads perfectly well would only work because
+	// it runs after the parse; a `when` refuses while it is being read, which is what the
+	// rule means anyway — a name is a name where something declares it.
+	Name : @Expression = ?!Keyword & name: Word & when @(context.Knows(name, parserSpan))
+	                   => @(context.Named(name, parserSpan))
 
 	parse Lambda as ParseLambda
+
+	// The same language with its identifiers spelled in ASCII, and one line to say so
+	// (§5.1). A binding on a publication clones what the directive reaches and rewrites
+	// every call inside the clones, so every rule that reads a word — a parameter, a
+	// member, a type, a label, a name — reads this one, while `ParseLambda` beside it
+	// goes on reading what Unicode calls a letter.
+	parse Lambda with (Word = AsciiWord) as ParseAsciiLambda
 	""", Lexical = true)]
+
+// The same grammar with the constructions run where they are read rather than after
+// the parse is accepted (§6.5). It is here to be measured and to be held against the
+// reading above: the two must answer alike on every input, which is what
+// ExpressionCarrierTests asks. Nothing in this language needs a construction deferred —
+// the one place that did, a name resolved by a factory that threw, is a `when` now.
+[Gram(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
 public static partial class ExpressionLanguage
 {
 	// ParseLambda and TryParseLambda are generated here.
@@ -836,7 +855,20 @@ public static partial class ExpressionLanguage
 	/// <c>System.Linq.Expressions</c> itself, in its own words: this language holds no
 	/// opinion the API does not already hold.
 	/// </exception>
-	public static LambdaExpression Parse(string text) => ParseLambda(text, new State());
+	public static LambdaExpression Parse(string text)
+	{
+		var state = new State();
+		var match = TryParseLambda(text, state);
+
+		if (match.IsSuccess)
+			return match.Value!;
+
+		// A name nothing declares is refused by `Name`'s guard like anything else, and what
+		// the parser then says is that it wanted an expression here. It is the state that
+		// knows why, so where the parse ended exactly where a name was refused, it is the
+		// state that says it.
+		throw new FormatException(state.Refused() ?? match.Error!);
+	}
 
 	/// <summary>The same, answering rather than throwing where the text is not this language.</summary>
 	/// <remarks>
@@ -1024,6 +1056,40 @@ public static partial class ExpressionLanguage
 	/// either: a guard runs while the text is read and the operand of a fold is not built
 	/// until after, so the only place that can ask the operand what it is, is here.
 	/// </remarks>
+	/// <summary>Whether <see cref="Member"/> would have something to build, asked before it runs.</summary>
+	/// <remarks>
+	/// The same searches <c>Expression.PropertyOrField</c> makes, in the same order — every
+	/// type up the chain for a property or a field by that exact name, then again ignoring
+	/// case — because what this answers has to be what that one does. No member is not an
+	/// error here: it means this reading is not a member access, and something else will
+	/// read the text.
+	/// </remarks>
+	public static bool Has(Expression target, string? name)
+	{
+		if (target is null)
+			throw new ArgumentNullException(nameof(target));
+
+		if (name is null)
+			return true;
+
+		if (target.Type.IsArray && string.Equals(name, "Length", StringComparison.Ordinal))
+			return true;
+
+		const BindingFlags Any = BindingFlags.Instance | BindingFlags.Static |
+			BindingFlags.Public | BindingFlags.DeclaredOnly;
+
+		for (var type = target.Type; type is not null; type = type.BaseType)
+			if (type.GetProperty(name, Any) is not null || type.GetField(name, Any) is not null)
+				return true;
+
+		for (var type = target.Type; type is not null; type = type.BaseType)
+			if (type.GetProperty(name, Any | BindingFlags.IgnoreCase) is not null ||
+				type.GetField(name, Any | BindingFlags.IgnoreCase) is not null)
+				return true;
+
+		return false;
+	}
+
 	public static Expression Member(Expression target, string name)
 	{
 		if (target is null)
@@ -1482,7 +1548,57 @@ public static partial class ExpressionLanguage
 		/// </para>
 		/// <para>A parameter is written outside every block and is therefore in all of them.</para>
 		/// </remarks>
-		public ParameterExpression Named(string name, SourceSpan at)
+		public ParameterExpression Named(string name, SourceSpan at) =>
+			Find(name, at) ?? throw new FormatException(NothingNamed(name));
+
+		/// <summary>
+		/// Whether that name means a variable where it is written — the same question
+		/// <see cref="Named"/> answers, asked before anything is built of it.
+		/// </summary>
+		/// <remarks>
+		/// A `Name` is read speculatively: `Math.Max(x, 1)` reads `Math` as one before
+		/// finding out it is a type, and every compound assignment reads its target as one
+		/// before finding out which operator follows. A construction that throws for a name
+		/// the next alternative reads perfectly well is a construction that only works
+		/// because it runs late — true of the tape and not of a carrier that builds where it
+		/// reads (`CarrierKind.Immediate`), and not something a grammar should rest on
+		/// either way. So the rule refuses instead, in a `when`, and what is refused is
+		/// remembered here: a name nothing declares is worth saying so about, and a parse
+		/// that ends there has no other way to say it.
+		/// </remarks>
+		public bool Knows(string name, SourceSpan at)
+		{
+			if (Find(name, at) is not null)
+				return true;
+
+			if (at.Start >= _unknownAt)
+			{
+				_unknownAt = at.Start;
+				_unknown   = name;
+			}
+
+			return false;
+		}
+
+		int     _unknownAt = -1;
+		string? _unknown;
+
+		/// <summary>
+		/// What to say about a parse that refused a name, or null where it refused none and
+		/// the parser's own message is the one to give.
+		/// </summary>
+		/// <remarks>
+		/// The furthest name refused, and not the one standing where the parse gave up: a
+		/// refused name leaves the reading with nowhere to go, and where it stops after that
+		/// is a fact about the rest of the text rather than about the mistake. `x + y` with
+		/// no `y` gives up at the end of the input, four characters past the word that is
+		/// the reason.
+		/// </remarks>
+		public string? Refused() => _unknown is { } name ? NothingNamed(name) : null;
+
+		static string NothingNamed(string name) => $"nothing named '{name}' is declared here.";
+
+		ParameterExpression? Find(string name, SourceSpan at)
 		{
 			var use   = at.Start;
 			var found = default(ParameterExpression);
@@ -1513,7 +1629,7 @@ public static partial class ExpressionLanguage
 				}
 			}
 
-			return found ?? throw new FormatException($"nothing named '{name}' is declared here.");
+			return found;
 		}
 
 		/// <summary>The innermost block a position stands in, or none for the lambda itself.</summary>
@@ -1551,7 +1667,7 @@ public static partial class ExpressionLanguage
 		/// <summary>A loop, which a <c>break</c> and a <c>continue</c> may both name.</summary>
 		public bool Loops(SourceSpan span)
 		{
-			(_loops ??= []).Add(new Scope(span.Start, span.Start + span.Length));
+			Close(_loops ??= [], span);
 
 			return Breaks(span);
 		}
@@ -1559,9 +1675,54 @@ public static partial class ExpressionLanguage
 		/// <summary>A switch, which only a <c>break</c> may name.</summary>
 		public bool Breaks(SourceSpan span)
 		{
-			(_breakables ??= []).Add(new Scope(span.Start, span.Start + span.Length));
+			Close(_breakables ??= [], span);
 
 			return true;
+		}
+
+		/// <summary>
+		/// A loop begun: everything from here on is inside it until it says where it ends.
+		/// </summary>
+		/// <remarks>
+		/// A jump names the loop it is written in, and a loop knows how far it reaches only
+		/// once its body has been read — so a reading that builds the jump where it stands
+		/// would ask about a loop nothing has recorded yet. Written down twice instead:
+		/// once where the loop begins, reaching to the end of the text, and once where it
+		/// ends, with the extent it turned out to have. The label is keyed by where the
+		/// loop begins, which is the same before and after, so a jump built under the open
+		/// extent and one built under the closed one name the same label.
+		///
+		/// Nothing is lost where a reading defers instead. The open extent is replaced by
+		/// the closed one, and until it is, the only positions inside it are the ones being
+		/// read — which are the loop's own body.
+		/// </remarks>
+		public bool Opening(SourceSpan span)
+		{
+			(_loops ??= []).Add(new Scope(span.Start, int.MaxValue));
+
+			return Breaking(span);
+		}
+
+		/// <summary>The same for a switch, which only a <c>break</c> may name.</summary>
+		public bool Breaking(SourceSpan span)
+		{
+			(_breakables ??= []).Add(new Scope(span.Start, int.MaxValue));
+
+			return true;
+		}
+
+		/// <summary>The extent an <see cref="Opening"/> left open, given the one it has.</summary>
+		static void Close(List<Scope> among, SourceSpan span)
+		{
+			for (var i = among.Count - 1; i >= 0; i--)
+				if (among[i].From == span.Start && among[i].To == int.MaxValue)
+				{
+					among[i] = new Scope(span.Start, span.Start + span.Length);
+
+					return;
+				}
+
+			among.Add(new Scope(span.Start, span.Start + span.Length));
 		}
 
 		/// <summary>Where a <c>break</c> written here goes.</summary>

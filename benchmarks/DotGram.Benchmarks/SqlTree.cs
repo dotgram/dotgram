@@ -38,7 +38,7 @@ static class SqlTree
 				text.Append("()");
 				break;
 
-			case SqlBinary(var op, var left, var right):
+			case SqlNode.Binary(var op, var left, var right):
 				text.Append('(').Append(op).Append(' ');
 				Write(text, left);
 				text.Append(' ');
@@ -46,19 +46,19 @@ static class SqlTree
 				text.Append(')');
 				break;
 
-			case SqlUnary(var op, var operand):
+			case SqlNode.Unary(var op, var operand):
 				text.Append('(').Append(op).Append(' ');
 				Write(text, operand);
 				text.Append(')');
 				break;
 
-			case SqlTruthTest(var operand, var negated, var truth):
+			case SqlNode.TruthTest(var operand, var negated, var truth):
 				text.Append("(is ").Append(negated ? "not " : "").Append(truth).Append(' ');
 				Write(text, operand);
 				text.Append(')');
 				break;
 
-			case SqlPredicate(var kind, var negated, var operands, var op, var word):
+			case SqlNode.Predicate(var kind, var negated, var operands, var op, var word):
 				text.Append('(').Append(kind);
 
 				if (negated)
@@ -74,7 +74,7 @@ static class SqlTree
 				text.Append(')');
 				break;
 
-			case SqlCall(var name, var arguments, var word):
+			case SqlNode.Call(var name, var arguments, var word):
 				text.Append("(call ").Append(name);
 
 				if (word is not null)
@@ -84,7 +84,7 @@ static class SqlTree
 				text.Append(')');
 				break;
 
-			case SqlCase(var operand, var whens, var otherwise):
+			case SqlNode.Case(var operand, var whens, var otherwise):
 				text.Append("(case");
 
 				if (operand is not null)
@@ -108,7 +108,7 @@ static class SqlTree
 				text.Append(')');
 				break;
 
-			case SqlWhen(var test, var result):
+			case SqlNode.When(var test, var result):
 				text.Append("(when ");
 				Write(text, test);
 				text.Append(' ');
@@ -116,21 +116,21 @@ static class SqlTree
 				text.Append(')');
 				break;
 
-			case SqlName(var name):
+			case SqlNode.Column(var name):
 				text.Append("(name ").Append(name).Append(')');
 				break;
 
-			case SqlLiteral(var kind, var literal):
+			case SqlNode.Literal(var kind, var literal):
 				text.Append('(').Append(kind).Append(' ').Append(literal).Append(')');
 				break;
 
-			case SqlRow(var values):
+			case SqlNode.Row(var values):
 				text.Append("(row");
 				Each(text, values);
 				text.Append(')');
 				break;
 
-			case SqlSubquery(var query):
+			case SqlNode.Subquery(var query):
 				text.Append("(query ").Append(query).Append(')');
 				break;
 
