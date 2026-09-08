@@ -883,13 +883,13 @@ public sealed class TransactSqlTests
 	/// And a statement that only begins like one of these is left for whoever reads it.
 	/// </summary>
 	/// <remarks>
-	/// Each is a statement kind of its own — an audit specification, an encryption key —
-	/// and the rules here must not take them for a database called `AUDIT` doing something
-	/// called `SPECIFICATION`. That is why the two word-only actions are written out and
-	/// not read as `word`: a rule wide enough for `REBUILD LOG` is wide enough for these.
+	/// Each is a statement kind of its own — an encryption key, and the audit specification
+	/// that has a rule now — and the rules here must not take one for a database called
+	/// `ENCRYPTION` doing something called `KEY`. That is why the two word-only actions are
+	/// written out and not read as `word`: a rule wide enough for `REBUILD LOG` is wide
+	/// enough for these.
 	/// </remarks>
 	[Theory]
-	[InlineData("ALTER DATABASE d1 AUDIT SPECIFICATION s1")]
 	[InlineData("ALTER DATABASE ENCRYPTION KEY REGENERATE WITH ALGORITHM = AES_256")]
 	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = AES_128 ENCRYPTION BY SERVER CERTIFICATE c1")]
 	public void And_what_only_begins_like_a_database_is_left_alone(string input) =>
@@ -1214,6 +1214,51 @@ public sealed class TransactSqlTests
 	[InlineData("UPDATE STATISTICS [dbo].t1 (c1, c2) WITH NORECOMPUTE, SAMPLE 1 PERCENT, COLUMNS")]
 	[InlineData("UPDATE STATISTICS t WITH RESAMPLE ON PARTITIONS (1, 3 TO 5)")]
 	public void What_lives_outside_reads(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>What the server watches, and who it listens to.</summary>
+	/// <remarks>
+	/// Audits, extended-event sessions, event notifications and endpoints — eleven published
+	/// blocks and three shapes: a name and where its output goes, a list of things added and
+	/// dropped a bracket at a time, and a bracketed argument list per protocol.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE SERVER AUDIT a TO FILE (FILEPATH = 'c:\\l', MAXSIZE = 10 GB, MAX_FILES = 2)")]
+	[InlineData("CREATE SERVER AUDIT a TO APPLICATION_LOG WITH (QUEUE_DELAY = 1000, ON_FAILURE = CONTINUE)")]
+	[InlineData("CREATE SERVER AUDIT a TO SECURITY_LOG WHERE database_name = 'x' AND object_id > 5")]
+	[InlineData("ALTER SERVER AUDIT a REMOVE WHERE")]
+	[InlineData("ALTER SERVER AUDIT a MODIFY NAME = b")]
+	[InlineData("ALTER SERVER AUDIT a WITH (STATE = OFF)")]
+
+	[InlineData("CREATE SERVER AUDIT SPECIFICATION s FOR SERVER AUDIT a ADD (FAILED_LOGIN_GROUP) WITH (STATE = ON)")]
+	[InlineData("ALTER SERVER AUDIT SPECIFICATION s FOR SERVER AUDIT a DROP (FAILED_LOGIN_GROUP)")]
+	[InlineData("CREATE DATABASE AUDIT SPECIFICATION s FOR SERVER AUDIT a ADD (SELECT ON dbo.t BY dbo)")]
+	[InlineData("ALTER DATABASE AUDIT SPECIFICATION s ADD (SELECT ON t BY dbo), " +
+		"DROP (INSERT, UPDATE ON t BY dbo) WITH (STATE = ON)")]
+
+	[InlineData("CREATE EVENT SESSION es ON SERVER ADD EVENT b.c")]
+	[InlineData("CREATE EVENT SESSION es ON SERVER ADD EVENT b.c ADD TARGET b.c.d")]
+	[InlineData("CREATE EVENT SESSION es ON SERVER ADD EVENT b.c (SET b = -5.1, c = 5 ACTION (b.c))")]
+	[InlineData("CREATE EVENT SESSION es ON DATABASE ADD EVENT b.d (WHERE a.b (b.c, 5) AND a.b = 5)")]
+	[InlineData("CREATE EVENT SESSION es ON SERVER ADD EVENT b.d (WHERE NOT a.b (b.c, 5))")]
+	[InlineData("CREATE EVENT SESSION es ON SERVER ADD EVENT b.c WITH (MAX_MEMORY = 4 MB, " +
+		"MAX_DISPATCH_LATENCY = 3 SECONDS, TRACK_CAUSALITY = ON)")]
+	[InlineData("ALTER EVENT SESSION es ON SERVER STATE = START")]
+	[InlineData("ALTER EVENT SESSION es ON SERVER DROP EVENT b.c, ADD TARGET b.d (SET filename = 'x')")]
+	[InlineData("CREATE EVENT NOTIFICATION n ON SERVER WITH FAN_IN FOR DDL_LOGIN_EVENTS " +
+		"TO SERVICE 'svc', 'current database'")]
+
+	[InlineData("CREATE ENDPOINT e AS TCP (LISTENER_PORT = 4022) FOR TSQL()")]
+	[InlineData("CREATE ENDPOINT e AUTHORIZATION l STATE = STARTED AS TCP (LISTENER_IP = ALL, " +
+		"LISTENER_PORT = 4022) FOR SERVICE_BROKER (AUTHENTICATION = WINDOWS NTLM CERTIFICATE c, " +
+		"ENCRYPTION = SUPPORTED ALGORITHM AES RC4)")]
+	[InlineData("CREATE ENDPOINT e STATE = STOPPED AS TCP (LISTENER_IP = (1.2.3.4))")]
+	[InlineData("ALTER ENDPOINT e STATE = STARTED, AFFINITY = NONE")]
+	public void What_the_server_watches_reads(string input)
 	{
 		var match = TransactSql.TryParseStatement(input);
 

@@ -1123,6 +1123,7 @@ DefinitionStatement : @SqlNode
 	| s: CreateIndexStatement => @(s)
 	| s: AlterIndexStatement  => @(s)
 	| s: PermissionStatement  => @(s)
+	| s: AuditStatement          => @(s)
 	| s: CreateDatabaseStatement => @(s)
 	| s: AlterDatabaseStatement  => @(s)
 	| s: DropStatement           => @(s)
@@ -1360,9 +1361,14 @@ OptionSetting = "DEFAULT"i & '=' & OptionValue
 // `BEGIN ATOMIC WITH`, and every one of the two hundred database settings. Where it ends
 // is the syntax: `ON` and `OFF` are what an option is set to rather than part of its
 // name, and `WITH` begins the clause after the list.
-OptionName = (?!OptionEnd & word)+
+OptionName = OptionWord+
 
+OptionWord = ?!OptionEnd & word
 OptionEnd  = "WITH"i | OnOff
+
+// Two words at least, which is what tells a run from a name: one word is a name and a
+// qualified one begins with a word, so a run of one would take `dbo` out of `dbo.h`.
+OptionWords = OptionWord & OptionWord+
 
 OptionTail = '=' & OptionValue & OnPartitions?
 		   | OnOff & ('(' & OptionList & ')')?
@@ -1377,10 +1383,31 @@ OptionValue : @SqlNode
 	| "ON"i  & ('(' & OptionList & ')')? => @(new SqlNode.Column("ON"))
 	| name: Identifier & '(' & OptionList & ')' => @(new SqlNode.Column(name))
 	| '(' & OptionList & ')' => @(SqlNode.NullValue)
+	| '(' & Sql92.Lexical.UnsignedNumericLiteral+ & ')' => @(SqlNode.NullValue)
+	| '(' & Arguments & ')'  => @(SqlNode.NullValue)
+
+	// A run of words, which several protocols spell their settings with:
+	// `AUTHENTICATION = WINDOWS NTLM CERTIFICATE c`, `ENCRYPTION = SUPPORTED ALGORITHM AES
+	// RC4`. In front of the expression, since a word is one and the run is longer; it stops
+	// where an option's name does, which is what leaves `PAGE ON PARTITIONS (…)` alone.
+	| w: OptionWords => @(new SqlNode.Column(w))
+
 	| v: ValueExpression & OptionUnit? => @(v)
+
+	// And one word behind the expression, for the words a value may be that a name may
+	// not: `MAXDOP = PRIMARY`, `QUERY_CAPTURE_MODE = ALL`.
 	| w: word => @(new SqlNode.Column(w))
 
-OptionUnit = Identifier | '%'
+// A catalogue, and here the catalogue is the syntax: a unit is one of the words the
+// language has for a size or a span, and nothing else may stand after a value. It was any
+// identifier, and then `SET b = 5, c = 10 ACTION (…)` read `ACTION` as the unit of ten and
+// lost the clause behind it — the same trap an optional at the end of a rule always is.
+OptionUnit = "KB"i | "MB"i | "GB"i | "TB"i | "PB"i
+		   | "SECOND"i | "SECONDS"i | "MINUTE"i | "MINUTES"i | "HOUR"i | "HOURS"i
+		   | "DAY"i | "DAYS"i | "WEEK"i | "WEEKS"i | "MONTH"i | "MONTHS"i
+		   | "YEAR"i | "YEARS"i
+		   | "PERCENT"i | "ROWS"i
+		   | '%'
 
 AffinityValue  = "AUTO"i
 			   | '(' & PartitionRange & (',' & PartitionRange)* & ')'
@@ -1760,6 +1787,106 @@ AlterIndexAction : @string
 	| "RESUME"i & IndexWith? => @("RESUME")
 	| "SET"i & '(' & OptionList & ')' => @("SET")
 
+// ── What the server watches, and who it listens to ──────────────────────────
+//
+// Audits, extended-event sessions, event notifications and endpoints. Eleven published
+// blocks and three shapes: a name and where its output goes, a list of things added and
+// dropped, and a bracketed argument list per protocol.
+AuditStatement : @SqlNode
+	// A specification is a list of what is watched, added and dropped a bracket at a time.
+	// In front of the audit it belongs to, since `ALTER SERVER AUDIT SPECIFICATION` begins
+	// with `ALTER SERVER AUDIT` and every clause of an audit is optional — so the shorter
+	// reading fits, and over kinds a reading that fits is the one that stands (§4).
+	= CreateOrAlter & scope: ServerOrDatabase & "AUDIT"i & "SPECIFICATION"i & name: Identifier
+	  & ("FOR"i & "SERVER"i & "AUDIT"i & QualifiedName)?
+	  & AuditAction* & OptionsWith?
+		=> @(new SqlNode.Command("AUDIT SPECIFICATION", new SqlNode[] { new SqlNode.Column(name) }))
+
+	| "CREATE"i & "SERVER"i & "AUDIT"i & name: Identifier
+	  & "TO"i & AuditTarget & OptionsWith? & AuditWhere?
+		=> @(new SqlNode.Command("SERVER AUDIT", new SqlNode[] { new SqlNode.Column(name) }))
+	| "ALTER"i & "SERVER"i & "AUDIT"i & name: Identifier & AlterAuditBody
+		=> @(new SqlNode.Command("SERVER AUDIT", new SqlNode[] { new SqlNode.Column(name) }))
+
+	// An extended-event session: events, targets, and what to spend on them.
+	| CreateOrAlter & "EVENT"i & "SESSION"i & name: Identifier & "ON"i & ServerOrDatabase
+	  & EventPieces? & OptionsWith? & ("STATE"i & '=' & word)?
+		=> @(new SqlNode.Command("EVENT SESSION", new SqlNode[] { new SqlNode.Column(name) }))
+
+	| "CREATE"i & "EVENT"i & "NOTIFICATION"i & name: Identifier & "ON"i & NotificationScope
+	  & ("WITH"i & "FAN_IN"i)?
+	  & "FOR"i & PermissionName & (',' & PermissionName)*
+	  & "TO"i & "SERVICE"i & ValueExpression & (',' & ValueExpression)*
+		=> @(new SqlNode.Command("EVENT NOTIFICATION", new SqlNode[] { new SqlNode.Column(name) }))
+
+	// An endpoint says how it is reached and what it speaks, and each is a bracket of
+	// arguments belonging to that protocol rather than to this language.
+	| CreateOrAlter & "ENDPOINT"i & name: Identifier & ("AUTHORIZATION"i & QualifiedName)?
+	  & EndpointState? & EndpointAs? & EndpointFor?
+		=> @(new SqlNode.Command("ENDPOINT", new SqlNode[] { new SqlNode.Column(name) }))
+
+ServerOrDatabase : @string = "SERVER"i => @("SERVER") | "DATABASE"i => @("DATABASE")
+
+NotificationScope = "QUEUE"i & QualifiedName | "SERVER"i | "DATABASE"i
+
+// ── An audit ────────────────────────────────────────────────────────────────
+AuditTarget = "FILE"i & '(' & OptionList & ')'
+			| word
+
+AuditWhere = "WHERE"i & SearchCondition
+
+AlterAuditBody = "REMOVE"i & "WHERE"i
+			   | "MODIFY"i & "NAME"i & '=' & Identifier
+			   | ("TO"i & AuditTarget)? & OptionsWith? & AuditWhere?
+
+// `ADD (SELECT ON t BY dbo)`, `DROP (DATABASE_PERMISSION_CHANGE_GROUP)`. The comma between
+// two of them is optional in the corpus and required in the block, so it is read as neither.
+AuditAction = AddOrDrop & '(' & AuditActionBody & ')' & ','?
+
+AddOrDrop = "ADD"i | "DROP"i
+
+AuditActionBody = PermissionName & (',' & PermissionName)* & AuditActionOn?
+
+AuditActionOn = "ON"i & SecurableClass? & QualifiedName & "BY"i & Principals
+
+// ── An extended-event session ───────────────────────────────────────────────
+EventPieces = EventPiece & (','? & EventPiece)*
+
+EventPiece = "ADD"i & "EVENT"i & QualifiedName & ('(' & EventBody & ')')?
+		   | "DROP"i & "EVENT"i & QualifiedName
+		   | "ADD"i & "TARGET"i & QualifiedName & ('(' & "SET"i & OptionList & ')')?
+		   | "DROP"i & "TARGET"i & QualifiedName
+
+EventBody = ("SET"i & OptionList)? & EventActions? & ("WHERE"i & EventPredicate)?
+
+// Not a search condition. An event's predicate compares a field with a constant, and it
+// also *calls* a comparison the package supplies — `sqlserver.equal_i_sql_unicode_string
+// (field, N'x')` — which is a call standing where a condition goes and is not one anywhere
+// else in this language. The comma joins two of them, as `AND` does.
+EventPredicate = EventFactor & (EventJoin & EventFactor)*
+
+EventJoin   = "AND"i | "OR"i | ','
+EventFactor = "NOT"i? & EventTerm
+
+EventTerm = '(' & EventPredicate & ')'
+		  | name: QualifiedName & EventTermTail
+
+EventTermTail = '(' & EventSource & ',' & ValueExpression & ')'
+			  | EventCompare & ValueExpression
+
+EventSource  = '(' & QualifiedName & ')' | QualifiedName
+EventCompare = "<>" | "!=" | ">=" | "<=" | '=' | '>' | '<' | "NOT"i? & "LIKE"i
+
+EventActions = "ACTION"i & '(' & QualifiedName & (',' & QualifiedName)* & ')'
+
+// ── An endpoint ─────────────────────────────────────────────────────────────
+// `STATE = STARTED, AFFINITY = NONE`: the published block names only the state and the
+// corpus writes a list, so it is read as one.
+EndpointState = "STATE"i & '=' & word & (',' & OptionSetting)*
+
+EndpointAs  = "AS"i & word & '(' & OptionList? & ')'
+EndpointFor = "FOR"i & word & '(' & OptionList? & ')'
+
 // ── What lives outside the database, and what the server spends on it ───────
 //
 // External data sources, file formats, tables and libraries; resource pools and workload
@@ -2068,7 +2195,9 @@ DropKind
 // hundred of them, they differ by edition and by version, and none of that is syntax: a
 // setting is a run of words and then, sometimes, what it is set to.
 CreateDatabaseStatement : @SqlNode
-	= "CREATE"i & "DATABASE"i & name: Identifier & DatabaseContainment?
+	= "CREATE"i & "DATABASE"i & name: Identifier & '(' & OptionList & ')'
+		=> @(new SqlNode.Database(name, "CREATE", SqlNode.None))
+	| "CREATE"i & "DATABASE"i & name: Identifier & DatabaseContainment?
 	  & files: DatabaseFiles? & DatabaseCollate? & DatabaseTail?
 		=> @(new SqlNode.Database(name, "CREATE", files ?? SqlNode.None))
 
@@ -2148,7 +2277,7 @@ DatabaseModify : @SqlNode.Database
 		=> @(new SqlNode.Database("", "MODIFY FILEGROUP", SqlNode.None))
 	| "FILE"i & FileSpec
 		=> @(new SqlNode.Database("", "MODIFY FILE", SqlNode.None))
-	| '(' & OptionList & ')'
+	| '(' & OptionList & ')' & ("WITH"i & OptionList)?
 		=> @(new SqlNode.Database("", "MODIFY", SqlNode.None))
 
 DatabaseAdd : @SqlNode.Database

@@ -16062,3 +16062,41 @@ grammar and the engine, up from 4,809. The over-reading that came with it is the
 Synapse and Fabric surface as before — workload groups and external tables are not things
 a box SQL Server has.
 
+## What the server watches, and who it listens to
+
+Audits, extended-event sessions, event notifications and endpoints — eleven published
+blocks and three shapes: a name and where its output goes, a list of things added and
+dropped a bracket at a time, and a bracketed argument list per protocol.
+
+**An event's `WHERE` is not a search condition.** It compares a field with a constant, and
+it also *calls* a comparison the package supplies —
+`sqlserver.equal_i_sql_unicode_string(field, N'x')` — which is a call standing where a
+condition goes and is nothing of the sort anywhere else in this language. The comma joins
+two of them as `AND` does. Written out, it took extended-event sessions from 43% to 86%.
+
+**An option's value may be a run of words.** `AUTHENTICATION = WINDOWS NTLM CERTIFICATE c`
+and `ENCRYPTION = SUPPORTED ALGORITHM AES RC4` are how the broker spells its settings. Two
+words at least, which is what tells a run from a name: one word is a name, a qualified one
+begins with a word, and a run of one would take `dbo` out of `HISTORY_TABLE = dbo.h`.
+
+### A unit is a catalogue, and here the catalogue is the syntax
+
+An option's value could be followed by any identifier, which is how `SIZE = 100 MB` and
+`CHANGE_RETENTION = 3 DAYS` were read. Then `SET b = 5, c = 10 ACTION (b.c)` arrived and
+`ACTION` was read as the unit of ten, and the clause behind it was gone. The fourth time
+the same trap has been paid for in this file.
+
+So a unit is now the words the language has for a size or a span — `KB` through `PB`,
+`SECOND` through `YEAR`, `PERCENT`, `ROWS`, `%` — and nothing else may stand after a value.
+That is a list, and it is the right kind of list: unlike an option's name, which is open
+because SQL Server adds options, the units are a closed part of the language.
+
+**And a specific reading goes in front of the general one.** `ALTER SERVER AUDIT
+SPECIFICATION s` begins with `ALTER SERVER AUDIT`, and every clause of an audit is
+optional — so the shorter reading fits, and over kinds a reading that fits is the one that
+stands (§4). Same for `CREATE DATABASE AUDIT SPECIFICATION`, which begins with a database
+called `AUDIT`. Both are read by putting the longer statement first.
+
+Of everything in the corpus, **70.3% to 75.7%**, and 5,459 statements read by both this
+grammar and the engine.
+
