@@ -248,6 +248,10 @@ public sealed class LexicalSplit
 				Context    = graph.Context,
 				State      = graph.State,
 
+				// A rule that is told where it was written goes on being told: the split
+				// changes what the syntactic machine reads, not what its values are.
+				Located    = [.. graph.Located.Where(rules.Contains)],
+
 				// Keyed by node — said again in the terms of the graph that now holds those
 				// nodes, see `_became`. A fold is keyed by rule and holds nodes inside it,
 				// so it is rebuilt rather than looked up.

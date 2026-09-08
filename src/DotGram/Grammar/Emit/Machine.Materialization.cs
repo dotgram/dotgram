@@ -1135,7 +1135,7 @@ sealed partial class Machine
 		if (CSharpEmitter.WantsText(_graph, factory))
 			arguments.Add(Cut("completed.Position", "completed.Value - completed.Position"));
 
-		if (CSharpEmitter.Asks(_graph, factory, "parserSpan"))
+		if (CSharpEmitter.WantsSpan(_graph, factory))
 			arguments.Add(Span("completed.Position", "completed.Value - completed.Position"));
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserInput"))
@@ -1173,7 +1173,7 @@ sealed partial class Machine
 		if (CSharpEmitter.WantsText(_graph, factory))
 			arguments.Add(Cut("completed.Position", "completed.Value - completed.Position"));
 
-		if (CSharpEmitter.Asks(_graph, factory, "parserSpan"))
+		if (CSharpEmitter.WantsSpan(_graph, factory))
 			arguments.Add(Span("completed.Position", "completed.Value - completed.Position"));
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserInput"))

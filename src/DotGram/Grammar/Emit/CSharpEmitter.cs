@@ -1532,7 +1532,8 @@ public static partial class CSharpEmitter
 				visible,
 				fold is not null && fold.Accumulators.TryGetValue(node, out var accumulator)
 					? accumulator
-					: null));
+					: null,
+				graph.Located.Contains(rule)));
 		}
 
 		return found;
@@ -1727,7 +1728,7 @@ public static partial class CSharpEmitter
 		if (WantsText(graph, factory))
 			parameters.Add("string parserText");
 
-		if (Asks(graph, factory, "parserSpan"))
+		if (WantsSpan(graph, factory))
 			parameters.Add("SourceSpan parserSpan");
 
 		// The whole input, for a construction that wants to keep where it matched and cut
@@ -1778,6 +1779,34 @@ public static partial class CSharpEmitter
 
 		switch (((Node.Construct)factory.Of).How)
 		{
+			// The author's own C#, written under a `#line` pointing back at it (§7.6).
+			case Construction.Expression when factory.Located:
+
+				// Offered the range it was read over, which is a statement and not an
+				// expression. Offered rather than written: a rule may hand back a value another
+				// rule made, and the range it was read over is then wider than the value's own.
+				// What the offer does with it is the named interface's business, not this
+				// file's — see `LocationType` on the attribute.
+				//
+				// A block body rather than a helper, so that nothing at all is emitted for the
+				// grammars — most of them — that ask for no locations.
+				file.Line(summary + " (docs/syntax.md §7.3), and where it was written.</summary>");
+
+				using (file.Block(head))
+				{
+					// The declared type and not `var`: the author's C# may be a conditional whose
+					// arms are two different records, and only a target type tells the compiler
+					// which of them the whole expression is (CS0173).
+					file.Line($"{graph.Types[rule]} made =");
+					Handed(file, lines, (Node.Construct)factory.Of);
+					file.Line();
+					file.Line("made.Locate(parserSpan.Start, parserSpan.Length);");
+					file.Line();
+					file.Line("return made;");
+				}
+
+				break;
+
 			// The author's own C#, written under a `#line` pointing back at it (§7.6).
 			case Construction.Expression:
 
@@ -1955,6 +1984,10 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	static bool UsesSourceSpan(RecognitionGraph graph)
 	{
+		// A rule told where it was written is handed one whether or not any C# names it.
+		if (graph.Located.Count > 0)
+			return true;
+
 		foreach (var type in graph.Types.Values)
 			if (type == "SourceSpan")
 				return true;
@@ -1997,6 +2030,13 @@ public static partial class CSharpEmitter
 			: name.StartsWith("parser", StringComparison.Ordinal) ? text.Contains(name) : Names(text, name);
 
 	/// <summary>The same, for a factory whose graph is in hand.</summary>
+	/// <summary>
+	/// Whether a construction is handed the range it was read from — because its C# asked
+	/// for it by name, or because what it builds is told where it was written.
+	/// </summary>
+	internal static bool WantsSpan(RecognitionGraph graph, Machine.Factory factory) =>
+		factory.Located || Asks(graph, factory, "parserSpan");
+
 	internal static bool Asks(RecognitionGraph graph, Machine.Factory factory, string name) =>
 		factory.Of is Node.Construct { How: Construction.Expression { Text: var text } } &&
 		Uses(graph, text, name);

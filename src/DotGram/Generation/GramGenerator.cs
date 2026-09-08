@@ -354,7 +354,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			host,
 			text,
 			path,
-			new EquatableArray<Question>(Questions.Of(parsed)),
+			new EquatableArray<Question>(Questions.Of(parsed, host.LocationType)),
 			default,
 			Values(reports),
 			new EquatableArray<Piece>(pieces.ToImmutable()));

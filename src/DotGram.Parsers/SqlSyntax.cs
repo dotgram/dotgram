@@ -64,29 +64,51 @@ public readonly record struct SqlSpan(int At, int Length)
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>The setter belongs to the parser and to nobody else.</b> It is written once, by the
-/// machinery, on a node it has just made and nothing has yet seen; after that the node is
-/// what every other record here is. It is a setter rather than an <c>init</c> because
-/// <c>with</c> would copy every node of every tree, which doubles what a parse allocates to
+/// <b>A method and not a setter, because the policy is not the parser's.</b> The reader offers
+/// every rule's range to the value that came out of it, innermost first, and what to do with
+/// the offer is decided here.
+/// </para>
+/// <para>
+/// <b>The last offer wins, so a span is the outermost rule that handed the value back.</b>
+/// Where a rule hands back a value another rule made — <c>WhereClause = "WHERE"i &amp;
+/// c: SearchCondition =&gt; @(c)</c> gives back the condition — the range covers the
+/// keyword the value itself is not. That is a little wide and it is the safe direction:
+/// keeping the first offer instead is a little wide nowhere and badly wrong somewhere,
+/// because a value completed from a tail — <c>Syntax.Predicated</c> copies one with
+/// <c>with</c> — would inherit the tail's range and claim <c>= 2</c> for <c>b = 2</c>.
+/// </para>
+/// <para>
+/// It mutates, once, on a node the reader has just made and nothing has yet seen. An
+/// <c>init</c> would mean <c>with</c>, and <c>with</c> would copy every node of every tree to
 /// record a number that was already known.
 /// </para>
 /// <para>
-/// A grammar asks for spans by naming this interface —
-/// <c>[Gram("X.gram", Spans = typeof(ISqlSpan))]</c> — and a grammar that does not ask pays
-/// nothing: <c>Rfc3986</c> and <c>ExpressionLanguage</c> are recognizers and want no
+/// A grammar asks for this by naming the interface —
+/// <c>[Gram("X.gram", LocationType = typeof(ISqlSpan))]</c> — and a grammar that does not ask
+/// pays nothing: <c>Rfc3986</c> and <c>ExpressionLanguage</c> are recognizers and want no
 /// positions, which is what <c>docs/ast.md</c> says and stays true where it was right.
 /// </para>
 /// </remarks>
 public interface ISqlSpan
 {
-	SqlSpan Span { get; set; }
+	/// <summary>Where this was written, once a reader has said so.</summary>
+	SqlSpan Span { get; }
+
+	/// <summary>
+	/// Offer a range: the reader calls this for every rule the value came out of, innermost
+	/// first, and the last of them is the one kept.
+	/// </summary>
+	void Locate(int at, int length);
 }
 
 /// <summary>A statement: §13 of the standard, and most of a dialect's reference.</summary>
 public abstract record Statement : ISqlSpan
 {
 	/// <inheritdoc cref="ISqlSpan.Span"/>
-	public SqlSpan Span { get; set; }
+	public SqlSpan Span { get; private set; }
+
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
+	public void Locate(int at, int length) => Span = new SqlSpan(at, length);
 
 	// ---- §14 the data statements -------------------------------------------------------------
 
@@ -997,7 +1019,10 @@ public abstract record Statement : ISqlSpan
 public abstract record Query : ISqlSpan
 {
 	/// <inheritdoc cref="ISqlSpan.Span"/>
-	public SqlSpan Span { get; set; }
+	public SqlSpan Span { get; private set; }
+
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
+	public void Locate(int at, int length) => Span = new SqlSpan(at, length);
 
 	/// <summary>§7.12 <c>SELECT</c>, and the clauses under it.</summary>
 	/// <remarks>
@@ -1068,7 +1093,10 @@ public abstract record Query : ISqlSpan
 public abstract record Expression : ISqlSpan
 {
 	/// <inheritdoc cref="ISqlSpan.Span"/>
-	public SqlSpan Span { get; set; }
+	public SqlSpan Span { get; private set; }
+
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
+	public void Locate(int at, int length) => Span = new SqlSpan(at, length);
 
 	// ---- §6.39 the boolean tower ---------------------------------------------------------------
 
@@ -1251,11 +1279,17 @@ public abstract record Expression : ISqlSpan
 	/// <summary>What a call with no arguments is handed, once rather than per call.</summary>
 	public static readonly Expression[] None = [];
 
-	/// <summary>The two words that stand where a value does and are always the same node.</summary>
-	public static readonly Expression NullValue    = new Literal(SqlLiteralKind.Null,    "NULL");
+	/// <summary>The two words that stand where a value does.</summary>
+	/// <remarks>
+	/// One node each rather than one shared node, which is what they used to be. A shared node
+	/// cannot say where it was written — every <c>NULL</c> in a statement would be the same
+	/// object, and the first of them to be offered a range would keep it for all the rest.
+	/// A literal is two fields and the saving was never the point.
+	/// </remarks>
+	public static Expression NullValue => new Literal(SqlLiteralKind.Null, "NULL");
 
 	/// <inheritdoc cref="NullValue"/>
-	public static readonly Expression DefaultValue = new Literal(SqlLiteralKind.Default, "DEFAULT");
+	public static Expression DefaultValue => new Literal(SqlLiteralKind.Default, "DEFAULT");
 
 	/// <summary>An additive operator and its two operands, as the node the operator names.</summary>
 	public static Expression Additive(string operatorText, Expression left, Expression right) =>
@@ -1307,7 +1341,10 @@ public abstract record Expression : ISqlSpan
 public abstract record TableReference : ISqlSpan
 {
 	/// <inheritdoc cref="ISqlSpan.Span"/>
-	public SqlSpan Span { get; set; }
+	public SqlSpan Span { get; private set; }
+
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
+	public void Locate(int at, int length) => Span = new SqlSpan(at, length);
 
 	/// <summary>
 	/// §7.6 a table named, the name it is known by there, and the names its columns are given.
@@ -1373,7 +1410,10 @@ public abstract record TableReference : ISqlSpan
 public abstract record Clause : ISqlSpan
 {
 	/// <inheritdoc cref="ISqlSpan.Span"/>
-	public SqlSpan Span { get; set; }
+	public SqlSpan Span { get; private set; }
+
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
+	public void Locate(int at, int length) => Span = new SqlSpan(at, length);
 
 	/// <summary>§7.12 one entry of a select list: what it is, and what it is called.</summary>
 	public sealed record DerivedColumn(Expression Value, string? Name) : Clause;

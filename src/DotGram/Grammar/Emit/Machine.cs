@@ -473,7 +473,15 @@ sealed partial class Machine
 		Node Of,
 		string Method,
 		IReadOnlyList<ResultMember> Members,
-		string? Accumulator = null);
+		string? Accumulator = null,
+
+		/// <summary>
+		/// Whether what this builds is told where it was written — a rule whose value is
+		/// assignable to the grammar's <c>LocationType</c>. It is handed the same
+		/// <c>parserSpan</c> an expression may ask for by name, and every path that supplies
+		/// one already supplies this.
+		/// </summary>
+		bool Located = false);
 
 	/// <remarks>
 	/// The message carries the rule it failed on, lowered. A construction reaches here that

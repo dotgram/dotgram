@@ -431,7 +431,7 @@ sealed partial class Machine
 
 			foreach (var factory in _factories[rule])
 				if (CSharpEmitter.WantsText(_graph, factory) ||
-					CSharpEmitter.Asks(_graph, factory, "parserSpan"))
+					CSharpEmitter.WantsSpan(_graph, factory))
 				{
 					return true;
 				}
@@ -486,7 +486,7 @@ sealed partial class Machine
 		// the record's own positions answer. Neither is the callee's value.
 		if (made.Accumulator is not null ||
 			CSharpEmitter.WantsText(_graph, made) ||
-			CSharpEmitter.Asks(_graph, made, "parserSpan") ||
+			CSharpEmitter.WantsSpan(_graph, made) ||
 			CSharpEmitter.Asks(_graph, made, "parserInput") ||
 			_graph.Context is not null && CSharpEmitter.Asks(_graph, made, "context") ||
 			_graph.State is not null && CSharpEmitter.Asks(_graph, made, "parserState"))
@@ -1193,7 +1193,7 @@ sealed partial class Machine
 		if (CSharpEmitter.WantsText(_graph, factory))
 			arguments.Add(text());
 
-		if (CSharpEmitter.Asks(_graph, factory, "parserSpan"))
+		if (CSharpEmitter.WantsSpan(_graph, factory))
 			arguments.Add(span());
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserInput"))

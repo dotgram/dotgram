@@ -93,8 +93,19 @@ statement, prints it, and holds the result against what ScriptDom makes of the o
 the tree does not hold cannot come back, so that measurement is also the list of what is still
 missing.
 
-**Nothing here is a position.** The tree says what was written, not where. A consumer that
-needs the text back cuts it from the input itself, which is what §7.6 of `syntax.md` is for.
+**A node knows where it was written, where the grammar asked.**
+`[Gram(…, LocationType = typeof(ISqlSpan))]` and the five roots implement `ISqlSpan`: the
+reader offers each value the range of every rule it came out of, innermost first, and the
+last offer is kept. That is a little wide where a rule hands back a value another rule made —
+`WhereClause` lends the condition its `WHERE` — and never wrong, which is the safe direction.
+It costs fourteen per cent of the parse and no allocation at all, and a grammar that does not
+ask pays neither.
+
+**But the tree still holds no text and no line numbers.** A span says where, in characters of
+the input it was measured against; a consumer that wants the text cuts it from that input,
+which is what §7.6 of `syntax.md` is for. What a span is *for* is the thing no tree can hold:
+a comment falls between two spans, and the innermost node containing it is the one it belongs
+to.
 
 ## What is not in the tree
 

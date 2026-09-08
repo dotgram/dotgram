@@ -131,6 +131,39 @@ public sealed class SqlWriterTests
 		Assert.Equal(once, twice);
 	}
 
+	/// <summary>Every node says where it was written.</summary>
+	/// <remarks>
+	/// What <c>[Gram(…, LocationType = typeof(ISqlSpan))]</c> asks for: the reader hands each
+	/// construction the range it was read from, and the value keeps it. The span is the node's
+	/// own text without the trivia around it, which is what lets a comment fall between two of
+	/// them rather than inside one.
+	/// </remarks>
+	[Fact]
+	public void Every_node_says_where_it_was_written()
+	{
+		const string input = "SELECT a + 1 FROM t WHERE b = 2";
+
+		var read  = Read(input);
+		var query = Assert.IsType<Query.Specification>(Assert.IsType<Statement.Select>(read).Of);
+
+		Assert.Equal(input, Cut(input, read.Span));
+		Assert.Equal(input, Cut(input, query.Span));
+
+		var column = Assert.IsType<Clause.DerivedColumn>(Assert.Single(query.Columns));
+
+		Assert.Equal("a + 1", Cut(input, column.Span));
+		Assert.Equal("a + 1", Cut(input, column.Value.Span));
+		Assert.Equal("t",     Cut(input, Assert.Single(query.From).Span));
+
+		// A rule that hands back a value another rule made lends it its own range, and
+		// `WhereClause` is `"WHERE"i & c: SearchCondition => @(c)`. The keyword is in the
+		// condition's span, which is the safe direction — see `ISqlSpan`.
+		Assert.Equal("WHERE b = 2", Cut(input, query.Where!.Span));
+	}
+
+	/// <summary>And a span is where it says, in the text it was measured against.</summary>
+	static string Cut(string input, SqlSpan span) => input.Substring(span.At, span.Length);
+
 	static Statement Read(string input)
 	{
 		var match = TransactSql.TryParseStatement(input);

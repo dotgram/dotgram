@@ -8,7 +8,7 @@ namespace DotGram.Parsers;
 /// A first slice of Microsoft's T-SQL, written as a dialect of <see cref="SqlStandard92"/>
 /// rather than as a grammar of its own.
 /// </summary>
-[Gram("TransactSql.gram", Lexical = true)]
+[Gram("TransactSql.gram", Lexical = true, LocationType = typeof(Sql.ISqlSpan))]
 public abstract partial class TransactSql : SqlStandard92
 {
 }

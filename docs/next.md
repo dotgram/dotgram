@@ -16682,3 +16682,54 @@ It is the names — of functions, of quantifiers — that are the author's.
 There is one of these the oracle cannot see: `JOIN` against `INNER JOIN`. ScriptDom's tree
 has no "unspecified" join either, so both sides of the comparison normalise it the same way
 and the difference cancels. It is a loss all the same, and it is on the list.
+
+### Where a node was written
+
+A parser under a formatter has to answer a question a recognizer never asks: *where* was this
+written? Not so that the tree can carry text — it cannot, and does not — but so that a
+comment, which no tree holds, can be handed to the innermost node it stands inside.
+
+`[Gram("TransactSql.gram", Lexical = true, LocationType = typeof(ISqlSpan))]` is the whole of
+what a grammar says. Every rule whose value is assignable to the named interface is offered
+the range it was read over; a grammar that names nothing is compiled exactly as it was, which
+is what `Rfc3986` and `ExpressionLanguage` want.
+
+**Most of it was already built.** `parserSpan` has been a supplied name since §8.2: an action
+could always write `=> @(new Foo(…) { Span = parserSpan })` and be handed the range, and the
+plumbing for it runs through the direct materializer, the tape, the recovery path and the
+renderings that must refuse it. So doing it *automatically* is not seven emission sites. It
+is one predicate — `WantsSpan` is `Asks(…, "parserSpan")` or "what this builds is told where
+it was written" — and one shape of factory: a block body that offers the range after the
+author's own C# has run.
+
+**The offer is a method, not a setter, and the last offer wins.** The reader calls
+`Locate(at, length)` for every rule the value came out of, innermost first. What to do with
+that is the interface's business, and the answer took two goes:
+
+- *Keep the first.* Narrowest, and wrong: `Syntax.Predicated` completes a predicate by copying
+  its tail with `with`, and the copy inherits the tail's range — so `b = 2` claimed to be
+  `= 2`.
+- *Keep the last.* A little wide where a rule hands back a value another rule made —
+  `WhereClause = "WHERE"i & c: SearchCondition => @(c)` lends the condition its keyword — and
+  never wrong. That is the safe direction and the one taken.
+
+`Expression.NullValue` and `DefaultValue` stopped being shared singletons for the same
+reason. A shared node cannot say where it was written: every `NULL` in a statement was one
+object, and whichever was offered a range last would have claimed it for the rest.
+
+**What it costs, measured back to back at fifteen rounds with ScriptDom steady between them
+to 0.2%:**
+
+| | per statement | ratio | allocated |
+| --- | --- | --- | --- |
+| without locations | 6,786 ns | 2.06× | 838 B |
+| with locations | 7,727 ns | 1.80× | 838 B |
+
+**Fourteen per cent of the time and not one byte.** The allocation is unchanged because a
+span is two ints inside a record that is already a heap object with room for them; what is
+paid for is the offer at every construction and the positions the direct log now carries —
+four numbers a record where it kept two.
+
+`docs/ast.md`'s "nothing here is a position" is now a statement about what a grammar asks
+for rather than about what the tree can hold, and it stays true of every grammar that does
+not ask.

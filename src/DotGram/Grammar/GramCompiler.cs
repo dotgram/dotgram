@@ -48,7 +48,8 @@ public static class GramCompiler
 		diagnostics.AddRange(parsed.Diagnostics);
 
 		var model = GrammarBinder.Bind(parsed.File, options.SymbolResolver, options.Own);
-		var graph = GrammarNormalizer.Normalize(model, options.SymbolResolver, options.CSharpScanner);
+		var graph = GrammarNormalizer.Normalize(
+			model, options.SymbolResolver, options.CSharpScanner, options.LocationType);
 
 		// What the later stages made of a declaration whose syntax did not come out is
 		// about a tree that was guessed at, not about the grammar. Dropped rather than
