@@ -16029,3 +16029,36 @@ the schema they belong to.
 
 Of everything in the corpus, **62.0% to 64.5%**, and 4,809 statements read by both this
 grammar and the engine — up from 4,610 for four more the engine refuses.
+
+## What lives outside the database, and what the server spends on it
+
+External data sources, file formats, tables and libraries; resource pools and workload
+groups; statistics. Fourteen published blocks, and almost all of them are a name and an
+option list — which is the shape this grammar has been reading since `CREATE TABLE`. Four
+hundred and forty statements of the corpus for about forty lines.
+
+What is new is the four clauses that are *not* a name and a value:
+
+- **An affinity** is a value that is itself a name and a value: `AFFINITY SCHEDULER =
+  NUMANODE = (0)`, and `AFFINITY CPU = (0 TO 3, 7)` beside it.
+- **A placement**: `RESAMPLE ON PARTITIONS (1, 3 TO 5)` — a name and where it applies,
+  which `DATA_COMPRESSION = PAGE ON PARTITIONS (…)` already had after its value and no
+  option had instead of one.
+- **A file specification** for a library, which is an option list in its own brackets and
+  may be written twice.
+- **A sample**, and this one is worth saying out loud.
+
+### A number is not a word
+
+`SAMPLE 50 PERCENT` looks exactly like the run of words an option's name is, and is not:
+a numeric literal is a lexeme whose class holds a `.`, so `IsWord` answers no however much
+§4.6 says a digit continues a word. The rule is right — `50` and `50.5` are one kind and
+neither is a word — and the consequence is that a run of words stops at a number. So the
+sample is written out, three words and a rule, and it is the only place in these fourteen
+blocks where a number stands in the middle of an option.
+
+Of everything in the corpus, **64.5% to 70.3%**, and 5,147 statements read by both this
+grammar and the engine, up from 4,809. The over-reading that came with it is the same
+Synapse and Fabric surface as before — workload groups and external tables are not things
+a box SQL Server has.
+

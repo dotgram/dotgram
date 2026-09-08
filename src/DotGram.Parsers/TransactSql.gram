@@ -1127,6 +1127,7 @@ DefinitionStatement : @SqlNode
 	| s: AlterDatabaseStatement  => @(s)
 	| s: DropStatement           => @(s)
 	| s: PrincipalStatement      => @(s)
+	| s: ExternalStatement       => @(s)
 
 StatementList : @SqlNode[] = s: TsqlStatement+ => @(s)
 
@@ -1331,6 +1332,18 @@ OptionList  = OptionSetting & (',' & OptionSetting)*
 
 OptionSetting = "DEFAULT"i & '=' & OptionValue
 			  | "MOVE"i & "TO"i & PlacementTarget
+
+			  // `AFFINITY SCHEDULER = AUTO`, `AFFINITY CPU = (0 TO 3)`,
+			  // `AFFINITY NUMANODE = (0)` — a value that is itself a name and a value.
+			  | "AFFINITY"i & word? & '=' & AffinityValue
+
+			  // `RESAMPLE ON PARTITIONS (1, 3 TO 5)`: a name and a placement.
+			  | OptionName & OnPartitions
+
+			  // `SAMPLE 50 PERCENT`, `SAMPLE 12 ROWS`. A run of words would read it whole
+			  // and does not: a number is a lexeme whose class holds a `.`, so it is not a
+			  // word however much §4.6 says a digit continues one.
+			  | "SAMPLE"i & ValueExpression & SampleUnit?
 			  | "PARTITION"i & '(' & Identifier & "RANGE"i & LeftOrRight?
 				& "FOR"i & "VALUES"i & '(' & Arguments? & ')' & ')'
 			  | OptionName & OptionTail?
@@ -1368,6 +1381,10 @@ OptionValue : @SqlNode
 	| w: word => @(new SqlNode.Column(w))
 
 OptionUnit = Identifier | '%'
+
+AffinityValue  = "AUTO"i
+			   | '(' & PartitionRange & (',' & PartitionRange)* & ')'
+			   | word & '=' & '(' & PartitionRange & (',' & PartitionRange)* & ')'
 
 OnPartitions   = "ON"i & "PARTITIONS"i & '(' & PartitionRange & (',' & PartitionRange)* & ')'
 PartitionRange = ValueExpression & ("TO"i & ValueExpression)?
@@ -1742,6 +1759,71 @@ AlterIndexAction : @string
 	| "ABORT"i => @("ABORT")
 	| "RESUME"i & IndexWith? => @("RESUME")
 	| "SET"i & '(' & OptionList & ')' => @("SET")
+
+// ── What lives outside the database, and what the server spends on it ───────
+//
+// External data sources, file formats, tables and libraries; resource pools and workload
+// groups; statistics. Fourteen published blocks and almost all of them are a name and an
+// option list — which is the shape this grammar has been reading since `CREATE TABLE`.
+// What is new is four clauses that are not a name and a value.
+ExternalStatement : @SqlNode
+	= CreateOrAlter & "EXTERNAL"i & "DATA"i & "SOURCE"i & name: Identifier & DataSourceBody
+		=> @(new SqlNode.Command("EXTERNAL DATA SOURCE", new SqlNode[] { new SqlNode.Column(name) }))
+	| "CREATE"i & "EXTERNAL"i & "FILE"i & "FORMAT"i & name: Identifier & OptionsWith
+		=> @(new SqlNode.Command("EXTERNAL FILE FORMAT", new SqlNode[] { new SqlNode.Column(name) }))
+
+	// A table of somebody else's rows: the columns as this grammar reads any columns, and
+	// then where they are. Synapse writes the query instead and lets it say the columns.
+	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & '(' & body: TableBody & ')'
+	  & OptionsWith
+		=> @(new SqlNode.CreateTable(name, body))
+	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & OptionsWith
+	  & "AS"i & q: DirectSelect
+		=> @(new SqlNode.CreateTable(name, new SqlNode[] { q }))
+
+	| "CREATE"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
+	  & ("AUTHORIZATION"i & QualifiedName)?
+	  & "FROM"i & LibraryFile & (',' & LibraryFile)* & OptionsWith?
+		=> @(new SqlNode.Command("EXTERNAL LIBRARY", new SqlNode[] { new SqlNode.Column(name) }))
+	| "ALTER"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
+	  & ("AUTHORIZATION"i & QualifiedName)?
+	  & LibraryChange & LibraryFile & (',' & LibraryFile)* & OptionsWith?
+		=> @(new SqlNode.Command("EXTERNAL LIBRARY", new SqlNode[] { new SqlNode.Column(name) }))
+
+	| CreateOrAlter & "EXTERNAL"i & "RESOURCE"i & "POOL"i & pool: PoolName & OptionsWith?
+		=> @(new SqlNode.Command("EXTERNAL RESOURCE POOL", new SqlNode[] { new SqlNode.Column(pool) }))
+	| CreateOrAlter & "RESOURCE"i & "POOL"i & pool: PoolName & OptionsWith?
+		=> @(new SqlNode.Command("RESOURCE POOL", new SqlNode[] { new SqlNode.Column(pool) }))
+	| CreateOrAlter & "WORKLOAD"i & "GROUP"i & pool: PoolName & OptionsWith?
+	  & ("USING"i & WorkloadPool & (',' & WorkloadPool)*)?
+		=> @(new SqlNode.Command("WORKLOAD GROUP", new SqlNode[] { new SqlNode.Column(pool) }))
+
+	// Statistics: a name, what they are on, and how they are gathered. `SAMPLE 50 PERCENT`
+	// is three words where an option is usually a name and a value, and the option list
+	// reads it as one name — which is what a run of words is for (§4.6).
+	| "CREATE"i & "STATISTICS"i & name: Identifier & "ON"i & on: QualifiedName
+	  & columns: IndexColumns & ("WHERE"i & SearchCondition)? & StatisticsWith?
+		=> @(SqlNode.Constrained("STATISTICS", columns, null))
+	| "UPDATE"i & "STATISTICS"i & on: QualifiedName & StatisticsTarget? & StatisticsWith?
+		=> @(SqlNode.Constrained("STATISTICS", null, null))
+
+CreateOrAlter = "CREATE"i | "ALTER"i
+
+// `"default"` is a pool, and a delimited name is how the syntax says so.
+PoolName : @string = t: Identifier => @(t) | t: Sql92.Lexical.CharacterStringLiteral => @(t)
+
+WorkloadPool = "EXTERNAL"i? & PoolName
+
+DataSourceBody = OptionsWith
+			   | "SET"i & OptionList
+
+LibraryChange = "SET"i | "ADD"i
+LibraryFile   = '(' & OptionList & ')'
+
+StatisticsWith = "WITH"i & OptionList
+
+StatisticsTarget = '(' & IndexName & (',' & IndexName)* & ')'
+				 | IndexName
 
 // ── Who may connect, and as whom ────────────────────────────────────────────
 //

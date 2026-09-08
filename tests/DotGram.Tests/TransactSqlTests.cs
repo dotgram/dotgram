@@ -1176,6 +1176,50 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>What lives outside the database, and what the server spends on it.</summary>
+	/// <remarks>
+	/// Fourteen published blocks and almost all of them are a name and an option list,
+	/// which is the shape this grammar has been reading since `CREATE TABLE`. What is new
+	/// is four clauses that are not a name and a value: an affinity, a placement, a sample,
+	/// and a file specification.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE EXTERNAL DATA SOURCE ds WITH (LOCATION = 'hdfs://x:8020', TYPE = HADOOP)")]
+	[InlineData("ALTER EXTERNAL DATA SOURCE ds SET LOCATION = 'abs://x', CREDENTIAL = cr")]
+	[InlineData("CREATE EXTERNAL FILE FORMAT ff WITH (FORMAT_TYPE = DELIMITEDTEXT, " +
+		"FORMAT_OPTIONS (FIELD_TERMINATOR = '|', USE_TYPE_DEFAULT = TRUE))")]
+	[InlineData("CREATE EXTERNAL TABLE dbo.t (a INT, b NVARCHAR (10) COLLATE Latin1_General_CI_AS NULL) " +
+		"WITH (LOCATION = '/f', DATA_SOURCE = ds, FILE_FORMAT = ff, REJECT_TYPE = value, REJECT_VALUE = 0)")]
+	[InlineData("CREATE EXTERNAL TABLE dbo.t WITH (LOCATION = '/f', DATA_SOURCE = ds) AS SELECT a FROM u")]
+	[InlineData("CREATE EXTERNAL LIBRARY l FROM (CONTENT = 'c:\\a.zip', PLATFORM = WINDOWS) WITH (LANGUAGE = 'R')")]
+	[InlineData("ALTER EXTERNAL LIBRARY l SET (CONTENT = 0x0100) WITH (LANGUAGE = 'R')")]
+
+	// A pool's affinity is a value that is itself a name and a value.
+	[InlineData("CREATE RESOURCE POOL p WITH (MIN_CPU_PERCENT = 10, MAX_CPU_PERCENT = 20)")]
+	[InlineData("CREATE RESOURCE POOL p WITH (AFFINITY SCHEDULER = AUTO)")]
+	[InlineData("CREATE RESOURCE POOL p WITH (AFFINITY SCHEDULER = (0 TO 3, 7))")]
+	[InlineData("ALTER RESOURCE POOL p WITH (AFFINITY SCHEDULER = NUMANODE = (0))")]
+	[InlineData("CREATE EXTERNAL RESOURCE POOL p WITH (MAX_CPU_PERCENT = 1)")]
+	[InlineData("ALTER EXTERNAL RESOURCE POOL p WITH (MAX_MEMORY_PERCENT = 5)")]
+	[InlineData("CREATE WORKLOAD GROUP g WITH (IMPORTANCE = HIGH) USING p_int, EXTERNAL p_ext")]
+	[InlineData("ALTER WORKLOAD GROUP g USING EXTERNAL p_ext")]
+
+	// `SAMPLE 50 PERCENT` is not a run of words: a number is a lexeme whose class holds a
+	// `.`, so it is not a word however much §4.6 says a digit continues one.
+	[InlineData("CREATE STATISTICS s ON dbo.t (a, b) WITH FULLSCAN")]
+	[InlineData("CREATE STATISTICS s ON t (a) WHERE a > 5 WITH SAMPLE 12 ROWS, NORECOMPUTE")]
+	[InlineData("CREATE STATISTICS s ON t (a) WITH SAMPLE 50 PERCENT, PERSIST_SAMPLE_PERCENT = ON")]
+	[InlineData("UPDATE STATISTICS dbo.t")]
+	[InlineData("UPDATE STATISTICS dbo.t ix WITH FULLSCAN")]
+	[InlineData("UPDATE STATISTICS [dbo].t1 (c1, c2) WITH NORECOMPUTE, SAMPLE 1 PERCENT, COLUMNS")]
+	[InlineData("UPDATE STATISTICS t WITH RESAMPLE ON PARTITIONS (1, 3 TO 5)")]
+	public void What_lives_outside_reads(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	// ── And builds the standard's tree ───────────────────────────────────────────
 
 	/// <summary>
