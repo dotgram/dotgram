@@ -1,4 +1,4 @@
-DotGram language support 0.1.49
+DotGram language support 0.1.50
 
 Initial preview for Visual Studio 18.
 
@@ -21,6 +21,8 @@ Initial preview for Visual Studio 18.
 - Inherited grammars resolve from the unsuffixed `[Gram]` declaration when a base
   parser also carries additional suffixed grammar compilations.
 - File names in `[Gram("Language.gram")]` are no longer analyzed as embedded grammar text.
+- Standalone dialect files are analyzed together with the primary grammars inherited
+  by their C# hosts, including bases that also carry suffixed `[Gram]` compilations.
 - DSL `StringSyntax` annotations also work on extension receivers and immediate field
   or property initializers.
 - Provisional analysis preserves existing colors while a line edit is being analyzed.

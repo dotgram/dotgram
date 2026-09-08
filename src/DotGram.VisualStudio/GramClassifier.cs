@@ -1,15 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 using DotGram.Grammar;
 using DotGram.Language;
 
+using Microsoft.CodeAnalysis;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Adornments;
 using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
+using Microsoft.VisualStudio.LanguageServices;
 
 namespace DotGram.VisualStudio;
 
@@ -60,12 +65,38 @@ sealed class GramFilePathToContentTypeProvider : IFilePathToContentTypeProvider
 [ContentType(GramContentType.Name)]
 sealed class GramClassifierProvider : IClassifierProvider
 {
-	[Import]
-	IClassificationTypeRegistryService Classifications { get; set; } = null!;
+	readonly IClassificationTypeRegistryService _classifications;
+	readonly VisualStudioWorkspace _workspace;
+	readonly ITextDocumentFactoryService _documents;
 
-	public IClassifier GetClassifier(ITextBuffer buffer) =>
-		buffer.Properties.GetOrCreateSingletonProperty(() =>
-			new GramClassifier(GramBufferAnalysis.For(buffer), Classifications));
+	[ImportingConstructor]
+	public GramClassifierProvider(
+		IClassificationTypeRegistryService classifications,
+		VisualStudioWorkspace workspace,
+		ITextDocumentFactoryService documents)
+	{
+		_classifications = classifications;
+		_workspace       = workspace;
+		_documents       = documents;
+	}
+
+	public IClassifier GetClassifier(ITextBuffer buffer)
+	{
+		var analysis = GramBufferAnalysis.For(buffer);
+		Configure(analysis, buffer, _workspace, _documents);
+		return buffer.Properties.GetOrCreateSingletonProperty(() =>
+			new GramClassifier(analysis, _classifications));
+	}
+
+	internal static void Configure(
+		GramBufferAnalysis analysis,
+		ITextBuffer buffer,
+		VisualStudioWorkspace workspace,
+		ITextDocumentFactoryService documents)
+	{
+		if (documents.TryGetTextDocument(buffer, out var document) && document.FilePath is not null)
+			analysis.ConfigureInheritance(workspace, document.FilePath);
+	}
 }
 
 sealed class GramClassifier : IClassifier
@@ -131,8 +162,24 @@ sealed class GramClassifier : IClassifier
 [TagType(typeof(ErrorTag))]
 sealed class GramDiagnosticTaggerProvider : ITaggerProvider
 {
-	public ITagger<T>? CreateTagger<T>(ITextBuffer buffer) where T : ITag =>
-		new GramDiagnosticTagger(GramBufferAnalysis.For(buffer)) as ITagger<T>;
+	readonly VisualStudioWorkspace _workspace;
+	readonly ITextDocumentFactoryService _documents;
+
+	[ImportingConstructor]
+	public GramDiagnosticTaggerProvider(
+		VisualStudioWorkspace workspace,
+		ITextDocumentFactoryService documents)
+	{
+		_workspace = workspace;
+		_documents = documents;
+	}
+
+	public ITagger<T>? CreateTagger<T>(ITextBuffer buffer) where T : ITag
+	{
+		var analysis = GramBufferAnalysis.For(buffer);
+		GramClassifierProvider.Configure(analysis, buffer, _workspace, _documents);
+		return new GramDiagnosticTagger(analysis) as ITagger<T>;
+	}
 }
 
 sealed class GramDiagnosticTagger : ITagger<ErrorTag>
@@ -202,6 +249,8 @@ sealed class GramBufferAnalysis
 
 	ITextSnapshot? _snapshot;
 	GramDocument?  _document;
+	string?        _inheritedText;
+	bool           _inheritanceStarted;
 
 	GramBufferAnalysis(ITextBuffer buffer)
 	{
@@ -214,6 +263,19 @@ sealed class GramBufferAnalysis
 	public static GramBufferAnalysis For(ITextBuffer buffer) =>
 		buffer.Properties.GetOrCreateSingletonProperty(() => new GramBufferAnalysis(buffer));
 
+	public void ConfigureInheritance(Workspace workspace, string filePath)
+	{
+		lock (_gate)
+		{
+			if (_inheritanceStarted)
+				return;
+
+			_inheritanceStarted = true;
+		}
+
+		_ = LoadInheritanceAsync(workspace, filePath);
+	}
+
 	public GramDocument Document(ITextSnapshot snapshot)
 	{
 		lock (_gate)
@@ -222,11 +284,54 @@ sealed class GramBufferAnalysis
 				return _document;
 
 			_snapshot = snapshot;
-			_document = GramLanguageService.Analyze(snapshot.GetText());
+			var own = snapshot.GetText();
+			_document = Project(
+				GramLanguageService.Analyze(own + (_inheritedText ?? "")),
+				own.Length);
 
 			return _document;
 		}
 	}
+
+	async Task LoadInheritanceAsync(Workspace workspace, string filePath)
+	{
+		string? inherited;
+		try
+		{
+			inherited = await StandaloneGrammarInheritance.ResolveAsync(
+				workspace.CurrentSolution,
+				filePath,
+				CancellationToken.None).ConfigureAwait(false);
+		}
+		catch (Exception exception) when (exception is not OutOfMemoryException)
+		{
+			// Project context improves inherited grammars, but a project-system race must
+			// never take classification for the standalone document down with it.
+			return;
+		}
+
+		if (string.IsNullOrEmpty(inherited))
+			return;
+
+		lock (_gate)
+		{
+			_inheritedText = inherited;
+			_snapshot      = null;
+			_document      = null;
+		}
+
+		Changed?.Invoke(_buffer.CurrentSnapshot);
+	}
+
+	static GramDocument Project(GramDocument document, int length) =>
+		new(
+			document.Classifications.Where(item => item.Position < length).ToArray(),
+			document.Diagnostics.Where(item => item.Position < length).ToArray(),
+			document.Symbols.Where(item => item.Position < length).ToArray(),
+			document.Braces.Where(item => item.OpenPosition < length && item.ClosePosition < length).ToArray(),
+			document.FoldingRanges.Where(item => item.Position < length).ToArray(),
+			document.DocumentSymbols.Where(item => item.Position < length).ToArray(),
+			document.PublishedApis.Where(item => item.Position < length).ToArray());
 
 	void BufferChanged(object sender, TextContentChangedEventArgs change)
 	{
