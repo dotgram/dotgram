@@ -296,19 +296,24 @@ sealed class GramBufferAnalysis
 
 	async Task LoadInheritanceAsync(Workspace workspace, string filePath)
 	{
-		string? inherited;
-		try
+		string? inherited = null;
+		for (var attempt = 0; attempt < 40 && string.IsNullOrEmpty(inherited); attempt++)
 		{
-			inherited = await StandaloneGrammarInheritance.ResolveAsync(
-				workspace.CurrentSolution,
-				filePath,
-				CancellationToken.None).ConfigureAwait(false);
-		}
-		catch (Exception exception) when (exception is not OutOfMemoryException)
-		{
-			// Project context improves inherited grammars, but a project-system race must
-			// never take classification for the standalone document down with it.
-			return;
+			try
+			{
+				inherited = await StandaloneGrammarInheritance.ResolveAsync(
+					workspace.CurrentSolution,
+					filePath,
+					CancellationToken.None).ConfigureAwait(false);
+			}
+			catch (Exception exception) when (exception is not OutOfMemoryException)
+			{
+				// The project system mutates the solution while it is loading. A transient
+				// snapshot failure is equivalent to the context not being ready yet.
+			}
+
+			if (string.IsNullOrEmpty(inherited) && attempt + 1 < 40)
+				await Task.Delay(500).ConfigureAwait(false);
 		}
 
 		if (string.IsNullOrEmpty(inherited))
