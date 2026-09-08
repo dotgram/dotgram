@@ -42,9 +42,52 @@ namespace DotGram.Parsers.Sql;
 // needs the text back cuts it from the input itself, which is what §7.6 of `docs/syntax.md`
 // is for.
 
-/// <summary>A statement: §13 of the standard, and most of a dialect's reference.</summary>
-public abstract record Statement
+/// <summary>
+/// Where a node was written, in characters of the input the parser was given.
+/// </summary>
+/// <remarks>
+/// The node's own text and not the trivia around it, so that a comment falls between two
+/// spans rather than inside one — which is what lets a second pass hand every comment to
+/// the innermost node it stands in.
+/// </remarks>
+public readonly record struct SqlSpan(int At, int Length)
 {
+	/// <summary>One past the last character, for a reader that wants the other end.</summary>
+	public int End => At + Length;
+
+	/// <summary>Whether anything was recorded, which nothing is unless a parser asked for it.</summary>
+	public bool Known => Length > 0 || At > 0;
+}
+
+/// <summary>
+/// A node that can say where it was written.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>The setter belongs to the parser and to nobody else.</b> It is written once, by the
+/// machinery, on a node it has just made and nothing has yet seen; after that the node is
+/// what every other record here is. It is a setter rather than an <c>init</c> because
+/// <c>with</c> would copy every node of every tree, which doubles what a parse allocates to
+/// record a number that was already known.
+/// </para>
+/// <para>
+/// A grammar asks for spans by naming this interface —
+/// <c>[Gram("X.gram", Spans = typeof(ISqlSpan))]</c> — and a grammar that does not ask pays
+/// nothing: <c>Rfc3986</c> and <c>ExpressionLanguage</c> are recognizers and want no
+/// positions, which is what <c>docs/ast.md</c> says and stays true where it was right.
+/// </para>
+/// </remarks>
+public interface ISqlSpan
+{
+	SqlSpan Span { get; set; }
+}
+
+/// <summary>A statement: §13 of the standard, and most of a dialect's reference.</summary>
+public abstract record Statement : ISqlSpan
+{
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span { get; set; }
+
 	// ---- §14 the data statements -------------------------------------------------------------
 
 	/// <summary>§14.1 a query, and the clauses the statement wraps it in.</summary>
@@ -951,8 +994,11 @@ public abstract record Statement
 /// §7 the table level: what produces rows. A statement holds one, an expression holds one,
 /// and a <c>FROM</c> clause holds the <see cref="TableReference"/>s it is read over.
 /// </summary>
-public abstract record Query
+public abstract record Query : ISqlSpan
 {
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span { get; set; }
+
 	/// <summary>§7.12 <c>SELECT</c>, and the clauses under it.</summary>
 	/// <remarks>
 	/// One record for the whole of a query specification and its table expression, because
@@ -1019,8 +1065,11 @@ public abstract record Query
 }
 
 /// <summary>§6 the value level, and §8 the predicates: what stands where a value does.</summary>
-public abstract record Expression
+public abstract record Expression : ISqlSpan
 {
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span { get; set; }
+
 	// ---- §6.39 the boolean tower ---------------------------------------------------------------
 
 	/// <summary><c>OR</c>.</summary>
@@ -1255,8 +1304,11 @@ public abstract record Expression
 /// §7.6 what a <c>FROM</c> clause is read over: a table by name, a query standing where one
 /// does, and the joins between them.
 /// </summary>
-public abstract record TableReference
+public abstract record TableReference : ISqlSpan
 {
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span { get; set; }
+
 	/// <summary>
 	/// §7.6 a table named, the name it is known by there, and the names its columns are given.
 	/// </summary>
@@ -1318,8 +1370,11 @@ public abstract record TableReference
 /// The pieces a statement, a query or an expression is made of that are none of the three —
 /// what the standard writes as a clause, a specification or a definition of one element.
 /// </summary>
-public abstract record Clause
+public abstract record Clause : ISqlSpan
 {
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span { get; set; }
+
 	/// <summary>§7.12 one entry of a select list: what it is, and what it is called.</summary>
 	public sealed record DerivedColumn(Expression Value, string? Name) : Clause;
 
