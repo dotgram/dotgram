@@ -232,11 +232,11 @@ ValueExpressionPrimary : @Expression
 
 // COUNT(*) is its own shape; the rest take a set quantifier and a value expression.
 SetFunctionSpecification : @Expression
-    = "COUNT"i & '(' & '*' & ')' => @(new Expression.RoutineInvocation("COUNT", Expression.None, "*"))
+    = name: "COUNT"i & '(' & '*' & ')'
+        => @(new Expression.RoutineInvocation(name, Expression.None, "*"))
     | name: SetFunctionType & '(' & quantifier: SetQuantifier? & v: ValueExpression & ')'
         => @(new Expression.RoutineInvocation(
-            Syntax.Aggregate(name), new Expression[] { v },
-            Syntax.Distinctly(quantifier)))
+            name, new Expression[] { v }, Syntax.Distinctly(quantifier)))
 
 SetFunctionType = "AVG"i | "MAX"i | "MIN"i | "SUM"i | "COUNT"i
 SetQuantifier   = "DISTINCT"i | "ALL"i
@@ -244,33 +244,33 @@ SetQuantifier   = "DISTINCT"i | "ALL"i
 // The functions the standard spells out rather than leaving to <routine invocation>.
 // Each is a keyword and a fixed shape, which is why they are here and not a call.
 ValueFunction : @Expression
-    = "POSITION"i         & '(' & a: ValueExpression & "IN"i & b: ValueExpression & ')'    => @(new Expression.RoutineInvocation("POSITION", new Expression[] { a, b }))
-    | "EXTRACT"i          & '(' & field: ExtractField & "FROM"i & v: ValueExpression & ')' => @(new Expression.RoutineInvocation("EXTRACT", new Expression[] { v }, field))
-    | "CHAR_LENGTH"i      & '(' & v: ValueExpression & ')'                                 => @(new Expression.RoutineInvocation("CHAR_LENGTH", new Expression[] { v }))
-    | "CHARACTER_LENGTH"i & '(' & v: ValueExpression & ')'                            => @(new Expression.RoutineInvocation("CHARACTER_LENGTH", new Expression[] { v }))
-    | "OCTET_LENGTH"i     & '(' & v: ValueExpression & ')'                                => @(new Expression.RoutineInvocation("OCTET_LENGTH", new Expression[] { v }))
-    | "BIT_LENGTH"i       & '(' & v: ValueExpression & ')'                                 => @(new Expression.RoutineInvocation("BIT_LENGTH", new Expression[] { v }))
-    | "SUBSTRING"i        & '(' & v: ValueExpression & "FROM"i & from: ValueExpression
+    = name: "POSITION"i         & '(' & a: ValueExpression & "IN"i & b: ValueExpression & ')'    => @(new Expression.RoutineInvocation(name, new Expression[] { a, b }))
+    | name: "EXTRACT"i          & '(' & field: ExtractField & "FROM"i & v: ValueExpression & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, field))
+    | name: "CHAR_LENGTH"i      & '(' & v: ValueExpression & ')'                                 => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
+    | name: "CHARACTER_LENGTH"i & '(' & v: ValueExpression & ')'                            => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
+    | name: "OCTET_LENGTH"i     & '(' & v: ValueExpression & ')'                                => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
+    | name: "BIT_LENGTH"i       & '(' & v: ValueExpression & ')'                                 => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
+    | name: "SUBSTRING"i        & '(' & v: ValueExpression & "FROM"i & from: ValueExpression
                           & ("FOR"i & length: ValueExpression)? & ')'
         => @(new Expression.RoutineInvocation(
             "SUBSTRING",
             length is null
                 ? new Expression[] { v, from }
                 : new Expression[] { v, from, length }))
-    | "UPPER"i     & '(' & v: ValueExpression & ')'                                  => @(new Expression.RoutineInvocation("UPPER", new Expression[] { v }))
-    | "LOWER"i     & '(' & v: ValueExpression & ')'                                  => @(new Expression.RoutineInvocation("LOWER", new Expression[] { v }))
-    | "CONVERT"i   & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new Expression.RoutineInvocation("CONVERT", new Expression[] { v }, name))
-    | "TRANSLATE"i & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new Expression.RoutineInvocation("TRANSLATE", new Expression[] { v }, name))
-    | "TRIM"i      & '(' & how: TrimSpecification? & what: ValueExpression?
+    | name: "UPPER"i     & '(' & v: ValueExpression & ')'                                  => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
+    | name: "LOWER"i     & '(' & v: ValueExpression & ')'                                  => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
+    | name: "CONVERT"i   & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, name))
+    | name: "TRANSLATE"i & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, name))
+    | name: "TRIM"i      & '(' & how: TrimSpecification? & what: ValueExpression?
                    & "FROM"i & v: ValueExpression & ')'
         => @(new Expression.RoutineInvocation(
             "TRIM",
             what is null ? new Expression[] { v } : new Expression[] { what, v },
             how))
-    | "TRIM"i        & '(' & v: ValueExpression & ')'      => @(new Expression.RoutineInvocation("TRIM", new Expression[] { v }))
-    | "CURRENT_DATE"i                                      => @(new Expression.RoutineInvocation("CURRENT_DATE", Expression.None))
-    | "CURRENT_TIME"i      & ('(' & digits: Digits & ')')? => @(new Expression.RoutineInvocation("CURRENT_TIME", Expression.None, digits))
-    | "CURRENT_TIMESTAMP"i & ('(' & digits: Digits & ')')? => @(new Expression.RoutineInvocation("CURRENT_TIMESTAMP", Expression.None, digits))
+    | name: "TRIM"i & '(' & v: ValueExpression & ')'      => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
+    | name: "CURRENT_DATE"i                                      => @(new Expression.RoutineInvocation(name, Expression.None))
+    | name: "CURRENT_TIME"i      & ('(' & digits: Digits & ')')? => @(new Expression.RoutineInvocation(name, Expression.None, digits))
+    | name: "CURRENT_TIMESTAMP"i & ('(' & digits: Digits & ')')? => @(new Expression.RoutineInvocation(name, Expression.None, digits))
 
 ExtractField      = "YEAR"i | "MONTH"i | "DAY"i | "HOUR"i | "MINUTE"i | "SECOND"i | "TIMEZONE_HOUR"i | "TIMEZONE_MINUTE"i
 TrimSpecification = "LEADING"i | "TRAILING"i | "BOTH"i
@@ -281,8 +281,8 @@ TrimSpecification = "LEADING"i | "TRAILING"i | "BOTH"i
 // expression>, not something beside it, and is written here where the standard puts
 // it.
 CaseExpression : @Expression
-    = "NULLIF"i   & '(' & a: ValueExpression & ',' & b: ValueExpression & ')'                           => @(new Expression.RoutineInvocation("NULLIF", new Expression[] { a, b }))
-    | "COALESCE"i & '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'                 => @(new Expression.RoutineInvocation("COALESCE", Syntax.Listed(first, rest)))
+    = name: "NULLIF"i   & '(' & a: ValueExpression & ',' & b: ValueExpression & ')'                           => @(new Expression.RoutineInvocation(name, new Expression[] { a, b }))
+    | name: "COALESCE"i & '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'                 => @(new Expression.RoutineInvocation(name, Syntax.Listed(first, rest)))
     | "CASE"i & operand: ValueExpression & whens: SimpleWhen+ & ("ELSE"i & otherwise: Result)? & "END"i => @(new Expression.Case(operand, whens, otherwise))
     | "CASE"i & whens: SearchedWhen+ & ("ELSE"i & otherwise: Result)? & "END"i                          => @(new Expression.Case(null, whens, otherwise))
 
@@ -290,7 +290,7 @@ SimpleWhen   : @Clause.When = "WHEN"i & test: ValueExpression & "THEN"i & result
 SearchedWhen : @Clause.When = "WHEN"i & test: SearchCondition & "THEN"i & result: Result => @(new Clause.When(test, result))
 
 Result            : @Expression = v: ValueExpression => @(v) | "NULL"i => @(Expression.NullValue)
-CastSpecification : @Expression = "CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new Expression.RoutineInvocation("CAST", new Expression[] { v }, type))
+CastSpecification : @Expression = name: "CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, type))
 CastOperand       : @Expression = v: ValueExpression => @(v) | "NULL"i => @(Expression.NullValue)
 
 // ── §6.1 Data type, cut to what a CAST target can be ───────────────────────
@@ -404,7 +404,7 @@ QuerySpecification : @Query
     = "SELECT"i & quantifier: SetQuantifier? & columns: SelectList
       & from: FromClause & where: WhereClause? & group: GroupByClause? & having: HavingClause?
         => @(new Query.Specification(
-                 Syntax.Distinctly(quantifier) == "DISTINCT", null, columns, null, from,
+                 Syntax.Distinctly(quantifier), null, columns, null, from,
                  where, group, having))
 
 // §7.9 <select list>. A bare `*` is every column of every table in the FROM clause, and
@@ -496,24 +496,24 @@ SortKey : @Expression
 // a word that begins or continues an expression or a predicate, the functions
 // included: with them reserved, a name and a function begin with different tokens,
 // and the choice of a primary is decided by its first token without a way back.
-Reserved = ("AND"i | "ALL"i | "ANY"i | "AS"i | "ASC"i | "AVG"i | "BETWEEN"i | "BIT_LENGTH"i
+Reserved = ("AND"i | "ALL"i | "ANY"i | "AS"i | "ASC"i | "AVG"i | "BETWEEN"i | name: "BIT_LENGTH"i
          | "BOTH"i | "BY"i
-         | "CASE"i | "CAST"i | "CHAR_LENGTH"i | "CHARACTER_LENGTH"i | "COALESCE"i
-         | "COLLATE"i | "CONVERT"i | "CORRESPONDING"i | "COUNT"i | "CROSS"i | "CURRENT_DATE"i
-         | "CURRENT_TIME"i | "CURRENT_TIMESTAMP"i | "CURRENT_USER"i
+         | "CASE"i | name: "CAST"i | name: "CHAR_LENGTH"i | name: "CHARACTER_LENGTH"i | name: "COALESCE"i
+         | "COLLATE"i | name: "CONVERT"i | "CORRESPONDING"i | "COUNT"i | "CROSS"i | name: "CURRENT_DATE"i
+         | name: "CURRENT_TIME"i | name: "CURRENT_TIMESTAMP"i | "CURRENT_USER"i
          | "DEFAULT"i | "DESC"i | "DISTINCT"i | "ELSE"i | "END"i | "ESCAPE"i | "EXCEPT"i | "EXISTS"i
-         | "EXTRACT"i | "FALSE"i | "FOR"i | "FROM"i | "FULL"i | "GROUP"i | "HAVING"i
+         | name: "EXTRACT"i | "FALSE"i | "FOR"i | "FROM"i | "FULL"i | "GROUP"i | "HAVING"i
          | "IN"i | "INNER"i | "INTERSECT"i | "INTERVAL"i | "IS"i | "JOIN"i
-         | "LEADING"i | "LEFT"i | "LIKE"i | "LOWER"i
+         | "LEADING"i | "LEFT"i | "LIKE"i | name: "LOWER"i
          | "MATCH"i | "MAX"i | "MIN"i
-         | "NATURAL"i | "NOT"i | "NULL"i | "NULLIF"i | "OCTET_LENGTH"i | "ON"i | "OR"i
+         | "NATURAL"i | "NOT"i | "NULL"i | name: "NULLIF"i | name: "OCTET_LENGTH"i | "ON"i | "OR"i
          | "ORDER"i | "OUTER"i
          | "OVERLAPS"i
-         | "PARTIAL"i | "POSITION"i | "RIGHT"i | "SELECT"i | "SESSION_USER"i | "SOME"i
-         | "SUBSTRING"i | "SUM"i | "SYSTEM_USER"i | "TABLE"i
-         | "THEN"i | "TRAILING"i | "TRANSLATE"i | "TRIM"i | "TRUE"i | "UNION"i
+         | "PARTIAL"i | name: "POSITION"i | "RIGHT"i | "SELECT"i | "SESSION_USER"i | "SOME"i
+         | name: "SUBSTRING"i | "SUM"i | "SYSTEM_USER"i | "TABLE"i
+         | "THEN"i | "TRAILING"i | name: "TRANSLATE"i | name: "TRIM"i | "TRUE"i | "UNION"i
          | "UNIQUE"i | "UNKNOWN"i
-         | "UPPER"i | "USER"i | "USING"i | "VALUE"i | "VALUES"i | "WHEN"i | "WHERE"i)
+         | name: "UPPER"i | "USER"i | "USING"i | "VALUE"i | "VALUES"i | "WHEN"i | "WHERE"i)
          & ?!IdentifierPart
 
 parse DirectSelect as ParseSelect

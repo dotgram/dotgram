@@ -16654,3 +16654,31 @@ That works on one condition — **the printed token sequence must equal the sour
 is what levels 1 and 2 are. So `--roundtrip` at 100% is not merely a correctness number: it
 is the condition under which a faithful formatter, and a safe rewriter, are possible at all.
 `docs/ast.md`'s "nothing here is a position" survives.
+
+### The parser does not choose the words
+
+The round-trip's biggest remaining class in `SELECT` turned out to be the parser inventing
+text. `SELECT count(*)` came back `SELECT COUNT(*)`; `trim(x)` came back `TRIM(x)`;
+`SELECT ALL a` came back `SELECT a`.
+
+Two causes, one principle. Eighteen rules wrote the function's name into the tree as a
+literal — `"TRIM"i & … => new RoutineInvocation("TRIM", …)` — instead of keeping the word
+that was read. And `Syntax.Aggregate` mapped a matched word to one of four constants,
+`Syntax.Distinctly` to one of two.
+
+`count(*)` and `COUNT(*)` are two texts. A parser that answers the second when it read the
+first has decided something nobody asked it to decide, and a formatter built on it would
+rewrite its author's code. **The tree says what was written; what a missing `ALL` means is a
+question for whatever reads it** — so `Query.Specification.Distinct`, which was a decision,
+is `Quantifier`, which is a word, and `Syntax.IsDistinct` is there for a reader who wants
+the decision made.
+
+Pure keywords are a different case and need no change: `SELECT`, `CASE`, `FROM` are the
+formatter's to case, which is why ScriptDom's own generator has a `KeywordCasing` option.
+It is the names — of functions, of quantifiers — that are the author's.
+
+`SelectStatement` went from 79.6% to **81.5%**, the corpus from 34.3% to **34.9%**.
+
+There is one of these the oracle cannot see: `JOIN` against `INNER JOIN`. ScriptDom's tree
+has no "unspecified" join either, so both sides of the comparison normalise it the same way
+and the difference cancels. It is a loss all the same, and it is on the list.

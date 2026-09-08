@@ -961,7 +961,7 @@ public abstract record Query
 	/// writes as a comma list, which is a cross join said the older way.
 	/// </remarks>
 	public sealed record Specification(
-		bool Distinct,
+		string? Quantifier,
 		Clause? Top,
 		Clause[] Columns,
 		Clause? Into,
@@ -1003,6 +1003,10 @@ public abstract record Query
 	/// the statement rather than the two hierarchies meeting.
 	/// </remarks>
 	public sealed record FromExecute(Statement.Execute Execute) : Query;
+
+	/// <summary>Whether a set quantifier asked for distinct rows, for a reader that wants to know.</summary>
+	public static bool IsDistinct(string? quantifier) =>
+		quantifier is not null && (quantifier[0] | 0x20) == 'd';
 
 	/// <summary>Which set operator was written, and whether it keeps duplicates.</summary>
 	public static Query Combined(string operatorText, string? all, Query left, Query right) =>
@@ -1667,8 +1671,17 @@ public static class Syntax
 			_   => word,
 		};
 
-	public static string? Distinctly(string? word) =>
-		word is null ? null : (word[0] | 0x20) == 'd' ? "DISTINCT" : "ALL";
+	/// <summary>
+	/// A set quantifier, as it was written.
+	/// </summary>
+	/// <remarks>
+	/// It used to come back as one of two constants, and that was a small lie of the kind
+	/// this tree is not allowed to tell: <c>SELECT ALL a</c> and <c>SELECT a</c> are two
+	/// texts, and a parser that answers <c>null</c> for the first has decided something the
+	/// author did not ask it to decide. What a missing <c>ALL</c> <em>means</em> is a question
+	/// for whatever reads the tree.
+	/// </remarks>
+	public static string? Distinctly(string? word) => word;
 
 	/// <summary>What a match predicate was qualified by, as one word or two.</summary>
 	public static string? Matched(string? unique, string? kind)

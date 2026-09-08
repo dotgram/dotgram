@@ -88,7 +88,7 @@ public sealed class SqlStandard92Tests
 	{
 		var query = Selected("SELECT DISTINCT a, t.* FROM u AS t WHERE a > 1");
 
-		Assert.True(query.Distinct);
+		Assert.Equal("DISTINCT", query.Quantifier);
 		Assert.Equal(2, query.Columns.Length);
 		Assert.Equal("t", Assert.IsType<Clause.QualifiedAsterisk>(query.Columns[1]).Qualifier);
 

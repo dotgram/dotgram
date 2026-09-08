@@ -242,8 +242,8 @@ Member : @Expression.Member
 // `CONVERT` is a different rule and not a wider one: the standard's takes a value and
 // a character set, T-SQL's takes a type and a value, in that order.
 TsqlCast : @Expression
-	= "CAST"i     & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new Expression.RoutineInvocation("CAST", new Expression[] { v }, type))
-	| "TRY_CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new Expression.RoutineInvocation("TRY_CAST", new Expression[] { v }, type))
+	= name: "CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, type))
+	| name: "TRY_CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, type))
 	| name: ("TRY_CONVERT"i | "CONVERT"i) & '(' & type: DataType & ',' & v: ValueExpression
 	  & (',' & style: ValueExpression)? & ')'
 		=> @(new Expression.RoutineInvocation(name, style is null ? new Expression[] { v } : new Expression[] { v, style }, type))
@@ -263,10 +263,10 @@ TsqlCast : @Expression
 // written with `:` rather than a comma, a clause saying what a null does, and a type to
 // return. All three are from the published syntax of `JSON_OBJECT`.
 TsqlValueFunction : @Expression
-	= "IIF"i & '(' & c: SearchCondition & ',' & a: ValueExpression & ',' & b: ValueExpression & ')'
-		=> @(new Expression.RoutineInvocation("IIF", new Expression[] { c, a, b }))
-	| "CHOOSE"i & '(' & at: ValueExpression & ',' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
-		=> @(new Expression.RoutineInvocation("CHOOSE", Syntax.Listed(at, Syntax.Listed(first, rest))))
+	= name: "IIF"i & '(' & c: SearchCondition & ',' & a: ValueExpression & ',' & b: ValueExpression & ')'
+		=> @(new Expression.RoutineInvocation(name, new Expression[] { c, a, b }))
+	| name: "CHOOSE"i & '(' & at: ValueExpression & ',' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
+		=> @(new Expression.RoutineInvocation(name, Syntax.Listed(at, Syntax.Listed(first, rest))))
 	| name: JsonObjectName & '(' & body: JsonObjectBody? & ')' & tail: CallTail?
 		=> @(Syntax.Called(new Expression.RoutineInvocation(name, body ?? Expression.None), tail))
 	| name: JsonArrayName & '(' & body: JsonArrayBody? & ')' & tail: CallTail?
@@ -314,9 +314,9 @@ JsonOrder      = "ORDER"i & "BY"i & ValueExpression & ("ASC"i | "DESC"i)?
 // A sequence, read where a value stands. `FOR` here is not the `FOR` of `FOR JSON`;
 // it is the middle of one three-word name.
 NextValue : @Expression
-	= "NEXT"i & "VALUE"i & "FOR"i & name: QualifiedName & tail: CallTail?
+	= word: ("NEXT"i & "VALUE"i & "FOR"i) & name: QualifiedName & tail: CallTail?
 		=> @(Syntax.Called(
-				 new Expression.RoutineInvocation("NEXT VALUE FOR", Expression.None, name), tail))
+				 new Expression.RoutineInvocation(word, Expression.None, name), tail))
 
 // A call to something this grammar has never heard of, which is most of them: the
 // name is a catalogue's business and the arguments are values.
@@ -476,7 +476,7 @@ TsqlQuerySpecification : @Query
 	  & from: FromClause? & where: WhereClause? & group: GroupByClause? & having: HavingClause?
 	  & Window?
 		=> @(new Query.Specification(
-				 Syntax.Distinctly(quantifier) == "DISTINCT", top, columns, into,
+				 Syntax.Distinctly(quantifier), top, columns, into,
 				 from ?? TableReference.None, where, group, having))
 
 // Written as alternatives of a rule rather than one sequence with a choice inside it,

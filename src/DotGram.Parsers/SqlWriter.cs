@@ -595,11 +595,11 @@ public static class SqlWriter
 		switch (query)
 		{
 			case Query.Specification(
-				var distinct, var top, var columns, var into, var from, var where, var group, var having):
+				var quantifier, var top, var columns, var into, var from, var where, var group, var having):
 				text.Append("SELECT ");
 
-				if (distinct)
-					text.Append("DISTINCT ");
+				if (quantifier is not null)
+					text.Append(quantifier).Append(' ');
 
 				if (top is not null)
 				{
@@ -1507,13 +1507,13 @@ public static class SqlWriter
 				return;
 
 			case "EXTRACT":
-				text.Append("EXTRACT(").Append(word).Append(" FROM ");
+				text.Append(name).Append('(').Append(word).Append(" FROM ");
 				Put(text, arguments[0], 0);
 				text.Append(')');
 				return;
 
 			case "POSITION":
-				text.Append("POSITION(");
+				text.Append(name).Append('(');
 				Put(text, arguments[0], 0);
 				text.Append(" IN ");
 				Put(text, arguments[1], 0);
@@ -1521,7 +1521,7 @@ public static class SqlWriter
 				return;
 
 			case "TRIM":
-				text.Append("TRIM(");
+				text.Append(name).Append('(');
 
 				if (word is not null)
 					text.Append(word).Append(' ');
@@ -1542,12 +1542,12 @@ public static class SqlWriter
 
 			case "AT TIME ZONE":
 				Put(text, arguments[0], 8);
-				text.Append(" AT TIME ZONE ");
+				text.Append(' ').Append(name).Append(' ');
 				Put(text, arguments[1], 8);
 				return;
 
 			case "NEXT VALUE FOR":
-				text.Append("NEXT VALUE FOR ").Append(word);
+				text.Append(name).Append(' ').Append(word);
 				return;
 
 			case "CURRENT_DATE":
