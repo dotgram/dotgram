@@ -241,12 +241,6 @@ public abstract record SqlNode
 	/// </summary>
 	public sealed record VariableDeclaration(string Name, string? Type, SqlNode? Value) : SqlNode;
 
-	/// <summary>
-	/// A `SET` that names a setting rather than a variable — the option as written, and the
-	/// value where one was given.
-	/// </summary>
-	public sealed record Setting(string Option, SqlNode? Value) : SqlNode;
-
 	/// <summary>A transaction begun, committed, rolled back or saved, and its name.</summary>
 	public sealed record TransactionStatement(string Kind, string? Name) : SqlNode;
 
@@ -254,12 +248,6 @@ public abstract record SqlNode
 	/// `EXECUTE`: what is called, with what, and the variable the return code goes to.
 	/// </summary>
 	public sealed record ExecuteStatement(string? Into, string Name, SqlNode[] Arguments) : SqlNode;
-
-	/// <summary>
-	/// A statement that is a word and some values: `PRINT`, `RETURN`, `GOTO`, `BREAK`,
-	/// `CONTINUE`, `THROW`, `RAISERROR`, `WAITFOR`, `USE`, `CHECKPOINT`.
-	/// </summary>
-	public sealed record Command(string Word, SqlNode[] Arguments) : SqlNode;
 
 	// ---- the tables ---------------------------------------------------------------------------
 
@@ -306,19 +294,6 @@ public abstract record SqlNode
 	/// <summary>One parameter of a routine: its name, its type, and its default.</summary>
 	public sealed record ParameterDeclaration(string Name, string? Type, SqlNode? Value) : SqlNode;
 
-	// ---- the database ---------------------------------------------------------------------------
-
-	/// <summary>
-	/// A database made or changed: its name, what is being done to it, and the settings or
-	/// the files it says that with.
-	/// </summary>
-	/// <remarks>
-	/// The settings are not a kind of their own. There are some two hundred of them, they
-	/// differ by edition and by version, and each is a name and a value however much SQL
-	/// Server means by it — so they arrive as <see cref="Setting"/>, like the rest.
-	/// </remarks>
-	public sealed record Database(string Name, string Action, SqlNode[] Settings) : SqlNode;
-
 	// ---- indexes and permissions ---------------------------------------------------------------
 
 	/// <summary>An index declared: its name, what it is on, and the columns it is over.</summary>
@@ -327,16 +302,613 @@ public abstract record SqlNode
 	/// <summary>An index changed: which one, on what, and what is being done to it.</summary>
 	public sealed record AlterIndexStatement(string Name, string On, string Action) : SqlNode;
 
-	/// <summary>
-	/// A permission granted, denied or revoked: which of the three, what is being said about,
-	/// and to whom.
-	/// </summary>
-	public sealed record Permission(string Kind, string[] What, string[] Who) : SqlNode;
+
+	// ---- a word and some values ----------------------------------------------------------------
+	//
+	// Ten statements that are a word and what follows it. They shared one record until the
+	// tree was made to say what the grammar says, and a reader who wanted the `PRINT` had to
+	// look at a string to find it.
+
+	/// <summary>One value printed.</summary>
+	public sealed record PrintStatement(SqlNode Value) : SqlNode;
+
+	/// <summary>A routine left, with a code where one was given.</summary>
+	public sealed record ReturnStatement(SqlNode? Value) : SqlNode;
+
+	/// <summary>An error raised, or the caught one raised again.</summary>
+	public sealed record ThrowStatement(SqlNode[] Arguments) : SqlNode;
+
+	/// <summary>A jump to a label.</summary>
+	public sealed record GoToStatement(SqlNode Label) : SqlNode;
+
+	/// <summary>A loop left.</summary>
+	public sealed record BreakStatement : SqlNode;
+
+	/// <summary>A loop begun again.</summary>
+	public sealed record ContinueStatement : SqlNode;
+
+	/// <summary>The log written out.</summary>
+	public sealed record CheckpointStatement(SqlNode? Value) : SqlNode;
+
+	/// <summary>The database the rest of the batch is read against.</summary>
+	public sealed record UseStatement(SqlNode Name) : SqlNode;
+
+	/// <summary>The older spelling of an error raised.</summary>
+	public sealed record RaiseErrorStatement(SqlNode[] Arguments) : SqlNode;
+
+	/// <summary>A delay, or a time to wait until.</summary>
+	public sealed record WaitForStatement(SqlNode Value) : SqlNode;
+
+	// ---- who may connect, what lives outside, and what the server watches ----------------------
+	//
+	// One record each, and the name only: what these are set to is an option list the grammar
+	// reads and drops, and a field nobody reads is a field that drifts. When one of them is
+	// wanted it is one field on one record here, which is what having a record each is for.
+
+	/// <summary><c>CREATE LOGIN</c>.</summary>
+	public sealed record CreateLoginStatement(string Name) : SqlNode;
+
+	/// <summary><c>ALTER LOGIN</c>.</summary>
+	public sealed record AlterLoginStatement(string Name) : SqlNode;
+
+	/// <summary><c>CREATE USER</c>.</summary>
+	public sealed record CreateUserStatement(string Name) : SqlNode;
+
+	/// <summary><c>ALTER USER</c>.</summary>
+	public sealed record AlterUserStatement(string Name) : SqlNode;
+
+	/// <summary><c>CREATE ROLE</c>.</summary>
+	public sealed record CreateRoleStatement(string Name) : SqlNode;
+
+	/// <summary><c>ALTER ROLE</c>.</summary>
+	public sealed record AlterRoleStatement(string Name) : SqlNode;
+
+	/// <summary><c>CREATE APPLICATION ROLE</c>.</summary>
+	public sealed record CreateApplicationRoleStatement(string Name) : SqlNode;
+
+	/// <summary><c>ALTER APPLICATION ROLE</c>.</summary>
+	public sealed record AlterApplicationRoleStatement(string Name) : SqlNode;
+
+	/// <summary><c>CREATE SCHEMA</c>.</summary>
+	public sealed record SchemaDefinition(string Name) : SqlNode;
+
+	/// <summary><c>ALTER SCHEMA</c>.</summary>
+	public sealed record AlterSchemaStatement(string Name) : SqlNode;
+
+	/// <summary><c>ALTER AUTHORIZATION</c>.</summary>
+	public sealed record AlterAuthorizationStatement(string Name) : SqlNode;
+
+	/// <summary><c>EXTERNAL DATA SOURCE</c>.</summary>
+	public sealed record ExternalDataSourceDefinition(string Name) : SqlNode;
+
+	/// <summary><c>EXTERNAL FILE FORMAT</c>.</summary>
+	public sealed record ExternalFileFormatDefinition(string Name) : SqlNode;
+
+	/// <summary><c>EXTERNAL LIBRARY</c>.</summary>
+	public sealed record ExternalLibraryDefinition(string Name) : SqlNode;
+
+	/// <summary><c>EXTERNAL RESOURCE POOL</c>.</summary>
+	public sealed record ExternalResourcePoolDefinition(string Name) : SqlNode;
+
+	/// <summary><c>RESOURCE POOL</c>.</summary>
+	public sealed record ResourcePoolDefinition(string Name) : SqlNode;
+
+	/// <summary><c>WORKLOAD GROUP</c>.</summary>
+	public sealed record WorkloadGroupDefinition(string Name) : SqlNode;
+
+	/// <summary><c>SERVER AUDIT</c>.</summary>
+	public sealed record ServerAuditDefinition(string Name) : SqlNode;
+
+	/// <summary><c>AUDIT SPECIFICATION</c>.</summary>
+	public sealed record AuditSpecificationDefinition(string Name) : SqlNode;
+
+	/// <summary><c>EVENT SESSION</c>.</summary>
+	public sealed record EventSessionDefinition(string Name) : SqlNode;
+
+	/// <summary><c>EVENT NOTIFICATION</c>.</summary>
+	public sealed record EventNotificationDefinition(string Name) : SqlNode;
+
+	/// <summary><c>ENDPOINT</c>.</summary>
+	public sealed record EndpointDefinition(string Name) : SqlNode;
+
+	// ---- the database --------------------------------------------------------------------------
+
+	/// <summary><c>CREATE DATABASE</c>, and the files it is made of.</summary>
+	public sealed record CreateDatabaseStatement(string Name, SqlNode[] Files) : SqlNode;
+
+	/// <summary><c>ALTER DATABASE … SET</c>, and what it was set to.</summary>
+	public sealed record AlterDatabaseSetStatement(string Name, SqlNode[] Settings) : SqlNode;
+
+	/// <summary><c>ALTER DATABASE … SCOPED CONFIGURATION</c>, and what it was set to.</summary>
+	public sealed record AlterDatabaseScopedConfigurationStatement(string Name, SqlNode[] Settings) : SqlNode;
+
+	/// <summary><c>ALTER DATABASE … COLLATE</c>.</summary>
+	public sealed record AlterDatabaseCollateStatement(string Name) : SqlNode;
+
+	/// <summary><c>ALTER DATABASE … MODIFY NAME</c>.</summary>
+	public sealed record AlterDatabaseModifyNameStatement(string Name) : SqlNode;
+
+	/// <summary><c>ALTER DATABASE … MODIFY FILEGROUP</c>.</summary>
+	public sealed record AlterDatabaseModifyFileGroupStatement(string Name) : SqlNode;
+
+	/// <summary><c>ALTER DATABASE … MODIFY FILE</c>.</summary>
+	public sealed record AlterDatabaseModifyFileStatement(string Name) : SqlNode;
+
+	/// <summary><c>ALTER DATABASE … MODIFY</c>.</summary>
+	public sealed record AlterDatabaseModifyStatement(string Name) : SqlNode;
+
+	/// <summary><c>ALTER DATABASE … ADD FILEGROUP</c>.</summary>
+	public sealed record AlterDatabaseAddFileGroupStatement(string Name) : SqlNode;
+
+	/// <summary><c>ALTER DATABASE … ADD LOG FILE</c>.</summary>
+	public sealed record AlterDatabaseAddLogFileStatement(string Name) : SqlNode;
+
+	/// <summary><c>ALTER DATABASE … ADD FILE</c>.</summary>
+	public sealed record AlterDatabaseAddFileStatement(string Name) : SqlNode;
+
+	/// <summary><c>ALTER DATABASE … REMOVE FILEGROUP</c>.</summary>
+	public sealed record AlterDatabaseRemoveFileGroupStatement(string Name) : SqlNode;
+
+	/// <summary><c>ALTER DATABASE … REMOVE FILE</c>.</summary>
+	public sealed record AlterDatabaseRemoveFileStatement(string Name) : SqlNode;
+
+	/// <summary><c>ALTER DATABASE … REBUILD LOG</c>.</summary>
+	public sealed record AlterDatabaseRebuildLogStatement(string Name) : SqlNode;
+
+	/// <summary><c>ALTER DATABASE … PERFORM_CUTOVER</c>.</summary>
+	public sealed record AlterDatabasePerformCutoverStatement(string Name) : SqlNode;
+
+	/// <summary>One setting of a database: its name, and what it was set to.</summary>
+	/// <remarks>
+	/// Not a statement and not a kind of its own. There are some two hundred of them, they
+	/// differ by edition and by version, and each is a name and a value however much SQL Server
+	/// means by it.
+	/// </remarks>
+	public sealed record DatabaseOption(string Name, SqlNode? Value) : SqlNode;
+
+	// ---- the SET statements --------------------------------------------------------------------
+
+	/// <summary><c>SET TRANSACTION ISOLATION LEVEL</c>.</summary>
+	public sealed record SetTransactionIsolationLevelStatement(string Level) : SqlNode;
+
+	/// <summary><c>SET IDENTITY_INSERT t ON</c>.</summary>
+	public sealed record SetIdentityInsertStatement(string Table, bool On) : SqlNode;
+
+	/// <summary>A setting or several turned on or off — <c>SET ANSI_NULLS, ANSI_PADDING ON</c>.</summary>
+	public sealed record SetOptionStatement(string[] Options, bool On) : SqlNode;
+
+	/// <summary>A setting given a value — <c>SET ROWCOUNT 10</c>, <c>SET LANGUAGE us_english</c>.</summary>
+	public sealed record SetCommandStatement(string Option, SqlNode? Value) : SqlNode;
+
+	// ---- §12.1 the permissions -----------------------------------------------------------------
+
+	/// <summary><c>GRANT</c>: what is being said about, and to whom.</summary>
+	public sealed record GrantStatement(string[] Privileges, string[] Principals) : SqlNode;
+
+	/// <summary><c>DENY</c>: what is being said about, and to whom.</summary>
+	public sealed record DenyStatement(string[] Privileges, string[] Principals) : SqlNode;
+
+	/// <summary><c>REVOKE</c>: what is being said about, and to whom.</summary>
+	public sealed record RevokeStatement(string[] Privileges, string[] Principals) : SqlNode;
+
+	// ---- what a statement drops ----------------------------------------------------------------
+	//
+	// Sixty-four records of one shape, because sixty-four statements of one shape is what
+	// the reference has: `DROP TABLE` and `DROP VIEW` are spelled alike and are not the same
+	// statement, and a consumer that reads a word to tell them apart is doing the parser's
+	// work twice. The grammar reads the shape once and `Dropped` turns the word into the
+	// record, so the catalogue of names is here, in C#, and the grammar still says one thing.
+
+	/// <summary><c>DROP AGGREGATE</c>.</summary>
+	public sealed record DropAggregateStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP APPLICATION ROLE</c>.</summary>
+	public sealed record DropApplicationRoleStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP AVAILABILITY GROUP</c>.</summary>
+	public sealed record DropAvailabilityGroupStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP BROKER PRIORITY</c>.</summary>
+	public sealed record DropBrokerPriorityStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP CERTIFICATE</c>.</summary>
+	public sealed record DropCertificateStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP COLUMN ENCRYPTION KEY</c>.</summary>
+	public sealed record DropColumnEncryptionKeyStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP COLUMN MASTER KEY</c>.</summary>
+	public sealed record DropColumnMasterKeyStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP CONTRACT</c>.</summary>
+	public sealed record DropContractStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP CREDENTIAL</c>.</summary>
+	public sealed record DropCredentialStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP CRYPTOGRAPHIC PROVIDER</c>.</summary>
+	public sealed record DropCryptographicProviderStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP DATABASE AUDIT SPECIFICATION</c>.</summary>
+	public sealed record DropDatabaseAuditSpecificationStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP DATABASE SCOPED CREDENTIAL</c>.</summary>
+	public sealed record DropDatabaseScopedCredentialStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP DATABASE</c>.</summary>
+	public sealed record DropDatabaseStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP DEFAULT</c>.</summary>
+	public sealed record DropDefaultStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP ENDPOINT</c>.</summary>
+	public sealed record DropEndpointStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP EXTERNAL DATA SOURCE</c>.</summary>
+	public sealed record DropExternalDataSourceStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP EXTERNAL FILE FORMAT</c>.</summary>
+	public sealed record DropExternalFileFormatStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP EXTERNAL LANGUAGE</c>.</summary>
+	public sealed record DropExternalLanguageStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP EXTERNAL MODEL</c>.</summary>
+	public sealed record DropExternalModelStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP EXTERNAL RESOURCE POOL</c>.</summary>
+	public sealed record DropExternalResourcePoolStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP EXTERNAL TABLE</c>.</summary>
+	public sealed record DropExternalTableStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP FULLTEXT CATALOG</c>.</summary>
+	public sealed record DropFulltextCatalogStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP FULLTEXT STOPLIST</c>.</summary>
+	public sealed record DropFulltextStoplistStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP FUNCTION</c>.</summary>
+	public sealed record DropFunctionStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP LOGIN</c>.</summary>
+	public sealed record DropLoginStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP MESSAGE TYPE</c>.</summary>
+	public sealed record DropMessageTypeStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP PARTITION FUNCTION</c>.</summary>
+	public sealed record DropPartitionFunctionStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP PARTITION SCHEME</c>.</summary>
+	public sealed record DropPartitionSchemeStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP PROCEDURE</c>.</summary>
+	public sealed record DropProcedureStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP QUEUE</c>.</summary>
+	public sealed record DropQueueStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP REMOTE SERVICE BINDING</c>.</summary>
+	public sealed record DropRemoteServiceBindingStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP RESOURCE POOL</c>.</summary>
+	public sealed record DropResourcePoolStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP ROLE</c>.</summary>
+	public sealed record DropRoleStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP ROUTE</c>.</summary>
+	public sealed record DropRouteStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP RULE</c>.</summary>
+	public sealed record DropRuleStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP SCHEMA</c>.</summary>
+	public sealed record DropSchemaStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP SEARCH PROPERTY LIST</c>.</summary>
+	public sealed record DropSearchPropertyListStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP SECURITY POLICY</c>.</summary>
+	public sealed record DropSecurityPolicyStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP SEQUENCE</c>.</summary>
+	public sealed record DropSequenceStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP SERVER AUDIT SPECIFICATION</c>.</summary>
+	public sealed record DropServerAuditSpecificationStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP SERVER AUDIT</c>.</summary>
+	public sealed record DropServerAuditStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP SERVER ROLE</c>.</summary>
+	public sealed record DropServerRoleStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP SERVICE</c>.</summary>
+	public sealed record DropServiceStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP STATISTICS</c>.</summary>
+	public sealed record DropStatisticsStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP SYNONYM</c>.</summary>
+	public sealed record DropSynonymStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP TABLE</c>.</summary>
+	public sealed record DropTableStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP TYPE</c>.</summary>
+	public sealed record DropTypeStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP USER</c>.</summary>
+	public sealed record DropUserStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP VIEW</c>.</summary>
+	public sealed record DropViewStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP WORKLOAD CLASSIFIER</c>.</summary>
+	public sealed record DropWorkloadClassifierStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP WORKLOAD GROUP</c>.</summary>
+	public sealed record DropWorkloadGroupStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP XML SCHEMA COLLECTION</c>.</summary>
+	public sealed record DropXmlSchemaCollectionStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP ASYMMETRIC KEY</c>.</summary>
+	public sealed record DropAsymmetricKeyStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP SYMMETRIC KEY</c>.</summary>
+	public sealed record DropSymmetricKeyStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP ASSEMBLY</c>.</summary>
+	public sealed record DropAssemblyStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP EXTERNAL LIBRARY</c>.</summary>
+	public sealed record DropExternalLibraryStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP EVENT SESSION</c>.</summary>
+	public sealed record DropEventSessionStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP EVENT NOTIFICATION</c>.</summary>
+	public sealed record DropEventNotificationStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP FULLTEXT INDEX</c>.</summary>
+	public sealed record DropFulltextIndexStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP INDEX</c>.</summary>
+	public sealed record DropIndexStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP SIGNATURE</c>.</summary>
+	public sealed record DropSignatureStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP SENSITIVITY CLASSIFICATION</c>.</summary>
+	public sealed record DropSensitivityClassificationStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP TRIGGER</c>.</summary>
+	public sealed record DropTriggerStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP MASTER KEY</c>.</summary>
+	public sealed record DropMasterKeyStatement(SqlNode[] Names) : SqlNode;
+
+	/// <summary><c>DROP DATABASE ENCRYPTION KEY</c>.</summary>
+	public sealed record DropDatabaseEncryptionKeyStatement(SqlNode[] Names) : SqlNode;
+
 
 	// ---- how a parser makes these ------------------------------------------------------------
 
 	/// <summary>What a call with no arguments is handed, once rather than per call.</summary>
 	public static readonly SqlNode[] None = [];
+
+	/// <summary>The statement the word names, for the ten that are a word and a value.</summary>
+	public static SqlNode Commanded(string word, SqlNode? value) =>
+		word switch
+		{
+			"PRINT" => new PrintStatement(value!),
+			"RETURN" => new ReturnStatement(value),
+			"THROW" => new ThrowStatement(value is null ? None : [value]),
+			"GOTO" => new GoToStatement(value!),
+			"BREAK" => new BreakStatement(),
+			"CONTINUE" => new ContinueStatement(),
+			"CHECKPOINT" => new CheckpointStatement(value),
+			"USE" => new UseStatement(value!),
+			"RAISERROR" => new RaiseErrorStatement(value is null ? None : [value]),
+			"WAITFOR" => new WaitForStatement(value!),
+			_ => throw Unknown(word),
+		};
+
+	/// <summary>The same where the values arrived as a list that may not be there.</summary>
+	public static SqlNode Commanded(string word, SqlNode[]? values) =>
+		word switch
+		{
+			"PRINT" => new PrintStatement(values is { Length: > 0 } some ? some[0] : null!),
+			"RETURN" => new ReturnStatement(values is { Length: > 0 } some ? some[0] : null),
+			"THROW" => new ThrowStatement(values ?? None),
+			"GOTO" => new GoToStatement(values is { Length: > 0 } some ? some[0] : null!),
+			"BREAK" => new BreakStatement(),
+			"CONTINUE" => new ContinueStatement(),
+			"CHECKPOINT" => new CheckpointStatement(values is { Length: > 0 } some ? some[0] : null),
+			"USE" => new UseStatement(values is { Length: > 0 } some ? some[0] : null!),
+			"RAISERROR" => new RaiseErrorStatement(values ?? None),
+			"WAITFOR" => new WaitForStatement(values is { Length: > 0 } some ? some[0] : null!),
+			_ => throw Unknown(word),
+		};
+
+	/// <summary>The definition the words name, where the tree keeps the name and no more.</summary>
+	public static SqlNode Defined(string what, string name) =>
+		what switch
+		{
+			"CREATE LOGIN" => new CreateLoginStatement(name),
+			"ALTER LOGIN" => new AlterLoginStatement(name),
+			"CREATE USER" => new CreateUserStatement(name),
+			"ALTER USER" => new AlterUserStatement(name),
+			"CREATE ROLE" => new CreateRoleStatement(name),
+			"ALTER ROLE" => new AlterRoleStatement(name),
+			"CREATE APPLICATION ROLE" => new CreateApplicationRoleStatement(name),
+			"ALTER APPLICATION ROLE" => new AlterApplicationRoleStatement(name),
+			"CREATE SCHEMA" => new SchemaDefinition(name),
+			"ALTER SCHEMA" => new AlterSchemaStatement(name),
+			"ALTER AUTHORIZATION" => new AlterAuthorizationStatement(name),
+			"EXTERNAL DATA SOURCE" => new ExternalDataSourceDefinition(name),
+			"EXTERNAL FILE FORMAT" => new ExternalFileFormatDefinition(name),
+			"EXTERNAL LIBRARY" => new ExternalLibraryDefinition(name),
+			"EXTERNAL RESOURCE POOL" => new ExternalResourcePoolDefinition(name),
+			"RESOURCE POOL" => new ResourcePoolDefinition(name),
+			"WORKLOAD GROUP" => new WorkloadGroupDefinition(name),
+			"SERVER AUDIT" => new ServerAuditDefinition(name),
+			"AUDIT SPECIFICATION" => new AuditSpecificationDefinition(name),
+			"EVENT SESSION" => new EventSessionDefinition(name),
+			"EVENT NOTIFICATION" => new EventNotificationDefinition(name),
+			"ENDPOINT" => new EndpointDefinition(name),
+			_ => throw Unknown(what),
+		};
+
+	/// <summary>What is being done to a database, as the statement it is.</summary>
+	public static SqlNode OfDatabase(string name, string action, SqlNode[]? settings) =>
+		action switch
+		{
+			"CREATE" => new CreateDatabaseStatement(name, settings ?? None),
+			"SET" => new AlterDatabaseSetStatement(name, settings ?? None),
+			"SCOPED CONFIGURATION" => new AlterDatabaseScopedConfigurationStatement(name, settings ?? None),
+			"COLLATE" => new AlterDatabaseCollateStatement(name),
+			"MODIFY NAME" => new AlterDatabaseModifyNameStatement(name),
+			"MODIFY FILEGROUP" => new AlterDatabaseModifyFileGroupStatement(name),
+			"MODIFY FILE" => new AlterDatabaseModifyFileStatement(name),
+			"MODIFY" => new AlterDatabaseModifyStatement(name),
+			"ADD FILEGROUP" => new AlterDatabaseAddFileGroupStatement(name),
+			"ADD LOG FILE" => new AlterDatabaseAddLogFileStatement(name),
+			"ADD FILE" => new AlterDatabaseAddFileStatement(name),
+			"REMOVE FILEGROUP" => new AlterDatabaseRemoveFileGroupStatement(name),
+			"REMOVE FILE" => new AlterDatabaseRemoveFileStatement(name),
+			"REBUILD LOG" => new AlterDatabaseRebuildLogStatement(name),
+			"PERFORM_CUTOVER" => new AlterDatabasePerformCutoverStatement(name),
+			_ => throw Unknown(action),
+		};
+
+	/// <summary>A permission granted, denied or revoked, as the statement it is.</summary>
+	public static SqlNode Permitted(string kind, string[] privileges, string[] principals) =>
+		kind switch
+		{
+			"GRANT"  => new GrantStatement(privileges, principals),
+			"DENY"   => new DenyStatement(privileges, principals),
+			"REVOKE" => new RevokeStatement(privileges, principals),
+			_        => throw Unknown(kind),
+		};
+
+	/// <summary>A word the grammar read and this file has no record for.</summary>
+	/// <remarks>
+	/// The grammar and the switches above are two spellings of one catalogue and have to
+	/// agree; where they have drifted apart this says so rather than quietly building the
+	/// wrong node. A defect in this file, not in anybody's SQL.
+	/// </remarks>
+	static ArgumentOutOfRangeException Unknown(string word) =>
+		new(nameof(word), word, "The grammar reads this and the tree has no record for it.");
+
+	/// <summary>The `DROP` the word names, which is what a `DROP` statement is.</summary>
+	/// <remarks>
+	/// The word arrives as it was written — the case the author used, and whatever spacing
+	/// stood between its parts — so it is squared up before it is asked about. This and the
+	/// grammar's own `DropKind` are two spellings of one catalogue and have to agree; where
+	/// they have drifted apart this says so rather than quietly building the wrong node,
+	/// which is a defect in this file and not in anybody's SQL.
+	/// </remarks>
+	public static SqlNode Dropped(string kind, SqlNode[]? some)
+	{
+		var names = some ?? None;
+
+		return Squared(kind) switch
+		{
+			"AGGREGATE" => new DropAggregateStatement(names),
+			"APPLICATION ROLE" => new DropApplicationRoleStatement(names),
+			"AVAILABILITY GROUP" => new DropAvailabilityGroupStatement(names),
+			"BROKER PRIORITY" => new DropBrokerPriorityStatement(names),
+			"CERTIFICATE" => new DropCertificateStatement(names),
+			"COLUMN ENCRYPTION KEY" => new DropColumnEncryptionKeyStatement(names),
+			"COLUMN MASTER KEY" => new DropColumnMasterKeyStatement(names),
+			"CONTRACT" => new DropContractStatement(names),
+			"CREDENTIAL" => new DropCredentialStatement(names),
+			"CRYPTOGRAPHIC PROVIDER" => new DropCryptographicProviderStatement(names),
+			"DATABASE AUDIT SPECIFICATION" => new DropDatabaseAuditSpecificationStatement(names),
+			"DATABASE SCOPED CREDENTIAL" => new DropDatabaseScopedCredentialStatement(names),
+			"DATABASE" => new DropDatabaseStatement(names),
+			"DEFAULT" => new DropDefaultStatement(names),
+			"ENDPOINT" => new DropEndpointStatement(names),
+			"EXTERNAL DATA SOURCE" => new DropExternalDataSourceStatement(names),
+			"EXTERNAL FILE FORMAT" => new DropExternalFileFormatStatement(names),
+			"EXTERNAL LANGUAGE" => new DropExternalLanguageStatement(names),
+			"EXTERNAL MODEL" => new DropExternalModelStatement(names),
+			"EXTERNAL RESOURCE POOL" => new DropExternalResourcePoolStatement(names),
+			"EXTERNAL TABLE" => new DropExternalTableStatement(names),
+			"FULLTEXT CATALOG" => new DropFulltextCatalogStatement(names),
+			"FULLTEXT STOPLIST" => new DropFulltextStoplistStatement(names),
+			"FUNCTION" => new DropFunctionStatement(names),
+			"LOGIN" => new DropLoginStatement(names),
+			"MESSAGE TYPE" => new DropMessageTypeStatement(names),
+			"PARTITION FUNCTION" => new DropPartitionFunctionStatement(names),
+			"PARTITION SCHEME" => new DropPartitionSchemeStatement(names),
+			"PROCEDURE" => new DropProcedureStatement(names),
+			"PROC" => new DropProcedureStatement(names),
+			"QUEUE" => new DropQueueStatement(names),
+			"REMOTE SERVICE BINDING" => new DropRemoteServiceBindingStatement(names),
+			"RESOURCE POOL" => new DropResourcePoolStatement(names),
+			"ROLE" => new DropRoleStatement(names),
+			"ROUTE" => new DropRouteStatement(names),
+			"RULE" => new DropRuleStatement(names),
+			"SCHEMA" => new DropSchemaStatement(names),
+			"SEARCH PROPERTY LIST" => new DropSearchPropertyListStatement(names),
+			"SECURITY POLICY" => new DropSecurityPolicyStatement(names),
+			"SEQUENCE" => new DropSequenceStatement(names),
+			"SERVER AUDIT SPECIFICATION" => new DropServerAuditSpecificationStatement(names),
+			"SERVER AUDIT" => new DropServerAuditStatement(names),
+			"SERVER ROLE" => new DropServerRoleStatement(names),
+			"SERVICE" => new DropServiceStatement(names),
+			"STATISTICS" => new DropStatisticsStatement(names),
+			"SYNONYM" => new DropSynonymStatement(names),
+			"TABLE" => new DropTableStatement(names),
+			"TYPE" => new DropTypeStatement(names),
+			"USER" => new DropUserStatement(names),
+			"VIEW" => new DropViewStatement(names),
+			"WORKLOAD CLASSIFIER" => new DropWorkloadClassifierStatement(names),
+			"WORKLOAD GROUP" => new DropWorkloadGroupStatement(names),
+			"XML SCHEMA COLLECTION" => new DropXmlSchemaCollectionStatement(names),
+			"ASYMMETRIC KEY" => new DropAsymmetricKeyStatement(names),
+			"SYMMETRIC KEY" => new DropSymmetricKeyStatement(names),
+			"ASSEMBLY" => new DropAssemblyStatement(names),
+			"EXTERNAL LIBRARY" => new DropExternalLibraryStatement(names),
+			"EVENT SESSION" => new DropEventSessionStatement(names),
+			"EVENT NOTIFICATION" => new DropEventNotificationStatement(names),
+			"FULLTEXT INDEX" => new DropFulltextIndexStatement(names),
+			"INDEX" => new DropIndexStatement(names),
+			"SIGNATURE" => new DropSignatureStatement(names),
+			"SENSITIVITY CLASSIFICATION" => new DropSensitivityClassificationStatement(names),
+			"TRIGGER" => new DropTriggerStatement(names),
+			"MASTER KEY" => new DropMasterKeyStatement(names),
+			"DATABASE ENCRYPTION KEY" => new DropDatabaseEncryptionKeyStatement(names),
+			_ => throw new ArgumentOutOfRangeException(
+				nameof(kind),
+				kind,
+				"The grammar reads this after DROP and the tree has no record for it."),
+		};
+	}
+
+	/// <summary>A run of words as one upper-case word per space.</summary>
+	static string Squared(string words)
+	{
+		var made = new System.Text.StringBuilder(words.Length);
+
+		foreach (var c in words)
+			if (char.IsWhiteSpace(c))
+			{
+				if (made.Length > 0 && made[made.Length - 1] != ' ')
+					made.Append(' ');
+			}
+			else
+			{
+				made.Append(char.ToUpperInvariant(c));
+			}
+
+		return made.ToString().TrimEnd();
+	}
 
 	// The statements build through these rather than inline in their `=>`, and that is not
 	// style: `GRAM5003` said the materializing method for the statement entry point was past
@@ -344,13 +916,6 @@ public abstract record SqlNode
 	// the value in a method of your own. Eleven `new SqlNode.Command(word, v is null ? None :
 	// new SqlNode[] { v })` in one switch is a great deal of emitted branching for very
 	// little said; one call each is the same tree and a fraction of the code.
-
-	/// <summary>A statement that is a word and one value, or a word and none.</summary>
-	public static Command Commanded(string word, SqlNode? value) =>
-		new(word, value is null ? None : [value]);
-
-	/// <summary>The same where the values arrived as a list that may not be there.</summary>
-	public static Command Commanded(string word, SqlNode[]? values) => new(word, values ?? None);
 
 	/// <summary>A constraint written without a name, which is most of them.</summary>
 	public static ConstraintDefinition Constrained(string kind, string[]? columns, SqlNode? check) =>
@@ -404,6 +969,9 @@ public abstract record SqlNode
 			"EXCEPT"    => all is null ? SqlOperator.Except    : SqlOperator.ExceptAll,
 			_           => all is null ? SqlOperator.Intersect : SqlOperator.IntersectAll,
 		};
+
+	/// <summary>Whether a word that is `ON` or `OFF` was the first of the two.</summary>
+	public static bool Switched(string word) => (word[0] | 0x20) == 'o' && word.Length == 2;
 
 	/// <summary>Whether a sort specification asked for descending order (§13.1).</summary>
 	public static bool Descending(string? order) =>

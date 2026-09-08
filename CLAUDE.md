@@ -74,6 +74,7 @@ repository, and branching only adds a merge step.
 docs/
 	syntax.md             the language: notation and its bond with C#
 	implementation.md     engine plan
+	ast.md                the tree the SQL parsers build, and where each node comes from
 src/
 	DotGram/              the generator: one analyzer package, no runtime
 		Grammar/          pure: a function of grammar text, no Roslyn

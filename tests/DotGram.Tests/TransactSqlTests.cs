@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 using DotGram.Parsers;
 
@@ -1263,6 +1267,138 @@ public sealed class TransactSqlTests
 		var match = TransactSql.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>Every word the grammar reads after `DROP` has a record to be read into.</summary>
+	/// <remarks>
+	/// `DropKind` in the grammar and `SqlNode.Dropped` in the tree are two spellings of one
+	/// catalogue and have to agree. Nothing in either says so, so this does: the words are
+	/// taken out of the grammar itself, every one of them is put to the parser, and what
+	/// comes back has to be a record of its own rather than one shared by two of them.
+	/// </remarks>
+	[Fact]
+	public void Every_word_after_drop_has_a_record()
+	{
+		var kinds = DropKinds();
+
+		Assert.InRange(kinds.Count, 50, 100);
+
+		var seen = new Dictionary<string, string>(StringComparer.Ordinal);
+
+		foreach (var kind in kinds)
+		{
+			var input = $"DROP {kind} x";
+			var match = TransactSql.TryParseStatement(input);
+
+			Assert.True(match.IsSuccess, input);
+
+			var made = Assert.IsAssignableFrom<SqlNode>(match.Value).GetType().Name;
+
+			Assert.StartsWith("Drop", made, StringComparison.Ordinal);
+			Assert.EndsWith("Statement", made, StringComparison.Ordinal);
+
+			// `PROC` and `PROCEDURE` are the one statement written two ways, and nothing
+			// else here may share a record: two kinds reading into one is the catalogue
+			// having drifted in the direction the compiler cannot see.
+			if (seen.TryGetValue(made, out var already))
+				Assert.Equal("PROCEDURE", already);
+
+			seen[made] = kind;
+		}
+	}
+
+	/// <summary>The words of `DropKind`, out of the grammar rather than out of a list here.</summary>
+	static List<string> DropKinds()
+	{
+		// Read with its line endings squared up, since what is looked for below is a blank
+		// line and the file's own are CRLF.
+		var text = File
+			.ReadAllText(
+				Path.Combine(Root(AppContext.BaseDirectory), "src", "DotGram.Parsers", "TransactSql.gram"))
+			.Replace("\r\n", "\n", StringComparison.Ordinal);
+
+		var body  = text[text.IndexOf("DropKind\n", StringComparison.Ordinal)..];
+		var kinds = new List<string>();
+
+		foreach (var line in body[..body.IndexOf("\n\n", StringComparison.Ordinal)].Split('\n').Skip(1))
+		{
+			var words = Regex.Matches(line, "\"([A-Za-z_]+)\"i").Select(one => one.Groups[1].Value).ToArray();
+
+			if (words.Length > 0)
+				kinds.Add(string.Join(' ', words));
+		}
+
+		return kinds;
+	}
+
+	static string Root(string from)
+	{
+		var at = new DirectoryInfo(from);
+
+		while (at is not null && !File.Exists(Path.Combine(at.FullName, "DotGram.slnx")))
+			at = at.Parent;
+
+		return at?.FullName ?? from;
+	}
+
+	/// <summary>A statement comes back as the record its production is named after.</summary>
+	/// <remarks>
+	/// The claim the tree makes: a consumer switches on the record and is done, and never
+	/// reads a word to find out which statement it has. These were one record with a string
+	/// in it until the tree was made to say what the grammar says.
+	/// </remarks>
+	[Theory]
+	[InlineData("PRINT 1",                          "PrintStatement")]
+	[InlineData("RETURN",                           "ReturnStatement")]
+	[InlineData("BREAK",                            "BreakStatement")]
+	[InlineData("GOTO done",                        "GoToStatement")]
+	[InlineData("USE master",                       "UseStatement")]
+	[InlineData("WAITFOR DELAY '00:01'",            "WaitForStatement")]
+	[InlineData("RAISERROR ('x', 1, 1)",            "RaiseErrorStatement")]
+
+	[InlineData("DROP TABLE t",                     "DropTableStatement")]
+	[InlineData("DROP VIEW v",                      "DropViewStatement")]
+	[InlineData("DROP PROC p",                      "DropProcedureStatement")]
+	[InlineData("DROP INDEX ix ON t",               "DropIndexStatement")]
+	[InlineData("DROP MASTER KEY",                  "DropMasterKeyStatement")]
+
+	[InlineData("GRANT SELECT ON t TO u",           "GrantStatement")]
+	[InlineData("DENY SELECT ON t TO u",            "DenyStatement")]
+	[InlineData("REVOKE SELECT ON t FROM u",        "RevokeStatement")]
+
+	[InlineData("SET TRANSACTION ISOLATION LEVEL SNAPSHOT", "SetTransactionIsolationLevelStatement")]
+	[InlineData("SET IDENTITY_INSERT t ON",         "SetIdentityInsertStatement")]
+	[InlineData("SET ANSI_NULLS, ANSI_PADDING ON",  "SetOptionStatement")]
+	[InlineData("SET LANGUAGE us_english",          "SetCommandStatement")]
+
+	[InlineData("CREATE DATABASE d",                "CreateDatabaseStatement")]
+	[InlineData("ALTER DATABASE d SET MAXDOP = 1",  "AlterDatabaseSetStatement")]
+	[InlineData("ALTER DATABASE d COLLATE Estonian_CS_AS", "AlterDatabaseCollateStatement")]
+	[InlineData("ALTER DATABASE d MODIFY NAME = e", "AlterDatabaseModifyNameStatement")]
+	[InlineData("ALTER DATABASE d REBUILD LOG",     "AlterDatabaseRebuildLogStatement")]
+
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p'", "CreateLoginStatement")]
+	[InlineData("CREATE USER u",                    "CreateUserStatement")]
+	[InlineData("CREATE SCHEMA s",                  "SchemaDefinition")]
+	[InlineData("ALTER AUTHORIZATION ON t TO u",    "AlterAuthorizationStatement")]
+
+	[InlineData("CREATE EXTERNAL FILE FORMAT f WITH (FORMAT_TYPE = PARQUET)", "ExternalFileFormatDefinition")]
+	[InlineData("CREATE WORKLOAD GROUP g",          "WorkloadGroupDefinition")]
+	[InlineData("CREATE EVENT SESSION es ON SERVER ADD EVENT a.b", "EventSessionDefinition")]
+	[InlineData("CREATE ENDPOINT e AS TCP (LISTENER_PORT = 1)", "EndpointDefinition")]
+
+	[InlineData("CREATE TABLE t (a INT)",           "TableDefinition")]
+	[InlineData("CREATE VIEW v AS SELECT a FROM t", "ViewDefinition")]
+	[InlineData("SELECT a FROM t",                  "QuerySpecification")]
+	[InlineData("SELECT a FROM t ORDER BY a",       "SelectStatement")]
+	[InlineData("INSERT INTO t (a) VALUES (1)",     "InsertStatement")]
+	[InlineData("BEGIN PRINT 1 END",                "CompoundStatement")]
+	public void A_statement_is_the_record_its_production_is_named_after(string input, string node)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+		Assert.Equal(node, match.Value!.GetType().Name);
 	}
 
 	// ── And builds the standard's tree ───────────────────────────────────────────

@@ -1207,23 +1207,24 @@ GeneratedWhen = word
 // options that are reserved words stand in front, since the general form reads a name.
 SetStatement : @SqlNode
 	= "SET"i & "TRANSACTION"i & "ISOLATION"i & "LEVEL"i & level: IsolationLevel
-		=> @(new SqlNode.Setting("TRANSACTION ISOLATION LEVEL", new SqlNode.ColumnReference(level)))
-	| "SET"i & "IDENTITY_INSERT"i & name: QualifiedName & OnOff
-		=> @(new SqlNode.Setting("IDENTITY_INSERT", new SqlNode.ColumnReference(name)))
+		=> @(new SqlNode.SetTransactionIsolationLevelStatement(level))
+	| "SET"i & "IDENTITY_INSERT"i & name: QualifiedName & on: OnOff
+		=> @(new SqlNode.SetIdentityInsertStatement(name, SqlNode.Switched(on)))
 	| "SET"i & option: SetReserved & v: ValueExpression
-		=> @(new SqlNode.Setting(option, v))
+		=> @(new SqlNode.SetCommandStatement(option, v))
 	| "SET"i & name: Tsql.Variable & v: AssignTail
 		=> @(new SqlNode.SetClause(name, null, v))
-	| "SET"i & option: SetOptions & OnOff
-		=> @(new SqlNode.Setting(option, null))
+	| "SET"i & first: SetOption & (',' & rest: SetOption)* & on: OnOff
+		=> @(new SqlNode.SetOptionStatement(SqlNode.Named(first, rest), SqlNode.Switched(on)))
 	| "SET"i & option: SetOptions & v: ValueExpression
-		=> @(new SqlNode.Setting(option, v))
+		=> @(new SqlNode.SetCommandStatement(option, v))
 	| "SET"i & option: SetOptions
-		=> @(new SqlNode.Setting(option, null))
+		=> @(new SqlNode.SetCommandStatement(option, null))
 
 SetReserved = "ROWCOUNT"i | "TEXTSIZE"i | "OFFSETS"i | "STATISTICS"i | "USER"i
+SetOption : @string = t: Identifier => @(t)
 SetOptions  = Identifier & (',' & Identifier)*
-OnOff       = "ON"i | "OFF"i
+OnOff : @string = "ON"i => @("ON") | "OFF"i => @("OFF")
 
 IsolationLevel = "READ"i & "UNCOMMITTED"i | "READ"i & "COMMITTED"i | "REPEATABLE"i & "READ"i
 			   | "SNAPSHOT"i | "SERIALIZABLE"i
@@ -1800,30 +1801,30 @@ AuditStatement : @SqlNode
 	= CreateOrAlter & scope: ServerOrDatabase & "AUDIT"i & "SPECIFICATION"i & name: Identifier
 	  & ("FOR"i & "SERVER"i & "AUDIT"i & QualifiedName)?
 	  & AuditAction* & OptionsWith?
-		=> @(new SqlNode.Command("AUDIT SPECIFICATION", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("AUDIT SPECIFICATION", name))
 
 	| "CREATE"i & "SERVER"i & "AUDIT"i & name: Identifier
 	  & "TO"i & AuditTarget & OptionsWith? & AuditWhere?
-		=> @(new SqlNode.Command("SERVER AUDIT", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("SERVER AUDIT", name))
 	| "ALTER"i & "SERVER"i & "AUDIT"i & name: Identifier & AlterAuditBody
-		=> @(new SqlNode.Command("SERVER AUDIT", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("SERVER AUDIT", name))
 
 	// An extended-event session: events, targets, and what to spend on them.
 	| CreateOrAlter & "EVENT"i & "SESSION"i & name: Identifier & "ON"i & ServerOrDatabase
 	  & EventPieces? & OptionsWith? & ("STATE"i & '=' & word)?
-		=> @(new SqlNode.Command("EVENT SESSION", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("EVENT SESSION", name))
 
 	| "CREATE"i & "EVENT"i & "NOTIFICATION"i & name: Identifier & "ON"i & NotificationScope
 	  & ("WITH"i & "FAN_IN"i)?
 	  & "FOR"i & PermissionName & (',' & PermissionName)*
 	  & "TO"i & "SERVICE"i & ValueExpression & (',' & ValueExpression)*
-		=> @(new SqlNode.Command("EVENT NOTIFICATION", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("EVENT NOTIFICATION", name))
 
 	// An endpoint says how it is reached and what it speaks, and each is a bracket of
 	// arguments belonging to that protocol rather than to this language.
 	| CreateOrAlter & "ENDPOINT"i & name: Identifier & ("AUTHORIZATION"i & QualifiedName)?
 	  & EndpointState? & EndpointAs? & EndpointFor?
-		=> @(new SqlNode.Command("ENDPOINT", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("ENDPOINT", name))
 
 ServerOrDatabase : @string = "SERVER"i => @("SERVER") | "DATABASE"i => @("DATABASE")
 
@@ -1895,9 +1896,9 @@ EndpointFor = "FOR"i & word & '(' & OptionList? & ')'
 // What is new is four clauses that are not a name and a value.
 ExternalStatement : @SqlNode
 	= CreateOrAlter & "EXTERNAL"i & "DATA"i & "SOURCE"i & name: Identifier & DataSourceBody
-		=> @(new SqlNode.Command("EXTERNAL DATA SOURCE", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("EXTERNAL DATA SOURCE", name))
 	| "CREATE"i & "EXTERNAL"i & "FILE"i & "FORMAT"i & name: Identifier & OptionsWith
-		=> @(new SqlNode.Command("EXTERNAL FILE FORMAT", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("EXTERNAL FILE FORMAT", name))
 
 	// A table of somebody else's rows: the columns as this grammar reads any columns, and
 	// then where they are. Synapse writes the query instead and lets it say the columns.
@@ -1911,19 +1912,19 @@ ExternalStatement : @SqlNode
 	| "CREATE"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
 	  & ("AUTHORIZATION"i & QualifiedName)?
 	  & "FROM"i & LibraryFile & (',' & LibraryFile)* & OptionsWith?
-		=> @(new SqlNode.Command("EXTERNAL LIBRARY", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("EXTERNAL LIBRARY", name))
 	| "ALTER"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
 	  & ("AUTHORIZATION"i & QualifiedName)?
 	  & LibraryChange & LibraryFile & (',' & LibraryFile)* & OptionsWith?
-		=> @(new SqlNode.Command("EXTERNAL LIBRARY", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("EXTERNAL LIBRARY", name))
 
 	| CreateOrAlter & "EXTERNAL"i & "RESOURCE"i & "POOL"i & pool: PoolName & OptionsWith?
-		=> @(new SqlNode.Command("EXTERNAL RESOURCE POOL", new SqlNode[] { new SqlNode.ColumnReference(pool) }))
+		=> @(SqlNode.Defined("EXTERNAL RESOURCE POOL", pool))
 	| CreateOrAlter & "RESOURCE"i & "POOL"i & pool: PoolName & OptionsWith?
-		=> @(new SqlNode.Command("RESOURCE POOL", new SqlNode[] { new SqlNode.ColumnReference(pool) }))
+		=> @(SqlNode.Defined("RESOURCE POOL", pool))
 	| CreateOrAlter & "WORKLOAD"i & "GROUP"i & pool: PoolName & OptionsWith?
 	  & ("USING"i & WorkloadPool & (',' & WorkloadPool)*)?
-		=> @(new SqlNode.Command("WORKLOAD GROUP", new SqlNode[] { new SqlNode.ColumnReference(pool) }))
+		=> @(SqlNode.Defined("WORKLOAD GROUP", pool))
 
 	// Statistics: a name, what they are on, and how they are gathered. `SAMPLE 50 PERCENT`
 	// is three words where an option is usually a name and a value, and the option list
@@ -1963,40 +1964,40 @@ StatisticsTarget = '(' & IndexName & (',' & IndexName)* & ')'
 // runs on like that. So the password is a rule and the rest of the list is the ordinary one.
 PrincipalStatement : @SqlNode
 	= "CREATE"i & "LOGIN"i & name: Identifier & body: LoginBody
-		=> @(new SqlNode.Command("CREATE LOGIN", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("CREATE LOGIN", name))
 	| "ALTER"i & "LOGIN"i & name: Identifier & AlterLoginBody
-		=> @(new SqlNode.Command("ALTER LOGIN", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("ALTER LOGIN", name))
 
 	| "CREATE"i & "USER"i & name: Identifier & UserSource? & UserOptions?
-		=> @(new SqlNode.Command("CREATE USER", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("CREATE USER", name))
 	| "ALTER"i & "USER"i & name: Identifier & AlterUserBody
-		=> @(new SqlNode.Command("ALTER USER", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("ALTER USER", name))
 
 	| "CREATE"i & RoleWord & name: Identifier & ("AUTHORIZATION"i & QualifiedName)?
-		=> @(new SqlNode.Command("CREATE ROLE", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("CREATE ROLE", name))
 	| "ALTER"i & RoleWord & name: Identifier & RoleAction
-		=> @(new SqlNode.Command("ALTER ROLE", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("ALTER ROLE", name))
 
 	| "CREATE"i & "APPLICATION"i & "ROLE"i & name: Identifier & "WITH"i & LoginOptions
-		=> @(new SqlNode.Command("CREATE APPLICATION ROLE", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("CREATE APPLICATION ROLE", name))
 	| "ALTER"i & "APPLICATION"i & "ROLE"i & name: Identifier & "WITH"i & LoginOptions
-		=> @(new SqlNode.Command("ALTER APPLICATION ROLE", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("ALTER APPLICATION ROLE", name))
 
 	// A schema may be declared by its owner alone — `CREATE SCHEMA AUTHORIZATION dbo` — and
 	// what follows it is not a clause but whole statements, which is the one statement in
 	// T-SQL that holds others without a `BEGIN`.
 	| "CREATE"i & "SCHEMA"i & name: Identifier & "AUTHORIZATION"i & QualifiedName & SchemaElement*
-		=> @(new SqlNode.Command("CREATE SCHEMA", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("CREATE SCHEMA", name))
 	| "CREATE"i & "SCHEMA"i & "AUTHORIZATION"i & owner: QualifiedName & SchemaElement*
-		=> @(new SqlNode.Command("CREATE SCHEMA", new SqlNode[] { new SqlNode.ColumnReference(owner) }))
+		=> @(SqlNode.Defined("CREATE SCHEMA", owner))
 	| "CREATE"i & "SCHEMA"i & name: Identifier & SchemaElement*
-		=> @(new SqlNode.Command("CREATE SCHEMA", new SqlNode[] { new SqlNode.ColumnReference(name) }))
+		=> @(SqlNode.Defined("CREATE SCHEMA", name))
 	| "ALTER"i & "SCHEMA"i & name: Identifier & "TRANSFER"i & SecurableClass? & what: QualifiedName
-		=> @(new SqlNode.Command("ALTER SCHEMA", new SqlNode[] { new SqlNode.ColumnReference(what) }))
+		=> @(SqlNode.Defined("ALTER SCHEMA", what))
 
 	| "ALTER"i & "AUTHORIZATION"i & "ON"i & SecurableClass? & what: QualifiedName
 	  & "TO"i & AuthorizationTo
-		=> @(new SqlNode.Command("ALTER AUTHORIZATION", new SqlNode[] { new SqlNode.ColumnReference(what) }))
+		=> @(SqlNode.Defined("ALTER AUTHORIZATION", what))
 
 RoleWord = "SERVER"i & "ROLE"i | "ROLE"i
 
@@ -2074,41 +2075,41 @@ DropStatement : @SqlNode
 DropBody : @SqlNode
 	// The five that name something and then say where it is or what to do about it.
 	= what: DropKeyKind & names: DropNames & ("REMOVE"i & "PROVIDER"i & "KEY"i)?
-		=> @(new SqlNode.Command(what, names))
+		=> @(SqlNode.Dropped(what, names))
 	| "ASSEMBLY"i & IfExists? & names: DropNames & ("WITH"i & "NO"i & "DEPENDENTS"i)?
-		=> @(new SqlNode.Command("ASSEMBLY", names))
+		=> @(SqlNode.Dropped("ASSEMBLY", names))
 	| "EXTERNAL"i & "LIBRARY"i & names: DropNames & ("AUTHORIZATION"i & QualifiedName)?
-		=> @(new SqlNode.Command("EXTERNAL LIBRARY", names))
+		=> @(SqlNode.Dropped("EXTERNAL LIBRARY", names))
 	| "EVENT"i & "SESSION"i & names: DropNames & "ON"i & DropScope
-		=> @(new SqlNode.Command("EVENT SESSION", names))
+		=> @(SqlNode.Dropped("EVENT SESSION", names))
 	| "EVENT"i & "NOTIFICATION"i & names: DropNames & "ON"i & DropScope
-		=> @(new SqlNode.Command("EVENT NOTIFICATION", names))
+		=> @(SqlNode.Dropped("EVENT NOTIFICATION", names))
 
 	// An index is named twice — once for itself and once for what it is on — and the older
 	// spelling puts both in one qualified name.
 	| "FULLTEXT"i & "INDEX"i & "ON"i & on: DropName
-		=> @(new SqlNode.Command("FULLTEXT INDEX", new SqlNode[] { on }))
+		=> @(SqlNode.Dropped("FULLTEXT INDEX", new SqlNode[] { on }))
 	| "INDEX"i & IfExists? & first: DropIndexName & (',' & rest: DropIndexName)*
-		=> @(new SqlNode.Command("INDEX", SqlNode.Listed(first, rest)))
+		=> @(SqlNode.Dropped("INDEX", SqlNode.Listed(first, rest)))
 
 	// A signature is dropped off a module rather than by its own name, and a sensitivity
 	// classification off a column.
 	| "COUNTER"i? & "SIGNATURE"i & "FROM"i & QualifiedName & "BY"i
 	  & first: DropCrypto & (',' & rest: DropCrypto)*
-		=> @(new SqlNode.Command("SIGNATURE", SqlNode.Listed(first, rest)))
+		=> @(SqlNode.Dropped("SIGNATURE", SqlNode.Listed(first, rest)))
 	| "SENSITIVITY"i & "CLASSIFICATION"i & "FROM"i & names: DropNames
-		=> @(new SqlNode.Command("SENSITIVITY CLASSIFICATION", names))
+		=> @(SqlNode.Dropped("SENSITIVITY CLASSIFICATION", names))
 
 	// A trigger says which of the three kinds it is by what it is on.
 	| "TRIGGER"i & IfExists? & names: DropNames & ("ON"i & DropScope)?
-		=> @(new SqlNode.Command("TRIGGER", names))
+		=> @(SqlNode.Dropped("TRIGGER", names))
 
 	// The two that name nothing: there is one of each per database.
 	| what: DropOnlyKind
-		=> @(new SqlNode.Command(what, SqlNode.None))
+		=> @(SqlNode.Dropped(what, SqlNode.None))
 
 	| what: DropKind & IfExists? & names: DropNames
-		=> @(new SqlNode.Command(what, names))
+		=> @(SqlNode.Dropped(what, names))
 
 DropNames : @SqlNode[]
 	= first: DropName & (',' & rest: DropName)* => @(SqlNode.Listed(first, rest))
@@ -2196,10 +2197,10 @@ DropKind
 // setting is a run of words and then, sometimes, what it is set to.
 CreateDatabaseStatement : @SqlNode
 	= "CREATE"i & "DATABASE"i & name: Identifier & '(' & OptionList & ')'
-		=> @(new SqlNode.Database(name, "CREATE", SqlNode.None))
+		=> @(SqlNode.OfDatabase(name, "CREATE", null))
 	| "CREATE"i & "DATABASE"i & name: Identifier & DatabaseContainment?
 	  & files: DatabaseFiles? & DatabaseCollate? & DatabaseTail?
-		=> @(new SqlNode.Database(name, "CREATE", files ?? SqlNode.None))
+		=> @(SqlNode.OfDatabase(name, "CREATE", files))
 
 DatabaseContainment = "CONTAINMENT"i & '=' & word
 DatabaseCollate     = "COLLATE"i & QualifiedName
@@ -2227,7 +2228,7 @@ DatabaseLogFiles = "LOG"i & "ON"i & FileSpec & (',' & FileSpec)*
 FileGroupSpec : @SqlNode
 	= "FILEGROUP"i & name: Identifier & FileGroupContains? & "DEFAULT"i?
 	  & FileSpec & (',' & FileSpec)*
-		=> @(new SqlNode.Setting(name, null))
+		=> @(new SqlNode.DatabaseOption(name, null))
 	| f: FileSpec => @(f)
 
 FileSpec : @SqlNode = '(' & OptionList & ')' => @(SqlNode.NullValue)
@@ -2243,10 +2244,16 @@ FileGroupContains = "CONTAINS"i & word
 AlterDatabaseStatement : @SqlNode
 	= "ALTER"i & "DATABASE"i & "SCOPED"i & "CONFIGURATION"i & ("FOR"i & "SECONDARY"i)?
 	  & options: ScopedConfiguration
-		=> @(new SqlNode.Database("", "SCOPED CONFIGURATION", options))
-	| "ALTER"i & "DATABASE"i & name: DatabaseTarget & a: AlterDatabaseAction
+		=> @(SqlNode.OfDatabase("", "SCOPED CONFIGURATION", options))
+
+	// The one action that keeps what it read, so the one written before the rest.
+	| "ALTER"i & "DATABASE"i & name: DatabaseTarget
+	  & "SET"i & first: DatabaseOption & (',' & rest: DatabaseOption)* & DatabaseTermination?
+		=> @(SqlNode.OfDatabase(name, "SET", SqlNode.Listed(first, rest)))
+
+	| "ALTER"i & "DATABASE"i & name: DatabaseTarget & action: AlterDatabaseAction
 	  & DatabaseTermination?
-		=> @(a with { Name = name })
+		=> @(SqlNode.OfDatabase(name, action, null))
 
 DatabaseTarget : @string = "CURRENT"i => @("CURRENT") | t: Identifier => @(t)
 
@@ -2256,10 +2263,11 @@ ScopedConfiguration : @SqlNode[]
 	| "CLEAR"i & "PROCEDURE_CACHE"i & ValueExpression?
 		=> @(SqlNode.None)
 
-AlterDatabaseAction : @SqlNode.Database
-	= "SET"i & first: DatabaseOption & (',' & rest: DatabaseOption)*
-		=> @(new SqlNode.Database("", "SET", SqlNode.Listed(first, rest)))
-	| DatabaseCollate               => @(new SqlNode.Database("", "COLLATE", SqlNode.None))
+// Which action was written, as the words the tree is keyed by. The statement builds the
+// record; this says which record it is, because a rule cannot name a different type per
+// alternative and the name is not known until the header above has been read.
+AlterDatabaseAction : @string
+	= DatabaseCollate               => @("COLLATE")
 	| "MODIFY"i & m: DatabaseModify => @(m)
 	| "ADD"i    & a: DatabaseAdd    => @(a)
 	| "REMOVE"i & r: DatabaseRemove => @(r)
@@ -2267,30 +2275,26 @@ AlterDatabaseAction : @SqlNode.Database
 	// Two actions that are only a word. Written out, and this is a place where the words
 	// are the syntax: `ALTER DATABASE d AUDIT SPECIFICATION s` is a different statement,
 	// and a rule that read any word here would take it and call it this one.
-	| "REBUILD"i & "LOG"i  => @(new SqlNode.Database("", "REBUILD LOG", SqlNode.None))
-	| "PERFORM_CUTOVER"i   => @(new SqlNode.Database("", "PERFORM_CUTOVER", SqlNode.None))
+	| "REBUILD"i & "LOG"i  => @("REBUILD LOG")
+	| "PERFORM_CUTOVER"i   => @("PERFORM_CUTOVER")
 
-DatabaseModify : @SqlNode.Database
-	= "NAME"i & '=' & Identifier
-		=> @(new SqlNode.Database("", "MODIFY NAME", SqlNode.None))
-	| "FILEGROUP"i & Identifier & FileGroupAction
-		=> @(new SqlNode.Database("", "MODIFY FILEGROUP", SqlNode.None))
-	| "FILE"i & FileSpec
-		=> @(new SqlNode.Database("", "MODIFY FILE", SqlNode.None))
-	| '(' & OptionList & ')' & ("WITH"i & OptionList)?
-		=> @(new SqlNode.Database("", "MODIFY", SqlNode.None))
+DatabaseModify : @string
+	= "NAME"i & '=' & Identifier                            => @("MODIFY NAME")
+	| "FILEGROUP"i & Identifier & FileGroupAction           => @("MODIFY FILEGROUP")
+	| "FILE"i & FileSpec                                    => @("MODIFY FILE")
+	| '(' & OptionList & ')' & ("WITH"i & OptionList)?      => @("MODIFY")
 
-DatabaseAdd : @SqlNode.Database
+DatabaseAdd : @string
 	= "FILEGROUP"i & Identifier & FileGroupContains?
-		=> @(new SqlNode.Database("", "ADD FILEGROUP", SqlNode.None))
+		=> @("ADD FILEGROUP")
 	| "LOG"i & "FILE"i & FileSpec & (',' & FileSpec)*
-		=> @(new SqlNode.Database("", "ADD LOG FILE", SqlNode.None))
+		=> @("ADD LOG FILE")
 	| "FILE"i & FileSpec & (',' & FileSpec)* & ("TO"i & "FILEGROUP"i & Identifier)?
-		=> @(new SqlNode.Database("", "ADD FILE", SqlNode.None))
+		=> @("ADD FILE")
 
-DatabaseRemove : @SqlNode.Database
-	= "FILEGROUP"i & Identifier => @(new SqlNode.Database("", "REMOVE FILEGROUP", SqlNode.None))
-	| "FILE"i & Identifier      => @(new SqlNode.Database("", "REMOVE FILE", SqlNode.None))
+DatabaseRemove : @string
+	= "FILEGROUP"i & Identifier => @("REMOVE FILEGROUP")
+	| "FILE"i & Identifier      => @("REMOVE FILE")
 
 // `READ_ONLY`, `READWRITE`, `AUTOGROW_ALL_FILES`, `AUTOGROW_SINGLE_FILE` — words, and a
 // catalogue if written out.
@@ -2308,7 +2312,7 @@ FileGroupAction = "DEFAULT"i | "NAME"i & '=' & Identifier | word
 // termination clause after the whole list. Without the lookahead the name would swallow
 // the `WITH`, and the parse would then stop one word past what it ate.
 DatabaseOption : @SqlNode
-	= name: DatabaseOptionName & v: DatabaseOptionValue? => @(new SqlNode.Setting(name, v))
+	= name: DatabaseOptionName & v: DatabaseOptionValue? => @(new SqlNode.DatabaseOption(name, v))
 
 DatabaseOptionName : @string = t: OptionName => @(t)
 
@@ -2331,13 +2335,13 @@ DatabaseTermination = "WITH"i & "ROLLBACK"i & "AFTER"i & ValueExpression & "SECO
 PermissionStatement : @SqlNode
 	= "GRANT"i & what: Permissions & PermissionOn? & "TO"i & who: Principals
 	  & ("WITH"i & "GRANT"i & "OPTION"i)? & PermissionAs?
-		=> @(new SqlNode.Permission("GRANT", what, who))
+		=> @(SqlNode.Permitted("GRANT", what, who))
 	| "DENY"i & what: Permissions & PermissionOn? & "TO"i & who: Principals
 	  & "CASCADE"i? & PermissionAs?
-		=> @(new SqlNode.Permission("DENY", what, who))
+		=> @(SqlNode.Permitted("DENY", what, who))
 	| "REVOKE"i & ("GRANT"i & "OPTION"i & "FOR"i)? & what: Permissions & PermissionOn?
 	  & ToOrFrom & who: Principals & "CASCADE"i? & PermissionAs?
-		=> @(new SqlNode.Permission("REVOKE", what, who))
+		=> @(SqlNode.Permitted("REVOKE", what, who))
 
 ToOrFrom      = "TO"i | "FROM"i
 PermissionAs  = "AS"i & PrincipalName
