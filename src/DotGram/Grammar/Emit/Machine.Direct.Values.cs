@@ -571,7 +571,42 @@ sealed partial class Machine
 		ValueFrom(type, index) + (TableFor(type) >= 0 ? ".Value" : "");
 
 	/// <summary>The materializer for one direct machine: a walk over the log, a switch per rule.</summary>
+	/// <remarks>
+	/// Written twice where once will not do. The walk around the arms is half of what the
+	/// method costs, and the arms alone were what the division measured — so a materializer
+	/// could sit above the JIT's limit with every part of it under the divider's budget, and
+	/// nothing divided it. It is measured whole here: rendered undivided, counted, and
+	/// rendered again in parts only where the count says it must be.
+	/// </remarks>
 	string RenderDirectMaterializer(IReadOnlyList<RuleSymbol> rules)
+	{
+		var armed = new List<(RuleSymbol Rule, int Factory)>(_directArmed);
+		var costs = new List<int>(armed.Count);
+		var whole = 0;
+
+		foreach (var (rule, factory) in armed)
+		{
+			var rendered = new Writer(0);
+
+			MaterializeDirectArm(rendered, rule, factory);
+
+			var cost = Branches(rendered.ToString());
+
+			costs.Add(cost);
+
+			whole += cost;
+		}
+
+		var once = RenderDirectWalk(rules, [armed]);
+
+		return Branches(once) <= Limit || armed.Count < 2
+			? once
+			: RenderDirectWalk(rules, DirectParts(armed, costs, whole));
+	}
+
+	/// <summary>The walk itself, with its arms in one group or in several.</summary>
+	string RenderDirectWalk(
+		IReadOnlyList<RuleSymbol> rules, List<List<(RuleSymbol Rule, int Factory)>> parts)
 	{
 		var file = new Writer(0);
 
@@ -591,6 +626,7 @@ sealed partial class Machine
 			// flags and the clearing of them are work for a question with one answer.
 			var twice  = _directBuilds;
 			var strays = DirectStrays(rules);
+			var placed = DirectPositions(rules);
 
 			file.Line($"values.Room(ways.Records{(strays ? "" : ", live: false")});");
 			file.Line();
@@ -677,8 +713,6 @@ sealed partial class Machine
 					file.Line();
 				}
 
-				var placed = DirectPositions(rules);
-
 				if (placed)
 				{
 					file.Line("var start = log[at + 2];");
@@ -695,8 +729,29 @@ sealed partial class Machine
 				}
 
 				using (file.Block("switch (log[at + 1])"))
-					foreach (var (rule, factory) in _directArmed)
-						MaterializeDirectArm(file, rule, factory);
+				{
+					if (parts.Count == 1)
+					{
+						foreach (var (rule, factory) in parts[0])
+							MaterializeDirectArm(file, rule, factory);
+					}
+					else
+					{
+						for (var part = 0; part < parts.Count; part++)
+						{
+							foreach (var (rule, factory) in parts[part])
+								file.Line($"case {DirectArm(rule, factory)}:");
+
+							using (file.Indent())
+							{
+								file.Line(
+									$"{DirectMaterializer}_Part{part}(text, log[at + 1], read, slot" +
+									(placed ? ", start, end" : "") + ");");
+								file.Line("break;");
+							}
+						}
+					}
+				}
 			}
 
 			if (twice)
@@ -704,9 +759,76 @@ sealed partial class Machine
 				file.Line();
 				file.Line("ways.Built = ways.Records;");
 			}
+
+			// Local functions, for the reason the tape's materializer has them
+			// (Machine.Materialization.cs): the compiler below stops optimizing a method
+			// past about two thousand basic blocks, and this one is a walk with an arm per
+			// valued rule — so it grows with the grammar and nothing else was dividing it.
+			// The span cannot be a field of the frame a local function captures and is
+			// handed over; `read` and `slot` are the iteration's own and are handed over
+			// too, `read` because an arm advances it and no one after the arm reads it.
+			if (parts.Count > 1)
+				for (var part = 0; part < parts.Count; part++)
+				{
+					file.Line();
+
+					using (file.Block(
+						$"void {DirectMaterializer}_Part{part}(" +
+						"global::System.ReadOnlySpan<char> text, int kind, int read, int slot" +
+						(placed ? ", int start, int end" : "") + ")"))
+					{
+						using (file.Block("switch (kind)"))
+							foreach (var (rule, factory) in parts[part])
+								MaterializeDirectArm(file, rule, factory);
+					}
+				}
 		}
 
 		return file.ToString();
+	}
+
+	/// <summary>
+	/// The arms of a direct walk, in as few groups as will each keep inside the budget.
+	/// </summary>
+	/// <remarks>
+	/// The same division `MaterializeParts` makes for the tape, and it was missing here: a
+	/// direct materializer was one method however many rules it held, so a grammar large
+	/// enough put it past the size at which the JIT stops optimizing and nothing divided it.
+	/// `GRAM5003` said so and its advice — split the rule that is too big — had nothing to
+	/// answer, because no one rule was: the method was the sum of all of them.
+	/// </remarks>
+	List<List<(RuleSymbol Rule, int Factory)>> DirectParts(
+		List<(RuleSymbol Rule, int Factory)> armed, List<int> costs, int whole)
+	{
+		// Two at least. The arms are asked to divide because the *method* is over the line,
+		// and most of what puts it there is the walk around them — so a count taken from the
+		// arms' own total says one, which is the answer to a question nobody asked. What
+		// moving them out buys is their bodies; what stays behind is a label each.
+		var parts   = new List<List<(RuleSymbol Rule, int Factory)>>();
+		var count   = global::System.Math.Max(2, (whole + Budget * 9 / 10 - 1) / (Budget * 9 / 10));
+		var each    = whole / count + 1;
+		var current = new List<(RuleSymbol Rule, int Factory)>();
+		var carried = 0;
+
+		for (var at = 0; at < armed.Count; at++)
+		{
+			if (current.Count > 0 && carried + costs[at] > each)
+			{
+				parts.Add(current);
+
+				current = [];
+				carried = 0;
+			}
+
+			current.Add(armed[at]);
+
+			carried += costs[at];
+		}
+
+		if (current.Count > 0)
+			parts.Add(current);
+
+		return parts;
 	}
 
 	string DirectMaterializer => $"Materialize_DotGram{_tag}_Direct";
