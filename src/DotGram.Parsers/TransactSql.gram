@@ -596,11 +596,11 @@ GroupingSetItem : @Expression
 // is not a join.
 TsqlTableReference : @TableReference
 	= left: TsqlTableReference & "CROSS"i & "JOIN"i & right: TablePrimary
-		=> @(new TableReference.Joined(SqlJoin.Cross, false, left, right))
+		=> @(new TableReference.Joined(SqlJoin.Cross, false, false, left, right))
 	| left: TsqlTableReference & "CROSS"i & "APPLY"i & right: TablePrimary
-		=> @(new TableReference.Joined(SqlJoin.CrossApply, false, left, right))
+		=> @(new TableReference.Joined(SqlJoin.CrossApply, false, false, left, right))
 	| left: TsqlTableReference & "OUTER"i & "APPLY"i & right: TablePrimary
-		=> @(new TableReference.Joined(SqlJoin.OuterApply, false, left, right))
+		=> @(new TableReference.Joined(SqlJoin.OuterApply, false, false, left, right))
 	| left: TsqlTableReference & kind: TsqlJoinType? & "JOIN"i & right: TablePrimary
 	  & "ON"i & on: SearchCondition
 		=> @(TableReference.Joining(kind, null, left, right, on, null))

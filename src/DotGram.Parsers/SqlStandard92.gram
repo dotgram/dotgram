@@ -429,9 +429,9 @@ FromClause : @TableReference[]
 // is read once however many joins follow it.
 TableReference : @TableReference
     = left: TableReference & "CROSS"i & "JOIN"i & right: TablePrimary
-        => @(new TableReference.Joined(SqlJoin.Cross, false, left, right))
+        => @(new TableReference.Joined(SqlJoin.Cross, false, false, left, right))
     | left: TableReference & "UNION"i & "JOIN"i & right: TablePrimary
-        => @(new TableReference.Joined(SqlJoin.Union, false, left, right))
+        => @(new TableReference.Joined(SqlJoin.Union, false, false, left, right))
     | left: TableReference & natural: "NATURAL"i? & kind: JoinType? & "JOIN"i & right: TablePrimary
       & ("ON"i & on: SearchCondition
         | "USING"i & '(' & columns: ColumnList & ')')?

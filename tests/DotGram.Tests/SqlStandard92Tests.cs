@@ -102,13 +102,18 @@ public sealed class SqlStandard92Tests
 	}
 
 	/// <summary>A join says which it is and what it joins on.</summary>
+	/// <remarks>
+	/// A bare <c>JOIN</c> is <see cref="SqlJoin.Unspecified"/> and not <c>Inner</c>: it
+	/// means an inner join, and meaning it is not the parser's to say.
+	/// </remarks>
 	[Theory]
-	[InlineData("SELECT a FROM t JOIN u ON t.id = u.id",        "Inner", false, true,  false)]
+	[InlineData("SELECT a FROM t JOIN u ON t.id = u.id",        "Unspecified", false, true,  false)]
 	[InlineData("SELECT a FROM t LEFT OUTER JOIN u ON x = y",   "Left",  false, true,  false)]
 	[InlineData("SELECT a FROM t RIGHT JOIN u ON x = y",        "Right", false, true,  false)]
 	[InlineData("SELECT a FROM t NATURAL FULL JOIN u",          "Full",  true,  false, false)]
 	[InlineData("SELECT a FROM t CROSS JOIN u",                 "Cross", false, false, false)]
-	[InlineData("SELECT a FROM t JOIN u USING (id)",            "Inner", false, false, true)]
+	[InlineData("SELECT a FROM t JOIN u USING (id)",            "Unspecified", false, false, true)]
+	[InlineData("SELECT a FROM t INNER JOIN u ON x = y",        "Inner", false, true,  false)]
 	public void A_join_says_which_it_is(
 		string input, string kind, bool natural, bool on, bool over)
 	{

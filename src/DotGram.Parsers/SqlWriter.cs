@@ -778,7 +778,7 @@ public static class SqlWriter
 				Alias(text, name, columns);
 				break;
 
-			case TableReference.Joined(var kind, var natural, var left, var right, var on, var over):
+			case TableReference.Joined(var kind, var outer, var natural, var left, var right, var on, var over):
 				Put(text, left);
 				text.Append(' ');
 
@@ -787,15 +787,24 @@ public static class SqlWriter
 
 				text.Append(kind switch
 				{
-					SqlJoin.Cross      => "CROSS JOIN ",
-					SqlJoin.Left       => "LEFT JOIN ",
-					SqlJoin.Right      => "RIGHT JOIN ",
-					SqlJoin.Full       => "FULL JOIN ",
-					SqlJoin.Union      => "UNION JOIN ",
-					SqlJoin.CrossApply => "CROSS APPLY ",
-					SqlJoin.OuterApply => "OUTER APPLY ",
-					_                  => "INNER JOIN ",
+					SqlJoin.Cross       => "CROSS",
+					SqlJoin.Left        => "LEFT",
+					SqlJoin.Right       => "RIGHT",
+					SqlJoin.Full        => "FULL",
+					SqlJoin.Union       => "UNION",
+					SqlJoin.CrossApply  => "CROSS",
+					SqlJoin.OuterApply  => "OUTER",
+					SqlJoin.Inner       => "INNER",
+					_                   => "",
 				});
+
+				if (outer)
+					text.Append(" OUTER");
+
+				if (kind != SqlJoin.Unspecified)
+					text.Append(' ');
+
+				text.Append(kind is SqlJoin.CrossApply or SqlJoin.OuterApply ? "APPLY " : "JOIN ");
 
 				Put(text, right);
 

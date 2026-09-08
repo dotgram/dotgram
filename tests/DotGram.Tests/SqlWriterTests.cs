@@ -74,7 +74,10 @@ public sealed class SqlWriterTests
 	[InlineData("SELECT a FROM t",                        "SELECT a FROM t")]
 	[InlineData("SELECT DISTINCT a, b FROM t WHERE a > 1", "SELECT DISTINCT a, b FROM t WHERE a > 1")]
 	[InlineData("SELECT * FROM t ORDER BY a DESC",        "SELECT * FROM t ORDER BY a DESC")]
-	[InlineData("SELECT a FROM t JOIN u ON t.a = u.a",    "SELECT a FROM t INNER JOIN u ON t.a = u.a")]
+	[InlineData("SELECT a FROM t JOIN u ON t.a = u.a",    "SELECT a FROM t JOIN u ON t.a = u.a")]
+	[InlineData("SELECT a FROM t INNER JOIN u ON t.a = u.a", "SELECT a FROM t INNER JOIN u ON t.a = u.a")]
+	[InlineData("SELECT a FROM t LEFT OUTER JOIN u ON t.a = u.a",
+		"SELECT a FROM t LEFT OUTER JOIN u ON t.a = u.a")]
 	[InlineData("SELECT a FROM t LEFT JOIN u ON t.a = u.a", "SELECT a FROM t LEFT JOIN u ON t.a = u.a")]
 	[InlineData("SELECT a FROM (SELECT b FROM u) AS d",   "SELECT a FROM (SELECT b FROM u) AS d")]
 	[InlineData("SELECT a FROM t UNION ALL SELECT b FROM u",

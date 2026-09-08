@@ -1301,7 +1301,7 @@ public abstract record TableReference
 	/// it named columns, and neither for a cross or a natural join.
 	/// </remarks>
 	public sealed record Joined(
-		SqlJoin Kind, bool Natural, TableReference Left, TableReference Right,
+		SqlJoin Kind, bool Outer, bool Natural, TableReference Left, TableReference Right,
 		Expression? On = null, string[]? Using = null) : TableReference;
 
 	/// <summary>What a clause with no sources is handed, once rather than per call.</summary>
@@ -1311,7 +1311,7 @@ public abstract record TableReference
 	public static Joined Joining(
 		string? kind, string? natural, TableReference left, TableReference right,
 		Expression? on, string[]? columns) =>
-		new(Syntax.Joined(kind), natural is not null, left, right, on, columns);
+		new(Syntax.Joined(kind), Syntax.Outer(kind), natural is not null, left, right, on, columns);
 }
 
 /// <summary>
@@ -1563,12 +1563,16 @@ public static class Syntax
 
 	/// <summary>Which join was written, from the words in front of <c>JOIN</c>.</summary>
 	/// <remarks><c>OUTER</c> is noise beside <c>LEFT</c>, <c>RIGHT</c> and <c>FULL</c> (§7.7).</remarks>
+	/// <summary>Whether <c>OUTER</c> was written, which is a word and not a meaning.</summary>
+	public static bool Outer(string? kind) =>
+		kind is not null && kind.EndsWith("OUTER", StringComparison.OrdinalIgnoreCase);
+
 	public static SqlJoin Joined(string? kind)
 	{
 		// The text is the whole of what was written, `LEFT OUTER` and not `LEFT`, so the
 		// first word is what is asked about.
 		if (kind is null)
-			return SqlJoin.Inner;
+			return SqlJoin.Unspecified;
 
 		if (kind.StartsWith("LEFT", StringComparison.OrdinalIgnoreCase))
 			return SqlJoin.Left;
@@ -1736,6 +1740,13 @@ public enum SqlComparison
 /// </remarks>
 public enum SqlJoin
 {
+	/// <summary>
+	/// No word was written — a bare <c>JOIN</c>. What that means is an inner join, and
+	/// meaning it is not the parser's to say: <c>JOIN</c> and <c>INNER JOIN</c> are two
+	/// texts, and only one of them was typed.
+	/// </summary>
+	Unspecified,
+
 	Cross, Inner, Left, Right, Full, Union, CrossApply, OuterApply,
 }
 

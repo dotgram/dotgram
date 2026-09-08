@@ -62,6 +62,23 @@ record with its operands named rather than numbered.
 comparison is one record carrying a `SqlComparison`; `<join type>` is another, so a join
 carries a `SqlJoin`.
 
+**And the tree never chooses a word the author did not write.** `count(*)` is not
+`COUNT(*)`, `SELECT a` is not `SELECT ALL a`, and a bare `JOIN` is not an `INNER JOIN` — each
+pair is two texts, and answering the second having read the first is deciding something
+nobody asked the parser to decide. So a routine keeps the name it was called by, a set
+quantifier is a word rather than a flag, and `SqlJoin.Unspecified` says that no word stood
+there. What a missing `ALL` *means* is a question for whatever reads the tree, and
+`Syntax.IsDistinct` is there for a reader who wants it answered.
+
+The exception is a keyword that is pure syntax — `SELECT`, `CASE`, `FROM`. Those are a
+formatter's to case, which is why ScriptDom's own generator has a `KeywordCasing` option.
+
+**Fields stand in the order the text writes them.** `TableReference.Named(Table, SystemTime,
+Name, Columns, Sample, Hints)` is the order of `t FOR SYSTEM_TIME … AS x (…) TABLESAMPLE …
+WITH (…)`. That was a reading convenience until printing arrived; it is load-bearing now,
+because a printer that walks the tree emits tokens in the order the fields stand in, and
+that order has to be the source's.
+
 **The grammar says the shape; this file says which node.** The `.gram` reads `DROP <what>`
 once and hands the words to `Statement.Dropped`, which turns them into the record. So the
 catalogue of names lives in C#, where a catalogue of C# names belongs, and the grammar still
