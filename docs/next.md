@@ -16005,3 +16005,27 @@ somewhere, and over kinds both occurrences test the same kind anyway.
 Of everything in the corpus, **58.6% to 62.0%**, and 4,610 statements read by both this
 grammar and the engine — up from 4,328 for six more the engine refuses, which for two
 hundred and ninety new statements is the shape of a rule that is not too wide.
+
+## Who may connect, and as whom
+
+Logins, users, roles and schemas, written from their thirteen published blocks. One
+family because they are one shape: a name, where it came from, and a list of settings —
+and the settings are the option list already written.
+
+**The exception the syntax insists on is a password.** `PASSWORD = 'p' OLD_PASSWORD = 'q'
+MUST_CHANGE` is three things with no commas between them, which no other option list in
+T-SQL does. So a password is a rule of its own and the rest of the list is the ordinary
+one — the same division `DROP` made between the five clauses that are their own shape and
+the sixty-one that are not.
+
+Two things the corpus corrected. A securable's class is a *run* of words and not one or
+two: `XML SCHEMA COLLECTION::c` and `SEARCH PROPERTY LIST::l` are three, and the rule that
+read a permission's name already knew how to say that. And `MUST_CHANGE` stands before
+`HASHED` as readily as after it, so neither is placed.
+
+`CREATE SCHEMA` is the one statement in T-SQL that holds other whole statements without a
+`BEGIN`: a table, a view, a routine or a permission may be declared in the same breath as
+the schema they belong to.
+
+Of everything in the corpus, **62.0% to 64.5%**, and 4,809 statements read by both this
+grammar and the engine — up from 4,610 for four more the engine refuses.

@@ -1113,6 +1113,69 @@ public sealed class TransactSqlTests
 	public void And_a_drop_of_nothing_is_refused(string input) =>
 		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
 
+	/// <summary>Who may connect, and as whom.</summary>
+	/// <remarks>
+	/// Logins, users, roles and schemas: one family because they are one shape — a name,
+	/// where it came from, and a list of settings, and the settings are the option list
+	/// already written. The one exception the published syntax insists on is a password:
+	/// `PASSWORD = 'p' OLD_PASSWORD = 'q' MUST_CHANGE` is three things with no commas
+	/// between them, which no other option list in T-SQL does.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p'")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p' MUST_CHANGE, CHECK_POLICY = ON, SID = 0x01")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 0x0100 HASHED, DEFAULT_DATABASE = master")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p' MUST_CHANGE HASHED")]
+	[InlineData("CREATE LOGIN l FROM WINDOWS WITH DEFAULT_DATABASE = master")]
+	[InlineData("CREATE LOGIN l FROM EXTERNAL PROVIDER")]
+	[InlineData("CREATE LOGIN l FROM CERTIFICATE c WITH CREDENTIAL = cr")]
+	[InlineData("CREATE LOGIN l FROM ASYMMETRIC KEY k")]
+	[InlineData("ALTER LOGIN l ENABLE")]
+	[InlineData("ALTER LOGIN l DISABLE")]
+	[InlineData("ALTER LOGIN l WITH PASSWORD = 'p' OLD_PASSWORD = 'q'")]
+	[InlineData("ALTER LOGIN l WITH NAME = m, NO CREDENTIAL")]
+	[InlineData("ALTER LOGIN l ADD CREDENTIAL cr")]
+	[InlineData("ALTER LOGIN l DROP CREDENTIAL cr")]
+
+	[InlineData("CREATE USER u")]
+	[InlineData("CREATE USER u FOR LOGIN l")]
+	[InlineData("CREATE USER u FROM LOGIN l WITH DEFAULT_SCHEMA = dbo")]
+	[InlineData("CREATE USER u WITHOUT LOGIN WITH DEFAULT_SCHEMA = dbo")]
+	[InlineData("CREATE USER u FOR CERTIFICATE c")]
+	[InlineData("CREATE USER u FROM ASYMMETRIC KEY k")]
+	[InlineData("CREATE USER u WITH PASSWORD = 'p', DEFAULT_LANGUAGE = 1033")]
+	[InlineData("ALTER USER u WITH NAME = v, DEFAULT_SCHEMA = NULL")]
+	[InlineData("ALTER USER u FROM EXTERNAL PROVIDER")]
+
+	[InlineData("CREATE ROLE r")]
+	[InlineData("CREATE ROLE r AUTHORIZATION dbo")]
+	[InlineData("CREATE SERVER ROLE r AUTHORIZATION sa")]
+	[InlineData("ALTER ROLE r ADD MEMBER u")]
+	[InlineData("ALTER ROLE r DROP MEMBER u")]
+	[InlineData("ALTER SERVER ROLE r WITH NAME = q")]
+	[InlineData("CREATE APPLICATION ROLE a WITH PASSWORD = 'p', DEFAULT_SCHEMA = dbo")]
+	[InlineData("ALTER APPLICATION ROLE a WITH NAME = b, PASSWORD = 'p'")]
+
+	[InlineData("CREATE SCHEMA s")]
+	[InlineData("CREATE SCHEMA s AUTHORIZATION dbo")]
+	[InlineData("CREATE SCHEMA AUTHORIZATION dbo")]
+	[InlineData("CREATE SCHEMA s AUTHORIZATION dbo CREATE TABLE t (a INT) GRANT SELECT ON t TO u")]
+	[InlineData("ALTER SCHEMA s TRANSFER dbo.t")]
+	[InlineData("ALTER SCHEMA s TRANSFER OBJECT::dbo.t")]
+
+	// A class is a run of words, which `XML SCHEMA COLLECTION::` is three of.
+	[InlineData("ALTER SCHEMA s TRANSFER XML SCHEMA COLLECTION::c")]
+	[InlineData("ALTER AUTHORIZATION ON dbo.t TO u")]
+	[InlineData("ALTER AUTHORIZATION ON OBJECT::dbo.t TO SCHEMA OWNER")]
+	[InlineData("ALTER AUTHORIZATION ON XML SCHEMA COLLECTION::Parts.Sprockets TO [c1]")]
+	[InlineData("ALTER AUTHORIZATION ON SEARCH PROPERTY LIST::list1 TO [c1]")]
+	public void The_principals_read(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	// ── And builds the standard's tree ───────────────────────────────────────────
 
 	/// <summary>

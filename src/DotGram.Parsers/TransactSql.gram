@@ -1126,6 +1126,7 @@ DefinitionStatement : @SqlNode
 	| s: CreateDatabaseStatement => @(s)
 	| s: AlterDatabaseStatement  => @(s)
 	| s: DropStatement           => @(s)
+	| s: PrincipalStatement      => @(s)
 
 StatementList : @SqlNode[] = s: TsqlStatement+ => @(s)
 
@@ -1742,6 +1743,110 @@ AlterIndexAction : @string
 	| "RESUME"i & IndexWith? => @("RESUME")
 	| "SET"i & '(' & OptionList & ')' => @("SET")
 
+// ── Who may connect, and as whom ────────────────────────────────────────────
+//
+// Logins, users, roles and schemas. One family because they are one shape: a name, where
+// it came from, and a list of settings — and the settings are the option list already
+// written, with one exception that the published syntax insists on.
+//
+// The exception is a password. `PASSWORD = 'p' OLD_PASSWORD = 'q' MUST_CHANGE` is three
+// things and no commas between them, which is the only place in T-SQL where an option list
+// runs on like that. So the password is a rule and the rest of the list is the ordinary one.
+PrincipalStatement : @SqlNode
+	= "CREATE"i & "LOGIN"i & name: Identifier & body: LoginBody
+		=> @(new SqlNode.Command("CREATE LOGIN", new SqlNode[] { new SqlNode.Column(name) }))
+	| "ALTER"i & "LOGIN"i & name: Identifier & AlterLoginBody
+		=> @(new SqlNode.Command("ALTER LOGIN", new SqlNode[] { new SqlNode.Column(name) }))
+
+	| "CREATE"i & "USER"i & name: Identifier & UserSource? & UserOptions?
+		=> @(new SqlNode.Command("CREATE USER", new SqlNode[] { new SqlNode.Column(name) }))
+	| "ALTER"i & "USER"i & name: Identifier & AlterUserBody
+		=> @(new SqlNode.Command("ALTER USER", new SqlNode[] { new SqlNode.Column(name) }))
+
+	| "CREATE"i & RoleWord & name: Identifier & ("AUTHORIZATION"i & QualifiedName)?
+		=> @(new SqlNode.Command("CREATE ROLE", new SqlNode[] { new SqlNode.Column(name) }))
+	| "ALTER"i & RoleWord & name: Identifier & RoleAction
+		=> @(new SqlNode.Command("ALTER ROLE", new SqlNode[] { new SqlNode.Column(name) }))
+
+	| "CREATE"i & "APPLICATION"i & "ROLE"i & name: Identifier & "WITH"i & LoginOptions
+		=> @(new SqlNode.Command("CREATE APPLICATION ROLE", new SqlNode[] { new SqlNode.Column(name) }))
+	| "ALTER"i & "APPLICATION"i & "ROLE"i & name: Identifier & "WITH"i & LoginOptions
+		=> @(new SqlNode.Command("ALTER APPLICATION ROLE", new SqlNode[] { new SqlNode.Column(name) }))
+
+	// A schema may be declared by its owner alone — `CREATE SCHEMA AUTHORIZATION dbo` — and
+	// what follows it is not a clause but whole statements, which is the one statement in
+	// T-SQL that holds others without a `BEGIN`.
+	| "CREATE"i & "SCHEMA"i & name: Identifier & "AUTHORIZATION"i & QualifiedName & SchemaElement*
+		=> @(new SqlNode.Command("CREATE SCHEMA", new SqlNode[] { new SqlNode.Column(name) }))
+	| "CREATE"i & "SCHEMA"i & "AUTHORIZATION"i & owner: QualifiedName & SchemaElement*
+		=> @(new SqlNode.Command("CREATE SCHEMA", new SqlNode[] { new SqlNode.Column(owner) }))
+	| "CREATE"i & "SCHEMA"i & name: Identifier & SchemaElement*
+		=> @(new SqlNode.Command("CREATE SCHEMA", new SqlNode[] { new SqlNode.Column(name) }))
+	| "ALTER"i & "SCHEMA"i & name: Identifier & "TRANSFER"i & SecurableClass? & what: QualifiedName
+		=> @(new SqlNode.Command("ALTER SCHEMA", new SqlNode[] { new SqlNode.Column(what) }))
+
+	| "ALTER"i & "AUTHORIZATION"i & "ON"i & SecurableClass? & what: QualifiedName
+	  & "TO"i & AuthorizationTo
+		=> @(new SqlNode.Command("ALTER AUTHORIZATION", new SqlNode[] { new SqlNode.Column(what) }))
+
+RoleWord = "SERVER"i & "ROLE"i | "ROLE"i
+
+RoleAction = "ADD"i & "MEMBER"i & QualifiedName
+		   | "DROP"i & "MEMBER"i & QualifiedName
+		   | "WITH"i & "NAME"i & '=' & QualifiedName
+
+AuthorizationTo = "SCHEMA"i & "OWNER"i | QualifiedName
+
+// What a schema declares in the same breath as itself. The published list is exactly these
+// five, and each is the whole statement it is elsewhere.
+SchemaElement = s: CreateTableStatement | s: CreateRoutine | s: PermissionStatement
+
+// ── A login ─────────────────────────────────────────────────────────────────
+LoginBody = "WITH"i & LoginOptions
+		  | "FROM"i & LoginSource
+
+LoginSource = "WINDOWS"i & ("WITH"i & OptionList)?
+			| "EXTERNAL"i & "PROVIDER"i & ("WITH"i & OptionList)?
+			| "CERTIFICATE"i & QualifiedName & ("WITH"i & OptionList)?
+			| "ASYMMETRIC"i & "KEY"i & QualifiedName & ("WITH"i & OptionList)?
+
+AlterLoginBody = "ENABLE"i
+			   | "DISABLE"i
+			   | "WITH"i & LoginOptions
+			   | "ADD"i & "CREDENTIAL"i & QualifiedName
+			   | "DROP"i & "CREDENTIAL"i & QualifiedName
+
+LoginOptions = LoginOption & (',' & LoginOption)*
+
+// `PASSWORD = 0x0100 HASHED MUST_CHANGE`, `PASSWORD = 'p' OLD_PASSWORD = 'q'`: a password
+// and then however many words and pairs the syntax lets follow it, none of them separated
+// by a comma. `NO CREDENTIAL` is two words and no value, which the option list reads as one
+// name — but it is written here because the list this belongs to is not that one.
+LoginOption = "PASSWORD"i & '=' & ValueExpression & PasswordTail*
+			| "NO"i & "CREDENTIAL"i
+			| OptionSetting
+
+PasswordTail = "OLD_PASSWORD"i & '=' & ValueExpression
+			 | "MUST_CHANGE"i
+			 | "UNLOCK"i
+			 | "HASHED"i
+
+// ── A user ──────────────────────────────────────────────────────────────────
+UserSource = ForOrFrom & UserFrom
+		   | "WITHOUT"i & "LOGIN"i
+
+UserFrom = "LOGIN"i & QualifiedName
+		 | "CERTIFICATE"i & QualifiedName
+		 | "ASYMMETRIC"i & "KEY"i & QualifiedName
+		 | "EXTERNAL"i & "PROVIDER"i & ("WITH"i & OptionList)?
+
+ForOrFrom = "FOR"i | "FROM"i
+
+UserOptions = "WITH"i & LoginOptions
+
+AlterUserBody = "WITH"i & LoginOptions
+			  | s: UserSource
+
 // ── DROP ────────────────────────────────────────────────────────────────────
 //
 // Sixty-six statements in the reference and one shape: `DROP <what> [ IF EXISTS ] <names>`,
@@ -2027,8 +2132,10 @@ ToOrFrom      = "TO"i | "FROM"i
 PermissionAs  = "AS"i & PrincipalName
 PermissionOn  = "ON"i & SecurableClass? & QualifiedName
 
-// `OBJECT::t`, `SCHEMA::s`, `SERVER ROLE::r` — a class of one or two words and `::`.
-SecurableClass = PermissionWord & PermissionWord? & "::"
+// `OBJECT::t`, `SCHEMA::s`, `SERVER ROLE::r`, `XML SCHEMA COLLECTION::c` — a run of words
+// and `::`. Where there is no `::` the whole clause is given back, which is what makes it
+// safe to try in front of an ordinary name.
+SecurableClass = PermissionWord+ & "::"
 
 Permissions : @string[]
 	= "ALL"i & "PRIVILEGES"i? => @(new[] { "ALL" })
