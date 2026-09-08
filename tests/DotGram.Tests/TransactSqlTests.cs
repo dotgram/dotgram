@@ -1609,7 +1609,7 @@ public sealed class TransactSqlTests
 		var by    = Assert.IsType<Clause.OrderBy>(read.OrderBy);
 
 		Assert.Equal("c", named.Name);
-		Assert.Equal("#t", Assert.IsType<Query.Specification>(read.Of).Into);
+		Assert.Equal("#t", Assert.IsType<Clause.Into>(Assert.IsType<Query.Specification>(read.Of).Into).Table);
 		Assert.Equal("5", Assert.IsType<Expression.Literal>(by.Offset).Text);
 		Assert.Equal("2", Assert.IsType<Expression.Literal>(by.Fetch).Text);
 		Assert.Equal("XML", Assert.IsType<Clause.For>(Assert.Single(read.For)).Kind);

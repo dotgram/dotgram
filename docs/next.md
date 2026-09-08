@@ -16580,3 +16580,41 @@ side null — and `Expression.Collated` keeps the collation.
 What `SELECT` still loses, in the order the oracle lists it: `PIVOT` and `UNPIVOT`,
 `TABLESAMPLE`, `FOR SYSTEM_TIME`, the `WINDOW` clause, a `WITH` in front of the four
 statements that are not a select, and the rowset functions' own `ORDER (c1 ASC) UNIQUE`.
+
+### Wave three: what a table source carries
+
+`FOR SYSTEM_TIME`, `TABLESAMPLE`, `PIVOT`, `UNPIVOT` and `OPENJSON (…) WITH (…)` were all
+read and dropped, and the reference writes them as parts of one production:
+
+```
+table_or_view_name [ FOR SYSTEM_TIME <system_time> ] [ [AS] alias ]
+                   [ <tablesample_clause> ] [ WITH ( <table_hint> [ ,...n ] ) ]
+```
+
+So `TableReference.Named` is that production, part for part, and the pivots wrap a source
+the way a joined table wraps two — built with the source they apply to left null and closed
+by whoever read it, which is the shape a predicate tail and a window function already use.
+
+Two more losses that were not decorations:
+
+- A table-valued function called by an ordinary name — `FROM [STRING_SPLIT] (@a, @b)` — was
+  read as a table with its arguments dropped, so it printed as `FROM [STRING_SPLIT]`. The
+  brackets are what tell a function from a table, and `Syntax.Sourced` now decides by them.
+- `SELECT c1 INTO t2 ON fg` dropped the filegroup. `Clause.Into` keeps it.
+
+`SelectStatement` went from 63.2% to **72.3%**, and the corpus from 29.8% to **32.3%**.
+`CreateTableStatement` is now the top of the list.
+
+### What `SELECT` still loses, and it is two things
+
+**Redundant parentheses.** `WHERE (a AND b)`, `OFFSET (5 + 2)`, `FETCH NEXT (-1)`,
+`(c1).SomeProperty` — the tree records that `(a + b) * c` needed its brackets and not that
+somebody wrote them where nothing needed them. This is now the largest single residue in
+`SELECT`, and closing it means a node for a bracket, the way ScriptDom has one. That is a
+decision about what *lossless* means — everything the statement says, or everything the
+author typed — and it is worth taking deliberately rather than by drift.
+
+**The graph drawing.** `WHERE MATCH(N-(E)->N2 AND N2<-(E2)-N)` collapses to `MATCH(N)`: the
+drawing inside a `MATCH` is a language of its own with its own grammar, and the rules that
+read it hand back one node of it. It is the first of the sublanguages that wants a root of
+its own — `docs/ast.md` names the others.

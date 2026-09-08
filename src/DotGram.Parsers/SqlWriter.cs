@@ -610,7 +610,10 @@ public static class SqlWriter
 				Each(text, columns);
 
 				if (into is not null)
-					text.Append(" INTO ").Append(into);
+				{
+					text.Append(' ');
+					Put(text, into);
+				}
 
 				From(text, from);
 				Where(text, where);
@@ -708,17 +711,39 @@ public static class SqlWriter
 	{
 		switch (source)
 		{
-			case TableReference.Named(var table, var name, var columns, var hints):
+			case TableReference.Named(var table, var version, var name, var columns, var sample, var hints):
 				text.Append(table);
-				Alias(text, name, columns);
 
-				if (hints.Length > 0)
+				if (version is not null)
 				{
-					text.Append(" WITH (");
-					Each(text, hints);
-					text.Append(')');
+					text.Append(' ');
+					Put(text, version);
 				}
 
+				Alias(text, name, columns);
+
+				if (sample is not null)
+				{
+					text.Append(' ');
+					Put(text, sample);
+				}
+
+				Hints(text, hints);
+				break;
+
+			case TableReference.Pivot(var of, var aggregate, var by, var names, var alias):
+				Put(text, of);
+				text.Append(" PIVOT (");
+				Put(text, aggregate, 0);
+				text.Append(" FOR ").Append(by).Append(" IN (");
+				text.Append(string.Join(", ", names)).Append(")) AS ").Append(alias);
+				break;
+
+			case TableReference.Unpivot(var of, var value, var by, var names, var alias):
+				Put(text, of);
+				text.Append(" UNPIVOT (").Append(value);
+				text.Append(" FOR ").Append(by).Append(" IN (");
+				text.Append(string.Join(", ", names)).Append(")) AS ").Append(alias);
 				break;
 
 			case TableReference.Derived(var query, var name, var columns):
@@ -728,8 +753,16 @@ public static class SqlWriter
 				Alias(text, name, columns);
 				break;
 
-			case TableReference.FunctionCall(var call, var name, var columns):
+			case TableReference.FunctionCall(var call, var name, var columns, var schema):
 				Put(text, call, 0);
+
+				if (schema.Length > 0)
+				{
+					text.Append(" WITH (");
+					Each(text, schema);
+					text.Append(')');
+				}
+
 				Alias(text, name, columns);
 				break;
 
@@ -766,6 +799,16 @@ public static class SqlWriter
 
 				break;
 		}
+	}
+
+	static void Hints(StringBuilder text, Clause[] hints)
+	{
+		if (hints.Length == 0)
+			return;
+
+		text.Append(" WITH (");
+		Each(text, hints);
+		text.Append(')');
 	}
 
 	static void Alias(StringBuilder text, string? name, string[]? columns)
@@ -912,6 +955,82 @@ public static class SqlWriter
 					text.Append(frame);
 
 				text.Append(')');
+				break;
+
+			case Clause.Into(var table, var on):
+				text.Append("INTO ").Append(table);
+
+				if (on is not null)
+					text.Append(" ON ").Append(on);
+
+				break;
+
+			case Clause.SystemTime(var kind, var at):
+				text.Append("FOR SYSTEM_TIME ").Append(kind);
+
+				if (at.Length == 1)
+				{
+					text.Append(' ');
+					Put(text, at[0], 0);
+				}
+				else if (at.Length == 2)
+				{
+					// Two times, and the word between them is the clause's own.
+					text.Append(' ');
+
+					if (kind == "CONTAINED IN")
+					{
+						text.Append('(');
+						Put(text, at[0], 0);
+						text.Append(", ");
+						Put(text, at[1], 0);
+						text.Append(')');
+					}
+					else
+					{
+						Put(text, at[0], 0);
+						text.Append(kind == "BETWEEN" ? " AND " : " TO ");
+						Put(text, at[1], 0);
+					}
+				}
+
+				break;
+
+			case Clause.TableSample(var system, var value, var unit, var seed):
+				text.Append("TABLESAMPLE ");
+
+				if (system)
+					text.Append("SYSTEM ");
+
+				text.Append('(');
+				Put(text, value, 0);
+
+				if (unit is not null)
+					text.Append(' ').Append(unit);
+
+				text.Append(')');
+
+				if (seed is not null)
+				{
+					text.Append(" REPEATABLE (");
+					Put(text, seed, 0);
+					text.Append(')');
+				}
+
+				break;
+
+			case Clause.JsonColumn(var column, var type, var path, var json):
+				text.Append(column);
+
+				if (type is not null)
+					text.Append(' ').Append(type);
+
+				if (path is not null)
+					text.Append(' ').Append(path);
+
+				if (json)
+					text.Append(" AS JSON");
+
 				break;
 
 			case Clause.Hint(var hint):
@@ -1271,6 +1390,12 @@ public static class SqlWriter
 			case Expression.Collated(var value, var collation):
 				Put(text, value, 8);
 				text.Append(" COLLATE ").Append(collation);
+				break;
+
+			case Expression.RowsetOrder(var by, var unique):
+				text.Append("ORDER (");
+				Each(text, by);
+				text.Append(unique ? ") UNIQUE" : ")");
 				break;
 
 			case Expression.Prefixed(var word, var value):

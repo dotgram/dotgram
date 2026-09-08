@@ -444,7 +444,7 @@ JoinType = ("LEFT"i | "RIGHT"i | "FULL"i) & "OUTER"i? | "INNER"i
 // its column list renames what the source produces, so it belongs to the reference.
 TablePrimary : @TableReference
     = name: QualifiedName & ("AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?)?
-        => @(new TableReference.Named(name, alias, columns, Clause.None))
+        => @(new TableReference.Named(name, null, alias, columns, null, Clause.None))
     | derived: TableSubquery & "AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?
         => @(new TableReference.Derived(derived, alias, columns))
     | '(' & j: TableReference & ')' => @(j)

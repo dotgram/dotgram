@@ -964,7 +964,7 @@ public abstract record Query
 		bool Distinct,
 		Clause? Top,
 		Clause[] Columns,
-		string? Into,
+		Clause? Into,
 		TableReference[] From,
 		Expression? Where,
 		Clause? GroupBy,
@@ -1130,6 +1130,12 @@ public abstract record Expression
 	public sealed record RowValueConstructor(Expression[] Values) : Expression;
 
 	/// <summary>
+	/// The <c>ORDER (c1 ASC, c2 DESC) UNIQUE</c> a bulk rowset is declared to arrive in,
+	/// which is an argument of <c>OPENROWSET</c> and not a clause of the query.
+	/// </summary>
+	public sealed record RowsetOrder(Clause[] By, bool IsUnique) : Expression;
+
+	/// <summary>
 	/// SQL:2003's <c>&lt;window function&gt;</c>: a call, and the window it is computed over.
 	/// </summary>
 	/// <remarks>
@@ -1234,8 +1240,26 @@ public abstract record TableReference
 	/// <summary>
 	/// §7.6 a table named, the name it is known by there, and the names its columns are given.
 	/// </summary>
+	/// <remarks>
+	/// The parts in the order the reference writes them: the table, which version of it,
+	/// what it is called here, the names its columns are given, how much of it to read, and
+	/// how to read it.
+	/// </remarks>
 	public sealed record Named(
-		string Table, string? Name, string[]? Columns, Clause[] Hints) : TableReference;
+		string Table, Clause? SystemTime, string? Name, string[]? Columns,
+		Clause? Sample, Clause[] Hints) : TableReference;
+
+	/// <summary>
+	/// T-SQL's <c>PIVOT</c>: a source, the aggregate to turn its rows into columns with,
+	/// the column whose values name them, and which of those values to keep.
+	/// </summary>
+	public sealed record Pivot(
+		TableReference Of, Expression Aggregate, string For, string[] In,
+		string? Name) : TableReference;
+
+	/// <summary>T-SQL's <c>UNPIVOT</c>, which is the same thing said backwards.</summary>
+	public sealed record Unpivot(
+		TableReference Of, string Value, string For, string[] In, string? Name) : TableReference;
 
 	/// <summary>§7.6 a query standing where a table does.</summary>
 	public sealed record Derived(Query Query, string? Name, string[]? Columns) : TableReference;
@@ -1245,7 +1269,8 @@ public abstract record TableReference
 	/// table-valued function called in a <c>FROM</c> clause.
 	/// </summary>
 	public sealed record FunctionCall(
-		Expression.RoutineInvocation Function, string? Name, string[]? Columns) : TableReference;
+		Expression.RoutineInvocation Function, string? Name, string[]? Columns,
+		Clause[] Schema) : TableReference;
 
 	/// <summary>§7.7 two sources and the join between them.</summary>
 	/// <remarks>
@@ -1315,6 +1340,36 @@ public abstract record Clause
 	/// </remarks>
 	public sealed record Window(
 		string? Name, Expression[] PartitionBy, Clause? By, string? Frame) : Clause;
+
+	/// <summary>
+	/// T-SQL's <c>SELECT … INTO t ON filegroup</c>: the table the rows are written to
+	/// instead of coming back, and where its pages are to live.
+	/// </summary>
+	public sealed record Into(string Table, string? On) : Clause;
+
+	/// <summary>
+	/// T-SQL's <c>FOR SYSTEM_TIME</c>: which version of a temporal table is being read, and
+	/// the one or two times that say which.
+	/// </summary>
+	public sealed record SystemTime(string Kind, Expression[] At) : Clause;
+
+	/// <summary>
+	/// T-SQL's <c>TABLESAMPLE</c>: how much of a table to read, in rows or in percent, and
+	/// the seed that makes the answer the same twice.
+	/// </summary>
+	public sealed record TableSample(
+		bool System, Expression Value, string? Unit, Expression? Repeatable) : Clause;
+
+	/// <summary>
+	/// One column of the schema a rowset function is read under —
+	/// <c>OPENJSON (…) WITH (c INT '$.a.b')</c>.
+	/// </summary>
+	/// <remarks>
+	/// <see cref="Type"/> is null where the whole schema was named rather than written out,
+	/// which is <c>OPENXML</c>'s spelling: <c>WITH tablename</c>.
+	/// </remarks>
+	public sealed record JsonColumn(
+		string Name, string? Type, string? Path, bool AsJson) : Clause;
 
 	/// <summary>§7.17 a named query, written in front of the statement that uses it.</summary>
 	public sealed record CommonTableExpression(
@@ -1515,6 +1570,35 @@ public static class Syntax
 		with is null || with.Length == 0
 			? statement
 			: statement is Statement.Select select ? select with { With = with } : statement;
+
+	/// <summary>
+	/// A table primary and everything written around it, as the one node it is.
+	/// </summary>
+	/// <remarks>
+	/// A name and a bracketed argument list is a table-valued function and not a table, so
+	/// which record comes out is decided by whether the brackets were there.
+	/// </remarks>
+	public static TableReference Sourced(
+		string name, Clause? when, string? call, Expression[]? arguments,
+		string? alias, string[]? columns, Clause? sample, Clause[]? hints, TableReference? pivot)
+	{
+		TableReference source = call is null
+			? new TableReference.Named(name, when, alias, columns, sample, hints ?? Clause.None)
+			: new TableReference.FunctionCall(
+				new Expression.RoutineInvocation(name, arguments ?? Expression.None),
+				alias, columns, Clause.None);
+
+		return Pivoted(source, pivot);
+	}
+
+	/// <summary>A source and the pivot applied to it, where one was written.</summary>
+	public static TableReference Pivoted(TableReference source, TableReference? pivot) =>
+		pivot switch
+		{
+			TableReference.Pivot turned   => turned with { Of = source },
+			TableReference.Unpivot turned => turned with { Of = source },
+			_                             => source,
+		};
 
 	/// <summary>A call and what was written after it, where anything was.</summary>
 	public static Expression Called(Expression call, Expression.WindowFunction? tail) =>

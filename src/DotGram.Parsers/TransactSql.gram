@@ -494,9 +494,9 @@ TopWith   = "WITH"i & "TIES"i | "WITH"i & "APPROXIMATE"i | "WITH"i & "APPROX"i
 
 // §7.9 has nowhere to put this: the rows go into a table instead of coming back, and
 // the filegroup says where that table's pages live.
-// The filegroup after `ON` is read and dropped: it says where the new table's pages live,
-// which is a decoration on the table and not on the query.
-Into : @string = "INTO"i & name: QualifiedName & ("ON"i & Identifier)? => @(name)
+Into : @Clause
+	= "INTO"i & name: QualifiedName & ("ON"i & on: Identifier)?
+		=> @(new Clause.Into(name, on))
 
 // The windows a call may name instead of writing out.
 Window       = "WINDOW"i & WindowDef & (',' & WindowDef)*
@@ -618,16 +618,19 @@ JoinHint = "HASH"i | "LOOP"i | "MERGE"i | "REMOTE"i | "REDUCE"i | "REPLICATE"i |
 // first was accepted here until the syntax said otherwise, and whether ScriptDom accepts
 // them the other way round is a question worth asking of it rather than of us.
 TsqlTablePrimary : @TableReference
-	= f: RowsetFunction & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
-		=> @(new TableReference.FunctionCall(f, alias, columns))
-	| name: QualifiedName & SystemTime? & ('(' & Arguments? & ')')?
+	= f: RowsetFunction & schema: RowsetSchema?
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
-	  & TableSample? & hints: TableHints? & PivotSuffix?
-		=> @(new TableReference.Named(name, alias, columns, hints ?? Clause.None))
+	  & pivot: PivotSuffix?
+		=> @(Syntax.Pivoted(
+				 new TableReference.FunctionCall(f, alias, columns, schema ?? Clause.None), pivot))
+	| name: QualifiedName & version: SystemTime? & call: ('(' & args: Arguments? & ')')?
+	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
+	  & sample: TableSample? & hints: TableHints? & pivot: PivotSuffix?
+		=> @(Syntax.Sourced(name, version, call, args, alias, columns, sample, hints, pivot))
 	| t: Tsql.Variable & s: VariableSource => @(s with { Table = t })
-	| derived: TableSubquery & "AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?
-	  & PivotSuffix?
-		=> @(new TableReference.Derived(derived, alias, columns))
+	| derived: TableSubquery & "AS"i? & alias: CorrelationName
+	  & ('(' & columns: ColumnList & ')')? & pivot: PivotSuffix?
+		=> @(Syntax.Pivoted(new TableReference.Derived(derived, alias, columns), pivot))
 	| '(' & j: TableReference & ')' & TableSample? & TableHints?
 		=> @(j)
 	| '{' & "OJ"i & j: TableReference & '}' => @(j)
@@ -638,9 +641,9 @@ TsqlTablePrimary : @TableReference
 VariableSource : @TableReference.Named
 	= '.' & Identifier & '(' & Arguments? & ')'
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
-		=> @(new TableReference.Named("", alias, columns, Clause.None))
+		=> @(new TableReference.Named("", null, alias, columns, null, Clause.None))
 	| ("AS"i? & alias: CorrelationName)? & TableSample? & TableHints?
-		=> @(new TableReference.Named("", alias, null, Clause.None))
+		=> @(new TableReference.Named("", null, alias, null, null, Clause.None))
 
 // The published syntax makes a pivoted table a source of its own — `table_source PIVOT
 // (…) [AS] alias` — which is left recursion, and §4.3 folds that only where the rule
@@ -649,27 +652,41 @@ VariableSource : @TableReference.Named
 //
 // The alias is required and not optional, which the syntax says and the examples did
 // not: `PIVOT (…)` with nothing after it is not a table source.
-PivotSuffix = Pivot | Unpivot
+// Built with the source it is applied to left null, the way a predicate tail is: the
+// source is read once and the pivot is what may follow it.
+PivotSuffix : @TableReference = p: Pivot => @(p) | u: Unpivot => @(u)
 
-Pivot = "PIVOT"i & '(' & ValueExpression & "FOR"i & QualifiedName
-		& "IN"i & '(' & PivotNames & ')' & ')' & "AS"i? & CorrelationName
+Pivot : @TableReference
+	= "PIVOT"i & '(' & aggregate: ValueExpression & "FOR"i & column: QualifiedName
+	  & "IN"i & '(' & names: PivotNames & ')' & ')' & "AS"i? & alias: CorrelationName
+		=> @(new TableReference.Pivot(null!, aggregate, column, names, alias))
 
-Unpivot = "UNPIVOT"i & '(' & QualifiedName & "FOR"i & QualifiedName
-		  & "IN"i & '(' & PivotNames & ')' & ')' & "AS"i? & CorrelationName
+Unpivot : @TableReference
+	= "UNPIVOT"i & '(' & value: QualifiedName & "FOR"i & column: QualifiedName
+	  & "IN"i & '(' & names: PivotNames & ')' & ')' & "AS"i? & alias: CorrelationName
+		=> @(new TableReference.Unpivot(null!, value, column, names, alias))
 
-PivotNames = QualifiedName & (',' & QualifiedName)*
+PivotNames : @string[]
+	= first: PivotName & (',' & rest: PivotName)* => @(Syntax.Named(first, rest))
+
+PivotName : @string = t: QualifiedName => @(t)
 
 // Which version of a temporal table to read. `FOR` is reserved, so nothing here can be
 // mistaken for the correlation name it stands in front of.
-SystemTime = "FOR"i & "SYSTEM_TIME"i & SystemTimeWhen
-		   | "FOR"i & "PATH"i
+SystemTime : @Clause
+	= "FOR"i & "SYSTEM_TIME"i & w: SystemTimeWhen => @(w)
+	| "FOR"i & "PATH"i => @(new Clause.SystemTime("PATH", Expression.None))
 
-SystemTimeWhen
-	= "AS"i & "OF"i & ValueExpression
-	| "FROM"i & ValueExpression & "TO"i & ValueExpression
-	| "BETWEEN"i & ValueExpression & "AND"i & ValueExpression
-	| "CONTAINED"i & "IN"i & '(' & ValueExpression & ',' & ValueExpression & ')'
-	| "ALL"i
+SystemTimeWhen : @Clause
+	= "AS"i & "OF"i & v: ValueExpression
+		=> @(new Clause.SystemTime("AS OF", new Expression[] { v }))
+	| "FROM"i & from: ValueExpression & "TO"i & to: ValueExpression
+		=> @(new Clause.SystemTime("FROM", new Expression[] { from, to }))
+	| "BETWEEN"i & from: ValueExpression & "AND"i & to: ValueExpression
+		=> @(new Clause.SystemTime("BETWEEN", new Expression[] { from, to }))
+	| "CONTAINED"i & "IN"i & '(' & from: ValueExpression & ',' & to: ValueExpression & ')'
+		=> @(new Clause.SystemTime("CONTAINED IN", new Expression[] { from, to }))
+	| "ALL"i => @(new Clause.SystemTime("ALL", Expression.None))
 
 // A correlation name is an identifier, and not one of the words that begin a clause of
 // its own after a source. None of them is reserved — a column may be called `WINDOW` —
@@ -763,12 +780,13 @@ HintValue = "NULL"i | ValueExpression
 
 // §7.4's table sample: how much of a source to read, in rows or in per cent, and the
 // seed that makes the choice repeatable. Read and dropped for the same reason a hint is.
-TableSample = "TABLESAMPLE"i & "SYSTEM"i & SampleSize & TableRepeatable?
-			| "TABLESAMPLE"i & SampleSize & TableRepeatable?
+TableSample : @Clause
+	= "TABLESAMPLE"i & system: "SYSTEM"i?
+	  & '(' & v: ValueExpression & unit: SampleUnit? & ')' & seed: TableRepeatable?
+		=> @(new Clause.TableSample(system is not null, v, unit, seed))
 
-SampleSize      = '(' & ValueExpression & SampleUnit? & ')'
-SampleUnit      = "PERCENT"i | "ROWS"i
-TableRepeatable = "REPEATABLE"i & '(' & ValueExpression & ')'
+SampleUnit      : @string     = t: ("PERCENT"i | "ROWS"i) => @(t)
+TableRepeatable : @Expression = "REPEATABLE"i & '(' & v: ValueExpression & ')' => @(v)
 
 // ── §13.1's direct select, widened ──────────────────────────────────────────
 //
@@ -945,13 +963,20 @@ GraphQuantifier = '+' | '{' & Sql92.Lexical.Digits & ',' & Sql92.Lexical.Digits 
 // `OPENJSON ( json [ , path ] ) [ WITH ( colName type [ path ] [ AS JSON ] , … ) ]`, and
 // `OPENXML`'s schema declaration, which is the same shape with a different fourth part.
 // The two are written as one rule because the syntax of the two is one shape.
-RowsetSchema = "WITH"i & '(' & SchemaColumn & (',' & SchemaColumn)* & ')'
-			 | "WITH"i & QualifiedName
+RowsetSchema : @Clause[]
+	= "WITH"i & '(' & first: SchemaColumn & (',' & rest: SchemaColumn)* & ')'
+		=> @(Syntax.Listed(first, rest))
+	| "WITH"i & name: QualifiedName
+		=> @(new Clause[] { new Clause.JsonColumn(name, null, null, false) })
 
-SchemaColumn = Identifier & DataType & SchemaPath? & SchemaAsJson?
+SchemaColumn : @Clause
+	= name: Identifier & type: DataType & path: SchemaPath? & json: SchemaAsJson?
+		=> @(new Clause.JsonColumn(name, type, path, json is not null))
 
-SchemaPath   = Sql92.Lexical.NationalCharacterStringLiteral
-			 | Sql92.Lexical.CharacterStringLiteral
+SchemaPath : @string
+	= t: Sql92.Lexical.NationalCharacterStringLiteral => @(t)
+	| t: Sql92.Lexical.CharacterStringLiteral         => @(t)
+
 SchemaAsJson = "AS"i & "JSON"i
 
 // What may stand where one of these functions takes an argument. The published syntax of
@@ -978,14 +1003,9 @@ RowsetArgument : @Expression
 
 // `ORDER ( c1 ASC, c2 DESC ) [ UNIQUE ]` says a bulk source is already sorted.
 RowsetOrder : @Expression
-	= "ORDER"i & '(' & first: RowsetSortKey & (',' & rest: RowsetSortKey)* & ')'
-	  & "UNIQUE"i?
-		=> @(new Expression.RoutineInvocation("ORDER", Syntax.Listed(first, rest)))
-
-// Its own sort key rather than §10.10's: what a bulk source is sorted by stands where a
-// value does, and a sort specification is a clause.
-RowsetSortKey : @Expression
-	= c: ColumnReference & ("ASC"i | "DESC"i)? => @(c)
+	= "ORDER"i & '(' & first: SortSpecification & (',' & rest: SortSpecification)* & ')'
+	  & unique: "UNIQUE"i?
+		=> @(new Expression.RowsetOrder(Syntax.Listed(first, rest), unique is not null))
 
 // A provider's arguments may be joined by semicolons rather than commas — a connection
 // string written as three pieces, which is `OPENROWSET`'s oldest spelling.
@@ -996,7 +1016,7 @@ RowsetValue : @Expression
 	| v: ValueExpression => @(v)
 
 RowsetFunction : @Expression.RoutineInvocation
-	= name: RowsetName & '(' & args: RowsetArguments? & ')' & RowsetSchema?
+	= name: RowsetName & '(' & args: RowsetArguments? & ')'
 		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
 
 RowsetName
@@ -1034,9 +1054,9 @@ StatementBody : @Statement
 // What a statement writes to. Narrower than a table primary on purpose: the syntax gives
 // a target no correlation and no sample, and `UPDATE t AS x SET …` is not T-SQL.
 DmlTarget : @TableReference
-	= f: RowsetFunction                 => @(new TableReference.FunctionCall(f, null, null))
-	| t: Tsql.Variable & TableHints?    => @(new TableReference.Named(t, null, null, Clause.None))
-	| name: QualifiedName & TableHints? => @(new TableReference.Named(name, null, null, Clause.None))
+	= f: RowsetFunction                 => @(new TableReference.FunctionCall(f, null, null, Clause.None))
+	| t: Tsql.Variable & TableHints?    => @(new TableReference.Named(t, null, null, null, null, Clause.None))
+	| name: QualifiedName & TableHints? => @(new TableReference.Named(name, null, null, null, null, Clause.None))
 
 // ── §INSERT ─────────────────────────────────────────────────────────────────
 TsqlInsert : @Statement

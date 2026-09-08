@@ -320,6 +320,7 @@ field on one record here, and having a record each is what makes that a small ch
 | `Expression.Overlaps` | SQL-92 | §8.12 &lt;overlaps predicate&gt; |
 | `Expression.IsDistinctFrom` | SQL:1999 | &lt;distinct predicate&gt; |
 | `Expression.RoutineInvocation` | SQL-92 | §6.5 &lt;set function specification&gt;, §6.10 &lt;cast specification&gt;, and a call |
+| `Expression.RowsetOrder` | T-SQL | OPENROWSET — `ORDER (c1 ASC) UNIQUE`, the order a bulk source is declared to arrive in |
 | `Expression.Case` | SQL-92 | §6.9 &lt;case expression&gt; |
 | `Expression.ColumnReference` | SQL-92 | §6.4 &lt;column reference&gt; |
 | `Expression.Literal` | SQL-92 | §5.3 &lt;literal&gt; |
@@ -338,6 +339,8 @@ field on one record here, and having a record each is what makes that a small ch
 | `TableReference.Named` | SQL-92 | §6.3 &lt;table reference&gt; |
 | `TableReference.Derived` | SQL-92 | §6.3 &lt;derived table&gt; |
 | `TableReference.FunctionCall` | T-SQL | a table-valued function in a `FROM` clause, and the rowset functions |
+| `TableReference.Pivot` | T-SQL | FROM — the PIVOT clause |
+| `TableReference.Unpivot` | T-SQL | FROM — the UNPIVOT clause |
 | `TableReference.Joined` | SQL-92 | §6.3 &lt;joined table&gt; |
 
 ### `Clause`
@@ -350,6 +353,10 @@ field on one record here, and having a record each is what makes that a small ch
 | `Clause.OrderBy` | SQL-92 | §13.1 &lt;order by clause&gt;, with T-SQL's OFFSET and FETCH written inside it |
 | `Clause.Top` | T-SQL | SELECT — `TOP (n) PERCENT WITH TIES` |
 | `Clause.Window` | SQL:2003 | &lt;window specification&gt;; T-SQL: the OVER clause |
+| `Clause.SystemTime` | T-SQL | Temporal Tables — `FOR SYSTEM_TIME` |
+| `Clause.Into` | T-SQL | SELECT — `INTO new_table [ON filegroup]` |
+| `Clause.TableSample` | SQL:2003 | &lt;table sample clause&gt;; T-SQL: TABLESAMPLE |
+| `Clause.JsonColumn` | T-SQL | OPENJSON — one column of its `WITH` schema |
 | `Clause.GroupBy` | SQL-92 | §7.7 &lt;group by clause&gt;, with T-SQL's `ALL` and `WITH CUBE` |
 | `Clause.CommonTableExpression` | SQL:1999 | &lt;with list element&gt;; T-SQL: WITH common_table_expression |
 | `Clause.For` | T-SQL | SELECT — the FOR clause: `FOR XML`, `FOR JSON`, `FOR BROWSE` |
