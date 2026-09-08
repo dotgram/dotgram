@@ -90,7 +90,10 @@ static class Kinds
 			or nameof(CreateProcedureStatement) or nameof(AlterProcedureStatement)
 			or nameof(CreateFunctionStatement) or nameof(AlterFunctionStatement)
 			or nameof(CreateTriggerStatement) or nameof(AlterTriggerStatement)
-			or nameof(CreateViewStatement) or nameof(AlterViewStatement);
+			or nameof(CreateViewStatement) or nameof(AlterViewStatement)
+			or nameof(CreateIndexStatement) or nameof(AlterIndexStatement)
+			or nameof(CreateColumnStoreIndexStatement)
+			or nameof(GrantStatement) or nameof(RevokeStatement) or nameof(DenyStatement);
 
 	public static void Run(string? root, string version, int shown)
 	{

@@ -15676,3 +15676,33 @@ Two more things the syntax settled that a guess would not have. `AS FileTable` s
 twice. And a routine's parameter list may have no parentheses at all: `CREATE PROCEDURE p
 @a INT AS …` is as good as `p (@a INT)`, which is why it is a rule rather than a bracketed
 one.
+
+## Indexes and permissions, which were mostly written already
+
+An index inside a `CREATE TABLE` is the same thing said in the same words, so
+`CREATE INDEX` and `ALTER INDEX` needed only their headers: the columns, the options, the
+placement and the filter were all there. 360 statements for about forty lines.
+
+Permissions are one shape and three statements, and the interesting part is what a
+permission is *made of*. `ALTER ANY DATABASE DDL TRIGGER`, `VIEW SERVER STATE`,
+`BACKUP LOG`, `CREATE TABLE` — the names are runs of words, and most of those words are
+reserved, so an identifier cannot be any of them. They are named, the same way the option
+names are and for the same reason: a catalogue rather than a language.
+
+**A run rather than a fixed count.** The first attempt allowed up to four words and
+`ALTER ANY DATABASE DDL TRIGGER` is five. A repetition ends where it must without being
+told to: neither `ON` nor `TO` is a permission word, so the name takes its words and leaves
+the clause after them alone.
+
+```
+                                    count    read
+CreateColumnStoreIndexStatement       88      84   95.5%
+AlterIndexStatement                  132     120   90.9%
+CreateIndexStatement                 140     123   87.9%
+GrantStatement                       122      76   62.3%
+RevokeStatement                       53      32   60.4%
+DenyStatement                         51      24   47.1%
+```
+
+Of everything in the corpus, **40.4% to 45.9%**, and of the kinds this grammar has a rule
+for the engine and this one agree on 3,568 of 4,857.

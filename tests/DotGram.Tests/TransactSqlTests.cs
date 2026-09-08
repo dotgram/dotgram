@@ -791,6 +791,43 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>Indexes and permissions, which share almost everything with what came before.</summary>
+	/// <remarks>
+	/// An index inside a `CREATE TABLE` is the same thing said in the same words, so only the
+	/// header is new. And a permission's *name* is made of words T-SQL reserves — `ALTER ANY
+	/// DATABASE`, `VIEW SERVER STATE`, `BACKUP LOG` — which an identifier cannot be, so they
+	/// are named the way the option names are.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE INDEX ix ON t (a)")]
+	[InlineData("CREATE UNIQUE CLUSTERED INDEX ix ON dbo.t (a ASC, b DESC) INCLUDE (c) WHERE a > 0")]
+	[InlineData("CREATE INDEX ix ON t (a) WITH (PAD_INDEX = ON, FILLFACTOR = 80, ONLINE = ON) ON ps (a)")]
+	[InlineData("CREATE INDEX ix ON t (a) WITH (DATA_COMPRESSION = PAGE ON PARTITIONS (1 TO 4))")]
+	[InlineData("CREATE CLUSTERED COLUMNSTORE INDEX cix ON t")]
+	[InlineData("CREATE NONCLUSTERED COLUMNSTORE INDEX cix ON t (a, b) WHERE a > 0")]
+	[InlineData("ALTER INDEX ALL ON t REBUILD PARTITION = ALL")]
+	[InlineData("ALTER INDEX ix ON t REORGANIZE WITH (LOB_COMPACTION = ON)")]
+	[InlineData("ALTER INDEX ix ON t DISABLE")]
+	[InlineData("ALTER INDEX ix ON t SET (ALLOW_PAGE_LOCKS = OFF)")]
+	[InlineData("ALTER INDEX ix ON t RESUME WITH (MAXDOP = 2)")]
+
+	[InlineData("GRANT SELECT ON t TO u")]
+	[InlineData("GRANT SELECT (a, b), UPDATE ON dbo.t TO u, v WITH GRANT OPTION")]
+	[InlineData("GRANT alter ON SERVER ROLE::serverRole1 TO serverRole2")]
+	[InlineData("GRANT EXECUTE ON OBJECT::dbo.p TO PUBLIC AS dbo")]
+	[InlineData("GRANT VIEW SERVER STATE TO login_test")]
+	[InlineData("GRANT ALTER ANY DATABASE DDL TRIGGER TO u")]
+	[InlineData("GRANT ALL PRIVILEGES ON t TO u")]
+	[InlineData("DENY VIEW DEFINITION ON SCHEMA::s TO u CASCADE")]
+	[InlineData("REVOKE GRANT OPTION FOR SELECT ON t FROM u CASCADE AS dbo")]
+	[InlineData("REVOKE CREATE TABLE FROM u")]
+	public void The_indexes_and_permissions_read(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	// ── And builds the standard's tree ───────────────────────────────────────────
 
 	/// <summary>

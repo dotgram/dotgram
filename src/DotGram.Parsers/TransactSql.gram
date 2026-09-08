@@ -1105,6 +1105,9 @@ DefinitionStatement : @SqlNode
 	| s: CreateTableStatement => @(s)
 	| s: AlterTableStatement  => @(s)
 	| s: CreateRoutine        => @(s)
+	| s: CreateIndexStatement => @(s)
+	| s: AlterIndexStatement  => @(s)
+	| s: PermissionStatement  => @(s)
 
 StatementList : @SqlNode[] = s: TsqlStatement+ => @(s)
 
@@ -1573,3 +1576,91 @@ ViewStatement : @SqlNode
 	= "VIEW"i & name: QualifiedName & ('(' & columns: ColumnList & ')')? & RoutineOptions?
 	  & "AS"i & q: DirectSelect & ("WITH"i & "CHECK"i & "OPTION"i)?
 		=> @(new SqlNode.CreateView(name, columns, q))
+
+// ── Indexes ─────────────────────────────────────────────────────────────────
+//
+// Almost all of it was already written: an index inside a `CREATE TABLE` is the same
+// thing said in the same words, so the columns, the options, the placement and the
+// filter are shared and only the header is new.
+CreateIndexStatement : @SqlNode
+	= "CREATE"i & "UNIQUE"i? & IndexOrder? & "INDEX"i & name: Identifier
+	  & "ON"i & on: QualifiedName & columns: IndexColumns
+	  & ("INCLUDE"i & '(' & ColumnList & ')')?
+	  & ("WHERE"i & SearchCondition)?
+	  & IndexWith? & IndexOn? & ("FILESTREAM_ON"i & PlacementTarget)?
+		=> @(new SqlNode.CreateIndex(name, on, columns))
+	| "CREATE"i & IndexOrder? & "COLUMNSTORE"i & "INDEX"i & name: Identifier
+	  & "ON"i & on: QualifiedName & columns: IndexColumns?
+	  & ("ORDER"i & '(' & ColumnList & ')')?
+	  & ("WHERE"i & SearchCondition)?
+	  & IndexWith? & IndexOn?
+		=> @(new SqlNode.CreateIndex(name, on, columns))
+
+// `ALTER INDEX` names one index or all of them, and then says what to do.
+AlterIndexStatement : @SqlNode
+	= "ALTER"i & "INDEX"i & name: IndexTarget & "ON"i & on: QualifiedName & a: AlterIndexAction
+		=> @(new SqlNode.AlterIndex(name, on, a))
+
+IndexTarget : @string = "ALL"i => @("ALL") | t: Identifier => @(t)
+
+AlterIndexAction : @string
+	= "REBUILD"i & ("PARTITION"i & '=' & PartitionWhich)? & IndexWith? => @("REBUILD")
+	| "REORGANIZE"i & ("PARTITION"i & '=' & PartitionWhich)? & IndexWith? => @("REORGANIZE")
+	| "DISABLE"i => @("DISABLE")
+	| "PAUSE"i => @("PAUSE")
+	| "ABORT"i => @("ABORT")
+	| "RESUME"i & IndexWith? => @("RESUME")
+	| "SET"i & '(' & OptionList & ')' => @("SET")
+
+// ── Permissions ─────────────────────────────────────────────────────────────
+//
+// One shape, three statements, and the interesting part is that a permission's *name* is
+// made of words T-SQL reserves — `ALTER ANY DATABASE`, `CREATE TABLE`, `VIEW DEFINITION`,
+// `BACKUP LOG`. An identifier cannot be any of them, so the words are named, the same way
+// the option names are and for the same reason: they are a catalogue rather than a
+// language, and a permission added to SQL Server does not change this grammar.
+PermissionStatement : @SqlNode
+	= "GRANT"i & what: Permissions & PermissionOn? & "TO"i & who: Principals
+	  & ("WITH"i & "GRANT"i & "OPTION"i)? & PermissionAs?
+		=> @(new SqlNode.Permission("GRANT", what, who))
+	| "DENY"i & what: Permissions & PermissionOn? & "TO"i & who: Principals
+	  & "CASCADE"i? & PermissionAs?
+		=> @(new SqlNode.Permission("DENY", what, who))
+	| "REVOKE"i & ("GRANT"i & "OPTION"i & "FOR"i)? & what: Permissions & PermissionOn?
+	  & ToOrFrom & who: Principals & "CASCADE"i? & PermissionAs?
+		=> @(new SqlNode.Permission("REVOKE", what, who))
+
+ToOrFrom      = "TO"i | "FROM"i
+PermissionAs  = "AS"i & PrincipalName
+PermissionOn  = "ON"i & SecurableClass? & QualifiedName
+
+// `OBJECT::t`, `SCHEMA::s`, `SERVER ROLE::r` — a class of one or two words and `::`.
+SecurableClass = PermissionWord & PermissionWord? & "::"
+
+Permissions : @string[]
+	= "ALL"i & "PRIVILEGES"i? => @(new[] { "ALL" })
+	| first: Permission & (',' & rest: Permission)* => @(SqlNode.Named(first, rest))
+
+Permission : @string
+	= t: PermissionName & ('(' & ColumnList & ')')? => @(t)
+
+// A run of them, and it ends where it must: neither `ON` nor `TO` is a permission word,
+// so the words of the name are taken and the clause after them is left alone.
+PermissionName = PermissionWord+
+
+// The words a permission is spelled with. Most are reserved and none can be read as an
+// identifier, so they are written out; the rest — `CONTROL`, `IMPERSONATE`, `SHOWPLAN`,
+// `SUBSCRIBE` and their fellows — arrive as identifiers and need no saying.
+PermissionWord
+	= "ALTER"i | "ANY"i | "CREATE"i | "VIEW"i | "EXECUTE"i | "EXEC"i | "SELECT"i
+	| "INSERT"i | "UPDATE"i | "DELETE"i | "REFERENCES"i | "BACKUP"i | "RESTORE"i
+	| "DATABASE"i | "TABLE"i | "PROCEDURE"i | "PROC"i | "FUNCTION"i | "RULE"i
+	| "DEFAULT"i | "SCHEMA"i | "USER"i | "KILL"i | "CHECKPOINT"i | "SHUTDOWN"i
+	| "PLAN"i | "STATISTICS"i | "KEY"i | "FILE"i | "TRIGGER"i | "INDEX"i | "PUBLIC"i
+	| "SERVER"i
+	| Identifier
+
+Principals : @string[]
+	= first: PrincipalName & (',' & rest: PrincipalName)* => @(SqlNode.Named(first, rest))
+
+PrincipalName : @string = "PUBLIC"i => @("PUBLIC") | t: QualifiedName => @(t)

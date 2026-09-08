@@ -289,6 +289,20 @@ public abstract record SqlNode
 	/// <summary>One parameter of a routine: its name, its type, and its default.</summary>
 	public sealed record Parameter(string Name, string? Type, SqlNode? Value) : SqlNode;
 
+	// ---- indexes and permissions ---------------------------------------------------------------
+
+	/// <summary>An index declared: its name, what it is on, and the columns it is over.</summary>
+	public sealed record CreateIndex(string Name, string On, string[]? Columns) : SqlNode;
+
+	/// <summary>An index changed: which one, on what, and what is being done to it.</summary>
+	public sealed record AlterIndex(string Name, string On, string Action) : SqlNode;
+
+	/// <summary>
+	/// A permission granted, denied or revoked: which of the three, what is being said about,
+	/// and to whom.
+	/// </summary>
+	public sealed record Permission(string Kind, string[] What, string[] Who) : SqlNode;
+
 	// ---- how a parser makes these ------------------------------------------------------------
 
 	/// <summary>What a call with no arguments is handed, once rather than per call.</summary>
