@@ -56,6 +56,13 @@ namespace DotGram.Examples;
 
 	// F12 on ToolingEvaluate should open the generated C# publication method.
 	parse Sum as ToolingEvaluate
+
+	// The two rules above are here to be hovered rather than to be read from, and `Sum`
+	// does not reach either — which is what GRAM4018 is for. Publishing them is what says
+	// they are meant: each becomes an entry point of its own, so F12 on either name lands
+	// in a generated method the way it does on `Sum`.
+	parse Backtracking as ToolingBacktracking
+	parse Power        as ToolingPower
 	""")]
 [GramLanguage("dotgram.tooling.playground")]
 [GramClassify("Sum", GramClassification.Function)]
