@@ -293,23 +293,32 @@ public static class FirstSets
 			throw new ArgumentNullException(nameof(graph));
 
 		var reported = new List<GramDiagnostic>();
+		var follow   = FollowSets.Of(graph);
 
 		foreach (var rule in graph.Rules)
 			if (rule.Declaration is { } declaration && graph.Bodies.TryGetValue(rule, out var body))
-				Swallowed(body, rule, declaration, reported, graph, inventory);
+			{
+				// What follows the rule itself, for the optionals that stand at the end of
+				// it. `RoutineOption`'s last operand is followed by the `AS` of the rule
+				// that called it, and nothing inside `RoutineOption` says so.
+				var after = follow.TryGetValue(rule, out var beyond) ? beyond.Plain : First.None;
+
+				Swallowed(body, rule, declaration, reported, graph, inventory, after);
+			}
 
 		return reported;
 	}
 
 	static void Swallowed(
 		Node node, RuleSymbol rule, Decl.Rule declaration,
-		List<GramDiagnostic> reported, RecognitionGraph graph, TerminalInventory? inventory)
+		List<GramDiagnostic> reported, RecognitionGraph graph, TerminalInventory? inventory,
+		First after)
 	{
 		if (node is Node.Sequence(var parts))
 		{
-			for (var i = 0; i < parts.Count - 1; i++)
+			for (var i = 0; i < parts.Count; i++)
 			{
-				if (Takes(parts, i, graph) is not { } taken)
+				if (Takes(parts, i, graph, after) is not { } taken)
 					continue;
 
 				reported.Add(new GramDiagnostic(
@@ -325,8 +334,13 @@ public static class FirstSets
 			}
 		}
 
+		// Only the body's own alternatives are followed by what follows the rule. Anything
+		// nested is followed by the rest of the shape around it, which is a question this
+		// does not ask and would answer wrongly by borrowing the rule's.
+		var inside = node is Node.Choice ? after : First.None;
+
 		foreach (var child in Children(node))
-			Swallowed(child, rule, declaration, reported, graph, inventory);
+			Swallowed(child, rule, declaration, reported, graph, inventory, inside);
 	}
 
 	/// <summary>The overlap said as the words it stands for, where they can be looked up.</summary>
@@ -389,15 +403,21 @@ public static class FirstSets
 	/// bare identifier, an option's name — and that is what this asks about.
 	/// </para>
 	/// </remarks>
-	static First? Takes(IReadOnlyList<Node> parts, int at, RecognitionGraph graph)
+	static First? Takes(
+		IReadOnlyList<Node> parts, int at, RecognitionGraph graph, First beyond)
 	{
 		if (parts[at] is not Node.Repeat(var body, var min, var max) || max is int most && most <= min)
 			return null;
 
-		var only  = Only(body, graph, []);
-		var after = Following(parts, at + 1, graph);
+		var only = Only(body, graph, []);
+		var rest = Following(parts, at + 1, graph);
 
-		return only.Overlaps(after) ? only.And(after) : null;
+		// Where nothing after it in this sequence has to read anything, what follows is
+		// whatever follows the rule — the caller's next clause, which is where two of the
+		// five this was written for did their damage.
+		var after = rest.Nothing ? beyond : rest;
+
+		return after.Nothing || !only.Overlaps(after) ? null : only.And(after);
 	}
 
 	/// <summary>What a node can match when it matches exactly one token, or nothing.</summary>

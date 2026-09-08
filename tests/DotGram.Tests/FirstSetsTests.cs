@@ -311,4 +311,33 @@ public sealed class FirstSetsTests
 		Assert.DoesNotContain(Split(grammar), one => one.Id == FirstSets.Swallows);
 	}
 
+	/// <summary>And what follows the rule counts as what follows the optional in it.</summary>
+	/// <remarks>
+	/// The half no local reading can see. `Options` ends with an optional and says nothing
+	/// about the `as` after it, because the `as` belongs to the rule that calls it — and two
+	/// of the traps this was written for were exactly that: a routine option that ate its
+	/// own `AS`, and a key's option that ate the `ENCRYPTION BY` beside it. Both are a rule
+	/// reached through a call whose continuation is somewhere else, so the continuation is
+	/// fetched from `FollowSets` where the sequence itself has nothing left to read.
+	/// </remarks>
+	[Fact]
+	public void And_what_follows_the_rule_counts_too()
+	{
+		const string grammar =
+			"""
+			wordboundary = ['a'..'z' | '_']
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				Name = ['a'..'z' | '_'] & ['a'..'z' | '_']*
+			}
+			Options = Lexical.Name & Lexical.Name?
+			Start   = "select" & Options & "as" & Lexical.Name
+			parse Start
+			""";
+
+		Assert.Contains(Split(grammar), one => one.Id == FirstSets.Swallows);
+	}
+
 }

@@ -16307,3 +16307,30 @@ reaching half answers whether it knew the kind and the groups are asked in turn.
 Of everything in the corpus, **79.7% to 82.0%**, and 5,958 statements read by both this
 grammar and the engine.
 
+### And the half that reads past the call
+
+GRAM5009 asked about an optional against what follows it *in the same sequence*, and the
+two traps of the key wave were neither: a rule reached through a call whose continuation is
+somewhere else. `RoutineOption` ends with an option's name and says nothing about the `AS`
+after it, because the `AS` belongs to the rule that calls it.
+
+So where the sequence has nothing left that must read anything, what follows is what
+follows the *rule*, out of `FollowSets`. Fourteen sites became eighteen, and the four are
+exactly that class:
+
+```text
+In 'OptionWords', 'OptionWord+' can take `MERGE`, `EXEC`, `EXECUTE`, `DELETE` and more
+In 'OutputItem', 'TsqlAsClause?' can take `MERGE`, `WITH`, `EXEC`, `EXECUTE` and more
+In 'TranMark', 'ValueExpression?' can take `MERGE`, `WITH`, `EXEC` and more
+In 'OptionSetting', 'OptionTail?' can take `ON`
+```
+
+The first is the one that bit twice. The second is worse than it looks: an `OUTPUT` item's
+alias may be written without `AS`, so inside a block `INSERT … OUTPUT inserted.a MERGE …`
+aliases the next statement's first word — which no test in this repository would have found
+and no corpus statement happens to write.
+
+Only the body's own alternatives inherit the rule's continuation. Anything nested is
+followed by the rest of the shape around it, which is a question this does not ask and
+would answer wrongly by borrowing.
+
