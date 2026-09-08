@@ -266,6 +266,29 @@ public abstract record SqlNode
 	/// <summary>A table changed: its name, what is being done, and to what.</summary>
 	public sealed record AlterTable(string Name, string Action, SqlNode[] Elements) : SqlNode;
 
+	// ---- the routines --------------------------------------------------------------------------
+
+	/// <summary>A procedure: its name, what it takes, and what it does.</summary>
+	public sealed record CreateProcedure(
+		string Name, SqlNode[] Parameters, SqlNode[] Body) : SqlNode;
+
+	/// <summary>
+	/// A function, and what it returns says which of the three shapes it is: a type for a
+	/// scalar, `TABLE` for either of the two that return rows.
+	/// </summary>
+	public sealed record CreateFunction(
+		string Name, SqlNode[] Parameters, string? Returns, SqlNode[] Body) : SqlNode;
+
+	/// <summary>A trigger: what it is on, what fires it, and what it does then.</summary>
+	public sealed record CreateTrigger(
+		string Name, string On, string[] Events, SqlNode[] Body) : SqlNode;
+
+	/// <summary>A view, which is a name given to a query.</summary>
+	public sealed record CreateView(string Name, string[]? Columns, SqlNode Selects) : SqlNode;
+
+	/// <summary>One parameter of a routine: its name, its type, and its default.</summary>
+	public sealed record Parameter(string Name, string? Type, SqlNode? Value) : SqlNode;
+
 	// ---- how a parser makes these ------------------------------------------------------------
 
 	/// <summary>What a call with no arguments is handed, once rather than per call.</summary>

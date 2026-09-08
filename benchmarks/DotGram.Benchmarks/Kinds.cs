@@ -86,7 +86,11 @@ static class Kinds
 			or nameof(AlterTableAlterColumnStatement) or nameof(AlterTableDropTableElementStatement)
 			or nameof(AlterTableConstraintModificationStatement)
 			or nameof(AlterTableTriggerModificationStatement) or nameof(AlterTableSetStatement)
-			or nameof(AlterTableRebuildStatement) or nameof(AlterTableSwitchStatement);
+			or nameof(AlterTableRebuildStatement) or nameof(AlterTableSwitchStatement)
+			or nameof(CreateProcedureStatement) or nameof(AlterProcedureStatement)
+			or nameof(CreateFunctionStatement) or nameof(AlterFunctionStatement)
+			or nameof(CreateTriggerStatement) or nameof(AlterTriggerStatement)
+			or nameof(CreateViewStatement) or nameof(AlterViewStatement);
 
 	public static void Run(string? root, string version, int shown)
 	{

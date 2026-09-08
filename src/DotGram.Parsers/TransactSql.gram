@@ -535,7 +535,8 @@ GroupByExpression : @SqlNode
 		=> @(new SqlNode.Row(SqlNode.Listed(first, rest)))
 	| c: TsqlGroupingColumn => @(c)
 
-TsqlGroupingColumn : @SqlNode = c: ValueExpression & Collate? => @(c)
+TsqlGroupingColumn : @SqlNode
+	= c: ValueExpression & Collate? & ("WITH"i & '(' & Identifier & ')')? => @(c)
 
 // One entry of a `GROUPING SETS` list: a cube, a rollup, a list of those, or a plain
 // group-by expression. A grouping set inside a grouping set is not here, deliberately.
@@ -1103,6 +1104,7 @@ DefinitionStatement : @SqlNode
 	| s: BulkInsertStatement  => @(s)
 	| s: CreateTableStatement => @(s)
 	| s: AlterTableStatement  => @(s)
+	| s: CreateRoutine        => @(s)
 
 StatementList : @SqlNode[] = s: TsqlStatement+ => @(s)
 
@@ -1272,11 +1274,17 @@ WaitKind  = "DELAY"i | "TIME"i
 // The option lists — `WITH (DATA_COMPRESSION = PAGE, …)`, `WITH (FILLFACTOR = 80)` — are
 // written as a shape with an open vocabulary, as the table hints are and for the same
 // reason: the names are a catalogue, and adding one to T-SQL does not change the grammar.
+// `AS FileTable` stands before the columns and `AS NODE` after them, which is two
+// syntaxes rather than one written twice; and a file table has no columns at all, its
+// shape being the one the feature gives it.
 CreateTableStatement : @SqlNode
-	= "CREATE"i & "TABLE"i & name: QualifiedName & ("AS"i & Identifier)?
-	  & '(' & body: TableBody & ')'
-	  & TablePlacement* & OptionsWith?
+	= "CREATE"i & "TABLE"i & name: QualifiedName & TableAs? & '(' & body: TableBody & ')'
+	  & TableAs? & TablePlacement* & OptionsWith?
 		=> @(new SqlNode.CreateTable(name, body))
+	| "CREATE"i & "TABLE"i & name: QualifiedName & TableAs & TablePlacement* & OptionsWith?
+		=> @(new SqlNode.CreateTable(name, SqlNode.None))
+
+TableAs = "AS"i & Identifier
 
 TablePlacement = "ON"i & PlacementTarget
 			   | "TEXTIMAGE_ON"i & PlacementTarget
@@ -1307,7 +1315,7 @@ OptionValue = "NULL"i
 			| "OFF"i & ('(' & OptionList & ')')?
 			| "ON"i  & ('(' & OptionList & ')')?
 			| Identifier & '(' & OptionList & ')'
-			| v: ValueExpression
+			| v: ValueExpression & Identifier?
 
 OnPartitions   = "ON"i & "PARTITIONS"i & '(' & PartitionRange & (',' & PartitionRange)* & ')'
 PartitionRange = ValueExpression & ("TO"i & ValueExpression)?
@@ -1365,8 +1373,13 @@ ConstraintBody : @SqlNode.Constraint
 		=> @(SqlNode.Constrained("REFERENCES", null, null))
 	| "CHECK"i & ("NOT"i & "FOR"i & "REPLICATION"i)? & '(' & c: SearchCondition & ')'
 		=> @(SqlNode.Constrained("CHECK", null, c))
+	| "CONNECTION"i & '(' & EdgePair & (',' & EdgePair)* & ')' & ReferenceAction*
+		=> @(SqlNode.Constrained("CONNECTION", null, null))
 	| "DEFAULT"i & v: ValueExpression & ("FOR"i & Identifier)?
 		=> @(SqlNode.Constrained("DEFAULT", null, v))
+
+// Which node tables an edge may join, which is the one constraint only a graph has.
+EdgePair = QualifiedName & "TO"i & QualifiedName
 
 References      = "REFERENCES"i & QualifiedName & ('(' & ColumnList & ')')? & ReferenceAction*
 ReferenceAction = "ON"i & DeleteOrUpdate & RefAction
@@ -1378,7 +1391,11 @@ RefAction      = "NO"i & "ACTION"i | "CASCADE"i | "SET"i & "NULL"i | "SET"i & "D
 IndexColumns : @string[] = '(' & first: IndexColumn & (',' & rest: IndexColumn)* & ')'
 	=> @(SqlNode.Named(first, rest))
 
-IndexColumn : @string = t: Identifier & ("ASC"i | "DESC"i)? => @(t)
+IndexColumn : @string = t: IndexName & ("ASC"i | "DESC"i)? => @(t)
+
+// `$NODE_ID` and its fellows are columns a graph table has that nobody declared, and an
+// index may be built on one.
+IndexName : @string = t: Identifier => @(t) | t: PartitionName => @(t)
 
 IndexWith = "WITH"i & "FILLFACTOR"i & '=' & ValueExpression
 		  | "WITH"i & '(' & OptionList & ')'
@@ -1387,7 +1404,7 @@ IndexOn = "ON"i & PlacementTarget
 
 // ── An index written inside the table ───────────────────────────────────────
 TableIndex : @SqlNode
-	= "INDEX"i & name: Identifier & "UNIQUE"i? & IndexOrder? & "COLUMNSTORE"i?
+	= "INDEX"i & name: Identifier & "UNIQUE"i? & IndexOrder? & "COLUMNSTORE"i? & "HASH"i?
 	  & columns: IndexColumns?
 	  & ("ORDER"i & '(' & ColumnList & ')')?
 	  & ("INCLUDE"i & '(' & ColumnList & ')')?
@@ -1442,3 +1459,117 @@ DropTarget : @SqlNode
 	| name: Identifier & OptionsWith?  => @(SqlNode.Marked("CONSTRAINT", name))
 
 IfExists = "IF"i & "EXISTS"i
+
+// ── The routines: a header and a body ───────────────────────────────────────
+//
+// Four statements that could not be read at all until the procedural level was written,
+// because each of them is a header and then whatever T-SQL somebody put inside it. That
+// is 341 statements of the corpus, and the body is the part that was already done.
+//
+// `CREATE OR ALTER` is one word in front of all four, so it is read once.
+CreateRoutine : @SqlNode
+	= "CREATE"i & OrAlter? & r: RoutineBody => @(r)
+	| "ALTER"i & r: RoutineBody             => @(r)
+
+OrAlter = "OR"i & "ALTER"i
+
+RoutineBody : @SqlNode
+	= p: ProcedureStatement => @(p)
+	| f: FunctionStatement  => @(f)
+	| g: TriggerStatement   => @(g)
+	| v: ViewStatement      => @(v)
+
+// ── CREATE PROCEDURE ────────────────────────────────────────────────────────
+ProcedureStatement : @SqlNode
+	= ProcWord & name: QualifiedName & (';' & Sql92.Lexical.Digits)?
+	  & parameters: RoutineParameters? & RoutineOptions? & ("FOR"i & "REPLICATION"i)?
+	  & "AS"i & body: RoutineTail
+		=> @(new SqlNode.CreateProcedure(name, parameters ?? SqlNode.None, body))
+
+ProcWord = "PROCEDURE"i | "PROC"i
+
+// The parentheses are optional, which is why a parameter list is a rule rather than a
+// bracketed one: `CREATE PROCEDURE p @a INT AS …` is as good as `p (@a INT)`.
+RoutineParameters : @SqlNode[]
+	= '(' & ')' => @(SqlNode.None)
+	| '(' & first: RoutineParameter & (',' & rest: RoutineParameter)* & ')'
+		=> @(SqlNode.Listed(first, rest))
+	| first: RoutineParameter & (',' & rest: RoutineParameter)*
+		=> @(SqlNode.Listed(first, rest))
+
+RoutineParameter : @SqlNode
+	= name: Tsql.Variable & "AS"i? & type: DataType & "VARYING"i? & "NULL"i?
+	  & ('=' & v: SetValue)? & ParameterWay*
+		=> @(new SqlNode.Parameter(name, type, v))
+
+ParameterWay = "OUTPUT"i | "OUT"i | "READONLY"i
+
+RoutineOptions = "WITH"i & RoutineOption & (',' & RoutineOption)*
+
+RoutineOption = "EXECUTE"i & "AS"i & ExecuteAsWho
+			  | "RETURNS"i & "NULL"i & "ON"i & "NULL"i & "INPUT"i
+			  | "CALLED"i & "ON"i & "NULL"i & "INPUT"i
+			  | Identifier
+
+ExecuteAsWho = "CALLER"i | "SELF"i | "OWNER"i
+			 | Sql92.Lexical.CharacterStringLiteral
+			 | Sql92.Lexical.NationalCharacterStringLiteral
+
+// What follows `AS`: a body, or the name of a method in an assembly.
+RoutineTail : @SqlNode[]
+	= "EXTERNAL"i & "NAME"i & QualifiedName => @(SqlNode.None)
+	| body: StatementList                   => @(body)
+
+// ── CREATE FUNCTION ─────────────────────────────────────────────────────────
+//
+// Three shapes and the difference is what `RETURNS` says: a type, `TABLE`, or a table
+// variable and the columns it holds.
+FunctionStatement : @SqlNode
+	= "FUNCTION"i & name: QualifiedName & parameters: RoutineParameters?
+	  & "RETURNS"i & r: FunctionReturns
+		=> @(r with { Name = name, Parameters = parameters ?? SqlNode.None })
+
+FunctionReturns : @SqlNode.CreateFunction
+	= "TABLE"i & RoutineOptions? & "AS"i? & "RETURN"i & body: InlineReturn
+		=> @(new SqlNode.CreateFunction("", SqlNode.None, "TABLE", body))
+	| name: Tsql.Variable & "TABLE"i & '(' & TableBody & ')' & RoutineOptions? & "AS"i?
+	  & body: StatementList
+		=> @(new SqlNode.CreateFunction("", SqlNode.None, "TABLE", body))
+	| type: DataType & RoutineOptions? & "AS"i? & body: RoutineTail
+		=> @(new SqlNode.CreateFunction("", SqlNode.None, type, body))
+
+InlineReturn : @SqlNode[]
+	= '(' & q: QueryExpression & OrderByClause? & ')' => @(new SqlNode[] { q })
+	| q: QueryExpression & OrderByClause?             => @(new SqlNode[] { q })
+
+// ── CREATE TRIGGER ──────────────────────────────────────────────────────────
+TriggerStatement : @SqlNode
+	= "TRIGGER"i & name: QualifiedName & "ON"i & on: TriggerOn & RoutineOptions?
+	  & TriggerWhen & events: TriggerEvents
+	  & ("WITH"i & "APPEND"i)? & ("NOT"i & "FOR"i & "REPLICATION"i)?
+	  & "AS"i & body: RoutineTail
+		=> @(new SqlNode.CreateTrigger(name, on, events, body))
+
+TriggerOn : @string
+	= "ALL"i & "SERVER"i => @("ALL SERVER")
+	| "DATABASE"i        => @("DATABASE")
+	| t: QualifiedName   => @(t)
+
+TriggerWhen = "INSTEAD"i & "OF"i | "AFTER"i | "FOR"i
+
+// A DML trigger names the three statements; a DDL one names events or a group of them,
+// and both are words separated by commas.
+TriggerEvents : @string[]
+	= first: TriggerEvent & (',' & rest: TriggerEvent)* => @(SqlNode.Named(first, rest))
+
+TriggerEvent : @string
+	= "INSERT"i => @("INSERT")
+	| "UPDATE"i => @("UPDATE")
+	| "DELETE"i => @("DELETE")
+	| t: Identifier => @(t)
+
+// ── CREATE VIEW ─────────────────────────────────────────────────────────────
+ViewStatement : @SqlNode
+	= "VIEW"i & name: QualifiedName & ('(' & columns: ColumnList & ')')? & RoutineOptions?
+	  & "AS"i & q: DirectSelect & ("WITH"i & "CHECK"i & "OPTION"i)?
+		=> @(new SqlNode.CreateView(name, columns, q))

@@ -15640,3 +15640,39 @@ test would have been better and there is not one: a synthetic grammar of alterna
 compiled on the tape rather than as methods, and one written as a chain deep enough
 overflows the generator's own stack while compiling it. That last is worth writing down on
 its own.
+
+## The routines, and the tail of the tables
+
+Four statements that could not be read at all until the procedural level existed, because
+each is a header and then whatever T-SQL somebody put inside it: `CREATE PROCEDURE`,
+`CREATE FUNCTION`, `CREATE TRIGGER`, `CREATE VIEW`. 341 statements of the corpus between
+them, and the body was the part already done — which is why the procedural level went first.
+
+`CREATE OR ALTER` is one word in front of all four and is read once. A function has three
+shapes and what tells them apart is what `RETURNS` says: a type for a scalar, `TABLE` for
+the inline one, a table variable and its columns for the other. A trigger's `ON` is a table,
+a database or the whole server, and its events are the three DML words or a DDL event name.
+
+With them, the tail of `CREATE TABLE` that the work list had been pointing at: graph tables
+(`AS NODE`, `AS EDGE`, and the `CONNECTION (N1 TO N2)` constraint only an edge has), a file
+table, which has no columns at all, `$NODE_ID` in an index's column list, a hash index, an
+option value carrying a unit (`MAX_DURATION = 1440 MINUTES`), and `WITH (DISTRIBUTED_AGG)`,
+which is said of one grouping column rather than of the list.
+
+```
+                            count    read
+CreateTableStatement          631     441   69.9%
+CreateTriggerStatement         48      43   89.6%
+CreateFunctionStatement        82      54   65.9%
+CreateProcedureStatement      142      85   59.9%
+CreateViewStatement            69      31   44.9%
+```
+
+Of everything in the corpus, **34.4% to 40.4%** — and of the kinds this grammar now has a
+rule for, the engine and this one agree on 3,115 of 4,271.
+
+Two more things the syntax settled that a guess would not have. `AS FileTable` stands
+*before* the columns and `AS NODE` *after* them — two syntaxes rather than one written
+twice. And a routine's parameter list may have no parentheses at all: `CREATE PROCEDURE p
+@a INT AS …` is as good as `p (@a INT)`, which is why it is a rule rather than a bracketed
+one.

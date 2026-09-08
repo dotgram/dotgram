@@ -691,6 +691,13 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE TABLE t (a INT, s DATETIME2 GENERATED ALWAYS AS ROW START, e DATETIME2 GENERATED ALWAYS AS ROW END, PERIOD FOR SYSTEM_TIME (s, e)) WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.h))")]
 	[InlineData("CREATE TABLE t (a INT) ON ps (a) TEXTIMAGE_ON [PRIMARY]")]
 	[InlineData("CREATE TABLE t (a XML COLUMN_SET FOR ALL_SPARSE_COLUMNS)")]
+	[InlineData("CREATE TABLE n1 (c1 INT) AS NODE")]
+	[InlineData("CREATE TABLE e01 (c1 INT, CONSTRAINT cnst CONNECTION (N1 TO N2)) AS EDGE")]
+	[InlineData("CREATE TABLE t AS FILETABLE WITH (FILETABLE_DIRECTORY = 'd')")]
+	[InlineData("CREATE TABLE t (c1 INT, INDEX idx NONCLUSTERED ($NODE_ID))")]
+	[InlineData("CREATE TABLE t (i INT NOT NULL INDEX ix NONCLUSTERED HASH WITH (BUCKET_COUNT = 16))")]
+	[InlineData("ALTER TABLE t REBUILD WITH (ONLINE = ON (WAIT_AT_LOW_PRIORITY (MAX_DURATION = 1440 MINUTES, ABORT_AFTER_WAIT = NONE)))")]
+	[InlineData("SELECT c1 FROM t1 GROUP BY c1 WITH (DISTRIBUTED_AGG), c2")]
 	[InlineData("CREATE TABLE t (a INT) WITH (DATA_COMPRESSION = PAGE ON PARTITIONS (1 TO 4, 6))")]
 
 	[InlineData("ALTER TABLE t ADD c5 VARBINARY (MAX) FILESTREAM")]
@@ -743,6 +750,45 @@ public sealed class TransactSqlTests
 		Assert.Equal("pk", third.Name);
 		Assert.Equal("PRIMARY KEY", third.Kind);
 		Assert.Equal(new[] { "a" }, third.Columns);
+	}
+
+	/// <summary>The four that are a header and a body.</summary>
+	/// <remarks>
+	/// None of them could be read at all until the procedural level existed, because each is
+	/// a header and then whatever T-SQL somebody put inside it — 341 statements of the corpus
+	/// between them, and the body was the part already done.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE PROCEDURE p AS SELECT 1")]
+	[InlineData("CREATE PROC dbo.p @a INT, @b NVARCHAR (50) = N'x' OUTPUT AS BEGIN SELECT @a END")]
+	[InlineData("CREATE PROCEDURE p (@a INT = 0 READONLY) WITH RECOMPILE, ENCRYPTION AS SELECT 1")]
+	[InlineData("CREATE OR ALTER PROCEDURE p AS SELECT 1")]
+	[InlineData("ALTER PROCEDURE p AS SELECT 1")]
+	[InlineData("CREATE PROCEDURE p WITH EXECUTE AS OWNER AS SELECT 1")]
+	[InlineData("CREATE PROCEDURE p AS EXTERNAL NAME asm.cls.method")]
+	[InlineData("CREATE PROCEDURE p AS BEGIN INSERT INTO t1 VALUES (1, 2), (DEFAULT, 0); RETURN 0 END")]
+
+	[InlineData("CREATE FUNCTION f (@a INT) RETURNS INT AS BEGIN RETURN @a * 2 END")]
+	[InlineData("CREATE FUNCTION f () RETURNS TABLE AS RETURN (SELECT a FROM t)")]
+	[InlineData("CREATE FUNCTION f (@a INT) RETURNS TABLE RETURN SELECT a FROM t WHERE b = @a")]
+	[InlineData("CREATE FUNCTION f () RETURNS @r TABLE (a INT NOT NULL) AS BEGIN INSERT INTO @r VALUES (1); RETURN END")]
+	[InlineData("CREATE FUNCTION f (@a INT) RETURNS INT WITH SCHEMABINDING, RETURNS NULL ON NULL INPUT AS BEGIN RETURN 1 END")]
+
+	[InlineData("CREATE TRIGGER tr ON Sales.Customer AFTER INSERT, UPDATE AS RAISERROR ('x', 16, 10)")]
+	[InlineData("CREATE TRIGGER tr ON t INSTEAD OF DELETE AS SELECT 1")]
+	[InlineData("CREATE TRIGGER tr ON t FOR INSERT NOT FOR REPLICATION AS SELECT 1")]
+	[InlineData("CREATE TRIGGER safety ON DATABASE FOR DROP_SYNONYM AS RAISERROR ('x', 10, 1)")]
+	[InlineData("CREATE TRIGGER tr ON ALL SERVER FOR CREATE_DATABASE AS PRINT 'made'")]
+	[InlineData("CREATE TRIGGER tr ON ALL SERVER WITH EXECUTE AS 'login_test' FOR LOGON AS BEGIN ROLLBACK END")]
+
+	[InlineData("CREATE VIEW v AS SELECT a FROM t")]
+	[InlineData("CREATE VIEW dbo.v (a, b) WITH SCHEMABINDING AS SELECT x, y FROM t WITH CHECK OPTION")]
+	[InlineData("CREATE OR ALTER VIEW v AS SELECT a FROM t UNION SELECT b FROM u")]
+	public void The_routines_read(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
 	// ── And builds the standard's tree ───────────────────────────────────────────
