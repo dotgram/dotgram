@@ -583,9 +583,13 @@ public sealed class TerminalInventory
 				}
 
 				// A hand-written boundary — `(… | …) & ?!\p{L}` — wraps the choice without
-				// changing what it accepts, and §4.6's woven one does the same.
+				// changing what it accepts, and §4.6's woven one does the same. Only where
+				// nothing after the choice reads anything: this used to take the first part
+				// of any sequence, so `("::" | '.') & Name` was called the set `{"::", "."}`
+				// and every call site became that range — with the name after it gone. It
+				// read `t::a` as `t` and an alias, and refused everything that followed.
 				case Node.Sequence(var parts):
-					return parts.Count > 0 ? Choices(parts[0]) : null;
+					return parts.Count > 0 && Silent(parts, 1) ? Choices(parts[0]) : null;
 
 				case Node.Atomic(var kept):    return Choices(kept);
 				case Node.Marked(var kept, _): return Choices(kept);
@@ -593,6 +597,34 @@ public sealed class TerminalInventory
 				default: return null;
 			}
 		}
+
+		/// <summary>Whether everything from <paramref name="from"/> on consumes nothing.</summary>
+		/// <remarks>
+		/// What a boundary is made of and nothing else: an assertion, a guard, a seam that
+		/// was woven and rewrote away. Anything that reads is a part of the rule the set
+		/// would throw away, and a rule that reads more than its literals is not a set of
+		/// them however much its first operand looks like one.
+		/// </remarks>
+		static bool Silent(IReadOnlyList<Node> parts, int from)
+		{
+			for (var at = from; at < parts.Count; at++)
+				if (!Silent(parts[at]))
+					return false;
+
+			return true;
+		}
+
+		static bool Silent(Node node) =>
+			node switch
+			{
+				Node.Lookahead or Node.Behind or Node.Glue or Node.Guard or Node.Empty => true,
+				Node.Literal(var text)      => text.Length == 0,
+				Node.Marked(var body, _)    => Silent(body),
+				Node.Atomic(var body)       => Silent(body),
+				Node.Sequence(var nodes)    => Silent(nodes, 0),
+				Node.Repeat(_, _, var max)  => max == 0,
+				_                           => false,
+			};
 
 		/// <summary>The one literal an alternative is, boundary and all — and nothing looser.</summary>
 		static Node.Literal? Only(Node node) =>

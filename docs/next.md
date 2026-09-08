@@ -15904,10 +15904,51 @@ surface — Synapse's distributions, Fabric's `CREATE MATERIALIZED VIEW`, Azure'
 and `SERVICE_OBJECTIVE`, the ledger's `GENERATED ALWAYS AS SUSER_SID` — which is what the
 version chain is for and not a defect while there is one dialect.
 
-## Open: a member and then anything
+## A rule that reads more than its literals is not a set of them
 
-`SELECT t::a` reads and `SELECT t::a + 1` does not, nor `SELECT t::a COLLATE X`, nor
-`t::a AT TIME ZONE 'x'`. A member reached through `::` is read and then the value tower
-will not continue over it — `t.a + 1` is fine, so it is the `Member*` suffix and not the
-name. Sixty-odd statements of the corpus, and worth its own look: it is either the climb
-not seeing what a rebound primary consumed, or the suffix committing where it should not.
+The open item from the last wave — `SELECT t::a` reads and `SELECT t::a + 1` does not —
+was not the grammar. It was a defect in the lexical split, and it had been there since the
+split was written.
+
+A rule that is a choice of literals becomes **one range over kinds** at each of its call
+sites; that is why a fifty-way keyword choice costs one comparison. Because §4.6 weaves a
+boundary onto a keyword — and an author may write one by hand as `(… | …) & ?!\p{L}` — the
+search for that choice looks through a sequence to its first part. It looked through *any*
+sequence. So
+
+```dotgram
+Member = ("::" | '.') & Identifier & ('(' & Arguments? & ')')?
+```
+
+was called the set `{"::", "."}`, every call site became that range, and everything after
+the choice was gone. T-SQL then read `t::a` as `t` with the alias `a` — the identifier the
+member never got to read, arriving in the alias slot — and refused everything that could
+follow it: `t::a + 1`, `t::a AS q`, `t::f()`, `t::a COLLATE x`.
+
+The fix is one clause: look through a sequence only where everything after the first part
+**consumes nothing** — an assertion, a guard, a seam that rewrote away. That is exactly the
+boundary the lookthrough exists for, and nothing else.
+
+The tell was that the same rule written as `MemberOp & Identifier` worked, which is the
+shape of a bug in a rule-shape analysis rather than in a rule. Sixty statements of the
+corpus, and it took a minimal grammar to see: `("::")` alone was fine and `("::" | "..")`
+was not, so it was the choice and not the mark.
+
+## And what the second reading found after that
+
+**`NULL` is a constant of this dialect.** The standard's is a `<null specification>` and
+stands in a handful of named places — a row constructor, a `CAST` operand, a `SET`.
+Microsoft's expression reference lists it among the constants, which is a different
+language: `1 + NULL` is an expression, `TRIM('[]' FROM NULL)` is a call, `VALUES (NULL)` is
+a row and `DEFAULT NULL` is a constraint whose value is one. All four were refused.
+
+**A table-valued function written in the CLR** declares its columns where an inline one
+says `RETURN`, and `ORDER` says what the assembly promises about them:
+`RETURNS TABLE (c1 INT) ORDER (c1 ASC) AS EXTERNAL NAME a.b.c`.
+
+**A table-valued method on a variable** of a user-defined type — `FROM @v.f(1) AS t (c)` —
+which had to be left-factored against the bare table variable, since both begin with the
+variable and GRAM4016 says so.
+
+Of everything in the corpus, **58.0% to 58.6%**, and 4,328 statements read by both this
+grammar and the engine.

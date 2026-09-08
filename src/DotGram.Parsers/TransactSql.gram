@@ -201,6 +201,7 @@ TsqlPrimaryCore : @SqlNode
 	| t: Tsql.MoneyLiteral                     => @(new SqlNode.Literal(SqlLiteralKind.Number, t))
 	| t: Tsql.BinaryLiteral                    => @(new SqlNode.Literal(SqlLiteralKind.Hex, t))
 	| v: UnsignedValueSpecification            => @(v)
+	| "NULL"i                                  => @(SqlNode.NullValue)
 	| n: ColumnReference                       => @(n)
 
 // ODBC's escapes, which every driver has understood since before this language had a
@@ -596,14 +597,23 @@ TsqlTablePrimary : @SqlNode
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & TableSample? & TableHints? & PivotSuffix?
 		=> @(new SqlNode.Source(name, null, alias, columns))
-	| t: Tsql.Variable & ("AS"i? & alias: CorrelationName)? & TableSample? & TableHints?
-		=> @(new SqlNode.Source(t, null, alias, null))
+	| t: Tsql.Variable & s: VariableSource => @(s with { Table = t })
 	| derived: TableSubquery & "AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?
 	  & PivotSuffix?
 		=> @(new SqlNode.Source(null, derived, alias, columns))
 	| '(' & j: TableReference & ')' & TableSample? & TableHints?
 		=> @(j)
 	| '{' & "OJ"i & j: TableReference & '}' => @(j)
+
+// What a variable may be as a table: the table variable itself, or a table-valued method
+// on a variable of a user-defined type — `FROM @v.f(1) AS t(c)`. Left-factored because
+// both begin with the variable, which is what GRAM4016 asks for.
+VariableSource : @SqlNode.Source
+	= '.' & Identifier & '(' & Arguments? & ')'
+	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
+		=> @(new SqlNode.Source("", null, alias, columns))
+	| ("AS"i? & alias: CorrelationName)? & TableSample? & TableHints?
+		=> @(new SqlNode.Source("", null, alias, null))
 
 // The published syntax makes a pivoted table a source of its own — `table_source PIVOT
 // (…) [AS] alias` — which is left recursion, and §4.3 folds that only where the rule
@@ -1608,7 +1618,10 @@ FunctionStatement : @SqlNode
 		=> @(r with { Name = name, Parameters = parameters ?? SqlNode.None })
 
 FunctionReturns : @SqlNode.CreateFunction
-	= "TABLE"i & RoutineOptions? & "AS"i? & "RETURN"i & body: InlineReturn
+	= "TABLE"i & '(' & TableBody & ')' & ("ORDER"i & IndexColumns)? & RoutineOptions?
+	  & "AS"i & "EXTERNAL"i & "NAME"i & QualifiedName
+		=> @(new SqlNode.CreateFunction("", SqlNode.None, "TABLE", SqlNode.None))
+	| "TABLE"i & RoutineOptions? & "AS"i? & "RETURN"i & body: InlineReturn
 		=> @(new SqlNode.CreateFunction("", SqlNode.None, "TABLE", body))
 	| name: Tsql.Variable & "TABLE"i & '(' & TableBody & ')' & RoutineOptions? & "AS"i?
 	  & body: StatementList

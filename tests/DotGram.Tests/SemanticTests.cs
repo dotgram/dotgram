@@ -1760,6 +1760,69 @@ public sealed class SemanticTests
 		Assert.Equal("aa bb cc", got.Value);
 	}
 
+	/// <summary>
+	/// A rule that reads more than its literals is not a set of them.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A rule that is a choice of literals becomes one range over kinds at each of its call
+	/// sites, which is the whole reason a fifty-way keyword choice costs one comparison
+	/// (docs/lexical-adt-design.md). A boundary woven onto it — or written by hand as
+	/// <c>(… | …) &amp; ?!\p{L}</c> — does not change what it accepts, so the search for the
+	/// choice looks through a sequence to its first part.
+	/// </para>
+	/// <para>
+	/// It used to look through <em>any</em> sequence. So <c>("::" | '.') &amp; Name</c> was
+	/// called the set <c>{"::", "."}</c>, every call site became that range, and the name
+	/// after it was gone: T-SQL read <c>t::a</c> as <c>t</c> with an alias, and refused
+	/// everything that could follow — <c>t::a + 1</c>, <c>t::a AS q</c>, <c>t::f()</c>.
+	/// Sixty statements of somebody else's corpus, and the tell was that the same rule
+	/// written as <c>MemberOp &amp; Name</c> worked. The case the lookthrough exists for —
+	/// a choice and then an assertion, which reads nothing — is still a set, and
+	/// <see cref="LexicalSplitTests"/> asserts that a word list collapses to one range.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("select t", "t/-")]
+	[InlineData("select t as q", "t/q")]
+	[InlineData("select t::a", "t/-")]
+	[InlineData("select t::a as q", "t/q")]
+	public void A_choice_that_reads_more_than_its_literals_is_not_a_set(string input, string expected)
+	{
+		const string grammar =
+			"""
+			wordboundary = ['a'..'z']
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				Name = ['a'..'z'] & ['a'..'z']*
+			}
+			Member = ("::" | "..") & Lexical.Name
+			Item  : @string = v: Lexical.Name & Member* & alias: Tail? => @(v + "/" + (alias ?? "-"))
+			Tail  : @string = "as" & t: Lexical.Name => @(t)
+			Start : @string = "select" & i: Item => @(i)
+			parse Start
+			""";
+
+		var result = GramCompiler.Compile(
+			grammar,
+			new GramCompilerOptions
+			{
+				ClassName     = "Grammar",
+				CSharpScanner = RoslynCSharpScanner.Instance,
+				Lexical       = true,
+			});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var got = EmittedCode.Match(
+			EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseStart", input);
+
+		Assert.True(got.IsSuccess, input);
+		Assert.Equal(expected, got.Value);
+	}
+
 	// ── Trivia and repetition (§4.5) ─────────────────────────────────────────────
 
 	[Fact]

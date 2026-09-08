@@ -987,6 +987,60 @@ public sealed class TransactSqlTests
 	public void And_what_only_ScriptDom_reads_is_refused(string input) =>
 		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
 
+	/// <summary>`NULL` is a constant of this dialect and stands wherever a value does.</summary>
+	/// <remarks>
+	/// The standard's is a <c>&lt;null specification&gt;</c> and stands in a handful of
+	/// named places — a row constructor, a `CAST` operand, a `SET`. Microsoft's expression
+	/// reference lists it among the constants, which is a different language: `1 + NULL` is
+	/// an expression, `trim('[]' FROM NULL)` is a call, and `DEFAULT NULL` is a constraint
+	/// whose value is one. Found by the corpus refusing all three.
+	/// </remarks>
+	[Theory]
+	[InlineData("SELECT NULL")]
+	[InlineData("SELECT 1 + NULL")]
+	[InlineData("SELECT TRIM('[]' FROM NULL)")]
+	[InlineData("SELECT COALESCE(NULL, 1)")]
+	[InlineData("INSERT INTO t (a) VALUES (NULL)")]
+	[InlineData("CREATE TABLE t (a INT CONSTRAINT d DEFAULT NULL)")]
+
+	// A table-valued function written in the CLR declares its columns where an inline one
+	// would say `RETURN`, and `ORDER` says what the assembly promises about them.
+	[InlineData("CREATE FUNCTION f () RETURNS TABLE (c1 INT) AS EXTERNAL NAME a.b.c")]
+	[InlineData("CREATE FUNCTION f () RETURNS TABLE (c1 INT) ORDER (c1 ASC) AS EXTERNAL NAME a.b.c")]
+
+	// And a table-valued method on a variable of a user-defined type.
+	[InlineData("SELECT c1 FROM @v.f(1) AS t (c)")]
+	[InlineData("SELECT c1 FROM @v.f() AS t")]
+	[InlineData("SELECT c1 FROM @rows")]
+	public void And_the_rest_of_the_second_reading(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>A member reached through `::`, and everything that may follow one.</summary>
+	/// <remarks>
+	/// `SELECT t::a` read and `SELECT t::a + 1` did not, which was not the grammar:
+	/// <c>("::" | '.') &amp; Identifier</c> was being taken for a set of two literals and
+	/// every call site became that range, with the identifier after it gone. See
+	/// <see cref="SemanticTests.A_choice_that_reads_more_than_its_literals_is_not_a_set"/>.
+	/// </remarks>
+	[Theory]
+	[InlineData("SELECT t::a")]
+	[InlineData("SELECT t::a + 1")]
+	[InlineData("SELECT t::a AS q")]
+	[InlineData("SELECT t::f()")]
+	[InlineData("SELECT t::a COLLATE Albanian_BIN")]
+	[InlineData("SELECT t::a, t2::f(), dbo.[type 1]::[Property]")]
+	[InlineData("SELECT (c1).SomeProperty")]
+	public void A_member_reads_and_the_value_goes_on(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	// ── And builds the standard's tree ───────────────────────────────────────────
 
 	/// <summary>
