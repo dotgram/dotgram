@@ -16553,3 +16553,30 @@ statement that says so is not the same text as one that does not.
 
 Of the corpus, still **82.1%** read — nothing regressed — and the round-trip went from 23.3%
 to **27.1%**, with `SelectStatement` itself from 39.5% to **53.4%**.
+
+### Wave two: the window, the hints, and what a value reaches through
+
+`OVER` was read and dropped with the same argument `TOP` had — it says which rows a call
+sees, not what the call is — and the argument was wrong for the same reason: it is part of
+the text. `Expression.WindowFunction` is SQL:2003's `<window function>`, a call and the
+window it is computed over, built with its call left null and closed by whoever read it,
+exactly as a predicate tail is. `Clause.Window` is the specification; its frame — `ROWS
+BETWEEN 1 PRECEDING AND CURRENT ROW` — is kept as the words it was written as, for the
+reason a hint is.
+
+Table hints joined the query hints: `TableReference.Named` gained a `Hints` list of
+`Clause.Hint`, so `FROM t WITH (FORCESEEK (ix (a, b)))` comes back.
+
+And two losses in the value tower that the round-trip made visible and nothing else would
+have. `SELECT t::a COLLATE Albanian_BIN` came back as `SELECT t`, and
+`SELECT (c1).SomeProperty` as `SELECT c1`: a member written after a primary was read and
+dropped, so *the value itself* was the wrong node, not merely a decorated one.
+`Expression.Member` keeps the chain — one node per member, each built with its own left
+side null — and `Expression.Collated` keeps the collation.
+
+`SelectStatement` went from 53.4% to **63.2%**, and the whole corpus from 27.1% to
+**29.8%**. Still 82.1% read; nothing regressed.
+
+What `SELECT` still loses, in the order the oracle lists it: `PIVOT` and `UNPIVOT`,
+`TABLESAMPLE`, `FOR SYSTEM_TIME`, the `WINDOW` clause, a `WITH` in front of the four
+statements that are not a select, and the rowset functions' own `ORDER (c1 ASC) UNIQUE`.

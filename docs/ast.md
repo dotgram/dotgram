@@ -326,6 +326,9 @@ field on one record here, and having a record each is what makes that a small ch
 | `Expression.RowValueConstructor` | SQL-92 | §7.1 &lt;row value constructor&gt; |
 | `Expression.NamedArgument` | T-SQL | an argument given by name — `EXECUTE`, and the rowset functions |
 | `Expression.Prefixed` | T-SQL | a value with a word in front of it — `BULK` in OPENROWSET, `CHANGES` in CHANGETABLE, `LANGUAGE` in CONTAINSTABLE |
+| `Expression.WindowFunction` | SQL:2003 | &lt;window function&gt; — a call and the window it is computed over |
+| `Expression.Member` | T-SQL | a member of a value, or a method called on one — `a.b`, `a::b`, `a.f(1)` |
+| `Expression.Collated` | SQL-92 | §6.11 &lt;collate clause&gt; on a value |
 | `Expression.Subquery` | SQL-92 | §7.11 &lt;subquery&gt; |
 
 ### `TableReference`
@@ -346,6 +349,7 @@ field on one record here, and having a record each is what makes that a small ch
 | `Clause.SortSpecification` | SQL-92 | §13.1 &lt;sort specification&gt; |
 | `Clause.OrderBy` | SQL-92 | §13.1 &lt;order by clause&gt;, with T-SQL's OFFSET and FETCH written inside it |
 | `Clause.Top` | T-SQL | SELECT — `TOP (n) PERCENT WITH TIES` |
+| `Clause.Window` | SQL:2003 | &lt;window specification&gt;; T-SQL: the OVER clause |
 | `Clause.GroupBy` | SQL-92 | §7.7 &lt;group by clause&gt;, with T-SQL's `ALL` and `WITH CUBE` |
 | `Clause.CommonTableExpression` | SQL:1999 | &lt;with list element&gt;; T-SQL: WITH common_table_expression |
 | `Clause.For` | T-SQL | SELECT — the FOR clause: `FOR XML`, `FOR JSON`, `FOR BROWSE` |

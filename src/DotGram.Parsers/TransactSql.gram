@@ -182,8 +182,8 @@ TsqlValueSpecification : @Expression
 // applies to whatever was just read, which is one rule around the core and not
 // twelve inside it.
 TsqlValuePrimary : @Expression
-	= p: TsqlPrimaryCore & Member* & zone: AtTimeZone?
-		=> @(zone is null ? p : new Expression.RoutineInvocation("AT TIME ZONE", new Expression[] { p, zone }))
+	= p: TsqlPrimaryCore & members: Member* & zone: AtTimeZone?
+		=> @(Syntax.Reached(p, members, zone))
 
 AtTimeZone : @Expression = "AT"i & "TIME"i & "ZONE"i & v: TsqlPrimaryCore => @(v)
 
@@ -193,8 +193,8 @@ TsqlPrimaryCore : @Expression
 	| c: TsqlCast                              => @(c)
 	| f: ValueFunction                         => @(f)
 	| f: TsqlValueFunction                     => @(f)
-	| f: CountStar & CallTail?                 => @(f)
-	| f: SetFunctionSpecification & CallTail?  => @(f)
+	| f: CountStar & tail: CallTail?                => @(Syntax.Called(f, tail))
+	| f: SetFunctionSpecification & tail: CallTail? => @(Syntax.Called(f, tail))
 	| q: ScalarSubquery                        => @(q)
 	| n: NextValue                             => @(n)
 	| f: FunctionCall                          => @(f)
@@ -231,7 +231,12 @@ OdbcName = word
 // names is a type's member, which is a catalogue's business and not this tree's.
 // Written as a postfix because a qualified name has already eaten every `.` it
 // could, so this fires only where one is left over.
-Member = ("::" | '.') & Identifier & ('(' & Arguments? & ')')?
+// Built with its left side null and closed by whoever read it, so that a chain of members
+// is a chain of nodes rather than one node holding a list of names.
+Member : @Expression.Member
+	= by: ("::" | '.') & name: Identifier
+	  & call: ('(' & args: Arguments? & ')')?
+		=> @(new Expression.Member(null!, by, name, call is null ? null : args ?? Expression.None))
 
 // §6.10's cast, widened, and the T-SQL spellings that are casts under other names.
 // `CONVERT` is a different rule and not a wider one: the standard's takes a value and
@@ -243,8 +248,11 @@ TsqlCast : @Expression
 	  & (',' & style: ValueExpression)? & ')'
 		=> @(new Expression.RoutineInvocation(name, style is null ? new Expression[] { v } : new Expression[] { v, style }, type))
 	| name: ("TRY_PARSE"i | "PARSE"i) & '(' & v: ValueExpression & "AS"i & type: DataType
-	  & ("USING"i & ValueExpression)? & ')'
-		=> @(new Expression.RoutineInvocation(name, new Expression[] { v }, type))
+	  & ("USING"i & culture: ValueExpression)? & ')'
+		=> @(new Expression.RoutineInvocation(
+				 name,
+				 culture is null ? new Expression[] { v } : new Expression[] { v, culture },
+				 type))
 
 // The T-SQL functions with a syntax of their own rather than an argument list, which
 // is the same reason §6.16's are written out in the standard. What they have in common
@@ -259,10 +267,10 @@ TsqlValueFunction : @Expression
 		=> @(new Expression.RoutineInvocation("IIF", new Expression[] { c, a, b }))
 	| "CHOOSE"i & '(' & at: ValueExpression & ',' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
 		=> @(new Expression.RoutineInvocation("CHOOSE", Syntax.Listed(at, Syntax.Listed(first, rest))))
-	| name: JsonObjectName & '(' & body: JsonObjectBody? & ')' & CallTail?
-		=> @(new Expression.RoutineInvocation(name, body ?? Expression.None))
-	| name: JsonArrayName & '(' & body: JsonArrayBody? & ')' & CallTail?
-		=> @(new Expression.RoutineInvocation(name, body ?? Expression.None))
+	| name: JsonObjectName & '(' & body: JsonObjectBody? & ')' & tail: CallTail?
+		=> @(Syntax.Called(new Expression.RoutineInvocation(name, body ?? Expression.None), tail))
+	| name: JsonArrayName & '(' & body: JsonArrayBody? & ')' & tail: CallTail?
+		=> @(Syntax.Called(new Expression.RoutineInvocation(name, body ?? Expression.None), tail))
 
 // **The null clause needs something to be null.** The published syntax makes the key
 // values and the clause independently optional — `JSON_OBJECT ( [ <json_key_value>
@@ -306,15 +314,18 @@ JsonOrder      = "ORDER"i & "BY"i & ValueExpression & ("ASC"i | "DESC"i)?
 // A sequence, read where a value stands. `FOR` here is not the `FOR` of `FOR JSON`;
 // it is the middle of one three-word name.
 NextValue : @Expression
-	= "NEXT"i & "VALUE"i & "FOR"i & name: QualifiedName & CallTail?
-		=> @(new Expression.RoutineInvocation("NEXT VALUE FOR", Expression.None, name))
+	= "NEXT"i & "VALUE"i & "FOR"i & name: QualifiedName & tail: CallTail?
+		=> @(Syntax.Called(
+				 new Expression.RoutineInvocation("NEXT VALUE FOR", Expression.None, name), tail))
 
 // A call to something this grammar has never heard of, which is most of them: the
 // name is a catalogue's business and the arguments are values.
 FunctionCall : @Expression
 	= name: QualifiedName & '(' & quantifier: SetQuantifier? & args: Arguments? & UseModel?
-	  & JsonReturning? & ')' & CallTail?
-		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None, Syntax.Distinctly(quantifier)))
+	  & JsonReturning? & ')' & tail: CallTail?
+		=> @(Syntax.Called(
+				 new Expression.RoutineInvocation(
+					 name, args ?? Expression.None, Syntax.Distinctly(quantifier)), tail))
 
 // What may follow a call: which rows of a window it sees when they are null, what a
 // set function inside a window is ordered by, and the window itself. All three read and
@@ -326,27 +337,35 @@ FunctionCall : @Expression
 // `OVER ()`, and `(Nulls | WithinGroup | Over)*` did the same. Alternatives of a rule do
 // come back — which is what makes the two spellings different languages here and not two
 // ways of writing one. The same thing shapes `WindowFrame` below.
-CallTail
-	= Nulls & Over
-	| WithinGroup & Over
-	| Nulls
-	| WithinGroup
-	| Over
-Nulls       = "RESPECT"i & "NULLS"i | "IGNORE"i & "NULLS"i
-WithinGroup = "WITHIN"i & "GROUP"i & '(' & OrderByClause & ')'
-			| "WITHIN"i & "GROUP"i & '(' & "GRAPH"i & "PATH"i & ')'
+// Built with its call left null and filled in by whoever read it, the way a predicate's
+// left operand is: the call is read once for the five shapes that may follow it.
+CallTail : @Expression.WindowFunction
+	= t: Nulls & w: Over       => @(new Expression.WindowFunction(null!, t, w))
+	| t: WithinGroup & w: Over => @(new Expression.WindowFunction(null!, t, w))
+	| t: Nulls                 => @(new Expression.WindowFunction(null!, t, null))
+	| t: WithinGroup           => @(new Expression.WindowFunction(null!, t, null))
+	| w: Over                  => @(new Expression.WindowFunction(null!, null, w))
+Nulls : @string = t: ("RESPECT"i & "NULLS"i | "IGNORE"i & "NULLS"i) => @(t)
+
+WithinGroup : @string
+	= t: ("WITHIN"i & "GROUP"i & '(' & OrderByClause & ')') => @(t)
+	| t: ("WITHIN"i & "GROUP"i & '(' & "GRAPH"i & "PATH"i & ')') => @(t)
 
 // The window a call is computed over. Read and dropped, as `TOP` is: it says which
 // rows the call sees and not what the call is, and the tree this grammar builds is
 // the standard's. A window may also be named, and the name is declared by the query's
 // own `WINDOW` clause.
-Over = "OVER"i & '('
-	   & WindowName?
-	   & ("PARTITION"i & "BY"i & ValueExpression & (',' & ValueExpression)*)?
-	   & OrderByClause?
-	   & WindowFrame?
+Over : @Clause.Window
+	= "OVER"i & '('
+	   & name: WindowName?
+	   & ("PARTITION"i & "BY"i & first: ValueExpression & (',' & rest: ValueExpression)*)?
+	   & by: OrderByClause?
+	   & frame: WindowFrame?
 	   & ')'
-	 | "OVER"i & Identifier
+		=> @(new Clause.Window(
+				 name, first is null ? Expression.None : Syntax.Listed(first, rest),
+				 Clause.Ordered(by, null), frame))
+	 | "OVER"i & only: Identifier => @(new Clause.Window(only, Expression.None, null, null))
 
 // The name of a window declared by the query's `WINDOW` clause, standing where the
 // window itself would. Guarded the same way a correlation name is and for the same
@@ -357,9 +376,9 @@ WindowName   = ?!WindowClause & Identifier
 WindowClause = "PARTITION"i | "ROWS"i | "RANGE"i
 
 // A window frame: how far either side of the current row the window reaches.
-WindowFrame
-	= ("ROWS"i | "RANGE"i) & "BETWEEN"i & FrameBound & "AND"i & FrameBound
-	| ("ROWS"i | "RANGE"i) & FrameBound
+WindowFrame : @string
+	= t: (("ROWS"i | "RANGE"i) & "BETWEEN"i & FrameBound & "AND"i & FrameBound) => @(t)
+	| t: (("ROWS"i | "RANGE"i) & FrameBound)                                    => @(t)
 
 FrameBound
 	= "UNBOUNDED"i & ("PRECEDING"i | "FOLLOWING"i)
@@ -603,8 +622,8 @@ TsqlTablePrimary : @TableReference
 		=> @(new TableReference.FunctionCall(f, alias, columns))
 	| name: QualifiedName & SystemTime? & ('(' & Arguments? & ')')?
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
-	  & TableSample? & TableHints? & PivotSuffix?
-		=> @(new TableReference.Named(name, alias, columns))
+	  & TableSample? & hints: TableHints? & PivotSuffix?
+		=> @(new TableReference.Named(name, alias, columns, hints ?? Clause.None))
 	| t: Tsql.Variable & s: VariableSource => @(s with { Table = t })
 	| derived: TableSubquery & "AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?
 	  & PivotSuffix?
@@ -619,9 +638,9 @@ TsqlTablePrimary : @TableReference
 VariableSource : @TableReference.Named
 	= '.' & Identifier & '(' & Arguments? & ')'
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
-		=> @(new TableReference.Named("", alias, columns))
+		=> @(new TableReference.Named("", alias, columns, Clause.None))
 	| ("AS"i? & alias: CorrelationName)? & TableSample? & TableHints?
-		=> @(new TableReference.Named("", alias, null))
+		=> @(new TableReference.Named("", alias, null, Clause.None))
 
 // The published syntax makes a pivoted table a source of its own — `table_source PIVOT
 // (…) [AS] alias` — which is left recursion, and §4.3 folds that only where the rule
@@ -681,12 +700,14 @@ SourceClause    = "WINDOW"i | "PIVOT"i | "UNPIVOT"i | "TABLESAMPLE"i | "USING"i
 //
 // All of it is read and dropped: a hint says how the rows are to be fetched and never
 // which rows they are, and the tree this grammar builds is the standard's.
-TableHints = "WITH"i & '(' & TableHint & (',' & TableHint)* & ')'
+TableHints : @Clause[]
+	= "WITH"i & '(' & first: TableHint & (',' & rest: TableHint)* & ')'
+		=> @(Syntax.Listed(first, rest))
 
-TableHint
-	= "HOLDLOCK"i
-	| "INDEX"i & IndexArgument
-	| word & TableHintTail?
+TableHint : @Clause
+	= t: ("HOLDLOCK"i)              => @(new Clause.Hint(t))
+	| t: ("INDEX"i & IndexArgument) => @(new Clause.Hint(t))
+	| t: (word & TableHintTail?)    => @(new Clause.Hint(t))
 
 TableHintTail
 	= '(' & IndexValue & TableHintRest & ')'
@@ -1000,7 +1021,7 @@ RowsetName
 // So it is read here where it stands rather than cut off before the parse — cutting it
 // off is what made every merge in the corpus look like a defect on this side.
 TsqlStatement : @Statement
-	= WithClause? & s: StatementBody & ';'? => @(s)
+	= with: WithClause? & s: StatementBody & ';'? => @(Syntax.Preceded(with, s))
 
 StatementBody : @Statement
 	= s: TsqlInsert   => @(s)
@@ -1014,8 +1035,8 @@ StatementBody : @Statement
 // a target no correlation and no sample, and `UPDATE t AS x SET …` is not T-SQL.
 DmlTarget : @TableReference
 	= f: RowsetFunction                 => @(new TableReference.FunctionCall(f, null, null))
-	| t: Tsql.Variable & TableHints?    => @(new TableReference.Named(t, null, null))
-	| name: QualifiedName & TableHints? => @(new TableReference.Named(name, null, null))
+	| t: Tsql.Variable & TableHints?    => @(new TableReference.Named(t, null, null, Clause.None))
+	| name: QualifiedName & TableHints? => @(new TableReference.Named(name, null, null, Clause.None))
 
 // ── §INSERT ─────────────────────────────────────────────────────────────────
 TsqlInsert : @Statement

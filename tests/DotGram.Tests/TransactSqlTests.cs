@@ -1569,24 +1569,51 @@ public sealed class TransactSqlTests
 	/// And what is read and dropped is dropped: the tree a dialect builds is the standard's.
 	/// </summary>
 	/// <remarks>
-	/// <c>TOP</c> says how many rows come back and <c>OVER</c> says which rows a call sees;
-	/// neither says what the rows or the call are. So both read and neither reaches the
-	/// tree, and what comes back is the same query as without them.
+	/// Both were read and dropped until the tree was made lossless: <c>TOP</c> says how many
+	/// rows come back and <c>OVER</c> says which rows a call sees, and neither says what the
+	/// rows or the call <em>are</em>. They are part of the text all the same, and a tree that
+	/// cannot print back what it read cannot be checked against another parser.
 	/// </remarks>
 	[Fact]
-	public void A_count_and_a_window_are_read_and_dropped()
+	public void A_count_and_a_window_say_what_was_written()
 	{
-		// Node by node rather than query by query: a `Query` holds arrays, and a record
-		// compares those by reference, so two readings of the same text are never equal.
 		var topped = Selected("SELECT TOP 10 PERCENT a FROM t");
-		var plain  = Selected("SELECT a FROM t");
+		var top    = Assert.IsType<Clause.Top>(topped.Top);
 
-		Assert.Equal(Assert.Single(plain.Columns), Assert.Single(topped.Columns));
-		Assert.Equal(Assert.Single(plain.From),    Assert.Single(topped.From));
+		Assert.True(top.Percent);
+		Assert.Null(top.With);
+		Assert.Equal("10", Assert.IsType<Expression.Literal>(top.Value).Text);
+		Assert.Null(Selected("SELECT a FROM t").Top);
 
-		Assert.Equal(
-			Assert.Single(Selected("SELECT COUNT(*) FROM t")                      .Columns),
-			Assert.Single(Selected("SELECT COUNT(*) OVER (PARTITION BY b) FROM t").Columns));
+		var over = Assert.IsType<Expression.WindowFunction>(
+			Assert.IsType<Clause.DerivedColumn>(
+				Assert.Single(Selected("SELECT COUNT(*) OVER (PARTITION BY b) FROM t").Columns)).Value);
+
+		var window = Assert.IsType<Clause.Window>(over.Over);
+
+		Assert.Equal("COUNT", Assert.IsType<Expression.RoutineInvocation>(over.Function).Name);
+		Assert.Equal("b", Assert.IsType<Expression.ColumnReference>(
+			Assert.Single(window.PartitionBy)).Text);
+	}
+
+	/// <summary>And the clauses the statement wraps a query in.</summary>
+	[Fact]
+	public void A_select_keeps_the_clauses_written_around_it()
+	{
+		var read = Assert.IsType<Statement.Select>(
+			TransactSql.TryParseStatement(
+				"WITH c AS (SELECT a FROM u) SELECT a INTO #t FROM c ORDER BY a " +
+				"OFFSET 5 ROWS FETCH NEXT 2 ROWS ONLY FOR XML AUTO OPTION (MAXDOP 2)").Value);
+
+		var named = Assert.IsType<Clause.CommonTableExpression>(Assert.Single(read.With));
+		var by    = Assert.IsType<Clause.OrderBy>(read.OrderBy);
+
+		Assert.Equal("c", named.Name);
+		Assert.Equal("#t", Assert.IsType<Query.Specification>(read.Of).Into);
+		Assert.Equal("5", Assert.IsType<Expression.Literal>(by.Offset).Text);
+		Assert.Equal("2", Assert.IsType<Expression.Literal>(by.Fetch).Text);
+		Assert.Equal("XML", Assert.IsType<Clause.For>(Assert.Single(read.For)).Kind);
+		Assert.Equal("MAXDOP 2", Assert.IsType<Clause.Hint>(Assert.Single(read.Options)).Text);
 	}
 
 	/// <summary>What the dialect read, where it was a query.</summary>

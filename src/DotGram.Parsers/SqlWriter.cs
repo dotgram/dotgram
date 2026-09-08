@@ -708,9 +708,17 @@ public static class SqlWriter
 	{
 		switch (source)
 		{
-			case TableReference.Named(var table, var name, var columns):
+			case TableReference.Named(var table, var name, var columns, var hints):
 				text.Append(table);
 				Alias(text, name, columns);
+
+				if (hints.Length > 0)
+				{
+					text.Append(" WITH (");
+					Each(text, hints);
+					text.Append(')');
+				}
+
 				break;
 
 			case TableReference.Derived(var query, var name, var columns):
@@ -866,6 +874,44 @@ public static class SqlWriter
 				if (options.Length > 0)
 					text.Append(' ').Append(string.Join(", ", options));
 
+				break;
+
+			case Clause.Window(var window, var partition, var by, var frame):
+				// A window that is only a name was written without brackets; anything else
+				// has them, and an empty `OVER ()` is written with nothing inside.
+				if (window is not null && partition.Length == 0 && by is null && frame is null)
+				{
+					text.Append("OVER ").Append(window);
+
+					break;
+				}
+
+				text.Append("OVER (");
+
+				if (window is not null)
+					text.Append(window).Append(' ');
+
+				if (partition.Length > 0)
+				{
+					text.Append("PARTITION BY ");
+					List(text, partition);
+
+					if (by is not null || frame is not null)
+						text.Append(' ');
+				}
+
+				if (by is not null)
+				{
+					Put(text, by);
+
+					if (frame is not null)
+						text.Append(' ');
+				}
+
+				if (frame is not null)
+					text.Append(frame);
+
+				text.Append(')');
 				break;
 
 			case Clause.Hint(var hint):
@@ -1195,6 +1241,38 @@ public static class SqlWriter
 				Arguments(text, values, "");
 				break;
 
+			case Expression.WindowFunction(var function, var within, var over):
+				Put(text, function, 8);
+
+				if (within is not null)
+					text.Append(' ').Append(within);
+
+				if (over is not null)
+				{
+					text.Append(' ');
+					Put(text, over);
+				}
+
+				break;
+
+			case Expression.Member(var of, var by, var name, var arguments):
+				Put(text, of, 8);
+				text.Append(by).Append(name);
+
+				if (arguments is not null)
+				{
+					text.Append('(');
+					List(text, arguments);
+					text.Append(')');
+				}
+
+				break;
+
+			case Expression.Collated(var value, var collation):
+				Put(text, value, 8);
+				text.Append(" COLLATE ").Append(collation);
+				break;
+
 			case Expression.Prefixed(var word, var value):
 				text.Append(word).Append(' ');
 				Put(text, value, 0);
@@ -1269,7 +1347,15 @@ public static class SqlWriter
 			case "TRY_PARSE":
 				text.Append(name).Append('(');
 				Put(text, arguments[0], 0);
-				text.Append(" AS ").Append(word).Append(')');
+				text.Append(" AS ").Append(word);
+
+				if (arguments.Length > 1)
+				{
+					text.Append(" USING ");
+					Put(text, arguments[1], 0);
+				}
+
+				text.Append(')');
 				return;
 
 			case "TRANSLATE" when word is not null:

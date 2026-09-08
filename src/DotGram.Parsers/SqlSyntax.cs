@@ -1130,6 +1130,30 @@ public abstract record Expression
 	public sealed record RowValueConstructor(Expression[] Values) : Expression;
 
 	/// <summary>
+	/// SQL:2003's <c>&lt;window function&gt;</c>: a call, and the window it is computed over.
+	/// </summary>
+	/// <remarks>
+	/// <see cref="Within"/> holds what may stand between the call and its window —
+	/// <c>IGNORE NULLS</c>, <c>WITHIN GROUP (ORDER BY …)</c> — as the words it was written
+	/// as, for <see cref="Clause.Hint"/>'s reason: it says how the call sees its rows.
+	/// </remarks>
+	public sealed record WindowFunction(
+		Expression Function, string? Within, Clause? Over) : Expression;
+
+	/// <summary>
+	/// A member of a value, or a method called on one — <c>a.b</c>, <c>a::b</c>,
+	/// <c>a.f(1)</c>. T-SQL writes both separators and they are not the same text.
+	/// </summary>
+	public sealed record Member(
+		Expression Of, string By, string Name, Expression[]? Arguments) : Expression;
+
+	/// <summary>
+	/// §6.11 a value and the collation it is compared under, which says how it is compared
+	/// rather than what it is — and is part of the text all the same.
+	/// </summary>
+	public sealed record Collated(Expression Value, string Collation) : Expression;
+
+	/// <summary>
 	/// An argument with a word in front of it, which several of T-SQL's table-valued
 	/// functions write — <c>BULK 'f'</c>, <c>CHANGES t</c>, <c>LANGUAGE 1033</c>.
 	/// </summary>
@@ -1210,7 +1234,8 @@ public abstract record TableReference
 	/// <summary>
 	/// §7.6 a table named, the name it is known by there, and the names its columns are given.
 	/// </summary>
-	public sealed record Named(string Table, string? Name, string[]? Columns) : TableReference;
+	public sealed record Named(
+		string Table, string? Name, string[]? Columns, Clause[] Hints) : TableReference;
 
 	/// <summary>§7.6 a query standing where a table does.</summary>
 	public sealed record Derived(Query Query, string? Name, string[]? Columns) : TableReference;
@@ -1278,6 +1303,18 @@ public abstract record Clause
 	/// around the list — <c>ALL</c> in front and <c>WITH CUBE</c> or <c>WITH ROLLUP</c> after.
 	/// </summary>
 	public sealed record GroupBy(bool All, Expression[] By, string? With) : Clause;
+
+	/// <summary>
+	/// SQL:2003's <c>&lt;window specification&gt;</c>: which rows a call sees, and in what
+	/// order.
+	/// </summary>
+	/// <remarks>
+	/// <see cref="Frame"/> is the words <c>ROWS BETWEEN 1 PRECEDING AND CURRENT ROW</c> were
+	/// written as. A frame is a language of its own and says how far either side of the
+	/// current row the window reaches; the text loses nothing and claims nothing.
+	/// </remarks>
+	public sealed record Window(
+		string? Name, Expression[] PartitionBy, Clause? By, string? Frame) : Clause;
 
 	/// <summary>§7.17 a named query, written in front of the statement that uses it.</summary>
 	public sealed record CommonTableExpression(
@@ -1464,6 +1501,40 @@ public static class Syntax
 		return kind.StartsWith("FULL", StringComparison.OrdinalIgnoreCase)
 			? SqlJoin.Full
 			: SqlJoin.Inner;
+	}
+
+	/// <summary>
+	/// The named queries written in front of a statement, put where they belong.
+	/// </summary>
+	/// <remarks>
+	/// A <c>WITH</c> may precede five statements and only one of them has somewhere to keep
+	/// it yet; the other four read it and drop it, which <c>--roundtrip</c> counts and this
+	/// comment does not hide.
+	/// </remarks>
+	public static Statement Preceded(Clause[]? with, Statement statement) =>
+		with is null || with.Length == 0
+			? statement
+			: statement is Statement.Select select ? select with { With = with } : statement;
+
+	/// <summary>A call and what was written after it, where anything was.</summary>
+	public static Expression Called(Expression call, Expression.WindowFunction? tail) =>
+		tail is null ? call : tail with { Function = call };
+
+	/// <summary>
+	/// A primary and what was reached through it: the members written after it, and the zone
+	/// it is read in. Each member was built with its own left side null, the way a predicate
+	/// tail is, so the chain is closed here.
+	/// </summary>
+	public static Expression Reached(
+		Expression primary, Expression.Member[]? members, Expression? zone)
+	{
+		if (members is not null)
+			foreach (var member in members)
+				primary = member with { Of = primary };
+
+		return zone is null
+			? primary
+			: new Expression.RoutineInvocation("AT TIME ZONE", [primary, zone]);
 	}
 
 	/// <summary>A word the grammar matched, as the one constant that stands for it.</summary>

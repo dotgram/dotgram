@@ -210,7 +210,7 @@ ValueExpression : @Expression
     // compared rather than what it is — read and dropped, as in a GROUP BY. Written on
     // the primary rather than as a strength of its own because that is where the
     // standard puts it, and nothing binds tighter than a primary anyway.
-    | p: ValueExpressionPrimary & Collate? => @(p)
+    | p: ValueExpressionPrimary & how: Collate? => @(how is null ? p : new Expression.Collated(p, how))
 
 // §6.11 <value expression primary>, in the standard's order, plus the value functions
 // §6.16 through §6.18 fold into <numeric primary>, <string value expression> and
@@ -444,7 +444,7 @@ JoinType = ("LEFT"i | "RIGHT"i | "FULL"i) & "OUTER"i? | "INNER"i
 // its column list renames what the source produces, so it belongs to the reference.
 TablePrimary : @TableReference
     = name: QualifiedName & ("AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?)?
-        => @(new TableReference.Named(name, alias, columns))
+        => @(new TableReference.Named(name, alias, columns, Clause.None))
     | derived: TableSubquery & "AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?
         => @(new TableReference.Derived(derived, alias, columns))
     | '(' & j: TableReference & ')' => @(j)
@@ -463,9 +463,10 @@ GroupByClause : @Clause
     = "GROUP"i & "BY"i & first: GroupingColumn & (',' & rest: GroupingColumn)*
         => @(new Clause.GroupBy(false, Syntax.Listed(first, rest), null))
 
-GroupingColumn : @Expression = c: ColumnReference & Collate? => @(c)
+GroupingColumn : @Expression
+    = c: ColumnReference & how: Collate? => @(how is null ? c : new Expression.Collated(c, how))
 
-Collate = "COLLATE"i & QualifiedName
+Collate : @string = "COLLATE"i & t: QualifiedName => @(t)
 
 // §13.1 <order by clause>, and §19's direct select that carries one. Outside §7, and
 // here because a query somebody writes has one and a query expression may not hold it.
@@ -477,8 +478,9 @@ OrderByClause : @Clause[]
         => @(Syntax.Listed(first, rest))
 
 SortSpecification : @Clause
-    = v: SortKey & Collate? & order: ("ASC"i | "DESC"i)?
-        => @(new Clause.SortSpecification(v, Syntax.Ordered(order)))
+    = v: SortKey & how: Collate? & order: ("ASC"i | "DESC"i)?
+        => @(new Clause.SortSpecification(
+                 how is null ? v : new Expression.Collated(v, how), Syntax.Ordered(order)))
 
 // §13.1 sorts by a column or by its position in the select list.
 SortKey : @Expression
