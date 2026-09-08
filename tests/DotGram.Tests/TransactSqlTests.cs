@@ -828,6 +828,73 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>The database, which is a header and an option list.</summary>
+	/// <remarks>
+	/// The settings are not enumerated and the rule is not about which of them exist: a
+	/// setting is a run of words and then, sometimes, what it is set to. What the syntax
+	/// does say is where the run ends — `ON` and `OFF` are values, and `WITH` begins the
+	/// termination clause — and that is what the lookahead in `DatabaseOptionName` is.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE DATABASE d1")]
+	[InlineData("CREATE DATABASE d1 CONTAINMENT = PARTIAL")]
+	[InlineData("CREATE DATABASE d1 COLLATE Estonian_CS_AS")]
+	[InlineData("CREATE DATABASE d1 ON PRIMARY (NAME = a, FILENAME = 'a.mdf', SIZE = 10 MB, " +
+		"MAXSIZE = 1 GB, FILEGROWTH = 10 %) LOG ON (NAME = b, FILENAME = 'b.ldf')")]
+	[InlineData("CREATE DATABASE d1 ON (FILENAME = 'a.mdf'), (FILENAME = 'b.ldf') FOR ATTACH WITH ENABLE_BROKER")]
+	[InlineData("CREATE DATABASE d1 ON PRIMARY (NAME = a, FILENAME = 'a'), " +
+		"FILEGROUP fg CONTAINS FILESTREAM (NAME = b, FILENAME = 'b')")]
+	[InlineData("CREATE DATABASE s1 ON (NAME = a, FILENAME = 'a.ss') AS SNAPSHOT OF d1")]
+
+	[InlineData("ALTER DATABASE d1 SET SINGLE_USER")]
+	[InlineData("ALTER DATABASE d1 SET SINGLE_USER WITH ROLLBACK IMMEDIATE")]
+	[InlineData("ALTER DATABASE d1 SET READ_ONLY WITH ROLLBACK AFTER 10 SECONDS")]
+	[InlineData("ALTER DATABASE CURRENT SET COMPATIBILITY_LEVEL = 160")]
+	[InlineData("ALTER DATABASE d1 SET ENCRYPTION ON, ENCRYPTION OFF")]
+	[InlineData("ALTER DATABASE d1 SET HADR AVAILABILITY GROUP = g1")]
+	[InlineData("ALTER DATABASE d1 SET HADR SUSPEND")]
+	[InlineData("ALTER DATABASE d1 SET TARGET_RECOVERY_TIME = 42 SECONDS")]
+	[InlineData("ALTER DATABASE d1 SET CHANGE_TRACKING (CHANGE_RETENTION = 3 DAYS, AUTO_CLEANUP = OFF)")]
+	[InlineData("ALTER DATABASE d1 SET QUERY_STORE = ON (DESIRED_STATE = READ_ONLY, MAX_PLANS_PER_QUERY = 200)")]
+	[InlineData("ALTER DATABASE d1 SET QUERY_STORE CLEAR ALL")]
+	[InlineData("ALTER DATABASE d1 SET AUTO_CREATE_STATISTICS ON (INCREMENTAL = ON), AUTO_UPDATE_STATISTICS ON")]
+	[InlineData("ALTER DATABASE d1 COLLATE Estonian_CS_AS")]
+	[InlineData("ALTER DATABASE d1 MODIFY NAME = d2")]
+	[InlineData("ALTER DATABASE d1 MODIFY (MAXSIZE = 1 GB, EDITION = 'basic')")]
+	[InlineData("ALTER DATABASE d1 MODIFY FILEGROUP fg1 AUTOGROW_ALL_FILES")]
+	[InlineData("ALTER DATABASE d1 MODIFY FILEGROUP fg1 READ_ONLY WITH ROLLBACK AFTER 10 SECONDS")]
+	[InlineData("ALTER DATABASE d1 ADD FILEGROUP fg1 CONTAINS MEMORY_OPTIMIZED_DATA")]
+	[InlineData("ALTER DATABASE d1 ADD FILE (FILENAME = 'a', NAME = b) TO FILEGROUP [MY FILEGROUP]")]
+	[InlineData("ALTER DATABASE d1 ADD LOG FILE (FILENAME = 'log'), (FILENAME = 'log2')")]
+	[InlineData("ALTER DATABASE d1 REMOVE FILE a")]
+	[InlineData("ALTER DATABASE d1 REBUILD LOG")]
+	[InlineData("ALTER DATABASE SCOPED COLLATE Estonian_CS_AS")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION SET MAXDOP = 1")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION FOR SECONDARY SET MAXDOP = PRIMARY")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION CLEAR PROCEDURE_CACHE")]
+	public void The_database_reads(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>
+	/// And a statement that only begins like one of these is left for whoever reads it.
+	/// </summary>
+	/// <remarks>
+	/// Each is a statement kind of its own — an audit specification, an encryption key —
+	/// and the rules here must not take them for a database called `AUDIT` doing something
+	/// called `SPECIFICATION`. That is why the two word-only actions are written out and
+	/// not read as `word`: a rule wide enough for `REBUILD LOG` is wide enough for these.
+	/// </remarks>
+	[Theory]
+	[InlineData("ALTER DATABASE d1 AUDIT SPECIFICATION s1")]
+	[InlineData("ALTER DATABASE ENCRYPTION KEY REGENERATE WITH ALGORITHM = AES_256")]
+	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = AES_128 ENCRYPTION BY SERVER CERTIFICATE c1")]
+	public void And_what_only_begins_like_a_database_is_left_alone(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
 	// ── And builds the standard's tree ───────────────────────────────────────────
 
 	/// <summary>

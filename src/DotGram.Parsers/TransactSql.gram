@@ -1107,6 +1107,8 @@ DefinitionStatement : @SqlNode
 	| s: CreateIndexStatement => @(s)
 	| s: AlterIndexStatement  => @(s)
 	| s: PermissionStatement  => @(s)
+	| s: CreateDatabaseStatement => @(s)
+	| s: AlterDatabaseStatement  => @(s)
 
 StatementList : @SqlNode[] = s: TsqlStatement+ => @(s)
 
@@ -1311,13 +1313,21 @@ OptionSetting = "DEFAULT"i & '=' & OptionValue
 OptionName = word
 
 OptionTail = '=' & OptionValue & OnPartitions?
+		   | OnOff & ('(' & OptionList & ')')?
 		   | '(' & OptionList & ')'
 
-OptionValue = "NULL"i
-			| "OFF"i & ('(' & OptionList & ')')?
-			| "ON"i  & ('(' & OptionList & ')')?
-			| Identifier & '(' & OptionList & ')'
-			| v: ValueExpression & Identifier?
+// Typed, because what a setting is set to is the interesting half of `SET MAXDOP = 4`
+// and the only half a name does not already say. `ON` and `OFF` are values here and not
+// words of the language, so they arrive as themselves.
+OptionValue : @SqlNode
+	= "NULL"i => @(SqlNode.NullValue)
+	| "OFF"i & ('(' & OptionList & ')')? => @(new SqlNode.Column("OFF"))
+	| "ON"i  & ('(' & OptionList & ')')? => @(new SqlNode.Column("ON"))
+	| name: Identifier & '(' & OptionList & ')' => @(new SqlNode.Column(name))
+	| v: ValueExpression & OptionUnit? => @(v)
+	| w: word => @(new SqlNode.Column(w))
+
+OptionUnit = Identifier | '%'
 
 OnPartitions   = "ON"i & "PARTITIONS"i & '(' & PartitionRange & (',' & PartitionRange)* & ')'
 PartitionRange = ValueExpression & ("TO"i & ValueExpression)?
@@ -1612,6 +1622,143 @@ AlterIndexAction : @string
 	| "ABORT"i => @("ABORT")
 	| "RESUME"i & IndexWith? => @("RESUME")
 	| "SET"i & '(' & OptionList & ')' => @("SET")
+
+// ── The database ────────────────────────────────────────────────────────────
+//
+// The largest thing left in the corpus — `ALTER DATABASE … SET` alone is 252 statements —
+// and almost none of it is new. A database's settings are said the way an index's and a
+// table's are, so the option list already written reads them; a file specification is that
+// same list in brackets. What is new is the header and about thirty lines.
+//
+// The settings themselves are not enumerated and are not going to be. There are some two
+// hundred of them, they differ by edition and by version, and none of that is syntax: a
+// setting is a run of words and then, sometimes, what it is set to.
+CreateDatabaseStatement : @SqlNode
+	= "CREATE"i & "DATABASE"i & name: Identifier & DatabaseContainment?
+	  & files: DatabaseFiles? & DatabaseCollate? & DatabaseTail?
+		=> @(new SqlNode.Database(name, "CREATE", files ?? SqlNode.None))
+
+DatabaseContainment = "CONTAINMENT"i & '=' & word
+DatabaseCollate     = "COLLATE"i & QualifiedName
+
+// What a database may be made out of instead of nothing: another database, a snapshot of
+// one, or files that already exist.
+DatabaseTail = "WITH"i & OptionList
+			 | "FOR"i & "ATTACH"i & ('(' & OptionList & ')')? & ("WITH"i & OptionList)?
+			 | "FOR"i & "ATTACH_REBUILD_LOG"i
+			 | "AS"i & "SNAPSHOT"i & "OF"i & Identifier
+			 | "AS"i & "COPY"i & "OF"i & QualifiedName & ('(' & OptionList & ')')?
+
+// ── The files ───────────────────────────────────────────────────────────────
+//
+// A file specification is `( NAME = …, FILENAME = …, SIZE = 100 MB )`, which is an option
+// list with a unit after the number — and that unit is why an option's value ends with a
+// word: `100 MB`, `3 DAYS`, `10 %` are each one value in this language.
+DatabaseFiles : @SqlNode[]
+	= "ON"i & "PRIMARY"i? & first: FileGroupSpec & (',' & rest: FileGroupSpec)*
+	  & DatabaseLogFiles?
+		=> @(SqlNode.Listed(first, rest))
+
+DatabaseLogFiles = "LOG"i & "ON"i & FileSpec & (',' & FileSpec)*
+
+FileGroupSpec : @SqlNode
+	= "FILEGROUP"i & name: Identifier & FileGroupContains? & "DEFAULT"i?
+	  & FileSpec & (',' & FileSpec)*
+		=> @(new SqlNode.Setting(name, null))
+	| f: FileSpec => @(f)
+
+FileSpec : @SqlNode = '(' & OptionList & ')' => @(SqlNode.NullValue)
+
+FileGroupContains = "CONTAINS"i & word
+
+// ── ALTER DATABASE ──────────────────────────────────────────────────────────
+//
+// `SCOPED CONFIGURATION` stands in front because a database may be called `SCOPED`: the
+// corpus has `ALTER DATABASE SCOPED COLLATE Estonian_CS_AS`, which is a database of that
+// name and not a malformed configuration. Ordered choice reads the longer one first and
+// gives it back when the words that must follow do not.
+AlterDatabaseStatement : @SqlNode
+	= "ALTER"i & "DATABASE"i & "SCOPED"i & "CONFIGURATION"i & ("FOR"i & "SECONDARY"i)?
+	  & options: ScopedConfiguration
+		=> @(new SqlNode.Database("", "SCOPED CONFIGURATION", options))
+	| "ALTER"i & "DATABASE"i & name: DatabaseTarget & a: AlterDatabaseAction
+	  & DatabaseTermination?
+		=> @(a with { Name = name })
+
+DatabaseTarget : @string = "CURRENT"i => @("CURRENT") | t: Identifier => @(t)
+
+ScopedConfiguration : @SqlNode[]
+	= "SET"i & first: DatabaseOption & (',' & rest: DatabaseOption)*
+		=> @(SqlNode.Listed(first, rest))
+	| "CLEAR"i & "PROCEDURE_CACHE"i & ValueExpression?
+		=> @(SqlNode.None)
+
+AlterDatabaseAction : @SqlNode.Database
+	= "SET"i & first: DatabaseOption & (',' & rest: DatabaseOption)*
+		=> @(new SqlNode.Database("", "SET", SqlNode.Listed(first, rest)))
+	| DatabaseCollate               => @(new SqlNode.Database("", "COLLATE", SqlNode.None))
+	| "MODIFY"i & m: DatabaseModify => @(m)
+	| "ADD"i    & a: DatabaseAdd    => @(a)
+	| "REMOVE"i & r: DatabaseRemove => @(r)
+
+	// Two actions that are only a word. Written out, and this is a place where the words
+	// are the syntax: `ALTER DATABASE d AUDIT SPECIFICATION s` is a different statement,
+	// and a rule that read any word here would take it and call it this one.
+	| "REBUILD"i & "LOG"i  => @(new SqlNode.Database("", "REBUILD LOG", SqlNode.None))
+	| "PERFORM_CUTOVER"i   => @(new SqlNode.Database("", "PERFORM_CUTOVER", SqlNode.None))
+
+DatabaseModify : @SqlNode.Database
+	= "NAME"i & '=' & Identifier
+		=> @(new SqlNode.Database("", "MODIFY NAME", SqlNode.None))
+	| "FILEGROUP"i & Identifier & FileGroupAction
+		=> @(new SqlNode.Database("", "MODIFY FILEGROUP", SqlNode.None))
+	| "FILE"i & FileSpec
+		=> @(new SqlNode.Database("", "MODIFY FILE", SqlNode.None))
+	| '(' & OptionList & ')'
+		=> @(new SqlNode.Database("", "MODIFY", SqlNode.None))
+
+DatabaseAdd : @SqlNode.Database
+	= "FILEGROUP"i & Identifier & FileGroupContains?
+		=> @(new SqlNode.Database("", "ADD FILEGROUP", SqlNode.None))
+	| "LOG"i & "FILE"i & FileSpec & (',' & FileSpec)*
+		=> @(new SqlNode.Database("", "ADD LOG FILE", SqlNode.None))
+	| "FILE"i & FileSpec & (',' & FileSpec)* & ("TO"i & "FILEGROUP"i & Identifier)?
+		=> @(new SqlNode.Database("", "ADD FILE", SqlNode.None))
+
+DatabaseRemove : @SqlNode.Database
+	= "FILEGROUP"i & Identifier => @(new SqlNode.Database("", "REMOVE FILEGROUP", SqlNode.None))
+	| "FILE"i & Identifier      => @(new SqlNode.Database("", "REMOVE FILE", SqlNode.None))
+
+// `READ_ONLY`, `READWRITE`, `AUTOGROW_ALL_FILES`, `AUTOGROW_SINGLE_FILE` — words, and a
+// catalogue if written out.
+FileGroupAction = "DEFAULT"i | "NAME"i & '=' & Identifier | word
+
+// ── What a database is set to ───────────────────────────────────────────────
+//
+// One rule for all two hundred of them, and it is `word` (§4.6) that makes it one. A
+// setting is a run of words — `MAXDOP`, `SINGLE_USER`, `HADR AVAILABILITY GROUP`,
+// `QUERY_STORE CLEAR ALL` — and then what it is set to, where it is set to anything:
+// `= 4`, `= ON (…)`, `ON`, `(AUTO_CLEANUP = ON)`, `= 42 SECONDS`.
+//
+// The run ends where the syntax says it does and not where a list of names would: `ON` and
+// `OFF` are what a setting is set to rather than part of its name, and `WITH` begins the
+// termination clause after the whole list. Without the lookahead the name would swallow
+// the `WITH`, and the parse would then stop one word past what it ate.
+DatabaseOption : @SqlNode
+	= name: DatabaseOptionName & v: DatabaseOptionValue? => @(new SqlNode.Setting(name, v))
+
+DatabaseOptionName : @string = t: (?!DatabaseOptionEnd & word)+ => @(t)
+
+DatabaseOptionEnd = "WITH"i | OnOff
+
+DatabaseOptionValue : @SqlNode
+	= '=' & v: OptionValue              => @(v)
+	| '(' & OptionList & ')'            => @(SqlNode.NullValue)
+	| OnOff & ('(' & OptionList & ')')? => @(SqlNode.NullValue)
+
+DatabaseTermination = "WITH"i & "ROLLBACK"i & "AFTER"i & ValueExpression & "SECONDS"i?
+					| "WITH"i & "ROLLBACK"i & "IMMEDIATE"i
+					| "WITH"i & "NO_WAIT"i
 
 // ── Permissions ─────────────────────────────────────────────────────────────
 //

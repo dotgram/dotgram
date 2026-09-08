@@ -794,8 +794,23 @@ sealed partial class Machine
 
 				using (file.Block("else"))
 				{
-					file.Line($"var captured{memberIndex}Chars = new char[captured{memberIndex}Length];");
-					file.Line($"var captured{memberIndex}At    = captured{memberIndex}Length;");
+					// The walk runs backwards, so over characters the buffer is filled from
+					// its end. Over kinds it cannot be a buffer at all: `Length` counts
+					// positions, and over kinds a position is a token — what a piece is
+					// worth in characters is somewhere else entirely. The pieces are cut
+					// whole and put in front of what is already there, which is the same
+					// reading order for a fraction of a percent of the captures.
+					if (OverKinds)
+					{
+						file.Line(
+							$"var captured{memberIndex}Built = new global::System.Text.StringBuilder();");
+					}
+					else
+					{
+						file.Line($"var captured{memberIndex}Chars = new char[captured{memberIndex}Length];");
+						file.Line($"var captured{memberIndex}At    = captured{memberIndex}Length;");
+					}
+
 					file.Line();
 
 					using (file.Block(
@@ -819,23 +834,28 @@ sealed partial class Machine
 						file.Line();
 						file.Line($"var captured{memberIndex}Piece = candidate.Value - candidate.Position;");
 						file.Line();
-						file.Line($"captured{memberIndex}At -= captured{memberIndex}Piece;");
-						// Over characters the piece is a slice of what is being read. Over
-						// kinds it is not there at all: a position indexes a token, and the
-						// text is the extent that token covers.
-						var piece = OverKinds
-							? "global::System.MemoryExtensions.AsSpan(" +
-								Cut("candidate.Position", $"captured{memberIndex}Piece") + ")"
-							: $"text.Slice(candidate.Position, captured{memberIndex}Piece)";
 
-						file.Line(
-							$"{piece}.CopyTo(" +
-							$"new global::System.Span<char>(captured{memberIndex}Chars, " +
-							$"captured{memberIndex}At, captured{memberIndex}Piece));");
+						if (OverKinds)
+						{
+							file.Line(
+								$"captured{memberIndex}Built.Insert(0, " +
+								Cut("candidate.Position", $"captured{memberIndex}Piece") + ");");
+						}
+						else
+						{
+							file.Line($"captured{memberIndex}At -= captured{memberIndex}Piece;");
+							file.Line(
+								$"text.Slice(candidate.Position, captured{memberIndex}Piece).CopyTo(" +
+								$"new global::System.Span<char>(captured{memberIndex}Chars, " +
+								$"captured{memberIndex}At, captured{memberIndex}Piece));");
+						}
 					}
 
 					file.Line();
-					file.Line($"captured{memberIndex} = new string(captured{memberIndex}Chars);");
+					file.Line(
+						OverKinds
+							? $"captured{memberIndex} = captured{memberIndex}Built.ToString();"
+							: $"captured{memberIndex} = new string(captured{memberIndex}Chars);");
 				}
 
 				file.Line();

@@ -72,7 +72,7 @@ static class Kinds
 			or nameof(BeginEndBlockStatement) or nameof(IfStatement) or nameof(WhileStatement)
 			or nameof(TryCatchStatement) or nameof(DeclareVariableStatement)
 			or nameof(DeclareTableVariableStatement) or nameof(DeclareCursorStatement)
-			or nameof(SetVariableStatement) or nameof(ExecuteStatement)
+			or nameof(SetVariableStatement) or nameof(ExecuteStatement) or nameof(ExecuteAsStatement)
 			or nameof(BeginTransactionStatement) or nameof(CommitTransactionStatement)
 			or nameof(RollbackTransactionStatement) or nameof(SaveTransactionStatement)
 			or nameof(SetTransactionIsolationLevelStatement) or nameof(SetIdentityInsertStatement)
@@ -91,9 +91,19 @@ static class Kinds
 			or nameof(CreateFunctionStatement) or nameof(AlterFunctionStatement)
 			or nameof(CreateTriggerStatement) or nameof(AlterTriggerStatement)
 			or nameof(CreateViewStatement) or nameof(AlterViewStatement)
+			or nameof(CreateOrAlterProcedureStatement) or nameof(CreateOrAlterFunctionStatement)
+			or nameof(CreateOrAlterTriggerStatement) or nameof(CreateOrAlterViewStatement)
 			or nameof(CreateIndexStatement) or nameof(AlterIndexStatement)
 			or nameof(CreateColumnStoreIndexStatement)
-			or nameof(GrantStatement) or nameof(RevokeStatement) or nameof(DenyStatement);
+			or nameof(GrantStatement) or nameof(RevokeStatement) or nameof(DenyStatement)
+			or nameof(CreateDatabaseStatement) or nameof(AlterDatabaseSetStatement)
+			or nameof(AlterDatabaseScopedConfigurationSetStatement)
+			or nameof(AlterDatabaseScopedConfigurationClearStatement)
+			or nameof(AlterDatabaseCollateStatement) or nameof(AlterDatabaseModifyNameStatement)
+			or nameof(AlterDatabaseAddFileStatement) or nameof(AlterDatabaseAddFileGroupStatement)
+			or nameof(AlterDatabaseModifyFileStatement) or nameof(AlterDatabaseModifyFileGroupStatement)
+			or nameof(AlterDatabaseRemoveFileStatement) or nameof(AlterDatabaseRemoveFileGroupStatement)
+			or nameof(AlterDatabaseRebuildLogStatement) or nameof(AlterDatabasePerformCutoverStatement);
 
 	public static void Run(string? root, string version, int shown)
 	{
@@ -150,7 +160,22 @@ static class Kinds
 				// is part of the statement for at least one of them and the grammar reads it.
 				var one  = text.Substring(statement.StartOffset, statement.FragmentLength).TrimEnd();
 
-				var ours = TransactSql.TryParseStatement(one).IsSuccess;
+				// Caught and named rather than thrown: a harness that dies on statement three
+				// thousand says less than one that reads the rest and reports what it hit,
+				// and a parser that throws is a defect worth seeing beside the ones it
+				// merely refuses.
+				bool ours;
+
+				try
+				{
+					ours = TransactSql.TryParseStatement(one).IsSuccess;
+				}
+				catch (Exception thrown)
+				{
+					Console.WriteLine($"threw {thrown.GetType().Name}: {Corpus.One(one)}");
+
+					ours = false;
+				}
 
 				var (total, already) = counted.TryGetValue(kind, out var seen) ? seen : (0, 0);
 

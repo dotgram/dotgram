@@ -15755,3 +15755,75 @@ namespace reached it first.
 
 Sixty-one lines to nine, and the corpus went **45.9% to 46.5%** — the point was never the
 percentage, but a notation that says what the grammar means does tend to read more of it.
+
+## The database, and a join that was wrong over kinds
+
+`ALTER DATABASE … SET` was 252 statements and the largest single thing left in the corpus.
+Almost none of it turned out to be new: a database's settings are said the way an index's
+and a table's are, so the option list already written reads them, and a file specification
+is that same list in brackets. The header and about thirty lines were the whole of it.
+
+**The settings are not enumerated and are not going to be.** There are some two hundred of
+them, they differ by edition and by version, and none of that is syntax. What the syntax
+actually says is the shape:
+
+```dotgram
+DatabaseOption     : @SqlNode = name: DatabaseOptionName & v: DatabaseOptionValue?
+DatabaseOptionName : @string  = t: (?!DatabaseOptionEnd & word)+ => @(t)
+DatabaseOptionEnd             = "WITH"i | OnOff
+```
+
+A run of words and then, sometimes, what it is set to — which is `MAXDOP = 4`,
+`SINGLE_USER`, `HADR AVAILABILITY GROUP = g1`, `QUERY_STORE CLEAR ALL`,
+`CHANGE_TRACKING (AUTO_CLEANUP = ON)`, `= 42 SECONDS` and two hundred others, in one rule.
+The lookahead is the whole of what the syntax constrains: `ON` and `OFF` are what a setting
+is set to rather than part of its name, and `WITH` begins the termination clause after the
+list.
+
+**Where a catalogue really is the syntax it is written out.** `ALTER DATABASE d REBUILD LOG`
+and `ALTER DATABASE d PERFORM_CUTOVER` are actions that are only a word, and the first
+version read them as `word` — which then read `ALTER DATABASE d AUDIT SPECIFICATION s` as a
+database called `d` doing something called `AUDIT SPECIFICATION`. That is a different
+statement and ScriptDom says so. Two words written out, and the over-reading went away.
+The difference from the option names is not style: an option's name is open because SQL
+Server adds options, and these two are closed because each is a statement of its own.
+
+## The join, and what a piece is worth over kinds
+
+Writing `word+` found a defect in the generator, and it had been there since the lexical
+split was written.
+
+§10's join: a repetition that captures every turn records one piece per turn, and the value
+is those pieces joined. Over characters a piece is a slice of what is being read, so the
+pieces are copied into a buffer of their summed lengths. Over kinds neither half holds. A
+position indexes a *token* there, so a piece's length is a count of tokens — the buffer came
+out sized in tokens and threw `Destination is too short` for anything but one-character
+lexemes — and what stood between two adjacent tokens is part of the value the character
+reading gives, and was being dropped.
+
+The tape already knew this and said so in a comment: turns of a repetition that has nothing
+else in them tile, so the pieces measure exactly the distance between the first start and
+the last end, which is one cut and one string. The direct walk never got that fast path, so
+every multi-piece capture took the copying branch — and over kinds the copying branch was
+wrong. Both are fixed: the direct walk cuts whole where the pieces tile, and where they do
+not, both materializers cut each piece on its own instead of copying spans measured in the
+wrong unit.
+
+It cost `ALTER DATABASE d1 SET HADR AVAILABILITY GROUP = g1` to find, which is what a corpus
+of somebody else's tests is for.
+
+```
+                                                     count    read
+AlterDatabaseScopedConfigurationSetStatement           106     105   99.1%
+AlterDatabaseSetStatement                              252     234   92.9%
+AlterDatabaseModifyFileGroupStatement                   28      28  100.0%
+CreateDatabaseStatement                                114      80   70.2%
+```
+
+Of everything in the corpus, **46.5% to 52.5%**. Against the engine, 4,044 statements read
+by both.
+
+**And what the engine refuses that we read is Azure.** `MODIFY (EDITION = 'basic')`,
+`SERVICE_OBJECTIVE`, `ELASTIC_POOL`, `AS COPY OF` — twenty-four of them come back as
+`Msg 40514`, which is SQL Server saying the statement belongs to a database it is not. The
+same category as the Fabric and PDW surface found earlier, and not a defect on either side.

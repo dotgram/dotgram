@@ -289,6 +289,19 @@ public abstract record SqlNode
 	/// <summary>One parameter of a routine: its name, its type, and its default.</summary>
 	public sealed record Parameter(string Name, string? Type, SqlNode? Value) : SqlNode;
 
+	// ---- the database ---------------------------------------------------------------------------
+
+	/// <summary>
+	/// A database made or changed: its name, what is being done to it, and the settings or
+	/// the files it says that with.
+	/// </summary>
+	/// <remarks>
+	/// The settings are not a kind of their own. There are some two hundred of them, they
+	/// differ by edition and by version, and each is a name and a value however much SQL
+	/// Server means by it — so they arrive as <see cref="Setting"/>, like the rest.
+	/// </remarks>
+	public sealed record Database(string Name, string Action, SqlNode[] Settings) : SqlNode;
+
 	// ---- indexes and permissions ---------------------------------------------------------------
 
 	/// <summary>An index declared: its name, what it is on, and the columns it is over.</summary>

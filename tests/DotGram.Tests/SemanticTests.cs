@@ -1703,6 +1703,63 @@ public sealed class SemanticTests
 			Compile("Start = word\nparse Start").Diagnostics,
 			diagnostic => diagnostic.Id == GrammarNormalizer.WordWithoutBoundary);
 
+	/// <summary>
+	/// A capture that gathers several pieces over kinds is cut whole where they tile.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// §10's join. A repetition that captures every turn records one piece per turn, and the
+	/// value is those pieces joined — which over characters is a buffer the pieces are copied
+	/// into, since a piece is a slice of what is being read and its length is a count of
+	/// characters.
+	/// </para>
+	/// <para>
+	/// Over kinds neither half of that holds. A position indexes a token, so a piece's length
+	/// is a count of tokens and the buffer came out sized in tokens — `Destination is too
+	/// short` for anything but one-character lexemes — and what stood between two adjacent
+	/// tokens is part of the value the character reading gives and was being dropped. Turns
+	/// of a repetition tile, so the answer is one cut from the first start to the last end,
+	/// which the tape already made and the direct walk did not.
+	/// </para>
+	/// <para>
+	/// Found by writing `word+` in T-SQL, where a database setting is a run of words:
+	/// `ALTER DATABASE d SET HADR AVAILABILITY GROUP = g`.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void A_join_over_kinds_keeps_what_stood_between_the_tokens()
+	{
+		const string grammar =
+			"""
+			wordboundary = ['a'..'z']
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				Name = ['a'..'z'] & ['a'..'z']*
+			}
+			Start : @string = t: (?!"with" & word)+ & ('=' & Lexical.Name)? => @(t)
+			parse Start
+			""";
+
+		var result = GramCompiler.Compile(
+			grammar,
+			new GramCompilerOptions
+			{
+				ClassName     = "Grammar",
+				CSharpScanner = RoslynCSharpScanner.Instance,
+				Lexical       = true,
+			});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var got = EmittedCode.Match(
+			EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseStart", "aa bb cc");
+
+		Assert.True(got.IsSuccess);
+		Assert.Equal("aa bb cc", got.Value);
+	}
+
 	// ── Trivia and repetition (§4.5) ─────────────────────────────────────────────
 
 	[Fact]

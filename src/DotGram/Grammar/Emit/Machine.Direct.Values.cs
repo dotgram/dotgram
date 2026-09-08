@@ -996,31 +996,77 @@ sealed partial class Machine
 
 				using (file.Block("else"))
 				{
+					// §10's join, and the span where the span is the join — the reading the
+					// tape already makes (Machine.Materialization.cs) and this did not.
+					// Turns of a repetition that has nothing else in them are adjacent, and
+					// then the pieces measure exactly the distance between the first start
+					// and the last end: one cut and one string.
+					//
+					// Over kinds it is not an optimization but the answer. A position
+					// indexes a token there, so a piece is a run of tokens and its length
+					// is a count of them — what a piece is worth in characters is
+					// somewhere else entirely, and what stands between two adjacent tokens
+					// is part of the value the same reading over characters gives. Cut
+					// whole, both are right; copied piece by piece, the buffer was sized in
+					// tokens and the trivia between them was dropped.
 					file.Line($"var length{i} = 0;");
 					file.Line();
 					file.Line($"for (var piece = 0; piece < count{i}; piece++)");
 					file.Then($"length{i} += log[read + piece * 2 + 1] - log[read + piece * 2];");
 					file.Line();
-					file.Line($"var chars{i} = new char[length{i}];");
-					file.Line($"var filled{i} = 0;");
+					file.Line($"var first{i} = log[read];");
+					file.Line($"var last{i}  = log[read + (count{i} - 1) * 2 + 1];");
+					file.Line();
+					file.Line($"read += count{i} * 2;");
 					file.Line();
 
-					using (file.Block($"for (var piece = 0; piece < count{i}; piece++)"))
+					using (file.Block($"if (last{i} - first{i} == length{i})"))
+						file.Line($"captured{i} = {Cut($"first{i}", $"length{i}")};");
+
+					using (file.Block("else"))
 					{
-						file.Line("var pieceFrom = log[read++];");
-						file.Line("var pieceTo   = log[read++];");
+						if (OverKinds)
+						{
+							// The pieces do not tile, so what stands between them is not
+							// part of the value and each run is cut on its own.
+							file.Line(
+								$"var built{i} = new global::System.Text.StringBuilder(last{i} - first{i});");
+							file.Line($"var back{i}  = read - count{i} * 2;");
+							file.Line();
 
-						var text = OverKinds
-							? "global::System.MemoryExtensions.AsSpan(" + Cut("pieceFrom", "pieceTo - pieceFrom") + ")"
-							: "text.Slice(pieceFrom, pieceTo - pieceFrom)";
+							using (file.Block($"for (var piece = 0; piece < count{i}; piece++)"))
+							{
+								file.Line($"var pieceFrom = log[back{i} + piece * 2];");
+								file.Line($"var pieceTo   = log[back{i} + piece * 2 + 1];");
+								file.Line();
+								file.Line($"built{i}.Append({Cut("pieceFrom", "pieceTo - pieceFrom")});");
+							}
 
-						file.Line(
-							$"{text}.CopyTo(new global::System.Span<char>(chars{i}, filled{i}, pieceTo - pieceFrom));");
-						file.Line($"filled{i} += pieceTo - pieceFrom;");
+							file.Line();
+							file.Line($"captured{i} = built{i}.ToString();");
+						}
+						else
+						{
+							file.Line($"var chars{i} = new char[length{i}];");
+							file.Line($"var filled{i} = 0;");
+							file.Line($"var back{i}   = read - count{i} * 2;");
+							file.Line();
+
+							using (file.Block($"for (var piece = 0; piece < count{i}; piece++)"))
+							{
+								file.Line($"var pieceFrom = log[back{i} + piece * 2];");
+								file.Line($"var pieceTo   = log[back{i} + piece * 2 + 1];");
+								file.Line();
+								file.Line(
+									$"text.Slice(pieceFrom, pieceTo - pieceFrom)" +
+									$".CopyTo(new global::System.Span<char>(chars{i}, filled{i}, pieceTo - pieceFrom));");
+								file.Line($"filled{i} += pieceTo - pieceFrom;");
+							}
+
+							file.Line();
+							file.Line($"captured{i} = new string(chars{i});");
+						}
 					}
-
-					file.Line();
-					file.Line($"captured{i} = new string(chars{i});");
 				}
 
 				break;
