@@ -176,6 +176,28 @@ public static class SupportEmitter
 				/// goes deep takes none whatever this says.
 				/// </remarks>
 				public int Stacks { get; set; }
+
+				/// <summary>
+				/// An interface whose implementors are told where they were written.
+				/// </summary>
+				/// <remarks>
+				/// Nothing written here changes what is read; it changes what a value knows
+				/// about itself. Name an interface with a settable property called
+				/// <c>Span</c>, and every rule whose value implements it is handed the range
+				/// of input it was built from — the rule's own text, without the trivia
+				/// around it, so that a comment falls between two of them rather than inside
+				/// one.
+				///
+				/// What that buys is everything a parse cannot answer on its own: which
+				/// characters a diagnostic is about, which node a comment belongs to, and
+				/// what a formatter or a rewriter may leave alone. A grammar that says
+				/// nothing here pays nothing — a recognizer wants no positions, and most
+				/// grammars are recognizers.
+				///
+				/// The property is written once, by the reader, on a value it has just made
+				/// and nothing has yet seen.
+				/// </remarks>
+				public global::System.Type? LocationType { get; set; }
 			}
 
 			/// <summary>How a generated reader carries what it has read (docs/next.md, the redesign).</summary>

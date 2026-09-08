@@ -408,6 +408,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			PartSize       = host.PartSize == 0 ? null : host.PartSize,
 			Lexical        = host.Lexical,
 			Direct         = host.Direct,
+			LocationType   = host.LocationType,
 			Carrier        = (CarrierKind)host.Carrier,
 			Stacks         = host.Stacks,
 			Suffix         = host.Suffix,
@@ -682,7 +683,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		int       Stacks     = 0,
 		string?   Suffix     = null,
 		bool      Repeated   = false,
-		bool?     Shared     = null)
+		bool?     Shared     = null,
+		string?   LocationType = null)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -823,6 +825,13 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.FirstOrDefault(static named => named.Key == nameof(Host.Direct))
 				.Value.Value as bool? ?? first?.Direct ?? true;
 
+			// A `typeof(…)` argument arrives as the symbol it named, and what the compiler
+			// needs of it is a name it can ask the resolver about — the same currency every
+			// other type in a grammar is written in.
+			var locationType = (attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.LocationType))
+				.Value.Value as INamedTypeSymbol)?.ToDisplayString() ?? first?.LocationType;
+
 			// Which carrier the author chose (docs/next.md, the redesign). An enum constant
 			// reaches an analyzer as its underlying integer, and nought is the tape.
 			var carrier = attribute.NamedArguments
@@ -900,7 +909,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Direct:     direct,
 				Carrier:    carrier,
 				Stacks:     stacks,
-				Suffix:     suffix);
+				Suffix:     suffix,
+				LocationType: locationType);
 		}
 
 		static string? Classification(AttributeData attribute)
