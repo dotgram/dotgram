@@ -1621,6 +1621,88 @@ public sealed class SemanticTests
 			"wordboundary = ['a'..'z']\ntrivia = ' '*\nStart = \"if\" & \"then\"",
 			"iffy then"));
 
+	/// <summary>`word` is a whole word of whatever the boundary says a word is made of.</summary>
+	/// <remarks>
+	/// The other half of §4.6. The boundary already says what continues a word, so what a
+	/// word is needs no second saying — and the places that want one wrote out every word
+	/// the specification happened to have instead, which is a catalogue and not a grammar.
+	/// </remarks>
+	[Theory]
+	[InlineData("fillfactor", true)]
+	[InlineData("data_compression", true)]
+	[InlineData("x1", true)]
+	[InlineData("(", false)]
+	[InlineData("", false)]
+	public void A_word_is_a_word(string input, bool matches) =>
+		Assert.Equal(matches, Matches(
+			"wordboundary = ['a'..'z' | '0'..'9' | '_']\nStart = word", input));
+
+	/// <summary>And it is the whole of one, however the parse would rather read it.</summary>
+	/// <remarks>
+	/// Maximal by construction and not by greed: a repetition can be handed characters back
+	/// when what follows it fails, and `word & "y"` would then read `fillfactor` as
+	/// `fillfactor` minus its tail. What `word` matches is a lexeme, and a lexeme is whole —
+	/// the same claim §4.6 makes about a keyword, made about the other side of the boundary.
+	/// </remarks>
+	[Fact]
+	public void And_it_is_the_whole_word() =>
+		Assert.False(Matches(
+			"wordboundary = ['a'..'z']\nStart = word & \"y\"", "fillfactory"));
+
+	/// <summary>Where only some words will do, the shape is a lookahead and not a list.</summary>
+	/// <remarks>
+	/// What bounds a run of words is usually not which words are in it but where it ends,
+	/// and a grammar that says so stops being a catalogue: T-SQL's permission names are any
+	/// words up to the `ON` or `TO` that begins the clause after them.
+	/// </remarks>
+	[Theory]
+	[InlineData("alter any database on", true)]
+	[InlineData("view definition on", true)]
+	[InlineData("on", false)]
+	public void And_a_run_of_them_ends_where_the_next_clause_begins(string input, bool matches) =>
+		Assert.Equal(matches, Matches(
+			"wordboundary = ['a'..'z']\ntrivia = ' '*\n" +
+			"Start = Name & \"on\"\n" +
+			"Name  = (?!\"on\" & word)+", input));
+
+	/// <summary>Each namespace's `word` is made of that namespace's own boundary.</summary>
+	/// <remarks>
+	/// A boundary is declared per namespace and a lexical one shields what stands outside
+	/// it (§4.6), so a single `word` shared by the whole grammar would be a word of
+	/// whichever namespace happened to reach it first. Here the outer boundary is letters
+	/// and the inner one is digits, and each `word` reads its own.
+	/// </remarks>
+	[Fact]
+	public void And_a_word_is_the_namespace_it_was_written_in()
+	{
+		const string grammar =
+			"""
+			wordboundary = ['a'..'z']
+			trivia = ' '*
+			namespace Inner
+			{
+				trivia = none
+				wordboundary = ['0'..'9']
+				Number = word
+			}
+			Start = word & Inner.Number
+			""";
+
+		Assert.True (Matches(grammar, "abc 123"));
+		Assert.False(Matches(grammar, "abc abc"));
+	}
+
+	/// <summary>And a grammar that never said what continues a word has no words in it.</summary>
+	/// <remarks>
+	/// `word` would be a run of nothing: a rule that matches everywhere and consumes
+	/// nothing, which is the silence GRAM4019 exists to break.
+	/// </remarks>
+	[Fact]
+	public void And_word_without_a_boundary_is_refused() =>
+		Assert.Contains(
+			Compile("Start = word\nparse Start").Diagnostics,
+			diagnostic => diagnostic.Id == GrammarNormalizer.WordWithoutBoundary);
+
 	// ── Trivia and repetition (§4.5) ─────────────────────────────────────────────
 
 	[Fact]

@@ -109,7 +109,7 @@ public sealed partial class GrammarNormalizer
 		Expr.Glued    (var operands)              => LowerGlued(operands, ns),
 		Expr.Choice   (var alternatives)          => LowerChoice(alternatives, ns),
 		Expr.Call     (var target, var arguments) => LowerCall(RuleOf(expression, target.Name), arguments, ns),
-		Expr.Reference(_, var name, _)            => LowerReference(expression, name),
+		Expr.Reference(_, var name, _)            => LowerReference(expression, name, ns),
 		Expr.With     (var operand, _)            => LowerWith(expression, operand, ns),
 		Expr.Marked   (var operand, var value)    => new Node.Marked(Lower(operand, ns), Substituted(Text(value))),
 		_                                         => Node.Empty.Instance,
@@ -153,7 +153,7 @@ public sealed partial class GrammarNormalizer
 	/// A bare C# name here is unambiguously §7.1's input-consuming recognizer. A predicate
 	/// over one item appears inside an element set instead, as <c>[@Name]</c>.
 	/// </remarks>
-	Node LowerReference(Expr expression, string name)
+	Node LowerReference(Expr expression, string name, GrammarNamespace ns)
 	{
 		if (!_model.Bindings.TryGetValue(expression, out var symbol))
 			return new Node.Element(false, [], [], [Unresolved(name)]);
@@ -182,7 +182,7 @@ public sealed partial class GrammarNormalizer
 		}
 
 		if (symbol is RuleSymbol rule)
-			return CallTo(rule, []);
+			return CallTo(rule.IsBuiltIn && rule.Name == "word" ? WordFor(ns, expression) : rule, []);
 
 		// §7.1: the method reads the input itself. Nothing is checked about what it does
 		// with the position it is handed — the `ref` is it saying that it moves one, and
@@ -388,7 +388,17 @@ public sealed partial class GrammarNormalizer
 		if (rule.IsBuiltIn && !_bodies.ContainsKey(rule))
 		{
 			_rules.Add(rule);
-			_bodies[rule] = BuiltInBody(rule.Name);
+
+			// `word` is the one built-in whose body depends on the grammar: §4.6 says what
+			// continues a word, and a word is a run of that. Over kinds the split reads it
+			// as the kinds that are words instead, which is the same sentence about a wider
+			// alphabet — see `TerminalInventory.WordKinds`.
+			_bodies[rule] = rule.Name == "word"
+				? BoundaryFor(rule.Namespace) is { } boundary
+					? new Node.Sequence(
+						[new Node.Repeat(boundary, 1, null), new Node.Lookahead(false, boundary)])
+					: Node.Empty.Instance
+				: BuiltInBody(rule.Name);
 		}
 
 		return new Node.Call(rule, arguments);
@@ -1154,6 +1164,39 @@ public sealed partial class GrammarNormalizer
 	};
 
 	/// <summary>The `wordboundary` this namespace sees, or null while it matches nothing.</summary>
+	/// <summary>Every namespace's own <c>word</c>, made the first time one is called.</summary>
+	readonly Dictionary<GrammarNamespace, RuleSymbol> _words = [];
+
+	/// <summary>
+	/// The <c>word</c> this namespace means (§4.6).
+	/// </summary>
+	/// <remarks>
+	/// The one built-in whose body is a property of where it was written. The others say
+	/// the same thing everywhere — <c>eof</c> is the end of the input wherever it is asked
+	/// — but a word is a run of whatever <c>wordboundary</c> says continues one, and that
+	/// is declared per namespace. The standard library's own symbol stands outside every
+	/// namespace that could declare a boundary, so a call to it would find none; this
+	/// gives each namespace a rule of its own instead, made once and reused.
+	/// </remarks>
+	RuleSymbol WordFor(GrammarNamespace ns, Expr at)
+	{
+		// A grammar that never said what continues a word has no words in it, and the rule
+		// would lower to nothing and match everywhere. Said at each call site rather than
+		// once at the rule, because the fix is at the call site: either the boundary is
+		// missing or `word` is not what was meant.
+		if (BoundaryFor(ns) is null)
+			Report(
+				WordWithoutBoundary,
+				"'word' is a run of whatever 'wordboundary' says continues a word " +
+				"(docs/syntax.md §4.6), and this grammar declares none.",
+				at.At);
+
+		if (!_words.TryGetValue(ns, out var word))
+			_words[ns] = word = new RuleSymbol("word", ns, Declaration: null);
+
+		return word;
+	}
+
 	Node? BoundaryFor(GrammarNamespace ns)
 	{
 		for (var at = ns; at is not null; at = at.Parent)

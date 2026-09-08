@@ -107,7 +107,7 @@ public sealed class GrammarBinder
 	/// </summary>
 	public static readonly string[] StandardLibrary =
 
-		["any", "none", "eol", "eof", "trivia", "wordboundary"];
+		["any", "none", "eol", "eof", "trivia", "word", "wordboundary"];
 
 	const string TriviaRule = "trivia";
 

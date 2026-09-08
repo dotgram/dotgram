@@ -128,6 +128,71 @@ public sealed class LexicalSplitTests
 		Assert.DoesNotContain(split.Syntax.Rules, rule => rule.Name == "Reserved");
 	}
 
+	/// <summary>A grammar whose `Any` is `word`, otherwise <see cref="Spaced"/>.</summary>
+	const string Worded =
+		"""
+		wordboundary = ['a'..'z']
+		trivia = ' '*
+		namespace Lexical
+		{
+			trivia = none
+			Name = ['a'..'z'] & ['a'..'z']*
+		}
+		Reserved = "if" | "else"
+		Id    = ?!Reserved & Lexical.Name
+		Any   = word
+		Start = "if" & Id & "else" & Any & '('
+		parse Start
+		""";
+
+	/// <summary>`word` becomes one range over every kind that is a word.</summary>
+	/// <remarks>
+	/// The other half of §4.6, and the reason it is worth having: over characters `word` is
+	/// a run of boundary characters, which is a loop; over kinds being a word is a property
+	/// the kind already carries, so it is the same test any other terminal position is —
+	/// one comparison. Here that is three kinds, `if`, `else` and `Name`, and not `(`.
+	/// </remarks>
+	[Fact]
+	public void A_word_becomes_the_kinds_that_are_words()
+	{
+		var split = LexicalSplit.Of(Graph(Worded));
+
+		Assert.NotNull(split);
+		Assert.Empty(split.Blocked);
+
+		// The rule is gone the way `Reserved` is: it was never anything but those kinds.
+		Assert.DoesNotContain(split.Syntax.Rules, rule => rule.Name == "word");
+
+		var any = split.Syntax.Rules.Single(rule => rule.Name == "Any");
+		var over = Assert.IsType<Node.Element>(split.Syntax.Bodies[any]);
+
+		Assert.Equal(3, Count(over));
+		Assert.Single(over.Ranges);
+	}
+
+	/// <summary>And the inventory says which those are before anything is rewritten.</summary>
+	/// <remarks>
+	/// A keyword always is — the boundary was woven beside it — and a class is where every
+	/// character it can hold continues a word, which is what makes `Name` one. `(` is a
+	/// mark and is not, and that is the whole of the rule.
+	/// </remarks>
+	[Fact]
+	public void And_a_mark_is_not_one_of_them()
+	{
+		var inventory = TerminalInventory.Of(Graph(Worded));
+
+		var words = inventory.WordKinds
+			.SelectMany(range => Enumerable.Range(range.From, range.Count))
+			.ToHashSet();
+
+		Assert.Equal(3, words.Count);
+
+		foreach (var kind in inventory.Kinds)
+			Assert.Equal(
+				kind.Matched.All(one => one is not TerminalInventory.Pattern.Mark),
+				words.Contains(kind.Number));
+	}
+
 	/// <summary>
 	/// Two classes that accept the same string get a kind that says both.
 	/// </summary>

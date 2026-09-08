@@ -169,6 +169,7 @@ public sealed class LexicalSplit
 
 			foreach (var rule in graph.Rules)
 				if (rule.Name == "wordboundary" && !rule.IsBuiltIn ||
+					rule.Name == "word" && rule.IsBuiltIn ||
 					inventory.PatternOf(rule) is not null)
 				{
 					roots.Add(rule);
@@ -392,6 +393,18 @@ public sealed class LexicalSplit
 
 				case Node.Call(var called, var arguments):
 				{
+					// `word` is the one built-in that is not the same shape on both sides. Over
+					// characters it is the boundary repeated, which is what the lowering made
+					// it; here the boundary is gone with the rest of the lexer, and what the
+					// word was is a property the kind already has — so it becomes the test for
+					// every kind made only of word characters, and reads exactly one token.
+					if (called.IsBuiltIn && called.Name == "word")
+					{
+						return inventory.WordKinds.Count > 0
+							? Testing(inventory.WordKinds)
+							: Refuse(node, owner, blocked);
+					}
+
 					// A built-in is a shape and not a terminal: `eof` is `?!any` and means the
 					// same over kinds as over characters — no more input — and `any` means one
 					// of whatever the alphabet holds. Rewritten through rather than looked up.

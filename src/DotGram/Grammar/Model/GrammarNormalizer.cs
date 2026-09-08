@@ -53,6 +53,9 @@ public sealed partial class GrammarNormalizer
 	/// <summary>A rule nothing reaches, so nothing it says is ever read.</summary>
 	public const string UnusedRule          = "GRAM4018";
 
+	/// <summary><c>word</c> in a grammar that never said what continues a word.</summary>
+	public const string WordWithoutBoundary = "GRAM4019";
+
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
 	readonly Dictionary<RuleSymbol, bool>                      _nullable    = [];

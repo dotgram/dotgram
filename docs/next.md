@@ -15706,3 +15706,52 @@ DenyStatement                         51      24   47.1%
 
 Of everything in the corpus, **40.4% to 45.9%**, and of the kinds this grammar has a rule
 for the engine and this one agree on 3,568 of 4,857.
+
+## `word`, which is the notation catching up with the grammar
+
+Four times now a rule has been a list of words: an option's name, a table hint's, a query
+hint's, a permission's, an ODBC function's. Every one of those lists exists for the same
+reason — the place admits *a word* and T-SQL reserves some of the words that turn up there,
+so `Identifier` refuses them and the reserved ones have to be written out beside it. Sixty-one
+lines across the file, none of which is a fact about T-SQL. They are a fact about what the
+notation could not say, and they go stale the day SQL Server adds an option.
+
+So the notation says it. §4.6 already had `wordboundary`, which says what continues a word;
+`word` is one whole word made of it, whatever that word says. Over characters it is a run of
+boundary characters that does not stop short of one — maximal, so `word & "y"` cannot read
+`fillfactory` as `fillfactor` plus a tail, the same claim §4.6 already makes about a keyword,
+made about the other side of the boundary.
+
+**Over kinds it is one comparison.** This is the part worth having. In a split grammar the
+boundary is gone with the lexer, and being a word is a property the token kind already
+carries: a keyword always is, and a class is where every character it can hold continues a
+word — which makes an identifier a word and a quoted name not. So `word` becomes a range test
+over kind numbers, like every other terminal position. It reads exactly one token there,
+which is what it read over characters too.
+
+And it is one range rather than two, because the ordering was already there. `Laminar` orders
+the patterns so that as many named sets as possible come out as one run of kinds; word-shaped
+classes now stand with the words instead of after the marks, which makes the widest set a
+grammar has — all of its words — a single run. The keywords, then the identifier, then
+everything else.
+
+**Where only some words will do, the shape is a lookahead and not a list.** A permission's
+name was thirty-one words written out; what actually bounds it is not which words are in it
+but where it ends, and the syntax says that:
+
+```dotgram
+PermissionWord = ?!PermissionEnd & word
+PermissionEnd  = "ON"i | "TO"i | "FROM"i | "WITH"i | "CASCADE"i
+```
+
+Five words instead of thirty-one, and it stops being a catalogue: a permission SQL Server
+adds tomorrow is a word this grammar has already heard of.
+
+A grammar that never said what continues a word has no words in it, and `word` there would be
+a run of nothing — a rule that matches everywhere and consumes nothing. That is `GRAM4019`.
+Each namespace's `word` is its own, too: a boundary is declared per namespace and a lexical
+one shields what stands outside it, so a single shared `word` would be a word of whichever
+namespace reached it first.
+
+Sixty-one lines to nine, and the corpus went **45.9% to 46.5%** — the point was never the
+percentage, but a notation that says what the grammar means does tend to read more of it.

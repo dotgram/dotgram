@@ -222,9 +222,7 @@ OdbcFunction : @SqlNode
 	= name: OdbcName & '(' & args: Arguments? & ')' => @(new SqlNode.Call(name, args ?? SqlNode.None))
 	| v: ValueExpression => @(v)
 
-OdbcName = "CONVERT"i | "DATABASE"i | "LEFT"i | "RIGHT"i | "USER"i
-		 | "CURRENT_DATE"i | "CURRENT_TIME"i | "CURRENT_TIMESTAMP"i | "CURRENT_USER"i
-		 | Identifier
+OdbcName = word
 
 // A property or a method reached through a name: `(c1).SomeProperty`, `t::a`,
 // `dbo.[type 1]::[Property]`. Read and dropped, as a collate clause is — what it
@@ -654,10 +652,11 @@ SourceClause    = "WINDOW"i | "PIVOT"i | "UNPIVOT"i | "TABLESAMPLE"i | "USING"i
 // all. These two are marked because they are the exception.
 //
 // What the shape says, and a list of hint names would not: `HOLDLOCK`, `INDEX`, `MERGE`,
-// `ORDER`, `GROUP`, `PLAN`, `USE`, `TABLE` and `JOIN` arrive as the reserved words they
-// are, and every other hint — `NOLOCK`, `FORCESEEK`, `RECOMPILE`, `MAXDOP` — is an
-// ordinary identifier. So the rule is about which words are keywords and not about which
-// hints exist, and adding a hint to T-SQL does not change it.
+// A hint's name is a word and nothing else: `NOLOCK`, `FORCESEEK`, `RECOMPILE`, `MAXDOP`
+// are ordinary ones and `ORDER`, `GROUP`, `PLAN`, `TABLE` are words T-SQL reserves, and
+// inside these brackets nothing tells them apart. So the rule says `word` (§4.6) and is
+// about the shape of a hint list rather than about which hints exist — the ones written
+// out are the ones that take an argument of their own.
 //
 // All of it is read and dropped: a hint says how the rows are to be fetched and never
 // which rows they are, and the tree this grammar builds is the standard's.
@@ -666,7 +665,7 @@ TableHints = "WITH"i & '(' & TableHint & (',' & TableHint)* & ')'
 TableHint
 	= "HOLDLOCK"i
 	| "INDEX"i & IndexArgument
-	| Identifier & TableHintTail?
+	| word & TableHintTail?
 
 TableHintTail
 	= '(' & IndexValue & TableHintRest & ')'
@@ -687,7 +686,7 @@ QueryHint
 	| "ORDER"i & "GROUP"i
 	| "USE"i & UseWhat
 	| "TABLE"i & Identifier & '(' & QualifiedName & (',' & TableHint)* & ')'
-	| Identifier & QueryHintTail?
+	| word & QueryHintTail?
 
 MergeWhat = "JOIN"i | "UNION"i
 UseWhat   = "PLAN"i & HintString
@@ -1303,13 +1302,13 @@ OptionList  = OptionSetting & (',' & OptionSetting)*
 OptionSetting = "DEFAULT"i & '=' & OptionValue
 			  | OptionName & OptionTail?
 
-// An option's name is an ordinary identifier except where it is a word T-SQL reserves,
-// and a few are: `WITH (FILLFACTOR = 80)` names one, and an identifier cannot be it. The
-// list is short because most option names — `DATA_COMPRESSION`, `SYSTEM_VERSIONING`,
-// `HISTORY_TABLE` — are not reserved and never needed saying.
-OptionName = Identifier
-		   | "FILLFACTOR"i | "STATISTICS"i | "IDENTITY"i | "KEY"i | "CHECK"i
-		   | "INDEX"i | "TABLE"i | "VIEW"i | "SCHEMA"i | "USER"i | "FILE"i | "PLAN"i
+// An option's name is not an identifier: `WITH (FILLFACTOR = 80)` names a word T-SQL
+// reserves, and so do a dozen others. Nothing about it is a name of this language — it is
+// a word standing inside brackets where only a word can stand — and that is what `word`
+// says (§4.6). It was twelve reserved words written out beside `Identifier`, which was a
+// catalogue of what SQL Server happened to have called its options and went stale on its
+// own.
+OptionName = word
 
 OptionTail = '=' & OptionValue & OnPartitions?
 		   | '(' & OptionList & ')'
@@ -1400,8 +1399,10 @@ IndexColumn : @string = t: IndexName & ("ASC"i | "DESC"i)? => @(t)
 // index may be built on one.
 IndexName : @string = t: Identifier => @(t) | t: PartitionName => @(t)
 
-IndexWith = "WITH"i & "FILLFACTOR"i & '=' & ValueExpression
-		  | "WITH"i & '(' & OptionList & ')'
+// The current form and the one that predates it: `WITH (FILLFACTOR = 80, ONLINE = ON)`
+// and the bare `WITH PAD_INDEX, FILLFACTOR = 80` SQL Server still reads.
+IndexWith = "WITH"i & '(' & OptionList & ')'
+		  | "WITH"i & OptionList
 
 IndexOn = "ON"i & PlacementTarget
 
@@ -1648,17 +1649,19 @@ Permission : @string
 // so the words of the name are taken and the clause after them is left alone.
 PermissionName = PermissionWord+
 
-// The words a permission is spelled with. Most are reserved and none can be read as an
-// identifier, so they are written out; the rest — `CONTROL`, `IMPERSONATE`, `SHOWPLAN`,
-// `SUBSCRIBE` and their fellows — arrive as identifiers and need no saying.
-PermissionWord
-	= "ALTER"i | "ANY"i | "CREATE"i | "VIEW"i | "EXECUTE"i | "EXEC"i | "SELECT"i
-	| "INSERT"i | "UPDATE"i | "DELETE"i | "REFERENCES"i | "BACKUP"i | "RESTORE"i
-	| "DATABASE"i | "TABLE"i | "PROCEDURE"i | "PROC"i | "FUNCTION"i | "RULE"i
-	| "DEFAULT"i | "SCHEMA"i | "USER"i | "KILL"i | "CHECKPOINT"i | "SHUTDOWN"i
-	| "PLAN"i | "STATISTICS"i | "KEY"i | "FILE"i | "TRIGGER"i | "INDEX"i | "PUBLIC"i
-	| "SERVER"i
-	| Identifier
+// A permission is spelled with words, and which words is a catalogue: `ALTER ANY
+// DATABASE`, `VIEW DEFINITION`, `BACKUP LOG`, `SUBSCRIBE QUERY NOTIFICATIONS`. Half of
+// them are reserved and cannot be read as an identifier, so the list used to be written
+// out — thirty-one words, and a permission SQL Server adds is a word this grammar has
+// never heard of.
+//
+// What actually bounds the name is not which words are in it but where it ends, and the
+// syntax says that: `ON`, `TO`, `FROM`, `WITH` and `CASCADE` begin the clause after it.
+// So the rule is any word that is not one of those — five words instead of thirty-one,
+// and it stops being a catalogue.
+PermissionWord = ?!PermissionEnd & word
+
+PermissionEnd = "ON"i | "TO"i | "FROM"i | "WITH"i | "CASCADE"i
 
 Principals : @string[]
 	= first: PrincipalName & (',' & rest: PrincipalName)* => @(SqlNode.Named(first, rest))
