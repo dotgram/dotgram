@@ -1124,6 +1124,7 @@ DefinitionStatement : @SqlNode
 	| s: AlterIndexStatement  => @(s)
 	| s: PermissionStatement  => @(s)
 	| s: AuditStatement          => @(s)
+	| s: KeyStatement            => @(s)
 	| s: FullTextStatement       => @(s)
 	| s: BackupStatement         => @(s)
 	| s: RestoreStatement        => @(s)
@@ -1791,6 +1792,125 @@ AlterIndexAction : @string
 	| "RESUME"i & IndexWith? => @("RESUME")
 	| "SET"i & '(' & OptionList & ')' => @("SET")
 
+// ── The keys, and what is locked with them ──────────────────────────────────
+//
+// Seventeen published blocks and one idea running through them: a key is made from
+// somewhere, locked by something, and the something is a certificate, a password or another
+// key. `ENCRYPTION BY` is written in six of the seventeen and reads the same in all six, so
+// it is one rule.
+KeyStatement : @SqlNode
+	= "CREATE"i & "ASYMMETRIC"i & "KEY"i & name: Identifier & Authorization?
+	  & ("FROM"i & AsymmetricSource)? & ("WITH"i & OptionList)? & EncryptionBy?
+		=> @(SqlNode.Defined("ASYMMETRIC KEY", name))
+	| "ALTER"i & "ASYMMETRIC"i & "KEY"i & name: Identifier & KeyChange
+		=> @(SqlNode.Defined("ALTER ASYMMETRIC KEY", name))
+
+	| "CREATE"i & "SYMMETRIC"i & "KEY"i & name: Identifier & Authorization?
+	  & ("FROM"i & "PROVIDER"i & Identifier)? & "WITH"i & SymmetricOption & (','? & SymmetricOption)*
+		=> @(SqlNode.Defined("SYMMETRIC KEY", name))
+	| "ALTER"i & "SYMMETRIC"i & "KEY"i & name: Identifier & AddOrDrop
+	  & "ENCRYPTION"i & "BY"i & Encryptor & (',' & Encryptor)*
+		=> @(SqlNode.Defined("ALTER SYMMETRIC KEY", name))
+
+	| "CREATE"i & "CERTIFICATE"i & name: Identifier & Authorization? & CertificateBody
+	  & ("ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff)?
+		=> @(SqlNode.Defined("CERTIFICATE", name))
+	| "ALTER"i & "CERTIFICATE"i & name: Identifier & CertificateChange
+		=> @(SqlNode.Defined("ALTER CERTIFICATE", name))
+
+	| "CREATE"i & "MASTER"i & "KEY"i & EncryptionBy?
+		=> @(SqlNode.Defined("MASTER KEY", ""))
+	| "ALTER"i & "MASTER"i & "KEY"i & MasterKeyChange
+		=> @(SqlNode.Defined("ALTER MASTER KEY", ""))
+
+	| "CREATE"i & "DATABASE"i & "ENCRYPTION"i & "KEY"i & ("WITH"i & OptionList)? & EncryptionBy?
+		=> @(SqlNode.Defined("DATABASE ENCRYPTION KEY", ""))
+	| "ALTER"i & "DATABASE"i & "ENCRYPTION"i & "KEY"i
+	  & ("REGENERATE"i & "WITH"i & OptionList)? & EncryptionBy?
+		=> @(SqlNode.Defined("ALTER DATABASE ENCRYPTION KEY", ""))
+
+	| "CREATE"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & name: Identifier
+	  & "WITH"i & "VALUES"i & '(' & OptionList & ')' & (',' & '(' & OptionList & ')')*
+		=> @(SqlNode.Defined("COLUMN ENCRYPTION KEY", name))
+	| "ALTER"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & name: Identifier & AddOrDrop
+	  & "VALUE"i & '(' & OptionList & ')'
+		=> @(SqlNode.Defined("ALTER COLUMN ENCRYPTION KEY", name))
+	| "CREATE"i & "COLUMN"i & "MASTER"i & "KEY"i & name: Identifier & OptionsWith
+		=> @(SqlNode.Defined("COLUMN MASTER KEY", name))
+
+	| CreateOrAlter & "CREDENTIAL"i & name: Identifier & "WITH"i & OptionList
+	  & ("FOR"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & Identifier)?
+		=> @(SqlNode.Defined("CREDENTIAL", name))
+	| CreateOrAlter & "DATABASE"i & "SCOPED"i & "CREDENTIAL"i & name: Identifier
+	  & "WITH"i & OptionList
+		=> @(SqlNode.Defined("DATABASE SCOPED CREDENTIAL", name))
+
+	// A security policy is a list of predicates rather than a list of settings, and each
+	// predicate names a function, the table it guards, and when it fires.
+	| CreateOrAlter & "SECURITY"i & "POLICY"i & name: QualifiedName
+	  & PolicyPredicates? & OptionsWith? & NotForReplication?
+		=> @(SqlNode.Defined("SECURITY POLICY", name))
+
+Authorization     = "AUTHORIZATION"i & QualifiedName
+NotForReplication = "NOT"i & "FOR"i & "REPLICATION"i
+
+// `ENCRYPTION BY PASSWORD = 'p'`, `ENCRYPTION BY SERVER CERTIFICATE c`, and the two keys.
+EncryptionBy = "ENCRYPTION"i & "BY"i & Encryptor
+
+Encryptor = "PASSWORD"i & '=' & ValueExpression
+		  | "SERVICE"i & "MASTER"i & "KEY"i
+		  | "SERVER"i? & "CERTIFICATE"i & QualifiedName
+		  | "SERVER"i? & "ASYMMETRIC"i & "KEY"i & QualifiedName
+		  | "SYMMETRIC"i & "KEY"i & QualifiedName
+
+AsymmetricSource = "EXECUTABLE"i? & "FILE"i & '=' & ValueExpression
+				 | "ASSEMBLY"i & QualifiedName
+				 | "PROVIDER"i & Identifier
+
+// Its own list rather than the shared one: a key's options and its encryptions run on
+// without commas, and an option's value is a run of words — so `ALGORITHM = AES_256
+// ENCRYPTION BY PASSWORD = 'p'` had the value take three words that belonged to the clause
+// after it. One word or one expression here, which is all the published block names.
+SymmetricOption = "ENCRYPTION"i & "BY"i & Encryptor
+				| word & '=' & SymmetricValue
+
+SymmetricValue = v: ValueExpression | w: word
+
+KeyChange = "REMOVE"i & "PRIVATE"i & "KEY"i
+		  | "WITH"i & "PRIVATE"i & "KEY"i & '(' & PrivateKeyOption & (',' & PrivateKeyOption)* & ')'
+
+MasterKeyChange = "REGENERATE"i & "WITH"i & EncryptionBy
+				| "FORCE"i & "REGENERATE"i & "WITH"i & EncryptionBy
+				| AddOrDrop & "ENCRYPTION"i & "BY"i & Encryptor
+
+PrivateKeyOption = "DECRYPTION"i & "BY"i & "PASSWORD"i & '=' & ValueExpression
+				 | "ENCRYPTION"i & "BY"i & "PASSWORD"i & '=' & ValueExpression
+				 | OptionSetting
+
+CertificateBody = "FROM"i & CertificateSource
+				| EncryptionBy? & "WITH"i & OptionList
+
+CertificateSource = "ASSEMBLY"i & QualifiedName
+				  | "EXECUTABLE"i? & "FILE"i & '=' & ValueExpression & PrivateKeyWith?
+				  | "BINARY"i & '=' & ValueExpression & PrivateKeyWith?
+
+PrivateKeyWith = "WITH"i & ("FORMAT"i & '=' & ValueExpression & ',')? & "PRIVATE"i & "KEY"i
+				 & '(' & PrivateKeyOption & (',' & PrivateKeyOption)* & ')'
+
+CertificateChange = "REMOVE"i & "PRIVATE"i & "KEY"i
+				  | "WITH"i & "PRIVATE"i & "KEY"i & '(' & PrivateKeyOption & (',' & PrivateKeyOption)* & ')'
+				  | "WITH"i & "ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff
+
+PolicyPredicates = PolicyPredicate & (',' & PolicyPredicate)*
+
+PolicyPredicate = PolicyChange & PolicyKind? & "PREDICATE"i & QualifiedName
+				  & '(' & Arguments? & ')' & "ON"i & QualifiedName & PolicyWhen?
+				| "DROP"i & PolicyKind & "PREDICATE"i & "ON"i & QualifiedName
+
+PolicyChange = "ADD"i | "ALTER"i
+PolicyKind   = "FILTER"i | "BLOCK"i
+PolicyWhen   = "AFTER"i & word | "BEFORE"i & word
+
 // ── The full-text catalogue, and the index over it ──────────────────────────
 //
 // Eight published blocks. A full-text index is the one index with no name of its own — it
@@ -1873,7 +1993,7 @@ PropertyListAction = "ADD"i & ValueExpression & OptionsWith
 // copied to or from, and a long option list. A device is a name or one of three words and
 // a path, which is the only part of either that is not an option.
 BackupStatement : @SqlNode
-	= "BACKUP"i & what: BackupWhat & name: BackupName? & BackupFiles*
+	= "BACKUP"i & what: BackupWhat & name: BackupTarget? & BackupFiles*
 	  & "TO"i & BackupDevices & MirrorTo* & BackupWith?
 		=> @(SqlNode.BackedUp(what, name))
 	| "BACKUP"i & what: BackupKeyWhat & name: BackupName?
@@ -1884,7 +2004,7 @@ RestoreStatement : @SqlNode
 	= "RESTORE"i & what: RestoreKeyWhat & "FROM"i & "FILE"i & '=' & ValueExpression
 	  & KeyFileTail*
 		=> @(SqlNode.Restored(what, null))
-	| "RESTORE"i & what: RestoreWhat & name: BackupName? & BackupFiles*
+	| "RESTORE"i & what: RestoreWhat & name: BackupTarget? & BackupFiles*
 	  & ("FROM"i & RestoreFrom)? & BackupWith?
 		=> @(SqlNode.Restored(what, name))
 
@@ -1918,6 +2038,15 @@ RestoreWhat : @string
 	| "LABELONLY"i    => @("LABELONLY")
 	| "REWINDONLY"i   => @("REWINDONLY")
 	| "VERIFYONLY"i   => @("VERIFYONLY")
+
+// What a database being copied is called, and what it is not: the four words that begin a
+// file clause and the three that begin the clause after it. Without the lookahead the name
+// takes the `FILE` of `BACKUP DATABASE FILE = 'f' TO …` and the statement is one word short
+// for the rest of its length — which GRAM5009 said before anybody wrote that script.
+BackupTarget : @string = ?!BackupBoundary & t: BackupName => @(t)
+
+BackupBoundary = "FILE"i | "FILEGROUP"i | "READ_WRITE_FILEGROUPS"i | "PAGE"i
+			   | "TO"i | "FROM"i | "WITH"i
 
 BackupName : @string
 	= t: QualifiedName                       => @(t)

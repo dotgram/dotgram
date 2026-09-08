@@ -575,6 +575,59 @@ public abstract record SqlNode
 	/// <summary><c>RESTORE SERVICE MASTER KEY</c>.</summary>
 	public sealed record RestoreServiceMasterKeyStatement(string? Name) : SqlNode;
 
+	// ---- the keys, and what is locked with them --------------------------------------------------
+	//
+	// Seventeen published blocks and one idea running through them: a key is made from
+	// somewhere, locked by something, and the something is a certificate, a password or
+	// another key. What the tree keeps is which key and what it is called.
+
+	/// <summary><c>CREATE ASYMMETRIC KEY</c>.</summary>
+	public sealed record AsymmetricKeyDefinition(string Name) : SqlNode;
+
+	/// <summary><c>ALTER ASYMMETRIC KEY</c>.</summary>
+	public sealed record AlterAsymmetricKeyStatement(string Name) : SqlNode;
+
+	/// <summary><c>CREATE SYMMETRIC KEY</c>.</summary>
+	public sealed record SymmetricKeyDefinition(string Name) : SqlNode;
+
+	/// <summary><c>ALTER SYMMETRIC KEY</c>.</summary>
+	public sealed record AlterSymmetricKeyStatement(string Name) : SqlNode;
+
+	/// <summary><c>CREATE CERTIFICATE</c>.</summary>
+	public sealed record CertificateDefinition(string Name) : SqlNode;
+
+	/// <summary><c>ALTER CERTIFICATE</c>.</summary>
+	public sealed record AlterCertificateStatement(string Name) : SqlNode;
+
+	/// <summary><c>CREATE MASTER KEY</c>.</summary>
+	public sealed record MasterKeyDefinition(string Name) : SqlNode;
+
+	/// <summary><c>ALTER MASTER KEY</c>.</summary>
+	public sealed record AlterMasterKeyStatement(string Name) : SqlNode;
+
+	/// <summary><c>CREATE DATABASE ENCRYPTION KEY</c>.</summary>
+	public sealed record DatabaseEncryptionKeyDefinition(string Name) : SqlNode;
+
+	/// <summary><c>ALTER DATABASE ENCRYPTION KEY</c>.</summary>
+	public sealed record AlterDatabaseEncryptionKeyStatement(string Name) : SqlNode;
+
+	/// <summary><c>CREATE COLUMN ENCRYPTION KEY</c>.</summary>
+	public sealed record ColumnEncryptionKeyDefinition(string Name) : SqlNode;
+
+	/// <summary><c>ALTER COLUMN ENCRYPTION KEY</c>.</summary>
+	public sealed record AlterColumnEncryptionKeyStatement(string Name) : SqlNode;
+
+	/// <summary><c>CREATE COLUMN MASTER KEY</c>.</summary>
+	public sealed record ColumnMasterKeyDefinition(string Name) : SqlNode;
+
+	/// <summary><c>CREATE/ALTER CREDENTIAL</c>.</summary>
+	public sealed record CredentialDefinition(string Name) : SqlNode;
+
+	/// <summary><c>CREATE/ALTER DATABASE SCOPED CREDENTIAL</c>.</summary>
+	public sealed record DatabaseScopedCredentialDefinition(string Name) : SqlNode;
+
+	/// <summary><c>CREATE/ALTER SECURITY POLICY</c>.</summary>
+	public sealed record SecurityPolicyDefinition(string Name) : SqlNode;
 	// ---- what a statement drops ----------------------------------------------------------------
 	//
 	// Sixty-four records of one shape, because sixty-four statements of one shape is what
@@ -884,6 +937,23 @@ public abstract record SqlNode
 			"ALTER FULLTEXT STOPLIST" => new AlterFullTextStopListStatement(name),
 			"SEARCH PROPERTY LIST" => new SearchPropertyListDefinition(name),
 			"ALTER SEARCH PROPERTY LIST" => new AlterSearchPropertyListStatement(name),
+
+			"ASYMMETRIC KEY" => new AsymmetricKeyDefinition(name),
+			"ALTER ASYMMETRIC KEY" => new AlterAsymmetricKeyStatement(name),
+			"SYMMETRIC KEY" => new SymmetricKeyDefinition(name),
+			"ALTER SYMMETRIC KEY" => new AlterSymmetricKeyStatement(name),
+			"CERTIFICATE" => new CertificateDefinition(name),
+			"ALTER CERTIFICATE" => new AlterCertificateStatement(name),
+			"MASTER KEY" => new MasterKeyDefinition(name),
+			"ALTER MASTER KEY" => new AlterMasterKeyStatement(name),
+			"DATABASE ENCRYPTION KEY" => new DatabaseEncryptionKeyDefinition(name),
+			"ALTER DATABASE ENCRYPTION KEY" => new AlterDatabaseEncryptionKeyStatement(name),
+			"COLUMN ENCRYPTION KEY" => new ColumnEncryptionKeyDefinition(name),
+			"ALTER COLUMN ENCRYPTION KEY" => new AlterColumnEncryptionKeyStatement(name),
+			"COLUMN MASTER KEY" => new ColumnMasterKeyDefinition(name),
+			"CREDENTIAL" => new CredentialDefinition(name),
+			"DATABASE SCOPED CREDENTIAL" => new DatabaseScopedCredentialDefinition(name),
+			"SECURITY POLICY" => new SecurityPolicyDefinition(name),
 			_ => throw Unknown(what),
 		};
 

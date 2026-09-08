@@ -186,6 +186,22 @@ field on one record here, and having a record each is what makes that a small ch
 | `RestoreVerifyOnlyStatement` | T-SQL | RESTORE VERIFYONLY |
 | `RestoreMasterKeyStatement` | T-SQL | RESTORE MASTER KEY |
 | `RestoreServiceMasterKeyStatement` | T-SQL | RESTORE SERVICE MASTER KEY |
+| `AsymmetricKeyDefinition` | T-SQL | CREATE ASYMMETRIC KEY |
+| `AlterAsymmetricKeyStatement` | T-SQL | ALTER ASYMMETRIC KEY |
+| `SymmetricKeyDefinition` | T-SQL | CREATE SYMMETRIC KEY |
+| `AlterSymmetricKeyStatement` | T-SQL | ALTER SYMMETRIC KEY |
+| `CertificateDefinition` | T-SQL | CREATE CERTIFICATE |
+| `AlterCertificateStatement` | T-SQL | ALTER CERTIFICATE |
+| `MasterKeyDefinition` | T-SQL | CREATE MASTER KEY |
+| `AlterMasterKeyStatement` | T-SQL | ALTER MASTER KEY |
+| `DatabaseEncryptionKeyDefinition` | T-SQL | CREATE DATABASE ENCRYPTION KEY |
+| `AlterDatabaseEncryptionKeyStatement` | T-SQL | ALTER DATABASE ENCRYPTION KEY |
+| `ColumnEncryptionKeyDefinition` | T-SQL | CREATE COLUMN ENCRYPTION KEY |
+| `AlterColumnEncryptionKeyStatement` | T-SQL | ALTER COLUMN ENCRYPTION KEY |
+| `ColumnMasterKeyDefinition` | T-SQL | CREATE COLUMN MASTER KEY |
+| `CredentialDefinition` | T-SQL | CREATE/ALTER CREDENTIAL |
+| `DatabaseScopedCredentialDefinition` | T-SQL | CREATE/ALTER DATABASE SCOPED CREDENTIAL |
+| `SecurityPolicyDefinition` | T-SQL | CREATE/ALTER SECURITY POLICY |
 | `DropAggregateStatement` | T-SQL | DROP AGGREGATE |
 | `DropApplicationRoleStatement` | T-SQL | DROP APPLICATION ROLE |
 | `DropAvailabilityGroupStatement` | T-SQL | DROP AVAILABILITY GROUP |

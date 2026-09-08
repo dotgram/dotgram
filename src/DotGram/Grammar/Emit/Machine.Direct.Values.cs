@@ -667,9 +667,29 @@ sealed partial class Machine
 					file.Line();
 					file.Line($"var read = at + {(DirectPositions(rules) ? 4 : 2)};");
 					file.Line();
-					using (file.Block("switch (log[at + 1])"))
-						foreach (var (rule, factory) in _directArmed)
-							MarkDirectArm(file, rule, factory);
+
+					if (parts.Count == 1)
+					{
+						using (file.Block("switch (log[at + 1])"))
+							foreach (var (rule, factory) in _directArmed)
+								MarkDirectArm(file, rule, factory);
+					}
+					else
+					{
+						// Divided the same way and into the same groups, so that a reader
+						// looking for what a rule does finds both halves of it in the parts
+						// named after the same number.
+						file.Line("var kind = log[at + 1];");
+						file.Line();
+
+						for (var part = 0; part < parts.Count; part++)
+							file.Line(
+								part == 0
+									? $"if (!{DirectMaterializer}_Reaches{part}(log, live, kind, read))"
+									: part < parts.Count - 1
+										? $"if (!{DirectMaterializer}_Reaches{part}(log, live, kind, read))"
+										: $"	{DirectMaterializer}_Reaches{part}(log, live, kind, read);");
+					}
 				}
 			}
 
@@ -780,6 +800,37 @@ sealed partial class Machine
 						using (file.Block("switch (kind)"))
 							foreach (var (rule, factory) in parts[part])
 								MaterializeDirectArm(file, rule, factory);
+					}
+				}
+
+			// The other switch over the same arms, divided into the same groups. It says
+			// what the root reaches and is walked before anything is built, and it was left
+			// whole while the building half was divided — so a grammar with two hundred
+			// valued rules had one method under the budget and one over it, and `GRAM5003`
+			// named the method that held both.
+			//
+			// It answers whether it knew the kind, so the groups are asked in turn and the
+			// one that knows it stops the chain. `read` is handed over by value: an arm
+			// steps it and nothing after the switch reads it.
+			if (strays && parts.Count > 1)
+				for (var part = 0; part < parts.Count; part++)
+				{
+					file.Line();
+
+					using (file.Block(
+						$"static bool {DirectMaterializer}_Reaches{part}(" +
+						"int[] log, bool[] live, int kind, int read)"))
+					{
+						using (file.Block("switch (kind)"))
+						{
+							foreach (var (rule, factory) in parts[part])
+								MarkDirectArm(file, rule, factory);
+
+							file.Line("default: return false;");
+						}
+
+						file.Line();
+						file.Line("return true;");
 					}
 				}
 		}

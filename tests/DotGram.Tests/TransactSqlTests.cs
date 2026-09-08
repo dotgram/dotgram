@@ -884,20 +884,28 @@ public sealed class TransactSqlTests
 	}
 
 	/// <summary>
-	/// And a statement that only begins like one of these is left for whoever reads it.
+	/// And a statement that only begins like a database is read as the statement it is.
 	/// </summary>
 	/// <remarks>
-	/// Each is a statement kind of its own — an encryption key, and the audit specification
-	/// that has a rule now — and the rules here must not take one for a database called
-	/// `ENCRYPTION` doing something called `KEY`. That is why the two word-only actions are
-	/// written out and not read as `word`: a rule wide enough for `REBUILD LOG` is wide
-	/// enough for these.
+	/// Each of these is a statement of its own, and the rules for a database must not take
+	/// one for a database called `ENCRYPTION` doing something called `KEY`. That is why the
+	/// two word-only actions of `ALTER DATABASE` are written out and not read as `word`: a
+	/// rule wide enough for `REBUILD LOG` is wide enough for these. They were refused until
+	/// the keys were read; now they are read, and by the right rule.
 	/// </remarks>
 	[Theory]
-	[InlineData("ALTER DATABASE ENCRYPTION KEY REGENERATE WITH ALGORITHM = AES_256")]
-	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = AES_128 ENCRYPTION BY SERVER CERTIFICATE c1")]
-	public void And_what_only_begins_like_a_database_is_left_alone(string input) =>
-		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+	[InlineData("ALTER DATABASE ENCRYPTION KEY REGENERATE WITH ALGORITHM = AES_256",
+		"AlterDatabaseEncryptionKeyStatement")]
+	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = AES_128 ENCRYPTION BY SERVER CERTIFICATE c1",
+		"DatabaseEncryptionKeyDefinition")]
+	public void And_what_only_begins_like_a_database_is_read_as_itself(string input, string node)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+		Assert.Equal(node, match.Value!.GetType().Name);
+	}
+
 
 	/// <summary>What a second reading of the published syntax found missing.</summary>
 	/// <remarks>
@@ -1444,6 +1452,57 @@ public sealed class TransactSqlTests
 	[InlineData("RESTORE HEADERONLY FROM DISK = 'a'")]
 	[InlineData("RESTORE MASTER KEY FROM FILE = 'k' DECRYPTION BY PASSWORD = 'p' ENCRYPTION BY PASSWORD = 'q' FORCE")]
 	public void The_catalogue_and_the_copies_read(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>The keys, and what is locked with them.</summary>
+	/// <remarks>
+	/// Seventeen published blocks and one idea running through them: a key is made from
+	/// somewhere, locked by something, and the something is a certificate, a password or
+	/// another key. `ENCRYPTION BY` is written in six of the seventeen and reads the same in
+	/// all six, so it is one rule.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE ASYMMETRIC KEY k AUTHORIZATION dbo FROM FILE = 'k.snk' WITH ALGORITHM = RSA_2048")]
+	[InlineData("CREATE ASYMMETRIC KEY k FROM EXECUTABLE FILE = 'a.exe' ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("ALTER ASYMMETRIC KEY k REMOVE PRIVATE KEY")]
+	[InlineData("ALTER ASYMMETRIC KEY k WITH PRIVATE KEY (DECRYPTION BY PASSWORD = 'a', ENCRYPTION BY PASSWORD = 'b')")]
+
+	[InlineData("CREATE SYMMETRIC KEY k WITH ALGORITHM = AES_256 ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("CREATE SYMMETRIC KEY k AUTHORIZATION dbo FROM PROVIDER p WITH PROVIDER_KEY_NAME = 'n', CREATION_DISPOSITION = CREATE_NEW")]
+	[InlineData("ALTER SYMMETRIC KEY k ADD ENCRYPTION BY CERTIFICATE c, PASSWORD = 'p'")]
+	[InlineData("ALTER SYMMETRIC KEY k DROP ENCRYPTION BY ASYMMETRIC KEY a")]
+
+	[InlineData("CREATE CERTIFICATE c WITH SUBJECT = 'x'")]
+	[InlineData("CREATE CERTIFICATE c AUTHORIZATION u ENCRYPTION BY PASSWORD = 'p' WITH SUBJECT = 'x', START_DATE = '2020-01-01'")]
+	[InlineData("CREATE CERTIFICATE c FROM FILE = 'c.cer' WITH PRIVATE KEY (FILE = 'k.pvk', DECRYPTION BY PASSWORD = 'p')")]
+	[InlineData("CREATE CERTIFICATE c FROM ASSEMBLY a")]
+	[InlineData("ALTER CERTIFICATE c REMOVE PRIVATE KEY")]
+	[InlineData("ALTER CERTIFICATE c WITH ACTIVE FOR BEGIN_DIALOG = ON")]
+
+	[InlineData("CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("ALTER MASTER KEY REGENERATE WITH ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("ALTER MASTER KEY ADD ENCRYPTION BY SERVICE MASTER KEY")]
+	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = AES_256 ENCRYPTION BY SERVER CERTIFICATE c")]
+	[InlineData("ALTER DATABASE ENCRYPTION KEY REGENERATE WITH ALGORITHM = AES_128")]
+
+	[InlineData("CREATE COLUMN ENCRYPTION KEY k WITH VALUES (COLUMN_MASTER_KEY = m, ALGORITHM = 'a', ENCRYPTED_VALUE = 0x01)")]
+	[InlineData("CREATE COLUMN MASTER KEY m WITH (KEY_STORE_PROVIDER_NAME = 'p', KEY_PATH = 'x')")]
+
+	[InlineData("CREATE CREDENTIAL c WITH IDENTITY = 'i', SECRET = 's'")]
+	[InlineData("ALTER CREDENTIAL c WITH IDENTITY = 'i'")]
+	[InlineData("CREATE CREDENTIAL c WITH IDENTITY = 'i' FOR CRYPTOGRAPHIC PROVIDER p")]
+	[InlineData("CREATE DATABASE SCOPED CREDENTIAL c WITH IDENTITY = 'i', SECRET = 's'")]
+
+	[InlineData("CREATE SECURITY POLICY dbo.p ADD FILTER PREDICATE dbo.f(a) ON dbo.t WITH (STATE = ON)")]
+	[InlineData("CREATE SECURITY POLICY p ADD BLOCK PREDICATE dbo.f(a, b) ON dbo.t AFTER INSERT, " +
+		"ADD BLOCK PREDICATE dbo.f(a) ON dbo.u BEFORE UPDATE NOT FOR REPLICATION")]
+	[InlineData("ALTER SECURITY POLICY dbo.p WITH (STATE = ON)")]
+	[InlineData("ALTER SECURITY POLICY dbo.p DROP FILTER PREDICATE ON dbo.t")]
+	public void The_keys_read(string input)
 	{
 		var match = TransactSql.TryParseStatement(input);
 

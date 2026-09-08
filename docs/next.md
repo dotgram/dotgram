@@ -16271,3 +16271,39 @@ worth a guard on their own account, since the words that overlap are ones a real
 uses: a backup's name against the `FILE` and `FILEGROUP` that may follow it, and the same
 for a restore.
 
+## The keys, and what is locked with them
+
+Seventeen published blocks — asymmetric and symmetric keys, certificates, master keys,
+column keys, credentials, security policies — and one idea running through them: a key is
+made from somewhere, locked by something, and the something is a certificate, a password or
+another key. `ENCRYPTION BY` is written in six of the seventeen and reads the same in all
+six, so it is one rule.
+
+**And the trap again, twice, in the same wave.** `WITH [FORMAT = 'PFX',] PRIVATE KEY (…)`
+written with a shared option list read the `PRIVATE KEY` as an option's name and left the
+brackets to nobody. And `ALGORITHM = AES_256 ENCRYPTION BY PASSWORD = 'p'` — a key's
+options and its encryptions run on without commas between them — had the value take the
+three words that began the clause after it, because an option's value is a run of words.
+Both are now written out as the published blocks name them.
+
+This is what GRAM5009 exists for, and it is worth saying that it did not catch these two:
+it asks about an optional or a repetition against what follows it *in the same sequence*,
+and both of these were a rule reached through a call whose follow set is elsewhere. The
+follow-set half of the question is the next thing to write.
+
+## And the walk had a second switch
+
+Sixteen more records put the direct materializer at 2,007 blocks, seven over the line, and
+`GRAM5003` said so — after that method had been divided into parts once already today. The
+division was real and the remainder was the walk itself, which holds *two* switches over
+the same arms: one that builds a value and one that marks what the root reaches. Only the
+building half was divided, so a grammar with two hundred valued rules had one method under
+the budget and one over it, and the diagnostic named the method that held both.
+
+Both halves are divided now, into the same groups and named after the same number, so a
+reader looking for what a rule does finds the two halves of it beside each other. The
+reaching half answers whether it knew the kind and the groups are asked in turn.
+
+Of everything in the corpus, **79.7% to 82.0%**, and 5,958 statements read by both this
+grammar and the engine.
+
