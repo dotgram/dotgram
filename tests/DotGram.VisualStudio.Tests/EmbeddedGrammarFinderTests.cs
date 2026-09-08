@@ -62,6 +62,22 @@ public sealed class EmbeddedGrammarFinderTests
 	}
 
 	[Fact]
+	public void DoesNotTreatAGramFilePathAsEmbeddedGrammarText()
+	{
+		var source = """
+			namespace DotGram
+			{
+				sealed class GramAttribute(string text) : System.Attribute;
+			}
+
+			[DotGram.Gram("TransactSql.gram")]
+			class Parser;
+			""";
+
+		Assert.Empty(Find(source));
+	}
+
+	[Fact]
 	public void FindsSourceSpelledGramAttributeWithoutSemanticModel()
 	{
 		var source = """"

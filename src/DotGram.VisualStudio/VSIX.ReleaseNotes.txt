@@ -1,4 +1,4 @@
-DotGram language support 0.1.48
+DotGram language support 0.1.49
 
 Initial preview for Visual Studio 18.
 
@@ -20,6 +20,7 @@ Initial preview for Visual Studio 18.
   enable DotGram grammar tooling.
 - Inherited grammars resolve from the unsuffixed `[Gram]` declaration when a base
   parser also carries additional suffixed grammar compilations.
+- File names in `[Gram("Language.gram")]` are no longer analyzed as embedded grammar text.
 - DSL `StringSyntax` annotations also work on extension receivers and immediate field
   or property initializers.
 - Provisional analysis preserves existing colors while a line edit is being analyzed.

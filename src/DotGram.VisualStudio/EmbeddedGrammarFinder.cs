@@ -57,6 +57,9 @@ public static class EmbeddedGrammarFinder
 				continue;
 
 			var own = literal.Token.ValueText;
+			if (IsFile(own))
+				continue;
+
 			var included = IncludedGrammars(model, attribute, cancellationToken);
 			var analysisText = included.Count == 0
 				? own
