@@ -215,7 +215,11 @@ static class Program
 			var named = rest.Length >= 1 && (rest[0].Contains('/') || rest[0].Contains('\\'));
 			var first = named ? 1 : 0;
 
-			RoundTrip.Run(named ? rest[0] : null, rest.Length > first ? rest[first] : "180");
+			RoundTrip.Run(
+				named ? rest[0] : null,
+				rest.Length > first ? rest[first] : "180",
+				rest.Length > first + 1 ? rest[first + 1] : null,
+				rest.Length > first + 2 && int.TryParse(rest[first + 2], out var shown) ? shown : 2);
 
 			return;
 		}

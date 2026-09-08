@@ -44,7 +44,7 @@ namespace DotGram.Benchmarks;
 /// </remarks>
 static class RoundTrip
 {
-	public static void Run(string? root, string version)
+	public static void Run(string? root, string version, string? wanted = null, int most = 2)
 	{
 		root ??= Corpus.Checked();
 
@@ -119,7 +119,7 @@ static class RoundTrip
 				{
 					bad++;
 					tally.Broken++;
-					Show(shown, kind, original, "the writer threw: " + failure.GetType().Name);
+					Show(shown, wanted, most, kind, original, "the writer threw: " + failure.GetType().Name);
 
 					continue;
 				}
@@ -134,7 +134,7 @@ static class RoundTrip
 				{
 					bad++;
 					tally.Broken++;
-					Show(shown, kind, original, "printed as: " + printed);
+					Show(shown, wanted, most, kind, original, "printed as: " + printed);
 
 					continue;
 				}
@@ -149,7 +149,7 @@ static class RoundTrip
 				else
 				{
 					lost++;
-					Show(shown, kind, original, "A: " + One(a) + "\n           B: " + One(b));
+					Show(shown, wanted, most, kind, original, "A: " + One(a) + "\n     B: " + One(b));
 				}
 			}
 		}
@@ -211,15 +211,22 @@ static class RoundTrip
 	static string Share(int part, int all) =>
 		all == 0 ? "" : $"{100.0 * part / all,7:0.0}%";
 
-	/// <summary>At most two examples of any one kind, so that the list stays readable.</summary>
-	static void Show(List<string> shown, string kind, string original, string how)
+	/// <summary>
+	/// A few examples of each kind, so that the list stays readable — or a great many of one
+	/// kind, which is what a wave of work on that kind needs.
+	/// </summary>
+	static void Show(
+		List<string> shown, string? wanted, int most, string kind, string original, string how)
 	{
-		var already = shown.Count(one => one.StartsWith("  " + kind + " ", StringComparison.Ordinal));
-
-		if (already >= 2)
+		if (wanted is not null && !string.Equals(kind, wanted, StringComparison.OrdinalIgnoreCase))
 			return;
 
-		shown.Add($"  {kind} — {One(original)}\n           {how}");
+		var already = shown.Count(one => one.StartsWith("  " + kind + " ", StringComparison.Ordinal));
+
+		if (already >= most)
+			return;
+
+		shown.Add($"  {kind} — {One(original)}\n     {how}");
 	}
 
 	static string One(string text)

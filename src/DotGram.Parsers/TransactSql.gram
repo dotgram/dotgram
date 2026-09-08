@@ -453,24 +453,31 @@ DistinctTail : @Expression
 // and dropped, as the standard's collate clause is: they say how many rows come back
 // and how a call sees them, not what the rows are.
 TsqlQuerySpecification : @Query
-	= "SELECT"i & quantifier: SetQuantifier? & Top? & columns: SelectList & Into?
+	= "SELECT"i & quantifier: SetQuantifier? & top: Top? & columns: SelectList & into: Into?
 	  & from: FromClause? & where: WhereClause? & group: GroupByClause? & having: HavingClause?
 	  & Window?
 		=> @(new Query.Specification(
-				 Syntax.Distinctly(quantifier) == "DISTINCT", columns, from ?? TableReference.None,
-				 where, group ?? Expression.None, having))
+				 Syntax.Distinctly(quantifier) == "DISTINCT", top, columns, into,
+				 from ?? TableReference.None, where, group, having))
 
 // Written as alternatives of a rule rather than one sequence with a choice inside it,
 // for the reason `CallTail` gives.
-Top = "TOP"i & '(' & ValueExpression & ')' & TopSuffix?
-	| "TOP"i & Sql92.Lexical.UnsignedNumericLiteral & TopSuffix?
+Top : @Clause.Top
+	= "TOP"i & '(' & v: ValueExpression & ')' & suffix: TopSuffix?
+		=> @(Clause.Topped(v, suffix))
+	| "TOP"i & t: Sql92.Lexical.UnsignedNumericLiteral & suffix: TopSuffix?
+		=> @(Clause.Topped(new Expression.Literal(SqlLiteralKind.Number, t), suffix))
 
-TopSuffix = "PERCENT"i & TopWith? | TopWith
+// Read as the words they are and taken apart in C#: two questions and a rule, and asking
+// them here would be three captures where one run of words says it.
+TopSuffix : @string = t: ("PERCENT"i & TopWith? | TopWith) => @(t)
 TopWith   = "WITH"i & "TIES"i | "WITH"i & "APPROXIMATE"i | "WITH"i & "APPROX"i
 
 // §7.9 has nowhere to put this: the rows go into a table instead of coming back, and
 // the filegroup says where that table's pages live.
-Into = "INTO"i & QualifiedName & ("ON"i & Identifier)?
+// The filegroup after `ON` is read and dropped: it says where the new table's pages live,
+// which is a decoration on the table and not on the query.
+Into : @string = "INTO"i & name: QualifiedName & ("ON"i & Identifier)? => @(name)
 
 // The windows a call may name instead of writing out.
 Window       = "WINDOW"i & WindowDef & (',' & WindowDef)*
@@ -489,11 +496,12 @@ WindowPart   = "PARTITION"i & "BY"i & ValueExpression & (',' & ValueExpression)*
 // string, which the standard does not allow and every dialect does.
 TsqlSelectSublist : @Clause
 	= qualifier: QualifiedName & '.' & '*'        => @(new Clause.QualifiedAsterisk(qualifier))
-	| into: Tsql.Variable & AssignOp & v: ValueExpression => @(new Clause.DerivedColumn(v, into))
+	| into: Tsql.Variable & by: AssignOp & v: ValueExpression
+		=> @(new Clause.VariableAssignment(into, by, v))
 	| label: TsqlAlias & '=' & v: ValueExpression  => @(new Clause.DerivedColumn(v, label))
 	| v: ValueExpression & alias: TsqlAsClause?    => @(new Clause.DerivedColumn(v, alias))
 
-AssignOp = '=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "||="
+AssignOp : @string = t: ('=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "||=") => @(t)
 
 TsqlAlias    : @string = t: Identifier => @(t) | t: Sql92.Lexical.CharacterStringLiteral => @(t)
 TsqlAsClause : @string = "AS"i & t: TsqlAlias => @(t) | t: TsqlAlias => @(t)
@@ -509,13 +517,14 @@ TsqlAsClause : @string = "AS"i & t: TsqlAlias => @(t) | t: TsqlAlias => @(t)
 //
 // And the older spelling beside the ISO one: `WITH CUBE` and `WITH ROLLUP` say after
 // the list what `CUBE (…)` and `ROLLUP (…)` say in front of it.
-TsqlGroupByClause : @Expression[]
+TsqlGroupByClause : @Clause
 	= "GROUP"i & "BY"i & "ALL"i & first: TsqlGrouping & (',' & rest: TsqlGrouping)*
-		=> @(Syntax.Listed(first, rest))
-	| "GROUP"i & "BY"i & first: TsqlGrouping & (',' & rest: TsqlGrouping)* & GroupWith?
-		=> @(Syntax.Listed(first, rest))
+		=> @(new Clause.GroupBy(true, Syntax.Listed(first, rest), null))
+	| "GROUP"i & "BY"i & first: TsqlGrouping & (',' & rest: TsqlGrouping)* & with: GroupWith?
+		=> @(new Clause.GroupBy(false, Syntax.Listed(first, rest), with))
 
-GroupWith = "WITH"i & "CUBE"i | "WITH"i & "ROLLUP"i | "WITH"i & '(' & Identifier & ')'
+GroupWith : @string = "WITH"i & t: ("CUBE"i | "ROLLUP"i) => @(t)
+					| "WITH"i & '(' & t: Identifier & ')' => @(t)
 
 TsqlGrouping : @Expression
 	= "CUBE"i     & g: GroupList => @(new Expression.RoutineInvocation("CUBE",   g))
@@ -570,9 +579,9 @@ TsqlTableReference : @TableReference
 	= left: TsqlTableReference & "CROSS"i & "JOIN"i & right: TablePrimary
 		=> @(new TableReference.Joined(SqlJoin.Cross, false, left, right))
 	| left: TsqlTableReference & "CROSS"i & "APPLY"i & right: TablePrimary
-		=> @(new TableReference.Joined(SqlJoin.Cross, false, left, right))
+		=> @(new TableReference.Joined(SqlJoin.CrossApply, false, left, right))
 	| left: TsqlTableReference & "OUTER"i & "APPLY"i & right: TablePrimary
-		=> @(new TableReference.Joined(SqlJoin.Cross, false, left, right))
+		=> @(new TableReference.Joined(SqlJoin.OuterApply, false, left, right))
 	| left: TsqlTableReference & kind: TsqlJoinType? & "JOIN"i & right: TablePrimary
 	  & "ON"i & on: SearchCondition
 		=> @(TableReference.Joining(kind, null, left, right, on, null))
@@ -691,14 +700,18 @@ IndexArgument
 
 IndexValue = Identifier | Sql92.Lexical.UnsignedNumericLiteral
 
-QueryHints = "OPTION"i & '(' & QueryHint & (',' & QueryHint)* & ')'
+QueryHints : @Clause[]
+	= "OPTION"i & '(' & first: QueryHint & (',' & rest: QueryHint)* & ')'
+		=> @(Syntax.Listed(first, rest))
 
-QueryHint
-	= "MERGE"i & MergeWhat
-	| "ORDER"i & "GROUP"i
-	| "USE"i & UseWhat
-	| "TABLE"i & Identifier & '(' & QualifiedName & (',' & TableHint)* & ')'
-	| word & QueryHintTail?
+// Kept as the words it was written as, which is what a hint is: see `Clause.Hint`.
+QueryHint : @Clause
+	= t: ("MERGE"i & MergeWhat)  => @(new Clause.Hint(t))
+	| t: ("ORDER"i & "GROUP"i)   => @(new Clause.Hint(t))
+	| t: ("USE"i & UseWhat)      => @(new Clause.Hint(t))
+	| t: ("TABLE"i & Identifier & '(' & QualifiedName & (',' & TableHint)* & ')')
+		=> @(new Clause.Hint(t))
+	| t: (word & QueryHintTail?) => @(new Clause.Hint(t))
 
 MergeWhat = "JOIN"i | "UNION"i
 UseWhat   = "PLAN"i & HintString
@@ -741,8 +754,12 @@ TableRepeatable = "REPEATABLE"i & '(' & ValueExpression & ')'
 // Where the clauses that belong to the statement rather than to the query go: how many
 // rows to skip and take, what shape to return them in, and how to run the whole thing.
 TsqlDirectSelect : @Statement
-	= WithClause? & q: QueryExpression & by: OrderByClause? & OffsetFetch? & ForClause? & QueryHints?
-		=> @(new Statement.Select(q, by ?? Clause.None))
+	= with: WithClause? & q: QueryExpression & by: OrderByClause? & window: OffsetFetch?
+	  & shape: ForClause? & options: QueryHints?
+		=> @(new Statement.Select(
+				 with ?? Clause.None, q, Clause.Ordered(by, window),
+				 shape is null ? Clause.None : new Clause[] { shape },
+				 options ?? Clause.None))
 
 // §7's `WITH <common_table_expression>`: a query given a name in front of the statement
 // that uses it. Read and dropped — what it names is a query the tree already holds no
@@ -751,36 +768,53 @@ TsqlDirectSelect : @Statement
 //
 // The definition is a query expression and not a whole statement: the syntax forbids a
 // `WITH` inside a `WITH`, and writing it that way is how the grammar says so.
-WithClause    = "WITH"i & ChangeTrackingContext
-			  | "WITH"i & XmlNamespaces & (',' & CteDefinition)*
-			  | "WITH"i & CteDefinition & (',' & CteDefinition)*
+WithClause : @Clause[]
+	= "WITH"i & t: ChangeTrackingContext => @(new Clause[] { new Clause.WithOption(t) })
+	| "WITH"i & t: XmlNamespaces & (',' & rest: CteDefinition)*
+		=> @(Syntax.Listed<Clause>(new Clause.WithOption(t), rest))
+	| "WITH"i & first: CteDefinition & (',' & rest: CteDefinition)*
+		=> @(Syntax.Listed<Clause>(first, rest))
 
 // The namespaces a `FOR XML` may use, declared where a named query is declared and in
 // the same breath as one.
-ChangeTrackingContext = "CHANGE_TRACKING_CONTEXT"i & '(' & ValueExpression & ')'
+ChangeTrackingContext : @string
+	= t: ("CHANGE_TRACKING_CONTEXT"i & '(' & ValueExpression & ')') => @(t)
 
-XmlNamespaces = "XMLNAMESPACES"i & '(' & XmlNamespace & (',' & XmlNamespace)* & ')'
+XmlNamespaces : @string
+	= t: ("XMLNAMESPACES"i & '(' & XmlNamespace & (',' & XmlNamespace)* & ')') => @(t)
 XmlNamespace  = "DEFAULT"i & ValueExpression
 			  | ValueExpression & "AS"i & Identifier
-CteDefinition = Identifier & ('(' & ColumnList & ')')? & "AS"i & '(' & CteBody & ')'
-CteBody       = QueryExpression & OrderByClause? & OffsetFetch?
+CteDefinition : @Clause.CommonTableExpression
+	= name: Identifier & ('(' & columns: ColumnList & ')')? & "AS"i & '(' & q: CteBody & ')'
+		=> @(new Clause.CommonTableExpression(name, columns, q))
+
+// The order a named query is written in is read and dropped: a `WITH` defines a table, and
+// a table has no order until something asks for one.
+CteBody : @Query = q: QueryExpression & OrderByClause? & OffsetFetch? => @(q)
 
 // `FETCH` without `OFFSET` in front of it is not a clause: the engine answers
 // `Incorrect syntax`, though ScriptDom reads it. The corpus statement that asked for it was
 // wrong to, and reading it was over-acceptance rather than coverage.
-OffsetFetch = "OFFSET"i & ValueExpression & RowWord & FetchClause?
+// Published as two clauses inside `ORDER BY` and read here as one, since neither may be
+// written without the sort. What comes out is the order clause with an empty list, and
+// whoever read the list fills it in — `Clause.Ordered` is where the two meet.
+OffsetFetch : @Clause.OrderBy
+	= "OFFSET"i & skip: ValueExpression & RowWord & take: FetchClause?
+		=> @(new Clause.OrderBy(Clause.None, skip, take))
 
-FetchClause = "FETCH"i & "APPROXIMATE"i & FetchAt & ValueExpression & RowWord & "ONLY"i
-			| "FETCH"i & FetchAt & ValueExpression & RowWord & "ONLY"i
+FetchClause : @Expression
+	= "FETCH"i & "APPROXIMATE"i & FetchAt & v: ValueExpression & RowWord & "ONLY"i => @(v)
+	| "FETCH"i & FetchAt & v: ValueExpression & RowWord & "ONLY"i                  => @(v)
 
 FetchAt = "NEXT"i | "FIRST"i
 RowWord = "ROWS"i | "ROW"i
 
-ForClause = "FOR"i & "BROWSE"i
-		  | "FOR"i & "JSON"i & ForOption & (',' & ForOption)*
-		  | "FOR"i & "XML"i  & ForOption & (',' & ForOption)*
+ForClause : @Clause
+	= "FOR"i & "BROWSE"i => @(new Clause.For("BROWSE", Syntax.NoNames))
+	| "FOR"i & kind: ("JSON"i | "XML"i) & first: ForOption & (',' & rest: ForOption)*
+		=> @(new Clause.For(kind, Syntax.Named(first, rest)))
 
-ForOption = Identifier & ForOptionTail?
+ForOption : @string = t: (Identifier & ForOptionTail?) => @(t)
 
 ForOptionTail = '(' & ValueExpression & ')' | '=' & ValueExpression
 
@@ -914,9 +948,9 @@ RowsetArgument : @Expression
 	// in a select list.
 	= '*'                                        => @(new Expression.ColumnReference("*"))
 	| n: RowsetOrder                             => @(n)
-	| "BULK"i & v: RowsetValue                   => @(v)
+	| word: "BULK"i & v: RowsetValue             => @(new Expression.Prefixed(word, v))
 	| name: Identifier & '=' & v: RowsetValue    => @(new Expression.NamedArgument(name, v))
-	| word: Identifier & v: RowsetValue          => @(v)
+	| word: Identifier & v: RowsetValue          => @(new Expression.Prefixed(word, v))
 	| '(' & first: RowsetArgument & (',' & rest: RowsetArgument)* & ')'
 		=> @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
 	| v: RowsetValue                             => @(v)
@@ -1703,8 +1737,8 @@ FunctionReturns : @Statement.CreateFunction
 		=> @(new Statement.CreateFunction("", Clause.None, type, body))
 
 InlineReturn : @Statement[]
-	= '(' & q: QueryExpression & OrderByClause? & ')' => @(new Statement[] { new Statement.Select(q, Clause.None) })
-	| q: QueryExpression & OrderByClause?             => @(new Statement[] { new Statement.Select(q, Clause.None) })
+	= '(' & q: QueryExpression & OrderByClause? & ')' => @(new Statement[] { Statement.Selected(q) })
+	| q: QueryExpression & OrderByClause?             => @(new Statement[] { Statement.Selected(q) })
 
 // ── CREATE TRIGGER ──────────────────────────────────────────────────────────
 TriggerStatement : @Statement

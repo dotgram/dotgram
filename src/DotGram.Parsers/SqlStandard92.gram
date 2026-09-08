@@ -402,8 +402,8 @@ QuerySpecification : @Query
     = "SELECT"i & quantifier: SetQuantifier? & columns: SelectList
       & from: FromClause & where: WhereClause? & group: GroupByClause? & having: HavingClause?
         => @(new Query.Specification(
-                 Syntax.Distinctly(quantifier) == "DISTINCT", columns, from,
-                 where, group ?? Expression.None, having))
+                 Syntax.Distinctly(quantifier) == "DISTINCT", null, columns, null, from,
+                 where, group, having))
 
 // §7.9 <select list>. A bare `*` is every column of every table in the FROM clause, and
 // `t.*` every column of one — neither is a column reference, so neither is read as one.
@@ -459,9 +459,9 @@ HavingClause : @Expression = "HAVING"i & c: SearchCondition => @(c)
 
 // §7.7. A grouping column may carry a collation, which says how it is compared rather
 // than what it is, so it is read and dropped.
-GroupByClause : @Expression[]
+GroupByClause : @Clause
     = "GROUP"i & "BY"i & first: GroupingColumn & (',' & rest: GroupingColumn)*
-        => @(Syntax.Listed(first, rest))
+        => @(new Clause.GroupBy(false, Syntax.Listed(first, rest), null))
 
 GroupingColumn : @Expression = c: ColumnReference & Collate? => @(c)
 
@@ -470,7 +470,7 @@ Collate = "COLLATE"i & QualifiedName
 // §13.1 <order by clause>, and §19's direct select that carries one. Outside §7, and
 // here because a query somebody writes has one and a query expression may not hold it.
 DirectSelect : @Statement
-    = q: QueryExpression & by: OrderByClause? => @(new Statement.Select(q, by ?? Clause.None))
+    = q: QueryExpression & by: OrderByClause? => @(Statement.Selected(q, Clause.Ordered(by, null)))
 
 OrderByClause : @Clause[]
     = "ORDER"i & "BY"i & first: SortSpecification & (',' & rest: SortSpecification)*
@@ -478,7 +478,7 @@ OrderByClause : @Clause[]
 
 SortSpecification : @Clause
     = v: SortKey & Collate? & order: ("ASC"i | "DESC"i)?
-        => @(new Clause.SortSpecification(v, Syntax.Descending(order)))
+        => @(new Clause.SortSpecification(v, Syntax.Ordered(order)))
 
 // §13.1 sorts by a column or by its position in the select list.
 SortKey : @Expression

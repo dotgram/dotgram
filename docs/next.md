@@ -16520,3 +16520,36 @@ statements, then `CreateTableStatement` at 584, then `AlterDatabaseSetStatement`
 Losslessness has a price and it is worth saying before it arrives: 715 B a statement will
 grow, probably to a few kilobytes. It stays an order below ScriptDom, because what makes
 their 43 KB is the token stream and the positions, and neither is coming.
+
+### Wave one of the SELECT frame
+
+The reference writes a `SELECT` as five things around a query — the named queries in front,
+the query, the order its rows are asked for in, what shape they come back in, and how the
+whole is to be run — and the tree now holds all five. `Statement.Select` gained `With`,
+`OrderBy`, `For` and `Options`; `Query.Specification` gained `Top` and `Into`; `GROUP BY`
+became a clause of its own so that `ALL` and `WITH CUBE` have somewhere to live, and
+`ORDER BY` became one so that `OFFSET` and `FETCH` do — which is where the reference puts
+them.
+
+Three of the new nodes keep **the words rather than a shape**, and that is deliberate. A
+query hint, a table hint and an `XMLNAMESPACES` are each a language of their own that says
+how a statement is to be run rather than what it means; `Clause.Hint` and
+`Clause.WithOption` hold the text, which loses nothing and claims nothing.
+
+Two were not losses at all:
+
+- `SELECT @a += 1` built a derived column named `@a`. It is an assignment written in a
+  select list — `Clause.VariableAssignment` now, with the operator it was written with.
+- `CROSS APPLY` and `OUTER APPLY` both built a `CROSS JOIN`. They are written differently
+  and refused where a join would be read, so `SqlJoin` says which.
+
+And one was a defect the round-trip found and nothing else could have:
+`SEMANTICKEYPHRASETABLE (db1.s1.t1, …)` came back as `(.s1.t1, …)`. A rowset argument may be
+a word and a value — `BULK 'f'`, `CHANGES t`, `LANGUAGE 1033` — and the rule dropped the
+word, so the first part of a qualified name went with it. `Expression.Prefixed` keeps it.
+
+`SqlOrder` replaced the boolean on a sort specification: ascending is the default and a
+statement that says so is not the same text as one that does not.
+
+Of the corpus, still **82.1%** read — nothing regressed — and the round-trip went from 23.3%
+to **27.1%**, with `SelectStatement` itself from 39.5% to **53.4%**.

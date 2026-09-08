@@ -97,7 +97,7 @@ public sealed class SqlStandard92Tests
 		Assert.Equal("u", source.Table);
 		Assert.Equal("t", source.Name);
 		Assert.NotNull(query.Where);
-		Assert.Empty(query.GroupBy);
+		Assert.Null(query.GroupBy);
 		Assert.Null(query.Having);
 	}
 

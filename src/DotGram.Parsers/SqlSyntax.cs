@@ -47,8 +47,19 @@ public abstract record Statement
 {
 	// ---- §14 the data statements -------------------------------------------------------------
 
-	/// <summary>§14.1 a query, and the order its rows are asked for in.</summary>
-	public sealed record Select(Query Of, Clause[] By) : Statement;
+	/// <summary>§14.1 a query, and the clauses the statement wraps it in.</summary>
+	/// <remarks>
+	/// The parts in the order the reference writes them: the named queries in front, the
+	/// query itself, the order its rows are asked for in, what shape they come back in, and
+	/// how the whole thing is to be run. Four of the five are the statement's and not the
+	/// query's — a <c>UNION</c> of two selects has one <c>ORDER BY</c> between them.
+	/// </remarks>
+	public sealed record Select(
+		Clause[] With, Query Of, Clause? OrderBy, Clause[] For, Clause[] Options) : Statement;
+
+	/// <summary>A select with nothing around it, which is the whole of the standard's.</summary>
+	public static Select Selected(Query of, Clause? by = null) =>
+		new(Clause.None, of, by, Clause.None, Clause.None);
 
 	/// <summary>§14.11 rows written into a table, from a list, a query or nothing at all.</summary>
 	/// <remarks>
@@ -951,10 +962,12 @@ public abstract record Query
 	/// </remarks>
 	public sealed record Specification(
 		bool Distinct,
+		Clause? Top,
 		Clause[] Columns,
+		string? Into,
 		TableReference[] From,
 		Expression? Where,
-		Expression[] GroupBy,
+		Clause? GroupBy,
 		Expression? Having) : Query;
 
 	/// <summary>§7.3 <c>VALUES (…), (…)</c> — a table written out.</summary>
@@ -1117,6 +1130,12 @@ public abstract record Expression
 	public sealed record RowValueConstructor(Expression[] Values) : Expression;
 
 	/// <summary>
+	/// An argument with a word in front of it, which several of T-SQL's table-valued
+	/// functions write — <c>BULK 'f'</c>, <c>CHANGES t</c>, <c>LANGUAGE 1033</c>.
+	/// </summary>
+	public sealed record Prefixed(string Word, Expression Value) : Expression;
+
+	/// <summary>
 	/// An argument given by name rather than by position — <c>@p = 1</c> in an
 	/// <c>EXECUTE</c>, <c>FORMATFILE = '…'</c> in a rowset function.
 	/// </summary>
@@ -1235,7 +1254,64 @@ public abstract record Clause
 	public sealed record QualifiedAsterisk(string? Qualifier) : Clause;
 
 	/// <summary>§10.10 one <c>ORDER BY</c> entry: what to sort by, and which way.</summary>
-	public sealed record SortSpecification(Expression Value, bool Down) : Clause;
+	/// <remarks>
+	/// <see cref="Order"/> is what was written and not what it means: the standard makes
+	/// ascending the default, and a statement that says so and one that does not are two
+	/// different texts.
+	/// </remarks>
+	public sealed record SortSpecification(Expression Value, SqlOrder Order) : Clause;
+
+	/// <summary>
+	/// §10.10 the whole <c>ORDER BY</c>, with the two clauses the reference writes inside it:
+	/// how many rows to step over, and how many to take.
+	/// </summary>
+	public sealed record OrderBy(Clause[] By, Expression? Offset, Expression? Fetch) : Clause;
+
+	/// <summary>
+	/// T-SQL's <c>TOP (n) PERCENT WITH TIES</c> — how many rows a query specification hands
+	/// back, which the standard says with <see cref="OrderBy.Fetch"/> instead.
+	/// </summary>
+	public sealed record Top(Expression Value, bool Percent, string? With) : Clause;
+
+	/// <summary>
+	/// §7.9 <c>GROUP BY</c>: what the rows are grouped by, and the two things T-SQL writes
+	/// around the list — <c>ALL</c> in front and <c>WITH CUBE</c> or <c>WITH ROLLUP</c> after.
+	/// </summary>
+	public sealed record GroupBy(bool All, Expression[] By, string? With) : Clause;
+
+	/// <summary>§7.17 a named query, written in front of the statement that uses it.</summary>
+	public sealed record CommonTableExpression(
+		string Name, string[]? Columns, Query Query) : Clause;
+
+	/// <summary>
+	/// T-SQL's <c>FOR XML</c>, <c>FOR JSON</c> and <c>FOR BROWSE</c>: what shape the rows come
+	/// back in rather than what they are.
+	/// </summary>
+	public sealed record For(string Kind, string[] Options) : Clause;
+
+	/// <summary>One hint, as it was written.</summary>
+	/// <remarks>
+	/// A hint is a language of its own — <c>OPTIMIZE FOR (@v = 20)</c>,
+	/// <c>TABLE HINT (t, FORCESEEK (ix (a, b)))</c>, <c>MAXDOP 2</c> — and every one of them
+	/// says how a statement is to be run rather than what it means. The text is what the tree
+	/// keeps, which loses nothing and claims nothing: a reader who wants a hint taken apart is
+	/// asking the engine's question, not the language's.
+	/// </remarks>
+	public sealed record Hint(string Text) : Clause;
+
+	/// <summary>
+	/// What may stand in a <c>WITH</c> beside the named queries — <c>XMLNAMESPACES (…)</c> and
+	/// <c>CHANGE_TRACKING_CONTEXT (…)</c>, which are not queries and are written in the same
+	/// breath as one.
+	/// </summary>
+	public sealed record WithOption(string Text) : Clause;
+
+	/// <summary>
+	/// T-SQL's assignment written in a select list — <c>SELECT @a += 1</c>, which takes the
+	/// value rather than returning it and is not a column however much it looks like one.
+	/// </summary>
+	public sealed record VariableAssignment(
+		string Variable, string Operator, Expression Value) : Clause;
 
 	/// <summary>§6.12 one <c>WHEN … THEN …</c> of a <c>CASE</c>.</summary>
 	public sealed record When(Expression Test, Expression Result) : Clause;
@@ -1293,6 +1369,31 @@ public abstract record Clause
 	/// <summary>A named thing dropped or declared, where only the name and the kind matter.</summary>
 	public static ConstraintDefinition Marked(string kind, string? name) =>
 		new(name, kind, null, null);
+
+	/// <summary>
+	/// A <c>TOP</c> from the words written after it, which are two questions and one rule:
+	/// whether it is a share rather than a count, and what it does about a tie.
+	/// </summary>
+	public static Top Topped(Expression value, string? suffix)
+	{
+		if (suffix is null)
+			return new Top(value, false, null);
+
+		var squared = Syntax.Squared(suffix);
+		var percent = squared.StartsWith("PERCENT", StringComparison.Ordinal);
+		var at      = squared.IndexOf("WITH ", StringComparison.Ordinal);
+
+		return new Top(value, percent, at < 0 ? null : squared[(at + 5)..]);
+	}
+
+	/// <summary>
+	/// The order clause and the two the reference writes inside it, gathered where they were
+	/// read apart. Nothing where nothing was written.
+	/// </summary>
+	public static OrderBy? Ordered(Clause[]? by, OrderBy? window) =>
+		by is null && window is null
+			? null
+			: new OrderBy(by ?? None, window?.Offset, window?.Fetch);
 }
 
 /// <summary>
@@ -1328,9 +1429,11 @@ public static class Syntax
 	/// <summary>Whether a word that is <c>ON</c> or <c>OFF</c> was the first of the two.</summary>
 	public static bool Switched(string word) => (word[0] | 0x20) == 'o' && word.Length == 2;
 
-	/// <summary>Whether a sort specification asked for descending order (§10.10).</summary>
-	public static bool Descending(string? order) =>
-		string.Equals(order, "DESC", StringComparison.OrdinalIgnoreCase);
+	/// <summary>Which way a sort specification asked for its rows (§10.10).</summary>
+	public static SqlOrder Ordered(string? order) =>
+		order is null   ? SqlOrder.Unspecified :
+		(order[0] | 0x20) == 'a' ? SqlOrder.Ascending
+		                         : SqlOrder.Descending;
 
 	/// <summary>Which comparison operator was written (§8.2's <c>&lt;comp op&gt;</c>).</summary>
 	public static SqlComparison Compared(string operatorText) => operatorText switch
@@ -1438,10 +1541,21 @@ public enum SqlComparison
 	Equal, NotEqual, Less, LessOrEqual, Greater, GreaterOrEqual,
 }
 
-/// <summary>Which join (§7.7).</summary>
+/// <summary>Which join (§7.7), and the two T-SQL adds.</summary>
+/// <remarks>
+/// An apply reads its right side once per row of its left, which is a question about
+/// evaluation rather than shape — but it is written differently and refused where a join
+/// would be read, so the tree says which was written.
+/// </remarks>
 public enum SqlJoin
 {
-	Cross, Inner, Left, Right, Full, Union,
+	Cross, Inner, Left, Right, Full, Union, CrossApply, OuterApply,
+}
+
+/// <summary>Which way a sort was asked for, and whether it was asked for at all (§10.10).</summary>
+public enum SqlOrder
+{
+	Unspecified, Ascending, Descending,
 }
 
 /// <summary>What a literal is, where the text alone does not say.</summary>

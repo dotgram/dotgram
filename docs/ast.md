@@ -325,6 +325,7 @@ field on one record here, and having a record each is what makes that a small ch
 | `Expression.Literal` | SQL-92 | §5.3 &lt;literal&gt; |
 | `Expression.RowValueConstructor` | SQL-92 | §7.1 &lt;row value constructor&gt; |
 | `Expression.NamedArgument` | T-SQL | an argument given by name — `EXECUTE`, and the rowset functions |
+| `Expression.Prefixed` | T-SQL | a value with a word in front of it — `BULK` in OPENROWSET, `CHANGES` in CHANGETABLE, `LANGUAGE` in CONTAINSTABLE |
 | `Expression.Subquery` | SQL-92 | §7.11 &lt;subquery&gt; |
 
 ### `TableReference`
@@ -343,6 +344,14 @@ field on one record here, and having a record each is what makes that a small ch
 | `Clause.DerivedColumn` | SQL-92 | §7.9 &lt;derived column&gt; |
 | `Clause.QualifiedAsterisk` | SQL-92 | §7.9 &lt;qualified asterisk&gt; |
 | `Clause.SortSpecification` | SQL-92 | §13.1 &lt;sort specification&gt; |
+| `Clause.OrderBy` | SQL-92 | §13.1 &lt;order by clause&gt;, with T-SQL's OFFSET and FETCH written inside it |
+| `Clause.Top` | T-SQL | SELECT — `TOP (n) PERCENT WITH TIES` |
+| `Clause.GroupBy` | SQL-92 | §7.7 &lt;group by clause&gt;, with T-SQL's `ALL` and `WITH CUBE` |
+| `Clause.CommonTableExpression` | SQL:1999 | &lt;with list element&gt;; T-SQL: WITH common_table_expression |
+| `Clause.For` | T-SQL | SELECT — the FOR clause: `FOR XML`, `FOR JSON`, `FOR BROWSE` |
+| `Clause.Hint` | T-SQL | Query Hints, and the table hints, kept as the words they were written as |
+| `Clause.WithOption` | T-SQL | what stands in a `WITH` beside the named queries — XMLNAMESPACES, CHANGE_TRACKING_CONTEXT |
+| `Clause.VariableAssignment` | T-SQL | SELECT — `@variable = expression` in a select list |
 | `Clause.When` | SQL-92 | §6.9 &lt;simple when clause&gt;, &lt;searched when clause&gt; |
 | `Clause.Set` | SQL-92 | §13.10 &lt;set clause&gt; |
 | `Clause.MergeWhen` | SQL:2003 | §14.9 &lt;merge when clause&gt; |

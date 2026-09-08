@@ -87,12 +87,33 @@ public static class SqlWriter
 	{
 		switch (statement)
 		{
-			case Statement.Select(var of, var by):
-				Put(text, of, 0);
-				if (by.Length > 0)
+			case Statement.Select(var with, var of, var by, var shape, var options):
+				if (with.Length > 0)
 				{
-					text.Append(" ORDER BY ");
-					Each(text, by);
+					text.Append("WITH ");
+					Each(text, with);
+					text.Append(' ');
+				}
+
+				Put(text, of, 0);
+
+				if (by is not null)
+				{
+					text.Append(' ');
+					Put(text, by);
+				}
+
+				foreach (var one in shape)
+				{
+					text.Append(' ');
+					Put(text, one);
+				}
+
+				if (options.Length > 0)
+				{
+					text.Append(" OPTION (");
+					Each(text, options);
+					text.Append(')');
 				}
 
 				break;
@@ -573,20 +594,31 @@ public static class SqlWriter
 
 		switch (query)
 		{
-			case Query.Specification(var distinct, var columns, var from, var where, var group, var having):
+			case Query.Specification(
+				var distinct, var top, var columns, var into, var from, var where, var group, var having):
 				text.Append("SELECT ");
 
 				if (distinct)
 					text.Append("DISTINCT ");
 
+				if (top is not null)
+				{
+					Put(text, top);
+					text.Append(' ');
+				}
+
 				Each(text, columns);
+
+				if (into is not null)
+					text.Append(" INTO ").Append(into);
+
 				From(text, from);
 				Where(text, where);
 
-				if (group.Length > 0)
+				if (group is not null)
 				{
-					text.Append(" GROUP BY ");
-					List(text, group);
+					text.Append(' ');
+					Put(text, group);
 				}
 
 				if (having is not null)
@@ -702,12 +734,14 @@ public static class SqlWriter
 
 				text.Append(kind switch
 				{
-					SqlJoin.Cross => "CROSS JOIN ",
-					SqlJoin.Left  => "LEFT JOIN ",
-					SqlJoin.Right => "RIGHT JOIN ",
-					SqlJoin.Full  => "FULL JOIN ",
-					SqlJoin.Union => "UNION JOIN ",
-					_             => "INNER JOIN ",
+					SqlJoin.Cross      => "CROSS JOIN ",
+					SqlJoin.Left       => "LEFT JOIN ",
+					SqlJoin.Right      => "RIGHT JOIN ",
+					SqlJoin.Full       => "FULL JOIN ",
+					SqlJoin.Union      => "UNION JOIN ",
+					SqlJoin.CrossApply => "CROSS APPLY ",
+					SqlJoin.OuterApply => "OUTER APPLY ",
+					_                  => "INNER JOIN ",
 				});
 
 				Put(text, right);
@@ -761,14 +795,90 @@ public static class SqlWriter
 				text.Append('*');
 				break;
 
-			case Clause.SortSpecification(var value, var down):
+			case Clause.SortSpecification(var value, var order):
 				Put(text, value, 0);
 
-				// `ASC` is not written where it was not asked for: the tree holds a flag and
-				// not which of the two words stood there, and most of the world omits it.
-				if (down)
-					text.Append(" DESC");
+				if (order != SqlOrder.Unspecified)
+					text.Append(order == SqlOrder.Descending ? " DESC" : " ASC");
 
+				break;
+
+			case Clause.OrderBy(var by, var offset, var fetch):
+				if (by.Length > 0)
+				{
+					text.Append("ORDER BY ");
+					Each(text, by);
+				}
+
+				if (offset is not null)
+				{
+					text.Append(" OFFSET ");
+					Put(text, offset, 0);
+					text.Append(" ROWS");
+				}
+
+				if (fetch is not null)
+				{
+					text.Append(" FETCH NEXT ");
+					Put(text, fetch, 0);
+					text.Append(" ROWS ONLY");
+				}
+
+				break;
+
+			case Clause.Top(var value, var percent, var ties):
+				text.Append("TOP (");
+				Put(text, value, 0);
+				text.Append(')');
+
+				if (percent)
+					text.Append(" PERCENT");
+
+				if (ties is not null)
+					text.Append(" WITH ").Append(ties);
+
+				break;
+
+			case Clause.GroupBy(var all, var by, var with):
+				text.Append("GROUP BY ");
+
+				if (all)
+					text.Append("ALL ");
+
+				List(text, by);
+
+				if (with is not null)
+					text.Append(" WITH ").Append(with);
+
+				break;
+
+			case Clause.CommonTableExpression(var name, var columns, var query):
+				text.Append(name);
+				Names(text, columns);
+				text.Append(" AS (");
+				Put(text, query, 0);
+				text.Append(')');
+				break;
+
+			case Clause.For(var kind, var options):
+				text.Append("FOR ").Append(kind);
+
+				if (options.Length > 0)
+					text.Append(' ').Append(string.Join(", ", options));
+
+				break;
+
+			case Clause.Hint(var hint):
+				text.Append(hint);
+				break;
+
+			case Clause.WithOption(var option):
+				text.Append(option);
+				break;
+
+			case Clause.VariableAssignment(var variable, var by, var value):
+				text.Append(variable).Append(' ').Append(by).Append(' ');
+				Put(text, value, 0);
 				break;
 
 			case Clause.When(var test, var result):
@@ -1083,6 +1193,11 @@ public static class SqlWriter
 
 			case Expression.RowValueConstructor(var values):
 				Arguments(text, values, "");
+				break;
+
+			case Expression.Prefixed(var word, var value):
+				text.Append(word).Append(' ');
+				Put(text, value, 0);
 				break;
 
 			case Expression.NamedArgument(var name, var value):
