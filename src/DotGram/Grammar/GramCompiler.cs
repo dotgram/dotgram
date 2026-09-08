@@ -89,6 +89,12 @@ public static class GramCompiler
 		// there, so a refusal is worth a word rather than a failed build.
 		var lexical = options.Lexical && !HasErrors(diagnostics) ? Cut(graph, diagnostics) : null;
 
+		// And the one question that has a different answer on the other side of the cut:
+		// over characters an overlap between an optional and what follows it is settled by
+		// backtracking, and over kinds a reading that fits is the one that stands.
+		if (lexical is not null && !HasErrors(diagnostics))
+			diagnostics.AddRange(FirstSets.Committed(lexical.Syntax));
+
 		if (!HasErrors(diagnostics))
 			sources.Add(new GeneratedSource(
 				options.Suffix is { Length: > 0 } suffix

@@ -16187,3 +16187,56 @@ fifth time, and it is still the notation's turn.
 Of everything in the corpus, **75.7% to 79.7%**, and 5,810 statements read by both this
 grammar and the engine.
 
+## The trap gets a name (GRAM5009)
+
+Five times in this file the same defect has been paid for and written down, each time with
+the same sentence — *it is still the notation's turn*. It is the notation's turn.
+
+An optional or a repetition that can take what follows it:
+
+```dotgram
+Alias = Lexical.Name
+Start = "select" & Lexical.Name & Alias? & "into" & Lexical.Name
+```
+
+Over characters this parses. The alias takes `into`, the rule fails, backtracking gives it
+back, and the second reading succeeds — which is `GRAM5002`, worth saying and not a defect.
+**Over kinds it does not parse at all.** A rule's answer stands (§4): the alias takes
+`into`, `into` is not there any more, and the rule fails one token past what it ate — which
+is the least helpful place a parse can stop, and is exactly why it took five times to
+recognise.
+
+That premise was worth checking rather than assuming, so it was: the grammar above,
+compiled over kinds, reads `select a b into c` and refuses `select a into c`.
+
+### Why the existing diagnostic was silent
+
+`FirstSets.Check` had two conditions, and both were written for the character machine.
+
+It asks only about rules whose declared type is an array — the rationale being that
+backtracking is total, so an overlap is a defect only where an element already handed over
+cannot be taken back. Over kinds *nothing* can be taken back, so it asks about every rule.
+
+And it asks only about repetitions with no upper bound, those being the ones that stop of
+their own accord. An optional stops of its own accord too, and three of the five were
+optionals.
+
+### What made it readable
+
+Asked as `Check` asks it, over the T-SQL grammar, it named a hundred and twenty places. A
+hundred and twenty warnings is no warning. The FIRST sets are approximate in the safe
+direction, and the approximation costs most of that: `SecurableClass?` begins with a word
+and so does the name after it, so they overlap — and `SecurableClass` needs a `::` before
+it is done, so it never takes a bare name. It fails and gives nothing back.
+
+So the question is not what the optional can *begin with* but what it can match in **one
+token**, that being the reading in which it is done and the next clause is short one. A
+shape that must read two things before it is done cannot take one thing that belonged to
+somebody else. With that, a hundred and twenty became fourteen — and a leading `?!` inside
+the optional narrows what it may be, so a rule that already says what it will not take is
+not told that it might.
+
+Information rather than a warning, for `GRAM5002`'s reason: it names a shape to look at,
+and the author is the one who can tell whether the overlap is real. The fourteen it names
+in T-SQL are a work list.
+
