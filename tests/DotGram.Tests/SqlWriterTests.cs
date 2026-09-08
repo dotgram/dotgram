@@ -133,18 +133,30 @@ public sealed class SqlWriterTests
 
 	/// <summary>Every node says where it was written.</summary>
 	/// <remarks>
-	/// What <c>[Gram(…, LocationType = typeof(ISqlSpan))]</c> asks for: the reader hands each
-	/// construction the range it was read from, and the value keeps it. The span is the node's
-	/// own text without the trivia around it, which is what lets a comment fall between two of
-	/// them rather than inside one.
+	/// What <c>[Gram(LocationType = typeof(ISqlSpan), Suffix = "Located")]</c> asks for: the
+	/// reader offers each construction the range it was read over, and the value keeps the
+	/// last offer. The span is the node's own text without the trivia around it, which is
+	/// what lets a comment fall between two of them rather than inside one.
+	/// <para>
+	/// Read by the second parser and not the first: locations cost fourteen per cent of a
+	/// parse, and one grammar compiles to both so that only whoever wants them pays.
+	/// </para>
 	/// </remarks>
 	[Fact]
 	public void Every_node_says_where_it_was_written()
 	{
 		const string input = "SELECT a + 1 FROM t WHERE b = 2";
 
-		var read  = Read(input);
+		var match = TransactSql.Located.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input);
+
+		var read  = Assert.IsAssignableFrom<Statement>(match.Value);
 		var query = Assert.IsType<Query.Specification>(Assert.IsType<Statement.Select>(read).Of);
+
+		// And the reading that was not asked for locations keeps none, which is the whole
+		// point of there being two.
+		Assert.False(Read(input).Span.Known);
 
 		Assert.Equal(input, Cut(input, read.Span));
 		Assert.Equal(input, Cut(input, query.Span));

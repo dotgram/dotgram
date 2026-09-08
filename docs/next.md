@@ -16733,3 +16733,24 @@ four numbers a record where it kept two.
 `docs/ast.md`'s "nothing here is a position" is now a statement about what a grammar asks
 for rather than about what the tree can hold, and it stays true of every grammar that does
 not ask.
+
+### Two parsers of one grammar, and only one pays
+
+Locations cost fourteen per cent of a parse. That is cheap for a tool and not free for a
+recognizer, so the grammar is compiled twice: `TransactSql.TryParseStatement` reads as it
+always did, and `TransactSql.Located.TryParseStatement` is the same reading told where every
+value was written. One grammar, two parsers, and the caller picks:
+
+```csharp
+[Gram("TransactSql.gram", Lexical = true)]
+[Gram(LocationType = typeof(Sql.ISqlSpan), Suffix = "Located")]
+```
+
+Nothing new was needed — a second `[Gram]` without a source is the same grammar under
+different options, which is how `ExpressionLanguage` already keeps its immediate carrier
+beside its tape one. The generated files say it plainly: 1,062 `Locate` calls in
+`TransactSql.Located.g.cs` and none in `TransactSql.g.cs`.
+
+What it costs is build time: `DotGram.Parsers` goes from 41.5 to 71.2 seconds, because the
+whole grammar is generated twice. Not memory — the `Span` field is two ints inside a record
+that is already a heap object with room for them, and a parse allocates 838 B either way.
