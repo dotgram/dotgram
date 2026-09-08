@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using DotGram.Generation;
+using DotGram.Grammar;
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Emit;
 using DotGram.Grammar.Model;
@@ -375,4 +377,69 @@ public sealed class LexerEmitterTests
 
 	static string[] Patterns(TerminalInventory inventory, int kind) =>
 		[.. inventory.Kinds.Single(one => one.Number == kind).Matched.Select(one => one.ToString())];
+	/// <summary>The scanner's chain is divided by what it costs, not by how many states.</summary>
+	/// <remarks>
+	/// <para>
+	/// What falls outside a state's own row is answered by a chain of methods, and those
+	/// used to be cut every four thousand states. That is not what the JIT counts: a
+	/// keyword trie has hundreds of states asking the same question, and each is a
+	/// <c>case</c> label whether or not it shares a body. Sixty words added to T-SQL put
+	/// the one part at 2,266 blocks with nothing left to divide — the wall a language with
+	/// a thousand keywords walks into on its way in (GRAM5003).
+	/// </para>
+	/// <para>
+	/// Here two hundred keywords over a Unicode identifier: every keyword state can be
+	/// continued by a letter, which is a set no row holds, so every one of them reaches the
+	/// chain. It comes out as several parts and each is a method the JIT will look at.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void The_scanner_is_divided_by_what_it_costs()
+	{
+		var words = new System.Text.StringBuilder();
+
+		// Long and mostly distinct, so that the trie is states rather than one shared spine:
+		// what the chain costs is a `case` label per state, and a keyword's every prefix is
+		// one — each can be continued by a letter, which is the identifier beside it.
+		for (var i = 0; i < 250; i++)
+		{
+			words
+				.Append(i == 0 ? "" : " | ")
+				.Append('"')
+				.Append('w')
+				.Append((char)('a' + i % 26))
+				.Append((char)('a' + i / 26 % 26))
+				.Append("qxzvbn")
+				.Append('"');
+		}
+
+		var grammar =
+			"wordboundary = [\\p{L} | \\p{Nd} | '_']\n" +
+			"trivia = { ' '* }\n" +
+			"namespace Lexical\n" +
+			"{\n" +
+			"\ttrivia = none\n" +
+			"\tName = [\\p{L} | '_'] & [\\p{L} | \\p{Nd} | '_']*\n" +
+			"}\n" +
+			"Word  = " + words + "\n" +
+			"Start : @string = Word* & t: Lexical.Name => @(t)\n" +
+			"parse Start\n";
+
+		var result = GramCompiler.Compile(
+			grammar,
+			new GramCompilerOptions
+			{
+				ClassName     = "Grammar",
+				CSharpScanner = RoslynCSharpScanner.Instance,
+				Lexical       = true,
+			});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var text = Assert.Single(result.Sources).Text;
+
+		Assert.Contains("Scan_Part0(", text, StringComparison.Ordinal);
+		Assert.Contains("Scan_Part1(", text, StringComparison.Ordinal);
+	}
+
 }

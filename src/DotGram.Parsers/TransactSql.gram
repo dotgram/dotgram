@@ -1125,6 +1125,7 @@ DefinitionStatement : @SqlNode
 	| s: PermissionStatement  => @(s)
 	| s: CreateDatabaseStatement => @(s)
 	| s: AlterDatabaseStatement  => @(s)
+	| s: DropStatement           => @(s)
 
 StatementList : @SqlNode[] = s: TsqlStatement+ => @(s)
 
@@ -1740,6 +1741,134 @@ AlterIndexAction : @string
 	| "ABORT"i => @("ABORT")
 	| "RESUME"i & IndexWith? => @("RESUME")
 	| "SET"i & '(' & OptionList & ')' => @("SET")
+
+// ── DROP ────────────────────────────────────────────────────────────────────
+//
+// Sixty-six statements in the reference and one shape: `DROP <what> [ IF EXISTS ] <names>`,
+// with a clause after it for the five that have one. Written from the sixty-six published
+// blocks, which agree about everything but the words in the middle.
+//
+// Those words are written out, and here that is the syntax rather than a catalogue: `DROP
+// TABLE` and `DROP VIEW` are different statements, `DROP DATABASE ENCRYPTION KEY` names no
+// object at all, and a rule wide enough for any word would read `DROP FOO x` and call it
+// one of them. The order is the one the words force — `DATABASE AUDIT SPECIFICATION`
+// before `DATABASE`, `SERVER AUDIT SPECIFICATION` before `SERVER AUDIT` before `SERVER
+// ROLE` — since ordered choice reads the first that fits.
+DropStatement : @SqlNode
+	= "DROP"i & d: DropBody => @(d)
+
+DropBody : @SqlNode
+	// The five that name something and then say where it is or what to do about it.
+	= what: DropKeyKind & names: DropNames & ("REMOVE"i & "PROVIDER"i & "KEY"i)?
+		=> @(new SqlNode.Command(what, names))
+	| "ASSEMBLY"i & IfExists? & names: DropNames & ("WITH"i & "NO"i & "DEPENDENTS"i)?
+		=> @(new SqlNode.Command("ASSEMBLY", names))
+	| "EXTERNAL"i & "LIBRARY"i & names: DropNames & ("AUTHORIZATION"i & QualifiedName)?
+		=> @(new SqlNode.Command("EXTERNAL LIBRARY", names))
+	| "EVENT"i & "SESSION"i & names: DropNames & "ON"i & DropScope
+		=> @(new SqlNode.Command("EVENT SESSION", names))
+	| "EVENT"i & "NOTIFICATION"i & names: DropNames & "ON"i & DropScope
+		=> @(new SqlNode.Command("EVENT NOTIFICATION", names))
+
+	// An index is named twice — once for itself and once for what it is on — and the older
+	// spelling puts both in one qualified name.
+	| "FULLTEXT"i & "INDEX"i & "ON"i & on: DropName
+		=> @(new SqlNode.Command("FULLTEXT INDEX", new SqlNode[] { on }))
+	| "INDEX"i & IfExists? & first: DropIndexName & (',' & rest: DropIndexName)*
+		=> @(new SqlNode.Command("INDEX", SqlNode.Listed(first, rest)))
+
+	// A signature is dropped off a module rather than by its own name, and a sensitivity
+	// classification off a column.
+	| "COUNTER"i? & "SIGNATURE"i & "FROM"i & QualifiedName & "BY"i
+	  & first: DropCrypto & (',' & rest: DropCrypto)*
+		=> @(new SqlNode.Command("SIGNATURE", SqlNode.Listed(first, rest)))
+	| "SENSITIVITY"i & "CLASSIFICATION"i & "FROM"i & names: DropNames
+		=> @(new SqlNode.Command("SENSITIVITY CLASSIFICATION", names))
+
+	// A trigger says which of the three kinds it is by what it is on.
+	| "TRIGGER"i & IfExists? & names: DropNames & ("ON"i & DropScope)?
+		=> @(new SqlNode.Command("TRIGGER", names))
+
+	// The two that name nothing: there is one of each per database.
+	| what: DropOnlyKind
+		=> @(new SqlNode.Command(what, SqlNode.None))
+
+	| what: DropKind & IfExists? & names: DropNames
+		=> @(new SqlNode.Command(what, names))
+
+DropNames : @SqlNode[]
+	= first: DropName & (',' & rest: DropName)* => @(SqlNode.Listed(first, rest))
+
+DropName : @SqlNode = t: QualifiedName => @(new SqlNode.Column(t))
+
+DropIndexName : @SqlNode
+	= name: Identifier & "ON"i & QualifiedName & OptionsWith? => @(new SqlNode.Column(name))
+	| t: QualifiedName                                        => @(new SqlNode.Column(t))
+
+DropCrypto : @SqlNode
+	= "CERTIFICATE"i & name: QualifiedName        => @(new SqlNode.Column(name))
+	| "ASYMMETRIC"i & "KEY"i & name: QualifiedName => @(new SqlNode.Column(name))
+
+DropScope = "ALL"i & "SERVER"i | "SERVER"i | "DATABASE"i | "QUEUE"i & QualifiedName
+
+DropKeyKind  = "ASYMMETRIC"i & "KEY"i | "SYMMETRIC"i & "KEY"i
+DropOnlyKind = "MASTER"i & "KEY"i | "DATABASE"i & "ENCRYPTION"i & "KEY"i
+
+// The rest, longest first where one name begins another.
+DropKind
+	= "AGGREGATE"i
+	| "APPLICATION"i & "ROLE"i
+	| "AVAILABILITY"i & "GROUP"i
+	| "BROKER"i & "PRIORITY"i
+	| "CERTIFICATE"i
+	| "COLUMN"i & "ENCRYPTION"i & "KEY"i
+	| "COLUMN"i & "MASTER"i & "KEY"i
+	| "CONTRACT"i
+	| "CREDENTIAL"i
+	| "CRYPTOGRAPHIC"i & "PROVIDER"i
+	| "DATABASE"i & "AUDIT"i & "SPECIFICATION"i
+	| "DATABASE"i & "SCOPED"i & "CREDENTIAL"i
+	| "DATABASE"i
+	| "DEFAULT"i
+	| "ENDPOINT"i
+	| "EXTERNAL"i & "DATA"i & "SOURCE"i
+	| "EXTERNAL"i & "FILE"i & "FORMAT"i
+	| "EXTERNAL"i & "LANGUAGE"i
+	| "EXTERNAL"i & "MODEL"i
+	| "EXTERNAL"i & "RESOURCE"i & "POOL"i
+	| "EXTERNAL"i & "TABLE"i
+	| "FULLTEXT"i & "CATALOG"i
+	| "FULLTEXT"i & "STOPLIST"i
+	| "FUNCTION"i
+	| "LOGIN"i
+	| "MESSAGE"i & "TYPE"i
+	| "PARTITION"i & "FUNCTION"i
+	| "PARTITION"i & "SCHEME"i
+	| "PROCEDURE"i
+	| "PROC"i
+	| "QUEUE"i
+	| "REMOTE"i & "SERVICE"i & "BINDING"i
+	| "RESOURCE"i & "POOL"i
+	| "ROLE"i
+	| "ROUTE"i
+	| "RULE"i
+	| "SCHEMA"i
+	| "SEARCH"i & "PROPERTY"i & "LIST"i
+	| "SECURITY"i & "POLICY"i
+	| "SEQUENCE"i
+	| "SERVER"i & "AUDIT"i & "SPECIFICATION"i
+	| "SERVER"i & "AUDIT"i
+	| "SERVER"i & "ROLE"i
+	| "SERVICE"i
+	| "STATISTICS"i
+	| "SYNONYM"i
+	| "TABLE"i
+	| "TYPE"i
+	| "USER"i
+	| "VIEW"i
+	| "WORKLOAD"i & "CLASSIFIER"i
+	| "WORKLOAD"i & "GROUP"i
+	| "XML"i & "SCHEMA"i & "COLLECTION"i
 
 // ── The database ────────────────────────────────────────────────────────────
 //

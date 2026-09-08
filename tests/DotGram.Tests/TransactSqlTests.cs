@@ -1041,6 +1041,78 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>`DROP`, which is sixty-six statements and one shape.</summary>
+	/// <remarks>
+	/// Written from the sixty-six published blocks, which agree about everything but the
+	/// words in the middle. Those are written out and here they are the syntax rather than a
+	/// catalogue: `DROP TABLE` and `DROP VIEW` are different statements, `DROP MASTER KEY`
+	/// names no object at all, and a rule wide enough for any word would read `DROP FOO x`
+	/// and call it one of them.
+	/// </remarks>
+	[Theory]
+	[InlineData("DROP TABLE t")]
+	[InlineData("DROP TABLE IF EXISTS dbo.t, dbo.u")]
+	[InlineData("DROP VIEW IF EXISTS v")]
+	[InlineData("DROP PROC p")]
+	[InlineData("DROP PROCEDURE IF EXISTS dbo.p, dbo.q")]
+	[InlineData("DROP FUNCTION IF EXISTS f")]
+	[InlineData("DROP DATABASE IF EXISTS d1, d2")]
+	[InlineData("DROP DATABASE AUDIT SPECIFICATION s")]
+	[InlineData("DROP DATABASE SCOPED CREDENTIAL c")]
+	[InlineData("DROP SERVER AUDIT SPECIFICATION s")]
+	[InlineData("DROP SERVER AUDIT a")]
+	[InlineData("DROP SERVER ROLE r")]
+	[InlineData("DROP XML SCHEMA COLLECTION dbo.sc")]
+	[InlineData("DROP SEARCH PROPERTY LIST pl")]
+	[InlineData("DROP CRYPTOGRAPHIC PROVIDER p")]
+	[InlineData("DROP EXTERNAL DATA SOURCE ds")]
+	[InlineData("DROP EXTERNAL FILE FORMAT ff")]
+	[InlineData("DROP EXTERNAL RESOURCE POOL rp")]
+	[InlineData("DROP WORKLOAD CLASSIFIER wc")]
+
+	// The five that say something after the names.
+	[InlineData("DROP ASYMMETRIC KEY k REMOVE PROVIDER KEY")]
+	[InlineData("DROP SYMMETRIC KEY k")]
+	[InlineData("DROP ASSEMBLY IF EXISTS a1, a2 WITH NO DEPENDENTS")]
+	[InlineData("DROP EXTERNAL LIBRARY l AUTHORIZATION dbo")]
+	[InlineData("DROP EVENT SESSION s ON SERVER")]
+	[InlineData("DROP EVENT NOTIFICATION n1, n2 ON QUEUE dbo.q")]
+
+	// The two that name nothing: there is one of each per database.
+	[InlineData("DROP MASTER KEY")]
+	[InlineData("DROP DATABASE ENCRYPTION KEY")]
+
+	// An index is named twice, and the older spelling puts both in one qualified name.
+	[InlineData("DROP INDEX ix ON dbo.t")]
+	[InlineData("DROP INDEX IF EXISTS ix ON t WITH (ONLINE = ON, MOVE TO fg)")]
+	[InlineData("DROP INDEX dbo.t.ix")]
+	[InlineData("DROP INDEX ix1 ON t1, ix2 ON t2")]
+	[InlineData("DROP FULLTEXT INDEX ON dbo.t")]
+
+	// A signature comes off a module and a classification off a column.
+	[InlineData("DROP SIGNATURE FROM dbo.p BY CERTIFICATE c")]
+	[InlineData("DROP COUNTER SIGNATURE FROM dbo.p BY ASYMMETRIC KEY k, CERTIFICATE c")]
+	[InlineData("DROP SENSITIVITY CLASSIFICATION FROM dbo.t.c1, dbo.t.c2")]
+
+	// And a trigger says which of the three kinds it is by what it is on.
+	[InlineData("DROP TRIGGER IF EXISTS tr1, tr2")]
+	[InlineData("DROP TRIGGER tr ON DATABASE")]
+	[InlineData("DROP TRIGGER tr ON ALL SERVER")]
+	public void The_drop_family_reads(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>And a word that names no object of this language is not one.</summary>
+	[Theory]
+	[InlineData("DROP FOO x")]
+	[InlineData("DROP TABLE")]
+	[InlineData("DROP MASTER KEY k")]
+	public void And_a_drop_of_nothing_is_refused(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
 	// ── And builds the standard's tree ───────────────────────────────────────────
 
 	/// <summary>

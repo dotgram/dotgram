@@ -67,6 +67,10 @@ static class Kinds
 	/// about: a refusal here is work to do, and reading anything else is a defect.
 	/// </summary>
 	internal static bool Modelled(string kind) =>
+		// The whole `DROP` family at once, since the grammar reads it as one rule written
+		// from the sixty-six published blocks — naming them one by one here would be the
+		// same catalogue said a second time, and it would go stale the same way.
+		kind.StartsWith("Drop", StringComparison.Ordinal) ||
 		kind is nameof(SelectStatement) or nameof(InsertStatement) or nameof(UpdateStatement)
 			or nameof(DeleteStatement) or nameof(MergeStatement) or nameof(BulkInsertStatement)
 			or nameof(BeginEndBlockStatement) or nameof(IfStatement) or nameof(WhileStatement)

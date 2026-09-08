@@ -15952,3 +15952,56 @@ variable and GRAM4016 says so.
 
 Of everything in the corpus, **58.0% to 58.6%**, and 4,328 statements read by both this
 grammar and the engine.
+
+## DROP, and the wall it walked into
+
+Two thousand seven hundred and ninety statements of the corpus are kinds this grammar has
+no rule for at all — two hundred and twenty-nine of them, a long tail of DDL. The largest
+coherent family in it is `DROP`: sixty-six statements in the reference, two hundred and
+ninety in the corpus, and one shape.
+
+```
+DROP <what> [ IF EXISTS ] <names> [ <clause> ]
+```
+
+Written from the sixty-six published blocks, fetched from the docs repository rather than
+read one page at a time. They agree about everything but the words in the middle and five
+clauses: `REMOVE PROVIDER KEY` on a key, `WITH NO DEPENDENTS` on an assembly,
+`AUTHORIZATION` on an external library, `ON SERVER | DATABASE | QUEUE q` on a session or a
+notification. Four more have a shape of their own — an index is named twice, a signature
+comes off a module, a classification off a column, and `MASTER KEY` names nothing at all.
+
+**The words are written out, and here that is the syntax.** `DROP TABLE` and `DROP VIEW`
+are different statements and a rule wide enough for any word would read `DROP FOO x` and
+call it one of them. This is the other side of the `word` argument: an option's name is
+open because SQL Server adds options; this list is closed because each of its entries is a
+statement.
+
+## And two things in the generator that it found
+
+**The scanner's chain was divided by state count.** What falls outside a state's own row is
+answered by a chain of methods, cut every four thousand states — which is not what the JIT
+counts. A keyword trie has hundreds of states asking the same question, and each is a
+`case` label whether or not it shares a body. Sixty words put `Scan_Part0` at 2,266 blocks
+with nothing left to divide, and `GRAM5003` said so: past about two thousand the JIT
+compiles a method without optimizing it.
+
+That is the wall a language with a thousand keywords walks into on its way in, so the cut
+is by size now and the state count is the ceiling rather than the measure — the same budget
+the syntactic machine divides under, and the bodies are made once for both the cut and the
+parts, since what a part costs is what its bodies come to.
+
+**And one spelling had become two patterns.** A literal read as a word in one place and as
+punctuation in another was taken twice, because the key that deduplicated them held which
+list it went into. Two patterns for one string is two kinds for one lexeme; the inventory
+built a dictionary of them and threw — `An item with the same key has already been added.
+Key: (DATABASE, True)`, from a grammar that says `DROP DATABASE` beside `ALTER DATABASE`.
+
+§4.6's weaving reaches most occurrences of a keyword and not all of them, and a grammar has
+only to say one twice in the wrong two places to find one it did not. One spelling is one
+token whatever shape it was read from, and a word wins: the boundary was woven onto it
+somewhere, and over kinds both occurrences test the same kind anyway.
+
+Of everything in the corpus, **58.6% to 62.0%**, and 4,610 statements read by both this
+grammar and the engine — up from 4,328 for six more the engine refuses, which for two
+hundred and ninety new statements is the shape of a rule that is not too wide.

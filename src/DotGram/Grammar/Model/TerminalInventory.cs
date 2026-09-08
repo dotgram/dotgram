@@ -513,10 +513,33 @@ public sealed class TerminalInventory
 		/// <summary>How many characters a class in syntactic position may name.</summary>
 		const int Named = 8;
 
+		/// <summary>One spelling, whatever shape the occurrence it was read from had.</summary>
+		/// <remarks>
+		/// The key used to hold which list it went into, so a literal read as a word in one
+		/// place and as punctuation in another was taken twice — and two patterns for one
+		/// string is two kinds for one lexeme, which the inventory then built a dictionary
+		/// of and threw on. §4.6's weaving reaches most occurrences and not all of them, and
+		/// a grammar has only to say a keyword twice in the wrong two places to find one it
+		/// did not: sixty words added to T-SQL's `DROP` did.
+		/// <para>
+		/// A word wins, since the boundary was woven onto it somewhere and over kinds both
+		/// occurrences test the same kind anyway — what the shape decides is the laminar
+		/// ordering and whether `word` (§4.6) reads it, and both of those are answers about
+		/// the lexeme rather than about where it was written.
+		/// </para>
+		/// </remarks>
 		void Take(List<Text> into, string text, bool ignoreCase)
 		{
-			if (_seen.Add((into == _words ? "word " : "mark ") + (ignoreCase ? "i" : "") + text))
+			if (_seen.Add((ignoreCase ? "i" : "") + text))
+			{
 				into.Add((text, ignoreCase));
+
+				return;
+			}
+
+			// Read as punctuation before and as a word now: move it.
+			if (into == _words && _marks.Remove((text, ignoreCase)))
+				_words.Add((text, ignoreCase));
 		}
 
 		void Refuse(string reason)
