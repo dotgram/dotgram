@@ -491,6 +491,90 @@ public abstract record SqlNode
 	/// <summary><c>REVOKE</c>: what is being said about, and to whom.</summary>
 	public sealed record RevokeStatement(string[] Privileges, string[] Principals) : SqlNode;
 
+	// ---- the full-text catalogue -----------------------------------------------------------------
+
+	/// <summary><c>CREATE FULLTEXT INDEX</c>, which is named by the table it is on.</summary>
+	public sealed record FullTextIndexDefinition(string On) : SqlNode;
+
+	/// <summary><c>ALTER FULLTEXT INDEX</c>.</summary>
+	public sealed record AlterFullTextIndexStatement(string On) : SqlNode;
+
+	/// <summary><c>CREATE FULLTEXT CATALOG</c>.</summary>
+	public sealed record FullTextCatalogDefinition(string Name) : SqlNode;
+
+	/// <summary><c>ALTER FULLTEXT CATALOG</c>.</summary>
+	public sealed record AlterFullTextCatalogStatement(string Name) : SqlNode;
+
+	/// <summary><c>CREATE FULLTEXT STOPLIST</c>.</summary>
+	public sealed record FullTextStopListDefinition(string Name) : SqlNode;
+
+	/// <summary><c>ALTER FULLTEXT STOPLIST</c>.</summary>
+	public sealed record AlterFullTextStopListStatement(string Name) : SqlNode;
+
+	/// <summary><c>CREATE SEARCH PROPERTY LIST</c>.</summary>
+	public sealed record SearchPropertyListDefinition(string Name) : SqlNode;
+
+	/// <summary><c>ALTER SEARCH PROPERTY LIST</c>.</summary>
+	public sealed record AlterSearchPropertyListStatement(string Name) : SqlNode;
+
+	// ---- backup and restore ----------------------------------------------------------------------
+	//
+	// Two statements and one shape between them: what is being copied, the devices it goes to
+	// or comes from, and a long option list. Nine records because there are nine statements —
+	// a log is not a database and a header is not a file list, and the reference gives each
+	// its own page.
+
+	/// <summary><c>BACKUP DATABASE</c>.</summary>
+	public sealed record BackupDatabaseStatement(string? Name) : SqlNode;
+
+	/// <summary><c>BACKUP LOG</c>.</summary>
+	public sealed record BackupTransactionLogStatement(string? Name) : SqlNode;
+
+	/// <summary><c>BACKUP SERVER</c>, which names nothing: there is one.</summary>
+	public sealed record BackupServerStatement(string? Name) : SqlNode;
+
+	/// <summary><c>BACKUP GROUP</c>.</summary>
+	public sealed record BackupGroupStatement(string? Name) : SqlNode;
+
+	/// <summary><c>BACKUP CERTIFICATE</c>.</summary>
+	public sealed record BackupCertificateStatement(string? Name) : SqlNode;
+
+	/// <summary><c>BACKUP MASTER KEY</c>.</summary>
+	public sealed record BackupMasterKeyStatement(string? Name) : SqlNode;
+
+	/// <summary><c>BACKUP SERVICE MASTER KEY</c>.</summary>
+	public sealed record BackupServiceMasterKeyStatement(string? Name) : SqlNode;
+
+	/// <summary><c>BACKUP SYMMETRIC KEY</c>.</summary>
+	public sealed record BackupSymmetricKeyStatement(string? Name) : SqlNode;
+
+	/// <summary><c>RESTORE DATABASE</c>.</summary>
+	public sealed record RestoreDatabaseStatement(string? Name) : SqlNode;
+
+	/// <summary><c>RESTORE LOG</c>.</summary>
+	public sealed record RestoreLogStatement(string? Name) : SqlNode;
+
+	/// <summary><c>RESTORE FILELISTONLY</c>.</summary>
+	public sealed record RestoreFileListOnlyStatement(string? Name) : SqlNode;
+
+	/// <summary><c>RESTORE HEADERONLY</c>.</summary>
+	public sealed record RestoreHeaderOnlyStatement(string? Name) : SqlNode;
+
+	/// <summary><c>RESTORE LABELONLY</c>.</summary>
+	public sealed record RestoreLabelOnlyStatement(string? Name) : SqlNode;
+
+	/// <summary><c>RESTORE REWINDONLY</c>.</summary>
+	public sealed record RestoreRewindOnlyStatement(string? Name) : SqlNode;
+
+	/// <summary><c>RESTORE VERIFYONLY</c>.</summary>
+	public sealed record RestoreVerifyOnlyStatement(string? Name) : SqlNode;
+
+	/// <summary><c>RESTORE MASTER KEY</c>.</summary>
+	public sealed record RestoreMasterKeyStatement(string? Name) : SqlNode;
+
+	/// <summary><c>RESTORE SERVICE MASTER KEY</c>.</summary>
+	public sealed record RestoreServiceMasterKeyStatement(string? Name) : SqlNode;
+
 	// ---- what a statement drops ----------------------------------------------------------------
 	//
 	// Sixty-four records of one shape, because sixty-four statements of one shape is what
@@ -734,6 +818,37 @@ public abstract record SqlNode
 			_ => throw Unknown(word),
 		};
 
+	/// <summary>What is being backed up, as the statement it is.</summary>
+	public static SqlNode BackedUp(string what, string? name) =>
+		what switch
+		{
+			"DATABASE"           => new BackupDatabaseStatement(name),
+			"LOG"                => new BackupTransactionLogStatement(name),
+			"SERVER"             => new BackupServerStatement(name),
+			"GROUP"              => new BackupGroupStatement(name),
+			"CERTIFICATE"        => new BackupCertificateStatement(name),
+			"MASTER KEY"         => new BackupMasterKeyStatement(name),
+			"SERVICE MASTER KEY" => new BackupServiceMasterKeyStatement(name),
+			"SYMMETRIC KEY"      => new BackupSymmetricKeyStatement(name),
+			_                    => throw Unknown(what),
+		};
+
+	/// <summary>What is being restored, likewise.</summary>
+	public static SqlNode Restored(string what, string? name) =>
+		what switch
+		{
+			"DATABASE"           => new RestoreDatabaseStatement(name),
+			"LOG"                => new RestoreLogStatement(name),
+			"FILELISTONLY"       => new RestoreFileListOnlyStatement(name),
+			"HEADERONLY"         => new RestoreHeaderOnlyStatement(name),
+			"LABELONLY"          => new RestoreLabelOnlyStatement(name),
+			"REWINDONLY"         => new RestoreRewindOnlyStatement(name),
+			"VERIFYONLY"         => new RestoreVerifyOnlyStatement(name),
+			"MASTER KEY"         => new RestoreMasterKeyStatement(name),
+			"SERVICE MASTER KEY" => new RestoreServiceMasterKeyStatement(name),
+			_                    => throw Unknown(what),
+		};
+
 	/// <summary>The definition the words name, where the tree keeps the name and no more.</summary>
 	public static SqlNode Defined(string what, string name) =>
 		what switch
@@ -760,6 +875,15 @@ public abstract record SqlNode
 			"EVENT SESSION" => new EventSessionDefinition(name),
 			"EVENT NOTIFICATION" => new EventNotificationDefinition(name),
 			"ENDPOINT" => new EndpointDefinition(name),
+
+			"FULLTEXT INDEX" => new FullTextIndexDefinition(name),
+			"ALTER FULLTEXT INDEX" => new AlterFullTextIndexStatement(name),
+			"FULLTEXT CATALOG" => new FullTextCatalogDefinition(name),
+			"ALTER FULLTEXT CATALOG" => new AlterFullTextCatalogStatement(name),
+			"FULLTEXT STOPLIST" => new FullTextStopListDefinition(name),
+			"ALTER FULLTEXT STOPLIST" => new AlterFullTextStopListStatement(name),
+			"SEARCH PROPERTY LIST" => new SearchPropertyListDefinition(name),
+			"ALTER SEARCH PROPERTY LIST" => new AlterSearchPropertyListStatement(name),
 			_ => throw Unknown(what),
 		};
 

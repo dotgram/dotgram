@@ -161,6 +161,31 @@ field on one record here, and having a record each is what makes that a small ch
 | `GrantStatement` | SQL-92 | §12.1 &lt;grant statement&gt; |
 | `DenyStatement` | T-SQL | DENY |
 | `RevokeStatement` | SQL-92 | §12.2 &lt;revoke statement&gt; |
+| `FullTextIndexDefinition` | T-SQL | CREATE FULLTEXT INDEX |
+| `AlterFullTextIndexStatement` | T-SQL | ALTER FULLTEXT INDEX |
+| `FullTextCatalogDefinition` | T-SQL | CREATE FULLTEXT CATALOG |
+| `AlterFullTextCatalogStatement` | T-SQL | ALTER FULLTEXT CATALOG |
+| `FullTextStopListDefinition` | T-SQL | CREATE FULLTEXT STOPLIST |
+| `AlterFullTextStopListStatement` | T-SQL | ALTER FULLTEXT STOPLIST |
+| `SearchPropertyListDefinition` | T-SQL | CREATE SEARCH PROPERTY LIST |
+| `AlterSearchPropertyListStatement` | T-SQL | ALTER SEARCH PROPERTY LIST |
+| `BackupDatabaseStatement` | T-SQL | BACKUP DATABASE |
+| `BackupTransactionLogStatement` | T-SQL | BACKUP LOG |
+| `BackupServerStatement` | T-SQL | BACKUP SERVER |
+| `BackupGroupStatement` | T-SQL | BACKUP GROUP |
+| `BackupCertificateStatement` | T-SQL | BACKUP CERTIFICATE |
+| `BackupMasterKeyStatement` | T-SQL | BACKUP MASTER KEY |
+| `BackupServiceMasterKeyStatement` | T-SQL | BACKUP SERVICE MASTER KEY |
+| `BackupSymmetricKeyStatement` | T-SQL | BACKUP SYMMETRIC KEY |
+| `RestoreDatabaseStatement` | T-SQL | RESTORE DATABASE |
+| `RestoreLogStatement` | T-SQL | RESTORE LOG |
+| `RestoreFileListOnlyStatement` | T-SQL | RESTORE FILELISTONLY |
+| `RestoreHeaderOnlyStatement` | T-SQL | RESTORE HEADERONLY |
+| `RestoreLabelOnlyStatement` | T-SQL | RESTORE LABELONLY |
+| `RestoreRewindOnlyStatement` | T-SQL | RESTORE REWINDONLY |
+| `RestoreVerifyOnlyStatement` | T-SQL | RESTORE VERIFYONLY |
+| `RestoreMasterKeyStatement` | T-SQL | RESTORE MASTER KEY |
+| `RestoreServiceMasterKeyStatement` | T-SQL | RESTORE SERVICE MASTER KEY |
 | `DropAggregateStatement` | T-SQL | DROP AGGREGATE |
 | `DropApplicationRoleStatement` | T-SQL | DROP APPLICATION ROLE |
 | `DropAvailabilityGroupStatement` | T-SQL | DROP AVAILABILITY GROUP |

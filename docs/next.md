@@ -16141,3 +16141,49 @@ something that is not a version of anything. A parse that keeps positions is wha
 needs, and when this one keeps them the row will move — which is a thing to measure again
 rather than to argue about now.
 
+## The tree says what the grammar says
+
+Igor's rule, and it changes what `SqlNode` is: **a node is called what the production it
+comes from is called** — the standard's name where the standard has the concept, the
+dialect's published name where it does not — and there is **one tree for every dialect**.
+So `Query` became `QuerySpecification`, `Selected` became `DerivedColumn`, `Source` became
+`TableReference`, `CreateTable` became `TableDefinition`; forty-one renames and nothing
+else changed.
+
+Then the bags. `Command(Word, Arguments)`, `Setting(Option, Value)`,
+`Database(Name, Action, Settings)` and a `Permission` with the word inside it were how the
+DDL got *read*; they are not how it should be *kept*. A `DROP TABLE` and a `DROP VIEW` are
+not one shape with a word in it, and a consumer that reads the word to tell them apart is
+doing the parser's work twice. A hundred and twenty-three records now stand where the four
+did, and the tree is a hundred and eighty-nine.
+
+**The grammar did not grow with them.** It reads `DROP <what>` once and hands the words to
+`SqlNode.Dropped`, which turns them into the record — so the catalogue of names lives in
+C#, where a catalogue of C# names belongs, and the `.gram` still says one thing. `Defined`,
+`OfDatabase`, `Commanded`, `Permitted`, `BackedUp` and `Restored` are the same trick. Each
+throws where the grammar has read a word this file has no record for, which is the two
+catalogues having drifted — a defect in the tree and not in anybody's SQL — and a test
+walks `DropKind` out of the grammar itself and puts every one of its words to the parser.
+
+And `docs/ast.md`: every node, which specification named it, and what it is called there.
+`AstReferenceTests` holds the table to the tree in both directions, and it earned its place
+the same afternoon — the next wave added twenty-five nodes and the test said so before the
+corpus did.
+
+## The full-text catalogue, and copying a database out and back
+
+Ten more published blocks. A full-text index is the one index with no name of its own — it
+is named by the table it is on, there being one per table — and the one whose columns carry
+a language and a type column beside them. `BACKUP` and `RESTORE` are one shape between
+them: what is being copied, the devices it goes to or comes from, and a long option list.
+
+**The trap again, and this time it was found before the corpus said so.** What may stand
+between a backup's name and its `TO` is four things the syntax names — `FILE = x`,
+`FILEGROUP = x`, `READ_WRITE_FILEGROUPS`, `PAGE = 'f:p'` — and writing it as an option list
+meant an option's name, which is a run of words, read `TO someDevice` and left the
+statement with no device. `BACKUP DATABASE` came out at 0%. Written out, 85%. That is the
+fifth time, and it is still the notation's turn.
+
+Of everything in the corpus, **75.7% to 79.7%**, and 5,810 statements read by both this
+grammar and the engine.
+

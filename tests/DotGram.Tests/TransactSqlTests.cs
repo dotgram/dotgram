@@ -1401,6 +1401,55 @@ public sealed class TransactSqlTests
 		Assert.Equal(node, match.Value!.GetType().Name);
 	}
 
+	/// <summary>The full-text catalogue, and copying a database out and back.</summary>
+	/// <remarks>
+	/// Ten published blocks. A full-text index is the one index with no name of its own —
+	/// it is named by the table it is on, there being one per table — and the one whose
+	/// columns carry a language and a type column beside them. `BACKUP` and `RESTORE` are
+	/// one shape between them: what is being copied, the devices it goes to or comes from,
+	/// and a long option list.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX ix")]
+	[InlineData("CREATE FULLTEXT INDEX ON t (a, b TYPE COLUMN c LANGUAGE 1033 STATISTICAL_SEMANTICS) " +
+		"KEY INDEX ix ON (cat, FILEGROUP fg) WITH (CHANGE_TRACKING = AUTO, STOPLIST = SYSTEM)")]
+	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX ix WITH CHANGE_TRACKING MANUAL")]
+	[InlineData("ALTER FULLTEXT INDEX ON t ENABLE")]
+	[InlineData("ALTER FULLTEXT INDEX ON t SET CHANGE_TRACKING = OFF")]
+	[InlineData("ALTER FULLTEXT INDEX ON t ADD (a LANGUAGE 1033) WITH NO POPULATION")]
+	[InlineData("ALTER FULLTEXT INDEX ON t ALTER COLUMN a ADD STATISTICAL_SEMANTICS")]
+	[InlineData("ALTER FULLTEXT INDEX ON t DROP (a, b)")]
+	[InlineData("ALTER FULLTEXT INDEX ON t START FULL POPULATION")]
+	[InlineData("ALTER FULLTEXT INDEX ON t PAUSE POPULATION")]
+
+	[InlineData("CREATE FULLTEXT CATALOG c ON FILEGROUP fg IN PATH 'c:\\x' WITH ACCENT_SENSITIVITY = ON AS DEFAULT AUTHORIZATION dbo")]
+	[InlineData("ALTER FULLTEXT CATALOG c REBUILD WITH ACCENT_SENSITIVITY = OFF")]
+	[InlineData("CREATE FULLTEXT STOPLIST s FROM SYSTEM STOPLIST")]
+	[InlineData("ALTER FULLTEXT STOPLIST s ADD 'the' LANGUAGE 1033")]
+	[InlineData("ALTER FULLTEXT STOPLIST s DROP ALL LANGUAGE 1033")]
+	[InlineData("CREATE SEARCH PROPERTY LIST p FROM dbo.q AUTHORIZATION dbo")]
+	[InlineData("ALTER SEARCH PROPERTY LIST p ADD 'title' WITH (PROPERTY_SET_GUID = 'g', PROPERTY_INT_ID = 1)")]
+
+	[InlineData("BACKUP DATABASE d TO device WITH COMPRESSION")]
+	[InlineData("BACKUP DATABASE d TO DISK = 'c:\\d.bak' WITH DIFFERENTIAL, NAME = 'x', STATS = 10")]
+	[InlineData("BACKUP DATABASE d FILE = 'f1', FILEGROUP = 'g' TO TAPE = '\\\\.\\tape1'")]
+	[InlineData("BACKUP DATABASE d TO DISK = 'a' MIRROR TO DISK = 'b' WITH FORMAT")]
+	[InlineData("BACKUP LOG d TO DISK = 'a' WITH NORECOVERY")]
+	[InlineData("BACKUP MASTER KEY TO FILE = 'k' ENCRYPTION BY PASSWORD = 'p'")]
+
+	[InlineData("RESTORE DATABASE d")]
+	[InlineData("RESTORE DATABASE d FROM DISK = 'a' WITH RECOVERY, MOVE 'x' TO 'y', REPLACE")]
+	[InlineData("RESTORE DATABASE d FROM DATABASE_SNAPSHOT = s")]
+	[InlineData("RESTORE LOG d FROM DISK = 'a' WITH STOPAT = '2020-01-01'")]
+	[InlineData("RESTORE HEADERONLY FROM DISK = 'a'")]
+	[InlineData("RESTORE MASTER KEY FROM FILE = 'k' DECRYPTION BY PASSWORD = 'p' ENCRYPTION BY PASSWORD = 'q' FORCE")]
+	public void The_catalogue_and_the_copies_read(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	// ── And builds the standard's tree ───────────────────────────────────────────
 
 	/// <summary>

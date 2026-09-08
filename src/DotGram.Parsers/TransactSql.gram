@@ -1124,6 +1124,9 @@ DefinitionStatement : @SqlNode
 	| s: AlterIndexStatement  => @(s)
 	| s: PermissionStatement  => @(s)
 	| s: AuditStatement          => @(s)
+	| s: FullTextStatement       => @(s)
+	| s: BackupStatement         => @(s)
+	| s: RestoreStatement        => @(s)
 	| s: CreateDatabaseStatement => @(s)
 	| s: AlterDatabaseStatement  => @(s)
 	| s: DropStatement           => @(s)
@@ -1787,6 +1790,173 @@ AlterIndexAction : @string
 	| "ABORT"i => @("ABORT")
 	| "RESUME"i & IndexWith? => @("RESUME")
 	| "SET"i & '(' & OptionList & ')' => @("SET")
+
+// ── The full-text catalogue, and the index over it ──────────────────────────
+//
+// Eight published blocks. A full-text index is the one index with no name of its own — it
+// is named by the table it is on, there being one per table — and the one whose columns
+// carry a language and a type column beside them.
+FullTextStatement : @SqlNode
+	= "CREATE"i & "FULLTEXT"i & "INDEX"i & "ON"i & on: QualifiedName
+	  & ('(' & FullTextColumn & (',' & FullTextColumn)* & ')')?
+	  & "KEY"i & "INDEX"i & Identifier & ("ON"i & FullTextCatalogOn)? & FullTextWith?
+		=> @(SqlNode.Defined("FULLTEXT INDEX", on))
+	| "ALTER"i & "FULLTEXT"i & "INDEX"i & "ON"i & on: QualifiedName & FullTextAction
+		=> @(SqlNode.Defined("ALTER FULLTEXT INDEX", on))
+
+	| "CREATE"i & "FULLTEXT"i & "CATALOG"i & name: Identifier
+	  & ("ON"i & "FILEGROUP"i & Identifier)? & ("IN"i & "PATH"i & ValueExpression)?
+	  & ("WITH"i & OptionList)? & AsDefault? & ("AUTHORIZATION"i & QualifiedName)?
+		=> @(SqlNode.Defined("FULLTEXT CATALOG", name))
+	| "ALTER"i & "FULLTEXT"i & "CATALOG"i & name: Identifier & FullTextCatalogAction
+		=> @(SqlNode.Defined("ALTER FULLTEXT CATALOG", name))
+
+	| "CREATE"i & "FULLTEXT"i & "STOPLIST"i & name: Identifier & StopListFrom?
+	  & ("AUTHORIZATION"i & QualifiedName)?
+		=> @(SqlNode.Defined("FULLTEXT STOPLIST", name))
+	| "ALTER"i & "FULLTEXT"i & "STOPLIST"i & name: Identifier & StopListAction
+		=> @(SqlNode.Defined("ALTER FULLTEXT STOPLIST", name))
+
+	| "CREATE"i & "SEARCH"i & "PROPERTY"i & "LIST"i & name: Identifier
+	  & ("FROM"i & QualifiedName)? & ("AUTHORIZATION"i & QualifiedName)?
+		=> @(SqlNode.Defined("SEARCH PROPERTY LIST", name))
+	| "ALTER"i & "SEARCH"i & "PROPERTY"i & "LIST"i & name: Identifier & PropertyListAction
+		=> @(SqlNode.Defined("ALTER SEARCH PROPERTY LIST", name))
+
+// Bracketed or not, which the published block writes one way and the corpus both.
+FullTextWith = "WITH"i & '(' & OptionList & ')'
+			 | "WITH"i & OptionList
+
+AsDefault = "AS"i & "DEFAULT"i
+
+FullTextColumn = Identifier & ("TYPE"i & "COLUMN"i & Identifier)?
+			   & ("LANGUAGE"i & FullTextLanguage)? & "STATISTICAL_SEMANTICS"i?
+
+// A language is named, numbered or quoted, and the syntax means all three.
+FullTextLanguage = ValueExpression
+
+FullTextCatalogOn = '(' & FullTextPlace & (',' & FullTextPlace)* & ')'
+				  | Identifier
+
+FullTextPlace = "FILEGROUP"i & Identifier | Identifier
+
+FullTextAction
+	= "ENABLE"i
+	| "DISABLE"i
+	| "SET"i & OptionList & NoPopulation?
+	| "ADD"i & '(' & FullTextColumn & (',' & FullTextColumn)* & ')' & NoPopulation?
+	| "ALTER"i & "COLUMN"i & Identifier & AddOrDrop & "STATISTICAL_SEMANTICS"i & NoPopulation?
+	| "DROP"i & '(' & ColumnList & ')' & NoPopulation?
+	| "START"i & word & "POPULATION"i
+	| PopulationWord & "POPULATION"i
+
+NoPopulation   = "WITH"i & "NO"i & "POPULATION"i
+PopulationWord = "STOP"i | "PAUSE"i | "RESUME"i
+
+FullTextCatalogAction = "REBUILD"i & ("WITH"i & OptionList)?
+					  | "REORGANIZE"i
+					  | AsDefault
+
+StopListFrom = "FROM"i & "SYSTEM"i & "STOPLIST"i
+			 | "FROM"i & QualifiedName
+
+StopListAction = "ADD"i & ValueExpression & "LANGUAGE"i & FullTextLanguage
+			   | "DROP"i & "ALL"i & ("LANGUAGE"i & FullTextLanguage)?
+			   | "DROP"i & ValueExpression & "LANGUAGE"i & FullTextLanguage
+
+PropertyListAction = "ADD"i & ValueExpression & OptionsWith
+				   | "DROP"i & ValueExpression
+
+// ── BACKUP and RESTORE ──────────────────────────────────────────────────────
+//
+// Two statements and one shape between them: what is being copied, the devices it is
+// copied to or from, and a long option list. A device is a name or one of three words and
+// a path, which is the only part of either that is not an option.
+BackupStatement : @SqlNode
+	= "BACKUP"i & what: BackupWhat & name: BackupName? & BackupFiles*
+	  & "TO"i & BackupDevices & MirrorTo* & BackupWith?
+		=> @(SqlNode.BackedUp(what, name))
+	| "BACKUP"i & what: BackupKeyWhat & name: BackupName?
+	  & "TO"i & "FILE"i & '=' & ValueExpression & KeyFileTail*
+		=> @(SqlNode.BackedUp(what, name))
+
+RestoreStatement : @SqlNode
+	= "RESTORE"i & what: RestoreKeyWhat & "FROM"i & "FILE"i & '=' & ValueExpression
+	  & KeyFileTail*
+		=> @(SqlNode.Restored(what, null))
+	| "RESTORE"i & what: RestoreWhat & name: BackupName? & BackupFiles*
+	  & ("FROM"i & RestoreFrom)? & BackupWith?
+		=> @(SqlNode.Restored(what, name))
+
+RestoreKeyWhat : @string
+	= "SERVICE"i & "MASTER"i & "KEY"i => @("SERVICE MASTER KEY")
+	| "MASTER"i & "KEY"i              => @("MASTER KEY")
+
+// What a key says on its way to a file and back: a password to lock it with, one to unlock
+// it with, and the word that says to do it anyway.
+KeyFileTail = "ENCRYPTION"i & "BY"i & "PASSWORD"i & '=' & ValueExpression
+			| "DECRYPTION"i & "BY"i & "PASSWORD"i & '=' & ValueExpression
+			| "FORCE"i
+
+BackupWhat : @string
+	= "DATABASE"i => @("DATABASE")
+	| "LOG"i      => @("LOG")
+	| "SERVER"i   => @("SERVER")
+	| "GROUP"i    => @("GROUP")
+
+BackupKeyWhat : @string
+	= "CERTIFICATE"i               => @("CERTIFICATE")
+	| "SERVICE"i & "MASTER"i & "KEY"i => @("SERVICE MASTER KEY")
+	| "MASTER"i & "KEY"i           => @("MASTER KEY")
+	| "SYMMETRIC"i & "KEY"i        => @("SYMMETRIC KEY")
+
+RestoreWhat : @string
+	= "DATABASE"i     => @("DATABASE")
+	| "LOG"i          => @("LOG")
+	| "FILELISTONLY"i => @("FILELISTONLY")
+	| "HEADERONLY"i   => @("HEADERONLY")
+	| "LABELONLY"i    => @("LABELONLY")
+	| "REWINDONLY"i   => @("REWINDONLY")
+	| "VERIFYONLY"i   => @("VERIFYONLY")
+
+BackupName : @string
+	= t: QualifiedName                       => @(t)
+	| t: Tsql.Variable                       => @(t)
+	| t: Sql92.Lexical.CharacterStringLiteral => @(t)
+	| '(' & first: BackupName & (',' & BackupName)* & ')' => @(first)
+
+// The four the published syntax names, written out. An option's name is a run of words,
+// so a rule that read one here would read `TO someDevice` and leave the statement with no
+// device — the same trap an unbounded run always is.
+BackupFiles = ','? & BackupFile
+
+BackupFile = "FILE"i & '=' & BackupName
+		   | "FILEGROUP"i & '=' & BackupName
+		   | "READ_WRITE_FILEGROUPS"i
+		   | "PAGE"i & '=' & ValueExpression
+
+BackupDevices = BackupDevice & (',' & BackupDevice)*
+
+BackupDevice = DeviceWord & '=' & ValueExpression
+			 | QualifiedName
+			 | Tsql.Variable
+
+DeviceWord = "DISK"i | "TAPE"i | "URL"i
+
+MirrorTo = "MIRROR"i & "TO"i & BackupDevices
+
+RestoreFrom = "DATABASE_SNAPSHOT"i & '=' & QualifiedName
+			| BackupDevices
+
+// The option list, and the two options that are not a name and a value: a file moved from
+// one path to another, and a mirrored device said again.
+BackupWith = "WITH"i & BackupOption & (',' & BackupOption)*
+
+BackupOption = "MOVE"i & ValueExpression & "TO"i & ValueExpression
+			 | "STOPAT"i & '=' & ValueExpression
+			 | "STOPATMARK"i & '=' & ValueExpression & ("AFTER"i & ValueExpression)?
+			 | "STOPBEFOREMARK"i & '=' & ValueExpression & ("AFTER"i & ValueExpression)?
+			 | OptionSetting
 
 // ── What the server watches, and who it listens to ──────────────────────────
 //
