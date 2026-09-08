@@ -356,6 +356,64 @@ than — declaring seven rules `: @SourceSpan` gives each a value, a rule with a
 a boundary, and that grammar pays for seven rule frames the string one does not. Read the
 two capture rows as two grammars, not as one grammar with and without strings.
 
+## T-SQL against ScriptDom
+
+`--speed [path] [version] [rounds]` (`Speed.cs`) is the other half of the comparison
+`--kinds` makes. That one asks the two parsers what they read; this asks how long they
+take about it, over Microsoft's own corpus of eleven hundred `.sql` files, round-robin in
+one process for the reason `--against` exists.
+
+```console
+dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --speed 170 15
+```
+
+```text
+against ScriptDom, TSql170Parser, 15 rounds
+
+  6299 of 8317 statements — the ones both parsers read, which is what may be timed
+  648 KB of T-SQL a round
+
+                        per statement     MB/s   ratio   spread    allocated
+  --------------------------------------------------------------------------
+  ScriptDom, tokens           9200 ns     10.9    1.54    2.0%     39522 B
+  ScriptDom, tree            14140 ns      7.1    1.00    6.8%     43030 B
+  .Gram                       6022 ns     16.7    2.35    4.8%       729 B
+```
+
+**Agreement first**, as everywhere else here: only the statements both parsers read are
+timed. This grammar reads about three quarters of the corpus, and timing it over the whole
+of it would be timing three quarters of the work against all of it.
+
+**And the two are not returning the same answer**, which is why there are three rows
+rather than two. ScriptDom returns a complete syntax tree — every clause a node, every node
+carrying its first and last token, the token stream kept beside it — enough to print the
+statement back out and to say where in the text each part of it was. This grammar returns
+`SqlNode`, which is the standard's shape and about a tenth of that: hints, options and
+output clauses are read and dropped, and nothing carries a position.
+
+So the honest reading of the table is not "2.35 times faster". It is:
+
+- **Against ScriptDom's lexer alone, 1.5 times.** A whole parse here costs less than
+  ScriptDom spends getting to its first token — which is the lexical split (`Lexical =
+  true`) doing what it was built for, since both sides are lexing the same characters into
+  much the same kinds.
+- **Against ScriptDom's whole parse, 2.35 times**, and roughly half of that difference is
+  the tree it builds and this one does not.
+- **Fifty-nine times less garbage**, and that is the number the shape of the answer does
+  not explain away. 43 KB a statement against 729 bytes. ScriptDom allocates a node and a
+  position for everything it reads and keeps the tokens; this rents its tape per thread and
+  gives it back, so what is left over a parse is the tree and the strings in it.
+
+The allocation figures are taken outside the timing and are deterministic between runs.
+The times are not: read the spread beside them, and read the ratio rather than the
+absolute — this is a developer's machine and the run above was made on a busy one.
+
+**What is not measured here.** ScriptDom's parsers are twelve, one per version, and this
+is one grammar; the version chain is not written yet, so `--speed 170` times the 170 parser
+against a grammar that is not a version of anything. And a parse that keeps positions is
+what an IDE needs; when this grammar keeps them, the row will move and should be measured
+again rather than argued about.
+
 ## The SQL recognizer against a hand-written one
 
 `--hand [rounds] [iterations]` (`SqlAgainst.cs`) measures

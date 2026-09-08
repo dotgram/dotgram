@@ -201,6 +201,25 @@ static class Program
 			return;
 		}
 
+		// `--speed [path] [version] [rounds]` is the other half of the comparison `--kinds`
+		// makes: not what the two parsers read but how long they take about it, over the
+		// statements both of them read and round-robin so that the ratio survives a machine
+		// that is not idle. Three rows, because ScriptDom's lexer and ScriptDom's tree are
+		// not the same work and neither is what this grammar builds. See Speed.cs.
+		if (args.Length >= 1 && args[0] == "--speed")
+		{
+			var rest  = args.Skip(1).ToArray();
+			var named = rest.Length >= 1 && (rest[0].Contains('/') || rest[0].Contains('\\'));
+			var first = named ? 1 : 0;
+
+			Speed.Run(
+				named ? rest[0] : null,
+				rest.Length > first ? rest[first] : "170",
+				rest.Length > first + 1 && int.TryParse(rest[first + 1], out var many) ? many : 7);
+
+			return;
+		}
+
 		// `--kinds [path] [version] [shown]` is the same corpus read the other way round: it
 		// asks ScriptDom to split each file into statements, which is the one thing only a
 		// T-SQL parser can do, and tallies what this dialect makes of each kind. What comes

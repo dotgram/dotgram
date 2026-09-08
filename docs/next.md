@@ -16100,3 +16100,44 @@ called `AUDIT`. Both are read by putting the longer statement first.
 Of everything in the corpus, **70.3% to 75.7%**, and 5,459 statements read by both this
 grammar and the engine.
 
+## And the other half of the comparison, at last
+
+Everything measured so far has been what the two parsers *read*. The programme has always
+had a second half — how long they take about it — and it had never been run. `--speed`
+(`Speed.cs`) runs it: Microsoft's own corpus, round-robin in one process, over the six
+thousand two hundred and ninety-nine statements both parsers read.
+
+```text
+                        per statement     MB/s   ratio   spread    allocated
+  --------------------------------------------------------------------------
+  ScriptDom, tokens           9200 ns     10.9    1.54    2.0%     39522 B
+  ScriptDom, tree            14140 ns      7.1    1.00    6.8%     43030 B
+  .Gram                       6022 ns     16.7    2.35    4.8%       729 B
+```
+
+Three rows and not two, because the two parsers are not returning the same answer.
+ScriptDom builds a complete syntax tree — every clause a node, every node carrying its
+first and last token, the token stream kept beside it. This builds `SqlNode`, which is
+about a tenth of that and carries no positions at all. A ratio between them is not a like
+for like and saying so is part of the number.
+
+What the rows say separately:
+
+- **A whole parse here costs less than ScriptDom spends reaching its first token** — 1.5
+  times its lexer alone. Both sides are lexing the same characters into much the same
+  kinds, so this one is about the lexical split rather than about what is built on top.
+- Against the whole parse, 2.35 times, and about half of that gap is the tree.
+- **Fifty-nine times less garbage**, which the shape of the answer does not explain away:
+  43 KB a statement against 729 bytes. ScriptDom allocates a node and a position for
+  everything it reads and keeps the tokens; this rents its tape per thread and gives it
+  back, so what survives a parse is the tree and the strings in it.
+
+The allocation figures are deterministic between runs; the times are not, and the spread
+is printed beside them for that reason.
+
+**And what it does not say.** ScriptDom is twelve parsers, one per version; this is one
+grammar and the version chain is not written, so `--speed 170` times their 170 against
+something that is not a version of anything. A parse that keeps positions is what an IDE
+needs, and when this one keeps them the row will move — which is a thing to measure again
+rather than to argue about now.
+
