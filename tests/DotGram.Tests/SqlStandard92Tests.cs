@@ -203,6 +203,9 @@ public sealed class SqlStandard92Tests
 		Expression.Concatenate(var left, var right) => $"({Shape(left)} Concatenate {Shape(right)})",
 		Expression.Negate(var operand)              => $"(Negate {Shape(operand)})",
 		Expression.Plus  (var operand)              => $"(Identity {Shape(operand)})",
+		// The brackets somebody wrote are looked through: this test is about how the
+		// operators group, and a bracket that changed the grouping is already a node.
+		Expression.Parenthesized(var inner)         => Shape(inner),
 		Expression.ColumnReference(var text)        => text,
 		Expression.Literal(_, var text)             => text,
 		_                                           => node.GetType().Name,

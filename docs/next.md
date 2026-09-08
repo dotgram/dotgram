@@ -16618,3 +16618,39 @@ author typed — and it is worth taking deliberately rather than by drift.
 drawing inside a `MATCH` is a language of its own with its own grammar, and the rules that
 read it hand back one node of it. It is the first of the sublanguages that wants a root of
 its own — `docs/ast.md` names the others.
+
+### The brackets somebody wrote
+
+The tree recorded the brackets that *mean* something — `(a + b) * c` is a `Multiply` over an
+`Add` — and not the ones that mean nothing. For a recognizer that is right. For the parser
+under a **formatter** it is not: a formatter that turns `(a) + b` into `a + b` is rewriting
+text nobody asked it to rewrite, and the difference between the two is exactly the thing it
+must not touch.
+
+So brackets are a node — `Expression.Parenthesized`, and the same at the query and table
+levels. SQL:2023 has the production, §6.28 `<parenthesized value expression>`; the reason
+they are kept is not that the standard names them, but that the author typed them.
+
+Precedence still decides where a bracket is *needed*, for a tree built rather than read.
+Nothing adds a bracket that changes nothing.
+
+`SelectStatement` went from 72.3% to **79.6%**, the corpus from 32.3% to **34.3%**.
+
+### And what a formatter actually needs, which is less than it looks
+
+Three levels, and only the first two touch the tree.
+
+1. **Content** — everything the statement says. What `--roundtrip` measures.
+2. **The author's optional syntax** — brackets, `JOIN` against `INNER JOIN`, `AS` written or
+   left out, `DELETE t` against `DELETE FROM t`, `TOP 10` against `TOP (10)`, `EXEC` against
+   `EXECUTE`. Each is a flag or a node, and the oracle names them one at a time rather than
+   anybody enumerating them.
+3. **Comments and layout** — and this needs *nothing* in the tree. A formatter is a printer
+   walking the tree with a second cursor over the source's own tokens: whenever the source
+   has trivia before the next token, it lays it out. Whitespace and casing are the
+   formatter's to decide; comments come from the source it already has.
+
+That works on one condition — **the printed token sequence must equal the source's** — which
+is what levels 1 and 2 are. So `--roundtrip` at 100% is not merely a correctness number: it
+is the condition under which a faithful formatter, and a safe rewriter, are possible at all.
+`docs/ast.md`'s "nothing here is a position" survives.

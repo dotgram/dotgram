@@ -188,7 +188,7 @@ TsqlValuePrimary : @Expression
 AtTimeZone : @Expression = "AT"i & "TIME"i & "ZONE"i & v: TsqlPrimaryCore => @(v)
 
 TsqlPrimaryCore : @Expression
-	= '(' & v: ValueExpression & ')' => @(v)
+	= '(' & v: ValueExpression & ')' => @(new Expression.Parenthesized(v))
 	| c: CaseExpression                        => @(c)
 	| c: TsqlCast                              => @(c)
 	| f: ValueFunction                         => @(f)
@@ -483,7 +483,7 @@ TsqlQuerySpecification : @Query
 // for the reason `CallTail` gives.
 Top : @Clause.Top
 	= "TOP"i & '(' & v: ValueExpression & ')' & suffix: TopSuffix?
-		=> @(Clause.Topped(v, suffix))
+		=> @(Clause.Topped(new Expression.Parenthesized(v), suffix))
 	| "TOP"i & t: Sql92.Lexical.UnsignedNumericLiteral & suffix: TopSuffix?
 		=> @(Clause.Topped(new Expression.Literal(SqlLiteralKind.Number, t), suffix))
 
@@ -632,7 +632,7 @@ TsqlTablePrimary : @TableReference
 	  & ('(' & columns: ColumnList & ')')? & pivot: PivotSuffix?
 		=> @(Syntax.Pivoted(new TableReference.Derived(derived, alias, columns), pivot))
 	| '(' & j: TableReference & ')' & TableSample? & TableHints?
-		=> @(j)
+		=> @(new TableReference.Parenthesized(j))
 	| '{' & "OJ"i & j: TableReference & '}' => @(j)
 
 // What a variable may be as a table: the table variable itself, or a table-valued method

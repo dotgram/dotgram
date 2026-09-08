@@ -22,7 +22,7 @@ Five sources appear in the tables:
 | Source | What it means |
 | --- | --- |
 | `SQL-92` | ISO/IEC 9075:1992, by section and production. The grammar cites the same numbers. |
-| `SQL:1999`, `SQL:2003` | A production the standard has and 1992 did not — a trigger, a role, `MERGE`, `IS DISTINCT FROM`. |
+| `SQL:1999`, `SQL:2003`, `SQL:2023` | A production a later standard has and 1992 did not — a trigger, a role, `MERGE`, `IS DISTINCT FROM`, a window. |
 | `SQL/PSM` | ISO/IEC 9075-4, the procedural part: blocks, conditionals, loops, variables. |
 | `T-SQL` | Microsoft's reference, by the page's own title. Everything a database engine has and a standard does not. |
 
@@ -286,6 +286,7 @@ field on one record here, and having a record each is what makes that a small ch
 | `Query.Specification` | SQL-92 | §7.9 &lt;query specification&gt;, with §7.4 &lt;table expression&gt; folded in |
 | `Query.TableValueConstructor` | SQL-92 | §7.3 &lt;table value constructor&gt; |
 | `Query.ExplicitTable` | SQL-92 | §7.10 &lt;explicit table&gt; |
+| `Query.Parenthesized` | SQL-92 | §7.10 a query expression in brackets |
 | `Query.Union` | SQL-92 | §7.10 &lt;query expression&gt; with `UNION` |
 | `Query.Except` | SQL-92 | §7.10 the same, with `EXCEPT` |
 | `Query.Intersect` | SQL-92 | §7.10 the same, with `INTERSECT` |
@@ -331,6 +332,7 @@ field on one record here, and having a record each is what makes that a small ch
 | `Expression.Member` | T-SQL | a member of a value, or a method called on one — `a.b`, `a::b`, `a.f(1)` |
 | `Expression.Collated` | SQL-92 | §6.11 &lt;collate clause&gt; on a value |
 | `Expression.Subquery` | SQL-92 | §7.11 &lt;subquery&gt; |
+| `Expression.Parenthesized` | SQL:2023 | §6.28 &lt;parenthesized value expression&gt;, and §8.1's boolean one |
 
 ### `TableReference`
 
@@ -342,6 +344,7 @@ field on one record here, and having a record each is what makes that a small ch
 | `TableReference.Pivot` | T-SQL | FROM — the PIVOT clause |
 | `TableReference.Unpivot` | T-SQL | FROM — the UNPIVOT clause |
 | `TableReference.Joined` | SQL-92 | §6.3 &lt;joined table&gt; |
+| `TableReference.Parenthesized` | SQL-92 | §6.3 a table reference in brackets |
 
 ### `Clause`
 

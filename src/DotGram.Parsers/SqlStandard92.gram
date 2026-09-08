@@ -87,7 +87,9 @@ BooleanTest : @Expression
 
 TruthValue  = "TRUE"i | "FALSE"i | "UNKNOWN"i
 
-BooleanPrimary : @Expression = p: Predicate => @(p) | '(' & c: SearchCondition & ')' => @(c)
+BooleanPrimary : @Expression
+    = p: Predicate => @(p)
+    | '(' & c: SearchCondition & ')' => @(new Expression.Parenthesized(c))
 
 // §8.1. Written in the order the standard lists them, except that the ones sharing a
 // left operand are gathered: <row value constructor> opens six of the nine, and
@@ -217,7 +219,7 @@ ValueExpression : @Expression
 // <datetime value expression>. Gathered here because they are all primaries once the
 // towers are one.
 ValueExpressionPrimary : @Expression
-    = '(' & v: ValueExpression & ')' => @(v)
+    = '(' & v: ValueExpression & ')' => @(new Expression.Parenthesized(v))
     | c: CaseExpression              => @(c)
     | c: CastSpecification           => @(c)
     | f: ValueFunction               => @(f)
@@ -387,7 +389,7 @@ QueryPrimary : @Query
     = q: QuerySpecification            => @(q)
     | v: TableValueConstructor         => @(v)
     | "TABLE"i & name: QualifiedName   => @(new Query.ExplicitTable(name))
-    | '(' & q: QueryExpression & ')'   => @(q)
+    | '(' & q: QueryExpression & ')'   => @(new Query.Parenthesized(q))
 
 // §7.2. A row of one value may be written without its parentheses, which is what makes
 // `VALUES 1, 2` two rows of one column rather than one row of two.
@@ -447,7 +449,7 @@ TablePrimary : @TableReference
         => @(new TableReference.Named(name, null, alias, columns, null, Clause.None))
     | derived: TableSubquery & "AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?
         => @(new TableReference.Derived(derived, alias, columns))
-    | '(' & j: TableReference & ')' => @(j)
+    | '(' & j: TableReference & ')' => @(new TableReference.Parenthesized(j))
 
 // A name as a value of its own, so that a list of them gathers into an array rather
 // than into the text between the first and the last (§4.1 case 4).

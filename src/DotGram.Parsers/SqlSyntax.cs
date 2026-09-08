@@ -973,6 +973,9 @@ public abstract record Query
 	/// <summary>§7.3 <c>VALUES (…), (…)</c> — a table written out.</summary>
 	public sealed record TableValueConstructor(Expression[] Rows) : Query;
 
+	/// <summary>§7.13 a query in brackets, for <see cref="Expression.Parenthesized"/>'s reason.</summary>
+	public sealed record Parenthesized(Query Query) : Query;
+
 	/// <summary>§7.4 <c>TABLE t</c>, which is every column and every row of one table.</summary>
 	public sealed record ExplicitTable(string Name) : Query;
 
@@ -1172,6 +1175,19 @@ public abstract record Expression
 	public sealed record NamedArgument(string Name, Expression Value) : Expression;
 
 	/// <summary>
+	/// §6.28 <c>&lt;parenthesized value expression&gt;</c>, and §8.1's boolean one: brackets
+	/// somebody wrote.
+	/// </summary>
+	/// <remarks>
+	/// The standard has a production for it and so does the tree, which is not the same
+	/// reason it is here. A tree that records only the brackets meaning needs cannot say
+	/// whether <c>(a) + b</c> or <c>a + b</c> was written, and a formatter that rewrites one
+	/// into the other is changing text nobody asked it to change. Everything the author typed
+	/// survives; how it is laid out is the formatter's own business.
+	/// </remarks>
+	public sealed record Parenthesized(Expression Value) : Expression;
+
+	/// <summary>
 	/// §7.15 a subquery standing where a value does — the standard's scalar and row subqueries,
 	/// which differ by how many columns they return and not by how they are written.
 	/// </summary>
@@ -1271,6 +1287,9 @@ public abstract record TableReference
 	public sealed record FunctionCall(
 		Expression.RoutineInvocation Function, string? Name, string[]? Columns,
 		Clause[] Schema) : TableReference;
+
+	/// <summary>§7.6 a source in brackets, for <see cref="Expression.Parenthesized"/>'s reason.</summary>
+	public sealed record Parenthesized(TableReference Of) : TableReference;
 
 	/// <summary>§7.7 two sources and the join between them.</summary>
 	/// <remarks>

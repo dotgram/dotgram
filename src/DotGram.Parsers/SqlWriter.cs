@@ -653,6 +653,12 @@ public static class SqlWriter
 				Set(text, left, right, "INTERSECT", all, binds);
 				break;
 
+			case Query.Parenthesized(var inner):
+				text.Append('(');
+				Put(text, inner, 0);
+				text.Append(')');
+				break;
+
 			case Query.DefaultValues:
 				text.Append("DEFAULT VALUES");
 				break;
@@ -685,7 +691,7 @@ public static class SqlWriter
 			if (i > 0)
 				text.Append(", ");
 
-			if (rows[i] is Expression.RowValueConstructor)
+			if (rows[i] is Expression.RowValueConstructor or Expression.Parenthesized)
 			{
 				Put(text, rows[i], 0);
 			}
@@ -729,6 +735,12 @@ public static class SqlWriter
 				}
 
 				Hints(text, hints);
+				break;
+
+			case TableReference.Parenthesized(var inner):
+				text.Append('(');
+				Put(text, inner);
+				text.Append(')');
 				break;
 
 			case TableReference.Pivot(var of, var aggregate, var by, var names, var alias):
@@ -878,9 +890,8 @@ public static class SqlWriter
 				break;
 
 			case Clause.Top(var value, var percent, var ties):
-				text.Append("TOP (");
+				text.Append("TOP ");
 				Put(text, value, 0);
-				text.Append(')');
 
 				if (percent)
 					text.Append(" PERCENT");
@@ -1406,6 +1417,12 @@ public static class SqlWriter
 			case Expression.NamedArgument(var name, var value):
 				text.Append(name).Append(" = ");
 				Put(text, value, 0);
+				break;
+
+			case Expression.Parenthesized(var inner):
+				text.Append('(');
+				Put(text, inner, 0);
+				text.Append(')');
 				break;
 
 			case Expression.Subquery(var query):

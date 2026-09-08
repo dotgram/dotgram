@@ -21,13 +21,19 @@ namespace DotGram.Tests;
 /// </remarks>
 public sealed class SqlWriterTests
 {
-	/// <summary>A bracket is written where the shape needs it, and not where it does not.</summary>
+	/// <summary>Every bracket somebody wrote comes back, and none that they did not.</summary>
+	/// <remarks>
+	/// The tree records the brackets rather than deducing them, so that a formatter does
+	/// not rewrite <c>(a) + b</c> into <c>a + b</c> behind its author's back. Precedence is
+	/// still the rule where a tree was built rather than read: nothing here adds a bracket
+	/// that changes nothing.
+	/// </remarks>
 	[Theory]
 	[InlineData("a + b * c",        "a + b * c")]
 	[InlineData("(a + b) * c",      "(a + b) * c")]
 	[InlineData("a * b + c",        "a * b + c")]
 	[InlineData("a - (b - c)",      "a - (b - c)")]
-	[InlineData("(a) + b",          "a + b")]
+	[InlineData("(a) + b",          "(a) + b")]
 	[InlineData("- a * b",          "-a * b")]
 	[InlineData("- (a * b)",        "-(a * b)")]
 	public void A_bracket_is_written_where_precedence_needs_it(string input, string printed) =>
@@ -39,7 +45,7 @@ public sealed class SqlWriterTests
 	[InlineData("a = 1 AND (b = 2 OR c = 3)", "a = 1 AND (b = 2 OR c = 3)")]
 	[InlineData("NOT (a = 1 AND b = 2)",      "NOT (a = 1 AND b = 2)")]
 	[InlineData("NOT a = 1 AND b = 2",        "NOT a = 1 AND b = 2")]
-	[InlineData("(a = 1)",                    "a = 1")]
+	[InlineData("(a = 1)",                    "(a = 1)")]
 	[InlineData("a NOT BETWEEN 1 AND 2",      "a NOT BETWEEN 1 AND 2")]
 	[InlineData("a NOT IN (1, 2)",            "a NOT IN (1, 2)")]
 	[InlineData("a LIKE 'x%' ESCAPE '\\'",    "a LIKE 'x%' ESCAPE '\\'")]
