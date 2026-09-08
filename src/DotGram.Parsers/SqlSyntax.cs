@@ -3,25 +3,42 @@
 namespace DotGram.Parsers;
 
 /// <summary>
-/// What a SQL parser builds — <see cref="SqlStandard92"/>, or anything else that reads the
-/// same grammar: a search condition or a value expression as a tree.
+/// What a SQL parser builds — <see cref="SqlStandard92"/>, <see cref="TransactSql"/>, or
+/// anything else that reads the same grammar.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>One class, with its descendants inside it.</b> Eleven records cover the whole of §6
-/// through §8, because what distinguishes an <c>OR</c> from a <c>*</c>, or a <c>BETWEEN</c>
-/// from a <c>LIKE</c>, is written as a field rather than as a type. The alternative — a
-/// record per production, three levels deep — is the shape a grammar suggests and a
-/// consumer regrets: a visitor over it has forty methods, and adding the fortieth
-/// production breaks every visitor already written. Nested rather than beside, so that the
-/// tree is one name to import and one place to read.
+/// <b>One tree for every dialect, named after the grammar.</b> A node is called what the
+/// production it comes from is called: the standard's name where the standard has the
+/// concept — <c>QuerySpecification</c>, <c>DerivedColumn</c>, <c>TableReference</c>,
+/// <c>TableDefinition</c>, <c>SortSpecification</c> — and the dialect's published name
+/// where it does not, which is most of the DDL. So a reader with the specification open
+/// can find the node, and a reader with the node can find the specification; and a second
+/// dialect that reads the same production builds the same node rather than one of its own.
+/// That is the point of it: several parsers, one tree.
 /// </para>
 /// <para>
-/// Aggregation over inheritance for the same reason. A predicate holds its operands in an
-/// array rather than in named fields per kind, so the shape of <c>x BETWEEN a AND b</c> is
-/// "the kind is Between and there are three operands" rather than a type of its own. What
-/// each operand means is in <see cref="SqlPredicateKind"/>'s documentation, where a reader
-/// looks once.
+/// <b>One class, with its descendants inside it, one level deep.</b> Nested rather than
+/// beside, so that the tree is one name to import and one place to read. Nothing here
+/// derives from anything but <see cref="SqlNode"/>: a consumer switches on the record and
+/// is done, and a node added below another would be a node half its readers do not see.
+/// </para>
+/// <para>
+/// <b>A record per production, where the productions differ.</b> This file used to argue
+/// the opposite — that a kind written as a field beats a type per production, because a
+/// visitor over forty types has forty methods. The argument holds for the value level and
+/// was kept there: <see cref="Predicate"/> is one record with a kind, because the nine
+/// predicates of §8 are one shape with different operands, and <see cref="SqlOperator"/>
+/// tells an <c>OR</c> from a <c>*</c> for the same reason. It does not hold for statements.
+/// A <c>DROP TABLE</c> and a <c>DROP VIEW</c> are not one shape with a word in it; they are
+/// two statements that happen to be spelled alike, and a consumer that has to read the word
+/// to know which is a consumer doing the parser's work twice.
+/// </para>
+/// <para>
+/// Aggregation over inheritance, still. A predicate holds its operands in an array rather
+/// than in named fields per kind, so the shape of <c>x BETWEEN a AND b</c> is "the kind is
+/// Between and there are three operands" rather than a type of its own. What each operand
+/// means is in <see cref="SqlPredicateKind"/>'s documentation, where a reader looks once.
 /// </para>
 /// <para>
 /// <b>The tree knows how it is made.</b> The words a grammar matches and the lists it
@@ -39,15 +56,15 @@ namespace DotGram.Parsers;
 public abstract record SqlNode
 {
 	/// <summary>Two operands and the operator between them.</summary>
-	public sealed record Binary(SqlOperator Operator, SqlNode Left, SqlNode Right) : SqlNode;
+	public sealed record BinaryExpression(SqlOperator Operator, SqlNode Left, SqlNode Right) : SqlNode;
 
 	/// <summary>One operand and the operator in front of it — <c>NOT</c>, and the signs.</summary>
-	public sealed record Unary(SqlOperator Operator, SqlNode Operand) : SqlNode;
+	public sealed record UnaryExpression(SqlOperator Operator, SqlNode Operand) : SqlNode;
 
 	/// <summary>
 	/// <c>x IS NOT TRUE</c> and its fellows: what is tested, and what it is tested against.
 	/// </summary>
-	public sealed record TruthTest(SqlNode Operand, bool Negated, SqlTruth Truth) : SqlNode;
+	public sealed record BooleanTest(SqlNode Operand, bool Negated, SqlTruth Truth) : SqlNode;
 
 	/// <summary>
 	/// A predicate (§8): its kind, whether <c>NOT</c> was written in the middle of it, and
@@ -68,16 +85,16 @@ public abstract record SqlNode
 	/// word a few of them carry — <c>DISTINCT</c>, a datetime field, a trim specification, or
 	/// the type a cast names.
 	/// </summary>
-	public sealed record Call(string Name, SqlNode[] Arguments, string? Word = null) : SqlNode;
+	public sealed record RoutineInvocation(string Name, SqlNode[] Arguments, string? Word = null) : SqlNode;
 
 	/// <summary>A <c>CASE</c>, simple where it has an operand and searched where it does not.</summary>
-	public sealed record Case(SqlNode? Operand, When[] Whens, SqlNode? Else) : SqlNode;
+	public sealed record CaseExpression(SqlNode? Operand, WhenClause[] Whens, SqlNode? Else) : SqlNode;
 
 	/// <summary>One <c>WHEN … THEN …</c> of a <c>CASE</c>.</summary>
-	public sealed record When(SqlNode Test, SqlNode Result) : SqlNode;
+	public sealed record WhenClause(SqlNode Test, SqlNode Result) : SqlNode;
 
 	/// <summary>A column reference, as written, dots and all.</summary>
-	public sealed record Column(string Text) : SqlNode;
+	public sealed record ColumnReference(string Text) : SqlNode;
 
 	/// <summary>
 	/// A literal, a parameter, or one of the words that stand where a value does —
@@ -86,7 +103,7 @@ public abstract record SqlNode
 	public sealed record Literal(SqlLiteralKind Kind, string Text) : SqlNode;
 
 	/// <summary>A row of several values, <c>(a, b)</c>.</summary>
-	public sealed record Row(SqlNode[] Values) : SqlNode;
+	public sealed record RowValueConstructor(SqlNode[] Values) : SqlNode;
 
 	/// <summary>
 	/// A subquery, kept as the text between its parentheses.
@@ -107,7 +124,7 @@ public abstract record SqlNode
 	/// is which of them are empty. <see cref="From"/> holds the table references the
 	/// standard writes as a comma list, which is a cross join said the older way.
 	/// </remarks>
-	public sealed record Query(
+	public sealed record QuerySpecification(
 		bool Distinct,
 		SqlNode[] Columns,
 		SqlNode[] From,
@@ -116,16 +133,16 @@ public abstract record SqlNode
 		SqlNode? Having) : SqlNode;
 
 	/// <summary>One entry of a select list: what it is, and what it is called.</summary>
-	public sealed record Selected(SqlNode Value, string? Name) : SqlNode;
+	public sealed record DerivedColumn(SqlNode Value, string? Name) : SqlNode;
 
 	/// <summary><c>*</c>, or <c>t.*</c> — which is no column, so it is not one.</summary>
-	public sealed record Star(string? Qualifier) : SqlNode;
+	public sealed record QualifiedAsterisk(string? Qualifier) : SqlNode;
 
 	/// <summary>
 	/// §7.4 one entry of a <c>FROM</c> clause: a table by name or a query standing where
 	/// one does, the name it is known by there, and the names its columns are given.
 	/// </summary>
-	public sealed record Source(
+	public sealed record TableReference(
 		string? Table, SqlNode? Derived, string? Name, string[]? Columns) : SqlNode;
 
 	/// <summary>§7.5 two sources and the join between them.</summary>
@@ -133,18 +150,18 @@ public abstract record SqlNode
 	/// <see cref="On"/> where the join was qualified by a condition, <see cref="Using"/>
 	/// where it named columns, and neither for a cross or a natural join.
 	/// </remarks>
-	public sealed record Join(
+	public sealed record JoinedTable(
 		SqlJoin Kind, bool Natural, SqlNode Left, SqlNode Right,
 		SqlNode? On = null, string[]? Using = null) : SqlNode;
 
 	/// <summary>§7.2 <c>VALUES (…), (…)</c> — a table written out.</summary>
-	public sealed record TableValue(SqlNode[] Rows) : SqlNode;
+	public sealed record TableValueConstructor(SqlNode[] Rows) : SqlNode;
 
 	/// <summary>§13.1 a query and the order its rows are asked for in.</summary>
-	public sealed record Ordered(SqlNode Of, SqlNode[] By) : SqlNode;
+	public sealed record SelectStatement(SqlNode Of, SqlNode[] By) : SqlNode;
 
 	/// <summary>One <c>ORDER BY</c> entry: what to sort by, and which way.</summary>
-	public sealed record Sorted(SqlNode Value, bool Down) : SqlNode;
+	public sealed record SortSpecification(SqlNode Value, bool Down) : SqlNode;
 
 	// ---- the statements ----------------------------------------------------------------------
 	//
@@ -161,40 +178,40 @@ public abstract record SqlNode
 
 	/// <summary>Rows written into a table, from a list, a query or nothing at all.</summary>
 	/// <remarks>
-	/// <see cref="Rows"/> is a <see cref="TableValue"/> where they were written out, a query
-	/// where they come from one, and a <see cref="Row"/> of nothing for `DEFAULT VALUES`.
+	/// <see cref="Rows"/> is a <see cref="TableValueConstructor"/> where they were written out, a query
+	/// where they come from one, and a <see cref="RowValueConstructor"/> of nothing for `DEFAULT VALUES`.
 	/// </remarks>
-	public sealed record Insert(SqlNode? Target, string[]? Columns, SqlNode Rows) : SqlNode;
+	public sealed record InsertStatement(SqlNode? Target, string[]? Columns, SqlNode Rows) : SqlNode;
 
 	/// <summary>Rows changed in place: what to change, to what, and which rows.</summary>
 	/// <remarks>
 	/// <see cref="From"/> is T-SQL's extension and not the standard's: a second `FROM` naming
 	/// the tables the rows to change are found by joining.
 	/// </remarks>
-	public sealed record Update(
+	public sealed record UpdateStatement(
 		SqlNode? Target, SqlNode[] Set, SqlNode[] From, SqlNode? Where) : SqlNode;
 
 	/// <summary>Rows removed, and the same two ways of saying which.</summary>
-	public sealed record Delete(SqlNode? Target, SqlNode[] From, SqlNode? Where) : SqlNode;
+	public sealed record DeleteStatement(SqlNode? Target, SqlNode[] From, SqlNode? Where) : SqlNode;
 
 	/// <summary>
 	/// One statement that inserts, updates and deletes, according to what a join found.
 	/// </summary>
-	public sealed record Merge(
+	public sealed record MergeStatement(
 		SqlNode? Target, SqlNode Using, SqlNode On, SqlNode[] Whens) : SqlNode;
 
 	/// <summary>
 	/// One arm of a merge: whether it fired on a match, which side the match was missing
 	/// from, what else had to be true, and what to do.
 	/// </summary>
-	public sealed record MergeWhen(
+	public sealed record MergeWhenClause(
 		bool OnMatch, string? By, SqlNode? Condition, SqlNode Action) : SqlNode;
 
 	/// <summary>
 	/// One entry of a `SET`: what is assigned, the operator it was assigned with where that
 	/// was not a plain `=`, and the value.
 	/// </summary>
-	public sealed record Assign(string Target, string? Operator, SqlNode Value) : SqlNode;
+	public sealed record SetClause(string Target, string? Operator, SqlNode Value) : SqlNode;
 
 	// ---- the procedural level ----------------------------------------------------------------
 	//
@@ -205,24 +222,24 @@ public abstract record SqlNode
 	// seven names for one shape rather than seven shapes.
 
 	/// <summary>`BEGIN … END`, and the body of anything that has one.</summary>
-	public sealed record Block(SqlNode[] Statements) : SqlNode;
+	public sealed record CompoundStatement(SqlNode[] Statements) : SqlNode;
 
 	/// <summary>`IF … ELSE`, where either arm is one statement and a block is one.</summary>
-	public sealed record If(SqlNode Condition, SqlNode Then, SqlNode? Else) : SqlNode;
+	public sealed record IfStatement(SqlNode Condition, SqlNode Then, SqlNode? Else) : SqlNode;
 
 	/// <summary>`WHILE`, and the one statement it repeats.</summary>
-	public sealed record While(SqlNode Condition, SqlNode Body) : SqlNode;
+	public sealed record WhileStatement(SqlNode Condition, SqlNode Body) : SqlNode;
 
 	/// <summary>`BEGIN TRY … END TRY BEGIN CATCH … END CATCH`.</summary>
-	public sealed record TryCatch(SqlNode[] Tried, SqlNode[] Caught) : SqlNode;
+	public sealed record TryCatchStatement(SqlNode[] Tried, SqlNode[] Caught) : SqlNode;
 
 	/// <summary>One `DECLARE`, which may declare several.</summary>
-	public sealed record Declare(SqlNode[] Variables) : SqlNode;
+	public sealed record DeclareStatement(SqlNode[] Variables) : SqlNode;
 
 	/// <summary>
 	/// One variable: its name, the type as written, and what it was given to start with.
 	/// </summary>
-	public sealed record Declared(string Name, string? Type, SqlNode? Value) : SqlNode;
+	public sealed record VariableDeclaration(string Name, string? Type, SqlNode? Value) : SqlNode;
 
 	/// <summary>
 	/// A `SET` that names a setting rather than a variable — the option as written, and the
@@ -231,12 +248,12 @@ public abstract record SqlNode
 	public sealed record Setting(string Option, SqlNode? Value) : SqlNode;
 
 	/// <summary>A transaction begun, committed, rolled back or saved, and its name.</summary>
-	public sealed record Transaction(string Kind, string? Name) : SqlNode;
+	public sealed record TransactionStatement(string Kind, string? Name) : SqlNode;
 
 	/// <summary>
 	/// `EXECUTE`: what is called, with what, and the variable the return code goes to.
 	/// </summary>
-	public sealed record Execute(string? Into, string Name, SqlNode[] Arguments) : SqlNode;
+	public sealed record ExecuteStatement(string? Into, string Name, SqlNode[] Arguments) : SqlNode;
 
 	/// <summary>
 	/// A statement that is a word and some values: `PRINT`, `RETURN`, `GOTO`, `BREAK`,
@@ -247,47 +264,47 @@ public abstract record SqlNode
 	// ---- the tables ---------------------------------------------------------------------------
 
 	/// <summary>A table declared: its name, and the columns, constraints and indexes in it.</summary>
-	public sealed record CreateTable(string Name, SqlNode[] Elements) : SqlNode;
+	public sealed record TableDefinition(string Name, SqlNode[] Elements) : SqlNode;
 
 	/// <summary>
 	/// One column: its name, the type as written, the expression where it is computed rather
 	/// than stored, and what is said about it after that.
 	/// </summary>
-	public sealed record Field(
+	public sealed record ColumnDefinition(
 		string Name, string? Type, SqlNode? Computed, SqlNode[] Constraints) : SqlNode;
 
 	/// <summary>
 	/// A constraint or an index, written on a column or on the table: its name where it was
 	/// given one, which kind it is, and the columns it names.
 	/// </summary>
-	public sealed record Constraint(
+	public sealed record ConstraintDefinition(
 		string? Name, string Kind, string[]? Columns, SqlNode? Check) : SqlNode;
 
 	/// <summary>A table changed: its name, what is being done, and to what.</summary>
-	public sealed record AlterTable(string Name, string Action, SqlNode[] Elements) : SqlNode;
+	public sealed record AlterTableStatement(string Name, string Action, SqlNode[] Elements) : SqlNode;
 
 	// ---- the routines --------------------------------------------------------------------------
 
 	/// <summary>A procedure: its name, what it takes, and what it does.</summary>
-	public sealed record CreateProcedure(
+	public sealed record CreateProcedureStatement(
 		string Name, SqlNode[] Parameters, SqlNode[] Body) : SqlNode;
 
 	/// <summary>
 	/// A function, and what it returns says which of the three shapes it is: a type for a
 	/// scalar, `TABLE` for either of the two that return rows.
 	/// </summary>
-	public sealed record CreateFunction(
+	public sealed record CreateFunctionStatement(
 		string Name, SqlNode[] Parameters, string? Returns, SqlNode[] Body) : SqlNode;
 
 	/// <summary>A trigger: what it is on, what fires it, and what it does then.</summary>
-	public sealed record CreateTrigger(
+	public sealed record CreateTriggerStatement(
 		string Name, string On, string[] Events, SqlNode[] Body) : SqlNode;
 
 	/// <summary>A view, which is a name given to a query.</summary>
-	public sealed record CreateView(string Name, string[]? Columns, SqlNode Selects) : SqlNode;
+	public sealed record ViewDefinition(string Name, string[]? Columns, SqlNode Selects) : SqlNode;
 
 	/// <summary>One parameter of a routine: its name, its type, and its default.</summary>
-	public sealed record Parameter(string Name, string? Type, SqlNode? Value) : SqlNode;
+	public sealed record ParameterDeclaration(string Name, string? Type, SqlNode? Value) : SqlNode;
 
 	// ---- the database ---------------------------------------------------------------------------
 
@@ -305,10 +322,10 @@ public abstract record SqlNode
 	// ---- indexes and permissions ---------------------------------------------------------------
 
 	/// <summary>An index declared: its name, what it is on, and the columns it is over.</summary>
-	public sealed record CreateIndex(string Name, string On, string[]? Columns) : SqlNode;
+	public sealed record CreateIndexStatement(string Name, string On, string[]? Columns) : SqlNode;
 
 	/// <summary>An index changed: which one, on what, and what is being done to it.</summary>
-	public sealed record AlterIndex(string Name, string On, string Action) : SqlNode;
+	public sealed record AlterIndexStatement(string Name, string On, string Action) : SqlNode;
 
 	/// <summary>
 	/// A permission granted, denied or revoked: which of the three, what is being said about,
@@ -336,14 +353,14 @@ public abstract record SqlNode
 	public static Command Commanded(string word, SqlNode[]? values) => new(word, values ?? None);
 
 	/// <summary>A constraint written without a name, which is most of them.</summary>
-	public static Constraint Constrained(string kind, string[]? columns, SqlNode? check) =>
+	public static ConstraintDefinition Constrained(string kind, string[]? columns, SqlNode? check) =>
 		new(null, kind, columns, check);
 
 	/// <summary>A named thing dropped or declared, where only the name and the kind matter.</summary>
-	public static Constraint Marked(string kind, string? name) => new(name, kind, null, null);
+	public static ConstraintDefinition Marked(string kind, string? name) => new(name, kind, null, null);
 
 	/// <summary>An alteration before the table it is applied to is known.</summary>
-	public static AlterTable Altered(string action, SqlNode[]? elements) =>
+	public static AlterTableStatement Altered(string action, SqlNode[]? elements) =>
 		new("", action, elements ?? None);
 
 	/// <summary>The two words that stand where a value does and are always the same node.</summary>
@@ -393,7 +410,7 @@ public abstract record SqlNode
 		string.Equals(order, "DESC", StringComparison.OrdinalIgnoreCase);
 
 	/// <summary>A join from the words around it: the kind, and which of the two tails it had.</summary>
-	public static Join Joining(
+	public static JoinedTable Joining(
 		string? kind, string? natural, SqlNode left, SqlNode right, SqlNode? on, string[]? columns) =>
 		new(Joined(kind), natural is not null, left, right, on, columns);
 

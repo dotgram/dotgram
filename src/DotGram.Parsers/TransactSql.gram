@@ -99,8 +99,8 @@ TsqlReserved = ("ADD"i | "ALL"i | "ALTER"i | "AND"i | "ANY"i | "AS"i | "ASC"i | 
 // `CASE x WHEN NULL THEN …` compares against the null nothing equals, which is useless
 // and legal — the standard's `<when operand>` is a value expression and null is not one,
 // and T-SQL admits it where the standard does not.
-TsqlSimpleWhen : @SqlNode.When
-	= "WHEN"i & test: Result & "THEN"i & result: Result => @(new SqlNode.When(test, result))
+TsqlSimpleWhen : @SqlNode.WhenClause
+	= "WHEN"i & test: Result & "THEN"i & result: Result => @(new SqlNode.WhenClause(test, result))
 
 // ── §7.10's query expression, narrowed ─────────────────────────────────────
 //
@@ -113,11 +113,11 @@ TsqlSimpleWhen : @SqlNode.When
 // three to the left (§4.3.1).
 TsqlQueryExpression : @SqlNode
 	= left: TsqlQueryExpression & "UNION"i & all: "ALL"i? & right: TsqlQueryExpression  << 1
-		=> @(new SqlNode.Binary(SqlNode.Combined("UNION", all), left, right))
+		=> @(new SqlNode.BinaryExpression(SqlNode.Combined("UNION", all), left, right))
 	| left: TsqlQueryExpression & "EXCEPT"i & right: TsqlQueryExpression                << 1
-		=> @(new SqlNode.Binary(SqlNode.Combined("EXCEPT", null), left, right))
+		=> @(new SqlNode.BinaryExpression(SqlNode.Combined("EXCEPT", null), left, right))
 	| left: TsqlQueryExpression & "INTERSECT"i & right: TsqlQueryExpression             << 2
-		=> @(new SqlNode.Binary(SqlNode.Combined("INTERSECT", null), left, right))
+		=> @(new SqlNode.BinaryExpression(SqlNode.Combined("INTERSECT", null), left, right))
 	| q: QueryPrimary => @(q)
 
 // ── §6.4's qualified name, widened ─────────────────────────────────────────
@@ -182,7 +182,7 @@ TsqlValueSpecification : @SqlNode
 // twelve inside it.
 TsqlValuePrimary : @SqlNode
 	= p: TsqlPrimaryCore & Member* & zone: AtTimeZone?
-		=> @(zone is null ? p : new SqlNode.Call("AT TIME ZONE", new SqlNode[] { p, zone }))
+		=> @(zone is null ? p : new SqlNode.RoutineInvocation("AT TIME ZONE", new SqlNode[] { p, zone }))
 
 AtTimeZone : @SqlNode = "AT"i & "TIME"i & "ZONE"i & v: TsqlPrimaryCore => @(v)
 
@@ -220,7 +220,7 @@ OdbcLiteralKind = "TS"i | "D"i | "T"i | "GUID"i
 // may stand there: `{ fn convert (@a, sql_int) }` calls ODBC's two-argument `convert`,
 // which is not the `CONVERT` of §6.10 and does not have to obey its shape.
 OdbcFunction : @SqlNode
-	= name: OdbcName & '(' & args: Arguments? & ')' => @(new SqlNode.Call(name, args ?? SqlNode.None))
+	= name: OdbcName & '(' & args: Arguments? & ')' => @(new SqlNode.RoutineInvocation(name, args ?? SqlNode.None))
 	| v: ValueExpression => @(v)
 
 OdbcName = word
@@ -236,14 +236,14 @@ Member = ("::" | '.') & Identifier & ('(' & Arguments? & ')')?
 // `CONVERT` is a different rule and not a wider one: the standard's takes a value and
 // a character set, T-SQL's takes a type and a value, in that order.
 TsqlCast : @SqlNode
-	= "CAST"i     & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new SqlNode.Call("CAST", new SqlNode[] { v }, type))
-	| "TRY_CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new SqlNode.Call("TRY_CAST", new SqlNode[] { v }, type))
+	= "CAST"i     & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new SqlNode.RoutineInvocation("CAST", new SqlNode[] { v }, type))
+	| "TRY_CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new SqlNode.RoutineInvocation("TRY_CAST", new SqlNode[] { v }, type))
 	| name: ("TRY_CONVERT"i | "CONVERT"i) & '(' & type: DataType & ',' & v: ValueExpression
 	  & (',' & style: ValueExpression)? & ')'
-		=> @(new SqlNode.Call(name, style is null ? new SqlNode[] { v } : new SqlNode[] { v, style }, type))
+		=> @(new SqlNode.RoutineInvocation(name, style is null ? new SqlNode[] { v } : new SqlNode[] { v, style }, type))
 	| name: ("TRY_PARSE"i | "PARSE"i) & '(' & v: ValueExpression & "AS"i & type: DataType
 	  & ("USING"i & ValueExpression)? & ')'
-		=> @(new SqlNode.Call(name, new SqlNode[] { v }, type))
+		=> @(new SqlNode.RoutineInvocation(name, new SqlNode[] { v }, type))
 
 // The T-SQL functions with a syntax of their own rather than an argument list, which
 // is the same reason §6.16's are written out in the standard. What they have in common
@@ -255,13 +255,13 @@ TsqlCast : @SqlNode
 // return. All three are from the published syntax of `JSON_OBJECT`.
 TsqlValueFunction : @SqlNode
 	= "IIF"i & '(' & c: SearchCondition & ',' & a: ValueExpression & ',' & b: ValueExpression & ')'
-		=> @(new SqlNode.Call("IIF", new SqlNode[] { c, a, b }))
+		=> @(new SqlNode.RoutineInvocation("IIF", new SqlNode[] { c, a, b }))
 	| "CHOOSE"i & '(' & at: ValueExpression & ',' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
-		=> @(new SqlNode.Call("CHOOSE", SqlNode.Listed(at, SqlNode.Listed(first, rest))))
+		=> @(new SqlNode.RoutineInvocation("CHOOSE", SqlNode.Listed(at, SqlNode.Listed(first, rest))))
 	| name: JsonObjectName & '(' & body: JsonObjectBody? & ')' & CallTail?
-		=> @(new SqlNode.Call(name, body ?? SqlNode.None))
+		=> @(new SqlNode.RoutineInvocation(name, body ?? SqlNode.None))
 	| name: JsonArrayName & '(' & body: JsonArrayBody? & ')' & CallTail?
-		=> @(new SqlNode.Call(name, body ?? SqlNode.None))
+		=> @(new SqlNode.RoutineInvocation(name, body ?? SqlNode.None))
 
 // **The null clause needs something to be null.** The published syntax makes the key
 // values and the clause independently optional — `JSON_OBJECT ( [ <json_key_value>
@@ -286,7 +286,7 @@ JsonKeyValues : @SqlNode[]
 // `json_key_name : value_expression` — the one place in T-SQL where a colon joins two
 // values rather than introducing a parameter.
 JsonKeyValue : @SqlNode
-	= key: ValueExpression & ':' & v: JsonValue => @(new SqlNode.Row(new SqlNode[] { key, v }))
+	= key: ValueExpression & ':' & v: JsonValue => @(new SqlNode.RowValueConstructor(new SqlNode[] { key, v }))
 
 // A key's value may be the null a value expression is not — `'type':NULL` is the case
 // the `ABSENT ON NULL` clause exists for.
@@ -306,14 +306,14 @@ JsonOrder      = "ORDER"i & "BY"i & ValueExpression & ("ASC"i | "DESC"i)?
 // it is the middle of one three-word name.
 NextValue : @SqlNode
 	= "NEXT"i & "VALUE"i & "FOR"i & name: QualifiedName & CallTail?
-		=> @(new SqlNode.Call("NEXT VALUE FOR", SqlNode.None, name))
+		=> @(new SqlNode.RoutineInvocation("NEXT VALUE FOR", SqlNode.None, name))
 
 // A call to something this grammar has never heard of, which is most of them: the
 // name is a catalogue's business and the arguments are values.
 FunctionCall : @SqlNode
 	= name: QualifiedName & '(' & quantifier: SetQuantifier? & args: Arguments? & UseModel?
 	  & JsonReturning? & ')' & CallTail?
-		=> @(new SqlNode.Call(name, args ?? SqlNode.None, SqlNode.Distinctly(quantifier)))
+		=> @(new SqlNode.RoutineInvocation(name, args ?? SqlNode.None, SqlNode.Distinctly(quantifier)))
 
 // What may follow a call: which rows of a window it sees when they are null, what a
 // set function inside a window is ordered by, and the window itself. All three read and
@@ -381,7 +381,7 @@ Argument : @SqlNode
 
 CountStar : @SqlNode
 	= name: ("COUNT_BIG"i | "CHECKSUM"i) & '(' & '*' & ')'
-		=> @(new SqlNode.Call(name, SqlNode.None, "*"))
+		=> @(new SqlNode.RoutineInvocation(name, SqlNode.None, "*"))
 
 // ── §6.1's data type, widened ───────────────────────────────────────────────
 //
@@ -432,7 +432,7 @@ TsqlPredicate : @SqlNode
 	| "UNIQUE"i & q: TableSubquery => @(new SqlNode.Predicate(SqlPredicateKind.Unique, false, new SqlNode[] { q }))
 	| name: ("CONTAINS"i | "FREETEXT"i | "TSEQUAL"i | "REGEXP_LIKE"i | "UPDATE"i)
 	  & '(' & args: Arguments? & ')'
-		=> @(new SqlNode.Call(name, args ?? SqlNode.None))
+		=> @(new SqlNode.RoutineInvocation(name, args ?? SqlNode.None))
 	| m: GraphMatch => @(m)
 	| row: RowValueConstructor & tail: PredicateTail => @(SqlNode.Predicated(row, tail))
 	| left: RowValueConstructor & "IS"i & negated: "NOT"i? & "DISTINCT"i & "FROM"i
@@ -457,7 +457,7 @@ TsqlQuerySpecification : @SqlNode
 	= "SELECT"i & quantifier: SetQuantifier? & Top? & columns: SelectList & Into?
 	  & from: FromClause? & where: WhereClause? & group: GroupByClause? & having: HavingClause?
 	  & Window?
-		=> @(new SqlNode.Query(
+		=> @(new SqlNode.QuerySpecification(
 				 SqlNode.Distinctly(quantifier) == "DISTINCT", columns, from ?? SqlNode.None,
 				 where, group ?? SqlNode.None, having))
 
@@ -489,10 +489,10 @@ WindowPart   = "PARTITION"i & "BY"i & ValueExpression & (',' & ValueExpression)*
 // be written in front with `=` rather than behind with `AS`. And an alias may be a
 // string, which the standard does not allow and every dialect does.
 TsqlSelectSublist : @SqlNode
-	= qualifier: QualifiedName & '.' & '*'        => @(new SqlNode.Star(qualifier))
-	| into: Tsql.Variable & AssignOp & v: ValueExpression => @(new SqlNode.Selected(v, into))
-	| label: TsqlAlias & '=' & v: ValueExpression  => @(new SqlNode.Selected(v, label))
-	| v: ValueExpression & alias: TsqlAsClause?    => @(new SqlNode.Selected(v, alias))
+	= qualifier: QualifiedName & '.' & '*'        => @(new SqlNode.QualifiedAsterisk(qualifier))
+	| into: Tsql.Variable & AssignOp & v: ValueExpression => @(new SqlNode.DerivedColumn(v, into))
+	| label: TsqlAlias & '=' & v: ValueExpression  => @(new SqlNode.DerivedColumn(v, label))
+	| v: ValueExpression & alias: TsqlAsClause?    => @(new SqlNode.DerivedColumn(v, alias))
 
 AssignOp = '=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "||="
 
@@ -519,10 +519,10 @@ TsqlGroupByClause : @SqlNode[]
 GroupWith = "WITH"i & "CUBE"i | "WITH"i & "ROLLUP"i | "WITH"i & '(' & Identifier & ')'
 
 TsqlGrouping : @SqlNode
-	= "CUBE"i     & g: GroupList => @(new SqlNode.Call("CUBE",   g))
-	| "ROLLUP"i   & g: GroupList => @(new SqlNode.Call("ROLLUP", g))
+	= "CUBE"i     & g: GroupList => @(new SqlNode.RoutineInvocation("CUBE",   g))
+	| "ROLLUP"i   & g: GroupList => @(new SqlNode.RoutineInvocation("ROLLUP", g))
 	| "GROUPING"i & "SETS"i & '(' & first: GroupingSet & (',' & rest: GroupingSet)* & ')'
-		=> @(new SqlNode.Call("GROUPING SETS", SqlNode.Listed(first, rest)))
+		=> @(new SqlNode.RoutineInvocation("GROUPING SETS", SqlNode.Listed(first, rest)))
 	| e: GroupByExpression => @(e)
 
 GroupList : @SqlNode[]
@@ -532,9 +532,9 @@ GroupList : @SqlNode[]
 // A column, or a list of them standing as one — and the empty list, which is the grand
 // total and the one grouping that names nothing.
 GroupByExpression : @SqlNode
-	= '(' & ')' => @(new SqlNode.Row(SqlNode.None))
+	= '(' & ')' => @(new SqlNode.RowValueConstructor(SqlNode.None))
 	| '(' & first: TsqlGroupingColumn & (',' & rest: TsqlGroupingColumn)* & ')'
-		=> @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+		=> @(new SqlNode.RowValueConstructor(SqlNode.Listed(first, rest)))
 	| c: TsqlGroupingColumn => @(c)
 
 TsqlGroupingColumn : @SqlNode
@@ -543,15 +543,15 @@ TsqlGroupingColumn : @SqlNode
 // One entry of a `GROUPING SETS` list: a cube, a rollup, a list of those, or a plain
 // group-by expression. A grouping set inside a grouping set is not here, deliberately.
 GroupingSet : @SqlNode
-	= "CUBE"i   & g: GroupList => @(new SqlNode.Call("CUBE",   g))
-	| "ROLLUP"i & g: GroupList => @(new SqlNode.Call("ROLLUP", g))
+	= "CUBE"i   & g: GroupList => @(new SqlNode.RoutineInvocation("CUBE",   g))
+	| "ROLLUP"i & g: GroupList => @(new SqlNode.RoutineInvocation("ROLLUP", g))
 	| '(' & first: GroupingSetItem & (',' & rest: GroupingSetItem)* & ')'
-		=> @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+		=> @(new SqlNode.RowValueConstructor(SqlNode.Listed(first, rest)))
 	| e: GroupByExpression => @(e)
 
 GroupingSetItem : @SqlNode
-	= "CUBE"i   & g: GroupList => @(new SqlNode.Call("CUBE",   g))
-	| "ROLLUP"i & g: GroupList => @(new SqlNode.Call("ROLLUP", g))
+	= "CUBE"i   & g: GroupList => @(new SqlNode.RoutineInvocation("CUBE",   g))
+	| "ROLLUP"i & g: GroupList => @(new SqlNode.RoutineInvocation("ROLLUP", g))
 	| e: GroupByExpression => @(e)
 
 // ── §7.5's joined table, widened ────────────────────────────────────────────
@@ -569,11 +569,11 @@ GroupingSetItem : @SqlNode
 // is not a join.
 TsqlTableReference : @SqlNode
 	= left: TsqlTableReference & "CROSS"i & "JOIN"i & right: TablePrimary
-		=> @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
+		=> @(new SqlNode.JoinedTable(SqlJoin.Cross, false, left, right))
 	| left: TsqlTableReference & "CROSS"i & "APPLY"i & right: TablePrimary
-		=> @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
+		=> @(new SqlNode.JoinedTable(SqlJoin.Cross, false, left, right))
 	| left: TsqlTableReference & "OUTER"i & "APPLY"i & right: TablePrimary
-		=> @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
+		=> @(new SqlNode.JoinedTable(SqlJoin.Cross, false, left, right))
 	| left: TsqlTableReference & kind: TsqlJoinType? & "JOIN"i & right: TablePrimary
 	  & "ON"i & on: SearchCondition
 		=> @(SqlNode.Joining(kind, null, left, right, on, null))
@@ -592,15 +592,15 @@ JoinHint = "HASH"i | "LOOP"i | "MERGE"i | "REMOTE"i | "REDUCE"i | "REPLICATE"i |
 // them the other way round is a question worth asking of it rather than of us.
 TsqlTablePrimary : @SqlNode
 	= f: RowsetFunction & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
-		=> @(new SqlNode.Source(null, f, alias, columns))
+		=> @(new SqlNode.TableReference(null, f, alias, columns))
 	| name: QualifiedName & SystemTime? & ('(' & Arguments? & ')')?
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & TableSample? & TableHints? & PivotSuffix?
-		=> @(new SqlNode.Source(name, null, alias, columns))
+		=> @(new SqlNode.TableReference(name, null, alias, columns))
 	| t: Tsql.Variable & s: VariableSource => @(s with { Table = t })
 	| derived: TableSubquery & "AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?
 	  & PivotSuffix?
-		=> @(new SqlNode.Source(null, derived, alias, columns))
+		=> @(new SqlNode.TableReference(null, derived, alias, columns))
 	| '(' & j: TableReference & ')' & TableSample? & TableHints?
 		=> @(j)
 	| '{' & "OJ"i & j: TableReference & '}' => @(j)
@@ -608,12 +608,12 @@ TsqlTablePrimary : @SqlNode
 // What a variable may be as a table: the table variable itself, or a table-valued method
 // on a variable of a user-defined type — `FROM @v.f(1) AS t(c)`. Left-factored because
 // both begin with the variable, which is what GRAM4016 asks for.
-VariableSource : @SqlNode.Source
+VariableSource : @SqlNode.TableReference
 	= '.' & Identifier & '(' & Arguments? & ')'
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
-		=> @(new SqlNode.Source("", null, alias, columns))
+		=> @(new SqlNode.TableReference("", null, alias, columns))
 	| ("AS"i? & alias: CorrelationName)? & TableSample? & TableHints?
-		=> @(new SqlNode.Source("", null, alias, null))
+		=> @(new SqlNode.TableReference("", null, alias, null))
 
 // The published syntax makes a pivoted table a source of its own — `table_source PIVOT
 // (…) [AS] alias` — which is left recursion, and §4.3 folds that only where the rule
@@ -743,7 +743,7 @@ TableRepeatable = "REPEATABLE"i & '(' & ValueExpression & ')'
 // rows to skip and take, what shape to return them in, and how to run the whole thing.
 TsqlDirectSelect : @SqlNode
 	= WithClause? & q: QueryExpression & by: OrderByClause? & OffsetFetch? & ForClause? & QueryHints?
-		=> @(by is null ? q : new SqlNode.Ordered(q, by))
+		=> @(by is null ? q : new SqlNode.SelectStatement(q, by))
 
 // §7's `WITH <common_table_expression>`: a query given a name in front of the statement
 // that uses it. Read and dropped — what it names is a query the tree already holds no
@@ -834,7 +834,7 @@ parse Dialect.Statement as ParseStatement
 // only inside `MATCH (…)`, so the two characters can be read as two and the only thing
 // admitted that nobody writes is a space between them.
 GraphMatch : @SqlNode
-	= "MATCH"i & '(' & p: GraphPattern & ')' => @(new SqlNode.Call("MATCH", p))
+	= "MATCH"i & '(' & p: GraphPattern & ')' => @(new SqlNode.RoutineInvocation("MATCH", p))
 
 GraphPattern : @SqlNode[]
 	= first: GraphAnd & (',' & rest: GraphAnd)* => @(SqlNode.Listed(first, rest))
@@ -861,8 +861,8 @@ GraphStep : @SqlNode
 // A node is a table's name or the alias it was given in the `FROM` clause, and
 // `LAST_NODE` names the far end of a path rather than a table.
 GraphNode : @SqlNode
-	= "LAST_NODE"i & '(' & name: QualifiedName & ')' => @(new SqlNode.Column(name))
-	| name: QualifiedName                            => @(new SqlNode.Column(name))
+	= "LAST_NODE"i & '(' & name: QualifiedName & ')' => @(new SqlNode.ColumnReference(name))
+	| name: QualifiedName                            => @(new SqlNode.ColumnReference(name))
 
 // An edge points one way or the other and must say which.
 GraphEdge
@@ -910,20 +910,20 @@ RowsetArguments : @SqlNode[]
 	= first: RowsetArgument & (',' & rest: RowsetArgument)* => @(SqlNode.Listed(first, rest))
 
 RowsetArgument : @SqlNode
-	= '*'                                        => @(new SqlNode.Star(null))
+	= '*'                                        => @(new SqlNode.QualifiedAsterisk(null))
 	| n: RowsetOrder                             => @(n)
 	| "BULK"i & v: RowsetValue                   => @(v)
-	| name: Identifier & '=' & v: RowsetValue    => @(new SqlNode.Selected(v, name))
+	| name: Identifier & '=' & v: RowsetValue    => @(new SqlNode.DerivedColumn(v, name))
 	| word: Identifier & v: RowsetValue          => @(v)
 	| '(' & first: RowsetArgument & (',' & rest: RowsetArgument)* & ')'
-		=> @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+		=> @(new SqlNode.RowValueConstructor(SqlNode.Listed(first, rest)))
 	| v: RowsetValue                             => @(v)
 
 // `ORDER ( c1 ASC, c2 DESC ) [ UNIQUE ]` says a bulk source is already sorted.
 RowsetOrder : @SqlNode
 	= "ORDER"i & '(' & first: SortSpecification & (',' & rest: SortSpecification)* & ')'
 	  & "UNIQUE"i?
-		=> @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+		=> @(new SqlNode.RowValueConstructor(SqlNode.Listed(first, rest)))
 
 // A provider's arguments may be joined by semicolons rather than commas — a connection
 // string written as three pieces, which is `OPENROWSET`'s oldest spelling.
@@ -935,7 +935,7 @@ RowsetValue : @SqlNode
 
 RowsetFunction : @SqlNode
 	= name: RowsetName & '(' & args: RowsetArguments? & ')' & RowsetSchema?
-		=> @(new SqlNode.Call(name, args ?? SqlNode.None))
+		=> @(new SqlNode.RoutineInvocation(name, args ?? SqlNode.None))
 
 RowsetName
 	= "OPENROWSET"i | "OPENQUERY"i | "OPENDATASOURCE"i | "OPENXML"i | "OPENJSON"i
@@ -973,18 +973,18 @@ StatementBody : @SqlNode
 // a target no correlation and no sample, and `UPDATE t AS x SET …` is not T-SQL.
 DmlTarget : @SqlNode
 	= f: RowsetFunction                 => @(f)
-	| t: Tsql.Variable & TableHints?    => @(new SqlNode.Column(t))
-	| name: QualifiedName & TableHints? => @(new SqlNode.Column(name))
+	| t: Tsql.Variable & TableHints?    => @(new SqlNode.ColumnReference(t))
+	| name: QualifiedName & TableHints? => @(new SqlNode.ColumnReference(name))
 
 // ── §INSERT ─────────────────────────────────────────────────────────────────
 TsqlInsert : @SqlNode
 	= "INSERT"i & Top? & "INTO"i? & target: DmlTarget
 	  & ('(' & columns: ColumnList & ')')? & OutputClause?
 	  & rows: InsertRows
-		=> @(new SqlNode.Insert(target, columns, rows))
+		=> @(new SqlNode.InsertStatement(target, columns, rows))
 
 InsertRows : @SqlNode
-	= "DEFAULT"i & "VALUES"i    => @(new SqlNode.Row(SqlNode.None))
+	= "DEFAULT"i & "VALUES"i    => @(new SqlNode.RowValueConstructor(SqlNode.None))
 	| v: TableValueConstructor  => @(v)
 	| e: ExecuteStatement       => @(e)
 	| q: QueryExpression        => @(q)
@@ -994,7 +994,7 @@ TsqlUpdate : @SqlNode
 	= "UPDATE"i & Top? & target: DmlTarget
 	  & "SET"i & sets: Assignments & OutputClause?
 	  & from: FromClause? & where: DmlWhere? & QueryHints?
-		=> @(new SqlNode.Update(target, sets, from ?? SqlNode.None, where))
+		=> @(new SqlNode.UpdateStatement(target, sets, from ?? SqlNode.None, where))
 
 Assignments : @SqlNode[]
 	= first: Assignment & (',' & rest: Assignment)* => @(SqlNode.Listed(first, rest))
@@ -1004,8 +1004,8 @@ Assignments : @SqlNode[]
 // method called on one. `.WRITE (…)` needs no rule of its own — a qualified name has
 // already eaten the dot, so what is left is a call.
 Assignment : @SqlNode
-	= to: Tsql.Variable   & v: AssignTail       => @(new SqlNode.Assign(to, null, v))
-	| to: QualifiedName   & v: ColumnAssignTail => @(new SqlNode.Assign(to, null, v))
+	= to: Tsql.Variable   & v: AssignTail       => @(new SqlNode.SetClause(to, null, v))
+	| to: QualifiedName   & v: ColumnAssignTail => @(new SqlNode.SetClause(to, null, v))
 
 // `DEFAULT` is assigned and not compounded: the engine answers `DEFAULT is not allowed
 // on the right hand side of "-="`, which is a rule about the operator rather than about
@@ -1030,14 +1030,14 @@ SetValue : @SqlNode
 
 // A `WHERE` that may name a cursor's current row instead of a condition.
 DmlWhere : @SqlNode
-	= "WHERE"i & "CURRENT"i & "OF"i & "GLOBAL"i? & name: QualifiedName => @(new SqlNode.Column(name))
+	= "WHERE"i & "CURRENT"i & "OF"i & "GLOBAL"i? & name: QualifiedName => @(new SqlNode.ColumnReference(name))
 	| "WHERE"i & c: SearchCondition => @(c)
 
 // ── §DELETE ─────────────────────────────────────────────────────────────────
 TsqlDelete : @SqlNode
 	= "DELETE"i & Top? & "FROM"i? & target: DmlTarget & OutputClause?
 	  & from: FromClause? & where: DmlWhere? & QueryHints?
-		=> @(new SqlNode.Delete(target, from ?? SqlNode.None, where))
+		=> @(new SqlNode.DeleteStatement(target, from ?? SqlNode.None, where))
 
 // ── §MERGE ──────────────────────────────────────────────────────────────────
 //
@@ -1048,30 +1048,30 @@ TsqlMerge : @SqlNode
 	  & "USING"i & source: TableReference
 	  & "ON"i & on: SearchCondition
 	  & whens: MergeArm+ & OutputClause? & QueryHints?
-		=> @(new SqlNode.Merge(target, source, on, whens))
+		=> @(new SqlNode.MergeStatement(target, source, on, whens))
 
 MergeArm : @SqlNode
 	= "WHEN"i & "MATCHED"i & ("AND"i & c: SearchCondition)? & "THEN"i & a: MergeChange
-		=> @(new SqlNode.MergeWhen(true, null, c, a))
+		=> @(new SqlNode.MergeWhenClause(true, null, c, a))
 	| "WHEN"i & "NOT"i & "MATCHED"i & "BY"i & "SOURCE"i & ("AND"i & c: SearchCondition)?
 	  & "THEN"i & a: MergeChange
-		=> @(new SqlNode.MergeWhen(false, "SOURCE", c, a))
+		=> @(new SqlNode.MergeWhenClause(false, "SOURCE", c, a))
 	| "WHEN"i & "NOT"i & "MATCHED"i & ("BY"i & "TARGET"i)? & ("AND"i & c: SearchCondition)?
 	  & "THEN"i & a: MergeInsert
-		=> @(new SqlNode.MergeWhen(false, "TARGET", c, a))
+		=> @(new SqlNode.MergeWhenClause(false, "TARGET", c, a))
 
 MergeChange : @SqlNode
 	= "UPDATE"i & "SET"i & sets: Assignments
-		=> @(new SqlNode.Update(null, sets, SqlNode.None, null))
+		=> @(new SqlNode.UpdateStatement(null, sets, SqlNode.None, null))
 	| "DELETE"i
-		=> @(new SqlNode.Delete(null, SqlNode.None, null))
+		=> @(new SqlNode.DeleteStatement(null, SqlNode.None, null))
 
 MergeInsert : @SqlNode
 	= "INSERT"i & ('(' & columns: ColumnList & ')')? & rows: MergeInsertRows
-		=> @(new SqlNode.Insert(null, columns, rows))
+		=> @(new SqlNode.InsertStatement(null, columns, rows))
 
 MergeInsertRows : @SqlNode
-	= "DEFAULT"i & "VALUES"i   => @(new SqlNode.Row(SqlNode.None))
+	= "DEFAULT"i & "VALUES"i   => @(new SqlNode.RowValueConstructor(SqlNode.None))
 	| v: TableValueConstructor => @(v)
 
 // ── The output clause, shared by all four ───────────────────────────────────
@@ -1137,32 +1137,32 @@ StatementList : @SqlNode[] = s: TsqlStatement+ => @(s)
 TryCatchStatement : @SqlNode
 	= "BEGIN"i & "TRY"i & tried: StatementList & "END"i & "TRY"i
 	  & "BEGIN"i & "CATCH"i & caught: StatementList & "END"i & "CATCH"i
-		=> @(new SqlNode.TryCatch(tried, caught))
+		=> @(new SqlNode.TryCatchStatement(tried, caught))
 
 StatementBlock : @SqlNode
 	= "BEGIN"i & "ATOMIC"i & "WITH"i & '(' & OptionList & ')' & body: StatementList & "END"i
-		=> @(new SqlNode.Block(body))
-	| "BEGIN"i & body: StatementList & "END"i => @(new SqlNode.Block(body))
+		=> @(new SqlNode.CompoundStatement(body))
+	| "BEGIN"i & body: StatementList & "END"i => @(new SqlNode.CompoundStatement(body))
 
 ConditionalStatement : @SqlNode
 	= "IF"i & c: SearchCondition & then: TsqlStatement & ("ELSE"i & other: TsqlStatement)?
-		=> @(new SqlNode.If(c, then, other))
+		=> @(new SqlNode.IfStatement(c, then, other))
 
 LoopStatement : @SqlNode
-	= "WHILE"i & c: SearchCondition & body: TsqlStatement => @(new SqlNode.While(c, body))
+	= "WHILE"i & c: SearchCondition & body: TsqlStatement => @(new SqlNode.WhileStatement(c, body))
 
 // ── Transactions ────────────────────────────────────────────────────────────
 TransactionStatement : @SqlNode
 	= "BEGIN"i & "DISTRIBUTED"i & TranWord & name: TranName? & TranMark?
-		=> @(new SqlNode.Transaction("BEGIN DISTRIBUTED", name))
+		=> @(new SqlNode.TransactionStatement("BEGIN DISTRIBUTED", name))
 	| "BEGIN"i & TranWord & name: TranName? & TranMark?
-		=> @(new SqlNode.Transaction("BEGIN", name))
+		=> @(new SqlNode.TransactionStatement("BEGIN", name))
 	| "COMMIT"i & TranWord? & name: TranName? & TranDelayed?
-		=> @(new SqlNode.Transaction("COMMIT", name))
+		=> @(new SqlNode.TransactionStatement("COMMIT", name))
 	| "ROLLBACK"i & TranWord? & name: TranName?
-		=> @(new SqlNode.Transaction("ROLLBACK", name))
+		=> @(new SqlNode.TransactionStatement("ROLLBACK", name))
 	| "SAVE"i & TranWord & name: TranName
-		=> @(new SqlNode.Transaction("SAVE", name))
+		=> @(new SqlNode.TransactionStatement("SAVE", name))
 
 TranWord    = "TRANSACTION"i | "TRAN"i | "WORK"i
 TranMark    = "WITH"i & "MARK"i & ValueExpression?
@@ -1173,17 +1173,17 @@ TranName : @string = t: Identifier => @(t) | t: Tsql.Variable => @(t)
 // ── Declarations ────────────────────────────────────────────────────────────
 DeclareStatement : @SqlNode
 	= "DECLARE"i & name: Identifier & "CURSOR"i & CursorOption* & "FOR"i & CursorBody
-		=> @(new SqlNode.Declare(new SqlNode[] { new SqlNode.Declared(name, "CURSOR", null) }))
+		=> @(new SqlNode.DeclareStatement(new SqlNode[] { new SqlNode.VariableDeclaration(name, "CURSOR", null) }))
 	| "DECLARE"i & first: Declaration & (',' & rest: Declaration)*
-		=> @(new SqlNode.Declare(SqlNode.Listed(first, rest)))
+		=> @(new SqlNode.DeclareStatement(SqlNode.Listed(first, rest)))
 
 Declaration : @SqlNode
 	= name: Tsql.Variable & "AS"i? & d: DeclaredAs => @(d with { Name = name })
 
-DeclaredAs : @SqlNode.Declared
-	= "TABLE"i & '(' & TableBody & ')'                    => @(new SqlNode.Declared("", "TABLE", null))
-	| "CURSOR"i                                           => @(new SqlNode.Declared("", "CURSOR", null))
-	| type: DataType & NullSpec? & ('=' & v: SetValue)?   => @(new SqlNode.Declared("", type, v))
+DeclaredAs : @SqlNode.VariableDeclaration
+	= "TABLE"i & '(' & TableBody & ')'                    => @(new SqlNode.VariableDeclaration("", "TABLE", null))
+	| "CURSOR"i                                           => @(new SqlNode.VariableDeclaration("", "CURSOR", null))
+	| type: DataType & NullSpec? & ('=' & v: SetValue)?   => @(new SqlNode.VariableDeclaration("", type, v))
 
 CursorOption = "LOCAL"i | "GLOBAL"i | "FORWARD_ONLY"i | "SCROLL"i | "STATIC"i | "KEYSET"i
 			 | "DYNAMIC"i | "FAST_FORWARD"i | "READ_ONLY"i | "SCROLL_LOCKS"i | "OPTIMISTIC"i
@@ -1207,13 +1207,13 @@ GeneratedWhen = word
 // options that are reserved words stand in front, since the general form reads a name.
 SetStatement : @SqlNode
 	= "SET"i & "TRANSACTION"i & "ISOLATION"i & "LEVEL"i & level: IsolationLevel
-		=> @(new SqlNode.Setting("TRANSACTION ISOLATION LEVEL", new SqlNode.Column(level)))
+		=> @(new SqlNode.Setting("TRANSACTION ISOLATION LEVEL", new SqlNode.ColumnReference(level)))
 	| "SET"i & "IDENTITY_INSERT"i & name: QualifiedName & OnOff
-		=> @(new SqlNode.Setting("IDENTITY_INSERT", new SqlNode.Column(name)))
+		=> @(new SqlNode.Setting("IDENTITY_INSERT", new SqlNode.ColumnReference(name)))
 	| "SET"i & option: SetReserved & v: ValueExpression
 		=> @(new SqlNode.Setting(option, v))
 	| "SET"i & name: Tsql.Variable & v: AssignTail
-		=> @(new SqlNode.Assign(name, null, v))
+		=> @(new SqlNode.SetClause(name, null, v))
 	| "SET"i & option: SetOptions & OnOff
 		=> @(new SqlNode.Setting(option, null))
 	| "SET"i & option: SetOptions & v: ValueExpression
@@ -1233,11 +1233,11 @@ ExecuteStatement : @SqlNode = ExecWord & e: ExecuteBody => @(e)
 
 ExecuteBody : @SqlNode
 	= "AS"i & Identifier & '=' & ValueExpression & ExecWith?
-		=> @(new SqlNode.Execute(null, "AS", SqlNode.None))
+		=> @(new SqlNode.ExecuteStatement(null, "AS", SqlNode.None))
 	| '(' & args: Arguments & ')' & ExecAt? & ExecWith?
-		=> @(new SqlNode.Execute(null, "(", args))
+		=> @(new SqlNode.ExecuteStatement(null, "(", args))
 	| into: ExecReturn? & name: ExecName & args: ExecArguments? & ExecAt? & ExecWith?
-		=> @(new SqlNode.Execute(into, name, args ?? SqlNode.None))
+		=> @(new SqlNode.ExecuteStatement(into, name, args ?? SqlNode.None))
 
 ExecWord   = "EXECUTE"i | "EXEC"i
 ExecReturn : @string = t: Tsql.Variable & '=' => @(t)
@@ -1256,7 +1256,7 @@ ExecArguments : @SqlNode[]
 // clause it had just eaten. The shape is the same wherever an optional list stands in
 // front of a clause whose first word could belong to the list.
 ExecArgument : @SqlNode
-	= name: Tsql.Variable & '=' & v: ExecValue & "OUTPUT"i? => @(new SqlNode.Selected(v, name))
+	= name: Tsql.Variable & '=' & v: ExecValue & "OUTPUT"i? => @(new SqlNode.DerivedColumn(v, name))
 	| ?!"AT"i & v: ExecValue & "OUTPUT"i?                   => @(v)
 
 ExecValue : @SqlNode
@@ -1268,7 +1268,7 @@ ExecValue : @SqlNode
 BulkInsertStatement : @SqlNode
 	= "BULK"i & "INSERT"i & target: DmlTarget & "FROM"i & file: ValueExpression
 	  & ("WITH"i & '(' & BulkOption & (',' & BulkOption)* & ')')?
-		=> @(new SqlNode.Insert(target, null, file))
+		=> @(new SqlNode.InsertStatement(target, null, file))
 
 BulkOption = "ORDER"i & '(' & SortSpecification & (',' & SortSpecification)* & ')'
 		   | Identifier & BulkOptionTail?
@@ -1280,11 +1280,11 @@ SimpleCommand : @SqlNode
 	= "PRINT"i & v: ValueExpression      => @(SqlNode.Commanded("PRINT", v))
 	| "RETURN"i & v: ValueExpression?    => @(SqlNode.Commanded("RETURN", v))
 	| "THROW"i & args: Arguments?        => @(SqlNode.Commanded("THROW", args))
-	| "GOTO"i & name: Identifier         => @(SqlNode.Commanded("GOTO", new SqlNode.Column(name)))
+	| "GOTO"i & name: Identifier         => @(SqlNode.Commanded("GOTO", new SqlNode.ColumnReference(name)))
 	| "BREAK"i                           => @(SqlNode.Commanded("BREAK", (SqlNode?)null))
 	| "CONTINUE"i                        => @(SqlNode.Commanded("CONTINUE", (SqlNode?)null))
 	| "CHECKPOINT"i & v: ValueExpression? => @(SqlNode.Commanded("CHECKPOINT", v))
-	| "USE"i & name: QualifiedName       => @(SqlNode.Commanded("USE", new SqlNode.Column(name)))
+	| "USE"i & name: QualifiedName       => @(SqlNode.Commanded("USE", new SqlNode.ColumnReference(name)))
 	| "RAISERROR"i & '(' & args: Arguments & ')' & RaiseWith?
 		=> @(SqlNode.Commanded("RAISERROR", args))
 	| "RAISERROR"i & args: Arguments & RaiseWith?
@@ -1310,12 +1310,12 @@ WaitKind  = "DELAY"i | "TIME"i
 CreateTableStatement : @SqlNode
 	= "CREATE"i & "TABLE"i & name: QualifiedName & ('(' & columns: ColumnList & ')')?
 	  & OptionsWith & "AS"i & q: DirectSelect
-		=> @(new SqlNode.CreateTable(name, new SqlNode[] { q }))
+		=> @(new SqlNode.TableDefinition(name, new SqlNode[] { q }))
 	| "CREATE"i & "TABLE"i & name: QualifiedName & TableAs? & '(' & body: TableBody & ')'
 	  & TableAs? & TablePlacement* & OptionsWith?
-		=> @(new SqlNode.CreateTable(name, body))
+		=> @(new SqlNode.TableDefinition(name, body))
 	| "CREATE"i & "TABLE"i & name: QualifiedName & TableAs & TablePlacement* & OptionsWith?
-		=> @(new SqlNode.CreateTable(name, SqlNode.None))
+		=> @(new SqlNode.TableDefinition(name, SqlNode.None))
 
 TableAs = "AS"i & Identifier
 
@@ -1379,9 +1379,9 @@ OptionTail = '=' & OptionValue & OnPartitions?
 // words of the language, so they arrive as themselves.
 OptionValue : @SqlNode
 	= "NULL"i => @(SqlNode.NullValue)
-	| "OFF"i & ('(' & OptionList & ')')? => @(new SqlNode.Column("OFF"))
-	| "ON"i  & ('(' & OptionList & ')')? => @(new SqlNode.Column("ON"))
-	| name: Identifier & '(' & OptionList & ')' => @(new SqlNode.Column(name))
+	| "OFF"i & ('(' & OptionList & ')')? => @(new SqlNode.ColumnReference("OFF"))
+	| "ON"i  & ('(' & OptionList & ')')? => @(new SqlNode.ColumnReference("ON"))
+	| name: Identifier & '(' & OptionList & ')' => @(new SqlNode.ColumnReference(name))
 	| '(' & OptionList & ')' => @(SqlNode.NullValue)
 	| '(' & Sql92.Lexical.UnsignedNumericLiteral+ & ')' => @(SqlNode.NullValue)
 	| '(' & Arguments & ')'  => @(SqlNode.NullValue)
@@ -1390,13 +1390,13 @@ OptionValue : @SqlNode
 	// `AUTHENTICATION = WINDOWS NTLM CERTIFICATE c`, `ENCRYPTION = SUPPORTED ALGORITHM AES
 	// RC4`. In front of the expression, since a word is one and the run is longer; it stops
 	// where an option's name does, which is what leaves `PAGE ON PARTITIONS (…)` alone.
-	| w: OptionWords => @(new SqlNode.Column(w))
+	| w: OptionWords => @(new SqlNode.ColumnReference(w))
 
 	| v: ValueExpression & OptionUnit? => @(v)
 
 	// And one word behind the expression, for the words a value may be that a name may
 	// not: `MAXDOP = PRIMARY`, `QUERY_CAPTURE_MODE = ALL`.
-	| w: word => @(new SqlNode.Column(w))
+	| w: word => @(new SqlNode.ColumnReference(w))
 
 // A catalogue, and here the catalogue is the syntax: a unit is one of the words the
 // language has for a size or a span, and nothing else may stand after a value. It was any
@@ -1431,11 +1431,11 @@ TableElement : @SqlNode
 ColumnDefinition : @SqlNode
 	= name: Identifier & f: ColumnBody => @(f with { Name = name })
 
-ColumnBody : @SqlNode.Field
+ColumnBody : @SqlNode.ColumnDefinition
 	= "AS"i & v: ValueExpression & ColumnTail*
-		=> @(new SqlNode.Field("", null, v, SqlNode.None))
+		=> @(new SqlNode.ColumnDefinition("", null, v, SqlNode.None))
 	| type: DataType & ColumnTail*
-		=> @(new SqlNode.Field("", type, null, SqlNode.None))
+		=> @(new SqlNode.ColumnDefinition("", type, null, SqlNode.None))
 
 // What may be said about a column after its type. Read and dropped, all of it: none of it
 // says what the column is, and the tree holds the name, the type and the expression.
@@ -1465,7 +1465,7 @@ NamedConstraint = NullSpec | ConstraintBody
 NullSpec = "NOT"i & "NULL"i | "NULL"i
 
 // ── Constraints ─────────────────────────────────────────────────────────────
-ConstraintBody : @SqlNode.Constraint
+ConstraintBody : @SqlNode.ConstraintDefinition
 	= "PRIMARY"i & "KEY"i & IndexOrder? & "HASH"i? & columns: IndexColumns?
 	  & IndexWith? & IndexOn? & Enforced?
 		=> @(SqlNode.Constrained("PRIMARY KEY", columns, null))
@@ -1521,7 +1521,7 @@ TableIndex : @SqlNode
 	  & ("INCLUDE"i & '(' & ColumnList & ')')?
 	  & ("WHERE"i & SearchCondition)?
 	  & IndexWith? & IndexOn? & ("FILESTREAM_ON"i & PlacementTarget)?
-		=> @(new SqlNode.Constraint(name, "INDEX", columns, null))
+		=> @(new SqlNode.ConstraintDefinition(name, "INDEX", columns, null))
 
 // ── ALTER TABLE ─────────────────────────────────────────────────────────────
 //
@@ -1532,7 +1532,7 @@ AlterTableStatement : @SqlNode
 	= "ALTER"i & "TABLE"i & name: QualifiedName & a: AlterTableAction
 		=> @(a with { Name = name })
 
-AlterTableAction : @SqlNode.AlterTable
+AlterTableAction : @SqlNode.AlterTableStatement
 	= "ADD"i & c: ConstraintBody & "FOR"i & Identifier
 		=> @(SqlNode.Altered("ADD", new SqlNode[] { c }))
 	| "ADD"i & "CONSTRAINT"i & name: Identifier & c: ConstraintBody & "FOR"i & Identifier
@@ -1613,7 +1613,7 @@ ProcedureStatement : @SqlNode
 	= ProcWord & name: QualifiedName & (';' & Sql92.Lexical.Digits)?
 	  & parameters: RoutineParameters? & RoutineOptions? & ("FOR"i & "REPLICATION"i)?
 	  & "AS"i & body: RoutineTail
-		=> @(new SqlNode.CreateProcedure(name, parameters ?? SqlNode.None, body))
+		=> @(new SqlNode.CreateProcedureStatement(name, parameters ?? SqlNode.None, body))
 
 ProcWord = "PROCEDURE"i | "PROC"i
 
@@ -1629,7 +1629,7 @@ RoutineParameters : @SqlNode[]
 RoutineParameter : @SqlNode
 	= name: Tsql.Variable & "AS"i? & type: DataType & "VARYING"i? & NullSpec?
 	  & ('=' & v: SetValue)? & ParameterWay*
-		=> @(new SqlNode.Parameter(name, type, v))
+		=> @(new SqlNode.ParameterDeclaration(name, type, v))
 
 ParameterWay = "OUTPUT"i | "OUT"i | "READONLY"i
 
@@ -1663,17 +1663,17 @@ FunctionStatement : @SqlNode
 	  & "RETURNS"i & r: FunctionReturns
 		=> @(r with { Name = name, Parameters = parameters ?? SqlNode.None })
 
-FunctionReturns : @SqlNode.CreateFunction
+FunctionReturns : @SqlNode.CreateFunctionStatement
 	= "TABLE"i & '(' & TableBody & ')' & ("ORDER"i & IndexColumns)? & RoutineOptions?
 	  & "AS"i & "EXTERNAL"i & "NAME"i & QualifiedName
-		=> @(new SqlNode.CreateFunction("", SqlNode.None, "TABLE", SqlNode.None))
+		=> @(new SqlNode.CreateFunctionStatement("", SqlNode.None, "TABLE", SqlNode.None))
 	| "TABLE"i & RoutineOptions? & "AS"i? & "RETURN"i & body: InlineReturn
-		=> @(new SqlNode.CreateFunction("", SqlNode.None, "TABLE", body))
+		=> @(new SqlNode.CreateFunctionStatement("", SqlNode.None, "TABLE", body))
 	| name: Tsql.Variable & "TABLE"i & '(' & TableBody & ')' & RoutineOptions? & "AS"i?
 	  & body: StatementList
-		=> @(new SqlNode.CreateFunction("", SqlNode.None, "TABLE", body))
+		=> @(new SqlNode.CreateFunctionStatement("", SqlNode.None, "TABLE", body))
 	| type: DataType & RoutineOptions? & "AS"i? & body: RoutineTail
-		=> @(new SqlNode.CreateFunction("", SqlNode.None, type, body))
+		=> @(new SqlNode.CreateFunctionStatement("", SqlNode.None, type, body))
 
 InlineReturn : @SqlNode[]
 	= '(' & q: QueryExpression & OrderByClause? & ')' => @(new SqlNode[] { q })
@@ -1685,7 +1685,7 @@ TriggerStatement : @SqlNode
 	  & TriggerWhen & events: TriggerEvents
 	  & ("WITH"i & "APPEND"i)? & ("NOT"i & "FOR"i & "REPLICATION"i)?
 	  & "AS"i & body: RoutineTail
-		=> @(new SqlNode.CreateTrigger(name, on, events, body))
+		=> @(new SqlNode.CreateTriggerStatement(name, on, events, body))
 
 TriggerOn : @string
 	= "ALL"i & "SERVER"i => @("ALL SERVER")
@@ -1709,10 +1709,10 @@ TriggerEvent : @string
 ViewStatement : @SqlNode
 	= "MATERIALIZED"i & "VIEW"i & name: QualifiedName & OptionsWith?
 	  & "AS"i & q: DirectSelect
-		=> @(new SqlNode.CreateView(name, null, q))
+		=> @(new SqlNode.ViewDefinition(name, null, q))
 	| "VIEW"i & name: QualifiedName & ('(' & columns: ColumnList & ')')? & RoutineOptions?
 	  & "AS"i & q: DirectSelect & ("WITH"i & "CHECK"i & "OPTION"i)?
-		=> @(new SqlNode.CreateView(name, columns, q))
+		=> @(new SqlNode.ViewDefinition(name, columns, q))
 
 // ── Indexes ─────────────────────────────────────────────────────────────────
 //
@@ -1723,31 +1723,31 @@ CreateIndexStatement : @SqlNode
 	= "CREATE"i & "SELECTIVE"i & "XML"i & "INDEX"i & name: Identifier?
 	  & "ON"i & on: QualifiedName & '(' & ColumnList & ')'
 	  & ("WITH"i & XmlNamespaces)? & paths: SelectivePaths & IndexWith?
-		=> @(new SqlNode.CreateIndex(name ?? "", on, null))
+		=> @(new SqlNode.CreateIndexStatement(name ?? "", on, null))
 	| "CREATE"i & "PRIMARY"i? & "XML"i & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
 	  & XmlIndexUsing? & IndexWith?
-		=> @(new SqlNode.CreateIndex(name, on, columns))
+		=> @(new SqlNode.CreateIndexStatement(name, on, columns))
 	| "CREATE"i & "UNIQUE"i? & IndexOrder? & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
 	  & ("INCLUDE"i & '(' & ColumnList & ')')?
 	  & ("WHERE"i & SearchCondition)?
 	  & IndexWith? & IndexOn? & ("FILESTREAM_ON"i & PlacementTarget)?
-		=> @(new SqlNode.CreateIndex(name, on, columns))
+		=> @(new SqlNode.CreateIndexStatement(name, on, columns))
 	| "CREATE"i & IndexOrder? & "COLUMNSTORE"i & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns?
 	  & ("ORDER"i & '(' & ColumnList & ')')?
 	  & ("WHERE"i & SearchCondition)?
 	  & IndexWith? & IndexOn?
-		=> @(new SqlNode.CreateIndex(name, on, columns))
+		=> @(new SqlNode.CreateIndexStatement(name, on, columns))
 
 // `ALTER INDEX` names one index or all of them, and then says what to do.
 AlterIndexStatement : @SqlNode
 	= "ALTER"i & "INDEX"i & name: IndexTarget & "ON"i & on: QualifiedName
 	  & ("WITH"i & XmlNamespaces)? & SelectivePaths & IndexWith?
-		=> @(new SqlNode.AlterIndex(name, on, "FOR"))
+		=> @(new SqlNode.AlterIndexStatement(name, on, "FOR"))
 	| "ALTER"i & "INDEX"i & name: IndexTarget & "ON"i & on: QualifiedName & a: AlterIndexAction
-		=> @(new SqlNode.AlterIndex(name, on, a))
+		=> @(new SqlNode.AlterIndexStatement(name, on, a))
 
 IndexTarget : @string = "ALL"i => @("ALL") | t: Identifier => @(t)
 
@@ -1800,30 +1800,30 @@ AuditStatement : @SqlNode
 	= CreateOrAlter & scope: ServerOrDatabase & "AUDIT"i & "SPECIFICATION"i & name: Identifier
 	  & ("FOR"i & "SERVER"i & "AUDIT"i & QualifiedName)?
 	  & AuditAction* & OptionsWith?
-		=> @(new SqlNode.Command("AUDIT SPECIFICATION", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("AUDIT SPECIFICATION", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 
 	| "CREATE"i & "SERVER"i & "AUDIT"i & name: Identifier
 	  & "TO"i & AuditTarget & OptionsWith? & AuditWhere?
-		=> @(new SqlNode.Command("SERVER AUDIT", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("SERVER AUDIT", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 	| "ALTER"i & "SERVER"i & "AUDIT"i & name: Identifier & AlterAuditBody
-		=> @(new SqlNode.Command("SERVER AUDIT", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("SERVER AUDIT", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 
 	// An extended-event session: events, targets, and what to spend on them.
 	| CreateOrAlter & "EVENT"i & "SESSION"i & name: Identifier & "ON"i & ServerOrDatabase
 	  & EventPieces? & OptionsWith? & ("STATE"i & '=' & word)?
-		=> @(new SqlNode.Command("EVENT SESSION", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("EVENT SESSION", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 
 	| "CREATE"i & "EVENT"i & "NOTIFICATION"i & name: Identifier & "ON"i & NotificationScope
 	  & ("WITH"i & "FAN_IN"i)?
 	  & "FOR"i & PermissionName & (',' & PermissionName)*
 	  & "TO"i & "SERVICE"i & ValueExpression & (',' & ValueExpression)*
-		=> @(new SqlNode.Command("EVENT NOTIFICATION", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("EVENT NOTIFICATION", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 
 	// An endpoint says how it is reached and what it speaks, and each is a bracket of
 	// arguments belonging to that protocol rather than to this language.
 	| CreateOrAlter & "ENDPOINT"i & name: Identifier & ("AUTHORIZATION"i & QualifiedName)?
 	  & EndpointState? & EndpointAs? & EndpointFor?
-		=> @(new SqlNode.Command("ENDPOINT", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("ENDPOINT", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 
 ServerOrDatabase : @string = "SERVER"i => @("SERVER") | "DATABASE"i => @("DATABASE")
 
@@ -1895,35 +1895,35 @@ EndpointFor = "FOR"i & word & '(' & OptionList? & ')'
 // What is new is four clauses that are not a name and a value.
 ExternalStatement : @SqlNode
 	= CreateOrAlter & "EXTERNAL"i & "DATA"i & "SOURCE"i & name: Identifier & DataSourceBody
-		=> @(new SqlNode.Command("EXTERNAL DATA SOURCE", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("EXTERNAL DATA SOURCE", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 	| "CREATE"i & "EXTERNAL"i & "FILE"i & "FORMAT"i & name: Identifier & OptionsWith
-		=> @(new SqlNode.Command("EXTERNAL FILE FORMAT", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("EXTERNAL FILE FORMAT", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 
 	// A table of somebody else's rows: the columns as this grammar reads any columns, and
 	// then where they are. Synapse writes the query instead and lets it say the columns.
 	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & '(' & body: TableBody & ')'
 	  & OptionsWith
-		=> @(new SqlNode.CreateTable(name, body))
+		=> @(new SqlNode.TableDefinition(name, body))
 	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & OptionsWith
 	  & "AS"i & q: DirectSelect
-		=> @(new SqlNode.CreateTable(name, new SqlNode[] { q }))
+		=> @(new SqlNode.TableDefinition(name, new SqlNode[] { q }))
 
 	| "CREATE"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
 	  & ("AUTHORIZATION"i & QualifiedName)?
 	  & "FROM"i & LibraryFile & (',' & LibraryFile)* & OptionsWith?
-		=> @(new SqlNode.Command("EXTERNAL LIBRARY", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("EXTERNAL LIBRARY", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 	| "ALTER"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
 	  & ("AUTHORIZATION"i & QualifiedName)?
 	  & LibraryChange & LibraryFile & (',' & LibraryFile)* & OptionsWith?
-		=> @(new SqlNode.Command("EXTERNAL LIBRARY", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("EXTERNAL LIBRARY", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 
 	| CreateOrAlter & "EXTERNAL"i & "RESOURCE"i & "POOL"i & pool: PoolName & OptionsWith?
-		=> @(new SqlNode.Command("EXTERNAL RESOURCE POOL", new SqlNode[] { new SqlNode.Column(pool) }))
+		=> @(new SqlNode.Command("EXTERNAL RESOURCE POOL", new SqlNode[] { new SqlNode.ColumnReference(pool) }))
 	| CreateOrAlter & "RESOURCE"i & "POOL"i & pool: PoolName & OptionsWith?
-		=> @(new SqlNode.Command("RESOURCE POOL", new SqlNode[] { new SqlNode.Column(pool) }))
+		=> @(new SqlNode.Command("RESOURCE POOL", new SqlNode[] { new SqlNode.ColumnReference(pool) }))
 	| CreateOrAlter & "WORKLOAD"i & "GROUP"i & pool: PoolName & OptionsWith?
 	  & ("USING"i & WorkloadPool & (',' & WorkloadPool)*)?
-		=> @(new SqlNode.Command("WORKLOAD GROUP", new SqlNode[] { new SqlNode.Column(pool) }))
+		=> @(new SqlNode.Command("WORKLOAD GROUP", new SqlNode[] { new SqlNode.ColumnReference(pool) }))
 
 	// Statistics: a name, what they are on, and how they are gathered. `SAMPLE 50 PERCENT`
 	// is three words where an option is usually a name and a value, and the option list
@@ -1963,40 +1963,40 @@ StatisticsTarget = '(' & IndexName & (',' & IndexName)* & ')'
 // runs on like that. So the password is a rule and the rest of the list is the ordinary one.
 PrincipalStatement : @SqlNode
 	= "CREATE"i & "LOGIN"i & name: Identifier & body: LoginBody
-		=> @(new SqlNode.Command("CREATE LOGIN", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("CREATE LOGIN", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 	| "ALTER"i & "LOGIN"i & name: Identifier & AlterLoginBody
-		=> @(new SqlNode.Command("ALTER LOGIN", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("ALTER LOGIN", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 
 	| "CREATE"i & "USER"i & name: Identifier & UserSource? & UserOptions?
-		=> @(new SqlNode.Command("CREATE USER", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("CREATE USER", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 	| "ALTER"i & "USER"i & name: Identifier & AlterUserBody
-		=> @(new SqlNode.Command("ALTER USER", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("ALTER USER", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 
 	| "CREATE"i & RoleWord & name: Identifier & ("AUTHORIZATION"i & QualifiedName)?
-		=> @(new SqlNode.Command("CREATE ROLE", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("CREATE ROLE", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 	| "ALTER"i & RoleWord & name: Identifier & RoleAction
-		=> @(new SqlNode.Command("ALTER ROLE", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("ALTER ROLE", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 
 	| "CREATE"i & "APPLICATION"i & "ROLE"i & name: Identifier & "WITH"i & LoginOptions
-		=> @(new SqlNode.Command("CREATE APPLICATION ROLE", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("CREATE APPLICATION ROLE", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 	| "ALTER"i & "APPLICATION"i & "ROLE"i & name: Identifier & "WITH"i & LoginOptions
-		=> @(new SqlNode.Command("ALTER APPLICATION ROLE", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("ALTER APPLICATION ROLE", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 
 	// A schema may be declared by its owner alone — `CREATE SCHEMA AUTHORIZATION dbo` — and
 	// what follows it is not a clause but whole statements, which is the one statement in
 	// T-SQL that holds others without a `BEGIN`.
 	| "CREATE"i & "SCHEMA"i & name: Identifier & "AUTHORIZATION"i & QualifiedName & SchemaElement*
-		=> @(new SqlNode.Command("CREATE SCHEMA", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("CREATE SCHEMA", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 	| "CREATE"i & "SCHEMA"i & "AUTHORIZATION"i & owner: QualifiedName & SchemaElement*
-		=> @(new SqlNode.Command("CREATE SCHEMA", new SqlNode[] { new SqlNode.Column(owner) }))
+		=> @(new SqlNode.Command("CREATE SCHEMA", new SqlNode[] { new SqlNode.ColumnReference(owner) }))
 	| "CREATE"i & "SCHEMA"i & name: Identifier & SchemaElement*
-		=> @(new SqlNode.Command("CREATE SCHEMA", new SqlNode[] { new SqlNode.Column(name) }))
+		=> @(new SqlNode.Command("CREATE SCHEMA", new SqlNode[] { new SqlNode.ColumnReference(name) }))
 	| "ALTER"i & "SCHEMA"i & name: Identifier & "TRANSFER"i & SecurableClass? & what: QualifiedName
-		=> @(new SqlNode.Command("ALTER SCHEMA", new SqlNode[] { new SqlNode.Column(what) }))
+		=> @(new SqlNode.Command("ALTER SCHEMA", new SqlNode[] { new SqlNode.ColumnReference(what) }))
 
 	| "ALTER"i & "AUTHORIZATION"i & "ON"i & SecurableClass? & what: QualifiedName
 	  & "TO"i & AuthorizationTo
-		=> @(new SqlNode.Command("ALTER AUTHORIZATION", new SqlNode[] { new SqlNode.Column(what) }))
+		=> @(new SqlNode.Command("ALTER AUTHORIZATION", new SqlNode[] { new SqlNode.ColumnReference(what) }))
 
 RoleWord = "SERVER"i & "ROLE"i | "ROLE"i
 
@@ -2113,15 +2113,15 @@ DropBody : @SqlNode
 DropNames : @SqlNode[]
 	= first: DropName & (',' & rest: DropName)* => @(SqlNode.Listed(first, rest))
 
-DropName : @SqlNode = t: QualifiedName => @(new SqlNode.Column(t))
+DropName : @SqlNode = t: QualifiedName => @(new SqlNode.ColumnReference(t))
 
 DropIndexName : @SqlNode
-	= name: Identifier & "ON"i & QualifiedName & OptionsWith? => @(new SqlNode.Column(name))
-	| t: QualifiedName                                        => @(new SqlNode.Column(t))
+	= name: Identifier & "ON"i & QualifiedName & OptionsWith? => @(new SqlNode.ColumnReference(name))
+	| t: QualifiedName                                        => @(new SqlNode.ColumnReference(t))
 
 DropCrypto : @SqlNode
-	= "CERTIFICATE"i & name: QualifiedName        => @(new SqlNode.Column(name))
-	| "ASYMMETRIC"i & "KEY"i & name: QualifiedName => @(new SqlNode.Column(name))
+	= "CERTIFICATE"i & name: QualifiedName        => @(new SqlNode.ColumnReference(name))
+	| "ASYMMETRIC"i & "KEY"i & name: QualifiedName => @(new SqlNode.ColumnReference(name))
 
 DropScope = "ALL"i & "SERVER"i | "SERVER"i | "DATABASE"i | "QUEUE"i & QualifiedName
 

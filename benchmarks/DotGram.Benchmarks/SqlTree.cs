@@ -38,7 +38,7 @@ static class SqlTree
 				text.Append("()");
 				break;
 
-			case SqlNode.Binary(var op, var left, var right):
+			case SqlNode.BinaryExpression(var op, var left, var right):
 				text.Append('(').Append(op).Append(' ');
 				Write(text, left);
 				text.Append(' ');
@@ -46,13 +46,13 @@ static class SqlTree
 				text.Append(')');
 				break;
 
-			case SqlNode.Unary(var op, var operand):
+			case SqlNode.UnaryExpression(var op, var operand):
 				text.Append('(').Append(op).Append(' ');
 				Write(text, operand);
 				text.Append(')');
 				break;
 
-			case SqlNode.TruthTest(var operand, var negated, var truth):
+			case SqlNode.BooleanTest(var operand, var negated, var truth):
 				text.Append("(is ").Append(negated ? "not " : "").Append(truth).Append(' ');
 				Write(text, operand);
 				text.Append(')');
@@ -74,7 +74,7 @@ static class SqlTree
 				text.Append(')');
 				break;
 
-			case SqlNode.Call(var name, var arguments, var word):
+			case SqlNode.RoutineInvocation(var name, var arguments, var word):
 				text.Append("(call ").Append(name);
 
 				if (word is not null)
@@ -84,7 +84,7 @@ static class SqlTree
 				text.Append(')');
 				break;
 
-			case SqlNode.Case(var operand, var whens, var otherwise):
+			case SqlNode.CaseExpression(var operand, var whens, var otherwise):
 				text.Append("(case");
 
 				if (operand is not null)
@@ -108,7 +108,7 @@ static class SqlTree
 				text.Append(')');
 				break;
 
-			case SqlNode.When(var test, var result):
+			case SqlNode.WhenClause(var test, var result):
 				text.Append("(when ");
 				Write(text, test);
 				text.Append(' ');
@@ -116,7 +116,7 @@ static class SqlTree
 				text.Append(')');
 				break;
 
-			case SqlNode.Column(var name):
+			case SqlNode.ColumnReference(var name):
 				text.Append("(name ").Append(name).Append(')');
 				break;
 
@@ -124,7 +124,7 @@ static class SqlTree
 				text.Append('(').Append(kind).Append(' ').Append(literal).Append(')');
 				break;
 
-			case SqlNode.Row(var values):
+			case SqlNode.RowValueConstructor(var values):
 				text.Append("(row");
 				Each(text, values);
 				text.Append(')');

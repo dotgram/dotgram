@@ -773,7 +773,7 @@ static class HandSqlTokens
 				if (right < 0)
 					return at;
 
-				node = new SqlNode.Binary(binds == 1 ? SqlOperator.Or : SqlOperator.And, node!, operand!);
+				node = new SqlNode.BinaryExpression(binds == 1 ? SqlOperator.Or : SqlOperator.And, node!, operand!);
 				at   = right;
 			}
 		}
@@ -786,7 +786,7 @@ static class HandSqlTokens
 			var at = BooleanTest(i + 1, out node);
 
 			if (at >= 0)
-				node = new SqlNode.Unary(SqlOperator.Not, node!);
+				node = new SqlNode.UnaryExpression(SqlOperator.Not, node!);
 
 			return at;
 		}
@@ -807,7 +807,7 @@ static class HandSqlTokens
 				if (value != True && value != False && value != Unknown)
 					return at;
 
-				node = new SqlNode.TruthTest(
+				node = new SqlNode.BooleanTest(
 					node!, negated,
 					value == True ? SqlTruth.True : value == False ? SqlTruth.False : SqlTruth.Unknown);
 				at   = next + 1;
@@ -1063,7 +1063,7 @@ static class HandSqlTokens
 			if (close < 0)
 				return -1;
 
-			node = new SqlNode.Row(values.ToArray());
+			node = new SqlNode.RowValueConstructor(values.ToArray());
 
 			return close;
 		}
@@ -1102,7 +1102,7 @@ static class HandSqlTokens
 
 					if (values.Count > 1 && close >= 0)
 					{
-						node = new SqlNode.Row(values.ToArray());
+						node = new SqlNode.RowValueConstructor(values.ToArray());
 
 						return close;
 					}
@@ -1163,7 +1163,7 @@ static class HandSqlTokens
 				if (right < 0)
 					return at;
 
-				node = new SqlNode.Binary(
+				node = new SqlNode.BinaryExpression(
 					kind switch
 					{
 						Plus   => SqlOperator.Add,
@@ -1187,7 +1187,7 @@ static class HandSqlTokens
 			var at = Primary(i + 1, out node);
 
 			if (at >= 0)
-				node = new SqlNode.Unary(kind == Minus ? SqlOperator.Negate : SqlOperator.Identity, node!);
+				node = new SqlNode.UnaryExpression(kind == Minus ? SqlOperator.Negate : SqlOperator.Identity, node!);
 
 			return at;
 		}
@@ -1229,7 +1229,7 @@ static class HandSqlTokens
 				if (at < 0)
 					return -1;
 
-				node = new SqlNode.Column(Cut(i, at));
+				node = new SqlNode.ColumnReference(Cut(i, at));
 
 				return at;
 			}
@@ -1279,7 +1279,7 @@ static class HandSqlTokens
 
 			if (kind == CurrentDate)
 			{
-				node = new SqlNode.Call("CURRENT_DATE", None);
+				node = new SqlNode.RoutineInvocation("CURRENT_DATE", None);
 
 				return i + 1;
 			}
@@ -1289,7 +1289,7 @@ static class HandSqlTokens
 				var name      = kind == CurrentTime ? "CURRENT_TIME" : "CURRENT_TIMESTAMP";
 				var precision = Length(i + 1);
 
-				node = new SqlNode.Call(name, None, precision < 0 ? null : Cut(i + 2, i + 3));
+				node = new SqlNode.RoutineInvocation(name, None, precision < 0 ? null : Cut(i + 2, i + 3));
 
 				return precision < 0 ? i + 1 : precision;
 			}
@@ -1331,7 +1331,7 @@ static class HandSqlTokens
 				if (star < 0)
 					return -1;
 
-				node = new SqlNode.Call("COUNT", None, "*");
+				node = new SqlNode.RoutineInvocation("COUNT", None, "*");
 
 				return star;
 			}
@@ -1356,7 +1356,7 @@ static class HandSqlTokens
 			if (close < 0)
 				return -1;
 
-			node = new SqlNode.Call(
+			node = new SqlNode.RoutineInvocation(
 				kind == Avg ? "AVG" : kind == Max ? "MAX" : kind == Min ? "MIN" : kind == Sum ? "SUM" : "COUNT",
 				new[] { argument! },
 				distinctly);
@@ -1390,7 +1390,7 @@ static class HandSqlTokens
 				if (close < 0)
 					return -1;
 
-				node = new SqlNode.Call("POSITION", new[] { needle!, haystack! });
+				node = new SqlNode.RoutineInvocation("POSITION", new[] { needle!, haystack! });
 
 				return close;
 			}
@@ -1415,7 +1415,7 @@ static class HandSqlTokens
 				if (close < 0)
 					return -1;
 
-				node = new SqlNode.Call("EXTRACT", new[] { from! }, Cut(i + 2, field));
+				node = new SqlNode.RoutineInvocation("EXTRACT", new[] { from! }, Cut(i + 2, field));
 
 				return close;
 			}
@@ -1436,7 +1436,7 @@ static class HandSqlTokens
 				if (close < 0)
 					return -1;
 
-				node = new SqlNode.Call(
+				node = new SqlNode.RoutineInvocation(
 					kind == CharLength ? "CHAR_LENGTH"
 						: kind == CharacterLength ? "CHARACTER_LENGTH"
 						: kind == OctetLength ? "OCTET_LENGTH"
@@ -1477,7 +1477,7 @@ static class HandSqlTokens
 				if (close < 0)
 					return -1;
 
-				node = new SqlNode.Call(
+				node = new SqlNode.RoutineInvocation(
 					"SUBSTRING",
 					length is null ? new[] { subject!, from! } : new[] { subject!, from!, length });
 
@@ -1504,7 +1504,7 @@ static class HandSqlTokens
 				if (close < 0)
 					return -1;
 
-				node = new SqlNode.Call(
+				node = new SqlNode.RoutineInvocation(
 					kind == Convert ? "CONVERT" : "TRANSLATE", new[] { argument! },
 					Cut(value + 1, name));
 
@@ -1532,7 +1532,7 @@ static class HandSqlTokens
 				if (closed < 0)
 					return -1;
 
-				node = new SqlNode.Call(
+				node = new SqlNode.RoutineInvocation(
 					"TRIM",
 					one < 0 ? new[] { subject! } : new[] { first!, subject! },
 					trimmed ? Cut(i + 2, i + 3) : null);
@@ -1548,7 +1548,7 @@ static class HandSqlTokens
 			if (end < 0)
 				return -1;
 
-			node = new SqlNode.Call("TRIM", new[] { first! });
+			node = new SqlNode.RoutineInvocation("TRIM", new[] { first! });
 
 			return end;
 		}
@@ -1590,7 +1590,7 @@ static class HandSqlTokens
 				if (close < 0)
 					return -1;
 
-				node = new SqlNode.Call("NULLIF", new[] { first!, second! });
+				node = new SqlNode.RoutineInvocation("NULLIF", new[] { first!, second! });
 
 				return close;
 			}
@@ -1623,7 +1623,7 @@ static class HandSqlTokens
 				if (close < 0)
 					return -1;
 
-				node = new SqlNode.Call("COALESCE", values.ToArray());
+				node = new SqlNode.RoutineInvocation("COALESCE", values.ToArray());
 
 				return close;
 			}
@@ -1638,7 +1638,7 @@ static class HandSqlTokens
 			if (at < 0)
 				return -1;
 
-			var whens = new List<SqlNode.When>();
+			var whens = new List<SqlNode.WhenClause>();
 
 			while (Kind(at) == When)
 			{
@@ -1654,7 +1654,7 @@ static class HandSqlTokens
 				if (result < 0)
 					break;
 
-				whens.Add(new SqlNode.When(asked!, answer!));
+				whens.Add(new SqlNode.WhenClause(asked!, answer!));
 				at = result;
 			}
 
@@ -1676,7 +1676,7 @@ static class HandSqlTokens
 			if (end < 0)
 				return -1;
 
-			node = new SqlNode.Case(operand, whens.ToArray(), otherwise);
+			node = new SqlNode.CaseExpression(operand, whens.ToArray(), otherwise);
 
 			return end;
 		}
@@ -1723,7 +1723,7 @@ static class HandSqlTokens
 			if (close < 0)
 				return -1;
 
-			node = new SqlNode.Call("CAST", new[] { value! }, Cut(operand + 1, type));
+			node = new SqlNode.RoutineInvocation("CAST", new[] { value! }, Cut(operand + 1, type));
 
 			return close;
 		}

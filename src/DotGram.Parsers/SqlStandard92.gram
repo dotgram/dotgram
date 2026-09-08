@@ -65,15 +65,15 @@ BlockComment = "/*" & (?!"*/" & any)* & "*/"
 // so the operand at the head is read once however many operators follow it.
 
 SearchCondition : @SqlNode
-    = left: SearchCondition & "OR"i & right: BooleanTerm => @(new SqlNode.Binary(SqlOperator.Or, left, right))
+    = left: SearchCondition & "OR"i & right: BooleanTerm => @(new SqlNode.BinaryExpression(SqlOperator.Or, left, right))
     | t: BooleanTerm                                     => @t
 
 BooleanTerm : @SqlNode
-    = left: BooleanTerm & "AND"i & right: BooleanFactor => @(new SqlNode.Binary(SqlOperator.And, left, right))
+    = left: BooleanTerm & "AND"i & right: BooleanFactor => @(new SqlNode.BinaryExpression(SqlOperator.And, left, right))
     | f: BooleanFactor                                  => @f
 
 BooleanFactor : @SqlNode
-    = negated: "NOT"i? & t: BooleanTest => @(negated is null ? t : new SqlNode.Unary(SqlOperator.Not, t))
+    = negated: "NOT"i? & t: BooleanTest => @(negated is null ? t : new SqlNode.UnaryExpression(SqlOperator.Not, t))
 
 // §8.13 <boolean test>. `IS TRUE` and its fellows, and the standard allows them to
 // stack — `x IS TRUE IS NOT FALSE` is legal — so this repeats rather than being one
@@ -81,7 +81,7 @@ BooleanFactor : @SqlNode
 // Left recursive rather than a repetition, so that §4.3 folds it and each test is
 // built around what stood to its left. The two read the same language.
 BooleanTest : @SqlNode
-    = operand: BooleanTest & "IS"i & negated: "NOT"i? & truth: TruthValue => @(new SqlNode.TruthTest(operand, negated is not null, SqlNode.TruthOf(truth)))
+    = operand: BooleanTest & "IS"i & negated: "NOT"i? & truth: TruthValue => @(new SqlNode.BooleanTest(operand, negated is not null, SqlNode.TruthOf(truth)))
     | p: BooleanPrimary => @(p)
 
 TruthValue  = "TRUE"i | "FALSE"i | "UNKNOWN"i
@@ -159,7 +159,7 @@ Quantifier = "ALL"i | "SOME"i | "ANY"i
 InPredicateValue : @SqlNode
     = q: TableSubquery => @(q)
     | '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
-      => @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+      => @(new SqlNode.RowValueConstructor(SqlNode.Listed(first, rest)))
 
 // ── §7.1 Row value constructor ─────────────────────────────────────────────
 //
@@ -174,7 +174,7 @@ InPredicateValue : @SqlNode
 
 RowValueConstructor : @SqlNode
     = e: RowValueConstructorElement => @e
-    | '(' & first: RowValueConstructorElement & (',' & rest: RowValueConstructorElement)+ & ')' => @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+    | '(' & first: RowValueConstructorElement & (',' & rest: RowValueConstructorElement)+ & ')' => @(new SqlNode.RowValueConstructor(SqlNode.Listed(first, rest)))
     | q: TableSubquery => @q
 
 RowValueConstructorElement : @SqlNode
@@ -212,11 +212,11 @@ RowValueConstructorElement : @SqlNode
 // rules said by having the sign apply to a primary.
 ValueExpression : @SqlNode
     = left: ValueExpression & op: ('+' | '-' | "||") & right: ValueExpression   << 1
-        => @(new SqlNode.Binary(SqlNode.Additive(op), left, right))
+        => @(new SqlNode.BinaryExpression(SqlNode.Additive(op), left, right))
     | left: ValueExpression & op: ('*' | '/') & right: ValueExpression           << 2
-        => @(new SqlNode.Binary(SqlNode.Multiplicative(op), left, right))
+        => @(new SqlNode.BinaryExpression(SqlNode.Multiplicative(op), left, right))
     | sign: ['+' | '-'] & v: ValueExpression                                     >> 3
-        => @(new SqlNode.Unary(SqlNode.Signed(sign), v))
+        => @(new SqlNode.UnaryExpression(SqlNode.Signed(sign), v))
     // §6.11 <character factor> is a primary and a collate clause, which says how it is
     // compared rather than what it is — read and dropped, as in a GROUP BY. Written on
     // the primary rather than as a strength of its own because that is where the
@@ -241,9 +241,9 @@ ValueExpressionPrimary : @SqlNode
 
 // COUNT(*) is its own shape; the rest take a set quantifier and a value expression.
 SetFunctionSpecification : @SqlNode
-    = "COUNT"i & '(' & '*' & ')' => @(new SqlNode.Call("COUNT", SqlNode.None, "*"))
+    = "COUNT"i & '(' & '*' & ')' => @(new SqlNode.RoutineInvocation("COUNT", SqlNode.None, "*"))
     | name: SetFunctionType & '(' & quantifier: SetQuantifier? & v: ValueExpression & ')'
-        => @(new SqlNode.Call(
+        => @(new SqlNode.RoutineInvocation(
             SqlNode.Aggregate(name), new SqlNode[] { v },
             SqlNode.Distinctly(quantifier)))
 
@@ -253,33 +253,33 @@ SetQuantifier   = "DISTINCT"i | "ALL"i
 // The functions the standard spells out rather than leaving to <routine invocation>.
 // Each is a keyword and a fixed shape, which is why they are here and not a call.
 ValueFunction : @SqlNode
-    = "POSITION"i         & '(' & a: ValueExpression & "IN"i & b: ValueExpression & ')'    => @(new SqlNode.Call("POSITION", new SqlNode[] { a, b }))
-    | "EXTRACT"i          & '(' & field: ExtractField & "FROM"i & v: ValueExpression & ')' => @(new SqlNode.Call("EXTRACT", new SqlNode[] { v }, field))
-    | "CHAR_LENGTH"i      & '(' & v: ValueExpression & ')'                                 => @(new SqlNode.Call("CHAR_LENGTH", new SqlNode[] { v }))
-    | "CHARACTER_LENGTH"i & '(' & v: ValueExpression & ')'                            => @(new SqlNode.Call("CHARACTER_LENGTH", new SqlNode[] { v }))
-    | "OCTET_LENGTH"i     & '(' & v: ValueExpression & ')'                                => @(new SqlNode.Call("OCTET_LENGTH", new SqlNode[] { v }))
-    | "BIT_LENGTH"i       & '(' & v: ValueExpression & ')'                                 => @(new SqlNode.Call("BIT_LENGTH", new SqlNode[] { v }))
+    = "POSITION"i         & '(' & a: ValueExpression & "IN"i & b: ValueExpression & ')'    => @(new SqlNode.RoutineInvocation("POSITION", new SqlNode[] { a, b }))
+    | "EXTRACT"i          & '(' & field: ExtractField & "FROM"i & v: ValueExpression & ')' => @(new SqlNode.RoutineInvocation("EXTRACT", new SqlNode[] { v }, field))
+    | "CHAR_LENGTH"i      & '(' & v: ValueExpression & ')'                                 => @(new SqlNode.RoutineInvocation("CHAR_LENGTH", new SqlNode[] { v }))
+    | "CHARACTER_LENGTH"i & '(' & v: ValueExpression & ')'                            => @(new SqlNode.RoutineInvocation("CHARACTER_LENGTH", new SqlNode[] { v }))
+    | "OCTET_LENGTH"i     & '(' & v: ValueExpression & ')'                                => @(new SqlNode.RoutineInvocation("OCTET_LENGTH", new SqlNode[] { v }))
+    | "BIT_LENGTH"i       & '(' & v: ValueExpression & ')'                                 => @(new SqlNode.RoutineInvocation("BIT_LENGTH", new SqlNode[] { v }))
     | "SUBSTRING"i        & '(' & v: ValueExpression & "FROM"i & from: ValueExpression
                           & ("FOR"i & length: ValueExpression)? & ')'
-        => @(new SqlNode.Call(
+        => @(new SqlNode.RoutineInvocation(
             "SUBSTRING",
             length is null
                 ? new SqlNode[] { v, from }
                 : new SqlNode[] { v, from, length }))
-    | "UPPER"i     & '(' & v: ValueExpression & ')'                                  => @(new SqlNode.Call("UPPER", new SqlNode[] { v }))
-    | "LOWER"i     & '(' & v: ValueExpression & ')'                                  => @(new SqlNode.Call("LOWER", new SqlNode[] { v }))
-    | "CONVERT"i   & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new SqlNode.Call("CONVERT", new SqlNode[] { v }, name))
-    | "TRANSLATE"i & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new SqlNode.Call("TRANSLATE", new SqlNode[] { v }, name))
+    | "UPPER"i     & '(' & v: ValueExpression & ')'                                  => @(new SqlNode.RoutineInvocation("UPPER", new SqlNode[] { v }))
+    | "LOWER"i     & '(' & v: ValueExpression & ')'                                  => @(new SqlNode.RoutineInvocation("LOWER", new SqlNode[] { v }))
+    | "CONVERT"i   & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new SqlNode.RoutineInvocation("CONVERT", new SqlNode[] { v }, name))
+    | "TRANSLATE"i & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new SqlNode.RoutineInvocation("TRANSLATE", new SqlNode[] { v }, name))
     | "TRIM"i      & '(' & how: TrimSpecification? & what: ValueExpression?
                    & "FROM"i & v: ValueExpression & ')'
-        => @(new SqlNode.Call(
+        => @(new SqlNode.RoutineInvocation(
             "TRIM",
             what is null ? new SqlNode[] { v } : new SqlNode[] { what, v },
             how))
-    | "TRIM"i        & '(' & v: ValueExpression & ')'      => @(new SqlNode.Call("TRIM", new SqlNode[] { v }))
-    | "CURRENT_DATE"i                                      => @(new SqlNode.Call("CURRENT_DATE", SqlNode.None))
-    | "CURRENT_TIME"i      & ('(' & digits: Digits & ')')? => @(new SqlNode.Call("CURRENT_TIME", SqlNode.None, digits))
-    | "CURRENT_TIMESTAMP"i & ('(' & digits: Digits & ')')? => @(new SqlNode.Call("CURRENT_TIMESTAMP", SqlNode.None, digits))
+    | "TRIM"i        & '(' & v: ValueExpression & ')'      => @(new SqlNode.RoutineInvocation("TRIM", new SqlNode[] { v }))
+    | "CURRENT_DATE"i                                      => @(new SqlNode.RoutineInvocation("CURRENT_DATE", SqlNode.None))
+    | "CURRENT_TIME"i      & ('(' & digits: Digits & ')')? => @(new SqlNode.RoutineInvocation("CURRENT_TIME", SqlNode.None, digits))
+    | "CURRENT_TIMESTAMP"i & ('(' & digits: Digits & ')')? => @(new SqlNode.RoutineInvocation("CURRENT_TIMESTAMP", SqlNode.None, digits))
 
 ExtractField      = "YEAR"i | "MONTH"i | "DAY"i | "HOUR"i | "MINUTE"i | "SECOND"i | "TIMEZONE_HOUR"i | "TIMEZONE_MINUTE"i
 TrimSpecification = "LEADING"i | "TRAILING"i | "BOTH"i
@@ -290,16 +290,16 @@ TrimSpecification = "LEADING"i | "TRAILING"i | "BOTH"i
 // expression>, not something beside it, and is written here where the standard puts
 // it.
 CaseExpression : @SqlNode
-    = "NULLIF"i   & '(' & a: ValueExpression & ',' & b: ValueExpression & ')'                           => @(new SqlNode.Call("NULLIF", new SqlNode[] { a, b }))
-    | "COALESCE"i & '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'                 => @(new SqlNode.Call("COALESCE", SqlNode.Listed(first, rest)))
-    | "CASE"i & operand: ValueExpression & whens: SimpleWhen+ & ("ELSE"i & otherwise: Result)? & "END"i => @(new SqlNode.Case(operand, whens, otherwise))
-    | "CASE"i & whens: SearchedWhen+ & ("ELSE"i & otherwise: Result)? & "END"i                          => @(new SqlNode.Case(null, whens, otherwise))
+    = "NULLIF"i   & '(' & a: ValueExpression & ',' & b: ValueExpression & ')'                           => @(new SqlNode.RoutineInvocation("NULLIF", new SqlNode[] { a, b }))
+    | "COALESCE"i & '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'                 => @(new SqlNode.RoutineInvocation("COALESCE", SqlNode.Listed(first, rest)))
+    | "CASE"i & operand: ValueExpression & whens: SimpleWhen+ & ("ELSE"i & otherwise: Result)? & "END"i => @(new SqlNode.CaseExpression(operand, whens, otherwise))
+    | "CASE"i & whens: SearchedWhen+ & ("ELSE"i & otherwise: Result)? & "END"i                          => @(new SqlNode.CaseExpression(null, whens, otherwise))
 
-SimpleWhen   : @SqlNode.When = "WHEN"i & test: ValueExpression & "THEN"i & result: Result => @(new SqlNode.When(test, result))
-SearchedWhen : @SqlNode.When = "WHEN"i & test: SearchCondition & "THEN"i & result: Result => @(new SqlNode.When(test, result))
+SimpleWhen   : @SqlNode.WhenClause = "WHEN"i & test: ValueExpression & "THEN"i & result: Result => @(new SqlNode.WhenClause(test, result))
+SearchedWhen : @SqlNode.WhenClause = "WHEN"i & test: SearchCondition & "THEN"i & result: Result => @(new SqlNode.WhenClause(test, result))
 
 Result            : @SqlNode = v: ValueExpression => @(v) | "NULL"i => @(SqlNode.NullValue)
-CastSpecification : @SqlNode = "CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new SqlNode.Call("CAST", new SqlNode[] { v }, type))
+CastSpecification : @SqlNode = "CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new SqlNode.RoutineInvocation("CAST", new SqlNode[] { v }, type))
 CastOperand       : @SqlNode = v: ValueExpression => @(v) | "NULL"i => @(SqlNode.NullValue)
 
 // ── §6.1 Data type, cut to what a CAST target can be ───────────────────────
@@ -354,7 +354,7 @@ GeneralValueSpecification : @SqlNode
 // §6.4. A column reference is a qualified name, and how many parts it has is a
 // question about a catalogue rather than about syntax — so the syntax admits the
 // depth the standard allows and says nothing about what the parts mean.
-ColumnReference : @SqlNode = name: QualifiedName => @(new SqlNode.Column(name))
+ColumnReference : @SqlNode = name: QualifiedName => @(new SqlNode.ColumnReference(name))
 
 QualifiedName = Identifier & (('.' & Identifier))*
 
@@ -384,10 +384,10 @@ Subquery : @SqlNode = '(' & q: QueryExpression & ')' => @(q)
 QueryExpression : @SqlNode
     = left: QueryExpression & op: ("UNION"i | "EXCEPT"i) & all: "ALL"i? & Corresponding?
       & right: QueryExpression                                                     << 1
-        => @(new SqlNode.Binary(SqlNode.Combined(op, all), left, right))
+        => @(new SqlNode.BinaryExpression(SqlNode.Combined(op, all), left, right))
     | left: QueryExpression & op: "INTERSECT"i & all: "ALL"i? & Corresponding?
       & right: QueryExpression                                                     << 2
-        => @(new SqlNode.Binary(SqlNode.Combined(op, all), left, right))
+        => @(new SqlNode.BinaryExpression(SqlNode.Combined(op, all), left, right))
     | q: QueryPrimary => @(q)
 
 Corresponding = "CORRESPONDING"i & ("BY"i & '(' & ColumnList & ')')?
@@ -397,14 +397,14 @@ Corresponding = "CORRESPONDING"i & ("BY"i & '(' & ColumnList & ')')?
 QueryPrimary : @SqlNode
     = q: QuerySpecification            => @(q)
     | v: TableValueConstructor         => @(v)
-    | "TABLE"i & name: QualifiedName   => @(new SqlNode.Source(name, null, null, null))
+    | "TABLE"i & name: QualifiedName   => @(new SqlNode.TableReference(name, null, null, null))
     | '(' & q: QueryExpression & ')'   => @(q)
 
 // §7.2. A row of one value may be written without its parentheses, which is what makes
 // `VALUES 1, 2` two rows of one column rather than one row of two.
 TableValueConstructor : @SqlNode
     = "VALUES"i & first: RowValueConstructor & (',' & rest: RowValueConstructor)*
-        => @(new SqlNode.TableValue(SqlNode.Listed(first, rest)))
+        => @(new SqlNode.TableValueConstructor(SqlNode.Listed(first, rest)))
 
 // §7.9 <query specification> with §7.3 <table expression> folded into it: the clauses
 // are optional rather than alternative, so one record holds them and what tells one
@@ -412,19 +412,19 @@ TableValueConstructor : @SqlNode
 QuerySpecification : @SqlNode
     = "SELECT"i & quantifier: SetQuantifier? & columns: SelectList
       & from: FromClause & where: WhereClause? & group: GroupByClause? & having: HavingClause?
-        => @(new SqlNode.Query(
+        => @(new SqlNode.QuerySpecification(
                  SqlNode.Distinctly(quantifier) == "DISTINCT", columns, from,
                  where, group ?? SqlNode.None, having))
 
 // §7.9 <select list>. A bare `*` is every column of every table in the FROM clause, and
 // `t.*` every column of one — neither is a column reference, so neither is read as one.
 SelectList : @SqlNode[]
-    = '*' => @(new SqlNode[] { new SqlNode.Star(null) })
+    = '*' => @(new SqlNode[] { new SqlNode.QualifiedAsterisk(null) })
     | first: SelectSublist & (',' & rest: SelectSublist)* => @(SqlNode.Listed(first, rest))
 
 SelectSublist : @SqlNode
-    = qualifier: QualifiedName & '.' & '*'   => @(new SqlNode.Star(qualifier))
-    | v: ValueExpression & name: AsClause?   => @(new SqlNode.Selected(v, name))
+    = qualifier: QualifiedName & '.' & '*'   => @(new SqlNode.QualifiedAsterisk(qualifier))
+    | v: ValueExpression & name: AsClause?   => @(new SqlNode.DerivedColumn(v, name))
 
 AsClause = "AS"i? & Identifier
 
@@ -438,9 +438,9 @@ FromClause : @SqlNode[]
 // is read once however many joins follow it.
 TableReference : @SqlNode
     = left: TableReference & "CROSS"i & "JOIN"i & right: TablePrimary
-        => @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
+        => @(new SqlNode.JoinedTable(SqlJoin.Cross, false, left, right))
     | left: TableReference & "UNION"i & "JOIN"i & right: TablePrimary
-        => @(new SqlNode.Join(SqlJoin.Union, false, left, right))
+        => @(new SqlNode.JoinedTable(SqlJoin.Union, false, left, right))
     | left: TableReference & natural: "NATURAL"i? & kind: JoinType? & "JOIN"i & right: TablePrimary
       & ("ON"i & on: SearchCondition
         | "USING"i & '(' & columns: ColumnList & ')')?
@@ -455,9 +455,9 @@ JoinType = ("LEFT"i | "RIGHT"i | "FULL"i) & "OUTER"i? | "INNER"i
 // its column list renames what the source produces, so it belongs to the reference.
 TablePrimary : @SqlNode
     = name: QualifiedName & ("AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?)?
-        => @(new SqlNode.Source(name, null, alias, columns))
+        => @(new SqlNode.TableReference(name, null, alias, columns))
     | derived: TableSubquery & "AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?
-        => @(new SqlNode.Source(null, derived, alias, columns))
+        => @(new SqlNode.TableReference(null, derived, alias, columns))
     | '(' & j: TableReference & ')' => @(j)
 
 // A name as a value of its own, so that a list of them gathers into an array rather
@@ -481,7 +481,7 @@ Collate = "COLLATE"i & QualifiedName
 // §13.1 <order by clause>, and §19's direct select that carries one. Outside §7, and
 // here because a query somebody writes has one and a query expression may not hold it.
 DirectSelect : @SqlNode
-    = q: QueryExpression & by: OrderByClause? => @(by is null ? q : new SqlNode.Ordered(q, by))
+    = q: QueryExpression & by: OrderByClause? => @(by is null ? q : new SqlNode.SelectStatement(q, by))
 
 OrderByClause : @SqlNode[]
     = "ORDER"i & "BY"i & first: SortSpecification & (',' & rest: SortSpecification)*
@@ -489,7 +489,7 @@ OrderByClause : @SqlNode[]
 
 SortSpecification : @SqlNode
     = v: SortKey & Collate? & order: ("ASC"i | "DESC"i)?
-        => @(new SqlNode.Sorted(v, SqlNode.Descending(order)))
+        => @(new SqlNode.SortSpecification(v, SqlNode.Descending(order)))
 
 // §13.1 sorts by a column or by its position in the select list.
 SortKey : @SqlNode

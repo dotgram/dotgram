@@ -564,28 +564,28 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_statement_and_a_query_hold_each_other()
 	{
-		var written = Assert.IsType<SqlNode.Insert>(
+		var written = Assert.IsType<SqlNode.InsertStatement>(
 			TransactSql.TryParseStatement("INSERT INTO t (a) SELECT b FROM u WHERE b > 1").Value);
 
 		Assert.Equal(new[] { "a" }, written.Columns);
 
-		var query = Assert.IsType<SqlNode.Query>(written.Rows);
+		var query = Assert.IsType<SqlNode.QuerySpecification>(written.Rows);
 
-		Assert.Equal("u", Assert.IsType<SqlNode.Source>(Assert.Single(query.From)).Table);
+		Assert.Equal("u", Assert.IsType<SqlNode.TableReference>(Assert.Single(query.From)).Table);
 		Assert.NotNull(query.Where);
 
-		var merged = Assert.IsType<SqlNode.Merge>(
+		var merged = Assert.IsType<SqlNode.MergeStatement>(
 			TransactSql.TryParseStatement(
 				"MERGE t USING u ON t.id = u.id WHEN MATCHED THEN UPDATE SET a = 1").Value);
 
-		var arm = Assert.IsType<SqlNode.MergeWhen>(Assert.Single(merged.Whens));
+		var arm = Assert.IsType<SqlNode.MergeWhenClause>(Assert.Single(merged.Whens));
 
 		Assert.True(arm.OnMatch);
 		Assert.Null(arm.Condition);
 
-		var change = Assert.IsType<SqlNode.Update>(arm.Action);
+		var change = Assert.IsType<SqlNode.UpdateStatement>(arm.Action);
 
-		Assert.Equal("a", Assert.IsType<SqlNode.Assign>(Assert.Single(change.Set)).Target);
+		Assert.Equal("a", Assert.IsType<SqlNode.SetClause>(Assert.Single(change.Set)).Target);
 	}
 
 	/// <summary>And the query entry point still reads only queries.</summary>
@@ -726,26 +726,26 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_created_table_says_its_columns()
 	{
-		var made = Assert.IsType<SqlNode.CreateTable>(
+		var made = Assert.IsType<SqlNode.TableDefinition>(
 			TransactSql.TryParseStatement(
 				"CREATE TABLE dbo.t (a INT NOT NULL, b AS a * 2, CONSTRAINT pk PRIMARY KEY (a))").Value);
 
 		Assert.Equal("dbo.t", made.Name);
 		Assert.Equal(3, made.Elements.Length);
 
-		var first = Assert.IsType<SqlNode.Field>(made.Elements[0]);
+		var first = Assert.IsType<SqlNode.ColumnDefinition>(made.Elements[0]);
 
 		Assert.Equal("a", first.Name);
 		Assert.Equal("INT", first.Type);
 		Assert.Null(first.Computed);
 
-		var second = Assert.IsType<SqlNode.Field>(made.Elements[1]);
+		var second = Assert.IsType<SqlNode.ColumnDefinition>(made.Elements[1]);
 
 		Assert.Equal("b", second.Name);
 		Assert.Null(second.Type);
 		Assert.NotNull(second.Computed);
 
-		var third = Assert.IsType<SqlNode.Constraint>(made.Elements[2]);
+		var third = Assert.IsType<SqlNode.ConstraintDefinition>(made.Elements[2]);
 
 		Assert.Equal("pk", third.Name);
 		Assert.Equal("PRIMARY KEY", third.Kind);
@@ -1273,15 +1273,15 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_call_says_its_name_and_its_arguments()
 	{
-		var query = Assert.IsType<SqlNode.Query>(
+		var query = Assert.IsType<SqlNode.QuerySpecification>(
 			TransactSql.TryParseSelect("SELECT dbo.f(a, 1) FROM t").Value);
 
-		var call = Assert.IsType<SqlNode.Call>(
-			Assert.IsType<SqlNode.Selected>(Assert.Single(query.Columns)).Value);
+		var call = Assert.IsType<SqlNode.RoutineInvocation>(
+			Assert.IsType<SqlNode.DerivedColumn>(Assert.Single(query.Columns)).Value);
 
 		Assert.Equal("dbo.f", call.Name);
 		Assert.Equal(2, call.Arguments.Length);
-		Assert.Equal("a", Assert.IsType<SqlNode.Column>(call.Arguments[0]).Text);
+		Assert.Equal("a", Assert.IsType<SqlNode.ColumnReference>(call.Arguments[0]).Text);
 	}
 
 	/// <summary>A variable is a parameter, which is the rule it was widened into.</summary>
@@ -1290,10 +1290,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT @@ROWCOUNT", "@@ROWCOUNT")]
 	public void A_variable_stands_where_a_parameter_does(string input, string text)
 	{
-		var query = Assert.IsType<SqlNode.Query>(TransactSql.TryParseSelect(input).Value);
+		var query = Assert.IsType<SqlNode.QuerySpecification>(TransactSql.TryParseSelect(input).Value);
 
 		var literal = Assert.IsType<SqlNode.Literal>(
-			Assert.IsType<SqlNode.Selected>(Assert.Single(query.Columns)).Value);
+			Assert.IsType<SqlNode.DerivedColumn>(Assert.Single(query.Columns)).Value);
 
 		Assert.Equal(SqlLiteralKind.Parameter, literal.Kind);
 		Assert.Equal(text, literal.Text);
@@ -1324,8 +1324,8 @@ public sealed class TransactSqlTests
 	}
 
 	/// <summary>What the dialect read, where it was a query.</summary>
-	static SqlNode.Query Query(string input) =>
-		Assert.IsType<SqlNode.Query>(TransactSql.TryParseSelect(input).Value);
+	static SqlNode.QuerySpecification Query(string input) =>
+		Assert.IsType<SqlNode.QuerySpecification>(TransactSql.TryParseSelect(input).Value);
 
 	/// <summary>A bracketed name may be a reserved word, which is what brackets are for.</summary>
 	/// <remarks>
@@ -1335,13 +1335,13 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_bracketed_name_may_be_a_reserved_word()
 	{
-		var query = Assert.IsType<SqlNode.Query>(
+		var query = Assert.IsType<SqlNode.QuerySpecification>(
 			TransactSql.TryParseSelect("SELECT [select] FROM t").Value);
 
 		Assert.Equal(
 			"[select]",
-			Assert.IsType<SqlNode.Column>(
-				Assert.IsType<SqlNode.Selected>(Assert.Single(query.Columns)).Value).Text);
+			Assert.IsType<SqlNode.ColumnReference>(
+				Assert.IsType<SqlNode.DerivedColumn>(Assert.Single(query.Columns)).Value).Text);
 
 		Assert.False(TransactSql.TryParseSelect("SELECT select FROM t").IsSuccess);
 	}
@@ -1350,10 +1350,10 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_table_variable_is_a_source()
 	{
-		var query = Assert.IsType<SqlNode.Query>(
+		var query = Assert.IsType<SqlNode.QuerySpecification>(
 			TransactSql.TryParseSelect("SELECT a FROM @rows AS r").Value);
 
-		var source = Assert.IsType<SqlNode.Source>(Assert.Single(query.From));
+		var source = Assert.IsType<SqlNode.TableReference>(Assert.Single(query.From));
 
 		Assert.Equal("@rows", source.Table);
 		Assert.Equal("r", source.Name);

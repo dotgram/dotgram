@@ -85,14 +85,14 @@ public sealed class SqlStandard92Tests
 	[Fact]
 	public void And_a_query_says_what_it_selects_and_where_from()
 	{
-		var query = Assert.IsType<SqlNode.Query>(
+		var query = Assert.IsType<SqlNode.QuerySpecification>(
 			SqlStandard92.TryParseSelect("SELECT DISTINCT a, t.* FROM u AS t WHERE a > 1").Value);
 
 		Assert.True(query.Distinct);
 		Assert.Equal(2, query.Columns.Length);
-		Assert.Equal("t", Assert.IsType<SqlNode.Star>(query.Columns[1]).Qualifier);
+		Assert.Equal("t", Assert.IsType<SqlNode.QualifiedAsterisk>(query.Columns[1]).Qualifier);
 
-		var source = Assert.IsType<SqlNode.Source>(Assert.Single(query.From));
+		var source = Assert.IsType<SqlNode.TableReference>(Assert.Single(query.From));
 
 		Assert.Equal("u", source.Table);
 		Assert.Equal("t", source.Name);
@@ -112,8 +112,8 @@ public sealed class SqlStandard92Tests
 	public void A_join_says_which_it_is(
 		string input, string kind, bool natural, bool on, bool over)
 	{
-		var query = Assert.IsType<SqlNode.Query>(SqlStandard92.TryParseSelect(input).Value);
-		var join  = Assert.IsType<SqlNode.Join>(Assert.Single(query.From));
+		var query = Assert.IsType<SqlNode.QuerySpecification>(SqlStandard92.TryParseSelect(input).Value);
+		var join  = Assert.IsType<SqlNode.JoinedTable>(Assert.Single(query.From));
 
 		Assert.Equal(kind, join.Kind.ToString());
 		Assert.Equal(natural, join.Natural);
@@ -131,13 +131,13 @@ public sealed class SqlStandard92Tests
 	[InlineData("SELECT a FROM t UNION SELECT b FROM u EXCEPT SELECT c FROM v",    "Except", "Union")]
 	public void Set_operators_group_as_the_standard_says(string input, string outer, string inner)
 	{
-		var read = Assert.IsType<SqlNode.Binary>(SqlStandard92.TryParseQuery(input).Value);
+		var read = Assert.IsType<SqlNode.BinaryExpression>(SqlStandard92.TryParseQuery(input).Value);
 
 		Assert.Equal(outer, read.Operator.ToString());
 		Assert.Contains(
 			inner,
 			new[] { read.Left, read.Right }
-				.OfType<SqlNode.Binary>()
+				.OfType<SqlNode.BinaryExpression>()
 				.Select(static one => one.Operator.ToString()));
 	}
 
@@ -145,18 +145,18 @@ public sealed class SqlStandard92Tests
 	[Fact]
 	public void A_subquery_is_read_rather_than_kept()
 	{
-		var query = Assert.IsType<SqlNode.Query>(
+		var query = Assert.IsType<SqlNode.QuerySpecification>(
 			SqlStandard92.TryParseSelect("SELECT a FROM (SELECT b FROM u) AS d (c)").Value);
 
-		var source = Assert.IsType<SqlNode.Source>(Assert.Single(query.From));
+		var source = Assert.IsType<SqlNode.TableReference>(Assert.Single(query.From));
 
 		Assert.Null(source.Table);
 		Assert.Equal("d", source.Name);
 		Assert.Equal(new[] { "c" }, source.Columns);
 
-		var inner = Assert.IsType<SqlNode.Query>(source.Derived);
+		var inner = Assert.IsType<SqlNode.QuerySpecification>(source.Derived);
 
-		Assert.Equal("u", Assert.IsType<SqlNode.Source>(Assert.Single(inner.From)).Table);
+		Assert.Equal("u", Assert.IsType<SqlNode.TableReference>(Assert.Single(inner.From)).Table);
 	}
 
 	/// <summary>
@@ -189,9 +189,9 @@ public sealed class SqlStandard92Tests
 	/// <summary>A value expression as parentheses and operator names, for comparing.</summary>
 	static string Shape(SqlNode node) => node switch
 	{
-		SqlNode.Binary(var op, var left, var right) => $"({Shape(left)} {op} {Shape(right)})",
-		SqlNode.Unary (var op, var operand)         => $"({op} {Shape(operand)})",
-		SqlNode.Column(var text)                    => text,
+		SqlNode.BinaryExpression(var op, var left, var right) => $"({Shape(left)} {op} {Shape(right)})",
+		SqlNode.UnaryExpression (var op, var operand)         => $"({op} {Shape(operand)})",
+		SqlNode.ColumnReference(var text)                    => text,
 		SqlNode.Literal(_, var text)                => text,
 		_                                           => node.GetType().Name,
 	};
