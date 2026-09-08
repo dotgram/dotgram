@@ -108,6 +108,36 @@ public sealed class EmbeddedGrammarFinderTests
 	}
 
 	[Fact]
+	public void SplicesTheUnsuffixedGrammarWhenTheBaseHasSeveralGramAttributes()
+	{
+		var source = """
+			namespace DotGram
+			{
+				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
+				sealed class GramAttribute(string text) : System.Attribute
+				{
+					public string IncludedAs { get; set; } = "";
+					public string Suffix { get; set; } = "";
+				}
+			}
+
+			[DotGram.Gram("Wrong = 'x'", Suffix = "Alternative", IncludedAs = "Wrong")]
+			[DotGram.Gram("Word = ['a'..'z']+", IncludedAs = "Lexical")]
+			class Base;
+
+			[DotGram.Gram("using Lexical;\nStart = Word\nparse Start")]
+			class Parser : Base;
+			""";
+
+		var derived = Assert.Single(
+			Find(source),
+			grammar => grammar.Text.StartsWith("using", StringComparison.Ordinal));
+
+		Assert.Contains("namespace Lexical\n{\nWord = ['a'..'z']+", derived.AnalysisText, StringComparison.Ordinal);
+		Assert.DoesNotContain("namespace Wrong", derived.AnalysisText, StringComparison.Ordinal);
+	}
+
+	[Fact]
 	public void FindsArgumentsMarkedWithDotGramStringSyntax()
 	{
 		var source = """"

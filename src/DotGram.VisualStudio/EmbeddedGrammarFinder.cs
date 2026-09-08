@@ -152,7 +152,8 @@ public static class EmbeddedGrammarFinder
 		for (var current = type.BaseType; current is not null; current = current.BaseType)
 		{
 			var grammar = current.GetAttributes().FirstOrDefault(static candidate =>
-				candidate.AttributeClass?.ToDisplayString() == GramAttribute);
+				candidate.AttributeClass?.ToDisplayString() == GramAttribute &&
+				candidate.NamedArguments.All(static argument => argument.Key != "Suffix"));
 			if (grammar?.ConstructorArguments is not [{ Value: string source }] || IsFile(source))
 				continue;
 

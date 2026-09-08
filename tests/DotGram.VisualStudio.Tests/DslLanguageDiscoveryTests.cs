@@ -141,6 +141,26 @@ public sealed class DslLanguageDiscoveryTests
 	}
 
 	[Fact]
+	public void InheritsTheUnsuffixedGrammarWhenTheBaseHasSeveralGramAttributes()
+	{
+		var catalog = Discover(Support + """
+
+			[DotGram.Gram("Wrong = 'x'", Suffix = "Alternative", IncludedAs = "Wrong")]
+			[DotGram.Gram("Word = ['a'..'z']+", IncludedAs = "Lexical")]
+			class BaseParser;
+
+			[DotGram.Gram("using Lexical;\nStart = Word\nparse Start")]
+			[DotGram.GramLanguage("derived")]
+			class DerivedParser : BaseParser;
+			""");
+
+		var language = Assert.Single(catalog.Languages);
+		var included = Assert.Single(language.IncludedGrammars);
+		Assert.Equal("Lexical", included.Name);
+		Assert.Equal("Word = ['a'..'z']+", included.GrammarSource);
+	}
+
+	[Fact]
 	public void ReadsVersionedGeneratedDescriptorWithoutTheOriginalGramAttribute()
 	{
 		const string grammar = "Start = 'x'\nparse Start as Read";

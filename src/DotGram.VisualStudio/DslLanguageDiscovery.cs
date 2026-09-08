@@ -147,7 +147,7 @@ public static class DslLanguageDiscovery
 			cancellationToken.ThrowIfCancellationRequested();
 
 			var languageAttribute = type.GetAttributes().FirstOrDefault(IsLanguageAttribute);
-			var grammarAttribute  = type.GetAttributes().FirstOrDefault(IsGramAttribute);
+			var grammarAttribute  = PrimaryGramAttribute(type.GetAttributes());
 			var descriptor = Descriptor(type);
 			if (languageAttribute is null || grammarAttribute is null && descriptor is null ||
 				languageAttribute.ConstructorArguments is not [{ Value: string id }] ||
@@ -373,7 +373,7 @@ public static class DslLanguageDiscovery
 
 		for (var current = parserType.BaseType; current is not null; current = current.BaseType)
 		{
-			var attribute = current.GetAttributes().FirstOrDefault(IsGramAttribute);
+			var attribute = PrimaryGramAttribute(current.GetAttributes());
 			if (attribute is null || Grammar(current, attribute) is not { } grammar)
 				continue;
 
@@ -428,6 +428,16 @@ public static class DslLanguageDiscovery
 			IsString(attribute.AttributeConstructor.Parameters[0].Type)) &&
 		HasProperty(attribute.AttributeClass!, "Source", SpecialType.System_String, writable: false) &&
 		HasProperty(attribute.AttributeClass!, "IncludedAs", SpecialType.System_String, writable: true);
+
+	/// <summary>
+	/// The grammar published directly by a host. Additional <c>[Gram]</c> attributes live
+	/// in their named <c>Suffix</c> scopes and are not what a derived grammar inherits.
+	/// Keep this selection identical to the source generator.
+	/// </summary>
+	static AttributeData? PrimaryGramAttribute(IEnumerable<AttributeData> attributes) =>
+		attributes.FirstOrDefault(attribute =>
+			IsGramAttribute(attribute) &&
+			attribute.NamedArguments.All(static argument => argument.Key != "Suffix"));
 
 	static bool IsLanguageAttribute(AttributeData attribute) =>
 		IsAttributeType(attribute.AttributeClass, LanguageAttribute) &&
