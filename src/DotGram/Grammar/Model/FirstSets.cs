@@ -286,7 +286,8 @@ public static class FirstSets
 	/// is real.
 	/// </para>
 	/// </remarks>
-	public static IReadOnlyList<GramDiagnostic> Committed(RecognitionGraph graph)
+	public static IReadOnlyList<GramDiagnostic> Committed(
+		RecognitionGraph graph, TerminalInventory? inventory = null)
 	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
@@ -295,29 +296,29 @@ public static class FirstSets
 
 		foreach (var rule in graph.Rules)
 			if (rule.Declaration is { } declaration && graph.Bodies.TryGetValue(rule, out var body))
-				Swallowed(body, rule, declaration, reported, graph);
+				Swallowed(body, rule, declaration, reported, graph, inventory);
 
 		return reported;
 	}
 
 	static void Swallowed(
 		Node node, RuleSymbol rule, Decl.Rule declaration,
-		List<GramDiagnostic> reported, RecognitionGraph graph)
+		List<GramDiagnostic> reported, RecognitionGraph graph, TerminalInventory? inventory)
 	{
 		if (node is Node.Sequence(var parts))
 		{
 			for (var i = 0; i < parts.Count - 1; i++)
 			{
-				if (!Takes(parts, i, graph))
+				if (Takes(parts, i, graph) is not { } taken)
 					continue;
 
 				reported.Add(new GramDiagnostic(
 					Swallows,
-					$"In '{rule.Name}', '{parts[i]}' can begin with the same input as what follows " +
-					"it, and over kinds a reading that fits is the one that stands (docs/syntax.md " +
-					"§4) — so it takes what follows and the rule fails one token past what it ate. " +
-					"Say what it may not take: a lookahead in front of it naming the words that " +
-					"begin the clause after it.",
+					$"In '{rule.Name}', '{parts[i]}' can take {Spelled(taken, inventory)}, which is " +
+					"what follows it — and over kinds a reading that fits is the one that stands " +
+					"(docs/syntax.md §4), so nothing gives it back and the rule fails one token past " +
+					"what it ate. Say what it may not take: a lookahead in front of it naming the " +
+					"words that begin the clause after it.",
 					declaration.At.Position,
 					declaration.At.Length,
 					GramSeverity.Info));
@@ -325,7 +326,50 @@ public static class FirstSets
 		}
 
 		foreach (var child in Children(node))
-			Swallowed(child, rule, declaration, reported, graph);
+			Swallowed(child, rule, declaration, reported, graph, inventory);
+	}
+
+	/// <summary>The overlap said as the words it stands for, where they can be looked up.</summary>
+	/// <remarks>
+	/// A kind is a number and a number tells an author nothing. The inventory knows which
+	/// patterns each accepting state carries, so the set comes out as `WITH`, `PIVOT`,
+	/// `TABLESAMPLE` — which is the whole of what makes this diagnostic answerable. Four at
+	/// most: a set of thirty is a set the author will read as "a name", and that is what it
+	/// is.
+	/// </remarks>
+	static string Spelled(First taken, TerminalInventory? inventory)
+	{
+		if (inventory is null)
+			return "what follows it";
+
+		var words = new List<string>();
+
+		foreach (var range in taken.Ranges)
+			for (var kind = range.From; kind <= range.To && words.Count < 5; kind++)
+				if (kind - 1 < inventory.Kinds.Count && kind >= 1)
+					foreach (var pattern in inventory.Kinds[kind - 1].Matched)
+					{
+						var said = pattern switch
+						{
+							TerminalInventory.Pattern.Word(_, var text, _) => "`" + text + "`",
+							TerminalInventory.Pattern.Mark(_, var text, _) => "`" + text + "`",
+							TerminalInventory.Pattern.Class(_, var named)  => named.Name,
+							_                                              => null,
+						};
+
+						if (said is not null && !words.Contains(said))
+							words.Add(said);
+
+						break;
+					}
+
+		return words.Count switch
+		{
+			0 => "what follows it",
+			1 => words[0],
+			< 5 => string.Join(", ", words.Take(words.Count - 1)) + " and " + words[^1],
+			_ => string.Join(", ", words.Take(4)) + " and more",
+		};
 	}
 
 	/// <summary>Whether one part of a sequence can take what the next one needs.</summary>
@@ -345,12 +389,15 @@ public static class FirstSets
 	/// bare identifier, an option's name — and that is what this asks about.
 	/// </para>
 	/// </remarks>
-	static bool Takes(IReadOnlyList<Node> parts, int at, RecognitionGraph graph)
+	static First? Takes(IReadOnlyList<Node> parts, int at, RecognitionGraph graph)
 	{
 		if (parts[at] is not Node.Repeat(var body, var min, var max) || max is int most && most <= min)
-			return false;
+			return null;
 
-		return Only(body, graph, []).Overlaps(Following(parts, at + 1, graph));
+		var only  = Only(body, graph, []);
+		var after = Following(parts, at + 1, graph);
+
+		return only.Overlaps(after) ? only.And(after) : null;
 	}
 
 	/// <summary>What a node can match when it matches exactly one token, or nothing.</summary>

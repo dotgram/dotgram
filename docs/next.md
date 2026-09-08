@@ -16240,3 +16240,34 @@ Information rather than a warning, for `GRAM5002`'s reason: it names a shape to 
 and the author is the one who can tell whether the overlap is real. The fourteen it names
 in T-SQL are a work list.
 
+### And the message says what it can take
+
+A kind is a number and a number tells an author nothing, so the overlap is spelled out of
+the inventory: the words each kind stands for, four at most. That is the whole of what
+makes the list answerable —
+
+```text
+In 'BackupStatement', 'name: BackupName?' can take `TO`, `FILE`, `FILEGROUP`,
+`READ_WRITE_FILEGROUPS` and more, which is what follows it
+
+In 'TsqlTablePrimary', '("AS"? & alias: CorrelationName & …)?' can take `WITH`
+
+In 'TransactionStatement', '("TRANSACTION"|"TRAN"|"WORK")?' can take `TRAN`,
+`TRANSACTION` and `WORK`
+```
+
+— against `can begin with the same input as what follows it`, which names no input at all.
+
+The narrowing follows a `?!` one rule down as well as one in front, which is how a grammar
+actually writes it: `CorrelationName = ?!SourceClause & Identifier` says once what an alias
+will not take, and every optional that reads an alias inherits it. A check that only read
+the sequence in front of the optional would say nothing useful about a grammar written that
+way, and there is a test for it.
+
+The fourteen are a work list rather than fourteen defects, and this is what that means: an
+overlap is real — the sets say so and the guards are accounted for — and whether it *bites*
+depends on whether anyone writes a table called `INTO` or an alias called `WITH`. Two are
+worth a guard on their own account, since the words that overlap are ones a real script
+uses: a backup's name against the `FILE` and `FILEGROUP` that may follow it, and the same
+for a restore.
+

@@ -93,7 +93,7 @@ public static class GramCompiler
 		// over characters an overlap between an optional and what follows it is settled by
 		// backtracking, and over kinds a reading that fits is the one that stands.
 		if (lexical is not null && !HasErrors(diagnostics))
-			diagnostics.AddRange(FirstSets.Committed(lexical.Syntax));
+			diagnostics.AddRange(FirstSets.Committed(lexical.Syntax, lexical.Inventory));
 
 		if (!HasErrors(diagnostics))
 			sources.Add(new GeneratedSource(

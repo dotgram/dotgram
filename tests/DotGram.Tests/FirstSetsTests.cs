@@ -283,4 +283,32 @@ public sealed class FirstSetsTests
 				Lexical       = true,
 			}).Diagnostics;
 
+	/// <summary>And a lookahead one rule down settles it too.</summary>
+	/// <remarks>
+	/// Which is how a grammar actually writes it: `CorrelationName = ?!SourceClause &amp;
+	/// Identifier` says once what an alias will not take, and every optional that reads an
+	/// alias inherits it. A check that only looked at the sequence in front of it would say
+	/// nothing useful about a grammar written that way.
+	/// </remarks>
+	[Fact]
+	public void And_a_lookahead_one_rule_down_settles_it_too()
+	{
+		const string grammar =
+			"""
+			wordboundary = ['a'..'z' | '_']
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				Name = ['a'..'z' | '_'] & ['a'..'z' | '_']*
+			}
+			Reserved = "into"
+			Alias = ?!Reserved & Lexical.Name
+			Start = "select" & Lexical.Name & Alias? & "into" & Lexical.Name
+			parse Start
+			""";
+
+		Assert.DoesNotContain(Split(grammar), one => one.Id == FirstSets.Swallows);
+	}
+
 }
