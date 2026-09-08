@@ -70,6 +70,12 @@ says one thing. `Dropped`, `Defined`, `OfDatabase`, `Commanded`, `BackedUp`, `Re
 has no record for — which is the two catalogues having drifted, and a defect here rather
 than in anybody's SQL.
 
+**The tree prints back.** `SqlWriter.cs` writes any of the five roots out as SQL, which is
+what makes the tree checkable rather than merely typed: `benchmarks --roundtrip` parses a
+statement, prints it, and holds the result against what ScriptDom makes of the original. What
+the tree does not hold cannot come back, so that measurement is also the list of what is still
+missing.
+
 **Nothing here is a position.** The tree says what was written, not where. A consumer that
 needs the text back cuts it from the input itself, which is what §7.6 of `syntax.md` is for.
 

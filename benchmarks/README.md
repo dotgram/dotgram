@@ -414,6 +414,54 @@ against a grammar that is not a version of anything. And a parse that keeps posi
 what an IDE needs; when this grammar keeps them, the row will move and should be measured
 again rather than argued about.
 
+## Whether the tree says what the text said
+
+`--roundtrip [path] [version]` (`RoundTrip.cs`) asks the question a refusal count cannot:
+the parser read the statement and answered yes — did it build the right thing?
+
+Nothing in this repository could answer that on its own, because the only thing that knows
+what the tree should hold is the tree. So ScriptDom is asked, twice, and its own generator
+is used as the normal form on both sides:
+
+1. ScriptDom parses the original and prints it — **A**;
+2. this grammar parses the original, `SqlWriter` prints it, ScriptDom parses *that* and
+   prints it — **B**.
+
+Keyword casing, line breaks, redundant brackets, `INNER` written or left out, every other
+way of writing the same statement — all of it is erased before the comparison, because both
+sides come out of the same printer. What survives a difference between A and B is a
+difference in meaning.
+
+```console
+dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --roundtrip 180
+```
+
+```text
+  6830 statements read by both, printed back and put to ScriptDom again
+
+    1591  the same statement             23.3%
+    2792  read, printed, and different    40.9%
+    2447  printed into something ScriptDom will not read  35.8%
+
+  kind                                            count    same    share
+  SelectStatement                                  1792     707    39.5%
+  CreateTableStatement                              584      37     6.3%
+  AlterDatabaseSetStatement                         254      74    29.1%
+  …
+  and 48 kinds that come back whole
+```
+
+**The number is completeness, not correctness alone.** Everything the tree reads and drops —
+`TOP`, `OVER`, the hints, `OUTPUT`, a named query's `WITH`, the option lists of the DDL —
+cannot be printed back, so it lands here as a difference. That is what makes the table
+useful: it is the first measurement of how much the tree throws away, ordered by how often
+the corpus needs it, and it is the work list for making the tree lossless.
+
+The third row is the sharpest one. A statement that prints into something ScriptDom will not
+read is a tree that has lost something *structural* rather than decorative — an `ALTER TABLE`
+that kept the word and not the thing it was done to, a `CREATE STATISTICS` with no columns.
+Those are nodes to add, not fields.
+
 ## The SQL recognizer against a hand-written one
 
 `--hand [rounds] [iterations]` (`SqlAgainst.cs`) measures

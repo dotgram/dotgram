@@ -206,6 +206,20 @@ static class Program
 		// statements both of them read and round-robin so that the ratio survives a machine
 		// that is not idle. Three rows, because ScriptDom's lexer and ScriptDom's tree are
 		// not the same work and neither is what this grammar builds. See Speed.cs.
+		// `--roundtrip [path] [version]` asks whether the tree says what the text said: the
+		// original through ScriptDom's printer, and the original through this grammar, this
+		// writer and then ScriptDom's printer, held against each other. See RoundTrip.cs.
+		if (args.Length >= 1 && args[0] == "--roundtrip")
+		{
+			var rest  = args.Skip(1).ToArray();
+			var named = rest.Length >= 1 && (rest[0].Contains('/') || rest[0].Contains('\\'));
+			var first = named ? 1 : 0;
+
+			RoundTrip.Run(named ? rest[0] : null, rest.Length > first ? rest[first] : "180");
+
+			return;
+		}
+
 		if (args.Length >= 1 && args[0] == "--speed")
 		{
 			var rest  = args.Skip(1).ToArray();

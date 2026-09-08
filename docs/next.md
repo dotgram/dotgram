@@ -16448,3 +16448,75 @@ the last, the machine being busy; the ratio is the number that means anything.
 `docs/ast.md` is regenerated: 237 rows, each naming its root, its source and the production
 or page it is named after, and `AstReferenceTests` now finds the roots by reflection so that
 a sixth added and left out of the reference fails the build.
+
+## And the tree can be asked whether it is right
+
+Everything measured until now was whether the parser said yes. Nothing measured whether it
+said yes and then built something else — and nothing in this repository could have, because
+the only thing that knows what the tree should hold is the tree.
+
+ScriptDom prints. `SqlScriptGenerator`, one per version, fifty-seven formatting options; it
+can do that because it keeps every clause as a node with its first and last token and the
+token stream beside it, which is the same thing that costs it 43 KB a statement. That makes
+it usable as a **normal form**, and the oracle writes itself:
+
+1. ScriptDom parses the original and prints it — **A**;
+2. this grammar parses the original, `SqlWriter` prints it, ScriptDom parses *that* and
+   prints it — **B**.
+
+Casing, line breaks, redundant brackets, `INNER` written or left out — all of it is erased,
+because both sides come out of the same printer. What survives is meaning.
+
+So `SqlWriter.cs` was written: the tree back as SQL, five roots and one rule about brackets —
+**written where precedence needs them and nowhere else**, because the tree does not record
+that somebody wrote `(a) + b`. Structure survives that: `(a + b) * c` is a `Multiply` over an
+`Add` and comes back bracketed, since without them it would be a different tree. The hundred
+and forty statements that keep only a name print through their own record's name — `DropXml
+SchemaCollection` is `DROP XML SCHEMA COLLECTION` — because the names were made from those
+words and the split inverts the naming exactly, bar three the reference writes as one word.
+
+### The idempotence test found two before ScriptDom was asked
+
+`SqlWriterTests` makes two claims, and the second is the one that pays: what the writer
+prints, the parser reads back into a tree the writer prints the same way. It failed twice on
+the first run. `GROUP BY a` came out `GROUP BY (a)` and read back as a row of one, which
+printed `((a))`; and `VALUES (1)` came out `VALUES 1`, which is §7.2's spelling of one row of
+one column and is not T-SQL's. Both were the printer, both were found without a second parser
+being involved, and that is the point of holding a parser and a printer to each other.
+
+### What the oracle says
+
+```text
+  6830 statements read by both, printed back and put to ScriptDom again
+
+    1591  the same statement             23.3%
+    2792  read, printed, and different    40.9%
+    2447  printed into something ScriptDom will not read  35.8%
+```
+
+Twenty-three per cent come back the same statement, and 48 kinds come back whole. The rest is
+not wrongness — it is **loss**, and this is the first time it has been a number. `TOP`, `OVER`,
+the hints, `OUTPUT`, a named query's `WITH` and the option lists of every DDL statement were
+read and dropped by decision, and a printer cannot invent them.
+
+The third row is the sharp one: a statement that prints into something ScriptDom will not read
+has lost something structural rather than decorative — an `ALTER TABLE` that kept the word
+`SET` and not what was set, a `CREATE STATISTICS` with no columns, an `ALTER TABLE ENABLE
+CHANGE_TRACKING` that kept `CHANGE_TRACKING` and not `ENABLE`. Those are nodes to add.
+
+And a few are neither, which is what an oracle is for:
+
+- `SELECT @a += 1` built a derived column named `@a` and printed `1 AS @a`. It is an
+  assignment written in a select list, not an alias, and the tree said the wrong thing about
+  it — the first defect of that kind this project has found.
+- `SET @a += 1` and `UPDATE t SET @a -= 1` lose the compound operator: `Clause.Set` has a
+  field for it and the grammar passes `null`.
+
+### What this changes
+
+The tree is to become lossless for T-SQL. That is the decision this measurement was taken
+for, and the per-kind table is the order to do it in — `SelectStatement` first at 1,792
+statements, then `CreateTableStatement` at 584, then `AlterDatabaseSetStatement` at 254.
+Losslessness has a price and it is worth saying before it arrives: 715 B a statement will
+grow, probably to a few kilobytes. It stays an order below ScriptDom, because what makes
+their 43 KB is the token stream and the positions, and neither is coming.
