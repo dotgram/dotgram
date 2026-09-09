@@ -89,6 +89,32 @@ For small grammars, keeping the grammar in the `[Gram]` attribute makes the pars
 definition and its C# API easy to read together. Larger grammars can also live in `.gram`
 files, listed as `<AdditionalFiles Include="Name.gram" />`.
 
+### Requirements
+
+The generated parser is C# 8, and it targets whatever the project around it targets.
+`netstandard2.0`, `net472` and `net10.0` all compile it; the two that can be run were run.
+
+Two things an older project has to say out loud:
+
+* **A grammar written inside `[Gram]` is a raw string literal, which is C# 11.** On
+  `netstandard2.0` and `net472` the default is C# 7.3, so `<LangVersion>` has to be set.
+  A grammar in a `.gram` file asks for nothing: the generated code itself is C# 8.
+* **`netstandard2.0` and `net472` need `System.Memory`.** The generated parser reads over
+  `ReadOnlySpan<char>`, and those frameworks do not carry it.
+
+```xml
+<PropertyGroup>
+  <LangVersion>11.0</LangVersion>
+</PropertyGroup>
+
+<ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+  <PackageReference Include="System.Memory" Version="4.5.5" />
+</ItemGroup>
+```
+
+The generator is a Roslyn analyzer built against `Microsoft.CodeAnalysis` 4.14, and needs
+a compiler at least that new.
+
 ## Typed parsing
 
 Named captures define the shape of the result.
