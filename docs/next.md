@@ -17071,3 +17071,20 @@ library does.
 The test is a theory over both readings: the doubled quote, the escaped quote and escape,
 and the two unterminated strings that are no string — every one of which one of the three
 got wrong before.
+
+### The generator is optimized whatever the consumer builds
+
+A rebuild in Visual Studio took 1:15 and `DotGram.Parsers` was most of it; on the command
+line in Release the same rebuild is 22 s. The difference was Debug: an analyzer is built in
+the configuration of the project that references it, and the generator built as Debug
+normalizes the SQL grammars — 21 MB of generated C# on the way out — with no JIT
+optimization and thirty-five `Debug.Assert`s live in `Machine.*`. Measured on `Parsers`
+rebuilt from nothing: 56 s as Debug, 29 s optimized, 20 s optimized without `DEBUG`, 16 s in
+Release; the remaining four seconds are the consumer compiling the generated code as Debug,
+which is its own business.
+
+So `DotGram.csproj` builds optimized and without `DEBUG` in Debug too, unless
+`-p:DebugGenerator=true` says somebody means to step through the generator. The consumer's
+configuration changes nothing the generator emits (`.claude/rules/emitted-code.md`), and now
+it changes nothing about how long that takes: `Parsers` in Debug rebuilds in 15 s, the
+solution in 40 s. The Debug test run is unchanged at 2737.
