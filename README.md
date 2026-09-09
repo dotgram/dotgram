@@ -71,10 +71,10 @@ Inline grammars are raw string literals and so need C# 11; a `.gram` file needs
 nothing more than the project already has. [Compatibility](#compatibility) has the
 rest.
 
-## One grammar, two parsers
+## One grammar, three parsers
 
 A grammar does not have to describe only one parser. The arithmetic below is written once
-and published twice: once over `int`, and once over `double`.
+and published three times: over `int`, over `decimal`, and as a tree.
 
 ```csharp
 using DotGram;
@@ -85,11 +85,9 @@ using DotGram;
 	trivia = [' ' | '\t']*
 
 	Digits = ['0'..'9']+
+	Point  = Digits & ('.' & Digits)?
 
-	Value
-		: @int
-		= d: Digits
-		=> @int.Parse(d)
+	Value : @int = d: Digits => @(int.Parse(d))
 
 	Sum
 		: Value
@@ -119,48 +117,65 @@ using DotGram;
 		| value: Value
 			=> @(value)
 
-	IntNumber
-		: @int
-		= d: Digits
-		=> @int.Parse(d)
+	IntNumber     : @int     = d: Digits => @(int.Parse(d))
+	DecimalNumber : @decimal = d: Point  => @(decimal.Parse(d, CultureInfo.InvariantCulture))
+	NodeNumber    : @Node    = d: Point  => @(new Node.Number(decimal.Parse(d, CultureInfo.InvariantCulture)))
 
-	DoubleNumber
-		: @double
-		= d: (Digits & ('.' & Digits)?)
-		=> @double.Parse(d, CultureInfo.InvariantCulture)
-
-	parse Sum with (Value = IntNumber)    as EvaluateInt
-	parse Sum with (Value = DoubleNumber) as EvaluateDouble
+	parse Sum with (Value = IntNumber)     as EvaluateInt
+	parse Sum with (Value = DecimalNumber) as EvaluateDecimal
+	parse Sum with (Value = NodeNumber)    as BuildTree
 	""")]
-public static partial class Calculator;
+public static partial class Calculator
+{
+	/// <summary>The tree the third parser builds, and the operators that build it.</summary>
+	public abstract record Node
+	{
+		public sealed record Number(decimal Of)                     : Node;
+		public sealed record Binary(char Op, Node Left, Node Right) : Node;
+		public sealed record Negate(Node Of)                        : Node;
+
+		public static Node operator +(Node left, Node right) => new Binary('+', left, right);
+		public static Node operator -(Node left, Node right) => new Binary('-', left, right);
+		public static Node operator *(Node left, Node right) => new Binary('*', left, right);
+		public static Node operator /(Node left, Node right) => new Binary('/', left, right);
+		public static Node operator -(Node of)               => new Negate(of);
+	}
+}
 ```
 
-The generated API contains two independently specialized parsers:
+Three parsers come out of it:
 
 ```csharp
-Calculator.EvaluateInt("7 / 2");       // 3
+Calculator.EvaluateInt("7 / 2");          // 3
+Calculator.EvaluateDecimal("7 / 2");      // 3.5
+Calculator.EvaluateDecimal("1 + 2 * 3");  // 7
 
-Calculator.EvaluateDouble("7 / 2");    // 3.5
-Calculator.EvaluateDouble("1.5 * 4");  // 6
+Calculator.TryEvaluateInt("1.5");         // no match
 
-Calculator.TryEvaluateInt("1.5");      // no match
+Calculator.BuildTree("1 - 2 - 3");
+// Binary(-, Binary(-, Number(1), Number(2)), Number(3))
 ```
 
-`Sum`, `Product`, `Unary`, and `Primary` are written only once. What separates the two
-parsers is the publication:
+`Sum`, `Product`, `Unary` and `Primary` are written once. What separates the three parsers
+is the publication:
 
 ```text
-parse Sum with (Value = IntNumber)    as EvaluateInt
-parse Sum with (Value = DoubleNumber) as EvaluateDouble
+parse Sum with (Value = IntNumber)     as EvaluateInt
+parse Sum with (Value = DecimalNumber) as EvaluateDecimal
+parse Sum with (Value = NodeNumber)    as BuildTree
 ```
 
-`with` substitutes a rule through the grammar reachable from that publication.
+`with` substitutes a rule through the grammar reachable from that publication, and the
+result type follows the substitution: `Sum : Value` means "the type produced by `Value`",
+so the three parsers return `int`, `decimal` and `Node`.
 
-The result type follows the substitution too. `Sum : Value` means "the type produced by
-`Value`", so the first generated parser returns `int` and the second returns `double`.
+The actions do not change either. `left + right` is C#, and what it adds up to is the C#
+compiler's: over `int` it is addition, and over `Node` it is the operator declared beside
+the grammar, which builds a node. The grammar says where an operator goes and which
+operands it takes; what it then means is not the grammar's business.
 
-There is no runtime generic dispatch and no parser configuration object. Both parsers are
-specialized when the C# is generated.
+There is no runtime generic dispatch and no parser configuration object. All three parsers
+are specialized when the C# is generated.
 
 ## Typed parsing
 
