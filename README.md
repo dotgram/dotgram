@@ -20,6 +20,27 @@ your own — including ones that compile straight to `System.Linq.Expressions` o
 types. Replacing a regular expression that has become hard to maintain, or a hand-written
 parser that has become hard to trust, is one use among those rather than the boundary.
 
+## Why .Gram
+
+**Grammar and C# are one language.** `@` is the seam, and it is crossed in both directions:
+a rule produces a C# type, a guard asks a C# question in the middle of a parse, and an
+action calls an API you already have. Nothing waits for a visitor over a generic tree — a
+factory that does not exist, or one handed the wrong type, is a compile error on the line
+of the grammar that asked for it.
+
+**Rules come in libraries.** A grammar can be written on top of another one, across a
+project reference. What crosses the reference is the grammar rather than a parser, and
+each include arrives under a namespace of its own, so two libraries cannot collide by
+accident.
+
+**One grammar can be published as several parsers.** `with` substitutes a rule through
+everything a publication reaches, so one piece of arithmetic becomes a parser over `int`
+and a parser over `double`, each specialized when the C# is generated.
+
+**Nothing is interpreted and nothing is deployed.** The generated parser is ordinary C# in
+your own assembly: no engine reading a grammar at run time, no runtime package, and no
+generator/runtime version pair that can drift apart.
+
 ## Getting started
 
 ```xml
@@ -68,97 +89,6 @@ type.
 For small grammars, keeping the grammar in the `[Gram]` attribute makes the parser
 definition and its C# API easy to read together. Larger grammars can also live in `.gram`
 files, listed as `<AdditionalFiles Include="Name.gram" />`.
-
-## One grammar, two parsers
-
-A grammar does not have to describe only one parser. The arithmetic below is written once
-and published twice: once over `int`, and once over `double`.
-
-```csharp
-using DotGram;
-
-[Gram("""
-	@using System.Globalization;
-
-	trivia = [' ' | '\t']*
-
-	Digits = ['0'..'9']+
-
-	Value
-		: @int
-		= d: Digits
-		=> @int.Parse(d)
-
-	Sum
-		: Value
-		= left: Sum & op: ['+' | '-'] & right: Product
-			=> @(op == "+" ? left + right : left - right)
-		| value: Product
-			=> @(value)
-
-	Product
-		: Value
-		= left: Product & op: ['*' | '/'] & right: Unary
-			=> @(op == "*" ? left * right : left / right)
-		| value: Unary
-			=> @(value)
-
-	Unary
-		: Value
-		= '-' & operand: Unary
-			=> @(-operand)
-		| value: Primary
-			=> @(value)
-
-	Primary
-		: Value
-		= '(' & value: Sum & ')'
-			=> @(value)
-		| value: Value
-			=> @(value)
-
-	IntNumber
-		: @int
-		= d: Digits
-		=> @int.Parse(d)
-
-	DoubleNumber
-		: @double
-		= d: (Digits & ('.' & Digits)?)
-		=> @double.Parse(d, CultureInfo.InvariantCulture)
-
-	parse Sum with (Value = IntNumber)    as EvaluateInt
-	parse Sum with (Value = DoubleNumber) as EvaluateDouble
-	""")]
-public static partial class Calculator;
-```
-
-The generated API contains two independently specialized parsers:
-
-```csharp
-Calculator.EvaluateInt("7 / 2");       // 3
-
-Calculator.EvaluateDouble("7 / 2");    // 3.5
-Calculator.EvaluateDouble("1.5 * 4");  // 6
-
-Calculator.TryEvaluateInt("1.5");      // no match
-```
-
-`Sum`, `Product`, `Unary`, and `Primary` are written only once. What separates the two
-parsers is the publication:
-
-```text
-parse Sum with (Value = IntNumber)    as EvaluateInt
-parse Sum with (Value = DoubleNumber) as EvaluateDouble
-```
-
-`with` substitutes a rule through the grammar reachable from that publication.
-
-The result type follows the substitution too. `Sum : Value` means "the type produced by
-`Value`", so the first generated parser returns `int` and the second returns `double`.
-
-There is no runtime generic dispatch and no parser configuration object. Both parsers are
-specialized when the C# is generated.
 
 ## Typed parsing
 
@@ -263,22 +193,139 @@ public static partial class Tags;
 The same boundary calls predicates, external recognizers, constructors, or any API at all.
 Grammar describes the syntax; C# handles the parts that are already better expressed as C#.
 
-## DotGram.Parsers
+## One grammar, two parsers
 
-[`DotGram.Parsers`](src/DotGram.Parsers) is a library of parsers written in .Gram against
-real specifications rather than demonstration grammars, and a package of its own.
+A grammar does not have to describe only one parser. The arithmetic below is written once
+and published twice: once over `int`, and once over `double`.
 
-| Parser | What it reads |
-| --- | --- |
-| [`Rfc3986`](src/DotGram.Parsers/Rfc3986.cs) | URIs and relative references after RFC 3986 — authority, IPv4, IPv6, `IPvFuture`, paths, queries, fragments, percent encoding |
-| [`ExpressionLanguage`](src/DotGram.Parsers/ExpressionLanguage.cs) | a C#-style expression language that builds `System.Linq.Expressions` trees directly, with parameters, locals, blocks and `return` |
-| [`SqlStandard92`](src/DotGram.Parsers/SqlStandard92.gram) | SQL-92, read through a lexical split |
-| [`TransactSql`](src/DotGram.Parsers/TransactSql.gram) | T-SQL, written as a dialect over SQL-92 rather than as a copy of it |
+```csharp
+using DotGram;
 
-[`src/DotGram.Parsers/README.md`](src/DotGram.Parsers/README.md) has what each one parses
-and what it hands back.
+[Gram("""
+	@using System.Globalization;
 
-## Streaming and recovery
+	trivia = [' ' | '\t']*
+
+	Digits = ['0'..'9']+
+
+	Value
+		: @int
+		= d: Digits
+		=> @int.Parse(d)
+
+	Sum
+		: Value
+		= left: Sum & op: ['+' | '-'] & right: Product
+			=> @(op == "+" ? left + right : left - right)
+		| value: Product
+			=> @(value)
+
+	Product
+		: Value
+		= left: Product & op: ['*' | '/'] & right: Unary
+			=> @(op == "*" ? left * right : left / right)
+		| value: Unary
+			=> @(value)
+
+	Unary
+		: Value
+		= '-' & operand: Unary
+			=> @(-operand)
+		| value: Primary
+			=> @(value)
+
+	Primary
+		: Value
+		= '(' & value: Sum & ')'
+			=> @(value)
+		| value: Value
+			=> @(value)
+
+	IntNumber
+		: @int
+		= d: Digits
+		=> @int.Parse(d)
+
+	DoubleNumber
+		: @double
+		= d: (Digits & ('.' & Digits)?)
+		=> @double.Parse(d, CultureInfo.InvariantCulture)
+
+	parse Sum with (Value = IntNumber)    as EvaluateInt
+	parse Sum with (Value = DoubleNumber) as EvaluateDouble
+	""")]
+public static partial class Calculator;
+```
+
+The generated API contains two independently specialized parsers:
+
+```csharp
+Calculator.EvaluateInt("7 / 2");       // 3
+
+Calculator.EvaluateDouble("7 / 2");    // 3.5
+Calculator.EvaluateDouble("1.5 * 4");  // 6
+
+Calculator.TryEvaluateInt("1.5");      // no match
+```
+
+`Sum`, `Product`, `Unary`, and `Primary` are written only once. What separates the two
+parsers is the publication:
+
+```text
+parse Sum with (Value = IntNumber)    as EvaluateInt
+parse Sum with (Value = DoubleNumber) as EvaluateDouble
+```
+
+`with` substitutes a rule through the grammar reachable from that publication.
+
+The result type follows the substitution too. `Sum : Value` means "the type produced by
+`Value`", so the first generated parser returns `int` and the second returns `double`.
+
+There is no runtime generic dispatch and no parser configuration object. Both parsers are
+specialized when the C# is generated.
+
+## Grammar libraries
+
+A grammar can build on another one. `[GramInclude]` names the class that hosts it, and
+the name this grammar will know it by:
+
+```csharp
+[GramInclude(typeof(SqlStandard92), As = "Sql92")]
+[Gram("TransactSql.gram", Lexical = true)]
+public static partial class TransactSql;
+```
+
+Each include is spliced into a namespace of its own, so `Sql92.Identifier` and an
+`Identifier` of your own are different rules and cannot collide by accident. A grammar may
+name as many as it likes, and one already gathered is not gathered twice.
+
+The include crosses a project reference, which is the whole point of it. A `.gram` file is
+read at compile time and is not part of what ships, so the generator writes the grammar
+onto the class it compiled and an including grammar reads it back off the type it already
+names. What travels is the grammar; the parser is generated again in the assembly that
+included it, under that assembly's own substitutions.
+
+That is what makes a dialect cheap rather than a fork.
+[`TransactSql`](src/DotGram.Parsers/TransactSql.gram) is SQL-92 and the places T-SQL
+differs from it, and the standard underneath is written once.
+
+## How a grammar is run
+
+One grammar can be read three ways, and only one of the three is written in the grammar.
+
+| Read over | How it runs | Asked for by |
+| --- | --- | --- |
+| characters, in memory | all of the input is there, and the result may be walked again | `string`, `ReadOnlySpan<char>` |
+| characters, from a reader | a reused, growable window; the result is walked once | `TextReader`, `IEnumerable<string>` |
+| tokens, in memory | a lexical half makes tokens, and the half above it decides each choice by the token in front of it | `Lexical = true` on the host |
+
+The first two are one parser: which of them runs is a property of the data rather than of
+the grammar, so it is settled at the call site by the overload that was called. The third
+is a different parser for the same language, and not merely a faster one — over tokens a
+choice that has matched is not revisited, which is what a parser written by hand does.
+
+**Over tokens the input is in memory.** The reader overloads below are emitted over
+characters and not over kinds.
 
 Where the generator can prove that input may be released as parsing progresses, it emits
 `TextReader` overloads beside the ordinary ones.
@@ -354,7 +401,8 @@ A bad record therefore becomes data describing the rejection, instead of ending 
 * parameterized rules;
 * rule rebinding and parser specialization;
 * left recursion, and binding powers for expression grammars;
-* grammar namespaces and reusable grammar libraries;
+* grammar namespaces, and grammar libraries that cross a project reference;
+* a lexical split: the same notation read over tokens instead of characters;
 * `Parse`, `TryParse`, and `Find`;
 * streaming from `TextReader`;
 * recovery inside repetitions;
@@ -402,6 +450,21 @@ Execute("status = active");   // classified, checked, and completed as Filter
 The annotation works on a parameter, on the receiver of an extension method, and on a
 field or property initializer. [`docs/visual-studio.md`](docs/visual-studio.md) covers the
 rest, along with building and installing; the extension targets Visual Studio 18.
+
+## DotGram.Parsers
+
+[`DotGram.Parsers`](src/DotGram.Parsers) is a library of parsers written in .Gram against
+real specifications rather than demonstration grammars, and a package of its own.
+
+| Parser | What it reads |
+| --- | --- |
+| [`Rfc3986`](src/DotGram.Parsers/Rfc3986.cs) | URIs and relative references after RFC 3986 — authority, IPv4, IPv6, `IPvFuture`, paths, queries, fragments, percent encoding |
+| [`ExpressionLanguage`](src/DotGram.Parsers/ExpressionLanguage.cs) | a C#-style expression language that builds `System.Linq.Expressions` trees directly, with parameters, locals, blocks and `return` |
+| [`SqlStandard92`](src/DotGram.Parsers/SqlStandard92.gram) | SQL-92, read through a lexical split |
+| [`TransactSql`](src/DotGram.Parsers/TransactSql.gram) | T-SQL, written as a dialect over SQL-92 rather than as a copy of it |
+
+[`src/DotGram.Parsers/README.md`](src/DotGram.Parsers/README.md) has what each one parses
+and what it hands back.
 
 ## Examples
 
