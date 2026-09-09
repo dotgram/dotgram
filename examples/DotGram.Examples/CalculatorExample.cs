@@ -1,55 +1,92 @@
 ﻿using System;
+using System.Globalization;
 
 using DotGram;
 
 namespace DotGram.Examples;
 
-// An arithmetic calculator: precedence, associativity, parentheses, and a result that
-// is an int rather than a parse tree somebody still has to walk.
+// A calculator written once and published three times: over `int`, over `decimal`, and
+// as a tree of its own.
 //
-// Three things carry it, and none of them is notation invented for the purpose.
+// One rule with eight alternatives, and the precedence written down rather than implied
+// by which rule calls which (docs/syntax.md §4.3.1):
 //
-//   Precedence is levels. One rule per level, each calling the next.
+//   << n   the operand to the right is read one strength tighter → groups left
+//   >> n   the operand to the right is read at n                 → groups right
 //
-//   Associativity is which side the rule recurses on. `left: Sum & …` is
-//   left-recursive, so `1-2-3` groups as `(1-2)-3` — what that shape has meant since
-//   BNF. Nothing is written to say so.
+// Higher binds tighter, and the numbers need not be contiguous: the gaps are where a
+// level goes in later, as a number, with nothing else touched. StrengthCalculatorExample
+// is this shape held against the five-rule spelling of the same language, expression by
+// expression.
 //
-//   The value is the rule's own type. `: @int` names it and `=>` builds it, so a
-//   published method hands back an int.
+// What `with` substitutes is `Value`, the one rule that reads a number. Everything else
+// is written once, and `Expr : Value` carries the substituted type out to each published
+// method — so the three differ in what they hand back and in nothing else.
 //
-// Spaces are insignificant because `trivia` is an ordinary rule and this grammar
-// shadows it. That is the whole of the mechanism.
+// The actions are not written three ways either. `left + right` is C#: over `int` it
+// adds, over `decimal` it adds, and over `Node` it is the operator declared below, which
+// builds a node instead. The grammar says where an operator goes and which operands it
+// takes; what it then means is not the grammar's business.
+//
+// `^` is the exception that shows what the rule rests on. C# has no `^` for `decimal`,
+// and its `^` on `int` is exclusive-or rather than power, so that one is a method —
+// overloaded the three ways the operators are overloaded once.
 
 [Gram("""
-	trivia  = [' ' | '\t']*
+	@using System.Globalization;
 
-	Sum     : @int = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)
-	               | value: Product                                   => @(value)
+	trivia = Std.Spacing?
 
-	Product : @int = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)
-	               | value: Unary                                     => @(value)
+	Value : @int = d: Std.Digits => @(int.Parse(d))
+	Point        = Std.Digits & ('.' & Std.Digits)?
 
-	Unary   : @int = '-' & operand: Unary                             => @(-operand)
-	               | value: Primary                                   => @(value)
+	Expr : Value = left: Expr & '+' & right: Expr  << 1 => @(left + right)
+	             | left: Expr & '-' & right: Expr  << 1 => @(left - right)
+	             | left: Expr & '*' & right: Expr  << 2 => @(left * right)
+	             | left: Expr & '/' & right: Expr  << 2 => @(left / right)
+	             | left: Expr & '^' & right: Expr  >> 3 => @(Raise(left, right))
+	             | '-' & operand: Expr             >> 3 => @(-operand)
+	             | '(' & inner: Expr & ')'              => @(inner)
+	             | value: Value                         => @(value)
 
-	Primary : @int = '(' & inner: Sum & ')'                           => @(inner)
-	               | digits: ['0'..'9']+                              => @int.Parse(digits)
+	IntNumber     : @int     = d: Std.Digits => @(int.Parse(d))
+	DecimalNumber : @decimal = d: Point      => @(decimal.Parse(d, CultureInfo.InvariantCulture))
+	NodeNumber    : @Node    = d: Point      => @(new Node.Number(decimal.Parse(d, CultureInfo.InvariantCulture)))
 
-	parse Sum as Evaluate
+	parse Expr with (Value = IntNumber)     as EvaluateInt
+	parse Expr with (Value = DecimalNumber) as EvaluateDecimal
+	parse Expr with (Value = NodeNumber)    as BuildTree
 	""")]
 public static partial class Calculator
 {
-	// Evaluate and TryEvaluate are generated here. Nothing else is needed: the grammar
-	// is the whole of the calculator, and the arithmetic is the C# in it.
+	/// <summary>The tree the third parser builds, and the operators that build it.</summary>
+	public abstract record Node
+	{
+		public sealed record Number(decimal Of)                     : Node;
+		public sealed record Binary(char Op, Node Left, Node Right) : Node;
+		public sealed record Negate(Node Of)                        : Node;
+
+		public static Node operator +(Node left, Node right) => new Binary('+', left, right);
+		public static Node operator -(Node left, Node right) => new Binary('-', left, right);
+		public static Node operator *(Node left, Node right) => new Binary('*', left, right);
+		public static Node operator /(Node left, Node right) => new Binary('/', left, right);
+		public static Node operator -(Node of)               => new Negate(of);
+	}
 
 	/// <summary>What an expression works out to, or the reason it does not.</summary>
 	public static string Explain(string expression)
 	{
-		var answer = TryEvaluate(expression);
+		var answer = TryEvaluateInt(expression);
 
 		return answer.IsSuccess
 			? expression + " = " + answer.Value
 			: answer.Error + " at " + answer.Position;
 	}
+
+	// Power, three ways, because no operator will do: `^` is exclusive-or on `int` and is
+	// not defined for `decimal` at all. See DecimalCalculatorExample for why a decimal
+	// power written to be right is longer than this.
+	static int     Raise(int     left, int     right) => (int)Math.Pow(left, right);
+	static decimal Raise(decimal left, decimal right) => (decimal)Math.Pow((double)left, (double)right);
+	static Node    Raise(Node    left, Node    right) => new Node.Binary('^', left, right);
 }

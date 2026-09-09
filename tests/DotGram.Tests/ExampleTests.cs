@@ -158,14 +158,72 @@ public sealed class ExampleTests
 
 	[Theory]
 	[InlineData("1+2+3",         6)]
-	[InlineData("1-2-3",        -4)]     // (1-2)-3, because Sum recurses on the left
+	[InlineData("1-2-3",        -4)]     // (1-2)-3, because `<< 1` reads the right side tighter
 	[InlineData("2+3*4",        14)]
 	[InlineData("(2+3)*4",      20)]
 	[InlineData("100/5/2",      10)]
 	[InlineData("-3*-4",        12)]
+	[InlineData("2^3^2",       512)]     // 2^(3^2), because `>> 3` reads it at its own strength
+	[InlineData("-2^2",         -4)]     // and a prefix is a base, so this is -(2^2)
 	[InlineData(" 1 + 2 * 3 ",   7)]     // trivia is shadowed, so spaces do not matter
 	public void The_calculator_computes(string expression, int expected) =>
-		Assert.Equal(expected, Calculator.Evaluate(expression));
+		Assert.Equal(expected, Calculator.EvaluateInt(expression));
+
+	/// <summary>The same rule published over decimal, and over a tree.</summary>
+	/// <remarks>
+	/// One substitution apart: `parse Expr with (Value = …)`. The arithmetic is written
+	/// once and its `=&gt;` bodies name no type, so `left + right` is C#'s `+` on whichever
+	/// number arrived — and over `Node` it is the operator that type declares, which builds
+	/// a node instead of adding anything.
+	/// </remarks>
+	[Theory]
+	[InlineData("7/2",      "3.5")]      // the int parser says 3 for this one
+	[InlineData("1.5*2",    "3.0")]      // decimal keeps the scale its operands had
+	[InlineData("1+2*3",    "7")]
+	public void And_the_same_rule_over_decimal(string expression, string expected) =>
+		Assert.Equal(
+			expected,
+			Calculator.EvaluateDecimal(expression).ToString(CultureInfo.InvariantCulture));
+
+	[Fact]
+	public void And_the_same_rule_as_a_tree()
+	{
+		// Left-associative in the tree exactly as it is in the numbers: one grammar.
+		Assert.Equal(
+			"(1 - 2) - 3",
+			Written(Calculator.BuildTree("1 - 2 - 3")));
+
+		Assert.Equal("-(1 + 2) * 3", Written(Calculator.BuildTree("-(1 + 2) * 3")));
+
+		// And the exception: `^` cannot be an operator over three types, so it is a method
+		// — and the tree is what says the method was reached at the right strength.
+		Assert.Equal("2 ^ (3 ^ 2)", Written(Calculator.BuildTree("2 ^ 3 ^ 2")));
+	}
+
+	/// <summary>A tree back as text, bracketed everywhere, so a shape is readable.</summary>
+	static string Written(Calculator.Node node) => node switch
+	{
+		Calculator.Node.Number  number => number.Of.ToString(CultureInfo.InvariantCulture),
+		Calculator.Node.Negate  negate => "-" + Held(negate.Of),
+		Calculator.Node.Binary  binary => Held(binary.Left) + " " + binary.Op + " " + Held(binary.Right),
+		_ => throw new InvalidOperationException(),
+	};
+
+	/// <summary>An operand, in brackets where it is itself an operation.</summary>
+	static string Held(Calculator.Node node) =>
+		node is Calculator.Node.Binary ? "(" + Written(node) + ")" : Written(node);
+
+	/// <summary>Each publication hands back its own type, not one with a conversion.</summary>
+	[Fact]
+	public void And_each_publication_hands_back_its_own_type()
+	{
+		Assert.IsType<int>(Calculator.EvaluateInt("1"));
+		Assert.IsType<decimal>(Calculator.EvaluateDecimal("1"));
+
+		// The int one has never heard of a decimal point: `Value` is `IntNumber` there.
+		Assert.False(Calculator.TryEvaluateInt("1.5").IsSuccess);
+		Assert.True(Calculator.TryEvaluateDecimal("1.5").IsSuccess);
+	}
 
 	// ── One grammar, two calculators ─────────────────────────────────────────────
 
@@ -214,7 +272,7 @@ public sealed class ExampleTests
 		// furthest position — a predictive dispatch, and its display is the union of what
 		// each alternative could have begun with (docs/status.md).
 		Assert.StartsWith("Expected ['-' | '(' | '0'..'9'].", Calculator.Explain("2*"));
-		Assert.Throws<FormatException>(static () => Calculator.Evaluate("2*"));
+		Assert.Throws<FormatException>(static () => Calculator.EvaluateInt("2*"));
 	}
 
 	// ── The calculator that recurses both ways ───────────────────────────────────

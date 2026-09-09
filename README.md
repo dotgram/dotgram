@@ -77,53 +77,34 @@ A grammar does not have to describe only one parser. The arithmetic below is wri
 and published three times: over `int`, over `decimal`, and as a tree.
 
 ```csharp
+using System;
+
 using DotGram;
 
 [Gram("""
 	@using System.Globalization;
 
-	trivia = [' ' | '\t']*
+	trivia = Std.Spacing?
 
-	Digits = ['0'..'9']+
-	Point  = Digits & ('.' & Digits)?
+	Value : @int = d: Std.Digits => @(int.Parse(d))
+	Point        = Std.Digits & ('.' & Std.Digits)?
 
-	Value : @int = d: Digits => @(int.Parse(d))
+	Expr : Value = left: Expr & '+' & right: Expr  << 1 => @(left + right)
+	             | left: Expr & '-' & right: Expr  << 1 => @(left - right)
+	             | left: Expr & '*' & right: Expr  << 2 => @(left * right)
+	             | left: Expr & '/' & right: Expr  << 2 => @(left / right)
+	             | left: Expr & '^' & right: Expr  >> 3 => @(Raise(left, right))
+	             | '-' & operand: Expr             >> 3 => @(-operand)
+	             | '(' & inner: Expr & ')'              => @(inner)
+	             | value: Value                         => @(value)
 
-	Sum
-		: Value
-		= left: Sum & op: ['+' | '-'] & right: Product
-			=> @(op == "+" ? left + right : left - right)
-		| value: Product
-			=> @(value)
+	IntNumber     : @int     = d: Std.Digits => @(int.Parse(d))
+	DecimalNumber : @decimal = d: Point      => @(decimal.Parse(d, CultureInfo.InvariantCulture))
+	NodeNumber    : @Node    = d: Point      => @(new Node.Number(decimal.Parse(d, CultureInfo.InvariantCulture)))
 
-	Product
-		: Value
-		= left: Product & op: ['*' | '/'] & right: Unary
-			=> @(op == "*" ? left * right : left / right)
-		| value: Unary
-			=> @(value)
-
-	Unary
-		: Value
-		= '-' & operand: Unary
-			=> @(-operand)
-		| value: Primary
-			=> @(value)
-
-	Primary
-		: Value
-		= '(' & value: Sum & ')'
-			=> @(value)
-		| value: Value
-			=> @(value)
-
-	IntNumber     : @int     = d: Digits => @(int.Parse(d))
-	DecimalNumber : @decimal = d: Point  => @(decimal.Parse(d, CultureInfo.InvariantCulture))
-	NodeNumber    : @Node    = d: Point  => @(new Node.Number(decimal.Parse(d, CultureInfo.InvariantCulture)))
-
-	parse Sum with (Value = IntNumber)     as EvaluateInt
-	parse Sum with (Value = DecimalNumber) as EvaluateDecimal
-	parse Sum with (Value = NodeNumber)    as BuildTree
+	parse Expr with (Value = IntNumber)     as EvaluateInt
+	parse Expr with (Value = DecimalNumber) as EvaluateDecimal
+	parse Expr with (Value = NodeNumber)    as BuildTree
 	""")]
 public static partial class Calculator
 {
@@ -140,6 +121,10 @@ public static partial class Calculator
 		public static Node operator /(Node left, Node right) => new Binary('/', left, right);
 		public static Node operator -(Node of)               => new Negate(of);
 	}
+
+	static int     Raise(int     left, int     right) => (int)Math.Pow(left, right);
+	static decimal Raise(decimal left, decimal right) => (decimal)Math.Pow((double)left, (double)right);
+	static Node    Raise(Node    left, Node    right) => new Node.Binary('^', left, right);
 }
 ```
 
@@ -148,31 +133,40 @@ Three parsers come out of it:
 ```csharp
 Calculator.EvaluateInt("7 / 2");          // 3
 Calculator.EvaluateDecimal("7 / 2");      // 3.5
-Calculator.EvaluateDecimal("1 + 2 * 3");  // 7
+Calculator.EvaluateInt("2 ^ 3 ^ 2");      // 512, since `^` groups to the right
+Calculator.EvaluateInt("-2 ^ 2");         // -4, since a prefix is where an expression starts
 
-Calculator.TryEvaluateInt("1.5");         // no match
+Calculator.TryEvaluateInt("1.5");         // no match: `Value` is `IntNumber` there
 
 Calculator.BuildTree("1 - 2 - 3");
 // Binary(-, Binary(-, Number(1), Number(2)), Number(3))
 ```
 
-`Sum`, `Product`, `Unary` and `Primary` are written once. What separates the three parsers
-is the publication:
+The whole language is one rule. `<< n` reads the operand on its right one strength
+tighter, so the operator groups to the left; `>> n` reads it at `n`, so it groups to the
+right. Higher binds tighter, and the numbers are the author's: the gaps are where a level
+goes in later, as a number, with nothing else touched.
+
+What separates the three parsers is the publication:
 
 ```text
-parse Sum with (Value = IntNumber)     as EvaluateInt
-parse Sum with (Value = DecimalNumber) as EvaluateDecimal
-parse Sum with (Value = NodeNumber)    as BuildTree
+parse Expr with (Value = IntNumber)     as EvaluateInt
+parse Expr with (Value = DecimalNumber) as EvaluateDecimal
+parse Expr with (Value = NodeNumber)    as BuildTree
 ```
 
 `with` substitutes a rule through the grammar reachable from that publication, and the
-result type follows the substitution: `Sum : Value` means "the type produced by `Value`",
+result type follows the substitution: `Expr : Value` means "the type produced by `Value`",
 so the three parsers return `int`, `decimal` and `Node`.
 
 The actions do not change either. `left + right` is C#, and what it adds up to is the C#
 compiler's: over `int` it is addition, and over `Node` it is the operator declared beside
 the grammar, which builds a node. The grammar says where an operator goes and which
 operands it takes; what it then means is not the grammar's business.
+
+`^` is the exception that shows what the rest rests on. C# has no `^` for `decimal`, and
+its `^` on `int` is exclusive-or rather than power, so that one alternative calls a method
+— overloaded the three ways the operators are overloaded once.
 
 There is no runtime generic dispatch and no parser configuration object. All three parsers
 are specialized when the C# is generated.
