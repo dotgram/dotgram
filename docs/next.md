@@ -17264,5 +17264,9 @@ statement, 52 unread to 46.
 
 Twice in one afternoon a capture was named after a C# keyword — `using`, then `checked` —
 and both came out as a syntax error inside the generated `=>`, reported against the grammar
-at a column in the middle of a line. Worth a rule in the grammar's own head: **a capture is
-named for what it holds, and never with a word C# has taken.**
+at a column in the middle of a line. The lesson written here first was "never name a
+capture with a word C# has taken", and Igor pointed out it is the wrong one: **the
+generator already escapes it.** `ResultTypes.ParameterOf` has emitted `@using` for the
+parameter since the day captures became parameters, and the whole keyword list is beside
+it. What was missing was on the author's side — inside the `=>` the name is C#, so it is
+written `@(@using)`. A test now says so, and §3.5 does.

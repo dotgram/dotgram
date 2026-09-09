@@ -1960,6 +1960,35 @@ public sealed class GeneratorDriverTests
 		});
 	}
 
+	/// <summary>
+	/// A capture may be called anything the grammar can spell, and the grammar has no
+	/// reserved words — so a capture named <c>using</c> is a parameter named <c>@using</c>,
+	/// and the <c>=&gt;</c> names it the way C# names such a parameter (§3.5).
+	/// </summary>
+	/// <remarks>
+	/// The escape has been emitted since captures became parameters; what this holds is that
+	/// it still is, and that the two sides agree — the grammar's own spelling on the left of
+	/// the colon, C#'s inside the braces.
+	/// </remarks>
+	[Fact]
+	public void A_capture_may_be_named_for_a_word_csharp_has_taken()
+	{
+		var built = Build(""""
+			using DotGram;
+
+			[Gram("""
+				Start : @string = using: ['a'..'z']+ & '/' & checked: ['0'..'9']+
+					=> @(@using + "|" + @checked)
+				parse Start
+				""")]
+			public static partial class Taken;
+			"""");
+
+		var parse = built.GetType("Taken")!.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal("ab|12", parse.Invoke(null, ["ab/12"]));
+	}
+
 	// ── Two readings of one grammar ─────────────────────────────────────────
 
 	/// <summary>

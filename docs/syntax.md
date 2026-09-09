@@ -303,6 +303,20 @@ while the value has type `@DateOnly`.
 A capture cannot take a type: a group and a call are allowed on its right
 (`value: (A & B)`, `y: Digits(4)`), and those are recognizers, not types.
 
+**A capture may be called anything the grammar can spell, C#'s own words included.** A
+capture becomes a parameter of the method a `=>` compiles into, and one named `using`,
+`base` or `checked` is written there as C# writes such a name — `@using` — so that is how
+the `=>` names it too:
+
+```dotgram
+Import : @string = using: Identifier => @(@using)
+```
+
+The escape belongs to C# and stops at its edge: the grammar says `using:` on the left,
+because a rule name and a capture name are the grammar's own and nothing there is
+reserved. Written without the `@` inside the `=>`, it is a C# syntax error against that
+line of the grammar, which is what it is.
+
 ### 3.6 Guard
 
 ```dotgram
