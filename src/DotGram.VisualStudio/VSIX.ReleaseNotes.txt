@@ -1,4 +1,4 @@
-DotGram language support 0.1.56
+DotGram language support 0.1.57
 
 Initial preview for Visual Studio 18.
 
@@ -16,6 +16,8 @@ Initial preview for Visual Studio 18.
 - Large embedded grammars receive syntax colors before deferred semantic analysis.
 - A question mark after a rule name is recognized as the rule gives-back marker.
 - Invalid case-insensitive character-set bounds receive precise suffix diagnostics.
+- Standalone grammar analysis is debounced and runs off the UI thread for responsive editing of large files.
+- Attribute discovery and grammar syntax are synchronized with the current DotGram language version.
 - Parameters annotated with `StringSyntax("DotGram")` or `StringSyntax(".gram")`
   enable DotGram grammar tooling.
 - A host has one `[Gram]`; additional `[GramOptions]` readings no longer look like
