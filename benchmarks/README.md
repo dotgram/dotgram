@@ -35,7 +35,8 @@ rents.
 
 ## The URL benchmark
 
-`examples/UrlExample.cs`'s grammar against the same language written as a regular
+`examples/DotGram.Examples/Formats/UrlExample.cs`'s grammar against the same language
+written as a regular
 expression, interpreted and compiled. The pattern is not a loose URL-shaped regex: it is
 that grammar transcribed rule by rule, with the same character classes and the same named
 groups, and **the run refuses to start until both sides agree on every input** — scheme,

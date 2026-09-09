@@ -4,7 +4,8 @@ using DotGram;
 
 namespace DotGram.Benchmarks;
 
-// The URL grammar of examples/UrlExample.cs, copied rather than referenced.
+// The URL grammar of examples/DotGram.Examples/Formats/UrlExample.cs, copied rather
+// than referenced.
 //
 // Copied on purpose. A benchmark that referenced the examples project would measure a
 // parser generated with that project's settings, and the thing under test is what the

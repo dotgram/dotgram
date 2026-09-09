@@ -9,7 +9,8 @@ using DotGram;
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// The URL grammar of <c>examples/UrlExample.cs</c> against the same language written as
+/// The URL grammar of <c>examples/DotGram.Examples/Formats/UrlExample.cs</c> against the
+/// same language written as
 /// a regular expression, interpreted and compiled.
 /// </summary>
 /// <remarks>

@@ -488,13 +488,13 @@ Complete examples are under [`examples/DotGram.Examples`](examples/DotGram.Examp
 
 | Example | What it demonstrates |
 | --- | --- |
-| [`JsonExample.cs`](examples/DotGram.Examples/JsonExample.cs) | recursive structured data |
-| [`XmlExample.cs`](examples/DotGram.Examples/XmlExample.cs) | a closing tag checked against its opening tag |
-| [`TypedCsvExample.cs`](examples/DotGram.Examples/TypedCsvExample.cs) | construction of existing C# types |
-| [`GramExample.cs`](examples/DotGram.Examples/GramExample.cs) | the .Gram notation parsed by .Gram itself |
+| [`JsonExample.cs`](examples/DotGram.Examples/Formats/JsonExample.cs) | recursive structured data |
+| [`XmlExample.cs`](examples/DotGram.Examples/Formats/XmlExample.cs) | a closing tag checked against its opening tag |
+| [`TypedCsvExample.cs`](examples/DotGram.Examples/Formats/TypedCsvExample.cs) | construction of existing C# types |
+| [`GramExample.cs`](examples/DotGram.Examples/Languages/GramExample.cs) | the .Gram notation parsed by .Gram itself |
 
-[`examples/README.md`](examples/README.md) lists the rest, in the order they are worth
-reading.
+[`examples/README.md`](examples/README.md) lists all twenty-four, grouped by what they
+read: formats, feeds, expressions, languages.
 
 ## Documentation
 

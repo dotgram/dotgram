@@ -87,10 +87,20 @@ src/
 examples/
 	DotGram.Examples/     whole parsers meant to be copied: a grammar, the class it
 	                      attaches to, and the code written against it. No test
-	                      framework and no scaffolding — DotGram.Tests runs them
+	                      framework and no scaffolding — DotGram.Tests runs them.
+	                      Grouped by what they read — Formats/, Feeds/, Expressions/,
+	                      Languages/ — and all in one namespace, so a copied file
+	                      carries no folder with it
 tests/
 	DotGram.Tests/        three levels: direct calls, in-memory generator driver,
 	                      and the generator attached as an analyzer
+	  Calculators/        one language spelled several ways, held against itself: the
+	                      spellings an example would only repeat
+	DotGram.Compatibility/ the generated code built for netstandard2.0, net472 and
+	                      net8.0 at the C# 8 floor. Building it is the assertion
+	DotGram.VisualStudio.Tests/
+	  Playground/         grammars to open in the experimental instance, each with the
+	                      manual check beside it (docs/visual-studio.md)
 	Snapshots/            a grammar and the file it must compile into, checked in so
 	                      a change to code generation shows up as a diff
 benchmarks/

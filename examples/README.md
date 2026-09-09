@@ -4,17 +4,54 @@ Whole, working parsers, meant to be copied. No test framework and no scaffolding
 each file is a grammar, the class it attaches to, and the code somebody would write
 against it. `DotGram.Tests` runs them; nothing here knows that.
 
+Read them in this order if you are reading rather than looking something up: a format,
+then a feed, then an expression language, then one of the larger ones.
+
+## Formats
+
 | | |
 | --- | --- |
-| [`UrlExample.cs`](DotGram.Examples/UrlExample.cs) | a URL, after RFC 3986 — captures, optional parts, `find` |
-| [`FeedExample.cs`](DotGram.Examples/FeedExample.cs) | a line-oriented feed — nested rule values, a sequence of records, an envelope checked as a whole |
-| [`RecoveringFeedExample.cs`](DotGram.Examples/RecoveringFeedExample.cs) | the same feed, read past a malformed record — `recover`, and rejections that arrive in the sequence with the records |
-| [`LoggingFeedExample.cs`](DotGram.Examples/LoggingFeedExample.cs) | the same again with the rejections sent elsewhere — `recover` with no `=>`, and the `partial void` that vanishes when nobody implements it |
-| [`StreamingFeedExample.cs`](DotGram.Examples/StreamingFeedExample.cs) | the same feed out of a `TextReader` — a result that comes in parts, a window that is reused, and a trailer checked against records nobody held |
-| [`CalculatorExample.cs`](DotGram.Examples/CalculatorExample.cs) | arithmetic in one rule, published three times — `<< n` and `>> n`, `with` over `int`, `decimal` and a tree, and operators declared beside the grammar |
-| [`LocaleNumberExample.cs`](DotGram.Examples/LocaleNumberExample.cs) | one decimal-number rule, published under two decimal points — `namespace N with (A = B) { ... }` reusing a rule rather than a namespace shadowing one locally |
-| [`ExpressionTreeExample.cs`](DotGram.Examples/ExpressionTreeExample.cs) | the same arithmetic as five rules, building a tree that is somebody else's type — one record per operation, and patterns back in |
-| [`Expression.cs`](DotGram.Examples/Expression.cs) | the tree it builds, and everything the tree can do. No grammar in it, deliberately: what a tree means is not the parser's business |
+| [`JsonExample.cs`](DotGram.Examples/Formats/JsonExample.cs) | JSON — recursive structure, and a rule that reads what it built into a type of its own |
+| [`IniExample.cs`](DotGram.Examples/Formats/IniExample.cs) | an INI file, read into the shape a caller wants rather than into sections and keys |
+| [`TypedCsvExample.cs`](DotGram.Examples/Formats/TypedCsvExample.cs) | a CSV into records, with no `=>` anywhere: captures matched to a constructor by name |
+| [`UrlExample.cs`](DotGram.Examples/Formats/UrlExample.cs) | a URL, after RFC 3986 — captures, optional parts, `find` |
+| [`HttpHeadersExample.cs`](DotGram.Examples/Formats/HttpHeadersExample.cs) | header fields into a lookup, continuation lines and all |
+| [`FixedWidthExample.cs`](DotGram.Examples/Formats/FixedWidthExample.cs) | fields found by counting rather than by looking for a delimiter |
+| [`NetstringExample.cs`](DotGram.Examples/Formats/NetstringExample.cs) | netstrings — the one shape a grammar genuinely cannot express, and what to do about it |
+| [`FixExample.cs`](DotGram.Examples/Formats/FixExample.cs) | FIX messages, and the C# that checks what the grammar cannot |
+| [`XmlExample.cs`](DotGram.Examples/Formats/XmlExample.cs) | XML, cut to elements and attributes — a closing tag checked against its opening one |
+| [`MarkdownExample.cs`](DotGram.Examples/Formats/MarkdownExample.cs) | block structure — headings, bullets, fenced code, paragraphs |
+| [`YamlExample.cs`](DotGram.Examples/Formats/YamlExample.cs) | nesting by indentation, to any depth |
+
+## Feeds
+
+Record-oriented input, four ways, over one line-oriented format.
+
+| | |
+| --- | --- |
+| [`FeedExample.cs`](DotGram.Examples/Feeds/FeedExample.cs) | nested rule values, a sequence of records, an envelope checked as a whole |
+| [`RecoveringFeedExample.cs`](DotGram.Examples/Feeds/RecoveringFeedExample.cs) | the same feed read past a malformed record — `recover`, and rejections arriving beside the records |
+| [`LoggingFeedExample.cs`](DotGram.Examples/Feeds/LoggingFeedExample.cs) | the same again with the rejections sent elsewhere — `recover` with no `=>`, and a `partial void` that vanishes when nobody implements it |
+| [`StreamingFeedExample.cs`](DotGram.Examples/Feeds/StreamingFeedExample.cs) | the same feed out of a `TextReader` — a result in parts, a window reused, and a trailer checked against records nobody held |
+
+## Expressions
+
+| | |
+| --- | --- |
+| [`CalculatorExample.cs`](DotGram.Examples/Expressions/CalculatorExample.cs) | arithmetic in one rule, published three times — `<< n` and `>> n`, `with` over `int`, `decimal` and a tree, and operators declared beside the grammar |
+| [`ExpressionTreeExample.cs`](DotGram.Examples/Expressions/ExpressionTreeExample.cs) | the same arithmetic as five rules, building a tree that is somebody else's type |
+| [`Expression.cs`](DotGram.Examples/Expressions/Expression.cs) | the tree it builds, and everything the tree can do. No grammar in it, deliberately: what a tree means is not the parser's business |
+| [`LocaleNumberExample.cs`](DotGram.Examples/Expressions/LocaleNumberExample.cs) | one decimal-number rule read under two decimal points — `namespace N with (A = B) { ... }` |
+| [`ExtensionNodeExample.cs`](DotGram.Examples/Expressions/ExtensionNodeExample.cs) | a `=>` that builds a node `System.Linq.Expressions` has no factory for |
+
+## Languages
+
+| | |
+| --- | --- |
+| [`FilterExample.cs`](DotGram.Examples/Languages/FilterExample.cs) | the filter language an API puts in a query string — binding powers, and a tree |
+| [`SelectorExample.cs`](DotGram.Examples/Languages/SelectorExample.cs) | `orders[2].lines.total(net)` read as the chain of steps it is |
+| [`SqlReadOnlyExample.cs`](DotGram.Examples/Languages/SqlReadOnlyExample.cs) | a guard that answers one question: can this statement write anything? |
+| [`GramExample.cs`](DotGram.Examples/Languages/GramExample.cs) | the .Gram notation parsed by .Gram itself, building a tree |
 
 ## Taking one
 
