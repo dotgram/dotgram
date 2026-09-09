@@ -1225,8 +1225,8 @@ TryCatchStatement : @Statement
 		=> @(new Statement.TryCatch(tried, caught))
 
 StatementBlock : @Statement
-	= "BEGIN"i & "ATOMIC"i & "WITH"i & '(' & OptionList & ')' & body: StatementList & "END"i
-		=> @(new Statement.Compound(body))
+	= "BEGIN"i & "ATOMIC"i & "WITH"i & '(' & atomic: OptionList & ')' & body: StatementList & "END"i
+		=> @(new Statement.Compound(body, atomic))
 	| "BEGIN"i & body: StatementList & "END"i => @(new Statement.Compound(body))
 
 ConditionalStatement : @Statement
@@ -1268,7 +1268,7 @@ Declaration : @Clause
 DeclaredAs : @Clause.VariableDeclaration
 	= "TABLE"i & '(' & body: TableBody & ')'              => @(new Clause.VariableDeclaration("", "TABLE", null, body))
 	| "CURSOR"i                                           => @(new Clause.VariableDeclaration("", "CURSOR", null))
-	| type: DataType & NullSpec? & ('=' & v: SetValue)?   => @(new Clause.VariableDeclaration("", type, v))
+	| type: DataType & n: NullSpec? & ('=' & v: SetValue)? => @(new Clause.VariableDeclaration("", type, v, null, n))
 
 CursorOption = "LOCAL"i | "GLOBAL"i | "FORWARD_ONLY"i | "SCROLL"i | "STATIC"i | "KEYSET"i
 			 | "DYNAMIC"i | "FAST_FORWARD"i | "READ_ONLY"i | "SCROLL_LOCKS"i | "OPTIMISTIC"i
@@ -1703,7 +1703,7 @@ SplitOrMerge     = "SPLIT"i | "MERGE"i
 LeftOrRight      = "LEFT"i | "RIGHT"i
 EnableWord       = "ENABLE"i | "DISABLE"i
 ConstraintNames  = "ALL"i | Identifier & (',' & Identifier)*
-PartitionWhich   = "ALL"i | ValueExpression
+PartitionWhich : @Expression = "ALL"i => @(new Expression.ColumnReference("ALL")) | v: ValueExpression => @(v)
 
 DropTarget : @Clause
 	= "COLUMN"i & name: Identifier     => @(Clause.Marked("COLUMN", name))
@@ -1736,10 +1736,10 @@ RoutineBody : @Statement
 
 // ── CREATE PROCEDURE ────────────────────────────────────────────────────────
 ProcedureStatement : @Statement
-	= ProcWord & name: QualifiedName & (';' & Sql92.Lexical.Digits)?
-	  & parameters: RoutineParameters? & RoutineOptions? & ("FOR"i & "REPLICATION"i)?
-	  & "AS"i & body: RoutineTail
-		=> @(new Statement.CreateProcedure(name, parameters ?? Clause.None, body))
+	= ProcWord & name: QualifiedName & (';' & number: Sql92.Lexical.Digits)?
+	  & parameters: RoutineParameters? & options: RoutineOptions? & replication: ("FOR"i & "REPLICATION"i)?
+	  & "AS"i & ("EXTERNAL"i & "NAME"i & external: QualifiedName | body: StatementList)
+		=> @(new Statement.CreateProcedure(name, parameters ?? Clause.None, body ?? Statement.None, options, replication is not null, external, number))
 
 ProcWord = "PROCEDURE"i | "PROC"i
 
@@ -1753,27 +1753,31 @@ RoutineParameters : @Clause[]
 		=> @(Syntax.Listed(first, rest))
 
 RoutineParameter : @Clause
-	= name: Tsql.Variable & "AS"i? & type: DataType & "VARYING"i? & NullSpec?
-	  & ('=' & v: SetValue)? & ParameterWay*
-		=> @(new Clause.ParameterDeclaration(name, type, v))
+	= name: Tsql.Variable & "AS"i? & type: DataType & varying: "VARYING"i? & n: NullSpec?
+	  & ('=' & v: SetValue)? & ways: ParameterWay*
+		=> @(new Clause.ParameterDeclaration(name, type, v, n, varying is not null, ways))
 
-ParameterWay = "OUTPUT"i | "OUT"i | "READONLY"i
+ParameterWay : @string = t: ("OUTPUT"i | "OUT"i | "READONLY"i) => @(Syntax.Squared(t))
 
-RoutineOptions = "WITH"i & RoutineOption & (',' & RoutineOption)*
+RoutineOptions : @Clause[]
+	= "WITH"i & first: RoutineOption & (',' & rest: RoutineOption)* => @(Syntax.Listed(first, rest))
 
-RoutineOption = "EXECUTE"i & "AS"i & ExecuteAsWho
-			  | "RETURNS"i & "NULL"i & "ON"i & "NULL"i & "INPUT"i
-			  | "CALLED"i & "ON"i & "NULL"i & "INPUT"i
+RoutineOption : @Clause
+	= "EXECUTE"i & "AS"i & who: ExecuteAsWho
+		=> @(new Clause.Option("EXECUTE AS", new Expression.ColumnReference(who), Clause.None, null, true))
+	| t: ("RETURNS"i & "NULL"i & "ON"i & "NULL"i & "INPUT"i) => @(new Clause.Option(Syntax.Squared(t), null, Clause.None))
+	| t: ("CALLED"i & "ON"i & "NULL"i & "INPUT"i)            => @(new Clause.Option(Syntax.Squared(t), null, Clause.None))
 
-			  // One word and not a run of them, unlike an option inside brackets: this
-			  // list is not bracketed and `AS` follows it, so a run would take the `AS`
-			  // and the body behind it. What the published syntax names here is one word
-			  // anyway — `ENCRYPTION`, `SCHEMABINDING`, `NATIVE_COMPILATION`, `INLINE = ON`.
-			  | word & OptionTail?
+	// One word and not a run of them, unlike an option inside brackets: this list is not
+	// bracketed and `AS` follows it, so a run would take the `AS` and the body behind it.
+	// What the published syntax names here is one word anyway — `ENCRYPTION`,
+	// `SCHEMABINDING`, `NATIVE_COMPILATION`, `INLINE = ON`.
+	| name: word & tail: OptionTail? => @(tail is null ? new Clause.Option(name, null, Clause.None) : tail with { Name = name })
 
-ExecuteAsWho = "CALLER"i | "SELF"i | "OWNER"i
-			 | Sql92.Lexical.CharacterStringLiteral
-			 | Sql92.Lexical.NationalCharacterStringLiteral
+ExecuteAsWho : @string
+	= t: ("CALLER"i | "SELF"i | "OWNER"i
+		  | Sql92.Lexical.CharacterStringLiteral
+		  | Sql92.Lexical.NationalCharacterStringLiteral) => @(t)
 
 // What follows `AS`: a body, or the name of a method in an assembly.
 RoutineTail : @Statement[]
@@ -1870,10 +1874,10 @@ CreateIndexStatement : @Statement
 // `ALTER INDEX` names one index or all of them, and then says what to do.
 AlterIndexStatement : @Statement
 	= "ALTER"i & "INDEX"i & name: IndexTarget & "ON"i & on: QualifiedName
-	  & ("WITH"i & XmlNamespaces)? & SelectivePaths & IndexWith?
-		=> @(new Statement.AlterIndex(name, on, "FOR"))
+	  & ("WITH"i & ns: XmlNamespaces)? & paths: SelectivePaths & o: IndexWith?
+		=> @(new Statement.AlterIndex(name, on, "FOR", null, o, paths, ns))
 	| "ALTER"i & "INDEX"i & name: IndexTarget & "ON"i & on: QualifiedName & a: AlterIndexAction
-		=> @(new Statement.AlterIndex(name, on, a))
+		=> @(a with { Name = name, On = on })
 
 IndexTarget : @string = "ALL"i => @("ALL") | t: Identifier => @(t)
 
@@ -1885,11 +1889,13 @@ SelectivePaths : @string[]
 	= "FOR"i & '(' & first: SelectivePath & (',' & rest: SelectivePath)* & ')'
 		=> @(Syntax.Named(first, rest))
 
+// Each path as it was written: what it promotes, its XQuery type, its length, its
+// cardinality — a small language of its own that the tree keeps whole.
 SelectivePath : @string
-	= "ADD"i & p: PromotedPath          => @(p)
-	| "ALTER"i & "PATH"i & p: PromotedPath => @(p)
-	| "REMOVE"i & name: Identifier      => @(name)
-	| p: PromotedPath                   => @(p)
+	= t: ("ADD"i & PromotedPath
+		  | "ALTER"i & "PATH"i & PromotedPath
+		  | "REMOVE"i & Identifier
+		  | PromotedPath) => @(t)
 
 PromotedPath : @string
 	= name: Identifier & '=' & path: Sql92.Lexical.CharacterStringLiteral & PathHint*
@@ -1904,14 +1910,16 @@ PathHint = "AS"i & "XQUERY"i & Sql92.Lexical.CharacterStringLiteral? & PathLengt
 
 PathLength = "MAXLENGTH"i & '(' & Sql92.Lexical.UnsignedNumericLiteral & ')'
 
-AlterIndexAction : @string
-	= "REBUILD"i & ("PARTITION"i & '=' & PartitionWhich)? & IndexWith? => @("REBUILD")
-	| "REORGANIZE"i & ("PARTITION"i & '=' & PartitionWhich)? & IndexWith? => @("REORGANIZE")
-	| "DISABLE"i => @("DISABLE")
-	| "PAUSE"i => @("PAUSE")
-	| "ABORT"i => @("ABORT")
-	| "RESUME"i & IndexWith? => @("RESUME")
-	| "SET"i & '(' & OptionList & ')' => @("SET")
+AlterIndexAction : @Statement.AlterIndex
+	= "REBUILD"i & ("PARTITION"i & '=' & p: PartitionWhich)? & o: IndexWith?
+		=> @(new Statement.AlterIndex("", "", "REBUILD", p, o))
+	| "REORGANIZE"i & ("PARTITION"i & '=' & p: PartitionWhich)? & o: IndexWith?
+		=> @(new Statement.AlterIndex("", "", "REORGANIZE", p, o))
+	| "DISABLE"i => @(new Statement.AlterIndex("", "", "DISABLE"))
+	| "PAUSE"i   => @(new Statement.AlterIndex("", "", "PAUSE"))
+	| "ABORT"i   => @(new Statement.AlterIndex("", "", "ABORT"))
+	| "RESUME"i & o: IndexWith? => @(new Statement.AlterIndex("", "", "RESUME", null, o))
+	| "SET"i & '(' & o: OptionList & ')' => @(new Statement.AlterIndex("", "", "SET", null, o))
 
 // ── The keys, and what is locked with them ──────────────────────────────────
 //
@@ -2324,10 +2332,10 @@ ExternalStatement : @Statement
 	// then where they are. Synapse writes the query instead and lets it say the columns.
 	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & '(' & body: TableBody & ')'
 	  & options: OptionsWith
-		=> @(new Statement.TableDefinition(name, null, body, Clause.None, options))
+		=> @(new Statement.TableDefinition(name, null, body, Clause.None, options, true))
 	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & options: OptionsWith
 	  & "AS"i & q: DirectSelect
-		=> @(new Statement.CreateTableAsSelect(name, null, options, q))
+		=> @(new Statement.CreateTableAsSelect(name, null, options, q, true))
 
 	| "CREATE"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
 	  & ("AUTHORIZATION"i & QualifiedName)?

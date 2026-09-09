@@ -17134,3 +17134,12 @@ The list after a value, `QUERY_STORE = ON (…)`, and the list instead of one, `
 keeps its termination; `SCOPED CONFIGURATION FOR SECONDARY` keeps the secondary and `CLEAR
 PROCEDURE_CACHE` its handle. `AlterDatabaseSet` and `ScopedConfigurationSet` left the work
 list — 100% — and the corpus stands at 52.7% the same, 1775 unread.
+
+**Procedures and ALTER INDEX.** `CREATE PROCEDURE p () AS` is not a header SQL Server
+reads, and the writer had been bracketing an empty parameter list; now none. A parameter
+keeps `VARYING`, its nullability, `OUTPUT` and `READONLY`, and a declared variable its
+nullability; the procedure keeps its `WITH` options as `Clause.Option`s, `FOR REPLICATION`,
+the `;number`, and `EXTERNAL NAME` where that is the body; `BEGIN ATOMIC WITH (…)` is the
+compound's own list. `ALTER INDEX` keeps the partition, the options, and a selective XML
+index's paths as they were written. `CREATE EXTERNAL TABLE` says external. The corpus is
+55.8% the same, 1625 unread; `AlterIndex` 9 → 77%, `CreateProcedure` 13 → 75%.

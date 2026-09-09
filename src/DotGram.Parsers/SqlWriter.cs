@@ -168,8 +168,16 @@ public static class SqlWriter
 				text.Append(';');
 				break;
 
-			case Statement.Compound(var body):
+			case Statement.Compound(var body, var atomic):
 				text.Append("BEGIN ");
+
+				if (atomic is not null)
+				{
+					text.Append("ATOMIC WITH (");
+					Each(text, atomic);
+					text.Append(") ");
+				}
+
 				Block(text, body);
 				text.Append(" END");
 				break;
@@ -232,8 +240,8 @@ public static class SqlWriter
 
 				break;
 
-			case Statement.TableDefinition(var name, var kind, var elements, var placements, var options):
-				text.Append("CREATE TABLE ").Append(name);
+			case Statement.TableDefinition(var name, var kind, var elements, var placements, var options, var external):
+				text.Append(external ? "CREATE EXTERNAL TABLE " : "CREATE TABLE ").Append(name);
 
 				// `AS FILETABLE` stands before the columns, of which it has none; `AS NODE` and
 				// `AS EDGE` stand after them. Two syntaxes, and which one is which the word says.
@@ -256,8 +264,8 @@ public static class SqlWriter
 				Optioned(text, options);
 				break;
 
-			case Statement.CreateTableAsSelect(var name, var columns, var options, var body):
-				text.Append("CREATE TABLE ").Append(name);
+			case Statement.CreateTableAsSelect(var name, var columns, var options, var body, var external):
+				text.Append(external ? "CREATE EXTERNAL TABLE " : "CREATE TABLE ").Append(name);
 				Names(text, columns);
 				Optioned(text, options);
 				text.Append(" AS ");
@@ -276,11 +284,33 @@ public static class SqlWriter
 				Optioned(text, options);
 				break;
 
-			case Statement.CreateProcedure(var name, var parameters, var body):
+			case Statement.CreateProcedure(var name, var parameters, var body, var options, var replication, var external, var number):
 				text.Append("CREATE PROCEDURE ").Append(name);
-				Parameters(text, parameters);
+
+				if (number is not null)
+					text.Append(';').Append(number);
+
+				// Without brackets where there is nothing to bracket: `p ()` is not a
+				// procedure header to SQL Server.
+				if (parameters.Length > 0)
+					Parameters(text, parameters);
+
+				if (options is not null)
+				{
+					text.Append(" WITH ");
+					Each(text, options);
+				}
+
+				if (replication)
+					text.Append(" FOR REPLICATION");
+
 				text.Append(" AS ");
-				Block(text, body);
+
+				if (external is not null)
+					text.Append("EXTERNAL NAME ").Append(external);
+				else
+					Block(text, body);
+
 				break;
 
 			case Statement.CreateFunction(var name, var parameters, var returns, var body):
@@ -322,8 +352,24 @@ public static class SqlWriter
 				Put(text, (Clause.ConstraintDefinition)index, on);
 				break;
 
-			case Statement.AlterIndex(var name, var on, var action):
-				text.Append("ALTER INDEX ").Append(name).Append(" ON ").Append(on).Append(' ').Append(action);
+			case Statement.AlterIndex(var name, var on, var action, var partition, var options, var paths, var namespaces):
+				text.Append("ALTER INDEX ").Append(name).Append(" ON ").Append(on);
+
+				if (namespaces is not null)
+					text.Append(" WITH ").Append(namespaces);
+
+				text.Append(' ').Append(action);
+
+				if (partition is not null)
+				{
+					text.Append(" PARTITION = ");
+					Put(text, partition, 0);
+				}
+
+				if (paths is not null)
+					text.Append(" (").Append(string.Join(", ", paths)).Append(')');
+
+				Optioned(text, options);
 				break;
 
 			case Statement.UpdateStatistics(var on):
@@ -1276,8 +1322,11 @@ public static class SqlWriter
 				Arm(text, action);
 				break;
 
-			case Clause.VariableDeclaration(var name, var type, var value, var elements):
-				Declared(text, name, type, value);
+			case Clause.VariableDeclaration(var name, var type, var value, var elements, var nullability):
+				text.Append(name);
+
+				if (type is not null)
+					text.Append(' ').Append(type);
 
 				if (elements is not null)
 				{
@@ -1286,10 +1335,38 @@ public static class SqlWriter
 					text.Append(')');
 				}
 
+				if (nullability is not null)
+					text.Append(' ').Append(nullability);
+
+				if (value is not null)
+				{
+					text.Append(" = ");
+					Put(text, value, 0);
+				}
+
 				break;
 
-			case Clause.ParameterDeclaration(var name, var type, var value):
-				Declared(text, name, type, value);
+			case Clause.ParameterDeclaration(var name, var type, var value, var nullability, var varying, var ways):
+				text.Append(name);
+
+				if (type is not null)
+					text.Append(' ').Append(type);
+
+				if (varying)
+					text.Append(" VARYING");
+
+				if (nullability is not null)
+					text.Append(' ').Append(nullability);
+
+				if (value is not null)
+				{
+					text.Append(" = ");
+					Put(text, value, 0);
+				}
+
+				foreach (var way in ways ?? Syntax.NoNames)
+					text.Append(' ').Append(way);
+
 				break;
 
 			case Clause.ColumnDefinition(var name, var type, var computed, var options):

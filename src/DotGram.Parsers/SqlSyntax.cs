@@ -160,7 +160,7 @@ public abstract record Statement : ISqlSpan
 	// has one.
 
 	/// <summary><c>BEGIN … END</c>, and the body of anything that has one.</summary>
-	public sealed record Compound(Statement[] Statements) : Statement;
+	public sealed record Compound(Statement[] Statements, Clause[]? Atomic = null) : Statement;
 
 	/// <summary><c>IF … ELSE</c>, where either arm is one statement and a block is one.</summary>
 	public sealed record If(Expression Condition, Statement Then, Statement? Else) : Statement;
@@ -191,7 +191,7 @@ public abstract record Statement : ISqlSpan
 	/// and the options written after it.
 	/// </summary>
 	public sealed record TableDefinition(
-		string Name, string? Kind, Clause[] Elements, Clause[] Placements, Clause[] Options) : Statement;
+		string Name, string? Kind, Clause[] Elements, Clause[] Placements, Clause[] Options, bool External = false) : Statement;
 
 	/// <summary>
 	/// A table whose columns are whatever a query returns — <c>CREATE TABLE … AS SELECT</c>,
@@ -199,7 +199,7 @@ public abstract record Statement : ISqlSpan
 	/// the options between the name and the <c>AS</c>, and the query.
 	/// </summary>
 	public sealed record CreateTableAsSelect(
-		string Name, string[]? Columns, Clause[] Options, Statement Body) : Statement;
+		string Name, string[]? Columns, Clause[] Options, Statement Body, bool External = false) : Statement;
 
 	/// <summary>
 	/// §11.10 a table changed: its name, what is being done, to what, and the options the
@@ -210,9 +210,14 @@ public abstract record Statement : ISqlSpan
 
 	// ---- the routines --------------------------------------------------------------------------
 
-	/// <summary>A procedure: its name, what it takes, and what it does.</summary>
+	/// <summary>
+	/// A procedure: its name, what it takes, and what it does — or the method in an assembly
+	/// that does it — with the options between, the number after a <c>;</c>, and whether it
+	/// is for replication.
+	/// </summary>
 	public sealed record CreateProcedure(
-		string Name, Clause[] Parameters, Statement[] Body) : Statement;
+		string Name, Clause[] Parameters, Statement[] Body,
+		Clause[]? Options = null, bool ForReplication = false, string? External = null, string? Number = null) : Statement;
 
 	/// <summary>
 	/// A function, and what it returns says which of the three shapes it is: a type for a
@@ -239,7 +244,14 @@ public abstract record Statement : ISqlSpan
 	public sealed record CreateIndex(string On, Clause Index) : Statement;
 
 	/// <summary>An index changed: which one, on what, and what is being done to it.</summary>
-	public sealed record AlterIndex(string Name, string On, string Action) : Statement;
+	/// <summary>
+	/// <c>ALTER INDEX</c>: the index or <c>ALL</c>, the table, the action, and what the action
+	/// was given — the partition, the options, and for a selective XML index the paths it
+	/// promotes, each kept as written, with the namespaces in front of them.
+	/// </summary>
+	public sealed record AlterIndex(
+		string Name, string On, string Action,
+		Expression? Partition = null, Clause[]? Options = null, string[]? Paths = null, string? Namespaces = null) : Statement;
 
 	/// <summary><c>CREATE STATISTICS</c>.</summary>
 	public sealed record StatisticsDefinition(string Name) : Statement;
@@ -1592,10 +1604,16 @@ public abstract record Clause : ISqlSpan
 	/// One variable: its name, the type as written, and what it was given to start with.
 	/// </summary>
 	public sealed record VariableDeclaration(
-		string Name, string? Type, Expression? Value, Clause[]? Elements = null) : Clause;
+		string Name, string? Type, Expression? Value, Clause[]? Elements = null, string? Nullability = null) : Clause;
 
-	/// <summary>One parameter of a routine: its name, its type, and its default.</summary>
-	public sealed record ParameterDeclaration(string Name, string? Type, Expression? Value) : Clause;
+	/// <summary>
+	/// One parameter of a routine: its name, its type, and its default — and the words around
+	/// them, <c>VARYING</c> and the nullability before the default, <c>OUTPUT</c> and
+	/// <c>READONLY</c> after it.
+	/// </summary>
+	public sealed record ParameterDeclaration(
+		string Name, string? Type, Expression? Value,
+		string? Nullability = null, bool Varying = false, string[]? Ways = null) : Clause;
 
 	/// <summary>
 	/// §11.4 one column: its name, the type as written, the expression where it is computed
