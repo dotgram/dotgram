@@ -42,13 +42,13 @@
 		     exists: the generated parser's own methods take `ReadOnlySpan<char>`, which is
 		     not in the framework there. This is the whole of the addition — no other package
 		     and no polyfill of ours. -->
-		<PackageReference Include="System.Memory" Version="4.6.3" />
+		<PackageReference Include="System.Memory" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net472'">
 		<!-- How a machine with no .NET Framework targeting pack installed compiles for
 		     one at all, which is what CI is. Build-time only. -->
-		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3"
+		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies"
 		                  PrivateAssets="all" />
 	</ItemGroup>
 

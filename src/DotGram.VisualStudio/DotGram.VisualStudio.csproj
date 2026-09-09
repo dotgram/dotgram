@@ -30,11 +30,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" ExcludeAssets="runtime" />
-		<PackageReference Include="Microsoft.VisualStudio.LanguageServices" Version="4.14.0" ExcludeAssets="runtime" />
-		<PackageReference Include="Meziantou.Polyfill" Version="1.0.159" PrivateAssets="all" />
-		<PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" />
-		<PackageReference Include="Microsoft.VSSDK.BuildTools" Version="18.9.820" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" ExcludeAssets="runtime" />
+		<PackageReference Include="Microsoft.VisualStudio.LanguageServices" ExcludeAssets="runtime" />
+		<PackageReference Include="Meziantou.Polyfill" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.VisualStudio.SDK" ExcludeAssets="runtime" />
+		<PackageReference Include="Microsoft.VSSDK.BuildTools" PrivateAssets="all" />
 		<Reference Include="System.ComponentModel.Composition" />
 		<Reference Include="PresentationFramework" />
 		<Reference Include="PresentationCore" />

@@ -5,11 +5,13 @@
 		<OutputType>Exe</OutputType>
 		<RootNamespace>DotGram.HandDeferred</RootNamespace>
 		<IsPackable>false</IsPackable>
-		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+		<!-- Newer than the one DotGram.Benchmarks takes, and deliberately not unified
+		     here: the two were written a year apart, and moving either is a change to a
+		     harness rather than to a version list. -->
+		<PackageReference Include="BenchmarkDotNet" VersionOverride="0.15.8" />
 	</ItemGroup>
 
 	<ItemGroup>
