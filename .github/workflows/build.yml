@@ -20,17 +20,29 @@ jobs:
 
       - run: dotnet restore DotGram.slnx
 
+      # The Linux solution configuration: every project built as Release, minus the
+      # two that need the Visual Studio SDK and cannot be built off Windows. Being a
+      # solution configuration and not a project one, it still writes to bin/Release,
+      # which is why the steps below name Release and mean the same build.
       - name: Build
-        run: dotnet build DotGram.slnx --no-restore --configuration Release -warnaserror
+        run: dotnet build DotGram.slnx --no-restore --configuration Linux -warnaserror
 
       - name: Test
-        run: dotnet test DotGram.slnx --no-build --configuration Release
+        run: dotnet test DotGram.slnx --no-build --configuration Linux
 
       # The runner names the failures in a log it leaves behind, and a test step that
       # cannot tell you what broke is only half a test step.
       - name: Show the test log
         if: failure()
-        run: cat tests/DotGram.Tests/bin/Release/net10.0/TestResults/*.log
+        shell: bash
+        run: |
+          shopt -s nullglob
+          logs=(tests/*/bin/Release/*/TestResults/*.log)
+          if [ ${#logs[@]} -eq 0 ]; then
+            echo "No test log: the build failed before any test ran."
+          else
+            cat "${logs[@]}"
+          fi
 
       - name: Pack
         run: dotnet pack src/DotGram/DotGram.csproj --no-build --configuration Release --output artifacts
@@ -56,7 +68,8 @@ jobs:
   # The development machine is Windows and CI is not, which is the arrangement that
   # hides a path separator or a line ending until somebody else clones the repository.
   # Not on every push: this build proves the same thing the one above does, on the
-  # platform where file names, separators and CRLF behave differently.
+  # platform where file names, separators and CRLF behave differently — and, being the
+  # only one that can, it is also where the Visual Studio extension gets built.
   windows:
     if: github.event_name != 'push'
     runs-on: windows-latest
