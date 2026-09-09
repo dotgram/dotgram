@@ -1392,6 +1392,24 @@ public static class SqlWriter
 			text.Append(')');
 	}
 
+	/// <summary>What was written, one space between the pieces and nothing for a piece that was not.</summary>
+	static void Pieces(StringBuilder text, params string?[] pieces)
+	{
+		var first = true;
+
+		foreach (var piece in pieces)
+		{
+			if (piece is not { Length: > 0 })
+				continue;
+
+			if (!first)
+				text.Append(' ');
+
+			text.Append(piece);
+			first = false;
+		}
+	}
+
 	/// <summary>Placements one after another, each with its word.</summary>
 	static void Placed(StringBuilder text, Clause[]? placements)
 	{
@@ -1694,17 +1712,9 @@ public static class SqlWriter
 				break;
 
 			case Clause.Dropped(var kind, var dropped, var ifExists, var how):
-				text.Append(kind);
-
-				if (ifExists)
-					text.Append(" IF EXISTS");
-
-				if (dropped is not null)
-					text.Append(' ').Append(dropped);
-
-				if (how is not null)
-					text.Append(' ').Append(how);
-
+				// The kind is empty where the author did not write the word: `DROP
+				// CONSTRAINT c1 WITH (…), c2 WITH (…)` drops two and says `CONSTRAINT` once.
+				Pieces(text, kind, ifExists ? "IF EXISTS" : null, dropped, how);
 				break;
 
 			case Clause.DatabaseFile(var options):
@@ -1810,7 +1820,7 @@ public static class SqlWriter
 				break;
 
 			case Clause.MergeWhen(var matched, var by, var condition, var action):
-				text.Append(matched ? "WHEN MATCHED" : "WHEN NOT MATCHED BY " + by);
+				text.Append(matched ? "WHEN MATCHED" : by is null ? "WHEN NOT MATCHED" : "WHEN NOT MATCHED BY " + by);
 
 				if (condition is not null)
 				{
@@ -2123,6 +2133,31 @@ public static class SqlWriter
 
 	// ── Expressions ─────────────────────────────────────────────────────────────
 
+	/// <summary>A sign, and what it is applied to.</summary>
+	/// <remarks>
+	/// `- -1` and not `-(-1)`: two of the same sign need a space between them and nothing
+	/// else, since `--` begins a comment — and a sign in front of the other sign needs not
+	/// even that. Brackets the author did not write are not the tree's to add.
+	/// </remarks>
+	static void Signed(StringBuilder text, char sign, Expression operand)
+	{
+		text.Append(sign);
+
+		var next = operand switch
+		{
+			Expression.Negate                      => '-',
+			Expression.Plus                        => '+',
+			Expression.Literal { Text: ['-', ..] } => '-',
+			Expression.Literal { Text: ['+', ..] } => '+',
+			_                                      => '\0',
+		};
+
+		if (next == sign)
+			text.Append(' ');
+
+		Put(text, operand, next == '\0' ? 8 : 0);
+	}
+
 	/// <summary>How tightly a node binds, so that a bracket is written only where it is due.</summary>
 	static int Binds(Expression expression) => expression switch
 	{
@@ -2165,27 +2200,8 @@ public static class SqlWriter
 				Put(text, operand, 4);
 				break;
 
-			case Expression.Negate(var operand):
-				// `- -1` and not `-(-1)`: two signs need a space between them and nothing
-				// else, and brackets the author did not write are not the tree's to add.
-				text.Append('-');
-
-				if (operand is Expression.Negate || operand is Expression.Literal { Text: ['-', ..] })
-				{
-					text.Append(' ');
-					Put(text, operand, 0);
-				}
-				else
-				{
-					Put(text, operand, 8);
-				}
-
-				break;
-
-			case Expression.Plus(var operand):
-				text.Append('+');
-				Put(text, operand, 8);
-				break;
+			case Expression.Negate(var operand): Signed(text, '-', operand); break;
+			case Expression.Plus(var operand):   Signed(text, '+', operand); break;
 
 			case Expression.IsTruth(var operand, var negated, var truth):
 				Put(text, operand, 4);

@@ -1142,9 +1142,9 @@ MergeArm : @Clause
 	| "WHEN"i & "NOT"i & "MATCHED"i & "BY"i & "SOURCE"i & ("AND"i & c: SearchCondition)?
 	  & "THEN"i & a: MergeChange
 		=> @(new Clause.MergeWhen(false, "SOURCE", c, a))
-	| "WHEN"i & "NOT"i & "MATCHED"i & ("BY"i & "TARGET"i)? & ("AND"i & c: SearchCondition)?
+	| "WHEN"i & "NOT"i & "MATCHED"i & by: ("BY"i & "TARGET"i)? & ("AND"i & c: SearchCondition)?
 	  & "THEN"i & a: MergeInsert
-		=> @(new Clause.MergeWhen(false, "TARGET", c, a))
+		=> @(new Clause.MergeWhen(false, by is null ? null : "TARGET", c, a))
 
 MergeChange : @Statement
 	= "UPDATE"i & "SET"i & sets: Assignments
@@ -1750,8 +1750,9 @@ DropTarget : @Clause
 		=> @(Clause.Marked("CONSTRAINT", name, exists, tail))
 	| "INDEX"i & name: Identifier      => @(Clause.Marked("INDEX", name))
 	| "PERIOD"i & "FOR"i & "SYSTEM_TIME"i => @(Clause.Marked("PERIOD FOR SYSTEM_TIME", null))
+	// A name on its own, where the `CONSTRAINT` in front of the list stands for it too.
 	| name: Identifier & tail: OptionsWithText?
-		=> @(Clause.Marked("CONSTRAINT", name, null, tail))
+		=> @(Clause.Marked("", name, null, tail))
 
 IfExists = "IF"i & "EXISTS"i
 
