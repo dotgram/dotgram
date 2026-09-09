@@ -2243,9 +2243,9 @@ AuditStatement : @Statement
 		=> @(Statement.Defined("SERVER AUDIT", name))
 
 	// An extended-event session: events, targets, and what to spend on them.
-	| CreateOrAlter & "EVENT"i & "SESSION"i & name: Identifier & "ON"i & ServerOrDatabase
-	  & EventPieces? & OptionsWith? & ("STATE"i & '=' & word)?
-		=> @(Statement.Defined("EVENT SESSION", name))
+	| verb: CreateOrAlter & "EVENT"i & "SESSION"i & name: Identifier & "ON"i & on: ServerOrDatabase
+	  & pieces: EventPieces? & options: OptionsWith? & ("STATE"i & '=' & status: word)?
+		=> @(new Statement.EventSessionDefinition(name, verb, on, pieces, options, status))
 
 	| "CREATE"i & "EVENT"i & "NOTIFICATION"i & name: Identifier & "ON"i & NotificationScope
 	  & ("WITH"i & "FAN_IN"i)?
@@ -2255,9 +2255,10 @@ AuditStatement : @Statement
 
 	// An endpoint says how it is reached and what it speaks, and each is a bracket of
 	// arguments belonging to that protocol rather than to this language.
-	| CreateOrAlter & "ENDPOINT"i & name: Identifier & ("AUTHORIZATION"i & QualifiedName)?
-	  & EndpointState? & EndpointAs? & EndpointFor?
-		=> @(Statement.Defined("ENDPOINT", name))
+	| verb: CreateOrAlter & "ENDPOINT"i & name: Identifier & ("AUTHORIZATION"i & owner: QualifiedName)?
+	  & standing: EndpointState? & reached: EndpointAs? & spoken: EndpointFor?
+		=> @(new Statement.EndpointDefinition(name, verb, owner,
+				 standing?.Name, standing?.Options, reached?.Name, reached?.Options, spoken?.Name, spoken?.Options))
 
 ServerOrDatabase : @string = "SERVER"i => @("SERVER") | "DATABASE"i => @("DATABASE")
 
@@ -2284,20 +2285,25 @@ AuditActionBody = PermissionName & (',' & PermissionName)* & AuditActionOn?
 AuditActionOn = "ON"i & SecurableClass? & QualifiedName & "BY"i & Principals
 
 // ── An extended-event session ───────────────────────────────────────────────
-EventPieces = EventPiece & (','? & EventPiece)*
+EventPieces : @Clause[] = first: EventPiece & (','? & rest: EventPiece)* => @(Syntax.Listed(first, rest))
 
-EventPiece = "ADD"i & "EVENT"i & QualifiedName & ('(' & EventBody & ')')?
-		   | "DROP"i & "EVENT"i & QualifiedName
-		   | "ADD"i & "TARGET"i & QualifiedName & ('(' & "SET"i & OptionList & ')')?
-		   | "DROP"i & "TARGET"i & QualifiedName
+EventPiece : @Clause
+	= "ADD"i & "EVENT"i & name: QualifiedName & ('(' & body: EventBody & ')')?
+		=> @((body ?? new Clause.EventPiece("", "")) with { Action = "ADD EVENT", Name = name })
+	| "DROP"i & "EVENT"i & name: QualifiedName  => @(new Clause.EventPiece("DROP EVENT", name))
+	| "ADD"i & "TARGET"i & name: QualifiedName & ('(' & "SET"i & set: OptionList & ')')?
+		=> @(new Clause.EventPiece("ADD TARGET", name, set))
+	| "DROP"i & "TARGET"i & name: QualifiedName => @(new Clause.EventPiece("DROP TARGET", name))
 
-EventBody = ("SET"i & OptionList)? & EventActions? & ("WHERE"i & EventPredicate)?
+EventBody : @Clause.EventPiece
+	= ("SET"i & set: OptionList)? & actions: EventActions? & ("WHERE"i & where: EventPredicate)?
+		=> @(new Clause.EventPiece("", "", set, actions, where))
 
 // Not a search condition. An event's predicate compares a field with a constant, and it
 // also *calls* a comparison the package supplies — `sqlserver.equal_i_sql_unicode_string
 // (field, N'x')` — which is a call standing where a condition goes and is not one anywhere
 // else in this language. The comma joins two of them, as `AND` does.
-EventPredicate = EventFactor & (EventJoin & EventFactor)*
+EventPredicate : @string = t: (EventFactor & (EventJoin & EventFactor)*) => @(Syntax.Spaced(t))
 
 EventJoin   = "AND"i | "OR"i | ','
 EventFactor = "NOT"i? & EventTerm
@@ -2311,15 +2317,17 @@ EventTermTail = '(' & EventSource & ',' & ValueExpression & ')'
 EventSource  = '(' & QualifiedName & ')' | QualifiedName
 EventCompare = "<>" | "!=" | ">=" | "<=" | '=' | '>' | '<' | "NOT"i? & "LIKE"i
 
-EventActions = "ACTION"i & '(' & QualifiedName & (',' & QualifiedName)* & ')'
+EventActions : @string[] = "ACTION"i & '(' & first: EventAction & (',' & rest: EventAction)* & ')' => @(Syntax.Named(first, rest))
+EventAction  : @string   = t: QualifiedName => @(t)
 
 // ── An endpoint ─────────────────────────────────────────────────────────────
 // `STATE = STARTED, AFFINITY = NONE`: the published block names only the state and the
 // corpus writes a list, so it is read as one.
-EndpointState = "STATE"i & '=' & word & (',' & OptionSetting)*
+EndpointState : @Clause.Option
+	= "STATE"i & '=' & s: word & (',' & rest: OptionSetting)* => @(new Clause.Option(s, null, rest ?? Clause.None))
 
-EndpointAs  = "AS"i & word & '(' & OptionList? & ')'
-EndpointFor = "FOR"i & word & '(' & OptionList? & ')'
+EndpointAs  : @Clause.Option = "AS"i  & w: word & '(' & o: OptionList? & ')' => @(new Clause.Option(w, null, o ?? Clause.None))
+EndpointFor : @Clause.Option = "FOR"i & w: word & '(' & o: OptionList? & ')' => @(new Clause.Option(w, null, o ?? Clause.None))
 
 // ── What lives outside the database, and what the server spends on it ───────
 //
@@ -2368,7 +2376,7 @@ ExternalStatement : @Statement
 	| "UPDATE"i & "STATISTICS"i & on: QualifiedName & StatisticsTarget? & StatisticsWith?
 		=> @(new Statement.UpdateStatistics(on))
 
-CreateOrAlter = "CREATE"i | "ALTER"i
+CreateOrAlter : @string = "CREATE"i => @("CREATE") | "ALTER"i => @("ALTER")
 
 // `"default"` is a pool, and a delimited name is how the syntax says so.
 PoolName : @string = t: Identifier => @(t) | t: Sql92.Lexical.CharacterStringLiteral => @(t)
@@ -2629,42 +2637,52 @@ DropKind
 // hundred of them, they differ by edition and by version, and none of that is syntax: a
 // setting is a run of words and then, sometimes, what it is set to.
 CreateDatabaseStatement : @Statement
-	= "CREATE"i & "DATABASE"i & name: Identifier & '(' & OptionList & ')'
-		=> @(Statement.OfDatabase(name, "CREATE", null))
-	| "CREATE"i & "DATABASE"i & name: Identifier & DatabaseContainment?
-	  & files: DatabaseFiles? & DatabaseCollate? & DatabaseTail?
-		=> @(Statement.OfDatabase(name, "CREATE", files))
+	= "CREATE"i & "DATABASE"i & name: Identifier & '(' & options: OptionList & ')'
+		=> @(new Statement.CreateDatabase(name, Clause.None, Tail: "", Options: options))
+	| "CREATE"i & "DATABASE"i & name: Identifier & ("CONTAINMENT"i & '=' & containment: word)?
+	  & files: DatabaseFiles? & ("COLLATE"i & collation: QualifiedName)? & tail: DatabaseTail?
+		=> @((tail ?? new Statement.CreateDatabase("", Clause.None)) with
+			 {
+				 Name = name, Containment = containment, Collation = collation,
+				 Files = files?.Files ?? Clause.None, Primary = files?.Primary ?? false, Log = files?.Log,
+			 })
 
-DatabaseContainment = "CONTAINMENT"i & '=' & word
-DatabaseCollate     = "COLLATE"i & QualifiedName
+DatabaseCollate = "COLLATE"i & QualifiedName
 
 // What a database may be made out of instead of nothing: another database, a snapshot of
-// one, or files that already exist.
-DatabaseTail = "WITH"i & OptionList
-			 | "FOR"i & "ATTACH"i & ('(' & OptionList & ')')? & ("WITH"i & OptionList)?
-			 | "FOR"i & "ATTACH_REBUILD_LOG"i
-			 | "AS"i & "SNAPSHOT"i & "OF"i & Identifier
-			 | "AS"i & "COPY"i & "OF"i & QualifiedName & ('(' & OptionList & ')')?
+// one, or files that already exist. Each is the tail's words, and then the bracket and the
+// `WITH` it may carry.
+DatabaseTail : @Statement.CreateDatabase
+	= "WITH"i & with: OptionList
+		=> @(new Statement.CreateDatabase("", Clause.None, With: with))
+	| "FOR"i & "ATTACH"i & ('(' & options: OptionList & ')')? & ("WITH"i & with: OptionList)?
+		=> @(new Statement.CreateDatabase("", Clause.None, Tail: "FOR ATTACH", Options: options, With: with))
+	| "FOR"i & "ATTACH_REBUILD_LOG"i
+		=> @(new Statement.CreateDatabase("", Clause.None, Tail: "FOR ATTACH_REBUILD_LOG"))
+	| t: ("AS"i & "SNAPSHOT"i & "OF"i & Identifier)
+		=> @(new Statement.CreateDatabase("", Clause.None, Tail: Syntax.Spaced(t)))
+	| t: ("AS"i & "COPY"i & "OF"i & QualifiedName) & ('(' & options: OptionList & ')')?
+		=> @(new Statement.CreateDatabase("", Clause.None, Tail: Syntax.Spaced(t), Options: options))
 
 // ── The files ───────────────────────────────────────────────────────────────
 //
 // A file specification is `( NAME = …, FILENAME = …, SIZE = 100 MB )`, which is an option
 // list with a unit after the number — and that unit is why an option's value ends with a
 // word: `100 MB`, `3 DAYS`, `10 %` are each one value in this language.
-DatabaseFiles : @Clause[]
-	= "ON"i & "PRIMARY"i? & first: FileGroupSpec & (',' & rest: FileGroupSpec)*
-	  & DatabaseLogFiles?
-		=> @(Syntax.Listed(first, rest))
+DatabaseFiles : @Statement.CreateDatabase
+	= "ON"i & primary: "PRIMARY"i? & first: FileGroupSpec & (',' & rest: FileGroupSpec)*
+	  & log: DatabaseLogFiles?
+		=> @(new Statement.CreateDatabase("", Syntax.Listed(first, rest), primary is not null, log))
 
-DatabaseLogFiles = "LOG"i & "ON"i & FileSpec & (',' & FileSpec)*
+DatabaseLogFiles : @Clause[] = "LOG"i & "ON"i & first: FileSpec & (',' & rest: FileSpec)* => @(Syntax.Listed(first, rest))
 
 FileGroupSpec : @Clause
-	= "FILEGROUP"i & name: Identifier & FileGroupContains? & "DEFAULT"i?
-	  & FileSpec & (',' & FileSpec)*
-		=> @(new Clause.Option(name, null, Clause.None))
+	= "FILEGROUP"i & name: Identifier & ("CONTAINS"i & contains: word)? & fallback: "DEFAULT"i?
+	  & first: FileSpec & (',' & rest: FileSpec)*
+		=> @(new Clause.FileGroup(name, contains, fallback is not null, Syntax.Listed(first, rest)))
 	| f: FileSpec => @(f)
 
-FileSpec : @Clause = '(' & o: OptionList & ')' => @(new Clause.Option("", null, o))
+FileSpec : @Clause = '(' & o: OptionList & ')' => @(new Clause.DatabaseFile(o))
 
 FileGroupContains = "CONTAINS"i & word
 

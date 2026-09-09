@@ -513,8 +513,107 @@ public static class SqlWriter
 				Permission(text, "REVOKE", privileges, "FROM", principals);
 				break;
 
-			case Statement.CreateDatabase(var name, _):
+			case Statement.CreateDatabase(var name, var files, var primary, var log, var containment, var collation, var tail, var options, var with):
 				text.Append("CREATE DATABASE ").Append(name);
+
+				// The Azure spelling: a bracket of options and nothing else.
+				if (tail == "")
+				{
+					text.Append(" (");
+					Each(text, options ?? Clause.None);
+					text.Append(')');
+					break;
+				}
+
+				if (containment is not null)
+					text.Append(" CONTAINMENT = ").Append(containment);
+
+				if (files.Length > 0)
+				{
+					text.Append(primary ? " ON PRIMARY " : " ON ");
+					Each(text, files);
+				}
+
+				if (log is not null)
+				{
+					text.Append(" LOG ON ");
+					Each(text, log);
+				}
+
+				if (collation is not null)
+					text.Append(" COLLATE ").Append(collation);
+
+				if (tail is not null)
+					text.Append(' ').Append(tail);
+
+				if (options is not null)
+				{
+					text.Append(" (");
+					Each(text, options);
+					text.Append(')');
+				}
+
+				if (with is not null)
+				{
+					text.Append(" WITH ");
+					Each(text, with);
+				}
+
+				break;
+
+			case Statement.EventSessionDefinition(var name, var verb, var on, var pieces, var options, var state):
+				text.Append(verb).Append(" EVENT SESSION ").Append(name).Append(" ON ").Append(on);
+
+				// A comma between two pieces of one kind — event after event, target after
+				// target — and only a space where the kind changes, which is how the syntax
+				// groups them.
+				Clause.EventPiece? previous = null;
+
+				foreach (var piece in pieces ?? Clause.None)
+				{
+					text.Append(previous is not null && piece is Clause.EventPiece next && next.Action == previous.Action ? ", " : " ");
+					Put(text, piece);
+					previous = piece as Clause.EventPiece;
+				}
+
+				Optioned(text, options);
+
+				if (state is not null)
+					text.Append(" STATE = ").Append(state);
+
+				break;
+
+			case Statement.EndpointDefinition(var name, var verb, var owner, var state, var stateOptions, var protocol, var protocolOptions, var payload, var payloadOptions):
+				text.Append(verb).Append(" ENDPOINT ").Append(name);
+
+				if (owner is not null)
+					text.Append(" AUTHORIZATION ").Append(owner);
+
+				if (state is not null)
+				{
+					text.Append(" STATE = ").Append(state);
+
+					foreach (var one in stateOptions ?? Clause.None)
+					{
+						text.Append(", ");
+						Put(text, one);
+					}
+				}
+
+				if (protocol is not null)
+				{
+					text.Append(" AS ").Append(protocol).Append(" (");
+					Each(text, protocolOptions ?? Clause.None);
+					text.Append(')');
+				}
+
+				if (payload is not null)
+				{
+					text.Append(" FOR ").Append(payload).Append(" (");
+					Each(text, payloadOptions ?? Clause.None);
+					text.Append(')');
+				}
+
 				break;
 
 			case Statement.AlterDatabaseSet(var name, var settings, var termination):
@@ -1330,6 +1429,59 @@ public static class SqlWriter
 
 			case Clause.Connection(var from, var to):
 				text.Append(from).Append(" TO ").Append(to);
+				break;
+
+			case Clause.DatabaseFile(var options):
+				text.Append('(');
+				Each(text, options);
+				text.Append(')');
+				break;
+
+			case Clause.FileGroup(var name, var contains, var isDefault, var files):
+				text.Append("FILEGROUP ").Append(name);
+
+				if (contains is not null)
+					text.Append(" CONTAINS ").Append(contains);
+
+				if (isDefault)
+					text.Append(" DEFAULT");
+
+				text.Append(' ');
+				Each(text, files);
+				break;
+
+			case Clause.EventPiece(var action, var name, var set, var actions, var where):
+				text.Append(action).Append(' ').Append(name);
+
+				if (set is not null || actions is not null || where is not null)
+				{
+					text.Append(" (");
+
+					if (set is not null)
+					{
+						text.Append("SET ");
+						Each(text, set);
+					}
+
+					if (actions is not null)
+					{
+						if (set is not null)
+							text.Append(' ');
+
+						text.Append("ACTION (").Append(string.Join(", ", actions)).Append(')');
+					}
+
+					if (where is not null)
+					{
+						if (set is not null || actions is not null)
+							text.Append(' ');
+
+						text.Append("WHERE ").Append(where);
+					}
+
+					text.Append(')');
+				}
+
 				break;
 
 			case Clause.VariableAssignment(var variable, var by, var value):

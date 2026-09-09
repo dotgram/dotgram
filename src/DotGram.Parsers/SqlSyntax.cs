@@ -366,18 +366,42 @@ public abstract record Statement : ISqlSpan
 	public sealed record AuditSpecificationDefinition(string Name) : Statement;
 
 	/// <summary><c>EVENT SESSION</c>.</summary>
-	public sealed record EventSessionDefinition(string Name) : Statement;
+	/// <summary>
+	/// <c>CREATE</c> or <c>ALTER EVENT SESSION</c>: the session, where it is (<c>SERVER</c> or
+	/// <c>DATABASE</c>), the events and targets added and dropped, its options, and the state
+	/// it is put in.
+	/// </summary>
+	public sealed record EventSessionDefinition(
+		string Name, string Verb = "CREATE", string On = "SERVER", Clause[]? Pieces = null,
+		Clause[]? Options = null, string? State = null) : Statement;
 
 	/// <summary><c>EVENT NOTIFICATION</c>.</summary>
 	public sealed record EventNotificationDefinition(string Name) : Statement;
 
 	/// <summary><c>ENDPOINT</c>.</summary>
-	public sealed record EndpointDefinition(string Name) : Statement;
+	/// <summary>
+	/// <c>CREATE</c> or <c>ALTER ENDPOINT</c>: the owner, the state and what was written
+	/// beside it, how it is reached (<c>AS TCP (…)</c>) and what it speaks (<c>FOR TSQL
+	/// ()</c>) — each protocol a bracket of options belonging to it.
+	/// </summary>
+	public sealed record EndpointDefinition(
+		string Name, string Verb = "CREATE", string? Owner = null, string? State = null,
+		Clause[]? StateOptions = null, string? Protocol = null, Clause[]? ProtocolOptions = null,
+		string? Payload = null, Clause[]? PayloadOptions = null) : Statement;
 
 	// ---- the database --------------------------------------------------------------------------
 
 	/// <summary><c>CREATE DATABASE</c>, and the files it is made of.</summary>
-	public sealed record CreateDatabase(string Name, Clause[] Files) : Statement;
+	/// <summary>
+	/// <c>CREATE DATABASE</c>: the file groups and files it is made of, the log files, its
+	/// containment, its collation, and the tail that says what it is made from — <c>WITH
+	/// …</c>, <c>FOR ATTACH (…)</c>, <c>AS SNAPSHOT OF x</c>, <c>AS COPY OF x (…)</c> — or the
+	/// bracketed list of options an Azure database is written with instead.
+	/// </summary>
+	public sealed record CreateDatabase(
+		string Name, Clause[] Files, bool Primary = false, Clause[]? Log = null,
+		string? Containment = null, string? Collation = null,
+		string? Tail = null, Clause[]? Options = null, Clause[]? With = null) : Statement;
 
 	/// <summary>
 	/// <c>ALTER DATABASE … SET</c>: what it was set to, and how the sessions in the way are
@@ -900,9 +924,7 @@ public abstract record Statement : ISqlSpan
 			"WORKLOAD GROUP"          => new WorkloadGroupDefinition(name),
 			"SERVER AUDIT"            => new ServerAuditDefinition(name),
 			"AUDIT SPECIFICATION"     => new AuditSpecificationDefinition(name),
-			"EVENT SESSION"           => new EventSessionDefinition(name),
 			"EVENT NOTIFICATION"      => new EventNotificationDefinition(name),
-			"ENDPOINT"                => new EndpointDefinition(name),
 
 			"FULLTEXT INDEX"             => new FullTextIndexDefinition(name),
 			"ALTER FULLTEXT INDEX"       => new AlterFullTextIndex(name),
@@ -1707,6 +1729,23 @@ public abstract record Clause : ISqlSpan
 
 	/// <summary>One pair of node tables an edge may connect.</summary>
 	public sealed record Connection(string From, string To) : Clause;
+
+	/// <summary>One file of a database: the bracketed options that describe it.</summary>
+	public sealed record DatabaseFile(Clause[] Options) : Clause;
+
+	/// <summary>
+	/// A file group in a <c>CREATE DATABASE</c>: its name, what it contains where it says,
+	/// whether it is the default, and its files.
+	/// </summary>
+	public sealed record FileGroup(string Name, string? Contains, bool Default, Clause[] Files) : Clause;
+
+	/// <summary>
+	/// One piece of an event session — <c>ADD EVENT</c>, <c>DROP EVENT</c>, <c>ADD TARGET</c>,
+	/// <c>DROP TARGET</c> — with what an added one was given: its settings, its actions, and
+	/// its predicate, which is a language of its own and is kept as written.
+	/// </summary>
+	public sealed record EventPiece(
+		string Action, string Name, Clause[]? Settings = null, string[]? Actions = null, string? Where = null) : Clause;
 
 	/// <summary>What a statement with no clauses is handed, once rather than per call.</summary>
 	public static readonly Clause[] None = [];

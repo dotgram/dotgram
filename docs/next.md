@@ -17160,3 +17160,13 @@ keeps its drawing as written, the way a hint does; a grouping column its collati
 escape its braces; `||` is `||`, `TRIM` is spelled as the author spelled it, and `- -1` is
 two signs and a space rather than brackets nobody wrote. `SelectStatement` 81.5 → 98.4%,
 the corpus 61.5% the same, 1457 unread.
+
+**Sessions, endpoints, databases.** Three statements that were a word and a name: an
+event session keeps its events and targets as `Clause.EventPiece` — the settings, the
+actions, and the predicate as written, since a predicate that calls a package's own
+comparison is a language of its own — its options and its state; an endpoint its owner,
+its state, how it is reached and what it speaks; `CREATE DATABASE` its file groups and
+files, `PRIMARY`, the log, containment, collation, and the tail that says what it is made
+from. The writer learned that the comma stands between two pieces of one kind and not
+where the kind changes. All three left the work list; the corpus is 67.2% the same,
+1160 unread.

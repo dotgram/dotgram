@@ -411,3 +411,6 @@ field on one record here, and having a record each is what makes that a small ch
 | `Clause.ConstraintDefinition` | SQL-92 | §11.6 &lt;table constraint definition&gt;, and the indexes T-SQL writes beside them, with everything written after them |
 | `Clause.References` | SQL-92 | §11.8 &lt;references specification&gt;, with the referential actions |
 | `Clause.Connection` | T-SQL | one pair of node tables a graph edge's `CONNECTION` may join |
+| `Clause.DatabaseFile` | T-SQL | one file of a CREATE DATABASE: the bracket of options that describes it |
+| `Clause.FileGroup` | T-SQL | a file group of a CREATE DATABASE: its name, what it contains, whether it is the default, its files |
+| `Clause.EventPiece` | T-SQL | one piece of an event session — ADD/DROP EVENT, ADD/DROP TARGET — with its settings, actions and predicate |
