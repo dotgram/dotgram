@@ -17170,3 +17170,14 @@ files, `PRIMARY`, the log, containment, collation, and the tail that says what i
 from. The writer learned that the comma stands between two pieces of one kind and not
 where the kind changes. All three left the work list; the corpus is 67.2% the same,
 1160 unread.
+
+**The DML, and three headers.** `INSERT`, `UPDATE`, `DELETE` and `MERGE` keep their `WITH`
+in front (`Preceded` used to hand it only to a `SELECT`), their `TOP`, their `OUTPUT` as
+`Clause.Output` — items, the table it goes into, a second `OUTPUT` after it — and their
+`OPTION (…)`; an assignment keeps its operator, `+=` and the rest, and the column of `SET
+@v = column += value`; `.WRITE (…)` is the call's arguments. `GRANT`, `DENY` and `REVOKE`
+keep the securable, `WITH GRANT OPTION`, `CASCADE` and `AS`; a view its options, `WITH
+CHECK OPTION` and `MATERIALIZED`; a trigger its options, `FOR` against `AFTER` against
+`INSTEAD OF`, `WITH APPEND`, `NOT FOR REPLICATION` and `EXTERNAL NAME`. Along the way:
+`when:` is a keyword of the grammar language and cannot name a capture. 71.1% the same,
+1154 unread; `Update`, `View`, `Trigger` and `SET @v` off the list.

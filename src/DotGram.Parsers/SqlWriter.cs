@@ -120,40 +120,60 @@ public static class SqlWriter
 
 			// `BULK INSERT` is an insert whose rows come from a file, and it is written
 			// nothing like one; the rows say which of the two this is.
-			case Statement.Insert(var target, _, Query.FromFile(var file)):
+			case Statement.Insert(var target, _, Query.FromFile(var file), _, _, _):
 				text.Append("BULK INSERT ");
 				Put(text, target!);
 				text.Append(" FROM ");
 				Put(text, file, 0);
 				break;
 
-			case Statement.Insert(var target, var columns, var rows):
-				text.Append("INSERT INTO ");
+			case Statement.Insert(var target, var columns, var rows, var with, var top, var output):
+				With(text, with);
+				text.Append("INSERT ");
+				Top(text, top);
+				text.Append("INTO ");
 				Put(text, target!);
 				Names(text, columns);
+				Output(text, output);
 				text.Append(' ');
 				Put(text, rows, 0);
 				break;
 
-			case Statement.Update(var target, var set, var from, var where):
+			case Statement.Update(var target, var set, var from, var where, var with, var top, var output, var options):
+				With(text, with);
 				text.Append("UPDATE ");
+				Top(text, top);
 				Put(text, target!);
 				text.Append(" SET ");
 				Each(text, set);
+				Output(text, output);
 				From(text, from);
 				Where(text, where);
+				Hinted(text, options);
 				break;
 
-			case Statement.Delete(var target, var from, var where):
-				text.Append("DELETE FROM ");
+			case Statement.Delete(var target, var from, var where, var with, var top, var output, var options):
+				With(text, with);
+				text.Append("DELETE ");
+				Top(text, top);
+				text.Append("FROM ");
 				Put(text, target!);
+				Output(text, output);
 				From(text, from);
 				Where(text, where);
+				Hinted(text, options);
 				break;
 
-			case Statement.Merge(var target, var using_, var on, var whens):
-				text.Append("MERGE INTO ");
+			case Statement.Merge(var target, var using_, var on, var whens, var with, var top, var alias, var output, var options):
+				With(text, with);
+				text.Append("MERGE ");
+				Top(text, top);
+				text.Append("INTO ");
 				Put(text, target!);
+
+				if (alias is not null)
+					text.Append(" AS ").Append(alias);
+
 				text.Append(" USING ");
 				Put(text, using_);
 				text.Append(" ON ");
@@ -165,6 +185,8 @@ public static class SqlWriter
 					Put(text, one);
 				}
 
+				Output(text, output);
+				Hinted(text, options);
 				text.Append(';');
 				break;
 
@@ -360,18 +382,52 @@ public static class SqlWriter
 
 				break;
 
-			case Statement.CreateTrigger(var name, var on, var events, var body):
-				text.Append("CREATE TRIGGER ").Append(name).Append(" ON ").Append(on).Append(" AFTER ");
-				text.Append(string.Join(", ", events));
+			case Statement.CreateTrigger(var name, var on, var events, var body, var when, var options, var append, var replication, var external):
+				text.Append("CREATE TRIGGER ").Append(name).Append(" ON ").Append(on);
+
+				if (options is not null)
+				{
+					text.Append(" WITH ");
+					Each(text, options);
+				}
+
+				text.Append(' ').Append(when).Append(' ').Append(string.Join(", ", events));
+
+				if (append)
+					text.Append(" WITH APPEND");
+
+				if (replication)
+					text.Append(" NOT FOR REPLICATION");
+
 				text.Append(" AS ");
-				Block(text, body);
+
+				if (external is not null)
+					text.Append("EXTERNAL NAME ").Append(external);
+				else
+					Block(text, body);
+
 				break;
 
-			case Statement.ViewDefinition(var name, var columns, var body):
-				text.Append("CREATE VIEW ").Append(name);
+			case Statement.ViewDefinition(var name, var columns, var body, var options, var check, var materialized):
+				text.Append(materialized ? "CREATE MATERIALIZED VIEW " : "CREATE VIEW ").Append(name);
 				Names(text, columns);
+
+				if (options is not null && materialized)
+				{
+					Optioned(text, options);
+				}
+				else if (options is not null)
+				{
+					text.Append(" WITH ");
+					Each(text, options);
+				}
+
 				text.Append(" AS ");
 				Put(text, body);
+
+				if (check)
+					text.Append(" WITH CHECK OPTION");
+
 				break;
 
 			case Statement.CreateIndex(var on, var index):
@@ -496,21 +552,57 @@ public static class SqlWriter
 
 				break;
 
-			case Statement.SetVariable(var name, var value):
-				text.Append("SET ").Append(name).Append(" = ");
+			case Statement.SetVariable(var name, var value, var by, var through):
+				text.Append("SET ").Append(name);
+
+				if (through is not null)
+					text.Append(" = ").Append(through);
+
+				text.Append(' ').Append(by ?? "=").Append(' ');
 				Put(text, value, 0);
 				break;
 
-			case Statement.Grant(var privileges, var principals):
-				Permission(text, "GRANT", privileges, "TO", principals);
+			case Statement.Grant(var privileges, var principals, var on, var option, var runAs):
+				Permission(text, "GRANT", privileges, on, "TO", principals);
+
+				if (option)
+					text.Append(" WITH GRANT OPTION");
+
+				if (runAs is not null)
+					text.Append(" AS ").Append(runAs);
+
 				break;
 
-			case Statement.Deny(var privileges, var principals):
-				Permission(text, "DENY", privileges, "TO", principals);
+			case Statement.Deny(var privileges, var principals, var on, var cascade, var runAs):
+				Permission(text, "DENY", privileges, on, "TO", principals);
+
+				if (cascade)
+					text.Append(" CASCADE");
+
+				if (runAs is not null)
+					text.Append(" AS ").Append(runAs);
+
 				break;
 
-			case Statement.Revoke(var privileges, var principals):
-				Permission(text, "REVOKE", privileges, "FROM", principals);
+			case Statement.Revoke(var privileges, var principals, var on, var optionFor, var from, var cascade, var runAs):
+				text.Append("REVOKE ");
+
+				if (optionFor)
+					text.Append("GRANT OPTION FOR ");
+
+				text.Append(string.Join(", ", privileges));
+
+				if (on is not null)
+					text.Append(" ON ").Append(on);
+
+				text.Append(from ? " FROM " : " TO ").Append(string.Join(", ", principals));
+
+				if (cascade)
+					text.Append(" CASCADE");
+
+				if (runAs is not null)
+					text.Append(" AS ").Append(runAs);
+
 				break;
 
 			case Statement.CreateDatabase(var name, var files, var primary, var log, var containment, var collation, var tail, var options, var with):
@@ -688,9 +780,57 @@ public static class SqlWriter
 	}
 
 	static void Permission(
-		StringBuilder text, string word, string[] privileges, string way, string[] principals) =>
-		text.Append(word).Append(' ').Append(string.Join(", ", privileges))
-			.Append(' ').Append(way).Append(' ').Append(string.Join(", ", principals));
+		StringBuilder text, string word, string[] privileges, string? on, string way, string[] principals)
+	{
+		text.Append(word).Append(' ').Append(string.Join(", ", privileges));
+
+		if (on is not null)
+			text.Append(" ON ").Append(on);
+
+		text.Append(' ').Append(way).Append(' ').Append(string.Join(", ", principals));
+	}
+
+	/// <summary>The common table expressions in front of a statement, or nothing.</summary>
+	static void With(StringBuilder text, Clause[]? with)
+	{
+		if (with is not { Length: > 0 })
+			return;
+
+		text.Append("WITH ");
+		Each(text, with);
+		text.Append(' ');
+	}
+
+	/// <summary>A <c>TOP</c> and the space after it, or nothing.</summary>
+	static void Top(StringBuilder text, Clause? top)
+	{
+		if (top is null)
+			return;
+
+		Put(text, top);
+		text.Append(' ');
+	}
+
+	/// <summary>An <c>OUTPUT</c> clause after a space, or nothing.</summary>
+	static void Output(StringBuilder text, Clause? output)
+	{
+		if (output is null)
+			return;
+
+		text.Append(' ');
+		Put(text, output);
+	}
+
+	/// <summary>A statement's <c>OPTION (…)</c>, or nothing.</summary>
+	static void Hinted(StringBuilder text, Clause[]? options)
+	{
+		if (options is not { Length: > 0 })
+			return;
+
+		text.Append(" OPTION (");
+		Each(text, options);
+		text.Append(')');
+	}
 
 	static void Parameters(StringBuilder text, Clause[] parameters)
 	{
@@ -1496,9 +1636,41 @@ public static class SqlWriter
 				Put(text, result, 0);
 				break;
 
-			case Clause.Set(var target, var by, var value):
-				text.Append(target).Append(' ').Append(by ?? "=").Append(' ');
+			case Clause.Set(var target, var by, var value, var through):
+				text.Append(target);
+
+				// `.WRITE (…)`: the target names the method and the value is its arguments.
+				if (by == "")
+				{
+					text.Append(' ');
+					Put(text, value, 0);
+					break;
+				}
+
+				if (through is not null)
+					text.Append(" = ").Append(through);
+
+				text.Append(' ').Append(by ?? "=").Append(' ');
 				Put(text, value, 0);
+				break;
+
+			case Clause.Output(var items, var into, var columns, var next):
+				text.Append("OUTPUT ");
+				Each(text, items);
+
+				if (into is not null)
+				{
+					text.Append(" INTO ");
+					Put(text, into);
+					Names(text, columns);
+				}
+
+				if (next is not null)
+				{
+					text.Append(' ');
+					Put(text, next);
+				}
+
 				break;
 
 			case Clause.MergeWhen(var matched, var by, var condition, var action):
@@ -1768,16 +1940,16 @@ public static class SqlWriter
 	{
 		switch (action)
 		{
-			case Statement.Update(null, var set, _, _):
+			case Statement.Update(null, var set, _, _, _, _, _, _):
 				text.Append("UPDATE SET ");
 				Each(text, set);
 				break;
 
-			case Statement.Delete(null, _, _):
+			case Statement.Delete(null, _, _, _, _, _, _):
 				text.Append("DELETE");
 				break;
 
-			case Statement.Insert(null, var columns, var rows):
+			case Statement.Insert(null, var columns, var rows, _, _, _):
 				text.Append("INSERT");
 				Names(text, columns);
 				text.Append(' ');

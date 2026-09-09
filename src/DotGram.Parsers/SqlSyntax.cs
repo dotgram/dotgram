@@ -133,7 +133,12 @@ public abstract record Statement : ISqlSpan
 	/// <see cref="Query.FromExecute"/> for T-SQL's <c>INSERT … EXEC</c>, and
 	/// <see cref="Query.DefaultValues"/> for <c>DEFAULT VALUES</c>.
 	/// </remarks>
-	public sealed record Insert(TableReference? Target, string[]? Columns, Query Rows) : Statement;
+	/// <param name="With">The common table expressions in front of it.</param>
+	/// <param name="Top">T-SQL's <c>TOP</c>, where one was written.</param>
+	/// <param name="Output">T-SQL's <c>OUTPUT</c> clause, where one was written.</param>
+	public sealed record Insert(
+		TableReference? Target, string[]? Columns, Query Rows,
+		Clause[]? With = null, Clause? Top = null, Clause? Output = null) : Statement;
 
 	/// <summary>§14.14 rows changed in place: what to change, to what, and which rows.</summary>
 	/// <remarks>
@@ -141,17 +146,20 @@ public abstract record Statement : ISqlSpan
 	/// naming the tables the rows to change are found by joining.
 	/// </remarks>
 	public sealed record Update(
-		TableReference? Target, Clause[] Set, TableReference[] From, Expression? Where) : Statement;
+		TableReference? Target, Clause[] Set, TableReference[] From, Expression? Where,
+		Clause[]? With = null, Clause? Top = null, Clause? Output = null, Clause[]? Options = null) : Statement;
 
 	/// <summary>§14.9 rows removed, and the same two ways of saying which.</summary>
 	public sealed record Delete(
-		TableReference? Target, TableReference[] From, Expression? Where) : Statement;
+		TableReference? Target, TableReference[] From, Expression? Where,
+		Clause[]? With = null, Clause? Top = null, Clause? Output = null, Clause[]? Options = null) : Statement;
 
 	/// <summary>
 	/// §14.12 one statement that inserts, updates and deletes, according to what a join found.
 	/// </summary>
 	public sealed record Merge(
-		TableReference? Target, TableReference Using, Expression On, Clause[] Whens) : Statement;
+		TableReference? Target, TableReference Using, Expression On, Clause[] Whens,
+		Clause[]? With = null, Clause? Top = null, string? Alias = null, Clause? Output = null, Clause[]? Options = null) : Statement;
 
 	// ---- the procedural level ----------------------------------------------------------------
 	//
@@ -234,12 +242,19 @@ public abstract record Statement : ISqlSpan
 		Clause[]? Order = null, string? External = null) : Statement;
 
 	/// <summary>A trigger: what it is on, what fires it, and what it does then.</summary>
+	/// <param name="When"><c>AFTER</c>, <c>FOR</c> or <c>INSTEAD OF</c>, as written.</param>
+	/// <param name="External">The method in an assembly, where that is the body.</param>
 	public sealed record CreateTrigger(
-		string Name, string On, string[] Events, Statement[] Body) : Statement;
+		string Name, string On, string[] Events, Statement[] Body,
+		string When = "AFTER", Clause[]? Options = null, bool Append = false,
+		bool NotForReplication = false, string? External = null) : Statement;
 
 	/// <summary>§11.32 a view, which is a name given to a query.</summary>
+	/// <param name="Options">The <c>WITH</c> between the name and the <c>AS</c>: <c>SCHEMABINDING</c>, a materialized view's distribution.</param>
+	/// <param name="CheckOption">The <c>WITH CHECK OPTION</c> after the query.</param>
 	public sealed record ViewDefinition(
-		string Name, string[]? Columns, Statement Body) : Statement;
+		string Name, string[]? Columns, Statement Body,
+		Clause[]? Options = null, bool CheckOption = false, bool Materialized = false) : Statement;
 
 	// ---- indexes -------------------------------------------------------------------------------
 
@@ -477,18 +492,29 @@ public abstract record Statement : ISqlSpan
 	/// A variable assigned — <c>SET @a = 1</c>, which is a statement and not a
 	/// <see cref="Clause.Set"/>: what a <c>SET</c> clause belongs to is an <c>UPDATE</c>.
 	/// </summary>
-	public sealed record SetVariable(string Name, Expression Value) : Statement;
+	/// <param name="Operator">The assignment as written — <c>=</c>, <c>+=</c>, …</param>
+	/// <param name="Through">The column of <c>SET @v = column op= value</c>, which assigns both.</param>
+	public sealed record SetVariable(
+		string Name, Expression Value, string? Operator = null, string? Through = null) : Statement;
 
 	// ---- §12.1 the permissions -----------------------------------------------------------------
 
 	/// <summary><c>GRANT</c>: what is being said about, and to whom.</summary>
-	public sealed record Grant(string[] Privileges, string[] Principals) : Statement;
+	/// <param name="On">The securable, class and all, as written after <c>ON</c>.</param>
+	/// <param name="As">The principal the statement is run as.</param>
+	public sealed record Grant(
+		string[] Privileges, string[] Principals,
+		string? On = null, bool GrantOption = false, string? As = null) : Statement;
 
 	/// <summary><c>DENY</c>: what is being said about, and to whom.</summary>
-	public sealed record Deny(string[] Privileges, string[] Principals) : Statement;
+	public sealed record Deny(
+		string[] Privileges, string[] Principals,
+		string? On = null, bool Cascade = false, string? As = null) : Statement;
 
-	/// <summary><c>REVOKE</c>: what is being said about, and to whom.</summary>
-	public sealed record Revoke(string[] Privileges, string[] Principals) : Statement;
+	/// <summary><c>REVOKE</c>: what is being said about, and to whom — or from whom.</summary>
+	public sealed record Revoke(
+		string[] Privileges, string[] Principals,
+		string? On = null, bool GrantOptionFor = false, bool From = false, bool Cascade = false, string? As = null) : Statement;
 
 	// ---- the full-text catalogue -----------------------------------------------------------------
 
@@ -975,15 +1001,6 @@ public abstract record Statement : ISqlSpan
 			_                      => throw Syntax.Unknown(action),
 		};
 
-	/// <summary>A permission granted, denied or revoked, as the statement it is.</summary>
-	public static Statement Permitted(string kind, string[] privileges, string[] principals) =>
-		kind switch
-		{
-			"GRANT"  => new Grant(privileges, principals),
-			"DENY"   => new Deny(privileges, principals),
-			"REVOKE" => new Revoke(privileges, principals),
-			_        => throw Syntax.Unknown(kind),
-		};
 
 	/// <summary>An alteration before the table it is applied to is known.</summary>
 	public static AlterTable Altered(string action, Clause[]? elements, Clause[]? options = null) =>
@@ -1659,7 +1676,16 @@ public abstract record Clause : ISqlSpan
 	/// §14.14 one entry of a <c>SET</c>: what is assigned, the operator it was assigned with
 	/// where that was not a plain <c>=</c>, and the value.
 	/// </summary>
-	public sealed record Set(string Target, string? Operator, Expression Value) : Clause;
+	/// <param name="Operator">The assignment as written — <c>=</c>, <c>+=</c>, …; empty for <c>.WRITE (…)</c>, whose value is the call's arguments.</param>
+	/// <param name="Through">The column of <c>SET @v = column op= value</c>, which assigns both.</param>
+	public sealed record Set(string Target, string? Operator, Expression Value, string? Through = null) : Clause;
+
+	/// <summary>
+	/// T-SQL's <c>OUTPUT</c>: what is written out, the table it goes into where it goes
+	/// anywhere, that table's columns, and a second <c>OUTPUT</c> after it where there is one.
+	/// </summary>
+	public sealed record Output(
+		Clause[] Items, TableReference? Target = null, string[]? Columns = null, Clause? Next = null) : Clause;
 
 	/// <summary>
 	/// §14.12 one arm of a merge: whether it fired on a match, which side the match was missing
@@ -1992,9 +2018,15 @@ public static class Syntax
 	/// comment does not hide.
 	/// </remarks>
 	public static Statement Preceded(Clause[]? with, Statement statement) =>
-		with is null || with.Length == 0
-			? statement
-			: statement is Statement.Select select ? select with { With = with } : statement;
+		with is null || with.Length == 0 ? statement : statement switch
+		{
+			Statement.Select select => select with { With = with },
+			Statement.Insert insert => insert with { With = with },
+			Statement.Update update => update with { With = with },
+			Statement.Delete delete => delete with { With = with },
+			Statement.Merge  merge  => merge  with { With = with },
+			_                       => statement,
+		};
 
 	/// <summary>
 	/// A table primary and everything written around it, as the one node it is.

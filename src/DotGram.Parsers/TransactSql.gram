@@ -1063,10 +1063,10 @@ DmlTarget : @TableReference
 
 // ── §INSERT ─────────────────────────────────────────────────────────────────
 TsqlInsert : @Statement
-	= "INSERT"i & Top? & "INTO"i? & target: DmlTarget
-	  & ('(' & columns: ColumnList & ')')? & OutputClause?
+	= "INSERT"i & top: Top? & "INTO"i? & target: DmlTarget
+	  & ('(' & columns: ColumnList & ')')? & output: OutputClause?
 	  & rows: InsertRows
-		=> @(new Statement.Insert(target, columns, rows))
+		=> @(new Statement.Insert(target, columns, rows, null, top, output))
 
 InsertRows : @Query
 	= "DEFAULT"i & "VALUES"i    => @(new Query.DefaultValues())
@@ -1076,10 +1076,10 @@ InsertRows : @Query
 
 // ── §UPDATE ─────────────────────────────────────────────────────────────────
 TsqlUpdate : @Statement
-	= "UPDATE"i & Top? & target: DmlTarget
-	  & "SET"i & sets: Assignments & OutputClause?
-	  & from: FromClause? & where: DmlWhere? & QueryHints?
-		=> @(new Statement.Update(target, sets, from ?? TableReference.None, where))
+	= "UPDATE"i & top: Top? & target: DmlTarget
+	  & "SET"i & sets: Assignments & output: OutputClause?
+	  & from: FromClause? & where: DmlWhere? & options: QueryHints?
+		=> @(new Statement.Update(target, sets, from ?? TableReference.None, where, null, top, output, options))
 
 Assignments : @Clause[]
 	= first: Assignment & (',' & rest: Assignment)* => @(Syntax.Listed(first, rest))
@@ -1089,21 +1089,21 @@ Assignments : @Clause[]
 // method called on one. `.WRITE (…)` needs no rule of its own — a qualified name has
 // already eaten the dot, so what is left is a call.
 Assignment : @Clause
-	= to: Tsql.Variable   & v: AssignTail       => @(new Clause.Set(to, null, v))
-	| to: QualifiedName   & v: ColumnAssignTail => @(new Clause.Set(to, null, v))
+	= to: Tsql.Variable   & s: AssignTail       => @(s with { Target = to })
+	| to: QualifiedName   & s: ColumnAssignTail => @(s with { Target = to })
 
 // `DEFAULT` is assigned and not compounded: the engine answers `DEFAULT is not allowed
 // on the right hand side of "-="`, which is a rule about the operator rather than about
 // the value, so it is written on the operator.
-AssignTail : @Expression
-	= '=' & c: QualifiedName & AssignOp & v: SetValue => @(v)
-	| '=' & v: AssignedValue                          => @(v)
-	| AssignOp & v: SetValue                          => @(v)
+AssignTail : @Clause.Set
+	= '=' & c: QualifiedName & op: AssignOp & v: SetValue => @(new Clause.Set("", op, v, c))
+	| '=' & v: AssignedValue                              => @(new Clause.Set("", "=", v))
+	| op: AssignOp & v: SetValue                          => @(new Clause.Set("", op, v))
 
-ColumnAssignTail : @Expression
-	= '(' & args: Arguments? & ')' => @(args is null ? Expression.NullValue : args[0])
-	| '=' & v: AssignedValue       => @(v)
-	| AssignOp & v: SetValue       => @(v)
+ColumnAssignTail : @Clause.Set
+	= '(' & args: Arguments? & ')' => @(new Clause.Set("", "", new Expression.RoutineInvocation("", args ?? Expression.None)))
+	| '=' & v: AssignedValue       => @(new Clause.Set("", "=", v))
+	| op: AssignOp & v: SetValue   => @(new Clause.Set("", op, v))
 
 AssignedValue : @Expression
 	= "DEFAULT"i => @(Expression.DefaultValue)
@@ -1120,20 +1120,20 @@ DmlWhere : @Expression
 
 // ── §DELETE ─────────────────────────────────────────────────────────────────
 TsqlDelete : @Statement
-	= "DELETE"i & Top? & "FROM"i? & target: DmlTarget & OutputClause?
-	  & from: FromClause? & where: DmlWhere? & QueryHints?
-		=> @(new Statement.Delete(target, from ?? TableReference.None, where))
+	= "DELETE"i & top: Top? & "FROM"i? & target: DmlTarget & output: OutputClause?
+	  & from: FromClause? & where: DmlWhere? & options: QueryHints?
+		=> @(new Statement.Delete(target, from ?? TableReference.None, where, null, top, output, options))
 
 // ── §MERGE ──────────────────────────────────────────────────────────────────
 //
 // Three shapes of arm and they are not interchangeable: a match and a missing target may
 // insert, a missing source may update or delete, and the syntax says which is which.
 TsqlMerge : @Statement
-	= "MERGE"i & Top? & "INTO"i? & target: DmlTarget & ("AS"i? & alias: CorrelationName)?
+	= "MERGE"i & top: Top? & "INTO"i? & target: DmlTarget & ("AS"i? & alias: CorrelationName)?
 	  & "USING"i & source: TableReference
 	  & "ON"i & on: SearchCondition
-	  & whens: MergeArm+ & OutputClause? & QueryHints?
-		=> @(new Statement.Merge(target, source, on, whens))
+	  & whens: MergeArm+ & output: OutputClause? & options: QueryHints?
+		=> @(new Statement.Merge(target, source, on, whens, null, top, alias, output, options))
 
 MergeArm : @Clause
 	= "WHEN"i & "MATCHED"i & ("AND"i & c: SearchCondition)? & "THEN"i & a: MergeChange
@@ -1161,15 +1161,19 @@ MergeInsertRows : @Query
 
 // ── The output clause, shared by all four ───────────────────────────────────
 //
-// Read and dropped. What it names is `INSERTED`, `DELETED` or a table of the `FROM`
-// clause, and `$action` for a merge — all of them ordinary names once `$` is part of one.
-OutputClause = "OUTPUT"i & OutputList & "INTO"i & DmlTarget & ('(' & ColumnList & ')')? & OutputClause?
-			 | "OUTPUT"i & OutputList
+// What it names is `INSERTED`, `DELETED` or a table of the `FROM` clause, and `$action`
+// for a merge — all of them ordinary names once `$` is part of one.
+OutputClause : @Clause
+	= "OUTPUT"i & items: OutputList & "INTO"i & into: DmlTarget & ('(' & columns: ColumnList & ')')? & next: OutputClause?
+		=> @(new Clause.Output(items, into, columns, next))
+	| "OUTPUT"i & items: OutputList
+		=> @(new Clause.Output(items))
 
-OutputList = OutputItem & (',' & OutputItem)*
+OutputList : @Clause[] = first: OutputItem & (',' & rest: OutputItem)* => @(Syntax.Listed(first, rest))
 
-OutputItem = QualifiedName & '.' & '*'
-		   | ValueExpression & TsqlAsClause?
+OutputItem : @Clause
+	= q: QualifiedName & '.' & '*'          => @(new Clause.QualifiedAsterisk(q))
+	| v: ValueExpression & alias: TsqlAsClause? => @(new Clause.DerivedColumn(v, alias))
 
 // ── The procedural level ────────────────────────────────────────────────────
 //
@@ -1301,8 +1305,8 @@ SetStatement : @Statement
 		=> @(new Statement.SetIdentityInsert(name, Syntax.Switched(on)))
 	| "SET"i & option: SetReserved & v: ValueExpression
 		=> @(new Statement.SetCommand(option, v))
-	| "SET"i & name: Tsql.Variable & v: AssignTail
-		=> @(new Statement.SetVariable(name, v))
+	| "SET"i & name: Tsql.Variable & s: AssignTail
+		=> @(new Statement.SetVariable(name, s.Value, s.Operator, s.Through))
 	| "SET"i & first: SetOption & (',' & rest: SetOption)* & on: OnOff
 		=> @(new Statement.SetOption(Syntax.Named(first, rest), Syntax.Switched(on)))
 	| "SET"i & option: SetOptions & v: ValueExpression
@@ -1783,11 +1787,6 @@ ExecuteAsWho : @string
 		  | Sql92.Lexical.CharacterStringLiteral
 		  | Sql92.Lexical.NationalCharacterStringLiteral) => @(t)
 
-// What follows `AS`: a body, or the name of a method in an assembly.
-RoutineTail : @Statement[]
-	= "EXTERNAL"i & "NAME"i & QualifiedName => @(Statement.None)
-	| body: StatementList                   => @(body)
-
 // ── CREATE FUNCTION ─────────────────────────────────────────────────────────
 //
 // Three shapes and the difference is what `RETURNS` says: a type, `TABLE`, or a table
@@ -1816,18 +1815,19 @@ InlineReturn : @Statement[]
 
 // ── CREATE TRIGGER ──────────────────────────────────────────────────────────
 TriggerStatement : @Statement
-	= "TRIGGER"i & name: QualifiedName & "ON"i & on: TriggerOn & RoutineOptions?
-	  & TriggerWhen & events: TriggerEvents
-	  & ("WITH"i & "APPEND"i)? & ("NOT"i & "FOR"i & "REPLICATION"i)?
-	  & "AS"i & body: RoutineTail
-		=> @(new Statement.CreateTrigger(name, on, events, body))
+	= "TRIGGER"i & name: QualifiedName & "ON"i & on: TriggerOn & options: RoutineOptions?
+	  & fires: TriggerWhen & events: TriggerEvents
+	  & append: ("WITH"i & "APPEND"i)? & replication: ("NOT"i & "FOR"i & "REPLICATION"i)?
+	  & "AS"i & ("EXTERNAL"i & "NAME"i & external: QualifiedName | body: StatementList)
+		=> @(new Statement.CreateTrigger(name, on, events, body ?? Statement.None, fires, options,
+				 append is not null, replication is not null, external))
 
 TriggerOn : @string
 	= "ALL"i & "SERVER"i => @("ALL SERVER")
 	| "DATABASE"i        => @("DATABASE")
 	| t: QualifiedName   => @(t)
 
-TriggerWhen = "INSTEAD"i & "OF"i | "AFTER"i | "FOR"i
+TriggerWhen : @string = t: ("INSTEAD"i & "OF"i | "AFTER"i | "FOR"i) => @(Syntax.Squared(t))
 
 // A DML trigger names the three statements; a DDL one names events or a group of them,
 // and both are words separated by commas.
@@ -1842,12 +1842,12 @@ TriggerEvent : @string
 
 // ── CREATE VIEW ─────────────────────────────────────────────────────────────
 ViewStatement : @Statement
-	= "MATERIALIZED"i & "VIEW"i & name: QualifiedName & OptionsWith?
+	= "MATERIALIZED"i & "VIEW"i & name: QualifiedName & options: OptionsWith?
 	  & "AS"i & q: DirectSelect
-		=> @(new Statement.ViewDefinition(name, null, q))
-	| "VIEW"i & name: QualifiedName & ('(' & columns: ColumnList & ')')? & RoutineOptions?
-	  & "AS"i & q: DirectSelect & ("WITH"i & "CHECK"i & "OPTION"i)?
-		=> @(new Statement.ViewDefinition(name, columns, q))
+		=> @(new Statement.ViewDefinition(name, null, q, options, false, true))
+	| "VIEW"i & name: QualifiedName & ('(' & columns: ColumnList & ')')? & options: RoutineOptions?
+	  & "AS"i & q: DirectSelect & check: ("WITH"i & "CHECK"i & "OPTION"i)?
+		=> @(new Statement.ViewDefinition(name, columns, q, options, check is not null))
 
 // ── Indexes ─────────────────────────────────────────────────────────────────
 //
@@ -2792,19 +2792,19 @@ DatabaseTermination : @string
 // the option names are and for the same reason: they are a catalogue rather than a
 // language, and a permission added to SQL Server does not change this grammar.
 PermissionStatement : @Statement
-	= "GRANT"i & what: Permissions & PermissionOn? & "TO"i & who: Principals
-	  & ("WITH"i & "GRANT"i & "OPTION"i)? & PermissionAs?
-		=> @(Statement.Permitted("GRANT", what, who))
-	| "DENY"i & what: Permissions & PermissionOn? & "TO"i & who: Principals
-	  & "CASCADE"i? & PermissionAs?
-		=> @(Statement.Permitted("DENY", what, who))
-	| "REVOKE"i & ("GRANT"i & "OPTION"i & "FOR"i)? & what: Permissions & PermissionOn?
-	  & ToOrFrom & who: Principals & "CASCADE"i? & PermissionAs?
-		=> @(Statement.Permitted("REVOKE", what, who))
+	= "GRANT"i & what: Permissions & on: PermissionOn? & "TO"i & who: Principals
+	  & option: ("WITH"i & "GRANT"i & "OPTION"i)? & who2: PermissionAs?
+		=> @(new Statement.Grant(what, who, on, option is not null, who2))
+	| "DENY"i & what: Permissions & on: PermissionOn? & "TO"i & who: Principals
+	  & cascade: "CASCADE"i? & who2: PermissionAs?
+		=> @(new Statement.Deny(what, who, on, cascade is not null, who2))
+	| "REVOKE"i & optionFor: ("GRANT"i & "OPTION"i & "FOR"i)? & what: Permissions & on: PermissionOn?
+	  & way: ToOrFrom & who: Principals & cascade: "CASCADE"i? & who2: PermissionAs?
+		=> @(new Statement.Revoke(what, who, on, optionFor is not null, Syntax.Squared(way) == "FROM", cascade is not null, who2))
 
-ToOrFrom      = "TO"i | "FROM"i
-PermissionAs  = "AS"i & PrincipalName
-PermissionOn  = "ON"i & SecurableClass? & QualifiedName
+ToOrFrom      : @string = t: ("TO"i | "FROM"i) => @(t)
+PermissionAs  : @string = "AS"i & t: PrincipalName => @(t)
+PermissionOn  : @string = "ON"i & t: (SecurableClass? & QualifiedName) => @(Syntax.Spaced(t))
 
 // `OBJECT::t`, `SCHEMA::s`, `SERVER ROLE::r`, `XML SCHEMA COLLECTION::c` — a run of words
 // and `::`. Where there is no `::` the whole clause is given back, which is what makes it
