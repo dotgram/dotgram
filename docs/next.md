@@ -17088,3 +17088,39 @@ So `DotGram.csproj` builds optimized and without `DEBUG` in Debug too, unless
 configuration changes nothing the generator emits (`.claude/rules/emitted-code.md`), and now
 it changes nothing about how long that takes: `Parsers` in Debug rebuilds in 15 s, the
 solution in 40 s. The Debug test run is unchanged at 2737.
+
+### CREATE TABLE, and what stood after every column
+
+The first `--roundtrip` work item: `CreateTableStatement`, 584 in the corpus and 6.3% the
+same. The grammar read almost all of it and the tree kept the name, the type, the computed
+expression and a constraint's kind — `SPARSE`, `NOT NULL`, `COLLATE`, `IDENTITY (1, 5)`,
+`MASKED WITH (…)`, `GENERATED ALWAYS AS ROW START`, the clustering, the hash, the `WITH`,
+the `ON`, the `REFERENCES … ON DELETE`, the filter of an inline index, `AS FILETABLE`, the
+placements and the options of the table itself were read and dropped. Lossless means each
+of those is a node.
+
+**One option node.** `Clause.Option(Name, Value, Options, Partitions)` is every list T-SQL
+writes: `WITH (…)`, `SET (…)`, `MASKED WITH (…)`, `ALTER DATABASE SET`, and `Clause.WithOption`
+and `Clause.DatabaseOption` went into it. The names are a catalogue, and a catalogue does not
+get a node per entry. A value with a unit is `Expression.Measured` — `COMPRESSION_DELAY = 10
+MINUTES` was `= 10` — and a bracketed list after a value, `IGNORE_DUP_KEY = ON
+(SUPPRESS_MESSAGES = ON)`, is the option's own nested list. `HASH (column1)` in a
+distribution is an invocation, not the word `HASH`.
+
+**The column and the constraint, in full.** `ColumnDefinition` holds its options in the order
+they were written, each a `ColumnOption(Kind, Arguments, Options, ConstraintName)` or the
+constraint or index it is. `ConstraintDefinition` keeps its four positional parts — name,
+kind, columns, check — and takes the rest as optional: clustering, hash, columnstore, order,
+include, filter, `Clause.References` with its actions, options, placements, `NOT ENFORCED`,
+the `FOR` of a default. Its columns are sort specifications now, so `a ASC, b DESC` is kept.
+`CREATE INDEX` is that node with a table in front of it — the same thing said in the same
+words, which the grammar had already noticed. `DECLARE @t TABLE (…)` keeps its body, and
+`ALTER COLUMN a ADD SPARSE` its word.
+
+What it moved, in one afternoon and with the oracle unchanged in what it reads: the corpus
+from 34.9% to 50.3% the same, and what ScriptDom will not read back from 2303 to 1899.
+`CreateTable` 6.3 → 98.8%, `CreateIndex` 5.3 → 95.5%, `AlterTable ALTER COLUMN` 2.8 → 98.6%,
+`AlterTable ADD` 2.2 → 80.4%. Two things the printer had to be told on the way: `AS
+FILETABLE` stands before the columns and `AS NODE` after them, which the word decides; and
+a `DEFAULT` is printed as written, its own brackets and all — printing it in brackets of
+the printer's added a pair per round, which the round-trip test caught at once.

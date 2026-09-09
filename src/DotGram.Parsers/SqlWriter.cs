@@ -232,18 +232,39 @@ public static class SqlWriter
 
 				break;
 
-			case Statement.TableDefinition(var name, var elements):
-				text.Append("CREATE TABLE ").Append(name).Append(" (");
-				Each(text, elements);
-				text.Append(')');
+			case Statement.TableDefinition(var name, var kind, var elements, var placements, var options):
+				text.Append("CREATE TABLE ").Append(name);
+
+				// `AS FILETABLE` stands before the columns, of which it has none; `AS NODE` and
+				// `AS EDGE` stand after them. Two syntaxes, and which one is which the word says.
+				var before = kind is not null && kind.Equals("FILETABLE", StringComparison.OrdinalIgnoreCase);
+
+				if (before)
+					text.Append(" AS ").Append(kind);
+
+				if (elements.Length > 0 || kind is null)
+				{
+					text.Append(" (");
+					Each(text, elements);
+					text.Append(')');
+				}
+
+				if (kind is not null && !before)
+					text.Append(" AS ").Append(kind);
+
+				Placed(text, placements);
+				Optioned(text, options);
 				break;
 
-			case Statement.CreateTableAsSelect(var name, var body):
-				text.Append("CREATE TABLE ").Append(name).Append(" AS ");
+			case Statement.CreateTableAsSelect(var name, var columns, var options, var body):
+				text.Append("CREATE TABLE ").Append(name);
+				Names(text, columns);
+				Optioned(text, options);
+				text.Append(" AS ");
 				Put(text, body);
 				break;
 
-			case Statement.AlterTable(var name, var action, var elements):
+			case Statement.AlterTable(var name, var action, var elements, var options):
 				text.Append("ALTER TABLE ").Append(name).Append(' ').Append(action);
 
 				if (elements.Length > 0)
@@ -252,6 +273,7 @@ public static class SqlWriter
 					Each(text, elements);
 				}
 
+				Optioned(text, options);
 				break;
 
 			case Statement.CreateProcedure(var name, var parameters, var body):
@@ -295,9 +317,9 @@ public static class SqlWriter
 				Put(text, body);
 				break;
 
-			case Statement.CreateIndex(var name, var on, var columns):
-				text.Append("CREATE INDEX ").Append(name).Append(" ON ").Append(on);
-				Names(text, columns);
+			case Statement.CreateIndex(var on, var index):
+				text.Append("CREATE ");
+				Put(text, (Clause.ConstraintDefinition)index, on);
 				break;
 
 			case Statement.AlterIndex(var name, var on, var action):
@@ -846,6 +868,38 @@ public static class SqlWriter
 			text.Append(" (").Append(string.Join(", ", columns)).Append(')');
 	}
 
+	/// <summary>Sort specifications in brackets, or nothing where there are none.</summary>
+	static void Columns(StringBuilder text, Clause[]? columns)
+	{
+		if (columns is not { Length: > 0 })
+			return;
+
+		text.Append(" (");
+		Each(text, columns);
+		text.Append(')');
+	}
+
+	/// <summary>A <c>WITH (…)</c>, or nothing where there is none.</summary>
+	static void Optioned(StringBuilder text, Clause[]? options)
+	{
+		if (options is not { Length: > 0 })
+			return;
+
+		text.Append(" WITH (");
+		Each(text, options);
+		text.Append(')');
+	}
+
+	/// <summary>Placements one after another, each with its word.</summary>
+	static void Placed(StringBuilder text, Clause[]? placements)
+	{
+		foreach (var one in placements ?? Clause.None)
+		{
+			text.Append(' ');
+			Put(text, one);
+		}
+	}
+
 	// ── Clauses ─────────────────────────────────────────────────────────────────
 
 	static void Put(StringBuilder text, Clause clause)
@@ -1057,8 +1111,99 @@ public static class SqlWriter
 				text.Append(hint);
 				break;
 
-			case Clause.WithOption(var option):
-				text.Append(option);
+			case Clause.Option(var name, var value, var options, var partitions):
+				text.Append(name);
+
+				if (value is not null)
+				{
+					text.Append(" = ");
+					Put(text, value, 0);
+				}
+
+				// A placement under `MOVE TO` stands after the words; a list stands in brackets.
+				if (options is [Clause.Placement placement])
+				{
+					text.Append(' ');
+					Put(text, placement);
+				}
+				else if (options.Length > 0)
+				{
+					text.Append(" (");
+					Each(text, options);
+					text.Append(')');
+				}
+
+				if (partitions is not null)
+					text.Append(' ').Append(partitions);
+
+				break;
+
+			case Clause.Placement(var kind, var target, var columns):
+				if (kind.Length > 0)
+					text.Append(kind).Append(' ');
+
+				text.Append(target);
+				Names(text, columns);
+				break;
+
+			case Clause.ColumnOption(var kind, var arguments, var options, var constraintName):
+				if (constraintName is not null)
+					text.Append("CONSTRAINT ").Append(constraintName).Append(' ');
+
+				text.Append(kind);
+
+				if (arguments.Length > 0 && kind == "COLLATE")
+				{
+					text.Append(' ');
+					Put(text, arguments[0], 0);
+				}
+				else if (arguments.Length > 0)
+				{
+					text.Append(" (");
+
+					for (var i = 0; i < arguments.Length; i++)
+					{
+						if (i > 0)
+							text.Append(", ");
+
+						Put(text, arguments[i], 0);
+					}
+
+					text.Append(')');
+				}
+
+				if (options.Length > 0 && kind is "MASKED" or "ENCRYPTED")
+				{
+					Optioned(text, options);
+				}
+				else
+				{
+					foreach (var one in options)
+					{
+						text.Append(' ');
+						Put(text, one);
+					}
+				}
+
+				break;
+
+			case Clause.References(var table, var columns, var onDelete, var onUpdate, var replication):
+				text.Append("REFERENCES ").Append(table);
+				Names(text, columns);
+
+				if (onDelete is not null)
+					text.Append(" ON DELETE ").Append(onDelete);
+
+				if (onUpdate is not null)
+					text.Append(" ON UPDATE ").Append(onUpdate);
+
+				if (replication)
+					text.Append(" NOT FOR REPLICATION");
+
+				break;
+
+			case Clause.Connection(var from, var to):
+				text.Append(from).Append(" TO ").Append(to);
 				break;
 
 			case Clause.VariableAssignment(var variable, var by, var value):
@@ -1091,15 +1236,23 @@ public static class SqlWriter
 				Arm(text, action);
 				break;
 
-			case Clause.VariableDeclaration(var name, var type, var value):
+			case Clause.VariableDeclaration(var name, var type, var value, var elements):
 				Declared(text, name, type, value);
+
+				if (elements is not null)
+				{
+					text.Append(" (");
+					Each(text, elements);
+					text.Append(')');
+				}
+
 				break;
 
 			case Clause.ParameterDeclaration(var name, var type, var value):
 				Declared(text, name, type, value);
 				break;
 
-			case Clause.ColumnDefinition(var name, var type, var computed, var constraints):
+			case Clause.ColumnDefinition(var name, var type, var computed, var options):
 				text.Append(name);
 
 				if (computed is not null)
@@ -1112,7 +1265,7 @@ public static class SqlWriter
 					text.Append(' ').Append(type);
 				}
 
-				foreach (var one in constraints)
+				foreach (var one in options)
 				{
 					text.Append(' ');
 					Put(text, one);
@@ -1120,32 +1273,138 @@ public static class SqlWriter
 
 				break;
 
-			case Clause.ConstraintDefinition(var name, var kind, var columns, var check):
-				if (name is not null)
-					text.Append("CONSTRAINT ").Append(name).Append(' ');
-
-				text.Append(kind);
-				Names(text, columns);
-
-				if (check is not null)
-				{
-					text.Append(" (");
-					Put(text, check, 0);
-					text.Append(')');
-				}
-
+			case Clause.ConstraintDefinition constraint:
+				Put(text, constraint, null);
 				break;
 
-			case Clause.DatabaseOption(var name, var value):
-				text.Append(name);
+		}
+	}
 
-				if (value is not null)
-				{
-					text.Append(" = ");
-					Put(text, value, 0);
-				}
+	/// <summary>
+	/// A constraint or an index with everything T-SQL writes after it, in its order — and,
+	/// given a table, as the <c>CREATE INDEX</c> that stands on its own.
+	/// </summary>
+	static void Put(StringBuilder text, Clause.ConstraintDefinition constraint, string? on)
+	{
+		var name    = constraint.Name;
+		var kind    = constraint.Kind;
+		var columns = constraint.Columns;
+		var check   = constraint.Check;
+		var index   = kind is "INDEX" or "UNIQUE INDEX";
 
-				break;
+		// An index is `INDEX name`, or `UNIQUE CLUSTERED INDEX name ON t` on its own; a
+		// constraint is `CONSTRAINT name` and then what it is.
+		if (index && on is not null)
+		{
+			if (kind == "UNIQUE INDEX")
+				text.Append("UNIQUE ");
+
+			if (constraint.Clustering is { } clustered)
+				text.Append(clustered).Append(' ');
+
+			if (constraint.Columnstore)
+				text.Append("COLUMNSTORE ");
+
+			text.Append("INDEX ").Append(name).Append(" ON ").Append(on);
+		}
+		else if (index)
+		{
+			text.Append("INDEX ").Append(name);
+
+			if (kind == "UNIQUE INDEX")
+				text.Append(" UNIQUE");
+
+			if (constraint.Clustering is { } clustering)
+				text.Append(' ').Append(clustering);
+
+			if (constraint.Columnstore)
+				text.Append(" COLUMNSTORE");
+		}
+		else
+		{
+			if (name is not null)
+				text.Append("CONSTRAINT ").Append(name).Append(' ');
+
+			text.Append(kind);
+
+			if (constraint.Clustering is { } clustering)
+				text.Append(' ').Append(clustering);
+
+			if (constraint.Columnstore)
+				text.Append(" COLUMNSTORE");
+		}
+
+		if (constraint.Hash)
+			text.Append(" HASH");
+
+		// A connection's pairs and a check's `NOT FOR REPLICATION` stand where a key's columns
+		// do; the options of anything else are its `WITH`.
+		var pairs   = constraint.Options?.OfType<Clause.Connection>().ToArray() ?? [];
+		var words   = kind is "CHECK" or "CONNECTION" ? constraint.Options?.OfType<Clause.Option>().ToArray() ?? [] : [];
+		var options = kind is "CHECK" or "CONNECTION" ? null : constraint.Options;
+
+		if (kind == "CHECK")
+			foreach (var word in words)
+				text.Append(' ').Append(word.Name);
+
+		if (pairs.Length > 0)
+		{
+			text.Append(" (");
+			Each(text, pairs);
+			text.Append(')');
+		}
+
+		Columns(text, columns);
+		Names(text, constraint.Order is null ? null : constraint.Order, "ORDER");
+		Names(text, constraint.Include, "INCLUDE");
+
+		// A check is written in brackets; a default is written as the author wrote it, whose
+		// own brackets the tree keeps — adding a pair would add one per round.
+		if (check is not null && kind == "DEFAULT")
+		{
+			text.Append(' ');
+			Put(text, check, 0);
+		}
+		else if (check is not null)
+		{
+			text.Append(" (");
+			Put(text, check, 0);
+			text.Append(')');
+		}
+
+		if (constraint.ForColumn is { } forColumn)
+			text.Append(" FOR ").Append(forColumn);
+
+		if (constraint.Filter is { } filter)
+		{
+			text.Append(" WHERE ");
+			Put(text, filter, 0);
+		}
+
+		if (constraint.Referenced is { } references)
+		{
+			text.Append(' ');
+			Put(text, references);
+		}
+
+		if (kind == "CONNECTION")
+			foreach (var word in words)
+				text.Append(' ').Append(word.Name);
+
+		Optioned(text, options);
+		Placed(text, constraint.Placements);
+
+		if (constraint.Enforced is { } enforced)
+			text.Append(enforced ? " ENFORCED" : " NOT ENFORCED");
+	}
+
+	/// <summary>A word and names in brackets, or nothing where there are no names.</summary>
+	static void Names(StringBuilder text, string[]? columns, string word)
+	{
+		if (columns is not null)
+		{
+			text.Append(' ').Append(word);
+			Names(text, columns);
 		}
 	}
 
@@ -1410,6 +1669,11 @@ public static class SqlWriter
 			case Expression.Collated(var value, var collation):
 				Put(text, value, 8);
 				text.Append(" COLLATE ").Append(collation);
+				break;
+
+			case Expression.Measured(var value, var unit):
+				Put(text, value, 8);
+				text.Append(' ').Append(unit);
 				break;
 
 			case Expression.RowsetOrder(var by, var unique):

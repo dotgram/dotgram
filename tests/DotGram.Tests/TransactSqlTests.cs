@@ -754,7 +754,11 @@ public sealed class TransactSqlTests
 
 		Assert.Equal("pk", third.Name);
 		Assert.Equal("PRIMARY KEY", third.Kind);
-		Assert.Equal(new[] { "a" }, third.Columns);
+
+		var column = Assert.IsType<Clause.SortSpecification>(Assert.Single(third.Columns));
+
+		Assert.Equal("a", Assert.IsType<Expression.ColumnReference>(column.Value).Text);
+		Assert.Equal(SqlOrder.Unspecified, column.Order);
 	}
 
 	/// <summary>The four that are a header and a body.</summary>

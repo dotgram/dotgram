@@ -359,6 +359,7 @@ field on one record here, and having a record each is what makes that a small ch
 | `Expression.WindowFunction` | SQL:2003 | &lt;window function&gt; — a call and the window it is computed over |
 | `Expression.Member` | T-SQL | a member of a value, or a method called on one — `a.b`, `a::b`, `a.f(1)` |
 | `Expression.Collated` | SQL-92 | §6.11 &lt;collate clause&gt; on a value |
+| `Expression.Measured` | T-SQL | a value with its unit after it — `10 MINUTES`, `50 PERCENT`, `4 GB` |
 | `Expression.Subquery` | SQL-92 | §7.11 &lt;subquery&gt; |
 | `Expression.Parenthesized` | SQL:2023 | §6.28 &lt;parenthesized value expression&gt;, and §8.1's boolean one |
 
@@ -392,7 +393,8 @@ field on one record here, and having a record each is what makes that a small ch
 | `Clause.CommonTableExpression` | SQL:1999 | &lt;with list element&gt;; T-SQL: WITH common_table_expression |
 | `Clause.For` | T-SQL | SELECT — the FOR clause: `FOR XML`, `FOR JSON`, `FOR BROWSE` |
 | `Clause.Hint` | T-SQL | Query Hints, and the table hints, kept as the words they were written as |
-| `Clause.WithOption` | T-SQL | what stands in a `WITH` beside the named queries — XMLNAMESPACES, CHANGE_TRACKING_CONTEXT |
+| `Clause.Option` | T-SQL | one option of any of the lists: `WITH (…)`, `SET (…)`, `ALTER DATABASE SET`, `MASKED WITH (…)` — a name, a value, nested options, partitions; and what stands in a `WITH` beside the named queries |
+| `Clause.Placement` | T-SQL | where a table or an index is put: `ON`, `TEXTIMAGE_ON`, `FILESTREAM_ON`, and the target after `MOVE TO` |
 | `Clause.VariableAssignment` | T-SQL | SELECT — `@variable = expression` in a select list |
 | `Clause.When` | SQL-92 | §6.9 &lt;simple when clause&gt;, &lt;searched when clause&gt; |
 | `Clause.Set` | SQL-92 | §13.10 &lt;set clause&gt; |
@@ -400,5 +402,7 @@ field on one record here, and having a record each is what makes that a small ch
 | `Clause.VariableDeclaration` | SQL/PSM | one &lt;variable declaration&gt; of it |
 | `Clause.ParameterDeclaration` | SQL/PSM | &lt;SQL parameter declaration&gt; |
 | `Clause.ColumnDefinition` | SQL-92 | §11.4 &lt;column definition&gt; |
-| `Clause.ConstraintDefinition` | SQL-92 | §11.6 &lt;table constraint definition&gt;, and the indexes T-SQL writes beside them |
-| `Clause.DatabaseOption` | T-SQL | one setting of ALTER DATABASE SET; not a statement |
+| `Clause.ColumnOption` | T-SQL | one thing said about a column after its type that is not a constraint: `NULL`, `SPARSE`, `COLLATE`, `IDENTITY`, `MASKED`, … |
+| `Clause.ConstraintDefinition` | SQL-92 | §11.6 &lt;table constraint definition&gt;, and the indexes T-SQL writes beside them, with everything written after them |
+| `Clause.References` | SQL-92 | §11.8 &lt;references specification&gt;, with the referential actions |
+| `Clause.Connection` | T-SQL | one pair of node tables a graph edge's `CONNECTION` may join |

@@ -185,18 +185,28 @@ public abstract record Statement : ISqlSpan
 	// ---- the tables ---------------------------------------------------------------------------
 
 	/// <summary>
-	/// §11.1 a table declared: its name, and the columns, constraints and indexes in it.
+	/// §11.1 a table declared: its name, what kind of table T-SQL says it is where it says
+	/// one (<c>AS FILETABLE</c>, <c>AS NODE</c>, <c>AS EDGE</c>), the columns, constraints and
+	/// indexes in it, where it is placed (<c>ON</c>, <c>TEXTIMAGE_ON</c>, <c>FILESTREAM_ON</c>),
+	/// and the options written after it.
 	/// </summary>
-	public sealed record TableDefinition(string Name, Clause[] Elements) : Statement;
+	public sealed record TableDefinition(
+		string Name, string? Kind, Clause[] Elements, Clause[] Placements, Clause[] Options) : Statement;
 
 	/// <summary>
 	/// A table whose columns are whatever a query returns — <c>CREATE TABLE … AS SELECT</c>,
-	/// and the external table written the same way.
+	/// and the external table written the same way: the column names where they were given,
+	/// the options between the name and the <c>AS</c>, and the query.
 	/// </summary>
-	public sealed record CreateTableAsSelect(string Name, Statement Body) : Statement;
+	public sealed record CreateTableAsSelect(
+		string Name, string[]? Columns, Clause[] Options, Statement Body) : Statement;
 
-	/// <summary>§11.10 a table changed: its name, what is being done, and to what.</summary>
-	public sealed record AlterTable(string Name, string Action, Clause[] Elements) : Statement;
+	/// <summary>
+	/// §11.10 a table changed: its name, what is being done, to what, and the options the
+	/// action was given.
+	/// </summary>
+	public sealed record AlterTable(
+		string Name, string Action, Clause[] Elements, Clause[]? Options = null) : Statement;
 
 	// ---- the routines --------------------------------------------------------------------------
 
@@ -222,7 +232,11 @@ public abstract record Statement : ISqlSpan
 	// ---- indexes -------------------------------------------------------------------------------
 
 	/// <summary>An index declared: its name, what it is on, and the columns it is over.</summary>
-	public sealed record CreateIndex(string Name, string On, string[]? Columns) : Statement;
+	/// <summary>
+	/// <c>CREATE INDEX</c>: the table, and the index — the same node an index written inside
+	/// a table is, since it is the same thing said in the same words.
+	/// </summary>
+	public sealed record CreateIndex(string On, Clause Index) : Statement;
 
 	/// <summary>An index changed: which one, on what, and what is being done to it.</summary>
 	public sealed record AlterIndex(string Name, string On, string Action) : Statement;
@@ -922,8 +936,12 @@ public abstract record Statement : ISqlSpan
 		};
 
 	/// <summary>An alteration before the table it is applied to is known.</summary>
-	public static AlterTable Altered(string action, Clause[]? elements) =>
-		new("", action, elements ?? Clause.None);
+	public static AlterTable Altered(string action, Clause[]? elements, Clause[]? options = null) =>
+		new("", action, elements ?? Clause.None, options);
+
+	/// <summary>A column altered by one word — <c>ADD SPARSE</c>, <c>DROP PERSISTED</c>.</summary>
+	public static AlterTable Flagged(string name, string flag, Clause[]? options) =>
+		new("", "ALTER COLUMN", [new Clause.ColumnDefinition(name, null, null, [Clause.Optioned(flag)])], options);
 
 	/// <summary>The <c>DROP</c> the word names, which is what a <c>DROP</c> statement is.</summary>
 	/// <remarks>
@@ -1250,6 +1268,12 @@ public abstract record Expression : ISqlSpan
 	public sealed record Prefixed(string Word, Expression Value) : Expression;
 
 	/// <summary>
+	/// A value and the unit written after it — <c>10 MINUTES</c>, <c>50 PERCENT</c>,
+	/// <c>4 GB</c> — where an option or a sample says how much of what.
+	/// </summary>
+	public sealed record Measured(Expression Value, string Unit) : Expression;
+
+	/// <summary>
 	/// An argument given by name rather than by position — <c>@p = 1</c> in an
 	/// <c>EXECUTE</c>, <c>FORMATFILE = '…'</c> in a rowset function.
 	/// </summary>
@@ -1510,11 +1534,26 @@ public abstract record Clause : ISqlSpan
 	public sealed record Hint(string Text) : Clause;
 
 	/// <summary>
-	/// What may stand in a <c>WITH</c> beside the named queries — <c>XMLNAMESPACES (…)</c> and
-	/// <c>CHANGE_TRACKING_CONTEXT (…)</c>, which are not queries and are written in the same
-	/// breath as one.
+	/// One option of the many lists T-SQL writes them in: its name, what it is set to where
+	/// it is set to anything, the options nested in it where it holds a list of its own, and
+	/// the partitions it applies to where it says which.
 	/// </summary>
-	public sealed record WithOption(string Text) : Clause;
+	/// <remarks>
+	/// <c>WITH (DATA_COMPRESSION = PAGE ON PARTITIONS (1))</c>, <c>SET (LOCK_ESCALATION =
+	/// AUTO)</c>, <c>MASKED WITH (FUNCTION = 'default()')</c>, and the two hundred settings of
+	/// <c>ALTER DATABASE</c>. The names are a catalogue and not a language, so one node holds
+	/// them all: what an option means is the engine's question. A bare switch —
+	/// <c>WITH PAD_INDEX ON</c> — arrives with its word as the value, the same as the
+	/// <c>=</c> spelling, which is the one the writer prints.
+	/// </remarks>
+	public sealed record Option(
+		string Name, Expression? Value, Clause[] Options, string? Partitions = null) : Clause;
+
+	/// <summary>
+	/// Where a table or an index is put: the word that says which placement, the filegroup
+	/// or partition scheme, and the column a partition scheme is applied on.
+	/// </summary>
+	public sealed record Placement(string Kind, string Target, string[]? Columns) : Clause;
 
 	/// <summary>
 	/// T-SQL's assignment written in a select list — <c>SELECT @a += 1</c>, which takes the
@@ -1542,43 +1581,104 @@ public abstract record Clause : ISqlSpan
 	/// <summary>
 	/// One variable: its name, the type as written, and what it was given to start with.
 	/// </summary>
-	public sealed record VariableDeclaration(string Name, string? Type, Expression? Value) : Clause;
+	public sealed record VariableDeclaration(
+		string Name, string? Type, Expression? Value, Clause[]? Elements = null) : Clause;
 
 	/// <summary>One parameter of a routine: its name, its type, and its default.</summary>
 	public sealed record ParameterDeclaration(string Name, string? Type, Expression? Value) : Clause;
 
 	/// <summary>
 	/// §11.4 one column: its name, the type as written, the expression where it is computed
-	/// rather than stored, and what is said about it after that.
+	/// rather than stored, and everything said about it after that — its options, its
+	/// constraints, and the index written on it — in the order it was said.
 	/// </summary>
 	public sealed record ColumnDefinition(
-		string Name, string? Type, Expression? Computed, Clause[] Constraints) : Clause;
+		string Name, string? Type, Expression? Computed, Clause[] Options) : Clause;
+
+	/// <summary>
+	/// One thing said about a column after its type that is not a constraint: which thing
+	/// (<c>SPARSE</c>, <c>NOT NULL</c>, <c>COLLATE</c>, <c>IDENTITY</c>, <c>MASKED</c>, …), what
+	/// it was given in brackets or after it, the options where it carries a <c>WITH</c>, and
+	/// the constraint name where the language lets a nullability have one.
+	/// </summary>
+	public sealed record ColumnOption(
+		string Kind, Expression[] Arguments, Clause[] Options, string? ConstraintName) : Clause;
 
 	/// <summary>
 	/// §11.6 a constraint or an index, written on a column or on the table: its name where it
-	/// was given one, which kind it is, and the columns it names.
+	/// was given one, which kind it is, and the columns it names — and everything T-SQL
+	/// writes after those, each where it was written and nothing where it was not.
 	/// </summary>
+	/// <param name="Columns">Sort specifications: a column and the direction it was given.</param>
+	/// <param name="Clustering"><c>CLUSTERED</c> or <c>NONCLUSTERED</c>, as written.</param>
+	/// <param name="Check">The condition of a <c>CHECK</c>, or the value of a <c>DEFAULT</c>.</param>
+	/// <param name="Filter">The <c>WHERE</c> of a filtered index.</param>
+	/// <param name="Referenced">The <c>REFERENCES</c> of a foreign key.</param>
+	/// <param name="Options">The <c>WITH (…)</c>; for <c>CONNECTION</c>, the pairs and the actions.</param>
+	/// <param name="Enforced">Null where nothing was said, false for <c>NOT ENFORCED</c>.</param>
+	/// <param name="ForColumn">The column a <c>DEFAULT … FOR</c> names.</param>
 	public sealed record ConstraintDefinition(
-		string? Name, string Kind, string[]? Columns, Expression? Check) : Clause;
+		string? Name, string Kind, Clause[] Columns, Expression? Check,
+		string? Clustering = null, bool Hash = false, bool Columnstore = false,
+		string[]? Order = null, string[]? Include = null, Expression? Filter = null,
+		Clause? Referenced = null, Clause[]? Options = null, Clause[]? Placements = null,
+		bool? Enforced = null, string? ForColumn = null) : Clause;
 
-	/// <summary>One setting of a database: its name, and what it was set to.</summary>
-	/// <remarks>
-	/// Not a statement and not a kind of its own. There are some two hundred of them, they
-	/// differ by edition and by version, and each is a name and a value however much SQL Server
-	/// means by it.
-	/// </remarks>
-	public sealed record DatabaseOption(string Name, Expression? Value) : Clause;
+	/// <summary>
+	/// §11.8 what a foreign key refers to: the table, its columns where they are named, what
+	/// happens on delete and on update, and whether replication is told to leave it alone.
+	/// </summary>
+	public sealed record References(
+		string Table, string[]? Columns, string? OnDelete, string? OnUpdate, bool NotForReplication) : Clause;
+
+	/// <summary>One pair of node tables an edge may connect.</summary>
+	public sealed record Connection(string From, string To) : Clause;
 
 	/// <summary>What a statement with no clauses is handed, once rather than per call.</summary>
 	public static readonly Clause[] None = [];
 
 	/// <summary>A constraint written without a name, which is most of them.</summary>
 	public static ConstraintDefinition Constrained(
-		string kind, string[]? columns, Expression? check) => new(null, kind, columns, check);
+		string kind, Clause[]? columns, Expression? check) => new(null, kind, columns ?? None, check);
 
 	/// <summary>A named thing dropped or declared, where only the name and the kind matter.</summary>
 	public static ConstraintDefinition Marked(string kind, string? name) =>
-		new(name, kind, null, null);
+		new(name, kind, None, null);
+
+	/// <summary>
+	/// A key or a uniqueness: the kind, and everything T-SQL lets stand after it.
+	/// </summary>
+	public static ConstraintDefinition Keyed(
+		string kind, string? clustering, string? hash, Clause[]? columns,
+		Clause[]? options, Clause? placement, string? enforced) =>
+		new(null, kind, columns ?? None, null,
+			Clustering: clustering, Hash: hash is not null,
+			Options: options, Placements: placement is null ? null : [placement],
+			Enforced: Syntax.Enforced(enforced));
+
+	/// <summary>An index written inside a table or on its own, with everything that may follow it.</summary>
+	public static ConstraintDefinition Indexed(
+		string name, string? unique, string? clustering, string? columnstore, string? hash,
+		Clause[]? columns, string[]? order, string[]? include, Expression? filter,
+		Clause[]? options, Placement? on, Placement? filestream) =>
+		new(name, unique is null ? "INDEX" : "UNIQUE INDEX", columns ?? None, null,
+			Clustering: clustering, Hash: hash is not null, Columnstore: columnstore is not null,
+			Order: order, Include: include, Filter: filter, Options: options,
+			Placements: on is null && filestream is null
+				? null
+				: [.. new[] { on, filestream }.OfType<Clause>()]);
+
+	/// <summary>What a column is told after its type: one word or several, and its argument.</summary>
+	public static ColumnOption Optioned(string kind, Expression? argument = null) =>
+		new(Syntax.Squared(kind), argument is null ? Expression.None : [argument], None, null);
+
+	/// <summary>A column's option or constraint, given the name written in front of it.</summary>
+	public static Clause Named(Clause one, string name) => one switch
+	{
+		ColumnOption option             => option with { ConstraintName = name },
+		ConstraintDefinition constraint => constraint with { Name = name },
+		_                               => one,
+	};
 
 	/// <summary>
 	/// A <c>TOP</c> from the words written after it, which are two questions and one rule:
@@ -1635,6 +1735,57 @@ public static class Syntax
 
 	/// <summary>A head and a tail of names as one array, the way <see cref="Listed"/> does nodes.</summary>
 	public static string[] Named(string first, string[]? rest) => Listed(first, rest);
+
+	/// <summary>Names as sort specifications with no direction, which is how a column list stands.</summary>
+	public static Clause[] Columns(string[]? names) =>
+		names is null ? Clause.None : [.. names.Select(static one => new Clause.SortSpecification(new Expression.ColumnReference(one), SqlOrder.Unspecified))];
+
+	/// <summary>One word as an option with nothing set, or nothing where none was written.</summary>
+	public static Clause[] Unit(string? word) =>
+		word is null ? Clause.None : [new Clause.Option(Squared(word), null, Clause.None)];
+
+	/// <summary>A value with the unit after it, or the value alone where none was written.</summary>
+	public static Expression Measured(Expression value, string? unit) =>
+		unit is null ? value : new Expression.Measured(value, Squared(unit));
+
+	/// <summary>
+	/// A name followed by a bracketed list, as an invocation: <c>HASH(column1)</c> in a
+	/// distribution, whose items are names and not settings.
+	/// </summary>
+	public static Expression Invoked(string name, Clause[] items) =>
+		new Expression.RoutineInvocation(name, [.. items.Select(static one =>
+			one is Clause.Option(var word, null, { Length: 0 }, null)
+				? new Expression.ColumnReference(word)
+				: (Expression)new Expression.ColumnReference(one.ToString() ?? ""))]);
+
+	/// <summary>Whether a key is enforced: null where nothing was said, false for <c>NOT ENFORCED</c>.</summary>
+	public static bool? Enforced(string? words) =>
+		words is null ? null : !Squared(words).StartsWith("NOT", StringComparison.Ordinal);
+
+	/// <summary>A <c>REFERENCES</c> from its parts, the actions read back from the words.</summary>
+	public static Clause.References Referenced(string table, string[]? columns, string[]? actions)
+	{
+		string? onDelete = null, onUpdate = null;
+		var replication = false;
+
+		foreach (var action in actions ?? NoNames)
+		{
+			var squared = Squared(action);
+
+			if (squared.StartsWith("ON DELETE ", StringComparison.Ordinal))
+				onDelete = squared[10..];
+			else if (squared.StartsWith("ON UPDATE ", StringComparison.Ordinal))
+				onUpdate = squared[10..];
+			else
+				replication = true;
+		}
+
+		return new Clause.References(table, columns, onDelete, onUpdate, replication);
+	}
+
+	/// <summary>A <c>CONNECTION</c>'s pairs and the actions after them, as one list.</summary>
+	public static Clause[] Connected(Clause first, Clause[]? rest, string[]? actions) =>
+		[.. Listed(first, rest), .. (actions ?? NoNames).Select(static one => (Clause)new Clause.Option(Squared(one), null, Clause.None))];
 
 	/// <summary>Whether a word that is <c>ON</c> or <c>OFF</c> was the first of the two.</summary>
 	public static bool Switched(string word) => (word[0] | 0x20) == 'o' && word.Length == 2;

@@ -807,9 +807,9 @@ TsqlDirectSelect : @Statement
 // The definition is a query expression and not a whole statement: the syntax forbids a
 // `WITH` inside a `WITH`, and writing it that way is how the grammar says so.
 WithClause : @Clause[]
-	= "WITH"i & t: ChangeTrackingContext => @(new Clause[] { new Clause.WithOption(t) })
+	= "WITH"i & t: ChangeTrackingContext => @(new Clause[] { new Clause.Option(t, null, Clause.None) })
 	| "WITH"i & t: XmlNamespaces & (',' & rest: CteDefinition)*
-		=> @(Syntax.Listed<Clause>(new Clause.WithOption(t), rest))
+		=> @(Syntax.Listed<Clause>(new Clause.Option(t, null, Clause.None), rest))
 	| "WITH"i & first: CteDefinition & (',' & rest: CteDefinition)*
 		=> @(Syntax.Listed<Clause>(first, rest))
 
@@ -1266,7 +1266,7 @@ Declaration : @Clause
 	= name: Tsql.Variable & "AS"i? & d: DeclaredAs => @(d with { Name = name })
 
 DeclaredAs : @Clause.VariableDeclaration
-	= "TABLE"i & '(' & TableBody & ')'                    => @(new Clause.VariableDeclaration("", "TABLE", null))
+	= "TABLE"i & '(' & body: TableBody & ')'              => @(new Clause.VariableDeclaration("", "TABLE", null, body))
 	| "CURSOR"i                                           => @(new Clause.VariableDeclaration("", "CURSOR", null))
 	| type: DataType & NullSpec? & ('=' & v: SetValue)?   => @(new Clause.VariableDeclaration("", type, v))
 
@@ -1278,7 +1278,7 @@ CursorBody = QueryExpression & OrderByClause? & CursorFor?
 CursorFor  = "FOR"i & "UPDATE"i & ("OF"i & ColumnList)?
 		   | "FOR"i & "READ"i & "ONLY"i
 
-IndexOrder = "CLUSTERED"i | "NONCLUSTERED"i
+IndexOrder : @string = t: ("CLUSTERED"i | "NONCLUSTERED"i) => @(Syntax.Squared(t))
 
 // `GENERATED ALWAYS AS { ROW | TRANSACTION_ID | SEQUENCE_NUMBER } { START | END }`, and
 // `END` is a reserved word — so the two ends are named rather than read as identifiers,
@@ -1395,45 +1395,51 @@ WaitKind  = "DELAY"i | "TIME"i
 // shape being the one the feature gives it.
 CreateTableStatement : @Statement
 	= "CREATE"i & "TABLE"i & name: QualifiedName & ('(' & columns: ColumnList & ')')?
-	  & OptionsWith & "AS"i & q: DirectSelect
-		=> @(new Statement.CreateTableAsSelect(name, q))
-	| "CREATE"i & "TABLE"i & name: QualifiedName & TableAs? & '(' & body: TableBody & ')'
-	  & TableAs? & TablePlacement* & OptionsWith?
-		=> @(new Statement.TableDefinition(name, body))
-	| "CREATE"i & "TABLE"i & name: QualifiedName & TableAs & TablePlacement* & OptionsWith?
-		=> @(new Statement.TableDefinition(name, Clause.None))
+	  & options: OptionsWith & "AS"i & q: DirectSelect
+		=> @(new Statement.CreateTableAsSelect(name, columns, options, q))
+	| "CREATE"i & "TABLE"i & name: QualifiedName & kind: TableAs? & '(' & body: TableBody & ')'
+	  & after: TableAs? & placements: TablePlacement* & options: OptionsWith?
+		=> @(new Statement.TableDefinition(name, kind ?? after, body, placements ?? Clause.None, options ?? Clause.None))
+	| "CREATE"i & "TABLE"i & name: QualifiedName & kind: TableAs & placements: TablePlacement* & options: OptionsWith?
+		=> @(new Statement.TableDefinition(name, kind, Clause.None, placements ?? Clause.None, options ?? Clause.None))
 
-TableAs = "AS"i & Identifier
+TableAs : @string = "AS"i & t: Identifier => @(t)
 
-TablePlacement = "ON"i & PlacementTarget
-			   | "TEXTIMAGE_ON"i & PlacementTarget
-			   | "FILESTREAM_ON"i & PlacementTarget
+TablePlacement : @Clause
+	= k: ("ON"i | "TEXTIMAGE_ON"i | "FILESTREAM_ON"i) & p: PlacementTarget => @(p with { Kind = Syntax.Squared(k) })
 
-PlacementTarget = "DEFAULT"i
-				| Sql92.Lexical.CharacterStringLiteral
-				| Sql92.Lexical.DelimitedIdentifier
-				| Identifier & ('(' & ColumnList & ')')?
+// The target and, for a partition scheme, the column it partitions on. The word in front
+// is the caller's to say: the same target stands after `ON`, after `MOVE TO`, and after
+// `FILESTREAM_ON`.
+PlacementTarget : @Clause.Placement
+	= t: "DEFAULT"i                                => @(new Clause.Placement("", t, null))
+	| t: Sql92.Lexical.CharacterStringLiteral      => @(new Clause.Placement("", t, null))
+	| t: Sql92.Lexical.DelimitedIdentifier         => @(new Clause.Placement("", t, null))
+	| t: Identifier & ('(' & c: ColumnList & ')')? => @(new Clause.Placement("", t, c))
 
-OptionsWith = "WITH"i & '(' & OptionList & ')'
-OptionList  = OptionSetting & (',' & OptionSetting)*
+OptionsWith : @Clause[] = "WITH"i & '(' & o: OptionList & ')' => @(o)
+OptionList  : @Clause[] = first: OptionSetting & (',' & rest: OptionSetting)* => @(Syntax.Listed(first, rest))
 
-OptionSetting = "DEFAULT"i & '=' & OptionValue
-			  | "MOVE"i & "TO"i & PlacementTarget
+OptionSetting : @Clause
+	= "DEFAULT"i & '=' & v: OptionValue => @(new Clause.Option("DEFAULT", v, Clause.None))
+	| "MOVE"i & "TO"i & m: PlacementTarget => @(new Clause.Option("MOVE TO", null, new Clause[] { m }))
 
-			  // `AFFINITY SCHEDULER = AUTO`, `AFFINITY CPU = (0 TO 3)`,
-			  // `AFFINITY NUMANODE = (0)` — a value that is itself a name and a value.
-			  | "AFFINITY"i & word? & '=' & AffinityValue
+	// `AFFINITY SCHEDULER = AUTO`, `AFFINITY CPU = (0 TO 3)`,
+	// `AFFINITY NUMANODE = (0)` — a value that is itself a name and a value.
+	| name: ("AFFINITY"i & word?) & '=' & a: AffinityValue
+		=> @(new Clause.Option(Syntax.Squared(name), new Expression.ColumnReference(a), Clause.None))
 
-			  // `RESAMPLE ON PARTITIONS (1, 3 TO 5)`: a name and a placement.
-			  | OptionName & OnPartitions
+	// `RESAMPLE ON PARTITIONS (1, 3 TO 5)`: a name and a placement.
+	| name: OptionName & p: OnPartitions => @(new Clause.Option(name, null, Clause.None, p))
 
-			  // `SAMPLE 50 PERCENT`, `SAMPLE 12 ROWS`. A run of words would read it whole
-			  // and does not: a number is a lexeme whose class holds a `.`, so it is not a
-			  // word however much §4.6 says a digit continues one.
-			  | "SAMPLE"i & ValueExpression & SampleUnit?
-			  | "PARTITION"i & '(' & Identifier & "RANGE"i & LeftOrRight?
-				& "FOR"i & "VALUES"i & '(' & Arguments? & ')' & ')'
-			  | OptionName & OptionTail?
+	// `SAMPLE 50 PERCENT`, `SAMPLE 12 ROWS`. A run of words would read it whole
+	// and does not: a number is a lexeme whose class holds a `.`, so it is not a
+	// word however much §4.6 says a digit continues one.
+	| "SAMPLE"i & v: ValueExpression & u: SampleUnit? => @(new Clause.Option("SAMPLE", Syntax.Measured(v, u), Clause.None))
+	| t: ("PARTITION"i & '(' & Identifier & "RANGE"i & LeftOrRight?
+		  & "FOR"i & "VALUES"i & '(' & Arguments? & ')' & ')')
+		=> @(new Clause.Option(t, null, Clause.None))
+	| name: OptionName & tail: OptionTail? => @(tail is null ? new Clause.Option(name, null, Clause.None) : tail with { Name = name })
 
 // An option's name is not an identifier: `WITH (FILLFACTOR = 80)` names a word T-SQL
 // reserves, and so do a dozen others. Nothing about it is a name of this language — it is
@@ -1465,27 +1471,31 @@ OptionWords = OptionWord & OptionWord+ & ?=(',' | ')')
 // PAD_INDEX ON ps (a)` is the old unbracketed `WITH` and then a placement, and without the
 // lookahead the `ON` was read as what `PAD_INDEX` is set to — which GRAM5009 said, and the
 // engine confirmed by refusing what came out.
-OptionTail = '=' & OptionValue & OnPartitions?
-		   | OnOff & SwitchTail
-		   | '(' & OptionList & ')'
+OptionTail : @Clause.Option
+	= '=' & v: OptionValue & n: OptionNest? & p: OnPartitions? => @(new Clause.Option("", v, n ?? Clause.None, p))
+	| s: OnOff & o: SwitchTail                 => @(new Clause.Option("", new Expression.ColumnReference(s), o))
+	| '(' & o: OptionList & ')'                => @(new Clause.Option("", null, o))
 
 // Said as a refusal rather than as a demand, because a list without brackets ends at the
 // terminator and a lookahead for a comma would refuse its last option. What a bare switch
 // may not be followed by is a placement: `WITH PAD_INDEX ON ps (a)` is an option and then
 // the filegroup it goes on, and `WITH TRUSTWORTHY ON` is an option set to on.
-SwitchTail = '(' & OptionList & ')' | ?!PlacementTarget
+SwitchTail : @Clause[] = '(' & o: OptionList & ')' => @(o) | ?!PlacementTarget => @(Clause.None)
+
+// The list a value may carry after it: `IGNORE_DUP_KEY = ON (SUPPRESS_MESSAGES = ON)`.
+OptionNest : @Clause[] = '(' & o: OptionList & ')' => @(o)
 
 // Typed, because what a setting is set to is the interesting half of `SET MAXDOP = 4`
 // and the only half a name does not already say. `ON` and `OFF` are values here and not
 // words of the language, so they arrive as themselves.
 OptionValue : @Expression
 	= "NULL"i => @(Expression.NullValue)
-	| "OFF"i & ('(' & OptionList & ')')? => @(new Expression.ColumnReference("OFF"))
-	| "ON"i  & ('(' & OptionList & ')')? => @(new Expression.ColumnReference("ON"))
-	| name: Identifier & '(' & OptionList & ')' => @(new Expression.ColumnReference(name))
-	| '(' & OptionList & ')' => @(Expression.NullValue)
-	| '(' & Sql92.Lexical.UnsignedNumericLiteral+ & ')' => @(Expression.NullValue)
-	| '(' & Arguments & ')'  => @(Expression.NullValue)
+	| "OFF"i  => @(new Expression.ColumnReference("OFF"))
+	| "ON"i   => @(new Expression.ColumnReference("ON"))
+	| name: Identifier & '(' & items: OptionList & ')' => @(Syntax.Invoked(name, items))
+	| '(' & items: OptionList & ')' => @(Syntax.Invoked("", items))
+	| t: ('(' & Sql92.Lexical.UnsignedNumericLiteral+ & ')') => @(new Expression.ColumnReference(t))
+	| '(' & a: Arguments & ')'  => @(new Expression.RoutineInvocation("", a))
 
 	// A run of words, which several protocols spell their settings with:
 	// `AUTHENTICATION = WINDOWS NTLM CERTIFICATE c`, `ENCRYPTION = SUPPORTED ALGORITHM AES
@@ -1493,7 +1503,7 @@ OptionValue : @Expression
 	// where an option's name does, which is what leaves `PAGE ON PARTITIONS (…)` alone.
 	| w: OptionWords => @(new Expression.ColumnReference(w))
 
-	| v: ValueExpression & OptionUnit? => @(v)
+	| v: ValueExpression & u: OptionUnit? => @(Syntax.Measured(v, u))
 
 	// And one word behind the expression, for the words a value may be that a name may
 	// not: `MAXDOP = PRIMARY`, `QUERY_CAPTURE_MODE = ALL`.
@@ -1503,18 +1513,20 @@ OptionValue : @Expression
 // language has for a size or a span, and nothing else may stand after a value. It was any
 // identifier, and then `SET b = 5, c = 10 ACTION (…)` read `ACTION` as the unit of ten and
 // lost the clause behind it — the same trap an optional at the end of a rule always is.
-OptionUnit = "KB"i | "MB"i | "GB"i | "TB"i | "PB"i
+OptionUnit : @string = t: ("KB"i | "MB"i | "GB"i | "TB"i | "PB"i
 		   | "SECOND"i | "SECONDS"i | "MINUTE"i | "MINUTES"i | "HOUR"i | "HOURS"i
 		   | "DAY"i | "DAYS"i | "WEEK"i | "WEEKS"i | "MONTH"i | "MONTHS"i
 		   | "YEAR"i | "YEARS"i
 		   | "PERCENT"i | "ROWS"i
-		   | '%'
+		   | '%') => @(t)
 
-AffinityValue  = "AUTO"i
-			   | '(' & PartitionRange & (',' & PartitionRange)* & ')'
-			   | word & '=' & '(' & PartitionRange & (',' & PartitionRange)* & ')'
+AffinityValue : @string
+	= t: ("AUTO"i
+		  | '(' & PartitionRange & (',' & PartitionRange)* & ')'
+		  | word & '=' & '(' & PartitionRange & (',' & PartitionRange)* & ')') => @(t)
 
-OnPartitions   = "ON"i & "PARTITIONS"i & '(' & PartitionRange & (',' & PartitionRange)* & ')'
+OnPartitions : @string
+	= t: ("ON"i & "PARTITIONS"i & '(' & PartitionRange & (',' & PartitionRange)* & ')') => @(Syntax.Squared(t))
 PartitionRange = ValueExpression & ("TO"i & ValueExpression)?
 
 // ── The body ────────────────────────────────────────────────────────────────
@@ -1523,7 +1535,7 @@ TableBody : @Clause[]
 
 TableElement : @Clause
 	= "PERIOD"i & "FOR"i & "SYSTEM_TIME"i & '(' & columns: ColumnList & ')'
-		=> @(Clause.Constrained("PERIOD", columns, null))
+		=> @(Clause.Constrained("PERIOD FOR SYSTEM_TIME", Syntax.Columns(columns), null))
 	| i: TableIndex                                => @(i)
 	| "CONSTRAINT"i & name: Identifier & c: ConstraintBody => @(c with { Name = name })
 	| c: ConstraintBody                            => @(c)
@@ -1533,75 +1545,86 @@ ColumnDefinition : @Clause
 	= name: Identifier & f: ColumnBody => @(f with { Name = name })
 
 ColumnBody : @Clause.ColumnDefinition
-	= "AS"i & v: ValueExpression & ColumnTail*
-		=> @(new Clause.ColumnDefinition("", null, v, Clause.None))
-	| type: DataType & ColumnTail*
-		=> @(new Clause.ColumnDefinition("", type, null, Clause.None))
+	= "AS"i & v: ValueExpression & tail: ColumnTail*
+		=> @(new Clause.ColumnDefinition("", null, v, tail ?? Clause.None))
+	| type: DataType & tail: ColumnTail*
+		=> @(new Clause.ColumnDefinition("", type, null, tail ?? Clause.None))
 
-// What may be said about a column after its type. Read and dropped, all of it: none of it
-// says what the column is, and the tree holds the name, the type and the expression.
-ColumnTail
-	= "FILESTREAM"i
-	| "COLLATE"i & QualifiedName
-	| "SPARSE"i
-	| "HIDDEN"i
-	| "MASKED"i & "WITH"i & '(' & OptionList & ')'
-	| "IDENTITY"i & ('(' & Arguments & ')')?
-	| "NOT"i & "FOR"i & "REPLICATION"i
-	| "NOT"i & "NULL"i
-	| "NULL"i
-	| "GENERATED"i & "ALWAYS"i & "AS"i & GeneratedWhat & GeneratedWhen & "HIDDEN"i?
-	| "ROWGUIDCOL"i
-	| "ENCRYPTED"i & "WITH"i & '(' & OptionList & ')'
-	| "PERSISTED"i
-	| "COLUMN_SET"i & "FOR"i & "ALL_SPARSE_COLUMNS"i
-	| "CONSTRAINT"i & Identifier & NamedConstraint
-	| c: ConstraintBody
-	| i: TableIndex
+// What may be said about a column after its type, each kept as what it is: an option, a
+// constraint, or an index, in the order they were written.
+ColumnTail : @Clause
+	= t: "FILESTREAM"i                => @(Clause.Optioned(t))
+	| "COLLATE"i & q: QualifiedName   => @(Clause.Optioned("COLLATE", new Expression.ColumnReference(q)))
+	| t: "SPARSE"i                    => @(Clause.Optioned(t))
+	| t: "HIDDEN"i                    => @(Clause.Optioned(t))
+	| "MASKED"i & "WITH"i & '(' & o: OptionList & ')'
+		=> @(new Clause.ColumnOption("MASKED", Expression.None, o, null))
+	| "IDENTITY"i & ('(' & a: Arguments & ')')?
+		=> @(new Clause.ColumnOption("IDENTITY", a ?? Expression.None, Clause.None, null))
+	| t: ("NOT"i & "FOR"i & "REPLICATION"i) => @(Clause.Optioned(t))
+	| s: NullSpec                     => @(Clause.Optioned(s))
+	| t: ("GENERATED"i & "ALWAYS"i & "AS"i & GeneratedWhat & GeneratedWhen) & h: "HIDDEN"i?
+		=> @(new Clause.ColumnOption(Syntax.Squared(t), Expression.None, Syntax.Unit(h), null))
+	| t: "ROWGUIDCOL"i                => @(Clause.Optioned(t))
+	| "ENCRYPTED"i & "WITH"i & '(' & o: OptionList & ')'
+		=> @(new Clause.ColumnOption("ENCRYPTED", Expression.None, o, null))
+	| t: "PERSISTED"i                 => @(Clause.Optioned(t))
+	| t: ("COLUMN_SET"i & "FOR"i & "ALL_SPARSE_COLUMNS"i) => @(Clause.Optioned(t))
+	| "CONSTRAINT"i & name: Identifier & n: NamedConstraint => @(Clause.Named(n, name))
+	| c: ConstraintBody               => @(c)
+	| i: TableIndex                   => @(i)
 
 // The published syntax gives a nullability a constraint name of its own, and nothing else
 // about a nullability suggests it can have one.
-NamedConstraint = NullSpec | ConstraintBody
+NamedConstraint : @Clause
+	= t: NullSpec       => @(Clause.Optioned(t))
+	| c: ConstraintBody => @(c)
 
-NullSpec = "NOT"i & "NULL"i | "NULL"i
+NullSpec : @string = t: ("NOT"i & "NULL"i | "NULL"i) => @(Syntax.Squared(t))
 
 // ── Constraints ─────────────────────────────────────────────────────────────
 ConstraintBody : @Clause.ConstraintDefinition
-	= "PRIMARY"i & "KEY"i & IndexOrder? & "HASH"i? & columns: IndexColumns?
-	  & IndexWith? & IndexOn? & Enforced?
-		=> @(Clause.Constrained("PRIMARY KEY", columns, null))
-	| "UNIQUE"i & IndexOrder? & "HASH"i? & columns: IndexColumns?
-	  & IndexWith? & IndexOn? & Enforced?
-		=> @(Clause.Constrained("UNIQUE", columns, null))
-	| "FOREIGN"i & "KEY"i & columns: IndexColumns? & References & Enforced?
-		=> @(Clause.Constrained("FOREIGN KEY", columns, null))
-	| References & Enforced?
-		=> @(Clause.Constrained("REFERENCES", null, null))
-	| "CHECK"i & ("NOT"i & "FOR"i & "REPLICATION"i)? & '(' & c: SearchCondition & ')'
-		=> @(Clause.Constrained("CHECK", null, c))
-	| "CONNECTION"i & '(' & EdgePair & (',' & EdgePair)* & ')' & ReferenceAction*
-		=> @(Clause.Constrained("CONNECTION", null, null))
-	| "DEFAULT"i & v: ValueExpression & ("FOR"i & Identifier)?
-		=> @(Clause.Constrained("DEFAULT", null, v))
+	= "PRIMARY"i & "KEY"i & k: IndexOrder? & h: "HASH"i? & columns: IndexColumns?
+	  & o: IndexWith? & p: IndexOn? & e: Enforced?
+		=> @(Clause.Keyed("PRIMARY KEY", k, h, columns, o, p, e))
+	| "UNIQUE"i & k: IndexOrder? & h: "HASH"i? & columns: IndexColumns?
+	  & o: IndexWith? & p: IndexOn? & e: Enforced?
+		=> @(Clause.Keyed("UNIQUE", k, h, columns, o, p, e))
+	| "FOREIGN"i & "KEY"i & columns: IndexColumns? & r: References & e: Enforced?
+		=> @(Clause.Constrained("FOREIGN KEY", columns, null) with { Referenced = r, Enforced = Syntax.Enforced(e) })
+	| r: References & e: Enforced?
+		=> @(Clause.Constrained("REFERENCES", null, null) with { Referenced = r, Enforced = Syntax.Enforced(e) })
+	| "CHECK"i & n: ("NOT"i & "FOR"i & "REPLICATION"i)? & '(' & c: SearchCondition & ')'
+		=> @(Clause.Constrained("CHECK", null, c) with { Options = Syntax.Unit(n) })
+	| "CONNECTION"i & '(' & first: EdgePair & (',' & rest: EdgePair)* & ')' & a: ReferenceAction*
+		=> @(Clause.Constrained("CONNECTION", null, null) with { Options = Syntax.Connected(first, rest, a) })
+	| "DEFAULT"i & v: ValueExpression & ("FOR"i & f: Identifier)?
+		=> @(Clause.Constrained("DEFAULT", null, v) with { ForColumn = f })
 
 // A key a warehouse declares and does not check. Not the box's syntax and refused there,
 // which is where the version chain will put it.
-Enforced = "NOT"i? & "ENFORCED"i
+Enforced : @string = t: ("NOT"i? & "ENFORCED"i) => @(t)
 
 // Which node tables an edge may join, which is the one constraint only a graph has.
-EdgePair = QualifiedName & "TO"i & QualifiedName
+EdgePair : @Clause = f: QualifiedName & "TO"i & t: QualifiedName => @(new Clause.Connection(f, t))
 
-References      = "REFERENCES"i & QualifiedName & ('(' & ColumnList & ')')? & ReferenceAction*
-ReferenceAction = "ON"i & DeleteOrUpdate & RefAction
-				| "NOT"i & "FOR"i & "REPLICATION"i
+References : @Clause
+	= "REFERENCES"i & t: QualifiedName & ('(' & c: ColumnList & ')')? & a: ReferenceAction*
+		=> @(Syntax.Referenced(t, c, a))
+
+ReferenceAction : @string
+	= t: ("ON"i & DeleteOrUpdate & RefAction) => @(t)
+	| t: ("NOT"i & "FOR"i & "REPLICATION"i)  => @(t)
 
 DeleteOrUpdate = "DELETE"i | "UPDATE"i
 RefAction      = "NO"i & "ACTION"i | "CASCADE"i | "SET"i & "NULL"i | "SET"i & "DEFAULT"i
 
-IndexColumns : @string[] = '(' & first: IndexColumn & (',' & rest: IndexColumn)* & ')'
-	=> @(Syntax.Named(first, rest))
+IndexColumns : @Clause[] = '(' & first: IndexColumn & (',' & rest: IndexColumn)* & ')'
+	=> @(Syntax.Listed(first, rest))
 
-IndexColumn : @string = t: IndexName & ("ASC"i | "DESC"i)? => @(t)
+IndexColumn : @Clause
+	= t: IndexName & o: ("ASC"i | "DESC"i)?
+		=> @(new Clause.SortSpecification(new Expression.ColumnReference(t), Syntax.Ordered(o)))
 
 // `$NODE_ID` and its fellows are columns a graph table has that nobody declared, and an
 // index may be built on one.
@@ -1609,20 +1632,21 @@ IndexName : @string = t: Identifier => @(t) | t: PartitionName => @(t)
 
 // The current form and the one that predates it: `WITH (FILLFACTOR = 80, ONLINE = ON)`
 // and the bare `WITH PAD_INDEX, FILLFACTOR = 80` SQL Server still reads.
-IndexWith = "WITH"i & '(' & OptionList & ')'
-		  | "WITH"i & OptionList
+IndexWith : @Clause[]
+	= "WITH"i & '(' & o: OptionList & ')' => @(o)
+	| "WITH"i & o: OptionList             => @(o)
 
-IndexOn = "ON"i & PlacementTarget
+IndexOn : @Clause = "ON"i & p: PlacementTarget => @(p with { Kind = "ON" })
 
 // ── An index written inside the table ───────────────────────────────────────
 TableIndex : @Clause
-	= "INDEX"i & name: Identifier & "UNIQUE"i? & IndexOrder? & "COLUMNSTORE"i? & "HASH"i?
+	= "INDEX"i & name: Identifier & u: "UNIQUE"i? & c: IndexOrder? & s: "COLUMNSTORE"i? & h: "HASH"i?
 	  & columns: IndexColumns?
-	  & ("ORDER"i & '(' & ColumnList & ')')?
-	  & ("INCLUDE"i & '(' & ColumnList & ')')?
-	  & ("WHERE"i & SearchCondition)?
-	  & IndexWith? & IndexOn? & ("FILESTREAM_ON"i & PlacementTarget)?
-		=> @(new Clause.ConstraintDefinition(name, "INDEX", columns, null))
+	  & ("ORDER"i & '(' & order: ColumnList & ')')?
+	  & ("INCLUDE"i & '(' & include: ColumnList & ')')?
+	  & ("WHERE"i & filter: SearchCondition)?
+	  & o: IndexWith? & p: IndexOn? & ("FILESTREAM_ON"i & f: PlacementTarget)?
+		=> @(Clause.Indexed(name, u, c, s, h, columns, order, include, filter, o, (Clause.Placement?)p, f is null ? null : f with { Kind = "FILESTREAM_ON" }))
 
 // ── ALTER TABLE ─────────────────────────────────────────────────────────────
 //
@@ -1642,10 +1666,10 @@ AlterTableAction : @Statement.AlterTable
 		=> @(Statement.Altered("ADD", body))
 	| "WITH"i & CheckWord & "ADD"i & body: TableBody
 		=> @(Statement.Altered("ADD", body))
-	| "ALTER"i & "COLUMN"i & column: ColumnDefinition & OptionsWith?
-		=> @(Statement.Altered("ALTER COLUMN", new Clause[] { column }))
-	| "ALTER"i & "COLUMN"i & name: Identifier & flag: AlterColumnWord & OptionsWith?
-		=> @(Statement.Altered("ALTER COLUMN", null))
+	| "ALTER"i & "COLUMN"i & column: ColumnDefinition & options: OptionsWith?
+		=> @(Statement.Altered("ALTER COLUMN", new Clause[] { column }, options))
+	| "ALTER"i & "COLUMN"i & name: Identifier & flag: AlterColumnWord & options: OptionsWith?
+		=> @(Statement.Flagged(name, flag, options))
 	| "DROP"i & first: DropTarget & (',' & rest: DropTarget)*
 		=> @(Statement.Altered("DROP", Syntax.Listed(first, rest)))
 	| CheckWord & "CONSTRAINT"i & ConstraintNames
@@ -1668,7 +1692,7 @@ AlterTableAction : @Statement.AlterTable
 	  & ("PARTITION"i & ValueExpression)? & OptionsWith?
 		=> @(Statement.Altered("SWITCH", null))
 
-AlterColumnWord  = "ADD"i & AlterColumnFlag | "DROP"i & AlterColumnFlag
+AlterColumnWord : @string = t: ("ADD"i & AlterColumnFlag | "DROP"i & AlterColumnFlag) => @(Syntax.Squared(t))
 
 AlterColumnFlag  = "MASKED"i & ("WITH"i & '(' & OptionList & ')')?
 				 | "HIDDEN"i
@@ -1823,24 +1847,24 @@ ViewStatement : @Statement
 CreateIndexStatement : @Statement
 	= "CREATE"i & "SELECTIVE"i & "XML"i & "INDEX"i & name: Identifier?
 	  & "ON"i & on: QualifiedName & '(' & ColumnList & ')'
-	  & ("WITH"i & XmlNamespaces)? & paths: SelectivePaths & IndexWith?
-		=> @(new Statement.CreateIndex(name ?? "", on, null))
+	  & ("WITH"i & XmlNamespaces)? & paths: SelectivePaths & o: IndexWith?
+		=> @(new Statement.CreateIndex(on, Clause.Indexed(name ?? "", null, null, null, null, null, null, null, null, o, null, null)))
 	| "CREATE"i & "PRIMARY"i? & "XML"i & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
-	  & XmlIndexUsing? & IndexWith?
-		=> @(new Statement.CreateIndex(name, on, columns))
-	| "CREATE"i & "UNIQUE"i? & IndexOrder? & "INDEX"i & name: Identifier
+	  & XmlIndexUsing? & o: IndexWith?
+		=> @(new Statement.CreateIndex(on, Clause.Indexed(name, null, null, null, null, columns, null, null, null, o, null, null)))
+	| "CREATE"i & u: "UNIQUE"i? & k: IndexOrder? & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
-	  & ("INCLUDE"i & '(' & ColumnList & ')')?
-	  & ("WHERE"i & SearchCondition)?
-	  & IndexWith? & IndexOn? & ("FILESTREAM_ON"i & PlacementTarget)?
-		=> @(new Statement.CreateIndex(name, on, columns))
-	| "CREATE"i & IndexOrder? & "COLUMNSTORE"i & "INDEX"i & name: Identifier
+	  & ("INCLUDE"i & '(' & include: ColumnList & ')')?
+	  & ("WHERE"i & filter: SearchCondition)?
+	  & o: IndexWith? & p: IndexOn? & ("FILESTREAM_ON"i & f: PlacementTarget)?
+		=> @(new Statement.CreateIndex(on, Clause.Indexed(name, u, k, null, null, columns, null, include, filter, o, (Clause.Placement?)p, f is null ? null : f with { Kind = "FILESTREAM_ON" })))
+	| "CREATE"i & k: IndexOrder? & s: "COLUMNSTORE"i & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns?
-	  & ("ORDER"i & '(' & ColumnList & ')')?
-	  & ("WHERE"i & SearchCondition)?
-	  & IndexWith? & IndexOn?
-		=> @(new Statement.CreateIndex(name, on, columns))
+	  & ("ORDER"i & '(' & order: ColumnList & ')')?
+	  & ("WHERE"i & filter: SearchCondition)?
+	  & o: IndexWith? & p: IndexOn?
+		=> @(new Statement.CreateIndex(on, Clause.Indexed(name, null, k, s, null, columns, order, null, filter, o, (Clause.Placement?)p, null)))
 
 // `ALTER INDEX` names one index or all of them, and then says what to do.
 AlterIndexStatement : @Statement
@@ -2298,11 +2322,11 @@ ExternalStatement : @Statement
 	// A table of somebody else's rows: the columns as this grammar reads any columns, and
 	// then where they are. Synapse writes the query instead and lets it say the columns.
 	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & '(' & body: TableBody & ')'
-	  & OptionsWith
-		=> @(new Statement.TableDefinition(name, body))
-	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & OptionsWith
+	  & options: OptionsWith
+		=> @(new Statement.TableDefinition(name, null, body, Clause.None, options))
+	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & options: OptionsWith
 	  & "AS"i & q: DirectSelect
-		=> @(new Statement.CreateTableAsSelect(name, q))
+		=> @(new Statement.CreateTableAsSelect(name, null, options, q))
 
 	| "CREATE"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
 	  & ("AUTHORIZATION"i & QualifiedName)?
@@ -2623,10 +2647,10 @@ DatabaseLogFiles = "LOG"i & "ON"i & FileSpec & (',' & FileSpec)*
 FileGroupSpec : @Clause
 	= "FILEGROUP"i & name: Identifier & FileGroupContains? & "DEFAULT"i?
 	  & FileSpec & (',' & FileSpec)*
-		=> @(new Clause.DatabaseOption(name, null))
+		=> @(new Clause.Option(name, null, Clause.None))
 	| f: FileSpec => @(f)
 
-FileSpec : @Clause = '(' & OptionList & ')' => @(new Clause.DatabaseOption("", null))
+FileSpec : @Clause = '(' & o: OptionList & ')' => @(new Clause.Option("", null, o))
 
 FileGroupContains = "CONTAINS"i & word
 
@@ -2707,14 +2731,15 @@ FileGroupAction = "DEFAULT"i | "NAME"i & '=' & Identifier | word
 // termination clause after the whole list. Without the lookahead the name would swallow
 // the `WITH`, and the parse would then stop one word past what it ate.
 DatabaseOption : @Clause
-	= name: DatabaseOptionName & v: DatabaseOptionValue? => @(new Clause.DatabaseOption(name, v))
+	= name: DatabaseOptionName & tail: DatabaseOptionValue?
+		=> @(tail is null ? new Clause.Option(name, null, Clause.None) : tail with { Name = name })
 
 DatabaseOptionName : @string = t: OptionName => @(t)
 
-DatabaseOptionValue : @Expression
-	= '=' & v: OptionValue              => @(v)
-	| '(' & OptionList & ')'            => @(Expression.NullValue)
-	| OnOff & ('(' & OptionList & ')')? => @(Expression.NullValue)
+DatabaseOptionValue : @Clause.Option
+	= '=' & v: OptionValue & n: OptionNest? => @(new Clause.Option("", v, n ?? Clause.None))
+	| '(' & o: OptionList & ')'             => @(new Clause.Option("", null, o))
+	| s: OnOff & n: OptionNest?             => @(new Clause.Option("", new Expression.ColumnReference(s), n ?? Clause.None))
 
 DatabaseTermination = "WITH"i & "ROLLBACK"i & "AFTER"i & ValueExpression & "SECONDS"i?
 					| "WITH"i & "ROLLBACK"i & "IMMEDIATE"i
