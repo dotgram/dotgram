@@ -30,8 +30,15 @@
 	</ItemGroup>
 
 	<ItemGroup Label="Tests">
-		<PackageVersion Include="xunit.v3" Version="4.0.0" />
-		<PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
+		<!-- Held at 3, and the second number here that is not the newest. xunit.v3 4 pairs
+		     with Microsoft.Testing.Platform 2, which refuses the VSTest bridge outright on
+		     the .NET 10 SDK, so it can only be run through the platform itself. That is what
+		     `global.json` opting in to it was for, and the pair does not work: `dotnet test`
+		     answers "Zero tests ran" and exits 5 while the same assembly run directly finds
+		     and passes every one of them. CI runs `dotnet test`, so it goes red without a
+		     test having failed. Raise both together, once they run. -->
+		<PackageVersion Include="xunit.v3" Version="3.2.2" />
+		<PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
 	</ItemGroup>
 
 	<ItemGroup Label="Benchmarks">
