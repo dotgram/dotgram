@@ -911,6 +911,8 @@ public static class SqlWriter
 			text.Append("ALTER DATABASE ").Append(database).Append(' ')
 				.Append(Words(record["AlterDatabase".Length..]));
 
+			Tailed(text, statement);
+
 			return;
 		}
 
@@ -950,7 +952,12 @@ public static class SqlWriter
 				break;
 		}
 
-		// And the catalogue's own words after it, as they were written.
+		Tailed(text, statement);
+	}
+
+	/// <summary>The catalogue's own words after the name, as they were written.</summary>
+	static void Tailed(StringBuilder text, Statement statement)
+	{
 		if (statement is Statement.Definition { Tail: { Length: > 0 } tail })
 			text.Append(' ').Append(tail);
 	}
@@ -963,7 +970,10 @@ public static class SqlWriter
 		["RestoreLabelOnly"]       = "RESTORE LABELONLY",
 		["RestoreRewindOnly"]      = "RESTORE REWINDONLY",
 		["RestoreVerifyOnly"]      = "RESTORE VERIFYONLY",
-		["AuditSpecificationDefinition"] = "CREATE SERVER AUDIT SPECIFICATION",
+		["AuditSpecificationDefinition"]         = "CREATE SERVER AUDIT SPECIFICATION",
+		["DatabaseAuditSpecificationDefinition"] = "CREATE DATABASE AUDIT SPECIFICATION",
+		["FullTextStopListDefinition"]           = "CREATE FULLTEXT STOPLIST",
+		["AlterFullTextStopList"]                = "ALTER FULLTEXT STOPLIST",
 		["StatisticsDefinition"]   = "CREATE STATISTICS",
 	};
 
@@ -1728,7 +1738,7 @@ public static class SqlWriter
 				Arm(text, action);
 				break;
 
-			case Clause.VariableDeclaration(var name, var type, var value, var elements, var nullability):
+			case Clause.VariableDeclaration(var name, var type, var value, var elements, var nullability, var tail):
 				text.Append(name);
 
 				if (type is not null)
@@ -1749,6 +1759,9 @@ public static class SqlWriter
 					text.Append(" = ");
 					Put(text, value, 0);
 				}
+
+				if (tail is not null)
+					text.Append(' ').Append(tail);
 
 				break;
 

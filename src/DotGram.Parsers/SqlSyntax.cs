@@ -434,6 +434,9 @@ public abstract record Statement : ISqlSpan
 	/// <summary><c>AUDIT SPECIFICATION</c>.</summary>
 	public sealed record AuditSpecificationDefinition(string Name) : Definition(Name);
 
+	/// <summary><c>CREATE</c> or <c>ALTER DATABASE AUDIT SPECIFICATION</c>: the other scope.</summary>
+	public sealed record DatabaseAuditSpecificationDefinition(string Name) : Definition(Name);
+
 	/// <summary><c>EVENT SESSION</c>.</summary>
 	/// <summary>
 	/// <c>CREATE</c> or <c>ALTER EVENT SESSION</c>: the session, where it is (<c>SERVER</c> or
@@ -1014,6 +1017,7 @@ public abstract record Statement : ISqlSpan
 			"WORKLOAD GROUP"          => new WorkloadGroupDefinition(name),
 			"SERVER AUDIT"            => new ServerAuditDefinition(name),
 			"AUDIT SPECIFICATION"     => new AuditSpecificationDefinition(name),
+			"DATABASE AUDIT SPECIFICATION" => new DatabaseAuditSpecificationDefinition(name),
 			"EVENT NOTIFICATION"      => new EventNotificationDefinition(name),
 
 			"FULLTEXT INDEX"             => new FullTextIndexDefinition(name),
@@ -1765,8 +1769,10 @@ public abstract record Clause : ISqlSpan
 	/// <summary>
 	/// One variable: its name, the type as written, and what it was given to start with.
 	/// </summary>
+	/// <param name="Tail">A cursor's options and the query it is for, as written.</param>
 	public sealed record VariableDeclaration(
-		string Name, string? Type, Expression? Value, Clause[]? Elements = null, string? Nullability = null) : Clause;
+		string Name, string? Type, Expression? Value, Clause[]? Elements = null, string? Nullability = null,
+		string? Tail = null) : Clause;
 
 	/// <summary>
 	/// One parameter of a routine: its name, its type, and its default — and the words around

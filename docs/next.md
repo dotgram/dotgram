@@ -17232,3 +17232,10 @@ is a C# keyword — and `grep ' error ' | sort -u | head` put the generated file
 CS1527s first and cut the line that mattered. The cascade said the class had closed early,
 which it had not; twenty minutes went into brace counters and standalone compiles that all
 said the file was fine. **Read the first error, not the first line of the sorted list.**
+
+**Seven small ones.** A cursor keeps what it was declared with; an audit specification says
+which scope it is on, `DATABASE` being a statement of its own and not the server one with a
+word changed; an external library and a stoplist keep their spelling; an event notification
+and a selective XML index keep their bodies; and the `ALTER DATABASE` branch of `Spelling`
+returned before it could print a tail, which is why four kinds stayed at zero after they
+had one. 93.6% to **95.4%** the same statement, 276 unread to 166.

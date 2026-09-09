@@ -1265,8 +1265,9 @@ TranName : @string = t: Identifier => @(t) | t: Tsql.Variable => @(t)
 
 // ── Declarations ────────────────────────────────────────────────────────────
 DeclareStatement : @Statement
-	= "DECLARE"i & name: Identifier & "CURSOR"i & CursorOption* & "FOR"i & CursorBody
-		=> @(new Statement.Declare(new Clause[] { new Clause.VariableDeclaration(name, "CURSOR", null) }))
+	= "DECLARE"i & name: Identifier & "CURSOR"i & tail: (CursorOption* & "FOR"i & CursorBody)
+		=> @(new Statement.Declare(new Clause[]
+			 { new Clause.VariableDeclaration(name, "CURSOR", null, null, null, Syntax.Tail(tail)) }))
 	| "DECLARE"i & first: Declaration & (',' & rest: Declaration)*
 		=> @(new Statement.Declare(Syntax.Listed(first, rest)))
 
@@ -1866,8 +1867,10 @@ ViewStatement : @Statement
 CreateIndexStatement : @Statement
 	= "CREATE"i & "SELECTIVE"i & "XML"i & "INDEX"i & name: Identifier?
 	  & "ON"i & on: QualifiedName & '(' & ColumnList & ')'
-	  & ("WITH"i & XmlNamespaces)? & paths: SelectivePaths & o: IndexWith?
-		=> @(new Statement.CreateIndex(on, Clause.Indexed(name ?? "", null, null, null, null, null, null, null, null, o, null, null), "SELECTIVE XML"))
+	  & tail: (("WITH"i & XmlNamespaces)? & SelectivePaths) & o: IndexWith?
+		=> @(new Statement.CreateIndex(
+				 on, Clause.Indexed(name ?? "", null, null, null, null, null, null, null, null, o, null, null),
+				 "SELECTIVE XML", Syntax.Tail(tail)))
 	| "CREATE"i & kind: ("PRIMARY"i? & "XML"i) & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
 	  & over: XmlIndexUsing? & o: IndexWith?
@@ -2246,7 +2249,9 @@ AuditStatement : @Statement
 	// reading fits, and over kinds a reading that fits is the one that stands (§4).
 	= verb: CreateOrAlter & scope: ServerOrDatabase & "AUDIT"i & "SPECIFICATION"i & name: Identifier
 	  & tail: (("FOR"i & "SERVER"i & "AUDIT"i & QualifiedName)? & AuditAction* & OptionsWith?)
-		=> @(Statement.Defined("AUDIT SPECIFICATION", name, Syntax.Tail(tail), verb))
+		=> @(Statement.Defined(
+				 scope == "SERVER" ? "AUDIT SPECIFICATION" : "DATABASE AUDIT SPECIFICATION",
+				 name, Syntax.Tail(tail), verb))
 
 	| said: "CREATE"i & "SERVER"i & "AUDIT"i & name: Identifier
 	  & tail: ("TO"i & AuditTarget & OptionsWith? & AuditWhere?)
@@ -2259,11 +2264,11 @@ AuditStatement : @Statement
 	  & pieces: EventPieces? & options: OptionsWith? & ("STATE"i & '=' & status: word)?
 		=> @(new Statement.EventSessionDefinition(name, verb, on, pieces, options, status))
 
-	| "CREATE"i & "EVENT"i & "NOTIFICATION"i & name: Identifier & "ON"i & NotificationScope
-	  & ("WITH"i & "FAN_IN"i)?
-	  & "FOR"i & PermissionName & (',' & PermissionName)*
-	  & "TO"i & "SERVICE"i & ValueExpression & (',' & ValueExpression)*
-		=> @(Statement.Defined("EVENT NOTIFICATION", name))
+	| "CREATE"i & "EVENT"i & "NOTIFICATION"i & name: Identifier
+	  & tail: ("ON"i & NotificationScope & ("WITH"i & "FAN_IN"i)?
+			   & "FOR"i & PermissionName & (',' & PermissionName)*
+			   & "TO"i & "SERVICE"i & ValueExpression & (',' & ValueExpression)*)
+		=> @(Statement.Defined("EVENT NOTIFICATION", name, Syntax.Tail(tail)))
 
 	// An endpoint says how it is reached and what it speaks, and each is a bracket of
 	// arguments belonging to that protocol rather than to this language.
@@ -2362,14 +2367,14 @@ ExternalStatement : @Statement
 	  & "AS"i & q: DirectSelect
 		=> @(new Statement.CreateTableAsSelect(name, null, options, q, true))
 
-	| "CREATE"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
+	| said: "CREATE"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
 	  & tail: (("AUTHORIZATION"i & QualifiedName)?
 			   & "FROM"i & LibraryFile & (',' & LibraryFile)* & OptionsWith?)
-		=> @(Statement.Defined("EXTERNAL LIBRARY", name, Syntax.Tail(tail)))
-	| "ALTER"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
+		=> @(Statement.Defined("EXTERNAL LIBRARY", name, Syntax.Tail(tail), said))
+	| said: "ALTER"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
 	  & tail: (("AUTHORIZATION"i & QualifiedName)?
 			   & LibraryChange & LibraryFile & (',' & LibraryFile)* & OptionsWith?)
-		=> @(Statement.Defined("EXTERNAL LIBRARY", name, Syntax.Tail(tail)))
+		=> @(Statement.Defined("EXTERNAL LIBRARY", name, Syntax.Tail(tail), said))
 
 	| verb: CreateOrAlter & "EXTERNAL"i & "RESOURCE"i & "POOL"i & pool: PoolName & tail: OptionsWithText?
 		=> @(Statement.Defined("EXTERNAL RESOURCE POOL", pool, Syntax.Tail(tail), verb))

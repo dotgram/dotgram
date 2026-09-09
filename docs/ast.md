@@ -173,7 +173,8 @@ field on one record here, and having a record each is what makes that a small ch
 | `Statement.ResourcePoolDefinition` | T-SQL | CREATE/ALTER RESOURCE POOL |
 | `Statement.WorkloadGroupDefinition` | T-SQL | CREATE/ALTER WORKLOAD GROUP |
 | `Statement.ServerAuditDefinition` | T-SQL | CREATE/ALTER SERVER AUDIT |
-| `Statement.AuditSpecificationDefinition` | T-SQL | CREATE/ALTER SERVER or DATABASE AUDIT SPECIFICATION |
+| `Statement.AuditSpecificationDefinition` | T-SQL | CREATE/ALTER SERVER AUDIT SPECIFICATION |
+| `Statement.DatabaseAuditSpecificationDefinition` | T-SQL | CREATE/ALTER DATABASE AUDIT SPECIFICATION |
 | `Statement.EventSessionDefinition` | T-SQL | CREATE/ALTER EVENT SESSION |
 | `Statement.EventNotificationDefinition` | T-SQL | CREATE EVENT NOTIFICATION |
 | `Statement.EndpointDefinition` | T-SQL | CREATE/ALTER ENDPOINT |
