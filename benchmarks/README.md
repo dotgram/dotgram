@@ -360,61 +360,94 @@ two capture rows as two grammars, not as one grammar with and without strings.
 
 ## T-SQL against ScriptDom
 
-`--speed [path] [version] [rounds]` (`Speed.cs`) is the other half of the comparison
-`--kinds` makes. That one asks the two parsers what they read; this asks how long they
-take about it, over Microsoft's own corpus of eleven hundred `.sql` files, round-robin in
-one process for the reason `--against` exists.
+`--kinds` asks the two parsers what they read; this asks how long they take about it, over
+Microsoft's own corpus of eleven hundred `.sql` files. There are two harnesses because
+there are two questions.
+
+### The number to quote
+
+`ScriptDomBenchmarks` is BenchmarkDotNet: one case per process, warmed and iterated until
+the distribution settles, confidence intervals printed beside it.
 
 ```console
-dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --speed 170 15
+dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --filter '*ScriptDomBenchmarks*'
 ```
 
 ```text
-against ScriptDom, TSql170Parser, 15 rounds
+| Method  | Mean      | Error    | StdDev    | Ratio | Gen0      | Allocated |
+|-------- |----------:|---------:|----------:|------:|----------:|----------:|
+| Tokens  |  73.12 ms | 1.455 ms |  3.884 ms |  0.50 | 5000.0000 | 258.45 MB |
+| Tree    | 146.73 ms | 4.494 ms | 12.894 ms |  1.00 | 5000.0000 | 280.21 MB |
+| Located |  32.63 ms | 0.636 ms |  0.871 ms |  0.22 |  166.6667 |   9.35 MB |
+| Grammar |  24.57 ms | 0.483 ms |  0.474 ms |  0.17 |  187.5000 |   9.35 MB |
+```
 
-  6299 of 8317 statements — the ones both parsers read, which is what may be timed
-  648 KB of T-SQL a round
+One operation is the whole corpus — 6861 statements, the ones both parsers read, out of
+the 8397 ScriptDom finds. Per statement that is 21.4 µs for ScriptDom's tree, 10.7 µs for
+its lexer alone, 4.8 µs here with positions and 3.6 µs without.
+
+**Both build a tree of the whole statement.** That has to be said because it was not true
+until recently, and because saying it is cheap: what makes it true is the section below —
+every one of these statements, printed back out from the tree and handed to ScriptDom,
+comes back as the statement it was read from. Hints, options, output clauses, the words a
+catalogue statement was given: all kept.
+
+**So the row to hold against ScriptDom's tree is `Located`**, which carries where each part
+of the statement was, as ScriptDom always does. That is **4.5 times**, and `Grammar` says
+what dropping the positions saves: about a fifth, for nothing in allocation, since a span
+is two numbers written into a record that exists either way.
+
+**And 30 times less garbage** — 40.8 KB a statement against 1.36 KB — which is the number
+the shape of the answer no longer explains away at all. It is also where ScriptDom's spread
+comes from: five thousand Gen0 collections per thousand operations against a hundred and
+sixty, and `Tree` is the only row here whose standard deviation is in double figures while
+`Located` beside it holds to under three per cent.
+
+### The number for the day
+
+`--speed [path] [version] [rounds]` (`Speed.cs`) measures the same four round-robin: every
+method once per round, adjacent in time and in one process, and the rounds repeat. What
+the machine does to one measurement it does to the four beside it, so the ratio survives a
+machine that is not idle — which a developer's machine is not, and which is why this is the
+one to run while working.
+
+```console
+dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --speed 170 11
+```
+
+```text
+against ScriptDom, TSql170Parser, 11 rounds
+
+  6861 of 8397 statements — the ones both parsers read, which is what may be timed
+  711 KB of T-SQL a round
 
                         per statement     MB/s   ratio   spread    allocated
   --------------------------------------------------------------------------
-  ScriptDom, tokens           9200 ns     10.9    1.54    2.0%     39522 B
-  ScriptDom, tree            14140 ns      7.1    1.00    6.8%     43030 B
-  .Gram                       6022 ns     16.7    2.35    4.8%       729 B
+  ScriptDom, tokens          14725 ns      6.9    1.69   23.1%     39480 B
+  ScriptDom, tree            24915 ns      4.1    1.00   28.2%     42789 B
+  .Gram, located             12684 ns      8.0    1.96   27.3%      1445 B
+  .Gram                      12198 ns      8.3    2.04    8.5%      1445 B
 ```
 
-**Agreement first**, as everywhere else here: only the statements both parsers read are
-timed. This grammar reads about three quarters of the corpus, and timing it over the whole
-of it would be timing three quarters of the work against all of it.
+### The two disagree, and the reason is worth knowing
 
-**And the two are not returning the same answer**, which is why there are three rows
-rather than two. ScriptDom returns a complete syntax tree — every clause a node, every node
-carrying its first and last token, the token stream kept beside it — enough to print the
-statement back out and to say where in the text each part of it was. This grammar returns
-`SqlNode`, which is the standard's shape and about a tenth of that: hints, options and
-output clauses are read and dropped, and nothing carries a position.
+1.96 against 4.5 is not rounding. **Running everything in one process, which is what makes
+the round-robin fair to machine noise, makes it unfair to the parser that allocates less.**
+ScriptDom leaves 40 KB a statement on a heap this grammar shares; those collections happen
+whenever the runtime decides, which is to say during the rows that did not cause them. Each
+BenchmarkDotNet case has a process of its own and pays for its own garbage.
 
-So the honest reading of the table is not "2.35 times faster". It is:
+So: `--speed` for whether today's change made something slower, where both sides are
+measured under the same conditions and only the movement matters. `ScriptDomBenchmarks` on
+a quiet machine for what the two parsers actually cost.
 
-- **Against ScriptDom's lexer alone, 1.5 times.** A whole parse here costs less than
-  ScriptDom spends getting to its first token — which is the lexical split (`Lexical =
-  true`) doing what it was built for, since both sides are lexing the same characters into
-  much the same kinds.
-- **Against ScriptDom's whole parse, 2.35 times**, and roughly half of that difference is
-  the tree it builds and this one does not.
-- **Fifty-nine times less garbage**, and that is the number the shape of the answer does
-  not explain away. 43 KB a statement against 729 bytes. ScriptDom allocates a node and a
-  position for everything it reads and keeps the tokens; this rents its tape per thread and
-  gives it back, so what is left over a parse is the tree and the strings in it.
+### What is not measured here
 
-The allocation figures are taken outside the timing and are deterministic between runs.
-The times are not: read the spread beside them, and read the ratio rather than the
-absolute — this is a developer's machine and the run above was made on a busy one.
-
-**What is not measured here.** ScriptDom's parsers are twelve, one per version, and this
-is one grammar; the version chain is not written yet, so `--speed 170` times the 170 parser
-against a grammar that is not a version of anything. And a parse that keeps positions is
-what an IDE needs; when this grammar keeps them, the row will move and should be measured
-again rather than argued about.
+ScriptDom's parsers are twelve, one per version, and this is one grammar; the version chain
+is not written yet. Both harnesses read each corpus file with the parser its `Baselines<n>`
+directory names, so a statement whose syntax was taken out of the language is timed by a
+parser that still has it rather than by one recovering from an error — but the grammar
+being timed against all twelve is still one grammar and not a version of anything.
 
 ## Whether the tree says what the text said
 
