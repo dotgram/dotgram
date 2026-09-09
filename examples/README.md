@@ -58,6 +58,7 @@ Record-oriented input, four ways, over one line-oriented format.
 | [`TokenizedQueryExample.cs`](DotGram.Examples/Languages/TokenizedQueryExample.cs) | a query read over tokens — `Lexical = true`, a lexer under the rules, and keywords that end where a word does |
 | [`LexemeLibraryExample.cs`](DotGram.Examples/Languages/LexemeLibraryExample.cs) | one grammar written to be built on and two written on it — `[GramInclude]`, and why the names cannot collide |
 | [`ScopedExpressionExample.cs`](DotGram.Examples/Languages/ScopedExpressionExample.cs) | a language where a name must be declared before it is used — `context`, and what a `when` can do that a `=>` cannot |
+| [`CaseRegionExample.cs`](DotGram.Examples/Languages/CaseRegionExample.cs) | a region that changes what the same rule builds inside it — `state`, `with state`, and the nearest mark winning |
 
 ## Taking one
 

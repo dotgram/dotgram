@@ -1405,4 +1405,47 @@ public sealed class ExampleTests
 		Assert.Equal(4, span.Length);
 	}
 
+
+	// ── A mark that holds while something is read ────────────────────────────────
+
+	/// <summary>`state`: a region decides what the same rule builds inside it.</summary>
+	[Fact]
+	public void A_region_changes_what_is_built_and_not_what_is_read()
+	{
+		var filter = Filters.ParseFilter("""name = "Bob" and ci(city = "berlin")""");
+
+		Assert.Equal(
+			[new Match("name", "Bob", StringComparison.Ordinal),
+			 new Match("city", "berlin", StringComparison.OrdinalIgnoreCase)],
+			filter);
+	}
+
+	/// <summary>
+	/// `parserState` is the marks outermost first, so the last is the nearest — which is
+	/// the whole of what makes a region nestable.
+	/// </summary>
+	[Theory]
+	[InlineData("""kind = "Draft" """,         "Ordinal")]
+	[InlineData("""ci(kind = "Draft")""",      "OrdinalIgnoreCase")]
+	[InlineData("""ci(cs(kind = "Draft"))""",  "Ordinal")]
+	[InlineData("""cs(ci(kind = "Draft"))""",  "OrdinalIgnoreCase")]
+	public void And_the_nearest_mark_is_the_one_that_decides(string filter, string how) =>
+		Assert.Equal(how, Filters.ParseFilter(filter)[0].How.ToString());
+
+	/// <summary>And the point of it, from a caller that knows nothing about marks.</summary>
+	[Fact]
+	public void And_a_row_is_matched_by_what_the_region_said()
+	{
+		static string? Row(string field) => field switch
+		{
+			"city" => "Berlin",
+			"name" => "Bob",
+			_      => null,
+		};
+
+		Assert.True(Filters.Matches("""ci(city = "berlin")""", Row));
+		Assert.False(Filters.Matches("""cs(city = "berlin")""", Row));
+		Assert.True(Filters.Matches("""name = "Bob" and ci(city = "BERLIN")""", Row));
+	}
+
 }
