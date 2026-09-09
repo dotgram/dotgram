@@ -261,7 +261,7 @@ ValueFunction : @Expression
     | name: "TRIM"i      & '(' & how: TrimSpecification? & what: ValueExpression?
                    & "FROM"i & v: ValueExpression & ')'
         => @(new Expression.RoutineInvocation(
-            "TRIM",
+            name,
             what is null ? new Expression[] { v } : new Expression[] { what, v },
             how))
     | name: "TRIM"i & '(' & v: ValueExpression & ')'      => @(new Expression.RoutineInvocation(name, new Expression[] { v }))

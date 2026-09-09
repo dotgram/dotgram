@@ -739,7 +739,7 @@ public static class SqlWriter
 		switch (query)
 		{
 			case Query.Specification(
-				var quantifier, var top, var columns, var into, var from, var where, var group, var having):
+				var quantifier, var top, var columns, var into, var from, var where, var group, var having, var windows):
 				text.Append("SELECT ");
 
 				if (quantifier is not null)
@@ -772,6 +772,12 @@ public static class SqlWriter
 				{
 					text.Append(" HAVING ");
 					Put(text, having, 0);
+				}
+
+				if (windows is not null)
+				{
+					text.Append(" WINDOW ");
+					Each(text, windows);
 				}
 
 				break;
@@ -1125,7 +1131,7 @@ public static class SqlWriter
 
 				break;
 
-			case Clause.Window(var window, var partition, var by, var frame):
+			case Clause.Window(var window, var partition, var by, var frame) over:
 				// A window that is only a name was written without brackets; anything else
 				// has them, and an empty `OVER ()` is written with nothing inside.
 				if (window is not null && partition.Length == 0 && by is null && frame is null)
@@ -1136,30 +1142,13 @@ public static class SqlWriter
 				}
 
 				text.Append("OVER (");
+				Window(text, over);
+				text.Append(')');
+				break;
 
-				if (window is not null)
-					text.Append(window).Append(' ');
-
-				if (partition.Length > 0)
-				{
-					text.Append("PARTITION BY ");
-					List(text, partition);
-
-					if (by is not null || frame is not null)
-						text.Append(' ');
-				}
-
-				if (by is not null)
-				{
-					Put(text, by);
-
-					if (frame is not null)
-						text.Append(' ');
-				}
-
-				if (frame is not null)
-					text.Append(frame);
-
+			case Clause.WindowDefinition(var defined, var specification):
+				text.Append(defined).Append(" AS (");
+				Window(text, (Clause.Window)specification);
 				text.Append(')');
 				break;
 
@@ -1172,7 +1161,8 @@ public static class SqlWriter
 				break;
 
 			case Clause.SystemTime(var kind, var at):
-				text.Append("FOR SYSTEM_TIME ").Append(kind);
+				// `FOR PATH` is a graph table's, written without the SYSTEM_TIME.
+				text.Append(kind == "PATH" ? "FOR " : "FOR SYSTEM_TIME ").Append(kind);
 
 				if (at.Length == 1)
 				{
@@ -1562,6 +1552,35 @@ public static class SqlWriter
 			text.Append(enforced ? " ENFORCED" : " NOT ENFORCED");
 	}
 
+	/// <summary>The inside of a window's brackets: its base, its partition, its order, its frame.</summary>
+	static void Window(StringBuilder text, Clause.Window window)
+	{
+		var (name, partition, by, frame) = window;
+
+		if (name is not null)
+			text.Append(name).Append(' ');
+
+		if (partition.Length > 0)
+		{
+			text.Append("PARTITION BY ");
+			List(text, partition);
+
+			if (by is not null || frame is not null)
+				text.Append(' ');
+		}
+
+		if (by is not null)
+		{
+			Put(text, by);
+
+			if (frame is not null)
+				text.Append(' ');
+		}
+
+		if (frame is not null)
+			text.Append(frame);
+	}
+
 	/// <summary>A word and names in brackets, or nothing where there are no names.</summary>
 	static void Names(StringBuilder text, string[]? columns, string word)
 	{
@@ -1662,7 +1681,7 @@ public static class SqlWriter
 			case Expression.And(var left, var right):   Binary(text, left, "AND", right, binds); break;
 			case Expression.Add(var left, var right):   Binary(text, left, "+", right, binds);   break;
 			case Expression.Subtract(var l, var r):     Binary(text, l, "-", r, binds);          break;
-			case Expression.Concatenate(var l, var r):  Binary(text, l, "+", r, binds);          break;
+			case Expression.Concatenate(var l, var r):  Binary(text, l, "||", r, binds);         break;
 			case Expression.Multiply(var l, var r):     Binary(text, l, "*", r, binds);          break;
 			case Expression.Divide(var l, var r):       Binary(text, l, "/", r, binds);          break;
 
@@ -1838,6 +1857,15 @@ public static class SqlWriter
 			case Expression.Measured(var value, var unit):
 				Put(text, value, 8);
 				text.Append(' ').Append(unit);
+				break;
+
+			case Expression.Hinted(var value, var words):
+				Put(text, value, 0);
+				text.Append(' ').Append(words);
+				break;
+
+			case Expression.GraphMatch(var pattern):
+				text.Append("MATCH (").Append(pattern).Append(')');
 				break;
 
 			case Expression.RowsetOrder(var by, var unique):

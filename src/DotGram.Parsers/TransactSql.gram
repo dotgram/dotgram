@@ -278,12 +278,14 @@ TsqlValueFunction : @Expression
 // the keyword 'ON'`. The engine is right and the syntax block is wrong, which is the first
 // thing found on that side rather than in a parser.
 JsonObjectBody : @Expression[]
-	= pairs: JsonKeyValues & JsonNullClause? & JsonReturning? => @(pairs)
-	| JsonReturning => @(Expression.None)
+	= pairs: JsonKeyValues & nulls: JsonNullClause? & returning: JsonReturning?
+		=> @(Syntax.Tailed(pairs, nulls, returning))
+	| returning: JsonReturning => @(Syntax.Tailed(Expression.None, returning))
 
 JsonArrayBody : @Expression[]
-	= items: Arguments & JsonOrder? & JsonNullClause? & JsonReturning? => @(items)
-	| JsonReturning => @(Expression.None)
+	= items: Arguments & order: JsonOrder? & nulls: JsonNullClause? & returning: JsonReturning?
+		=> @(Syntax.Tailed(items, order, nulls, returning))
+	| returning: JsonReturning => @(Syntax.Tailed(Expression.None, returning))
 
 JsonObjectName = "JSON_OBJECT"i | "JSON_OBJECTAGG"i
 JsonArrayName  = "JSON_ARRAY"i  | "JSON_ARRAYAGG"i
@@ -306,9 +308,9 @@ UseModel = "USE"i & "MODEL"i & QualifiedName & UseModelParameters?
 
 UseModelParameters = "PARAMETERS"i & ValueExpression
 
-JsonNullClause = "NULL"i & "ON"i & "NULL"i | "ABSENT"i & "ON"i & "NULL"i
-JsonReturning  = "RETURNING"i & DataType
-JsonOrder      = "ORDER"i & "BY"i & ValueExpression & ("ASC"i | "DESC"i)?
+JsonNullClause : @string = t: ("NULL"i & "ON"i & "NULL"i | "ABSENT"i & "ON"i & "NULL"i) => @(t)
+JsonReturning  : @string = t: ("RETURNING"i & DataType) => @(t)
+JsonOrder      : @string = t: ("ORDER"i & "BY"i & ValueExpression & ("ASC"i | "DESC"i)?) => @(t)
 
 // A sequence, read where a value stands. `FOR` here is not the `FOR` of `FOR JSON`;
 // it is the middle of one three-word name.
@@ -355,16 +357,20 @@ WithinGroup : @string
 // the standard's. A window may also be named, and the name is declared by the query's
 // own `WINDOW` clause.
 Over : @Clause.Window
-	= "OVER"i & '('
-	   & name: WindowName?
-	   & ("PARTITION"i & "BY"i & first: ValueExpression & (',' & rest: ValueExpression)*)?
-	   & by: OrderByClause?
-	   & frame: WindowFrame?
-	   & ')'
+	= "OVER"i & '(' & w: WindowSpecification & ')' => @(w)
+	| "OVER"i & only: Identifier => @(new Clause.Window(only, Expression.None, null, null))
+
+// SQL:2003's <window specification>: the window it is built on, the partition, the order,
+// the frame — each optional, in that order. What `OVER (…)` holds, and what a `WINDOW`
+// clause declares under a name.
+WindowSpecification : @Clause.Window
+	= name: WindowName?
+	  & ("PARTITION"i & "BY"i & first: ValueExpression & (',' & rest: ValueExpression)*)?
+	  & by: OrderByClause?
+	  & frame: WindowFrame?
 		=> @(new Clause.Window(
 				 name, first is null ? Expression.None : Syntax.Listed(first, rest),
 				 Clause.Ordered(by, null), frame))
-	 | "OVER"i & only: Identifier => @(new Clause.Window(only, Expression.None, null, null))
 
 // The name of a window declared by the query's `WINDOW` clause, standing where the
 // window itself would. Guarded the same way a correlation name is and for the same
@@ -459,7 +465,7 @@ TsqlPredicate : @Expression
 		=> @(new Expression.IsDistinctFrom(left, negated is not null, other))
 
 DistinctTail : @Expression
-	= q: Quantifier & sub: TableSubquery => @(new Expression.Subquery(sub))
+	= q: Quantifier & sub: TableSubquery => @(new Expression.Prefixed(Syntax.Squared(q), new Expression.Subquery(sub)))
 	| right: RowValueConstructor         => @(right)
 
 // ── §7.9's query specification, widened ─────────────────────────────────────
@@ -473,10 +479,10 @@ DistinctTail : @Expression
 TsqlQuerySpecification : @Query
 	= "SELECT"i & quantifier: SetQuantifier? & top: Top? & columns: SelectList & into: Into?
 	  & from: FromClause? & where: WhereClause? & group: GroupByClause? & having: HavingClause?
-	  & Window?
+	  & windows: Window?
 		=> @(new Query.Specification(
 				 Syntax.Distinctly(quantifier), top, columns, into,
-				 from ?? TableReference.None, where, group, having))
+				 from ?? TableReference.None, where, group, having, windows))
 
 // Written as alternatives of a rule rather than one sequence with a choice inside it,
 // for the reason `CallTail` gives.
@@ -497,14 +503,13 @@ Into : @Clause
 	= "INTO"i & name: QualifiedName & ("ON"i & on: Identifier)?
 		=> @(new Clause.Into(name, on))
 
-// The windows a call may name instead of writing out.
-Window       = "WINDOW"i & WindowDef & (',' & WindowDef)*
-WindowDef    = Identifier & "AS"i & '(' & WindowBody & ')'
-WindowBody   = WindowPart*
-WindowPart   = "PARTITION"i & "BY"i & ValueExpression & (',' & ValueExpression)*
-             | OrderByClause
-             | WindowFrame
-             | Identifier
+// The windows a call may name instead of writing out: each a name and the window it
+// stands for, in the shape `OVER (…)` has inside its brackets.
+Window : @Clause[]
+	= "WINDOW"i & first: WindowDef & (',' & rest: WindowDef)* => @(Syntax.Listed(first, rest))
+
+WindowDef : @Clause
+	= name: Identifier & "AS"i & '(' & w: WindowSpecification & ')' => @(new Clause.WindowDefinition(name, w))
 
 // ── §7.9's select list, widened ─────────────────────────────────────────────
 //
@@ -564,7 +569,8 @@ GroupByExpression : @Expression
 	| c: TsqlGroupingColumn => @(c)
 
 TsqlGroupingColumn : @Expression
-	= c: ValueExpression & Collate? & ("WITH"i & '(' & Identifier & ')')? => @(c)
+	= c: ValueExpression & collation: Collate? & hint: ("WITH"i & '(' & Identifier & ')')?
+		=> @(Syntax.Grouped(c, collation, hint))
 
 // One entry of a `GROUPING SETS` list: a cube, a rollup, a list of those, or a plain
 // group-by expression. A grouping set inside a grouping set is not here, deliberately.
@@ -905,35 +911,33 @@ parse Dialect.Statement as ParseStatement
 // only inside `MATCH (…)`, so the two characters can be read as two and the only thing
 // admitted that nobody writes is a space between them.
 GraphMatch : @Expression
-	= "MATCH"i & '(' & p: GraphPattern & ')' => @(new Expression.RoutineInvocation("MATCH", p))
+	= "MATCH"i & '(' & t: GraphPattern & ')' => @(new Expression.GraphMatch(t))
 
-GraphPattern : @Expression[]
-	= first: GraphAnd & (',' & rest: GraphAnd)* => @(Syntax.Listed(first, rest))
+GraphPattern = GraphAnd & (',' & GraphAnd)*
 
 // `AND` inside a drawing joins two drawings, and it is the only connective there is:
 // the syntax says `OR` and `NOT` are not supported in a pattern.
-GraphAnd : @Expression
-	= first: GraphItem & ("AND"i & rest: GraphItem)* => @(first)
+GraphAnd = GraphItem & ("AND"i & GraphItem)*
 
-GraphItem : @Expression
-	= "SHORTEST_PATH"i & '(' & p: GraphAnd & ')' => @(p)
-	| '(' & p: GraphAnd & ')'                    => @(p)
-	| p: GraphLengthPattern & n: GraphNode       => @(n)
-	| head: GraphNode & t: GraphItemTail         => @(head)
+GraphItem
+	= "SHORTEST_PATH"i & '(' & GraphAnd & ')'
+	| '(' & GraphAnd & ')'
+	| GraphLengthPattern & GraphNode
+	| GraphNode & GraphItemTail
 
-GraphItemTail : @Expression
-	= '=' & n: GraphNode  => @(n)
-	| s: GraphStep+       => @(s[0])
+GraphItemTail
+	= '=' & GraphNode
+	| GraphStep+
 
-GraphStep : @Expression
-	= e: GraphEdge & n: GraphNode => @(n)
-	| p: GraphLengthPattern       => @(p)
+GraphStep
+	= GraphEdge & GraphNode
+	| GraphLengthPattern
 
 // A node is a table's name or the alias it was given in the `FROM` clause, and
 // `LAST_NODE` names the far end of a path rather than a table.
-GraphNode : @Expression
-	= "LAST_NODE"i & '(' & name: QualifiedName & ')' => @(new Expression.ColumnReference(name))
-	| name: QualifiedName                            => @(new Expression.ColumnReference(name))
+GraphNode
+	= "LAST_NODE"i & '(' & QualifiedName & ')'
+	| QualifiedName
 
 // An edge points one way or the other and must say which.
 GraphEdge
@@ -943,9 +947,9 @@ GraphEdge
 // The pattern `SHORTEST_PATH` repeats, with the regular expression's own two quantifiers.
 // It is written edge first or node first, and the difference is which end the node that
 // bounds it stands at.
-GraphLengthPattern : @Expression
-	= '(' & s: GraphStep+ & ')' & GraphQuantifier => @(s[0])
-	| '(' & n: GraphNode & GraphEdge & ')' & GraphQuantifier => @(n)
+GraphLengthPattern
+	= '(' & GraphStep+ & ')' & GraphQuantifier
+	| '(' & GraphNode & GraphEdge & ')' & GraphQuantifier
 
 GraphQuantifier = '+' | '{' & Sql92.Lexical.Digits & ',' & Sql92.Lexical.Digits & '}'
 

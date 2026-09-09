@@ -1085,7 +1085,8 @@ public abstract record Query : ISqlSpan
 		TableReference[] From,
 		Expression? Where,
 		Clause? GroupBy,
-		Expression? Having) : Query;
+		Expression? Having,
+		Clause[]? Windows = null) : Query;
 
 	/// <summary>§7.3 <c>VALUES (…), (…)</c> — a table written out.</summary>
 	public sealed record TableValueConstructor(Expression[] Rows) : Query;
@@ -1222,6 +1223,18 @@ public abstract record Expression : ISqlSpan
 	/// <summary>§8.13 <c>a MATCH UNIQUE PARTIAL (…)</c>, and the words it may be qualified by.</summary>
 	public sealed record Match(Expression Value, string? Qualifier, Query Query) : Expression;
 
+	/// <summary>
+	/// T-SQL's graph <c>MATCH (…)</c>: the drawing inside the brackets, as written.
+	/// </summary>
+	/// <remarks>
+	/// A pattern is a language of its own — nodes, arrows, <c>SHORTEST_PATH</c>, its
+	/// quantifiers — and the grammar reads every bit of it to say whether it is one. What the
+	/// tree keeps is the text, for <see cref="Clause.Hint"/>'s reason: it loses nothing and
+	/// claims nothing, and a reader who wants the drawing taken apart is asking the graph's
+	/// question rather than the language's.
+	/// </remarks>
+	public sealed record GraphMatch(string Pattern) : Expression;
+
 	/// <summary>§8.15 <c>a OVERLAPS b</c>, whose two sides are rows.</summary>
 	public sealed record Overlaps(Expression Left, Expression Right) : Expression;
 
@@ -1300,6 +1313,13 @@ public abstract record Expression : ISqlSpan
 	/// <c>4 GB</c> — where an option or a sample says how much of what.
 	/// </summary>
 	public sealed record Measured(Expression Value, string Unit) : Expression;
+
+	/// <summary>
+	/// A value with the words written after it that say how the engine is to treat it,
+	/// kept as written — <c>GROUP BY c WITH (DISTRIBUTED_AGG)</c>, <c>JSON_ARRAY(… NULL ON
+	/// NULL)</c>, <c>JSON_OBJECT(… RETURNING json)</c>.
+	/// </summary>
+	public sealed record Hinted(Expression Value, string Words) : Expression;
 
 	/// <summary>
 	/// An argument given by name rather than by position — <c>@p = 1</c> in an
@@ -1510,6 +1530,12 @@ public abstract record Clause : ISqlSpan
 	/// </remarks>
 	public sealed record Window(
 		string? Name, Expression[] PartitionBy, Clause? By, string? Frame) : Clause;
+
+	/// <summary>
+	/// One entry of a query's <c>WINDOW</c> clause: the name, and the window it stands for —
+	/// whose own <see cref="Window.Name"/> is the window it is built on, where it is.
+	/// </summary>
+	public sealed record WindowDefinition(string Name, Clause Specification) : Clause;
 
 	/// <summary>
 	/// T-SQL's <c>SELECT … INTO t ON filegroup</c>: the table the rows are written to
@@ -1778,6 +1804,36 @@ public static class Syntax
 	/// <summary>One word as an option with nothing set, or nothing where none was written.</summary>
 	public static Clause[] Unit(string? word) =>
 		word is null ? Clause.None : [new Clause.Option(Squared(word), null, Clause.None)];
+
+	/// <summary>A grouping column with what was written after it: a collation, a hint.</summary>
+	public static Expression Grouped(Expression column, string? collation, string? hint)
+	{
+		var made = collation is null ? column : new Expression.Collated(column, collation);
+
+		return hint is null ? made : new Expression.Hinted(made, Squared(hint));
+	}
+
+	/// <summary>
+	/// Arguments with the clauses written after the last of them — a JSON constructor's
+	/// order, null treatment and return type — hung on that last argument, since they are
+	/// written where it ends.
+	/// </summary>
+	public static Expression[] Tailed(Expression[] items, params string?[] clauses)
+	{
+		var words = string.Join(" ", clauses.Where(static one => one is not null).Select(static one => Squared(one!)));
+
+		if (words.Length == 0)
+			return items;
+
+		if (items.Length == 0)
+			return [new Expression.ColumnReference(words)];
+
+		var made = (Expression[])items.Clone();
+
+		made[^1] = new Expression.Hinted(made[^1], words);
+
+		return made;
+	}
 
 	/// <summary>A value with the unit after it, or the value alone where none was written.</summary>
 	public static Expression Measured(Expression value, string? unit) =>

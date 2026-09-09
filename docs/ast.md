@@ -346,6 +346,7 @@ field on one record here, and having a record each is what makes that a small ch
 | `Expression.Exists` | SQL-92 | §8.9 &lt;exists predicate&gt; |
 | `Expression.Unique` | SQL-92 | §8.11 &lt;unique predicate&gt; |
 | `Expression.Match` | SQL-92 | §8.10 &lt;match predicate&gt; |
+| `Expression.GraphMatch` | T-SQL | the graph `MATCH (…)`, its drawing kept as written |
 | `Expression.Overlaps` | SQL-92 | §8.12 &lt;overlaps predicate&gt; |
 | `Expression.IsDistinctFrom` | SQL:1999 | &lt;distinct predicate&gt; |
 | `Expression.RoutineInvocation` | SQL-92 | §6.5 &lt;set function specification&gt;, §6.10 &lt;cast specification&gt;, and a call |
@@ -360,6 +361,7 @@ field on one record here, and having a record each is what makes that a small ch
 | `Expression.Member` | T-SQL | a member of a value, or a method called on one — `a.b`, `a::b`, `a.f(1)` |
 | `Expression.Collated` | SQL-92 | §6.11 &lt;collate clause&gt; on a value |
 | `Expression.Measured` | T-SQL | a value with its unit after it — `10 MINUTES`, `50 PERCENT`, `4 GB` |
+| `Expression.Hinted` | T-SQL | a value with the words after it that say how the engine treats it — `GROUP BY c WITH (DISTRIBUTED_AGG)`, a JSON constructor's `NULL ON NULL` and `RETURNING` |
 | `Expression.Subquery` | SQL-92 | §7.11 &lt;subquery&gt; |
 | `Expression.Parenthesized` | SQL:2023 | §6.28 &lt;parenthesized value expression&gt;, and §8.1's boolean one |
 
@@ -385,6 +387,7 @@ field on one record here, and having a record each is what makes that a small ch
 | `Clause.OrderBy` | SQL-92 | §13.1 &lt;order by clause&gt;, with T-SQL's OFFSET and FETCH written inside it |
 | `Clause.Top` | T-SQL | SELECT — `TOP (n) PERCENT WITH TIES` |
 | `Clause.Window` | SQL:2003 | &lt;window specification&gt;; T-SQL: the OVER clause |
+| `Clause.WindowDefinition` | SQL:2003 | one entry of a query's `WINDOW` clause: a name and the window it stands for |
 | `Clause.SystemTime` | T-SQL | Temporal Tables — `FOR SYSTEM_TIME` |
 | `Clause.Into` | T-SQL | SELECT — `INTO new_table [ON filegroup]` |
 | `Clause.TableSample` | SQL:2003 | &lt;table sample clause&gt;; T-SQL: TABLESAMPLE |
