@@ -1246,18 +1246,18 @@ LoopStatement : @Statement
 
 // ── Transactions ────────────────────────────────────────────────────────────
 TransactionStatement : @Statement
-	= "BEGIN"i & "DISTRIBUTED"i & TranWord & name: TranName? & TranMark?
-		=> @(new Statement.Transaction("BEGIN DISTRIBUTED", name))
-	| "BEGIN"i & TranWord & name: TranName? & TranMark?
-		=> @(new Statement.Transaction("BEGIN", name))
-	| "COMMIT"i & TranWord? & name: TranName? & TranDelayed?
-		=> @(new Statement.Transaction("COMMIT", name))
-	| "ROLLBACK"i & TranWord? & name: TranName?
-		=> @(new Statement.Transaction("ROLLBACK", name))
-	| "SAVE"i & TranWord & name: TranName
-		=> @(new Statement.Transaction("SAVE", name))
+	= "BEGIN"i & "DISTRIBUTED"i & word: TranWord & name: TranName? & mark: TranMark?
+		=> @(new Statement.Transaction("BEGIN DISTRIBUTED", name, word, Syntax.Tail(mark)))
+	| "BEGIN"i & word: TranWord & name: TranName? & mark: TranMark?
+		=> @(new Statement.Transaction("BEGIN", name, word, Syntax.Tail(mark)))
+	| "COMMIT"i & word: TranWord? & name: TranName? & how: TranDelayed?
+		=> @(new Statement.Transaction("COMMIT", name, word, Syntax.Tail(how)))
+	| "ROLLBACK"i & word: TranWord? & name: TranName?
+		=> @(new Statement.Transaction("ROLLBACK", name, word))
+	| "SAVE"i & word: TranWord & name: TranName
+		=> @(new Statement.Transaction("SAVE", name, word))
 
-TranWord    = "TRANSACTION"i | "TRAN"i | "WORK"i
+TranWord : @string = t: ("TRANSACTION"i | "TRAN"i | "WORK"i) => @(Syntax.Squared(t))
 TranMark    = "WITH"i & "MARK"i & ValueExpression?
 TranDelayed = "WITH"i & '(' & OptionList & ')'
 
@@ -1326,17 +1326,17 @@ IsolationLevel = "READ"i & "UNCOMMITTED"i | "READ"i & "COMMITTED"i | "REPEATABLE
 ExecuteStatement : @Statement.Execute = ExecWord & e: ExecuteBody => @(e)
 
 ExecuteBody : @Statement.Execute
-	= "AS"i & Identifier & '=' & ValueExpression & ExecWith?
-		=> @(new Statement.Execute(null, "AS", Expression.None))
-	| '(' & args: Arguments & ')' & ExecAt? & ExecWith?
-		=> @(new Statement.Execute(null, "(", args))
-	| into: ExecReturn? & name: ExecName & args: ExecArguments? & ExecAt? & ExecWith?
-		=> @(new Statement.Execute(into, name, args ?? Expression.None))
+	= "AS"i & Identifier & '=' & ValueExpression & with: ExecWith?
+		=> @(new Statement.Execute(null, "AS", Expression.None, null, Syntax.Tail(with)))
+	| '(' & args: Arguments & ')' & at: ExecAt? & with: ExecWith?
+		=> @(new Statement.Execute(null, "(", args, at, Syntax.Tail(with)))
+	| into: ExecReturn? & name: ExecName & args: ExecArguments? & at: ExecAt? & with: ExecWith?
+		=> @(new Statement.Execute(into, name, args ?? Expression.None, at, Syntax.Tail(with)))
 
 ExecWord   = "EXECUTE"i | "EXEC"i
 ExecReturn : @string = t: Tsql.Variable & '=' => @(t)
 ExecName   : @string = t: QualifiedName => @(t) | t: Tsql.Variable => @(t)
-ExecAt     = "AT"i & QualifiedName
+ExecAt     : @string = "AT"i & t: QualifiedName => @(t)
 ExecWith   = "WITH"i & ExecOption & (',' & ExecOption)*
 ExecOption = "RESULT"i & "SETS"i & "NONE"i
 		   | "RESULT"i & "SETS"i & "UNDEFINED"i
@@ -1867,11 +1867,13 @@ CreateIndexStatement : @Statement
 	= "CREATE"i & "SELECTIVE"i & "XML"i & "INDEX"i & name: Identifier?
 	  & "ON"i & on: QualifiedName & '(' & ColumnList & ')'
 	  & ("WITH"i & XmlNamespaces)? & paths: SelectivePaths & o: IndexWith?
-		=> @(new Statement.CreateIndex(on, Clause.Indexed(name ?? "", null, null, null, null, null, null, null, null, o, null, null)))
-	| "CREATE"i & "PRIMARY"i? & "XML"i & "INDEX"i & name: Identifier
+		=> @(new Statement.CreateIndex(on, Clause.Indexed(name ?? "", null, null, null, null, null, null, null, null, o, null, null), "SELECTIVE XML"))
+	| "CREATE"i & kind: ("PRIMARY"i? & "XML"i) & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
-	  & XmlIndexUsing? & o: IndexWith?
-		=> @(new Statement.CreateIndex(on, Clause.Indexed(name, null, null, null, null, columns, null, null, null, o, null, null)))
+	  & over: XmlIndexUsing? & o: IndexWith?
+		=> @(new Statement.CreateIndex(
+				 on, Clause.Indexed(name, null, null, null, null, columns, null, null, null, o, null, null),
+				 Syntax.Squared(kind), Syntax.Tail(over)))
 	| "CREATE"i & u: "UNIQUE"i? & k: IndexOrder? & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
 	  & ("INCLUDE"i & '(' & include: ColumnList & ')')?
@@ -2246,11 +2248,11 @@ AuditStatement : @Statement
 	  & tail: (("FOR"i & "SERVER"i & "AUDIT"i & QualifiedName)? & AuditAction* & OptionsWith?)
 		=> @(Statement.Defined("AUDIT SPECIFICATION", name, Syntax.Tail(tail), verb))
 
-	| "CREATE"i & "SERVER"i & "AUDIT"i & name: Identifier
+	| said: "CREATE"i & "SERVER"i & "AUDIT"i & name: Identifier
 	  & tail: ("TO"i & AuditTarget & OptionsWith? & AuditWhere?)
-		=> @(Statement.Defined("SERVER AUDIT", name, Syntax.Tail(tail)))
-	| "ALTER"i & "SERVER"i & "AUDIT"i & name: Identifier & tail: AlterAuditBody
-		=> @(Statement.Defined("SERVER AUDIT", name, Syntax.Tail(tail)))
+		=> @(Statement.Defined("SERVER AUDIT", name, Syntax.Tail(tail), said))
+	| said: "ALTER"i & "SERVER"i & "AUDIT"i & name: Identifier & tail: AlterAuditBody
+		=> @(Statement.Defined("SERVER AUDIT", name, Syntax.Tail(tail), said))
 
 	// An extended-event session: events, targets, and what to spend on them.
 	| verb: CreateOrAlter & "EVENT"i & "SESSION"i & name: Identifier & "ON"i & on: ServerOrDatabase
@@ -2437,18 +2439,20 @@ PrincipalStatement : @Statement
 	// A schema may be declared by its owner alone — `CREATE SCHEMA AUTHORIZATION dbo` — and
 	// what follows it is not a clause but whole statements, which is the one statement in
 	// T-SQL that holds others without a `BEGIN`.
-	| "CREATE"i & "SCHEMA"i & name: Identifier & "AUTHORIZATION"i & QualifiedName & SchemaElement*
-		=> @(Statement.Defined("CREATE SCHEMA", name))
-	| "CREATE"i & "SCHEMA"i & "AUTHORIZATION"i & owner: QualifiedName & SchemaElement*
-		=> @(Statement.Defined("CREATE SCHEMA", owner))
-	| "CREATE"i & "SCHEMA"i & name: Identifier & SchemaElement*
-		=> @(Statement.Defined("CREATE SCHEMA", name))
-	| "ALTER"i & "SCHEMA"i & name: Identifier & "TRANSFER"i & SecurableClass? & what: QualifiedName
-		=> @(Statement.Defined("ALTER SCHEMA", what))
+	| "CREATE"i & "SCHEMA"i & name: Identifier
+	  & tail: ("AUTHORIZATION"i & QualifiedName & SchemaElement*)
+		=> @(Statement.Defined("CREATE SCHEMA", name, Syntax.Tail(tail)))
+	| "CREATE"i & "SCHEMA"i & tail: ("AUTHORIZATION"i & QualifiedName & SchemaElement*)
+		=> @(Statement.Defined("CREATE SCHEMA", "", Syntax.Tail(tail)))
+	| "CREATE"i & "SCHEMA"i & name: Identifier & tail: (SchemaElement*)
+		=> @(Statement.Defined("CREATE SCHEMA", name, Syntax.Tail(tail)))
+	| "ALTER"i & "SCHEMA"i & name: Identifier
+	  & tail: ("TRANSFER"i & SecurableClass? & QualifiedName)
+		=> @(Statement.Defined("ALTER SCHEMA", name, Syntax.Tail(tail)))
 
-	| "ALTER"i & "AUTHORIZATION"i & "ON"i & SecurableClass? & what: QualifiedName
-	  & "TO"i & AuthorizationTo
-		=> @(Statement.Defined("ALTER AUTHORIZATION", what))
+	| "ALTER"i & "AUTHORIZATION"i & tail: ("ON"i & SecurableClass? & QualifiedName
+										  & "TO"i & AuthorizationTo)
+		=> @(Statement.Defined("ALTER AUTHORIZATION", "", Syntax.Tail(tail)))
 
 RoleWord = "SERVER"i & "ROLE"i | "ROLE"i
 
@@ -2568,8 +2572,8 @@ DropNames : @Expression[]
 DropName : @Expression = t: QualifiedName => @(new Expression.ColumnReference(t))
 
 DropIndexName : @Expression
-	= name: Identifier & "ON"i & QualifiedName & OptionsWith? => @(new Expression.ColumnReference(name))
-	| t: QualifiedName                                        => @(new Expression.ColumnReference(t))
+	= t: (Identifier & "ON"i & QualifiedName & OptionsWith?) => @(new Expression.ColumnReference(Syntax.Spaced(t)))
+	| t: QualifiedName                                       => @(new Expression.ColumnReference(t))
 
 DropCrypto : @Expression
 	= "CERTIFICATE"i & name: QualifiedName        => @(new Expression.ColumnReference(name))
@@ -2657,8 +2661,6 @@ CreateDatabaseStatement : @Statement
 				 Files = files?.Files ?? Clause.None, Primary = files?.Primary ?? false, Log = files?.Log,
 			 })
 
-DatabaseCollate = "COLLATE"i & QualifiedName
-
 // What a database may be made out of instead of nothing: another database, a snapshot of
 // one, or files that already exist. Each is the tail's words, and then the bracket and the
 // `WITH` it may carry.
@@ -2719,7 +2721,7 @@ AlterDatabaseStatement : @Statement
 
 	| "ALTER"i & "DATABASE"i & name: DatabaseTarget & action: AlterDatabaseAction
 	  & DatabaseTermination?
-		=> @(Statement.OfDatabase(name, action, null))
+		=> @(Statement.OfDatabase(name, action.Action, null, action.Tail))
 
 DatabaseTarget : @string = "CURRENT"i => @("CURRENT") | t: Identifier => @(t)
 
@@ -2732,35 +2734,41 @@ ScopedConfiguration : @Statement.AlterDatabaseScopedConfiguration
 // Which action was written, as the words the tree is keyed by. The statement builds the
 // record; this says which record it is, because a rule cannot name a different type per
 // alternative and the name is not known until the header above has been read.
-AlterDatabaseAction : @string
-	= DatabaseCollate               => @("COLLATE")
-	| "MODIFY"i & m: DatabaseModify => @(m)
-	| "ADD"i    & a: DatabaseAdd    => @(a)
-	| "REMOVE"i & r: DatabaseRemove => @(r)
+// Which action, and what it was given — the action names the record and the rest is the
+// words, as the catalogue wrote them.
+AlterDatabaseAction : @Statement.AlterTable
+	= "COLLATE"i & tail: QualifiedName => @(Statement.Altered("COLLATE", null, null, tail))
+	| "MODIFY"i & m: DatabaseModify    => @(m)
+	| "ADD"i    & a: DatabaseAdd       => @(a)
+	| "REMOVE"i & r: DatabaseRemove    => @(r)
 
 	// Two actions that are only a word. Written out, and this is a place where the words
 	// are the syntax: `ALTER DATABASE d AUDIT SPECIFICATION s` is a different statement,
 	// and a rule that read any word here would take it and call it this one.
-	| "REBUILD"i & "LOG"i  => @("REBUILD LOG")
-	| "PERFORM_CUTOVER"i   => @("PERFORM_CUTOVER")
+	| "REBUILD"i & "LOG"i  => @(Statement.Altered("REBUILD LOG", null))
+	| "PERFORM_CUTOVER"i   => @(Statement.Altered("PERFORM_CUTOVER", null))
 
-DatabaseModify : @string
-	= "NAME"i & '=' & Identifier                            => @("MODIFY NAME")
-	| "FILEGROUP"i & Identifier & FileGroupAction           => @("MODIFY FILEGROUP")
-	| "FILE"i & FileSpec                                    => @("MODIFY FILE")
-	| '(' & OptionList & ')' & ("WITH"i & OptionList)?      => @("MODIFY")
+DatabaseModify : @Statement.AlterTable
+	= "NAME"i & tail: ('=' & Identifier)                  => @(Statement.Altered("MODIFY NAME", null, null, tail))
+	| "FILEGROUP"i & tail: (Identifier & FileGroupAction) => @(Statement.Altered("MODIFY FILEGROUP", null, null, tail))
+	| "FILE"i & tail: FileSpecText                        => @(Statement.Altered("MODIFY FILE", null, null, tail))
+	| tail: ('(' & OptionList & ')' & ("WITH"i & OptionList)?)
+		=> @(Statement.Altered("MODIFY", null, null, tail))
 
-DatabaseAdd : @string
-	= "FILEGROUP"i & Identifier & FileGroupContains?
-		=> @("ADD FILEGROUP")
-	| "LOG"i & "FILE"i & FileSpec & (',' & FileSpec)*
-		=> @("ADD LOG FILE")
-	| "FILE"i & FileSpec & (',' & FileSpec)* & ("TO"i & "FILEGROUP"i & Identifier)?
-		=> @("ADD FILE")
+DatabaseAdd : @Statement.AlterTable
+	= "FILEGROUP"i & tail: (Identifier & FileGroupContains?)
+		=> @(Statement.Altered("ADD FILEGROUP", null, null, tail))
+	| "LOG"i & "FILE"i & tail: (FileSpecText & (',' & FileSpecText)*)
+		=> @(Statement.Altered("ADD LOG FILE", null, null, tail))
+	| "FILE"i & tail: (FileSpecText & (',' & FileSpecText)* & ("TO"i & "FILEGROUP"i & Identifier)?)
+		=> @(Statement.Altered("ADD FILE", null, null, tail))
 
-DatabaseRemove : @string
-	= "FILEGROUP"i & Identifier => @("REMOVE FILEGROUP")
-	| "FILE"i & Identifier      => @("REMOVE FILE")
+DatabaseRemove : @Statement.AlterTable
+	= "FILEGROUP"i & tail: Identifier => @(Statement.Altered("REMOVE FILEGROUP", null, null, tail))
+	| "FILE"i & tail: Identifier      => @(Statement.Altered("REMOVE FILE", null, null, tail))
+
+// A file specification read for its words rather than for its options.
+FileSpecText = '(' & OptionList & ')'
 
 // `READ_ONLY`, `READWRITE`, `AUTOGROW_ALL_FILES`, `AUTOGROW_SINGLE_FILE` — words, and a
 // catalogue if written out.

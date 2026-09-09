@@ -185,12 +185,19 @@ public abstract record Statement : ISqlSpan
 	public sealed record Declare(Clause[] Variables) : Statement;
 
 	/// <summary>A transaction begun, committed, rolled back or saved, and its name.</summary>
-	public sealed record Transaction(string Kind, string? Name) : Statement;
+	/// <param name="Word"><c>TRANSACTION</c>, <c>TRAN</c> or <c>WORK</c>, as written.</param>
+	/// <param name="Tail">A mark or a durability, as written.</param>
+	public sealed record Transaction(
+		string Kind, string? Name, string? Word = null, string? Tail = null) : Statement;
 
 	/// <summary>
 	/// <c>EXECUTE</c>: what is called, with what, and the variable the return code goes to.
 	/// </summary>
-	public sealed record Execute(string? Into, string Name, Expression[] Arguments) : Statement;
+	/// <param name="At">The linked server it runs on.</param>
+	/// <param name="Tail">The <c>WITH</c> after it — <c>RECOMPILE</c>, <c>RESULT SETS …</c>.</param>
+	public sealed record Execute(
+		string? Into, string Name, Expression[] Arguments,
+		string? At = null, string? Tail = null) : Statement;
 
 	// ---- the tables ---------------------------------------------------------------------------
 
@@ -302,7 +309,15 @@ public abstract record Statement : ISqlSpan
 	/// <c>CREATE INDEX</c>: the table, and the index — the same node an index written inside
 	/// a table is, since it is the same thing said in the same words.
 	/// </summary>
-	public sealed record CreateIndex(string On, Clause Index) : Statement;
+	/// <param name="Kind">
+	/// The words between <c>CREATE</c> and <c>INDEX</c> that are not the index's own —
+	/// <c>PRIMARY XML</c>, <c>XML</c>, <c>SELECTIVE XML</c> — where the index is one of those.
+	/// </param>
+	/// <param name="Using">
+	/// The primary XML index a secondary one is built on — <c>USING XML INDEX i FOR PATH</c>.
+	/// </param>
+	public sealed record CreateIndex(
+		string On, Clause Index, string? Kind = null, string? Using = null) : Statement;
 
 	/// <summary>An index changed: which one, on what, and what is being done to it.</summary>
 	/// <summary>
@@ -480,6 +495,7 @@ public abstract record Statement : ISqlSpan
 
 	/// <summary><c>ALTER DATABASE … MODIFY FILEGROUP</c>.</summary>
 	public sealed record AlterDatabaseModifyFileGroup(string Name) : Definition(Name);
+
 
 	/// <summary><c>ALTER DATABASE … MODIFY FILE</c>.</summary>
 	public sealed record AlterDatabaseModifyFile(string Name) : Definition(Name);
@@ -1029,7 +1045,10 @@ public abstract record Statement : ISqlSpan
 		};
 
 	/// <summary>What is being done to a database, as the statement it is.</summary>
-	public static Statement OfDatabase(string name, string action, Clause[]? settings) =>
+	public static Statement OfDatabase(string name, string action, Clause[]? settings, string? tail = null) =>
+		OfDatabase(name, action, settings) is Definition made ? made with { Tail = Syntax.Tail(tail) } : OfDatabase(name, action, settings);
+
+	static Statement OfDatabase(string name, string action, Clause[]? settings) =>
 		action switch
 		{
 			"CREATE"               => new CreateDatabase(name, settings ?? Clause.None),

@@ -17218,3 +17218,17 @@ and the four routines hold theirs, `CREATE OR ALTER FUNCTION` included. The alte
 table that were a word and nothing else — `SET (…)`, `REBUILD`, `SWITCH … TO t`, `ENABLE
 TRIGGER`, `NOCHECK CONSTRAINT` — keep their tail the same way. 84.9% to **90.4%** the same
 statement, 550 unread to 386.
+
+**The rest of the tails.** A transaction keeps the word it named itself with — `TRANSACTION`,
+`TRAN`, `WORK` — and its mark or its durability; `EXECUTE` its linked server and its `WITH
+RESULT SETS`; an XML index the words that say which kind it is and the primary index it is
+built on; `DROP INDEX` what each index is dropped from; `ALTER DATABASE` what each action was
+given; `CREATE SCHEMA` its authorization and the statements inside it. 90.4% to **93.6%** the
+same statement, 386 unread to 276.
+
+**An hour lost to a grep.** The build was reporting the real error all along —
+`TransactSql.gram(1874,156): error CS1002: ; expected`, a capture I had named `using`, which
+is a C# keyword — and `grep ' error ' | sort -u | head` put the generated file's cascade of
+CS1527s first and cut the line that mattered. The cascade said the class had closed early,
+which it had not; twenty minutes went into brace counters and standalone compiles that all
+said the file was fine. **Read the first error, not the first line of the sorted list.**

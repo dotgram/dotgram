@@ -245,15 +245,21 @@ public static class SqlWriter
 				Each(text, variables);
 				break;
 
-			case Statement.Transaction(var kind, var name):
+			case Statement.Transaction(var kind, var name, var word, var mark):
 				text.Append(kind);
+
+				if (word is not null)
+					text.Append(' ').Append(word);
 
 				if (name is not null)
 					text.Append(' ').Append(name);
 
+				if (mark is not null)
+					text.Append(' ').Append(mark);
+
 				break;
 
-			case Statement.Execute(var into, var name, var arguments):
+			case Statement.Execute(var into, var name, var arguments, var at, var with):
 				text.Append("EXECUTE ");
 
 				if (into is not null)
@@ -266,6 +272,12 @@ public static class SqlWriter
 					text.Append(i == 0 ? " " : ", ");
 					Put(text, arguments[i], 0);
 				}
+
+				if (at is not null)
+					text.Append(" AT ").Append(at);
+
+				if (with is not null)
+					text.Append(' ').Append(with);
 
 				break;
 
@@ -440,9 +452,17 @@ public static class SqlWriter
 
 				break;
 
-			case Statement.CreateIndex(var on, var index):
+			case Statement.CreateIndex(var on, var index, var kind, var over):
 				text.Append("CREATE ");
+
+				if (kind is not null)
+					text.Append(kind).Append(' ');
+
 				Put(text, (Clause.ConstraintDefinition)index, on);
+
+				if (over is not null)
+					text.Append(' ').Append(over);
+
 				break;
 
 			case Statement.AlterIndex(var name, var on, var action, var partition, var options, var paths, var namespaces):
@@ -475,8 +495,12 @@ public static class SqlWriter
 
 				break;
 
-			case Statement.UpdateStatistics(var on):
+			case Statement.UpdateStatistics(var on) update:
 				text.Append("UPDATE STATISTICS ").Append(on);
+
+				if (update.Tail is { } how)
+					text.Append(' ').Append(how);
+
 				break;
 
 			case Statement.Print(var value):
