@@ -30,8 +30,14 @@ namespace DotGram.Compatibility
 		"Key    : @string  = text: ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']+ => @(text)\n" +
 		"Rest   : @string  = text: [^ '\\n' | '\\r']* => @(text)\n" +
 		"Where  : @SourceSpan = ['a'..'z']+\n" +
+		// Recursion, so that the generated file carries the stack probe. It asks the
+		// runtime whether there is stack left for another level, and the method it used
+		// to ask with is .NET Core's: a grammar that never recurses never finds that out.
+		"Nest   : @string  = '(' & inner: Nest & ')' => @(\"(\" + inner + \")\")\n" +
+		"                  | t: Key => @(t)\n" +
 		"\n" +
 		"parse Doc\n" +
+		"parse Nest as Nested\n" +
 		"parse Where as Span\n" +
 		"find Key as AllKeys")]
 	public partial class Settings

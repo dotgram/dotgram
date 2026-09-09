@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.VisualStudio.Tests.Playground;
 
 // Manual Visual Studio tooling playground.
 //

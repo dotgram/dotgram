@@ -184,8 +184,17 @@ public sealed class ReaderTests
 
 		// Probed at the rule and not at the call, once in sixty-four entries.
 		Assert.Contains(
-			"if ((probes++ & 63) == 0 && !global::System.Runtime.CompilerServices" +
-			".RuntimeHelpers.TryEnsureSufficientExecutionStack())",
+			"if ((probes++ & 63) == 0 && !EnoughStack_DotGram())", written, StringComparison.Ordinal);
+
+		// And what that asks is the framework's where the framework has it. The older pair
+		// is what .NET Framework and netstandard2.0 answer with, which is why the emitted
+		// helper exists rather than the call being written where it is made.
+		Assert.Contains(
+			"RuntimeHelpers.TryEnsureSufficientExecutionStack()", written, StringComparison.Ordinal);
+		Assert.Contains(
+			"RuntimeHelpers.EnsureSufficientExecutionStack()", written, StringComparison.Ordinal);
+		Assert.Contains(
+			"catch (global::System.InsufficientExecutionStackException)",
 			written, StringComparison.Ordinal);
 
 		// And carried over rather than given up on.

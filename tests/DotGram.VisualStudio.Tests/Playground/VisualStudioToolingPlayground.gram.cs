@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.VisualStudio.Tests.Playground;
 
 // Host for the standalone VisualStudioToolingPlayground.gram AdditionalFile. Keeping it
 // separate from the embedded playground lets navigation and generated API behavior be
