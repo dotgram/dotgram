@@ -223,10 +223,10 @@ foreach (var row in FeedParser.AllRows(text))
 
 A character parser reads either input that is all there or a reader, and which of the two
 runs is a property of the data rather than of the grammar: the overload that was called
-settles it at the call site. `Lexical = true` on the `[Gram]` attribute generates a token parser instead
-— a lexical half makes the tokens, and the half above it decides each choice by the token
-in front of it, which is what a parser written by hand does. A token parse reads from
-memory only.
+settles it at the call site. `Lexical = true` on the `[Gram]` attribute generates a token
+parser instead — a lexical half makes the tokens, and the half above decides each choice
+by the token in front of it, which is what a parser written by hand does. A token parse
+reads from memory only.
 
 Over characters, a reader overload appears wherever the generator can prove that input may
 be released as the parse goes.
@@ -264,8 +264,17 @@ foreach (var row in StreamingFeed.ParseFeed(reader))
 This is what makes the size of the input stop mattering. The window is bounded and reused
 as the parse moves along it, so what is held is the record being read rather than the file,
 and each record reaches the caller as it is read rather than in an array of all of them at
-the end. Memory does not grow with the file, and a feed of tens of gigabytes costs what one
-record costs.
+the end. That grammar, over a feed made a line at a time:
+
+| rows | read | seconds | managed peak | working set |
+| --: | --: | --: | --: | --: |
+| 40,000,002 | 1.41 GiB | 12.9 s | 37.8 MiB | 83.0 MiB |
+| 600,000,002 | 21.17 GiB | 198.1 s | 48.3 MiB | 78.2 MiB |
+
+Fifteen times the input, and the process was 4.8 MiB smaller at the end of it. A streamed
+parse holds its window and the record in hand; the file is not in the figure.
+[`benchmarks/README.md`](benchmarks/README.md) has the run and what the sampled column
+means.
 
 Record-oriented formats can also recover after malformed input:
 
@@ -402,15 +411,16 @@ and on every part they pull out of it, before anything is timed.
 
 | Input | .Gram | `RegexOptions.Compiled` | |
 | --- | ---: | ---: | ---: |
-| short URL | 133.8 ns | 298.9 ns | 2.23× |
-| host as IPv4 | 146.9 ns | 285.4 ns | 1.94× |
-| invalid URL | 80.2 ns | 113.5 ns | 1.42× |
-| 84-character path | 191.0 ns | 453.0 ns | 2.37× |
-| every part named | 274.4 ns | 278.0 ns | 1.01× |
+| `http://example.com` | 104.4 ns | 315.0 ns | 3.02× |
+| `https://192.168.0.1/` | 110.1 ns | 304.0 ns | 2.76× |
+| `https://exa mple.com/` — no match | 54.1 ns | 121.1 ns | 2.24× |
+| a 47-character URL with every part | 277.9 ns | 306.0 ns | 1.10× |
+| an 84-character path of eight segments | 170.9 ns | 479.9 ns | 2.81× |
 
-So: from level with `RegexOptions.Compiled` to 2.4× faster, and 2.2× to 6.5× against
-interpreted `Regex`. Both sides are asked for the parsed values rather than only whether
-the input matched. [`benchmarks`](benchmarks/) has the method and the rest of the numbers.
+So: from a tenth ahead of `RegexOptions.Compiled` to three times ahead of it, and 2.4× to
+8.7× against the interpreted pattern. Both sides are asked for the parsed values rather
+than only whether the input matched. [`benchmarks/README.md`](benchmarks/README.md) has
+the method, the run this came from, and the input that has been both sides of parity.
 
 ## Visual Studio
 
