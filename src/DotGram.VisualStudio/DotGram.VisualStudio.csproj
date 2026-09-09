@@ -67,6 +67,10 @@
 		<Compile Include="*.cs" />
 		<Compile Include="..\DotGram\Grammar\**\*.cs"
 		         Link="Grammar\%(RecursiveDir)%(Filename)%(Extension)" />
+		<!-- The standard library goes wherever Grammar/ goes: StandardLibrary.cs reads it
+		     out of the assembly it was compiled into, under this name. -->
+		<EmbeddedResource Include="..\DotGram\Grammar\Std.gram"
+		                  Link="Grammar\Std.gram" LogicalName="DotGram.Std.gram" />
 		<Compile Include="..\DotGram\Generation\RoslynCSharpScanner.cs"
 		         Link="Generation\RoslynCSharpScanner.cs" />
 		<Compile Include="..\DotGram\Language\**\*.cs"
