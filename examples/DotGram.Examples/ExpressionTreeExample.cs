@@ -9,7 +9,8 @@ namespace DotGram.Examples;
 // what comes back is a tree the caller can look at, rewrite, walk twice, or compile.
 //
 // That is the whole of the difference. The grammar is the one from
-// DecimalCalculatorExample with its arithmetic replaced by constructors, and it is the
+// CalculatorExample as a stack of rules, with its arithmetic replaced by constructors,
+// and it is the
 // shape every small DSL wants: a notation goes in, a typed tree comes out, and what the
 // tree means is somebody else's business — Expression.cs, which mentions no parser.
 //
@@ -22,7 +23,8 @@ namespace DotGram.Examples;
 // to maintain. This one is ordinary C# data: records, value equality, and patterns for
 // anything the tree does not already know how to do.
 //
-// OneRuleTreeExample builds the identical tree from one rule of binding powers. How a
+// One rule of binding powers builds the identical tree, which is what
+// tests/DotGram.Tests/Calculators holds this against. How a
 // grammar is written and what its `=>` builds are independent choices, and those two
 // examples are the same second choice made over different firsts.
 
@@ -34,7 +36,7 @@ namespace DotGram.Examples;
 
 	namespace Lexical
 	{
-		// Between digits a space is not nothing. See DecimalCalculatorExample.
+		// Between digits a space is not nothing.
 		trivia = none
 
 		Digits = ['0'..'9']+ & ('.' & ['0'..'9']+)?
@@ -56,7 +58,7 @@ namespace DotGram.Examples;
 	Unary   : @Expression = '-' & operand: Unary                 => @(new Negate(operand))
 	                      | value: Power                         => @(value)
 
-	// The `^` is optional rather than a second alternative — see DecimalCalculatorExample
+	// The `^` is optional rather than a second alternative — see the tests
 	// for why. Two alternatives would read `Primary` twice, and `Primary` leads back here
 	// through its parentheses, so the doubling compounds per level of nesting. GRAM4016
 	// reports exactly that shape.

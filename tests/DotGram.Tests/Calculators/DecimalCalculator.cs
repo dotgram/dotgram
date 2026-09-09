@@ -3,9 +3,11 @@ using System.Globalization;
 
 using DotGram;
 
-namespace DotGram.Examples;
+using DotGram.Examples;
 
-// The calculator of CalculatorExample, with the two things that make associativity
+namespace DotGram.Tests.Calculators;
+
+// The calculator of CalculatorExample.cs, with the two things that make associativity
 // visible: an operator that groups the other way, and a number type that does not throw
 // the answer away.
 //

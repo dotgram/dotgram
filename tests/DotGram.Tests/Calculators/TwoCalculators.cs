@@ -3,7 +3,9 @@ using System.Globalization;
 
 using DotGram;
 
-namespace DotGram.Examples;
+using DotGram.Examples;
+
+namespace DotGram.Tests.Calculators;
 
 // One grammar, two calculators — one that works in `int` and one in `double`.
 //

@@ -98,7 +98,7 @@ Calculator.EvaluateInt("-2 ^ 2");         // -4, since a prefix is where an expr
 Calculator.TryEvaluateInt("1.5");         // no match: `Value` is `IntNumber` there
 
 Calculator.BuildTree("1 - 2 - 3");
-// Binary(-, Binary(-, Number(1), Number(2)), Number(3))
+// case Binary(-, Binary(-, Number(1), Number(2)), Number(3)) :
 ```
 
 The whole language is one rule. `<< n` reads the operand on its right one strength
@@ -132,7 +132,8 @@ are specialized when the C# is generated.
 
 ## Something much smaller
 
-Not every grammar is a language. One the size of a regular expression is written like one:
+The example above is deliberately a language. .Gram does not ask for that scale: a grammar
+the size of a regular expression stays that size, and is written much like one.
 
 ```csharp
 using DotGram;
@@ -169,13 +170,8 @@ Ranges, alternatives, `?`, `*`, `+` and `{n}` mean what they mean in a regular e
 `value:` does more than a regex capture does: it becomes a property of the generated
 result type.
 
-For small grammars, keeping the grammar in the `[Gram]` attribute makes the parser
-definition and its C# API easy to read together. Larger grammars can also live in `.gram`
-files, listed as `<AdditionalFiles Include="Name.gram" />`.
-
-Inline grammars are raw string literals and so need C# 11; a `.gram` file needs
-nothing more than the project already has. [Compatibility](#compatibility) has the
-rest.
+Keeping a grammar this size in the attribute puts the parser and its C# API on one screen.
+A grammar long enough to want its own place goes in a `.gram` file instead.
 
 ## Typed parsing
 
@@ -225,11 +221,15 @@ foreach (var row in FeedParser.AllRows(text))
 
 ## Streaming, tokens and recovery
 
-A grammar is read over characters or over tokens, and out of a string or out of a reader.
-Which of the last two runs is a property of the data rather than of the grammar, so it is
-settled at the call site by the overload that was called; `Lexical = true` on the host asks
-for the first. Over tokens the input is in memory. Over characters a reader overload
-appears wherever the generator can prove that input may be released as the parse goes.
+A character parser reads either input that is all there or a reader, and which of the two
+runs is a property of the data rather than of the grammar: the overload that was called
+settles it at the call site. `Lexical = true` on the `[Gram]` attribute generates a token parser instead
+— a lexical half makes the tokens, and the half above it decides each choice by the token
+in front of it, which is what a parser written by hand does. A token parse reads from
+memory only.
+
+Over characters, a reader overload appears wherever the generator can prove that input may
+be released as the parse goes.
 
 ```csharp
 using DotGram;
@@ -261,11 +261,11 @@ foreach (var row in StreamingFeed.ParseFeed(reader))
 	Handle(row);
 ```
 
-This is what makes the size of the input stop mattering. The window is reused as the parse
-moves along it, so what is held is the record being read rather than the file, and each
-record reaches the caller as it is read rather than in an array of all of them at the end.
-A feed of tens of gigabytes therefore costs what one record costs: reading 21 GiB through
-the grammar above holds the same 78 MiB of working set as reading 1 GiB does.
+This is what makes the size of the input stop mattering. The window is bounded and reused
+as the parse moves along it, so what is held is the record being read rather than the file,
+and each record reaches the caller as it is read rather than in an array of all of them at
+the end. Memory does not grow with the file, and a feed of tens of gigabytes costs what one
+record costs.
 
 Record-oriented formats can also recover after malformed input:
 
@@ -320,20 +320,36 @@ describes the syntax; the C# beside it does what is easier to write in C#.
 
 ## Grammar libraries
 
-A grammar can include grammars from referenced assemblies. What crosses the reference is
-the grammar rather than a parser: the including assembly generates its own from it, under
-its own substitutions.
+A grammar can be written on top of another one. `[GramInclude]` names the class that hosts
+it, and the name this grammar will know it by:
 
 ```csharp
-[GramInclude(typeof(SqlStandard92), As = "Sql92")]
-[Gram("TransactSql.gram", Lexical = true)]
-public static partial class TransactSql;
+[Gram("""
+	Word   = ['a'..'z']+
+	Digits = ['0'..'9']+
+	""")]
+public static partial class Lexemes;
+
+[GramInclude(typeof(Lexemes), As = "Lex")]
+[Gram("""
+	trivia = ' '*
+
+	Setting : @string = key: Lex.Word & '=' & value: Lex.Digits => @(key + " is " + value)
+
+	parse Setting
+	""")]
+public static partial class Settings;
 ```
 
-Included rules are namespaced by the name the includer gave them, so `Sql92.Identifier`
-and an `Identifier` of your own cannot collide. A dialect is therefore the size of its
-difference: [`TransactSql`](src/DotGram.Parsers/TransactSql.gram) is SQL-92 and the places
-T-SQL parts from it, and the standard underneath is written once.
+Each include is spliced into a namespace of its own, so `Lex.Word` and a `Word` of your
+own are different rules and cannot collide by accident.
+
+The include crosses a project reference, which is what makes a grammar a library. What
+travels is the grammar rather than a parser: the including assembly generates its own from
+it, under its own substitutions.
+[`TransactSql`](src/DotGram.Parsers/TransactSql.gram) is built that way on
+[`SqlStandard92`](src/DotGram.Parsers/SqlStandard92.gram) — a dialect the size of its
+difference, with the standard underneath written once.
 
 ## DotGram.Parsers
 
@@ -390,10 +406,11 @@ and on every part they pull out of it, before anything is timed.
 | host as IPv4 | 146.9 ns | 285.4 ns | 1.94× |
 | invalid URL | 80.2 ns | 113.5 ns | 1.42× |
 | 84-character path | 191.0 ns | 453.0 ns | 2.37× |
+| every part named | 274.4 ns | 278.0 ns | 1.01× |
 
-Against interpreted `Regex`, 2.2× to 6.5×. Both sides are asked for the parsed values
-rather than only whether the input matched. [`benchmarks`](benchmarks/) has the method
-and the rest of the numbers.
+So: from level with `RegexOptions.Compiled` to 2.4× faster, and 2.2× to 6.5× against
+interpreted `Regex`. Both sides are asked for the parsed values rather than only whether
+the input matched. [`benchmarks`](benchmarks/) has the method and the rest of the numbers.
 
 ## Visual Studio
 

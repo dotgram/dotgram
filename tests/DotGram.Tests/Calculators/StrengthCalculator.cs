@@ -3,9 +3,11 @@ using System.Globalization;
 
 using DotGram;
 
-namespace DotGram.Examples;
+using DotGram.Examples;
 
-// DecimalCalculatorExample written the other way: one rule, eight alternatives, the same
+namespace DotGram.Tests.Calculators;
+
+// DecimalCalculator.cs written the other way: one rule, eight alternatives, the same
 // language and the same answers on every input.
 //
 // There it is five rules stacked — Sum calls Product calls Unary calls Power calls
@@ -81,7 +83,7 @@ public static partial class StrengthCalculator
 			: answer.Error + " at " + answer.Position;
 	}
 
-	/// <summary>Power. See DecimalCalculatorExample for why it is not one line.</summary>
+	/// <summary>Power. See DecimalCalculator.cs for why it is not one line.</summary>
 	static decimal Raise(decimal value, decimal exponent)
 	{
 		if (exponent != decimal.Truncate(exponent))

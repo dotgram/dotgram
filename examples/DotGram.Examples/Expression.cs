@@ -7,7 +7,7 @@ namespace DotGram.Examples;
 //
 // Not an example of a grammar — there is none in this file — but the half a grammar
 // hands its work to. ExpressionTreeExample builds these out of five rules and
-// OneRuleTreeExample out of one, and neither is mentioned here: what the tree means is
+// one rule of strengths out of one, and neither is mentioned here: what the tree means is
 // C#'s business, and keeping it in a file of its own is what makes that true rather than
 // merely said.
 //

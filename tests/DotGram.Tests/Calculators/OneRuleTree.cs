@@ -3,10 +3,12 @@ using System.Globalization;
 
 using DotGram;
 
-namespace DotGram.Examples;
+using DotGram.Examples;
+
+namespace DotGram.Tests.Calculators;
 
 // The whole of it in one rule: a notation goes in, a typed tree comes out, and the tree
-// is the same one ExpressionTreeExample builds out of five.
+// is the same one ExpressionTreeExample.cs builds out of five.
 //
 // This is the shape to copy for a small DSL. Everything the language is — which
 // operators there are, how tightly each binds, which way each groups, and what each one

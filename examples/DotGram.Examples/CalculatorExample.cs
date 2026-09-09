@@ -15,9 +15,9 @@ namespace DotGram.Examples;
 //   >> n   the operand to the right is read at n                 → groups right
 //
 // Higher binds tighter, and the numbers need not be contiguous: the gaps are where a
-// level goes in later, as a number, with nothing else touched. StrengthCalculatorExample
-// is this shape held against the five-rule spelling of the same language, expression by
-// expression.
+// level goes in later, as a number, with nothing else touched. The same language spelled
+// as a stack of rules is in tests/DotGram.Tests/Calculators, where the two are held
+// against each other expression by expression.
 //
 // What `with` substitutes is `Value`, the one rule that reads a number. Everything else
 // is written once, and `Expr : Value` carries the substituted type out to each published
@@ -84,8 +84,8 @@ public static partial class Calculator
 	}
 
 	// Power, three ways, because no operator will do: `^` is exclusive-or on `int` and is
-	// not defined for `decimal` at all. See DecimalCalculatorExample for why a decimal
-	// power written to be right is longer than this.
+	// not defined for `decimal` at all. A decimal power written to be exact is longer than
+	// this — tests/DotGram.Tests/Calculators/DecimalCalculator.cs has one.
 	static int     Raise(int     left, int     right) => (int)Math.Pow(left, right);
 	static decimal Raise(decimal left, decimal right) => (decimal)Math.Pow((double)left, (double)right);
 	static Node    Raise(Node    left, Node    right) => new Node.Binary('^', left, right);
