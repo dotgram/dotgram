@@ -1794,16 +1794,17 @@ FunctionStatement : @Statement
 		=> @(r with { Name = name, Parameters = parameters ?? Clause.None })
 
 FunctionReturns : @Statement.CreateFunction
-	= "TABLE"i & '(' & TableBody & ')' & ("ORDER"i & IndexColumns)? & RoutineOptions?
-	  & "AS"i & "EXTERNAL"i & "NAME"i & QualifiedName
-		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", Statement.None))
-	| "TABLE"i & RoutineOptions? & "AS"i? & "RETURN"i & body: InlineReturn
-		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", body))
-	| name: Tsql.Variable & "TABLE"i & '(' & TableBody & ')' & RoutineOptions? & "AS"i?
+	= "TABLE"i & '(' & columns: TableBody & ')' & ("ORDER"i & order: IndexColumns)? & options: RoutineOptions?
+	  & "AS"i & "EXTERNAL"i & "NAME"i & external: QualifiedName
+		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", Statement.None, options, columns, null, order, external))
+	| "TABLE"i & options: RoutineOptions? & "AS"i? & "RETURN"i & body: InlineReturn
+		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", body, options))
+	| name: Tsql.Variable & "TABLE"i & '(' & columns: TableBody & ')' & options: RoutineOptions? & "AS"i?
 	  & body: StatementList
-		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", body))
-	| type: DataType & RoutineOptions? & "AS"i? & body: RoutineTail
-		=> @(new Statement.CreateFunction("", Clause.None, type, body))
+		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", body, options, columns, name))
+	| type: DataType & options: RoutineOptions? & "AS"i?
+	  & ("EXTERNAL"i & "NAME"i & external: QualifiedName | body: StatementList)
+		=> @(new Statement.CreateFunction("", Clause.None, type, body ?? Statement.None, options, null, null, null, external))
 
 InlineReturn : @Statement[]
 	= '(' & q: QueryExpression & OrderByClause? & ')' => @(new Statement[] { Statement.Selected(q) })

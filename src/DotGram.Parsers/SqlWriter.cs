@@ -313,14 +313,41 @@ public static class SqlWriter
 
 				break;
 
-			case Statement.CreateFunction(var name, var parameters, var returns, var body):
+			case Statement.CreateFunction(var name, var parameters, var returns, var body, var options, var columns, var variable, var order, var external):
 				text.Append("CREATE FUNCTION ").Append(name);
 				Parameters(text, parameters);
-				text.Append(" RETURNS ").Append(returns).Append(' ');
+				text.Append(" RETURNS ");
+
+				if (variable is not null)
+					text.Append(variable).Append(' ');
+
+				text.Append(returns);
+
+				if (columns is not null)
+				{
+					text.Append(" (");
+					Each(text, columns);
+					text.Append(')');
+				}
+
+				if (order is not null)
+					Columns(text, order, "ORDER");
+
+				if (options is not null)
+				{
+					text.Append(" WITH ");
+					Each(text, options);
+				}
+
+				text.Append(' ');
 
 				// An inline table function is one `RETURN` and a query; anything else is a
 				// body. The tree tells them apart by what a `TABLE` function's body holds.
-				if (returns == "TABLE" && body is [Statement.Select select])
+				if (external is not null)
+				{
+					text.Append("AS EXTERNAL NAME ").Append(external);
+				}
+				else if (returns == "TABLE" && columns is null && body is [Statement.Select select])
 				{
 					text.Append("AS RETURN ");
 					Put(text, select);
@@ -369,7 +396,17 @@ public static class SqlWriter
 				if (paths is not null)
 					text.Append(" (").Append(string.Join(", ", paths)).Append(')');
 
-				Optioned(text, options);
+				if (action == "SET" && options is not null)
+				{
+					text.Append(" (");
+					Each(text, options);
+					text.Append(')');
+				}
+				else
+				{
+					Optioned(text, options);
+				}
+
 				break;
 
 			case Statement.UpdateStatistics(var on):
@@ -962,6 +999,16 @@ public static class SqlWriter
 		text.Append(" (");
 		Each(text, columns);
 		text.Append(')');
+	}
+
+	/// <summary>A word and sort specifications in brackets, or nothing where there are none.</summary>
+	static void Columns(StringBuilder text, Clause[]? columns, string word)
+	{
+		if (columns is not { Length: > 0 })
+			return;
+
+		text.Append(' ').Append(word);
+		Columns(text, columns);
 	}
 
 	/// <summary>A <c>WITH (…)</c>, or nothing where there is none.</summary>

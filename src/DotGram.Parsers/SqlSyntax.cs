@@ -221,10 +221,17 @@ public abstract record Statement : ISqlSpan
 
 	/// <summary>
 	/// A function, and what it returns says which of the three shapes it is: a type for a
-	/// scalar, <c>TABLE</c> for either of the two that return rows.
+	/// scalar, <c>TABLE</c> for either of the two that return rows — the inline one whose body
+	/// is one <c>RETURN</c> and a query, and the one that declares the table it fills,
+	/// <c>@variable TABLE (…)</c>, with <see cref="Columns"/> and the variable's name. The
+	/// options stand between the return and the <c>AS</c>; <see cref="External"/> is the
+	/// method in an assembly where that is the body; <see cref="Order"/> is a CLR table
+	/// function's <c>ORDER (…)</c>.
 	/// </summary>
 	public sealed record CreateFunction(
-		string Name, Clause[] Parameters, string? Returns, Statement[] Body) : Statement;
+		string Name, Clause[] Parameters, string? Returns, Statement[] Body,
+		Clause[]? Options = null, Clause[]? Columns = null, string? Variable = null,
+		Clause[]? Order = null, string? External = null) : Statement;
 
 	/// <summary>A trigger: what it is on, what fires it, and what it does then.</summary>
 	public sealed record CreateTrigger(

@@ -17143,3 +17143,9 @@ the `;number`, and `EXTERNAL NAME` where that is the body; `BEGIN ATOMIC WITH (�
 compound's own list. `ALTER INDEX` keeps the partition, the options, and a selective XML
 index's paths as they were written. `CREATE EXTERNAL TABLE` says external. The corpus is
 55.8% the same, 1625 unread; `AlterIndex` 9 → 77%, `CreateProcedure` 13 → 75%.
+
+**Functions.** The three shapes keep what tells them apart: the table a multi-statement
+function declares and the variable it fills, a CLR table function's columns, its `ORDER`
+and its `EXTERNAL NAME`, the `WITH` options of any of them. `ALTER INDEX … SET (…)` is
+bracketed without a `WITH`. 56.7% the same, 1581 unread; `CreateFunction` 54 → 92%,
+`AlterIndex` off the list.
