@@ -18,6 +18,55 @@ minutes.
 The examples are compiled by the real generator during that build, so a member the
 generator stopped producing fails the build rather than a test.
 
+## The same build on Linux
+
+CI builds on Windows and on Linux, and the Linux job has caught what the Windows one
+cannot: a filename character that is legal there, an API missing from a target framework,
+a path assumption. Reproducing it locally is a container, made once and kept:
+
+```
+docker volume create dotgram-nuget
+docker volume create dotgram-work
+docker run -d --name dotgram-linux -v P:/dotgram:/src/main:ro -v P:/dotgram.WorkTrees:/src/worktrees:ro -v dotgram-nuget:/root/.nuget/packages -v dotgram-work:/work mcr.microsoft.com/dotnet/sdk:10.0 sleep infinity
+```
+
+The checkouts go in read-only and are never built in place: `bin/` and `obj/` there hold
+Windows output, and a Linux build that reads it earns CS0579 on assembly attributes it
+finds twice. The tree is copied into `/work` without them instead, which is what `ci`
+does — a script put in the container once, `docker cp ci dotgram-linux:/usr/local/bin/ci`
+and `chmod +x`:
+
+```
+#!/bin/bash
+set -e
+tree=${1:-worktrees/docs}
+name=$(basename "$tree")
+
+rm -rf "/work/$name"
+mkdir -p "/work/$name"
+
+tar -C "/src/$tree" --exclude=bin --exclude=obj --exclude=.git --exclude=.vs --exclude=.work --exclude=artifacts -cf - . | tar -C "/work/$name" -xf -
+
+cd "/work/$name"
+dotnet restore DotGram.slnx
+dotnet build   DotGram.slnx --no-restore --configuration Linux -warnaserror
+dotnet test    DotGram.slnx --no-build   --configuration Linux
+```
+
+The excludes are unanchored so that a name is dropped wherever it sits, and the script is
+written with Unix line endings — a stray `` reaches the shell as part of a path.
+
+A run is then one command, naming a tree under `/src`: `main`, or a worktree.
+
+```
+docker exec dotgram-linux ci worktrees/docs
+```
+
+`Linux` is a solution configuration of its own — everything at Release, minus the two
+projects that need Visual Studio. Without it the build fails on those, which is not a
+finding. The package cache is a volume, so only the first run pays for restore, and
+`docker start dotgram-linux` brings the container back after a reboot.
+
 ## The snapshot baseline
 
 `tests/Snapshots/*.gram.g.cs` are checked in beside the grammars they come from, and
