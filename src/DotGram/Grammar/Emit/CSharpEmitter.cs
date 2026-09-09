@@ -2774,7 +2774,7 @@ public static partial class CSharpEmitter
 		if (low.Count == 0)
 			return $"(c >= {AsciiSize} && {whole})";
 
-		if (low.Count == 1 && low[0].From == ' ' && low[0].To == AsciiSize - 1)
+		if (low.Count == 1 && low[0].From == '\0' && low[0].To == AsciiSize - 1)
 			return $"(c < {AsciiSize} || {whole})";
 
 		var reached = tabulate(low) is { } named
