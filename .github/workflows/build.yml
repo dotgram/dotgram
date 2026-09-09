@@ -58,6 +58,7 @@ jobs:
           cd contents
           test -f analyzers/dotnet/cs/DotGram.dll || { echo "analyzer assembly missing"; exit 1; }
           test -f README.md                      || { echo "readme missing";            exit 1; }
+          test -f SKILL.md                       || { echo "skill missing";             exit 1; }
           if [ -d lib ]; then echo "package has a lib/ folder:"; find lib -type f; exit 1; fi
 
       - uses: actions/upload-artifact@v4

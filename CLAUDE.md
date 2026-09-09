@@ -106,6 +106,9 @@ benchmarks/
 	DotGram.Benchmarks/   BenchmarkDotNet, run by hand and not by CI. Built by the
 	                      solution so that it has to keep compiling
 .work/                    scratch, ignored by git
+SKILL.md                  how to write a grammar, for an agent. Packed into the
+                          NuGet package beside the README, which points at it in a
+                          comment nothing renders
 ```
 
 Nothing under `examples/` may reference a test framework or be written for one. An

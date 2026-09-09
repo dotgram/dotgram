@@ -1,3 +1,11 @@
+<!--
+  Agents: a skill for this package ships beside this file, in the package directory, as
+  SKILL.md — the notation, its seam with C#, and what the generator's diagnostics mean.
+  Read it before writing a grammar. In a restored package it is
+  ~/.nuget/packages/dotgram/<version>/SKILL.md, and in this repository it is SKILL.md at
+  the root.
+-->
+
 # .Gram
 
 .Gram is a source generator that compiles grammars into strongly typed C# parsers.

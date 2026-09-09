@@ -72,6 +72,11 @@
 		<!-- The repository README is the package README: one text, so the two cannot
 		     drift into disagreeing about what this does. -->
 		<None Include="..\..\README.md" Pack="true" PackagePath="\" Visible="false" />
+
+		<!-- And the skill beside it, so that an agent working in a project that has
+		     restored this package can read how to write a grammar without leaving the
+		     machine. The README says where it is, in a comment nothing renders. -->
+		<None Include="..\..\SKILL.md" Pack="true" PackagePath="\" Visible="false" />
 	</ItemGroup>
 
 	<!-- Puts the assembly in the analyzer folder of the package. Done as a pack-time
