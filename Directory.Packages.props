@@ -4,9 +4,10 @@
 	  One place that says which version of anything this repository takes. A project asks
 	  for a package by name; what answers is here.
 
-	  The versions are unchanged from the day this file was written: moving them is a
-	  decision about a dependency, and doing it in the same edit that moved them here
-	  would hide one inside the other.
+	  Microsoft.CodeAnalysis is the one number here that is not "the newest that works".
+	  It is the oldest Roslyn the generator intends to load into, and a generator built
+	  against an older one runs on newer hosts and not the other way round, so raising
+	  it raises the minimum compiler for everybody who installs the package.
 	-->
 
 	<PropertyGroup>
@@ -34,9 +35,6 @@
 	</ItemGroup>
 
 	<ItemGroup Label="Benchmarks">
-		<!-- DotGram.HandDeferred overrides this to 0.15.8. The two were added a year
-		     apart and neither number is a decision anybody defended; unifying them is a
-		     change to what the harness does and belongs in its own commit. -->
 		<PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
 		<PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.8" />
 
