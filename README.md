@@ -238,9 +238,9 @@ using DotGram;
 	Text  = [^ '|' | '\r' | '\n']+
 	Digit = ['0'..'9']
 
-	Header          = "H" & '|' & Text & eol
-	Row   : @string = "R" & '|' & t: Text & eol => @(t)
-	Trailer         = "T" & '|' & Digit+ & eol
+	Header        = "H" & '|' & Text & eol
+	Row : @string = "R" & '|' & t: Text & eol => @(t)
+	Trailer       = "T" & '|' & Digit+ & eol
 
 	Feed : @string[] = Header & Row* & Trailer & eof
 
