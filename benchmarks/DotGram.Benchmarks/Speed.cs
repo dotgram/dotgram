@@ -29,15 +29,20 @@ namespace DotGram.Benchmarks;
 /// rather than under it.
 /// </para>
 /// <para>
-/// <b>And what each side builds is not the same thing.</b> ScriptDom returns a complete
-/// syntax tree: every clause a node, every node carrying its first and last token, and the
-/// token stream itself kept beside it — enough to print the statement back out and to say
-/// where in the text each part of it was. This grammar returns <c>SqlNode</c>, which is
-/// the standard's shape and about a tenth of that: hints, options and output clauses are
-/// read and dropped, and nothing carries a position. Three rows are printed for that
-/// reason — ScriptDom's lexer alone, ScriptDom whole, and this — so that the part of the
-/// difference which is <em>lexing</em> can be told from the part which is building a tree
-/// nobody asked for.
+/// <b>And what each side builds is the same thing now.</b> It was not: the caveat printed
+/// under this table used to say that hints, options and output clauses were read and
+/// dropped, and while that was true the ratio measured this grammar building a tenth of a
+/// tree against ScriptDom building all of one. It is no longer true, and the oracle is what
+/// says so rather than an opinion — every statement of the corpus that both parsers read
+/// comes back through <c>--roundtrip</c> as the same statement, which is a claim about the
+/// tree and not about the text.
+/// </para>
+/// <para>
+/// What is left of the difference is where each part of the statement was. ScriptDom
+/// carries that always; here it is asked for — <c>[Gram(LocationType = …)]</c> — so both
+/// readings are timed, and the one to compare against ScriptDom is the one that carries
+/// what ScriptDom carries. ScriptDom's lexer is timed on its own beside them, so that the
+/// part of the difference which is <em>lexing</em> can be told from the rest.
 /// </para>
 /// </remarks>
 static class Speed
@@ -56,14 +61,14 @@ static class Speed
 			return;
 		}
 
-		if (Version(version) is not { } parser)
+		if (Version(version) is null)
 		{
 			Console.WriteLine($"No such version as {version}. One of 80 90 100 … 180.");
 
 			return;
 		}
 
-		var (kept, all, bytes) = Gathered(root, parser);
+		var (kept, all, bytes) = Gathered(root, version);
 
 		if (kept.Count == 0)
 		{
@@ -72,11 +77,12 @@ static class Speed
 			return;
 		}
 
-		var methods = new (string Name, Func<IReadOnlyList<string>, int> Measure)[]
+		var methods = new (string Name, Func<IReadOnlyList<Timed>, int> Measure)[]
 		{
-			("ScriptDom, tokens", statements => Tokens(parser, statements)),
-			("ScriptDom, tree",   statements => Tree(parser, statements)),
-			(".Gram",             Grammar),
+			("ScriptDom, tokens",  Tokens),
+			("ScriptDom, tree",    Tree),
+			(".Gram, located",     Located),
+			(".Gram",              Grammar),
 		};
 
 		var taken = new List<double>[methods.Length];
@@ -115,8 +121,11 @@ static class Speed
 		Report(methods, taken, made, Median(costs), kept.Count, all, bytes, version, rounds);
 	}
 
+	/// <summary>One statement, and the parser the corpus says is the one to read it with.</summary>
+	readonly record struct Timed(string Text, TSqlParser By);
+
 	static void Report(
-		(string Name, Func<IReadOnlyList<string>, int> Measure)[] methods,
+		(string Name, Func<IReadOnlyList<Timed>, int> Measure)[] methods,
 		IReadOnlyList<List<double>> taken,
 		IReadOnlyList<long> made,
 		double overhead,
@@ -158,27 +167,37 @@ static class Speed
 		Console.WriteLine($"  {"(loop, removed)",-20}{overhead / kept,12:F0} ns");
 		Console.WriteLine();
 		Console.WriteLine(
-			"  ScriptDom returns every clause as a node, each carrying its first and last");
+			"  Both build a tree of the whole statement: --roundtrip says every one of these");
 		Console.WriteLine(
-			"  token, with the token stream kept beside it. This returns the standard's shape:");
+			"  comes back through ScriptDom as the statement it was read from. What differs is");
 		Console.WriteLine(
-			"  hints, options and output clauses are read and dropped, and nothing carries a");
+			"  where each part of it was — ScriptDom carries that always, and here it is asked");
 		Console.WriteLine(
-			"  position. The two are not the same answer, and the ratio is not a like for like.");
+			"  for, so the row to hold against ScriptDom's tree is the located one.");
 	}
 
 	/// <summary>
 	/// Every statement of the corpus both parsers read, and how much text that is.
 	/// </summary>
-	static (List<string> Kept, int All, long Bytes) Gathered(string root, TSqlParser parser)
+	/// <remarks>
+	/// Each file by the parser its version names, capped at the one asked for, which is what
+	/// <c>--kinds</c> and <c>--roundtrip</c> do and for the same reason: a file whose syntax
+	/// was taken out of the language is read by the parser that still has it, and timing it
+	/// with a later one would be timing error recovery.
+	/// </remarks>
+	static (List<Timed> Kept, int All, long Bytes) Gathered(string root, string version)
 	{
-		var kept  = new List<string>();
-		var all   = 0;
-		var bytes = 0L;
+		var kept    = new List<Timed>();
+		var all     = 0;
+		var bytes   = 0L;
+		var files   = Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories);
+		var named   = Corpus.Versions(root, files);
+		var readers = new Dictionary<string, TSqlParser>(StringComparer.Ordinal);
 
-		foreach (var file in Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories))
+		foreach (var file in files)
 		{
-			var text = File.ReadAllText(file);
+			var text   = File.ReadAllText(file);
+			var parser = Kinds.Reader(readers, version, named.GetValueOrDefault(file));
 
 			using var reader = new StringReader(text);
 
@@ -204,7 +223,7 @@ static class Speed
 					continue;
 				}
 
-				kept.Add(one);
+				kept.Add(new Timed(one, parser));
 				bytes += one.Length;
 			}
 		}
@@ -212,40 +231,51 @@ static class Speed
 		return (kept, all, bytes);
 	}
 
-	static int Tokens(TSqlParser parser, IReadOnlyList<string> statements)
+	static int Tokens(IReadOnlyList<Timed> statements)
 	{
 		var sink = 0;
 
-		foreach (var one in statements)
+		foreach (var (one, by) in statements)
 		{
 			using var reader = new StringReader(one);
 
-			sink += parser.GetTokenStream(reader, out _).Count;
+			sink += by.GetTokenStream(reader, out _).Count;
 		}
 
 		return sink;
 	}
 
-	static int Tree(TSqlParser parser, IReadOnlyList<string> statements)
+	static int Tree(IReadOnlyList<Timed> statements)
 	{
 		var sink = 0;
 
-		foreach (var one in statements)
+		foreach (var (one, by) in statements)
 		{
 			using var reader = new StringReader(one);
 
-			sink += parser.Parse(reader, out _) is null ? 0 : 1;
+			sink += by.Parse(reader, out _) is null ? 0 : 1;
 		}
 
 		return sink;
 	}
 
-	static int Grammar(IReadOnlyList<string> statements)
+	static int Grammar(IReadOnlyList<Timed> statements)
 	{
 		var sink = 0;
 
-		foreach (var one in statements)
+		foreach (var (one, _) in statements)
 			sink += TransactSql.TryParseStatement(one).IsSuccess ? 1 : 0;
+
+		return sink;
+	}
+
+	/// <summary>The same reading, with where each part of the statement was.</summary>
+	static int Located(IReadOnlyList<Timed> statements)
+	{
+		var sink = 0;
+
+		foreach (var (one, _) in statements)
+			sink += TransactSql.Located.TryParseStatement(one).IsSuccess ? 1 : 0;
 
 		return sink;
 	}
@@ -257,18 +287,18 @@ static class Speed
 	/// A constant added to both sides of a ratio drags the ratio towards one, so a
 	/// comparison that leaves it in flatters whichever parser is slower.
 	/// </remarks>
-	static int Nothing(IReadOnlyList<string> statements)
+	static int Nothing(IReadOnlyList<Timed> statements)
 	{
 		var sink = 0;
 
-		foreach (var one in statements)
+		foreach (var (one, _) in statements)
 			sink += one.Length;
 
 		return sink;
 	}
 
 	/// <summary>What one pass over every statement allocates.</summary>
-	static long Allocated(IReadOnlyList<string> statements, Func<IReadOnlyList<string>, int> measure)
+	static long Allocated(IReadOnlyList<Timed> statements, Func<IReadOnlyList<Timed>, int> measure)
 	{
 		// Twice, and the second is the one reported: the first pass through a delegate this
 		// process has not called yet allocates the machinery for calling it.
@@ -293,7 +323,7 @@ static class Speed
 	}
 
 	/// <summary>Milliseconds for one pass over every statement.</summary>
-	static double Time(IReadOnlyList<string> statements, Func<IReadOnlyList<string>, int> measure)
+	static double Time(IReadOnlyList<Timed> statements, Func<IReadOnlyList<Timed>, int> measure)
 	{
 		var watch = Stopwatch.StartNew();
 		var sink  = measure(statements);
