@@ -217,7 +217,7 @@ public sealed class SemanticTests
 				ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = lexical,
 			});
 
-		Assert.Empty(result.Diagnostics.Where(one => one.Severity != GramSeverity.Info));
+		Assert.DoesNotContain(result.Diagnostics, one => one.Severity != GramSeverity.Info);
 
 		var match = EmittedCode.Match(
 			EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseStart", input);
@@ -261,7 +261,7 @@ public sealed class SemanticTests
 				ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = lexical,
 			});
 
-		Assert.Empty(result.Diagnostics.Where(one => one.Severity == GramSeverity.Error));
+		Assert.DoesNotContain(result.Diagnostics, one => one.Severity == GramSeverity.Error);
 
 		var backtracks = result.Diagnostics.Where(one => one.Id == "GRAM5005").ToArray();
 
@@ -317,7 +317,7 @@ public sealed class SemanticTests
 				ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = lexical,
 			});
 
-		Assert.Empty(result.Diagnostics.Where(one => one.Severity != GramSeverity.Info));
+		Assert.DoesNotContain(result.Diagnostics, one => one.Severity != GramSeverity.Info);
 
 		var match = EmittedCode.Match(
 			EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseStart", input);
@@ -357,7 +357,7 @@ public sealed class SemanticTests
 				ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = lexical,
 			});
 
-		Assert.Empty(result.Diagnostics.Where(one => one.Severity != GramSeverity.Info));
+		Assert.DoesNotContain(result.Diagnostics, one => one.Severity != GramSeverity.Info);
 
 		var match = EmittedCode.Match(
 			EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseStart", "a.b.c()");

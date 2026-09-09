@@ -460,7 +460,7 @@ public sealed class CarrierTests
 			Carrier       = carrier,
 		});
 
-		Assert.Empty(result.Diagnostics.Where(one => one.Severity == GramSeverity.Error));
+		Assert.DoesNotContain(result.Diagnostics, one => one.Severity == GramSeverity.Error);
 
 		var source = Assert.Single(result.Sources).Text;
 

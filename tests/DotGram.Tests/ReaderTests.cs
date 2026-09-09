@@ -567,7 +567,7 @@ public sealed class ReaderTests
 				Direct        = reader,
 			});
 
-		Assert.Empty(result.Diagnostics.Where(one => one.Severity == GramSeverity.Error));
+		Assert.DoesNotContain(result.Diagnostics, one => one.Severity == GramSeverity.Error);
 
 		return result.Sources[0].Text;
 	}

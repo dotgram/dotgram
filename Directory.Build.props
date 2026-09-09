@@ -7,6 +7,11 @@
 		<Deterministic>true</Deterministic>
 		<EnableNETAnalyzers>true</EnableNETAnalyzers>
 		<AnalysisLevel>latest</AnalysisLevel>
+
+		<!-- A warning nobody has to act on is a warning everybody learns to scroll past.
+		     CI has always built with -warnaserror; saying it here too means such a build
+		     fails on the machine that wrote the code rather than on the server. -->
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 	</PropertyGroup>
 
 	<PropertyGroup>
