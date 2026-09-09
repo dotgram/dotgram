@@ -16986,12 +16986,8 @@ which is the idiom's own case.
 
 Two things found and not fixed, both worth their own turn:
 
-- **The character reading of SQL92 disagrees with the token reading.** The two must read
-  one language — `Every_input_reads_the_same_both_ways` holds it for small grammars — and
-  for SQL92 they do not: over characters `INNER` is an identifier. Either `?!Reserved`
-  with two hundred alternatives, or the word boundary, behaves differently in one machine.
-  A fallback that changes what a grammar reads is the worst kind, and `GRAM5004` being an
-  Info that nothing surfaces is part of the problem.
+- ~~**The character reading of SQL92 disagrees with the token reading.**~~ Found and
+  fixed, below.
 - **The `(?!L & X)*` idiom with a character literal as `L` misreads as a token.** A probe
   with `'"' & (?!'"' & any)* & ('"' & '"' & (?!'"' & any)*)* & '"'` compiled to tokens and
   then refused `"a""b"` at the second character. Not in the library any more, and not
@@ -17005,3 +17001,36 @@ call to `Std.Digits` costs what `['0'..'9']+` written in place did.
 
 Also: `--hand` has been broken since `Expression.Parenthesized` — the hand-written parser's
 printer does not know the node, so the agreement check throws before timing anything.
+
+### Why the two readings of SQL92 disagreed
+
+A second reading of `SqlStandard92` compiled over characters — `[GramOptions(Lexical =
+false, Suffix = "Characters")]`, for the afternoon — and a probe of six inputs through both:
+over characters `SELECT INNER FROM t` was accepted, `INNER` an identifier. A minimal grammar
+with `Reserved = "IN"i | "INNER"i` agreed in both readings; the same with SQL92's own
+spelling, `Reserved = ("IN"i | "INNER"i | …) & ?!IdentifierPart`, took `INNER` for an
+identifier in *both*. The normalized body said why:
+
+```text
+Reserved = ("IN"i & ?!wordboundary | "INNER"i & ?!wordboundary | …) & trivia & ?!IdentifierPart
+```
+
+The author's trailing `?!IdentifierPart` is an ordinary part of a sequence, and §4.5 puts the
+seam between parts — so over characters it is asked *after the whitespace*, of the `F` of
+`FROM`, and fails; `Reserved` fails; `?!Reserved` lets `INNER` through. The §4.6 boundaries
+woven onto each literal go before the seam, which is the whole reason they exist, and they
+already do the job the tail was written for. Over tokens the tail was harmless — after the
+token `INNER` stands the token `FROM`, and `IdentifierPart` is a one-character class no token
+of four characters is — so the token reading was right by accident and the character reading
+was right by the book. The tail is gone from `Reserved` and from `TsqlReserved`; the six
+inputs agree; the oracle and the corpus did not move.
+
+**`GRAM5004` is a warning now.** `Lexical = true` asked for and not given is a different
+parser, and the difference is not always invisible — this one took a keyword for a name. The
+same warning found `Ladders.cs` in the benchmarks asking for tokens over a grammar with
+`['0'..'9']+` in syntactic position and `trivia` not in braces: it had been measuring the
+character reading all along under the other name, and now says so.
+
+Also seen, not chased: over tokens the "expected" text of a failed parse renders kinds as
+character ranges full of control characters — `SELECT INNER FROM t` fails with a page of
+`[''..'' | 'C'..'Y' | …]`. The expectation printer does not know it is printing kinds.

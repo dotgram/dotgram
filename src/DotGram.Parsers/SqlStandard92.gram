@@ -511,7 +511,6 @@ Reserved = ("AND"i | "ALL"i | "ANY"i | "AS"i | "ASC"i | "AVG"i | "BETWEEN"i | na
          | "THEN"i | "TRAILING"i | name: "TRANSLATE"i | name: "TRIM"i | "TRUE"i | "UNION"i
          | "UNIQUE"i | "UNKNOWN"i
          | name: "UPPER"i | "USER"i | "USING"i | "VALUE"i | "VALUES"i | "WHEN"i | "WHERE"i)
-         & ?!IdentifierPart
 
 parse DirectSelect as ParseSelect
 parse QueryExpression as ParseQuery

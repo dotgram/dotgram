@@ -93,7 +93,6 @@ TsqlReserved = ("ADD"i | "ALL"i | "ALTER"i | "AND"i | "ANY"i | "AS"i | "ASC"i | 
 	| "TSEQUAL"i | "UNION"i | "UNIQUE"i | "UPDATE"i | "UPDATETEXT"i | "USE"i | "USER"i
 	| "VALUES"i | "VARYING"i | "VIEW"i | "WAITFOR"i | "WHEN"i | "WHERE"i | "WHILE"i
 	| "WITH"i | "WRITETEXT"i)
-	& ?!Sql92.Lexical.IdentifierPart
 
 // ── §6.20's simple when, widened ───────────────────────────────────────────
 //

@@ -152,6 +152,12 @@ public static class GramCompiler
 	/// </remarks>
 	static LexicalSplit? Cut(RecognitionGraph graph, ICollection<GramDiagnostic> diagnostics)
 	{
+		// A warning and not a remark: `Lexical = true` was asked for, and what comes out
+		// instead is a parser the author did not ask for — one that reads the same grammar
+		// over characters, where a lookahead after a seam sees the next token's first
+		// character rather than nothing at all. SQL92 was read that way for a while, and
+		// took `t INNER JOIN u` for an alias, because the fallback was an Info that no
+		// build shows.
 		void Say(string why) =>
 			diagnostics.Add(new GramDiagnostic(
 				NotCut,
@@ -159,7 +165,7 @@ public static class GramCompiler
 				"The parser is the one it would have been without the request.",
 				0,
 				0,
-				GramSeverity.Info));
+				GramSeverity.Warning));
 
 		if (graph.Publications.Any(one => one.Kind == PublishKind.Find))
 		{
