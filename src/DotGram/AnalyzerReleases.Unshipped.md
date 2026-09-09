@@ -12,3 +12,4 @@ GRAM0004 | DotGram | Error | More than one grammar file matches
 GRAM0005 | DotGram | Error | The name a grammar is included under is not an identifier
 GRAM0006 | DotGram | Error | Two grammars on one class want the same scope
 GRAM0007 | DotGram | Error | The name a grammar is compiled under is not an identifier
+GRAM0008 | DotGram | Error | Two grammars are included under one name

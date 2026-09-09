@@ -16837,3 +16837,29 @@ can collide is C#, and there the failure modes divide:
 Only the last is invisible, and only when the signature happens to fit as well as the name.
 That one is the reason to read what you include, and `graph.FreeNames` already records which
 names each `=>` uses, so it can be made loud later without new plumbing.
+
+### A grammar travels with its assembly
+
+A `.gram` file is read at compile time and is not part of what ships, so
+`[GramInclude(typeof(X))]` where `X` lives in a referenced project had nowhere to find the
+text: only the path string travels, and the includer's compilation has no such additional
+file. The include mechanism worked inside a project and could not cross a reference — which
+is the one thing a library of lexemes has to do.
+
+So the generator writes the grammar onto the class it compiled, `[GramSource("…")]`, and an
+including grammar reads it off the type it already names. The file still wins where both are
+in reach, so that a diagnostic points at something somebody can edit; what the assembly
+carries is the fallback, and across a reference it is the only thing there is.
+
+**It costs the size of the grammar, and that is now a number**: `DotGram.Parsers` went from
+5,338,624 to 5,590,016 bytes — **+4.7%**, which is the five grammars it holds, against an
+assembly whose bulk is the parsers they generated.
+
+So it is refusable, and its default is a fact rather than a guess: **a host nothing outside
+can name cannot be included from outside**, so an internal one carries nothing and a publicly
+visible one carries its grammar. `[Gram(Portable = false)]` says otherwise where the guess is
+wrong, and `GRAM0003` now names the option, since "the file is not there" and "the project it
+came from did not carry it" are the same failure seen from two sides.
+
+`GRAM0008` joined it: two includes under one name are one namespace, and a namespace is the
+whole of why one grammar's rules cannot collide with another's.

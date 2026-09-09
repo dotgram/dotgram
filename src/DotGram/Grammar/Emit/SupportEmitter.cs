@@ -198,6 +198,24 @@ public static class SupportEmitter
 				/// and nothing has yet seen.
 				/// </remarks>
 				public global::System.Type? LocationType { get; set; }
+
+				/// <summary>
+				/// Whether the grammar travels with the assembly, so that another project can
+				/// include it.
+				/// </summary>
+				/// <remarks>
+				/// A <c>.gram</c> file is read at compile time and is not part of what ships.
+				/// This writes the text onto the generated class, where
+				/// <c>[GramInclude(typeof(X))]</c> in another project finds it — without which
+				/// including a grammar across a reference cannot work at all.
+				///
+				/// Unset, it follows what the class already says: a publicly visible host is
+				/// offered outward and carries its grammar, and one that is not cannot be named
+				/// from outside anyway. Say it either way where that guess is wrong. It costs
+				/// the size of the grammar — measured at 4.7% of an assembly holding five of
+				/// them, whose bulk is the parsers they generated.
+				/// </remarks>
+				public bool Portable { get; set; } = true;
 			}
 
 			/// <summary>How a generated reader carries what it has read (docs/next.md, the redesign).</summary>
@@ -281,6 +299,25 @@ public static class SupportEmitter
 			/// use for.
 			/// </para>
 			/// </remarks>
+			/// <summary>
+			/// The grammar a generated class was compiled from, written onto the class itself.
+			/// </summary>
+			/// <remarks>
+			/// A <c>.gram</c> file is read at compile time and does not travel: what ships is
+			/// the assembly. So the text is put here, on the class an including grammar names
+			/// — <c>[GramInclude(typeof(X))]</c> — and a grammar in a referenced assembly is
+			/// then found the same way one beside you is. The file wins where both are in
+			/// reach, so that a diagnostic points at something somebody can edit.
+			/// </remarks>
+			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			internal sealed class GramSourceAttribute : global::System.Attribute
+			{
+				public GramSourceAttribute(string text) => Text = text;
+
+				public string? Text { get; }
+			}
+
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 			internal sealed class GramIncludeAttribute : global::System.Attribute

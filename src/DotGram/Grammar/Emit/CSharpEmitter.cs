@@ -152,7 +152,7 @@ public static partial class CSharpEmitter
 		int stacks = 0, string? suffix = null, bool? shared = null, bool inherits = false,
 		string? languageId = null, string? languageSource = null,
 		string? languageClassifications = null, string? languageRecognitionContract = null,
-		IReadOnlyList<string>? statics = null)
+		IReadOnlyList<string>? statics = null, string? grammarSource = null)
 	{
 		statics ??= [];
 
@@ -289,6 +289,13 @@ public static partial class CSharpEmitter
 		var classParts = className.Split('.');
 		for (var i = 0; i < classParts.Length; i++)
 		{
+			// The grammar itself, so that a class in a referenced assembly can be included
+			// without its `.gram` file being anywhere near. Only on the compilation that owns
+			// the class: a `Suffix` puts a second reading in a nested class, and what an
+			// including grammar names is the class, not the reading.
+			if (i == classParts.Length - 1 && grammarSource is not null && suffix is not { Length: > 0 })
+				file.Line($"[global::DotGram.GramSourceAttribute({Quoted(grammarSource)})]");
+
 			if (i == classParts.Length - 1 && languageId is not null && languageSource is not null)
 				file.Line(LanguageDescriptorAttribute(
 					graph,
@@ -1704,6 +1711,39 @@ public static partial class CSharpEmitter
 	/// Only an expression has text of its own; the four the language supplies are written
 	/// by the cases above, which know what they are writing and where it is not from.
 	/// </remarks>
+	/// <summary>
+	/// A string as C# spells it, escapes and all.
+	/// </summary>
+	/// <remarks>
+	/// Written here rather than taken from Roslyn: <c>Grammar/</c> does not reference it, and
+	/// the rule is short enough to say. A verbatim literal would be shorter to produce and
+	/// would put the grammar's own line breaks into the generated file, which is a great deal
+	/// of noise in something nobody reads.
+	/// </remarks>
+	internal static string Quoted(string text)
+	{
+		var made = new System.Text.StringBuilder(text.Length + 16).Append('"');
+
+		foreach (var c in text)
+			switch (c)
+			{
+				case '"':  made.Append("\\\""); break;
+				case '\\': made.Append("\\\\"); break;
+				case '\n': made.Append("\\n");  break;
+				case '\r': made.Append("\\r");  break;
+				case '\t': made.Append("\\t");  break;
+				default:
+					if (c < ' ')
+						made.Append("\\u").Append(((int)c).ToString("x4"));
+					else
+						made.Append(c);
+
+					break;
+			}
+
+		return made.Append('"').ToString();
+	}
+
 	internal static void Handed(Writer file, ILineMap? lines, Node.Construct construct)
 	{
 		if (construct.How is Construction.Expression { Text: var text, At: var at })

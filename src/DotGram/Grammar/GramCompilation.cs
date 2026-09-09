@@ -155,6 +155,12 @@ public sealed class GramCompilerOptions
 	public IReadOnlyList<string> StaticImports { get; set; } = [];
 
 	/// <summary>
+	/// Whether the generated class carries the grammar it was compiled from, for another
+	/// project to include (<c>[Gram(Portable = …)]</c>).
+	/// </summary>
+	public bool Portable { get; set; }
+
+	/// <summary>
 	/// How a reader carries what it has read until the author's constructions run
 	/// (<see cref="CarrierKind"/>). The tape by default, which keeps §7.3; the others are
 	/// the author's choice, and a grammar a chosen carrier cannot carry is compiled on the

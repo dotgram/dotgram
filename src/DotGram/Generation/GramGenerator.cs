@@ -311,8 +311,15 @@ public sealed class GramGenerator : IIncrementalGenerator
 		var bases   = new List<Included>();
 
 		foreach (var inherited in host.Includes.Items)
+		{
+			// The file first, so that a grammar somebody can still edit is the one whose
+			// offsets a diagnostic points into. What the assembly carries is the fallback and
+			// is the only thing there is across a reference — reported against nothing rather
+			// than reported twice, which is why the first attempt keeps its own list.
+			var aside = ImmutableArray.CreateBuilder<Report>();
+
 			if (TryResolveGrammar(
-				reports,
+				aside,
 				inherited.Source,
 				SimpleNameOf(inherited.ClassName),
 				inherited.ClassName,
@@ -324,6 +331,16 @@ public sealed class GramGenerator : IIncrementalGenerator
 				parts.Add(new GrammarSplice.Part(inheritedText, inherited.Name, null));
 				bases.Add(inherited with { Source = inheritedPath });
 			}
+			else if (inherited.Portable is { Length: > 0 } carried)
+			{
+				parts.Add(new GrammarSplice.Part(carried, inherited.Name, null));
+				bases.Add(inherited with { Source = null, Literal = carried, LiteralAt = 0 });
+			}
+			else
+			{
+				reports.AddRange(aside);
+			}
+		}
 
 		// Each include is spliced into a namespace named after it, and that is the whole of
 		// why one grammar's rules cannot collide with another's. Two under one name are one
@@ -427,6 +444,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// lives beside it, and `using static` is what puts it in reach without the
 			// including class having to derive from anything.
 			StaticImports  = [.. host.Includes.Items.Select(static one => one.ClassName)],
+			Portable       = host.Portable,
 			Carrier        = (CarrierKind)host.Carrier,
 			Stacks         = host.Stacks,
 			Suffix         = host.Suffix,
@@ -656,13 +674,20 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// </remarks>
 	/// <param name="Name">What a grammar including this one writes after `using`.</param>
 	/// <param name="ClassName">Whose grammar it is, for anything that has to say so.</param>
+	/// <param name="Portable">
+	/// The grammar as the included class carries it — <c>[GramSource]</c>, written there by
+	/// the generator that compiled it. Null where the class was not compiled by this
+	/// generator. What makes an include work across an assembly boundary, where the
+	/// <c>.gram</c> file is nowhere in reach.
+	/// </param>
 	readonly record struct Included(
 		string    Name,
 		string    ClassName,
 		string?   Source,
 		string?   Literal,
 		int       LiteralAt,
-		Location? Location);
+		Location? Location,
+		string?   Portable = null);
 
 	/// <summary>
 	/// A class marked <c>[Gram]</c>, reduced to what generation needs.
@@ -702,7 +727,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		string?   Suffix     = null,
 		bool      Repeated   = false,
 		bool?     Shared     = null,
-		string?   LocationType = null)
+		string?   LocationType = null,
+		bool      Portable   = false)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -846,6 +872,13 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// A `typeof(…)` argument arrives as the symbol it named, and what the compiler
 			// needs of it is a name it can ask the resolver about — the same currency every
 			// other type in a grammar is written in.
+			// What the class already says, unless the attribute says otherwise: a host nobody
+			// outside can name is a host nobody outside can include, and carrying its grammar
+			// would be paying for a door into a wall.
+			var portable = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.Portable))
+				.Value.Value as bool? ?? first?.Portable ?? Visible(type);
+
 			var locationType = (attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.LocationType))
 				.Value.Value as INamedTypeSymbol)?.ToDisplayString() ?? first?.LocationType;
@@ -928,7 +961,18 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Carrier:    carrier,
 				Stacks:     stacks,
 				Suffix:     suffix,
-				LocationType: locationType);
+				LocationType: locationType,
+				Portable:   portable);
+		}
+
+		/// <summary>Whether anything outside this assembly could name the class.</summary>
+		static bool Visible(INamedTypeSymbol type)
+		{
+			for (var at = (ITypeSymbol?)type; at is not null; at = at.ContainingType)
+				if (at.DeclaredAccessibility != Accessibility.Public)
+					return false;
+
+			return true;
 		}
 
 		static string? Classification(AttributeData attribute)
@@ -1047,7 +1091,15 @@ public sealed class GramGenerator : IIncrementalGenerator
 					// a diagnostic in its grammar have nowhere to point (docs/next.md).
 					Location:  attribute.ApplicationSyntaxReference is { } reference
 						? Microsoft.CodeAnalysis.Location.Create(reference.SyntaxTree, reference.Span)
-						: null));
+						: null,
+
+					// What the class itself says its grammar is, which travels with the
+					// assembly when the file does not.
+					Portable:  above
+						.GetAttributes()
+						.FirstOrDefault(static candidate =>
+							candidate.AttributeClass?.ToDisplayString() == "DotGram.GramSourceAttribute")
+						?.ConstructorArguments.FirstOrDefault().Value as string));
 			}
 
 			return included.ToImmutable();

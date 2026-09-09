@@ -41,7 +41,7 @@ static class Diagnostics
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
-		description:        "A .gram file is only visible to the generator when the project lists it as an additional file.");
+		description:        "A .gram file is only visible to the generator when the project lists it as an additional file. A grammar included from another project is found on the class instead, which requires that project to have been built with [Gram(Portable = true)] — the default for a publicly visible host.");
 
 	public static readonly DiagnosticDescriptor AmbiguousGrammarFile = new(
 		id:                 "GRAM0004",
