@@ -353,32 +353,6 @@ line of the grammar that asked for it rather than an exception at run time.
 `DotGram.Parsers` is useful in two ways: as a library of actual parsers, and as examples
 of what larger .Gram grammars look like against real specifications and APIs.
 
-## Performance
-
-.Gram generates parser-specific C#. It does not interpret a grammar at run time.
-
-The URL benchmark compares a .Gram URL grammar with the **same language transcribed
-rule-for-rule into a regular expression**. Before timing starts, the benchmark verifies
-that both implementations agree on every tested input and on every parsed part.
-
-| Input | .Gram | `RegexOptions.Compiled` | .Gram advantage |
-| --- | ---: | ---: | ---: |
-| short URL | 133.8 ns | 298.9 ns | 2.23× |
-| host as IPv4 | 146.9 ns | 285.4 ns | 1.94× |
-| invalid URL | 80.2 ns | 113.5 ns | 1.42× |
-| 84-character path | 191.0 ns | 453.0 ns | 2.37× |
-
-Against interpreted `Regex`, approximately **2.2× to 6.5×**. The benchmark and its
-methodology are in [`benchmarks`](benchmarks/).
-
-The comparison deliberately uses a URL grammar small enough to transcribe into an
-equivalent regular expression. It is **not** a benchmark of the complete
-[`Rfc3986`](src/DotGram.Parsers/Rfc3986.cs) implementation: comparing two different
-languages and calling the result a parser benchmark would make the numbers meaningless.
-
-The benchmark also asks both sides for parsed values rather than merely whether the input
-matched. Recognition and parsing are different workloads.
-
 ## Streaming and recovery
 
 Where the generator can prove that input may be released as parsing progresses, it emits
