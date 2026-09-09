@@ -53,6 +53,9 @@ public sealed partial class GrammarNormalizer
 	/// <summary>A rule nothing reaches, so nothing it says is ever read.</summary>
 	public const string UnusedRule          = "GRAM4018";
 
+	/// <summary><c>word</c> in a grammar that never said what continues a word.</summary>
+	public const string WordWithoutBoundary = "GRAM4019";
+
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
 	readonly Dictionary<RuleSymbol, bool>                      _nullable    = [];
@@ -88,7 +91,8 @@ public sealed partial class GrammarNormalizer
 	/// always, and what got `@(Log("parserInput"))` counted as asking for the whole input.
 	/// </param>
 	public static RecognitionGraph Normalize(
-		GrammarModel model, ISymbolResolver? resolver = null, ICSharpScanner? scanner = null)
+		GrammarModel model, ISymbolResolver? resolver = null, ICSharpScanner? scanner = null,
+		string? locationType = null)
 	{
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
@@ -179,6 +183,9 @@ public sealed partial class GrammarNormalizer
 		normalizer.ReconcileContexts();
 		normalizer.ReconcileState();
 
+		// Last of all, because what it drops is what nothing else left a way to.
+		normalizer.Prune();
+
 		return new RecognitionGraph(
 			normalizer._rules,
 			normalizer._bodies,
@@ -199,7 +206,54 @@ public sealed partial class GrammarNormalizer
 			State      = (normalizer._state ?? model.State)?.Name,
 			FreeNames  = FreeNames(normalizer._bodies.Values, scanner),
 			WhenSound  = normalizer._whenSound,
+			Located    = Locating(normalizer, resolver, locationType, Imports(model.Root)),
 		};
+	}
+
+	/// <summary>
+	/// The rules whose value can be told where it was written, and the type that says so.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A grammar names an interface — <c>[Gram(…, LocationType = typeof(ISqlSpan))]</c> — and
+	/// every rule whose value is assignable to it is one of these. The interface is the
+	/// consumer's, and only its shape is the contract: one settable property called
+	/// <c>Span</c>, whose type is what a location is written as.
+	/// </para>
+	/// <para>
+	/// Nothing is asked of a grammar that names nothing, which is most of them: a recognizer
+	/// wants no positions, and a set that stays empty compiles to what it always did.
+	/// </para>
+	/// </remarks>
+	static IReadOnlyCollection<RuleSymbol> Locating(
+		GrammarNormalizer normalizer, ISymbolResolver? resolver, string? named,
+		IReadOnlyList<string> imports)
+	{
+		if (named is null || resolver is null)
+			return [];
+
+		var located = new HashSet<RuleSymbol>();
+
+		foreach (var rule in normalizer._rules)
+			if (normalizer._types.TryGetValue(rule, out var type) && Fits(type))
+				located.Add(rule);
+
+		return located;
+
+		// Bare first and then under each import, the way C# itself resolves and the way the
+		// questions were asked: a grammar writes `@Statement` beside a `using`, and it is
+		// the qualified spelling that a host compilation can answer about.
+		bool Fits(string type)
+		{
+			if (resolver.IsAssignable(type, named))
+				return true;
+
+			foreach (var import in imports)
+				if (resolver.IsAssignable(import + "." + type, named))
+					return true;
+
+			return false;
+		}
 	}
 
 	/// <summary>

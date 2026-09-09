@@ -134,6 +134,33 @@ public sealed class GramCompilerOptions
 	public bool Direct { get; set; } = true;
 
 	/// <summary>
+	/// An interface whose implementors are told where they were written, by qualified name.
+	/// </summary>
+	/// <remarks>
+	/// What <c>[Gram(…, LocationType = typeof(ISqlSpan))]</c> names. A rule whose value is
+	/// assignable to it has its construction handed the span the rule stands on; a rule whose
+	/// value is not, and a grammar that names nothing here, are compiled exactly as before.
+	/// </remarks>
+	public string? LocationType { get; set; }
+
+	/// <summary>
+	/// The classes whose static members the generated code may name, by qualified name.
+	/// </summary>
+	/// <remarks>
+	/// One per grammar this one is built on. A rule that comes from another grammar goes on
+	/// calling the helpers its author wrote, and those live beside that grammar's own host —
+	/// so the generated file names them with <c>using static</c> rather than requiring the
+	/// including class to derive from something for the sake of what its methods can see.
+	/// </remarks>
+	public IReadOnlyList<string> StaticImports { get; set; } = [];
+
+	/// <summary>
+	/// Whether the generated class carries the grammar it was compiled from, for another
+	/// project to include (<c>[Gram(Portable = …)]</c>).
+	/// </summary>
+	public bool Portable { get; set; }
+
+	/// <summary>
 	/// How a reader carries what it has read until the author's constructions run
 	/// (<see cref="CarrierKind"/>). The tape by default, which keeps §7.3; the others are
 	/// the author's choice, and a grammar a chosen carrier cannot carry is compiled on the

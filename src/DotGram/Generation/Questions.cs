@@ -92,7 +92,14 @@ readonly record struct Answer(
 static class Questions
 {
 	/// <summary>Every question the grammar's C# names could give rise to.</summary>
-	public static ImmutableArray<Question> Of(GrammarFile file)
+	/// <param name="locationType">
+	/// The interface <c>[Gram(…, LocationType = …)]</c> named, where one was named. What is
+	/// asked of it is its settable properties — the <c>Span</c> among them says what a
+	/// location is written as — and, for every type the grammar declares, whether that type
+	/// is one of its implementors. The same superset as the rest of this file: a grammar
+	/// naming nothing asks nothing extra.
+	/// </param>
+	public static ImmutableArray<Question> Of(GrammarFile file, string? locationType = null)
 	{
 		var imports   = new List<string>();
 		var names     = new List<Question>();
@@ -145,6 +152,24 @@ static class Questions
 			{
 				questions.Add(Question.Builds(import + "." + type));
 				questions.Add(Question.Sets(import + "." + type));
+			}
+		}
+
+		if (locationType is not null)
+		{
+			questions.Add(new Question(locationType, Question.Exists));
+			questions.Add(Question.Sets(locationType));
+
+			// A declared type is written the way C# would write it beside a `using`, so the
+			// pairing is asked the way a type name is asked: bare first, then under each
+			// import. `@Statement` in a grammar importing `DotGram.Parsers.Sql` is
+			// `DotGram.Parsers.Sql.Statement`, and only the second spelling resolves.
+			foreach (var type in declared)
+			{
+				questions.Add(Question.Fits(type, locationType));
+
+				foreach (var import in imports)
+					questions.Add(Question.Fits(import + "." + type, locationType));
 			}
 		}
 

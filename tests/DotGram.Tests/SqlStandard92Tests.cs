@@ -1,6 +1,7 @@
 ﻿using System;
 
 using DotGram.Parsers;
+using DotGram.Parsers.Sql;
 
 using Xunit;
 
@@ -85,35 +86,39 @@ public sealed class SqlStandard92Tests
 	[Fact]
 	public void And_a_query_says_what_it_selects_and_where_from()
 	{
-		var query = Assert.IsType<SqlNode.Query>(
-			SqlStandard92.TryParseSelect("SELECT DISTINCT a, t.* FROM u AS t WHERE a > 1").Value);
+		var query = Selected("SELECT DISTINCT a, t.* FROM u AS t WHERE a > 1");
 
-		Assert.True(query.Distinct);
+		Assert.Equal("DISTINCT", query.Quantifier);
 		Assert.Equal(2, query.Columns.Length);
-		Assert.Equal("t", Assert.IsType<SqlNode.Star>(query.Columns[1]).Qualifier);
+		Assert.Equal("t", Assert.IsType<Clause.QualifiedAsterisk>(query.Columns[1]).Qualifier);
 
-		var source = Assert.IsType<SqlNode.Source>(Assert.Single(query.From));
+		var source = Assert.IsType<TableReference.Named>(Assert.Single(query.From));
 
 		Assert.Equal("u", source.Table);
 		Assert.Equal("t", source.Name);
 		Assert.NotNull(query.Where);
-		Assert.Empty(query.GroupBy);
+		Assert.Null(query.GroupBy);
 		Assert.Null(query.Having);
 	}
 
 	/// <summary>A join says which it is and what it joins on.</summary>
+	/// <remarks>
+	/// A bare <c>JOIN</c> is <see cref="SqlJoin.Unspecified"/> and not <c>Inner</c>: it
+	/// means an inner join, and meaning it is not the parser's to say.
+	/// </remarks>
 	[Theory]
-	[InlineData("SELECT a FROM t JOIN u ON t.id = u.id",        "Inner", false, true,  false)]
+	[InlineData("SELECT a FROM t JOIN u ON t.id = u.id",        "Unspecified", false, true,  false)]
 	[InlineData("SELECT a FROM t LEFT OUTER JOIN u ON x = y",   "Left",  false, true,  false)]
 	[InlineData("SELECT a FROM t RIGHT JOIN u ON x = y",        "Right", false, true,  false)]
 	[InlineData("SELECT a FROM t NATURAL FULL JOIN u",          "Full",  true,  false, false)]
 	[InlineData("SELECT a FROM t CROSS JOIN u",                 "Cross", false, false, false)]
-	[InlineData("SELECT a FROM t JOIN u USING (id)",            "Inner", false, false, true)]
+	[InlineData("SELECT a FROM t JOIN u USING (id)",            "Unspecified", false, false, true)]
+	[InlineData("SELECT a FROM t INNER JOIN u ON x = y",        "Inner", false, true,  false)]
 	public void A_join_says_which_it_is(
 		string input, string kind, bool natural, bool on, bool over)
 	{
-		var query = Assert.IsType<SqlNode.Query>(SqlStandard92.TryParseSelect(input).Value);
-		var join  = Assert.IsType<SqlNode.Join>(Assert.Single(query.From));
+		var query = Selected(input);
+		var join  = Assert.IsType<TableReference.Joined>(Assert.Single(query.From));
 
 		Assert.Equal(kind, join.Kind.ToString());
 		Assert.Equal(natural, join.Natural);
@@ -131,33 +136,40 @@ public sealed class SqlStandard92Tests
 	[InlineData("SELECT a FROM t UNION SELECT b FROM u EXCEPT SELECT c FROM v",    "Except", "Union")]
 	public void Set_operators_group_as_the_standard_says(string input, string outer, string inner)
 	{
-		var read = Assert.IsType<SqlNode.Binary>(SqlStandard92.TryParseQuery(input).Value);
+		var read = SqlStandard92.TryParseQuery(input).Value!;
 
-		Assert.Equal(outer, read.Operator.ToString());
-		Assert.Contains(
-			inner,
-			new[] { read.Left, read.Right }
-				.OfType<SqlNode.Binary>()
-				.Select(static one => one.Operator.ToString()));
+		Assert.Equal(outer, read.GetType().Name);
+		Assert.Contains(inner, Sides(read).Select(static one => one.GetType().Name));
 	}
+
+	/// <summary>The two operands of a set operator, and nothing for anything else.</summary>
+	static Query[] Sides(Query query) => query switch
+	{
+		Query.Union    (var left, var right, _) => [left, right],
+		Query.Except   (var left, var right, _) => [left, right],
+		Query.Intersect(var left, var right, _) => [left, right],
+		_                                       => [],
+	};
 
 	/// <summary>A subquery is a query now, and no longer the text between brackets.</summary>
 	[Fact]
 	public void A_subquery_is_read_rather_than_kept()
 	{
-		var query = Assert.IsType<SqlNode.Query>(
-			SqlStandard92.TryParseSelect("SELECT a FROM (SELECT b FROM u) AS d (c)").Value);
+		var query  = Selected("SELECT a FROM (SELECT b FROM u) AS d (c)");
+		var source = Assert.IsType<TableReference.Derived>(Assert.Single(query.From));
 
-		var source = Assert.IsType<SqlNode.Source>(Assert.Single(query.From));
-
-		Assert.Null(source.Table);
 		Assert.Equal("d", source.Name);
 		Assert.Equal(new[] { "c" }, source.Columns);
 
-		var inner = Assert.IsType<SqlNode.Query>(source.Derived);
+		var inner = Assert.IsType<Query.Specification>(source.Query);
 
-		Assert.Equal("u", Assert.IsType<SqlNode.Source>(Assert.Single(inner.From)).Table);
+		Assert.Equal("u", Assert.IsType<TableReference.Named>(Assert.Single(inner.From)).Table);
 	}
+
+	/// <summary>What the standard read, where it was a query specification.</summary>
+	static Query.Specification Selected(string input) =>
+		Assert.IsType<Query.Specification>(
+			Assert.IsType<Statement.Select>(SqlStandard92.TryParseSelect(input).Value).Of);
 
 	/// <summary>
 	/// And it groups the way §6.11 says, which the tower states as three strengths
@@ -187,12 +199,20 @@ public sealed class SqlStandard92Tests
 	}
 
 	/// <summary>A value expression as parentheses and operator names, for comparing.</summary>
-	static string Shape(SqlNode node) => node switch
+	static string Shape(Expression node) => node switch
 	{
-		SqlNode.Binary(var op, var left, var right) => $"({Shape(left)} {op} {Shape(right)})",
-		SqlNode.Unary (var op, var operand)         => $"({op} {Shape(operand)})",
-		SqlNode.Column(var text)                    => text,
-		SqlNode.Literal(_, var text)                => text,
+		Expression.Add        (var left, var right) => $"({Shape(left)} Add {Shape(right)})",
+		Expression.Subtract   (var left, var right) => $"({Shape(left)} Subtract {Shape(right)})",
+		Expression.Multiply   (var left, var right) => $"({Shape(left)} Multiply {Shape(right)})",
+		Expression.Divide     (var left, var right) => $"({Shape(left)} Divide {Shape(right)})",
+		Expression.Concatenate(var left, var right) => $"({Shape(left)} Concatenate {Shape(right)})",
+		Expression.Negate(var operand)              => $"(Negate {Shape(operand)})",
+		Expression.Plus  (var operand)              => $"(Identity {Shape(operand)})",
+		// The brackets somebody wrote are looked through: this test is about how the
+		// operators group, and a bracket that changed the grouping is already a node.
+		Expression.Parenthesized(var inner)         => Shape(inner),
+		Expression.ColumnReference(var text)        => text,
+		Expression.Literal(_, var text)             => text,
 		_                                           => node.GetType().Name,
 	};
 

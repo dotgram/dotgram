@@ -67,12 +67,16 @@ static class Kinds
 	/// about: a refusal here is work to do, and reading anything else is a defect.
 	/// </summary>
 	internal static bool Modelled(string kind) =>
+		// The whole `DROP` family at once, since the grammar reads it as one rule written
+		// from the sixty-six published blocks — naming them one by one here would be the
+		// same catalogue said a second time, and it would go stale the same way.
+		kind.StartsWith("Drop", StringComparison.Ordinal) ||
 		kind is nameof(SelectStatement) or nameof(InsertStatement) or nameof(UpdateStatement)
 			or nameof(DeleteStatement) or nameof(MergeStatement) or nameof(BulkInsertStatement)
 			or nameof(BeginEndBlockStatement) or nameof(IfStatement) or nameof(WhileStatement)
 			or nameof(TryCatchStatement) or nameof(DeclareVariableStatement)
 			or nameof(DeclareTableVariableStatement) or nameof(DeclareCursorStatement)
-			or nameof(SetVariableStatement) or nameof(ExecuteStatement)
+			or nameof(SetVariableStatement) or nameof(ExecuteStatement) or nameof(ExecuteAsStatement)
 			or nameof(BeginTransactionStatement) or nameof(CommitTransactionStatement)
 			or nameof(RollbackTransactionStatement) or nameof(SaveTransactionStatement)
 			or nameof(SetTransactionIsolationLevelStatement) or nameof(SetIdentityInsertStatement)
@@ -81,7 +85,76 @@ static class Kinds
 			or nameof(PrintStatement) or nameof(ReturnStatement) or nameof(ThrowStatement)
 			or nameof(RaiseErrorStatement) or nameof(GoToStatement) or nameof(BreakStatement)
 			or nameof(ContinueStatement) or nameof(WaitForStatement) or nameof(UseStatement)
-			or nameof(CheckpointStatement);
+			or nameof(CheckpointStatement)
+			or nameof(CreateTableStatement) or nameof(AlterTableAddTableElementStatement)
+			or nameof(AlterTableAlterColumnStatement) or nameof(AlterTableDropTableElementStatement)
+			or nameof(AlterTableConstraintModificationStatement)
+			or nameof(AlterTableTriggerModificationStatement) or nameof(AlterTableSetStatement)
+			or nameof(AlterTableRebuildStatement) or nameof(AlterTableSwitchStatement)
+			or nameof(AlterTableChangeTrackingModificationStatement)
+			or nameof(AlterTableFileTableNamespaceStatement)
+			or nameof(AlterTableAlterIndexStatement) or nameof(AlterTableAlterPartitionStatement)
+			or nameof(CreateProcedureStatement) or nameof(AlterProcedureStatement)
+			or nameof(CreateFunctionStatement) or nameof(AlterFunctionStatement)
+			or nameof(CreateTriggerStatement) or nameof(AlterTriggerStatement)
+			or nameof(CreateViewStatement) or nameof(AlterViewStatement)
+			or nameof(CreateOrAlterProcedureStatement) or nameof(CreateOrAlterFunctionStatement)
+			or nameof(CreateOrAlterTriggerStatement) or nameof(CreateOrAlterViewStatement)
+			or nameof(CreateIndexStatement) or nameof(AlterIndexStatement)
+			or nameof(CreateColumnStoreIndexStatement) or nameof(CreateXmlIndexStatement)
+			or nameof(CreateSelectiveXmlIndexStatement) or nameof(AlterIndexStatement)
+			or nameof(GrantStatement) or nameof(RevokeStatement) or nameof(DenyStatement)
+			or nameof(CreateLoginStatement) or nameof(AlterLoginOptionsStatement)
+			or nameof(AlterLoginEnableDisableStatement)
+			or nameof(AlterLoginAddDropCredentialStatement)
+			or nameof(CreateUserStatement) or nameof(AlterUserStatement)
+			or nameof(CreateRoleStatement) or nameof(AlterRoleStatement)
+			or nameof(CreateServerRoleStatement) or nameof(AlterServerRoleStatement)
+			or nameof(CreateApplicationRoleStatement) or nameof(AlterApplicationRoleStatement)
+			or nameof(CreateSchemaStatement) or nameof(AlterSchemaStatement)
+			or nameof(AlterAuthorizationStatement)
+			or nameof(CreateExternalDataSourceStatement) or nameof(AlterExternalDataSourceStatement)
+			or nameof(CreateExternalFileFormatStatement) or nameof(CreateExternalTableStatement)
+			or nameof(CreateExternalLibraryStatement) or nameof(AlterExternalLibraryStatement)
+			or nameof(CreateExternalResourcePoolStatement) or nameof(AlterExternalResourcePoolStatement)
+			or nameof(CreateResourcePoolStatement) or nameof(AlterResourcePoolStatement)
+			or nameof(CreateWorkloadGroupStatement) or nameof(AlterWorkloadGroupStatement)
+			or nameof(CreateStatisticsStatement) or nameof(UpdateStatisticsStatement)
+			or nameof(CreateServerAuditStatement) or nameof(AlterServerAuditStatement)
+			or nameof(CreateServerAuditSpecificationStatement)
+			or nameof(AlterServerAuditSpecificationStatement)
+			or nameof(CreateDatabaseAuditSpecificationStatement)
+			or nameof(AlterDatabaseAuditSpecificationStatement)
+			or nameof(CreateEventSessionStatement) or nameof(AlterEventSessionStatement)
+			or nameof(CreateEventNotificationStatement)
+			or nameof(CreateEndpointStatement) or nameof(AlterEndpointStatement)
+			or nameof(CreateFullTextIndexStatement) or nameof(AlterFullTextIndexStatement)
+			or nameof(CreateFullTextCatalogStatement) or nameof(AlterFullTextCatalogStatement)
+			or nameof(CreateFullTextStopListStatement) or nameof(AlterFullTextStopListStatement)
+			or nameof(CreateSearchPropertyListStatement) or nameof(AlterSearchPropertyListStatement)
+			or nameof(BackupDatabaseStatement) or nameof(BackupTransactionLogStatement)
+			or nameof(BackupCertificateStatement) or nameof(BackupMasterKeyStatement)
+			or nameof(BackupServiceMasterKeyStatement) or nameof(RestoreStatement)
+			or nameof(RestoreMasterKeyStatement) or nameof(RestoreServiceMasterKeyStatement)
+			or nameof(CreateAsymmetricKeyStatement) or nameof(AlterAsymmetricKeyStatement)
+			or nameof(CreateSymmetricKeyStatement) or nameof(AlterSymmetricKeyStatement)
+			or nameof(CreateCertificateStatement) or nameof(AlterCertificateStatement)
+			or nameof(CreateMasterKeyStatement) or nameof(AlterMasterKeyStatement)
+			or nameof(CreateDatabaseEncryptionKeyStatement)
+			or nameof(AlterDatabaseEncryptionKeyStatement)
+			or nameof(CreateColumnEncryptionKeyStatement)
+			or nameof(AlterColumnEncryptionKeyStatement)
+			or nameof(CreateColumnMasterKeyStatement)
+			or nameof(CreateCredentialStatement) or nameof(AlterCredentialStatement)
+			or nameof(CreateSecurityPolicyStatement) or nameof(AlterSecurityPolicyStatement)
+			or nameof(CreateDatabaseStatement) or nameof(AlterDatabaseSetStatement)
+			or nameof(AlterDatabaseScopedConfigurationSetStatement)
+			or nameof(AlterDatabaseScopedConfigurationClearStatement)
+			or nameof(AlterDatabaseCollateStatement) or nameof(AlterDatabaseModifyNameStatement)
+			or nameof(AlterDatabaseAddFileStatement) or nameof(AlterDatabaseAddFileGroupStatement)
+			or nameof(AlterDatabaseModifyFileStatement) or nameof(AlterDatabaseModifyFileGroupStatement)
+			or nameof(AlterDatabaseRemoveFileStatement) or nameof(AlterDatabaseRemoveFileGroupStatement)
+			or nameof(AlterDatabaseRebuildLogStatement) or nameof(AlterDatabasePerformCutoverStatement);
 
 	public static void Run(string? root, string version, int shown)
 	{
@@ -138,7 +211,22 @@ static class Kinds
 				// is part of the statement for at least one of them and the grammar reads it.
 				var one  = text.Substring(statement.StartOffset, statement.FragmentLength).TrimEnd();
 
-				var ours = TransactSql.TryParseStatement(one).IsSuccess;
+				// Caught and named rather than thrown: a harness that dies on statement three
+				// thousand says less than one that reads the rest and reports what it hit,
+				// and a parser that throws is a defect worth seeing beside the ones it
+				// merely refuses.
+				bool ours;
+
+				try
+				{
+					ours = TransactSql.TryParseStatement(one).IsSuccess;
+				}
+				catch (Exception thrown)
+				{
+					Console.WriteLine($"threw {thrown.GetType().Name}: {Corpus.One(one)}");
+
+					ours = false;
+				}
 
 				var (total, already) = counted.TryGetValue(kind, out var seen) ? seen : (0, 0);
 

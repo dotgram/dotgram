@@ -384,10 +384,10 @@ public sealed class GrammarNormalizerTests
 		// §10, §22 test 7: the clone's own recursive call closes onto itself, not onto
 		// the unbound original — otherwise a nested "(((b)))" would fall back to 'a'
 		// past the first level.
+		// The unbound original is not merely unpublished, it is dropped: `Tree` and `Atom`
+		// are what the clone was made from and nothing reaches them once it exists.
 		Assert.Equal(
 			"""
-			Atom = 'a'
-			Tree = (Atom | '(' & Tree & ')')
 			BAtom = 'b'
 			Tree_Ctx = (BAtom | '(' & Tree_Ctx & ')')
 			publish Parse Tree_Ctx -> BTree
@@ -545,12 +545,12 @@ public sealed class GrammarNormalizerTests
 	[Fact]
 	public void A_publication_s_own_with_clones_and_publishes_the_clone()
 	{
+		// And what the clone left behind is gone: nothing publishes `Number` or calls
+		// `Point`, so the finished grammar cannot reach either and does not carry them.
 		Assert.Equal(
 			"""
 			Digit = ['0'..'9']
-			Point = '.'
 			Comma = ','
-			Number = Digit & Point & Digit
 			Number_With1 = Digit & Comma & Digit
 			publish Parse Number_With1 -> Evaluate
 			""",
@@ -597,12 +597,8 @@ public sealed class GrammarNormalizerTests
 		// clones `Number_Ctx` (the namespace's own clone), not the plain `Number`.
 		Assert.Equal(
 			"""
-			Digit = ['0'..'9']
 			OtherDigit = ['1'..'9']
-			Point = '.'
 			Comma = ','
-			Number = Digit & Point & Digit
-			Number_Ctx = OtherDigit & Point & OtherDigit
 			Number_Ctx_With1 = OtherDigit & Comma & OtherDigit
 			publish Parse Number_Ctx_With1 -> Evaluate
 			""",

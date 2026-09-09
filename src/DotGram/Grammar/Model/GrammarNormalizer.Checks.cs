@@ -41,18 +41,53 @@ public sealed partial class GrammarNormalizer
 		if (_model.Publications.Count == 0)
 			return;
 
+		var reached = Reached(_model.Publications, rebindings: true);
+
+		foreach (var rule in _rules)
+			if (rule.Declaration is { } declared && !reached.Contains(rule) &&
+				Array.IndexOf(GrammarBinder.StandardLibrary, rule.Name) < 0)
+			{
+				Remark(
+					UnusedRule,
+					$"Nothing reaches '{rule.Name}': no publication names it, no rule the grammar " +
+					"reads calls it, and no rebinding puts it in place of one. Publish it, call it, " +
+					"or delete it.",
+					declared.At);
+			}
+
+	}
+
+	/// <summary>
+	/// What a set of publications can reach: themselves, what they call, and what is called
+	/// from there.
+	/// </summary>
+	/// <remarks>
+	/// The standard library's names are roots whether anything calls them or not — a seam is
+	/// woven rather than called until lowering has run, and a word boundary is read rather
+	/// than called at all (§4.5, §4.6).
+	/// </remarks>
+	/// <param name="rebindings">
+	/// Whether a rule some rebinding names as a replacement counts as reached. It does while
+	/// the grammar is still the author's — <c>with (Word = AsciiWord)</c> is the only thing
+	/// that reaches <c>AsciiWord</c> — and it does not once the rebindings have been applied,
+	/// because by then a replacement that is used is reached through the clone that uses it
+	/// and one that is not is dead.
+	/// </param>
+	HashSet<RuleSymbol> Reached(IReadOnlyList<Publication> publications, bool rebindings)
+	{
 		var reached = new HashSet<RuleSymbol>();
 		var pending = new Stack<RuleSymbol>();
 
-		foreach (var publication in _model.Publications)
+		foreach (var publication in publications)
 			Enter(publication.Rule);
 
 		foreach (var rule in _rules)
 			if (Array.IndexOf(GrammarBinder.StandardLibrary, rule.Name) >= 0)
 				Enter(rule);
 
-		foreach (var replacement in Replacements())
-			Enter(replacement);
+		if (rebindings)
+			foreach (var replacement in Replacements())
+				Enter(replacement);
 
 		foreach (var merged in _mergedElements)
 			Enter(merged);
@@ -70,17 +105,7 @@ public sealed partial class GrammarNormalizer
 				Follow(seam);
 		}
 
-		foreach (var rule in _rules)
-			if (rule.Declaration is { } declared && !reached.Contains(rule) &&
-				Array.IndexOf(GrammarBinder.StandardLibrary, rule.Name) < 0)
-			{
-				Remark(
-					UnusedRule,
-					$"Nothing reaches '{rule.Name}': no publication names it, no rule the grammar " +
-					"reads calls it, and no rebinding puts it in place of one. Publish it, call it, " +
-					"or delete it.",
-					declared.At);
-			}
+		return reached;
 
 		void Enter(RuleSymbol rule)
 		{
@@ -100,6 +125,56 @@ public sealed partial class GrammarNormalizer
 				if (_recoveries.TryGetValue(node, out var recovery))
 					Follow(recovery.Sync);
 			}
+		}
+	}
+
+	/// <summary>
+	/// Drop what the finished grammar cannot reach.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A second walk and not the one <see cref="CheckUnused"/> makes, because they answer
+	/// different questions at different times. That one asks what the <em>author</em> wrote
+	/// and runs before the rewrites, so that a rule a later pass empties or clones is not
+	/// reported at somebody who did nothing wrong. This one asks what the <em>parser</em>
+	/// needs and runs after all of them, so that what it drops is dead in the thing being
+	/// emitted.
+	/// </para>
+	/// <para>
+	/// What it is for: a rule nothing reaches is compiled, given states and written into the
+	/// generated file, and none of that can ever run. That was tolerable while a grammar was
+	/// one file somebody wrote; it stops being tolerable the moment a grammar can include
+	/// another — a library of lexemes is worth having only if what you do not call costs you
+	/// nothing.
+	/// </para>
+	/// <para>
+	/// A grammar that publishes nothing is left alone: it has no roots, so everything in it
+	/// is unreached, and it is a grammar being written rather than one with dead rules in it.
+	/// </para>
+	/// </remarks>
+	void Prune()
+	{
+		if (_publications.Count == 0)
+			return;
+
+		var reached = Reached(_publications, rebindings: false);
+
+		if (reached.Count == _rules.Count)
+			return;
+
+		_rules.RemoveAll(one => !reached.Contains(one));
+
+		Drop(_bodies);
+		Drop(_types);
+		Drop(_results);
+		Drop(_nullable);
+		Drop(_folds);
+		Drop(_climbing);
+
+		void Drop<T>(Dictionary<RuleSymbol, T> from)
+		{
+			foreach (var rule in from.Keys.Where(one => !reached.Contains(one)).ToList())
+				from.Remove(rule);
 		}
 	}
 

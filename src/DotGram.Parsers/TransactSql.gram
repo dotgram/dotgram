@@ -1,5 +1,6 @@
 @using System;
 @using DotGram.Parsers;
+@using DotGram.Parsers.Sql;
 
 using Sql92;
 
@@ -99,8 +100,8 @@ TsqlReserved = ("ADD"i | "ALL"i | "ALTER"i | "AND"i | "ANY"i | "AS"i | "ASC"i | 
 // `CASE x WHEN NULL THEN …` compares against the null nothing equals, which is useless
 // and legal — the standard's `<when operand>` is a value expression and null is not one,
 // and T-SQL admits it where the standard does not.
-TsqlSimpleWhen : @SqlNode.When
-	= "WHEN"i & test: Result & "THEN"i & result: Result => @(new SqlNode.When(test, result))
+TsqlSimpleWhen : @Clause.When
+	= "WHEN"i & test: Result & "THEN"i & result: Result => @(new Clause.When(test, result))
 
 // ── §7.10's query expression, narrowed ─────────────────────────────────────
 //
@@ -111,13 +112,13 @@ TsqlSimpleWhen : @SqlNode.When
 //
 // The strengths are the standard's own — `INTERSECT` tighter than the two beside it, all
 // three to the left (§4.3.1).
-TsqlQueryExpression : @SqlNode
+TsqlQueryExpression : @Query
 	= left: TsqlQueryExpression & "UNION"i & all: "ALL"i? & right: TsqlQueryExpression  << 1
-		=> @(new SqlNode.Binary(SqlNode.Combined("UNION", all), left, right))
+		=> @(Query.Combined("UNION", all, left, right))
 	| left: TsqlQueryExpression & "EXCEPT"i & right: TsqlQueryExpression                << 1
-		=> @(new SqlNode.Binary(SqlNode.Combined("EXCEPT", null), left, right))
+		=> @(Query.Combined("EXCEPT", null, left, right))
 	| left: TsqlQueryExpression & "INTERSECT"i & right: TsqlQueryExpression             << 2
-		=> @(new SqlNode.Binary(SqlNode.Combined("INTERSECT", null), left, right))
+		=> @(Query.Combined("INTERSECT", null, left, right))
 	| q: QueryPrimary => @(q)
 
 // ── §6.4's qualified name, widened ─────────────────────────────────────────
@@ -160,15 +161,15 @@ TsqlIdentifier
 // A variable stands where a parameter does, which is what the standard's rule is
 // for. Its own alternatives are restated rather than called: a replacement that
 // named the rule it replaces would be rewritten into itself.
-TsqlValueSpecification : @SqlNode
+TsqlValueSpecification : @Expression
 	= t: (':' & Identifier & ("INDICATOR"i? & ':' & Identifier)?)
-		=> @(new SqlNode.Literal(SqlLiteralKind.Parameter, t))
+		=> @(new Expression.Literal(SqlLiteralKind.Parameter, t))
 	| '?'
-		=> @(new SqlNode.Literal(SqlLiteralKind.Parameter, "?"))
+		=> @(new Expression.Literal(SqlLiteralKind.Parameter, "?"))
 	| t: Tsql.Variable
-		=> @(new SqlNode.Literal(SqlLiteralKind.Parameter, t))
+		=> @(new Expression.Literal(SqlLiteralKind.Parameter, t))
 	| t: ("USER"i | "CURRENT_USER"i | "SESSION_USER"i | "SYSTEM_USER"i | "VALUE"i)
-		=> @(new SqlNode.Literal(SqlLiteralKind.Special, t))
+		=> @(new Expression.Literal(SqlLiteralKind.Special, t))
 
 // ── §6.11's value expression primary, widened ───────────────────────────────
 //
@@ -180,27 +181,28 @@ TsqlValueSpecification : @SqlNode
 // A postfix stands outside the choice rather than on each arm of it: `AT TIME ZONE`
 // applies to whatever was just read, which is one rule around the core and not
 // twelve inside it.
-TsqlValuePrimary : @SqlNode
-	= p: TsqlPrimaryCore & Member* & zone: AtTimeZone?
-		=> @(zone is null ? p : new SqlNode.Call("AT TIME ZONE", new SqlNode[] { p, zone }))
+TsqlValuePrimary : @Expression
+	= p: TsqlPrimaryCore & members: Member* & zone: AtTimeZone?
+		=> @(Syntax.Reached(p, members, zone))
 
-AtTimeZone : @SqlNode = "AT"i & "TIME"i & "ZONE"i & v: TsqlPrimaryCore => @(v)
+AtTimeZone : @Expression = "AT"i & "TIME"i & "ZONE"i & v: TsqlPrimaryCore => @(v)
 
-TsqlPrimaryCore : @SqlNode
-	= '(' & v: ValueExpression & ')' => @(v)
+TsqlPrimaryCore : @Expression
+	= '(' & v: ValueExpression & ')' => @(new Expression.Parenthesized(v))
 	| c: CaseExpression                        => @(c)
 	| c: TsqlCast                              => @(c)
 	| f: ValueFunction                         => @(f)
 	| f: TsqlValueFunction                     => @(f)
-	| f: CountStar & CallTail?                 => @(f)
-	| f: SetFunctionSpecification & CallTail?  => @(f)
+	| f: CountStar & tail: CallTail?                => @(Syntax.Called(f, tail))
+	| f: SetFunctionSpecification & tail: CallTail? => @(Syntax.Called(f, tail))
 	| q: ScalarSubquery                        => @(q)
 	| n: NextValue                             => @(n)
 	| f: FunctionCall                          => @(f)
 	| e: OdbcEscape                            => @(e)
-	| t: Tsql.MoneyLiteral                     => @(new SqlNode.Literal(SqlLiteralKind.Number, t))
-	| t: Tsql.BinaryLiteral                    => @(new SqlNode.Literal(SqlLiteralKind.Hex, t))
+	| t: Tsql.MoneyLiteral                     => @(new Expression.Literal(SqlLiteralKind.Number, t))
+	| t: Tsql.BinaryLiteral                    => @(new Expression.Literal(SqlLiteralKind.Hex, t))
 	| v: UnsignedValueSpecification            => @(v)
+	| "NULL"i                                  => @(Expression.NullValue)
 	| n: ColumnReference                       => @(n)
 
 // ODBC's escapes, which every driver has understood since before this language had a
@@ -208,43 +210,49 @@ TsqlPrimaryCore : @SqlNode
 // four typed literals. `{ FN convert (@a, sql_int) }` is answered by the engine with a
 // complaint about the ODBC type name, which is it having read the escape and then
 // disagreeing about what was named inside it.
-OdbcEscape : @SqlNode
+OdbcEscape : @Expression
 	= '{' & "FN"i & f: OdbcFunction & '}' => @(f)
 	| '{' & kind: OdbcLiteralKind & t: Sql92.Lexical.CharacterStringLiteral & '}'
-		=> @(new SqlNode.Literal(SqlLiteralKind.Text, t))
+		=> @(new Expression.Literal(SqlLiteralKind.Text, t))
 
 OdbcLiteralKind = "TS"i | "D"i | "T"i | "GUID"i
 
 // The name inside `{ fn … }` is ODBC's and not this language's, so a word T-SQL reserves
 // may stand there: `{ fn convert (@a, sql_int) }` calls ODBC's two-argument `convert`,
 // which is not the `CONVERT` of §6.10 and does not have to obey its shape.
-OdbcFunction : @SqlNode
-	= name: OdbcName & '(' & args: Arguments? & ')' => @(new SqlNode.Call(name, args ?? SqlNode.None))
+OdbcFunction : @Expression
+	= name: OdbcName & '(' & args: Arguments? & ')' => @(new Expression.RoutineInvocation(name, args ?? Expression.None))
 	| v: ValueExpression => @(v)
 
-OdbcName = "CONVERT"i | "DATABASE"i | "LEFT"i | "RIGHT"i | "USER"i
-		 | "CURRENT_DATE"i | "CURRENT_TIME"i | "CURRENT_TIMESTAMP"i | "CURRENT_USER"i
-		 | Identifier
+OdbcName = word
 
 // A property or a method reached through a name: `(c1).SomeProperty`, `t::a`,
 // `dbo.[type 1]::[Property]`. Read and dropped, as a collate clause is — what it
 // names is a type's member, which is a catalogue's business and not this tree's.
 // Written as a postfix because a qualified name has already eaten every `.` it
 // could, so this fires only where one is left over.
-Member = ("::" | '.') & Identifier & ('(' & Arguments? & ')')?
+// Built with its left side null and closed by whoever read it, so that a chain of members
+// is a chain of nodes rather than one node holding a list of names.
+Member : @Expression.Member
+	= by: ("::" | '.') & name: Identifier
+	  & call: ('(' & args: Arguments? & ')')?
+		=> @(new Expression.Member(null!, by, name, call is null ? null : args ?? Expression.None))
 
 // §6.10's cast, widened, and the T-SQL spellings that are casts under other names.
 // `CONVERT` is a different rule and not a wider one: the standard's takes a value and
 // a character set, T-SQL's takes a type and a value, in that order.
-TsqlCast : @SqlNode
-	= "CAST"i     & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new SqlNode.Call("CAST", new SqlNode[] { v }, type))
-	| "TRY_CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new SqlNode.Call("TRY_CAST", new SqlNode[] { v }, type))
+TsqlCast : @Expression
+	= name: "CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, type))
+	| name: "TRY_CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, type))
 	| name: ("TRY_CONVERT"i | "CONVERT"i) & '(' & type: DataType & ',' & v: ValueExpression
 	  & (',' & style: ValueExpression)? & ')'
-		=> @(new SqlNode.Call(name, style is null ? new SqlNode[] { v } : new SqlNode[] { v, style }, type))
+		=> @(new Expression.RoutineInvocation(name, style is null ? new Expression[] { v } : new Expression[] { v, style }, type))
 	| name: ("TRY_PARSE"i | "PARSE"i) & '(' & v: ValueExpression & "AS"i & type: DataType
-	  & ("USING"i & ValueExpression)? & ')'
-		=> @(new SqlNode.Call(name, new SqlNode[] { v }, type))
+	  & ("USING"i & culture: ValueExpression)? & ')'
+		=> @(new Expression.RoutineInvocation(
+				 name,
+				 culture is null ? new Expression[] { v } : new Expression[] { v, culture },
+				 type))
 
 // The T-SQL functions with a syntax of their own rather than an argument list, which
 // is the same reason §6.16's are written out in the standard. What they have in common
@@ -254,15 +262,15 @@ TsqlCast : @SqlNode
 // And the JSON constructors, which have three things an argument list has not: a key
 // written with `:` rather than a comma, a clause saying what a null does, and a type to
 // return. All three are from the published syntax of `JSON_OBJECT`.
-TsqlValueFunction : @SqlNode
-	= "IIF"i & '(' & c: SearchCondition & ',' & a: ValueExpression & ',' & b: ValueExpression & ')'
-		=> @(new SqlNode.Call("IIF", new SqlNode[] { c, a, b }))
-	| "CHOOSE"i & '(' & at: ValueExpression & ',' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
-		=> @(new SqlNode.Call("CHOOSE", SqlNode.Listed(at, SqlNode.Listed(first, rest))))
-	| name: JsonObjectName & '(' & body: JsonObjectBody? & ')' & CallTail?
-		=> @(new SqlNode.Call(name, body ?? SqlNode.None))
-	| name: JsonArrayName & '(' & body: JsonArrayBody? & ')' & CallTail?
-		=> @(new SqlNode.Call(name, body ?? SqlNode.None))
+TsqlValueFunction : @Expression
+	= name: "IIF"i & '(' & c: SearchCondition & ',' & a: ValueExpression & ',' & b: ValueExpression & ')'
+		=> @(new Expression.RoutineInvocation(name, new Expression[] { c, a, b }))
+	| name: "CHOOSE"i & '(' & at: ValueExpression & ',' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
+		=> @(new Expression.RoutineInvocation(name, Syntax.Listed(at, Syntax.Listed(first, rest))))
+	| name: JsonObjectName & '(' & body: JsonObjectBody? & ')' & tail: CallTail?
+		=> @(Syntax.Called(new Expression.RoutineInvocation(name, body ?? Expression.None), tail))
+	| name: JsonArrayName & '(' & body: JsonArrayBody? & ')' & tail: CallTail?
+		=> @(Syntax.Called(new Expression.RoutineInvocation(name, body ?? Expression.None), tail))
 
 // **The null clause needs something to be null.** The published syntax makes the key
 // values and the clause independently optional — `JSON_OBJECT ( [ <json_key_value>
@@ -270,28 +278,28 @@ TsqlValueFunction : @SqlNode
 // reads by the documentation and is answered by SQL Server 2025 with `Incorrect syntax near
 // the keyword 'ON'`. The engine is right and the syntax block is wrong, which is the first
 // thing found on that side rather than in a parser.
-JsonObjectBody : @SqlNode[]
+JsonObjectBody : @Expression[]
 	= pairs: JsonKeyValues & JsonNullClause? & JsonReturning? => @(pairs)
-	| JsonReturning => @(SqlNode.None)
+	| JsonReturning => @(Expression.None)
 
-JsonArrayBody : @SqlNode[]
+JsonArrayBody : @Expression[]
 	= items: Arguments & JsonOrder? & JsonNullClause? & JsonReturning? => @(items)
-	| JsonReturning => @(SqlNode.None)
+	| JsonReturning => @(Expression.None)
 
 JsonObjectName = "JSON_OBJECT"i | "JSON_OBJECTAGG"i
 JsonArrayName  = "JSON_ARRAY"i  | "JSON_ARRAYAGG"i
 
-JsonKeyValues : @SqlNode[]
-	= first: JsonKeyValue & (',' & rest: JsonKeyValue)* => @(SqlNode.Listed(first, rest))
+JsonKeyValues : @Expression[]
+	= first: JsonKeyValue & (',' & rest: JsonKeyValue)* => @(Syntax.Listed(first, rest))
 
 // `json_key_name : value_expression` — the one place in T-SQL where a colon joins two
 // values rather than introducing a parameter.
-JsonKeyValue : @SqlNode
-	= key: ValueExpression & ':' & v: JsonValue => @(new SqlNode.Row(new SqlNode[] { key, v }))
+JsonKeyValue : @Expression
+	= key: ValueExpression & ':' & v: JsonValue => @(new Expression.RowValueConstructor(new Expression[] { key, v }))
 
 // A key's value may be the null a value expression is not — `'type':NULL` is the case
 // the `ABSENT ON NULL` clause exists for.
-JsonValue : @SqlNode = "NULL"i => @(SqlNode.NullValue) | v: ValueExpression => @(v)
+JsonValue : @Expression = "NULL"i => @(Expression.NullValue) | v: ValueExpression => @(v)
 
 // Which model an AI function is computed with, written after its arguments rather than
 // as one of them: `AI_GENERATE_EMBEDDINGS ('text' USE MODEL MyModel)`.
@@ -305,16 +313,19 @@ JsonOrder      = "ORDER"i & "BY"i & ValueExpression & ("ASC"i | "DESC"i)?
 
 // A sequence, read where a value stands. `FOR` here is not the `FOR` of `FOR JSON`;
 // it is the middle of one three-word name.
-NextValue : @SqlNode
-	= "NEXT"i & "VALUE"i & "FOR"i & name: QualifiedName & CallTail?
-		=> @(new SqlNode.Call("NEXT VALUE FOR", SqlNode.None, name))
+NextValue : @Expression
+	= word: ("NEXT"i & "VALUE"i & "FOR"i) & name: QualifiedName & tail: CallTail?
+		=> @(Syntax.Called(
+				 new Expression.RoutineInvocation(word, Expression.None, name), tail))
 
 // A call to something this grammar has never heard of, which is most of them: the
 // name is a catalogue's business and the arguments are values.
-FunctionCall : @SqlNode
+FunctionCall : @Expression
 	= name: QualifiedName & '(' & quantifier: SetQuantifier? & args: Arguments? & UseModel?
-	  & JsonReturning? & ')' & CallTail?
-		=> @(new SqlNode.Call(name, args ?? SqlNode.None, SqlNode.Distinctly(quantifier)))
+	  & JsonReturning? & ')' & tail: CallTail?
+		=> @(Syntax.Called(
+				 new Expression.RoutineInvocation(
+					 name, args ?? Expression.None, Syntax.Distinctly(quantifier)), tail))
 
 // What may follow a call: which rows of a window it sees when they are null, what a
 // set function inside a window is ordered by, and the window itself. All three read and
@@ -326,27 +337,35 @@ FunctionCall : @SqlNode
 // `OVER ()`, and `(Nulls | WithinGroup | Over)*` did the same. Alternatives of a rule do
 // come back — which is what makes the two spellings different languages here and not two
 // ways of writing one. The same thing shapes `WindowFrame` below.
-CallTail
-	= Nulls & Over
-	| WithinGroup & Over
-	| Nulls
-	| WithinGroup
-	| Over
-Nulls       = "RESPECT"i & "NULLS"i | "IGNORE"i & "NULLS"i
-WithinGroup = "WITHIN"i & "GROUP"i & '(' & OrderByClause & ')'
-			| "WITHIN"i & "GROUP"i & '(' & "GRAPH"i & "PATH"i & ')'
+// Built with its call left null and filled in by whoever read it, the way a predicate's
+// left operand is: the call is read once for the five shapes that may follow it.
+CallTail : @Expression.WindowFunction
+	= t: Nulls & w: Over       => @(new Expression.WindowFunction(null!, t, w))
+	| t: WithinGroup & w: Over => @(new Expression.WindowFunction(null!, t, w))
+	| t: Nulls                 => @(new Expression.WindowFunction(null!, t, null))
+	| t: WithinGroup           => @(new Expression.WindowFunction(null!, t, null))
+	| w: Over                  => @(new Expression.WindowFunction(null!, null, w))
+Nulls : @string = t: ("RESPECT"i & "NULLS"i | "IGNORE"i & "NULLS"i) => @(t)
+
+WithinGroup : @string
+	= t: ("WITHIN"i & "GROUP"i & '(' & OrderByClause & ')') => @(t)
+	| t: ("WITHIN"i & "GROUP"i & '(' & "GRAPH"i & "PATH"i & ')') => @(t)
 
 // The window a call is computed over. Read and dropped, as `TOP` is: it says which
 // rows the call sees and not what the call is, and the tree this grammar builds is
 // the standard's. A window may also be named, and the name is declared by the query's
 // own `WINDOW` clause.
-Over = "OVER"i & '('
-	   & WindowName?
-	   & ("PARTITION"i & "BY"i & ValueExpression & (',' & ValueExpression)*)?
-	   & OrderByClause?
-	   & WindowFrame?
+Over : @Clause.Window
+	= "OVER"i & '('
+	   & name: WindowName?
+	   & ("PARTITION"i & "BY"i & first: ValueExpression & (',' & rest: ValueExpression)*)?
+	   & by: OrderByClause?
+	   & frame: WindowFrame?
 	   & ')'
-	 | "OVER"i & Identifier
+		=> @(new Clause.Window(
+				 name, first is null ? Expression.None : Syntax.Listed(first, rest),
+				 Clause.Ordered(by, null), frame))
+	 | "OVER"i & only: Identifier => @(new Clause.Window(only, Expression.None, null, null))
 
 // The name of a window declared by the query's `WINDOW` clause, standing where the
 // window itself would. Guarded the same way a correlation name is and for the same
@@ -357,9 +376,9 @@ WindowName   = ?!WindowClause & Identifier
 WindowClause = "PARTITION"i | "ROWS"i | "RANGE"i
 
 // A window frame: how far either side of the current row the window reaches.
-WindowFrame
-	= ("ROWS"i | "RANGE"i) & "BETWEEN"i & FrameBound & "AND"i & FrameBound
-	| ("ROWS"i | "RANGE"i) & FrameBound
+WindowFrame : @string
+	= t: (("ROWS"i | "RANGE"i) & "BETWEEN"i & FrameBound & "AND"i & FrameBound) => @(t)
+	| t: (("ROWS"i | "RANGE"i) & FrameBound)                                    => @(t)
 
 FrameBound
 	= "UNBOUNDED"i & ("PRECEDING"i | "FOLLOWING"i)
@@ -372,17 +391,17 @@ FrameBound
 // An argument may be either of the two words a value expression is not: `string_split
 // (NULL, N',')` and `dbo.f (DEFAULT, 1)` are both read by the engine, and §7.1's
 // `<row value constructor element>` is where the standard says the same thing.
-Arguments : @SqlNode[]
-	= first: Argument & (',' & rest: Argument)* => @(SqlNode.Listed(first, rest))
+Arguments : @Expression[]
+	= first: Argument & (',' & rest: Argument)* => @(Syntax.Listed(first, rest))
 
-Argument : @SqlNode
-	= "NULL"i    => @(SqlNode.NullValue)
-	| "DEFAULT"i => @(SqlNode.DefaultValue)
+Argument : @Expression
+	= "NULL"i    => @(Expression.NullValue)
+	| "DEFAULT"i => @(Expression.DefaultValue)
 	| v: ValueExpression => @(v)
 
-CountStar : @SqlNode
+CountStar : @Expression
 	= name: ("COUNT_BIG"i | "CHECKSUM"i) & '(' & '*' & ')'
-		=> @(new SqlNode.Call(name, SqlNode.None, "*"))
+		=> @(new Expression.RoutineInvocation(name, Expression.None, "*"))
 
 // ── §6.1's data type, widened ───────────────────────────────────────────────
 //
@@ -407,13 +426,16 @@ TsqlDataType
 	| "INTEGER"i | "INT"i | "SMALLINT"i | "TINYINT"i | "BIGINT"i | "BIT"i
 	| "REAL"i | "DOUBLE"i & "PRECISION"i | "MONEY"i | "SMALLMONEY"i
 	| "DATE"i | "DATETIME"i | "SMALLDATETIME"i
-	| "TEXT"i | "NTEXT"i | "IMAGE"i | "XML"i | "JSON"i
+	| "TEXT"i | "NTEXT"i | "IMAGE"i | "JSON"i
+	| "XML"i & ('(' & XmlContent? & QualifiedName & ')')?
 	| "UNIQUEIDENTIFIER"i | "SQL_VARIANT"i | "ROWVERSION"i | "SYSNAME"i
 	| "GEOGRAPHY"i | "GEOMETRY"i | "HIERARCHYID"i
 	| "INTERVAL"i & IntervalQualifier
 	| QualifiedName & TsqlLength?
 
 TsqlLength = '(' & (Sql92.Lexical.Digits | "MAX"i) & ')'
+
+XmlContent = "CONTENT"i | "DOCUMENT"i
 
 // ── §8's predicate, widened ─────────────────────────────────────────────────
 //
@@ -425,22 +447,20 @@ TsqlLength = '(' & (Sql92.Lexical.Digits | "MAX"i) & ')'
 // And a handful of functions that yield a truth rather than a value. A call cannot
 // stand where a condition does in general — `WHERE f(x)` is not T-SQL either — so
 // they are named, exactly as §6.16's functions are named on the value side.
-TsqlPredicate : @SqlNode
-	= "EXISTS"i & q: TableSubquery => @(new SqlNode.Predicate(SqlPredicateKind.Exists, false, new SqlNode[] { q }))
-	| "UNIQUE"i & q: TableSubquery => @(new SqlNode.Predicate(SqlPredicateKind.Unique, false, new SqlNode[] { q }))
+TsqlPredicate : @Expression
+	= "EXISTS"i & q: TableSubquery => @(new Expression.Exists(q))
+	| "UNIQUE"i & q: TableSubquery => @(new Expression.Unique(q))
 	| name: ("CONTAINS"i | "FREETEXT"i | "TSEQUAL"i | "REGEXP_LIKE"i | "UPDATE"i)
 	  & '(' & args: Arguments? & ')'
-		=> @(new SqlNode.Call(name, args ?? SqlNode.None))
+		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
 	| m: GraphMatch => @(m)
-	| row: RowValueConstructor & tail: PredicateTail => @(SqlNode.Predicated(row, tail))
+	| row: RowValueConstructor & tail: PredicateTail => @(Expression.Predicated(row, tail))
 	| left: RowValueConstructor & "IS"i & negated: "NOT"i? & "DISTINCT"i & "FROM"i
 	  & other: DistinctTail
-		=> @(new SqlNode.Predicate(
-				 SqlPredicateKind.Comparison, negated is not null,
-				 new SqlNode[] { left, other }, null, "DISTINCT"))
+		=> @(new Expression.IsDistinctFrom(left, negated is not null, other))
 
-DistinctTail : @SqlNode
-	= q: Quantifier & sub: TableSubquery => @(sub)
+DistinctTail : @Expression
+	= q: Quantifier & sub: TableSubquery => @(new Expression.Subquery(sub))
 	| right: RowValueConstructor         => @(right)
 
 // ── §7.9's query specification, widened ─────────────────────────────────────
@@ -451,25 +471,32 @@ DistinctTail : @SqlNode
 // end declares the windows the select list named. The count and the windows are read
 // and dropped, as the standard's collate clause is: they say how many rows come back
 // and how a call sees them, not what the rows are.
-TsqlQuerySpecification : @SqlNode
-	= "SELECT"i & quantifier: SetQuantifier? & Top? & columns: SelectList & Into?
+TsqlQuerySpecification : @Query
+	= "SELECT"i & quantifier: SetQuantifier? & top: Top? & columns: SelectList & into: Into?
 	  & from: FromClause? & where: WhereClause? & group: GroupByClause? & having: HavingClause?
 	  & Window?
-		=> @(new SqlNode.Query(
-				 SqlNode.Distinctly(quantifier) == "DISTINCT", columns, from ?? SqlNode.None,
-				 where, group ?? SqlNode.None, having))
+		=> @(new Query.Specification(
+				 Syntax.Distinctly(quantifier), top, columns, into,
+				 from ?? TableReference.None, where, group, having))
 
 // Written as alternatives of a rule rather than one sequence with a choice inside it,
 // for the reason `CallTail` gives.
-Top = "TOP"i & '(' & ValueExpression & ')' & TopSuffix?
-	| "TOP"i & Sql92.Lexical.UnsignedNumericLiteral & TopSuffix?
+Top : @Clause.Top
+	= "TOP"i & '(' & v: ValueExpression & ')' & suffix: TopSuffix?
+		=> @(Clause.Topped(new Expression.Parenthesized(v), suffix))
+	| "TOP"i & t: Sql92.Lexical.UnsignedNumericLiteral & suffix: TopSuffix?
+		=> @(Clause.Topped(new Expression.Literal(SqlLiteralKind.Number, t), suffix))
 
-TopSuffix = "PERCENT"i & TopWith? | TopWith
+// Read as the words they are and taken apart in C#: two questions and a rule, and asking
+// them here would be three captures where one run of words says it.
+TopSuffix : @string = t: ("PERCENT"i & TopWith? | TopWith) => @(t)
 TopWith   = "WITH"i & "TIES"i | "WITH"i & "APPROXIMATE"i | "WITH"i & "APPROX"i
 
 // §7.9 has nowhere to put this: the rows go into a table instead of coming back, and
 // the filegroup says where that table's pages live.
-Into = "INTO"i & QualifiedName & ("ON"i & Identifier)?
+Into : @Clause
+	= "INTO"i & name: QualifiedName & ("ON"i & on: Identifier)?
+		=> @(new Clause.Into(name, on))
 
 // The windows a call may name instead of writing out.
 Window       = "WINDOW"i & WindowDef & (',' & WindowDef)*
@@ -486,13 +513,14 @@ WindowPart   = "PARTITION"i & "BY"i & ValueExpression & (',' & ValueExpression)*
 // returning it — `SELECT @a += 1` is an assignment written as a query — and an alias may
 // be written in front with `=` rather than behind with `AS`. And an alias may be a
 // string, which the standard does not allow and every dialect does.
-TsqlSelectSublist : @SqlNode
-	= qualifier: QualifiedName & '.' & '*'        => @(new SqlNode.Star(qualifier))
-	| into: Tsql.Variable & AssignOp & v: ValueExpression => @(new SqlNode.Selected(v, into))
-	| label: TsqlAlias & '=' & v: ValueExpression  => @(new SqlNode.Selected(v, label))
-	| v: ValueExpression & alias: TsqlAsClause?    => @(new SqlNode.Selected(v, alias))
+TsqlSelectSublist : @Clause
+	= qualifier: QualifiedName & '.' & '*'        => @(new Clause.QualifiedAsterisk(qualifier))
+	| into: Tsql.Variable & by: AssignOp & v: ValueExpression
+		=> @(new Clause.VariableAssignment(into, by, v))
+	| label: TsqlAlias & '=' & v: ValueExpression  => @(new Clause.DerivedColumn(v, label))
+	| v: ValueExpression & alias: TsqlAsClause?    => @(new Clause.DerivedColumn(v, alias))
 
-AssignOp = '=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "||="
+AssignOp : @string = t: ('=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "||=") => @(t)
 
 TsqlAlias    : @string = t: Identifier => @(t) | t: Sql92.Lexical.CharacterStringLiteral => @(t)
 TsqlAsClause : @string = "AS"i & t: TsqlAlias => @(t) | t: TsqlAlias => @(t)
@@ -508,47 +536,49 @@ TsqlAsClause : @string = "AS"i & t: TsqlAlias => @(t) | t: TsqlAlias => @(t)
 //
 // And the older spelling beside the ISO one: `WITH CUBE` and `WITH ROLLUP` say after
 // the list what `CUBE (…)` and `ROLLUP (…)` say in front of it.
-TsqlGroupByClause : @SqlNode[]
+TsqlGroupByClause : @Clause
 	= "GROUP"i & "BY"i & "ALL"i & first: TsqlGrouping & (',' & rest: TsqlGrouping)*
-		=> @(SqlNode.Listed(first, rest))
-	| "GROUP"i & "BY"i & first: TsqlGrouping & (',' & rest: TsqlGrouping)* & GroupWith?
-		=> @(SqlNode.Listed(first, rest))
+		=> @(new Clause.GroupBy(true, Syntax.Listed(first, rest), null))
+	| "GROUP"i & "BY"i & first: TsqlGrouping & (',' & rest: TsqlGrouping)* & with: GroupWith?
+		=> @(new Clause.GroupBy(false, Syntax.Listed(first, rest), with))
 
-GroupWith = "WITH"i & "CUBE"i | "WITH"i & "ROLLUP"i | "WITH"i & '(' & Identifier & ')'
+GroupWith : @string = "WITH"i & t: ("CUBE"i | "ROLLUP"i) => @(t)
+					| "WITH"i & '(' & t: Identifier & ')' => @(t)
 
-TsqlGrouping : @SqlNode
-	= "CUBE"i     & g: GroupList => @(new SqlNode.Call("CUBE",   g))
-	| "ROLLUP"i   & g: GroupList => @(new SqlNode.Call("ROLLUP", g))
+TsqlGrouping : @Expression
+	= "CUBE"i     & g: GroupList => @(new Expression.RoutineInvocation("CUBE",   g))
+	| "ROLLUP"i   & g: GroupList => @(new Expression.RoutineInvocation("ROLLUP", g))
 	| "GROUPING"i & "SETS"i & '(' & first: GroupingSet & (',' & rest: GroupingSet)* & ')'
-		=> @(new SqlNode.Call("GROUPING SETS", SqlNode.Listed(first, rest)))
+		=> @(new Expression.RoutineInvocation("GROUPING SETS", Syntax.Listed(first, rest)))
 	| e: GroupByExpression => @(e)
 
-GroupList : @SqlNode[]
+GroupList : @Expression[]
 	= '(' & first: GroupByExpression & (',' & rest: GroupByExpression)* & ')'
-		=> @(SqlNode.Listed(first, rest))
+		=> @(Syntax.Listed(first, rest))
 
 // A column, or a list of them standing as one — and the empty list, which is the grand
 // total and the one grouping that names nothing.
-GroupByExpression : @SqlNode
-	= '(' & ')' => @(new SqlNode.Row(SqlNode.None))
+GroupByExpression : @Expression
+	= '(' & ')' => @(new Expression.RowValueConstructor(Expression.None))
 	| '(' & first: TsqlGroupingColumn & (',' & rest: TsqlGroupingColumn)* & ')'
-		=> @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+		=> @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
 	| c: TsqlGroupingColumn => @(c)
 
-TsqlGroupingColumn : @SqlNode = c: ValueExpression & Collate? => @(c)
+TsqlGroupingColumn : @Expression
+	= c: ValueExpression & Collate? & ("WITH"i & '(' & Identifier & ')')? => @(c)
 
 // One entry of a `GROUPING SETS` list: a cube, a rollup, a list of those, or a plain
 // group-by expression. A grouping set inside a grouping set is not here, deliberately.
-GroupingSet : @SqlNode
-	= "CUBE"i   & g: GroupList => @(new SqlNode.Call("CUBE",   g))
-	| "ROLLUP"i & g: GroupList => @(new SqlNode.Call("ROLLUP", g))
+GroupingSet : @Expression
+	= "CUBE"i   & g: GroupList => @(new Expression.RoutineInvocation("CUBE",   g))
+	| "ROLLUP"i & g: GroupList => @(new Expression.RoutineInvocation("ROLLUP", g))
 	| '(' & first: GroupingSetItem & (',' & rest: GroupingSetItem)* & ')'
-		=> @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+		=> @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
 	| e: GroupByExpression => @(e)
 
-GroupingSetItem : @SqlNode
-	= "CUBE"i   & g: GroupList => @(new SqlNode.Call("CUBE",   g))
-	| "ROLLUP"i & g: GroupList => @(new SqlNode.Call("ROLLUP", g))
+GroupingSetItem : @Expression
+	= "CUBE"i   & g: GroupList => @(new Expression.RoutineInvocation("CUBE",   g))
+	| "ROLLUP"i & g: GroupList => @(new Expression.RoutineInvocation("ROLLUP", g))
 	| e: GroupByExpression => @(e)
 
 // ── §7.5's joined table, widened ────────────────────────────────────────────
@@ -564,16 +594,16 @@ GroupingSetItem : @SqlNode
 // word is not kept. A join hint says which algorithm to use and is dropped for the same
 // reason `OPTION` is; the syntax puts it inside the join type, so a hint without a type
 // is not a join.
-TsqlTableReference : @SqlNode
+TsqlTableReference : @TableReference
 	= left: TsqlTableReference & "CROSS"i & "JOIN"i & right: TablePrimary
-		=> @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
+		=> @(new TableReference.Joined(SqlJoin.Cross, false, false, left, right))
 	| left: TsqlTableReference & "CROSS"i & "APPLY"i & right: TablePrimary
-		=> @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
+		=> @(new TableReference.Joined(SqlJoin.CrossApply, false, false, left, right))
 	| left: TsqlTableReference & "OUTER"i & "APPLY"i & right: TablePrimary
-		=> @(new SqlNode.Join(SqlJoin.Cross, false, left, right))
+		=> @(new TableReference.Joined(SqlJoin.OuterApply, false, false, left, right))
 	| left: TsqlTableReference & kind: TsqlJoinType? & "JOIN"i & right: TablePrimary
 	  & "ON"i & on: SearchCondition
-		=> @(SqlNode.Joining(kind, null, left, right, on, null))
+		=> @(TableReference.Joining(kind, null, left, right, on, null))
 	| t: TablePrimary => @(t)
 
 TsqlJoinType : @string
@@ -587,21 +617,33 @@ JoinHint = "HASH"i | "LOOP"i | "MERGE"i | "REMOTE"i | "REDUCE"i | "REPLICATE"i |
 // stands before the correlation name, and a sample before the hints. Writing the hints
 // first was accepted here until the syntax said otherwise, and whether ScriptDom accepts
 // them the other way round is a question worth asking of it rather than of us.
-TsqlTablePrimary : @SqlNode
-	= f: RowsetFunction & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
-		=> @(new SqlNode.Source(null, f, alias, columns))
-	| name: QualifiedName & SystemTime? & ('(' & Arguments? & ')')?
+TsqlTablePrimary : @TableReference
+	= f: RowsetFunction & schema: RowsetSchema?
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
-	  & TableSample? & TableHints? & PivotSuffix?
-		=> @(new SqlNode.Source(name, null, alias, columns))
-	| t: Tsql.Variable & ("AS"i? & alias: CorrelationName)? & TableSample? & TableHints?
-		=> @(new SqlNode.Source(t, null, alias, null))
-	| derived: TableSubquery & "AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?
-	  & PivotSuffix?
-		=> @(new SqlNode.Source(null, derived, alias, columns))
+	  & pivot: PivotSuffix?
+		=> @(Syntax.Pivoted(
+				 new TableReference.FunctionCall(f, alias, columns, schema ?? Clause.None), pivot))
+	| name: QualifiedName & version: SystemTime? & call: ('(' & args: Arguments? & ')')?
+	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
+	  & sample: TableSample? & hints: TableHints? & pivot: PivotSuffix?
+		=> @(Syntax.Sourced(name, version, call, args, alias, columns, sample, hints, pivot))
+	| t: Tsql.Variable & s: VariableSource => @(s with { Table = t })
+	| derived: TableSubquery & "AS"i? & alias: CorrelationName
+	  & ('(' & columns: ColumnList & ')')? & pivot: PivotSuffix?
+		=> @(Syntax.Pivoted(new TableReference.Derived(derived, alias, columns), pivot))
 	| '(' & j: TableReference & ')' & TableSample? & TableHints?
-		=> @(j)
+		=> @(new TableReference.Parenthesized(j))
 	| '{' & "OJ"i & j: TableReference & '}' => @(j)
+
+// What a variable may be as a table: the table variable itself, or a table-valued method
+// on a variable of a user-defined type — `FROM @v.f(1) AS t(c)`. Left-factored because
+// both begin with the variable, which is what GRAM4016 asks for.
+VariableSource : @TableReference.Named
+	= '.' & Identifier & '(' & Arguments? & ')'
+	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
+		=> @(new TableReference.Named("", null, alias, columns, null, Clause.None))
+	| ("AS"i? & alias: CorrelationName)? & TableSample? & TableHints?
+		=> @(new TableReference.Named("", null, alias, null, null, Clause.None))
 
 // The published syntax makes a pivoted table a source of its own — `table_source PIVOT
 // (…) [AS] alias` — which is left recursion, and §4.3 folds that only where the rule
@@ -610,27 +652,41 @@ TsqlTablePrimary : @SqlNode
 //
 // The alias is required and not optional, which the syntax says and the examples did
 // not: `PIVOT (…)` with nothing after it is not a table source.
-PivotSuffix = Pivot | Unpivot
+// Built with the source it is applied to left null, the way a predicate tail is: the
+// source is read once and the pivot is what may follow it.
+PivotSuffix : @TableReference = p: Pivot => @(p) | u: Unpivot => @(u)
 
-Pivot = "PIVOT"i & '(' & ValueExpression & "FOR"i & QualifiedName
-		& "IN"i & '(' & PivotNames & ')' & ')' & "AS"i? & CorrelationName
+Pivot : @TableReference
+	= "PIVOT"i & '(' & aggregate: ValueExpression & "FOR"i & column: QualifiedName
+	  & "IN"i & '(' & names: PivotNames & ')' & ')' & "AS"i? & alias: CorrelationName
+		=> @(new TableReference.Pivot(null!, aggregate, column, names, alias))
 
-Unpivot = "UNPIVOT"i & '(' & QualifiedName & "FOR"i & QualifiedName
-		  & "IN"i & '(' & PivotNames & ')' & ')' & "AS"i? & CorrelationName
+Unpivot : @TableReference
+	= "UNPIVOT"i & '(' & value: QualifiedName & "FOR"i & column: QualifiedName
+	  & "IN"i & '(' & names: PivotNames & ')' & ')' & "AS"i? & alias: CorrelationName
+		=> @(new TableReference.Unpivot(null!, value, column, names, alias))
 
-PivotNames = QualifiedName & (',' & QualifiedName)*
+PivotNames : @string[]
+	= first: PivotName & (',' & rest: PivotName)* => @(Syntax.Named(first, rest))
+
+PivotName : @string = t: QualifiedName => @(t)
 
 // Which version of a temporal table to read. `FOR` is reserved, so nothing here can be
 // mistaken for the correlation name it stands in front of.
-SystemTime = "FOR"i & "SYSTEM_TIME"i & SystemTimeWhen
-		   | "FOR"i & "PATH"i
+SystemTime : @Clause
+	= "FOR"i & "SYSTEM_TIME"i & w: SystemTimeWhen => @(w)
+	| "FOR"i & "PATH"i => @(new Clause.SystemTime("PATH", Expression.None))
 
-SystemTimeWhen
-	= "AS"i & "OF"i & ValueExpression
-	| "FROM"i & ValueExpression & "TO"i & ValueExpression
-	| "BETWEEN"i & ValueExpression & "AND"i & ValueExpression
-	| "CONTAINED"i & "IN"i & '(' & ValueExpression & ',' & ValueExpression & ')'
-	| "ALL"i
+SystemTimeWhen : @Clause
+	= "AS"i & "OF"i & v: ValueExpression
+		=> @(new Clause.SystemTime("AS OF", new Expression[] { v }))
+	| "FROM"i & from: ValueExpression & "TO"i & to: ValueExpression
+		=> @(new Clause.SystemTime("FROM", new Expression[] { from, to }))
+	| "BETWEEN"i & from: ValueExpression & "AND"i & to: ValueExpression
+		=> @(new Clause.SystemTime("BETWEEN", new Expression[] { from, to }))
+	| "CONTAINED"i & "IN"i & '(' & from: ValueExpression & ',' & to: ValueExpression & ')'
+		=> @(new Clause.SystemTime("CONTAINED IN", new Expression[] { from, to }))
+	| "ALL"i => @(new Clause.SystemTime("ALL", Expression.None))
 
 // A correlation name is an identifier, and not one of the words that begin a clause of
 // its own after a source. None of them is reserved — a column may be called `WINDOW` —
@@ -653,19 +709,22 @@ SourceClause    = "WINDOW"i | "PIVOT"i | "UNPIVOT"i | "TABLESAMPLE"i | "USING"i
 // all. These two are marked because they are the exception.
 //
 // What the shape says, and a list of hint names would not: `HOLDLOCK`, `INDEX`, `MERGE`,
-// `ORDER`, `GROUP`, `PLAN`, `USE`, `TABLE` and `JOIN` arrive as the reserved words they
-// are, and every other hint — `NOLOCK`, `FORCESEEK`, `RECOMPILE`, `MAXDOP` — is an
-// ordinary identifier. So the rule is about which words are keywords and not about which
-// hints exist, and adding a hint to T-SQL does not change it.
+// A hint's name is a word and nothing else: `NOLOCK`, `FORCESEEK`, `RECOMPILE`, `MAXDOP`
+// are ordinary ones and `ORDER`, `GROUP`, `PLAN`, `TABLE` are words T-SQL reserves, and
+// inside these brackets nothing tells them apart. So the rule says `word` (§4.6) and is
+// about the shape of a hint list rather than about which hints exist — the ones written
+// out are the ones that take an argument of their own.
 //
 // All of it is read and dropped: a hint says how the rows are to be fetched and never
 // which rows they are, and the tree this grammar builds is the standard's.
-TableHints = "WITH"i & '(' & TableHint & (',' & TableHint)* & ')'
+TableHints : @Clause[]
+	= "WITH"i & '(' & first: TableHint & (',' & rest: TableHint)* & ')'
+		=> @(Syntax.Listed(first, rest))
 
-TableHint
-	= "HOLDLOCK"i
-	| "INDEX"i & IndexArgument
-	| Identifier & TableHintTail?
+TableHint : @Clause
+	= t: ("HOLDLOCK"i)              => @(new Clause.Hint(t))
+	| t: ("INDEX"i & IndexArgument) => @(new Clause.Hint(t))
+	| t: (word & TableHintTail?)    => @(new Clause.Hint(t))
 
 TableHintTail
 	= '(' & IndexValue & TableHintRest & ')'
@@ -679,14 +738,18 @@ IndexArgument
 
 IndexValue = Identifier | Sql92.Lexical.UnsignedNumericLiteral
 
-QueryHints = "OPTION"i & '(' & QueryHint & (',' & QueryHint)* & ')'
+QueryHints : @Clause[]
+	= "OPTION"i & '(' & first: QueryHint & (',' & rest: QueryHint)* & ')'
+		=> @(Syntax.Listed(first, rest))
 
-QueryHint
-	= "MERGE"i & MergeWhat
-	| "ORDER"i & "GROUP"i
-	| "USE"i & UseWhat
-	| "TABLE"i & Identifier & '(' & QualifiedName & (',' & TableHint)* & ')'
-	| Identifier & QueryHintTail?
+// Kept as the words it was written as, which is what a hint is: see `Clause.Hint`.
+QueryHint : @Clause
+	= t: ("MERGE"i & MergeWhat)  => @(new Clause.Hint(t))
+	| t: ("ORDER"i & "GROUP"i)   => @(new Clause.Hint(t))
+	| t: ("USE"i & UseWhat)      => @(new Clause.Hint(t))
+	| t: ("TABLE"i & Identifier & '(' & QualifiedName & (',' & TableHint)* & ')')
+		=> @(new Clause.Hint(t))
+	| t: (word & QueryHintTail?) => @(new Clause.Hint(t))
 
 MergeWhat = "JOIN"i | "UNION"i
 UseWhat   = "PLAN"i & HintString
@@ -717,55 +780,80 @@ HintValue = "NULL"i | ValueExpression
 
 // §7.4's table sample: how much of a source to read, in rows or in per cent, and the
 // seed that makes the choice repeatable. Read and dropped for the same reason a hint is.
-TableSample = "TABLESAMPLE"i & "SYSTEM"i & SampleSize & TableRepeatable?
-			| "TABLESAMPLE"i & SampleSize & TableRepeatable?
+TableSample : @Clause
+	= "TABLESAMPLE"i & system: "SYSTEM"i?
+	  & '(' & v: ValueExpression & unit: SampleUnit? & ')' & seed: TableRepeatable?
+		=> @(new Clause.TableSample(system is not null, v, unit, seed))
 
-SampleSize      = '(' & ValueExpression & SampleUnit? & ')'
-SampleUnit      = "PERCENT"i | "ROWS"i
-TableRepeatable = "REPEATABLE"i & '(' & ValueExpression & ')'
+SampleUnit      : @string     = t: ("PERCENT"i | "ROWS"i) => @(t)
+TableRepeatable : @Expression = "REPEATABLE"i & '(' & v: ValueExpression & ')' => @(v)
 
 // ── §13.1's direct select, widened ──────────────────────────────────────────
 //
 // Where the clauses that belong to the statement rather than to the query go: how many
 // rows to skip and take, what shape to return them in, and how to run the whole thing.
-TsqlDirectSelect : @SqlNode
-	= WithClause? & q: QueryExpression & by: OrderByClause? & OffsetFetch? & ForClause? & QueryHints?
-		=> @(by is null ? q : new SqlNode.Ordered(q, by))
+TsqlDirectSelect : @Statement
+	= with: WithClause? & q: QueryExpression & by: OrderByClause? & window: OffsetFetch?
+	  & shape: ForClause? & options: QueryHints?
+		=> @(new Statement.Select(
+				 with ?? Clause.None, q, Clause.Ordered(by, window),
+				 shape is null ? Clause.None : new Clause[] { shape },
+				 options ?? Clause.None))
 
 // §7's `WITH <common_table_expression>`: a query given a name in front of the statement
 // that uses it. Read and dropped — what it names is a query the tree already holds no
-// place for, and putting one in is a question about the shape of `SqlNode` rather than
+// place for, and putting one in is a question about the shape of the tree rather than
 // about the grammar.
 //
 // The definition is a query expression and not a whole statement: the syntax forbids a
 // `WITH` inside a `WITH`, and writing it that way is how the grammar says so.
-WithClause    = "WITH"i & XmlNamespaces & (',' & CteDefinition)*
-			  | "WITH"i & CteDefinition & (',' & CteDefinition)*
+WithClause : @Clause[]
+	= "WITH"i & t: ChangeTrackingContext => @(new Clause[] { new Clause.WithOption(t) })
+	| "WITH"i & t: XmlNamespaces & (',' & rest: CteDefinition)*
+		=> @(Syntax.Listed<Clause>(new Clause.WithOption(t), rest))
+	| "WITH"i & first: CteDefinition & (',' & rest: CteDefinition)*
+		=> @(Syntax.Listed<Clause>(first, rest))
 
 // The namespaces a `FOR XML` may use, declared where a named query is declared and in
 // the same breath as one.
-XmlNamespaces = "XMLNAMESPACES"i & '(' & XmlNamespace & (',' & XmlNamespace)* & ')'
+ChangeTrackingContext : @string
+	= t: ("CHANGE_TRACKING_CONTEXT"i & '(' & ValueExpression & ')') => @(t)
+
+XmlNamespaces : @string
+	= t: ("XMLNAMESPACES"i & '(' & XmlNamespace & (',' & XmlNamespace)* & ')') => @(t)
 XmlNamespace  = "DEFAULT"i & ValueExpression
 			  | ValueExpression & "AS"i & Identifier
-CteDefinition = Identifier & ('(' & ColumnList & ')')? & "AS"i & '(' & CteBody & ')'
-CteBody       = QueryExpression & OrderByClause? & OffsetFetch?
+CteDefinition : @Clause.CommonTableExpression
+	= name: Identifier & ('(' & columns: ColumnList & ')')? & "AS"i & '(' & q: CteBody & ')'
+		=> @(new Clause.CommonTableExpression(name, columns, q))
+
+// The order a named query is written in is read and dropped: a `WITH` defines a table, and
+// a table has no order until something asks for one.
+CteBody : @Query = q: QueryExpression & OrderByClause? & OffsetFetch? => @(q)
 
 // `FETCH` without `OFFSET` in front of it is not a clause: the engine answers
 // `Incorrect syntax`, though ScriptDom reads it. The corpus statement that asked for it was
 // wrong to, and reading it was over-acceptance rather than coverage.
-OffsetFetch = "OFFSET"i & ValueExpression & RowWord & FetchClause?
+// Published as two clauses inside `ORDER BY` and read here as one, since neither may be
+// written without the sort. What comes out is the order clause with an empty list, and
+// whoever read the list fills it in — `Clause.Ordered` is where the two meet.
+OffsetFetch : @Clause.OrderBy
+	= "OFFSET"i & skip: ValueExpression & RowWord & take: FetchClause?
+		=> @(new Clause.OrderBy(Clause.None, skip, take))
 
-FetchClause = "FETCH"i & "APPROXIMATE"i & FetchAt & ValueExpression & RowWord & "ONLY"i
-			| "FETCH"i & FetchAt & ValueExpression & RowWord & "ONLY"i
+FetchClause : @Expression
+	= "FETCH"i & "APPROXIMATE"i & FetchAt & v: ValueExpression & RowWord & "ONLY"i => @(v)
+	| "FETCH"i & FetchAt & v: ValueExpression & RowWord & "ONLY"i                  => @(v)
 
 FetchAt = "NEXT"i | "FIRST"i
 RowWord = "ROWS"i | "ROW"i
 
-ForClause = "FOR"i & "BROWSE"i
-		  | "FOR"i & "JSON"i & ForOption & (',' & ForOption)*
-		  | "FOR"i & "XML"i  & ForOption & (',' & ForOption)*
+ForClause : @Clause
+	= "FOR"i & "BROWSE"i => @(new Clause.For("BROWSE", Syntax.NoNames))
+	| "FOR"i & kind: ("JSON"i | "XML"i) & first: ForOption & (',' & rest: ForOption)*
+		=> @(new Clause.For(kind, Syntax.Named(first, rest)))
 
-ForOption = Identifier & ForOptionTail?
+ForOption : @string = t: (Identifier & ForOptionTail?) => @(t)
 
 ForOptionTail = '(' & ValueExpression & ')' | '=' & ValueExpression
 
@@ -790,11 +878,11 @@ namespace Dialect with (
 	DataType                  = TsqlDataType,
 	Predicate                 = TsqlPredicate)
 {
-	Select    : @SqlNode = q: Sql92.DirectSelect    => @(q)
-	Query     : @SqlNode = q: Sql92.QueryExpression => @(q)
-	Condition : @SqlNode = c: Sql92.SearchCondition => @(c)
-	Value     : @SqlNode = v: Sql92.ValueExpression => @(v)
-	Statement : @SqlNode = s: TsqlStatement         => @(s)
+	Select    : @Statement  = q: Sql92.DirectSelect    => @(q)
+	Query     : @Query      = q: Sql92.QueryExpression => @(q)
+	Condition : @Expression = c: Sql92.SearchCondition => @(c)
+	Value     : @Expression = v: Sql92.ValueExpression => @(v)
+	Statement : @Statement = s: TsqlStatement         => @(s)
 }
 
 parse Dialect.Select    as ParseSelect
@@ -817,36 +905,36 @@ parse Dialect.Statement as ParseStatement
 // number — would stop being one. There is no ambiguity to pay for it: a drawing appears
 // only inside `MATCH (…)`, so the two characters can be read as two and the only thing
 // admitted that nobody writes is a space between them.
-GraphMatch : @SqlNode
-	= "MATCH"i & '(' & p: GraphPattern & ')' => @(new SqlNode.Call("MATCH", p))
+GraphMatch : @Expression
+	= "MATCH"i & '(' & p: GraphPattern & ')' => @(new Expression.RoutineInvocation("MATCH", p))
 
-GraphPattern : @SqlNode[]
-	= first: GraphAnd & (',' & rest: GraphAnd)* => @(SqlNode.Listed(first, rest))
+GraphPattern : @Expression[]
+	= first: GraphAnd & (',' & rest: GraphAnd)* => @(Syntax.Listed(first, rest))
 
 // `AND` inside a drawing joins two drawings, and it is the only connective there is:
 // the syntax says `OR` and `NOT` are not supported in a pattern.
-GraphAnd : @SqlNode
+GraphAnd : @Expression
 	= first: GraphItem & ("AND"i & rest: GraphItem)* => @(first)
 
-GraphItem : @SqlNode
+GraphItem : @Expression
 	= "SHORTEST_PATH"i & '(' & p: GraphAnd & ')' => @(p)
 	| '(' & p: GraphAnd & ')'                    => @(p)
 	| p: GraphLengthPattern & n: GraphNode       => @(n)
 	| head: GraphNode & t: GraphItemTail         => @(head)
 
-GraphItemTail : @SqlNode
+GraphItemTail : @Expression
 	= '=' & n: GraphNode  => @(n)
 	| s: GraphStep+       => @(s[0])
 
-GraphStep : @SqlNode
+GraphStep : @Expression
 	= e: GraphEdge & n: GraphNode => @(n)
 	| p: GraphLengthPattern       => @(p)
 
 // A node is a table's name or the alias it was given in the `FROM` clause, and
 // `LAST_NODE` names the far end of a path rather than a table.
-GraphNode : @SqlNode
-	= "LAST_NODE"i & '(' & name: QualifiedName & ')' => @(new SqlNode.Column(name))
-	| name: QualifiedName                            => @(new SqlNode.Column(name))
+GraphNode : @Expression
+	= "LAST_NODE"i & '(' & name: QualifiedName & ')' => @(new Expression.ColumnReference(name))
+	| name: QualifiedName                            => @(new Expression.ColumnReference(name))
 
 // An edge points one way or the other and must say which.
 GraphEdge
@@ -856,7 +944,7 @@ GraphEdge
 // The pattern `SHORTEST_PATH` repeats, with the regular expression's own two quantifiers.
 // It is written edge first or node first, and the difference is which end the node that
 // bounds it stands at.
-GraphLengthPattern : @SqlNode
+GraphLengthPattern : @Expression
 	= '(' & s: GraphStep+ & ')' & GraphQuantifier => @(s[0])
 	| '(' & n: GraphNode & GraphEdge & ')' & GraphQuantifier => @(n)
 
@@ -875,13 +963,20 @@ GraphQuantifier = '+' | '{' & Sql92.Lexical.Digits & ',' & Sql92.Lexical.Digits 
 // `OPENJSON ( json [ , path ] ) [ WITH ( colName type [ path ] [ AS JSON ] , … ) ]`, and
 // `OPENXML`'s schema declaration, which is the same shape with a different fourth part.
 // The two are written as one rule because the syntax of the two is one shape.
-RowsetSchema = "WITH"i & '(' & SchemaColumn & (',' & SchemaColumn)* & ')'
-			 | "WITH"i & QualifiedName
+RowsetSchema : @Clause[]
+	= "WITH"i & '(' & first: SchemaColumn & (',' & rest: SchemaColumn)* & ')'
+		=> @(Syntax.Listed(first, rest))
+	| "WITH"i & name: QualifiedName
+		=> @(new Clause[] { new Clause.JsonColumn(name, null, null, false) })
 
-SchemaColumn = Identifier & DataType & SchemaPath? & SchemaAsJson?
+SchemaColumn : @Clause
+	= name: Identifier & type: DataType & path: SchemaPath? & json: SchemaAsJson?
+		=> @(new Clause.JsonColumn(name, type, path, json is not null))
 
-SchemaPath   = Sql92.Lexical.NationalCharacterStringLiteral
-			 | Sql92.Lexical.CharacterStringLiteral
+SchemaPath : @string
+	= t: Sql92.Lexical.NationalCharacterStringLiteral => @(t)
+	| t: Sql92.Lexical.CharacterStringLiteral         => @(t)
+
 SchemaAsJson = "AS"i & "JSON"i
 
 // What may stand where one of these functions takes an argument. The published syntax of
@@ -890,36 +985,39 @@ SchemaAsJson = "AS"i & "JSON"i
 // ordinary value. So the shape is written and the vocabulary is left open, exactly as it
 // is for the table hints and for the same reason: a name here is a catalogue's business,
 // and adding one to T-SQL does not change the grammar.
-RowsetArguments : @SqlNode[]
-	= first: RowsetArgument & (',' & rest: RowsetArgument)* => @(SqlNode.Listed(first, rest))
+RowsetArguments : @Expression[]
+	= first: RowsetArgument & (',' & rest: RowsetArgument)* => @(Syntax.Listed(first, rest))
 
-RowsetArgument : @SqlNode
-	= '*'                                        => @(new SqlNode.Star(null))
+RowsetArgument : @Expression
+	// A bare `*` here is every column of the source, which is what a column reference
+	// spelled `*` says — a select list's `<qualified asterisk>` is a clause and this is not
+	// in a select list.
+	= '*'                                        => @(new Expression.ColumnReference("*"))
 	| n: RowsetOrder                             => @(n)
-	| "BULK"i & v: RowsetValue                   => @(v)
-	| name: Identifier & '=' & v: RowsetValue    => @(new SqlNode.Selected(v, name))
-	| word: Identifier & v: RowsetValue          => @(v)
+	| word: "BULK"i & v: RowsetValue             => @(new Expression.Prefixed(word, v))
+	| name: Identifier & '=' & v: RowsetValue    => @(new Expression.NamedArgument(name, v))
+	| word: Identifier & v: RowsetValue          => @(new Expression.Prefixed(word, v))
 	| '(' & first: RowsetArgument & (',' & rest: RowsetArgument)* & ')'
-		=> @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+		=> @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
 	| v: RowsetValue                             => @(v)
 
 // `ORDER ( c1 ASC, c2 DESC ) [ UNIQUE ]` says a bulk source is already sorted.
-RowsetOrder : @SqlNode
+RowsetOrder : @Expression
 	= "ORDER"i & '(' & first: SortSpecification & (',' & rest: SortSpecification)* & ')'
-	  & "UNIQUE"i?
-		=> @(new SqlNode.Row(SqlNode.Listed(first, rest)))
+	  & unique: "UNIQUE"i?
+		=> @(new Expression.RowsetOrder(Syntax.Listed(first, rest), unique is not null))
 
 // A provider's arguments may be joined by semicolons rather than commas — a connection
 // string written as three pieces, which is `OPENROWSET`'s oldest spelling.
-RowsetValue : @SqlNode
+RowsetValue : @Expression
 	= v: ValueExpression & (';' & ValueExpression)+ => @(v)
-	| "NULL"i    => @(SqlNode.NullValue)
-	| "DEFAULT"i => @(SqlNode.DefaultValue)
+	| "NULL"i    => @(Expression.NullValue)
+	| "DEFAULT"i => @(Expression.DefaultValue)
 	| v: ValueExpression => @(v)
 
-RowsetFunction : @SqlNode
-	= name: RowsetName & '(' & args: RowsetArguments? & ')' & RowsetSchema?
-		=> @(new SqlNode.Call(name, args ?? SqlNode.None))
+RowsetFunction : @Expression.RoutineInvocation
+	= name: RowsetName & '(' & args: RowsetArguments? & ')'
+		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
 
 RowsetName
 	= "OPENROWSET"i | "OPENQUERY"i | "OPENDATASOURCE"i | "OPENXML"i | "OPENJSON"i
@@ -942,10 +1040,10 @@ RowsetName
 // them: SQL Server answers `A MERGE statement must be terminated by a semi-colon (;)`.
 // So it is read here where it stands rather than cut off before the parse — cutting it
 // off is what made every merge in the corpus look like a defect on this side.
-TsqlStatement : @SqlNode
-	= WithClause? & s: StatementBody & ';'? => @(s)
+TsqlStatement : @Statement
+	= with: WithClause? & s: StatementBody & ';'? => @(Syntax.Preceded(with, s))
 
-StatementBody : @SqlNode
+StatementBody : @Statement
 	= s: TsqlInsert   => @(s)
 	| s: TsqlUpdate   => @(s)
 	| s: TsqlDelete   => @(s)
@@ -955,107 +1053,107 @@ StatementBody : @SqlNode
 
 // What a statement writes to. Narrower than a table primary on purpose: the syntax gives
 // a target no correlation and no sample, and `UPDATE t AS x SET …` is not T-SQL.
-DmlTarget : @SqlNode
-	= f: RowsetFunction                 => @(f)
-	| t: Tsql.Variable & TableHints?    => @(new SqlNode.Column(t))
-	| name: QualifiedName & TableHints? => @(new SqlNode.Column(name))
+DmlTarget : @TableReference
+	= f: RowsetFunction                 => @(new TableReference.FunctionCall(f, null, null, Clause.None))
+	| t: Tsql.Variable & TableHints?    => @(new TableReference.Named(t, null, null, null, null, Clause.None))
+	| name: QualifiedName & TableHints? => @(new TableReference.Named(name, null, null, null, null, Clause.None))
 
 // ── §INSERT ─────────────────────────────────────────────────────────────────
-TsqlInsert : @SqlNode
+TsqlInsert : @Statement
 	= "INSERT"i & Top? & "INTO"i? & target: DmlTarget
 	  & ('(' & columns: ColumnList & ')')? & OutputClause?
 	  & rows: InsertRows
-		=> @(new SqlNode.Insert(target, columns, rows))
+		=> @(new Statement.Insert(target, columns, rows))
 
-InsertRows : @SqlNode
-	= "DEFAULT"i & "VALUES"i    => @(new SqlNode.Row(SqlNode.None))
+InsertRows : @Query
+	= "DEFAULT"i & "VALUES"i    => @(new Query.DefaultValues())
 	| v: TableValueConstructor  => @(v)
-	| e: ExecuteStatement       => @(e)
+	| e: ExecuteStatement       => @(new Query.FromExecute(e))
 	| q: QueryExpression        => @(q)
 
 // ── §UPDATE ─────────────────────────────────────────────────────────────────
-TsqlUpdate : @SqlNode
+TsqlUpdate : @Statement
 	= "UPDATE"i & Top? & target: DmlTarget
 	  & "SET"i & sets: Assignments & OutputClause?
 	  & from: FromClause? & where: DmlWhere? & QueryHints?
-		=> @(new SqlNode.Update(target, sets, from ?? SqlNode.None, where))
+		=> @(new Statement.Update(target, sets, from ?? TableReference.None, where))
 
-Assignments : @SqlNode[]
-	= first: Assignment & (',' & rest: Assignment)* => @(SqlNode.Listed(first, rest))
+Assignments : @Clause[]
+	= first: Assignment & (',' & rest: Assignment)* => @(Syntax.Listed(first, rest))
 
 // Everything the syntax allows on the left of a `SET`, which is more than a column: a
 // variable, a variable and a column at once, a member of a user-defined type, and a
 // method called on one. `.WRITE (…)` needs no rule of its own — a qualified name has
 // already eaten the dot, so what is left is a call.
-Assignment : @SqlNode
-	= to: Tsql.Variable   & v: AssignTail       => @(new SqlNode.Assign(to, null, v))
-	| to: QualifiedName   & v: ColumnAssignTail => @(new SqlNode.Assign(to, null, v))
+Assignment : @Clause
+	= to: Tsql.Variable   & v: AssignTail       => @(new Clause.Set(to, null, v))
+	| to: QualifiedName   & v: ColumnAssignTail => @(new Clause.Set(to, null, v))
 
 // `DEFAULT` is assigned and not compounded: the engine answers `DEFAULT is not allowed
 // on the right hand side of "-="`, which is a rule about the operator rather than about
 // the value, so it is written on the operator.
-AssignTail : @SqlNode
+AssignTail : @Expression
 	= '=' & c: QualifiedName & AssignOp & v: SetValue => @(v)
 	| '=' & v: AssignedValue                          => @(v)
 	| AssignOp & v: SetValue                          => @(v)
 
-ColumnAssignTail : @SqlNode
-	= '(' & args: Arguments? & ')' => @(args is null ? SqlNode.NullValue : args[0])
+ColumnAssignTail : @Expression
+	= '(' & args: Arguments? & ')' => @(args is null ? Expression.NullValue : args[0])
 	| '=' & v: AssignedValue       => @(v)
 	| AssignOp & v: SetValue       => @(v)
 
-AssignedValue : @SqlNode
-	= "DEFAULT"i => @(SqlNode.DefaultValue)
+AssignedValue : @Expression
+	= "DEFAULT"i => @(Expression.DefaultValue)
 	| v: SetValue => @(v)
 
-SetValue : @SqlNode
-	= "NULL"i    => @(SqlNode.NullValue)
+SetValue : @Expression
+	= "NULL"i    => @(Expression.NullValue)
 	| v: ValueExpression => @(v)
 
 // A `WHERE` that may name a cursor's current row instead of a condition.
-DmlWhere : @SqlNode
-	= "WHERE"i & "CURRENT"i & "OF"i & "GLOBAL"i? & name: QualifiedName => @(new SqlNode.Column(name))
+DmlWhere : @Expression
+	= "WHERE"i & "CURRENT"i & "OF"i & "GLOBAL"i? & name: QualifiedName => @(new Expression.ColumnReference(name))
 	| "WHERE"i & c: SearchCondition => @(c)
 
 // ── §DELETE ─────────────────────────────────────────────────────────────────
-TsqlDelete : @SqlNode
+TsqlDelete : @Statement
 	= "DELETE"i & Top? & "FROM"i? & target: DmlTarget & OutputClause?
 	  & from: FromClause? & where: DmlWhere? & QueryHints?
-		=> @(new SqlNode.Delete(target, from ?? SqlNode.None, where))
+		=> @(new Statement.Delete(target, from ?? TableReference.None, where))
 
 // ── §MERGE ──────────────────────────────────────────────────────────────────
 //
 // Three shapes of arm and they are not interchangeable: a match and a missing target may
 // insert, a missing source may update or delete, and the syntax says which is which.
-TsqlMerge : @SqlNode
+TsqlMerge : @Statement
 	= "MERGE"i & Top? & "INTO"i? & target: DmlTarget & ("AS"i? & alias: CorrelationName)?
 	  & "USING"i & source: TableReference
 	  & "ON"i & on: SearchCondition
 	  & whens: MergeArm+ & OutputClause? & QueryHints?
-		=> @(new SqlNode.Merge(target, source, on, whens))
+		=> @(new Statement.Merge(target, source, on, whens))
 
-MergeArm : @SqlNode
+MergeArm : @Clause
 	= "WHEN"i & "MATCHED"i & ("AND"i & c: SearchCondition)? & "THEN"i & a: MergeChange
-		=> @(new SqlNode.MergeWhen(true, null, c, a))
+		=> @(new Clause.MergeWhen(true, null, c, a))
 	| "WHEN"i & "NOT"i & "MATCHED"i & "BY"i & "SOURCE"i & ("AND"i & c: SearchCondition)?
 	  & "THEN"i & a: MergeChange
-		=> @(new SqlNode.MergeWhen(false, "SOURCE", c, a))
+		=> @(new Clause.MergeWhen(false, "SOURCE", c, a))
 	| "WHEN"i & "NOT"i & "MATCHED"i & ("BY"i & "TARGET"i)? & ("AND"i & c: SearchCondition)?
 	  & "THEN"i & a: MergeInsert
-		=> @(new SqlNode.MergeWhen(false, "TARGET", c, a))
+		=> @(new Clause.MergeWhen(false, "TARGET", c, a))
 
-MergeChange : @SqlNode
+MergeChange : @Statement
 	= "UPDATE"i & "SET"i & sets: Assignments
-		=> @(new SqlNode.Update(null, sets, SqlNode.None, null))
+		=> @(new Statement.Update(null, sets, TableReference.None, null))
 	| "DELETE"i
-		=> @(new SqlNode.Delete(null, SqlNode.None, null))
+		=> @(new Statement.Delete(null, TableReference.None, null))
 
-MergeInsert : @SqlNode
+MergeInsert : @Statement
 	= "INSERT"i & ('(' & columns: ColumnList & ')')? & rows: MergeInsertRows
-		=> @(new SqlNode.Insert(null, columns, rows))
+		=> @(new Statement.Insert(null, columns, rows))
 
-MergeInsertRows : @SqlNode
-	= "DEFAULT"i & "VALUES"i   => @(new SqlNode.Row(SqlNode.None))
+MergeInsertRows : @Query
+	= "DEFAULT"i & "VALUES"i   => @(new Query.DefaultValues())
 	| v: TableValueConstructor => @(v)
 
 // ── The output clause, shared by all four ───────────────────────────────────
@@ -1079,70 +1177,99 @@ OutputItem = QualifiedName & '.' & '*'
 //
 // Everything here was written from the published syntax and every form put to the engine.
 
-Procedural : @SqlNode
+// Split in two, and not for tidiness: with all of it in one rule the generator answered
+// GRAM5003 — one materializing method of 2,132 basic blocks, past the point where the JIT
+// stops optimizing and runs it several times slower than it needs to. Two rules are two
+// methods, and each is inside the budget. It is the first time this grammar has been large
+// enough for that to happen, and it will not be the last.
+Procedural : @Statement
+	= s: ControlStatement    => @(s)
+	| s: DefinitionStatement => @(s)
+
+ControlStatement : @Statement
 	= s: TryCatchStatement    => @(s)
 	| s: TransactionStatement => @(s)
 	| s: StatementBlock       => @(s)
 	| s: ConditionalStatement => @(s)
 	| s: LoopStatement        => @(s)
-	| s: DeclareStatement     => @(s)
-	| s: SetStatement         => @(s)
-	| s: ExecuteStatement     => @(s)
-	| s: BulkInsertStatement  => @(s)
 	| s: SimpleCommand        => @(s)
 
-StatementList : @SqlNode[] = s: TsqlStatement+ => @(s)
+DefinitionStatement : @Statement
+	= s: DeclareStatement     => @(s)
+	| s: SetStatement         => @(s)
+	| e: ExecuteStatement     => @(e)
+	| s: BulkInsertStatement  => @(s)
+	| s: CreateTableStatement => @(s)
+	| s: AlterTableStatement  => @(s)
+	| s: CreateRoutine        => @(s)
+	| s: CreateIndexStatement => @(s)
+	| s: AlterIndexStatement  => @(s)
+	| s: PermissionStatement  => @(s)
+	| s: AuditStatement          => @(s)
+	| s: KeyStatement            => @(s)
+	| s: FullTextStatement       => @(s)
+	| s: BackupStatement         => @(s)
+	| s: RestoreStatement        => @(s)
+	| s: CreateDatabaseStatement => @(s)
+	| s: AlterDatabaseStatement  => @(s)
+	| s: DropStatement           => @(s)
+	| s: PrincipalStatement      => @(s)
+	| s: ExternalStatement       => @(s)
+
+StatementList : @Statement[] = s: TsqlStatement+ => @(s)
 
 // `BEGIN TRY` and `BEGIN TRANSACTION` open with the same word as a block, so both stand
 // in front of it.
-TryCatchStatement : @SqlNode
+TryCatchStatement : @Statement
 	= "BEGIN"i & "TRY"i & tried: StatementList & "END"i & "TRY"i
 	  & "BEGIN"i & "CATCH"i & caught: StatementList & "END"i & "CATCH"i
-		=> @(new SqlNode.TryCatch(tried, caught))
+		=> @(new Statement.TryCatch(tried, caught))
 
-StatementBlock : @SqlNode
-	= "BEGIN"i & body: StatementList & "END"i => @(new SqlNode.Block(body))
+StatementBlock : @Statement
+	= "BEGIN"i & "ATOMIC"i & "WITH"i & '(' & OptionList & ')' & body: StatementList & "END"i
+		=> @(new Statement.Compound(body))
+	| "BEGIN"i & body: StatementList & "END"i => @(new Statement.Compound(body))
 
-ConditionalStatement : @SqlNode
+ConditionalStatement : @Statement
 	= "IF"i & c: SearchCondition & then: TsqlStatement & ("ELSE"i & other: TsqlStatement)?
-		=> @(new SqlNode.If(c, then, other))
+		=> @(new Statement.If(c, then, other))
 
-LoopStatement : @SqlNode
-	= "WHILE"i & c: SearchCondition & body: TsqlStatement => @(new SqlNode.While(c, body))
+LoopStatement : @Statement
+	= "WHILE"i & c: SearchCondition & body: TsqlStatement => @(new Statement.While(c, body))
 
 // ── Transactions ────────────────────────────────────────────────────────────
-TransactionStatement : @SqlNode
+TransactionStatement : @Statement
 	= "BEGIN"i & "DISTRIBUTED"i & TranWord & name: TranName? & TranMark?
-		=> @(new SqlNode.Transaction("BEGIN DISTRIBUTED", name))
+		=> @(new Statement.Transaction("BEGIN DISTRIBUTED", name))
 	| "BEGIN"i & TranWord & name: TranName? & TranMark?
-		=> @(new SqlNode.Transaction("BEGIN", name))
+		=> @(new Statement.Transaction("BEGIN", name))
 	| "COMMIT"i & TranWord? & name: TranName? & TranDelayed?
-		=> @(new SqlNode.Transaction("COMMIT", name))
+		=> @(new Statement.Transaction("COMMIT", name))
 	| "ROLLBACK"i & TranWord? & name: TranName?
-		=> @(new SqlNode.Transaction("ROLLBACK", name))
+		=> @(new Statement.Transaction("ROLLBACK", name))
 	| "SAVE"i & TranWord & name: TranName
-		=> @(new SqlNode.Transaction("SAVE", name))
+		=> @(new Statement.Transaction("SAVE", name))
 
 TranWord    = "TRANSACTION"i | "TRAN"i | "WORK"i
 TranMark    = "WITH"i & "MARK"i & ValueExpression?
-TranDelayed = "WITH"i & '(' & Identifier & '=' & Identifier & ')'
+TranDelayed = "WITH"i & '(' & OptionList & ')'
 
 TranName : @string = t: Identifier => @(t) | t: Tsql.Variable => @(t)
 
 // ── Declarations ────────────────────────────────────────────────────────────
-DeclareStatement : @SqlNode
+DeclareStatement : @Statement
 	= "DECLARE"i & name: Identifier & "CURSOR"i & CursorOption* & "FOR"i & CursorBody
-		=> @(new SqlNode.Declare(new SqlNode[] { new SqlNode.Declared(name, "CURSOR", null) }))
+		=> @(new Statement.Declare(new Clause[] { new Clause.VariableDeclaration(name, "CURSOR", null) }))
 	| "DECLARE"i & first: Declaration & (',' & rest: Declaration)*
-		=> @(new SqlNode.Declare(SqlNode.Listed(first, rest)))
+		=> @(new Statement.Declare(Syntax.Listed(first, rest)))
 
-Declaration : @SqlNode
+Declaration : @Clause
 	= name: Tsql.Variable & "AS"i? & d: DeclaredAs => @(d with { Name = name })
 
-DeclaredAs : @SqlNode.Declared
-	= "TABLE"i & '(' & TableBody & ')'          => @(new SqlNode.Declared("", "TABLE", null))
-	| "CURSOR"i                                 => @(new SqlNode.Declared("", "CURSOR", null))
-	| type: DataType & ('=' & v: SetValue)?     => @(new SqlNode.Declared("", type, v))
+DeclaredAs : @Clause.VariableDeclaration
+	= "TABLE"i & '(' & TableBody & ')'                    => @(new Clause.VariableDeclaration("", "TABLE", null))
+	| "CURSOR"i                                           => @(new Clause.VariableDeclaration("", "CURSOR", null))
+	| type: DataType & NullSpec? & ('=' & v: SetValue)?   => @(new Clause.VariableDeclaration("", type, v))
 
 CursorOption = "LOCAL"i | "GLOBAL"i | "FORWARD_ONLY"i | "SCROLL"i | "STATIC"i | "KEYSET"i
 			 | "DYNAMIC"i | "FAST_FORWARD"i | "READ_ONLY"i | "SCROLL_LOCKS"i | "OPTIMISTIC"i
@@ -1152,62 +1279,52 @@ CursorBody = QueryExpression & OrderByClause? & CursorFor?
 CursorFor  = "FOR"i & "UPDATE"i & ("OF"i & ColumnList)?
 		   | "FOR"i & "READ"i & "ONLY"i
 
-// The columns a table variable declares, which is the beginning of `CREATE TABLE` and
-// meant to grow into it.
-TableBody    = TableElement & (',' & TableElement)*
-TableElement     = Identifier & TableElementTail
-TableElementTail = "AS"i & ValueExpression & ColumnOption*
-				 | DataType & ColumnOption*
-
-ColumnOption = "NOT"i & "NULL"i
-			 | "NULL"i
-			 | "PRIMARY"i & "KEY"i & IndexOrder? & ('(' & ColumnList & ')')?
-			 | "UNIQUE"i & IndexOrder? & ('(' & ColumnList & ')')?
-			 | "IDENTITY"i & ('(' & Arguments & ')')?
-			 | "DEFAULT"i & ValueExpression
-			 | "COLLATE"i & QualifiedName
-			 | "CHECK"i & '(' & SearchCondition & ')'
-			 | "ROWGUIDCOL"i
-			 | "SPARSE"i
-			 | "FILESTREAM"i
-			 | "PERSISTED"i
-			 | "INDEX"i & Identifier & IndexOrder?
-
 IndexOrder = "CLUSTERED"i | "NONCLUSTERED"i
+
+// `GENERATED ALWAYS AS { ROW | TRANSACTION_ID | SEQUENCE_NUMBER } { START | END }`, and
+// `END` is a reserved word — so the two ends are named rather than read as identifiers,
+// which is what the published syntax says they are anyway.
+GeneratedWhat = word
+GeneratedWhen = word
 
 // ── SET ─────────────────────────────────────────────────────────────────────
 //
 // Two statements share the word: one assigns a variable, the other names a setting. The
 // options that are reserved words stand in front, since the general form reads a name.
-SetStatement : @SqlNode
+SetStatement : @Statement
 	= "SET"i & "TRANSACTION"i & "ISOLATION"i & "LEVEL"i & level: IsolationLevel
-		=> @(new SqlNode.Setting("TRANSACTION ISOLATION LEVEL", new SqlNode.Column(level)))
-	| "SET"i & "IDENTITY_INSERT"i & name: QualifiedName & OnOff
-		=> @(new SqlNode.Setting("IDENTITY_INSERT", new SqlNode.Column(name)))
+		=> @(new Statement.SetTransactionIsolationLevel(level))
+	| "SET"i & "IDENTITY_INSERT"i & name: QualifiedName & on: OnOff
+		=> @(new Statement.SetIdentityInsert(name, Syntax.Switched(on)))
 	| "SET"i & option: SetReserved & v: ValueExpression
-		=> @(new SqlNode.Setting(option, v))
+		=> @(new Statement.SetCommand(option, v))
 	| "SET"i & name: Tsql.Variable & v: AssignTail
-		=> @(new SqlNode.Assign(name, null, v))
-	| "SET"i & option: SetOptions & OnOff?
-		=> @(new SqlNode.Setting(option, null))
+		=> @(new Statement.SetVariable(name, v))
+	| "SET"i & first: SetOption & (',' & rest: SetOption)* & on: OnOff
+		=> @(new Statement.SetOption(Syntax.Named(first, rest), Syntax.Switched(on)))
+	| "SET"i & option: SetOptions & v: ValueExpression
+		=> @(new Statement.SetCommand(option, v))
+	| "SET"i & option: SetOptions
+		=> @(new Statement.SetCommand(option, null))
 
 SetReserved = "ROWCOUNT"i | "TEXTSIZE"i | "OFFSETS"i | "STATISTICS"i | "USER"i
+SetOption : @string = t: Identifier => @(t)
 SetOptions  = Identifier & (',' & Identifier)*
-OnOff       = "ON"i | "OFF"i
+OnOff : @string = "ON"i => @("ON") | "OFF"i => @("OFF")
 
 IsolationLevel = "READ"i & "UNCOMMITTED"i | "READ"i & "COMMITTED"i | "REPEATABLE"i & "READ"i
 			   | "SNAPSHOT"i | "SERIALIZABLE"i
 
 // ── EXECUTE ─────────────────────────────────────────────────────────────────
-ExecuteStatement : @SqlNode = ExecWord & e: ExecuteBody => @(e)
+ExecuteStatement : @Statement.Execute = ExecWord & e: ExecuteBody => @(e)
 
-ExecuteBody : @SqlNode
+ExecuteBody : @Statement.Execute
 	= "AS"i & Identifier & '=' & ValueExpression & ExecWith?
-		=> @(new SqlNode.Execute(null, "AS", SqlNode.None))
+		=> @(new Statement.Execute(null, "AS", Expression.None))
 	| '(' & args: Arguments & ')' & ExecAt? & ExecWith?
-		=> @(new SqlNode.Execute(null, "(", args))
+		=> @(new Statement.Execute(null, "(", args))
 	| into: ExecReturn? & name: ExecName & args: ExecArguments? & ExecAt? & ExecWith?
-		=> @(new SqlNode.Execute(into, name, args ?? SqlNode.None))
+		=> @(new Statement.Execute(into, name, args ?? Expression.None))
 
 ExecWord   = "EXECUTE"i | "EXEC"i
 ExecReturn : @string = t: Tsql.Variable & '=' => @(t)
@@ -1218,27 +1335,27 @@ ExecOption = "RESULT"i & "SETS"i & "NONE"i
 		   | "RESULT"i & "SETS"i & "UNDEFINED"i
 		   | Identifier
 
-ExecArguments : @SqlNode[]
-	= first: ExecArgument & (',' & rest: ExecArgument)* => @(SqlNode.Listed(first, rest))
+ExecArguments : @Expression[]
+	= first: ExecArgument & (',' & rest: ExecArgument)* => @(Syntax.Listed(first, rest))
 
 // The lookahead is the fifth of its kind and the first that is not about a name: `AT` is
 // not reserved, so `EXEC dbo.p AT linked` read `AT` as an argument and then wanted the
 // clause it had just eaten. The shape is the same wherever an optional list stands in
 // front of a clause whose first word could belong to the list.
-ExecArgument : @SqlNode
-	= name: Tsql.Variable & '=' & v: ExecValue & "OUTPUT"i? => @(new SqlNode.Selected(v, name))
+ExecArgument : @Expression
+	= name: Tsql.Variable & '=' & v: ExecValue & "OUTPUT"i? => @(new Expression.NamedArgument(name, v))
 	| ?!"AT"i & v: ExecValue & "OUTPUT"i?                   => @(v)
 
-ExecValue : @SqlNode
-	= "DEFAULT"i => @(SqlNode.DefaultValue)
-	| "NULL"i    => @(SqlNode.NullValue)
+ExecValue : @Expression
+	= "DEFAULT"i => @(Expression.DefaultValue)
+	| "NULL"i    => @(Expression.NullValue)
 	| v: ValueExpression => @(v)
 
 // ── BULK INSERT ─────────────────────────────────────────────────────────────
-BulkInsertStatement : @SqlNode
+BulkInsertStatement : @Statement
 	= "BULK"i & "INSERT"i & target: DmlTarget & "FROM"i & file: ValueExpression
 	  & ("WITH"i & '(' & BulkOption & (',' & BulkOption)* & ')')?
-		=> @(new SqlNode.Insert(target, null, file))
+		=> @(new Statement.Insert(target, null, new Query.FromFile(file)))
 
 BulkOption = "ORDER"i & '(' & SortSpecification & (',' & SortSpecification)* & ')'
 		   | Identifier & BulkOptionTail?
@@ -1246,21 +1363,1417 @@ BulkOption = "ORDER"i & '(' & SortSpecification & (',' & SortSpecification)* & '
 BulkOptionTail = '=' & ValueExpression | '(' & Arguments & ')'
 
 // ── A word and some values ──────────────────────────────────────────────────
-SimpleCommand : @SqlNode
-	= "PRINT"i & v: ValueExpression      => @(new SqlNode.Command("PRINT", new SqlNode[] { v }))
-	| "RETURN"i & v: ValueExpression?    => @(new SqlNode.Command("RETURN", v is null ? SqlNode.None : new SqlNode[] { v }))
-	| "THROW"i & args: Arguments?        => @(new SqlNode.Command("THROW", args ?? SqlNode.None))
-	| "GOTO"i & name: Identifier         => @(new SqlNode.Command("GOTO", new SqlNode[] { new SqlNode.Column(name) }))
-	| "BREAK"i                           => @(new SqlNode.Command("BREAK", SqlNode.None))
-	| "CONTINUE"i                        => @(new SqlNode.Command("CONTINUE", SqlNode.None))
-	| "CHECKPOINT"i & v: ValueExpression? => @(new SqlNode.Command("CHECKPOINT", v is null ? SqlNode.None : new SqlNode[] { v }))
-	| "USE"i & name: QualifiedName       => @(new SqlNode.Command("USE", new SqlNode[] { new SqlNode.Column(name) }))
+SimpleCommand : @Statement
+	= "PRINT"i & v: ValueExpression      => @(Statement.Commanded("PRINT", v))
+	| "RETURN"i & v: ValueExpression?    => @(Statement.Commanded("RETURN", v))
+	| "THROW"i & args: Arguments?        => @(Statement.Commanded("THROW", args))
+	| "GOTO"i & name: Identifier         => @(Statement.Commanded("GOTO", new Expression.ColumnReference(name)))
+	| "BREAK"i                           => @(Statement.Commanded("BREAK", (Expression?)null))
+	| "CONTINUE"i                        => @(Statement.Commanded("CONTINUE", (Expression?)null))
+	| "CHECKPOINT"i & v: ValueExpression? => @(Statement.Commanded("CHECKPOINT", v))
+	| "USE"i & name: QualifiedName       => @(Statement.Commanded("USE", new Expression.ColumnReference(name)))
 	| "RAISERROR"i & '(' & args: Arguments & ')' & RaiseWith?
-		=> @(new SqlNode.Command("RAISERROR", args))
+		=> @(Statement.Commanded("RAISERROR", args))
 	| "RAISERROR"i & args: Arguments & RaiseWith?
-		=> @(new SqlNode.Command("RAISERROR", args))
+		=> @(Statement.Commanded("RAISERROR", args))
 	| "WAITFOR"i & WaitKind & v: ValueExpression
-		=> @(new SqlNode.Command("WAITFOR", new SqlNode[] { v }))
+		=> @(Statement.Commanded("WAITFOR", v))
 
 RaiseWith = "WITH"i & Identifier & (',' & Identifier)*
 WaitKind  = "DELAY"i | "TIME"i
+
+// ── CREATE TABLE, and the column definitions everything shares ──────────────
+//
+// The largest single kind in the corpus, and the one that pulls the most behind it: a
+// column definition is what `ALTER TABLE … ADD` adds and what `ALTER TABLE … ALTER COLUMN`
+// changes, and the table body a variable declares is the same thing smaller.
+//
+// The option lists — `WITH (DATA_COMPRESSION = PAGE, …)`, `WITH (FILLFACTOR = 80)` — are
+// written as a shape with an open vocabulary, as the table hints are and for the same
+// reason: the names are a catalogue, and adding one to T-SQL does not change the grammar.
+// `AS FileTable` stands before the columns and `AS NODE` after them, which is two
+// syntaxes rather than one written twice; and a file table has no columns at all, its
+// shape being the one the feature gives it.
+CreateTableStatement : @Statement
+	= "CREATE"i & "TABLE"i & name: QualifiedName & ('(' & columns: ColumnList & ')')?
+	  & OptionsWith & "AS"i & q: DirectSelect
+		=> @(new Statement.CreateTableAsSelect(name, q))
+	| "CREATE"i & "TABLE"i & name: QualifiedName & TableAs? & '(' & body: TableBody & ')'
+	  & TableAs? & TablePlacement* & OptionsWith?
+		=> @(new Statement.TableDefinition(name, body))
+	| "CREATE"i & "TABLE"i & name: QualifiedName & TableAs & TablePlacement* & OptionsWith?
+		=> @(new Statement.TableDefinition(name, Clause.None))
+
+TableAs = "AS"i & Identifier
+
+TablePlacement = "ON"i & PlacementTarget
+			   | "TEXTIMAGE_ON"i & PlacementTarget
+			   | "FILESTREAM_ON"i & PlacementTarget
+
+PlacementTarget = "DEFAULT"i
+				| Sql92.Lexical.CharacterStringLiteral
+				| Sql92.Lexical.DelimitedIdentifier
+				| Identifier & ('(' & ColumnList & ')')?
+
+OptionsWith = "WITH"i & '(' & OptionList & ')'
+OptionList  = OptionSetting & (',' & OptionSetting)*
+
+OptionSetting = "DEFAULT"i & '=' & OptionValue
+			  | "MOVE"i & "TO"i & PlacementTarget
+
+			  // `AFFINITY SCHEDULER = AUTO`, `AFFINITY CPU = (0 TO 3)`,
+			  // `AFFINITY NUMANODE = (0)` — a value that is itself a name and a value.
+			  | "AFFINITY"i & word? & '=' & AffinityValue
+
+			  // `RESAMPLE ON PARTITIONS (1, 3 TO 5)`: a name and a placement.
+			  | OptionName & OnPartitions
+
+			  // `SAMPLE 50 PERCENT`, `SAMPLE 12 ROWS`. A run of words would read it whole
+			  // and does not: a number is a lexeme whose class holds a `.`, so it is not a
+			  // word however much §4.6 says a digit continues one.
+			  | "SAMPLE"i & ValueExpression & SampleUnit?
+			  | "PARTITION"i & '(' & Identifier & "RANGE"i & LeftOrRight?
+				& "FOR"i & "VALUES"i & '(' & Arguments? & ')' & ')'
+			  | OptionName & OptionTail?
+
+// An option's name is not an identifier: `WITH (FILLFACTOR = 80)` names a word T-SQL
+// reserves, and so do a dozen others. Nothing about it is a name of this language — it is
+// a word standing inside brackets where only a word can stand — and that is what `word`
+// says (§4.6). It was twelve reserved words written out beside `Identifier`, which was a
+// catalogue of what SQL Server happened to have called its options and went stale on its
+// own.
+//
+// A run of them, because the published syntax says a run in four places: `MOVE TO`,
+// `CLUSTERED COLUMNSTORE INDEX`, `TRANSACTION ISOLATION LEVEL = SNAPSHOT` inside a
+// `BEGIN ATOMIC WITH`, and every one of the two hundred database settings. Where it ends
+// is the syntax: `ON` and `OFF` are what an option is set to rather than part of its
+// name, and `WITH` begins the clause after the list.
+OptionName = OptionWord+
+
+OptionWord = ?!OptionEnd & word
+OptionEnd  = "WITH"i | OnOff
+
+// Two words at least, which is what tells a run from a name: one word is a name and a
+// qualified one begins with a word, so a run of one would take `dbo` out of `dbo.h`.
+// And a run of words is a value only where the comma or the bracket proves the run ended.
+// Without that it takes the clause after an unbracketed list — `ALGORITHM = AES_256
+// ENCRYPTION BY PASSWORD = 'p'` read the encryption as three more words of the algorithm.
+// Where the list ends at the terminator its last value is one word, which is every value a
+// list without brackets is written with.
+OptionWords = OptionWord & OptionWord+ & ?=(',' | ')')
+
+// A bare `ON` is a value only where the list goes on or ends. `CREATE INDEX … WITH
+// PAD_INDEX ON ps (a)` is the old unbracketed `WITH` and then a placement, and without the
+// lookahead the `ON` was read as what `PAD_INDEX` is set to — which GRAM5009 said, and the
+// engine confirmed by refusing what came out.
+OptionTail = '=' & OptionValue & OnPartitions?
+		   | OnOff & SwitchTail
+		   | '(' & OptionList & ')'
+
+// Said as a refusal rather than as a demand, because a list without brackets ends at the
+// terminator and a lookahead for a comma would refuse its last option. What a bare switch
+// may not be followed by is a placement: `WITH PAD_INDEX ON ps (a)` is an option and then
+// the filegroup it goes on, and `WITH TRUSTWORTHY ON` is an option set to on.
+SwitchTail = '(' & OptionList & ')' | ?!PlacementTarget
+
+// Typed, because what a setting is set to is the interesting half of `SET MAXDOP = 4`
+// and the only half a name does not already say. `ON` and `OFF` are values here and not
+// words of the language, so they arrive as themselves.
+OptionValue : @Expression
+	= "NULL"i => @(Expression.NullValue)
+	| "OFF"i & ('(' & OptionList & ')')? => @(new Expression.ColumnReference("OFF"))
+	| "ON"i  & ('(' & OptionList & ')')? => @(new Expression.ColumnReference("ON"))
+	| name: Identifier & '(' & OptionList & ')' => @(new Expression.ColumnReference(name))
+	| '(' & OptionList & ')' => @(Expression.NullValue)
+	| '(' & Sql92.Lexical.UnsignedNumericLiteral+ & ')' => @(Expression.NullValue)
+	| '(' & Arguments & ')'  => @(Expression.NullValue)
+
+	// A run of words, which several protocols spell their settings with:
+	// `AUTHENTICATION = WINDOWS NTLM CERTIFICATE c`, `ENCRYPTION = SUPPORTED ALGORITHM AES
+	// RC4`. In front of the expression, since a word is one and the run is longer; it stops
+	// where an option's name does, which is what leaves `PAGE ON PARTITIONS (…)` alone.
+	| w: OptionWords => @(new Expression.ColumnReference(w))
+
+	| v: ValueExpression & OptionUnit? => @(v)
+
+	// And one word behind the expression, for the words a value may be that a name may
+	// not: `MAXDOP = PRIMARY`, `QUERY_CAPTURE_MODE = ALL`.
+	| w: word => @(new Expression.ColumnReference(w))
+
+// A catalogue, and here the catalogue is the syntax: a unit is one of the words the
+// language has for a size or a span, and nothing else may stand after a value. It was any
+// identifier, and then `SET b = 5, c = 10 ACTION (…)` read `ACTION` as the unit of ten and
+// lost the clause behind it — the same trap an optional at the end of a rule always is.
+OptionUnit = "KB"i | "MB"i | "GB"i | "TB"i | "PB"i
+		   | "SECOND"i | "SECONDS"i | "MINUTE"i | "MINUTES"i | "HOUR"i | "HOURS"i
+		   | "DAY"i | "DAYS"i | "WEEK"i | "WEEKS"i | "MONTH"i | "MONTHS"i
+		   | "YEAR"i | "YEARS"i
+		   | "PERCENT"i | "ROWS"i
+		   | '%'
+
+AffinityValue  = "AUTO"i
+			   | '(' & PartitionRange & (',' & PartitionRange)* & ')'
+			   | word & '=' & '(' & PartitionRange & (',' & PartitionRange)* & ')'
+
+OnPartitions   = "ON"i & "PARTITIONS"i & '(' & PartitionRange & (',' & PartitionRange)* & ')'
+PartitionRange = ValueExpression & ("TO"i & ValueExpression)?
+
+// ── The body ────────────────────────────────────────────────────────────────
+TableBody : @Clause[]
+	= first: TableElement & (',' & rest: TableElement)* => @(Syntax.Listed(first, rest))
+
+TableElement : @Clause
+	= "PERIOD"i & "FOR"i & "SYSTEM_TIME"i & '(' & columns: ColumnList & ')'
+		=> @(Clause.Constrained("PERIOD", columns, null))
+	| i: TableIndex                                => @(i)
+	| "CONSTRAINT"i & name: Identifier & c: ConstraintBody => @(c with { Name = name })
+	| c: ConstraintBody                            => @(c)
+	| f: ColumnDefinition                          => @(f)
+
+ColumnDefinition : @Clause
+	= name: Identifier & f: ColumnBody => @(f with { Name = name })
+
+ColumnBody : @Clause.ColumnDefinition
+	= "AS"i & v: ValueExpression & ColumnTail*
+		=> @(new Clause.ColumnDefinition("", null, v, Clause.None))
+	| type: DataType & ColumnTail*
+		=> @(new Clause.ColumnDefinition("", type, null, Clause.None))
+
+// What may be said about a column after its type. Read and dropped, all of it: none of it
+// says what the column is, and the tree holds the name, the type and the expression.
+ColumnTail
+	= "FILESTREAM"i
+	| "COLLATE"i & QualifiedName
+	| "SPARSE"i
+	| "HIDDEN"i
+	| "MASKED"i & "WITH"i & '(' & OptionList & ')'
+	| "IDENTITY"i & ('(' & Arguments & ')')?
+	| "NOT"i & "FOR"i & "REPLICATION"i
+	| "NOT"i & "NULL"i
+	| "NULL"i
+	| "GENERATED"i & "ALWAYS"i & "AS"i & GeneratedWhat & GeneratedWhen & "HIDDEN"i?
+	| "ROWGUIDCOL"i
+	| "ENCRYPTED"i & "WITH"i & '(' & OptionList & ')'
+	| "PERSISTED"i
+	| "COLUMN_SET"i & "FOR"i & "ALL_SPARSE_COLUMNS"i
+	| "CONSTRAINT"i & Identifier & NamedConstraint
+	| c: ConstraintBody
+	| i: TableIndex
+
+// The published syntax gives a nullability a constraint name of its own, and nothing else
+// about a nullability suggests it can have one.
+NamedConstraint = NullSpec | ConstraintBody
+
+NullSpec = "NOT"i & "NULL"i | "NULL"i
+
+// ── Constraints ─────────────────────────────────────────────────────────────
+ConstraintBody : @Clause.ConstraintDefinition
+	= "PRIMARY"i & "KEY"i & IndexOrder? & "HASH"i? & columns: IndexColumns?
+	  & IndexWith? & IndexOn? & Enforced?
+		=> @(Clause.Constrained("PRIMARY KEY", columns, null))
+	| "UNIQUE"i & IndexOrder? & "HASH"i? & columns: IndexColumns?
+	  & IndexWith? & IndexOn? & Enforced?
+		=> @(Clause.Constrained("UNIQUE", columns, null))
+	| "FOREIGN"i & "KEY"i & columns: IndexColumns? & References & Enforced?
+		=> @(Clause.Constrained("FOREIGN KEY", columns, null))
+	| References & Enforced?
+		=> @(Clause.Constrained("REFERENCES", null, null))
+	| "CHECK"i & ("NOT"i & "FOR"i & "REPLICATION"i)? & '(' & c: SearchCondition & ')'
+		=> @(Clause.Constrained("CHECK", null, c))
+	| "CONNECTION"i & '(' & EdgePair & (',' & EdgePair)* & ')' & ReferenceAction*
+		=> @(Clause.Constrained("CONNECTION", null, null))
+	| "DEFAULT"i & v: ValueExpression & ("FOR"i & Identifier)?
+		=> @(Clause.Constrained("DEFAULT", null, v))
+
+// A key a warehouse declares and does not check. Not the box's syntax and refused there,
+// which is where the version chain will put it.
+Enforced = "NOT"i? & "ENFORCED"i
+
+// Which node tables an edge may join, which is the one constraint only a graph has.
+EdgePair = QualifiedName & "TO"i & QualifiedName
+
+References      = "REFERENCES"i & QualifiedName & ('(' & ColumnList & ')')? & ReferenceAction*
+ReferenceAction = "ON"i & DeleteOrUpdate & RefAction
+				| "NOT"i & "FOR"i & "REPLICATION"i
+
+DeleteOrUpdate = "DELETE"i | "UPDATE"i
+RefAction      = "NO"i & "ACTION"i | "CASCADE"i | "SET"i & "NULL"i | "SET"i & "DEFAULT"i
+
+IndexColumns : @string[] = '(' & first: IndexColumn & (',' & rest: IndexColumn)* & ')'
+	=> @(Syntax.Named(first, rest))
+
+IndexColumn : @string = t: IndexName & ("ASC"i | "DESC"i)? => @(t)
+
+// `$NODE_ID` and its fellows are columns a graph table has that nobody declared, and an
+// index may be built on one.
+IndexName : @string = t: Identifier => @(t) | t: PartitionName => @(t)
+
+// The current form and the one that predates it: `WITH (FILLFACTOR = 80, ONLINE = ON)`
+// and the bare `WITH PAD_INDEX, FILLFACTOR = 80` SQL Server still reads.
+IndexWith = "WITH"i & '(' & OptionList & ')'
+		  | "WITH"i & OptionList
+
+IndexOn = "ON"i & PlacementTarget
+
+// ── An index written inside the table ───────────────────────────────────────
+TableIndex : @Clause
+	= "INDEX"i & name: Identifier & "UNIQUE"i? & IndexOrder? & "COLUMNSTORE"i? & "HASH"i?
+	  & columns: IndexColumns?
+	  & ("ORDER"i & '(' & ColumnList & ')')?
+	  & ("INCLUDE"i & '(' & ColumnList & ')')?
+	  & ("WHERE"i & SearchCondition)?
+	  & IndexWith? & IndexOn? & ("FILESTREAM_ON"i & PlacementTarget)?
+		=> @(new Clause.ConstraintDefinition(name, "INDEX", columns, null))
+
+// ── ALTER TABLE ─────────────────────────────────────────────────────────────
+//
+// Nine actions and they share nothing but the header, so the header is read once and each
+// action says which it is. What the tree keeps is the table, the word, and the elements
+// where the action has any.
+AlterTableStatement : @Statement
+	= "ALTER"i & "TABLE"i & name: QualifiedName & a: AlterTableAction
+		=> @(a with { Name = name })
+
+AlterTableAction : @Statement.AlterTable
+	= "ADD"i & c: ConstraintBody & "FOR"i & Identifier
+		=> @(Statement.Altered("ADD", new Clause[] { c }))
+	| "ADD"i & "CONSTRAINT"i & name: Identifier & c: ConstraintBody & "FOR"i & Identifier
+		=> @(Statement.Altered("ADD", new Clause[] { c with { Name = name } }))
+	| "ADD"i & body: TableBody
+		=> @(Statement.Altered("ADD", body))
+	| "WITH"i & CheckWord & "ADD"i & body: TableBody
+		=> @(Statement.Altered("ADD", body))
+	| "ALTER"i & "COLUMN"i & column: ColumnDefinition & OptionsWith?
+		=> @(Statement.Altered("ALTER COLUMN", new Clause[] { column }))
+	| "ALTER"i & "COLUMN"i & name: Identifier & flag: AlterColumnWord & OptionsWith?
+		=> @(Statement.Altered("ALTER COLUMN", null))
+	| "DROP"i & first: DropTarget & (',' & rest: DropTarget)*
+		=> @(Statement.Altered("DROP", Syntax.Listed(first, rest)))
+	| CheckWord & "CONSTRAINT"i & ConstraintNames
+		=> @(Statement.Altered("CHECK", null))
+	| EnableWord & "TRIGGER"i & ConstraintNames
+		=> @(Statement.Altered("TRIGGER", null))
+	| EnableWord & "CHANGE_TRACKING"i & OptionsWith?
+		=> @(Statement.Altered("CHANGE_TRACKING", null))
+	| EnableWord & "FILETABLE_NAMESPACE"i
+		=> @(Statement.Altered("FILETABLE_NAMESPACE", null))
+	| "ALTER"i & "INDEX"i & Identifier & "REBUILD"i & IndexOrder? & OptionsWith?
+		=> @(Statement.Altered("ALTER INDEX", null))
+	| SplitOrMerge & "RANGE"i & '(' & SetValue & ')'
+		=> @(Statement.Altered("RANGE", null))
+	| "SET"i & '(' & OptionList & ')'
+		=> @(Statement.Altered("SET", null))
+	| "REBUILD"i & ("PARTITION"i & '=' & PartitionWhich)? & OptionsWith?
+		=> @(Statement.Altered("REBUILD", null))
+	| "SWITCH"i & ("PARTITION"i & ValueExpression)? & "TO"i & QualifiedName
+	  & ("PARTITION"i & ValueExpression)? & OptionsWith?
+		=> @(Statement.Altered("SWITCH", null))
+
+AlterColumnWord  = "ADD"i & AlterColumnFlag | "DROP"i & AlterColumnFlag
+
+AlterColumnFlag  = "MASKED"i & ("WITH"i & '(' & OptionList & ')')?
+				 | "HIDDEN"i
+				 | ColumnTail
+CheckWord        = "CHECK"i | "NOCHECK"i
+SplitOrMerge     = "SPLIT"i | "MERGE"i
+LeftOrRight      = "LEFT"i | "RIGHT"i
+EnableWord       = "ENABLE"i | "DISABLE"i
+ConstraintNames  = "ALL"i | Identifier & (',' & Identifier)*
+PartitionWhich   = "ALL"i | ValueExpression
+
+DropTarget : @Clause
+	= "COLUMN"i & name: Identifier     => @(Clause.Marked("COLUMN", name))
+	| "CONSTRAINT"i & IfExists? & name: Identifier & OptionsWith?
+		=> @(Clause.Marked("CONSTRAINT", name))
+	| "INDEX"i & name: Identifier      => @(Clause.Marked("INDEX", name))
+	| "PERIOD"i & "FOR"i & "SYSTEM_TIME"i => @(Clause.Marked("PERIOD", null))
+	| name: Identifier & OptionsWith?  => @(Clause.Marked("CONSTRAINT", name))
+
+IfExists = "IF"i & "EXISTS"i
+
+// ── The routines: a header and a body ───────────────────────────────────────
+//
+// Four statements that could not be read at all until the procedural level was written,
+// because each of them is a header and then whatever T-SQL somebody put inside it. That
+// is 341 statements of the corpus, and the body is the part that was already done.
+//
+// `CREATE OR ALTER` is one word in front of all four, so it is read once.
+CreateRoutine : @Statement
+	= "CREATE"i & OrAlter? & r: RoutineBody => @(r)
+	| "ALTER"i & r: RoutineBody             => @(r)
+
+OrAlter = "OR"i & "ALTER"i
+
+RoutineBody : @Statement
+	= p: ProcedureStatement => @(p)
+	| f: FunctionStatement  => @(f)
+	| g: TriggerStatement   => @(g)
+	| v: ViewStatement      => @(v)
+
+// ── CREATE PROCEDURE ────────────────────────────────────────────────────────
+ProcedureStatement : @Statement
+	= ProcWord & name: QualifiedName & (';' & Sql92.Lexical.Digits)?
+	  & parameters: RoutineParameters? & RoutineOptions? & ("FOR"i & "REPLICATION"i)?
+	  & "AS"i & body: RoutineTail
+		=> @(new Statement.CreateProcedure(name, parameters ?? Clause.None, body))
+
+ProcWord = "PROCEDURE"i | "PROC"i
+
+// The parentheses are optional, which is why a parameter list is a rule rather than a
+// bracketed one: `CREATE PROCEDURE p @a INT AS …` is as good as `p (@a INT)`.
+RoutineParameters : @Clause[]
+	= '(' & ')' => @(Clause.None)
+	| '(' & first: RoutineParameter & (',' & rest: RoutineParameter)* & ')'
+		=> @(Syntax.Listed(first, rest))
+	| first: RoutineParameter & (',' & rest: RoutineParameter)*
+		=> @(Syntax.Listed(first, rest))
+
+RoutineParameter : @Clause
+	= name: Tsql.Variable & "AS"i? & type: DataType & "VARYING"i? & NullSpec?
+	  & ('=' & v: SetValue)? & ParameterWay*
+		=> @(new Clause.ParameterDeclaration(name, type, v))
+
+ParameterWay = "OUTPUT"i | "OUT"i | "READONLY"i
+
+RoutineOptions = "WITH"i & RoutineOption & (',' & RoutineOption)*
+
+RoutineOption = "EXECUTE"i & "AS"i & ExecuteAsWho
+			  | "RETURNS"i & "NULL"i & "ON"i & "NULL"i & "INPUT"i
+			  | "CALLED"i & "ON"i & "NULL"i & "INPUT"i
+
+			  // One word and not a run of them, unlike an option inside brackets: this
+			  // list is not bracketed and `AS` follows it, so a run would take the `AS`
+			  // and the body behind it. What the published syntax names here is one word
+			  // anyway — `ENCRYPTION`, `SCHEMABINDING`, `NATIVE_COMPILATION`, `INLINE = ON`.
+			  | word & OptionTail?
+
+ExecuteAsWho = "CALLER"i | "SELF"i | "OWNER"i
+			 | Sql92.Lexical.CharacterStringLiteral
+			 | Sql92.Lexical.NationalCharacterStringLiteral
+
+// What follows `AS`: a body, or the name of a method in an assembly.
+RoutineTail : @Statement[]
+	= "EXTERNAL"i & "NAME"i & QualifiedName => @(Statement.None)
+	| body: StatementList                   => @(body)
+
+// ── CREATE FUNCTION ─────────────────────────────────────────────────────────
+//
+// Three shapes and the difference is what `RETURNS` says: a type, `TABLE`, or a table
+// variable and the columns it holds.
+FunctionStatement : @Statement
+	= "FUNCTION"i & name: QualifiedName & parameters: RoutineParameters?
+	  & "RETURNS"i & r: FunctionReturns
+		=> @(r with { Name = name, Parameters = parameters ?? Clause.None })
+
+FunctionReturns : @Statement.CreateFunction
+	= "TABLE"i & '(' & TableBody & ')' & ("ORDER"i & IndexColumns)? & RoutineOptions?
+	  & "AS"i & "EXTERNAL"i & "NAME"i & QualifiedName
+		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", Statement.None))
+	| "TABLE"i & RoutineOptions? & "AS"i? & "RETURN"i & body: InlineReturn
+		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", body))
+	| name: Tsql.Variable & "TABLE"i & '(' & TableBody & ')' & RoutineOptions? & "AS"i?
+	  & body: StatementList
+		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", body))
+	| type: DataType & RoutineOptions? & "AS"i? & body: RoutineTail
+		=> @(new Statement.CreateFunction("", Clause.None, type, body))
+
+InlineReturn : @Statement[]
+	= '(' & q: QueryExpression & OrderByClause? & ')' => @(new Statement[] { Statement.Selected(q) })
+	| q: QueryExpression & OrderByClause?             => @(new Statement[] { Statement.Selected(q) })
+
+// ── CREATE TRIGGER ──────────────────────────────────────────────────────────
+TriggerStatement : @Statement
+	= "TRIGGER"i & name: QualifiedName & "ON"i & on: TriggerOn & RoutineOptions?
+	  & TriggerWhen & events: TriggerEvents
+	  & ("WITH"i & "APPEND"i)? & ("NOT"i & "FOR"i & "REPLICATION"i)?
+	  & "AS"i & body: RoutineTail
+		=> @(new Statement.CreateTrigger(name, on, events, body))
+
+TriggerOn : @string
+	= "ALL"i & "SERVER"i => @("ALL SERVER")
+	| "DATABASE"i        => @("DATABASE")
+	| t: QualifiedName   => @(t)
+
+TriggerWhen = "INSTEAD"i & "OF"i | "AFTER"i | "FOR"i
+
+// A DML trigger names the three statements; a DDL one names events or a group of them,
+// and both are words separated by commas.
+TriggerEvents : @string[]
+	= first: TriggerEvent & (',' & rest: TriggerEvent)* => @(Syntax.Named(first, rest))
+
+TriggerEvent : @string
+	= "INSERT"i => @("INSERT")
+	| "UPDATE"i => @("UPDATE")
+	| "DELETE"i => @("DELETE")
+	| t: Identifier => @(t)
+
+// ── CREATE VIEW ─────────────────────────────────────────────────────────────
+ViewStatement : @Statement
+	= "MATERIALIZED"i & "VIEW"i & name: QualifiedName & OptionsWith?
+	  & "AS"i & q: DirectSelect
+		=> @(new Statement.ViewDefinition(name, null, q))
+	| "VIEW"i & name: QualifiedName & ('(' & columns: ColumnList & ')')? & RoutineOptions?
+	  & "AS"i & q: DirectSelect & ("WITH"i & "CHECK"i & "OPTION"i)?
+		=> @(new Statement.ViewDefinition(name, columns, q))
+
+// ── Indexes ─────────────────────────────────────────────────────────────────
+//
+// Almost all of it was already written: an index inside a `CREATE TABLE` is the same
+// thing said in the same words, so the columns, the options, the placement and the
+// filter are shared and only the header is new.
+CreateIndexStatement : @Statement
+	= "CREATE"i & "SELECTIVE"i & "XML"i & "INDEX"i & name: Identifier?
+	  & "ON"i & on: QualifiedName & '(' & ColumnList & ')'
+	  & ("WITH"i & XmlNamespaces)? & paths: SelectivePaths & IndexWith?
+		=> @(new Statement.CreateIndex(name ?? "", on, null))
+	| "CREATE"i & "PRIMARY"i? & "XML"i & "INDEX"i & name: Identifier
+	  & "ON"i & on: QualifiedName & columns: IndexColumns
+	  & XmlIndexUsing? & IndexWith?
+		=> @(new Statement.CreateIndex(name, on, columns))
+	| "CREATE"i & "UNIQUE"i? & IndexOrder? & "INDEX"i & name: Identifier
+	  & "ON"i & on: QualifiedName & columns: IndexColumns
+	  & ("INCLUDE"i & '(' & ColumnList & ')')?
+	  & ("WHERE"i & SearchCondition)?
+	  & IndexWith? & IndexOn? & ("FILESTREAM_ON"i & PlacementTarget)?
+		=> @(new Statement.CreateIndex(name, on, columns))
+	| "CREATE"i & IndexOrder? & "COLUMNSTORE"i & "INDEX"i & name: Identifier
+	  & "ON"i & on: QualifiedName & columns: IndexColumns?
+	  & ("ORDER"i & '(' & ColumnList & ')')?
+	  & ("WHERE"i & SearchCondition)?
+	  & IndexWith? & IndexOn?
+		=> @(new Statement.CreateIndex(name, on, columns))
+
+// `ALTER INDEX` names one index or all of them, and then says what to do.
+AlterIndexStatement : @Statement
+	= "ALTER"i & "INDEX"i & name: IndexTarget & "ON"i & on: QualifiedName
+	  & ("WITH"i & XmlNamespaces)? & SelectivePaths & IndexWith?
+		=> @(new Statement.AlterIndex(name, on, "FOR"))
+	| "ALTER"i & "INDEX"i & name: IndexTarget & "ON"i & on: QualifiedName & a: AlterIndexAction
+		=> @(new Statement.AlterIndex(name, on, a))
+
+IndexTarget : @string = "ALL"i => @("ALL") | t: Identifier => @(t)
+
+XmlIndexUsing = "USING"i & "XML"i & "INDEX"i & Identifier & ("FOR"i & word)?
+
+// `FOR ( name = '/a/b' AS XQUERY 'xs:double' MAXLENGTH (200) SINGLETON, … )`, and the
+// three ways `ALTER INDEX` changes one of them.
+SelectivePaths : @string[]
+	= "FOR"i & '(' & first: SelectivePath & (',' & rest: SelectivePath)* & ')'
+		=> @(Syntax.Named(first, rest))
+
+SelectivePath : @string
+	= "ADD"i & p: PromotedPath          => @(p)
+	| "ALTER"i & "PATH"i & p: PromotedPath => @(p)
+	| "REMOVE"i & name: Identifier      => @(name)
+	| p: PromotedPath                   => @(p)
+
+PromotedPath : @string
+	= name: Identifier & '=' & path: Sql92.Lexical.CharacterStringLiteral & PathHint*
+		=> @(name)
+	| path: Sql92.Lexical.CharacterStringLiteral & PathHint*
+		=> @(path)
+
+PathHint = "AS"i & "XQUERY"i & Sql92.Lexical.CharacterStringLiteral? & PathLength?
+		 | "AS"i & "SQL"i & DataType
+		 | "SINGLETON"i
+		 | "AS"i & word
+
+PathLength = "MAXLENGTH"i & '(' & Sql92.Lexical.UnsignedNumericLiteral & ')'
+
+AlterIndexAction : @string
+	= "REBUILD"i & ("PARTITION"i & '=' & PartitionWhich)? & IndexWith? => @("REBUILD")
+	| "REORGANIZE"i & ("PARTITION"i & '=' & PartitionWhich)? & IndexWith? => @("REORGANIZE")
+	| "DISABLE"i => @("DISABLE")
+	| "PAUSE"i => @("PAUSE")
+	| "ABORT"i => @("ABORT")
+	| "RESUME"i & IndexWith? => @("RESUME")
+	| "SET"i & '(' & OptionList & ')' => @("SET")
+
+// ── The keys, and what is locked with them ──────────────────────────────────
+//
+// Seventeen published blocks and one idea running through them: a key is made from
+// somewhere, locked by something, and the something is a certificate, a password or another
+// key. `ENCRYPTION BY` is written in six of the seventeen and reads the same in all six, so
+// it is one rule.
+KeyStatement : @Statement
+	= "CREATE"i & "ASYMMETRIC"i & "KEY"i & name: Identifier & Authorization?
+	  & ("FROM"i & AsymmetricSource)? & ("WITH"i & OptionList)? & EncryptionBy?
+		=> @(Statement.Defined("ASYMMETRIC KEY", name))
+	| "ALTER"i & "ASYMMETRIC"i & "KEY"i & name: Identifier & KeyChange
+		=> @(Statement.Defined("ALTER ASYMMETRIC KEY", name))
+
+	| "CREATE"i & "SYMMETRIC"i & "KEY"i & name: Identifier & Authorization?
+	  & ("FROM"i & "PROVIDER"i & Identifier)? & "WITH"i & SymmetricOption & (','? & SymmetricOption)*
+		=> @(Statement.Defined("SYMMETRIC KEY", name))
+	| "ALTER"i & "SYMMETRIC"i & "KEY"i & name: Identifier & AddOrDrop
+	  & "ENCRYPTION"i & "BY"i & Encryptor & (',' & Encryptor)*
+		=> @(Statement.Defined("ALTER SYMMETRIC KEY", name))
+
+	| "CREATE"i & "CERTIFICATE"i & name: Identifier & Authorization? & CertificateBody
+	  & ("ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff)?
+		=> @(Statement.Defined("CERTIFICATE", name))
+	| "ALTER"i & "CERTIFICATE"i & name: Identifier & CertificateChange
+		=> @(Statement.Defined("ALTER CERTIFICATE", name))
+
+	| "CREATE"i & "MASTER"i & "KEY"i & EncryptionBy?
+		=> @(Statement.Defined("MASTER KEY", ""))
+	| "ALTER"i & "MASTER"i & "KEY"i & MasterKeyChange
+		=> @(Statement.Defined("ALTER MASTER KEY", ""))
+
+	| "CREATE"i & "DATABASE"i & "ENCRYPTION"i & "KEY"i & ("WITH"i & OptionList)? & EncryptionBy?
+		=> @(Statement.Defined("DATABASE ENCRYPTION KEY", ""))
+	| "ALTER"i & "DATABASE"i & "ENCRYPTION"i & "KEY"i
+	  & ("REGENERATE"i & "WITH"i & OptionList)? & EncryptionBy?
+		=> @(Statement.Defined("ALTER DATABASE ENCRYPTION KEY", ""))
+
+	| "CREATE"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & name: Identifier
+	  & "WITH"i & "VALUES"i & '(' & OptionList & ')' & (',' & '(' & OptionList & ')')*
+		=> @(Statement.Defined("COLUMN ENCRYPTION KEY", name))
+	| "ALTER"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & name: Identifier & AddOrDrop
+	  & "VALUE"i & '(' & OptionList & ')'
+		=> @(Statement.Defined("ALTER COLUMN ENCRYPTION KEY", name))
+	| "CREATE"i & "COLUMN"i & "MASTER"i & "KEY"i & name: Identifier & OptionsWith
+		=> @(Statement.Defined("COLUMN MASTER KEY", name))
+
+	| CreateOrAlter & "CREDENTIAL"i & name: Identifier & "WITH"i & OptionList
+	  & ("FOR"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & Identifier)?
+		=> @(Statement.Defined("CREDENTIAL", name))
+	| CreateOrAlter & "DATABASE"i & "SCOPED"i & "CREDENTIAL"i & name: Identifier
+	  & "WITH"i & OptionList
+		=> @(Statement.Defined("DATABASE SCOPED CREDENTIAL", name))
+
+	// A security policy is a list of predicates rather than a list of settings, and each
+	// predicate names a function, the table it guards, and when it fires.
+	| CreateOrAlter & "SECURITY"i & "POLICY"i & name: QualifiedName
+	  & PolicyPredicates? & OptionsWith? & NotForReplication?
+		=> @(Statement.Defined("SECURITY POLICY", name))
+
+Authorization     = "AUTHORIZATION"i & QualifiedName
+NotForReplication = "NOT"i & "FOR"i & "REPLICATION"i
+
+// `ENCRYPTION BY PASSWORD = 'p'`, `ENCRYPTION BY SERVER CERTIFICATE c`, and the two keys.
+EncryptionBy = "ENCRYPTION"i & "BY"i & Encryptor
+
+Encryptor = "PASSWORD"i & '=' & ValueExpression
+		  | "SERVICE"i & "MASTER"i & "KEY"i
+		  | "SERVER"i? & "CERTIFICATE"i & QualifiedName
+		  | "SERVER"i? & "ASYMMETRIC"i & "KEY"i & QualifiedName
+		  | "SYMMETRIC"i & "KEY"i & QualifiedName
+
+AsymmetricSource = "EXECUTABLE"i? & "FILE"i & '=' & ValueExpression
+				 | "ASSEMBLY"i & QualifiedName
+				 | "PROVIDER"i & Identifier
+
+// Its own list rather than the shared one: a key's options and its encryptions run on
+// without commas, and an option's value is a run of words — so `ALGORITHM = AES_256
+// ENCRYPTION BY PASSWORD = 'p'` had the value take three words that belonged to the clause
+// after it. One word or one expression here, which is all the published block names.
+SymmetricOption = "ENCRYPTION"i & "BY"i & Encryptor
+				| word & '=' & SymmetricValue
+
+SymmetricValue = v: ValueExpression | w: word
+
+KeyChange = "REMOVE"i & "PRIVATE"i & "KEY"i
+		  | "WITH"i & "PRIVATE"i & "KEY"i & '(' & PrivateKeyOption & (',' & PrivateKeyOption)* & ')'
+
+MasterKeyChange = "REGENERATE"i & "WITH"i & EncryptionBy
+				| "FORCE"i & "REGENERATE"i & "WITH"i & EncryptionBy
+				| AddOrDrop & "ENCRYPTION"i & "BY"i & Encryptor
+
+PrivateKeyOption = "DECRYPTION"i & "BY"i & "PASSWORD"i & '=' & ValueExpression
+				 | "ENCRYPTION"i & "BY"i & "PASSWORD"i & '=' & ValueExpression
+				 | OptionSetting
+
+CertificateBody = "FROM"i & CertificateSource
+				| EncryptionBy? & "WITH"i & OptionList
+
+CertificateSource = "ASSEMBLY"i & QualifiedName
+				  | "EXECUTABLE"i? & "FILE"i & '=' & ValueExpression & PrivateKeyWith?
+				  | "BINARY"i & '=' & ValueExpression & PrivateKeyWith?
+
+PrivateKeyWith = "WITH"i & ("FORMAT"i & '=' & ValueExpression & ',')? & "PRIVATE"i & "KEY"i
+				 & '(' & PrivateKeyOption & (',' & PrivateKeyOption)* & ')'
+
+CertificateChange = "REMOVE"i & "PRIVATE"i & "KEY"i
+				  | "WITH"i & "PRIVATE"i & "KEY"i & '(' & PrivateKeyOption & (',' & PrivateKeyOption)* & ')'
+				  | "WITH"i & "ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff
+
+PolicyPredicates = PolicyPredicate & (',' & PolicyPredicate)*
+
+PolicyPredicate = PolicyChange & PolicyKind? & "PREDICATE"i & QualifiedName
+				  & '(' & Arguments? & ')' & "ON"i & QualifiedName & PolicyWhen?
+				| "DROP"i & PolicyKind & "PREDICATE"i & "ON"i & QualifiedName
+
+PolicyChange = "ADD"i | "ALTER"i
+PolicyKind   = "FILTER"i | "BLOCK"i
+PolicyWhen   = "AFTER"i & word | "BEFORE"i & word
+
+// ── The full-text catalogue, and the index over it ──────────────────────────
+//
+// Eight published blocks. A full-text index is the one index with no name of its own — it
+// is named by the table it is on, there being one per table — and the one whose columns
+// carry a language and a type column beside them.
+FullTextStatement : @Statement
+	= "CREATE"i & "FULLTEXT"i & "INDEX"i & "ON"i & on: QualifiedName
+	  & ('(' & FullTextColumn & (',' & FullTextColumn)* & ')')?
+	  & "KEY"i & "INDEX"i & Identifier & ("ON"i & FullTextCatalogOn)? & FullTextWith?
+		=> @(Statement.Defined("FULLTEXT INDEX", on))
+	| "ALTER"i & "FULLTEXT"i & "INDEX"i & "ON"i & on: QualifiedName & FullTextAction
+		=> @(Statement.Defined("ALTER FULLTEXT INDEX", on))
+
+	| "CREATE"i & "FULLTEXT"i & "CATALOG"i & name: Identifier
+	  & ("ON"i & "FILEGROUP"i & Identifier)? & ("IN"i & "PATH"i & ValueExpression)?
+	  & ("WITH"i & OptionList)? & AsDefault? & ("AUTHORIZATION"i & QualifiedName)?
+		=> @(Statement.Defined("FULLTEXT CATALOG", name))
+	| "ALTER"i & "FULLTEXT"i & "CATALOG"i & name: Identifier & FullTextCatalogAction
+		=> @(Statement.Defined("ALTER FULLTEXT CATALOG", name))
+
+	| "CREATE"i & "FULLTEXT"i & "STOPLIST"i & name: Identifier & StopListFrom?
+	  & ("AUTHORIZATION"i & QualifiedName)?
+		=> @(Statement.Defined("FULLTEXT STOPLIST", name))
+	| "ALTER"i & "FULLTEXT"i & "STOPLIST"i & name: Identifier & StopListAction
+		=> @(Statement.Defined("ALTER FULLTEXT STOPLIST", name))
+
+	| "CREATE"i & "SEARCH"i & "PROPERTY"i & "LIST"i & name: Identifier
+	  & ("FROM"i & QualifiedName)? & ("AUTHORIZATION"i & QualifiedName)?
+		=> @(Statement.Defined("SEARCH PROPERTY LIST", name))
+	| "ALTER"i & "SEARCH"i & "PROPERTY"i & "LIST"i & name: Identifier & PropertyListAction
+		=> @(Statement.Defined("ALTER SEARCH PROPERTY LIST", name))
+
+// Bracketed or not, which the published block writes one way and the corpus both.
+FullTextWith = "WITH"i & '(' & OptionList & ')'
+			 | "WITH"i & OptionList
+
+AsDefault = "AS"i & "DEFAULT"i
+
+FullTextColumn = Identifier & ("TYPE"i & "COLUMN"i & Identifier)?
+			   & ("LANGUAGE"i & FullTextLanguage)? & "STATISTICAL_SEMANTICS"i?
+
+// A language is named, numbered or quoted, and the syntax means all three.
+FullTextLanguage = ValueExpression
+
+FullTextCatalogOn = '(' & FullTextPlace & (',' & FullTextPlace)* & ')'
+				  | Identifier
+
+FullTextPlace = "FILEGROUP"i & Identifier | Identifier
+
+FullTextAction
+	= "ENABLE"i
+	| "DISABLE"i
+	| "SET"i & OptionList & NoPopulation?
+	| "ADD"i & '(' & FullTextColumn & (',' & FullTextColumn)* & ')' & NoPopulation?
+	| "ALTER"i & "COLUMN"i & Identifier & AddOrDrop & "STATISTICAL_SEMANTICS"i & NoPopulation?
+	| "DROP"i & '(' & ColumnList & ')' & NoPopulation?
+	| "START"i & word & "POPULATION"i
+	| PopulationWord & "POPULATION"i
+
+NoPopulation   = "WITH"i & "NO"i & "POPULATION"i
+PopulationWord = "STOP"i | "PAUSE"i | "RESUME"i
+
+FullTextCatalogAction = "REBUILD"i & ("WITH"i & OptionList)?
+					  | "REORGANIZE"i
+					  | AsDefault
+
+StopListFrom = "FROM"i & "SYSTEM"i & "STOPLIST"i
+			 | "FROM"i & QualifiedName
+
+StopListAction = "ADD"i & ValueExpression & "LANGUAGE"i & FullTextLanguage
+			   | "DROP"i & "ALL"i & ("LANGUAGE"i & FullTextLanguage)?
+			   | "DROP"i & ValueExpression & "LANGUAGE"i & FullTextLanguage
+
+PropertyListAction = "ADD"i & ValueExpression & OptionsWith
+				   | "DROP"i & ValueExpression
+
+// ── BACKUP and RESTORE ──────────────────────────────────────────────────────
+//
+// Two statements and one shape between them: what is being copied, the devices it is
+// copied to or from, and a long option list. A device is a name or one of three words and
+// a path, which is the only part of either that is not an option.
+BackupStatement : @Statement
+	= "BACKUP"i & what: BackupWhat & name: BackupTarget? & BackupFiles*
+	  & "TO"i & BackupDevices & MirrorTo* & BackupWith?
+		=> @(Statement.BackedUp(what, name))
+	| "BACKUP"i & what: BackupKeyWhat & name: BackupName?
+	  & "TO"i & "FILE"i & '=' & ValueExpression & KeyFileTail*
+		=> @(Statement.BackedUp(what, name))
+
+RestoreStatement : @Statement
+	= "RESTORE"i & what: RestoreKeyWhat & "FROM"i & "FILE"i & '=' & ValueExpression
+	  & KeyFileTail*
+		=> @(Statement.Restored(what, null))
+	| "RESTORE"i & what: RestoreWhat & name: BackupTarget? & BackupFiles*
+	  & ("FROM"i & RestoreFrom)? & BackupWith?
+		=> @(Statement.Restored(what, name))
+
+RestoreKeyWhat : @string
+	= "SERVICE"i & "MASTER"i & "KEY"i => @("SERVICE MASTER KEY")
+	| "MASTER"i & "KEY"i              => @("MASTER KEY")
+
+// What a key says on its way to a file and back: a password to lock it with, one to unlock
+// it with, and the word that says to do it anyway.
+KeyFileTail = "ENCRYPTION"i & "BY"i & "PASSWORD"i & '=' & ValueExpression
+			| "DECRYPTION"i & "BY"i & "PASSWORD"i & '=' & ValueExpression
+			| "FORCE"i
+
+BackupWhat : @string
+	= "DATABASE"i => @("DATABASE")
+	| "LOG"i      => @("LOG")
+	| "SERVER"i   => @("SERVER")
+	| "GROUP"i    => @("GROUP")
+
+BackupKeyWhat : @string
+	= "CERTIFICATE"i               => @("CERTIFICATE")
+	| "SERVICE"i & "MASTER"i & "KEY"i => @("SERVICE MASTER KEY")
+	| "MASTER"i & "KEY"i           => @("MASTER KEY")
+	| "SYMMETRIC"i & "KEY"i        => @("SYMMETRIC KEY")
+
+RestoreWhat : @string
+	= "DATABASE"i     => @("DATABASE")
+	| "LOG"i          => @("LOG")
+	| "FILELISTONLY"i => @("FILELISTONLY")
+	| "HEADERONLY"i   => @("HEADERONLY")
+	| "LABELONLY"i    => @("LABELONLY")
+	| "REWINDONLY"i   => @("REWINDONLY")
+	| "VERIFYONLY"i   => @("VERIFYONLY")
+
+// What a database being copied is called, and what it is not: the four words that begin a
+// file clause and the three that begin the clause after it. Without the lookahead the name
+// takes the `FILE` of `BACKUP DATABASE FILE = 'f' TO …` and the statement is one word short
+// for the rest of its length — which GRAM5009 said before anybody wrote that script.
+BackupTarget : @string = ?!BackupBoundary & t: BackupName => @(t)
+
+BackupBoundary = "FILE"i | "FILEGROUP"i | "READ_WRITE_FILEGROUPS"i | "PAGE"i
+			   | "TO"i | "FROM"i | "WITH"i
+
+BackupName : @string
+	= t: QualifiedName                       => @(t)
+	| t: Tsql.Variable                       => @(t)
+	| t: Sql92.Lexical.CharacterStringLiteral => @(t)
+	| '(' & first: BackupName & (',' & BackupName)* & ')' => @(first)
+
+// The four the published syntax names, written out. An option's name is a run of words,
+// so a rule that read one here would read `TO someDevice` and leave the statement with no
+// device — the same trap an unbounded run always is.
+BackupFiles = ','? & BackupFile
+
+BackupFile = "FILE"i & '=' & BackupName
+		   | "FILEGROUP"i & '=' & BackupName
+		   | "READ_WRITE_FILEGROUPS"i
+		   | "PAGE"i & '=' & ValueExpression
+
+BackupDevices = BackupDevice & (',' & BackupDevice)*
+
+BackupDevice = DeviceWord & '=' & ValueExpression
+			 | QualifiedName
+			 | Tsql.Variable
+
+DeviceWord = "DISK"i | "TAPE"i | "URL"i
+
+MirrorTo = "MIRROR"i & "TO"i & BackupDevices
+
+RestoreFrom = "DATABASE_SNAPSHOT"i & '=' & QualifiedName
+			| BackupDevices
+
+// The option list, and the two options that are not a name and a value: a file moved from
+// one path to another, and a mirrored device said again.
+BackupWith = "WITH"i & BackupOption & (',' & BackupOption)*
+
+BackupOption = "MOVE"i & ValueExpression & "TO"i & ValueExpression
+			 | "STOPAT"i & '=' & ValueExpression
+			 | "STOPATMARK"i & '=' & ValueExpression & ("AFTER"i & ValueExpression)?
+			 | "STOPBEFOREMARK"i & '=' & ValueExpression & ("AFTER"i & ValueExpression)?
+			 | OptionSetting
+
+// ── What the server watches, and who it listens to ──────────────────────────
+//
+// Audits, extended-event sessions, event notifications and endpoints. Eleven published
+// blocks and three shapes: a name and where its output goes, a list of things added and
+// dropped, and a bracketed argument list per protocol.
+AuditStatement : @Statement
+	// A specification is a list of what is watched, added and dropped a bracket at a time.
+	// In front of the audit it belongs to, since `ALTER SERVER AUDIT SPECIFICATION` begins
+	// with `ALTER SERVER AUDIT` and every clause of an audit is optional — so the shorter
+	// reading fits, and over kinds a reading that fits is the one that stands (§4).
+	= CreateOrAlter & scope: ServerOrDatabase & "AUDIT"i & "SPECIFICATION"i & name: Identifier
+	  & ("FOR"i & "SERVER"i & "AUDIT"i & QualifiedName)?
+	  & AuditAction* & OptionsWith?
+		=> @(Statement.Defined("AUDIT SPECIFICATION", name))
+
+	| "CREATE"i & "SERVER"i & "AUDIT"i & name: Identifier
+	  & "TO"i & AuditTarget & OptionsWith? & AuditWhere?
+		=> @(Statement.Defined("SERVER AUDIT", name))
+	| "ALTER"i & "SERVER"i & "AUDIT"i & name: Identifier & AlterAuditBody
+		=> @(Statement.Defined("SERVER AUDIT", name))
+
+	// An extended-event session: events, targets, and what to spend on them.
+	| CreateOrAlter & "EVENT"i & "SESSION"i & name: Identifier & "ON"i & ServerOrDatabase
+	  & EventPieces? & OptionsWith? & ("STATE"i & '=' & word)?
+		=> @(Statement.Defined("EVENT SESSION", name))
+
+	| "CREATE"i & "EVENT"i & "NOTIFICATION"i & name: Identifier & "ON"i & NotificationScope
+	  & ("WITH"i & "FAN_IN"i)?
+	  & "FOR"i & PermissionName & (',' & PermissionName)*
+	  & "TO"i & "SERVICE"i & ValueExpression & (',' & ValueExpression)*
+		=> @(Statement.Defined("EVENT NOTIFICATION", name))
+
+	// An endpoint says how it is reached and what it speaks, and each is a bracket of
+	// arguments belonging to that protocol rather than to this language.
+	| CreateOrAlter & "ENDPOINT"i & name: Identifier & ("AUTHORIZATION"i & QualifiedName)?
+	  & EndpointState? & EndpointAs? & EndpointFor?
+		=> @(Statement.Defined("ENDPOINT", name))
+
+ServerOrDatabase : @string = "SERVER"i => @("SERVER") | "DATABASE"i => @("DATABASE")
+
+NotificationScope = "QUEUE"i & QualifiedName | "SERVER"i | "DATABASE"i
+
+// ── An audit ────────────────────────────────────────────────────────────────
+AuditTarget = "FILE"i & '(' & OptionList & ')'
+			| word
+
+AuditWhere = "WHERE"i & SearchCondition
+
+AlterAuditBody = "REMOVE"i & "WHERE"i
+			   | "MODIFY"i & "NAME"i & '=' & Identifier
+			   | ("TO"i & AuditTarget)? & OptionsWith? & AuditWhere?
+
+// `ADD (SELECT ON t BY dbo)`, `DROP (DATABASE_PERMISSION_CHANGE_GROUP)`. The comma between
+// two of them is optional in the corpus and required in the block, so it is read as neither.
+AuditAction = AddOrDrop & '(' & AuditActionBody & ')' & ','?
+
+AddOrDrop = "ADD"i | "DROP"i
+
+AuditActionBody = PermissionName & (',' & PermissionName)* & AuditActionOn?
+
+AuditActionOn = "ON"i & SecurableClass? & QualifiedName & "BY"i & Principals
+
+// ── An extended-event session ───────────────────────────────────────────────
+EventPieces = EventPiece & (','? & EventPiece)*
+
+EventPiece = "ADD"i & "EVENT"i & QualifiedName & ('(' & EventBody & ')')?
+		   | "DROP"i & "EVENT"i & QualifiedName
+		   | "ADD"i & "TARGET"i & QualifiedName & ('(' & "SET"i & OptionList & ')')?
+		   | "DROP"i & "TARGET"i & QualifiedName
+
+EventBody = ("SET"i & OptionList)? & EventActions? & ("WHERE"i & EventPredicate)?
+
+// Not a search condition. An event's predicate compares a field with a constant, and it
+// also *calls* a comparison the package supplies — `sqlserver.equal_i_sql_unicode_string
+// (field, N'x')` — which is a call standing where a condition goes and is not one anywhere
+// else in this language. The comma joins two of them, as `AND` does.
+EventPredicate = EventFactor & (EventJoin & EventFactor)*
+
+EventJoin   = "AND"i | "OR"i | ','
+EventFactor = "NOT"i? & EventTerm
+
+EventTerm = '(' & EventPredicate & ')'
+		  | name: QualifiedName & EventTermTail
+
+EventTermTail = '(' & EventSource & ',' & ValueExpression & ')'
+			  | EventCompare & ValueExpression
+
+EventSource  = '(' & QualifiedName & ')' | QualifiedName
+EventCompare = "<>" | "!=" | ">=" | "<=" | '=' | '>' | '<' | "NOT"i? & "LIKE"i
+
+EventActions = "ACTION"i & '(' & QualifiedName & (',' & QualifiedName)* & ')'
+
+// ── An endpoint ─────────────────────────────────────────────────────────────
+// `STATE = STARTED, AFFINITY = NONE`: the published block names only the state and the
+// corpus writes a list, so it is read as one.
+EndpointState = "STATE"i & '=' & word & (',' & OptionSetting)*
+
+EndpointAs  = "AS"i & word & '(' & OptionList? & ')'
+EndpointFor = "FOR"i & word & '(' & OptionList? & ')'
+
+// ── What lives outside the database, and what the server spends on it ───────
+//
+// External data sources, file formats, tables and libraries; resource pools and workload
+// groups; statistics. Fourteen published blocks and almost all of them are a name and an
+// option list — which is the shape this grammar has been reading since `CREATE TABLE`.
+// What is new is four clauses that are not a name and a value.
+ExternalStatement : @Statement
+	= CreateOrAlter & "EXTERNAL"i & "DATA"i & "SOURCE"i & name: Identifier & DataSourceBody
+		=> @(Statement.Defined("EXTERNAL DATA SOURCE", name))
+	| "CREATE"i & "EXTERNAL"i & "FILE"i & "FORMAT"i & name: Identifier & OptionsWith
+		=> @(Statement.Defined("EXTERNAL FILE FORMAT", name))
+
+	// A table of somebody else's rows: the columns as this grammar reads any columns, and
+	// then where they are. Synapse writes the query instead and lets it say the columns.
+	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & '(' & body: TableBody & ')'
+	  & OptionsWith
+		=> @(new Statement.TableDefinition(name, body))
+	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & OptionsWith
+	  & "AS"i & q: DirectSelect
+		=> @(new Statement.CreateTableAsSelect(name, q))
+
+	| "CREATE"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
+	  & ("AUTHORIZATION"i & QualifiedName)?
+	  & "FROM"i & LibraryFile & (',' & LibraryFile)* & OptionsWith?
+		=> @(Statement.Defined("EXTERNAL LIBRARY", name))
+	| "ALTER"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
+	  & ("AUTHORIZATION"i & QualifiedName)?
+	  & LibraryChange & LibraryFile & (',' & LibraryFile)* & OptionsWith?
+		=> @(Statement.Defined("EXTERNAL LIBRARY", name))
+
+	| CreateOrAlter & "EXTERNAL"i & "RESOURCE"i & "POOL"i & pool: PoolName & OptionsWith?
+		=> @(Statement.Defined("EXTERNAL RESOURCE POOL", pool))
+	| CreateOrAlter & "RESOURCE"i & "POOL"i & pool: PoolName & OptionsWith?
+		=> @(Statement.Defined("RESOURCE POOL", pool))
+	| CreateOrAlter & "WORKLOAD"i & "GROUP"i & pool: PoolName & OptionsWith?
+	  & ("USING"i & WorkloadPool & (',' & WorkloadPool)*)?
+		=> @(Statement.Defined("WORKLOAD GROUP", pool))
+
+	// Statistics: a name, what they are on, and how they are gathered. `SAMPLE 50 PERCENT`
+	// is three words where an option is usually a name and a value, and the option list
+	// reads it as one name — which is what a run of words is for (§4.6).
+	| "CREATE"i & "STATISTICS"i & name: Identifier & "ON"i & on: QualifiedName
+	  & columns: IndexColumns & ("WHERE"i & SearchCondition)? & StatisticsWith?
+		=> @(new Statement.StatisticsDefinition(name))
+	| "UPDATE"i & "STATISTICS"i & on: QualifiedName & StatisticsTarget? & StatisticsWith?
+		=> @(new Statement.UpdateStatistics(on))
+
+CreateOrAlter = "CREATE"i | "ALTER"i
+
+// `"default"` is a pool, and a delimited name is how the syntax says so.
+PoolName : @string = t: Identifier => @(t) | t: Sql92.Lexical.CharacterStringLiteral => @(t)
+
+WorkloadPool = "EXTERNAL"i? & PoolName
+
+DataSourceBody = OptionsWith
+			   | "SET"i & OptionList
+
+LibraryChange = "SET"i | "ADD"i
+LibraryFile   = '(' & OptionList & ')'
+
+StatisticsWith = "WITH"i & OptionList
+
+StatisticsTarget = '(' & IndexName & (',' & IndexName)* & ')'
+				 | IndexName
+
+// ── Who may connect, and as whom ────────────────────────────────────────────
+//
+// Logins, users, roles and schemas. One family because they are one shape: a name, where
+// it came from, and a list of settings — and the settings are the option list already
+// written, with one exception that the published syntax insists on.
+//
+// The exception is a password. `PASSWORD = 'p' OLD_PASSWORD = 'q' MUST_CHANGE` is three
+// things and no commas between them, which is the only place in T-SQL where an option list
+// runs on like that. So the password is a rule and the rest of the list is the ordinary one.
+PrincipalStatement : @Statement
+	= "CREATE"i & "LOGIN"i & name: Identifier & body: LoginBody
+		=> @(Statement.Defined("CREATE LOGIN", name))
+	| "ALTER"i & "LOGIN"i & name: Identifier & AlterLoginBody
+		=> @(Statement.Defined("ALTER LOGIN", name))
+
+	| "CREATE"i & "USER"i & name: Identifier & UserSource? & UserOptions?
+		=> @(Statement.Defined("CREATE USER", name))
+	| "ALTER"i & "USER"i & name: Identifier & AlterUserBody
+		=> @(Statement.Defined("ALTER USER", name))
+
+	| "CREATE"i & RoleWord & name: Identifier & ("AUTHORIZATION"i & QualifiedName)?
+		=> @(Statement.Defined("CREATE ROLE", name))
+	| "ALTER"i & RoleWord & name: Identifier & RoleAction
+		=> @(Statement.Defined("ALTER ROLE", name))
+
+	| "CREATE"i & "APPLICATION"i & "ROLE"i & name: Identifier & "WITH"i & LoginOptions
+		=> @(Statement.Defined("CREATE APPLICATION ROLE", name))
+	| "ALTER"i & "APPLICATION"i & "ROLE"i & name: Identifier & "WITH"i & LoginOptions
+		=> @(Statement.Defined("ALTER APPLICATION ROLE", name))
+
+	// A schema may be declared by its owner alone — `CREATE SCHEMA AUTHORIZATION dbo` — and
+	// what follows it is not a clause but whole statements, which is the one statement in
+	// T-SQL that holds others without a `BEGIN`.
+	| "CREATE"i & "SCHEMA"i & name: Identifier & "AUTHORIZATION"i & QualifiedName & SchemaElement*
+		=> @(Statement.Defined("CREATE SCHEMA", name))
+	| "CREATE"i & "SCHEMA"i & "AUTHORIZATION"i & owner: QualifiedName & SchemaElement*
+		=> @(Statement.Defined("CREATE SCHEMA", owner))
+	| "CREATE"i & "SCHEMA"i & name: Identifier & SchemaElement*
+		=> @(Statement.Defined("CREATE SCHEMA", name))
+	| "ALTER"i & "SCHEMA"i & name: Identifier & "TRANSFER"i & SecurableClass? & what: QualifiedName
+		=> @(Statement.Defined("ALTER SCHEMA", what))
+
+	| "ALTER"i & "AUTHORIZATION"i & "ON"i & SecurableClass? & what: QualifiedName
+	  & "TO"i & AuthorizationTo
+		=> @(Statement.Defined("ALTER AUTHORIZATION", what))
+
+RoleWord = "SERVER"i & "ROLE"i | "ROLE"i
+
+RoleAction = "ADD"i & "MEMBER"i & QualifiedName
+		   | "DROP"i & "MEMBER"i & QualifiedName
+		   | "WITH"i & "NAME"i & '=' & QualifiedName
+
+AuthorizationTo = "SCHEMA"i & "OWNER"i | QualifiedName
+
+// What a schema declares in the same breath as itself. The published list is exactly these
+// five, and each is the whole statement it is elsewhere.
+SchemaElement = s: CreateTableStatement | s: CreateRoutine | s: PermissionStatement
+
+// ── A login ─────────────────────────────────────────────────────────────────
+LoginBody = "WITH"i & LoginOptions
+		  | "FROM"i & LoginSource
+
+LoginSource = "WINDOWS"i & ("WITH"i & OptionList)?
+			| "EXTERNAL"i & "PROVIDER"i & ("WITH"i & OptionList)?
+			| "CERTIFICATE"i & QualifiedName & ("WITH"i & OptionList)?
+			| "ASYMMETRIC"i & "KEY"i & QualifiedName & ("WITH"i & OptionList)?
+
+AlterLoginBody = "ENABLE"i
+			   | "DISABLE"i
+			   | "WITH"i & LoginOptions
+			   | "ADD"i & "CREDENTIAL"i & QualifiedName
+			   | "DROP"i & "CREDENTIAL"i & QualifiedName
+
+LoginOptions = LoginOption & (',' & LoginOption)*
+
+// `PASSWORD = 0x0100 HASHED MUST_CHANGE`, `PASSWORD = 'p' OLD_PASSWORD = 'q'`: a password
+// and then however many words and pairs the syntax lets follow it, none of them separated
+// by a comma. `NO CREDENTIAL` is two words and no value, which the option list reads as one
+// name — but it is written here because the list this belongs to is not that one.
+LoginOption = "PASSWORD"i & '=' & ValueExpression & PasswordTail*
+			| "NO"i & "CREDENTIAL"i
+			| OptionSetting
+
+PasswordTail = "OLD_PASSWORD"i & '=' & ValueExpression
+			 | "MUST_CHANGE"i
+			 | "UNLOCK"i
+			 | "HASHED"i
+
+// ── A user ──────────────────────────────────────────────────────────────────
+UserSource = ForOrFrom & UserFrom
+		   | "WITHOUT"i & "LOGIN"i
+
+UserFrom = "LOGIN"i & QualifiedName
+		 | "CERTIFICATE"i & QualifiedName
+		 | "ASYMMETRIC"i & "KEY"i & QualifiedName
+		 | "EXTERNAL"i & "PROVIDER"i & ("WITH"i & OptionList)?
+
+ForOrFrom = "FOR"i | "FROM"i
+
+UserOptions = "WITH"i & LoginOptions
+
+AlterUserBody = "WITH"i & LoginOptions
+			  | s: UserSource
+
+// ── DROP ────────────────────────────────────────────────────────────────────
+//
+// Sixty-six statements in the reference and one shape: `DROP <what> [ IF EXISTS ] <names>`,
+// with a clause after it for the five that have one. Written from the sixty-six published
+// blocks, which agree about everything but the words in the middle.
+//
+// Those words are written out, and here that is the syntax rather than a catalogue: `DROP
+// TABLE` and `DROP VIEW` are different statements, `DROP DATABASE ENCRYPTION KEY` names no
+// object at all, and a rule wide enough for any word would read `DROP FOO x` and call it
+// one of them. The order is the one the words force — `DATABASE AUDIT SPECIFICATION`
+// before `DATABASE`, `SERVER AUDIT SPECIFICATION` before `SERVER AUDIT` before `SERVER
+// ROLE` — since ordered choice reads the first that fits.
+DropStatement : @Statement
+	= "DROP"i & d: DropBody => @(d)
+
+DropBody : @Statement
+	// The five that name something and then say where it is or what to do about it.
+	= what: DropKeyKind & names: DropNames & ("REMOVE"i & "PROVIDER"i & "KEY"i)?
+		=> @(Statement.Dropped(what, names))
+	| "ASSEMBLY"i & IfExists? & names: DropNames & ("WITH"i & "NO"i & "DEPENDENTS"i)?
+		=> @(Statement.Dropped("ASSEMBLY", names))
+	| "EXTERNAL"i & "LIBRARY"i & names: DropNames & ("AUTHORIZATION"i & QualifiedName)?
+		=> @(Statement.Dropped("EXTERNAL LIBRARY", names))
+	| "EVENT"i & "SESSION"i & names: DropNames & "ON"i & DropScope
+		=> @(Statement.Dropped("EVENT SESSION", names))
+	| "EVENT"i & "NOTIFICATION"i & names: DropNames & "ON"i & DropScope
+		=> @(Statement.Dropped("EVENT NOTIFICATION", names))
+
+	// An index is named twice — once for itself and once for what it is on — and the older
+	// spelling puts both in one qualified name.
+	| "FULLTEXT"i & "INDEX"i & "ON"i & on: DropName
+		=> @(Statement.Dropped("FULLTEXT INDEX", new Expression[] { on }))
+	| "INDEX"i & IfExists? & first: DropIndexName & (',' & rest: DropIndexName)*
+		=> @(Statement.Dropped("INDEX", Syntax.Listed(first, rest)))
+
+	// A signature is dropped off a module rather than by its own name, and a sensitivity
+	// classification off a column.
+	| "COUNTER"i? & "SIGNATURE"i & "FROM"i & QualifiedName & "BY"i
+	  & first: DropCrypto & (',' & rest: DropCrypto)*
+		=> @(Statement.Dropped("SIGNATURE", Syntax.Listed(first, rest)))
+	| "SENSITIVITY"i & "CLASSIFICATION"i & "FROM"i & names: DropNames
+		=> @(Statement.Dropped("SENSITIVITY CLASSIFICATION", names))
+
+	// A trigger says which of the three kinds it is by what it is on.
+	| "TRIGGER"i & IfExists? & names: DropNames & ("ON"i & DropScope)?
+		=> @(Statement.Dropped("TRIGGER", names))
+
+	// The two that name nothing: there is one of each per database.
+	| what: DropOnlyKind
+		=> @(Statement.Dropped(what, Expression.None))
+
+	| what: DropKind & IfExists? & names: DropNames
+		=> @(Statement.Dropped(what, names))
+
+DropNames : @Expression[]
+	= first: DropName & (',' & rest: DropName)* => @(Syntax.Listed(first, rest))
+
+DropName : @Expression = t: QualifiedName => @(new Expression.ColumnReference(t))
+
+DropIndexName : @Expression
+	= name: Identifier & "ON"i & QualifiedName & OptionsWith? => @(new Expression.ColumnReference(name))
+	| t: QualifiedName                                        => @(new Expression.ColumnReference(t))
+
+DropCrypto : @Expression
+	= "CERTIFICATE"i & name: QualifiedName        => @(new Expression.ColumnReference(name))
+	| "ASYMMETRIC"i & "KEY"i & name: QualifiedName => @(new Expression.ColumnReference(name))
+
+DropScope = "ALL"i & "SERVER"i | "SERVER"i | "DATABASE"i | "QUEUE"i & QualifiedName
+
+DropKeyKind  = "ASYMMETRIC"i & "KEY"i | "SYMMETRIC"i & "KEY"i
+DropOnlyKind = "MASTER"i & "KEY"i | "DATABASE"i & "ENCRYPTION"i & "KEY"i
+
+// The rest, longest first where one name begins another.
+DropKind
+	= "AGGREGATE"i
+	| "APPLICATION"i & "ROLE"i
+	| "AVAILABILITY"i & "GROUP"i
+	| "BROKER"i & "PRIORITY"i
+	| "CERTIFICATE"i
+	| "COLUMN"i & "ENCRYPTION"i & "KEY"i
+	| "COLUMN"i & "MASTER"i & "KEY"i
+	| "CONTRACT"i
+	| "CREDENTIAL"i
+	| "CRYPTOGRAPHIC"i & "PROVIDER"i
+	| "DATABASE"i & "AUDIT"i & "SPECIFICATION"i
+	| "DATABASE"i & "SCOPED"i & "CREDENTIAL"i
+	| "DATABASE"i
+	| "DEFAULT"i
+	| "ENDPOINT"i
+	| "EXTERNAL"i & "DATA"i & "SOURCE"i
+	| "EXTERNAL"i & "FILE"i & "FORMAT"i
+	| "EXTERNAL"i & "LANGUAGE"i
+	| "EXTERNAL"i & "MODEL"i
+	| "EXTERNAL"i & "RESOURCE"i & "POOL"i
+	| "EXTERNAL"i & "TABLE"i
+	| "FULLTEXT"i & "CATALOG"i
+	| "FULLTEXT"i & "STOPLIST"i
+	| "FUNCTION"i
+	| "LOGIN"i
+	| "MESSAGE"i & "TYPE"i
+	| "PARTITION"i & "FUNCTION"i
+	| "PARTITION"i & "SCHEME"i
+	| "PROCEDURE"i
+	| "PROC"i
+	| "QUEUE"i
+	| "REMOTE"i & "SERVICE"i & "BINDING"i
+	| "RESOURCE"i & "POOL"i
+	| "ROLE"i
+	| "ROUTE"i
+	| "RULE"i
+	| "SCHEMA"i
+	| "SEARCH"i & "PROPERTY"i & "LIST"i
+	| "SECURITY"i & "POLICY"i
+	| "SEQUENCE"i
+	| "SERVER"i & "AUDIT"i & "SPECIFICATION"i
+	| "SERVER"i & "AUDIT"i
+	| "SERVER"i & "ROLE"i
+	| "SERVICE"i
+	| "STATISTICS"i
+	| "SYNONYM"i
+	| "TABLE"i
+	| "TYPE"i
+	| "USER"i
+	| "VIEW"i
+	| "WORKLOAD"i & "CLASSIFIER"i
+	| "WORKLOAD"i & "GROUP"i
+	| "XML"i & "SCHEMA"i & "COLLECTION"i
+
+// ── The database ────────────────────────────────────────────────────────────
+//
+// The largest thing left in the corpus — `ALTER DATABASE … SET` alone is 252 statements —
+// and almost none of it is new. A database's settings are said the way an index's and a
+// table's are, so the option list already written reads them; a file specification is that
+// same list in brackets. What is new is the header and about thirty lines.
+//
+// The settings themselves are not enumerated and are not going to be. There are some two
+// hundred of them, they differ by edition and by version, and none of that is syntax: a
+// setting is a run of words and then, sometimes, what it is set to.
+CreateDatabaseStatement : @Statement
+	= "CREATE"i & "DATABASE"i & name: Identifier & '(' & OptionList & ')'
+		=> @(Statement.OfDatabase(name, "CREATE", null))
+	| "CREATE"i & "DATABASE"i & name: Identifier & DatabaseContainment?
+	  & files: DatabaseFiles? & DatabaseCollate? & DatabaseTail?
+		=> @(Statement.OfDatabase(name, "CREATE", files))
+
+DatabaseContainment = "CONTAINMENT"i & '=' & word
+DatabaseCollate     = "COLLATE"i & QualifiedName
+
+// What a database may be made out of instead of nothing: another database, a snapshot of
+// one, or files that already exist.
+DatabaseTail = "WITH"i & OptionList
+			 | "FOR"i & "ATTACH"i & ('(' & OptionList & ')')? & ("WITH"i & OptionList)?
+			 | "FOR"i & "ATTACH_REBUILD_LOG"i
+			 | "AS"i & "SNAPSHOT"i & "OF"i & Identifier
+			 | "AS"i & "COPY"i & "OF"i & QualifiedName & ('(' & OptionList & ')')?
+
+// ── The files ───────────────────────────────────────────────────────────────
+//
+// A file specification is `( NAME = …, FILENAME = …, SIZE = 100 MB )`, which is an option
+// list with a unit after the number — and that unit is why an option's value ends with a
+// word: `100 MB`, `3 DAYS`, `10 %` are each one value in this language.
+DatabaseFiles : @Clause[]
+	= "ON"i & "PRIMARY"i? & first: FileGroupSpec & (',' & rest: FileGroupSpec)*
+	  & DatabaseLogFiles?
+		=> @(Syntax.Listed(first, rest))
+
+DatabaseLogFiles = "LOG"i & "ON"i & FileSpec & (',' & FileSpec)*
+
+FileGroupSpec : @Clause
+	= "FILEGROUP"i & name: Identifier & FileGroupContains? & "DEFAULT"i?
+	  & FileSpec & (',' & FileSpec)*
+		=> @(new Clause.DatabaseOption(name, null))
+	| f: FileSpec => @(f)
+
+FileSpec : @Clause = '(' & OptionList & ')' => @(new Clause.DatabaseOption("", null))
+
+FileGroupContains = "CONTAINS"i & word
+
+// ── ALTER DATABASE ──────────────────────────────────────────────────────────
+//
+// `SCOPED CONFIGURATION` stands in front because a database may be called `SCOPED`: the
+// corpus has `ALTER DATABASE SCOPED COLLATE Estonian_CS_AS`, which is a database of that
+// name and not a malformed configuration. Ordered choice reads the longer one first and
+// gives it back when the words that must follow do not.
+AlterDatabaseStatement : @Statement
+	= "ALTER"i & "DATABASE"i & "SCOPED"i & "CONFIGURATION"i & ("FOR"i & "SECONDARY"i)?
+	  & options: ScopedConfiguration
+		=> @(Statement.OfDatabase("", "SCOPED CONFIGURATION", options))
+
+	// The one action that keeps what it read, so the one written before the rest.
+	| "ALTER"i & "DATABASE"i & name: DatabaseTarget
+	  & "SET"i & first: DatabaseOption & (',' & rest: DatabaseOption)* & DatabaseTermination?
+		=> @(Statement.OfDatabase(name, "SET", Syntax.Listed(first, rest)))
+
+	| "ALTER"i & "DATABASE"i & name: DatabaseTarget & action: AlterDatabaseAction
+	  & DatabaseTermination?
+		=> @(Statement.OfDatabase(name, action, null))
+
+DatabaseTarget : @string = "CURRENT"i => @("CURRENT") | t: Identifier => @(t)
+
+ScopedConfiguration : @Clause[]
+	= "SET"i & first: DatabaseOption & (',' & rest: DatabaseOption)*
+		=> @(Syntax.Listed(first, rest))
+	| "CLEAR"i & "PROCEDURE_CACHE"i & ValueExpression?
+		=> @(Clause.None)
+
+// Which action was written, as the words the tree is keyed by. The statement builds the
+// record; this says which record it is, because a rule cannot name a different type per
+// alternative and the name is not known until the header above has been read.
+AlterDatabaseAction : @string
+	= DatabaseCollate               => @("COLLATE")
+	| "MODIFY"i & m: DatabaseModify => @(m)
+	| "ADD"i    & a: DatabaseAdd    => @(a)
+	| "REMOVE"i & r: DatabaseRemove => @(r)
+
+	// Two actions that are only a word. Written out, and this is a place where the words
+	// are the syntax: `ALTER DATABASE d AUDIT SPECIFICATION s` is a different statement,
+	// and a rule that read any word here would take it and call it this one.
+	| "REBUILD"i & "LOG"i  => @("REBUILD LOG")
+	| "PERFORM_CUTOVER"i   => @("PERFORM_CUTOVER")
+
+DatabaseModify : @string
+	= "NAME"i & '=' & Identifier                            => @("MODIFY NAME")
+	| "FILEGROUP"i & Identifier & FileGroupAction           => @("MODIFY FILEGROUP")
+	| "FILE"i & FileSpec                                    => @("MODIFY FILE")
+	| '(' & OptionList & ')' & ("WITH"i & OptionList)?      => @("MODIFY")
+
+DatabaseAdd : @string
+	= "FILEGROUP"i & Identifier & FileGroupContains?
+		=> @("ADD FILEGROUP")
+	| "LOG"i & "FILE"i & FileSpec & (',' & FileSpec)*
+		=> @("ADD LOG FILE")
+	| "FILE"i & FileSpec & (',' & FileSpec)* & ("TO"i & "FILEGROUP"i & Identifier)?
+		=> @("ADD FILE")
+
+DatabaseRemove : @string
+	= "FILEGROUP"i & Identifier => @("REMOVE FILEGROUP")
+	| "FILE"i & Identifier      => @("REMOVE FILE")
+
+// `READ_ONLY`, `READWRITE`, `AUTOGROW_ALL_FILES`, `AUTOGROW_SINGLE_FILE` — words, and a
+// catalogue if written out.
+FileGroupAction = "DEFAULT"i | "NAME"i & '=' & Identifier | word
+
+// ── What a database is set to ───────────────────────────────────────────────
+//
+// One rule for all two hundred of them, and it is `word` (§4.6) that makes it one. A
+// setting is a run of words — `MAXDOP`, `SINGLE_USER`, `HADR AVAILABILITY GROUP`,
+// `QUERY_STORE CLEAR ALL` — and then what it is set to, where it is set to anything:
+// `= 4`, `= ON (…)`, `ON`, `(AUTO_CLEANUP = ON)`, `= 42 SECONDS`.
+//
+// The run ends where the syntax says it does and not where a list of names would: `ON` and
+// `OFF` are what a setting is set to rather than part of its name, and `WITH` begins the
+// termination clause after the whole list. Without the lookahead the name would swallow
+// the `WITH`, and the parse would then stop one word past what it ate.
+DatabaseOption : @Clause
+	= name: DatabaseOptionName & v: DatabaseOptionValue? => @(new Clause.DatabaseOption(name, v))
+
+DatabaseOptionName : @string = t: OptionName => @(t)
+
+DatabaseOptionValue : @Expression
+	= '=' & v: OptionValue              => @(v)
+	| '(' & OptionList & ')'            => @(Expression.NullValue)
+	| OnOff & ('(' & OptionList & ')')? => @(Expression.NullValue)
+
+DatabaseTermination = "WITH"i & "ROLLBACK"i & "AFTER"i & ValueExpression & "SECONDS"i?
+					| "WITH"i & "ROLLBACK"i & "IMMEDIATE"i
+					| "WITH"i & "NO_WAIT"i
+
+// ── Permissions ─────────────────────────────────────────────────────────────
+//
+// One shape, three statements, and the interesting part is that a permission's *name* is
+// made of words T-SQL reserves — `ALTER ANY DATABASE`, `CREATE TABLE`, `VIEW DEFINITION`,
+// `BACKUP LOG`. An identifier cannot be any of them, so the words are named, the same way
+// the option names are and for the same reason: they are a catalogue rather than a
+// language, and a permission added to SQL Server does not change this grammar.
+PermissionStatement : @Statement
+	= "GRANT"i & what: Permissions & PermissionOn? & "TO"i & who: Principals
+	  & ("WITH"i & "GRANT"i & "OPTION"i)? & PermissionAs?
+		=> @(Statement.Permitted("GRANT", what, who))
+	| "DENY"i & what: Permissions & PermissionOn? & "TO"i & who: Principals
+	  & "CASCADE"i? & PermissionAs?
+		=> @(Statement.Permitted("DENY", what, who))
+	| "REVOKE"i & ("GRANT"i & "OPTION"i & "FOR"i)? & what: Permissions & PermissionOn?
+	  & ToOrFrom & who: Principals & "CASCADE"i? & PermissionAs?
+		=> @(Statement.Permitted("REVOKE", what, who))
+
+ToOrFrom      = "TO"i | "FROM"i
+PermissionAs  = "AS"i & PrincipalName
+PermissionOn  = "ON"i & SecurableClass? & QualifiedName
+
+// `OBJECT::t`, `SCHEMA::s`, `SERVER ROLE::r`, `XML SCHEMA COLLECTION::c` — a run of words
+// and `::`. Where there is no `::` the whole clause is given back, which is what makes it
+// safe to try in front of an ordinary name.
+SecurableClass = PermissionWord+ & "::"
+
+Permissions : @string[]
+	= "ALL"i & "PRIVILEGES"i? => @(new[] { "ALL" })
+	| first: Permission & (',' & rest: Permission)* => @(Syntax.Named(first, rest))
+
+Permission : @string
+	= t: PermissionName & ('(' & ColumnList & ')')? => @(t)
+
+// A run of them, and it ends where it must: neither `ON` nor `TO` is a permission word,
+// so the words of the name are taken and the clause after them is left alone.
+PermissionName = PermissionWord+
+
+// A permission is spelled with words, and which words is a catalogue: `ALTER ANY
+// DATABASE`, `VIEW DEFINITION`, `BACKUP LOG`, `SUBSCRIBE QUERY NOTIFICATIONS`. Half of
+// them are reserved and cannot be read as an identifier, so the list used to be written
+// out — thirty-one words, and a permission SQL Server adds is a word this grammar has
+// never heard of.
+//
+// What actually bounds the name is not which words are in it but where it ends, and the
+// syntax says that: `ON`, `TO`, `FROM`, `WITH` and `CASCADE` begin the clause after it.
+// So the rule is any word that is not one of those — five words instead of thirty-one,
+// and it stops being a catalogue.
+PermissionWord = ?!PermissionEnd & word
+
+PermissionEnd = "ON"i | "TO"i | "FROM"i | "WITH"i | "CASCADE"i
+
+Principals : @string[]
+	= first: PrincipalName & (',' & rest: PrincipalName)* => @(Syntax.Named(first, rest))
+
+PrincipalName : @string = "PUBLIC"i => @("PUBLIC") | t: QualifiedName => @(t)

@@ -58,3 +58,13 @@ Backtracking? = 'x'?
 
 // F12 on ToolingEvaluate should open the generated C# publication method.
 parse Sum as ToolingEvaluate
+
+// The rules above this line are here to be hovered rather than to be read from, and
+// `Sum` reaches none of them — which is what GRAM4018 is for. Publishing them is what
+// says they are meant: each becomes an entry point of its own, so F12 on any of the
+// names lands in a generated method the way it does on `Sum`. `Digits` needs none of
+// its own, being reached through `Fixed`; a parameterized rule has no publication.
+parse Fixed        as ToolingFixed
+parse Shift        as ToolingShift
+parse Insensitive  as ToolingInsensitive
+parse Backtracking as ToolingBacktracking

@@ -496,6 +496,16 @@ public sealed class RecognitionGraph(
 	/// would not parse — both of which mean "ask the spelling instead", which is what
 	/// everything did before there was a syntax tree to ask.
 	/// </remarks>
+	/// <summary>
+	/// The rules whose value can be told where it was written — those assignable to the
+	/// type <c>[Gram(…, LocationType = …)]</c> named.
+	/// </summary>
+	/// <remarks>
+	/// Empty unless a grammar asked, and a grammar that does not ask is compiled exactly as
+	/// it was: a recognizer wants no positions, and most grammars are recognizers.
+	/// </remarks>
+	public IReadOnlyCollection<RuleSymbol> Located { get; init; } = [];
+
 	public IReadOnlyDictionary<string, IReadOnlyCollection<string>> FreeNames { get; init; } =
 		new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
 

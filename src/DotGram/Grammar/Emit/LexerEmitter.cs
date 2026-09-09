@@ -721,8 +721,32 @@ public static class LexerEmitter
 	/// </remarks>
 	const int Held = 4096;
 
+	/// <summary>Blocks a part of the chain is divided under.</summary>
+	/// <remarks>
+	/// <para>
+	/// <see cref="Held"/> counts states, which is not what the JIT counts. A grammar whose
+	/// keywords are a trie has hundreds of states asking the same question and sharing one
+	/// body, and a grammar with a wider alphabet has few states each asking a great many —
+	/// so four thousand states can be a hundred blocks or three thousand, and only one of
+	/// those fits under the limit. Sixty words added to T-SQL's <c>DROP</c> put
+	/// <c>Scan_Part0</c> at 2,266 blocks with nothing left to divide, which is the wall a
+	/// language with a thousand keywords walks into on its way in.
+	/// </para>
+	/// <para>
+	/// So the cut is by size and the state count is the ceiling rather than the measure.
+	/// Same budget the syntactic machine divides under (Machine.Parts.cs), and for the same
+	/// reason: under it a method is optimized, over it the JIT gives up on the whole method.
+	/// </para>
+	/// </remarks>
+	const int Budget = 1500;
+
 	static void Scanner(Writer text, LexicalAutomaton machine, string tag, IReadOnlyList<int> lows)
 	{
+		// Before anything is written, because the dispatch names the cuts and the parts are
+		// the cuts: what a part costs is what its bodies come to, and the bodies are made
+		// once here for both.
+		var chain = Chained(machine, lows);
+
 		text.Line("/// <summary>");
 		text.Line("/// One token: its kind by way of <paramref name=\"kind\"/>, and where it ends.");
 		text.Line("/// </summary>");
@@ -744,7 +768,7 @@ public static class LexerEmitter
 			text.Line("var p     = pos;");
 			text.Line();
 
-			var parts = (machine.Next.Count + Held - 1) / Held;
+			var parts = chain.Count;
 
 			using (text.Braces("while (p < text.Length)", ""))
 			{
@@ -778,7 +802,7 @@ public static class LexerEmitter
 							text.Line(
 								part == parts - 1
 									? $"Scan{tag}_Part{part}(state, c);"
-									: $"state < {(part + 1) * Held} ? Scan{tag}_Part{part}(state, c) :");
+									: $"state <= {chain[part].Last} ? Scan{tag}_Part{part}(state, c) :");
 				}
 
 				text.Line();
@@ -844,10 +868,9 @@ public static class LexerEmitter
 			text.Line("return end;");
 		}
 
-		for (var part = 0; part * Held < machine.Next.Count; part++)
+		for (var part = 0; part < chain.Count; part++)
 		{
-			var first = part * Held;
-			var last  = Math.Min((part + 1) * Held, machine.Next.Count) - 1;
+			var (first, last, states) = chain[part];
 
 			text.Line();
 			text.Line($"/// <summary>Where states {first} to {last} go, or -1 for nowhere.</summary>");
@@ -857,36 +880,8 @@ public static class LexerEmitter
 			{
 				var shared = new Dictionary<string, List<int>>();
 
-				for (var state = first; state <= last; state++)
+				foreach (var (state, body) in states)
 				{
-					// Only what the row does not answer for reaches here, so only that is
-					// asked. Everything a state admits inside its own window was decided
-					// before this method was called, and a test for it is a line that cannot
-					// run — which was most of them: the first state of `SqlStandard92` wrote
-					// forty-four and needed one.
-					var outside = new List<(IReadOnlyList<CharRange> On, int To)>();
-
-					foreach (var (on, to) in machine.From(state))
-					{
-						var kept = Beyond(on, lows[state]);
-
-						if (kept.Count > 0)
-							outside.Add((kept, to));
-					}
-
-					if (outside.Count == 0)
-						continue;
-
-					// Whether a character below ASCII can reach this case at all. It cannot
-					// where the state's row begins at zero: the row is 128 wide, so every
-					// such character was answered before the chain was called, and a set
-					// test here may read the half above ASCII and nothing else.
-					Reached = lows[state] != 0;
-
-					var body = string.Join(
-						"\n",
-						outside.Select(one => $"if ({Test(one.On)}) return {one.To};").Append("return -1;"));
-
 					if (!shared.TryGetValue(body, out var together))
 						shared[body] = together = [];
 
@@ -910,6 +905,116 @@ public static class LexerEmitter
 				text.Line("default: return -1;");
 			}
 		}
+	}
+
+	/// <summary>
+	/// The chain divided into parts, each under <see cref="Budget"/> blocks.
+	/// </summary>
+	/// <remarks>
+	/// The bodies are made here rather than inside each part, because what a part costs is
+	/// what its bodies come to and a body is shared by however many states ask it — so the
+	/// cut cannot be made before they are written and the parts cannot be written before the
+	/// cut. A body that two parts both need is written into both, which is the price of the
+	/// division and a small one: the states that share a body are almost always adjacent,
+	/// being the middle of one keyword's trie.
+	/// </remarks>
+	static List<(int First, int Last, List<(int State, string Body)> States)> Chained(
+		LexicalAutomaton machine, IReadOnlyList<int> lows)
+	{
+		var chain = new List<(int, int, List<(int, string)>)>();
+		var states = new List<(int, string)>();
+		var seen   = new HashSet<string>(StringComparer.Ordinal);
+		var first  = 0;
+		var cost   = 0;
+
+		for (var state = 0; state < machine.Next.Count; state++)
+		{
+			// Only what the row does not answer for reaches here, so only that is asked.
+			// Everything a state admits inside its own window was decided before this method
+			// was called, and a test for it is a line that cannot run — which was most of
+			// them: the first state of `SqlStandard92` wrote forty-four and needed one.
+			var outside = new List<(IReadOnlyList<CharRange> On, int To)>();
+
+			foreach (var (on, to) in machine.From(state))
+			{
+				var kept = Beyond(on, lows[state]);
+
+				if (kept.Count > 0)
+					outside.Add((kept, to));
+			}
+
+			if (outside.Count == 0)
+				continue;
+
+			// Whether a character below ASCII can reach this case at all. It cannot where
+			// the state's row begins at zero: the row is 128 wide, so every such character
+			// was answered before the chain was called, and a set test here may read the
+			// half above ASCII and nothing else.
+			Reached = lows[state] != 0;
+
+			var body = string.Join(
+				"\n",
+				outside.Select(one => $"if ({Test(one.On)}) return {one.To};").Append("return -1;"));
+
+			// A label is a block, and a body is its tests. A body already written in this
+			// part costs nothing more; one that is new costs what it is.
+			var more = 1 + (seen.Add(body) ? Blocks(body) : 0);
+
+			if (cost + more > Budget && states.Count > 0)
+			{
+				chain.Add((first, states[states.Count - 1].Item1, states));
+
+				states = [];
+				seen   = new HashSet<string>(StringComparer.Ordinal);
+				first  = state;
+				cost   = 0;
+
+				seen.Add(body);
+				more = 1 + Blocks(body);
+			}
+
+			states.Add((state, body));
+			cost += more;
+
+			if (state - first + 1 >= Held)
+			{
+				chain.Add((first, state, states));
+
+				states = [];
+				seen   = new HashSet<string>(StringComparer.Ordinal);
+				first  = state + 1;
+				cost   = 0;
+			}
+		}
+
+		chain.Add((first, Math.Max(first, machine.Next.Count - 1), states));
+
+		return chain;
+	}
+
+	/// <summary>What a body comes to, counted the way the JIT counts.</summary>
+	/// <remarks>
+	/// A `return` is a block and every `||` inside a test is another, which is the same
+	/// arithmetic <c>Machine.Parts.cs</c> does over rendered code. A searched array is one
+	/// call and one branch however wide the set it stands for, which is most of the point
+	/// of having it.
+	/// </remarks>
+	static int Blocks(string body)
+	{
+		var count = 0;
+
+		foreach (var line in body.Split('\n'))
+		{
+			count++;
+
+			for (var at = line.IndexOf("||", StringComparison.Ordinal); at >= 0;
+				at = line.IndexOf("||", at + 2, StringComparison.Ordinal))
+			{
+				count++;
+			}
+		}
+
+		return count;
 	}
 
 	/// <summary>What is left of a set once the state's own row has answered for it.</summary>

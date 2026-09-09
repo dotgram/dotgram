@@ -36,6 +36,20 @@ public static class FirstSets
 	public const string Ambiguous = "GRAM5002";
 
 	/// <summary>
+	/// The same overlap where nothing can give back what it took.
+	/// </summary>
+	/// <remarks>
+	/// A different diagnostic because it has a different consequence, not a different cause.
+	/// Over characters an overlap is resolved by backtracking and the parse succeeds by the
+	/// second reading, which is <see cref="Ambiguous"/>: worth saying, and not a defect.
+	/// Over kinds a rule's answer stands (docs/syntax.md §4) — the optional takes what
+	/// follows it, what follows is not there any more, and the rule fails. It does not parse
+	/// at all, and it stops one token past what it ate, which is the least helpful place a
+	/// parse can stop.
+	/// </remarks>
+	public const string Swallows = "GRAM5009";
+
+	/// <summary>
 	/// What a construct can begin with.
 	/// </summary>
 	/// <param name="Anything">
@@ -245,6 +259,251 @@ public static class FirstSets
 		}
 
 		return reported;
+	}
+
+	/// <summary>
+	/// Every optional and every repetition that can take what stands after it, in a grammar
+	/// that cannot give it back.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <see cref="Check"/>'s question asked of the syntactic half of a split grammar, where
+	/// two of its answers change. It asks only about rules that hand over an array, because
+	/// over characters backtracking is total and an overlap is a defect only where an
+	/// element already handed over cannot be taken back; here nothing can be taken back at
+	/// all, so it asks about every rule. And it asks only about repetitions with no upper
+	/// bound, because those are the ones that stop of their own accord; an optional stops of
+	/// its own accord too, and three of the five this was written for were optionals.
+	/// </para>
+	/// <para>
+	/// The sets are approximate and in the safe direction, so this over-reports: an optional
+	/// whose body begins like what follows but cannot match the whole of it fails and gives
+	/// nothing back, and is fine. That is why it is a warning about a shape rather than a
+	/// refusal, and why the message says what to write instead — a lookahead in front of the
+	/// optional naming what must not be taken, which is what every one of the five became.
+	/// Information rather than a warning for the same reason <see cref="Ambiguous"/> is: it
+	/// names a shape to look at, and the author is the one who can tell whether the overlap
+	/// is real.
+	/// </para>
+	/// </remarks>
+	public static IReadOnlyList<GramDiagnostic> Committed(
+		RecognitionGraph graph, TerminalInventory? inventory = null)
+	{
+		if (graph is null)
+			throw new ArgumentNullException(nameof(graph));
+
+		var reported = new List<GramDiagnostic>();
+		var follow   = FollowSets.Of(graph);
+
+		foreach (var rule in graph.Rules)
+			if (rule.Declaration is { } declaration && graph.Bodies.TryGetValue(rule, out var body))
+			{
+				// What follows the rule itself, for the optionals that stand at the end of
+				// it. `RoutineOption`'s last operand is followed by the `AS` of the rule
+				// that called it, and nothing inside `RoutineOption` says so.
+				var after = follow.TryGetValue(rule, out var beyond) ? beyond.Plain : First.None;
+
+				Swallowed(body, rule, declaration, reported, graph, inventory, after);
+			}
+
+		return reported;
+	}
+
+	static void Swallowed(
+		Node node, RuleSymbol rule, Decl.Rule declaration,
+		List<GramDiagnostic> reported, RecognitionGraph graph, TerminalInventory? inventory,
+		First after)
+	{
+		if (node is Node.Sequence(var parts))
+		{
+			for (var i = 0; i < parts.Count; i++)
+			{
+				if (Takes(parts, i, graph, after) is not { } taken)
+					continue;
+
+				reported.Add(new GramDiagnostic(
+					Swallows,
+					$"In '{rule.Name}', '{parts[i]}' can take {Spelled(taken, inventory)}, which is " +
+					"what follows it — and over kinds a reading that fits is the one that stands " +
+					"(docs/syntax.md §4), so nothing gives it back and the rule fails one token past " +
+					"what it ate. Say what it may not take: a lookahead in front of it naming the " +
+					"words that begin the clause after it.",
+					declaration.At.Position,
+					declaration.At.Length,
+					GramSeverity.Info));
+			}
+		}
+
+		// Only the body's own alternatives are followed by what follows the rule. Anything
+		// nested is followed by the rest of the shape around it, which is a question this
+		// does not ask and would answer wrongly by borrowing the rule's.
+		var inside = node is Node.Choice ? after : First.None;
+
+		foreach (var child in Children(node))
+			Swallowed(child, rule, declaration, reported, graph, inventory, inside);
+	}
+
+	/// <summary>The overlap said as the words it stands for, where they can be looked up.</summary>
+	/// <remarks>
+	/// A kind is a number and a number tells an author nothing. The inventory knows which
+	/// patterns each accepting state carries, so the set comes out as `WITH`, `PIVOT`,
+	/// `TABLESAMPLE` — which is the whole of what makes this diagnostic answerable. Four at
+	/// most: a set of thirty is a set the author will read as "a name", and that is what it
+	/// is.
+	/// </remarks>
+	static string Spelled(First taken, TerminalInventory? inventory)
+	{
+		if (inventory is null)
+			return "what follows it";
+
+		var words = new List<string>();
+
+		foreach (var range in taken.Ranges)
+			for (var kind = range.From; kind <= range.To && words.Count < 5; kind++)
+				if (kind - 1 < inventory.Kinds.Count && kind >= 1)
+					foreach (var pattern in inventory.Kinds[kind - 1].Matched)
+					{
+						var said = pattern switch
+						{
+							TerminalInventory.Pattern.Word(_, var text, _) => "`" + text + "`",
+							TerminalInventory.Pattern.Mark(_, var text, _) => "`" + text + "`",
+							TerminalInventory.Pattern.Class(_, var named)  => named.Name,
+							_                                              => null,
+						};
+
+						if (said is not null && !words.Contains(said))
+							words.Add(said);
+
+						break;
+					}
+
+		return words.Count switch
+		{
+			0 => "what follows it",
+			1 => words[0],
+			< 5 => string.Join(", ", words.Take(words.Count - 1)) + " and " + words[^1],
+			_ => string.Join(", ", words.Take(4)) + " and more",
+		};
+	}
+
+	/// <summary>Whether one part of a sequence can take what the next one needs.</summary>
+	/// <remarks>
+	/// <para>
+	/// Any repetition that may stop before its bound: <c>X?</c> and <c>X*</c> and
+	/// <c>X{1,3}</c> all decide where to stop by what they can match, and <c>X{3}</c> does
+	/// not.
+	/// </para>
+	/// <para>
+	/// Asked of what the body can match in <em>one token</em> rather than of what it can
+	/// begin with, which is the difference between a warning worth reading and sixty. An
+	/// optional that begins like what follows and cannot match the whole of it fails and
+	/// gives nothing back: <c>SecurableClass?</c> begins with a word and needs a <c>::</c>
+	/// after it, so it never takes a bare name. What bites is an optional that is <em>done</em>
+	/// after one token and that token is the one the next clause needed — a run of words, a
+	/// bare identifier, an option's name — and that is what this asks about.
+	/// </para>
+	/// </remarks>
+	static First? Takes(
+		IReadOnlyList<Node> parts, int at, RecognitionGraph graph, First beyond)
+	{
+		if (parts[at] is not Node.Repeat(var body, var min, var max) || max is int most && most <= min)
+			return null;
+
+		var only = Only(body, graph, []);
+		var rest = Following(parts, at + 1, graph);
+
+		// Where nothing after it in this sequence has to read anything, what follows is
+		// whatever follows the rule — the caller's next clause, which is where two of the
+		// five this was written for did their damage.
+		var after = rest.Nothing ? beyond : rest;
+
+		return after.Nothing || !only.Overlaps(after) ? null : only.And(after);
+	}
+
+	/// <summary>What a node can match when it matches exactly one token, or nothing.</summary>
+	/// <remarks>
+	/// A narrower question than <see cref="Of"/>, and the one a committed reading turns on.
+	/// Where no reading of the node is one token long the answer is <see cref="First.None"/>,
+	/// which overlaps nothing — so a shape that has to read two things before it is done
+	/// cannot take one thing that belonged to somebody else.
+	/// </remarks>
+	static First Only(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
+	{
+		switch (node)
+		{
+			case Node.Literal(var text):
+				return text.Length == 1 ? First.Chars([new CharRange(text[0], text[0])]) : First.None;
+
+			case Node.Element(var negated, var ranges, _, var references):
+				return negated || references.Count > 0 ? First.All : First.Chars(ranges);
+
+			case Node.Choice(var alternatives):
+			{
+				var made = First.None;
+
+				foreach (var one in alternatives)
+					made = made.Or(Only(one, graph, seen));
+
+				return made;
+			}
+
+			// One thing read and the rest reading nothing. A lookahead and a guard read
+			// nothing; an optional inside may or may not, and where it does the sequence is
+			// two tokens long and not this question's business.
+			case Node.Sequence(var parts):
+			{
+				var made  = First.None;
+				var found = false;
+
+				// A refusal in front narrows what the one token may be, exactly as it does
+				// in `Following` — `?!WindowClause & Identifier` reads a name and not the
+				// word that opens the clause after it, and a rule that says so should not
+				// be told it might take one.
+				First? admits = null;
+
+				foreach (var part in parts)
+				{
+					if (!found &&
+						part is Node.Lookahead(false, var refused) &&
+						OneCharacter(refused, graph, []) &&
+						Of(refused, graph) is { IsKnown: true } barred)
+					{
+						var admitted = First.Chars(Complement(First.Normalized(barred.Ranges)));
+
+						admits = admits is { } narrowed ? narrowed.And(admitted) : admitted;
+
+						continue;
+					}
+
+					if (Silent(part) || Nullable(part, graph))
+						continue;
+
+					if (found)
+						return First.None;
+
+					made  = Only(part, graph, seen);
+					found = true;
+				}
+
+				return found ? admits is { } bound ? made.And(bound) : made : First.None;
+			}
+
+			case Node.Repeat(var body, var min, var max):
+				return min <= 1 && max is not 0 ? Only(body, graph, seen) : First.None;
+
+			case Node.Capture(_, var held):    return Only(held, graph, seen);
+			case Node.Atomic(var kept):        return Only(kept, graph, seen);
+			case Node.Marked(var kept, _):     return Only(kept, graph, seen);
+			case Node.Construct(var built, _): return Only(built, graph, seen);
+
+			case Node.Call(var rule, _):
+				return seen.Add(rule) && graph.Bodies.TryGetValue(rule, out var called)
+					? Only(called, graph, seen)
+					: First.None;
+
+			default:
+				return First.None;
+		}
 	}
 
 	static void Walk(

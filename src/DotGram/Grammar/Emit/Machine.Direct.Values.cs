@@ -431,7 +431,7 @@ sealed partial class Machine
 
 			foreach (var factory in _factories[rule])
 				if (CSharpEmitter.WantsText(_graph, factory) ||
-					CSharpEmitter.Asks(_graph, factory, "parserSpan"))
+					CSharpEmitter.WantsSpan(_graph, factory))
 				{
 					return true;
 				}
@@ -486,7 +486,7 @@ sealed partial class Machine
 		// the record's own positions answer. Neither is the callee's value.
 		if (made.Accumulator is not null ||
 			CSharpEmitter.WantsText(_graph, made) ||
-			CSharpEmitter.Asks(_graph, made, "parserSpan") ||
+			CSharpEmitter.WantsSpan(_graph, made) ||
 			CSharpEmitter.Asks(_graph, made, "parserInput") ||
 			_graph.Context is not null && CSharpEmitter.Asks(_graph, made, "context") ||
 			_graph.State is not null && CSharpEmitter.Asks(_graph, made, "parserState"))
@@ -571,7 +571,42 @@ sealed partial class Machine
 		ValueFrom(type, index) + (TableFor(type) >= 0 ? ".Value" : "");
 
 	/// <summary>The materializer for one direct machine: a walk over the log, a switch per rule.</summary>
+	/// <remarks>
+	/// Written twice where once will not do. The walk around the arms is half of what the
+	/// method costs, and the arms alone were what the division measured — so a materializer
+	/// could sit above the JIT's limit with every part of it under the divider's budget, and
+	/// nothing divided it. It is measured whole here: rendered undivided, counted, and
+	/// rendered again in parts only where the count says it must be.
+	/// </remarks>
 	string RenderDirectMaterializer(IReadOnlyList<RuleSymbol> rules)
+	{
+		var armed = new List<(RuleSymbol Rule, int Factory)>(_directArmed);
+		var costs = new List<int>(armed.Count);
+		var whole = 0;
+
+		foreach (var (rule, factory) in armed)
+		{
+			var rendered = new Writer(0);
+
+			MaterializeDirectArm(rendered, rule, factory);
+
+			var cost = Branches(rendered.ToString());
+
+			costs.Add(cost);
+
+			whole += cost;
+		}
+
+		var once = RenderDirectWalk(rules, [armed]);
+
+		return Branches(once) <= Limit || armed.Count < 2
+			? once
+			: RenderDirectWalk(rules, DirectParts(armed, costs, whole));
+	}
+
+	/// <summary>The walk itself, with its arms in one group or in several.</summary>
+	string RenderDirectWalk(
+		IReadOnlyList<RuleSymbol> rules, List<List<(RuleSymbol Rule, int Factory)>> parts)
 	{
 		var file = new Writer(0);
 
@@ -591,6 +626,7 @@ sealed partial class Machine
 			// flags and the clearing of them are work for a question with one answer.
 			var twice  = _directBuilds;
 			var strays = DirectStrays(rules);
+			var placed = DirectPositions(rules);
 
 			file.Line($"values.Room(ways.Records{(strays ? "" : ", live: false")});");
 			file.Line();
@@ -631,9 +667,29 @@ sealed partial class Machine
 					file.Line();
 					file.Line($"var read = at + {(DirectPositions(rules) ? 4 : 2)};");
 					file.Line();
-					using (file.Block("switch (log[at + 1])"))
-						foreach (var (rule, factory) in _directArmed)
-							MarkDirectArm(file, rule, factory);
+
+					if (parts.Count == 1)
+					{
+						using (file.Block("switch (log[at + 1])"))
+							foreach (var (rule, factory) in _directArmed)
+								MarkDirectArm(file, rule, factory);
+					}
+					else
+					{
+						// Divided the same way and into the same groups, so that a reader
+						// looking for what a rule does finds both halves of it in the parts
+						// named after the same number.
+						file.Line("var kind = log[at + 1];");
+						file.Line();
+
+						for (var part = 0; part < parts.Count; part++)
+							file.Line(
+								part == 0
+									? $"if (!{DirectMaterializer}_Reaches{part}(log, live, kind, read))"
+									: part < parts.Count - 1
+										? $"if (!{DirectMaterializer}_Reaches{part}(log, live, kind, read))"
+										: $"	{DirectMaterializer}_Reaches{part}(log, live, kind, read);");
+					}
 				}
 			}
 
@@ -677,8 +733,6 @@ sealed partial class Machine
 					file.Line();
 				}
 
-				var placed = DirectPositions(rules);
-
 				if (placed)
 				{
 					file.Line("var start = log[at + 2];");
@@ -695,8 +749,29 @@ sealed partial class Machine
 				}
 
 				using (file.Block("switch (log[at + 1])"))
-					foreach (var (rule, factory) in _directArmed)
-						MaterializeDirectArm(file, rule, factory);
+				{
+					if (parts.Count == 1)
+					{
+						foreach (var (rule, factory) in parts[0])
+							MaterializeDirectArm(file, rule, factory);
+					}
+					else
+					{
+						for (var part = 0; part < parts.Count; part++)
+						{
+							foreach (var (rule, factory) in parts[part])
+								file.Line($"case {DirectArm(rule, factory)}:");
+
+							using (file.Indent())
+							{
+								file.Line(
+									$"{DirectMaterializer}_Part{part}(text, log[at + 1], read, slot" +
+									(placed ? ", start, end" : "") + ");");
+								file.Line("break;");
+							}
+						}
+					}
+				}
 			}
 
 			if (twice)
@@ -704,9 +779,107 @@ sealed partial class Machine
 				file.Line();
 				file.Line("ways.Built = ways.Records;");
 			}
+
+			// Local functions, for the reason the tape's materializer has them
+			// (Machine.Materialization.cs): the compiler below stops optimizing a method
+			// past about two thousand basic blocks, and this one is a walk with an arm per
+			// valued rule — so it grows with the grammar and nothing else was dividing it.
+			// The span cannot be a field of the frame a local function captures and is
+			// handed over; `read` and `slot` are the iteration's own and are handed over
+			// too, `read` because an arm advances it and no one after the arm reads it.
+			if (parts.Count > 1)
+				for (var part = 0; part < parts.Count; part++)
+				{
+					file.Line();
+
+					using (file.Block(
+						$"void {DirectMaterializer}_Part{part}(" +
+						"global::System.ReadOnlySpan<char> text, int kind, int read, int slot" +
+						(placed ? ", int start, int end" : "") + ")"))
+					{
+						using (file.Block("switch (kind)"))
+							foreach (var (rule, factory) in parts[part])
+								MaterializeDirectArm(file, rule, factory);
+					}
+				}
+
+			// The other switch over the same arms, divided into the same groups. It says
+			// what the root reaches and is walked before anything is built, and it was left
+			// whole while the building half was divided — so a grammar with two hundred
+			// valued rules had one method under the budget and one over it, and `GRAM5003`
+			// named the method that held both.
+			//
+			// It answers whether it knew the kind, so the groups are asked in turn and the
+			// one that knows it stops the chain. `read` is handed over by value: an arm
+			// steps it and nothing after the switch reads it.
+			if (strays && parts.Count > 1)
+				for (var part = 0; part < parts.Count; part++)
+				{
+					file.Line();
+
+					using (file.Block(
+						$"static bool {DirectMaterializer}_Reaches{part}(" +
+						"int[] log, bool[] live, int kind, int read)"))
+					{
+						using (file.Block("switch (kind)"))
+						{
+							foreach (var (rule, factory) in parts[part])
+								MarkDirectArm(file, rule, factory);
+
+							file.Line("default: return false;");
+						}
+
+						file.Line();
+						file.Line("return true;");
+					}
+				}
 		}
 
 		return file.ToString();
+	}
+
+	/// <summary>
+	/// The arms of a direct walk, in as few groups as will each keep inside the budget.
+	/// </summary>
+	/// <remarks>
+	/// The same division `MaterializeParts` makes for the tape, and it was missing here: a
+	/// direct materializer was one method however many rules it held, so a grammar large
+	/// enough put it past the size at which the JIT stops optimizing and nothing divided it.
+	/// `GRAM5003` said so and its advice — split the rule that is too big — had nothing to
+	/// answer, because no one rule was: the method was the sum of all of them.
+	/// </remarks>
+	List<List<(RuleSymbol Rule, int Factory)>> DirectParts(
+		List<(RuleSymbol Rule, int Factory)> armed, List<int> costs, int whole)
+	{
+		// Two at least. The arms are asked to divide because the *method* is over the line,
+		// and most of what puts it there is the walk around them — so a count taken from the
+		// arms' own total says one, which is the answer to a question nobody asked. What
+		// moving them out buys is their bodies; what stays behind is a label each.
+		var parts   = new List<List<(RuleSymbol Rule, int Factory)>>();
+		var count   = global::System.Math.Max(2, (whole + Budget * 9 / 10 - 1) / (Budget * 9 / 10));
+		var each    = whole / count + 1;
+		var current = new List<(RuleSymbol Rule, int Factory)>();
+		var carried = 0;
+
+		for (var at = 0; at < armed.Count; at++)
+		{
+			if (current.Count > 0 && carried + costs[at] > each)
+			{
+				parts.Add(current);
+
+				current = [];
+				carried = 0;
+			}
+
+			current.Add(armed[at]);
+
+			carried += costs[at];
+		}
+
+		if (current.Count > 0)
+			parts.Add(current);
+
+		return parts;
 	}
 
 	string DirectMaterializer => $"Materialize_DotGram{_tag}_Direct";
@@ -874,31 +1047,77 @@ sealed partial class Machine
 
 				using (file.Block("else"))
 				{
+					// §10's join, and the span where the span is the join — the reading the
+					// tape already makes (Machine.Materialization.cs) and this did not.
+					// Turns of a repetition that has nothing else in them are adjacent, and
+					// then the pieces measure exactly the distance between the first start
+					// and the last end: one cut and one string.
+					//
+					// Over kinds it is not an optimization but the answer. A position
+					// indexes a token there, so a piece is a run of tokens and its length
+					// is a count of them — what a piece is worth in characters is
+					// somewhere else entirely, and what stands between two adjacent tokens
+					// is part of the value the same reading over characters gives. Cut
+					// whole, both are right; copied piece by piece, the buffer was sized in
+					// tokens and the trivia between them was dropped.
 					file.Line($"var length{i} = 0;");
 					file.Line();
 					file.Line($"for (var piece = 0; piece < count{i}; piece++)");
 					file.Then($"length{i} += log[read + piece * 2 + 1] - log[read + piece * 2];");
 					file.Line();
-					file.Line($"var chars{i} = new char[length{i}];");
-					file.Line($"var filled{i} = 0;");
+					file.Line($"var first{i} = log[read];");
+					file.Line($"var last{i}  = log[read + (count{i} - 1) * 2 + 1];");
+					file.Line();
+					file.Line($"read += count{i} * 2;");
 					file.Line();
 
-					using (file.Block($"for (var piece = 0; piece < count{i}; piece++)"))
+					using (file.Block($"if (last{i} - first{i} == length{i})"))
+						file.Line($"captured{i} = {Cut($"first{i}", $"length{i}")};");
+
+					using (file.Block("else"))
 					{
-						file.Line("var pieceFrom = log[read++];");
-						file.Line("var pieceTo   = log[read++];");
+						if (OverKinds)
+						{
+							// The pieces do not tile, so what stands between them is not
+							// part of the value and each run is cut on its own.
+							file.Line(
+								$"var built{i} = new global::System.Text.StringBuilder(last{i} - first{i});");
+							file.Line($"var back{i}  = read - count{i} * 2;");
+							file.Line();
 
-						var text = OverKinds
-							? "global::System.MemoryExtensions.AsSpan(" + Cut("pieceFrom", "pieceTo - pieceFrom") + ")"
-							: "text.Slice(pieceFrom, pieceTo - pieceFrom)";
+							using (file.Block($"for (var piece = 0; piece < count{i}; piece++)"))
+							{
+								file.Line($"var pieceFrom = log[back{i} + piece * 2];");
+								file.Line($"var pieceTo   = log[back{i} + piece * 2 + 1];");
+								file.Line();
+								file.Line($"built{i}.Append({Cut("pieceFrom", "pieceTo - pieceFrom")});");
+							}
 
-						file.Line(
-							$"{text}.CopyTo(new global::System.Span<char>(chars{i}, filled{i}, pieceTo - pieceFrom));");
-						file.Line($"filled{i} += pieceTo - pieceFrom;");
+							file.Line();
+							file.Line($"captured{i} = built{i}.ToString();");
+						}
+						else
+						{
+							file.Line($"var chars{i} = new char[length{i}];");
+							file.Line($"var filled{i} = 0;");
+							file.Line($"var back{i}   = read - count{i} * 2;");
+							file.Line();
+
+							using (file.Block($"for (var piece = 0; piece < count{i}; piece++)"))
+							{
+								file.Line($"var pieceFrom = log[back{i} + piece * 2];");
+								file.Line($"var pieceTo   = log[back{i} + piece * 2 + 1];");
+								file.Line();
+								file.Line(
+									$"text.Slice(pieceFrom, pieceTo - pieceFrom)" +
+									$".CopyTo(new global::System.Span<char>(chars{i}, filled{i}, pieceTo - pieceFrom));");
+								file.Line($"filled{i} += pieceTo - pieceFrom;");
+							}
+
+							file.Line();
+							file.Line($"captured{i} = new string(chars{i});");
+						}
 					}
-
-					file.Line();
-					file.Line($"captured{i} = new string(chars{i});");
 				}
 
 				break;
@@ -974,7 +1193,7 @@ sealed partial class Machine
 		if (CSharpEmitter.WantsText(_graph, factory))
 			arguments.Add(text());
 
-		if (CSharpEmitter.Asks(_graph, factory, "parserSpan"))
+		if (CSharpEmitter.WantsSpan(_graph, factory))
 			arguments.Add(span());
 
 		if (CSharpEmitter.Asks(_graph, factory, "parserInput"))

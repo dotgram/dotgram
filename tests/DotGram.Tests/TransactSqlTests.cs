@@ -1,6 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 using DotGram.Parsers;
+using DotGram.Parsers.Sql;
 
 using Xunit;
 
@@ -564,28 +569,28 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_statement_and_a_query_hold_each_other()
 	{
-		var written = Assert.IsType<SqlNode.Insert>(
+		var written = Assert.IsType<Statement.Insert>(
 			TransactSql.TryParseStatement("INSERT INTO t (a) SELECT b FROM u WHERE b > 1").Value);
 
 		Assert.Equal(new[] { "a" }, written.Columns);
 
-		var query = Assert.IsType<SqlNode.Query>(written.Rows);
+		var query = Assert.IsType<Query.Specification>(written.Rows);
 
-		Assert.Equal("u", Assert.IsType<SqlNode.Source>(Assert.Single(query.From)).Table);
+		Assert.Equal("u", Assert.IsType<TableReference.Named>(Assert.Single(query.From)).Table);
 		Assert.NotNull(query.Where);
 
-		var merged = Assert.IsType<SqlNode.Merge>(
+		var merged = Assert.IsType<Statement.Merge>(
 			TransactSql.TryParseStatement(
 				"MERGE t USING u ON t.id = u.id WHEN MATCHED THEN UPDATE SET a = 1").Value);
 
-		var arm = Assert.IsType<SqlNode.MergeWhen>(Assert.Single(merged.Whens));
+		var arm = Assert.IsType<Clause.MergeWhen>(Assert.Single(merged.Whens));
 
 		Assert.True(arm.OnMatch);
 		Assert.Null(arm.Condition);
 
-		var change = Assert.IsType<SqlNode.Update>(arm.Action);
+		var change = Assert.IsType<Statement.Update>(arm.Action);
 
-		Assert.Equal("a", Assert.IsType<SqlNode.Assign>(Assert.Single(change.Set)).Target);
+		Assert.Equal("a", Assert.IsType<Clause.Set>(Assert.Single(change.Set)).Target);
 	}
 
 	/// <summary>And the query entry point still reads only queries.</summary>
@@ -667,6 +672,866 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>Tables declared and tables changed, which share their column definitions.</summary>
+	/// <remarks>
+	/// The largest single kind in the corpus and the one that pulls the most behind it: a
+	/// column definition is what `ALTER TABLE … ADD` adds and what `ALTER TABLE … ALTER
+	/// COLUMN` changes, and the table body a variable declares is the same thing smaller.
+	/// The option lists are written as a shape with an open vocabulary, as the table hints
+	/// are and for the same reason.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE TABLE t (a INT)")]
+	[InlineData("CREATE TABLE dbo.t (a INT NOT NULL, b NVARCHAR (50) NULL)")]
+	[InlineData("CREATE TABLE t (a INT IDENTITY (1, 5) NOT NULL, b AS a * 2 PERSISTED)")]
+	[InlineData("CREATE TABLE t (a INT SPARSE, b NCHAR (10) COLLATE Albanian_BIN, c VARBINARY (MAX) FILESTREAM)")]
+	[InlineData("CREATE TABLE t (a INT CONSTRAINT pk PRIMARY KEY CLUSTERED)")]
+	[InlineData("CREATE TABLE t (a INT, CONSTRAINT pk PRIMARY KEY (a ASC, b DESC) WITH (FILLFACTOR = 80) ON [PRIMARY])")]
+	[InlineData("CREATE TABLE t (a INT, b INT, FOREIGN KEY (a) REFERENCES u (id) ON DELETE CASCADE ON UPDATE NO ACTION)")]
+	[InlineData("CREATE TABLE t (a INT REFERENCES u (id) NOT FOR REPLICATION)")]
+	[InlineData("CREATE TABLE t (a INT, CHECK (a > 0))")]
+	[InlineData("CREATE TABLE t (a INT DEFAULT 0, b INT CONSTRAINT df DEFAULT 1)")]
+	[InlineData("CREATE TABLE t (a INT, INDEX ix NONCLUSTERED (a) WHERE a > 0 WITH (DATA_COMPRESSION = PAGE))")]
+	[InlineData("CREATE TABLE t (a INT, INDEX ix CLUSTERED COLUMNSTORE ORDER (a))")]
+	[InlineData("CREATE TABLE t (a INT, s DATETIME2 GENERATED ALWAYS AS ROW START, e DATETIME2 GENERATED ALWAYS AS ROW END, PERIOD FOR SYSTEM_TIME (s, e)) WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.h))")]
+	[InlineData("CREATE TABLE t (a INT) ON ps (a) TEXTIMAGE_ON [PRIMARY]")]
+	[InlineData("CREATE TABLE t (a XML COLUMN_SET FOR ALL_SPARSE_COLUMNS)")]
+	[InlineData("CREATE TABLE n1 (c1 INT) AS NODE")]
+	[InlineData("CREATE TABLE e01 (c1 INT, CONSTRAINT cnst CONNECTION (N1 TO N2)) AS EDGE")]
+	[InlineData("CREATE TABLE t AS FILETABLE WITH (FILETABLE_DIRECTORY = 'd')")]
+	[InlineData("CREATE TABLE t (c1 INT, INDEX idx NONCLUSTERED ($NODE_ID))")]
+	[InlineData("CREATE TABLE t (i INT NOT NULL INDEX ix NONCLUSTERED HASH WITH (BUCKET_COUNT = 16))")]
+	[InlineData("ALTER TABLE t REBUILD WITH (ONLINE = ON (WAIT_AT_LOW_PRIORITY (MAX_DURATION = 1440 MINUTES, ABORT_AFTER_WAIT = NONE)))")]
+	[InlineData("SELECT c1 FROM t1 GROUP BY c1 WITH (DISTRIBUTED_AGG), c2")]
+	[InlineData("CREATE TABLE t (a INT) WITH (DATA_COMPRESSION = PAGE ON PARTITIONS (1 TO 4, 6))")]
+
+	[InlineData("ALTER TABLE t ADD c5 VARBINARY (MAX) FILESTREAM")]
+	[InlineData("ALTER TABLE t ADD CONSTRAINT pk PRIMARY KEY (a)")]
+	[InlineData("ALTER TABLE t WITH NOCHECK ADD CHECK (a > 0)")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c1 INT NOT NULL")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c1 ADD SPARSE")]
+	[InlineData("ALTER TABLE t DROP COLUMN a, CONSTRAINT c")]
+	[InlineData("ALTER TABLE t DROP CONSTRAINT IF EXISTS c")]
+	[InlineData("ALTER TABLE t NOCHECK CONSTRAINT ALL")]
+	[InlineData("ALTER TABLE t ENABLE TRIGGER tr1, tr2")]
+	[InlineData("ALTER TABLE t SET (SYSTEM_VERSIONING = OFF)")]
+	[InlineData("ALTER TABLE t REBUILD PARTITION = ALL WITH (DATA_COMPRESSION = ROW)")]
+	[InlineData("ALTER TABLE t SWITCH PARTITION 1 TO u PARTITION 2")]
+
+	// And the table a variable declares, which is the same body read the same way.
+	[InlineData("DECLARE @t TABLE (a INT PRIMARY KEY, b AS a * 2, CHECK (a > 0))")]
+	public void The_table_statements_read(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>And a table says what is in it.</summary>
+	[Fact]
+	public void A_created_table_says_its_columns()
+	{
+		var made = Assert.IsType<Statement.TableDefinition>(
+			TransactSql.TryParseStatement(
+				"CREATE TABLE dbo.t (a INT NOT NULL, b AS a * 2, CONSTRAINT pk PRIMARY KEY (a))").Value);
+
+		Assert.Equal("dbo.t", made.Name);
+		Assert.Equal(3, made.Elements.Length);
+
+		var first = Assert.IsType<Clause.ColumnDefinition>(made.Elements[0]);
+
+		Assert.Equal("a", first.Name);
+		Assert.Equal("INT", first.Type);
+		Assert.Null(first.Computed);
+
+		var second = Assert.IsType<Clause.ColumnDefinition>(made.Elements[1]);
+
+		Assert.Equal("b", second.Name);
+		Assert.Null(second.Type);
+		Assert.NotNull(second.Computed);
+
+		var third = Assert.IsType<Clause.ConstraintDefinition>(made.Elements[2]);
+
+		Assert.Equal("pk", third.Name);
+		Assert.Equal("PRIMARY KEY", third.Kind);
+		Assert.Equal(new[] { "a" }, third.Columns);
+	}
+
+	/// <summary>The four that are a header and a body.</summary>
+	/// <remarks>
+	/// None of them could be read at all until the procedural level existed, because each is
+	/// a header and then whatever T-SQL somebody put inside it — 341 statements of the corpus
+	/// between them, and the body was the part already done.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE PROCEDURE p AS SELECT 1")]
+	[InlineData("CREATE PROC dbo.p @a INT, @b NVARCHAR (50) = N'x' OUTPUT AS BEGIN SELECT @a END")]
+	[InlineData("CREATE PROCEDURE p (@a INT = 0 READONLY) WITH RECOMPILE, ENCRYPTION AS SELECT 1")]
+	[InlineData("CREATE OR ALTER PROCEDURE p AS SELECT 1")]
+	[InlineData("ALTER PROCEDURE p AS SELECT 1")]
+	[InlineData("CREATE PROCEDURE p WITH EXECUTE AS OWNER AS SELECT 1")]
+	[InlineData("CREATE PROCEDURE p AS EXTERNAL NAME asm.cls.method")]
+	[InlineData("CREATE PROCEDURE p AS BEGIN INSERT INTO t1 VALUES (1, 2), (DEFAULT, 0); RETURN 0 END")]
+
+	[InlineData("CREATE FUNCTION f (@a INT) RETURNS INT AS BEGIN RETURN @a * 2 END")]
+	[InlineData("CREATE FUNCTION f () RETURNS TABLE AS RETURN (SELECT a FROM t)")]
+	[InlineData("CREATE FUNCTION f (@a INT) RETURNS TABLE RETURN SELECT a FROM t WHERE b = @a")]
+	[InlineData("CREATE FUNCTION f () RETURNS @r TABLE (a INT NOT NULL) AS BEGIN INSERT INTO @r VALUES (1); RETURN END")]
+	[InlineData("CREATE FUNCTION f (@a INT) RETURNS INT WITH SCHEMABINDING, RETURNS NULL ON NULL INPUT AS BEGIN RETURN 1 END")]
+
+	[InlineData("CREATE TRIGGER tr ON Sales.Customer AFTER INSERT, UPDATE AS RAISERROR ('x', 16, 10)")]
+	[InlineData("CREATE TRIGGER tr ON t INSTEAD OF DELETE AS SELECT 1")]
+	[InlineData("CREATE TRIGGER tr ON t FOR INSERT NOT FOR REPLICATION AS SELECT 1")]
+	[InlineData("CREATE TRIGGER safety ON DATABASE FOR DROP_SYNONYM AS RAISERROR ('x', 10, 1)")]
+	[InlineData("CREATE TRIGGER tr ON ALL SERVER FOR CREATE_DATABASE AS PRINT 'made'")]
+	[InlineData("CREATE TRIGGER tr ON ALL SERVER WITH EXECUTE AS 'login_test' FOR LOGON AS BEGIN ROLLBACK END")]
+
+	[InlineData("CREATE VIEW v AS SELECT a FROM t")]
+	[InlineData("CREATE VIEW dbo.v (a, b) WITH SCHEMABINDING AS SELECT x, y FROM t WITH CHECK OPTION")]
+	[InlineData("CREATE OR ALTER VIEW v AS SELECT a FROM t UNION SELECT b FROM u")]
+	public void The_routines_read(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>Indexes and permissions, which share almost everything with what came before.</summary>
+	/// <remarks>
+	/// An index inside a `CREATE TABLE` is the same thing said in the same words, so only the
+	/// header is new. And a permission's *name* is made of words T-SQL reserves — `ALTER ANY
+	/// DATABASE`, `VIEW SERVER STATE`, `BACKUP LOG` — which an identifier cannot be, so they
+	/// are named the way the option names are.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE INDEX ix ON t (a)")]
+	[InlineData("CREATE UNIQUE CLUSTERED INDEX ix ON dbo.t (a ASC, b DESC) INCLUDE (c) WHERE a > 0")]
+	[InlineData("CREATE INDEX ix ON t (a) WITH (PAD_INDEX = ON, FILLFACTOR = 80, ONLINE = ON) ON ps (a)")]
+	[InlineData("CREATE INDEX ix ON t (a) WITH (DATA_COMPRESSION = PAGE ON PARTITIONS (1 TO 4))")]
+	[InlineData("CREATE CLUSTERED COLUMNSTORE INDEX cix ON t")]
+	[InlineData("CREATE NONCLUSTERED COLUMNSTORE INDEX cix ON t (a, b) WHERE a > 0")]
+	[InlineData("ALTER INDEX ALL ON t REBUILD PARTITION = ALL")]
+	[InlineData("ALTER INDEX ix ON t REORGANIZE WITH (LOB_COMPACTION = ON)")]
+	[InlineData("ALTER INDEX ix ON t DISABLE")]
+	[InlineData("ALTER INDEX ix ON t SET (ALLOW_PAGE_LOCKS = OFF)")]
+	[InlineData("ALTER INDEX ix ON t RESUME WITH (MAXDOP = 2)")]
+
+	[InlineData("GRANT SELECT ON t TO u")]
+	[InlineData("GRANT SELECT (a, b), UPDATE ON dbo.t TO u, v WITH GRANT OPTION")]
+	[InlineData("GRANT alter ON SERVER ROLE::serverRole1 TO serverRole2")]
+	[InlineData("GRANT EXECUTE ON OBJECT::dbo.p TO PUBLIC AS dbo")]
+	[InlineData("GRANT VIEW SERVER STATE TO login_test")]
+	[InlineData("GRANT ALTER ANY DATABASE DDL TRIGGER TO u")]
+	[InlineData("GRANT ALL PRIVILEGES ON t TO u")]
+	[InlineData("DENY VIEW DEFINITION ON SCHEMA::s TO u CASCADE")]
+	[InlineData("REVOKE GRANT OPTION FOR SELECT ON t FROM u CASCADE AS dbo")]
+	[InlineData("REVOKE CREATE TABLE FROM u")]
+	public void The_indexes_and_permissions_read(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>The database, which is a header and an option list.</summary>
+	/// <remarks>
+	/// The settings are not enumerated and the rule is not about which of them exist: a
+	/// setting is a run of words and then, sometimes, what it is set to. What the syntax
+	/// does say is where the run ends — `ON` and `OFF` are values, and `WITH` begins the
+	/// termination clause — and that is what the lookahead in `DatabaseOptionName` is.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE DATABASE d1")]
+	[InlineData("CREATE DATABASE d1 CONTAINMENT = PARTIAL")]
+	[InlineData("CREATE DATABASE d1 COLLATE Estonian_CS_AS")]
+	[InlineData("CREATE DATABASE d1 ON PRIMARY (NAME = a, FILENAME = 'a.mdf', SIZE = 10 MB, " +
+		"MAXSIZE = 1 GB, FILEGROWTH = 10 %) LOG ON (NAME = b, FILENAME = 'b.ldf')")]
+	[InlineData("CREATE DATABASE d1 ON (FILENAME = 'a.mdf'), (FILENAME = 'b.ldf') FOR ATTACH WITH ENABLE_BROKER")]
+	[InlineData("CREATE DATABASE d1 ON PRIMARY (NAME = a, FILENAME = 'a'), " +
+		"FILEGROUP fg CONTAINS FILESTREAM (NAME = b, FILENAME = 'b')")]
+	[InlineData("CREATE DATABASE s1 ON (NAME = a, FILENAME = 'a.ss') AS SNAPSHOT OF d1")]
+
+	[InlineData("ALTER DATABASE d1 SET SINGLE_USER")]
+	[InlineData("ALTER DATABASE d1 SET SINGLE_USER WITH ROLLBACK IMMEDIATE")]
+	[InlineData("ALTER DATABASE d1 SET READ_ONLY WITH ROLLBACK AFTER 10 SECONDS")]
+	[InlineData("ALTER DATABASE CURRENT SET COMPATIBILITY_LEVEL = 160")]
+	[InlineData("ALTER DATABASE d1 SET ENCRYPTION ON, ENCRYPTION OFF")]
+	[InlineData("ALTER DATABASE d1 SET HADR AVAILABILITY GROUP = g1")]
+	[InlineData("ALTER DATABASE d1 SET HADR SUSPEND")]
+	[InlineData("ALTER DATABASE d1 SET TARGET_RECOVERY_TIME = 42 SECONDS")]
+	[InlineData("ALTER DATABASE d1 SET CHANGE_TRACKING (CHANGE_RETENTION = 3 DAYS, AUTO_CLEANUP = OFF)")]
+	[InlineData("ALTER DATABASE d1 SET QUERY_STORE = ON (DESIRED_STATE = READ_ONLY, MAX_PLANS_PER_QUERY = 200)")]
+	[InlineData("ALTER DATABASE d1 SET QUERY_STORE CLEAR ALL")]
+	[InlineData("ALTER DATABASE d1 SET AUTO_CREATE_STATISTICS ON (INCREMENTAL = ON), AUTO_UPDATE_STATISTICS ON")]
+	[InlineData("ALTER DATABASE d1 COLLATE Estonian_CS_AS")]
+	[InlineData("ALTER DATABASE d1 MODIFY NAME = d2")]
+	[InlineData("ALTER DATABASE d1 MODIFY (MAXSIZE = 1 GB, EDITION = 'basic')")]
+	[InlineData("ALTER DATABASE d1 MODIFY FILEGROUP fg1 AUTOGROW_ALL_FILES")]
+	[InlineData("ALTER DATABASE d1 MODIFY FILEGROUP fg1 READ_ONLY WITH ROLLBACK AFTER 10 SECONDS")]
+	[InlineData("ALTER DATABASE d1 ADD FILEGROUP fg1 CONTAINS MEMORY_OPTIMIZED_DATA")]
+	[InlineData("ALTER DATABASE d1 ADD FILE (FILENAME = 'a', NAME = b) TO FILEGROUP [MY FILEGROUP]")]
+	[InlineData("ALTER DATABASE d1 ADD LOG FILE (FILENAME = 'log'), (FILENAME = 'log2')")]
+	[InlineData("ALTER DATABASE d1 REMOVE FILE a")]
+	[InlineData("ALTER DATABASE d1 REBUILD LOG")]
+	[InlineData("ALTER DATABASE SCOPED COLLATE Estonian_CS_AS")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION SET MAXDOP = 1")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION FOR SECONDARY SET MAXDOP = PRIMARY")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION CLEAR PROCEDURE_CACHE")]
+	public void The_database_reads(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>
+	/// And a statement that only begins like a database is read as the statement it is.
+	/// </summary>
+	/// <remarks>
+	/// Each of these is a statement of its own, and the rules for a database must not take
+	/// one for a database called `ENCRYPTION` doing something called `KEY`. That is why the
+	/// two word-only actions of `ALTER DATABASE` are written out and not read as `word`: a
+	/// rule wide enough for `REBUILD LOG` is wide enough for these. They were refused until
+	/// the keys were read; now they are read, and by the right rule.
+	/// </remarks>
+	[Theory]
+	[InlineData("ALTER DATABASE ENCRYPTION KEY REGENERATE WITH ALGORITHM = AES_256",
+		"AlterDatabaseEncryptionKey")]
+	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = AES_128 ENCRYPTION BY SERVER CERTIFICATE c1",
+		"DatabaseEncryptionKeyDefinition")]
+	public void And_what_only_begins_like_a_database_is_read_as_itself(string input, string node)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+		Assert.Equal(node, match.Value!.GetType().Name);
+	}
+
+
+	/// <summary>What a second reading of the published syntax found missing.</summary>
+	/// <remarks>
+	/// Written clause by clause against Microsoft's own blocks rather than from the corpus:
+	/// each of these is a line of `<column_definition>`, `<column_constraint>`,
+	/// `ALTER TABLE`, `CREATE PROCEDURE` or `<data_type>` that the grammar did not have.
+	/// The corpus is what noticed; the syntax is what said what to write.
+	/// </remarks>
+	[Theory]
+	// `<data_type>`: xml takes a schema collection where everything else takes a precision.
+	[InlineData("CREATE TABLE t (c1 XML (CONTENT dbo.sc), c2 XML (sc), c3 XML)")]
+
+	// `[ [ CONSTRAINT constraint_name ] { NULL | NOT NULL } ]` — a nullability may be named.
+	[InlineData("CREATE TABLE t (c1 INT CONSTRAINT nn NOT NULL)")]
+
+	// `GENERATED ALWAYS AS { ROW | TRANSACTION_ID | SEQUENCE_NUMBER } { START | END } [ HIDDEN ]`,
+	// and the two words the ledger adds to that list.
+	[InlineData("CREATE TABLE t (a DATETIME2 GENERATED ALWAYS AS ROW START HIDDEN NOT NULL)")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c1 VARBINARY (85) GENERATED ALWAYS AS SUSER_SID START")]
+
+	// `HIDDEN` stands with `SPARSE` and the rest, after `ADD` and `DROP` and on its own.
+	[InlineData("ALTER TABLE t ALTER COLUMN c1 INT HIDDEN NULL")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c1 ADD HIDDEN")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c1 DROP MASKED")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c1 ADD ROWGUIDCOL WITH (ONLINE = ON)")]
+
+	// The published `ALTER TABLE` actions that were not there.
+	[InlineData("ALTER TABLE t ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON)")]
+	[InlineData("ALTER TABLE t DISABLE FILETABLE_NAMESPACE")]
+	[InlineData("ALTER TABLE t ALTER INDEX ix REBUILD WITH (BUCKET_COUNT = 1)")]
+	[InlineData("ALTER TABLE t MERGE RANGE (NULL)")]
+	[InlineData("ALTER TABLE t SPLIT RANGE (10)")]
+	[InlineData("ALTER TABLE t DROP CONSTRAINT c WITH (MOVE TO fg, ONLINE = ON)")]
+
+	// `DECLARE` gives a variable a nullability, which nothing about a variable suggests.
+	[InlineData("DECLARE @v AS INT NOT NULL = 4")]
+	[InlineData("DECLARE @v AS INT NULL")]
+
+	// `[ NULL | NOT NULL ] [ = default ]`, in that order, from the natively compiled form.
+	[InlineData("CREATE PROCEDURE p @p1 INT, @p2 INT NULL = NULL, @p3 INT NOT NULL AS SELECT 1")]
+	[InlineData("CREATE PROCEDURE p WITH NATIVE_COMPILATION, SCHEMABINDING AS " +
+		"BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL = SNAPSHOT, LANGUAGE = N'us_english') SELECT 1 END")]
+
+	// An option's name is a run of words in four places at once, and its value may be a list.
+	[InlineData("ALTER DATABASE db SET QUERY_STORE (CLEANUP_POLICY = (STALE_QUERY_THRESHOLD_DAYS = 367))")]
+	[InlineData("CREATE TABLE t (a INT) WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = HASH(a))")]
+
+	// The selective XML index, which is the one index whose shape is its own.
+	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (path1 = '/a/b')")]
+	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) WITH XMLNAMESPACES ('urn:a' AS ns) " +
+		"FOR (p1 = '/a/b' AS XQUERY 'xs:double', p2 = '/a/c' AS XQUERY 'xs:string' MAXLENGTH (200) SINGLETON, " +
+		"p3 = '/a/d' AS SQL NVARCHAR (100)) WITH (PAD_INDEX = ON)")]
+	[InlineData("ALTER INDEX sxi ON t FOR (REMOVE path1)")]
+	[InlineData("ALTER INDEX sxi ON t WITH XMLNAMESPACES ('urn:a' AS ns) FOR (ADD p9 = '/a/e')")]
+	[InlineData("CREATE PRIMARY XML INDEX pxi ON t (c)")]
+	[InlineData("CREATE XML INDEX xi ON t (c) USING XML INDEX pxi FOR PATH")]
+
+	// A warehouse's table and view, which say the distribution before the query.
+	[InlineData("CREATE TABLE dbo.t1 (c1, c2) WITH (DISTRIBUTION = ROUND_ROBIN) AS SELECT a, b FROM u")]
+	[InlineData("CREATE MATERIALIZED VIEW v WITH (DISTRIBUTION = HASH(c5)) AS SELECT c5 FROM t")]
+
+	// `<collate clause>` follows a character expression and not only a bare column.
+	[InlineData("SELECT a COLLATE Albanian_BIN")]
+	[InlineData("SELECT (a) COLLATE Albanian_BIN")]
+	[InlineData("SELECT t.a COLLATE Albanian_BIN")]
+
+	// `WITH CHANGE_TRACKING_CONTEXT ( context )` in front of the statement, on its own.
+	[InlineData("WITH CHANGE_TRACKING_CONTEXT (0xff) INSERT INTO t (a) VALUES (1)")]
+
+	// `SET LANGUAGE us_english` — a setting and one value, which a third of them take.
+	[InlineData("SET LANGUAGE us_english")]
+	[InlineData("SET DATEFORMAT mdy")]
+	[InlineData("COMMIT TRANSACTION WITH (DELAYED_DURABILITY = ON)")]
+	public void The_published_syntax_reads(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>And where the engine and ScriptDom disagree, the engine wins above 90.</summary>
+	/// <remarks>
+	/// ScriptDom reads a cursor variable with a default and a `CHANGE_TRACKING_CONTEXT`
+	/// joined to a named query by a comma. The engine answers `Incorrect syntax` to both,
+	/// and the published syntax gives neither — a cursor has no default, and the context
+	/// stands in front of the statement on its own.
+	/// </remarks>
+	[Theory]
+	[InlineData("DECLARE @c AS CURSOR = 'x'")]
+	[InlineData("WITH CHANGE_TRACKING_CONTEXT (0xff), c (a) AS (SELECT a FROM t) INSERT INTO u (a) SELECT a FROM c")]
+	public void And_what_only_ScriptDom_reads_is_refused(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>`NULL` is a constant of this dialect and stands wherever a value does.</summary>
+	/// <remarks>
+	/// The standard's is a <c>&lt;null specification&gt;</c> and stands in a handful of
+	/// named places — a row constructor, a `CAST` operand, a `SET`. Microsoft's expression
+	/// reference lists it among the constants, which is a different language: `1 + NULL` is
+	/// an expression, `trim('[]' FROM NULL)` is a call, and `DEFAULT NULL` is a constraint
+	/// whose value is one. Found by the corpus refusing all three.
+	/// </remarks>
+	[Theory]
+	[InlineData("SELECT NULL")]
+	[InlineData("SELECT 1 + NULL")]
+	[InlineData("SELECT TRIM('[]' FROM NULL)")]
+	[InlineData("SELECT COALESCE(NULL, 1)")]
+	[InlineData("INSERT INTO t (a) VALUES (NULL)")]
+	[InlineData("CREATE TABLE t (a INT CONSTRAINT d DEFAULT NULL)")]
+
+	// A table-valued function written in the CLR declares its columns where an inline one
+	// would say `RETURN`, and `ORDER` says what the assembly promises about them.
+	[InlineData("CREATE FUNCTION f () RETURNS TABLE (c1 INT) AS EXTERNAL NAME a.b.c")]
+	[InlineData("CREATE FUNCTION f () RETURNS TABLE (c1 INT) ORDER (c1 ASC) AS EXTERNAL NAME a.b.c")]
+
+	// And a table-valued method on a variable of a user-defined type.
+	[InlineData("SELECT c1 FROM @v.f(1) AS t (c)")]
+	[InlineData("SELECT c1 FROM @v.f() AS t")]
+	[InlineData("SELECT c1 FROM @rows")]
+	public void And_the_rest_of_the_second_reading(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>A member reached through `::`, and everything that may follow one.</summary>
+	/// <remarks>
+	/// `SELECT t::a` read and `SELECT t::a + 1` did not, which was not the grammar:
+	/// <c>("::" | '.') &amp; Identifier</c> was being taken for a set of two literals and
+	/// every call site became that range, with the identifier after it gone. See
+	/// <see cref="SemanticTests.A_choice_that_reads_more_than_its_literals_is_not_a_set"/>.
+	/// </remarks>
+	[Theory]
+	[InlineData("SELECT t::a")]
+	[InlineData("SELECT t::a + 1")]
+	[InlineData("SELECT t::a AS q")]
+	[InlineData("SELECT t::f()")]
+	[InlineData("SELECT t::a COLLATE Albanian_BIN")]
+	[InlineData("SELECT t::a, t2::f(), dbo.[type 1]::[Property]")]
+	[InlineData("SELECT (c1).SomeProperty")]
+	public void A_member_reads_and_the_value_goes_on(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>`DROP`, which is sixty-six statements and one shape.</summary>
+	/// <remarks>
+	/// Written from the sixty-six published blocks, which agree about everything but the
+	/// words in the middle. Those are written out and here they are the syntax rather than a
+	/// catalogue: `DROP TABLE` and `DROP VIEW` are different statements, `DROP MASTER KEY`
+	/// names no object at all, and a rule wide enough for any word would read `DROP FOO x`
+	/// and call it one of them.
+	/// </remarks>
+	[Theory]
+	[InlineData("DROP TABLE t")]
+	[InlineData("DROP TABLE IF EXISTS dbo.t, dbo.u")]
+	[InlineData("DROP VIEW IF EXISTS v")]
+	[InlineData("DROP PROC p")]
+	[InlineData("DROP PROCEDURE IF EXISTS dbo.p, dbo.q")]
+	[InlineData("DROP FUNCTION IF EXISTS f")]
+	[InlineData("DROP DATABASE IF EXISTS d1, d2")]
+	[InlineData("DROP DATABASE AUDIT SPECIFICATION s")]
+	[InlineData("DROP DATABASE SCOPED CREDENTIAL c")]
+	[InlineData("DROP SERVER AUDIT SPECIFICATION s")]
+	[InlineData("DROP SERVER AUDIT a")]
+	[InlineData("DROP SERVER ROLE r")]
+	[InlineData("DROP XML SCHEMA COLLECTION dbo.sc")]
+	[InlineData("DROP SEARCH PROPERTY LIST pl")]
+	[InlineData("DROP CRYPTOGRAPHIC PROVIDER p")]
+	[InlineData("DROP EXTERNAL DATA SOURCE ds")]
+	[InlineData("DROP EXTERNAL FILE FORMAT ff")]
+	[InlineData("DROP EXTERNAL RESOURCE POOL rp")]
+	[InlineData("DROP WORKLOAD CLASSIFIER wc")]
+
+	// The five that say something after the names.
+	[InlineData("DROP ASYMMETRIC KEY k REMOVE PROVIDER KEY")]
+	[InlineData("DROP SYMMETRIC KEY k")]
+	[InlineData("DROP ASSEMBLY IF EXISTS a1, a2 WITH NO DEPENDENTS")]
+	[InlineData("DROP EXTERNAL LIBRARY l AUTHORIZATION dbo")]
+	[InlineData("DROP EVENT SESSION s ON SERVER")]
+	[InlineData("DROP EVENT NOTIFICATION n1, n2 ON QUEUE dbo.q")]
+
+	// The two that name nothing: there is one of each per database.
+	[InlineData("DROP MASTER KEY")]
+	[InlineData("DROP DATABASE ENCRYPTION KEY")]
+
+	// An index is named twice, and the older spelling puts both in one qualified name.
+	[InlineData("DROP INDEX ix ON dbo.t")]
+	[InlineData("DROP INDEX IF EXISTS ix ON t WITH (ONLINE = ON, MOVE TO fg)")]
+	[InlineData("DROP INDEX dbo.t.ix")]
+	[InlineData("DROP INDEX ix1 ON t1, ix2 ON t2")]
+	[InlineData("DROP FULLTEXT INDEX ON dbo.t")]
+
+	// A signature comes off a module and a classification off a column.
+	[InlineData("DROP SIGNATURE FROM dbo.p BY CERTIFICATE c")]
+	[InlineData("DROP COUNTER SIGNATURE FROM dbo.p BY ASYMMETRIC KEY k, CERTIFICATE c")]
+	[InlineData("DROP SENSITIVITY CLASSIFICATION FROM dbo.t.c1, dbo.t.c2")]
+
+	// And a trigger says which of the three kinds it is by what it is on.
+	[InlineData("DROP TRIGGER IF EXISTS tr1, tr2")]
+	[InlineData("DROP TRIGGER tr ON DATABASE")]
+	[InlineData("DROP TRIGGER tr ON ALL SERVER")]
+	public void The_drop_family_reads(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>And a word that names no object of this language is not one.</summary>
+	[Theory]
+	[InlineData("DROP FOO x")]
+	[InlineData("DROP TABLE")]
+	[InlineData("DROP MASTER KEY k")]
+	public void And_a_drop_of_nothing_is_refused(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>Who may connect, and as whom.</summary>
+	/// <remarks>
+	/// Logins, users, roles and schemas: one family because they are one shape — a name,
+	/// where it came from, and a list of settings, and the settings are the option list
+	/// already written. The one exception the published syntax insists on is a password:
+	/// `PASSWORD = 'p' OLD_PASSWORD = 'q' MUST_CHANGE` is three things with no commas
+	/// between them, which no other option list in T-SQL does.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p'")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p' MUST_CHANGE, CHECK_POLICY = ON, SID = 0x01")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 0x0100 HASHED, DEFAULT_DATABASE = master")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p' MUST_CHANGE HASHED")]
+	[InlineData("CREATE LOGIN l FROM WINDOWS WITH DEFAULT_DATABASE = master")]
+	[InlineData("CREATE LOGIN l FROM EXTERNAL PROVIDER")]
+	[InlineData("CREATE LOGIN l FROM CERTIFICATE c WITH CREDENTIAL = cr")]
+	[InlineData("CREATE LOGIN l FROM ASYMMETRIC KEY k")]
+	[InlineData("ALTER LOGIN l ENABLE")]
+	[InlineData("ALTER LOGIN l DISABLE")]
+	[InlineData("ALTER LOGIN l WITH PASSWORD = 'p' OLD_PASSWORD = 'q'")]
+	[InlineData("ALTER LOGIN l WITH NAME = m, NO CREDENTIAL")]
+	[InlineData("ALTER LOGIN l ADD CREDENTIAL cr")]
+	[InlineData("ALTER LOGIN l DROP CREDENTIAL cr")]
+
+	[InlineData("CREATE USER u")]
+	[InlineData("CREATE USER u FOR LOGIN l")]
+	[InlineData("CREATE USER u FROM LOGIN l WITH DEFAULT_SCHEMA = dbo")]
+	[InlineData("CREATE USER u WITHOUT LOGIN WITH DEFAULT_SCHEMA = dbo")]
+	[InlineData("CREATE USER u FOR CERTIFICATE c")]
+	[InlineData("CREATE USER u FROM ASYMMETRIC KEY k")]
+	[InlineData("CREATE USER u WITH PASSWORD = 'p', DEFAULT_LANGUAGE = 1033")]
+	[InlineData("ALTER USER u WITH NAME = v, DEFAULT_SCHEMA = NULL")]
+	[InlineData("ALTER USER u FROM EXTERNAL PROVIDER")]
+
+	[InlineData("CREATE ROLE r")]
+	[InlineData("CREATE ROLE r AUTHORIZATION dbo")]
+	[InlineData("CREATE SERVER ROLE r AUTHORIZATION sa")]
+	[InlineData("ALTER ROLE r ADD MEMBER u")]
+	[InlineData("ALTER ROLE r DROP MEMBER u")]
+	[InlineData("ALTER SERVER ROLE r WITH NAME = q")]
+	[InlineData("CREATE APPLICATION ROLE a WITH PASSWORD = 'p', DEFAULT_SCHEMA = dbo")]
+	[InlineData("ALTER APPLICATION ROLE a WITH NAME = b, PASSWORD = 'p'")]
+
+	[InlineData("CREATE SCHEMA s")]
+	[InlineData("CREATE SCHEMA s AUTHORIZATION dbo")]
+	[InlineData("CREATE SCHEMA AUTHORIZATION dbo")]
+	[InlineData("CREATE SCHEMA s AUTHORIZATION dbo CREATE TABLE t (a INT) GRANT SELECT ON t TO u")]
+	[InlineData("ALTER SCHEMA s TRANSFER dbo.t")]
+	[InlineData("ALTER SCHEMA s TRANSFER OBJECT::dbo.t")]
+
+	// A class is a run of words, which `XML SCHEMA COLLECTION::` is three of.
+	[InlineData("ALTER SCHEMA s TRANSFER XML SCHEMA COLLECTION::c")]
+	[InlineData("ALTER AUTHORIZATION ON dbo.t TO u")]
+	[InlineData("ALTER AUTHORIZATION ON OBJECT::dbo.t TO SCHEMA OWNER")]
+	[InlineData("ALTER AUTHORIZATION ON XML SCHEMA COLLECTION::Parts.Sprockets TO [c1]")]
+	[InlineData("ALTER AUTHORIZATION ON SEARCH PROPERTY LIST::list1 TO [c1]")]
+	public void The_principals_read(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>What lives outside the database, and what the server spends on it.</summary>
+	/// <remarks>
+	/// Fourteen published blocks and almost all of them are a name and an option list,
+	/// which is the shape this grammar has been reading since `CREATE TABLE`. What is new
+	/// is four clauses that are not a name and a value: an affinity, a placement, a sample,
+	/// and a file specification.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE EXTERNAL DATA SOURCE ds WITH (LOCATION = 'hdfs://x:8020', TYPE = HADOOP)")]
+	[InlineData("ALTER EXTERNAL DATA SOURCE ds SET LOCATION = 'abs://x', CREDENTIAL = cr")]
+	[InlineData("CREATE EXTERNAL FILE FORMAT ff WITH (FORMAT_TYPE = DELIMITEDTEXT, " +
+		"FORMAT_OPTIONS (FIELD_TERMINATOR = '|', USE_TYPE_DEFAULT = TRUE))")]
+	[InlineData("CREATE EXTERNAL TABLE dbo.t (a INT, b NVARCHAR (10) COLLATE Latin1_General_CI_AS NULL) " +
+		"WITH (LOCATION = '/f', DATA_SOURCE = ds, FILE_FORMAT = ff, REJECT_TYPE = value, REJECT_VALUE = 0)")]
+	[InlineData("CREATE EXTERNAL TABLE dbo.t WITH (LOCATION = '/f', DATA_SOURCE = ds) AS SELECT a FROM u")]
+	[InlineData("CREATE EXTERNAL LIBRARY l FROM (CONTENT = 'c:\\a.zip', PLATFORM = WINDOWS) WITH (LANGUAGE = 'R')")]
+	[InlineData("ALTER EXTERNAL LIBRARY l SET (CONTENT = 0x0100) WITH (LANGUAGE = 'R')")]
+
+	// A pool's affinity is a value that is itself a name and a value.
+	[InlineData("CREATE RESOURCE POOL p WITH (MIN_CPU_PERCENT = 10, MAX_CPU_PERCENT = 20)")]
+	[InlineData("CREATE RESOURCE POOL p WITH (AFFINITY SCHEDULER = AUTO)")]
+	[InlineData("CREATE RESOURCE POOL p WITH (AFFINITY SCHEDULER = (0 TO 3, 7))")]
+	[InlineData("ALTER RESOURCE POOL p WITH (AFFINITY SCHEDULER = NUMANODE = (0))")]
+	[InlineData("CREATE EXTERNAL RESOURCE POOL p WITH (MAX_CPU_PERCENT = 1)")]
+	[InlineData("ALTER EXTERNAL RESOURCE POOL p WITH (MAX_MEMORY_PERCENT = 5)")]
+	[InlineData("CREATE WORKLOAD GROUP g WITH (IMPORTANCE = HIGH) USING p_int, EXTERNAL p_ext")]
+	[InlineData("ALTER WORKLOAD GROUP g USING EXTERNAL p_ext")]
+
+	// `SAMPLE 50 PERCENT` is not a run of words: a number is a lexeme whose class holds a
+	// `.`, so it is not a word however much §4.6 says a digit continues one.
+	[InlineData("CREATE STATISTICS s ON dbo.t (a, b) WITH FULLSCAN")]
+	[InlineData("CREATE STATISTICS s ON t (a) WHERE a > 5 WITH SAMPLE 12 ROWS, NORECOMPUTE")]
+	[InlineData("CREATE STATISTICS s ON t (a) WITH SAMPLE 50 PERCENT, PERSIST_SAMPLE_PERCENT = ON")]
+	[InlineData("UPDATE STATISTICS dbo.t")]
+	[InlineData("UPDATE STATISTICS dbo.t ix WITH FULLSCAN")]
+	[InlineData("UPDATE STATISTICS [dbo].t1 (c1, c2) WITH NORECOMPUTE, SAMPLE 1 PERCENT, COLUMNS")]
+	[InlineData("UPDATE STATISTICS t WITH RESAMPLE ON PARTITIONS (1, 3 TO 5)")]
+	public void What_lives_outside_reads(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>What the server watches, and who it listens to.</summary>
+	/// <remarks>
+	/// Audits, extended-event sessions, event notifications and endpoints — eleven published
+	/// blocks and three shapes: a name and where its output goes, a list of things added and
+	/// dropped a bracket at a time, and a bracketed argument list per protocol.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE SERVER AUDIT a TO FILE (FILEPATH = 'c:\\l', MAXSIZE = 10 GB, MAX_FILES = 2)")]
+	[InlineData("CREATE SERVER AUDIT a TO APPLICATION_LOG WITH (QUEUE_DELAY = 1000, ON_FAILURE = CONTINUE)")]
+	[InlineData("CREATE SERVER AUDIT a TO SECURITY_LOG WHERE database_name = 'x' AND object_id > 5")]
+	[InlineData("ALTER SERVER AUDIT a REMOVE WHERE")]
+	[InlineData("ALTER SERVER AUDIT a MODIFY NAME = b")]
+	[InlineData("ALTER SERVER AUDIT a WITH (STATE = OFF)")]
+
+	[InlineData("CREATE SERVER AUDIT SPECIFICATION s FOR SERVER AUDIT a ADD (FAILED_LOGIN_GROUP) WITH (STATE = ON)")]
+	[InlineData("ALTER SERVER AUDIT SPECIFICATION s FOR SERVER AUDIT a DROP (FAILED_LOGIN_GROUP)")]
+	[InlineData("CREATE DATABASE AUDIT SPECIFICATION s FOR SERVER AUDIT a ADD (SELECT ON dbo.t BY dbo)")]
+	[InlineData("ALTER DATABASE AUDIT SPECIFICATION s ADD (SELECT ON t BY dbo), " +
+		"DROP (INSERT, UPDATE ON t BY dbo) WITH (STATE = ON)")]
+
+	[InlineData("CREATE EVENT SESSION es ON SERVER ADD EVENT b.c")]
+	[InlineData("CREATE EVENT SESSION es ON SERVER ADD EVENT b.c ADD TARGET b.c.d")]
+	[InlineData("CREATE EVENT SESSION es ON SERVER ADD EVENT b.c (SET b = -5.1, c = 5 ACTION (b.c))")]
+	[InlineData("CREATE EVENT SESSION es ON DATABASE ADD EVENT b.d (WHERE a.b (b.c, 5) AND a.b = 5)")]
+	[InlineData("CREATE EVENT SESSION es ON SERVER ADD EVENT b.d (WHERE NOT a.b (b.c, 5))")]
+	[InlineData("CREATE EVENT SESSION es ON SERVER ADD EVENT b.c WITH (MAX_MEMORY = 4 MB, " +
+		"MAX_DISPATCH_LATENCY = 3 SECONDS, TRACK_CAUSALITY = ON)")]
+	[InlineData("ALTER EVENT SESSION es ON SERVER STATE = START")]
+	[InlineData("ALTER EVENT SESSION es ON SERVER DROP EVENT b.c, ADD TARGET b.d (SET filename = 'x')")]
+	[InlineData("CREATE EVENT NOTIFICATION n ON SERVER WITH FAN_IN FOR DDL_LOGIN_EVENTS " +
+		"TO SERVICE 'svc', 'current database'")]
+
+	[InlineData("CREATE ENDPOINT e AS TCP (LISTENER_PORT = 4022) FOR TSQL()")]
+	[InlineData("CREATE ENDPOINT e AUTHORIZATION l STATE = STARTED AS TCP (LISTENER_IP = ALL, " +
+		"LISTENER_PORT = 4022) FOR SERVICE_BROKER (AUTHENTICATION = WINDOWS NTLM CERTIFICATE c, " +
+		"ENCRYPTION = SUPPORTED ALGORITHM AES RC4)")]
+	[InlineData("CREATE ENDPOINT e STATE = STOPPED AS TCP (LISTENER_IP = (1.2.3.4))")]
+	[InlineData("ALTER ENDPOINT e STATE = STARTED, AFFINITY = NONE")]
+	public void What_the_server_watches_reads(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>Every word the grammar reads after `DROP` has a record to be read into.</summary>
+	/// <remarks>
+	/// `DropKind` in the grammar and `Statement.Dropped` in the tree are two spellings of one
+	/// catalogue and have to agree. Nothing in either says so, so this does: the words are
+	/// taken out of the grammar itself, every one of them is put to the parser, and what
+	/// comes back has to be a record of its own rather than one shared by two of them.
+	/// </remarks>
+	[Fact]
+	public void Every_word_after_drop_has_a_record()
+	{
+		var kinds = DropKinds();
+
+		Assert.InRange(kinds.Count, 50, 100);
+
+		var seen = new Dictionary<string, string>(StringComparer.Ordinal);
+
+		foreach (var kind in kinds)
+		{
+			var input = $"DROP {kind} x";
+			var match = TransactSql.TryParseStatement(input);
+
+			Assert.True(match.IsSuccess, input);
+
+			var made = Assert.IsAssignableFrom<Statement>(match.Value).GetType().Name;
+
+			Assert.StartsWith("Drop", made, StringComparison.Ordinal);
+
+			// `PROC` and `PROCEDURE` are the one statement written two ways, and nothing
+			// else here may share a record: two kinds reading into one is the catalogue
+			// having drifted in the direction the compiler cannot see.
+			if (seen.TryGetValue(made, out var already))
+				Assert.Equal("PROCEDURE", already);
+
+			seen[made] = kind;
+		}
+	}
+
+	/// <summary>The words of `DropKind`, out of the grammar rather than out of a list here.</summary>
+	static List<string> DropKinds()
+	{
+		// Read with its line endings squared up, since what is looked for below is a blank
+		// line and the file's own are CRLF.
+		var text = File
+			.ReadAllText(
+				Path.Combine(Root(AppContext.BaseDirectory), "src", "DotGram.Parsers", "TransactSql.gram"))
+			.Replace("\r\n", "\n", StringComparison.Ordinal);
+
+		var body  = text[text.IndexOf("DropKind\n", StringComparison.Ordinal)..];
+		var kinds = new List<string>();
+
+		foreach (var line in body[..body.IndexOf("\n\n", StringComparison.Ordinal)].Split('\n').Skip(1))
+		{
+			var words = Regex.Matches(line, "\"([A-Za-z_]+)\"i").Select(one => one.Groups[1].Value).ToArray();
+
+			if (words.Length > 0)
+				kinds.Add(string.Join(' ', words));
+		}
+
+		return kinds;
+	}
+
+	static string Root(string from)
+	{
+		var at = new DirectoryInfo(from);
+
+		while (at is not null && !File.Exists(Path.Combine(at.FullName, "DotGram.slnx")))
+			at = at.Parent;
+
+		return at?.FullName ?? from;
+	}
+
+	/// <summary>A statement comes back as the record its production is named after.</summary>
+	/// <remarks>
+	/// The claim the tree makes: a consumer switches on the record and is done, and never
+	/// reads a word to find out which statement it has. These were one record with a string
+	/// in it until the tree was made to say what the grammar says.
+	/// </remarks>
+	[Theory]
+	[InlineData("PRINT 1",                          "Print")]
+	[InlineData("RETURN",                           "Return")]
+	[InlineData("BREAK",                            "Break")]
+	[InlineData("GOTO done",                        "GoTo")]
+	[InlineData("USE master",                       "Use")]
+	[InlineData("WAITFOR DELAY '00:01'",            "WaitFor")]
+	[InlineData("RAISERROR ('x', 1, 1)",            "RaiseError")]
+
+	[InlineData("DROP TABLE t",                     "DropTable")]
+	[InlineData("DROP VIEW v",                      "DropView")]
+	[InlineData("DROP PROC p",                      "DropProcedure")]
+	[InlineData("DROP INDEX ix ON t",               "DropIndex")]
+	[InlineData("DROP MASTER KEY",                  "DropMasterKey")]
+
+	[InlineData("GRANT SELECT ON t TO u",           "Grant")]
+	[InlineData("DENY SELECT ON t TO u",            "Deny")]
+	[InlineData("REVOKE SELECT ON t FROM u",        "Revoke")]
+
+	[InlineData("SET TRANSACTION ISOLATION LEVEL SNAPSHOT", "SetTransactionIsolationLevel")]
+	[InlineData("SET IDENTITY_INSERT t ON",         "SetIdentityInsert")]
+	[InlineData("SET ANSI_NULLS, ANSI_PADDING ON",  "SetOption")]
+	[InlineData("SET LANGUAGE us_english",          "SetCommand")]
+
+	[InlineData("CREATE DATABASE d",                "CreateDatabase")]
+	[InlineData("ALTER DATABASE d SET MAXDOP = 1",  "AlterDatabaseSet")]
+	[InlineData("ALTER DATABASE d COLLATE Estonian_CS_AS", "AlterDatabaseCollate")]
+	[InlineData("ALTER DATABASE d MODIFY NAME = e", "AlterDatabaseModifyName")]
+	[InlineData("ALTER DATABASE d REBUILD LOG",     "AlterDatabaseRebuildLog")]
+
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p'", "CreateLogin")]
+	[InlineData("CREATE USER u",                    "CreateUser")]
+	[InlineData("CREATE SCHEMA s",                  "SchemaDefinition")]
+	[InlineData("ALTER AUTHORIZATION ON t TO u",    "AlterAuthorization")]
+
+	[InlineData("CREATE EXTERNAL FILE FORMAT f WITH (FORMAT_TYPE = PARQUET)", "ExternalFileFormatDefinition")]
+	[InlineData("CREATE WORKLOAD GROUP g",          "WorkloadGroupDefinition")]
+	[InlineData("CREATE EVENT SESSION es ON SERVER ADD EVENT a.b", "EventSessionDefinition")]
+	[InlineData("CREATE ENDPOINT e AS TCP (LISTENER_PORT = 1)", "EndpointDefinition")]
+
+	[InlineData("CREATE TABLE t (a INT)",           "TableDefinition")]
+	[InlineData("CREATE VIEW v AS SELECT a FROM t", "ViewDefinition")]
+	[InlineData("SELECT a FROM t",                  "Select")]
+	[InlineData("SELECT a FROM t ORDER BY a",       "Select")]
+	[InlineData("INSERT INTO t (a) VALUES (1)",     "Insert")]
+	[InlineData("BEGIN PRINT 1 END",                "Compound")]
+	public void A_statement_is_the_record_its_production_is_named_after(string input, string node)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+		Assert.Equal(node, match.Value!.GetType().Name);
+	}
+
+	/// <summary>The full-text catalogue, and copying a database out and back.</summary>
+	/// <remarks>
+	/// Ten published blocks. A full-text index is the one index with no name of its own —
+	/// it is named by the table it is on, there being one per table — and the one whose
+	/// columns carry a language and a type column beside them. `BACKUP` and `RESTORE` are
+	/// one shape between them: what is being copied, the devices it goes to or comes from,
+	/// and a long option list.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX ix")]
+	[InlineData("CREATE FULLTEXT INDEX ON t (a, b TYPE COLUMN c LANGUAGE 1033 STATISTICAL_SEMANTICS) " +
+		"KEY INDEX ix ON (cat, FILEGROUP fg) WITH (CHANGE_TRACKING = AUTO, STOPLIST = SYSTEM)")]
+	[InlineData("CREATE FULLTEXT INDEX ON t KEY INDEX ix WITH CHANGE_TRACKING MANUAL")]
+	[InlineData("ALTER FULLTEXT INDEX ON t ENABLE")]
+	[InlineData("ALTER FULLTEXT INDEX ON t SET CHANGE_TRACKING = OFF")]
+	[InlineData("ALTER FULLTEXT INDEX ON t ADD (a LANGUAGE 1033) WITH NO POPULATION")]
+	[InlineData("ALTER FULLTEXT INDEX ON t ALTER COLUMN a ADD STATISTICAL_SEMANTICS")]
+	[InlineData("ALTER FULLTEXT INDEX ON t DROP (a, b)")]
+	[InlineData("ALTER FULLTEXT INDEX ON t START FULL POPULATION")]
+	[InlineData("ALTER FULLTEXT INDEX ON t PAUSE POPULATION")]
+
+	[InlineData("CREATE FULLTEXT CATALOG c ON FILEGROUP fg IN PATH 'c:\\x' WITH ACCENT_SENSITIVITY = ON AS DEFAULT AUTHORIZATION dbo")]
+	[InlineData("ALTER FULLTEXT CATALOG c REBUILD WITH ACCENT_SENSITIVITY = OFF")]
+	[InlineData("CREATE FULLTEXT STOPLIST s FROM SYSTEM STOPLIST")]
+	[InlineData("ALTER FULLTEXT STOPLIST s ADD 'the' LANGUAGE 1033")]
+	[InlineData("ALTER FULLTEXT STOPLIST s DROP ALL LANGUAGE 1033")]
+	[InlineData("CREATE SEARCH PROPERTY LIST p FROM dbo.q AUTHORIZATION dbo")]
+	[InlineData("ALTER SEARCH PROPERTY LIST p ADD 'title' WITH (PROPERTY_SET_GUID = 'g', PROPERTY_INT_ID = 1)")]
+
+	[InlineData("BACKUP DATABASE d TO device WITH COMPRESSION")]
+	[InlineData("BACKUP DATABASE d TO DISK = 'c:\\d.bak' WITH DIFFERENTIAL, NAME = 'x', STATS = 10")]
+	[InlineData("BACKUP DATABASE d FILE = 'f1', FILEGROUP = 'g' TO TAPE = '\\\\.\\tape1'")]
+	[InlineData("BACKUP DATABASE d TO DISK = 'a' MIRROR TO DISK = 'b' WITH FORMAT")]
+	[InlineData("BACKUP LOG d TO DISK = 'a' WITH NORECOVERY")]
+	[InlineData("BACKUP MASTER KEY TO FILE = 'k' ENCRYPTION BY PASSWORD = 'p'")]
+
+	[InlineData("RESTORE DATABASE d")]
+	[InlineData("RESTORE DATABASE d FROM DISK = 'a' WITH RECOVERY, MOVE 'x' TO 'y', REPLACE")]
+	[InlineData("RESTORE DATABASE d FROM DATABASE_SNAPSHOT = s")]
+	[InlineData("RESTORE LOG d FROM DISK = 'a' WITH STOPAT = '2020-01-01'")]
+	[InlineData("RESTORE HEADERONLY FROM DISK = 'a'")]
+	[InlineData("RESTORE MASTER KEY FROM FILE = 'k' DECRYPTION BY PASSWORD = 'p' ENCRYPTION BY PASSWORD = 'q' FORCE")]
+	public void The_catalogue_and_the_copies_read(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>The keys, and what is locked with them.</summary>
+	/// <remarks>
+	/// Seventeen published blocks and one idea running through them: a key is made from
+	/// somewhere, locked by something, and the something is a certificate, a password or
+	/// another key. `ENCRYPTION BY` is written in six of the seventeen and reads the same in
+	/// all six, so it is one rule.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE ASYMMETRIC KEY k AUTHORIZATION dbo FROM FILE = 'k.snk' WITH ALGORITHM = RSA_2048")]
+	[InlineData("CREATE ASYMMETRIC KEY k FROM EXECUTABLE FILE = 'a.exe' ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("ALTER ASYMMETRIC KEY k REMOVE PRIVATE KEY")]
+	[InlineData("ALTER ASYMMETRIC KEY k WITH PRIVATE KEY (DECRYPTION BY PASSWORD = 'a', ENCRYPTION BY PASSWORD = 'b')")]
+
+	[InlineData("CREATE SYMMETRIC KEY k WITH ALGORITHM = AES_256 ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("CREATE SYMMETRIC KEY k AUTHORIZATION dbo FROM PROVIDER p WITH PROVIDER_KEY_NAME = 'n', CREATION_DISPOSITION = CREATE_NEW")]
+	[InlineData("ALTER SYMMETRIC KEY k ADD ENCRYPTION BY CERTIFICATE c, PASSWORD = 'p'")]
+	[InlineData("ALTER SYMMETRIC KEY k DROP ENCRYPTION BY ASYMMETRIC KEY a")]
+
+	[InlineData("CREATE CERTIFICATE c WITH SUBJECT = 'x'")]
+	[InlineData("CREATE CERTIFICATE c AUTHORIZATION u ENCRYPTION BY PASSWORD = 'p' WITH SUBJECT = 'x', START_DATE = '2020-01-01'")]
+	[InlineData("CREATE CERTIFICATE c FROM FILE = 'c.cer' WITH PRIVATE KEY (FILE = 'k.pvk', DECRYPTION BY PASSWORD = 'p')")]
+	[InlineData("CREATE CERTIFICATE c FROM ASSEMBLY a")]
+	[InlineData("ALTER CERTIFICATE c REMOVE PRIVATE KEY")]
+	[InlineData("ALTER CERTIFICATE c WITH ACTIVE FOR BEGIN_DIALOG = ON")]
+
+	[InlineData("CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("ALTER MASTER KEY REGENERATE WITH ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("ALTER MASTER KEY ADD ENCRYPTION BY SERVICE MASTER KEY")]
+	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = AES_256 ENCRYPTION BY SERVER CERTIFICATE c")]
+	[InlineData("ALTER DATABASE ENCRYPTION KEY REGENERATE WITH ALGORITHM = AES_128")]
+
+	[InlineData("CREATE COLUMN ENCRYPTION KEY k WITH VALUES (COLUMN_MASTER_KEY = m, ALGORITHM = 'a', ENCRYPTED_VALUE = 0x01)")]
+	[InlineData("CREATE COLUMN MASTER KEY m WITH (KEY_STORE_PROVIDER_NAME = 'p', KEY_PATH = 'x')")]
+
+	[InlineData("CREATE CREDENTIAL c WITH IDENTITY = 'i', SECRET = 's'")]
+	[InlineData("ALTER CREDENTIAL c WITH IDENTITY = 'i'")]
+	[InlineData("CREATE CREDENTIAL c WITH IDENTITY = 'i' FOR CRYPTOGRAPHIC PROVIDER p")]
+	[InlineData("CREATE DATABASE SCOPED CREDENTIAL c WITH IDENTITY = 'i', SECRET = 's'")]
+
+	[InlineData("CREATE SECURITY POLICY dbo.p ADD FILTER PREDICATE dbo.f(a) ON dbo.t WITH (STATE = ON)")]
+	[InlineData("CREATE SECURITY POLICY p ADD BLOCK PREDICATE dbo.f(a, b) ON dbo.t AFTER INSERT, " +
+		"ADD BLOCK PREDICATE dbo.f(a) ON dbo.u BEFORE UPDATE NOT FOR REPLICATION")]
+	[InlineData("ALTER SECURITY POLICY dbo.p WITH (STATE = ON)")]
+	[InlineData("ALTER SECURITY POLICY dbo.p DROP FILTER PREDICATE ON dbo.t")]
+	public void The_keys_read(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>What GRAM5009 named, put to the parser.</summary>
+	/// <remarks>
+	/// The diagnostic says an optional can take what follows it; whether it does is a
+	/// question for the parser, and these are the answers. The old unbracketed `WITH` did:
+	/// `PAD_INDEX` was set to the `ON` that began the placement after it, and the placement
+	/// was left to nobody. The others do not — ordered choice at the rule level gives the
+	/// alternative back and another one reads it — and they are here because a reader of the
+	/// diagnostic's list deserves to know which kind each of the eighteen is.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE INDEX ix ON t (a) WITH PAD_INDEX ON ps (a)")]
+	[InlineData("CREATE INDEX ix ON t (a) WITH (PAD_INDEX = ON) ON ps (a)")]
+	[InlineData("BEGIN INSERT INTO t (a) OUTPUT inserted.a VALUES (1) PRINT 1 END")]
+	[InlineData("BEGIN DELETE FROM t OUTPUT deleted.a PRINT 1 END")]
+	[InlineData("BEGIN BEGIN TRAN WITH MARK PRINT 1 END")]
+	[InlineData("CREATE SYMMETRIC KEY k WITH ALGORITHM = AES_256 ENCRYPTION BY PASSWORD = 'p'")]
+	public void What_the_diagnostic_named_reads(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	// ── And builds the standard's tree ───────────────────────────────────────────
 
 	/// <summary>
@@ -675,15 +1540,14 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_call_says_its_name_and_its_arguments()
 	{
-		var query = Assert.IsType<SqlNode.Query>(
-			TransactSql.TryParseSelect("SELECT dbo.f(a, 1) FROM t").Value);
+		var query = Selected("SELECT dbo.f(a, 1) FROM t");
 
-		var call = Assert.IsType<SqlNode.Call>(
-			Assert.IsType<SqlNode.Selected>(Assert.Single(query.Columns)).Value);
+		var call = Assert.IsType<Expression.RoutineInvocation>(
+			Assert.IsType<Clause.DerivedColumn>(Assert.Single(query.Columns)).Value);
 
 		Assert.Equal("dbo.f", call.Name);
 		Assert.Equal(2, call.Arguments.Length);
-		Assert.Equal("a", Assert.IsType<SqlNode.Column>(call.Arguments[0]).Text);
+		Assert.Equal("a", Assert.IsType<Expression.ColumnReference>(call.Arguments[0]).Text);
 	}
 
 	/// <summary>A variable is a parameter, which is the rule it was widened into.</summary>
@@ -692,10 +1556,10 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT @@ROWCOUNT", "@@ROWCOUNT")]
 	public void A_variable_stands_where_a_parameter_does(string input, string text)
 	{
-		var query = Assert.IsType<SqlNode.Query>(TransactSql.TryParseSelect(input).Value);
+		var query = Selected(input);
 
-		var literal = Assert.IsType<SqlNode.Literal>(
-			Assert.IsType<SqlNode.Selected>(Assert.Single(query.Columns)).Value);
+		var literal = Assert.IsType<Expression.Literal>(
+			Assert.IsType<Clause.DerivedColumn>(Assert.Single(query.Columns)).Value);
 
 		Assert.Equal(SqlLiteralKind.Parameter, literal.Kind);
 		Assert.Equal(text, literal.Text);
@@ -705,29 +1569,57 @@ public sealed class TransactSqlTests
 	/// And what is read and dropped is dropped: the tree a dialect builds is the standard's.
 	/// </summary>
 	/// <remarks>
-	/// <c>TOP</c> says how many rows come back and <c>OVER</c> says which rows a call sees;
-	/// neither says what the rows or the call are. So both read and neither reaches the
-	/// tree, and what comes back is the same query as without them.
+	/// Both were read and dropped until the tree was made lossless: <c>TOP</c> says how many
+	/// rows come back and <c>OVER</c> says which rows a call sees, and neither says what the
+	/// rows or the call <em>are</em>. They are part of the text all the same, and a tree that
+	/// cannot print back what it read cannot be checked against another parser.
 	/// </remarks>
 	[Fact]
-	public void A_count_and_a_window_are_read_and_dropped()
+	public void A_count_and_a_window_say_what_was_written()
 	{
-		// Node by node rather than query by query: a `Query` holds arrays, and a record
-		// compares those by reference, so two readings of the same text are never equal.
-		var topped = Query("SELECT TOP 10 PERCENT a FROM t");
-		var plain  = Query("SELECT a FROM t");
+		var topped = Selected("SELECT TOP 10 PERCENT a FROM t");
+		var top    = Assert.IsType<Clause.Top>(topped.Top);
 
-		Assert.Equal(Assert.Single(plain.Columns), Assert.Single(topped.Columns));
-		Assert.Equal(Assert.Single(plain.From),    Assert.Single(topped.From));
+		Assert.True(top.Percent);
+		Assert.Null(top.With);
+		Assert.Equal("10", Assert.IsType<Expression.Literal>(top.Value).Text);
+		Assert.Null(Selected("SELECT a FROM t").Top);
 
-		Assert.Equal(
-			Assert.Single(Query("SELECT COUNT(*) FROM t")                      .Columns),
-			Assert.Single(Query("SELECT COUNT(*) OVER (PARTITION BY b) FROM t").Columns));
+		var over = Assert.IsType<Expression.WindowFunction>(
+			Assert.IsType<Clause.DerivedColumn>(
+				Assert.Single(Selected("SELECT COUNT(*) OVER (PARTITION BY b) FROM t").Columns)).Value);
+
+		var window = Assert.IsType<Clause.Window>(over.Over);
+
+		Assert.Equal("COUNT", Assert.IsType<Expression.RoutineInvocation>(over.Function).Name);
+		Assert.Equal("b", Assert.IsType<Expression.ColumnReference>(
+			Assert.Single(window.PartitionBy)).Text);
+	}
+
+	/// <summary>And the clauses the statement wraps a query in.</summary>
+	[Fact]
+	public void A_select_keeps_the_clauses_written_around_it()
+	{
+		var read = Assert.IsType<Statement.Select>(
+			TransactSql.TryParseStatement(
+				"WITH c AS (SELECT a FROM u) SELECT a INTO #t FROM c ORDER BY a " +
+				"OFFSET 5 ROWS FETCH NEXT 2 ROWS ONLY FOR XML AUTO OPTION (MAXDOP 2)").Value);
+
+		var named = Assert.IsType<Clause.CommonTableExpression>(Assert.Single(read.With));
+		var by    = Assert.IsType<Clause.OrderBy>(read.OrderBy);
+
+		Assert.Equal("c", named.Name);
+		Assert.Equal("#t", Assert.IsType<Clause.Into>(Assert.IsType<Query.Specification>(read.Of).Into).Table);
+		Assert.Equal("5", Assert.IsType<Expression.Literal>(by.Offset).Text);
+		Assert.Equal("2", Assert.IsType<Expression.Literal>(by.Fetch).Text);
+		Assert.Equal("XML", Assert.IsType<Clause.For>(Assert.Single(read.For)).Kind);
+		Assert.Equal("MAXDOP 2", Assert.IsType<Clause.Hint>(Assert.Single(read.Options)).Text);
 	}
 
 	/// <summary>What the dialect read, where it was a query.</summary>
-	static SqlNode.Query Query(string input) =>
-		Assert.IsType<SqlNode.Query>(TransactSql.TryParseSelect(input).Value);
+	static Query.Specification Selected(string input) =>
+		Assert.IsType<Query.Specification>(
+			Assert.IsType<Statement.Select>(TransactSql.TryParseSelect(input).Value).Of);
 
 	/// <summary>A bracketed name may be a reserved word, which is what brackets are for.</summary>
 	/// <remarks>
@@ -737,13 +1629,12 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_bracketed_name_may_be_a_reserved_word()
 	{
-		var query = Assert.IsType<SqlNode.Query>(
-			TransactSql.TryParseSelect("SELECT [select] FROM t").Value);
+		var query = Selected("SELECT [select] FROM t");
 
 		Assert.Equal(
 			"[select]",
-			Assert.IsType<SqlNode.Column>(
-				Assert.IsType<SqlNode.Selected>(Assert.Single(query.Columns)).Value).Text);
+			Assert.IsType<Expression.ColumnReference>(
+				Assert.IsType<Clause.DerivedColumn>(Assert.Single(query.Columns)).Value).Text);
 
 		Assert.False(TransactSql.TryParseSelect("SELECT select FROM t").IsSuccess);
 	}
@@ -752,10 +1643,8 @@ public sealed class TransactSqlTests
 	[Fact]
 	public void A_table_variable_is_a_source()
 	{
-		var query = Assert.IsType<SqlNode.Query>(
-			TransactSql.TryParseSelect("SELECT a FROM @rows AS r").Value);
-
-		var source = Assert.IsType<SqlNode.Source>(Assert.Single(query.From));
+		var query  = Selected("SELECT a FROM @rows AS r");
+		var source = Assert.IsType<TableReference.Named>(Assert.Single(query.From));
 
 		Assert.Equal("@rows", source.Table);
 		Assert.Equal("r", source.Name);

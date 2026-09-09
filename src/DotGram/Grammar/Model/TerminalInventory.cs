@@ -88,6 +88,25 @@ public sealed class TerminalInventory
 	public IReadOnlyList<string> Blocked { get; }
 
 	/// <summary>
+	/// The kinds that are words, as ranges — what the built-in <c>word</c> comes to over
+	/// kinds.
+	/// </summary>
+	/// <remarks>
+	/// §4.6 says what continues a word, and this is that sentence applied to a token instead
+	/// of to a literal: a kind is a word where every pattern it matched is one. A keyword
+	/// always is — <see cref="Pattern.Word"/> is the literal beside which the boundary was
+	/// woven — and a class is where every character it can hold continues a word, which is
+	/// what makes an identifier one and a quoted name not.
+	/// <para>
+	/// Without it a grammar has to write out the reserved words it wants to read as names,
+	/// which T-SQL needed in four places and sixty-one lines: an option's name, a hint's, a
+	/// permission's word, an ODBC function's. None of those lists is a fact about the
+	/// language — they are a fact about what the notation could not say.
+	/// </para>
+	/// </remarks>
+	public IReadOnlyList<Group> WordKinds { get; private init; } = [];
+
+	/// <summary>
 	/// The machine that reads the patterns together, and whose accepting states are the kinds.
 	/// </summary>
 	/// <remarks>
@@ -494,10 +513,33 @@ public sealed class TerminalInventory
 		/// <summary>How many characters a class in syntactic position may name.</summary>
 		const int Named = 8;
 
+		/// <summary>One spelling, whatever shape the occurrence it was read from had.</summary>
+		/// <remarks>
+		/// The key used to hold which list it went into, so a literal read as a word in one
+		/// place and as punctuation in another was taken twice — and two patterns for one
+		/// string is two kinds for one lexeme, which the inventory then built a dictionary
+		/// of and threw on. §4.6's weaving reaches most occurrences and not all of them, and
+		/// a grammar has only to say a keyword twice in the wrong two places to find one it
+		/// did not: sixty words added to T-SQL's `DROP` did.
+		/// <para>
+		/// A word wins, since the boundary was woven onto it somewhere and over kinds both
+		/// occurrences test the same kind anyway — what the shape decides is the laminar
+		/// ordering and whether `word` (§4.6) reads it, and both of those are answers about
+		/// the lexeme rather than about where it was written.
+		/// </para>
+		/// </remarks>
 		void Take(List<Text> into, string text, bool ignoreCase)
 		{
-			if (_seen.Add((into == _words ? "word " : "mark ") + (ignoreCase ? "i" : "") + text))
+			if (_seen.Add((ignoreCase ? "i" : "") + text))
+			{
 				into.Add((text, ignoreCase));
+
+				return;
+			}
+
+			// Read as punctuation before and as a word now: move it.
+			if (into == _words && _marks.Remove((text, ignoreCase)))
+				_words.Add((text, ignoreCase));
 		}
 
 		void Refuse(string reason)
@@ -564,9 +606,13 @@ public sealed class TerminalInventory
 				}
 
 				// A hand-written boundary — `(… | …) & ?!\p{L}` — wraps the choice without
-				// changing what it accepts, and §4.6's woven one does the same.
+				// changing what it accepts, and §4.6's woven one does the same. Only where
+				// nothing after the choice reads anything: this used to take the first part
+				// of any sequence, so `("::" | '.') & Name` was called the set `{"::", "."}`
+				// and every call site became that range — with the name after it gone. It
+				// read `t::a` as `t` and an alias, and refused everything that followed.
 				case Node.Sequence(var parts):
-					return parts.Count > 0 ? Choices(parts[0]) : null;
+					return parts.Count > 0 && Silent(parts, 1) ? Choices(parts[0]) : null;
 
 				case Node.Atomic(var kept):    return Choices(kept);
 				case Node.Marked(var kept, _): return Choices(kept);
@@ -574,6 +620,34 @@ public sealed class TerminalInventory
 				default: return null;
 			}
 		}
+
+		/// <summary>Whether everything from <paramref name="from"/> on consumes nothing.</summary>
+		/// <remarks>
+		/// What a boundary is made of and nothing else: an assertion, a guard, a seam that
+		/// was woven and rewrote away. Anything that reads is a part of the rule the set
+		/// would throw away, and a rule that reads more than its literals is not a set of
+		/// them however much its first operand looks like one.
+		/// </remarks>
+		static bool Silent(IReadOnlyList<Node> parts, int from)
+		{
+			for (var at = from; at < parts.Count; at++)
+				if (!Silent(parts[at]))
+					return false;
+
+			return true;
+		}
+
+		static bool Silent(Node node) =>
+			node switch
+			{
+				Node.Lookahead or Node.Behind or Node.Glue or Node.Guard or Node.Empty => true,
+				Node.Literal(var text)      => text.Length == 0,
+				Node.Marked(var body, _)    => Silent(body),
+				Node.Atomic(var body)       => Silent(body),
+				Node.Sequence(var nodes)    => Silent(nodes, 0),
+				Node.Repeat(_, _, var max)  => max == 0,
+				_                           => false,
+			};
 
 		/// <summary>The one literal an alternative is, boundary and all — and nothing looser.</summary>
 		static Node.Literal? Only(Node node) =>
@@ -635,18 +709,18 @@ public sealed class TerminalInventory
 			foreach (var word in words)
 				patterns.Add(of[word] = new Pattern.Word(patterns.Count, word.Text, word.IgnoreCase));
 
+			// A class every character of which continues a word stands with the words and not
+			// after the marks. `word` is a set like any `Laminar` orders above — the widest
+			// one a grammar has — and this is the ordering that makes it one run of kinds
+			// rather than two: the keywords, then the identifier, then everything else.
+			foreach (var rule in _classes.Where(WordShaped))
+				patterns.Add(new Pattern.Class(patterns.Count, rule));
+
 			foreach (var mark in marks)
 				patterns.Add(of[mark] = new Pattern.Mark(patterns.Count, mark.Text, mark.IgnoreCase));
 
-			var classes = new List<Pattern.Class>(_classes.Count);
-
-			foreach (var rule in _classes)
-			{
-				var one = new Pattern.Class(patterns.Count, rule);
-
-				patterns.Add(one);
-				classes.Add(one);
-			}
+			foreach (var rule in _classes.Where(one => !WordShaped(one)))
+				patterns.Add(new Pattern.Class(patterns.Count, rule));
 
 			// One machine over all of them at once, and its accepting states are the kinds.
 			// Exactly, and not from witnesses: which sets of patterns some string makes
@@ -673,6 +747,10 @@ public sealed class TerminalInventory
 				.ToList();
 
 			var counted = new TerminalInventory(true, patterns, kinds, [], _reasons);
+			var wordly  = Runs(
+				"word",
+				kinds.Where(one => one.Matched.Count > 0 && one.Matched.All(IsWord))
+					.Select(one => one.Number));
 
 			var named = _sets
 				.Select(one => new Named(
@@ -683,8 +761,130 @@ public sealed class TerminalInventory
 						.SelectMany(range => Enumerable.Range(range.From, range.Count)))))
 				.ToList();
 
-			return new TerminalInventory(true, patterns, kinds, named, _reasons) { Machine = machine };
+			return new TerminalInventory(true, patterns, kinds, named, _reasons)
+			{
+				Machine   = machine,
+				WordKinds = wordly,
+			};
 		}
+
+		/// <summary>Whether one pattern is a word — §4.6's question asked of a token.</summary>
+		bool IsWord(Pattern pattern) =>
+			pattern switch
+			{
+				Pattern.Word => true,
+				Pattern.Mark => false,
+
+				// A class is a word where everything it can hold continues one.
+				Pattern.Class(_, var rule) => WordShaped(rule),
+
+				_ => false,
+			};
+
+		/// <summary>Whether everything the rule a class crosses into can hold continues a word.</summary>
+		/// <remarks>
+		/// Compared against the boundary's own element rather than character by character: an
+		/// identifier's parts are usually the very rule the boundary names, and where they are
+		/// not this answers no, which costs a grammar nothing it had.
+		/// </remarks>
+		bool WordShaped(RuleSymbol rule) =>
+			Boundaries() is { } within &&
+			graph.Bodies.TryGetValue(rule, out var body) &&
+			Within(body, within, []);
+
+		Node.Element? _boundary;
+		bool          _looked;
+
+		/// <summary>What §4.6 says continues a word here, resolved to one element.</summary>
+		/// <remarks>
+		/// The outermost one, where a grammar declares several. A lexical namespace declares
+		/// its own boundary for its own literals (§4.6), and those are the parts of one
+		/// lexeme rather than lexemes; the question being asked here is about whole tokens,
+		/// which is the boundary the syntactic half was written against.
+		/// </remarks>
+		Node.Element? Boundaries()
+		{
+			if (_looked)
+				return _boundary;
+
+			_looked = true;
+
+			foreach (var rule in graph.Rules
+				.Where(one => one.Name == Boundary)
+				.OrderBy(Depth))
+			{
+				if (graph.Bodies.TryGetValue(rule, out var body) && Resolve(body, []) is { } element)
+				{
+					_boundary = element;
+
+					break;
+				}
+			}
+
+			return _boundary;
+		}
+
+		static int Depth(RuleSymbol rule)
+		{
+			var depth = 0;
+
+			for (var at = rule.Namespace.Parent; at is not null; at = at.Parent)
+				depth++;
+
+			return depth;
+		}
+
+		/// <summary>A body reduced to the one element it is, through however many calls.</summary>
+		Node.Element? Resolve(Node node, HashSet<RuleSymbol> seen) =>
+			node switch
+			{
+				Node.Element element                  => element.IsNegated ? null : element,
+				Node.Call(var rule, _) when seen.Add(rule) &&
+					graph.Bodies.TryGetValue(rule, out var called) => Resolve(called, seen),
+				Node.Sequence([var only])             => Resolve(only, seen),
+				Node.Choice([var only])               => Resolve(only, seen),
+				Node.Atomic(var kept)                 => Resolve(kept, seen),
+				Node.Marked(var marked, _)            => Resolve(marked, seen),
+				_                                     => null,
+			};
+
+		/// <summary>Whether everything a body can hold is inside the boundary.</summary>
+		bool Within(Node node, Node.Element boundary, HashSet<RuleSymbol> seen)
+		{
+			switch (node)
+			{
+				case Node.Element element:
+					return !element.IsNegated && Inside(element, boundary);
+
+				case Node.Literal(var text) literal:
+					return text.Length > 0 && text.All(c => Inside(One(c), boundary));
+
+				case Node.Sequence(var nodes): return nodes.All(one => Within(one, boundary, seen));
+				case Node.Choice(var nodes):   return nodes.All(one => Within(one, boundary, seen));
+				case Node.Repeat(var repeated, _, _): return Within(repeated, boundary, seen);
+				case Node.Atomic(var kept):    return Within(kept, boundary, seen);
+				case Node.Marked(var marked, _): return Within(marked, boundary, seen);
+				case Node.Capture(_, var held): return Within(held, boundary, seen);
+				case Node.Lookahead:           return true;
+				case Node.Empty:               return true;
+
+				case Node.Call(var rule, _):
+					return seen.Add(rule) &&
+						graph.Bodies.TryGetValue(rule, out var body) &&
+						Within(body, boundary, seen);
+
+				default: return false;
+			}
+		}
+
+		static Node.Element One(char c) => new(false, [new CharRange(c, c)], [], []);
+
+		/// <summary>Whether one element admits nothing the boundary does not.</summary>
+		static bool Inside(Node.Element element, Node.Element boundary) =>
+			element.Ranges.All(range =>
+				boundary.Ranges.Any(one => one.From <= range.From && range.To <= one.To)) &&
+			element.Categories.All(boundary.Categories.Contains) &&
+			element.References.All(boundary.References.Contains);
 
 		/// <summary>The node a pattern recognizes, as the automaton needs to read it.</summary>
 		Node? Shape(Pattern pattern) =>

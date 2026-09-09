@@ -311,8 +311,15 @@ public sealed class GramGenerator : IIncrementalGenerator
 		var bases   = new List<Included>();
 
 		foreach (var inherited in host.Includes.Items)
+		{
+			// The file first, so that a grammar somebody can still edit is the one whose
+			// offsets a diagnostic points into. What the assembly carries is the fallback and
+			// is the only thing there is across a reference — reported against nothing rather
+			// than reported twice, which is why the first attempt keeps its own list.
+			var aside = ImmutableArray.CreateBuilder<Report>();
+
 			if (TryResolveGrammar(
-				reports,
+				aside,
 				inherited.Source,
 				SimpleNameOf(inherited.ClassName),
 				inherited.ClassName,
@@ -324,6 +331,29 @@ public sealed class GramGenerator : IIncrementalGenerator
 				parts.Add(new GrammarSplice.Part(inheritedText, inherited.Name, null));
 				bases.Add(inherited with { Source = inheritedPath });
 			}
+			else if (inherited.Portable is { Length: > 0 } carried)
+			{
+				parts.Add(new GrammarSplice.Part(carried, inherited.Name, null));
+				bases.Add(inherited with { Source = null, Literal = carried, LiteralAt = 0 });
+			}
+			else
+			{
+				reports.AddRange(aside);
+			}
+		}
+
+		// Each include is spliced into a namespace named after it, and that is the whole of
+		// why one grammar's rules cannot collide with another's. Two under one name are one
+		// namespace, and then they can — reported here, where the names are still names,
+		// rather than later as a duplicate rule in a namespace nobody wrote.
+		foreach (var group in bases.GroupBy(static one => one.Name, StringComparer.Ordinal))
+			if (group.Count() > 1)
+				reports.Add(Report.Of(
+					Diagnostics.RepeatedIncludedName,
+					group.First().Location ?? host.Location,
+					host.ClassName,
+					string.Join(" and ", group.Select(static one => SimpleNameOf(one.ClassName))),
+					group.Key));
 
 		var (text, joined) = GrammarSplice.Join(new GrammarSplice.Part(own, null, null), parts);
 
@@ -354,7 +384,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			host,
 			text,
 			path,
-			new EquatableArray<Question>(Questions.Of(parsed)),
+			new EquatableArray<Question>(Questions.Of(parsed, host.LocationType)),
 			default,
 			Values(reports),
 			new EquatableArray<Piece>(pieces.ToImmutable()));
@@ -408,6 +438,13 @@ public sealed class GramGenerator : IIncrementalGenerator
 			PartSize       = host.PartSize == 0 ? null : host.PartSize,
 			Lexical        = host.Lexical,
 			Direct         = host.Direct,
+			LocationType   = host.LocationType,
+
+			// The host of every grammar this one is built on: what a rule from there calls
+			// lives beside it, and `using static` is what puts it in reach without the
+			// including class having to derive from anything.
+			StaticImports  = [.. host.Includes.Items.Select(static one => one.ClassName)],
+			Portable       = host.Portable,
 			Carrier        = (CarrierKind)host.Carrier,
 			Stacks         = host.Stacks,
 			Suffix         = host.Suffix,
@@ -637,13 +674,20 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// </remarks>
 	/// <param name="Name">What a grammar including this one writes after `using`.</param>
 	/// <param name="ClassName">Whose grammar it is, for anything that has to say so.</param>
+	/// <param name="Portable">
+	/// The grammar as the included class carries it — <c>[GramSource]</c>, written there by
+	/// the generator that compiled it. Null where the class was not compiled by this
+	/// generator. What makes an include work across an assembly boundary, where the
+	/// <c>.gram</c> file is nowhere in reach.
+	/// </param>
 	readonly record struct Included(
 		string    Name,
 		string    ClassName,
 		string?   Source,
 		string?   Literal,
 		int       LiteralAt,
-		Location? Location);
+		Location? Location,
+		string?   Portable = null);
 
 	/// <summary>
 	/// A class marked <c>[Gram]</c>, reduced to what generation needs.
@@ -682,7 +726,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 		int       Stacks     = 0,
 		string?   Suffix     = null,
 		bool      Repeated   = false,
-		bool?     Shared     = null)
+		bool?     Shared     = null,
+		string?   LocationType = null,
+		bool      Portable   = false)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -823,6 +869,20 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.FirstOrDefault(static named => named.Key == nameof(Host.Direct))
 				.Value.Value as bool? ?? first?.Direct ?? true;
 
+			// A `typeof(…)` argument arrives as the symbol it named, and what the compiler
+			// needs of it is a name it can ask the resolver about — the same currency every
+			// other type in a grammar is written in.
+			// What the class already says, unless the attribute says otherwise: a host nobody
+			// outside can name is a host nobody outside can include, and carrying its grammar
+			// would be paying for a door into a wall.
+			var portable = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.Portable))
+				.Value.Value as bool? ?? first?.Portable ?? Visible(type);
+
+			var locationType = (attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.LocationType))
+				.Value.Value as INamedTypeSymbol)?.ToDisplayString() ?? first?.LocationType;
+
 			// Which carrier the author chose (docs/next.md, the redesign). An enum constant
 			// reaches an analyzer as its underlying integer, and nought is the tape.
 			var carrier = attribute.NamedArguments
@@ -900,7 +960,19 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Direct:     direct,
 				Carrier:    carrier,
 				Stacks:     stacks,
-				Suffix:     suffix);
+				Suffix:     suffix,
+				LocationType: locationType,
+				Portable:   portable);
+		}
+
+		/// <summary>Whether anything outside this assembly could name the class.</summary>
+		static bool Visible(INamedTypeSymbol type)
+		{
+			for (var at = (ITypeSymbol?)type; at is not null; at = at.ContainingType)
+				if (at.DeclaredAccessibility != Accessibility.Public)
+					return false;
+
+			return true;
 		}
 
 		static string? Classification(AttributeData attribute)
@@ -930,7 +1002,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			};
 		}
 
-		/// <summary>Every grammar up the base chain, nearest first.</summary>
+		/// <summary>Every grammar this one is built on, nearest first.</summary>
 		/// <remarks>
 		/// <para>
 		/// By display name and not by symbol: the attribute is emitted into every assembly
@@ -943,17 +1015,41 @@ public sealed class GramGenerator : IIncrementalGenerator
 		/// sit between two that have one for reasons of its own.
 		/// </para>
 		/// <para>
-		/// Cycles cannot happen — C# forbids a class from inheriting itself, directly or
-		/// through anything — which is a property this spelling gets for free and a named
-		/// import of grammars would not have.
+		/// Two spellings, and both are walked. A base class is the older one and says less: a
+		/// class has one base and as many attributes as it likes, and a base carries meaning
+		/// of its own that a grammar has no use for. <c>[GramInclude(typeof(X))]</c> is the
+		/// other, it may be written many times, and what it names is walked in turn — a
+		/// grammar built on a standard built on a library gets all three.
+		/// </para>
+		/// <para>
+		/// Named rather than inherited, cycles become possible, and they are ended rather
+		/// than reported: a grammar already gathered is not gathered twice, so
+		/// <c>A</c> naming <c>B</c> naming <c>A</c> splices each of them once, which is what
+		/// anybody writing it meant. Nothing is lost by not saying so.
 		/// </para>
 		/// </remarks>
 		static ImmutableArray<Included> Inherited(INamedTypeSymbol type)
 		{
 			var included = ImmutableArray.CreateBuilder<Included>();
+			var seen     = new HashSet<string>(StringComparer.Ordinal) { type.ToDisplayString() };
+			var pending  = new Queue<(INamedTypeSymbol Type, string? As)>();
 
 			for (var above = type.BaseType; above is not null; above = above.BaseType)
+				pending.Enqueue((above, null));
+
+			foreach (var named in Named(type))
+				pending.Enqueue(named);
+
+			while (pending.Count > 0)
 			{
+				var (above, called) = pending.Dequeue();
+
+				if (!seen.Add(above.ToDisplayString()))
+					continue;
+
+				foreach (var named in Named(above))
+					pending.Enqueue(named);
+
 				// The one compiled into the base class itself where there are several: a
 				// grammar including another names a class, and what that class publishes
 				// under a scope of its own is that scope's, not the class's.
@@ -976,12 +1072,14 @@ public sealed class GramGenerator : IIncrementalGenerator
 						? literal.Token
 						: default;
 
-				var named = attribute.NamedArguments
+				// What the includer calls it wins over what the includee calls itself: the
+				// name a grammar is reached under inside yours is your business.
+				var under = called ?? attribute.NamedArguments
 					.FirstOrDefault(static argument => argument.Key == nameof(Host.IncludedAs))
 					.Value.Value as string;
 
 				included.Add(new Included(
-					Name:      named ?? above.Name,
+					Name:      under ?? above.Name,
 					ClassName: above.ToDisplayString(),
 					Source:    attribute.ConstructorArguments.Length == 1
 						? attribute.ConstructorArguments[0].Value as string
@@ -993,10 +1091,33 @@ public sealed class GramGenerator : IIncrementalGenerator
 					// a diagnostic in its grammar have nowhere to point (docs/next.md).
 					Location:  attribute.ApplicationSyntaxReference is { } reference
 						? Microsoft.CodeAnalysis.Location.Create(reference.SyntaxTree, reference.Span)
-						: null));
+						: null,
+
+					// What the class itself says its grammar is, which travels with the
+					// assembly when the file does not.
+					Portable:  above
+						.GetAttributes()
+						.FirstOrDefault(static candidate =>
+							candidate.AttributeClass?.ToDisplayString() == "DotGram.GramSourceAttribute")
+						?.ConstructorArguments.FirstOrDefault().Value as string));
 			}
 
 			return included.ToImmutable();
+
+			// What a class names with `[GramInclude]`, in the order it wrote them.
+			static IEnumerable<(INamedTypeSymbol Type, string? As)> Named(INamedTypeSymbol of)
+			{
+				foreach (var attribute in of.GetAttributes())
+					if (attribute.AttributeClass?.ToDisplayString() == "DotGram.GramIncludeAttribute" &&
+						attribute.ConstructorArguments is [{ Value: INamedTypeSymbol grammar }])
+					{
+						yield return (
+							grammar,
+							attribute.NamedArguments
+								.FirstOrDefault(static argument => argument.Key == "As")
+								.Value.Value as string);
+					}
+			}
 		}
 	}
 }

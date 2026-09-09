@@ -151,8 +151,11 @@ public static partial class CSharpEmitter
 		LexicalSplit? lexical = null, bool direct = true, CarrierKind carrier = CarrierKind.Tape,
 		int stacks = 0, string? suffix = null, bool? shared = null, bool inherits = false,
 		string? languageId = null, string? languageSource = null,
-		string? languageClassifications = null, string? languageRecognitionContract = null)
+		string? languageClassifications = null, string? languageRecognitionContract = null,
+		IReadOnlyList<string>? statics = null, string? grammarSource = null)
 	{
+		statics ??= [];
+
 		var overKinds = lexical is not null;
 		var directAllowed = direct;
 
@@ -272,12 +275,27 @@ public static partial class CSharpEmitter
 			foreach (var import in graph.CSharpImports)
 				file.Line($"using {import};");
 
+			// The host of every grammar this one is built on, so that a rule which came from
+			// there goes on calling the helpers its author wrote. Two of them offering the
+			// same name is an ordinary C# ambiguity and is refused as one; a member the
+			// including class declares under a name an included grammar calls is used instead
+			// of theirs, silently, which is the one collision nothing here can see.
+			foreach (var import in statics)
+				file.Line($"using static {import};");
+
 			file.Line();
 		}
 
 		var classParts = className.Split('.');
 		for (var i = 0; i < classParts.Length; i++)
 		{
+			// The grammar itself, so that a class in a referenced assembly can be included
+			// without its `.gram` file being anywhere near. Only on the compilation that owns
+			// the class: a `Suffix` puts a second reading in a nested class, and what an
+			// including grammar names is the class, not the reading.
+			if (i == classParts.Length - 1 && grammarSource is not null && suffix is not { Length: > 0 })
+				file.Line($"[global::DotGram.GramSourceAttribute({Quoted(grammarSource)})]");
+
 			if (i == classParts.Length - 1 && languageId is not null && languageSource is not null)
 				file.Line(LanguageDescriptorAttribute(
 					graph,
@@ -1532,7 +1550,8 @@ public static partial class CSharpEmitter
 				visible,
 				fold is not null && fold.Accumulators.TryGetValue(node, out var accumulator)
 					? accumulator
-					: null));
+					: null,
+				graph.Located.Contains(rule)));
 		}
 
 		return found;
@@ -1692,6 +1711,39 @@ public static partial class CSharpEmitter
 	/// Only an expression has text of its own; the four the language supplies are written
 	/// by the cases above, which know what they are writing and where it is not from.
 	/// </remarks>
+	/// <summary>
+	/// A string as C# spells it, escapes and all.
+	/// </summary>
+	/// <remarks>
+	/// Written here rather than taken from Roslyn: <c>Grammar/</c> does not reference it, and
+	/// the rule is short enough to say. A verbatim literal would be shorter to produce and
+	/// would put the grammar's own line breaks into the generated file, which is a great deal
+	/// of noise in something nobody reads.
+	/// </remarks>
+	internal static string Quoted(string text)
+	{
+		var made = new System.Text.StringBuilder(text.Length + 16).Append('"');
+
+		foreach (var c in text)
+			switch (c)
+			{
+				case '"':  made.Append("\\\""); break;
+				case '\\': made.Append("\\\\"); break;
+				case '\n': made.Append("\\n");  break;
+				case '\r': made.Append("\\r");  break;
+				case '\t': made.Append("\\t");  break;
+				default:
+					if (c < ' ')
+						made.Append("\\u").Append(((int)c).ToString("x4"));
+					else
+						made.Append(c);
+
+					break;
+			}
+
+		return made.Append('"').ToString();
+	}
+
 	internal static void Handed(Writer file, ILineMap? lines, Node.Construct construct)
 	{
 		if (construct.How is Construction.Expression { Text: var text, At: var at })
@@ -1727,7 +1779,7 @@ public static partial class CSharpEmitter
 		if (WantsText(graph, factory))
 			parameters.Add("string parserText");
 
-		if (Asks(graph, factory, "parserSpan"))
+		if (WantsSpan(graph, factory))
 			parameters.Add("SourceSpan parserSpan");
 
 		// The whole input, for a construction that wants to keep where it matched and cut
@@ -1778,6 +1830,34 @@ public static partial class CSharpEmitter
 
 		switch (((Node.Construct)factory.Of).How)
 		{
+			// The author's own C#, written under a `#line` pointing back at it (§7.6).
+			case Construction.Expression when factory.Located:
+
+				// Offered the range it was read over, which is a statement and not an
+				// expression. Offered rather than written: a rule may hand back a value another
+				// rule made, and the range it was read over is then wider than the value's own.
+				// What the offer does with it is the named interface's business, not this
+				// file's — see `LocationType` on the attribute.
+				//
+				// A block body rather than a helper, so that nothing at all is emitted for the
+				// grammars — most of them — that ask for no locations.
+				file.Line(summary + " (docs/syntax.md §7.3), and where it was written.</summary>");
+
+				using (file.Block(head))
+				{
+					// The declared type and not `var`: the author's C# may be a conditional whose
+					// arms are two different records, and only a target type tells the compiler
+					// which of them the whole expression is (CS0173).
+					file.Line($"{graph.Types[rule]} made =");
+					Handed(file, lines, (Node.Construct)factory.Of);
+					file.Line();
+					file.Line("made.Locate(parserSpan.Start, parserSpan.Length);");
+					file.Line();
+					file.Line("return made;");
+				}
+
+				break;
+
 			// The author's own C#, written under a `#line` pointing back at it (§7.6).
 			case Construction.Expression:
 
@@ -1955,6 +2035,10 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	static bool UsesSourceSpan(RecognitionGraph graph)
 	{
+		// A rule told where it was written is handed one whether or not any C# names it.
+		if (graph.Located.Count > 0)
+			return true;
+
 		foreach (var type in graph.Types.Values)
 			if (type == "SourceSpan")
 				return true;
@@ -1997,6 +2081,13 @@ public static partial class CSharpEmitter
 			: name.StartsWith("parser", StringComparison.Ordinal) ? text.Contains(name) : Names(text, name);
 
 	/// <summary>The same, for a factory whose graph is in hand.</summary>
+	/// <summary>
+	/// Whether a construction is handed the range it was read from — because its C# asked
+	/// for it by name, or because what it builds is told where it was written.
+	/// </summary>
+	internal static bool WantsSpan(RecognitionGraph graph, Machine.Factory factory) =>
+		factory.Located || Asks(graph, factory, "parserSpan");
+
 	internal static bool Asks(RecognitionGraph graph, Machine.Factory factory, string name) =>
 		factory.Of is Node.Construct { How: Construction.Expression { Text: var text } } &&
 		Uses(graph, text, name);

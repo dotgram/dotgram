@@ -48,7 +48,8 @@ public static class GramCompiler
 		diagnostics.AddRange(parsed.Diagnostics);
 
 		var model = GrammarBinder.Bind(parsed.File, options.SymbolResolver, options.Own);
-		var graph = GrammarNormalizer.Normalize(model, options.SymbolResolver, options.CSharpScanner);
+		var graph = GrammarNormalizer.Normalize(
+			model, options.SymbolResolver, options.CSharpScanner, options.LocationType);
 
 		// What the later stages made of a declaration whose syntax did not come out is
 		// about a tree that was guessed at, not about the grammar. Dropped rather than
@@ -89,6 +90,12 @@ public static class GramCompiler
 		// there, so a refusal is worth a word rather than a failed build.
 		var lexical = options.Lexical && !HasErrors(diagnostics) ? Cut(graph, diagnostics) : null;
 
+		// And the one question that has a different answer on the other side of the cut:
+		// over characters an overlap between an optional and what follows it is settled by
+		// backtracking, and over kinds a reading that fits is the one that stands.
+		if (lexical is not null && !HasErrors(diagnostics))
+			diagnostics.AddRange(FirstSets.Committed(lexical.Syntax, lexical.Inventory));
+
 		if (!HasErrors(diagnostics))
 			sources.Add(new GeneratedSource(
 				options.Suffix is { Length: > 0 } suffix
@@ -99,7 +106,8 @@ public static class GramCompiler
 					diagnostics, options.PartSize, lexical, options.Direct, options.Carrier, options.Stacks,
 					options.Suffix, options.SharedTypes, options.Inherits,
 					options.LanguageId, options.LanguageSource, options.LanguageClassifications,
-					options.LanguageRecognitionContract)));
+					options.LanguageRecognitionContract, options.StaticImports,
+					options.Portable ? grammarText : null)));
 
 		return new GramCompilation(sources, OnePerPosition(diagnostics));
 	}

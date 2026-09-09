@@ -15588,3 +15588,1278 @@ A statement in there can take the connection down with it: a severity the server
 session over rather than answers. `--engine` now checks the state before each statement and
 builds the session again where it has gone, which costs nothing on the thousands that do not
 and is the difference between a number and a stack trace.
+
+## The tables, and the method that would not fit
+
+`CREATE TABLE` is the largest single kind in the corpus — 631 statements, twice all the DML
+together — and it pulls the most behind it: a column definition is what `ALTER TABLE … ADD`
+adds and what `ALTER TABLE … ALTER COLUMN` changes, and the body a table variable declares
+is the same thing smaller. So the body written for `DECLARE @t TABLE` grew into the real
+one, and `ALTER TABLE`'s nine actions were written beside it.
+
+The option lists — `WITH (DATA_COMPRESSION = PAGE ON PARTITIONS (1 TO 4))`,
+`WITH (FILLFACTOR = 80)` — are a shape with an open vocabulary, as the table hints are and
+for the same reason. Two things the published syntax settled that a guess would not have:
+`GENERATED ALWAYS AS { ROW | TRANSACTION_ID | SEQUENCE_NUMBER } { START | END }` names its
+words, and `END` is reserved, so they cannot be read as identifiers. And an option's *name*
+can be a reserved word too — `FILLFACTOR` is one — which an identifier cannot be.
+
+```
+                                   count    read
+CreateTableStatement                 631     259   41.0%
+AlterTableAddTableElementStatement    95      48   50.5%
+AlterTableAlterColumnStatement       144      38   26.4%
+```
+
+Of everything in the corpus, **28.8% to 34.4%**.
+
+### And the generator ran out of method
+
+Adding them put the statement entry point's materializer past two thousand basic blocks, and
+the build stopped on `GRAM5003`. The cause took a while and was not where the message
+pointed.
+
+**The direct walk had no division at all.** The tape's materializer divides its rules into
+methods under a budget — RyuJIT stops optimizing past about two thousand — and the direct
+walk was one method however many rules it held. So no rule was too big and the advice had
+nothing to answer: the method was the sum of all of them.
+
+**And the walk around the arms is most of what a large one costs.** Of the 2,132 the arms
+were about 800. A division triggered by the arms' own total therefore never fires, and one
+counted from them says one part where the method needs two. So the method is measured whole
+— rendered undivided, counted, rendered again in parts only where the count says it must be
+— and the count is two at least, because what moving an arm out buys is its body while what
+stays behind is a label.
+
+The parts are local functions, as the tape's are; `text` is handed over because a span
+cannot be a field of the frame a local function captures, and so are `read` and `slot`.
+
+**The guard against it coming back is the build.** `DotGram.Parsers` treats warnings as
+errors, so a materializer left over the limit stops it — which is how this was found. A unit
+test would have been better and there is not one: a synthetic grammar of alternatives is
+compiled on the tape rather than as methods, and one written as a chain deep enough
+overflows the generator's own stack while compiling it. That last is worth writing down on
+its own.
+
+## The routines, and the tail of the tables
+
+Four statements that could not be read at all until the procedural level existed, because
+each is a header and then whatever T-SQL somebody put inside it: `CREATE PROCEDURE`,
+`CREATE FUNCTION`, `CREATE TRIGGER`, `CREATE VIEW`. 341 statements of the corpus between
+them, and the body was the part already done — which is why the procedural level went first.
+
+`CREATE OR ALTER` is one word in front of all four and is read once. A function has three
+shapes and what tells them apart is what `RETURNS` says: a type for a scalar, `TABLE` for
+the inline one, a table variable and its columns for the other. A trigger's `ON` is a table,
+a database or the whole server, and its events are the three DML words or a DDL event name.
+
+With them, the tail of `CREATE TABLE` that the work list had been pointing at: graph tables
+(`AS NODE`, `AS EDGE`, and the `CONNECTION (N1 TO N2)` constraint only an edge has), a file
+table, which has no columns at all, `$NODE_ID` in an index's column list, a hash index, an
+option value carrying a unit (`MAX_DURATION = 1440 MINUTES`), and `WITH (DISTRIBUTED_AGG)`,
+which is said of one grouping column rather than of the list.
+
+```
+                            count    read
+CreateTableStatement          631     441   69.9%
+CreateTriggerStatement         48      43   89.6%
+CreateFunctionStatement        82      54   65.9%
+CreateProcedureStatement      142      85   59.9%
+CreateViewStatement            69      31   44.9%
+```
+
+Of everything in the corpus, **34.4% to 40.4%** — and of the kinds this grammar now has a
+rule for, the engine and this one agree on 3,115 of 4,271.
+
+Two more things the syntax settled that a guess would not have. `AS FileTable` stands
+*before* the columns and `AS NODE` *after* them — two syntaxes rather than one written
+twice. And a routine's parameter list may have no parentheses at all: `CREATE PROCEDURE p
+@a INT AS …` is as good as `p (@a INT)`, which is why it is a rule rather than a bracketed
+one.
+
+## Indexes and permissions, which were mostly written already
+
+An index inside a `CREATE TABLE` is the same thing said in the same words, so
+`CREATE INDEX` and `ALTER INDEX` needed only their headers: the columns, the options, the
+placement and the filter were all there. 360 statements for about forty lines.
+
+Permissions are one shape and three statements, and the interesting part is what a
+permission is *made of*. `ALTER ANY DATABASE DDL TRIGGER`, `VIEW SERVER STATE`,
+`BACKUP LOG`, `CREATE TABLE` — the names are runs of words, and most of those words are
+reserved, so an identifier cannot be any of them. They are named, the same way the option
+names are and for the same reason: a catalogue rather than a language.
+
+**A run rather than a fixed count.** The first attempt allowed up to four words and
+`ALTER ANY DATABASE DDL TRIGGER` is five. A repetition ends where it must without being
+told to: neither `ON` nor `TO` is a permission word, so the name takes its words and leaves
+the clause after them alone.
+
+```
+                                    count    read
+CreateColumnStoreIndexStatement       88      84   95.5%
+AlterIndexStatement                  132     120   90.9%
+CreateIndexStatement                 140     123   87.9%
+GrantStatement                       122      76   62.3%
+RevokeStatement                       53      32   60.4%
+DenyStatement                         51      24   47.1%
+```
+
+Of everything in the corpus, **40.4% to 45.9%**, and of the kinds this grammar has a rule
+for the engine and this one agree on 3,568 of 4,857.
+
+## `word`, which is the notation catching up with the grammar
+
+Four times now a rule has been a list of words: an option's name, a table hint's, a query
+hint's, a permission's, an ODBC function's. Every one of those lists exists for the same
+reason — the place admits *a word* and T-SQL reserves some of the words that turn up there,
+so `Identifier` refuses them and the reserved ones have to be written out beside it. Sixty-one
+lines across the file, none of which is a fact about T-SQL. They are a fact about what the
+notation could not say, and they go stale the day SQL Server adds an option.
+
+So the notation says it. §4.6 already had `wordboundary`, which says what continues a word;
+`word` is one whole word made of it, whatever that word says. Over characters it is a run of
+boundary characters that does not stop short of one — maximal, so `word & "y"` cannot read
+`fillfactory` as `fillfactor` plus a tail, the same claim §4.6 already makes about a keyword,
+made about the other side of the boundary.
+
+**Over kinds it is one comparison.** This is the part worth having. In a split grammar the
+boundary is gone with the lexer, and being a word is a property the token kind already
+carries: a keyword always is, and a class is where every character it can hold continues a
+word — which makes an identifier a word and a quoted name not. So `word` becomes a range test
+over kind numbers, like every other terminal position. It reads exactly one token there,
+which is what it read over characters too.
+
+And it is one range rather than two, because the ordering was already there. `Laminar` orders
+the patterns so that as many named sets as possible come out as one run of kinds; word-shaped
+classes now stand with the words instead of after the marks, which makes the widest set a
+grammar has — all of its words — a single run. The keywords, then the identifier, then
+everything else.
+
+**Where only some words will do, the shape is a lookahead and not a list.** A permission's
+name was thirty-one words written out; what actually bounds it is not which words are in it
+but where it ends, and the syntax says that:
+
+```dotgram
+PermissionWord = ?!PermissionEnd & word
+PermissionEnd  = "ON"i | "TO"i | "FROM"i | "WITH"i | "CASCADE"i
+```
+
+Five words instead of thirty-one, and it stops being a catalogue: a permission SQL Server
+adds tomorrow is a word this grammar has already heard of.
+
+A grammar that never said what continues a word has no words in it, and `word` there would be
+a run of nothing — a rule that matches everywhere and consumes nothing. That is `GRAM4019`.
+Each namespace's `word` is its own, too: a boundary is declared per namespace and a lexical
+one shields what stands outside it, so a single shared `word` would be a word of whichever
+namespace reached it first.
+
+Sixty-one lines to nine, and the corpus went **45.9% to 46.5%** — the point was never the
+percentage, but a notation that says what the grammar means does tend to read more of it.
+
+## The database, and a join that was wrong over kinds
+
+`ALTER DATABASE … SET` was 252 statements and the largest single thing left in the corpus.
+Almost none of it turned out to be new: a database's settings are said the way an index's
+and a table's are, so the option list already written reads them, and a file specification
+is that same list in brackets. The header and about thirty lines were the whole of it.
+
+**The settings are not enumerated and are not going to be.** There are some two hundred of
+them, they differ by edition and by version, and none of that is syntax. What the syntax
+actually says is the shape:
+
+```dotgram
+DatabaseOption     : @SqlNode = name: DatabaseOptionName & v: DatabaseOptionValue?
+DatabaseOptionName : @string  = t: (?!DatabaseOptionEnd & word)+ => @(t)
+DatabaseOptionEnd             = "WITH"i | OnOff
+```
+
+A run of words and then, sometimes, what it is set to — which is `MAXDOP = 4`,
+`SINGLE_USER`, `HADR AVAILABILITY GROUP = g1`, `QUERY_STORE CLEAR ALL`,
+`CHANGE_TRACKING (AUTO_CLEANUP = ON)`, `= 42 SECONDS` and two hundred others, in one rule.
+The lookahead is the whole of what the syntax constrains: `ON` and `OFF` are what a setting
+is set to rather than part of its name, and `WITH` begins the termination clause after the
+list.
+
+**Where a catalogue really is the syntax it is written out.** `ALTER DATABASE d REBUILD LOG`
+and `ALTER DATABASE d PERFORM_CUTOVER` are actions that are only a word, and the first
+version read them as `word` — which then read `ALTER DATABASE d AUDIT SPECIFICATION s` as a
+database called `d` doing something called `AUDIT SPECIFICATION`. That is a different
+statement and ScriptDom says so. Two words written out, and the over-reading went away.
+The difference from the option names is not style: an option's name is open because SQL
+Server adds options, and these two are closed because each is a statement of its own.
+
+## The join, and what a piece is worth over kinds
+
+Writing `word+` found a defect in the generator, and it had been there since the lexical
+split was written.
+
+§10's join: a repetition that captures every turn records one piece per turn, and the value
+is those pieces joined. Over characters a piece is a slice of what is being read, so the
+pieces are copied into a buffer of their summed lengths. Over kinds neither half holds. A
+position indexes a *token* there, so a piece's length is a count of tokens — the buffer came
+out sized in tokens and threw `Destination is too short` for anything but one-character
+lexemes — and what stood between two adjacent tokens is part of the value the character
+reading gives, and was being dropped.
+
+The tape already knew this and said so in a comment: turns of a repetition that has nothing
+else in them tile, so the pieces measure exactly the distance between the first start and
+the last end, which is one cut and one string. The direct walk never got that fast path, so
+every multi-piece capture took the copying branch — and over kinds the copying branch was
+wrong. Both are fixed: the direct walk cuts whole where the pieces tile, and where they do
+not, both materializers cut each piece on its own instead of copying spans measured in the
+wrong unit.
+
+It cost `ALTER DATABASE d1 SET HADR AVAILABILITY GROUP = g1` to find, which is what a corpus
+of somebody else's tests is for.
+
+```
+                                                     count    read
+AlterDatabaseScopedConfigurationSetStatement           106     105   99.1%
+AlterDatabaseSetStatement                              252     234   92.9%
+AlterDatabaseModifyFileGroupStatement                   28      28  100.0%
+CreateDatabaseStatement                                114      80   70.2%
+```
+
+Of everything in the corpus, **46.5% to 52.5%**. Against the engine, 4,044 statements read
+by both.
+
+**And what the engine refuses that we read is Azure.** `MODIFY (EDITION = 'basic')`,
+`SERVICE_OBJECTIVE`, `ELASTIC_POOL`, `AS COPY OF` — twenty-four of them come back as
+`Msg 40514`, which is SQL Server saying the statement belongs to a database it is not. The
+same category as the Fabric and PDW surface found earlier, and not a defect on either side.
+
+## Reading the published syntax again, clause by clause
+
+The last few waves were written from what the corpus refused, which finds features in the
+order somebody's test file happens to mention them. This one went the other way: fetch
+Microsoft's own syntax blocks for the statements already implemented and diff them against
+the rules, line by line. Twenty-odd divergences, most of them one line each, and every one
+is a clause the published grammar has and this did not.
+
+**`<data_type>`.** `xml` takes a schema collection where every other type takes a
+precision — `xml ( [ CONTENT | DOCUMENT ] xml_schema_collection )` — and `XML` was in the
+list of types that take nothing.
+
+**`<column_definition>`.** `[ [ CONSTRAINT constraint_name ] { NULL | NOT NULL } ]`: a
+nullability may carry a constraint name, which nothing else about a nullability suggests.
+`GENERATED ALWAYS AS { ROW | TRANSACTION_ID | SEQUENCE_NUMBER } { START | END } [ HIDDEN ]`
+was written as those three words and the ledger says two more; which words they are is a
+catalogue, that there are two of them is the syntax, so it reads two words. `HIDDEN` stands
+with `SPARSE` and the rest.
+
+**`ALTER TABLE`.** `{ ADD | DROP } { ROWGUIDCOL | PERSISTED | NOT FOR REPLICATION | SPARSE
+| HIDDEN }` and `{ ADD | DROP } MASKED [ WITH ( … ) ]` — `HIDDEN` and a bare `MASKED` were
+missing, and so was the `[ WITH ( ONLINE = ON | OFF ) ]` that follows either shape of the
+clause. `{ ENABLE | DISABLE } CHANGE_TRACKING`, `FILETABLE_NAMESPACE`, the memory-optimized
+`ALTER INDEX … REBUILD`, and Synapse's `{ SPLIT | MERGE } RANGE (v)` were not there at all.
+
+**`CREATE PROCEDURE`.** The natively compiled form gives a parameter `[ NULL | NOT NULL ]`
+before its default, and a body that is `BEGIN ATOMIC WITH ( <set_option> [ ,…n ] )`.
+`DECLARE` gives a variable the same nullability, which is the published syntax and not
+something a corpus would suggest.
+
+**The selective XML index**, which is the one index whose shape is its own: it says which
+paths inside the column it promotes, each a string with an optional type hint, and its
+`WITH XMLNAMESPACES` stands *in front of* the `FOR` it belongs to — the only place in
+T-SQL where a `WITH` precedes its own clause.
+
+## An option's name is a run of words
+
+The one thing the audit changed rather than added. `word` had made an option's name one
+word; the published syntax says a run of them in four places at once —
+
+```
+MOVE TO { partition_scheme_name ( column_name ) | filegroup | "default" }
+CLUSTERED COLUMNSTORE INDEX
+TRANSACTION ISOLATION LEVEL = { SNAPSHOT | REPEATABLE READ | SERIALIZABLE }
+```
+
+— plus every one of the two hundred database settings, which had a rule of their own for
+exactly this reason. Now they share it, and where the run ends is the syntax rather than a
+list: `ON` and `OFF` are what an option is set to, `WITH` begins the clause after it.
+
+**And where it must stay one word, it says so.** A routine's option list is not bracketed
+and `AS` follows it, so a run there takes the `AS` and the whole body behind it. The
+published syntax names one word in that position anyway. This is the third time the same
+trap has been paid for — an optional or repeated thing swallowing the clause after it, and
+the parse then stopping one token past what it ate — and it is still the notation's turn to
+say something about it.
+
+## What the engine settled
+
+Two places where ScriptDom reads what SQL Server refuses, and the rule is that above
+compatibility level 90 the engine is the authority:
+
+- `DECLARE @c AS CURSOR = 'x'` — ScriptDom takes `CURSOR` for a type name and lets it have
+  a default. The published syntax gives a cursor variable no default and the engine answers
+  `Incorrect syntax`.
+- `WITH CHANGE_TRACKING_CONTEXT (0xff), cte (a) AS (…) INSERT …` — the published syntax puts
+  the context in front of the statement on its own, not comma-joined to a named query.
+
+Both were read here for a wave and are refused now.
+
+Of everything in the corpus, **52.5% to 58.0%**, and 4,284 statements read by both this
+grammar and the engine. The over-reading that is left is almost entirely other products'
+surface — Synapse's distributions, Fabric's `CREATE MATERIALIZED VIEW`, Azure's `EDITION`
+and `SERVICE_OBJECTIVE`, the ledger's `GENERATED ALWAYS AS SUSER_SID` — which is what the
+version chain is for and not a defect while there is one dialect.
+
+## A rule that reads more than its literals is not a set of them
+
+The open item from the last wave — `SELECT t::a` reads and `SELECT t::a + 1` does not —
+was not the grammar. It was a defect in the lexical split, and it had been there since the
+split was written.
+
+A rule that is a choice of literals becomes **one range over kinds** at each of its call
+sites; that is why a fifty-way keyword choice costs one comparison. Because §4.6 weaves a
+boundary onto a keyword — and an author may write one by hand as `(… | …) & ?!\p{L}` — the
+search for that choice looks through a sequence to its first part. It looked through *any*
+sequence. So
+
+```dotgram
+Member = ("::" | '.') & Identifier & ('(' & Arguments? & ')')?
+```
+
+was called the set `{"::", "."}`, every call site became that range, and everything after
+the choice was gone. T-SQL then read `t::a` as `t` with the alias `a` — the identifier the
+member never got to read, arriving in the alias slot — and refused everything that could
+follow it: `t::a + 1`, `t::a AS q`, `t::f()`, `t::a COLLATE x`.
+
+The fix is one clause: look through a sequence only where everything after the first part
+**consumes nothing** — an assertion, a guard, a seam that rewrote away. That is exactly the
+boundary the lookthrough exists for, and nothing else.
+
+The tell was that the same rule written as `MemberOp & Identifier` worked, which is the
+shape of a bug in a rule-shape analysis rather than in a rule. Sixty statements of the
+corpus, and it took a minimal grammar to see: `("::")` alone was fine and `("::" | "..")`
+was not, so it was the choice and not the mark.
+
+## And what the second reading found after that
+
+**`NULL` is a constant of this dialect.** The standard's is a `<null specification>` and
+stands in a handful of named places — a row constructor, a `CAST` operand, a `SET`.
+Microsoft's expression reference lists it among the constants, which is a different
+language: `1 + NULL` is an expression, `TRIM('[]' FROM NULL)` is a call, `VALUES (NULL)` is
+a row and `DEFAULT NULL` is a constraint whose value is one. All four were refused.
+
+**A table-valued function written in the CLR** declares its columns where an inline one
+says `RETURN`, and `ORDER` says what the assembly promises about them:
+`RETURNS TABLE (c1 INT) ORDER (c1 ASC) AS EXTERNAL NAME a.b.c`.
+
+**A table-valued method on a variable** of a user-defined type — `FROM @v.f(1) AS t (c)` —
+which had to be left-factored against the bare table variable, since both begin with the
+variable and GRAM4016 says so.
+
+Of everything in the corpus, **58.0% to 58.6%**, and 4,328 statements read by both this
+grammar and the engine.
+
+## DROP, and the wall it walked into
+
+Two thousand seven hundred and ninety statements of the corpus are kinds this grammar has
+no rule for at all — two hundred and twenty-nine of them, a long tail of DDL. The largest
+coherent family in it is `DROP`: sixty-six statements in the reference, two hundred and
+ninety in the corpus, and one shape.
+
+```
+DROP <what> [ IF EXISTS ] <names> [ <clause> ]
+```
+
+Written from the sixty-six published blocks, fetched from the docs repository rather than
+read one page at a time. They agree about everything but the words in the middle and five
+clauses: `REMOVE PROVIDER KEY` on a key, `WITH NO DEPENDENTS` on an assembly,
+`AUTHORIZATION` on an external library, `ON SERVER | DATABASE | QUEUE q` on a session or a
+notification. Four more have a shape of their own — an index is named twice, a signature
+comes off a module, a classification off a column, and `MASTER KEY` names nothing at all.
+
+**The words are written out, and here that is the syntax.** `DROP TABLE` and `DROP VIEW`
+are different statements and a rule wide enough for any word would read `DROP FOO x` and
+call it one of them. This is the other side of the `word` argument: an option's name is
+open because SQL Server adds options; this list is closed because each of its entries is a
+statement.
+
+## And two things in the generator that it found
+
+**The scanner's chain was divided by state count.** What falls outside a state's own row is
+answered by a chain of methods, cut every four thousand states — which is not what the JIT
+counts. A keyword trie has hundreds of states asking the same question, and each is a
+`case` label whether or not it shares a body. Sixty words put `Scan_Part0` at 2,266 blocks
+with nothing left to divide, and `GRAM5003` said so: past about two thousand the JIT
+compiles a method without optimizing it.
+
+That is the wall a language with a thousand keywords walks into on its way in, so the cut
+is by size now and the state count is the ceiling rather than the measure — the same budget
+the syntactic machine divides under, and the bodies are made once for both the cut and the
+parts, since what a part costs is what its bodies come to.
+
+**And one spelling had become two patterns.** A literal read as a word in one place and as
+punctuation in another was taken twice, because the key that deduplicated them held which
+list it went into. Two patterns for one string is two kinds for one lexeme; the inventory
+built a dictionary of them and threw — `An item with the same key has already been added.
+Key: (DATABASE, True)`, from a grammar that says `DROP DATABASE` beside `ALTER DATABASE`.
+
+§4.6's weaving reaches most occurrences of a keyword and not all of them, and a grammar has
+only to say one twice in the wrong two places to find one it did not. One spelling is one
+token whatever shape it was read from, and a word wins: the boundary was woven onto it
+somewhere, and over kinds both occurrences test the same kind anyway.
+
+Of everything in the corpus, **58.6% to 62.0%**, and 4,610 statements read by both this
+grammar and the engine — up from 4,328 for six more the engine refuses, which for two
+hundred and ninety new statements is the shape of a rule that is not too wide.
+
+## Who may connect, and as whom
+
+Logins, users, roles and schemas, written from their thirteen published blocks. One
+family because they are one shape: a name, where it came from, and a list of settings —
+and the settings are the option list already written.
+
+**The exception the syntax insists on is a password.** `PASSWORD = 'p' OLD_PASSWORD = 'q'
+MUST_CHANGE` is three things with no commas between them, which no other option list in
+T-SQL does. So a password is a rule of its own and the rest of the list is the ordinary
+one — the same division `DROP` made between the five clauses that are their own shape and
+the sixty-one that are not.
+
+Two things the corpus corrected. A securable's class is a *run* of words and not one or
+two: `XML SCHEMA COLLECTION::c` and `SEARCH PROPERTY LIST::l` are three, and the rule that
+read a permission's name already knew how to say that. And `MUST_CHANGE` stands before
+`HASHED` as readily as after it, so neither is placed.
+
+`CREATE SCHEMA` is the one statement in T-SQL that holds other whole statements without a
+`BEGIN`: a table, a view, a routine or a permission may be declared in the same breath as
+the schema they belong to.
+
+Of everything in the corpus, **62.0% to 64.5%**, and 4,809 statements read by both this
+grammar and the engine — up from 4,610 for four more the engine refuses.
+
+## What lives outside the database, and what the server spends on it
+
+External data sources, file formats, tables and libraries; resource pools and workload
+groups; statistics. Fourteen published blocks, and almost all of them are a name and an
+option list — which is the shape this grammar has been reading since `CREATE TABLE`. Four
+hundred and forty statements of the corpus for about forty lines.
+
+What is new is the four clauses that are *not* a name and a value:
+
+- **An affinity** is a value that is itself a name and a value: `AFFINITY SCHEDULER =
+  NUMANODE = (0)`, and `AFFINITY CPU = (0 TO 3, 7)` beside it.
+- **A placement**: `RESAMPLE ON PARTITIONS (1, 3 TO 5)` — a name and where it applies,
+  which `DATA_COMPRESSION = PAGE ON PARTITIONS (…)` already had after its value and no
+  option had instead of one.
+- **A file specification** for a library, which is an option list in its own brackets and
+  may be written twice.
+- **A sample**, and this one is worth saying out loud.
+
+### A number is not a word
+
+`SAMPLE 50 PERCENT` looks exactly like the run of words an option's name is, and is not:
+a numeric literal is a lexeme whose class holds a `.`, so `IsWord` answers no however much
+§4.6 says a digit continues a word. The rule is right — `50` and `50.5` are one kind and
+neither is a word — and the consequence is that a run of words stops at a number. So the
+sample is written out, three words and a rule, and it is the only place in these fourteen
+blocks where a number stands in the middle of an option.
+
+Of everything in the corpus, **64.5% to 70.3%**, and 5,147 statements read by both this
+grammar and the engine, up from 4,809. The over-reading that came with it is the same
+Synapse and Fabric surface as before — workload groups and external tables are not things
+a box SQL Server has.
+
+## What the server watches, and who it listens to
+
+Audits, extended-event sessions, event notifications and endpoints — eleven published
+blocks and three shapes: a name and where its output goes, a list of things added and
+dropped a bracket at a time, and a bracketed argument list per protocol.
+
+**An event's `WHERE` is not a search condition.** It compares a field with a constant, and
+it also *calls* a comparison the package supplies —
+`sqlserver.equal_i_sql_unicode_string(field, N'x')` — which is a call standing where a
+condition goes and is nothing of the sort anywhere else in this language. The comma joins
+two of them as `AND` does. Written out, it took extended-event sessions from 43% to 86%.
+
+**An option's value may be a run of words.** `AUTHENTICATION = WINDOWS NTLM CERTIFICATE c`
+and `ENCRYPTION = SUPPORTED ALGORITHM AES RC4` are how the broker spells its settings. Two
+words at least, which is what tells a run from a name: one word is a name, a qualified one
+begins with a word, and a run of one would take `dbo` out of `HISTORY_TABLE = dbo.h`.
+
+### A unit is a catalogue, and here the catalogue is the syntax
+
+An option's value could be followed by any identifier, which is how `SIZE = 100 MB` and
+`CHANGE_RETENTION = 3 DAYS` were read. Then `SET b = 5, c = 10 ACTION (b.c)` arrived and
+`ACTION` was read as the unit of ten, and the clause behind it was gone. The fourth time
+the same trap has been paid for in this file.
+
+So a unit is now the words the language has for a size or a span — `KB` through `PB`,
+`SECOND` through `YEAR`, `PERCENT`, `ROWS`, `%` — and nothing else may stand after a value.
+That is a list, and it is the right kind of list: unlike an option's name, which is open
+because SQL Server adds options, the units are a closed part of the language.
+
+**And a specific reading goes in front of the general one.** `ALTER SERVER AUDIT
+SPECIFICATION s` begins with `ALTER SERVER AUDIT`, and every clause of an audit is
+optional — so the shorter reading fits, and over kinds a reading that fits is the one that
+stands (§4). Same for `CREATE DATABASE AUDIT SPECIFICATION`, which begins with a database
+called `AUDIT`. Both are read by putting the longer statement first.
+
+Of everything in the corpus, **70.3% to 75.7%**, and 5,459 statements read by both this
+grammar and the engine.
+
+## And the other half of the comparison, at last
+
+Everything measured so far has been what the two parsers *read*. The programme has always
+had a second half — how long they take about it — and it had never been run. `--speed`
+(`Speed.cs`) runs it: Microsoft's own corpus, round-robin in one process, over the six
+thousand two hundred and ninety-nine statements both parsers read.
+
+```text
+                        per statement     MB/s   ratio   spread    allocated
+  --------------------------------------------------------------------------
+  ScriptDom, tokens           9200 ns     10.9    1.54    2.0%     39522 B
+  ScriptDom, tree            14140 ns      7.1    1.00    6.8%     43030 B
+  .Gram                       6022 ns     16.7    2.35    4.8%       729 B
+```
+
+Three rows and not two, because the two parsers are not returning the same answer.
+ScriptDom builds a complete syntax tree — every clause a node, every node carrying its
+first and last token, the token stream kept beside it. This builds `SqlNode`, which is
+about a tenth of that and carries no positions at all. A ratio between them is not a like
+for like and saying so is part of the number.
+
+What the rows say separately:
+
+- **A whole parse here costs less than ScriptDom spends reaching its first token** — 1.5
+  times its lexer alone. Both sides are lexing the same characters into much the same
+  kinds, so this one is about the lexical split rather than about what is built on top.
+- Against the whole parse, 2.35 times, and about half of that gap is the tree.
+- **Fifty-nine times less garbage**, which the shape of the answer does not explain away:
+  43 KB a statement against 729 bytes. ScriptDom allocates a node and a position for
+  everything it reads and keeps the tokens; this rents its tape per thread and gives it
+  back, so what survives a parse is the tree and the strings in it.
+
+The allocation figures are deterministic between runs; the times are not, and the spread
+is printed beside them for that reason.
+
+**And what it does not say.** ScriptDom is twelve parsers, one per version; this is one
+grammar and the version chain is not written, so `--speed 170` times their 170 against
+something that is not a version of anything. A parse that keeps positions is what an IDE
+needs, and when this one keeps them the row will move — which is a thing to measure again
+rather than to argue about now.
+
+## The tree says what the grammar says
+
+Igor's rule, and it changes what `SqlNode` is: **a node is called what the production it
+comes from is called** — the standard's name where the standard has the concept, the
+dialect's published name where it does not — and there is **one tree for every dialect**.
+So `Query` became `QuerySpecification`, `Selected` became `DerivedColumn`, `Source` became
+`TableReference`, `CreateTable` became `TableDefinition`; forty-one renames and nothing
+else changed.
+
+Then the bags. `Command(Word, Arguments)`, `Setting(Option, Value)`,
+`Database(Name, Action, Settings)` and a `Permission` with the word inside it were how the
+DDL got *read*; they are not how it should be *kept*. A `DROP TABLE` and a `DROP VIEW` are
+not one shape with a word in it, and a consumer that reads the word to tell them apart is
+doing the parser's work twice. A hundred and twenty-three records now stand where the four
+did, and the tree is a hundred and eighty-nine.
+
+**The grammar did not grow with them.** It reads `DROP <what>` once and hands the words to
+`SqlNode.Dropped`, which turns them into the record — so the catalogue of names lives in
+C#, where a catalogue of C# names belongs, and the `.gram` still says one thing. `Defined`,
+`OfDatabase`, `Commanded`, `Permitted`, `BackedUp` and `Restored` are the same trick. Each
+throws where the grammar has read a word this file has no record for, which is the two
+catalogues having drifted — a defect in the tree and not in anybody's SQL — and a test
+walks `DropKind` out of the grammar itself and puts every one of its words to the parser.
+
+And `docs/ast.md`: every node, which specification named it, and what it is called there.
+`AstReferenceTests` holds the table to the tree in both directions, and it earned its place
+the same afternoon — the next wave added twenty-five nodes and the test said so before the
+corpus did.
+
+## The full-text catalogue, and copying a database out and back
+
+Ten more published blocks. A full-text index is the one index with no name of its own — it
+is named by the table it is on, there being one per table — and the one whose columns carry
+a language and a type column beside them. `BACKUP` and `RESTORE` are one shape between
+them: what is being copied, the devices it goes to or comes from, and a long option list.
+
+**The trap again, and this time it was found before the corpus said so.** What may stand
+between a backup's name and its `TO` is four things the syntax names — `FILE = x`,
+`FILEGROUP = x`, `READ_WRITE_FILEGROUPS`, `PAGE = 'f:p'` — and writing it as an option list
+meant an option's name, which is a run of words, read `TO someDevice` and left the
+statement with no device. `BACKUP DATABASE` came out at 0%. Written out, 85%. That is the
+fifth time, and it is still the notation's turn.
+
+Of everything in the corpus, **75.7% to 79.7%**, and 5,810 statements read by both this
+grammar and the engine.
+
+## The trap gets a name (GRAM5009)
+
+Five times in this file the same defect has been paid for and written down, each time with
+the same sentence — *it is still the notation's turn*. It is the notation's turn.
+
+An optional or a repetition that can take what follows it:
+
+```dotgram
+Alias = Lexical.Name
+Start = "select" & Lexical.Name & Alias? & "into" & Lexical.Name
+```
+
+Over characters this parses. The alias takes `into`, the rule fails, backtracking gives it
+back, and the second reading succeeds — which is `GRAM5002`, worth saying and not a defect.
+**Over kinds it does not parse at all.** A rule's answer stands (§4): the alias takes
+`into`, `into` is not there any more, and the rule fails one token past what it ate — which
+is the least helpful place a parse can stop, and is exactly why it took five times to
+recognise.
+
+That premise was worth checking rather than assuming, so it was: the grammar above,
+compiled over kinds, reads `select a b into c` and refuses `select a into c`.
+
+### Why the existing diagnostic was silent
+
+`FirstSets.Check` had two conditions, and both were written for the character machine.
+
+It asks only about rules whose declared type is an array — the rationale being that
+backtracking is total, so an overlap is a defect only where an element already handed over
+cannot be taken back. Over kinds *nothing* can be taken back, so it asks about every rule.
+
+And it asks only about repetitions with no upper bound, those being the ones that stop of
+their own accord. An optional stops of its own accord too, and three of the five were
+optionals.
+
+### What made it readable
+
+Asked as `Check` asks it, over the T-SQL grammar, it named a hundred and twenty places. A
+hundred and twenty warnings is no warning. The FIRST sets are approximate in the safe
+direction, and the approximation costs most of that: `SecurableClass?` begins with a word
+and so does the name after it, so they overlap — and `SecurableClass` needs a `::` before
+it is done, so it never takes a bare name. It fails and gives nothing back.
+
+So the question is not what the optional can *begin with* but what it can match in **one
+token**, that being the reading in which it is done and the next clause is short one. A
+shape that must read two things before it is done cannot take one thing that belonged to
+somebody else. With that, a hundred and twenty became fourteen — and a leading `?!` inside
+the optional narrows what it may be, so a rule that already says what it will not take is
+not told that it might.
+
+Information rather than a warning, for `GRAM5002`'s reason: it names a shape to look at,
+and the author is the one who can tell whether the overlap is real. The fourteen it names
+in T-SQL are a work list.
+
+### And the message says what it can take
+
+A kind is a number and a number tells an author nothing, so the overlap is spelled out of
+the inventory: the words each kind stands for, four at most. That is the whole of what
+makes the list answerable —
+
+```text
+In 'BackupStatement', 'name: BackupName?' can take `TO`, `FILE`, `FILEGROUP`,
+`READ_WRITE_FILEGROUPS` and more, which is what follows it
+
+In 'TsqlTablePrimary', '("AS"? & alias: CorrelationName & …)?' can take `WITH`
+
+In 'TransactionStatement', '("TRANSACTION"|"TRAN"|"WORK")?' can take `TRAN`,
+`TRANSACTION` and `WORK`
+```
+
+— against `can begin with the same input as what follows it`, which names no input at all.
+
+The narrowing follows a `?!` one rule down as well as one in front, which is how a grammar
+actually writes it: `CorrelationName = ?!SourceClause & Identifier` says once what an alias
+will not take, and every optional that reads an alias inherits it. A check that only read
+the sequence in front of the optional would say nothing useful about a grammar written that
+way, and there is a test for it.
+
+The fourteen are a work list rather than fourteen defects, and this is what that means: an
+overlap is real — the sets say so and the guards are accounted for — and whether it *bites*
+depends on whether anyone writes a table called `INTO` or an alias called `WITH`. Two are
+worth a guard on their own account, since the words that overlap are ones a real script
+uses: a backup's name against the `FILE` and `FILEGROUP` that may follow it, and the same
+for a restore.
+
+## The keys, and what is locked with them
+
+Seventeen published blocks — asymmetric and symmetric keys, certificates, master keys,
+column keys, credentials, security policies — and one idea running through them: a key is
+made from somewhere, locked by something, and the something is a certificate, a password or
+another key. `ENCRYPTION BY` is written in six of the seventeen and reads the same in all
+six, so it is one rule.
+
+**And the trap again, twice, in the same wave.** `WITH [FORMAT = 'PFX',] PRIVATE KEY (…)`
+written with a shared option list read the `PRIVATE KEY` as an option's name and left the
+brackets to nobody. And `ALGORITHM = AES_256 ENCRYPTION BY PASSWORD = 'p'` — a key's
+options and its encryptions run on without commas between them — had the value take the
+three words that began the clause after it, because an option's value is a run of words.
+Both are now written out as the published blocks name them.
+
+This is what GRAM5009 exists for, and it is worth saying that it did not catch these two:
+it asks about an optional or a repetition against what follows it *in the same sequence*,
+and both of these were a rule reached through a call whose follow set is elsewhere. The
+follow-set half of the question is the next thing to write.
+
+## And the walk had a second switch
+
+Sixteen more records put the direct materializer at 2,007 blocks, seven over the line, and
+`GRAM5003` said so — after that method had been divided into parts once already today. The
+division was real and the remainder was the walk itself, which holds *two* switches over
+the same arms: one that builds a value and one that marks what the root reaches. Only the
+building half was divided, so a grammar with two hundred valued rules had one method under
+the budget and one over it, and the diagnostic named the method that held both.
+
+Both halves are divided now, into the same groups and named after the same number, so a
+reader looking for what a rule does finds the two halves of it beside each other. The
+reaching half answers whether it knew the kind and the groups are asked in turn.
+
+Of everything in the corpus, **79.7% to 82.0%**, and 5,958 statements read by both this
+grammar and the engine.
+
+### And the half that reads past the call
+
+GRAM5009 asked about an optional against what follows it *in the same sequence*, and the
+two traps of the key wave were neither: a rule reached through a call whose continuation is
+somewhere else. `RoutineOption` ends with an option's name and says nothing about the `AS`
+after it, because the `AS` belongs to the rule that calls it.
+
+So where the sequence has nothing left that must read anything, what follows is what
+follows the *rule*, out of `FollowSets`. Fourteen sites became eighteen, and the four are
+exactly that class:
+
+```text
+In 'OptionWords', 'OptionWord+' can take `MERGE`, `EXEC`, `EXECUTE`, `DELETE` and more
+In 'OutputItem', 'TsqlAsClause?' can take `MERGE`, `WITH`, `EXEC`, `EXECUTE` and more
+In 'TranMark', 'ValueExpression?' can take `MERGE`, `WITH`, `EXEC` and more
+In 'OptionSetting', 'OptionTail?' can take `ON`
+```
+
+The first is the one that bit twice. The second is worse than it looks: an `OUTPUT` item's
+alias may be written without `AS`, so inside a block `INSERT … OUTPUT inserted.a MERGE …`
+aliases the next statement's first word — which no test in this repository would have found
+and no corpus statement happens to write.
+
+Only the body's own alternatives inherit the rule's continuation. Anything nested is
+followed by the rest of the shape around it, which is a question this does not ask and
+would answer wrongly by borrowing.
+
+### And one of the eighteen was a bug
+
+The diagnostic says an optional *can* take what follows it; whether it does is a question
+for the parser. Put to it, three of the four the follow half found read perfectly well —
+ordered choice at the rule level gives the alternative back and another one reads it — and
+one did not:
+
+```sql
+CREATE INDEX ix ON t (a) WITH PAD_INDEX ON ps (a)
+```
+
+The old unbracketed `WITH`, and `PAD_INDEX` was set to the `ON` that began the placement
+after it, with the placement left to nobody.
+
+**The guard is a refusal and not a demand**, which took two tries. A lookahead for a comma
+or a bracket — *this run of words is a value only where something proves it ended* — is
+right inside brackets and wrong outside them, because a list without brackets ends at the
+terminator and its last option has neither. It cost fourteen statements of the corpus
+before the number said so. What a bare switch may not be followed by is a **placement**:
+`WITH PAD_INDEX ON ps (a)` is an option and then the filegroup it goes on, and `WITH
+TRUSTWORTHY ON` is an option set to on. Said that way it costs nothing and fixes the bug.
+
+Of everything in the corpus, **82.1%**, and 5,978 statements read by both this grammar and
+the engine. The eighteen the diagnostic names are in the test suite now — the one that bit
+and the five that do not — so a reader of the list knows which kind each is.
+
+## The tree became five trees
+
+`SqlNode` was one root with two hundred descendants, and it typed nothing. Every field of
+every node was a `SqlNode`, so `InsertStatement.Rows` accepted a `PrintStatement`,
+`TableReference.Derived` accepted a column reference, and `QuerySpecification.From` accepted
+a literal. Each of those was a defect the compiler could not see, and three of them were
+actually there.
+
+The standard does not work that way. §7 puts a `<query expression>` where a table belongs
+and §6 puts a `<value expression>` where a value belongs, and the two are not
+interchangeable. So the roots are the standard's own categories:
+
+| Root | What it is | Nodes |
+| --- | --- | --- |
+| `Statement` | §13 and most of a dialect's reference | 184 |
+| `Query` | §7, what produces rows | 9 |
+| `Expression` | §6 the value level and §8 the predicates | 29 |
+| `TableReference` | §7.6, what a `FROM` is read over | 4 |
+| `Clause` | the pieces that are none of the four | 11 |
+
+**Relations by aggregation, never by inheritance.** A subquery is not a kind of query; it is
+an expression that holds one — `Expression.Subquery(Query)`. A statement that returns rows
+is not a kind of query; it is a statement that holds one — `Statement.Select(Query, …)`.
+Nothing derives from anything but its own root, and no root derives from another.
+
+**As many roots as there are sublanguages, and five is what today's surface needs.** A JSON
+path, an XQuery inside `FOR XML`, the drawing inside `MATCH (…)` and a full-text `CONTAINS`
+are each a language with a grammar of its own; each will get a root of its own when it is
+kept rather than read and dropped. Adding one breaks nothing, which is the other half of
+having no universal base.
+
+### What the compiler found the moment it could
+
+Six type errors, and every one of them was the tree lying:
+
+- `TABLE t` built a `TableReference` where a query belonged. It is `<explicit table>`, a
+  query primary — now `Query.ExplicitTable`.
+- `INSERT … EXEC p` put a statement in the rows slot. A procedure standing where a query
+  stands is an aggregation, not a coincidence — `Query.FromExecute(Statement.Execute)`.
+- `BULK INSERT t FROM 'f'` put a string literal there — `Query.FromFile(Expression)`.
+- `SET @a = 1` built a `SetClause`, which is a piece of an `UPDATE`. It is a statement:
+  `Statement.SetVariable`.
+- `CREATE STATISTICS` and `UPDATE STATISTICS` built a `ConstraintDefinition`. Two
+  statements, two records.
+- `CREATE TABLE … AS SELECT` put a statement in the element list —
+  `Statement.CreateTableAsSelect`.
+
+None of the six was reachable as a bug — every one of them read the right text and built a
+tree a consumer would have had to guess at. That is the whole argument for the shape.
+
+### A record per production, an enum only where the standard has one
+
+The nine predicates of §8 were one record with a kind and an array of operands. They are
+nine records now, with their operands named: `Between(Value, Negated, Low, High)` says what
+`Operands[2]` did not. `BinaryExpression(SqlOperator, …)` is gone the same way — the standard
+writes `<numeric value expression> ::= … <plus sign> <term>` as its own production, so
+`Expression.Add` is a record.
+
+`SqlOperator` is gone with it and `SqlComparison` took the part that was right: `<comp op>`
+*is* a production of the standard, so a comparison carries an enum and nothing else does.
+`SqlPredicateKind` is gone entirely.
+
+The left operand of a predicate is still read once for all of them and filled in afterwards
+— that is what §4.3's folding is for — but it is a `with` on a record now rather than a write
+into `Operands[0]`. It costs the same two allocations the array did and the tree is typed.
+
+### The tree moved to `DotGram.Parsers.Sql`
+
+`Expression` collides with `System.Linq.Expressions.Expression`, which
+`ExpressionLanguage.cs` uses in the same namespace. A namespace of its own is the honest fix
+rather than an alias: the AST is a different thing from the parsers that build it. `Sql` the
+static helper became `Syntax` so that the namespace and the class do not share a name.
+
+### And it costs nothing
+
+Of the corpus, **82.1%** — the same statement for statement. All 2,650 tests pass. The
+generated parser and the hand-written yardstick still render identical trees over every
+input `SqlAgainst.Agree` holds them to; the yardstick was ported node for node, and its
+subquery — the one thing a parser of §6 and §8 cannot build — is a `TextQuery : Query`
+declared in the benchmark, which is what having no sealed root is for.
+
+Against ScriptDom the ratio went from 2.35× to **2.68×** and the allocation from 729 B to
+**715 B** per statement. Both sides measured slower in absolute terms on this run than on
+the last, the machine being busy; the ratio is the number that means anything.
+
+`docs/ast.md` is regenerated: 237 rows, each naming its root, its source and the production
+or page it is named after, and `AstReferenceTests` now finds the roots by reflection so that
+a sixth added and left out of the reference fails the build.
+
+## And the tree can be asked whether it is right
+
+Everything measured until now was whether the parser said yes. Nothing measured whether it
+said yes and then built something else — and nothing in this repository could have, because
+the only thing that knows what the tree should hold is the tree.
+
+ScriptDom prints. `SqlScriptGenerator`, one per version, fifty-seven formatting options; it
+can do that because it keeps every clause as a node with its first and last token and the
+token stream beside it, which is the same thing that costs it 43 KB a statement. That makes
+it usable as a **normal form**, and the oracle writes itself:
+
+1. ScriptDom parses the original and prints it — **A**;
+2. this grammar parses the original, `SqlWriter` prints it, ScriptDom parses *that* and
+   prints it — **B**.
+
+Casing, line breaks, redundant brackets, `INNER` written or left out — all of it is erased,
+because both sides come out of the same printer. What survives is meaning.
+
+So `SqlWriter.cs` was written: the tree back as SQL, five roots and one rule about brackets —
+**written where precedence needs them and nowhere else**, because the tree does not record
+that somebody wrote `(a) + b`. Structure survives that: `(a + b) * c` is a `Multiply` over an
+`Add` and comes back bracketed, since without them it would be a different tree. The hundred
+and forty statements that keep only a name print through their own record's name — `DropXml
+SchemaCollection` is `DROP XML SCHEMA COLLECTION` — because the names were made from those
+words and the split inverts the naming exactly, bar three the reference writes as one word.
+
+### The idempotence test found two before ScriptDom was asked
+
+`SqlWriterTests` makes two claims, and the second is the one that pays: what the writer
+prints, the parser reads back into a tree the writer prints the same way. It failed twice on
+the first run. `GROUP BY a` came out `GROUP BY (a)` and read back as a row of one, which
+printed `((a))`; and `VALUES (1)` came out `VALUES 1`, which is §7.2's spelling of one row of
+one column and is not T-SQL's. Both were the printer, both were found without a second parser
+being involved, and that is the point of holding a parser and a printer to each other.
+
+### What the oracle says
+
+```text
+  6830 statements read by both, printed back and put to ScriptDom again
+
+    1591  the same statement             23.3%
+    2792  read, printed, and different    40.9%
+    2447  printed into something ScriptDom will not read  35.8%
+```
+
+Twenty-three per cent come back the same statement, and 48 kinds come back whole. The rest is
+not wrongness — it is **loss**, and this is the first time it has been a number. `TOP`, `OVER`,
+the hints, `OUTPUT`, a named query's `WITH` and the option lists of every DDL statement were
+read and dropped by decision, and a printer cannot invent them.
+
+The third row is the sharp one: a statement that prints into something ScriptDom will not read
+has lost something structural rather than decorative — an `ALTER TABLE` that kept the word
+`SET` and not what was set, a `CREATE STATISTICS` with no columns, an `ALTER TABLE ENABLE
+CHANGE_TRACKING` that kept `CHANGE_TRACKING` and not `ENABLE`. Those are nodes to add.
+
+And a few are neither, which is what an oracle is for:
+
+- `SELECT @a += 1` built a derived column named `@a` and printed `1 AS @a`. It is an
+  assignment written in a select list, not an alias, and the tree said the wrong thing about
+  it — the first defect of that kind this project has found.
+- `SET @a += 1` and `UPDATE t SET @a -= 1` lose the compound operator: `Clause.Set` has a
+  field for it and the grammar passes `null`.
+
+### What this changes
+
+The tree is to become lossless for T-SQL. That is the decision this measurement was taken
+for, and the per-kind table is the order to do it in — `SelectStatement` first at 1,792
+statements, then `CreateTableStatement` at 584, then `AlterDatabaseSetStatement` at 254.
+Losslessness has a price and it is worth saying before it arrives: 715 B a statement will
+grow, probably to a few kilobytes. It stays an order below ScriptDom, because what makes
+their 43 KB is the token stream and the positions, and neither is coming.
+
+### Wave one of the SELECT frame
+
+The reference writes a `SELECT` as five things around a query — the named queries in front,
+the query, the order its rows are asked for in, what shape they come back in, and how the
+whole is to be run — and the tree now holds all five. `Statement.Select` gained `With`,
+`OrderBy`, `For` and `Options`; `Query.Specification` gained `Top` and `Into`; `GROUP BY`
+became a clause of its own so that `ALL` and `WITH CUBE` have somewhere to live, and
+`ORDER BY` became one so that `OFFSET` and `FETCH` do — which is where the reference puts
+them.
+
+Three of the new nodes keep **the words rather than a shape**, and that is deliberate. A
+query hint, a table hint and an `XMLNAMESPACES` are each a language of their own that says
+how a statement is to be run rather than what it means; `Clause.Hint` and
+`Clause.WithOption` hold the text, which loses nothing and claims nothing.
+
+Two were not losses at all:
+
+- `SELECT @a += 1` built a derived column named `@a`. It is an assignment written in a
+  select list — `Clause.VariableAssignment` now, with the operator it was written with.
+- `CROSS APPLY` and `OUTER APPLY` both built a `CROSS JOIN`. They are written differently
+  and refused where a join would be read, so `SqlJoin` says which.
+
+And one was a defect the round-trip found and nothing else could have:
+`SEMANTICKEYPHRASETABLE (db1.s1.t1, …)` came back as `(.s1.t1, …)`. A rowset argument may be
+a word and a value — `BULK 'f'`, `CHANGES t`, `LANGUAGE 1033` — and the rule dropped the
+word, so the first part of a qualified name went with it. `Expression.Prefixed` keeps it.
+
+`SqlOrder` replaced the boolean on a sort specification: ascending is the default and a
+statement that says so is not the same text as one that does not.
+
+Of the corpus, still **82.1%** read — nothing regressed — and the round-trip went from 23.3%
+to **27.1%**, with `SelectStatement` itself from 39.5% to **53.4%**.
+
+### Wave two: the window, the hints, and what a value reaches through
+
+`OVER` was read and dropped with the same argument `TOP` had — it says which rows a call
+sees, not what the call is — and the argument was wrong for the same reason: it is part of
+the text. `Expression.WindowFunction` is SQL:2003's `<window function>`, a call and the
+window it is computed over, built with its call left null and closed by whoever read it,
+exactly as a predicate tail is. `Clause.Window` is the specification; its frame — `ROWS
+BETWEEN 1 PRECEDING AND CURRENT ROW` — is kept as the words it was written as, for the
+reason a hint is.
+
+Table hints joined the query hints: `TableReference.Named` gained a `Hints` list of
+`Clause.Hint`, so `FROM t WITH (FORCESEEK (ix (a, b)))` comes back.
+
+And two losses in the value tower that the round-trip made visible and nothing else would
+have. `SELECT t::a COLLATE Albanian_BIN` came back as `SELECT t`, and
+`SELECT (c1).SomeProperty` as `SELECT c1`: a member written after a primary was read and
+dropped, so *the value itself* was the wrong node, not merely a decorated one.
+`Expression.Member` keeps the chain — one node per member, each built with its own left
+side null — and `Expression.Collated` keeps the collation.
+
+`SelectStatement` went from 53.4% to **63.2%**, and the whole corpus from 27.1% to
+**29.8%**. Still 82.1% read; nothing regressed.
+
+What `SELECT` still loses, in the order the oracle lists it: `PIVOT` and `UNPIVOT`,
+`TABLESAMPLE`, `FOR SYSTEM_TIME`, the `WINDOW` clause, a `WITH` in front of the four
+statements that are not a select, and the rowset functions' own `ORDER (c1 ASC) UNIQUE`.
+
+### Wave three: what a table source carries
+
+`FOR SYSTEM_TIME`, `TABLESAMPLE`, `PIVOT`, `UNPIVOT` and `OPENJSON (…) WITH (…)` were all
+read and dropped, and the reference writes them as parts of one production:
+
+```
+table_or_view_name [ FOR SYSTEM_TIME <system_time> ] [ [AS] alias ]
+                   [ <tablesample_clause> ] [ WITH ( <table_hint> [ ,...n ] ) ]
+```
+
+So `TableReference.Named` is that production, part for part, and the pivots wrap a source
+the way a joined table wraps two — built with the source they apply to left null and closed
+by whoever read it, which is the shape a predicate tail and a window function already use.
+
+Two more losses that were not decorations:
+
+- A table-valued function called by an ordinary name — `FROM [STRING_SPLIT] (@a, @b)` — was
+  read as a table with its arguments dropped, so it printed as `FROM [STRING_SPLIT]`. The
+  brackets are what tell a function from a table, and `Syntax.Sourced` now decides by them.
+- `SELECT c1 INTO t2 ON fg` dropped the filegroup. `Clause.Into` keeps it.
+
+`SelectStatement` went from 63.2% to **72.3%**, and the corpus from 29.8% to **32.3%**.
+`CreateTableStatement` is now the top of the list.
+
+### What `SELECT` still loses, and it is two things
+
+**Redundant parentheses.** `WHERE (a AND b)`, `OFFSET (5 + 2)`, `FETCH NEXT (-1)`,
+`(c1).SomeProperty` — the tree records that `(a + b) * c` needed its brackets and not that
+somebody wrote them where nothing needed them. This is now the largest single residue in
+`SELECT`, and closing it means a node for a bracket, the way ScriptDom has one. That is a
+decision about what *lossless* means — everything the statement says, or everything the
+author typed — and it is worth taking deliberately rather than by drift.
+
+**The graph drawing.** `WHERE MATCH(N-(E)->N2 AND N2<-(E2)-N)` collapses to `MATCH(N)`: the
+drawing inside a `MATCH` is a language of its own with its own grammar, and the rules that
+read it hand back one node of it. It is the first of the sublanguages that wants a root of
+its own — `docs/ast.md` names the others.
+
+### The brackets somebody wrote
+
+The tree recorded the brackets that *mean* something — `(a + b) * c` is a `Multiply` over an
+`Add` — and not the ones that mean nothing. For a recognizer that is right. For the parser
+under a **formatter** it is not: a formatter that turns `(a) + b` into `a + b` is rewriting
+text nobody asked it to rewrite, and the difference between the two is exactly the thing it
+must not touch.
+
+So brackets are a node — `Expression.Parenthesized`, and the same at the query and table
+levels. SQL:2023 has the production, §6.28 `<parenthesized value expression>`; the reason
+they are kept is not that the standard names them, but that the author typed them.
+
+Precedence still decides where a bracket is *needed*, for a tree built rather than read.
+Nothing adds a bracket that changes nothing.
+
+`SelectStatement` went from 72.3% to **79.6%**, the corpus from 32.3% to **34.3%**.
+
+### And what a formatter actually needs, which is less than it looks
+
+Three levels, and only the first two touch the tree.
+
+1. **Content** — everything the statement says. What `--roundtrip` measures.
+2. **The author's optional syntax** — brackets, `JOIN` against `INNER JOIN`, `AS` written or
+   left out, `DELETE t` against `DELETE FROM t`, `TOP 10` against `TOP (10)`, `EXEC` against
+   `EXECUTE`. Each is a flag or a node, and the oracle names them one at a time rather than
+   anybody enumerating them.
+3. **Comments and layout** — and this needs *nothing* in the tree. A formatter is a printer
+   walking the tree with a second cursor over the source's own tokens: whenever the source
+   has trivia before the next token, it lays it out. Whitespace and casing are the
+   formatter's to decide; comments come from the source it already has.
+
+That works on one condition — **the printed token sequence must equal the source's** — which
+is what levels 1 and 2 are. So `--roundtrip` at 100% is not merely a correctness number: it
+is the condition under which a faithful formatter, and a safe rewriter, are possible at all.
+`docs/ast.md`'s "nothing here is a position" survives.
+
+### The parser does not choose the words
+
+The round-trip's biggest remaining class in `SELECT` turned out to be the parser inventing
+text. `SELECT count(*)` came back `SELECT COUNT(*)`; `trim(x)` came back `TRIM(x)`;
+`SELECT ALL a` came back `SELECT a`.
+
+Two causes, one principle. Eighteen rules wrote the function's name into the tree as a
+literal — `"TRIM"i & … => new RoutineInvocation("TRIM", …)` — instead of keeping the word
+that was read. And `Syntax.Aggregate` mapped a matched word to one of four constants,
+`Syntax.Distinctly` to one of two.
+
+`count(*)` and `COUNT(*)` are two texts. A parser that answers the second when it read the
+first has decided something nobody asked it to decide, and a formatter built on it would
+rewrite its author's code. **The tree says what was written; what a missing `ALL` means is a
+question for whatever reads it** — so `Query.Specification.Distinct`, which was a decision,
+is `Quantifier`, which is a word, and `Syntax.IsDistinct` is there for a reader who wants
+the decision made.
+
+Pure keywords are a different case and need no change: `SELECT`, `CASE`, `FROM` are the
+formatter's to case, which is why ScriptDom's own generator has a `KeywordCasing` option.
+It is the names — of functions, of quantifiers — that are the author's.
+
+`SelectStatement` went from 79.6% to **81.5%**, the corpus from 34.3% to **34.9%**.
+
+There is one of these the oracle cannot see: `JOIN` against `INNER JOIN`. ScriptDom's tree
+has no "unspecified" join either, so both sides of the comparison normalise it the same way
+and the difference cancels. It is a loss all the same, and it is on the list.
+
+### Where a node was written
+
+A parser under a formatter has to answer a question a recognizer never asks: *where* was this
+written? Not so that the tree can carry text — it cannot, and does not — but so that a
+comment, which no tree holds, can be handed to the innermost node it stands inside.
+
+`[Gram("TransactSql.gram", Lexical = true, LocationType = typeof(ISqlSpan))]` is the whole of
+what a grammar says. Every rule whose value is assignable to the named interface is offered
+the range it was read over; a grammar that names nothing is compiled exactly as it was, which
+is what `Rfc3986` and `ExpressionLanguage` want.
+
+**Most of it was already built.** `parserSpan` has been a supplied name since §8.2: an action
+could always write `=> @(new Foo(…) { Span = parserSpan })` and be handed the range, and the
+plumbing for it runs through the direct materializer, the tape, the recovery path and the
+renderings that must refuse it. So doing it *automatically* is not seven emission sites. It
+is one predicate — `WantsSpan` is `Asks(…, "parserSpan")` or "what this builds is told where
+it was written" — and one shape of factory: a block body that offers the range after the
+author's own C# has run.
+
+**The offer is a method, not a setter, and the last offer wins.** The reader calls
+`Locate(at, length)` for every rule the value came out of, innermost first. What to do with
+that is the interface's business, and the answer took two goes:
+
+- *Keep the first.* Narrowest, and wrong: `Syntax.Predicated` completes a predicate by copying
+  its tail with `with`, and the copy inherits the tail's range — so `b = 2` claimed to be
+  `= 2`.
+- *Keep the last.* A little wide where a rule hands back a value another rule made —
+  `WhereClause = "WHERE"i & c: SearchCondition => @(c)` lends the condition its keyword — and
+  never wrong. That is the safe direction and the one taken.
+
+`Expression.NullValue` and `DefaultValue` stopped being shared singletons for the same
+reason. A shared node cannot say where it was written: every `NULL` in a statement was one
+object, and whichever was offered a range last would have claimed it for the rest.
+
+**What it costs, measured back to back at fifteen rounds with ScriptDom steady between them
+to 0.2%:**
+
+| | per statement | ratio | allocated |
+| --- | --- | --- | --- |
+| without locations | 6,786 ns | 2.06× | 838 B |
+| with locations | 7,727 ns | 1.80× | 838 B |
+
+**Fourteen per cent of the time and not one byte.** The allocation is unchanged because a
+span is two ints inside a record that is already a heap object with room for them; what is
+paid for is the offer at every construction and the positions the direct log now carries —
+four numbers a record where it kept two.
+
+`docs/ast.md`'s "nothing here is a position" is now a statement about what a grammar asks
+for rather than about what the tree can hold, and it stays true of every grammar that does
+not ask.
+
+### Two parsers of one grammar, and only one pays
+
+Locations cost fourteen per cent of a parse. That is cheap for a tool and not free for a
+recognizer, so the grammar is compiled twice: `TransactSql.TryParseStatement` reads as it
+always did, and `TransactSql.Located.TryParseStatement` is the same reading told where every
+value was written. One grammar, two parsers, and the caller picks:
+
+```csharp
+[Gram("TransactSql.gram", Lexical = true)]
+[Gram(LocationType = typeof(Sql.ISqlSpan), Suffix = "Located")]
+```
+
+Nothing new was needed — a second `[Gram]` without a source is the same grammar under
+different options, which is how `ExpressionLanguage` already keeps its immediate carrier
+beside its tape one. The generated files say it plainly: 1,062 `Locate` calls in
+`TransactSql.Located.g.cs` and none in `TransactSql.g.cs`.
+
+What it costs is build time: `DotGram.Parsers` goes from 41.5 to 71.2 seconds, because the
+whole grammar is generated twice. Not memory — the `Span` field is two ints inside a record
+that is already a heap object with room for them, and a parse allocates 838 B either way.
+
+### What nothing can reach is not compiled
+
+A rule nothing reaches was given states and written into the generated file all the same.
+That was tolerable while a grammar was one file somebody wrote — `GRAM4018` says so and the
+author deletes it — and it stops being tolerable the moment a grammar can include another. A
+library of lexemes is worth having only if what you do not call costs you nothing.
+
+So a second reachability walk runs last, after every rewrite, and drops what it cannot reach.
+It is a second walk and not the one `CheckUnused` already made, because the two answer
+different questions at different times:
+
+- `CheckUnused` asks what the **author** wrote, and runs before the rewrites — so a rule that
+  a later pass empties or clones is not reported at somebody who did nothing wrong.
+- `Prune` asks what the **parser** needs, and runs after all of them — so what it drops is
+  dead in the thing being emitted.
+
+They differ in one seed, and it is the interesting one. A rebinding — `with (Word = AsciiWord)`
+— *reaches* `AsciiWord` while the grammar is still the author's, and is the only thing that
+does. Once the rebindings have been applied it reaches nothing: a replacement that is used is
+reached through the clone that uses it, and one that is not is dead. Three normalizer tests
+say so now, having been written before there was anything to say it to.
+
+| generated lines | before | after | dropped |
+| --- | ---: | ---: | ---: |
+| `TransactSql.Located` | 217,382 | 209,172 | **8,210** |
+| `TransactSql` | 204,002 | 199,747 | **4,255** |
+| `ExpressionLanguage` ×2 | 58,134 | 57,798 | 336 |
+| `SqlStandard92` | 25,789 | 25,771 | 18 |
+| `Rfc3986`, `SqlExpressions` | — | — | **0** |
+
+A grammar that stands on its own drops nothing, which is the answer one would want: there was
+never anything dead in it. What T-SQL drops is SQL-92's rules that the dialect replaced with
+clones of its own — which is exactly the shape a library would have, and exactly why this had
+to come first.
+
+### A grammar is named, not inherited
+
+`TransactSql` was a dialect of `SqlStandard92` by deriving from it, and the base class was
+doing three jobs at once: saying which grammar to build on, keeping the base's C# members in
+scope, and inheriting its generated API only to hide it again — the generated file carries
+`#pragma warning disable CS0108 // a dialect hides what it inherits, on purpose`.
+
+Only the first of those is about grammars, and a base class is a poor way to say it. A class
+has one base and as many attributes as it likes, and a base carries meaning of its own that a
+grammar has no use for — substitutability that is not true here, since both classes are
+abstract holders of static methods.
+
+```csharp
+[GramInclude(typeof(SqlStandard92), As = "Sql92")]
+[Gram("TransactSql.gram", Lexical = true)]
+[Gram(LocationType = typeof(Sql.ISqlSpan), Suffix = "Located")]
+public abstract partial class TransactSql
+```
+
+Written as many times as there are grammars to build on, and walked in turn: a dialect on a
+standard on a library of lexemes gets all three. Both spellings still work — the base chain is
+walked first, then what the attributes name — and a grammar already gathered is not gathered
+twice, which ends a cycle rather than reporting one: `A` naming `B` naming `A` splices each
+once, which is what anybody writing it meant.
+
+**The name moved to the side that uses it.** `IncludedAs` let a grammar declare what others
+should call it, which is backwards; `As` is the includer's, because what a grammar is called
+inside yours is your business. The includee's suggestion is still the default.
+
+**And the C# comes with it**, which the base class used to do for free: the generated file
+names each included host with `using static`, so a rule that came from another grammar goes on
+calling the helpers its author wrote without the including class deriving from anything.
+
+That also settles what happens when two grammars use the same name, and the answer is smaller
+than it looks. **Rule names cannot collide at all** — each include is spliced into a namespace
+of its own, so they are `Sql92.Identifier` and `Lex.Identifier` and never the same name. What
+can collide is C#, and there the failure modes divide:
+
+| | |
+| --- | --- |
+| two **includes** offering one name | `CS0121`, ambiguity — **loud** |
+| a name that resolves nowhere | an ordinary compile error naming the method — **loud** |
+| the **includer's own** member under a name an included grammar calls | its own wins, **silently** |
+
+Only the last is invisible, and only when the signature happens to fit as well as the name.
+That one is the reason to read what you include, and `graph.FreeNames` already records which
+names each `=>` uses, so it can be made loud later without new plumbing.
+
+### A grammar travels with its assembly
+
+A `.gram` file is read at compile time and is not part of what ships, so
+`[GramInclude(typeof(X))]` where `X` lives in a referenced project had nowhere to find the
+text: only the path string travels, and the includer's compilation has no such additional
+file. The include mechanism worked inside a project and could not cross a reference — which
+is the one thing a library of lexemes has to do.
+
+So the generator writes the grammar onto the class it compiled, `[GramSource("…")]`, and an
+including grammar reads it off the type it already names. The file still wins where both are
+in reach, so that a diagnostic points at something somebody can edit; what the assembly
+carries is the fallback, and across a reference it is the only thing there is.
+
+**It costs the size of the grammar, and that is now a number**: `DotGram.Parsers` went from
+5,338,624 to 5,590,016 bytes — **+4.7%**, which is the five grammars it holds, against an
+assembly whose bulk is the parsers they generated.
+
+So it is refusable, and its default is a fact rather than a guess: **a host nothing outside
+can name cannot be included from outside**, so an internal one carries nothing and a publicly
+visible one carries its grammar. `[Gram(Portable = false)]` says otherwise where the guess is
+wrong, and `GRAM0003` now names the option, since "the file is not there" and "the project it
+came from did not carry it" are the same failure seen from two sides.
+
+`GRAM0008` joined it: two includes under one name are one namespace, and a namespace is the
+whole of why one grammar's rules cannot collide with another's.

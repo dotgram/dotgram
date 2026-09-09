@@ -24,7 +24,7 @@ namespace DotGram.Benchmarks;
 /// <see cref="ExpressionLanguage.State"/> the same spans. That is deliberate: what is
 /// being compared is the reading, not the building, and a second implementation of scopes
 /// and names would be a second thing to be wrong. The same reason
-/// <see cref="HandSqlTokens"/> builds <c>SqlNode</c>s rather than a tree of its own.
+/// <see cref="HandSqlTokens"/> builds the shipped tree rather than one of its own.
 /// </para>
 /// <para>
 /// Two shapes here are a person's rather than a grammar's, and both are where the two

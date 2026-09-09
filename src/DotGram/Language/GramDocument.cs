@@ -142,7 +142,7 @@ public static class GramLanguageService
 	{
 		"using", "namespace", "parse", "find", "as", "when", "recover", "with",
 		"context", "state",
-		"any", "none", "eol", "eof", "trivia", "wordboundary",
+		"any", "none", "eol", "eof", "trivia", "word", "wordboundary",
 	};
 
 	/// <summary>Analyzes a complete snapshot of a standalone <c>.gram</c> document.</summary>

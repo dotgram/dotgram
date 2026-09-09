@@ -201,6 +201,43 @@ static class Program
 			return;
 		}
 
+		// `--speed [path] [version] [rounds]` is the other half of the comparison `--kinds`
+		// makes: not what the two parsers read but how long they take about it, over the
+		// statements both of them read and round-robin so that the ratio survives a machine
+		// that is not idle. Three rows, because ScriptDom's lexer and ScriptDom's tree are
+		// not the same work and neither is what this grammar builds. See Speed.cs.
+		// `--roundtrip [path] [version]` asks whether the tree says what the text said: the
+		// original through ScriptDom's printer, and the original through this grammar, this
+		// writer and then ScriptDom's printer, held against each other. See RoundTrip.cs.
+		if (args.Length >= 1 && args[0] == "--roundtrip")
+		{
+			var rest  = args.Skip(1).ToArray();
+			var named = rest.Length >= 1 && (rest[0].Contains('/') || rest[0].Contains('\\'));
+			var first = named ? 1 : 0;
+
+			RoundTrip.Run(
+				named ? rest[0] : null,
+				rest.Length > first ? rest[first] : "180",
+				rest.Length > first + 1 ? rest[first + 1] : null,
+				rest.Length > first + 2 && int.TryParse(rest[first + 2], out var shown) ? shown : 2);
+
+			return;
+		}
+
+		if (args.Length >= 1 && args[0] == "--speed")
+		{
+			var rest  = args.Skip(1).ToArray();
+			var named = rest.Length >= 1 && (rest[0].Contains('/') || rest[0].Contains('\\'));
+			var first = named ? 1 : 0;
+
+			Speed.Run(
+				named ? rest[0] : null,
+				rest.Length > first ? rest[first] : "170",
+				rest.Length > first + 1 && int.TryParse(rest[first + 1], out var many) ? many : 7);
+
+			return;
+		}
+
 		// `--kinds [path] [version] [shown]` is the same corpus read the other way round: it
 		// asks ScriptDom to split each file into statements, which is the one thing only a
 		// T-SQL parser can do, and tallies what this dialect makes of each kind. What comes

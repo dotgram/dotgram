@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using DotGram.Generation;
+using DotGram.Grammar;
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
@@ -179,4 +181,163 @@ public sealed class FirstSetsTests
 
 		return graph.Bodies[graph.Rules.First(rule => rule.Name == "A")];
 	}
+	// ── An optional that takes what follows it (GRAM5009) ────────────────────────
+
+	const string Swallowing =
+		"""
+		wordboundary = ['a'..'z' | '_']
+		trivia = { ' '* }
+		namespace Lexical
+		{
+			trivia = none
+			Name = ['a'..'z' | '_'] & ['a'..'z' | '_']*
+		}
+		Alias = Lexical.Name
+		Start = "select" & Lexical.Name & Alias? & "into" & Lexical.Name
+		parse Start
+		""";
+
+	/// <summary>
+	/// An optional that can be done after one token, where that token is the one the next
+	/// clause needed.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Over characters this is settled by backtracking and the parse succeeds by the second
+	/// reading, which is `GRAM5002` and not a defect. Over kinds a rule's answer stands
+	/// (§4): the alias takes `into`, `into` is not there any more, and the rule fails one
+	/// token past what it ate — which is the least helpful place a parse can stop.
+	/// </para>
+	/// <para>
+	/// Written because the T-SQL grammar paid for this five times before anything said it
+	/// out loud: a unit that ate an `ACTION`, a routine option that ate its own `AS`, a
+	/// backup file that ate the `TO` before its device, a correlation name that ate a
+	/// `PIVOT`, a database setting that ate the `WITH`. Each was found by reading a corpus
+	/// and noticing the parse stopped one word past what it should have.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void An_optional_that_can_take_what_follows_it_is_said_out_loud()
+	{
+		var reported = Split(Swallowing);
+
+		Assert.Contains(reported, one => one.Id == FirstSets.Swallows);
+	}
+
+	/// <summary>And not said where the optional cannot finish on that token.</summary>
+	/// <remarks>
+	/// The line between a warning worth reading and sixty of them. `Class?` begins with a
+	/// name and needs a `::` after it, so it never takes a bare one: it fails, gives nothing
+	/// back, and the clause after it reads. The question is what the optional can match in
+	/// one token, not what it can begin with.
+	/// </remarks>
+	[Fact]
+	public void And_not_where_it_would_have_to_read_two()
+	{
+		const string grammar =
+			"""
+			wordboundary = ['a'..'z' | '_']
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				Name = ['a'..'z' | '_'] & ['a'..'z' | '_']*
+			}
+			Class = Lexical.Name & "::"
+			Start = "select" & Class? & Lexical.Name & "into" & Lexical.Name
+			parse Start
+			""";
+
+		Assert.DoesNotContain(Split(grammar), one => one.Id == FirstSets.Swallows);
+	}
+
+	/// <summary>And a lookahead in front of the optional is what settles it.</summary>
+	[Fact]
+	public void And_a_lookahead_in_front_of_it_settles_it()
+	{
+		const string grammar =
+			"""
+			wordboundary = ['a'..'z' | '_']
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				Name = ['a'..'z' | '_'] & ['a'..'z' | '_']*
+			}
+			Alias = ?!"into" & Lexical.Name
+			Start = "select" & Lexical.Name & Alias? & "into" & Lexical.Name
+			parse Start
+			""";
+
+		Assert.DoesNotContain(Split(grammar), one => one.Id == FirstSets.Swallows);
+	}
+
+	/// <summary>What a grammar cut in two is told about itself.</summary>
+	static IReadOnlyList<GramDiagnostic> Split(string grammar) =>
+		GramCompiler.Compile(
+			grammar,
+			new GramCompilerOptions
+			{
+				ClassName     = "Grammar",
+				CSharpScanner = RoslynCSharpScanner.Instance,
+				Lexical       = true,
+			}).Diagnostics;
+
+	/// <summary>And a lookahead one rule down settles it too.</summary>
+	/// <remarks>
+	/// Which is how a grammar actually writes it: `CorrelationName = ?!SourceClause &amp;
+	/// Identifier` says once what an alias will not take, and every optional that reads an
+	/// alias inherits it. A check that only looked at the sequence in front of it would say
+	/// nothing useful about a grammar written that way.
+	/// </remarks>
+	[Fact]
+	public void And_a_lookahead_one_rule_down_settles_it_too()
+	{
+		const string grammar =
+			"""
+			wordboundary = ['a'..'z' | '_']
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				Name = ['a'..'z' | '_'] & ['a'..'z' | '_']*
+			}
+			Reserved = "into"
+			Alias = ?!Reserved & Lexical.Name
+			Start = "select" & Lexical.Name & Alias? & "into" & Lexical.Name
+			parse Start
+			""";
+
+		Assert.DoesNotContain(Split(grammar), one => one.Id == FirstSets.Swallows);
+	}
+
+	/// <summary>And what follows the rule counts as what follows the optional in it.</summary>
+	/// <remarks>
+	/// The half no local reading can see. `Options` ends with an optional and says nothing
+	/// about the `as` after it, because the `as` belongs to the rule that calls it — and two
+	/// of the traps this was written for were exactly that: a routine option that ate its
+	/// own `AS`, and a key's option that ate the `ENCRYPTION BY` beside it. Both are a rule
+	/// reached through a call whose continuation is somewhere else, so the continuation is
+	/// fetched from `FollowSets` where the sequence itself has nothing left to read.
+	/// </remarks>
+	[Fact]
+	public void And_what_follows_the_rule_counts_too()
+	{
+		const string grammar =
+			"""
+			wordboundary = ['a'..'z' | '_']
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				Name = ['a'..'z' | '_'] & ['a'..'z' | '_']*
+			}
+			Options = Lexical.Name & Lexical.Name?
+			Start   = "select" & Options & "as" & Lexical.Name
+			parse Start
+			""";
+
+		Assert.Contains(Split(grammar), one => one.Id == FirstSets.Swallows);
+	}
+
 }

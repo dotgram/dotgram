@@ -1621,6 +1621,208 @@ public sealed class SemanticTests
 			"wordboundary = ['a'..'z']\ntrivia = ' '*\nStart = \"if\" & \"then\"",
 			"iffy then"));
 
+	/// <summary>`word` is a whole word of whatever the boundary says a word is made of.</summary>
+	/// <remarks>
+	/// The other half of §4.6. The boundary already says what continues a word, so what a
+	/// word is needs no second saying — and the places that want one wrote out every word
+	/// the specification happened to have instead, which is a catalogue and not a grammar.
+	/// </remarks>
+	[Theory]
+	[InlineData("fillfactor", true)]
+	[InlineData("data_compression", true)]
+	[InlineData("x1", true)]
+	[InlineData("(", false)]
+	[InlineData("", false)]
+	public void A_word_is_a_word(string input, bool matches) =>
+		Assert.Equal(matches, Matches(
+			"wordboundary = ['a'..'z' | '0'..'9' | '_']\nStart = word", input));
+
+	/// <summary>And it is the whole of one, however the parse would rather read it.</summary>
+	/// <remarks>
+	/// Maximal by construction and not by greed: a repetition can be handed characters back
+	/// when what follows it fails, and `word & "y"` would then read `fillfactor` as
+	/// `fillfactor` minus its tail. What `word` matches is a lexeme, and a lexeme is whole —
+	/// the same claim §4.6 makes about a keyword, made about the other side of the boundary.
+	/// </remarks>
+	[Fact]
+	public void And_it_is_the_whole_word() =>
+		Assert.False(Matches(
+			"wordboundary = ['a'..'z']\nStart = word & \"y\"", "fillfactory"));
+
+	/// <summary>Where only some words will do, the shape is a lookahead and not a list.</summary>
+	/// <remarks>
+	/// What bounds a run of words is usually not which words are in it but where it ends,
+	/// and a grammar that says so stops being a catalogue: T-SQL's permission names are any
+	/// words up to the `ON` or `TO` that begins the clause after them.
+	/// </remarks>
+	[Theory]
+	[InlineData("alter any database on", true)]
+	[InlineData("view definition on", true)]
+	[InlineData("on", false)]
+	public void And_a_run_of_them_ends_where_the_next_clause_begins(string input, bool matches) =>
+		Assert.Equal(matches, Matches(
+			"wordboundary = ['a'..'z']\ntrivia = ' '*\n" +
+			"Start = Name & \"on\"\n" +
+			"Name  = (?!\"on\" & word)+", input));
+
+	/// <summary>Each namespace's `word` is made of that namespace's own boundary.</summary>
+	/// <remarks>
+	/// A boundary is declared per namespace and a lexical one shields what stands outside
+	/// it (§4.6), so a single `word` shared by the whole grammar would be a word of
+	/// whichever namespace happened to reach it first. Here the outer boundary is letters
+	/// and the inner one is digits, and each `word` reads its own.
+	/// </remarks>
+	[Fact]
+	public void And_a_word_is_the_namespace_it_was_written_in()
+	{
+		const string grammar =
+			"""
+			wordboundary = ['a'..'z']
+			trivia = ' '*
+			namespace Inner
+			{
+				trivia = none
+				wordboundary = ['0'..'9']
+				Number = word
+			}
+			Start = word & Inner.Number
+			""";
+
+		Assert.True (Matches(grammar, "abc 123"));
+		Assert.False(Matches(grammar, "abc abc"));
+	}
+
+	/// <summary>And a grammar that never said what continues a word has no words in it.</summary>
+	/// <remarks>
+	/// `word` would be a run of nothing: a rule that matches everywhere and consumes
+	/// nothing, which is the silence GRAM4019 exists to break.
+	/// </remarks>
+	[Fact]
+	public void And_word_without_a_boundary_is_refused() =>
+		Assert.Contains(
+			Compile("Start = word\nparse Start").Diagnostics,
+			diagnostic => diagnostic.Id == GrammarNormalizer.WordWithoutBoundary);
+
+	/// <summary>
+	/// A capture that gathers several pieces over kinds is cut whole where they tile.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// §10's join. A repetition that captures every turn records one piece per turn, and the
+	/// value is those pieces joined — which over characters is a buffer the pieces are copied
+	/// into, since a piece is a slice of what is being read and its length is a count of
+	/// characters.
+	/// </para>
+	/// <para>
+	/// Over kinds neither half of that holds. A position indexes a token, so a piece's length
+	/// is a count of tokens and the buffer came out sized in tokens — `Destination is too
+	/// short` for anything but one-character lexemes — and what stood between two adjacent
+	/// tokens is part of the value the character reading gives and was being dropped. Turns
+	/// of a repetition tile, so the answer is one cut from the first start to the last end,
+	/// which the tape already made and the direct walk did not.
+	/// </para>
+	/// <para>
+	/// Found by writing `word+` in T-SQL, where a database setting is a run of words:
+	/// `ALTER DATABASE d SET HADR AVAILABILITY GROUP = g`.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void A_join_over_kinds_keeps_what_stood_between_the_tokens()
+	{
+		const string grammar =
+			"""
+			wordboundary = ['a'..'z']
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				Name = ['a'..'z'] & ['a'..'z']*
+			}
+			Start : @string = t: (?!"with" & word)+ & ('=' & Lexical.Name)? => @(t)
+			parse Start
+			""";
+
+		var result = GramCompiler.Compile(
+			grammar,
+			new GramCompilerOptions
+			{
+				ClassName     = "Grammar",
+				CSharpScanner = RoslynCSharpScanner.Instance,
+				Lexical       = true,
+			});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var got = EmittedCode.Match(
+			EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseStart", "aa bb cc");
+
+		Assert.True(got.IsSuccess);
+		Assert.Equal("aa bb cc", got.Value);
+	}
+
+	/// <summary>
+	/// A rule that reads more than its literals is not a set of them.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A rule that is a choice of literals becomes one range over kinds at each of its call
+	/// sites, which is the whole reason a fifty-way keyword choice costs one comparison
+	/// (docs/lexical-adt-design.md). A boundary woven onto it — or written by hand as
+	/// <c>(… | …) &amp; ?!\p{L}</c> — does not change what it accepts, so the search for the
+	/// choice looks through a sequence to its first part.
+	/// </para>
+	/// <para>
+	/// It used to look through <em>any</em> sequence. So <c>("::" | '.') &amp; Name</c> was
+	/// called the set <c>{"::", "."}</c>, every call site became that range, and the name
+	/// after it was gone: T-SQL read <c>t::a</c> as <c>t</c> with an alias, and refused
+	/// everything that could follow — <c>t::a + 1</c>, <c>t::a AS q</c>, <c>t::f()</c>.
+	/// Sixty statements of somebody else's corpus, and the tell was that the same rule
+	/// written as <c>MemberOp &amp; Name</c> worked. The case the lookthrough exists for —
+	/// a choice and then an assertion, which reads nothing — is still a set, and
+	/// <see cref="LexicalSplitTests"/> asserts that a word list collapses to one range.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("select t", "t/-")]
+	[InlineData("select t as q", "t/q")]
+	[InlineData("select t::a", "t/-")]
+	[InlineData("select t::a as q", "t/q")]
+	public void A_choice_that_reads_more_than_its_literals_is_not_a_set(string input, string expected)
+	{
+		const string grammar =
+			"""
+			wordboundary = ['a'..'z']
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				Name = ['a'..'z'] & ['a'..'z']*
+			}
+			Member = ("::" | "..") & Lexical.Name
+			Item  : @string = v: Lexical.Name & Member* & alias: Tail? => @(v + "/" + (alias ?? "-"))
+			Tail  : @string = "as" & t: Lexical.Name => @(t)
+			Start : @string = "select" & i: Item => @(i)
+			parse Start
+			""";
+
+		var result = GramCompiler.Compile(
+			grammar,
+			new GramCompilerOptions
+			{
+				ClassName     = "Grammar",
+				CSharpScanner = RoslynCSharpScanner.Instance,
+				Lexical       = true,
+			});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var got = EmittedCode.Match(
+			EmittedCode.Compile(result.Sources[0].Text), "Grammar", "TryParseStart", input);
+
+		Assert.True(got.IsSuccess, input);
+		Assert.Equal(expected, got.Value);
+	}
+
 	// ── Trivia and repetition (§4.5) ─────────────────────────────────────────────
 
 	[Fact]

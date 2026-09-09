@@ -176,6 +176,46 @@ public static class SupportEmitter
 				/// goes deep takes none whatever this says.
 				/// </remarks>
 				public int Stacks { get; set; }
+
+				/// <summary>
+				/// An interface whose implementors are told where they were written.
+				/// </summary>
+				/// <remarks>
+				/// Nothing written here changes what is read; it changes what a value knows
+				/// about itself. Name an interface with a settable property called
+				/// <c>Span</c>, and every rule whose value implements it is handed the range
+				/// of input it was built from — the rule's own text, without the trivia
+				/// around it, so that a comment falls between two of them rather than inside
+				/// one.
+				///
+				/// What that buys is everything a parse cannot answer on its own: which
+				/// characters a diagnostic is about, which node a comment belongs to, and
+				/// what a formatter or a rewriter may leave alone. A grammar that says
+				/// nothing here pays nothing — a recognizer wants no positions, and most
+				/// grammars are recognizers.
+				///
+				/// The property is written once, by the reader, on a value it has just made
+				/// and nothing has yet seen.
+				/// </remarks>
+				public global::System.Type? LocationType { get; set; }
+
+				/// <summary>
+				/// Whether the grammar travels with the assembly, so that another project can
+				/// include it.
+				/// </summary>
+				/// <remarks>
+				/// A <c>.gram</c> file is read at compile time and is not part of what ships.
+				/// This writes the text onto the generated class, where
+				/// <c>[GramInclude(typeof(X))]</c> in another project finds it — without which
+				/// including a grammar across a reference cannot work at all.
+				///
+				/// Unset, it follows what the class already says: a publicly visible host is
+				/// offered outward and carries its grammar, and one that is not cannot be named
+				/// from outside anyway. Say it either way where that guess is wrong. It costs
+				/// the size of the grammar — measured at 4.7% of an assembly holding five of
+				/// them, whose bulk is the parsers they generated.
+				/// </remarks>
+				public bool Portable { get; set; } = true;
 			}
 
 			/// <summary>How a generated reader carries what it has read (docs/next.md, the redesign).</summary>
@@ -232,6 +272,72 @@ public static class SupportEmitter
 			}
 
 			/// <summary>Names the language a grammar describes, for tooling to discover.</summary>
+			/// <summary>
+			/// Another grammar this one is written on top of.
+			/// </summary>
+			/// <remarks>
+			/// <para>
+			/// The named class's rules are declared beside this grammar's own, under a
+			/// namespace called after the class unless <see cref="As"/> says otherwise, so
+			/// that <c>using Sql92</c> and <c>Sql92.ValueExpression</c> reach them (§5.1).
+			/// Write it as many times as there are grammars to build on: a dialect on a
+			/// standard, a standard on a library of lexemes, both at once.
+			/// </para>
+			/// <para>
+			/// <b>The C# comes with it.</b> Whatever static members the named class holds are
+			/// brought into scope of the generated code, so a rule this grammar includes goes
+			/// on calling the helpers its author wrote. Two grammars offering the same name is
+			/// then an ordinary C# ambiguity and is refused as one; a member <em>you</em>
+			/// declare under a name a grammar you include calls is not refused and is used
+			/// instead of theirs, which is the one collision nothing here can see and the
+			/// reason to read what you include.
+			/// </para>
+			/// <para>
+			/// A grammar may also be inherited, by deriving from the class that holds it.
+			/// That is the older spelling and it says less: a class has one base and many
+			/// attributes, and a base class carries meaning of its own that a grammar has no
+			/// use for.
+			/// </para>
+			/// </remarks>
+			/// <summary>
+			/// The grammar a generated class was compiled from, written onto the class itself.
+			/// </summary>
+			/// <remarks>
+			/// A <c>.gram</c> file is read at compile time and does not travel: what ships is
+			/// the assembly. So the text is put here, on the class an including grammar names
+			/// — <c>[GramInclude(typeof(X))]</c> — and a grammar in a referenced assembly is
+			/// then found the same way one beside you is. The file wins where both are in
+			/// reach, so that a diagnostic points at something somebody can edit.
+			/// </remarks>
+			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			internal sealed class GramSourceAttribute : global::System.Attribute
+			{
+				public GramSourceAttribute(string text) => Text = text;
+
+				public string? Text { get; }
+			}
+
+			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			internal sealed class GramIncludeAttribute : global::System.Attribute
+			{
+				/// <param name="grammar">The class whose grammar is included.</param>
+				public GramIncludeAttribute(global::System.Type grammar) => Grammar = grammar;
+
+				public global::System.Type? Grammar { get; }
+
+				/// <summary>
+				/// The name this grammar's rules are reached under, where the class's own
+				/// name is not what you want to write.
+				/// </summary>
+				/// <remarks>
+				/// The includer's to choose, which is the right way round: what a grammar is
+				/// called inside yours is your business and not its author's.
+				/// </remarks>
+				public string? As { get; set; }
+			}
+
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 			internal sealed class GramLanguageAttribute : global::System.Attribute

@@ -192,7 +192,7 @@ alternation, which means something else.
 
 #### 3.1.1 The standard library
 
-Six ordinary rules, not keywords, that every grammar has without declaring them:
+Seven ordinary rules, not keywords, that every grammar has without declaring them:
 
 ```dotgram
 any             one input item, whatever it is — fails only where there is none left
@@ -201,6 +201,7 @@ eol             one line ending: "\r\n" | "\n" | "\r", CRLF checked first
 eof             the end of input — succeeds exactly where `any` would fail, consuming nothing
 trivia          none by default (§4.5)
 wordboundary    none by default (§4.6)
+word            one whole word, whatever it says (§4.6)
 ```
 
 A rule of the same name shadows the built-in one exactly like any other lexical
@@ -1006,6 +1007,42 @@ examples being one.
 
 The boundary checks go **before** the trivia insertion. The other order would ask
 whether a letter follows the whitespace rather than whether it follows the keyword.
+
+#### `word`
+
+The other half of the same fact. `wordboundary` says what a word is made of; `word` is
+one whole word made of it, whatever that word says:
+
+```dotgram
+OptionName = word           // FILLFACTOR, DATA_COMPRESSION, ONLINE, PAD_INDEX, …
+```
+
+It is a run of boundary characters that does not stop short of one — maximal by
+construction, so `word` cannot read half of `FILLFACTOR` however the parse backtracks —
+and it gives back the characters it read, like any rule that names none of its parts.
+Each namespace's `word` is that namespace's own: a boundary is declared per namespace
+(above), and a word is a run of whatever the boundary in scope says continues one.
+
+It is for the places where a language admits a word and does not care which: an option's
+name inside brackets, a permission spelled out of words the language reserves, a name
+belonging to some other catalogue passing through this one. Written out, those become a
+list of every word the specification happened to have — a list that is wrong the day the
+specification grows one, and that says *a catalogue* where the grammar meant *a word*.
+Where only some words will do, the shape is a lookahead and not a list:
+
+```dotgram
+PermissionWord = ?!PermissionEnd & word
+PermissionEnd  = "ON"i | "TO"i | "FROM"i | "WITH"i | "CASCADE"i
+```
+
+`word` in a grammar with no `wordboundary` is `GRAM4019`: it would be a run of nothing.
+
+**Over kinds it is a kind test.** Where the grammar is cut in two (§4.5) the boundary is
+gone with the rest of the lexer, and being a word is a property the token kind already
+has — so `word` becomes one range test over every kind that is a word: a keyword, and a
+class every character of which continues a word. It reads exactly one token there, which
+is what it read over characters too.
+
 
 ---
 
