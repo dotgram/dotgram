@@ -9,12 +9,14 @@ namespace DotGram.Examples.Formats;
 // A path, split into names that the platform would actually accept:
 //
 //     reports/2026/september.txt      →  reports | 2026 | september.txt
-//     bad:name                        →  no match
+//     bad:name                        →  no match on Windows, a name anywhere else
 //     CON                             →  no match
 //
 // The interesting part is the set of characters a name may be made of. It is not a range
 // and cannot be written as one: what is forbidden is whatever `Path.GetInvalidFileNameChars`
-// says today, on this platform — data rather than syntax. So the grammar asks C#:
+// says today, on this platform — data rather than syntax, and a different set on Windows
+// from the one on Linux, which is exactly why writing it out would be wrong. So the
+// grammar asks C#:
 //
 //     Segment = t: [@IsAllowed]+
 //
