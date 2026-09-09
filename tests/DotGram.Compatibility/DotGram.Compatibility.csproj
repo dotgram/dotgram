@@ -41,14 +41,13 @@
 		<!-- What a consumer on these frameworks has to add, and the reason this project
 		     exists: the generated parser's own methods take `ReadOnlySpan<char>`, which is
 		     not in the framework there. This is the whole of the addition — no other package
-		     and no polyfill of ours, which is a claim this project exists to keep true. -->
+		     and no polyfill of ours. -->
 		<PackageReference Include="System.Memory" Version="4.6.3" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-		<!-- Not the consumer's business: it is how a machine with no .NET Framework
-		     targeting pack installed compiles for one at all, and CI is such a machine.
-		     Build-time only, so nothing about it reaches whoever references this. -->
+		<!-- How a machine with no .NET Framework targeting pack installed compiles for
+		     one at all, which is what CI is. Build-time only. -->
 		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3"
 		                  PrivateAssets="all" />
 	</ItemGroup>

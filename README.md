@@ -370,9 +370,9 @@ and on every part they pull out of it, before anything is timed.
 | invalid URL | 80.2 ns | 113.5 ns | 1.42× |
 | 84-character path | 191.0 ns | 453.0 ns | 2.37× |
 
-Against interpreted `Regex`, 2.2× to 6.5×. Both sides are asked for the parsed values and
-not merely whether the input matched, and the grammar is deliberately one small enough to
-transcribe: [`benchmarks`](benchmarks/) has the method and the rest of the numbers.
+Against interpreted `Regex`, 2.2× to 6.5×. Both sides are asked for the parsed values
+rather than only whether the input matched. [`benchmarks`](benchmarks/) has the method
+and the rest of the numbers.
 
 ## Visual Studio
 
@@ -460,19 +460,17 @@ reading.
 
 ## Compatibility
 
-The generated parser is C# 8, and it targets whatever the project around it targets.
-[`tests/DotGram.Compatibility`](tests/DotGram.Compatibility) is where that is held to:
-one grammar, built for `netstandard2.0`, `net472` and `net8.0` at C# 8 on every build. It
-runs no tests and asserts nothing — building it is the assertion.
+The generated parser is C# 8 and targets whatever the project around it targets.
+[`tests/DotGram.Compatibility`](tests/DotGram.Compatibility) builds one grammar for
+`netstandard2.0`, `net472` and `net8.0` at C# 8 on every build.
 
-An older target has to say two things out loud:
+Two things an older target has to say:
 
 * **A grammar written inside `[Gram]` is a raw string literal, which is C# 11.** On
   `netstandard2.0` and `net472` the default is C# 7.3, so `<LangVersion>` has to be set.
-  A grammar in a `.gram` file asks for nothing: the generated code itself is C# 8.
-* **`netstandard2.0` and `net472` need `System.Memory`.** The generated parser reads over
-  `ReadOnlySpan<char>`, which those frameworks do not carry. That is the whole of the
-  addition: no polyfill package, and nothing of DotGram's own.
+  A grammar in a `.gram` file needs nothing: the generated code is C# 8.
+* **`netstandard2.0` and `net472` need `System.Memory`**, for the `ReadOnlySpan<char>`
+  the generated methods take.
 
 ```xml
 <PropertyGroup Condition="'$(TargetFramework)' == 'net472'">
@@ -484,14 +482,8 @@ An older target has to say two things out loud:
 </ItemGroup>
 ```
 
-Nothing is held back on the older frameworks. `ParseX(TextReader)`, `find` over a reader
-and `recover` all compile there, at that language version.
-
 The generator is a Roslyn analyzer built against `Microsoft.CodeAnalysis` 4.14 and needs a
-compiler at least that new. Building *for* .NET Framework on a machine with no targeting
-pack installed — a Linux CI runner, say — also wants
-`Microsoft.NETFramework.ReferenceAssemblies`, which is the build machine's business rather
-than the consumer's.
+compiler at least that new.
 
 ## Building
 
