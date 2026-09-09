@@ -301,7 +301,7 @@ public static class SqlWriter
 				Put(text, body);
 				break;
 
-			case Statement.AlterTable(var name, var action, var elements, var options):
+			case Statement.AlterTable(var name, var action, var elements, var options, var tail):
 				text.Append("ALTER TABLE ").Append(name).Append(' ').Append(action);
 
 				if (elements.Length > 0)
@@ -310,11 +310,14 @@ public static class SqlWriter
 					Each(text, elements);
 				}
 
+				if (tail is not null)
+					text.Append(' ').Append(tail);
+
 				Optioned(text, options);
 				break;
 
-			case Statement.CreateProcedure(var name, var parameters, var body, var options, var replication, var external, var number):
-				text.Append("CREATE PROCEDURE ").Append(name);
+			case Statement.CreateProcedure(var name, var parameters, var body, var options, var replication, var external, var number, var verb):
+				text.Append(verb).Append(" PROCEDURE ").Append(name);
 
 				if (number is not null)
 					text.Append(';').Append(number);
@@ -342,8 +345,8 @@ public static class SqlWriter
 
 				break;
 
-			case Statement.CreateFunction(var name, var parameters, var returns, var body, var options, var columns, var variable, var order, var external):
-				text.Append("CREATE FUNCTION ").Append(name);
+			case Statement.CreateFunction(var name, var parameters, var returns, var body, var options, var columns, var variable, var order, var external, var verb):
+				text.Append(verb).Append(" FUNCTION ").Append(name);
 				Parameters(text, parameters);
 				text.Append(" RETURNS ");
 
@@ -389,8 +392,8 @@ public static class SqlWriter
 
 				break;
 
-			case Statement.CreateTrigger(var name, var on, var events, var body, var when, var options, var append, var replication, var external):
-				text.Append("CREATE TRIGGER ").Append(name).Append(" ON ").Append(on);
+			case Statement.CreateTrigger(var name, var on, var events, var body, var when, var options, var append, var replication, var external, var verb):
+				text.Append(verb).Append(" TRIGGER ").Append(name).Append(" ON ").Append(on);
 
 				if (options is not null)
 				{
@@ -415,8 +418,8 @@ public static class SqlWriter
 
 				break;
 
-			case Statement.ViewDefinition(var name, var columns, var body, var options, var check, var materialized):
-				text.Append(materialized ? "CREATE MATERIALIZED VIEW " : "CREATE VIEW ").Append(name);
+			case Statement.ViewDefinition(var name, var columns, var body, var options, var check, var materialized, var verb):
+				text.Append(verb).Append(materialized ? " MATERIALIZED VIEW " : " VIEW ").Append(name);
 				Names(text, columns);
 
 				if (options is not null && materialized)
@@ -887,7 +890,11 @@ public static class SqlWriter
 			return;
 		}
 
-		text.Append(Words(record));
+		// The verb the author wrote, where the statement has more than one and the record's
+		// own name cannot say which.
+		text.Append(statement is Statement.Definition { Verb: { } verb }
+			? verb + Words(record)["CREATE".Length..]
+			: Words(record));
 
 		switch (statement)
 		{

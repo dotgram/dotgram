@@ -1690,25 +1690,25 @@ AlterTableAction : @Statement.AlterTable
 		=> @(Statement.Flagged(name, flag, options))
 	| "DROP"i & first: DropTarget & (',' & rest: DropTarget)*
 		=> @(Statement.Altered("DROP", Syntax.Listed(first, rest)))
-	| CheckWord & "CONSTRAINT"i & ConstraintNames
-		=> @(Statement.Altered("CHECK", null))
-	| EnableWord & "TRIGGER"i & ConstraintNames
-		=> @(Statement.Altered("TRIGGER", null))
-	| EnableWord & "CHANGE_TRACKING"i & OptionsWith?
-		=> @(Statement.Altered("CHANGE_TRACKING", null))
-	| EnableWord & "FILETABLE_NAMESPACE"i
-		=> @(Statement.Altered("FILETABLE_NAMESPACE", null))
-	| "ALTER"i & "INDEX"i & Identifier & "REBUILD"i & IndexOrder? & OptionsWith?
-		=> @(Statement.Altered("ALTER INDEX", null))
-	| SplitOrMerge & "RANGE"i & '(' & SetValue & ')'
-		=> @(Statement.Altered("RANGE", null))
-	| "SET"i & '(' & OptionList & ')'
-		=> @(Statement.Altered("SET", null))
-	| "REBUILD"i & ("PARTITION"i & '=' & PartitionWhich)? & OptionsWith?
-		=> @(Statement.Altered("REBUILD", null))
-	| "SWITCH"i & ("PARTITION"i & ValueExpression)? & "TO"i & QualifiedName
-	  & ("PARTITION"i & ValueExpression)? & OptionsWith?
-		=> @(Statement.Altered("SWITCH", null))
+	| word: CheckWord & tail: ("CONSTRAINT"i & ConstraintNames)
+		=> @(Statement.Altered(Syntax.Squared(word), null, null, tail))
+	| word: EnableWord & tail: ("TRIGGER"i & ConstraintNames)
+		=> @(Statement.Altered(Syntax.Squared(word), null, null, tail))
+	| word: EnableWord & tail: ("CHANGE_TRACKING"i & OptionsWith?)
+		=> @(Statement.Altered(Syntax.Squared(word), null, null, tail))
+	| word: EnableWord & tail: "FILETABLE_NAMESPACE"i
+		=> @(Statement.Altered(Syntax.Squared(word), null, null, tail))
+	| "ALTER"i & tail: ("INDEX"i & Identifier & "REBUILD"i & IndexOrder? & OptionsWith?)
+		=> @(Statement.Altered("ALTER", null, null, tail))
+	| word: SplitOrMerge & tail: ("RANGE"i & '(' & SetValue & ')')
+		=> @(Statement.Altered(Syntax.Squared(word), null, null, tail))
+	| "SET"i & tail: ('(' & OptionList & ')')
+		=> @(Statement.Altered("SET", null, null, tail))
+	| "REBUILD"i & tail: (("PARTITION"i & '=' & PartitionWhich)? & OptionsWith?)
+		=> @(Statement.Altered("REBUILD", null, null, tail))
+	| "SWITCH"i & tail: (("PARTITION"i & ValueExpression)? & "TO"i & QualifiedName
+						 & ("PARTITION"i & ValueExpression)? & OptionsWith?)
+		=> @(Statement.Altered("SWITCH", null, null, tail))
 
 AlterColumnWord : @string = t: ("ADD"i & AlterColumnFlag | "DROP"i & AlterColumnFlag) => @(Syntax.Squared(t))
 
@@ -1740,8 +1740,8 @@ IfExists = "IF"i & "EXISTS"i
 //
 // `CREATE OR ALTER` is one word in front of all four, so it is read once.
 CreateRoutine : @Statement
-	= "CREATE"i & OrAlter? & r: RoutineBody => @(r)
-	| "ALTER"i & r: RoutineBody             => @(r)
+	= verb: ("CREATE"i & OrAlter?) & r: RoutineBody => @(Syntax.Verbed(r, verb))
+	| verb: "ALTER"i & r: RoutineBody               => @(Syntax.Verbed(r, verb))
 
 OrAlter = "OR"i & "ALTER"i
 
@@ -1983,18 +1983,18 @@ KeyStatement : @Statement
 	| "CREATE"i & "COLUMN"i & "MASTER"i & "KEY"i & name: Identifier & tail: OptionsWithText
 		=> @(Statement.Defined("COLUMN MASTER KEY", name, Syntax.Tail(tail)))
 
-	| CreateOrAlter & "CREDENTIAL"i & name: Identifier
+	| verb: CreateOrAlter & "CREDENTIAL"i & name: Identifier
 	  & tail: ("WITH"i & OptionList & ("FOR"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & Identifier)?)
-		=> @(Statement.Defined("CREDENTIAL", name, Syntax.Tail(tail)))
-	| CreateOrAlter & "DATABASE"i & "SCOPED"i & "CREDENTIAL"i & name: Identifier
+		=> @(Statement.Defined("CREDENTIAL", name, Syntax.Tail(tail), verb))
+	| verb: CreateOrAlter & "DATABASE"i & "SCOPED"i & "CREDENTIAL"i & name: Identifier
 	  & tail: ("WITH"i & OptionList)
-		=> @(Statement.Defined("DATABASE SCOPED CREDENTIAL", name, Syntax.Tail(tail)))
+		=> @(Statement.Defined("DATABASE SCOPED CREDENTIAL", name, Syntax.Tail(tail), verb))
 
 	// A security policy is a list of predicates rather than a list of settings, and each
 	// predicate names a function, the table it guards, and when it fires.
-	| CreateOrAlter & "SECURITY"i & "POLICY"i & name: QualifiedName
+	| verb: CreateOrAlter & "SECURITY"i & "POLICY"i & name: QualifiedName
 	  & tail: (PolicyPredicates? & OptionsWith? & NotForReplication?)
-		=> @(Statement.Defined("SECURITY POLICY", name, Syntax.Tail(tail)))
+		=> @(Statement.Defined("SECURITY POLICY", name, Syntax.Tail(tail), verb))
 
 Authorization     = "AUTHORIZATION"i & QualifiedName
 NotForReplication = "NOT"i & "FOR"i & "REPLICATION"i
@@ -2242,9 +2242,9 @@ AuditStatement : @Statement
 	// In front of the audit it belongs to, since `ALTER SERVER AUDIT SPECIFICATION` begins
 	// with `ALTER SERVER AUDIT` and every clause of an audit is optional — so the shorter
 	// reading fits, and over kinds a reading that fits is the one that stands (§4).
-	= CreateOrAlter & scope: ServerOrDatabase & "AUDIT"i & "SPECIFICATION"i & name: Identifier
+	= verb: CreateOrAlter & scope: ServerOrDatabase & "AUDIT"i & "SPECIFICATION"i & name: Identifier
 	  & tail: (("FOR"i & "SERVER"i & "AUDIT"i & QualifiedName)? & AuditAction* & OptionsWith?)
-		=> @(Statement.Defined("AUDIT SPECIFICATION", name, Syntax.Tail(tail)))
+		=> @(Statement.Defined("AUDIT SPECIFICATION", name, Syntax.Tail(tail), verb))
 
 	| "CREATE"i & "SERVER"i & "AUDIT"i & name: Identifier
 	  & tail: ("TO"i & AuditTarget & OptionsWith? & AuditWhere?)
@@ -2346,8 +2346,8 @@ EndpointFor : @Clause.Option = "FOR"i & w: word & '(' & o: OptionList? & ')' => 
 // option list — which is the shape this grammar has been reading since `CREATE TABLE`.
 // What is new is four clauses that are not a name and a value.
 ExternalStatement : @Statement
-	= CreateOrAlter & "EXTERNAL"i & "DATA"i & "SOURCE"i & name: Identifier & tail: DataSourceBody
-		=> @(Statement.Defined("EXTERNAL DATA SOURCE", name, Syntax.Tail(tail)))
+	= verb: CreateOrAlter & "EXTERNAL"i & "DATA"i & "SOURCE"i & name: Identifier & tail: DataSourceBody
+		=> @(Statement.Defined("EXTERNAL DATA SOURCE", name, Syntax.Tail(tail), verb))
 	| "CREATE"i & "EXTERNAL"i & "FILE"i & "FORMAT"i & name: Identifier & tail: OptionsWithText
 		=> @(Statement.Defined("EXTERNAL FILE FORMAT", name, Syntax.Tail(tail)))
 
@@ -2369,13 +2369,13 @@ ExternalStatement : @Statement
 			   & LibraryChange & LibraryFile & (',' & LibraryFile)* & OptionsWith?)
 		=> @(Statement.Defined("EXTERNAL LIBRARY", name, Syntax.Tail(tail)))
 
-	| CreateOrAlter & "EXTERNAL"i & "RESOURCE"i & "POOL"i & pool: PoolName & tail: OptionsWithText?
-		=> @(Statement.Defined("EXTERNAL RESOURCE POOL", pool, Syntax.Tail(tail)))
-	| CreateOrAlter & "RESOURCE"i & "POOL"i & pool: PoolName & tail: OptionsWithText?
-		=> @(Statement.Defined("RESOURCE POOL", pool, Syntax.Tail(tail)))
-	| CreateOrAlter & "WORKLOAD"i & "GROUP"i & pool: PoolName
+	| verb: CreateOrAlter & "EXTERNAL"i & "RESOURCE"i & "POOL"i & pool: PoolName & tail: OptionsWithText?
+		=> @(Statement.Defined("EXTERNAL RESOURCE POOL", pool, Syntax.Tail(tail), verb))
+	| verb: CreateOrAlter & "RESOURCE"i & "POOL"i & pool: PoolName & tail: OptionsWithText?
+		=> @(Statement.Defined("RESOURCE POOL", pool, Syntax.Tail(tail), verb))
+	| verb: CreateOrAlter & "WORKLOAD"i & "GROUP"i & pool: PoolName
 	  & tail: (OptionsWithText? & ("USING"i & WorkloadPool & (',' & WorkloadPool)*)?)
-		=> @(Statement.Defined("WORKLOAD GROUP", pool, Syntax.Tail(tail)))
+		=> @(Statement.Defined("WORKLOAD GROUP", pool, Syntax.Tail(tail), verb))
 
 	// Statistics: a name, what they are on, and how they are gathered. `SAMPLE 50 PERCENT`
 	// is three words where an option is usually a name and a value, and the option list

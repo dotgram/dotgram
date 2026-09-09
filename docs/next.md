@@ -17209,3 +17209,12 @@ Forty-eight call sites, six regions, one afternoon: keys and credentials, the fu
 catalogue, external sources and pools, audits, principals, backup and restore. The corpus
 went from 72.5% to **84.9%** the same statement, and what ScriptDom will not read back from
 1154 to 550.
+
+**And the word it opened with.** `ALTER RESOURCE POOL p` came back as `CREATE RESOURCE POOL
+p`: where the syntax writes `CREATE`, `ALTER` or `CREATE OR ALTER` in front of one shape,
+the grammar read the word and the tree had nowhere to put it — the record's own name says
+which statement it is, and for these it cannot say which verb. `Definition.Verb` holds it,
+and the four routines hold theirs, `CREATE OR ALTER FUNCTION` included. The alterations of a
+table that were a word and nothing else — `SET (…)`, `REBUILD`, `SWITCH … TO t`, `ENABLE
+TRIGGER`, `NOCHECK CONSTRAINT` — keep their tail the same way. 84.9% to **90.4%** the same
+statement, 550 unread to 386.

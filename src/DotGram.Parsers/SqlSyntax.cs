@@ -240,10 +240,18 @@ public abstract record Statement : ISqlSpan
 	{
 		/// <summary>What was written after the name, or null where nothing was.</summary>
 		public string? Tail { get; init; }
+
+		/// <summary>
+		/// The word the statement opened with, where the syntax lets it be more than one —
+		/// <c>CREATE</c>, <c>ALTER</c>, <c>CREATE OR ALTER</c>. Null where the record's own
+		/// name says which, the two verbs having a record each.
+		/// </summary>
+		public string? Verb { get; init; }
 	}
 
+	/// <param name="Tail">What the action was given, where the tree keeps it as written.</param>
 	public sealed record AlterTable(
-		string Name, string Action, Clause[] Elements, Clause[]? Options = null) : Statement;
+		string Name, string Action, Clause[] Elements, Clause[]? Options = null, string? Tail = null) : Statement;
 
 	// ---- the routines --------------------------------------------------------------------------
 
@@ -254,7 +262,8 @@ public abstract record Statement : ISqlSpan
 	/// </summary>
 	public sealed record CreateProcedure(
 		string Name, Clause[] Parameters, Statement[] Body,
-		Clause[]? Options = null, bool ForReplication = false, string? External = null, string? Number = null) : Statement;
+		Clause[]? Options = null, bool ForReplication = false, string? External = null, string? Number = null,
+		string Verb = "CREATE") : Statement;
 
 	/// <summary>
 	/// A function, and what it returns says which of the three shapes it is: a type for a
@@ -268,7 +277,7 @@ public abstract record Statement : ISqlSpan
 	public sealed record CreateFunction(
 		string Name, Clause[] Parameters, string? Returns, Statement[] Body,
 		Clause[]? Options = null, Clause[]? Columns = null, string? Variable = null,
-		Clause[]? Order = null, string? External = null) : Statement;
+		Clause[]? Order = null, string? External = null, string Verb = "CREATE") : Statement;
 
 	/// <summary>A trigger: what it is on, what fires it, and what it does then.</summary>
 	/// <param name="When"><c>AFTER</c>, <c>FOR</c> or <c>INSTEAD OF</c>, as written.</param>
@@ -276,14 +285,15 @@ public abstract record Statement : ISqlSpan
 	public sealed record CreateTrigger(
 		string Name, string On, string[] Events, Statement[] Body,
 		string When = "AFTER", Clause[]? Options = null, bool Append = false,
-		bool NotForReplication = false, string? External = null) : Statement;
+		bool NotForReplication = false, string? External = null, string Verb = "CREATE") : Statement;
 
 	/// <summary>§11.32 a view, which is a name given to a query.</summary>
 	/// <param name="Options">The <c>WITH</c> between the name and the <c>AS</c>: <c>SCHEMABINDING</c>, a materialized view's distribution.</param>
 	/// <param name="CheckOption">The <c>WITH CHECK OPTION</c> after the query.</param>
 	public sealed record ViewDefinition(
 		string Name, string[]? Columns, Statement Body,
-		Clause[]? Options = null, bool CheckOption = false, bool Materialized = false) : Statement;
+		Clause[]? Options = null, bool CheckOption = false, bool Materialized = false,
+		string Verb = "CREATE") : Statement;
 
 	// ---- indexes -------------------------------------------------------------------------------
 
@@ -963,8 +973,8 @@ public abstract record Statement : ISqlSpan
 		};
 
 	/// <summary>The definition the words name, where the tree keeps the name and no more.</summary>
-	public static Statement Defined(string what, string name, string? tail = null) =>
-		Named(what, name) with { Tail = tail };
+	public static Statement Defined(string what, string name, string? tail = null, string? verb = null) =>
+		Named(what, name) with { Tail = tail, Verb = verb is null ? null : Syntax.Squared(verb) };
 
 	static Definition Named(string what, string name) =>
 		what switch
@@ -1041,8 +1051,9 @@ public abstract record Statement : ISqlSpan
 
 
 	/// <summary>An alteration before the table it is applied to is known.</summary>
-	public static AlterTable Altered(string action, Clause[]? elements, Clause[]? options = null) =>
-		new("", action, elements ?? Clause.None, options);
+	public static AlterTable Altered(
+		string action, Clause[]? elements, Clause[]? options = null, string? tail = null) =>
+		new("", action, elements ?? Clause.None, options, Syntax.Tail(tail));
 
 	/// <summary>A column altered by one word — <c>ADD SPARSE</c>, <c>DROP PERSISTED</c>.</summary>
 	public static AlterTable Flagged(string name, string flag, Clause[]? options) =>
@@ -1928,6 +1939,23 @@ public static class Syntax
 
 		return hint is null ? made : new Expression.Hinted(made, Spaced(hint));
 	}
+
+	/// <summary>
+	/// A routine with the word it was opened with, where that is not the record's own.
+	/// </summary>
+	/// <remarks>
+	/// The four are one syntax with four bodies — <c>CREATE OR ALTER</c> stands in front of
+	/// all of them and is read once — so which word was written is a fact about the statement
+	/// rather than about which of the four it is.
+	/// </remarks>
+	public static Statement Verbed(Statement routine, string verb) => routine switch
+	{
+		Statement.CreateProcedure  one => one with { Verb = Squared(verb) },
+		Statement.CreateFunction   one => one with { Verb = Squared(verb) },
+		Statement.CreateTrigger    one => one with { Verb = Squared(verb) },
+		Statement.ViewDefinition   one => one with { Verb = Squared(verb) },
+		_                              => routine,
+	};
 
 	/// <summary>
 	/// What a catalogue statement wrote after its name, as the words were written — or null
