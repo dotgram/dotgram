@@ -63,12 +63,12 @@ static class Diagnostics
 
 	public static readonly DiagnosticDescriptor RepeatedGrammarScope = new(
 		id:                 "GRAM0006",
-		title:              "Two grammars on one class want the same scope",
-		messageFormat:      "'{0}' carries two [Gram] attributes with the same Suffix; give one of them a Suffix of its own",
+		title:              "Two readings of one grammar want the same scope",
+		messageFormat:      "'{0}' asks for two readings of its grammar under the same Suffix; give one of them a Suffix of its own",
 		category:           Category,
 		defaultSeverity:    DiagnosticSeverity.Error,
 		isEnabledByDefault: true,
-		description:        "Each [Gram] on a class is a compilation of its own and needs a scope of its own: one may go in the class itself, and every other names a nested class with Suffix.");
+		description:        "The [Gram] and every [GramOptions] on a class is a compilation of its own and needs a scope of its own: the [Gram] goes in the class itself, and every [GramOptions] names a nested class with Suffix.");
 
 	public static readonly DiagnosticDescriptor RepeatedIncludedName = new(
 		id:                 "GRAM0008",

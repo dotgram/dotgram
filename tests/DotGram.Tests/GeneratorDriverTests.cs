@@ -1922,18 +1922,20 @@ public sealed class GeneratorDriverTests
 		});
 	}
 
-	// ── Two grammars on one class ────────────────────────────────────────────
+	// ── Two readings of one grammar ─────────────────────────────────────────
 
 	/// <summary>
-	/// A class may carry several grammars, and each is a compilation of its own in a class
-	/// of its own — which is how one host offers the same grammar compiled two ways.
+	/// A class carries one grammar and may read it several ways; each further reading is a
+	/// compilation of its own in a class of its own, and takes from <c>[Gram]</c> whatever
+	/// its <c>[GramOptions]</c> does not say — which is how one host offers the same grammar
+	/// compiled two ways.
 	/// </summary>
 	[Fact]
-	public void A_second_grammar_on_a_class_is_compiled_into_a_class_of_its_own()
+	public void A_second_reading_of_a_grammar_is_compiled_into_a_class_of_its_own()
 	{
-		// Both grammars hand a span to a method of the host, which is what says the span is
+		// The grammar hands a span to a method of the host, which is what says the span is
 		// the host's type and not one per compilation: two of them would not be the same
-		// type, and neither would compile.
+		// type, and one of the readings would not compile.
 		const string source = """"
 			using DotGram;
 
@@ -1941,11 +1943,8 @@ public sealed class GeneratorDriverTests
 				Start : @string = t: ['a'..'z']+ => @(Seen(t, parserSpan))
 				parse Start
 				""")]
-			[Gram("""
-				Start : @string = t: ['0'..'9']+ => @(Seen(t, parserSpan))
-				parse Start
-				""", Suffix = "Digits")]
-			public static partial class Twice
+			[GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+			public static partial class Both
 			{
 				internal static string Seen(string t, SourceSpan at) => t + "@" + at.Length;
 			}
@@ -1953,47 +1952,22 @@ public sealed class GeneratorDriverTests
 
 		var built = Build(source);
 
-		var host   = built.GetType("Twice")!.GetMethod("ParseStart", [typeof(string)])!;
-		var nested = built.GetType("Twice+Digits")!.GetMethod("ParseStart", [typeof(string)])!;
-
-		Assert.Equal("abc@3", host.Invoke(null, ["abc"]));
-		Assert.Equal("123@3", nested.Invoke(null, ["123"]));
-
-		// Two languages, not one read twice: each class reads its own and refuses the other.
-		Assert.Throws<TargetInvocationException>(() => host.Invoke(null, ["123"]));
-		Assert.Throws<TargetInvocationException>(() => nested.Invoke(null, ["abc"]));
-	}
-
-	/// <summary>
-	/// A second attribute that names no grammar takes the first's, which is what the
-	/// shape is for: one grammar, compiled two ways.
-	/// </summary>
-	[Fact]
-	public void A_second_grammar_that_names_none_is_the_first_one_again()
-	{
-		const string source = """"
-			using DotGram;
-
-			[Gram("""
-				Start : @string = t: ['a'..'z']+ => @(t)
-				parse Start
-				""")]
-			[Gram(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
-			public static partial class Both;
-			"""";
-
-		var built = Build(source);
-
 		var tape      = built.GetType("Both")!.GetMethod("ParseStart", [typeof(string)])!;
 		var immediate = built.GetType("Both+Immediate")!.GetMethod("ParseStart", [typeof(string)])!;
 
-		Assert.Equal("abc", tape.Invoke(null, ["abc"]));
-		Assert.Equal("abc", immediate.Invoke(null, ["abc"]));
+		Assert.Equal("abc@3", tape.Invoke(null, ["abc"]));
+		Assert.Equal("abc@3", immediate.Invoke(null, ["abc"]));
 	}
 
-	/// <summary>Two grammars cannot share one scope, and are told so rather than colliding.</summary>
+	/// <summary>
+	/// Two readings cannot share one scope, and are told so rather than colliding. A second
+	/// <c>[Gram]</c> is no longer how a second reading is asked for — the attribute is one
+	/// per class, which C# refuses on its own — so the case left is a <c>[GramOptions]</c>
+	/// that says no <c>Suffix</c> and so wants the class itself, which the <c>[Gram]</c>
+	/// already has.
+	/// </summary>
 	[Fact]
-	public void Two_grammars_wanting_one_scope_are_refused()
+	public void Two_readings_wanting_one_scope_are_refused()
 	{
 		var run = RunGenerator(
 			""""
@@ -2003,10 +1977,7 @@ public sealed class GeneratorDriverTests
 				Start = 'a'+
 				parse Start
 				""")]
-			[Gram("""
-				Start = 'b'+
-				parse Start
-				""")]
+			[GramOptions(Direct = false)]
 			public static partial class Crowded;
 			"""");
 

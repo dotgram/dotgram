@@ -842,7 +842,7 @@ namespace DotGram.Parsers;
 // reading above: the two must answer alike on every input, which is what
 // ExpressionCarrierTests asks. Nothing in this language needs a construction deferred —
 // the one place that did, a name resolved by a factory that threw, is a `when` now.
-[Gram(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+[GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
 public static partial class ExpressionLanguage
 {
 	// ParseLambda and TryParseLambda are generated here.
