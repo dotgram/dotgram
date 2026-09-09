@@ -51,12 +51,18 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 		if (DslDefinition(args, snapshot, position) is { } dslDefinition)
 			return Navigate(dslDefinition);
 
-		if (args.SubjectBuffer.ContentType.IsOfType("CSharp") &&
-			Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.Run(() =>
-				new RoslynGramCompletion(args.SubjectBuffer, Workspace, Documents)
-					.GeneratedApiSourceAsync(position, CancellationToken.None)) is { } source)
+		if (args.SubjectBuffer.ContentType.IsOfType("CSharp"))
 		{
-			return Navigate(source);
+			var roslyn = new RoslynGramCompletion(args.SubjectBuffer, Workspace, Documents);
+			var grammarFile = Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.Run(() =>
+				roslyn.GrammarFileSourceAsync(position, CancellationToken.None));
+			if (grammarFile is { } file)
+				return Navigate(file);
+
+			var source = Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.Run(() =>
+				roslyn.GeneratedApiSourceAsync(position, CancellationToken.None));
+			if (source is { } generated)
+				return Navigate(generated);
 		}
 
 		if (PublishedApi(args, snapshot, position) is { } publishedApi)
@@ -72,6 +78,10 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 			return Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.Run(() =>
 				roslyn.NavigateToDefinitionAsync(expression, expressionPosition, CancellationToken.None));
 		}
+
+		if (args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name) &&
+			GramBufferAnalysis.For(args.SubjectBuffer).ExternalDefinition(snapshot, position) is { } external)
+			return Navigate(new GeneratedApiSource(external.FilePath, external.Line, external.Column));
 
 		var found = Target(args);
 

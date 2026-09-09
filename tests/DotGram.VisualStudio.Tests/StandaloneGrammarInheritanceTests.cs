@@ -63,7 +63,23 @@ public sealed class StandaloneGrammarInheritanceTests
 			@"P:\Parsers\TransactSql.gram",
 			TestContext.Current.CancellationToken);
 
-		Assert.Contains("namespace Sql92\n{\nWord = ['a'..'z']+", inherited, StringComparison.Ordinal);
-		Assert.DoesNotContain("namespace Wrong", inherited, StringComparison.Ordinal);
+		Assert.NotNull(inherited);
+		Assert.Contains("namespace Sql92\n{\nWord = ['a'..'z']+", inherited.Value.AnalysisTail, StringComparison.Ordinal);
+		Assert.DoesNotContain("namespace Wrong", inherited.Value.AnalysisTail, StringComparison.Ordinal);
+		var included = Assert.Single(inherited.Value.Included);
+		Assert.Equal("Sql92", included.Name);
+		Assert.Equal(@"P:\Parsers\SqlStandard92.gram", included.FilePath);
+
+		const string dialect = "using Sql92;\nStart = Sql92.Word";
+		var namespaceTarget = GramBufferAnalysis.ExternalDefinition(
+			dialect, inherited.Value, dialect.IndexOf("Sql92", StringComparison.Ordinal));
+		Assert.Equal(@"P:\Parsers\SqlStandard92.gram", namespaceTarget?.FilePath);
+		Assert.Equal(0, namespaceTarget?.Line);
+
+		var ruleTarget = GramBufferAnalysis.ExternalDefinition(
+			dialect, inherited.Value, dialect.LastIndexOf("Word", StringComparison.Ordinal));
+		Assert.Equal(@"P:\Parsers\SqlStandard92.gram", ruleTarget?.FilePath);
+		Assert.Equal(0, ruleTarget?.Line);
+		Assert.Equal(0, ruleTarget?.Column);
 	}
 }

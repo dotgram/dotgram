@@ -250,7 +250,7 @@ sealed class GramBufferAnalysis
 
 	ITextSnapshot? _snapshot;
 	GramDocument?  _document;
-	string?        _inheritedText;
+	StandaloneGrammarContext? _inheritance;
 	bool           _inheritanceStarted;
 
 	GramBufferAnalysis(ITextBuffer buffer)
@@ -287,17 +287,87 @@ sealed class GramBufferAnalysis
 			_snapshot = snapshot;
 			var own = snapshot.GetText();
 			_document = Project(
-				GramLanguageService.Analyze(own + (_inheritedText ?? "")),
+				GramLanguageService.Analyze(own + (_inheritance?.AnalysisTail ?? "")),
 				own.Length);
 
 			return _document;
 		}
 	}
 
+	public StandaloneDefinition? ExternalDefinition(ITextSnapshot snapshot, int position)
+	{
+		StandaloneGrammarContext? context;
+		lock (_gate)
+			context = _inheritance;
+		return context is null ? null : ExternalDefinition(snapshot.GetText(), context.Value, position);
+	}
+
+	internal static StandaloneDefinition? ExternalDefinition(
+		string text,
+		StandaloneGrammarContext context,
+		int position)
+	{
+		if (text.Length == 0)
+			return null;
+
+		var bounded = Math.Max(0, Math.Min(position, text.Length - 1));
+		var start = bounded;
+		var end = bounded;
+		while (start > 0 && IsIdentifier(text[start - 1])) start--;
+		while (end < text.Length && IsIdentifier(text[end])) end++;
+		if (start == end)
+			return null;
+
+		var name = text.Substring(start, end - start);
+		foreach (var included in context.Included)
+		{
+			if (included.FilePath is null)
+				continue;
+
+			if (name == included.Name)
+				return new StandaloneDefinition(start, end - start, included.FilePath, 0, 0);
+
+			var before = start - 1;
+			while (before >= 0 && char.IsWhiteSpace(text[before])) before--;
+			if (before < 0 || text[before] != '.')
+				continue;
+			before--;
+			while (before >= 0 && char.IsWhiteSpace(text[before])) before--;
+			var qualifierEnd = before + 1;
+			while (before >= 0 && IsIdentifier(text[before])) before--;
+			if (text.Substring(before + 1, qualifierEnd - before - 1) != included.Name)
+				continue;
+
+			var definition = GramLanguageService.Analyze(included.Text).Symbols
+				.FirstOrDefault(symbol =>
+					symbol.IsDefinition &&
+					symbol.Kind == GramSymbolKind.Rule &&
+					symbol.Name == name);
+			if (definition.Name is null)
+				continue;
+
+			var line = 0;
+			var column = 0;
+			for (var index = 0; index < definition.Position; index++)
+				if (included.Text[index] == '\n')
+				{
+					line++;
+					column = 0;
+				}
+				else
+					column++;
+
+			return new StandaloneDefinition(
+				start, end - start, included.FilePath, line, column);
+		}
+
+		return null;
+	}
+
 	async Task LoadInheritanceAsync(Workspace workspace, string filePath)
 	{
-		string? inherited = null;
-		for (var attempt = 0; attempt < 40 && string.IsNullOrEmpty(inherited); attempt++)
+		StandaloneGrammarContext? inherited = null;
+		for (var attempt = 0; attempt < 40 && inherited is null; attempt++)
 		{
 			try
 			{
@@ -312,16 +382,16 @@ sealed class GramBufferAnalysis
 				// snapshot failure is equivalent to the context not being ready yet.
 			}
 
-			if (string.IsNullOrEmpty(inherited) && attempt + 1 < 40)
+			if (inherited is null && attempt + 1 < 40)
 				await Task.Delay(500).ConfigureAwait(false);
 		}
 
-		if (string.IsNullOrEmpty(inherited))
+		if (inherited is null)
 			return;
 
 		lock (_gate)
 		{
-			_inheritedText = inherited;
+			_inheritance    = inherited;
 			_snapshot      = null;
 			_document      = null;
 		}
@@ -329,6 +399,9 @@ sealed class GramBufferAnalysis
 		await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 		Changed?.Invoke(_buffer.CurrentSnapshot);
 	}
+
+	static bool IsIdentifier(char character) =>
+		character == '_' || char.IsLetterOrDigit(character);
 
 	static GramDocument Project(GramDocument document, int length) =>
 		new(
@@ -351,3 +424,10 @@ sealed class GramBufferAnalysis
 		Changed?.Invoke(change.After);
 	}
 }
+
+readonly record struct StandaloneDefinition(
+	int Position,
+	int Length,
+	string FilePath,
+	int Line,
+	int Column);

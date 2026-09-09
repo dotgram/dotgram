@@ -11,12 +11,18 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace DotGram.VisualStudio;
 
+readonly record struct StandaloneIncludedGrammar(string Name, string Text, string? FilePath);
+
+readonly record struct StandaloneGrammarContext(
+	string AnalysisTail,
+	IReadOnlyList<StandaloneIncludedGrammar> Included);
+
 /// <summary>Builds the inherited tail used to analyze a standalone grammar in its C# host context.</summary>
 static class StandaloneGrammarInheritance
 {
 	const string GramAttribute = "DotGram.GramAttribute";
 
-	public static async Task<string?> ResolveAsync(
+	public static async Task<StandaloneGrammarContext?> ResolveAsync(
 		Solution solution,
 		string filePath,
 		CancellationToken cancellationToken)
@@ -33,7 +39,7 @@ static class StandaloneGrammarInheritance
 		if (host is null)
 			return null;
 
-		var included = new List<GrammarSplice.Part>();
+		var included = new List<StandaloneIncludedGrammar>();
 		for (var current = host.BaseType; current is not null; current = current.BaseType)
 		{
 			var attribute = PrimaryGram(current.GetAttributes());
@@ -46,21 +52,26 @@ static class StandaloneGrammarInheritance
 			if (source is null)
 				continue;
 
-			var text = IsFile(source)
+			var resolved = IsFile(source)
 				? await FileTextAsync(project, source, cancellationToken).ConfigureAwait(false)
-				: source;
-			if (text is null)
+				: (source, (string?)null);
+			if (resolved.source is null)
 				continue;
 
 			var name = attribute.NamedArguments
 				.FirstOrDefault(static argument => argument.Key == "IncludedAs")
 				.Value.Value as string ?? current.Name;
-			included.Add(new GrammarSplice.Part(text, name, null));
+			included.Add(new StandaloneIncludedGrammar(name, resolved.source, resolved.Item2));
 		}
 
 		return included.Count == 0
 			? null
-			: GrammarSplice.Join(new GrammarSplice.Part("", null, null), included).Text;
+			: new StandaloneGrammarContext(
+				GrammarSplice.Join(
+					new GrammarSplice.Part("", null, null),
+					included.Select(static item =>
+						new GrammarSplice.Part(item.Text, item.Name, null)).ToArray()).Text,
+				included);
 	}
 
 	static async Task<INamedTypeSymbol?> HostAsync(
@@ -98,7 +109,7 @@ static class StandaloneGrammarInheritance
 			attribute.AttributeClass?.ToDisplayString() == GramAttribute &&
 			attribute.NamedArguments.All(static argument => argument.Key != "Suffix"));
 
-	static async Task<string?> FileTextAsync(
+	static async Task<(string? source, string? FilePath)> FileTextAsync(
 		Project project,
 		string source,
 		CancellationToken cancellationToken)
@@ -106,8 +117,8 @@ static class StandaloneGrammarInheritance
 		var document = project.AdditionalDocuments.FirstOrDefault(candidate =>
 			candidate.FilePath is not null && Matches(candidate.FilePath, source));
 		return document is null
-			? null
-			: (await document.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString();
+			? (null, null)
+			: ((await document.GetTextAsync(cancellationToken).ConfigureAwait(false)).ToString(), document.FilePath);
 	}
 
 	static bool IsFile(string source) =>

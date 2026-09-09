@@ -1,4 +1,4 @@
-DotGram language support 0.1.52
+DotGram language support 0.1.53
 
 Initial preview for Visual Studio 18.
 
@@ -27,6 +27,8 @@ Initial preview for Visual Studio 18.
   becomes available, without requiring the editor viewport to be scrolled.
 - Inherited context resolution waits for Roslyn project loading instead of permanently
   accepting the incomplete workspace visible during early document restoration.
+- Go To Definition and Ctrl+Click open inherited grammar files from namespace qualifiers,
+  and file-valued `[Gram("Language.gram")]` arguments navigate to their additional files.
 - DSL `StringSyntax` annotations also work on extension receivers and immediate field
   or property initializers.
 - Provisional analysis preserves existing colors while a line edit is being analyzed.
