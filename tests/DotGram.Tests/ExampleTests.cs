@@ -1342,14 +1342,28 @@ public sealed class ExampleTests
 
 	/// <summary>
 	/// A set is asked one character at a time and a guard about what they came to, which
-	/// is why the invalid character and the reserved name are refused by different things.
+	/// is why the reserved name and the empty segment are refused by different things.
 	/// </summary>
 	[Theory]
-	[InlineData("bad:name")]     // the set: ':' is not a filename character here
 	[InlineData("CON")]          // the guard: a name Windows keeps
 	[InlineData("a//b")]         // and a segment may not be empty
 	public void And_what_it_refuses_it_refuses_for_a_reason(string path) =>
 		Assert.False(FileNames.IsUsable(path));
+
+	/// <summary>
+	/// And the set itself, asked of the platform rather than of this test: `:` is no
+	/// filename character on Windows and an ordinary one elsewhere, which is the whole
+	/// reason the example asks a method instead of writing ranges out.
+	/// </summary>
+	[Fact]
+	public void And_the_set_is_whatever_this_platform_says_it_is()
+	{
+		var invalid = System.IO.Path.GetInvalidFileNameChars()
+			.First(one => one != '/');
+
+		Assert.False(FileNames.IsUsable("bad" + invalid + "name"));
+		Assert.True(FileNames.IsUsable("bad" + '.' + "name"));
+	}
 
 
 	// ── One grammar, read with locations and without ─────────────────────────────

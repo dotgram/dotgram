@@ -30,15 +30,12 @@
 	</ItemGroup>
 
 	<ItemGroup Label="Tests">
-		<!-- Held at 3, and the second number here that is not the newest. xunit.v3 4 pairs
-		     with Microsoft.Testing.Platform 2, which refuses the VSTest bridge outright on
-		     the .NET 10 SDK, so it can only be run through the platform itself. That is what
-		     `global.json` opting in to it was for, and the pair does not work: `dotnet test`
-		     answers "Zero tests ran" and exits 5 while the same assembly run directly finds
-		     and passes every one of them. CI runs `dotnet test`, so it goes red without a
-		     test having failed. Raise both together, once they run. -->
-		<PackageVersion Include="xunit.v3" Version="3.2.2" />
-		<PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+		<!-- 4 pairs with Microsoft.Testing.Platform 2, which is how a test project is run
+		     from the .NET 10 SDK on: the VSTest bridge it used to be reached through is
+		     refused outright. `global.json` says so for the repository, and the projects
+		     carry nothing of the older arrangement — no VSTest adapter beside the platform
+		     and no pre-.NET-10 opt-in property. -->
+		<PackageVersion Include="xunit.v3" Version="4.0.0" />
 	</ItemGroup>
 
 	<ItemGroup Label="Benchmarks">
@@ -55,10 +52,6 @@
 		<!-- `ReadOnlySpan<char>`, which every generated method takes and neither
 		     netstandard2.0 nor .NET Framework carries. -->
 		<PackageVersion Include="System.Memory" Version="4.6.3" />
-
-		<!-- How a machine with no targeting pack compiles for .NET Framework at all,
-		     which is what CI is. Build-time only. -->
-		<PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" />
 
 		<!-- Modern types on netstandard2.0 and net472 without a runtime dependency:
 		     Meziantou.Polyfill is a generator and emits them as internal. -->

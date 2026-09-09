@@ -6,10 +6,9 @@
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
 
-		<!-- xUnit v3 test projects are executables: they run on Microsoft.Testing.Platform
+		<!-- A test project is an executable: it hosts Microsoft.Testing.Platform itself
 		     rather than being hosted by VSTest. -->
 		<OutputType>Exe</OutputType>
-		<TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
 
 		<!-- Generated files land on disk so they can be read and diffed as code. -->
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
@@ -25,9 +24,6 @@
 
 	<ItemGroup>
 		<PackageReference Include="xunit.v3" />
-		<!-- Test Explorer only. `dotnet test` goes through Microsoft.Testing.Platform
-		     and needs neither this nor Microsoft.NET.Test.Sdk. -->
-		<PackageReference Include="xunit.runner.visualstudio" />
 		<!-- For driving the generator in memory and reading back what it produced. -->
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
 	</ItemGroup>

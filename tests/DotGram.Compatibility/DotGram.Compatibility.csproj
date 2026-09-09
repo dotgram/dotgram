@@ -45,13 +45,6 @@
 		<PackageReference Include="System.Memory" />
 	</ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-		<!-- How a machine with no .NET Framework targeting pack installed compiles for
-		     one at all, which is what CI is. Build-time only. -->
-		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies"
-		                  PrivateAssets="all" />
-	</ItemGroup>
-
 	<ItemGroup>
 		<!-- The analyzer only. A consumer never references the generator assembly: `[Gram]`
 		     is emitted into their compilation, which is the whole of why no runtime ships. -->
