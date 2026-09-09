@@ -254,6 +254,66 @@ spaces it, because a repetition of a valued rule is a collection and collections
 separated the way operands are. A valueless repetition (`['0'..'9']+`, `Letter+`) stays
 a lexeme; that line has its own semantic tests.
 
+## What a parse costs before it reads anything
+
+Every other comparison here times an input worth parsing, which answers what the engine
+costs per character and hides what it costs per call. On `TransactSql.gram` that hardly
+matters — the statement is long and the fixed part is lost in it. On a small grammar it is
+the question: a parser called once per line of a log pays whatever is fixed on every line.
+
+### A warm call, twice per grammar
+
+`--filter *PreparationBenchmarks*`. `least` is the shortest input the grammar's own rules
+accept; `real` is something somebody would hand it.
+
+| grammar | shape | least | real | fixed share | least alloc |
+| --- | --- | --: | --: | --: | --: |
+| Levels | characters | 39.9 ns | 4,347.5 ns | 0.9% | 24 B |
+| Config | trivia | 107.1 ns | 30,149.0 ns | 0.4% | 112 B |
+| Url | characters | 99.1 ns | 199.6 ns | **50%** | 240 B |
+| Sql-92 | kinds | 197.5 ns | 1,275.7 ns | 16% | 168 B |
+| TransactSql | kinds | 1,394.7 ns | 14,123.7 ns | 10% | 928 B |
+
+**Half of a real URL parse is the cost of making the call.** `least` is not zero-length —
+`http://a` is eight characters against the real input's forty-seven — so the fixed part is
+somewhat under half rather than exactly half, but the shape of the answer does not change:
+this is a grammar whose whole job is short inputs, and a benchmark reporting 200 ns has
+been reporting two things.
+
+**Over kinds the floor is ten times higher.** `SELECT 1` costs 1.4 µs where `http://a`
+costs 99 ns, and the reason is structural rather than a defect: a reading over kinds cuts
+the input into tokens before the first rule runs, and on the shortest input that cut is
+most of what happens. It is invisible in the SQL numbers everywhere else here because a
+statement is long.
+
+`Config` is the control: seven rules over four characters and over four hundred entries,
+nothing but the input changed, and the fixed part is four tenths of one per cent.
+
+### The first call of all
+
+`--prepare [name]`. One call each, in the order printed, with nothing having touched that
+grammar before — its statics built, its methods jitted at tier zero. No loop and no median,
+because warming is the thing being measured, which is also why BenchmarkDotNet cannot ask
+this and why the harness is eleven lines of `Stopwatch`.
+
+| grammar | rules | first call | warm | ratio |
+| --- | --: | --: | --: | --: |
+| Levels | 4 | 7.9 ms | 39.9 ns | — |
+| Url | 14 | 3.3 ms | 99.1 ns | 33,000× |
+| Config | 9 | 2.1 ms | 107.1 ns | 20,000× |
+| Sql-92 | ~130 | 9.6 ms | 197.5 ns | 49,000× |
+| TransactSql | ~640 | 44.1 ms | 1,394.7 ns | 32,000× |
+
+**The first row is not comparable**: whichever grammar goes first pays for runtime warm-up
+the rest do not. Run `--prepare Url` and Url reads 3.2 ms while Levels, now second, reads
+1.8 ms rather than 7.9. Read the rest.
+
+**Forty-four milliseconds for the first T-SQL statement**, against fourteen microseconds
+for the next one. For anything that parses a handful of documents and exits — a
+command-line tool, a source generator, an editor extension opening a file — that is
+essentially the whole bill, and none of the other instruments here can see it. It is the
+first thing to look at in the generator, which is measured next.
+
 ## What a parse allocates
 
 `--alloc` (`Allocation.cs`) asks the runtime what the thread allocated between two points

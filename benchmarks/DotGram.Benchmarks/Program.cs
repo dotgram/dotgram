@@ -265,6 +265,18 @@ static class Program
 			return;
 		}
 
+		// `--prepare [name] [rounds]` asks what a parse costs before it has read anything:
+		// the shortest input each grammar accepts against one worth parsing, and the first
+		// call of all beside them. See Preparation.cs.
+		if (args.Length >= 1 && args[0] == "--prepare")
+		{
+			var rest = args.Skip(1).ToArray();
+
+			Preparation.Run(rest.Length >= 1 ? rest[0] : null);
+
+			return;
+		}
+
 		if (args.Length >= 1 && args[0] == "--speed")
 		{
 			var rest  = args.Skip(1).ToArray();
