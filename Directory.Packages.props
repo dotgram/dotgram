@@ -19,7 +19,7 @@
 		     extension compile against the same, so what they drive is what ships. -->
 		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
 		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />
-		<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.6.0" />
+		<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
 	</ItemGroup>
 
 	<ItemGroup Label="Visual Studio">
@@ -29,21 +29,21 @@
 	</ItemGroup>
 
 	<ItemGroup Label="Tests">
-		<PackageVersion Include="xunit.v3" Version="3.2.2" />
-		<PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+		<PackageVersion Include="xunit.v3" Version="4.0.0" />
+		<PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
 	</ItemGroup>
 
 	<ItemGroup Label="Benchmarks">
 		<!-- DotGram.HandDeferred overrides this to 0.15.8. The two were added a year
 		     apart and neither number is a decision anybody defended; unifying them is a
 		     change to what the harness does and belongs in its own commit. -->
-		<PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
-		<PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.14.0" />
+		<PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+		<PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.8" />
 
 		<!-- Somebody else's T-SQL parser, and the engine itself: two second opinions
 		     about what the language is, and neither ships. -->
 		<PackageVersion Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="180.102.0" />
-		<PackageVersion Include="Microsoft.Data.SqlClient" Version="6.0.2" />
+		<PackageVersion Include="Microsoft.Data.SqlClient" Version="7.0.2" />
 	</ItemGroup>
 
 	<ItemGroup Label="What older frameworks are missing">
@@ -57,7 +57,7 @@
 
 		<!-- Modern types on netstandard2.0 and net472 without a runtime dependency:
 		     Meziantou.Polyfill is a generator and emits them as internal. -->
-		<PackageVersion Include="Meziantou.Polyfill" Version="1.0.159" />
+		<PackageVersion Include="Meziantou.Polyfill" Version="1.0.165" />
 	</ItemGroup>
 
 </Project>
