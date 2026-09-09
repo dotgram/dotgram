@@ -520,8 +520,16 @@ public static class SqlWriter
 				break;
 
 			case Statement.Throw(var arguments):
+				// `THROW 51000, 'x', 1` and not `THROW (…)`: the three are arguments of the
+				// statement and not of a call, which is the one place a list stands bare.
 				text.Append("THROW");
-				Arguments(text, arguments, " ");
+
+				for (var i = 0; i < arguments.Length; i++)
+				{
+					text.Append(i == 0 ? " " : ", ");
+					Put(text, arguments[i], 0);
+				}
+
 				break;
 
 			case Statement.GoTo(var label):
@@ -1648,11 +1656,17 @@ public static class SqlWriter
 				text.Append(from).Append(" TO ").Append(to);
 				break;
 
-			case Clause.Dropped(var kind, var dropped):
+			case Clause.Dropped(var kind, var dropped, var ifExists, var how):
 				text.Append(kind);
+
+				if (ifExists)
+					text.Append(" IF EXISTS");
 
 				if (dropped is not null)
 					text.Append(' ').Append(dropped);
+
+				if (how is not null)
+					text.Append(' ').Append(how);
 
 				break;
 

@@ -161,6 +161,8 @@ field on one record here, and having a record each is what makes that a small ch
 | `Statement.AlterUser` | T-SQL | ALTER USER |
 | `Statement.CreateRole` | SQL:1999 | &lt;role definition&gt;; T-SQL: CREATE ROLE, CREATE SERVER ROLE |
 | `Statement.AlterRole` | T-SQL | ALTER ROLE, ALTER SERVER ROLE |
+| `Statement.CreateServerRole` | T-SQL | CREATE SERVER ROLE |
+| `Statement.AlterServerRole` | T-SQL | ALTER SERVER ROLE |
 | `Statement.CreateApplicationRole` | T-SQL | CREATE APPLICATION ROLE |
 | `Statement.AlterApplicationRole` | T-SQL | ALTER APPLICATION ROLE |
 | `Statement.SchemaDefinition` | SQL-92 | §11.1 &lt;schema definition&gt; |

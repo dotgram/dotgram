@@ -1683,8 +1683,8 @@ AlterTableAction : @Statement.AlterTable
 		=> @(Statement.Altered("ADD", new Clause[] { c with { Name = name } }))
 	| "ADD"i & body: TableBody
 		=> @(Statement.Altered("ADD", body))
-	| "WITH"i & CheckWord & "ADD"i & body: TableBody
-		=> @(Statement.Altered("ADD", body))
+	| "WITH"i & mode: CheckWord & "ADD"i & body: TableBody
+		=> @(Statement.Altered("WITH " + Syntax.Squared(mode) + " ADD", body))
 	| "ALTER"i & "COLUMN"i & column: ColumnDefinition & options: OptionsWith?
 		=> @(Statement.Altered("ALTER COLUMN", new Clause[] { column }, options))
 	| "ALTER"i & "COLUMN"i & name: Identifier & flag: AlterColumnWord & options: OptionsWith?
@@ -1724,12 +1724,14 @@ ConstraintNames  = "ALL"i | Identifier & (',' & Identifier)*
 PartitionWhich : @Expression = "ALL"i => @(new Expression.ColumnReference("ALL")) | v: ValueExpression => @(v)
 
 DropTarget : @Clause
-	= "COLUMN"i & name: Identifier     => @(Clause.Marked("COLUMN", name))
-	| "CONSTRAINT"i & IfExists? & name: Identifier & OptionsWith?
-		=> @(Clause.Marked("CONSTRAINT", name))
+	= "COLUMN"i & exists: IfExists? & name: Identifier
+		=> @(Clause.Marked("COLUMN", name, exists, null))
+	| "CONSTRAINT"i & exists: IfExists? & name: Identifier & tail: OptionsWithText?
+		=> @(Clause.Marked("CONSTRAINT", name, exists, tail))
 	| "INDEX"i & name: Identifier      => @(Clause.Marked("INDEX", name))
-	| "PERIOD"i & "FOR"i & "SYSTEM_TIME"i => @(Clause.Marked("PERIOD", null))
-	| name: Identifier & OptionsWith?  => @(Clause.Marked("CONSTRAINT", name))
+	| "PERIOD"i & "FOR"i & "SYSTEM_TIME"i => @(Clause.Marked("PERIOD FOR SYSTEM_TIME", null))
+	| name: Identifier & tail: OptionsWithText?
+		=> @(Clause.Marked("CONSTRAINT", name, null, tail))
 
 IfExists = "IF"i & "EXISTS"i
 
@@ -2431,10 +2433,14 @@ PrincipalStatement : @Statement
 	| "ALTER"i & "USER"i & name: Identifier & tail: AlterUserBody
 		=> @(Statement.Defined("ALTER USER", name, Syntax.Tail(tail)))
 
-	| "CREATE"i & RoleWord & name: Identifier & tail: ("AUTHORIZATION"i & QualifiedName)?
-		=> @(Statement.Defined("CREATE ROLE", name, Syntax.Tail(tail)))
-	| "ALTER"i & RoleWord & name: Identifier & tail: RoleAction
-		=> @(Statement.Defined("ALTER ROLE", name, Syntax.Tail(tail)))
+	| "CREATE"i & scope: RoleWord & name: Identifier & tail: ("AUTHORIZATION"i & QualifiedName)?
+		=> @(Statement.Defined(
+				 Syntax.Squared(scope) == "ROLE" ? "CREATE ROLE" : "CREATE SERVER ROLE",
+				 name, Syntax.Tail(tail)))
+	| "ALTER"i & scope: RoleWord & name: Identifier & tail: RoleAction
+		=> @(Statement.Defined(
+				 Syntax.Squared(scope) == "ROLE" ? "ALTER ROLE" : "ALTER SERVER ROLE",
+				 name, Syntax.Tail(tail)))
 
 	| "CREATE"i & "APPLICATION"i & "ROLE"i & name: Identifier & tail: ("WITH"i & LoginOptions)
 		=> @(Statement.Defined("CREATE APPLICATION ROLE", name, Syntax.Tail(tail)))
@@ -2459,7 +2465,7 @@ PrincipalStatement : @Statement
 										  & "TO"i & AuthorizationTo)
 		=> @(Statement.Defined("ALTER AUTHORIZATION", "", Syntax.Tail(tail)))
 
-RoleWord = "SERVER"i & "ROLE"i | "ROLE"i
+RoleWord : @string = t: ("SERVER"i & "ROLE"i | "ROLE"i) => @(Syntax.Squared(t))
 
 RoleAction = "ADD"i & "MEMBER"i & QualifiedName
 		   | "DROP"i & "MEMBER"i & QualifiedName
@@ -2725,8 +2731,10 @@ AlterDatabaseStatement : @Statement
 		=> @(new Statement.AlterDatabaseModify(name, options, with))
 
 	| "ALTER"i & "DATABASE"i & name: DatabaseTarget & action: AlterDatabaseAction
-	  & DatabaseTermination?
-		=> @(Statement.OfDatabase(name, action.Action, null, action.Tail))
+	  & how: DatabaseTermination?
+		=> @(Statement.OfDatabase(
+				 name, action.Action, null,
+				 how is null ? action.Tail : action.Tail + " " + how))
 
 DatabaseTarget : @string = "CURRENT"i => @("CURRENT") | t: Identifier => @(t)
 
@@ -2835,11 +2843,11 @@ PermissionOn  : @string = "ON"i & t: (SecurableClass? & QualifiedName) => @(Synt
 SecurableClass = PermissionWord+ & "::"
 
 Permissions : @string[]
-	= "ALL"i & "PRIVILEGES"i? => @(new[] { "ALL" })
+	= t: ("ALL"i & "PRIVILEGES"i?) => @(new[] { Syntax.Spaced(t) })
 	| first: Permission & (',' & rest: Permission)* => @(Syntax.Named(first, rest))
 
 Permission : @string
-	= t: PermissionName & ('(' & ColumnList & ')')? => @(t)
+	= t: (PermissionName & ('(' & ColumnList & ')')?) => @(Syntax.Spaced(t))
 
 // A run of them, and it ends where it must: neither `ON` nor `TO` is a permission word,
 // so the words of the name are taken and the clause after them is left alone.

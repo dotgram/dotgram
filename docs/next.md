@@ -17253,3 +17253,16 @@ terminator into the syntax for the stoplists, the search property lists and the 
 classification, and ScriptDom holds them to it. A short list in the writer says which, and
 it grew from the oracle rather than from the documentation. 95.4% to **96.9%** the same
 statement, 166 unread to 52.
+
+**Six more, and a keyword twice.** `ALTER TABLE t WITH CHECK ADD …` keeps the words in
+front of the action; a dropped element its `IF EXISTS`, its `WITH (…)` and the whole
+`PERIOD FOR SYSTEM_TIME`; a permission the case the author wrote it in and the columns after
+it; a server role is a statement of its own rather than a role with a word lost; `THROW`
+writes its arguments bare, a list being a call's only where a call is what it is; and an
+`ALTER DATABASE` action keeps the rollback that follows it. 96.9% to **97.9%** the same
+statement, 52 unread to 46.
+
+Twice in one afternoon a capture was named after a C# keyword — `using`, then `checked` —
+and both came out as a syntax error inside the generated `=>`, reported against the grammar
+at a column in the middle of a line. Worth a rule in the grammar's own head: **a capture is
+named for what it holds, and never with a word C# has taken.**

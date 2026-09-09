@@ -411,6 +411,12 @@ public abstract record Statement : ISqlSpan
 	/// <summary><c>ALTER ROLE</c>.</summary>
 	public sealed record AlterRole(string Name) : Definition(Name);
 
+	/// <summary><c>CREATE SERVER ROLE</c>: a role of the server rather than of a database.</summary>
+	public sealed record CreateServerRole(string Name) : Definition(Name);
+
+	/// <summary><c>ALTER SERVER ROLE</c>, likewise.</summary>
+	public sealed record AlterServerRole(string Name) : Definition(Name);
+
 	/// <summary><c>CREATE APPLICATION ROLE</c>.</summary>
 	public sealed record CreateApplicationRole(string Name) : Definition(Name);
 
@@ -1020,6 +1026,8 @@ public abstract record Statement : ISqlSpan
 			"ALTER USER"              => new AlterUser(name),
 			"CREATE ROLE"             => new CreateRole(name),
 			"ALTER ROLE"              => new AlterRole(name),
+			"CREATE SERVER ROLE"      => new CreateServerRole(name),
+			"ALTER SERVER ROLE"       => new AlterServerRole(name),
 			"CREATE APPLICATION ROLE" => new CreateApplicationRole(name),
 			"ALTER APPLICATION ROLE"  => new AlterApplicationRole(name),
 			"CREATE SCHEMA"           => new SchemaDefinition(name),
@@ -1854,7 +1862,9 @@ public abstract record Clause : ISqlSpan
 	/// has one — the words in the order the drop writes them, which is not the order a
 	/// definition writes them in.
 	/// </summary>
-	public sealed record Dropped(string Kind, string? Name) : Clause;
+	/// <param name="Tail">What the drop was given — <c>WITH (…)</c>, and the words of a period.</param>
+	public sealed record Dropped(
+		string Kind, string? Name, bool IfExists = false, string? Tail = null) : Clause;
 
 	/// <summary>One file of a database: the bracketed options that describe it.</summary>
 	public sealed record DatabaseFile(Clause[] Options) : Clause;
@@ -1882,6 +1892,10 @@ public abstract record Clause : ISqlSpan
 
 	/// <summary>A named thing dropped, where only the kind and the name matter.</summary>
 	public static Dropped Marked(string kind, string? name) => new(kind, name);
+
+	/// <summary>A dropped thing with what was written around it.</summary>
+	public static Dropped Marked(string kind, string? name, string? ifExists, string? tail) =>
+		new(kind, name, ifExists is not null, Syntax.Tail(tail));
 
 	/// <summary>
 	/// A key or a uniqueness: the kind, and everything T-SQL lets stand after it.
