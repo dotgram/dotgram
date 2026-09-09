@@ -5,11 +5,10 @@
 		<OutputType>Exe</OutputType>
 		<RootNamespace>DotGram.HandDeferred</RootNamespace>
 		<IsPackable>false</IsPackable>
-		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+		<PackageReference Include="BenchmarkDotNet" />
 	</ItemGroup>
 
 	<ItemGroup>

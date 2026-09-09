@@ -111,6 +111,17 @@ static class Questions
 
 		Collect(file.Usings, file.Decls);
 
+		// A parameterized rule declaring `: item[]` becomes `T[]` where it is called, and
+		// `T[]` is a name the grammar never writes — the argument is a rule and the array
+		// is the parameter's. So every declared type gets its array form here, which is
+		// what a call site could specialize one into. The same superset as the rest of
+		// this file, and the alternative is a question nobody foresaw: this was GRAM0001,
+		// "the question collector did not foresee the type question for 'int[]'", for a
+		// rule declared `: Number[]` whose body was a call to `List(Number, ',')`.
+		foreach (var type in declared.ToArray())
+			if (!type.EndsWith("[]", StringComparison.Ordinal) && !declared.Contains(type + "[]"))
+				declared.Add(type + "[]");
+
 		var questions = ImmutableHashSet.CreateBuilder<Question>();
 
 		// §4.1 case 2 asks which of the grammar's own result types fit into a sequence's

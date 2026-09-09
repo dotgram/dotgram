@@ -6,12 +6,6 @@
 		<RootNamespace>DotGram.Benchmarks</RootNamespace>
 		<IsPackable>false</IsPackable>
 
-		<!-- BenchmarkDotNet builds and runs its own Release copy of this assembly, and
-		     refuses to measure a Debug one. Building it in the solution's default
-		     configuration is still worth doing: a benchmark that does not compile is
-		     found here rather than the next time somebody asks for numbers. -->
-		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-
 		<!-- The generated parser is the thing under test, so it goes on disk where it can
 		     be read next to the numbers it produced. -->
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
@@ -19,9 +13,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+		<PackageReference Include="BenchmarkDotNet" />
 		<!-- Hardware counters (SqlCounters.cs) come from ETW, which this package wraps. -->
-		<PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.14.0" />
+		<PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" />
 
 		<!-- The library being compared against (Against.cs). It lives here and nowhere
 		     else: nothing that ships may depend on it, and nothing has to — what it is
@@ -29,13 +23,13 @@
 		     a T-SQL parser before this one existed. It is also the only authority on
 		     where one statement of a script ends and the next begins, which is what
 		     makes a comparison per statement possible at all. -->
-		<PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="180.102.0" />
+		<PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" />
 
 		<!-- The third source, and the only one that is not somebody's reading of the
 		     language: the engine itself. `SET PARSEONLY ON` asks it whether a statement is
 		     syntax, which needs no schema and runs nothing (Engine.cs). Benchmarks only,
 		     like ScriptDom, and the harness says so and moves on where no server answers. -->
-		<PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.2" />
+		<PackageReference Include="Microsoft.Data.SqlClient" />
 	</ItemGroup>
 
 	<ItemGroup>

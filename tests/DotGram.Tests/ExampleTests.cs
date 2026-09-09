@@ -1200,4 +1200,252 @@ public sealed class ExampleTests
 		// `parse (b: Bracketed(Digits, '[', ']') => @(b)) as ParseSubscript : @string`:
 		// the directive names the expression, and the type is what makes the `=>` legal.
 		Assert.Equal("[42]", Selectors.ParseSubscript("[42]"));
+
+	// ── A query read over tokens ─────────────────────────────────────────────────
+
+	/// <summary>`Lexical = true`: a lexer makes the tokens and the rules read those.</summary>
+	[Fact]
+	public void A_query_is_read_over_tokens()
+	{
+		var query = TokenizedQuery.ParseQuery("select a, b from users where a = 1");
+
+		Assert.Equal(["a", "b"], query.Columns);
+		Assert.Equal("users", query.Table);
+		Assert.Equal(new Comparison("a", "=", "1"), query.Where);
+	}
+
+	/// <summary>Keywords fold case, `--` is trivia, and a `where` is optional.</summary>
+	[Fact]
+	public void And_case_and_comments_are_the_lexers_business()
+	{
+		var query = TokenizedQuery.ParseQuery("SELECT id FROM t -- a comment");
+
+		Assert.Equal(["id"], query.Columns);
+		Assert.Null(query.Where);
+	}
+
+	/// <summary>
+	/// `&lt;&gt;` is one token because the lexical rules say so — over characters the two
+	/// alternatives would have to be ordered, and here their order says nothing.
+	/// </summary>
+	[Theory]
+	[InlineData("select a from t where a <> 1", "<>")]
+	[InlineData("select a from t where a < 1",  "<")]
+	public void And_the_lexer_settles_the_longest_match(string text, string op) =>
+		Assert.Equal(op, TokenizedQuery.ParseQuery(text).Where!.Op);
+
+	/// <summary>A keyword is a whole word (§4.6), so this one is an identifier.</summary>
+	[Fact]
+	public void And_a_keyword_ends_where_a_word_does() =>
+		Assert.False(TokenizedQuery.TryParseQuery("selectx a from t").IsSuccess);
+
+	// ── One library, two grammars written on it ──────────────────────────────────
+
+	/// <summary>The same lexemes, arriving under the name each includer chose.</summary>
+	[Fact]
+	public void One_library_serves_two_grammars()
+	{
+		Assert.Equal(
+			[new Setting("name", "\"a b\""), new Setting("port", "8080"), new Setting("mode", "fast")],
+			SettingsFile.ParseSettings("name = \"a b\"\nport = 8080\nmode = fast\n"));
+
+		Assert.Equal(
+			[new FilterTest("age", ">", "18"), new FilterTest("score", "=", "100")],
+			FilterFile.ParseFilter("age > 18 and score = 100"));
+	}
+
+	/// <summary>
+	/// And `Word` means two things without either grammar having to say which: the
+	/// includer's own, and the library's under the name it was included as.
+	/// </summary>
+	[Fact]
+	public void And_a_name_of_its_own_does_not_collide_with_the_librarys()
+	{
+		// `and` is the filter's `Word`; `age` and `score` are `Token.Word`.
+		Assert.Equal(2, FilterFile.ParseFilter("age > 18 and score = 100").Length);
+
+		// The library is also a parser, for anybody who wants one.
+		Assert.Equal("hello", Lexemes.ParseWord("hello"));
+		Assert.False(Lexemes.TryParseNumber("12x").IsSuccess);
+	}
+
+	// ── The standard library, doing the lexical work ─────────────────────────────
+
+	/// <summary>`using Std;` — whitespace, comments and numbers that are numbers.</summary>
+	[Fact]
+	public void The_standard_library_reads_a_line_of_measurements()
+	{
+		var readings = MetricsLine.Read("cpu=0.75 mem=2048 host=\"db-1\" up=36000 # sampled");
+
+		Assert.Equal(0.75m, readings["cpu"]);
+		Assert.Equal(2048L, readings["mem"]);
+		Assert.Equal("db-1", readings["host"]);
+		Assert.Equal(36000L, readings["up"]);
+	}
+
+	/// <summary>
+	/// The point of `Integer`, `Long` and `Decimal`: what comes back is the number, not
+	/// text for somebody to parse again in a culture they have to remember.
+	/// </summary>
+	[Fact]
+	public void And_what_comes_back_is_typed()
+	{
+		var readings = MetricsLine.Read("ratio=1.5 count=7 name=\"x\"");
+
+		Assert.IsType<decimal>(readings["ratio"]);
+		Assert.IsType<long>(readings["count"]);
+		Assert.IsType<string>(readings["name"]);
+	}
+
+
+	// ── A parse that remembers what it read ──────────────────────────────────────
+
+	/// <summary>`context`: a name has to be declared before it may be used.</summary>
+	[Theory]
+	[InlineData("let x = 2; let y = x + 3; y * x", 10)]
+	[InlineData("1 + 2 * 3",                        7)]
+	[InlineData("let a = 4; (a + 1) * 2",          10)]
+	public void A_scoped_program_works_out(string program, int expected) =>
+		Assert.Equal(expected, Scoped.ParseProgram(program, new Names()));
+
+	/// <summary>
+	/// And a name nobody declared is not a parse. Both of these are the same shape of
+	/// text as one that works: what refuses them is what the reading had worked out by
+	/// the time it reached the name, which is what a `context` is for.
+	/// </summary>
+	[Theory]
+	[InlineData("y + 1")]
+	[InlineData("let x = 1; y")]
+	public void And_an_undeclared_name_is_not_one(string program) =>
+		Assert.False(Scoped.TryParseProgram(program, new Names()).IsSuccess);
+
+	/// <summary>Each parse gets its own, so two of them cannot see each other's.</summary>
+	[Fact]
+	public void And_one_parse_does_not_see_anothers_names()
+	{
+		Assert.Equal(1, Scoped.ParseProgram("let x = 1; x", new Names()));
+		Assert.False(Scoped.TryParseProgram("x", new Names()).IsSuccess);
+	}
+
+	// ── A set of characters that is data ─────────────────────────────────────────
+
+	/// <summary>`[@M]`: what a name may hold is what the platform allows.</summary>
+	[Fact]
+	public void A_path_is_split_into_names_the_platform_would_take()
+	{
+		Assert.Equal(
+			["reports", "2026", "september.txt"],
+			FileNames.ParseRoute("reports/2026/september.txt"));
+
+		Assert.Equal("a name with spaces.txt", FileNames.ParseSegment("a name with spaces.txt"));
+	}
+
+	/// <summary>
+	/// A set is asked one character at a time and a guard about what they came to, which
+	/// is why the invalid character and the reserved name are refused by different things.
+	/// </summary>
+	[Theory]
+	[InlineData("bad:name")]     // the set: ':' is not a filename character here
+	[InlineData("CON")]          // the guard: a name Windows keeps
+	[InlineData("a//b")]         // and a segment may not be empty
+	public void And_what_it_refuses_it_refuses_for_a_reason(string path) =>
+		Assert.False(FileNames.IsUsable(path));
+
+
+	// ── One grammar, read with locations and without ─────────────────────────────
+
+	const string Settings = "# a comment\nhost = localhost\nport = 8080\n";
+
+	/// <summary>Both readings read the same file the same way.</summary>
+	[Fact]
+	public void A_config_reads_the_same_either_way()
+	{
+		Assert.Equal(
+			[new Entry("host", "localhost"), new Entry("port", "8080")],
+			Config.ParseFile(Settings));
+
+		// Not by record equality: an entry that carries where it was is not equal to
+		// one built anywhere else, which is the price of putting the location in the
+		// value rather than beside it.
+		Assert.Equal(
+			[("host", "localhost"), ("port", "8080")],
+			Config.Located.ParseFile(Settings).Select(one => (one.Key, one.Value)));
+	}
+
+	/// <summary>
+	/// And only one of them pays for saying where. `LocationType` is what the second
+	/// reading was given and the first was not, so the first calls `Locate` never and
+	/// the values carry what the record was constructed with.
+	/// </summary>
+	[Fact]
+	public void And_only_the_located_reading_says_where()
+	{
+		Assert.All(Config.ParseFile(Settings), entry => Assert.Equal(default, entry.Where));
+
+		var located = Config.Located.ParseFile(Settings);
+
+		Assert.Equal(new At(12, 16), located[0].Where);
+		Assert.Equal(new At(29, 11), located[1].Where);
+	}
+
+	/// <summary>Which is what it is for: telling somebody where to look.</summary>
+	[Fact]
+	public void And_that_is_what_a_message_needs() =>
+		Assert.Equal(
+			["unknown key 'port' at line 3, column 1"],
+			Config.Unknown(Settings, "host"));
+
+	/// <summary>`: @SourceSpan` — the same question, asked of one rule and much smaller.</summary>
+	[Fact]
+	public void And_a_rule_may_simply_be_its_own_extent()
+	{
+		var span = Config.ParseKeySpan("host");
+
+		Assert.Equal(0, span.Start);
+		Assert.Equal(4, span.Length);
+	}
+
+
+	// ── A mark that holds while something is read ────────────────────────────────
+
+	/// <summary>`state`: a region decides what the same rule builds inside it.</summary>
+	[Fact]
+	public void A_region_changes_what_is_built_and_not_what_is_read()
+	{
+		var filter = Filters.ParseFilter("""name = "Bob" and ci(city = "berlin")""");
+
+		Assert.Equal(
+			[new Match("name", "Bob", StringComparison.Ordinal),
+			 new Match("city", "berlin", StringComparison.OrdinalIgnoreCase)],
+			filter);
+	}
+
+	/// <summary>
+	/// `parserState` is the marks outermost first, so the last is the nearest — which is
+	/// the whole of what makes a region nestable.
+	/// </summary>
+	[Theory]
+	[InlineData("""kind = "Draft" """,         "Ordinal")]
+	[InlineData("""ci(kind = "Draft")""",      "OrdinalIgnoreCase")]
+	[InlineData("""ci(cs(kind = "Draft"))""",  "Ordinal")]
+	[InlineData("""cs(ci(kind = "Draft"))""",  "OrdinalIgnoreCase")]
+	public void And_the_nearest_mark_is_the_one_that_decides(string filter, string how) =>
+		Assert.Equal(how, Filters.ParseFilter(filter)[0].How.ToString());
+
+	/// <summary>And the point of it, from a caller that knows nothing about marks.</summary>
+	[Fact]
+	public void And_a_row_is_matched_by_what_the_region_said()
+	{
+		static string? Row(string field) => field switch
+		{
+			"city" => "Berlin",
+			"name" => "Bob",
+			_      => null,
+		};
+
+		Assert.True(Filters.Matches("""ci(city = "berlin")""", Row));
+		Assert.False(Filters.Matches("""cs(city = "berlin")""", Row));
+		Assert.True(Filters.Matches("""name = "Bob" and ci(city = "BERLIN")""", Row));
+	}
+
 }

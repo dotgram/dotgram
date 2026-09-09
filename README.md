@@ -1,3 +1,10 @@
+<!--
+  Agents: the skill for writing .Gram grammars is src/DotGram/SKILL.md — the notation, its
+  seam with C#, and what the generator's diagnostics mean. Read it before writing a
+  grammar. It ships inside the NuGet package too, so in a project that has restored
+  DotGram it is ~/.nuget/packages/dotgram/<version>/SKILL.md.
+-->
+
 # .Gram
 
 .Gram is a source generator that compiles grammars into strongly typed C# parsers.
@@ -505,6 +512,7 @@ read: formats, feeds, expressions, languages.
 | [`docs/diagnostics.md`](docs/diagnostics.md) | compiler diagnostics |
 | [`docs/visual-studio.md`](docs/visual-studio.md) | the Visual Studio extension, and the `StringSyntax` annotations |
 | [`docs/status.md`](docs/status.md) | implemented features, limitations, and measurements |
+| [`docs/development.md`](docs/development.md) | how this is built, checked and measured |
 
 ## Compatibility
 

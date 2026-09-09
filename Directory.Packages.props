@@ -1,0 +1,61 @@
+﻿<Project>
+
+	<!--
+	  One place that says which version of anything this repository takes. A project asks
+	  for a package by name; what answers is here.
+
+	  Microsoft.CodeAnalysis is the one number here that is not "the newest that works".
+	  It is the oldest Roslyn the generator intends to load into, and a generator built
+	  against an older one runs on newer hosts and not the other way round, so raising
+	  it raises the minimum compiler for everybody who installs the package.
+	-->
+
+	<PropertyGroup>
+		<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+	</PropertyGroup>
+
+	<ItemGroup Label="Roslyn">
+		<!-- The oldest Roslyn the generator intends to load into: built against an older
+		     one it runs on newer hosts, and not the other way round. The tests and the
+		     extension compile against the same, so what they drive is what ships. -->
+		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />
+		<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
+	</ItemGroup>
+
+	<ItemGroup Label="Visual Studio">
+		<PackageVersion Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" />
+		<PackageVersion Include="Microsoft.VisualStudio.LanguageServices" Version="4.14.0" />
+		<PackageVersion Include="Microsoft.VSSDK.BuildTools" Version="18.9.820" />
+	</ItemGroup>
+
+	<ItemGroup Label="Tests">
+		<PackageVersion Include="xunit.v3" Version="4.0.0" />
+		<PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
+	</ItemGroup>
+
+	<ItemGroup Label="Benchmarks">
+		<PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+		<PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.8" />
+
+		<!-- Somebody else's T-SQL parser, and the engine itself: two second opinions
+		     about what the language is, and neither ships. -->
+		<PackageVersion Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="180.102.0" />
+		<PackageVersion Include="Microsoft.Data.SqlClient" Version="7.0.2" />
+	</ItemGroup>
+
+	<ItemGroup Label="What older frameworks are missing">
+		<!-- `ReadOnlySpan<char>`, which every generated method takes and neither
+		     netstandard2.0 nor .NET Framework carries. -->
+		<PackageVersion Include="System.Memory" Version="4.6.3" />
+
+		<!-- How a machine with no targeting pack compiles for .NET Framework at all,
+		     which is what CI is. Build-time only. -->
+		<PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" />
+
+		<!-- Modern types on netstandard2.0 and net472 without a runtime dependency:
+		     Meziantou.Polyfill is a generator and emits them as internal. -->
+		<PackageVersion Include="Meziantou.Polyfill" Version="1.0.165" />
+	</ItemGroup>
+
+</Project>

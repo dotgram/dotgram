@@ -340,7 +340,7 @@ the seven parts cost **2.19× recognition before this work and 1.41× after**, o
 changes `docs/next.md` records under materialization.
 
 Note what this grammar does *not* show. Making the materializer a method of its own was
-worth 7% on `benchmarks/Urls.cs` and nothing measurable here — the recognizer this
+worth 7% on `benchmarks/DotGram.Benchmarks/Urls.cs` and nothing measurable here — the recognizer this
 grammar compiles to is 3,772 lines of generated C# against the URL one's 21,500, and that
 saving is in how large the method was. A benchmark small enough to be readable is
 sometimes small enough to miss what it is measuring.
