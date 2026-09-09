@@ -905,6 +905,28 @@ public static class SqlWriter
 	{
 		var record = statement.GetType().Name;
 
+		// The statements SQL Server will not read without their terminator. The published
+		// syntax writes the semicolon into the block for each of them, and ScriptDom holds
+		// them to it — which is how this list was found and is how it grows.
+		Said(text, statement, record);
+
+		if (Terminated.Contains(record))
+			text.Append(';');
+	}
+
+	/// <summary>The statements that are not read back without a semicolon after them.</summary>
+	static readonly HashSet<string> Terminated = new(StringComparer.Ordinal)
+	{
+		"FullTextStopListDefinition",
+		"AlterFullTextStopList",
+		"SearchPropertyListDefinition",
+		"AlterSearchPropertyList",
+		"DropSensitivityClassification",
+	};
+
+	static void Said(StringBuilder text, Statement statement, string record)
+	{
+
 		if (record.StartsWith("AlterDatabase", StringComparison.Ordinal) &&
 			statement.GetType().GetProperty("Name")?.GetValue(statement) is string database)
 		{
@@ -960,6 +982,8 @@ public static class SqlWriter
 	{
 		if (statement is Statement.Definition { Tail: { Length: > 0 } tail })
 			text.Append(' ').Append(tail);
+		else if (statement is Statement.Removal { Tail: { Length: > 0 } after })
+			text.Append(' ').Append(after);
 	}
 
 	static readonly Dictionary<string, string> Spelled = new(StringComparer.Ordinal)
@@ -972,6 +996,7 @@ public static class SqlWriter
 		["RestoreVerifyOnly"]      = "RESTORE VERIFYONLY",
 		["AuditSpecificationDefinition"]         = "CREATE SERVER AUDIT SPECIFICATION",
 		["DatabaseAuditSpecificationDefinition"] = "CREATE DATABASE AUDIT SPECIFICATION",
+		["DropSensitivityClassification"]        = "DROP SENSITIVITY CLASSIFICATION FROM",
 		["FullTextStopListDefinition"]           = "CREATE FULLTEXT STOPLIST",
 		["AlterFullTextStopList"]                = "ALTER FULLTEXT STOPLIST",
 		["StatisticsDefinition"]   = "CREATE STATISTICS",
@@ -1621,6 +1646,14 @@ public static class SqlWriter
 
 			case Clause.Connection(var from, var to):
 				text.Append(from).Append(" TO ").Append(to);
+				break;
+
+			case Clause.Dropped(var kind, var dropped):
+				text.Append(kind);
+
+				if (dropped is not null)
+					text.Append(' ').Append(dropped);
+
 				break;
 
 			case Clause.DatabaseFile(var options):

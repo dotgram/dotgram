@@ -243,6 +243,22 @@ public abstract record Statement : ISqlSpan
 	/// in where somebody needs it.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// A statement that is <c>DROP</c>, a phrase, and the names it drops — with whatever the
+	/// syntax writes after them, as it was written.
+	/// </summary>
+	/// <remarks>
+	/// The same bargain <see cref="Definition"/> strikes, for the same family of statements
+	/// seen from the other end: sixty-five of them, each a phrase and a list, and a few with
+	/// a clause of their own — <c>ON SERVER</c> for an event notification, <c>ON t WITH
+	/// (…)</c> for an index.
+	/// </remarks>
+	public abstract record Removal(Expression[] Names) : Statement
+	{
+		/// <summary>What was written after the names, or null where nothing was.</summary>
+		public string? Tail { get; init; }
+	}
+
 	public abstract record Definition(string Name) : Statement
 	{
 		/// <summary>What was written after the name, or null where nothing was.</summary>
@@ -716,199 +732,199 @@ public abstract record Statement : ISqlSpan
 	// so the catalogue of names is here, in C#, and the grammar still says one thing.
 
 	/// <summary><c>DROP AGGREGATE</c>.</summary>
-	public sealed record DropAggregate(Expression[] Names) : Statement;
+	public sealed record DropAggregate(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP APPLICATION ROLE</c>.</summary>
-	public sealed record DropApplicationRole(Expression[] Names) : Statement;
+	public sealed record DropApplicationRole(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP AVAILABILITY GROUP</c>.</summary>
-	public sealed record DropAvailabilityGroup(Expression[] Names) : Statement;
+	public sealed record DropAvailabilityGroup(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP BROKER PRIORITY</c>.</summary>
-	public sealed record DropBrokerPriority(Expression[] Names) : Statement;
+	public sealed record DropBrokerPriority(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP CERTIFICATE</c>.</summary>
-	public sealed record DropCertificate(Expression[] Names) : Statement;
+	public sealed record DropCertificate(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP COLUMN ENCRYPTION KEY</c>.</summary>
-	public sealed record DropColumnEncryptionKey(Expression[] Names) : Statement;
+	public sealed record DropColumnEncryptionKey(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP COLUMN MASTER KEY</c>.</summary>
-	public sealed record DropColumnMasterKey(Expression[] Names) : Statement;
+	public sealed record DropColumnMasterKey(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP CONTRACT</c>.</summary>
-	public sealed record DropContract(Expression[] Names) : Statement;
+	public sealed record DropContract(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP CREDENTIAL</c>.</summary>
-	public sealed record DropCredential(Expression[] Names) : Statement;
+	public sealed record DropCredential(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP CRYPTOGRAPHIC PROVIDER</c>.</summary>
-	public sealed record DropCryptographicProvider(Expression[] Names) : Statement;
+	public sealed record DropCryptographicProvider(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP DATABASE AUDIT SPECIFICATION</c>.</summary>
-	public sealed record DropDatabaseAuditSpecification(Expression[] Names) : Statement;
+	public sealed record DropDatabaseAuditSpecification(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP DATABASE SCOPED CREDENTIAL</c>.</summary>
-	public sealed record DropDatabaseScopedCredential(Expression[] Names) : Statement;
+	public sealed record DropDatabaseScopedCredential(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP DATABASE</c>.</summary>
-	public sealed record DropDatabase(Expression[] Names) : Statement;
+	public sealed record DropDatabase(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP DEFAULT</c>.</summary>
-	public sealed record DropDefault(Expression[] Names) : Statement;
+	public sealed record DropDefault(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP ENDPOINT</c>.</summary>
-	public sealed record DropEndpoint(Expression[] Names) : Statement;
+	public sealed record DropEndpoint(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP EXTERNAL DATA SOURCE</c>.</summary>
-	public sealed record DropExternalDataSource(Expression[] Names) : Statement;
+	public sealed record DropExternalDataSource(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP EXTERNAL FILE FORMAT</c>.</summary>
-	public sealed record DropExternalFileFormat(Expression[] Names) : Statement;
+	public sealed record DropExternalFileFormat(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP EXTERNAL LANGUAGE</c>.</summary>
-	public sealed record DropExternalLanguage(Expression[] Names) : Statement;
+	public sealed record DropExternalLanguage(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP EXTERNAL MODEL</c>.</summary>
-	public sealed record DropExternalModel(Expression[] Names) : Statement;
+	public sealed record DropExternalModel(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP EXTERNAL RESOURCE POOL</c>.</summary>
-	public sealed record DropExternalResourcePool(Expression[] Names) : Statement;
+	public sealed record DropExternalResourcePool(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP EXTERNAL TABLE</c>.</summary>
-	public sealed record DropExternalTable(Expression[] Names) : Statement;
+	public sealed record DropExternalTable(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP FULLTEXT CATALOG</c>.</summary>
-	public sealed record DropFulltextCatalog(Expression[] Names) : Statement;
+	public sealed record DropFulltextCatalog(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP FULLTEXT STOPLIST</c>.</summary>
-	public sealed record DropFulltextStoplist(Expression[] Names) : Statement;
+	public sealed record DropFulltextStoplist(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP FUNCTION</c>.</summary>
-	public sealed record DropFunction(Expression[] Names) : Statement;
+	public sealed record DropFunction(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP LOGIN</c>.</summary>
-	public sealed record DropLogin(Expression[] Names) : Statement;
+	public sealed record DropLogin(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP MESSAGE TYPE</c>.</summary>
-	public sealed record DropMessageType(Expression[] Names) : Statement;
+	public sealed record DropMessageType(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP PARTITION FUNCTION</c>.</summary>
-	public sealed record DropPartitionFunction(Expression[] Names) : Statement;
+	public sealed record DropPartitionFunction(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP PARTITION SCHEME</c>.</summary>
-	public sealed record DropPartitionScheme(Expression[] Names) : Statement;
+	public sealed record DropPartitionScheme(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP PROCEDURE</c>.</summary>
-	public sealed record DropProcedure(Expression[] Names) : Statement;
+	public sealed record DropProcedure(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP QUEUE</c>.</summary>
-	public sealed record DropQueue(Expression[] Names) : Statement;
+	public sealed record DropQueue(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP REMOTE SERVICE BINDING</c>.</summary>
-	public sealed record DropRemoteServiceBinding(Expression[] Names) : Statement;
+	public sealed record DropRemoteServiceBinding(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP RESOURCE POOL</c>.</summary>
-	public sealed record DropResourcePool(Expression[] Names) : Statement;
+	public sealed record DropResourcePool(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP ROLE</c>.</summary>
-	public sealed record DropRole(Expression[] Names) : Statement;
+	public sealed record DropRole(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP ROUTE</c>.</summary>
-	public sealed record DropRoute(Expression[] Names) : Statement;
+	public sealed record DropRoute(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP RULE</c>.</summary>
-	public sealed record DropRule(Expression[] Names) : Statement;
+	public sealed record DropRule(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP SCHEMA</c>.</summary>
-	public sealed record DropSchema(Expression[] Names) : Statement;
+	public sealed record DropSchema(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP SEARCH PROPERTY LIST</c>.</summary>
-	public sealed record DropSearchPropertyList(Expression[] Names) : Statement;
+	public sealed record DropSearchPropertyList(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP SECURITY POLICY</c>.</summary>
-	public sealed record DropSecurityPolicy(Expression[] Names) : Statement;
+	public sealed record DropSecurityPolicy(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP SEQUENCE</c>.</summary>
-	public sealed record DropSequence(Expression[] Names) : Statement;
+	public sealed record DropSequence(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP SERVER AUDIT SPECIFICATION</c>.</summary>
-	public sealed record DropServerAuditSpecification(Expression[] Names) : Statement;
+	public sealed record DropServerAuditSpecification(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP SERVER AUDIT</c>.</summary>
-	public sealed record DropServerAudit(Expression[] Names) : Statement;
+	public sealed record DropServerAudit(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP SERVER ROLE</c>.</summary>
-	public sealed record DropServerRole(Expression[] Names) : Statement;
+	public sealed record DropServerRole(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP SERVICE</c>.</summary>
-	public sealed record DropService(Expression[] Names) : Statement;
+	public sealed record DropService(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP STATISTICS</c>.</summary>
-	public sealed record DropStatistics(Expression[] Names) : Statement;
+	public sealed record DropStatistics(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP SYNONYM</c>.</summary>
-	public sealed record DropSynonym(Expression[] Names) : Statement;
+	public sealed record DropSynonym(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP TABLE</c>.</summary>
-	public sealed record DropTable(Expression[] Names) : Statement;
+	public sealed record DropTable(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP TYPE</c>.</summary>
-	public sealed record DropType(Expression[] Names) : Statement;
+	public sealed record DropType(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP USER</c>.</summary>
-	public sealed record DropUser(Expression[] Names) : Statement;
+	public sealed record DropUser(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP VIEW</c>.</summary>
-	public sealed record DropView(Expression[] Names) : Statement;
+	public sealed record DropView(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP WORKLOAD CLASSIFIER</c>.</summary>
-	public sealed record DropWorkloadClassifier(Expression[] Names) : Statement;
+	public sealed record DropWorkloadClassifier(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP WORKLOAD GROUP</c>.</summary>
-	public sealed record DropWorkloadGroup(Expression[] Names) : Statement;
+	public sealed record DropWorkloadGroup(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP XML SCHEMA COLLECTION</c>.</summary>
-	public sealed record DropXmlSchemaCollection(Expression[] Names) : Statement;
+	public sealed record DropXmlSchemaCollection(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP ASYMMETRIC KEY</c>.</summary>
-	public sealed record DropAsymmetricKey(Expression[] Names) : Statement;
+	public sealed record DropAsymmetricKey(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP SYMMETRIC KEY</c>.</summary>
-	public sealed record DropSymmetricKey(Expression[] Names) : Statement;
+	public sealed record DropSymmetricKey(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP ASSEMBLY</c>.</summary>
-	public sealed record DropAssembly(Expression[] Names) : Statement;
+	public sealed record DropAssembly(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP EXTERNAL LIBRARY</c>.</summary>
-	public sealed record DropExternalLibrary(Expression[] Names) : Statement;
+	public sealed record DropExternalLibrary(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP EVENT SESSION</c>.</summary>
-	public sealed record DropEventSession(Expression[] Names) : Statement;
+	public sealed record DropEventSession(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP EVENT NOTIFICATION</c>.</summary>
-	public sealed record DropEventNotification(Expression[] Names) : Statement;
+	public sealed record DropEventNotification(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP FULLTEXT INDEX</c>.</summary>
-	public sealed record DropFulltextIndex(Expression[] Names) : Statement;
+	public sealed record DropFulltextIndex(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP INDEX</c>.</summary>
-	public sealed record DropIndex(Expression[] Names) : Statement;
+	public sealed record DropIndex(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP SIGNATURE</c>.</summary>
-	public sealed record DropSignature(Expression[] Names) : Statement;
+	public sealed record DropSignature(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP SENSITIVITY CLASSIFICATION</c>.</summary>
-	public sealed record DropSensitivityClassification(Expression[] Names) : Statement;
+	public sealed record DropSensitivityClassification(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP TRIGGER</c>.</summary>
-	public sealed record DropTrigger(Expression[] Names) : Statement;
+	public sealed record DropTrigger(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP MASTER KEY</c>.</summary>
-	public sealed record DropMasterKey(Expression[] Names) : Statement;
+	public sealed record DropMasterKey(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP DATABASE ENCRYPTION KEY</c>.</summary>
-	public sealed record DropDatabaseEncryptionKey(Expression[] Names) : Statement;
+	public sealed record DropDatabaseEncryptionKey(Expression[] Names) : Removal(Names);
 
 	// ---- how a parser makes these ------------------------------------------------------------
 	//
@@ -1090,7 +1106,10 @@ public abstract record Statement : ISqlSpan
 	/// they have drifted apart this says so rather than quietly building the wrong node, which
 	/// is a defect in this file and not in anybody's SQL.
 	/// </remarks>
-	public static Statement Dropped(string kind, Expression[]? some)
+	public static Statement Dropped(string kind, Expression[]? some, string? tail = null) =>
+		Removed(kind, some) is Removal made ? made with { Tail = Syntax.Tail(tail) } : Removed(kind, some);
+
+	static Statement Removed(string kind, Expression[]? some)
 	{
 		var names = some ?? Expression.None;
 
@@ -1830,6 +1849,13 @@ public abstract record Clause : ISqlSpan
 	/// <summary>One pair of node tables an edge may connect.</summary>
 	public sealed record Connection(string From, string To) : Clause;
 
+	/// <summary>
+	/// One thing an <c>ALTER TABLE … DROP</c> names: which kind it is, and its name where it
+	/// has one — the words in the order the drop writes them, which is not the order a
+	/// definition writes them in.
+	/// </summary>
+	public sealed record Dropped(string Kind, string? Name) : Clause;
+
 	/// <summary>One file of a database: the bracketed options that describe it.</summary>
 	public sealed record DatabaseFile(Clause[] Options) : Clause;
 
@@ -1854,9 +1880,8 @@ public abstract record Clause : ISqlSpan
 	public static ConstraintDefinition Constrained(
 		string kind, Clause[]? columns, Expression? check) => new(null, kind, columns ?? None, check);
 
-	/// <summary>A named thing dropped or declared, where only the name and the kind matter.</summary>
-	public static ConstraintDefinition Marked(string kind, string? name) =>
-		new(name, kind, None, null);
+	/// <summary>A named thing dropped, where only the kind and the name matter.</summary>
+	public static Dropped Marked(string kind, string? name) => new(kind, name);
 
 	/// <summary>
 	/// A key or a uniqueness: the kind, and everything T-SQL lets stand after it.

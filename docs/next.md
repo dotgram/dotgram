@@ -17239,3 +17239,17 @@ word changed; an external library and a stoplist keep their spelling; an event n
 and a selective XML index keep their bodies; and the `ALTER DATABASE` branch of `Spelling`
 returned before it could print a tail, which is why four kinds stayed at zero after they
 had one. 93.6% to **95.4%** the same statement, 276 unread to 166.
+
+**And the drops.** Sixty-five `DROP` statements are the same shape seen from the other end —
+a phrase and a list of names — so they stand on `Statement.Removal` with a tail of their
+own: `ON SERVER` for an event notification and a session, `ON t WITH (…)` for an index. A
+dropped table element is `Clause.Dropped`, the kind and then the name, which is the order a
+drop writes them and not the order a definition does — `DROP CONSTRAINT c` had been coming
+back as `CONSTRAINT c CONSTRAINT`.
+
+**Three that were only a semicolon.** `CREATE FULLTEXT STOPLIST fs1` printed back
+character-for-character and ScriptDom would not read it: the published block writes the
+terminator into the syntax for the stoplists, the search property lists and the sensitivity
+classification, and ScriptDom holds them to it. A short list in the writer says which, and
+it grew from the oracle rather than from the documentation. 95.4% to **96.9%** the same
+statement, 166 unread to 52.

@@ -1866,10 +1866,10 @@ ViewStatement : @Statement
 // filter are shared and only the header is new.
 CreateIndexStatement : @Statement
 	= "CREATE"i & "SELECTIVE"i & "XML"i & "INDEX"i & name: Identifier?
-	  & "ON"i & on: QualifiedName & '(' & ColumnList & ')'
+	  & "ON"i & on: QualifiedName & '(' & promoted: ColumnList & ')'
 	  & tail: (("WITH"i & XmlNamespaces)? & SelectivePaths) & o: IndexWith?
 		=> @(new Statement.CreateIndex(
-				 on, Clause.Indexed(name ?? "", null, null, null, null, null, null, null, null, o, null, null),
+				 on, Clause.Indexed(name ?? "", null, null, null, null, Syntax.Columns(promoted), null, null, null, o, null, null),
 				 "SELECTIVE XML", Syntax.Tail(tail)))
 	| "CREATE"i & kind: ("PRIMARY"i? & "XML"i) & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
@@ -2540,10 +2540,10 @@ DropBody : @Statement
 		=> @(Statement.Dropped("ASSEMBLY", names))
 	| "EXTERNAL"i & "LIBRARY"i & names: DropNames & ("AUTHORIZATION"i & QualifiedName)?
 		=> @(Statement.Dropped("EXTERNAL LIBRARY", names))
-	| "EVENT"i & "SESSION"i & names: DropNames & "ON"i & DropScope
-		=> @(Statement.Dropped("EVENT SESSION", names))
-	| "EVENT"i & "NOTIFICATION"i & names: DropNames & "ON"i & DropScope
-		=> @(Statement.Dropped("EVENT NOTIFICATION", names))
+	| "EVENT"i & "SESSION"i & names: DropNames & tail: ("ON"i & DropScope)
+		=> @(Statement.Dropped("EVENT SESSION", names, tail))
+	| "EVENT"i & "NOTIFICATION"i & names: DropNames & tail: ("ON"i & DropScope)
+		=> @(Statement.Dropped("EVENT NOTIFICATION", names, tail))
 
 	// An index is named twice — once for itself and once for what it is on — and the older
 	// spelling puts both in one qualified name.
@@ -2557,7 +2557,7 @@ DropBody : @Statement
 	| "COUNTER"i? & "SIGNATURE"i & "FROM"i & QualifiedName & "BY"i
 	  & first: DropCrypto & (',' & rest: DropCrypto)*
 		=> @(Statement.Dropped("SIGNATURE", Syntax.Listed(first, rest)))
-	| "SENSITIVITY"i & "CLASSIFICATION"i & "FROM"i & names: DropNames
+	| "SENSITIVITY"i & "CLASSIFICATION"i & from: "FROM"i & names: DropNames
 		=> @(Statement.Dropped("SENSITIVITY CLASSIFICATION", names))
 
 	// A trigger says which of the three kinds it is by what it is on.
