@@ -361,9 +361,7 @@ sealed partial class Machine
 	{
 		var power = _graph.Climbing.ContainsKey(rule) ? ", power" : ", 0";
 
-		file.Line(
-			"if ((probes++ & 63) == 0 && !global::System.Runtime.CompilerServices" +
-			".RuntimeHelpers.TryEnsureSufficientExecutionStack())");
+		file.Line($"if ((probes++ & 63) == 0 && !EnoughStack_DotGram{_tag}())");
 		file.Then($"return Deepen_DotGram{_tag}(pos, {DeepOf(rule)}{power});");
 		file.Line();
 	}
@@ -518,6 +516,38 @@ sealed partial class Machine
 		var carried = new List<(string Type, string Name)>(state) { (CSharpEmitter.FailureType, "failure") };
 
 		carried.AddRange(registers);
+
+		file.Line();
+		file.Line("/// <summary>Whether there is stack left to read one more level with.</summary>");
+		file.Line("/// <remarks>");
+		file.Line("/// `TryEnsureSufficientExecutionStack` is .NET Core's and .NET Standard 2.1's. Where");
+		file.Line("/// it is not there — .NET Framework, netstandard2.0 — the older pair answers the same");
+		file.Line("/// question, at the cost of an exception on the one probe in sixty-four that finds");
+		file.Line("/// the margin gone.");
+		file.Line("/// </remarks>");
+
+		using (file.Block($"static bool EnoughStack_DotGram{_tag}()"))
+		{
+			file.Line("#if NETCOREAPP2_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER");
+			file.Line(
+				"return global::System.Runtime.CompilerServices.RuntimeHelpers" +
+				".TryEnsureSufficientExecutionStack();");
+			file.Line("#else");
+
+			using (file.Block("try"))
+			{
+				file.Line(
+					"global::System.Runtime.CompilerServices.RuntimeHelpers" +
+					".EnsureSufficientExecutionStack();");
+				file.Line();
+				file.Line("return true;");
+			}
+
+			using (file.Block("catch (global::System.InsufficientExecutionStackException)"))
+				file.Line("return false;");
+
+			file.Line("#endif");
+		}
 
 		file.Line();
 		file.Line("/// <summary>Carries this reading onto a stack of its own and answers with what it read.</summary>");

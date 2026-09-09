@@ -78,6 +78,7 @@ the stable `DotGram.VisualStudio` extension ID.
 
 ## Verify
 
-Open `examples/DotGram.Examples/VisualStudioToolingPlayground.cs` and
-`examples/DotGram.Examples/VisualStudioToolingPlayground.gram`. The comments beside each
+Open `tests/DotGram.VisualStudio.Tests/Playground/VisualStudioToolingPlayground.cs` and
+the `.gram` file beside it. They are compiled by that project, so the editor has a real
+compilation behind them, which is half of what is being checked. The comments beside each
 grammar rule describe the manual checks and their expected results.

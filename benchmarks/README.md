@@ -4,6 +4,7 @@
 dotnet run -c Release --project benchmarks/DotGram.Benchmarks
 dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --filter "*Url*"
 dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --against 9 200000
+dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --feed
 ```
 
 Not run by CI. A number from a shared runner is a number about the runner, and a test
@@ -34,7 +35,8 @@ rents.
 
 ## The URL benchmark
 
-`examples/UrlExample.cs`'s grammar against the same language written as a regular
+`examples/DotGram.Examples/Formats/UrlExample.cs`'s grammar against the same language
+written as a regular
 expression, interpreted and compiled. The pattern is not a loose URL-shaped regex: it is
 that grammar transcribed rule by rule, with the same character classes and the same named
 groups, and **the run refuses to start until both sides agree on every input** — scheme,
@@ -869,6 +871,34 @@ followed the input, so a record the window cut in half looked like a record that
 match, and the stream closed a repetition that had not ended after a hundred and fourteen
 records of a hundred thousand (docs/next.md, "a scanner that matched threw away how far it
 had looked"). Nothing caught it until every benchmark in the repository was run at once.
+
+## What a streamed parse holds
+
+`--feed`, over `StreamingBenchmarks.cs`'s grammar. The input is made a line at a time by
+`MadeFeed.cs` and never held, so what is measured is the parse rather than a disk — and so
+that a claim about twenty gigabytes does not need twenty gigabytes of disk to check.
+
+Two sizes, because the claim is about the difference between them rather than about either
+number. Windows, .NET 10, one process each:
+
+| rows | read | seconds | managed peak | working set |
+| --: | --: | --: | --: | --: |
+| 40,000,002 | 1.41 GiB | 12.9 s | 37.8 MiB | 83.0 MiB |
+| 600,000,002 | 21.17 GiB | 198.1 s | 48.3 MiB | 78.2 MiB |
+
+**Fifteen times the input, and the working set went down.** What a streamed parse holds is
+the window and the record in hand, so the file's size is not in the figure: 19.8 GiB more
+input left the process 4.8 MiB smaller.
+
+The managed peak is sampled once every million records, so the longer run takes fifteen
+times as many samples and finds a higher point in the collection cycle — 48.3 against 37.8
+MiB is where the samples landed, not a heap that grew. What says it did not grow is that
+the working set, which is not sampled, did not.
+
+The row count is what the parse handed back: one part per line, plus the header and the
+trailer. Nothing keeps them — the loop counts and drops, which is what a caller writing to
+a database or adding up a column does, and what makes the figure the parser's rather than
+the caller's.
 
 ## How a deferred construction is carried
 

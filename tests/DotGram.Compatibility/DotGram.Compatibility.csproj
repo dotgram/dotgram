@@ -5,6 +5,7 @@
 
 	      net8.0            nothing
 	      netstandard2.0    System.Memory, for `ReadOnlySpan<char>`
+	      net472            the same, and a language version: the default there is C# 7.3
 
 	  Two compatibility surfaces exist and only one of them is the analyzer's own target
 	  framework. That one is settled: the generator is netstandard2.0 so that every compiler
@@ -18,7 +19,7 @@
 	-->
 
 	<PropertyGroup>
-		<TargetFrameworks>net8.0;netstandard2.0</TargetFrameworks>
+		<TargetFrameworks>net8.0;netstandard2.0;net472</TargetFrameworks>
 		<RootNamespace>DotGram.Compatibility</RootNamespace>
 		<IsPackable>false</IsPackable>
 
@@ -36,12 +37,19 @@
 		<ImplicitUsings>disable</ImplicitUsings>
 	</PropertyGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-		<!-- What a consumer on this framework has to add, and the reason this project
+	<ItemGroup Condition="'$(TargetFramework)' != 'net8.0'">
+		<!-- What a consumer on these frameworks has to add, and the reason this project
 		     exists: the generated parser's own methods take `ReadOnlySpan<char>`, which is
-		     not in the framework here. This is the whole of the addition — no other package
+		     not in the framework there. This is the whole of the addition — no other package
 		     and no polyfill of ours. -->
 		<PackageReference Include="System.Memory" Version="4.6.3" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+		<!-- How a machine with no .NET Framework targeting pack installed compiles for
+		     one at all, which is what CI is. Build-time only. -->
+		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3"
+		                  PrivateAssets="all" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -2327,7 +2327,7 @@ A consistency check, and a real one: the notation above is parsed by a grammar w
 in itself, with no more than two tokens of lookahead.
 
 That grammar is not printed here, because a printed one is not checked.
-`examples/DotGram.Examples/GramExample.cs` holds it, this generator compiles it, and
+`examples/DotGram.Examples/Languages/GramExample.cs` holds it, this generator compiles it, and
 `ExampleTests.The_notation_reads_its_own_corpus` runs it over every grammar in this
 repository — the snapshots on disk and the text of every `[Gram]` in the examples
 assembly, which a new grammar joins without anyone remembering to add it.

@@ -2388,6 +2388,31 @@ namespace DotGram.Snapshots
 				this.whole   = parserWhole;
 			}
 
+			/// <summary>Whether there is stack left to read one more level with.</summary>
+			/// <remarks>
+			/// `TryEnsureSufficientExecutionStack` is .NET Core's and .NET Standard 2.1's. Where
+			/// it is not there — .NET Framework, netstandard2.0 — the older pair answers the same
+			/// question, at the cost of an exception on the one probe in sixty-four that finds
+			/// the margin gone.
+			/// </remarks>
+			static bool EnoughStack_DotGram_Sum()
+			{
+				#if NETCOREAPP2_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+				return global::System.Runtime.CompilerServices.RuntimeHelpers.TryEnsureSufficientExecutionStack();
+				#else
+				try
+				{
+					global::System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
+
+					return true;
+				}
+				catch (global::System.InsufficientExecutionStackException)
+				{
+					return false;
+				}
+				#endif
+			}
+
 			/// <summary>Carries this reading onto a stack of its own and answers with what it read.</summary>
 			internal int Deepen_DotGram_Sum(int pos, int which, int power)
 			{
@@ -2422,7 +2447,7 @@ namespace DotGram.Snapshots
 			/// <summary><c>Sum</c>, and the way back into it.</summary>
 			public int Read_Sum_Sum(int pos, int power)
 			{
-				if ((probes++ & 63) == 0 && !global::System.Runtime.CompilerServices.RuntimeHelpers.TryEnsureSufficientExecutionStack())
+				if ((probes++ & 63) == 0 && !EnoughStack_DotGram_Sum())
 					return Deepen_DotGram_Sum(pos, 0, power);
 
 				var s  = ways.Cursor;

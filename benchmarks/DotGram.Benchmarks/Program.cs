@@ -23,6 +23,47 @@ static class Program
 		// for is the shape of the curve rather than the numbers — a ratio that holds at
 		// sixty-four predicates and does not at a hundred thousand is a different fact
 		// about the parser than either measurement alone. See benchmarks/README.md.
+		// `--feed` is not a benchmark either: it reads one feed at two sizes and prints what
+		// the process held while it did. What it is for is the claim that a streamed parse
+		// costs what a record costs rather than what the file does, which is a statement
+		// about the difference between two runs and not about either number.
+		//
+		// The input is made as it is read and never held, so what is measured is the parse
+		// and not somebody's ability to produce twenty gigabytes of disk. See
+		// benchmarks/README.md.
+		if (args.Length >= 1 && args[0] == "--feed")
+		{
+			var sizes = args.Length > 1
+				? args.Skip(1).Select(long.Parse).ToArray()
+				: [40_000_000L, 600_000_000L];
+
+			Console.WriteLine($"{"rows",15}  {"read",10}  {"seconds",8}  {"managed peak",13}  {"working set",12}");
+
+			foreach (var rows in sizes)
+			{
+				var clock = System.Diagnostics.Stopwatch.StartNew();
+				var made  = new MadeFeed(rows);
+				var seen  = 0L;
+				var peak  = 0L;
+
+				foreach (var part in Feed.ParseFeed(made))
+				{
+					seen++;
+
+					// Sampled rather than watched: asking for it costs more than the parse
+					// does at this rate, and the high-water mark is what the claim is about.
+					if ((seen & 0xFFFFF) == 0)
+						peak = Math.Max(peak, GC.GetTotalMemory(false));
+				}
+
+				Console.WriteLine(
+					$"{seen,15:N0}  {made.Characters / 1024.0 / 1024.0 / 1024.0,7:N2} GiB  {clock.Elapsed.TotalSeconds,8:N1}  " +
+					$"{peak / 1024.0 / 1024.0,9:N1} MiB  {Environment.WorkingSet / 1024.0 / 1024.0,8:N1} MiB");
+			}
+
+			return;
+		}
+
 		if (args.Length > 0 && args[0] == "--big")
 		{
 			foreach (var terms in new[] { 1_000, 10_000, 50_000, 100_000, 200_000 })
