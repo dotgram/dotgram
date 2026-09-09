@@ -5,15 +5,15 @@
 		<RootNamespace>DotGram.VisualStudio.Tests</RootNamespace>
 		<IsPackable>false</IsPackable>
 		<IsTestProject>true</IsTestProject>
+		<!-- A test project is an executable: it hosts Microsoft.Testing.Platform itself
+		     rather than being hosted by VSTest. -->
 		<OutputType>Exe</OutputType>
-		<TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
 		<PackageReference Include="xunit.v3" />
-		<PackageReference Include="xunit.runner.visualstudio" />
 	</ItemGroup>
 
 	<ItemGroup>
