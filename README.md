@@ -1,9 +1,8 @@
 <!--
-  Agents: a skill for this package ships beside this file, in the package directory, as
-  SKILL.md — the notation, its seam with C#, and what the generator's diagnostics mean.
-  Read it before writing a grammar. In a restored package it is
-  ~/.nuget/packages/dotgram/<version>/SKILL.md, and in this repository it is SKILL.md at
-  the root.
+  Agents: the skill for writing .Gram grammars is src/DotGram/SKILL.md — the notation, its
+  seam with C#, and what the generator's diagnostics mean. Read it before writing a
+  grammar. It ships inside the NuGet package too, so in a project that has restored
+  DotGram it is ~/.nuget/packages/dotgram/<version>/SKILL.md.
 -->
 
 # .Gram

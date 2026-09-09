@@ -9,13 +9,16 @@ A source generator that compiles a grammar into a C# parser during the build. Th
 is ordinary C# in the assembly being compiled: there is no engine reading a grammar at run
 time, no runtime package, and nothing to deploy beside the application.
 
-Everything below is checkable. The full specification is [`docs/syntax.md`][syntax],
-every diagnostic is [`docs/diagnostics.md`][diagnostics], and whole parsers to copy are
-under [`examples/`][examples].
+Everything below is checkable. The full specification is [`docs/syntax.md`][syntax], every
+diagnostic is [`docs/diagnostics.md`][diagnostics], whole parsers to copy are under
+[`examples/`][examples], and the largest grammars written in this notation — RFC 3986, an
+expression language, SQL-92 and T-SQL as a dialect over it — are
+[`DotGram.Parsers`][parsers].
 
 [syntax]:      https://github.com/dotgram/dotgram/blob/main/docs/syntax.md
 [diagnostics]: https://github.com/dotgram/dotgram/blob/main/docs/diagnostics.md
 [examples]:    https://github.com/dotgram/dotgram/tree/main/examples/DotGram.Examples
+[parsers]:     https://github.com/dotgram/dotgram/tree/main/src/DotGram.Parsers
 
 ## Where a grammar lives
 

@@ -69,14 +69,16 @@
 		     file for it to come from. -->
 		<EmbeddedResource Include="Grammar\Std.gram" LogicalName="DotGram.Std.gram" />
 
-		<!-- The repository README is the package README: one text, so the two cannot
-		     drift into disagreeing about what this does. -->
-		<None Include="..\..\README.md" Pack="true" PackagePath="\" Visible="false" />
+		<!-- The package's own README, not the repository's. The two answer different
+		     questions: the front page argues for the project and the package tells
+		     somebody who has already installed it what to write. It links back rather
+		     than repeating what it links to. -->
+		<None Include="README.md" Pack="true" PackagePath="\" />
 
 		<!-- And the skill beside it, so that an agent working in a project that has
 		     restored this package can read how to write a grammar without leaving the
 		     machine. The README says where it is, in a comment nothing renders. -->
-		<None Include="..\..\SKILL.md" Pack="true" PackagePath="\" Visible="false" />
+		<None Include="SKILL.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
 	<!-- Puts the assembly in the analyzer folder of the package. Done as a pack-time

@@ -79,6 +79,11 @@ src/
 	DotGram/              the generator: one analyzer package, no runtime
 		Grammar/          pure: a function of grammar text, no Roslyn
 		Generation/       the Roslyn shell
+		README.md         the package's own front page, not the repository's: what to
+		                  write once it is installed, and links back for the rest
+		SKILL.md          how to write a grammar, for an agent. Ships in the package
+		                  beside that README, which points at it in a comment nothing
+		                  renders
 	DotGram.Parsers/      parsers for real formats, written in .gram and meant to ship.
 	                      Not teaching material: an example shows one feature, a parser
 	                      here answers whether the notation is enough for a whole
@@ -106,9 +111,6 @@ benchmarks/
 	DotGram.Benchmarks/   BenchmarkDotNet, run by hand and not by CI. Built by the
 	                      solution so that it has to keep compiling
 .work/                    scratch, ignored by git
-SKILL.md                  how to write a grammar, for an agent. Packed into the
-                          NuGet package beside the README, which points at it in a
-                          comment nothing renders
 ```
 
 Nothing under `examples/` may reference a test framework or be written for one. An
