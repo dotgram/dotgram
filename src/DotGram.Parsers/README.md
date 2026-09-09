@@ -1,8 +1,7 @@
 # DotGram.Parsers
 
-Parsers for real formats, written in `.gram` and meant to be used. Not teaching material:
-an example shows one feature, and a parser here answers whether the notation is enough for
-a whole specification.
+Parsers for real formats, written in `.gram`. Where an example shows one feature, a parser
+here is written against a whole specification.
 
 They are ordinary C# libraries. .Gram generates the parser into this assembly at compile
 time, so nothing here carries a parser runtime, and neither does anything that references
@@ -44,8 +43,8 @@ Percent decoding is deliberately separate from parsing:
 Rfc3986.Decode("hello%20world"); // hello world
 ```
 
-That distinction matters. `%2F` inside a path segment is encoded data during parsing;
-decoding it early would turn it into a path separator it is not.
+`%2F` inside a path segment is encoded data during parsing; decoding it early would turn
+it into a path separator it is not.
 
 ## Expression language
 
@@ -116,8 +115,8 @@ query.From[0];   // TableReference.Named { Table = "Users" }
 
 The tree they build is described in [`docs/ast.md`](../../docs/ast.md). Both are still
 growing: what they read is held against a corpus of somebody else's SQL and against a
-round trip — parse, print, and compare the two readings — so that a parser that answers
-yes and builds the wrong thing is caught rather than counted as a success.
+round trip — parse, print, and compare the two readings — which catches a parser that
+answers yes and builds the wrong thing.
 
 ## Taking one
 

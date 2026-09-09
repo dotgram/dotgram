@@ -1,6 +1,6 @@
 # .Gram
 
-**.Gram is a source generator that compiles grammars into strongly typed C# parsers.**
+.Gram is a source generator that compiles grammars into strongly typed C# parsers.
 
 The grammar is known at compile time. The generated parser is ordinary C# in your own
 assembly — there is no parser engine, grammar graph, or runtime library to interpret.
@@ -14,32 +14,31 @@ From a grammar, .Gram can generate:
 * error recovery for record-oriented input;
 * compile-time diagnostics that point back into the grammar.
 
-Anything with a grammar is in scope: data formats and feeds, configuration files, wire
-protocols, query and filter languages, template and markup syntaxes, and small languages of
-your own — including ones that compile straight to `System.Linq.Expressions` or to your own
-types. Replacing a regular expression that has become hard to maintain, or a hand-written
-parser that has become hard to trust, is one use among those rather than the boundary.
+It is meant for anything with a grammar: data formats and feeds, configuration files, wire
+protocols, query and filter languages, template and markup syntaxes, and languages of your
+own — including ones that build `System.Linq.Expressions` trees or types you already have.
+Replacing a regular expression or a hand-written parser is one use among those.
 
-## Why .Gram
+## What is different about it
 
-**Grammar and C# are one language.** `@` is the seam, and it is crossed in both directions:
-a rule produces a C# type, a guard asks a C# question in the middle of a parse, and an
-action calls an API you already have. Nothing waits for a visitor over a generic tree — a
+**Grammar and C# in one file.** `@` is the seam, and it is crossed in both directions: a
+rule produces a C# type, a guard asks a C# question in the middle of a parse, and an
+action calls an API you already have. There is no later pass over a generic tree, so a
 factory that does not exist, or one handed the wrong type, is a compile error on the line
 of the grammar that asked for it.
 
-**Rules come in libraries.** A grammar can be written on top of another one, across a
+**Grammars as libraries.** A grammar can be written on top of another one, across a
 project reference. What crosses the reference is the grammar rather than a parser, and
 each include arrives under a namespace of its own, so two libraries cannot collide by
 accident.
 
-**One grammar can be published as several parsers.** `with` substitutes a rule through
-everything a publication reaches, so one piece of arithmetic becomes a parser over `int`
-and a parser over `double`, each specialized when the C# is generated.
+**Several parsers from one grammar.** `with` substitutes a rule through everything a
+publication reaches, so one piece of arithmetic becomes a parser over `int` and a parser
+over `double`, each specialized when the C# is generated.
 
-**Nothing is interpreted and nothing is deployed.** The generated parser is ordinary C# in
-your own assembly: no engine reading a grammar at run time, no runtime package, and no
-generator/runtime version pair that can drift apart.
+**No runtime.** The generated parser is ordinary C# in your own assembly: no engine
+reading a grammar at run time, no runtime package, and no generator/runtime version pair
+that can drift apart.
 
 ## Getting started
 
@@ -81,10 +80,10 @@ The equivalent regular expression would be roughly:
 ^#(?<value>[0-9a-fA-F]{6})$
 ```
 
-The familiar pieces mean familiar things: ranges, alternatives, `?`, `*`, `+`, and `{n}`.
+Ranges, alternatives, `?`, `*`, `+` and `{n}` mean what they mean in a regular expression.
 
-But `value:` is not just a regex capture. It becomes a property of the generated result
-type.
+`value:` does more than a regex capture does: it becomes a property of the generated
+result type.
 
 For small grammars, keeping the grammar in the `[Gram]` attribute makes the parser
 definition and its C# API easy to read together. Larger grammars can also live in `.gram`
@@ -150,7 +149,7 @@ foreach (var row in FeedParser.AllRows(text))
 	Console.WriteLine(row.Value.Symbol);
 ```
 
-## C# is part of the grammar when you need it
+## Grammar and C#
 
 `@` is the boundary between grammar and C#.
 
@@ -172,7 +171,7 @@ using DotGram;
 public static partial class Numbers;
 ```
 
-A guard can check values while parsing — the thing a grammar cannot say on its own:
+A guard can check values while parsing, which a grammar cannot express on its own:
 
 ```csharp
 using DotGram;
@@ -190,8 +189,8 @@ using DotGram;
 public static partial class Tags;
 ```
 
-The same boundary calls predicates, external recognizers, constructors, or any API at all.
-Grammar describes the syntax; C# handles the parts that are already better expressed as C#.
+The same boundary calls predicates, external recognizers and constructors. The grammar
+describes the syntax; the C# beside it does what is easier to write in C#.
 
 ## One grammar, two parsers
 
@@ -299,15 +298,15 @@ Each include is spliced into a namespace of its own, so `Sql92.Identifier` and a
 `Identifier` of your own are different rules and cannot collide by accident. A grammar may
 name as many as it likes, and one already gathered is not gathered twice.
 
-The include crosses a project reference, which is the whole point of it. A `.gram` file is
-read at compile time and is not part of what ships, so the generator writes the grammar
-onto the class it compiled and an including grammar reads it back off the type it already
-names. What travels is the grammar; the parser is generated again in the assembly that
-included it, under that assembly's own substitutions.
+The include crosses a project reference. A `.gram` file is read at compile time and is not
+part of what ships, so the generator writes the grammar onto the class it compiled and an
+including grammar reads it back off the type it already names. What travels is the
+grammar; the parser is generated again in the assembly that included it, under that
+assembly's own substitutions.
 
-That is what makes a dialect cheap rather than a fork.
+A dialect is therefore the size of its difference.
 [`TransactSql`](src/DotGram.Parsers/TransactSql.gram) is SQL-92 and the places T-SQL
-differs from it, and the standard underneath is written once.
+differs from it; the standard underneath it is written once.
 
 ## How a grammar is run
 
@@ -321,8 +320,8 @@ One grammar can be read three ways, and only one of the three is written in the 
 
 The first two are one parser: which of them runs is a property of the data rather than of
 the grammar, so it is settled at the call site by the overload that was called. The third
-is a different parser for the same language, and not merely a faster one — over tokens a
-choice that has matched is not revisited, which is what a parser written by hand does.
+is a different parser for the same language: over tokens a choice that has matched is not
+revisited, which is what a parser written by hand does.
 
 **Over tokens the input is in memory.** The reader overloads below are emitted over
 characters and not over kinds.
@@ -408,8 +407,8 @@ A bad record therefore becomes data describing the rejection, instead of ending 
 * recovery inside repetitions;
 * parser context and parsing state.
 
-[`docs/status.md`](docs/status.md) is the authoritative feature-by-feature status,
-including current limitations.
+[`docs/status.md`](docs/status.md) lists the features one by one, with what is not
+implemented and what is only partly.
 
 ## No runtime parser library
 
@@ -453,8 +452,8 @@ rest, along with building and installing; the extension targets Visual Studio 18
 
 ## DotGram.Parsers
 
-[`DotGram.Parsers`](src/DotGram.Parsers) is a library of parsers written in .Gram against
-real specifications rather than demonstration grammars, and a package of its own.
+[`DotGram.Parsers`](src/DotGram.Parsers) is a set of parsers written in .Gram against
+published specifications. It ships as a package of its own.
 
 | Parser | What it reads |
 | --- | --- |
