@@ -434,14 +434,53 @@ public static class SqlWriter
 				text.Append("CREATE DATABASE ").Append(name);
 				break;
 
-			case Statement.AlterDatabaseSet(var name, var settings):
+			case Statement.AlterDatabaseSet(var name, var settings, var termination):
 				text.Append("ALTER DATABASE ").Append(name).Append(" SET ");
 				Each(text, settings);
+
+				if (termination is not null)
+					text.Append(' ').Append(termination);
+
 				break;
 
-			case Statement.AlterDatabaseScopedConfiguration(_, var settings):
-				text.Append("ALTER DATABASE SCOPED CONFIGURATION SET ");
-				Each(text, settings);
+			case Statement.AlterDatabaseModify(var name, var options, var with):
+				text.Append("ALTER DATABASE ").Append(name).Append(" MODIFY");
+
+				if (options is not null)
+				{
+					text.Append(" (");
+					Each(text, options);
+					text.Append(')');
+				}
+
+				if (with is not null)
+				{
+					text.Append(" WITH ");
+					Each(text, with);
+				}
+
+				break;
+
+			case Statement.AlterDatabaseScopedConfiguration(_, var action, var settings, var secondary, var argument):
+				text.Append("ALTER DATABASE SCOPED CONFIGURATION ");
+
+				if (secondary)
+					text.Append("FOR SECONDARY ");
+
+				text.Append(action);
+
+				if (settings.Length > 0)
+				{
+					text.Append(' ');
+					Each(text, settings);
+				}
+
+				if (argument is not null)
+				{
+					text.Append(' ');
+					Put(text, argument, 0);
+				}
+
 				break;
 
 			// Everything else is a word or two and a name, which is the whole of what the
@@ -1111,16 +1150,17 @@ public static class SqlWriter
 				text.Append(hint);
 				break;
 
-			case Clause.Option(var name, var value, var options, var partitions):
+			case Clause.Option(var name, var value, var options, var partitions, var bare):
 				text.Append(name);
 
 				if (value is not null)
 				{
-					text.Append(" = ");
+					text.Append(bare ? " " : " = ");
 					Put(text, value, 0);
 				}
 
-				// A placement under `MOVE TO` stands after the words; a list stands in brackets.
+				// A placement under `MOVE TO` stands after the words; a list stands in brackets,
+				// after the `=` where the list is the whole of what was assigned.
 				if (options is [Clause.Placement placement])
 				{
 					text.Append(' ');
@@ -1128,7 +1168,7 @@ public static class SqlWriter
 				}
 				else if (options.Length > 0)
 				{
-					text.Append(" (");
+					text.Append(value is null && !bare ? " = (" : " (");
 					Each(text, options);
 					text.Append(')');
 				}

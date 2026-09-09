@@ -17124,3 +17124,13 @@ from 34.9% to 50.3% the same, and what ScriptDom will not read back from 2303 to
 FILETABLE` stands before the columns and `AS NODE` after them, which the word decides; and
 a `DEFAULT` is printed as written, its own brackets and all — printing it in brackets of
 the printer's added a pair per round, which the round-trip test caught at once.
+
+**ALTER DATABASE, next.** `SET ENCRYPTION ON` is not `SET ENCRYPTION = ON` to ScriptDom, so
+`Clause.Option` says whether the `=` was written (`Bare`), which the writer honours — the
+spelling had been collapsed on the grounds that the oracle would not mind, and it minded.
+The list after a value, `QUERY_STORE = ON (…)`, and the list instead of one, `CLEANUP_POLICY
+= (…)`, are the option's own nested list rather than an expression that happens to compare;
+`MODIFY (…) WITH …` has a record with its options; `SET … WITH ROLLBACK AFTER 10 SECONDS`
+keeps its termination; `SCOPED CONFIGURATION FOR SECONDARY` keeps the secondary and `CLEAR
+PROCEDURE_CACHE` its handle. `AlterDatabaseSet` and `ScopedConfigurationSet` left the work
+list — 100% — and the corpus stands at 52.7% the same, 1775 unread.

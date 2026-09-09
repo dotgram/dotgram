@@ -1471,10 +1471,13 @@ OptionWords = OptionWord & OptionWord+ & ?=(',' | ')')
 // PAD_INDEX ON ps (a)` is the old unbracketed `WITH` and then a placement, and without the
 // lookahead the `ON` was read as what `PAD_INDEX` is set to — which GRAM5009 said, and the
 // engine confirmed by refusing what came out.
+// The list before the value: `CLEANUP_POLICY = (STALE_QUERY_THRESHOLD_DAYS = 367)` is a
+// list and not an expression that happens to compare, and only the list reads it as one.
 OptionTail : @Clause.Option
-	= '=' & v: OptionValue & n: OptionNest? & p: OnPartitions? => @(new Clause.Option("", v, n ?? Clause.None, p))
-	| s: OnOff & o: SwitchTail                 => @(new Clause.Option("", new Expression.ColumnReference(s), o))
-	| '(' & o: OptionList & ')'                => @(new Clause.Option("", null, o))
+	= '=' & n: OptionNest & p: OnPartitions?   => @(new Clause.Option("", null, n, p))
+	| '=' & v: OptionValue & n: OptionNest? & p: OnPartitions? => @(new Clause.Option("", v, n ?? Clause.None, p))
+	| s: OnOff & o: SwitchTail                 => @(new Clause.Option("", new Expression.ColumnReference(s), o, null, true))
+	| '(' & o: OptionList & ')'                => @(new Clause.Option("", null, o, null, true))
 
 // Said as a refusal rather than as a demand, because a list without brackets ends at the
 // terminator and a lookahead for a comma would refuse its last option. What a bare switch
@@ -1492,8 +1495,6 @@ OptionValue : @Expression
 	= "NULL"i => @(Expression.NullValue)
 	| "OFF"i  => @(new Expression.ColumnReference("OFF"))
 	| "ON"i   => @(new Expression.ColumnReference("ON"))
-	| name: Identifier & '(' & items: OptionList & ')' => @(Syntax.Invoked(name, items))
-	| '(' & items: OptionList & ')' => @(Syntax.Invoked("", items))
 	| t: ('(' & Sql92.Lexical.UnsignedNumericLiteral+ & ')') => @(new Expression.ColumnReference(t))
 	| '(' & a: Arguments & ')'  => @(new Expression.RoutineInvocation("", a))
 
@@ -2661,14 +2662,19 @@ FileGroupContains = "CONTAINS"i & word
 // name and not a malformed configuration. Ordered choice reads the longer one first and
 // gives it back when the words that must follow do not.
 AlterDatabaseStatement : @Statement
-	= "ALTER"i & "DATABASE"i & "SCOPED"i & "CONFIGURATION"i & ("FOR"i & "SECONDARY"i)?
-	  & options: ScopedConfiguration
-		=> @(Statement.OfDatabase("", "SCOPED CONFIGURATION", options))
+	= "ALTER"i & "DATABASE"i & "SCOPED"i & "CONFIGURATION"i & secondary: ("FOR"i & "SECONDARY"i)?
+	  & scoped: ScopedConfiguration
+		=> @(scoped with { Secondary = secondary is not null })
 
 	// The one action that keeps what it read, so the one written before the rest.
 	| "ALTER"i & "DATABASE"i & name: DatabaseTarget
-	  & "SET"i & first: DatabaseOption & (',' & rest: DatabaseOption)* & DatabaseTermination?
-		=> @(Statement.OfDatabase(name, "SET", Syntax.Listed(first, rest)))
+	  & "SET"i & first: DatabaseOption & (',' & rest: DatabaseOption)* & how: DatabaseTermination?
+		=> @(new Statement.AlterDatabaseSet(name, Syntax.Listed(first, rest), how))
+
+	// The one action with a body of its own: what is modified, and how the cutover goes.
+	| "ALTER"i & "DATABASE"i & name: DatabaseTarget & "MODIFY"i & '(' & options: OptionList & ')'
+	  & ("WITH"i & with: OptionList)? & DatabaseTermination?
+		=> @(new Statement.AlterDatabaseModify(name, options, with))
 
 	| "ALTER"i & "DATABASE"i & name: DatabaseTarget & action: AlterDatabaseAction
 	  & DatabaseTermination?
@@ -2676,11 +2682,11 @@ AlterDatabaseStatement : @Statement
 
 DatabaseTarget : @string = "CURRENT"i => @("CURRENT") | t: Identifier => @(t)
 
-ScopedConfiguration : @Clause[]
+ScopedConfiguration : @Statement.AlterDatabaseScopedConfiguration
 	= "SET"i & first: DatabaseOption & (',' & rest: DatabaseOption)*
-		=> @(Syntax.Listed(first, rest))
-	| "CLEAR"i & "PROCEDURE_CACHE"i & ValueExpression?
-		=> @(Clause.None)
+		=> @(new Statement.AlterDatabaseScopedConfiguration("", "SET", Syntax.Listed(first, rest)))
+	| "CLEAR"i & "PROCEDURE_CACHE"i & handle: ValueExpression?
+		=> @(new Statement.AlterDatabaseScopedConfiguration("", "CLEAR PROCEDURE_CACHE", Clause.None, false, handle))
 
 // Which action was written, as the words the tree is keyed by. The statement builds the
 // record; this says which record it is, because a rule cannot name a different type per
@@ -2737,13 +2743,15 @@ DatabaseOption : @Clause
 DatabaseOptionName : @string = t: OptionName => @(t)
 
 DatabaseOptionValue : @Clause.Option
-	= '=' & v: OptionValue & n: OptionNest? => @(new Clause.Option("", v, n ?? Clause.None))
-	| '(' & o: OptionList & ')'             => @(new Clause.Option("", null, o))
-	| s: OnOff & n: OptionNest?             => @(new Clause.Option("", new Expression.ColumnReference(s), n ?? Clause.None))
+	= '=' & n: OptionNest                   => @(new Clause.Option("", null, n))
+	| '=' & v: OptionValue & n: OptionNest? => @(new Clause.Option("", v, n ?? Clause.None))
+	| '(' & o: OptionList & ')'             => @(new Clause.Option("", null, o, null, true))
+	| s: OnOff & n: OptionNest?             => @(new Clause.Option("", new Expression.ColumnReference(s), n ?? Clause.None, null, true))
 
-DatabaseTermination = "WITH"i & "ROLLBACK"i & "AFTER"i & ValueExpression & "SECONDS"i?
-					| "WITH"i & "ROLLBACK"i & "IMMEDIATE"i
-					| "WITH"i & "NO_WAIT"i
+DatabaseTermination : @string
+	= t: ("WITH"i & "ROLLBACK"i & "AFTER"i & ValueExpression & "SECONDS"i?
+		  | "WITH"i & "ROLLBACK"i & "IMMEDIATE"i
+		  | "WITH"i & "NO_WAIT"i) => @(Syntax.Squared(t))
 
 // ── Permissions ─────────────────────────────────────────────────────────────
 //

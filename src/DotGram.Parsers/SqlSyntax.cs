@@ -360,11 +360,20 @@ public abstract record Statement : ISqlSpan
 	/// <summary><c>CREATE DATABASE</c>, and the files it is made of.</summary>
 	public sealed record CreateDatabase(string Name, Clause[] Files) : Statement;
 
-	/// <summary><c>ALTER DATABASE … SET</c>, and what it was set to.</summary>
-	public sealed record AlterDatabaseSet(string Name, Clause[] Settings) : Statement;
+	/// <summary>
+	/// <c>ALTER DATABASE … SET</c>: what it was set to, and how the sessions in the way are
+	/// dealt with — <c>WITH ROLLBACK AFTER 10 SECONDS</c>, <c>WITH NO_WAIT</c>.
+	/// </summary>
+	public sealed record AlterDatabaseSet(
+		string Name, Clause[] Settings, string? Termination = null) : Statement;
 
-	/// <summary><c>ALTER DATABASE … SCOPED CONFIGURATION</c>, and what it was set to.</summary>
-	public sealed record AlterDatabaseScopedConfiguration(string Name, Clause[] Settings) : Statement;
+	/// <summary>
+	/// <c>ALTER DATABASE SCOPED CONFIGURATION</c>: <c>SET</c> and what it was set to, or
+	/// <c>CLEAR PROCEDURE_CACHE</c> and the plan handle where one was given; for the secondary
+	/// where it says so.
+	/// </summary>
+	public sealed record AlterDatabaseScopedConfiguration(
+		string Name, string Action, Clause[] Settings, bool Secondary = false, Expression? Argument = null) : Statement;
 
 	/// <summary><c>ALTER DATABASE … COLLATE</c>.</summary>
 	public sealed record AlterDatabaseCollate(string Name) : Statement;
@@ -379,7 +388,8 @@ public abstract record Statement : ISqlSpan
 	public sealed record AlterDatabaseModifyFile(string Name) : Statement;
 
 	/// <summary><c>ALTER DATABASE … MODIFY</c>.</summary>
-	public sealed record AlterDatabaseModify(string Name) : Statement;
+	public sealed record AlterDatabaseModify(
+		string Name, Clause[]? Options = null, Clause[]? With = null) : Statement;
 
 	/// <summary><c>ALTER DATABASE … ADD FILEGROUP</c>.</summary>
 	public sealed record AlterDatabaseAddFileGroup(string Name) : Statement;
@@ -909,7 +919,6 @@ public abstract record Statement : ISqlSpan
 		{
 			"CREATE"               => new CreateDatabase(name, settings ?? Clause.None),
 			"SET"                  => new AlterDatabaseSet(name, settings ?? Clause.None),
-			"SCOPED CONFIGURATION" => new AlterDatabaseScopedConfiguration(name, settings ?? Clause.None),
 			"COLLATE"              => new AlterDatabaseCollate(name),
 			"MODIFY NAME"          => new AlterDatabaseModifyName(name),
 			"MODIFY FILEGROUP"     => new AlterDatabaseModifyFileGroup(name),
@@ -1542,12 +1551,13 @@ public abstract record Clause : ISqlSpan
 	/// <c>WITH (DATA_COMPRESSION = PAGE ON PARTITIONS (1))</c>, <c>SET (LOCK_ESCALATION =
 	/// AUTO)</c>, <c>MASKED WITH (FUNCTION = 'default()')</c>, and the two hundred settings of
 	/// <c>ALTER DATABASE</c>. The names are a catalogue and not a language, so one node holds
-	/// them all: what an option means is the engine's question. A bare switch —
-	/// <c>WITH PAD_INDEX ON</c> — arrives with its word as the value, the same as the
-	/// <c>=</c> spelling, which is the one the writer prints.
+	/// them all: what an option means is the engine's question. <see cref="Bare"/> says the
+	/// value stood after the name with no <c>=</c> between — <c>SET ENCRYPTION ON</c>, <c>WITH
+	/// PAD_INDEX ON</c> — which is a spelling the tree keeps because some statements accept
+	/// only that one.
 	/// </remarks>
 	public sealed record Option(
-		string Name, Expression? Value, Clause[] Options, string? Partitions = null) : Clause;
+		string Name, Expression? Value, Clause[] Options, string? Partitions = null, bool Bare = false) : Clause;
 
 	/// <summary>
 	/// Where a table or an index is put: the word that says which placement, the filegroup
@@ -1747,16 +1757,6 @@ public static class Syntax
 	/// <summary>A value with the unit after it, or the value alone where none was written.</summary>
 	public static Expression Measured(Expression value, string? unit) =>
 		unit is null ? value : new Expression.Measured(value, Squared(unit));
-
-	/// <summary>
-	/// A name followed by a bracketed list, as an invocation: <c>HASH(column1)</c> in a
-	/// distribution, whose items are names and not settings.
-	/// </summary>
-	public static Expression Invoked(string name, Clause[] items) =>
-		new Expression.RoutineInvocation(name, [.. items.Select(static one =>
-			one is Clause.Option(var word, null, { Length: 0 }, null)
-				? new Expression.ColumnReference(word)
-				: (Expression)new Expression.ColumnReference(one.ToString() ?? ""))]);
 
 	/// <summary>Whether a key is enforced: null where nothing was said, false for <c>NOT ENFORCED</c>.</summary>
 	public static bool? Enforced(string? words) =>
