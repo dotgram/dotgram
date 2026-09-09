@@ -56,10 +56,6 @@
 		     netstandard2.0 nor .NET Framework carries. -->
 		<PackageVersion Include="System.Memory" Version="4.6.3" />
 
-		<!-- How a machine with no targeting pack compiles for .NET Framework at all,
-		     which is what CI is. Build-time only. -->
-		<PackageVersion Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" />
-
 		<!-- Modern types on netstandard2.0 and net472 without a runtime dependency:
 		     Meziantou.Polyfill is a generator and emits them as internal. -->
 		<PackageVersion Include="Meziantou.Polyfill" Version="1.0.165" />

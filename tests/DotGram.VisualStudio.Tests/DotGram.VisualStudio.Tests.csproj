@@ -21,9 +21,6 @@
 		     are compiled here so that Visual Studio has a real compilation behind them. A
 		     file the editor cannot resolve types in exercises half the extension. -->
 		<PackageReference Include="System.Memory" />
-		<PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies"
-		                  PrivateAssets="all" />
-
 		<!-- StringSyntax is what the playground annotates its literals with, and .NET
 		     Framework has no such attribute. The polyfill declares one here, which is
 		     all the extension needs: it reads the annotation by name. -->
