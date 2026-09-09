@@ -55,25 +55,37 @@ static class RoundTrip
 			return;
 		}
 
-		if (Kinds.Version(version) is not { } parser)
+		if (Kinds.Version(version) is null)
 		{
 			Console.WriteLine($"No such version as {version}. One of 80 90 100 … 180.");
 
 			return;
 		}
 
-		var generator = Generator(version);
-		var counts    = new Dictionary<string, Tally>(StringComparer.Ordinal);
-		var shown     = new List<string>();
+		var files      = Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories);
+		var versions   = Corpus.Versions(root, files);
+		var readers    = new Dictionary<string, TSqlParser>(StringComparer.Ordinal);
+		var generators = new Dictionary<string, SqlScriptGenerator>(StringComparer.Ordinal);
+		var counts     = new Dictionary<string, Tally>(StringComparer.Ordinal);
+		var shown      = new List<string>();
 
 		var read = 0;
 		var same = 0;
 		var lost = 0;
 		var bad  = 0;
 
-		foreach (var file in Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories))
+		foreach (var file in files)
 		{
 			var text = File.ReadAllText(file);
+
+			// The parser and the printer are the file's own version, and both have to be:
+			// one prints what the other read, and a version that cannot read the statement
+			// cannot print it either.
+			var named  = versions.GetValueOrDefault(file);
+			var parser = Kinds.Reader(readers, version, named);
+
+			if (!generators.TryGetValue(Named(version, named), out var generator))
+				generators[Named(version, named)] = generator = Generator(Named(version, named));
 
 			using var whole = new StringReader(text);
 
@@ -244,6 +256,10 @@ static class RoundTrip
 	static string Normalized(string text) =>
 		string.Join(' ', text.Split(' ', '\t', '\n', '\r')
 			.Where(static one => one.Length > 0));
+
+	/// <summary>The version to read and print one file with: its own, capped at the one asked for.</summary>
+	static string Named(string ceiling, string? version) =>
+		version is not null && int.Parse(version) < int.Parse(ceiling) ? version : ceiling;
 
 	static SqlScriptGenerator Generator(string version)
 	{

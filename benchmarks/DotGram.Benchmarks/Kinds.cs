@@ -62,6 +62,24 @@ static class Kinds
 		_     => null,
 	};
 
+	/// <summary>The parser for one file: the version the corpus gives it, never a later one than asked for.</summary>
+	/// <remarks>
+	/// The argument is a ceiling and not a choice. <c>--kinds 130</c> still means "the corpus
+	/// as of 130", so a file the corpus marks 180 is refused there as it was before; what
+	/// changes is that a file marked 80 is read by the parser that can read it rather than by
+	/// one from which its syntax was removed.
+	/// </remarks>
+	internal static TSqlParser Reader(
+		Dictionary<string, TSqlParser> made, string ceiling, string? version)
+	{
+		var named = version is not null && int.Parse(version) < int.Parse(ceiling) ? version : ceiling;
+
+		if (!made.TryGetValue(named, out var parser))
+			made[named] = parser = Version(named)!;
+
+		return parser;
+	}
+
 	/// <summary>
 	/// The kinds this grammar has a rule for, which is what the two interesting cells are
 	/// about: a refusal here is work to do, and reading anything else is a defect.
@@ -167,7 +185,7 @@ static class Kinds
 			return;
 		}
 
-		if (Version(version) is not { } parser)
+		if (Version(version) is null)
 		{
 			Console.WriteLine($"No such version as {version}. One of 80 90 100 … 180.");
 
@@ -175,6 +193,8 @@ static class Kinds
 		}
 
 		var files    = Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories);
+		var versions = Corpus.Versions(root, files);
+		var readers  = new Dictionary<string, TSqlParser>(StringComparer.Ordinal);
 		var whole    = 0;
 		var refused  = 0;
 		var counted  = new Dictionary<string, (int Total, int Read)>(StringComparer.Ordinal);
@@ -188,7 +208,8 @@ static class Kinds
 
 			using var reader = new StringReader(text);
 
-			var read = parser.Parse(reader, out var errors);
+			var parser = Reader(readers, version, versions.GetValueOrDefault(file));
+			var read   = parser.Parse(reader, out var errors);
 
 			// A file ScriptDom cannot read whole is left out rather than read in part: what
 			// makes this table worth anything is that its denominator is somebody else's

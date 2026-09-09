@@ -209,6 +209,54 @@ static class Corpus
 		return at == 0 ? null : statement.Substring(0, at).ToUpperInvariant();
 	}
 
+	/// <summary>Which version of T-SQL each file is written in, where the corpus says so.</summary>
+	/// <remarks>
+	/// <para>
+	/// The <c>Baselines&lt;n&gt;</c> directories are Microsoft's own partition of the language
+	/// by parser version, and reading the whole corpus with one parser throws that away in
+	/// both directions: <c>*=</c>, <c>DUMP</c> and <c>DISABLE_DEF_CNST_CHK</c> were taken out
+	/// of the language and only an old parser reads them, while
+	/// <c>AUTOMATIC_INDEX_COMPACTION</c> arrived in 180 and only a new one does. Fifteen
+	/// files were being called unreadable for no better reason than that.
+	/// </para>
+	/// <para>
+	/// A file outside those directories takes the version of the file of the same name that
+	/// is inside one — <c>TestScripts/</c> is upstream's union and every version-sensitive
+	/// file in it has its twin — and anything still unnamed takes the version asked for.
+	/// </para>
+	/// </remarks>
+	internal static Dictionary<string, string> Versions(string root, IEnumerable<string> files)
+	{
+		var byFile = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+		var byName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+		foreach (var file in files)
+			if (Partition(root, file) is { } version)
+			{
+				byFile[file] = version;
+				byName[Path.GetFileName(file)] = version;
+			}
+
+		foreach (var file in files)
+			if (!byFile.ContainsKey(file) && byName.TryGetValue(Path.GetFileName(file), out var twin))
+				byFile[file] = twin;
+
+		return byFile;
+	}
+
+	/// <summary>The version a <c>Baselines&lt;n&gt;</c> directory names, or null for anything else.</summary>
+	static string? Partition(string root, string file)
+	{
+		var inside = file.Substring(root.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+		var first  = inside.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[0];
+
+		return first.StartsWith("Baselines", StringComparison.Ordinal) &&
+			first["Baselines".Length..] is { Length: > 0 } named &&
+			named.All(char.IsAsciiDigit)
+				? named
+				: null;
+	}
+
 	/// <summary>The copy kept in the repository, which is what `--corpus` reads by default.</summary>
 	/// <remarks>
 	/// Found by walking up to the solution rather than by a path relative to the binary:

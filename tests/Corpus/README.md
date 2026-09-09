@@ -40,6 +40,13 @@ Microsoft's own partition of the language by parser version: `Baselines130` is w
 `TSql130Parser` reads and its predecessors do not. A dialect written per version has
 its target set for it.
 
+The harnesses read each file with the parser its directory names, capped at the version
+asked for — a file in `Baselines80` with `TSql80Parser`, and one outside the partition
+with the version of the file of the same name inside it, `TestScripts/` being upstream's
+union of them all. Without that, eleven files were being called unreadable for no better
+reason than that `*=`, `DUMP` and `DISABLE_DEF_CNST_CHK` were taken out of the language
+after the version they were written for.
+
 ## Running it
 
 ```
