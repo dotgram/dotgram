@@ -17,10 +17,12 @@ readonly record struct StandaloneGrammarContext(
 	string AnalysisTail,
 	IReadOnlyList<StandaloneIncludedGrammar> Included);
 
-/// <summary>Builds the inherited tail used to analyze a standalone grammar in its C# host context.</summary>
+/// <summary>Builds the included tail used to analyze a standalone grammar in its C# host context.</summary>
 static class StandaloneGrammarInheritance
 {
 	const string GramAttribute = "DotGram.GramAttribute";
+	const string GramIncludeAttribute = "DotGram.GramIncludeAttribute";
+	const string GramSourceAttribute = "DotGram.GramSourceAttribute";
 
 	public static async Task<StandaloneGrammarContext?> ResolveAsync(
 		Solution solution,
@@ -40,8 +42,17 @@ static class StandaloneGrammarInheritance
 			return null;
 
 		var included = new List<StandaloneIncludedGrammar>();
-		for (var current = host.BaseType; current is not null; current = current.BaseType)
+		var seen = new HashSet<string>(StringComparer.Ordinal) { host.ToDisplayString() };
+		var pending = new Queue<(INamedTypeSymbol Type, string? As)>(NamedIncludes(host));
+		while (pending.Count > 0)
 		{
+			var (current, called) = pending.Dequeue();
+			if (!seen.Add(current.ToDisplayString()))
+				continue;
+
+			foreach (var nested in NamedIncludes(current))
+				pending.Enqueue(nested);
+
 			var attribute = PrimaryGram(current.GetAttributes());
 			if (attribute is null)
 				continue;
@@ -56,9 +67,15 @@ static class StandaloneGrammarInheritance
 				? await FileTextAsync(project, source, cancellationToken).ConfigureAwait(false)
 				: (source, (string?)null);
 			if (resolved.source is null)
+				resolved = (
+					current.GetAttributes().FirstOrDefault(static candidate =>
+						candidate.AttributeClass?.ToDisplayString() == GramSourceAttribute)?
+						.ConstructorArguments.FirstOrDefault().Value as string,
+					null);
+			if (resolved.source is null)
 				continue;
 
-			var name = attribute.NamedArguments
+			var name = called ?? attribute.NamedArguments
 				.FirstOrDefault(static argument => argument.Key == "IncludedAs")
 				.Value.Value as string ?? current.Name;
 			included.Add(new StandaloneIncludedGrammar(name, resolved.source, resolved.Item2));
@@ -72,6 +89,20 @@ static class StandaloneGrammarInheritance
 					included.Select(static item =>
 						new GrammarSplice.Part(item.Text, item.Name, null)).ToArray()).Text,
 				included);
+	}
+
+	static IEnumerable<(INamedTypeSymbol Type, string? As)> NamedIncludes(INamedTypeSymbol type)
+	{
+		foreach (var attribute in type.GetAttributes())
+			if (attribute.AttributeClass?.ToDisplayString() == GramIncludeAttribute &&
+				attribute.ConstructorArguments is [{ Value: INamedTypeSymbol grammar }])
+			{
+				yield return (
+					grammar,
+					attribute.NamedArguments
+						.FirstOrDefault(static argument => argument.Key == "As")
+						.Value.Value as string);
+			}
 	}
 
 	static async Task<INamedTypeSymbol?> HostAsync(
@@ -106,8 +137,7 @@ static class StandaloneGrammarInheritance
 
 	static AttributeData? PrimaryGram(IEnumerable<AttributeData> attributes) =>
 		attributes.FirstOrDefault(static attribute =>
-			attribute.AttributeClass?.ToDisplayString() == GramAttribute &&
-			attribute.NamedArguments.All(static argument => argument.Key != "Suffix"));
+			attribute.AttributeClass?.ToDisplayString() == GramAttribute);
 
 	static async Task<(string? source, string? FilePath)> FileTextAsync(
 		Project project,

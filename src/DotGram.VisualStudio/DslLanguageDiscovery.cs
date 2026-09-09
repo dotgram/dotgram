@@ -91,6 +91,7 @@ public static class DslLanguageDiscovery
 	static readonly object CacheGate = new();
 
 	const string GramAttribute                 = "DotGram.GramAttribute";
+	const string GramIncludeAttribute          = "DotGram.GramIncludeAttribute";
 	const string LanguageAttribute             = "DotGram.GramLanguageAttribute";
 	const string ClassificationAttribute       = "DotGram.GramClassifyAttribute";
 	const string Classification                = "DotGram.GramClassification";
@@ -370,14 +371,23 @@ public static class DslLanguageDiscovery
 	static IReadOnlyList<DslIncludedGrammarDefinition> IncludedGrammars(INamedTypeSymbol parserType)
 	{
 		var included = new List<DslIncludedGrammarDefinition>();
+		var seen = new HashSet<string>(StringComparer.Ordinal) { parserType.ToDisplayString() };
+		var pending = new Queue<(INamedTypeSymbol Type, string? As)>(NamedIncludes(parserType));
 
-		for (var current = parserType.BaseType; current is not null; current = current.BaseType)
+		while (pending.Count > 0)
 		{
+			var (current, called) = pending.Dequeue();
+			if (!seen.Add(current.ToDisplayString()))
+				continue;
+
+			foreach (var nested in NamedIncludes(current))
+				pending.Enqueue(nested);
+
 			var attribute = PrimaryGramAttribute(current.GetAttributes());
 			if (attribute is null || Grammar(current, attribute) is not { } grammar)
 				continue;
 
-			var name = attribute.NamedArguments
+			var name = called ?? attribute.NamedArguments
 				.FirstOrDefault(static argument => argument.Key == "IncludedAs")
 				.Value.Value as string ?? current.Name;
 			if (!IsIdentifier(name))
@@ -387,6 +397,20 @@ public static class DslLanguageDiscovery
 		}
 
 		return included;
+	}
+
+	static IEnumerable<(INamedTypeSymbol Type, string? As)> NamedIncludes(INamedTypeSymbol type)
+	{
+		foreach (var attribute in type.GetAttributes())
+			if (attribute.AttributeClass?.ToDisplayString() == GramIncludeAttribute &&
+				attribute.ConstructorArguments is [{ Value: INamedTypeSymbol grammar }])
+			{
+				yield return (
+					grammar,
+					attribute.NamedArguments
+						.FirstOrDefault(static argument => argument.Key == "As")
+						.Value.Value as string);
+			}
 	}
 
 	static bool IsIdentifier(string value) =>
@@ -429,15 +453,8 @@ public static class DslLanguageDiscovery
 		HasProperty(attribute.AttributeClass!, "Source", SpecialType.System_String, writable: false) &&
 		HasProperty(attribute.AttributeClass!, "IncludedAs", SpecialType.System_String, writable: true);
 
-	/// <summary>
-	/// The grammar published directly by a host. Additional <c>[Gram]</c> attributes live
-	/// in their named <c>Suffix</c> scopes and are not what a derived grammar inherits.
-	/// Keep this selection identical to the source generator.
-	/// </summary>
 	static AttributeData? PrimaryGramAttribute(IEnumerable<AttributeData> attributes) =>
-		attributes.FirstOrDefault(attribute =>
-			IsGramAttribute(attribute) &&
-			attribute.NamedArguments.All(static argument => argument.Key != "Suffix"));
+		attributes.FirstOrDefault(IsGramAttribute);
 
 	static bool IsLanguageAttribute(AttributeData attribute) =>
 		IsAttributeType(attribute.AttributeClass, LanguageAttribute) &&

@@ -14,25 +14,29 @@ namespace DotGram.VisualStudio.Tests;
 public sealed class StandaloneGrammarInheritanceTests
 {
 	[Fact]
-	public async Task AppendsTheUnsuffixedBaseGrammarToAStandaloneDialect()
+	public async Task AppendsIncludedGrammarToAStandaloneDialect()
 	{
 		const string declarations = """
 			namespace DotGram
 			{
-				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
 				sealed class GramAttribute(string source) : System.Attribute
 				{
 					public string IncludedAs { get; set; } = "";
-					public string Suffix { get; set; } = "";
+				}
+
+				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
+				sealed class GramIncludeAttribute(System.Type grammar) : System.Attribute
+				{
+					public string As { get; set; } = "";
 				}
 			}
 
-			[DotGram.Gram("Alternative.gram", Suffix = "Immediate", IncludedAs = "Wrong")]
 			[DotGram.Gram("SqlStandard92.gram", IncludedAs = "Sql92")]
 			abstract class SqlStandard92;
 
 			[DotGram.Gram("TransactSql.gram")]
-			abstract class TransactSql : SqlStandard92;
+			[DotGram.GramInclude(typeof(SqlStandard92))]
+			abstract class TransactSql;
 			""";
 
 		using var workspace = new AdhocWorkspace();
@@ -50,10 +54,6 @@ public sealed class StandaloneGrammarInheritanceTests
 			SourceText.From("Word = ['a'..'z']+"),
 			filePath: @"P:\Parsers\SqlStandard92.gram").Project;
 		project = project.AddAdditionalDocument(
-			"Alternative.gram",
-			SourceText.From("Wrong = 'x'"),
-			filePath: @"P:\Parsers\Alternative.gram").Project;
-		project = project.AddAdditionalDocument(
 			"TransactSql.gram",
 			SourceText.From("using Sql92;\nStart = Sql92.Word"),
 			filePath: @"P:\Parsers\TransactSql.gram").Project;
@@ -65,7 +65,6 @@ public sealed class StandaloneGrammarInheritanceTests
 
 		Assert.NotNull(inherited);
 		Assert.Contains("namespace Sql92\n{\nWord = ['a'..'z']+", inherited.Value.AnalysisTail, StringComparison.Ordinal);
-		Assert.DoesNotContain("namespace Wrong", inherited.Value.AnalysisTail, StringComparison.Ordinal);
 		var included = Assert.Single(inherited.Value.Included);
 		Assert.Equal("Sql92", included.Name);
 		Assert.Equal(@"P:\Parsers\SqlStandard92.gram", included.FilePath);

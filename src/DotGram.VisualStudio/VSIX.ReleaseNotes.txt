@@ -1,4 +1,4 @@
-DotGram language support 0.1.53
+DotGram language support 0.1.54
 
 Initial preview for Visual Studio 18.
 
@@ -18,16 +18,16 @@ Initial preview for Visual Studio 18.
 - Invalid case-insensitive character-set bounds receive precise suffix diagnostics.
 - Parameters annotated with `StringSyntax("DotGram")` or `StringSyntax(".gram")`
   enable DotGram grammar tooling.
-- Inherited grammars resolve from the unsuffixed `[Gram]` declaration when a base
-  parser also carries additional suffixed grammar compilations.
+- A host has one `[Gram]`; additional `[GramOptions]` readings no longer look like
+  separate grammar sources to editor tooling.
 - File names in `[Gram("Language.gram")]` are no longer analyzed as embedded grammar text.
-- Standalone dialect files are analyzed together with the primary grammars inherited
-  by their C# hosts, including bases that also carry suffixed `[Gram]` compilations.
-- Standalone diagnostics and colors refresh immediately when inherited project context
+- Standalone and embedded grammars are analyzed with direct and transitive
+  `[GramInclude]` grammars, including aliases declared with `As`.
+- Standalone diagnostics and colors refresh immediately when included project context
   becomes available, without requiring the editor viewport to be scrolled.
-- Inherited context resolution waits for Roslyn project loading instead of permanently
+- Included-grammar context resolution waits for Roslyn project loading instead of permanently
   accepting the incomplete workspace visible during early document restoration.
-- Go To Definition and Ctrl+Click open inherited grammar files from namespace qualifiers,
+- Go To Definition and Ctrl+Click open included grammar files from namespace qualifiers,
   and file-valued `[Gram("Language.gram")]` arguments navigate to their additional files.
 - DSL `StringSyntax` annotations also work on extension receivers and immediate field
   or property initializers.

@@ -572,7 +572,12 @@ sealed class RoslynGramCompletion(
 			? new[] { method.Name, method.Name.Substring(3) }
 			: new[] { method.Name };
 
-		foreach (var attribute in method.ContainingType.GetAttributes())
+		var grammarHost = method.ContainingType;
+		while (grammarHost.ContainingType is not null && !grammarHost.GetAttributes().Any(static attribute =>
+			attribute.AttributeClass?.ToDisplayString() == "DotGram.GramAttribute"))
+			grammarHost = grammarHost.ContainingType;
+
+		foreach (var attribute in grammarHost.GetAttributes())
 		{
 			if (attribute.AttributeClass?.ToDisplayString() != "DotGram.GramAttribute" ||
 				attribute.ConstructorArguments.Length == 0 ||
