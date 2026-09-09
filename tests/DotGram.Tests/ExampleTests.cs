@@ -1200,4 +1200,101 @@ public sealed class ExampleTests
 		// `parse (b: Bracketed(Digits, '[', ']') => @(b)) as ParseSubscript : @string`:
 		// the directive names the expression, and the type is what makes the `=>` legal.
 		Assert.Equal("[42]", Selectors.ParseSubscript("[42]"));
+
+	// ── A query read over tokens ─────────────────────────────────────────────────
+
+	/// <summary>`Lexical = true`: a lexer makes the tokens and the rules read those.</summary>
+	[Fact]
+	public void A_query_is_read_over_tokens()
+	{
+		var query = TokenizedQuery.ParseQuery("select a, b from users where a = 1");
+
+		Assert.Equal(["a", "b"], query.Columns);
+		Assert.Equal("users", query.Table);
+		Assert.Equal(new Comparison("a", "=", "1"), query.Where);
+	}
+
+	/// <summary>Keywords fold case, `--` is trivia, and a `where` is optional.</summary>
+	[Fact]
+	public void And_case_and_comments_are_the_lexers_business()
+	{
+		var query = TokenizedQuery.ParseQuery("SELECT id FROM t -- a comment");
+
+		Assert.Equal(["id"], query.Columns);
+		Assert.Null(query.Where);
+	}
+
+	/// <summary>
+	/// `&lt;&gt;` is one token because the lexical rules say so — over characters the two
+	/// alternatives would have to be ordered, and here their order says nothing.
+	/// </summary>
+	[Theory]
+	[InlineData("select a from t where a <> 1", "<>")]
+	[InlineData("select a from t where a < 1",  "<")]
+	public void And_the_lexer_settles_the_longest_match(string text, string op) =>
+		Assert.Equal(op, TokenizedQuery.ParseQuery(text).Where!.Op);
+
+	/// <summary>A keyword is a whole word (§4.6), so this one is an identifier.</summary>
+	[Fact]
+	public void And_a_keyword_ends_where_a_word_does() =>
+		Assert.False(TokenizedQuery.TryParseQuery("selectx a from t").IsSuccess);
+
+	// ── One library, two grammars written on it ──────────────────────────────────
+
+	/// <summary>The same lexemes, arriving under the name each includer chose.</summary>
+	[Fact]
+	public void One_library_serves_two_grammars()
+	{
+		Assert.Equal(
+			[new Setting("name", "\"a b\""), new Setting("port", "8080"), new Setting("mode", "fast")],
+			SettingsFile.ParseSettings("name = \"a b\"\nport = 8080\nmode = fast\n"));
+
+		Assert.Equal(
+			[new FilterTest("age", ">", "18"), new FilterTest("score", "=", "100")],
+			FilterFile.ParseFilter("age > 18 and score = 100"));
+	}
+
+	/// <summary>
+	/// And `Word` means two things without either grammar having to say which: the
+	/// includer's own, and the library's under the name it was included as.
+	/// </summary>
+	[Fact]
+	public void And_a_name_of_its_own_does_not_collide_with_the_librarys()
+	{
+		// `and` is the filter's `Word`; `age` and `score` are `Token.Word`.
+		Assert.Equal(2, FilterFile.ParseFilter("age > 18 and score = 100").Length);
+
+		// The library is also a parser, for anybody who wants one.
+		Assert.Equal("hello", Lexemes.ParseWord("hello"));
+		Assert.False(Lexemes.TryParseNumber("12x").IsSuccess);
+	}
+
+	// ── The standard library, doing the lexical work ─────────────────────────────
+
+	/// <summary>`using Std;` — whitespace, comments and numbers that are numbers.</summary>
+	[Fact]
+	public void The_standard_library_reads_a_line_of_measurements()
+	{
+		var readings = MetricsLine.Read("cpu=0.75 mem=2048 host=\"db-1\" up=36000 # sampled");
+
+		Assert.Equal(0.75m, readings["cpu"]);
+		Assert.Equal(2048L, readings["mem"]);
+		Assert.Equal("db-1", readings["host"]);
+		Assert.Equal(36000L, readings["up"]);
+	}
+
+	/// <summary>
+	/// The point of `Integer`, `Long` and `Decimal`: what comes back is the number, not
+	/// text for somebody to parse again in a culture they have to remember.
+	/// </summary>
+	[Fact]
+	public void And_what_comes_back_is_typed()
+	{
+		var readings = MetricsLine.Read("ratio=1.5 count=7 name=\"x\"");
+
+		Assert.IsType<decimal>(readings["ratio"]);
+		Assert.IsType<long>(readings["count"]);
+		Assert.IsType<string>(readings["name"]);
+	}
+
 }

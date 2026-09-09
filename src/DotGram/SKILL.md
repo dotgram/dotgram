@@ -243,7 +243,7 @@ one convention or the other, never both (`GRAM4009`).
 | runs of them | `Digits` `HexDigits` `Blank` `Spacing` `Identifier` |
 | numbers, as values | `Integer` `Long` `Decimal` `Double` |
 | comments | `LineComment(start)` `BlockComment(open, close)` |
-| quoted text | `SingleQuoted` `DoubleQuoted` `Escaped` |
+| quoted text | `Quoted(quote)` — doubled, as SQL and CSV do; `Escaped(quote, escape)` |
 
 The numbers are unsigned: whether `-` belongs to a number or is an operator in front of
 one is a question about the calling grammar. Whatever is not called is not compiled.

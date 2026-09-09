@@ -22,6 +22,7 @@ then a feed, then an expression language, then one of the larger ones.
 | [`XmlExample.cs`](DotGram.Examples/Formats/XmlExample.cs) | XML, cut to elements and attributes — a closing tag checked against its opening one |
 | [`MarkdownExample.cs`](DotGram.Examples/Formats/MarkdownExample.cs) | block structure — headings, bullets, fenced code, paragraphs |
 | [`YamlExample.cs`](DotGram.Examples/Formats/YamlExample.cs) | nesting by indentation, to any depth |
+| [`MetricsLineExample.cs`](DotGram.Examples/Formats/MetricsLineExample.cs) | a line of measurements, and the standard library doing nearly all of it — `using Std;`, comments and numbers said by name |
 
 ## Feeds
 
@@ -52,6 +53,8 @@ Record-oriented input, four ways, over one line-oriented format.
 | [`SelectorExample.cs`](DotGram.Examples/Languages/SelectorExample.cs) | `orders[2].lines.total(net)` read as the chain of steps it is |
 | [`SqlReadOnlyExample.cs`](DotGram.Examples/Languages/SqlReadOnlyExample.cs) | a guard that answers one question: can this statement write anything? |
 | [`GramExample.cs`](DotGram.Examples/Languages/GramExample.cs) | the .Gram notation parsed by .Gram itself, building a tree |
+| [`TokenizedQueryExample.cs`](DotGram.Examples/Languages/TokenizedQueryExample.cs) | a query read over tokens — `Lexical = true`, a lexer under the rules, and keywords that end where a word does |
+| [`LexemeLibraryExample.cs`](DotGram.Examples/Languages/LexemeLibraryExample.cs) | one grammar written to be built on and two written on it — `[GramInclude]`, and why the names cannot collide |
 
 ## Taking one
 
