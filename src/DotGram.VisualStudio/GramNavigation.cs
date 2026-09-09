@@ -22,8 +22,21 @@ namespace DotGram.VisualStudio;
 [ContentType(GramContentType.Name)]
 sealed class GramNavigableSymbolSourceProvider : INavigableSymbolSourceProvider
 {
-	public INavigableSymbolSource TryCreateNavigableSymbolSource(ITextView textView, ITextBuffer buffer) =>
-		new GramNavigableSymbolSource(textView, buffer, GramBufferAnalysis.For(buffer));
+	[Import]
+	VisualStudioWorkspace Workspace { get; set; } = null!;
+
+	[Import]
+	ITextDocumentFactoryService Documents { get; set; } = null!;
+
+	[Import(typeof(SVsServiceProvider))]
+	IServiceProvider Services { get; set; } = null!;
+
+	public INavigableSymbolSource TryCreateNavigableSymbolSource(ITextView textView, ITextBuffer buffer)
+	{
+		var analysis = GramBufferAnalysis.For(buffer);
+		GramClassifierProvider.Configure(analysis, buffer, Workspace, Documents);
+		return new GramNavigableSymbolSource(textView, buffer, analysis, Services);
+	}
 }
 
 [Export(typeof(INavigableSymbolSourceProvider))]
@@ -46,13 +59,16 @@ sealed class EmbeddedGramNavigableSymbolSourceProvider : INavigableSymbolSourceP
 			textView,
 			buffer,
 			EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents),
-			Services);
+			Services,
+			Workspace,
+			Documents);
 }
 
 sealed class GramNavigableSymbolSource(
 	ITextView view,
 	ITextBuffer buffer,
-	GramBufferAnalysis analysis) : INavigableSymbolSource
+	GramBufferAnalysis analysis,
+	IServiceProvider services) : INavigableSymbolSource
 {
 	public Task<INavigableSymbol?> GetNavigableSymbolAsync(
 		SnapshotSpan triggerSpan,
@@ -60,6 +76,13 @@ sealed class GramNavigableSymbolSource(
 	{
 		var snapshot = buffer.CurrentSnapshot;
 		var position = triggerSpan.TranslateTo(snapshot, SpanTrackingMode.EdgeExclusive).Start.Position;
+		if (analysis.ExternalDefinition(snapshot, position) is { } external)
+			return Task.FromResult<INavigableSymbol?>(new FileNavigableSymbol(
+				new SnapshotSpan(snapshot, external.Position, external.Length),
+				services,
+				external.FilePath,
+				external.Line,
+				external.Column));
 
 		foreach (var item in analysis.Document(snapshot).Symbols)
 			if (item.Position <= position && position < item.Position + item.Length)
@@ -93,44 +116,55 @@ sealed class EmbeddedGramNavigableSymbolSource(
 	ITextView view,
 	ITextBuffer buffer,
 	EmbeddedGrammarBufferAnalysis analysis,
-	IServiceProvider services) : INavigableSymbolSource
+	IServiceProvider services,
+	VisualStudioWorkspace workspace,
+	ITextDocumentFactoryService documents) : INavigableSymbolSource
 {
-	public Task<INavigableSymbol?> GetNavigableSymbolAsync(
+	public async Task<INavigableSymbol?> GetNavigableSymbolAsync(
 		SnapshotSpan triggerSpan,
 		CancellationToken token)
 	{
 		var snapshot = buffer.CurrentSnapshot;
 		var position = triggerSpan.TranslateTo(snapshot, SpanTrackingMode.EdgeExclusive).Start.Position;
+		var grammarFile = await new RoslynGramCompletion(buffer, workspace, documents)
+			.GrammarFileSourceAsync(position, token).ConfigureAwait(false);
+		if (grammarFile is { } file)
+			return new FileNavigableSymbol(
+				new SnapshotSpan(snapshot, position, position < snapshot.Length ? 1 : 0),
+				services,
+				file.FilePath,
+				file.Line,
+				file.Column);
 
 		if (analysis.TryGetDslSymbols(snapshot, out var dslSymbols))
 			foreach (var item in dslSymbols)
 				if (item.Span.Contains(position) && item.DefinitionPath is not null)
-					return Task.FromResult<INavigableSymbol?>(new FileNavigableSymbol(
+					return new FileNavigableSymbol(
 						new SnapshotSpan(snapshot, item.Span.Start, item.Span.Length),
 						services,
 						item.DefinitionPath,
 						item.DefinitionLine,
-						item.DefinitionColumn));
+						item.DefinitionColumn);
 
 		if (analysis.TryGetSymbols(snapshot, out var symbols))
 			foreach (var item in symbols)
 				if (item.Span.Contains(position))
-					return Task.FromResult<INavigableSymbol?>(GramNavigableSymbolSource.Create(
+					return GramNavigableSymbolSource.Create(
 						view,
 						snapshot,
 						item.Span.Start,
 						item.Span.Length,
-						item.DefinitionSpan.Start));
+						item.DefinitionSpan.Start);
 
 		// Returning null here lets the default C# provider treat the containing string
 		// literal as one large navigable symbol. Claim positions inside an embedded
 		// grammar even while its semantic spans are being refreshed after an edit.
 		if (analysis.TryGet(snapshot, out var classifications, out _) &&
 			classifications.Any(item => item.GrammarSpan.Contains(position)))
-			return Task.FromResult<INavigableSymbol?>(new NonNavigableSymbol(
-				new SnapshotSpan(snapshot, position, position < snapshot.Length ? 1 : 0)));
+			return new NonNavigableSymbol(
+				new SnapshotSpan(snapshot, position, position < snapshot.Length ? 1 : 0));
 
-		return Task.FromResult<INavigableSymbol?>(null);
+		return null;
 	}
 
 	public void Dispose()

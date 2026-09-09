@@ -572,7 +572,12 @@ sealed class RoslynGramCompletion(
 			? new[] { method.Name, method.Name.Substring(3) }
 			: new[] { method.Name };
 
-		foreach (var attribute in method.ContainingType.GetAttributes())
+		var grammarHost = method.ContainingType;
+		while (grammarHost.ContainingType is not null && !grammarHost.GetAttributes().Any(static attribute =>
+			attribute.AttributeClass?.ToDisplayString() == "DotGram.GramAttribute"))
+			grammarHost = grammarHost.ContainingType;
+
+		foreach (var attribute in grammarHost.GetAttributes())
 		{
 			if (attribute.AttributeClass?.ToDisplayString() != "DotGram.GramAttribute" ||
 				attribute.ConstructorArguments.Length == 0 ||
@@ -617,6 +622,46 @@ sealed class RoslynGramCompletion(
 		}
 
 		return await GrammarReferenceSourceAsync(method, document.Project, cancellationToken).ConfigureAwait(false);
+	}
+
+	public async Task<GeneratedApiSource?> GrammarFileSourceAsync(
+		int position,
+		CancellationToken cancellationToken)
+	{
+		if (!documents.TryGetTextDocument(buffer, out var textDocument) || textDocument.FilePath is null)
+			return null;
+
+		var solution = workspace.CurrentSolution;
+		var documentId = solution.GetDocumentIdsWithFilePath(textDocument.FilePath).FirstOrDefault();
+		var document = documentId is null ? null : solution.GetDocument(documentId);
+		if (document is null)
+			return null;
+
+		var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+		var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+		if (root is null || model is null)
+			return null;
+
+		var literal = root.FindToken(Math.Max(0, Math.Min(position, root.FullSpan.End - 1))).Parent?
+			.AncestorsAndSelf().OfType<LiteralExpressionSyntax>().FirstOrDefault();
+		var attribute = literal?.Ancestors().OfType<AttributeSyntax>().FirstOrDefault();
+		if (literal is null || attribute is null ||
+			!literal.Token.Span.Contains(position) ||
+			literal.Token.ValueText is not { } source ||
+			!source.EndsWith(".gram", StringComparison.OrdinalIgnoreCase) ||
+			source.IndexOf('\n') >= 0 || source.IndexOf('\r') >= 0)
+			return null;
+
+		var symbol = model.GetSymbolInfo(attribute, cancellationToken).Symbol as IMethodSymbol;
+		if (symbol?.ContainingType.ToDisplayString() != "DotGram.GramAttribute")
+			return null;
+
+		var grammar = document.Project.AdditionalDocuments.FirstOrDefault(candidate =>
+			candidate.FilePath is not null && FileName(candidate.FilePath).Equals(
+				FileName(source), StringComparison.OrdinalIgnoreCase));
+		return grammar?.FilePath is null
+			? null
+			: new GeneratedApiSource(grammar.FilePath, 0, 0);
 	}
 
 	public async Task<CSharpFindReferences?> FindReferencesAsync(

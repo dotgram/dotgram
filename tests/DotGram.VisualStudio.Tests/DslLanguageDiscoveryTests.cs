@@ -121,7 +121,7 @@ public sealed class DslLanguageDiscoveryTests
 	}
 
 	[Fact]
-	public void DiscoversInheritedGrammarSourcesAndIncludedNames()
+	public void DiscoversIncludedGrammarSourcesAndNames()
 	{
 		var catalog = Discover(Support + """
 
@@ -129,8 +129,9 @@ public sealed class DslLanguageDiscoveryTests
 			class BaseParser;
 
 			[DotGram.Gram("using Lexical;\nStart = Word\nparse Start")]
+			[DotGram.GramInclude(typeof(BaseParser))]
 			[DotGram.GramLanguage("derived")]
-			class DerivedParser : BaseParser;
+			class DerivedParser;
 			""");
 
 		var language = Assert.Single(catalog.Languages);
@@ -138,6 +139,39 @@ public sealed class DslLanguageDiscoveryTests
 		Assert.Equal("Lexical", included.Name);
 		Assert.Equal(DslGrammarSourceKind.Embedded, included.SourceKind);
 		Assert.Equal("Word = ['a'..'z']+", included.GrammarSource);
+	}
+
+	[Fact]
+	public void DiscoversAliasedAndTransitiveIncludes()
+	{
+		var catalog = Discover(Support + """
+
+			[DotGram.Gram("Letter = ['a'..'z']")]
+			class Lexemes;
+
+			[DotGram.Gram("Word = Lex.Letter+")]
+			[DotGram.GramInclude(typeof(Lexemes), As = "Lex")]
+			class Words;
+
+			[DotGram.Gram("using Lexical;\nStart = Lexical.Word\nparse Start")]
+			[DotGram.GramInclude(typeof(Words), As = "Lexical")]
+			[DotGram.GramLanguage("derived")]
+			class DerivedParser;
+			""");
+
+		var language = Assert.Single(catalog.Languages);
+		Assert.Collection(
+			language.IncludedGrammars,
+			included =>
+			{
+				Assert.Equal("Lexical", included.Name);
+				Assert.Equal("Word = Lex.Letter+", included.GrammarSource);
+			},
+			included =>
+			{
+				Assert.Equal("Lex", included.Name);
+				Assert.Equal("Letter = ['a'..'z']", included.GrammarSource);
+			});
 	}
 
 	[Fact]

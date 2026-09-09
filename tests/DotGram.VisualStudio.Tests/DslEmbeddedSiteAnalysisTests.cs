@@ -282,7 +282,7 @@ public sealed class DslEmbeddedSiteAnalysisTests
 	}
 
 	[Fact]
-	public async Task RoutesInputThroughAParserWithAnInheritedGrammar()
+	public async Task RoutesInputThroughAParserWithAnIncludedGrammar()
 	{
 		var cancellationToken = TestContext.Current.CancellationToken;
 		var source = Support + """
@@ -291,9 +291,10 @@ public sealed class DslEmbeddedSiteAnalysisTests
 			class LexicalParser;
 
 			[DotGram.Gram("using Lexical;\nStart = name: Word\nparse Start")]
+			[DotGram.GramInclude(typeof(LexicalParser))]
 			[DotGram.GramLanguage("derived")]
 			[DotGram.GramClassify("Start.name", DotGram.GramClassification.Variable)]
-			class DerivedParser : LexicalParser
+			class DerivedParser
 			{
 				public static string ParseStart(string input) => input;
 			}

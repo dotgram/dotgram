@@ -29,6 +29,7 @@ public sealed class EmbeddedGrammar(
 public static class EmbeddedGrammarFinder
 {
 	const string GramAttribute = "DotGram.GramAttribute";
+	const string GramIncludeAttribute = "DotGram.GramIncludeAttribute";
 	const string StringSyntaxAttribute = "System.Diagnostics.CodeAnalysis.StringSyntaxAttribute";
 	const string DotGramSyntax = "DotGram";
 	const string DotGramExtensionSyntax = ".gram";
@@ -57,6 +58,9 @@ public static class EmbeddedGrammarFinder
 				continue;
 
 			var own = literal.Token.ValueText;
+			if (IsFile(own))
+				continue;
+
 			var included = IncludedGrammars(model, attribute, cancellationToken);
 			var analysisText = included.Count == 0
 				? own
@@ -149,20 +153,43 @@ public static class EmbeddedGrammarFinder
 			return Array.Empty<GrammarSplice.Part>();
 
 		var included = new List<GrammarSplice.Part>();
-		for (var current = type.BaseType; current is not null; current = current.BaseType)
+		var seen = new HashSet<string>(StringComparer.Ordinal) { type.ToDisplayString() };
+		var pending = new Queue<(INamedTypeSymbol Type, string? As)>(NamedIncludes(type));
+		while (pending.Count > 0)
 		{
+			var (current, called) = pending.Dequeue();
+			if (!seen.Add(current.ToDisplayString()))
+				continue;
+
+			foreach (var nested in NamedIncludes(current))
+				pending.Enqueue(nested);
+
 			var grammar = current.GetAttributes().FirstOrDefault(static candidate =>
 				candidate.AttributeClass?.ToDisplayString() == GramAttribute);
 			if (grammar?.ConstructorArguments is not [{ Value: string source }] || IsFile(source))
 				continue;
 
-			var name = grammar.NamedArguments
+			var name = called ?? grammar.NamedArguments
 				.FirstOrDefault(static argument => argument.Key == "IncludedAs")
 				.Value.Value as string ?? current.Name;
 			included.Add(new GrammarSplice.Part(source, name, null));
 		}
 
 		return included;
+	}
+
+	static IEnumerable<(INamedTypeSymbol Type, string? As)> NamedIncludes(INamedTypeSymbol type)
+	{
+		foreach (var attribute in type.GetAttributes())
+			if (attribute.AttributeClass?.ToDisplayString() == GramIncludeAttribute &&
+				attribute.ConstructorArguments is [{ Value: INamedTypeSymbol grammar }])
+			{
+				yield return (
+					grammar,
+					attribute.NamedArguments
+						.FirstOrDefault(static argument => argument.Key == "As")
+						.Value.Value as string);
+			}
 	}
 
 	static bool IsFile(string source) =>

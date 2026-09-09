@@ -318,11 +318,14 @@ internal static class DslEmbeddedSiteAnalysis
 	{
 		var parsed = GramParser.Parse(GramLexer.Tokenize(grammarSource));
 		var grammarModel = GrammarBinder.Bind(parsed.File);
-		var graph = GrammarNormalizer.Normalize(grammarModel);
+		var graph = DslGrammarNormalizer.Normalize(
+			grammarModel,
+			language.RecognitionContract.Externals.Values);
 		if (parsed.Diagnostics.Any(IsError) || grammarModel.Diagnostics.Any(IsError) || graph.Diagnostics.Any(IsError))
 			return null;
 
-		var publications = graph.Publications.Where(static item => item.Kind == PublishKind.Parse).ToArray();
+		var publications = graph.Publications.Where(static item =>
+			item.Kind == PublishKind.Parse && !DslGrammarNormalizer.IsToolingPublication(item)).ToArray();
 		if (publications.Length == 0)
 			return null;
 

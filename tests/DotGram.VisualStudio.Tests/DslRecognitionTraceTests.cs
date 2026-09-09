@@ -192,7 +192,7 @@ public sealed class DslRecognitionTraceTests
 			Word = ['a'..'z']+
 			Start = when @(Allowed) & @Read
 			parse Start
-			""");
+			""", "Word");
 		var guard = Nodes(graph.Bodies[publication.Rule]).OfType<Node.Guard>().Single();
 		var definition = new DslRecognitionContractDefinition(
 			new System.Collections.Generic.Dictionary<string, bool> { [guard.Text] = true },
@@ -217,7 +217,7 @@ public sealed class DslRecognitionTraceTests
 			Start = when @(true) & @Read
 			parse Start
 			""";
-		var (graph, publication) = Compile(grammar);
+		var (graph, publication) = Compile(grammar, "Word");
 		var guard = Nodes(graph.Bodies[publication.Rule]).OfType<Node.Guard>().Single();
 		var contract = new DslDescriptorRecognitionContract(
 			graph,
@@ -300,16 +300,20 @@ public sealed class DslRecognitionTraceTests
 			yield return descendant;
 	}
 
-	static (RecognitionGraph Graph, Publication Publication) Compile(string source)
+	static (RecognitionGraph Graph, Publication Publication) Compile(
+		string source,
+		params string[] contractRules)
 	{
 		var parsed = GramParser.Parse(GramLexer.Tokenize(source, RoslynCSharpScanner.Instance));
 		var model  = GrammarBinder.Bind(parsed.File);
-		var graph  = GrammarNormalizer.Normalize(model);
+		var graph  = DslGrammarNormalizer.Normalize(model, contractRules);
 
 		Assert.Empty(parsed.Diagnostics);
 		Assert.Empty(model.Diagnostics);
 		Assert.Empty(graph.Diagnostics);
 
-		return (graph, Assert.Single(graph.Publications));
+		return (graph, Assert.Single(
+			graph.Publications,
+			static publication => !DslGrammarNormalizer.IsToolingPublication(publication)));
 	}
 }

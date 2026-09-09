@@ -1,0 +1,84 @@
+using System;
+using System.Threading.Tasks;
+
+using DotGram.VisualStudio;
+
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Text;
+
+using Xunit;
+
+namespace DotGram.VisualStudio.Tests;
+
+public sealed class StandaloneGrammarInheritanceTests
+{
+	[Fact]
+	public async Task AppendsIncludedGrammarToAStandaloneDialect()
+	{
+		const string declarations = """
+			namespace DotGram
+			{
+				sealed class GramAttribute(string source) : System.Attribute
+				{
+					public string IncludedAs { get; set; } = "";
+				}
+
+				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
+				sealed class GramIncludeAttribute(System.Type grammar) : System.Attribute
+				{
+					public string As { get; set; } = "";
+				}
+			}
+
+			[DotGram.Gram("SqlStandard92.gram", IncludedAs = "Sql92")]
+			abstract class SqlStandard92;
+
+			[DotGram.Gram("TransactSql.gram")]
+			[DotGram.GramInclude(typeof(SqlStandard92))]
+			abstract class TransactSql;
+			""";
+
+		using var workspace = new AdhocWorkspace();
+		var project = workspace.AddProject(ProjectInfo.Create(
+			ProjectId.CreateNewId(),
+			VersionStamp.Default,
+			"Parsers",
+			"Parsers",
+			LanguageNames.CSharp,
+			parseOptions: CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview),
+			metadataReferences: [MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location)]));
+		project = project.AddDocument("Parsers.cs", SourceText.From(declarations), filePath: @"P:\Parsers\Parsers.cs").Project;
+		project = project.AddAdditionalDocument(
+			"SqlStandard92.gram",
+			SourceText.From("Word = ['a'..'z']+"),
+			filePath: @"P:\Parsers\SqlStandard92.gram").Project;
+		project = project.AddAdditionalDocument(
+			"TransactSql.gram",
+			SourceText.From("using Sql92;\nStart = Sql92.Word"),
+			filePath: @"P:\Parsers\TransactSql.gram").Project;
+
+		var inherited = await StandaloneGrammarInheritance.ResolveAsync(
+			project.Solution,
+			@"P:\Parsers\TransactSql.gram",
+			TestContext.Current.CancellationToken);
+
+		Assert.NotNull(inherited);
+		Assert.Contains("namespace Sql92\n{\nWord = ['a'..'z']+", inherited.Value.AnalysisTail, StringComparison.Ordinal);
+		var included = Assert.Single(inherited.Value.Included);
+		Assert.Equal("Sql92", included.Name);
+		Assert.Equal(@"P:\Parsers\SqlStandard92.gram", included.FilePath);
+
+		const string dialect = "using Sql92;\nStart = Sql92.Word";
+		var namespaceTarget = GramBufferAnalysis.ExternalDefinition(
+			dialect, inherited.Value, dialect.IndexOf("Sql92", StringComparison.Ordinal));
+		Assert.Equal(@"P:\Parsers\SqlStandard92.gram", namespaceTarget?.FilePath);
+		Assert.Equal(0, namespaceTarget?.Line);
+
+		var ruleTarget = GramBufferAnalysis.ExternalDefinition(
+			dialect, inherited.Value, dialect.LastIndexOf("Word", StringComparison.Ordinal));
+		Assert.Equal(@"P:\Parsers\SqlStandard92.gram", ruleTarget?.FilePath);
+		Assert.Equal(0, ruleTarget?.Line);
+		Assert.Equal(0, ruleTarget?.Column);
+	}
+}

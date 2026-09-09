@@ -62,6 +62,22 @@ public sealed class EmbeddedGrammarFinderTests
 	}
 
 	[Fact]
+	public void DoesNotTreatAGramFilePathAsEmbeddedGrammarText()
+	{
+		var source = """
+			namespace DotGram
+			{
+				sealed class GramAttribute(string text) : System.Attribute;
+			}
+
+			[DotGram.Gram("TransactSql.gram")]
+			class Parser;
+			""";
+
+		Assert.Empty(Find(source));
+	}
+
+	[Fact]
 	public void FindsSourceSpelledGramAttributeWithoutSemanticModel()
 	{
 		var source = """"
@@ -80,7 +96,7 @@ public sealed class EmbeddedGrammarFinderTests
 	}
 
 	[Fact]
-	public void AcceptsNamedArgumentsAndSplicesEmbeddedBaseGrammars()
+	public void AcceptsNamedArgumentsAndSplicesIncludedEmbeddedGrammars()
 	{
 		var source = """
 			namespace DotGram
@@ -89,13 +105,20 @@ public sealed class EmbeddedGrammarFinderTests
 				{
 					public string IncludedAs { get; set; } = "";
 				}
+
+				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
+				sealed class GramIncludeAttribute(System.Type grammar) : System.Attribute
+				{
+					public string As { get; set; } = "";
+				}
 			}
 
 			[DotGram.Gram("Word = ['a'..'z']+", IncludedAs = "Lexical")]
 			class Base;
 
 			[DotGram.Gram("using Lexical;\nStart = Word\nparse Start")]
-			class Parser : Base;
+			[DotGram.GramInclude(typeof(Base))]
+			class Parser;
 			""";
 
 		var grammars = Find(source);
@@ -105,6 +128,44 @@ public sealed class EmbeddedGrammarFinderTests
 
 		Assert.StartsWith(derived.Text, derived.AnalysisText, StringComparison.Ordinal);
 		Assert.Contains("namespace Lexical\n{\nWord = ['a'..'z']+", derived.AnalysisText, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void SplicesTransitiveIncludesUnderTheIncludersNames()
+	{
+		var source = """
+			namespace DotGram
+			{
+				sealed class GramAttribute(string text) : System.Attribute
+				{
+					public string IncludedAs { get; set; } = "";
+				}
+
+				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
+				sealed class GramIncludeAttribute(System.Type grammar) : System.Attribute
+				{
+					public string As { get; set; } = "";
+				}
+			}
+
+			[DotGram.Gram("Letter = ['a'..'z']")]
+			class Lexemes;
+
+			[DotGram.Gram("Word = Lex.Letter+")]
+			[DotGram.GramInclude(typeof(Lexemes), As = "Lex")]
+			class Words;
+
+			[DotGram.Gram("using Lexical;\nStart = Word\nparse Start")]
+			[DotGram.GramInclude(typeof(Words), As = "Lexical")]
+			class Parser;
+			""";
+
+		var derived = Assert.Single(
+			Find(source),
+			grammar => grammar.Text.StartsWith("using", StringComparison.Ordinal));
+
+		Assert.Contains("namespace Lexical\n{\nWord = Lex.Letter+", derived.AnalysisText, StringComparison.Ordinal);
+		Assert.Contains("namespace Lex\n{\nLetter = ['a'..'z']", derived.AnalysisText, StringComparison.Ordinal);
 	}
 
 	[Fact]
