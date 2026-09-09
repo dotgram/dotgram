@@ -918,6 +918,10 @@ public static class SqlWriter
 
 				break;
 		}
+
+		// And the catalogue's own words after it, as they were written.
+		if (statement is Statement.Definition { Tail: { Length: > 0 } tail })
+			text.Append(' ').Append(tail);
 	}
 
 	static readonly Dictionary<string, string> Spelled = new(StringComparer.Ordinal)

@@ -215,6 +215,33 @@ public abstract record Statement : ISqlSpan
 	/// §11.10 a table changed: its name, what is being done, to what, and the options the
 	/// action was given.
 	/// </summary>
+	/// <summary>
+	/// A statement that is a word, a name, and a catalogue's own words after them.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A hundred and forty statements of SQL Server are a phrase, a thing's name, and then a
+	/// clause belonging to that thing rather than to the language: <c>CREATE WORKLOAD GROUP g
+	/// WITH (IMPORTANCE = HIGH) USING pool</c>, <c>BACKUP DATABASE d TO DISK = 'x' WITH
+	/// COMPRESSION</c>, <c>CREATE FULLTEXT CATALOG c ON FILEGROUP f AS DEFAULT</c>. Which
+	/// statement it is is the record's own name; what is written after the name is
+	/// <see cref="Tail"/>, kept as the words it was written as.
+	/// </para>
+	/// <para>
+	/// Text and not a shape, for <see cref="Clause.Hint"/>'s reason and with the same
+	/// bargain: it loses nothing and claims nothing. The vocabulary here is a catalogue —
+	/// two hundred backup options, the file formats of every external source SQL Server has
+	/// ever spoken to — and a catalogue is not a language. A statement whose parts a tool
+	/// really needs gets them the way <c>CREATE TABLE</c> did: a record of its own, filled
+	/// in where somebody needs it.
+	/// </para>
+	/// </remarks>
+	public abstract record Definition(string Name) : Statement
+	{
+		/// <summary>What was written after the name, or null where nothing was.</summary>
+		public string? Tail { get; init; }
+	}
+
 	public sealed record AlterTable(
 		string Name, string Action, Clause[] Elements, Clause[]? Options = null) : Statement;
 
@@ -278,10 +305,10 @@ public abstract record Statement : ISqlSpan
 		Expression? Partition = null, Clause[]? Options = null, string[]? Paths = null, string? Namespaces = null) : Statement;
 
 	/// <summary><c>CREATE STATISTICS</c>.</summary>
-	public sealed record StatisticsDefinition(string Name) : Statement;
+	public sealed record StatisticsDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>UPDATE STATISTICS</c>, which names the table rather than the statistics.</summary>
-	public sealed record UpdateStatistics(string On) : Statement;
+	public sealed record UpdateStatistics(string Name) : Definition(Name);
 
 	// ---- a word and some values ----------------------------------------------------------------
 	//
@@ -326,61 +353,61 @@ public abstract record Statement : ISqlSpan
 	// wanted it is one field on one record here, which is what having a record each is for.
 
 	/// <summary><c>CREATE LOGIN</c>.</summary>
-	public sealed record CreateLogin(string Name) : Statement;
+	public sealed record CreateLogin(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER LOGIN</c>.</summary>
-	public sealed record AlterLogin(string Name) : Statement;
+	public sealed record AlterLogin(string Name) : Definition(Name);
 
 	/// <summary><c>CREATE USER</c>.</summary>
-	public sealed record CreateUser(string Name) : Statement;
+	public sealed record CreateUser(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER USER</c>.</summary>
-	public sealed record AlterUser(string Name) : Statement;
+	public sealed record AlterUser(string Name) : Definition(Name);
 
 	/// <summary><c>CREATE ROLE</c>.</summary>
-	public sealed record CreateRole(string Name) : Statement;
+	public sealed record CreateRole(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER ROLE</c>.</summary>
-	public sealed record AlterRole(string Name) : Statement;
+	public sealed record AlterRole(string Name) : Definition(Name);
 
 	/// <summary><c>CREATE APPLICATION ROLE</c>.</summary>
-	public sealed record CreateApplicationRole(string Name) : Statement;
+	public sealed record CreateApplicationRole(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER APPLICATION ROLE</c>.</summary>
-	public sealed record AlterApplicationRole(string Name) : Statement;
+	public sealed record AlterApplicationRole(string Name) : Definition(Name);
 
 	/// <summary>§11.1 <c>CREATE SCHEMA</c>.</summary>
-	public sealed record SchemaDefinition(string Name) : Statement;
+	public sealed record SchemaDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER SCHEMA</c>.</summary>
-	public sealed record AlterSchema(string Name) : Statement;
+	public sealed record AlterSchema(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER AUTHORIZATION</c>.</summary>
-	public sealed record AlterAuthorization(string Name) : Statement;
+	public sealed record AlterAuthorization(string Name) : Definition(Name);
 
 	/// <summary><c>EXTERNAL DATA SOURCE</c>.</summary>
-	public sealed record ExternalDataSourceDefinition(string Name) : Statement;
+	public sealed record ExternalDataSourceDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>EXTERNAL FILE FORMAT</c>.</summary>
-	public sealed record ExternalFileFormatDefinition(string Name) : Statement;
+	public sealed record ExternalFileFormatDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>EXTERNAL LIBRARY</c>.</summary>
-	public sealed record ExternalLibraryDefinition(string Name) : Statement;
+	public sealed record ExternalLibraryDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>EXTERNAL RESOURCE POOL</c>.</summary>
-	public sealed record ExternalResourcePoolDefinition(string Name) : Statement;
+	public sealed record ExternalResourcePoolDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>RESOURCE POOL</c>.</summary>
-	public sealed record ResourcePoolDefinition(string Name) : Statement;
+	public sealed record ResourcePoolDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>WORKLOAD GROUP</c>.</summary>
-	public sealed record WorkloadGroupDefinition(string Name) : Statement;
+	public sealed record WorkloadGroupDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>SERVER AUDIT</c>.</summary>
-	public sealed record ServerAuditDefinition(string Name) : Statement;
+	public sealed record ServerAuditDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>AUDIT SPECIFICATION</c>.</summary>
-	public sealed record AuditSpecificationDefinition(string Name) : Statement;
+	public sealed record AuditSpecificationDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>EVENT SESSION</c>.</summary>
 	/// <summary>
@@ -393,7 +420,7 @@ public abstract record Statement : ISqlSpan
 		Clause[]? Options = null, string? State = null) : Statement;
 
 	/// <summary><c>EVENT NOTIFICATION</c>.</summary>
-	public sealed record EventNotificationDefinition(string Name) : Statement;
+	public sealed record EventNotificationDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>ENDPOINT</c>.</summary>
 	/// <summary>
@@ -436,41 +463,41 @@ public abstract record Statement : ISqlSpan
 		string Name, string Action, Clause[] Settings, bool Secondary = false, Expression? Argument = null) : Statement;
 
 	/// <summary><c>ALTER DATABASE … COLLATE</c>.</summary>
-	public sealed record AlterDatabaseCollate(string Name) : Statement;
+	public sealed record AlterDatabaseCollate(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER DATABASE … MODIFY NAME</c>.</summary>
-	public sealed record AlterDatabaseModifyName(string Name) : Statement;
+	public sealed record AlterDatabaseModifyName(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER DATABASE … MODIFY FILEGROUP</c>.</summary>
-	public sealed record AlterDatabaseModifyFileGroup(string Name) : Statement;
+	public sealed record AlterDatabaseModifyFileGroup(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER DATABASE … MODIFY FILE</c>.</summary>
-	public sealed record AlterDatabaseModifyFile(string Name) : Statement;
+	public sealed record AlterDatabaseModifyFile(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER DATABASE … MODIFY</c>.</summary>
 	public sealed record AlterDatabaseModify(
 		string Name, Clause[]? Options = null, Clause[]? With = null) : Statement;
 
 	/// <summary><c>ALTER DATABASE … ADD FILEGROUP</c>.</summary>
-	public sealed record AlterDatabaseAddFileGroup(string Name) : Statement;
+	public sealed record AlterDatabaseAddFileGroup(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER DATABASE … ADD LOG FILE</c>.</summary>
-	public sealed record AlterDatabaseAddLogFile(string Name) : Statement;
+	public sealed record AlterDatabaseAddLogFile(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER DATABASE … ADD FILE</c>.</summary>
-	public sealed record AlterDatabaseAddFile(string Name) : Statement;
+	public sealed record AlterDatabaseAddFile(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER DATABASE … REMOVE FILEGROUP</c>.</summary>
-	public sealed record AlterDatabaseRemoveFileGroup(string Name) : Statement;
+	public sealed record AlterDatabaseRemoveFileGroup(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER DATABASE … REMOVE FILE</c>.</summary>
-	public sealed record AlterDatabaseRemoveFile(string Name) : Statement;
+	public sealed record AlterDatabaseRemoveFile(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER DATABASE … REBUILD LOG</c>.</summary>
-	public sealed record AlterDatabaseRebuildLog(string Name) : Statement;
+	public sealed record AlterDatabaseRebuildLog(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER DATABASE … PERFORM_CUTOVER</c>.</summary>
-	public sealed record AlterDatabasePerformCutover(string Name) : Statement;
+	public sealed record AlterDatabasePerformCutover(string Name) : Definition(Name);
 
 	// ---- the SET statements --------------------------------------------------------------------
 
@@ -521,28 +548,28 @@ public abstract record Statement : ISqlSpan
 	// ---- the full-text catalogue -----------------------------------------------------------------
 
 	/// <summary><c>CREATE FULLTEXT INDEX</c>, which is named by the table it is on.</summary>
-	public sealed record FullTextIndexDefinition(string On) : Statement;
+	public sealed record FullTextIndexDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER FULLTEXT INDEX</c>.</summary>
-	public sealed record AlterFullTextIndex(string On) : Statement;
+	public sealed record AlterFullTextIndex(string Name) : Definition(Name);
 
 	/// <summary><c>CREATE FULLTEXT CATALOG</c>.</summary>
-	public sealed record FullTextCatalogDefinition(string Name) : Statement;
+	public sealed record FullTextCatalogDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER FULLTEXT CATALOG</c>.</summary>
-	public sealed record AlterFullTextCatalog(string Name) : Statement;
+	public sealed record AlterFullTextCatalog(string Name) : Definition(Name);
 
 	/// <summary><c>CREATE FULLTEXT STOPLIST</c>.</summary>
-	public sealed record FullTextStopListDefinition(string Name) : Statement;
+	public sealed record FullTextStopListDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER FULLTEXT STOPLIST</c>.</summary>
-	public sealed record AlterFullTextStopList(string Name) : Statement;
+	public sealed record AlterFullTextStopList(string Name) : Definition(Name);
 
 	/// <summary><c>CREATE SEARCH PROPERTY LIST</c>.</summary>
-	public sealed record SearchPropertyListDefinition(string Name) : Statement;
+	public sealed record SearchPropertyListDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER SEARCH PROPERTY LIST</c>.</summary>
-	public sealed record AlterSearchPropertyList(string Name) : Statement;
+	public sealed record AlterSearchPropertyList(string Name) : Definition(Name);
 
 	// ---- backup and restore ----------------------------------------------------------------------
 	//
@@ -552,105 +579,105 @@ public abstract record Statement : ISqlSpan
 	// gives each its own page.
 
 	/// <summary><c>BACKUP DATABASE</c>.</summary>
-	public sealed record BackupDatabase(string? Name) : Statement;
+	public sealed record BackupDatabase(string Name) : Definition(Name);
 
 	/// <summary><c>BACKUP LOG</c>.</summary>
-	public sealed record BackupTransactionLog(string? Name) : Statement;
+	public sealed record BackupTransactionLog(string Name) : Definition(Name);
 
 	/// <summary><c>BACKUP SERVER</c>, which names nothing: there is one.</summary>
-	public sealed record BackupServer(string? Name) : Statement;
+	public sealed record BackupServer(string Name) : Definition(Name);
 
 	/// <summary><c>BACKUP GROUP</c>.</summary>
-	public sealed record BackupGroup(string? Name) : Statement;
+	public sealed record BackupGroup(string Name) : Definition(Name);
 
 	/// <summary><c>BACKUP CERTIFICATE</c>.</summary>
-	public sealed record BackupCertificate(string? Name) : Statement;
+	public sealed record BackupCertificate(string Name) : Definition(Name);
 
 	/// <summary><c>BACKUP MASTER KEY</c>.</summary>
-	public sealed record BackupMasterKey(string? Name) : Statement;
+	public sealed record BackupMasterKey(string Name) : Definition(Name);
 
 	/// <summary><c>BACKUP SERVICE MASTER KEY</c>.</summary>
-	public sealed record BackupServiceMasterKey(string? Name) : Statement;
+	public sealed record BackupServiceMasterKey(string Name) : Definition(Name);
 
 	/// <summary><c>BACKUP SYMMETRIC KEY</c>.</summary>
-	public sealed record BackupSymmetricKey(string? Name) : Statement;
+	public sealed record BackupSymmetricKey(string Name) : Definition(Name);
 
 	/// <summary><c>RESTORE DATABASE</c>.</summary>
-	public sealed record RestoreDatabase(string? Name) : Statement;
+	public sealed record RestoreDatabase(string Name) : Definition(Name);
 
 	/// <summary><c>RESTORE LOG</c>.</summary>
-	public sealed record RestoreLog(string? Name) : Statement;
+	public sealed record RestoreLog(string Name) : Definition(Name);
 
 	/// <summary><c>RESTORE FILELISTONLY</c>.</summary>
-	public sealed record RestoreFileListOnly(string? Name) : Statement;
+	public sealed record RestoreFileListOnly(string Name) : Definition(Name);
 
 	/// <summary><c>RESTORE HEADERONLY</c>.</summary>
-	public sealed record RestoreHeaderOnly(string? Name) : Statement;
+	public sealed record RestoreHeaderOnly(string Name) : Definition(Name);
 
 	/// <summary><c>RESTORE LABELONLY</c>.</summary>
-	public sealed record RestoreLabelOnly(string? Name) : Statement;
+	public sealed record RestoreLabelOnly(string Name) : Definition(Name);
 
 	/// <summary><c>RESTORE REWINDONLY</c>.</summary>
-	public sealed record RestoreRewindOnly(string? Name) : Statement;
+	public sealed record RestoreRewindOnly(string Name) : Definition(Name);
 
 	/// <summary><c>RESTORE VERIFYONLY</c>.</summary>
-	public sealed record RestoreVerifyOnly(string? Name) : Statement;
+	public sealed record RestoreVerifyOnly(string Name) : Definition(Name);
 
 	/// <summary><c>RESTORE MASTER KEY</c>.</summary>
-	public sealed record RestoreMasterKey(string? Name) : Statement;
+	public sealed record RestoreMasterKey(string Name) : Definition(Name);
 
 	/// <summary><c>RESTORE SERVICE MASTER KEY</c>.</summary>
-	public sealed record RestoreServiceMasterKey(string? Name) : Statement;
+	public sealed record RestoreServiceMasterKey(string Name) : Definition(Name);
 
 	// ---- the keys, and what is locked with them --------------------------------------------------
 
 	/// <summary><c>CREATE ASYMMETRIC KEY</c>.</summary>
-	public sealed record AsymmetricKeyDefinition(string Name) : Statement;
+	public sealed record AsymmetricKeyDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER ASYMMETRIC KEY</c>.</summary>
-	public sealed record AlterAsymmetricKey(string Name) : Statement;
+	public sealed record AlterAsymmetricKey(string Name) : Definition(Name);
 
 	/// <summary><c>CREATE SYMMETRIC KEY</c>.</summary>
-	public sealed record SymmetricKeyDefinition(string Name) : Statement;
+	public sealed record SymmetricKeyDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER SYMMETRIC KEY</c>.</summary>
-	public sealed record AlterSymmetricKey(string Name) : Statement;
+	public sealed record AlterSymmetricKey(string Name) : Definition(Name);
 
 	/// <summary><c>CREATE CERTIFICATE</c>.</summary>
-	public sealed record CertificateDefinition(string Name) : Statement;
+	public sealed record CertificateDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER CERTIFICATE</c>.</summary>
-	public sealed record AlterCertificate(string Name) : Statement;
+	public sealed record AlterCertificate(string Name) : Definition(Name);
 
 	/// <summary><c>CREATE MASTER KEY</c>.</summary>
-	public sealed record MasterKeyDefinition(string Name) : Statement;
+	public sealed record MasterKeyDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER MASTER KEY</c>.</summary>
-	public sealed record AlterMasterKey(string Name) : Statement;
+	public sealed record AlterMasterKey(string Name) : Definition(Name);
 
 	/// <summary><c>CREATE DATABASE ENCRYPTION KEY</c>.</summary>
-	public sealed record DatabaseEncryptionKeyDefinition(string Name) : Statement;
+	public sealed record DatabaseEncryptionKeyDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER DATABASE ENCRYPTION KEY</c>.</summary>
-	public sealed record AlterDatabaseEncryptionKey(string Name) : Statement;
+	public sealed record AlterDatabaseEncryptionKey(string Name) : Definition(Name);
 
 	/// <summary><c>CREATE COLUMN ENCRYPTION KEY</c>.</summary>
-	public sealed record ColumnEncryptionKeyDefinition(string Name) : Statement;
+	public sealed record ColumnEncryptionKeyDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER COLUMN ENCRYPTION KEY</c>.</summary>
-	public sealed record AlterColumnEncryptionKey(string Name) : Statement;
+	public sealed record AlterColumnEncryptionKey(string Name) : Definition(Name);
 
 	/// <summary><c>CREATE COLUMN MASTER KEY</c>.</summary>
-	public sealed record ColumnMasterKeyDefinition(string Name) : Statement;
+	public sealed record ColumnMasterKeyDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>CREATE/ALTER CREDENTIAL</c>.</summary>
-	public sealed record CredentialDefinition(string Name) : Statement;
+	public sealed record CredentialDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>CREATE/ALTER DATABASE SCOPED CREDENTIAL</c>.</summary>
-	public sealed record DatabaseScopedCredentialDefinition(string Name) : Statement;
+	public sealed record DatabaseScopedCredentialDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>CREATE/ALTER SECURITY POLICY</c>.</summary>
-	public sealed record SecurityPolicyDefinition(string Name) : Statement;
+	public sealed record SecurityPolicyDefinition(string Name) : Definition(Name);
 
 	// ---- what a statement drops ----------------------------------------------------------------
 	//
@@ -899,7 +926,10 @@ public abstract record Statement : ISqlSpan
 		};
 
 	/// <summary>What is being backed up, as the statement it is.</summary>
-	public static Statement BackedUp(string what, string? name) =>
+	public static Statement BackedUp(string what, string? name, string? tail = null) =>
+		BackedUp(what, name ?? "") with { Tail = tail };
+
+	static Definition BackedUp(string what, string name) =>
 		what switch
 		{
 			"DATABASE"           => new BackupDatabase(name),
@@ -914,7 +944,10 @@ public abstract record Statement : ISqlSpan
 		};
 
 	/// <summary>What is being restored, likewise.</summary>
-	public static Statement Restored(string what, string? name) =>
+	public static Statement Restored(string what, string? name, string? tail = null) =>
+		Restored(what, name ?? "") with { Tail = tail };
+
+	static Definition Restored(string what, string name) =>
 		what switch
 		{
 			"DATABASE"           => new RestoreDatabase(name),
@@ -930,7 +963,10 @@ public abstract record Statement : ISqlSpan
 		};
 
 	/// <summary>The definition the words name, where the tree keeps the name and no more.</summary>
-	public static Statement Defined(string what, string name) =>
+	public static Statement Defined(string what, string name, string? tail = null) =>
+		Named(what, name) with { Tail = tail };
+
+	static Definition Named(string what, string name) =>
 		what switch
 		{
 			"CREATE LOGIN"            => new CreateLogin(name),
@@ -1892,6 +1928,13 @@ public static class Syntax
 
 		return hint is null ? made : new Expression.Hinted(made, Spaced(hint));
 	}
+
+	/// <summary>
+	/// What a catalogue statement wrote after its name, as the words were written — or null
+	/// where it wrote nothing (<see cref="Statement.Definition.Tail"/>).
+	/// </summary>
+	public static string? Tail(string? words) =>
+		words is null || words.Length == 0 ? null : Spaced(words);
 
 	/// <summary>Words as written, with the whitespace between them made one space.</summary>
 	public static string Spaced(string words)

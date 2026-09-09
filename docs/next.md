@@ -17187,3 +17187,25 @@ keeps which; a target keeps its table hints; `BULK INSERT … WITH (…)` keeps 
 the file query, `ORDER (c1 ASC)` among them as the words. Both off the list; 72.5% the
 same. Along the way, a `GRAM4016` for three alternatives sharing `Identifier` at the head,
 which is the generator asking for the shared head to be written once — and it was right.
+
+### The catalogue, kept as it was written
+
+What was left on the work list after the core language was a long tail of one shape: a
+phrase, a thing's name, and then a clause belonging to that thing rather than to the
+language — `CREATE WORKLOAD GROUP g WITH (IMPORTANCE = HIGH) USING pool`, `BACKUP DATABASE
+d TO DISK = 'x' WITH COMPRESSION`, `CREATE FULLTEXT CATALOG c ON FILEGROUP f AS DEFAULT`.
+Fifty-seven records of `(string Name)` and nothing else, and the grammar reading every word
+of the tail and dropping it.
+
+They stand on `Statement.Definition` now — the name, and `Tail`, which is what was written
+after it, as the words were written. **Text and not a shape**, which is the same bargain
+`Clause.Hint` and the event-session predicate already strike: the vocabulary here is a
+catalogue, two hundred backup options and the file formats of everything SQL Server has
+ever spoken to, and a catalogue is not a language. A statement whose parts a tool really
+needs gets them the way `CREATE TABLE` did — a record of its own, filled in when somebody
+needs it — and nothing in the tail has to be re-read to make that happen later.
+
+Forty-eight call sites, six regions, one afternoon: keys and credentials, the full-text
+catalogue, external sources and pools, audits, principals, backup and restore. The corpus
+went from 72.5% to **84.9%** the same statement, and what ScriptDom will not read back from
+1154 to 550.

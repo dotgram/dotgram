@@ -1432,6 +1432,9 @@ PlacementTarget : @Clause.Placement
 	| t: Identifier & ('(' & c: ColumnList & ')')? => @(new Clause.Placement("", t, c))
 
 OptionsWith : @Clause[] = "WITH"i & '(' & o: OptionList & ')' => @(o)
+
+// The same, where the statement keeps what it read as the words rather than as options.
+OptionsWithText = "WITH"i & '(' & OptionList & ')'
 OptionList  : @Clause[] = first: OptionSetting & (',' & rest: OptionSetting)* => @(Syntax.Listed(first, rest))
 
 OptionSetting : @Clause
@@ -1939,57 +1942,59 @@ AlterIndexAction : @Statement.AlterIndex
 // key. `ENCRYPTION BY` is written in six of the seventeen and reads the same in all six, so
 // it is one rule.
 KeyStatement : @Statement
-	= "CREATE"i & "ASYMMETRIC"i & "KEY"i & name: Identifier & Authorization?
-	  & ("FROM"i & AsymmetricSource)? & ("WITH"i & OptionList)? & EncryptionBy?
-		=> @(Statement.Defined("ASYMMETRIC KEY", name))
-	| "ALTER"i & "ASYMMETRIC"i & "KEY"i & name: Identifier & KeyChange
-		=> @(Statement.Defined("ALTER ASYMMETRIC KEY", name))
+	= "CREATE"i & "ASYMMETRIC"i & "KEY"i & name: Identifier
+	  & tail: (Authorization? & ("FROM"i & AsymmetricSource)? & ("WITH"i & OptionList)? & EncryptionBy?)
+		=> @(Statement.Defined("ASYMMETRIC KEY", name, Syntax.Tail(tail)))
+	| "ALTER"i & "ASYMMETRIC"i & "KEY"i & name: Identifier & tail: KeyChange
+		=> @(Statement.Defined("ALTER ASYMMETRIC KEY", name, Syntax.Tail(tail)))
 
-	| "CREATE"i & "SYMMETRIC"i & "KEY"i & name: Identifier & Authorization?
-	  & ("FROM"i & "PROVIDER"i & Identifier)? & "WITH"i & SymmetricOption & (','? & SymmetricOption)*
-		=> @(Statement.Defined("SYMMETRIC KEY", name))
-	| "ALTER"i & "SYMMETRIC"i & "KEY"i & name: Identifier & AddOrDrop
-	  & "ENCRYPTION"i & "BY"i & Encryptor & (',' & Encryptor)*
-		=> @(Statement.Defined("ALTER SYMMETRIC KEY", name))
+	| "CREATE"i & "SYMMETRIC"i & "KEY"i & name: Identifier
+	  & tail: (Authorization? & ("FROM"i & "PROVIDER"i & Identifier)?
+			   & "WITH"i & SymmetricOption & (','? & SymmetricOption)*)
+		=> @(Statement.Defined("SYMMETRIC KEY", name, Syntax.Tail(tail)))
+	| "ALTER"i & "SYMMETRIC"i & "KEY"i & name: Identifier
+	  & tail: (AddOrDrop & "ENCRYPTION"i & "BY"i & Encryptor & (',' & Encryptor)*)
+		=> @(Statement.Defined("ALTER SYMMETRIC KEY", name, Syntax.Tail(tail)))
 
-	| "CREATE"i & "CERTIFICATE"i & name: Identifier & Authorization? & CertificateBody
-	  & ("ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff)?
-		=> @(Statement.Defined("CERTIFICATE", name))
-	| "ALTER"i & "CERTIFICATE"i & name: Identifier & CertificateChange
-		=> @(Statement.Defined("ALTER CERTIFICATE", name))
+	| "CREATE"i & "CERTIFICATE"i & name: Identifier
+	  & tail: (Authorization? & CertificateBody & ("ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff)?)
+		=> @(Statement.Defined("CERTIFICATE", name, Syntax.Tail(tail)))
+	| "ALTER"i & "CERTIFICATE"i & name: Identifier & tail: CertificateChange
+		=> @(Statement.Defined("ALTER CERTIFICATE", name, Syntax.Tail(tail)))
 
-	| "CREATE"i & "MASTER"i & "KEY"i & EncryptionBy?
-		=> @(Statement.Defined("MASTER KEY", ""))
-	| "ALTER"i & "MASTER"i & "KEY"i & MasterKeyChange
-		=> @(Statement.Defined("ALTER MASTER KEY", ""))
+	| "CREATE"i & "MASTER"i & "KEY"i & tail: EncryptionBy?
+		=> @(Statement.Defined("MASTER KEY", "", Syntax.Tail(tail)))
+	| "ALTER"i & "MASTER"i & "KEY"i & tail: MasterKeyChange
+		=> @(Statement.Defined("ALTER MASTER KEY", "", Syntax.Tail(tail)))
 
-	| "CREATE"i & "DATABASE"i & "ENCRYPTION"i & "KEY"i & ("WITH"i & OptionList)? & EncryptionBy?
-		=> @(Statement.Defined("DATABASE ENCRYPTION KEY", ""))
+	| "CREATE"i & "DATABASE"i & "ENCRYPTION"i & "KEY"i
+	  & tail: (("WITH"i & OptionList)? & EncryptionBy?)
+		=> @(Statement.Defined("DATABASE ENCRYPTION KEY", "", Syntax.Tail(tail)))
 	| "ALTER"i & "DATABASE"i & "ENCRYPTION"i & "KEY"i
-	  & ("REGENERATE"i & "WITH"i & OptionList)? & EncryptionBy?
-		=> @(Statement.Defined("ALTER DATABASE ENCRYPTION KEY", ""))
+	  & tail: (("REGENERATE"i & "WITH"i & OptionList)? & EncryptionBy?)
+		=> @(Statement.Defined("ALTER DATABASE ENCRYPTION KEY", "", Syntax.Tail(tail)))
 
 	| "CREATE"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & name: Identifier
-	  & "WITH"i & "VALUES"i & '(' & OptionList & ')' & (',' & '(' & OptionList & ')')*
-		=> @(Statement.Defined("COLUMN ENCRYPTION KEY", name))
-	| "ALTER"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & name: Identifier & AddOrDrop
-	  & "VALUE"i & '(' & OptionList & ')'
-		=> @(Statement.Defined("ALTER COLUMN ENCRYPTION KEY", name))
-	| "CREATE"i & "COLUMN"i & "MASTER"i & "KEY"i & name: Identifier & OptionsWith
-		=> @(Statement.Defined("COLUMN MASTER KEY", name))
+	  & tail: ("WITH"i & "VALUES"i & '(' & OptionList & ')' & (',' & '(' & OptionList & ')')*)
+		=> @(Statement.Defined("COLUMN ENCRYPTION KEY", name, Syntax.Tail(tail)))
+	| "ALTER"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & name: Identifier
+	  & tail: (AddOrDrop & "VALUE"i & '(' & OptionList & ')')
+		=> @(Statement.Defined("ALTER COLUMN ENCRYPTION KEY", name, Syntax.Tail(tail)))
+	| "CREATE"i & "COLUMN"i & "MASTER"i & "KEY"i & name: Identifier & tail: OptionsWithText
+		=> @(Statement.Defined("COLUMN MASTER KEY", name, Syntax.Tail(tail)))
 
-	| CreateOrAlter & "CREDENTIAL"i & name: Identifier & "WITH"i & OptionList
-	  & ("FOR"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & Identifier)?
-		=> @(Statement.Defined("CREDENTIAL", name))
+	| CreateOrAlter & "CREDENTIAL"i & name: Identifier
+	  & tail: ("WITH"i & OptionList & ("FOR"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & Identifier)?)
+		=> @(Statement.Defined("CREDENTIAL", name, Syntax.Tail(tail)))
 	| CreateOrAlter & "DATABASE"i & "SCOPED"i & "CREDENTIAL"i & name: Identifier
-	  & "WITH"i & OptionList
-		=> @(Statement.Defined("DATABASE SCOPED CREDENTIAL", name))
+	  & tail: ("WITH"i & OptionList)
+		=> @(Statement.Defined("DATABASE SCOPED CREDENTIAL", name, Syntax.Tail(tail)))
 
 	// A security policy is a list of predicates rather than a list of settings, and each
 	// predicate names a function, the table it guards, and when it fires.
 	| CreateOrAlter & "SECURITY"i & "POLICY"i & name: QualifiedName
-	  & PolicyPredicates? & OptionsWith? & NotForReplication?
-		=> @(Statement.Defined("SECURITY POLICY", name))
+	  & tail: (PolicyPredicates? & OptionsWith? & NotForReplication?)
+		=> @(Statement.Defined("SECURITY POLICY", name, Syntax.Tail(tail)))
 
 Authorization     = "AUTHORIZATION"i & QualifiedName
 NotForReplication = "NOT"i & "FOR"i & "REPLICATION"i
@@ -2058,30 +2063,30 @@ PolicyWhen   = "AFTER"i & word | "BEFORE"i & word
 // carry a language and a type column beside them.
 FullTextStatement : @Statement
 	= "CREATE"i & "FULLTEXT"i & "INDEX"i & "ON"i & on: QualifiedName
-	  & ('(' & FullTextColumn & (',' & FullTextColumn)* & ')')?
-	  & "KEY"i & "INDEX"i & Identifier & ("ON"i & FullTextCatalogOn)? & FullTextWith?
-		=> @(Statement.Defined("FULLTEXT INDEX", on))
-	| "ALTER"i & "FULLTEXT"i & "INDEX"i & "ON"i & on: QualifiedName & FullTextAction
-		=> @(Statement.Defined("ALTER FULLTEXT INDEX", on))
+	  & tail: (('(' & FullTextColumn & (',' & FullTextColumn)* & ')')?
+			   & "KEY"i & "INDEX"i & Identifier & ("ON"i & FullTextCatalogOn)? & FullTextWith?)
+		=> @(Statement.Defined("FULLTEXT INDEX", on, Syntax.Tail(tail)))
+	| "ALTER"i & "FULLTEXT"i & "INDEX"i & "ON"i & on: QualifiedName & tail: FullTextAction
+		=> @(Statement.Defined("ALTER FULLTEXT INDEX", on, Syntax.Tail(tail)))
 
 	| "CREATE"i & "FULLTEXT"i & "CATALOG"i & name: Identifier
-	  & ("ON"i & "FILEGROUP"i & Identifier)? & ("IN"i & "PATH"i & ValueExpression)?
-	  & ("WITH"i & OptionList)? & AsDefault? & ("AUTHORIZATION"i & QualifiedName)?
-		=> @(Statement.Defined("FULLTEXT CATALOG", name))
-	| "ALTER"i & "FULLTEXT"i & "CATALOG"i & name: Identifier & FullTextCatalogAction
-		=> @(Statement.Defined("ALTER FULLTEXT CATALOG", name))
+	  & tail: (("ON"i & "FILEGROUP"i & Identifier)? & ("IN"i & "PATH"i & ValueExpression)?
+			   & ("WITH"i & OptionList)? & AsDefault? & ("AUTHORIZATION"i & QualifiedName)?)
+		=> @(Statement.Defined("FULLTEXT CATALOG", name, Syntax.Tail(tail)))
+	| "ALTER"i & "FULLTEXT"i & "CATALOG"i & name: Identifier & tail: FullTextCatalogAction
+		=> @(Statement.Defined("ALTER FULLTEXT CATALOG", name, Syntax.Tail(tail)))
 
-	| "CREATE"i & "FULLTEXT"i & "STOPLIST"i & name: Identifier & StopListFrom?
-	  & ("AUTHORIZATION"i & QualifiedName)?
-		=> @(Statement.Defined("FULLTEXT STOPLIST", name))
-	| "ALTER"i & "FULLTEXT"i & "STOPLIST"i & name: Identifier & StopListAction
-		=> @(Statement.Defined("ALTER FULLTEXT STOPLIST", name))
+	| "CREATE"i & "FULLTEXT"i & "STOPLIST"i & name: Identifier
+	  & tail: (StopListFrom? & ("AUTHORIZATION"i & QualifiedName)?)
+		=> @(Statement.Defined("FULLTEXT STOPLIST", name, Syntax.Tail(tail)))
+	| "ALTER"i & "FULLTEXT"i & "STOPLIST"i & name: Identifier & tail: StopListAction
+		=> @(Statement.Defined("ALTER FULLTEXT STOPLIST", name, Syntax.Tail(tail)))
 
 	| "CREATE"i & "SEARCH"i & "PROPERTY"i & "LIST"i & name: Identifier
-	  & ("FROM"i & QualifiedName)? & ("AUTHORIZATION"i & QualifiedName)?
-		=> @(Statement.Defined("SEARCH PROPERTY LIST", name))
-	| "ALTER"i & "SEARCH"i & "PROPERTY"i & "LIST"i & name: Identifier & PropertyListAction
-		=> @(Statement.Defined("ALTER SEARCH PROPERTY LIST", name))
+	  & tail: (("FROM"i & QualifiedName)? & ("AUTHORIZATION"i & QualifiedName)?)
+		=> @(Statement.Defined("SEARCH PROPERTY LIST", name, Syntax.Tail(tail)))
+	| "ALTER"i & "SEARCH"i & "PROPERTY"i & "LIST"i & name: Identifier & tail: PropertyListAction
+		=> @(Statement.Defined("ALTER SEARCH PROPERTY LIST", name, Syntax.Tail(tail)))
 
 // Bracketed or not, which the published block writes one way and the corpus both.
 FullTextWith = "WITH"i & '(' & OptionList & ')'
@@ -2133,20 +2138,20 @@ PropertyListAction = "ADD"i & ValueExpression & OptionsWith
 // copied to or from, and a long option list. A device is a name or one of three words and
 // a path, which is the only part of either that is not an option.
 BackupStatement : @Statement
-	= "BACKUP"i & what: BackupWhat & name: BackupTarget? & BackupFiles*
-	  & "TO"i & BackupDevices & MirrorTo* & BackupWith?
-		=> @(Statement.BackedUp(what, name))
+	= "BACKUP"i & what: BackupWhat & name: BackupTarget?
+	  & tail: (BackupFiles* & "TO"i & BackupDevices & MirrorTo* & BackupWith?)
+		=> @(Statement.BackedUp(what, name, Syntax.Tail(tail)))
 	| "BACKUP"i & what: BackupKeyWhat & name: BackupName?
-	  & "TO"i & "FILE"i & '=' & ValueExpression & KeyFileTail*
-		=> @(Statement.BackedUp(what, name))
+	  & tail: ("TO"i & "FILE"i & '=' & ValueExpression & KeyFileTail*)
+		=> @(Statement.BackedUp(what, name, Syntax.Tail(tail)))
 
 RestoreStatement : @Statement
-	= "RESTORE"i & what: RestoreKeyWhat & "FROM"i & "FILE"i & '=' & ValueExpression
-	  & KeyFileTail*
-		=> @(Statement.Restored(what, null))
-	| "RESTORE"i & what: RestoreWhat & name: BackupTarget? & BackupFiles*
-	  & ("FROM"i & RestoreFrom)? & BackupWith?
-		=> @(Statement.Restored(what, name))
+	= "RESTORE"i & what: RestoreKeyWhat
+	  & tail: ("FROM"i & "FILE"i & '=' & ValueExpression & KeyFileTail*)
+		=> @(Statement.Restored(what, null, Syntax.Tail(tail)))
+	| "RESTORE"i & what: RestoreWhat & name: BackupTarget?
+	  & tail: (BackupFiles* & ("FROM"i & RestoreFrom)? & BackupWith?)
+		=> @(Statement.Restored(what, name, Syntax.Tail(tail)))
 
 RestoreKeyWhat : @string
 	= "SERVICE"i & "MASTER"i & "KEY"i => @("SERVICE MASTER KEY")
@@ -2238,15 +2243,14 @@ AuditStatement : @Statement
 	// with `ALTER SERVER AUDIT` and every clause of an audit is optional — so the shorter
 	// reading fits, and over kinds a reading that fits is the one that stands (§4).
 	= CreateOrAlter & scope: ServerOrDatabase & "AUDIT"i & "SPECIFICATION"i & name: Identifier
-	  & ("FOR"i & "SERVER"i & "AUDIT"i & QualifiedName)?
-	  & AuditAction* & OptionsWith?
-		=> @(Statement.Defined("AUDIT SPECIFICATION", name))
+	  & tail: (("FOR"i & "SERVER"i & "AUDIT"i & QualifiedName)? & AuditAction* & OptionsWith?)
+		=> @(Statement.Defined("AUDIT SPECIFICATION", name, Syntax.Tail(tail)))
 
 	| "CREATE"i & "SERVER"i & "AUDIT"i & name: Identifier
-	  & "TO"i & AuditTarget & OptionsWith? & AuditWhere?
-		=> @(Statement.Defined("SERVER AUDIT", name))
-	| "ALTER"i & "SERVER"i & "AUDIT"i & name: Identifier & AlterAuditBody
-		=> @(Statement.Defined("SERVER AUDIT", name))
+	  & tail: ("TO"i & AuditTarget & OptionsWith? & AuditWhere?)
+		=> @(Statement.Defined("SERVER AUDIT", name, Syntax.Tail(tail)))
+	| "ALTER"i & "SERVER"i & "AUDIT"i & name: Identifier & tail: AlterAuditBody
+		=> @(Statement.Defined("SERVER AUDIT", name, Syntax.Tail(tail)))
 
 	// An extended-event session: events, targets, and what to spend on them.
 	| verb: CreateOrAlter & "EVENT"i & "SESSION"i & name: Identifier & "ON"i & on: ServerOrDatabase
@@ -2342,10 +2346,10 @@ EndpointFor : @Clause.Option = "FOR"i & w: word & '(' & o: OptionList? & ')' => 
 // option list — which is the shape this grammar has been reading since `CREATE TABLE`.
 // What is new is four clauses that are not a name and a value.
 ExternalStatement : @Statement
-	= CreateOrAlter & "EXTERNAL"i & "DATA"i & "SOURCE"i & name: Identifier & DataSourceBody
-		=> @(Statement.Defined("EXTERNAL DATA SOURCE", name))
-	| "CREATE"i & "EXTERNAL"i & "FILE"i & "FORMAT"i & name: Identifier & OptionsWith
-		=> @(Statement.Defined("EXTERNAL FILE FORMAT", name))
+	= CreateOrAlter & "EXTERNAL"i & "DATA"i & "SOURCE"i & name: Identifier & tail: DataSourceBody
+		=> @(Statement.Defined("EXTERNAL DATA SOURCE", name, Syntax.Tail(tail)))
+	| "CREATE"i & "EXTERNAL"i & "FILE"i & "FORMAT"i & name: Identifier & tail: OptionsWithText
+		=> @(Statement.Defined("EXTERNAL FILE FORMAT", name, Syntax.Tail(tail)))
 
 	// A table of somebody else's rows: the columns as this grammar reads any columns, and
 	// then where they are. Synapse writes the query instead and lets it say the columns.
@@ -2357,30 +2361,30 @@ ExternalStatement : @Statement
 		=> @(new Statement.CreateTableAsSelect(name, null, options, q, true))
 
 	| "CREATE"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
-	  & ("AUTHORIZATION"i & QualifiedName)?
-	  & "FROM"i & LibraryFile & (',' & LibraryFile)* & OptionsWith?
-		=> @(Statement.Defined("EXTERNAL LIBRARY", name))
+	  & tail: (("AUTHORIZATION"i & QualifiedName)?
+			   & "FROM"i & LibraryFile & (',' & LibraryFile)* & OptionsWith?)
+		=> @(Statement.Defined("EXTERNAL LIBRARY", name, Syntax.Tail(tail)))
 	| "ALTER"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
-	  & ("AUTHORIZATION"i & QualifiedName)?
-	  & LibraryChange & LibraryFile & (',' & LibraryFile)* & OptionsWith?
-		=> @(Statement.Defined("EXTERNAL LIBRARY", name))
+	  & tail: (("AUTHORIZATION"i & QualifiedName)?
+			   & LibraryChange & LibraryFile & (',' & LibraryFile)* & OptionsWith?)
+		=> @(Statement.Defined("EXTERNAL LIBRARY", name, Syntax.Tail(tail)))
 
-	| CreateOrAlter & "EXTERNAL"i & "RESOURCE"i & "POOL"i & pool: PoolName & OptionsWith?
-		=> @(Statement.Defined("EXTERNAL RESOURCE POOL", pool))
-	| CreateOrAlter & "RESOURCE"i & "POOL"i & pool: PoolName & OptionsWith?
-		=> @(Statement.Defined("RESOURCE POOL", pool))
-	| CreateOrAlter & "WORKLOAD"i & "GROUP"i & pool: PoolName & OptionsWith?
-	  & ("USING"i & WorkloadPool & (',' & WorkloadPool)*)?
-		=> @(Statement.Defined("WORKLOAD GROUP", pool))
+	| CreateOrAlter & "EXTERNAL"i & "RESOURCE"i & "POOL"i & pool: PoolName & tail: OptionsWithText?
+		=> @(Statement.Defined("EXTERNAL RESOURCE POOL", pool, Syntax.Tail(tail)))
+	| CreateOrAlter & "RESOURCE"i & "POOL"i & pool: PoolName & tail: OptionsWithText?
+		=> @(Statement.Defined("RESOURCE POOL", pool, Syntax.Tail(tail)))
+	| CreateOrAlter & "WORKLOAD"i & "GROUP"i & pool: PoolName
+	  & tail: (OptionsWithText? & ("USING"i & WorkloadPool & (',' & WorkloadPool)*)?)
+		=> @(Statement.Defined("WORKLOAD GROUP", pool, Syntax.Tail(tail)))
 
 	// Statistics: a name, what they are on, and how they are gathered. `SAMPLE 50 PERCENT`
 	// is three words where an option is usually a name and a value, and the option list
 	// reads it as one name — which is what a run of words is for (§4.6).
-	| "CREATE"i & "STATISTICS"i & name: Identifier & "ON"i & on: QualifiedName
-	  & columns: IndexColumns & ("WHERE"i & SearchCondition)? & StatisticsWith?
-		=> @(new Statement.StatisticsDefinition(name))
-	| "UPDATE"i & "STATISTICS"i & on: QualifiedName & StatisticsTarget? & StatisticsWith?
-		=> @(new Statement.UpdateStatistics(on))
+	| "CREATE"i & "STATISTICS"i & name: Identifier
+	  & tail: ("ON"i & QualifiedName & IndexColumns & ("WHERE"i & SearchCondition)? & StatisticsWith?)
+		=> @(new Statement.StatisticsDefinition(name) { Tail = Syntax.Tail(tail) })
+	| "UPDATE"i & "STATISTICS"i & on: QualifiedName & tail: (StatisticsTarget? & StatisticsWith?)
+		=> @(new Statement.UpdateStatistics(on) { Tail = Syntax.Tail(tail) })
 
 CreateOrAlter : @string = "CREATE"i => @("CREATE") | "ALTER"i => @("ALTER")
 
@@ -2410,25 +2414,25 @@ StatisticsTarget = '(' & IndexName & (',' & IndexName)* & ')'
 // things and no commas between them, which is the only place in T-SQL where an option list
 // runs on like that. So the password is a rule and the rest of the list is the ordinary one.
 PrincipalStatement : @Statement
-	= "CREATE"i & "LOGIN"i & name: Identifier & body: LoginBody
-		=> @(Statement.Defined("CREATE LOGIN", name))
-	| "ALTER"i & "LOGIN"i & name: Identifier & AlterLoginBody
-		=> @(Statement.Defined("ALTER LOGIN", name))
+	= "CREATE"i & "LOGIN"i & name: Identifier & tail: LoginBody
+		=> @(Statement.Defined("CREATE LOGIN", name, Syntax.Tail(tail)))
+	| "ALTER"i & "LOGIN"i & name: Identifier & tail: AlterLoginBody
+		=> @(Statement.Defined("ALTER LOGIN", name, Syntax.Tail(tail)))
 
-	| "CREATE"i & "USER"i & name: Identifier & UserSource? & UserOptions?
-		=> @(Statement.Defined("CREATE USER", name))
-	| "ALTER"i & "USER"i & name: Identifier & AlterUserBody
-		=> @(Statement.Defined("ALTER USER", name))
+	| "CREATE"i & "USER"i & name: Identifier & tail: (UserSource? & UserOptions?)
+		=> @(Statement.Defined("CREATE USER", name, Syntax.Tail(tail)))
+	| "ALTER"i & "USER"i & name: Identifier & tail: AlterUserBody
+		=> @(Statement.Defined("ALTER USER", name, Syntax.Tail(tail)))
 
-	| "CREATE"i & RoleWord & name: Identifier & ("AUTHORIZATION"i & QualifiedName)?
-		=> @(Statement.Defined("CREATE ROLE", name))
-	| "ALTER"i & RoleWord & name: Identifier & RoleAction
-		=> @(Statement.Defined("ALTER ROLE", name))
+	| "CREATE"i & RoleWord & name: Identifier & tail: ("AUTHORIZATION"i & QualifiedName)?
+		=> @(Statement.Defined("CREATE ROLE", name, Syntax.Tail(tail)))
+	| "ALTER"i & RoleWord & name: Identifier & tail: RoleAction
+		=> @(Statement.Defined("ALTER ROLE", name, Syntax.Tail(tail)))
 
-	| "CREATE"i & "APPLICATION"i & "ROLE"i & name: Identifier & "WITH"i & LoginOptions
-		=> @(Statement.Defined("CREATE APPLICATION ROLE", name))
-	| "ALTER"i & "APPLICATION"i & "ROLE"i & name: Identifier & "WITH"i & LoginOptions
-		=> @(Statement.Defined("ALTER APPLICATION ROLE", name))
+	| "CREATE"i & "APPLICATION"i & "ROLE"i & name: Identifier & tail: ("WITH"i & LoginOptions)
+		=> @(Statement.Defined("CREATE APPLICATION ROLE", name, Syntax.Tail(tail)))
+	| "ALTER"i & "APPLICATION"i & "ROLE"i & name: Identifier & tail: ("WITH"i & LoginOptions)
+		=> @(Statement.Defined("ALTER APPLICATION ROLE", name, Syntax.Tail(tail)))
 
 	// A schema may be declared by its owner alone — `CREATE SCHEMA AUTHORIZATION dbo` — and
 	// what follows it is not a clause but whole statements, which is the one statement in
@@ -2502,7 +2506,7 @@ ForOrFrom = "FOR"i | "FROM"i
 UserOptions = "WITH"i & LoginOptions
 
 AlterUserBody = "WITH"i & LoginOptions
-			  | s: UserSource
+			  | UserSource
 
 // ── DROP ────────────────────────────────────────────────────────────────────
 //
