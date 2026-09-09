@@ -1376,18 +1376,18 @@ Eight of the architecture's claims now have numbers rather than reasoning behind
 
 **Against `Regex`.** `benchmarks/` runs the URL grammar against the same language written
 as a regular expression, and refuses to time anything until both agree on every part of
-every input. Re-measured 2026-08-25, pooled parser, after the predicted-dispatch change:
-**generated parsing is faster than `RegexOptions.Compiled` on all five benchmarked inputs**
-— 133.8 ns against 298.9 for the short URL, 146.9 against 285.4 for the IP-host form, 80.2
-against 113.5 on the refusal, 191.0 against 453.0 for the 84-character path, and 274.4
-against 278.0 on the one that exercises every named part. Against interpreted `Regex`,
-2.2× to 6.5×.
+every input. Re-measured 2026-08-27, after the analysis work that closed the performance
+programme: **generated parsing is faster than `RegexOptions.Compiled` on all five
+benchmarked inputs** — 104.4 ns against 315.0 for the short URL, 110.1 against 304.0 for
+the IP-host form, 54.1 against 121.1 on the refusal, 170.9 against 479.9 for the
+84-character path, and 277.9 against 306.0 on the one that exercises every named part.
+Against interpreted `Regex`, 2.4× to 8.7×.
 
 That last one has been both sides of parity within a day: 1.12× before the predicted-dispatch
 change, 0.99× after — that change removes work on every input and lost this one to
-profile-guided block layout anyway — and 1.01× once a literal became one span comparison. A
-few per cent on this input is layout as often as it is work, and means nothing without the
-`DOTNET_TieredPGO=0` check beside it. `docs/next.md` has both.
+profile-guided block layout anyway — 1.01× once a literal became one span comparison, and
+1.10× in the run above. A few per cent on this input is layout as often as it is work, and
+means nothing without the `DOTNET_TieredPGO=0` check beside it. `docs/next.md` has both.
 
 **Measured with `--against` rather than `DefaultJob`**, and the difference matters for a
 ratio. BenchmarkDotNet runs each case in a process of its own, one after another, so
@@ -1395,17 +1395,16 @@ ratio. BenchmarkDotNet runs each case in a process of its own, one after another
 in one process, so what the machine does to one measurement it does to the five beside it.
 Three `DefaultJob` runs in a row had to be discarded here — the benchmark's own two rows
 that must agree came out 21% and 28% apart — while `--against` came through the same
-conditions with spreads under 6% and two runs agreeing to within 0.05 on every ratio. The
-absolute nanoseconds are about a tenth higher than the last quiet-machine table, on both
-engines; that is the machine.
+conditions with spreads under 6%, and the two independent runs behind the table above
+agreed to within 0.1 on every ratio.
 
 **Those five ask each side for one part, which is the pattern's question and not this
 one's.** A group records where a capture was and cuts its string when somebody reads it;
 a publication hands back a record with all seven parts already inside it. Asked instead
 for every part — the honest form of this project's question, and the second pair the
-benchmark now times — the same five come out 2.71×, 2.62×, 1.39×, 2.52× and 1.65× faster
+benchmark now times — the same five come out 4.21×, 4.16×, 2.48×, 1.62× and 3.77× faster
 than the compiled pattern. Reading all seven costs this nothing measurable, because they
-were built before the call returned; it costs the pattern 32% to 49% and 32 to 208 bytes
+were built before the call returned; it costs the pattern 32% to 52% and 32 to 208 bytes
 more. Neither pair is the honest one on its own, the first flattering the pattern and the
 second flattering this, and `benchmarks/README.md` carries both tables for that reason.
 
@@ -1442,6 +1441,16 @@ way) — and never had its own numbers written up before now.
 records read in 1351 ms through a 4 KB window against 3164 ms and 3.2 GB for the same
 feed as one string, and ten million — 1.9 GB — in 13.6 seconds with no Gen2 collection at
 all. That is the streaming claim measured rather than argued.
+
+**And it does not depend on the size of the file**, which is the half of that claim a
+single run cannot make. `--feed` reads one feed at two sizes, made a line at a time so
+that twenty gigabytes need not exist on a disk: 40,000,002 records over 1.41 GiB in 12.9
+seconds, and 600,000,002 over 21.17 GiB in 198.1. Fifteen times the input left the working
+set 4.8 MiB *smaller* — 83.0 MiB against 78.2 — because what a streamed parse holds is the
+window and the record in hand. The managed high-water mark is sampled once per million
+records, so the longer run finds a higher point in the collection cycle (48.3 MiB against
+37.8) without the heap having grown; the working set is the column that says so, being the
+one nothing samples. `benchmarks/README.md`, *What a streamed parse holds*.
 
 **Pathological backtracking** remains possible: a repetition whose body can consume the
 same input in several ways may take exponential work when failure occurs at the end.
