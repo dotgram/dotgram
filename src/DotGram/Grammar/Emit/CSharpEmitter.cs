@@ -458,7 +458,8 @@ public static partial class CSharpEmitter
 					stage => continuationProbes.TryGetValue((publication.Rule, stage), out var probe)
 						? probe.Name
 						: null,
-					machines.Exists(static compiled => compiled.Machine.UsesInput));
+					machines.Exists(static compiled => compiled.Machine.UsesInput),
+					machines.Find(one => one.Publications.Contains(publication))?.Tag ?? "");
 				file.Line();
 			}
 		}
@@ -970,7 +971,11 @@ public static partial class CSharpEmitter
 
 				{
 
-					file.Write(machine.RenderWrapper(rule, MethodOf(rule), engine, whole: false));
+					file.Write(machine.RenderWrapper(
+						rule,
+						MethodOf(graph, rule, machine.Anchor, compiled.Tag),
+						engine,
+						whole: false));
 
 					file.Line();
 
@@ -2273,6 +2278,29 @@ public static partial class CSharpEmitter
 	};
 
 	internal static string MethodOf(RuleSymbol rule) => "Recognize_" + IdentifierOf(rule);
+
+	/// <summary>The name one machine's wrapper for a rule goes under.</summary>
+	/// <remarks>
+	/// A published rule's own machine writes the wrapper under the plain name, and every
+	/// call meaning "recognize this rule" finds it there. A machine that streams a rule
+	/// published elsewhere needs a wrapper of its own — over its engine, entered at its
+	/// state — and cannot have that name, so it takes the machine's tag, the same one the
+	/// engine carries. Both are wanted, and they are not one method twice: the reader
+	/// enters this machine where it left off, and `find` enters the one compiled for it.
+	/// </remarks>
+	internal static string MethodOf(
+		RecognitionGraph graph, RuleSymbol rule, RuleSymbol? owner, string tag) =>
+		MethodOf(rule) + (rule.Equals(owner) || !IsPublished(graph, rule) ? "" : tag);
+
+	/// <summary>Whether a rule is published, and so owns the plain name of its wrapper.</summary>
+	static bool IsPublished(RecognitionGraph graph, RuleSymbol rule)
+	{
+		foreach (var publication in graph.Publications)
+			if (rule.Equals(publication.Rule))
+				return true;
+
+		return false;
+	}
 
 	/// <summary>One published rule's machine, and the names it is emitted under.</summary>
 	sealed record Compiled(

@@ -1296,6 +1296,44 @@ public sealed class GeneratorDriverTests
 			Read(assembly, "Streamed", "ParseFeed", new StringReader(text)));
 	}
 
+	/// <summary>A rule one publication streams and another finds.</summary>
+	/// <remarks>
+	/// Two machines, and each needs a recognizer for that rule: `find` compiles the rule
+	/// alone, while the reader enters it from inside the feed and resumes where the feed
+	/// left off. They are not one method twice, so the second goes under its machine's
+	/// name — which until it did made a file declaring `Recognize_Row` twice.
+	/// </remarks>
+	[Fact]
+	public void A_rule_may_be_streamed_by_one_publication_and_found_by_another()
+	{
+		const string source = """
+			[DotGram.Gram("Feed : @Item[] = Header & Row* recover eol & Trailer & eof\nHeader : @Item = 'H' & eol => @(new Head())\nRow : @Item = name: ['a'..'z']+ & eol => @(new Line(name))\nTrailer : @Item = 'T' & eol => @(new Tail())\nparse Feed\nfind Row as AllRows")]
+			public partial class Doubled { }
+			""" + Shapes;
+
+		var assembly = Build(source);
+		var text     = "H\naa\nbb\nT\n";
+
+		// The streamed parse enters Row from inside the feed …
+		Assert.Equal(
+			["Head", "Line:aa", "Line:bb", "Tail"],
+			Read(assembly, "Doubled", "ParseFeed", new StringReader(text)));
+
+		// … and `find` enters the machine compiled for Row alone. Both answering for the
+		// same input is what says the two recognizers were not swapped.
+		Assert.Equal(["aa", "bb"], Found(assembly, "Doubled", "AllRows", text));
+	}
+
+	/// <summary>What a `find` handed back, named by what each occurrence built.</summary>
+	static string[] Found(Assembly assembly, string type, string method, string input) =>
+		[.. ((System.Collections.IEnumerable)assembly
+				.GetType(type)!
+				.GetMethod(method, [typeof(string)])!
+				.Invoke(null, [input])!)
+			.Cast<object>()
+			.Select(static found => found.GetType().GetProperty("Value")!.GetValue(found)!)
+			.Select(static line => (string)line.GetType().GetProperty("Name")!.GetValue(line)!)];
+
 	/// <summary>
 	/// A spaced collection streams too: the driver skips the seam §4.5 weaves between
 	/// the elements it hands over, the same two reads the in-memory engine makes.

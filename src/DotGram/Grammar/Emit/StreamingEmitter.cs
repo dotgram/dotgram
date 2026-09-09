@@ -170,7 +170,7 @@ public static partial class CSharpEmitter
 		Writer file, RecognitionGraph graph, Publication publication, ResultTypes results,
 		IReadOnlyList<Stage> stages, IReadOnlyList<string> parts,
 		Recovery? recovery, string? sync, string factory, Func<int, string?> continuation,
-		bool input)
+		bool input, string tag)
 	{
 		var element = graph.Types[publication.Rule];
 
@@ -193,7 +193,9 @@ public static partial class CSharpEmitter
 			for (var i = 0; i < stages.Count; i++)
 			{
 				var stage  = stages[i];
-				var method = stage.Rule is { } rule ? MethodOf(rule) : parts[i];
+				var method = stage.Rule is { } rule
+					? MethodOf(graph, rule, publication.Rule, tag)
+					: parts[i];
 				var built  = stage.Rule is { } called ? results.QualifiedOf(called) : null;
 
 				file.Line();
@@ -218,7 +220,9 @@ public static partial class CSharpEmitter
 					using (file.Block("while (true)"))
 					{
 						file.Line($"seamFailure{i} = new {FailureType}();");
-						file.Line($"seamEnd{i}     = {MethodOf(seamRule)}(window.Span(), start, ref seamFailure{i});");
+						file.Line(
+							$"seamEnd{i}     = {MethodOf(graph, seamRule, publication.Rule, tag)}" +
+							$"(window.Span(), start, ref seamFailure{i});");
 						file.Line();
 
 						using (file.Block(
