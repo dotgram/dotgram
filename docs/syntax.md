@@ -530,24 +530,23 @@ is about. Over characters a rule earns its own commit only by being written insi
 ### 4.1 A rule's result
 
 1. There is `=> expr` — the expression gives the result.
-2. The result type is `T[]` — a sequence. Every operand whose value is assignable to
-   `T` joins it in order; `X*`, `X+` and `X{n,m}` contribute all of their elements;
-   other operands contribute nothing. A rule with no assignable operand is a build
-   error.
+2. The result type is `T[]` — a sequence. Every operand that **declares** a type
+   assignable to `T` joins it in order; `X*`, `X+` and `X{n,m}` contribute all of
+   their elements. Everything else contributes nothing: an operand of some other
+   type, and equally a rule that declares no type at all — which is how whitespace,
+   separators and other plumbing are written. A rule with no contributing operand is
+   a build error.
 3. There are captures — they are matched to the result type by name (§7.3).
 4. None of the above — the result is the matched extent: `string` gives the text,
    `SourceSpan` gives the bounds. Any other type requires an explicit `=>`.
-
-Separately, the type `void` means "this rule produces no value". Such a rule
-recognizes input but contributes nothing to captures or to a sequence — whitespace,
-separators and other plumbing are declared this way.
 
 ```dotgram
 Feed : FeedItem[] = Header & Row* & Trailer & eof
 ```
 
-`Header`, `Row` and `Trailer` are assignable to `FeedItem` and enter the result in
-order; `eof` is not assignable and contributes nothing.
+`Header`, `Row` and `Trailer` declare types assignable to `FeedItem` and enter the
+result in order; `eof` declares none and contributes nothing. A separator written as
+`Space = [' ']+` is silent for the same reason, and needs no keyword to say so.
 
 A name, a call and a parenthesized C# expression are allowed in `=>` and `when`
 (§2), with captures visible as ordinary local variables:

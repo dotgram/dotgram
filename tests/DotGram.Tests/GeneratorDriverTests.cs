@@ -1221,8 +1221,9 @@ public sealed class GeneratorDriverTests
 	[Fact]
 	public void An_operand_that_does_not_fit_the_element_type_is_left_out()
 	{
-		// `Sep` builds no value at all, so there is nothing of it to collect — and that is
-		// not an error, it is what "every operand whose value is assignable" means.
+		// `Sep` declares no type at all, so there is nothing of it to collect — and that is
+		// not an error, it is what "every operand that declares a type assignable to `T`"
+		// leaves out.
 		var items = (Array)Build(Items.Replace(
 				"Row : @Item = name: ['a'..'z']+ & eol",
 				"Sep = '-' & eol\\nRow : @Item = name: ['a'..'z']+ & eol",
@@ -1249,6 +1250,27 @@ public sealed class GeneratorDriverTests
 			""");
 
 		Assert.Contains(run.Diagnostics, diagnostic => diagnostic.Id == "GRAM4008");
+	}
+
+	/// <summary>Two grammars that differ in one thing: whether the separator declares a type.</summary>
+	static string[] Words(string space) =>
+		(string[])Build(
+			$$"""
+			[DotGram.Gram("Words : @string[] = Word & Space & Word\nWord : @string = t: ['a'..'z']+ => @(t)\n{{space}}\nparse Words")]
+			public partial class Spacing { }
+			""")
+			.GetType("Spacing")!
+			.GetMethod("ParseWords", [typeof(string)])!
+			.Invoke(null, ["ab cd"])!;
+
+	[Fact]
+	public void What_joins_a_sequence_is_the_declared_type_and_nothing_else()
+	{
+		// The recognizer is the same in both, and so is the text it reads. §4.1 case 2 asks
+		// the declaration and not the match, which is what lets a separator stay out of a
+		// result without a keyword — there is no `void` to write, and none is needed.
+		Assert.Equal(["ab", "cd"],      Words("Space = [' ']+"));
+		Assert.Equal(["ab", " ", "cd"], Words("Space : @string = t: [' ']+ => @(t)"));
 	}
 
 	// ── parse over a reader (§6.3) ───────────────────────────────────────────────
