@@ -203,6 +203,8 @@ public sealed class ShapesTests
 		written.Append('\n').Append(totals.Summary());
 		written.Append(tables);
 
+		// .work/ is scratch and is not in the repository: a fresh clone has to make it.
+		Directory.CreateDirectory(Path.Combine(root, ".work"));
 		File.WriteAllText(Path.Combine(root, ".work", "shapes.txt"), written.ToString());
 
 		Assert.True(seen >= 20, $"Only {seen} grammars were reported.");
