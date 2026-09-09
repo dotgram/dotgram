@@ -96,6 +96,20 @@ public sealed class EmbeddedGrammarFinderTests
 	}
 
 	[Fact]
+	public void DoesNotTreatSourceSpelledGramFilePathAsEmbeddedGrammarText()
+	{
+		var source = """
+			[DotGram.Gram("TransactSql.gram")]
+			class Parser;
+			""";
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var root = CSharpSyntaxTree.ParseText(source, cancellationToken: cancellationToken)
+			.GetRoot(cancellationToken);
+
+		Assert.Empty(EmbeddedGrammarFinder.FindSyntactic(root, cancellationToken));
+	}
+
+	[Fact]
 	public void AcceptsNamedArgumentsAndSplicesIncludedEmbeddedGrammars()
 	{
 		var source = """

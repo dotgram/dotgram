@@ -54,6 +54,7 @@ public static class EmbeddedGrammarFinder
 				attribute.ArgumentList?.Arguments.FirstOrDefault(
 					static argument => argument.NameEquals is null) is not
 						{ Expression: LiteralExpressionSyntax literal } ||
+				IsFile(literal.Token.ValueText) ||
 				!CSharpStringMap.TryCreate(literal.Token, out var map))
 				continue;
 
@@ -116,6 +117,7 @@ public static class EmbeddedGrammarFinder
 				attribute.ArgumentList?.Arguments.FirstOrDefault(
 					static argument => argument.NameEquals is null) is not
 						{ Expression: LiteralExpressionSyntax literal } ||
+				IsFile(literal.Token.ValueText) ||
 				!CSharpStringMap.TryCreate(literal.Token, out var map))
 				continue;
 

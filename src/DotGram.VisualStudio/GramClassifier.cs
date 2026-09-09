@@ -245,11 +245,18 @@ sealed class GramDiagnosticTagger : ITagger<ErrorTag>
 
 sealed class GramBufferAnalysis
 {
+	const int AnalysisDelayMilliseconds = 150;
+
+	static readonly GramDocument EmptyDocument = new([], [], [], [], [], [], []);
+
 	readonly ITextBuffer _buffer;
 	readonly object      _gate = new();
+	readonly SemaphoreSlim _analysisGate = new(1, 1);
 
 	ITextSnapshot? _snapshot;
 	GramDocument?  _document;
+	ITextSnapshot? _scheduledSnapshot;
+	CancellationTokenSource? _analysisCancellation;
 	StandaloneGrammarContext? _inheritance;
 	bool           _inheritanceStarted;
 
@@ -283,15 +290,10 @@ sealed class GramBufferAnalysis
 		{
 			if (_snapshot == snapshot && _document is not null)
 				return _document;
-
-			_snapshot = snapshot;
-			var own = snapshot.GetText();
-			_document = Project(
-				GramLanguageService.Analyze(own + (_inheritance?.AnalysisTail ?? "")),
-				own.Length);
-
-			return _document;
 		}
+
+		ScheduleAnalysis(snapshot, immediate: true);
+		return EmptyDocument;
 	}
 
 	public StandaloneDefinition? ExternalDefinition(ITextSnapshot snapshot, int position)
@@ -392,12 +394,10 @@ sealed class GramBufferAnalysis
 		lock (_gate)
 		{
 			_inheritance    = inherited;
-			_snapshot      = null;
-			_document      = null;
+			_scheduledSnapshot = null;
 		}
 
-		await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-		Changed?.Invoke(_buffer.CurrentSnapshot);
+		ScheduleAnalysis(_buffer.CurrentSnapshot, immediate: true);
 	}
 
 	static bool IsIdentifier(char character) =>
@@ -417,11 +417,114 @@ sealed class GramBufferAnalysis
 	{
 		lock (_gate)
 		{
-			_snapshot = null;
-			_document = null;
+			_document = _snapshot == change.Before && _document is not null
+				? TranslateDocument(_document, change.Before, change.After)
+				: EmptyDocument;
+			_snapshot = change.After;
 		}
 
 		Changed?.Invoke(change.After);
+		ScheduleAnalysis(change.After, immediate: false);
+	}
+
+	void ScheduleAnalysis(ITextSnapshot snapshot, bool immediate)
+	{
+		CancellationToken cancellationToken;
+		lock (_gate)
+		{
+			if (_scheduledSnapshot == snapshot)
+				return;
+
+			_analysisCancellation?.Cancel();
+			_analysisCancellation?.Dispose();
+			_analysisCancellation = new CancellationTokenSource();
+			_scheduledSnapshot = snapshot;
+			cancellationToken = _analysisCancellation.Token;
+		}
+
+		_ = Task.Run(() => AnalyzeAsync(snapshot, immediate, cancellationToken));
+	}
+
+	async Task AnalyzeAsync(
+		ITextSnapshot snapshot,
+		bool immediate,
+		CancellationToken cancellationToken)
+	{
+		try
+		{
+			if (!immediate)
+				await Task.Delay(AnalysisDelayMilliseconds, cancellationToken).ConfigureAwait(false);
+			await _analysisGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+			try
+			{
+				cancellationToken.ThrowIfCancellationRequested();
+				string tail;
+				lock (_gate)
+					tail = _inheritance?.AnalysisTail ?? "";
+
+				var own = snapshot.GetText();
+				var document = Project(GramLanguageService.Analyze(own + tail), own.Length);
+
+				lock (_gate)
+				{
+					cancellationToken.ThrowIfCancellationRequested();
+					if (_buffer.CurrentSnapshot != snapshot)
+						return;
+
+					_snapshot = snapshot;
+					_document = document;
+				}
+			}
+			finally
+			{
+				_analysisGate.Release();
+			}
+
+			await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+			Changed?.Invoke(snapshot);
+		}
+		catch (OperationCanceledException)
+		{
+		}
+		catch (Exception exception) when (exception is not OutOfMemoryException)
+		{
+			ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
+		}
+	}
+
+	static GramDocument TranslateDocument(
+		GramDocument document,
+		ITextSnapshot source,
+		ITextSnapshot target) =>
+		new(
+			document.Classifications.Select(item =>
+			{
+				var span = Translate(item.Position, item.Length, source, target);
+				int? definition = item.DefinitionPosition is int position && position < source.Length
+					? Translate(position, 0, source, target).Start
+					: null;
+				return new GramClassifiedSpan(
+					span.Start,
+					span.Length,
+					item.Kind,
+					item.QuickInfo,
+					definition,
+					item.RuleSignature,
+					item.RuleParameterCount,
+					item.SymbolKind);
+			}).ToArray(),
+			[], [], [], [], [], []);
+
+	static Span Translate(
+		int position,
+		int length,
+		ITextSnapshot source,
+		ITextSnapshot target)
+	{
+		var translated = new SnapshotSpan(source, position, length)
+			.TranslateTo(target, SpanTrackingMode.EdgeExclusive);
+		return new Span(translated.Start.Position, translated.Length);
 	}
 }
 

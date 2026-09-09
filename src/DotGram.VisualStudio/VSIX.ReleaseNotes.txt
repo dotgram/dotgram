@@ -1,4 +1,4 @@
-DotGram language support 0.1.54
+DotGram language support 0.1.56
 
 Initial preview for Visual Studio 18.
 
@@ -40,3 +40,7 @@ Initial preview for Visual Studio 18.
 - Find All References from C# combines Roslyn references with exact references in
   standalone grammar C# expressions.
 - Find All References from C# also includes C# expressions in embedded grammars.
+- Embedded grammar colors are re-applied immediately after editor changes while
+  semantic analysis continues in the background.
+- Standalone grammar edits retain translated colors while parsing runs off the UI
+  thread, and file-valued `[Gram]` arguments remain ordinary C# strings.

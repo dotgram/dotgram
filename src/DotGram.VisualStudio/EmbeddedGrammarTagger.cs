@@ -434,14 +434,14 @@ sealed class EmbeddedGrammarBufferAnalysis
 
 	void BufferChanged(object sender, TextContentChangedEventArgs change)
 	{
-		var literalStyleChanged = false;
+		var translated = false;
 
 		lock (_gate)
 		{
 			if (_snapshot == change.Before)
 			{
 				_classifications = TranslateClassifications(_classifications, change.Before, change.After);
-				(_classifications, literalStyleChanged) = RefreshLiteralStyles(
+				(_classifications, _) = RefreshLiteralStyles(
 					_classifications,
 					change.After);
 				_dslClassifications = TranslateDslClassifications(_dslClassifications, change.Before, change.After);
@@ -452,10 +452,14 @@ sealed class EmbeddedGrammarBufferAnalysis
 				_dslSymbols = [];
 				_dslSites = [];
 				_snapshot = change.After;
+				translated = true;
 			}
 		}
 
-		if (literalStyleChanged)
+		// Visual Studio invalidates classifications for the changed snapshot immediately.
+		// Tell it that the translated DotGram spans are already available; otherwise the
+		// C# string classification is visible until the deferred analysis publishes again.
+		if (translated)
 			Changed?.Invoke(change.After);
 
 		Schedule(change.After);
