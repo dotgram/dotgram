@@ -106,7 +106,7 @@ public static class GramCompiler
 					diagnostics, options.PartSize, lexical, options.Direct, options.Carrier, options.Stacks,
 					options.Suffix, options.SharedTypes, options.Inherits,
 					options.LanguageId, options.LanguageSource, options.LanguageClassifications,
-					options.LanguageRecognitionContract)));
+					options.LanguageRecognitionContract, options.StaticImports)));
 
 		return new GramCompilation(sources, OnePerPosition(diagnostics));
 	}

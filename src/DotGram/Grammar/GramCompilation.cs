@@ -144,6 +144,17 @@ public sealed class GramCompilerOptions
 	public string? LocationType { get; set; }
 
 	/// <summary>
+	/// The classes whose static members the generated code may name, by qualified name.
+	/// </summary>
+	/// <remarks>
+	/// One per grammar this one is built on. A rule that comes from another grammar goes on
+	/// calling the helpers its author wrote, and those live beside that grammar's own host —
+	/// so the generated file names them with <c>using static</c> rather than requiring the
+	/// including class to derive from something for the sake of what its methods can see.
+	/// </remarks>
+	public IReadOnlyList<string> StaticImports { get; set; } = [];
+
+	/// <summary>
 	/// How a reader carries what it has read until the author's constructions run
 	/// (<see cref="CarrierKind"/>). The tape by default, which keeps §7.3; the others are
 	/// the author's choice, and a grammar a chosen carrier cannot carry is compiled on the

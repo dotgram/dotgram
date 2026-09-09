@@ -44,10 +44,13 @@ public sealed class ReaderCoverageTests
 			.Concat(Directory.GetFiles(Path.Combine(root, "src", "DotGram.Parsers"), "*.cs"))
 			.Where(one => !one.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar))
 
-			// A host that derives from another carries half a grammar: what it reads comes
-			// from the base and is joined onto its own by the generator, so the text beside
-			// it does not compile alone and is not meant to.
-			.Where(one => !Regex.IsMatch(File.ReadAllText(one), @"partial class \w+\s*:\s*\w"))
+			// A host built on another carries half a grammar: what it reads comes from the
+			// one it includes and is joined onto its own by the generator, so the text beside
+			// it does not compile alone and is not meant to. Both spellings say so — a base
+			// class, and `[GramInclude(typeof(…))]`.
+			.Where(one => File.ReadAllText(one) is var source &&
+				!Regex.IsMatch(source, @"partial class \w+\s*:\s*\w") &&
+				!source.Contains("[GramInclude(", StringComparison.Ordinal))
 
 			.OrderBy(one => one, StringComparer.Ordinal)
 			.ToList();

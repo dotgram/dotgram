@@ -151,8 +151,11 @@ public static partial class CSharpEmitter
 		LexicalSplit? lexical = null, bool direct = true, CarrierKind carrier = CarrierKind.Tape,
 		int stacks = 0, string? suffix = null, bool? shared = null, bool inherits = false,
 		string? languageId = null, string? languageSource = null,
-		string? languageClassifications = null, string? languageRecognitionContract = null)
+		string? languageClassifications = null, string? languageRecognitionContract = null,
+		IReadOnlyList<string>? statics = null)
 	{
+		statics ??= [];
+
 		var overKinds = lexical is not null;
 		var directAllowed = direct;
 
@@ -271,6 +274,14 @@ public static partial class CSharpEmitter
 		{
 			foreach (var import in graph.CSharpImports)
 				file.Line($"using {import};");
+
+			// The host of every grammar this one is built on, so that a rule which came from
+			// there goes on calling the helpers its author wrote. Two of them offering the
+			// same name is an ordinary C# ambiguity and is refused as one; a member the
+			// including class declares under a name an included grammar calls is used instead
+			// of theirs, silently, which is the one collision nothing here can see.
+			foreach (var import in statics)
+				file.Line($"using static {import};");
 
 			file.Line();
 		}

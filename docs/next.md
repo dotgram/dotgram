@@ -16789,3 +16789,51 @@ A grammar that stands on its own drops nothing, which is the answer one would wa
 never anything dead in it. What T-SQL drops is SQL-92's rules that the dialect replaced with
 clones of its own — which is exactly the shape a library would have, and exactly why this had
 to come first.
+
+### A grammar is named, not inherited
+
+`TransactSql` was a dialect of `SqlStandard92` by deriving from it, and the base class was
+doing three jobs at once: saying which grammar to build on, keeping the base's C# members in
+scope, and inheriting its generated API only to hide it again — the generated file carries
+`#pragma warning disable CS0108 // a dialect hides what it inherits, on purpose`.
+
+Only the first of those is about grammars, and a base class is a poor way to say it. A class
+has one base and as many attributes as it likes, and a base carries meaning of its own that a
+grammar has no use for — substitutability that is not true here, since both classes are
+abstract holders of static methods.
+
+```csharp
+[GramInclude(typeof(SqlStandard92), As = "Sql92")]
+[Gram("TransactSql.gram", Lexical = true)]
+[Gram(LocationType = typeof(Sql.ISqlSpan), Suffix = "Located")]
+public abstract partial class TransactSql
+```
+
+Written as many times as there are grammars to build on, and walked in turn: a dialect on a
+standard on a library of lexemes gets all three. Both spellings still work — the base chain is
+walked first, then what the attributes name — and a grammar already gathered is not gathered
+twice, which ends a cycle rather than reporting one: `A` naming `B` naming `A` splices each
+once, which is what anybody writing it meant.
+
+**The name moved to the side that uses it.** `IncludedAs` let a grammar declare what others
+should call it, which is backwards; `As` is the includer's, because what a grammar is called
+inside yours is your business. The includee's suggestion is still the default.
+
+**And the C# comes with it**, which the base class used to do for free: the generated file
+names each included host with `using static`, so a rule that came from another grammar goes on
+calling the helpers its author wrote without the including class deriving from anything.
+
+That also settles what happens when two grammars use the same name, and the answer is smaller
+than it looks. **Rule names cannot collide at all** — each include is spliced into a namespace
+of its own, so they are `Sql92.Identifier` and `Lex.Identifier` and never the same name. What
+can collide is C#, and there the failure modes divide:
+
+| | |
+| --- | --- |
+| two **includes** offering one name | `CS0121`, ambiguity — **loud** |
+| a name that resolves nowhere | an ordinary compile error naming the method — **loud** |
+| the **includer's own** member under a name an included grammar calls | its own wins, **silently** |
+
+Only the last is invisible, and only when the signature happens to fit as well as the name.
+That one is the reason to read what you include, and `graph.FreeNames` already records which
+names each `=>` uses, so it can be made loud later without new plumbing.

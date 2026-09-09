@@ -409,6 +409,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 			Lexical        = host.Lexical,
 			Direct         = host.Direct,
 			LocationType   = host.LocationType,
+
+			// The host of every grammar this one is built on: what a rule from there calls
+			// lives beside it, and `using static` is what puts it in reach without the
+			// including class having to derive from anything.
+			StaticImports  = [.. host.Includes.Items.Select(static one => one.ClassName)],
 			Carrier        = (CarrierKind)host.Carrier,
 			Stacks         = host.Stacks,
 			Suffix         = host.Suffix,
@@ -940,7 +945,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			};
 		}
 
-		/// <summary>Every grammar up the base chain, nearest first.</summary>
+		/// <summary>Every grammar this one is built on, nearest first.</summary>
 		/// <remarks>
 		/// <para>
 		/// By display name and not by symbol: the attribute is emitted into every assembly
@@ -953,17 +958,41 @@ public sealed class GramGenerator : IIncrementalGenerator
 		/// sit between two that have one for reasons of its own.
 		/// </para>
 		/// <para>
-		/// Cycles cannot happen — C# forbids a class from inheriting itself, directly or
-		/// through anything — which is a property this spelling gets for free and a named
-		/// import of grammars would not have.
+		/// Two spellings, and both are walked. A base class is the older one and says less: a
+		/// class has one base and as many attributes as it likes, and a base carries meaning
+		/// of its own that a grammar has no use for. <c>[GramInclude(typeof(X))]</c> is the
+		/// other, it may be written many times, and what it names is walked in turn — a
+		/// grammar built on a standard built on a library gets all three.
+		/// </para>
+		/// <para>
+		/// Named rather than inherited, cycles become possible, and they are ended rather
+		/// than reported: a grammar already gathered is not gathered twice, so
+		/// <c>A</c> naming <c>B</c> naming <c>A</c> splices each of them once, which is what
+		/// anybody writing it meant. Nothing is lost by not saying so.
 		/// </para>
 		/// </remarks>
 		static ImmutableArray<Included> Inherited(INamedTypeSymbol type)
 		{
 			var included = ImmutableArray.CreateBuilder<Included>();
+			var seen     = new HashSet<string>(StringComparer.Ordinal) { type.ToDisplayString() };
+			var pending  = new Queue<(INamedTypeSymbol Type, string? As)>();
 
 			for (var above = type.BaseType; above is not null; above = above.BaseType)
+				pending.Enqueue((above, null));
+
+			foreach (var named in Named(type))
+				pending.Enqueue(named);
+
+			while (pending.Count > 0)
 			{
+				var (above, called) = pending.Dequeue();
+
+				if (!seen.Add(above.ToDisplayString()))
+					continue;
+
+				foreach (var named in Named(above))
+					pending.Enqueue(named);
+
 				// The one compiled into the base class itself where there are several: a
 				// grammar including another names a class, and what that class publishes
 				// under a scope of its own is that scope's, not the class's.
@@ -986,12 +1015,14 @@ public sealed class GramGenerator : IIncrementalGenerator
 						? literal.Token
 						: default;
 
-				var named = attribute.NamedArguments
+				// What the includer calls it wins over what the includee calls itself: the
+				// name a grammar is reached under inside yours is your business.
+				var under = called ?? attribute.NamedArguments
 					.FirstOrDefault(static argument => argument.Key == nameof(Host.IncludedAs))
 					.Value.Value as string;
 
 				included.Add(new Included(
-					Name:      named ?? above.Name,
+					Name:      under ?? above.Name,
 					ClassName: above.ToDisplayString(),
 					Source:    attribute.ConstructorArguments.Length == 1
 						? attribute.ConstructorArguments[0].Value as string
@@ -1007,6 +1038,21 @@ public sealed class GramGenerator : IIncrementalGenerator
 			}
 
 			return included.ToImmutable();
+
+			// What a class names with `[GramInclude]`, in the order it wrote them.
+			static IEnumerable<(INamedTypeSymbol Type, string? As)> Named(INamedTypeSymbol of)
+			{
+				foreach (var attribute in of.GetAttributes())
+					if (attribute.AttributeClass?.ToDisplayString() == "DotGram.GramIncludeAttribute" &&
+						attribute.ConstructorArguments is [{ Value: INamedTypeSymbol grammar }])
+					{
+						yield return (
+							grammar,
+							attribute.NamedArguments
+								.FirstOrDefault(static argument => argument.Key == "As")
+								.Value.Value as string);
+					}
+			}
 		}
 	}
 }
