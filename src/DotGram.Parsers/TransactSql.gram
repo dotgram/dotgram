@@ -1058,15 +1058,15 @@ StatementBody : @Statement
 // a target no correlation and no sample, and `UPDATE t AS x SET …` is not T-SQL.
 DmlTarget : @TableReference
 	= f: RowsetFunction                 => @(new TableReference.FunctionCall(f, null, null, Clause.None))
-	| t: Tsql.Variable & TableHints?    => @(new TableReference.Named(t, null, null, null, null, Clause.None))
-	| name: QualifiedName & TableHints? => @(new TableReference.Named(name, null, null, null, null, Clause.None))
+	| t: Tsql.Variable & hints: TableHints?    => @(new TableReference.Named(t, null, null, null, null, hints ?? Clause.None))
+	| name: QualifiedName & hints: TableHints? => @(new TableReference.Named(name, null, null, null, null, hints ?? Clause.None))
 
 // ── §INSERT ─────────────────────────────────────────────────────────────────
 TsqlInsert : @Statement
-	= "INSERT"i & top: Top? & "INTO"i? & target: DmlTarget
+	= "INSERT"i & top: Top? & into: "INTO"i? & target: DmlTarget
 	  & ('(' & columns: ColumnList & ')')? & output: OutputClause?
 	  & rows: InsertRows
-		=> @(new Statement.Insert(target, columns, rows, null, top, output))
+		=> @(new Statement.Insert(target, columns, rows, null, top, output, into is not null))
 
 InsertRows : @Query
 	= "DEFAULT"i & "VALUES"i    => @(new Query.DefaultValues())
@@ -1129,11 +1129,11 @@ TsqlDelete : @Statement
 // Three shapes of arm and they are not interchangeable: a match and a missing target may
 // insert, a missing source may update or delete, and the syntax says which is which.
 TsqlMerge : @Statement
-	= "MERGE"i & top: Top? & "INTO"i? & target: DmlTarget & ("AS"i? & alias: CorrelationName)?
+	= "MERGE"i & top: Top? & into: "INTO"i? & target: DmlTarget & ("AS"i? & alias: CorrelationName)?
 	  & "USING"i & source: TableReference
 	  & "ON"i & on: SearchCondition
 	  & whens: MergeArm+ & output: OutputClause? & options: QueryHints?
-		=> @(new Statement.Merge(target, source, on, whens, null, top, alias, output, options))
+		=> @(new Statement.Merge(target, source, on, whens, null, top, alias, output, options, into is not null))
 
 MergeArm : @Clause
 	= "WHEN"i & "MATCHED"i & ("AND"i & c: SearchCondition)? & "THEN"i & a: MergeChange
@@ -1361,13 +1361,19 @@ ExecValue : @Expression
 // ── BULK INSERT ─────────────────────────────────────────────────────────────
 BulkInsertStatement : @Statement
 	= "BULK"i & "INSERT"i & target: DmlTarget & "FROM"i & file: ValueExpression
-	  & ("WITH"i & '(' & BulkOption & (',' & BulkOption)* & ')')?
-		=> @(new Statement.Insert(target, null, new Query.FromFile(file)))
+	  & ("WITH"i & '(' & first: BulkOption & (',' & rest: BulkOption)* & ')')?
+		=> @(new Statement.Insert(target, null, new Query.FromFile(file, first is null ? null : Syntax.Listed(first, rest)), null, null, null, false))
 
-BulkOption = "ORDER"i & '(' & SortSpecification & (',' & SortSpecification)* & ')'
-		   | Identifier & BulkOptionTail?
+// `ORDER (c1 ASC, c2 DESC)` is an option whose value is a sort, kept as the words; the
+// rest are a name, and what it is set to or given in brackets.
+BulkOption : @Clause
+	= t: ("ORDER"i & '(' & SortSpecification & (',' & SortSpecification)* & ')')
+		=> @(new Clause.Option(Syntax.Spaced(t), null, Clause.None))
+	| name: Identifier & tail: BulkOptionTail? => @(tail is null ? new Clause.Option(name, null, Clause.None) : tail with { Name = name })
 
-BulkOptionTail = '=' & ValueExpression | '(' & Arguments & ')'
+BulkOptionTail : @Clause.Option
+	= '=' & v: ValueExpression   => @(new Clause.Option("", v, Clause.None))
+	| '(' & a: Arguments & ')'   => @(new Clause.Option("", new Expression.RoutineInvocation("", a), Clause.None, null, true))
 
 // ── A word and some values ──────────────────────────────────────────────────
 SimpleCommand : @Statement

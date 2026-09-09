@@ -17181,3 +17181,9 @@ CHECK OPTION` and `MATERIALIZED`; a trigger its options, `FOR` against `AFTER` a
 `INSTEAD OF`, `WITH APPEND`, `NOT FOR REPLICATION` and `EXTERNAL NAME`. Along the way:
 `when:` is a keyword of the grammar language and cannot name a capture. 71.1% the same,
 1154 unread; `Update`, `View`, `Trigger` and `SET @v` off the list.
+
+**INSERT and BULK INSERT.** `INSERT t1` and `INSERT INTO t1` are two spellings and the tree
+keeps which; a target keeps its table hints; `BULK INSERT … WITH (…)` keeps its options on
+the file query, `ORDER (c1 ASC)` among them as the words. Both off the list; 72.5% the
+same. Along the way, a `GRAM4016` for three alternatives sharing `Identifier` at the head,
+which is the generator asking for the shared head to be written once — and it was right.

@@ -136,9 +136,10 @@ public abstract record Statement : ISqlSpan
 	/// <param name="With">The common table expressions in front of it.</param>
 	/// <param name="Top">T-SQL's <c>TOP</c>, where one was written.</param>
 	/// <param name="Output">T-SQL's <c>OUTPUT</c> clause, where one was written.</param>
+	/// <param name="Into">Whether the optional <c>INTO</c> was written, which is a spelling the tree keeps.</param>
 	public sealed record Insert(
 		TableReference? Target, string[]? Columns, Query Rows,
-		Clause[]? With = null, Clause? Top = null, Clause? Output = null) : Statement;
+		Clause[]? With = null, Clause? Top = null, Clause? Output = null, bool Into = true) : Statement;
 
 	/// <summary>§14.14 rows changed in place: what to change, to what, and which rows.</summary>
 	/// <remarks>
@@ -159,7 +160,8 @@ public abstract record Statement : ISqlSpan
 	/// </summary>
 	public sealed record Merge(
 		TableReference? Target, TableReference Using, Expression On, Clause[] Whens,
-		Clause[]? With = null, Clause? Top = null, string? Alias = null, Clause? Output = null, Clause[]? Options = null) : Statement;
+		Clause[]? With = null, Clause? Top = null, string? Alias = null, Clause? Output = null, Clause[]? Options = null,
+		bool Into = true) : Statement;
 
 	// ---- the procedural level ----------------------------------------------------------------
 	//
@@ -1149,7 +1151,7 @@ public abstract record Query : ISqlSpan
 	public sealed record DefaultValues : Query;
 
 	/// <summary>T-SQL's <c>BULK INSERT</c>: a file standing where a query does.</summary>
-	public sealed record FromFile(Expression File) : Query;
+	public sealed record FromFile(Expression File, Clause[]? Options = null) : Query;
 
 	/// <summary>
 	/// T-SQL's <c>INSERT … EXEC</c>: a procedure standing where a query stands.

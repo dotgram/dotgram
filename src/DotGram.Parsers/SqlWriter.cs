@@ -120,18 +120,22 @@ public static class SqlWriter
 
 			// `BULK INSERT` is an insert whose rows come from a file, and it is written
 			// nothing like one; the rows say which of the two this is.
-			case Statement.Insert(var target, _, Query.FromFile(var file), _, _, _):
+			case Statement.Insert(var target, _, Query.FromFile(var file, var bulk), _, _, _, _):
 				text.Append("BULK INSERT ");
 				Put(text, target!);
 				text.Append(" FROM ");
 				Put(text, file, 0);
+				Optioned(text, bulk);
 				break;
 
-			case Statement.Insert(var target, var columns, var rows, var with, var top, var output):
+			case Statement.Insert(var target, var columns, var rows, var with, var top, var output, var into):
 				With(text, with);
 				text.Append("INSERT ");
 				Top(text, top);
-				text.Append("INTO ");
+
+				if (into)
+					text.Append("INTO ");
+
 				Put(text, target!);
 				Names(text, columns);
 				Output(text, output);
@@ -164,11 +168,14 @@ public static class SqlWriter
 				Hinted(text, options);
 				break;
 
-			case Statement.Merge(var target, var using_, var on, var whens, var with, var top, var alias, var output, var options):
+			case Statement.Merge(var target, var using_, var on, var whens, var with, var top, var alias, var output, var options, var into):
 				With(text, with);
 				text.Append("MERGE ");
 				Top(text, top);
-				text.Append("INTO ");
+
+				if (into)
+					text.Append("INTO ");
+
 				Put(text, target!);
 
 				if (alias is not null)
@@ -1052,7 +1059,7 @@ public static class SqlWriter
 				text.Append("DEFAULT VALUES");
 				break;
 
-			case Query.FromFile(var file):
+			case Query.FromFile(var file, _):
 				Put(text, file, 0);
 				break;
 
@@ -1949,7 +1956,7 @@ public static class SqlWriter
 				text.Append("DELETE");
 				break;
 
-			case Statement.Insert(null, var columns, var rows, _, _, _):
+			case Statement.Insert(null, var columns, var rows, _, _, _, _):
 				text.Append("INSERT");
 				Names(text, columns);
 				text.Append(' ');
