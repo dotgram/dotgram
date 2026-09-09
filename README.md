@@ -1,5 +1,3 @@
-*[Русский](README.ru.md)*
-
 # .Gram
 
 **.Gram is a source generator that compiles grammars into strongly typed C# parsers.**
@@ -267,91 +265,18 @@ Grammar describes the syntax; C# handles the parts that are already better expre
 
 ## DotGram.Parsers
 
-The repository also contains [`DotGram.Parsers`](src/DotGram.Parsers): real parsers built
-with .Gram rather than small demonstration grammars.
+[`DotGram.Parsers`](src/DotGram.Parsers) is a library of parsers written in .Gram against
+real specifications rather than demonstration grammars, and a package of its own.
 
-### RFC 3986 URI parser
+| Parser | What it reads |
+| --- | --- |
+| [`Rfc3986`](src/DotGram.Parsers/Rfc3986.cs) | URIs and relative references after RFC 3986 — authority, IPv4, IPv6, `IPvFuture`, paths, queries, fragments, percent encoding |
+| [`ExpressionLanguage`](src/DotGram.Parsers/ExpressionLanguage.cs) | a C#-style expression language that builds `System.Linq.Expressions` trees directly, with parameters, locals, blocks and `return` |
+| [`SqlStandard92`](src/DotGram.Parsers/SqlStandard92.gram) | SQL-92, read through a lexical split |
+| [`TransactSql`](src/DotGram.Parsers/TransactSql.gram) | T-SQL, written as a dialect over SQL-92 rather than as a copy of it |
 
-[`Rfc3986`](src/DotGram.Parsers/Rfc3986.cs) follows RFC 3986 closely, including absolute
-URIs, relative references, IPv4, IPv6, `IPvFuture`, authority, paths, queries, fragments,
-and percent encoding.
-
-```csharp
-using DotGram.Parsers;
-
-var uri = Rfc3986.ParseUri("https://user@example.com:8080/a/b?q=1#top");
-
-uri.Scheme;    // https
-uri.UserInfo;  // user
-uri.Host;      // example.com
-uri.Port;      // 8080
-uri.Path;      // /a/b
-uri.Query;     // q=1
-uri.Fragment;  // top
-```
-
-URI references can be relative:
-
-```csharp
-var reference = Rfc3986.ParseReference("../images/logo.png?size=2");
-
-reference.Scheme;  // null
-reference.Path;    // ../images/logo.png
-reference.Query;   // size=2
-```
-
-Percent decoding is deliberately separate from parsing:
-
-```csharp
-Rfc3986.Decode("hello%20world"); // hello world
-```
-
-That distinction matters. `%2F` inside a path segment is encoded data during parsing;
-decoding it early would turn it into a path separator it is not.
-
-### Expression language
-
-[`ExpressionLanguage`](src/DotGram.Parsers/ExpressionLanguage.cs) is a C#-style expression
-language that produces `System.Linq.Expressions` trees.
-
-```csharp
-using DotGram.Parsers;
-
-var square = ExpressionLanguage.Compile<Func<int, int>>("(int x) => x * x - 1");
-
-square(3); // 8
-```
-
-It supports parameters, local variables, blocks, and `return`:
-
-```csharp
-var calculate = ExpressionLanguage.Compile<Func<int, int, int>>(
-	"""
-	(int x, int y) =>
-	{
-		int sum = x + y;
-		return sum * sum;
-	}
-	""");
-
-calculate(2, 3); // 25
-```
-
-Or keep the expression tree instead of compiling it:
-
-```csharp
-var expression = ExpressionLanguage.Parse("(double x) => x / 2.0");
-
-Console.WriteLine(expression);   // x => (x / 2)
-```
-
-The grammar calls `System.Linq.Expressions` factories directly. There is no intermediate
-AST specific to .Gram that must later be translated into an expression tree — which also
-means a factory that does not exist, or one handed the wrong type, is a C# error on the
-line of the grammar that asked for it rather than an exception at run time.
-
-`DotGram.Parsers` is useful in two ways: as a library of actual parsers, and as examples
-of what larger .Gram grammars look like against real specifications and APIs.
+[`src/DotGram.Parsers/README.md`](src/DotGram.Parsers/README.md) has what each one parses
+and what it hands back.
 
 ## Streaming and recovery
 
@@ -454,6 +379,30 @@ There is no DotGram runtime assembly to deploy, and no generator/runtime version
 can drift apart. The generator does the grammar-specific work during compilation; the
 application executes the generated parser.
 
+## Visual Studio
+
+`DotGram.VisualStudio` is an extension for Visual Studio: classification, diagnostics,
+Quick Info, navigation, completion, brace matching and folding, both for `.gram` files and
+for a grammar written inside a `[Gram]` string.
+
+It does the same for the language you generate. A parser host that names its language
+lends that name to `StringSyntax`, and a literal passed to such a parameter is then edited
+as that language rather than as text:
+
+```csharp
+[Gram("Filter.gram")]
+[GramLanguage("filter")]
+public static partial class FilterLanguage;
+
+void Execute([StringSyntax("filter")] string query);
+
+Execute("status = active");   // classified, checked, and completed as Filter
+```
+
+The annotation works on a parameter, on the receiver of an extension method, and on a
+field or property initializer. [`docs/visual-studio.md`](docs/visual-studio.md) covers the
+rest, along with building and installing; the extension targets Visual Studio 18.
+
 ## Examples
 
 Complete examples are under [`examples/DotGram.Examples`](examples/DotGram.Examples/).
@@ -481,6 +430,7 @@ See [`examples/README.md`](examples/README.md) for the complete list.
 | [`docs/syntax.md`](docs/syntax.md) | grammar notation and generated API |
 | [`docs/implementation.md`](docs/implementation.md) | how the generated parser works |
 | [`docs/diagnostics.md`](docs/diagnostics.md) | compiler diagnostics |
+| [`docs/visual-studio.md`](docs/visual-studio.md) | the Visual Studio extension, and the `StringSyntax` annotations |
 | [`docs/status.md`](docs/status.md) | implemented features, limitations, and measurements |
 
 ## Building

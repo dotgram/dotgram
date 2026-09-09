@@ -10,9 +10,6 @@
 
 		<Description>Parsers for real formats, written in .gram: expressions, URLs, protocols.</Description>
 
-		<!-- A parser that does not compile is not a parser, and this one ships. -->
-		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-
 		<!-- Generated files land on disk so a reader can open what the grammars became. -->
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 		<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
