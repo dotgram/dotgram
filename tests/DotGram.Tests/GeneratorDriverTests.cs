@@ -2016,6 +2016,86 @@ public sealed class GeneratorDriverTests
 		Assert.Contains("Crowded", refusal.GetMessage(), StringComparison.Ordinal);
 	}
 
+	/// <summary>A grammar is included by being named, and it may be named more than once.</summary>
+	[Fact]
+	public void A_grammar_is_included_by_being_named()
+	{
+		var run = RunGenerator(
+			""""
+			using DotGram;
+
+			[Gram("""
+				Digit = ['0'..'9']
+				parse Digit
+				""")]
+			public static partial class Numbers;
+
+			[Gram("""
+				Letter = ['a'..'z']
+				parse Letter
+				""")]
+			public static partial class Letters;
+
+			[GramInclude(typeof(Numbers), As = "N")]
+			[GramInclude(typeof(Letters), As = "L")]
+			[Gram("""
+				using N;
+				using L;
+
+				Word = (N.Digit | L.Letter)+
+				parse Word
+				""")]
+			public static partial class Both;
+			"""");
+
+		Assert.Empty(run.Diagnostics.Where(static one => one.Severity == DiagnosticSeverity.Error));
+		// And the two included grammars really are in there, each under the name this one
+		// gave it rather than its own.
+		var written = string.Concat(run.Results
+			.SelectMany(static one => one.GeneratedSources)
+			.Select(static one => one.SourceText.ToString()));
+
+		Assert.Contains("ParseWord", written, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// And two of them under one name are refused, because a namespace is what keeps two
+	/// grammars' rules apart.
+	/// </summary>
+	[Fact]
+	public void Two_grammars_included_under_one_name_are_refused()
+	{
+		var run = RunGenerator(
+			""""
+			using DotGram;
+
+			[Gram("""
+				Digit = ['0'..'9']
+				parse Digit
+				""")]
+			public static partial class Numbers;
+
+			[Gram("""
+				Letter = ['a'..'z']
+				parse Letter
+				""")]
+			public static partial class Letters;
+
+			[GramInclude(typeof(Numbers), As = "Same")]
+			[GramInclude(typeof(Letters), As = "Same")]
+			[Gram("""
+				Word = 'x'
+				parse Word
+				""")]
+			public static partial class Crowded;
+			"""");
+
+		var refusal = Assert.Single(run.Diagnostics.Where(static one => one.Id == "GRAM0008"));
+
+		Assert.Equal(DiagnosticSeverity.Error, refusal.Severity);
+		Assert.Contains("Same", refusal.GetMessage(), StringComparison.Ordinal);
+	}
+
 	// ── Where a C# error lands (§7.6) ────────────────────────────────────────────
 
 	[Fact]

@@ -325,6 +325,19 @@ public sealed class GramGenerator : IIncrementalGenerator
 				bases.Add(inherited with { Source = inheritedPath });
 			}
 
+		// Each include is spliced into a namespace named after it, and that is the whole of
+		// why one grammar's rules cannot collide with another's. Two under one name are one
+		// namespace, and then they can — reported here, where the names are still names,
+		// rather than later as a duplicate rule in a namespace nobody wrote.
+		foreach (var group in bases.GroupBy(static one => one.Name, StringComparer.Ordinal))
+			if (group.Count() > 1)
+				reports.Add(Report.Of(
+					Diagnostics.RepeatedIncludedName,
+					group.First().Location ?? host.Location,
+					host.ClassName,
+					string.Join(" and ", group.Select(static one => SimpleNameOf(one.ClassName))),
+					group.Key));
+
 		var (text, joined) = GrammarSplice.Join(new GrammarSplice.Part(own, null, null), parts);
 
 		var pieces = ImmutableArray.CreateBuilder<Piece>();

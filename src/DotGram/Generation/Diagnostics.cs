@@ -70,6 +70,15 @@ static class Diagnostics
 		isEnabledByDefault: true,
 		description:        "Each [Gram] on a class is a compilation of its own and needs a scope of its own: one may go in the class itself, and every other names a nested class with Suffix.");
 
+	public static readonly DiagnosticDescriptor RepeatedIncludedName = new(
+		id:                 "GRAM0008",
+		title:              "Two grammars are included under one name",
+		messageFormat:      "'{0}' includes {1} under the same name '{2}'; give all but one an 'As' of its own",
+		category:           Category,
+		defaultSeverity:    DiagnosticSeverity.Error,
+		isEnabledByDefault: true,
+		description:        "An included grammar is wrapped in a namespace named after it, which is what keeps two grammars' rules from colliding: 'Sql92.Identifier' and 'Lex.Identifier' are different names. Two under one name are one namespace, and their rules do collide.");
+
 	public static readonly DiagnosticDescriptor InvalidGrammarScope = new(
 		id:                 "GRAM0007",
 		title:              "The name a grammar is compiled under is not an identifier",
