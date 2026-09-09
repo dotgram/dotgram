@@ -210,7 +210,7 @@ TsqlPrimaryCore : @Expression
 // complaint about the ODBC type name, which is it having read the escape and then
 // disagreeing about what was named inside it.
 OdbcEscape : @Expression
-	= '{' & fn: "FN"i & f: OdbcFunction & '}' => @(new Expression.OdbcEscape(fn, f))
+	= '{' & fn: "FN"i & f: OdbcFunction & '}' => @(f with { Kind = fn })
 	| '{' & kind: OdbcLiteralKind & t: Sql92.Lexical.CharacterStringLiteral & '}'
 		=> @(new Expression.OdbcEscape(kind, new Expression.Literal(SqlLiteralKind.Text, t)))
 
@@ -219,9 +219,14 @@ OdbcLiteralKind : @string = t: ("TS"i | "D"i | "T"i | "GUID"i) => @(t)
 // The name inside `{ fn … }` is ODBC's and not this language's, so a word T-SQL reserves
 // may stand there: `{ fn convert (@a, sql_int) }` calls ODBC's two-argument `convert`,
 // which is not the `CONVERT` of §6.10 and does not have to obey its shape.
-OdbcFunction : @Expression
-	= name: OdbcName & '(' & args: Arguments? & ')' => @(new Expression.RoutineInvocation(name, args ?? Expression.None))
-	| v: ValueExpression => @(v)
+// Built as the escape itself and not as what is inside it: whether the brackets of a call
+// were written is a fact about this rule's two alternatives, and the rule above has no way
+// to ask which of them answered.
+OdbcFunction : @Expression.OdbcEscape
+	= name: OdbcName & '(' & args: Arguments? & ')'
+		=> @(new Expression.OdbcEscape(
+				 "", new Expression.RoutineInvocation(name, args ?? Expression.None), true))
+	| v: ValueExpression => @(new Expression.OdbcEscape("", v))
 
 OdbcName = word
 
@@ -632,23 +637,25 @@ TsqlTablePrimary : @TableReference
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & sample: TableSample? & hints: TableHints? & pivot: PivotSuffix?
 		=> @(Syntax.Sourced(name, version, call, args, alias, columns, sample, hints, pivot))
-	| t: Tsql.Variable & s: VariableSource => @(s with { Table = t })
+	| t: Tsql.Variable & s: VariableSource => @(Syntax.OfVariable(t, s))
 	| derived: TableSubquery & "AS"i? & alias: CorrelationName
 	  & ('(' & columns: ColumnList & ')')? & pivot: PivotSuffix?
 		=> @(Syntax.Pivoted(new TableReference.Derived(derived, alias, columns), pivot))
 	| '(' & j: TableReference & ')' & TableSample? & TableHints?
 		=> @(new TableReference.Parenthesized(j))
-	| '{' & "OJ"i & j: TableReference & '}' => @(j)
+	| '{' & "OJ"i & j: TableReference & '}' => @(new TableReference.OdbcJoin(j))
 
 // What a variable may be as a table: the table variable itself, or a table-valued method
 // on a variable of a user-defined type — `FROM @v.f(1) AS t(c)`. Left-factored because
 // both begin with the variable, which is what GRAM4016 asks for.
-VariableSource : @TableReference.Named
-	= '.' & Identifier & '(' & Arguments? & ')'
+VariableSource : @TableReference
+	= '.' & method: Identifier & '(' & args: Arguments? & ')'
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
-		=> @(new TableReference.Named("", null, alias, columns, null, Clause.None))
-	| ("AS"i? & alias: CorrelationName)? & TableSample? & TableHints?
-		=> @(new TableReference.Named("", null, alias, null, null, Clause.None))
+		=> @(new TableReference.FunctionCall(
+				 new Expression.RoutineInvocation("." + method, args ?? Expression.None),
+				 alias, columns, Clause.None))
+	| ("AS"i? & alias: CorrelationName)? & sample: TableSample? & hints: TableHints?
+		=> @(new TableReference.Named("", null, alias, null, sample, hints ?? Clause.None))
 
 // The published syntax makes a pivoted table a source of its own — `table_source PIVOT
 // (…) [AS] alias` — which is left recursion, and §4.3 folds that only where the rule
@@ -1013,7 +1020,8 @@ RowsetOrder : @Expression
 // A provider's arguments may be joined by semicolons rather than commas — a connection
 // string written as three pieces, which is `OPENROWSET`'s oldest spelling.
 RowsetValue : @Expression
-	= v: ValueExpression & (';' & ValueExpression)+ => @(v)
+	= first: ValueExpression & (';' & rest: ValueExpression)+
+		=> @(new Expression.Pieced(Syntax.Listed(first, rest)))
 	| "NULL"i    => @(Expression.NullValue)
 	| "DEFAULT"i => @(Expression.DefaultValue)
 	| v: ValueExpression => @(v)

@@ -359,6 +359,7 @@ field on one record here, and having a record each is what makes that a small ch
 | `Expression.Literal` | SQL-92 | §5.3 &lt;literal&gt; |
 | `Expression.RowValueConstructor` | SQL-92 | §7.1 &lt;row value constructor&gt; |
 | `Expression.NamedArgument` | T-SQL | an argument given by name — `EXECUTE`, and the rowset functions |
+| `Expression.Pieced` | T-SQL | one argument written as several pieces with semicolons between them — `OPENROWSET`'s oldest spelling |
 | `Expression.Prefixed` | T-SQL | a value with a word in front of it — `BULK` in OPENROWSET, `CHANGES` in CHANGETABLE, `LANGUAGE` in CONTAINSTABLE |
 | `Expression.WindowFunction` | SQL:2003 | &lt;window function&gt; — a call and the window it is computed over |
 | `Expression.Member` | T-SQL | a member of a value, or a method called on one — `a.b`, `a::b`, `a.f(1)` |
@@ -381,6 +382,7 @@ field on one record here, and having a record each is what makes that a small ch
 | `TableReference.Unpivot` | T-SQL | FROM — the UNPIVOT clause |
 | `TableReference.Joined` | SQL-92 | §6.3 &lt;joined table&gt; |
 | `TableReference.Parenthesized` | SQL-92 | §6.3 a table reference in brackets |
+| `TableReference.OdbcJoin` | T-SQL | ODBC's outer-join escape, `{ OJ t1 LEFT JOIN t2 ON … }` |
 
 ### `Clause`
 

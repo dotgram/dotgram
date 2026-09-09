@@ -1489,13 +1489,25 @@ public abstract record Expression : ISqlSpan
 	/// An ODBC escape, <c>{ FN … }</c>, <c>{ d '…' }</c>, <c>{ ts '…' }</c>: the word and what
 	/// stands after it, which SQL Server reads and the tree keeps in its braces.
 	/// </summary>
-	public sealed record OdbcEscape(string Kind, Expression Value) : Expression;
+	/// <param name="Called">
+	/// Whether the brackets of a call were written. <c>{ fn current_time }</c> and <c>{ fn
+	/// current_time () }</c> are the same function reached two ways, and inside the braces
+	/// the name is ODBC's — nothing here may supply the brackets or take them away.
+	/// </param>
+	public sealed record OdbcEscape(string Kind, Expression Value, bool Called = false) : Expression;
 
 	/// <summary>
 	/// An argument given by name rather than by position — <c>@p = 1</c> in an
 	/// <c>EXECUTE</c>, <c>FORMATFILE = '…'</c> in a rowset function.
 	/// </summary>
 	public sealed record NamedArgument(string Name, Expression Value) : Expression;
+
+	/// <summary>
+	/// One argument written as several pieces with semicolons between them — <c>OPENROWSET
+	/// ('SQLOLEDB', 'server'; 'user'; 'password', …)</c>, that function's oldest spelling and
+	/// the one place T-SQL joins two values with a semicolon.
+	/// </summary>
+	public sealed record Pieced(Expression[] Parts) : Expression;
 
 	/// <summary>
 	/// §6.28 <c>&lt;parenthesized value expression&gt;</c>, and §8.1's boolean one: brackets
@@ -1625,6 +1637,14 @@ public abstract record TableReference : ISqlSpan
 
 	/// <summary>§7.6 a source in brackets, for <see cref="Expression.Parenthesized"/>'s reason.</summary>
 	public sealed record Parenthesized(TableReference Of) : TableReference;
+
+	/// <summary>
+	/// ODBC's outer-join escape, <c>{ OJ t1 LEFT JOIN t2 ON … }</c>: the braces every driver
+	/// has written since before this language had a standard, and which SQL Server still
+	/// reads. What is inside them is an ordinary join, and the braces are kept because they
+	/// were written.
+	/// </summary>
+	public sealed record OdbcJoin(TableReference Of) : TableReference;
 
 	/// <summary>§7.7 two sources and the join between them.</summary>
 	/// <remarks>
@@ -2050,6 +2070,23 @@ public static class Syntax
 		Statement.CreateTrigger    one => one with { Verb = Squared(verb) },
 		Statement.ViewDefinition   one => one with { Verb = Squared(verb) },
 		_                              => routine,
+	};
+
+	/// <summary>A table source rooted at a variable, once the variable's name is known.</summary>
+	/// <remarks>
+	/// The two shapes share their first token and so are read by one rule, which cannot know
+	/// the name until the caller hands it over: a table variable is a name, and a
+	/// table-valued method on a variable of a user-defined type is a call whose name begins
+	/// with one.
+	/// </remarks>
+	public static TableReference OfVariable(string name, TableReference source) => source switch
+	{
+		TableReference.Named one        => one with { Table = name },
+		TableReference.FunctionCall two => two with
+		{
+			Function = two.Function with { Name = name + two.Function.Name },
+		},
+		_                               => source,
 	};
 
 	/// <summary>A value with words after it, or the value alone where there were none.</summary>

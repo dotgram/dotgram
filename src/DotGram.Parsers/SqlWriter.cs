@@ -1252,6 +1252,12 @@ public static class SqlWriter
 				text.Append(')');
 				break;
 
+			case TableReference.OdbcJoin(var joined):
+				text.Append("{ OJ ");
+				Put(text, joined);
+				text.Append(" }");
+				break;
+
 			case TableReference.Pivot(var of, var aggregate, var by, var names, var alias):
 				Put(text, of);
 				text.Append(" PIVOT (");
@@ -1277,7 +1283,14 @@ public static class SqlWriter
 			case TableReference.FunctionCall(var call, var name, var columns, var schema):
 				Put(text, call, 0);
 
-				if (schema.Length > 0)
+				// `OPENXML (…) WITH t1` names a table whose columns say the shape, and
+				// `WITH (c1 INT, …)` writes the shape out. A schema column has a type where
+				// it was written out, so one column with none is the first spelling.
+				if (schema is [Clause.JsonColumn(var only, null, null, false)])
+				{
+					text.Append(" WITH ").Append(only);
+				}
+				else if (schema.Length > 0)
 				{
 					text.Append(" WITH (");
 					Each(text, schema);
@@ -1926,6 +1939,7 @@ public static class SqlWriter
 		var columns = constraint.Columns;
 		var check   = constraint.Check;
 		var index   = kind is "INDEX" or "UNIQUE INDEX";
+		var began   = text.Length;
 
 		// An index is `INDEX name`, or `UNIQUE CLUSTERED INDEX name ON t` on its own; a
 		// constraint is `CONSTRAINT name` and then what it is.
@@ -1960,7 +1974,10 @@ public static class SqlWriter
 			if (name is not null)
 				text.Append("CONSTRAINT ").Append(name).Append(' ');
 
-			text.Append(kind);
+			// A column's bare `REFERENCES t (c)` is a constraint whose kind is the word the
+			// reference writes for itself, and writing the kind too would say it twice.
+			if (kind != "REFERENCES")
+				text.Append(kind);
 
 			if (constraint.Clustering is { } clustering)
 				text.Append(' ').Append(clustering);
@@ -2022,7 +2039,9 @@ public static class SqlWriter
 
 		if (constraint.Referenced is { } references)
 		{
-			text.Append(' ');
+			if (text.Length > began)
+				text.Append(' ');
+
 			Put(text, references);
 		}
 
@@ -2377,10 +2396,44 @@ public static class SqlWriter
 				Put(text, value, 0);
 				break;
 
-			case Expression.OdbcEscape(var kind, var value):
+			case Expression.OdbcEscape(var kind, var value, var bracketed):
 				text.Append("{ ").Append(kind).Append(' ');
-				Put(text, value, 0);
+
+				// The name inside `{ fn … }` is ODBC's and not this language's. `{ fn convert
+				// (@a, sql_int) }` is ODBC's two-argument convert and `{ fn current_date () }`
+				// keeps its brackets, so neither may be printed through the syntax T-SQL gives
+				// that word — which is what `Call` is a catalogue of.
+				if (bracketed && value is Expression.RoutineInvocation(var called, var given, null))
+				{
+					text.Append(called).Append('(');
+
+					for (var i = 0; i < given.Length; i++)
+					{
+						if (i > 0)
+							text.Append(", ");
+
+						Put(text, given[i], 0);
+					}
+
+					text.Append(')');
+				}
+				else
+				{
+					Put(text, value, 0);
+				}
+
 				text.Append(" }");
+				break;
+
+			case Expression.Pieced(var parts):
+				for (var i = 0; i < parts.Length; i++)
+				{
+					if (i > 0)
+						text.Append("; ");
+
+					Put(text, parts[i], 0);
+				}
+
 				break;
 
 			case Expression.RowsetOrder(var by, var unique):
