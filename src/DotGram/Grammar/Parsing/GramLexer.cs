@@ -39,7 +39,20 @@ public static class GramLexer
 	/// one — reported as a diagnostic rather than a crash, since a caller that only
 	/// exercises the grammar side legitimately has no C# lexer to offer.
 	/// </param>
-	public static TokenList Tokenize(string text, ICSharpScanner? scanner = null)
+	public static TokenList Tokenize(string text, ICSharpScanner? scanner = null) =>
+		Tokenize(text, scanner, int.MaxValue, null);
+
+	/// <summary>
+	/// Reads a text whose tail from <paramref name="splicedAt"/> on was spliced in by the
+	/// compiler — the standard library — and is read with the scanner that comes with it.
+	/// </summary>
+	/// <remarks>
+	/// The author's text keeps the author's scanner, and keeps being refused a <c>@(...)</c>
+	/// where none was supplied (GRAM1007): that contract is about their text. The library's
+	/// C# was written to be read by <see cref="StandardLibrary.Scanner"/>, and is, whatever
+	/// the caller brought.
+	/// </remarks>
+	public static TokenList Tokenize(string text, ICSharpScanner? scanner, int splicedAt, ICSharpScanner? spliced)
 	{
 		if (text is null)
 			throw new ArgumentNullException(nameof(text));
@@ -161,7 +174,8 @@ public static class GramLexer
 					continue;
 
 				case '@' when position + 1 < text.Length && text[position + 1] == '(':
-					position = ReadCSharpExpression(text, position, scanner, diagnostics, out var expression);
+					position = ReadCSharpExpression(
+						text, position, position >= splicedAt ? spliced : scanner, diagnostics, out var expression);
 
 					if (expression is not null)
 						Add(TokenKind.CSharpExpression, start, position - start, expression);

@@ -22,17 +22,14 @@ namespace DotGram.Grammar;
 public static class GramCompiler
 {
 	/// <summary>
-	/// Reads one grammar: the first two stages, and the standard library where it is asked
-	/// for.
+	/// Reads one grammar: the first two stages, with the standard library spliced on.
 	/// </summary>
 	/// <remarks>
-	/// A grammar that says <c>using Std;</c> anywhere in it — its own top, a namespace's, an
-	/// included grammar's — gets the standard library spliced onto its end and is read again
-	/// as that. Onto the end so that nothing the author wrote moves; only where it is asked
-	/// for, so that a grammar which never names it never pays for it. What is written onto
-	/// the class as its source stays the text as written: the includer's own compilation
-	/// asks the same question of the same <c>using</c> and splices its own. One method so
-	/// that whoever reads a grammar ahead of compiling it — the generator, for its
+	/// Every grammar has the library, the way every C# compilation has the framework: it is
+	/// spliced onto the end, so that nothing the author wrote moves, and what is not called
+	/// is pruned before anything is emitted. What is written onto the class as its source
+	/// stays the text as written — the includer's own compilation splices its own copy. One
+	/// method so that whoever reads a grammar ahead of compiling it — the generator, for its
 	/// questions — reads the same text.
 	/// </remarks>
 	public static ParseResult Read(string grammarText, ICSharpScanner? scanner = null)
@@ -40,11 +37,8 @@ public static class GramCompiler
 		if (grammarText is null)
 			throw new ArgumentNullException(nameof(grammarText));
 
-		var parsed = GramParser.Parse(GramLexer.Tokenize(grammarText, scanner));
-
-		return StandardLibrary.AskedForBy(parsed.File)
-			? GramParser.Parse(GramLexer.Tokenize(StandardLibrary.SplicedOnto(grammarText), scanner))
-			: parsed;
+		return GramParser.Parse(GramLexer.Tokenize(
+			StandardLibrary.SplicedOnto(grammarText), scanner, grammarText.Length, StandardLibrary.Scanner));
 	}
 
 	/// <summary>Compiles one grammar.</summary>
@@ -73,7 +67,10 @@ public static class GramCompiler
 
 		diagnostics.AddRange(parsed.Diagnostics);
 
-		var model = GrammarBinder.Bind(parsed.File, options.SymbolResolver, options.Own);
+		// Past the author's text is what was spliced on: what the host included, and after
+		// that the standard library, which Read put there. Each is a root of its own.
+		var model = GrammarBinder.Bind(
+			parsed.File, options.SymbolResolver, Math.Min(options.Own ?? int.MaxValue, grammarText.Length));
 		var graph = GrammarNormalizer.Normalize(
 			model, options.SymbolResolver, options.CSharpScanner, options.LocationType);
 

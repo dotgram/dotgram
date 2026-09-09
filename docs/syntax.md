@@ -39,7 +39,7 @@ that thing is what the notation already means in C# or in .NET regular expressio
   - [4.6 Keyword boundaries](#46-keyword-boundaries)
 - [5. Namespaces](#5-namespaces)
   - [5.1 Rebinding](#51-rebinding)
-  - [5.2 The standard library, `using Std`](#52-the-standard-library-using-std)
+  - [5.2 The standard library, `Std`](#52-the-standard-library-std)
 - [6. Publication](#6-publication)
   - [6.1 The result](#61-the-result)
   - [6.2 Why the signatures use BCL types only](#62-why-the-signatures-use-bcl-types-only)
@@ -47,6 +47,7 @@ that thing is what the notation already means in C# or in .NET regular expressio
   - [6.4 `PartSize`, the one thing a host may tune](#64-partsize-the-one-thing-a-host-may-tune)
   - [6.5 `Stacks`, how deep a reading may go](#65-stacks-how-deep-a-reading-may-go)
   - [6.6 `[GramOptions]`, a second reading of the same grammar](#66-gramoptions-a-second-reading-of-the-same-grammar)
+  - [6.7 `[GramInclude]`, a grammar built on another](#67-graminclude-a-grammar-built-on-another)
 - [7. The bond with C#](#7-the-bond-with-c)
   - [7.1 Recognizer signatures and C# values](#71-recognizer-signatures-and-c-values)
   - [7.2 What the C# side must guarantee](#72-what-the-c-side-must-guarantee)
@@ -1229,35 +1230,35 @@ at any depth, is the language's normal, silent mechanism and is never reported; 
 is shadowing at the top level of a file, where there is no `namespace Name with (...)`
 header nearby to have meant instead.
 
-### 5.2 The standard library, `using Std`
+### 5.2 The standard library, `Std`
 
 The lexemes every grammar writes and none should have to — digits, an identifier, a
 number as a value, a comment, a quoted string — are a grammar of their own, carried
-inside the generator, and a grammar that wants them says so:
+inside the generator, and every grammar has it under the name `Std`:
 
 ```dotgram
-using Std;
-
 trivia = { (Std.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "*/"))* }
 
 Pair : @int = a: Std.Integer & ',' & b: Std.Integer & eof => @(a * b)
 ```
 
-`using Std;` is what brings it in, and it is named in full — `Std.Integer`, not
-`Integer`. Both are deliberate. The library's names are the plain ones a grammar of your
-own is likely to use, and a rule named `Digits` should be yours and not something you
-never wrote; the seven built-in rules (§3.1.1) are the only names a grammar has without
-asking, and there are seven of them so that this stays true. Without the `using`, `Std`
-is not in view and a name under it is undefined like any other.
+The shape is C#'s. An included grammar (§6.7) is a reference, and the library is the
+one reference every compilation has, the way every C# compilation has the framework:
+`Std.Integer` names it in full with nothing declared, and `using Std;` opens the
+namespace as `using` opens any other, after which `Integer` is enough — on the terms
+every `using` has (§5): at the top of the file a rule of the grammar's own wins over an
+opened name, and a namespace that opens the library and declares one of its names is
+refused (`GRAM3012`). A grammar with lexemes of its own to declare names the library in
+full and keeps its names.
 
-The library is spliced onto the end of the grammar that asks for it, into a namespace
-called `Std`, exactly as an included grammar is (§5) — so it has no `trivia` of its own
-and a token is its characters, while the calling grammar spaces and comments around the
-call as it does around anything else (§4.5). Whatever the grammar does not call is not
-compiled: asking for the library costs the rules used and nothing for the rest. A
-grammar that asks for it and is then included by another keeps it — the `using` travels
-inside the namespace it is spliced into, and the including grammar's own compilation
-splices its own copy.
+The library is spliced onto the end of every grammar, into a namespace called `Std`,
+exactly as an included grammar is — so it has no `trivia` of its own and a token is its
+characters, while the calling grammar spaces and comments around the call as it does
+around anything else (§4.5). Whatever the grammar does not call is not compiled: the
+library costs the rules used and nothing for the rest, and a grammar that never names
+it has nothing of it in what comes out. A grammar that uses it and is then included by
+another keeps it — the including grammar's own compilation has the same library, and a
+name resolves to it from inside the namespace the included grammar was spliced into.
 
 There is no class behind the library, and that decides what it can mean. Its values are
 what the .NET parsers make of the text, in the invariant culture — `Std.Integer` is
@@ -1590,6 +1591,56 @@ carriers over one grammar comparable at all.
 ---
 
 ---
+
+### 6.7 `[GramInclude]`, a grammar built on another
+
+```csharp
+[GramInclude(typeof(SqlStandard92), As = "Sql92")]
+[Gram("TransactSql.gram", Lexical = true)]
+public abstract partial class TransactSql { }
+```
+
+`[GramInclude]` is the reference. It names a class that carries a grammar — one with a
+`[Gram]` of its own, in this project or in one this project references — and that
+grammar is compiled into this one, wrapped in a namespace called what `As` says, or
+what the class's `IncludedAs` says, or the class's own name. Its rules are reached in
+full, `Sql92.Identifier`, and `using Sql92;` opens the namespace as `using` opens any
+other (§5). Written as many times as there are grammars to build on; what an included
+grammar includes comes along too, each grammar once however many paths lead to it, so
+a cycle ends rather than being reported.
+
+An included grammar is a whole file, and it stays one. What it sees outward is what a
+compilation sees of its references and no more: the built-in rules, the standard
+library, and the grammars it included itself — never the rules of the grammar that
+included it, which were not written for it, and never that grammar's `trivia`,
+`wordboundary` or `context`, each of which is its own to declare and defaults as it
+would in a file of its own. Its `parse` directives are its own class's public API,
+already generated there, and are left where they were written; the including grammar
+publishes what it means to publish. Nothing has to derive from anything: the host is
+its own class, and what its grammar built on is a matter of the attribute.
+
+Two includes under one name are one namespace, and then their rules can collide — that
+is refused (`GRAM0008`), and the fix is an `As` of its own for all but one. Under
+different names they cannot collide at all, whatever they are called inside.
+
+**The C# comes with the grammar.** A rule that came from another grammar goes on calling
+the methods its author wrote on that grammar's class: the generated file names each
+included class with `using static`, and the code is in scope without the host deriving
+from anything. What that does not settle is two grammars' C# using one name, and the
+answer is that it settles nothing: two included classes offering the same method is the
+compiler's ordinary ambiguity error, a method that resolves nowhere is its ordinary
+missing-method error, and a method of the host's own under a name an included rule calls
+wins silently if its signature fits. Reading what you include is the provider's
+responsibility, and the generator does not stand between a grammar and its C#.
+
+**A grammar travels with its assembly.** A `.gram` file is read at compile time and is
+not part of what ships, so the generator writes the grammar's text onto the class it
+compiled — `[GramSource("…")]` — and an include across a project reference reads it off
+the type it already names. The file wins where both are in reach, so that a diagnostic
+points at something somebody can edit. It costs the size of the grammar, and it follows
+what the class already says: a publicly visible host carries its grammar and one nobody
+outside can name does not, and `[Gram(Portable = …)]` says otherwise where that guess
+is wrong. An include that finds neither a file nor a carried text is `GRAM0003`.
 
 ## 7. The bond with C#
 

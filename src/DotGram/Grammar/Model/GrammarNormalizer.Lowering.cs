@@ -1199,7 +1199,9 @@ public sealed partial class GrammarNormalizer
 
 	Node? BoundaryFor(GrammarNamespace ns)
 	{
-		for (var at = ns; at is not null; at = at.Parent)
+		// Outward and not up: a spliced grammar's boundary is its own, declared or not,
+		// and never the one the grammar around it declared for its own words.
+		for (var at = ns; at is not null; at = at.Outward)
 		{
 			if (at.Rules.TryGetValue("wordboundary", out var rule) && !rule.IsBuiltIn)
 				return MatchesNothing(rule, []) ? null : CallTo(rule, []);

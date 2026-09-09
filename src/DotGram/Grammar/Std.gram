@@ -1,17 +1,15 @@
 // The standard library: the lexemes every grammar writes and none should have to.
 //
-// Reached by `using Std;` and named in full — `Std.Integer`, `Std.LineComment("--")` —
-// so that a rule of a grammar's own never lands here by accident (syntax.md §5.2). A
-// namespace of its own with no trivia, so that a token is its characters and nothing
-// may stand between them; the grammar calling it spaces and comments around the call
-// as it does around anything else (§4.5). Whatever is not called is not compiled.
+// Every grammar has it, named in full — `Std.Integer`, `Std.LineComment("--")` — or
+// opened with `using Std;` (syntax.md §5.2). A grammar of its own, so its trivia is the
+// built-in one and a token is its characters with nothing between them; the grammar
+// calling it spaces and comments around the call as it does around anything else
+// (§4.5). Whatever is not called is not compiled.
 //
 // What a lexeme means is left to the caller wherever meaning takes code — a string's
 // escapes, a number too wide for `int` — because there is no class behind this file to
 // put that code in. The values below are what the .NET parsers make of the text, and
 // what those refuse they refuse as they always do.
-
-trivia = none
 
 // ── One character ────────────────────────────────────────────────────────────
 

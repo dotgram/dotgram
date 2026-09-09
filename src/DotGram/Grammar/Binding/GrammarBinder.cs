@@ -134,14 +134,16 @@ public sealed class GrammarBinder
 	GrammarNamespace? _standard;
 
 	/// <summary>
-	/// Where the host's own grammar ends and what it inherited begins, or
-	/// <see cref="int.MaxValue"/> where nothing was inherited.
+	/// Where the host's own grammar ends and what was spliced onto it begins, or
+	/// <see cref="int.MaxValue"/> where nothing was.
 	/// </summary>
 	/// <remarks>
-	/// Only publication reads it. An included grammar's rules are the point of
-	/// including it and are declared like any others; its <c>parse</c> directives are
-	/// the base class's own public API, already generated there, and are left where
-	/// they were written.
+	/// Two things read it. A top-level namespace declared past it is a spliced grammar's
+	/// wrapper and is declared as a root (<see cref="GrammarNamespace.IsRoot"/>), so that
+	/// what it sees outward is its references and not the grammar around it. And a
+	/// <c>parse</c> directive past it is an included grammar's own public API, already
+	/// generated there, and is left where it was written; the rules are the point of
+	/// including it and are declared like any others.
 	/// </remarks>
 	readonly int _own;
 
@@ -234,7 +236,7 @@ public sealed class GrammarBinder
 					// caught separately, in Resolve below — an import is not in view yet
 					// during this pass (§9).
 					else if (!BuiltIn.Contains(rule.Name) &&
-						ns.Parent != _standard &&
+						ns.Parent != _standard && !ns.IsRoot &&
 						ns.Parent?.Lookup(rule.Name) is not null)
 					{
 						Report(
@@ -247,7 +249,11 @@ public sealed class GrammarBinder
 
 				case Decl.Namespace nested:
 
-					var child = new GrammarNamespace(nested.Name, ns);
+					// A namespace at the top and past the host's own text is a spliced
+					// grammar's wrapper: one grammar's whole file, which sees outward what a
+					// compilation sees of its references and nothing of the grammar around it.
+					var child = new GrammarNamespace(
+						nested.Name, ns, isRoot: ns.Parent == _standard && nested.At.Position >= _own);
 
 					ns.Add(child);
 					Declare(nested.Decls, child);
@@ -277,15 +283,7 @@ public sealed class GrammarBinder
 		}
 	}
 
-	static GrammarNamespace? FindNamespace(GrammarNamespace from, string name)
-	{
-		for (var ns = from; ns is not null; ns = ns.Parent)
-			foreach (var nested in ns.Nested)
-				if (nested.Name == name)
-					return nested;
-
-		return null;
-	}
+	static GrammarNamespace? FindNamespace(GrammarNamespace from, string name) => from.Find(name);
 
 	/// <summary>
 	/// §5's "the first hit wins" cuts the other way here: a rule this namespace declares

@@ -514,12 +514,14 @@ public sealed class GramGenerator : IIncrementalGenerator
 			if (diagnostic.Position < piece.Start || diagnostic.Position > piece.Start + piece.Length)
 				continue;
 
+			// Cut at the piece's end: an unterminated `@(` runs to the end of the joined
+			// text, and what lies past the piece is not this grammar's to underline.
 			return Report.Of(
 				new GramDiagnostic(
 					diagnostic.Id,
 					diagnostic.Message,
 					diagnostic.Position - piece.Start,
-					diagnostic.Length,
+					Math.Min(diagnostic.Length, piece.Start + piece.Length - diagnostic.Position),
 					diagnostic.Severity),
 				piece.Path,
 				text.Substring(piece.Start, piece.Length),
@@ -528,8 +530,12 @@ public sealed class GramGenerator : IIncrementalGenerator
 				piece.LiteralAt);
 		}
 
+		// Past every piece — the standard library, which is spliced on after the pieces are
+		// cut. Nowhere to point, so the class it is, with no offset into a literal that does
+		// not hold the position.
 		return Report.Of(
-			diagnostic, grammar.Path, text, host.Location, host.Literal, host.LiteralAt);
+			new GramDiagnostic(diagnostic.Id, diagnostic.Message, 0, 0, diagnostic.Severity),
+			null, text, host.Location);
 	}
 
 	/// <summary>The innermost name of a dotted one.</summary>

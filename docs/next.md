@@ -16904,18 +16904,22 @@ question is asked, once for the compiler and once for the generator's questions,
 two read the same text; `Prune()` then drops whatever the grammar did not call, which is
 what makes asking for the whole library cost the rules used.
 
-**Asked for, not always there.** The first thought was to splice it into every grammar and
-let the namespace hide it until a `using`. The `using` stayed and the always-splicing went:
-even C needs its `#include`, and a grammar that names nothing of the library should not
-pay a normalizer pass over thirty rules it never sees. The detection is a walk over every
-`using` in the parsed file, nested namespaces and included grammars' included — which is
-what makes a grammar that uses `Std` keep it when another includes it.
+**Always there, like the framework.** The first cut spliced it only onto a grammar that
+wrote `using Std;`, the `using` doubling as the request — and a probe showed why that was
+wrong: `using` in this language is C#'s, it opens a namespace and brings its names in
+unqualified, so a grammar that wrote it could no longer declare a `Digits` of its own at
+the top level (`GRAM3012`), which is exactly the grammar the library is for. Meanwhile
+`Std.Digits` resolved in full without any `using`, as `System.Int32` does. So the shape is
+C#'s all the way: `[GramInclude]` is the reference, the library is the one reference every
+compilation has, and `using Std;` opens it for whoever wants the short names at the usual
+price. It costs about five milliseconds per grammar compilation — 0.37 ms to 5.56 ms on a
+one-rule grammar — and nothing in what comes out, since `Prune()` drops what was not
+called.
 
-**Qualified names only.** `Std.Integer`, never `Integer`: the library's names are the plain
-ones a grammar of its own is likely to want, and shadowing one silently is the wrong
-default for anything beyond the seven built-in rules. Those seven were called "the
-standard library" in code and in §3.1.1 until now; they are the built-in rules
-(`GrammarBinder.BuiltIn`), and the standard library is `Std`.
+**Two things were called the standard library**, and only one is. The seven rules every
+grammar has without declaring them were "the standard library" in code and in §3.1.1
+until now; they are the built-in rules (`GrammarBinder.BuiltIn`), and the standard
+library is `Std`.
 
 **No class behind it**, so its C# is the framework named in full — `global::System.…` —
 and its values are what `int.Parse` and its fellows make of the text, in the invariant
@@ -16928,3 +16932,32 @@ grammar's. Comments and strings are parameterized by their delimiters,
 GRAM4018 does not remark on the library's unreached rules — the unreached remainder is
 the expected case — and §5.2's table is checked against `Std.gram` the way the table of
 contents is checked against the headings: a rule added to one and not the other fails.
+
+**A spliced grammar is a root**, and this is the change the library forced on includes. The
+first full run broke five examples with `GRAM3012` at names they never wrote: `Std.Digit`
+was "shadowing" the example's own top-level `Digit`, because a spliced grammar's wrapper
+was an ordinary nested namespace and a nested namespace sees its enclosing one. So an
+included grammar saw the includer's rules, its `trivia`, its `wordboundary` — and the
+includer's `Digit` made the includee's a redeclaration. Igor's model settled it: the
+reference is a compilation of its own. `GrammarNamespace.IsRoot` marks the wrapper of
+anything spliced past the author's text (the binder's `_own`, which the compiler now sets
+to the author's length even where nothing was included), and `Outward` — where a lookup
+goes next — steps from a root to the built-in rules, skipping the grammar around it; a
+qualified name from inside a root finds the other roots by name, which is how `Sql92`
+reaches `Std`. `BoundaryFor` walks `Outward` too, so a word boundary is not inherited across
+a root either. Nothing in the parsers moved: `SqlStandard92` declared its own of everything.
+
+**Two more things the splice touched.** A node's span ran from its first token to the *next*
+token's start, which at the end of a grammar used to be the end of the text and is now the
+library's wrapper — a squiggle under the last name ran on into a line break. `From` now
+ends at the last token taken. And a grammar compiled with no C# scanner is refused its
+`@(...)` (`GRAM1007`), which is right for the author's text and wrong for the library's,
+which comes along whether or not a scanner did; so the lexer reads the spliced tail with
+`StandardLibrary.Scanner`, a bracket-balancer that knows string and character literals and
+answers `FreeNames` with null, leaving that question to whoever normalizes.
+
+**An unpublished grammar is pruned from its own rules.** `Prune()` left a grammar with no
+`parse` alone — it had no roots — and so the `Csv` snapshot, which publishes nothing, came
+out with `Construct_Std_Integer` and twenty-five extra states. Every rule the author wrote
+is a root there; what was spliced on is not, and of it only what the author's rules reach
+stays.

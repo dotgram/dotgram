@@ -91,7 +91,18 @@ public sealed class GramParser
 		return true;
 	}
 
-	Location From(int start) => new(start, Current.Position - start);
+	/// <summary>
+	/// The span from <paramref name="start"/> to the end of the last token taken. Not to
+	/// the next token: with the standard library spliced after the author's text, the next
+	/// token past a grammar's last is the library's wrapper, and a squiggle under a name
+	/// should not run on into the line break after it.
+	/// </summary>
+	Location From(int start)
+	{
+		var end = _index > 0 ? _tokens[_index - 1].Position + _tokens[_index - 1].Length : start;
+
+		return new(start, Math.Max(0, end - start));
+	}
 
 	void Report(string id, string message) =>
 		Report(id, message, new Location(Current.Position, Math.Max(Current.Length, 1)));

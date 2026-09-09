@@ -12,8 +12,8 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// The standard library (§5.2): a grammar that writes <c>using Std;</c> has its lexemes,
-/// and one that does not has nothing of it.
+/// The standard library (§5.2): every grammar has it under <c>Std</c>, and <c>using Std;</c>
+/// opens the namespace as it opens any other.
 /// </summary>
 public sealed class StandardLibraryTests
 {
@@ -27,8 +27,6 @@ public sealed class StandardLibraryTests
 			using DotGram;
 
 			[Gram("""
-				using Std;
-
 				trivia = Std.Spacing?
 
 				Sum : @int = a: Std.Integer & '+' & b: Std.Integer & eof => @(a + b)
@@ -53,8 +51,6 @@ public sealed class StandardLibraryTests
 			using DotGram;
 
 			[Gram("""
-				using Std;
-
 				trivia = { (Std.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "*/"))* }
 
 				Two : @string[] = a: Std.Quoted('\'') & b: Std.Escaped('"', '\\') & eof => @(new[] { a, b })
@@ -77,8 +73,6 @@ public sealed class StandardLibraryTests
 			using DotGram;
 
 			[Gram("""
-				using Std;
-
 				Value : @double = d: Std.Double & eof => @(d)
 				parse Value
 				""")]
@@ -91,43 +85,75 @@ public sealed class StandardLibraryTests
 	}
 
 	/// <summary>
-	/// Without the <c>using</c> the library is not there: a name that happens to be one of
-	/// its is undefined, as it would be in any grammar that never wrote it.
+	/// The library is there with nothing declared, named in full; a <c>using</c> opens it,
+	/// and then a name of its is a name of the grammar's — on the terms every <c>using</c>
+	/// has: at the top of the file the grammar's own rule wins over the opened one, and a
+	/// namespace that opens the library and declares one of its names is refused (§5).
 	/// </summary>
 	[Fact]
-	public void Without_the_using_the_library_is_not_there()
+	public void The_library_is_named_in_full_and_a_using_opens_it()
 	{
-		var compiled = GramCompiler.Compile("""
-			Start = Std.Integer
+		EmittedCode.Quiet(GramCompiler.Compile("""
+			Start = Std.Integer & eof
+			parse Start
+			""", Scanning).Diagnostics);
+
+		EmittedCode.Quiet(GramCompiler.Compile("""
+			using Std;
+
+			Start = Integer & eof
+			parse Start
+			""", Scanning).Diagnostics);
+
+		EmittedCode.Quiet(GramCompiler.Compile("""
+			using Std;
+
+			Integer = ['0'..'9']+
+			Start   = Integer & eof
+			parse Start
+			""", Scanning).Diagnostics);
+
+		var nested = GramCompiler.Compile("""
+			namespace Own
+			{
+				using Std;
+
+				Integer = ['0'..'9']+
+			}
+
+			Start = Own.Integer & eof
 			parse Start
 			""", Scanning);
 
-		var diagnostic = Assert.Single(compiled.Diagnostics.Where(static one => one.Severity == GramSeverity.Error));
-
-		Assert.Equal(Grammar.Binding.GrammarBinder.UndefinedName, diagnostic.Id);
+		Assert.Contains(nested.Diagnostics, static one => one.Id == Grammar.Binding.GrammarBinder.ShadowsEnclosingRule);
 	}
 
 	/// <summary>
-	/// Nothing is said about the lexemes a grammar does not call: the whole library comes
-	/// along for one rule of it, and the rest being unreached is the expected case.
+	/// Nothing is said about the lexemes a grammar does not call, and nothing of them is
+	/// generated: the whole library comes along for every grammar, and the unreached
+	/// remainder is the expected case.
 	/// </summary>
 	[Fact]
-	public void The_lexemes_a_grammar_does_not_call_are_not_remarked_on()
+	public void The_lexemes_a_grammar_does_not_call_leave_no_trace()
 	{
 		var compiled = GramCompiler.Compile("""
-			using Std;
-
 			Start = Std.Digits & eof
 			parse Start
 			""", Scanning);
 
-		Assert.Empty(compiled.Diagnostics);
+		EmittedCode.Quiet(compiled.Diagnostics);
+
+		var written = string.Concat(compiled.Sources.Select(static one => one.Text));
+
+		Assert.Contains("Digits", written, StringComparison.Ordinal);
+		Assert.DoesNotContain("Identifier", written, StringComparison.Ordinal);
+		Assert.DoesNotContain("BlockComment", written, StringComparison.Ordinal);
 	}
 
 	/// <summary>
-	/// A grammar that asks for the library keeps it when it is included by another: the
-	/// <c>using</c> travels inside the namespace it is spliced into, and the includer's
-	/// compilation answers it the same way.
+	/// A grammar that uses the library keeps it when it is included by another: the
+	/// includer's compilation has the same library, and a name in the included grammar
+	/// resolves to it from inside the namespace it was spliced into.
 	/// </summary>
 	[Fact]
 	public void An_included_grammar_keeps_its_library()
@@ -136,8 +162,6 @@ public sealed class StandardLibraryTests
 			using DotGram;
 
 			[Gram("""
-				using Std;
-
 				Count : @int = n: Std.Integer => @(n)
 				parse Count
 				""")]

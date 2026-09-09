@@ -36,7 +36,14 @@ public sealed record CSharpSymbol(string Name) : Symbol(Name);
 /// <summary>
 /// One lexical namespace: the global one at the top of a file, or a `namespace` block.
 /// </summary>
-public sealed class GrammarNamespace(string name, GrammarNamespace? parent)
+/// <param name="isRoot">
+/// Whether this is the namespace a spliced grammar was wrapped in — an included one, or
+/// the standard library. A root is one grammar's whole file, and what it sees outward is
+/// what a compilation sees of its references and no more: the built-in rules, and the
+/// other roots by name. Nothing of the grammar that included it — not its rules, which
+/// were not written for it, and not its <c>trivia</c>, which is its own (§5.2, §6.7).
+/// </param>
+public sealed class GrammarNamespace(string name, GrammarNamespace? parent, bool isRoot = false)
 {
 	readonly Dictionary<string, RuleSymbol> _rules   = [];
 	readonly List<GrammarNamespace>         _nested  = [];
@@ -47,6 +54,27 @@ public sealed class GrammarNamespace(string name, GrammarNamespace? parent)
 	/// <summary>Empty for the global namespace.</summary>
 	public string            Name   { get; } = name;
 	public GrammarNamespace? Parent { get; } = parent;
+	public bool              IsRoot { get; } = isRoot;
+
+	/// <summary>
+	/// The next namespace a name is looked up in: the parent, or past a root, the built-in
+	/// rules — the outermost ancestor, which is what a root's parent chain ends in.
+	/// </summary>
+	public GrammarNamespace? Outward
+	{
+		get
+		{
+			if (!IsRoot)
+				return Parent;
+
+			var top = Parent;
+
+			while (top?.Parent is { } above)
+				top = above;
+
+			return top;
+		}
+	}
 
 	public IReadOnlyDictionary<string, RuleSymbol> Rules         => _rules;
 	public IReadOnlyList<GrammarNamespace>         Nested        => _nested;
@@ -123,7 +151,7 @@ public sealed class GrammarNamespace(string name, GrammarNamespace? parent)
 	/// </summary>
 	public RuleSymbol? Lookup(string name)
 	{
-		for (var ns = this; ns is not null; ns = ns.Parent)
+		for (var ns = this; ns is not null; ns = ns.Outward)
 		{
 			if (ns._rules.TryGetValue(name, out var rule))
 				return rule;
@@ -163,12 +191,30 @@ public sealed class GrammarNamespace(string name, GrammarNamespace? parent)
 			tail = path.Substring(dot + 1);
 		}
 
-		for (var ns = this; ns is not null; ns = ns.Parent)
+		for (var ns = this; ns is not null; ns = ns.Outward)
+		{
 			foreach (var nested in ns._nested)
 				if (nested.Name == head)
 					return tail.Length == 0 ? nested : nested.FindNamespace(tail);
 
+			// From a root, the other roots are in view by name — the references every
+			// compilation has — and nothing else of the grammar around it.
+			if (ns.IsRoot && ns.Parent is { } around)
+				foreach (var sibling in around._nested)
+					if (sibling.IsRoot && sibling.Name == head)
+						return tail.Length == 0 ? sibling : sibling.FindNamespace(tail);
+		}
+
 		return null;
+	}
+
+	/// <summary>A namespace by its path from here, resolved the way <see cref="Lookup"/> resolves a rule.</summary>
+	public GrammarNamespace? Find(string path)
+	{
+		if (path is null)
+			throw new ArgumentNullException(nameof(path));
+
+		return FindNamespace(path);
 	}
 
 	public override string ToString() => Name.Length == 0 ? "<global>" : Name;

@@ -71,6 +71,19 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
+	/// Whether a rule came in with a spliced grammar — an included one, or the standard
+	/// library — rather than being written by the author (<see cref="GrammarNamespace.IsRoot"/>).
+	/// </summary>
+	static bool IsSpliced(RuleSymbol rule)
+	{
+		for (var ns = rule.Namespace; ns is not null; ns = ns.Parent)
+			if (ns.IsRoot)
+				return true;
+
+		return false;
+	}
+
+	/// <summary>
 	/// What a set of publications can reach: themselves, what they call, and what is called
 	/// from there.
 	/// </summary>
@@ -86,13 +99,18 @@ public sealed partial class GrammarNormalizer
 	/// because by then a replacement that is used is reached through the clone that uses it
 	/// and one that is not is dead.
 	/// </param>
-	HashSet<RuleSymbol> Reached(IReadOnlyList<Publication> publications, bool rebindings)
+	/// <param name="roots">Rules that count as reached besides what the publications name.</param>
+	HashSet<RuleSymbol> Reached(
+		IReadOnlyList<Publication> publications, bool rebindings, IReadOnlyList<RuleSymbol>? roots = null)
 	{
 		var reached = new HashSet<RuleSymbol>();
 		var pending = new Stack<RuleSymbol>();
 
 		foreach (var publication in publications)
 			Enter(publication.Rule);
+
+		foreach (var root in roots ?? [])
+			Enter(root);
 
 		foreach (var rule in _rules)
 			if (Array.IndexOf(GrammarBinder.BuiltIn, rule.Name) >= 0)
@@ -161,16 +179,17 @@ public sealed partial class GrammarNormalizer
 	/// nothing.
 	/// </para>
 	/// <para>
-	/// A grammar that publishes nothing is left alone: it has no roots, so everything in it
-	/// is unreached, and it is a grammar being written rather than one with dead rules in it.
+	/// A grammar that publishes nothing is every rule the author wrote: it is a grammar
+	/// being written, or one written to be included, and either way each of its own rules
+	/// is a root. What was spliced onto it is not — the standard library, an included
+	/// grammar — and of that only what its own rules reach stays.
 	/// </para>
 	/// </remarks>
 	void Prune()
 	{
-		if (_publications.Count == 0)
-			return;
-
-		var reached = Reached(_publications, rebindings: false);
+		var reached = _publications.Count > 0
+			? Reached(_publications, rebindings: false)
+			: Reached(_publications, rebindings: false, [.. _rules.Where(static one => !IsSpliced(one))]);
 
 		if (reached.Count == _rules.Count)
 			return;
