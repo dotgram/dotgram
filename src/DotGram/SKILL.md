@@ -68,11 +68,47 @@ A `Match<T>` carries `IsSuccess`, `Value`, `Error` and `Position`.
 Row = "R" & '|' & symbol: Text & '|' & quantity: Digit+ & eol
 ```
 
-- `&` sequence, `|` ordered choice, `?` `*` `+` `{n}` `{n,m}` quantifiers.
-- `['a'..'z' | '_']` an element set, `[^ …]` its complement, `\p{Lu}` a Unicode category.
-- `?=` and `?!` lookahead, `{ … }` an atomic group that commits once it succeeds.
-- **`name:` is a capture, and it becomes a property of the type the rule generates.** A
-  rule with captures and no `=>` builds a type of its own, named after the rule.
+**`name:` is a capture, and it becomes a property of the type the rule generates.** A
+rule with captures and no `=>` builds a type of its own, named after the rule.
+
+Everything an expression can be:
+
+```dotgram
+'x'   'x'i              a character, and one whose case does not matter
+"text"   "text"i        a string, likewise — the `i` attaches to the literal alone
+['a'..'z' | '_']        an element set: one item, and `|` inside it is union
+[\p{Lu} | \p{Nd}]       Unicode categories, .NET's spelling, over characters
+[^ '|' | '\n']          the complement: one item that is none of these
+[@IsDigit]              a C# predicate, `bool M(char c)`, as a set member
+
+a & b                   sequence — a connector is always required, there is no juxtaposition
+a | b                   ordered choice: the first alternative that succeeds
+( a & b )               grouping
+{ a & b }               atomic: once it succeeds, choices made inside it are not reopened
+
+X?  X*  X+              zero or one, zero or more, one or more
+X{3}  X{2,4}  X{2,}     exactly, between, at least — the body must consume something
+
+?=X                     positive lookahead: X matches here, nothing is consumed, X's
+                        value is produced and may be captured
+?!X                     negative lookahead: X does not match here, and nothing is produced
+
+@M                      an external recognizer, `bool M(ReadOnlySpan<char> input, ref int pos)`
+name: X                 a capture
+```
+
+Seven rules exist without being declared, and any of them may be shadowed by declaring
+one of that name:
+
+```dotgram
+any             one input item, whatever it is; fails only where there is none left
+none            zero items — always succeeds, consumes nothing
+eol             one line ending: "\r\n" | "\n" | "\r", CRLF first
+eof             the end of input
+trivia          empty by default (below)
+wordboundary    empty by default: what continues a word, for keyword boundaries
+word            one whole word, whatever `wordboundary` says a word is
+```
 
 To produce something else, say what and build it:
 
@@ -92,6 +128,75 @@ A guard asks C# a question in the middle of a parse — the thing a grammar cann
 ```dotgram
 Tag = '<' & open: Name & '>' & "</" & close: Name & '>' & when @(open == close)
 ```
+
+**Syntactic position decides the call shape**, and the generator never inspects a
+signature to guess a role:
+
+| C# | Role | Written as |
+| --- | --- | --- |
+| `bool M(char c)` | element predicate | `[@M]`, inside an element set |
+| `bool M(ReadOnlySpan<char> input, ref int pos)` | external recognizer | bare `@M`, as an operand |
+| `bool M(ReadOnlySpan<char> input, ref int pos, out T value)` | recognizer with a value | bare `@M` |
+| any C# value | construction | `=> @M(a, b)`, `=> @(expr)` |
+| any C# `bool` | guard | `when @M(a)`, `when @(expr)` |
+
+Everything under an `@` is the consumer's own C# and is carried across as text: a name
+inside it needs no `@` of its own. Outside an `@`, a bare name is the grammar's — a rule,
+a capture, a parameter.
+
+Beside the captures, a `=>` or a `when` can name what the parse worked out: `parserText`
+(the matched text), `parserSpan`, `parserInput`, and in a recovery `parserOrdinal`,
+`parserLine`, `parserColumn`, `parserPosition` and `parserMessage`.
+
+## Rules that take arguments
+
+A parameter is written like a capture, and what may be passed follows from whether it
+names a rule or a C# type:
+
+```dotgram
+Lex(item)               : item   = trivia & item
+List(item, sep)         : item[] = item & (sep & item)*
+Padded(item, pad: char) : item   = pad* & value: item & pad* => value
+Digits(n: int)          : @int   = ['0'..'9']{n} => @(int.Parse(parserText))
+```
+
+`item` is a recognizer and its result type comes from the call site; `item: Row` is a
+recognizer obliged to produce `Row`; `n: int` and `t: @Tag` are values. There are no type
+parameters: `: item` means "of whatever type `item` produces", and `: item[]` a sequence
+of those.
+
+**A rule whose body is a call does not inherit what the call produces.** With no declared
+type, no `=>` and no captures, a rule is its matched extent — a `string` — whatever it
+called (§4.1 case 4). Say the type to get the value:
+
+```dotgram
+Bare    = List(Number, ',')                     // string: the text it matched
+Written : Number[] = Number & (',' & Number)*   // int[], if Number is `: @int`
+```
+
+## Namespaces
+
+The top of a file is an implicit global namespace. A block declares another, an inner one
+sees the outer, and `using` brings a namespace's names in unqualified:
+
+```dotgram
+namespace Lexical
+{
+	Token = ...
+}
+
+namespace Syntax
+{
+	using Lexical;
+
+	Unit = Token*               // instead of Lexical.Token
+}
+```
+
+Declaring a rule whose name already resolves outside is refused rather than taken as
+shadowing (`GRAM3012`) — replacing a rule is what a rebinding is for:
+`namespace N with (A = B) { ... }` rebinds `A` to `B` through everything the block
+declares reaches.
 
 ## Whitespace
 
@@ -182,6 +287,49 @@ public static partial class Settings;
 Each include lands in a namespace of its own, so `Lex.Word` and a `Word` of your own
 cannot collide. Two includes under one name is `GRAM0008`.
 
+## Somewhere to put what the reading works out
+
+A `=>` runs after the match and a `when` that writes to a static field has made it global.
+A grammar that needs a table of names, a scope, a label — anything the reading works out
+and the API has nowhere to keep — declares one:
+
+```dotgram
+context : @Names
+state   : @int
+```
+
+The type is a C# name this notation never resolves. The caller makes one and hands it
+over, and every publication takes it: `Grammar.ParseLambda(text, names)`. `context` is
+then a name a `=>` or a `when` may use — and a hook that does not name it is not passed
+it, so declaring one and never using it costs nothing and adds no argument.
+
+`state` is the other half: a value a parse carries and may set for part of itself,
+`X with state @(1)`, which is how a grammar reads something differently inside a region
+it entered.
+
+## What the attribute can be told
+
+```csharp
+[Gram("…",
+	Lexical      = true,                 // compile over tokens, not characters
+	LocationType = typeof(ISqlSpan),     // offer every rule the range it matched
+	Stacks       = 4,                    // how many stacks a deep reading may take; 0 is no limit
+	PartSize     = 60_000,               // how large a generated method may grow
+	Portable     = false)]               // do not carry the grammar text in the assembly
+```
+
+`[GramOptions]` may be written as many times as there are further readings wanted, each
+naming the nested class it goes into:
+
+```csharp
+[Gram("Sql.gram", Lexical = true)]
+[GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+public static partial class Sql;
+```
+
+`Sql.ParseQuery` is the first and `Sql.Immediate.ParseQuery` the second — the same
+grammar, compiled the other way, side by side.
+
 ## Input that does not fit in memory
 
 Where the generator can prove input may be released as the parse goes, it emits overloads
@@ -222,6 +370,17 @@ no reader overloads over kinds.
 
 The message names the section of `docs/syntax.md` that settles the question. Read it
 rather than guessing at the notation.
+
+## What is deliberately not there
+
+- **No repair of a broken document.** Recovery is scoped to one repetition, for a feed
+  (`recover`). Finding the edit an author most likely meant is a different engine.
+- **Alternatives are never reordered.** `|` is ordered choice, including where one
+  literal is a prefix of another. Over characters backtracking makes a later alternative
+  reachable; over tokens the first that matches is the one.
+- **No type parameters**, and no way to say a rule is generic: a parameter's name in type
+  position is what covers it.
+- **No juxtaposition.** Two expressions never sit side by side; `&` or `|` between them.
 
 ## Working rules
 

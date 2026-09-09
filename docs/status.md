@@ -1484,14 +1484,14 @@ narrowed rather than left as it was.
 **Flat lowering**: a machine every publication of which needs none of the arena's three
 uses compiles without `Recognize_DotGram`, `Parser` or `ParserArena` at all — see
 *Backtracking, and where it stops* above. Measured on a grammar structurally identical to a
-repeated-record feed (`benchmarks/Flat.cs`): 119 ns and zero allocation against 691 ns and
+repeated-record feed (`benchmarks/DotGram.Benchmarks/Flat.cs`): 119 ns and zero allocation against 691 ns and
 952 B through the shared engine. The gate is per machine and per reachable subgraph, so a
 recovery or a climb elsewhere in the grammar no longer costs an unrelated publication its
 flat path, and a value no longer disqualifies one: captures lower to position locals and
 the construction runs after the whole-input check, deferred exactly as the engine defers
 it.
 
-**The document shape, across the 2026-08 series** (`benchmarks/Documents.cs`: four hundred
+**The document shape, across the 2026-08 series** (`benchmarks/DotGram.Benchmarks/Documents.cs`: four hundred
 key-value records, trivia at every seam, span values, a collection in reading order):
 287.5 µs and 3.14 MB per parse before the series, 19.3 µs and 46 KB after — fifteenfold in
 time, sixty-eightfold in allocation, and the 46 KB that remain are the result itself. The

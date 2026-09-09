@@ -7,10 +7,14 @@ How the project is built, checked and measured. Standing process rather than pla
 
 ```
 dotnet build DotGram.slnx
-tests/DotGram.Tests/bin/Debug/net10.0/DotGram.Tests.exe
+dotnet test DotGram.slnx --no-build
 ```
 
-The test runner takes no filter arguments; it runs everything, in about 25-30 seconds.
+`dotnet test` goes through Microsoft.Testing.Platform rather than VSTest, which xunit 4
+requires on the .NET 10 SDK and `global.json` opts into. The runner can also be started
+directly — `tests/DotGram.Tests/bin/Debug/net10.0/DotGram.Tests.exe`, and
+`-filter "/*/*/ClassName/MethodName"` for one test. It runs everything in about two
+minutes.
 The examples are compiled by the real generator during that build, so a member the
 generator stopped producing fails the build rather than a test.
 
@@ -31,8 +35,9 @@ When a change is *meant* to alter the output, the snapshot test writes the new f
 fails once, saying so. Read the diff before committing it — that reading is the review,
 and it is the only place the whole generated file is looked at.
 
-Three grammars are covered: `Url` and `Feed` are the frozen subset and hand no C# across,
-`Csv` carries a `=>`, a `when` and the `#line` directives of §7.6.
+Five grammars are covered: `Url` and `Feed` are the frozen subset and hand no C# across,
+`Csv` carries a `=>`, a `when` and the `#line` directives of §7.6, `Minimal` is the
+smallest thing that still recurses, and `Notation` is the notation's own grammar.
 
 ## Measuring
 
@@ -72,7 +77,8 @@ reading once before the first change and not again.
   consumer might be on rather than the one the generator is developed on. A member that
   stopped being emitted, or a language feature that started being, fails there rather than
   in somebody else's project. What each framework needs is written at the top of its
-  project file — today, `System.Memory` on netstandard2.0 and nothing anywhere else.
+  project file — today, `System.Memory` on netstandard2.0 and net472, and nothing on
+  net8.0.
 - A refused construct owes a test that it is refused, and by which diagnostic. A construct
   that parses and then quietly means nothing is the failure this project is most careful
   about — and a row of `status.md` reading *refused* is that same claim, made in prose.

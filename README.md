@@ -512,6 +512,7 @@ read: formats, feeds, expressions, languages.
 | [`docs/diagnostics.md`](docs/diagnostics.md) | compiler diagnostics |
 | [`docs/visual-studio.md`](docs/visual-studio.md) | the Visual Studio extension, and the `StringSyntax` annotations |
 | [`docs/status.md`](docs/status.md) | implemented features, limitations, and measurements |
+| [`docs/development.md`](docs/development.md) | how this is built, checked and measured |
 
 ## Compatibility
 

@@ -222,7 +222,7 @@ branches; `switch (kind)` over a small dense alphabet is already lowered by RyuJ
 jump table, and it keeps direct `goto`s that the block layout can order by heat.
 
 **Not a table of delegates.** A valueless rule call is 4.8 ns and a valued one 29 ns
-(`benchmarks/CallCost.cs`). Fifteen tokens through a delegate table is 70+ ns of pure
+(`benchmarks/DotGram.Benchmarks/CallCost.cs`). Fifteen tokens through a delegate table is 70+ ns of pure
 dispatch on a parse that should cost hundreds. `goto`, not call.
 
 **A bonus that falls out.** With kinds, error-recovery synchronization sets — "skip until
