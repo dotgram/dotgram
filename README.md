@@ -461,18 +461,21 @@ reading.
 ## Compatibility
 
 The generated parser is C# 8, and it targets whatever the project around it targets.
-`netstandard2.0`, `net472` and `net10.0` all compile it; the two that can be run were run.
+[`tests/DotGram.Compatibility`](tests/DotGram.Compatibility) is where that is held to:
+one grammar, built for `netstandard2.0`, `net472` and `net8.0` at C# 8 on every build. It
+runs no tests and asserts nothing — building it is the assertion.
 
-Two things an older project has to say out loud:
+An older target has to say two things out loud:
 
 * **A grammar written inside `[Gram]` is a raw string literal, which is C# 11.** On
   `netstandard2.0` and `net472` the default is C# 7.3, so `<LangVersion>` has to be set.
   A grammar in a `.gram` file asks for nothing: the generated code itself is C# 8.
 * **`netstandard2.0` and `net472` need `System.Memory`.** The generated parser reads over
-  `ReadOnlySpan<char>`, and those frameworks do not carry it.
+  `ReadOnlySpan<char>`, which those frameworks do not carry. That is the whole of the
+  addition: no polyfill package, and nothing of DotGram's own.
 
 ```xml
-<PropertyGroup>
+<PropertyGroup Condition="'$(TargetFramework)' == 'net472'">
   <LangVersion>11.0</LangVersion>
 </PropertyGroup>
 
@@ -481,8 +484,14 @@ Two things an older project has to say out loud:
 </ItemGroup>
 ```
 
-The generator is a Roslyn analyzer built against `Microsoft.CodeAnalysis` 4.14, and needs
-a compiler at least that new.
+Nothing is held back on the older frameworks. `ParseX(TextReader)`, `find` over a reader
+and `recover` all compile there, at that language version.
+
+The generator is a Roslyn analyzer built against `Microsoft.CodeAnalysis` 4.14 and needs a
+compiler at least that new. Building *for* .NET Framework on a machine with no targeting
+pack installed — a Linux CI runner, say — also wants
+`Microsoft.NETFramework.ReferenceAssemblies`, which is the build machine's business rather
+than the consumer's.
 
 ## Building
 
