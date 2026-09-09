@@ -1273,7 +1273,8 @@ DeclareStatement : @Statement
 		=> @(new Statement.Declare(Syntax.Listed(first, rest)))
 
 Declaration : @Clause
-	= name: Tsql.Variable & "AS"i? & d: DeclaredAs => @(d with { Name = name })
+	= name: Tsql.Variable & said: "AS"i? & d: DeclaredAs
+		=> @(d with { Name = name, As = said is not null })
 
 DeclaredAs : @Clause.VariableDeclaration
 	= "TABLE"i & '(' & body: TableBody & ')'              => @(new Clause.VariableDeclaration("", "TABLE", null, body))
@@ -1613,10 +1614,12 @@ NullSpec : @string = t: ("NOT"i & "NULL"i | "NULL"i) => @(Syntax.Squared(t))
 ConstraintBody : @Clause.ConstraintDefinition
 	= "PRIMARY"i & "KEY"i & k: IndexOrder? & h: "HASH"i? & columns: IndexColumns?
 	  & o: IndexWith? & p: IndexOn? & e: Enforced?
-		=> @(Clause.Keyed("PRIMARY KEY", k, h, columns, o, p, e))
+		=> @(Clause.Keyed("PRIMARY KEY", k, h, columns, o?.Options, p, e)
+			 with { Bracketed = o is not { Bare: true } })
 	| "UNIQUE"i & k: IndexOrder? & h: "HASH"i? & columns: IndexColumns?
 	  & o: IndexWith? & p: IndexOn? & e: Enforced?
-		=> @(Clause.Keyed("UNIQUE", k, h, columns, o, p, e))
+		=> @(Clause.Keyed("UNIQUE", k, h, columns, o?.Options, p, e)
+			 with { Bracketed = o is not { Bare: true } })
 	| "FOREIGN"i & "KEY"i & columns: IndexColumns? & r: References & e: Enforced?
 		=> @(Clause.Constrained("FOREIGN KEY", columns, null) with { Referenced = r, Enforced = Syntax.Enforced(e) })
 	| r: References & e: Enforced?
@@ -1659,9 +1662,17 @@ IndexName : @string = t: Identifier => @(t) | t: PartitionName => @(t)
 
 // The current form and the one that predates it: `WITH (FILLFACTOR = 80, ONLINE = ON)`
 // and the bare `WITH PAD_INDEX, FILLFACTOR = 80` SQL Server still reads.
-IndexWith : @Clause[]
-	= "WITH"i & '(' & o: OptionList & ')' => @(o)
-	| "WITH"i & o: OptionList             => @(o)
+// The modern spelling and the one it replaced, in one rule and not two. They are two
+// syntaxes and not two layouts — without the brackets an option may stand as a word alone,
+// `WITH FILLFACTOR = 23, PAD_INDEX`, and inside them it may not — so which was written is
+// carried on `Bare`, an option that holds the list rather than being one.
+//
+// Two rules would not do. A rule takes its commit with its first token, so a bracketed
+// rule of its own would take the `WITH`, find no bracket, and sink the alternative around
+// it: six of the corpus's indexes stopped being read the afternoon that was tried.
+IndexWith : @Clause.Option
+	= "WITH"i & '(' & o: OptionList & ')' => @(new Clause.Option("WITH", null, o))
+	| "WITH"i & o: OptionList             => @(new Clause.Option("WITH", null, o, null, true))
 
 IndexOn : @Clause = "ON"i & p: PlacementTarget => @(p with { Kind = "ON" })
 
@@ -1673,7 +1684,8 @@ TableIndex : @Clause
 	  & ("INCLUDE"i & '(' & include: ColumnList & ')')?
 	  & ("WHERE"i & filter: SearchCondition)?
 	  & o: IndexWith? & p: IndexOn? & ("FILESTREAM_ON"i & f: PlacementTarget)?
-		=> @(Clause.Indexed(name, u, c, s, h, columns, order, include, filter, o, (Clause.Placement?)p, f is null ? null : f with { Kind = "FILESTREAM_ON" }))
+		=> @(Clause.Indexed(name, u, c, s, h, columns, order, include, filter, o?.Options, (Clause.Placement?)p, f is null ? null : f with { Kind = "FILESTREAM_ON" })
+			 with { Bracketed = o is not { Bare: true } })
 
 // ── ALTER TABLE ─────────────────────────────────────────────────────────────
 //
@@ -1830,7 +1842,8 @@ FunctionReturns : @Statement.CreateFunction
 		=> @(new Statement.CreateFunction("", Clause.None, type, body ?? Statement.None, options, null, null, null, external))
 
 InlineReturn : @Statement[]
-	= '(' & q: QueryExpression & OrderByClause? & ')' => @(new Statement[] { Statement.Selected(q) })
+	= '(' & q: QueryExpression & OrderByClause? & ')'
+		=> @(new Statement[] { Statement.Selected(new Query.Parenthesized(q)) })
 	| q: QueryExpression & OrderByClause?             => @(new Statement[] { Statement.Selected(q) })
 
 // ── CREATE TRIGGER ──────────────────────────────────────────────────────────
@@ -1879,32 +1892,34 @@ CreateIndexStatement : @Statement
 	  & "ON"i & on: QualifiedName & '(' & promoted: ColumnList & ')'
 	  & tail: (("WITH"i & XmlNamespaces)? & SelectivePaths) & o: IndexWith?
 		=> @(new Statement.CreateIndex(
-				 on, Clause.Indexed(name ?? "", null, null, null, null, Syntax.Columns(promoted), null, null, null, o, null, null),
+				 on, Clause.Indexed(name ?? "", null, null, null, null, Syntax.Columns(promoted), null, null, null, o?.Options, null, null),
 				 "SELECTIVE XML", Syntax.Tail(tail)))
 	| "CREATE"i & kind: ("PRIMARY"i? & "XML"i) & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
 	  & over: XmlIndexUsing? & o: IndexWith?
 		=> @(new Statement.CreateIndex(
-				 on, Clause.Indexed(name, null, null, null, null, columns, null, null, null, o, null, null),
+				 on, Clause.Indexed(name, null, null, null, null, columns, null, null, null, o?.Options, null, null),
 				 Syntax.Squared(kind), Syntax.Tail(over)))
 	| "CREATE"i & u: "UNIQUE"i? & k: IndexOrder? & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
 	  & ("INCLUDE"i & '(' & include: ColumnList & ')')?
 	  & ("WHERE"i & filter: SearchCondition)?
 	  & o: IndexWith? & p: IndexOn? & ("FILESTREAM_ON"i & f: PlacementTarget)?
-		=> @(new Statement.CreateIndex(on, Clause.Indexed(name, u, k, null, null, columns, null, include, filter, o, (Clause.Placement?)p, f is null ? null : f with { Kind = "FILESTREAM_ON" })))
+		=> @(new Statement.CreateIndex(on, Clause.Indexed(name, u, k, null, null, columns, null, include, filter, o?.Options, (Clause.Placement?)p, f is null ? null : f with { Kind = "FILESTREAM_ON" })
+			 with { Bracketed = o is not { Bare: true } }))
 	| "CREATE"i & k: IndexOrder? & s: "COLUMNSTORE"i & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns?
 	  & ("ORDER"i & '(' & order: ColumnList & ')')?
 	  & ("WHERE"i & filter: SearchCondition)?
 	  & o: IndexWith? & p: IndexOn?
-		=> @(new Statement.CreateIndex(on, Clause.Indexed(name, null, k, s, null, columns, order, null, filter, o, (Clause.Placement?)p, null)))
+		=> @(new Statement.CreateIndex(on, Clause.Indexed(name, null, k, s, null, columns, order, null, filter, o?.Options, (Clause.Placement?)p, null)
+			 with { Bracketed = o is not { Bare: true } }))
 
 // `ALTER INDEX` names one index or all of them, and then says what to do.
 AlterIndexStatement : @Statement
 	= "ALTER"i & "INDEX"i & name: IndexTarget & "ON"i & on: QualifiedName
 	  & ("WITH"i & ns: XmlNamespaces)? & paths: SelectivePaths & o: IndexWith?
-		=> @(new Statement.AlterIndex(name, on, "FOR", null, o, paths, ns))
+		=> @(new Statement.AlterIndex(name, on, "FOR", null, o?.Options, paths, ns))
 	| "ALTER"i & "INDEX"i & name: IndexTarget & "ON"i & on: QualifiedName & a: AlterIndexAction
 		=> @(a with { Name = name, On = on })
 
@@ -1941,14 +1956,14 @@ PathLength = "MAXLENGTH"i & '(' & Sql92.Lexical.UnsignedNumericLiteral & ')'
 
 AlterIndexAction : @Statement.AlterIndex
 	= "REBUILD"i & ("PARTITION"i & '=' & p: PartitionWhich)? & o: IndexWith?
-		=> @(new Statement.AlterIndex("", "", "REBUILD", p, o))
+		=> @(new Statement.AlterIndex("", "", "REBUILD", p, o?.Options))
 	| "REORGANIZE"i & ("PARTITION"i & '=' & p: PartitionWhich)? & o: IndexWith?
-		=> @(new Statement.AlterIndex("", "", "REORGANIZE", p, o))
+		=> @(new Statement.AlterIndex("", "", "REORGANIZE", p, o?.Options))
 	| "DISABLE"i => @(new Statement.AlterIndex("", "", "DISABLE"))
 	| "PAUSE"i   => @(new Statement.AlterIndex("", "", "PAUSE"))
 	| "ABORT"i   => @(new Statement.AlterIndex("", "", "ABORT"))
-	| "RESUME"i & o: IndexWith? => @(new Statement.AlterIndex("", "", "RESUME", null, o))
-	| "SET"i & '(' & o: OptionList & ')' => @(new Statement.AlterIndex("", "", "SET", null, o))
+	| "RESUME"i & o: IndexWith? => @(new Statement.AlterIndex("", "", "RESUME", null, o?.Options))
+	| "SET"i & '(' & settings: OptionList & ')' => @(new Statement.AlterIndex("", "", "SET", null, settings))
 
 // ── The keys, and what is locked with them ──────────────────────────────────
 //

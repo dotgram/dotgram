@@ -1817,9 +1817,15 @@ public abstract record Clause : ISqlSpan
 	/// One variable: its name, the type as written, and what it was given to start with.
 	/// </summary>
 	/// <param name="Tail">A cursor's options and the query it is for, as written.</param>
+	/// <param name="As">
+	/// Whether <c>AS</c> stood between the name and the type. It is optional everywhere and
+	/// only a table variable needs it remembered: <c>DECLARE @v INT</c> and <c>DECLARE @v AS
+	/// INT</c> are read and written as one statement, <c>DECLARE @v TABLE (…)</c> and
+	/// <c>DECLARE @v AS TABLE (…)</c> as two.
+	/// </param>
 	public sealed record VariableDeclaration(
 		string Name, string? Type, Expression? Value, Clause[]? Elements = null, string? Nullability = null,
-		string? Tail = null) : Clause;
+		string? Tail = null, bool As = false) : Clause;
 
 	/// <summary>
 	/// One parameter of a routine: its name, its type, and its default — and the words around
@@ -1860,12 +1866,17 @@ public abstract record Clause : ISqlSpan
 	/// <param name="Options">The <c>WITH (…)</c>; for <c>CONNECTION</c>, the pairs and the actions.</param>
 	/// <param name="Enforced">Null where nothing was said, false for <c>NOT ENFORCED</c>.</param>
 	/// <param name="ForColumn">The column a <c>DEFAULT … FOR</c> names.</param>
+	/// <param name="Bracketed">
+	/// Whether the <c>WITH</c> had brackets. The two spellings are two syntaxes and not two
+	/// layouts: <c>WITH FILLFACTOR = 23, PAD_INDEX</c> lets an option stand as a word alone,
+	/// and <c>WITH (…)</c> does not — inside the brackets it has to be <c>PAD_INDEX = ON</c>.
+	/// </param>
 	public sealed record ConstraintDefinition(
 		string? Name, string Kind, Clause[] Columns, Expression? Check,
 		string? Clustering = null, bool Hash = false, bool Columnstore = false,
 		string[]? Order = null, string[]? Include = null, Expression? Filter = null,
 		Clause? Referenced = null, Clause[]? Options = null, Clause[]? Placements = null,
-		bool? Enforced = null, string? ForColumn = null) : Clause;
+		bool? Enforced = null, string? ForColumn = null, bool Bracketed = true) : Clause;
 
 	/// <summary>
 	/// §11.8 what a foreign key refers to: the table, its columns where they are named, what
@@ -2053,11 +2064,44 @@ public static class Syntax
 		words is null || words.Length == 0 ? null : Spaced(words);
 
 	/// <summary>Words as written, with the whitespace between them made one space.</summary>
-	public static string Spaced(string words)
+	public static string Spaced(string words) => Run(words, false);
+
+	/// <summary>
+	/// A run of words, one space between them — and what stands inside quotes copied
+	/// character for character.
+	/// </summary>
+	/// <remarks>
+	/// A literal is not a run of words. <c>'a  b'</c> is one value with two spaces in it and
+	/// <c>'default()'</c> is not a keyword to be raised, so neither the spacing nor the case of
+	/// anything between quotes is this function's to change — which is what <c>MASKED WITH
+	/// (FUNCTION = 'default()')</c> came back from as <c>'DEFAULT()'</c>.
+	/// </remarks>
+	static string Run(string words, bool raised)
 	{
-		var made = new System.Text.StringBuilder(words.Length);
+		var made  = new System.Text.StringBuilder(words.Length);
+		var until = '\0';
 
 		foreach (var c in words)
+		{
+			if (until != '\0')
+			{
+				made.Append(c);
+
+				if (c == until)
+					until = '\0';
+
+				continue;
+			}
+
+			// A quote of any of the three kinds, and what it is closed by.
+			if (c is '\'' or '"' or '[')
+			{
+				made.Append(c);
+				until = c == '[' ? ']' : c;
+
+				continue;
+			}
+
 			if (char.IsWhiteSpace(c))
 			{
 				if (made.Length > 0 && made[made.Length - 1] != ' ')
@@ -2065,8 +2109,9 @@ public static class Syntax
 			}
 			else
 			{
-				made.Append(c);
+				made.Append(raised ? char.ToUpperInvariant(c) : c);
 			}
+		}
 
 		return made.ToString().TrimEnd();
 	}
@@ -2289,23 +2334,7 @@ public static class Syntax
 	}
 
 	/// <summary>A run of words as one upper-case word per space.</summary>
-	public static string Squared(string words)
-	{
-		var made = new System.Text.StringBuilder(words.Length);
-
-		foreach (var c in words)
-			if (char.IsWhiteSpace(c))
-			{
-				if (made.Length > 0 && made[made.Length - 1] != ' ')
-					made.Append(' ');
-			}
-			else
-			{
-				made.Append(char.ToUpperInvariant(c));
-			}
-
-		return made.ToString().TrimEnd();
-	}
+	public static string Squared(string words) => Run(words, true);
 
 	/// <summary>A word the grammar read and this file has no record for.</summary>
 	/// <remarks>

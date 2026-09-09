@@ -463,11 +463,9 @@ public static class SqlWriter
 				if (kind is not null)
 					text.Append(kind).Append(' ');
 
-				Put(text, (Clause.ConstraintDefinition)index, on);
-
-				if (over is not null)
-					text.Append(' ').Append(over);
-
+				// `USING XML INDEX p FOR PATH` and a selective index's `FOR (…)` stand
+				// between the columns and the `WITH`, so the constraint prints them.
+				Put(text, (Clause.ConstraintDefinition)index, on, over);
 				break;
 
 			case Statement.AlterIndex(var name, var on, var action, var partition, var options, var paths, var namespaces):
@@ -1382,14 +1380,16 @@ public static class SqlWriter
 	}
 
 	/// <summary>A <c>WITH (…)</c>, or nothing where there is none.</summary>
-	static void Optioned(StringBuilder text, Clause[]? options)
+	static void Optioned(StringBuilder text, Clause[]? options, bool bracketed = true)
 	{
 		if (options is not { Length: > 0 })
 			return;
 
-		text.Append(" WITH (");
+		text.Append(bracketed ? " WITH (" : " WITH ");
 		Each(text, options);
-		text.Append(')');
+
+		if (bracketed)
+			text.Append(')');
 	}
 
 	/// <summary>Placements one after another, each with its word.</summary>
@@ -1822,8 +1822,12 @@ public static class SqlWriter
 				Arm(text, action);
 				break;
 
-			case Clause.VariableDeclaration(var name, var type, var value, var elements, var nullability, var tail):
+			case Clause.VariableDeclaration(
+					var name, var type, var value, var elements, var nullability, var tail, var said):
 				text.Append(name);
+
+				if (said)
+					text.Append(" AS");
 
 				if (type is not null)
 					text.Append(' ').Append(type);
@@ -1904,7 +1908,8 @@ public static class SqlWriter
 	/// A constraint or an index with everything T-SQL writes after it, in its order — and,
 	/// given a table, as the <c>CREATE INDEX</c> that stands on its own.
 	/// </summary>
-	static void Put(StringBuilder text, Clause.ConstraintDefinition constraint, string? on)
+	static void Put(
+		StringBuilder text, Clause.ConstraintDefinition constraint, string? on, string? over = null)
 	{
 		var name    = constraint.Name;
 		var kind    = constraint.Kind;
@@ -1975,6 +1980,10 @@ public static class SqlWriter
 		}
 
 		Columns(text, columns);
+
+		if (over is not null)
+			text.Append(' ').Append(over);
+
 		Names(text, constraint.Order is null ? null : constraint.Order, "ORDER");
 		Names(text, constraint.Include, "INCLUDE");
 
@@ -2011,7 +2020,7 @@ public static class SqlWriter
 			foreach (var word in words)
 				text.Append(' ').Append(word.Name);
 
-		Optioned(text, options);
+		Optioned(text, options, constraint.Bracketed);
 		Placed(text, constraint.Placements);
 
 		if (constraint.Enforced is { } enforced)
