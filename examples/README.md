@@ -23,6 +23,8 @@ then a feed, then an expression language, then one of the larger ones.
 | [`MarkdownExample.cs`](DotGram.Examples/Formats/MarkdownExample.cs) | block structure — headings, bullets, fenced code, paragraphs |
 | [`YamlExample.cs`](DotGram.Examples/Formats/YamlExample.cs) | nesting by indentation, to any depth |
 | [`MetricsLineExample.cs`](DotGram.Examples/Formats/MetricsLineExample.cs) | a line of measurements, and the standard library doing nearly all of it — `using Std;`, comments and numbers said by name |
+| [`LocatedConfigExample.cs`](DotGram.Examples/Formats/LocatedConfigExample.cs) | one grammar read twice — `[GramOptions]`, `LocationType`, and `: @SourceSpan` where a rule is simply its own extent |
+| [`FileNameExample.cs`](DotGram.Examples/Formats/FileNameExample.cs) | a path split into names the platform would take — `[@M]`, a set of characters that is data rather than syntax |
 
 ## Feeds
 
@@ -55,6 +57,7 @@ Record-oriented input, four ways, over one line-oriented format.
 | [`GramExample.cs`](DotGram.Examples/Languages/GramExample.cs) | the .Gram notation parsed by .Gram itself, building a tree |
 | [`TokenizedQueryExample.cs`](DotGram.Examples/Languages/TokenizedQueryExample.cs) | a query read over tokens — `Lexical = true`, a lexer under the rules, and keywords that end where a word does |
 | [`LexemeLibraryExample.cs`](DotGram.Examples/Languages/LexemeLibraryExample.cs) | one grammar written to be built on and two written on it — `[GramInclude]`, and why the names cannot collide |
+| [`ScopedExpressionExample.cs`](DotGram.Examples/Languages/ScopedExpressionExample.cs) | a language where a name must be declared before it is used — `context`, and what a `when` can do that a `=>` cannot |
 
 ## Taking one
 

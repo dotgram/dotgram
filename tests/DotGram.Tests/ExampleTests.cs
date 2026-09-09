@@ -1297,4 +1297,112 @@ public sealed class ExampleTests
 		Assert.IsType<string>(readings["name"]);
 	}
 
+
+	// ── A parse that remembers what it read ──────────────────────────────────────
+
+	/// <summary>`context`: a name has to be declared before it may be used.</summary>
+	[Theory]
+	[InlineData("let x = 2; let y = x + 3; y * x", 10)]
+	[InlineData("1 + 2 * 3",                        7)]
+	[InlineData("let a = 4; (a + 1) * 2",          10)]
+	public void A_scoped_program_works_out(string program, int expected) =>
+		Assert.Equal(expected, Scoped.ParseProgram(program, new Names()));
+
+	/// <summary>
+	/// And a name nobody declared is not a parse. Both of these are the same shape of
+	/// text as one that works: what refuses them is what the reading had worked out by
+	/// the time it reached the name, which is what a `context` is for.
+	/// </summary>
+	[Theory]
+	[InlineData("y + 1")]
+	[InlineData("let x = 1; y")]
+	public void And_an_undeclared_name_is_not_one(string program) =>
+		Assert.False(Scoped.TryParseProgram(program, new Names()).IsSuccess);
+
+	/// <summary>Each parse gets its own, so two of them cannot see each other's.</summary>
+	[Fact]
+	public void And_one_parse_does_not_see_anothers_names()
+	{
+		Assert.Equal(1, Scoped.ParseProgram("let x = 1; x", new Names()));
+		Assert.False(Scoped.TryParseProgram("x", new Names()).IsSuccess);
+	}
+
+	// ── A set of characters that is data ─────────────────────────────────────────
+
+	/// <summary>`[@M]`: what a name may hold is what the platform allows.</summary>
+	[Fact]
+	public void A_path_is_split_into_names_the_platform_would_take()
+	{
+		Assert.Equal(
+			["reports", "2026", "september.txt"],
+			FileNames.ParseRoute("reports/2026/september.txt"));
+
+		Assert.Equal("a name with spaces.txt", FileNames.ParseSegment("a name with spaces.txt"));
+	}
+
+	/// <summary>
+	/// A set is asked one character at a time and a guard about what they came to, which
+	/// is why the invalid character and the reserved name are refused by different things.
+	/// </summary>
+	[Theory]
+	[InlineData("bad:name")]     // the set: ':' is not a filename character here
+	[InlineData("CON")]          // the guard: a name Windows keeps
+	[InlineData("a//b")]         // and a segment may not be empty
+	public void And_what_it_refuses_it_refuses_for_a_reason(string path) =>
+		Assert.False(FileNames.IsUsable(path));
+
+
+	// ── One grammar, read with locations and without ─────────────────────────────
+
+	const string Settings = "# a comment\nhost = localhost\nport = 8080\n";
+
+	/// <summary>Both readings read the same file the same way.</summary>
+	[Fact]
+	public void A_config_reads_the_same_either_way()
+	{
+		Assert.Equal(
+			[new Entry("host", "localhost"), new Entry("port", "8080")],
+			Config.ParseFile(Settings));
+
+		// Not by record equality: an entry that carries where it was is not equal to
+		// one built anywhere else, which is the price of putting the location in the
+		// value rather than beside it.
+		Assert.Equal(
+			[("host", "localhost"), ("port", "8080")],
+			Config.Located.ParseFile(Settings).Select(one => (one.Key, one.Value)));
+	}
+
+	/// <summary>
+	/// And only one of them pays for saying where. `LocationType` is what the second
+	/// reading was given and the first was not, so the first calls `Locate` never and
+	/// the values carry what the record was constructed with.
+	/// </summary>
+	[Fact]
+	public void And_only_the_located_reading_says_where()
+	{
+		Assert.All(Config.ParseFile(Settings), entry => Assert.Equal(default, entry.Where));
+
+		var located = Config.Located.ParseFile(Settings);
+
+		Assert.Equal(new At(12, 16), located[0].Where);
+		Assert.Equal(new At(29, 11), located[1].Where);
+	}
+
+	/// <summary>Which is what it is for: telling somebody where to look.</summary>
+	[Fact]
+	public void And_that_is_what_a_message_needs() =>
+		Assert.Equal(
+			["unknown key 'port' at line 3, column 1"],
+			Config.Unknown(Settings, "host"));
+
+	/// <summary>`: @SourceSpan` — the same question, asked of one rule and much smaller.</summary>
+	[Fact]
+	public void And_a_rule_may_simply_be_its_own_extent()
+	{
+		var span = Config.ParseKeySpan("host");
+
+		Assert.Equal(0, span.Start);
+		Assert.Equal(4, span.Length);
+	}
+
 }
