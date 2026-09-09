@@ -592,8 +592,17 @@ over at run time anyway: a rule is specialized for each call site, where the arg
 type is already concrete.
 
 ```dotgram
-Numbers = List(Number, ',')      // : int[]
-Name    = Lex(Identifier)        // : string
+Numbers = List(Number, ',')      // : string — §4.1 case 4, the extent it matched
+Name    = Lex(Identifier)        // : string, and for the same reason
+```
+
+**A rule whose body is a call does not take the type the call produces.** With no
+`=>`, no captures and no declared type it is case 4 like any other rule: its own
+extent. Capture what the call built and hand it on where its value is what is
+wanted:
+
+```dotgram
+Numbers : @int[] = v: List(Number, ',') => @(v)
 ```
 
 A value parameter is allowed anywhere a value is expected: in a quantifier count
