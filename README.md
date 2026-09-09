@@ -25,51 +25,10 @@ query and filter languages, markup, and languages of your own — including ones
                   PrivateAssets="all" ExcludeAssets="runtime" />
 ```
 
-The smallest useful .Gram parser looks much like a regular expression:
-
-```csharp
-using DotGram;
-
-[Gram("""
-	Hex = ['0'..'9' | 'a'..'f' | 'A'..'F']
-
-	Color = '#' & value: Hex{6}
-
-	parse Color
-	""")]
-public static partial class CssColor;
-```
-
-Use it as ordinary C#:
-
-```csharp
-var color = CssColor.ParseColor("#12aBcF");
-
-Console.WriteLine(color.Value);       // 12aBcF
-
-var result = CssColor.TryParseColor("#xyz");
-
-Console.WriteLine(result.IsSuccess);  // False
-```
-
-The equivalent regular expression would be roughly:
-
-```text
-^#(?<value>[0-9a-fA-F]{6})$
-```
-
-Ranges, alternatives, `?`, `*`, `+` and `{n}` mean what they mean in a regular expression.
-
-`value:` does more than a regex capture does: it becomes a property of the generated
-result type.
-
-For small grammars, keeping the grammar in the `[Gram]` attribute makes the parser
-definition and its C# API easy to read together. Larger grammars can also live in `.gram`
-files, listed as `<AdditionalFiles Include="Name.gram" />`.
-
-Inline grammars are raw string literals and so need C# 11; a `.gram` file needs
-nothing more than the project already has. [Compatibility](#compatibility) has the
-rest.
+A grammar lives in the `[Gram]` attribute of the class the parser is generated into, or in
+a `.gram` file listed as `<AdditionalFiles Include="Name.gram" />`. Inline grammars are raw
+string literals and so need C# 11; a `.gram` file needs nothing more than the project
+already has. [Compatibility](#compatibility) has the rest.
 
 ## One grammar, three parsers
 
@@ -171,6 +130,53 @@ its `^` on `int` is exclusive-or rather than power, so that one alternative call
 There is no runtime generic dispatch and no parser configuration object. All three parsers
 are specialized when the C# is generated.
 
+## Something much smaller
+
+Not every grammar is a language. One the size of a regular expression is written like one:
+
+```csharp
+using DotGram;
+
+[Gram("""
+	Hex   = ['0'..'9' | 'a'..'f' | 'A'..'F']
+	Color = '#' & value: Hex{6}
+
+	parse Color
+	""")]
+public static partial class CssColor;
+```
+
+Use it as ordinary C#:
+
+```csharp
+var color = CssColor.ParseColor("#12aBcF");
+
+Console.WriteLine(color.Value);       // 12aBcF
+
+var result = CssColor.TryParseColor("#xyz");
+
+Console.WriteLine(result.IsSuccess);  // False
+```
+
+The equivalent regular expression would be roughly:
+
+```text
+^#(?<value>[0-9a-fA-F]{6})$
+```
+
+Ranges, alternatives, `?`, `*`, `+` and `{n}` mean what they mean in a regular expression.
+
+`value:` does more than a regex capture does: it becomes a property of the generated
+result type.
+
+For small grammars, keeping the grammar in the `[Gram]` attribute makes the parser
+definition and its C# API easy to read together. Larger grammars can also live in `.gram`
+files, listed as `<AdditionalFiles Include="Name.gram" />`.
+
+Inline grammars are raw string literals and so need C# 11; a `.gram` file needs
+nothing more than the project already has. [Compatibility](#compatibility) has the
+rest.
+
 ## Typed parsing
 
 Named captures define the shape of the result.
@@ -217,6 +223,76 @@ foreach (var row in FeedParser.AllRows(text))
 	Console.WriteLine(row.Value.Symbol);
 ```
 
+## Streaming, tokens and recovery
+
+A grammar is read over characters or over tokens, and out of a string or out of a reader.
+Which of the last two runs is a property of the data rather than of the grammar, so it is
+settled at the call site by the overload that was called; `Lexical = true` on the host asks
+for the first. Over tokens the input is in memory. Over characters a reader overload
+appears wherever the generator can prove that input may be released as the parse goes.
+
+```csharp
+using DotGram;
+
+[Gram("""
+	Text  = [^ '|' | '\r' | '\n']+
+	Digit = ['0'..'9']
+
+	Header          = "H" & '|' & Text & eol
+	Row   : @string = "R" & '|' & t: Text & eol => @(t)
+	Trailer         = "T" & '|' & Digit+ & eol
+
+	Feed : @string[] = Header & Row* & Trailer & eof
+
+	parse Feed
+	""")]
+public static partial class StreamingFeed;
+```
+
+`Feed` collects what its operands produce: `Row` builds a `string`, while the header and
+trailer build nothing and so join nothing. Four methods come out of it — `ParseFeed` and
+`TryParseFeed` over a `string`, and `ParseFeed` over a `TextReader` and over an
+`IEnumerable<string>`, which reuse a buffer rather than hold the input:
+
+```csharp
+using var reader = File.OpenText("large.feed");
+
+foreach (var row in StreamingFeed.ParseFeed(reader))
+	Handle(row);
+```
+
+This is what makes the size of the input stop mattering. The window is reused as the parse
+moves along it, so what is held is the record being read rather than the file, and each
+record reaches the caller as it is read rather than in an array of all of them at the end.
+A feed of tens of gigabytes therefore costs what one record costs: reading 21 GiB through
+the grammar above holds the same 78 MiB of working set as reading 1 GiB does.
+
+Record-oriented formats can also recover after malformed input:
+
+```csharp
+using DotGram;
+
+[Gram("""
+	Text = [^ '|' | '\r' | '\n']+
+
+	Row : @string = "R" & '|' & t: Text & eol => @(t)
+
+	Feed : @string[] = Row* recover eol => @(parserText)
+
+	parse Feed
+	""")]
+public static partial class RecoveringFeed;
+```
+
+`recover eol` says where the repetition may pick itself up, and the `=>` says what to make
+of what it rejected — here the text of the bad line, which arrives in the sequence beside
+the good ones. A rejection can as well become a record of its own, or go to a `partial
+void` hook and stay out of the result entirely: a bad record becomes data describing the
+rejection instead of ending the feed.
+
+[`docs/syntax.md`](docs/syntax.md) §6.3 says which grammars get a reader overload and why,
+and §8.2 what `recover` may promise.
+
 ## Grammar and C#
 
 `@` is the boundary between grammar and C#. A rule declares its result as a C# type and
@@ -258,70 +334,6 @@ Included rules are namespaced by the name the includer gave them, so `Sql92.Iden
 and an `Identifier` of your own cannot collide. A dialect is therefore the size of its
 difference: [`TransactSql`](src/DotGram.Parsers/TransactSql.gram) is SQL-92 and the places
 T-SQL parts from it, and the standard underneath is written once.
-
-## Streaming, tokens and recovery
-
-A grammar is read over characters or over tokens, and out of a string or out of a reader.
-Which of the last two runs is a property of the data rather than of the grammar, so it is
-settled at the call site by the overload that was called; `Lexical = true` on the host asks
-for the first. Over tokens the input is in memory. Over characters a reader overload
-appears wherever the generator can prove that input may be released as the parse goes.
-
-```csharp
-using DotGram;
-
-[Gram("""
-	Text  = [^ '|' | '\r' | '\n']+
-	Digit = ['0'..'9']
-
-	Header          = "H" & '|' & Text & eol
-	Row   : @string = "R" & '|' & t: Text & eol => @(t)
-	Trailer         = "T" & '|' & Digit+ & eol
-
-	Feed : @string[] = Header & Row* & Trailer & eof
-
-	parse Feed
-	""")]
-public static partial class StreamingFeed;
-```
-
-`Feed` collects what its operands produce: `Row` builds a `string`, while the header and
-trailer build nothing and so join nothing. Four methods come out of it — `ParseFeed` and
-`TryParseFeed` over a `string`, and `ParseFeed` over a `TextReader` and over an
-`IEnumerable<string>`, which reuse a buffer rather than hold the input:
-
-```csharp
-using var reader = File.OpenText("large.feed");
-
-foreach (var row in StreamingFeed.ParseFeed(reader))
-	Handle(row);
-```
-
-Record-oriented formats can also recover after malformed input:
-
-```csharp
-using DotGram;
-
-[Gram("""
-	Text = [^ '|' | '\r' | '\n']+
-
-	Row : @string = "R" & '|' & t: Text & eol => @(t)
-
-	Feed : @string[] = Row* recover eol => @(parserText)
-
-	parse Feed
-	""")]
-public static partial class RecoveringFeed;
-```
-
-`recover eol` says where the repetition may pick itself up, and the `=>` says what to make
-of what it rejected — here the text of the bad line, which arrives in the sequence beside
-the good ones. A rejection can as well become a record of its own, or go to a `partial
-void` hook and stay out of the result entirely: a bad record becomes data describing the
-rejection instead of ending the feed.
-
-[`docs/syntax.md`](docs/syntax.md) §6.3 says which grammars get a reader overload and why,
-and §8.2 what `recover` may promise.
 
 ## DotGram.Parsers
 
