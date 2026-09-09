@@ -15,16 +15,17 @@ namespace Lexical
 	// §5.2. A regular identifier is a letter and then letters, digits or underscores;
 	// a delimited one is anything between double quotes, with "" for a quote inside.
 	// The standard's <identifier body> admits <identifier part> beyond ASCII, which is
-	// what \p{L} and \p{Nd} say here.
+	// what \p{L} and \p{Nd} say here. The parts are kept apart rather than taken from
+	// the library whole, because a dialect builds its own tokens out of them.
 	IdentifierStart     = [\p{L} | '_']
 	IdentifierPart      = [\p{L} | \p{Nd} | '_']
 	RegularIdentifier   = IdentifierStart & IdentifierPart*
-	DelimitedIdentifier = '"' & ("\"\"" | [^ '"'])* & '"'
+	DelimitedIdentifier = Std.DoubleQuoted
 
 	// §5.3 <unsigned numeric literal>. An exact numeric has an optional point; an
 	// approximate one is a mantissa and an exponent. Written in that order so that
 	// `1E5` is read whole rather than as `1` and something the parse cannot place.
-	Digits                    = ['0'..'9']+
+	Digits                    = Std.Digits
 	ExactNumericLiteral       = Digits & ('.' & Digits?)? | '.' & Digits
 	ApproximateNumericLiteral = ExactNumericLiteral & 'E'i & ['+' | '-']? & Digits
 	UnsignedNumericLiteral    = ApproximateNumericLiteral | ExactNumericLiteral
@@ -32,17 +33,17 @@ namespace Lexical
 	// §5.3 <character string literal>, with '' for a quote inside. The optional
 	// introducer names a character set.
 	CharacterStringLiteral         = ('_' & RegularIdentifier)? & QuotedString
-	QuotedString                   = '\'' & ("''" | [^ '\''])* & '\''
+	QuotedString                   = Std.SingleQuoted
 	NationalCharacterStringLiteral = 'N'i & QuotedString
 	BitStringLiteral               = 'B'i & '\'' & ['0' | '1']* & '\''
-	HexStringLiteral               = 'X'i & '\'' & ['0'..'9' | 'a'..'f' | 'A'..'F']* & '\''
+	HexStringLiteral               = 'X'i & '\'' & Std.HexDigit* & '\''
 
 	// §5.3 <datetime literal> and <interval literal> carry their type in front of the
 	// string, which is what tells them from a character string.
 	DateLiteral      = "DATE"i      & Space & QuotedString
 	TimeLiteral      = "TIME"i      & Space & QuotedString
 	TimestampLiteral = "TIMESTAMP"i & Space & QuotedString
-	Space            = (' ' | '\t' | '\r' | '\n')+
+	Space            = Std.Spacing
 }
 
 // §5.2, and the reason the keywords below are literals rather than a rule: a keyword
@@ -52,11 +53,7 @@ wordboundary = IdentifierPart
 
 // §5.4 <comment> is `--` to the end of the line; §5.2 allows the bracketed form in
 // later editions and it costs nothing to read.
-trivia       = { (Whitespace | LineComment | BlockComment)* }
-
-Whitespace   = [' ' | '\t' | '\r' | '\n']+
-LineComment  = "--" & [^ '\n' | '\r']*
-BlockComment = "/*" & (?!"*/" & any)* & "*/"
+trivia       = { (Std.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "*/"))* }
 
 // ── §8 Predicates, and the tower the standard calls a search condition ──────
 //

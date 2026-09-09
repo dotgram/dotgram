@@ -25,7 +25,7 @@ using Sql92;
 // read their keywords as punctuation, and a grammar that reads `USERS` as `USER`
 // followed by `S` is wrong in a way nothing in it looks wrong.
 wordboundary = Sql92.Lexical.IdentifierPart
-trivia       = { (Sql92.Whitespace | Sql92.LineComment | Sql92.BlockComment)* }
+trivia       = { (Std.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "*/"))* }
 
 // ── The lexemes T-SQL has and the standard does not ─────────────────────────
 //

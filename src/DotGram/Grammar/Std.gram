@@ -56,11 +56,14 @@ BlockComment(open, close) = open & (?!close & any)* & close
 
 // ── Quoted text ──────────────────────────────────────────────────────────────
 //
-// The two ways a quote is written inside what it quotes. `Quoted('\'')` doubles it,
-// as SQL and CSV do; `Escaped('"', '\\')` puts an escape character in front of it —
-// and in front of anything else, which is what the escape character means. Both give
-// back the text between the quotes as written, escapes and all: what an escape stands
-// for differs between languages that agree on how it is spelled.
+// The two ways a quote is written inside what it quotes: doubled, as SQL and CSV do,
+// or with an escape character in front of it — and in front of anything else, which
+// is what the escape character means. All three give back the text as written, quotes
+// and escapes and all: what an escape stands for differs between languages that agree
+// on how it is spelled. Written out per quote rather than parameterized by it, because
+// an element set names its characters and not a parameter, and a lookahead in their
+// place is not something a lexer reads as one pattern (§6.3).
 
-Quoted(quote)          = quote & (quote & quote | ?!quote & any)* & quote
-Escaped(quote, escape) = quote & (escape & any | ?!quote & any)* & quote
+SingleQuoted = '\'' & ("''" | [^ '\''])* & '\''
+DoubleQuoted = '"' & ("\"\"" | [^ '"'])* & '"'
+Escaped      = '"' & ('\\' & any | [^ '"' | '\\'])* & '"'

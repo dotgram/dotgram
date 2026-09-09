@@ -112,8 +112,13 @@ public sealed partial class GrammarNormalizer
 		foreach (var root in roots ?? [])
 			Enter(root);
 
+		// The seam and the boundary are roots however they are used; `any` and its fellows
+		// are called like any rule, and once a pruning is under way one of them that only
+		// a pruned rule called — the library's `Escaped` reaching for `any` — is as dead as
+		// the rule that called it.
 		foreach (var rule in _rules)
-			if (Array.IndexOf(GrammarBinder.BuiltIn, rule.Name) >= 0)
+			if (Array.IndexOf(GrammarBinder.BuiltIn, rule.Name) >= 0 &&
+				(rebindings || rule.Name is "trivia" or "wordboundary" or "word"))
 				Enter(rule);
 
 		if (rebindings)
@@ -189,7 +194,7 @@ public sealed partial class GrammarNormalizer
 	{
 		var reached = _publications.Count > 0
 			? Reached(_publications, rebindings: false)
-			: Reached(_publications, rebindings: false, [.. _rules.Where(static one => !IsSpliced(one))]);
+			: Reached(_publications, rebindings: false, [.. _rules.Where(static one => !IsSpliced(one) && !one.IsBuiltIn)]);
 
 		if (reached.Count == _rules.Count)
 			return;

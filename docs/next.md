@@ -16961,3 +16961,47 @@ answers `FreeNames` with null, leaving that question to whoever normalizes.
 out with `Construct_Std_Integer` and twenty-five extra states. Every rule the author wrote
 is a root there; what was spliced on is not, and of it only what the author's rules reach
 stays.
+
+### SQL92 and T-SQL on the library
+
+The validation the library was written for: `SqlStandard92.gram` and `TransactSql.gram`
+moved onto `Std` wherever a lexeme matched one for one — `Digits`, `Space`, the three
+pieces of `trivia`, the two quoted forms, the hex digits. `RegularIdentifier` stayed the
+standard's own production over `IdentifierStart` and `IdentifierPart`, because the dialect
+builds `@variables` and `#temporaries` out of the parts, and a library identifier that
+swallows them whole has nothing to offer there. The oracle and the corpus did not move.
+
+**The first cut of `Quoted(quote)` broke 76 tests without an error.** It was written with a
+lookahead — `quote & (quote & quote | ?!quote & any)* & quote` — and the lexer's automaton
+knows one lookahead shape, the `(?!L & X)*` idiom, as a repeat's whole body; a lookahead
+inside a choice is refused, the pattern has no shape, the split is blocked, and `GRAM5004`
+says so — as an *Info*, which the build does not show. So SQL92 was silently compiled over
+characters, and over characters it read `t INNER JOIN u` as the alias `INNER` on `t` and a
+bare `JOIN`. Bisecting the migration one replacement at a time found nothing, since the rule
+stood in two places; a minimal probe found the diagnostic. The library's strings are now
+written out per quote with an element-set complement, `SingleQuoted`, `DoubleQuoted`,
+`Escaped` — an element set names its characters and cannot take a parameter, which the probe
+also showed (`GRAM4005`). Comments stay parameterized: their delimiter is a string literal,
+which is the idiom's own case.
+
+Two things found and not fixed, both worth their own turn:
+
+- **The character reading of SQL92 disagrees with the token reading.** The two must read
+  one language — `Every_input_reads_the_same_both_ways` holds it for small grammars — and
+  for SQL92 they do not: over characters `INNER` is an identifier. Either `?!Reserved`
+  with two hundred alternatives, or the word boundary, behaves differently in one machine.
+  A fallback that changes what a grammar reads is the worst kind, and `GRAM5004` being an
+  Info that nothing surfaces is part of the problem.
+- **The `(?!L & X)*` idiom with a character literal as `L` misreads as a token.** A probe
+  with `'"' & (?!'"' & any)* & ('"' & '"' & (?!'"' & any)*)* & '"'` compiled to tokens and
+  then refused `"a""b"` at the second character. Not in the library any more, and not
+  looked into.
+
+**Speed did not move, as far as this machine can tell.** `--speed 170 5`, three runs each,
+migrated against fully reverted: 7.3–10.0 µs a statement against 9.6–10.1, with ScriptDom's
+own tree in the same runs wandering between 16.9 and 21.7 µs. The spread column says 36–46%
+and the numbers say the same: nothing here is measurable above the noise of the box, and a
+call to `Std.Digits` costs what `['0'..'9']+` written in place did.
+
+Also: `--hand` has been broken since `Expression.Parenthesized` — the hand-written parser's
+printer does not know the node, so the agreement check throws before timing anything.

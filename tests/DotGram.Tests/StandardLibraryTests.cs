@@ -41,8 +41,8 @@ public sealed class StandardLibraryTests
 	}
 
 	/// <summary>
-	/// A comment and a string are parameterized by what delimits them, which is all that
-	/// differs between one language's and the next.
+	/// A comment is parameterized by what delimits it, which is all that differs between one
+	/// language's and the next; a string is written out per quote.
 	/// </summary>
 	[Fact]
 	public void Delimiters_are_the_calling_grammars_to_choose()
@@ -53,7 +53,7 @@ public sealed class StandardLibraryTests
 			[Gram("""
 				trivia = { (Std.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "*/"))* }
 
-				Two : @string[] = a: Std.Quoted('\'') & b: Std.Escaped('"', '\\') & eof => @(new[] { a, b })
+				Two : @string[] = a: Std.SingleQuoted & b: Std.Escaped & eof => @(new[] { a, b })
 				parse Two
 				""")]
 			public static partial class Strings;
