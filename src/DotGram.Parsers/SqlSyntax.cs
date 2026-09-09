@@ -1322,6 +1322,18 @@ public abstract record Expression : ISqlSpan
 	public sealed record Hinted(Expression Value, string Words) : Expression;
 
 	/// <summary>
+	/// <c>key : value</c> in a JSON constructor — the one place T-SQL joins two values with a
+	/// colon.
+	/// </summary>
+	public sealed record JsonPair(Expression Key, Expression Value) : Expression;
+
+	/// <summary>
+	/// An ODBC escape, <c>{ FN … }</c>, <c>{ d '…' }</c>, <c>{ ts '…' }</c>: the word and what
+	/// stands after it, which SQL Server reads and the tree keeps in its braces.
+	/// </summary>
+	public sealed record OdbcEscape(string Kind, Expression Value) : Expression;
+
+	/// <summary>
 	/// An argument given by name rather than by position — <c>@p = 1</c> in an
 	/// <c>EXECUTE</c>, <c>FORMATFILE = '…'</c> in a rowset function.
 	/// </summary>
@@ -1461,9 +1473,10 @@ public abstract record TableReference : ISqlSpan
 	/// <see cref="On"/> where the join was qualified by a condition, <see cref="Using"/> where
 	/// it named columns, and neither for a cross or a natural join.
 	/// </remarks>
+	/// <param name="Hint">T-SQL's join hint, <c>HASH</c>, <c>LOOP</c>, <c>MERGE</c>, …, written before the <c>JOIN</c>.</param>
 	public sealed record Joined(
 		SqlJoin Kind, bool Outer, bool Natural, TableReference Left, TableReference Right,
-		Expression? On = null, string[]? Using = null) : TableReference;
+		Expression? On = null, string[]? Using = null, string? Hint = null) : TableReference;
 
 	/// <summary>What a clause with no sources is handed, once rather than per call.</summary>
 	public static readonly TableReference[] None = [];
@@ -1471,8 +1484,8 @@ public abstract record TableReference : ISqlSpan
 	/// <summary>A join from the words around it: the kind, and which of the two tails it had.</summary>
 	public static Joined Joining(
 		string? kind, string? natural, TableReference left, TableReference right,
-		Expression? on, string[]? columns) =>
-		new(Syntax.Joined(kind), Syntax.Outer(kind), natural is not null, left, right, on, columns);
+		Expression? on, string[]? columns, string? hint = null) =>
+		new(Syntax.Joined(kind), Syntax.Outer(kind), natural is not null, left, right, on, columns, hint);
 }
 
 /// <summary>
@@ -1810,7 +1823,26 @@ public static class Syntax
 	{
 		var made = collation is null ? column : new Expression.Collated(column, collation);
 
-		return hint is null ? made : new Expression.Hinted(made, Squared(hint));
+		return hint is null ? made : new Expression.Hinted(made, Spaced(hint));
+	}
+
+	/// <summary>Words as written, with the whitespace between them made one space.</summary>
+	public static string Spaced(string words)
+	{
+		var made = new System.Text.StringBuilder(words.Length);
+
+		foreach (var c in words)
+			if (char.IsWhiteSpace(c))
+			{
+				if (made.Length > 0 && made[made.Length - 1] != ' ')
+					made.Append(' ');
+			}
+			else
+			{
+				made.Append(c);
+			}
+
+		return made.ToString().TrimEnd();
 	}
 
 	/// <summary>
@@ -1820,7 +1852,7 @@ public static class Syntax
 	/// </summary>
 	public static Expression[] Tailed(Expression[] items, params string?[] clauses)
 	{
-		var words = string.Join(" ", clauses.Where(static one => one is not null).Select(static one => Squared(one!)));
+		var words = string.Join(" ", clauses.Where(static one => one is not null).Select(static one => Spaced(one!)));
 
 		if (words.Length == 0)
 			return items;

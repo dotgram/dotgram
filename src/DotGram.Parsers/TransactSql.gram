@@ -210,11 +210,11 @@ TsqlPrimaryCore : @Expression
 // complaint about the ODBC type name, which is it having read the escape and then
 // disagreeing about what was named inside it.
 OdbcEscape : @Expression
-	= '{' & "FN"i & f: OdbcFunction & '}' => @(f)
+	= '{' & fn: "FN"i & f: OdbcFunction & '}' => @(new Expression.OdbcEscape(fn, f))
 	| '{' & kind: OdbcLiteralKind & t: Sql92.Lexical.CharacterStringLiteral & '}'
-		=> @(new Expression.Literal(SqlLiteralKind.Text, t))
+		=> @(new Expression.OdbcEscape(kind, new Expression.Literal(SqlLiteralKind.Text, t)))
 
-OdbcLiteralKind = "TS"i | "D"i | "T"i | "GUID"i
+OdbcLiteralKind : @string = t: ("TS"i | "D"i | "T"i | "GUID"i) => @(t)
 
 // The name inside `{ fn … }` is ODBC's and not this language's, so a word T-SQL reserves
 // may stand there: `{ fn convert (@a, sql_int) }` calls ODBC's two-argument `convert`,
@@ -296,7 +296,7 @@ JsonKeyValues : @Expression[]
 // `json_key_name : value_expression` — the one place in T-SQL where a colon joins two
 // values rather than introducing a parameter.
 JsonKeyValue : @Expression
-	= key: ValueExpression & ':' & v: JsonValue => @(new Expression.RowValueConstructor(new Expression[] { key, v }))
+	= key: ValueExpression & ':' & v: JsonValue => @(new Expression.JsonPair(key, v))
 
 // A key's value may be the null a value expression is not — `'type':NULL` is the case
 // the `ABSENT ON NULL` clause exists for.
@@ -304,7 +304,7 @@ JsonValue : @Expression = "NULL"i => @(Expression.NullValue) | v: ValueExpressio
 
 // Which model an AI function is computed with, written after its arguments rather than
 // as one of them: `AI_GENERATE_EMBEDDINGS ('text' USE MODEL MyModel)`.
-UseModel = "USE"i & "MODEL"i & QualifiedName & UseModelParameters?
+UseModel : @string = t: ("USE"i & "MODEL"i & QualifiedName & UseModelParameters?) => @(t)
 
 UseModelParameters = "PARAMETERS"i & ValueExpression
 
@@ -322,11 +322,11 @@ NextValue : @Expression
 // A call to something this grammar has never heard of, which is most of them: the
 // name is a catalogue's business and the arguments are values.
 FunctionCall : @Expression
-	= name: QualifiedName & '(' & quantifier: SetQuantifier? & args: Arguments? & UseModel?
-	  & JsonReturning? & ')' & tail: CallTail?
+	= name: QualifiedName & '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel?
+	  & returning: JsonReturning? & ')' & tail: CallTail?
 		=> @(Syntax.Called(
 				 new Expression.RoutineInvocation(
-					 name, args ?? Expression.None, Syntax.Distinctly(quantifier)), tail))
+					 name, Syntax.Tailed(args ?? Expression.None, model, returning), Syntax.Distinctly(quantifier)), tail))
 
 // What may follow a call: which rows of a window it sees when they are null, what a
 // set function inside a window is ordered by, and the window itself. All three read and
@@ -606,15 +606,15 @@ TsqlTableReference : @TableReference
 		=> @(new TableReference.Joined(SqlJoin.CrossApply, false, false, left, right))
 	| left: TsqlTableReference & "OUTER"i & "APPLY"i & right: TablePrimary
 		=> @(new TableReference.Joined(SqlJoin.OuterApply, false, false, left, right))
-	| left: TsqlTableReference & kind: TsqlJoinType? & "JOIN"i & right: TablePrimary
+	| left: TsqlTableReference & kind: TsqlJoinType? & hint: JoinHint? & "JOIN"i & right: TablePrimary
 	  & "ON"i & on: SearchCondition
-		=> @(TableReference.Joining(kind, null, left, right, on, null))
+		=> @(TableReference.Joining(kind, null, left, right, on, null, hint))
 	| t: TablePrimary => @(t)
 
-TsqlJoinType : @string
-	= t: JoinType & JoinHint? => @(t)
+TsqlJoinType : @string = t: JoinType => @(t)
 
-JoinHint = "HASH"i | "LOOP"i | "MERGE"i | "REMOTE"i | "REDUCE"i | "REPLICATE"i | "REDISTRIBUTE"i
+JoinHint : @string
+	= t: ("HASH"i | "LOOP"i | "MERGE"i | "REMOTE"i | "REDUCE"i | "REPLICATE"i | "REDISTRIBUTE"i) => @(Syntax.Squared(t))
 
 // ── §7.4's table primary, widened ───────────────────────────────────────────
 //

@@ -17149,3 +17149,14 @@ function declares and the variable it fills, a CLR table function's columns, its
 and its `EXTERNAL NAME`, the `WITH` options of any of them. `ALTER INDEX … SET (…)` is
 bracketed without a `WITH`. 56.7% the same, 1581 unread; `CreateFunction` 54 → 92%,
 `AlterIndex` off the list.
+
+**SELECT, in two rounds.** The `WINDOW` clause on the specification, each entry a name and
+the window it stands for, in the shape `OVER (…)` has inside its brackets; a graph `MATCH`
+keeps its drawing as written, the way a hint does; a grouping column its collation and its
+`WITH (DISTRIBUTED_AGG)`; a JSON constructor its pairs as `Expression.JsonPair` and its
+`NULL ON NULL`, `RETURNING` and `ORDER BY` hung on the last argument as `Expression.Hinted`;
+`JSON_VALUE (… RETURNING INT)` and `AI_GENERATE_EMBEDDINGS (… USE MODEL m)` the same way;
+`IS DISTINCT FROM ANY (…)` its quantifier; a join its `HASH`, `LOOP`, `MERGE`; an ODBC
+escape its braces; `||` is `||`, `TRIM` is spelled as the author spelled it, and `- -1` is
+two signs and a space rather than brackets nobody wrote. `SelectStatement` 81.5 → 98.4%,
+the corpus 61.5% the same, 1457 unread.

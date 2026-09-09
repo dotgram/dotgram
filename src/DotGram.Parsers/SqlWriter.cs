@@ -928,7 +928,7 @@ public static class SqlWriter
 				Alias(text, name, columns);
 				break;
 
-			case TableReference.Joined(var kind, var outer, var natural, var left, var right, var on, var over):
+			case TableReference.Joined(var kind, var outer, var natural, var left, var right, var on, var over, var hint):
 				Put(text, left);
 				text.Append(' ');
 
@@ -953,6 +953,9 @@ public static class SqlWriter
 
 				if (kind != SqlJoin.Unspecified)
 					text.Append(' ');
+
+				if (hint is not null)
+					text.Append(hint).Append(' ');
 
 				text.Append(kind is SqlJoin.CrossApply or SqlJoin.OuterApply ? "APPLY " : "JOIN ");
 
@@ -1691,8 +1694,20 @@ public static class SqlWriter
 				break;
 
 			case Expression.Negate(var operand):
+				// `- -1` and not `-(-1)`: two signs need a space between them and nothing
+				// else, and brackets the author did not write are not the tree's to add.
 				text.Append('-');
-				Put(text, operand, 8);
+
+				if (operand is Expression.Negate || operand is Expression.Literal { Text: ['-', ..] })
+				{
+					text.Append(' ');
+					Put(text, operand, 0);
+				}
+				else
+				{
+					Put(text, operand, 8);
+				}
+
 				break;
 
 			case Expression.Plus(var operand):
@@ -1866,6 +1881,18 @@ public static class SqlWriter
 
 			case Expression.GraphMatch(var pattern):
 				text.Append("MATCH (").Append(pattern).Append(')');
+				break;
+
+			case Expression.JsonPair(var key, var value):
+				Put(text, key, 0);
+				text.Append(':');
+				Put(text, value, 0);
+				break;
+
+			case Expression.OdbcEscape(var kind, var value):
+				text.Append("{ ").Append(kind).Append(' ');
+				Put(text, value, 0);
+				text.Append(" }");
 				break;
 
 			case Expression.RowsetOrder(var by, var unique):

@@ -362,6 +362,8 @@ field on one record here, and having a record each is what makes that a small ch
 | `Expression.Collated` | SQL-92 | §6.11 &lt;collate clause&gt; on a value |
 | `Expression.Measured` | T-SQL | a value with its unit after it — `10 MINUTES`, `50 PERCENT`, `4 GB` |
 | `Expression.Hinted` | T-SQL | a value with the words after it that say how the engine treats it — `GROUP BY c WITH (DISTRIBUTED_AGG)`, a JSON constructor's `NULL ON NULL` and `RETURNING` |
+| `Expression.JsonPair` | T-SQL | `key : value` in a JSON constructor |
+| `Expression.OdbcEscape` | ODBC | `{ FN … }`, `{ d '…' }`, `{ ts '…' }` — the word and what stands after it, kept in its braces |
 | `Expression.Subquery` | SQL-92 | §7.11 &lt;subquery&gt; |
 | `Expression.Parenthesized` | SQL:2023 | §6.28 &lt;parenthesized value expression&gt;, and §8.1's boolean one |
 
