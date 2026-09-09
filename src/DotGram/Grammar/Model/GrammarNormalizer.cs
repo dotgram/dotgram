@@ -183,6 +183,9 @@ public sealed partial class GrammarNormalizer
 		normalizer.ReconcileContexts();
 		normalizer.ReconcileState();
 
+		// Last of all, because what it drops is what nothing else left a way to.
+		normalizer.Prune();
+
 		return new RecognitionGraph(
 			normalizer._rules,
 			normalizer._bodies,

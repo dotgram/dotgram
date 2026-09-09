@@ -16754,3 +16754,38 @@ beside its tape one. The generated files say it plainly: 1,062 `Locate` calls in
 What it costs is build time: `DotGram.Parsers` goes from 41.5 to 71.2 seconds, because the
 whole grammar is generated twice. Not memory — the `Span` field is two ints inside a record
 that is already a heap object with room for them, and a parse allocates 838 B either way.
+
+### What nothing can reach is not compiled
+
+A rule nothing reaches was given states and written into the generated file all the same.
+That was tolerable while a grammar was one file somebody wrote — `GRAM4018` says so and the
+author deletes it — and it stops being tolerable the moment a grammar can include another. A
+library of lexemes is worth having only if what you do not call costs you nothing.
+
+So a second reachability walk runs last, after every rewrite, and drops what it cannot reach.
+It is a second walk and not the one `CheckUnused` already made, because the two answer
+different questions at different times:
+
+- `CheckUnused` asks what the **author** wrote, and runs before the rewrites — so a rule that
+  a later pass empties or clones is not reported at somebody who did nothing wrong.
+- `Prune` asks what the **parser** needs, and runs after all of them — so what it drops is
+  dead in the thing being emitted.
+
+They differ in one seed, and it is the interesting one. A rebinding — `with (Word = AsciiWord)`
+— *reaches* `AsciiWord` while the grammar is still the author's, and is the only thing that
+does. Once the rebindings have been applied it reaches nothing: a replacement that is used is
+reached through the clone that uses it, and one that is not is dead. Three normalizer tests
+say so now, having been written before there was anything to say it to.
+
+| generated lines | before | after | dropped |
+| --- | ---: | ---: | ---: |
+| `TransactSql.Located` | 217,382 | 209,172 | **8,210** |
+| `TransactSql` | 204,002 | 199,747 | **4,255** |
+| `ExpressionLanguage` ×2 | 58,134 | 57,798 | 336 |
+| `SqlStandard92` | 25,789 | 25,771 | 18 |
+| `Rfc3986`, `SqlExpressions` | — | — | **0** |
+
+A grammar that stands on its own drops nothing, which is the answer one would want: there was
+never anything dead in it. What T-SQL drops is SQL-92's rules that the dialect replaced with
+clones of its own — which is exactly the shape a library would have, and exactly why this had
+to come first.
