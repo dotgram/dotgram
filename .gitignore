@@ -75,8 +75,10 @@ Desktop.ini
 secrets.json
 appsettings.*.local.json
 
-## Scratch work
-.work/
+## Scratch work. The directory travels with the repository so that what writes
+## there does not have to make it first; nothing inside it is ever committed.
+.work/*
+!.work/.gitkeep
 
 ## What a snapshot test writes when it disagrees, so the diff can be taken in an editor
 *.actual

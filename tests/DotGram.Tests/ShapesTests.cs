@@ -203,7 +203,8 @@ public sealed class ShapesTests
 		written.Append('\n').Append(totals.Summary());
 		written.Append(tables);
 
-		// .work/ is scratch and is not in the repository: a fresh clone has to make it.
+		// .work/ travels with the repository, but its contents are ignored and nothing
+		// stops somebody from clearing the directory itself.
 		Directory.CreateDirectory(Path.Combine(root, ".work"));
 		File.WriteAllText(Path.Combine(root, ".work", "shapes.txt"), written.ToString());
 
