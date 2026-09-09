@@ -56,14 +56,19 @@ BlockComment(open, close) = open & (?!close & any)* & close
 
 // ── Quoted text ──────────────────────────────────────────────────────────────
 //
-// The two ways a quote is written inside what it quotes: doubled, as SQL and CSV do,
-// or with an escape character in front of it — and in front of anything else, which
-// is what the escape character means. All three give back the text as written, quotes
-// and escapes and all: what an escape stands for differs between languages that agree
-// on how it is spelled. Written out per quote rather than parameterized by it, because
-// an element set names its characters and not a parameter, and a lookahead in their
-// place is not something a lexer reads as one pattern (§6.3).
+// The two ways a quote is written inside what it quotes. `Quoted('\'')` doubles it,
+// as SQL and CSV do; `Escaped('"', '\\')` puts an escape character in front of it —
+// and in front of anything else, which is what the escape character means. Both give
+// back the text between the quotes as written, escapes and all: what an escape stands
+// for differs between languages that agree on how it is spelled.
+//
+// Written with the until idiom, `(?!quote & any)*`, and not with an element set: a set
+// names its characters and cannot take a parameter, and the idiom is the one shape of
+// lookahead a lexer reads as a pattern (§6.3) — so these are tokens in a grammar read
+// over tokens, and read the same over characters. The `?!escape` on the plain
+// alternative is what makes that last part true: over characters a repetition hands
+// back what it read when the closing quote is not there, and without it `"a\"` would
+// be read as the string `a\` — the escape alone, and the quote after it as the end.
 
-SingleQuoted = '\'' & ("''" | [^ '\''])* & '\''
-DoubleQuoted = '"' & ("\"\"" | [^ '"'])* & '"'
-Escaped      = '"' & ('\\' & any | [^ '"' | '\\'])* & '"'
+Quoted(quote)          = quote & (?!quote & any)* & (quote & quote & (?!quote & any)*)* & quote
+Escaped(quote, escape) = quote & (?!quote & (escape & any | ?!escape & any))* & quote

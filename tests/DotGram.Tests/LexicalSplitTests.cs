@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using DotGram.Grammar;
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
@@ -407,6 +408,27 @@ public sealed class LexicalSplitTests
 		Assert.NotNull(split);
 		Assert.NotNull(source.State);
 		Assert.Equal(source.State, split.Syntax.State);
+	}
+
+	/// <summary>
+	/// A grammar that asks for tokens and cannot have them is warned, not informed: what it
+	/// gets instead reads the same grammar over characters, and the two are not always the
+	/// same parser — a lookahead after a seam sees the next token's first character over
+	/// characters and nothing over tokens. SQL92 was read that way for a while, taking
+	/// `t INNER JOIN u` for an alias, because the fallback was an Info no build shows.
+	/// </summary>
+	[Fact]
+	public void A_grammar_that_cannot_be_cut_is_warned_not_informed()
+	{
+		var compiled = GramCompiler.Compile("""
+			trivia = ' '*
+			Start = ['0'..'9']+ & eof
+			parse Start
+			""", new GramCompilerOptions { Lexical = true });
+
+		var said = Assert.Single(compiled.Diagnostics, static one => one.Id == GramCompiler.NotCut);
+
+		Assert.Equal(GramSeverity.Warning, said.Severity);
 	}
 
 	static TerminalInventory.Pattern Class(TerminalInventory inventory, string name) =>

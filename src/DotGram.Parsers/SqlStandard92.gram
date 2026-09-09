@@ -20,7 +20,7 @@ namespace Lexical
 	IdentifierStart     = [\p{L} | '_']
 	IdentifierPart      = [\p{L} | \p{Nd} | '_']
 	RegularIdentifier   = IdentifierStart & IdentifierPart*
-	DelimitedIdentifier = Std.DoubleQuoted
+	DelimitedIdentifier = Std.Quoted('"')
 
 	// §5.3 <unsigned numeric literal>. An exact numeric has an optional point; an
 	// approximate one is a mantissa and an exponent. Written in that order so that
@@ -33,7 +33,7 @@ namespace Lexical
 	// §5.3 <character string literal>, with '' for a quote inside. The optional
 	// introducer names a character set.
 	CharacterStringLiteral         = ('_' & RegularIdentifier)? & QuotedString
-	QuotedString                   = Std.SingleQuoted
+	QuotedString                   = Std.Quoted('\'')
 	NationalCharacterStringLiteral = 'N'i & QuotedString
 	BitStringLiteral               = 'B'i & '\'' & ['0' | '1']* & '\''
 	HexStringLiteral               = 'X'i & '\'' & Std.HexDigit* & '\''
@@ -511,7 +511,6 @@ Reserved = ("AND"i | "ALL"i | "ANY"i | "AS"i | "ASC"i | "AVG"i | "BETWEEN"i | na
          | "THEN"i | "TRAILING"i | name: "TRANSLATE"i | name: "TRIM"i | "TRUE"i | "UNION"i
          | "UNIQUE"i | "UNKNOWN"i
          | name: "UPPER"i | "USER"i | "USING"i | "VALUE"i | "VALUES"i | "WHEN"i | "WHERE"i)
-         & ?!IdentifierPart
 
 parse DirectSelect as ParseSelect
 parse QueryExpression as ParseQuery

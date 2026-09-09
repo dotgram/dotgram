@@ -1233,10 +1233,18 @@ public sealed partial class GrammarNormalizer
 	/// which merely allows it — and it is the stronger property that lets an insertion
 	/// be dropped rather than kept and skipped at run time.
 	/// </summary>
+	/// <remarks>
+	/// Through <see cref="BodyOf"/>, not <see cref="_bodies"/>: the question is asked while
+	/// lowering, in whatever order the rules come, and a rule not lowered yet is not a rule
+	/// that matches something. A specialization made from a global rule's call into a
+	/// lexical namespace used to get that namespace's empty <c>trivia</c> woven through it,
+	/// because the namespace's own rules were still to come — seams that read nothing and
+	/// broke the shape of everything the lexer recognizes by shape.
+	/// </remarks>
 	bool MatchesNothing(RuleSymbol rule, HashSet<RuleSymbol> seen) =>
 		rule.IsBuiltIn
 			? rule.Name is "none" or "trivia" or "eof" or "wordboundary"
-			: seen.Add(rule) && _bodies.TryGetValue(rule, out var body) && MatchesNothing(body, seen);
+			: seen.Add(rule) && MatchesNothing(BodyOf(rule), seen);
 
 	bool MatchesNothing(Node node, HashSet<RuleSymbol> seen) => node switch
 	{

@@ -20,6 +20,19 @@
 		<NoWarn>$(NoWarn);NU5128</NoWarn>
 	</PropertyGroup>
 
+	<!-- Optimized whatever the consumer's configuration is. An analyzer is built in the
+	     configuration of the project that references it, and a Debug build of the
+	     generator normalizes the SQL grammars with no JIT optimization and every
+	     Debug.Assert live: DotGram.Parsers rebuilt in 56 s that way, 20 s this way, 16 s
+	     in Release. The consumer's configuration changes nothing the generator emits,
+	     and it should change nothing about how long it takes either. Stepping through
+	     the generator itself is the one reason to want it otherwise, and that is what
+	     `-p:DebugGenerator=true` is for. -->
+	<PropertyGroup Condition="'$(Configuration)' == 'Debug' and '$(DebugGenerator)' != 'true'">
+		<Optimize>true</Optimize>
+		<DefineConstants>$(DefineConstants.Replace('DEBUG', ''))</DefineConstants>
+	</PropertyGroup>
+
 	<PropertyGroup Label="Enabled Polyfills">
 		<!-- netstandard2.0 is forced on us by Roslyn; these bring back the modern
 		     types without adding a runtime dependency — Meziantou.Polyfill is itself

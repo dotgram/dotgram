@@ -16986,16 +16986,10 @@ which is the idiom's own case.
 
 Two things found and not fixed, both worth their own turn:
 
-- **The character reading of SQL92 disagrees with the token reading.** The two must read
-  one language — `Every_input_reads_the_same_both_ways` holds it for small grammars — and
-  for SQL92 they do not: over characters `INNER` is an identifier. Either `?!Reserved`
-  with two hundred alternatives, or the word boundary, behaves differently in one machine.
-  A fallback that changes what a grammar reads is the worst kind, and `GRAM5004` being an
-  Info that nothing surfaces is part of the problem.
-- **The `(?!L & X)*` idiom with a character literal as `L` misreads as a token.** A probe
-  with `'"' & (?!'"' & any)* & ('"' & '"' & (?!'"' & any)*)* & '"'` compiled to tokens and
-  then refused `"a""b"` at the second character. Not in the library any more, and not
-  looked into.
+- ~~**The character reading of SQL92 disagrees with the token reading.**~~ Found and
+  fixed, below.
+- ~~**The `(?!L & X)*` idiom with a character literal as `L` misreads as a token.**~~ The
+  probe was wrong, not the idiom; what the probe hid was three other things, below.
 
 **Speed did not move, as far as this machine can tell.** `--speed 170 5`, three runs each,
 migrated against fully reverted: 7.3–10.0 µs a statement against 9.6–10.1, with ScriptDom's
@@ -17005,3 +16999,128 @@ call to `Std.Digits` costs what `['0'..'9']+` written in place did.
 
 Also: `--hand` has been broken since `Expression.Parenthesized` — the hand-written parser's
 printer does not know the node, so the agreement check throws before timing anything.
+
+### Why the two readings of SQL92 disagreed
+
+A second reading of `SqlStandard92` compiled over characters — `[GramOptions(Lexical =
+false, Suffix = "Characters")]`, for the afternoon — and a probe of six inputs through both:
+over characters `SELECT INNER FROM t` was accepted, `INNER` an identifier. A minimal grammar
+with `Reserved = "IN"i | "INNER"i` agreed in both readings; the same with SQL92's own
+spelling, `Reserved = ("IN"i | "INNER"i | …) & ?!IdentifierPart`, took `INNER` for an
+identifier in *both*. The normalized body said why:
+
+```text
+Reserved = ("IN"i & ?!wordboundary | "INNER"i & ?!wordboundary | …) & trivia & ?!IdentifierPart
+```
+
+The author's trailing `?!IdentifierPart` is an ordinary part of a sequence, and §4.5 puts the
+seam between parts — so over characters it is asked *after the whitespace*, of the `F` of
+`FROM`, and fails; `Reserved` fails; `?!Reserved` lets `INNER` through. The §4.6 boundaries
+woven onto each literal go before the seam, which is the whole reason they exist, and they
+already do the job the tail was written for. Over tokens the tail was harmless — after the
+token `INNER` stands the token `FROM`, and `IdentifierPart` is a one-character class no token
+of four characters is — so the token reading was right by accident and the character reading
+was right by the book. The tail is gone from `Reserved` and from `TsqlReserved`; the six
+inputs agree; the oracle and the corpus did not move.
+
+**`GRAM5004` is a warning now.** `Lexical = true` asked for and not given is a different
+parser, and the difference is not always invisible — this one took a keyword for a name. The
+same warning found `Ladders.cs` in the benchmarks asking for tokens over a grammar with
+`['0'..'9']+` in syntactic position and `trivia` not in braces: it had been measuring the
+character reading all along under the other name, and now says so.
+
+Also seen, not chased: over tokens the "expected" text of a failed parse renders kinds as
+character ranges full of control characters — `SELECT INNER FROM t` fails with a page of
+`[''..'' | 'C'..'Y' | …]`. The expectation printer does not know it is printing kinds.
+
+### What the string probe was hiding
+
+The finding above was a probe artifact: `Q` stood in the global namespace, which carries
+trivia, so the seam went inside it and it was syntax, not a pattern — and its letters had no
+token to be. Put in a namespace with `trivia = none`, the until idiom with a character
+literal reads `"ab"` in both readings. Redone properly, the probe found three things in the
+generator, all fixed, and the library's strings are `Quoted(quote)` and `Escaped(quote,
+escape)` again with SQL92 back on them.
+
+**A specialization got the seams of a namespace whose `trivia` was not lowered yet.**
+`Lexical.P('"')` from a global rule came out as `'"' & trivia & (trivia & ?!'"' & trivia &
+any)* & trivia & '"'` — `Lexical.trivia`, which is `none`, woven through it. `TriviaFor` asks
+`MatchesNothing`, and `MatchesNothing` read `_bodies`; the global rules are lowered first, the
+call specializes `P` on the spot, and `Lexical.trivia` had no body yet, so it was not a rule
+that matches nothing. Seams that read nothing, and broke the one shape the lexer recognizes
+by shape. `MatchesNothing` goes through `BodyOf` now, which lowers on demand — the order the
+rules come in is nobody's business.
+
+**`Consumed` never gave its guard back.** The until machine asks what one turn consumes,
+guarding against a rule reaching itself, and `any` stayed in the guard after the first idiom
+of a pattern; the second — the tail of a doubled-quote string — read as no one item, and the
+pattern was refused with the generic "not all regular" and no reason. Two idioms in one
+pattern, or one nested in a repetition, are ordinary now.
+
+**An escape pair is an item.** `(?!quote & (escape & any | ?!escape & any))*` is the inside
+of a C string, and the until machine takes it: one delimiter character, a boundary state, and
+a pair state the escape goes through — exact for a one-character delimiter, refused with a
+reason for a longer one, where a pair could hide the delimiter's beginning from a machine
+that forgets where its boundaries were. The `?!escape` on the plain alternative is what
+makes the two readings one: over characters a repetition hands back what it read when the
+closing quote is missing, and `(escape & any | any)` on `"a\"` then reads the escape alone
+and the quote as the end — the first version of the test caught exactly that. The machine
+takes both spellings the same way; the grammar should write the guarded one, and the
+library does.
+
+The test is a theory over both readings: the doubled quote, the escaped quote and escape,
+and the two unterminated strings that are no string — every one of which one of the three
+got wrong before.
+
+### The generator is optimized whatever the consumer builds
+
+A rebuild in Visual Studio took 1:15 and `DotGram.Parsers` was most of it; on the command
+line in Release the same rebuild is 22 s. The difference was Debug: an analyzer is built in
+the configuration of the project that references it, and the generator built as Debug
+normalizes the SQL grammars — 21 MB of generated C# on the way out — with no JIT
+optimization and thirty-five `Debug.Assert`s live in `Machine.*`. Measured on `Parsers`
+rebuilt from nothing: 56 s as Debug, 29 s optimized, 20 s optimized without `DEBUG`, 16 s in
+Release; the remaining four seconds are the consumer compiling the generated code as Debug,
+which is its own business.
+
+So `DotGram.csproj` builds optimized and without `DEBUG` in Debug too, unless
+`-p:DebugGenerator=true` says somebody means to step through the generator. The consumer's
+configuration changes nothing the generator emits (`.claude/rules/emitted-code.md`), and now
+it changes nothing about how long that takes: `Parsers` in Debug rebuilds in 15 s, the
+solution in 40 s. The Debug test run is unchanged at 2737.
+
+### CREATE TABLE, and what stood after every column
+
+The first `--roundtrip` work item: `CreateTableStatement`, 584 in the corpus and 6.3% the
+same. The grammar read almost all of it and the tree kept the name, the type, the computed
+expression and a constraint's kind — `SPARSE`, `NOT NULL`, `COLLATE`, `IDENTITY (1, 5)`,
+`MASKED WITH (…)`, `GENERATED ALWAYS AS ROW START`, the clustering, the hash, the `WITH`,
+the `ON`, the `REFERENCES … ON DELETE`, the filter of an inline index, `AS FILETABLE`, the
+placements and the options of the table itself were read and dropped. Lossless means each
+of those is a node.
+
+**One option node.** `Clause.Option(Name, Value, Options, Partitions)` is every list T-SQL
+writes: `WITH (…)`, `SET (…)`, `MASKED WITH (…)`, `ALTER DATABASE SET`, and `Clause.WithOption`
+and `Clause.DatabaseOption` went into it. The names are a catalogue, and a catalogue does not
+get a node per entry. A value with a unit is `Expression.Measured` — `COMPRESSION_DELAY = 10
+MINUTES` was `= 10` — and a bracketed list after a value, `IGNORE_DUP_KEY = ON
+(SUPPRESS_MESSAGES = ON)`, is the option's own nested list. `HASH (column1)` in a
+distribution is an invocation, not the word `HASH`.
+
+**The column and the constraint, in full.** `ColumnDefinition` holds its options in the order
+they were written, each a `ColumnOption(Kind, Arguments, Options, ConstraintName)` or the
+constraint or index it is. `ConstraintDefinition` keeps its four positional parts — name,
+kind, columns, check — and takes the rest as optional: clustering, hash, columnstore, order,
+include, filter, `Clause.References` with its actions, options, placements, `NOT ENFORCED`,
+the `FOR` of a default. Its columns are sort specifications now, so `a ASC, b DESC` is kept.
+`CREATE INDEX` is that node with a table in front of it — the same thing said in the same
+words, which the grammar had already noticed. `DECLARE @t TABLE (…)` keeps its body, and
+`ALTER COLUMN a ADD SPARSE` its word.
+
+What it moved, in one afternoon and with the oracle unchanged in what it reads: the corpus
+from 34.9% to 50.3% the same, and what ScriptDom will not read back from 2303 to 1899.
+`CreateTable` 6.3 → 98.8%, `CreateIndex` 5.3 → 95.5%, `AlterTable ALTER COLUMN` 2.8 → 98.6%,
+`AlterTable ADD` 2.2 → 80.4%. Two things the printer had to be told on the way: `AS
+FILETABLE` stands before the columns and `AS NODE` after them, which the word decides; and
+a `DEFAULT` is printed as written, its own brackets and all — printing it in brackets of
+the printer's added a pair per round, which the round-trip test caught at once.

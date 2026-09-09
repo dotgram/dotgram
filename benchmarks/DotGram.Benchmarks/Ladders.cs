@@ -41,7 +41,7 @@ namespace DotGram.Benchmarks;
 	                | '(' & inner: Sum & ')'        => @(inner)
 
 	parse Sum as Levelled
-	""", Lexical = true)]
+	""")]
 public static partial class Levels
 {
 }
@@ -59,7 +59,7 @@ public static partial class Levels
 	             | t: ['0'..'9']+                => @(long.Parse(t))
 
 	parse Expr as Climbed
-	""", Lexical = true)]
+	""")]
 public static partial class Climbing
 {
 }

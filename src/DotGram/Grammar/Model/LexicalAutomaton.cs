@@ -203,8 +203,25 @@ public sealed class LexicalAutomaton
 				case Node.Lookahead:
 					return Refuse($"a lookahead inside a pattern: {node}");
 
-				case Node.Repeat(var turns, _, _) when Until(node) is not null:
-					return Gather(turns is Node.Sequence([_, var consumed]) ? consumed : turns, inside);
+				case Node.Repeat(var turns, _, _) when Until(node) is var (delimiter, _):
+					// The delimiter's characters and the escape's, each as a set of its own,
+					// so that the partition cuts at every one of them — the until machine
+					// tells them apart by atom.
+					foreach (var c in delimiter)
+						_sets.Add(Folded(c, false));
+
+					var item = turns is Node.Sequence([_, var consumed]) ? consumed : turns;
+
+					// An escape pair or one character: the pair's own lookahead is the
+					// machine's business, not a shape to refuse.
+					if (Escaping(item) is var (escape, escaped, plain))
+					{
+						_sets.Add(Folded(escape, false));
+
+						return Gather(escaped, inside) && Gather(plain, inside);
+					}
+
+					return Gather(item, inside);
 
 				case Node.Behind:
 					return Refuse($"a look-behind inside a pattern: {node}");
@@ -441,10 +458,26 @@ public sealed class LexicalAutomaton
 		/// </remarks>
 		(int From, int To)? Delimited(string delimiter, Node item, HashSet<RuleSymbol> inside)
 		{
+			if (Escaping(item) is var (escape, escaped, plain))
+			{
+				if (delimiter.Length != 1)
+				{
+					Refuse($"an escape inside an until whose delimiter is more than one character: {delimiter}");
+
+					return null;
+				}
+
+				return Delimited(delimiter[0], escape, escaped, plain, inside);
+			}
+
 			var over = Consumed(item, inside);
 
 			if (over is null)
+			{
+				Refuse($"an until whose item is not one character: {item}");
+
 				return null;
+			}
 
 			var length = delimiter.Length;
 			var states = new int[length];
@@ -515,15 +548,126 @@ public sealed class LexicalAutomaton
 		}
 
 		/// <summary>What one turn of an "until" consumes, or null where it consumes no one item.</summary>
-		FirstSets.First? Consumed(Node node, HashSet<RuleSymbol> inside) =>
-			node switch
+		FirstSets.First? Consumed(Node node, HashSet<RuleSymbol> inside)
+		{
+			switch (node)
 			{
-				Node.Element element => FirstSets.OfElement(element),
-				Node.Literal(var text) one when text.Length == 1 => Folded(text[0], one.IgnoreCase),
-				Node.Call(var called, _) when graph.Bodies.TryGetValue(called, out var body) =>
-					inside.Add(called) ? Consumed(body, inside) : null,
-				_ => null,
-			};
+				case Node.Element element:
+					return FirstSets.OfElement(element);
+
+				case Node.Literal(var text) one when text.Length == 1:
+					return Folded(text[0], one.IgnoreCase);
+
+				case Node.Call(var called, _) when graph.Bodies.TryGetValue(called, out var body):
+				{
+					// Guarded against a rule reaching itself, and the guard taken back off:
+					// left on, `any` stayed "inside" after the first until of a pattern, and
+					// the second — the tail of a doubled-quote string — read as no one item.
+					if (!inside.Add(called))
+						return null;
+
+					var over = Consumed(body, inside);
+
+					inside.Remove(called);
+
+					return over;
+				}
+
+				default:
+					return null;
+			}
+		}
+
+		/// <summary>
+		/// The parts of an item that is an escape pair or one character —
+		/// <c>(escape &amp; X | Y)</c>, or <c>(escape &amp; X | ?!escape &amp; Y)</c> — or
+		/// null where the item is not that shape.
+		/// </summary>
+		/// <remarks>
+		/// The second spelling is the one to write. Over characters a repetition hands back
+		/// what it read when what follows fails, and <c>(escape &amp; any | any)</c> on
+		/// <c>"a\"</c> then reads the escape alone and the quote after it as the end of the
+		/// string — a reading the machine here, which takes the pair whole, does not have.
+		/// With <c>?!escape</c> on the plain alternative there is nothing to hand back to,
+		/// and the two readings are one. Here both spellings are the same machine: an escape
+		/// character is taken as a pair from the boundary, whatever the plain alternative
+		/// says about it.
+		/// </remarks>
+		static (char Escape, Node Escaped, Node Plain)? Escaping(Node item)
+		{
+			if (item is not Node.Choice([
+				Node.Sequence([Node.Literal(var escape) { IgnoreCase: false }, var escaped]),
+				var plain,
+			]) || escape.Length != 1)
+				return null;
+
+			if (plain is Node.Sequence([Node.Lookahead(false, Node.Literal(var same)), var inner]) && same == escape)
+				plain = inner;
+
+			return (escape[0], escaped, plain);
+		}
+
+		/// <summary>
+		/// The machine for "an escape pair or one character at a time, and the delimiter
+		/// never begins here" — the inside of a string with escapes.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// One delimiter character, or nothing: the lookahead is asked at item boundaries
+		/// and an escape pair moves the boundary two characters at once, so a delimiter of
+		/// several characters may begin inside a pair and never be seen, and may begin at a
+		/// boundary and run through one — neither of which a machine that forgets where the
+		/// boundaries were can tell. With one character the boundary is every position the
+		/// pair does not cover, and the machine is exact: at a boundary the delimiter stops,
+		/// the escape takes the next character whatever it is, and anything else is one
+		/// character.
+		/// </para>
+		/// <para>
+		/// The lookahead comes first, as it does in the grammar: an escape character that is
+		/// also the delimiter ends the string rather than escaping anything.
+		/// </para>
+		/// </remarks>
+		(int From, int To)? Delimited(char delimiter, char escape, Node escaped, Node plain, HashSet<RuleSymbol> inside)
+		{
+			var afterEscape = Consumed(escaped, inside);
+			var one         = Consumed(plain, inside);
+
+			if (afterEscape is null || one is null)
+			{
+				Refuse("an escape inside an until whose item is not one character");
+
+				return null;
+			}
+
+			var boundary = State();
+			var pair     = State();
+			var to       = State();
+
+			_empty[boundary].Add(to);
+
+			foreach (var atom in Atoms(one))
+			{
+				var here = _atoms[atom];
+
+				if (here.From == here.To && here.From == delimiter)
+					continue;
+
+				_on[boundary].Add((atom, here.From == here.To && here.From == escape ? pair : boundary));
+			}
+
+			foreach (var atom in Atoms(Folded(escape, false)))
+			{
+				var here = _atoms[atom];
+
+				if (!(here.From == here.To && here.From == delimiter))
+					_on[boundary].Add((atom, pair));
+			}
+
+			foreach (var atom in Atoms(afterEscape))
+				_on[pair].Add((atom, boundary));
+
+			return (boundary, to);
+		}
 
 		/// <summary>
 		/// A repetition, written out to its floor and then looped or unrolled to its ceiling.

@@ -41,8 +41,8 @@ public sealed class StandardLibraryTests
 	}
 
 	/// <summary>
-	/// A comment is parameterized by what delimits it, which is all that differs between one
-	/// language's and the next; a string is written out per quote.
+	/// A comment and a string are parameterized by what delimits them, which is all that
+	/// differs between one language's and the next.
 	/// </summary>
 	[Fact]
 	public void Delimiters_are_the_calling_grammars_to_choose()
@@ -53,7 +53,7 @@ public sealed class StandardLibraryTests
 			[Gram("""
 				trivia = { (Std.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "*/"))* }
 
-				Two : @string[] = a: Std.SingleQuoted & b: Std.Escaped & eof => @(new[] { a, b })
+				Two : @string[] = a: Std.Quoted('\'') & b: Std.Escaped('"', '\\') & eof => @(new[] { a, b })
 				parse Two
 				""")]
 			public static partial class Strings;
@@ -64,6 +64,49 @@ public sealed class StandardLibraryTests
 
 		// As written, escapes and all: what an escape stands for is the language's business.
 		Assert.Equal(["'it''s'", "\"say \\\"hi\\\"\""], read);
+	}
+
+	/// <summary>
+	/// A string is one token in a grammar read over tokens, and reads the same over
+	/// characters — the doubled quote, the escaped one, the escaped escape, and the
+	/// unterminated string that is no string at all.
+	/// </summary>
+	/// <remarks>
+	/// The shapes here are what the lexer's until machine was taught for the library: two
+	/// idioms in one pattern, an idiom nested in a repetition, and an escape pair as the
+	/// item of one. Each of those was refused, or read wrongly, before it was.
+	/// </remarks>
+	[Theory]
+	[InlineData(true,  "'it''s'",          "'it''s'")]
+	[InlineData(false, "'it''s'",          "'it''s'")]
+	[InlineData(true,  "\"a\\\"b\\\\\"",   "\"a\\\"b\\\\\"")]
+	[InlineData(false, "\"a\\\"b\\\\\"",   "\"a\\\"b\\\\\"")]
+	[InlineData(true,  "'abc",             null)]
+	[InlineData(false, "'abc",             null)]
+	[InlineData(true,  "\"a\\\"",          null)]
+	[InlineData(false, "\"a\\\"",          null)]
+	public void A_string_reads_the_same_over_tokens_and_over_characters(bool lexical, string input, string? expected)
+	{
+		var built = GeneratorDriverTests.Build($$""""
+			using DotGram;
+
+			[Gram("""
+				trivia = { Std.Spacing* }
+
+				Text : @string = s: (Std.Quoted('\'') | Std.Escaped('"', '\\')) & eof => @(s)
+				parse Text
+				""", Lexical = {{(lexical ? "true" : "false")}})]
+			public static partial class Strings;
+			"""");
+
+		var parse = built.GetType("Strings")!.GetMethod("TryParseText", [typeof(string)])!;
+		var read  = parse.Invoke(null, [input])!;
+		var ok    = (bool)read.GetType().GetProperty("IsSuccess")!.GetValue(read)!;
+
+		Assert.Equal(expected is not null, ok);
+
+		if (expected is not null)
+			Assert.Equal(expected, read.GetType().GetProperty("Value")!.GetValue(read));
 	}
 
 	[Fact]
