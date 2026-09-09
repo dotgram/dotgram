@@ -257,6 +257,14 @@ public abstract record Statement : ISqlSpan
 	{
 		/// <summary>What was written after the names, or null where nothing was.</summary>
 		public string? Tail { get; init; }
+
+		/// <summary>
+		/// Whether <c>IF EXISTS</c> stood between the phrase and the names. It is a word of
+		/// the statement and not of the names, which is why it is here and not in the tail:
+		/// forty of the published blocks offer it, and dropping it changes what the script
+		/// does the second time it is run.
+		/// </summary>
+		public bool IfExists { get; init; }
 	}
 
 	public abstract record Definition(string Name) : Statement
@@ -381,11 +389,15 @@ public abstract record Statement : ISqlSpan
 	/// <summary>The database the rest of the batch is read against.</summary>
 	public sealed record Use(Expression Name) : Statement;
 
-	/// <summary>The older spelling of an error raised.</summary>
-	public sealed record RaiseError(Expression[] Arguments) : Statement;
+	/// <param name="Tail">The <c>WITH LOG, NOWAIT, SETERROR</c> after it, as written.</param>
+	public sealed record RaiseError(Expression[] Arguments, string? Tail = null) : Statement;
 
 	/// <summary>A delay, or a time to wait until.</summary>
-	public sealed record WaitFor(Expression Value) : Statement;
+	/// <param name="Kind">
+	/// <c>DELAY</c> or <c>TIME</c> — how long to wait against when to stop waiting, which
+	/// the one value cannot say.
+	/// </param>
+	public sealed record WaitFor(Expression Value, string Kind = "DELAY") : Statement;
 
 	// ---- who may connect, what lives outside, and what the server watches ----------------------
 	//
@@ -918,7 +930,10 @@ public abstract record Statement : ISqlSpan
 	public sealed record DropIndex(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP SIGNATURE</c>.</summary>
-	public sealed record DropSignature(Expression[] Names) : Removal(Names);
+	/// <param name="From">The module the signature is dropped off.</param>
+	/// <param name="Counter">Whether it is a counter signature.</param>
+	public sealed record DropSignature(
+		Expression[] Names, string? From = null, bool Counter = false) : Removal(Names);
 
 	/// <summary><c>DROP SENSITIVITY CLASSIFICATION</c>.</summary>
 	public sealed record DropSensitivityClassification(Expression[] Names) : Removal(Names);
@@ -1114,8 +1129,13 @@ public abstract record Statement : ISqlSpan
 	/// they have drifted apart this says so rather than quietly building the wrong node, which
 	/// is a defect in this file and not in anybody's SQL.
 	/// </remarks>
-	public static Statement Dropped(string kind, Expression[]? some, string? tail = null) =>
-		Removed(kind, some) is Removal made ? made with { Tail = Syntax.Tail(tail) } : Removed(kind, some);
+	public static Statement Dropped(
+		string kind, Expression[]? some, string? tail = null, string? ifExists = null) =>
+		Removed(kind, some) switch
+		{
+			Removal made => made with { Tail = Syntax.Tail(tail), IfExists = ifExists is not null },
+			var other    => other,
+		};
 
 	static Statement Removed(string kind, Expression[]? some)
 	{
@@ -2020,6 +2040,10 @@ public static class Syntax
 		Statement.ViewDefinition   one => one with { Verb = Squared(verb) },
 		_                              => routine,
 	};
+
+	/// <summary>A value with words after it, or the value alone where there were none.</summary>
+	public static Expression Hinted(Expression value, string? words) =>
+		words is null || words.Length == 0 ? value : new Expression.Hinted(value, Spaced(words));
 
 	/// <summary>
 	/// What a catalogue statement wrote after its name, as the words were written — or null

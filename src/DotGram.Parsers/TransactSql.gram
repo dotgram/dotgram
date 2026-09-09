@@ -1115,7 +1115,8 @@ SetValue : @Expression
 
 // A `WHERE` that may name a cursor's current row instead of a condition.
 DmlWhere : @Expression
-	= "WHERE"i & "CURRENT"i & "OF"i & "GLOBAL"i? & name: QualifiedName => @(new Expression.ColumnReference(name))
+	= "WHERE"i & t: ("CURRENT"i & "OF"i & "GLOBAL"i? & QualifiedName)
+		=> @(new Expression.ColumnReference(Syntax.Spaced(t)))
 	| "WHERE"i & c: SearchCondition => @(c)
 
 // ── §DELETE ─────────────────────────────────────────────────────────────────
@@ -1327,8 +1328,10 @@ IsolationLevel = "READ"i & "UNCOMMITTED"i | "READ"i & "COMMITTED"i | "REPEATABLE
 ExecuteStatement : @Statement.Execute = ExecWord & e: ExecuteBody => @(e)
 
 ExecuteBody : @Statement.Execute
-	= "AS"i & Identifier & '=' & ValueExpression & with: ExecWith?
-		=> @(new Statement.Execute(null, "AS", Expression.None, null, Syntax.Tail(with)))
+	= "AS"i & who: Identifier & '=' & v: ValueExpression & with: ExecWith?
+		=> @(new Statement.Execute(
+				 null, "AS", new Expression[] { new Expression.NamedArgument(who, v) }, null,
+				 Syntax.Tail(with)))
 	| '(' & args: Arguments & ')' & at: ExecAt? & with: ExecWith?
 		=> @(new Statement.Execute(null, "(", args, at, Syntax.Tail(with)))
 	| into: ExecReturn? & name: ExecName & args: ExecArguments? & at: ExecAt? & with: ExecWith?
@@ -1351,8 +1354,13 @@ ExecArguments : @Expression[]
 // clause it had just eaten. The shape is the same wherever an optional list stands in
 // front of a clause whose first word could belong to the list.
 ExecArgument : @Expression
-	= name: Tsql.Variable & '=' & v: ExecValue & "OUTPUT"i? => @(new Expression.NamedArgument(name, v))
-	| ?!"AT"i & v: ExecValue & "OUTPUT"i?                   => @(v)
+	= name: Tsql.Variable & '=' & v: ExecValue & back: OutputWord?
+		=> @(Syntax.Hinted(new Expression.NamedArgument(name, v), back))
+	| ?!"AT"i & v: ExecValue & back: OutputWord?
+		=> @(Syntax.Hinted(v, back))
+
+// The two spellings of the same word, kept as the author wrote it.
+OutputWord = "OUTPUT"i | "OUT"i
 
 ExecValue : @Expression
 	= "DEFAULT"i => @(Expression.DefaultValue)
@@ -1386,12 +1394,12 @@ SimpleCommand : @Statement
 	| "CONTINUE"i                        => @(Statement.Commanded("CONTINUE", (Expression?)null))
 	| "CHECKPOINT"i & v: ValueExpression? => @(Statement.Commanded("CHECKPOINT", v))
 	| "USE"i & name: QualifiedName       => @(Statement.Commanded("USE", new Expression.ColumnReference(name)))
-	| "RAISERROR"i & '(' & args: Arguments & ')' & RaiseWith?
-		=> @(Statement.Commanded("RAISERROR", args))
-	| "RAISERROR"i & args: Arguments & RaiseWith?
-		=> @(Statement.Commanded("RAISERROR", args))
-	| "WAITFOR"i & WaitKind & v: ValueExpression
-		=> @(Statement.Commanded("WAITFOR", v))
+	| "RAISERROR"i & '(' & args: Arguments & ')' & how: RaiseWith?
+		=> @(new Statement.RaiseError(args, Syntax.Tail(how)))
+	| "RAISERROR"i & args: Arguments & how: RaiseWith?
+		=> @(new Statement.RaiseError(args, Syntax.Tail(how)))
+	| "WAITFOR"i & kind: WaitKind & v: ValueExpression
+		=> @(new Statement.WaitFor(v, Syntax.Squared(kind)))
 
 RaiseWith = "WITH"i & Identifier & (',' & Identifier)*
 WaitKind  = "DELAY"i | "TIME"i
@@ -2540,12 +2548,14 @@ DropStatement : @Statement
 
 DropBody : @Statement
 	// The five that name something and then say where it is or what to do about it.
-	= what: DropKeyKind & names: DropNames & ("REMOVE"i & "PROVIDER"i & "KEY"i)?
-		=> @(Statement.Dropped(what, names))
-	| "ASSEMBLY"i & IfExists? & names: DropNames & ("WITH"i & "NO"i & "DEPENDENTS"i)?
-		=> @(Statement.Dropped("ASSEMBLY", names))
-	| "EXTERNAL"i & "LIBRARY"i & names: DropNames & ("AUTHORIZATION"i & QualifiedName)?
-		=> @(Statement.Dropped("EXTERNAL LIBRARY", names))
+	= what: DropKeyKind & exists: IfExists? & names: DropNames
+	  & tail: ("REMOVE"i & "PROVIDER"i & "KEY"i)?
+		=> @(Statement.Dropped(what, names, tail, exists))
+	| "ASSEMBLY"i & exists: IfExists? & names: DropNames
+	  & tail: ("WITH"i & "NO"i & "DEPENDENTS"i)?
+		=> @(Statement.Dropped("ASSEMBLY", names, tail, exists))
+	| "EXTERNAL"i & "LIBRARY"i & names: DropNames & tail: ("AUTHORIZATION"i & QualifiedName)?
+		=> @(Statement.Dropped("EXTERNAL LIBRARY", names, tail))
 	| "EVENT"i & "SESSION"i & names: DropNames & tail: ("ON"i & DropScope)
 		=> @(Statement.Dropped("EVENT SESSION", names, tail))
 	| "EVENT"i & "NOTIFICATION"i & names: DropNames & tail: ("ON"i & DropScope)
@@ -2555,27 +2565,27 @@ DropBody : @Statement
 	// spelling puts both in one qualified name.
 	| "FULLTEXT"i & "INDEX"i & "ON"i & on: DropName
 		=> @(Statement.Dropped("FULLTEXT INDEX", new Expression[] { on }))
-	| "INDEX"i & IfExists? & first: DropIndexName & (',' & rest: DropIndexName)*
-		=> @(Statement.Dropped("INDEX", Syntax.Listed(first, rest)))
+	| "INDEX"i & exists: IfExists? & first: DropIndexName & (',' & rest: DropIndexName)*
+		=> @(Statement.Dropped("INDEX", Syntax.Listed(first, rest), null, exists))
 
 	// A signature is dropped off a module rather than by its own name, and a sensitivity
 	// classification off a column.
-	| "COUNTER"i? & "SIGNATURE"i & "FROM"i & QualifiedName & "BY"i
+	| counter: "COUNTER"i? & "SIGNATURE"i & "FROM"i & from: QualifiedName & "BY"i
 	  & first: DropCrypto & (',' & rest: DropCrypto)*
-		=> @(Statement.Dropped("SIGNATURE", Syntax.Listed(first, rest)))
+		=> @(new Statement.DropSignature(Syntax.Listed(first, rest), from, counter is not null))
 	| "SENSITIVITY"i & "CLASSIFICATION"i & from: "FROM"i & names: DropNames
 		=> @(Statement.Dropped("SENSITIVITY CLASSIFICATION", names))
 
 	// A trigger says which of the three kinds it is by what it is on.
-	| "TRIGGER"i & IfExists? & names: DropNames & ("ON"i & DropScope)?
-		=> @(Statement.Dropped("TRIGGER", names))
+	| "TRIGGER"i & exists: IfExists? & names: DropNames & tail: ("ON"i & DropScope)?
+		=> @(Statement.Dropped("TRIGGER", names, tail, exists))
 
 	// The two that name nothing: there is one of each per database.
 	| what: DropOnlyKind
 		=> @(Statement.Dropped(what, Expression.None))
 
-	| what: DropKind & IfExists? & names: DropNames
-		=> @(Statement.Dropped(what, names))
+	| what: DropKind & exists: IfExists? & names: DropNames
+		=> @(Statement.Dropped(what, names, null, exists))
 
 DropNames : @Expression[]
 	= first: DropName & (',' & rest: DropName)* => @(Syntax.Listed(first, rest))
@@ -2587,8 +2597,8 @@ DropIndexName : @Expression
 	| t: QualifiedName                                       => @(new Expression.ColumnReference(t))
 
 DropCrypto : @Expression
-	= "CERTIFICATE"i & name: QualifiedName        => @(new Expression.ColumnReference(name))
-	| "ASYMMETRIC"i & "KEY"i & name: QualifiedName => @(new Expression.ColumnReference(name))
+	= t: ("CERTIFICATE"i & QualifiedName)         => @(new Expression.ColumnReference(Syntax.Spaced(t)))
+	| t: ("ASYMMETRIC"i & "KEY"i & QualifiedName) => @(new Expression.ColumnReference(Syntax.Spaced(t)))
 
 DropScope = "ALL"i & "SERVER"i | "SERVER"i | "DATABASE"i | "QUEUE"i & QualifiedName
 

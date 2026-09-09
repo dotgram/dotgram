@@ -273,6 +273,11 @@ public static class SqlWriter
 					Put(text, arguments[i], 0);
 				}
 
+				// `EXECUTE ( … )` is the one spelling whose name is a bracket, and the
+				// bracket has to be closed.
+				if (name == "(")
+					text.Append(" )");
+
 				if (at is not null)
 					text.Append(" AT ").Append(at);
 
@@ -561,13 +566,17 @@ public static class SqlWriter
 				Put(text, name, 0);
 				break;
 
-			case Statement.RaiseError(var arguments):
+			case Statement.RaiseError(var arguments, var logged):
 				text.Append("RAISERROR");
 				Arguments(text, arguments, " ");
+
+				if (logged is not null)
+					text.Append(' ').Append(logged);
+
 				break;
 
-			case Statement.WaitFor(var value):
-				text.Append("WAITFOR DELAY ");
+			case Statement.WaitFor(var value, var kind):
+				text.Append("WAITFOR ").Append(kind).Append(' ');
 				Put(text, value, 0);
 				break;
 
@@ -930,6 +939,8 @@ public static class SqlWriter
 		"SearchPropertyListDefinition",
 		"AlterSearchPropertyList",
 		"DropSensitivityClassification",
+		"DropFulltextStoplist",
+		"DropSearchPropertyList",
 	};
 
 	static void Said(StringBuilder text, Statement statement, string record)
@@ -948,12 +959,38 @@ public static class SqlWriter
 
 		// The verb the author wrote, where the statement has more than one and the record's
 		// own name cannot say which.
-		text.Append(statement is Statement.Definition { Verb: { } verb }
-			? verb + Words(record)["CREATE".Length..]
-			: Words(record));
+		text.Append(statement switch
+		{
+			Statement.Definition { Verb: { } verb }    => verb + Words(record)["CREATE".Length..],
+			Statement.DropSignature { Counter: true }  => "DROP COUNTER SIGNATURE",
+			_                                          => Words(record),
+		});
+
+		// A word of the statement rather than of the names, so it goes between the two.
+		if (statement is Statement.Removal { IfExists: true })
+			text.Append(" IF EXISTS");
 
 		switch (statement)
 		{
+			case Statement.DropFulltextIndex([var index]):
+				// The one drop that names not what it removes but what it removes it from.
+				text.Append(" ON ");
+				Put(text, index, 0);
+				break;
+
+			case Statement.DropSignature(var by, var module, _):
+				text.Append(" FROM ").Append(module).Append(" BY ");
+
+				for (var i = 0; i < by.Length; i++)
+				{
+					if (i > 0)
+						text.Append(", ");
+
+					Put(text, by[i], 0);
+				}
+
+				break;
+
 			case Statement.FullTextIndexDefinition(var on):
 				text.Append(" ON ").Append(on);
 				break;
@@ -997,6 +1034,7 @@ public static class SqlWriter
 	static readonly Dictionary<string, string> Spelled = new(StringComparer.Ordinal)
 	{
 		["BackupTransactionLog"]   = "BACKUP LOG",
+		["PerformCutover"]         = "PERFORM_CUTOVER",
 		["RestoreFileListOnly"]    = "RESTORE FILELISTONLY",
 		["RestoreHeaderOnly"]      = "RESTORE HEADERONLY",
 		["RestoreLabelOnly"]       = "RESTORE LABELONLY",
@@ -1024,12 +1062,11 @@ public static class SqlWriter
 		if (create)
 			record = record[..^"Definition".Length];
 
-		// Three names the reference writes as one word and the record as two, which is the
+		// Two names the reference writes as one word and the record as two, which is the
 		// one place the split is not the inverse of the naming.
 		record = record
 			.Replace("FullText",  "Fulltext",  StringComparison.Ordinal)
-			.Replace("FileGroup", "Filegroup", StringComparison.Ordinal)
-			.Replace("LogFile",   "Logfile",   StringComparison.Ordinal);
+			.Replace("FileGroup", "Filegroup", StringComparison.Ordinal);
 
 		var made = new StringBuilder(create ? "CREATE" : "");
 
