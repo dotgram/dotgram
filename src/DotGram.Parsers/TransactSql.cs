@@ -17,7 +17,7 @@ namespace DotGram.Parsers;
 // — `Sql92.ValueExpression` — is this grammar's business rather than the standard's.
 [GramInclude(typeof(SqlStandard92), As = "Sql92")]
 [Gram("TransactSql.gram", Lexical = true)]
-[Gram(LocationType = typeof(Sql.ISqlSpan), Suffix = "Located")]
+[GramOptions(LocationType = typeof(Sql.ISqlSpan), Suffix = "Located")]
 public abstract partial class TransactSql
 {
 }

@@ -23,7 +23,8 @@ namespace DotGram.Generation;
 public sealed class GramGenerator : IIncrementalGenerator
 {
 	const string GramFileExtension = ".gram";
-	const string GramAttribute     = "DotGram.GramAttribute";
+	const string GramAttribute        = "DotGram.GramAttribute";
+	const string GramOptionsAttribute = "DotGram.GramOptionsAttribute";
 
 	/// <summary>
 	/// The stages, named so that what re-ran can be read back.
@@ -791,7 +792,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 				? "<" + string.Join(", ", parameters.Parameters.Select(static p => p.Identifier.ValueText)) + ">"
 				: "";
 
-		/// <summary>One host per <c>[Gram]</c> the class carries, in the order written.</summary>
+		/// <summary>
+		/// One host per reading the class asks for: the <c>[Gram]</c>, and then every
+		/// <c>[GramOptions]</c> in the order written.
+		/// </summary>
 		/// <remarks>
 		/// Several are several compilations of the class, each in a nested class of its own
 		/// and a file of its own. A suffix written twice, or left off twice, would name one
@@ -800,15 +804,24 @@ public sealed class GramGenerator : IIncrementalGenerator
 		/// </remarks>
 		public static ImmutableArray<Host> All(GeneratorAttributeSyntaxContext candidate)
 		{
-			var hosts = ImmutableArray.CreateBuilder<Host>(candidate.Attributes.Length);
+			var type     = (INamedTypeSymbol)candidate.TargetSymbol;
+			var readings = new List<AttributeData>(candidate.Attributes);
+
+			// Only the class's own: `[GramOptions]` is what a class writes about its own
+			// grammar, and a base class's readings are that class's compilations.
+			foreach (var attribute in type.GetAttributes())
+				if (attribute.AttributeClass?.ToDisplayString() == GramOptionsAttribute)
+					readings.Add(attribute);
+
+			var hosts = ImmutableArray.CreateBuilder<Host>(readings.Count);
 			var taken = new HashSet<string>(StringComparer.Ordinal);
 
-			foreach (var attribute in candidate.Attributes)
+			foreach (var attribute in readings)
 			{
-				// Everything a second attribute does not say, it takes from the first: the
-				// grammar, whether it is read as tokens, how it is divided. That is what
-				// writing a second one means — the same parser, compiled differently — and
-				// what it does say is the difference. The first has nothing to take from.
+				// Everything a reading does not say, it takes from the grammar's own: which
+				// grammar, whether it is read as tokens, how it is divided. That is what a
+				// `[GramOptions]` means — the same parser, compiled differently — and what it
+				// does say is the difference. The first has nothing to take from.
 				var host = From(candidate, attribute, hosts.Count > 0 ? hosts[0] : null);
 
 				hosts.Add(host with
@@ -817,7 +830,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 					// The first writes what the host's own C# names; the rest read it from the
 					// class around them. Null where there is nothing to share it with.
-					Shared   = candidate.Attributes.Length > 1 ? hosts.Count == 0 : null,
+					Shared   = readings.Count > 1 ? hosts.Count == 0 : null,
 				});
 			}
 

@@ -16863,3 +16863,33 @@ came from did not carry it" are the same failure seen from two sides.
 
 `GRAM0008` joined it: two includes under one name are one namespace, and a namespace is the
 whole of why one grammar's rules cannot collide with another's.
+
+### `[Gram]` once, `[GramOptions]` as many times as wanted
+
+A second `[Gram]` on a class was how a second reading of its grammar was asked for, and it
+said the wrong thing: an attribute whose first argument is *which grammar* was being written
+without one, to mean "the same grammar, differently". A class has one grammar; that is a fact
+about the class, not one option among several.
+
+So the attribute split. `[Gram]` is written once — C# itself refuses a second, `AllowMultiple
+= false` — and holds what is the grammar's own: `Source` and `IncludedAs`. Every option that
+describes a *reading* — `Suffix`, `Carrier`, `Direct`, `Lexical`, `PartSize`, `Stacks`,
+`LocationType`, `Portable` — moved to a base `[GramOptions]`, which `[Gram]` derives from and
+which may be written as often as there are further readings wanted:
+
+```csharp
+[Gram("TransactSql.gram", Lexical = true)]
+[GramOptions(LocationType = typeof(Sql.ISqlSpan), Suffix = "Located")]
+public abstract partial class TransactSql
+```
+
+Nothing about what is generated changed: the same two files come out of that, and the
+generator gathers the `[Gram]` through `ForAttributeWithMetadataName` as before and the
+`[GramOptions]` off the type's attributes beside it. What changed is what can be said. A
+`[GramOptions]` cannot name a grammar, because there is no property to name one with, and the
+one remaining way to want the class's own scope twice — a `[GramOptions]` without a `Suffix` —
+is still `GRAM0006`. The parameterless `[Gram]`, the file named after the class, stays.
+
+The test that had two grammars on one class became one grammar read two ways, which is what
+the shape was always for; the span it hands to a host method is still the host's one type
+across both readings, which is the point that test makes.

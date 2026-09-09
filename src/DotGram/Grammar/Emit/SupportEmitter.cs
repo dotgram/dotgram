@@ -53,40 +53,20 @@ public static class SupportEmitter
 
 		namespace DotGram
 		{
-			/// <summary>Marks a partial class as the host of a grammar.</summary>
+			/// <summary>
+			/// One reading of the grammar a class carries, beside the one <c>[Gram]</c> asks
+			/// for.
+			/// </summary>
 			/// <remarks>
-			/// More than one may be written, and then all but one need a <c>Suffix</c>: each
-			/// is a compilation of its own, in a nested class of that name and in a file of
-			/// its own. That is how one host offers the same grammar compiled two ways —
-			/// two carriers, say — for a caller to choose between.
+			/// The same grammar compiled again under different options — another carrier,
+			/// another division, locations where the first has none. Each reading needs a
+			/// scope of its own, so each names a nested class with <see cref="Suffix"/>, and
+			/// what it does not say it takes from <c>[Gram]</c>.
 			/// </remarks>
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-			internal sealed class GramAttribute : global::System.Attribute
+			internal class GramOptionsAttribute : global::System.Attribute
 			{
-				public GramAttribute() { }
-
-				/// <param name="source">
-				/// A path to a .gram file, or the grammar text itself. A single-line value
-				/// ending in ".gram" is a path; anything else is grammar text.
-				/// </param>
-				public GramAttribute(string source) => Source = source;
-
-				public string? Source { get; }
-
-				/// <summary>
-				/// The name another grammar includes this one under, where that should not
-				/// be the class's own.
-				/// </summary>
-				/// <remarks>
-				/// One identifier, and not a namespace of the generated code — that is
-				/// decided by where the host class is declared. This is the name written
-				/// after `using` in a grammar that includes this one, and it defaults to
-				/// the host's own so that following the `:` from the including class lands
-				/// on the answer.
-				/// </remarks>
-				public string? IncludedAs { get; set; }
-
 				/// <summary>
 				/// The nested class this compilation goes into, where the host has more
 				/// than one. One identifier; the host class itself where nothing is said.
@@ -299,6 +279,38 @@ public static class SupportEmitter
 			/// use for.
 			/// </para>
 			/// </remarks>
+			/// <summary>
+			/// The grammar a class is compiled from, and the first reading of it.
+			/// </summary>
+			/// <remarks>
+			/// One per class: this says <em>which</em> grammar, which is a thing a class has
+			/// one of. How to read it is what it shares with <see cref="GramOptionsAttribute"/>,
+			/// and a class wanting the same grammar read a second way writes one of those.
+			/// </remarks>
+			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			internal sealed class GramAttribute : GramOptionsAttribute
+			{
+				/// <summary>The grammar is the <c>.gram</c> file named after the class.</summary>
+				public GramAttribute() { }
+
+				/// <param name="source">
+				/// A path to a .gram file, or the grammar text itself. A single-line value
+				/// ending in ".gram" is a path; anything else is grammar text.
+				/// </param>
+				public GramAttribute(string source) => Source = source;
+
+				public string? Source { get; }
+
+				/// <summary>
+				/// The name another grammar includes this one under, where nothing else was
+				/// said — the default, and no more: what a grammar is called inside another is
+				/// the includer's business, and <c>[GramInclude(…, As = "…")]</c> is where it
+				/// is said.
+				/// </summary>
+				public string? IncludedAs { get; set; }
+			}
+
 			/// <summary>
 			/// The grammar a generated class was compiled from, written onto the class itself.
 			/// </summary>

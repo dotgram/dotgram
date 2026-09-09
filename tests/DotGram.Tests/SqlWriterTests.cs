@@ -133,7 +133,7 @@ public sealed class SqlWriterTests
 
 	/// <summary>Every node says where it was written.</summary>
 	/// <remarks>
-	/// What <c>[Gram(LocationType = typeof(ISqlSpan), Suffix = "Located")]</c> asks for: the
+	/// What <c>[GramOptions(LocationType = typeof(ISqlSpan), Suffix = "Located")]</c> asks for: the
 	/// reader offers each construction the range it was read over, and the value keeps the
 	/// last offer. The span is the node's own text without the trivia around it, which is
 	/// what lets a comment fall between two of them rather than inside one.

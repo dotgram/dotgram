@@ -28,8 +28,8 @@ underlined where it was written, in the base's own file — see §5.1.
 | `GRAM0003` | No grammar file for a `[Gram]` class. | Add the `.gram` file, or add it to the project as `<AdditionalFiles Include="…" />`. |
 | `GRAM0004` | More than one grammar file matches. | Two additional files answer to the same name. Name one of them in the attribute: `[Gram("Feed.gram")]`. |
 | `GRAM0005` | The name a grammar is included under is not an identifier. | `[Gram(IncludedAs = "…")]` names the namespace an inheriting grammar reaches this one through, so it has to be one identifier. |
-| `GRAM0006` | Two grammars on one class want the same scope. | Each `[Gram]` on a class is a compilation of its own and needs a scope of its own: one may go in the class itself, and every other names a nested class with `Suffix`. |
-| `GRAM0007` | The name a grammar is compiled under is not an identifier. | `[Gram(Suffix = "…")]` names a nested class, and a class is named by an identifier. |
+| `GRAM0006` | Two readings of one grammar want the same scope. | The `[Gram]` and every `[GramOptions]` on a class is a compilation of its own and needs a scope of its own: the `[Gram]` goes in the class itself, and every `[GramOptions]` names a nested class with `Suffix`. |
+| `GRAM0007` | The name a grammar is compiled under is not an identifier. | `[GramOptions(Suffix = "…")]` names a nested class, and a class is named by an identifier. |
 | `GRAM0008` | Two grammars are included under one name. | An included grammar is wrapped in a namespace named after it, which is what keeps two grammars' rules apart: `Sql92.Identifier` and `Lex.Identifier` are different names. Two under one name are one namespace, and their rules do collide — give all but one an `As` of its own. |
 
 ## GRAM1xxx — reading the characters
