@@ -16988,10 +16988,8 @@ Two things found and not fixed, both worth their own turn:
 
 - ~~**The character reading of SQL92 disagrees with the token reading.**~~ Found and
   fixed, below.
-- **The `(?!L & X)*` idiom with a character literal as `L` misreads as a token.** A probe
-  with `'"' & (?!'"' & any)* & ('"' & '"' & (?!'"' & any)*)* & '"'` compiled to tokens and
-  then refused `"a""b"` at the second character. Not in the library any more, and not
-  looked into.
+- ~~**The `(?!L & X)*` idiom with a character literal as `L` misreads as a token.**~~ The
+  probe was wrong, not the idiom; what the probe hid was three other things, below.
 
 **Speed did not move, as far as this machine can tell.** `--speed 170 5`, three runs each,
 migrated against fully reverted: 7.3–10.0 µs a statement against 9.6–10.1, with ScriptDom's
@@ -17034,3 +17032,42 @@ character reading all along under the other name, and now says so.
 Also seen, not chased: over tokens the "expected" text of a failed parse renders kinds as
 character ranges full of control characters — `SELECT INNER FROM t` fails with a page of
 `[''..'' | 'C'..'Y' | …]`. The expectation printer does not know it is printing kinds.
+
+### What the string probe was hiding
+
+The finding above was a probe artifact: `Q` stood in the global namespace, which carries
+trivia, so the seam went inside it and it was syntax, not a pattern — and its letters had no
+token to be. Put in a namespace with `trivia = none`, the until idiom with a character
+literal reads `"ab"` in both readings. Redone properly, the probe found three things in the
+generator, all fixed, and the library's strings are `Quoted(quote)` and `Escaped(quote,
+escape)` again with SQL92 back on them.
+
+**A specialization got the seams of a namespace whose `trivia` was not lowered yet.**
+`Lexical.P('"')` from a global rule came out as `'"' & trivia & (trivia & ?!'"' & trivia &
+any)* & trivia & '"'` — `Lexical.trivia`, which is `none`, woven through it. `TriviaFor` asks
+`MatchesNothing`, and `MatchesNothing` read `_bodies`; the global rules are lowered first, the
+call specializes `P` on the spot, and `Lexical.trivia` had no body yet, so it was not a rule
+that matches nothing. Seams that read nothing, and broke the one shape the lexer recognizes
+by shape. `MatchesNothing` goes through `BodyOf` now, which lowers on demand — the order the
+rules come in is nobody's business.
+
+**`Consumed` never gave its guard back.** The until machine asks what one turn consumes,
+guarding against a rule reaching itself, and `any` stayed in the guard after the first idiom
+of a pattern; the second — the tail of a doubled-quote string — read as no one item, and the
+pattern was refused with the generic "not all regular" and no reason. Two idioms in one
+pattern, or one nested in a repetition, are ordinary now.
+
+**An escape pair is an item.** `(?!quote & (escape & any | ?!escape & any))*` is the inside
+of a C string, and the until machine takes it: one delimiter character, a boundary state, and
+a pair state the escape goes through — exact for a one-character delimiter, refused with a
+reason for a longer one, where a pair could hide the delimiter's beginning from a machine
+that forgets where its boundaries were. The `?!escape` on the plain alternative is what
+makes the two readings one: over characters a repetition hands back what it read when the
+closing quote is missing, and `(escape & any | any)` on `"a\"` then reads the escape alone
+and the quote as the end — the first version of the test caught exactly that. The machine
+takes both spellings the same way; the grammar should write the guarded one, and the
+library does.
+
+The test is a theory over both readings: the doubled quote, the escaped quote and escape,
+and the two unterminated strings that are no string — every one of which one of the three
+got wrong before.

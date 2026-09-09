@@ -1286,16 +1286,16 @@ recognition, which every grammar spells the same way.
 | `Double` | digits, a point and digits, an exponent — each after the first optional | `double` |
 | `LineComment(start)` | `start` to the end of the line, the line ending left unread | text |
 | `BlockComment(open, close)` | `open` to the first `close` | text |
-| `SingleQuoted` | `'` to `'`, with `''` for a quote inside — SQL's string | text, as written |
-| `DoubleQuoted` | `"` to `"`, with `""` for a quote inside — SQL's delimited identifier, CSV's field | text, as written |
-| `Escaped` | `"` to `"`, with `\` in front of a quote or anything else inside — C's string | text, as written |
+| `Quoted(quote)` | `quote` to `quote`, with `quote` doubled inside — `Quoted('\'')` is SQL's string, `Quoted('"')` its delimited identifier and CSV's field | text, as written |
+| `Escaped(quote, escape)` | `quote` to `quote`, with `escape` in front of a quote or anything else inside — `Escaped('"', '\\')` is C's string | text, as written |
 
-A comment is parameterized by what delimits it, because that is all that differs
-between one language's and the next: `Std.LineComment("--")` is SQL's and
+A comment or a string is parameterized by what delimits it, because that is all that
+differs between one language's and the next: `Std.LineComment("--")` is SQL's and
 `Std.LineComment("//")` is C's, and each call is a specialization that costs what the
-rule written out would (§4.2). A string is not, and is written out per quote: what is
-inside it is "anything but the quote", which is an element set, and an element set names
-its characters rather than taking a parameter. The numbers are unsigned: whether `-` is
+rule written out would (§4.2). The strings are written with the until idiom, `(?!quote
+& any)*`, rather than an element set — a set names its characters and cannot take a
+parameter — and the idiom is the one lookahead a lexer reads as a pattern (§6.3), so
+they are tokens in a grammar read over tokens. The numbers are unsigned: whether `-` is
 part of a number or an operator in front of one is a question about the calling grammar,
 not about digits.
 
