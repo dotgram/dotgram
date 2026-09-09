@@ -2,7 +2,7 @@
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Expressions;
 
 // A decimal number, written once, read under two different decimal points without a
 // second copy of the rule.

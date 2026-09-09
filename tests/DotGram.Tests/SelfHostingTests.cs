@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
-using DotGram.Examples;
+using DotGram.Examples.Languages;
 using DotGram.Generation;
 using DotGram.Grammar.Parsing;
 

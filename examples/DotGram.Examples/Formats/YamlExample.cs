@@ -4,7 +4,7 @@ using System.Linq;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Formats;
 
 // Nesting by indentation, to any depth:
 //
@@ -37,7 +37,7 @@ namespace DotGram.Examples;
 // the configuration files people actually write, and honest about the rest.
 
 [Gram("""
-	@using DotGram.Examples;
+	@using DotGram.Examples.Formats;
 
 	trivia = none
 

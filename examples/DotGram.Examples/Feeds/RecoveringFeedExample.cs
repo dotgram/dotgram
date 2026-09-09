@@ -4,7 +4,7 @@ using System.Globalization;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Feeds;
 
 // The same feed as FeedExample, read so that one malformed record does not cost the
 // file:
@@ -41,7 +41,7 @@ public sealed record TradeLine(string Symbol, int Quantity, DateOnly TradedOn) :
 public sealed record RejectedLine(int Ordinal, int Line, string Text, string Message) : FeedLine;
 
 [Gram("""
-	@using DotGram.Examples;
+	@using DotGram.Examples.Feeds;
 
 	Feed    = header: Header
 	        & lines:  Row* recover eol => @(new RejectedLine(parserOrdinal, parserLine, parserText, parserMessage))

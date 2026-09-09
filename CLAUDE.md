@@ -88,9 +88,8 @@ examples/
 	DotGram.Examples/     whole parsers meant to be copied: a grammar, the class it
 	                      attaches to, and the code written against it. No test
 	                      framework and no scaffolding — DotGram.Tests runs them.
-	                      Grouped by what they read — Formats/, Feeds/, Expressions/,
-	                      Languages/ — and all in one namespace, so a copied file
-	                      carries no folder with it
+	                      Grouped by what they read: Formats/, Feeds/, Expressions/,
+	                      Languages/, each its own namespace under DotGram.Examples
 tests/
 	DotGram.Tests/        three levels: direct calls, in-memory generator driver,
 	                      and the generator attached as an analyzer

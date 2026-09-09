@@ -4,7 +4,7 @@ using System.Globalization;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Formats;
 
 // A fixed-width record file, where a field is found by counting rather than by looking
 // for a delimiter:
@@ -34,7 +34,7 @@ namespace DotGram.Examples;
 // that wants the padding uses `Raw`.
 
 [Gram("""
-	@using DotGram.Examples;
+	@using DotGram.Examples.Formats;
 	@using System;
 	@using System.Globalization;
 

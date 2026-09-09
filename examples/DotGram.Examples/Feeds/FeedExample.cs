@@ -4,7 +4,7 @@ using System.Globalization;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Feeds;
 
 // A line-oriented feed: one header, any number of records, one trailer.
 //

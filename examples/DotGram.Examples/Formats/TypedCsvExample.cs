@@ -4,7 +4,7 @@ using System.IO;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Formats;
 
 // A CSV read into records, with no `=>` anywhere in the grammar.
 //
@@ -27,7 +27,7 @@ namespace DotGram.Examples;
 // construction, and §7.3's matching has nothing to do with it.
 
 [Gram("""
-	@using DotGram.Examples;
+	@using DotGram.Examples.Formats;
 	@using System;
 	@using System.Globalization;
 

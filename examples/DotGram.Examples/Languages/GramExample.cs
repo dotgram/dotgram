@@ -2,7 +2,7 @@
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Languages;
 
 // The grammar of `.gram` itself, written in `.gram`, building a tree.
 //
@@ -45,7 +45,7 @@ namespace DotGram.Examples;
 // about the notation.
 
 [Gram("""
-	@using DotGram.Examples;
+	@using DotGram.Examples.Languages;
 
 	using Lexical;
 

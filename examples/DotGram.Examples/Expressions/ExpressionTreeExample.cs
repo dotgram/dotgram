@@ -3,7 +3,7 @@ using System.Globalization;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Expressions;
 
 // The same calculator, not calculating. `=>` builds a node instead of a number, and
 // what comes back is a tree the caller can look at, rewrite, walk twice, or compile.
@@ -30,7 +30,7 @@ namespace DotGram.Examples;
 
 [Gram("""
 	@using System.Globalization;
-	@using DotGram.Examples;
+	@using DotGram.Examples.Expressions;
 
 	using Lexical;
 

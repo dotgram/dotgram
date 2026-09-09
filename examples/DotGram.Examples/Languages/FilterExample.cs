@@ -5,7 +5,7 @@ using System.Linq;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Languages;
 
 // A filter language, of the kind an API puts in a query string or a rules engine reads
 // from a table:
@@ -35,7 +35,7 @@ namespace DotGram.Examples;
 // the same walk over the same records.
 
 [Gram("""
-	@using DotGram.Examples;
+	@using DotGram.Examples.Languages;
 	@using System;
 	@using System.Globalization;
 

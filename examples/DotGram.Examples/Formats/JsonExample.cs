@@ -5,7 +5,7 @@ using System.Linq;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Formats;
 
 // JSON, because it is what everybody writes first and because it asks for one thing the
 // other examples here do not: a value that is any of six things, nested inside itself.
@@ -29,7 +29,7 @@ namespace DotGram.Examples;
 //     where a space would be a lie: inside a string and between the digits of a number.
 
 [Gram("""
-	@using DotGram.Examples;
+	@using DotGram.Examples.Formats;
 	@using System.Globalization;
 
 	using Lexical;

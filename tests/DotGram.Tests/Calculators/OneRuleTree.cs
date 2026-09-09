@@ -3,7 +3,7 @@ using System.Globalization;
 
 using DotGram;
 
-using DotGram.Examples;
+using DotGram.Examples.Expressions;
 
 namespace DotGram.Tests.Calculators;
 
@@ -33,7 +33,7 @@ namespace DotGram.Tests.Calculators;
 
 [Gram("""
 	@using System.Globalization;
-	@using DotGram.Examples;
+	@using DotGram.Examples.Expressions;
 
 	using Lexical;
 

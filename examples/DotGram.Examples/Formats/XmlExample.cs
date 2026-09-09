@@ -4,7 +4,7 @@ using System.Linq;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Formats;
 
 // XML, cut down to elements, attributes and text — and written because it needs the one
 // thing no other grammar here does: a rule that has to compare two of its own captures.
@@ -26,7 +26,7 @@ namespace DotGram.Examples;
 // elements and text; the tree is records, so a caller walks it with patterns.
 
 [Gram("""
-	@using DotGram.Examples;
+	@using DotGram.Examples.Formats;
 
 	using Lexical;
 

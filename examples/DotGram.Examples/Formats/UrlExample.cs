@@ -5,7 +5,7 @@ using System.Text;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Formats;
 
 // A URL parser, after RFC 3986.
 //

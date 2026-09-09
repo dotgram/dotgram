@@ -4,7 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
-using DotGram.Examples;
+using DotGram.Examples.Expressions;
+using DotGram.Examples.Feeds;
+using DotGram.Examples.Formats;
+using DotGram.Examples.Languages;
 
 // The API's own namespace under a name of its own: this file already sees an
 // `Expression`, the examples' record tree, and importing the other would make every

@@ -4,7 +4,7 @@ using System.Globalization;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Feeds;
 
 // The same feed again, for the caller who wants only the good records and the bad ones
 // in a log — docs/syntax.md §8.3's fourth row, "successful records only, failures to a

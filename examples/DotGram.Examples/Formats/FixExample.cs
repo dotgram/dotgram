@@ -5,7 +5,7 @@ using System.Linq;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Formats;
 
 // FIX, the protocol every trading system speaks:
 //
@@ -38,7 +38,7 @@ namespace DotGram.Examples;
 //     where arithmetic belongs.
 
 [Gram("""
-	@using DotGram.Examples;
+	@using DotGram.Examples.Formats;
 	@using System.Globalization;
 
 	trivia = none

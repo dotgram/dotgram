@@ -4,7 +4,7 @@ using System.Linq;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Formats;
 
 // An INI file read into the shape a caller actually wants:
 //
@@ -32,7 +32,7 @@ namespace DotGram.Examples;
 //     do, so the fold is written to overwrite rather than throw.
 
 [Gram("""
-	@using DotGram.Examples;
+	@using DotGram.Examples.Formats;
 
 	// Every space here is written down: a value keeps its inner spaces and loses only the
 	// ones around it, which no automatic trivia insertion would get right.

@@ -3,7 +3,7 @@ using System.Globalization;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Expressions;
 
 // A calculator written once and published three times: over `int`, over `decimal`, and
 // as a tree of its own.

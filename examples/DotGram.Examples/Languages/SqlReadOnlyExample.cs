@@ -2,7 +2,7 @@
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Languages;
 
 // A guard that answers one question: can this statement write anything?
 //
@@ -47,7 +47,7 @@ namespace DotGram.Examples;
 // `into_stock`.
 
 [Gram("""
-	@using DotGram.Examples;
+	@using DotGram.Examples.Languages;
 
 	// Every literal that is all word characters may not be the start of a longer word
 	// (§4.6), so `into` does not match inside `into_stock`.

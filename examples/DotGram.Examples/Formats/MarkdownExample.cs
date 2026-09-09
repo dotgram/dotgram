@@ -4,7 +4,7 @@ using System.Linq;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Formats;
 
 // Markdown, cut down to its block structure — headings, bullet lists, fenced code and
 // paragraphs. Written because it is the first format here where the line is the unit:
@@ -26,7 +26,7 @@ namespace DotGram.Examples;
 //     `hashes.Length` is the heading level, which is what a `=>` is for.
 
 [Gram("""
-	@using DotGram.Examples;
+	@using DotGram.Examples.Formats;
 
 	trivia = none
 

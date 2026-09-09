@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Languages;
 
 // A selector — `orders[2].lines.total(net)` — read as the chain of steps it is.
 //

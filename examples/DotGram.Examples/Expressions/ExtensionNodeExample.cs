@@ -4,7 +4,7 @@ using System.Linq.Expressions;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Expressions;
 
 // A `=>` may build a node `System.Linq.Expressions` has no factory for.
 //
@@ -42,7 +42,7 @@ namespace DotGram.Examples;
 [Gram("""
 	@using System.Globalization;
 	@using System.Linq.Expressions;
-	@using DotGram.Examples;
+	@using DotGram.Examples.Expressions;
 
 	trivia = [' ' | '\t']*
 

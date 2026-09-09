@@ -5,7 +5,7 @@ using System.IO;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Feeds;
 
 // The same feed once more, read from a `TextReader` instead of a string — the file may
 // be larger than memory, and nothing here holds more than the record being read.
@@ -51,7 +51,7 @@ public sealed record FeedTrade(string Symbol, int Quantity, DateOnly TradedOn) :
 public sealed record FeedClosing(int Count) : FeedPart;
 
 [Gram("""
-	@using DotGram.Examples;
+	@using DotGram.Examples.Feeds;
 
 	Feed    : @FeedPart[] = Header & Row* recover eol & Trailer & eof
 

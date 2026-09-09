@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Globalization;
 
-using DotGram.Examples;
+using DotGram.Examples.Expressions;
 
 using Xunit;
 

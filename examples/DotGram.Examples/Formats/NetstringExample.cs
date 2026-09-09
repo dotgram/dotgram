@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Formats;
 
 // Netstrings — the one shape a grammar genuinely cannot express:
 //
@@ -32,7 +32,7 @@ namespace DotGram.Examples;
 // end of what it was given.
 
 [Gram("""
-	@using DotGram.Examples;
+	@using DotGram.Examples.Formats;
 
 	trivia = none
 

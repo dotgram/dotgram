@@ -4,7 +4,7 @@ using System.Linq;
 
 using DotGram;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Formats;
 
 // HTTP header fields, read into a lookup:
 //
@@ -31,7 +31,7 @@ namespace DotGram.Examples;
 // assemble.
 
 [Gram("""
-	@using DotGram.Examples;
+	@using DotGram.Examples.Formats;
 
 	trivia = none
 

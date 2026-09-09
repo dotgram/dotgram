@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Globalization;
 
-namespace DotGram.Examples;
+namespace DotGram.Examples.Expressions;
 
 // The tree two of the examples build, and everything it can do.
 //
