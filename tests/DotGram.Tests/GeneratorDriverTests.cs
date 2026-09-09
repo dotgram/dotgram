@@ -2381,7 +2381,7 @@ public sealed class GeneratorDriverTests
 	/// host class, and what that C# is — a guard, a transformation, one that may refuse —
 	/// is a question only a real compilation answers (§8.1).
 	/// </remarks>
-	static Assembly Build(string source)
+	internal static Assembly Build(string source)
 	{
 		var run = RunGenerator(source, out var output);
 

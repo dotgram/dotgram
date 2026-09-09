@@ -376,7 +376,7 @@ sealed partial class Machine
 
 	/// <summary>Whether a node is one character, whichever character it is.</summary>
 	/// <remarks>
-	/// <c>any</c> is a rule of the standard library rather than an element written in
+	/// <c>any</c> is a built-in rule rather than an element written in
 	/// place, so the call is followed — the same unwrapping every other analysis here
 	/// does, with a ring of calls refused rather than walked forever.
 	/// </remarks>

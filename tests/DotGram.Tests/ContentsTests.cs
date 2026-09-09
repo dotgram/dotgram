@@ -126,7 +126,7 @@ public sealed class ContentsTests
 		return text.ToString();
 	}
 
-	static string Specification =>
+	internal static string Specification =>
 		Path.Combine(
 			Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(ThisFile)!)!)!,
 			"docs",

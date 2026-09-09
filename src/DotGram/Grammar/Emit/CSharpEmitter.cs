@@ -2644,7 +2644,7 @@ public static partial class CSharpEmitter
 	/// is for, so a grammar with a <c>trivia</c> per namespace is the ordinary case rather
 	/// than a clash. The namespaces a rule is declared in are prefixed to tell them apart,
 	/// named rather than numbered so that a reader of the generated code can still see
-	/// which rule a method came from. The standard library's namespace is not an identifier
+	/// which rule a method came from. The built-in rules' namespace is not an identifier
 	/// and is left off: its names are fixed, and a grammar that shadows one of them takes
 	/// the name with it.
 	/// </remarks>

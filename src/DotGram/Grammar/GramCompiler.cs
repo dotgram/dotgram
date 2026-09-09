@@ -21,6 +21,32 @@ namespace DotGram.Grammar;
 /// </remarks>
 public static class GramCompiler
 {
+	/// <summary>
+	/// Reads one grammar: the first two stages, and the standard library where it is asked
+	/// for.
+	/// </summary>
+	/// <remarks>
+	/// A grammar that says <c>using Std;</c> anywhere in it — its own top, a namespace's, an
+	/// included grammar's — gets the standard library spliced onto its end and is read again
+	/// as that. Onto the end so that nothing the author wrote moves; only where it is asked
+	/// for, so that a grammar which never names it never pays for it. What is written onto
+	/// the class as its source stays the text as written: the includer's own compilation
+	/// asks the same question of the same <c>using</c> and splices its own. One method so
+	/// that whoever reads a grammar ahead of compiling it — the generator, for its
+	/// questions — reads the same text.
+	/// </remarks>
+	public static ParseResult Read(string grammarText, ICSharpScanner? scanner = null)
+	{
+		if (grammarText is null)
+			throw new ArgumentNullException(nameof(grammarText));
+
+		var parsed = GramParser.Parse(GramLexer.Tokenize(grammarText, scanner));
+
+		return StandardLibrary.AskedForBy(parsed.File)
+			? GramParser.Parse(GramLexer.Tokenize(StandardLibrary.SplicedOnto(grammarText), scanner))
+			: parsed;
+	}
+
 	/// <summary>Compiles one grammar.</summary>
 	/// <param name="grammarText">Contents of a <c>.gram</c> file.</param>
 	/// <param name="options">Compilation options; defaults are used when null.</param>
@@ -43,7 +69,7 @@ public static class GramCompiler
 		//   GrammarNormalizer.Normalize (model)         -> RecognitionGraph
 		//   CSharpEmitter    .Emit      (graph)         -> C#
 
-		var parsed = GramParser.Parse(GramLexer.Tokenize(grammarText, options.CSharpScanner));
+		var parsed = Read(grammarText, options.CSharpScanner);
 
 		diagnostics.AddRange(parsed.Diagnostics);
 

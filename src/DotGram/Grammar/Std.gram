@@ -1,0 +1,68 @@
+// The standard library: the lexemes every grammar writes and none should have to.
+//
+// Reached by `using Std;` and named in full — `Std.Integer`, `Std.LineComment("--")` —
+// so that a rule of a grammar's own never lands here by accident (syntax.md §5.2). A
+// namespace of its own with no trivia, so that a token is its characters and nothing
+// may stand between them; the grammar calling it spaces and comments around the call
+// as it does around anything else (§4.5). Whatever is not called is not compiled.
+//
+// What a lexeme means is left to the caller wherever meaning takes code — a string's
+// escapes, a number too wide for `int` — because there is no class behind this file to
+// put that code in. The values below are what the .NET parsers make of the text, and
+// what those refuse they refuse as they always do.
+
+trivia = none
+
+// ── One character ────────────────────────────────────────────────────────────
+
+Digit      = ['0'..'9']
+HexDigit   = ['0'..'9' | 'a'..'f' | 'A'..'F']
+Letter     = [\p{L}]
+Space      = [' ' | '\t']
+Whitespace = [' ' | '\t' | '\r' | '\n']
+
+// ── Runs of them ─────────────────────────────────────────────────────────────
+
+Digits     = Digit+
+HexDigits  = HexDigit+
+Blank      = Space+
+Spacing    = Whitespace+
+
+// A letter or an underscore, then letters, digits and underscores: the identifier of
+// C, C# and most of what was written after them, in the Unicode reading.
+Identifier = [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']*
+
+// ── Numbers, as values ───────────────────────────────────────────────────────
+//
+// Read as the invariant culture reads them, so that a grammar means the same thing on
+// every machine. Unsigned: a sign is the calling grammar's business, because whether
+// `-` is part of a number or an operator in front of one is a question about that
+// grammar and not about digits.
+
+Integer : int     = Digits => @(int.Parse(parserText, global::System.Globalization.CultureInfo.InvariantCulture))
+Long    : long    = Digits => @(long.Parse(parserText, global::System.Globalization.CultureInfo.InvariantCulture))
+Decimal : decimal = Digits & ('.' & Digits)?
+	=> @(decimal.Parse(parserText, global::System.Globalization.NumberStyles.AllowDecimalPoint, global::System.Globalization.CultureInfo.InvariantCulture))
+Double  : double  = Digits & ('.' & Digits)? & ('e'i & ['+' | '-']? & Digits)?
+	=> @(double.Parse(parserText, global::System.Globalization.NumberStyles.Float, global::System.Globalization.CultureInfo.InvariantCulture))
+
+// ── Comments ─────────────────────────────────────────────────────────────────
+//
+// Parameterized by what opens and closes them, since that is all that differs between
+// one language's comment and the next: `LineComment("--")`, `BlockComment("/*", "*/")`.
+// The line comment stops short of the line ending and leaves it, so that a grammar
+// which counts lines still sees every one.
+
+LineComment(start)        = start & [^ '\r' | '\n']*
+BlockComment(open, close) = open & (?!close & any)* & close
+
+// ── Quoted text ──────────────────────────────────────────────────────────────
+//
+// The two ways a quote is written inside what it quotes. `Quoted('\'')` doubles it,
+// as SQL and CSV do; `Escaped('"', '\\')` puts an escape character in front of it —
+// and in front of anything else, which is what the escape character means. Both give
+// back the text between the quotes as written, escapes and all: what an escape stands
+// for differs between languages that agree on how it is spelled.
+
+Quoted(quote)          = quote & (quote & quote | ?!quote & any)* & quote
+Escaped(quote, escape) = quote & (escape & any | ?!quote & any)* & quote

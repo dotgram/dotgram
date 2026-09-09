@@ -377,9 +377,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 		// Parsed twice over a grammar's life: once here for the questions, once in the
 		// third stage for the answer. Both are cheap next to normalization and emission,
-		// and this one only re-runs when the grammar itself changes.
-		var parsed = DotGram.Grammar.Parsing.GramParser.Parse(
-			DotGram.Grammar.Parsing.GramLexer.Tokenize(text, RoslynCSharpScanner.Instance)).File;
+		// and this one only re-runs when the grammar itself changes. Through the compiler's
+		// own reading, so that what the standard library brings in is asked about too.
+		var parsed = GramCompiler.Read(text, RoslynCSharpScanner.Instance).File;
 
 		return new Grammar(
 			host,

@@ -39,6 +39,7 @@ that thing is what the notation already means in C# or in .NET regular expressio
   - [4.6 Keyword boundaries](#46-keyword-boundaries)
 - [5. Namespaces](#5-namespaces)
   - [5.1 Rebinding](#51-rebinding)
+  - [5.2 The standard library, `using Std`](#52-the-standard-library-using-std)
 - [6. Publication](#6-publication)
   - [6.1 The result](#61-the-result)
   - [6.2 Why the signatures use BCL types only](#62-why-the-signatures-use-bcl-types-only)
@@ -190,7 +191,7 @@ characters and references to other elementary rules are allowed. The brackets ar
 required: without them `Letter | @IsDigit` would be indistinguishable from structural
 alternation, which means something else.
 
-#### 3.1.1 The standard library
+#### 3.1.1 Built-in rules
 
 Seven ordinary rules, not keywords, that every grammar has without declaring them:
 
@@ -790,7 +791,7 @@ The rule `trivia` is always inserted between the operands of a sequence. It is e
 by default, so by default nothing is inserted:
 
 ```dotgram
-// standard library
+// built in
 none                  = any{0}                 // zero repetitions: succeeds, consumes nothing
 trivia                = none
 Whitespace            = ([' ' | '\t'] | eol)*
@@ -1223,10 +1224,76 @@ an error. A declaration always means a new rule; a rebinding is the only way to 
 one — so a rule declared inside a nested `namespace { ... }` whose name also resolves in
 an enclosing *grammar* scope, or through that namespace's own `using` import, is
 refused — `GRAM3012`. Scoped narrowly, to keep it a real mistake rather than noise:
-shadowing the standard library (`trivia`, `wordboundary`, `any`, `none`, `eol`, `eof`),
+shadowing a built-in rule (`trivia`, `wordboundary`, `any`, `none`, `eol`, `eof`),
 at any depth, is the language's normal, silent mechanism and is never reported; neither
 is shadowing at the top level of a file, where there is no `namespace Name with (...)`
 header nearby to have meant instead.
+
+### 5.2 The standard library, `using Std`
+
+The lexemes every grammar writes and none should have to — digits, an identifier, a
+number as a value, a comment, a quoted string — are a grammar of their own, carried
+inside the generator, and a grammar that wants them says so:
+
+```dotgram
+using Std;
+
+trivia = { (Std.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "*/"))* }
+
+Pair : @int = a: Std.Integer & ',' & b: Std.Integer & eof => @(a * b)
+```
+
+`using Std;` is what brings it in, and it is named in full — `Std.Integer`, not
+`Integer`. Both are deliberate. The library's names are the plain ones a grammar of your
+own is likely to use, and a rule named `Digits` should be yours and not something you
+never wrote; the seven built-in rules (§3.1.1) are the only names a grammar has without
+asking, and there are seven of them so that this stays true. Without the `using`, `Std`
+is not in view and a name under it is undefined like any other.
+
+The library is spliced onto the end of the grammar that asks for it, into a namespace
+called `Std`, exactly as an included grammar is (§5) — so it has no `trivia` of its own
+and a token is its characters, while the calling grammar spaces and comments around the
+call as it does around anything else (§4.5). Whatever the grammar does not call is not
+compiled: asking for the library costs the rules used and nothing for the rest. A
+grammar that asks for it and is then included by another keeps it — the `using` travels
+inside the namespace it is spliced into, and the including grammar's own compilation
+splices its own copy.
+
+There is no class behind the library, and that decides what it can mean. Its values are
+what the .NET parsers make of the text, in the invariant culture — `Std.Integer` is
+`int.Parse`, and what `int.Parse` refuses, a number too wide for `int`, it refuses the
+way it always does. A grammar that wants a message instead of an exception, or a
+location, or a string with its escapes resolved, declares that rule itself: what a
+lexeme *means* takes code, and the code is the grammar's own. The library is the
+recognition, which every grammar spells the same way.
+
+| Rule | What it reads | Value |
+| --- | --- | --- |
+| `Digit` | one of `'0'..'9'` | text |
+| `HexDigit` | one of `'0'..'9'`, `'a'..'f'`, `'A'..'F'` | text |
+| `Letter` | one letter, `\p{L}` | text |
+| `Space` | one space or tab | text |
+| `Whitespace` | one space, tab, or line-ending character | text |
+| `Digits` | one or more digits | text |
+| `HexDigits` | one or more hexadecimal digits | text |
+| `Blank` | one or more spaces and tabs | text |
+| `Spacing` | one or more whitespace characters | text |
+| `Identifier` | a letter or `_`, then letters, digits and `_`, in the Unicode reading | text |
+| `Integer` | digits | `int` |
+| `Long` | digits | `long` |
+| `Decimal` | digits, and a point and digits | `decimal` |
+| `Double` | digits, a point and digits, an exponent — each after the first optional | `double` |
+| `LineComment(start)` | `start` to the end of the line, the line ending left unread | text |
+| `BlockComment(open, close)` | `open` to the first `close` | text |
+| `Quoted(quote)` | `quote` to `quote`, with `quote` doubled inside — `Quoted('\'')` is SQL's string | text, as written |
+| `Escaped(quote, escape)` | `quote` to `quote`, with `escape` in front of a quote or anything else inside — `Escaped('"', '\\')` is C's | text, as written |
+
+A comment or a string is parameterized by what delimits it, because that is all that
+differs between one language's and the next: `Std.LineComment("--")` is SQL's and
+`Std.LineComment("//")` is C's, and each call is a specialization that costs what the
+rule written out would (§4.2). The numbers are unsigned: whether `-` is part of a number
+or an operator in front of one is a question about the calling grammar, not about
+digits.
 
 ---
 

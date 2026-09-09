@@ -10,7 +10,7 @@ namespace DotGram.Grammar.Binding;
 public abstract record Symbol(string Name);
 
 /// <summary>
-/// A rule. Declaration is null for the standard library, which has symbols but no
+/// A rule. Declaration is null for the built-in rules, which have symbols but no
 /// source.
 /// </summary>
 public sealed record RuleSymbol(

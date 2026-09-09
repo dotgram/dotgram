@@ -20,7 +20,7 @@ public sealed partial class GrammarNormalizer
 	/// runs, so what <c>trivia</c> is made of is reached through <c>trivia</c>.
 	/// </para>
 	/// <para>
-	/// The standard library's own names are never reported. Declaring <c>trivia</c> or
+	/// The built-in rules' own names are never reported. Declaring <c>trivia</c> or
 	/// <c>wordboundary</c> is configuration rather than a rule anything calls (§4.5,
 	/// §4.6): a grammar that sets whitespace handling and then has no seam to weave it
 	/// into has still said what it meant, and a grammar with no keyword in it has still
@@ -43,9 +43,12 @@ public sealed partial class GrammarNormalizer
 
 		var reached = Reached(_model.Publications, rebindings: true);
 
+		// Nor about the standard library, whose whole text comes along for one rule of it
+		// and whose unused remainder is the expected case rather than a remark.
 		foreach (var rule in _rules)
 			if (rule.Declaration is { } declared && !reached.Contains(rule) &&
-				Array.IndexOf(GrammarBinder.StandardLibrary, rule.Name) < 0)
+				Array.IndexOf(GrammarBinder.BuiltIn, rule.Name) < 0 &&
+				!IsStandardLibrary(rule))
 			{
 				Remark(
 					UnusedRule,
@@ -57,12 +60,22 @@ public sealed partial class GrammarNormalizer
 
 	}
 
+	/// <summary>Whether a rule is the standard library's (§5.2): declared under <c>Std</c> at the top.</summary>
+	static bool IsStandardLibrary(RuleSymbol rule)
+	{
+		for (var ns = rule.Namespace; ns is not null; ns = ns.Parent)
+			if (ns.Name == StandardLibrary.Name && ns.Parent is { Name.Length: 0 })
+				return true;
+
+		return false;
+	}
+
 	/// <summary>
 	/// What a set of publications can reach: themselves, what they call, and what is called
 	/// from there.
 	/// </summary>
 	/// <remarks>
-	/// The standard library's names are roots whether anything calls them or not — a seam is
+	/// The built-in rules' names are roots whether anything calls them or not — a seam is
 	/// woven rather than called until lowering has run, and a word boundary is read rather
 	/// than called at all (§4.5, §4.6).
 	/// </remarks>
@@ -82,7 +95,7 @@ public sealed partial class GrammarNormalizer
 			Enter(publication.Rule);
 
 		foreach (var rule in _rules)
-			if (Array.IndexOf(GrammarBinder.StandardLibrary, rule.Name) >= 0)
+			if (Array.IndexOf(GrammarBinder.BuiltIn, rule.Name) >= 0)
 				Enter(rule);
 
 		if (rebindings)

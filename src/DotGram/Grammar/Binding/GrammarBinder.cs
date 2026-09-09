@@ -101,11 +101,12 @@ public sealed class GrammarBinder
 	public const string StateNotInvariant         = "GRAM3020";
 
 	/// <summary>
-	/// Rules every grammar has without declaring them. They live in a namespace outside
-	/// the global one, so a grammar can shadow any of them by declaring its own — which
-	/// is exactly how whitespace handling works (§4.5).
+	/// The built-in rules: what every grammar has without declaring it (§3.1.1). They live
+	/// in a namespace outside the global one, so a grammar can shadow any of them by
+	/// declaring its own — which is exactly how whitespace handling works (§4.5). Not the
+	/// standard library, which is a grammar and is asked for by name (§5.2).
 	/// </summary>
-	public static readonly string[] StandardLibrary =
+	public static readonly string[] BuiltIn =
 
 		["any", "none", "eol", "eof", "trivia", "word", "wordboundary"];
 
@@ -125,7 +126,7 @@ public sealed class GrammarBinder
 		new Dictionary<RuleSymbol, RuleSymbol>();
 
 	/// <summary>
-	/// Set once, by <see cref="CreateStandardLibrary"/> — the one namespace whose own rules
+	/// Set once, by <see cref="CreateBuiltIn"/> — the one namespace whose own rules
 	/// a declaration may shadow in silence (§4.5). Anything else an enclosing namespace
 	/// declares is a grammar rule, and <see cref="Declare"/> warns about shadowing one of
 	/// those from inside a nested namespace.
@@ -156,7 +157,7 @@ public sealed class GrammarBinder
 			throw new ArgumentNullException(nameof(file));
 
 		var binder   = new GrammarBinder(symbols ?? PermissiveSymbolResolver.Instance, own ?? int.MaxValue);
-		var standard = binder.CreateStandardLibrary();
+		var standard = binder.CreateBuiltIn();
 		var global   = new GrammarNamespace("", standard);
 
 		standard.Add(global);
@@ -180,11 +181,11 @@ public sealed class GrammarBinder
 	/// <summary>The type every <c>with state</c> mark is written in, or null (§7.8).</summary>
 	TypeRef? _state;
 
-	GrammarNamespace CreateStandardLibrary()
+	GrammarNamespace CreateBuiltIn()
 	{
 		var standard = new GrammarNamespace("<standard>", parent: null);
 
-		foreach (var name in StandardLibrary)
+		foreach (var name in BuiltIn)
 			standard.TryDeclare(new RuleSymbol(name, standard, Declaration: null));
 
 		return _standard = standard;
@@ -224,7 +225,7 @@ public sealed class GrammarBinder
 					// meant this as a replacement rather than a new declaration (§5.1) — a
 					// declaration always means a new rule, and a rebinding is the only way to
 					// replace one, so silently landing on an enclosing namespace's own rule is
-					// an error here, not the standard library's own always-silent shadowing
+					// an error here, not the built-in rules' own always-silent shadowing
 					// (§4.5), silent at any depth and any number of times over (an
 					// already-shadowed `trivia` re-shadowed again is still `trivia`, by name,
 					// whichever rule currently answers to it), and not anything at the top
@@ -232,7 +233,7 @@ public sealed class GrammarBinder
 					// Shadowing one of this namespace's own `using` imports the same way is
 					// caught separately, in Resolve below — an import is not in view yet
 					// during this pass (§9).
-					else if (!StandardLibrary.Contains(rule.Name) &&
+					else if (!BuiltIn.Contains(rule.Name) &&
 						ns.Parent != _standard &&
 						ns.Parent?.Lookup(rule.Name) is not null)
 					{
@@ -298,7 +299,7 @@ public sealed class GrammarBinder
 	void CheckImportShadowing(GrammarNamespace ns)
 	{
 		foreach (var rule in ns.Rules.Values)
-			if (!StandardLibrary.Contains(rule.Name) &&
+			if (!BuiltIn.Contains(rule.Name) &&
 				ns.Imports.Any(imported => imported.Rules.ContainsKey(rule.Name)))
 				Report(ShadowsEnclosingRule, ShadowsMessage(rule.Name), rule.Declaration!.At);
 	}

@@ -1174,7 +1174,7 @@ public sealed partial class GrammarNormalizer
 	/// The one built-in whose body is a property of where it was written. The others say
 	/// the same thing everywhere — <c>eof</c> is the end of the input wherever it is asked
 	/// — but a word is a run of whatever <c>wordboundary</c> says continues one, and that
-	/// is declared per namespace. The standard library's own symbol stands outside every
+	/// is declared per namespace. The built-in rule's own symbol stands outside every
 	/// namespace that could declare a boundary, so a call to it would find none; this
 	/// gives each namespace a rule of its own instead, made once and reused.
 	/// </remarks>

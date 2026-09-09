@@ -51,6 +51,11 @@
 		     need taking out of the default None glob so they appear once. -->
 		<None Remove="AnalyzerReleases.*.md" />
 
+		<!-- The standard library (docs/syntax.md §5.2) travels inside the generator: a
+		     grammar that writes `using Std;` gets it spliced on, and there is no other
+		     file for it to come from. -->
+		<EmbeddedResource Include="Grammar\Std.gram" LogicalName="DotGram.Std.gram" />
+
 		<!-- The repository README is the package README: one text, so the two cannot
 		     drift into disagreeing about what this does. -->
 		<None Include="..\..\README.md" Pack="true" PackagePath="\" Visible="false" />

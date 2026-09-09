@@ -16893,3 +16893,38 @@ is still `GRAM0006`. The parameterless `[Gram]`, the file named after the class,
 The test that had two grammars on one class became one grammar read two ways, which is what
 the shape was always for; the span it hands to a host method is still the host's one type
 across both readings, which is the point that test makes.
+
+### The standard library
+
+The last piece the include machinery was built for. A `.gram` file, `Std.gram`, carried
+inside the generator as an embedded resource and spliced onto any grammar that writes
+`using Std;` — through the same `GrammarSplice` an included grammar goes through, into a
+namespace of its own, after everything the author wrote. `GramCompiler.Read` is where the
+question is asked, once for the compiler and once for the generator's questions, so the
+two read the same text; `Prune()` then drops whatever the grammar did not call, which is
+what makes asking for the whole library cost the rules used.
+
+**Asked for, not always there.** The first thought was to splice it into every grammar and
+let the namespace hide it until a `using`. The `using` stayed and the always-splicing went:
+even C needs its `#include`, and a grammar that names nothing of the library should not
+pay a normalizer pass over thirty rules it never sees. The detection is a walk over every
+`using` in the parsed file, nested namespaces and included grammars' included — which is
+what makes a grammar that uses `Std` keep it when another includes it.
+
+**Qualified names only.** `Std.Integer`, never `Integer`: the library's names are the plain
+ones a grammar of its own is likely to want, and shadowing one silently is the wrong
+default for anything beyond the seven built-in rules. Those seven were called "the
+standard library" in code and in §3.1.1 until now; they are the built-in rules
+(`GrammarBinder.BuiltIn`), and the standard library is `Std`.
+
+**No class behind it**, so its C# is the framework named in full — `global::System.…` —
+and its values are what `int.Parse` and its fellows make of the text, in the invariant
+culture. A number too wide for `int` throws, as `int.Parse` does; a serious parser
+declares its own numbers with a location and a message, and that is the intended shape —
+the library is the recognition every grammar spells the same way, and the meaning is the
+grammar's. Comments and strings are parameterized by their delimiters,
+`Std.LineComment("--")`, `Std.Quoted('\'')`, because that is all that differs.
+
+GRAM4018 does not remark on the library's unreached rules — the unreached remainder is
+the expected case — and §5.2's table is checked against `Std.gram` the way the table of
+contents is checked against the headings: a rule added to one and not the other fails.
