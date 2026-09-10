@@ -17650,3 +17650,56 @@ by the keys, certificates and Always Encrypted keys, so that the walker's check 
 `Syntax.Setting` from the words the catalogue's line read, not by the index options' builder:
 in a key's bracketless list that builder read `ENCRYPTION BY CERTIFICATE c` as the value of
 `ALGORITHM = AES_256`. The tree's shape is otherwise left alone for now.
+
+## The database's settings, as a catalogue
+
+`ALTER DATABASE … SET` was one rule for all of its settings: a run of words and then whatever
+followed. The engine was put some four hundred and seventy questions about it and its scoped
+configuration, and its list is closed — `SET FOO ON` is a 102 like any other syntax error.
+What came out:
+
+- **`=` is part of each setting's syntax.** `AUTO_CLOSE = ON`, `RECOVERY = SIMPLE`,
+  `DB_CHAINING = ON`, `PARAMETERIZATION = FORCED` are refused; so are `CHANGE_TRACKING ON`,
+  `QUERY_STORE ON`, `CONTAINMENT PARTIAL`, `OPTIMIZED_LOCKING ON`. Only
+  `MEMORY_OPTIMIZED_ELEVATE_TO_SNAPSHOT` reads both ways.
+- **The values are narrower than an expression.** Whole numbers for a compatibility level, a
+  year cutoff, a language, a timeout and everything inside `QUERY_STORE` and
+  `CHANGE_TRACKING`; a fraction for `TARGET_RECOVERY_TIME` and the scoped numbers; no
+  variables and no strings where the block says a number or a name. `DEFAULT_LANGUAGE =
+  'English'` is refused and `= English` read.
+- **The units differ by setting.** `CHANGE_RETENTION` takes `DAYS`, `HOURS` or `MINUTES`
+  and answers `2 DAY` with 155; `STALE_CAPTURE_POLICY_THRESHOLD` takes `DAY` and `HOUR` as
+  well; `TARGET_RECOVERY_TIME` refuses `MINUTE`; `ROLLBACK AFTER` takes whole seconds only.
+- **The engine knows more than the block and less.** `SUPPLEMENTAL_LOGGING`,
+  `VARDECIMAL_STORAGE_FORMAT`, `RESULT_SET_CACHING`, `DESIRED_STATE` and
+  `FLUSH_INTERVAL_SECONDS` are read; `DATA_RETENTION` is not, and neither are two scoped
+  settings the block lists — `ALLOW_STALE_VECTOR_INDEX` and
+  `ALLOW_BUILTIN_TVF_IN_ALL_COMPAT_LEVELS` — on this build, 17.0.1125. They are left out
+  and will need a version of their own when a build that reads them is at hand.
+- **Scoped configuration takes one setting.** `SET MAXDOP = 4, IDENTITY_CACHE = OFF` is
+  refused. Every on/off setting there may be written `= PRIMARY` as syntax; that only a
+  secondary may be is a later objection (12109). A plan handle is binary or nothing.
+- **Nothing is gated by level.** Every answer was the same at 100 and at 170.
+
+The top of the list is not gated the way the index options are. Nothing after a setting
+proves where it ended — no bracket, and the next statement may follow without a `;` — and
+the old run of words read `SET ONLINE SELECT 1` as a setting called `ONLINE SELECT`. So each
+line there builds its own `Clause.Option`, the same node the builder made; the lists in
+brackets keep the gate and the builder. `ALTER DATABASE d SET MAXDOP = 1`, which two old
+tests held as read, is a scoped configuration's setting in a database's place, and the
+engine refuses it.
+
+Eleven more messages moved to the read side of the audit, each looked up first: 5091,
+10770, 10771, 12108, 12109, 12110, 12121, 12401, 12417, 15701, 31207 — ranges, replicas,
+and a setting written twice.
+
+Of the probes, 463 of 470 agree. The seven are three statements followed by a `SELECT` on
+the same line, which the harness reads as one statement, and three settings written twice
+inside `FILESTREAM` and `REMOTE_DATA_ARCHIVE`, which the engine refuses as syntax and this
+leaves to the walker, as with the keys. And `PARTNER SAFETY OFF`, which the first draft
+lost to the order of a choice and a test now holds.
+
+At 150: 5,575 read by both, the work list 393, read here and refused there 78 (from 99),
+another product's 284 (from 306) — Azure's automatic tuning and the scoped settings the
+corpus invents. Round trip 100% of 6,725: fewer statements are read by both, because this
+no longer reads what ScriptDom read and the engine does not.

@@ -530,6 +530,73 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>
+	/// What a database is set to and configured to, as the engine answers it: a closed list,
+	/// with `=` where each setting has it and nowhere else.
+	/// </summary>
+	/// <remarks>
+	/// `ALTER DATABASE d SET MAXDOP = 1` is a scoped configuration's setting written where a
+	/// database's goes; it was read while the list was a run of words.
+	/// </remarks>
+	[Theory]
+	[InlineData("ALTER DATABASE d SET FOO ON")]
+	[InlineData("ALTER DATABASE d SET MAXDOP = 1")]
+	[InlineData("ALTER DATABASE d SET AUTO_CLOSE = ON")]
+	[InlineData("ALTER DATABASE d SET RECOVERY = SIMPLE")]
+	[InlineData("ALTER DATABASE d SET CHANGE_TRACKING ON")]
+	[InlineData("ALTER DATABASE d SET CHANGE_TRACKING = ON (CHANGE_RETENTION = 2 DAY)")]
+	[InlineData("ALTER DATABASE d SET CONTAINMENT PARTIAL")]
+	[InlineData("ALTER DATABASE d SET AUTO_CREATE_STATISTICS OFF (INCREMENTAL = ON)")]
+	[InlineData("ALTER DATABASE d SET AUTO_UPDATE_STATISTICS ON (INCREMENTAL = ON)")]
+	[InlineData("ALTER DATABASE d SET QUERY_STORE (QUERY_CAPTURE_MODE = FOO)")]
+	[InlineData("ALTER DATABASE d SET QUERY_STORE = OFF (OPERATION_MODE = READ_ONLY)")]
+	[InlineData("ALTER DATABASE d SET QUERY_STORE (INTERVAL_LENGTH_MINUTES = 15.5)")]
+	[InlineData("ALTER DATABASE d SET TARGET_RECOVERY_TIME = 1 MINUTE")]
+	[InlineData("ALTER DATABASE d SET DEFAULT_LANGUAGE = 'English'")]
+	[InlineData("ALTER DATABASE d SET TWO_DIGIT_YEAR_CUTOFF = 2049.5")]
+	[InlineData("ALTER DATABASE d SET HADR ON")]
+	[InlineData("ALTER DATABASE d SET PARTNER TIMEOUT 10.5")]
+	[InlineData("ALTER DATABASE d SET PERSISTENT_LOG_BUFFER = ON")]
+	[InlineData("ALTER DATABASE d SET AUTO_CLOSE ON WITH ROLLBACK AFTER @x")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION SET FOO_BAR = ON")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION SET MAXDOP = 4, IDENTITY_CACHE = OFF")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION SET ELEVATE_ONLINE = ON")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION SET MAXDOP = @x")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION SET MAXDOP = +4")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION SET PARAMETER_SNIFFING = 1")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION CLEAR PROCEDURE_CACHE @h")]
+	public void The_database_catalogue_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside them.</summary>
+	[Theory]
+	[InlineData("ALTER DATABASE d SET PARTNER TIMEOUT 10")]
+	[InlineData("ALTER DATABASE d SET PARTNER SAFETY OFF, PARTNER SAFETY FULL, PARTNER OFF")]
+	[InlineData("ALTER DATABASE d SET MEMORY_OPTIMIZED_ELEVATE_TO_SNAPSHOT ON, MEMORY_OPTIMIZED_ELEVATE_TO_SNAPSHOT = OFF")]
+	[InlineData("ALTER DATABASE d SET QUERY_STORE = ON (QUERY_CAPTURE_MODE = CUSTOM, " +
+		"QUERY_CAPTURE_POLICY = (STALE_CAPTURE_POLICY_THRESHOLD = 1 DAY, EXECUTION_COUNT = 30))")]
+	[InlineData("ALTER DATABASE d SET QUERY_STORE = OFF (FORCED)")]
+	[InlineData("ALTER DATABASE d SET REMOTE_DATA_ARCHIVE (SERVER = N's', FEDERATED_SERVICE_ACCOUNT = OFF, CREDENTIAL = [c])")]
+	[InlineData("ALTER DATABASE d SET FILESTREAM (DIRECTORY_NAME = NULL, NON_TRANSACTED_ACCESS = FULL)")]
+	[InlineData("ALTER DATABASE d SET ACCELERATED_DATABASE_RECOVERY = ON (PERSISTENT_VERSION_STORE_FILEGROUP = [fg])")]
+	[InlineData("ALTER DATABASE d SET SUSPEND_FOR_SNAPSHOT_BACKUP = ON (MODE = COPY_ONLY)")]
+	[InlineData("ALTER DATABASE d SET DEFAULT_LANGUAGE = [us_english], DEFAULT_FULLTEXT_LANGUAGE = 1033")]
+	[InlineData("ALTER DATABASE d SET SUPPLEMENTAL_LOGGING ON, VARDECIMAL_STORAGE_FORMAT OFF")]
+	[InlineData("ALTER DATABASE d SET TARGET_RECOVERY_TIME = 42.5 SECONDS")]
+	[InlineData("ALTER DATABASE d SET PARTNER = 'x', WITNESS = 'y' WITH NO_WAIT")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION SET MAXDOP = -1")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION SET IDENTITY_CACHE = PRIMARY")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION SET ELEVATE_RESUMABLE = WHEN_SUPPORTED")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION SET LEDGER_DIGEST_STORAGE_ENDPOINT = N'https://x'")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION SET DW_COMPATIBILITY_LEVEL = AUTO")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION CLEAR PROCEDURE_CACHE 0x06")]
+	public void The_database_catalogue_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>A construct taken out of the language: read up to a level and refused after it.</summary>
 	/// <remarks>
 	/// The weak algorithms, as the engine answers them: everything but AES and the longer RSA
@@ -1093,10 +1160,10 @@ public sealed class TransactSqlTests
 
 	/// <summary>The database, which is a header and an option list.</summary>
 	/// <remarks>
-	/// The settings are not enumerated and the rule is not about which of them exist: a
-	/// setting is a run of words and then, sometimes, what it is set to. What the syntax
-	/// does say is where the run ends — `ON` and `OFF` are values, and `WITH` begins the
-	/// termination clause — and that is what the lookahead in `DatabaseOptionName` is.
+	/// What `ALTER DATABASE … SET` may set is a catalogue, held to the engine in
+	/// <see cref="The_database_catalogue_refuses_what_the_engine_does"/>. A `CREATE DATABASE`'s
+	/// settings are still a run of words and then, sometimes, what it is set to, and the syntax
+	/// says where the run ends: `ON` and `OFF` are values, and `WITH` begins the next clause.
 	/// </remarks>
 	[Theory]
 	[InlineData("CREATE DATABASE d1")]
@@ -1642,7 +1709,7 @@ public sealed class TransactSqlTests
 	[InlineData("SET LANGUAGE us_english",          "SetCommand")]
 
 	[InlineData("CREATE DATABASE d",                "CreateDatabase")]
-	[InlineData("ALTER DATABASE d SET MAXDOP = 1",  "AlterDatabaseSet")]
+	[InlineData("ALTER DATABASE d SET AUTO_CLOSE ON", "AlterDatabaseSet")]
 	[InlineData("ALTER DATABASE d COLLATE Estonian_CS_AS", "AlterDatabaseCollate")]
 	[InlineData("ALTER DATABASE d MODIFY NAME = e", "AlterDatabaseModifyName")]
 	[InlineData("ALTER DATABASE d REBUILD LOG",     "AlterDatabaseRebuildLog")]

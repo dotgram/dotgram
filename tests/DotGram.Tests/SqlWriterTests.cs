@@ -89,7 +89,7 @@ public sealed class SqlWriterTests
 	[InlineData("DROP TABLE a, b",                        "DROP TABLE a, b")]
 	[InlineData("DROP XML SCHEMA COLLECTION c",           "DROP XML SCHEMA COLLECTION c")]
 	[InlineData("CREATE SCHEMA s",                        "CREATE SCHEMA s")]
-	[InlineData("ALTER DATABASE d SET MAXDOP = 1",        "ALTER DATABASE d SET MAXDOP = 1")]
+	[InlineData("ALTER DATABASE d SET COMPATIBILITY_LEVEL = 150", "ALTER DATABASE d SET COMPATIBILITY_LEVEL = 150")]
 	public void A_statement_comes_back_as_what_it_said(string input, string printed) =>
 		Assert.Equal(printed, SqlWriter.Write(Read(input)));
 

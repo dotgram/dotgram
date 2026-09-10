@@ -424,7 +424,24 @@ static class Engine
 			//
 			//   1080  The integer value … is out of range.
 			//  11431  The … option is not permitted as the … option is not turned '…'.
-			or 1080 or 11431;
+			or 1080 or 11431
+
+			// And the ones the database's settings and scoped configuration turned up.
+			//
+			//   5091  ALTER DATABASE change tracking option '…' was specified more than once.
+			//  10770  The SERVER option and one of CREDENTIAL or FEDERATED_SERVICE_ACCOUNT = ON ….
+			//  10771  The CREDENTIAL option cannot be used with the FEDERATED_SERVICE_ACCOUNT = ON option.
+			//  12108  '…' is out of range for the database scoped configuration option '…'.
+			//  12109  Statement '…' failed, because it attempted to set the value to '…' for the primary ….
+			//  12110  Statement '…' failed, because it attempted to set the '…' option for the secondaries ….
+			//  12121  Time value … used with PAUSED_RESUMABLE_INDEX_ABORT_DURATION_MINUTES is not valid ….
+			//  12401  The … option '…' was specified more than once.
+			//  12417  Only one Query Store option can be given in ALTER DATABASE statement.
+			//  15701  Statement … failed, because it attempted to set the Automatic Tuning option … multiple times.
+			//  31207  Invalid value for Full-Text index version is specified.
+			or 5091 or 10770 or 10771
+			or 12108 or 12109 or 12110 or 12121 or 12401 or 12417
+			or 15701 or 31207;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open

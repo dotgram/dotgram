@@ -1804,9 +1804,9 @@ public abstract record Clause : ISqlSpan
 	/// </summary>
 	/// <remarks>
 	/// <c>WITH (DATA_COMPRESSION = PAGE ON PARTITIONS (1))</c>, <c>SET (LOCK_ESCALATION =
-	/// AUTO)</c>, <c>MASKED WITH (FUNCTION = 'default()')</c>, and the two hundred settings of
-	/// <c>ALTER DATABASE</c>. The names are a catalogue and not a language, so one node holds
-	/// them all: what an option means is the engine's question. <see cref="Bare"/> says the
+	/// AUTO)</c>, <c>MASKED WITH (FUNCTION = 'default()')</c>, and the settings of
+	/// <c>ALTER DATABASE</c>. Which names there are is the grammar's catalogue and not the
+	/// tree's, so one node holds them all: what an option means is the engine's question. <see cref="Bare"/> says the
 	/// value stood after the name with no <c>=</c> between — <c>SET ENCRYPTION ON</c>, <c>WITH
 	/// PAD_INDEX ON</c> — which is a spelling the tree keeps because some statements accept
 	/// only that one.

@@ -1576,7 +1576,7 @@ OptionSetting : @Clause
 //
 // A run of them, because the published syntax says a run in four places: `MOVE TO`,
 // `CLUSTERED COLUMNSTORE INDEX`, `TRANSACTION ISOLATION LEVEL = SNAPSHOT` inside a
-// `BEGIN ATOMIC WITH`, and every one of the two hundred database settings. Where it ends
+// `BEGIN ATOMIC WITH`, and the settings a `CREATE DATABASE` lists. Where it ends
 // is the syntax: `ON` and `OFF` are what an option is set to rather than part of its
 // name, and `WITH` begins the clause after the list.
 OptionName = OptionWord+
@@ -3122,9 +3122,9 @@ DropKind
 // table's are, so the option list already written reads them; a file specification is that
 // same list in brackets. What is new is the header and about thirty lines.
 //
-// The settings themselves are not enumerated and are not going to be. There are some two
-// hundred of them, they differ by edition and by version, and none of that is syntax: a
-// setting is a run of words and then, sometimes, what it is set to.
+// A `CREATE DATABASE`'s settings are still read as a run of words and then, sometimes, what
+// it is set to. What `ALTER DATABASE … SET` may set is a catalogue, written out below with
+// the engine's answers.
 CreateDatabaseStatement : @Statement
 	= "CREATE"i & "DATABASE"i & name: Identifier & '(' & options: OptionList & ')'
 		=> @(new Statement.CreateDatabase(name, Clause.None, Tail: "", Options: options))
@@ -3191,7 +3191,7 @@ AlterDatabaseStatement : @Statement
 
 	// The one action that keeps what it read, so the one written before the rest.
 	| "ALTER"i & "DATABASE"i & name: DatabaseTarget
-	  & "SET"i & first: DatabaseOption & (',' & rest: DatabaseOption)* & how: DatabaseTermination?
+	  & "SET"i & first: DatabaseSetting & (',' & rest: DatabaseSetting)* & how: DatabaseTermination?
 		=> @(new Statement.AlterDatabaseSet(name, Syntax.Listed(first, rest), how))
 
 	// The one action with a body of its own: what is modified, and how the cutover goes.
@@ -3209,12 +3209,18 @@ DatabaseTarget : @string = "CURRENT"i => @("CURRENT") | t: Identifier => @(t)
 
 ScopedConfiguration : @Statement.AlterDatabaseScopedConfiguration
 	= s: ScopedSet => @(s)
-	| "CLEAR"i & "PROCEDURE_CACHE"i & handle: ValueExpression?
+	| "CLEAR"i & "PROCEDURE_CACHE"i & handle: PlanHandle?
 		=> @(new Statement.AlterDatabaseScopedConfiguration("", "CLEAR PROCEDURE_CACHE", Clause.None, false, handle))
 
+// A plan handle is written as binary and as nothing else: the engine refuses a variable,
+// a string and a number in its place.
+PlanHandle : @Expression = t: Tsql.BinaryLiteral => @(new Expression.Literal(SqlLiteralKind.Hex, t))
+
+// One setting to a statement. The published block says `<set_options>` without `[ ,...n ]`,
+// and the engine agrees: `SET MAXDOP = 4, IDENTITY_CACHE = OFF` is refused.
 ScopedSet : @Statement.AlterDatabaseScopedConfiguration
-	= "SET"i & first: DatabaseOption & (',' & rest: DatabaseOption)*
-		=> @(new Statement.AlterDatabaseScopedConfiguration("", "SET", Syntax.Listed(first, rest)))
+	= "SET"i & o: ScopedSetting
+		=> @(new Statement.AlterDatabaseScopedConfiguration("", "SET", new Clause[] { o }))
 
 // Which action was written, as the words the tree is keyed by. The statement builds the
 // record; this says which record it is, because a rule cannot name a different type per
@@ -3261,29 +3267,279 @@ FileGroupAction = "DEFAULT"i | "NAME"i & '=' & Identifier | word
 
 // ── What a database is set to ───────────────────────────────────────────────
 //
-// One rule for all two hundred of them, and it is `word` (§4.6) that makes it one. A
-// setting is a run of words — `MAXDOP`, `SINGLE_USER`, `HADR AVAILABILITY GROUP`,
-// `QUERY_STORE CLEAR ALL` — and then what it is set to, where it is set to anything:
-// `= 4`, `= ON (…)`, `ON`, `(AUTO_CLEANUP = ON)`, `= 42 SECONDS`.
+// The catalogue of `ALTER DATABASE … SET`, from the published block and its two companions
+// (`SET HADR`, database mirroring), each line put to the engine. It was one rule for all of
+// them, a run of words and then whatever followed; the engine's list is closed, and it
+// refuses a name it does not know with the same 102 it gives any other syntax error.
 //
-// The run ends where the syntax says it does and not where a list of names would: `ON` and
-// `OFF` are what a setting is set to rather than part of its name, and `WITH` begins the
-// termination clause after the whole list. Without the lookahead the name would swallow
-// the `WITH`, and the parse would then stop one word past what it ate.
-DatabaseOption : @Clause
-	= name: DatabaseOptionName & tail: DatabaseOptionValue?
-		=> @(tail is null ? new Clause.Option(name, null, Clause.None) : tail with { Name = name })
+// Whether a setting takes `=` is part of its syntax, and the engine holds every one to its
+// own: `AUTO_CLOSE = ON`, `RECOVERY = SIMPLE` and `DB_CHAINING = ON` are refused, and so are
+// `CHANGE_TRACKING ON`, `CONTAINMENT PARTIAL` and `OPTIMIZED_LOCKING ON`. Only
+// `MEMORY_OPTIMIZED_ELEVATE_TO_SNAPSHOT` is read both ways.
+//
+// A setting at the top of the list is built by its own line and not by the option builder,
+// because nothing after it proves where it ended: the list may stop without a `;` and the
+// next statement begin, and `SET ONLINE SELECT 1` is two statements the builder read as a
+// setting called `ONLINE SELECT`. The lists in brackets are gated the way the index options
+// are, the syntax in front of the builder that was already there.
+//
+// The engine knows `SUPPLEMENTAL_LOGGING`, `VARDECIMAL_STORAGE_FORMAT` and
+// `RESULT_SET_CACHING`, which the block does not name, and `DESIRED_STATE` and
+// `FLUSH_INTERVAL_SECONDS` inside `QUERY_STORE`. It does not know `DATA_RETENTION`, which
+// is Azure SQL Edge's.
+DatabaseSetting : @Clause
+	= name: DatabaseWords
+		=> @(new Clause.Option(name, null, Clause.None))
+	| name: "AUTO_CREATE_STATISTICS"i & "ON"i & n: IncrementalNest?
+		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), n ?? Clause.None, null, true))
+	| name: DatabaseSwitch & s: OnOff
+		=> @(new Clause.Option(name, new Expression.ColumnReference(s), Clause.None, null, true))
+	| name: DatabaseEqualsSwitch & '=' & s: OnOff
+		=> @(new Clause.Option(name, new Expression.ColumnReference(s), Clause.None))
 
-DatabaseOptionName : @string = t: OptionName => @(t)
+	| name: "COMPATIBILITY_LEVEL"i & '=' & v: DatabaseInteger
+		=> @(new Clause.Option(name, v, Clause.None))
+	| name: "TWO_DIGIT_YEAR_CUTOFF"i & '=' & v: DatabaseInteger
+		=> @(new Clause.Option(name, v, Clause.None))
+	| name: ("DEFAULT_LANGUAGE"i | "DEFAULT_FULLTEXT_LANGUAGE"i) & '=' & v: LanguageValue
+		=> @(new Clause.Option(name, v, Clause.None))
+	| name: "TARGET_RECOVERY_TIME"i & '=' & v: DatabaseDecimal & u: RecoveryUnit
+		=> @(new Clause.Option(name, Syntax.Measured(v, u), Clause.None))
+	| name: "CONTAINMENT"i & '=' & t: ("NONE"i | "PARTIAL"i)
+		=> @(new Clause.Option(name, new Expression.ColumnReference(t), Clause.None))
+	| name: "DELAYED_DURABILITY"i & '=' & t: ("DISABLED"i | "ALLOWED"i | "FORCED"i)
+		=> @(new Clause.Option(name, new Expression.ColumnReference(t), Clause.None))
 
-DatabaseOptionValue : @Clause.Option
-	= '=' & n: OptionNest                   => @(new Clause.Option("", null, n))
-	| '=' & v: OptionValue & n: OptionNest? => @(new Clause.Option("", v, n ?? Clause.None))
-	| '(' & o: OptionList & ')'             => @(new Clause.Option("", null, o, null, true))
-	| s: OnOff & n: OptionNest?             => @(new Clause.Option("", new Expression.ColumnReference(s), n ?? Clause.None, null, true))
+	// `= AUTO` and `= CUSTOM`; `= INHERIT` and the index recommendations are Azure's.
+	| name: "AUTOMATIC_TUNING"i & '=' & t: ("AUTO"i | "CUSTOM"i)
+		=> @(new Clause.Option(name, new Expression.ColumnReference(t), Clause.None))
+	| name: "AUTOMATIC_TUNING"i & '(' & first: TuningOption & (',' & rest: TuningOption)* & ')'
+		=> @(new Clause.Option(name, null, Syntax.Listed(first, rest), null, true))
 
+	| name: "CHANGE_TRACKING"i & '=' & "OFF"i
+		=> @(new Clause.Option(name, new Expression.ColumnReference("OFF"), Clause.None))
+	| name: "CHANGE_TRACKING"i & '=' & "ON"i & n: TrackingNest?
+		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), n ?? Clause.None))
+	| name: "CHANGE_TRACKING"i & n: TrackingNest
+		=> @(new Clause.Option(name, null, n, null, true))
+
+	| name: "QUERY_STORE"i & '=' & "OFF"i & n: ForcedNest?
+		=> @(new Clause.Option(name, new Expression.ColumnReference("OFF"), n ?? Clause.None))
+	| name: "QUERY_STORE"i & '=' & "ON"i & n: StoreNest?
+		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), n ?? Clause.None))
+	| name: "QUERY_STORE"i & n: StoreNest
+		=> @(new Clause.Option(name, null, n, null, true))
+
+	| name: "FILESTREAM"i & '(' & first: FilestreamOption & (',' & rest: FilestreamOption)* & ')'
+		=> @(new Clause.Option(name, null, Syntax.Listed(first, rest), null, true))
+
+	| name: "REMOTE_DATA_ARCHIVE"i & '=' & "ON"i & n: ArchiveNest
+		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), n))
+	| name: "REMOTE_DATA_ARCHIVE"i & '=' & "OFF"i
+		=> @(new Clause.Option(name, new Expression.ColumnReference("OFF"), Clause.None))
+	| name: "REMOTE_DATA_ARCHIVE"i & n: ArchiveNest
+		=> @(new Clause.Option(name, null, n, null, true))
+
+	| name: "PERSISTENT_LOG_BUFFER"i & '=' & "ON"i & n: LogBufferNest
+		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), n))
+	| name: "SUSPEND_FOR_SNAPSHOT_BACKUP"i & '=' & "ON"i & n: SuspendNest?
+		=> @(new Clause.Option(name, new Expression.ColumnReference("ON"), n ?? Clause.None))
+	| name: ("PERSISTENT_LOG_BUFFER"i | "SUSPEND_FOR_SNAPSHOT_BACKUP"i) & '=' & "OFF"i
+		=> @(new Clause.Option(name, new Expression.ColumnReference("OFF"), Clause.None))
+	| name: "ACCELERATED_DATABASE_RECOVERY"i & '=' & s: OnOff & n: VersionStoreNest?
+		=> @(new Clause.Option(name, new Expression.ColumnReference(s), n ?? Clause.None))
+
+	// Availability groups and mirroring. Only `OFF` is a switch here: `HADR ON`, `PARTNER
+	// SAFETY ON` and `WITNESS ON` are refused.
+	| name: ("PARTNER"i & "SAFETY"i | "HADR"i | "PARTNER"i | "WITNESS"i) & "OFF"i
+		=> @(new Clause.Option(name, new Expression.ColumnReference("OFF"), Clause.None, null, true))
+	| name: ("HADR"i & "AVAILABILITY"i & "GROUP"i) & '=' & t: Identifier
+		=> @(new Clause.Option(name, new Expression.ColumnReference(t), Clause.None))
+	| name: ("PARTNER"i | "WITNESS"i) & '=' & v: DatabaseText
+		=> @(new Clause.Option(name, v, Clause.None))
+	| name: ("PARTNER"i & "TIMEOUT"i) & v: DatabaseInteger
+		=> @(new Clause.Option(name, v, Clause.None, null, true))
+
+// The settings that are only words.
+// Untyped, like the other lists of names here, so that a setting's name is the words as
+// they were written whichever line read them.
+DatabaseWords
+	= "ONLINE"i | "OFFLINE"i | "EMERGENCY"i | "READ_ONLY"i | "READ_WRITE"i
+	| "SINGLE_USER"i | "RESTRICTED_USER"i | "MULTI_USER"i
+	| "ENABLE_BROKER"i | "DISABLE_BROKER"i | "NEW_BROKER"i | "ERROR_BROKER_CONVERSATIONS"i
+	| "CURSOR_DEFAULT"i & ("LOCAL"i | "GLOBAL"i)
+	| "RECOVERY"i & ("FULL"i | "BULK_LOGGED"i | "SIMPLE"i)
+	| "PAGE_VERIFY"i & ("CHECKSUM"i | "TORN_PAGE_DETECTION"i | "NONE"i)
+	| "PARAMETERIZATION"i & ("SIMPLE"i | "FORCED"i)
+	| "ENCRYPTION"i & ("SUSPEND"i | "RESUME"i)
+	| "QUERY_STORE"i & "CLEAR"i & "ALL"i?
+	| "HADR"i & ("SUSPEND"i | "RESUME"i)
+	| "PARTNER"i & ("FAILOVER"i | "FORCE_SERVICE_ALLOW_DATA_LOSS"i | "RESUME"i | "SUSPEND"i
+				   | "SAFETY"i & "FULL"i)
+
+// The settings that are switched without `=`.
+DatabaseSwitch
+	= "AUTO_CLOSE"i | "AUTO_CREATE_STATISTICS"i | "AUTO_SHRINK"i
+	| "AUTO_UPDATE_STATISTICS"i | "AUTO_UPDATE_STATISTICS_ASYNC"i
+	| "CURSOR_CLOSE_ON_COMMIT"i | "DATE_CORRELATION_OPTIMIZATION"i
+	| "DB_CHAINING"i | "TRUSTWORTHY"i | "MIXED_PAGE_ALLOCATION"i | "HONOR_BROKER_PRIORITY"i
+	| "ALLOW_SNAPSHOT_ISOLATION"i | "READ_COMMITTED_SNAPSHOT"i
+	| "MEMORY_OPTIMIZED_ELEVATE_TO_SNAPSHOT"i
+	| "ANSI_NULL_DEFAULT"i | "ANSI_NULLS"i | "ANSI_PADDING"i | "ANSI_WARNINGS"i
+	| "ARITHABORT"i | "CONCAT_NULL_YIELDS_NULL"i | "NUMERIC_ROUNDABORT"i
+	| "QUOTED_IDENTIFIER"i | "RECURSIVE_TRIGGERS"i | "TORN_PAGE_DETECTION"i
+	| "TEMPORAL_HISTORY_RETENTION"i | "ENCRYPTION"i
+	| "SUPPLEMENTAL_LOGGING"i | "VARDECIMAL_STORAGE_FORMAT"i | "RESULT_SET_CACHING"i
+
+// And the ones switched with it.
+DatabaseEqualsSwitch
+	= "NESTED_TRIGGERS"i | "TRANSFORM_NOISE_WORDS"i | "MEMORY_OPTIMIZED_ELEVATE_TO_SNAPSHOT"i
+	| "OPTIMIZED_LOCKING"i
+
+// Whole numbers where the engine wants them — `TWO_DIGIT_YEAR_CUTOFF = 2049.5` and `PARTNER
+// TIMEOUT 10.5` are refused — and a fraction where it takes one: `TARGET_RECOVERY_TIME =
+// 42.5 SECONDS` reads. No exponent anywhere.
+DatabaseInteger : @Expression = t: Sql92.Lexical.Digits => @(new Expression.Literal(SqlLiteralKind.Number, t))
+DatabaseDecimal : @Expression = t: Sql92.Lexical.ExactNumericLiteral => @(new Expression.Literal(SqlLiteralKind.Number, t))
+
+DatabaseText : @Expression
+	= t: Sql92.Lexical.NationalCharacterStringLiteral => @(new Expression.Literal(SqlLiteralKind.National, t))
+	| t: Sql92.Lexical.CharacterStringLiteral         => @(new Expression.Literal(SqlLiteralKind.Text, t))
+
+// A language by its number or its name, and not by a string: `DEFAULT_LANGUAGE = 'English'`
+// is refused where `= English` and `= [us_english]` are read.
+LanguageValue : @Expression
+	= v: DatabaseInteger => @(v)
+	| t: Identifier      => @(new Expression.ColumnReference(t))
+
+RecoveryUnit : @string = t: ("SECONDS"i | "MINUTES"i) => @(t)
+
+// The lists in brackets. A list whose block allows one setting is written with one: the
+// engine refuses `(MODE = COPY_ONLY, MODE = COPY_ONLY)` as syntax. Where the block allows a
+// list, a setting written twice is left to a check (SqlWalker) as everywhere else.
+IncrementalNest : @Clause[]
+	= '(' & ?=("INCREMENTAL"i & OnOffValue & ')') & o: OptionSetting & ')' => @(new Clause[] { o })
+LogBufferNest : @Clause[]
+	= '(' & ?=("DIRECTORY_NAME"i & '=' & Quoted & ')') & o: OptionSetting & ')' => @(new Clause[] { o })
+SuspendNest : @Clause[]
+	= '(' & ?=("MODE"i & '=' & "COPY_ONLY"i & ')') & o: OptionSetting & ')' => @(new Clause[] { o })
+VersionStoreNest : @Clause[]
+	= '(' & ?=("PERSISTENT_VERSION_STORE_FILEGROUP"i & '=' & Identifier & ')') & o: OptionSetting & ')'
+		=> @(new Clause[] { o })
+
+TuningOption : @Clause
+	= ?=("FORCE_LAST_GOOD_PLAN"i & '=' & ("DEFAULT"i | OnOff) & OptionEnds) & o: OptionSetting => @(o)
+
+TrackingNest : @Clause[]
+	= '(' & first: TrackingOption & (',' & rest: TrackingOption)* & ')' => @(Syntax.Listed(first, rest))
+TrackingOption : @Clause = ?=(TrackingSyntax & OptionEnds) & o: OptionSetting => @(o)
+
+// `CHANGE_RETENTION = 2 DAY` is not a unit the engine knows (155), where `STALE_CAPTURE_
+// POLICY_THRESHOLD = 1 DAY` is.
+TrackingSyntax
+	= "AUTO_CLEANUP"i & OnOffValue
+	| "CHANGE_RETENTION"i & '=' & Sql92.Lexical.Digits & ("DAYS"i | "HOURS"i | "MINUTES"i)
+
+ForcedNest : @Clause[]
+	= '(' & first: ForcedOption & (',' & rest: ForcedOption)* & ')' => @(Syntax.Listed(first, rest))
+ForcedOption : @Clause = ?=("FORCED"i & OptionEnds) & o: OptionSetting => @(o)
+
+StoreNest : @Clause[]
+	= '(' & first: StoreOption & (',' & rest: StoreOption)* & ')' => @(Syntax.Listed(first, rest))
+StoreOption : @Clause = ?=(StoreSyntax & OptionEnds) & o: OptionSetting => @(o)
+
+StoreSyntax
+	= ("OPERATION_MODE"i | "DESIRED_STATE"i) & '=' & ("READ_WRITE"i | "READ_ONLY"i)
+	| "CLEANUP_POLICY"i & '=' & '(' & StaleQuery & (',' & StaleQuery)* & ')'
+	| ("DATA_FLUSH_INTERVAL_SECONDS"i | "FLUSH_INTERVAL_SECONDS"i | "INTERVAL_LENGTH_MINUTES"i
+	  | "MAX_STORAGE_SIZE_MB"i | "MAX_PLANS_PER_QUERY"i) & '=' & Sql92.Lexical.Digits
+	| "SIZE_BASED_CLEANUP_MODE"i & '=' & ("AUTO"i | "OFF"i)
+	| "QUERY_CAPTURE_MODE"i & '=' & ("ALL"i | "AUTO"i | "CUSTOM"i | "NONE"i)
+	| "WAIT_STATS_CAPTURE_MODE"i & OnOffValue
+	| "QUERY_CAPTURE_POLICY"i & '=' & '(' & CapturePolicy & (',' & CapturePolicy)* & ')'
+
+StaleQuery = "STALE_QUERY_THRESHOLD_DAYS"i & '=' & Sql92.Lexical.Digits
+
+CapturePolicy
+	= "STALE_CAPTURE_POLICY_THRESHOLD"i & '=' & Sql92.Lexical.Digits
+	  & ("DAYS"i | "DAY"i | "HOURS"i | "HOUR"i)
+	| ("EXECUTION_COUNT"i | "TOTAL_COMPILE_CPU_TIME_MS"i | "TOTAL_EXECUTION_CPU_TIME_MS"i)
+	  & '=' & Sql92.Lexical.Digits
+
+FilestreamOption : @Clause = ?=(FilestreamSyntax & OptionEnds) & o: OptionSetting => @(o)
+FilestreamSyntax
+	= "NON_TRANSACTED_ACCESS"i & '=' & ("OFF"i | "READ_ONLY"i | "FULL"i)
+	| "DIRECTORY_NAME"i & '=' & (Quoted | "NULL"i)
+
+ArchiveNest : @Clause[]
+	= '(' & first: ArchiveOption & (',' & rest: ArchiveOption)* & ')' => @(Syntax.Listed(first, rest))
+ArchiveOption : @Clause = ?=(ArchiveSyntax & OptionEnds) & o: OptionSetting => @(o)
+ArchiveSyntax
+	= "SERVER"i & '=' & Quoted
+	| "CREDENTIAL"i & '=' & Identifier
+	| "FEDERATED_SERVICE_ACCOUNT"i & OnOffValue
+
+// ── What a database is configured to ────────────────────────────────────────
+//
+// `ALTER DATABASE SCOPED CONFIGURATION`, from its block and the engine. A setting that is
+// switched on or off may also be set to `PRIMARY` as syntax, whichever it is; that only a
+// secondary may be set so is the engine's objection afterwards (12109), not a refusal. Two
+// the block names are not known to this engine, 17.0.1125: `ALLOW_STALE_VECTOR_INDEX` and
+// `ALLOW_BUILTIN_TVF_IN_ALL_COMPAT_LEVELS`. `DW_COMPATIBILITY_LEVEL` is Synapse's block and
+// read here all the same.
+ScopedSetting : @Clause
+	= name: ScopedSwitch & '=' & v: ScopedSwitchValue
+		=> @(new Clause.Option(name, v, Clause.None))
+	| name: "MAXDOP"i & '=' & v: ScopedNumber
+		=> @(new Clause.Option(name, v, Clause.None))
+	| name: "MAXDOP"i & '=' & t: "PRIMARY"i
+		=> @(new Clause.Option(name, new Expression.ColumnReference(t), Clause.None))
+	| name: ("ELEVATE_ONLINE"i | "ELEVATE_RESUMABLE"i) & '=' & "OFF"i
+		=> @(new Clause.Option(name, new Expression.ColumnReference("OFF"), Clause.None))
+	| name: ("ELEVATE_ONLINE"i | "ELEVATE_RESUMABLE"i) & '=' & t: ("WHEN_SUPPORTED"i | "FAIL_UNSUPPORTED"i)
+		=> @(new Clause.Option(name, new Expression.ColumnReference(t), Clause.None))
+	| name: "LEDGER_DIGEST_STORAGE_ENDPOINT"i & '=' & v: DatabaseText
+		=> @(new Clause.Option(name, v, Clause.None))
+	| name: "LEDGER_DIGEST_STORAGE_ENDPOINT"i & '=' & "OFF"i
+		=> @(new Clause.Option(name, new Expression.ColumnReference("OFF"), Clause.None))
+	| name: ("PAUSED_RESUMABLE_INDEX_ABORT_DURATION_MINUTES"i | "FULLTEXT_INDEX_VERSION"i
+			| "DW_COMPATIBILITY_LEVEL"i) & '=' & v: ScopedNumber
+		=> @(new Clause.Option(name, v, Clause.None))
+	| name: "DW_COMPATIBILITY_LEVEL"i & '=' & t: "AUTO"i
+		=> @(new Clause.Option(name, new Expression.ColumnReference(t), Clause.None))
+
+ScopedSwitch
+	= "ACCELERATED_PLAN_FORCING"i | "ASYNC_STATS_UPDATE_WAIT_AT_LOW_PRIORITY"i
+	| "BATCH_MODE_ADAPTIVE_JOINS"i | "BATCH_MODE_MEMORY_GRANT_FEEDBACK"i
+	| "BATCH_MODE_ON_ROWSTORE"i | "CE_FEEDBACK"i | "DEFERRED_COMPILATION_TV"i | "DOP_FEEDBACK"i
+	| "EXEC_QUERY_STATS_FOR_SCALAR_FUNCTIONS"i | "FORCE_SHOWPLAN_RUNTIME_PARAMETER_COLLECTION"i
+	| "IDENTITY_CACHE"i | "INTERLEAVED_EXECUTION_TVF"i | "ISOLATE_SECURITY_POLICY_CARDINALITY"i
+	| "GLOBAL_TEMPORARY_TABLE_AUTO_DROP"i | "LAST_QUERY_PLAN_STATS"i
+	| "LEGACY_CARDINALITY_ESTIMATION"i | "LIGHTWEIGHT_QUERY_PROFILING"i
+	| "MEMORY_GRANT_FEEDBACK_PERCENTILE_GRANT"i | "MEMORY_GRANT_FEEDBACK_PERSISTENCE"i
+	| "OPTIMIZE_FOR_AD_HOC_WORKLOADS"i | "OPTIMIZED_PLAN_FORCING"i | "OPTIMIZED_SP_EXECUTESQL"i
+	| "OPTIONAL_PARAMETER_OPTIMIZATION"i | "PARAMETER_SENSITIVE_PLAN_OPTIMIZATION"i
+	| "PARAMETER_SNIFFING"i | "PREVIEW_FEATURES"i | "QUERY_OPTIMIZER_HOTFIXES"i
+	| "READABLE_SECONDARY_TEMPORARY_STATS_AUTO_CREATE"i
+	| "READABLE_SECONDARY_TEMPORARY_STATS_AUTO_UPDATE"i
+	| "ROW_MODE_MEMORY_GRANT_FEEDBACK"i | "TSQL_SCALAR_UDF_INLINING"i
+	| "VERBOSE_TRUNCATION_WARNINGS"i | "XTP_PROCEDURE_EXECUTION_STATISTICS"i
+	| "XTP_QUERY_EXECUTION_STATISTICS"i
+
+ScopedSwitchValue : @Expression
+	= s: OnOff       => @(new Expression.ColumnReference(s))
+	| t: "PRIMARY"i  => @(new Expression.ColumnReference(t))
+
+// A number with a sign, where one may stand: `MAXDOP = -1` is read and then found out of
+// range (12108), `MAXDOP = +4` is refused.
+ScopedNumber : @Expression
+	= '-' & v: DatabaseDecimal => @(Expression.Signed("-", v))
+	| v: DatabaseDecimal       => @(v)
+
+// Whole seconds, and the unit only as `SECONDS`: `AFTER @x`, `AFTER 5.5` and `AFTER 5
+// MINUTES` are refused.
 DatabaseTermination : @string
-	= t: ("WITH"i & "ROLLBACK"i & "AFTER"i & ValueExpression & "SECONDS"i?
+	= t: ("WITH"i & "ROLLBACK"i & "AFTER"i & Sql92.Lexical.Digits & "SECONDS"i?
 		  | "WITH"i & "ROLLBACK"i & "IMMEDIATE"i
 		  | "WITH"i & "NO_WAIT"i) => @(Syntax.Squared(t))
 

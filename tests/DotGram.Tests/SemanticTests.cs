@@ -1722,7 +1722,7 @@ public sealed class SemanticTests
 	/// which the tape already made and the direct walk did not.
 	/// </para>
 	/// <para>
-	/// Found by writing `word+` in T-SQL, where a database setting is a run of words:
+	/// Found by writing `word+` in T-SQL, where a database setting was a run of words:
 	/// `ALTER DATABASE d SET HADR AVAILABILITY GROUP = g`.
 	/// </para>
 	/// </remarks>
