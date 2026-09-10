@@ -17539,3 +17539,30 @@ contradicts another, an IPv6 address it will not listen on), one is another prod
 (`CREATE MASTER KEY` with no password, which Azure reads), and 596 is a session the
 statement before took down, asked again. At 150: 5,576 read by both, 262 read here and
 refused there, where it was 294.
+
+## What was ScriptDom's and not the engine's
+
+The 262 listed whole and grouped by how they begin. Most of them were not a gap in this
+grammar but the other parser's opinion, transcribed:
+
+- **`HIDDEN` on any column** — sixty of them, `CREATE TABLE … (col1 BIGINT HIDDEN)` and
+  `ALTER COLUMN c1 INT HIDDEN NULL`. The published syntax has `HIDDEN` after
+  `GENERATED ALWAYS AS ROW START | END` and nowhere else, and so does the engine; ScriptDom
+  lets any column have it. It was an option of every column here too, and is not now.
+- **`GENERATED ALWAYS AS SUSER_SID | SUSER_SNAME START | END`** — thirty-six. In ScriptDom's
+  grammar from 130 and in its tests, commented "temporal generated always as suser_sid
+  start"; refused by the engine at every level and documented for no product anybody could
+  find. `GeneratedWhat` was `word` and is the three sources the block names now — `ROW`,
+  `TRANSACTION_ID`, `SEQUENCE_NUMBER` — with `START | END` after them.
+- **`FOR SECONDARY CLEAR PROCEDURE_CACHE`** — twenty-nine. `FOR SECONDARY` is a `SET`'s.
+
+And the rest were other products, now on the list `--engine` counts apart: Synapse's
+partition `SPLIT` / `MERGE RANGE` and `SWITCH … TRUNCATE_TARGET`, its columnstore ordered
+inside `WITH`, a Parquet file through `OPENROWSET`, and Azure SQL Database's automatic tuning
+inherited from the server and its `CREATE_INDEX` / `DROP_INDEX`. The list is matched with
+the whitespace taken out now, which is what `with(order(A))` needed.
+
+Twelve probes agree with the engine on both sides of each line drawn. At 150: 5,576 read by
+both, as before, and 108 read here and refused there. Those are 98 of `Msg 102` — the
+algorithms, `a.b.c.d.func()`, a procedure's parameter with `NULL = NULL`, `OPENROWSET` with
+two arguments as a DML target — 8 of `Msg 156` and the two `BULK INSERT`s that end the session.

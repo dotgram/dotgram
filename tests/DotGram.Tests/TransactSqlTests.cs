@@ -352,6 +352,37 @@ public sealed class TransactSqlTests
 	public void What_the_engine_refuses_this_refuses_too(string input) =>
 		Assert.False(TransactSql.TryParseSelect(input).IsSuccess, input);
 
+	/// <summary>Statements ScriptDom reads and SQL Server refuses, refused here as well.</summary>
+	/// <remarks>
+	/// `HIDDEN` on any column, where the published syntax has it on a period column only; a
+	/// column generated from `SUSER_SID`, which is in ScriptDom's grammar and tests and in no
+	/// product found; and `FOR SECONDARY` in front of the one action that is not a `SET`.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE TABLE t (a INT HIDDEN)")]
+	[InlineData("ALTER TABLE t1 ALTER COLUMN c1 INT HIDDEN NULL")]
+	[InlineData("ALTER TABLE t1 ALTER COLUMN c1 VARBINARY (85) GENERATED ALWAYS AS SUSER_SID START")]
+	[InlineData("CREATE TABLE t (u NVARCHAR (128) GENERATED ALWAYS AS SUSER_SNAME END NOT NULL)")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION FOR SECONDARY CLEAR PROCEDURE_CACHE")]
+	public void Statements_the_engine_refuses_are_refused(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And the forms beside them that it reads.</summary>
+	[Theory]
+	[InlineData("CREATE TABLE t (a INT, s DATETIME2 GENERATED ALWAYS AS ROW START HIDDEN NOT NULL, e DATETIME2 GENERATED ALWAYS AS ROW END HIDDEN NOT NULL, PERIOD FOR SYSTEM_TIME (s, e))")]
+	[InlineData("CREATE TABLE t (a INT, b BIGINT GENERATED ALWAYS AS TRANSACTION_ID START HIDDEN NOT NULL)")]
+	[InlineData("CREATE TABLE t (a INT, b BIGINT GENERATED ALWAYS AS SEQUENCE_NUMBER END NOT NULL)")]
+	[InlineData("ALTER TABLE t ALTER COLUMN s ADD HIDDEN")]
+	[InlineData("ALTER TABLE t ALTER COLUMN s DROP HIDDEN")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION FOR SECONDARY SET MAXDOP = PRIMARY")]
+	[InlineData("ALTER DATABASE SCOPED CONFIGURATION CLEAR PROCEDURE_CACHE")]
+	public void Statements_the_engine_reads_are_read(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>A parser per compatibility level, each reading from where the engine does.</summary>
 	/// <remarks>
 	/// The levels are readings of one grammar sharing one machine, and the conditions that
@@ -969,12 +1000,10 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE TABLE t (c1 INT CONSTRAINT nn NOT NULL)")]
 
 	// `GENERATED ALWAYS AS { ROW | TRANSACTION_ID | SEQUENCE_NUMBER } { START | END } [ HIDDEN ]`,
-	// and the two words the ledger adds to that list.
+	// and no other source: ScriptDom's `SUSER_SID` is refused by the engine at every level.
 	[InlineData("CREATE TABLE t (a DATETIME2 GENERATED ALWAYS AS ROW START HIDDEN NOT NULL)")]
-	[InlineData("ALTER TABLE t ALTER COLUMN c1 VARBINARY (85) GENERATED ALWAYS AS SUSER_SID START")]
 
-	// `HIDDEN` stands with `SPARSE` and the rest, after `ADD` and `DROP` and on its own.
-	[InlineData("ALTER TABLE t ALTER COLUMN c1 INT HIDDEN NULL")]
+	// `HIDDEN` after `ADD` and `DROP`; on its own it belongs to a period column and no other.
 	[InlineData("ALTER TABLE t ALTER COLUMN c1 ADD HIDDEN")]
 	[InlineData("ALTER TABLE t ALTER COLUMN c1 DROP MASKED")]
 	[InlineData("ALTER TABLE t ALTER COLUMN c1 ADD ROWGUIDCOL WITH (ONLINE = ON)")]

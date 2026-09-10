@@ -297,7 +297,10 @@ static class Engine
 		// 33161 "Database master keys without password are not supported in this version of
 		// SQL Server" — the same answer about one statement, which Azure SQL Database reads.
 		message is 33161 ||
-		OtherProducts.Any(word => statement.IndexOf(word, StringComparison.OrdinalIgnoreCase) >= 0);
+		OtherProducts.Any(word => Compact(statement).IndexOf(Compact(word), StringComparison.OrdinalIgnoreCase) >= 0);
+
+	/// <summary>A text with its whitespace taken out, so that `with(order(A))` is `WITH (ORDER (A))`.</summary>
+	static string Compact(string text) => string.Concat(text.Where(static one => !char.IsWhiteSpace(one)));
 
 	/// <summary>What names a statement as another product's, and which product that is.</summary>
 	static readonly string[] OtherProducts =
@@ -328,6 +331,24 @@ static class Engine
 		// Synapse dedicated pools: the resource governor's own vocabulary there.
 		"WORKLOAD GROUP",
 		"WORKLOAD CLASSIFIER",
+
+		// Synapse dedicated pools: partitions split, merged and switched over data already in
+		// them, and a columnstore ordered inside its WITH. "Partitioning tables in dedicated SQL
+		// pool" on learn.microsoft.com; SQL Server writes an ordered columnstore's ORDER outside.
+		"TRUNCATE_TARGET",
+		"SPLIT RANGE",
+		"MERGE RANGE",
+		"WITH (ORDER (",
+
+		// Synapse serverless and Fabric: a Parquet file read as a rowset.
+		"'PARQUET'",
+
+		// Azure SQL Database: automatic tuning inherited from the logical server, and the two
+		// index recommendations only it makes. SQL Server has FORCE_LAST_GOOD_PLAN alone.
+		"AUTOMATIC_TUNING = INHERIT",
+		"CREATE_INDEX =",
+		"DROP_INDEX =",
+		"MAINTAIN_INDEX =",
 	];
 
 	internal static bool AboutNames(int message) =>

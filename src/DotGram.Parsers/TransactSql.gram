@@ -1373,8 +1373,14 @@ IndexOrder : @string = t: ("CLUSTERED"i | "NONCLUSTERED"i) => @(Syntax.Squared(t
 // `GENERATED ALWAYS AS { ROW | TRANSACTION_ID | SEQUENCE_NUMBER } { START | END }`, and
 // `END` is a reserved word — so the two ends are named rather than read as identifiers,
 // which is what the published syntax says they are anyway.
-GeneratedWhat = word
-GeneratedWhen = word
+// What a generated column is generated from, and which end of it. The published block names
+// three sources and two ends and nothing else: the row's period for a temporal table, and
+// the transaction and sequence for a ledger one. `SUSER_SID` and `SUSER_SNAME` are in
+// ScriptDom's grammar and in its tests, "temporal generated always as suser_sid start", and
+// SQL Server 2025 refuses them at every level; no product was found that reads them. `HIDDEN`
+// is the period columns' and is written after this, not as an option of any column.
+GeneratedWhat = "ROW"i | "TRANSACTION_ID"i | "SEQUENCE_NUMBER"i
+GeneratedWhen = "START"i | "END"i
 
 // ── SET ─────────────────────────────────────────────────────────────────────
 //
@@ -1675,7 +1681,6 @@ ColumnTail : @Clause
 	= t: "FILESTREAM"i                => @(Clause.Optioned(t))
 	| "COLLATE"i & q: QualifiedName   => @(Clause.Optioned("COLLATE", new Expression.ColumnReference(q)))
 	| t: "SPARSE"i                    => @(Clause.Optioned(t))
-	| t: "HIDDEN"i                    => @(Clause.Optioned(t))
 	| "MASKED"i & "WITH"i & '(' & o: OptionList & ')'
 		=> @(new Clause.ColumnOption("MASKED", Expression.None, o, null))
 	| "IDENTITY"i & ('(' & a: Arguments & ')')?
@@ -2832,10 +2837,15 @@ FileGroupContains = "CONTAINS"i & word
 // corpus has `ALTER DATABASE SCOPED COLLATE Estonian_CS_AS`, which is a database of that
 // name and not a malformed configuration. Ordered choice reads the longer one first and
 // gives it back when the words that must follow do not.
+//
+// `FOR SECONDARY` is a `SET`'s and nothing else's: the published block puts it inside the
+// braces with `SET`, and the engine refuses `FOR SECONDARY CLEAR PROCEDURE_CACHE`.
 AlterDatabaseStatement : @Statement
-	= "ALTER"i & "DATABASE"i & "SCOPED"i & "CONFIGURATION"i & secondary: ("FOR"i & "SECONDARY"i)?
-	  & scoped: ScopedConfiguration
-		=> @(scoped with { Secondary = secondary is not null })
+	= "ALTER"i & "DATABASE"i & "SCOPED"i & "CONFIGURATION"i & "FOR"i & "SECONDARY"i
+	  & scoped: ScopedSet
+		=> @(scoped with { Secondary = true })
+	| "ALTER"i & "DATABASE"i & "SCOPED"i & "CONFIGURATION"i & scoped: ScopedConfiguration
+		=> @(scoped)
 
 	// The one action that keeps what it read, so the one written before the rest.
 	| "ALTER"i & "DATABASE"i & name: DatabaseTarget
@@ -2856,10 +2866,13 @@ AlterDatabaseStatement : @Statement
 DatabaseTarget : @string = "CURRENT"i => @("CURRENT") | t: Identifier => @(t)
 
 ScopedConfiguration : @Statement.AlterDatabaseScopedConfiguration
-	= "SET"i & first: DatabaseOption & (',' & rest: DatabaseOption)*
-		=> @(new Statement.AlterDatabaseScopedConfiguration("", "SET", Syntax.Listed(first, rest)))
+	= s: ScopedSet => @(s)
 	| "CLEAR"i & "PROCEDURE_CACHE"i & handle: ValueExpression?
 		=> @(new Statement.AlterDatabaseScopedConfiguration("", "CLEAR PROCEDURE_CACHE", Clause.None, false, handle))
+
+ScopedSet : @Statement.AlterDatabaseScopedConfiguration
+	= "SET"i & first: DatabaseOption & (',' & rest: DatabaseOption)*
+		=> @(new Statement.AlterDatabaseScopedConfiguration("", "SET", Syntax.Listed(first, rest)))
 
 // Which action was written, as the words the tree is keyed by. The statement builds the
 // record; this says which record it is, because a rule cannot name a different type per
