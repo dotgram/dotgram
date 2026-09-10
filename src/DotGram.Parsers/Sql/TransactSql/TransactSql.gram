@@ -1134,17 +1134,29 @@ GraphQuantifier = '+' | '{' & Sql92.Lexical.Digits & ',' & Sql92.Lexical.Digits 
 // they are one alternative of the table primary with a rule each inside it.
 
 // `OPENJSON ( json [ , path ] ) [ WITH ( colName type [ path ] [ AS JSON ] , … ) ]`, and
-// `OPENXML`'s schema declaration, which is the same shape with a different fourth part.
-// The two are written as one rule because the syntax of the two is one shape.
+// `OPENXML`'s schema declaration, which is the same shape with a different fourth part: a
+// pattern where JSON has a path, and no `AS JSON`, which the engine refuses there. So the
+// columns are two rules and the list around them one shape, the JSON one behind the level
+// its function reads from.
 RowsetSchema : @Clause[]
 	= "WITH"i & '(' & first: SchemaColumn & (',' & rest: SchemaColumn)* & ')'
 		=> @(Syntax.Listed(first, rest))
 	| "WITH"i & name: QualifiedName
 		=> @(new Clause[] { new Clause.JsonColumn(name, null, null, false) })
 
+// A collation, which no block names and the engine reads straight after the type and
+// nowhere else: a plain name, `[Latin1_General_Bin2]` and a string refused. The node keeps it
+// with the type it belongs to, a collation being what a character type is compared by.
 SchemaColumn : @Clause
-	= name: Identifier & type: DataType & path: SchemaPath? & json: SchemaAsJson?
-		=> @(new Clause.JsonColumn(name, type, path, json is not null))
+	= name: Identifier & type: DataType & c: SchemaCollate? & path: SchemaPath?
+		=> @(new Clause.JsonColumn(name, c is null ? type : type + " COLLATE " + c, path, false))
+
+JsonSchemaColumn : @Clause
+	= name: Identifier & type: DataType & c: SchemaCollate? & path: SchemaPath? & json: SchemaAsJson?
+		=> @(new Clause.JsonColumn(name, c is null ? type : type + " COLLATE " + c, path, json is not null))
+
+SchemaCollate : @string = "COLLATE"i & n: SchemaCollation => @(n)
+SchemaCollation = ?!(TSql.BracketedIdentifier | Sql92.Lexical.DelimitedIdentifier) & Identifier
 
 SchemaPath : @string
 	= t: Sql92.Lexical.NationalCharacterStringLiteral => @(t)
@@ -1221,7 +1233,11 @@ JsonFunction : @Expression.RoutineInvocation
 	= name: "OPENJSON"i & '(' & args: RowsetArguments? & ')'
 		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
 
-JsonSchema : @Clause[] = s: RowsetSchema & when Version is Since130 => @(s)
+JsonSchema : @Clause[]
+	= "WITH"i & '(' & first: JsonSchemaColumn & (',' & rest: JsonSchemaColumn)* & ')' & when Version is Since130
+		=> @(Syntax.Listed(first, rest))
+	| "WITH"i & name: QualifiedName & when Version is Since130
+		=> @(new Clause[] { new Clause.JsonColumn(name, null, null, false) })
 
 RowsetName
 	= "OPENROWSET"i | "OPENQUERY"i | "OPENDATASOURCE"i | "OPENXML"i

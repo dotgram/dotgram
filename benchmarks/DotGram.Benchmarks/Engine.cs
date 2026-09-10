@@ -504,6 +504,11 @@ static class Engine
 			//   1046  Subqueries are not allowed in this context. Only scalar expressions are allowed.
 			or 128 or 1046
 
+			// And a rowset's.
+			//
+			//    491  A correlation name must be specified for the bulk rowset in the from clause.
+			or 491
+
 			// And a database's creation.
 			//
 			//    188  Cannot specify a log file in a CREATE DATABASE statement without also specifying at least one data file.

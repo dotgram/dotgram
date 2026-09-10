@@ -951,6 +951,34 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>A collation in <c>OPENJSON</c>'s schema, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM OPENJSON (N'[]') WITH (c NVARCHAR (MAX) N'$.c' COLLATE Latin1_General_Bin2)")]
+	[InlineData("SELECT * FROM OPENJSON (N'[]') WITH (c NVARCHAR (MAX) AS JSON COLLATE Latin1_General_Bin2)")]
+	[InlineData("SELECT * FROM OPENJSON (N'[]') WITH (c VARCHAR (10) COLLATE [Latin1_General_Bin2])")]
+	[InlineData("SELECT * FROM OPENJSON (N'[]') WITH (c VARCHAR (10) COLLATE 'Latin1_General_Bin2')")]
+	[InlineData("SELECT * FROM OPENJSON (N'[]') WITH (c VARCHAR (10) COLLATE Latin1_General_Bin2 COLLATE Latin1_General_CI_AS)")]
+	[InlineData("SELECT * FROM OPENJSON (N'[]') WITH (c VARCHAR (10) COLLATE)")]
+	[InlineData("SELECT * FROM OPENXML (@h, '/r') WITH (c VARCHAR (10) '@c' COLLATE Latin1_General_Bin2)")]
+	[InlineData("SELECT * FROM OPENXML (@h, '/r') WITH (c VARCHAR (10) AS JSON)")]
+	public void A_json_schema_refuses_the_collations_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the ones beside them.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM OPENJSON (@var, N'$') WITH (a INT, c NVARCHAR (MAX) COLLATE Latin1_General_Bin2 N'$.b.c')")]
+	[InlineData("SELECT * FROM OPENJSON (N'[]') WITH (c NVARCHAR (MAX) COLLATE Latin1_General_Bin2)")]
+	[InlineData("SELECT * FROM OPENJSON (N'[]') WITH (f NVARCHAR (MAX) COLLATE Latin1_General_Bin2 N'$.b' AS JSON)")]
+	[InlineData("SELECT * FROM OPENJSON (N'[]') WITH (c VARCHAR (10) COLLATE database_default, d INT '$.d')")]
+	[InlineData("SELECT * FROM OPENXML (@h, '/r') WITH (c VARCHAR (10) COLLATE Latin1_General_Bin2 '@c')")]
+	[InlineData("SELECT * FROM OPENXML (@h, '/r') WITH t")]
+	public void A_json_schema_reads_the_collations_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>Table, query and join hints, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM t WITH (FOO)")]

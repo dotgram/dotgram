@@ -18074,3 +18074,33 @@ At 150: read by both 5,651 (from 5,641), the work list 319 (from 327), read here
 there 43, and neither 387 (from 389) — the last two by the audit rather than the grammar:
 statements the engine answered with 128 or 1046, counted as refused until those two joined
 the read side. `--split` 553 cut the same (from 549), the round trip 100% of 6,740.
+
+## A collation in a rowset's schema, and a probe that lied
+
+Sixteen statements in the work list stopped at the same word: `OPENJSON (…) WITH (c
+NVARCHAR (MAX) COLLATE Latin1_General_Bin2 N'$.b.c')`. The block has no `COLLATE`, and the
+engine reads one — straight after the type, before the path and before `AS JSON`, a plain
+name and not a bracketed one or a string, once. `OPENXML` and `OPENROWSET`'s schemas take
+it the same way. The node keeps it with the type, `NVARCHAR (MAX) COLLATE …`, the type
+being a string already and a collation what a character type is compared by; nothing in
+the tree moved.
+
+The first probe said otherwise, and was wrong. Written with an undeclared `@j`, it had the
+engine read `COLLATE` with no name after it, a string, two of them — everything. `sqlcmd`
+with the variable declared refused all of that. The reason is the engine's own order:
+`OPENJSON`'s schema is parsed after its arguments are bound, so an undeclared variable
+(137, which the audit counts as read) is reported before a syntax error inside `WITH`, and
+`--levels` takes the first message it is given. Ordinary statements are parsed whole before
+anything is bound, which is why this has not shown before; a probe of a schema, or of
+anything else parsed late, has to declare what it uses or not use a variable at all.
+
+The split also closed a smaller hole: `AS JSON` was read in `OPENXML`'s schema, the two
+sharing one rule, and the engine refuses it there. The JSON columns are a rule of their own
+now. `OPENXML (1, …)` — a literal where the handle goes, refused by the engine and read here
+through the rowset functions' open arguments — is left for the rowsets' own catalogue.
+
+At 150, the grammar alone: read by both 5,667 (from 5,651), the work list 303 (from 319) —
+the sixteen, all of them — read here but refused there 43, as before. `--split` 555 cut the
+same (from 553), the round trip 100% of 6,756. 491 — a bulk rowset with no correlation name,
+which the `OPENROWSET` probe was answered with — went on the audit's read side afterwards,
+and moved nothing at 150.
