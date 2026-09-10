@@ -1124,8 +1124,12 @@ RowsetName
 // them: SQL Server answers `A MERGE statement must be terminated by a semi-colon (;)`.
 // So it is read here where it stands rather than cut off before the parse — cutting it
 // off is what made every merge in the corpus look like a defect on this side.
+//
+// One `WITH` to a statement. A query reads its own as well, so after this one the body may
+// not open with another: `WITH a AS (…) WITH b AS (…) SELECT …` is refused (156), where the
+// two are written as one list, `WITH a AS (…), b AS (…)`.
 TsqlStatement : @Statement
-	= with: WithClause? & s: StatementBody & ';'? => @(Syntax.Preceded(with, s))
+	= (with: WithClause & ?!"WITH"i)? & s: StatementBody & ';'? => @(Syntax.Preceded(with, s))
 
 StatementBody : @Statement
 	= s: TsqlInsert   => @(s)

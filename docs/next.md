@@ -17742,3 +17742,11 @@ front of the builder. Seven more messages moved to the read side: 10737, 10798, 
 
 At 150, read here and refused there went from 78 to 54 and another product's from 284 to
 254; the work list stays at 393. Round trip 100% of 6,665.
+
+**Two `WITH`s were one too many.** Asked what `WITH … WITH … SELECT … SELECT …` means, the
+engine said: nothing — the second `WITH` is a 156. Common table expressions are one list
+after one `WITH`, a later one may name an earlier one, and each list belongs to the one
+statement after it; a second `SELECT` does not see them, and a `WITH` that is not first in
+a batch needs the statement before it ended with `;` (336, 319). This grammar read the two
+`WITH`s, because a statement read one and the query in its body read its own. After the
+statement's `WITH` the body may now not open with another.

@@ -364,6 +364,8 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER TABLE t1 ALTER COLUMN c1 VARBINARY (85) GENERATED ALWAYS AS SUSER_SID START")]
 	[InlineData("CREATE TABLE t (u NVARCHAR (128) GENERATED ALWAYS AS SUSER_SNAME END NOT NULL)")]
 	[InlineData("ALTER DATABASE SCOPED CONFIGURATION FOR SECONDARY CLEAR PROCEDURE_CACHE")]
+	[InlineData("WITH a AS (SELECT 1 AS x) WITH b AS (SELECT 2 AS y) SELECT * FROM a, b")]
+	[InlineData("WITH a AS (SELECT 1 AS x) WITH b AS (SELECT 2 AS y) UPDATE t SET c = 1")]
 	public void Statements_the_engine_refuses_are_refused(string input) =>
 		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
 
