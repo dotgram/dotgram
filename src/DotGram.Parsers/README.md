@@ -113,7 +113,7 @@ var query  = (Query.Specification)select.Of;
 query.From[0];   // TableReference.Named { Table = "Users" }
 ```
 
-The tree they build is described in [`docs/ast.md`](../../docs/ast.md). Both are still
+The tree they build is described in [`docs/ast.md`](https://github.com/dotgram/dotgram/blob/v0.1.0/docs/ast.md). Both are still
 growing: what they read is held against a corpus of somebody else's SQL and against a
 round trip — parse, print, and compare the two readings — which catches a parser that
 answers yes and builds the wrong thing.
