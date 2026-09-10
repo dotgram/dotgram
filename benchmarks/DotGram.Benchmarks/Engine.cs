@@ -323,6 +323,10 @@ static class Engine
 		"CLONE AT",
 		"CLUSTER BY",
 
+		// Azure SQL Edge: rows deleted when they are old enough. The engine refuses the clause
+		// as syntax, except where a unit it does not know makes it read it and object (47305).
+		"DATA_DELETION",
+
 		// Synapse and PolyBase: what is read from outside the database.
 		"EXTERNAL DATA SOURCE",
 		"EXTERNAL FILE FORMAT",
@@ -441,7 +445,21 @@ static class Engine
 			//  31207  Invalid value for Full-Text index version is specified.
 			or 5091 or 10770 or 10771
 			or 12108 or 12109 or 12110 or 12121 or 12401 or 12417
-			or 15701 or 31207;
+			or 15701 or 31207
+
+			// And a table's.
+			//
+			//  10737  … when a partition is specified in a DATA_COMPRESSION clause, PARTITION=ALL must be ….
+			//  10798  This is not a valid data compression setting for this object.
+			//  13743  … is not a valid value for system versioning history retention period.
+			//  13744  '…' is not a valid history retention period unit for system versioning.
+			//  14860  '…' expects parameter '…', which was not supplied.
+			//  14912  REMOTE_DATA_ARCHIVE with value set to OFF_WITHOUT_DATA_RECOVERY is not supported at ….
+			//  33411  The option '…' is only valid when used on a FileTable.
+			or 10737 or 10798
+			or 13743 or 13744
+			or 14860 or 14912
+			or 33411;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open

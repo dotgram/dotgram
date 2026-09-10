@@ -17703,3 +17703,42 @@ At 150: 5,575 read by both, the work list 393, read here and refused there 78 (f
 another product's 284 (from 306) — Azure's automatic tuning and the scoped settings the
 corpus invents. Round trip 100% of 6,725: fewer statements are read by both, because this
 no longer reads what ScriptDom read and the engine does not.
+
+## A table's options, as a catalogue
+
+The next family: what a table is created with, set to and rebuilt with, from the published
+blocks and some two hundred probes. Three lists and not one, because the engine keeps them
+apart: a table is created compressed, memory-optimized or ledgered and is not set so
+afterwards — `SET (DATA_COMPRESSION = PAGE)`, `SET (MEMORY_OPTIMIZED = ON)`, `SET (LEDGER =
+ON)` are refused — and only `SET` knows `LOCK_ESCALATION` and `FILESTREAM_ON`. A table's
+rebuild is an index's without `RESUMABLE`, `MAX_DURATION` and `BUCKET_COUNT`; one partition
+takes five options.
+
+Some answers were not what the blocks suggest:
+
+- **`DISTRIBUTION` is read.** `HASH (a, b)`, `ROUND_ROBIN` and `REPLICATE` are Synapse's and
+  the engine takes them; the rest of what Synapse writes there — `HEAP`, `CLUSTERED
+  COLUMNSTORE INDEX`, `CLUSTERED INDEX (a)`, `PARTITION (…)` — it refuses, and so does this
+  now. A `CREATE TABLE … AS SELECT` keeps the open list: it is Synapse's statement, and
+  the audit names it.
+- **`DATA_DELETION` is read almost nowhere.** It is Azure SQL Edge's, and the engine refuses
+  it — except with `RETENTION_PERIOD = 1 HOUR`, where it reads the clause and objects to
+  the unit (47305). It is written from its block, and the audit's list of other products
+  names it.
+- **A history retention's unit is any word.** `1 HOUR` and even `1 FOO` are read and then
+  objected to (13744). This reads the units of time and not `FOO`: the option builder has
+  no word for it, and a unit that is no unit is not worth a builder change.
+- **`FILESTREAM_ON` takes a string or a name**, `"default"` and `"NULL"` among the names; a
+  bare `NULL` or `default` is refused. `HISTORY_TABLE` takes a name of up to three parts and
+  no string; `FILETABLE_DIRECTORY` takes a string and no name, and is the one FileTable
+  setting `SET` accepts again.
+- **The stretch list is required** even where its state is not: `REMOTE_DATA_ARCHIVE = ON`
+  alone is refused, `REMOTE_DATA_ARCHIVE (MIGRATION_STATE = PAUSED)` read.
+
+Where the statement keeps its words as a tail — `SET` and `REBUILD` — the catalogue is the
+tail's shape and nothing is built; where it keeps options, `CREATE TABLE`, the gate stands in
+front of the builder. Seven more messages moved to the read side: 10737, 10798, 13743, 13744,
+14860, 14912, 33411.
+
+At 150, read here and refused there went from 78 to 54 and another product's from 284 to
+254; the work list stays at 393. Round trip 100% of 6,665.

@@ -1521,9 +1521,9 @@ CreateTableStatement : @Statement
 	  & options: OptionsWith & "AS"i & q: DirectSelect
 		=> @(new Statement.CreateTableAsSelect(name, columns, options, q))
 	| "CREATE"i & "TABLE"i & name: QualifiedName & kind: TableAs? & '(' & body: TableBody & ')'
-	  & after: TableAs? & placements: TablePlacement* & options: OptionsWith?
+	  & after: TableAs? & placements: TablePlacement* & options: TableWith?
 		=> @(new Statement.TableDefinition(name, kind ?? after, body, placements ?? Clause.None, options ?? Clause.None))
-	| "CREATE"i & "TABLE"i & name: QualifiedName & kind: TableAs & placements: TablePlacement* & options: OptionsWith?
+	| "CREATE"i & "TABLE"i & name: QualifiedName & kind: TableAs & placements: TablePlacement* & options: TableWith?
 		=> @(new Statement.TableDefinition(name, kind, Clause.None, placements ?? Clause.None, options ?? Clause.None))
 
 TableAs : @string = "AS"i & t: Identifier => @(t)
@@ -1950,6 +1950,91 @@ TableIndex : @Clause
 		=> @(Clause.Indexed(name, u, c, s, h, columns, order, include, filter, o?.Options, (Clause.Placement?)p, f is null ? null : f with { Kind = "FILESTREAM_ON" })
 			 with { Bracketed = o is not { Bare: true } })
 
+// ── What a table is created with, and set to ────────────────────────────────
+//
+// `CREATE TABLE … WITH (…)`, `ALTER TABLE … SET (…)` and `ALTER TABLE … REBUILD WITH (…)`,
+// from the published blocks and some two hundred probes. Three lists and not one: a table
+// is created compressed, memory-optimized or ledgered and is not set so afterwards —
+// `SET (DATA_COMPRESSION = PAGE)`, `SET (MEMORY_OPTIMIZED = ON)` and `SET (LEDGER = ON)` are
+// refused — and only `SET` knows `LOCK_ESCALATION` and `FILESTREAM_ON`.
+//
+// The engine reads `DISTRIBUTION = HASH (a)`, `ROUND_ROBIN` and `REPLICATE`, which are
+// Synapse's, and refuses the rest of what Synapse writes there: `HEAP`, `CLUSTERED
+// COLUMNSTORE INDEX`, `CLUSTERED INDEX (a)`, `PARTITION (…)`. `DATA_DELETION` is Azure SQL
+// Edge's: the engine refuses it, except with a unit it then finds wrong (47305), so it is
+// written from its block and the audit names its product.
+TableWith : @Clause[]
+	= "WITH"i & '(' & first: TableOption & (',' & rest: TableOption)* & ')' => @(Syntax.Listed(first, rest))
+TableOption : @Clause = ?=(TableOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
+TableOptionSyntax
+	= AnyDataCompression | XmlCompression
+	| "MEMORY_OPTIMIZED"i & OnOffValue
+	| "DURABILITY"i & '=' & ("SCHEMA_ONLY"i | "SCHEMA_AND_DATA"i)
+	| Versioning | Ledger | DataDeletion | Stretch
+	| "FILETABLE_DIRECTORY"i & '=' & Quoted
+	| "FILETABLE_COLLATE_FILENAME"i & '=' & Identifier
+	| ("FILETABLE_PRIMARY_KEY_CONSTRAINT_NAME"i | "FILETABLE_STREAMID_UNIQUE_CONSTRAINT_NAME"i
+	  | "FILETABLE_FULLPATH_UNIQUE_CONSTRAINT_NAME"i) & '=' & Identifier
+	| "DISTRIBUTION"i & '='
+	  & ("HASH"i & '(' & Identifier & (',' & Identifier)* & ')' | "ROUND_ROBIN"i | "REPLICATE"i)
+
+// What `ALTER TABLE … SET` may set, several at once. `FILESTREAM_ON` takes a name or a
+// string, `"default"` and `"NULL"` among the names; a bare `NULL` is refused. A FileTable's
+// directory is the one thing of its creation that may be set again.
+TableSetting
+	= "LOCK_ESCALATION"i & '=' & ("AUTO"i | "TABLE"i | "DISABLE"i)
+	| "FILESTREAM_ON"i & '=' & (Quoted | Identifier)
+	| "FILETABLE_DIRECTORY"i & '=' & Quoted
+	| Versioning | DataDeletion | Stretch
+
+// The history table and its retention, in any order. A unit the engine does not keep
+// history in, `1 HOUR`, is read and objected to afterwards (13744), and so is a word that is
+// no unit at all, `1 FOO` — which is refused here, where the option builder has no word for
+// it.
+Versioning
+	= "SYSTEM_VERSIONING"i & '='
+	  & ("OFF"i | "ON"i & ('(' & VersioningItem & (',' & VersioningItem)* & ')')?)
+VersioningItem
+	= "HISTORY_TABLE"i & '=' & QualifiedName
+	| "HISTORY_RETENTION_PERIOD"i & '='
+	  & ("INFINITE"i | '-'? & Sql92.Lexical.ExactNumericLiteral & PeriodUnit)
+	| "DATA_CONSISTENCY_CHECK"i & OnOffValue
+PeriodUnit
+	= "DAY"i | "DAYS"i | "WEEK"i | "WEEKS"i | "MONTH"i | "MONTHS"i | "YEAR"i | "YEARS"i
+	| "HOUR"i | "HOURS"i | "MINUTE"i | "MINUTES"i | "SECOND"i | "SECONDS"i
+
+Ledger
+	= "LEDGER"i & '=' & ("OFF"i | "ON"i & ('(' & LedgerItem & (',' & LedgerItem)* & ')')?)
+LedgerItem
+	= "LEDGER_VIEW"i & '=' & QualifiedName & ('(' & LedgerViewItem & (',' & LedgerViewItem)* & ')')?
+	| "APPEND_ONLY"i & OnOffValue
+LedgerViewItem
+	= ("TRANSACTION_ID_COLUMN_NAME"i | "SEQUENCE_NUMBER_COLUMN_NAME"i
+	  | "OPERATION_TYPE_COLUMN_NAME"i | "OPERATION_TYPE_DESC_COLUMN_NAME"i) & '=' & Identifier
+
+DataDeletion
+	= "DATA_DELETION"i & '=' & ("OFF"i | "ON"i & ('(' & DeletionItem & (',' & DeletionItem)* & ')')?)
+DeletionItem
+	= "FILTER_COLUMN"i & '=' & Identifier
+	| "RETENTION_PERIOD"i & '=' & ("INFINITE"i | Sql92.Lexical.Digits & PeriodUnit)
+
+// Stretch: the state is optional and the list is not — `REMOTE_DATA_ARCHIVE = ON` alone is
+// refused.
+Stretch
+	= "REMOTE_DATA_ARCHIVE"i & ('=' & ("ON"i | "OFF_WITHOUT_DATA_RECOVERY"i | "OFF"i))?
+	  & '(' & StretchItem & (',' & StretchItem)* & ')'
+StretchItem
+	= "MIGRATION_STATE"i & '=' & ("OUTBOUND"i | "INBOUND"i | "PAUSED"i)
+	| "FILTER_PREDICATE"i & '=' & ("NULL"i | QualifiedName & '(' & Arguments? & ')')
+
+// A table's rebuild is an index's without what only an index has: `RESUMABLE`,
+// `MAX_DURATION` and `BUCKET_COUNT` are refused here. One partition takes five.
+TableRebuild
+	= PadIndex | FillFactor | SortInTempdb | IgnoreDupKey | NoRecompute | IncrementalStats
+	| OnlineOption | RowLocks | PageLocks | MaxDop | AnyDataCompression | XmlCompression
+TablePartitionRebuild
+	= SortInTempdb | MaxDop | AnyDataCompression | XmlCompression | OnlineOption
+
 // ── ALTER TABLE ─────────────────────────────────────────────────────────────
 //
 // Nine actions and they share nothing but the header, so the header is read once and each
@@ -1988,9 +2073,12 @@ AlterTableAction : @Statement.AlterTable
 		=> @(Statement.Altered("ALTER", null, null, tail))
 	| word: SplitOrMerge & tail: ("RANGE"i & '(' & SetValue & ')')
 		=> @(Statement.Altered(Syntax.Squared(word), null, null, tail))
-	| "SET"i & tail: ('(' & OptionList & ')')
+	| "SET"i & tail: ('(' & TableSetting & (',' & TableSetting)* & ')')
 		=> @(Statement.Altered("SET", null, null, tail))
-	| "REBUILD"i & tail: (("PARTITION"i & '=' & PartitionWhich)? & OptionsWith?)
+	| "REBUILD"i & tail: ("PARTITION"i & '=' & ?!"ALL"i & PartitionWhich
+						  & ("WITH"i & '(' & TablePartitionRebuild & (',' & TablePartitionRebuild)* & ')')?
+						| ("PARTITION"i & '=' & "ALL"i)?
+						  & ("WITH"i & '(' & TableRebuild & (',' & TableRebuild)* & ')')?)
 		=> @(Statement.Altered("REBUILD", null, null, tail))
 	| "SWITCH"i & tail: (("PARTITION"i & ValueExpression)? & "TO"i & QualifiedName
 						 & ("PARTITION"i & ValueExpression)? & OptionsWith?)

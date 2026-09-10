@@ -597,6 +597,56 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>What a table is created with, set to and rebuilt with, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("CREATE TABLE t (a INT) WITH (FOO = 1)")]
+	[InlineData("CREATE TABLE t (a INT) WITH (DATA_COMPRESSION = FOO)")]
+	[InlineData("CREATE TABLE t (a INT) WITH (DATA_COMPRESSION PAGE)")]
+	[InlineData("CREATE TABLE t (a INT) WITH (DURABILITY = FOO)")]
+	[InlineData("CREATE TABLE t (a INT) WITH (SYSTEM_VERSIONING ON)")]
+	[InlineData("CREATE TABLE t (a INT) WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = 'h'))")]
+	[InlineData("CREATE TABLE t (a INT) WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.h, HISTORY_RETENTION_PERIOD = 6))")]
+	[InlineData("CREATE TABLE t (a INT) WITH (LEDGER = ON (FOO = ON))")]
+	[InlineData("CREATE TABLE t (a INT) WITH (REMOTE_DATA_ARCHIVE = ON)")]
+	[InlineData("CREATE TABLE t (a INT) WITH (HEAP)")]
+	[InlineData("CREATE TABLE t (a INT) WITH (CLUSTERED COLUMNSTORE INDEX)")]
+	[InlineData("CREATE TABLE t (a INT) WITH (LOCK_ESCALATION = AUTO)")]
+	[InlineData("CREATE TABLE t AS FILETABLE WITH (FILETABLE_DIRECTORY = d)")]
+	[InlineData("ALTER TABLE t SET (LOCK_ESCALATION = FOO)")]
+	[InlineData("ALTER TABLE t SET (FILESTREAM_ON = NULL)")]
+	[InlineData("ALTER TABLE t SET (DATA_COMPRESSION = PAGE)")]
+	[InlineData("ALTER TABLE t SET (MEMORY_OPTIMIZED = ON)")]
+	[InlineData("ALTER TABLE t REBUILD WITH (RESUMABLE = ON)")]
+	[InlineData("ALTER TABLE t REBUILD WITH (BUCKET_COUNT = 10)")]
+	[InlineData("ALTER TABLE t REBUILD PARTITION = 1 WITH (FILLFACTOR = 80)")]
+	public void The_table_catalogue_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside them.</summary>
+	[Theory]
+	[InlineData("CREATE TABLE t (a INT) WITH (DATA_COMPRESSION = PAGE ON PARTITIONS (1, 2 TO 4), XML_COMPRESSION = ON ON PARTITIONS (5))")]
+	[InlineData("CREATE TABLE t (a INT) WITH (MEMORY_OPTIMIZED = ON, DURABILITY = SCHEMA_ONLY)")]
+	[InlineData("CREATE TABLE t (a INT) WITH (SYSTEM_VERSIONING = ON " +
+		"(DATA_CONSISTENCY_CHECK = ON, HISTORY_TABLE = dbo.h, HISTORY_RETENTION_PERIOD = 1.5 DAYS))")]
+	[InlineData("CREATE TABLE t (a INT) WITH (LEDGER = ON " +
+		"(LEDGER_VIEW = dbo.v (TRANSACTION_ID_COLUMN_NAME = t, SEQUENCE_NUMBER_COLUMN_NAME = s), APPEND_ONLY = OFF))")]
+	[InlineData("CREATE TABLE t (a INT) WITH (REMOTE_DATA_ARCHIVE = ON (FILTER_PREDICATE = dbo.f(a), MIGRATION_STATE = PAUSED))")]
+	[InlineData("CREATE TABLE t (a INT) WITH (DISTRIBUTION = HASH(a, b))")]
+	[InlineData("CREATE TABLE t AS FILETABLE WITH (FILETABLE_DIRECTORY = N'd', FILETABLE_COLLATE_FILENAME = database_default)")]
+	[InlineData("ALTER TABLE t SET (LOCK_ESCALATION = AUTO, FILESTREAM_ON = \"default\")")]
+	[InlineData("ALTER TABLE t SET (FILETABLE_DIRECTORY = 'foo')")]
+	[InlineData("ALTER TABLE t SET (REMOTE_DATA_ARCHIVE = OFF_WITHOUT_DATA_RECOVERY (MIGRATION_STATE = PAUSED))")]
+	[InlineData("ALTER TABLE t SET (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.h, HISTORY_RETENTION_PERIOD = INFINITE))")]
+	[InlineData("ALTER TABLE t REBUILD PARTITION = ALL WITH (DATA_COMPRESSION = PAGE, " +
+		"ONLINE = ON (WAIT_AT_LOW_PRIORITY (MAX_DURATION = 1 MINUTES, ABORT_AFTER_WAIT = BLOCKERS)), FILLFACTOR = 80)")]
+	[InlineData("ALTER TABLE t REBUILD PARTITION = 1 WITH (SORT_IN_TEMPDB = ON, MAXDOP = 2)")]
+	public void The_table_catalogue_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>A construct taken out of the language: read up to a level and refused after it.</summary>
 	/// <remarks>
 	/// The weak algorithms, as the engine answers them: everything but AES and the longer RSA
@@ -1275,7 +1325,7 @@ public sealed class TransactSqlTests
 
 	// An option's name is a run of words in four places at once, and its value may be a list.
 	[InlineData("ALTER DATABASE db SET QUERY_STORE (CLEANUP_POLICY = (STALE_QUERY_THRESHOLD_DAYS = 367))")]
-	[InlineData("CREATE TABLE t (a INT) WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = HASH(a))")]
+	[InlineData("CREATE TABLE t WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = HASH(a)) AS SELECT a FROM u")]
 
 	// The selective XML index, which is the one index whose shape is its own.
 	[InlineData("CREATE SELECTIVE XML INDEX sxi ON t (c) FOR (path1 = '/a/b')")]
