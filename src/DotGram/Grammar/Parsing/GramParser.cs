@@ -698,9 +698,6 @@ public sealed class GramParser
 	/// </remarks>
 	bool StartsCondition()
 	{
-		if (At(TokenKind.At))
-			return false;
-
 		var at    = _index;
 		var found = false;
 
@@ -708,7 +705,7 @@ public sealed class GramParser
 		{
 			ParseValue();
 
-			found = AtKeyword("is");
+			found = AtKeyword("is") || AtKeyword("and") || AtKeyword("or");
 		}
 		catch (Exception)
 		{
@@ -751,7 +748,7 @@ public sealed class GramParser
 		return test;
 	}
 
-	/// <summary>One `A is B`, or a bracketed test.</summary>
+	/// <summary>One `A is B`, one `@(…)`, or a bracketed test.</summary>
 	Test ParseOneTest()
 	{
 		if (TakeIf(TokenKind.OpenParen))
@@ -764,6 +761,25 @@ public sealed class GramParser
 		}
 
 		var left = ParseValue();
+
+		// A C# guard among the conditions. It is a leaf and never a side of `is`: what `is`
+		// asks is which strings two recognizers share, and a C# expression is neither.
+		if (left is Expr.CSharp)
+		{
+			if (!AtKeyword("is"))
+				return new Test.Runs(left);
+
+			Report(
+				ExpectedIs,
+				"`is` asks whether two recognizers have a string in common, and a C# expression " +
+				"is not one. A guard stands among the conditions on its own — " +
+				"`when Version is \"Old\" and @(qty > 0)`.");
+
+			Take();
+			ParseValue();
+
+			return new Test.Runs(left);
+		}
 
 		if (!AtKeyword("is"))
 		{
@@ -782,7 +798,15 @@ public sealed class GramParser
 		if (negated)
 			Take();
 
-		return new Test.Meets(left, ParseValue(), negated);
+		var right = ParseValue();
+
+		if (right is Expr.CSharp)
+			Report(
+				ExpectedIs,
+				"The right side of `is` is a recognizer and not C#: the question is which strings " +
+				"the two have in common.");
+
+		return new Test.Meets(left, right, negated);
 	}
 
 	Expr ParseQuantified()

@@ -100,7 +100,7 @@ public sealed partial class GrammarNormalizer
 		}
 
 		if (alternative is Node.Condition(var only, var where))
-			return Holds(only, where) is false ? null : Node.Empty.Instance;
+			return Left(only, where) is { } alone ? alone : null;
 
 		if (alternative is not Node.Sequence(var operands))
 			return Elsewhere(rule, alternative);
@@ -110,14 +110,15 @@ public sealed partial class GrammarNormalizer
 		foreach (var operand in operands)
 			switch (operand)
 			{
-				case Node.Condition(var test, var at) when Holds(test, at) is false:
-					return null;
+				case Node.Condition(var test, var at):
+					// What is left of it: nothing where it held outright, an ordinary guard
+					// where a C# half of it survived, and no alternative at all where it
+					// failed. `Empty` rather than dropped, so that an alternative made only
+					// of conditions is still an alternative that matches.
+					if (Left(test, at) is not { } residue)
+						return null;
 
-				case Node.Condition:
-					// It held, so it costs nothing and says nothing. Kept as `Empty` rather
-					// than dropped so that an alternative made only of conditions is still an
-					// alternative that matches.
-					kept.Add(Node.Empty.Instance);
+					kept.Add(residue);
 					break;
 
 				default:
@@ -151,12 +152,20 @@ public sealed partial class GrammarNormalizer
 
 	/// <summary>A rule left with no alternative at all.</summary>
 	/// <remarks>
-	/// Not an error: a rule that is gone from this parser is what the condition was written
-	/// to say, and a construct removed from a dialect has to be removable. What it becomes is
-	/// a rule that cannot match — a negative lookahead of nothing, which fails wherever it is
-	/// asked — so a caller of it fails where the construct is written and nowhere else.
-	/// Remarked rather than reported, because a rule that vanishes silently is still worth a
-	/// word: it is as often a condition nobody meant as a dialect nobody has.
+	/// <para>
+	/// Not an error: a rule gone from this parser is what the condition was written to say,
+	/// and a construct removed from a dialect has to be removable. Remarked rather than
+	/// reported, because a rule that vanishes silently is still worth a word — it is as often
+	/// a condition nobody meant as a dialect nobody has.
+	/// </para>
+	/// <para>
+	/// What it becomes is the body it had behind a negative lookahead of nothing, which fails
+	/// wherever it is asked. The body and not a bare refusal, because everything downstream
+	/// reads it: a rule declares a type and the `=&gt;` that builds one is written on the
+	/// alternatives, so a rule emptied to a refusal is a rule that declares `: @int` and says
+	/// nothing about how to build one. The alternatives are still there, still typed, and
+	/// never reached.
+	/// </para>
 	/// </remarks>
 	Node Nothing(RuleSymbol rule, Node body)
 	{
@@ -167,48 +176,111 @@ public sealed partial class GrammarNormalizer
 			"and it is only worth a second look where no removal was meant.",
 			Where(body));
 
-		return new Node.Lookahead(false, Node.Empty.Instance);
+		return body is Node.Choice(var alternatives)
+			? new Node.Choice([.. alternatives.Select(Unreachable)])
+			: Unreachable(body);
 	}
 
+	/// <summary>One alternative that can never be taken, and is otherwise as it was.</summary>
+	/// <remarks>
+	/// The refusal goes among the operands and not around the alternative: a `=&gt;` builds
+	/// the rule's value and belongs at the end of an alternative, so wrapping one in anything
+	/// puts it where it does not belong. Inside, it is the first thing asked and the last.
+	/// </remarks>
+	static Node Unreachable(Node alternative) => alternative switch
+	{
+		Node.Construct(var body, var how) => new Node.Construct(Unreachable(body), how),
+		Node.Sequence(var operands)       =>
+			new Node.Sequence([new Node.Lookahead(false, Node.Empty.Instance), .. operands.Select(Answered)]),
+		_ => new Node.Sequence([new Node.Lookahead(false, Node.Empty.Instance), Answered(alternative)]),
+	};
+
 	/// <summary>
-	/// Whether a condition holds, or null where this compiler cannot say.
+	/// An operand with its condition gone, whatever the condition said.
 	/// </summary>
 	/// <remarks>
-	/// `and` and `or` are answered from their sides and are undecided where a side is —
-	/// with the two shortcuts that make an undecided side not matter: `false and anything`
-	/// is false and `true or anything` is true, whatever the other half turned out to be.
+	/// Nothing downstream knows what a condition is — it is this pass's node and this pass
+	/// takes it out — so an alternative kept for its shape has to lose its conditions too,
+	/// even though it is the conditions that made it unreachable.
 	/// </remarks>
-	bool? Holds(Test test, int at)
+	static Node Answered(Node operand) =>
+		operand is Node.Condition ? Node.Empty.Instance : operand;
+
+	/// <summary>
+	/// What a condition leaves behind: nothing, a guard to ask later, or no alternative.
+	/// </summary>
+	/// <remarks>
+	/// The fold produces a residue rather than a verdict, which is what lets a condition and
+	/// a C# guard stand in one `when`. A statically false half deletes the alternative and
+	/// the C# beside it is never compiled into anything; a statically true half leaves the
+	/// C# behind as an ordinary guard; and two C# halves are joined into one, bracketed,
+	/// because what they were written with was `and` and not `&amp;&amp;`.
+	/// </remarks>
+	Node? Left(Test test, int at) =>
+		Folded(test, at) is { } residue
+			? residue.Text is { } text ? new Node.Guard(text, residue.At) : Node.Empty.Instance
+			: null;
+
+	/// <summary>A residue: the C# still to ask, or none. Null is the alternative going.</summary>
+	readonly record struct Residue(string? Text, int At);
+
+	Residue? Folded(Test test, int at)
 	{
 		switch (test)
 		{
+			case Test.Runs(var text, var where):
+				return new Residue(text, where);
+
 			case Test.Meets(var left, var right, var negated):
-				return Answer(left, right, at) is { } met ? met != negated : null;
+			{
+				// Undecided is kept as though it held, which is what GRAM4021 says it does.
+				var met = Answer(left, right, at);
+
+				return met is null || met != negated ? new Residue(null, at) : null;
+			}
 
 			case Test.All(var left, var right):
 			{
-				var ours   = Holds(left, at);
-				var theirs = Holds(right, at);
+				if (Folded(left, at) is not { } ours || Folded(right, at) is not { } theirs)
+					return null;
 
-				return ours is false || theirs is false ? false
-					: ours is null || theirs is null ? null
-					: true;
+				return new Residue(Joined(ours.Text, theirs.Text, "&&"), Where(ours, theirs, at));
 			}
 
 			case Test.Any(var left, var right):
 			{
-				var ours   = Holds(left, at);
-				var theirs = Holds(right, at);
+				var ours   = Folded(left, at);
+				var theirs = Folded(right, at);
 
-				return ours is true || theirs is true ? true
-					: ours is null || theirs is null ? null
-					: false;
+				// One half true outright and the other is not asked — not even at run time,
+				// since nothing it could answer would change the reading.
+				if (ours is { Text: null } || theirs is { Text: null })
+					return new Residue(null, at);
+
+				if (ours is null)
+					return theirs;
+
+				if (theirs is null)
+					return ours;
+
+				return new Residue(
+					Joined(ours.Value.Text, theirs.Value.Text, "||"), Where(ours.Value, theirs.Value, at));
 			}
 
 			default:
-				return null;
+				return new Residue(null, at);
 		}
 	}
+
+	/// <summary>Two pieces of C#, bracketed so that what joins them is what was written.</summary>
+	static string? Joined(string? ours, string? theirs, string with) =>
+		ours is null ? theirs
+			: theirs is null ? ours
+			: $"({ours}) {with} ({theirs})";
+
+	/// <summary>Where the surviving C# was written, which is the first of it there is.</summary>
+	static int Where(Residue ours, Residue theirs, int at) =>
+		ours.Text is not null ? ours.At : theirs.Text is not null ? theirs.At : at;
 
 	/// <summary>
 	/// Whether the two have a string in common, or null where this compiler cannot say.

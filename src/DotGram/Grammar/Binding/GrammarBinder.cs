@@ -741,6 +741,10 @@ public sealed class GrammarBinder
 				foreach (var operand in Parsing.Test.Operands(test))
 					ResolveExpression(operand, ns, parameters, csharpValue: false);
 
+				// And the C# among them, which resolves the way a `when @(…)` on its own does.
+				foreach (var guard in Parsing.Test.Guards(test))
+					ResolveExpression(guard, ns, parameters, csharpValue: true);
+
 				return;
 
 			case Expr.Call(var target, var arguments):

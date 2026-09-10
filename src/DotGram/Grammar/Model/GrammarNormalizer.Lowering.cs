@@ -89,7 +89,9 @@ public sealed partial class GrammarNormalizer
 		Expr.Lookahead (var positive, var operand)       => new Node.Lookahead(positive, Lower(operand, ns)),
 		Expr.Guard     (var value)                       => Guarded(value),
 		Expr.Condition (var test)                        =>
-			new Node.Condition(Lowered(test, ns), StartOf(Parsing.Test.Operands(test)[0])),
+			new Node.Condition(
+				Lowered(test, ns),
+				Parsing.Test.Operands(test) is [var first, ..] ? StartOf(first) : -1),
 		Expr.CSharp    (var text)                        => new Node.Guard(Substituted($"@({text})"), StartOf(expression)),
 		Expr.Construct (var pattern, var value)          => LowerConstruct(pattern, value, ns),
 		Expr.Bound     (var body, var isLeft, var level) => LowerBound(body, isLeft, level, ns),
@@ -136,6 +138,7 @@ public sealed partial class GrammarNormalizer
 	{
 		Parsing.Test.Meets(var left, var right, var negated) =>
 			new Test.Meets(Lower(left, ns), Lower(right, ns), negated),
+		Parsing.Test.Runs(var value)          => new Test.Runs(Substituted(Text(value)), StartOf(value)),
 		Parsing.Test.All(var left, var right) => new Test.All(Lowered(left, ns), Lowered(right, ns)),
 		Parsing.Test.Any(var left, var right) => new Test.Any(Lowered(left, ns), Lowered(right, ns)),
 		_ => throw new InvalidOperationException($"Unhandled test kind: {test.GetType().Name}"),

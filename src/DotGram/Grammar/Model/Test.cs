@@ -21,6 +21,20 @@ public abstract record Test
 		public override string ToString() => $"{Left} is {(Negated ? "not " : "")}{Right}";
 	}
 
+	/// <summary>
+	/// A C# guard standing among the conditions, asked while the parser runs.
+	/// </summary>
+	/// <remarks>
+	/// The one leaf that has no answer at generation, and it does not need one: what the fold
+	/// produces is a residue rather than a verdict. `false and @(g)` deletes the alternative
+	/// and `@(g)` is never compiled into anything; `true and @(g)` leaves `@(g)` behind as an
+	/// ordinary guard; `true or @(g)` leaves nothing at all.
+	/// </remarks>
+	public sealed record Runs(string Text, int At) : Test
+	{
+		public override string ToString() => $"@({Text})";
+	}
+
 	public sealed record All(Test Left, Test Right) : Test
 	{
 		public override string ToString() => $"{Left} and {Right}";
@@ -35,6 +49,7 @@ public abstract record Test
 	public static IReadOnlyList<Node> Operands(Test test) => test switch
 	{
 		Meets(var left, var right, _) => [left, right],
+		Runs                          => [],
 		All(var left, var right)      => [.. Operands(left), .. Operands(right)],
 		Any(var left, var right)      => [.. Operands(left), .. Operands(right)],
 		_                             => [],
@@ -44,6 +59,7 @@ public abstract record Test
 	public static Test Mapped(Test test, Func<Node, Node> onto) => test switch
 	{
 		Meets(var left, var right, var negated) => new Meets(onto(left), onto(right), negated),
+		Runs                                    => test,
 		All(var left, var right)                => new All(Mapped(left, onto), Mapped(right, onto)),
 		Any(var left, var right)                => new Any(Mapped(left, onto), Mapped(right, onto)),
 		_                                       => test,

@@ -26,13 +26,26 @@ public abstract record Test
 	/// <summary>Whether two recognizers have a string in common — or, negated, have none.</summary>
 	public sealed record Meets(Expr Left, Expr Right, bool Negated) : Test;
 
+	/// <summary>A C# guard standing among the conditions, asked while the parser runs.</summary>
+	public sealed record Runs(Expr Value) : Test;
+
 	public sealed record All(Test Left, Test Right) : Test;
 	public sealed record Any(Test Left, Test Right) : Test;
+
+	/// <summary>Every C# guard under a test, which resolves as C# and not as a rule.</summary>
+	public static IReadOnlyList<Expr> Guards(Test test) => test switch
+	{
+		Runs(var value)          => [value],
+		All(var left, var right) => [.. Guards(left), .. Guards(right)],
+		Any(var left, var right) => [.. Guards(left), .. Guards(right)],
+		_                        => [],
+	};
 
 	/// <summary>Every recognizer under a test, for the walks that read expressions.</summary>
 	public static IReadOnlyList<Expr> Operands(Test test) => test switch
 	{
 		Meets(var left, var right, _) => [left, right],
+		Runs                          => [],
 		All(var left, var right)      => [.. Operands(left), .. Operands(right)],
 		Any(var left, var right)      => [.. Operands(left), .. Operands(right)],
 		_                             => [],

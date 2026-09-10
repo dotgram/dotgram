@@ -153,4 +153,35 @@ public sealed class StaticConditionTests
 		Assert.True (Reads("Exact", "ab1"));
 		Assert.False(Reads("Exact", "ab2"));
 	}
+
+	[Fact]
+	public void A_condition_and_a_C_sharp_guard_stand_in_one_when()
+	{
+		// The fold gives a residue rather than a verdict: the static half prunes and the
+		// C# half stays. `false and @(g)` deletes the alternative and never compiles `@(g)`;
+		// `true and @(g)` leaves `@(g)` behind as an ordinary guard.
+		var made = GeneratorDriverTests.Build("""
+			[DotGram.Gram("Version = \"V1\" | \"V2\"\nDigits : @int = ['0'..'9']+ => @(int.Parse(parserText))\nSmall : @int\n = n: Digits & when Version is \"V1\" and @(n < 10) => @(n)\n | \"x\" => @(0)\nparse Small with (Version = \"V1\") as One\nparse Small with (Version = \"V2\") as Two")]
+			public static partial class Mixed { }
+			""").GetType("Mixed")!;
+
+		bool Reads(string entry, string input)
+		{
+			var match = made.GetMethod("Try" + entry, [typeof(string)])!.Invoke(null, [input])!;
+
+			return (bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!;
+		}
+
+		// V1 keeps the alternative, so the guard is what decides — and it still decides.
+		Assert.True (Reads("One", "7"));
+		Assert.False(Reads("One", "42"));
+
+		// V2 does not have it at all, so no number is read and the guard was never built.
+		Assert.False(Reads("Two", "7"));
+		Assert.False(Reads("Two", "42"));
+
+		// The alternative with no condition on it is in both.
+		Assert.True (Reads("One", "x"));
+		Assert.True (Reads("Two", "x"));
+	}
 }
