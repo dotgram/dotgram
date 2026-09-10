@@ -64,6 +64,7 @@ public sealed class GeneratorCostTests(Xunit.ITestOutputHelper output)
 			var checked_ = Median(() => Checked(text));
 			var whole    = Median(() => GramCompiler.Compile(text, Options(name)));
 
+
 			var made = GramCompiler.Compile(text, Options(name));
 			var bad  = made.Diagnostics.Count(one => one.Severity == GramSeverity.Error);
 			var size = made.Sources.Sum(one => one.Text.Length);

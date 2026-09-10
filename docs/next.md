@@ -17270,3 +17270,52 @@ generator already escapes it.** `ResultTypes.ParameterOf` has emitted `@using` f
 parameter since the day captures became parameters, and the whole keyword list is beside
 it. What was missing was on the author's side — inside the `=>` the name is C#, so it is
 written `@(@using)`. A test now says so, and §3.5 does.
+
+### Where the generator spends it
+
+Nothing had ever measured the compiler, which is the one number the whole project rests
+on and the one nobody had asked for. The stages, over `SqlStandard92.gram` — 31 KB of
+grammar, the only heavy one that compiles from its file alone, since `TransactSql.gram`
+needs the `[GramInclude]` its host gives it and is five hundred unresolved names without:
+
+| | with the lexical cut | whole |
+| --- | --: | --: |
+| splice, lex, parse, bind | 0.4 ms | 0.4 ms |
+| normalize | 41 ms | 42 ms |
+| **the cut** | **272 ms** | — |
+| **machines built** | 24 ms | **307 ms** |
+| value tables | 0.01 ms | 0.01 ms |
+| **rendered** | **293 ms** | **320 ms** |
+| emitted | 946 KB | 2,118 KB |
+| whole | 618 ms | 619 ms |
+
+**Three places, and the front of the pipeline is not one of them.** Splice, lex, parse and
+bind are under half a millisecond together — a tenth of one per cent — so the hand-written
+compiler front end has nothing in it to find.
+
+**Rendering is half of it and constant.** Three megabytes a second of text, which is two
+orders of magnitude off what appending strings costs, so what it is doing is not writing.
+
+**The cut is forty-four per cent of a split compile** and was invisible: charged to
+emission by the first table here, because it happens between normalization and emission
+and nothing had ever timed it. `Lexical = true` is on both shipping parsers.
+
+**And machine building is super-linear in the graph.** 307 ms over the whole graph against
+24 over the cut one, from a graph roughly half the size — twelve times for two. That is
+`CanLower`, `CanDirect`, `Reaches` and what `Machine.Analysis.cs` does behind them.
+
+So the cut pays for itself at build time and only just: 272 ms spent to save 283, plus half
+the output. It was taken for a runtime optimization and it turns out to be neutral for the
+build, which is worth knowing before anybody counts it either way.
+
+**What was measured and turned out not to be there.** `Writer.AppendIndented` materializes
+a nested writer with `ToString()` and `Split` on every append, which is exactly the shape of
+an accidentally quadratic emitter — and it is not one: a hundred calls and 182 KB re-copied
+against 946 KB emitted. A span-based rewrite would buy nothing and `netstandard2.0` has
+neither `Append(StringBuilder, int, int)` nor `GetChunks()` to do it with. Measured before
+fixed, which is the only reason the afternoon did not go into it.
+
+**On the trade.** Igor's ruling, and it widens what the next pass may do: memory spent for
+speed is fine here, including memory held only while the generator runs. A generator is a
+process that starts, answers and exits; what it holds for a second costs a consumer
+nothing, and none of it reaches the emitted code.
