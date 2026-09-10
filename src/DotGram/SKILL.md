@@ -1,6 +1,6 @@
 ---
 name: dotgram
-description: Write, publish and debug .Gram grammars — the notation, its seam with C#, and what the generator's diagnostics mean. Use when a project references the DotGram package, when a file carries a [Gram] attribute or has a .gram extension, or when asked to parse a format, protocol, query language or small DSL in C#.
+description: Write, publish and debug .Gram grammars — the notation, its seam with C#, and what the generator's diagnostics mean. Use when a project references the DotGram package, when a file carries a [Gram] attribute or has a .gram extension, or when asked in so many words for a parser written in .Gram. Not for reading a format in C# generally: a regular expression, System.Text.Json or a hand-written reader is often the right answer, and this says nothing about them.
 ---
 
 # .Gram
@@ -19,6 +19,22 @@ expression language, SQL-92 and T-SQL as a dialect over it — are
 [diagnostics]: https://github.com/dotgram/dotgram/blob/main/docs/diagnostics.md
 [examples]:    https://github.com/dotgram/dotgram/tree/main/examples/DotGram.Examples
 [parsers]:     https://github.com/dotgram/dotgram/tree/main/src/DotGram.Parsers
+
+## The order to do it in
+
+1. **Settle what goes in and what comes out** before writing a rule. The result type
+   decides most of the grammar, and guessing it late means writing the grammar twice.
+2. **Choose the publication**: `parse` for a whole input, `find` for a scan of one.
+3. **Write the smallest grammar that recognizes the input** — no result types, no `=>`.
+   Compile it. A grammar that recognizes is one that can then be given values.
+4. **Give it values**: captures, `: @T` for what a rule builds, `=> @(…)` where the
+   construction is not by name. Reach for `@Method` only where the notation cannot say it.
+5. **Compile after every step and read the `GRAM` diagnostics.** They are the language's
+   own review, and each names the section that governs it.
+6. **Only then** reach for specialization, a lexical split or streaming. Each answers a
+   problem the plain grammar will have shown you first.
+7. **Check one input that must match and one that must not.** A grammar that accepts
+   everything passes every test written against what it accepts.
 
 ## Where a grammar lives
 
@@ -381,6 +397,31 @@ rather than guessing at the notation.
 - **No type parameters**, and no way to say a rule is generic: a parameter's name in type
   position is what covers it.
 - **No juxtaposition.** Two expressions never sit side by side; `&` or `|` between them.
+
+## What is not there yet
+
+The section above is by design. This is the other kind, and it moves — which is why the
+repository keeps [`docs/status.md`][status], the record of what this version compiles held
+against the specification rule by rule. **`docs/syntax.md` is written in the present tense
+whether or not the compiler has caught up**, so a construct read there and not met here may
+not build. Check `status.md` before promising one.
+
+The traps, in the order they are usually met:
+
+- **Left recursion is direct.** A rule calling itself leftmost is rewritten, and so is one
+  reaching itself through rules that do nothing but forward. Anything else is `GRAM4002`,
+  so every postfix step belongs in **one** rule whose tail is a choice of the steps —
+  `Member`, `Index` and `Apply` as three rules recurse through each other and are refused.
+- **A value parameter takes a value, not a reading.** `Digits(4)` and a literal of the
+  parameter's type work; handing one something the parse produced does not.
+- **A capture may not sit inside a lookahead** (`GRAM4006`). Capture the lookahead itself:
+  `n: ?=Number` is a value, and `?=(n: Number)` is refused.
+- **A token parse reads from memory.** `Lexical = true` and the reader overloads do not
+  combine; the overloads are simply not emitted.
+- **Recovery is one repetition's.** There is no repair of a document, and no outcome at
+  all for a failure past a commit point.
+
+[status]: https://github.com/dotgram/dotgram/blob/main/docs/status.md
 
 ## Working rules
 
