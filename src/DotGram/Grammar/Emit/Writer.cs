@@ -13,12 +13,22 @@ sealed class Writer(int depth)
 	/// <summary>How far in the next line will be written — what a nested writer starts at.</summary>
 	public int Depth => _depth;
 
+	/// <summary>One line at the current depth, ending in no whitespace.</summary>
+	/// <remarks>
+	/// Nothing the generator writes ends in whitespace: a blank line is an ending and not an
+	/// indentation followed by one, and a run of `case 'a': ` built a label at a time loses the
+	/// space it was built with. Generated code is committed as snapshots that have to be the
+	/// generator's output to the byte, and with `trim_trailing_whitespace` set every one of
+	/// them was an editor save away from failing.
+	/// </remarks>
 	public void Line(string text = "")
 	{
-		if (text.Length == 0)
+		var trimmed = text.TrimEnd(' ', '\t');
+
+		if (trimmed.Length == 0)
 			_text.EndLine();
 		else
-			_text.Append('\t', _depth).AppendEndingWith(text);
+			_text.Append('\t', _depth).AppendEndingWith(trimmed);
 	}
 
 	/// <summary>A line written exactly as given, at no indent at all.</summary>
@@ -104,12 +114,18 @@ sealed class Writer(int depth)
 			if (lines[i].StartsWith("#line", StringComparison.Ordinal))
 				kept = !lines[i].StartsWith("#line default", StringComparison.Ordinal);
 
-			if (lines[i].Length == 0)
+			// Inside a `#line` region the text is the author's C#, copied as it was written:
+			// its columns are what put an error under the code (§7.6), and a verbatim string
+			// in it may hold whitespace that means something. Everything else is the
+			// generator's, and loses whatever it would have ended in.
+			var line = kept ? lines[i] : lines[i].TrimEnd(' ', '\t');
+
+			if (line.Length == 0)
 				_text.EndLine();
-			else if (kept || lines[i].StartsWith("#line default", StringComparison.Ordinal))
-				_text.AppendEndingWith(lines[i]);
+			else if (kept || line.StartsWith("#line default", StringComparison.Ordinal))
+				_text.AppendEndingWith(line);
 			else
-				_text.Append('\t', _depth + extra).AppendEndingWith(lines[i]);
+				_text.Append('\t', _depth + extra).AppendEndingWith(line);
 		}
 	}
 

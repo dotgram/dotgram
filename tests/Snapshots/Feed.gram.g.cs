@@ -595,12 +595,12 @@ namespace DotGram.Snapshots
 				c = text[p];
 				switch (c)
 				{
-					case '\n': 
+					case '\n':
 						{
 							p += 1;
 							break;
 						}
-					case '\r': 
+					case '\r':
 						{
 							var w0  = -1;
 							var d0 = 0;
@@ -3084,7 +3084,7 @@ namespace DotGram.Snapshots
 			internal global::DotGram.Snapshots.Feed.Trailer[] Materialization1() { return _values1; }
 			internal global::DotGram.Snapshots.Feed.Row[] Materialization2() { return _values2; }
 			internal global::DotGram.Snapshots.Feed.Header[] Materialization3() { return _values3; }
-			
+
 			internal int[] MaterializationHeads() => _linkHeads;
 			internal int[] MaterializationNexts() => _linkNexts;
 			internal int[] MaterializationOwners() => _owners;

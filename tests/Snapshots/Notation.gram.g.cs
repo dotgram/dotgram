@@ -1579,7 +1579,7 @@ namespace DotGram.Snapshots
 				c = text[p];
 				switch (c)
 				{
-					case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': 
+					case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
 						{
 							var q0 = Read_Number_Small_With2(p);
 							if (q0 < 0) return -1;
@@ -2106,7 +2106,7 @@ namespace DotGram.Snapshots
 				c = text[p];
 				switch (c)
 				{
-					case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9': 
+					case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
 						{
 							var q0 = Read_Number_Small(p);
 							if (q0 < 0) return -1;
@@ -4376,9 +4376,9 @@ namespace DotGram.Snapshots
 
 			internal string[] Materialization0() { return _values0; }
 			internal int[] Materialization1() { return _values1; }
-			
+
 			internal bool[] Materialized() => _built;
-			
+
 			internal int[] MaterializationHeads() => _linkHeads;
 			internal int[] MaterializationNexts() => _linkNexts;
 			internal int[] MaterializationOwners() => _owners;
@@ -4411,24 +4411,24 @@ namespace DotGram.Snapshots
 					for (var i = _valuesUsed - 1; i >= count; i--)
 					{
 						var callIndex = entries[i].CallIndex;
-			
+
 						if (callIndex >= 0 && _linkHeads[callIndex] == i)
 							_linkHeads[callIndex] = _linkNexts[i];
-			
+
 						_linkHeads[i] = -1;
 						_linkNexts[i] = -1;
 					}
-			
+
 					global::System.Array.Clear(_values, count, _valuesUsed - count);
 					global::System.Array.Clear(_built, count, _valuesUsed - count);
-			
+
 					_valuesUsed = count;
 				}
-			
+
 				if (count < LinkedUpTo)
 					LinkedUpTo = count;
 			}
-			
+
 			internal void Reset()
 			{
 				Entries.Clear();

@@ -1044,7 +1044,7 @@ namespace DotGram.Snapshots
 			internal string[][] Materialization0() { return _values0; }
 			internal string[] Materialization1() { return _values1; }
 			internal int[] Materialization2() { return _values2; }
-			
+
 			internal int[] MaterializationHeads() => _linkHeads;
 			internal int[] MaterializationNexts() => _linkNexts;
 			internal int[] MaterializationOwners() => _owners;

@@ -1226,6 +1226,10 @@ public static class LexerEmitter
 
 		public void Line(string line = "")
 		{
+			// As the emitter's own writer does: nothing ends in whitespace, and a blank line
+			// is an ending rather than an indentation followed by one.
+			line = line.TrimEnd(' ', '\t');
+
 			if (line.Length > 0)
 				_text.Append('\t', _depth);
 

@@ -4267,7 +4267,7 @@ namespace DotGram.Snapshots
 
 			internal global::DotGram.Snapshots.Url.UrlValue[] Materialization0() { return _values0; }
 			internal global::DotGram.Snapshots.Url.Authority[] Materialization1() { return _values1; }
-			
+
 			internal int[] MaterializationHeads() => _linkHeads;
 			internal int[] MaterializationNexts() => _linkNexts;
 			internal int[] MaterializationOwners() => _owners;
