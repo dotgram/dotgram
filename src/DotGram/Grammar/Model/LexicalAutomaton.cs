@@ -747,7 +747,7 @@ public sealed class LexicalAutomaton
 		/// </remarks>
 		LexicalAutomaton Subsets(int start)
 		{
-			var numbered = new Dictionary<string, int>();
+			var numbered = new Dictionary<ulong[], int>(Bits.Same);
 			var pending  = new Queue<(HashSet<int> States, int Number)>();
 			var sets     = new List<IReadOnlyList<int>>();
 			var named    = new Dictionary<string, int>();
@@ -895,8 +895,54 @@ public sealed class LexicalAutomaton
 			return reached;
 		}
 
-		static string Key(HashSet<int> states) =>
-			string.Join(",", states.OrderBy(one => one));
+		/// <summary>A subset as one bit per state, which is what identifies it.</summary>
+		/// <remarks>
+		/// It was a comma-joined string of the sorted members, built and hashed once per
+		/// state of the machine under construction and once more per transition into it —
+		/// a sort, an allocation the length of the set, and a walk of that string to hash.
+		/// A bit per state is a walk of the members and nothing else, and the memory is a
+		/// word per sixty-four states held for as long as the generator runs.
+		/// </remarks>
+		ulong[] Key(HashSet<int> states)
+		{
+			var key = new ulong[(_on.Count + 63) / 64];
+
+			foreach (var one in states)
+				key[one >> 6] |= 1UL << (one & 63);
+
+			return key;
+		}
+
+		/// <summary>Two subsets are the same when the same bits are set.</summary>
+		sealed class Bits : IEqualityComparer<ulong[]>
+		{
+			public static readonly Bits Same = new();
+
+			public bool Equals(ulong[]? left, ulong[]? right)
+			{
+				if (ReferenceEquals(left, right))
+					return true;
+
+				if (left is null || right is null || left.Length != right.Length)
+					return false;
+
+				for (var i = 0; i < left.Length; i++)
+					if (left[i] != right[i])
+						return false;
+
+				return true;
+			}
+
+			public int GetHashCode(ulong[] key)
+			{
+				var hash = 17;
+
+				foreach (var word in key)
+					hash = hash * 31 + word.GetHashCode();
+
+				return hash;
+			}
+		}
 
 		bool Refuse(string reason)
 		{
