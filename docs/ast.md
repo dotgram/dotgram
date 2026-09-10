@@ -198,6 +198,9 @@ key's or an Always Encrypted value's, is an option holding it.
 | `Statement.Use` | T-SQL | USE |
 | `Statement.RaiseError` | T-SQL | RAISERROR |
 | `Statement.WaitFor` | T-SQL | WAITFOR |
+| `Statement.ExecuteAs` | T-SQL | EXECUTE AS |
+| `Statement.Revert` | T-SQL | REVERT |
+| `Statement.SetUser` | T-SQL | SETUSER |
 | `Statement.CreateLogin` | T-SQL | CREATE LOGIN |
 | `Statement.AlterLogin` | T-SQL | ALTER LOGIN |
 | `Statement.CreateUser` | T-SQL | CREATE USER |

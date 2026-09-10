@@ -904,6 +904,53 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>Whom the session runs as, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("EXECUTE AS SELF")]
+	[InlineData("EXECUTE AS OWNER")]
+	[InlineData("EXECUTE AS 'dbo'")]
+	[InlineData("EXECUTE AS FOO = 'u'")]
+	[InlineData("EXECUTE AS USER 'u'")]
+	[InlineData("EXECUTE AS USER")]
+	[InlineData("EXECUTE AS USER = 'u', NO REVERT")]
+	[InlineData("EXECUTE AS USER = 'u' WITH NO REVERT, COOKIE INTO @c")]
+	[InlineData("EXECUTE AS USER = 'u' WITH NO REVERT, NO REVERT")]
+	[InlineData("EXECUTE AS USER = 'u' WITH COOKIE INTO c")]
+	[InlineData("EXECUTE AS USER = 'u' WITH NORESET")]
+	[InlineData("EXECUTE AS CALLER, NO REVERT")]
+	[InlineData("REVERT WITH COOKIE @c")]
+	[InlineData("REVERT WITH COOKIE")]
+	[InlineData("REVERT WITH NO REVERT")]
+	[InlineData("SETUSER u")]
+	[InlineData("SETUSER 'u' + 'v'")]
+	[InlineData("SETUSER WITH NORESET")]
+	[InlineData("SETUSER 'u' WITH FOO")]
+	public void The_session_statements_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("EXECUTE AS CALLER")]
+	[InlineData("EXEC AS CALLER WITH COOKIE INTO @c, NO REVERT")]
+	[InlineData("EXECUTE AS USER = N'u'")]
+	[InlineData("EXECUTE AS USER = dbo.fn_getuser() WITH NO REVERT")]
+	[InlineData("EXECUTE AS USER = 'u' + @v WITH COOKIE INTO @@c")]
+	[InlineData("EXEC AS LOGIN = @l WITH COOKIE INTO @c")]
+	[InlineData("EXECUTE AS LOGIN = 'l' WITH NO REVERT")]
+	[InlineData("REVERT")]
+	[InlineData("REVERT WITH COOKIE = @c + 1")]
+	[InlineData("REVERT WITH COOKIE = 0x01")]
+	[InlineData("SETUSER")]
+	[InlineData("SETUSER ''")]
+	[InlineData("SETUSER N'u' WITH NORESET")]
+	[InlineData("SETUSER @u WITH NORESET")]
+	public void The_session_statements_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>Table, query and join hints, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM t WITH (FOO)")]
@@ -2213,6 +2260,9 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE WORKLOAD GROUP g",          "WorkloadGroupDefinition")]
 	[InlineData("CREATE EVENT SESSION es ON SERVER ADD EVENT a.b", "EventSessionDefinition")]
 	[InlineData("CREATE ENDPOINT e AS TCP (LISTENER_PORT = 1)", "EndpointDefinition")]
+	[InlineData("EXECUTE AS USER = 'u' WITH NO REVERT", "ExecuteAs")]
+	[InlineData("REVERT WITH COOKIE = @c",          "Revert")]
+	[InlineData("SETUSER 'u' WITH NORESET",         "SetUser")]
 
 	[InlineData("CREATE TABLE t (a INT)",           "TableDefinition")]
 	[InlineData("CREATE VIEW v AS SELECT a FROM t", "ViewDefinition")]

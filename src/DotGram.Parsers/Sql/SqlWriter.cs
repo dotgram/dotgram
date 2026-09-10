@@ -580,6 +580,52 @@ public static class SqlWriter
 				Put(text, value, 0);
 				break;
 
+			case Statement.ExecuteAs(var kind, var name, var noRevert, var cookie):
+				text.Append("EXECUTE AS ").Append(kind);
+
+				if (name is not null)
+				{
+					text.Append(" = ");
+					Put(text, name, 0);
+				}
+
+				// The cookie first: the engine refuses `NO REVERT` in front of it.
+				if (cookie is not null)
+				{
+					text.Append(" WITH COOKIE INTO ");
+					Put(text, cookie, 0);
+				}
+
+				if (noRevert)
+					text.Append(cookie is null ? " WITH NO REVERT" : ", NO REVERT");
+
+				break;
+
+			case Statement.Revert(var cookie):
+				text.Append("REVERT");
+
+				if (cookie is not null)
+				{
+					text.Append(" WITH COOKIE = ");
+					Put(text, cookie, 0);
+				}
+
+				break;
+
+			case Statement.SetUser(var name, var noReset):
+				text.Append("SETUSER");
+
+				if (name is not null)
+				{
+					text.Append(' ');
+					Put(text, name, 0);
+				}
+
+				if (noReset)
+					text.Append(" WITH NORESET");
+
+				break;
+
 			case Statement.SetTransactionIsolationLevel(var level):
 				text.Append("SET TRANSACTION ISOLATION LEVEL ").Append(level);
 				break;

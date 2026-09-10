@@ -420,6 +420,22 @@ public abstract record Statement : ISqlSpan
 	/// </param>
 	public sealed record WaitFor(Expression Value, string Kind = "DELAY") : Statement;
 
+	/// <summary><c>EXECUTE AS</c>: whom the session runs as until a <c>REVERT</c> says otherwise.</summary>
+	/// <param name="Kind"><c>CALLER</c>, <c>USER</c> or <c>LOGIN</c>.</param>
+	/// <param name="Name">Whom, for a user or a login: any expression the engine will take.</param>
+	/// <param name="NoRevert"><c>WITH NO REVERT</c>: the context is not given back.</param>
+	/// <param name="Cookie">The variable <c>WITH COOKIE INTO</c> names, which a <c>REVERT</c> must show.</param>
+	public sealed record ExecuteAs(string Kind, Expression? Name, bool NoRevert = false, Expression? Cookie = null) : Statement;
+
+	/// <summary><c>REVERT</c>: the context an <c>EXECUTE AS</c> changed, given back.</summary>
+	/// <param name="Cookie">What <c>WITH COOKIE =</c> shows for it.</param>
+	public sealed record Revert(Expression? Cookie = null) : Statement;
+
+	/// <summary><c>SETUSER</c>: a user impersonated, the way before <c>EXECUTE AS</c>.</summary>
+	/// <param name="Name">The user, or nobody, which puts the original back.</param>
+	/// <param name="NoReset"><c>WITH NORESET</c>.</param>
+	public sealed record SetUser(Expression? Name = null, bool NoReset = false) : Statement;
+
 	// ---- who may connect, what lives outside, and what the server watches ----------------------
 	//
 	// One record each, and the name only: what these are set to is an option list the grammar

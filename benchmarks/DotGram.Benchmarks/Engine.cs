@@ -498,6 +498,12 @@ static class Engine
 			//   7888  The IPv6 address specified is not supported. …
 			or 7810 or 7816 or 7863 or 7871 or 7888
 
+			// And a session's.
+			//
+			//    128  The name "…" is not permitted in this context. … Column names are not permitted.
+			//   1046  Subqueries are not allowed in this context. Only scalar expressions are allowed.
+			or 128 or 1046
+
 			// And a database's creation.
 			//
 			//    188  Cannot specify a log file in a CREATE DATABASE statement without also specifying at least one data file.

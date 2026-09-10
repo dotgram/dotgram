@@ -18047,3 +18047,30 @@ that is the table reference's, for another day.
 At 150: read by both 5,641 (from 5,617), the work list 327 (from 351), read here but refused
 there 43 (from 44), one statement the engine refuses now refused here too. `--split` 549 cut
 the same, and the round trip 100% of 6,716, one fewer.
+
+## Whom the session runs as
+
+`EXECUTE AS`, `REVERT` and `SETUSER` were not statements here at all. `EXECUTE AS LOGIN = 'l'`
+was read, as an `EXECUTE` of something called `AS` with a named argument, and `EXECUTE AS
+USER = …` not, `USER` being reserved; the other two stopped at their first word. They are
+three records now — `Statement.ExecuteAs`, `Statement.Revert`, `Statement.SetUser`, the
+shape agreed before writing them — each with its case in the writer and its row in the
+reference. Put to the engine some sixty times:
+
+- **Whom.** A user or a login is any expression: a string, a variable, a call, a
+  concatenation, `NULL`, and a subquery or a bare name, which it reads and then objects to
+  (1046, 128, now on the audit's read side). A caller is the word alone; `SELF`, `OWNER`
+  and a bare string belong to a module's `WITH EXECUTE AS` and are refused here.
+- **After it**, `WITH NO REVERT`, or a cookie and then `NO REVERT` — the other way round is
+  refused, and the writer prints the cookie first for that reason.
+- **`REVERT`** shows the cookie as any expression; **`SETUSER`** takes a string or a
+  variable, or nothing, and `WITH NORESET` only after one.
+
+Two forms the engine reads have no place in the tree and are refused here, on purpose: a
+second `COOKIE INTO`, and a second value after `SETUSER`. Neither is in the corpus; they are
+the two probes answered otherwise, 64 of 66 agreeing.
+
+At 150: read by both 5,651 (from 5,641), the work list 319 (from 327), read here but refused
+there 43, and neither 387 (from 389) — the last two by the audit rather than the grammar:
+statements the engine answered with 128 or 1046, counted as refused until those two joined
+the read side. `--split` 553 cut the same (from 549), the round trip 100% of 6,740.

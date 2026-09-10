@@ -1431,6 +1431,7 @@ ControlStatement : @Statement
 DefinitionStatement : @Statement
 	= s: DeclareStatement     => @(s)
 	| s: SetStatement         => @(s)
+	| s: SessionStatement     => @(s)
 	| e: ExecuteStatement     => @(e)
 	| s: BulkInsertStatement  => @(s)
 	| s: CreateTableStatement => @(s)
@@ -1604,15 +1605,49 @@ OnOff : @string = "ON"i => @("ON") | "OFF"i => @("OFF")
 IsolationLevel = "READ"i & "UNCOMMITTED"i | "READ"i & "COMMITTED"i | "REPEATABLE"i & "READ"i
 			   | "SNAPSHOT"i | "SERIALIZABLE"i
 
+// ── Whom the session runs as ────────────────────────────────────────────────
+//
+// `EXECUTE AS`, `REVERT` and `SETUSER`, put to the engine some sixty times. A user or a login
+// is any expression — a string, a variable, a call, a concatenation — and a caller the word
+// alone; `SELF`, `OWNER` and a bare string are a module's, and refused here. After it, `WITH
+// NO REVERT`, or a cookie and then `NO REVERT`, which the engine refuses the other way round.
+// `REVERT` shows the cookie as any expression, and `SETUSER` takes a string or a variable,
+// and `WITH NORESET` only after one. Two forms the engine reads have no place in the tree and
+// are refused: a second cookie, and a second value after `SETUSER`.
+SessionStatement : @Statement
+	= ExecWord & "AS"i & who: SessionWho & w: SessionWith?
+		=> @(w is null ? who : who with { NoRevert = w.NoRevert, Cookie = w.Cookie })
+	| "REVERT"i & k: RevertCookie? => @(new Statement.Revert(k))
+	| "SETUSER"i & n: SessionUser & r: SessionNoReset? => @(new Statement.SetUser(n, r is not null))
+	| "SETUSER"i => @(new Statement.SetUser())
+
+SessionWho : @Statement.ExecuteAs
+	= "CALLER"i => @(new Statement.ExecuteAs("CALLER", null))
+	| kind: SessionKind & '=' & v: ValueExpression => @(new Statement.ExecuteAs(kind, v))
+
+// What follows whom: the node's own two fields and nothing of its kind, laid onto it above.
+SessionWith : @Statement.ExecuteAs
+	= "WITH"i & "NO"i & "REVERT"i => @(new Statement.ExecuteAs("", null, true))
+	| "WITH"i & "COOKIE"i & "INTO"i & c: TSql.Variable & r: SessionNoRevert?
+		=> @(new Statement.ExecuteAs("", null, r is not null, new Expression.Literal(SqlLiteralKind.Parameter, c)))
+
+SessionKind : @string = "USER"i => @("USER") | "LOGIN"i => @("LOGIN")
+
+SessionNoRevert = ',' & "NO"i & "REVERT"i
+SessionNoReset  = "WITH"i & "NORESET"i
+
+RevertCookie : @Expression = "WITH"i & "COOKIE"i & '=' & c: ValueExpression => @(c)
+
+SessionUser : @Expression
+	= t: Sql92.Lexical.NationalCharacterStringLiteral => @(new Expression.Literal(SqlLiteralKind.National, t))
+	| t: Sql92.Lexical.CharacterStringLiteral         => @(new Expression.Literal(SqlLiteralKind.Text, t))
+	| t: TSql.Variable                                => @(new Expression.Literal(SqlLiteralKind.Parameter, t))
+
 // ── EXECUTE ─────────────────────────────────────────────────────────────────
 ExecuteStatement : @Statement.Execute = ExecWord & e: ExecuteBody => @(e)
 
 ExecuteBody : @Statement.Execute
-	= "AS"i & who: Identifier & '=' & v: ValueExpression & with: ExecWith?
-		=> @(new Statement.Execute(
-				 null, "AS", new Expression[] { new Expression.NamedArgument(who, v) }, null,
-				 Syntax.Tail(with)))
-	| '(' & args: Arguments & ')' & at: ExecAt? & with: ExecWith?
+	= '(' & args: Arguments & ')' & at: ExecAt? & with: ExecWith?
 		=> @(new Statement.Execute(null, "(", args, at, Syntax.Tail(with)))
 	| into: ExecReturn? & name: ExecName & args: ExecArguments? & at: ExecAt? & with: ExecWith?
 		=> @(new Statement.Execute(into, name, args ?? Expression.None, at, Syntax.Tail(with)))

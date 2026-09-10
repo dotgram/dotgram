@@ -90,6 +90,13 @@ public sealed class SqlWriterTests
 	[InlineData("CREATE SCHEMA s",                        "CREATE SCHEMA s")]
 	[InlineData("ALTER DATABASE d SET COMPATIBILITY_LEVEL = 150", "ALTER DATABASE d SET COMPATIBILITY_LEVEL = 150")]
 	[InlineData("INSERT INTO t VALUES (1) OPTION (RECOMPILE)", "INSERT INTO t VALUES (1) OPTION (RECOMPILE)")]
+	[InlineData("EXEC AS CALLER",                         "EXECUTE AS CALLER")]
+	[InlineData("EXECUTE AS USER = 'u' WITH NO REVERT",   "EXECUTE AS USER = 'u' WITH NO REVERT")]
+	[InlineData("EXECUTE AS LOGIN = @l WITH COOKIE INTO @c, NO REVERT",
+		"EXECUTE AS LOGIN = @l WITH COOKIE INTO @c, NO REVERT")]
+	[InlineData("REVERT WITH COOKIE = @c",                "REVERT WITH COOKIE = @c")]
+	[InlineData("SETUSER",                                "SETUSER")]
+	[InlineData("SETUSER N'u' WITH NORESET",              "SETUSER N'u' WITH NORESET")]
 	public void A_statement_comes_back_as_what_it_said(string input, string printed) =>
 		Assert.Equal(printed, SqlWriter.Write(Read(input)));
 
@@ -135,6 +142,9 @@ public sealed class SqlWriterTests
 	[InlineData("SET @a = 1")]
 	[InlineData("EXECUTE dbo.p 1, 2")]
 	[InlineData("SELECT a FROM t WHERE b LIKE 'x%' AND NOT (c = 1 OR d = 2)")]
+	[InlineData("EXECUTE AS USER = dbo.fn_getuser() WITH COOKIE INTO @@c")]
+	[InlineData("REVERT WITH COOKIE = @c + 1")]
+	[InlineData("SETUSER @u WITH NORESET")]
 	public void What_the_writer_prints_reads_back_the_same(string input)
 	{
 		var once  = SqlWriter.Write(Read(input));
