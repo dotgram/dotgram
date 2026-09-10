@@ -14,13 +14,14 @@ namespace DotGram.Parsers.Sql;
 /// the normal form on both sides so that formatting cannot be mistaken for meaning.
 /// </para>
 /// <para>
-/// <b>It prints what the tree holds, and nothing else.</b> `TOP`, `OVER`, the hints, the
-/// windows, `OUTPUT`, a named query's `WITH` and the option lists of every DDL statement are
-/// read and dropped at parse time (`docs/ast.md`), so they cannot come back here. That is not
-/// a gap in this file; it is the tree's shape, and the round-trip measures it rather than
-/// hiding it. Where a statement keeps only a name — most of the DDL — what comes out is the
-/// statement without its options, which SQL Server may well refuse. The harness counts that
-/// as a loss, which is what it is.
+/// <b>It prints what the tree holds, and nothing else.</b> That used to leave a great deal
+/// out: `TOP`, `OVER`, the hints, the windows, `OUTPUT`, a named query's `WITH` and the DDL
+/// option lists were dropped at parse time and so could not come back here. They are in the
+/// tree now, and this is why — a decoration nothing prints is a decoration nothing checks,
+/// so the round trip is what made keeping them worth the fields. What is still dropped is
+/// the short list in `docs/ast.md`. Where a statement keeps only a name, what comes out is
+/// the statement without its options, which SQL Server may well refuse; the harness counts
+/// that as a loss, which is what it is.
 /// </para>
 /// <para>
 /// <b>Parentheses are written where precedence needs them and nowhere else.</b> The tree does

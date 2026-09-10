@@ -182,7 +182,8 @@ The same boundary calls predicates, external recognizers and constructors.
 * existing C# result types, filled by constructor or by `required` properties;
 * semantic actions, guards, external C# predicates and recognizers;
 * parameterized rules, rule rebinding and parser specialization;
-* left recursion, and binding powers for expression grammars;
+* left recursion — direct, and indirect through rules that only forward — with
+  binding powers for expression grammars;
 * grammar namespaces, and grammar libraries that cross a project reference;
 * a lexical split: the same notation read over tokens instead of characters;
 * `Parse`, `TryParse` and `Find`;

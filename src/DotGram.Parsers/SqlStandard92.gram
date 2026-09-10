@@ -206,7 +206,7 @@ ValueExpression : @Expression
     | sign: ['+' | '-'] & v: ValueExpression                                     >> 3
         => @(Expression.Signed(sign, v))
     // §6.11 <character factor> is a primary and a collate clause, which says how it is
-    // compared rather than what it is — read and dropped, as in a GROUP BY. Written on
+    // compared rather than what it is, and is kept all the same, as in a GROUP BY. Written on
     // the primary rather than as a strength of its own because that is where the
     // standard puts it, and nothing binds tighter than a primary anyway.
     | p: ValueExpressionPrimary & how: Collate? => @(how is null ? p : new Expression.Collated(p, how))
@@ -457,7 +457,7 @@ WhereClause  : @Expression = "WHERE"i  & c: SearchCondition => @(c)
 HavingClause : @Expression = "HAVING"i & c: SearchCondition => @(c)
 
 // §7.7. A grouping column may carry a collation, which says how it is compared rather
-// than what it is, so it is read and dropped.
+// than what it is; `Expression.Collated` holds it either way.
 GroupByClause : @Clause
     = "GROUP"i & "BY"i & first: GroupingColumn & (',' & rest: GroupingColumn)*
         => @(new Clause.GroupBy(false, Syntax.Listed(first, rest), null))

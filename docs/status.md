@@ -569,10 +569,11 @@ Three things are refused rather than quietly ignored, all `GRAM4008`:
 - a `=>` anywhere but on an alternative of the rule — inside a group, say. It builds
   the rule's value, and a group has none.
 
-`: T` naming another rule (§4.1 case 3) is refused with `GRAM4011`. Only `: @T` and the
-C# keywords count as a declared type — and until it was refused, the declaration was
-dropped in silence and the rule got a type generated from its own captures instead, so
-`A : B` compiled, ran, and handed back an `A` with nothing to do with `B`.
+`: T` naming another rule is §4.1 case 3 and resolves: the rule takes the named rule's
+value. `GRAM4011` is what is left over — a name in type position that is neither a C# type
+nor a rule in view. Before either, the declaration was dropped in silence and the rule got
+a type generated from its own captures instead, so `A : B` compiled, ran, and handed back
+an `A` with nothing to do with `B`.
 
 Syntactic position now fixes the two recognizer contracts. `[@Name]` is an element
 predicate and emits `Name(c)`; bare `@Name` is an input-consuming recognizer and emits
