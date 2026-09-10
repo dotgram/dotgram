@@ -1085,6 +1085,53 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>Keys and certificates to a file and back, and a security policy, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = @f")]
+	[InlineData("BACKUP CERTIFICATE c TO URL = 'u'")]
+	[InlineData("BACKUP CERTIFICATE s.c TO FILE = 'f'")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH FORMAT = PFX, PRIVATE KEY (FILE = 'k', ENCRYPTION BY PASSWORD = 'p')")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH PRIVATE KEY (FILE = @k, ENCRYPTION BY PASSWORD = @p)")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH PRIVATE KEY ()")]
+	[InlineData("BACKUP MASTER KEY TO FILE = 'f'")]
+	[InlineData("BACKUP MASTER KEY TO FILE = 'f' ENCRYPTION BY PASSWORD = @p")]
+	[InlineData("BACKUP MASTER KEY TO FILE = 'f' ENCRYPTION BY PASSWORD = 'p' FORCE")]
+	[InlineData("BACKUP SERVICE MASTER KEY TO URL = 'u' ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("BACKUP SYMMETRIC KEY s.k TO FILE = 'f' ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("RESTORE MASTER KEY FROM FILE = 'f' ENCRYPTION BY PASSWORD = 'q' DECRYPTION BY PASSWORD = 'p'")]
+	[InlineData("RESTORE MASTER KEY FROM FILE = 'f' DECRYPTION BY PASSWORD = 'p' FORCE ENCRYPTION BY PASSWORD = 'q'")]
+	[InlineData("RESTORE SERVICE MASTER KEY FROM FILE = 'f' DECRYPTION BY PASSWORD = 'p' ENCRYPTION BY PASSWORD = 'q'")]
+	[InlineData("RESTORE SYMMETRIC KEY k FROM FILE = 'f' DECRYPTION BY PASSWORD = 'p'")]
+	[InlineData("ALTER SECURITY POLICY p NOT FOR REPLICATION")]
+	[InlineData("ALTER SECURITY POLICY p WITH (STATE = ON) ADD NOT FOR REPLICATION")]
+	[InlineData("CREATE SECURITY POLICY p ADD PREDICATE dbo.f(c) ON dbo.t")]
+	[InlineData("CREATE SECURITY POLICY p ADD FILTER PREDICATE dbo.f(c) ON dbo.t AFTER INSERT")]
+	[InlineData("CREATE SECURITY POLICY p ADD BLOCK PREDICATE dbo.f(c) ON dbo.t AFTER DELETE")]
+	[InlineData("CREATE SECURITY POLICY p ADD BLOCK PREDICATE dbo.f(c) ON dbo.t BEFORE INSERT")]
+	public void Keys_and_policies_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = N'f' WITH FORMAT = N'PFX', PRIVATE KEY (FILE = N'k', ENCRYPTION BY PASSWORD = N'p')")]
+	[InlineData("BACKUP CERTIFICATE [c] TO FILE = 'f' WITH PRIVATE KEY (DECRYPTION BY PASSWORD = 'q', FILE = 'k', ENCRYPTION BY PASSWORD = 'p')")]
+	[InlineData("BACKUP MASTER KEY TO URL = 'u' ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("BACKUP SYMMETRIC KEY k TO URL = 'u' ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("RESTORE MASTER KEY FROM URL = 'u' DECRYPTION BY PASSWORD = 'p' ENCRYPTION BY PASSWORD = 'q' FORCE")]
+	[InlineData("RESTORE SERVICE MASTER KEY FROM FILE = 'f' DECRYPTION BY PASSWORD = 'p' FORCE")]
+	[InlineData("RESTORE SYMMETRIC KEY [k] FROM URL = 'u' DECRYPTION BY PASSWORD = 'p' ENCRYPTION BY PASSWORD = 'q' FORCE")]
+	[InlineData("ALTER SECURITY POLICY p ADD NOT FOR REPLICATION")]
+	[InlineData("ALTER SECURITY POLICY p DROP NOT FOR REPLICATION")]
+	[InlineData("CREATE SECURITY POLICY p ADD BLOCK PREDICATE dbo.f(c) ON dbo.t BEFORE DELETE NOT FOR REPLICATION")]
+	[InlineData("ALTER SECURITY POLICY p DROP BLOCK PREDICATE ON dbo.t AFTER INSERT")]
+	public void Keys_and_policies_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>Table, query and join hints, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM t WITH (FOO)")]
@@ -2397,6 +2444,8 @@ public sealed class TransactSqlTests
 	[InlineData("EXECUTE AS USER = 'u' WITH NO REVERT", "ExecuteAs")]
 	[InlineData("REVERT WITH COOKIE = @c",          "Revert")]
 	[InlineData("SETUSER 'u' WITH NORESET",         "SetUser")]
+	[InlineData("RESTORE SYMMETRIC KEY k FROM FILE = 'f' DECRYPTION BY PASSWORD = 'p' ENCRYPTION BY PASSWORD = 'q'",
+		"RestoreSymmetricKey")]
 
 	[InlineData("CREATE TABLE t (a INT)",           "TableDefinition")]
 	[InlineData("CREATE VIEW v AS SELECT a FROM t", "ViewDefinition")]

@@ -2661,9 +2661,14 @@ KeyStatement : @Statement
 
 	// A security policy is a list of predicates rather than a list of settings, and each
 	// predicate names a function, the table it guards, and when it fires.
-	| verb: CreateOrAlter & "SECURITY"i & "POLICY"i & name: QualifiedName
+	// A policy created may be kept from replication after its predicates; one altered is
+	// kept from it or given back to it as a change of its own, `ADD NOT FOR REPLICATION`,
+	// and never alongside predicates or options.
+	| "CREATE"i & "SECURITY"i & "POLICY"i & name: QualifiedName
 	  & tail: (PolicyPredicates? & OptionsWith? & NotForReplication?)
-		=> @(Statement.Defined("SECURITY POLICY", name, Syntax.Tail(tail), verb))
+		=> @(Statement.Defined("SECURITY POLICY", name, Syntax.Tail(tail), "CREATE"))
+	| "ALTER"i & "SECURITY"i & "POLICY"i & name: QualifiedName & tail: PolicyAlteration
+		=> @(Statement.Defined("SECURITY POLICY", name, Syntax.Tail(tail), "ALTER"))
 
 Authorization     = "AUTHORIZATION"i & QualifiedName
 NotForReplication = "NOT"i & "FOR"i & "REPLICATION"i
@@ -2860,13 +2865,23 @@ CredentialWith = "WITH"i & "IDENTITY"i & '=' & Quoted & (',' & "SECRET"i & '=' &
 
 PolicyPredicates = PolicyPredicate & (',' & PolicyPredicate)*
 
-PolicyPredicate = PolicyChange & PolicyKind? & "PREDICATE"i & QualifiedName
-				  & '(' & Arguments? & ')' & "ON"i & QualifiedName & PolicyWhen?
-				| "DROP"i & PolicyKind & "PREDICATE"i & "ON"i & QualifiedName
+PolicyAlteration = ("ADD"i | "DROP"i) & NotForReplication
+				 | PolicyPredicates? & OptionsWith?
 
-PolicyChange = "ADD"i | "ALTER"i
-PolicyKind   = "FILTER"i | "BLOCK"i
-PolicyWhen   = "AFTER"i & word | "BEFORE"i & word
+// A predicate says what it is — `ADD PREDICATE` alone is refused — and only a block predicate
+// says which change it blocks: after an insert or an update, before an update or a delete,
+// and those four only.
+PolicyPredicate = PolicyChange & PolicyAdded
+				| "DROP"i & PolicyDropped
+
+PolicyAdded   = "FILTER"i & "PREDICATE"i & PolicyFunction & "ON"i & QualifiedName
+			  | "BLOCK"i & "PREDICATE"i & PolicyFunction & "ON"i & QualifiedName & PolicyWhen?
+PolicyDropped = "FILTER"i & "PREDICATE"i & "ON"i & QualifiedName
+			  | "BLOCK"i & "PREDICATE"i & "ON"i & QualifiedName & PolicyWhen?
+
+PolicyFunction = QualifiedName & '(' & Arguments? & ')'
+PolicyChange   = "ADD"i | "ALTER"i
+PolicyWhen   = "AFTER"i & ("INSERT"i | "UPDATE"i) | "BEFORE"i & ("UPDATE"i | "DELETE"i)
 
 // ── The full-text catalogue, and the index over it ──────────────────────────
 //
@@ -2957,38 +2972,52 @@ BackupStatement : @Statement
 	| "BACKUP"i & what: BackupWhat & name: BackupTarget?
 	  & tail: (BackupFiles* & "TO"i & BackupDevices & MirrorTo* & BackupWith?)
 		=> @(Statement.BackedUp(what, name, Syntax.Tail(tail)))
-	| "BACKUP"i & what: BackupKeyWhat & name: BackupName?
-	  & tail: ("TO"i & "FILE"i & '=' & ValueExpression & KeyFileTail*)
-		=> @(Statement.BackedUp(what, name, Syntax.Tail(tail)))
+	// A key or a certificate to a file, put to the engine some sixty times: the path and the
+	// passwords are strings, never variables; the name is one part. A certificate goes to a
+	// file only and takes no password of its own, its private key going beside it in a list
+	// of its own; a key takes the password it is locked with, and the service master key a
+	// file only.
+	| "BACKUP"i & "CERTIFICATE"i & key: Identifier
+	  & tail: ("TO"i & "FILE"i & '=' & Quoted & CertificatePrivateKey?)
+		=> @(Statement.BackedUp("CERTIFICATE", key, Syntax.Tail(tail)))
+	| "BACKUP"i & "SYMMETRIC"i & "KEY"i & key: Identifier & tail: ("TO"i & KeyPlace & KeyLockedBy)
+		=> @(Statement.BackedUp("SYMMETRIC KEY", key, Syntax.Tail(tail)))
+	| "BACKUP"i & "MASTER"i & "KEY"i & tail: ("TO"i & KeyPlace & KeyLockedBy)
+		=> @(Statement.BackedUp("MASTER KEY", null, Syntax.Tail(tail)))
+	| "BACKUP"i & "SERVICE"i & "MASTER"i & "KEY"i & tail: ("TO"i & "FILE"i & '=' & Quoted & KeyLockedBy)
+		=> @(Statement.BackedUp("SERVICE MASTER KEY", null, Syntax.Tail(tail)))
 
+// And back: the password it was locked with, then — for the two that are locked again — the
+// one to lock it with, in that order, and `FORCE` last.
 RestoreStatement : @Statement
-	= "RESTORE"i & what: RestoreKeyWhat
-	  & tail: ("FROM"i & "FILE"i & '=' & ValueExpression & KeyFileTail*)
-		=> @(Statement.Restored(what, null, Syntax.Tail(tail)))
+	= "RESTORE"i & "MASTER"i & "KEY"i & tail: ("FROM"i & KeyPlace & KeyUnlockedBy & KeyLockedBy & "FORCE"i?)
+		=> @(Statement.Restored("MASTER KEY", null, Syntax.Tail(tail)))
+	| "RESTORE"i & "SERVICE"i & "MASTER"i & "KEY"i
+	  & tail: ("FROM"i & "FILE"i & '=' & Quoted & KeyUnlockedBy & "FORCE"i?)
+		=> @(Statement.Restored("SERVICE MASTER KEY", null, Syntax.Tail(tail)))
+	| "RESTORE"i & "SYMMETRIC"i & "KEY"i & key: Identifier
+	  & tail: ("FROM"i & KeyPlace & KeyUnlockedBy & KeyLockedBy & "FORCE"i?)
+		=> @(Statement.Restored("SYMMETRIC KEY", key, Syntax.Tail(tail)))
 	| "RESTORE"i & what: RestoreWhat & name: BackupTarget?
 	  & tail: (BackupFiles* & ("FROM"i & RestoreFrom)? & RestoreWith?)
 		=> @(Statement.Restored(what, name, Syntax.Tail(tail)))
 
-RestoreKeyWhat : @string
-	= "SERVICE"i & "MASTER"i & "KEY"i => @("SERVICE MASTER KEY")
-	| "MASTER"i & "KEY"i              => @("MASTER KEY")
+// Where a key goes and comes from, and the two passwords it is locked and unlocked with.
+KeyPlace      = ("FILE"i | "URL"i) & '=' & Quoted
+KeyLockedBy   = "ENCRYPTION"i & "BY"i & "PASSWORD"i & '=' & Quoted
+KeyUnlockedBy = "DECRYPTION"i & "BY"i & "PASSWORD"i & '=' & Quoted
 
-// What a key says on its way to a file and back: a password to lock it with, one to unlock
-// it with, and the word that says to do it anyway.
-KeyFileTail = "ENCRYPTION"i & "BY"i & "PASSWORD"i & '=' & ValueExpression
-			| "DECRYPTION"i & "BY"i & "PASSWORD"i & '=' & ValueExpression
-			| "FORCE"i
+// A certificate's private key, written beside it: a file and the passwords, in any order,
+// after the format the certificate is written in if one is named.
+CertificatePrivateKey = "WITH"i & ("FORMAT"i & '=' & Quoted & ',')? & "PRIVATE"i & "KEY"i
+					  & '(' & CertificateKeyItem & (',' & CertificateKeyItem)* & ')'
+
+CertificateKeyItem = "FILE"i & '=' & Quoted | KeyLockedBy | KeyUnlockedBy
 
 BackupWhat : @string
 	= "DATABASE"i => @("DATABASE")
 	| "LOG"i      => @("LOG")
 	| "SERVER"i   => @("SERVER")
-
-BackupKeyWhat : @string
-	= "CERTIFICATE"i               => @("CERTIFICATE")
-	| "SERVICE"i & "MASTER"i & "KEY"i => @("SERVICE MASTER KEY")
-	| "MASTER"i & "KEY"i           => @("MASTER KEY")
-	| "SYMMETRIC"i & "KEY"i        => @("SYMMETRIC KEY")
 
 RestoreWhat : @string
 	= "DATABASE"i     => @("DATABASE")

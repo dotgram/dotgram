@@ -274,6 +274,7 @@ key's or an Always Encrypted value's, is an option holding it.
 | `Statement.RestoreVerifyOnly` | T-SQL | RESTORE VERIFYONLY |
 | `Statement.RestoreMasterKey` | T-SQL | RESTORE MASTER KEY |
 | `Statement.RestoreServiceMasterKey` | T-SQL | RESTORE SERVICE MASTER KEY |
+| `Statement.RestoreSymmetricKey` | T-SQL | RESTORE SYMMETRIC KEY |
 | `Statement.AsymmetricKeyDefinition` | T-SQL | CREATE ASYMMETRIC KEY |
 | `Statement.AlterAsymmetricKey` | T-SQL | ALTER ASYMMETRIC KEY |
 | `Statement.SymmetricKeyDefinition` | T-SQL | CREATE SYMMETRIC KEY |

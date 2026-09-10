@@ -18193,3 +18193,36 @@ Twenty-four probes, all agreed. At 150: read by both 5,729 (from 5,719), the wor
 (from 251), read here but refused there 43, and neither 383 (from 387) — those four by the
 audit, statements the engine answered with 126 or 10712. `--split` 566 cut the same (from
 560), the round trip 100% of 6,818.
+
+## Keys and certificates to a file and back, and a security policy
+
+A key's or a certificate's backup was a path as any expression and then any of three words,
+any number of times: `ENCRYPTION BY PASSWORD`, `DECRYPTION BY PASSWORD`, `FORCE`. So a
+certificate's private key, `WITH PRIVATE KEY (FILE = …)`, stopped at `WITH`, a key to a URL
+was not read, and `BACKUP MASTER KEY TO FILE = 'f'` with no password was. Put to the engine
+some seventy-five times:
+
+- **Strings, never variables**, for every path and password, and a key's name is one part.
+- **A certificate** goes to a file, and its private key beside it in a list of its own — a
+  file and the two passwords in any order — after `FORMAT = 'PFX'` if one is named. It takes
+  no password of its own.
+- **A master key and a symmetric key** go to a file or a URL, locked with a password that is
+  required. The service master key goes to a file only.
+- **Back again**, the password it was locked with and then the one to lock it with, in that
+  order, and `FORCE` last. The service master key is not locked again.
+- **`RESTORE SYMMETRIC KEY`** the engine reads and the tree had no node for; it has one now,
+  `Statement.RestoreSymmetricKey`, beside `BackupSymmetricKey`, as agreed before writing it.
+
+And the security policy, from the same corner of the work list: a policy altered is kept
+from replication, or given back to it, as a change of its own — `ALTER SECURITY POLICY p ADD
+NOT FOR REPLICATION` — and never with predicates or options alongside, where a policy created
+takes the words bare after its predicates. A predicate says what it is, `ADD PREDICATE` alone
+being refused, and only a block predicate says what it blocks: after an insert or an update,
+before an update or a delete. `AFTER INSERT` on a filter predicate was read here, and the
+engine refuses it.
+
+One probe of 76 is answered otherwise: a private key's `FILE` said twice, which the engine
+refuses and the walker is left.
+
+At 150: read by both 5,739 (from 5,729), the work list 235 (from 245), read here but refused
+there 43, as before. `--split` 570 cut the same (from 566), and the round trip 100% of 6,828.

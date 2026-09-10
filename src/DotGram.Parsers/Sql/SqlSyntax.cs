@@ -729,6 +729,9 @@ public abstract record Statement : ISqlSpan
 	/// <summary><c>RESTORE SERVICE MASTER KEY</c>.</summary>
 	public sealed record RestoreServiceMasterKey(string Name) : Definition(Name);
 
+	/// <summary><c>RESTORE SYMMETRIC KEY</c>.</summary>
+	public sealed record RestoreSymmetricKey(string Name) : Definition(Name);
+
 	// ---- the keys, and what is locked with them --------------------------------------------------
 
 	/// <summary><c>CREATE ASYMMETRIC KEY</c>.</summary>
@@ -1062,6 +1065,7 @@ public abstract record Statement : ISqlSpan
 			"VERIFYONLY"         => new RestoreVerifyOnly(name),
 			"MASTER KEY"         => new RestoreMasterKey(name),
 			"SERVICE MASTER KEY" => new RestoreServiceMasterKey(name),
+			"SYMMETRIC KEY"      => new RestoreSymmetricKey(name),
 			_                    => throw Syntax.Unknown(what),
 		};
 
