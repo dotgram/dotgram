@@ -73,6 +73,8 @@ static class Engine
 		var gaps     = new Dictionary<string, (int Count, List<string> Like)>(StringComparer.Ordinal);
 		var said      = new Dictionary<int, int>();
 		var saidAbout = new Dictionary<int, string>();
+		var mine      = new Dictionary<int, int>();
+		var mineAbout = new Dictionary<int, string>();
 
 		foreach (var file in Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories))
 		{
@@ -136,6 +138,14 @@ static class Engine
 				{
 					ours++;
 
+					// Tallied apart from everything else, because this is the bucket that is
+					// work: what the engine answered the statements this grammar should not
+					// have read, most first, with one of them beside each number.
+					mine[message] = mine.TryGetValue(message, out var again) ? again + 1 : 1;
+
+					if (!mineAbout.ContainsKey(message))
+						mineAbout[message] = Corpus.One(one);
+
 					if (overRead.Count < shown * 20)
 						overRead.Add(Corpus.One(one));
 				}
@@ -148,7 +158,7 @@ static class Engine
 
 		Report(
 			version, both, engine, ours, elsewhere, neither, gaps, overRead, elsewhereShown,
-			said, saidAbout, shown);
+			said, saidAbout, mine, mineAbout, shown);
 	}
 
 	/// <summary>Puts the connection into the mode where it reads and does nothing else.</summary>
@@ -242,7 +252,9 @@ static class Engine
 	/// </para>
 	/// </remarks>
 	static bool Elsewhere(string statement, int message) =>
-		message == 40514 ||
+		// 40514 "'…' is not supported in this version of SQL Server", and 40517 the same
+		// answer about one keyword or option rather than a whole feature.
+		message is 40514 or 40517 ||
 		OtherProducts.Any(word => statement.IndexOf(word, StringComparison.OrdinalIgnoreCase) >= 0);
 
 	/// <summary>What names a statement as another product's, and which product that is.</summary>
@@ -301,7 +313,29 @@ static class Engine
 			or 135 or 148 or 153
 			or 1003 or 1020 or 1054
 			or 7801 or 7853 or 7861
-			or 13539 or 15151;
+			or 13539 or 15151
+
+			// The same audit run again over what was left, which is how a list like this is
+			// meant to grow: the report tallies the messages of the refusals alone, and each
+			// number is looked up before it moves.
+			//
+			//    140  Can only use IF UPDATE within a CREATE TRIGGER statement.
+			//    155  '…' is not a recognized … option.
+			//    174  The … function requires … argument(s).
+			//   1039  Option '…' is specified more than once.
+			//   1052  Conflicting … options "…" and "…".
+			//   1062  The TOP N WITH TIES clause is not allowed without a corresponding ORDER BY.
+			//   1092  In this context … statistics name(s) cannot be specified for option '…'.
+			//   1098  The specified event type(s) is/are not valid on the specified target object.
+			//   8169  Conversion failed when converting from a character string to uniqueidentifier.
+			//  10714  An action of type '…' cannot appear more than once in a MERGE statement.
+			//  10779  The durability option 'schema_only' is supported only with memory optimized tables.
+			//  10790  The option '…' can be specified only for hash indexes.
+			//  10794  The … '…' is not supported with ….
+			or 140 or 155 or 174
+			or 1039 or 1052 or 1062 or 1092 or 1098
+			or 8169
+			or 10714 or 10779 or 10790 or 10794;
 
 	/// <summary>
 	/// The local engine, on a database whose compatibility level is the version being asked
@@ -374,6 +408,8 @@ static class Engine
 		List<string> elsewhereShown,
 		Dictionary<int, int> said,
 		Dictionary<int, string> saidAbout,
+		Dictionary<int, int> mine,
+		Dictionary<int, string> mineAbout,
 		int shown)
 	{
 		var all = both + engine + ours + elsewhere + neither;
@@ -408,6 +444,22 @@ static class Engine
 
 			foreach (var one in elsewhereShown)
 				Console.WriteLine($"      {one}");
+
+			Console.WriteLine();
+		}
+
+		if (mine.Count > 0)
+		{
+			Console.WriteLine("  what it answered the ones read here and refused, which is the work:");
+			Console.WriteLine();
+
+			foreach (var (message, count) in mine.OrderByDescending(one => one.Value).ThenBy(one => one.Key))
+			{
+				Console.WriteLine($"  {count,5}  Msg {message}");
+
+				if (mineAbout.TryGetValue(message, out var about))
+					Console.WriteLine($"         {about}");
+			}
 
 			Console.WriteLine();
 		}
