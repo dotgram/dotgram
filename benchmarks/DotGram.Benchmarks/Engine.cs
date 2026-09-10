@@ -206,7 +206,7 @@ static class Engine
 	/// one and the session is built again where it has gone, which costs nothing on the
 	/// thousands that do not and is the difference between a number and a stack trace.
 	/// </remarks>
-	internal static int Answer(SqlConnection connection, string statement)
+	internal static int Answer(SqlConnection connection, string statement, bool again = false)
 	{
 		if (connection.State != ConnectionState.Open)
 		{
@@ -225,6 +225,18 @@ static class Engine
 			command.ExecuteNonQuery();
 
 			return 0;
+		}
+		catch (SqlException failed) when (failed.Number == 596 && !again)
+		{
+			// "Cannot continue the execution because the session is in the kill state": the
+			// statement before this one took the session down, and this is not an answer about
+			// this one. Asked again on a session of its own.
+			connection.Close();
+			connection.Open();
+
+			ParseOnly(connection);
+
+			return Answer(connection, statement, again: true);
 		}
 		catch (SqlException failed)
 		{
@@ -282,6 +294,9 @@ static class Engine
 		// 40514 "'…' is not supported in this version of SQL Server", and 40517 the same
 		// answer about one keyword or option rather than a whole feature.
 		message is 40514 or 40517 ||
+		// 33161 "Database master keys without password are not supported in this version of
+		// SQL Server" — the same answer about one statement, which Azure SQL Database reads.
+		message is 33161 ||
 		OtherProducts.Any(word => statement.IndexOf(word, StringComparison.OrdinalIgnoreCase) >= 0);
 
 	/// <summary>What names a statement as another product's, and which product that is.</summary>
@@ -362,7 +377,30 @@ static class Engine
 			or 140 or 155 or 174
 			or 1039 or 1052 or 1062 or 1092 or 1098
 			or 8169
-			or 10714 or 10779 or 10790 or 10794;
+			or 10714 or 10779 or 10790 or 10794
+
+			// And a third time, over what level 150's own parser left, 2026-09-10.
+			//
+			//    136  Cannot use a CONTINUE statement outside the scope of a WHILE statement.
+			//    173  The definition for column '…' must include a data type.
+			//    487  An invalid option was specified for the statement "…".
+			//   1036  File option … is required in this CREATE/ALTER DATABASE statement.
+			//   1095  "…" has already been specified as an event type.
+			//   4122  Remote table-valued function calls are not allowed.
+			//   4136  The hint '…' cannot be used with the hint '…'.
+			//   7864  CREATE/ALTER ENDPOINT cannot be used to update the endpoint with this information.
+			//   7887  The IPv6 address specified is not supported.
+			//  10324  WITH ENCRYPTION option of CREATE TRIGGER is only applicable to T-SQL triggers.
+			//  10704  To rethrow an error, a THROW statement must be used inside a CATCH block.
+			//  10757  The function '…' may not have a WITHIN GROUP clause.
+			//  10797  Only one MEMORY_OPTIMIZED_DATA filegroup is allowed per database.
+			//  14808  Cannot disable REMOTE_DATA_ARCHIVE when migration is enabled.
+			or 136 or 173 or 487
+			or 1036 or 1095
+			or 4122 or 4136
+			or 7864 or 7887
+			or 10324 or 10704 or 10757 or 10797
+			or 14808;
 
 	/// <summary>
 	/// The local engine, on a database whose compatibility level is the version being asked

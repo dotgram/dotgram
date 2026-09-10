@@ -365,7 +365,11 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT * FROM OPENJSON (N'[]') WITH (a INT)",                  130)]
 	[InlineData("SELECT 1 FROM t WINDOW w AS (ORDER BY c)",                     160)]
 	[InlineData("SELECT TRIM (LEADING 'x' FROM 'xa')",                          160)]
+	[InlineData("SELECT * FROM SEMANTICKEYPHRASETABLE (t1, *) AS x",            110)]
+	[InlineData("SELECT * FROM SEMANTICKEYPHRASETABLE (t1, (c1, c2)) AS x",     110)]
 	[InlineData("SELECT * FROM OPENXML (@h, '/r', 1) WITH (a INT)",             100)]
+	[InlineData("SELECT * FROM SEMANTICKEYPHRASETABLE (t1, c1) AS x",           100)]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t1, *, 'x') AS x",                100)]
 	public void Each_level_reads_from_where_the_engine_does(string input, int from)
 	{
 		foreach (var level in new[] { 100, 110, 120, 130, 140, 150, 160, 170 })

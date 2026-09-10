@@ -1074,6 +1074,23 @@ RowsetValue : @Expression
 RowsetFunction : @Expression.RoutineInvocation
 	= name: RowsetName & '(' & args: RowsetArguments? & ')'
 		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
+	| name: SemanticName & '(' & args: SemanticArguments? & ')'
+		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
+
+// The three semantic-search functions, which take every column (`*`) or a list of them from
+// level 110 and one column at every level; `CONTAINSTABLE (t, *, …)`, the same shape, reads
+// at 100. So they have their arguments to themselves, and the one place the two forms are
+// written is here.
+SemanticName = "SEMANTICKEYPHRASETABLE"i | "SEMANTICSIMILARITYTABLE"i | "SEMANTICSIMILARITYDETAILSTABLE"i
+
+SemanticArguments : @Expression[]
+	= first: SemanticArgument & (',' & rest: SemanticArgument)* => @(Syntax.Listed(first, rest))
+
+SemanticArgument : @Expression
+	= '*' & when Version is Since110 => @(new Expression.ColumnReference("*"))
+	| '(' & first: RowsetArgument & (',' & rest: RowsetArgument)* & ')' & when Version is Since110
+		=> @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
+	| ?!('*' | '(') & v: RowsetArgument => @(v)
 
 // `OPENJSON` is a rowset function like the others but for one thing: its schema reads from
 // level 130, where `OPENXML`'s — the same shape — reads at every level. Below 130 the engine
@@ -1088,7 +1105,6 @@ JsonSchema : @Clause[] = s: RowsetSchema & when Version is Since130 => @(s)
 RowsetName
 	= "OPENROWSET"i | "OPENQUERY"i | "OPENDATASOURCE"i | "OPENXML"i
 	| "CHANGETABLE"i | "CONTAINSTABLE"i | "FREETEXTTABLE"i
-	| "SEMANTICKEYPHRASETABLE"i | "SEMANTICSIMILARITYTABLE"i | "SEMANTICSIMILARITYDETAILSTABLE"i
 	| "PREDICT"i | "VECTOR_SEARCH"i | "GENERATE_SERIES"i | "STRING_SPLIT"i
 
 // ── The statements that change rows ─────────────────────────────────────────

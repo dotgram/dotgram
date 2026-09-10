@@ -17528,3 +17528,14 @@ twice over the 6,873 statements both parsers read: 8,624 and 8,584 ns a statemen
 8,840 and 8,680 after — under 2%, inside a spread of 3.5% to 7.8% between rounds — and not a
 byte more allocated. The union passes reading 0 through the machine and meets twenty tests
 of it, each one shift.
+
+**The semantic functions, and a third audit.** `SEMANTICKEYPHRASETABLE` and its two fellows
+left `RowsetName` for arguments of their own: every column or a list of them from 110, one
+column at every level, as the probes say — and `CONTAINSTABLE (t, *, …)`, the same shape,
+reads at 100 still. The messages level 150's own parser was refused with went through
+`sys.messages` once more: fourteen of them are the engine having read the statement and
+objected to what it said (`CONTINUE` outside a loop, `THROW` outside a `CATCH`, a hint that
+contradicts another, an IPv6 address it will not listen on), one is another product's
+(`CREATE MASTER KEY` with no password, which Azure reads), and 596 is a session the
+statement before took down, asked again. At 150: 5,576 read by both, 262 read here and
+refused there, where it was 294.
