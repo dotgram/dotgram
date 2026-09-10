@@ -17319,3 +17319,71 @@ fixed, which is the only reason the afternoon did not go into it.
 speed is fine here, including memory held only while the generator runs. A generator is a
 process that starts, answers and exits; what it holds for a second costs a consumer
 nothing, and none of it reaches the emitted code.
+
+### Versions and products, answered: `is` between two recognizers
+
+The question that had been open since 2026-09-08 — how one grammar says what belongs to
+which version of T-SQL, when the language has real removals that neither an additive nor a
+subtractive chain can state once — has an answer, and it is Igor's. It needs no new
+declaration and almost no new notation.
+
+A domain is an ordinary rule:
+
+```dotgram
+Version = "Sql2008" | "Sql2012" | "Sql2016" | "Sql2019" | "Sql2022"
+```
+
+A guard asks whether the recognizer it holds and the pattern beside it have a language in
+common — `is` is **non-empty intersection**, nothing more:
+
+```dotgram
+OuterJoin = l: Table & "*=" & r: Table   when Version is "Sql2008"
+```
+
+And `with` already substitutes a rule at every one of its uses and clones what it reaches,
+so the selection is a publication and not a switch:
+
+```dotgram
+parse Statement with (Version = "Sql2008")
+parse Statement with (Version = "Sql2016" | "Sql2019" | "Sql2022")
+parse Statement
+```
+
+**The permissive parser stops being a special case.** It is the third line: no `with`, so
+the grammar's own `Version` stands, which is the union of everything. A parser that reads
+one version, a parser that reads three and a parser that reads all of them are one
+mechanism with a wider or narrower argument — which is also the answer for products, where
+Azure, on-prem, Synapse and Fabric are a set and never a chain.
+
+**Ranges need no operator.** `>=` would want an order that products do not have; a range is
+a rule, and `when Version is Since2012` is the same operation as `when Version is "Sql2008"`
+because both sides are recognizers either way.
+
+**The folding is at generation and leaves no residue.** `with` clones per call site, so the
+argument is known when the parser is built; the condition is decided then and the
+alternative is kept or deleted. Nothing is tested while parsing.
+
+**The boundary is computability, not taste.** An earlier draft of this wanted the right side
+restricted to a flat alternation of literals, to keep `when Version is Identifier` from
+being written by accident. Igor's answer is better: that condition is true, because those
+two languages do intersect, and one rule with no exceptions beats a special case with no
+principle. The real limit is that intersection is decidable for regular languages and not
+for two context-free ones — and the generator already knows which rules are which, since
+`TerminalInventory.Shape` returns null for a pattern that is not regular and there is
+already a diagnostic saying so. So `is` requires a regular side, and says so where there is
+none.
+
+**Two things belong to the same day as the feature, and one of them is correctness.** The
+checks — `Retention.Check`, `FirstSets.Check`, the shared-prefix analysis — run once over
+the whole graph today, before `Cut` and before any machine is built. Pruning breaks that in
+both directions: they would report a first-set conflict between two alternatives no
+generated parser holds together, and miss the one that appears only after a third
+alternative is removed. The second is silent and produces a parser that reads the wrong
+language. They have to run on the cloned graph, once per publication, and name the parser
+they are about.
+
+The other is cost, and it is deferred by agreement: `with` clones, so twelve versions is
+twelve graphs to normalize, check and render — 355 ms and a megabyte of C# each, by the
+measurements above. Two publications with the same argument must at least share a machine;
+real sharing between different versions is its own piece of work, and it stops being
+optional at about the twelfth version.
