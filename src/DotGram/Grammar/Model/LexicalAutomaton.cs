@@ -781,16 +781,28 @@ public sealed class LexicalAutomaton
 					accepts[number] = which;
 				}
 
+				// The edges of this set read once and bucketed by the atom they leave on,
+				// rather than once per atom with almost all of them thrown away. The loop
+				// this replaces was `atoms × states × edges` where the work is `states ×
+				// edges`, and an alphabet of a few hundred ranges made that the whole cost
+				// of cutting a grammar in two.
+				var moves = new Dictionary<int, HashSet<int>>();
+
+				foreach (var one in here)
+					foreach (var (on, to) in _on[one])
+					{
+						if (!moves.TryGetValue(on, out var reached))
+							moves[on] = reached = [];
+
+						reached.Add(to);
+					}
+
+				// In atom order still, because a row is indexed by atom and the states are
+				// numbered in the order they are first reached — which is what `Ordered`
+				// below and every snapshot beside it were written against.
 				for (var atom = 0; atom < _atoms.Count; atom++)
 				{
-					var next = new HashSet<int>();
-
-					foreach (var one in here)
-						foreach (var (on, to) in _on[one])
-							if (on == atom)
-								next.Add(to);
-
-					if (next.Count == 0)
+					if (!moves.TryGetValue(atom, out var next))
 						continue;
 
 					var closed = Closed(next);
