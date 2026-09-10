@@ -15,10 +15,10 @@ diagnostic is [`docs/diagnostics.md`][diagnostics], whole parsers to copy are un
 expression language, SQL-92 and T-SQL as a dialect over it — are
 [`DotGram.Parsers`][parsers].
 
-[syntax]:      https://github.com/dotgram/dotgram/blob/v0.1.0/docs/syntax.md
-[diagnostics]: https://github.com/dotgram/dotgram/blob/v0.1.0/docs/diagnostics.md
-[examples]:    https://github.com/dotgram/dotgram/tree/v0.1.0/examples/DotGram.Examples
-[parsers]:     https://github.com/dotgram/dotgram/tree/v0.1.0/src/DotGram.Parsers
+[syntax]:      https://github.com/dotgram/dotgram/blob/main/docs/syntax.md
+[diagnostics]: https://github.com/dotgram/dotgram/blob/main/docs/diagnostics.md
+[examples]:    https://github.com/dotgram/dotgram/tree/main/examples/DotGram.Examples
+[parsers]:     https://github.com/dotgram/dotgram/tree/main/src/DotGram.Parsers
 
 ## The order to do it in
 
@@ -41,6 +41,8 @@ expression language, SQL-92 and T-SQL as a dialect over it — are
 Two places, and the class it is attached to must be `partial` (`GRAM0002`):
 
 ```csharp
+using DotGram;
+
 [Gram("""
 	Hex   = ['0'..'9' | 'a'..'f' | 'A'..'F']
 	Color = '#' & value: Hex{6}
@@ -49,6 +51,11 @@ Two places, and the class it is attached to must be `partial` (`GRAM0002`):
 	""")]
 public static partial class CssColor;
 ```
+
+**The attribute is `DotGram.Gram`**, and it is emitted into the compilation rather than
+referenced from an assembly — so it exists only once the package is installed, and a file
+that forgets the `using` earns `CS0246` from the C# compiler rather than anything from
+here. Write `[DotGram.Gram(…)]` where a `using` is unwelcome.
 
 or in a file of its own, named after the class or given to the attribute, and listed so
 the generator can see it (`GRAM0003` if it is not):
@@ -421,7 +428,7 @@ The traps, in the order they are usually met:
 - **Recovery is one repetition's.** There is no repair of a document, and no outcome at
   all for a failure past a commit point.
 
-[status]: https://github.com/dotgram/dotgram/blob/v0.1.0/docs/status.md
+[status]: https://github.com/dotgram/dotgram/blob/main/docs/status.md
 
 ## Working rules
 
