@@ -41,6 +41,8 @@ expression language, SQL-92 and T-SQL as a dialect over it — are
 Two places, and the class it is attached to must be `partial` (`GRAM0002`):
 
 ```csharp
+using DotGram;
+
 [Gram("""
 	Hex   = ['0'..'9' | 'a'..'f' | 'A'..'F']
 	Color = '#' & value: Hex{6}
@@ -49,6 +51,11 @@ Two places, and the class it is attached to must be `partial` (`GRAM0002`):
 	""")]
 public static partial class CssColor;
 ```
+
+**The attribute is `DotGram.Gram`**, and it is emitted into the compilation rather than
+referenced from an assembly — so it exists only once the package is installed, and a file
+that forgets the `using` earns `CS0246` from the C# compiler rather than anything from
+here. Write `[DotGram.Gram(…)]` where a `using` is unwelcome.
 
 or in a file of its own, named after the class or given to the attribute, and listed so
 the generator can see it (`GRAM0003` if it is not):
