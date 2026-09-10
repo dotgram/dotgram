@@ -70,7 +70,8 @@ public sealed class GeneratorCostTests(Xunit.ITestOutputHelper output)
 
 			output.WriteLine(
 				$"{name}  ({text.Length} chars, {bad} errors, " +
-				$"{(size > 0 ? size + " chars emitted" : "nothing emitted")})");
+				$"{(size > 0 ? size + " chars emitted" : "nothing emitted")}, " +
+				$"{size / Math.Max(whole - checked_, 0.001) / 1000:F1} MB/s emitted)");
 			output.WriteLine(
 				$"  {"splice",-12}{spliced,9:F2} ms" +
 				$"{Share(spliced, whole),8}");
@@ -126,7 +127,7 @@ public sealed class GeneratorCostTests(Xunit.ITestOutputHelper output)
 			// hundred unresolved names and nothing is emitted, so the row measures a
 			// compilation that stopped rather than one that finished.
 			SymbolResolver = PermissiveSymbolResolver.Instance,
-			Lexical        = name.StartsWith("SqlStandard92", StringComparison.Ordinal),
+			Lexical        = name == "SqlStandard92.gram",
 		};
 
 	/// <summary>The median of nine whole runs, which is what survives a re-jitting spike.</summary>
@@ -175,6 +176,7 @@ public sealed class GeneratorCostTests(Xunit.ITestOutputHelper output)
 	static (string Name, string Text)[] Grammars() =>
 	[
 		("SqlStandard92.gram", File.ReadAllText(Path.Combine(Parsers, "SqlStandard92.gram"))),
+		("SqlStandard92.gram, whole", File.ReadAllText(Path.Combine(Parsers, "SqlStandard92.gram"))),
 		.. Directory
 			.GetFiles(Snapshots, "*.gram")
 			.Select(path => (Path.GetFileName(path), File.ReadAllText(path))),
