@@ -347,7 +347,8 @@ public static partial class CSharpEmitter
 					compiled.Machine.UsesInput,
 					compiled.Machine.UsesContext ? graph.Context : null,
 					overKinds,
-					compiled.Direct && compiled.Machine.Probes);
+					compiled.Direct && compiled.Machine.Probes,
+					compiled.Machine.UsesReading ? publication.Reading : null);
 
 				file.Line();
 			}
@@ -999,13 +1000,19 @@ public static partial class CSharpEmitter
 
 	static void EmitPublication(
 		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat,
-		bool ties, bool input, string? context, bool overKinds = false, bool probes = false)
+		bool ties, bool input, string? context, bool overKinds = false, bool probes = false,
+		int? reading = null)
 	{
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
 		// and never names it, is published exactly as it was before the name existed.
 		var takes = context is null ? "" : $", {context} context";
 		var gives = context is null ? "" : ", context";
+
+		// Which reading of the grammar this publication is (`when … is …`), where the machine it
+		// shares with the others asks. A number and not an argument the caller writes: the
+		// parser is the reading, and nothing about it is chosen while it runs.
+		var numbered = reading is { } number ? $", {number}" : "";
 
 		var method = publication.MethodName;
 		// What the author called it, which is not always what the rule is called by now: a
@@ -1022,7 +1029,7 @@ public static partial class CSharpEmitter
 		// A rule of binding powers is asked at strength 0, which admits all of it (§4.3.1).
 		var hands = (climbs ? ", 0" : "") +
 			(built is null ? ", ref failure" : ", ref failure, out var recognized") +
-			(input ? ", input" : "") + (overKinds ? ", source, starts, lengths" : "") + gives +
+			(input ? ", input" : "") + (overKinds ? ", source, starts, lengths" : "") + gives + numbered +
 			(probes ? ", parserWhole" : "");
 
 		// The same call from a window, where there is no whole input to hand over — and no
@@ -1035,7 +1042,7 @@ public static partial class CSharpEmitter
 		// out was a recognizer called with one argument short, in generated code.
 		var streamedHands = (climbs ? ", 0" : "") +
 			(built is null ? ", ref failure" : ", ref failure, out var recognized") +
-			(input ? ", null!" : "") + gives +
+			(input ? ", null!" : "") + gives + numbered +
 			(probes ? ", default" : "");
 
 		// Over kinds a position is a token, so what a publication hands back has to be cut

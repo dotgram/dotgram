@@ -169,7 +169,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure();
 
-			var end = Recognize_Small_With2_Whole(text, 0, ref failure, out var recognized);
+			var end = Recognize_Small_Whole(text, 0, ref failure, out var recognized, 1);
 
 			if (end < 0)
 			{
@@ -205,7 +205,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure();
 
-			var end = Recognize_Small_Whole(text, 0, ref failure, out var recognized);
+			var end = Recognize_Small_Whole(text, 0, ref failure, out var recognized, 0);
 
 			if (end < 0)
 			{
@@ -437,24 +437,6 @@ namespace DotGram.Snapshots
 		static string Construct_Padded_Word_value1(string t) =>
 #line 12 "Notation.gram"
                                                 (t + '#');
-#line default
-
-		/// <summary>What <c>Small_With2</c> builds its value with (docs/syntax.md §7.3).</summary>
-		static int Construct_Small_With2(int n) =>
-#line 29 "Notation.gram"
-                                  (n);
-#line default
-
-		/// <summary>What <c>Small_With2</c> builds its value with (docs/syntax.md §7.3).</summary>
-		static int Construct_Small_With2_1(int n) =>
-#line 30 "Notation.gram"
-                                         (n);
-#line default
-
-		/// <summary>What <c>Small_With2</c> builds its value with (docs/syntax.md §7.3).</summary>
-		static int Construct_Small_With2_2() =>
-#line 33 "Notation.gram"
-                  (0);
 #line default
 
 		/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>
@@ -1519,546 +1501,21 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>
-		private ref struct Reader_DotGram_Small_With2
-		{
-			readonly global::System.ReadOnlySpan<char> text;
-			internal Failure failure;
-			readonly Ways ways;
-			readonly DirectValues values;
-
-			internal Reader_DotGram_Small_With2(global::System.ReadOnlySpan<char> text, Ways ways, DirectValues values)
-			{
-				this.text    = text;
-				this.failure = default;
-				this.ways    = ways;
-				this.values = values;
-			}
-
-			/// <summary><c>Small_With2</c>, and the way back into it.</summary>
-			public int Read_Small_With2_Small_With2(int pos)
-			{
-				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var rb = ways.RefsCount;
-
-				while (true)
-				{
-					var q = Read_Small_With2_Small_With2_Body(pos);
-
-					if (q >= 0)
-						return q;
-
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					if (ways.Built > lmR) ways.Built = lmR;
-					ways.RefsCount = rb;
-
-					if (ways.Cursor > s && ways.Retry(s))
-						continue;
-
-					return -1;
-				}
-			}
-
-			/// <summary>What <c>Small_With2</c> is, one reading of it at a time.</summary>
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Small_With2_Small_With2_Body(int pos)
-			{
-				var p = pos;
-				var c = '\0';
-				var rb = ways.RefsCount;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var r0 = -1;
-				if ((uint)p >= (uint)text.Length)
-				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_With2_Expected1, ways);
-					return -1;
-				}
-				c = text[p];
-				switch (c)
-				{
-					case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
-						{
-							var q0 = Read_Number_Small_With2(p);
-							if (q0 < 0) return -1;
-							p = q0;
-							r0 = ways.Last;
-							var s0  = ways.Cursor;
-							var lm0  = ways.LogCount;
-							var lm0R = ways.Records;
-							var rr0 = ways.RefsCount;
-							var q1 = -1;
-
-							while (true)
-							{
-								q1 = Read_Small_With2_Small_With2_Part0(p, pos, lm, lmR, r0);
-
-								if (q1 >= 0)
-									break;
-
-								ways.LogCount  = lm0;
-								ways.Records   = lm0R;
-								if (ways.Built > lm0R) ways.Built = lm0R;
-								ways.RefsCount = rr0;
-
-								if (ways.Cursor > s0 && ways.Retry(s0))
-									continue;
-
-								break;
-							}
-
-							if (q1 < 0)
-								return -1;
-
-							ways.Seal(s0);
-							p = q1;
-							break;
-						}
-					default:
-						{
-							var q2 = Read_Word_Small_With2(p);
-							if (q2 < 0)
-							{
-								Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_With2_Expected1, ways);
-								return -1;
-							}
-							p = q2;
-							if ((uint)p >= (uint)text.Length || text[p] != '!')
-							{
-								Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_With2_Expected0, ways);
-								return -1;
-							}
-							p += 1;
-							ways.Begin(2);
-							ways.End(rb);
-							break;
-						}
-				}
-				return p;
-			}
-
-			/// <summary>One alternative of <c>Small_With2</c>, read where it stood.</summary>
-			public int Read_Small_With2_Small_With2_Part0(int pos, int start, int lmark, int lmarkR, int r0)
-			{
-				var p = pos;
-				var w0  = -1;
-				var d0 = 0;
-				if (ways.Cursor < ways.Count)
-				{
-					w0  = ways.Cursor;
-					d0 = ways.Items[w0 * 2];
-					ways.Cursor++;
-				}
-				else
-				{
-					w0 = ways.Open(0, 1);
-				}
-
-				var q0 = -1;
-				if (q0 < 0 && d0 <= 0)
-				{
-					var s1  = ways.Cursor;
-					var lm1  = ways.LogCount;
-					var lm1R = ways.Records;
-					var rr1 = ways.RefsCount;
-
-					q0 = Read_Small_With2_Small_With2_Part1(p, start, lmark, lmarkR, r0);
-
-					if (q0 < 0)
-					{
-						ways.LogCount  = lm1;
-						ways.Records   = lm1R;
-						if (ways.Built > lm1R) ways.Built = lm1R;
-						ways.RefsCount = rr1;
-					}
-
-					if (q0 < 0)
-						ways.Next(w0, 1, 1);
-				}
-				if (q0 < 0 && d0 <= 1)
-				{
-					var s2  = ways.Cursor;
-					var lm2  = ways.LogCount;
-					var lm2R = ways.Records;
-					var rr2 = ways.RefsCount;
-
-					q0 = Read_Small_With2_Small_With2_Part2(p, start, lmark, lmarkR, r0);
-
-					if (q0 < 0)
-					{
-						ways.LogCount  = lm2;
-						ways.Records   = lm2R;
-						if (ways.Built > lm2R) ways.Built = lm2R;
-						ways.RefsCount = rr2;
-					}
-				}
-
-				if (q0 < 0)
-					return -1;
-
-				p = q0;
-				return p;
-			}
-
-			/// <summary>One alternative of <c>Small_With2</c>, read where it stood.</summary>
-			public int Read_Small_With2_Small_With2_Part1(int pos, int start, int lmark, int lmarkR, int r0)
-			{
-				var p = pos;
-				var rb = ways.RefsCount;
-				var g0At = r0;
-				if (!(g0At < 0)) Materialize_DotGram_Small_With2_Direct(ways, text, values, g0At, lmark, lmarkR);
-				int? g0 = g0At < 0 ? default(int?) : values.V1[g0At].Value;
-				if (!Recognize_DotGram_Small_With2_Guard2(g0))
-				{
-					Refuse_DotGram(ref failure, p, null, ways);
-					return -1;
-				}
-				ways.Begin(0);
-				ways.Put(r0);
-				ways.End(rb);
-				return p;
-			}
-
-			/// <summary>One alternative of <c>Small_With2</c>, read where it stood.</summary>
-			public int Read_Small_With2_Small_With2_Part2(int pos, int start, int lmark, int lmarkR, int r0)
-			{
-				var p = pos;
-				var rb = ways.RefsCount;
-				ways.Begin(1);
-				ways.Put(r0);
-				ways.End(rb);
-				return p;
-			}
-
-			/// <summary><c>Number</c>, read by a method of its own.</summary>
-			public int Read_Number_Small_With2(int pos)
-			{
-				var p = pos;
-				var c = '\0';
-				var rb = ways.RefsCount;
-				var a0 = -1;
-				var b0 = -1;
-				a0 = p;
-				var m0 = p;
-				while (true)
-				{
-					if ((uint)p >= (uint)text.Length)
-						break;
-
-					c = text[p];
-
-					if (!(((c >= '0' && c <= '9'))))
-						break;
-
-					p++;
-				}
-
-				if (p < m0 + 1)
-				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_With2_Expected3, ways);
-					return -1;
-				}
-
-				b0 = p;
-				ways.Begin(3);
-				ways.Put(a0, b0);
-				ways.End(rb);
-				return p;
-			}
-
-			/// <summary><c>Word</c>, and the way back into it.</summary>
-			public int Read_Word_Small_With2(int pos)
-			{
-				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var rb = ways.RefsCount;
-
-				while (true)
-				{
-					var q = Read_Word_Small_With2_Body(pos);
-
-					if (q >= 0)
-						return q;
-
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					if (ways.Built > lmR) ways.Built = lmR;
-					ways.RefsCount = rb;
-
-					if (ways.Cursor > s && ways.Retry(s))
-						continue;
-
-					return -1;
-				}
-			}
-
-			/// <summary>What <c>Word</c> is, one reading of it at a time.</summary>
-			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Word_Small_With2_Body(int pos)
-			{
-				var p = pos;
-				var c = '\0';
-				var rb = ways.RefsCount;
-				var a0 = -1;
-				var b0 = -1;
-				a0 = p;
-				var m0 = p;
-				while (true)
-				{
-					if ((uint)p >= (uint)text.Length)
-						break;
-
-					c = text[p];
-
-					if (!(((c >= 'a' && c <= 'z'))))
-						break;
-
-					p++;
-				}
-
-				if (p < m0 + 1)
-				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_With2_Expected2, ways);
-					return -1;
-				}
-
-				if (p > (m0 + 1))
-				{
-					var d0 = 0;
-
-					if (ways.Cursor < ways.Count)
-					{
-						d0 = ways.Items[ways.Cursor * 2];
-						ways.Cursor++;
-					}
-					else
-					{
-						ways.Open(p - (m0 + 1));
-					}
-
-					p -= d0;
-				}
-				b0 = p;
-				ways.Begin(4);
-				ways.Put(a0, b0);
-				ways.End(rb);
-				return p;
-			}
-
-			/// <summary>The whole input as <c>Small_With2</c>, and the way back into it.</summary>
-			public int Recognize_Small_With2_Whole_Read(int pos)
-			{
-				var s  = ways.Cursor;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var rb = ways.RefsCount;
-
-				while (true)
-				{
-					var q = Recognize_Small_With2_Whole_Read_Body(pos);
-
-					if (q >= 0)
-						return q;
-
-					ways.LogCount  = lm;
-					ways.Records   = lmR;
-					if (ways.Built > lmR) ways.Built = lmR;
-					ways.RefsCount = rb;
-
-					if (ways.Cursor > s && ways.Retry(s))
-						continue;
-
-					return -1;
-				}
-			}
-
-			/// <summary>What <c>Small_With2</c> is read by, whichever stack it is read on.</summary>
-			public int Recognize_Small_With2_Whole_Read_Body(int pos)
-			{
-				var p = pos;
-				var lm  = ways.LogCount;
-				var lmR = ways.Records;
-				var q0 = Read_Small_With2_Small_With2(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				if (p != text.Length)
-				{
-					Refuse_DotGram(ref failure, p, null, ways);
-					return -1;
-				}
-				return p;
-			}
-
-		}
-
-		/// <summary>The whole input as <c>Small_With2</c>, read by methods.</summary>
-		static int Recognize_Small_With2_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value)
-		{
-			var ways = Ways.Rent();
-			var values = DirectValues.Rent();
-
-			try
-			{
-				var reader = new Reader_DotGram_Small_With2(text, ways, values);
-
-				reader.failure = failure;
-
-				var end = reader.Recognize_Small_With2_Whole_Read(pos);
-
-				failure = reader.failure;
-
-				if (end < 0)
-				{
-					value = default!;
-
-					return end;
-				}
-
-				Materialize_DotGram_Small_With2_Direct(ways, text, values, ways.Last, 0, 0);
-				value = values.V1[ways.Last].Value;
-
-				return end;
-			}
-			finally
-			{
-				Ways.Return(ways);
-				DirectValues.Return(values);
-			}
-		}
-
-		/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>
-		static void Materialize_DotGram_Small_With2_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first)
-		{
-			values.Room(ways.Records);
-
-			var log   = ways.Log;
-			var live  = values.Live;
-			var built = values.Built;
-
-			global::System.Array.Clear(built, ways.Built, ways.Records - ways.Built);
-
-			var starts = values.Starts;
-			var listed = 0;
-
-			for (var at = from; at < ways.LogCount; at += log[at])
-				starts[listed++] = at;
-
-			live[root] = true;
-
-			for (var back = listed - 1; back >= 0; back--)
-			{
-				var at   = starts[back];
-				var slot = first + back;
-
-				if (!live[slot]) continue;
-
-				var read = at + 2;
-
-				switch (log[at + 1])
-				{
-					case 0:
-					{
-						if (log[read] >= 0) live[log[read]] = true;
-						read++;
-						break;
-					}
-					case 1:
-					{
-						if (log[read] >= 0) live[log[read]] = true;
-						read++;
-						break;
-					}
-					case 2:
-					{
-						break;
-					}
-					case 3:
-					{
-						read += 2;
-						break;
-					}
-					case 4:
-					{
-						read += 2;
-						break;
-					}
-				}
-			}
-			var values0 = values.V0;
-			var values1 = values.V1;
-
-			for (int at = from, slot = first; at < ways.LogCount; at += log[at], slot++)
-			{
-				if (!live[slot] || built[slot]) continue;
-
-				var read  = at + 2;
-
-				built[slot] = true;
-
-				switch (log[at + 1])
-				{
-					case 0:
-					{
-						var record0 = log[read++];
-						int? captured0 = record0 < 0 ? default(int?) : values1[record0].Value;
-
-						values1[slot].Value = Construct_Small_With2((int)captured0!);
-						break;
-					}
-					case 1:
-					{
-						var record0 = log[read++];
-						int? captured0 = record0 < 0 ? default(int?) : values1[record0].Value;
-
-						values1[slot].Value = Construct_Small_With2_1((int)captured0!);
-						break;
-					}
-					case 2:
-					{
-						values1[slot].Value = Construct_Small_With2_2();
-						break;
-					}
-					case 3:
-					{
-						var from0 = log[read++];
-						var to0   = log[read++];
-						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
-
-						values1[slot].Value = Construct_Number(captured0!);
-						break;
-					}
-					case 4:
-					{
-						var from0 = log[read++];
-						var to0   = log[read++];
-						var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
-
-						values0[slot].Value = Construct_Word(captured0!);
-						break;
-					}
-				}
-			}
-
-			ways.Built = ways.Records;
-		}
-
-		/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>
 		private ref struct Reader_DotGram_Small
 		{
 			readonly global::System.ReadOnlySpan<char> text;
 			internal Failure failure;
 			readonly Ways ways;
 			readonly DirectValues values;
+			readonly int parserReading;
 
-			internal Reader_DotGram_Small(global::System.ReadOnlySpan<char> text, Ways ways, DirectValues values)
+			internal Reader_DotGram_Small(global::System.ReadOnlySpan<char> text, Ways ways, DirectValues values, int parserReading)
 			{
 				this.text    = text;
 				this.failure = default;
 				this.ways    = ways;
 				this.values = values;
+				this.parserReading = parserReading;
 			}
 
 			/// <summary><c>Small</c>, and the way back into it.</summary>
@@ -2112,34 +1569,81 @@ namespace DotGram.Snapshots
 							if (q0 < 0) return -1;
 							p = q0;
 							r0 = ways.Last;
-							var s0  = ways.Cursor;
-							var lm0  = ways.LogCount;
-							var lm0R = ways.Records;
-							var rr0 = ways.RefsCount;
-							var q1 = -1;
-
-							while (true)
+							var w0  = -1;
+							var d0 = 0;
+							if (ways.Cursor < ways.Count)
 							{
+								w0  = ways.Cursor;
+								d0 = ways.Items[w0 * 2];
+								ways.Cursor++;
+							}
+							else
+							{
+								w0 = ways.Open(0, 2);
+							}
+
+							var q1 = -1;
+							if (q1 < 0 && d0 <= 0)
+							{
+								var s1  = ways.Cursor;
+								var lm1  = ways.LogCount;
+								var lm1R = ways.Records;
+								var rr1 = ways.RefsCount;
+
 								q1 = Read_Small_Small_Part0(p, pos, lm, lmR, r0);
 
-								if (q1 >= 0)
-									break;
+								if (q1 < 0)
+								{
+									ways.LogCount  = lm1;
+									ways.Records   = lm1R;
+									if (ways.Built > lm1R) ways.Built = lm1R;
+									ways.RefsCount = rr1;
+								}
 
-								ways.LogCount  = lm0;
-								ways.Records   = lm0R;
-								if (ways.Built > lm0R) ways.Built = lm0R;
-								ways.RefsCount = rr0;
+								if (q1 < 0)
+									ways.Next(w0, 1, 2);
+							}
+							if (q1 < 0 && d0 <= 1)
+							{
+								var s2  = ways.Cursor;
+								var lm2  = ways.LogCount;
+								var lm2R = ways.Records;
+								var rr2 = ways.RefsCount;
 
-								if (ways.Cursor > s0 && ways.Retry(s0))
-									continue;
+								q1 = Read_Small_Small_Part1(p, pos, lm, lmR, r0);
 
-								break;
+								if (q1 < 0)
+								{
+									ways.LogCount  = lm2;
+									ways.Records   = lm2R;
+									if (ways.Built > lm2R) ways.Built = lm2R;
+									ways.RefsCount = rr2;
+								}
+
+								if (q1 < 0)
+									ways.Next(w0, 2, 2);
+							}
+							if (q1 < 0 && d0 <= 2)
+							{
+								var s3  = ways.Cursor;
+								var lm3  = ways.LogCount;
+								var lm3R = ways.Records;
+								var rr3 = ways.RefsCount;
+
+								q1 = Read_Small_Small_Part2(p, pos, lm, lmR, r0);
+
+								if (q1 < 0)
+								{
+									ways.LogCount  = lm3;
+									ways.Records   = lm3R;
+									if (ways.Built > lm3R) ways.Built = lm3R;
+									ways.RefsCount = rr3;
+								}
 							}
 
 							if (q1 < 0)
 								return -1;
 
-							ways.Seal(s0);
 							p = q1;
 							break;
 						}
@@ -2170,92 +1674,9 @@ namespace DotGram.Snapshots
 			public int Read_Small_Small_Part0(int pos, int start, int lmark, int lmarkR, int r0)
 			{
 				var p = pos;
-				var w0  = -1;
-				var d0 = 0;
-				if (ways.Cursor < ways.Count)
-				{
-					w0  = ways.Cursor;
-					d0 = ways.Items[w0 * 2];
-					ways.Cursor++;
-				}
-				else
-				{
-					w0 = ways.Open(0, 2);
-				}
-
-				var q0 = -1;
-				if (q0 < 0 && d0 <= 0)
-				{
-					var s1  = ways.Cursor;
-					var lm1  = ways.LogCount;
-					var lm1R = ways.Records;
-					var rr1 = ways.RefsCount;
-
-					q0 = Read_Small_Small_Part1(p, start, lmark, lmarkR, r0);
-
-					if (q0 < 0)
-					{
-						ways.LogCount  = lm1;
-						ways.Records   = lm1R;
-						if (ways.Built > lm1R) ways.Built = lm1R;
-						ways.RefsCount = rr1;
-					}
-
-					if (q0 < 0)
-						ways.Next(w0, 1, 2);
-				}
-				if (q0 < 0 && d0 <= 1)
-				{
-					var s2  = ways.Cursor;
-					var lm2  = ways.LogCount;
-					var lm2R = ways.Records;
-					var rr2 = ways.RefsCount;
-
-					q0 = Read_Small_Small_Part2(p, start, lmark, lmarkR, r0);
-
-					if (q0 < 0)
-					{
-						ways.LogCount  = lm2;
-						ways.Records   = lm2R;
-						if (ways.Built > lm2R) ways.Built = lm2R;
-						ways.RefsCount = rr2;
-					}
-
-					if (q0 < 0)
-						ways.Next(w0, 2, 2);
-				}
-				if (q0 < 0 && d0 <= 2)
-				{
-					var s3  = ways.Cursor;
-					var lm3  = ways.LogCount;
-					var lm3R = ways.Records;
-					var rr3 = ways.RefsCount;
-
-					q0 = Read_Small_Small_Part3(p, start, lmark, lmarkR, r0);
-
-					if (q0 < 0)
-					{
-						ways.LogCount  = lm3;
-						ways.Records   = lm3R;
-						if (ways.Built > lm3R) ways.Built = lm3R;
-						ways.RefsCount = rr3;
-					}
-				}
-
-				if (q0 < 0)
-					return -1;
-
-				p = q0;
-				return p;
-			}
-
-			/// <summary>One alternative of <c>Small</c>, read where it stood.</summary>
-			public int Read_Small_Small_Part1(int pos, int start, int lmark, int lmarkR, int r0)
-			{
-				var p = pos;
 				var rb = ways.RefsCount;
 				var g0At = r0;
-				if (!(g0At < 0)) Materialize_DotGram_Small_Direct(ways, text, values, g0At, lmark, lmarkR);
+				if (!(g0At < 0)) Materialize_DotGram_Small_Direct(ways, text, values, g0At, lmark, lmarkR, parserReading);
 				int? g0 = g0At < 0 ? default(int?) : values.V1[g0At].Value;
 				if (!Recognize_DotGram_Small_Guard4(g0))
 				{
@@ -2269,7 +1690,7 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>One alternative of <c>Small</c>, read where it stood.</summary>
-			public int Read_Small_Small_Part2(int pos, int start, int lmark, int lmarkR, int r0)
+			public int Read_Small_Small_Part1(int pos, int start, int lmark, int lmarkR, int r0)
 			{
 				var p = pos;
 				var rb = ways.RefsCount;
@@ -2280,12 +1701,17 @@ namespace DotGram.Snapshots
 			}
 
 			/// <summary>One alternative of <c>Small</c>, read where it stood.</summary>
-			public int Read_Small_Small_Part3(int pos, int start, int lmark, int lmarkR, int r0)
+			public int Read_Small_Small_Part2(int pos, int start, int lmark, int lmarkR, int r0)
 			{
 				var p = pos;
 				var rb = ways.RefsCount;
+				if (((0x1UL >> parserReading) & 1UL) == 0UL)
+				{
+					Refuse_DotGram(ref failure, p, null, ways);
+					return -1;
+				}
 				var g0At = r0;
-				if (!(g0At < 0)) Materialize_DotGram_Small_Direct(ways, text, values, g0At, lmark, lmarkR);
+				if (!(g0At < 0)) Materialize_DotGram_Small_Direct(ways, text, values, g0At, lmark, lmarkR, parserReading);
 				int? g0 = g0At < 0 ? default(int?) : values.V1[g0At].Value;
 				if (!Recognize_DotGram_Small_Guard5(g0))
 				{
@@ -2461,14 +1887,14 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>The whole input as <c>Small</c>, read by methods.</summary>
-		static int Recognize_Small_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value)
+		static int Recognize_Small_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value, int parserReading)
 		{
 			var ways = Ways.Rent();
 			var values = DirectValues.Rent();
 
 			try
 			{
-				var reader = new Reader_DotGram_Small(text, ways, values);
+				var reader = new Reader_DotGram_Small(text, ways, values, parserReading);
 
 				reader.failure = failure;
 
@@ -2483,7 +1909,7 @@ namespace DotGram.Snapshots
 					return end;
 				}
 
-				Materialize_DotGram_Small_Direct(ways, text, values, ways.Last, 0, 0);
+				Materialize_DotGram_Small_Direct(ways, text, values, ways.Last, 0, 0, parserReading);
 				value = values.V1[ways.Last].Value;
 
 				return end;
@@ -2496,7 +1922,7 @@ namespace DotGram.Snapshots
 		}
 
 		/// <summary>Builds the values a direct parse recorded, front to back (Machine.Direct.Values.cs).</summary>
-		static void Materialize_DotGram_Small_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first)
+		static void Materialize_DotGram_Small_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first, int parserReading)
 		{
 			values.Room(ways.Records);
 
@@ -3313,29 +2739,6 @@ namespace DotGram.Snapshots
 		static readonly string[] Recognize_DotGram_List_Expected0 = { "','" };
 
 		static readonly string[] Recognize_DotGram_List_Expected1 = { "['a'..'z']" };
-
-		static bool Recognize_DotGram_Small_With2_Guard0(int? n) =>
-#line 29 "Notation.gram"
-                     (n < 10);
-#line default
-
-		static bool Recognize_DotGram_Small_With2_Guard1(int? n) =>
-#line 29 "Notation.gram"
-                     (n < 10);
-#line default
-
-		static bool Recognize_DotGram_Small_With2_Guard2(int? n) =>
-#line 29 "Notation.gram"
-                     (n < 10);
-#line default
-
-		static readonly string[] Recognize_DotGram_Small_With2_Expected0 = { "'!'" };
-
-		static readonly string[] Recognize_DotGram_Small_With2_Expected1 = { "['0'..'9' | 'a'..'z']" };
-
-		static readonly string[] Recognize_DotGram_Small_With2_Expected2 = { "['a'..'z']" };
-
-		static readonly string[] Recognize_DotGram_Small_With2_Expected3 = { "['0'..'9']" };
 
 		static bool Recognize_DotGram_Small_Guard0(int? n) =>
 #line 31 "Notation.gram"

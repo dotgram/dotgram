@@ -387,6 +387,11 @@ public sealed class LexicalSplit
 					// whole by construction, so there is nothing left for it to ask.
 					return Node.Empty.Instance;
 
+				// Which parsers keep an alternative is a question about the parser and not about
+				// the tokens, so it is asked on this side of the crossing as on the other.
+				case Node.Reading:
+					return node;
+
 				case Node.Glue:
 					// The one assertion that means more on this side of the crossing than the
 					// other. Over characters `~` is the absence of a woven seam and needs no

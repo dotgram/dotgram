@@ -186,6 +186,21 @@ public abstract record Node
 	}
 
 	/// <summary>
+	/// Matches nothing, and only in the parsers whose number is in <paramref name="Readings"/>.
+	/// </summary>
+	/// <remarks>
+	/// What `when … is …` leaves where one grammar is published in several readings and the
+	/// answer differs between them. Which readings keep the alternative is settled while the
+	/// parsers are generated; the parsers of one rule share one machine and are handed their
+	/// own number, and this is the one question left to ask — a shift and a mask. Never
+	/// written by an author, so it has no surface syntax.
+	/// </remarks>
+	public sealed record Reading(ulong Readings) : Node
+	{
+		public override string ToString() => $"?reading(0x{Readings:X})";
+	}
+
+	/// <summary>
 	/// Nothing may have been skipped here: what stands at this position began exactly
 	/// where what stands before it ended (§4.5's <c>~</c>).
 	/// </summary>

@@ -274,6 +274,7 @@ public sealed partial class GrammarNormalizer
 			Node.Repeat   (var body, var min, var max)                              => new Node.Repeat(SpliceWithSites(body, rewrites), min, max),
 			Node.Lookahead(var positive, var body)                                  => new Node.Lookahead(positive, SpliceWithSites(body, rewrites)),
 			Node.Behind   (var test)                                                => new Node.Behind(Same(test)),
+			Node.Reading  (var readings)                                            => new Node.Reading(readings),
 			Node.Capture  (var name, var body)                                      => new Node.Capture(name, SpliceWithSites(body, rewrites)),
 			Node.Construct(var body, var how)                                       => new Node.Construct(SpliceWithSites(body, rewrites), how),
 			Node.Condition(var test, var at)                                        =>
@@ -322,27 +323,131 @@ public sealed partial class GrammarNormalizer
 		var calledBy = Reverse(forward);
 		var remapped = new List<Publication>(_publications.Count);
 
+		// Numbered afresh, in the order the publications are written: the grammar's own
+		// reading is whatever number the first publication that substitutes nothing gets.
+		_readings.Clear();
+
 		foreach (var publication in _publications)
 		{
-			if (publication.Rebindings.Count == 0)
+			var (asked, cloned) = Asked(publication);
+			var numbered        = publication with { Reading = Reading(asked, publication) };
+
+			if (cloned.Count == 0)
 			{
-				remapped.Add(publication);
+				remapped.Add(numbered);
 				continue;
 			}
 
-			var reachable = ReachableFromSeed(new HashSet<RuleSymbol> { publication.Rule }, forward, publication.Rebindings);
-			var affected  = AffectedSet(BoundCalls(publication.Rebindings), calledBy, reachable);
+			var reachable = ReachableFromSeed(new HashSet<RuleSymbol> { numbered.Rule }, forward, cloned);
+			var affected  = AffectedSet(BoundCalls(cloned), calledBy, reachable);
 
 			var cloneMap = affected.Count == 0
 				? EmptyClones
-				: CloneAffected(affected, publication.Rebindings, "With" + (++_withCounter));
+				: CloneAffected(affected, cloned, "With" + (++_withCounter));
 
 			remapped.Add(
-				cloneMap.TryGetValue(publication.Rule, out var clone)
-					? publication with { Rule = clone }
-					: publication);
+				cloneMap.TryGetValue(numbered.Rule, out var clone)
+					? numbered with { Rule = clone }
+					: numbered);
 		}
 
 		_publications = remapped;
 	}
+
+	/// <summary>
+	/// A publication's rebindings in two: those only a condition asks about, and the rest.
+	/// </summary>
+	/// <remarks>
+	/// A rule no parse of this publication calls — `Version`, which only `when Version is …`
+	/// ever names — changes nothing a clone would carry. What it changes is how the conditions
+	/// are answered, and that is answered per reading (<see cref="DecideIntersections"/>)
+	/// without a rule of the grammar copied for it.
+	/// </remarks>
+	(Dictionary<RuleSymbol, RuleSymbol> Asked, Dictionary<RuleSymbol, RuleSymbol> Cloned) Asked(
+		Publication publication)
+	{
+		var asked  = new Dictionary<RuleSymbol, RuleSymbol>();
+		var cloned = new Dictionary<RuleSymbol, RuleSymbol>();
+
+		if (publication.Rebindings.Count == 0)
+			return (asked, cloned);
+
+		var read = Read(publication.Rule, publication.Rebindings);
+
+		foreach (var pair in publication.Rebindings)
+		{
+			var bound = BoundCalls(new Dictionary<RuleSymbol, RuleSymbol> { [pair.Key] = pair.Value });
+
+			if (bound.Overlaps(read))
+				cloned[pair.Key] = pair.Value;
+			else
+				asked[pair.Key] = pair.Value;
+		}
+
+		return (asked, cloned);
+	}
+
+	/// <summary>
+	/// Every rule a parse from here calls, conditions aside, as the rebindings rewrite the calls.
+	/// </summary>
+	HashSet<RuleSymbol> Read(RuleSymbol seed, IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets)
+	{
+		var read    = new HashSet<RuleSymbol> { seed };
+		var pending = new Queue<RuleSymbol>([seed]);
+
+		while (pending.Count > 0)
+		{
+			if (!_bodies.TryGetValue(pending.Dequeue(), out var body))
+				continue;
+
+			foreach (var called in Called(body))
+			{
+				if (read.Add(called))
+					pending.Enqueue(called);
+
+				if (Rebound(called, targets) is { } reached && read.Add(reached))
+					pending.Enqueue(reached);
+			}
+		}
+
+		return read;
+	}
+
+	/// <summary>The calls in a body, not counting any a condition makes.</summary>
+	static IEnumerable<RuleSymbol> Called(Node node)
+	{
+		if (node is Node.Condition)
+			yield break;
+
+		if (node is Node.Call(var called, _))
+			yield return called;
+
+		foreach (var child in node.Children)
+			foreach (var one in Called(child))
+				yield return one;
+	}
+
+	/// <summary>The number of a reading, given one the first time it is met.</summary>
+	int Reading(IReadOnlyDictionary<RuleSymbol, RuleSymbol> asked, Publication publication)
+	{
+		for (var index = 0; index < _readings.Count; index++)
+			if (Same(_readings[index], asked))
+				return index;
+
+		_readings.Add(asked);
+
+		if (_readings.Count == Readable + 1)
+			Report(
+				TooManyReadings,
+				$"This grammar is published in more than {Readable} readings — more assignments of " +
+				"the rules its conditions ask about than a parser's number can tell apart. Publish " +
+				"fewer of them, or split the grammar.",
+				publication.At);
+
+		return _readings.Count - 1;
+	}
+
+	static bool Same(IReadOnlyDictionary<RuleSymbol, RuleSymbol> one, IReadOnlyDictionary<RuleSymbol, RuleSymbol> other) =>
+		one.Count == other.Count &&
+		one.All(pair => other.TryGetValue(pair.Key, out var to) && to.Equals(pair.Value));
 }

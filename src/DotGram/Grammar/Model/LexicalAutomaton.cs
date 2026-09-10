@@ -226,6 +226,9 @@ public sealed class LexicalAutomaton
 				case Node.Behind:
 					return Refuse($"a look-behind inside a pattern: {node}");
 
+				case Node.Reading:
+					return Refuse($"a test of the reading inside a pattern: {node}");
+
 				case Node.External(var name):
 					return Refuse($"an external recognizer inside a pattern: @{name}");
 

@@ -356,6 +356,9 @@ sealed partial class Machine
 
 				if (machine.DirectReaderContext)
 					yield return (machine._graph.Context!, "context");
+
+				if (machine.UsesReading)
+					yield return ("int", "parserReading");
 			}
 		}
 
@@ -460,7 +463,7 @@ sealed partial class Machine
 
 		public override string Materialize(string record, string sinceMark) =>
 			$"{machine.DirectMaterializer}(ways, text, values, {record}, {sinceMark}, {sinceMark}R" +
-			$"{machine.TokensArgument}{machine.ContextArgument});";
+			$"{machine.TokensArgument}{machine.ContextArgument}{machine.ReadingArgument});";
 
 		/// <summary>From the tables, or for an extent the record itself.</summary>
 		public override string ValueOf(RuleSymbol rule, string record) =>
@@ -517,7 +520,7 @@ sealed partial class Machine
 		{
 			yield return
 				$"{machine.DirectMaterializer}(ways, text, values, ways.Last, 0, 0" +
-				$"{machine.InputArgument}{machine.TokensArgument}{machine.ContextArgument});";
+				$"{machine.InputArgument}{machine.TokensArgument}{machine.ContextArgument}{machine.ReadingArgument});";
 
 			yield return
 				$"value = {(extent ? machine.RecordValue(type, "ways.Last").Replace("log[", "ways.Log[") : machine.DirectFrom(type, "ways.Last").Replace("values", "values.V"))};";

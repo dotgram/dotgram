@@ -260,10 +260,16 @@ sealed class NodeIdentityComparer : IEqualityComparer<Expr>
 /// (<see cref="GrammarNamespace.OwnRebindings"/> is the same split, for a header); what
 /// specialization clones against is <see cref="Rebindings"/>.
 /// </param>
+/// <param name="Reading">
+/// Which reading of the grammar this publication is, numbered by the normalizer: what its
+/// `with` substitutes for the rules only a `when … is …` asks about. The parsers of one rule
+/// share a machine, and this is the number each hands it (<see cref="Model.Node.Reading"/>).
+/// </param>
 public sealed record Publication(
 	PublishKind Kind, RuleSymbol Rule, string MethodName, Location At, GrammarNamespace DeclaredIn,
 	IReadOnlyDictionary<RuleSymbol, RuleSymbol> Rebindings,
-	IReadOnlyList<ResolvedRebinding> OwnRebindings)
+	IReadOnlyList<ResolvedRebinding> OwnRebindings,
+	int Reading = 0)
 {
 	/// <summary>The name the directive produces when it does not give one itself.</summary>
 	public static string DefaultMethodName(PublishKind kind, string ruleName) =>

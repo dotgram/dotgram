@@ -159,6 +159,9 @@ sealed partial class Machine
 
 				if (machine.UsesContext)
 					yield return (machine._graph.Context!, "context");
+
+				if (machine.UsesReading)
+					yield return ("int", "parserReading");
 			}
 		}
 

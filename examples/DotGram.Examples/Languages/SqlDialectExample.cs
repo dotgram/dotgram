@@ -24,8 +24,9 @@ namespace DotGram.Examples.Languages;
 // `Version` is an ordinary rule — the choice of every version there is — and `is` asks
 // whether two recognizers have a string in common. `with` substitutes a rule at every one
 // of its uses, so under `Version = "2000"` the condition that says "2022" is false, and the
-// alternative it stands in is not in that parser at all. Nothing is tested while a parser
-// runs: the question is answered when the parser is generated (docs/syntax.md §3.6, §5.1).
+// alternative it stands in is not in that parser. The question is answered when the parsers
+// are generated (docs/syntax.md §3.6, §5.1). They share one machine, and all that is left for
+// one to ask while it runs is which of the three it is, at an alternative not all of them have.
 //
 // `ParseAny` names no version, so it keeps the grammar's own `Version` — every version —
 // and reads everything. The permissive parser is not a mode; it is the widest argument.
@@ -54,5 +55,5 @@ namespace DotGram.Examples.Languages;
 public static partial class SqlDialect
 {
 	// ParseOld, ParseNew and ParseAny, with a Try… beside each, are generated here —
-	// three parsers from one grammar, none of which tests a version while it runs.
+	// three parsers from one grammar and one machine, told apart by a number each hands it.
 }

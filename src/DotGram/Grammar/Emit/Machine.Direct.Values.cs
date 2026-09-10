@@ -619,7 +619,7 @@ sealed partial class Machine
 		using (file.Block(
 			$"static void {DirectMaterializer}(" +
 			$"{WaysType} ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, int from, int first" +
-			$"{InputParameter}{TokensParameter}{ContextParameter})"))
+			$"{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter})"))
 		{
 			// A guard builds while the text is read, so the walk at the end must know what
 			// it already built; where no guard builds, nothing is ever built twice and the

@@ -17429,8 +17429,10 @@ The listing now carries each look with the offset it stands at and asks it once 
 string is written down, a side being read as a whole input — a rule called from a sequence
 does not know what follows it there, so asking earlier cannot work. Trivia was tried as
 nothing and taken back the same hour: `"is" & "not"` spelled with nothing between joins
-the words, the boundary refuses the join, and the answer comes out false where the truth is
-that the spaces have no bound and the set cannot be listed. It says so now.
+the words, the boundary refuses the join, and `Pair is "is not"` comes out false — though
+`is not` is exactly what the pair reads. (`Pair is "isnot"` is false either way: `isnot` is
+a syntax error, which is what the first version of this note got wrong.) The spaces have no
+bound, the set cannot be listed, and it says so now.
 
 `GRAM4022` became information. The same publication removed `WINDOW` from level 150, which
 is what it was written to do, and a warning each time in a project building with warnings
@@ -17446,3 +17448,41 @@ rate is some twenty-five megabytes a variant before the algorithms, which sit in
 and would reach the rest. The deferred item above — publications that differ only in what
 their conditions answered sharing one machine — is no longer deferrable: it is what stands
 between this grammar and its versions.
+
+## Readings, and one machine for them
+
+Igor's answer to the cost: give every variant of a parser a number and let the logic ask
+it — in a `switch`, in the lexer's tables, wherever it is cheapest. The first of those is
+built.
+
+**A `with` that substitutes a rule no parse calls clones nothing.** `Version` is never
+called; only `when Version is …` names it, so substituting it changes the answers of the
+conditions and nothing a clone would carry. A publication's rebindings are split in two
+where it is specialized: the ones a parse from it reaches outside a condition are cloned as
+before, and the rest are its *reading* — an assignment of the rules only conditions ask
+about, numbered in the order the publications are written. The publications of one rule
+then name one rule, and the emitter already gives the publications of one rule one machine.
+
+**Conditions are answered once per reading.** An alternative every reading keeps is kept as
+it is and one none keeps goes, as before; one that some readings keep is kept behind a
+`Node.Reading`, a mask of the readings that have it, standing where its first condition was
+written — not in front, where it would hide a left recursion from the rewrite that removes
+it. The machine takes the reading as a parameter the way it takes the grammar's context,
+the publication hands it a constant, and the test is `((mask >> parserReading) & 1) == 0`.
+Nothing the caller writes changes: `ParseStatement150(text)` is still a method of one
+argument, and it is the reading.
+
+Two refusals come with it. Sixty-four readings is one bit each in a word (GRAM4023), and a C#
+guard that survives in two readings as two different pieces of C# would need the number
+handed to the C# (GRAM4024) — the fold compares what each reading kept, and the same
+alternative is what it has to be.
+
+**What it bought.** The same experiment as above — `WINDOW` gated from 160, one publication
+for level 150: `TransactSql.g.cs` went from 6.07 MB to 6.074 MB, where cloning had taken it
+to 8.49. The test appears five times, once for each rendering of the clause. `Notation`'s
+snapshot, whose `SmallOld` had been a clone, lost six hundred lines.
+
+Still to come of what Igor listed: the test in a `switch` rather than in front of one
+alternative at a time, and in the lexer's tables — a keyword a reading does not have is a
+word there, and one table per reading or one table with a column per reading is the
+question that raises.

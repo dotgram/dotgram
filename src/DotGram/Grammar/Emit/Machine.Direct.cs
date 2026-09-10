@@ -124,7 +124,8 @@ sealed partial class Machine
 					switch (node)
 					{
 						case Node.Empty or Node.Literal or Node.Element or Node.Sequence or Node.Choice
-							or Node.Repeat or Node.Lookahead or Node.Behind or Node.Atomic or Node.Glue:
+							or Node.Repeat or Node.Lookahead or Node.Behind or Node.Atomic or Node.Glue
+							or Node.Reading:
 							break;
 
 						case Node.External { HasValue: false }:

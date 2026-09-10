@@ -1308,8 +1308,10 @@ parse Test with (Version = "2022") as ParseNew
 parse Test as ParseAny
 ```
 
-`ParseOld` has the first alternative and not the second, `ParseNew` the other way round,
-and neither tests a version while it runs. `ParseAny` names none, so it keeps the
+`ParseOld` has the first alternative and not the second, `ParseNew` the other way round.
+The question is answered when the parsers are generated, and the three share one machine:
+what is left to ask while one of them runs is which of them it is — one test, at an
+alternative some of them have and the others do not. `ParseAny` names none, so it keeps the
 grammar's own `Version` — the choice of every version — and has all three. A parser that
 reads one version, one that reads several and one that reads everything are one construct
 with a narrower or a wider argument, which is also how products are said: on-premises SQL

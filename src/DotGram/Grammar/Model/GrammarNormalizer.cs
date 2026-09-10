@@ -65,6 +65,12 @@ public sealed partial class GrammarNormalizer
 	/// <summary>A rule every alternative of which a condition ruled out of this parser.</summary>
 	public const string EmptyAfterConditions = "GRAM4022";
 
+	/// <summary>More readings of one grammar than a parser's number can tell apart.</summary>
+	public const string TooManyReadings = "GRAM4023";
+
+	/// <summary>A `when` that leaves different C# behind in different readings.</summary>
+	public const string ReadingsDisagree = "GRAM4024";
+
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
 	readonly Dictionary<RuleSymbol, bool>                      _nullable    = [];

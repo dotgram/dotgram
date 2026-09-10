@@ -366,6 +366,7 @@ public sealed partial class GrammarNormalizer
 			(Node.Literal a, Node.Literal b)                       => a == b,
 			(Node.Element a, Node.Element b)                       => SameSet(a, b),
 			(Node.Behind(var a), Node.Behind(var b))               => SameSet(a, b),
+			(Node.Reading(var a), Node.Reading(var b))             => a == b,
 			(Node.Empty, Node.Empty)                               => true,
 			(Node.Glue, Node.Glue)                                 => true,
 

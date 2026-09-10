@@ -597,7 +597,7 @@ public static class FirstSets
 
 	/// <summary>A part that reads nothing: a look, a guard, or nothing at all.</summary>
 	static bool Silent(Node node) =>
-		node is Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue;
+		node is Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading;
 
 	/// <summary>What the rest of a sequence can begin with, skipping what may match nothing.</summary>
 	public static First Following(
@@ -835,6 +835,7 @@ public static class FirstSets
 			case Node.Lookahead:
 			case Node.Behind:
 			case Node.Glue:
+			case Node.Reading:
 				return First.None;
 
 			case Node.Capture  (_,  var captured): return Of(captured, graph, byRule);
@@ -1055,7 +1056,7 @@ public static class FirstSets
 	/// </remarks>
 	public static bool Nullable(Node node, Func<RuleSymbol, bool> rule) => node switch
 	{
-		Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue => true,
+		Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading => true,
 		Node.Literal(var text)                       => text.Length == 0,
 		Node.Element                                 => false,
 		Node.Atomic(var body)                        => Nullable(body,     rule),

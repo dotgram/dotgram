@@ -41,7 +41,7 @@ sealed partial class Machine
 
 		using (helper.Block(
 			$"static void Materialize_DotGram{_tag}(global::System.ReadOnlySpan<char> text, Parser parser, " +
-			$"ParserArena entries{InputParameter}{TokensParameter}{ContextParameter})"))
+			$"ParserArena entries{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter})"))
 			Materialize(helper, cached: Caches);
 
 		_extra.Add(helper.ToString());

@@ -125,10 +125,11 @@ public sealed class StaticConditionTests
 	{
 		// `"is" & "not"` has trivia woven between its words and a boundary on each, so what it
 		// reads is `is`, one space or more, and `not` — no bound on the spaces, and not a set
-		// that can be listed. Spelling the trivia as nothing would have joined the words and
-		// had the boundary refuse the join, answering false where the truth is not known.
+		// that can be listed. Spelling the trivia as nothing joined the words and had the
+		// boundary refuse the join, so `Pair is "is not"` came out false — of the one string
+		// anybody would write for it. (`isnot` is not in the pair at all: it is a syntax error.)
 		var run = GeneratorDriverTests.RunGenerator("""
-			[DotGram.Gram("trivia = ' '*\nwordboundary = ['a'..'z']\nPair = \"is\" & \"not\"\nName = { ['a'..'z']+ }\nWord : @string = t: (Name & \"?\") & when Pair is \"isnot\" => @(t)\nparse Word")]
+			[DotGram.Gram("trivia = ' '*\nwordboundary = ['a'..'z']\nPair = \"is\" & \"not\"\nName = { ['a'..'z']+ }\nWord : @string = t: (Name & \"?\") & when Pair is \"is not\" => @(t)\nparse Word")]
 			public static partial class Spaced { }
 			""");
 

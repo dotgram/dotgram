@@ -163,6 +163,9 @@ sealed partial class Machine
 			{
 				if (Gathers)
 					yield return ("MixedValues", "values");
+
+				if (machine.UsesReading)
+					yield return ("int", "parserReading");
 			}
 		}
 

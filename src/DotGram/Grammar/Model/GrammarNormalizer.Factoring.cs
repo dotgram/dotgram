@@ -551,7 +551,7 @@ public sealed partial class GrammarNormalizer
 				break;
 			}
 
-			reads |= parts[one] is not (Node.Behind or Node.Lookahead or Node.Empty or Node.Glue);
+			reads |= parts[one] is not (Node.Behind or Node.Lookahead or Node.Empty or Node.Glue or Node.Reading);
 		}
 
 		return reads ? take : 0;

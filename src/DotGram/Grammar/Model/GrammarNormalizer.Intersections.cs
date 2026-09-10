@@ -21,8 +21,11 @@ namespace DotGram.Grammar.Model;
 /// <para>
 /// Which is why it runs where it does: after all three substitution passes, so that what it
 /// reads is what this parser will be, and before anything rewrites the shape of a rule. It
-/// leaves nothing behind — a condition that holds becomes <see cref="Node.Empty"/>, and an
-/// alternative whose condition failed is deleted. No parser tests any of this while it runs.
+/// leaves next to nothing behind — a condition that holds becomes <see cref="Node.Empty"/>,
+/// and an alternative whose condition failed is deleted. Where the grammar is published in
+/// several readings and they answer differently, the alternative is kept behind a
+/// <see cref="Node.Reading"/>: a test of which reading the machine they share is running as,
+/// and the only thing about any of this a parser asks while it runs.
 /// </para>
 /// <para>
 /// <b>Where the condition may stand.</b> As an operand of an alternative, which is where a
@@ -50,6 +53,39 @@ public sealed partial class GrammarNormalizer
 	/// <summary>How many strings a side may accept before this gives up on listing them.</summary>
 	const int Listable = 4096;
 
+	/// <summary>
+	/// Every reading this grammar is published in — what each substitutes for the rules only a
+	/// condition asks about — numbered by where it stands here.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A `with` that substitutes a rule no parse ever calls changes nothing but the answers of
+	/// the conditions that name it, so <see cref="SpecializePublicationWith"/> clones nothing
+	/// for it and records it here instead. Every publication carries the number of its
+	/// reading, and the parsers of one rule share one machine: an alternative some readings
+	/// keep and others do not is kept behind a test of the number, which is the one thing
+	/// left to ask while the parser runs.
+	/// </para>
+	/// <para>
+	/// Cloning was the other way, and it is what the first versioned publication of T-SQL
+	/// did: one condition on the `WINDOW` clause, reached from nearly everything, cloned most
+	/// of the grammar and put two and a half megabytes of C# into the parser for one version.
+	/// </para>
+	/// </remarks>
+	readonly List<IReadOnlyDictionary<RuleSymbol, RuleSymbol>> _readings = [Unsubstituted];
+
+	static readonly IReadOnlyDictionary<RuleSymbol, RuleSymbol> Unsubstituted =
+		new Dictionary<RuleSymbol, RuleSymbol>();
+
+	/// <summary>How many readings a parser's number can tell apart: the bits of one word.</summary>
+	const int Readable = 64;
+
+	/// <summary>The reading the conditions are being answered for.</summary>
+	IReadOnlyDictionary<RuleSymbol, RuleSymbol> _asked = Unsubstituted;
+
+	/// <summary>What has been said already, so that asking once per reading says it once.</summary>
+	readonly HashSet<(string Id, int At)> _said = [];
+
 	internal void DecideIntersections()
 	{
 		foreach (var rule in _bodies.Keys.ToList())
@@ -59,9 +95,114 @@ public sealed partial class GrammarNormalizer
 			if (!NodeWalk.Descendants(body).Concat([body]).Any(one => one is Node.Condition))
 				continue;
 
-			_bodies[rule] = Decided(rule, body);
+			if (_readings.Count == 1)
+			{
+				_asked        = _readings[0];
+				_bodies[rule] = Decided(rule, body);
+			}
+			else
+			{
+				_bodies[rule] = DecidedAcross(rule, body);
+			}
 		}
+
+		_asked = Unsubstituted;
 	}
+
+	/// <summary>A rule's body answered in every reading at once.</summary>
+	/// <remarks>
+	/// An alternative every reading keeps is kept as it is, one no reading keeps goes, and one
+	/// some readings keep is kept behind a test of the reading's number, standing where its
+	/// first condition was written. What each reading keeps has to be the same alternative:
+	/// a C# guard that survives in two readings as two different pieces of C# would need the
+	/// number handed to the C#, and that is refused rather than guessed at.
+	/// </remarks>
+	Node DecidedAcross(RuleSymbol rule, Node body)
+	{
+		var count        = Math.Min(_readings.Count, Readable);
+		var everywhere   = count == Readable ? ulong.MaxValue : (1UL << count) - 1;
+		var alternatives = body is Node.Choice(var all) ? all : [body];
+		var left         = new List<Node>(alternatives.Count);
+		var reads        = 0UL;
+
+		foreach (var alternative in alternatives)
+		{
+			Node? kept  = null;
+			var   holds = 0UL;
+
+			for (var reading = 0; reading < count; reading++)
+			{
+				_asked = _readings[reading];
+
+				if (Kept(rule, alternative) is not { } one)
+					continue;
+
+				holds |= 1UL << reading;
+
+				if (kept is null)
+					kept = one;
+				else if (one.ToString() != kept.ToString() && _said.Add((ReadingsDisagree, Opened(alternative))))
+					Report(
+						ReadingsDisagree,
+						$"A `when` in '{rule.Name}' leaves different C# behind in different parsers this " +
+						"grammar publishes. They share one machine, and the C# would have to be told which " +
+						"parser it is running in; write the condition so that the C# beside it is the same " +
+						"wherever it survives.",
+						new Location(Math.Max(0, Opened(alternative)), 0));
+			}
+
+			_asked = Unsubstituted;
+
+			if (kept is null)
+				continue;
+
+			reads |= holds;
+			left.Add(holds == everywhere ? kept : Gated(kept, Opening(alternative), holds));
+		}
+
+		if (left.Count == 0)
+			return Nothing(rule, body);
+
+		if (reads != everywhere)
+			Emptied(rule, body, "in some of the parsers this grammar publishes");
+
+		return left.Count == 1 ? left[0] : new Node.Choice(left);
+	}
+
+	/// <summary>Where the first condition of an alternative was written, or -1.</summary>
+	static int Opened(Node alternative) =>
+		NodeWalk.Descendants(alternative).Concat([alternative]).OfType<Node.Condition>().FirstOrDefault()?.At ?? -1;
+
+	/// <summary>The operand an alternative's first condition stands at, which is where its test goes.</summary>
+	static int Opening(Node alternative)
+	{
+		if (alternative is Node.Construct(var built, _))
+			return Opening(built);
+
+		if (alternative is Node.Sequence(var operands))
+			for (var at = 0; at < operands.Count; at++)
+				if (operands[at] is Node.Condition)
+					return at;
+
+		return 0;
+	}
+
+	/// <summary>
+	/// An alternative kept only in some readings: as it was, with the test of which standing
+	/// where its condition stood.
+	/// </summary>
+	/// <remarks>
+	/// Where the author wrote it and not at the front: a test in front of a left-recursive
+	/// alternative would hide the recursion from the rewrite that removes it, and a condition
+	/// written at the end of an alternative is one the author was content to have asked last.
+	/// </remarks>
+	static Node Gated(Node kept, int at, ulong readings) => kept switch
+	{
+		Node.Construct(var built, var how) => new Node.Construct(Gated(built, at, readings), how),
+		Node.Sequence(var operands)        =>
+			new Node.Sequence([.. operands.Take(at), new Node.Reading(readings), .. operands.Skip(at)]),
+		_ => new Node.Sequence([new Node.Reading(readings), kept]),
+	};
 
 	/// <summary>A rule's body with every alternative's condition answered.</summary>
 	Node Decided(RuleSymbol rule, Node body)
@@ -139,13 +280,14 @@ public sealed partial class GrammarNormalizer
 		if (!NodeWalk.Descendants(node).Any(one => one is Node.Condition))
 			return node;
 
-		Report(
-			ConditionOutOfPlace,
-			$"A `when … is …` in '{rule.Name}' stands inside a group, a repetition or a " +
-			"capture. It is answered while the parser is built, and what is answered there is " +
-			"whether an alternative is in this parser at all — so it belongs beside the " +
-			"operands of one and nowhere else.",
-			Where(node));
+		if (_said.Add((ConditionOutOfPlace, Where(node).Position)))
+			Report(
+				ConditionOutOfPlace,
+				$"A `when … is …` in '{rule.Name}' stands inside a group, a repetition or a " +
+				"capture. It is answered while the parser is built, and what is answered there is " +
+				"whether an alternative is in this parser at all — so it belongs beside the " +
+				"operands of one and nowhere else.",
+				Where(node));
 
 		return node;
 	}
@@ -173,22 +315,31 @@ public sealed partial class GrammarNormalizer
 	/// </remarks>
 	Node Nothing(RuleSymbol rule, Node body)
 	{
-		// At the rule's own declaration, which is where a reader goes to see what was removed;
-		// a clone made by `with` keeps the declaration it was cloned from.
-		var at = rule.Declaration?.At ?? Where(body);
-
-		_whenSound.Add(new GramDiagnostic(
-			EmptyAfterConditions,
-			$"Every alternative of '{rule.Name}' is ruled out by a `when … is …` in this " +
-			"parser, so it reads nothing here. That is what a removed construct looks like, " +
-			"and it is only worth a second look where no removal was meant.",
-			at.Position,
-			at.Length,
-			GramSeverity.Info));
+		Emptied(rule, body, "in this parser");
 
 		return body is Node.Choice(var alternatives)
 			? new Node.Choice([.. alternatives.Select(Unreachable)])
 			: Unreachable(body);
+	}
+
+	/// <summary>Says that a rule reads nothing in some parser, once.</summary>
+	void Emptied(RuleSymbol rule, Node body, string where)
+	{
+		// At the rule's own declaration, which is where a reader goes to see what was removed;
+		// a clone made by `with` keeps the declaration it was cloned from.
+		var at = rule.Declaration?.At ?? Where(body);
+
+		if (!_said.Add((EmptyAfterConditions, at.Position)))
+			return;
+
+		_whenSound.Add(new GramDiagnostic(
+			EmptyAfterConditions,
+			$"Every alternative of '{rule.Name}' is ruled out by a `when … is …` {where}, so it " +
+			"reads nothing there. That is what a removed construct looks like, and it is only " +
+			"worth a second look where no removal was meant.",
+			at.Position,
+			at.Length,
+			GramSeverity.Info));
 	}
 
 	/// <summary>One alternative that can never be taken, and is otherwise as it was.</summary>
@@ -303,13 +454,14 @@ public sealed partial class GrammarNormalizer
 		if (ours is not null && theirs is not null)
 			return ours.Overlaps(theirs);
 
-		Report(
-			UndecidedCondition,
-			"`is` asks whether two recognizers have a string in common, and this compiler can " +
-			"answer that only where each side accepts a listable set of strings — a literal, a " +
-			"choice of them, or a rule that is one. The alternative is kept, as though the " +
-			"condition held.",
-			new Location(at < 0 ? 0 : at, 0));
+		if (_said.Add((UndecidedCondition, at)))
+			Report(
+				UndecidedCondition,
+				"`is` asks whether two recognizers have a string in common, and this compiler can " +
+				"answer that only where each side accepts a listable set of strings — a literal, a " +
+				"choice of them, or a rule that is one. The alternative is kept, as though the " +
+				"condition held.",
+				new Location(at < 0 ? 0 : at, 0));
 
 		return null;
 	}
@@ -490,8 +642,13 @@ public sealed partial class GrammarNormalizer
 			// A call is the rule it names, and a rule that reaches itself accepts strings of
 			// no bound — which is exactly what cannot be listed. Along one path and not over
 			// the whole walk: `Digit & Digit` calls one rule twice and reaches nothing twice.
-			case Node.Call(var rule, _):
+			//
+			// A rule the reading being answered substitutes is its substitute: that is the whole
+			// of what `with` does to a condition.
+			case Node.Call(var called, _):
 			{
+				var rule = _asked.TryGetValue(called, out var substitute) ? substitute : called;
+
 				if (!_bodies.TryGetValue(rule, out var body) || !seen.Add(rule))
 					return null;
 

@@ -343,6 +343,7 @@ public sealed class TerminalInventory
 					return;
 
 				case Node.Behind:
+				case Node.Reading:
 				case Node.Glue:
 				case Node.Guard:
 				case Node.Empty:
@@ -640,7 +641,7 @@ public sealed class TerminalInventory
 		static bool Silent(Node node) =>
 			node switch
 			{
-				Node.Lookahead or Node.Behind or Node.Glue or Node.Guard or Node.Empty => true,
+				Node.Lookahead or Node.Behind or Node.Glue or Node.Guard or Node.Empty or Node.Reading => true,
 				Node.Literal(var text)      => text.Length == 0,
 				Node.Marked(var body, _)    => Silent(body),
 				Node.Atomic(var body)       => Silent(body),

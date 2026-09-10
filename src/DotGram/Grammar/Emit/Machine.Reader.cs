@@ -61,6 +61,7 @@ sealed partial class Machine
 				case Node.Guard:
 				case Node.Lookahead:
 				case Node.Behind:
+				case Node.Reading:
 				case Node.External:
 					return false;
 
@@ -797,7 +798,7 @@ sealed partial class Machine
 		using (file.Block(
 			$"static int {core}(" +
 			$"global::System.ReadOnlySpan<char> text, int pos{(climbs ? ", int power" : "")}, " +
-			$"ref {CSharpEmitter.FailureType} failure{value}{InputParameter}{TokensParameter}{ContextParameter}{WholeParameter})"))
+			$"ref {CSharpEmitter.FailureType} failure{value}{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}{WholeParameter})"))
 		{
 			var reader = new ReaderWriter(this, rule);
 			var body   = _graph.Trivia.TryGetValue(rule, out var seam)
@@ -1215,6 +1216,16 @@ sealed partial class Machine
 
 					break;
 				}
+
+				// Which parsers keep this alternative was answered while they were generated.
+				case Node.Reading(var readings):
+					using (code.Block($"if (((0x{readings:X}UL >> parserReading) & 1UL) == 0UL)"))
+					{
+						code.Line($"{Refusing}(ref failure, p, null, ways);");
+						code.Line("return -1;");
+					}
+
+					break;
 
 				// A recognizer the author wrote, handed the position by reference: it says
 				// yes or no, and where it said no is where it left the position.

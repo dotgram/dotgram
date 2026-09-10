@@ -400,6 +400,7 @@ public sealed partial class GrammarNormalizer
 			Node.Repeat   (var body, var min, var max)                              => new Node.Repeat   (CloneAndRewrite(body, targets, cloneMap, siteName), min, max),
 			Node.Lookahead(var positive, var body)                                  => new Node.Lookahead(positive, CloneAndRewrite(body, targets, cloneMap, siteName)),
 			Node.Behind   (var test)                                                => new Node.Behind   (Same(test)),
+			Node.Reading  (var readings)                                            => new Node.Reading  (readings),
 			Node.Capture  (var name, var body)                                      => new Node.Capture  (name, CloneAndRewrite(body, targets, cloneMap, siteName)),
 			Node.Construct(var body, var how)                                       => new Node.Construct(CloneAndRewrite(body, targets, cloneMap, siteName), how),
 			// Both sides are recognizers and a rebinding is exactly what a condition is

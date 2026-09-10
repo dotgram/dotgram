@@ -374,6 +374,9 @@ sealed partial class Machine
 					{
 						UsesContext = true;
 					}
+
+					if (node is Node.Reading)
+						UsesReading = true;
 				}
 
 		CollectValueTypes();
@@ -930,6 +933,16 @@ sealed partial class Machine
 	string ContextArgument  => UsesContext ? ", context" : "";
 
 	/// <summary>
+	/// Whether a `when … is …` left this machine a test of which reading it runs as — which is
+	/// what lets the parsers of one rule, published in several readings, share it.
+	/// </summary>
+	public bool UsesReading { get; private set; }
+
+	string ReadingParameter => UsesReading ? ", int parserReading" : "";
+
+	string ReadingArgument  => UsesReading ? ", parserReading" : "";
+
+	/// <summary>
 	/// Every <c>with state</c> site this machine compiled, in the order it reached them —
 	/// the index is what an arena entry carries, and the text is the C# that says what the
 	/// mark's value is (§7.8).
@@ -1018,12 +1031,12 @@ sealed partial class Machine
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
 			$"{strength.TrimStart(',', ' ')}{(strength.Length > 0 ? ", " : "")}" +
-			$"ref {CSharpEmitter.FailureType} failure{output}{InputParameter}{TokensParameter}{ContextParameter})"))
+			$"ref {CSharpEmitter.FailureType} failure{output}{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter})"))
 		{
 			file.Line("object? recognized;");
 			file.Line(
 				$"var end = {engine}(text, pos, {entry}, {ValueRule(root)}{enginePower}, " +
-				$"{(whole ? "true" : "false")}, true{InputArgument}{TokensArgument}{ContextArgument}, ref failure, out recognized);");
+				$"{(whole ? "true" : "false")}, true{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, ref failure, out recognized);");
 
 			// An extent root needs nothing that came back: the wrapper handed the position in
 			// and was told the position reached, which is the whole of the answer.
@@ -1052,7 +1065,7 @@ sealed partial class Machine
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, int state, " +
-			$"int rootRule{strength}, bool whole, bool materialize{InputParameter}{TokensParameter}{ContextParameter}, " +
+			$"int rootRule{strength}, bool whole, bool materialize{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}, " +
 			$"ref {CSharpEmitter.FailureType} failure, out object? recognized)"))
 		{
 			file.Line("recognized = null;");
@@ -1263,7 +1276,7 @@ sealed partial class Machine
 									file.Line("if (!built[0]) values[0] = parser;");
 								}
 
-								file.Line($"Materialize_DotGram{_tag}(text, parser, entries{InputArgument}{TokensArgument}{ContextArgument});");
+								file.Line($"Materialize_DotGram{_tag}(text, parser, entries{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument});");
 								RootValue(file);
 							}
 						}
@@ -2342,7 +2355,7 @@ sealed partial class Machine
 				{
 					writer.Line(
 						$"if (guardNeedsMaterialization) Materialize_DotGram{_tag}(text, parser, " +
-						$"entries{InputArgument}{TokensArgument}{ContextArgument});");
+						$"entries{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument});");
 
 					for (var memberIndex = 0; memberIndex < visible.Count; memberIndex++)
 					{
@@ -2646,6 +2659,21 @@ sealed partial class Machine
 					using (writer.Block(""))
 						EmitTerminalFailure(writer, _fail, arrayName);
 				}
+
+				writer.Line($"goto {Label(writer, next)};");
+
+				return state;
+			}
+
+			// Which parsers keep this alternative was answered while they were generated; the one
+			// question left is whether this is one of them, and it is one shift.
+			case Node.Reading(var readings):
+			{
+				var state = Reserve(out var writer);
+
+				writer.Line($"if (((0x{readings:X}UL >> parserReading) & 1UL) == 0UL)");
+				using (writer.Block(""))
+					EmitFailure(writer, _fail);
 
 				writer.Line($"goto {Label(writer, next)};");
 
@@ -3743,6 +3771,7 @@ sealed partial class Machine
 		{
 			Node.Empty or Node.Behind => true,
 			Node.Glue                 => true,
+			Node.Reading              => true,
 			Node.Element              => true,
 			Node.Literal(var text)    => text.Length == 1,
 			Node.Atomic(var kept)     => FailsWhereItBegan(kept),
@@ -4110,7 +4139,7 @@ sealed partial class Machine
 
 				foreach (var part in parts)
 				{
-					if (part is Node.Empty or Node.Lookahead or Node.Behind or Node.Guard or Node.Glue)
+					if (part is Node.Empty or Node.Lookahead or Node.Behind or Node.Guard or Node.Glue or Node.Reading)
 						continue;
 
 					if (EntryTest(part, seen) is not { } head)

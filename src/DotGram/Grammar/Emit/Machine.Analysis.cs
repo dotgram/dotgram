@@ -82,6 +82,9 @@ sealed partial class Machine
 			// routes failure through `_fail` like every other silent node.
 			Node.Behind                                => true,
 
+			// One test of the reading, no entry, its failure routed like the look-behind's.
+			Node.Reading                               => true,
+
 			// Nothing read and nothing kept, whichever half of a split grammar it lands in.
 			Node.Glue                                  => true,
 
