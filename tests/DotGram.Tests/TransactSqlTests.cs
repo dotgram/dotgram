@@ -977,8 +977,12 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT (a) COLLATE Albanian_BIN")]
 	[InlineData("SELECT t.a COLLATE Albanian_BIN")]
 
-	// `WITH CHANGE_TRACKING_CONTEXT ( context )` in front of the statement, on its own.
+	// `WITH CHANGE_TRACKING_CONTEXT ( context )` in front of the statement, on its own —
+	// and with named queries behind the comma, which the reference does not write out and
+	// seven statements across four files of the corpus do. It is `XMLNAMESPACES` beside it
+	// in the same clause, and it is spelled the same way.
 	[InlineData("WITH CHANGE_TRACKING_CONTEXT (0xff) INSERT INTO t (a) VALUES (1)")]
+	[InlineData("WITH CHANGE_TRACKING_CONTEXT (0xff), c (a) AS (SELECT a FROM t) INSERT INTO u (a) SELECT a FROM c")]
 
 	// `SET LANGUAGE us_english` — a setting and one value, which a third of them take.
 	[InlineData("SET LANGUAGE us_english")]
@@ -993,14 +997,16 @@ public sealed class TransactSqlTests
 
 	/// <summary>And where the engine and ScriptDom disagree, the engine wins above 90.</summary>
 	/// <remarks>
-	/// ScriptDom reads a cursor variable with a default and a `CHANGE_TRACKING_CONTEXT`
-	/// joined to a named query by a comma. The engine answers `Incorrect syntax` to both,
-	/// and the published syntax gives neither — a cursor has no default, and the context
-	/// stands in front of the statement on its own.
+	/// ScriptDom reads a cursor variable with a default. The engine answers
+	/// `Incorrect syntax`, and the published syntax gives a cursor no default.
+	/// <para>
+	/// A `CHANGE_TRACKING_CONTEXT` joined to a named query by a comma was here too, on the
+	/// same argument, and the corpus is what took it out: seven statements carry the shape
+	/// and it is read above with the rest of the clause.
+	/// </para>
 	/// </remarks>
 	[Theory]
 	[InlineData("DECLARE @c AS CURSOR = 'x'")]
-	[InlineData("WITH CHANGE_TRACKING_CONTEXT (0xff), c (a) AS (SELECT a FROM t) INSERT INTO u (a) SELECT a FROM c")]
 	public void And_what_only_ScriptDom_reads_is_refused(string input) =>
 		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
 
