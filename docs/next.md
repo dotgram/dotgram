@@ -17808,5 +17808,20 @@ its page, its heading, the sentence before it and the product range it is marked
 the commit it was read at. The first harvest took only the `syntaxsql` blocks and found
 1,165; one page in six writes its syntax as a plain or `sql` block under a Syntax heading
 — `GOTO`, the `DBCC` commands, the spatial methods — and the products a sentence names
-are the documentation's includes, which are expanded now. It is what the grammar is written from; the engine stays what it is
+are the documentation's includes, which are expanded now.
+
+**Where a statement begins.** The corpus stays cut by ScriptDom: cut by `ParseSql`, a file
+this grammar cannot read whole would drop out of every count with all its statements, and
+those statements are the work list. ScriptDom is the knife and not the authority, and
+`--split` checks the knife: every file ScriptDom reads whole is read here whole too —
+batch by batch, cut at the lines that say `GO`, the way a client cuts it — and the two
+lists of where a statement begins are held against each other.
+
+Of 965 files ScriptDom reads, 551 are read here and cut at the same places, 413 are not
+read here whole (4,273 statements in them; the report lists where each stopped, which is
+the work list seen by file), and one is cut differently — and that one is a defect:
+`CREATE DATABASE d1 … FOR ATTACH WITH restricted_user`, with no `;` after it, took the
+`ALTER DATABASE d1 SET HADR SUSPEND` on the next line as more of its options. A
+`CREATE DATABASE`'s options are still a run of words, which is what the catalogue of `ALTER
+DATABASE … SET` closed for that statement. It is what the grammar is written from; the engine stays what it is
 held to.

@@ -337,6 +337,24 @@ static class Program
 			return;
 		}
 
+		// `--split [path] [version] [shown]` holds where ParseSql cuts a file into statements
+		// against where ScriptDom does, which is what every other corpus count is cut by: the
+		// files read whole on both sides, whether each statement begins at the same place,
+		// and where this grammar stopped on the files it did not read. See Split.cs.
+		if (args.Length >= 1 && args[0] == "--split")
+		{
+			var rest  = args.Skip(1).ToArray();
+			var named = rest.Length >= 1 && (rest[0].Contains('/') || rest[0].Contains('\\'));
+			var first = named ? 1 : 0;
+
+			Split.Run(
+				named ? rest[0] : null,
+				rest.Length > first ? rest[first] : "170",
+				rest.Length > first + 1 && int.TryParse(rest[first + 1], out var few) ? few : 2);
+
+			return;
+		}
+
 		// `--corpus [path] [shown]` is not a benchmark at all: it reads somebody else's
 		// `.sql` files, cuts the query-shaped statements out of them and says what each
 		// parser makes of each, grouping the refusals by what stood where the reading
