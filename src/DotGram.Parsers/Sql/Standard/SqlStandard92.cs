@@ -2,7 +2,7 @@
 
 using DotGram;
 
-namespace DotGram.Parsers;
+namespace DotGram.Parsers.Sql;
 
 /// <summary>
 /// The expression layer of standard SQL — <c>&lt;value expression&gt;</c> and

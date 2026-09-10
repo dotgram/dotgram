@@ -2,7 +2,7 @@
 
 using DotGram;
 
-namespace DotGram.Parsers;
+namespace DotGram.Parsers.Sql;
 
 /// <summary>
 /// A first slice of Microsoft's T-SQL, written as a dialect of <see cref="SqlStandard92"/>

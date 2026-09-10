@@ -1,6 +1,6 @@
 ﻿using System;
 
-using DotGram.Parsers;
+using DotGram.Parsers.Uri;
 
 using Xunit;
 

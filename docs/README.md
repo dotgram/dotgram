@@ -44,6 +44,7 @@ it.
 | Document | |
 | --- | --- |
 | [`design/lexical-adt-design.md`](design/lexical-adt-design.md) | Separating the lexical and syntactic machines. Proposed, measured, and since built — the measurements are the reason it was. |
+| [`design/sql-parsers.md`](design/sql-parsers.md) | The SQL parsers: independent grammars meeting in one tree, the standard's BNF as the reference, and the work that follows — a BNF-to-`.gram` converter among it. |
 | [`design/visual-studio-tooling-plan.md`](design/visual-studio-tooling-plan.md) | The living checklist for the extension. |
 | [`design/dsl-tooling-design.md`](design/dsl-tooling-design.md) | Tooling for an arbitrary DSL, narrowed from the handoff below into a plan. |
 | [`design/DotGram_Tooling_Agent_Handoff.md`](design/DotGram_Tooling_Agent_Handoff.md) | A separate future project: IDE and LSP tooling. Not a description of anything that exists. |

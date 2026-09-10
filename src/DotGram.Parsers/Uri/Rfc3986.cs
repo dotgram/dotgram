@@ -4,7 +4,7 @@ using System.Text;
 
 using DotGram;
 
-namespace DotGram.Parsers;
+namespace DotGram.Parsers.Uri;
 
 /// <summary>The parts of a URI reference, as RFC 3986 divides it.</summary>
 /// <remarks>
@@ -63,7 +63,7 @@ public sealed record UriParts(
 
 [Gram("""
 	@using System;
-	@using DotGram.Parsers;
+	@using DotGram.Parsers.Uri;
 
 	using Lexical;
 

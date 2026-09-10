@@ -17776,3 +17776,24 @@ read by both and the work list 390. Round trip 100% of 6,668. `GO` is not read: 
 `--levels` probe reads a line with `ParseSql` now, so a line of two statements is no
 longer a false refusal; the corpus is still cut by ScriptDom, and reading it whole with
 `ParseSql` is the next step there.
+
+## The parsers, by family
+
+Asked why `WITH` is a list of clauses when the standard's `<query expression>` has one
+`<with clause>`, the answer was history — the tree grew from what each statement holds — and
+the question behind it was bigger: which specification the tree answers to. ISO/IEC
+9075-2:2023's BNF is published for implementors, and it is now the reference; it sits
+beside the grammar that will be written from it.
+
+That grammar will not be the base T-SQL rebinds. Two mechanisms of inheritance at once —
+a dialect of the standard, and a version of its own previous level — make every T-SQL rule
+answerable to two authorities, and the dialect differs from the standard in ways rebinding
+can only express as subtraction. So each SQL grammar stands alone, cites its own
+specification, and meets the others in the tree, where a statement both read must come out
+the same; versions stay the one axis inside a grammar. T-SQL is finished first.
+`docs/design/sql-parsers.md` holds the decision and the work it leaves, a BNF-to-`.gram`
+converter among it.
+
+To make room for more databases, `DotGram.Parsers` is a directory per family now —
+`Expressions/`, `Uri/`, `Sql/` with `Standard/` and `TransactSql/` under it — and each
+namespace follows its directory.

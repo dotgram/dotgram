@@ -3,7 +3,7 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Diagnosers;
 
-using DotGram.Parsers;
+using DotGram.Parsers.Sql;
 
 namespace DotGram.Benchmarks;
 

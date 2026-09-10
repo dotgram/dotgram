@@ -4,12 +4,12 @@ using System.Linq;
 
 using BenchmarkDotNet.Attributes;
 
-using DotGram.Parsers;
+using DotGram.Parsers.Sql;
 
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// <c>src/DotGram.Parsers/SqlStandard92.cs</c>: the only parser here that reads token
+/// <c>src/DotGram.Parsers/Sql/Standard/SqlStandard92.cs</c>: the only parser here that reads token
 /// kinds rather than characters.
 /// </summary>
 /// <remarks>

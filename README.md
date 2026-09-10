@@ -363,8 +363,8 @@ own are different rules and cannot collide by accident.
 The include crosses a project reference, which is what makes a grammar a library. What
 travels is the grammar rather than a parser: the including assembly generates its own from
 it, under its own substitutions.
-[`TransactSql`](src/DotGram.Parsers/TransactSql.gram) is built that way on
-[`SqlStandard92`](src/DotGram.Parsers/SqlStandard92.gram) — a dialect the size of its
+[`TransactSql`](src/DotGram.Parsers/Sql/TransactSql/TransactSql.gram) is built that way on
+[`SqlStandard92`](src/DotGram.Parsers/Sql/Standard/SqlStandard92.gram) — a dialect the size of its
 difference, with the standard underneath written once.
 
 ## DotGram.Parsers
@@ -402,10 +402,10 @@ query.From[0];  // TableReference.Named { Table = "Users" }
 
 | Parser | What it reads |
 | --- | --- |
-| [`Rfc3986`](src/DotGram.Parsers/Rfc3986.cs) | URIs and relative references after RFC 3986 — authority, IPv4, IPv6, `IPvFuture`, paths, queries, fragments, percent encoding |
-| [`ExpressionLanguage`](src/DotGram.Parsers/ExpressionLanguage.cs) | a C#-style expression language that builds `System.Linq.Expressions` trees directly, with parameters, locals, blocks and `return` |
-| [`SqlStandard92`](src/DotGram.Parsers/SqlStandard92.gram) | SQL-92, read through a lexical split |
-| [`TransactSql`](src/DotGram.Parsers/TransactSql.gram) | T-SQL, written as a dialect over SQL-92 rather than as a copy of it |
+| [`Rfc3986`](src/DotGram.Parsers/Uri/Rfc3986.cs) | URIs and relative references after RFC 3986 — authority, IPv4, IPv6, `IPvFuture`, paths, queries, fragments, percent encoding |
+| [`ExpressionLanguage`](src/DotGram.Parsers/Expressions/ExpressionLanguage.cs) | a C#-style expression language that builds `System.Linq.Expressions` trees directly, with parameters, locals, blocks and `return` |
+| [`SqlStandard92`](src/DotGram.Parsers/Sql/Standard/SqlStandard92.gram) | SQL-92, read through a lexical split |
+| [`TransactSql`](src/DotGram.Parsers/Sql/TransactSql/TransactSql.gram) | T-SQL, written as a dialect over SQL-92 rather than as a copy of it |
 
 [`src/DotGram.Parsers/README.md`](src/DotGram.Parsers/README.md) has what each one parses
 and what it hands back.

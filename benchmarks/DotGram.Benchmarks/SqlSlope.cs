@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Linq;
 
-using DotGram.Parsers;
+using DotGram.Parsers.Sql;
 
 namespace DotGram.Benchmarks;
 

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-using DotGram.Parsers;
 using DotGram.Parsers.Sql;
 
 using Microsoft.SqlServer.TransactSql.ScriptDom;

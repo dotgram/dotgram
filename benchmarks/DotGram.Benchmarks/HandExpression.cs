@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq.Expressions;
 
-using DotGram.Parsers;
+using DotGram.Parsers.Expressions;
 
 namespace DotGram.Benchmarks;
 

@@ -41,7 +41,7 @@ public sealed class ReaderCoverageTests
 	{
 		var root  = Root(AppContext.BaseDirectory);
 		var files = Directory.GetFiles(Path.Combine(root, "examples"), "*.cs", SearchOption.AllDirectories)
-			.Concat(Directory.GetFiles(Path.Combine(root, "src", "DotGram.Parsers"), "*.cs"))
+			.Concat(Directory.GetFiles(Path.Combine(root, "src", "DotGram.Parsers"), "*.cs", SearchOption.AllDirectories))
 			.Where(one => !one.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar))
 
 			// A host built on another carries half a grammar: what it reads comes from the

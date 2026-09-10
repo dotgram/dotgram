@@ -176,8 +176,8 @@ public sealed class GeneratorCostTests(Xunit.ITestOutputHelper output)
 	/// </remarks>
 	static (string Name, string Text)[] Grammars() =>
 	[
-		("SqlStandard92.gram", File.ReadAllText(Path.Combine(Parsers, "SqlStandard92.gram"))),
-		("SqlStandard92.gram, whole", File.ReadAllText(Path.Combine(Parsers, "SqlStandard92.gram"))),
+		("SqlStandard92.gram", File.ReadAllText(Path.Combine(Parsers, "Sql", "Standard", "SqlStandard92.gram"))),
+		("SqlStandard92.gram, whole", File.ReadAllText(Path.Combine(Parsers, "Sql", "Standard", "SqlStandard92.gram"))),
 		.. Directory
 			.GetFiles(Snapshots, "*.gram")
 			.Select(path => (Path.GetFileName(path), File.ReadAllText(path))),

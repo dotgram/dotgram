@@ -147,7 +147,7 @@ public sealed class ShapesTests
 	{
 		var root  = ReaderCoverageTests.Root(AppContext.BaseDirectory);
 		var files = Directory.GetFiles(Path.Combine(root, "examples"), "*.cs", SearchOption.AllDirectories)
-			.Concat(Directory.GetFiles(Path.Combine(root, "src", "DotGram.Parsers"), "*.cs"))
+			.Concat(Directory.GetFiles(Path.Combine(root, "src", "DotGram.Parsers"), "*.cs", SearchOption.AllDirectories))
 			.Concat(Directory.GetFiles(Path.Combine(root, "tests", "Snapshots"), "*.gram"))
 			.Where(one => !one.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar))
 			.OrderBy(one => one, StringComparer.Ordinal)

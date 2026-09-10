@@ -4,7 +4,7 @@ using System.Data;
 using System.IO;
 using System.Linq;
 
-using DotGram.Parsers;
+using DotGram.Parsers.Sql;
 
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlServer.TransactSql.ScriptDom;

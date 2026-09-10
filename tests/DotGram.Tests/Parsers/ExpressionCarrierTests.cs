@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq.Expressions;
 
-using DotGram.Parsers;
+using DotGram.Parsers.Expressions;
 
 using Xunit;
 

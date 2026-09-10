@@ -9,12 +9,12 @@ it.
 
 ## RFC 3986 URI parser
 
-[`Rfc3986`](Rfc3986.cs) follows RFC 3986 closely, including absolute URIs, relative
+[`Rfc3986`](Uri/Rfc3986.cs) follows RFC 3986 closely, including absolute URIs, relative
 references, IPv4, IPv6, `IPvFuture`, authority, paths, queries, fragments, and percent
 encoding.
 
 ```csharp
-using DotGram.Parsers;
+using DotGram.Parsers.Uri;
 
 var uri = Rfc3986.ParseUri("https://user@example.com:8080/a/b?q=1#top");
 
@@ -48,11 +48,11 @@ it into a path separator it is not.
 
 ## Expression language
 
-[`ExpressionLanguage`](ExpressionLanguage.cs) is a C#-style expression language that
+[`ExpressionLanguage`](Expressions/ExpressionLanguage.cs) is a C#-style expression language that
 produces `System.Linq.Expressions` trees.
 
 ```csharp
-using DotGram.Parsers;
+using DotGram.Parsers.Expressions;
 
 var square = ExpressionLanguage.Compile<Func<int, int>>("(int x) => x * x - 1");
 
@@ -92,8 +92,8 @@ line of the grammar that asked for it rather than an exception at run time.
 Two grammars, and the second is written as a dialect of the first rather than as a copy
 of it.
 
-[`SqlStandard92.gram`](SqlStandard92.gram) is SQL-92 as the standard writes it.
-[`TransactSql.gram`](TransactSql.gram) names it — `[GramInclude(typeof(SqlStandard92), As
+[`SqlStandard92.gram`](Sql/Standard/SqlStandard92.gram) is SQL-92 as the standard writes it.
+[`TransactSql.gram`](Sql/TransactSql/TransactSql.gram) names it — `[GramInclude(typeof(SqlStandard92), As
 = "Sql92")]` — and rebinds the rules where T-SQL differs, so what the two languages share
 is written once and the dialect is the size of the difference.
 
@@ -102,7 +102,6 @@ syntactic half above it decides each choice by the token in front of it, which i
 parser written by hand does.
 
 ```csharp
-using DotGram.Parsers;
 using DotGram.Parsers.Sql;
 
 var match = TransactSql.TryParseSelect("select name from Users where id > @id");

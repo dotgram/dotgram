@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 
-using DotGram.Parsers;
 using DotGram.Parsers.Sql;
 
 using Xunit;

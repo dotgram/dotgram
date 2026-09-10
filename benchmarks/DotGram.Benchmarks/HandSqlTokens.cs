@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 
-using DotGram.Parsers;
 using DotGram.Parsers.Sql;
 
 namespace DotGram.Benchmarks;

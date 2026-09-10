@@ -5,7 +5,7 @@ using System.Linq;
 
 using BenchmarkDotNet.Attributes;
 
-using DotGram.Parsers;
+using DotGram.Parsers.Sql;
 
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 

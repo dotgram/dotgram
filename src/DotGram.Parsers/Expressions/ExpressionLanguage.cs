@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace DotGram.Parsers;
+namespace DotGram.Parsers.Expressions;
 
 // A small language that compiles to a .NET expression tree — parameters, a block with
 // local variables, and `return`:

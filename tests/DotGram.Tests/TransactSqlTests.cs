@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-using DotGram.Parsers;
 using DotGram.Parsers.Sql;
 
 using Xunit;
@@ -1739,7 +1738,7 @@ public sealed class TransactSqlTests
 		// line and the file's own are CRLF.
 		var text = File
 			.ReadAllText(
-				Path.Combine(Root(AppContext.BaseDirectory), "src", "DotGram.Parsers", "TransactSql.gram"))
+				Path.Combine(Root(AppContext.BaseDirectory), "src", "DotGram.Parsers", "Sql", "TransactSql", "TransactSql.gram"))
 			.Replace("\r\n", "\n", StringComparison.Ordinal);
 
 		var body  = text[text.IndexOf("DropKind\n", StringComparison.Ordinal)..];
