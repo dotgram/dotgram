@@ -43,6 +43,12 @@ full-text `CONTAINS` are each a language with a grammar of its own, and each wil
 of its own when it is kept rather than read and dropped. Adding one breaks nothing, which is
 the other half of having no universal base.
 
+**And one record above them that is no node: `Batch`.** A script is a client's idea — the
+lines that say `GO` are where a client cuts a file, and the server never sees them — so
+`ParseScript` hands back a `Batch[]`, each holding the statements of one batch and the `GO`
+line that ended it as it was written. It is not in the tables below because nothing in the
+language produces it; `ParseSql` and `ParseStatement` never build one.
+
 **Relations by aggregation, never by inheritance.** A subquery is not a kind of query; it is
 an expression that holds one. A statement that returns rows is not a kind of query; it is a
 statement that holds one. Nothing derives from anything but its own root, and no root

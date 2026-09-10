@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 using DotGram.Parsers.Sql;
 
@@ -24,10 +23,9 @@ namespace DotGram.Benchmarks;
 /// are compared.
 /// </para>
 /// <para>
-/// `GO` is not T-SQL: it is the line a client cuts a script into batches at, and neither the
-/// server nor `ParseSql` ever sees it. So the file is cut the way a client cuts it — at a
-/// line that is `GO`, with a count or a comment after it — and each batch is read on its
-/// own, its offsets moved back to the file's.
+/// `GO` is not T-SQL: it is the line a client cuts a script into batches at, and the server
+/// never sees it. So a file is read as a script, by `ParseScript`, which cuts it at those
+/// lines where ScriptDom does, and the statements of all its batches are compared.
 /// </para>
 /// </remarks>
 static class Split
@@ -132,41 +130,14 @@ static class Split
 		}
 	}
 
-	/// <summary>Where each statement begins, batch by batch — or, where the text is not read, where it stopped.</summary>
+	/// <summary>Where each statement begins — or, where the text is not read, where it stopped.</summary>
 	static (int[]? Starts, int At) Read(string text)
 	{
-		var starts = new List<int>();
+		var match = TransactSql.Located.TryParseScript(text);
 
-		foreach (var (at, batch) in Batches(text))
-		{
-			var match = TransactSql.Located.TryParseSql(batch);
-
-			if (!match.IsSuccess)
-				return (null, at + (int)match.Position);
-
-			starts.AddRange(match.Value.Select(statement => at + statement.Span.At));
-		}
-
-		return ([.. starts], 0);
-	}
-
-	/// <summary>A line a client cuts a script at: `GO`, and a count or a comment after it.</summary>
-	static readonly Regex Go = new(
-		@"^[ \t]*GO(?:[ \t]+\d+)?[ \t]*(?:--[^\r\n]*)?\r?$", RegexOptions.IgnoreCase | RegexOptions.Multiline);
-
-	/// <summary>The batches a client would send, each with where it begins in the file.</summary>
-	static IEnumerable<(int At, string Text)> Batches(string text)
-	{
-		var at = 0;
-
-		foreach (Match go in Go.Matches(text))
-		{
-			yield return (at, text[at..go.Index]);
-
-			at = go.Index + go.Length;
-		}
-
-		yield return (at, text[at..]);
+		return match.IsSuccess
+			? ([.. match.Value.SelectMany(static batch => batch.Statements).Select(static statement => statement.Span.At)], 0)
+			: (null, (int)match.Position);
 	}
 
 	/// <summary>The first statement the two lists begin at different places, from both sides.</summary>

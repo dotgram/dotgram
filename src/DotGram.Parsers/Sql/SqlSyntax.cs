@@ -1236,6 +1236,18 @@ public abstract record Statement : ISqlSpan
 }
 
 /// <summary>
+/// What a client sends the server in one call: the statements of one batch of a script, and
+/// the <c>GO</c> line that ended it as it was written — <c>GO</c>, or <c>GO 5</c> for a batch
+/// sent five times — or null where nothing did, which is the last batch of a file.
+/// </summary>
+/// <remarks>
+/// Not a statement and not a node of the other four kinds: a script is a client's idea, and
+/// the server never sees the line a batch ends at. So it is a record of its own, holding the
+/// statements, and it is what <c>ParseScript</c> hands back a list of.
+/// </remarks>
+public sealed record Batch(Statement[] Statements, string? Go = null);
+
+/// <summary>
 /// §7 the table level: what produces rows. A statement holds one, an expression holds one,
 /// and a <c>FROM</c> clause holds the <see cref="TableReference"/>s it is read over.
 /// </summary>
@@ -2275,9 +2287,8 @@ public static class Syntax
 	/// The named queries written in front of a statement, put where they belong.
 	/// </summary>
 	/// <remarks>
-	/// A <c>WITH</c> may precede five statements and only one of them has somewhere to keep
-	/// it yet; the other four read it and drop it, which <c>--roundtrip</c> counts and this
-	/// comment does not hide.
+	/// A <c>WITH</c> may precede five statements, and each of the five keeps it; any other
+	/// statement has no <c>WITH</c> to be given, and the grammar does not offer it one.
 	/// </remarks>
 	public static Statement Preceded(Clause[]? with, Statement statement) =>
 		with is null || with.Length == 0 ? statement : statement switch
@@ -2289,6 +2300,52 @@ public static class Syntax
 			Statement.Merge  merge  => merge  with { With = with },
 			_                       => statement,
 		};
+
+	/// <summary>
+	/// The batches of a script from what its grammar reads: the text before the first
+	/// <c>GO</c>, and each later text with the <c>GO</c> in front of it — which is moved onto
+	/// the batch before, since a <c>GO</c> ends a batch rather than beginning one.
+	/// </summary>
+	/// <remarks>
+	/// A <c>GO</c> with nothing before it ends a batch with nothing in it, and is kept as one
+	/// so that the line is not lost. The last batch, which nothing ended, is left out when it
+	/// is empty: a file that ends with <c>GO</c> has no batch after it.
+	/// </remarks>
+	public static Batch[] Scripted(Statement[] first, Batch[]? rest, string? last = null)
+	{
+		var batches    = new List<Batch>();
+		var statements = first;
+
+		foreach (var next in rest ?? System.Array.Empty<Batch>())
+		{
+			batches.Add(new Batch(statements, next.Go));
+			statements = next.Statements;
+		}
+
+		if (statements.Length > 0 || last is not null)
+			batches.Add(new Batch(statements, last));
+
+		return [.. batches];
+	}
+
+	/// <summary>
+	/// A <c>GO</c> line as what it says: <c>GO</c>, and the count where one is written. What
+	/// else closed the line — a <c>;</c>, a comment — is trivia, which the tree keeps nowhere.
+	/// </summary>
+	public static string GoLine(string line)
+	{
+		var at = 2;
+
+		while (at < line.Length && (line[at] == ' ' || line[at] == '\t'))
+			at++;
+
+		var digits = at;
+
+		while (digits < line.Length && char.IsDigit(line[digits]))
+			digits++;
+
+		return digits > at ? "GO " + line[at..digits] : "GO";
+	}
 
 	/// <summary>
 	/// A table primary and everything written around it, as the one node it is.

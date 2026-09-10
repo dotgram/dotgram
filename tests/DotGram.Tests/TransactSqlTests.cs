@@ -704,6 +704,54 @@ public sealed class TransactSqlTests
 			"CREATE DATABASE d ON (NAME = f, FILENAME = 'f.mdf') FOR ATTACH WITH RESTRICTED_USER\n" +
 			"ALTER DATABASE d SET HADR SUSPEND").Length);
 
+	/// <summary>
+	/// A script, cut at its <c>GO</c> lines the way ScriptDom cuts it: the number of batches
+	/// and of statements in them, and the line that ended the first.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT 1\nGO\nSELECT 2", 2, 2, "GO")]
+	[InlineData("SELECT 1\r\nGO\r\nSELECT 2", 2, 2, "GO")]
+	[InlineData("SELECT 1 GO SELECT 2", 1, 2, null)]
+	[InlineData("SELECT 1\n  go  -- c\nSELECT 2", 2, 2, "GO")]
+	[InlineData("SELECT 1\nGO;\nSELECT 2", 2, 2, "GO")]
+	[InlineData("SELECT 1\nGO /* c */\nSELECT 2", 2, 2, "GO")]
+	[InlineData("SELECT 1 -- x\nGO\nSELECT 2", 2, 2, "GO")]
+	[InlineData("SELECT 1\n/*\nGO\n*/\nSELECT 2", 1, 2, null)]
+	[InlineData("SELECT 'a\nGO\nb'", 1, 1, null)]
+	[InlineData("SELECT go FROM t", 1, 1, null)]
+	[InlineData("SELECT 1\nGOTO x", 1, 2, null)]
+	[InlineData("SELECT 1\nGO\n", 1, 1, "GO")]
+	[InlineData("CREATE TABLE t (a INT)\nGO", 1, 1, "GO")]
+	[InlineData("SELECT 1;\ngo 2", 1, 1, "GO 2")]
+	[InlineData("SELECT 1\nGO\nGO\nSELECT 2", 3, 2, "GO")]
+	[InlineData("CREATE PROCEDURE p AS SELECT 1\nGO\nEXEC p", 2, 2, "GO")]
+	[InlineData("SELECT 1\nGO 5\nSELECT 2", 2, 2, "GO 5")]
+	[InlineData("GO\nSELECT 1", 2, 1, "GO")]
+	public void A_script_is_cut_where_ScriptDom_cuts_it(string input, int batches, int statements, string? first)
+	{
+		var match = TransactSql.TryParseScript(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+		Assert.Equal(batches, match.Value.Length);
+		Assert.Equal(statements, match.Value.Sum(static batch => batch.Statements.Length));
+		Assert.Equal(first, match.Value[0].Go);
+	}
+
+	/// <summary>
+	/// A <c>GO</c> first on a line ends a batch wherever it stands, as ScriptDom has it, so a
+	/// statement it falls in the middle of is cut; and a text of statements is one batch,
+	/// with no <c>GO</c> in it.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT a,\ngo\nFROM t")]
+	[InlineData("SELECT 1\nGO\nFROM T")]
+	public void A_GO_line_ends_a_batch_wherever_it_stands(string input) =>
+		Assert.False(TransactSql.TryParseScript(input).IsSuccess, input);
+
+	[Fact]
+	public void A_text_of_statements_has_no_GO_in_it() =>
+		Assert.False(TransactSql.TryParseSql("SELECT 1\nGO\nSELECT 2").IsSuccess);
+
 	/// <summary>A text of several statements, as one call to the server carries them.</summary>
 	[Theory]
 	[InlineData("SELECT 1 SELECT 2", 2)]

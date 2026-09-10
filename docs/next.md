@@ -17835,3 +17835,31 @@ them as well, which no block says; and a log with no data file is read and objec
 (188). A file is a catalogue of its own — a name or a string for its names, whole numbers of
 `KB` to `TB` for its sizes, a percentage for its growth only, `UNLIMITED` for its maximum
 only — shared by `CREATE DATABASE` and `ALTER DATABASE`'s `ADD FILE` and `MODIFY FILE`.
+
+**A script.** `--split` first cut a file at its `GO` lines with a regular expression of its
+own, which was the wrong place for the rule: a file should be read the way ScriptDom reads
+it, and `GO` belongs in the grammar as a script's separator. So `ParseScript` reads a file
+of batches and `ParseSql` stays one batch. ScriptDom was asked first where a `GO` ends one:
+first on its line, with spacing, a comment or a `;` after it — or even the next statement —
+and never in the middle of a line, in a comment or in a string; a `GO` line in the middle of
+a statement cuts the statement. `GO 5` it refuses, and sqlcmd reads as five sends of the
+batch; that one is read here, since the separator is the client's and not ScriptDom's.
+
+The line is a lexeme, `TSql.GoLine`, and getting it there took three tries. Owning the line
+breaks before it, with the trivia told to stop short of them, needed a lookahead in both —
+and a lexeme is a pattern, so the lexical split was refused (GRAM5004) and the whole grammar
+fell back to characters, where `NVARCHAR(MAX)` stopped reading: thirty tests, and the work
+list at 150 doubled. Closing the line at `eof` was refused the same way. What works is a
+lexeme that begins at `GO` and ends with the line break after it: longer than the word, so
+the longest match takes it, and `GOTO` or `GO_x` never reach a line break. It asks that a `GO`
+end its line where ScriptDom asks that it begin one; they differ on a line with something
+before the `GO` and on one with a statement after it, neither in the corpus. A `GO` that is
+the last line of a file, with no line break after it, the lexeme cannot take at all — and
+forty-three files of the corpus end that way, which `--split` found as twenty-two files
+refused at their last word. The script takes that one as the word itself, where the last
+batch ends. A `Batch` is a record of its own, beside the five kinds of node, holding its
+statements and the `GO` that ended it.
+
+`--split` reads each file with `ParseScript` now: 553 files cut where ScriptDom cuts them,
+none cut differently, 412 not read whole — one more read than with the regular expression,
+and no file stopped at a `GO`. Round trip 100% of 6,668; at 150 nothing moved.

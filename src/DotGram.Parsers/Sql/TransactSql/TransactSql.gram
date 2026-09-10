@@ -24,6 +24,8 @@ using Sql92;
 // read their keywords as punctuation, and a grammar that reads `USERS` as `USER`
 // followed by `S` is wrong in a way nothing in it looks wrong.
 wordboundary = Sql92.Lexical.IdentifierPart
+
+// Spacing stops short of a line that says `GO`, which is a lexeme of its own (`TSql.GoLine`).
 trivia       = { (Std.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "*/"))* }
 
 // ── The lexemes T-SQL has and the standard does not ─────────────────────────
@@ -49,6 +51,28 @@ namespace TSql
 
 	// A temporary table, local or global. The name is otherwise ordinary.
 	TemporaryName = '#' & '#'? & Sql92.Lexical.IdentifierStart & Sql92.Lexical.IdentifierPart*
+
+	// The line a client cuts a script at: `GO`, a count where one is written — `GO 5` sends
+	// the batch five times — and whatever may close the line, up to and including its line
+	// break. The line break is what makes it a separator: the lexeme is longer than the word
+	// `GO`, so the longest match takes it, and `SELECT 1` and then `GO` on the next line is a
+	// batch and its end, not a column called `GO`; `GOTO` and `GO_x` have no line break after
+	// the `GO` and stay words, and so does a `GO` in a comment or a string.
+	//
+	// A lexer skips trivia before it reads a lexeme, so the line break before the `GO` cannot
+	// be the lexeme's, and what is asked is that `GO` end a line rather than begin one. The
+	// two differ only on a line that has both something before the `GO` and nothing after
+	// it, or a `GO` with a statement after it on the same line — neither in the corpus. And
+	// the end of the input cannot close the line, since a lexeme is a pattern and `eof` is
+	// not one (GRAM5004): a `GO` on the last line of a file with no line break after it —
+	// forty-three files of the corpus end so — is the word, and the script takes it there
+	// (`FinalGo`).
+	GoLine = 'G'i & 'O'i
+		   & ([' ' | '\t']+ & Sql92.Lexical.Digits)? & [' ' | '\t']*
+		   & (';' & [' ' | '\t']*)?
+		   & (Std.BlockComment("/*", "*/") & [' ' | '\t']*)?
+		   & Std.LineComment("--")?
+		   & ('\r' & '\n'? | '\n')
 }
 
 // ── What T-SQL reserves ─────────────────────────────────────────────────────
@@ -914,6 +938,7 @@ namespace Dialect with (
 	Value     : @Expression = v: Sql92.ValueExpression => @(v)
 	Statement : @Statement = s: TSqlStatement         => @(s)
 	Sql       : @Statement[] = s: SqlText             => @(s)
+	Script    : @Batch[]     = s: ScriptText          => @(s)
 }
 
 parse Dialect.Select    as ParseSelect
@@ -922,6 +947,7 @@ parse Dialect.Condition as ParseSearchCondition
 parse Dialect.Value     as ParseValueExpression
 parse Dialect.Statement as ParseStatement
 parse Dialect.Sql       as ParseSql
+parse Dialect.Script    as ParseScript
 
 // ── Which level of the language ─────────────────────────────────────────────
 //
@@ -959,6 +985,15 @@ parse Dialect.Sql with (Version = "140") as ParseSql140
 parse Dialect.Sql with (Version = "150") as ParseSql150
 parse Dialect.Sql with (Version = "160") as ParseSql160
 parse Dialect.Sql with (Version = "170") as ParseSql170
+
+parse Dialect.Script with (Version = "100") as ParseScript100
+parse Dialect.Script with (Version = "110") as ParseScript110
+parse Dialect.Script with (Version = "120") as ParseScript120
+parse Dialect.Script with (Version = "130") as ParseScript130
+parse Dialect.Script with (Version = "140") as ParseScript140
+parse Dialect.Script with (Version = "150") as ParseScript150
+parse Dialect.Script with (Version = "160") as ParseScript160
+parse Dialect.Script with (Version = "170") as ParseScript170
 
 // ── The graph pattern, which is a language of its own ───────────────────────
 //
@@ -1337,6 +1372,28 @@ SqlPiece : @Statement
 		=> @(Syntax.Preceded(with, s))
 
 StatementList : @Statement[] = ';'* & s: SqlPiece+ => @(s)
+
+// ── A script ────────────────────────────────────────────────────────────────
+//
+// What a file of T-SQL is: batches, each a text of statements, cut apart by the lines that
+// say `GO`. The server never sees those lines — a client cuts the file at them and sends
+// each batch in its own call — so a script is not one text of statements but several, and a
+// `GO` that stands first in the file ends a batch with nothing in it. What ScriptDom reads
+// as a script this reads the same way, with one difference: `GO 5`, which sqlcmd and the
+// management tools read as five sends of the batch, ScriptDom refuses.
+ScriptText : @Batch[]
+	= first: SqlText & rest: ScriptBatch* & last: FinalGo? => @(Syntax.Scripted(first, rest, last))
+
+// A `GO` on the last line of a file, with no line break after it, which the lexeme cannot
+// take (the end of the input is not a pattern). Nothing can follow it, so it is the word
+// itself, read where the last batch ended — unless that batch's last statement read it
+// first, as the name a `SELECT`'s last column is called.
+FinalGo : @string = t: ("GO"i & Sql92.Lexical.Digits?) => @(Syntax.GoLine(t))
+
+// A batch with the `GO` in front of it; the script moves each `GO` onto the batch it ends.
+ScriptBatch : @Batch = go: GoText & s: SqlText => @(new Batch(s, go))
+
+GoText : @string = t: TSql.GoLine => @(Syntax.GoLine(t))
 
 // `BEGIN TRY` and `BEGIN TRANSACTION` open with the same word as a block, so both stand
 // in front of it.

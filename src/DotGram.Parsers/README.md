@@ -121,8 +121,13 @@ by a number, and what each gates was measured against SQL Server rather than rem
 `TransactSql.ParseStatement` reads one statement. `TransactSql.ParseSql` reads a text of
 them — what a client sends the server in one call — and gives back a `Statement[]`: each
 ended by a `;` or by nothing, except before a `WITH`, which needs the statement before it
-ended, as the server does. `ParseSql100` to `ParseSql170` are its levels. `GO` is not
-T-SQL but a client's batch separator, and is not read.
+ended, as the server does. `ParseSql100` to `ParseSql170` are its levels.
+
+`GO` is not T-SQL: it is the line a client cuts a script at, and the server never sees it.
+`TransactSql.ParseScript` reads a script — batches cut apart at the lines that say `GO`,
+the way ScriptDom and the management tools cut them — and gives back a `Batch[]`, each with
+its statements and the `GO` line that ended it. `GO 5`, a batch sent five times, is read
+too. `ParseSql` is one batch, and a `GO` in it is refused.
 
 The tree they build is described in [`docs/ast.md`](https://github.com/dotgram/dotgram/blob/main/docs/ast.md). Both are still
 growing: what they read is held against a corpus of somebody else's SQL and against a
