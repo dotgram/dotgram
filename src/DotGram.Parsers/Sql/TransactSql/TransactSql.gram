@@ -3249,13 +3249,15 @@ DropKind
 // table's are, so the option list already written reads them; a file specification is that
 // same list in brackets. What is new is the header and about thirty lines.
 //
-// A `CREATE DATABASE`'s settings are still read as a run of words and then, sometimes, what
-// it is set to. What `ALTER DATABASE … SET` may set is a catalogue, written out below with
-// the engine's answers.
+// A `CREATE DATABASE`'s settings are a catalogue, as `ALTER DATABASE … SET`'s are below, and
+// for the reason `--split` found: read as a run of words, `… FOR ATTACH WITH RESTRICTED_USER`
+// with no `;` after it took the `ALTER DATABASE` on the next line for more of its options.
+// Only Azure's bracket of edition options is still an open list; it is Azure's statement,
+// and the engine refuses it.
 CreateDatabaseStatement : @Statement
 	= "CREATE"i & "DATABASE"i & name: Identifier & '(' & options: OptionList & ')'
 		=> @(new Statement.CreateDatabase(name, Clause.None, Tail: "", Options: options))
-	| "CREATE"i & "DATABASE"i & name: Identifier & ("CONTAINMENT"i & '=' & containment: word)?
+	| "CREATE"i & "DATABASE"i & name: Identifier & ("CONTAINMENT"i & '=' & containment: ("NONE"i | "PARTIAL"i))?
 	  & files: DatabaseFiles? & ("COLLATE"i & collation: QualifiedName)? & tail: DatabaseTail?
 		=> @((tail ?? new Statement.CreateDatabase("", Clause.None)) with
 			 {
@@ -3267,14 +3269,22 @@ CreateDatabaseStatement : @Statement
 // one, or files that already exist. Each is the tail's words, and then the bracket and the
 // `WITH` it may carry.
 DatabaseTail : @Statement.CreateDatabase
-	= "WITH"i & with: OptionList
-		=> @(new Statement.CreateDatabase("", Clause.None, With: with))
-	| "FOR"i & "ATTACH"i & ('(' & options: OptionList & ')')? & ("WITH"i & with: OptionList)?
-		=> @(new Statement.CreateDatabase("", Clause.None, Tail: "FOR ATTACH", Options: options, With: with))
+	= "WITH"i & first: CreateDatabaseOption & (',' & rest: CreateDatabaseOption)*
+		=> @(new Statement.CreateDatabase("", Clause.None, With: Syntax.Listed(first, rest)))
+	| "FOR"i & "ATTACH"i & ('(' & options: OptionList & ')')?
+	  & ("WITH"i & first: AttachOption & (',' & rest: AttachOption)*)?
+		=> @(new Statement.CreateDatabase(
+				 "", Clause.None, Tail: "FOR ATTACH", Options: options,
+				 With: first is null ? null : Syntax.Listed(first, rest)))
 	| "FOR"i & "ATTACH_REBUILD_LOG"i
 		=> @(new Statement.CreateDatabase("", Clause.None, Tail: "FOR ATTACH_REBUILD_LOG"))
+
+	// A snapshot takes a database's options too, which the block does not say and the engine
+	// reads.
 	| t: ("AS"i & "SNAPSHOT"i & "OF"i & Identifier)
-		=> @(new Statement.CreateDatabase("", Clause.None, Tail: Syntax.Spaced(t)))
+	  & ("WITH"i & first: CreateDatabaseOption & (',' & rest: CreateDatabaseOption)*)?
+		=> @(new Statement.CreateDatabase(
+				 "", Clause.None, Tail: Syntax.Spaced(t), With: first is null ? null : Syntax.Listed(first, rest)))
 	| t: ("AS"i & "COPY"i & "OF"i & QualifiedName) & ('(' & options: OptionList & ')')?
 		=> @(new Statement.CreateDatabase("", Clause.None, Tail: Syntax.Spaced(t), Options: options))
 
@@ -3283,22 +3293,71 @@ DatabaseTail : @Statement.CreateDatabase
 // A file specification is `( NAME = …, FILENAME = …, SIZE = 100 MB )`, which is an option
 // list with a unit after the number — and that unit is why an option's value ends with a
 // word: `100 MB`, `3 DAYS`, `10 %` are each one value in this language.
+// The data files first and the filegroups after them — `ON FILEGROUP g (…)` is refused — and
+// the log. A log without data files is read and objected to afterwards (188).
 DatabaseFiles : @Statement.CreateDatabase
-	= "ON"i & primary: "PRIMARY"i? & first: FileGroupSpec & (',' & rest: FileGroupSpec)*
+	= "ON"i & primary: "PRIMARY"i? & first: FileSpec & (',' & rest: FileGroupSpec)*
 	  & log: DatabaseLogFiles?
 		=> @(new Statement.CreateDatabase("", Syntax.Listed(first, rest), primary is not null, log))
+	| log: DatabaseLogFiles
+		=> @(new Statement.CreateDatabase("", Clause.None, false, log))
 
 DatabaseLogFiles : @Clause[] = "LOG"i & "ON"i & first: FileSpec & (',' & rest: FileSpec)* => @(Syntax.Listed(first, rest))
 
 FileGroupSpec : @Clause
-	= "FILEGROUP"i & name: Identifier & ("CONTAINS"i & contains: word)? & fallback: "DEFAULT"i?
+	= "FILEGROUP"i & name: Identifier & ("CONTAINS"i & contains: FileGroupHolds)? & fallback: "DEFAULT"i?
 	  & first: FileSpec & (',' & rest: FileSpec)*
 		=> @(new Clause.FileGroup(name, contains, fallback is not null, Syntax.Listed(first, rest)))
 	| f: FileSpec => @(f)
 
-FileSpec : @Clause = '(' & o: OptionList & ')' => @(new Clause.DatabaseFile(o))
+FileGroupHolds = "FILESTREAM"i | "MEMORY_OPTIMIZED_DATA"i
 
-FileGroupContains = "CONTAINS"i & word
+FileSpec : @Clause
+	= '(' & first: FileOption & (',' & rest: FileOption)* & ')' => @(new Clause.DatabaseFile(Syntax.Listed(first, rest)))
+
+// ── What a database is created with ─────────────────────────────────────────
+//
+// The block's options, and the engine's answers about them: `TRUSTWORTHY` and `DB_CHAINING`
+// take no `=` and `NESTED_TRIGGERS`, `TRANSFORM_NOISE_WORDS` and `LEDGER` must have one; a
+// language is a number or a name; `PERSISTENT_LOG_BUFFER = ON` needs its directory. They are
+// spelled as `ALTER DATABASE … SET` spells them, so its lines build them, gated by name;
+// `LEDGER` and `CATALOG_COLLATION` are a creation's only. What `SET` may say and a creation
+// may not — `AUTO_CLOSE`, `READ_ONLY`, `RESTRICTED_USER` — is refused.
+CreateDatabaseOption : @Clause
+	= ?=CreateDatabaseNames & o: DatabaseSetting => @(o)
+	| name: "LEDGER"i & '=' & s: OnOff
+		=> @(new Clause.Option(name, new Expression.ColumnReference(s), Clause.None))
+	| name: "CATALOG_COLLATION"i & '=' & t: Identifier
+		=> @(new Clause.Option(name, new Expression.ColumnReference(t), Clause.None))
+
+CreateDatabaseNames
+	= "TRUSTWORTHY"i | "DB_CHAINING"i | "NESTED_TRIGGERS"i | "TRANSFORM_NOISE_WORDS"i
+	| "DEFAULT_LANGUAGE"i | "DEFAULT_FULLTEXT_LANGUAGE"i | "TWO_DIGIT_YEAR_CUTOFF"i
+	| "FILESTREAM"i | "PERSISTENT_LOG_BUFFER"i
+
+// An attach takes all of those, and the broker's words and `RESTRICTED_USER` besides; its
+// `FILESTREAM` says only where the directory is.
+AttachOption : @Clause
+	= name: ("RESTRICTED_USER"i | "ENABLE_BROKER"i | "NEW_BROKER"i | "ERROR_BROKER_CONVERSATIONS"i)
+		=> @(new Clause.Option(name, null, Clause.None))
+	| name: "FILESTREAM"i & '(' & ?=("DIRECTORY_NAME"i & '=' & (Quoted | "NULL"i) & ')') & o: OptionSetting & ')'
+		=> @(new Clause.Option(name, null, new Clause[] { o }, null, true))
+	| ?!"FILESTREAM"i & o: CreateDatabaseOption => @(o)
+
+// A file: named by a name or a string, sized in whole numbers of the four units, grown by
+// them or by a percentage, the maximum possibly unlimited — and in any order. `SIZE = 10.5
+// MB` and `SIZE = 10 %` are refused, and so are a unit past `TB` and an option the block
+// does not name (153).
+FileOption : @Clause = ?=(FileOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
+FileOptionSyntax
+	= ("NAME"i | "NEWNAME"i | "FILENAME"i) & '=' & (Quoted | Identifier)
+	| "SIZE"i & '=' & Sql92.Lexical.Digits & SizeUnit?
+	| "MAXSIZE"i & '=' & (Sql92.Lexical.Digits & SizeUnit? | "UNLIMITED"i)
+	| "FILEGROWTH"i & '=' & Sql92.Lexical.Digits & (SizeUnit | '%')?
+	| "OFFLINE"i
+SizeUnit = "KB"i | "MB"i | "GB"i | "TB"i
+
+FileGroupContains = "CONTAINS"i & FileGroupHolds
 
 // ── ALTER DATABASE ──────────────────────────────────────────────────────────
 //
@@ -3386,7 +3445,7 @@ DatabaseRemove : @Statement.AlterTable
 	| "FILE"i & tail: Identifier      => @(Statement.Altered("REMOVE FILE", null, null, tail))
 
 // A file specification read for its words rather than for its options.
-FileSpecText = '(' & OptionList & ')'
+FileSpecText = '(' & FileOptionSyntax & (',' & FileOptionSyntax)* & ')'
 
 // `READ_ONLY`, `READWRITE`, `AUTOGROW_ALL_FILES`, `AUTOGROW_SINGLE_FILE` — words, and a
 // catalogue if written out.

@@ -17808,7 +17808,8 @@ its page, its heading, the sentence before it and the product range it is marked
 the commit it was read at. The first harvest took only the `syntaxsql` blocks and found
 1,165; one page in six writes its syntax as a plain or `sql` block under a Syntax heading
 — `GOTO`, the `DBCC` commands, the spatial methods — and the products a sentence names
-are the documentation's includes, which are expanded now.
+are the documentation's includes, which are expanded now. It is what the grammar is written
+from; the engine stays what it is held to.
 
 **Where a statement begins.** The corpus stays cut by ScriptDom: cut by `ParseSql`, a file
 this grammar cannot read whole would drop out of every count with all its statements, and
@@ -17823,5 +17824,14 @@ the work list seen by file), and one is cut differently — and that one is a de
 `CREATE DATABASE d1 … FOR ATTACH WITH restricted_user`, with no `;` after it, took the
 `ALTER DATABASE d1 SET HADR SUSPEND` on the next line as more of its options. A
 `CREATE DATABASE`'s options are still a run of words, which is what the catalogue of `ALTER
-DATABASE … SET` closed for that statement. It is what the grammar is written from; the engine stays what it is
-held to.
+DATABASE … SET` closed for that statement.
+
+**So a creation is a catalogue now**, from its block and some hundred and thirty probes.
+What came out is mostly what `SET` taught — `TRUSTWORTHY ON` and `NESTED_TRIGGERS = ON`,
+never the other way round — and the options are built by `SET`'s own lines, gated by name,
+so a creation and a setting of the same thing make the same node. Three answers were new:
+an attach takes every creation option and not only the block's four; a snapshot takes
+them as well, which no block says; and a log with no data file is read and objected to
+(188). A file is a catalogue of its own — a name or a string for its names, whole numbers of
+`KB` to `TB` for its sizes, a percentage for its growth only, `UNLIMITED` for its maximum
+only — shared by `CREATE DATABASE` and `ALTER DATABASE`'s `ADD FILE` and `MODIFY FILE`.

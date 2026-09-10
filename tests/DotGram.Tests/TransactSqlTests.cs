@@ -648,6 +648,62 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>What a database is created with, and the files it is made of, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("CREATE DATABASE d CONTAINMENT = FOO")]
+	[InlineData("CREATE DATABASE d WITH TRUSTWORTHY = ON")]
+	[InlineData("CREATE DATABASE d WITH NESTED_TRIGGERS ON")]
+	[InlineData("CREATE DATABASE d WITH DEFAULT_LANGUAGE = 'English'")]
+	[InlineData("CREATE DATABASE d WITH TWO_DIGIT_YEAR_CUTOFF = 2000.5")]
+	[InlineData("CREATE DATABASE d WITH FILESTREAM (NON_TRANSACTED_ACCESS = ON)")]
+	[InlineData("CREATE DATABASE d WITH PERSISTENT_LOG_BUFFER = ON")]
+	[InlineData("CREATE DATABASE d WITH LEDGER ON")]
+	[InlineData("CREATE DATABASE d WITH RESTRICTED_USER")]
+	[InlineData("CREATE DATABASE d WITH AUTO_CLOSE ON")]
+	[InlineData("CREATE DATABASE d WITH FOO = 1")]
+	[InlineData("CREATE DATABASE d ON (NAME = f, FILENAME = 'f.mdf') FOR ATTACH WITH FILESTREAM (NON_TRANSACTED_ACCESS = FULL)")]
+	[InlineData("CREATE DATABASE d ON (NAME = f, FILENAME = 'f.mdf', SIZE = 10 PB)")]
+	[InlineData("CREATE DATABASE d ON (NAME = f, FILENAME = 'f.mdf', SIZE = 10.5 MB)")]
+	[InlineData("CREATE DATABASE d ON (NAME = f, FILENAME = 'f.mdf', SIZE = 10 %)")]
+	[InlineData("CREATE DATABASE d ON (NAME = f, FILENAME = 'f.mdf', FOO = 1)")]
+	[InlineData("CREATE DATABASE d ON FILEGROUP g (NAME = g1, FILENAME = 'g1.ndf')")]
+	[InlineData("CREATE DATABASE d ON (NAME = f, FILENAME = 'f.mdf'), FILEGROUP g CONTAINS FOO (NAME = g1, FILENAME = 'g1.ndf')")]
+	[InlineData("ALTER DATABASE d ADD FILE (NAME = f, FILENAME = 'f.ndf', SIZE = 1 MB, FOO = 1)")]
+	public void The_creation_catalogue_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside them.</summary>
+	[Theory]
+	[InlineData("CREATE DATABASE d CONTAINMENT = PARTIAL WITH NESTED_TRIGGERS = ON, TRUSTWORTHY ON, " +
+		"TRANSFORM_NOISE_WORDS=OFF, DEFAULT_LANGUAGE=[french], DEFAULT_FULLTEXT_LANGUAGE=1033, TWO_DIGIT_YEAR_CUTOFF=2000")]
+	[InlineData("CREATE DATABASE d WITH FILESTREAM (DIRECTORY_NAME = NULL, NON_TRANSACTED_ACCESS = OFF), LEDGER = ON")]
+	[InlineData("CREATE DATABASE d WITH PERSISTENT_LOG_BUFFER = ON (DIRECTORY_NAME = 'x'), CATALOG_COLLATION = DATABASE_DEFAULT")]
+	[InlineData("CREATE DATABASE d ON (NAME = f, FILENAME = 'f.mdf') FOR ATTACH WITH ENABLE_BROKER, RESTRICTED_USER, TRUSTWORTHY ON")]
+	[InlineData("CREATE DATABASE d ON (NAME = f, FILENAME = 'f.mdf') FOR ATTACH WITH FILESTREAM (DIRECTORY_NAME = NULL)")]
+	[InlineData("CREATE DATABASE s ON (NAME = f, FILENAME = 'f.ss') AS SNAPSHOT OF d WITH TRUSTWORTHY ON")]
+	[InlineData("CREATE DATABASE d LOG ON (NAME = l, FILENAME = 'l.ldf')")]
+	[InlineData("CREATE DATABASE d ON PRIMARY (NAME = f, FILENAME = 'f.mdf', SIZE = 10 MB, MAXSIZE = UNLIMITED, FILEGROWTH = 10 %), " +
+		"FILEGROUP g CONTAINS FILESTREAM DEFAULT (NAME = fs, FILENAME = 'c:\\fs') LOG ON (NAME = l, FILENAME = 'l.ldf')")]
+	[InlineData("CREATE DATABASE d ON (NAME = [f], FILENAME = N'f.mdf', OFFLINE, NEWNAME = 'g', FILEGROWTH = 10%)")]
+	[InlineData("ALTER DATABASE d MODIFY FILE (NAME = f, SIZE = 10 MB)")]
+	[InlineData("ALTER DATABASE d ADD FILEGROUP g CONTAINS MEMORY_OPTIMIZED_DATA")]
+	public void The_creation_catalogue_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>
+	/// A creation's options end where its list does, so the statement after it is a
+	/// statement: `--split` found this cut wrong in the corpus.
+	/// </summary>
+	[Fact]
+	public void A_creation_does_not_take_the_next_statement_for_an_option() =>
+		Assert.Equal(2, TransactSql.ParseSql(
+			"CREATE DATABASE d ON (NAME = f, FILENAME = 'f.mdf') FOR ATTACH WITH RESTRICTED_USER\n" +
+			"ALTER DATABASE d SET HADR SUSPEND").Length);
+
 	/// <summary>A text of several statements, as one call to the server carries them.</summary>
 	[Theory]
 	[InlineData("SELECT 1 SELECT 2", 2)]

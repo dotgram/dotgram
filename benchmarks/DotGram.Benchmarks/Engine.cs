@@ -481,7 +481,12 @@ static class Engine
 			or 10737 or 10798
 			or 13743 or 13744
 			or 14860 or 14912
-			or 33411;
+			or 33411
+
+			// And a database's creation.
+			//
+			//    188  Cannot specify a log file in a CREATE DATABASE statement without also specifying at least one data file.
+			or 188;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open
