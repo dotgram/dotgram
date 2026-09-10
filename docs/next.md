@@ -15080,11 +15080,11 @@ standard's:
 
 ```dotgram
 namespace Dialect with (
-    Identifier                = TsqlIdentifier,
-    GeneralValueSpecification = TsqlValueSpecification,
-    ValueExpressionPrimary    = TsqlValuePrimary,
-    QuerySpecification        = TsqlQuerySpecification,
-    TablePrimary              = TsqlTablePrimary)
+    Identifier                = TSqlIdentifier,
+    GeneralValueSpecification = TSqlValueSpecification,
+    ValueExpressionPrimary    = TSqlValuePrimary,
+    QuerySpecification        = TSqlQuerySpecification,
+    TablePrimary              = TSqlTablePrimary)
 {
     Select    : @SqlNode = q: Sql92.DirectSelect    => @(q)
     Query     : @SqlNode = q: Sql92.QueryExpression => @(q)
@@ -16250,7 +16250,7 @@ makes the list answerable —
 In 'BackupStatement', 'name: BackupName?' can take `TO`, `FILE`, `FILEGROUP`,
 `READ_WRITE_FILEGROUPS` and more, which is what follows it
 
-In 'TsqlTablePrimary', '("AS"? & alias: CorrelationName & …)?' can take `WITH`
+In 'TSqlTablePrimary', '("AS"? & alias: CorrelationName & …)?' can take `WITH`
 
 In 'TransactionStatement', '("TRANSACTION"|"TRAN"|"WORK")?' can take `TRAN`,
 `TRANSACTION` and `WORK`
@@ -16320,7 +16320,7 @@ exactly that class:
 
 ```text
 In 'OptionWords', 'OptionWord+' can take `MERGE`, `EXEC`, `EXECUTE`, `DELETE` and more
-In 'OutputItem', 'TsqlAsClause?' can take `MERGE`, `WITH`, `EXEC`, `EXECUTE` and more
+In 'OutputItem', 'TSqlAsClause?' can take `MERGE`, `WITH`, `EXEC`, `EXECUTE` and more
 In 'TranMark', 'ValueExpression?' can take `MERGE`, `WITH`, `EXEC` and more
 In 'OptionSetting', 'OptionTail?' can take `ON`
 ```
@@ -17020,7 +17020,7 @@ woven onto each literal go before the seam, which is the whole reason they exist
 already do the job the tail was written for. Over tokens the tail was harmless — after the
 token `INNER` stands the token `FROM`, and `IdentifierPart` is a one-character class no token
 of four characters is — so the token reading was right by accident and the character reading
-was right by the book. The tail is gone from `Reserved` and from `TsqlReserved`; the six
+was right by the book. The tail is gone from `Reserved` and from `TSqlReserved`; the six
 inputs agree; the oracle and the corpus did not move.
 
 **`GRAM5004` is a warning now.** `Lexical = true` asked for and not given is a different

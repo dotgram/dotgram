@@ -31,7 +31,7 @@ trivia       = { (Std.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "
 //
 // A namespace with no trivia, so a token is its characters — the same shape
 // `Sql92.Lexical` has, and a separate one because a grammar declares its own.
-namespace Tsql
+namespace TSql
 {
 	trivia = none
 
@@ -66,7 +66,7 @@ namespace Tsql
 // any real T-SQL, and neither looked wrong. The list is Microsoft's own, taken
 // from the token table its parser generator is fed (`TSqlTokenTypes.g`), where a
 // word being a token at all is exactly what makes it unavailable as a name.
-TsqlReserved = ("ADD"i | "ALL"i | "ALTER"i | "AND"i | "ANY"i | "AS"i | "ASC"i | "AUTHORIZATION"i
+TSqlReserved = ("ADD"i | "ALL"i | "ALTER"i | "AND"i | "ANY"i | "AS"i | "ASC"i | "AUTHORIZATION"i
 	| "BACKUP"i | "BEGIN"i | "BETWEEN"i | "BREAK"i | "BROWSE"i | "BULK"i | "BY"i
 	| "CASCADE"i | "CASE"i | "CHECK"i | "CHECKPOINT"i | "CLOSE"i | "CLUSTERED"i
 	| "COALESCE"i | "COLLATE"i | "COLUMN"i | "COMMIT"i | "COMPUTE"i | "CONSTRAINT"i
@@ -99,7 +99,7 @@ TsqlReserved = ("ADD"i | "ALL"i | "ALTER"i | "AND"i | "ANY"i | "AS"i | "ASC"i | 
 // `CASE x WHEN NULL THEN …` compares against the null nothing equals, which is useless
 // and legal — the standard's `<when operand>` is a value expression and null is not one,
 // and T-SQL admits it where the standard does not.
-TsqlSimpleWhen : @Clause.When
+TSqlSimpleWhen : @Clause.When
 	= "WHEN"i & test: Result & "THEN"i & result: Result => @(new Clause.When(test, result))
 
 // ── §7.10's query expression, narrowed ─────────────────────────────────────
@@ -111,12 +111,12 @@ TsqlSimpleWhen : @Clause.When
 //
 // The strengths are the standard's own — `INTERSECT` tighter than the two beside it, all
 // three to the left (§4.3.1).
-TsqlQueryExpression : @Query
-	= left: TsqlQueryExpression & "UNION"i & all: "ALL"i? & right: TsqlQueryExpression  << 1
+TSqlQueryExpression : @Query
+	= left: TSqlQueryExpression & "UNION"i & all: "ALL"i? & right: TSqlQueryExpression  << 1
 		=> @(Query.Combined("UNION", all, left, right))
-	| left: TsqlQueryExpression & "EXCEPT"i & right: TsqlQueryExpression                << 1
+	| left: TSqlQueryExpression & "EXCEPT"i & right: TSqlQueryExpression                << 1
 		=> @(Query.Combined("EXCEPT", null, left, right))
-	| left: TsqlQueryExpression & "INTERSECT"i & right: TsqlQueryExpression             << 2
+	| left: TSqlQueryExpression & "INTERSECT"i & right: TSqlQueryExpression             << 2
 		=> @(Query.Combined("INTERSECT", null, left, right))
 	| q: QueryPrimary => @(q)
 
@@ -126,7 +126,7 @@ TsqlQueryExpression : @Query
 // them. Written as a dot that stands in front of another dot rather than as an optional
 // name, so that `t.*` still ends where it did — a name that could end with a dot would
 // eat the one the star needs.
-TsqlQualifiedName
+TSqlQualifiedName
 	= Identifier     & NamePart*
 	| PartitionName  & NamePart*
 	| SystemFunction & NamePart*
@@ -149,23 +149,23 @@ SystemFunction = "::" & Identifier
 // The standard's two spellings and the two more T-SQL admits. The lookahead
 // stands in front of the regular one only, exactly as it does in the standard:
 // a bracketed name may be a reserved word, and that is what brackets are for.
-TsqlIdentifier
-	= ?!TsqlReserved & Sql92.Lexical.RegularIdentifier
+TSqlIdentifier
+	= ?!TSqlReserved & Sql92.Lexical.RegularIdentifier
 	| Sql92.Lexical.DelimitedIdentifier
-	| Tsql.BracketedIdentifier
-	| Tsql.TemporaryName
+	| TSql.BracketedIdentifier
+	| TSql.TemporaryName
 
 // ── §6.3's general value specification, widened ─────────────────────────────
 //
 // A variable stands where a parameter does, which is what the standard's rule is
 // for. Its own alternatives are restated rather than called: a replacement that
 // named the rule it replaces would be rewritten into itself.
-TsqlValueSpecification : @Expression
+TSqlValueSpecification : @Expression
 	= t: (':' & Identifier & ("INDICATOR"i? & ':' & Identifier)?)
 		=> @(new Expression.Literal(SqlLiteralKind.Parameter, t))
 	| '?'
 		=> @(new Expression.Literal(SqlLiteralKind.Parameter, "?"))
-	| t: Tsql.Variable
+	| t: TSql.Variable
 		=> @(new Expression.Literal(SqlLiteralKind.Parameter, t))
 	| t: ("USER"i | "CURRENT_USER"i | "SESSION_USER"i | "SYSTEM_USER"i | "VALUE"i)
 		=> @(new Expression.Literal(SqlLiteralKind.Special, t))
@@ -180,26 +180,26 @@ TsqlValueSpecification : @Expression
 // A postfix stands outside the choice rather than on each arm of it: `AT TIME ZONE`
 // applies to whatever was just read, which is one rule around the core and not
 // twelve inside it.
-TsqlValuePrimary : @Expression
-	= p: TsqlPrimaryCore & members: Member* & zone: AtTimeZone?
+TSqlValuePrimary : @Expression
+	= p: TSqlPrimaryCore & members: Member* & zone: AtTimeZone?
 		=> @(Syntax.Reached(p, members, zone))
 
-AtTimeZone : @Expression = "AT"i & "TIME"i & "ZONE"i & v: TsqlPrimaryCore => @(v)
+AtTimeZone : @Expression = "AT"i & "TIME"i & "ZONE"i & v: TSqlPrimaryCore => @(v)
 
-TsqlPrimaryCore : @Expression
+TSqlPrimaryCore : @Expression
 	= '(' & v: ValueExpression & ')' => @(new Expression.Parenthesized(v))
 	| c: CaseExpression                        => @(c)
-	| c: TsqlCast                              => @(c)
+	| c: TSqlCast                              => @(c)
 	| f: ValueFunction                         => @(f)
-	| f: TsqlValueFunction                     => @(f)
+	| f: TSqlValueFunction                     => @(f)
 	| f: CountStar & tail: CallTail?                => @(Syntax.Called(f, tail))
 	| f: SetFunctionSpecification & tail: CallTail? => @(Syntax.Called(f, tail))
 	| q: ScalarSubquery                        => @(q)
 	| n: NextValue                             => @(n)
 	| f: FunctionCall                          => @(f)
 	| e: OdbcEscape                            => @(e)
-	| t: Tsql.MoneyLiteral                     => @(new Expression.Literal(SqlLiteralKind.Number, t))
-	| t: Tsql.BinaryLiteral                    => @(new Expression.Literal(SqlLiteralKind.Hex, t))
+	| t: TSql.MoneyLiteral                     => @(new Expression.Literal(SqlLiteralKind.Number, t))
+	| t: TSql.BinaryLiteral                    => @(new Expression.Literal(SqlLiteralKind.Hex, t))
 	| v: UnsignedValueSpecification            => @(v)
 	| "NULL"i                                  => @(Expression.NullValue)
 	| n: ColumnReference                       => @(n)
@@ -245,7 +245,7 @@ Member : @Expression.Member
 // §6.10's cast, widened, and the T-SQL spellings that are casts under other names.
 // `CONVERT` is a different rule and not a wider one: the standard's takes a value and
 // a character set, T-SQL's takes a type and a value, in that order.
-TsqlCast : @Expression
+TSqlCast : @Expression
 	= name: "CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, type))
 	| name: "TRY_CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, type))
 	| name: ("TRY_CONVERT"i | "CONVERT"i) & '(' & type: DataType & ',' & v: ValueExpression
@@ -266,7 +266,7 @@ TsqlCast : @Expression
 // And the JSON constructors, which have three things an argument list has not: a key
 // written with `:` rather than a comma, a clause saying what a null does, and a type to
 // return. All three are from the published syntax of `JSON_OBJECT`.
-TsqlValueFunction : @Expression
+TSqlValueFunction : @Expression
 	= name: "IIF"i & '(' & c: SearchCondition & ',' & a: ValueExpression & ',' & b: ValueExpression & ')'
 		=> @(new Expression.RoutineInvocation(name, new Expression[] { c, a, b }))
 	| name: "CHOOSE"i & '(' & at: ValueExpression & ',' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
@@ -361,7 +361,7 @@ WithinGroup : @string
 
 // `TRIM(LEADING … FROM …)`: the standard's three words, which T-SQL reads from level 160.
 // `TRIM(x FROM y)` without one reads at every level, and is the standard's own rule still.
-TsqlTrimSpecification = ("LEADING"i | "TRAILING"i | "BOTH"i) & when Version is Since160
+TSqlTrimSpecification = ("LEADING"i | "TRAILING"i | "BOTH"i) & when Version is Since160
 
 // The window a call is computed over. Kept, as `TOP` is: it says which rows the call
 // sees and not what the call is, which was the argument for dropping it until the round
@@ -435,10 +435,10 @@ CountStar : @Expression
 // T-SQL may be one somebody declared, and no parser can tell without the catalogue.
 // What keeps it from swallowing everything is that the only place a type is read is
 // after `AS` inside a cast.
-TsqlDataType
+TSqlDataType
 	= ("CHARACTER"i & "VARYING"i? | "CHAR"i & "VARYING"i? | "VARCHAR"i
 	  | "NATIONAL"i & ("CHARACTER"i | "CHAR"i) & "VARYING"i? | "NCHAR"i & "VARYING"i? | "NVARCHAR"i
-	  | "BINARY"i & "VARYING"i? | "VARBINARY"i | "VECTOR"i) & TsqlLength?
+	  | "BINARY"i & "VARYING"i? | "VARBINARY"i | "VECTOR"i) & TSqlLength?
 	| ("NUMERIC"i | "DECIMAL"i | "DEC"i)
 	  & ('(' & Sql92.Lexical.Digits & (',' & Sql92.Lexical.Digits)? & ')')?
 	| "FLOAT"i & ('(' & Sql92.Lexical.Digits & ')')?
@@ -452,9 +452,9 @@ TsqlDataType
 	| "UNIQUEIDENTIFIER"i | "SQL_VARIANT"i | "ROWVERSION"i | "SYSNAME"i
 	| "GEOGRAPHY"i | "GEOMETRY"i | "HIERARCHYID"i
 	| "INTERVAL"i & IntervalQualifier
-	| QualifiedName & TsqlLength?
+	| QualifiedName & TSqlLength?
 
-TsqlLength = '(' & (Sql92.Lexical.Digits | "MAX"i) & ')'
+TSqlLength = '(' & (Sql92.Lexical.Digits | "MAX"i) & ')'
 
 XmlContent = "CONTENT"i | "DOCUMENT"i
 
@@ -468,7 +468,7 @@ XmlContent = "CONTENT"i | "DOCUMENT"i
 // And a handful of functions that yield a truth rather than a value. A call cannot
 // stand where a condition does in general — `WHERE f(x)` is not T-SQL either — so
 // they are named, exactly as §6.16's functions are named on the value side.
-TsqlPredicate : @Expression
+TSqlPredicate : @Expression
 	= "EXISTS"i & q: TableSubquery => @(new Expression.Exists(q))
 	| "UNIQUE"i & q: TableSubquery => @(new Expression.Unique(q))
 	| name: ("CONTAINS"i | "FREETEXT"i | "TSEQUAL"i | "REGEXP_LIKE"i | "UPDATE"i)
@@ -493,7 +493,7 @@ DistinctTail : @Expression
 // the standard's collate clause is: they say how many rows come back and how a call sees
 // them rather than what the rows are, and a statement printed without them is not the
 // statement that came in.
-TsqlQuerySpecification : @Query
+TSqlQuerySpecification : @Query
 	= "SELECT"i & quantifier: SetQuantifier? & top: Top? & columns: SelectList & into: Into?
 	  & from: FromClause? & where: WhereClause? & group: GroupByClause? & having: HavingClause?
 	  & windows: Window?
@@ -534,17 +534,17 @@ WindowDef : @Clause
 // returning it — `SELECT @a += 1` is an assignment written as a query — and an alias may
 // be written in front with `=` rather than behind with `AS`. And an alias may be a
 // string, which the standard does not allow and every dialect does.
-TsqlSelectSublist : @Clause
+TSqlSelectSublist : @Clause
 	= qualifier: QualifiedName & '.' & '*'        => @(new Clause.QualifiedAsterisk(qualifier))
-	| into: Tsql.Variable & by: AssignOp & v: ValueExpression
+	| into: TSql.Variable & by: AssignOp & v: ValueExpression
 		=> @(new Clause.VariableAssignment(into, by, v))
-	| label: TsqlAlias & '=' & v: ValueExpression  => @(new Clause.DerivedColumn(v, label))
-	| v: ValueExpression & alias: TsqlAsClause?    => @(new Clause.DerivedColumn(v, alias))
+	| label: TSqlAlias & '=' & v: ValueExpression  => @(new Clause.DerivedColumn(v, label))
+	| v: ValueExpression & alias: TSqlAsClause?    => @(new Clause.DerivedColumn(v, alias))
 
 AssignOp : @string = t: ('=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "||=") => @(t)
 
-TsqlAlias    : @string = t: Identifier => @(t) | t: Sql92.Lexical.CharacterStringLiteral => @(t)
-TsqlAsClause : @string = "AS"i & t: TsqlAlias => @(t) | t: TsqlAlias => @(t)
+TSqlAlias    : @string = t: Identifier => @(t) | t: Sql92.Lexical.CharacterStringLiteral => @(t)
+TSqlAsClause : @string = "AS"i & t: TSqlAlias => @(t) | t: TSqlAlias => @(t)
 
 // ── §7.7's group by, widened ────────────────────────────────────────────────
 //
@@ -557,16 +557,16 @@ TsqlAsClause : @string = "AS"i & t: TsqlAlias => @(t) | t: TsqlAlias => @(t)
 //
 // And the older spelling beside the ISO one: `WITH CUBE` and `WITH ROLLUP` say after
 // the list what `CUBE (…)` and `ROLLUP (…)` say in front of it.
-TsqlGroupByClause : @Clause
-	= "GROUP"i & "BY"i & "ALL"i & first: TsqlGrouping & (',' & rest: TsqlGrouping)*
+TSqlGroupByClause : @Clause
+	= "GROUP"i & "BY"i & "ALL"i & first: TSqlGrouping & (',' & rest: TSqlGrouping)*
 		=> @(new Clause.GroupBy(true, Syntax.Listed(first, rest), null))
-	| "GROUP"i & "BY"i & first: TsqlGrouping & (',' & rest: TsqlGrouping)* & with: GroupWith?
+	| "GROUP"i & "BY"i & first: TSqlGrouping & (',' & rest: TSqlGrouping)* & with: GroupWith?
 		=> @(new Clause.GroupBy(false, Syntax.Listed(first, rest), with))
 
 GroupWith : @string = "WITH"i & t: ("CUBE"i | "ROLLUP"i) => @(t)
 					| "WITH"i & '(' & t: Identifier & ')' => @(t)
 
-TsqlGrouping : @Expression
+TSqlGrouping : @Expression
 	= "CUBE"i     & g: GroupList => @(new Expression.RoutineInvocation("CUBE",   g))
 	| "ROLLUP"i   & g: GroupList => @(new Expression.RoutineInvocation("ROLLUP", g))
 	| "GROUPING"i & "SETS"i & '(' & first: GroupingSet & (',' & rest: GroupingSet)* & ')'
@@ -581,11 +581,11 @@ GroupList : @Expression[]
 // total and the one grouping that names nothing.
 GroupByExpression : @Expression
 	= '(' & ')' => @(new Expression.RowValueConstructor(Expression.None))
-	| '(' & first: TsqlGroupingColumn & (',' & rest: TsqlGroupingColumn)* & ')'
+	| '(' & first: TSqlGroupingColumn & (',' & rest: TSqlGroupingColumn)* & ')'
 		=> @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
-	| c: TsqlGroupingColumn => @(c)
+	| c: TSqlGroupingColumn => @(c)
 
-TsqlGroupingColumn : @Expression
+TSqlGroupingColumn : @Expression
 	= c: ValueExpression & collation: Collate? & hint: ("WITH"i & '(' & Identifier & ')')?
 		=> @(Syntax.Grouped(c, collation, hint))
 
@@ -616,19 +616,19 @@ GroupingSetItem : @Expression
 // word is not kept. A join hint says which algorithm to use and is kept for the same
 // reason `OPTION` is; the syntax puts it inside the join type, so a hint without a type
 // is not a join.
-TsqlTableReference : @TableReference
-	= left: TsqlTableReference & "CROSS"i & "JOIN"i & right: TablePrimary
+TSqlTableReference : @TableReference
+	= left: TSqlTableReference & "CROSS"i & "JOIN"i & right: TablePrimary
 		=> @(new TableReference.Joined(SqlJoin.Cross, false, false, left, right))
-	| left: TsqlTableReference & "CROSS"i & "APPLY"i & right: TablePrimary
+	| left: TSqlTableReference & "CROSS"i & "APPLY"i & right: TablePrimary
 		=> @(new TableReference.Joined(SqlJoin.CrossApply, false, false, left, right))
-	| left: TsqlTableReference & "OUTER"i & "APPLY"i & right: TablePrimary
+	| left: TSqlTableReference & "OUTER"i & "APPLY"i & right: TablePrimary
 		=> @(new TableReference.Joined(SqlJoin.OuterApply, false, false, left, right))
-	| left: TsqlTableReference & kind: TsqlJoinType? & hint: JoinHint? & "JOIN"i & right: TablePrimary
+	| left: TSqlTableReference & kind: TSqlJoinType? & hint: JoinHint? & "JOIN"i & right: TablePrimary
 	  & "ON"i & on: SearchCondition
 		=> @(TableReference.Joining(kind, null, left, right, on, null, hint))
 	| t: TablePrimary => @(t)
 
-TsqlJoinType : @string = t: JoinType => @(t)
+TSqlJoinType : @string = t: JoinType => @(t)
 
 JoinHint : @string
 	= t: ("HASH"i | "LOOP"i | "MERGE"i | "REMOTE"i | "REDUCE"i | "REPLICATE"i | "REDISTRIBUTE"i) => @(Syntax.Squared(t))
@@ -639,7 +639,7 @@ JoinHint : @string
 // stands before the correlation name, and a sample before the hints. Writing the hints
 // first was accepted here until the syntax said otherwise, and whether ScriptDom accepts
 // them the other way round is a question worth asking of it rather than of us.
-TsqlTablePrimary : @TableReference
+TSqlTablePrimary : @TableReference
 	= f: JsonFunction & schema: JsonSchema?
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & pivot: PivotSuffix?
@@ -654,7 +654,7 @@ TsqlTablePrimary : @TableReference
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & sample: TableSample? & hints: TableHints? & pivot: PivotSuffix?
 		=> @(Syntax.Sourced(name, version, call, args, alias, columns, sample, hints, pivot))
-	| t: Tsql.Variable & s: VariableSource => @(Syntax.OfVariable(t, s))
+	| t: TSql.Variable & s: VariableSource => @(Syntax.OfVariable(t, s))
 	| derived: TableSubquery & "AS"i? & alias: CorrelationName
 	  & ('(' & columns: ColumnList & ')')? & pivot: PivotSuffix?
 		=> @(Syntax.Pivoted(new TableReference.Derived(derived, alias, columns), pivot))
@@ -802,7 +802,7 @@ OptimizeFor
 
 HintString = Sql92.Lexical.NationalCharacterStringLiteral | Sql92.Lexical.CharacterStringLiteral
 
-VariableValue = Tsql.Variable & VariableValueTail
+VariableValue = TSql.Variable & VariableValueTail
 
 VariableValueTail = '=' & HintValue | "UNKNOWN"i
 
@@ -822,7 +822,7 @@ TableRepeatable : @Expression = "REPEATABLE"i & '(' & v: ValueExpression & ')' =
 //
 // Where the clauses that belong to the statement rather than to the query go: how many
 // rows to skip and take, what shape to return them in, and how to run the whole thing.
-TsqlDirectSelect : @Statement
+TSqlDirectSelect : @Statement
 	= with: WithClause? & q: QueryExpression & by: OrderByClause? & window: OffsetFetch?
 	  & shape: ForClause? & options: QueryHints?
 		=> @(new Statement.Select(
@@ -893,27 +893,27 @@ ForOptionTail = '(' & ValueExpression & ')' | '=' & ValueExpression
 // points are the standard's own, called through the substitution rather than
 // rewritten — which is the whole claim this file makes.
 namespace Dialect with (
-	Identifier                = TsqlIdentifier,
-	GeneralValueSpecification = TsqlValueSpecification,
-	ValueExpressionPrimary    = TsqlValuePrimary,
-	QuerySpecification        = TsqlQuerySpecification,
-	TablePrimary              = TsqlTablePrimary,
-	TableReference            = TsqlTableReference,
-	SelectSublist             = TsqlSelectSublist,
-	GroupByClause             = TsqlGroupByClause,
-	DirectSelect              = TsqlDirectSelect,
-	QualifiedName             = TsqlQualifiedName,
-	QueryExpression           = TsqlQueryExpression,
-	SimpleWhen                = TsqlSimpleWhen,
-	DataType                  = TsqlDataType,
-	Predicate                 = TsqlPredicate,
-	TrimSpecification         = TsqlTrimSpecification)
+	Identifier                = TSqlIdentifier,
+	GeneralValueSpecification = TSqlValueSpecification,
+	ValueExpressionPrimary    = TSqlValuePrimary,
+	QuerySpecification        = TSqlQuerySpecification,
+	TablePrimary              = TSqlTablePrimary,
+	TableReference            = TSqlTableReference,
+	SelectSublist             = TSqlSelectSublist,
+	GroupByClause             = TSqlGroupByClause,
+	DirectSelect              = TSqlDirectSelect,
+	QualifiedName             = TSqlQualifiedName,
+	QueryExpression           = TSqlQueryExpression,
+	SimpleWhen                = TSqlSimpleWhen,
+	DataType                  = TSqlDataType,
+	Predicate                 = TSqlPredicate,
+	TrimSpecification         = TSqlTrimSpecification)
 {
 	Select    : @Statement  = q: Sql92.DirectSelect    => @(q)
 	Query     : @Query      = q: Sql92.QueryExpression => @(q)
 	Condition : @Expression = c: Sql92.SearchCondition => @(c)
 	Value     : @Expression = v: Sql92.ValueExpression => @(v)
-	Statement : @Statement = s: TsqlStatement         => @(s)
+	Statement : @Statement = s: TSqlStatement         => @(s)
 	Sql       : @Statement[] = s: SqlText             => @(s)
 }
 
@@ -1139,14 +1139,14 @@ RowsetName
 // One `WITH` to a statement. A query reads its own as well, so after this one the body may
 // not open with another: `WITH a AS (…) WITH b AS (…) SELECT …` is refused (156), where the
 // two are written as one list, `WITH a AS (…), b AS (…)`.
-TsqlStatement : @Statement
+TSqlStatement : @Statement
 	= (with: WithClause & ?!"WITH"i)? & s: StatementBody & ';'? => @(Syntax.Preceded(with, s))
 
 StatementBody : @Statement
-	= s: TsqlInsert   => @(s)
-	| s: TsqlUpdate   => @(s)
-	| s: TsqlDelete   => @(s)
-	| s: TsqlMerge    => @(s)
+	= s: TSqlInsert   => @(s)
+	| s: TSqlUpdate   => @(s)
+	| s: TSqlDelete   => @(s)
+	| s: TSqlMerge    => @(s)
 	| s: Procedural   => @(s)
 	| s: DirectSelect => @(s)
 
@@ -1154,11 +1154,11 @@ StatementBody : @Statement
 // a target no correlation and no sample, and `UPDATE t AS x SET …` is not T-SQL.
 DmlTarget : @TableReference
 	= f: RowsetFunction                 => @(new TableReference.FunctionCall(f, null, null, Clause.None))
-	| t: Tsql.Variable & hints: TableHints?    => @(new TableReference.Named(t, null, null, null, null, hints ?? Clause.None))
+	| t: TSql.Variable & hints: TableHints?    => @(new TableReference.Named(t, null, null, null, null, hints ?? Clause.None))
 	| name: QualifiedName & hints: TableHints? => @(new TableReference.Named(name, null, null, null, null, hints ?? Clause.None))
 
 // ── §INSERT ─────────────────────────────────────────────────────────────────
-TsqlInsert : @Statement
+TSqlInsert : @Statement
 	= "INSERT"i & top: Top? & into: "INTO"i? & target: DmlTarget
 	  & ('(' & columns: ColumnList & ')')? & output: OutputClause?
 	  & rows: InsertRows
@@ -1171,7 +1171,7 @@ InsertRows : @Query
 	| q: QueryExpression        => @(q)
 
 // ── §UPDATE ─────────────────────────────────────────────────────────────────
-TsqlUpdate : @Statement
+TSqlUpdate : @Statement
 	= "UPDATE"i & top: Top? & target: DmlTarget
 	  & "SET"i & sets: Assignments & output: OutputClause?
 	  & from: FromClause? & where: DmlWhere? & options: QueryHints?
@@ -1185,7 +1185,7 @@ Assignments : @Clause[]
 // method called on one. `.WRITE (…)` needs no rule of its own — a qualified name has
 // already eaten the dot, so what is left is a call.
 Assignment : @Clause
-	= to: Tsql.Variable   & s: AssignTail       => @(s with { Target = to })
+	= to: TSql.Variable   & s: AssignTail       => @(s with { Target = to })
 	| to: QualifiedName   & s: ColumnAssignTail => @(s with { Target = to })
 
 // `DEFAULT` is assigned and not compounded: the engine answers `DEFAULT is not allowed
@@ -1216,7 +1216,7 @@ DmlWhere : @Expression
 	| "WHERE"i & c: SearchCondition => @(c)
 
 // ── §DELETE ─────────────────────────────────────────────────────────────────
-TsqlDelete : @Statement
+TSqlDelete : @Statement
 	= "DELETE"i & top: Top? & "FROM"i? & target: DmlTarget & output: OutputClause?
 	  & from: FromClause? & where: DmlWhere? & options: QueryHints?
 		=> @(new Statement.Delete(target, from ?? TableReference.None, where, null, top, output, options))
@@ -1225,7 +1225,7 @@ TsqlDelete : @Statement
 //
 // Three shapes of arm and they are not interchangeable: a match and a missing target may
 // insert, a missing source may update or delete, and the syntax says which is which.
-TsqlMerge : @Statement
+TSqlMerge : @Statement
 	= "MERGE"i & top: Top? & into: "INTO"i? & target: DmlTarget & ("AS"i? & alias: CorrelationName)?
 	  & "USING"i & source: TableReference
 	  & "ON"i & on: SearchCondition
@@ -1270,7 +1270,7 @@ OutputList : @Clause[] = first: OutputItem & (',' & rest: OutputItem)* => @(Synt
 
 OutputItem : @Clause
 	= q: QualifiedName & '.' & '*'          => @(new Clause.QualifiedAsterisk(q))
-	| v: ValueExpression & alias: TsqlAsClause? => @(new Clause.DerivedColumn(v, alias))
+	| v: ValueExpression & alias: TSqlAsClause? => @(new Clause.DerivedColumn(v, alias))
 
 // ── The procedural level ────────────────────────────────────────────────────
 //
@@ -1383,7 +1383,7 @@ TranWord : @string = t: ("TRANSACTION"i | "TRAN"i | "WORK"i) => @(Syntax.Squared
 TranMark    = "WITH"i & "MARK"i & ValueExpression?
 TranDelayed = "WITH"i & '(' & OptionList & ')'
 
-TranName : @string = t: Identifier => @(t) | t: Tsql.Variable => @(t)
+TranName : @string = t: Identifier => @(t) | t: TSql.Variable => @(t)
 
 // ── Declarations ────────────────────────────────────────────────────────────
 DeclareStatement : @Statement
@@ -1394,7 +1394,7 @@ DeclareStatement : @Statement
 		=> @(new Statement.Declare(Syntax.Listed(first, rest)))
 
 Declaration : @Clause
-	= name: Tsql.Variable & said: "AS"i? & d: DeclaredAs
+	= name: TSql.Variable & said: "AS"i? & d: DeclaredAs
 		=> @(d with { Name = name, As = said is not null })
 
 DeclaredAs : @Clause.VariableDeclaration
@@ -1435,7 +1435,7 @@ SetStatement : @Statement
 		=> @(new Statement.SetIdentityInsert(name, Syntax.Switched(on)))
 	| "SET"i & option: SetReserved & v: ValueExpression
 		=> @(new Statement.SetCommand(option, v))
-	| "SET"i & name: Tsql.Variable & s: AssignTail
+	| "SET"i & name: TSql.Variable & s: AssignTail
 		=> @(new Statement.SetVariable(name, s.Value, s.Operator, s.Through))
 	| "SET"i & first: SetOption & (',' & rest: SetOption)* & on: OnOff
 		=> @(new Statement.SetOption(Syntax.Named(first, rest), Syntax.Switched(on)))
@@ -1466,8 +1466,8 @@ ExecuteBody : @Statement.Execute
 		=> @(new Statement.Execute(into, name, args ?? Expression.None, at, Syntax.Tail(with)))
 
 ExecWord   = "EXECUTE"i | "EXEC"i
-ExecReturn : @string = t: Tsql.Variable & '=' => @(t)
-ExecName   : @string = t: QualifiedName => @(t) | t: Tsql.Variable => @(t)
+ExecReturn : @string = t: TSql.Variable & '=' => @(t)
+ExecName   : @string = t: QualifiedName => @(t) | t: TSql.Variable => @(t)
 ExecAt     : @string = "AT"i & t: QualifiedName => @(t)
 ExecWith   = "WITH"i & ExecOption & (',' & ExecOption)*
 ExecOption = "RESULT"i & "SETS"i & ResultSets
@@ -1494,7 +1494,7 @@ ExecArguments : @Expression[]
 // clause it had just eaten. The shape is the same wherever an optional list stands in
 // front of a clause whose first word could belong to the list.
 ExecArgument : @Expression
-	= name: Tsql.Variable & '=' & v: ExecValue & back: OutputWord?
+	= name: TSql.Variable & '=' & v: ExecValue & back: OutputWord?
 		=> @(Syntax.Hinted(new Expression.NamedArgument(name, v), back))
 	| ?!"AT"i & v: ExecValue & back: OutputWord?
 		=> @(Syntax.Hinted(v, back))
@@ -2187,7 +2187,7 @@ RoutineParameters : @Clause[]
 		=> @(Syntax.Listed(first, rest))
 
 RoutineParameter : @Clause
-	= name: Tsql.Variable & "AS"i? & type: DataType & varying: "VARYING"i? & n: NullSpec?
+	= name: TSql.Variable & "AS"i? & type: DataType & varying: "VARYING"i? & n: NullSpec?
 	  & ('=' & v: SetValue)? & ways: ParameterWay*
 		=> @(new Clause.ParameterDeclaration(name, type, v, n, varying is not null, ways))
 
@@ -2228,7 +2228,7 @@ FunctionReturns : @Statement.CreateFunction
 		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", Statement.None, options, columns, null, order, external))
 	| "TABLE"i & options: RoutineOptions? & "AS"i? & "RETURN"i & body: InlineReturn
 		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", body, options))
-	| name: Tsql.Variable & "TABLE"i & '(' & columns: TableBody & ')' & options: RoutineOptions? & "AS"i?
+	| name: TSql.Variable & "TABLE"i & '(' & columns: TableBody & ')' & options: RoutineOptions? & "AS"i?
 	  & body: StatementList
 		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", body, options, columns, name))
 	| type: DataType & options: RoutineOptions? & "AS"i?
@@ -2531,7 +2531,7 @@ KeyPassword
 	| "ENCRYPTION"i & "BY"i & PasswordEncryptor
 
 // A temporary key is named with one `#`.
-SymmetricKeyName = Identifier | Tsql.TemporaryName
+SymmetricKeyName = Identifier | TSql.TemporaryName
 
 // A key a provider holds may say nothing more; one made here says at least one option and
 // is locked by at least one thing.
@@ -2576,7 +2576,7 @@ CertificateSource : @Clause[]
 	| "EXECUTABLE"i? & "FILE"i & '=' & Quoted
 	  & ("WITH"i & ("FORMAT"i & '=' & Quoted & ',')? & "PRIVATE"i & "KEY"i & k: PrivateKeyList)?
 		=> @(Statement.Holding("PRIVATE KEY", k))
-	| "BINARY"i & '=' & Tsql.BinaryLiteral & ("WITH"i & "PRIVATE"i & "KEY"i & k: PrivateKeyList)?
+	| "BINARY"i & '=' & TSql.BinaryLiteral & ("WITH"i & "PRIVATE"i & "KEY"i & k: PrivateKeyList)?
 		=> @(Statement.Holding("PRIVATE KEY", k))
 
 PrivateKeyList : @Clause[]
@@ -2584,7 +2584,7 @@ PrivateKeyList : @Clause[]
 
 PrivateKeyOption
 	= "FILE"i & '=' & Quoted
-	| "BINARY"i & '=' & Tsql.BinaryLiteral
+	| "BINARY"i & '=' & TSql.BinaryLiteral
 	| KeyPassword
 
 CertificateChange : @Clause[]
@@ -2603,7 +2603,7 @@ ColumnKeyValue : @Clause
 ColumnKeyPart
 	= ColumnKeyMaster
 	| "ALGORITHM"i & '=' & Quoted
-	| "ENCRYPTED_VALUE"i & '=' & Tsql.BinaryLiteral
+	| "ENCRYPTED_VALUE"i & '=' & TSql.BinaryLiteral
 
 ColumnKeyMaster = "COLUMN_MASTER_KEY"i & '=' & Identifier
 
@@ -2615,7 +2615,7 @@ MasterKeyLocation
 
 MasterKeyProvider = "KEY_STORE_PROVIDER_NAME"i & '=' & Quoted
 MasterKeyPath     = "KEY_PATH"i & '=' & Quoted
-MasterKeyEnclave  = "ENCLAVE_COMPUTATIONS"i & '(' & "SIGNATURE"i & '=' & Tsql.BinaryLiteral & ')'
+MasterKeyEnclave  = "ENCLAVE_COMPUTATIONS"i & '(' & "SIGNATURE"i & '=' & TSql.BinaryLiteral & ')'
 
 // The identity first, and the secret after it if there is one.
 CredentialWith = "WITH"i & "IDENTITY"i & '=' & Quoted & (',' & "SECRET"i & '=' & Quoted)?
@@ -2769,7 +2769,7 @@ BackupBoundary = "FILE"i | "FILEGROUP"i | "READ_WRITE_FILEGROUPS"i | "PAGE"i
 
 BackupName : @string
 	= t: QualifiedName                       => @(t)
-	| t: Tsql.Variable                       => @(t)
+	| t: TSql.Variable                       => @(t)
 	| t: Sql92.Lexical.CharacterStringLiteral => @(t)
 	| '(' & first: BackupName & (',' & BackupName)* & ')' => @(first)
 
@@ -2787,7 +2787,7 @@ BackupDevices = BackupDevice & (',' & BackupDevice)*
 
 BackupDevice = DeviceWord & '=' & ValueExpression
 			 | QualifiedName
-			 | Tsql.Variable
+			 | TSql.Variable
 
 DeviceWord = "DISK"i | "TAPE"i | "URL"i
 
@@ -2989,7 +2989,7 @@ CreateStatisticsOption
 	| "INCREMENTAL"i & OnOffValue
 	| MaxDop
 	| "AUTO_DROP"i & OnOffValue
-	| "STATS_STREAM"i & '=' & Tsql.BinaryLiteral
+	| "STATS_STREAM"i & '=' & TSql.BinaryLiteral
 
 UpdateStatisticsWith = "WITH"i & UpdateStatisticsOption & (',' & UpdateStatisticsOption)*
 
@@ -3342,7 +3342,7 @@ ScopedConfiguration : @Statement.AlterDatabaseScopedConfiguration
 
 // A plan handle is written as binary and as nothing else: the engine refuses a variable,
 // a string and a number in its place.
-PlanHandle : @Expression = t: Tsql.BinaryLiteral => @(new Expression.Literal(SqlLiteralKind.Hex, t))
+PlanHandle : @Expression = t: TSql.BinaryLiteral => @(new Expression.Literal(SqlLiteralKind.Hex, t))
 
 // One setting to a statement. The published block says `<set_options>` without `[ ,...n ]`,
 // and the engine agrees: `SET MAXDOP = 4, IDENTITY_CACHE = OFF` is refused.
