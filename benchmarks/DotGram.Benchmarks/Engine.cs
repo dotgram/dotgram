@@ -66,8 +66,10 @@ static class Engine
 		var both     = 0;
 		var engine   = 0;   // the engine reads it and this does not — the work list
 		var ours     = 0;   // this reads it and the engine does not — a defect here
+		var elsewhere = 0;  // this reads it and the engine is another product's
 		var neither  = 0;
 		var overRead = new List<string>();
+		var elsewhereShown = new List<string>();
 		var gaps     = new Dictionary<string, (int Count, List<string> Like)>(StringComparer.Ordinal);
 		var said     = new Dictionary<int, int>();
 
@@ -111,6 +113,13 @@ static class Engine
 
 					gaps[why] = (count + 1, like);
 				}
+				else if (here && Elsewhere(one, message))
+				{
+					elsewhere++;
+
+					if (elsewhereShown.Count < shown)
+						elsewhereShown.Add(Corpus.One(one));
+				}
 				else if (here)
 				{
 					ours++;
@@ -125,7 +134,7 @@ static class Engine
 			}
 		}
 
-		Report(version, both, engine, ours, neither, gaps, overRead, said, shown);
+		Report(version, both, engine, ours, elsewhere, neither, gaps, overRead, elsewhereShown, said, shown);
 	}
 
 	/// <summary>Puts the connection into the mode where it reads and does nothing else.</summary>
@@ -192,6 +201,67 @@ static class Engine
 	/// saw so that what is missing from it shows up as a row rather than as a wrong total.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// Whether the engine refused this because it is not the engine the statement is for.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The server on this machine is one product of a family, and the corpus is a parser's,
+	/// so it holds the rest of the family too: Azure SQL Database, Synapse and the Fabric
+	/// warehouse. <c>CREATE DATABASE d (SERVICE_OBJECTIVE = 'basic')</c> is real T-SQL that
+	/// this server cannot accept and never will, and a grammar taught to refuse it would be
+	/// refusing what it is for.
+	/// </para>
+	/// <para>
+	/// So they are counted apart rather than as a defect here. Two ways of telling, and the
+	/// first is the engine's own: <b>Msg 40514</b> is "not supported in this version of SQL
+	/// Server", which is it saying exactly this. The second is a list of names, because for
+	/// syntax it has never heard of the engine answers Msg 102 like any other error — and a
+	/// list is what an auditable answer looks like when the authority has none. Each name is
+	/// here because a statement using it was seen in the corpus and read by this grammar; the
+	/// product it belongs to is in the comment beside it.
+	/// </para>
+	/// <para>
+	/// It errs towards calling something ours: a statement is only counted elsewhere when one
+	/// of these words is in it, so anything unlisted lands in the work list where it will be
+	/// looked at.
+	/// </para>
+	/// </remarks>
+	static bool Elsewhere(string statement, int message) =>
+		message == 40514 ||
+		OtherProducts.Any(word => statement.IndexOf(word, StringComparison.OrdinalIgnoreCase) >= 0);
+
+	/// <summary>What names a statement as another product's, and which product that is.</summary>
+	static readonly string[] OtherProducts =
+	[
+		// Azure SQL Database: what a database is sized and priced as, and how one is copied.
+		"SERVICE_OBJECTIVE",
+		"ELASTIC_POOL",
+		"AS COPY OF",
+		"MAXSIZE",
+		"EDITION =",
+
+		// Azure SQL Database, retired: federations.
+		"USE FEDERATION",
+		"FEDERATED ON",
+
+		// Synapse and the Fabric warehouse: how a table is spread and what stands over it.
+		"MATERIALIZED VIEW",
+		"DISTRIBUTION =",
+		"CLUSTERED COLUMNSTORE INDEX ORDER",
+		"CLONE AT",
+		"CLUSTER BY",
+
+		// Synapse and PolyBase: what is read from outside the database.
+		"EXTERNAL DATA SOURCE",
+		"EXTERNAL FILE FORMAT",
+		"EXTERNAL TABLE",
+
+		// Synapse dedicated pools: the resource governor's own vocabulary there.
+		"WORKLOAD GROUP",
+		"WORKLOAD CLASSIFIER",
+	];
+
 	static bool AboutNames(int message) =>
 		message is 117 or 137 or 195 or 207 or 208 or 448 or 1047 or 1087
 			or 4104 or 4112 or 4145
@@ -263,13 +333,14 @@ static class Engine
 	}
 
 	static void Report(
-		string version, int both, int engine, int ours, int neither,
+		string version, int both, int engine, int ours, int elsewhere, int neither,
 		Dictionary<string, (int Count, List<string> Like)> gaps,
 		List<string> overRead,
+		List<string> elsewhereShown,
 		Dictionary<int, int> said,
 		int shown)
 	{
-		var all = both + engine + ours + neither;
+		var all = both + engine + ours + elsewhere + neither;
 
 		Console.WriteLine();
 		Console.WriteLine(
@@ -280,6 +351,8 @@ static class Engine
 		Console.WriteLine($"  {both,6}  both read");
 		Console.WriteLine($"  {engine,6}  the engine reads and this does not — the work list");
 		Console.WriteLine($"  {ours,6}  this reads and the engine does not — a defect here");
+		Console.WriteLine(
+			$"  {elsewhere,6}  this reads and the engine is not the one to ask — another product's");
 		Console.WriteLine($"  {neither,6}  neither, which is the corpus being a corpus of errors too");
 		Console.WriteLine();
 
@@ -288,6 +361,16 @@ static class Engine
 			Console.WriteLine("  read here and refused by the engine:");
 
 			foreach (var one in overRead)
+				Console.WriteLine($"      {one}");
+
+			Console.WriteLine();
+		}
+
+		if (elsewhere > 0)
+		{
+			Console.WriteLine("  read here and refused because this server is not that product:");
+
+			foreach (var one in elsewhereShown)
 				Console.WriteLine($"      {one}");
 
 			Console.WriteLine();
