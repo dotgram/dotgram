@@ -97,6 +97,9 @@ public sealed class SqlWriterTests
 	[InlineData("REVERT WITH COOKIE = @c",                "REVERT WITH COOKIE = @c")]
 	[InlineData("SETUSER",                                "SETUSER")]
 	[InlineData("SETUSER N'u' WITH NORESET",              "SETUSER N'u' WITH NORESET")]
+	[InlineData("SELECT a FROM t FOR UPDATE OF a, b",     "SELECT a FROM t FOR UPDATE OF a, b")]
+	[InlineData("SELECT a FROM t FOR READ ONLY",          "SELECT a FROM t FOR READ ONLY")]
+	[InlineData("SELECT a FROM t FOR XML AUTO, BINARY BASE64", "SELECT a FROM t FOR XML AUTO, BINARY BASE64")]
 	public void A_statement_comes_back_as_what_it_said(string input, string printed) =>
 		Assert.Equal(printed, SqlWriter.Write(Read(input)));
 

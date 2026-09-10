@@ -509,6 +509,12 @@ static class Engine
 			//    491  A correlation name must be specified for the bulk rowset in the from clause.
 			or 491
 
+			// And the shape the rows come back in.
+			//
+			//   6859  Row tag name is only allowed with RAW or PATH mode of FOR XML.
+			//  13620  ROOT option and WITHOUT_ARRAY_WRAPPER option cannot be used together in FOR JSON. …
+			or 6859 or 13620
+
 			// And a database's creation.
 			//
 			//    188  Cannot specify a log file in a CREATE DATABASE statement without also specifying at least one data file.

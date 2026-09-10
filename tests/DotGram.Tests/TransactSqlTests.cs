@@ -979,6 +979,45 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>The shape the rows come back in, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("SELECT a FROM t FOR XML")]
+	[InlineData("SELECT a FROM t FOR XML FOO")]
+	[InlineData("SELECT a FROM t FOR XML RAW (r)")]
+	[InlineData("SELECT a FROM t FOR XML RAW ()")]
+	[InlineData("SELECT a FROM t FOR XML AUTO ELEMENTS")]
+	[InlineData("SELECT a FROM t FOR XML AUTO, BINARY")]
+	[InlineData("SELECT a FROM t FOR XML AUTO, ROOT (r)")]
+	[InlineData("SELECT a FROM t FOR XML AUTO, ELEMENTS FOO")]
+	[InlineData("SELECT a FROM t FOR XML AUTO, INCLUDE_NULL_VALUES")]
+	[InlineData("SELECT a FROM t FOR JSON")]
+	[InlineData("SELECT a FROM t FOR JSON RAW")]
+	[InlineData("SELECT a FROM t FOR JSON PATH ('r')")]
+	[InlineData("SELECT a FROM t FOR JSON PATH, TYPE")]
+	[InlineData("SELECT a FROM t FOR JSON PATH, ELEMENTS")]
+	[InlineData("SELECT a FROM t FOR BROWSE, TYPE")]
+	[InlineData("SELECT a FROM t FOR READ")]
+	public void The_row_shapes_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT a FROM t FOR XML AUTO, XMLDATA, ELEMENTS, BINARY BASE64")]
+	[InlineData("SELECT a FROM t FOR XML RAW (N'r'), ELEMENTS XSINIL, XMLSCHEMA ('urn:x'), ROOT ('r'), TYPE, BINARY BASE64")]
+	[InlineData("SELECT a FROM t FOR XML PATH (''), ELEMENTS ABSENT")]
+	[InlineData("SELECT a FROM t FOR XML EXPLICIT, XMLDATA")]
+	[InlineData("SELECT a FROM t FOR JSON PATH, INCLUDE_NULL_VALUES, WITHOUT_ARRAY_WRAPPER")]
+	[InlineData("SELECT a FROM t FOR JSON AUTO, ROOT ('r')")]
+	[InlineData("SELECT a FROM t FOR UPDATE")]
+	[InlineData("SELECT a FROM t FOR UPDATE OF a, b")]
+	[InlineData("SELECT a FROM t ORDER BY a FOR READ ONLY")]
+	public void The_row_shapes_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>Table, query and join hints, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM t WITH (FOO)")]

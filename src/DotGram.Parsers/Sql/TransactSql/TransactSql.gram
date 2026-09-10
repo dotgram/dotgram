@@ -972,14 +972,41 @@ FetchClause : @Expression
 FetchAt = "NEXT"i | "FIRST"i
 RowWord = "ROWS"i | "ROW"i
 
+// ── The shape the rows come back in ─────────────────────────────────────────
+//
+// `FOR XML`, `FOR JSON` and `FOR BROWSE`, put to the engine some seventy times, and the
+// cursor's `FOR UPDATE` and `FOR READ ONLY`, which a plain `SELECT` takes as well. XML has four
+// modes, each with an element name in a string, which the engine reads for all four and
+// objects to for two (6859); then one list of directives for every mode, in any order — the
+// block gives each mode its own list and an order, and the engine reads `EXPLICIT, ELEMENTS`
+// and the whole list backwards. JSON has two modes and no name, and three options of its own;
+// neither takes the other's. A directive said twice, and `XMLDATA` with `XMLSCHEMA`, the
+// engine refuses as it reads; that is the walker's, as a repeat is everywhere.
 ForClause : @Clause
 	= "FOR"i & "BROWSE"i => @(new Clause.For("BROWSE", Syntax.NoNames))
-	| "FOR"i & kind: ("JSON"i | "XML"i) & first: ForOption & (',' & rest: ForOption)*
+	| "FOR"i & kind: ForXml & first: XmlMode & (',' & rest: XmlDirective)*
 		=> @(new Clause.For(kind, Syntax.Named(first, rest)))
+	| "FOR"i & kind: ForJson & first: JsonMode & (',' & rest: JsonDirective)*
+		=> @(new Clause.For(kind, Syntax.Named(first, rest)))
+	| "FOR"i & "UPDATE"i & "OF"i & columns: ColumnList => @(new Clause.For("UPDATE OF", columns))
+	| "FOR"i & "UPDATE"i => @(new Clause.For("UPDATE", Syntax.NoNames))
+	| "FOR"i & "READ"i & "ONLY"i => @(new Clause.For("READ ONLY", Syntax.NoNames))
 
-ForOption : @string = t: (Identifier & ForOptionTail?) => @(t)
+ForXml  = "XML"i
+ForJson = "JSON"i
 
-ForOptionTail = '(' & ValueExpression & ')' | '=' & ValueExpression
+XmlMode : @string = t: (("RAW"i | "AUTO"i | "EXPLICIT"i | "PATH"i) & ForName?) => @(t)
+
+XmlDirective : @string
+	= t: ("BINARY"i & "BASE64"i | "TYPE"i | "ROOT"i & ForName? | "XMLDATA"i | "XMLSCHEMA"i & ForName?
+		  | "ELEMENTS"i & ("XSINIL"i | "ABSENT"i)?) => @(t)
+
+JsonMode : @string = t: ("AUTO"i | "PATH"i) => @(t)
+
+JsonDirective : @string = t: ("ROOT"i & ForName? | "INCLUDE_NULL_VALUES"i | "WITHOUT_ARRAY_WRAPPER"i) => @(t)
+
+// An element, a root or a namespace: a string, never a name.
+ForName = '(' & Quoted & ')'
 
 // ── What the dialect is, said once ──────────────────────────────────────────
 //

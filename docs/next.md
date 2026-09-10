@@ -18104,3 +18104,32 @@ the sixteen, all of them — read here but refused there 43, as before. `--split
 same (from 553), the round trip 100% of 6,756. 491 — a bulk rowset with no correlation name,
 which the `OPENROWSET` probe was answered with — went on the audit's read side afterwards,
 and moved nothing at 150.
+
+## The shape the rows come back in
+
+`FOR XML` and `FOR JSON` read a word, and brackets or an `=` after it, as each option. So
+`BINARY BASE64` and `ELEMENTS XSINIL` stopped at their second word, and `FOR JSON RAW` or
+`FOR XML AUTO, INCLUDE_NULL_VALUES` were read. Put to the engine some seventy times, the
+options are closed now, and the answers were not quite the block's:
+
+- **XML's modes** are `RAW`, `AUTO`, `EXPLICIT` and `PATH`. Each takes an element name in a
+  string: the engine reads it for all four and objects for `AUTO` and `EXPLICIT` afterwards
+  (6859). A name without quotes is refused.
+- **XML's directives are one list, in any order.** The block gives each mode its own list and
+  an order. The engine reads `XMLDATA` after `PATH`, `ELEMENTS` after `EXPLICIT`, and the
+  whole list backwards.
+- **JSON** has `AUTO` and `PATH`, no name, and its own three options. It takes none of XML's,
+  and XML takes none of its. `ROOT` with `WITHOUT_ARRAY_WRAPPER` is read and then refused
+  (13620).
+- **`FOR UPDATE [OF …]` and `FOR READ ONLY`**, a cursor's, are read in a plain `SELECT` too,
+  after `ORDER BY` as well. They were only a cursor's here. They are `Clause.For` now, its
+  kind the words, so neither the tree nor the writer moved.
+
+A directive said twice, and `XMLDATA` with `XMLSCHEMA`, the engine refuses as it reads; that
+is the walker's. And `FOR XML` in a subquery, `SELECT (SELECT a FROM t FOR XML AUTO, TYPE)`,
+the engine reads and this does not. A query has nowhere to keep the clause, only the
+statement does, so that waits for the work on the tree. Those four are the probes answered
+otherwise, 61 of 65 agreeing.
+
+At 150: read by both 5,683 (from 5,667), the work list 287 (from 303), read here but refused
+there 43, as before. `--split` 557 cut the same (from 555), and the round trip 100% of 6,772.
