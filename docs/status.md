@@ -1169,9 +1169,11 @@ is the host's — so a publication can hand one back after all. Three types
 were deleted; §7.5 still specifies them and the table above says they are not built,
 which is this project's ordinary way of holding a plan.
 
-`GRAM0001` went with it — it reported two assemblies both publishing — so diagnostic
-numbering starts at `GRAM0002`. A retired number is not reused: a suppression written
-against the old meaning would silently acquire a new one.
+`GRAM0001` went with it — it reported two assemblies both publishing — and is the one
+number that has been used twice: it reports the generator itself failing now. That was
+free while nothing had been released, and it stops being free at 0.1.0. From there a
+retired number is not reused, because a suppression written against the old meaning would
+silently acquire a new one — which is what `AnalyzerReleases.Shipped.md` is for.
 
 Numbers go by the stage that raises them: `GRAM0002`–`GRAM0004` the Roslyn shell,
 `GRAM1xxx` the lexer, `GRAM2xxx` the parser, `GRAM3xxx` the binder, `GRAM4xxx` the
