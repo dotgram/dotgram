@@ -3143,13 +3143,18 @@ StatisticsTarget = '(' & IndexName & (',' & IndexName)* & ')'
 
 // ── Who may connect, and as whom ────────────────────────────────────────────
 //
-// Logins, users, roles and schemas. One family because they are one shape: a name, where
-// it came from, and a list of settings — and the settings are the option list already
-// written, with one exception that the published syntax insists on.
+// Logins, users, roles and schemas: a name, where it came from, and a list of settings.
+// The settings are a closed list for each statement, put to the engine some two hundred
+// times, and no two statements share one: a login from Windows takes a database and a
+// language, one from a certificate a credential and nothing else, and an application role
+// being altered takes a login and a language that one being created does not.
 //
-// The exception is a password. `PASSWORD = 'p' OLD_PASSWORD = 'q' MUST_CHANGE` is three
-// things and no commas between them, which is the only place in T-SQL where an option list
-// runs on like that. So the password is a rule and the rest of the list is the ordinary one.
+// What they share is how a value is written. A password is a string, or a hash in hex that
+// says it is one, `0x0100 HASHED`, and never a variable; a SID is a hex string; a database,
+// a language, a schema, a credential and a new name are names, and `'d'` is refused where a
+// block writes `database`. And a password is followed by words with no commas between them
+// — `PASSWORD = 'p' MUST_CHANGE`, `PASSWORD = 'p' OLD_PASSWORD = 'q'` — which is why it is a
+// rule of its own in each list.
 PrincipalStatement : @Statement
 	= "CREATE"i & "LOGIN"i & name: Identifier & tail: LoginBody
 		=> @(Statement.Defined("CREATE LOGIN", name, Syntax.Tail(tail)))
@@ -3170,9 +3175,9 @@ PrincipalStatement : @Statement
 				 Syntax.Squared(scope) == "ROLE" ? "ALTER ROLE" : "ALTER SERVER ROLE",
 				 name, Syntax.Tail(tail)))
 
-	| "CREATE"i & "APPLICATION"i & "ROLE"i & name: Identifier & tail: ("WITH"i & LoginOptions)
+	| "CREATE"i & "APPLICATION"i & "ROLE"i & name: Identifier & tail: ("WITH"i & CreateRoleOptions)
 		=> @(Statement.Defined("CREATE APPLICATION ROLE", name, Syntax.Tail(tail)))
-	| "ALTER"i & "APPLICATION"i & "ROLE"i & name: Identifier & tail: ("WITH"i & LoginOptions)
+	| "ALTER"i & "APPLICATION"i & "ROLE"i & name: Identifier & tail: ("WITH"i & AlterRoleOptions)
 		=> @(Statement.Defined("ALTER APPLICATION ROLE", name, Syntax.Tail(tail)))
 
 	// A schema may be declared by its owner alone — `CREATE SCHEMA AUTHORIZATION dbo` — and
@@ -3206,50 +3211,121 @@ AuthorizationTo = "SCHEMA"i & "OWNER"i | QualifiedName
 SchemaElement = s: CreateTableStatement | s: CreateRoutine | s: PermissionStatement
 
 // ── A login ─────────────────────────────────────────────────────────────────
-LoginBody = "WITH"i & LoginOptions
+// A login with a password has it first, and the rest after a comma; one without a password
+// comes from somewhere, and takes what that source allows.
+LoginBody = "WITH"i & CreatePassword & (',' & CreateLoginOption)*
 		  | "FROM"i & LoginSource
 
-LoginSource = "WINDOWS"i & ("WITH"i & OptionList)?
-			| "EXTERNAL"i & "PROVIDER"i & ("WITH"i & OptionList)?
-			| "CERTIFICATE"i & QualifiedName & ("WITH"i & OptionList)?
-			| "ASYMMETRIC"i & "KEY"i & QualifiedName & ("WITH"i & OptionList)?
+// `'p' MUST_CHANGE HASHED` and `'p' HASHED MUST_CHANGE` alike, each word once; a hash in hex
+// has to say it is one. `UNLOCK` and `OLD_PASSWORD` are for a login that exists.
+CreatePassword = "PASSWORD"i & '=' & (Quoted & CreateHash? | TSql.BinaryLiteral & CreateHashed)
+
+CreateHash   = "HASHED"i & "MUST_CHANGE"i? | "MUST_CHANGE"i & "HASHED"i?
+CreateHashed = "HASHED"i & "MUST_CHANGE"i? | "MUST_CHANGE"i & "HASHED"i
+
+CreateLoginOption = "SID"i & '=' & TSql.BinaryLiteral
+				  | LoginPlace
+				  | ("CHECK_EXPIRATION"i | "CHECK_POLICY"i) & '=' & OnOff
+				  | "CREDENTIAL"i & '=' & Identifier
+
+// Where a login starts: its database and its language, both names.
+LoginPlace = ("DEFAULT_DATABASE"i | "DEFAULT_LANGUAGE"i) & '=' & Identifier
+
+LoginSource = "WINDOWS"i & ("WITH"i & LoginPlace & (',' & LoginPlace)*)?
+			| "EXTERNAL"i & "PROVIDER"i & ("WITH"i & ExternalLoginOption & (',' & ExternalLoginOption)*)?
+			| "CERTIFICATE"i & Identifier & KeyCredential?
+			| "ASYMMETRIC"i & "KEY"i & Identifier & KeyCredential?
+
+// `TYPE = E` or `X`, a user or a group, which the block does not list and the corpus has; as
+// for a user, the engine takes any name.
+ExternalLoginOption = "OBJECT_ID"i & '=' & Quoted
+					| "SID"i & '=' & TSql.BinaryLiteral
+					| "TYPE"i & '=' & Identifier
+					| LoginPlace
+
+KeyCredential = "WITH"i & "CREDENTIAL"i & '=' & Identifier
 
 AlterLoginBody = "ENABLE"i
 			   | "DISABLE"i
-			   | "WITH"i & LoginOptions
+			   | "WITH"i & AlterLoginOption & (',' & AlterLoginOption)*
 			   | "ADD"i & "CREDENTIAL"i & QualifiedName
 			   | "DROP"i & "CREDENTIAL"i & QualifiedName
 
-LoginOptions = LoginOption & (',' & LoginOption)*
+AlterLoginOption = AlterPassword
+				 | LoginPlace
+				 | "NAME"i & '=' & Identifier
+				 | ("CHECK_EXPIRATION"i | "CHECK_POLICY"i) & '=' & OnOff
+				 | "CREDENTIAL"i & '=' & Identifier
+				 | "NO"i & "CREDENTIAL"i
+				 | "TYPE"i & '=' & Identifier
 
-// `PASSWORD = 0x0100 HASHED MUST_CHANGE`, `PASSWORD = 'p' OLD_PASSWORD = 'q'`: a password
-// and then however many words and pairs the syntax lets follow it, none of them separated
-// by a comma. `NO CREDENTIAL` is two words and no value, which the option list reads as one
-// name — but it is written here because the list this belongs to is not that one.
-LoginOption = "PASSWORD"i & '=' & ValueExpression & PasswordTail*
-			| "NO"i & "CREDENTIAL"i
-			| OptionSetting
+// The old password, or `HASHED`, `MUST_CHANGE` and `UNLOCK` in any order and each once: the
+// block puts `HASHED` straight after the value, and the engine reads `'p' MUST_CHANGE HASHED
+// UNLOCK` as well. Not the old password and the words both, and a hash in hex has to say it
+// is one wherever the word stands.
+AlterPassword = "PASSWORD"i & '=' & Quoted & "OLD_PASSWORD"i & '=' & Quoted
+			  | "PASSWORD"i & '=' & (Quoted & PasswordWords? | TSql.BinaryLiteral & HashedWords)
 
-PasswordTail = "OLD_PASSWORD"i & '=' & ValueExpression
-			 | "MUST_CHANGE"i
-			 | "UNLOCK"i
-			 | "HASHED"i
+PasswordWords = "HASHED"i & ("MUST_CHANGE"i & "UNLOCK"i? | "UNLOCK"i & "MUST_CHANGE"i?)?
+			  | "MUST_CHANGE"i & ("HASHED"i & "UNLOCK"i? | "UNLOCK"i & "HASHED"i?)?
+			  | "UNLOCK"i & ("HASHED"i & "MUST_CHANGE"i? | "MUST_CHANGE"i & "HASHED"i?)?
+
+HashedWords = "HASHED"i & ("MUST_CHANGE"i & "UNLOCK"i? | "UNLOCK"i & "MUST_CHANGE"i?)?
+			| "MUST_CHANGE"i & ("HASHED"i & "UNLOCK"i? | "UNLOCK"i & "HASHED"i)
+			| "UNLOCK"i & ("HASHED"i & "MUST_CHANGE"i? | "MUST_CHANGE"i & "HASHED"i)
 
 // ── A user ──────────────────────────────────────────────────────────────────
+// Where a user comes from, and then one list whatever the source: the blocks give each
+// source its own, but the engine reads a password after `FOR LOGIN` and objects afterwards
+// (33234).
 UserSource = ForOrFrom & UserFrom
 		   | "WITHOUT"i & "LOGIN"i
 
-UserFrom = "LOGIN"i & QualifiedName
-		 | "CERTIFICATE"i & QualifiedName
-		 | "ASYMMETRIC"i & "KEY"i & QualifiedName
-		 | "EXTERNAL"i & "PROVIDER"i & ("WITH"i & OptionList)?
+UserFrom = "LOGIN"i & Identifier
+		 | "CERTIFICATE"i & Identifier
+		 | "ASYMMETRIC"i & "KEY"i & Identifier
+		 | "EXTERNAL"i & "PROVIDER"i
 
 ForOrFrom = "FOR"i | "FROM"i
 
-UserOptions = "WITH"i & LoginOptions
+UserOptions = "WITH"i & UserOption & (',' & UserOption)*
 
-AlterUserBody = "WITH"i & LoginOptions
-			  | UserSource
+// A password with nothing after it. `TYPE = Z` and `OBJECT_ID = x` are read: a word, which
+// only the Fabric warehouse the two are for looks at.
+UserOption = "PASSWORD"i & '=' & Quoted
+		   | "DEFAULT_SCHEMA"i & '=' & Identifier
+		   | UserLanguage
+		   | "SID"i & '=' & TSql.BinaryLiteral
+		   | "ALLOW_ENCRYPTED_VALUE_MODIFICATIONS"i & '=' & OnOff
+		   | "TYPE"i & '=' & Identifier
+		   | "OBJECT_ID"i & '=' & (Quoted | Identifier)
+
+// A language by its name or by its number, not by a string.
+UserLanguage = "DEFAULT_LANGUAGE"i & '=' & (Identifier | Sql92.Lexical.Digits)
+
+// Altered, a user takes settings only: where it comes from was fixed when it was created,
+// and `FROM EXTERNAL PROVIDER`, the managed instance's, this engine refuses.
+AlterUserBody = "WITH"i & AlterUserOption & (',' & AlterUserOption)*
+
+AlterUserOption = "NAME"i & '=' & Identifier
+				| "DEFAULT_SCHEMA"i & '=' & (Identifier | "NULL"i)
+				| "LOGIN"i & '=' & Identifier
+				| "PASSWORD"i & '=' & Quoted & ("OLD_PASSWORD"i & '=' & Quoted)?
+				| UserLanguage
+				| "ALLOW_ENCRYPTED_VALUE_MODIFICATIONS"i & '=' & OnOff
+
+// ── An application role ─────────────────────────────────────────────────────
+CreateRoleOptions = CreateRoleOption & (',' & CreateRoleOption)*
+CreateRoleOption  = "PASSWORD"i & '=' & Quoted
+				  | "DEFAULT_SCHEMA"i & '=' & Identifier
+
+// Altered, a role takes a new name, a login and a language as well, which the block does
+// not list for it and a user's list does — though the language only by its name.
+AlterRoleOptions = AlterRoleOption & (',' & AlterRoleOption)*
+AlterRoleOption  = CreateRoleOption
+				 | "NAME"i & '=' & Identifier
+				 | "LOGIN"i & '=' & Identifier
+				 | "DEFAULT_LANGUAGE"i & '=' & Identifier
 
 // ── DROP ────────────────────────────────────────────────────────────────────
 //

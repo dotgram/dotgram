@@ -17933,3 +17933,43 @@ At 150 the corpus moved only where it should: read here but refused there 48 (fr
 two now refused by both; the rest as before. `--split` 552 files cut the same, and the
 round trip 100% of 6,665 — three fewer than ScriptDom and this used to share, since
 ScriptDom reads what the engine refuses.
+
+## Logins, users and application roles, as a catalogue
+
+The six statements shared one list: a password rule, `NO CREDENTIAL`, and then any name with
+any value. Put to the engine some two hundred and seventy times, they have six lists, and
+the answers were stricter than the blocks nearly everywhere:
+
+- **A password is a string**, `N'p'` included, or a hash in hex that says it is one:
+  `0x0100` alone is refused, `'p' HASHED` read, and a variable never. Creating a login, the
+  password comes first and is required; `HASHED` and `MUST_CHANGE` follow it in either
+  order and once each. Altering one, it takes the old password, or `HASHED`, `MUST_CHANGE`
+  and `UNLOCK` in any order and once each — the block puts `HASHED` straight after the
+  value, and the corpus has `'p' MUST_CHANGE HASHED UNLOCK`, which the first run lost. Not
+  both, and a hash in hex says so wherever the word stands. A user's password has nothing
+  after it, but an altered user's may have the old one.
+- **Values are names.** A default database, a default language, a schema, a credential, a
+  new name: `[d]` is read and `'d'` refused, which the blocks' `database` and `language`
+  leave open. A language is `NONE` or a name for a login, and may be a number for a user
+  but not for an application role. A SID is hex, never a string.
+- **Each source has its list.** A login from Windows takes a database and a language; from
+  the external provider those, an object id, a SID and a `TYPE` — a user or a group, which
+  no block lists and ten statements in the corpus have, and which an altered login takes
+  too; from a certificate or a key, a credential and nothing else.
+- **A user has one list whatever its source.** The engine reads a password after `FOR
+  LOGIN` and after `WITHOUT LOGIN`, and objects afterwards (33234, 33235, now on the audit's
+  read side). `TYPE = Z` and `OBJECT_ID = x` are read: a word, which only the Fabric
+  warehouse checks. Altered, a user takes settings only, and `FROM EXTERNAL PROVIDER`, the
+  managed instance's, is refused; an old test that read it was ScriptDom's view.
+- **An application role altered takes more than one created**: a login and a language, as a
+  user's list does, which the block does not give it.
+
+A setting said twice — two SIDs, two new names, two passwords — the engine refuses and this
+reads; that is the walker's. 294 probes, those three answered otherwise.
+
+The first run over the corpus lost twelve statements the engine reads, the `TYPE` and the
+word order above, and a probe each put them back. At 150 now: read by both 5,585 and the
+work list 383, as before; read here and refused there 44 (from 48), the four — an altered
+login's hex password with no `HASHED`, a user's `DEFAULT_SCHEMA = NULL` — refused by both.
+`--split` 548 cut the same (from 552) and the round trip 100% of 6,661 (from 6,665): the
+same four, which ScriptDom reads.

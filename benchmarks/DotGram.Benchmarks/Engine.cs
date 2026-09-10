@@ -483,6 +483,12 @@ static class Engine
 			or 14860 or 14912
 			or 33411
 
+			// And a user's.
+			//
+			//  33234  The parameter … cannot be provided for users that cannot authenticate in a database.
+			//  33235  The parameter … cannot be provided for users that cannot authenticate in a database. Remove the WITHOUT LOGIN or PASSWORD clause.
+			or 33234 or 33235
+
 			// And a database's creation.
 			//
 			//    188  Cannot specify a log file in a CREATE DATABASE statement without also specifying at least one data file.

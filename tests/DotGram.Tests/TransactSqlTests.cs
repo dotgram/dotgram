@@ -693,6 +693,81 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>What a login, a user and an application role are given, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = @p")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 0x0100")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 0x0100 MUST_CHANGE")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p' UNLOCK")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p' OLD_PASSWORD = 'q'")]
+	[InlineData("CREATE LOGIN l WITH SID = 0x01, PASSWORD = 'p'")]
+	[InlineData("CREATE LOGIN l WITH DEFAULT_DATABASE = d")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p', SID = 'x'")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p', DEFAULT_DATABASE = 'd'")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p', DEFAULT_LANGUAGE = 1033")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p', NO CREDENTIAL")]
+	[InlineData("CREATE LOGIN l FROM WINDOWS WITH CHECK_POLICY = ON")]
+	[InlineData("CREATE LOGIN l FROM EXTERNAL PROVIDER WITH CREDENTIAL = c")]
+	[InlineData("CREATE LOGIN l FROM CERTIFICATE c WITH DEFAULT_DATABASE = d")]
+	[InlineData("CREATE LOGIN l FROM CERTIFICATE s.c")]
+	[InlineData("ALTER LOGIN l WITH PASSWORD = 'p' OLD_PASSWORD = 'q' MUST_CHANGE")]
+	[InlineData("ALTER LOGIN l WITH PASSWORD = 'p' HASHED OLD_PASSWORD = 'q'")]
+	[InlineData("ALTER LOGIN l WITH PASSWORD = 'p' UNLOCK UNLOCK")]
+	[InlineData("ALTER LOGIN l WITH PASSWORD = 'p', OLD_PASSWORD = 'q'")]
+	[InlineData("ALTER LOGIN l WITH NAME = 'n'")]
+	[InlineData("ALTER LOGIN l WITH SID = 0x01")]
+	[InlineData("ALTER LOGIN l WITH MUST_CHANGE")]
+	[InlineData("ALTER LOGIN l WITH PASSWORD = 0x01 UNLOCK MUST_CHANGE")]
+	[InlineData("ALTER LOGIN l WITH PASSWORD = 'p' MUST_CHANGE HASHED MUST_CHANGE")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p' HASHED UNLOCK")]
+	[InlineData("CREATE LOGIN l FROM EXTERNAL PROVIDER WITH TYPE = 'E'")]
+	[InlineData("CREATE LOGIN l FROM WINDOWS WITH TYPE = E")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p', TYPE = E")]
+	[InlineData("CREATE USER u FOR LOGIN a.b")]
+	[InlineData("CREATE USER u WITH DEFAULT_SCHEMA = NULL")]
+	[InlineData("CREATE USER u WITH DEFAULT_LANGUAGE = 'us_english'")]
+	[InlineData("CREATE USER u WITH ALLOW_ENCRYPTED_VALUE_MODIFICATIONS")]
+	[InlineData("CREATE USER u WITH PASSWORD = 'p' MUST_CHANGE")]
+	[InlineData("CREATE USER u WITH LOGIN = l")]
+	[InlineData("CREATE USER u WITH TYPE = 'E'")]
+	[InlineData("ALTER USER u FROM EXTERNAL PROVIDER")]
+	[InlineData("ALTER USER u FOR CERTIFICATE c")]
+	[InlineData("ALTER USER u WITH SID = 0x01")]
+	[InlineData("ALTER USER u WITH PASSWORD = 'p' MUST_CHANGE")]
+	[InlineData("CREATE APPLICATION ROLE r WITH PASSWORD = 'p', NAME = n")]
+	[InlineData("CREATE APPLICATION ROLE r WITH DEFAULT_LANGUAGE = NONE")]
+	[InlineData("ALTER APPLICATION ROLE r WITH DEFAULT_SCHEMA = NULL")]
+	[InlineData("ALTER APPLICATION ROLE r WITH DEFAULT_LANGUAGE = 1033")]
+	public void The_principal_catalogue_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside them.</summary>
+	[Theory]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = N'p' HASHED MUST_CHANGE, SID = 0x01, DEFAULT_LANGUAGE = NONE")]
+	[InlineData("CREATE LOGIN l WITH PASSWORD = 0x0100 MUST_CHANGE HASHED, CHECK_POLICY = OFF, CREDENTIAL = c")]
+	[InlineData("CREATE LOGIN [d\\u] FROM WINDOWS WITH DEFAULT_LANGUAGE = l, DEFAULT_DATABASE = [d]")]
+	[InlineData("CREATE LOGIN l FROM EXTERNAL PROVIDER WITH OBJECT_ID = 'x', SID = 0x01, DEFAULT_DATABASE = d")]
+	[InlineData("CREATE LOGIN l FROM ASYMMETRIC KEY [k] WITH CREDENTIAL = [c]")]
+	[InlineData("ALTER LOGIN l WITH PASSWORD = 0x01 HASHED UNLOCK MUST_CHANGE, CHECK_EXPIRATION = ON")]
+	[InlineData("ALTER LOGIN l WITH PASSWORD = N'p' OLD_PASSWORD = 'q', NAME = [n], NO CREDENTIAL")]
+	[InlineData("ALTER LOGIN l WITH PASSWORD = 'p' MUST_CHANGE HASHED UNLOCK, TYPE = E")]
+	[InlineData("ALTER LOGIN l WITH PASSWORD = 0x01 MUST_CHANGE UNLOCK HASHED")]
+	[InlineData("CREATE LOGIN [l] FROM EXTERNAL PROVIDER WITH SID = 0x01, TYPE = [X], DEFAULT_LANGUAGE = l")]
+	[InlineData("CREATE USER u FOR EXTERNAL PROVIDER")]
+	[InlineData("CREATE USER u FOR CERTIFICATE c WITH DEFAULT_SCHEMA = s")]
+	[InlineData("CREATE USER u WITH SID = 0x01, TYPE = X, OBJECT_ID = x, DEFAULT_LANGUAGE = 0")]
+	[InlineData("CREATE USER u FOR LOGIN l WITH PASSWORD = 'p'")]
+	[InlineData("ALTER USER u WITH DEFAULT_SCHEMA = NULL, LOGIN = l, PASSWORD = 'p' OLD_PASSWORD = 'q'")]
+	[InlineData("ALTER USER u WITH DEFAULT_LANGUAGE = 1033, ALLOW_ENCRYPTED_VALUE_MODIFICATIONS = ON")]
+	[InlineData("CREATE APPLICATION ROLE r WITH DEFAULT_SCHEMA = s, PASSWORD = N'p'")]
+	[InlineData("ALTER APPLICATION ROLE r WITH DEFAULT_LANGUAGE = us_english, LOGIN = l, NAME = [n]")]
+	public void The_principal_catalogue_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>Table, query and join hints, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM t WITH (FOO)")]
@@ -1739,10 +1814,9 @@ public sealed class TransactSqlTests
 	/// <summary>Who may connect, and as whom.</summary>
 	/// <remarks>
 	/// Logins, users, roles and schemas: one family because they are one shape — a name,
-	/// where it came from, and a list of settings, and the settings are the option list
-	/// already written. The one exception the published syntax insists on is a password:
-	/// `PASSWORD = 'p' OLD_PASSWORD = 'q' MUST_CHANGE` is three things with no commas
-	/// between them, which no other option list in T-SQL does.
+	/// where it came from, and a list of settings, closed for each statement. A password is
+	/// followed by words with no commas between them, `PASSWORD = 'p' OLD_PASSWORD = 'q'`,
+	/// which no other option list in T-SQL does.
 	/// </remarks>
 	[Theory]
 	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p'")]
@@ -1768,7 +1842,6 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE USER u FROM ASYMMETRIC KEY k")]
 	[InlineData("CREATE USER u WITH PASSWORD = 'p', DEFAULT_LANGUAGE = 1033")]
 	[InlineData("ALTER USER u WITH NAME = v, DEFAULT_SCHEMA = NULL")]
-	[InlineData("ALTER USER u FROM EXTERNAL PROVIDER")]
 
 	[InlineData("CREATE ROLE r")]
 	[InlineData("CREATE ROLE r AUTHORIZATION dbo")]
