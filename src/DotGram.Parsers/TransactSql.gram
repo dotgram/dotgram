@@ -938,6 +938,8 @@ Version  = "100" | "110" | "120" | "130" | "140" | "150" | "160" | "170"
 Since110 = "110" | "120" | "130" | "140" | "150" | "160" | "170"
 Since130 = "130" | "140" | "150" | "160" | "170"
 Since160 = "160" | "170"
+Until100 = "100"
+Until120 = "100" | "110" | "120"
 
 parse Dialect.Statement with (Version = "100") as ParseStatement100
 parse Dialect.Statement with (Version = "110") as ParseStatement110
@@ -2070,17 +2072,15 @@ AlterIndexAction : @Statement.AlterIndex
 // it is one rule.
 KeyStatement : @Statement
 	= "CREATE"i & "ASYMMETRIC"i & "KEY"i & name: Identifier
-	  & tail: (Authorization? & ("FROM"i & AsymmetricSource)? & ("WITH"i & OptionList)? & EncryptionBy?)
+	  & tail: (Authorization? & AsymmetricBody & ("ENCRYPTION"i & "BY"i & PasswordEncryptor)?)
 		=> @(Statement.Defined("ASYMMETRIC KEY", name, Syntax.Tail(tail)))
-	| "ALTER"i & "ASYMMETRIC"i & "KEY"i & name: Identifier & tail: KeyChange
+	| "ALTER"i & "ASYMMETRIC"i & "KEY"i & name: Identifier & tail: AsymmetricChange
 		=> @(Statement.Defined("ALTER ASYMMETRIC KEY", name, Syntax.Tail(tail)))
 
-	| "CREATE"i & "SYMMETRIC"i & "KEY"i & name: Identifier
-	  & tail: (Authorization? & ("FROM"i & "PROVIDER"i & Identifier)?
-			   & "WITH"i & SymmetricOption & (','? & SymmetricOption)*)
+	| "CREATE"i & "SYMMETRIC"i & "KEY"i & name: SymmetricKeyName & tail: (Authorization? & SymmetricBody)
 		=> @(Statement.Defined("SYMMETRIC KEY", name, Syntax.Tail(tail)))
 	| "ALTER"i & "SYMMETRIC"i & "KEY"i & name: Identifier
-	  & tail: (AddOrDrop & "ENCRYPTION"i & "BY"i & Encryptor & (',' & Encryptor)*)
+	  & tail: (AddOrDrop & "ENCRYPTION"i & "BY"i & KeyEncryptor & (',' & KeyEncryptor)*)
 		=> @(Statement.Defined("ALTER SYMMETRIC KEY", name, Syntax.Tail(tail)))
 
 	| "CREATE"i & "CERTIFICATE"i & name: Identifier
@@ -2089,32 +2089,35 @@ KeyStatement : @Statement
 	| "ALTER"i & "CERTIFICATE"i & name: Identifier & tail: CertificateChange
 		=> @(Statement.Defined("ALTER CERTIFICATE", name, Syntax.Tail(tail)))
 
-	| "CREATE"i & "MASTER"i & "KEY"i & tail: EncryptionBy?
+	// Azure SQL Database makes a master key with no password; SQL Server answers that it is
+	// not supported in this version, which is a product's answer and not a syntax's.
+	| "CREATE"i & "MASTER"i & "KEY"i & tail: ("ENCRYPTION"i & "BY"i & PasswordEncryptor)?
 		=> @(Statement.Defined("MASTER KEY", "", Syntax.Tail(tail)))
 	| "ALTER"i & "MASTER"i & "KEY"i & tail: MasterKeyChange
 		=> @(Statement.Defined("ALTER MASTER KEY", "", Syntax.Tail(tail)))
 
 	| "CREATE"i & "DATABASE"i & "ENCRYPTION"i & "KEY"i
-	  & tail: (("WITH"i & OptionList)? & EncryptionBy?)
+	  & tail: ("WITH"i & "ALGORITHM"i & '=' & DatabaseKeyAlgorithm & ServerEncryption)
 		=> @(Statement.Defined("DATABASE ENCRYPTION KEY", "", Syntax.Tail(tail)))
 	| "ALTER"i & "DATABASE"i & "ENCRYPTION"i & "KEY"i
-	  & tail: (("REGENERATE"i & "WITH"i & OptionList)? & EncryptionBy?)
+	  & tail: ("REGENERATE"i & "WITH"i & "ALGORITHM"i & '=' & DatabaseKeyAlgorithm | ServerEncryption)
 		=> @(Statement.Defined("ALTER DATABASE ENCRYPTION KEY", "", Syntax.Tail(tail)))
 
 	| "CREATE"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & name: Identifier
-	  & tail: ("WITH"i & "VALUES"i & '(' & OptionList & ')' & (',' & '(' & OptionList & ')')*)
+	  & tail: ("WITH"i & "VALUES"i & ColumnKeyValue & (',' & ColumnKeyValue)*)
 		=> @(Statement.Defined("COLUMN ENCRYPTION KEY", name, Syntax.Tail(tail)))
 	| "ALTER"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & name: Identifier
-	  & tail: (AddOrDrop & "VALUE"i & '(' & OptionList & ')')
+	  & tail: ("ADD"i & "VALUE"i & ColumnKeyValue | "DROP"i & "VALUE"i & '(' & ColumnKeyMaster & ')')
 		=> @(Statement.Defined("ALTER COLUMN ENCRYPTION KEY", name, Syntax.Tail(tail)))
-	| "CREATE"i & "COLUMN"i & "MASTER"i & "KEY"i & name: Identifier & tail: OptionsWithText
+	| "CREATE"i & "COLUMN"i & "MASTER"i & "KEY"i & name: Identifier
+	  & tail: ("WITH"i & '(' & MasterKeyLocation & (',' & MasterKeyEnclave)? & ')')
 		=> @(Statement.Defined("COLUMN MASTER KEY", name, Syntax.Tail(tail)))
 
 	| verb: CreateOrAlter & "CREDENTIAL"i & name: Identifier
-	  & tail: ("WITH"i & OptionList & ("FOR"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & Identifier)?)
+	  & tail: (CredentialWith & ("FOR"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & Identifier)?)
 		=> @(Statement.Defined("CREDENTIAL", name, Syntax.Tail(tail), verb))
 	| verb: CreateOrAlter & "DATABASE"i & "SCOPED"i & "CREDENTIAL"i & name: Identifier
-	  & tail: ("WITH"i & OptionList)
+	  & tail: CredentialWith
 		=> @(Statement.Defined("DATABASE SCOPED CREDENTIAL", name, Syntax.Tail(tail), verb))
 
 	// A security policy is a list of predicates rather than a list of settings, and each
@@ -2126,52 +2129,167 @@ KeyStatement : @Statement
 Authorization     = "AUTHORIZATION"i & QualifiedName
 NotForReplication = "NOT"i & "FOR"i & "REPLICATION"i
 
-// `ENCRYPTION BY PASSWORD = 'p'`, `ENCRYPTION BY SERVER CERTIFICATE c`, and the two keys.
-EncryptionBy = "ENCRYPTION"i & "BY"i & Encryptor
+// ── The keys' catalogue ─────────────────────────────────────────────────────
+//
+// Written from the published blocks and put to the engine line by line, and closed: an
+// option this does not name is refused, as the engine refuses it (`Msg 102`). What the
+// blocks leave open the engine settled — a password is a literal and never a variable, a
+// symmetric key's options are joined by commas and its encryptions follow them with none,
+// a credential's `IDENTITY` comes first.
+//
+// One thing the engine checks and this does not: an option written twice. `SUBJECT = 's',
+// SUBJECT = 't'` is `Msg 102` there and read here, because "each at most once, in any order"
+// is a count the notation has no way to say short of writing out every order.
 
-Encryptor = "PASSWORD"i & '=' & ValueExpression
-		  | "SERVICE"i & "MASTER"i & "KEY"i
-		  | "SERVER"i? & "CERTIFICATE"i & QualifiedName
-		  | "SERVER"i? & "ASYMMETRIC"i & "KEY"i & QualifiedName
-		  | "SYMMETRIC"i & "KEY"i & QualifiedName
+// A literal, which is what every password, path and name below is.
+Quoted = Sql92.Lexical.NationalCharacterStringLiteral | Sql92.Lexical.CharacterStringLiteral
 
-AsymmetricSource = "EXECUTABLE"i? & "FILE"i & '=' & ValueExpression
-				 | "ASSEMBLY"i & QualifiedName
-				 | "PROVIDER"i & Identifier
+// The algorithms, and one list of them for both kinds of key, because that is how the engine
+// reads them: `CREATE SYMMETRIC KEY … ALGORITHM = RSA_2048` and `CREATE ASYMMETRIC KEY …
+// ALGORITHM = AES_128` are read and refused later, not as syntax, where `ALGORITHM = FOO` is.
+// The weak ones are refused from 130 on — "to use older algorithms you must set the database
+// to compatibility level 120 or lower" — and RC4 from 110, "only in compatibility level 90 or
+// 100". Except where a provider makes the key: the engine takes any of them at any level.
+KeyAlgorithm
+	= "AES_128"i | "AES_192"i | "AES_256"i | "RSA_4096"i | "RSA_3072"i | "RSA_2048"i
+	| WeakAlgorithm & when Version is Until120
+	| ("RC4"i | "RC4_128"i) & when Version is Until100
 
-// Its own list rather than the shared one: a key's options and its encryptions run on
-// without commas, and an option's value is a run of words — so `ALGORITHM = AES_256
-// ENCRYPTION BY PASSWORD = 'p'` had the value take three words that belonged to the clause
-// after it. One word or one expression here, which is all the published block names.
-SymmetricOption = "ENCRYPTION"i & "BY"i & Encryptor
-				| word & '=' & SymmetricValue
+ProviderAlgorithm
+	= "AES_128"i | "AES_192"i | "AES_256"i | "RSA_4096"i | "RSA_3072"i | "RSA_2048"i
+	| WeakAlgorithm | "RC4"i | "RC4_128"i
 
-SymmetricValue = v: ValueExpression | w: word
+WeakAlgorithm = "DES"i | "TRIPLE_DES"i | "TRIPLE_DES_3KEY"i | "RC2"i | "DESX"i | "RSA_1024"i | "RSA_512"i
 
-KeyChange = "REMOVE"i & "PRIVATE"i & "KEY"i
-		  | "WITH"i & "PRIVATE"i & "KEY"i & '(' & PrivateKeyOption & (',' & PrivateKeyOption)* & ')'
+DatabaseKeyAlgorithm
+	= "AES_128"i | "AES_192"i | "AES_256"i
+	| "TRIPLE_DES_3KEY"i & when Version is Until120
 
-MasterKeyChange = "REGENERATE"i & "WITH"i & EncryptionBy
-				| "FORCE"i & "REGENERATE"i & "WITH"i & EncryptionBy
-				| AddOrDrop & "ENCRYPTION"i & "BY"i & Encryptor
+Disposition = "CREATE_NEW"i | "OPEN_EXISTING"i
 
-PrivateKeyOption = "DECRYPTION"i & "BY"i & "PASSWORD"i & '=' & ValueExpression
-				 | "ENCRYPTION"i & "BY"i & "PASSWORD"i & '=' & ValueExpression
-				 | OptionSetting
+PasswordEncryptor = "PASSWORD"i & '=' & Quoted
 
-CertificateBody = "FROM"i & CertificateSource
-				| EncryptionBy? & "WITH"i & OptionList
+// What a symmetric key may be locked with — never a server's certificate, which is a
+// database encryption key's.
+KeyEncryptor
+	= "CERTIFICATE"i & QualifiedName
+	| PasswordEncryptor
+	| "SYMMETRIC"i & "KEY"i & QualifiedName
+	| "ASYMMETRIC"i & "KEY"i & QualifiedName
 
-CertificateSource = "ASSEMBLY"i & QualifiedName
-				  | "EXECUTABLE"i? & "FILE"i & '=' & ValueExpression & PrivateKeyWith?
-				  | "BINARY"i & '=' & ValueExpression & PrivateKeyWith?
+ServerEncryption = "ENCRYPTION"i & "BY"i & "SERVER"i & ("CERTIFICATE"i | "ASYMMETRIC"i & "KEY"i) & QualifiedName
 
-PrivateKeyWith = "WITH"i & ("FORMAT"i & '=' & ValueExpression & ',')? & "PRIVATE"i & "KEY"i
-				 & '(' & PrivateKeyOption & (',' & PrivateKeyOption)* & ')'
+// An asymmetric key made by a provider takes a list; one read from a file or an assembly
+// takes nothing; one made here takes an algorithm at most. The provider's two options
+// without the provider are refused, and so is an algorithm for a key that already exists.
+AsymmetricBody
+	= "FROM"i & "PROVIDER"i & Identifier & ("WITH"i & ProviderKeyOption & (',' & ProviderKeyOption)*)?
+	| "FROM"i & AsymmetricSource
+	| ("WITH"i & "ALGORITHM"i & '=' & KeyAlgorithm)?
 
-CertificateChange = "REMOVE"i & "PRIVATE"i & "KEY"i
-				  | "WITH"i & "PRIVATE"i & "KEY"i & '(' & PrivateKeyOption & (',' & PrivateKeyOption)* & ')'
-				  | "WITH"i & "ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff
+AsymmetricSource
+	= "EXECUTABLE"i? & "FILE"i & '=' & Quoted
+	| "ASSEMBLY"i & QualifiedName
+
+ProviderKeyOption
+	= "ALGORITHM"i & '=' & ProviderAlgorithm
+	| "PROVIDER_KEY_NAME"i & '=' & Quoted
+	| "CREATION_DISPOSITION"i & '=' & Disposition
+
+AsymmetricChange
+	= "REMOVE"i & "PRIVATE"i & "KEY"i
+	| "WITH"i & "PRIVATE"i & "KEY"i & '(' & KeyPassword & (',' & KeyPassword)* & ')'
+	| Attestation
+
+// Who vouches for a key or a certificate. In no published block, and read by the engine at
+// every level, both ways round.
+Attestation = "ATTESTED"i & "BY"i & Quoted | "REMOVE"i & "ATTESTED"i & "OPTION"i
+
+KeyPassword
+	= "DECRYPTION"i & "BY"i & PasswordEncryptor
+	| "ENCRYPTION"i & "BY"i & PasswordEncryptor
+
+// A temporary key is named with one `#`.
+SymmetricKeyName = Identifier | Tsql.TemporaryName
+
+// A key a provider holds may say nothing more; one made here says at least one option and
+// is locked by at least one thing.
+SymmetricBody
+	= "FROM"i & "PROVIDER"i & Identifier & ("WITH"i & ProviderOption & (',' & ProviderOption)*)?
+	  & SymmetricEncryption?
+	| "WITH"i & SymmetricOption & (',' & SymmetricOption)* & SymmetricEncryption
+
+ProviderOption
+	= "ALGORITHM"i & '=' & ProviderAlgorithm
+	| SymmetricOption
+
+SymmetricOption
+	= "KEY_SOURCE"i & '=' & Quoted
+	| "ALGORITHM"i & '=' & KeyAlgorithm
+	| "IDENTITY_VALUE"i & '=' & Quoted
+	| "PROVIDER_KEY_NAME"i & '=' & Quoted
+	| "CREATION_DISPOSITION"i & '=' & Disposition
+
+SymmetricEncryption = "ENCRYPTION"i & "BY"i & KeyEncryptor & (',' & KeyEncryptor)*
+
+MasterKeyChange
+	= "FORCE"i? & "REGENERATE"i & "WITH"i & "ENCRYPTION"i & "BY"i & PasswordEncryptor
+	| AddOrDrop & "ENCRYPTION"i & "BY"i & ("SERVICE"i & "MASTER"i & "KEY"i | PasswordEncryptor)
+
+// A certificate made here takes its options in any order and none of them is required; one
+// read from somewhere takes its private key's.
+CertificateBody
+	= "FROM"i & CertificateSource
+	| ("ENCRYPTION"i & "BY"i & PasswordEncryptor)? & "WITH"i & CertificateOption & (',' & CertificateOption)*
+
+CertificateOption
+	= "SUBJECT"i & '=' & Quoted
+	| "START_DATE"i & '=' & Quoted
+	| "EXPIRY_DATE"i & '=' & Quoted
+
+CertificateSource
+	= "ASSEMBLY"i & QualifiedName
+	| "EXECUTABLE"i? & "FILE"i & '=' & Quoted
+	  & ("WITH"i & ("FORMAT"i & '=' & Quoted & ',')? & "PRIVATE"i & "KEY"i & PrivateKeyList)?
+	| "BINARY"i & '=' & Tsql.BinaryLiteral & ("WITH"i & "PRIVATE"i & "KEY"i & PrivateKeyList)?
+
+PrivateKeyList = '(' & PrivateKeyOption & (',' & PrivateKeyOption)* & ')'
+
+PrivateKeyOption
+	= "FILE"i & '=' & Quoted
+	| "BINARY"i & '=' & Tsql.BinaryLiteral
+	| KeyPassword
+
+CertificateChange
+	= "REMOVE"i & "PRIVATE"i & "KEY"i
+	| "WITH"i & "PRIVATE"i & "KEY"i & PrivateKeyList
+	| "WITH"i & "ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff
+	| Attestation
+
+// An Always Encrypted key's value: which master key, which algorithm and the value itself,
+// all three and in any order. The algorithm is a literal — `ALGORITHM = RSA_OAEP` unquoted
+// is refused.
+ColumnKeyValue = '(' & ColumnKeyPart & ',' & ColumnKeyPart & ',' & ColumnKeyPart & ')'
+
+ColumnKeyPart
+	= ColumnKeyMaster
+	| "ALGORITHM"i & '=' & Quoted
+	| "ENCRYPTED_VALUE"i & '=' & Tsql.BinaryLiteral
+
+ColumnKeyMaster = "COLUMN_MASTER_KEY"i & '=' & Identifier
+
+// Where the master key lives, both parts and in either order, and the enclave's signature
+// after them and only after them.
+MasterKeyLocation
+	= MasterKeyProvider & ',' & MasterKeyPath
+	| MasterKeyPath & ',' & MasterKeyProvider
+
+MasterKeyProvider = "KEY_STORE_PROVIDER_NAME"i & '=' & Quoted
+MasterKeyPath     = "KEY_PATH"i & '=' & Quoted
+MasterKeyEnclave  = "ENCLAVE_COMPUTATIONS"i & '(' & "SIGNATURE"i & '=' & Tsql.BinaryLiteral & ')'
+
+// The identity first, and the secret after it if there is one.
+CredentialWith = "WITH"i & "IDENTITY"i & '=' & Quoted & (',' & "SECRET"i & '=' & Quoted)?
 
 PolicyPredicates = PolicyPredicate & (',' & PolicyPredicate)*
 

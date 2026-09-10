@@ -383,6 +383,113 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>The keys' catalogue: what the engine refuses in one, refused here.</summary>
+	/// <remarks>
+	/// Each written from the published block and then put to SQL Server 2025, which settled
+	/// what the blocks leave open. A name the catalogue does not have is refused; a password is
+	/// a literal; a symmetric key's encryptions follow its options without a comma; the two
+	/// options that belong to a provider are refused without one; a database encryption key
+	/// needs both its algorithm and its encryptor, and altering one does one of the two.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE SYMMETRIC KEY k WITH ALGORITHM = AES_257 ENCRYPTION BY CERTIFICATE c")]
+	[InlineData("CREATE SYMMETRIC KEY k WITH FOO = 1 ENCRYPTION BY CERTIFICATE c")]
+	[InlineData("CREATE SYMMETRIC KEY k WITH ALGORITHM = AES_256 ENCRYPTION BY PASSWORD = @p")]
+	[InlineData("CREATE SYMMETRIC KEY k WITH ALGORITHM = AES_256, ENCRYPTION BY CERTIFICATE c")]
+	[InlineData("CREATE SYMMETRIC KEY k WITH ALGORITHM = AES_256")]
+	[InlineData("CREATE SYMMETRIC KEY k WITH ENCRYPTION BY CERTIFICATE c")]
+	[InlineData("CREATE SYMMETRIC KEY k WITH ALGORITHM = AES_256 ENCRYPTION BY SERVER CERTIFICATE c")]
+	[InlineData("CREATE ASYMMETRIC KEY k WITH ALGORITHM = RSA_2048, PROVIDER_KEY_NAME = 'x'")]
+	[InlineData("CREATE ASYMMETRIC KEY k WITH ALGORITHM = RSA_2048 ENCRYPTION BY CERTIFICATE c")]
+	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = AES_256")]
+	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = AES_256 ENCRYPTION BY CERTIFICATE c")]
+	[InlineData("ALTER DATABASE ENCRYPTION KEY REGENERATE WITH ALGORITHM = AES_256 ENCRYPTION BY SERVER CERTIFICATE c")]
+	[InlineData("CREATE CERTIFICATE c WITH SUBJECT = 's', FOO = 'x'")]
+	[InlineData("CREATE CERTIFICATE c FROM FILE = 'f' WITH PRIVATE KEY (FILE = 'k', FOO = 'p')")]
+	[InlineData("CREATE COLUMN MASTER KEY k WITH (KEY_STORE_PROVIDER_NAME = N'p')")]
+	[InlineData("CREATE COLUMN MASTER KEY k WITH (KEY_STORE_PROVIDER_NAME = N'p', KEY_PATH = N'x' ENCLAVE_COMPUTATIONS (SIGNATURE = 0x01))")]
+	[InlineData("CREATE COLUMN ENCRYPTION KEY k WITH VALUES (COLUMN_MASTER_KEY = m, ALGORITHM = RSA_OAEP, ENCRYPTED_VALUE = 0x01)")]
+	[InlineData("ALTER COLUMN ENCRYPTION KEY k DROP VALUE (COLUMN_MASTER_KEY = m, ALGORITHM = 'RSA_OAEP', ENCRYPTED_VALUE = 0x01)")]
+	[InlineData("CREATE CREDENTIAL c WITH SECRET = 's', IDENTITY = 'i'")]
+	[InlineData("CREATE ASYMMETRIC KEY k WITH ALGORITHM = FOO")]
+	[InlineData("CREATE ASYMMETRIC KEY k FROM FILE = 'f' WITH ALGORITHM = RSA_2048")]
+	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = DES ENCRYPTION BY SERVER CERTIFICATE c")]
+	[InlineData("ALTER DATABASE ENCRYPTION KEY REGENERATE WITH ALGORITHM = RSA_2048")]
+	public void The_keys_catalogue_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside them.</summary>
+	[Theory]
+	[InlineData("CREATE SYMMETRIC KEY k WITH IDENTITY_VALUE = 'x', ALGORITHM = AES_256, KEY_SOURCE = N'y' ENCRYPTION BY PASSWORD = 'p', CERTIFICATE c")]
+	[InlineData("CREATE SYMMETRIC KEY #k WITH ALGORITHM = AES_256 ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("CREATE SYMMETRIC KEY k FROM PROVIDER p WITH PROVIDER_KEY_NAME = 'k', CREATION_DISPOSITION = OPEN_EXISTING")]
+	[InlineData("CREATE ASYMMETRIC KEY k FROM PROVIDER p WITH ALGORITHM = RSA_2048, PROVIDER_KEY_NAME = 'x', CREATION_DISPOSITION = CREATE_NEW")]
+	[InlineData("CREATE ASYMMETRIC KEY k AUTHORIZATION u FROM EXECUTABLE FILE = 'f' ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = AES_128 ENCRYPTION BY SERVER ASYMMETRIC KEY k")]
+	[InlineData("ALTER DATABASE ENCRYPTION KEY ENCRYPTION BY SERVER CERTIFICATE c")]
+	[InlineData("CREATE CERTIFICATE c ENCRYPTION BY PASSWORD = 'p' WITH START_DATE = '20200101', SUBJECT = 's'")]
+	[InlineData("CREATE CERTIFICATE c FROM FILE = 'f' WITH FORMAT = 'PFX', PRIVATE KEY (DECRYPTION BY PASSWORD = 'p', FILE = 'k')")]
+	[InlineData("CREATE CERTIFICATE c FROM BINARY = 0x01 WITH PRIVATE KEY (BINARY = 0x02, DECRYPTION BY PASSWORD = 'p')")]
+	[InlineData("ALTER CERTIFICATE c WITH PRIVATE KEY (ENCRYPTION BY PASSWORD = 'p', DECRYPTION BY PASSWORD = 'q')")]
+	[InlineData("ALTER MASTER KEY FORCE REGENERATE WITH ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("ALTER MASTER KEY DROP ENCRYPTION BY SERVICE MASTER KEY")]
+	[InlineData("CREATE COLUMN MASTER KEY k WITH (KEY_PATH = N'x', KEY_STORE_PROVIDER_NAME = N'p', ENCLAVE_COMPUTATIONS (SIGNATURE = 0x01))")]
+	[InlineData("CREATE COLUMN ENCRYPTION KEY k WITH VALUES (ALGORITHM = 'RSA_OAEP', COLUMN_MASTER_KEY = m, ENCRYPTED_VALUE = 0x01), (COLUMN_MASTER_KEY = n, ALGORITHM = N'RSA_OAEP', ENCRYPTED_VALUE = 0x02)")]
+	[InlineData("ALTER COLUMN ENCRYPTION KEY k DROP VALUE (COLUMN_MASTER_KEY = m)")]
+	[InlineData("CREATE CREDENTIAL c WITH IDENTITY = 'i', SECRET = 's' FOR CRYPTOGRAPHIC PROVIDER p")]
+	[InlineData("ALTER DATABASE SCOPED CREDENTIAL c WITH IDENTITY = 'i'")]
+
+	// One list of algorithms for both kinds of key, as the engine reads them, and every one
+	// of them at every level where a provider makes the key.
+	[InlineData("CREATE ASYMMETRIC KEY k WITH ALGORITHM = AES_128")]
+	[InlineData("CREATE SYMMETRIC KEY k WITH ALGORITHM = RSA_2048 ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("CREATE ASYMMETRIC KEY k FROM PROVIDER p WITH ALGORITHM = RC2, PROVIDER_KEY_NAME = 'x'")]
+	[InlineData("create symmetric key k1 from provider p1 with provider_key_name = 'key1', algorithm = rc4, CREATION_DISPOSITION = OPEN_EXISTING")]
+	[InlineData("CREATE SYMMETRIC KEY k FROM PROVIDER p")]
+	[InlineData("CREATE SYMMETRIC KEY k FROM PROVIDER p ENCRYPTION BY CERTIFICATE c")]
+	[InlineData("ALTER ASYMMETRIC KEY a1 ATTESTED BY 'zzz'")]
+	[InlineData("ALTER CERTIFICATE c1 REMOVE ATTESTED OPTION")]
+	public void The_keys_catalogue_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>A construct taken out of the language: read up to a level and refused after it.</summary>
+	/// <remarks>
+	/// The weak algorithms, as the engine answers them: everything but AES and the longer RSA
+	/// keys up to 120, and RC4 at 100 alone.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE SYMMETRIC KEY k WITH ALGORITHM = TRIPLE_DES ENCRYPTION BY CERTIFICATE c", 120)]
+	[InlineData("CREATE SYMMETRIC KEY k WITH ALGORITHM = DESX ENCRYPTION BY PASSWORD = 'p'",      120)]
+	[InlineData("CREATE SYMMETRIC KEY k WITH ALGORITHM = RC4_128 ENCRYPTION BY CERTIFICATE c",    100)]
+	[InlineData("CREATE ASYMMETRIC KEY k WITH ALGORITHM = RSA_1024",                              120)]
+	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = TRIPLE_DES_3KEY ENCRYPTION BY SERVER ASYMMETRIC KEY k", 120)]
+	[InlineData("ALTER DATABASE ENCRYPTION KEY REGENERATE WITH ALGORITHM = TRIPLE_DES_3KEY",      120)]
+	public void Each_level_reads_until_where_the_engine_stops(string input, int until)
+	{
+		foreach (var level in new[] { 100, 110, 120, 130, 140, 150, 160, 170 })
+		{
+			var match = level switch
+			{
+				100 => TransactSql.TryParseStatement100(input),
+				110 => TransactSql.TryParseStatement110(input),
+				120 => TransactSql.TryParseStatement120(input),
+				130 => TransactSql.TryParseStatement130(input),
+				140 => TransactSql.TryParseStatement140(input),
+				150 => TransactSql.TryParseStatement150(input),
+				160 => TransactSql.TryParseStatement160(input),
+				_   => TransactSql.TryParseStatement170(input),
+			};
+
+			Assert.True(match.IsSuccess == level <= until, $"{input}  at {level}");
+		}
+
+		Assert.True(TransactSql.TryParseStatement(input).IsSuccess, input);
+	}
+
 	/// <summary>A parser per compatibility level, each reading from where the engine does.</summary>
 	/// <remarks>
 	/// The levels are readings of one grammar sharing one machine, and the conditions that
@@ -1547,7 +1654,7 @@ public sealed class TransactSqlTests
 	/// all six, so it is one rule.
 	/// </remarks>
 	[Theory]
-	[InlineData("CREATE ASYMMETRIC KEY k AUTHORIZATION dbo FROM FILE = 'k.snk' WITH ALGORITHM = RSA_2048")]
+	[InlineData("CREATE ASYMMETRIC KEY k AUTHORIZATION dbo FROM FILE = 'k.snk'")]
 	[InlineData("CREATE ASYMMETRIC KEY k FROM EXECUTABLE FILE = 'a.exe' ENCRYPTION BY PASSWORD = 'p'")]
 	[InlineData("ALTER ASYMMETRIC KEY k REMOVE PRIVATE KEY")]
 	[InlineData("ALTER ASYMMETRIC KEY k WITH PRIVATE KEY (DECRYPTION BY PASSWORD = 'a', ENCRYPTION BY PASSWORD = 'b')")]

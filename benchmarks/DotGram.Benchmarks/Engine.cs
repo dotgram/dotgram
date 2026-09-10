@@ -364,7 +364,6 @@ static class Engine
 			//
 			//    135  Cannot use a BREAK statement outside the scope of a WHILE statement.
 			//    148  Incorrect time syntax in time string '…' used with WAITFOR.
-			//    153  Invalid usage of the option … in the … statement.
 			//   1003  Line …: … clause allowed only for ….
 			//   1020  Sub-entity lists cannot be specified for entity-level permissions.
 			//   1054  Syntax '…' is not allowed in schema-bound objects.
@@ -373,7 +372,7 @@ static class Engine
 			//   7861  "…" endpoints can only be of the "FOR …" type.
 			//  13539  Setting SYSTEM_VERSIONING to ON failed because history table ….
 			//  15151  Cannot … the … , because it does not exist or you do not have permission.
-			or 135 or 148 or 153
+			or 135 or 148
 			or 1003 or 1020 or 1054
 			or 7801 or 7853 or 7861
 			or 13539 or 15151
@@ -383,7 +382,6 @@ static class Engine
 			// number is looked up before it moves.
 			//
 			//    140  Can only use IF UPDATE within a CREATE TRIGGER statement.
-			//    155  '…' is not a recognized … option.
 			//    174  The … function requires … argument(s).
 			//   1039  Option '…' is specified more than once.
 			//   1052  Conflicting … options "…" and "…".
@@ -395,7 +393,7 @@ static class Engine
 			//  10779  The durability option 'schema_only' is supported only with memory optimized tables.
 			//  10790  The option '…' can be specified only for hash indexes.
 			//  10794  The … '…' is not supported with ….
-			or 140 or 155 or 174
+			or 140 or 174
 			or 1039 or 1052 or 1062 or 1092 or 1098
 			or 8169
 			or 10714 or 10779 or 10790 or 10794
@@ -404,7 +402,6 @@ static class Engine
 			//
 			//    136  Cannot use a CONTINUE statement outside the scope of a WHILE statement.
 			//    173  The definition for column '…' must include a data type.
-			//    487  An invalid option was specified for the statement "…".
 			//   1036  File option … is required in this CREATE/ALTER DATABASE statement.
 			//   1095  "…" has already been specified as an event type.
 			//   4122  Remote table-valued function calls are not allowed.
@@ -416,12 +413,17 @@ static class Engine
 			//  10757  The function '…' may not have a WITHIN GROUP clause.
 			//  10797  Only one MEMORY_OPTIMIZED_DATA filegroup is allowed per database.
 			//  14808  Cannot disable REMOTE_DATA_ARCHIVE when migration is enabled.
-			or 136 or 173 or 487
+			or 136 or 173
 			or 1036 or 1095
 			or 4122 or 4136
 			or 7864 or 7887
 			or 10324 or 10704 or 10757 or 10797
 			or 14808;
+
+		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
+		// belong. They stood here while this grammar read every option list as an open
+		// vocabulary; with the catalogue written from the published syntax they are refusals
+		// it has to share, and a statement answered with one is not a statement read.
 
 	/// <summary>
 	/// The local engine, on a database whose compatibility level is the version being asked

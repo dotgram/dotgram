@@ -17566,3 +17566,44 @@ Twelve probes agree with the engine on both sides of each line drawn. At 150: 5,
 both, as before, and 108 read here and refused there. Those are 98 of `Msg 102` — the
 algorithms, `a.b.c.d.func()`, a procedure's parameter with `NULL = NULL`, `OPENROWSET` with
 two arguments as a DML target — 8 of `Msg 156` and the two `BULK INSERT`s that end the session.
+
+## The option catalogue, and the keys first
+
+Offered a choice between gating the few option values the engine checks as syntax and
+writing every option list out, Igor chose the second: the whole catalogue, from the
+published syntax, closed. About fifty-five places read an option list as an open vocabulary
+— `OptionList`, `OptionSetting`, `word = value`, a hint that is any identifier — and they go
+a family at a time: the published blocks first, then the engine asked line by line wherever
+a block leaves something open, then rules written to both.
+
+**The keys, certificates and credentials** were first, because the weak algorithms were the
+largest group of over-acceptances left. What the engine settled that the blocks did not:
+
+- **One list of algorithms for both kinds of key.** `CREATE SYMMETRIC KEY … ALGORITHM =
+  RSA_2048` and `CREATE ASYMMETRIC KEY … ALGORITHM = AES_128` are read and refused later, not
+  as syntax; `ALGORITHM = FOO` is. The weak ones — DES, TRIPLE_DES, TRIPLE_DES_3KEY, RC2,
+  DESX, RSA_512, RSA_1024 — up to 120, RC4 at 100 alone; but a key a provider makes takes
+  any of them at any level. A database encryption key has its own four and no others.
+- **Every password, path and name is a literal.** `PASSWORD = @p` is `Msg 102`.
+- **Shapes the blocks draw loosely.** A symmetric key's encryptions follow its options with
+  no comma; one made here needs an option and an encryptor, one a provider holds needs
+  neither. An asymmetric key takes the provider's options only from a provider, and an
+  algorithm only when it is made here — `FROM FILE … WITH ALGORITHM` is refused, which an
+  old test of ours said it read. A database encryption key needs both clauses, and altering
+  one does exactly one of them. A certificate's options, its private key's and an Always
+  Encrypted key's three parts come in any order; a master key's location in either order,
+  with the enclave after it; a credential's `IDENTITY` first.
+- **And one thing in no block at all:** `ATTESTED BY '…'` and `REMOVE ATTESTED OPTION` on
+  `ALTER ASYMMETRIC KEY` and `ALTER CERTIFICATE`, read at every level.
+
+Sixty probes agree with the engine at every level but four. One is `CREATE MASTER KEY` with
+no password, which is Azure's. The other three are an option written twice — `SUBJECT = 's',
+SUBJECT = 't'` — which the engine refuses as syntax and this reads, because "each at most
+once, in any order" is a count the notation cannot say short of writing out every order.
+That is worth remembering as a notation question: it will come up in every family.
+
+`--engine` stops counting `Msg 153`, `155` and `487` as read — an option the engine does not
+know is a refusal the catalogue has to share, not an opinion about a name — which moves
+seventeen statements from both-read into the defect column before any family is written. At
+150 after the keys: 5,573 read by both, 395 on the work list where it was 412, 101 read here
+and refused there where it was 108. Round trip 100% of 6,778.
