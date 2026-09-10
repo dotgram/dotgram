@@ -25,9 +25,9 @@ namespace DotGram.Benchmarks;
 /// one kind this dialect reads, and today it reads queries only, so most rows are zero and
 /// are meant to be: the table is a work list ordered by how often the corpus needs the
 /// thing. It says nothing about speed and nothing about the trees either side builds —
-/// ScriptDom builds a full AST with token positions and error recovery, and what this
-/// grammar builds is a tenth of that. Those are separate questions and get separate
-/// harnesses.
+/// ScriptDom builds a full AST with token positions and error recovery, and this grammar
+/// builds what the round trip proves it builds, with its positions asked for rather than
+/// always there. Those are separate questions and get separate harnesses.
 /// </para>
 /// <para>
 /// The other direction is the one nothing else asks: a statement ScriptDom calls something

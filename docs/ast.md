@@ -107,14 +107,22 @@ which is what §7.6 of `syntax.md` is for. What a span is *for* is the thing no 
 a comment falls between two spans, and the innermost node containing it is the one it belongs
 to.
 
-## What is not in the tree
+## What the tree does not keep
 
-Read and dropped, all of it, and each for the same reason: it is a decoration on how a
-statement runs or what it hands back rather than on what it is, and a field nobody reads is
-a field that drifts. `TOP`, `OVER`, the table and query hints, the windows, a named query's
-`WITH`, `OUTPUT`, and the option lists of every DDL statement — an index's `WITH (…)`, a
-database's settings, an endpoint's protocol arguments. When one of them is wanted it is one
-field on one record here, and having a record each is what makes that a small change.
+The reason a field is left out has not changed — a field nobody reads is a field that
+drifts — but the list has, and it is short now. `TOP`, `OVER`, the table and query hints,
+the windows, a named query's `WITH`, `OUTPUT` and the option lists of every DDL statement
+were all read and dropped while nothing held the tree against anything. Something does:
+`benchmarks --roundtrip` prints the tree back out and holds the result against what
+ScriptDom makes of the same input, and a decoration that never reached the tree cannot come
+back. So each of them is a field on a record here, which is what having a record each was
+for.
+
+What is still read and dropped is what says how something is *matched* rather than what it
+is, and there are two: `CORRESPONDING` on a `UNION`, which names columns by matching rather
+than by position and is a question for whatever resolves names; and the order written
+inside a named query's body, since a `WITH` defines a table and a table has no order until
+something asks for one.
 
 ## The nodes
 

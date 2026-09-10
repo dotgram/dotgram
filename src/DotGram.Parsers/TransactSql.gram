@@ -231,8 +231,8 @@ OdbcFunction : @Expression.OdbcEscape
 OdbcName = word
 
 // A property or a method reached through a name: `(c1).SomeProperty`, `t::a`,
-// `dbo.[type 1]::[Property]`. Read and dropped, as a collate clause is — what it
-// names is a type's member, which is a catalogue's business and not this tree's.
+// `dbo.[type 1]::[Property]`. Kept, as a collate clause is — what it names is a
+// type's business and not this tree's, but the text has to come back out.
 // Written as a postfix because a qualified name has already eaten every `.` it
 // could, so this fires only where one is left over.
 // Built with its left side null and closed by whoever read it, so that a chain of members
@@ -334,8 +334,8 @@ FunctionCall : @Expression
 					 name, Syntax.Tailed(args ?? Expression.None, model, returning), Syntax.Distinctly(quantifier)), tail))
 
 // What may follow a call: which rows of a window it sees when they are null, what a
-// set function inside a window is ordered by, and the window itself. All three read and
-// dropped for the same reason `OVER` is.
+// set function inside a window is ordered by, and the window itself. All three are kept,
+// for the same reason `OVER` is.
 //
 // Written out as alternatives of a rule rather than as three optionals in a sequence,
 // and that is the shape it has to have. **A choice inside a sequence or a repetition does
@@ -357,10 +357,10 @@ WithinGroup : @string
 	= t: ("WITHIN"i & "GROUP"i & '(' & OrderByClause & ')') => @(t)
 	| t: ("WITHIN"i & "GROUP"i & '(' & "GRAPH"i & "PATH"i & ')') => @(t)
 
-// The window a call is computed over. Read and dropped, as `TOP` is: it says which
-// rows the call sees and not what the call is, and the tree this grammar builds is
-// the standard's. A window may also be named, and the name is declared by the query's
-// own `WINDOW` clause.
+// The window a call is computed over. Kept, as `TOP` is: it says which rows the call
+// sees and not what the call is, which was the argument for dropping it until the round
+// trip made it an argument for a field. A window may also be named, and the name is
+// declared by the query's own `WINDOW` clause.
 Over : @Clause.Window
 	= "OVER"i & '(' & w: WindowSpecification & ')' => @(w)
 	| "OVER"i & only: Identifier => @(new Clause.Window(only, Expression.None, null, null))
@@ -478,9 +478,10 @@ DistinctTail : @Expression
 // What may be left out and what may be added. T-SQL's `FROM` is optional — `SELECT 1`
 // is a query — `TOP` stands between the quantifier and the select list, `INTO` names a
 // table the rows are written to rather than returned from, and a `WINDOW` clause at the
-// end declares the windows the select list named. The count and the windows are read
-// and dropped, as the standard's collate clause is: they say how many rows come back
-// and how a call sees them, not what the rows are.
+// end declares the windows the select list named. The count and the windows are kept, as
+// the standard's collate clause is: they say how many rows come back and how a call sees
+// them rather than what the rows are, and a statement printed without them is not the
+// statement that came in.
 TsqlQuerySpecification : @Query
 	= "SELECT"i & quantifier: SetQuantifier? & top: Top? & columns: SelectList & into: Into?
 	  & from: FromClause? & where: WhereClause? & group: GroupByClause? & having: HavingClause?
@@ -601,7 +602,7 @@ GroupingSetItem : @Expression
 //
 // `APPLY` is a join whose right side is read once per row of its left, which is a
 // question about evaluation and not about shape — so the tree says `CROSS JOIN` and the
-// word is not kept. A join hint says which algorithm to use and is dropped for the same
+// word is not kept. A join hint says which algorithm to use and is kept for the same
 // reason `OPTION` is; the syntax puts it inside the join type, so a hint without a type
 // is not a join.
 TsqlTableReference : @TableReference
@@ -727,8 +728,9 @@ SourceClause    = "WINDOW"i | "PIVOT"i | "UNPIVOT"i | "TABLESAMPLE"i | "USING"i
 // about the shape of a hint list rather than about which hints exist — the ones written
 // out are the ones that take an argument of their own.
 //
-// All of it is read and dropped: a hint says how the rows are to be fetched and never
-// which rows they are, and the tree this grammar builds is the standard's.
+// All of it is kept, one `Clause.Hint` per hint holding the text as written: a hint says
+// how the rows are to be fetched and never which rows they are, which is a good reason to
+// leave it out of a tree and no reason at all to lose it.
 TableHints : @Clause[]
 	= "WITH"i & '(' & first: TableHint & (',' & rest: TableHint)* & ')'
 		=> @(Syntax.Listed(first, rest))
@@ -791,7 +793,7 @@ VariableValueTail = '=' & HintValue | "UNKNOWN"i
 HintValue = "NULL"i | ValueExpression
 
 // §7.4's table sample: how much of a source to read, in rows or in per cent, and the
-// seed that makes the choice repeatable. Read and dropped for the same reason a hint is.
+// seed that makes the choice repeatable. Kept for the same reason a hint is.
 TableSample : @Clause
 	= "TABLESAMPLE"i & system: "SYSTEM"i?
 	  & '(' & v: ValueExpression & unit: SampleUnit? & ')' & seed: TableRepeatable?
@@ -813,9 +815,8 @@ TsqlDirectSelect : @Statement
 				 options ?? Clause.None))
 
 // §7's `WITH <common_table_expression>`: a query given a name in front of the statement
-// that uses it. Read and dropped — what it names is a query the tree already holds no
-// place for, and putting one in is a question about the shape of the tree rather than
-// about the grammar.
+// that uses it. Kept as one clause per definition — `Clause.CommonTableExpression`, name,
+// columns and query — which is the place the tree once had none for.
 //
 // The definition is a query expression and not a whole statement: the syntax forbids a
 // `WITH` inside a `WITH`, and writing it that way is how the grammar says so.
@@ -1044,9 +1045,9 @@ RowsetName
 // conditions. Almost nothing here is new — what is new is the frame around what was
 // already read.
 //
-// `OUTPUT` is read and dropped, as `TOP` and the hints are. It says what a statement
-// hands back rather than what it does, and it would be a fifth field on four records
-// that nothing yet reads.
+// `OUTPUT` is kept, as `TOP` and the hints are. It says what a statement hands back
+// rather than what it does, and it is a field on each of the four records that can carry
+// one — which the round trip reads, so it is no longer a field nothing does.
 // The terminator is part of the statement and not of the script, at least for one of
 // them: SQL Server answers `A MERGE statement must be terminated by a semi-colon (;)`.
 // So it is read here where it stands rather than cut off before the parse — cutting it
