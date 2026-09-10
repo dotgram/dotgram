@@ -353,9 +353,15 @@ CallTail : @Expression.WindowFunction
 	| w: Over                  => @(new Expression.WindowFunction(null!, null, w))
 Nulls : @string = t: ("RESPECT"i & "NULLS"i | "IGNORE"i & "NULLS"i) => @(t)
 
+// The ordered set a call is computed over reads from level 110; below it the engine answers
+// `Incorrect syntax`. The graph path it has as well reads at every level.
 WithinGroup : @string
-	= t: ("WITHIN"i & "GROUP"i & '(' & OrderByClause & ')') => @(t)
+	= t: ("WITHIN"i & "GROUP"i & '(' & OrderByClause & ')') & when Version is Since110 => @(t)
 	| t: ("WITHIN"i & "GROUP"i & '(' & "GRAPH"i & "PATH"i & ')') => @(t)
+
+// `TRIM(LEADING … FROM …)`: the standard's three words, which T-SQL reads from level 160.
+// `TRIM(x FROM y)` without one reads at every level, and is the standard's own rule still.
+TsqlTrimSpecification = ("LEADING"i | "TRAILING"i | "BOTH"i) & when Version is Since160
 
 // The window a call is computed over. Kept, as `TOP` is: it says which rows the call
 // sees and not what the call is, which was the argument for dropping it until the round
@@ -512,7 +518,7 @@ Into : @Clause
 // The windows a call may name instead of writing out: each a name and the window it
 // stands for, in the shape `OVER (…)` has inside its brackets.
 Window : @Clause[]
-	= "WINDOW"i & first: WindowDef & (',' & rest: WindowDef)* => @(Syntax.Listed(first, rest))
+	= "WINDOW"i & first: WindowDef & (',' & rest: WindowDef)* & when Version is Since160 => @(Syntax.Listed(first, rest))
 
 WindowDef : @Clause
 	= name: Identifier & "AS"i & '(' & w: WindowSpecification & ')' => @(new Clause.WindowDefinition(name, w))
@@ -629,7 +635,12 @@ JoinHint : @string
 // first was accepted here until the syntax said otherwise, and whether ScriptDom accepts
 // them the other way round is a question worth asking of it rather than of us.
 TsqlTablePrimary : @TableReference
-	= f: RowsetFunction & schema: RowsetSchema?
+	= f: JsonFunction & schema: JsonSchema?
+	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
+	  & pivot: PivotSuffix?
+		=> @(Syntax.Pivoted(
+				 new TableReference.FunctionCall(f, alias, columns, schema ?? Clause.None), pivot))
+	| f: RowsetFunction & schema: RowsetSchema?
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & pivot: PivotSuffix?
 		=> @(Syntax.Pivoted(
@@ -890,7 +901,8 @@ namespace Dialect with (
 	QueryExpression           = TsqlQueryExpression,
 	SimpleWhen                = TsqlSimpleWhen,
 	DataType                  = TsqlDataType,
-	Predicate                 = TsqlPredicate)
+	Predicate                 = TsqlPredicate,
+	TrimSpecification         = TsqlTrimSpecification)
 {
 	Select    : @Statement  = q: Sql92.DirectSelect    => @(q)
 	Query     : @Query      = q: Sql92.QueryExpression => @(q)
@@ -904,6 +916,32 @@ parse Dialect.Query     as ParseQuery
 parse Dialect.Condition as ParseSearchCondition
 parse Dialect.Value     as ParseValueExpression
 parse Dialect.Statement as ParseStatement
+
+// ── Which level of the language ─────────────────────────────────────────────
+//
+// SQL Server has one parser, and a database's compatibility level gates a small part of
+// what it reads. Measured rather than remembered: `--levels` asks every level from 100 to
+// 170 about every statement of the corpus, and 138 of 7,234 are answered differently
+// (docs/next.md). Those are the conditions written in this grammar and nothing else is — a
+// feature that arrived in a later release and reads at every level, `FOR JSON`, `OFFSET`,
+// `IS DISTINCT FROM`, the `json` type, is read by every parser below, as the engine reads it.
+//
+// `Version` is never called. Only `when Version is …` names it, so each publication's `with`
+// makes a reading of this grammar rather than a copy of it, and the parsers share one
+// machine (§5.1). `ParseStatement`, which names no level, keeps every one and reads them all.
+Version  = "100" | "110" | "120" | "130" | "140" | "150" | "160" | "170"
+Since110 = "110" | "120" | "130" | "140" | "150" | "160" | "170"
+Since130 = "130" | "140" | "150" | "160" | "170"
+Since160 = "160" | "170"
+
+parse Dialect.Statement with (Version = "100") as ParseStatement100
+parse Dialect.Statement with (Version = "110") as ParseStatement110
+parse Dialect.Statement with (Version = "120") as ParseStatement120
+parse Dialect.Statement with (Version = "130") as ParseStatement130
+parse Dialect.Statement with (Version = "140") as ParseStatement140
+parse Dialect.Statement with (Version = "150") as ParseStatement150
+parse Dialect.Statement with (Version = "160") as ParseStatement160
+parse Dialect.Statement with (Version = "170") as ParseStatement170
 
 // ── The graph pattern, which is a language of its own ───────────────────────
 //
@@ -1032,8 +1070,18 @@ RowsetFunction : @Expression.RoutineInvocation
 	= name: RowsetName & '(' & args: RowsetArguments? & ')'
 		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
 
+// `OPENJSON` is a rowset function like the others but for one thing: its schema reads from
+// level 130, where `OPENXML`'s — the same shape — reads at every level. Below 130 the engine
+// answers `Incorrect syntax near the keyword 'with'` and reads the call without one. So it
+// has a rule of its own, and is not among the names below.
+JsonFunction : @Expression.RoutineInvocation
+	= name: "OPENJSON"i & '(' & args: RowsetArguments? & ')'
+		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
+
+JsonSchema : @Clause[] = s: RowsetSchema & when Version is Since130 => @(s)
+
 RowsetName
-	= "OPENROWSET"i | "OPENQUERY"i | "OPENDATASOURCE"i | "OPENXML"i | "OPENJSON"i
+	= "OPENROWSET"i | "OPENQUERY"i | "OPENDATASOURCE"i | "OPENXML"i
 	| "CHANGETABLE"i | "CONTAINSTABLE"i | "FREETEXTTABLE"i
 	| "SEMANTICKEYPHRASETABLE"i | "SEMANTICSIMILARITYTABLE"i | "SEMANTICSIMILARITYDETAILSTABLE"i
 	| "PREDICT"i | "VECTOR_SEARCH"i | "GENERATE_SERIES"i | "STRING_SPLIT"i

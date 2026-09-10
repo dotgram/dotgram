@@ -113,6 +113,12 @@ var query  = (Query.Specification)select.Of;
 query.From[0];   // TableReference.Named { Table = "Users" }
 ```
 
+A database's compatibility level gates a small part of what SQL Server reads — the
+`WINDOW` clause from 160, `OPENJSON`'s schema from 130. `TransactSql.ParseStatement130`
+reads what the engine reads at level 130, and so on from `100` to `170`; `ParseStatement`
+names no level and reads them all. The levels are one grammar and one machine, told apart
+by a number, and what each gates was measured against SQL Server rather than remembered.
+
 The tree they build is described in [`docs/ast.md`](https://github.com/dotgram/dotgram/blob/main/docs/ast.md). Both are still
 growing: what they read is held against a corpus of somebody else's SQL and against a
 round trip — parse, print, and compare the two readings — which catches a parser that

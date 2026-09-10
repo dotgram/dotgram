@@ -82,9 +82,12 @@ static class CompatibilityLevels
 				.Select(static message => Engine.AboutNames(message) ? 0 : message)
 				.ToArray();
 
-			var here = TransactSql.TryParseStatement(line).IsSuccess ? "read here" : "refused  ";
+			// And this grammar's parser for each level beside the engine's answer, so that a
+			// row where the two differ is a row that is plainly wrong.
+			var ours = Asked.Select(level => Engine.Parse(level, line).Read ? "   ok" : "   no");
 
-			Console.WriteLine($"  {Shape(answers)}   {here}  {line}");
+			Console.WriteLine($"  {Shape(answers)}   engine  {line}");
+			Console.WriteLine($"  {string.Join(" ", ours)}   here");
 		}
 	}
 

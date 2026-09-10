@@ -17486,3 +17486,33 @@ Still to come of what Igor listed: the test in a `switch` rather than in front o
 alternative at a time, and in the lexer's tables — a keyword a reading does not have is a
 word there, and one table per reading or one table with a column per reading is the
 question that raises.
+
+## T-SQL by compatibility level
+
+`TransactSql.gram` has a `Version` now — `"100"` to `"170"`, the levels a 2025 server can be
+asked about — and three ranges, `Since110`, `Since130` and `Since160`. `ParseStatement100`
+to `ParseStatement170` are its readings and `ParseStatement` is the union; all nine share one
+machine, and `TransactSql.g.cs` went from 6.07 MB to 6.16 MB for the eight.
+
+The conditions are the engine's map and nothing else:
+
+| from | what | how it is written |
+| --- | --- | --- |
+| 110 | `WITHIN GROUP (ORDER BY …)` | its alternative of `WithinGroup`; the graph path reads everywhere |
+| 130 | `OPENJSON (…) WITH (schema)` | `OPENJSON` taken out of `RowsetName` into a rule of its own, since `OPENXML`'s schema — the same rule — reads at every level |
+| 160 | the `WINDOW` clause | its one alternative |
+| 160 | `TRIM(LEADING \| TRAILING \| BOTH …)` | the standard's `TrimSpecification`, substituted in `Dialect`'s header |
+
+`--levels file.sql` prints this grammar's answer for each level under the engine's, and on
+the probes every gated row agrees. `--engine` asks the parser of the level it is run at.
+At 150: 6,654 statements, 5,534 read by both, 294 read here and refused there.
+
+**What is not gated yet, and why.** The weak encryption algorithms — `ALGORITHM = DES` and
+its fellows, refused from 130, `RC4` from 110 — are an option's value, and an option's
+vocabulary is left open on purpose (`SymmetricOption` is a word, `=` and a value). Gating one
+value means naming the option, which is the catalogue question deferred until `is` existed;
+it exists, and the question is open again. `SEMANTICKEYPHRASETABLE (t, *)` and its column list
+read from 110 while one column reads at 100 — a shape inside `RowsetArguments`, which the
+full-text functions share. And two over-acceptances the probes turned up that no level
+explains: `OVER (w)`, a window of a name alone, is refused at every level, and so is
+`TRIM(TRAILING FROM x)` from 160, where `TRAILING` has stopped being a column name.

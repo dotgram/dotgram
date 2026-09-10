@@ -92,7 +92,7 @@ static class Engine
 
 				var one = text.Substring(statement.StartOffset, statement.FragmentLength).TrimEnd();
 
-				var here    = TransactSql.TryParseStatement(one).IsSuccess;
+				var here    = Parse(version, one).Read;
 				var message = Answer(connection, one);
 				var says    = message == 0 || AboutNames(message);
 
@@ -118,7 +118,7 @@ static class Engine
 				{
 					engine++;
 
-					var why = Corpus.Stopped(one, (int)TransactSql.TryParseStatement(one).Position);
+					var why = Corpus.Stopped(one, Parse(version, one).At);
 
 					var (count, like) = gaps.TryGetValue(why, out var before) ? before : (0, new List<string>());
 
@@ -159,6 +159,33 @@ static class Engine
 		Report(
 			version, both, engine, ours, elsewhere, neither, gaps, overRead, elsewhereShown,
 			said, saidAbout, mine, mineAbout, shown);
+	}
+
+	/// <summary>
+	/// This grammar's answer at one compatibility level: whether it read the statement, and
+	/// where it stopped.
+	/// </summary>
+	/// <remarks>
+	/// Each level is a reading of the grammar published under its own name, and all of them
+	/// share one machine. A level with no parser of its own is asked of the one that names
+	/// none, which reads what every level reads.
+	/// </remarks>
+	internal static (bool Read, int At) Parse(string version, string text)
+	{
+		var match = version switch
+		{
+			"100" => TransactSql.TryParseStatement100(text),
+			"110" => TransactSql.TryParseStatement110(text),
+			"120" => TransactSql.TryParseStatement120(text),
+			"130" => TransactSql.TryParseStatement130(text),
+			"140" => TransactSql.TryParseStatement140(text),
+			"150" => TransactSql.TryParseStatement150(text),
+			"160" => TransactSql.TryParseStatement160(text),
+			"170" => TransactSql.TryParseStatement170(text),
+			_     => TransactSql.TryParseStatement(text),
+		};
+
+		return (match.IsSuccess, (int)match.Position);
 	}
 
 	/// <summary>Puts the connection into the mode where it reads and does nothing else.</summary>
