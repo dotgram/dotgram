@@ -415,9 +415,11 @@ operands of an alternative, since removing an alternative is what it is for (`GR
 It is answered only where each side accepts a listable set of strings — a literal, a choice
 of them, a rule that is one — which is what a domain and a range are; elsewhere it says so
 and keeps the alternative (`GRAM4021`), because deciding either way would silently change
-what the parser reads. And a rule every alternative of which it rules out is not an error
-(`GRAM4022`, a warning): a construct removed from a dialect has to be removable, and what is
-left is a rule that cannot match, so a caller fails where the construct is written. `is`,
+what the parser reads. Each side is read as a whole input, so the word boundary on either
+edge of a keyword (§4.6) holds and is no obstacle; words with trivia between them are not a
+listable set, since the trivia has no bound. And a rule every alternative of which it rules out is not an error
+(`GRAM4022`, information): a construct removed from a dialect has to be removable, and what
+is left is a rule that cannot match, so a caller fails where the construct is written. `is`,
 `not`, `and` and `or` are keywords only after `when`, as `when` itself is.
 
 ### 3.7 Construction

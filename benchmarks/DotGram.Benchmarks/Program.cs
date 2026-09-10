@@ -228,6 +228,22 @@ static class Program
 		// list with an authority behind it, a defect here where this reads what the engine
 		// will not, and a finding about ScriptDom where it reads what the engine will not.
 		// Needs a server on the machine, and says so where there is none. See Engine.cs.
+		// `--levels [path] [shown]` asks every compatibility level from 100 to 170 about every
+		// statement and keeps the ones whose answer moves: what a level gates on a server
+		// that has one parser. See CompatibilityLevels.cs.
+		if (args.Length >= 1 && args[0] == "--levels")
+		{
+			var rest  = args.Skip(1).ToArray();
+			var named = rest.Length >= 1 && (rest[0].Contains('/') || rest[0].Contains('\\'));
+			var first = named ? 1 : 0;
+
+			CompatibilityLevels.Run(
+				named ? rest[0] : null,
+				rest.Length > first && int.TryParse(rest[first], out var few) ? few : 2);
+
+			return;
+		}
+
 		if (args.Length >= 1 && args[0] == "--engine")
 		{
 			var rest  = args.Skip(1).ToArray();

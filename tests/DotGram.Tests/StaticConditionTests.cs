@@ -98,6 +98,44 @@ public sealed class StaticConditionTests
 	}
 
 	[Fact]
+	public void A_word_boundary_is_no_obstacle_to_a_side()
+	{
+		// A keyword in a grammar with a `wordboundary` is the literal between two looks — no
+		// word before it, none after. Asked of a side read as a whole input both hold, and
+		// before they were understood every version written with digits was undecidable once
+		// digits continued a word, which is T-SQL's case.
+		var made = GeneratorDriverTests.Build("""
+			[DotGram.Gram("trivia = ' '*\nwordboundary = ['a'..'z' | '0'..'9']\nVersion = \"v100\" | \"v160\"\nSince160 = \"v160\"\nName = { ['a'..'z']+ }\nWord : @string\n = t: (Name & \"!\") & when Version is Since160 => @(t)\n | t: Name => @(t)\nparse Word with (Version = \"v100\") as Early\nparse Word with (Version = \"v160\") as Late")]
+			public static partial class Bounded { }
+			""").GetType("Bounded")!;
+
+		bool Reads(string entry, string input)
+		{
+			var match = made.GetMethod("Try" + entry, [typeof(string)])!.Invoke(null, [input])!;
+
+			return (bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!;
+		}
+
+		Assert.False(Reads("Early", "ab!"));
+		Assert.True (Reads("Late",  "ab!"));
+	}
+
+	[Fact]
+	public void Words_with_trivia_between_them_are_not_a_listable_set()
+	{
+		// `"is" & "not"` has trivia woven between its words and a boundary on each, so what it
+		// reads is `is`, one space or more, and `not` — no bound on the spaces, and not a set
+		// that can be listed. Spelling the trivia as nothing would have joined the words and
+		// had the boundary refuse the join, answering false where the truth is not known.
+		var run = GeneratorDriverTests.RunGenerator("""
+			[DotGram.Gram("trivia = ' '*\nwordboundary = ['a'..'z']\nPair = \"is\" & \"not\"\nName = { ['a'..'z']+ }\nWord : @string = t: (Name & \"?\") & when Pair is \"isnot\" => @(t)\nparse Word")]
+			public static partial class Spaced { }
+			""");
+
+		Assert.Contains(run.Diagnostics, one => one.Id == "GRAM4021");
+	}
+
+	[Fact]
 	public void The_logic_is_C_sharps_and_binds_the_way_C_sharps_does()
 	{
 		// `is not`, `and`, `or` and brackets, with `and` binding tighter than `or`. There is

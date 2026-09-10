@@ -162,7 +162,7 @@ static class Engine
 	}
 
 	/// <summary>Puts the connection into the mode where it reads and does nothing else.</summary>
-	static void ParseOnly(SqlConnection connection)
+	internal static void ParseOnly(SqlConnection connection)
 	{
 		using var command = connection.CreateCommand();
 
@@ -179,7 +179,7 @@ static class Engine
 	/// one and the session is built again where it has gone, which costs nothing on the
 	/// thousands that do not and is the difference between a number and a stack trace.
 	/// </remarks>
-	static int Answer(SqlConnection connection, string statement)
+	internal static int Answer(SqlConnection connection, string statement)
 	{
 		if (connection.State != ConnectionState.Open)
 		{
@@ -288,7 +288,7 @@ static class Engine
 		"WORKLOAD CLASSIFIER",
 	];
 
-	static bool AboutNames(int message) =>
+	internal static bool AboutNames(int message) =>
 		message is 117 or 137 or 195 or 207 or 208 or 448 or 1047 or 1087
 			or 4104 or 4112 or 4145
 			or 5369 or 5371 or 5374
@@ -364,7 +364,7 @@ static class Engine
 	/// engine can be asked, and what it says outranks what any parser thinks.
 	/// </para>
 	/// </remarks>
-	static SqlConnection? Connected(string version)
+	internal static SqlConnection? Connected(string version)
 	{
 		if (version is "80" or "90")
 		{

@@ -153,10 +153,14 @@ public sealed partial class GrammarNormalizer
 	/// <summary>A rule left with no alternative at all.</summary>
 	/// <remarks>
 	/// <para>
-	/// Not an error: a rule gone from this parser is what the condition was written to say,
-	/// and a construct removed from a dialect has to be removable. Remarked rather than
-	/// reported, because a rule that vanishes silently is still worth a word — it is as often
-	/// a condition nobody meant as a dialect nobody has.
+	/// Not an error, and not a warning either: a rule gone from this parser is what the
+	/// condition was written to say, and a construct removed from a dialect has to be
+	/// removable. A grammar written per version removes something in nearly every parser it
+	/// publishes, and a warning each time is noise that a project building with warnings as
+	/// errors cannot get past — which is how the first versioned publication of T-SQL met it.
+	/// Said as information and not left unsaid, because a rule that vanishes silently is still
+	/// worth a word to whoever goes looking: it is as often a condition nobody meant as a
+	/// dialect nobody has.
 	/// </para>
 	/// <para>
 	/// What it becomes is the body it had behind a negative lookahead of nothing, which fails
@@ -169,12 +173,18 @@ public sealed partial class GrammarNormalizer
 	/// </remarks>
 	Node Nothing(RuleSymbol rule, Node body)
 	{
-		Remark(
+		// At the rule's own declaration, which is where a reader goes to see what was removed;
+		// a clone made by `with` keeps the declaration it was cloned from.
+		var at = rule.Declaration?.At ?? Where(body);
+
+		_whenSound.Add(new GramDiagnostic(
 			EmptyAfterConditions,
 			$"Every alternative of '{rule.Name}' is ruled out by a `when … is …` in this " +
 			"parser, so it reads nothing here. That is what a removed construct looks like, " +
 			"and it is only worth a second look where no removal was meant.",
-			Where(body));
+			at.Position,
+			at.Length,
+			GramSeverity.Info));
 
 		return body is Node.Choice(var alternatives)
 			? new Node.Choice([.. alternatives.Select(Unreachable)])
@@ -287,8 +297,8 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	bool? Answer(Node left, Node right, int at)
 	{
-		var ours   = Strings(left, []);
-		var theirs = Strings(right, []);
+		var ours   = Settled(Spellings(left, []));
+		var theirs = Settled(Spellings(right, []));
 
 		if (ours is not null && theirs is not null)
 			return ours.Overlaps(theirs);
@@ -304,31 +314,153 @@ public sealed partial class GrammarNormalizer
 		return null;
 	}
 
+	/// <summary>One string a side may accept, and the looks it has still to pass.</summary>
+	/// <remarks>
+	/// A look reads nothing and asks about what stands beside it. Every keyword in a grammar
+	/// with a <c>wordboundary</c> wears two — nothing of a word before it, and nothing after —
+	/// and neither can be answered where it is met: a rule called from a sequence does not
+	/// know what follows it there. So a spelling carries its looks, each with the offset it
+	/// stands at, and they are asked once the whole string is written down.
+	/// </remarks>
+	readonly record struct Spelling(string Text, Look[] Looks);
+
+	/// <summary>A lookahead or a lookbehind, and where in its spelling it stands.</summary>
+	readonly record struct Look(int At, Node Test);
+
+	static readonly Look[] NoLooks = [];
+
+	/// <summary>
+	/// The strings a side accepts, read as a whole input — or null where they are not a
+	/// listable set, or where a look among them cannot be answered.
+	/// </summary>
+	/// <remarks>
+	/// As a whole input because that is what the question is: two recognizers with a string
+	/// in common. Nothing stands before a spelling and nothing after it, which is what gives
+	/// every look it carries an answer — `"100" &amp; ?!wordboundary` holds at the end of the
+	/// input, as it holds wherever the keyword is not the start of a longer word.
+	/// </remarks>
+	HashSet<string>? Settled(List<Spelling>? spellings)
+	{
+		if (spellings is null)
+			return null;
+
+		var all = new HashSet<string>(StringComparer.Ordinal);
+
+		foreach (var one in spellings)
+			switch (Passes(one.Looks, one.Text, 0))
+			{
+				case null:
+					return null;
+
+				case true:
+					all.Add(one.Text);
+					break;
+			}
+
+		return all;
+	}
+
+	/// <summary>
+	/// Whether every look holds over this text, its offsets moved on by <paramref name="shift"/>.
+	/// </summary>
+	/// <remarks>One that fails settles it, whatever the others could not say.</remarks>
+	bool? Passes(Look[] looks, string text, int shift)
+	{
+		bool? passes = true;
+
+		foreach (var look in looks)
+			switch (Holds(look.Test, text, shift + look.At))
+			{
+				case false:
+					return false;
+
+				case null:
+					passes = null;
+					break;
+			}
+
+		return passes;
+	}
+
+	/// <summary>Whether one look holds at this offset of a text that is all there is.</summary>
+	bool? Holds(Node test, string text, int at) => test switch
+	{
+		// Only where the item before, if there is one, is outside the set.
+		Node.Behind(var element) =>
+			at == 0 ? true : Within(element, text[at - 1]) is { } inside ? !inside : null,
+
+		Node.Lookahead(var positive, var body) =>
+			Starts(body, text, at) is { } starts ? starts == positive : null,
+
+		_ => null,
+	};
+
+	/// <summary>Whether a node matches some beginning of the text from this offset.</summary>
+	bool? Starts(Node body, string text, int at)
+	{
+		// One item, which is what a word boundary comes down to.
+		if (ElementOf(body) is { } element)
+			return at < text.Length ? Within(element, text[at]) : false;
+
+		if (Spellings(body, []) is not { } spellings)
+			return null;
+
+		bool? starts = false;
+
+		foreach (var one in spellings)
+			if (at + one.Text.Length <= text.Length &&
+				string.CompareOrdinal(text, at, one.Text, 0, one.Text.Length) == 0)
+				switch (Passes(one.Looks, text, at))
+				{
+					case true:
+						return true;
+
+					case null:
+						starts = null;
+						break;
+				}
+
+		return starts;
+	}
+
+	/// <summary>Whether a character is in an element's set, or null where the set is not known.</summary>
+	static bool? Within(Node.Element element, char character) =>
+		FirstSets.OfElement(element) is { Anything: false } characters
+			? characters.Overlaps(FirstSets.First.Chars([new CharRange(character, character)]))
+			: null;
+
 	/// <summary>Every string a node accepts, or null where they are not a listable set.</summary>
-	HashSet<string>? Strings(Node node, HashSet<RuleSymbol> seen)
+	List<Spelling>? Spellings(Node node, HashSet<RuleSymbol> seen)
 	{
 		switch (node)
 		{
 			case Node.Empty:
-				return [""];
+			case Node.Glue:
+				return [new Spelling("", NoLooks)];
+
+			case Node.Lookahead or Node.Behind:
+				return [new Spelling("", [new Look(0, node)])];
 
 			// A literal is the one string it spells; one written `"v1"i` is every string
 			// that spells it in any case, and those are listed rather than folded to one.
 			// Raising only the insensitive side answered `"v1"i is "v1"` with false, which
 			// is the plainest possible wrong answer.
 			case Node.Literal(var text) literal:
-				return literal.IgnoreCase ? Cases(text) : [text];
+				if (!literal.IgnoreCase)
+					return [new Spelling(text, NoLooks)];
+
+				return Cases(text) is { } cases ? [.. cases.Select(static one => new Spelling(one, NoLooks))] : null;
 
 			case Node.Choice(var alternatives):
 			{
-				var all = new HashSet<string>(StringComparer.Ordinal);
+				var all = new List<Spelling>();
 
 				foreach (var one in alternatives)
 				{
-					if (Strings(one, seen) is not { } some)
+					if (Spellings(one, seen) is not { } some)
 						return null;
 
-					all.UnionWith(some);
+					all.AddRange(some);
 
 					if (all.Count > Listable)
 						return null;
@@ -339,43 +471,61 @@ public sealed partial class GrammarNormalizer
 
 			case Node.Sequence(var operands):
 			{
-				var all = new HashSet<string>(StringComparer.Ordinal) { "" };
+				var all = new List<Spelling> { new("", NoLooks) };
 
 				foreach (var one in operands)
 				{
-					if (Strings(one, seen) is not { } some)
+					if (Spellings(one, seen) is not { } some)
 						return null;
 
 					if (all.Count * (long)some.Count > Listable)
 						return null;
 
-					all = [.. from head in all from tail in some select head + tail];
+					all = [.. from head in all from tail in some select Then(head, tail)];
 				}
 
 				return all;
 			}
 
 			// A call is the rule it names, and a rule that reaches itself accepts strings of
-			// no bound — which is exactly what cannot be listed.
+			// no bound — which is exactly what cannot be listed. Along one path and not over
+			// the whole walk: `Digit & Digit` calls one rule twice and reaches nothing twice.
 			case Node.Call(var rule, _):
-				return seen.Add(rule) && _bodies.TryGetValue(rule, out var body)
-					? Strings(body, seen)
-					: null;
+			{
+				if (!_bodies.TryGetValue(rule, out var body) || !seen.Add(rule))
+					return null;
+
+				var found = Spellings(body, seen);
+
+				seen.Remove(rule);
+
+				return found;
+			}
 
 			// The wrappers that change what is built rather than what is read.
 			case Node.Capture(_, var inside):
-				return Strings(inside, seen);
+				return Spellings(inside, seen);
 
 			case Node.Atomic(var braced):
-				return Strings(braced, seen);
+				return Spellings(braced, seen);
+
+			case Node.Marked(var marked, _):
+				return Spellings(marked, seen);
 
 			case Node.Construct(var built, _):
-				return Strings(built, seen);
+				return Spellings(built, seen);
 
 			default:
 				return null;
 		}
 	}
+
+	/// <summary>One spelling followed by another, the second's looks moved along by the first.</summary>
+	static Spelling Then(Spelling head, Spelling tail) =>
+		new(head.Text + tail.Text,
+			tail.Looks.Length == 0
+				? head.Looks
+				: [.. head.Looks, .. tail.Looks.Select(look => look with { At = look.At + head.Text.Length })]);
 
 	/// <summary>Every way a case-insensitive literal may be spelled, or null where too many.</summary>
 	/// <remarks>

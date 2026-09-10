@@ -17387,3 +17387,62 @@ twelve graphs to normalize, check and render — 355 ms and a megabyte of C# eac
 measurements above. Two publications with the same argument must at least share a machine;
 real sharing between different versions is its own piece of work, and it stops being
 optional at about the twelfth version.
+
+## What a compatibility level gates, asked of the engine
+
+Before any version went into the grammar, the engine was asked what the versions are.
+`--levels` puts every statement of the corpus to all eight levels from 100 to 170 and keeps
+the ones whose answer moves; `--levels file.sql` does the same for a file of probes, one a
+line, which is how a boundary in doubt gets settled. A message about names counts as read,
+as it does in `--engine`.
+
+**138 of 7,234 statements are answered differently by level.** The engine has one parser,
+so the level gates a small and specific part of the language — and the part is not what a
+version history suggests. Settled by probes where the corpus left it open:
+
+| from | until | what | how the engine refuses it |
+| --- | --- | --- | --- |
+| 110 | | `WITHIN GROUP (ORDER BY …)` | Msg 102 |
+| 130 | | `OPENJSON (…) WITH (schema)` — `OPENJSON` itself reads at 100 | Msg 319 |
+| 160 | | the `WINDOW` clause | Msg 102, 156 |
+| 160 | | `TRIM(LEADING \| TRAILING \| BOTH …)` — `TRIM(x FROM y)` reads at 100 | Msg 102 |
+| 170 | | `AI_GENERATE_CHUNKS` — not read here yet | Msg 102 |
+| | 120 | `ALGORITHM = DES \| DESX \| TRIPLE_DES \| TRIPLE_DES_3KEY \| RC2 \| RSA_512` | Msg 102 |
+| | 100 | `ALGORITHM = RC4 \| RC4_128` | Msg 102 |
+
+Two things in it matter for the design. **There are real removals**, and they are not
+exotic: the weak algorithms are refused from 130 on as syntax, `Incorrect syntax near`, so a
+chain that only adds could not say them. And **most of what arrived in a later version is
+not gated at all** — `FOR JSON`, `OFFSET`/`FETCH`, `IS DISTINCT FROM`, `JSON_OBJECT`,
+`GENERATE_SERIES`, `LEDGER`, the `json` and `vector` types all read at 100. A parser for
+level 130 that refused those would be refusing what a 2025 server at that level reads.
+
+### `is` met a word boundary
+
+The first condition written into T-SQL — `when Version is Since160` on the `WINDOW` clause
+— was undecidable (`GRAM4021`). T-SQL's `wordboundary` is `IdentifierPart`, which has
+digits in it, so `"160"` is a keyword and lowers to a lookbehind, the literal and a
+lookahead, and the listing gave up at the first look. The example grammar never met it: its
+boundary was letters and its versions digits.
+
+The listing now carries each look with the offset it stands at and asks it once the whole
+string is written down, a side being read as a whole input — a rule called from a sequence
+does not know what follows it there, so asking earlier cannot work. Trivia was tried as
+nothing and taken back the same hour: `"is" & "not"` spelled with nothing between joins
+the words, the boundary refuses the join, and the answer comes out false where the truth is
+that the spaces have no bound and the set cannot be listed. It says so now.
+
+`GRAM4022` became information. The same publication removed `WINDOW` from level 150, which
+is what it was written to do, and a warning each time in a project building with warnings
+as errors stopped the build.
+
+### And what a version costs
+
+One publication, `parse Dialect.Statement with (Version = "150")`, with one condition in
+the grammar: `TransactSql.g.cs` went from 6.07 MB to 8.49 MB, and the located variant with
+it. The condition is on `WINDOW`, which a query reaches and a query is reached from nearly
+everything, so `with` cloned most of the grammar to change one rule. Eight levels at that
+rate is some twenty-five megabytes a variant before the algorithms, which sit in the DDL
+and would reach the rest. The deferred item above — publications that differ only in what
+their conditions answered sharing one machine — is no longer deferrable: it is what stands
+between this grammar and its versions.
