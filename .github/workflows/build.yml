@@ -45,21 +45,36 @@ jobs:
           fi
 
       - name: Pack
-        run: dotnet pack src/DotGram/DotGram.csproj --no-build --configuration Release --output artifacts
+        run: |
+          dotnet pack src/DotGram/DotGram.csproj         --no-build --configuration Release --output artifacts
+          dotnet pack src/DotGram.Parsers/DotGram.Parsers.csproj --no-build --configuration Release --output artifacts
 
-      # The package ships one assembly, in the analyzer folder, and nothing in lib/.
-      # A stray lib/ entry would make consumers reference the generator instead of
-      # loading it — the failure would surface as a mysterious dependency, not here.
-      - name: Check the shape of the package
+      # Each package is the opposite shape of the other, and getting either one wrong
+      # is silent: the generator with a lib/ folder would be referenced instead of
+      # loaded, and the parsers without one would install and do nothing.
+      - name: Check the shape of the packages
         shell: bash
         run: |
           cd artifacts
-          unzip -o -q *.nupkg -d contents
-          cd contents
+
+          unzip -o -q DotGram.[0-9]*.nupkg -d generator
+          cd generator
           test -f analyzers/dotnet/cs/DotGram.dll || { echo "analyzer assembly missing"; exit 1; }
           test -f README.md                      || { echo "readme missing";            exit 1; }
           test -f SKILL.md                       || { echo "skill missing";             exit 1; }
-          if [ -d lib ]; then echo "package has a lib/ folder:"; find lib -type f; exit 1; fi
+          if [ -d lib ]; then echo "generator package has a lib/ folder:"; find lib -type f; exit 1; fi
+          cd ..
+
+          unzip -o -q DotGram.Parsers.*.nupkg -d parsers
+          cd parsers
+          test -f lib/net8.0/DotGram.Parsers.dll || { echo "parser assembly missing"; exit 1; }
+          test -f README.md                     || { echo "readme missing";          exit 1; }
+          if [ -d analyzers ]; then echo "parser package carries the generator:"; find analyzers -type f; exit 1; fi
+          # No runtime assembly ships, so a parser acquires no dependency by being one
+          # (docs/syntax.md §6.1). A dependency here would mean that stopped being true.
+          if grep -q "<dependency " DotGram.Parsers.nuspec; then
+            echo "parser package has dependencies:"; grep "<dependency " DotGram.Parsers.nuspec; exit 1
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
@@ -68,11 +83,13 @@ jobs:
 
   # The development machine is Windows and CI is not, which is the arrangement that
   # hides a path separator or a line ending until somebody else clones the repository.
-  # Not on every push: this build proves the same thing the one above does, on the
-  # platform where file names, separators and CRLF behave differently — and, being the
-  # only one that can, it is also where the Visual Studio extension gets built.
+  # This does not prove what the job above proves. It is the only one that builds the
+  # Visual Studio extension, which ships; it is the only one that can fail on a name
+  # Windows keeps or a character it forbids; and the one above is the only one that can
+  # fail on the character Windows forbids and Linux does not. Both directions have
+  # caught something, so both run on every push — the runners are free to a public
+  # repository and the two go at once, which costs the wait and nothing else.
   windows:
-    if: github.event_name != 'push'
     runs-on: windows-latest
 
     steps:
@@ -87,3 +104,17 @@ jobs:
 
       - name: Test
         run: dotnet test DotGram.slnx --no-build --configuration Release
+
+      # The third artifact of the tag, and the only one that cannot be built above.
+      - name: Check the extension was built
+        shell: bash
+        run: |
+          vsix=$(find src/DotGram.VisualStudio/bin/Release -name '*.vsix' | head -1)
+          test -n "$vsix" || { echo "no .vsix was produced"; exit 1; }
+          echo "built $vsix"
+          echo "VSIX=$vsix" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vsix
+          path: ${{ env.VSIX }}

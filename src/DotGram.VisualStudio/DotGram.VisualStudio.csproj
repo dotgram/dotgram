@@ -2,7 +2,10 @@
 
 	<PropertyGroup>
 		<TargetFramework>net472</TargetFramework>
-		<Version>0.1.57</Version>
+		<!-- No version here: it takes the repository's, because the three artifacts go out
+		     under one tag. `GetVsixVersion` below hands that to the manifest. It used to
+		     carry a line of its own, counted up per build and unrelated to the packages;
+		     nothing was ever published under it. -->
 		<UseWPF>true</UseWPF>
 		<Description>Visual Studio tooling for .gram documents.</Description>
 		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
