@@ -486,7 +486,14 @@ static class Engine
 			// And a database's creation.
 			//
 			//    188  Cannot specify a log file in a CREATE DATABASE statement without also specifying at least one data file.
-			or 188;
+			or 188
+
+			// And the hints.
+			//
+			//   1065  The NOLOCK and READUNCOMMITTED lock hints are not allowed for target tables of ….
+			//   1069  Index hints are only allowed in a FROM or OPTION clause.
+			//  10724  The FORCESEEK hint is not allowed for target tables of INSERT, UPDATE, or DELETE statements.
+			or 1065 or 1069 or 10724;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open

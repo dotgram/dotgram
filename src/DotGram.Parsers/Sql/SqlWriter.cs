@@ -129,7 +129,7 @@ public static class SqlWriter
 				Optioned(text, bulk);
 				break;
 
-			case Statement.Insert(var target, var columns, var rows, var with, var top, var output, var into):
+			case Statement.Insert(var target, var columns, var rows, var with, var top, var output, var into) insert:
 				With(text, with);
 				text.Append("INSERT ");
 				Top(text, top);
@@ -142,6 +142,7 @@ public static class SqlWriter
 				Output(text, output);
 				text.Append(' ');
 				Put(text, rows, 0);
+				Hinted(text, insert.Options);
 				break;
 
 			case Statement.Update(var target, var set, var from, var where, var with, var top, var output, var options):

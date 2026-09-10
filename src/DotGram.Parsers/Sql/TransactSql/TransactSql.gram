@@ -673,9 +673,11 @@ TSqlTablePrimary : @TableReference
 	  & pivot: PivotSuffix?
 		=> @(Syntax.Pivoted(
 				 new TableReference.FunctionCall(f, alias, columns, schema ?? Clause.None), pivot))
+	// A table takes hints and a table-valued function does not: `dbo.f() WITH (NOLOCK)` is
+	// refused.
 	| name: QualifiedName & version: SystemTime? & call: ('(' & args: Arguments? & ')')?
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
-	  & sample: TableSample? & hints: TableHints? & pivot: PivotSuffix?
+	  & sample: TableSample? & hints: TableHints? & when @(call is null || hints is null) & pivot: PivotSuffix?
 		=> @(Syntax.Sourced(name, version, call, args, alias, columns, sample, hints, pivot))
 	| t: TSql.Variable & s: VariableSource => @(Syntax.OfVariable(t, s))
 	| derived: TableSubquery & "AS"i? & alias: CorrelationName
@@ -770,20 +772,33 @@ SourceClause    = "WINDOW"i | "PIVOT"i | "UNPIVOT"i | "TABLESAMPLE"i | "USING"i
 // All of it is kept, one `Clause.Hint` per hint holding the text as written: a hint says
 // how the rows are to be fetched and never which rows they are, which is a good reason to
 // leave it out of a tree and no reason at all to lose it.
+// ── Hints ───────────────────────────────────────────────────────────────────
+//
+// Table, query and join hints, from the published blocks and some hundred and sixty probes.
+// Each list is closed: a table hint the engine does not know is its 321, a query hint its
+// 102. The table hints are the block's two lists as one, since the engine reads the
+// limited ones (`KEEPIDENTITY`, `IGNORE_TRIGGERS`) in a `FROM` as well, and objects only
+// afterwards to a hint a target may not carry (1065, 1069, 10724). The comma between table
+// hints may be left out, as the block's `[ , ]` says, but not doubled.
 TableHints : @Clause[]
-	= "WITH"i & '(' & first: TableHint & (',' & rest: TableHint)* & ')'
+	= "WITH"i & '(' & first: TableHint & (','? & rest: TableHint)* & ')'
 		=> @(Syntax.Listed(first, rest))
 
-TableHint : @Clause
-	= t: ("HOLDLOCK"i)              => @(new Clause.Hint(t))
-	| t: ("INDEX"i & IndexArgument) => @(new Clause.Hint(t))
-	| t: (word & TableHintTail?)    => @(new Clause.Hint(t))
+TableHint : @Clause = t: TableHintSyntax => @(new Clause.Hint(t))
 
-TableHintTail
-	= '(' & IndexValue & TableHintRest & ')'
-	| '=' & Sql92.Lexical.UnsignedNumericLiteral
-
-TableHintRest = '(' & ColumnList & ')' | (',' & IndexValue)*
+// `FORCESEEK (i)` without its columns is refused, and so are `INDEX = (i)` — which the block
+// lists — and a variable for the spatial cells. `FORCE_ANN_ONLY` is not known to this
+// engine, 17.0.1125, and `FASTFIRSTROW` has been removed.
+TableHintSyntax
+	= "NOEXPAND"i
+	| "INDEX"i & IndexArgument
+	| "FORCESEEK"i & ('(' & IndexValue & '(' & ColumnList & ')' & ')')?
+	| "SPATIAL_WINDOW_MAX_CELLS"i & '=' & Sql92.Lexical.Digits
+	| "FORCESCAN"i | "HOLDLOCK"i | "NOLOCK"i | "NOWAIT"i | "PAGLOCK"i
+	| "READCOMMITTED"i | "READCOMMITTEDLOCK"i | "READPAST"i | "READUNCOMMITTED"i
+	| "REPEATABLEREAD"i | "ROWLOCK"i | "SERIALIZABLE"i | "SNAPSHOT"i
+	| "TABLOCK"i | "TABLOCKX"i | "UPDLOCK"i | "XLOCK"i
+	| "KEEPIDENTITY"i | "KEEPDEFAULTS"i | "IGNORE_CONSTRAINTS"i | "IGNORE_TRIGGERS"i
 
 IndexArgument
 	= '=' & IndexValue
@@ -796,28 +811,39 @@ QueryHints : @Clause[]
 		=> @(Syntax.Listed(first, rest))
 
 // Kept as the words it was written as, which is what a hint is: see `Clause.Hint`.
-QueryHint : @Clause
-	= t: ("MERGE"i & MergeWhat)  => @(new Clause.Hint(t))
-	| t: ("ORDER"i & "GROUP"i)   => @(new Clause.Hint(t))
-	| t: ("USE"i & UseWhat)      => @(new Clause.Hint(t))
-	| t: ("TABLE"i & Identifier & '(' & QualifiedName & (',' & TableHint)* & ')')
-		=> @(new Clause.Hint(t))
-	| t: (word & QueryHintTail?) => @(new Clause.Hint(t))
+QueryHint : @Clause = t: QueryHintSyntax => @(new Clause.Hint(t))
 
-MergeWhat = "JOIN"i | "UNION"i
-UseWhat   = "PLAN"i & HintString
-		  | Identifier & '(' & HintString & (',' & HintString)* & ')'
+// Whole numbers where the block says an integer — `FAST 1.5` and `MAXDOP = 2` are refused —
+// and a fraction for a grant. `PARAMETERIZATION` is a plan guide's and not a query's, the
+// external pushdown is not known to this engine, and neither is
+// `DISABLE_OPTIMIZED_PLAN_FORCING`; `LABEL`, which is Synapse's, it reads. In `TABLE HINT`
+// the comma after the table is not optional, where the ones between its hints are.
+QueryHintSyntax
+	= ("HASH"i | "ORDER"i) & "GROUP"i
+	| ("CONCAT"i | "HASH"i | "MERGE"i) & "UNION"i
+	| ("LOOP"i | "MERGE"i | "HASH"i) & "JOIN"i
+	| "EXPAND"i & "VIEWS"i
+	| "FORCE"i & "ORDER"i
+	| ("FORCE"i | "DISABLE"i) & "SCALEOUTEXECUTION"i
+	| "IGNORE_NONCLUSTERED_COLUMNSTORE_INDEX"i
+	| ("KEEP"i | "KEEPFIXED"i | "ROBUST"i) & "PLAN"i
+	| ("FAST"i | "MAXDOP"i | "MAXRECURSION"i | "QUERYTRACEON"i) & Sql92.Lexical.Digits
+	| ("MAX_GRANT_PERCENT"i | "MIN_GRANT_PERCENT"i) & '=' & Sql92.Lexical.ExactNumericLiteral
+	| "NO_PERFORMANCE_SPOOL"i
+	| "OPTIMIZE"i & "FOR"i & (OptimizeFor | "UNKNOWN"i)
+	| "RECOMPILE"i
+	| "USE"i & "HINT"i & '(' & HintString & (',' & HintString)* & ')'
+	| "USE"i & "PLAN"i & HintString
+	| "TABLE"i & "HINT"i & '(' & QualifiedName
+	  & (',' & TableHintSyntax & (','? & TableHintSyntax)*)? & ')'
+	| "LABEL"i & '=' & HintString
 
-QueryHintTail
-	= "JOIN"i
-	| "UNION"i
-	| "ORDER"i
-	| "GROUP"i
-	| "PLAN"i
-	| "FOR"i & OptimizeFor
-	| '=' & ValueExpression
-	| Sql92.Lexical.UnsignedNumericLiteral
-	| Identifier
+	// Five the block does not name and the engine reads, all from the corpus of SQL Server
+	// 2005's days; two more from the same file, `OPTIMIZE CORRELATED UNION ALL` and `BYPASS
+	// OPTIMIZER_QUEUE`, it refuses.
+	| ("CHECKCONSTRAINTS"i | "SHRINKDB"i | "ALTERCOLUMN"i) & "PLAN"i
+	| "USEPLAN"i & Sql92.Lexical.Digits
+	| "KEEP"i & "UNION"i
 
 OptimizeFor
 	= '(' & VariableValue & (',' & VariableValue)* & ')'
@@ -825,7 +851,8 @@ OptimizeFor
 
 HintString = Sql92.Lexical.NationalCharacterStringLiteral | Sql92.Lexical.CharacterStringLiteral
 
-VariableValue = TSql.Variable & VariableValueTail
+// `OPTIMIZE FOR (@a)` — a variable with neither a value nor `UNKNOWN` — is read too.
+VariableValue = TSql.Variable & VariableValueTail?
 
 VariableValueTail = '=' & HintValue | "UNKNOWN"i
 
@@ -1192,11 +1219,14 @@ DmlTarget : @TableReference
 	| name: QualifiedName & hints: TableHints? => @(new TableReference.Named(name, null, null, null, null, hints ?? Clause.None))
 
 // ── §INSERT ─────────────────────────────────────────────────────────────────
+// The query hints stand after the rows, as they do after an `UPDATE`'s — except where the
+// rows are an `EXEC`, whose own options end the statement: `INSERT t EXEC p OPTION (…)` is
+// refused.
 TSqlInsert : @Statement
 	= "INSERT"i & top: Top? & into: "INTO"i? & target: DmlTarget
 	  & ('(' & columns: ColumnList & ')')? & output: OutputClause?
-	  & rows: InsertRows
-		=> @(new Statement.Insert(target, columns, rows, null, top, output, into is not null))
+	  & rows: InsertRows & options: QueryHints? & when @(options is null || rows is not Query.FromExecute)
+		=> @(new Statement.Insert(target, columns, rows, null, top, output, into is not null) { Options = options })
 
 InsertRows : @Query
 	= "DEFAULT"i & "VALUES"i    => @(new Query.DefaultValues())

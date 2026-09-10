@@ -278,7 +278,7 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT * FROM t1 OPTION (USE PLAN N'zzz')")]
 	[InlineData("SELECT * FROM t1 OPTION (USE HINT ('DISABLE_OPTIMIZED_NESTED_LOOP'))")]
 	[InlineData("SELECT * FROM t WHERE c1 = 3 OPTION (TABLE HINT (t, FORCESCAN))")]
-	[InlineData("SELECT * FROM t1 OPTION (PARAMETERIZATION SIMPLE, RECOMPILE, EXPAND VIEWS)")]
+	[InlineData("SELECT * FROM t1 OPTION (RECOMPILE, EXPAND VIEWS)")]
 	public void The_query_layer_reads(string input)
 	{
 		var match = TransactSql.TryParseSelect(input);
@@ -642,6 +642,51 @@ public sealed class TransactSqlTests
 		"ONLINE = ON (WAIT_AT_LOW_PRIORITY (MAX_DURATION = 1 MINUTES, ABORT_AFTER_WAIT = BLOCKERS)), FILLFACTOR = 80)")]
 	[InlineData("ALTER TABLE t REBUILD PARTITION = 1 WITH (SORT_IN_TEMPDB = ON, MAXDOP = 2)")]
 	public void The_table_catalogue_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>Table, query and join hints, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM t WITH (FOO)")]
+	[InlineData("SELECT * FROM t WITH (FASTFIRSTROW)")]
+	[InlineData("SELECT * FROM t WITH (FORCESEEK (i))")]
+	[InlineData("SELECT * FROM t WITH (SPATIAL_WINDOW_MAX_CELLS = 1.5)")]
+	[InlineData("SELECT * FROM t WITH (NOLOCK, , READPAST)")]
+	[InlineData("SELECT * FROM dbo.f() WITH (NOLOCK)")]
+	[InlineData("SELECT 1 OPTION (FOO)")]
+	[InlineData("SELECT 1 OPTION (HASH ORDER)")]
+	[InlineData("SELECT 1 OPTION (PARAMETERIZATION SIMPLE)")]
+	[InlineData("SELECT 1 OPTION (MAXDOP = 2)")]
+	[InlineData("SELECT 1 OPTION (FAST 1.5)")]
+	[InlineData("SELECT 1 OPTION (LABEL = x)")]
+	[InlineData("SELECT 1 OPTION (FORCE EXTERNALPUSHDOWN)")]
+	[InlineData("SELECT 1 OPTION (TABLE HINT (t NOLOCK))")]
+	[InlineData("SELECT * FROM a CROSS LOOP JOIN b")]
+	[InlineData("INSERT t EXEC p OPTION (RECOMPILE)")]
+	[InlineData("SELECT * FROM t1 OPTION (OPTIMIZE CORRELATED UNION ALL)")]
+	[InlineData("SELECT * FROM t1 OPTION (BYPASS OPTIMIZER_QUEUE)")]
+	public void The_hint_catalogue_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM t WITH (NOLOCK INDEX(i))")]
+	[InlineData("SELECT * FROM t WITH (INDEX (i) INDEX (j), FORCESEEK (i (a, b)), SPATIAL_WINDOW_MAX_CELLS = 512)")]
+	[InlineData("SELECT * FROM t WITH (INDEX = [i], NOEXPAND, KEEPIDENTITY)")]
+	[InlineData("SELECT * FROM t WITH (XLOCK ROWLOCK)")]
+	[InlineData("SELECT 1 OPTION (MAX_GRANT_PERCENT = 10.5, MAXDOP 2, FORCE SCALEOUTEXECUTION, LABEL = N'x')")]
+	[InlineData("SELECT 1 OPTION (OPTIMIZE FOR (@a UNKNOWN, @b = 1, @c), USE HINT ('A', N'B'), USE PLAN N'<p/>')")]
+	[InlineData("SELECT * FROM t OPTION (TABLE HINT (dbo.t, NOLOCK INDEX(i), FORCESEEK))")]
+	[InlineData("SELECT * FROM a FULL OUTER HASH JOIN b ON 1 = 1 OPTION (LOOP JOIN, CONCAT UNION, HASH GROUP)")]
+	[InlineData("UPDATE t WITH (IGNORE_TRIGGERS) SET a = 1 OPTION (RECOMPILE)")]
+	[InlineData("INSERT t (a) SELECT 1 FROM u OPTION (MAXDOP 1)")]
+	[InlineData("INSERT t VALUES (1) OPTION (RECOMPILE)")]
+	[InlineData("INSERT t DEFAULT VALUES OPTION (RECOMPILE)")]
+	[InlineData("SELECT * FROM t1 OPTION (CHECKCONSTRAINTS PLAN, USEPLAN 2, SHRINKDB PLAN, ALTERCOLUMN PLAN, KEEP UNION)")]
+	public void The_hint_catalogue_reads_what_the_engine_does(string input)
 	{
 		var match = TransactSql.TryParseStatement(input);
 

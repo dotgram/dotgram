@@ -17863,3 +17863,41 @@ statements and the `GO` that ended it.
 `--split` reads each file with `ParseScript` now: 553 files cut where ScriptDom cuts them,
 none cut differently, 412 not read whole — one more read than with the regular expression,
 and no file stopped at a `GO`. Round trip 100% of 6,668; at 150 nothing moved.
+
+## Hints, as a catalogue
+
+Table, query and join hints were a word and whatever followed it. They are the published
+blocks now, put to the engine some hundred and sixty times, and the answers were mostly
+the blocks' with a few of the engine's own:
+
+- **The table hints are one list.** The block keeps a limited list for a statement's
+  target, but a `FROM` reads `KEEPIDENTITY` and `IGNORE_TRIGGERS` as well; what a target may
+  not carry — `NOLOCK`, an index, `FORCESEEK` — is objected to afterwards (1065, 1069,
+  10724, now on the audit's read side). A hint the engine does not know is its 321, which
+  catches `FASTFIRSTROW`, removed, and `FORCE_ANN_ONLY`, too new for this build.
+- **The comma between table hints is optional** — `WITH (NOLOCK INDEX(i))` reads, as the
+  block's `[ , ]` says, and a doubled one does not; in `TABLE HINT (t, …)` the comma after
+  the table is required.
+- **The block is wrong once.** `INDEX = (i)` is refused, where it lists it.
+- **Numbers.** `FAST`, `MAXDOP`, `MAXRECURSION` and `QUERYTRACEON` take whole numbers, the
+  grants a fraction, and none a variable; `MAXDOP = 2` is refused.
+- **What is not a query hint.** `PARAMETERIZATION`, which is a plan guide's, the external
+  pushdown and `DISABLE_OPTIMIZED_PLAN_FORCING`, neither known to this build. `LABEL = N'x'`,
+  Synapse's, is read.
+- **The engine knows more than the block.** The corpus has query hints from SQL Server
+  2005's days that no block names, and the first run over it lost a statement to them.
+  Asked one by one, the engine reads five — `CHECKCONSTRAINTS PLAN`, `USEPLAN 2`, `SHRINKDB
+  PLAN`, `ALTERCOLUMN PLAN`, `KEEP UNION` — and refuses two, `OPTIMIZE CORRELATED UNION ALL`
+  and `BYPASS OPTIMIZER_QUEUE`. The five are in the list. One answer does not add up:
+  `OPTION (CHECKCONSTRAINTS PLAN, OPTIMIZE CORRELATED UNION ALL)` is read, the second hint
+  alone is refused, and this refuses both; it is the one file `--split` no longer reads.
+
+At 150, 5,585 read by both (from 5,578), the work list 383 (from 390) and read here but
+refused there 50 (from 54). 170 probes, two answered otherwise: the pair above, and `FROM t
+(HOLDLOCK)`. Round trip 100% of 6,668.
+- **A table-valued function takes no hints**, and an `INSERT` takes `OPTION (…)` after a
+  query, `VALUES` or `DEFAULT VALUES` but not after `EXEC`. The statement had nowhere to
+  keep them, and has now, as an `UPDATE` does.
+
+One form is left for the tree: a hint in brackets with no `WITH`, `FROM t (NOLOCK)`, is read
+as a call of a function called `t`, and `FROM t (HOLDLOCK)` not at all.

@@ -139,7 +139,14 @@ public abstract record Statement : ISqlSpan
 	/// <param name="Into">Whether the optional <c>INTO</c> was written, which is a spelling the tree keeps.</param>
 	public sealed record Insert(
 		TableReference? Target, string[]? Columns, Query Rows,
-		Clause[]? With = null, Clause? Top = null, Clause? Output = null, bool Into = true) : Statement;
+		Clause[]? With = null, Clause? Top = null, Clause? Output = null, bool Into = true) : Statement
+	{
+		/// <summary>
+		/// T-SQL's <c>OPTION (…)</c> after the rows, where they are a query, a <c>VALUES</c>
+		/// or <c>DEFAULT VALUES</c> — the engine refuses it after an <c>EXEC</c>.
+		/// </summary>
+		public Clause[]? Options { get; init; }
+	}
 
 	/// <summary>§14.14 rows changed in place: what to change, to what, and which rows.</summary>
 	/// <remarks>
