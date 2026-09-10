@@ -124,6 +124,32 @@ than by position and is a question for whatever resolves names; and the order wr
 inside a named query's body, since a `WITH` defines a table and a table has no order until
 something asks for one.
 
+## Walking it
+
+`SqlWalker.Walk(root, visit)` hands every node under `root` to `visit` — the root first, each
+node before what it holds — until `visit` answers false, and says whether it went to the end.
+A node is anything that is an `ISqlSpan`, which is what the five roots are; what a record
+holds of them, one or an array, is found from its type once, so a record added here is walked
+without the walker being told.
+
+It is how a question the parser does not answer gets asked. The parser reads what may be
+written; whether an option was written twice, or a table somebody forbids was named, is a
+check, and a check is a lambda that matches the nodes it is about:
+
+```csharp
+SqlWalker.Walk(statement, node =>
+{
+    if (node is Clause.ConstraintDefinition { Options: { } options } &&
+        options.OfType<Clause.Option>().GroupBy(o => (o.Name, o.Partitions)).Any(g => g.Count() > 1))
+        problems.Add(node);
+
+    return true;
+});
+```
+
+A check sees what the tree keeps and nothing else: where a statement keeps what followed its
+name as `Tail`, the words are there and their parts are not.
+
 ## The nodes
 
 ### `Statement`
