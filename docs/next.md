@@ -17607,3 +17607,39 @@ know is a refusal the catalogue has to share, not an opinion about a name — wh
 seventeen statements from both-read into the defect column before any family is written. At
 150 after the keys: 5,573 read by both, 395 on the work list where it was 412, 101 read here
 and refused there where it was 108. Round trip 100% of 6,778.
+
+### The index options
+
+**Eleven lists where there was one.** `CREATE INDEX` on rows and its old unbracketed six, a
+columnstore index, an XML index, a key in `CREATE TABLE`, a key `ALTER TABLE` adds, an index
+written inside the table, and `ALTER INDEX`'s rebuild of every partition, of one, its
+reorganization, resumption and settings; and the statistics' two. The engine was put a
+hundred and twenty questions about them, and they differ more than the blocks say:
+
+- `OPTIMIZE_FOR_SEQUENTIAL_KEY` is `CREATE INDEX`'s and not `REBUILD`'s; `DROP_EXISTING` and
+  `COMPRESSION_DELAY` are refused by a rebuild; one partition takes neither `FILLFACTOR` nor
+  the locks.
+- A key in `CREATE TABLE` takes neither `ONLINE` nor `SORT_IN_TEMPDB`; one `ALTER TABLE` adds
+  takes both, and `RESUMABLE` — the same `TableBody`, so `ALTER TABLE … ADD` calls it
+  `with (ConstraintWith = AlterConstraintWith)` rather than a second copy being written. The
+  only old spelling a key keeps is `WITH FILLFACTOR = 80`; an index inside the table keeps none.
+- An XML index is never online and never ignores a duplicate, and takes
+  `STATISTICS_NORECOMPUTE`, which its block does not name. `IGNORE_DUP_KEY = ON` may carry
+  `(SUPPRESS_MESSAGES = …)`, which no block names. `BUCKET_COUNT` is read wherever an index is
+  built or rebuilt and objected to later where the index is not a hash.
+- `COMPRESSION_DELAY = 1 MINUTE` reads and `MAX_DURATION = 5 MINUTE` does not. `CREATE
+  STATISTICS` takes `STATS_STREAM` and refuses the `ROWCOUNT` and `PAGECOUNT` its block lists
+  beside it; the commas are required and the order is free.
+
+**How the lists are written is worth recording**, because the rest of the catalogue will be
+written the same way. Each is the published block transcribed as a recognizer, standing in
+front of the builder that was already there: `?=(IndexOptionSyntax & OptionEnds) & o:
+OptionSetting`. The list says what may be written and the option is built as every option
+was, so the tree, the writer and the round trip do not move. `OptionEnds` — a comma or the
+bracket — is what keeps a list from accepting a prefix: `ONLINE = ON (MAXDOP = 2)` begins like
+an option and is not one.
+
+The first run over the corpus found two things the probes had not asked: `MINUTE` in the
+singular after a delay, and `STATS_STREAM` alone in `CREATE STATISTICS`, which a probe with
+`ROWCOUNT` beside it had made look refused. Both fixed, and at 150 the work list is where the
+keys left it, 395, with 99 read here and refused there. Round trip 100% of 6,770.

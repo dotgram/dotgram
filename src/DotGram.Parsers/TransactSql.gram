@@ -1711,11 +1711,11 @@ NullSpec : @string = t: ("NOT"i & "NULL"i | "NULL"i) => @(Syntax.Squared(t))
 // ── Constraints ─────────────────────────────────────────────────────────────
 ConstraintBody : @Clause.ConstraintDefinition
 	= "PRIMARY"i & "KEY"i & k: IndexOrder? & h: "HASH"i? & columns: IndexColumns?
-	  & o: IndexWith? & p: IndexOn? & e: Enforced?
+	  & o: ConstraintWith? & p: IndexOn? & e: Enforced?
 		=> @(Clause.Keyed("PRIMARY KEY", k, h, columns, o?.Options, p, e)
 			 with { Bracketed = o is not { Bare: true } })
 	| "UNIQUE"i & k: IndexOrder? & h: "HASH"i? & columns: IndexColumns?
-	  & o: IndexWith? & p: IndexOn? & e: Enforced?
+	  & o: ConstraintWith? & p: IndexOn? & e: Enforced?
 		=> @(Clause.Keyed("UNIQUE", k, h, columns, o?.Options, p, e)
 			 with { Bracketed = o is not { Bare: true } })
 	| "FOREIGN"i & "KEY"i & columns: IndexColumns? & r: References & e: Enforced?
@@ -1769,8 +1769,173 @@ IndexName : @string = t: Identifier => @(t) | t: PartitionName => @(t)
 // rule of its own would take the `WITH`, find no bracket, and sink the alternative around
 // it: six of the corpus's indexes stopped being read the afternoon that was tried.
 IndexWith : @Clause.Option
-	= "WITH"i & '(' & o: OptionList & ')' => @(new Clause.Option("WITH", null, o))
-	| "WITH"i & o: OptionList             => @(new Clause.Option("WITH", null, o, null, true))
+	= "WITH"i & '(' & first: IndexOption & (',' & rest: IndexOption)* & ')'
+		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+	| "WITH"i & first: OldIndexOption & (',' & rest: OldIndexOption)*
+		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest), null, true))
+
+// ── The index options' catalogue ────────────────────────────────────────────
+//
+// One list for each place an index is built or rebuilt, as the published blocks give them
+// and the engine settled wherever they leave anything open. They differ more than the
+// blocks suggest: `OPTIMIZE_FOR_SEQUENTIAL_KEY` is `CREATE INDEX`'s and not `REBUILD`'s; a
+// key in `CREATE TABLE` takes neither `ONLINE` nor `SORT_IN_TEMPDB`, and one `ALTER TABLE`
+// adds takes both; an XML index takes `STATISTICS_NORECOMPUTE`, which its block does not
+// name; and `IGNORE_DUP_KEY = ON` may carry `(SUPPRESS_MESSAGES = …)`, which no block names
+// at all. A value is a literal — `FILLFACTOR = @f` is refused.
+//
+// Each list is a recognizer standing in front of the builder: what it names may be written,
+// and the option is then built as every other is, so the tree and what prints it are the ones
+// the round trip already holds. Inside brackets an option ends at a comma or at the bracket,
+// because `ONLINE = ON (MAXDOP = 2)` begins like an option and is not one.
+
+OptionEnds = ?=(',' | ')')
+
+OnOffValue      = '=' & OnOff
+Number          = Sql92.Lexical.UnsignedNumericLiteral
+Minutes         = Number & "MINUTES"i?
+
+// A delay may say its unit either way, which a duration may not: `COMPRESSION_DELAY = 1
+// MINUTE` reads and `MAX_DURATION = 5 MINUTE` is refused.
+DelayMinutes    = Number & ("MINUTES"i | "MINUTE"i)?
+LowPriorityWait = "WAIT_AT_LOW_PRIORITY"i & '(' & "MAX_DURATION"i & '=' & Minutes & ','
+				  & "ABORT_AFTER_WAIT"i & '=' & ("NONE"i | "SELF"i | "BLOCKERS"i) & ')'
+
+RowCompression         = "NONE"i | "ROW"i | "PAGE"i
+ColumnstoreCompression = "COLUMNSTORE"i | "COLUMNSTORE_ARCHIVE"i
+
+PadIndex         = "PAD_INDEX"i & OnOffValue
+FillFactor       = "FILLFACTOR"i & '=' & Number
+SortInTempdb     = "SORT_IN_TEMPDB"i & OnOffValue
+IgnoreDupKey     = "IGNORE_DUP_KEY"i & '=' & ("ON"i & ('(' & "SUPPRESS_MESSAGES"i & OnOffValue & ')')? | "OFF"i)
+NoRecompute      = "STATISTICS_NORECOMPUTE"i & OnOffValue
+IncrementalStats = "STATISTICS_INCREMENTAL"i & OnOffValue
+DropExisting     = "DROP_EXISTING"i & OnOffValue
+OnlineOption     = "ONLINE"i & '=' & ("ON"i & ('(' & LowPriorityWait & ')')? | "OFF"i)
+OnlineOnOff      = "ONLINE"i & OnOffValue
+Resumable        = "RESUMABLE"i & OnOffValue
+MaxDuration      = "MAX_DURATION"i & '=' & Minutes
+RowLocks         = "ALLOW_ROW_LOCKS"i & OnOffValue
+PageLocks        = "ALLOW_PAGE_LOCKS"i & OnOffValue
+SequentialKey    = "OPTIMIZE_FOR_SEQUENTIAL_KEY"i & OnOffValue
+MaxDop           = "MAXDOP"i & '=' & Number
+CompressionDelay = "COMPRESSION_DELAY"i & '=' & DelayMinutes
+XmlCompression   = "XML_COMPRESSION"i & OnOffValue & OnPartitions?
+
+// A memory-optimized hash index's size. The engine reads it wherever an index is built or
+// rebuilt and objects later to one that is not a hash index, so it is in every such list.
+BucketCount      = "BUCKET_COUNT"i & '=' & Number
+
+RowDataCompression         = "DATA_COMPRESSION"i & '=' & RowCompression & OnPartitions?
+ColumnstoreDataCompression = "DATA_COMPRESSION"i & '=' & ColumnstoreCompression & OnPartitions?
+AnyDataCompression         = "DATA_COMPRESSION"i & '=' & (RowCompression | ColumnstoreCompression) & OnPartitions?
+
+// `CREATE INDEX` on rows.
+IndexOption : @Clause = ?=(IndexOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
+IndexOptionSyntax
+	= PadIndex | FillFactor | SortInTempdb | IgnoreDupKey | NoRecompute | IncrementalStats
+	| DropExisting | OnlineOption | Resumable | MaxDuration | RowLocks | PageLocks | SequentialKey
+	| MaxDop | RowDataCompression | XmlCompression | BucketCount
+
+// The unbracketed list `CREATE INDEX` still reads, and only its six — `WITH ALLOW_ROW_LOCKS
+// = ON` without brackets is refused.
+OldIndexOption : @Clause = ?=OldIndexOptionSyntax & o: OptionSetting => @(o)
+OldIndexOptionSyntax
+	= ("PAD_INDEX"i | "SORT_IN_TEMPDB"i | "IGNORE_DUP_KEY"i | "STATISTICS_NORECOMPUTE"i | "DROP_EXISTING"i) & ?!'='
+	| FillFactor
+
+// A columnstore index's five.
+ColumnstoreOption : @Clause = ?=(ColumnstoreOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
+ColumnstoreOptionSyntax = DropExisting | MaxDop | OnlineOnOff | CompressionDelay | ColumnstoreDataCompression
+
+ColumnstoreWith : @Clause.Option
+	= "WITH"i & '(' & first: ColumnstoreOption & (',' & rest: ColumnstoreOption)* & ')'
+		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+
+// An XML index's, selective or not: never built online, never ignoring a duplicate, and
+// compressed only as XML.
+XmlIndexOption : @Clause = ?=(XmlIndexOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
+XmlIndexOptionSyntax
+	= PadIndex | FillFactor | SortInTempdb | "IGNORE_DUP_KEY"i & '=' & "OFF"i | DropExisting
+	| "ONLINE"i & '=' & "OFF"i | RowLocks | PageLocks | MaxDop | XmlCompression | NoRecompute
+
+XmlIndexWith : @Clause.Option
+	= "WITH"i & '(' & first: XmlIndexOption & (',' & rest: XmlIndexOption)* & ')'
+		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+
+// An index written inside the table, which may be a columnstore and so takes a delay.
+TableIndexOption : @Clause = ?=(TableIndexOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
+TableIndexOptionSyntax = ConstraintOptionSyntax | CompressionDelay
+
+TableIndexWith : @Clause.Option
+	= "WITH"i & '(' & first: TableIndexOption & (',' & rest: TableIndexOption)* & ')'
+		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+
+// A primary key or a unique constraint in `CREATE TABLE`, and the one old spelling it keeps:
+// `WITH FILLFACTOR = 80` alone.
+ConstraintOption : @Clause = ?=(ConstraintOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
+ConstraintOptionSyntax
+	= PadIndex | FillFactor | IgnoreDupKey | NoRecompute | IncrementalStats | RowLocks | PageLocks
+	| SequentialKey | AnyDataCompression | XmlCompression | BucketCount
+
+FillFactorAlone : @Clause = ?=FillFactor & o: OptionSetting => @(o)
+
+ConstraintWith : @Clause.Option
+	= "WITH"i & '(' & first: ConstraintOption & (',' & rest: ConstraintOption)* & ')'
+		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+	| "WITH"i & only: FillFactorAlone
+		=> @(new Clause.Option("WITH", null, new Clause[] { only }, null, true))
+
+// And one `ALTER TABLE` adds, which may be built online and resumed — put in place of the
+// one above by `ALTER TABLE … ADD`, not written twice.
+AlterConstraintOption : @Clause = ?=(AlterConstraintOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
+AlterConstraintOptionSyntax
+	= ConstraintOptionSyntax | SortInTempdb | MaxDop | OnlineOnOff | Resumable | MaxDuration
+
+AlterConstraintWith : @Clause.Option
+	= "WITH"i & '(' & first: AlterConstraintOption & (',' & rest: AlterConstraintOption)* & ')'
+		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+	| "WITH"i & only: FillFactorAlone
+		=> @(new Clause.Option("WITH", null, new Clause[] { only }, null, true))
+
+// `ALTER INDEX`: a rebuild of every partition, of one, a reorganization, a resumption and
+// the settings an index keeps.
+RebuildOption : @Clause = ?=(RebuildOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
+RebuildOptionSyntax
+	= PadIndex | FillFactor | SortInTempdb | IgnoreDupKey | NoRecompute | IncrementalStats
+	| OnlineOption | Resumable | MaxDuration | RowLocks | PageLocks | MaxDop | AnyDataCompression
+	| XmlCompression | BucketCount
+
+RebuildWith : @Clause.Option
+	= "WITH"i & '(' & first: RebuildOption & (',' & rest: RebuildOption)* & ')'
+		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+
+PartitionRebuildOption : @Clause = ?=(PartitionRebuildOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
+PartitionRebuildOptionSyntax
+	= SortInTempdb | MaxDop | Resumable | MaxDuration | AnyDataCompression | XmlCompression | OnlineOption
+
+PartitionRebuildWith : @Clause.Option
+	= "WITH"i & '(' & first: PartitionRebuildOption & (',' & rest: PartitionRebuildOption)* & ')'
+		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+
+ReorganizeOption : @Clause = ?=(ReorganizeOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
+ReorganizeOptionSyntax = "LOB_COMPACTION"i & OnOffValue | "COMPRESS_ALL_ROW_GROUPS"i & OnOffValue
+
+ReorganizeWith : @Clause.Option
+	= "WITH"i & '(' & first: ReorganizeOption & (',' & rest: ReorganizeOption)* & ')'
+		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+
+ResumeOption : @Clause = ?=(ResumeOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
+ResumeOptionSyntax = MaxDop | MaxDuration | LowPriorityWait
+
+ResumeWith : @Clause.Option
+	= "WITH"i & '(' & first: ResumeOption & (',' & rest: ResumeOption)* & ')'
+		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+
+SetIndexOption : @Clause = ?=(SetIndexOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
+SetIndexOptionSyntax = RowLocks | PageLocks | SequentialKey | IgnoreDupKey | NoRecompute | CompressionDelay
+
+SetIndexOptions : @Clause[] = first: SetIndexOption & (',' & rest: SetIndexOption)* => @(Syntax.Listed(first, rest))
 
 IndexOn : @Clause = "ON"i & p: PlacementTarget => @(p with { Kind = "ON" })
 
@@ -1781,7 +1946,7 @@ TableIndex : @Clause
 	  & ("ORDER"i & '(' & order: ColumnList & ')')?
 	  & ("INCLUDE"i & '(' & include: ColumnList & ')')?
 	  & ("WHERE"i & filter: SearchCondition)?
-	  & o: IndexWith? & p: IndexOn? & ("FILESTREAM_ON"i & f: PlacementTarget)?
+	  & o: TableIndexWith? & p: IndexOn? & ("FILESTREAM_ON"i & f: PlacementTarget)?
 		=> @(Clause.Indexed(name, u, c, s, h, columns, order, include, filter, o?.Options, (Clause.Placement?)p, f is null ? null : f with { Kind = "FILESTREAM_ON" })
 			 with { Bracketed = o is not { Bare: true } })
 
@@ -1799,9 +1964,11 @@ AlterTableAction : @Statement.AlterTable
 		=> @(Statement.Altered("ADD", new Clause[] { c }))
 	| "ADD"i & "CONSTRAINT"i & name: Identifier & c: ConstraintBody & "FOR"i & Identifier
 		=> @(Statement.Altered("ADD", new Clause[] { c with { Name = name } }))
-	| "ADD"i & body: TableBody
+	// A key `ALTER TABLE` adds may be built online and resumed, which one `CREATE TABLE`
+	// declares may not: the same body, with the other list of index options in its place.
+	| "ADD"i & body: TableBody with (ConstraintWith = AlterConstraintWith)
 		=> @(Statement.Altered("ADD", body))
-	| "WITH"i & mode: CheckWord & "ADD"i & body: TableBody
+	| "WITH"i & mode: CheckWord & "ADD"i & body: TableBody with (ConstraintWith = AlterConstraintWith)
 		=> @(Statement.Altered("WITH " + Syntax.Squared(mode) + " ADD", body))
 	| "ALTER"i & "COLUMN"i & column: ColumnDefinition & options: OptionsWith?
 		=> @(Statement.Altered("ALTER COLUMN", new Clause[] { column }, options))
@@ -1989,13 +2156,13 @@ ViewStatement : @Statement
 CreateIndexStatement : @Statement
 	= "CREATE"i & "SELECTIVE"i & "XML"i & "INDEX"i & name: Identifier?
 	  & "ON"i & on: QualifiedName & '(' & promoted: ColumnList & ')'
-	  & tail: (("WITH"i & XmlNamespaces)? & SelectivePaths) & o: IndexWith?
+	  & tail: (("WITH"i & XmlNamespaces)? & SelectivePaths) & o: XmlIndexWith?
 		=> @(new Statement.CreateIndex(
 				 on, Clause.Indexed(name ?? "", null, null, null, null, Syntax.Columns(promoted), null, null, null, o?.Options, null, null),
 				 "SELECTIVE XML", Syntax.Tail(tail)))
 	| "CREATE"i & kind: ("PRIMARY"i? & "XML"i) & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
-	  & over: XmlIndexUsing? & o: IndexWith?
+	  & over: XmlIndexUsing? & o: XmlIndexWith?
 		=> @(new Statement.CreateIndex(
 				 on, Clause.Indexed(name, null, null, null, null, columns, null, null, null, o?.Options, null, null),
 				 Syntax.Squared(kind), Syntax.Tail(over)))
@@ -2010,14 +2177,14 @@ CreateIndexStatement : @Statement
 	  & "ON"i & on: QualifiedName & columns: IndexColumns?
 	  & ("ORDER"i & '(' & order: ColumnList & ')')?
 	  & ("WHERE"i & filter: SearchCondition)?
-	  & o: IndexWith? & p: IndexOn?
+	  & o: ColumnstoreWith? & p: IndexOn?
 		=> @(new Statement.CreateIndex(on, Clause.Indexed(name, null, k, s, null, columns, order, null, filter, o?.Options, (Clause.Placement?)p, null)
 			 with { Bracketed = o is not { Bare: true } }))
 
 // `ALTER INDEX` names one index or all of them, and then says what to do.
 AlterIndexStatement : @Statement
 	= "ALTER"i & "INDEX"i & name: IndexTarget & "ON"i & on: QualifiedName
-	  & ("WITH"i & ns: XmlNamespaces)? & paths: SelectivePaths & o: IndexWith?
+	  & ("WITH"i & ns: XmlNamespaces)? & paths: SelectivePaths & o: XmlIndexWith?
 		=> @(new Statement.AlterIndex(name, on, "FOR", null, o?.Options, paths, ns))
 	| "ALTER"i & "INDEX"i & name: IndexTarget & "ON"i & on: QualifiedName & a: AlterIndexAction
 		=> @(a with { Name = name, On = on })
@@ -2054,15 +2221,18 @@ PathHint = "AS"i & "XQUERY"i & Sql92.Lexical.CharacterStringLiteral? & PathLengt
 PathLength = "MAXLENGTH"i & '(' & Sql92.Lexical.UnsignedNumericLiteral & ')'
 
 AlterIndexAction : @Statement.AlterIndex
-	= "REBUILD"i & ("PARTITION"i & '=' & p: PartitionWhich)? & o: IndexWith?
+	// One partition takes fewer options than all of them — `FILLFACTOR` is refused there.
+	= "REBUILD"i & "PARTITION"i & '=' & ?!"ALL"i & p: PartitionWhich & o: PartitionRebuildWith?
 		=> @(new Statement.AlterIndex("", "", "REBUILD", p, o?.Options))
-	| "REORGANIZE"i & ("PARTITION"i & '=' & p: PartitionWhich)? & o: IndexWith?
+	| "REBUILD"i & ("PARTITION"i & '=' & ?="ALL"i & p: PartitionWhich)? & o: RebuildWith?
+		=> @(new Statement.AlterIndex("", "", "REBUILD", p, o?.Options))
+	| "REORGANIZE"i & ("PARTITION"i & '=' & p: PartitionWhich)? & o: ReorganizeWith?
 		=> @(new Statement.AlterIndex("", "", "REORGANIZE", p, o?.Options))
 	| "DISABLE"i => @(new Statement.AlterIndex("", "", "DISABLE"))
 	| "PAUSE"i   => @(new Statement.AlterIndex("", "", "PAUSE"))
 	| "ABORT"i   => @(new Statement.AlterIndex("", "", "ABORT"))
-	| "RESUME"i & o: IndexWith? => @(new Statement.AlterIndex("", "", "RESUME", null, o?.Options))
-	| "SET"i & '(' & settings: OptionList & ')' => @(new Statement.AlterIndex("", "", "SET", null, settings))
+	| "RESUME"i & o: ResumeWith? => @(new Statement.AlterIndex("", "", "RESUME", null, o?.Options))
+	| "SET"i & '(' & settings: SetIndexOptions & ')' => @(new Statement.AlterIndex("", "", "SET", null, settings))
 
 // ── The keys, and what is locked with them ──────────────────────────────────
 //
@@ -2628,9 +2798,9 @@ ExternalStatement : @Statement
 	// is three words where an option is usually a name and a value, and the option list
 	// reads it as one name — which is what a run of words is for (§4.6).
 	| "CREATE"i & "STATISTICS"i & name: Identifier
-	  & tail: ("ON"i & QualifiedName & IndexColumns & ("WHERE"i & SearchCondition)? & StatisticsWith?)
+	  & tail: ("ON"i & QualifiedName & IndexColumns & ("WHERE"i & SearchCondition)? & CreateStatisticsWith?)
 		=> @(new Statement.StatisticsDefinition(name) { Tail = Syntax.Tail(tail) })
-	| "UPDATE"i & "STATISTICS"i & on: QualifiedName & tail: (StatisticsTarget? & StatisticsWith?)
+	| "UPDATE"i & "STATISTICS"i & on: QualifiedName & tail: (StatisticsTarget? & UpdateStatisticsWith?)
 		=> @(new Statement.UpdateStatistics(on) { Tail = Syntax.Tail(tail) })
 
 CreateOrAlter : @string = "CREATE"i => @("CREATE") | "ALTER"i => @("ALTER")
@@ -2646,7 +2816,30 @@ DataSourceBody = OptionsWith
 LibraryChange = "SET"i | "ADD"i
 LibraryFile   = '(' & OptionList & ')'
 
-StatisticsWith = "WITH"i & OptionList
+// Statistics' own lists, the commas required and the order free. Making statistics takes
+// neither a resample nor which statistics to make — `RESAMPLE` and `COLUMNS` are refused
+// there — and of the stream it may be handed, only the stream: `ROWCOUNT` and `PAGECOUNT`,
+// which its block lists beside it, are refused.
+CreateStatisticsWith = "WITH"i & CreateStatisticsOption & (',' & CreateStatisticsOption)*
+
+CreateStatisticsOption
+	= "FULLSCAN"i
+	| "SAMPLE"i & Number & ("PERCENT"i | "ROWS"i)
+	| "PERSIST_SAMPLE_PERCENT"i & OnOffValue
+	| "NORECOMPUTE"i
+	| "INCREMENTAL"i & OnOffValue
+	| MaxDop
+	| "AUTO_DROP"i & OnOffValue
+	| "STATS_STREAM"i & '=' & Tsql.BinaryLiteral
+
+UpdateStatisticsWith = "WITH"i & UpdateStatisticsOption & (',' & UpdateStatisticsOption)*
+
+UpdateStatisticsOption
+	= CreateStatisticsOption
+	| "RESAMPLE"i & OnPartitions?
+	| "ALL"i | "COLUMNS"i | "INDEX"i
+	| "ROWCOUNT"i & '=' & Number
+	| "PAGECOUNT"i & '=' & Number
 
 StatisticsTarget = '(' & IndexName & (',' & IndexName)* & ')'
 				 | IndexName

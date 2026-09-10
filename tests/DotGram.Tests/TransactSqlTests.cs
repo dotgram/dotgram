@@ -456,6 +456,79 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>The index options' catalogue: what the engine refuses in one, refused here.</summary>
+	/// <remarks>
+	/// One list for each place an index is built or rebuilt, and the lists differ: an option
+	/// one of them has and another has not is refused in the other, as the engine refuses it.
+	/// A value is a literal, the old unbracketed list has its six and no more, and an option
+	/// in brackets ends at a comma or at the bracket.
+	/// </remarks>
+	[Theory]
+	[InlineData("CREATE INDEX i ON t (a) WITH (FILLFACTOR = @f)")]
+	[InlineData("CREATE INDEX i ON t (a) WITH (FOO = ON)")]
+	[InlineData("CREATE INDEX i ON t (a) WITH (LOB_COMPACTION = ON)")]
+	[InlineData("CREATE INDEX i ON t (a) WITH (COMPRESSION_DELAY = 10 MINUTES)")]
+	[InlineData("CREATE INDEX i ON t (a) WITH (DATA_COMPRESSION = COLUMNSTORE)")]
+	[InlineData("CREATE INDEX i ON t (a) WITH ALLOW_ROW_LOCKS = ON")]
+	[InlineData("CREATE INDEX i ON t (a) WITH (PAD_INDEX)")]
+	[InlineData("CREATE INDEX i ON t (a) WITH (ONLINE = ON (MAXDOP = 2))")]
+	[InlineData("CREATE INDEX i ON t (a) WITH (ONLINE = OFF (WAIT_AT_LOW_PRIORITY (MAX_DURATION = 1, ABORT_AFTER_WAIT = NONE)))")]
+	[InlineData("CREATE INDEX i ON t (a) WITH (IGNORE_DUP_KEY = OFF (SUPPRESS_MESSAGES = ON))")]
+	[InlineData("CREATE NONCLUSTERED COLUMNSTORE INDEX i ON t (a) WITH (FILLFACTOR = 80)")]
+	[InlineData("CREATE PRIMARY XML INDEX x ON t (c) WITH (ONLINE = ON)")]
+	[InlineData("CREATE PRIMARY XML INDEX x ON t (c) WITH (DATA_COMPRESSION = PAGE)")]
+	[InlineData("ALTER INDEX i ON t REBUILD WITH (OPTIMIZE_FOR_SEQUENTIAL_KEY = ON)")]
+	[InlineData("ALTER INDEX i ON t REBUILD WITH (DROP_EXISTING = ON)")]
+	[InlineData("ALTER INDEX i ON t REBUILD PARTITION = 2 WITH (FILLFACTOR = 80)")]
+	[InlineData("ALTER INDEX i ON t REORGANIZE WITH (FILLFACTOR = 80)")]
+	[InlineData("ALTER INDEX i ON t SET (FILLFACTOR = 80)")]
+	[InlineData("ALTER INDEX i ON t RESUME WITH (ONLINE = ON)")]
+	[InlineData("CREATE TABLE t (a INT, CONSTRAINT pk PRIMARY KEY (a) WITH (ONLINE = ON))")]
+	[InlineData("CREATE TABLE t (a INT PRIMARY KEY WITH PAD_INDEX)")]
+	[InlineData("CREATE TABLE t (a INT, INDEX ix (a) WITH (DROP_EXISTING = ON))")]
+	[InlineData("CREATE TABLE t (a INT, INDEX ix (a) WITH FILLFACTOR = 80)")]
+	[InlineData("ALTER TABLE t ADD CONSTRAINT pk PRIMARY KEY (a) WITH (DROP_EXISTING = ON)")]
+	[InlineData("CREATE STATISTICS s ON t (a) WITH FULLSCAN NORECOMPUTE")]
+	[InlineData("CREATE STATISTICS s ON t (a) WITH RESAMPLE")]
+	[InlineData("CREATE STATISTICS s ON t (a) WITH ROWCOUNT = 10")]
+	[InlineData("CREATE INDEX i ON t (a) WITH (ONLINE = ON, RESUMABLE = ON, MAX_DURATION = 5 MINUTE)")]
+	[InlineData("UPDATE STATISTICS t WITH FOO")]
+	[InlineData("UPDATE STATISTICS t WITH SAMPLE @n PERCENT")]
+	public void The_index_catalogue_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside them.</summary>
+	[Theory]
+	[InlineData("CREATE INDEX i ON t (a) WITH (ONLINE = ON (WAIT_AT_LOW_PRIORITY (MAX_DURATION = 5 MINUTES, ABORT_AFTER_WAIT = SELF)), RESUMABLE = ON)")]
+	[InlineData("CREATE INDEX i ON t (a) WITH (IGNORE_DUP_KEY = ON (SUPPRESS_MESSAGES = ON), OPTIMIZE_FOR_SEQUENTIAL_KEY = ON)")]
+	[InlineData("CREATE INDEX i ON t (a) WITH (DATA_COMPRESSION = PAGE ON PARTITIONS (1 TO 3), XML_COMPRESSION = OFF ON PARTITIONS (2))")]
+	[InlineData("CREATE INDEX i ON t (a) WITH PAD_INDEX, FILLFACTOR = 80, SORT_IN_TEMPDB, IGNORE_DUP_KEY, STATISTICS_NORECOMPUTE, DROP_EXISTING")]
+	[InlineData("CREATE INDEX i ON t (a) WITH PAD_INDEX ON [PRIMARY]")]
+	[InlineData("CREATE CLUSTERED COLUMNSTORE INDEX i ON t WITH (DROP_EXISTING = ON, MAXDOP = 2, COMPRESSION_DELAY = 10, DATA_COMPRESSION = COLUMNSTORE_ARCHIVE)")]
+	[InlineData("CREATE PRIMARY XML INDEX x ON t (c) WITH (IGNORE_DUP_KEY = OFF, ONLINE = OFF, STATISTICS_NORECOMPUTE = ON, XML_COMPRESSION = ON)")]
+	[InlineData("ALTER INDEX ALL ON t REBUILD WITH (STATISTICS_INCREMENTAL = ON, IGNORE_DUP_KEY = ON)")]
+	[InlineData("ALTER INDEX i ON t REBUILD PARTITION = 2 WITH (DATA_COMPRESSION = PAGE ON PARTITIONS (2), SORT_IN_TEMPDB = ON)")]
+	[InlineData("ALTER INDEX i ON t REBUILD PARTITION = ALL WITH (FILLFACTOR = 80)")]
+	[InlineData("ALTER INDEX i ON t REORGANIZE WITH (LOB_COMPACTION = ON, COMPRESS_ALL_ROW_GROUPS = ON)")]
+	[InlineData("ALTER INDEX i ON t SET (ALLOW_ROW_LOCKS = ON, COMPRESSION_DELAY = 10 MINUTES)")]
+	[InlineData("ALTER INDEX i ON t RESUME WITH (MAXDOP = 2, WAIT_AT_LOW_PRIORITY (MAX_DURATION = 1, ABORT_AFTER_WAIT = SELF))")]
+	[InlineData("CREATE TABLE t (a INT PRIMARY KEY WITH FILLFACTOR = 80, b INT)")]
+	[InlineData("CREATE TABLE t (i INT NOT NULL PRIMARY KEY NONCLUSTERED HASH WITH (BUCKET_COUNT = 10000))")]
+	[InlineData("ALTER TABLE t ADD CONSTRAINT pk PRIMARY KEY (a) WITH (ONLINE = ON, SORT_IN_TEMPDB = ON, MAXDOP = 2, RESUMABLE = ON)")]
+	[InlineData("ALTER TABLE t ADD c INT CONSTRAINT u UNIQUE WITH (ONLINE = ON)")]
+	[InlineData("CREATE STATISTICS s ON t (a) WITH NORECOMPUTE, FULLSCAN, AUTO_DROP = ON")]
+	[InlineData("UPDATE STATISTICS t WITH INDEX, RESAMPLE ON PARTITIONS (1), MAXDOP = 2")]
+	[InlineData("CREATE STATISTICS s ON t (a) WITH STATS_STREAM = 0x01, NORECOMPUTE")]
+	[InlineData("UPDATE STATISTICS t WITH STATS_STREAM = 0x01, ROWCOUNT = 10, PAGECOUNT = 2")]
+	[InlineData("CREATE CLUSTERED COLUMNSTORE INDEX cci ON t WITH (COMPRESSION_DELAY = 1 MINUTE)")]
+	[InlineData("ALTER INDEX i ON t SET (COMPRESSION_DELAY = 0 MINUTE)")]
+	public void The_index_catalogue_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>A construct taken out of the language: read up to a level and refused after it.</summary>
 	/// <remarks>
 	/// The weak algorithms, as the engine answers them: everything but AES and the longer RSA

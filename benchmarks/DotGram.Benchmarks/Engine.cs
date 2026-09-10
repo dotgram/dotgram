@@ -418,7 +418,13 @@ static class Engine
 			or 4122 or 4136
 			or 7864 or 7887
 			or 10324 or 10704 or 10757 or 10797
-			or 14808;
+			or 14808
+
+			// And two the index options' catalogue turned up.
+			//
+			//   1080  The integer value … is out of range.
+			//  11431  The … option is not permitted as the … option is not turned '…'.
+			or 1080 or 11431;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open
