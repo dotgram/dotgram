@@ -67,14 +67,21 @@ jobs:
 
           unzip -o -q DotGram.Parsers.*.nupkg -d parsers
           cd parsers
-          test -f lib/net8.0/DotGram.Parsers.dll || { echo "parser assembly missing"; exit 1; }
-          test -f README.md                     || { echo "readme missing";          exit 1; }
+          test -f lib/netstandard2.0/DotGram.Parsers.dll || { echo "netstandard2.0 assembly missing"; exit 1; }
+          test -f lib/net10.0/DotGram.Parsers.dll        || { echo "net10.0 assembly missing";        exit 1; }
+          test -f README.md                              || { echo "readme missing";                  exit 1; }
           if [ -d analyzers ]; then echo "parser package carries the generator:"; find analyzers -type f; exit 1; fi
-          # No runtime assembly ships, so a parser acquires no dependency by being one
-          # (docs/syntax.md §6.1). A dependency here would mean that stopped being true.
-          if grep -q "<dependency " DotGram.Parsers.nuspec; then
-            echo "parser package has dependencies:"; grep "<dependency " DotGram.Parsers.nuspec; exit 1
-          fi
+          # No runtime assembly ships (docs/syntax.md §6.1), so the only dependency a
+          # parser may acquire is what its framework is missing: System.Memory, for the
+          # `ReadOnlySpan<char>` the generated methods take, on netstandard2.0 alone. A
+          # dependency on the newest target, or any other name on either, means something
+          # else got in — the generator itself, or a polyfill that should have been
+          # private.
+          deps=$(grep -o 'id="[^"]*"' DotGram.Parsers.nuspec | sed 's/id="//;s/"//' | sort -u)
+          test "$deps" = "System.Memory" || { echo "unexpected dependencies:"; echo "$deps"; exit 1; }
+          grep -q '<group targetFramework="net10.0" />' DotGram.Parsers.nuspec || {
+            echo "the newest target is not dependency-free:"; grep -A3 'net10.0' DotGram.Parsers.nuspec; exit 1
+          }
 
       - uses: actions/upload-artifact@v4
         with:

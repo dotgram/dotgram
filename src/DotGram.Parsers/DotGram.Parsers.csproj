@@ -1,11 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<!-- One target for now, and deliberately not the floor the generated code can
-		     reach: what limits this package is the C# written by hand beside the
-		     grammars, not what the generator emits. Broadening to netstandard2.0 is a
-		     packaging-time decision and a widening, which is the easy direction. -->
-		<TargetFramework>net8.0</TargetFramework>
+		<!-- The floor and the newest, and nothing between: a parser here is ordinary C#
+		     over a generated one, so netstandard2.0 is what every consumer can read and
+		     net10.0 is what a consumer on the newest runtime gets without the shims. -->
+		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
 		<RootNamespace>DotGram.Parsers</RootNamespace>
 
 		<Description>Parsers for real formats, written in .gram: expressions, URLs, protocols.</Description>
@@ -23,6 +22,23 @@
 		<ProjectReference Include="..\DotGram\DotGram.csproj"
 		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+		<!-- What a consumer on this framework needs: the generated parser's own methods
+		     take `ReadOnlySpan<char>`, which is not in the framework there. It is the one
+		     dependency this package has, and it has it only here. -->
+		<PackageReference Include="System.Memory" />
+
+		<!-- And what the compilation needs rather than the consumer: the records written
+		     by hand beside the grammars have `init` accessors, and `IsExternalInit` is not
+		     declared on this framework. The polyfill is a generator and emits it as an
+		     internal type, so nothing reaches the package. -->
+		<PackageReference Include="Meziantou.Polyfill" PrivateAssets="all" />
+	</ItemGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+		<MeziantouPolyfill_IncludedPolyfills>T:System.Runtime.CompilerServices.IsExternalInit;T:System.Index;T:System.Range;T:System.Diagnostics.CodeAnalysis</MeziantouPolyfill_IncludedPolyfills>
+	</PropertyGroup>
 
 	<ItemGroup>
 		<!-- What the package says for itself. The grammars are in the repository and the

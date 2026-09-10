@@ -1062,10 +1062,12 @@ public static class SqlWriter
 			record = record[..^"Definition".Length];
 
 		// Two names the reference writes as one word and the record as two, which is the
-		// one place the split is not the inverse of the naming.
+		// one place the split is not the inverse of the naming. Two arguments and not
+		// three: the overload taking a StringComparison is not on netstandard2.0, and
+		// this one is ordinal by definition, which is what the third argument said.
 		record = record
-			.Replace("FullText",  "Fulltext",  StringComparison.Ordinal)
-			.Replace("FileGroup", "Filegroup", StringComparison.Ordinal);
+			.Replace("FullText",  "Fulltext")
+			.Replace("FileGroup", "Filegroup");
 
 		var made = new StringBuilder(create ? "CREATE" : "");
 
