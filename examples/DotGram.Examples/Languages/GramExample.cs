@@ -170,9 +170,45 @@ namespace DotGram.Examples.Languages;
 		= first: Operand & ('~' & rest: Operand)*
 		=> @(GramGrammar.Glued(first, rest))
 
-	Operand : @GramExpr = o: Guard => @(o) | o: Quantified => @(o)
+	// `when` opens a guard and nothing else, as it does in the hand-written parser: an
+	// operand that begins with the word and is not a guard is refused rather than read as a
+	// call to a rule of that name, which is how `when (V)` would otherwise come out of here
+	// as something the compiler never accepts.
+	Operand : @GramExpr = o: Guard => @(o) | ?!"when" & o: Quantified => @(o)
 
-	Guard : @GramExpr = "when" & value: Value => @(new GramGuard(value))
+	// Two things share the word. `when @(qty > 0)` is C#, asked while the text is read;
+	// `when Version is "2000"` is a question about the grammar, answered while the parser is
+	// built (§3.6), and the two may stand in one `when` joined by `and` and `or`. The
+	// condition is tried first because it is the one told apart by what follows its first
+	// operand: a lone `@(…)` or a lone name is a guard either way.
+	Guard : @GramExpr = "when" & g: GuardBody => @(g)
+
+	GuardBody : @GramExpr
+		= test: AnyTest => @(test)
+		| value: Value  => @(new GramGuard(value))
+
+	// `and` binds tighter than `or`, as in C#, and brackets say the rest.
+	AnyTest : @GramExpr
+		= first: AllTest & ("or" & rest: AllTest)*
+		=> @(GramGrammar.Either(first, rest))
+
+	AllTest : @GramExpr
+		= first: OneTest & ("and" & rest: OneTest)*
+		=> @(GramGrammar.Both(first, rest))
+
+	// A bracketed test, a C# guard among the conditions, or one `A is B`. The left side of
+	// `is` cannot open with a bracket, because a bracket there is already a bracketed test;
+	// and neither side is C#, because what `is` asks is which strings two recognizers share.
+	// The hand-written parser draws both lines in the same places, and `SelfHostingTests`
+	// holds the two against each other on each of them.
+	OneTest : @GramExpr
+		= '(' & test: AnyTest & ')' => @(test)
+		| cs: CsExpr                => @(new GramGuard(cs))
+		| left: TestLeft & "is" & negated: "not"? & right: TestRight
+			=> @(new GramCondition(left, negated is not null, right))
+
+	TestLeft  : @GramExpr = ?!'(' & ?!"@(" & p: Primary => @(p)
+	TestRight : @GramExpr = ?!"@(" & p: Primary         => @(p)
 
 	// `with` last, outermost of the three: `Number+ with (X = Y)` is `(Number+) with
 	// (X = Y)`, and the other reading needs parentheses.
@@ -306,6 +342,15 @@ public partial class GramGrammar
 
 	public sealed record GramGuard(string Value) : GramExpr;
 
+	/// <summary><c>A is B</c>, or <c>A is not B</c>: a question about the grammar (§3.6).</summary>
+	public sealed record GramCondition(GramExpr Left, bool Negated, GramExpr Right) : GramExpr;
+
+	/// <summary>Conditions joined by <c>and</c>.</summary>
+	public sealed record GramAll(GramExpr[] Tests) : GramExpr;
+
+	/// <summary>Conditions joined by <c>or</c>.</summary>
+	public sealed record GramAny(GramExpr[] Tests) : GramExpr;
+
 	// ── The factories the grammar calls ──────────────────────────────────────────
 
 	/// <summary>
@@ -324,6 +369,12 @@ public partial class GramGrammar
 
 	public static GramExpr Glued(GramExpr first, GramExpr[] rest) =>
 		rest.Length == 0 ? first : new GramGlued(Joined(first, rest));
+
+	public static GramExpr Both(GramExpr first, GramExpr[] rest) =>
+		rest.Length == 0 ? first : new GramAll(Joined(first, rest));
+
+	public static GramExpr Either(GramExpr first, GramExpr[] rest) =>
+		rest.Length == 0 ? first : new GramAny(Joined(first, rest));
 
 	public static GramExpr Quantified(GramExpr body, string? quantifier, GramExpr? recovery) =>
 		quantifier is null && recovery is null

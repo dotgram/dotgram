@@ -51,6 +51,42 @@ public sealed class SelfHostingTests(Xunit.ITestOutputHelper output)
 		}
 	}
 
+	/// <summary>
+	/// The two readings of `when` — a C# guard and a condition about the grammar — held
+	/// against each other on the shapes where they could part.
+	/// </summary>
+	/// <remarks>
+	/// The corpus has conditions in it, but only ones that are right. Whether the two
+	/// parsers read one language is decided by what they do with the ones that are not: a
+	/// bracket where a left side would be, a name with no `is` after it in a chain of them,
+	/// C# on either side of `is`.
+	/// </remarks>
+	[Theory]
+	[InlineData("R = 'a' & when V is \"x\"")]
+	[InlineData("R = 'a' & when V is not \"x\"")]
+	[InlineData("R = 'a' & when V is \"x\" or V is \"y\"")]
+	[InlineData("R = 'a' & when V is \"x\" and W is (\"y\" | \"z\")")]
+	[InlineData("R = 'a' & when (V is \"x\" or V is \"y\") and W is not \"z\"")]
+	[InlineData("R = 'a' & when V is \"x\" and @(true)")]
+	[InlineData("R = 'a' & when @(true) and @(false)")]
+	[InlineData("R = 'a' & when @(true)")]
+	[InlineData("R = 'a' & when V")]
+	[InlineData("R = 'a' & when (\"x\" | \"y\") is V")]
+	[InlineData("R = 'a' & when V and W")]
+	[InlineData("R = 'a' & when @(true) is V")]
+	[InlineData("R = 'a' & when V is @(true)")]
+	[InlineData("R = 'a' & when (V)")]
+	public void Both_implementations_agree_on_a_condition(string text)
+	{
+		var handed    = GramParser.Parse(GramLexer.Tokenize(text, RoslynCSharpScanner.Instance));
+		var generated = GramGrammar.TryParseFile(text);
+
+		Assert.True(
+			!handed.HasErrors == generated.IsSuccess,
+			$"{text}: the hand-written parser says {(handed.HasErrors ? "no" : "yes")}, " +
+			$"the generated one says {(generated.IsSuccess ? "yes" : "no")}.");
+	}
+
 	[Fact]
 	public void And_this_is_what_each_costs()
 	{

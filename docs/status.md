@@ -50,6 +50,11 @@ then quietly mean nothing.
 | an operand of one captured by hand, reported §4.1 case 2 | — | — | ✓ | — | — |
 | guards `when` §8.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | inline C# `@(...)` in `when` and `=>` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a condition about the grammar, `when A is B` §3.6 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same with `is not`, `and`, `or` and brackets §3.6 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same beside a C# guard in one `when` §3.6 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same answered through `with`, one parser per reading §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same over regular languages that are not listable, said and kept (`GRAM4021`) | ✓ | ✓ | — | — | — |
 | C# names inside `@(...)`, e.g. `@int.Parse` | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `[@Name]` as an element predicate §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | bare `@Name` as a recognizer over a span §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |

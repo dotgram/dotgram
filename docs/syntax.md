@@ -373,6 +373,53 @@ still missing — see §11. Note that it is a question about diagnostics, not ab
 parsing: whichever way it is answered, the guard's position stays the author's choice
 and still decides how much work is thrown away and where the message points.
 
+**A guard about the grammar rather than about the input.** The same word asks a second
+kind of question, and the two are told apart by what follows the first operand:
+
+```dotgram
+Test = l: Name & "*=" & r: Name & when Version is "2000"
+```
+
+`is` asks whether two recognizers have a string in common. Both sides are recognizers —
+a name, a literal, a bracketed choice — and neither is C#, because the question is about
+their languages and a C# expression has none. Unlike every other guard it has an answer
+before anything is read, and it is given that answer when the parser is generated: where
+it holds, nothing of it is emitted; where it does not, the alternative it stands in is not
+in that parser at all. Nothing tests it while a parser runs. What gives it more than one
+answer is §5.1: `with` substitutes a rule at every one of its uses, so one grammar
+publishes parsers that answer it differently.
+
+It combines the way C#'s patterns do — `is not`, `and`, `or` and brackets, with `and`
+binding tighter than `or`:
+
+```dotgram
+… & when (Version is "2008" or Version is "2022") and Product is not "Azure"
+```
+
+There is no combinator inside a pattern: `Version is ("2008" | "2022")` already says what
+`Version is "2008" or "2022"` would, and the language keeps one way to say a thing.
+
+A C# guard may stand among the conditions, and what is generated is what is left of the
+whole once the conditions are answered:
+
+| Written | Generated |
+| --- | --- |
+| a false condition `and @(g)` | no alternative, and `g` compiled into nothing |
+| a true condition `and @(g)` | `when @(g)` |
+| a true condition `or @(g)` | nothing — no answer of `g` could change the reading |
+| `@(a) and @(b)` | `when @((a) && (b))` |
+
+A literal written case-insensitively is every way of spelling it, so `"v1"i` meets both
+`"v1"` and `"V1"`. Three things a condition does not do. It stands only among the
+operands of an alternative, since removing an alternative is what it is for (`GRAM4020`).
+It is answered only where each side accepts a listable set of strings — a literal, a choice
+of them, a rule that is one — which is what a domain and a range are; elsewhere it says so
+and keeps the alternative (`GRAM4021`), because deciding either way would silently change
+what the parser reads. And a rule every alternative of which it rules out is not an error
+(`GRAM4022`, a warning): a construct removed from a dialect has to be removable, and what is
+left is a rule that cannot match, so a caller fails where the construct is written. `is`,
+`not`, `and` and `or` are keywords only after `when`, as `when` itself is.
+
 ### 3.7 Construction
 
 ```dotgram
@@ -440,6 +487,9 @@ suffixes on row 1 rather than levels of their own, and `with` — when both are 
 on the same operand — always comes after `recover`, applying to everything to its
 left, quantifier included. `X* recover S with (A = B)` recovers `X*` first and rebinds
 the result of that as a whole.
+
+Inside a `when`, a condition (§3.6) has three levels of its own, highest first: `A is B`
+and `A is not B`, then `and`, then `or` — C#'s order.
 
 ---
 
@@ -1239,6 +1289,38 @@ block, no name for the substitution beyond the publication's own. A publication'
 `with` is the more locally written of the two extents, so it composes on top of an
 enclosing `namespace Name with (...)`'s own rebinding of the same rule rather than instead
 of it.
+
+**A rebinding is also what answers a condition.** A guard of the form `when A is B`
+(§3.6) is decided when the parser is generated, against the rules as that parser has
+them — so a publication's own `with` is what gives it an answer:
+
+```dotgram
+Version = "2000" | "2008" | "2022"
+
+Test = l: Name & "*=" & r: Name                         & when Version is "2000"
+     | l: Name & "is" & "distinct" & "from" & r: Name   & when Version is "2022"
+     | l: Name & "=" & r: Name
+
+parse Test with (Version = "2000") as ParseOld
+parse Test with (Version = "2022") as ParseNew
+parse Test as ParseAny
+```
+
+`ParseOld` has the first alternative and not the second, `ParseNew` the other way round,
+and neither tests a version while it runs. `ParseAny` names none, so it keeps the
+grammar's own `Version` — the choice of every version — and has all three. A parser that
+reads one version, one that reads several and one that reads everything are one construct
+with a narrower or a wider argument, which is also how products are said: on-premises SQL
+Server, Azure and Fabric are a set rather than a chain, and a set is what a choice is.
+
+A range is a rule, not an operator. With `Since2008 = "2008" | "2022"`, `when Version is
+Since2008` asks exactly what `when Version is "2008"` asks — whether two languages meet —
+which is why nothing needs to know that versions happen to be ordered and products do not.
+
+It is also what a chain of dialects cannot say. Each grammar in a chain adds to the one
+below it, so a construct taken out of the language — `*=` above — has nowhere to be written
+once; here it is an alternative with a condition on it, in the one grammar that has every
+version.
 
 Write a rebinding in the header rather than as a same-named declaration in the body —
 `namespace Name with (A = B) { ... }` is a substitution, written where a reader expects one;

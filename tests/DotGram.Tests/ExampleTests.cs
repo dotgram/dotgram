@@ -301,6 +301,38 @@ public sealed class ExampleTests
 		Assert.False(LocaleNumber.TryParseEuropeanNumber("1.5").IsSuccess);
 	}
 
+	// ── One grammar, three dialects ──────────────────────────────────────────────
+
+	[Fact]
+	public void Each_dialect_reads_its_own_comparison_and_refuses_the_other()
+	{
+		// `*=` was taken out of the language and `is distinct from` put in. The two parsers
+		// that name a version each lack one of them — not by testing anything while they
+		// run, but because the alternative was never generated into them.
+		Assert.Equal("a left-joined to b", SqlDialect.ParseOld("a *= b"));
+		Assert.False(SqlDialect.TryParseOld("a is distinct from b").IsSuccess);
+
+		Assert.Equal("a differs from b", SqlDialect.ParseNew("a is distinct from b"));
+		Assert.False(SqlDialect.TryParseNew("a *= b").IsSuccess);
+	}
+
+	[Fact]
+	public void The_parser_that_names_no_version_reads_them_all()
+	{
+		// No `with`, so the grammar's own `Version` stands — the choice of every version —
+		// and the permissive parser is the widest argument rather than a mode of its own.
+		Assert.Equal("a left-joined to b", SqlDialect.ParseAny("a *= b"));
+		Assert.Equal("a differs from b",   SqlDialect.ParseAny("a is distinct from b"));
+		Assert.Equal("a equals b",         SqlDialect.ParseAny("a = b"));
+	}
+
+	[Fact]
+	public void What_every_dialect_has_is_in_every_parser()
+	{
+		Assert.Equal("a equals b", SqlDialect.ParseOld("a = b"));
+		Assert.Equal("a equals b", SqlDialect.ParseNew("a = b"));
+	}
+
 	// ── The calculator that builds a tree instead ────────────────────────────────
 
 	[Fact]

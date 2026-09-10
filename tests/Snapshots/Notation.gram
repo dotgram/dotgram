@@ -20,6 +20,18 @@ Call    : @int = target: Primary & "()" => @(target * 10)
 Sep  = ','
 List = Word & (Sep & Word)*
 
+// §3.6: a guard asks C# while the text is read, and a condition asks the grammar while
+// the parser is built. The two stand in one `when`, joined the way C#'s patterns are,
+// and a publication's own `with` is what gives a condition its answer (§5.1).
+Version = "old" | "new"
+
+Small : @int
+	= n: Number & when @(n < 10) => @(n)
+	| n: Number & when Version is "old" => @(n)
+	| n: Number & when (Version is not "old" or Version is ("new" | "newer")) and @(n > 0)
+		=> @(n)
+	| Word & "!" => @(0)
+
 // §6: a directive names an expression, not only a rule — one operand, so a choice needs
 // brackets and a following `with` is the directive's own. `as` is required for anything
 // but a bare name, since an expression has none to make a method name from.
@@ -32,6 +44,9 @@ parse (v: Padded(Word, '#') => @(v)) as Marked : @string
 // opens what is being replaced, and opening is what a name is for.
 parse List with (Sep = (',' | ';')) as Loose
 parse List as Tight
+
+parse Small with (Version = "old") as SmallOld
+parse Small
 
 parse ('a' | 'b') as Ab
 parse Primary
