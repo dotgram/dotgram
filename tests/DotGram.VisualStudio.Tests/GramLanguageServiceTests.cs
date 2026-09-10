@@ -236,6 +236,46 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void ClassifiesGrammarConditionsAndIndexesTheirRuleReferences()
+	{
+		const string source =
+			"Version = \"2000\" | \"2022\"\n" +
+			"Product = \"Box\"\n" +
+			"Start = 'x' & when (Version is \"2000\" or Version is not \"2022\") and Product is \"Box\"\n" +
+			"parse Start";
+
+		var document = GramLanguageService.Analyze(source);
+		var classified = document.Classifications
+			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
+			.ToArray();
+
+		Assert.DoesNotContain(document.Diagnostics,
+			diagnostic => diagnostic.Severity == DotGram.Grammar.GramSeverity.Error);
+		Assert.Equal(3, classified.Count(item => item is ("is", GramSyntaxKind.Keyword)));
+		Assert.Contains(("not", GramSyntaxKind.Keyword), classified);
+		Assert.Contains(("and", GramSyntaxKind.Keyword), classified);
+		Assert.Contains(("or", GramSyntaxKind.Keyword), classified);
+		Assert.Equal(3, document.Symbols.Count(symbol => symbol.Name == "Version"));
+		Assert.Equal(2, document.Symbols.Count(symbol => symbol.Name == "Product"));
+	}
+
+	[Fact]
+	public void KeepsConditionWordsAsIdentifiersOutsideACondition()
+	{
+		const string source = "is = 'i'\nnot = is\nand = not\nor = and\nparse or";
+
+		var classified = GramLanguageService.Analyze(source).Classifications
+			.Where(span => span.Kind == GramSyntaxKind.Keyword)
+			.Select(span => source.Substring(span.Position, span.Length))
+			.ToArray();
+
+		Assert.DoesNotContain("is", classified);
+		Assert.DoesNotContain("not", classified);
+		Assert.DoesNotContain("and", classified);
+		Assert.DoesNotContain("or", classified);
+	}
+
+	[Fact]
 	public void IndexesExplicitGeneratedApiNames()
 	{
 		const string source =
