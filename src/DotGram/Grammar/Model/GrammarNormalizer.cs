@@ -56,6 +56,15 @@ public sealed partial class GrammarNormalizer
 	/// <summary><c>word</c> in a grammar that never said what continues a word.</summary>
 	public const string WordWithoutBoundary = "GRAM4019";
 
+	/// <summary>A `when … is …` where deleting an alternative would mean nothing.</summary>
+	public const string ConditionOutOfPlace = "GRAM4020";
+
+	/// <summary>A `when … is …` whose sides are not two listable sets of strings.</summary>
+	public const string UndecidedCondition  = "GRAM4021";
+
+	/// <summary>A rule every alternative of which a condition ruled out of this parser.</summary>
+	public const string EmptyAfterConditions = "GRAM4022";
+
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
 	readonly Dictionary<RuleSymbol, bool>                      _nullable    = [];
@@ -123,6 +132,10 @@ public sealed partial class GrammarNormalizer
 		normalizer.SpecializeWithSites();
 		normalizer.SpecializeNamespaces();
 		normalizer.SpecializePublicationWith();
+
+		// After all three substitutions, so that what a condition reads is what this parser
+		// will be, and before anything rewrites the shape of a rule.
+		normalizer.DecideIntersections();
 
 		normalizer.RewriteLeftRecursion();
 		normalizer.ComputeNullability();

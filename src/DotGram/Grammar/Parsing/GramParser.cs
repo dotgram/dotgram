@@ -677,7 +677,20 @@ public sealed class GramParser
 
 		Take();
 
-		return new Expr.Guard(ParseValue()) { At = From(start) };
+		var value = ParseValue();
+
+		// `when A is B` asks whether two recognizers have a string in common, which is a
+		// question about the grammar and is answered while the parser is built. Anything
+		// else after `when` is C# and is asked while one runs. `is` is contextual, like
+		// `when` itself: it is a keyword only in this position.
+		if (AtKeyword("is"))
+		{
+			Take();
+
+			return new Expr.Intersects(value, ParseValue()) { At = From(start) };
+		}
+
+		return new Expr.Guard(value) { At = From(start) };
 	}
 
 	Expr ParseQuantified()

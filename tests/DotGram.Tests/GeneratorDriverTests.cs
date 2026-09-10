@@ -2459,7 +2459,7 @@ public sealed class GeneratorDriverTests
 		return driver.RunGenerators(edited, TestContext.Current.CancellationToken).GetRunResult();
 	}
 
-	static GeneratorDriverRunResult RunGenerator(string source, params (string Path, string Text)[] additionalFiles) =>
+	internal static GeneratorDriverRunResult RunGenerator(string source, params (string Path, string Text)[] additionalFiles) =>
 		RunGenerator(source, out _, additionalFiles);
 
 	static GeneratorDriverRunResult RunGenerator(

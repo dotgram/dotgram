@@ -225,6 +225,23 @@ public abstract record Node
 	/// Where the C# starts in the grammar, so that a C# error in it can be reported there
 	/// (§7.6). -1 for text this compiler wrote rather than read.
 	/// </param>
+	/// <summary>
+	/// <c>when A is B</c>: whether two recognizers have a string in common.
+	/// </summary>
+	/// <remarks>
+	/// Answered while the parser is generated and never emitted — <see
+	/// cref="GrammarNormalizer.DecideIntersections"/> replaces it with nothing where it
+	/// holds and deletes the alternative around it where it does not. A node rather than
+	/// something the binder folds away, because the answer depends on what `with`
+	/// substituted, and that has not happened yet when the binder runs.
+	/// </remarks>
+	public sealed record Intersects(Node Left, Node Right, int At = -1) : Node
+	{
+		public override IEnumerable<Node> Children => [Left, Right];
+
+		public override string ToString() => $"when {Left} is {Right}";
+	}
+
 	public sealed record Guard(string Text, int At = -1) : Node
 	{
 		/// <summary>Without the position, for the passes that only read the C#.</summary>

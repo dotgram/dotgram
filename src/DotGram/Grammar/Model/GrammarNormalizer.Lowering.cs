@@ -88,6 +88,8 @@ public sealed partial class GrammarNormalizer
 		Expr.Capture   (var name, var operand)           => new Node.Capture(name, Lower(operand, ns)),
 		Expr.Lookahead (var positive, var operand)       => new Node.Lookahead(positive, Lower(operand, ns)),
 		Expr.Guard     (var value)                       => Guarded(value),
+		Expr.Intersects(var left, var right)             =>
+			new Node.Intersects(Lower(left, ns), Lower(right, ns), StartOf(left)),
 		Expr.CSharp    (var text)                        => new Node.Guard(Substituted($"@({text})"), StartOf(expression)),
 		Expr.Construct (var pattern, var value)          => LowerConstruct(pattern, value, ns),
 		Expr.Bound     (var body, var isLeft, var level) => LowerBound(body, isLeft, level, ns),

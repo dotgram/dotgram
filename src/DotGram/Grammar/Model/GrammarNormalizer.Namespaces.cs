@@ -402,6 +402,14 @@ public sealed partial class GrammarNormalizer
 			Node.Behind   (var test)                                                => new Node.Behind   (Same(test)),
 			Node.Capture  (var name, var body)                                      => new Node.Capture  (name, CloneAndRewrite(body, targets, cloneMap, siteName)),
 			Node.Construct(var body, var how)                                       => new Node.Construct(CloneAndRewrite(body, targets, cloneMap, siteName), how),
+			// Both sides are recognizers and a rebinding is exactly what a condition is
+			// waiting for: `with (Version = "Sql2008")` is what gives `when Version is …`
+			// an answer, so the condition has to be rewritten like anything else.
+			Node.Intersects(var left, var right, var at)                            =>
+				new Node.Intersects(
+					CloneAndRewrite(left, targets, cloneMap, siteName),
+					CloneAndRewrite(right, targets, cloneMap, siteName),
+					at),
 			// CallTo, not a bare `new Node.Call`: a rebinding's right side may be a
 			// built-in nothing in the grammar happened to call yet (`with (trivia =
 			// none)` when `none` is otherwise unused) — built-ins are registered on

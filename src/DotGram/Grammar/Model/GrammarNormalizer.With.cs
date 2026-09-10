@@ -276,6 +276,8 @@ public sealed partial class GrammarNormalizer
 			Node.Behind   (var test)                                                => new Node.Behind(Same(test)),
 			Node.Capture  (var name, var body)                                      => new Node.Capture(name, SpliceWithSites(body, rewrites)),
 			Node.Construct(var body, var how)                                       => new Node.Construct(SpliceWithSites(body, rewrites), how),
+			Node.Intersects(var left, var right, var at)                            =>
+				new Node.Intersects(SpliceWithSites(left, rewrites), SpliceWithSites(right, rewrites), at),
 			// Left unrewritten here — no targets/cloneMap apply at this level. A call that
 			// needs rewriting is inside some registered root's own subtree, and that is
 			// what CloneAndRewrite below is for.
