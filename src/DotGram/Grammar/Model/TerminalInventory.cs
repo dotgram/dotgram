@@ -14,7 +14,7 @@ using Text = (string Text, bool IgnoreCase);
 /// <remarks>
 /// <para>
 /// A pure function of the graph. It emits nothing and rewrites nothing.
-/// `docs/lexical-adt-design.md` is the design it belongs to and carries the measurements
+/// `docs/design/lexical-adt-design.md` is the design it belongs to and carries the measurements
 /// that justify it.
 /// </para>
 /// <para>

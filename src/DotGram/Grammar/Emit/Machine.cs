@@ -761,7 +761,7 @@ sealed partial class Machine
 
 	/// <summary>
 	/// Whether this machine reads token kinds rather than characters
-	/// (docs/lexical-adt-design.md).
+	/// (docs/design/lexical-adt-design.md).
 	/// </summary>
 	/// <remarks>
 	/// It changes one thing and only one: a position is a token and not a character, so

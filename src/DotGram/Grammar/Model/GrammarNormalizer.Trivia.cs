@@ -26,7 +26,7 @@ namespace DotGram.Grammar.Model;
 /// <para>
 /// And it costs one thing more, which is how it was noticed: it makes trivia's rules
 /// irregular. A lexical machine reads its patterns together as one automaton
-/// (`docs/lexical-adt-design.md`), and a rule that reaches itself is not a shape a Thompson
+/// (`docs/design/lexical-adt-design.md`), and a rule that reaches itself is not a shape a Thompson
 /// construction has — so trivia could not be a pattern, and a split grammar had to be handed
 /// its tokens with the whitespace already skipped by hand.
 /// </para>

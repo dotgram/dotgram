@@ -13,7 +13,7 @@ namespace DotGram.Tests;
 
 /// <summary>
 /// The rewrite that puts the syntactic machine over token kinds instead of characters
-/// (docs/lexical-adt-design.md).
+/// (docs/design/lexical-adt-design.md).
 /// </summary>
 /// <remarks>
 /// Asserted on the model, because the model is where the claim is: the machine underneath

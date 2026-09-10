@@ -72,9 +72,14 @@ repository, and branching only adds a merge step.
 
 ```text
 docs/
+	README.md             the index: what authority each document carries, and when it
+	                      is expected to be out of date. Read it before believing one
 	syntax.md             the language: notation and its bond with C#
+	status.md             what this version does, held against that specification
 	implementation.md     engine plan
 	ast.md                the tree the SQL parsers build, and where each node comes from
+	next.md               the engineering diary, authoritative about nothing present
+	design/               proposals and plans; no statement here is about the compiler
 src/
 	DotGram/              the generator: one analyzer package, no runtime
 		Grammar/          pure: a function of grammar text, no Roslyn

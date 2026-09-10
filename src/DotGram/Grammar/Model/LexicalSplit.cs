@@ -38,7 +38,7 @@ namespace DotGram.Grammar.Model;
 /// </para>
 /// <para>
 /// Nothing here is emitted. This produces a graph; who compiles it is the emitter's
-/// business, and `docs/lexical-adt-design.md` carries the design and its measurements.
+/// business, and `docs/design/lexical-adt-design.md` carries the design and its measurements.
 /// </para>
 /// </remarks>
 public sealed class LexicalSplit

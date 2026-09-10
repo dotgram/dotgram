@@ -143,7 +143,7 @@ public static partial class CSharpEmitter
 	/// The split this graph is the syntactic half of, where it is one. Then the file carries
 	/// a lexical machine as well, the seam is skipped rather than woven, and a position is a
 	/// token — so the text a value is cut from travels beside the kinds rather than being what
-	/// is read (docs/lexical-adt-design.md).
+	/// is read (docs/design/lexical-adt-design.md).
 	/// </param>
 	public static string Emit(
 		RecognitionGraph graph, string className, string? @namespace = null, ILineMap? lines = null,
