@@ -147,8 +147,11 @@ SqlWalker.Walk(statement, node =>
 });
 ```
 
-A check sees what the tree keeps and nothing else: where a statement keeps what followed its
-name as `Tail`, the words are there and their parts are not.
+A check sees what the tree keeps and nothing else. Where a statement keeps what followed its
+name as `Tail`, the words are there and their parts are not — unless the statement keeps its
+settings as `Options` beside them, which the keys and certificates do: a repeated `SUBJECT`
+or `ALGORITHM` is what the engine refuses there, and a list nested in one of them, a private
+key's or an Always Encrypted value's, is an option holding it.
 
 ## The nodes
 

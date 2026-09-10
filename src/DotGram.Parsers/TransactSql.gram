@@ -2242,22 +2242,22 @@ AlterIndexAction : @Statement.AlterIndex
 // it is one rule.
 KeyStatement : @Statement
 	= "CREATE"i & "ASYMMETRIC"i & "KEY"i & name: Identifier
-	  & tail: (Authorization? & AsymmetricBody & ("ENCRYPTION"i & "BY"i & PasswordEncryptor)?)
-		=> @(Statement.Defined("ASYMMETRIC KEY", name, Syntax.Tail(tail)))
-	| "ALTER"i & "ASYMMETRIC"i & "KEY"i & name: Identifier & tail: AsymmetricChange
-		=> @(Statement.Defined("ALTER ASYMMETRIC KEY", name, Syntax.Tail(tail)))
+	  & tail: (Authorization? & o: AsymmetricBody & ("ENCRYPTION"i & "BY"i & PasswordEncryptor)?)
+		=> @(Statement.Defined("ASYMMETRIC KEY", name, Syntax.Tail(tail), options: o))
+	| "ALTER"i & "ASYMMETRIC"i & "KEY"i & name: Identifier & tail: (o: AsymmetricChange)
+		=> @(Statement.Defined("ALTER ASYMMETRIC KEY", name, Syntax.Tail(tail), options: o))
 
-	| "CREATE"i & "SYMMETRIC"i & "KEY"i & name: SymmetricKeyName & tail: (Authorization? & SymmetricBody)
-		=> @(Statement.Defined("SYMMETRIC KEY", name, Syntax.Tail(tail)))
+	| "CREATE"i & "SYMMETRIC"i & "KEY"i & name: SymmetricKeyName & tail: (Authorization? & o: SymmetricBody)
+		=> @(Statement.Defined("SYMMETRIC KEY", name, Syntax.Tail(tail), options: o))
 	| "ALTER"i & "SYMMETRIC"i & "KEY"i & name: Identifier
 	  & tail: (AddOrDrop & "ENCRYPTION"i & "BY"i & KeyEncryptor & (',' & KeyEncryptor)*)
 		=> @(Statement.Defined("ALTER SYMMETRIC KEY", name, Syntax.Tail(tail)))
 
 	| "CREATE"i & "CERTIFICATE"i & name: Identifier
-	  & tail: (Authorization? & CertificateBody & ("ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff)?)
-		=> @(Statement.Defined("CERTIFICATE", name, Syntax.Tail(tail)))
-	| "ALTER"i & "CERTIFICATE"i & name: Identifier & tail: CertificateChange
-		=> @(Statement.Defined("ALTER CERTIFICATE", name, Syntax.Tail(tail)))
+	  & tail: (Authorization? & o: CertificateBody & ("ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff)?)
+		=> @(Statement.Defined("CERTIFICATE", name, Syntax.Tail(tail), options: o))
+	| "ALTER"i & "CERTIFICATE"i & name: Identifier & tail: (o: CertificateChange)
+		=> @(Statement.Defined("ALTER CERTIFICATE", name, Syntax.Tail(tail), options: o))
 
 	// Azure SQL Database makes a master key with no password; SQL Server answers that it is
 	// not supported in this version, which is a product's answer and not a syntax's.
@@ -2274,14 +2274,17 @@ KeyStatement : @Statement
 		=> @(Statement.Defined("ALTER DATABASE ENCRYPTION KEY", "", Syntax.Tail(tail)))
 
 	| "CREATE"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & name: Identifier
-	  & tail: ("WITH"i & "VALUES"i & ColumnKeyValue & (',' & ColumnKeyValue)*)
-		=> @(Statement.Defined("COLUMN ENCRYPTION KEY", name, Syntax.Tail(tail)))
+	  & tail: ("WITH"i & "VALUES"i & first: ColumnKeyValue & (',' & rest: ColumnKeyValue)*)
+		=> @(Statement.Defined("COLUMN ENCRYPTION KEY", name, Syntax.Tail(tail), options: Syntax.Listed(first, rest)))
 	| "ALTER"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & name: Identifier
-	  & tail: ("ADD"i & "VALUE"i & ColumnKeyValue | "DROP"i & "VALUE"i & '(' & ColumnKeyMaster & ')')
-		=> @(Statement.Defined("ALTER COLUMN ENCRYPTION KEY", name, Syntax.Tail(tail)))
+	  & tail: ("ADD"i & "VALUE"i & added: ColumnKeyValue
+			  | "DROP"i & "VALUE"i & '(' & dropped: ColumnKeySetting & ')')
+		=> @(Statement.Defined("ALTER COLUMN ENCRYPTION KEY", name, Syntax.Tail(tail),
+				 options: added is not null ? new Clause[] { added } : Statement.Holding("VALUE", new Clause[] { dropped! })))
 	| "CREATE"i & "COLUMN"i & "MASTER"i & "KEY"i & name: Identifier
-	  & tail: ("WITH"i & '(' & MasterKeyLocation & (',' & MasterKeyEnclave)? & ')')
-		=> @(Statement.Defined("COLUMN MASTER KEY", name, Syntax.Tail(tail)))
+	  & tail: ("WITH"i & ?=('(' & MasterKeyLocation & (',' & MasterKeyEnclave)? & ')')
+			   & '(' & first: MasterKeySetting & (',' & rest: MasterKeySetting)* & ')')
+		=> @(Statement.Defined("COLUMN MASTER KEY", name, Syntax.Tail(tail), options: Syntax.Listed(first, rest)))
 
 	| verb: CreateOrAlter & "CREDENTIAL"i & name: Identifier
 	  & tail: (CredentialWith & ("FOR"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & Identifier)?)
@@ -2352,10 +2355,29 @@ ServerEncryption = "ENCRYPTION"i & "BY"i & "SERVER"i & ("CERTIFICATE"i | "ASYMME
 // An asymmetric key made by a provider takes a list; one read from a file or an assembly
 // takes nothing; one made here takes an algorithm at most. The provider's two options
 // without the provider are refused, and so is an algorithm for a key that already exists.
-AsymmetricBody
-	= "FROM"i & "PROVIDER"i & Identifier & ("WITH"i & ProviderKeyOption & (',' & ProviderKeyOption)*)?
-	| "FROM"i & AsymmetricSource
-	| ("WITH"i & "ALGORITHM"i & '=' & KeyAlgorithm)?
+//
+// What each of these gives back is the settings it read, as nodes, for the statement's
+// `Options`: the words go to the tail as they were, and a check matches these.
+AsymmetricBody : @Clause[]
+	= "FROM"i & "PROVIDER"i & Identifier & ("WITH"i & first: ProviderKeySetting & (',' & rest: ProviderKeySetting)*)?
+		=> @(first is null ? Clause.None : Syntax.Listed(first, rest))
+	| "FROM"i & AsymmetricSource => @(Clause.None)
+	| ("WITH"i & only: AlgorithmSetting)? => @(only is null ? Clause.None : new Clause[] { only })
+
+// Each setting as a node, made from the words the catalogue's line read and nothing more.
+// Not from the builder the index options use: a key's list has no brackets and the clause
+// after it no comma, and the builder reads a value as a run of words up to one — so
+// `ALGORITHM = AES_256 ENCRYPTION BY CERTIFICATE c, PASSWORD = 'p'` had the encryption taken
+// for the algorithm's value, and the statement refused.
+ProviderKeySetting : @Clause = t: ProviderKeyOption                                    => @(Syntax.Setting(t))
+AlgorithmSetting   : @Clause = t: ("ALGORITHM"i & '=' & KeyAlgorithm)                 => @(Syntax.Setting(t))
+SymmetricSetting   : @Clause = t: SymmetricOption                                      => @(Syntax.Setting(t))
+ProviderSetting    : @Clause = t: ProviderOption                                       => @(Syntax.Setting(t))
+CertificateSetting : @Clause = t: CertificateOption                                    => @(Syntax.Setting(t))
+PrivateKeySetting  : @Clause = t: PrivateKeyOption                                     => @(Syntax.Setting(t))
+KeyPasswordSetting : @Clause = t: KeyPassword                                          => @(Syntax.Setting(t))
+ColumnKeySetting   : @Clause = t: ColumnKeyPart                                        => @(Syntax.Setting(t))
+MasterKeySetting   : @Clause = t: (MasterKeyProvider | MasterKeyPath | MasterKeyEnclave) => @(Syntax.Setting(t))
 
 AsymmetricSource
 	= "EXECUTABLE"i? & "FILE"i & '=' & Quoted
@@ -2366,10 +2388,11 @@ ProviderKeyOption
 	| "PROVIDER_KEY_NAME"i & '=' & Quoted
 	| "CREATION_DISPOSITION"i & '=' & Disposition
 
-AsymmetricChange
-	= "REMOVE"i & "PRIVATE"i & "KEY"i
-	| "WITH"i & "PRIVATE"i & "KEY"i & '(' & KeyPassword & (',' & KeyPassword)* & ')'
-	| Attestation
+AsymmetricChange : @Clause[]
+	= "REMOVE"i & "PRIVATE"i & "KEY"i => @(Clause.None)
+	| "WITH"i & "PRIVATE"i & "KEY"i & '(' & first: KeyPasswordSetting & (',' & rest: KeyPasswordSetting)* & ')'
+		=> @(Statement.Holding("PRIVATE KEY", Syntax.Listed(first, rest)))
+	| Attestation => @(Clause.None)
 
 // Who vouches for a key or a certificate. In no published block, and read by the engine at
 // every level, both ways round.
@@ -2384,10 +2407,12 @@ SymmetricKeyName = Identifier | Tsql.TemporaryName
 
 // A key a provider holds may say nothing more; one made here says at least one option and
 // is locked by at least one thing.
-SymmetricBody
-	= "FROM"i & "PROVIDER"i & Identifier & ("WITH"i & ProviderOption & (',' & ProviderOption)*)?
+SymmetricBody : @Clause[]
+	= "FROM"i & "PROVIDER"i & Identifier & ("WITH"i & first: ProviderSetting & (',' & rest: ProviderSetting)*)?
 	  & SymmetricEncryption?
-	| "WITH"i & SymmetricOption & (',' & SymmetricOption)* & SymmetricEncryption
+		=> @(first is null ? Clause.None : Syntax.Listed(first, rest))
+	| "WITH"i & first: SymmetricSetting & (',' & rest: SymmetricSetting)* & SymmetricEncryption
+		=> @(Syntax.Listed(first, rest))
 
 ProviderOption
 	= "ALGORITHM"i & '=' & ProviderAlgorithm
@@ -2408,38 +2433,44 @@ MasterKeyChange
 
 // A certificate made here takes its options in any order and none of them is required; one
 // read from somewhere takes its private key's.
-CertificateBody
-	= "FROM"i & CertificateSource
-	| ("ENCRYPTION"i & "BY"i & PasswordEncryptor)? & "WITH"i & CertificateOption & (',' & CertificateOption)*
+CertificateBody : @Clause[]
+	= "FROM"i & s: CertificateSource => @(s)
+	| ("ENCRYPTION"i & "BY"i & PasswordEncryptor)? & "WITH"i & first: CertificateSetting & (',' & rest: CertificateSetting)*
+		=> @(Syntax.Listed(first, rest))
 
 CertificateOption
 	= "SUBJECT"i & '=' & Quoted
 	| "START_DATE"i & '=' & Quoted
 	| "EXPIRY_DATE"i & '=' & Quoted
 
-CertificateSource
-	= "ASSEMBLY"i & QualifiedName
+CertificateSource : @Clause[]
+	= "ASSEMBLY"i & QualifiedName => @(Clause.None)
 	| "EXECUTABLE"i? & "FILE"i & '=' & Quoted
-	  & ("WITH"i & ("FORMAT"i & '=' & Quoted & ',')? & "PRIVATE"i & "KEY"i & PrivateKeyList)?
-	| "BINARY"i & '=' & Tsql.BinaryLiteral & ("WITH"i & "PRIVATE"i & "KEY"i & PrivateKeyList)?
+	  & ("WITH"i & ("FORMAT"i & '=' & Quoted & ',')? & "PRIVATE"i & "KEY"i & k: PrivateKeyList)?
+		=> @(Statement.Holding("PRIVATE KEY", k))
+	| "BINARY"i & '=' & Tsql.BinaryLiteral & ("WITH"i & "PRIVATE"i & "KEY"i & k: PrivateKeyList)?
+		=> @(Statement.Holding("PRIVATE KEY", k))
 
-PrivateKeyList = '(' & PrivateKeyOption & (',' & PrivateKeyOption)* & ')'
+PrivateKeyList : @Clause[]
+	= '(' & first: PrivateKeySetting & (',' & rest: PrivateKeySetting)* & ')' => @(Syntax.Listed(first, rest))
 
 PrivateKeyOption
 	= "FILE"i & '=' & Quoted
 	| "BINARY"i & '=' & Tsql.BinaryLiteral
 	| KeyPassword
 
-CertificateChange
-	= "REMOVE"i & "PRIVATE"i & "KEY"i
-	| "WITH"i & "PRIVATE"i & "KEY"i & PrivateKeyList
-	| "WITH"i & "ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff
-	| Attestation
+CertificateChange : @Clause[]
+	= "REMOVE"i & "PRIVATE"i & "KEY"i => @(Clause.None)
+	| "WITH"i & "PRIVATE"i & "KEY"i & k: PrivateKeyList => @(Statement.Holding("PRIVATE KEY", k))
+	| "WITH"i & "ACTIVE"i & "FOR"i & "BEGIN_DIALOG"i & '=' & OnOff => @(Clause.None)
+	| Attestation => @(Clause.None)
 
 // An Always Encrypted key's value: which master key, which algorithm and the value itself,
 // all three and in any order. The algorithm is a literal — `ALGORITHM = RSA_OAEP` unquoted
 // is refused.
-ColumnKeyValue = '(' & ColumnKeyPart & ',' & ColumnKeyPart & ',' & ColumnKeyPart & ')'
+ColumnKeyValue : @Clause
+	= '(' & a: ColumnKeySetting & ',' & b: ColumnKeySetting & ',' & c: ColumnKeySetting & ')'
+		=> @(new Clause.Option("VALUE", null, new Clause[] { a, b, c }))
 
 ColumnKeyPart
 	= ColumnKeyMaster

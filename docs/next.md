@@ -17643,3 +17643,10 @@ The first run over the corpus found two things the probes had not asked: `MINUTE
 singular after a delay, and `STATS_STREAM` alone in `CREATE STATISTICS`, which a probe with
 `ROWCOUNT` beside it had made look refused. Both fixed, and at 150 the work list is where the
 keys left it, 395, with 99 read here and refused there. Round trip 100% of 6,770.
+
+**The keys' settings are now nodes** as well as words. `Definition` gained `Options`, filled
+by the keys, certificates and Always Encrypted keys, so that the walker's check sees a
+`SUBJECT`, an `ALGORITHM` or a private key's `FILE` written twice. They are built by
+`Syntax.Setting` from the words the catalogue's line read, not by the index options' builder:
+in a key's bracketless list that builder read `ENCRYPTION BY CERTIFICATE c` as the value of
+`ALGORITHM = AES_256`. The tree's shape is otherwise left alone for now.

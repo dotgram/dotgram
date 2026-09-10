@@ -273,6 +273,20 @@ public abstract record Statement : ISqlSpan
 		public string? Tail { get; init; }
 
 		/// <summary>
+		/// The settings written among <see cref="Tail"/>, as nodes — where a check needs them,
+		/// and null where nothing has asked.
+		/// </summary>
+		/// <remarks>
+		/// The words stay in <see cref="Tail"/> and are what prints; these are the same settings
+		/// seen as parts, which is what a question about them — one written twice — has to
+		/// match. They came for the keys and the certificates first, because a repeated
+		/// <c>SUBJECT</c> or <c>ALGORITHM</c> is what the engine refuses there, and a list
+		/// nested inside one — a private key's, an Always Encrypted key's value — is an
+		/// option holding it.
+		/// </remarks>
+		public Clause[]? Options { get; init; }
+
+		/// <summary>
 		/// The word the statement opened with, where the syntax lets it be more than one —
 		/// <c>CREATE</c>, <c>ALTER</c>, <c>CREATE OR ALTER</c>. Null where the record's own
 		/// name says which, the two verbs having a record each.
@@ -1029,8 +1043,13 @@ public abstract record Statement : ISqlSpan
 		};
 
 	/// <summary>The definition the words name, where the tree keeps the name and no more.</summary>
-	public static Statement Defined(string what, string name, string? tail = null, string? verb = null) =>
-		Named(what, name) with { Tail = tail, Verb = verb is null ? null : Syntax.Squared(verb) };
+	public static Statement Defined(
+		string what, string name, string? tail = null, string? verb = null, Clause[]? options = null) =>
+		Named(what, name) with { Tail = tail, Verb = verb is null ? null : Syntax.Squared(verb), Options = options };
+
+	/// <summary>A list held under one name: a private key's settings, an Always Encrypted value's parts.</summary>
+	public static Clause[] Holding(string name, Clause[]? settings) =>
+		settings is null ? Clause.None : [new Clause.Option(name, null, settings)];
 
 	static Definition Named(string what, string name) =>
 		what switch
@@ -2372,6 +2391,41 @@ public static class Syntax
 
 	/// <summary>A run of words as one upper-case word per space.</summary>
 	public static string Squared(string words) => Run(words, true);
+
+	/// <summary>
+	/// One setting of a catalogue's list as a node, from the words its line read: the name up
+	/// to the first <c>=</c> outside brackets, and the rest as the value's words.
+	/// </summary>
+	/// <remarks>
+	/// For a statement that keeps its words as a tail and its settings beside them as nodes,
+	/// so that a check has names to match. <c>DECRYPTION BY PASSWORD = 'p'</c> is named by
+	/// its three words; <c>ENCLAVE_COMPUTATIONS (SIGNATURE = 0x01)</c>, with no <c>=</c> of
+	/// its own, by the word before its bracket.
+	/// </remarks>
+	public static Clause.Option Setting(string words)
+	{
+		var depth = 0;
+
+		for (var at = 0; at < words.Length; at++)
+			switch (words[at])
+			{
+				case '(':
+					depth++;
+					break;
+
+				case ')':
+					depth--;
+					break;
+
+				case '=' when depth == 0:
+					return new Clause.Option(
+						Squared(words.Substring(0, at)), new Expression.ColumnReference(words.Substring(at + 1).Trim()), Clause.None);
+			}
+
+		var open = words.IndexOf('(');
+
+		return new Clause.Option(Squared(open < 0 ? words : words.Substring(0, open)), null, Clause.None);
+	}
 
 	/// <summary>A word the grammar read and this file has no record for.</summary>
 	/// <remarks>

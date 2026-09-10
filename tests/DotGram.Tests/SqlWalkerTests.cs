@@ -62,13 +62,29 @@ public sealed class SqlWalkerTests
 	[InlineData("CREATE INDEX i ON t (a) WITH (SORT_IN_TEMPDB = ON, SORT_IN_TEMPDB = OFF)", "SORT_IN_TEMPDB")]
 	[InlineData("CREATE INDEX i ON t (a) WITH (DATA_COMPRESSION = ROW ON PARTITIONS (1), DATA_COMPRESSION = PAGE ON PARTITIONS (2))", "")]
 	[InlineData("CREATE TABLE t (a INT, INDEX ix (a) WITH (FILLFACTOR = 80, PAD_INDEX = ON, FILLFACTOR = 90))", "FILLFACTOR")]
+
+	// And where the engine refuses the repetition as syntax: a key's or a certificate's
+	// settings, which the statement keeps as nodes beside its words, and a private key's list
+	// held inside one of them.
+	[InlineData("CREATE CERTIFICATE c WITH SUBJECT = 's', SUBJECT = 't'", "SUBJECT")]
+	[InlineData("CREATE SYMMETRIC KEY k WITH ALGORITHM = AES_256, ALGORITHM = AES_128 ENCRYPTION BY CERTIFICATE c", "ALGORITHM")]
+	[InlineData("CREATE CERTIFICATE c FROM FILE = 'f' WITH PRIVATE KEY (FILE = 'k', FILE = 'j')", "FILE")]
+	[InlineData("CREATE CERTIFICATE c WITH SUBJECT = 's', START_DATE = '20200101', EXPIRY_DATE = '20300101'", "")]
 	public void A_check_is_a_lambda_over_the_nodes_it_is_about(string input, string repeated)
 	{
 		var found = new List<string>();
 
 		SqlWalker.Walk(TransactSql.ParseStatement(input), node =>
 		{
-			if (node is Clause.ConstraintDefinition { Options: { } options })
+			var options = node switch
+			{
+				Clause.ConstraintDefinition { Options: { } some } => some,
+				Statement.Definition { Options: { } some }        => some,
+				Clause.Option { Options: { Length: > 0 } some }   => some,
+				_                                                 => null,
+			};
+
+			if (options is not null)
 				found.AddRange(
 					from option in options.OfType<Clause.Option>()
 					group option by (Name: option.Name.ToUpperInvariant(), option.Partitions) into same
