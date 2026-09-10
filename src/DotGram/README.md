@@ -209,14 +209,14 @@ The generated parser is C# 8 and targets whatever the project around it targets.
 ## Documentation
 
 Everything else is at [github.com/dotgram/dotgram](https://github.com/dotgram/dotgram):
-the [notation in full](https://github.com/dotgram/dotgram/blob/v0.1.0/docs/syntax.md), the
-[diagnostics](https://github.com/dotgram/dotgram/blob/v0.1.0/docs/diagnostics.md),
-[whole parsers to copy](https://github.com/dotgram/dotgram/tree/v0.1.0/examples/DotGram.Examples),
-and the [benchmarks](https://github.com/dotgram/dotgram/tree/v0.1.0/benchmarks).
+the [notation in full](https://github.com/dotgram/dotgram/blob/main/docs/syntax.md), the
+[diagnostics](https://github.com/dotgram/dotgram/blob/main/docs/diagnostics.md),
+[whole parsers to copy](https://github.com/dotgram/dotgram/tree/main/examples/DotGram.Examples),
+and the [benchmarks](https://github.com/dotgram/dotgram/tree/main/benchmarks).
 
-[`DotGram.Parsers`](https://github.com/dotgram/dotgram/tree/v0.1.0/src/DotGram.Parsers) is a
+[`DotGram.Parsers`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Parsers) is a
 package of its own: RFC 3986 URIs, a C#-style expression language that builds
 `System.Linq.Expressions` trees, and SQL-92 with T-SQL written as a dialect over it. They
 are also the largest grammars there are to read.
 
-[MIT](https://github.com/dotgram/dotgram/blob/v0.1.0/LICENSE)
+[MIT](https://github.com/dotgram/dotgram/blob/main/LICENSE)
