@@ -84,7 +84,7 @@ static class CompatibilityLevels
 
 			// And this grammar's parser for each level beside the engine's answer, so that a
 			// row where the two differ is a row that is plainly wrong.
-			var ours = Asked.Select(level => Engine.Parse(level, line).Read ? "   ok" : "   no");
+			var ours = Asked.Select(level => Engine.ParseText(level, line).Read ? "   ok" : "   no");
 
 			Console.WriteLine($"  {Shape(answers)}   engine  {line}");
 			Console.WriteLine($"  {string.Join(" ", ours)}   here");

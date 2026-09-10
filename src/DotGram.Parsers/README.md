@@ -119,6 +119,12 @@ reads what the engine reads at level 130, and so on from `100` to `170`; `ParseS
 names no level and reads them all. The levels are one grammar and one machine, told apart
 by a number, and what each gates was measured against SQL Server rather than remembered.
 
+`TransactSql.ParseStatement` reads one statement. `TransactSql.ParseSql` reads a text of
+them — what a client sends the server in one call — and gives back a `Statement[]`: each
+ended by a `;` or by nothing, except before a `WITH`, which needs the statement before it
+ended, as the server does. `ParseSql100` to `ParseSql170` are its levels. `GO` is not
+T-SQL but a client's batch separator, and is not read.
+
 The tree they build is described in [`docs/ast.md`](https://github.com/dotgram/dotgram/blob/main/docs/ast.md). Both are still
 growing: what they read is held against a corpus of somebody else's SQL and against a
 round trip — parse, print, and compare the two readings — which catches a parser that

@@ -188,6 +188,28 @@ static class Engine
 		return (match.IsSuccess, (int)match.Position);
 	}
 
+	/// <summary>
+	/// The same for a text of statements, which is what the engine is sent when it is asked
+	/// about a line: `SET ONLINE SELECT 1` is two statements to it and one text here.
+	/// </summary>
+	internal static (bool Read, int At) ParseText(string version, string text)
+	{
+		var match = version switch
+		{
+			"100" => TransactSql.TryParseSql100(text),
+			"110" => TransactSql.TryParseSql110(text),
+			"120" => TransactSql.TryParseSql120(text),
+			"130" => TransactSql.TryParseSql130(text),
+			"140" => TransactSql.TryParseSql140(text),
+			"150" => TransactSql.TryParseSql150(text),
+			"160" => TransactSql.TryParseSql160(text),
+			"170" => TransactSql.TryParseSql170(text),
+			_     => TransactSql.TryParseSql(text),
+		};
+
+		return (match.IsSuccess, (int)match.Position);
+	}
+
 	/// <summary>Puts the connection into the mode where it reads and does nothing else.</summary>
 	internal static void ParseOnly(SqlConnection connection)
 	{

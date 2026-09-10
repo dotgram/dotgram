@@ -17750,3 +17750,29 @@ statement after it; a second `SELECT` does not see them, and a `WITH` that is no
 a batch needs the statement before it ended with `;` (336, 319). This grammar read the two
 `WITH`s, because a statement read one and the query in its body read its own. After the
 statement's `WITH` the body may now not open with another.
+
+**A text of statements.** `TransactSql` read one statement, and a text of several was a
+failure at its second; the corpus was cut into statements by ScriptDom before anything here
+saw it. `ParseSql` reads the text and gives back a `Statement[]`, with a publication per
+level beside it. Asked forty ways, the engine reads a statement ended by `;` or by nothing,
+and empty statements anywhere — `SELECT 1;;`, `;SELECT 1`, `BEGIN ; SELECT 1 END` — but
+not `BEGIN ; END`. And it will not have a `WITH` after a statement that is not ended: after
+a `SELECT`, `PRINT`, `SET`, `USE`, `INSERT`, `UPDATE`, `DROP`, `THROW`, `RETURN`, an `IF`, a
+`WHILE` or a block it answers 319 or 336, and after `BEGIN TRAN`, `TRUNCATE`, `CREATE
+TABLE`, `GRANT` or `EXEC` a plain 102, having read the `WITH` as theirs. Two exceptions —
+a `DECLARE` whose last variable has no value, `DECLARE @x INT`, and `RAISERROR (…)` — are
+read with the next statement's `WITH` after them unended; the rule here is the general
+one, and those two are refused.
+
+A block holds the same pieces, so the rule and the empty statements hold inside `BEGIN …
+END` too. And a branch of an `IF` or a `WHILE` now leaves its `;` to the statement it is a
+branch of, unless an `ELSE` follows: the probe found `IF 1 = 1 SELECT 1; WITH a AS (…)
+SELECT …` read by the engine and refused here, because the branch had eaten the `;` that
+ended the `IF`.
+
+Of sixty-seven probes of texts, sixty-four agree; the three are the exceptions above. The
+empty statements a block may now hold gave three corpus statements back: at 150, 5,578
+read by both and the work list 390. Round trip 100% of 6,668. `GO` is not read: it is a client's separator, not the server's language. The
+`--levels` probe reads a line with `ParseSql` now, so a line of two statements is no
+longer a false refusal; the corpus is still cut by ScriptDom, and reading it whole with
+`ParseSql` is the next step there.

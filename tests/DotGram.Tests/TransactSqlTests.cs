@@ -649,6 +649,42 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>A text of several statements, as one call to the server carries them.</summary>
+	[Theory]
+	[InlineData("SELECT 1 SELECT 2", 2)]
+	[InlineData("SELECT 1; SELECT 2;", 2)]
+	[InlineData(";;SELECT 1;; ;", 1)]
+	[InlineData("WITH a AS (SELECT 1 AS x) SELECT * FROM a; SELECT * FROM a", 2)]
+	[InlineData("SELECT 1; WITH a AS (SELECT 1 AS x) SELECT * FROM a", 2)]
+	[InlineData("ALTER DATABASE d SET ONLINE SELECT 1", 2)]
+	[InlineData("", 0)]
+	public void A_text_is_read_as_its_statements(string input, int count)
+	{
+		var match = TransactSql.TryParseSql(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+		Assert.Equal(count, match.Value.Length);
+	}
+
+	/// <summary>
+	/// A `WITH` that is not first needs the statement before it ended, in a text and in a
+	/// block alike; empty statements are read in both.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT 1 WITH a AS (SELECT 1 AS x) SELECT * FROM a", false)]
+	[InlineData("PRINT 1 WITH XMLNAMESPACES ('u' AS ns) SELECT 1", false)]
+	[InlineData("WITH a AS (SELECT 1 AS x) SELECT * FROM a WITH b AS (SELECT 2 AS y) SELECT * FROM b", false)]
+	[InlineData("BEGIN SELECT 1 WITH a AS (SELECT 1 AS x) SELECT * FROM a END", false)]
+	[InlineData("BEGIN SELECT 1; WITH a AS (SELECT 1 AS x) SELECT * FROM a END", true)]
+	[InlineData("BEGIN ; SELECT 1 ; ; END", true)]
+	[InlineData("BEGIN ; END", false)]
+	[InlineData("IF 1 = 1 SELECT 1; WITH a AS (SELECT 1 AS x) SELECT * FROM a", true)]
+	[InlineData("IF 1 = 1 SELECT 1 WITH a AS (SELECT 1 AS x) SELECT * FROM a", false)]
+	[InlineData("IF 1 = 1 SELECT 1; ELSE SELECT 2; WITH a AS (SELECT 1 AS x) SELECT * FROM a", true)]
+	[InlineData("WHILE 1 = 0 BREAK; WITH a AS (SELECT 1 AS x) SELECT * FROM a", true)]
+	public void A_WITH_after_a_statement_needs_it_ended(string input, bool read) =>
+		Assert.Equal(read, TransactSql.TryParseSql(input).IsSuccess);
+
 	/// <summary>A construct taken out of the language: read up to a level and refused after it.</summary>
 	/// <remarks>
 	/// The weak algorithms, as the engine answers them: everything but AES and the longer RSA

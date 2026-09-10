@@ -914,6 +914,7 @@ namespace Dialect with (
 	Condition : @Expression = c: Sql92.SearchCondition => @(c)
 	Value     : @Expression = v: Sql92.ValueExpression => @(v)
 	Statement : @Statement = s: TsqlStatement         => @(s)
+	Sql       : @Statement[] = s: SqlText             => @(s)
 }
 
 parse Dialect.Select    as ParseSelect
@@ -921,6 +922,7 @@ parse Dialect.Query     as ParseQuery
 parse Dialect.Condition as ParseSearchCondition
 parse Dialect.Value     as ParseValueExpression
 parse Dialect.Statement as ParseStatement
+parse Dialect.Sql       as ParseSql
 
 // ── Which level of the language ─────────────────────────────────────────────
 //
@@ -949,6 +951,15 @@ parse Dialect.Statement with (Version = "140") as ParseStatement140
 parse Dialect.Statement with (Version = "150") as ParseStatement150
 parse Dialect.Statement with (Version = "160") as ParseStatement160
 parse Dialect.Statement with (Version = "170") as ParseStatement170
+
+parse Dialect.Sql with (Version = "100") as ParseSql100
+parse Dialect.Sql with (Version = "110") as ParseSql110
+parse Dialect.Sql with (Version = "120") as ParseSql120
+parse Dialect.Sql with (Version = "130") as ParseSql130
+parse Dialect.Sql with (Version = "140") as ParseSql140
+parse Dialect.Sql with (Version = "150") as ParseSql150
+parse Dialect.Sql with (Version = "160") as ParseSql160
+parse Dialect.Sql with (Version = "170") as ParseSql170
 
 // ── The graph pattern, which is a language of its own ───────────────────────
 //
@@ -1309,7 +1320,24 @@ DefinitionStatement : @Statement
 	| s: PrincipalStatement      => @(s)
 	| s: ExternalStatement       => @(s)
 
-StatementList : @Statement[] = s: TsqlStatement+ => @(s)
+// ── A text of statements ────────────────────────────────────────────────────
+//
+// What a client sends the server in one call, and what a block holds: statements one after
+// another, each ended by a `;` or by nothing, with as many empty ones between as anybody
+// writes — `SELECT 1;;` and `BEGIN ; SELECT 1 END` are read. Nothing will do before a
+// `WITH`, which is the clause of the statement after it and which the engine will not tell
+// from a continuation of the one before: `SELECT 1 WITH a AS (…) SELECT …` is refused (319),
+// and so is the same after `PRINT`, `SET`, `UPDATE`, `DROP`, an `IF` or a block. Two engine
+// answers go the other way and are not followed here: after a `DECLARE` whose last variable
+// has no value, `DECLARE @x INT`, and after `RAISERROR (…)` it reads the `WITH` without the
+// `;`.
+SqlText : @Statement[] = ';'* & s: SqlPiece* => @(s ?? System.Array.Empty<Statement>())
+
+SqlPiece : @Statement
+	= (with: WithClause & ?!"WITH"i)? & s: StatementBody & (';'+ | ?!"WITH"i)
+		=> @(Syntax.Preceded(with, s))
+
+StatementList : @Statement[] = ';'* & s: SqlPiece+ => @(s)
 
 // `BEGIN TRY` and `BEGIN TRANSACTION` open with the same word as a block, so both stand
 // in front of it.
@@ -1323,12 +1351,20 @@ StatementBlock : @Statement
 		=> @(new Statement.Compound(body, atomic))
 	| "BEGIN"i & body: StatementList & "END"i => @(new Statement.Compound(body))
 
+// A branch leaves its `;` to the statement it is a branch of, unless an `ELSE` follows: the
+// `;` of `IF c SELECT 1; WITH a AS (…) SELECT …` ends the `IF`, and a `WITH` after it is the
+// next statement's, which the engine reads.
 ConditionalStatement : @Statement
-	= "IF"i & c: SearchCondition & then: TsqlStatement & ("ELSE"i & other: TsqlStatement)?
+	= "IF"i & c: SearchCondition & then: Branch & other: ElseBranch?
 		=> @(new Statement.If(c, then, other))
 
+ElseBranch : @Statement = ';'? & "ELSE"i & s: Branch => @(s)
+
 LoopStatement : @Statement
-	= "WHILE"i & c: SearchCondition & body: TsqlStatement => @(new Statement.While(c, body))
+	= "WHILE"i & c: SearchCondition & body: Branch => @(new Statement.While(c, body))
+
+Branch : @Statement
+	= (with: WithClause & ?!"WITH"i)? & s: StatementBody => @(Syntax.Preceded(with, s))
 
 // ── Transactions ────────────────────────────────────────────────────────────
 TransactionStatement : @Statement
