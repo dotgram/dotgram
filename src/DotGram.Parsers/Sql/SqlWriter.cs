@@ -742,6 +742,12 @@ public static class SqlWriter
 						Put(text, one);
 					}
 				}
+				else if (stateOptions is { Length: > 0 })
+				{
+					// `AFFINITY = NONE` with no state in front of it, or before one.
+					text.Append(' ');
+					Each(text, stateOptions);
+				}
 
 				if (protocol is not null)
 				{

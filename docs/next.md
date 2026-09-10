@@ -17973,3 +17973,46 @@ work list 383, as before; read here and refused there 44 (from 48), the four —
 login's hex password with no `HASHED`, a user's `DEFAULT_SCHEMA = NULL` — refused by both.
 `--split` 548 cut the same (from 552) and the round trip 100% of 6,661 (from 6,665): the
 same four, which ScriptDom reads.
+
+## Endpoints, as a catalogue
+
+An endpoint's state, protocol and language each took any word and any list. Put to the
+engine some hundred and fifty times, they are closed now, and the engine said more about
+them than the block does:
+
+- **Every protocol and language is closed.** `AS FOO` and `FOR FOO` are refused, and so is
+  a setting a language does not have: `ROLE` is mirroring's, the forwarding the broker's,
+  and T-SQL takes an encryption and nothing else. `AS TCP ()` is refused; an empty
+  language's bracket is read.
+- **One encryption for the three languages.** The block gives T-SQL `NEGOTIATED` and
+  `STRICT` and the others `DISABLED`, `SUPPORTED` and `REQUIRED`; the engine reads all five
+  in each, an algorithm only after the two that encrypt, each of `AES` and `RC4` once.
+- **Authentication** is Windows with its protocol, a certificate, or both in either order,
+  each once; the certificate is a name, `[c]` included, which the run of option words the
+  list was read with did not take.
+- **A listener.** A port is a whole number, `-1` read and then found out of range; an
+  address `ALL`, strings in brackets, or four numbers in brackets however spaced — the
+  corpus's `(1 . 2 . 3 . 4)`, which the lexer reads as numbers holding dots, so the four
+  parts are counted by a guard.
+- **The state.** `AFFINITY = NONE` or `ADMIN`, which no block lists, stands before the state,
+  after it or alone; the tree keeps the list as written, and the writer prints a list with
+  no state in front, which it did not.
+- **Order and owner.** `AS` and `FOR` come in either order, and `ALTER ENDPOINT` takes no
+  `AUTHORIZATION`.
+- **What the corpus added.** Once the first run was in, the endpoints left in the work list
+  were two things no block names: an address with its mask after a colon,
+  `(1.1.1.1:10.10.20.30)`, and `DATA_MIRRORING`, a second word for mirroring. The engine
+  reads both, and a probe each for their edges agreed with it.
+- **Repeats are the engine's own objection.** A setting said twice is read and then
+  refused as a duplicate (7816), which is the walker's split exactly. 7810, 7816, 7863, 7871
+  and 7888 are on the audit's read side.
+
+The engine also reads SQL Server 2005's web services, `AS HTTP (…) FOR SOAP (…)`, removed in
+2012 and described on no page now. Those two keep the open list, and the two probes about
+them are the only ones answered otherwise: 169 of 171 agree.
+
+The corpus had been waiting for this. At 150: read by both 5,617 (from 5,585), the work
+list 351 (from 383) and read here but refused there 44, as before. The endpoints in the
+work list had stopped inside an address, at a mask, at an affinity alone and at
+`DATA_MIRRORING`; every one of them is read now but two, a SOAP web method dropped, which
+the open list does not take. `--split` 549 cut the same, and the round trip 100% of 6,693.

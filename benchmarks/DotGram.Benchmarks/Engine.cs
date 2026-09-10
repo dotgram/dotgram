@@ -489,6 +489,15 @@ static class Engine
 			//  33235  The parameter … cannot be provided for users that cannot authenticate in a database. Remove the WITHOUT LOGIN or PASSWORD clause.
 			or 33234 or 33235
 
+			// And an endpoint's.
+			//
+			//   7810  The value '…' is not within range for the '…' parameter.
+			//   7816  A duplicate parameter was specified, '…'.
+			//   7863  The endpoint was not changed. The ALTER ENDPOINT statement did not contain any values to modify or update.
+			//   7871  The clause "…" is not valid for this endpoint type.
+			//   7888  The IPv6 address specified is not supported. …
+			or 7810 or 7816 or 7863 or 7871 or 7888
+
 			// And a database's creation.
 			//
 			//    188  Cannot specify a log file in a CREATE DATABASE statement without also specifying at least one data file.

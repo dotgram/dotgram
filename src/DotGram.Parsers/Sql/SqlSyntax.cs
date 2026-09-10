@@ -2141,6 +2141,62 @@ public static class Syntax
 	/// <summary>Words as written, with the whitespace between them made one space.</summary>
 	public static string Spaced(string words) => Run(words, false);
 
+	/// <summary>Text with every whitespace character taken out: <c>(1 . 2 . 3 . 4)</c> as <c>(1.2.3.4)</c>.</summary>
+	public static string Compacted(string text)
+	{
+		var kept = new char[text.Length];
+		var at   = 0;
+
+		foreach (var one in text)
+			if (!char.IsWhiteSpace(one))
+				kept[at++] = one;
+
+		return new string(kept, 0, at);
+	}
+
+	/// <summary>
+	/// Whether a bracket holds an IPv4 address: four runs of digits and the three dots between
+	/// them, however spaced, and after a colon four more for the mask — which is how an
+	/// endpoint's <c>LISTENER_IP</c> is written. The lexer reads <c>1.2</c> as one number, so
+	/// the parts are counted here and not by a rule.
+	/// </summary>
+	public static bool IsAddress(string text)
+	{
+		var inside = Compacted(text);
+
+		if (inside.Length < 2 || inside[0] != '(' || inside[inside.Length - 1] != ')')
+			return false;
+
+		var halves = inside.Substring(1, inside.Length - 2).Split(':');
+
+		return halves.Length <= 2 && Array.TrueForAll(halves, IsFourPart);
+	}
+
+	/// <summary>Four runs of digits with a dot between each two, and nothing else.</summary>
+	static bool IsFourPart(string text)
+	{
+		var parts  = 1;
+		var digits = 0;
+
+		foreach (var one in text)
+		{
+			if (one == '.')
+			{
+				if (digits == 0)
+					return false;
+
+				parts++;
+				digits = 0;
+			}
+			else if (one is >= '0' and <= '9')
+				digits++;
+			else
+				return false;
+		}
+
+		return parts == 4 && digits > 0;
+	}
+
 	/// <summary>
 	/// A run of words, one space between them — and what stands inside quotes copied
 	/// character for character.

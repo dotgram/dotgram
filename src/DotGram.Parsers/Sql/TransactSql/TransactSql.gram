@@ -2978,11 +2978,14 @@ AuditStatement : @Statement
 		=> @(Statement.Defined("EVENT NOTIFICATION", name, Syntax.Tail(tail)))
 
 	// An endpoint says how it is reached and what it speaks, and each is a bracket of
-	// arguments belonging to that protocol rather than to this language.
+	// arguments belonging to that protocol rather than to this language. The two come in
+	// either order, and an owner is given only when the endpoint is created.
 	| verb: CreateOrAlter & "ENDPOINT"i & name: Identifier & ("AUTHORIZATION"i & owner: QualifiedName)?
-	  & standing: EndpointState? & reached: EndpointAs? & spoken: EndpointFor?
+	  & standing: EndpointState? & reached: EndpointAs? & spoken: EndpointFor? & late: EndpointAs?
+	  & when @((owner is null || verb == "CREATE") && (reached is null || late is null))
 		=> @(new Statement.EndpointDefinition(name, verb, owner,
-				 standing?.Name, standing?.Options, reached?.Name, reached?.Options, spoken?.Name, spoken?.Options))
+				 standing?.Name is "" ? null : standing?.Name, standing?.Options,
+				 (reached ?? late)?.Name, (reached ?? late)?.Options, spoken?.Name, spoken?.Options))
 
 ServerOrDatabase : @string = "SERVER"i => @("SERVER") | "DATABASE"i => @("DATABASE")
 
@@ -3045,13 +3048,109 @@ EventActions : @string[] = "ACTION"i & '(' & first: EventAction & (',' & rest: E
 EventAction  : @string   = t: QualifiedName => @(t)
 
 // ── An endpoint ─────────────────────────────────────────────────────────────
-// `STATE = STARTED, AFFINITY = NONE`: the published block names only the state and the
-// corpus writes a list, so it is read as one.
-EndpointState : @Clause.Option
-	= "STATE"i & '=' & s: word & (',' & rest: OptionSetting)* => @(new Clause.Option(s, null, rest ?? Clause.None))
+//
+// The published blocks, put to the engine some hundred and fifty times. What it knows is
+// closed for every protocol and every language: `AS FOO` and `FOR FOO` are refused, and so
+// is a setting the language does not have — `ROLE` belongs to mirroring, the forwarding to
+// the broker, and T-SQL takes an encryption and nothing else. A setting said twice it reads
+// and objects to afterwards (7816), so a repeat is the walker's here as everywhere.
+//
+// It also reads what no page describes any more: `AS HTTP` and `FOR SOAP`, SQL Server 2005's
+// web services, removed in 2012 and still in the parser. Those two keep the open list, there
+// being no block to close it with.
 
-EndpointAs  : @Clause.Option = "AS"i  & w: word & '(' & o: OptionList? & ')' => @(new Clause.Option(w, null, o ?? Clause.None))
-EndpointFor : @Clause.Option = "FOR"i & w: word & '(' & o: OptionList? & ')' => @(new Clause.Option(w, null, o ?? Clause.None))
+// `STATE = STARTED, AFFINITY = NONE`: the published block names only the state, and the
+// engine reads an affinity too — before the state, after it or alone, the comma between them
+// — which is `NONE` or `ADMIN` and not a name. Kept as written: a state first is the node's
+// state, and anything else its list.
+EndpointState : @Clause.Option
+	= "STATE"i & '=' & s: EndpointStateWord & (',' & rest: EndpointSetting)*
+		=> @(new Clause.Option(s, null, rest ?? Clause.None))
+	| first: EndpointAffinity & (',' & rest: EndpointSetting)*
+		=> @(new Clause.Option("", null, Syntax.Listed(first, rest)))
+
+EndpointStateWord    = "STARTED"i | "STOPPED"i | "DISABLED"i
+EndpointAffinityWord = "NONE"i | "ADMIN"i
+
+EndpointSetting : @Clause
+	= "STATE"i & '=' & s: EndpointStateWord => @(new Clause.Option("STATE", new Expression.ColumnReference(s), Clause.None))
+	| a: EndpointAffinity => @(a)
+
+EndpointAffinity : @Clause
+	= "AFFINITY"i & '=' & v: EndpointAffinityWord => @(new Clause.Option("AFFINITY", new Expression.ColumnReference(v), Clause.None))
+
+// How it is reached. TCP needs a setting at least; `AS TCP ()` is refused.
+EndpointAs : @Clause.Option
+	= "AS"i & w: EndpointTcp & '(' & first: EndpointTcpOption & (',' & rest: EndpointTcpOption)* & ')'
+		=> @(new Clause.Option(w, null, Syntax.Listed(first, rest)))
+	| "AS"i & w: EndpointHttp & '(' & o: OptionList & ')' => @(new Clause.Option(w, null, o))
+
+EndpointTcp  = "TCP"i
+EndpointHttp = "HTTP"i
+
+// A port is a whole number — `-1` is read, and then found out of range (7810) — and an
+// address `ALL`, strings in brackets for IPv6, or four numbers in brackets however they are
+// spaced: `(1 . 2 . 3 . 4)` is how the corpus writes it, and a number of the lexer's own
+// holds a dot, so the four are counted after the reading rather than by it. Four more after
+// a colon are the mask, `(1.1.1.1:255.0.0.0)`, which no block names and the engine reads.
+EndpointTcpOption : @Clause
+	= ?=("LISTENER_PORT"i & '=' & '-'? & Sql92.Lexical.Digits & OptionEnds) & o: OptionSetting => @(o)
+	| ?=("LISTENER_IP"i & '=' & ("ALL"i | '(' & Quoted & (',' & Quoted)* & ')') & OptionEnds) & o: OptionSetting => @(o)
+	| "LISTENER_IP"i & '=' & t: EndpointAddress & when @(t is not null && Syntax.IsAddress(t))
+		=> @(new Clause.Option("LISTENER_IP", new Expression.ColumnReference(Syntax.Compacted(t)), Clause.None))
+
+EndpointAddress = '(' & (Sql92.Lexical.UnsignedNumericLiteral | '.' | ':')+ & ')'
+
+// What it speaks, and each language its own list; an empty bracket is read for all four.
+EndpointFor : @Clause.Option
+	= "FOR"i & w: EndpointTsql & '(' & o: EndpointTsqlOptions? & ')' => @(new Clause.Option(w, null, o ?? Clause.None))
+	| "FOR"i & w: EndpointBroker & '(' & o: EndpointBrokerOptions? & ')' => @(new Clause.Option(w, null, o ?? Clause.None))
+	| "FOR"i & w: EndpointMirroring & '(' & o: EndpointMirroringOptions? & ')' => @(new Clause.Option(w, null, o ?? Clause.None))
+	| "FOR"i & w: EndpointSoap & '(' & o: OptionList? & ')' => @(new Clause.Option(w, null, o ?? Clause.None))
+
+EndpointTsql      = "TSQL"i
+EndpointBroker    = "SERVICE_BROKER"i
+EndpointMirroring = "DATABASE_MIRRORING"i | "DATA_MIRRORING"i
+EndpointSoap      = "SOAP"i
+
+EndpointTsqlOptions : @Clause[]
+	= first: EndpointEncryption & (',' & rest: EndpointEncryption)* => @(Syntax.Listed(first, rest))
+EndpointBrokerOptions : @Clause[]
+	= first: EndpointBrokerOption & (',' & rest: EndpointBrokerOption)* => @(Syntax.Listed(first, rest))
+EndpointMirroringOptions : @Clause[]
+	= first: EndpointMirroringOption & (',' & rest: EndpointMirroringOption)* => @(Syntax.Listed(first, rest))
+
+EndpointBrokerOption : @Clause
+	= e: EndpointEncryption     => @(e)
+	| a: EndpointAuthentication => @(a)
+	| ?=(("MESSAGE_FORWARDING"i & '=' & ("ENABLED"i | "DISABLED"i)
+		 | "MESSAGE_FORWARD_SIZE"i & '=' & '-'? & Sql92.Lexical.Digits) & OptionEnds) & o: OptionSetting => @(o)
+
+EndpointMirroringOption : @Clause
+	= e: EndpointEncryption     => @(e)
+	| a: EndpointAuthentication => @(a)
+	| ?=("ROLE"i & '=' & ("WITNESS"i | "PARTNER"i | "ALL"i) & OptionEnds) & o: OptionSetting => @(o)
+
+// One encryption for the three languages: the block gives T-SQL `NEGOTIATED` and `STRICT`
+// and the other two the rest, and the engine reads every one of them in each. An algorithm
+// follows only what may be encrypted, and names each of the two once.
+EndpointEncryption : @Clause = ?=("ENCRYPTION"i & '=' & EndpointEncryptionSyntax & OptionEnds) & o: OptionSetting => @(o)
+
+EndpointEncryptionSyntax
+	= "DISABLED"i | "NEGOTIATED"i | "STRICT"i
+	| ("SUPPORTED"i | "REQUIRED"i) & ("ALGORITHM"i & ("AES"i & "RC4"i? | "RC4"i & "AES"i?))?
+
+// Windows with its protocol, a certificate, or both in either order, each once. The
+// certificate is a name, `[c]` included, which a run of option words does not read.
+EndpointAuthentication : @Clause
+	= "AUTHENTICATION"i & '=' & t: EndpointAuthenticationSyntax
+		=> @(new Clause.Option("AUTHENTICATION", new Expression.ColumnReference(Syntax.Spaced(t)), Clause.None))
+
+EndpointAuthenticationSyntax
+	= "WINDOWS"i & EndpointWindowsMode? & ("CERTIFICATE"i & Identifier)?
+	| "CERTIFICATE"i & Identifier & ("WINDOWS"i & EndpointWindowsMode?)?
+
+EndpointWindowsMode = "NTLM"i | "KERBEROS"i | "NEGOTIATE"i
 
 // ── What lives outside the database, and what the server spends on it ───────
 //
