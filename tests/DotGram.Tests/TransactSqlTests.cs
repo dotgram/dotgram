@@ -348,8 +348,45 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT a FROM t ORDER BY a FETCH NEXT 2 ROWS ONLY")]
 	[InlineData("SELECT trim(*) FROM t")]
 	[InlineData("SELECT c1 FROM t1 AS a WITH (NOLOCK) TABLESAMPLE (10 PERCENT)")]
+	[InlineData("SELECT SUM (c) OVER (w) FROM t WINDOW w AS (PARTITION BY c)")]
 	public void What_the_engine_refuses_this_refuses_too(string input) =>
 		Assert.False(TransactSql.TryParseSelect(input).IsSuccess, input);
+
+	/// <summary>A parser per compatibility level, each reading from where the engine does.</summary>
+	/// <remarks>
+	/// The levels are readings of one grammar sharing one machine, and the conditions that
+	/// tell them apart are the engine's own map (`--levels`): each row here is a construct
+	/// the engine refuses below the level named and reads from it on. The union, which names
+	/// no level, reads every one — and `OPENXML`'s schema, the same rule as `OPENJSON`'s, is
+	/// here to hold the one that is not gated to where it was.
+	/// </remarks>
+	[Theory]
+	[InlineData("SELECT STRING_AGG (c, ',') WITHIN GROUP (ORDER BY c) FROM t", 110)]
+	[InlineData("SELECT * FROM OPENJSON (N'[]') WITH (a INT)",                  130)]
+	[InlineData("SELECT 1 FROM t WINDOW w AS (ORDER BY c)",                     160)]
+	[InlineData("SELECT TRIM (LEADING 'x' FROM 'xa')",                          160)]
+	[InlineData("SELECT * FROM OPENXML (@h, '/r', 1) WITH (a INT)",             100)]
+	public void Each_level_reads_from_where_the_engine_does(string input, int from)
+	{
+		foreach (var level in new[] { 100, 110, 120, 130, 140, 150, 160, 170 })
+		{
+			var match = level switch
+			{
+				100 => TransactSql.TryParseStatement100(input),
+				110 => TransactSql.TryParseStatement110(input),
+				120 => TransactSql.TryParseStatement120(input),
+				130 => TransactSql.TryParseStatement130(input),
+				140 => TransactSql.TryParseStatement140(input),
+				150 => TransactSql.TryParseStatement150(input),
+				160 => TransactSql.TryParseStatement160(input),
+				_   => TransactSql.TryParseStatement170(input),
+			};
+
+			Assert.True(match.IsSuccess == level >= from, $"{input}  at {level}");
+		}
+
+		Assert.True(TransactSql.TryParseStatement(input).IsSuccess, input);
+	}
 
 	// ── The temporal and grouping clauses ───────────────────────────────────────
 
@@ -401,6 +438,7 @@ public sealed class TransactSqlTests
 	// And three smaller ones the work list named.
 	[InlineData("SELECT * FROM t1 OPTION (OPTIMIZE FOR (@v1 = 20, @v2 = NULL))")]
 	[InlineData("SELECT SUM (c1) OVER (Win1 ORDER BY c1) FROM t1 WINDOW Win1 AS (PARTITION BY c1)")]
+	[InlineData("SELECT SUM (c) OVER w2 FROM t WINDOW w1 AS (PARTITION BY c), w2 AS (w1)")]
 	[InlineData("SELECT c1 INTO myDb..t2 FROM t1")]
 	[InlineData("SELECT * FROM myDb..t1")]
 	[InlineData("SELECT t.* FROM myDb..t1 AS t")]

@@ -17516,3 +17516,15 @@ read from 110 while one column reads at 100 — a shape inside `RowsetArguments`
 full-text functions share. And two over-acceptances the probes turned up that no level
 explains: `OVER (w)`, a window of a name alone, is refused at every level, and so is
 `TRIM(TRAILING FROM x)` from 160, where `TRAILING` has stopped being a column name.
+
+The first is refused here now. A name alone is not a window in `OVER (…)` and is one in a
+`WINDOW` clause's definitions — `w2 AS (w1)` reads, and so does `w AS ()` — so the refusal
+went into `Over` and not into `WindowSpecification`, which both of them use. The second
+stays: refusing it means refusing `TRAILING` as a column name inside `TRIM` alone, which
+the standard's rule, reached through the substitution, has no place for.
+
+**And what the readings cost at run time.** `--speed` before (ec9356b) and after, alternated
+twice over the 6,873 statements both parsers read: 8,624 and 8,584 ns a statement before,
+8,840 and 8,680 after — under 2%, inside a spread of 3.5% to 7.8% between rounds — and not a
+byte more allocated. The union passes reading 0 through the machine and meets twenty tests
+of it, each one shift.

@@ -367,8 +367,13 @@ TsqlTrimSpecification = ("LEADING"i | "TRAILING"i | "BOTH"i) & when Version is S
 // sees and not what the call is, which was the argument for dropping it until the round
 // trip made it an argument for a field. A window may also be named, and the name is
 // declared by the query's own `WINDOW` clause.
+//
+// A name alone in the brackets is not a window here, whatever SQL:2003 says: SQL Server
+// answers `OVER (w)` with `Incorrect syntax` at every level, and reads `OVER w` and
+// `OVER (w ORDER BY c)`. A `WINDOW` clause's own definitions may be a name alone —
+// `w2 AS (w1)` reads — so the refusal is this rule's and not the specification's.
 Over : @Clause.Window
-	= "OVER"i & '(' & w: WindowSpecification & ')' => @(w)
+	= "OVER"i & '(' & ?!(WindowName & ')') & w: WindowSpecification & ')' => @(w)
 	| "OVER"i & only: Identifier => @(new Clause.Window(only, Expression.None, null, null))
 
 // SQL:2003's <window specification>: the window it is built on, the partition, the order,
