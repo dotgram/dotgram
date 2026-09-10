@@ -18171,3 +18171,25 @@ two catalogues more, left open until they are asked about.
 Every probe agreed, 57 of them. At 150: read by both 5,719 (from 5,683), the work list 251
 (from 287), read here but refused there 43, as before — the thirty-eight gone again. `--split`
 560 cut the same (from 557), and the round trip 100% of 6,808.
+
+## Two small ones: constraints switched, and a graph table's columns in an index
+
+- **`ALTER TABLE t WITH NOCHECK CHECK CONSTRAINT ALL`.** The grammar had `WITH CHECK ADD …`
+  and a bare `CHECK CONSTRAINT …`, not the two together. The engine reads all four pairings
+  of `WITH CHECK|NOCHECK` and `CHECK|NOCHECK CONSTRAINT`, and refuses `WITH CHECK` with
+  nothing after it or before a `DROP`. The action keeps both words, as `WITH CHECK ADD` does.
+- **`INCLUDE ($NODE_ID)`.** An index's carried columns were plain names, and a graph table's
+  own columns are `$` names, which the lexeme made a name of one token when the full-text
+  search needed it. The engine reads them in `CREATE INDEX` and in a table's index, and
+  objects afterwards to one it does not know (126) or one an index cannot carry (10712),
+  both now on the audit's read side. A columnstore's `ORDER ($NODE_ID)` it refuses, and so
+  does this.
+
+The third group this far down the work list, `SET FIPS_FLAGGER 'FULL', QUERY_GOVERNOR_COST_LIMIT
+10` — several settings, each with its value, in one `SET` — has nowhere to go in the tree, whose
+`SetCommand` is one setting and one value. That waits for a word on the shape.
+
+Twenty-four probes, all agreed. At 150: read by both 5,729 (from 5,719), the work list 245
+(from 251), read here but refused there 43, and neither 383 (from 387) — those four by the
+audit, statements the engine answered with 126 or 10712. `--split` 566 cut the same (from
+560), the round trip 100% of 6,818.

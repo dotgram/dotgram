@@ -2028,6 +2028,9 @@ IndexColumn : @Clause
 // index may be built on one.
 IndexName : @string = t: Identifier => @(t) | t: PartitionName => @(t)
 
+// The columns an index carries along, which may be a graph table's own: `INCLUDE ($NODE_ID)`.
+IncludeColumns : @string[] = first: IndexName & (',' & rest: IndexName)* => @(Syntax.Named(first, rest))
+
 // The current form and the one that predates it: `WITH (FILLFACTOR = 80, ONLINE = ON)`
 // and the bare `WITH PAD_INDEX, FILLFACTOR = 80` SQL Server still reads.
 // The modern spelling and the one it replaced, in one rule and not two. They are two
@@ -2214,7 +2217,7 @@ TableIndex : @Clause
 	= "INDEX"i & name: Identifier & u: "UNIQUE"i? & c: IndexOrder? & s: "COLUMNSTORE"i? & h: "HASH"i?
 	  & columns: IndexColumns?
 	  & ("ORDER"i & '(' & order: ColumnList & ')')?
-	  & ("INCLUDE"i & '(' & include: ColumnList & ')')?
+	  & ("INCLUDE"i & '(' & include: IncludeColumns & ')')?
 	  & ("WHERE"i & filter: SearchCondition)?
 	  & o: TableIndexWith? & p: IndexOn? & ("FILESTREAM_ON"i & f: PlacementTarget)?
 		=> @(Clause.Indexed(name, u, c, s, h, columns, order, include, filter, o?.Options, (Clause.Placement?)p, f is null ? null : f with { Kind = "FILESTREAM_ON" })
@@ -2333,6 +2336,11 @@ AlterTableAction : @Statement.AlterTable
 		=> @(Statement.Altered("DROP", Syntax.Listed(first, rest)))
 	| word: CheckWord & tail: ("CONSTRAINT"i & ConstraintNames)
 		=> @(Statement.Altered(Syntax.Squared(word), null, null, tail))
+
+	// `WITH NOCHECK CHECK CONSTRAINT ALL`: whether the rows already there are checked, then
+	// which constraints are switched, in all four pairings, as the engine reads them.
+	| "WITH"i & mode: CheckWord & word: CheckWord & tail: ("CONSTRAINT"i & ConstraintNames)
+		=> @(Statement.Altered("WITH " + Syntax.Squared(mode) + " " + Syntax.Squared(word), null, null, tail))
 	| word: EnableWord & tail: ("TRIGGER"i & ConstraintNames)
 		=> @(Statement.Altered(Syntax.Squared(word), null, null, tail))
 	| word: EnableWord & tail: ("CHANGE_TRACKING"i & OptionsWith?)
@@ -2526,7 +2534,7 @@ CreateIndexStatement : @Statement
 				 Syntax.Squared(kind), Syntax.Tail(over)))
 	| "CREATE"i & u: "UNIQUE"i? & k: IndexOrder? & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
-	  & ("INCLUDE"i & '(' & include: ColumnList & ')')?
+	  & ("INCLUDE"i & '(' & include: IncludeColumns & ')')?
 	  & ("WHERE"i & filter: SearchCondition)?
 	  & o: IndexWith? & p: IndexOn? & ("FILESTREAM_ON"i & f: PlacementTarget)?
 		=> @(new Statement.CreateIndex(on, Clause.Indexed(name, u, k, null, null, columns, null, include, filter, o?.Options, (Clause.Placement?)p, f is null ? null : f with { Kind = "FILESTREAM_ON" })

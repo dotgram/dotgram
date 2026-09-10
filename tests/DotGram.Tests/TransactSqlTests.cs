@@ -1061,6 +1061,30 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>A table's constraints switched, and a graph table's columns carried by an index.</summary>
+	[Theory]
+	[InlineData("ALTER TABLE t WITH CHECK")]
+	[InlineData("ALTER TABLE t WITH CHECK DROP CONSTRAINT c1")]
+	[InlineData("ALTER TABLE t CHECK CONSTRAINT")]
+	[InlineData("CREATE INDEX i ON n (c1) INCLUDE (t.c2)")]
+	[InlineData("CREATE CLUSTERED COLUMNSTORE INDEX i ON n ORDER ($NODE_ID)")]
+	public void Switched_constraints_and_carried_columns_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("ALTER TABLE t WITH NOCHECK CHECK CONSTRAINT ALL")]
+	[InlineData("ALTER TABLE t WITH CHECK NOCHECK CONSTRAINT c1, c2")]
+	[InlineData("CREATE INDEX i ON n (c1) INCLUDE ($node_id, c2)")]
+	[InlineData("CREATE INDEX i ON e (c1) INCLUDE ($FROM_ID, $TO_ID, [$EDGE_ID])")]
+	[InlineData("CREATE TABLE n (c1 INT, INDEX i (c1) INCLUDE ($NODE_ID)) AS NODE")]
+	public void Switched_constraints_and_carried_columns_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>Table, query and join hints, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM t WITH (FOO)")]
