@@ -818,6 +818,92 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>The full-text predicates, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("SELECT a FROM t WHERE CONTAINS ((t.*, b), 'x')")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS ((b, *), 'x')")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS ((), 'x')")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (((b)), 'x')")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS ($ IDENTITY, 'x')")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (@v, 'x')")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (PROPERTY (b, @p), 'x')")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (b)")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (b, x)")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (b, 1)")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (b, ('x'))")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (b, 'x' COLLATE Latin1_General_CI_AS)")]
+	[InlineData("SELECT a FROM t WHERE FREETEXT (b, 'x' + @s)")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (b, 'x', 1033)")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (b, 'x', LANGUAGE)")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (b, 'x', LANGUAGE -1)")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (b, 'x', LANGUAGE (1033))")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (b, 'x', LANGUAGE 1033.5)")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (b, 'x', LANGUAGE English)")]
+	public void The_full_text_predicates_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT a FROM t WHERE CONTAINS ((b, c), 'x')")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS ((t.b, c, d), @s, LANGUAGE @l)")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (*, 'x')")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS ((*), 'x')")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (s.t.*, N'x')")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS ((t.*), 'x', LANGUAGE 0x409)")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS ($IDENTITY, 'x')")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS ((t.$IDENTITY), 'x')")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (($IDENTITY, b), 'x', LANGUAGE 1033)")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS ($ROWGUID, 'x')")]
+	[InlineData("SELECT a FROM t WHERE CONTAINS (PROPERTY (t.b, N'p'), 'x')")]
+	[InlineData("SELECT a FROM t WHERE FREETEXT (b, N'x', LANGUAGE N'English')")]
+	[InlineData("SELECT a FROM t WHERE NOT FREETEXT ((t2.*), N'abc') AND CONTAINS (b, 'x')")]
+	public void The_full_text_predicates_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>The full-text rowset functions, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM CONTAINSTABLE (@t, b, 'x') AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE ('t', b, 'x') AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, t.*, 'x') AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, t.b, 'x') AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, (t.b, c), 'x') AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, $IDENTITY, 'x') AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, (b, $IDENTITY), 'x') AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, (PROPERTY (b, 'p')), 'x') AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, PROPERTY (b, @p), 'x') AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, b) AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, b, x) AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, b, 'x' + 'y') AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, b, 'x', LANGUAGE English) AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, b, 'x', 5 + 1) AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, b, 'x', -5) AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, b, 'x', '5') AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, b, 'x', 5, 6) AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, b, 'x', 5, LANGUAGE 1033) AS k")]
+	[InlineData("SELECT * FROM FREETEXTTABLE (t, $IDENTITY, 'x') AS k")]
+	[InlineData("SELECT * FROM FREETEXTTABLE (t, b, 'x', 10, LANGUAGE 1033) AS k")]
+	public void The_full_text_rowsets_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM CONTAINSTABLE (d.s.t, [b], N'x') AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, (*), 'x', LANGUAGE 0x409) AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, (b, c), @s, LANGUAGE N'English', @n) AS k")]
+	[InlineData("SELECT * FROM CONTAINSTABLE (t, PROPERTY (b, 'p'), 'x', 5) k")]
+	[InlineData("SELECT * FROM FREETEXTTABLE (t, *, 'x', 10) AS k")]
+	[InlineData("SELECT k.[KEY], k.RANK FROM t INNER JOIN FREETEXTTABLE (t, (b), 'x') AS k ON t.a = k.[KEY]")]
+	public void The_full_text_rowsets_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>Table, query and join hints, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM t WITH (FOO)")]

@@ -49,6 +49,11 @@ namespace TSql
 	MoneyLiteral  = ['$' | '£' | '¥' | '€'] & ['+' | '-']? & Sql92.Lexical.Digits & ('.' & Sql92.Lexical.Digits?)?
 	BinaryLiteral = '0' & 'x'i & ['0'..'9' | 'a'..'f' | 'A'..'F']*
 
+	// A name the `$` is part of: `$IDENTITY`, `$ROWGUID`, `$PARTITION`, a graph table's
+	// `$node_id`. One token, since the engine refuses `$ IDENTITY`; a digit after the `$`
+	// makes it money instead.
+	PseudoColumn = '$' & Sql92.Lexical.IdentifierStart & Sql92.Lexical.IdentifierPart*
+
 	// A temporary table, local or global. The name is otherwise ordinary.
 	TemporaryName = '#' & '#'? & Sql92.Lexical.IdentifierStart & Sql92.Lexical.IdentifierPart*
 
@@ -159,9 +164,11 @@ NamePart     = '.' & NamePartName
 NamePartName = Identifier | PartitionName | ?='.'
 
 // A name the `$` is part of rather than the money literal it opens elsewhere:
-// `$PARTITION.f1(x)` names an index's partition function, and `$node_id`, `$edge_id`,
-// `$from_id` and `$to_id` are the columns a graph table has and nobody declared.
-PartitionName = '$' & Identifier
+// `$PARTITION.f1(x)` names an index's partition function, `$node_id`, `$edge_id`,
+// `$from_id` and `$to_id` are the columns a graph table has and nobody declared, and
+// `$IDENTITY` and `$ROWGUID` the table's identity and row-GUID columns whatever they are
+// called. `IDENTITY` is reserved, so a `$` and a name read the last two as nothing.
+PartitionName = TSql.PseudoColumn
 
 // The older spelling of a system table-valued function, which puts the `::` in front of
 // the name instead of between two of them: `CROSS APPLY ::fn_get_sql (h)`.
@@ -491,10 +498,47 @@ XmlContent = "CONTENT"i | "DOCUMENT"i
 // And a handful of functions that yield a truth rather than a value. A call cannot
 // stand where a condition does in general — `WHERE f(x)` is not T-SQL either — so
 // they are named, exactly as §6.16's functions are named on the value side.
+// ── The full-text predicates ────────────────────────────────────────────────
+//
+// `CONTAINS` and `FREETEXT`, put to the engine some ninety times. What is searched is a
+// column, `*`, a table's `t.*`, `PROPERTY (column, 'name')`, or a bracketed list of columns;
+// a list holds names only, and `*` and `t.*` stand alone, bracketed or not. What is searched
+// for is a string or a variable, nothing computed, and a language is `LANGUAGE` and a whole
+// number, a hex number, a string or a variable. The tree is the call it was, its arguments
+// written with the nodes the rowset functions use for the same things.
+FullTextPredicate : @Expression
+	= name: FullTextName & '(' & c: FullTextColumns & ',' & s: FullTextSearch & l: SearchLanguage? & ')'
+		=> @(new Expression.RoutineInvocation(name, l is null ? new[] { c, s } : new[] { c, s, l }))
+
+FullTextName = "CONTAINS"i | "FREETEXT"i
+
+FullTextColumns : @Expression
+	= a: FullTextAll => @(a)
+	| ?=("PROPERTY"i & '(' & QualifiedName & ',' & Quoted & ')') & p: ValueExpression => @(p)
+	| '(' & a: FullTextAll & ')' => @(new Expression.RowValueConstructor(new[] { a }))
+	| '(' & first: SearchedColumn & (',' & rest: SearchedColumn)* & ')'
+		=> @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
+	| c: SearchedColumn => @(c)
+
+// Every column, or every column of one table.
+FullTextAll : @Expression
+	= '*' => @(new Expression.ColumnReference("*"))
+	| t: (QualifiedName & '.' & '*') => @(new Expression.ColumnReference(t))
+
+SearchedColumn : @Expression = t: QualifiedName => @(new Expression.ColumnReference(t))
+
+FullTextSearch : @Expression = ?=((Quoted | TSql.Variable) & (',' | ')')) & s: ValueExpression => @(s)
+
+SearchLanguage : @Expression
+	= ',' & w: "LANGUAGE"i & ?=((Sql92.Lexical.Digits | TSql.BinaryLiteral | Quoted | TSql.Variable) & (',' | ')'))
+	  & v: ValueExpression
+		=> @(new Expression.Prefixed(w, v))
+
 TSqlPredicate : @Expression
 	= "EXISTS"i & q: TableSubquery => @(new Expression.Exists(q))
 	| "UNIQUE"i & q: TableSubquery => @(new Expression.Unique(q))
-	| name: ("CONTAINS"i | "FREETEXT"i | "TSEQUAL"i | "REGEXP_LIKE"i | "UPDATE"i)
+	| f: FullTextPredicate => @(f)
+	| name: ("TSEQUAL"i | "REGEXP_LIKE"i | "UPDATE"i)
 	  & '(' & args: Arguments? & ')'
 		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
 	| m: GraphMatch => @(m)
@@ -1148,6 +1192,9 @@ RowsetValue : @Expression
 RowsetFunction : @Expression.RoutineInvocation
 	= name: RowsetName & '(' & args: RowsetArguments? & ')'
 		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
+	| name: FullTextTableName & '(' & table: QualifiedName & ',' & c: TableSearchColumns & ','
+	  & s: FullTextSearch & l: SearchLanguage? & n: SearchTop? & ')'
+		=> @(new Expression.RoutineInvocation(name, Syntax.Written(new Expression.ColumnReference(table), c, s, l, n)))
 	| name: SemanticName & '(' & args: SemanticArguments? & ')'
 		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
 
@@ -1178,8 +1225,27 @@ JsonSchema : @Clause[] = s: RowsetSchema & when Version is Since130 => @(s)
 
 RowsetName
 	= "OPENROWSET"i | "OPENQUERY"i | "OPENDATASOURCE"i | "OPENXML"i
-	| "CHANGETABLE"i | "CONTAINSTABLE"i | "FREETEXTTABLE"i
+	| "CHANGETABLE"i
 	| "PREDICT"i | "VECTOR_SEARCH"i | "GENERATE_SERIES"i | "STRING_SPLIT"i
+
+// The full-text rowsets, put to the engine some fifty times, and stricter than the predicates
+// they rank: a table by its name, and what is searched a column by its bare name, a list of
+// them, `*` or a property — not `t.b`, not `t.*`, not `$IDENTITY`. Then what is searched for
+// and the language as a predicate has them, and last how many rows, a whole number or a
+// variable, after the language and never before it.
+FullTextTableName = "CONTAINSTABLE"i | "FREETEXTTABLE"i
+
+TableSearchColumns : @Expression
+	= '*' => @(new Expression.ColumnReference("*"))
+	| ?=("PROPERTY"i & '(' & QualifiedName & ',' & Quoted & ')') & p: ValueExpression => @(p)
+	| '(' & '*' & ')' => @(new Expression.RowValueConstructor(new Expression[] { new Expression.ColumnReference("*") }))
+	| '(' & first: TableSearchColumn & (',' & rest: TableSearchColumn)* & ')'
+		=> @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
+	| c: TableSearchColumn => @(c)
+
+TableSearchColumn : @Expression = t: Identifier => @(new Expression.ColumnReference(t))
+
+SearchTop : @Expression = ',' & ?=((Sql92.Lexical.Digits | TSql.Variable) & ')') & v: ValueExpression => @(v)
 
 // ── The statements that change rows ─────────────────────────────────────────
 //

@@ -18016,3 +18016,34 @@ list 351 (from 383) and read here but refused there 44, as before. The endpoints
 work list had stopped inside an address, at a mask, at an affinity alone and at
 `DATA_MIRRORING`; every one of them is read now but two, a SOAP web method dropped, which
 the open list does not take. `--split` 549 cut the same, and the round trip 100% of 6,693.
+
+## The full-text predicates and rowsets
+
+With the option catalogues this far along, the work list says something else: most of what
+the engine reads and this does not is queries now, and the largest single piece of it was
+full-text search. `CONTAINS` and `FREETEXT` were an ordinary call — any arguments — which
+read a bracketed list of columns as nothing and stopped at `LANGUAGE 0x413`; `CONTAINSTABLE`
+and `FREETEXTTABLE` took the rowset functions' open arguments. Put to the engine some 140
+times, the four have their own rules now, and the tree the call it was:
+
+- **What is searched.** A predicate takes a column, `*`, a table's `t.*`, `PROPERTY (column,
+  'name')`, or a bracketed list; a list holds names only, and `*` and `t.*` stand alone,
+  bracketed or not. A rowset is stricter: a bare column name, a list of them, `*` or a
+  property — `t.b`, `t.*` and `$IDENTITY` are refused there.
+- **What is searched for** is a string or a variable, nothing computed and nothing in
+  brackets; **the language** is `LANGUAGE` and a whole number, a hex number, a string or a
+  variable; **how many rows**, a rowset's last argument, a whole number or a variable, after
+  the language and never before it.
+- **`$IDENTITY` and `$ROWGUID`** are one token: the engine refuses `$ IDENTITY`. The `$`
+  names — these two, `$PARTITION` and a graph table's `$node_id` — were a `$` and an
+  identifier, which read `$IDENTITY` as nothing, since `IDENTITY` is reserved, and let a
+  space through. They are a lexeme now, and a name wherever a name is read.
+
+`CONTAINS (json_col, 'abc', '$.a') = 1`, the JSON form the corpus has, this engine refuses,
+and so does this. Of 139 probes one is answered otherwise: `CONTAINSTABLE (…) AS k (c1, c2)`,
+column aliases after the rowset, which the engine refuses and the table reference reads —
+that is the table reference's, for another day.
+
+At 150: read by both 5,641 (from 5,617), the work list 327 (from 351), read here but refused
+there 43 (from 44), one statement the engine refuses now refused here too. `--split` 549 cut
+the same, and the round trip 100% of 6,716, one fewer.

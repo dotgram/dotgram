@@ -2197,6 +2197,10 @@ public static class Syntax
 		return parts == 4 && digits > 0;
 	}
 
+	/// <summary>The arguments that were written, in order, leaving out the optional ones that were not.</summary>
+	public static Expression[] Written(params Expression?[] arguments) =>
+		arguments.Where(static one => one is not null).Select(static one => one!).ToArray();
+
 	/// <summary>
 	/// A run of words, one space between them — and what stands inside quotes copied
 	/// character for character.
