@@ -17797,3 +17797,16 @@ converter among it.
 To make room for more databases, `DotGram.Parsers` is a directory per family now —
 `Expressions/`, `Uri/`, `Sql/` with `Standard/` and `TransactSql/` under it — and each
 namespace follows its directory.
+
+**T-SQL's syntax, gathered.** There is no BNF for T-SQL to put beside its grammar: Microsoft
+publishes none, [MS-TSQLISO02] is a table of the standard's features and not a grammar, and
+the one community BNF found is a hand-written GOLD grammar of 2014 with no licence. What
+Microsoft does publish is the reference, a page per statement with `syntaxsql` blocks in it,
+under CC BY 4.0. `--syntax` gathers every one of them from a clone of MicrosoftDocs/sql-docs
+into `Sql/TransactSql/Specification/syntax.md` — 1,338 blocks from 1,072 pages, each with
+its page, its heading, the sentence before it and the product range it is marked for, and
+the commit it was read at. The first harvest took only the `syntaxsql` blocks and found
+1,165; one page in six writes its syntax as a plain or `sql` block under a Syntax heading
+— `GOTO`, the `DBCC` commands, the spatial methods — and the products a sentence names
+are the documentation's includes, which are expanded now. It is what the grammar is written from; the engine stays what it is
+held to.

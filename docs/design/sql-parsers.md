@@ -35,9 +35,10 @@ is open until it is built, and `status.md` is what will say when it has been.
   BNF rules a grammar has not written yet.
 - **Split `DotGram.Parsers` into directories**, one per family and one per SQL dialect,
   with room for other databases.
-- **T-SQL's published syntax as a file.** Microsoft publishes no BNF for T-SQL; its
-  syntax is the `syntaxsql` blocks of the documentation. Gathered in one place they are
-  the nearest thing to one, and a record of what a grammar rule was written from.
+- ~~**T-SQL's published syntax as a file.**~~ Done: Microsoft publishes no BNF for T-SQL,
+  and `--syntax` gathers the reference's syntax blocks into
+  `src/DotGram.Parsers/Sql/TransactSql/Specification/syntax.md` from a clone of
+  MicrosoftDocs/sql-docs. Run again, it shows by diff what the documentation changed.
 
 ## Open
 

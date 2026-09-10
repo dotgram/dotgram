@@ -244,6 +244,16 @@ static class Program
 			return;
 		}
 
+		// `--syntax sql-docs [output]` gathers every syntax block of Microsoft's T-SQL reference
+		// from a clone of MicrosoftDocs/sql-docs into the file beside TransactSql.gram. Not a
+		// measurement: the specification the grammar is written from, kept where the grammar
+		// is. See SyntaxBlocks.cs.
+		if (args.Length >= 2 && args[0] == "--syntax")
+		{
+			SyntaxBlocks.Run(args[1], args.Length >= 3 ? args[2] : null);
+			return;
+		}
+
 		if (args.Length >= 1 && args[0] == "--engine")
 		{
 			var rest  = args.Skip(1).ToArray();
