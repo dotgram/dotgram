@@ -88,8 +88,8 @@ public sealed partial class GrammarNormalizer
 		Expr.Capture   (var name, var operand)           => new Node.Capture(name, Lower(operand, ns)),
 		Expr.Lookahead (var positive, var operand)       => new Node.Lookahead(positive, Lower(operand, ns)),
 		Expr.Guard     (var value)                       => Guarded(value),
-		Expr.Intersects(var left, var right)             =>
-			new Node.Intersects(Lower(left, ns), Lower(right, ns), StartOf(left)),
+		Expr.Condition (var test)                        =>
+			new Node.Condition(Lowered(test, ns), StartOf(Parsing.Test.Operands(test)[0])),
 		Expr.CSharp    (var text)                        => new Node.Guard(Substituted($"@({text})"), StartOf(expression)),
 		Expr.Construct (var pattern, var value)          => LowerConstruct(pattern, value, ns),
 		Expr.Bound     (var body, var isLeft, var level) => LowerBound(body, isLeft, level, ns),
@@ -130,6 +130,16 @@ public sealed partial class GrammarNormalizer
 	// a specialization's own: outside one there is nothing to substitute and the text is
 	// handed back as it was written.
 	Node Guarded(Expr value) => new Node.Guard(Substituted(Text(value)), StartOf(value));
+
+	/// <summary>A condition with every recognizer under it lowered.</summary>
+	Test Lowered(Parsing.Test test, GrammarNamespace ns) => test switch
+	{
+		Parsing.Test.Meets(var left, var right, var negated) =>
+			new Test.Meets(Lower(left, ns), Lower(right, ns), negated),
+		Parsing.Test.All(var left, var right) => new Test.All(Lowered(left, ns), Lowered(right, ns)),
+		Parsing.Test.Any(var left, var right) => new Test.Any(Lowered(left, ns), Lowered(right, ns)),
+		_ => throw new InvalidOperationException($"Unhandled test kind: {test.GetType().Name}"),
+	};
 
 	/// <summary>
 	/// Where the C# of an expression starts, which is not always where the expression does.

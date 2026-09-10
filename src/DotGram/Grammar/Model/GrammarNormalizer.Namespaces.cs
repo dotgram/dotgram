@@ -405,11 +405,9 @@ public sealed partial class GrammarNormalizer
 			// Both sides are recognizers and a rebinding is exactly what a condition is
 			// waiting for: `with (Version = "Sql2008")` is what gives `when Version is …`
 			// an answer, so the condition has to be rewritten like anything else.
-			Node.Intersects(var left, var right, var at)                            =>
-				new Node.Intersects(
-					CloneAndRewrite(left, targets, cloneMap, siteName),
-					CloneAndRewrite(right, targets, cloneMap, siteName),
-					at),
+			Node.Condition(var test, var at)                                        =>
+				new Node.Condition(
+					Test.Mapped(test, one => CloneAndRewrite(one, targets, cloneMap, siteName)), at),
 			// CallTo, not a bare `new Node.Call`: a rebinding's right side may be a
 			// built-in nothing in the grammar happened to call yet (`with (trivia =
 			// none)` when `none` is otherwise unused) — built-ins are registered on

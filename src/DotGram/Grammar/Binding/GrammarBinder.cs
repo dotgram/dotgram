@@ -735,11 +735,12 @@ public sealed class GrammarBinder
 				ResolveExpression(guarded, ns, parameters, csharpValue: true);
 				return;
 
-			// Both sides of `is` are recognizers and neither is C#: the question is which
-			// strings they have in common, so a name here is a rule and not a symbol.
-			case Expr.Intersects(var left, var right):
-				ResolveExpression(left, ns, parameters, csharpValue: false);
-				ResolveExpression(right, ns, parameters, csharpValue: false);
+			// Every operand of a condition is a recognizer and none is C#: the question is
+			// which strings they have in common, so a name here is a rule and not a symbol.
+			case Expr.Condition(var test):
+				foreach (var operand in Parsing.Test.Operands(test))
+					ResolveExpression(operand, ns, parameters, csharpValue: false);
+
 				return;
 
 			case Expr.Call(var target, var arguments):

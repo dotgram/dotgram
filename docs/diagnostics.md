@@ -59,6 +59,7 @@ underlined where it was written, in the base's own file — see §5.1.
 | `GRAM2006` | A namespace header's rebindings need `with`. | `namespace Name with (A = B) { … }` (§5.1). |
 | `GRAM2007` | A publication of anything but a rule's name needs `as`. | `parse` and `find` name the method after the rule; an expression has no name to make one from, so give it one: `parse X & Y as Both`. |
 | `GRAM2008` | A type here belongs to an expression, not to a rule that already declares one. | The rule says its own type where it is written (§6). |
+| `GRAM2009` | A condition after `when` whose operand is not followed by `is`. | A `when` is either a C# guard, written `when @(…)` and asked while the parser runs, or a condition about the grammar, written `when A is B` and answered while it is built. Both sides of that question are written out, so an operand with no `is` after it is neither one thing nor the other. |
 
 ## GRAM3xxx — resolving the names
 

@@ -56,7 +56,7 @@ public sealed partial class GrammarNormalizer
 		{
 			var body = _bodies[rule];
 
-			if (!NodeWalk.Descendants(body).Concat([body]).Any(one => one is Node.Intersects))
+			if (!NodeWalk.Descendants(body).Concat([body]).Any(one => one is Node.Condition))
 				continue;
 
 			_bodies[rule] = Decided(rule, body);
@@ -99,8 +99,8 @@ public sealed partial class GrammarNormalizer
 				return Kept(rule, built) is { } made ? new Node.Construct(made, how) : null;
 		}
 
-		if (alternative is Node.Intersects(var only, var against, var where))
-			return Answer(only, against, where) is false ? null : Node.Empty.Instance;
+		if (alternative is Node.Condition(var only, var where))
+			return Holds(only, where) is false ? null : Node.Empty.Instance;
 
 		if (alternative is not Node.Sequence(var operands))
 			return Elsewhere(rule, alternative);
@@ -110,10 +110,10 @@ public sealed partial class GrammarNormalizer
 		foreach (var operand in operands)
 			switch (operand)
 			{
-				case Node.Intersects(var left, var right, var at) when Answer(left, right, at) is false:
+				case Node.Condition(var test, var at) when Holds(test, at) is false:
 					return null;
 
-				case Node.Intersects:
+				case Node.Condition:
 					// It held, so it costs nothing and says nothing. Kept as `Empty` rather
 					// than dropped so that an alternative made only of conditions is still an
 					// alternative that matches.
@@ -135,7 +135,7 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	Node? Elsewhere(RuleSymbol rule, Node node)
 	{
-		if (!NodeWalk.Descendants(node).Any(one => one is Node.Intersects))
+		if (!NodeWalk.Descendants(node).Any(one => one is Node.Condition))
 			return node;
 
 		Report(
@@ -171,6 +171,46 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
+	/// Whether a condition holds, or null where this compiler cannot say.
+	/// </summary>
+	/// <remarks>
+	/// `and` and `or` are answered from their sides and are undecided where a side is —
+	/// with the two shortcuts that make an undecided side not matter: `false and anything`
+	/// is false and `true or anything` is true, whatever the other half turned out to be.
+	/// </remarks>
+	bool? Holds(Test test, int at)
+	{
+		switch (test)
+		{
+			case Test.Meets(var left, var right, var negated):
+				return Answer(left, right, at) is { } met ? met != negated : null;
+
+			case Test.All(var left, var right):
+			{
+				var ours   = Holds(left, at);
+				var theirs = Holds(right, at);
+
+				return ours is false || theirs is false ? false
+					: ours is null || theirs is null ? null
+					: true;
+			}
+
+			case Test.Any(var left, var right):
+			{
+				var ours   = Holds(left, at);
+				var theirs = Holds(right, at);
+
+				return ours is true || theirs is true ? true
+					: ours is null || theirs is null ? null
+					: false;
+			}
+
+			default:
+				return null;
+		}
+	}
+
+	/// <summary>
 	/// Whether the two have a string in common, or null where this compiler cannot say.
 	/// </summary>
 	bool? Answer(Node left, Node right, int at)
@@ -200,10 +240,12 @@ public sealed partial class GrammarNormalizer
 			case Node.Empty:
 				return [""];
 
-			// Case-insensitively, both sides raised, so that `"sql2008"i` and `"SQL2008"`
-			// are the one string they plainly are.
+			// A literal is the one string it spells; one written `"v1"i` is every string
+			// that spells it in any case, and those are listed rather than folded to one.
+			// Raising only the insensitive side answered `"v1"i is "v1"` with false, which
+			// is the plainest possible wrong answer.
 			case Node.Literal(var text) literal:
-				return [literal.IgnoreCase ? text.ToUpperInvariant() : text];
+				return literal.IgnoreCase ? Cases(text) : [text];
 
 			case Node.Choice(var alternatives):
 			{
@@ -263,7 +305,35 @@ public sealed partial class GrammarNormalizer
 		}
 	}
 
+	/// <summary>Every way a case-insensitive literal may be spelled, or null where too many.</summary>
+	/// <remarks>
+	/// Two to the power of its letters, which is why the same bound applies: a domain is a
+	/// list of short names and this stays small, while `"internationalization"i` is a
+	/// question this refuses rather than answers slowly.
+	/// </remarks>
+	static HashSet<string>? Cases(string text)
+	{
+		var letters = text.Count(char.IsLetter);
+
+		if (letters > 12)
+			return null;
+
+		var all = new HashSet<string>(StringComparer.Ordinal) { "" };
+
+		foreach (var one in text)
+		{
+			var lower = char.ToLowerInvariant(one);
+			var upper = char.ToUpperInvariant(one);
+
+			all = lower == upper
+				? [.. all.Select(head => head + one)]
+				: [.. all.SelectMany(head => new[] { head + lower, head + upper })];
+		}
+
+		return all;
+	}
+
 	/// <summary>Where a node was written, as well as the graph can say.</summary>
 	static Location Where(Node node) =>
-		node is Node.Intersects(_, _, var at) && at >= 0 ? new Location(at, 0) : new Location(0, 0);
+		node is Node.Condition(_, var at) && at >= 0 ? new Location(at, 0) : new Location(0, 0);
 }

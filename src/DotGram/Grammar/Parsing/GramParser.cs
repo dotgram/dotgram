@@ -32,6 +32,9 @@ public sealed class GramParser
 	public const string PublicationNeedsName = "GRAM2007";
 	public const string PublicationTypeOnRule = "GRAM2008";
 
+	/// <summary>A condition after <c>when</c> whose operand is not followed by <c>is</c>.</summary>
+	public const string ExpectedIs           = "GRAM2009";
+
 	readonly TokenList            _tokens;
 	readonly List<GramDiagnostic> _diagnostics = [];
 
@@ -677,20 +680,109 @@ public sealed class GramParser
 
 		Take();
 
-		var value = ParseValue();
+		// `when (` and `when A is B` ask whether recognizers have strings in common, which
+		// is a question about the grammar and is answered while the parser is built.
+		// Anything else after `when` is C# and is asked while one runs. `is`, `not`, `and`
+		// and `or` are contextual, like `when` itself: keywords only in this position.
+		if (At(TokenKind.OpenParen) || StartsCondition())
+			return new Expr.Condition(ParseAnyTest()) { At = From(start) };
 
-		// `when A is B` asks whether two recognizers have a string in common, which is a
-		// question about the grammar and is answered while the parser is built. Anything
-		// else after `when` is C# and is asked while one runs. `is` is contextual, like
-		// `when` itself: it is a keyword only in this position.
-		if (AtKeyword("is"))
+		return new Expr.Guard(ParseValue()) { At = From(start) };
+	}
+
+	/// <summary>Whether what follows `when` is a condition rather than a C# guard.</summary>
+	/// <remarks>
+	/// One token of lookahead past the operand, which is what tells `when Version is "Old"`
+	/// from `when @(qty > 0)`: only a condition has `is` after its first operand, and a C#
+	/// guard is written with an `@` that a condition never has.
+	/// </remarks>
+	bool StartsCondition()
+	{
+		if (At(TokenKind.At))
+			return false;
+
+		var at    = _index;
+		var found = false;
+
+		try
+		{
+			ParseValue();
+
+			found = AtKeyword("is");
+		}
+		catch (Exception)
+		{
+			found = false;
+		}
+
+		_index = at;
+		_panic = false;
+
+		return found;
+	}
+
+	/// <summary>`or` between tests, which binds loosest.</summary>
+	Test ParseAnyTest()
+	{
+		var test = ParseAllTest();
+
+		while (!_panic && AtKeyword("or"))
 		{
 			Take();
 
-			return new Expr.Intersects(value, ParseValue()) { At = From(start) };
+			test = new Test.Any(test, ParseAllTest());
 		}
 
-		return new Expr.Guard(value) { At = From(start) };
+		return test;
+	}
+
+	/// <summary>`and` between tests, which binds tighter than `or` and looser than `is`.</summary>
+	Test ParseAllTest()
+	{
+		var test = ParseOneTest();
+
+		while (!_panic && AtKeyword("and"))
+		{
+			Take();
+
+			test = new Test.All(test, ParseOneTest());
+		}
+
+		return test;
+	}
+
+	/// <summary>One `A is B`, or a bracketed test.</summary>
+	Test ParseOneTest()
+	{
+		if (TakeIf(TokenKind.OpenParen))
+		{
+			var inside = ParseAnyTest();
+
+			Expect(TokenKind.CloseParen);
+
+			return inside;
+		}
+
+		var left = ParseValue();
+
+		if (!AtKeyword("is"))
+		{
+			Report(
+				ExpectedIs,
+				"Expected `is`. A condition after `when` asks whether two recognizers have a string " +
+				"in common, and both sides of that question are written out.");
+
+			return new Test.Meets(left, left, false);
+		}
+
+		Take();
+
+		var negated = AtKeyword("not");
+
+		if (negated)
+			Take();
+
+		return new Test.Meets(left, ParseValue(), negated);
 	}
 
 	Expr ParseQuantified()

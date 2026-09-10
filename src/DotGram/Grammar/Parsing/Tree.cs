@@ -127,7 +127,7 @@ public abstract record Expr : ILocated
 	/// every one of its uses, so `parse S with (Version = "Sql2008")` decides every such
 	/// question in the parser it publishes, and the alternatives that lost are not emitted.
 	/// </remarks>
-	public sealed record Intersects(Expr Left, Expr Right)                     : Expr;
+	public sealed record Condition (Test Test)                                 : Expr;
 	public sealed record Capture   (string Name, Expr Operand)                 : Expr;
 	public sealed record Group     (Expr Body)                                 : Expr;
 	public sealed record Atomic    (Expr Body)                                 : Expr;
@@ -298,7 +298,7 @@ static class Dump
 		Expr.Glued(var operands)            => operands,
 		Expr.Construct(var pattern, var value) => [pattern, value],
 		Expr.Guard(var value)               => [value],
-		Expr.Intersects(var left, var right) => [left, right],
+		Expr.Condition(var test)            => Test.Operands(test),
 		Expr.Capture(_, var operand)        => [operand],
 		Expr.Bound(var body, _, _)          => [body],
 		Expr.Recovering(var body, var sync, null)         => [body, sync],
@@ -333,7 +333,7 @@ static class Dump
 		Expr.Sequence                             => "Sequence",
 		Expr.Glued                                => "Glued",
 		Expr.Guard                                => "Guard",
-		Expr.Intersects                           => "Intersects",
+		Expr.Condition                            => "Condition",
 		Expr.Capture(var name, _)                 => $"Capture {Quote(name)}",
 		Expr.Group                                => "Group",
 		Expr.Atomic                               => "Atomic",

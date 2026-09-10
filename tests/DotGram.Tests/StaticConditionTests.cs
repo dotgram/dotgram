@@ -96,4 +96,61 @@ public sealed class StaticConditionTests
 
 		Assert.Contains(run.Diagnostics, one => one.Id == "GRAM4021");
 	}
+
+	[Fact]
+	public void The_logic_is_C_sharps_and_binds_the_way_C_sharps_does()
+	{
+		// `is not`, `and`, `or` and brackets, with `and` binding tighter than `or`. There is
+		// no combinator inside a pattern: `Version is ("V1" | "V2")` already says what
+		// `Version is "V1" or "V2"` would, and the language keeps one way to say a thing.
+		var made = GeneratorDriverTests.Build("""
+			[DotGram.Gram("Version = \"V1\" | \"V2\" | \"V3\"\nName = ['a'..'z']+\nWord : @string\n = t: (Name & \"1\") & when Version is not \"V1\" => @(t)\n | t: (Name & \"2\") & when Version is \"V1\" or Version is \"V3\" => @(t)\n | t: (Name & \"3\") & when (Version is \"V1\" or Version is \"V2\") and Version is not \"V2\" => @(t)\nparse Word with (Version = \"V1\") as One\nparse Word with (Version = \"V2\") as Two")]
+			public static partial class Logic { }
+			""").GetType("Logic")!;
+
+		bool Reads(string entry, string input)
+		{
+			var match = made.GetMethod("Try" + entry, [typeof(string)])!.Invoke(null, [input])!;
+
+			return (bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!;
+		}
+
+		// V1: `is not "V1"` fails, `is "V1" or is "V3"` holds, `("V1" or "V2") and not "V2"` holds.
+		Assert.False(Reads("One", "ab1"));
+		Assert.True (Reads("One", "ab2"));
+		Assert.True (Reads("One", "ab3"));
+
+		// V2: the first holds, the second does not, and the third loses its `and`.
+		Assert.True (Reads("Two", "ab1"));
+		Assert.False(Reads("Two", "ab2"));
+		Assert.False(Reads("Two", "ab3"));
+	}
+
+	[Fact]
+	public void A_literal_written_case_insensitively_is_every_way_of_spelling_it()
+	{
+		// `"v1"i` accepts "v1" and "V1", so it meets both spellings and each of them meets
+		// it. Folding each side to one spelling instead answered `"v1"i is "v1"` with false,
+		// which is the plainest possible wrong answer.
+		var made = GeneratorDriverTests.Build("""
+			[DotGram.Gram("Name = ['a'..'z']+\nWord : @string\n = t: (Name & \"1\") & when Version is \"v1\" => @(t)\n | t: (Name & \"2\") & when Version is \"V1\" => @(t)\nVersion = \"v1\"\nparse Word with (Version = \"v1\"i) as Loose\nparse Word with (Version = \"v1\") as Exact")]
+			public static partial class Cased { }
+			""").GetType("Cased")!;
+
+		bool Reads(string entry, string input)
+		{
+			var match = made.GetMethod("Try" + entry, [typeof(string)])!.Invoke(null, [input])!;
+
+			return (bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!;
+		}
+
+		// Asked with `"v1"i`, both alternatives are in: it meets the lower spelling and the
+		// upper one.
+		Assert.True (Reads("Loose", "ab1"));
+		Assert.True (Reads("Loose", "ab2"));
+
+		// Asked with `"v1"`, only the alternative that spells it that way survives.
+		Assert.True (Reads("Exact", "ab1"));
+		Assert.False(Reads("Exact", "ab2"));
+	}
 }

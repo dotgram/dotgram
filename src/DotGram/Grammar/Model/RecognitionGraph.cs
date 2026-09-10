@@ -235,11 +235,11 @@ public abstract record Node
 	/// something the binder folds away, because the answer depends on what `with`
 	/// substituted, and that has not happened yet when the binder runs.
 	/// </remarks>
-	public sealed record Intersects(Node Left, Node Right, int At = -1) : Node
+	public sealed record Condition(Test Test, int At = -1) : Node
 	{
-		public override IEnumerable<Node> Children => [Left, Right];
+		public override IEnumerable<Node> Children => Model.Test.Operands(Test);
 
-		public override string ToString() => $"when {Left} is {Right}";
+		public override string ToString() => $"when {Test}";
 	}
 
 	public sealed record Guard(string Text, int At = -1) : Node
