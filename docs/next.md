@@ -18226,3 +18226,21 @@ refuses and the walker is left.
 
 At 150: read by both 5,739 (from 5,729), the work list 235 (from 245), read here but refused
 there 43, as before. `--split` 570 cut the same (from 566), and the round trip 100% of 6,828.
+
+## What a statement does: `Kind`
+
+Every statement is a `Statement`, whatever it does, and a reader that wants the queries and
+not the backups had to name the records it wanted. So a statement says what kind it is now —
+`Query`, `Dml`, `Ddl`, `Dcl`, `Control`, `Transaction`, `Session`, `Execute`, `Admin`,
+`Declaration` — as `StatementKind Kind`, the set proposed and agreed before writing it.
+
+It is an abstract property of `Statement`, so a record added without one does not compile.
+`Removal` and `Definition` answer `Ddl` for their families, and the records that are something
+else say so themselves: the logins, users and roles they define or remove are `Dcl`, the
+backups, the restores and a statistics update `Admin`. The rest say it one by one. The
+reference has a column for it, and a test asks each record and reads the column.
+
+Five records had a string of their own called `Kind` — a transaction's `BEGIN` or `COMMIT`, a
+table's `NODE`, an index's type, a wait's `DELAY` or `TIME`, `EXECUTE AS CALLER` — and they
+are `Type` now, as agreed. The writer and the grammar take them apart and make them by
+position, so neither moved.

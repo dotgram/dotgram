@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 using DotGram.Parsers.Sql;
@@ -59,6 +60,30 @@ public sealed class AstReferenceTests
 
 		foreach (var (node, source) in Rows())
 			Assert.True(allowed.Contains(source), $"{node}: {source}");
+	}
+
+	/// <summary>Every statement says what kind it is, and the reference says the same.</summary>
+	/// <remarks>
+	/// The kind is an override on the record, which the compiler asks of every one, and a column
+	/// of the table, which nothing but this asks of. A statement is made without its constructor
+	/// to be asked: the kind is the record's, and none of its values are needed for it.
+	/// </remarks>
+	[Fact]
+	public void Every_statement_says_what_kind_it_is_as_the_reference_does()
+	{
+		var written = new Dictionary<string, string>(StringComparer.Ordinal);
+		var text    = File.ReadAllText(Path.Combine(Root(AppContext.BaseDirectory), "docs", "ast.md"));
+
+		foreach (Match row in Regex.Matches(text, @"^\| `Statement\.(\w+)` \|[^|]+\|[^|]+\| (\w+) \|", RegexOptions.Multiline))
+			written[row.Groups[1].Value] = row.Groups[2].Value;
+
+		foreach (var type in typeof(Statement).GetNestedTypes(BindingFlags.Public).Where(one => one.IsSealed && one.IsSubclassOf(typeof(Statement))))
+		{
+			var statement = (Statement)RuntimeHelpers.GetUninitializedObject(type);
+
+			Assert.True(written.TryGetValue(type.Name, out var kind), $"Statement.{type.Name} has no kind in the reference");
+			Assert.Equal(statement.Kind.ToString(), kind);
+		}
 	}
 
 	/// <summary>The roots: every hierarchy the tree is made of.</summary>

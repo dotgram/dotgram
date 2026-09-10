@@ -163,199 +163,206 @@ key's or an Always Encrypted value's, is an option holding it.
 
 ### `Statement`
 
-| Node | Source | Production or page |
-| --- | --- | --- |
-| `Statement.Select` | SQL-92 | §19.6 &lt;direct select statement: multiple rows&gt; — a query and its order |
-| `Statement.Insert` | SQL-92 | §13.8 &lt;insert statement&gt; |
-| `Statement.Update` | SQL-92 | §13.10 &lt;update statement: searched&gt;, widened by T-SQL's second `FROM` |
-| `Statement.Delete` | SQL-92 | §13.7 &lt;delete statement: searched&gt;, likewise |
-| `Statement.Merge` | SQL:2003 | §14.9 &lt;merge statement&gt; |
-| `Statement.Compound` | SQL/PSM | &lt;compound statement&gt; — T-SQL writes it without the label |
-| `Statement.If` | SQL/PSM | &lt;if statement&gt; |
-| `Statement.While` | SQL/PSM | &lt;while statement&gt; |
-| `Statement.TryCatch` | T-SQL | TRY...CATCH |
-| `Statement.Declare` | SQL/PSM | &lt;SQL variable declaration&gt; |
-| `Statement.Transaction` | SQL-92 | §13.2 &lt;commit statement&gt;, §13.3 &lt;rollback statement&gt;, and T-SQL's `BEGIN`/`SAVE` |
-| `Statement.Execute` | T-SQL | EXECUTE |
-| `Statement.TableDefinition` | SQL-92 | §11.3 &lt;table definition&gt; |
-| `Statement.CreateTableAsSelect` | T-SQL | CREATE TABLE AS SELECT, and the external table written the same way |
-| `Statement.AlterTable` | SQL-92 | §11.10 &lt;alter table statement&gt; |
-| `Statement.CreateProcedure` | SQL/PSM | &lt;SQL-invoked procedure&gt;; T-SQL: CREATE PROCEDURE |
-| `Statement.CreateFunction` | SQL/PSM | &lt;SQL-invoked function&gt;; T-SQL: CREATE FUNCTION |
-| `Statement.CreateTrigger` | SQL:1999 | &lt;trigger definition&gt;; T-SQL: CREATE TRIGGER |
-| `Statement.ViewDefinition` | SQL-92 | §11.19 &lt;view definition&gt; |
-| `Statement.CreateIndex` | T-SQL | CREATE INDEX — the standard has no index |
-| `Statement.AlterIndex` | T-SQL | ALTER INDEX |
-| `Statement.StatisticsDefinition` | T-SQL | CREATE STATISTICS |
-| `Statement.UpdateStatistics` | T-SQL | UPDATE STATISTICS |
-| `Statement.Print` | T-SQL | PRINT |
-| `Statement.Return` | SQL/PSM | &lt;return statement&gt;; T-SQL: RETURN |
-| `Statement.Throw` | T-SQL | THROW |
-| `Statement.GoTo` | T-SQL | GOTO |
-| `Statement.Break` | T-SQL | BREAK |
-| `Statement.Continue` | T-SQL | CONTINUE |
-| `Statement.Checkpoint` | T-SQL | CHECKPOINT |
-| `Statement.Use` | T-SQL | USE |
-| `Statement.RaiseError` | T-SQL | RAISERROR |
-| `Statement.WaitFor` | T-SQL | WAITFOR |
-| `Statement.ExecuteAs` | T-SQL | EXECUTE AS |
-| `Statement.Revert` | T-SQL | REVERT |
-| `Statement.SetUser` | T-SQL | SETUSER |
-| `Statement.CreateLogin` | T-SQL | CREATE LOGIN |
-| `Statement.AlterLogin` | T-SQL | ALTER LOGIN |
-| `Statement.CreateUser` | T-SQL | CREATE USER |
-| `Statement.AlterUser` | T-SQL | ALTER USER |
-| `Statement.CreateRole` | SQL:1999 | &lt;role definition&gt;; T-SQL: CREATE ROLE, CREATE SERVER ROLE |
-| `Statement.AlterRole` | T-SQL | ALTER ROLE, ALTER SERVER ROLE |
-| `Statement.CreateServerRole` | T-SQL | CREATE SERVER ROLE |
-| `Statement.AlterServerRole` | T-SQL | ALTER SERVER ROLE |
-| `Statement.CreateApplicationRole` | T-SQL | CREATE APPLICATION ROLE |
-| `Statement.AlterApplicationRole` | T-SQL | ALTER APPLICATION ROLE |
-| `Statement.SchemaDefinition` | SQL-92 | §11.1 &lt;schema definition&gt; |
-| `Statement.AlterSchema` | T-SQL | ALTER SCHEMA |
-| `Statement.AlterAuthorization` | T-SQL | ALTER AUTHORIZATION |
-| `Statement.ExternalDataSourceDefinition` | T-SQL | CREATE/ALTER EXTERNAL DATA SOURCE |
-| `Statement.ExternalFileFormatDefinition` | T-SQL | CREATE EXTERNAL FILE FORMAT |
-| `Statement.ExternalLibraryDefinition` | T-SQL | CREATE/ALTER EXTERNAL LIBRARY |
-| `Statement.ExternalResourcePoolDefinition` | T-SQL | CREATE/ALTER EXTERNAL RESOURCE POOL |
-| `Statement.ResourcePoolDefinition` | T-SQL | CREATE/ALTER RESOURCE POOL |
-| `Statement.WorkloadGroupDefinition` | T-SQL | CREATE/ALTER WORKLOAD GROUP |
-| `Statement.ServerAuditDefinition` | T-SQL | CREATE/ALTER SERVER AUDIT |
-| `Statement.AuditSpecificationDefinition` | T-SQL | CREATE/ALTER SERVER AUDIT SPECIFICATION |
-| `Statement.DatabaseAuditSpecificationDefinition` | T-SQL | CREATE/ALTER DATABASE AUDIT SPECIFICATION |
-| `Statement.EventSessionDefinition` | T-SQL | CREATE/ALTER EVENT SESSION |
-| `Statement.EventNotificationDefinition` | T-SQL | CREATE EVENT NOTIFICATION |
-| `Statement.EndpointDefinition` | T-SQL | CREATE/ALTER ENDPOINT |
-| `Statement.CreateDatabase` | T-SQL | CREATE DATABASE — the standard has no database |
-| `Statement.AlterDatabaseSet` | T-SQL | ALTER DATABASE … SET |
-| `Statement.AlterDatabaseScopedConfiguration` | T-SQL | ALTER DATABASE … SCOPED CONFIGURATION |
-| `Statement.AlterDatabaseCollate` | T-SQL | ALTER DATABASE … COLLATE |
-| `Statement.AlterDatabaseModifyName` | T-SQL | ALTER DATABASE … MODIFY NAME |
-| `Statement.AlterDatabaseModifyFileGroup` | T-SQL | ALTER DATABASE … MODIFY FILE GROUP |
-| `Statement.AlterDatabaseModifyFile` | T-SQL | ALTER DATABASE … MODIFY FILE |
-| `Statement.AlterDatabaseModify` | T-SQL | ALTER DATABASE … MODIFY |
-| `Statement.AlterDatabaseAddFileGroup` | T-SQL | ALTER DATABASE … ADD FILE GROUP |
-| `Statement.AlterDatabaseAddLogFile` | T-SQL | ALTER DATABASE … ADD LOG FILE |
-| `Statement.AlterDatabaseAddFile` | T-SQL | ALTER DATABASE … ADD FILE |
-| `Statement.AlterDatabaseRemoveFileGroup` | T-SQL | ALTER DATABASE … REMOVE FILE GROUP |
-| `Statement.AlterDatabaseRemoveFile` | T-SQL | ALTER DATABASE … REMOVE FILE |
-| `Statement.AlterDatabaseRebuildLog` | T-SQL | ALTER DATABASE … REBUILD LOG |
-| `Statement.AlterDatabasePerformCutover` | T-SQL | ALTER DATABASE … PERFORM CUTOVER |
-| `Statement.SetTransactionIsolationLevel` | SQL-92 | §13.9 &lt;set transaction statement&gt;; T-SQL spells it SET TRANSACTION ISOLATION LEVEL |
-| `Statement.SetIdentityInsert` | T-SQL | SET IDENTITY_INSERT |
-| `Statement.SetOption` | T-SQL | the SET statements that take ON or OFF |
-| `Statement.SetCommand` | T-SQL | the SET statements that take a value |
-| `Statement.SetVariable` | T-SQL | SET @local_variable |
-| `Statement.Grant` | SQL-92 | §12.1 &lt;grant statement&gt; |
-| `Statement.Deny` | T-SQL | DENY |
-| `Statement.Revoke` | SQL-92 | §12.2 &lt;revoke statement&gt; |
-| `Statement.FullTextIndexDefinition` | T-SQL | CREATE FULLTEXT INDEX |
-| `Statement.AlterFullTextIndex` | T-SQL | ALTER FULLTEXT INDEX |
-| `Statement.FullTextCatalogDefinition` | T-SQL | CREATE FULLTEXT CATALOG |
-| `Statement.AlterFullTextCatalog` | T-SQL | ALTER FULLTEXT CATALOG |
-| `Statement.FullTextStopListDefinition` | T-SQL | CREATE FULLTEXT STOPLIST |
-| `Statement.AlterFullTextStopList` | T-SQL | ALTER FULLTEXT STOPLIST |
-| `Statement.SearchPropertyListDefinition` | T-SQL | CREATE SEARCH PROPERTY LIST |
-| `Statement.AlterSearchPropertyList` | T-SQL | ALTER SEARCH PROPERTY LIST |
-| `Statement.BackupDatabase` | T-SQL | BACKUP DATABASE |
-| `Statement.BackupTransactionLog` | T-SQL | BACKUP LOG |
-| `Statement.BackupServer` | T-SQL | BACKUP SERVER |
-| `Statement.BackupGroup` | T-SQL | BACKUP GROUP |
-| `Statement.BackupCertificate` | T-SQL | BACKUP CERTIFICATE |
-| `Statement.BackupMasterKey` | T-SQL | BACKUP MASTER KEY |
-| `Statement.BackupServiceMasterKey` | T-SQL | BACKUP SERVICE MASTER KEY |
-| `Statement.BackupSymmetricKey` | T-SQL | BACKUP SYMMETRIC KEY |
-| `Statement.RestoreDatabase` | T-SQL | RESTORE DATABASE |
-| `Statement.RestoreLog` | T-SQL | RESTORE LOG |
-| `Statement.RestoreFileListOnly` | T-SQL | RESTORE FILELISTONLY |
-| `Statement.RestoreHeaderOnly` | T-SQL | RESTORE HEADERONLY |
-| `Statement.RestoreLabelOnly` | T-SQL | RESTORE LABELONLY |
-| `Statement.RestoreRewindOnly` | T-SQL | RESTORE REWINDONLY |
-| `Statement.RestoreVerifyOnly` | T-SQL | RESTORE VERIFYONLY |
-| `Statement.RestoreMasterKey` | T-SQL | RESTORE MASTER KEY |
-| `Statement.RestoreServiceMasterKey` | T-SQL | RESTORE SERVICE MASTER KEY |
-| `Statement.RestoreSymmetricKey` | T-SQL | RESTORE SYMMETRIC KEY |
-| `Statement.AsymmetricKeyDefinition` | T-SQL | CREATE ASYMMETRIC KEY |
-| `Statement.AlterAsymmetricKey` | T-SQL | ALTER ASYMMETRIC KEY |
-| `Statement.SymmetricKeyDefinition` | T-SQL | CREATE SYMMETRIC KEY |
-| `Statement.AlterSymmetricKey` | T-SQL | ALTER SYMMETRIC KEY |
-| `Statement.CertificateDefinition` | T-SQL | CREATE CERTIFICATE |
-| `Statement.AlterCertificate` | T-SQL | ALTER CERTIFICATE |
-| `Statement.MasterKeyDefinition` | T-SQL | CREATE MASTER KEY |
-| `Statement.AlterMasterKey` | T-SQL | ALTER MASTER KEY |
-| `Statement.DatabaseEncryptionKeyDefinition` | T-SQL | CREATE DATABASE ENCRYPTION KEY |
-| `Statement.AlterDatabaseEncryptionKey` | T-SQL | ALTER DATABASE ENCRYPTION KEY |
-| `Statement.ColumnEncryptionKeyDefinition` | T-SQL | CREATE COLUMN ENCRYPTION KEY |
-| `Statement.AlterColumnEncryptionKey` | T-SQL | ALTER COLUMN ENCRYPTION KEY |
-| `Statement.ColumnMasterKeyDefinition` | T-SQL | CREATE COLUMN MASTER KEY |
-| `Statement.CredentialDefinition` | T-SQL | CREATE/ALTER CREDENTIAL |
-| `Statement.DatabaseScopedCredentialDefinition` | T-SQL | CREATE/ALTER DATABASE SCOPED CREDENTIAL |
-| `Statement.SecurityPolicyDefinition` | T-SQL | CREATE/ALTER SECURITY POLICY |
-| `Statement.DropAggregate` | T-SQL | DROP AGGREGATE |
-| `Statement.DropApplicationRole` | T-SQL | DROP APPLICATION ROLE |
-| `Statement.DropAvailabilityGroup` | T-SQL | DROP AVAILABILITY GROUP |
-| `Statement.DropBrokerPriority` | T-SQL | DROP BROKER PRIORITY |
-| `Statement.DropCertificate` | T-SQL | DROP CERTIFICATE |
-| `Statement.DropColumnEncryptionKey` | T-SQL | DROP COLUMN ENCRYPTION KEY |
-| `Statement.DropColumnMasterKey` | T-SQL | DROP COLUMN MASTER KEY |
-| `Statement.DropContract` | T-SQL | DROP CONTRACT |
-| `Statement.DropCredential` | T-SQL | DROP CREDENTIAL |
-| `Statement.DropCryptographicProvider` | T-SQL | DROP CRYPTOGRAPHIC PROVIDER |
-| `Statement.DropDatabaseAuditSpecification` | T-SQL | DROP DATABASE AUDIT SPECIFICATION |
-| `Statement.DropDatabaseScopedCredential` | T-SQL | DROP DATABASE SCOPED CREDENTIAL |
-| `Statement.DropDatabase` | T-SQL | DROP DATABASE |
-| `Statement.DropDefault` | T-SQL | DROP DEFAULT |
-| `Statement.DropEndpoint` | T-SQL | DROP ENDPOINT |
-| `Statement.DropExternalDataSource` | T-SQL | DROP EXTERNAL DATA SOURCE |
-| `Statement.DropExternalFileFormat` | T-SQL | DROP EXTERNAL FILE FORMAT |
-| `Statement.DropExternalLanguage` | T-SQL | DROP EXTERNAL LANGUAGE |
-| `Statement.DropExternalModel` | T-SQL | DROP EXTERNAL MODEL |
-| `Statement.DropExternalResourcePool` | T-SQL | DROP EXTERNAL RESOURCE POOL |
-| `Statement.DropExternalTable` | T-SQL | DROP EXTERNAL TABLE |
-| `Statement.DropFulltextCatalog` | T-SQL | DROP FULLTEXT CATALOG |
-| `Statement.DropFulltextStoplist` | T-SQL | DROP FULLTEXT STOPLIST |
-| `Statement.DropFunction` | T-SQL | DROP FUNCTION |
-| `Statement.DropLogin` | T-SQL | DROP LOGIN |
-| `Statement.DropMessageType` | T-SQL | DROP MESSAGE TYPE |
-| `Statement.DropPartitionFunction` | T-SQL | DROP PARTITION FUNCTION |
-| `Statement.DropPartitionScheme` | T-SQL | DROP PARTITION SCHEME |
-| `Statement.DropProcedure` | T-SQL | DROP PROCEDURE |
-| `Statement.DropQueue` | T-SQL | DROP QUEUE |
-| `Statement.DropRemoteServiceBinding` | T-SQL | DROP REMOTE SERVICE BINDING |
-| `Statement.DropResourcePool` | T-SQL | DROP RESOURCE POOL |
-| `Statement.DropRole` | T-SQL | DROP ROLE |
-| `Statement.DropRoute` | T-SQL | DROP ROUTE |
-| `Statement.DropRule` | T-SQL | DROP RULE |
-| `Statement.DropSchema` | T-SQL | DROP SCHEMA |
-| `Statement.DropSearchPropertyList` | T-SQL | DROP SEARCH PROPERTY LIST |
-| `Statement.DropSecurityPolicy` | T-SQL | DROP SECURITY POLICY |
-| `Statement.DropSequence` | T-SQL | DROP SEQUENCE |
-| `Statement.DropServerAuditSpecification` | T-SQL | DROP SERVER AUDIT SPECIFICATION |
-| `Statement.DropServerAudit` | T-SQL | DROP SERVER AUDIT |
-| `Statement.DropServerRole` | T-SQL | DROP SERVER ROLE |
-| `Statement.DropService` | T-SQL | DROP SERVICE |
-| `Statement.DropStatistics` | T-SQL | DROP STATISTICS |
-| `Statement.DropSynonym` | T-SQL | DROP SYNONYM |
-| `Statement.DropTable` | T-SQL | DROP TABLE |
-| `Statement.DropType` | T-SQL | DROP TYPE |
-| `Statement.DropUser` | T-SQL | DROP USER |
-| `Statement.DropView` | T-SQL | DROP VIEW |
-| `Statement.DropWorkloadClassifier` | T-SQL | DROP WORKLOAD CLASSIFIER |
-| `Statement.DropWorkloadGroup` | T-SQL | DROP WORKLOAD GROUP |
-| `Statement.DropXmlSchemaCollection` | T-SQL | DROP XML SCHEMA COLLECTION |
-| `Statement.DropAsymmetricKey` | T-SQL | DROP ASYMMETRIC KEY |
-| `Statement.DropSymmetricKey` | T-SQL | DROP SYMMETRIC KEY |
-| `Statement.DropAssembly` | T-SQL | DROP ASSEMBLY |
-| `Statement.DropExternalLibrary` | T-SQL | DROP EXTERNAL LIBRARY |
-| `Statement.DropEventSession` | T-SQL | DROP EVENT SESSION |
-| `Statement.DropEventNotification` | T-SQL | DROP EVENT NOTIFICATION |
-| `Statement.DropFulltextIndex` | T-SQL | DROP FULLTEXT INDEX |
-| `Statement.DropIndex` | T-SQL | DROP INDEX |
-| `Statement.DropSignature` | T-SQL | DROP SIGNATURE |
-| `Statement.DropSensitivityClassification` | T-SQL | DROP SENSITIVITY CLASSIFICATION |
-| `Statement.DropTrigger` | T-SQL | DROP TRIGGER |
-| `Statement.DropMasterKey` | T-SQL | DROP MASTER KEY |
-| `Statement.DropDatabaseEncryptionKey` | T-SQL | DROP DATABASE ENCRYPTION KEY |
+The last column is what the statement says of itself as `Kind`, a `StatementKind`: a query,
+rows changed (`Dml`), an object defined, changed or removed (`Ddl`), a permission or the
+principal it names (`Dcl`), the flow of a batch (`Control`), a transaction, the session, an
+`EXECUTE`, the server looked after (`Admin`), or a variable declared or set. It is abstract on
+`Statement`, so a record added without one does not compile, and a test reads this column
+against every record.
+
+| Node | Source | Production or page | Kind |
+| --- | --- | --- | --- |
+| `Statement.Select` | SQL-92 | §19.6 &lt;direct select statement: multiple rows&gt; — a query and its order | Query |
+| `Statement.Insert` | SQL-92 | §13.8 &lt;insert statement&gt; | Dml |
+| `Statement.Update` | SQL-92 | §13.10 &lt;update statement: searched&gt;, widened by T-SQL's second `FROM` | Dml |
+| `Statement.Delete` | SQL-92 | §13.7 &lt;delete statement: searched&gt;, likewise | Dml |
+| `Statement.Merge` | SQL:2003 | §14.9 &lt;merge statement&gt; | Dml |
+| `Statement.Compound` | SQL/PSM | &lt;compound statement&gt; — T-SQL writes it without the label | Control |
+| `Statement.If` | SQL/PSM | &lt;if statement&gt; | Control |
+| `Statement.While` | SQL/PSM | &lt;while statement&gt; | Control |
+| `Statement.TryCatch` | T-SQL | TRY...CATCH | Control |
+| `Statement.Declare` | SQL/PSM | &lt;SQL variable declaration&gt; | Declaration |
+| `Statement.Transaction` | SQL-92 | §13.2 &lt;commit statement&gt;, §13.3 &lt;rollback statement&gt;, and T-SQL's `BEGIN`/`SAVE` | Transaction |
+| `Statement.Execute` | T-SQL | EXECUTE | Execute |
+| `Statement.TableDefinition` | SQL-92 | §11.3 &lt;table definition&gt; | Ddl |
+| `Statement.CreateTableAsSelect` | T-SQL | CREATE TABLE AS SELECT, and the external table written the same way | Ddl |
+| `Statement.AlterTable` | SQL-92 | §11.10 &lt;alter table statement&gt; | Ddl |
+| `Statement.CreateProcedure` | SQL/PSM | &lt;SQL-invoked procedure&gt;; T-SQL: CREATE PROCEDURE | Ddl |
+| `Statement.CreateFunction` | SQL/PSM | &lt;SQL-invoked function&gt;; T-SQL: CREATE FUNCTION | Ddl |
+| `Statement.CreateTrigger` | SQL:1999 | &lt;trigger definition&gt;; T-SQL: CREATE TRIGGER | Ddl |
+| `Statement.ViewDefinition` | SQL-92 | §11.19 &lt;view definition&gt; | Ddl |
+| `Statement.CreateIndex` | T-SQL | CREATE INDEX — the standard has no index | Ddl |
+| `Statement.AlterIndex` | T-SQL | ALTER INDEX | Ddl |
+| `Statement.StatisticsDefinition` | T-SQL | CREATE STATISTICS | Ddl |
+| `Statement.UpdateStatistics` | T-SQL | UPDATE STATISTICS | Admin |
+| `Statement.Print` | T-SQL | PRINT | Control |
+| `Statement.Return` | SQL/PSM | &lt;return statement&gt;; T-SQL: RETURN | Control |
+| `Statement.Throw` | T-SQL | THROW | Control |
+| `Statement.GoTo` | T-SQL | GOTO | Control |
+| `Statement.Break` | T-SQL | BREAK | Control |
+| `Statement.Continue` | T-SQL | CONTINUE | Control |
+| `Statement.Checkpoint` | T-SQL | CHECKPOINT | Admin |
+| `Statement.Use` | T-SQL | USE | Session |
+| `Statement.RaiseError` | T-SQL | RAISERROR | Control |
+| `Statement.WaitFor` | T-SQL | WAITFOR | Control |
+| `Statement.ExecuteAs` | T-SQL | EXECUTE AS | Session |
+| `Statement.Revert` | T-SQL | REVERT | Session |
+| `Statement.SetUser` | T-SQL | SETUSER | Session |
+| `Statement.CreateLogin` | T-SQL | CREATE LOGIN | Dcl |
+| `Statement.AlterLogin` | T-SQL | ALTER LOGIN | Dcl |
+| `Statement.CreateUser` | T-SQL | CREATE USER | Dcl |
+| `Statement.AlterUser` | T-SQL | ALTER USER | Dcl |
+| `Statement.CreateRole` | SQL:1999 | &lt;role definition&gt;; T-SQL: CREATE ROLE, CREATE SERVER ROLE | Dcl |
+| `Statement.AlterRole` | T-SQL | ALTER ROLE, ALTER SERVER ROLE | Dcl |
+| `Statement.CreateServerRole` | T-SQL | CREATE SERVER ROLE | Dcl |
+| `Statement.AlterServerRole` | T-SQL | ALTER SERVER ROLE | Dcl |
+| `Statement.CreateApplicationRole` | T-SQL | CREATE APPLICATION ROLE | Dcl |
+| `Statement.AlterApplicationRole` | T-SQL | ALTER APPLICATION ROLE | Dcl |
+| `Statement.SchemaDefinition` | SQL-92 | §11.1 &lt;schema definition&gt; | Ddl |
+| `Statement.AlterSchema` | T-SQL | ALTER SCHEMA | Ddl |
+| `Statement.AlterAuthorization` | T-SQL | ALTER AUTHORIZATION | Dcl |
+| `Statement.ExternalDataSourceDefinition` | T-SQL | CREATE/ALTER EXTERNAL DATA SOURCE | Ddl |
+| `Statement.ExternalFileFormatDefinition` | T-SQL | CREATE EXTERNAL FILE FORMAT | Ddl |
+| `Statement.ExternalLibraryDefinition` | T-SQL | CREATE/ALTER EXTERNAL LIBRARY | Ddl |
+| `Statement.ExternalResourcePoolDefinition` | T-SQL | CREATE/ALTER EXTERNAL RESOURCE POOL | Ddl |
+| `Statement.ResourcePoolDefinition` | T-SQL | CREATE/ALTER RESOURCE POOL | Ddl |
+| `Statement.WorkloadGroupDefinition` | T-SQL | CREATE/ALTER WORKLOAD GROUP | Ddl |
+| `Statement.ServerAuditDefinition` | T-SQL | CREATE/ALTER SERVER AUDIT | Ddl |
+| `Statement.AuditSpecificationDefinition` | T-SQL | CREATE/ALTER SERVER AUDIT SPECIFICATION | Ddl |
+| `Statement.DatabaseAuditSpecificationDefinition` | T-SQL | CREATE/ALTER DATABASE AUDIT SPECIFICATION | Ddl |
+| `Statement.EventSessionDefinition` | T-SQL | CREATE/ALTER EVENT SESSION | Ddl |
+| `Statement.EventNotificationDefinition` | T-SQL | CREATE EVENT NOTIFICATION | Ddl |
+| `Statement.EndpointDefinition` | T-SQL | CREATE/ALTER ENDPOINT | Ddl |
+| `Statement.CreateDatabase` | T-SQL | CREATE DATABASE — the standard has no database | Ddl |
+| `Statement.AlterDatabaseSet` | T-SQL | ALTER DATABASE … SET | Ddl |
+| `Statement.AlterDatabaseScopedConfiguration` | T-SQL | ALTER DATABASE … SCOPED CONFIGURATION | Ddl |
+| `Statement.AlterDatabaseCollate` | T-SQL | ALTER DATABASE … COLLATE | Ddl |
+| `Statement.AlterDatabaseModifyName` | T-SQL | ALTER DATABASE … MODIFY NAME | Ddl |
+| `Statement.AlterDatabaseModifyFileGroup` | T-SQL | ALTER DATABASE … MODIFY FILE GROUP | Ddl |
+| `Statement.AlterDatabaseModifyFile` | T-SQL | ALTER DATABASE … MODIFY FILE | Ddl |
+| `Statement.AlterDatabaseModify` | T-SQL | ALTER DATABASE … MODIFY | Ddl |
+| `Statement.AlterDatabaseAddFileGroup` | T-SQL | ALTER DATABASE … ADD FILE GROUP | Ddl |
+| `Statement.AlterDatabaseAddLogFile` | T-SQL | ALTER DATABASE … ADD LOG FILE | Ddl |
+| `Statement.AlterDatabaseAddFile` | T-SQL | ALTER DATABASE … ADD FILE | Ddl |
+| `Statement.AlterDatabaseRemoveFileGroup` | T-SQL | ALTER DATABASE … REMOVE FILE GROUP | Ddl |
+| `Statement.AlterDatabaseRemoveFile` | T-SQL | ALTER DATABASE … REMOVE FILE | Ddl |
+| `Statement.AlterDatabaseRebuildLog` | T-SQL | ALTER DATABASE … REBUILD LOG | Ddl |
+| `Statement.AlterDatabasePerformCutover` | T-SQL | ALTER DATABASE … PERFORM CUTOVER | Ddl |
+| `Statement.SetTransactionIsolationLevel` | SQL-92 | §13.9 &lt;set transaction statement&gt;; T-SQL spells it SET TRANSACTION ISOLATION LEVEL | Session |
+| `Statement.SetIdentityInsert` | T-SQL | SET IDENTITY_INSERT | Session |
+| `Statement.SetOption` | T-SQL | the SET statements that take ON or OFF | Session |
+| `Statement.SetCommand` | T-SQL | the SET statements that take a value | Session |
+| `Statement.SetVariable` | T-SQL | SET @local_variable | Declaration |
+| `Statement.Grant` | SQL-92 | §12.1 &lt;grant statement&gt; | Dcl |
+| `Statement.Deny` | T-SQL | DENY | Dcl |
+| `Statement.Revoke` | SQL-92 | §12.2 &lt;revoke statement&gt; | Dcl |
+| `Statement.FullTextIndexDefinition` | T-SQL | CREATE FULLTEXT INDEX | Ddl |
+| `Statement.AlterFullTextIndex` | T-SQL | ALTER FULLTEXT INDEX | Ddl |
+| `Statement.FullTextCatalogDefinition` | T-SQL | CREATE FULLTEXT CATALOG | Ddl |
+| `Statement.AlterFullTextCatalog` | T-SQL | ALTER FULLTEXT CATALOG | Ddl |
+| `Statement.FullTextStopListDefinition` | T-SQL | CREATE FULLTEXT STOPLIST | Ddl |
+| `Statement.AlterFullTextStopList` | T-SQL | ALTER FULLTEXT STOPLIST | Ddl |
+| `Statement.SearchPropertyListDefinition` | T-SQL | CREATE SEARCH PROPERTY LIST | Ddl |
+| `Statement.AlterSearchPropertyList` | T-SQL | ALTER SEARCH PROPERTY LIST | Ddl |
+| `Statement.BackupDatabase` | T-SQL | BACKUP DATABASE | Admin |
+| `Statement.BackupTransactionLog` | T-SQL | BACKUP LOG | Admin |
+| `Statement.BackupServer` | T-SQL | BACKUP SERVER | Admin |
+| `Statement.BackupGroup` | T-SQL | BACKUP GROUP | Admin |
+| `Statement.BackupCertificate` | T-SQL | BACKUP CERTIFICATE | Admin |
+| `Statement.BackupMasterKey` | T-SQL | BACKUP MASTER KEY | Admin |
+| `Statement.BackupServiceMasterKey` | T-SQL | BACKUP SERVICE MASTER KEY | Admin |
+| `Statement.BackupSymmetricKey` | T-SQL | BACKUP SYMMETRIC KEY | Admin |
+| `Statement.RestoreDatabase` | T-SQL | RESTORE DATABASE | Admin |
+| `Statement.RestoreLog` | T-SQL | RESTORE LOG | Admin |
+| `Statement.RestoreFileListOnly` | T-SQL | RESTORE FILELISTONLY | Admin |
+| `Statement.RestoreHeaderOnly` | T-SQL | RESTORE HEADERONLY | Admin |
+| `Statement.RestoreLabelOnly` | T-SQL | RESTORE LABELONLY | Admin |
+| `Statement.RestoreRewindOnly` | T-SQL | RESTORE REWINDONLY | Admin |
+| `Statement.RestoreVerifyOnly` | T-SQL | RESTORE VERIFYONLY | Admin |
+| `Statement.RestoreMasterKey` | T-SQL | RESTORE MASTER KEY | Admin |
+| `Statement.RestoreServiceMasterKey` | T-SQL | RESTORE SERVICE MASTER KEY | Admin |
+| `Statement.RestoreSymmetricKey` | T-SQL | RESTORE SYMMETRIC KEY | Admin |
+| `Statement.AsymmetricKeyDefinition` | T-SQL | CREATE ASYMMETRIC KEY | Ddl |
+| `Statement.AlterAsymmetricKey` | T-SQL | ALTER ASYMMETRIC KEY | Ddl |
+| `Statement.SymmetricKeyDefinition` | T-SQL | CREATE SYMMETRIC KEY | Ddl |
+| `Statement.AlterSymmetricKey` | T-SQL | ALTER SYMMETRIC KEY | Ddl |
+| `Statement.CertificateDefinition` | T-SQL | CREATE CERTIFICATE | Ddl |
+| `Statement.AlterCertificate` | T-SQL | ALTER CERTIFICATE | Ddl |
+| `Statement.MasterKeyDefinition` | T-SQL | CREATE MASTER KEY | Ddl |
+| `Statement.AlterMasterKey` | T-SQL | ALTER MASTER KEY | Ddl |
+| `Statement.DatabaseEncryptionKeyDefinition` | T-SQL | CREATE DATABASE ENCRYPTION KEY | Ddl |
+| `Statement.AlterDatabaseEncryptionKey` | T-SQL | ALTER DATABASE ENCRYPTION KEY | Ddl |
+| `Statement.ColumnEncryptionKeyDefinition` | T-SQL | CREATE COLUMN ENCRYPTION KEY | Ddl |
+| `Statement.AlterColumnEncryptionKey` | T-SQL | ALTER COLUMN ENCRYPTION KEY | Ddl |
+| `Statement.ColumnMasterKeyDefinition` | T-SQL | CREATE COLUMN MASTER KEY | Ddl |
+| `Statement.CredentialDefinition` | T-SQL | CREATE/ALTER CREDENTIAL | Ddl |
+| `Statement.DatabaseScopedCredentialDefinition` | T-SQL | CREATE/ALTER DATABASE SCOPED CREDENTIAL | Ddl |
+| `Statement.SecurityPolicyDefinition` | T-SQL | CREATE/ALTER SECURITY POLICY | Ddl |
+| `Statement.DropAggregate` | T-SQL | DROP AGGREGATE | Ddl |
+| `Statement.DropApplicationRole` | T-SQL | DROP APPLICATION ROLE | Dcl |
+| `Statement.DropAvailabilityGroup` | T-SQL | DROP AVAILABILITY GROUP | Ddl |
+| `Statement.DropBrokerPriority` | T-SQL | DROP BROKER PRIORITY | Ddl |
+| `Statement.DropCertificate` | T-SQL | DROP CERTIFICATE | Ddl |
+| `Statement.DropColumnEncryptionKey` | T-SQL | DROP COLUMN ENCRYPTION KEY | Ddl |
+| `Statement.DropColumnMasterKey` | T-SQL | DROP COLUMN MASTER KEY | Ddl |
+| `Statement.DropContract` | T-SQL | DROP CONTRACT | Ddl |
+| `Statement.DropCredential` | T-SQL | DROP CREDENTIAL | Ddl |
+| `Statement.DropCryptographicProvider` | T-SQL | DROP CRYPTOGRAPHIC PROVIDER | Ddl |
+| `Statement.DropDatabaseAuditSpecification` | T-SQL | DROP DATABASE AUDIT SPECIFICATION | Ddl |
+| `Statement.DropDatabaseScopedCredential` | T-SQL | DROP DATABASE SCOPED CREDENTIAL | Ddl |
+| `Statement.DropDatabase` | T-SQL | DROP DATABASE | Ddl |
+| `Statement.DropDefault` | T-SQL | DROP DEFAULT | Ddl |
+| `Statement.DropEndpoint` | T-SQL | DROP ENDPOINT | Ddl |
+| `Statement.DropExternalDataSource` | T-SQL | DROP EXTERNAL DATA SOURCE | Ddl |
+| `Statement.DropExternalFileFormat` | T-SQL | DROP EXTERNAL FILE FORMAT | Ddl |
+| `Statement.DropExternalLanguage` | T-SQL | DROP EXTERNAL LANGUAGE | Ddl |
+| `Statement.DropExternalModel` | T-SQL | DROP EXTERNAL MODEL | Ddl |
+| `Statement.DropExternalResourcePool` | T-SQL | DROP EXTERNAL RESOURCE POOL | Ddl |
+| `Statement.DropExternalTable` | T-SQL | DROP EXTERNAL TABLE | Ddl |
+| `Statement.DropFulltextCatalog` | T-SQL | DROP FULLTEXT CATALOG | Ddl |
+| `Statement.DropFulltextStoplist` | T-SQL | DROP FULLTEXT STOPLIST | Ddl |
+| `Statement.DropFunction` | T-SQL | DROP FUNCTION | Ddl |
+| `Statement.DropLogin` | T-SQL | DROP LOGIN | Dcl |
+| `Statement.DropMessageType` | T-SQL | DROP MESSAGE TYPE | Ddl |
+| `Statement.DropPartitionFunction` | T-SQL | DROP PARTITION FUNCTION | Ddl |
+| `Statement.DropPartitionScheme` | T-SQL | DROP PARTITION SCHEME | Ddl |
+| `Statement.DropProcedure` | T-SQL | DROP PROCEDURE | Ddl |
+| `Statement.DropQueue` | T-SQL | DROP QUEUE | Ddl |
+| `Statement.DropRemoteServiceBinding` | T-SQL | DROP REMOTE SERVICE BINDING | Ddl |
+| `Statement.DropResourcePool` | T-SQL | DROP RESOURCE POOL | Ddl |
+| `Statement.DropRole` | T-SQL | DROP ROLE | Dcl |
+| `Statement.DropRoute` | T-SQL | DROP ROUTE | Ddl |
+| `Statement.DropRule` | T-SQL | DROP RULE | Ddl |
+| `Statement.DropSchema` | T-SQL | DROP SCHEMA | Ddl |
+| `Statement.DropSearchPropertyList` | T-SQL | DROP SEARCH PROPERTY LIST | Ddl |
+| `Statement.DropSecurityPolicy` | T-SQL | DROP SECURITY POLICY | Ddl |
+| `Statement.DropSequence` | T-SQL | DROP SEQUENCE | Ddl |
+| `Statement.DropServerAuditSpecification` | T-SQL | DROP SERVER AUDIT SPECIFICATION | Ddl |
+| `Statement.DropServerAudit` | T-SQL | DROP SERVER AUDIT | Ddl |
+| `Statement.DropServerRole` | T-SQL | DROP SERVER ROLE | Dcl |
+| `Statement.DropService` | T-SQL | DROP SERVICE | Ddl |
+| `Statement.DropStatistics` | T-SQL | DROP STATISTICS | Ddl |
+| `Statement.DropSynonym` | T-SQL | DROP SYNONYM | Ddl |
+| `Statement.DropTable` | T-SQL | DROP TABLE | Ddl |
+| `Statement.DropType` | T-SQL | DROP TYPE | Ddl |
+| `Statement.DropUser` | T-SQL | DROP USER | Dcl |
+| `Statement.DropView` | T-SQL | DROP VIEW | Ddl |
+| `Statement.DropWorkloadClassifier` | T-SQL | DROP WORKLOAD CLASSIFIER | Ddl |
+| `Statement.DropWorkloadGroup` | T-SQL | DROP WORKLOAD GROUP | Ddl |
+| `Statement.DropXmlSchemaCollection` | T-SQL | DROP XML SCHEMA COLLECTION | Ddl |
+| `Statement.DropAsymmetricKey` | T-SQL | DROP ASYMMETRIC KEY | Ddl |
+| `Statement.DropSymmetricKey` | T-SQL | DROP SYMMETRIC KEY | Ddl |
+| `Statement.DropAssembly` | T-SQL | DROP ASSEMBLY | Ddl |
+| `Statement.DropExternalLibrary` | T-SQL | DROP EXTERNAL LIBRARY | Ddl |
+| `Statement.DropEventSession` | T-SQL | DROP EVENT SESSION | Ddl |
+| `Statement.DropEventNotification` | T-SQL | DROP EVENT NOTIFICATION | Ddl |
+| `Statement.DropFulltextIndex` | T-SQL | DROP FULLTEXT INDEX | Ddl |
+| `Statement.DropIndex` | T-SQL | DROP INDEX | Ddl |
+| `Statement.DropSignature` | T-SQL | DROP SIGNATURE | Ddl |
+| `Statement.DropSensitivityClassification` | T-SQL | DROP SENSITIVITY CLASSIFICATION | Ddl |
+| `Statement.DropTrigger` | T-SQL | DROP TRIGGER | Ddl |
+| `Statement.DropMasterKey` | T-SQL | DROP MASTER KEY | Ddl |
+| `Statement.DropDatabaseEncryptionKey` | T-SQL | DROP DATABASE ENCRYPTION KEY | Ddl |
 
 ### `Query`
 
