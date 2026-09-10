@@ -821,7 +821,8 @@ TsqlDirectSelect : @Statement
 // The definition is a query expression and not a whole statement: the syntax forbids a
 // `WITH` inside a `WITH`, and writing it that way is how the grammar says so.
 WithClause : @Clause[]
-	= "WITH"i & t: ChangeTrackingContext => @(new Clause[] { new Clause.Option(t, null, Clause.None) })
+	= "WITH"i & t: ChangeTrackingContext & (',' & rest: CteDefinition)*
+		=> @(Syntax.Listed<Clause>(new Clause.Option(t, null, Clause.None), rest))
 	| "WITH"i & t: XmlNamespaces & (',' & rest: CteDefinition)*
 		=> @(Syntax.Listed<Clause>(new Clause.Option(t, null, Clause.None), rest))
 	| "WITH"i & first: CteDefinition & (',' & rest: CteDefinition)*
@@ -1352,9 +1353,21 @@ ExecReturn : @string = t: Tsql.Variable & '=' => @(t)
 ExecName   : @string = t: QualifiedName => @(t) | t: Tsql.Variable => @(t)
 ExecAt     : @string = "AT"i & t: QualifiedName => @(t)
 ExecWith   = "WITH"i & ExecOption & (',' & ExecOption)*
-ExecOption = "RESULT"i & "SETS"i & "NONE"i
-		   | "RESULT"i & "SETS"i & "UNDEFINED"i
+ExecOption = "RESULT"i & "SETS"i & ResultSets
 		   | Identifier
+
+// `WITH RESULT SETS` says what comes back, and the three answers are none, undefined, or
+// the shapes written out. Left-factored on the two words, which is what GRAM4016 asks for
+// where alternatives share a head.
+ResultSets = "NONE"i
+		   | "UNDEFINED"i
+		   | '(' & ResultSet & (',' & ResultSet)* & ')'
+
+// One result set: its columns written out, or the name of something already shaped.
+ResultSet = '(' & TableBody & ')'
+		  | "AS"i & "OBJECT"i & QualifiedName
+		  | "AS"i & "TYPE"i & QualifiedName
+		  | "AS"i & "FOR"i & "XML"i
 
 ExecArguments : @Expression[]
 	= first: ExecArgument & (',' & rest: ExecArgument)* => @(Syntax.Listed(first, rest))
