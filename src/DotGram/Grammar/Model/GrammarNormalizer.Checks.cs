@@ -523,7 +523,10 @@ public sealed partial class GrammarNormalizer
 				Report(
 					UnbuiltCapture,
 					$"'{name}' is captured inside a lookahead in '{rule.Name}', which is not built: " +
-					"a lookahead consumes nothing and answers only whether it matched.",
+					"what a lookahead records on the way is dropped whether it matched or not, so " +
+					$"the capture would never reach '{rule.Name}'. Capture the lookahead itself — " +
+					"'?=X' produces X's value (docs/syntax.md §3.4) — or read the same thing again " +
+					"after it.",
 					rule.Declaration!.At);
 		}
 
@@ -557,8 +560,11 @@ public sealed partial class GrammarNormalizer
 		if (Reaches(_bodies[start], start, []))
 			Report(
 				LeftRecursion,
-				$"'{start.Name}' is left-recursive, which is not built yet (docs/syntax.md §4.3); " +
-				"write the loop with a quantifier instead.",
+				$"'{start.Name}' reaches itself on the left through another rule, which is not " +
+				"built (docs/syntax.md §4.3). A rule that calls itself leftmost is rewritten, and " +
+				"so is one reaching itself through rules that only forward; an intermediary that " +
+				"contributes operands or a '=>' of its own is not. Written as one rule whose tail " +
+				"is a choice of the steps, the same language folds.",
 				start.Declaration!.At);
 	}
 

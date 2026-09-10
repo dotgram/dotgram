@@ -1,4 +1,4 @@
-﻿# Diagnostics
+# Diagnostics
 
 Every message .Gram reports carries an identifier, so it can be looked up, suppressed, or
 argued with. This is the list.
@@ -86,10 +86,10 @@ underlined where it was written, in the base's own file — see §5.1.
 | Id | What it says | What to do |
 | --- | --- | --- |
 | `GRAM4001` | The body of a repetition can match without consuming input. | The repetition would not terminate. |
-| `GRAM4002` | Left recursion is not built yet. | Write the loop with a quantifier instead (§4.3). |
+| `GRAM4002` | Left recursion the rewrite cannot take. | Direct left recursion is built, and so is an indirect one through rules that only forward. What is refused is an intermediary that does something of its own, a rule with no alternative to start from, and an alternative recursive on both sides (§4.3). |
 | `GRAM4003` | `trivia` must accept empty input. | It is inserted between every pair of operands, and a required match would demand whitespace everywhere (§4.5). |
 | `GRAM4005` | A name in an element set is not a rule. | |
-| `GRAM4006` | A capture inside a lookahead. | A lookahead consumes nothing and answers only whether it matched, so there is nothing to capture. |
+| `GRAM4006` | A capture inside a lookahead. | What a lookahead records is dropped whether it matched or not. Capture the lookahead itself: `?=X` produces X's value (§3.4). |
 | `GRAM4007` | One name is captured twice with different types. | A member has one type; give the two captures the same one, or different names (§7.3). |
 | `GRAM4008` | A `=>` is not on an alternative, or a rule that builds does not say what type. | A `=>` builds the rule's value, so it belongs at the end of an alternative, and the rule needs `: @T` to say what it builds. |
 | `GRAM4009` | An alternative is recursive and states no strength while its siblings do. | A rule uses one convention or the other — levels as rules, or `<<` and `>>` on every recursive alternative (§4.3.1). |
