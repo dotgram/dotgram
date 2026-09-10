@@ -506,6 +506,10 @@ read: formats, feeds, expressions, languages.
 
 ## Documentation
 
+[`docs/README.md`](docs/README.md) is the index, and says what authority each document
+carries — what is normative, what describes this version, what is a proposal and what is
+a diary. The ones a reader usually wants:
+
 | Document | Contents |
 | --- | --- |
 | [`docs/syntax.md`](docs/syntax.md) | grammar notation and generated API |

@@ -67,6 +67,39 @@ projects that need Visual Studio. Without it the build fails on those, which is 
 finding. The package cache is a volume, so only the first run pays for restore, and
 `docker start dotgram-linux` brings the container back after a reboot.
 
+## The package, as a stranger gets it
+
+Everything else builds the generator from source and takes it on trust that the package
+is the same thing. `tests/DotGram.PackageSmoke` is the one that does not. It is a project
+whose only connection to this repository is a version on a `PackageReference`, it carries
+a `Directory.Build.props` of its own that is empty on purpose — so that none of the
+repository's settings reach it — and it names the compiler it wants:
+
+```
+<RoslynCompilerType>Package</RoslynCompilerType>
+<PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="4.14.0" PrivateAssets="all" />
+```
+
+4.14 is the floor the README states, and that property is what makes the package be the
+compiler rather than merely be restored: the SDK sets its own Roslyn paths after anything
+a project or a package can say, under exactly that condition.
+
+It is not in the solution, because it cannot be restored until the package it names
+exists. CI runs it after the pack step; by hand it is
+
+```
+dotnet pack src/DotGram/DotGram.csproj --configuration Release --output artifacts
+dotnet run --project tests/DotGram.PackageSmoke/DotGram.PackageSmoke.csproj --configuration Release
+```
+
+and it prints `1 + 41 = 42`. Locally the second run may serve the first run's package out
+of the global cache, so clear `dotgram/<version>` from it when the change under test is to
+the package rather than to the grammar.
+
+What it catches is what nothing else can: an analyzer that will not load under the floor,
+an emitted file that only compiles because of a setting this repository happens to have,
+and an analyzer folder the compiler does not look in.
+
 ## The snapshot baseline
 
 `tests/Snapshots/*.gram.g.cs` are checked in beside the grammars they come from, and

@@ -1,0 +1,10 @@
+﻿<Project>
+
+	<!-- Deliberately empty, and deliberately here. It stops the repository's own
+	     Directory.Build.props from reaching this project: what is being tested is
+	     whether the package works in somebody else's build, and somebody else does not
+	     have `LangVersion latest`, `Nullable enable` or anything else set here. The
+	     same reasoning stops Directory.Packages.props beside it — a stranger names a
+	     version on the reference, which is also how this one pins what it just built. -->
+
+</Project>

@@ -122,7 +122,7 @@ public sealed class GramCompilerOptions
 	/// <remarks>
 	/// A request rather than a setting: a grammar that cannot be cut in two is compiled over
 	/// characters and told why, because the character machine is correct and right there.
-	/// `docs/lexical-adt-design.md` carries the design and its measurements.
+	/// `docs/design/lexical-adt-design.md` carries the design and its measurements.
 	/// </remarks>
 	public bool Lexical { get; set; }
 

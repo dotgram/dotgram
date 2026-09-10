@@ -18,7 +18,7 @@ namespace DotGram.Grammar.Emit;
 /// The tooling attributes are read rather than executed, and by name rather than by type
 /// identity — an editor asking what language a referenced assembly's parser speaks looks
 /// at metadata through Roslyn, where <c>internal</c> is visible, and never loads the
-/// assembly to ask it (docs/DotGram_Tooling_Agent_Handoff.md §21, §26). That is what lets
+/// assembly to ask it (docs/design/DotGram_Tooling_Agent_Handoff.md §21, §26). That is what lets
 /// each assembly carry its own copy of these and still be understood by one tool.
 /// </para>
 /// <para>
@@ -109,7 +109,7 @@ public static class SupportEmitter
 				/// <remarks>
 				/// The grammar is cut in two: a lexical machine over characters that
 				/// answers with token kinds, and the same syntactic machine over those
-				/// (docs/lexical-adt-design.md). Nothing about the grammar changes and
+				/// (docs/design/lexical-adt-design.md). Nothing about the grammar changes and
 				/// nothing about the published methods changes — they take a string and
 				/// answer as they did.
 				///

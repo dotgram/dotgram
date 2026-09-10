@@ -1767,7 +1767,7 @@ public sealed class SemanticTests
 	/// <para>
 	/// A rule that is a choice of literals becomes one range over kinds at each of its call
 	/// sites, which is the whole reason a fifty-way keyword choice costs one comparison
-	/// (docs/lexical-adt-design.md). A boundary woven onto it — or written by hand as
+	/// (docs/design/lexical-adt-design.md). A boundary woven onto it — or written by hand as
 	/// <c>(… | …) &amp; ?!\p{L}</c> — does not change what it accepts, so the search for the
 	/// choice looks through a sequence to its first part.
 	/// </para>

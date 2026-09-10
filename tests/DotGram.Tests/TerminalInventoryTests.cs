@@ -11,7 +11,7 @@ namespace DotGram.Tests;
 
 /// <summary>
 /// The terminal inventory: what a lexical machine would have to recognize, and what in a
-/// given grammar stands in the way of asking (docs/lexical-adt-design.md).
+/// given grammar stands in the way of asking (docs/design/lexical-adt-design.md).
 /// </summary>
 /// <remarks>
 /// Asserted on the model rather than on generated code, because nothing is generated: this
