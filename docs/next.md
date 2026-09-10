@@ -18133,3 +18133,41 @@ otherwise, 61 of 65 agreeing.
 
 At 150: read by both 5,683 (from 5,667), the work list 287 (from 303), read here but refused
 there 43, as before. `--split` 557 cut the same (from 555), and the round trip 100% of 6,772.
+
+## Permissions, three holes
+
+With the `FOR` clause done the work list has no large block left, and the largest family in it
+was `GRANT`, `DENY` and `REVOKE`, stopped in three places. Put to the engine thirty-four times:
+
+- **Columns after the securable.** `ON t (c1)`, and after any class — `ON SCHEMA::s (c1)`,
+  `ON ENDPOINT::e (c1, c2)` — the engine reads, and objects afterwards where the class has
+  none or the permission has its own list too (1019, now on the audit's read side). A column
+  is a bare name. They stay in the securable's words, which the writer prints as they are.
+- **`NULL` as a principal**, anywhere in the list; not after `AS`. The permission statements
+  have a list of their own for it, so that an audit specification's `BY` list is not changed
+  by a probe that never asked about it.
+- **`ALL` in a list.** `GRANT ALL, SELECT …` stopped at the comma: an alternative of its own
+  read `ALL` alone and, being first, won, and ordered choice does not go back into a rule
+  that has already answered. The list reads `ALL` and `ALL PRIVILEGES` like any permission,
+  with columns after them too, and the alternative is gone.
+
+The first run over the corpus after that had thirty-eight more statements read here and
+refused there. None of them was about the three: they were `GRANT create control alter ON
+[a] TO NULL …`, a run of permission words without their commas, which the grammar read as one
+name — any run of words was a permission, a choice its comment recorded as deliberate — and
+which had failed only on the `NULL` until then. Asked, the engine refuses an unknown
+permission as syntax, 102: `GRANT FOO`, `GRANT SELECT INSERT`, `GRANT CREATE` alone. So its
+parser holds the list, and so does this grammar now, after asking whether it should: the 166
+names `sys.fn_builtin_permissions` gives on this server, `EXEC` and `ALL [PRIVILEGES]`,
+longest first so that none is taken for a name it begins with. A name an older release does
+not know is read at every level, which is the version axis's to gate.
+
+The run after that lost the other way: event notifications, `FOR OBJECT_CREATED,
+DDL_TABLE_EVENTS`, and audit specifications, `ADD (SUCCESSFUL_DATABASE_AUTHENTICATION_GROUP)`,
+had been reading their own lists through the permission rule, and stopped at their first name
+once it was the engine's list of permissions. They have a run of words of their own again —
+two catalogues more, left open until they are asked about.
+
+Every probe agreed, 57 of them. At 150: read by both 5,719 (from 5,683), the work list 251
+(from 287), read here but refused there 43, as before — the thirty-eight gone again. `--split`
+560 cut the same (from 557), and the round trip 100% of 6,808.

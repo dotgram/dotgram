@@ -100,6 +100,7 @@ public sealed class SqlWriterTests
 	[InlineData("SELECT a FROM t FOR UPDATE OF a, b",     "SELECT a FROM t FOR UPDATE OF a, b")]
 	[InlineData("SELECT a FROM t FOR READ ONLY",          "SELECT a FROM t FOR READ ONLY")]
 	[InlineData("SELECT a FROM t FOR XML AUTO, BINARY BASE64", "SELECT a FROM t FOR XML AUTO, BINARY BASE64")]
+	[InlineData("GRANT ALL, SELECT ON t (c1) TO u, NULL",  "GRANT ALL, SELECT ON t (c1) TO u, NULL")]
 	public void A_statement_comes_back_as_what_it_said(string input, string printed) =>
 		Assert.Equal(printed, SqlWriter.Write(Read(input)));
 

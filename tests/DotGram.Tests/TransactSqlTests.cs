@@ -1018,6 +1018,49 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>The permission statements, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("GRANT SELECT ON t () TO u")]
+	[InlineData("GRANT SELECT ON t (s.c1) TO u")]
+	[InlineData("GRANT SELECT ON t TO u AS NULL")]
+	[InlineData("GRANT SELECT ON t TO 'u'")]
+	[InlineData("GRANT SELECT ON t TO @u")]
+	[InlineData("REVOKE SELECT ON t TO NULL AS NULL")]
+	[InlineData("GRANT FOO TO u")]
+	[InlineData("GRANT FOO BAR ON t TO u")]
+	[InlineData("GRANT SELECT INSERT ON t TO u")]
+	[InlineData("GRANT create control alter ON [a] TO NULL, user2 AS [all]")]
+	[InlineData("GRANT CREATE TO u")]
+	[InlineData("GRANT CREATE ANY FOO TO u")]
+	[InlineData("GRANT VIEW FOO TO u")]
+	public void The_permission_statements_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("GRANT SELECT ON t (c1, c2) TO u")]
+	[InlineData("GRANT SELECT (c1) ON t (c2) TO u")]
+	[InlineData("GRANT INSERT ON ..t1 (c1) TO PUBLIC")]
+	[InlineData("DENY ALL PRIVILEGES ON ENDPOINT::a.b..d (c1, c2) TO PUBLIC")]
+	[InlineData("REVOKE GRANT OPTION FOR CONTROL ON t1 (c1) TO PUBLIC AS [p1]")]
+	[InlineData("GRANT SELECT ON t TO u, NULL")]
+	[InlineData("DENY SELECT ON t TO NULL CASCADE")]
+	[InlineData("REVOKE SELECT ON t FROM NULL")]
+	[InlineData("GRANT ALL TO NULL WITH GRANT OPTION")]
+	[InlineData("GRANT ALL, SELECT (c1, c2), INSERT, DELETE, UPDATE, EXEC, EXECUTE, REFERENCES (c1) ON t TO u")]
+	[InlineData("GRANT ALL PRIVILEGES (c1) ON t TO u")]
+	[InlineData("GRANT SELECT, ALL PRIVILEGES TO u")]
+	[InlineData("GRANT ALTER ANY DATABASE EVENT SESSION ADD EVENT, ALTER ANY DATABASE, ALTER TO u")]
+	[InlineData("GRANT VIEW ANY COLUMN ENCRYPTION KEY DEFINITION, CONNECT SQL, CONNECT TO u")]
+	[InlineData("GRANT EXEC, EXECUTE ANY EXTERNAL SCRIPT ON p TO u")]
+	[InlineData("GRANT SELECT ALL USER SECURABLES, TAKE OWNERSHIP TO u")]
+	public void The_permission_statements_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>Table, query and join hints, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM t WITH (FOO)")]

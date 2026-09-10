@@ -3117,7 +3117,7 @@ AuditStatement : @Statement
 
 	| "CREATE"i & "EVENT"i & "NOTIFICATION"i & name: Identifier
 	  & tail: ("ON"i & NotificationScope & ("WITH"i & "FAN_IN"i)?
-			   & "FOR"i & PermissionName & (',' & PermissionName)*
+			   & "FOR"i & ActionWords & (',' & ActionWords)*
 			   & "TO"i & "SERVICE"i & ValueExpression & (',' & ValueExpression)*)
 		=> @(Statement.Defined("EVENT NOTIFICATION", name, Syntax.Tail(tail)))
 
@@ -3151,7 +3151,7 @@ AuditAction = AddOrDrop & '(' & AuditActionBody & ')' & ','?
 
 AddOrDrop = "ADD"i | "DROP"i
 
-AuditActionBody = PermissionName & (',' & PermissionName)* & AuditActionOn?
+AuditActionBody = ActionWords & (',' & ActionWords)* & AuditActionOn?
 
 AuditActionOn = "ON"i & SecurableClass? & QualifiedName & "BY"i & Principals
 
@@ -4195,47 +4195,228 @@ DatabaseTermination : @string
 // the option names are and for the same reason: they are a catalogue rather than a
 // language, and a permission added to SQL Server does not change this grammar.
 PermissionStatement : @Statement
-	= "GRANT"i & what: Permissions & on: PermissionOn? & "TO"i & who: Principals
+	= "GRANT"i & what: Permissions & on: PermissionOn? & "TO"i & who: Grantees
 	  & option: ("WITH"i & "GRANT"i & "OPTION"i)? & who2: PermissionAs?
 		=> @(new Statement.Grant(what, who, on, option is not null, who2))
-	| "DENY"i & what: Permissions & on: PermissionOn? & "TO"i & who: Principals
+	| "DENY"i & what: Permissions & on: PermissionOn? & "TO"i & who: Grantees
 	  & cascade: "CASCADE"i? & who2: PermissionAs?
 		=> @(new Statement.Deny(what, who, on, cascade is not null, who2))
 	| "REVOKE"i & optionFor: ("GRANT"i & "OPTION"i & "FOR"i)? & what: Permissions & on: PermissionOn?
-	  & way: ToOrFrom & who: Principals & cascade: "CASCADE"i? & who2: PermissionAs?
+	  & way: ToOrFrom & who: Grantees & cascade: "CASCADE"i? & who2: PermissionAs?
 		=> @(new Statement.Revoke(what, who, on, optionFor is not null, Syntax.Squared(way) == "FROM", cascade is not null, who2))
 
 ToOrFrom      : @string = t: ("TO"i | "FROM"i) => @(t)
 PermissionAs  : @string = "AS"i & t: PrincipalName => @(t)
-PermissionOn  : @string = "ON"i & t: (SecurableClass? & QualifiedName) => @(Syntax.Spaced(t))
+// The columns may follow the securable as well as the permission — `ON t (c1)`, and after
+// any class, `ON SCHEMA::s (c1)` — which the engine reads and, where both are written or the
+// class has no columns, objects to afterwards (1019). They stay in the securable's words.
+PermissionOn  : @string = "ON"i & t: (SecurableClass? & QualifiedName & ('(' & ColumnList & ')')?) => @(Syntax.Spaced(t))
 
 // `OBJECT::t`, `SCHEMA::s`, `SERVER ROLE::r`, `XML SCHEMA COLLECTION::c` — a run of words
 // and `::`. Where there is no `::` the whole clause is given back, which is what makes it
 // safe to try in front of an ordinary name.
 SecurableClass = PermissionWord+ & "::"
 
+// `ALL` and `ALL PRIVILEGES` are permissions like the others: first in a list, later in one,
+// with columns after them. An alternative of their own read them alone and, being first,
+// left `GRANT ALL, SELECT …` with nowhere to go.
 Permissions : @string[]
-	= t: ("ALL"i & "PRIVILEGES"i?) => @(new[] { Syntax.Spaced(t) })
-	| first: Permission & (',' & rest: Permission)* => @(Syntax.Named(first, rest))
+	= first: Permission & (',' & rest: Permission)* => @(Syntax.Named(first, rest))
 
 Permission : @string
 	= t: (PermissionName & ('(' & ColumnList & ')')?) => @(Syntax.Spaced(t))
 
-// A run of them, and it ends where it must: neither `ON` nor `TO` is a permission word,
-// so the words of the name are taken and the clause after them is left alone.
-PermissionName = PermissionWord+
-
-// A permission is spelled with words, and which words is a catalogue: `ALTER ANY
-// DATABASE`, `VIEW DEFINITION`, `BACKUP LOG`, `SUBSCRIBE QUERY NOTIFICATIONS`. Half of
-// them are reserved and cannot be read as an identifier, so the list used to be written
-// out — thirty-one words, and a permission SQL Server adds is a word this grammar has
-// never heard of.
+// A permission is one of the engine's own — the 166 names `sys.fn_builtin_permissions`
+// gives on SQL Server 2025 — or `EXEC`, `EXECUTE`'s other spelling, or `ALL [PRIVILEGES]`.
+// The engine refuses any other name as syntax: `GRANT FOO`, `GRANT SELECT INSERT`, three
+// permissions without their commas. This rule read any run of words once, on the ground that
+// a permission SQL Server adds is a word the grammar has never heard of; what that cost showed
+// when `NULL` became a principal and thirty-eight statements the engine refuses stopped
+// failing on the `NULL` instead. A name an older release does not know is read at every
+// level here, which is the version axis's to gate when there is one.
 //
-// What actually bounds the name is not which words are in it but where it ends, and the
-// syntax says that: `ON`, `TO`, `FROM`, `WITH` and `CASCADE` begin the clause after it.
-// So the rule is any word that is not one of those — five words instead of thirty-one,
-// and it stops being a catalogue.
+// Longest first, so that no name is taken for one it begins with: `ALTER ANY DATABASE`
+// before `ALTER`, `CONNECT SQL` before `CONNECT`, `EXECUTE` before `EXEC`.
+PermissionName
+	= "ALL"i & "PRIVILEGES"i?
+	| "VIEW"i & "SERVER"i & "STATE"i
+	| "VIEW"i & "SERVER"i & "SECURITY"i & "STATE"i
+	| "VIEW"i & "SERVER"i & "SECURITY"i & "AUDIT"i
+	| "VIEW"i & "SERVER"i & "PERFORMANCE"i & "STATE"i
+	| "VIEW"i & "SECURITY"i & "DEFINITION"i
+	| "VIEW"i & "PERFORMANCE"i & "DEFINITION"i
+	| "VIEW"i & "LEDGER"i & "CONTENT"i
+	| "VIEW"i & "DEFINITION"i
+	| "VIEW"i & "DATABASE"i & "STATE"i
+	| "VIEW"i & "DATABASE"i & "SECURITY"i & "STATE"i
+	| "VIEW"i & "DATABASE"i & "SECURITY"i & "AUDIT"i
+	| "VIEW"i & "DATABASE"i & "PERFORMANCE"i & "STATE"i
+	| "VIEW"i & "CRYPTOGRAPHICALLY"i & "SECURED"i & "DEFINITION"i
+	| "VIEW"i & "CHANGE"i & "TRACKING"i
+	| "VIEW"i & "ANY"i & "SENSITIVITY"i & "CLASSIFICATION"i
+	| "VIEW"i & "ANY"i & "SECURITY"i & "DEFINITION"i
+	| "VIEW"i & "ANY"i & "PERFORMANCE"i & "DEFINITION"i
+	| "VIEW"i & "ANY"i & "ERROR"i & "LOG"i
+	| "VIEW"i & "ANY"i & "DEFINITION"i
+	| "VIEW"i & "ANY"i & "DATABASE"i
+	| "VIEW"i & "ANY"i & "CRYPTOGRAPHICALLY"i & "SECURED"i & "DEFINITION"i
+	| "VIEW"i & "ANY"i & "COLUMN"i & "MASTER"i & "KEY"i & "DEFINITION"i
+	| "VIEW"i & "ANY"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & "DEFINITION"i
+	| "UPDATE"i
+	| "UNSAFE"i & "ASSEMBLY"i
+	| "UNMASK"i
+	| "TAKE"i & "OWNERSHIP"i
+	| "SUBSCRIBE"i & "QUERY"i & "NOTIFICATIONS"i
+	| "SHUTDOWN"i
+	| "SHOWPLAN"i
+	| "SEND"i
+	| "SELECT"i & "ALL"i & "USER"i & "SECURABLES"i
+	| "SELECT"i
+	| "REFERENCES"i
+	| "RECEIVE"i
+	| "KILL"i & "DATABASE"i & "CONNECTION"i
+	| "INSERT"i
+	| "IMPERSONATE"i & "ANY"i & "LOGIN"i
+	| "IMPERSONATE"i
+	| "EXTERNAL"i & "ACCESS"i & "ASSEMBLY"i
+	| "EXECUTE"i & "EXTERNAL"i & "SCRIPT"i
+	| "EXECUTE"i & "ANY"i & "EXTERNAL"i & "SCRIPT"i
+	| "EXECUTE"i & "ANY"i & "EXTERNAL"i & "ENDPOINT"i
+	| "EXECUTE"i
+	| "EXEC"i
+	| "ENABLE"i & "LEDGER"i
+	| "DROP"i & "ANY"i & "EVENT"i & "SESSION"i
+	| "DROP"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i
+	| "DELETE"i
+	| "CREATE"i & "XML"i & "SCHEMA"i & "COLLECTION"i
+	| "CREATE"i & "VIEW"i
+	| "CREATE"i & "USER"i
+	| "CREATE"i & "TYPE"i
+	| "CREATE"i & "TRACE"i & "EVENT"i & "NOTIFICATION"i
+	| "CREATE"i & "TABLE"i
+	| "CREATE"i & "SYNONYM"i
+	| "CREATE"i & "SYMMETRIC"i & "KEY"i
+	| "CREATE"i & "SERVICE"i
+	| "CREATE"i & "SERVER"i & "ROLE"i
+	| "CREATE"i & "SEQUENCE"i
+	| "CREATE"i & "SCHEMA"i
+	| "CREATE"i & "RULE"i
+	| "CREATE"i & "ROUTE"i
+	| "CREATE"i & "ROLE"i
+	| "CREATE"i & "REMOTE"i & "SERVICE"i & "BINDING"i
+	| "CREATE"i & "QUEUE"i
+	| "CREATE"i & "PROCEDURE"i
+	| "CREATE"i & "MESSAGE"i & "TYPE"i
+	| "CREATE"i & "LOGIN"i
+	| "CREATE"i & "FUNCTION"i
+	| "CREATE"i & "FULLTEXT"i & "CATALOG"i
+	| "CREATE"i & "EXTERNAL"i & "MODEL"i
+	| "CREATE"i & "EXTERNAL"i & "LIBRARY"i
+	| "CREATE"i & "EXTERNAL"i & "LANGUAGE"i
+	| "CREATE"i & "ENDPOINT"i
+	| "CREATE"i & "DEFAULT"i
+	| "CREATE"i & "DDL"i & "EVENT"i & "NOTIFICATION"i
+	| "CREATE"i & "DATABASE"i & "DDL"i & "EVENT"i & "NOTIFICATION"i
+	| "CREATE"i & "DATABASE"i
+	| "CREATE"i & "CONTRACT"i
+	| "CREATE"i & "CERTIFICATE"i
+	| "CREATE"i & "AVAILABILITY"i & "GROUP"i
+	| "CREATE"i & "ASYMMETRIC"i & "KEY"i
+	| "CREATE"i & "ASSEMBLY"i
+	| "CREATE"i & "ANY"i & "EVENT"i & "SESSION"i
+	| "CREATE"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i
+	| "CREATE"i & "ANY"i & "DATABASE"i
+	| "CREATE"i & "AGGREGATE"i
+	| "CONTROL"i & "SERVER"i
+	| "CONTROL"i
+	| "CONNECT"i & "SQL"i
+	| "CONNECT"i & "REPLICATION"i
+	| "CONNECT"i & "ANY"i & "DATABASE"i
+	| "CONNECT"i
+	| "CHECKPOINT"i
+	| "BACKUP"i & "LOG"i
+	| "BACKUP"i & "DATABASE"i
+	| "AUTHENTICATE"i & "SERVER"i
+	| "AUTHENTICATE"i
+	| "ALTER"i & "TRACE"i
+	| "ALTER"i & "SETTINGS"i
+	| "ALTER"i & "SERVER"i & "STATE"i
+	| "ALTER"i & "RESOURCES"i
+	| "ALTER"i & "LEDGER"i & "CONFIGURATION"i
+	| "ALTER"i & "LEDGER"i
+	| "ALTER"i & "ANY"i & "USER"i
+	| "ALTER"i & "ANY"i & "SYMMETRIC"i & "KEY"i
+	| "ALTER"i & "ANY"i & "SERVICE"i
+	| "ALTER"i & "ANY"i & "SERVER"i & "ROLE"i
+	| "ALTER"i & "ANY"i & "SERVER"i & "AUDIT"i
+	| "ALTER"i & "ANY"i & "SENSITIVITY"i & "CLASSIFICATION"i
+	| "ALTER"i & "ANY"i & "SECURITY"i & "POLICY"i
+	| "ALTER"i & "ANY"i & "SCHEMA"i
+	| "ALTER"i & "ANY"i & "ROUTE"i
+	| "ALTER"i & "ANY"i & "ROLE"i
+	| "ALTER"i & "ANY"i & "REMOTE"i & "SERVICE"i & "BINDING"i
+	| "ALTER"i & "ANY"i & "MESSAGE"i & "TYPE"i
+	| "ALTER"i & "ANY"i & "MASK"i
+	| "ALTER"i & "ANY"i & "LOGIN"i
+	| "ALTER"i & "ANY"i & "LINKED"i & "SERVER"i
+	| "ALTER"i & "ANY"i & "INFORMATION"i & "PROTECTION"i
+	| "ALTER"i & "ANY"i & "FULLTEXT"i & "CATALOG"i
+	| "ALTER"i & "ANY"i & "EXTERNAL"i & "STREAM"i
+	| "ALTER"i & "ANY"i & "EXTERNAL"i & "MODEL"i
+	| "ALTER"i & "ANY"i & "EXTERNAL"i & "MIRROR"i
+	| "ALTER"i & "ANY"i & "EXTERNAL"i & "LIBRARY"i
+	| "ALTER"i & "ANY"i & "EXTERNAL"i & "LANGUAGE"i
+	| "ALTER"i & "ANY"i & "EXTERNAL"i & "JOB"i
+	| "ALTER"i & "ANY"i & "EXTERNAL"i & "FILE"i & "FORMAT"i
+	| "ALTER"i & "ANY"i & "EXTERNAL"i & "DATA"i & "SOURCE"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "SESSION"i & "OPTION"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "SESSION"i & "ENABLE"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "SESSION"i & "DROP"i & "TARGET"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "SESSION"i & "DROP"i & "EVENT"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "SESSION"i & "DISABLE"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "SESSION"i & "ADD"i & "TARGET"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "SESSION"i & "ADD"i & "EVENT"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "SESSION"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "NOTIFICATION"i
+	| "ALTER"i & "ANY"i & "ENDPOINT"i
+	| "ALTER"i & "ANY"i & "DATASPACE"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "SCOPED"i & "CONFIGURATION"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i & "OPTION"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i & "ENABLE"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i & "DROP"i & "TARGET"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i & "DROP"i & "EVENT"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i & "DISABLE"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i & "ADD"i & "TARGET"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i & "ADD"i & "EVENT"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "NOTIFICATION"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "DDL"i & "TRIGGER"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "AUDIT"i
+	| "ALTER"i & "ANY"i & "DATABASE"i
+	| "ALTER"i & "ANY"i & "CREDENTIAL"i
+	| "ALTER"i & "ANY"i & "CONTRACT"i
+	| "ALTER"i & "ANY"i & "CONNECTION"i
+	| "ALTER"i & "ANY"i & "COLUMN"i & "MASTER"i & "KEY"i
+	| "ALTER"i & "ANY"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i
+	| "ALTER"i & "ANY"i & "CERTIFICATE"i
+	| "ALTER"i & "ANY"i & "AVAILABILITY"i & "GROUP"i
+	| "ALTER"i & "ANY"i & "ASYMMETRIC"i & "KEY"i
+	| "ALTER"i & "ANY"i & "ASSEMBLY"i
+	| "ALTER"i & "ANY"i & "APPLICATION"i & "ROLE"i
+	| "ALTER"i
+	| "ADMINISTER"i & "DATABASE"i & "BULK"i & "OPERATIONS"i
+	| "ADMINISTER"i & "BULK"i & "OPERATIONS"i
+
+// A word of a securable's class, `OBJECT::`, `SERVER ROLE::`: any word the clause after the
+// permission does not begin with.
 PermissionWord = ?!PermissionEnd & word
+
+// An event an event notification is for, `OBJECT_CREATED`, `DDL_TABLE_EVENTS`, and an audit
+// specification's action or group, `SUCCESSFUL_DATABASE_AUTHENTICATION_GROUP`, `SELECT`: runs
+// of words, which read the permission rule until that became the engine's list of permissions
+// and these two lists of their own stopped at their first name. They are catalogues too, and
+// are left open until they are asked about.
+ActionWords = PermissionWord+
 
 PermissionEnd = "ON"i | "TO"i | "FROM"i | "WITH"i | "CASCADE"i
 
@@ -4243,3 +4424,10 @@ Principals : @string[]
 	= first: PrincipalName & (',' & rest: PrincipalName)* => @(Syntax.Named(first, rest))
 
 PrincipalName : @string = "PUBLIC"i => @("PUBLIC") | t: QualifiedName => @(t)
+
+// Whom a permission is given to, denied or taken from: a principal, or `NULL`, which the
+// engine reads anywhere in the list and refuses after `AS`.
+Grantees : @string[]
+	= first: Grantee & (',' & rest: Grantee)* => @(Syntax.Named(first, rest))
+
+Grantee : @string = "NULL"i => @("NULL") | t: PrincipalName => @(t)
