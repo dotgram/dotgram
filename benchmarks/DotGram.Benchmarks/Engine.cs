@@ -71,7 +71,8 @@ static class Engine
 		var overRead = new List<string>();
 		var elsewhereShown = new List<string>();
 		var gaps     = new Dictionary<string, (int Count, List<string> Like)>(StringComparer.Ordinal);
-		var said     = new Dictionary<int, int>();
+		var said      = new Dictionary<int, int>();
+		var saidAbout = new Dictionary<int, string>();
 
 		foreach (var file in Directory.GetFiles(root, "*.sql", SearchOption.AllDirectories))
 		{
@@ -94,7 +95,18 @@ static class Engine
 				var says    = message == 0 || AboutNames(message);
 
 				if (message != 0)
+				{
 					said[message] = said.TryGetValue(message, out var before) ? before + 1 : 1;
+
+					// One statement per message, so that what a number means can be read off
+					// the report rather than looked up. Which side of `AboutNames` a message
+					// belongs on is a judgement about what the engine did — `Msg 7801` is
+					// "the required parameter LISTENER_PORT was not specified", which is it
+					// having read the statement and objected to what was in it — and a
+					// judgement wants its evidence beside it.
+					if (!saidAbout.ContainsKey(message))
+						saidAbout[message] = Corpus.One(one);
+				}
 
 				if (here && says)
 				{
@@ -134,7 +146,9 @@ static class Engine
 			}
 		}
 
-		Report(version, both, engine, ours, elsewhere, neither, gaps, overRead, elsewhereShown, said, shown);
+		Report(
+			version, both, engine, ours, elsewhere, neither, gaps, overRead, elsewhereShown,
+			said, saidAbout, shown);
 	}
 
 	/// <summary>Puts the connection into the mode where it reads and does nothing else.</summary>
@@ -266,7 +280,28 @@ static class Engine
 		message is 117 or 137 or 195 or 207 or 208 or 448 or 1047 or 1087
 			or 4104 or 4112 or 4145
 			or 5369 or 5371 or 5374
-			or 10715;
+			or 10715
+
+			// Read, and then objected to on grounds that are not the shape of the statement.
+			// Each of these is the engine's own wording, taken from `sys.messages` rather
+			// than remembered — an endpoint that names no port was understood and found
+			// wanting, which is a different answer from not being understood.
+			//
+			//    135  Cannot use a BREAK statement outside the scope of a WHILE statement.
+			//    148  Incorrect time syntax in time string '…' used with WAITFOR.
+			//    153  Invalid usage of the option … in the … statement.
+			//   1003  Line …: … clause allowed only for ….
+			//   1020  Sub-entity lists cannot be specified for entity-level permissions.
+			//   1054  Syntax '…' is not allowed in schema-bound objects.
+			//   7801  The required parameter … was not specified.
+			//   7853  The URL specified as the path … must begin with "/".
+			//   7861  "…" endpoints can only be of the "FOR …" type.
+			//  13539  Setting SYSTEM_VERSIONING to ON failed because history table ….
+			//  15151  Cannot … the … , because it does not exist or you do not have permission.
+			or 135 or 148 or 153
+			or 1003 or 1020 or 1054
+			or 7801 or 7853 or 7861
+			or 13539 or 15151;
 
 	/// <summary>
 	/// The local engine, on a database whose compatibility level is the version being asked
@@ -338,6 +373,7 @@ static class Engine
 		List<string> overRead,
 		List<string> elsewhereShown,
 		Dictionary<int, int> said,
+		Dictionary<int, string> saidAbout,
 		int shown)
 	{
 		var all = both + engine + ours + elsewhere + neither;
@@ -380,8 +416,13 @@ static class Engine
 		Console.WriteLine();
 
 		foreach (var (message, count) in said.OrderByDescending(one => one.Value).ThenBy(one => one.Key))
+		{
 			Console.WriteLine(
-				$"  {count,5}  Msg {message}{(AboutNames(message) ? "  (about names, not syntax)" : "")}");
+				$"  {count,5}  Msg {message}{(AboutNames(message) ? "  (read, and about names rather than syntax)" : "")}");
+
+			if (saidAbout.TryGetValue(message, out var about))
+				Console.WriteLine($"         {about}");
+		}
 
 		Console.WriteLine();
 		Console.WriteLine("  where the work list stopped:");
