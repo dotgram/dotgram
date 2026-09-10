@@ -2798,7 +2798,11 @@ PropertyListAction = "ADD"i & ValueExpression & OptionsWith
 // copied to or from, and a long option list. A device is a name or one of three words and
 // a path, which is the only part of either that is not an option.
 BackupStatement : @Statement
-	= "BACKUP"i & what: BackupWhat & name: BackupTarget?
+	// A group is several databases, which no other backup is.
+	= "BACKUP"i & "GROUP"i & name: BackupGroup
+	  & tail: ("TO"i & BackupDevices & MirrorTo* & BackupWith?)
+		=> @(Statement.BackedUp("GROUP", name, Syntax.Tail(tail)))
+	| "BACKUP"i & what: BackupWhat & name: BackupTarget?
 	  & tail: (BackupFiles* & "TO"i & BackupDevices & MirrorTo* & BackupWith?)
 		=> @(Statement.BackedUp(what, name, Syntax.Tail(tail)))
 	| "BACKUP"i & what: BackupKeyWhat & name: BackupName?
@@ -2810,7 +2814,7 @@ RestoreStatement : @Statement
 	  & tail: ("FROM"i & "FILE"i & '=' & ValueExpression & KeyFileTail*)
 		=> @(Statement.Restored(what, null, Syntax.Tail(tail)))
 	| "RESTORE"i & what: RestoreWhat & name: BackupTarget?
-	  & tail: (BackupFiles* & ("FROM"i & RestoreFrom)? & BackupWith?)
+	  & tail: (BackupFiles* & ("FROM"i & RestoreFrom)? & RestoreWith?)
 		=> @(Statement.Restored(what, name, Syntax.Tail(tail)))
 
 RestoreKeyWhat : @string
@@ -2827,7 +2831,6 @@ BackupWhat : @string
 	= "DATABASE"i => @("DATABASE")
 	| "LOG"i      => @("LOG")
 	| "SERVER"i   => @("SERVER")
-	| "GROUP"i    => @("GROUP")
 
 BackupKeyWhat : @string
 	= "CERTIFICATE"i               => @("CERTIFICATE")
@@ -2879,18 +2882,67 @@ DeviceWord = "DISK"i | "TAPE"i | "URL"i
 
 MirrorTo = "MIRROR"i & "TO"i & BackupDevices
 
-RestoreFrom = "DATABASE_SNAPSHOT"i & '=' & QualifiedName
+// A snapshot is named by a string or a variable, not by a name: `= s` is refused.
+RestoreFrom = "DATABASE_SNAPSHOT"i & '=' & BackupString
 			| BackupDevices
 
-// The option list, and the two options that are not a name and a value: a file moved from
-// one path to another, and a mirrored device said again.
-BackupWith = "WITH"i & BackupOption & (',' & BackupOption)*
+BackupGroup : @string = t: (BackupName & (',' & BackupName)*) => @(t)
 
-BackupOption = "MOVE"i & ValueExpression & "TO"i & ValueExpression
-			 | "STOPAT"i & '=' & ValueExpression
-			 | "STOPATMARK"i & '=' & ValueExpression & ("AFTER"i & ValueExpression)?
-			 | "STOPBEFOREMARK"i & '=' & ValueExpression & ("AFTER"i & ValueExpression)?
-			 | OptionSetting
+// ── What a backup and a restore are given ───────────────────────────────────
+//
+// The published blocks' options, put to the engine some two hundred times. A backup and a
+// restore have a list each, and the restore's is one list for all its forms: the engine
+// reads `RECOVERY` and `MOVE` in a `RESTORE HEADERONLY` as well, where the blocks give each
+// form its own shorter list, and objects afterwards. Every name here — a backup set's, a
+// media set's, a credential's, a password — is a string or a variable, never a name; every
+// number is a constant or a variable, and a constant may be a string. `ENCRYPTION` and
+// `CREDENTIAL` alone, which the backup block lists, are refused; so are `TRUNCATE_ONLY`,
+// removed, and the Parallel Data Warehouse's `BASE` and `DIFFERENTIAL` in a restore. A
+// restore takes one option no block names, `KEEP_TEMPORAL_RETENTION`, which the corpus has,
+// and a FILESTREAM directory that is `NULL`.
+BackupWith  = "WITH"i & BackupOption & (',' & BackupOption)*
+RestoreWith = "WITH"i & RestoreOption & (',' & RestoreOption)*
+
+BackupString = Quoted | TSql.Variable
+BackupValue  = Quoted | TSql.Variable | Sql92.Lexical.UnsignedNumericLiteral
+
+BackupOption
+	= "DIFFERENTIAL"i | "COPY_ONLY"i | "NO_COMPRESSION"i | "FILE_SNAPSHOT"i
+	| "METADATA_ONLY"i | "SNAPSHOT"i
+	| "COMPRESSION"i
+	  & ('(' & "ALGORITHM"i & '=' & CompressionAlgorithm
+		 & (',' & "LEVEL"i & '=' & ("LOW"i | "MEDIUM"i | "HIGH"i))? & ')')?
+	| "ENCRYPTION"i & '(' & "ALGORITHM"i & '=' & ("AES_128"i | "AES_192"i | "AES_256"i | "TRIPLE_DES_3KEY"i)
+	  & ',' & "SERVER"i & ("CERTIFICATE"i | "ASYMMETRIC"i & "KEY"i) & '=' & Identifier & ')'
+	| ("DESCRIPTION"i | "MEDIADESCRIPTION"i | "EXPIREDATE"i | "RETAINDAYS"i
+	  | "BLOCKSIZE"i | "BUFFERCOUNT"i | "MAXTRANSFERSIZE"i) & '=' & BackupValue
+	| ("NAME"i | "MEDIANAME"i | "CREDENTIAL"i | "PASSWORD"i | "MEDIAPASSWORD"i | "STANDBY"i)
+	  & '=' & BackupString
+	| "INIT"i | "NOINIT"i | "SKIP"i | "NOSKIP"i | "FORMAT"i | "NOFORMAT"i
+	| "CHECKSUM"i | "NO_CHECKSUM"i | "STOP_ON_ERROR"i | "CONTINUE_AFTER_ERROR"i | "RESTART"i
+	| "STATS"i & ('=' & BackupValue)?
+	| "REWIND"i | "NOREWIND"i | "UNLOAD"i | "NOUNLOAD"i
+	| "NORECOVERY"i | "NO_TRUNCATE"i | "NO_LOG"i
+
+// `QAT_DEFLATE` is the accelerator's, and the engine reads it; `ALGORITHM = FOO` it does not.
+CompressionAlgorithm = "MS_XPRESS"i | "ZSTD"i | "QAT_DEFLATE"i
+
+// The moved file's names are strings, and two moves need the comma between them.
+RestoreOption
+	= "RECOVERY"i | "NORECOVERY"i | "REPLACE"i | "RESTART"i | "RESTRICTED_USER"i
+	| "PARTIAL"i | "LOADHISTORY"i | "METADATA_ONLY"i | "SNAPSHOT"i
+	| "STANDBY"i & '=' & BackupString
+	| "MOVE"i & BackupString & "TO"i & BackupString
+	| ("CREDENTIAL"i | "PASSWORD"i | "MEDIAPASSWORD"i | "MEDIANAME"i | "DBNAME"i) & '=' & BackupString
+	| "FILE"i & '=' & (Sql92.Lexical.UnsignedNumericLiteral | TSql.Variable)
+	| ("BLOCKSIZE"i | "BUFFERCOUNT"i | "MAXTRANSFERSIZE"i | "STOPAT"i) & '=' & BackupValue
+	| ("STOPATMARK"i | "STOPBEFOREMARK"i) & '=' & BackupValue & ("AFTER"i & BackupValue)?
+	| "CHECKSUM"i | "NO_CHECKSUM"i | "STOP_ON_ERROR"i | "CONTINUE_AFTER_ERROR"i
+	| "STATS"i & ('=' & BackupValue)?
+	| "REWIND"i | "NOREWIND"i | "UNLOAD"i | "NOUNLOAD"i
+	| "KEEP_REPLICATION"i | "KEEP_CDC"i | "KEEP_TEMPORAL_RETENTION"i
+	| "FILESTREAM"i & '(' & "DIRECTORY_NAME"i & '=' & (Quoted | "NULL"i) & ')'
+	| "ENABLE_BROKER"i | "ERROR_BROKER_CONVERSATIONS"i | "NEW_BROKER"i
 
 // ── What the server watches, and who it listens to ──────────────────────────
 //

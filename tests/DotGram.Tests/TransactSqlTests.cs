@@ -648,6 +648,51 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>What a backup and a restore are given, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("BACKUP DATABASE d TO DISK = 'x' WITH FOO")]
+	[InlineData("BACKUP DATABASE d TO DISK = 'x' WITH NAME = n")]
+	[InlineData("BACKUP DATABASE d TO DISK = 'x' WITH COMPRESSION (ALGORITHM = FOO)")]
+	[InlineData("BACKUP DATABASE d TO DISK = 'x' WITH COMPRESSION (LEVEL = HIGH)")]
+	[InlineData("BACKUP DATABASE d TO DISK = 'x' WITH ENCRYPTION")]
+	[InlineData("BACKUP DATABASE d TO DISK = 'x' WITH ENCRYPTION (SERVER CERTIFICATE = c, ALGORITHM = AES_128)")]
+	[InlineData("BACKUP DATABASE d TO URL = 'x' WITH CREDENTIAL")]
+	[InlineData("BACKUP LOG d TO DISK = 'x' WITH TRUNCATE_ONLY")]
+	[InlineData("BACKUP DATABASE d TO DISK = 'x' WITH REPLACE")]
+	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH FOO")]
+	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH MOVE a TO b")]
+	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH FILE = 'x'")]
+	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH DIFFERENTIAL")]
+	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH BASE = 'y'")]
+	[InlineData("RESTORE DATABASE d FROM DATABASE_SNAPSHOT = s")]
+	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH FILESTREAM (DIRECTORY_NAME = @v)")]
+	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH KEEP_TEMPORAL_RETENTION = ON")]
+	[InlineData("BACKUP DATABASE d TO DISK = 'x' WITH KEEP_TEMPORAL_RETENTION")]
+	public void The_backup_catalogue_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside them.</summary>
+	[Theory]
+	[InlineData("BACKUP DATABASE d TO DISK = 'x' WITH COPY_ONLY, COMPRESSION (ALGORITHM = ZSTD, LEVEL = HIGH), CHECKSUM, STATS = 10")]
+	[InlineData("BACKUP DATABASE d TO DISK = 'x' WITH ENCRYPTION (ALGORITHM = AES_256, SERVER ASYMMETRIC KEY = k), NAME = @n")]
+	[InlineData("BACKUP DATABASE d TO DISK = 'x' WITH DESCRIPTION = 5, RETAINDAYS = 'x', MEDIANAME = 'm', BLOCKSIZE = @b")]
+	[InlineData("BACKUP LOG d TO DISK = 'x' WITH NORECOVERY, STANDBY = @u, NO_TRUNCATE, NO_LOG")]
+	[InlineData("BACKUP GROUP d1, d2 TO DISK = 'x' WITH METADATA_ONLY")]
+	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH MOVE 'a' TO 'b', MOVE @c TO @d, REPLACE, STATS")]
+	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH FILE = 2, DBNAME = @n, SNAPSHOT, KEEP_CDC, NEW_BROKER")]
+	[InlineData("RESTORE LOG d FROM DISK = 'x' WITH STOPATMARK = 'm' AFTER '2020-01-01', RECOVERY")]
+	[InlineData("RESTORE DATABASE d FROM DATABASE_SNAPSHOT = 's'")]
+	[InlineData("RESTORE HEADERONLY FROM DISK = 'x' WITH RECOVERY, MOVE 'a' TO 'b'")]
+	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH FILESTREAM (DIRECTORY_NAME = 'd')")]
+	[InlineData("RESTORE DATABASE d FROM DISK = 'x' WITH FILESTREAM (DIRECTORY_NAME = NULL)")]
+	[InlineData("RESTORE LOG d WITH STANDBY = 'f', NOREWIND, NOUNLOAD, STATS, KEEP_TEMPORAL_RETENTION")]
+	public void The_backup_catalogue_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>Table, query and join hints, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM t WITH (FOO)")]
@@ -2012,7 +2057,7 @@ public sealed class TransactSqlTests
 
 	[InlineData("RESTORE DATABASE d")]
 	[InlineData("RESTORE DATABASE d FROM DISK = 'a' WITH RECOVERY, MOVE 'x' TO 'y', REPLACE")]
-	[InlineData("RESTORE DATABASE d FROM DATABASE_SNAPSHOT = s")]
+	[InlineData("RESTORE DATABASE d FROM DATABASE_SNAPSHOT = 's'")]
 	[InlineData("RESTORE LOG d FROM DISK = 'a' WITH STOPAT = '2020-01-01'")]
 	[InlineData("RESTORE HEADERONLY FROM DISK = 'a'")]
 	[InlineData("RESTORE MASTER KEY FROM FILE = 'k' DECRYPTION BY PASSWORD = 'p' ENCRYPTION BY PASSWORD = 'q' FORCE")]

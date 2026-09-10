@@ -17891,13 +17891,45 @@ the blocks' with a few of the engine's own:
   and `BYPASS OPTIMIZER_QUEUE`. The five are in the list. One answer does not add up:
   `OPTION (CHECKCONSTRAINTS PLAN, OPTIMIZE CORRELATED UNION ALL)` is read, the second hint
   alone is refused, and this refuses both; it is the one file `--split` no longer reads.
-
-At 150, 5,585 read by both (from 5,578), the work list 383 (from 390) and read here but
-refused there 50 (from 54). 170 probes, two answered otherwise: the pair above, and `FROM t
-(HOLDLOCK)`. Round trip 100% of 6,668.
 - **A table-valued function takes no hints**, and an `INSERT` takes `OPTION (…)` after a
   query, `VALUES` or `DEFAULT VALUES` but not after `EXEC`. The statement had nowhere to
   keep them, and has now, as an `UPDATE` does.
 
+At 150, 5,585 read by both (from 5,578), the work list 383 (from 390) and read here but
+refused there 50 (from 54). 170 probes, two answered otherwise: the pair above, and `FROM t
+(HOLDLOCK)`. Round trip 100% of 6,668.
+
 One form is left for the tree: a hint in brackets with no `WITH`, `FROM t (NOLOCK)`, is read
 as a call of a function called `t`, and `FROM t (HOLDLOCK)` not at all.
+
+## Backup and restore, as a catalogue
+
+A backup's and a restore's options were a closed handful of shapes and then any name with
+any value. They are two closed lists now, put to the engine some two hundred times:
+
+- **A restore has one list.** The published blocks give each form its own — `HEADERONLY`
+  a short one, `DATABASE` a long one — but the engine reads `RECOVERY` and `MOVE` in a
+  `RESTORE HEADERONLY` as readily as in a `RESTORE DATABASE`, and objects afterwards. So
+  every form takes the same list, and the backup its own.
+- **Names are strings.** A backup set's name, a media set's, a credential's, a password, a
+  standby file, the files a `MOVE` moves, a database snapshot: each is a string or a
+  variable, and `NAME = n` or `DATABASE_SNAPSHOT = s` is refused. An old test that read
+  the second was ScriptDom's view, and now reads `'s'`.
+- **What the block lists and the engine refuses.** `ENCRYPTION` and `CREDENTIAL` alone;
+  `TRUNCATE_ONLY`, removed; the Parallel Data Warehouse's `BASE` and `DIFFERENTIAL` in a
+  restore; `WITH (INIT)`. `ENCRYPTION (…)` takes its algorithm first and its key second,
+  both required, and `COMPRESSION (…)` its algorithm first — `QAT_DEFLATE` included.
+- **What the engine reads and no block names.** `NO_LOG` in a backup, and in a restore
+  `KEEP_TEMPORAL_RETENTION`, an Azure file's in the corpus which the first run lost ten
+  statements to, and a FILESTREAM directory that is `NULL`.
+- **`BACKUP GROUP` names several databases**, `BACKUP GROUP d1, d2 TO …`, and was read
+  here with one.
+
+Two of the broker options together, `NEW_BROKER, ERROR_BROKER_CONVERSATIONS`, the engine
+refuses and this reads: one excludes the other, and that is the walker's, with the
+duplicates. 202 probes, those two answered otherwise.
+
+At 150 the corpus moved only where it should: read here but refused there 48 (from 50), the
+two now refused by both; the rest as before. `--split` 552 files cut the same, and the
+round trip 100% of 6,665 — three fewer than ScriptDom and this used to share, since
+ScriptDom reads what the engine refuses.
