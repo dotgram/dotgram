@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>DotGram.PackageSmoke</RootNamespace>
+
+		<!-- Where the compiler comes from. The SDK sets its own Roslyn paths under
+		     `RoslynCompilerType == Core`, after everything a project or a package can
+		     say, so this is the switch that lets the toolset package below be the
+		     compiler rather than merely be restored. -->
+		<RoslynCompilerType>Package</RoslynCompilerType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- The compiler this is really about. The generator is built for Roslyn 4.14
+		     and the README says so; the SDK's own compiler is newer, so a build here
+		     would prove the newest host and not the oldest supported one. This package
+		     replaces csc with that version's, which is the only way to run the analyzer
+		     under the floor it claims without installing an older SDK. -->
+		<PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="4.14.0"
+		                  PrivateAssets="all" />
+
+		<!-- The package as a consumer gets it: from a feed, by version, with no project
+		     reference anywhere. The version is the repository's, which is what CI has
+		     just packed into ../../artifacts. -->
+		<PackageReference Include="DotGram" Version="0.1.0"
+		                  PrivateAssets="all" />
+	</ItemGroup>
+
+</Project>

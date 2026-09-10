@@ -83,6 +83,13 @@ jobs:
             echo "the newest target is not dependency-free:"; grep -A3 'net10.0' DotGram.Parsers.nuspec; exit 1
           }
 
+      # Everything above builds the generator from source and trusts the package to be
+      # the same thing. This is the step that does not: a project whose only connection
+      # to this repository is a version on a PackageReference, compiled by the oldest
+      # Roslyn the package claims to support, running the parser that came out.
+      - name: The package, in somebody else's build
+        run: dotnet run --project tests/DotGram.PackageSmoke/DotGram.PackageSmoke.csproj --configuration Release
+
       - uses: actions/upload-artifact@v4
         with:
           name: nupkg
