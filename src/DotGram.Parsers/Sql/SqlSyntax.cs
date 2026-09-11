@@ -527,6 +527,99 @@ public abstract record Statement : ISqlSpan
 		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
+	// ---- Service Broker's conversations --------------------------------------------------------
+	//
+	// A conversation begun, timed, sent on, received from, moved and ended. Each is a shape of
+	// its own, and the word they share says nothing a record would.
+
+	/// <summary><c>BEGIN DIALOG</c>: a conversation begun from one service to another.</summary>
+	/// <param name="Handle">The variable the conversation's handle is put in.</param>
+	/// <param name="Conversation">Whether <c>CONVERSATION</c> followed <c>DIALOG</c>.</param>
+	/// <param name="From">The service it is begun from, by name.</param>
+	/// <param name="To">The service it is begun to: a string or a variable, never a name.</param>
+	/// <param name="Instance">Which broker that service is on, where it was said.</param>
+	/// <param name="Contract">The contract it keeps to, where one was named.</param>
+	/// <param name="Options">What followed <c>WITH</c>, a <see cref="Clause.Option"/> each.</param>
+	public sealed record BeginDialog(
+		string Handle, bool Conversation, string From, Expression To, Expression? Instance,
+		string? Contract, Clause[] Options) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
+
+	/// <summary><c>BEGIN CONVERSATION TIMER</c>: how long a conversation waits before it is told.</summary>
+	public sealed record ConversationTimer(Expression Handle, Expression Timeout) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
+
+	/// <summary><c>END CONVERSATION</c>, with an error said or the conversation cleaned up.</summary>
+	/// <param name="Handle">The conversation, a value.</param>
+	/// <param name="Error">The failure's code, where one was given; a description always with it.</param>
+	/// <param name="Description">What the failure was.</param>
+	/// <param name="Cleanup">Whether <c>WITH CLEANUP</c> ended it without telling the other side.</param>
+	public sealed record EndConversation(
+		Expression Handle, Expression? Error = null, Expression? Description = null, bool Cleanup = false) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
+
+	/// <summary><c>MOVE CONVERSATION</c>: a conversation put in another group.</summary>
+	public sealed record MoveConversation(Expression Handle, Expression Group) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
+
+	/// <summary><c>SEND</c>: a message sent on one conversation or several.</summary>
+	/// <param name="Conversations">The handles it is sent on.</param>
+	/// <param name="Bracketed">Whether they stood in brackets, which one may and several must.</param>
+	/// <param name="MessageType">The message's type, where one was named.</param>
+	/// <param name="Body">What it says, where it says anything.</param>
+	public sealed record Send(
+		Expression[] Conversations, bool Bracketed, string? MessageType = null, Expression? Body = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dml;
+	}
+
+	/// <summary><c>RECEIVE</c>: messages taken off a queue.</summary>
+	/// <param name="Top">How many, where it said.</param>
+	/// <param name="Columns">What is returned of each, as a select list says it.</param>
+	/// <param name="Queue">The queue, by name.</param>
+	/// <param name="Into">The table variable they go into, where they go into one.</param>
+	/// <param name="Where">
+	/// Which conversation or group they are from: one comparison, of one of those two columns.
+	/// </param>
+	public sealed record Receive(
+		Clause? Top, Clause[] Columns, string Queue, string? Into = null, Expression? Where = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dml;
+	}
+
+	/// <summary><c>GET CONVERSATION GROUP</c>: the group of a queue's next message, into a variable.</summary>
+	public sealed record GetConversationGroup(string Group, string Queue) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dml;
+	}
+
+	/// <summary>
+	/// <c>WAITFOR ( … )</c> around a <see cref="Receive"/> or a <see cref="GetConversationGroup"/>:
+	/// the statement waited on, and for how long.
+	/// </summary>
+	/// <param name="Statement">What is waited on.</param>
+	/// <param name="Timeout">The <c>TIMEOUT</c>, where one was given.</param>
+	public sealed record WaitForStatement(Statement Statement, Expression? Timeout = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
+
 	// ---- DBCC ----------------------------------------------------------------------------------
 	/// <summary><c>DBCC</c>: a console command, what stood in its brackets, and its options.</summary>
 	/// <remarks>
@@ -843,6 +936,27 @@ public abstract record Statement : ISqlSpan
 
 	/// <summary><c>EVENT NOTIFICATION</c>.</summary>
 	public sealed record EventNotificationDefinition(string Name) : Definition(Name);
+
+	/// <summary><c>MESSAGE TYPE</c>, a kind of message a conversation may carry.</summary>
+	public sealed record MessageTypeDefinition(string Name) : Definition(Name);
+
+	/// <summary><c>CONTRACT</c>: which messages a conversation holds, and who sends each.</summary>
+	public sealed record ContractDefinition(string Name) : Definition(Name);
+
+	/// <summary><c>QUEUE</c>, where a service's messages wait.</summary>
+	public sealed record QueueDefinition(string Name) : Definition(Name);
+
+	/// <summary><c>SERVICE</c>: a queue, and the contracts it answers to.</summary>
+	public sealed record ServiceDefinition(string Name) : Definition(Name);
+
+	/// <summary><c>ROUTE</c>: where a service's messages are sent.</summary>
+	public sealed record RouteDefinition(string Name) : Definition(Name);
+
+	/// <summary><c>REMOTE SERVICE BINDING</c>: whose credentials a remote service is spoken to with.</summary>
+	public sealed record RemoteServiceBindingDefinition(string Name) : Definition(Name);
+
+	/// <summary><c>BROKER PRIORITY</c>: which conversations go first.</summary>
+	public sealed record BrokerPriorityDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>ENDPOINT</c>.</summary>
 	/// <summary>
@@ -1567,6 +1681,13 @@ public abstract record Statement : ISqlSpan
 			"AUDIT SPECIFICATION"     => new AuditSpecificationDefinition(name),
 			"DATABASE AUDIT SPECIFICATION" => new DatabaseAuditSpecificationDefinition(name),
 			"EVENT NOTIFICATION"      => new EventNotificationDefinition(name),
+			"MESSAGE TYPE"            => new MessageTypeDefinition(name),
+			"CONTRACT"                => new ContractDefinition(name),
+			"QUEUE"                   => new QueueDefinition(name),
+			"SERVICE"                 => new ServiceDefinition(name),
+			"ROUTE"                   => new RouteDefinition(name),
+			"REMOTE SERVICE BINDING"  => new RemoteServiceBindingDefinition(name),
+			"BROKER PRIORITY"         => new BrokerPriorityDefinition(name),
 
 			"FULLTEXT INDEX"             => new FullTextIndexDefinition(name),
 			"ALTER FULLTEXT INDEX"       => new AlterFullTextIndex(name),
@@ -3475,6 +3596,38 @@ public static class Syntax
 
 		bool Fresh(Clause? one) => one is not Clause.Option { Name: var name } || seen.Add(name);
 	}
+
+	/// <summary>Whether a list of options names one.</summary>
+	public static bool HasOption(Clause[]? options, string name) =>
+		options is not null &&
+		Array.Exists(options, one => one is Clause.Option { Name: var named } &&
+			string.Equals(named, name, StringComparison.OrdinalIgnoreCase));
+
+	/// <summary>Whether a queue created has what its activation needs.</summary>
+	/// <remarks>
+	/// A procedure, how many read at once and whom they run as, all three, where an altered
+	/// queue may change any of them or drop the activation altogether.
+	/// </remarks>
+	public static bool Activates(Clause[]? options)
+	{
+		if (options is null)
+			return true;
+
+		foreach (var one in options)
+			if (one is Clause.Option { Name: "ACTIVATION", Options: var inner } &&
+				!(HasOption(inner, "PROCEDURE_NAME") && HasOption(inner, "MAX_QUEUE_READERS") &&
+				  HasOption(inner, "EXECUTE AS")))
+			{
+				return false;
+			}
+
+		return true;
+	}
+
+	/// <summary>Whether a dialog's options are each said once, and relate it one way at most.</summary>
+	public static bool DialogAgrees(Clause[]? options) =>
+		NamedOnce(null, options) &&
+		!(HasOption(options, "RELATED_CONVERSATION") && HasOption(options, "RELATED_CONVERSATION_GROUP"));
 
 	/// <summary>A cursor's query and what stands around it, its words yet to be said.</summary>
 	public static Clause.CursorDefinition Cursor(

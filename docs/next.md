@@ -18773,3 +18773,46 @@ where they held nothing, which is two texts.
 At 150: read by both 5,844 (from 5,844), the work list 132 (from 132), read here but refused
 there 43; `--split` 618 (from 614), the round trip 100% of 7,008. The map: read by both 7,622
 of 8,338 (95.2%), the work list 381 (from 477), defects 0.
+
+## Service Broker
+
+Next on the map, some sixty statements: seven kinds of object and eight statements about
+conversations, none of them read but the `DROP`s. Put to the engine some three hundred times.
+
+**The objects are kept as every other object here is**, as agreed: a record each —
+`MessageTypeDefinition`, `ContractDefinition`, `QueueDefinition`, `ServiceDefinition`,
+`RouteDefinition`, `RemoteServiceBindingDefinition`, `BrokerPriorityDefinition` — with the
+words after the name as the tail, and the options as nodes where the engine counts them. It
+counts in every list: an option said twice is refused, and so is a list without its commas.
+What else it holds to:
+
+- a message type is validated by any word at all — `VALIDATION = FOO` is read, and checked
+  when it runs — while `VALID_XML` wants its schema collection;
+- a contract lists its messages in brackets, at least one, each with who sends it; `[DEFAULT]`
+  is a message's name and a bare `DEFAULT` is refused;
+- a queue created says its activation only in full — procedure, readers, and whom they run
+  as — where an altered one may say any part of it or `DROP` it; and an altered queue is
+  changed one way at a time, its settings or a rebuild or a reorganisation or a move;
+- a route's settings are strings, all but its lifetime, and one created says its `ADDRESS`;
+- a binding names its user bare, and one created names one;
+- a priority's contract and local service are a name of one part or `ANY`, its remote service
+  a string or `ANY`, its level a number or `DEFAULT`.
+
+**The conversations have a record each**: `BeginDialog`, `ConversationTimer`,
+`EndConversation`, `MoveConversation`, `Send`, `Receive`, `GetConversationGroup`, and
+`WaitForStatement` around the last two. A handle is a value wherever it is not being made —
+`END CONVERSATION f()` is read — and `BEGIN DIALOG` alone wants a variable. The dialog goes to
+a service written as a string, never a name, and relates to a conversation or to a group, not
+both. `END CONVERSATION … WITH ERROR` wants its description after it, with no comma, and the
+error is a number or a variable, never negative. `RECEIVE` is a select list, without the alias
+written in front with `=` or a table's star, off a queue with no alias or hints, into a table
+variable only, and `WHERE` is one comparison of `conversation_handle` or
+`conversation_group_id`, written bare on the left. `TIMEOUT` follows only a `WAITFOR ( … )`,
+after a comma.
+
+A select list's `x = a` and `a AS x` are one `DerivedColumn`, so the tree cannot tell them
+apart; `RECEIVE`'s columns are a rule of their own rather than the select list and a guard.
+
+At 150: read by both 5,848 (from 5,844), the work list 128 (from 132), read here but refused
+there 43; `--split` 644 (from 618), the round trip 100% of 7,139. The map: read by both 7,702
+of 8,338 (96.2%), the work list 301 (from 381), defects 0.

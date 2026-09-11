@@ -1682,6 +1682,7 @@ ControlStatement : @Statement
 	| s: SimpleCommand        => @(s)
 	| s: CursorStatement      => @(s)
 	| s: DbccStatement        => @(s)
+	| s: ConversationStatement => @(s)
 
 DefinitionStatement : @Statement
 	= s: DeclareStatement     => @(s)
@@ -1705,6 +1706,7 @@ DefinitionStatement : @Statement
 	| s: DropStatement           => @(s)
 	| s: PrincipalStatement      => @(s)
 	| s: ExternalStatement       => @(s)
+	| s: BrokerStatement         => @(s)
 
 // ── A text of statements ────────────────────────────────────────────────────
 //
@@ -1807,6 +1809,221 @@ DeclaredAs : @Clause.VariableDeclaration
 	= "TABLE"i & '(' & body: TableBody & ')'              => @(new Clause.VariableDeclaration("", "TABLE", null, body))
 	| "CURSOR"i                                           => @(new Clause.VariableDeclaration("", "CURSOR", null))
 	| type: DataType & n: NullSpec? & ('=' & v: SetValue)? => @(new Clause.VariableDeclaration("", type, v, null, n))
+
+// ── Service Broker ──────────────────────────────────────────────────────────
+//
+// Seven kinds of object and eight statements about conversations, put to the engine some three
+// hundred times. The objects are kept the way every other object here is, a name and the
+// words after it; what the engine counts in them — an option said twice, an activation short
+// of what it needs — is asked of the options as nodes.
+//
+// A message type is validated by any word, which the engine does not check until it runs, and
+// `VALID_XML` wants its schema collection. A contract lists its messages and who sends each, in
+// brackets and at least one; `[DEFAULT]` is a message's name and a bare `DEFAULT` is refused.
+// A queue created may say its activation only in full — the procedure, how many read and whom
+// they run as — where one altered may say any of it, or drop it; an altered queue is changed
+// one way at a time. A route's settings are strings but its lifetime, and one created says
+// where it goes. A binding names its user, bare. A priority's names are one part or `ANY`, the
+// remote service a string or `ANY`, the level a number or `DEFAULT`. Every list is separated
+// by commas and names each thing once.
+BrokerStatement : @Statement
+	= "CREATE"i & "MESSAGE"i & "TYPE"i & name: Identifier & tail: (Authorization? & MessageValidation?)
+		=> @(Statement.Defined("MESSAGE TYPE", name, Syntax.Tail(tail), "CREATE"))
+	| "ALTER"i & "MESSAGE"i & "TYPE"i & name: Identifier & tail: MessageValidation
+		=> @(Statement.Defined("MESSAGE TYPE", name, Syntax.Tail(tail), "ALTER"))
+	| "CREATE"i & "CONTRACT"i & name: Identifier
+	  & tail: (Authorization? & '(' & ContractMessage & (',' & ContractMessage)* & ')')
+		=> @(Statement.Defined("CONTRACT", name, Syntax.Tail(tail)))
+	| "CREATE"i & "QUEUE"i & name: QualifiedName & tail: (options: QueueWith? & ("ON"i & Identifier)?)
+	  & when @(Syntax.NamedOnce(null, options) && Syntax.Activates(options))
+		=> @(Statement.Defined("QUEUE", name, Syntax.Tail(tail), "CREATE", options))
+	| "ALTER"i & "QUEUE"i & name: QualifiedName & tail: (options: QueueWith | QueueAction)
+	  & when @(Syntax.NamedOnce(null, options))
+		=> @(Statement.Defined("QUEUE", name, Syntax.Tail(tail), "ALTER", options))
+	| "CREATE"i & "SERVICE"i & name: Identifier
+	  & tail: (Authorization? & "ON"i & "QUEUE"i & QualifiedName & ('(' & Identifier & (',' & Identifier)* & ')')?)
+		=> @(Statement.Defined("SERVICE", name, Syntax.Tail(tail), "CREATE"))
+	| "ALTER"i & "SERVICE"i & name: Identifier
+	  & tail: ("ON"i & "QUEUE"i & QualifiedName & ServiceChanges? | ServiceChanges)
+		=> @(Statement.Defined("SERVICE", name, Syntax.Tail(tail), "ALTER"))
+	| "CREATE"i & "ROUTE"i & name: Identifier & tail: (Authorization? & "WITH"i & options: RouteOptions)
+	  & when @(Syntax.NamedOnce(null, options) && Syntax.HasOption(options, "ADDRESS"))
+		=> @(Statement.Defined("ROUTE", name, Syntax.Tail(tail), "CREATE", options))
+	| "ALTER"i & "ROUTE"i & name: Identifier & tail: ("WITH"i & options: RouteOptions)
+	  & when @(Syntax.NamedOnce(null, options))
+		=> @(Statement.Defined("ROUTE", name, Syntax.Tail(tail), "ALTER", options))
+	| "CREATE"i & "REMOTE"i & "SERVICE"i & "BINDING"i & name: Identifier
+	  & tail: (Authorization? & "TO"i & "SERVICE"i & BrokerString & "WITH"i & options: BindingOptions)
+	  & when @(Syntax.NamedOnce(null, options) && Syntax.HasOption(options, "USER"))
+		=> @(Statement.Defined("REMOTE SERVICE BINDING", name, Syntax.Tail(tail), "CREATE", options))
+	| "ALTER"i & "REMOTE"i & "SERVICE"i & "BINDING"i & name: Identifier & tail: ("WITH"i & options: BindingOptions)
+	  & when @(Syntax.NamedOnce(null, options))
+		=> @(Statement.Defined("REMOTE SERVICE BINDING", name, Syntax.Tail(tail), "ALTER", options))
+	| "CREATE"i & "BROKER"i & "PRIORITY"i & name: Identifier
+	  & tail: ("FOR"i & "CONVERSATION"i & ("SET"i & '(' & options: PriorityOptions & ')')?)
+	  & when @(Syntax.NamedOnce(null, options))
+		=> @(Statement.Defined("BROKER PRIORITY", name, Syntax.Tail(tail), "CREATE", options))
+	| "ALTER"i & "BROKER"i & "PRIORITY"i & name: Identifier
+	  & tail: ("FOR"i & "CONVERSATION"i & "SET"i & '(' & options: PriorityOptions & ')')
+	  & when @(Syntax.NamedOnce(null, options))
+		=> @(Statement.Defined("BROKER PRIORITY", name, Syntax.Tail(tail), "ALTER", options))
+
+MessageValidation = "VALIDATION"i & '=' & ("VALID_XML"i & "WITH"i & "SCHEMA"i & "COLLECTION"i & QualifiedName
+										 | ?!"VALID_XML"i & Identifier)
+
+ContractMessage = Identifier & "SENT"i & "BY"i & ("INITIATOR"i | "TARGET"i | "ANY"i)
+
+QueueWith : @Clause[] = "WITH"i & first: QueueOption & (',' & rest: QueueOption)* => @(Syntax.Listed(first, rest))
+
+QueueOption : @Clause
+	= "STATUS"i & '=' & v: OnOff    => @(new Clause.Option("STATUS", new Expression.ColumnReference(v), Clause.None))
+	| "RETENTION"i & '=' & v: OnOff => @(new Clause.Option("RETENTION", new Expression.ColumnReference(v), Clause.None))
+	| "ACTIVATION"i & '(' & "DROP"i & ')'
+		=> @(new Clause.Option("ACTIVATION", null, new Clause[] { new Clause.Option("DROP", null, Clause.None) }, null, true))
+	| "ACTIVATION"i & '(' & first: Activation & (',' & rest: Activation)* & ')' & when @(Syntax.NamedOnce(first, rest))
+		=> @(new Clause.Option("ACTIVATION", null, Syntax.Listed(first, rest), null, true))
+	| "POISON_MESSAGE_HANDLING"i & '(' & "STATUS"i & '=' & v: OnOff & ')'
+		=> @(new Clause.Option("POISON_MESSAGE_HANDLING", null,
+				 new Clause[] { new Clause.Option("STATUS", new Expression.ColumnReference(v), Clause.None) }, null, true))
+
+Activation : @Clause
+	= "STATUS"i & '=' & o: OnOff
+		=> @(new Clause.Option("STATUS", new Expression.ColumnReference(o), Clause.None))
+	| "PROCEDURE_NAME"i & '=' & t: QualifiedName
+		=> @(new Clause.Option("PROCEDURE_NAME", new Expression.ColumnReference(t), Clause.None))
+	| "MAX_QUEUE_READERS"i & '=' & t: Sql92.Lexical.UnsignedNumericLiteral
+		=> @(new Clause.Option("MAX_QUEUE_READERS", new Expression.Literal(SqlLiteralKind.Number, t), Clause.None))
+	| "EXECUTE"i & "AS"i & t: ("SELF"i | "OWNER"i)
+		=> @(new Clause.Option("EXECUTE AS", new Expression.ColumnReference(Syntax.Squared(t)), Clause.None, null, true))
+	| "EXECUTE"i & "AS"i & t: Sql92.Lexical.CharacterStringLiteral
+		=> @(new Clause.Option("EXECUTE AS", new Expression.Literal(SqlLiteralKind.Text, t), Clause.None, null, true))
+
+QueueAction = "REBUILD"i & ("WITH"i & '(' & "MAXDOP"i & '=' & Number & ')')?
+			| "REORGANIZE"i & ("WITH"i & '(' & "LOB_COMPACTION"i & '=' & OnOff & ')')?
+			| "MOVE"i & "TO"i & Identifier
+
+ServiceChanges = '(' & ServiceChange & (',' & ServiceChange)* & ')'
+ServiceChange  = ("ADD"i | "DROP"i) & "CONTRACT"i & Identifier
+
+RouteOptions : @Clause[] = first: RouteOption & (',' & rest: RouteOption)* => @(Syntax.Listed(first, rest))
+
+RouteOption : @Clause
+	= name: ("SERVICE_NAME"i | "BROKER_INSTANCE"i | "MIRROR_ADDRESS"i | "ADDRESS"i) & '=' & v: BrokerString
+		=> @(new Clause.Option(Syntax.Squared(name), v, Clause.None))
+	| "LIFETIME"i & '=' & t: Sql92.Lexical.UnsignedNumericLiteral
+		=> @(new Clause.Option("LIFETIME", new Expression.Literal(SqlLiteralKind.Number, t), Clause.None))
+
+BindingOptions : @Clause[] = first: BindingOption & (',' & rest: BindingOption)* => @(Syntax.Listed(first, rest))
+
+BindingOption : @Clause
+	= "USER"i & '=' & t: Identifier   => @(new Clause.Option("USER", new Expression.ColumnReference(t), Clause.None))
+	| "ANONYMOUS"i & '=' & o: OnOff   => @(new Clause.Option("ANONYMOUS", new Expression.ColumnReference(o), Clause.None))
+
+PriorityOptions : @Clause[] = first: PriorityOption & (',' & rest: PriorityOption)* => @(Syntax.Listed(first, rest))
+
+PriorityOption : @Clause
+	= name: ("CONTRACT_NAME"i | "LOCAL_SERVICE_NAME"i) & '=' & v: NameOrAny
+		=> @(new Clause.Option(Syntax.Squared(name), v, Clause.None))
+	| "REMOTE_SERVICE_NAME"i & '=' & v: StringOrAny
+		=> @(new Clause.Option("REMOTE_SERVICE_NAME", v, Clause.None))
+	| "PRIORITY_LEVEL"i & '=' & v: LevelOrDefault
+		=> @(new Clause.Option("PRIORITY_LEVEL", v, Clause.None))
+
+NameOrAny : @Expression = "ANY"i => @(new Expression.ColumnReference("ANY")) | t: Identifier => @(new Expression.ColumnReference(t))
+StringOrAny : @Expression = "ANY"i => @(new Expression.ColumnReference("ANY")) | v: BrokerString => @(v)
+
+LevelOrDefault : @Expression
+	= "DEFAULT"i => @(new Expression.ColumnReference("DEFAULT"))
+	| t: Sql92.Lexical.UnsignedNumericLiteral => @(new Expression.Literal(SqlLiteralKind.Number, t))
+
+BrokerString : @Expression
+	= t: Sql92.Lexical.NationalCharacterStringLiteral => @(new Expression.Literal(SqlLiteralKind.National, t))
+	| t: Sql92.Lexical.CharacterStringLiteral         => @(new Expression.Literal(SqlLiteralKind.Text, t))
+
+// A string or a variable, which is what the engine takes for a service it cannot see, a
+// failure's description and the conversation `RECEIVE` is asked about.
+BrokerTarget : @Expression = v: BrokerString => @(v) | t: TSql.Variable => @(new Expression.Literal(SqlLiteralKind.Parameter, t))
+
+// A conversation's handle is a value wherever it is not being made — `END CONVERSATION a`,
+// `f()` and `@h + 1` are read — and only `BEGIN DIALOG` wants a variable, to put the handle
+// in. The dialog is begun from a service named and to one written as a string, and a second
+// string after a comma says which broker; its options are separated by commas, each said
+// once, and relate it to a conversation or to a group, not both. A timer's handle is in
+// brackets and its timeout follows `=`. A conversation is ended plainly, with `CLEANUP`, or
+// with an error — a number or a variable, never negative — and its description, in that
+// order and with no comma. `SEND` takes one handle bare or any in brackets, a message type by
+// name and a body in brackets.
+ConversationStatement : @Statement
+	= "BEGIN"i & "DIALOG"i & said: "CONVERSATION"i? & handle: TSql.Variable
+	  & "FROM"i & "SERVICE"i & from: QualifiedName & "TO"i & "SERVICE"i & to: BrokerTarget
+	  & (',' & instance: BrokerTarget)? & ("ON"i & "CONTRACT"i & contract: QualifiedName)?
+	  & options: DialogWith? & when @(Syntax.DialogAgrees(options))
+		=> @(new Statement.BeginDialog(handle, said is not null, from, to, instance, contract, options ?? Clause.None))
+	| "BEGIN"i & "CONVERSATION"i & "TIMER"i & '(' & h: ValueExpression & ')' & "TIMEOUT"i & '=' & timeout: ValueExpression
+		=> @(new Statement.ConversationTimer(h, timeout))
+	| "END"i & "CONVERSATION"i & h: ValueExpression & ending: EndConversationWith?
+		=> @(ending is null ? new Statement.EndConversation(h) : ending with { Handle = h })
+	| "MOVE"i & "CONVERSATION"i & h: ValueExpression & "TO"i & group: ValueExpression
+		=> @(new Statement.MoveConversation(h, group))
+	| "SEND"i & "ON"i & "CONVERSATION"i & targets: SendTargets & ("MESSAGE"i & "TYPE"i & type: QualifiedName)?
+	  & ('(' & body: ValueExpression & ')')?
+		=> @(targets with { MessageType = type, Body = body })
+	| s: GetConversationGroup => @(s)
+	| s: ReceiveStatement     => @(s)
+
+DialogWith : @Clause[] = "WITH"i & first: DialogOption & (',' & rest: DialogOption)* => @(Syntax.Listed(first, rest))
+
+DialogOption : @Clause
+	= name: ("RELATED_CONVERSATION_GROUP"i | "RELATED_CONVERSATION"i | "LIFETIME"i) & '=' & v: ValueExpression
+		=> @(new Clause.Option(Syntax.Squared(name), v, Clause.None))
+	| "ENCRYPTION"i & '=' & t: OnOff
+		=> @(new Clause.Option("ENCRYPTION", new Expression.ColumnReference(t), Clause.None))
+
+EndConversationWith : @Statement.EndConversation
+	= "WITH"i & "CLEANUP"i => @(new Statement.EndConversation(Expression.NullValue, Cleanup: true))
+	| "WITH"i & "ERROR"i & '=' & e: ConversationError & "DESCRIPTION"i & '=' & d: BrokerTarget
+		=> @(new Statement.EndConversation(Expression.NullValue, e, d))
+
+ConversationError : @Expression
+	= t: Sql92.Lexical.UnsignedNumericLiteral => @(new Expression.Literal(SqlLiteralKind.Number, t))
+	| t: TSql.Variable                         => @(new Expression.Literal(SqlLiteralKind.Parameter, t))
+
+SendTargets : @Statement.Send
+	= '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
+		=> @(new Statement.Send(Syntax.Listed(first, rest), true))
+	| v: ValueExpression => @(new Statement.Send(new[] { v }, false))
+
+// `GET CONVERSATION GROUP` and `RECEIVE` stand alone or inside `WAITFOR ( … )`, and only
+// there may a `TIMEOUT` follow, after a comma: a number, negative or not, or a variable.
+GetConversationGroup : @Statement
+	= "GET"i & "CONVERSATION"i & "GROUP"i & g: TSql.Variable & "FROM"i & q: QualifiedName
+		=> @(new Statement.GetConversationGroup(g, q))
+
+// `TOP` in brackets and nothing after it; columns as a select list has them, but for an alias
+// written in front with `=` and a table's star; a queue named, with no alias or hints; the
+// rows into a table variable; and `WHERE` one comparison, of one of two columns written bare
+// on its left, with a string or a variable. No `DISTINCT` and no `ORDER BY`.
+ReceiveStatement : @Statement
+	= "RECEIVE"i & top: ReceiveTop? & first: ReceiveColumn & (',' & rest: ReceiveColumn)* & "FROM"i & q: QualifiedName
+	  & ("INTO"i & into: TSql.Variable)? & ("WHERE"i & where: ReceiveWhere)?
+		=> @(new Statement.Receive(top, Syntax.Listed(first, rest), q, into, where))
+
+ReceiveTop : @Clause = "TOP"i & '(' & v: ValueExpression & ')' => @(Clause.Topped(new Expression.Parenthesized(v), null))
+
+ReceiveColumn : @Clause
+	= '*'                                                     => @(new Clause.QualifiedAsterisk(null))
+	| into: TSql.Variable & by: AssignOp & v: ValueExpression => @(new Clause.VariableAssignment(into, by, v))
+	| v: ValueExpression & alias: TSqlAsClause?               => @(new Clause.DerivedColumn(v, alias))
+
+ReceiveWhere : @Expression
+	= t: ("CONVERSATION_HANDLE"i | "CONVERSATION_GROUP_ID"i) & '=' & v: BrokerTarget
+		=> @(new Expression.Comparison(new Expression.ColumnReference(t), SqlComparison.Equal, v))
+
+WaitedFor : @Statement = s: ReceiveStatement => @(s) | s: GetConversationGroup => @(s)
+
+WaitTimeout : @Expression
+	= t: ('-'? & Sql92.Lexical.UnsignedNumericLiteral) => @(new Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(t)))
+	| t: TSql.Variable                                  => @(new Expression.Literal(SqlLiteralKind.Parameter, t))
 
 // ── DBCC ────────────────────────────────────────────────────────────────────
 //
@@ -2209,6 +2426,8 @@ SimpleCommand : @Statement
 		=> @(new Statement.RaiseError(args, Syntax.Tail(how)))
 	| "RAISERROR"i & args: Arguments & how: RaiseWith?
 		=> @(new Statement.RaiseError(args, Syntax.Tail(how)))
+	| "WAITFOR"i & '(' & waited: WaitedFor & ')' & (',' & "TIMEOUT"i & timeout: WaitTimeout)?
+		=> @(new Statement.WaitForStatement(waited, timeout))
 	| "WAITFOR"i & t: Sql92.Lexical.TimeLiteral
 		=> @(new Statement.WaitFor(new Expression.Literal(SqlLiteralKind.Text, t.Substring(t.IndexOf('\''))), "TIME"))
 	| "WAITFOR"i & kind: WaitKind & v: WaitValue

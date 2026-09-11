@@ -24,7 +24,7 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 95.2% | 7622 | 381 | 0 | 4 | 85 | 250 | 0 |
+| **all** | 996 | 8338 | 96.2% | 7702 | 301 | 0 | 4 | 85 | 250 | 0 |
 | [data-types](#data-types) | 29 | 304 | 99.7% | 290 | 1 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 98.7% | 233 | 3 | 0 | 0 | 1 | 5 | 0 |
 | [functions](#functions) | 324 | 2101 | 98.1% | 2042 | 40 | 0 | 3 | 2 | 17 | 0 |
@@ -34,7 +34,7 @@ rest run rather than read.
 | [reference](#reference) | 3 | 32 | 96.9% | 31 | 1 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 99.4% | 309 | 2 | 0 | 0 | 0 | 1 | 0 |
 | [spatial-geometry](#spatial-geometry) | 74 | 357 | 99.4% | 355 | 2 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 90.7% | 2639 | 269 | 0 | 1 | 81 | 174 | 0 |
+| [statements](#statements) | 320 | 3163 | 93.5% | 2719 | 189 | 0 | 1 | 81 | 174 | 0 |
 | [xml](#xml) | 12 | 205 | 89.6% | 180 | 21 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
@@ -47,30 +47,20 @@ rest run rather than read.
 | SELECT | 19 | 10 | stops at '*' — `SELECT BINARY_CHECKSUM(*) from myTable;` |
 | ALTER SERVER CONFIGURATION | 18 | 1 | stops at CONFIGURATION — `ALTER SERVER CONFIGURATION SET PROCESS AFFINITY CPU=0 TO 63, 128 TO 191;` |
 | CREATE PARTITION FUNCTION | 13 | 5 | stops at PARTITION — `CREATE PARTITION FUNCTION RangePF1(INT) AS RANGE LEFT FOR VALUES (10, 100, 1000);` |
-| CREATE BROKER PRIORITY | 12 | 1 | stops at BROKER — `CREATE BROKER PRIORITY InitiatorAToTargetPriority FOR CONVERSATION SET (CONTRACT_NA...` |
 | CLOSE | 11 | 7 | stops at KEY — `CLOSE SYMMETRIC KEY SSN_Key_02;` |
 | CREATE SEQUENCE | 11 | 3 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
 | CREATE TYPE | 10 | 5 | stops at TYPE — `CREATE TYPE NewType FROM int;` |
 | CREATE XML SCHEMA | 10 | 3 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION MyColl AS ' <schema xmlns="http://www.w3.org/2001/XMLS...` |
-| CREATE ROUTE | 9 | 2 | stops at ROUTE — `CREATE ROUTE NotifyRoute WITH SERVICE_NAME = 'NotifyService', ADDRESS = 'LOCAL';` |
 | CREATE SPATIAL INDEX | 9 | 3 | stops at SPATIAL — `CREATE SPATIAL INDEX sample_idx on sample(g);` |
-| ALTER QUEUE | 8 | 1 | stops at QUEUE — `ALTER QUEUE ExpenseQueue WITH STATUS = OFF ;` |
-| BEGIN | 8 | 3 | stops at CONVERSATION — `BEGIN CONVERSATION TIMER (@dialog_handle) TIMEOUT = 120 ;` |
 | INSERT | 8 | 6 | stops at ';' — `INSERT INTO likes($edge_id, $from_id, $to_id, rating) SELECT EDGE_ID_FROM_PARTS(OBJ...` |
 | KILL | 8 | 4 | stops at KILL — `KILL QUERY NOTIFICATION SUBSCRIPTION ALL ;` |
 | ADD | 7 | 2 | stops at ADD — `ADD SENSITIVITY CLASSIFICATION TO dbo.sales.price, dbo.sales.discount WITH ( LABEL ...` |
 | CREATE ASSEMBLY | 7 | 6 | stops at ASSEMBLY — `CREATE ASSEMBLY mytest FROM 'c:\test.dll' WITH PERMISSION_SET = SAFE` |
-| CREATE MESSAGE TYPE | 7 | 2 | stops at MESSAGE — `CREATE MESSAGE TYPE [//Adventure-Works.com/Expenses/SubmitExpense] VALIDATION = WEL...` |
 | CREATE PARTITION SCHEME | 7 | 3 | stops at PARTITION — `CREATE PARTITION SCHEME RangePS1 AS PARTITION RangePF1 ALL TO ('PRIMARY');` |
-| CREATE QUEUE | 6 | 2 | stops at QUEUE — `CREATE QUEUE NotifyQueue ;` |
 | TRUNCATE | 6 | 4 | stops at TRUNCATE — `TRUNCATE TABLE dbo.ErrorLog` |
-| WAITFOR | 6 | 2 | stops at '(' — `WAITFOR ( GET CONVERSATION GROUP @conversation_group_id FROM ExpenseQueue ) ;` |
 | CREATE SYNONYM | 5 | 3 | stops at SYNONYM — `CREATE SYNONYM MyEmployeeTable FOR HumanResources.Employee;` |
 | DISABLE | 5 | 2 | stops at DISABLE — `DISABLE TRIGGER Person.uAddress ON Person.Address;` |
-| IF | 5 | 2 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
-| ALTER ROUTE | 4 | 1 | stops at ROUTE — `ALTER ROUTE ExpenseRoute WITH SERVICE_NAME = '//Adventure-Works.com/Expenses';` |
-| ALTER SERVICE | 4 | 2 | stops at SERVICE — `ALTER SERVICE MASTER KEY REGENERATE;` |
-| CREATE SERVICE | 4 | 2 | stops at SERVICE — `CREATE SERVICE NotifyService ON QUEUE NotifyQueue ([https://schemas.microsoft.com/S...` |
+| IF | 4 | 1 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
 | USE | 4 | 3 | stops at COMPUTE — `USE UserDbSales; DBCC FREEPROCCACHE (COMPUTE) WITH NO_INFOMSGS;` |
 | ALTER ASSEMBLY | 3 | 1 | stops at ASSEMBLY — `ALTER ASSEMBLY ComplexNumber FROM 'C:\Program Files\Microsoft SQL Server\130\Tools\...` |
 | ALTER AVAILABILITY GROUP | 3 | 2 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP AccountsAG JOIN;` |
@@ -81,11 +71,8 @@ rest run rather than read.
 | CREATE TABLE | 3 | 3 | stops at ')' — `CREATE TABLE ExampleTable (PriKey int PRIMARY KEY, timestamp);` |
 | ENABLE | 3 | 1 | stops at ENABLE — `ENABLE Trigger Person.uAddress ON Person.Address;` |
 | READTEXT | 3 | 2 | stops at READTEXT — `READTEXT t1.c2 @ptrval 0 1;` |
-| RECEIVE | 3 | 1 | stops at RECEIVE — `RECEIVE * FROM ExpenseQueue ;` |
-| ALTER BROKER PRIORITY | 2 | 1 | stops at BROKER — `ALTER BROKER PRIORITY SimpleContractDefaultPriority FOR CONVERSATION SET (PRIORITY_...` |
 | ALTER PARTITION FUNCTION | 2 | 1 | stops at PARTITION — `ALTER PARTITION FUNCTION myRangePF1 () SPLIT RANGE (500);` |
 | BACKUP | 2 | 2 | stops at ALGORITHM — `BACKUP CERTIFICATE Shipping04 TO FILE = 'c:\storedcerts\shipping04cert.pfx' WITH FO...` |
-| CREATE REMOTE SERVICE | 2 | 1 | stops at REMOTE — `CREATE REMOTE SERVICE BINDING APBinding TO SERVICE '//Adventure-Works.com/services/...` |
 | DBO | 2 | 1 | stops at DBO — `dbo.uspGetEmployeeManagers 6;` |
 | DECLARE | 2 | 2 | stops at ';' — `DECLARE @days INT = 365, @datetime DATETIME2 = '2000-01-01 01:01:01.1110000'; /* 20...` |
 | DIALOG_HANDLE | 2 | 1 | stops at '@' — `@dialog_handle ;` |
@@ -94,14 +81,12 @@ rest run rather than read.
 | RECONFIGURE | 2 | 2 | stops at RECONFIGURE — `RECONFIGURE WITH OVERRIDE;` |
 | SP_DETACH_DB | 2 | 1 | stops at SP_DETACH_DB — `sp_detach_db Archive;` |
 | ALTER EXTERNAL LANGUAGE | 1 | 1 | stops at LANGUAGE — `ALTER EXTERNAL LANGUAGE Java SET (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaexte...` |
-| ALTER MESSAGE TYPE | 1 | 1 | stops at MESSAGE — `ALTER MESSAGE TYPE [//Adventure-Works.com/Expenses/SubmitExpense] VALIDATION = WELL...` |
 | ALTER PARTITION SCHEME | 1 | 1 | stops at PARTITION — `ALTER PARTITION SCHEME MyRangePS1 NEXT USED test5fg;` |
-| ALTER REMOTE SERVICE | 1 | 1 | stops at REMOTE — `ALTER REMOTE SERVICE BINDING APBinding WITH USER = SecurityAccount ;` |
+| ALTER SERVICE | 1 | 1 | stops at KEY — `ALTER SERVICE MASTER KEY REGENERATE;` |
 | ALTER TABLE | 1 | 1 | stops at WITH — `ALTER TABLE dbo.doc_exf ADD AddDate smalldatetime NULL CONSTRAINT AddDateDflt DEFAU...` |
 | ALTER XML SCHEMA | 1 | 1 | stops at XML — `ALTER XML SCHEMA COLLECTION MyColl ADD ' <schema xmlns="http://www.w3.org/2001/XMLS...` |
 | COPY | 1 | 1 | stops at COPY — `Copy` |
 | CREATE AGGREGATE | 1 | 1 | stops at AGGREGATE — `CREATE AGGREGATE Concatenate(@input nvarchar(4000)) RETURNS nvarchar(4000) EXTERNAL...` |
-| CREATE CONTRACT | 1 | 1 | stops at CONTRACT — `CREATE CONTRACT [//Adventure-Works.com/Expenses/ExpenseSubmission] ( [//Adventure-W...` |
 | CREATE CRYPTOGRAPHIC PROVIDER | 1 | 1 | stops at CRYPTOGRAPHIC — `CREATE CRYPTOGRAPHIC PROVIDER SecurityProvider FROM FILE = 'C:\SecurityProvider\Sec...` |
 | CREATE DATABASE SCOPED | 1 | 1 | stops at ')' — `CREATE DATABASE SCOPED CREDENTIAL AccessAzureInvoices WITH IDENTITY = 'SHARED ACCES...` |
 | CREATE DEFAULT | 1 | 1 | stops at DEFAULT — `CREATE DEFAULT phonedflt AS 'unknown';` |
@@ -109,9 +94,7 @@ rest run rather than read.
 | CREATE PROCEDURE | 1 | 1 | stops at TRUNCATE — `CREATE PROCEDURE dbo.TruncateMyTable WITH EXECUTE AS SELF AS TRUNCATE TABLE MyDB..M...` |
 | CREATE XML INDEX | 1 | 1 | stops at '(' — `CREATE XML INDEX filt_sxi_index_c ON Tbl(xmlcol) USING XML INDEX sxi_index FOR ( pa...` |
 | DELETE | 1 | 1 | stops at '.' — `DELETE FROM OPENDATASOURCE('SQLNCLI', 'Data Source= <server_name>; Integrated Secur...` |
-| GET | 1 | 1 | stops at GET — `GET CONVERSATION GROUP @conversation_group_id FROM AdventureWorks.dbo.ExpenseQueue ;` |
 | RESTORE | 1 | 1 | stops at RESTORE_OPTIONS — `RESTORE DATABASE AdventureWorks2022_1 FROM URL = 's3://datavirtualizationsample.s3....` |
-| SEND | 1 | 1 | stops at SEND — `SEND ON CONVERSATION ( @dialog_handle1, @dialog_handle2, @dialog_handle3 ) MESSAGE ...` |
 | SP_BINDEFAULT | 1 | 1 | stops at SP_BINDEFAULT — `sp_bindefault 'phonedflt', 'Person.PersonPhone.PhoneNumber';` |
 | SP_HELP | 1 | 1 | stops at SP_HELP — `sp_help doc_exy;` |
 | UPDATE | 1 | 1 | stops at '.' — `UPDATE OPENDATASOURCE('SQLNCLI', 'Data Source=<server name>;Integrated Security=SSP...` |
@@ -836,48 +819,32 @@ None: the engine reads every statement this grammar reads.
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | ALTER SERVER CONFIGURATION (Transact-SQL) | 20 | 5.0% | 19 | 0 | 0 | 0 | stops at CONFIGURATION — `ALTER SERVER CONFIGURATION SET PROCESS AFFINITY CPU=0 TO 63, 128 TO 191;` |
-| CREATE BROKER PRIORITY (Transact-SQL) | 13 | 0.0% | 12 | 0 | 0 | 0 | stops at BROKER — `CREATE BROKER PRIORITY InitiatorAToTargetPriority FOR CONVERSATION SET (CONTRACT_NA...` |
 | CREATE PARTITION SCHEME (Transact-SQL) | 10 | 0.0% | 10 | 0 | 0 | 0 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1(INT) AS RANGE LEFT FOR VALUES (1, 100, 1000);` |
-| ALTER QUEUE (Transact-SQL) | 8 | 0.0% | 8 | 0 | 0 | 0 | stops at QUEUE — `ALTER QUEUE ExpenseQueue WITH STATUS = OFF ;` |
-| CREATE ROUTE (Transact-SQL) | 11 | 27.3% | 8 | 0 | 0 | 0 | stops at ROUTE — `CREATE ROUTE ExpenseRoute WITH SERVICE_NAME = '//Adventure-Works.com/Expenses', BRO...` |
 | ALTER RESOURCE GOVERNOR (Transact-SQL) | 9 | 22.2% | 7 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | CREATE SEQUENCE (Transact-SQL) | 12 | 41.7% | 7 | 0 | 0 | 0 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
 | CREATE SPATIAL INDEX (Transact-SQL) | 9 | 22.2% | 7 | 0 | 0 | 0 | stops at SPATIAL — `CREATE SPATIAL INDEX SIndx_SpatialTable_geometry_col1 ON SpatialTable(geometry_col)...` |
-| RECEIVE (Transact-SQL) | 10 | 0.0% | 7 | 0 | 0 | 0 | stops at RECEIVE — `RECEIVE * FROM ExpenseQueue ;` |
 | ADD SIGNATURE (Transact-SQL) | 41 | 87.8% | 5 | 0 | 0 | 0 | stops at ADD — `ADD SIGNATURE TO HumanResources.uspUpdateEmployeeLogin BY CERTIFICATE HumanResource...` |
 | ALTER SEQUENCE (Transact-SQL) | 9 | 44.4% | 5 | 0 | 0 | 0 | stops at SEQUENCE — `CREATE SEQUENCE Test.TestSeq AS int START WITH 125 INCREMENT BY 25 MINVALUE 100 MAX...` |
 | ALTER XML SCHEMA COLLECTION (Transact-SQL) | 19 | 70.6% | 5 | 0 | 0 | 0 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION MyColl AS ' <schema xmlns="http://www.w3.org/2001/XMLS...` |
-| CREATE MESSAGE TYPE (Transact-SQL) | 5 | 0.0% | 5 | 0 | 0 | 0 | stops at MESSAGE — `CREATE MESSAGE TYPE [//Adventure-Works.com/Expenses/SubmitExpense] VALIDATION = WEL...` |
 | CREATE PROCEDURE (Transact-SQL) | 61 | 91.8% | 5 | 0 | 0 | 0 | stops at HUMANRESOURCES — `HumanResources.uspGetAllEmployees;` |
-| CREATE QUEUE (Transact-SQL) | 5 | 0.0% | 5 | 0 | 0 | 0 | stops at QUEUE — `CREATE QUEUE ExpenseQueue;` |
 | CREATE TYPE (Transact-SQL) | 10 | 44.4% | 5 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE dbo.udt_money FROM varchar(11) NOT NULL;` |
 | CREATE XML SCHEMA COLLECTION (Transact-SQL) | 18 | 72.2% | 5 | 0 | 0 | 0 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION ManuInstructionsSchemaCollection AS N'<?xml version="1...` |
 | ENABLE TRIGGER (Transact-SQL) | 6 | 16.7% | 5 | 0 | 0 | 0 | stops at DISABLE — `DISABLE TRIGGER Person.uAddress ON Person.Address;` |
 | ALTER PARTITION FUNCTION (Transact-SQL) | 6 | 33.3% | 4 | 0 | 0 | 0 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1 (int) AS RANGE LEFT FOR VALUES ( 1, 100, 1000 );` |
-| ALTER ROUTE (Transact-SQL) | 7 | 42.9% | 4 | 0 | 0 | 0 | stops at ROUTE — `ALTER ROUTE ExpenseRoute WITH SERVICE_NAME = '//Adventure-Works.com/Expenses';` |
 | ALTER WORKLOAD GROUP (Transact-SQL) | 10 | 55.6% | 4 | 0 | 0 | 1 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
-| BEGIN DIALOG CONVERSATION (Transact-SQL) | 11 | 55.6% | 4 | 0 | 0 | 0 | stops at DIALOG — `BEGIN DIALOG CONVERSATION @dialog_handle FROM SERVICE [//Adventure-Works.com/Expens...` |
-| CREATE CONTRACT (Transact-SQL) | 4 | 0.0% | 4 | 0 | 0 | 0 | stops at MESSAGE — `CREATE MESSAGE TYPE [//Adventure-Works.com/Expenses/SubmitExpense] VALIDATION = WEL...` |
 | CREATE PARTITION FUNCTION (Transact-SQL) | 14 | 71.4% | 4 | 0 | 0 | 0 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1 (int) AS RANGE LEFT FOR VALUES (1, 100, 1000);` |
-| SEND (Transact-SQL) | 7 | 33.3% | 4 | 0 | 0 | 0 | stops at DIALOG — `BEGIN DIALOG @dialog_handle1 FROM SERVICE [//InitiatorDB/InitiatorService] TO SERVI...` |
 | ALTER ASSEMBLY (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at ASSEMBLY — `ALTER ASSEMBLY ComplexNumber FROM 'C:\Program Files\Microsoft SQL Server\130\Tools\...` |
 | ALTER CRYPTOGRAPHIC PROVIDER (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at CRYPTOGRAPHIC — `ALTER CRYPTOGRAPHIC PROVIDER SecurityProvider DISABLE;` |
-| ALTER SERVICE (Transact-SQL) | 4 | 25.0% | 3 | 0 | 0 | 0 | stops at SERVICE — `ALTER SERVICE [//Adventure-Works.com/Expenses] ON QUEUE NewQueue ;` |
 | CLOSE MASTER KEY (Transact-SQL) | 5 | 40.0% | 3 | 0 | 0 | 0 | stops at KEY — `CLOSE MASTER KEY;` |
-| CREATE EVENT NOTIFICATION (Transact-SQL) | 7 | 57.1% | 3 | 0 | 0 | 0 | stops at QUEUE — `CREATE QUEUE NotifyQueue ;` |
 | CREATE RULE (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at RULE — `CREATE RULE range_rule AS @range>= $1000 AND @range <$20000;` |
-| CREATE SERVICE (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at SERVICE — `CREATE SERVICE [//Adventure-Works.com/Expenses] ON QUEUE [dbo].[ExpenseQueue] ([//A...` |
 | CREATE SYNONYM (Transact-SQL) | 13 | 76.9% | 3 | 0 | 0 | 0 | stops at SYNONYM — `CREATE SYNONYM MyProduct FOR AdventureWorks2022.Production.Product;` |
 | DISABLE TRIGGER (Transact-SQL) | 4 | 25.0% | 3 | 0 | 0 | 0 | stops at DISABLE — `DISABLE TRIGGER Person.uAddress ON Person.Address;` |
-| END CONVERSATION (Transact-SQL) | 6 | 50.0% | 3 | 0 | 0 | 0 | stops at '@' — `@dialog_handle ;` |
-| GET CONVERSATION GROUP (Transact-SQL) | 6 | 50.0% | 3 | 0 | 0 | 0 | stops at '(' — `WAITFOR ( GET CONVERSATION GROUP @conversation_group_id FROM ExpenseQueue ) ;` |
 | INSERT (Transact-SQL) | 73 | 95.9% | 3 | 0 | 0 | 0 | stops at ')' — `CREATE TABLE dbo.T1 ( column_1 int IDENTITY, column_2 uniqueidentifier, );` |
 | OPEN MASTER KEY (Transact-SQL) | 5 | 40.0% | 3 | 0 | 0 | 0 | stops at KEY — `OPEN MASTER KEY DECRYPTION BY PASSWORD = '43987hkhj4325tsku7';` |
 | OPEN SYMMETRIC KEY (Transact-SQL) | 5 | 40.0% | 3 | 0 | 0 | 0 | stops at KEY — `OPEN SYMMETRIC KEY SymKeyMarketing3 DECRYPTION BY CERTIFICATE MarketingCert9;` |
 | TRUNCATE TABLE (Transact-SQL) | 14 | 78.6% | 3 | 0 | 0 | 0 | stops at TRUNCATE — `TRUNCATE TABLE HumanResources.JobCandidate;` |
 | ADD SENSITIVITY CLASSIFICATION (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at ADD — `ADD SENSITIVITY CLASSIFICATION TO dbo.sales.price, dbo.sales.discount WITH ( LABEL ...` |
 | ALTER AVAILABILITY GROUP (Transact-SQL) | 3 | 0.0% | 2 | 0 | 0 | 0 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP AccountsAG JOIN;` |
-| ALTER BROKER PRIORITY (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at BROKER — `ALTER BROKER PRIORITY SimpleContractDefaultPriority FOR CONVERSATION SET (PRIORITY_...` |
 | ALTER EXTERNAL RESOURCE POOL (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | ALTER RESOURCE POOL (Transact-SQL) | 5 | 60.0% | 2 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | ALTER SYMMETRIC KEY (Transact-SQL) | 5 | 60.0% | 2 | 0 | 0 | 0 | stops at KEY — `OPEN SYMMETRIC KEY JanainaKey043 DECRYPTION BY CERTIFICATE Shipping04 WITH PASSWORD...` |
@@ -891,25 +858,23 @@ None: the engine reads every statement this grammar reads.
 | CREATE DEFAULT (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at DEFAULT — `CREATE DEFAULT phonedflt AS 'unknown';` |
 | CREATE EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at LANGUAGE — `CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaex...` |
 | CREATE EXTERNAL RESOURCE POOL (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
-| CREATE REMOTE SERVICE BINDING (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at REMOTE — `CREATE REMOTE SERVICE BINDING APBinding TO SERVICE '//Adventure-Works.com/services/...` |
 | CREATE TABLE (Transact-SQL) | 69 | 96.3% | 2 | 0 | 0 | 1 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1(INT) AS RANGE LEFT FOR VALUES (1, 100, 1000);` |
 | DROP WORKLOAD GROUP (Transact-SQL) | 5 | 60.0% | 2 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
+| END CONVERSATION (Transact-SQL) | 6 | 66.7% | 2 | 0 | 0 | 0 | stops at '@' — `@dialog_handle ;` |
 | MERGE (Transact-SQL) | 54 | 96.0% | 2 | 0 | 0 | 0 | stops at MERGE — `INSERT INTO Production.UpdatedInventory SELECT ProductID, LocationID, NewQty, Previ...` |
 | ALTER ASYMMETRIC KEY (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at KEY — `OPEN MASTER KEY DECRYPTION BY PASSWORD = '<database master key password>';` |
 | ALTER EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at LANGUAGE — `ALTER EXTERNAL LANGUAGE Java SET (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaexte...` |
-| ALTER MESSAGE TYPE (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at MESSAGE — `ALTER MESSAGE TYPE [//Adventure-Works.com/Expenses/SubmitExpense] VALIDATION = WELL...` |
 | ALTER PARTITION SCHEME (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at PARTITION — `ALTER PARTITION SCHEME MyRangePS1 NEXT USED test5fg;` |
-| ALTER REMOTE SERVICE BINDING (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at REMOTE — `ALTER REMOTE SERVICE BINDING APBinding WITH USER = SecurityAccount ;` |
 | ALTER SCHEMA (Transact-SQL) | 10 | 90.0% | 1 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE Production.TestType FROM [VARCHAR](10) NOT NULL ;` |
-| ALTER SERVICE MASTER KEY (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at SERVICE — `ALTER SERVICE MASTER KEY REGENERATE;` |
+| ALTER SERVICE MASTER KEY (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at KEY — `ALTER SERVICE MASTER KEY REGENERATE;` |
 | BACKUP CERTIFICATE (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at ALGORITHM — `BACKUP CERTIFICATE Shipping04 TO FILE = 'c:\storedcerts\shipping04cert.pfx' WITH FO...` |
-| BEGIN CONVERSATION TIMER (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at CONVERSATION — `BEGIN CONVERSATION TIMER (@dialog_handle) TIMEOUT = 120 ;` |
 | CREATE AVAILABILITY GROUP (Transact-SQL) | 2 | 0.0% | 1 | 0 | 0 | 0 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP [MyAg] ADD LISTENER 'MyAgListenerIvP6' ( WITH IP ( ('2001:...` |
 | CREATE CERTIFICATE (Transact-SQL) | 7 | 85.7% | 1 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY Shipping19 FROM 'c:\Shipping\Certs\Shipping19.dll' WITH PERMISSION_...` |
 | CREATE CRYPTOGRAPHIC PROVIDER (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at CRYPTOGRAPHIC — `CREATE CRYPTOGRAPHIC PROVIDER SecurityProvider FROM FILE = 'C:\SecurityProvider\Sec...` |
 | CREATE EXTERNAL DATA SOURCE (Transact-SQL) | 115 | 98.9% | 1 | 0 | 0 | 23 | stops at ')' — `CREATE DATABASE SCOPED CREDENTIAL AccessAzureInvoices WITH IDENTITY = 'SHARED ACCES...` |
 | CREATE FUNCTION (Transact-SQL) | 12 | 91.7% | 1 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY [SurrogateStringFunction] FROM @SamplesPath + 'StringManipulate\CS\...` |
-| CREATE REMOTE TABLE AS SELECT (Parallel Data Warehouse) | 3 | 50.0% | 1 | 0 | 0 | 0 | stops at REMOTE — `USE ssawPDW; CREATE REMOTE TABLE OrderReporting.Orders.MyOrdersTable AT ( 'Data Sou...` |
+| CREATE MESSAGE TYPE (Transact-SQL) | 5 | 80.0% | 1 | 0 | 0 | 0 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION ExpenseReportSchema AS N'<?xml version="1.0" encoding=...` |
+| CREATE REMOTE TABLE AS SELECT (Parallel Data Warehouse) | 3 | 50.0% | 1 | 0 | 0 | 0 | stops at TABLE — `USE ssawPDW; CREATE REMOTE TABLE OrderReporting.Orders.MyOrdersTable AT ( 'Data Sou...` |
 | CREATE RESOURCE POOL (Transact-SQL) | 5 | 80.0% | 1 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | CREATE TABLE AS SELECT (Azure Synapse Analytics and Microsoft Fabric) | 53 | 100.0% | 0 | 0 | 1 | 12 | levels 100 engine, 110 engine, 120 engine — `INSERT INTO Users (id, name, age, street, city) SELECT id, name, age, JSON_VALUE(ad...` |
 | CREATE XML INDEX (Selective XML Indexes) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at '(' — `CREATE XML INDEX filt_sxi_index_c ON Tbl(xmlcol) USING XML INDEX sxi_index FOR ( pa...` |
@@ -924,6 +889,7 @@ None: the engine reads every statement this grammar reads.
 | SET ARITHABORT (Transact-SQL) | 30 | 96.7% | 1 | 0 | 0 | 0 | stops at TRUNCATE — `TRUNCATE TABLE t2;` |
 | ALTER APPLICATION ROLE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER AUTHORIZATION (Transact-SQL) | 19 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER BROKER PRIORITY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER CERTIFICATE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER COLUMN ENCRYPTION KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER CREDENTIAL (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -948,13 +914,18 @@ None: the engine reads every statement this grammar reads.
 | ALTER LOGIN (Transact-SQL) | 42 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER MASTER KEY (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER MATERIALIZED VIEW (Transact-SQL) | 2 | — | 0 | 0 | 0 | 0 |  |
+| ALTER MESSAGE TYPE (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER PROCEDURE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER QUEUE (Transact-SQL) | 8 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER REMOTE SERVICE BINDING (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER ROLE (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER ROUTE (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SEARCH PROPERTY LIST (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SECURITY POLICY (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SERVER AUDIT SPECIFICATION (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SERVER AUDIT (Transact-SQL) | 17 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SERVER ROLE (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER SERVICE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER TABLE index_option (Transact-SQL) | 1 | — | 0 | 0 | 0 | 0 |  |
 | ALTER TRIGGER (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER USER (Transact-SQL) | 19 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -962,19 +933,24 @@ None: the engine reads every statement this grammar reads.
 | BACKUP SERVICE MASTER KEY (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BACKUP SYMMETRIC KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BACKUP (Transact-SQL) | 29 | 100.0% | 0 | 0 | 0 | 0 |  |
+| BEGIN CONVERSATION TIMER (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
+| BEGIN DIALOG CONVERSATION (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BULK INSERT (Transact-SQL) | 29 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Collation precedence | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | COLLATE (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | COPY INTO (Transact-SQL) | 18 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE APPLICATION ROLE (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE ASYMMETRIC KEY (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE BROKER PRIORITY (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE COLUMN ENCRYPTION KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE COLUMN MASTER KEY (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE COLUMNSTORE INDEX (Transact-SQL) | 52 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE CONTRACT (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE DATABASE AUDIT SPECIFICATION | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE DATABASE ENCRYPTION KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE DATABASE SCOPED CREDENTIAL (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE ENDPOINT (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE EVENT NOTIFICATION (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE EVENT SESSION (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE EXTERNAL FILE FORMAT (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 2 |  |
 | CREATE EXTERNAL LIBRARY (Transact-SQL) - SQL Server | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -988,7 +964,10 @@ None: the engine reads every statement this grammar reads.
 | CREATE LOGIN (Transact-SQL) | 48 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE MASTER KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE MATERIALIZED VIEW AS SELECT (Transact-SQL) creates a materialized view to persist the data returned from the view definition query and automatically gets updated as data changes in the underlying tables. | 18 | 100.0% | 0 | 0 | 0 | 2 |  |
+| CREATE QUEUE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE REMOTE SERVICE BINDING (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE ROLE (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE ROUTE (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SCHEMA (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SEARCH PROPERTY LIST (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SECURITY POLICY (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -996,6 +975,7 @@ None: the engine reads every statement this grammar reads.
 | CREATE SERVER AUDIT SPECIFICATION (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SERVER AUDIT (Transact-SQL) | 15 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SERVER ROLE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE SERVICE (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE STATISTICS (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SYMMETRIC KEY (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE TABLE AS CLONE OF | 4 | — | 0 | 0 | 0 | 0 |  |
@@ -1078,6 +1058,7 @@ None: the engine reads every statement this grammar reads.
 | DROP XML SCHEMA COLLECTION (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EXECUTE AS Clause (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EXECUTE AS (Transact-SQL) | 21 | 100.0% | 0 | 0 | 0 | 0 |  |
+| GET CONVERSATION GROUP (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | GET_TRANSMISSION_STATUS (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | GRANT Availability Group Permissions | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | GRANT Database Permissions (Transact-SQL) | 8 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -1097,6 +1078,7 @@ None: the engine reads every statement this grammar reads.
 | INSERT (SQL Graph) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | MOVE CONVERSATION (Transact-SQL) | 1 | — | 0 | 0 | 0 | 0 |  |
 | GRANT-DENY-REVOKE permissions | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
+| RECEIVE (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | RESTORE MASTER KEY (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | RESTORE SERVICE MASTER KEY (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | RESTORE FILELISTONLY (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -1117,6 +1099,7 @@ None: the engine reads every statement this grammar reads.
 | REVOKE (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | REVOKE Type Permissions (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | REVOKE XML Schema Collection Permissions | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| SEND (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SET ANSI_DEFAULTS (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SET ANSI_NULL_DFLT_OFF (Transact-SQL) | 23 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SET ANSI_NULL_DFLT_ON (Transact-SQL) | 24 | 100.0% | 0 | 0 | 0 | 0 |  |

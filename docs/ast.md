@@ -212,6 +212,14 @@ compile, and a test reads this column against every record.
 | `Statement.CursorAction` | T-SQL | OPEN, CLOSE, DEALLOCATE | Control |
 | `Statement.Fetch` | T-SQL | FETCH | Control |
 | `Statement.Dbcc` | T-SQL | DBCC — every command, what stands in its brackets and its options | Admin |
+| `Statement.BeginDialog` | T-SQL | BEGIN DIALOG CONVERSATION | Control |
+| `Statement.ConversationTimer` | T-SQL | BEGIN CONVERSATION TIMER | Control |
+| `Statement.EndConversation` | T-SQL | END CONVERSATION | Control |
+| `Statement.MoveConversation` | T-SQL | MOVE CONVERSATION | Control |
+| `Statement.Send` | T-SQL | SEND | Dml |
+| `Statement.Receive` | T-SQL | RECEIVE | Dml |
+| `Statement.GetConversationGroup` | T-SQL | GET CONVERSATION GROUP | Dml |
+| `Statement.WaitForStatement` | T-SQL | WAITFOR — around RECEIVE or GET CONVERSATION GROUP, and its TIMEOUT | Control |
 | `Statement.SetUser` | T-SQL | SETUSER | Session |
 | `Statement.CreateLogin` | T-SQL | CREATE LOGIN | Dcl |
 | `Statement.AlterLogin` | T-SQL | ALTER LOGIN | Dcl |
@@ -237,6 +245,13 @@ compile, and a test reads this column against every record.
 | `Statement.DatabaseAuditSpecificationDefinition` | T-SQL | CREATE/ALTER DATABASE AUDIT SPECIFICATION | Ddl |
 | `Statement.EventSessionDefinition` | T-SQL | CREATE/ALTER EVENT SESSION | Ddl |
 | `Statement.EventNotificationDefinition` | T-SQL | CREATE EVENT NOTIFICATION | Ddl |
+| `Statement.MessageTypeDefinition` | T-SQL | CREATE, ALTER MESSAGE TYPE | Ddl |
+| `Statement.ContractDefinition` | T-SQL | CREATE CONTRACT | Ddl |
+| `Statement.QueueDefinition` | T-SQL | CREATE, ALTER QUEUE | Ddl |
+| `Statement.ServiceDefinition` | T-SQL | CREATE, ALTER SERVICE | Ddl |
+| `Statement.RouteDefinition` | T-SQL | CREATE, ALTER ROUTE | Ddl |
+| `Statement.RemoteServiceBindingDefinition` | T-SQL | CREATE, ALTER REMOTE SERVICE BINDING | Ddl |
+| `Statement.BrokerPriorityDefinition` | T-SQL | CREATE, ALTER BROKER PRIORITY | Ddl |
 | `Statement.EndpointDefinition` | T-SQL | CREATE/ALTER ENDPOINT | Ddl |
 | `Statement.CreateDatabase` | T-SQL | CREATE DATABASE — the standard has no database | Ddl |
 | `Statement.AlterDatabaseSet` | T-SQL | ALTER DATABASE … SET | Ddl |

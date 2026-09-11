@@ -634,6 +634,124 @@ public static class SqlWriter
 
 				break;
 
+			case Statement.BeginDialog(
+					var handle, var conversation, var from, var to, var instance, var contract, var options):
+				text.Append(conversation ? "BEGIN DIALOG CONVERSATION " : "BEGIN DIALOG ").Append(handle)
+					.Append(" FROM SERVICE ").Append(from).Append(" TO SERVICE ");
+				Put(text, to, 0);
+
+				if (instance is not null)
+				{
+					text.Append(", ");
+					Put(text, instance, 0);
+				}
+
+				if (contract is not null)
+					text.Append(" ON CONTRACT ").Append(contract);
+
+				if (options.Length > 0)
+				{
+					text.Append(" WITH ");
+					Each(text, options);
+				}
+
+				break;
+
+			case Statement.ConversationTimer(var handle, var timeout):
+				text.Append("BEGIN CONVERSATION TIMER (");
+				Put(text, handle, 0);
+				text.Append(") TIMEOUT = ");
+				Put(text, timeout, 0);
+				break;
+
+			case Statement.EndConversation(var handle, var error, var description, var cleanup):
+				text.Append("END CONVERSATION ");
+				Put(text, handle, 0);
+
+				if (cleanup)
+				{
+					text.Append(" WITH CLEANUP");
+				}
+				else if (error is not null && description is not null)
+				{
+					text.Append(" WITH ERROR = ");
+					Put(text, error, 0);
+					text.Append(" DESCRIPTION = ");
+					Put(text, description, 0);
+				}
+
+				break;
+
+			case Statement.MoveConversation(var handle, var group):
+				text.Append("MOVE CONVERSATION ");
+				Put(text, handle, 0);
+				text.Append(" TO ");
+				Put(text, group, 0);
+				break;
+
+			case Statement.Send(var conversations, var bracketed, var type, var body):
+				text.Append("SEND ON CONVERSATION ");
+
+				if (bracketed)
+					text.Append('(');
+
+				List(text, conversations);
+
+				if (bracketed)
+					text.Append(')');
+
+				if (type is not null)
+					text.Append(" MESSAGE TYPE ").Append(type);
+
+				if (body is not null)
+				{
+					text.Append(" (");
+					Put(text, body, 0);
+					text.Append(')');
+				}
+
+				break;
+
+			case Statement.Receive(var top, var columns, var queue, var into, var where):
+				text.Append("RECEIVE ");
+
+				if (top is not null)
+				{
+					Put(text, top);
+					text.Append(' ');
+				}
+
+				Each(text, columns);
+				text.Append(" FROM ").Append(queue);
+
+				if (into is not null)
+					text.Append(" INTO ").Append(into);
+
+				if (where is not null)
+				{
+					text.Append(" WHERE ");
+					Put(text, where, 0);
+				}
+
+				break;
+
+			case Statement.GetConversationGroup(var group, var queue):
+				text.Append("GET CONVERSATION GROUP ").Append(group).Append(" FROM ").Append(queue);
+				break;
+
+			case Statement.WaitForStatement(var waited, var timeout):
+				text.Append("WAITFOR (");
+				Put(text, waited);
+				text.Append(')');
+
+				if (timeout is not null)
+				{
+					text.Append(", TIMEOUT ");
+					Put(text, timeout, 0);
+				}
+
+				break;
+
 			case Statement.Dbcc(var command, var arguments, var options):
 				text.Append("DBCC ").Append(command);
 
