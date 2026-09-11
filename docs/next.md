@@ -18511,3 +18511,24 @@ nineteen rules in all, and the star is its first alternative, the same node it w
 
 At 150: read by both 5,817 (from 5,811), the work list 157 (from 163), read here but refused
 there 43, as before. `--split` 593, and the round trip 100% of 6,925.
+
+## A subquery as the count of a `TOP`
+
+`DELETE TOP (SELECT * FROM t2) PERCENT t1` and `SELECT TOP ((SELECT …) EXCEPT (SELECT …))
+WITH TIES` stopped at the `SELECT`: the brackets of a `TOP` held a value, and a query is not
+one until it has brackets of its own. The engine reads the brackets as the subquery's — a
+union, an `EXCEPT`, a `TOP` of its own inside — and refuses a `WITH` and a `VALUES` there.
+So a `TOP` reads a query in its brackets first, kept as the `Expression.Subquery` it is so
+that the bracket is written once, and a value second, as before; `TOP ((SELECT 1))` and `TOP
+(1 + (SELECT 1))` read as they did. `VALUES` is kept out with a lookahead, since the
+standard's query primary has it.
+
+Two of the probe's lines are left, and they are the next piece: a subquery with its own
+`ORDER BY` or `FOR XML`, which the tree has no place for outside a `SELECT` statement —
+`Query.Ordered`, agreed today, is that place.
+
+From here the work is done in a worktree of its own, `.claude/worktrees/claude-tsql`, so the
+main one is left to whoever else is working in it; the commits go to `main` as before.
+
+At 150: read by both 5,825 (from 5,817), the work list 149 (from 157), read here but refused
+there 43, as before. `--split` 601, and the round trip 100% of 6,933.

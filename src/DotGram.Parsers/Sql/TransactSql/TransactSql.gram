@@ -637,8 +637,14 @@ TSqlQuerySpecification : @Query
 
 // Written as alternatives of a rule rather than one sequence with a choice inside it,
 // for the reason `CallTail` gives.
+//
+// The brackets of `TOP` may be a subquery's own: `TOP (SELECT * FROM t2) PERCENT` and `TOP
+// ((SELECT …) EXCEPT (SELECT …))` are read, and kept as the subquery they are, so that the
+// bracket is written once. A `WITH` or a `VALUES` there is refused.
 Top : @Clause.Top
-	= "TOP"i & '(' & v: ValueExpression & ')' & suffix: TopSuffix?
+	= "TOP"i & '(' & ?!"VALUES"i & q: QueryExpression & ')' & suffix: TopSuffix?
+		=> @(Clause.Topped(new Expression.Subquery(q), suffix))
+	| "TOP"i & '(' & v: ValueExpression & ')' & suffix: TopSuffix?
 		=> @(Clause.Topped(new Expression.Parenthesized(v), suffix))
 	| "TOP"i & t: Sql92.Lexical.UnsignedNumericLiteral & suffix: TopSuffix?
 		=> @(Clause.Topped(new Expression.Literal(SqlLiteralKind.Number, t), suffix))

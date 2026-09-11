@@ -1302,6 +1302,30 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>A subquery as the count of a `TOP`, whose brackets are the subquery's own.</summary>
+	[Theory]
+	[InlineData("SELECT TOP (WITH x AS (SELECT 1 AS n) SELECT n FROM x) a FROM t")]
+	[InlineData("SELECT TOP (VALUES (1)) a FROM t")]
+	public void A_subquery_counted_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside it.</summary>
+	[Theory]
+	[InlineData("DELETE TOP (SELECT * FROM t2) PERCENT t1")]
+	[InlineData("INSERT TOP (SELECT * FROM t2) @v1 DEFAULT VALUES")]
+	[InlineData("UPDATE TOP (SELECT * FROM t2) t1 SET c1 = 23 + 10")]
+	[InlineData("SELECT TOP ((SELECT * FROM t1) EXCEPT (SELECT c1, c2 FROM t2)) WITH TIES c1 FROM t1 ORDER BY c1")]
+	[InlineData("SELECT TOP (SELECT 1 UNION SELECT 2) PERCENT a FROM t")]
+	[InlineData("SELECT TOP ((SELECT 1)) a, TOP_ = 1 FROM t")]
+	[InlineData("SELECT TOP (1 + (SELECT 1)) a FROM t")]
+	[InlineData("SELECT TOP ((SELECT 1) UNION (SELECT 2)) a FROM t")]
+	public void A_subquery_counted_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>A bare `*` as an item of the list, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * AS x FROM t")]
