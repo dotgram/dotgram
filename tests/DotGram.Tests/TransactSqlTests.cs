@@ -918,6 +918,8 @@ public sealed class TransactSqlTests
 	[InlineData("EXECUTE AS USER = 'u' WITH COOKIE INTO c")]
 	[InlineData("EXECUTE AS USER = 'u' WITH NORESET")]
 	[InlineData("EXECUTE AS CALLER, NO REVERT")]
+	[InlineData("EXEC AS CALLER WITH COOKIE INTO @c, NO REVERT")]
+	[InlineData("EXECUTE AS LOGIN = 'l' WITH COOKIE INTO @c, NO REVERT")]
 	[InlineData("REVERT WITH COOKIE @c")]
 	[InlineData("REVERT WITH COOKIE")]
 	[InlineData("REVERT WITH NO REVERT")]
@@ -931,7 +933,7 @@ public sealed class TransactSqlTests
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
 	[InlineData("EXECUTE AS CALLER")]
-	[InlineData("EXEC AS CALLER WITH COOKIE INTO @c, NO REVERT")]
+	[InlineData("EXEC AS CALLER WITH COOKIE INTO @c")]
 	[InlineData("EXECUTE AS USER = N'u'")]
 	[InlineData("EXECUTE AS USER = dbo.fn_getuser() WITH NO REVERT")]
 	[InlineData("EXECUTE AS USER = 'u' + @v WITH COOKIE INTO @@c")]

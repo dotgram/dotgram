@@ -1653,10 +1653,11 @@ IsolationLevel = "READ"i & "UNCOMMITTED"i | "READ"i & "COMMITTED"i | "REPEATABLE
 // `EXECUTE AS`, `REVERT` and `SETUSER`, put to the engine some sixty times. A user or a login
 // is any expression — a string, a variable, a call, a concatenation — and a caller the word
 // alone; `SELF`, `OWNER` and a bare string are a module's, and refused here. After it, `WITH
-// NO REVERT`, or a cookie and then `NO REVERT`, which the engine refuses the other way round.
+// NO REVERT` or a cookie, one of the two: a first probe, its variable undeclared, had the
+// engine read the cookie and then `NO REVERT`, which it refuses once the variable exists.
 // `REVERT` shows the cookie as any expression, and `SETUSER` takes a string or a variable,
-// and `WITH NORESET` only after one. Two forms the engine reads have no place in the tree and
-// are refused: a second cookie, and a second value after `SETUSER`.
+// and `WITH NORESET` only after one; a second cookie, or a second value after `SETUSER`, the
+// engine refuses too.
 SessionStatement : @Statement
 	= ExecWord & "AS"i & who: SessionWho & w: SessionWith?
 		=> @(w is null ? who : who with { NoRevert = w.NoRevert, Cookie = w.Cookie })
@@ -1671,13 +1672,12 @@ SessionWho : @Statement.ExecuteAs
 // What follows whom: the node's own two fields and nothing of its kind, laid onto it above.
 SessionWith : @Statement.ExecuteAs
 	= "WITH"i & "NO"i & "REVERT"i => @(new Statement.ExecuteAs("", null, true))
-	| "WITH"i & "COOKIE"i & "INTO"i & c: TSql.Variable & r: SessionNoRevert?
-		=> @(new Statement.ExecuteAs("", null, r is not null, new Expression.Literal(SqlLiteralKind.Parameter, c)))
+	| "WITH"i & "COOKIE"i & "INTO"i & c: TSql.Variable
+		=> @(new Statement.ExecuteAs("", null, false, new Expression.Literal(SqlLiteralKind.Parameter, c)))
 
 SessionKind : @string = "USER"i => @("USER") | "LOGIN"i => @("LOGIN")
 
-SessionNoRevert = ',' & "NO"i & "REVERT"i
-SessionNoReset  = "WITH"i & "NORESET"i
+SessionNoReset = "WITH"i & "NORESET"i
 
 RevertCookie : @Expression = "WITH"i & "COOKIE"i & '=' & c: ValueExpression => @(c)
 

@@ -18248,3 +18248,25 @@ position, so neither moved.
 A day later the name changed: it is `Category`, a `StatementCategory`, since what it says is
 which group a statement is in — Microsoft's page of the `SET` statements calls its groups
 categories too. With the name free again, the five strings are `Kind` once more.
+
+## The probes asked again, with their variables declared
+
+`SET @a = 1, LOCK_TIMEOUT 10` was read, a probe said, and then refused once `@a` was declared:
+the engine had reported the undeclared variable (137, on the audit's read side) before the
+syntax error behind it. `OPENJSON`'s schema had done the same earlier, and was put down to its
+being parsed late. It is not only that: `SET` binds its variable before it is done reading,
+and so, it turns out, does `EXECUTE AS`. So every line of today's probes with a variable in
+it — 88 — was put again with `DECLARE @x SQL_VARIANT` in front, and 13 answered otherwise.
+
+- **`EXECUTE AS … WITH COOKIE INTO @c, NO REVERT`** is refused. The statement takes a cookie
+  or `NO REVERT`, one of the two, as its block says; the grammar read both and the writer
+  printed both, and neither does now.
+- **A second cookie, and `SETUSER @u, @v`,** were written down as read by the engine and
+  refused here for want of a place in the tree. The engine refuses them too.
+- **`SET LOCK_TIMEOUT @t`** is refused: that setting takes a number and not a variable, which
+  is for the `SET` statements' own work.
+- **`OPENJSON`'s schema and `SET @a = 1, …`** answered as already known.
+
+The other 75 lines answered as before, so `REVERT … = @c`, `CONTAINS (b, @s)`, `LANGUAGE @l`,
+`TOP @n` and the passwords refused as variables stand. A probe declares what it uses from now
+on.

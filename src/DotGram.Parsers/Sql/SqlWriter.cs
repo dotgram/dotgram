@@ -589,15 +589,14 @@ public static class SqlWriter
 					Put(text, name, 0);
 				}
 
-				// The cookie first: the engine refuses `NO REVERT` in front of it.
+				// One or the other: the engine takes a cookie or `NO REVERT`, never both.
 				if (cookie is not null)
 				{
 					text.Append(" WITH COOKIE INTO ");
 					Put(text, cookie, 0);
 				}
-
-				if (noRevert)
-					text.Append(cookie is null ? " WITH NO REVERT" : ", NO REVERT");
+				else if (noRevert)
+					text.Append(" WITH NO REVERT");
 
 				break;
 

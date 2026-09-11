@@ -92,8 +92,7 @@ public sealed class SqlWriterTests
 	[InlineData("INSERT INTO t VALUES (1) OPTION (RECOMPILE)", "INSERT INTO t VALUES (1) OPTION (RECOMPILE)")]
 	[InlineData("EXEC AS CALLER",                         "EXECUTE AS CALLER")]
 	[InlineData("EXECUTE AS USER = 'u' WITH NO REVERT",   "EXECUTE AS USER = 'u' WITH NO REVERT")]
-	[InlineData("EXECUTE AS LOGIN = @l WITH COOKIE INTO @c, NO REVERT",
-		"EXECUTE AS LOGIN = @l WITH COOKIE INTO @c, NO REVERT")]
+	[InlineData("EXECUTE AS LOGIN = @l WITH COOKIE INTO @c", "EXECUTE AS LOGIN = @l WITH COOKIE INTO @c")]
 	[InlineData("REVERT WITH COOKIE = @c",                "REVERT WITH COOKIE = @c")]
 	[InlineData("SETUSER",                                "SETUSER")]
 	[InlineData("SETUSER N'u' WITH NORESET",              "SETUSER N'u' WITH NORESET")]
