@@ -689,6 +689,59 @@ public abstract record Statement : ISqlSpan
 		public override StatementCategory Category => StatementCategory.Ddl;
 	}
 
+	/// <summary><c>READTEXT</c>: part of a <c>text</c>, <c>ntext</c> or <c>image</c> value, read through its pointer.</summary>
+	/// <param name="Column">The column, by two parts to four.</param>
+	/// <param name="Pointer">The text pointer: a variable, or a binary string.</param>
+	/// <param name="Offset">Where the reading starts.</param>
+	/// <param name="Size">How much is read.</param>
+	/// <param name="HoldLock">Whether <c>HOLDLOCK</c> was said.</param>
+	public sealed record ReadText(
+		string Column, Expression Pointer, Expression Offset, Expression Size, bool HoldLock = false) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dml;
+	}
+
+	/// <summary><c>WRITETEXT</c>: a <c>text</c>, <c>ntext</c> or <c>image</c> value replaced through its pointer.</summary>
+	/// <param name="Data">
+	/// What it is replaced with; null after <c>BULK</c>, where the data comes by the bulk
+	/// protocol instead.
+	/// </param>
+	/// <param name="Bulk">Whether <c>BULK</c> was said.</param>
+	/// <param name="Log">Whether <c>WITH LOG</c> was said.</param>
+	public sealed record WriteText(
+		string Column, Expression Pointer, Expression? Data, bool Bulk = false, bool Log = false) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dml;
+	}
+
+	/// <summary><c>UPDATETEXT</c>: part of a <c>text</c>, <c>ntext</c> or <c>image</c> value replaced through its pointer.</summary>
+	/// <param name="Offset">Where the change starts; <c>NULL</c> for the end.</param>
+	/// <param name="Length">How much is taken out; <c>NULL</c> for all of it to the end.</param>
+	/// <param name="Data">What is put in, where it is a value.</param>
+	/// <param name="Source">
+	/// Another column what is put in is taken from instead, with <see cref="SourcePointer"/>
+	/// its pointer.
+	/// </param>
+	/// <param name="Bulk">Whether <c>BULK</c> was said, the data then coming by the bulk protocol.</param>
+	/// <param name="Log">Whether <c>WITH LOG</c> was said.</param>
+	public sealed record UpdateText(
+		string Column, Expression Pointer, Expression Offset, Expression Length, Expression? Data = null,
+		string? Source = null, Expression? SourcePointer = null, bool Bulk = false, bool Log = false) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dml;
+	}
+
+	/// <summary><c>RECONFIGURE</c>: the configuration just changed, taken up.</summary>
+	/// <param name="Override">Whether <c>WITH OVERRIDE</c> was said.</param>
+	public sealed record Reconfigure(bool Override = false) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
+
 	// ---- DBCC ----------------------------------------------------------------------------------
 	/// <summary><c>DBCC</c>: a console command, what stood in its brackets, and its options.</summary>
 	/// <remarks>
@@ -1486,6 +1539,13 @@ public abstract record Statement : ISqlSpan
 	/// <summary><c>ALTER MASTER KEY</c>.</summary>
 	public sealed record AlterMasterKey(string Name) : Definition(Name);
 
+	/// <summary>
+	/// <c>ALTER SERVICE MASTER KEY</c>: the server's own key regenerated, or told the account
+	/// the service runs under has changed.
+	/// </summary>
+	public sealed record AlterServiceMasterKey(string Name) : Definition(Name);
+
+
 	/// <summary><c>CREATE DATABASE ENCRYPTION KEY</c>.</summary>
 	public sealed record DatabaseEncryptionKeyDefinition(string Name) : Definition(Name);
 
@@ -1899,6 +1959,7 @@ public abstract record Statement : ISqlSpan
 			"ALTER CERTIFICATE"             => new AlterCertificate(name),
 			"MASTER KEY"                    => new MasterKeyDefinition(name),
 			"ALTER MASTER KEY"              => new AlterMasterKey(name),
+			"ALTER SERVICE MASTER KEY"      => new AlterServiceMasterKey(name),
 			"DATABASE ENCRYPTION KEY"       => new DatabaseEncryptionKeyDefinition(name),
 			"ALTER DATABASE ENCRYPTION KEY" => new AlterDatabaseEncryptionKey(name),
 			"COLUMN ENCRYPTION KEY"         => new ColumnEncryptionKeyDefinition(name),

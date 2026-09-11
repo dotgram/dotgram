@@ -761,6 +761,63 @@ public static class SqlWriter
 
 				break;
 
+			case Statement.ReadText(var column, var pointer, var offset, var size, var holdLock):
+				text.Append("READTEXT ").Append(column).Append(' ');
+				Put(text, pointer, 0);
+				text.Append(' ');
+				Put(text, offset, 0);
+				text.Append(' ');
+				Put(text, size, 0);
+
+				if (holdLock)
+					text.Append(" HOLDLOCK");
+
+				break;
+
+			case Statement.WriteText(var column, var pointer, var data, var bulk, var log):
+				text.Append(bulk ? "WRITETEXT BULK " : "WRITETEXT ").Append(column).Append(' ');
+				Put(text, pointer, 0);
+
+				if (log)
+					text.Append(" WITH LOG");
+
+				if (data is not null)
+				{
+					text.Append(' ');
+					Put(text, data, 0);
+				}
+
+				break;
+
+			case Statement.UpdateText(
+					var column, var pointer, var offset, var length, var data, var source, var sourcePointer, var bulk, var log):
+				text.Append(bulk ? "UPDATETEXT BULK " : "UPDATETEXT ").Append(column).Append(' ');
+				Put(text, pointer, 0);
+				text.Append(' ');
+				Put(text, offset, 0);
+				text.Append(' ');
+				Put(text, length, 0);
+
+				if (log)
+					text.Append(" WITH LOG");
+
+				if (data is not null)
+				{
+					text.Append(' ');
+					Put(text, data, 0);
+				}
+				else if (source is not null && sourcePointer is not null)
+				{
+					text.Append(' ').Append(source).Append(' ');
+					Put(text, sourcePointer, 0);
+				}
+
+				break;
+
+			case Statement.Reconfigure(var overridden):
+				text.Append(overridden ? "RECONFIGURE WITH OVERRIDE" : "RECONFIGURE");
+				break;
+
 			case Statement.AddSignature(var by, var to, var counter):
 				text.Append(counter ? "ADD COUNTER SIGNATURE TO " : "ADD SIGNATURE TO ").Append(to).Append(" BY ");
 

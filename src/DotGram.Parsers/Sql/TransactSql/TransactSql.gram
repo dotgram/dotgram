@@ -1751,6 +1751,7 @@ DefinitionStatement : @Statement
 	| s: TypeStatement           => @(s)
 	| s: MaintenanceStatement    => @(s)
 	| s: CodeStatement           => @(s)
+	| s: TextStatement           => @(s)
 
 // ── A text of statements ────────────────────────────────────────────────────
 //
@@ -1865,6 +1866,61 @@ DeclaredAs : @Clause.VariableDeclaration
 	| "CURSOR"i                                           => @(new Clause.VariableDeclaration("", "CURSOR", null))
 	| type: DataType & n: NullSpec? & ('=' & v: SetValue)? => @(new Clause.VariableDeclaration("", type, v, null, n))
 
+// ── Text read and written in place, and a configuration taken up ──────────────────
+//
+// `READTEXT`, `WRITETEXT` and `UPDATETEXT`, the old way to a `text`, `ntext` or `image` value
+// through its pointer, and `RECONFIGURE`: a record each, put to the engine some hundred and
+// twenty times.
+//
+// The column is named by two parts to four (`Msg 182`), and the pointer is a variable or a
+// binary string, never `NULL` or an `@@` one. What is read is a start and a size, each a number
+// with no sign and no exponent or a variable, and then `HOLDLOCK` if wanted — once, and no
+// other hint (`Msg 1018`). What is written is a string, a binary string, a variable or `NULL`,
+// never a number or an expression; after `BULK` nothing is, the data coming by the bulk
+// protocol (`Msg 185`), and without it something must be (`Msg 186`). What is updated is a start
+// and a length, each `NULL`, a variable or a number that may be negative, and then a value,
+// another column and its pointer, or nothing. `RECONFIGURE` takes `WITH OVERRIDE` and no more.
+TextStatement : @Statement
+	= "READTEXT"i & column: TextColumn & pointer: TextPointer & offset: TextAmount & size: TextAmount
+	  & hold: "HOLDLOCK"i?
+		=> @(new Statement.ReadText(column, pointer, offset, size, hold is not null))
+	| "WRITETEXT"i & "BULK"i & column: TextColumn & pointer: TextPointer & log: TextLog?
+		=> @(new Statement.WriteText(column, pointer, null, true, log is not null))
+	| "WRITETEXT"i & column: TextColumn & pointer: TextPointer & log: TextLog? & data: TextData
+		=> @(new Statement.WriteText(column, pointer, data, false, log is not null))
+	| "UPDATETEXT"i & "BULK"i & column: TextColumn & pointer: TextPointer & offset: TextPlace & length: TextPlace
+	  & log: TextLog?
+		=> @(new Statement.UpdateText(column, pointer, offset, length, null, null, null, true, log is not null))
+	| "UPDATETEXT"i & column: TextColumn & pointer: TextPointer & offset: TextPlace & length: TextPlace
+	  & log: TextLog? & (source: TextColumn & from: TextPointer | data: TextData)?
+		=> @(new Statement.UpdateText(column, pointer, offset, length, data, source, from, false, log is not null))
+	| "RECONFIGURE"i & o: ("WITH"i & "OVERRIDE"i)?
+		=> @(new Statement.Reconfigure(o is not null))
+
+TextColumn : @string = t: (Identifier & '.' & Identifier & ('.' & Identifier)? & ('.' & Identifier)?) => @(t)
+
+TextPointer : @Expression
+	= v: LocalVariable      => @(v)
+	| t: TSql.BinaryLiteral => @(new Expression.Literal(SqlLiteralKind.Hex, t))
+
+TextAmount : @Expression
+	= n: ExactNumber   => @(new Expression.Literal(SqlLiteralKind.Number, n))
+	| v: LocalVariable => @(v)
+
+TextPlace : @Expression
+	= "NULL"i                => @(Expression.NullValue)
+	| t: ('-' & ExactNumber) => @(new Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(t)))
+	| n: ExactNumber         => @(new Expression.Literal(SqlLiteralKind.Number, n))
+	| v: LocalVariable       => @(v)
+
+TextData : @Expression
+	= v: BrokerString       => @(v)
+	| t: TSql.BinaryLiteral => @(new Expression.Literal(SqlLiteralKind.Hex, t))
+	| v: LocalVariable      => @(v)
+	| "NULL"i               => @(Expression.NullValue)
+
+TextLog = "WITH"i & "LOG"i
+
 // ── Code the server loads, and what binds or signs it ─────────────────────────────
 //
 // Put to the engine some two hundred times. The objects are kept as every object here is, a
@@ -1904,10 +1960,10 @@ CodeStatement : @Statement
 	  & tail: (("FROM"i & SetValue)? & options: AssemblyOptions? & AssemblyDrop? & AssemblyAdd?)
 	  & when @(Syntax.Tail(tail) is not null)
 		=> @(Statement.Defined("ASSEMBLY", name, Syntax.Tail(tail), "ALTER", options))
-	| "CREATE"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & name: Identifier & tail: ("FROM"i & "FILE"i & '=' & CodeString)
+	| "CREATE"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & name: Identifier & tail: ("FROM"i & "FILE"i & '=' & Quoted)
 		=> @(Statement.Defined("CRYPTOGRAPHIC PROVIDER", name, Syntax.Tail(tail), "CREATE"))
 	| "ALTER"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & name: Identifier
-	  & tail: ("ENABLE"i | "DISABLE"i | "FROM"i & "FILE"i & '=' & CodeString)
+	  & tail: ("ENABLE"i | "DISABLE"i | "FROM"i & "FILE"i & '=' & Quoted)
 		=> @(Statement.Defined("CRYPTOGRAPHIC PROVIDER", name, Syntax.Tail(tail), "ALTER"))
 	| "CREATE"i & "EXTERNAL"i & "LANGUAGE"i & name: Identifier
 	  & tail: (("AUTHORIZATION"i & Identifier)? & "FROM"i & file: LanguageFile & (',' & other: LanguageFile)?)
@@ -1941,11 +1997,9 @@ AssemblyOption : @Clause
 	| "VISIBILITY"i & '=' & on: OnOff => @(new Clause.Option("VISIBILITY", new Expression.ColumnReference(on), Clause.None))
 	| "UNCHECKED"i & "DATA"i           => @(new Clause.Option("UNCHECKED DATA", null, Clause.None))
 
-AssemblyDrop = "DROP"i & "FILE"i & ("ALL"i | CodeString & (',' & CodeString)*)
+AssemblyDrop = "DROP"i & "FILE"i & ("ALL"i | Quoted & (',' & Quoted)*)
 AssemblyAdd  = "ADD"i & "FILE"i & "FROM"i & AssemblyFile & (',' & AssemblyFile)*
-AssemblyFile = SetValue & ("AS"i & CodeString)?
-
-CodeString = Sql92.Lexical.NationalCharacterStringLiteral | Sql92.Lexical.CharacterStringLiteral
+AssemblyFile = SetValue & ("AS"i & Quoted)?
 
 LanguageFile : @Clause[]
 	= '(' & first: LanguageOption & (',' & rest: LanguageOption)* & ')' => @(Syntax.Listed(first, rest))
@@ -1970,9 +2024,9 @@ SignatureCrypto : @Expression
 	= t: ("CERTIFICATE"i & Identifier & SignatureProof?)         => @(new Expression.ColumnReference(Syntax.Spaced(t)))
 	| t: ("ASYMMETRIC"i & "KEY"i & Identifier & SignatureProof?) => @(new Expression.ColumnReference(Syntax.Spaced(t)))
 	| t: ("SYMMETRIC"i & "KEY"i & Identifier)                    => @(new Expression.ColumnReference(Syntax.Spaced(t)))
-	| t: ("PASSWORD"i & '=' & CodeString)                        => @(new Expression.ColumnReference(Syntax.Spaced(t)))
+	| t: ("PASSWORD"i & '=' & Quoted)                        => @(new Expression.ColumnReference(Syntax.Spaced(t)))
 
-SignatureProof = "WITH"i & ("PASSWORD"i & '=' & CodeString | "SIGNATURE"i & '=' & TSql.BinaryLiteral)
+SignatureProof = "WITH"i & ("PASSWORD"i & '=' & Quoted | "SIGNATURE"i & '=' & TSql.BinaryLiteral)
 
 // ── A table emptied, a trigger switched, a session killed, a column classified ────
 //
@@ -3739,6 +3793,8 @@ KeyStatement : @Statement
 		=> @(Statement.Defined("MASTER KEY", "", Syntax.Tail(tail)))
 	| "ALTER"i & "MASTER"i & "KEY"i & tail: MasterKeyChange
 		=> @(Statement.Defined("ALTER MASTER KEY", "", Syntax.Tail(tail)))
+	| "ALTER"i & "SERVICE"i & "MASTER"i & "KEY"i & tail: ServiceKeyChange
+		=> @(Statement.Defined("ALTER SERVICE MASTER KEY", "", Syntax.Tail(tail)))
 
 	| "CREATE"i & "DATABASE"i & "ENCRYPTION"i & "KEY"i
 	  & tail: ("WITH"i & "ALGORITHM"i & '=' & DatabaseKeyAlgorithm & ServerEncryption)
@@ -3915,6 +3971,14 @@ SymmetricEncryption = "ENCRYPTION"i & "BY"i & KeyEncryptor & (',' & KeyEncryptor
 MasterKeyChange
 	= "FORCE"i? & "REGENERATE"i & "WITH"i & "ENCRYPTION"i & "BY"i & PasswordEncryptor
 	| AddOrDrop & "ENCRYPTION"i & "BY"i & ("SERVICE"i & "MASTER"i & "KEY"i | PasswordEncryptor)
+
+// The service master key is regenerated, forced or not, or told that the account the service
+// runs under has changed — the old one or the new one, its name and then its password, both
+// strings and in that order; nothing else, and not nothing.
+ServiceKeyChange
+	= "FORCE"i? & "REGENERATE"i
+	| "WITH"i & "OLD_ACCOUNT"i & '=' & Quoted & ',' & "OLD_PASSWORD"i & '=' & Quoted
+	| "WITH"i & "NEW_ACCOUNT"i & '=' & Quoted & ',' & "NEW_PASSWORD"i & '=' & Quoted
 
 // A certificate made here takes its options in any order and none of them is required; one
 // read from somewhere takes its private key's.

@@ -19042,3 +19042,31 @@ engine reads it too, as `EXEC p` and a statement after it.
 At 150: read by both 5,862 (from 5,858), the work list 114 (from 118), read here but refused
 there 43 (from 43); `--split` 699 (from 682), the round trip 100% of 7,458. The map: read by
 both 7,953 of 8,338 (99.4%), the work list 50 (from 91), defects 0.
+
+## Text read and written through its pointer, a configuration taken up, the service master key
+
+`READTEXT`, `WRITETEXT`, `UPDATETEXT` and `RECONFIGURE`, a record each as agreed for the small
+statements, and `ALTER SERVICE MASTER KEY` as the master key's other statements are. Put to the
+engine some hundred and twenty times:
+
+- **The column** is named by two parts to four (`Msg 182`); **the pointer** is a variable or a
+  binary string, never `NULL` or an `@@` one.
+- **What is read** is a start and a size, each a number with no sign and no exponent or a
+  variable — `1.5` is read, `-1`, `1e1`, `$1` and `'0'` are not — and `HOLDLOCK` once, no other
+  hint (`Msg 1018`).
+- **What is written** is a string, a binary string, a variable or `NULL`, never a number. After
+  `BULK` nothing is, the data coming by the bulk protocol (`Msg 185`), and without it something
+  must be (`Msg 186`); `WITH LOG` stands before it either way.
+- **What is updated** is a start and a length, each `NULL`, a variable or a number that may be
+  negative — `UPDATETEXT` reads `-1` where `READTEXT` refuses it — and then a value, another
+  column and its pointer, or nothing.
+- **`RECONFIGURE`** takes `WITH OVERRIDE` and nothing more.
+- **The service master key** is regenerated, forced or not, or told of the account the service
+  runs under: old or new, its name and then its password, strings both and in that order.
+
+And a rule of the last entry's was already in the grammar under another name: `CodeString` was
+`Quoted`, and is gone.
+
+At 150: read by both 5,862 (from 5,862), the work list 114 (from 114), read here but refused
+there 43 (from 43); `--split` 701 (from 699), the round trip 100% of 7,490. The map: read by
+both 7,961 of 8,338 (99.5%), the work list 42 (from 50), defects 0.

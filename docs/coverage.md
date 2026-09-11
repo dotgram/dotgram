@@ -24,17 +24,17 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 99.4% | 7953 | 50 | 0 | 4 | 85 | 250 | 0 |
+| **all** | 996 | 8338 | 99.5% | 7961 | 42 | 0 | 4 | 85 | 250 | 0 |
 | [data-types](#data-types) | 29 | 304 | 99.7% | 290 | 1 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 99.2% | 234 | 2 | 0 | 0 | 1 | 5 | 0 |
-| [functions](#functions) | 324 | 2101 | 99.8% | 2077 | 5 | 0 | 3 | 2 | 17 | 0 |
+| [functions](#functions) | 324 | 2101 | 99.9% | 2079 | 3 | 0 | 3 | 2 | 17 | 0 |
 | [includes](#includes) | 3 | 7 | 100.0% | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
-| [language-elements](#language-elements) | 86 | 868 | 99.4% | 849 | 5 | 0 | 0 | 0 | 14 | 0 |
-| [queries](#queries) | 37 | 747 | 98.5% | 713 | 11 | 0 | 0 | 1 | 22 | 0 |
+| [language-elements](#language-elements) | 86 | 868 | 99.5% | 850 | 4 | 0 | 0 | 0 | 14 | 0 |
+| [queries](#queries) | 37 | 747 | 98.9% | 716 | 8 | 0 | 0 | 1 | 22 | 0 |
 | [reference](#reference) | 3 | 32 | 100.0% | 32 | 0 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 99.7% | 310 | 1 | 0 | 0 | 0 | 1 | 0 |
 | [spatial-geometry](#spatial-geometry) | 74 | 357 | 99.7% | 356 | 1 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 99.2% | 2884 | 24 | 0 | 1 | 81 | 174 | 0 |
+| [statements](#statements) | 320 | 3163 | 99.2% | 2886 | 22 | 0 | 1 | 81 | 174 | 0 |
 | [xml](#xml) | 12 | 205 | 100.0% | 201 | 0 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
@@ -46,21 +46,16 @@ rest run rather than read.
 | IF | 4 | 1 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
 | ALTER AVAILABILITY GROUP | 3 | 2 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP AccountsAG JOIN;` |
 | CREATE TABLE | 3 | 3 | stops at ')' — `CREATE TABLE ExampleTable (PriKey int PRIMARY KEY, timestamp);` |
-| READTEXT | 3 | 2 | stops at READTEXT — `READTEXT t1.c2 @ptrval 0 1;` |
 | SET | 3 | 1 | stops at AUTOCOMMIT — `SET AUTOCOMMIT ON;` |
 | USE | 3 | 2 | stops at COMPUTE — `USE UserDbSales; DBCC FREEPROCCACHE (COMPUTE) WITH NO_INFOMSGS;` |
 | BACKUP | 2 | 2 | stops at ALGORITHM — `BACKUP CERTIFICATE Shipping04 TO FILE = 'c:\storedcerts\shipping04cert.pfx' WITH FO...` |
 | DECLARE | 2 | 2 | stops at ';' — `DECLARE @days INT = 365, @datetime DATETIME2 = '2000-01-01 01:01:01.1110000'; /* 20...` |
-| RECONFIGURE | 2 | 2 | stops at RECONFIGURE — `RECONFIGURE WITH OVERRIDE;` |
 | SELECT | 2 | 2 | stops at DIAGNOSTICS — `-- Determine the session_id of your current session SELECT TOP 1 session_id();  -- ...` |
-| ALTER SERVICE | 1 | 1 | stops at KEY — `ALTER SERVICE MASTER KEY REGENERATE;` |
 | ALTER TABLE | 1 | 1 | stops at WITH — `ALTER TABLE dbo.doc_exf ADD AddDate smalldatetime NULL CONSTRAINT AddDateDflt DEFAU...` |
 | CREATE DATABASE SCOPED | 1 | 1 | stops at ')' — `CREATE DATABASE SCOPED CREDENTIAL AccessAzureInvoices WITH IDENTITY = 'SHARED ACCES...` |
 | CREATE OR | 1 | 1 | stops at '$' — `CREATE OR ALTER PROCEDURE mergeEdge @PersonId integer, @CityId integer, @StreetAddr...` |
 | CREATE XML INDEX | 1 | 1 | stops at '(' — `CREATE XML INDEX filt_sxi_index_c ON Tbl(xmlcol) USING XML INDEX sxi_index FOR ( pa...` |
 | RESTORE | 1 | 1 | stops at RESTORE_OPTIONS — `RESTORE DATABASE AdventureWorks2022_1 FROM URL = 's3://datavirtualizationsample.s3....` |
-| UPDATETEXT | 1 | 1 | stops at UPDATETEXT — `UPDATETEXT pub_info.pr_info @ptrval 88 1 'b';` |
-| WRITETEXT | 1 | 1 | stops at WRITETEXT — `WRITETEXT pub_info.pr_info @ptrval 'New Moon Books (NMB) has just released another ...` |
 
 ## What the engine answered the defects
 
@@ -146,7 +141,6 @@ None: the engine reads every statement this grammar reads.
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | OPENJSON (Transact-SQL) | 23 | 100.0% | 0 | 0 | 3 | 0 | levels 100 engine, 110 engine, 120 engine — `SELECT * FROM OPENJSON(@array) WITH (  month VARCHAR(3), temp int, month_id tinyint...` |
-| TEXTPTR (Transact-SQL) | 20 | 90.0% | 2 | 0 | 0 | 0 | stops at READTEXT — `READTEXT t1.c2 @ptrval 0 1;` |
 | DATE_BUCKET (Transact-SQL) | 27 | 96.3% | 1 | 0 | 0 | 0 | stops at ';' — `DECLARE @days INT = 365, @datetime DATETIME2 = '2000-01-01 01:01:01.1110000'; /* 20...` |
 | EDGE_ID_FROM_PARTS (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at ';' — `INSERT INTO likes($edge_id, $from_id, $to_id, rating) SELECT EDGE_ID_FROM_PARTS(OBJ...` |
 | NODE_ID_FROM_PARTS (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at ';' — `INSERT INTO Person($node_id, ID, [name]) SELECT NODE_ID_FROM_PARTS(OBJECT_ID('Perso...` |
@@ -433,6 +427,7 @@ None: the engine reads every statement this grammar reads.
 | SYSTEM_USER (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SYSUTCDATETIME (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | TAN (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| TEXTPTR (Transact-SQL) | 20 | 100.0% | 0 | 0 | 0 | 0 |  |
 | TEXTVALID (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | @@TEXTSIZE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | TIMEFROMPARTS (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -484,7 +479,6 @@ None: the engine reads every statement this grammar reads.
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | Transactions (Azure Synapse Analytics and Microsoft Fabric) | 11 | 72.7% | 3 | 0 | 0 | 0 | stops at AUTOCOMMIT — `SET AUTOCOMMIT ON;` |
 | CREATE DIAGNOSTICS SESSION (Transact-SQL) | 9 | 83.3% | 1 | 0 | 0 | 0 | stops at DIAGNOSTICS — `-- Determine the session_id of your current session SELECT TOP 1 session_id();  -- ...` |
-| RECONFIGURE (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at RECONFIGURE — `RECONFIGURE WITH OVERRIDE;` |
 | + (Addition) (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALL (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | AND (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -539,6 +533,7 @@ None: the engine reads every statement this grammar reads.
 | Wildcard search (%) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | PRINT (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | RAISERROR (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
+| RECONFIGURE (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | RETURN (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ROLLBACK TRANSACTION (Transact-SQL) | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SAVE TRANSACTION (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -576,10 +571,7 @@ None: the engine reads every statement this grammar reads.
 | UPDATE (Transact-SQL) | 136 | 97.1% | 4 | 0 | 0 | 0 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
 | PREDICT (Transact-SQL) | 8 | 71.4% | 2 | 0 | 0 | 0 | stops at WITH — `SELECT d.*, p.Score FROM PREDICT(MODEL = @model, DATA = dbo.mytable AS d, RUNTIME =...` |
 | OUTPUT clause (Transact-SQL) | 67 | 98.5% | 1 | 0 | 0 | 0 | stops at MERGE — `INSERT INTO Production.ZeroInventory ( DeletedProductID, RemovedOnDate ) SELECT Pro...` |
-| READTEXT (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at READTEXT — `READTEXT pub_info.pr_info @ptrval 1 25;` |
 | SELECT Clause (Transact-SQL) | 5 | 80.0% | 1 | 0 | 0 | 0 | stops at ',' — `DECLARE @p POINT (32, 23), @distance FLOAT;` |
-| UPDATETEXT (Transact-SQL) | 6 | 83.3% | 1 | 0 | 0 | 0 | stops at UPDATETEXT — `UPDATETEXT pub_info.pr_info @ptrval 88 1 'b';` |
-| WRITETEXT (Transact-SQL) | 6 | 83.3% | 1 | 0 | 0 | 0 | stops at WRITETEXT — `WRITETEXT pub_info.pr_info @ptrval 'New Moon Books (NMB) has just released another ...` |
 | Aliasing | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | AT TIME ZONE (Transact-SQL) | 17 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CONTAINS (Transact-SQL) | 40 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -595,6 +587,7 @@ None: the engine reads every statement this grammar reads.
 | MATCH (SQL Graph) | 14 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Nested Common Table Expression (CTE) in Fabric data warehousing | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OPTION clause (Transact-SQL) | 14 | 100.0% | 0 | 0 | 0 | 0 |  |
+| READTEXT (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Search condition (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SELECT examples (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | FOR Clause (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -608,8 +601,10 @@ None: the engine reads every statement this grammar reads.
 | Subqueries | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Table Value Constructor (Transact-SQL) | 20 | 100.0% | 0 | 0 | 0 | 0 |  |
 | TOP (Transact-SQL) | 28 | 100.0% | 0 | 0 | 0 | 0 |  |
+| UPDATETEXT (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | WHERE (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | WITH common_table_expression (Transact-SQL) | 28 | 100.0% | 0 | 0 | 0 | 1 |  |
+| WRITETEXT (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 
 ## reference
 
@@ -784,8 +779,6 @@ None: the engine reads every statement this grammar reads.
 | CREATE CREDENTIAL (Transact-SQL) | 26 | 92.3% | 2 | 0 | 0 | 0 | stops at BACKUP_OPTIONS — `BACKUP DATABASE [AdventureWorks2022] TO URL  = 's3://datavirtualizationsample.s3.am...` |
 | INSERT (Transact-SQL) | 73 | 97.3% | 2 | 0 | 0 | 0 | stops at ')' — `CREATE TABLE dbo.T1 ( column_1 int IDENTITY, column_2 uniqueidentifier, );` |
 | MERGE (Transact-SQL) | 54 | 96.0% | 2 | 0 | 0 | 0 | stops at MERGE — `INSERT INTO Production.UpdatedInventory SELECT ProductID, LocationID, NewQty, Previ...` |
-| ALTER SERVER CONFIGURATION (Transact-SQL) | 20 | 95.0% | 1 | 0 | 0 | 0 | stops at RECONFIGURE — `RECONFIGURE;` |
-| ALTER SERVICE MASTER KEY (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at KEY — `ALTER SERVICE MASTER KEY REGENERATE;` |
 | ALTER TABLE (Transact-SQL) | 141 | 99.2% | 1 | 0 | 0 | 4 | stops at WITH — `ALTER TABLE dbo.doc_exf ADD AddDate smalldatetime NULL CONSTRAINT AddDateDflt DEFAU...` |
 | BACKUP CERTIFICATE (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at ALGORITHM — `BACKUP CERTIFICATE Shipping04 TO FILE = 'c:\storedcerts\shipping04cert.pfx' WITH FO...` |
 | CREATE AVAILABILITY GROUP (Transact-SQL) | 2 | 0.0% | 1 | 0 | 0 | 0 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP [MyAg] ADD LISTENER 'MyAgListenerIvP6' ( WITH IP ( ('2001:...` |
@@ -844,7 +837,9 @@ None: the engine reads every statement this grammar reads.
 | ALTER SEQUENCE (Transact-SQL) | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SERVER AUDIT SPECIFICATION (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SERVER AUDIT (Transact-SQL) | 17 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER SERVER CONFIGURATION (Transact-SQL) | 20 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SERVER ROLE (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER SERVICE MASTER KEY (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SERVICE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SYMMETRIC KEY (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER TABLE index_option (Transact-SQL) | 1 | — | 0 | 0 | 0 | 0 |  |

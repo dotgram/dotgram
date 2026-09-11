@@ -225,6 +225,10 @@ compile, and a test reads this column against every record.
 | `Statement.Kill` | T-SQL | KILL, KILL QUERY NOTIFICATION SUBSCRIPTION, KILL STATS JOB | Admin |
 | `Statement.Classification` | T-SQL | ADD SENSITIVITY CLASSIFICATION | Ddl |
 | `Statement.AddSignature` | T-SQL | ADD SIGNATURE, ADD COUNTER SIGNATURE | Ddl |
+| `Statement.ReadText` | T-SQL | READTEXT | Dml |
+| `Statement.WriteText` | T-SQL | WRITETEXT | Dml |
+| `Statement.UpdateText` | T-SQL | UPDATETEXT | Dml |
+| `Statement.Reconfigure` | T-SQL | RECONFIGURE | Admin |
 | `Statement.SetUser` | T-SQL | SETUSER | Session |
 | `Statement.CreateLogin` | T-SQL | CREATE LOGIN | Dcl |
 | `Statement.AlterLogin` | T-SQL | ALTER LOGIN | Dcl |
@@ -334,6 +338,7 @@ compile, and a test reads this column against every record.
 | `Statement.AlterCertificate` | T-SQL | ALTER CERTIFICATE | Ddl |
 | `Statement.MasterKeyDefinition` | T-SQL | CREATE MASTER KEY | Ddl |
 | `Statement.AlterMasterKey` | T-SQL | ALTER MASTER KEY | Ddl |
+| `Statement.AlterServiceMasterKey` | T-SQL | ALTER SERVICE MASTER KEY | Ddl |
 | `Statement.DatabaseEncryptionKeyDefinition` | T-SQL | CREATE DATABASE ENCRYPTION KEY | Ddl |
 | `Statement.AlterDatabaseEncryptionKey` | T-SQL | ALTER DATABASE ENCRYPTION KEY | Ddl |
 | `Statement.ColumnEncryptionKeyDefinition` | T-SQL | CREATE COLUMN ENCRYPTION KEY | Ddl |
