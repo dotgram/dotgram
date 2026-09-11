@@ -10,6 +10,7 @@
 [![build](https://github.com/dotgram/dotgram/actions/workflows/build.yml/badge.svg)](https://github.com/dotgram/dotgram/actions/workflows/build.yml)
 [![DotGram on NuGet](https://img.shields.io/nuget/v/DotGram?label=DotGram&logo=nuget)](https://www.nuget.org/packages/DotGram)
 [![DotGram.Parsers on NuGet](https://img.shields.io/nuget/v/DotGram.Parsers?label=DotGram.Parsers&logo=nuget)](https://www.nuget.org/packages/DotGram.Parsers)
+[![DotGram.ExpressionLanguage on NuGet](https://img.shields.io/nuget/v/DotGram.ExpressionLanguage?label=DotGram.ExpressionLanguage&logo=nuget)](https://www.nuget.org/packages/DotGram.ExpressionLanguage)
 [![NuGet downloads](https://img.shields.io/nuget/dt/DotGram?logo=nuget)](https://www.nuget.org/packages/DotGram)
 [![.NET Standard 2.0](https://img.shields.io/badge/.NET%20Standard-2.0-512BD4?logo=dotnet)](#compatibility)
 [![Roslyn 4.14+](https://img.shields.io/badge/Roslyn-4.14%2B-512BD4)](#compatibility)
@@ -204,12 +205,13 @@ to quote here, so this is where to read them:
   ([Versions of one language](#versions-of-one-language)). Held against Microsoft's own
   parser, ScriptDom, every statement of ScriptDom's test corpus that both of them read
   comes back through ScriptDom as the same statement.
-* [`ExpressionLanguage.cs`](src/DotGram.Parsers/Expressions/ExpressionLanguage.cs) — a
+* [`ExpressionLanguage.cs`](src/DotGram.ExpressionLanguage/ExpressionLanguage.cs) — a
   C#-style expression language in over 80 rules, inside the `[Gram]` attribute beside the
   C# they call. It builds `System.Linq.Expressions` trees directly, with parameters,
   locals, blocks and `return`.
 
-How to call them is under [DotGram.Parsers](#dotgramparsers).
+How to call them is under [DotGram.Parsers](#dotgramparsers) and
+[DotGram.ExpressionLanguage](#dotgramexpressionlanguage).
 
 ## Versions of one language
 
@@ -474,15 +476,6 @@ uri.Path;   // /a/b
 uri.Query;  // q=1
 ```
 
-The expression language calls the `System.Linq.Expressions` factories directly, so there
-is no tree of its own to translate afterwards:
-
-```csharp
-var square = ExpressionLanguage.Compile<Func<int, int>>("(int x) => x * x - 1");
-
-square(3);  // 8
-```
-
 The SQL parsers build a tree of their own, and read it back as ordinary records:
 
 ```csharp
@@ -496,12 +489,29 @@ query.From[0];  // TableReference.Named { Table = "Users" }
 | Parser | What it reads |
 | --- | --- |
 | [`Rfc3986`](src/DotGram.Parsers/Uri/Rfc3986.cs) | URIs and relative references after RFC 3986 — authority, IPv4, IPv6, `IPvFuture`, paths, queries, fragments, percent encoding |
-| [`ExpressionLanguage`](src/DotGram.Parsers/Expressions/ExpressionLanguage.cs) | a C#-style expression language that builds `System.Linq.Expressions` trees directly, with parameters, locals, blocks and `return` |
 | [`SqlStandard92`](src/DotGram.Parsers/Sql/Standard/SqlStandard92.gram) | SQL-92, read through a lexical split |
 | [`TransactSql`](src/DotGram.Parsers/Sql/TransactSql/TransactSql.gram) | T-SQL, written as a dialect over SQL-92 rather than as a copy of it |
 
 [`src/DotGram.Parsers/README.md`](src/DotGram.Parsers/README.md) has what each one parses
 and what it hands back.
+
+## DotGram.ExpressionLanguage
+
+[`DotGram.ExpressionLanguage`](src/DotGram.ExpressionLanguage) is a package of its own: a
+C#-style expression language with parameters, locals, blocks and `return`. It calls the
+`System.Linq.Expressions` factories directly, so there is no tree of its own to translate
+afterwards:
+
+```csharp
+using DotGram.Expressions;
+
+var square = ExpressionLanguage.Compile<Func<int, int>>("(int x) => x * x - 1");
+
+square(3);  // 8
+```
+
+[`src/DotGram.ExpressionLanguage/README.md`](src/DotGram.ExpressionLanguage/README.md) has
+the rest.
 
 ## Performance
 

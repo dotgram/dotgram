@@ -46,47 +46,6 @@ Rfc3986.Decode("hello%20world"); // hello world
 `%2F` inside a path segment is encoded data during parsing; decoding it early would turn
 it into a path separator it is not.
 
-## Expression language
-
-[`ExpressionLanguage`](Expressions/ExpressionLanguage.cs) is a C#-style expression language that
-produces `System.Linq.Expressions` trees.
-
-```csharp
-using DotGram.Parsers.Expressions;
-
-var square = ExpressionLanguage.Compile<Func<int, int>>("(int x) => x * x - 1");
-
-square(3); // 8
-```
-
-It supports parameters, local variables, blocks, and `return`:
-
-```csharp
-var calculate = ExpressionLanguage.Compile<Func<int, int, int>>(
-    """
-    (int x, int y) =>
-    {
-        int sum = x + y;
-        return sum * sum;
-    }
-    """);
-
-calculate(2, 3); // 25
-```
-
-Or keep the expression tree instead of compiling it:
-
-```csharp
-var expression = ExpressionLanguage.Parse("(double x) => x / 2.0");
-
-Console.WriteLine(expression);   // x => (x / 2)
-```
-
-The grammar calls `System.Linq.Expressions` factories directly. There is no intermediate
-AST specific to .Gram that must later be translated into an expression tree — which also
-means a factory that does not exist, or one handed the wrong type, is a C# error on the
-line of the grammar that asked for it rather than an exception at run time.
-
 ## SQL
 
 Two grammars, and the second is written as a dialect of the first rather than as a copy

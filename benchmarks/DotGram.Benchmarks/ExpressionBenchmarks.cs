@@ -5,12 +5,12 @@ using System.Linq.Expressions;
 
 using BenchmarkDotNet.Attributes;
 
-using DotGram.Parsers.Expressions;
+using DotGram.Expressions;
 
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// <c>src/DotGram.Parsers/Expressions/ExpressionLanguage.cs</c>: the largest grammar in this
+/// <c>src/DotGram.ExpressionLanguage/ExpressionLanguage.cs</c>: the largest grammar in this
 /// repository, over the shapes a lambda is actually written in.
 /// </summary>
 /// <remarks>

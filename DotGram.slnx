@@ -46,6 +46,9 @@
 		<Project Path="src/DotGram/DotGram.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
+		<Project Path="src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<Project Path="src/DotGram.Parsers/DotGram.Parsers.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>

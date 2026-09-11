@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
-using DotGram.Parsers.Expressions;
+using DotGram.Expressions;
 
 using Xunit;
 
-namespace DotGram.Tests.Parsers;
+namespace DotGram.Tests.Expressions;
 
 /// <summary>
 /// The expression language of <c>DotGram.Parsers</c>, read and run.
@@ -151,7 +151,7 @@ public sealed class ExpressionLanguageTests
 	[Fact]
 	public void A_member_initializer_may_nest()
 	{
-		ExpressionLanguage.Using("DotGram.Tests.Parsers");
+		ExpressionLanguage.Using("DotGram.Tests.Expressions");
 
 		var made = ExpressionLanguage.Compile<Func<Holder>>(
 			"() => new Holder() { Inner = { Count = 7 } }")();
@@ -163,7 +163,7 @@ public sealed class ExpressionLanguageTests
 	public void And_a_nested_one_may_be_a_collection()
 	{
 		// `ListBind`: the list the member already holds is added to, not replaced.
-		ExpressionLanguage.Using("DotGram.Tests.Parsers");
+		ExpressionLanguage.Using("DotGram.Tests.Expressions");
 
 		Assert.Equal(
 			[3, 4],
@@ -173,7 +173,7 @@ public sealed class ExpressionLanguageTests
 	[Fact]
 	public void And_the_three_forms_stand_side_by_side()
 	{
-		ExpressionLanguage.Using("DotGram.Tests.Parsers");
+		ExpressionLanguage.Using("DotGram.Tests.Expressions");
 
 		var made = ExpressionLanguage.Compile<Func<Holder>>(
 			"() => new Holder() { Name = \"a\", Inner = { Count = 1 }, Items = { 5 } }")();

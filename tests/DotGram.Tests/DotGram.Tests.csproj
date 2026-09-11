@@ -45,6 +45,7 @@
 		     the generator runs against a real Roslyn compilation of a real grammar, so
 		     what only a true symbol resolver can reach is reachable from here. -->
 		<ProjectReference Include="..\..\src\DotGram.Parsers\DotGram.Parsers.csproj" />
+		<ProjectReference Include="..\..\src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj" />
 	</ItemGroup>
 
 </Project>

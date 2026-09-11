@@ -215,8 +215,9 @@ the [notation in full](https://github.com/dotgram/dotgram/blob/main/docs/syntax.
 and the [benchmarks](https://github.com/dotgram/dotgram/tree/main/benchmarks).
 
 [`DotGram.Parsers`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Parsers) is a
-package of its own: RFC 3986 URIs, a C#-style expression language that builds
-`System.Linq.Expressions` trees, and SQL-92 with T-SQL written as a dialect over it. They
+package of its own — RFC 3986 URIs, and SQL-92 with T-SQL written as a dialect over it — and
+[`DotGram.ExpressionLanguage`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.ExpressionLanguage)
+is another: a C#-style expression language that builds `System.Linq.Expressions` trees. They
 are also the largest grammars there are to read.
 
 [MIT](https://github.com/dotgram/dotgram/blob/main/LICENSE)

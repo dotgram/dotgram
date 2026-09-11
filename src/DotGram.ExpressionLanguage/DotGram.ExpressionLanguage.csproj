@@ -1,0 +1,54 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<!-- The two targets DotGram.Parsers has, for its reasons: netstandard2.0 is what
+		     every consumer can read, and net10.0 is what the newest runtime gets without
+		     the shims. -->
+		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
+
+		<!-- Not the project's name, which is what it would default to. The type is
+		     `ExpressionLanguage`, and a namespace of the same name would make that simple
+		     name mean the namespace in any code inside DotGram.* — the tests, for one. -->
+		<RootNamespace>DotGram.Expressions</RootNamespace>
+
+		<Description>A C#-style expression language written in .gram, compiled straight into System.Linq.Expressions trees.</Description>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageTags>expressions;expression-tree;linq;linq-expressions;parser;csharp;dsl;dotgram</PackageTags>
+		<PackageReleaseNotes>First release. A C#-style expression language — parameters, locals, blocks and return — read by a generated parser that calls the System.Linq.Expressions factories directly.</PackageReleaseNotes>
+
+		<!-- Symbols inside the assembly, and paths normalized on CI only: both as
+		     DotGram.Parsers has them, and the reasons are written there. -->
+		<DebugType>embedded</DebugType>
+		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+
+		<!-- Generated files land on disk so a reader can open what the grammar became. -->
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- The generator, and nothing else: the parser it writes acquires no runtime
+		     dependency (docs/syntax.md §6.1). -->
+		<ProjectReference Include="..\DotGram\DotGram.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+		<!-- For the consumer: the generated parser takes `ReadOnlySpan<char>`. The one
+		     dependency this package has, and only here. -->
+		<PackageReference Include="System.Memory" />
+
+		<!-- For the compilation: types the framework lacks, emitted internal, so nothing
+		     reaches the package. -->
+		<PackageReference Include="Meziantou.Polyfill" PrivateAssets="all" />
+	</ItemGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+		<MeziantouPolyfill_IncludedPolyfills>T:System.Runtime.CompilerServices.IsExternalInit;T:System.Index;T:System.Range;T:System.Diagnostics.CodeAnalysis</MeziantouPolyfill_IncludedPolyfills>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+</Project>

@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 
-using DotGram.Parsers.Expressions;
+using DotGram.Expressions;
 
 namespace DotGram.Benchmarks;
 

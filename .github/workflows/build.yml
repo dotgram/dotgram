@@ -48,6 +48,7 @@ jobs:
         run: |
           dotnet pack src/DotGram/DotGram.csproj         --no-build --configuration Release --output artifacts
           dotnet pack src/DotGram.Parsers/DotGram.Parsers.csproj --no-build --configuration Release --output artifacts
+          dotnet pack src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj --no-build --configuration Release --output artifacts
 
       # Each package is the opposite shape of the other, and getting either one wrong
       # is silent: the generator with a lib/ folder would be referenced instead of
@@ -76,24 +77,29 @@ jobs:
           }
           check_face generator
 
-          unzip -o -q DotGram.Parsers.*.nupkg -d parsers
-          cd parsers
-          test -f lib/netstandard2.0/DotGram.Parsers.dll || { echo "netstandard2.0 assembly missing"; exit 1; }
-          test -f lib/net10.0/DotGram.Parsers.dll        || { echo "net10.0 assembly missing";        exit 1; }
-          test -f README.md                              || { echo "readme missing";                  exit 1; }
-          if [ -d analyzers ]; then echo "parser package carries the generator:"; find analyzers -type f; exit 1; fi
-          cd .. && check_face parsers && cd parsers
-          # No runtime assembly ships (docs/syntax.md §6.1), so the only dependency a
-          # parser may acquire is what its framework is missing: System.Memory, for the
-          # `ReadOnlySpan<char>` the generated methods take, on netstandard2.0 alone. A
-          # dependency on the newest target, or any other name on either, means something
-          # else got in — the generator itself, or a polyfill that should have been
-          # private.
-          deps=$(grep -o 'id="[^"]*"' DotGram.Parsers.nuspec | sed 's/id="//;s/"//' | sort -u)
-          test "$deps" = "System.Memory" || { echo "unexpected dependencies:"; echo "$deps"; exit 1; }
-          grep -q '<group targetFramework="net10.0" />' DotGram.Parsers.nuspec || {
-            echo "the newest target is not dependency-free:"; grep -A3 'net10.0' DotGram.Parsers.nuspec; exit 1
+          # The libraries are one shape: an assembly per target, the README, and no
+          # generator. No runtime assembly ships (docs/syntax.md §6.1), so the only
+          # dependency one may acquire is what its framework is missing: System.Memory,
+          # for the `ReadOnlySpan<char>` the generated methods take, on netstandard2.0
+          # alone. A dependency on the newest target, or any other name on either, means
+          # something else got in — the generator itself, or a polyfill that should have
+          # been private.
+          check_library() {
+            unzip -o -q "$2".[0-9]*.nupkg -d "$1"
+            for tfm in netstandard2.0 net10.0; do
+              test -f "$1/lib/$tfm/$2.dll" || { echo "$2: $tfm assembly missing"; exit 1; }
+            done
+            test -f "$1/README.md" || { echo "$2: readme missing"; exit 1; }
+            if [ -d "$1/analyzers" ]; then echo "$2 carries the generator:"; find "$1/analyzers" -type f; exit 1; fi
+            check_face "$1"
+            deps=$(grep -o 'id="[^"]*"' "$1/$2.nuspec" | sed 's/id="//;s/"//' | sort -u)
+            test "$deps" = "System.Memory" || { echo "$2: unexpected dependencies:"; echo "$deps"; exit 1; }
+            grep -q '<group targetFramework="net10.0" />' "$1/$2.nuspec" || {
+              echo "$2: the newest target is not dependency-free:"; grep -A3 'net10.0' "$1/$2.nuspec"; exit 1
+            }
           }
+          check_library parsers     DotGram.Parsers
+          check_library expressions DotGram.ExpressionLanguage
 
       # Everything above builds the generator from source and trusts the package to be
       # the same thing. This is the step that does not: a project whose only connection

@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Linq.Expressions;
 
-using DotGram.Parsers.Expressions;
+using DotGram.Expressions;
 
 using Xunit;
 
-namespace DotGram.Tests.Parsers;
+namespace DotGram.Tests.Expressions;
 
 /// <summary>
 /// The expression language compiled on the tape and compiled immediately read the same
