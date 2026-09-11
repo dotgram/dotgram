@@ -65,6 +65,17 @@ public abstract record Decl : ILocated
 		/// what it already is.
 		/// </summary>
 		public bool GivesBack { get; init; }
+
+		/// <summary>
+		/// <c>on fail "…"</c>: what a refusal of this rule says, where the refusal is this
+		/// rule's own — it was entered here and read nothing (§7.5).
+		/// </summary>
+		/// <remarks>
+		/// Whatever is written, handed back as it stands: a sentence for a reader, or a code
+		/// for a caller that has its own words for it in its own languages. Nothing here
+		/// reads it.
+		/// </remarks>
+		public string? OnFail { get; init; }
 	}
 
 	public sealed record Namespace(

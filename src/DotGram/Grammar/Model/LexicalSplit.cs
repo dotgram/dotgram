@@ -261,6 +261,7 @@ public sealed class LexicalSplit
 					one => one.Key,
 					one => (IReadOnlyDictionary<Node, int>)Remapped(one.Value)),
 				Folds = Refolded(Kept(graph.Folds, rules)),
+				Says  = Kept(graph.Says, rules),
 			};
 
 			return new LexicalSplit(

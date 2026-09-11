@@ -1498,6 +1498,21 @@ sealed partial class Machine
 			code.Line(
 				$"var {result} = {machine.ReaderOf(called)}(p{strength});");
 
+			// What the rule says about its own refusal (§4's `on fail`), where the refusal is
+			// the rule's own: it was entered here and read nothing, which is what the furthest
+			// position not having passed this call says. A rule that got further in failed at
+			// something it wanted, and what it wanted there is the better answer.
+			if (machine.SaysOf(called) is { } spoken)
+			{
+				var said = machine.DeclareExpected([Spoken(spoken)]);
+
+				machine._expectedUsed.Add(said);
+
+				code.Line(
+					$"if ({result} < 0 && failure.Position <= p) " +
+					$"{Refusing}(ref failure, p, {said}, ways);");
+			}
+
 			if (_refuseWith is { } expected)
 			{
 				_refuseWith = null;

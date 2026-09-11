@@ -290,6 +290,7 @@ public sealed partial class GrammarNormalizer
 			Folds      = _folds,
 			Trivia     = _trivia,
 			Recoveries = _recoveries,
+			Says       = _says,
 			Climbing   = _climbing,
 			Powers     = _powers,
 		};

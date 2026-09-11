@@ -106,6 +106,17 @@ public sealed partial class GrammarNormalizer
 				transparent[rule] = resolved;
 		}
 
+		// What a rule that is about to disappear says about its own refusal (§4's `on fail`)
+		// it leaves to whatever takes its place: `Expression = e: Assignment` is gone after
+		// this, and "Expected an expression." is about the position, not about which of the
+		// two rules was standing there. A source that says something of its own keeps it —
+		// the nearer rule is the one that knows what it is.
+		foreach (var pair in transparent)
+			if (pair.Key.OnFail is { } said)
+				foreach (var source in pair.Value)
+					if (source.OnFail is null && !_says.ContainsKey(source))
+						_says[source] = said;
+
 		foreach (var rule in _rules)
 			_bodies[rule] = Inline(_bodies[rule]);
 

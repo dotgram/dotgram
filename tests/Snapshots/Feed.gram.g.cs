@@ -2263,6 +2263,14 @@ namespace DotGram.Snapshots
 					if (expected == null || expected.Length == 0)
 						return _otherwise;
 
+					// A rule that says what its own refusal says (docs/syntax.md §4's `on
+					// fail`) writes it as one item, marked with a character no grammar can
+					// write. Where one stands here it is the whole answer: the author took
+					// the wording, and what else could have stood here is not it.
+					for (var i = 0; i < expected.Length; i++)
+						if (expected[i].Length > 0 && expected[i][0] == '\u0000')
+							return expected[i].Substring(1);
+
 					// Two sites may ask for the same thing — a literal written in two rules,
 					// or the `<` that opens a type argument list in more than one — and a
 					// reader is owed one mention of it rather than one per site. Copied

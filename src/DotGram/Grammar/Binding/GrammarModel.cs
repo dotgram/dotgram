@@ -21,6 +21,17 @@ public sealed record RuleSymbol(
 	/// <summary>Declared <c>Name? = …</c>: may give back what it read (§4).</summary>
 	public bool GivesBack => Declaration is { GivesBack: true };
 
+	/// <summary>
+	/// What a refusal of this rule says, from its <c>on fail "…"</c>, or null where it says
+	/// nothing of its own (§7.5).
+	/// </summary>
+	/// <remarks>
+	/// Read off the declaration, so a clone and a specialization say what the rule they were
+	/// made from says: `Unsigned(Hex)` is `Unsigned`'s message, which is the one the author
+	/// wrote.
+	/// </remarks>
+	public string? OnFail => Declaration?.OnFail;
+
 	public override string ToString() => Name;
 }
 

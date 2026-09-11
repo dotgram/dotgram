@@ -4900,8 +4900,24 @@ sealed partial class Machine
 	/// </remarks>
 	static string Named(TerminalInventory.Pattern pattern) =>
 		pattern is TerminalInventory.Pattern.Class @class
-			? @class.Rule.Declaration?.Name ?? @class.Rule.Name
+			? @class.Rule.OnFail ?? @class.Rule.Declaration?.Name ?? @class.Rule.Name
 			: pattern.ToString();
+
+	/// <summary>
+	/// What a refusal of this rule says: what it declared, or what a rule that collapsed into
+	/// it left behind (§4's <c>on fail</c>).
+	/// </summary>
+	internal string? SaysOf(RuleSymbol rule) =>
+		rule.OnFail ?? (_graph.Says.TryGetValue(rule, out var said) ? said : null);
+
+	/// <summary>What a rule's <c>on fail</c> says, marked as the whole answer (§4, §7.5).</summary>
+	/// <remarks>
+	/// One item like any other, so that the furthest position, the ties and the sets a later
+	/// failure drops all go on working as they do — and marked with a character a grammar
+	/// cannot write, which is how <c>Match&lt;T&gt;.Error</c> tells it from what could have
+	/// stood here and hands it back alone.
+	/// </remarks>
+	internal static string Spoken(string message) => "\u0000" + message;
 
 	string DeclareExpected(IReadOnlyList<string> display)
 	{

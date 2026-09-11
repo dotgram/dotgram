@@ -133,9 +133,14 @@ namespace DotGram.Examples.Languages;
 
 	// `?` after the name says the rule may give back (§4); over characters, where this
 	// grammar reads, every rule does, and the mark is kept for what it says.
+	// `on fail "…"` stands between the type and the body and says what a refusal of the rule
+	// says (§7.5). An event and a value, so that whatever else a rule may want to say about
+	// itself is written the same way.
 	Rule : @GramDecl
-		= name: Identifier & back: '?'? & Parameters? & (':' & type: Type)? & '=' & body: Body
-		=> @(new GramRule(name, type, body, back is not null))
+		= name: Identifier & back: '?'? & Parameters? & (':' & type: Type)?
+		& ("on" & "fail" & fail: String)?
+		& '=' & body: Body
+		=> @(new GramRule(name, type, body, back is not null, fail))
 
 	Parameters     = '(' & (Parameter & (',' & Parameter)*)? & ')'
 	Parameter      = Identifier & (':' & Type)?
@@ -301,7 +306,8 @@ public partial class GramGrammar
 
 	public sealed record GramPublication(string Kind, GramExpr Target, string? Alias, string? Type) : GramDecl;
 
-	public sealed record GramRule(string Name, string? Type, GramExpr Body, bool GivesBack) : GramDecl;
+	public sealed record GramRule(
+		string Name, string? Type, GramExpr Body, bool GivesBack, string? OnFail = null) : GramDecl;
 
 	/// <summary>A `context : @T` or a `state : @T` — §7.7 and §7.8.</summary>
 	public sealed record GramSupplied(string Kind, string Type) : GramDecl;

@@ -156,7 +156,9 @@ namespace DotGram.ExpressionLanguage;
 	{
 		trivia = none
 
-		Word = [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']*
+		// A token of this kind is one of the things that can stand where a name can, so what
+		// `on fail` says here is what the list calls it (§7.5) rather than a whole message.
+		Word on fail "a name" = [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']*
 
 		// The same word with the alphabet named rather than asked for by category, for
 		// the publication below that reads only it. Declared here, inside `trivia =
@@ -296,7 +298,7 @@ namespace DotGram.ExpressionLanguage;
 	// rather than a switch over strings refusing it at run time.
 	// A type is a name for one, and then as many `[]` as the author wrote. Left recursive,
 	// so `int[][]` is read once and folded rather than started over.
-	Type : @Type = t: Type & "[]" => @(t.MakeArrayType())
+	Type : @Type on fail "Expected a type." = t: Type & "[]" => @(t.MakeArrayType())
 	             | c: Core        => @(c)
 
 	Core : @Type = "sbyte"   => @(typeof(sbyte))
@@ -463,7 +465,7 @@ namespace DotGram.ExpressionLanguage;
 	// and a `Primary`. Written that way, a chain of three `else if`s took 1.6 seconds and a
 	// nest of five braces took 428 ms, both doubling and worse per level. Reachable one way
 	// only, with the value positions naming them here, both are too fast to measure.
-	Value : @Expression
+	Value : @Expression on fail "Expected an expression."
 		= b: Block => @(b) | c: IfValue => @(c) | c: Control => @(c) | e: Expression => @(e)
 
 	Control : @Expression
@@ -590,7 +592,7 @@ namespace DotGram.ExpressionLanguage;
 	// recursive, which is where the associativity is — `10 - 3 - 2` is `(10 - 3) - 2` —
 	// except the two C# groups to the right, which are written right recursive.
 
-	Expression : @Expression = e: Assignment => @(e)
+	Expression : @Expression on fail "Expected an expression." = e: Assignment => @(e)
 
 	// C# puts assignment lowest of all and groups it to the right, and its left side is a
 	// unary expression rather than any expression at all — `a + b = c` is not one. Here it
@@ -691,7 +693,7 @@ namespace DotGram.ExpressionLanguage;
 	// type argument list wants one `>` and would be handed a shift. Written this way there
 	// is no `>>` for the lexer to make, `~` says the two stand with nothing between them,
 	// and `a > > b` is refused exactly as C# refuses it.
-	Binary : @Expression
+	Binary : @Expression on fail "Expected an expression."
 		= left: Binary & "||" & right: Binary        << 1  => @(Expression.OrElse(left, right))
 		| left: Binary & "&&" & right: Binary        << 2  => @(Expression.AndAlso(left, right))
 		| left: Binary & '|' & ?!'|' & right: Binary << 3  => @(ExpressionParser.Integral(Expression.Or, left, right))

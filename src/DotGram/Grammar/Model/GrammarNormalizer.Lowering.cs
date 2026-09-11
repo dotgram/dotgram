@@ -326,6 +326,17 @@ public sealed partial class GrammarNormalizer
 	readonly Dictionary<Node, Recovery> _recoveries = new(NodeIdentity.Instance);
 
 	/// <summary>
+	/// What a refusal of a rule says where the rule that said it is gone: keyed by the rule
+	/// that took its place (§4's <c>on fail</c>, <see cref="RecognitionGraph.Says"/>).
+	/// </summary>
+	/// <remarks>
+	/// By rule and not by node, so that no pass which rebuilds a body has to carry it — and
+	/// only what <c>CollapseTransparent</c> hands on is here, since what an author wrote is
+	/// read off the declaration and needs nobody to carry it at all.
+	/// </remarks>
+	readonly Dictionary<RuleSymbol, string> _says = [];
+
+	/// <summary>
 	/// <c>R* recover eol</c> — the repetition, with what to do about a broken element
 	/// recorded beside it (§8.2).
 	/// </summary>

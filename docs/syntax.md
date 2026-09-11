@@ -501,6 +501,7 @@ and `A is not B`, then `and`, then `or` — C#'s order.
 Name = pattern                          // the result type is named Name
 Name : Type = pattern                   // the result type is given explicitly
 Name(params) : Type = pattern           // a parameterized rule
+Name : Type on fail "…" = pattern       // and what a refusal of it says (§7.5)
 ```
 
 **A declaration always begins with the rule's name** — the form without a type is not
@@ -518,6 +519,24 @@ Date : @DateOnly = y: Digit{4} & '-' & m: Digit{2} & '-' & d: Digit{2}
 `T[]` in type position means "a sequence of T" — the same array notation as C#. In
 expression position `[` opens an element set; the positions do not overlap, just as
 an array type and an indexer do not overlap in C#.
+
+**`on fail` says what a refusal of the rule says** (§7.5), between the type and the body:
+
+```dotgram
+Expression : @Expression on fail "Expected an expression." = e: Assignment => @(e)
+Word on fail "Expected a name." = [\p{L} | '_'] & [\p{L} | \p{Nd} | '_']*
+```
+
+Without it a refusal names what could have stood where the parse stopped, which is exact
+and, where what could have stood there is everything an expression may begin with, a list
+nobody reads. The rule that knows what it is says so instead.
+
+The text is handed back as it stands. Nothing here reads it, so it is a sentence where a
+sentence is wanted and a code where the caller has its own words in its own languages.
+
+An event and a value, rather than the text alone: what else a rule may want to say about
+itself is then written the same way, and `on` is a word everywhere else — between a rule's
+type and its `=` nothing else may stand.
 
 **Over characters, a rule call is transparent to backtracking.** If a later expression
 fails, the parser may resume a choice or repetition inside a called rule just as it may
@@ -1971,6 +1990,12 @@ where more was needed — the answer a caller reading from a stream acts on diff
 from the one reading a finished document. Both are exact: the furthest position the
 parse reached is either the end of the input, or a place where something wanted more
 characters than remained.
+
+**A rule's own `on fail` (§4) is what `Error` says, where that rule is the refusal.** The
+rule has to have been entered where the parse stopped and read nothing: a rule that read
+part of what it wanted and failed further in is not what went wrong here, and what it
+wanted there is the better answer. Where one applies, it is the whole of `Error` — the
+author took the wording, and nothing is appended to it.
 
 Exceptions appear only at the publication boundary, and only in the methods without a
 `Try` prefix — where a .NET developer expects them. What is thrown is

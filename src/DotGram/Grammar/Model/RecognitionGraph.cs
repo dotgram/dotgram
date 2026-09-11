@@ -363,6 +363,22 @@ public sealed class RecognitionGraph(
 		new Dictionary<Node, Recovery>();
 
 	/// <summary>
+	/// What a rule's refusal says where that is not what the rule itself declared with
+	/// <c>on fail</c> (§4) — a message a vanished rule left to the one that took its place.
+	/// </summary>
+	/// <remarks>
+	/// Keyed by rule and not by node, deliberately. A node-keyed fact has to be carried by
+	/// every pass that rebuilds a body — and hoisting, factoring and left recursion rebuild
+	/// them without carrying anything, which they get away with because what they would drop
+	/// is already spent by the time they run. A message is read at the very end, so it is
+	/// kept where nothing rebuilds: <see cref="RuleSymbol.Declaration"/> carries what the
+	/// author wrote through every clone, and this carries what
+	/// <c>CollapseTransparent</c> handed on when a forwarder disappeared into its source.
+	/// </remarks>
+	public IReadOnlyDictionary<RuleSymbol, string> Says { get; init; } =
+		new Dictionary<RuleSymbol, string>();
+
+	/// <summary>
 	/// The rule synthesized for a value-returning external recognizer (§7.1's third
 	/// row), by the C# method name it wraps.
 	/// </summary>

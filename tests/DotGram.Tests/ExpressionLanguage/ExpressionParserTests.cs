@@ -117,12 +117,21 @@ public sealed class ExpressionParserTests
 	/// — is what every refusal said before the generator printed it as the literal or the
 	/// class it stands for. And where the lexer itself stops, the character it stopped at is
 	/// what there is to say.
+	///
+	/// A rule with an `on fail` of its own (§4) says that instead, where the refusal is the
+	/// rule's: `Expression` and `Binary` say what they are, and `Word` — a token among the
+	/// tokens that could stand there — says what the list should call it.
 	/// </remarks>
 	[Theory]
 	[InlineData("int x => x",                    "Expected '('.")]
 	[InlineData("(int x) x",                     "Expected \"=>\".")]
-	[InlineData("(int x) => x.",                 "Expected Word.")]
 	[InlineData("(int x) => x @ 1",              "Unexpected character '@'.")]
+
+	// And what the rule itself says, where the rule is the refusal: it was entered here and
+	// read nothing, so what it is beats a list of everything it could have begun with.
+	[InlineData("(int x) => x +",                "Expected an expression.")]
+	[InlineData("(int x) => { int y = ; y }",    "Expected an expression.")]
+	[InlineData("(int x) => x.",                 "Expected a name.")]
 	public void A_refusal_says_what_the_grammar_wrote(string text, string said) =>
 		Assert.Equal(said, ExpressionParser.TryParse(text).Error);
 

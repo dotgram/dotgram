@@ -218,6 +218,7 @@ public sealed partial class GrammarNormalizer
 			Folds      = normalizer._folds,
 			Trivia     = normalizer._trivia,
 			Recoveries = normalizer._recoveries,
+			Says       = normalizer._says,
 			Climbing   = normalizer._climbing,
 			Powers     = normalizer._powers,
 			Externals  = normalizer._externals.ToDictionary(pair => pair.Value, pair => pair.Key),

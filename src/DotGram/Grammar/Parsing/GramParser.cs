@@ -512,12 +512,62 @@ public sealed class GramParser
 		var givesBack  = TakeIf(TokenKind.Question);
 		var parameters = At(TokenKind.OpenParen) ? ParseParameters() : [];
 		var type       = TakeIf(TokenKind.Colon) ? ParseType() : null;
+		var onFail     = ParseOnFail();
 
 		Expect(TokenKind.Equals);
 
 		var body = ParseBody();
 
-		return new Decl.Rule(name, parameters, type, body) { At = From(start), GivesBack = givesBack };
+		return new Decl.Rule(name, parameters, type, body)
+		{
+			At = From(start), GivesBack = givesBack, OnFail = onFail,
+		};
+	}
+
+	/// <summary>
+	/// <c>on fail "…"</c> after a rule's type and before its body — what a refusal of this
+	/// rule says (§4, §7.5).
+	/// </summary>
+	/// <remarks>
+	/// <c>on</c> and <c>fail</c> are ordinary words everywhere else, and reading them here
+	/// takes nothing away: between a rule's type and its <c>=</c> nothing else may stand, so
+	/// a word there is this clause or it is a mistake. The event is named so that what else
+	/// a rule may want to say about itself can be written the same way.
+	/// </remarks>
+	string? ParseOnFail()
+	{
+		if (!AtKeyword("on"))
+			return null;
+
+		var at = Current.Position;
+
+		Take();                                   // `on`
+
+		if (!AtKeyword("fail"))
+		{
+			Report(
+				ExpectedDeclaration,
+				$"'{Current.Value ?? "this"}' is not something a rule can be told about itself; " +
+				"'on fail \"…\"' is.",
+				new Location(at, Current.Position - at));
+
+			return null;
+		}
+
+		Take();                                   // `fail`
+
+		if (!At(TokenKind.String))
+		{
+			Report(
+				ExpectedDeclaration,
+				"'on fail' says what a refusal of this rule says, which is a string: " +
+				"on fail \"Expected an expression.\".",
+				new Location(at, Current.Position - at));
+
+			return null;
+		}
+
+		return Take().Value!;
 	}
 
 	List<Param> ParseParameters()
