@@ -6,7 +6,7 @@
 		<Identity Id="DotGram.VisualStudio"
 		          Version="|%CurrentProject%;GetVsixVersion|"
 		          Language="en-US"
-		          Publisher="DotGram" />
+		          Publisher=".Gram" />
 		<DisplayName>.Gram language support</DisplayName>
 		<Description xml:space="preserve">Language support for .Gram files and grammars embedded in C#.</Description>
 		<MoreInfo>https://github.com/dotgram/dotgram</MoreInfo>
