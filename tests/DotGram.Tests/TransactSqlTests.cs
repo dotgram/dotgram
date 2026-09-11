@@ -953,6 +953,78 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>Partition functions and schemes, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("CREATE PARTITION FUNCTION pf (INT, INT) AS RANGE LEFT FOR VALUES (1)")]
+	[InlineData("CREATE PARTITION FUNCTION pf () AS RANGE LEFT FOR VALUES (1)")]
+	[InlineData("CREATE PARTITION FUNCTION dbo.pf (INT) AS RANGE LEFT FOR VALUES (1)")]
+	[InlineData("CREATE PARTITION FUNCTION pf (INT) RANGE LEFT FOR VALUES (1)")]
+	[InlineData("CREATE PARTITION FUNCTION pf (INT) AS RANGE LEFT VALUES (1)")]
+	[InlineData("CREATE PARTITION FUNCTION pf (INT) AS RANGE LEFT FOR VALUES 1")]
+	[InlineData("CREATE PARTITION FUNCTION pf INT AS RANGE LEFT FOR VALUES (1)")]
+	[InlineData("CREATE PARTITION FUNCTION pf (INT) AS RANGE LEFT FOR VALUES (DEFAULT)")]
+	[InlineData("CREATE PARTITION FUNCTION pf (INT) AS RANGE LEFT FOR VALUES (1,)")]
+	[InlineData("ALTER PARTITION FUNCTION pf SPLIT RANGE (500)")]
+	[InlineData("ALTER PARTITION FUNCTION pf () SPLIT RANGE (1, 2)")]
+	[InlineData("ALTER PARTITION FUNCTION pf () SPLIT RANGE ()")]
+	[InlineData("ALTER PARTITION FUNCTION pf () SPLIT RANGE 500")]
+	[InlineData("ALTER PARTITION FUNCTION pf (INT) SPLIT RANGE (500)")]
+	[InlineData("ALTER PARTITION FUNCTION dbo.pf () SPLIT RANGE (500)")]
+	[InlineData("ALTER PARTITION FUNCTION pf ()")]
+	[InlineData("CREATE PARTITION SCHEME ps AS PARTITION pf ALL TO (PRIMARY)")]
+	[InlineData("CREATE PARTITION SCHEME ps AS PARTITION pf TO ()")]
+	[InlineData("CREATE PARTITION SCHEME ps AS PARTITION dbo.pf TO (fg1)")]
+	[InlineData("CREATE PARTITION SCHEME dbo.ps AS PARTITION pf TO (fg1)")]
+	[InlineData("CREATE PARTITION SCHEME ps AS PARTITION pf TO fg1")]
+	[InlineData("CREATE PARTITION SCHEME ps PARTITION pf TO (fg1)")]
+	[InlineData("ALTER PARTITION SCHEME ps NEXT USED fg4, fg5")]
+	[InlineData("ALTER PARTITION SCHEME dbo.ps NEXT USED fg4")]
+	[InlineData("ALTER PARTITION SCHEME ps NEXT fg4")]
+	[InlineData("ALTER PARTITION SCHEME ps")]
+	public void Partitions_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("CREATE PARTITION FUNCTION pf (INT) AS RANGE LEFT FOR VALUES (1, 100, 1000)")]
+	[InlineData("CREATE PARTITION FUNCTION pf (INT) AS RANGE RIGHT FOR VALUES (1)")]
+	[InlineData("CREATE PARTITION FUNCTION pf (INT) AS RANGE FOR VALUES (1)")]
+	[InlineData("CREATE PARTITION FUNCTION pf (INT) AS RANGE LEFT FOR VALUES ()")]
+	[InlineData("CREATE PARTITION FUNCTION pf (datetime2(7)) AS RANGE RIGHT FOR VALUES ('2020-01-01', '2021-01-01')")]
+	[InlineData("CREATE PARTITION FUNCTION pf (nvarchar(10)) AS RANGE RIGHT FOR VALUES (N'a', N'b')")]
+	[InlineData("CREATE PARTITION FUNCTION pf (INT) AS RANGE LEFT FOR VALUES (1 + 1, -5)")]
+	[InlineData("CREATE PARTITION FUNCTION pf (INT) AS RANGE LEFT FOR VALUES (@x)")]
+	[InlineData("CREATE PARTITION FUNCTION pf (INT) AS RANGE LEFT FOR VALUES (NULL)")]
+	[InlineData("CREATE PARTITION FUNCTION pf (INT) AS RANGE LEFT FOR VALUES ((SELECT 1))")]
+	[InlineData("CREATE PARTITION FUNCTION pf (INT) AS RANGE LEFT FOR VALUES (f(1))")]
+	[InlineData("CREATE PARTITION FUNCTION pf (INT) AS RANGE LEFT FOR VALUES (CAST('1' AS INT))")]
+	[InlineData("CREATE PARTITION FUNCTION [pf] (INT) AS RANGE LEFT FOR VALUES (1)")]
+	[InlineData("CREATE PARTITION FUNCTION pf (dbo.mytype) AS RANGE LEFT FOR VALUES (1)")]
+	[InlineData("create partition function pf (int) as range left for values (1)")]
+	[InlineData("ALTER PARTITION FUNCTION pf () SPLIT RANGE (500)")]
+	[InlineData("ALTER PARTITION FUNCTION pf() MERGE RANGE (100)")]
+	[InlineData("ALTER PARTITION FUNCTION pf () SPLIT RANGE (1 + 1)")]
+	[InlineData("ALTER PARTITION FUNCTION pf () SPLIT RANGE (@x)")]
+	[InlineData("ALTER PARTITION FUNCTION pf () SPLIT RANGE (NULL)")]
+	[InlineData("ALTER PARTITION FUNCTION pf () SPLIT RANGE ((SELECT 1))")]
+	[InlineData("CREATE PARTITION SCHEME ps AS PARTITION pf TO (fg1, fg2, fg3)")]
+	[InlineData("CREATE PARTITION SCHEME ps AS PARTITION pf ALL TO ([PRIMARY])")]
+	[InlineData("CREATE PARTITION SCHEME ps AS PARTITION pf TO ([PRIMARY], fg2)")]
+	[InlineData("CREATE PARTITION SCHEME ps AS PARTITION pf TO ('fg1')")]
+	[InlineData("CREATE PARTITION SCHEME ps AS PARTITION pf ALL TO (fg1, fg2)")]
+	[InlineData("CREATE PARTITION SCHEME ps AS PARTITION pf TO ([DEFAULT])")]
+	[InlineData("CREATE PARTITION SCHEME ps AS PARTITION pf TO (\"fg1\")")]
+	[InlineData("ALTER PARTITION SCHEME ps NEXT USED fg4")]
+	[InlineData("ALTER PARTITION SCHEME ps NEXT USED")]
+	[InlineData("ALTER PARTITION SCHEME ps NEXT USED [PRIMARY]")]
+	[InlineData("ALTER PARTITION SCHEME ps NEXT USED 'fg4'")]
+	public void Partitions_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>Names, literals and sources a query is written with, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("SELECT CHECKSUM_AGG(*) FROM t")]

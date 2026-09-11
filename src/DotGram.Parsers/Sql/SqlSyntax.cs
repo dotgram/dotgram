@@ -1012,6 +1012,18 @@ public abstract record Statement : ISqlSpan
 		public override StatementCategory Category => StatementCategory.Session;
 	}
 
+	/// <summary><c>CREATE PARTITION FUNCTION</c>: which partition a value goes to.</summary>
+	public sealed record PartitionFunctionDefinition(string Name) : Definition(Name);
+
+	/// <summary><c>ALTER PARTITION FUNCTION</c>: a boundary split or merged.</summary>
+	public sealed record AlterPartitionFunction(string Name) : Definition(Name);
+
+	/// <summary><c>CREATE PARTITION SCHEME</c>: which filegroup each partition is stored in.</summary>
+	public sealed record PartitionSchemeDefinition(string Name) : Definition(Name);
+
+	/// <summary><c>ALTER PARTITION SCHEME</c>: the filegroup the next partition goes to.</summary>
+	public sealed record AlterPartitionScheme(string Name) : Definition(Name);
+
 	/// <summary><c>ENDPOINT</c>.</summary>
 	/// <summary>
 	/// <c>CREATE</c> or <c>ALTER ENDPOINT</c>: the owner, the state and what was written
@@ -1756,6 +1768,10 @@ public abstract record Statement : ISqlSpan
 			"CLOSE SYMMETRIC KEY"        => new CloseSymmetricKey(name),
 			"CLOSE ALL SYMMETRIC KEYS"   => new CloseAllSymmetricKeys(name),
 			"CLOSE MASTER KEY"           => new CloseMasterKey(name),
+			"PARTITION FUNCTION"         => new PartitionFunctionDefinition(name),
+			"ALTER PARTITION FUNCTION"   => new AlterPartitionFunction(name),
+			"PARTITION SCHEME"           => new PartitionSchemeDefinition(name),
+			"ALTER PARTITION SCHEME"     => new AlterPartitionScheme(name),
 
 			"FULLTEXT INDEX"             => new FullTextIndexDefinition(name),
 			"ALTER FULLTEXT INDEX"       => new AlterFullTextIndex(name),

@@ -259,6 +259,10 @@ compile, and a test reads this column against every record.
 | `Statement.CloseSymmetricKey` | T-SQL | CLOSE SYMMETRIC KEY | Session |
 | `Statement.CloseAllSymmetricKeys` | T-SQL | CLOSE ALL SYMMETRIC KEYS | Session |
 | `Statement.CloseMasterKey` | T-SQL | CLOSE MASTER KEY | Session |
+| `Statement.PartitionFunctionDefinition` | T-SQL | CREATE PARTITION FUNCTION | Ddl |
+| `Statement.AlterPartitionFunction` | T-SQL | ALTER PARTITION FUNCTION | Ddl |
+| `Statement.PartitionSchemeDefinition` | T-SQL | CREATE PARTITION SCHEME | Ddl |
+| `Statement.AlterPartitionScheme` | T-SQL | ALTER PARTITION SCHEME | Ddl |
 | `Statement.EndpointDefinition` | T-SQL | CREATE/ALTER ENDPOINT | Ddl |
 | `Statement.CreateDatabase` | T-SQL | CREATE DATABASE — the standard has no database | Ddl |
 | `Statement.AlterDatabaseSet` | T-SQL | ALTER DATABASE … SET | Ddl |

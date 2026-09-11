@@ -18906,3 +18906,23 @@ reference. Put to the engine some hundred times:
 At 150: read by both 5,858 (from 5,854), the work list 118 (from 122), read here but refused
 there 43; `--split` 652 (from 652), the round trip 100% of 7,241. The map: read by both 7,824
 of 8,338 (97.8%), the work list 179 (from 200), defects 0.
+
+## Partitions
+
+`CREATE` and `ALTER PARTITION FUNCTION` and `SCHEME`, some twenty statements of the map's work
+list; their `DROP`s were read already. Kept as every object here is, a `Definition` each with
+the words after the name as its tail. Put to the engine some sixty times:
+
+- **Both are named by one part**, a function's scheme by one part too: `dbo.pf` is refused
+  wherever it stands.
+- **A function takes one type**, which may be one of somebody's: none and two are refused
+  (`Msg 7702`, `7703`). `LEFT` or `RIGHT` may be left out. Its boundaries are any values — a
+  query's, a call's, `NULL` — and not `DEFAULT`, or none: `FOR VALUES ()` is read.
+- **An altered function is named with its empty brackets**, `pf ()`, and splits or merges one
+  boundary, a value as a created one's are.
+- **A scheme's filegroups are one or more**, each a name or a string; `PRIMARY` is reserved and
+  stands in brackets. The next one used is one or none.
+
+At 150: read by both 5,858 (from 5,858), the work list 118 (from 118), read here but refused
+there 43; `--split` 654 (from 652), the round trip 100% of 7,257. The map: read by both 7,847
+of 8,338 (98.1%), the work list 156 (from 179), defects 0.

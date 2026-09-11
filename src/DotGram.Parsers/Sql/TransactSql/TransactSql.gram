@@ -1745,6 +1745,7 @@ DefinitionStatement : @Statement
 	| s: ExternalStatement       => @(s)
 	| s: BrokerStatement         => @(s)
 	| s: ServerStatement         => @(s)
+	| s: PartitionStatement      => @(s)
 
 // ── A text of statements ────────────────────────────────────────────────────
 //
@@ -1847,6 +1848,34 @@ DeclaredAs : @Clause.VariableDeclaration
 	= "TABLE"i & '(' & body: TableBody & ')'              => @(new Clause.VariableDeclaration("", "TABLE", null, body))
 	| "CURSOR"i                                           => @(new Clause.VariableDeclaration("", "CURSOR", null))
 	| type: DataType & n: NullSpec? & ('=' & v: SetValue)? => @(new Clause.VariableDeclaration("", type, v, null, n))
+
+// ── Partitions ──────────────────────────────────────────────────────────────
+//
+// A function and a scheme, each created and altered, put to the engine some sixty times. Kept
+// as every object here is, a name and the words after it. Both are named by one part.
+//
+// A function takes one type — none and two are refused (`Msg 7702`, `7703`) — and its
+// boundaries are any values, a query's and a call's among them, `NULL` too and `DEFAULT` not, or
+// none at all. One is split or merged at a time, and the function is named with its empty
+// brackets. A scheme's filegroups are one or more, a name or a string, `[PRIMARY]` in its
+// brackets since the word is reserved; the next one used is one or none.
+PartitionStatement : @Statement
+	= "CREATE"i & "PARTITION"i & "FUNCTION"i & name: Identifier
+	  & tail: ('(' & DataType & ')' & "AS"i & "RANGE"i & ("LEFT"i | "RIGHT"i)? & "FOR"i & "VALUES"i
+			   & '(' & (PartitionBoundary & (',' & PartitionBoundary)*)? & ')')
+		=> @(Statement.Defined("PARTITION FUNCTION", name, Syntax.Tail(tail)))
+	| "ALTER"i & "PARTITION"i & "FUNCTION"i & name: Identifier
+	  & tail: ('(' & ')' & ("SPLIT"i | "MERGE"i) & "RANGE"i & '(' & PartitionBoundary & ')')
+		=> @(Statement.Defined("ALTER PARTITION FUNCTION", name, Syntax.Tail(tail)))
+	| "CREATE"i & "PARTITION"i & "SCHEME"i & name: Identifier
+	  & tail: ("AS"i & "PARTITION"i & Identifier & "ALL"i? & "TO"i
+			   & '(' & PartitionFileGroup & (',' & PartitionFileGroup)* & ')')
+		=> @(Statement.Defined("PARTITION SCHEME", name, Syntax.Tail(tail)))
+	| "ALTER"i & "PARTITION"i & "SCHEME"i & name: Identifier & tail: ("NEXT"i & "USED"i & PartitionFileGroup?)
+		=> @(Statement.Defined("ALTER PARTITION SCHEME", name, Syntax.Tail(tail)))
+
+PartitionBoundary  = "NULL"i | ValueExpression
+PartitionFileGroup = Identifier | Quoted
 
 // ── The server's configuration ──────────────────────────────────────────────
 //

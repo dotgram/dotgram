@@ -24,24 +24,23 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 97.8% | 7824 | 179 | 0 | 4 | 85 | 250 | 0 |
+| **all** | 996 | 8338 | 98.1% | 7847 | 156 | 0 | 4 | 85 | 250 | 0 |
 | [data-types](#data-types) | 29 | 304 | 99.7% | 290 | 1 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 98.7% | 233 | 3 | 0 | 0 | 1 | 5 | 0 |
-| [functions](#functions) | 324 | 2101 | 99.4% | 2070 | 12 | 0 | 3 | 2 | 17 | 0 |
+| [functions](#functions) | 324 | 2101 | 99.5% | 2072 | 10 | 0 | 3 | 2 | 17 | 0 |
 | [includes](#includes) | 3 | 7 | 100.0% | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
 | [language-elements](#language-elements) | 86 | 868 | 98.0% | 837 | 17 | 0 | 0 | 0 | 14 | 0 |
 | [queries](#queries) | 37 | 747 | 98.2% | 711 | 13 | 0 | 0 | 1 | 22 | 0 |
 | [reference](#reference) | 3 | 32 | 96.9% | 31 | 1 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 99.7% | 310 | 1 | 0 | 0 | 0 | 1 | 0 |
 | [spatial-geometry](#spatial-geometry) | 74 | 357 | 99.7% | 356 | 1 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 95.5% | 2778 | 130 | 0 | 1 | 81 | 174 | 0 |
+| [statements](#statements) | 320 | 3163 | 96.3% | 2799 | 109 | 0 | 1 | 81 | 174 | 0 |
 | [xml](#xml) | 12 | 205 | 100.0% | 201 | 0 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
 
 | Statement | statements | pages | for example |
 | --- | ---: | ---: | --- |
-| CREATE PARTITION FUNCTION | 13 | 5 | stops at PARTITION — `CREATE PARTITION FUNCTION RangePF1(INT) AS RANGE LEFT FOR VALUES (10, 100, 1000);` |
 | CREATE SEQUENCE | 11 | 3 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
 | CREATE TYPE | 10 | 5 | stops at TYPE — `CREATE TYPE NewType FROM int;` |
 | CREATE XML SCHEMA | 10 | 3 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION MyColl AS ' <schema xmlns="http://www.w3.org/2001/XMLS...` |
@@ -49,7 +48,6 @@ rest run rather than read.
 | KILL | 8 | 4 | stops at KILL — `KILL QUERY NOTIFICATION SUBSCRIPTION ALL ;` |
 | ADD | 7 | 2 | stops at ADD — `ADD SENSITIVITY CLASSIFICATION TO dbo.sales.price, dbo.sales.discount WITH ( LABEL ...` |
 | CREATE ASSEMBLY | 7 | 6 | stops at ASSEMBLY — `CREATE ASSEMBLY mytest FROM 'c:\test.dll' WITH PERMISSION_SET = SAFE` |
-| CREATE PARTITION SCHEME | 7 | 3 | stops at PARTITION — `CREATE PARTITION SCHEME RangePS1 AS PARTITION RangePF1 ALL TO ('PRIMARY');` |
 | INSERT | 6 | 6 | stops at ';' — `INSERT INTO likes($edge_id, $from_id, $to_id, rating) SELECT EDGE_ID_FROM_PARTS(OBJ...` |
 | TRUNCATE | 6 | 4 | stops at TRUNCATE — `TRUNCATE TABLE dbo.ErrorLog` |
 | CREATE SYNONYM | 5 | 3 | stops at SYNONYM — `CREATE SYNONYM MyEmployeeTable FOR HumanResources.Employee;` |
@@ -66,7 +64,6 @@ rest run rather than read.
 | READTEXT | 3 | 2 | stops at READTEXT — `READTEXT t1.c2 @ptrval 0 1;` |
 | SET | 3 | 1 | stops at AUTOCOMMIT — `SET AUTOCOMMIT ON;` |
 | USE | 3 | 2 | stops at COMPUTE — `USE UserDbSales; DBCC FREEPROCCACHE (COMPUTE) WITH NO_INFOMSGS;` |
-| ALTER PARTITION FUNCTION | 2 | 1 | stops at PARTITION — `ALTER PARTITION FUNCTION myRangePF1 () SPLIT RANGE (500);` |
 | BACKUP | 2 | 2 | stops at ALGORITHM — `BACKUP CERTIFICATE Shipping04 TO FILE = 'c:\storedcerts\shipping04cert.pfx' WITH FO...` |
 | DBO | 2 | 1 | stops at DBO — `dbo.uspGetEmployeeManagers 6;` |
 | DECLARE | 2 | 2 | stops at ';' — `DECLARE @days INT = 365, @datetime DATETIME2 = '2000-01-01 01:01:01.1110000'; /* 20...` |
@@ -77,7 +74,6 @@ rest run rather than read.
 | SELECT | 2 | 2 | stops at DIAGNOSTICS — `-- Determine the session_id of your current session SELECT TOP 1 session_id();  -- ...` |
 | SP_DETACH_DB | 2 | 1 | stops at SP_DETACH_DB — `sp_detach_db Archive;` |
 | ALTER EXTERNAL LANGUAGE | 1 | 1 | stops at LANGUAGE — `ALTER EXTERNAL LANGUAGE Java SET (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaexte...` |
-| ALTER PARTITION SCHEME | 1 | 1 | stops at PARTITION — `ALTER PARTITION SCHEME MyRangePS1 NEXT USED test5fg;` |
 | ALTER SERVICE | 1 | 1 | stops at KEY — `ALTER SERVICE MASTER KEY REGENERATE;` |
 | ALTER TABLE | 1 | 1 | stops at WITH — `ALTER TABLE dbo.doc_exf ADD AddDate smalldatetime NULL CONSTRAINT AddDateDflt DEFAU...` |
 | ALTER XML SCHEMA | 1 | 1 | stops at XML — `ALTER XML SCHEMA COLLECTION MyColl ADD ' <schema xmlns="http://www.w3.org/2001/XMLS...` |
@@ -180,7 +176,6 @@ None: the engine reads every statement this grammar reads.
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | OPENJSON (Transact-SQL) | 23 | 100.0% | 0 | 0 | 3 | 0 | levels 100 engine, 110 engine, 120 engine — `SELECT * FROM OPENJSON(@array) WITH (  month VARCHAR(3), temp int, month_id tinyint...` |
 | NEXT VALUE FOR (Transact-SQL) | 25 | 92.0% | 2 | 0 | 0 | 0 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
-| $PARTITION (Transact-SQL) | 7 | 71.4% | 2 | 0 | 0 | 0 | stops at PARTITION — `CREATE PARTITION FUNCTION RangePF1(INT) AS RANGE LEFT FOR VALUES (10, 100, 1000);` |
 | TEXTPTR (Transact-SQL) | 20 | 90.0% | 2 | 0 | 0 | 0 | stops at READTEXT — `READTEXT t1.c2 @ptrval 0 1;` |
 | TYPE_ID (Transact-SQL) | 7 | 71.4% | 2 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE NewType FROM int;` |
 | DATE_BUCKET (Transact-SQL) | 27 | 96.3% | 1 | 0 | 0 | 0 | stops at ';' — `DECLARE @days INT = 365, @datetime DATETIME2 = '2000-01-01 01:01:01.1110000'; /* 20...` |
@@ -395,6 +390,7 @@ None: the engine reads every statement this grammar reads.
 | @@PACKET_ERRORS (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | PARSE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | PARSENAME (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
+| $PARTITION (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | PATINDEX (Transact-SQL) | 8 | 100.0% | 0 | 0 | 0 | 0 |  |
 | PERCENT_RANK (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | PERCENTILE_CONT (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -812,7 +808,6 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| CREATE PARTITION SCHEME (Transact-SQL) | 10 | 0.0% | 10 | 0 | 0 | 0 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1(INT) AS RANGE LEFT FOR VALUES (1, 100, 1000);` |
 | CREATE SEQUENCE (Transact-SQL) | 12 | 41.7% | 7 | 0 | 0 | 0 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
 | CREATE SPATIAL INDEX (Transact-SQL) | 9 | 22.2% | 7 | 0 | 0 | 0 | stops at SPATIAL — `CREATE SPATIAL INDEX SIndx_SpatialTable_geometry_col1 ON SpatialTable(geometry_col)...` |
 | ADD SIGNATURE (Transact-SQL) | 41 | 87.8% | 5 | 0 | 0 | 0 | stops at ADD — `ADD SIGNATURE TO HumanResources.uspUpdateEmployeeLogin BY CERTIFICATE HumanResource...` |
@@ -822,8 +817,6 @@ None: the engine reads every statement this grammar reads.
 | CREATE TYPE (Transact-SQL) | 10 | 44.4% | 5 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE dbo.udt_money FROM varchar(11) NOT NULL;` |
 | CREATE XML SCHEMA COLLECTION (Transact-SQL) | 18 | 72.2% | 5 | 0 | 0 | 0 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION ManuInstructionsSchemaCollection AS N'<?xml version="1...` |
 | ENABLE TRIGGER (Transact-SQL) | 6 | 16.7% | 5 | 0 | 0 | 0 | stops at DISABLE — `DISABLE TRIGGER Person.uAddress ON Person.Address;` |
-| ALTER PARTITION FUNCTION (Transact-SQL) | 6 | 33.3% | 4 | 0 | 0 | 0 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1 (int) AS RANGE LEFT FOR VALUES ( 1, 100, 1000 );` |
-| CREATE PARTITION FUNCTION (Transact-SQL) | 14 | 71.4% | 4 | 0 | 0 | 0 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1 (int) AS RANGE LEFT FOR VALUES (1, 100, 1000);` |
 | ALTER ASSEMBLY (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at ASSEMBLY — `ALTER ASSEMBLY ComplexNumber FROM 'C:\Program Files\Microsoft SQL Server\130\Tools\...` |
 | ALTER CRYPTOGRAPHIC PROVIDER (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at CRYPTOGRAPHIC — `ALTER CRYPTOGRAPHIC PROVIDER SecurityProvider DISABLE;` |
 | CREATE RULE (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at RULE — `CREATE RULE range_rule AS @range>= $1000 AND @range <$20000;` |
@@ -839,12 +832,10 @@ None: the engine reads every statement this grammar reads.
 | CREATE DATABASE (Transact-SQL) | 54 | 94.9% | 2 | 0 | 0 | 6 | stops at SP_DETACH_DB — `sp_detach_db Archive;` |
 | CREATE DEFAULT (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at DEFAULT — `CREATE DEFAULT phonedflt AS 'unknown';` |
 | CREATE EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at LANGUAGE — `CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaex...` |
-| CREATE TABLE (Transact-SQL) | 69 | 96.3% | 2 | 0 | 0 | 1 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1(INT) AS RANGE LEFT FOR VALUES (1, 100, 1000);` |
 | END CONVERSATION (Transact-SQL) | 6 | 66.7% | 2 | 0 | 0 | 0 | stops at '@' — `@dialog_handle ;` |
 | INSERT (Transact-SQL) | 73 | 97.3% | 2 | 0 | 0 | 0 | stops at ')' — `CREATE TABLE dbo.T1 ( column_1 int IDENTITY, column_2 uniqueidentifier, );` |
 | MERGE (Transact-SQL) | 54 | 96.0% | 2 | 0 | 0 | 0 | stops at MERGE — `INSERT INTO Production.UpdatedInventory SELECT ProductID, LocationID, NewQty, Previ...` |
 | ALTER EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at LANGUAGE — `ALTER EXTERNAL LANGUAGE Java SET (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaexte...` |
-| ALTER PARTITION SCHEME (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at PARTITION — `ALTER PARTITION SCHEME MyRangePS1 NEXT USED test5fg;` |
 | ALTER SCHEMA (Transact-SQL) | 10 | 90.0% | 1 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE Production.TestType FROM [VARCHAR](10) NOT NULL ;` |
 | ALTER SERVER CONFIGURATION (Transact-SQL) | 20 | 95.0% | 1 | 0 | 0 | 0 | stops at RECONFIGURE — `RECONFIGURE;` |
 | ALTER SERVICE MASTER KEY (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at KEY — `ALTER SERVICE MASTER KEY REGENERATE;` |
@@ -893,6 +884,8 @@ None: the engine reads every statement this grammar reads.
 | ALTER MASTER KEY (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER MATERIALIZED VIEW (Transact-SQL) | 2 | — | 0 | 0 | 0 | 0 |  |
 | ALTER MESSAGE TYPE (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER PARTITION FUNCTION (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER PARTITION SCHEME (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER PROCEDURE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER QUEUE (Transact-SQL) | 8 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER REMOTE SERVICE BINDING (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -950,6 +943,8 @@ None: the engine reads every statement this grammar reads.
 | CREATE LOGIN (Transact-SQL) | 48 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE MASTER KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE MATERIALIZED VIEW AS SELECT (Transact-SQL) creates a materialized view to persist the data returned from the view definition query and automatically gets updated as data changes in the underlying tables. | 18 | 100.0% | 0 | 0 | 0 | 2 |  |
+| CREATE PARTITION FUNCTION (Transact-SQL) | 14 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE PARTITION SCHEME (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE QUEUE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE REMOTE SERVICE BINDING (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE RESOURCE POOL (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -969,6 +964,7 @@ None: the engine reads every statement this grammar reads.
 | CREATE TABLE | 12 | — | 0 | 0 | 0 | 1 |  |
 | CREATE TABLE (SQL Graph) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | IDENTITY (Property) (Transact-SQL) | 22 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE TABLE (Transact-SQL) | 69 | 100.0% | 0 | 0 | 0 | 1 |  |
 | CREATE TRIGGER (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE USER (Transact-SQL) | 42 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE VIEW (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
