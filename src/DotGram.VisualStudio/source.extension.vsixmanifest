@@ -27,7 +27,7 @@ Design grammars and use their generated parsers without leaving the C# editor.</
 		<Tags>.Gram, DotGram, grammar, parser, language, CSharp</Tags>
 	</Metadata>
 	<Installation>
-		<InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[18.0,19.0)">
+		<InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.14,19.0)">
 			<ProductArchitecture>amd64</ProductArchitecture>
 		</InstallationTarget>
 	</Installation>
@@ -39,7 +39,7 @@ Design grammars and use their generated parsers without leaving the C# editor.</
 	</Dependencies>
 	<Prerequisites>
 		<Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor"
-		              Version="[18.0,19.0)"
+		              Version="[17.14,19.0)"
 		              DisplayName="Visual Studio core editor" />
 	</Prerequisites>
 	<Assets>
