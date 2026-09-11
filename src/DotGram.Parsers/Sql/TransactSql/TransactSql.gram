@@ -1385,12 +1385,30 @@ DmlTarget : @TableReference
 	| t: TSql.Variable & hints: TableHints?    => @(new TableReference.Named(t, null, false, null, null, null, hints ?? Clause.None))
 	| name: QualifiedName & hints: TableHints? => @(new TableReference.Named(name, null, false, null, null, null, hints ?? Clause.None))
 
+// A table-valued function is a target too, its arguments and nothing after them: the
+// engine reads `UPDATE dbo.f() SET …`, `DELETE FROM dbo.f(1)` and `MERGE dbo.f() USING …`,
+// and refuses a hint or an alias after the call, and a method of a variable.
+DmlCall : @TableReference
+	= name: QualifiedName & '(' & args: Arguments? & ')'
+		=> @(new TableReference.FunctionCall(
+				 new Expression.RoutineInvocation(name, args ?? Expression.None), null, null, Clause.None))
+
+DmlSubject : @TableReference = c: DmlCall => @(c) | t: DmlTarget => @(t)
+
 // ── §INSERT ─────────────────────────────────────────────────────────────────
 // The query hints stand after the rows, as they do after an `UPDATE`'s — except where the
 // rows are an `EXEC`, whose own options end the statement: `INSERT t EXEC p OPTION (…)` is
 // refused.
+//
+// A function is the second reading, tried when the first has failed: `INSERT t (c1) VALUES
+// …` is a table and its columns, and `INSERT dbo.f() (c1) …` and `INSERT dbo.f(1, DEFAULT)
+// VALUES …` are what cannot be.
 TSqlInsert : @Statement
 	= "INSERT"i & top: Top? & into: "INTO"i? & target: DmlTarget
+	  & ('(' & columns: ColumnList & ')')? & output: OutputClause?
+	  & rows: InsertRows & options: QueryHints? & when @(options is null || rows is not Query.FromExecute)
+		=> @(new Statement.Insert(target, columns, rows, null, top, output, into is not null) { Options = options })
+	| "INSERT"i & top: Top? & into: "INTO"i? & target: DmlCall
 	  & ('(' & columns: ColumnList & ')')? & output: OutputClause?
 	  & rows: InsertRows & options: QueryHints? & when @(options is null || rows is not Query.FromExecute)
 		=> @(new Statement.Insert(target, columns, rows, null, top, output, into is not null) { Options = options })
@@ -1403,7 +1421,7 @@ InsertRows : @Query
 
 // ── §UPDATE ─────────────────────────────────────────────────────────────────
 TSqlUpdate : @Statement
-	= "UPDATE"i & top: Top? & target: DmlTarget
+	= "UPDATE"i & top: Top? & target: DmlSubject
 	  & "SET"i & sets: Assignments & output: OutputClause?
 	  & from: FromClause? & where: DmlWhere? & options: QueryHints?
 		=> @(new Statement.Update(target, sets, from ?? TableReference.None, where, null, top, output, options))
@@ -1416,21 +1434,33 @@ Assignments : @Clause[]
 // method called on one. `.WRITE (…)` needs no rule of its own — a qualified name has
 // already eaten the dot, so what is left is a call.
 Assignment : @Clause
-	= to: TSql.Variable   & s: AssignTail       => @(s with { Target = to })
-	| to: QualifiedName   & s: ColumnAssignTail => @(s with { Target = to })
+	= to: TSql.Variable   & s: UpdateVariableTail => @(s with { Target = to })
+	| to: QualifiedName   & s: ColumnAssignTail   => @(s with { Target = to })
 
 // `DEFAULT` is assigned and not compounded: the engine answers `DEFAULT is not allowed
 // on the right hand side of "-="`, which is a rule about the operator rather than about
-// the value, so it is written on the operator.
+// the value, so it is written on the operator. And it is a column's: a variable is not given
+// it, `SET @a = DEFAULT` and `UPDATE t SET @a = DEFAULT` being refused.
+//
+// A variable's own `SET` takes a value or a compound one, and nothing more.
 AssignTail : @Clause.Set
-	= '=' & c: QualifiedName & op: AssignOp & v: SetValue => @(new Clause.Set("", op, v, c))
-	| '=' & v: AssignedValue                              => @(new Clause.Set("", "=", v))
-	| op: AssignOp & v: SetValue                          => @(new Clause.Set("", op, v))
+	= '=' & v: SetValue          => @(new Clause.Set("", "=", v))
+	| op: AssignOp & v: SetValue => @(new Clause.Set("", op, v))
+
+// In an `UPDATE` a variable may take a column's new value along with the column, `@a = c =
+// 1` or `@a = c += 1`, with `DEFAULT` where the column is assigned plainly — `@a = c =
+// DEFAULT` is read. A variable's own `SET` refuses the column: `SET @a = c = 1`.
+UpdateVariableTail : @Clause.Set
+	= '=' & c: QualifiedName & s: ChainTail => @(s with { Through = c })
+	| s: AssignTail                         => @(s)
+
+ChainTail : @Clause.Set
+	= '=' & v: AssignedValue     => @(new Clause.Set("", "=", v))
+	| op: AssignOp & v: SetValue => @(new Clause.Set("", op, v))
 
 ColumnAssignTail : @Clause.Set
 	= '(' & args: Arguments? & ')' => @(new Clause.Set("", "", new Expression.RoutineInvocation("", args ?? Expression.None)))
-	| '=' & v: AssignedValue       => @(new Clause.Set("", "=", v))
-	| op: AssignOp & v: SetValue   => @(new Clause.Set("", op, v))
+	| s: ChainTail                 => @(s)
 
 AssignedValue : @Expression
 	= "DEFAULT"i => @(Expression.DefaultValue)
@@ -1448,7 +1478,7 @@ DmlWhere : @Expression
 
 // ── §DELETE ─────────────────────────────────────────────────────────────────
 TSqlDelete : @Statement
-	= "DELETE"i & top: Top? & "FROM"i? & target: DmlTarget & output: OutputClause?
+	= "DELETE"i & top: Top? & "FROM"i? & target: DmlSubject & output: OutputClause?
 	  & from: FromClause? & where: DmlWhere? & options: QueryHints?
 		=> @(new Statement.Delete(target, from ?? TableReference.None, where, null, top, output, options))
 
@@ -1457,7 +1487,7 @@ TSqlDelete : @Statement
 // Three shapes of arm and they are not interchangeable: a match and a missing target may
 // insert, a missing source may update or delete, and the syntax says which is which.
 TSqlMerge : @Statement
-	= "MERGE"i & top: Top? & into: "INTO"i? & target: DmlTarget & ("AS"i? & alias: CorrelationName)?
+	= "MERGE"i & top: Top? & into: "INTO"i? & target: DmlSubject & ("AS"i? & alias: CorrelationName)?
 	  & "USING"i & source: TableReference
 	  & "ON"i & on: SearchCondition
 	  & whens: MergeArm+ & output: OutputClause? & options: QueryHints?

@@ -1303,6 +1303,85 @@ public sealed class TransactSqlTests
 	}
 
 	/// <summary>
+	/// A variable assigned, in its own `SET` and in an `UPDATE`, as the engine answers it with
+	/// the variable declared: `DEFAULT` is a column's, and a column between the variable and
+	/// its value an `UPDATE`'s.
+	/// </summary>
+	[Theory]
+	[InlineData("SET @a = DEFAULT")]
+	[InlineData("SET @a = c = 1")]
+	[InlineData("SET @a = c += 1")]
+	[InlineData("UPDATE t SET @a = DEFAULT")]
+	[InlineData("UPDATE t SET @a = c = @a = 1")]
+	[InlineData("UPDATE t SET @a = @a = 1")]
+	[InlineData("UPDATE t SET c = @a = 1")]
+	public void A_variable_assigned_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside them.</summary>
+	[Theory]
+	[InlineData("SET @a += 1")]
+	[InlineData("SET @a = NULL")]
+	[InlineData("UPDATE t SET @a = c = DEFAULT")]
+	[InlineData("UPDATE t SET @a = a.b = DEFAULT")]
+	[InlineData("UPDATE t SET @a = c = 1")]
+	[InlineData("UPDATE t SET @a = c += NULL")]
+	[InlineData("UPDATE t SET @a = c, c = DEFAULT, @a += 1")]
+	public void A_variable_assigned_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>A table-valued function as what a statement writes to, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("UPDATE dbo.f() WITH (NOLOCK) SET c = 1")]
+	[InlineData("UPDATE dbo.f() AS x SET c = 1")]
+	[InlineData("UPDATE dbo.f() x SET c = 1")]
+	[InlineData("DELETE dbo.f() WITH (NOLOCK)")]
+	[InlineData("DELETE dbo.f() AS x")]
+	[InlineData("INSERT INTO dbo.f() WITH (TABLOCK) VALUES (1)")]
+	[InlineData("UPDATE @t.f() SET c = 1")]
+	public void A_function_target_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside it.</summary>
+	[Theory]
+	[InlineData("UPDATE dbo.f() SET c = 1")]
+	[InlineData("UPDATE dbo.tvf(-1, 2, DEFAULT) SET c1 = 2")]
+	[InlineData("UPDATE f() SET c = 1")]
+	[InlineData("UPDATE TOP (1) dbo.f() SET c = 1 OUTPUT c INTO @t (c1) FROM t WHERE 1 = 1")]
+	[InlineData("DELETE dbo.f()")]
+	[InlineData("DELETE FROM dbo.f(1) WHERE c = 1")]
+	[InlineData("INSERT dbo.f() SELECT * FROM t2 UNION SELECT * FROM t3")]
+	[InlineData("INSERT dbo.f() (c1) DEFAULT VALUES")]
+	[InlineData("INSERT INTO dbo.tvf(1, -1, DEFAULT) VALUES (2, 3, 4)")]
+	[InlineData("INSERT dbo.f() EXEC p")]
+	[InlineData("MERGE dbo.f() AS t USING s ON 1 = 1 WHEN MATCHED THEN DELETE;")]
+	public void A_function_target_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>`INSERT t (c1)` is a table and its columns, and not a call.</summary>
+	[Fact]
+	public void A_column_list_is_not_a_call()
+	{
+		var insert = Assert.IsType<Statement.Insert>(TransactSql.TryParseStatement("INSERT t (c1) VALUES (1)").Value);
+
+		Assert.IsType<TableReference.Named>(insert.Target);
+		Assert.Equal(new[] { "c1" }, insert.Columns);
+
+		var called = Assert.IsType<Statement.Insert>(TransactSql.TryParseStatement("INSERT dbo.f() (c1) DEFAULT VALUES").Value);
+
+		Assert.IsType<TableReference.FunctionCall>(called.Target);
+		Assert.Equal(new[] { "c1" }, called.Columns);
+	}
+
+	/// <summary>
 	/// A space is what the engine takes for one: every control character below the space,
 	/// Unicode's spaces and separators, and the zero-width space — in the standard's rules
 	/// as much as in T-SQL's, `WHERE` being the standard's.

@@ -18434,3 +18434,25 @@ as syntax, which is a question about which calls take `DISTINCT` and for another
 
 At 150: read by both 5,778 (from 5,771), the work list 196 (from 203), read here but refused
 there 43, as before. `--split` 583, and the round trip 100% of 6,886.
+
+## A function written to, and a variable given a column's value
+
+**A table-valued function is a target.** The engine reads `UPDATE dbo.f() SET …`, `DELETE
+FROM dbo.f(1)`, `INSERT dbo.f() (c1) DEFAULT VALUES`, `INSERT INTO dbo.tvf(1, -1, DEFAULT)
+VALUES …` and `MERGE dbo.f() USING …`, with `TOP`, `OUTPUT` and a second `FROM` as a table
+has them, and refuses a hint or an alias after the call and a method of a variable. The tree
+had the node already, `TableReference.FunctionCall`, which a rowset function as a target was.
+An `INSERT` has the one ambiguity: `INSERT t (c1) VALUES …` is a table and its columns, so
+the function is the second reading, tried when the first has failed, and a test holds both.
+A first probe declared a table variable beside a scalar in one `DECLARE`, which the engine
+refuses, and so refused every line after it; the second declared them apart.
+
+**A variable in an `UPDATE`** may take a column's new value with the column, `@a = c = 1`,
+and the grammar read that in a variable's own `SET` too, where the engine refuses it. And
+`DEFAULT` was given to variables, which the engine refuses in both places, and refused in
+`@a = c = DEFAULT`, which it reads — the column is what takes it. So the two are apart now:
+a variable's own `SET` takes a value or a compound one, and an `UPDATE`'s variable may name
+the column between.
+
+At 150: read by both 5,798 (from 5,778), the work list 176 (from 196), read here but refused
+there 43, as before. `--split` 589, and the round trip 100% of 6,906.
