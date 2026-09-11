@@ -312,7 +312,7 @@ static class Engine
 	/// looked at.
 	/// </para>
 	/// </remarks>
-	static bool Elsewhere(string statement, int message) =>
+	internal static bool Elsewhere(string statement, int message) =>
 		// 40514 "'…' is not supported in this version of SQL Server", and 40517 the same
 		// answer about one keyword or option rather than a whole feature.
 		message is 40514 or 40517 ||
@@ -378,7 +378,10 @@ static class Engine
 	];
 
 	internal static bool AboutNames(int message) =>
-		message is 117 or 137 or 195 or 207 or 208 or 448 or 1047 or 1087
+		// 911: a database that does not exist — `USE AdventureWorks2022`, which the reference's
+		// examples open with, read and then objected to by name. 12703: an external data source
+		// that does not exist, named in an `OPENROWSET`.
+		message is 117 or 137 or 195 or 207 or 208 or 448 or 911 or 1047 or 1087 or 12703
 			or 4104 or 4112 or 4145
 			or 5369 or 5371 or 5374
 			or 10715

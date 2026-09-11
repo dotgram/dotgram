@@ -25,11 +25,15 @@ what the next document is for.
 | [`status.md`](status.md) | The implementation held against the specification, rule by rule, with what is refused and why. |
 | [`diagnostics.md`](diagnostics.md) | Every message the generator reports, by identifier. |
 | [`ast.md`](ast.md) | The tree the SQL parsers build, and the specification each node is named from. |
+| [`coverage.md`](coverage.md) | How much of Microsoft's T-SQL reference the T-SQL grammar reads, page by page, as SQL Server answers every example of it at every level. |
 
 These describe what is true today. A disagreement between one of these and `syntax.md`
 is not a contradiction — it is the gap the pair exists to measure. A disagreement between
 one of these and the code is a defect, and `ast.md` is held to that by a test that reads
 it.
+
+`coverage.md` is a measurement rather than a text: `--coverage` writes it, nobody edits it,
+and it is out of date from the first change to the grammar until it is run again.
 
 ## How it is built
 

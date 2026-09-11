@@ -187,7 +187,7 @@ static class SyntaxBlocks
 		return (title, found);
 	}
 
-	static string? Title(string[] lines)
+	internal static string? Title(string[] lines)
 	{
 		if (lines.Length == 0 || lines[0].Trim() != "---")
 			return null;
@@ -202,7 +202,7 @@ static class SyntaxBlocks
 	}
 
 	/// <summary>A file's lines without its front matter, with includes on a line of their own spliced in.</summary>
-	static List<string> Expanded(string path, string[] lines, int depth)
+	internal static List<string> Expanded(string path, string[] lines, int depth)
 	{
 		var result = new List<string>();
 		var at     = 0;
@@ -254,7 +254,7 @@ static class SyntaxBlocks
 		return File.Exists(file) ? file : null;
 	}
 
-	static string Unindented(string line, int indent)
+	internal static string Unindented(string line, int indent)
 	{
 		var spaces = 0;
 
@@ -284,7 +284,7 @@ static class SyntaxBlocks
 	}
 
 	/// <summary>The commit the clone stands at and its date, or a line saying it is not known.</summary>
-	static string Commit(string docs)
+	internal static string Commit(string docs)
 	{
 		try
 		{

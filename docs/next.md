@@ -18577,3 +18577,44 @@ The first build refused the guard: a binding in a `when` is nullable to the comp
 
 At 150: read by both 5,835 (from 5,833), the work list 139 (from 141), read here but refused
 there 43, as before. `--split` 609, and the round trip 100% of 6,953.
+
+## A map of the reference
+
+Asked whether T-SQL was done, the honest answer was that one strip of it was: the corpus at
+150. `--engine` counts only the statements of the kinds the grammar has a rule for, so a
+statement nobody wrote a rule for is in no number at all. So there is a second instrument
+now, `--coverage` (`Coverage.cs`), and its output, `docs/coverage.md`: every example on every
+page of the reference in the sql-docs clone, cut into statements by ScriptDom — or into
+batches where it cannot cut them — and asked of the engine at every level from 100 to 170
+and of this grammar at the same level. The page's product range, or the example's, says
+which are another product's.
+
+Two things it has to guard against, both about running rather than reading. The reference
+has `SET PARSEONLY OFF` on a page, and after it the rest of the reference would be run on
+this machine — so anything naming `PARSEONLY` is left out. And a `USE` might move a
+connection to another database, whose level is another; a connection that moves is moved
+back. None did.
+
+The first run said 480 defects, and 170 of the pages it named began with `USE
+AdventureWorks2022`: `Msg 911`, a database that does not exist, which is the engine having
+read the statement and objected to a name — it is on that side of `AboutNames` now, as 137
+and 208 are, and so is `Msg 12703`, an external data source that does not exist.
+
+The second run found a third thing to guard against. `CREATE TABLE "select" (…)` was
+refused, and the example before it on its page is `SET QUOTED_IDENTIFIER OFF`: an option of
+the session the engine honours under `PARSEONLY` too, which stayed off for every page after.
+So a statement that sets an option now has every connection opened again after it, and the
+pool hands them back with their options reset — 442 times over the reference.
+
+The third run: 8,338 statements from 996 of 1,163 pages, read by both 7,406 (92.5%), the
+work list 597, defects 6, 4 parting at a level, 85 another product's, 244 neither.
+
+The work list is what the corpus could not show: whole families with no rule at all. The
+cursor statements, `OPEN`, `FETCH`, `CLOSE`, `DEALLOCATE` and a cursor assigned to a variable,
+some 170 statements; `DBCC`, 96; Service Broker's objects and conversations, some 60; the
+resource governor and the server's configuration, 43; partition functions and schemes,
+sequences, types, XML schema collections, spatial indexes, assemblies, synonyms, rules and
+defaults; and `KILL`, `TRUNCATE`, the text-pointer statements and a procedure called without
+`EXEC`. The six defects are few and real: a block comment inside a block comment, which
+T-SQL nests; a date part that is not one; `ALTER SEARCH PROPERTY LIST`; and a `VALUES` with a
+row too wide, among them. The order from here is the defects, then the families by size.

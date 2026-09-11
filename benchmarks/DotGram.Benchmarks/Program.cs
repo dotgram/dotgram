@@ -254,6 +254,17 @@ static class Program
 			return;
 		}
 
+		// `--coverage sql-docs [output]` asks the engine and this grammar about every example of
+		// Microsoft's T-SQL reference, at every level, and writes up how much of each page is
+		// read beside the grammar's documentation: the map of what is left of the language,
+		// where `--engine` is a map of one corpus. Needs a server, as `--engine` does. See
+		// Coverage.cs.
+		if (args.Length >= 2 && args[0] == "--coverage")
+		{
+			Coverage.Run(args[1], args.Length >= 3 ? args[2] : null);
+			return;
+		}
+
 		if (args.Length >= 1 && args[0] == "--engine")
 		{
 			var rest  = args.Skip(1).ToArray();
