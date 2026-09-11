@@ -8,7 +8,7 @@ using Sql92;
 // grammar is attached to; what is written here is only where T-SQL differs, and
 // §5.1's rebinding is what makes the difference reach every rule that leads to it.
 //
-// Eleven rules replace eleven of the standard's. Nothing else is restated and nothing
+// Nineteen rules replace nineteen of the standard's. Nothing else is restated and nothing
 // is copied: a query expression, a join, a predicate and the whole value tower are
 // the ones already read against the standard, reading a dialect's identifiers and
 // a dialect's primaries because the substitution rewrote every call inside them.
@@ -26,7 +26,9 @@ using Sql92;
 wordboundary = Sql92.Lexical.IdentifierPart
 
 // Spacing stops short of a line that says `GO`, which is a lexeme of its own (`TSql.GoLine`).
-trivia       = { (Std.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "*/"))* }
+// The spaces are the engine's (`TSql.Spacing`), and they are what the standard's rules
+// read between their words too: `FROM t` and a line separator and `WHERE` is read.
+trivia       = { (TSql.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "*/"))* }
 
 // ── The lexemes T-SQL has and the standard does not ─────────────────────────
 //
@@ -35,6 +37,14 @@ trivia       = { (Std.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "
 namespace TSql
 {
 	trivia = none
+
+	// What the engine takes for a space, asked one character at a time: every control
+	// character below the space, Unicode's spaces and its two separators — which is what
+	// .NET calls white space — and the zero-width space besides, which SQL:2003 lists
+	// among its own. Not U+007F, a soft hyphen, the joiners, the direction marks, U+180E
+	// or U+FEFF. The corpus writes U+202F between the words of a statement, and U+200B
+	// and U+3000 in front of a number.
+	Spacing = ['\u0001'..'\u001F' | '\u0085' | '\u200B' | \p{Zs} | \p{Zl} | \p{Zp}]+
 
 	// A delimited identifier written the way T-SQL writes it, with `]]` for a
 	// bracket inside — the same escape the standard's `""` is.
@@ -200,6 +210,32 @@ TSqlValueSpecification : @Expression
 	| t: ("USER"i | "CURRENT_USER"i | "SESSION_USER"i | "SYSTEM_USER"i | "VALUE"i)
 		=> @(new Expression.Literal(SqlLiteralKind.Special, t))
 
+// ── §6.11's value expression, widened ───────────────────────────────────────
+//
+// The standard's tower with T-SQL's operators in it, at the strengths the engine gives
+// them, asked with numbers since a parse says nothing of grouping: `&`, `|` and `^` are as
+// weak as `+` and `-` and read left to right with them — `2 + 5 & 4` is 4 and `5 & 4 + 2`
+// is 6 — `%` is as strong as `*`, and `~` is a sign, `~2 * 3` being -9. A comparison is
+// weaker than all of them: `1 & 3 = 1` holds. Restated rather than called, as a
+// replacement has to be.
+TSqlValueExpression : @Expression
+	= left: TSqlValueExpression & op: ('+' | '-' | "||" | '&' | '|' | '^') & right: TSqlValueExpression << 1
+		=> @(Expression.Additive(op, left, right))
+	| left: TSqlValueExpression & op: ('*' | '/' | '%') & right: TSqlValueExpression           << 2
+		=> @(Expression.Multiplicative(op, left, right))
+	| sign: ['+' | '-' | '~'] & v: TSqlValueExpression                                         >> 3
+		=> @(Expression.Signed(sign, v))
+	| p: TSqlValuePrimary & how: Collate? => @(how is null ? p : new Expression.Collated(p, how))
+
+// §8.2's comparison operators and T-SQL's three, `!=`, `!<` and `!>`. Each of the two
+// character ones is two tokens to the engine, which reads `< >`, `> =` and `! <` as well;
+// `!<>`, `!<=` and `!!` it refuses. Here the lexer takes `<=` whole wherever it is written
+// together, since other rules have the literal, so each is read both ways.
+TSqlCompOp
+	= "<>" | "<=" | ">=" | "!=" | "!<" | "!>"
+	| '<' & '>' | '<' & '=' | '>' & '=' | '!' & '=' | '!' & '<' | '!' & '>'
+	| '=' | '<' | '>'
+
 // ── §6.11's value expression primary, widened ───────────────────────────────
 //
 // The standard names every function it has and leaves the rest to a routine
@@ -210,11 +246,25 @@ TSqlValueSpecification : @Expression
 // A postfix stands outside the choice rather than on each arm of it: `AT TIME ZONE`
 // applies to whatever was just read, which is one rule around the core and not
 // twelve inside it.
+//
+// The zones chain, `a AT TIME ZONE b AT TIME ZONE c`, and a collation may stand in front
+// of each, `a COLLATE x AT TIME ZONE b`; the engine reads both. The last collation is the
+// standard's own, after the primary, so two never stand side by side, which the engine
+// refuses.
 TSqlValuePrimary : @Expression
-	= p: TSqlPrimaryCore & members: Member* & zone: AtTimeZone?
-		=> @(Syntax.Reached(p, members, zone))
+	= p: TSqlPrimaryCore & members: Member* & zones: AtTimeZone*
+		=> @(Syntax.Reached(p, members, zones))
 
-AtTimeZone : @Expression = "AT"i & "TIME"i & "ZONE"i & v: TSqlPrimaryCore => @(v)
+// Built with what it applies to left null, the way a member is, and closed in `Reached`.
+AtTimeZone : @Expression
+	= how: Collate? & "AT"i & "TIME"i & "ZONE"i & v: TimeZone
+		=> @(new Expression.RoutineInvocation("AT TIME ZONE",
+				 new Expression[] { how is null ? null! : new Expression.Collated(null!, how), v }))
+
+// A zone is a primary with its members, and signs in front of it: `- b`, `~ b`, `b::c`.
+TimeZone : @Expression
+	= sign: ['+' | '-' | '~'] & v: TimeZone   => @(Expression.Signed(sign, v))
+	| p: TSqlPrimaryCore & members: Member*  => @(Syntax.Reached(p, members, null))
 
 TSqlPrimaryCore : @Expression
 	= '(' & v: ValueExpression & ')' => @(new Expression.Parenthesized(v))
@@ -226,13 +276,26 @@ TSqlPrimaryCore : @Expression
 	| f: SetFunctionSpecification & tail: CallTail? => @(Syntax.Called(f, tail))
 	| q: ScalarSubquery                        => @(q)
 	| n: NextValue                             => @(n)
+	| f: LeftRightCall                         => @(f)
 	| f: FunctionCall                          => @(f)
 	| e: OdbcEscape                            => @(e)
 	| t: TSql.MoneyLiteral                     => @(new Expression.Literal(SqlLiteralKind.Number, t))
 	| t: TSql.BinaryLiteral                    => @(new Expression.Literal(SqlLiteralKind.Hex, t))
 	| v: UnsignedValueSpecification            => @(v)
 	| "NULL"i                                  => @(Expression.NullValue)
+	| t: RowColumnName                         => @(new Expression.ColumnReference(t))
 	| n: ColumnReference                       => @(n)
+
+// `LEFT` and `RIGHT` are reserved for the joins and are functions besides: `LEFT('a', 1)` is
+// read, and `dbo.LEFT(1)` and `LEFT('a', 1) OVER ()` are refused.
+LeftRightCall : @Expression
+	= name: ("LEFT"i | "RIGHT"i) & '(' & args: Arguments? & ')'
+		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
+
+// A table's identity and row-GUID columns by the reserved words that name them, under
+// whatever prefix a column takes: `IDENTITYCOL`, `t.ROWGUIDCOL`, `a.b.c.IDENTITYCOL`. A
+// column only — not an alias, not what a `SET` assigns, not a call.
+RowColumnName = (Identifier & '.')* & ("IDENTITYCOL"i | "ROWGUIDCOL"i)
 
 // ODBC's escapes, which every driver has understood since before this language had a
 // standard and which SQL Server still reads: a function called the portable way, and the
@@ -356,8 +419,11 @@ NextValue : @Expression
 
 // A call to something this grammar has never heard of, which is most of them: the
 // name is a catalogue's business and the arguments are values.
+// A name of one part is called bare: `[LEN]('a')` and `"LEN"('a')` are refused, and
+// `dbo.[LEN]('a')` is read.
 FunctionCall : @Expression
-	= name: QualifiedName & '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel?
+	= name: QualifiedName & when @(Syntax.Callable(name))
+	  & '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel?
 	  & returning: JsonReturning? & ')' & tail: CallTail?
 		=> @(Syntax.Called(
 				 new Expression.RoutineInvocation(
@@ -562,6 +628,7 @@ DistinctTail : @Expression
 // statement that came in.
 TSqlQuerySpecification : @Query
 	= "SELECT"i & quantifier: SetQuantifier? & top: Top? & columns: SelectList & into: Into?
+	  & when @(into is not null || !Syntax.HasIdentity(columns))
 	  & from: FromClause? & where: WhereClause? & group: GroupByClause? & having: HavingClause?
 	  & windows: Window?
 		=> @(new Query.Specification(
@@ -597,16 +664,39 @@ WindowDef : @Clause
 
 // ── §7.9's select list, widened ─────────────────────────────────────────────
 //
+// §7.9 makes a bare `*` the whole list; T-SQL makes it an item, which may stand anywhere
+// in the list and more than once: `SELECT 1, *, 2` and `SELECT *, t.*, *` are read. It is
+// not named, not bracketed and not assigned — `* AS x`, `(*)` and `x = *` are refused.
+TSqlSelectList : @Clause[]
+	= first: SelectSublist & (',' & rest: SelectSublist)* => @(Syntax.Listed(first, rest))
+
 // Two things stand where a value does. A variable takes the value rather than the query
 // returning it — `SELECT @a += 1` is an assignment written as a query — and an alias may
 // be written in front with `=` rather than behind with `AS`. And an alias may be a
 // string, which the standard does not allow and every dialect does.
 TSqlSelectSublist : @Clause
-	= qualifier: QualifiedName & '.' & '*'        => @(new Clause.QualifiedAsterisk(qualifier))
+	= '*'                                          => @(new Clause.QualifiedAsterisk(null))
+	| qualifier: QualifiedName & '.' & '*'        => @(new Clause.QualifiedAsterisk(qualifier))
 	| into: TSql.Variable & by: AssignOp & v: ValueExpression
 		=> @(new Clause.VariableAssignment(into, by, v))
+	| label: TSqlAlias & '=' & v: IdentityFunction => @(new Clause.DerivedColumn(v, label))
+	| v: IdentityFunction & alias: TSqlAsClause    => @(new Clause.DerivedColumn(v, alias))
 	| label: TSqlAlias & '=' & v: ValueExpression  => @(new Clause.DerivedColumn(v, label))
 	| v: ValueExpression & alias: TSqlAsClause?    => @(new Clause.DerivedColumn(v, alias))
+
+// T-SQL's `IDENTITY` function, which gives the table a `SELECT … INTO` makes an identity
+// column: a type, and a seed and a step, numbers with a sign or without — `@a`, `1 + 1`,
+// `(1)` and `0x1` are refused. A whole item of the list and never part of a value, and always
+// named: `IDENTITY(INT, 1, 1) + 1` and `IDENTITY(INT, 1, 1)` alone are refused. Only with an
+// `INTO`, which the engine says when the statement is compiled (`Msg 177`) and a guard on the
+// query says here.
+IdentityFunction : @Expression
+	= name: "IDENTITY"i & '(' & type: DataType & (',' & seed: IdentityNumber & ',' & step: IdentityNumber)? & ')'
+		=> @(new Expression.RoutineInvocation(name, seed is null ? Expression.None : new Expression[] { seed, step! }, type))
+
+IdentityNumber : @Expression
+	= t: (['+' | '-']? & Sql92.Lexical.UnsignedNumericLiteral)
+		=> @(new Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(t)))
 
 AssignOp : @string = t: ('=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "||=") => @(t)
 
@@ -719,14 +809,15 @@ TSqlTablePrimary : @TableReference
 				 new TableReference.FunctionCall(f, alias, columns, schema ?? Clause.None), pivot))
 	// A table takes hints and a table-valued function does not: `dbo.f() WITH (NOLOCK)` is
 	// refused.
-	| name: QualifiedName & version: SystemTime? & call: ('(' & args: Arguments? & ')')?
+	| name: QualifiedName & version: SystemTime? & path: GraphPath? & call: ('(' & args: Arguments? & ')')?
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
-	  & sample: TableSample? & hints: TableHints? & when @(call is null || hints is null) & pivot: PivotSuffix?
-		=> @(Syntax.Sourced(name, version, call, args, alias, columns, sample, hints, pivot))
+	  & sample: TableSample? & hints: TableHints? & when @(call is null || (hints is null && path is null))
+	  & pivot: PivotSuffix?
+		=> @(Syntax.Sourced(name, version, path is not null, call, args, alias, columns, sample, hints, pivot))
 	| t: TSql.Variable & s: VariableSource => @(Syntax.OfVariable(t, s))
-	| derived: TableSubquery & "AS"i? & alias: CorrelationName
+	| derived: TableSubquery & path: GraphPath? & "AS"i? & alias: CorrelationName
 	  & ('(' & columns: ColumnList & ')')? & pivot: PivotSuffix?
-		=> @(Syntax.Pivoted(new TableReference.Derived(derived, alias, columns), pivot))
+		=> @(Syntax.Pivoted(new TableReference.Derived(derived, path is not null, alias, columns), pivot))
 	| '(' & j: TableReference & ')' & TableSample? & TableHints?
 		=> @(new TableReference.Parenthesized(j))
 	| '{' & "OJ"i & j: TableReference & '}' => @(new TableReference.OdbcJoin(j))
@@ -741,7 +832,7 @@ VariableSource : @TableReference
 				 new Expression.RoutineInvocation("." + method, args ?? Expression.None),
 				 alias, columns, Clause.None))
 	| ("AS"i? & alias: CorrelationName)? & sample: TableSample? & hints: TableHints?
-		=> @(new TableReference.Named("", null, alias, null, sample, hints ?? Clause.None))
+		=> @(new TableReference.Named("", null, false, alias, null, sample, hints ?? Clause.None))
 
 // The published syntax makes a pivoted table a source of its own — `table_source PIVOT
 // (…) [AS] alias` — which is left recursion, and §4.3 folds that only where the rule
@@ -769,11 +860,16 @@ PivotNames : @string[]
 
 PivotName : @string = t: QualifiedName => @(t)
 
+// A graph's table read as a path: a mark on the source, which a `SHORTEST_PATH` needs on
+// every alias it repeats (`Msg 13948`). No page gives it a syntax; the engine takes it
+// after a table's version and before its alias, and after a query or `VALUES` in brackets,
+// and refuses it on a function, a variable and a rowset.
+GraphPath = "FOR"i & "PATH"i
+
 // Which version of a temporal table to read. `FOR` is reserved, so nothing here can be
 // mistaken for the correlation name it stands in front of.
 SystemTime : @Clause
 	= "FOR"i & "SYSTEM_TIME"i & w: SystemTimeWhen => @(w)
-	| "FOR"i & "PATH"i => @(new Clause.SystemTime("PATH", Expression.None))
 
 SystemTimeWhen : @Clause
 	= "AS"i & "OF"i & v: ValueExpression
@@ -951,6 +1047,11 @@ CteDefinition : @Clause.CommonTableExpression
 	= name: Identifier & ('(' & columns: ColumnList & ')')? & "AS"i & '(' & q: CteBody & ')'
 		=> @(new Clause.CommonTableExpression(name, columns, q))
 
+// §13.1 sorts by a column or by its position in the select list; T-SQL sorts by any value —
+// `ORDER BY a + 1`, `LEN(a)`, a `CASE`, a subquery — and a position is a number among them.
+// A collation is the value's own, as a primary's is.
+TSqlSortKey : @Expression = v: ValueExpression => @(v)
+
 // The order a named query is written in is read and dropped: a `WITH` defines a table, and
 // a table has no order until something asks for one.
 CteBody : @Query = q: QueryExpression & OrderByClause? & OffsetFetch? => @(q)
@@ -1016,7 +1117,11 @@ ForName = '(' & Quoted & ')'
 namespace Dialect with (
 	Identifier                = TSqlIdentifier,
 	GeneralValueSpecification = TSqlValueSpecification,
+	ValueExpression           = TSqlValueExpression,
 	ValueExpressionPrimary    = TSqlValuePrimary,
+	CompOp                    = TSqlCompOp,
+	SortKey                   = TSqlSortKey,
+	SelectList                = TSqlSelectList,
 	QuerySpecification        = TSqlQuerySpecification,
 	TablePrimary              = TSqlTablePrimary,
 	TableReference            = TSqlTableReference,
@@ -1110,45 +1215,45 @@ parse Dialect.Script with (Version = "170") as ParseScript170
 GraphMatch : @Expression
 	= "MATCH"i & '(' & t: GraphPattern & ')' => @(new Expression.GraphMatch(t))
 
-GraphPattern = GraphAnd & (',' & GraphAnd)*
+// `AND` inside a drawing joins two drawings, and it is the only connective there is: the
+// syntax says `OR` and `NOT` are not supported in a pattern. It shows a comma as well, and
+// a drawing in brackets after `AND`; the engine refuses both, at every level, and so does
+// this.
+GraphPattern = GraphItem & ("AND"i & GraphItem)*
 
-// `AND` inside a drawing joins two drawings, and it is the only connective there is:
-// the syntax says `OR` and `NOT` are not supported in a pattern.
-GraphAnd = GraphItem & ("AND"i & GraphItem)*
-
+// A path of any length only inside `SHORTEST_PATH`, one to it; the last nodes of two paths
+// compared, and nothing else compared; or a chain of nodes and edges, either end of which
+// may be a path's last node.
 GraphItem
-	= "SHORTEST_PATH"i & '(' & GraphAnd & ')'
-	| '(' & GraphAnd & ')'
-	| GraphLengthPattern & GraphNode
-	| GraphNode & GraphItemTail
+	= "SHORTEST_PATH"i & '(' & GraphLengthPattern & ')'
+	| GraphLastNode & GraphLastTail
+	| GraphAlias & GraphChain
 
-GraphItemTail
-	= '=' & GraphNode
-	| GraphStep+
+GraphLastTail = '=' & GraphLastNode | GraphChain
+GraphChain    = (GraphEdge & GraphNode)+
 
-GraphStep
-	= GraphEdge & GraphNode
-	| GraphLengthPattern
-
-// A node is a table's name or the alias it was given in the `FROM` clause, and
-// `LAST_NODE` names the far end of a path rather than a table.
-GraphNode
-	= "LAST_NODE"i & '(' & QualifiedName & ')'
-	| QualifiedName
+// A node is the alias a table was given in the `FROM` clause, or its name, one part and no
+// more: `dbo.N` is refused. `LAST_NODE` names the far end of a path rather than a table.
+GraphNode     = GraphLastNode | GraphAlias
+GraphLastNode = "LAST_NODE"i & '(' & GraphAlias & ')'
+GraphAlias    = Identifier
 
 // An edge points one way or the other and must say which.
 GraphEdge
-	= '<' & '-' & '(' & QualifiedName & ')' & '-'
-	| '-' & '(' & QualifiedName & ')' & '-' & '>'
+	= '<' & '-' & '(' & GraphAlias & ')' & '-'
+	| '-' & '(' & GraphAlias & ')' & '-' & '>'
 
 // The pattern `SHORTEST_PATH` repeats, with the regular expression's own two quantifiers.
 // It is written edge first or node first, and the difference is which end the node that
-// bounds it stands at.
+// bounds it stands at. Inside the brackets the nodes are aliases: `LAST_NODE` is refused
+// there and read at the end outside them.
 GraphLengthPattern
-	= '(' & GraphStep+ & ')' & GraphQuantifier
-	| '(' & GraphNode & GraphEdge & ')' & GraphQuantifier
+	= GraphNode & '(' & (GraphEdge & GraphAlias)+ & ')' & GraphQuantifier
+	| '(' & (GraphAlias & GraphEdge)+ & ')' & GraphQuantifier & GraphNode
 
-GraphQuantifier = '+' | '{' & Sql92.Lexical.Digits & ',' & Sql92.Lexical.Digits & '}'
+// `+`, or at least so many and at most so many, the most left out: `{1,}` is read, and `{3}`
+// and `{,3}` are refused.
+GraphQuantifier = '+' | '{' & Sql92.Lexical.Digits & ',' & Sql92.Lexical.Digits? & '}'
 
 // ── The rowset functions ────────────────────────────────────────────────────
 //
@@ -1324,15 +1429,33 @@ StatementBody : @Statement
 // a target no correlation and no sample, and `UPDATE t AS x SET …` is not T-SQL.
 DmlTarget : @TableReference
 	= f: RowsetFunction                 => @(new TableReference.FunctionCall(f, null, null, Clause.None))
-	| t: TSql.Variable & hints: TableHints?    => @(new TableReference.Named(t, null, null, null, null, hints ?? Clause.None))
-	| name: QualifiedName & hints: TableHints? => @(new TableReference.Named(name, null, null, null, null, hints ?? Clause.None))
+	| t: TSql.Variable & hints: TableHints?    => @(new TableReference.Named(t, null, false, null, null, null, hints ?? Clause.None))
+	| name: QualifiedName & hints: TableHints? => @(new TableReference.Named(name, null, false, null, null, null, hints ?? Clause.None))
+
+// A table-valued function is a target too, its arguments and nothing after them: the
+// engine reads `UPDATE dbo.f() SET …`, `DELETE FROM dbo.f(1)` and `MERGE dbo.f() USING …`,
+// and refuses a hint or an alias after the call, and a method of a variable.
+DmlCall : @TableReference
+	= name: QualifiedName & '(' & args: Arguments? & ')'
+		=> @(new TableReference.FunctionCall(
+				 new Expression.RoutineInvocation(name, args ?? Expression.None), null, null, Clause.None))
+
+DmlSubject : @TableReference = c: DmlCall => @(c) | t: DmlTarget => @(t)
 
 // ── §INSERT ─────────────────────────────────────────────────────────────────
 // The query hints stand after the rows, as they do after an `UPDATE`'s — except where the
 // rows are an `EXEC`, whose own options end the statement: `INSERT t EXEC p OPTION (…)` is
 // refused.
+//
+// A function is the second reading, tried when the first has failed: `INSERT t (c1) VALUES
+// …` is a table and its columns, and `INSERT dbo.f() (c1) …` and `INSERT dbo.f(1, DEFAULT)
+// VALUES …` are what cannot be.
 TSqlInsert : @Statement
 	= "INSERT"i & top: Top? & into: "INTO"i? & target: DmlTarget
+	  & ('(' & columns: ColumnList & ')')? & output: OutputClause?
+	  & rows: InsertRows & options: QueryHints? & when @(options is null || rows is not Query.FromExecute)
+		=> @(new Statement.Insert(target, columns, rows, null, top, output, into is not null) { Options = options })
+	| "INSERT"i & top: Top? & into: "INTO"i? & target: DmlCall
 	  & ('(' & columns: ColumnList & ')')? & output: OutputClause?
 	  & rows: InsertRows & options: QueryHints? & when @(options is null || rows is not Query.FromExecute)
 		=> @(new Statement.Insert(target, columns, rows, null, top, output, into is not null) { Options = options })
@@ -1345,7 +1468,7 @@ InsertRows : @Query
 
 // ── §UPDATE ─────────────────────────────────────────────────────────────────
 TSqlUpdate : @Statement
-	= "UPDATE"i & top: Top? & target: DmlTarget
+	= "UPDATE"i & top: Top? & target: DmlSubject
 	  & "SET"i & sets: Assignments & output: OutputClause?
 	  & from: FromClause? & where: DmlWhere? & options: QueryHints?
 		=> @(new Statement.Update(target, sets, from ?? TableReference.None, where, null, top, output, options))
@@ -1358,21 +1481,33 @@ Assignments : @Clause[]
 // method called on one. `.WRITE (…)` needs no rule of its own — a qualified name has
 // already eaten the dot, so what is left is a call.
 Assignment : @Clause
-	= to: TSql.Variable   & s: AssignTail       => @(s with { Target = to })
-	| to: QualifiedName   & s: ColumnAssignTail => @(s with { Target = to })
+	= to: TSql.Variable   & s: UpdateVariableTail => @(s with { Target = to })
+	| to: QualifiedName   & s: ColumnAssignTail   => @(s with { Target = to })
 
 // `DEFAULT` is assigned and not compounded: the engine answers `DEFAULT is not allowed
 // on the right hand side of "-="`, which is a rule about the operator rather than about
-// the value, so it is written on the operator.
+// the value, so it is written on the operator. And it is a column's: a variable is not given
+// it, `SET @a = DEFAULT` and `UPDATE t SET @a = DEFAULT` being refused.
+//
+// A variable's own `SET` takes a value or a compound one, and nothing more.
 AssignTail : @Clause.Set
-	= '=' & c: QualifiedName & op: AssignOp & v: SetValue => @(new Clause.Set("", op, v, c))
-	| '=' & v: AssignedValue                              => @(new Clause.Set("", "=", v))
-	| op: AssignOp & v: SetValue                          => @(new Clause.Set("", op, v))
+	= '=' & v: SetValue          => @(new Clause.Set("", "=", v))
+	| op: AssignOp & v: SetValue => @(new Clause.Set("", op, v))
+
+// In an `UPDATE` a variable may take a column's new value along with the column, `@a = c =
+// 1` or `@a = c += 1`, with `DEFAULT` where the column is assigned plainly — `@a = c =
+// DEFAULT` is read. A variable's own `SET` refuses the column: `SET @a = c = 1`.
+UpdateVariableTail : @Clause.Set
+	= '=' & c: QualifiedName & s: ChainTail => @(s with { Through = c })
+	| s: AssignTail                         => @(s)
+
+ChainTail : @Clause.Set
+	= '=' & v: AssignedValue     => @(new Clause.Set("", "=", v))
+	| op: AssignOp & v: SetValue => @(new Clause.Set("", op, v))
 
 ColumnAssignTail : @Clause.Set
 	= '(' & args: Arguments? & ')' => @(new Clause.Set("", "", new Expression.RoutineInvocation("", args ?? Expression.None)))
-	| '=' & v: AssignedValue       => @(new Clause.Set("", "=", v))
-	| op: AssignOp & v: SetValue   => @(new Clause.Set("", op, v))
+	| s: ChainTail                 => @(s)
 
 AssignedValue : @Expression
 	= "DEFAULT"i => @(Expression.DefaultValue)
@@ -1390,7 +1525,7 @@ DmlWhere : @Expression
 
 // ── §DELETE ─────────────────────────────────────────────────────────────────
 TSqlDelete : @Statement
-	= "DELETE"i & top: Top? & "FROM"i? & target: DmlTarget & output: OutputClause?
+	= "DELETE"i & top: Top? & "FROM"i? & target: DmlSubject & output: OutputClause?
 	  & from: FromClause? & where: DmlWhere? & options: QueryHints?
 		=> @(new Statement.Delete(target, from ?? TableReference.None, where, null, top, output, options))
 
@@ -1399,7 +1534,7 @@ TSqlDelete : @Statement
 // Three shapes of arm and they are not interchangeable: a match and a missing target may
 // insert, a missing source may update or delete, and the syntax says which is which.
 TSqlMerge : @Statement
-	= "MERGE"i & top: Top? & into: "INTO"i? & target: DmlTarget & ("AS"i? & alias: CorrelationName)?
+	= "MERGE"i & top: Top? & into: "INTO"i? & target: DmlSubject & ("AS"i? & alias: CorrelationName)?
 	  & "USING"i & source: TableReference
 	  & "ON"i & on: SearchCondition
 	  & whens: MergeArm+ & output: OutputClause? & options: QueryHints?
@@ -1622,28 +1757,110 @@ GeneratedWhen = "START"i | "END"i
 
 // ── SET ─────────────────────────────────────────────────────────────────────
 //
-// Two statements share the word: one assigns a variable, the other names a setting. The
-// options that are reserved words stand in front, since the general form reads a name.
+// Two constructions share the word, as Microsoft's reference has them: `SET @local_variable`,
+// which assigns a variable, and the SET statements, which change the session. What follows
+// `SET` in the second is a list of `SetExpression`s of one form — the engine refuses a switch
+// among values, or a variable among either — each in the group Microsoft's page of the SET
+// statements puts it in. Put to the engine some hundred times with its variables declared:
+// every setting takes values of its own kind, and none an expression.
 SetStatement : @Statement
-	= "SET"i & "TRANSACTION"i & "ISOLATION"i & "LEVEL"i & level: IsolationLevel
-		=> @(new Statement.SetTransactionIsolationLevel(level))
-	| "SET"i & "IDENTITY_INSERT"i & name: QualifiedName & on: OnOff
-		=> @(new Statement.SetIdentityInsert(name, Syntax.Switched(on)))
-	| "SET"i & option: SetReserved & v: ValueExpression
-		=> @(new Statement.SetCommand(option, v))
-	| "SET"i & name: TSql.Variable & s: AssignTail
+	= "SET"i & name: TSql.Variable & s: AssignTail
 		=> @(new Statement.SetVariable(name, s.Value, s.Operator, s.Through))
-	| "SET"i & first: SetOption & (',' & rest: SetOption)* & on: OnOff
-		=> @(new Statement.SetOption(Syntax.Named(first, rest), Syntax.Switched(on)))
-	| "SET"i & option: SetOptions & v: ValueExpression
-		=> @(new Statement.SetCommand(option, v))
-	| "SET"i & option: SetOptions
-		=> @(new Statement.SetCommand(option, null))
+	| "SET"i & items: SetExpressions => @(new Statement.SetStatement(items))
 
-SetReserved = "ROWCOUNT"i | "TEXTSIZE"i | "OFFSETS"i | "STATISTICS"i | "USER"i
-SetOption : @string = t: Identifier => @(t)
-SetOptions  = Identifier & (',' & Identifier)*
+// The forms with words of their own first, reserved words among them, each of them alone: the
+// engine refuses `SET FIPS_FLAGGER OFF, DATEFIRST 7` and `SET DATEFIRST 7, ROWCOUNT 0`. Then
+// the switches, and then the settings given values, which a list may name twice. A name alone
+// is refused — `SET PARSEONLY` wants its `ON`.
+//
+// Every name is one the engine knows. It parses any word after `SET` and anything after that
+// word to the end of the statement — `SET FOO, SELECT 1` passes `PARSEONLY` — and refuses the
+// name when the statement runs: `Msg 195`, "not a recognized SET option", as it refuses `SET
+// DATEFIRST ON`, `SET A, B 5` and a word of `STATISTICS` or `OFFSETS` it has not heard of.
+// What is read here is what it runs.
+SetExpressions : @SetExpression[]
+	= ("TRANSACTION"i | "TRAN"i) & "ISOLATION"i & "LEVEL"i & level: IsolationLevel
+		=> @(new SetExpression[] { new SetExpression.Transactions.IsolationLevel(level) })
+	| "IDENTITY_INSERT"i & table: QualifiedName & on: OnOff
+		=> @(new SetExpression[] { new SetExpression.Miscellaneous.IdentityInsert(table, Syntax.Switched(on)) })
+	| "STATISTICS"i & kind: SetReport & (',' & kinds: SetReport)* & on: OnOff
+		=> @(SetExpression.Reported(Syntax.Named(kind, kinds), Syntax.Switched(on)))
+	| "OFFSETS"i & word: SetOffset & (',' & words: SetOffset)* & on: OnOff
+		=> @(SetExpression.Offsets(Syntax.Named(word, words), Syntax.Switched(on)))
+	| "ROWCOUNT"i & v: SetRowCount
+		=> @(new SetExpression[] { new SetExpression.QueryExecution.RowCount(v) })
+	| "TEXTSIZE"i & v: SetInteger
+		=> @(new SetExpression[] { new SetExpression.QueryExecution.TextSize(v) })
+	| "ERRLVL"i & v: SetInteger
+		=> @(new SetExpression[] { new SetExpression.Miscellaneous.ErrorLevel(v) })
+	| "FIPS_FLAGGER"i & "OFF"i
+		=> @(new SetExpression[] { new SetExpression.Miscellaneous.FipsFlagger(new Expression.ColumnReference("OFF")) })
+	| option: SetSwitch & (',' & options: SetSwitch)* & on: OnOff
+		=> @(SetExpression.Switches(Syntax.Named(option, options), Syntax.Switched(on)))
+	| first: SettingValue & (',' & rest: SettingValue)*
+		=> @(Syntax.Listed(first, rest))
+
+// The switches of Microsoft's pages, and `NO_BROWSETABLE`, which no page describes and the
+// drivers send. `RESULT_SET_CACHING` is Synapse's and `RECOMMENDATIONS` Fabric's; SQL Server
+// says it has not heard of either.
+SetSwitch : @string = t: SetSwitchName => @(t)
+SetSwitchName
+	= "ANSI_DEFAULTS"i | "ANSI_NULL_DFLT_OFF"i | "ANSI_NULL_DFLT_ON"i | "ANSI_NULLS"i
+	| "ANSI_PADDING"i | "ANSI_WARNINGS"i | "ARITHABORT"i | "ARITHIGNORE"i
+	| "CONCAT_NULL_YIELDS_NULL"i | "CURSOR_CLOSE_ON_COMMIT"i | "FMTONLY"i | "FORCEPLAN"i
+	| "IMPLICIT_TRANSACTIONS"i | "NO_BROWSETABLE"i | "NOCOUNT"i | "NOEXEC"i
+	| "NUMERIC_ROUNDABORT"i | "PARSEONLY"i | "QUOTED_IDENTIFIER"i | "RECOMMENDATIONS"i
+	| "REMOTE_PROC_TRANSACTIONS"i | "RESULT_SET_CACHING"i | "SHOWPLAN_ALL"i | "SHOWPLAN_TEXT"i | "SHOWPLAN_XML"i | "XACT_ABORT"i
+
+// What `STATISTICS` reports, and the keywords `OFFSETS` returns: `PROC` and `EXEC` spelled
+// short, and `COMPUTE`, which the page no longer has and the engine still knows. Longest first.
+SetReport : @string = t: SetReportName => @(t)
+SetReportName = "IO"i | "TIME"i | "PROFILE"i | "XML"i
+SetOffset : @string = t: SetOffsetName => @(t)
+SetOffsetName
+	= "SELECT"i | "FROM"i | "ORDER"i | "COMPUTE"i | "TABLE"i | "PROCEDURE"i | "PROC"i
+	| "STATEMENT"i | "PARAM"i | "EXECUTE"i | "EXEC"i
+
 OnOff : @string = "ON"i => @("ON") | "OFF"i => @("OFF")
+
+// A setting given a value, each the kind of value the engine takes for it.
+SettingValue : @SetExpression
+	= "DATEFIRST"i & v: SetConstant         => @(new SetExpression.DateAndTime.DateFirst(v))
+	| "DATEFORMAT"i & v: SetConstant        => @(new SetExpression.DateAndTime.DateFormat(v))
+	| "DEADLOCK_PRIORITY"i & v: SetConstant => @(new SetExpression.Locking.DeadlockPriority(v))
+	| "LOCK_TIMEOUT"i & v: SetInteger       => @(new SetExpression.Locking.LockTimeout(v))
+	| "LANGUAGE"i & v: SetConstant          => @(new SetExpression.Miscellaneous.Language(v))
+	| "FIPS_FLAGGER"i & v: SetFipsLevel     => @(new SetExpression.Miscellaneous.FipsFlagger(v))
+	| "CONTEXT_INFO"i & v: SetConstant      => @(new SetExpression.Miscellaneous.ContextInfo(v))
+	| "QUERY_GOVERNOR_COST_LIMIT"i & v: SetNumber
+		=> @(new SetExpression.QueryExecution.QueryGovernorCostLimit(v))
+
+// A constant, a word or a variable: `DATEFIRST 1.5`, `DATEFORMAT dmy`, `LANGUAGE [us_english]`,
+// `DEADLOCK_PRIORITY @v`. Not an expression — `DATEFIRST 7 + 1` is refused.
+SetConstant : @Expression
+	= t: ('-'? & Sql92.Lexical.UnsignedNumericLiteral)  => @(new Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(t)))
+	| t: Sql92.Lexical.NationalCharacterStringLiteral   => @(new Expression.Literal(SqlLiteralKind.National, t))
+	| t: Sql92.Lexical.CharacterStringLiteral           => @(new Expression.Literal(SqlLiteralKind.Text, t))
+	| t: TSql.BinaryLiteral                             => @(new Expression.Literal(SqlLiteralKind.Hex, t))
+	| t: TSql.Variable                                  => @(new Expression.Literal(SqlLiteralKind.Parameter, t))
+	| t: Identifier                                     => @(new Expression.ColumnReference(t))
+
+// A whole number, negative or not: `LOCK_TIMEOUT -1`, `TEXTSIZE 2048`. No variable.
+SetInteger : @Expression = t: ('-'? & Sql92.Lexical.Digits) => @(new Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(t)))
+
+// A number, negative or not, a fraction included: `QUERY_GOVERNOR_COST_LIMIT 1.5`.
+SetNumber : @Expression
+	= t: ('-'? & Sql92.Lexical.UnsignedNumericLiteral) => @(new Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(t)))
+
+// A number that is not negative, or a variable: `ROWCOUNT -1` is refused.
+SetRowCount : @Expression
+	= t: Sql92.Lexical.UnsignedNumericLiteral => @(new Expression.Literal(SqlLiteralKind.Number, t))
+	| t: TSql.Variable                        => @(new Expression.Literal(SqlLiteralKind.Parameter, t))
+
+// A level in a string, never a national one. `OFF` is a form of its own, which stands alone:
+// the engine reads `SET FIPS_FLAGGER 'FULL', DATEFIRST 7` and refuses it with `OFF`.
+SetFipsLevel : @Expression
+	= t: Sql92.Lexical.CharacterStringLiteral => @(new Expression.Literal(SqlLiteralKind.Text, t))
 
 IsolationLevel = "READ"i & "UNCOMMITTED"i | "READ"i & "COMMITTED"i | "REPEATABLE"i & "READ"i
 			   | "SNAPSHOT"i | "SERIALIZABLE"i
@@ -1653,10 +1870,11 @@ IsolationLevel = "READ"i & "UNCOMMITTED"i | "READ"i & "COMMITTED"i | "REPEATABLE
 // `EXECUTE AS`, `REVERT` and `SETUSER`, put to the engine some sixty times. A user or a login
 // is any expression — a string, a variable, a call, a concatenation — and a caller the word
 // alone; `SELF`, `OWNER` and a bare string are a module's, and refused here. After it, `WITH
-// NO REVERT`, or a cookie and then `NO REVERT`, which the engine refuses the other way round.
+// NO REVERT` or a cookie, one of the two: a first probe, its variable undeclared, had the
+// engine read the cookie and then `NO REVERT`, which it refuses once the variable exists.
 // `REVERT` shows the cookie as any expression, and `SETUSER` takes a string or a variable,
-// and `WITH NORESET` only after one. Two forms the engine reads have no place in the tree and
-// are refused: a second cookie, and a second value after `SETUSER`.
+// and `WITH NORESET` only after one; a second cookie, or a second value after `SETUSER`, the
+// engine refuses too.
 SessionStatement : @Statement
 	= ExecWord & "AS"i & who: SessionWho & w: SessionWith?
 		=> @(w is null ? who : who with { NoRevert = w.NoRevert, Cookie = w.Cookie })
@@ -1671,13 +1889,12 @@ SessionWho : @Statement.ExecuteAs
 // What follows whom: the node's own two fields and nothing of its kind, laid onto it above.
 SessionWith : @Statement.ExecuteAs
 	= "WITH"i & "NO"i & "REVERT"i => @(new Statement.ExecuteAs("", null, true))
-	| "WITH"i & "COOKIE"i & "INTO"i & c: TSql.Variable & r: SessionNoRevert?
-		=> @(new Statement.ExecuteAs("", null, r is not null, new Expression.Literal(SqlLiteralKind.Parameter, c)))
+	| "WITH"i & "COOKIE"i & "INTO"i & c: TSql.Variable
+		=> @(new Statement.ExecuteAs("", null, false, new Expression.Literal(SqlLiteralKind.Parameter, c)))
 
 SessionKind : @string = "USER"i => @("USER") | "LOGIN"i => @("LOGIN")
 
-SessionNoRevert = ',' & "NO"i & "REVERT"i
-SessionNoReset  = "WITH"i & "NORESET"i
+SessionNoReset = "WITH"i & "NORESET"i
 
 RevertCookie : @Expression = "WITH"i & "COOKIE"i & '=' & c: ValueExpression => @(c)
 
@@ -1768,11 +1985,21 @@ SimpleCommand : @Statement
 		=> @(new Statement.RaiseError(args, Syntax.Tail(how)))
 	| "RAISERROR"i & args: Arguments & how: RaiseWith?
 		=> @(new Statement.RaiseError(args, Syntax.Tail(how)))
-	| "WAITFOR"i & kind: WaitKind & v: ValueExpression
+	| "WAITFOR"i & t: Sql92.Lexical.TimeLiteral
+		=> @(new Statement.WaitFor(new Expression.Literal(SqlLiteralKind.Text, t.Substring(t.IndexOf('\''))), "TIME"))
+	| "WAITFOR"i & kind: WaitKind & v: WaitValue
 		=> @(new Statement.WaitFor(v, Syntax.Squared(kind)))
 
 RaiseWith = "WITH"i & Identifier & (',' & Identifier)*
 WaitKind  = "DELAY"i | "TIME"i
+
+// A string, a national one or a variable, and nothing else: `WAITFOR DELAY 1`, `(@t)` and
+// `'1' + ''` are refused. `TIME '10:00'` is a time literal to the lexer and is read whole,
+// above; with a national string or a variable after it, `TIME` is a word.
+WaitValue : @Expression
+	= t: Sql92.Lexical.NationalCharacterStringLiteral => @(new Expression.Literal(SqlLiteralKind.National, t))
+	| t: Sql92.Lexical.CharacterStringLiteral         => @(new Expression.Literal(SqlLiteralKind.Text, t))
+	| t: TSql.Variable                                => @(new Expression.Literal(SqlLiteralKind.Parameter, t))
 
 // ── CREATE TABLE, and the column definitions everything shares ──────────────
 //
@@ -2028,6 +2255,9 @@ IndexColumn : @Clause
 // index may be built on one.
 IndexName : @string = t: Identifier => @(t) | t: PartitionName => @(t)
 
+// The columns an index carries along, which may be a graph table's own: `INCLUDE ($NODE_ID)`.
+IncludeColumns : @string[] = first: IndexName & (',' & rest: IndexName)* => @(Syntax.Named(first, rest))
+
 // The current form and the one that predates it: `WITH (FILLFACTOR = 80, ONLINE = ON)`
 // and the bare `WITH PAD_INDEX, FILLFACTOR = 80` SQL Server still reads.
 // The modern spelling and the one it replaced, in one rule and not two. They are two
@@ -2214,7 +2444,7 @@ TableIndex : @Clause
 	= "INDEX"i & name: Identifier & u: "UNIQUE"i? & c: IndexOrder? & s: "COLUMNSTORE"i? & h: "HASH"i?
 	  & columns: IndexColumns?
 	  & ("ORDER"i & '(' & order: ColumnList & ')')?
-	  & ("INCLUDE"i & '(' & include: ColumnList & ')')?
+	  & ("INCLUDE"i & '(' & include: IncludeColumns & ')')?
 	  & ("WHERE"i & filter: SearchCondition)?
 	  & o: TableIndexWith? & p: IndexOn? & ("FILESTREAM_ON"i & f: PlacementTarget)?
 		=> @(Clause.Indexed(name, u, c, s, h, columns, order, include, filter, o?.Options, (Clause.Placement?)p, f is null ? null : f with { Kind = "FILESTREAM_ON" })
@@ -2333,6 +2563,11 @@ AlterTableAction : @Statement.AlterTable
 		=> @(Statement.Altered("DROP", Syntax.Listed(first, rest)))
 	| word: CheckWord & tail: ("CONSTRAINT"i & ConstraintNames)
 		=> @(Statement.Altered(Syntax.Squared(word), null, null, tail))
+
+	// `WITH NOCHECK CHECK CONSTRAINT ALL`: whether the rows already there are checked, then
+	// which constraints are switched, in all four pairings, as the engine reads them.
+	| "WITH"i & mode: CheckWord & word: CheckWord & tail: ("CONSTRAINT"i & ConstraintNames)
+		=> @(Statement.Altered("WITH " + Syntax.Squared(mode) + " " + Syntax.Squared(word), null, null, tail))
 	| word: EnableWord & tail: ("TRIGGER"i & ConstraintNames)
 		=> @(Statement.Altered(Syntax.Squared(word), null, null, tail))
 	| word: EnableWord & tail: ("CHANGE_TRACKING"i & OptionsWith?)
@@ -2526,7 +2761,7 @@ CreateIndexStatement : @Statement
 				 Syntax.Squared(kind), Syntax.Tail(over)))
 	| "CREATE"i & u: "UNIQUE"i? & k: IndexOrder? & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
-	  & ("INCLUDE"i & '(' & include: ColumnList & ')')?
+	  & ("INCLUDE"i & '(' & include: IncludeColumns & ')')?
 	  & ("WHERE"i & filter: SearchCondition)?
 	  & o: IndexWith? & p: IndexOn? & ("FILESTREAM_ON"i & f: PlacementTarget)?
 		=> @(new Statement.CreateIndex(on, Clause.Indexed(name, u, k, null, null, columns, null, include, filter, o?.Options, (Clause.Placement?)p, f is null ? null : f with { Kind = "FILESTREAM_ON" })
@@ -2653,9 +2888,14 @@ KeyStatement : @Statement
 
 	// A security policy is a list of predicates rather than a list of settings, and each
 	// predicate names a function, the table it guards, and when it fires.
-	| verb: CreateOrAlter & "SECURITY"i & "POLICY"i & name: QualifiedName
+	// A policy created may be kept from replication after its predicates; one altered is
+	// kept from it or given back to it as a change of its own, `ADD NOT FOR REPLICATION`,
+	// and never alongside predicates or options.
+	| "CREATE"i & "SECURITY"i & "POLICY"i & name: QualifiedName
 	  & tail: (PolicyPredicates? & OptionsWith? & NotForReplication?)
-		=> @(Statement.Defined("SECURITY POLICY", name, Syntax.Tail(tail), verb))
+		=> @(Statement.Defined("SECURITY POLICY", name, Syntax.Tail(tail), "CREATE"))
+	| "ALTER"i & "SECURITY"i & "POLICY"i & name: QualifiedName & tail: PolicyAlteration
+		=> @(Statement.Defined("SECURITY POLICY", name, Syntax.Tail(tail), "ALTER"))
 
 Authorization     = "AUTHORIZATION"i & QualifiedName
 NotForReplication = "NOT"i & "FOR"i & "REPLICATION"i
@@ -2852,13 +3092,23 @@ CredentialWith = "WITH"i & "IDENTITY"i & '=' & Quoted & (',' & "SECRET"i & '=' &
 
 PolicyPredicates = PolicyPredicate & (',' & PolicyPredicate)*
 
-PolicyPredicate = PolicyChange & PolicyKind? & "PREDICATE"i & QualifiedName
-				  & '(' & Arguments? & ')' & "ON"i & QualifiedName & PolicyWhen?
-				| "DROP"i & PolicyKind & "PREDICATE"i & "ON"i & QualifiedName
+PolicyAlteration = ("ADD"i | "DROP"i) & NotForReplication
+				 | PolicyPredicates? & OptionsWith?
 
-PolicyChange = "ADD"i | "ALTER"i
-PolicyKind   = "FILTER"i | "BLOCK"i
-PolicyWhen   = "AFTER"i & word | "BEFORE"i & word
+// A predicate says what it is — `ADD PREDICATE` alone is refused — and only a block predicate
+// says which change it blocks: after an insert or an update, before an update or a delete,
+// and those four only.
+PolicyPredicate = PolicyChange & PolicyAdded
+				| "DROP"i & PolicyDropped
+
+PolicyAdded   = "FILTER"i & "PREDICATE"i & PolicyFunction & "ON"i & QualifiedName
+			  | "BLOCK"i & "PREDICATE"i & PolicyFunction & "ON"i & QualifiedName & PolicyWhen?
+PolicyDropped = "FILTER"i & "PREDICATE"i & "ON"i & QualifiedName
+			  | "BLOCK"i & "PREDICATE"i & "ON"i & QualifiedName & PolicyWhen?
+
+PolicyFunction = QualifiedName & '(' & Arguments? & ')'
+PolicyChange   = "ADD"i | "ALTER"i
+PolicyWhen   = "AFTER"i & ("INSERT"i | "UPDATE"i) | "BEFORE"i & ("UPDATE"i | "DELETE"i)
 
 // ── The full-text catalogue, and the index over it ──────────────────────────
 //
@@ -2949,38 +3199,52 @@ BackupStatement : @Statement
 	| "BACKUP"i & what: BackupWhat & name: BackupTarget?
 	  & tail: (BackupFiles* & "TO"i & BackupDevices & MirrorTo* & BackupWith?)
 		=> @(Statement.BackedUp(what, name, Syntax.Tail(tail)))
-	| "BACKUP"i & what: BackupKeyWhat & name: BackupName?
-	  & tail: ("TO"i & "FILE"i & '=' & ValueExpression & KeyFileTail*)
-		=> @(Statement.BackedUp(what, name, Syntax.Tail(tail)))
+	// A key or a certificate to a file, put to the engine some sixty times: the path and the
+	// passwords are strings, never variables; the name is one part. A certificate goes to a
+	// file only and takes no password of its own, its private key going beside it in a list
+	// of its own; a key takes the password it is locked with, and the service master key a
+	// file only.
+	| "BACKUP"i & "CERTIFICATE"i & key: Identifier
+	  & tail: ("TO"i & "FILE"i & '=' & Quoted & CertificatePrivateKey?)
+		=> @(Statement.BackedUp("CERTIFICATE", key, Syntax.Tail(tail)))
+	| "BACKUP"i & "SYMMETRIC"i & "KEY"i & key: Identifier & tail: ("TO"i & KeyPlace & KeyLockedBy)
+		=> @(Statement.BackedUp("SYMMETRIC KEY", key, Syntax.Tail(tail)))
+	| "BACKUP"i & "MASTER"i & "KEY"i & tail: ("TO"i & KeyPlace & KeyLockedBy)
+		=> @(Statement.BackedUp("MASTER KEY", null, Syntax.Tail(tail)))
+	| "BACKUP"i & "SERVICE"i & "MASTER"i & "KEY"i & tail: ("TO"i & "FILE"i & '=' & Quoted & KeyLockedBy)
+		=> @(Statement.BackedUp("SERVICE MASTER KEY", null, Syntax.Tail(tail)))
 
+// And back: the password it was locked with, then — for the two that are locked again — the
+// one to lock it with, in that order, and `FORCE` last.
 RestoreStatement : @Statement
-	= "RESTORE"i & what: RestoreKeyWhat
-	  & tail: ("FROM"i & "FILE"i & '=' & ValueExpression & KeyFileTail*)
-		=> @(Statement.Restored(what, null, Syntax.Tail(tail)))
+	= "RESTORE"i & "MASTER"i & "KEY"i & tail: ("FROM"i & KeyPlace & KeyUnlockedBy & KeyLockedBy & "FORCE"i?)
+		=> @(Statement.Restored("MASTER KEY", null, Syntax.Tail(tail)))
+	| "RESTORE"i & "SERVICE"i & "MASTER"i & "KEY"i
+	  & tail: ("FROM"i & "FILE"i & '=' & Quoted & KeyUnlockedBy & "FORCE"i?)
+		=> @(Statement.Restored("SERVICE MASTER KEY", null, Syntax.Tail(tail)))
+	| "RESTORE"i & "SYMMETRIC"i & "KEY"i & key: Identifier
+	  & tail: ("FROM"i & KeyPlace & KeyUnlockedBy & KeyLockedBy & "FORCE"i?)
+		=> @(Statement.Restored("SYMMETRIC KEY", key, Syntax.Tail(tail)))
 	| "RESTORE"i & what: RestoreWhat & name: BackupTarget?
 	  & tail: (BackupFiles* & ("FROM"i & RestoreFrom)? & RestoreWith?)
 		=> @(Statement.Restored(what, name, Syntax.Tail(tail)))
 
-RestoreKeyWhat : @string
-	= "SERVICE"i & "MASTER"i & "KEY"i => @("SERVICE MASTER KEY")
-	| "MASTER"i & "KEY"i              => @("MASTER KEY")
+// Where a key goes and comes from, and the two passwords it is locked and unlocked with.
+KeyPlace      = ("FILE"i | "URL"i) & '=' & Quoted
+KeyLockedBy   = "ENCRYPTION"i & "BY"i & "PASSWORD"i & '=' & Quoted
+KeyUnlockedBy = "DECRYPTION"i & "BY"i & "PASSWORD"i & '=' & Quoted
 
-// What a key says on its way to a file and back: a password to lock it with, one to unlock
-// it with, and the word that says to do it anyway.
-KeyFileTail = "ENCRYPTION"i & "BY"i & "PASSWORD"i & '=' & ValueExpression
-			| "DECRYPTION"i & "BY"i & "PASSWORD"i & '=' & ValueExpression
-			| "FORCE"i
+// A certificate's private key, written beside it: a file and the passwords, in any order,
+// after the format the certificate is written in if one is named.
+CertificatePrivateKey = "WITH"i & ("FORMAT"i & '=' & Quoted & ',')? & "PRIVATE"i & "KEY"i
+					  & '(' & CertificateKeyItem & (',' & CertificateKeyItem)* & ')'
+
+CertificateKeyItem = "FILE"i & '=' & Quoted | KeyLockedBy | KeyUnlockedBy
 
 BackupWhat : @string
 	= "DATABASE"i => @("DATABASE")
 	| "LOG"i      => @("LOG")
 	| "SERVER"i   => @("SERVER")
-
-BackupKeyWhat : @string
-	= "CERTIFICATE"i               => @("CERTIFICATE")
-	| "SERVICE"i & "MASTER"i & "KEY"i => @("SERVICE MASTER KEY")
-	| "MASTER"i & "KEY"i           => @("MASTER KEY")
-	| "SYMMETRIC"i & "KEY"i        => @("SYMMETRIC KEY")
 
 RestoreWhat : @string
 	= "DATABASE"i     => @("DATABASE")
@@ -3117,7 +3381,7 @@ AuditStatement : @Statement
 
 	| "CREATE"i & "EVENT"i & "NOTIFICATION"i & name: Identifier
 	  & tail: ("ON"i & NotificationScope & ("WITH"i & "FAN_IN"i)?
-			   & "FOR"i & PermissionName & (',' & PermissionName)*
+			   & "FOR"i & ActionWords & (',' & ActionWords)*
 			   & "TO"i & "SERVICE"i & ValueExpression & (',' & ValueExpression)*)
 		=> @(Statement.Defined("EVENT NOTIFICATION", name, Syntax.Tail(tail)))
 
@@ -3151,7 +3415,7 @@ AuditAction = AddOrDrop & '(' & AuditActionBody & ')' & ','?
 
 AddOrDrop = "ADD"i | "DROP"i
 
-AuditActionBody = PermissionName & (',' & PermissionName)* & AuditActionOn?
+AuditActionBody = ActionWords & (',' & ActionWords)* & AuditActionOn?
 
 AuditActionOn = "ON"i & SecurableClass? & QualifiedName & "BY"i & Principals
 
@@ -4195,47 +4459,228 @@ DatabaseTermination : @string
 // the option names are and for the same reason: they are a catalogue rather than a
 // language, and a permission added to SQL Server does not change this grammar.
 PermissionStatement : @Statement
-	= "GRANT"i & what: Permissions & on: PermissionOn? & "TO"i & who: Principals
+	= "GRANT"i & what: Permissions & on: PermissionOn? & "TO"i & who: Grantees
 	  & option: ("WITH"i & "GRANT"i & "OPTION"i)? & who2: PermissionAs?
 		=> @(new Statement.Grant(what, who, on, option is not null, who2))
-	| "DENY"i & what: Permissions & on: PermissionOn? & "TO"i & who: Principals
+	| "DENY"i & what: Permissions & on: PermissionOn? & "TO"i & who: Grantees
 	  & cascade: "CASCADE"i? & who2: PermissionAs?
 		=> @(new Statement.Deny(what, who, on, cascade is not null, who2))
 	| "REVOKE"i & optionFor: ("GRANT"i & "OPTION"i & "FOR"i)? & what: Permissions & on: PermissionOn?
-	  & way: ToOrFrom & who: Principals & cascade: "CASCADE"i? & who2: PermissionAs?
+	  & way: ToOrFrom & who: Grantees & cascade: "CASCADE"i? & who2: PermissionAs?
 		=> @(new Statement.Revoke(what, who, on, optionFor is not null, Syntax.Squared(way) == "FROM", cascade is not null, who2))
 
 ToOrFrom      : @string = t: ("TO"i | "FROM"i) => @(t)
 PermissionAs  : @string = "AS"i & t: PrincipalName => @(t)
-PermissionOn  : @string = "ON"i & t: (SecurableClass? & QualifiedName) => @(Syntax.Spaced(t))
+// The columns may follow the securable as well as the permission — `ON t (c1)`, and after
+// any class, `ON SCHEMA::s (c1)` — which the engine reads and, where both are written or the
+// class has no columns, objects to afterwards (1019). They stay in the securable's words.
+PermissionOn  : @string = "ON"i & t: (SecurableClass? & QualifiedName & ('(' & ColumnList & ')')?) => @(Syntax.Spaced(t))
 
 // `OBJECT::t`, `SCHEMA::s`, `SERVER ROLE::r`, `XML SCHEMA COLLECTION::c` — a run of words
 // and `::`. Where there is no `::` the whole clause is given back, which is what makes it
 // safe to try in front of an ordinary name.
 SecurableClass = PermissionWord+ & "::"
 
+// `ALL` and `ALL PRIVILEGES` are permissions like the others: first in a list, later in one,
+// with columns after them. An alternative of their own read them alone and, being first,
+// left `GRANT ALL, SELECT …` with nowhere to go.
 Permissions : @string[]
-	= t: ("ALL"i & "PRIVILEGES"i?) => @(new[] { Syntax.Spaced(t) })
-	| first: Permission & (',' & rest: Permission)* => @(Syntax.Named(first, rest))
+	= first: Permission & (',' & rest: Permission)* => @(Syntax.Named(first, rest))
 
 Permission : @string
 	= t: (PermissionName & ('(' & ColumnList & ')')?) => @(Syntax.Spaced(t))
 
-// A run of them, and it ends where it must: neither `ON` nor `TO` is a permission word,
-// so the words of the name are taken and the clause after them is left alone.
-PermissionName = PermissionWord+
-
-// A permission is spelled with words, and which words is a catalogue: `ALTER ANY
-// DATABASE`, `VIEW DEFINITION`, `BACKUP LOG`, `SUBSCRIBE QUERY NOTIFICATIONS`. Half of
-// them are reserved and cannot be read as an identifier, so the list used to be written
-// out — thirty-one words, and a permission SQL Server adds is a word this grammar has
-// never heard of.
+// A permission is one of the engine's own — the 166 names `sys.fn_builtin_permissions`
+// gives on SQL Server 2025 — or `EXEC`, `EXECUTE`'s other spelling, or `ALL [PRIVILEGES]`.
+// The engine refuses any other name as syntax: `GRANT FOO`, `GRANT SELECT INSERT`, three
+// permissions without their commas. This rule read any run of words once, on the ground that
+// a permission SQL Server adds is a word the grammar has never heard of; what that cost showed
+// when `NULL` became a principal and thirty-eight statements the engine refuses stopped
+// failing on the `NULL` instead. A name an older release does not know is read at every
+// level here, which is the version axis's to gate when there is one.
 //
-// What actually bounds the name is not which words are in it but where it ends, and the
-// syntax says that: `ON`, `TO`, `FROM`, `WITH` and `CASCADE` begin the clause after it.
-// So the rule is any word that is not one of those — five words instead of thirty-one,
-// and it stops being a catalogue.
+// Longest first, so that no name is taken for one it begins with: `ALTER ANY DATABASE`
+// before `ALTER`, `CONNECT SQL` before `CONNECT`, `EXECUTE` before `EXEC`.
+PermissionName
+	= "ALL"i & "PRIVILEGES"i?
+	| "VIEW"i & "SERVER"i & "STATE"i
+	| "VIEW"i & "SERVER"i & "SECURITY"i & "STATE"i
+	| "VIEW"i & "SERVER"i & "SECURITY"i & "AUDIT"i
+	| "VIEW"i & "SERVER"i & "PERFORMANCE"i & "STATE"i
+	| "VIEW"i & "SECURITY"i & "DEFINITION"i
+	| "VIEW"i & "PERFORMANCE"i & "DEFINITION"i
+	| "VIEW"i & "LEDGER"i & "CONTENT"i
+	| "VIEW"i & "DEFINITION"i
+	| "VIEW"i & "DATABASE"i & "STATE"i
+	| "VIEW"i & "DATABASE"i & "SECURITY"i & "STATE"i
+	| "VIEW"i & "DATABASE"i & "SECURITY"i & "AUDIT"i
+	| "VIEW"i & "DATABASE"i & "PERFORMANCE"i & "STATE"i
+	| "VIEW"i & "CRYPTOGRAPHICALLY"i & "SECURED"i & "DEFINITION"i
+	| "VIEW"i & "CHANGE"i & "TRACKING"i
+	| "VIEW"i & "ANY"i & "SENSITIVITY"i & "CLASSIFICATION"i
+	| "VIEW"i & "ANY"i & "SECURITY"i & "DEFINITION"i
+	| "VIEW"i & "ANY"i & "PERFORMANCE"i & "DEFINITION"i
+	| "VIEW"i & "ANY"i & "ERROR"i & "LOG"i
+	| "VIEW"i & "ANY"i & "DEFINITION"i
+	| "VIEW"i & "ANY"i & "DATABASE"i
+	| "VIEW"i & "ANY"i & "CRYPTOGRAPHICALLY"i & "SECURED"i & "DEFINITION"i
+	| "VIEW"i & "ANY"i & "COLUMN"i & "MASTER"i & "KEY"i & "DEFINITION"i
+	| "VIEW"i & "ANY"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i & "DEFINITION"i
+	| "UPDATE"i
+	| "UNSAFE"i & "ASSEMBLY"i
+	| "UNMASK"i
+	| "TAKE"i & "OWNERSHIP"i
+	| "SUBSCRIBE"i & "QUERY"i & "NOTIFICATIONS"i
+	| "SHUTDOWN"i
+	| "SHOWPLAN"i
+	| "SEND"i
+	| "SELECT"i & "ALL"i & "USER"i & "SECURABLES"i
+	| "SELECT"i
+	| "REFERENCES"i
+	| "RECEIVE"i
+	| "KILL"i & "DATABASE"i & "CONNECTION"i
+	| "INSERT"i
+	| "IMPERSONATE"i & "ANY"i & "LOGIN"i
+	| "IMPERSONATE"i
+	| "EXTERNAL"i & "ACCESS"i & "ASSEMBLY"i
+	| "EXECUTE"i & "EXTERNAL"i & "SCRIPT"i
+	| "EXECUTE"i & "ANY"i & "EXTERNAL"i & "SCRIPT"i
+	| "EXECUTE"i & "ANY"i & "EXTERNAL"i & "ENDPOINT"i
+	| "EXECUTE"i
+	| "EXEC"i
+	| "ENABLE"i & "LEDGER"i
+	| "DROP"i & "ANY"i & "EVENT"i & "SESSION"i
+	| "DROP"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i
+	| "DELETE"i
+	| "CREATE"i & "XML"i & "SCHEMA"i & "COLLECTION"i
+	| "CREATE"i & "VIEW"i
+	| "CREATE"i & "USER"i
+	| "CREATE"i & "TYPE"i
+	| "CREATE"i & "TRACE"i & "EVENT"i & "NOTIFICATION"i
+	| "CREATE"i & "TABLE"i
+	| "CREATE"i & "SYNONYM"i
+	| "CREATE"i & "SYMMETRIC"i & "KEY"i
+	| "CREATE"i & "SERVICE"i
+	| "CREATE"i & "SERVER"i & "ROLE"i
+	| "CREATE"i & "SEQUENCE"i
+	| "CREATE"i & "SCHEMA"i
+	| "CREATE"i & "RULE"i
+	| "CREATE"i & "ROUTE"i
+	| "CREATE"i & "ROLE"i
+	| "CREATE"i & "REMOTE"i & "SERVICE"i & "BINDING"i
+	| "CREATE"i & "QUEUE"i
+	| "CREATE"i & "PROCEDURE"i
+	| "CREATE"i & "MESSAGE"i & "TYPE"i
+	| "CREATE"i & "LOGIN"i
+	| "CREATE"i & "FUNCTION"i
+	| "CREATE"i & "FULLTEXT"i & "CATALOG"i
+	| "CREATE"i & "EXTERNAL"i & "MODEL"i
+	| "CREATE"i & "EXTERNAL"i & "LIBRARY"i
+	| "CREATE"i & "EXTERNAL"i & "LANGUAGE"i
+	| "CREATE"i & "ENDPOINT"i
+	| "CREATE"i & "DEFAULT"i
+	| "CREATE"i & "DDL"i & "EVENT"i & "NOTIFICATION"i
+	| "CREATE"i & "DATABASE"i & "DDL"i & "EVENT"i & "NOTIFICATION"i
+	| "CREATE"i & "DATABASE"i
+	| "CREATE"i & "CONTRACT"i
+	| "CREATE"i & "CERTIFICATE"i
+	| "CREATE"i & "AVAILABILITY"i & "GROUP"i
+	| "CREATE"i & "ASYMMETRIC"i & "KEY"i
+	| "CREATE"i & "ASSEMBLY"i
+	| "CREATE"i & "ANY"i & "EVENT"i & "SESSION"i
+	| "CREATE"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i
+	| "CREATE"i & "ANY"i & "DATABASE"i
+	| "CREATE"i & "AGGREGATE"i
+	| "CONTROL"i & "SERVER"i
+	| "CONTROL"i
+	| "CONNECT"i & "SQL"i
+	| "CONNECT"i & "REPLICATION"i
+	| "CONNECT"i & "ANY"i & "DATABASE"i
+	| "CONNECT"i
+	| "CHECKPOINT"i
+	| "BACKUP"i & "LOG"i
+	| "BACKUP"i & "DATABASE"i
+	| "AUTHENTICATE"i & "SERVER"i
+	| "AUTHENTICATE"i
+	| "ALTER"i & "TRACE"i
+	| "ALTER"i & "SETTINGS"i
+	| "ALTER"i & "SERVER"i & "STATE"i
+	| "ALTER"i & "RESOURCES"i
+	| "ALTER"i & "LEDGER"i & "CONFIGURATION"i
+	| "ALTER"i & "LEDGER"i
+	| "ALTER"i & "ANY"i & "USER"i
+	| "ALTER"i & "ANY"i & "SYMMETRIC"i & "KEY"i
+	| "ALTER"i & "ANY"i & "SERVICE"i
+	| "ALTER"i & "ANY"i & "SERVER"i & "ROLE"i
+	| "ALTER"i & "ANY"i & "SERVER"i & "AUDIT"i
+	| "ALTER"i & "ANY"i & "SENSITIVITY"i & "CLASSIFICATION"i
+	| "ALTER"i & "ANY"i & "SECURITY"i & "POLICY"i
+	| "ALTER"i & "ANY"i & "SCHEMA"i
+	| "ALTER"i & "ANY"i & "ROUTE"i
+	| "ALTER"i & "ANY"i & "ROLE"i
+	| "ALTER"i & "ANY"i & "REMOTE"i & "SERVICE"i & "BINDING"i
+	| "ALTER"i & "ANY"i & "MESSAGE"i & "TYPE"i
+	| "ALTER"i & "ANY"i & "MASK"i
+	| "ALTER"i & "ANY"i & "LOGIN"i
+	| "ALTER"i & "ANY"i & "LINKED"i & "SERVER"i
+	| "ALTER"i & "ANY"i & "INFORMATION"i & "PROTECTION"i
+	| "ALTER"i & "ANY"i & "FULLTEXT"i & "CATALOG"i
+	| "ALTER"i & "ANY"i & "EXTERNAL"i & "STREAM"i
+	| "ALTER"i & "ANY"i & "EXTERNAL"i & "MODEL"i
+	| "ALTER"i & "ANY"i & "EXTERNAL"i & "MIRROR"i
+	| "ALTER"i & "ANY"i & "EXTERNAL"i & "LIBRARY"i
+	| "ALTER"i & "ANY"i & "EXTERNAL"i & "LANGUAGE"i
+	| "ALTER"i & "ANY"i & "EXTERNAL"i & "JOB"i
+	| "ALTER"i & "ANY"i & "EXTERNAL"i & "FILE"i & "FORMAT"i
+	| "ALTER"i & "ANY"i & "EXTERNAL"i & "DATA"i & "SOURCE"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "SESSION"i & "OPTION"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "SESSION"i & "ENABLE"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "SESSION"i & "DROP"i & "TARGET"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "SESSION"i & "DROP"i & "EVENT"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "SESSION"i & "DISABLE"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "SESSION"i & "ADD"i & "TARGET"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "SESSION"i & "ADD"i & "EVENT"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "SESSION"i
+	| "ALTER"i & "ANY"i & "EVENT"i & "NOTIFICATION"i
+	| "ALTER"i & "ANY"i & "ENDPOINT"i
+	| "ALTER"i & "ANY"i & "DATASPACE"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "SCOPED"i & "CONFIGURATION"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i & "OPTION"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i & "ENABLE"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i & "DROP"i & "TARGET"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i & "DROP"i & "EVENT"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i & "DISABLE"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i & "ADD"i & "TARGET"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i & "ADD"i & "EVENT"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "SESSION"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "EVENT"i & "NOTIFICATION"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "DDL"i & "TRIGGER"i
+	| "ALTER"i & "ANY"i & "DATABASE"i & "AUDIT"i
+	| "ALTER"i & "ANY"i & "DATABASE"i
+	| "ALTER"i & "ANY"i & "CREDENTIAL"i
+	| "ALTER"i & "ANY"i & "CONTRACT"i
+	| "ALTER"i & "ANY"i & "CONNECTION"i
+	| "ALTER"i & "ANY"i & "COLUMN"i & "MASTER"i & "KEY"i
+	| "ALTER"i & "ANY"i & "COLUMN"i & "ENCRYPTION"i & "KEY"i
+	| "ALTER"i & "ANY"i & "CERTIFICATE"i
+	| "ALTER"i & "ANY"i & "AVAILABILITY"i & "GROUP"i
+	| "ALTER"i & "ANY"i & "ASYMMETRIC"i & "KEY"i
+	| "ALTER"i & "ANY"i & "ASSEMBLY"i
+	| "ALTER"i & "ANY"i & "APPLICATION"i & "ROLE"i
+	| "ALTER"i
+	| "ADMINISTER"i & "DATABASE"i & "BULK"i & "OPERATIONS"i
+	| "ADMINISTER"i & "BULK"i & "OPERATIONS"i
+
+// A word of a securable's class, `OBJECT::`, `SERVER ROLE::`: any word the clause after the
+// permission does not begin with.
 PermissionWord = ?!PermissionEnd & word
+
+// An event an event notification is for, `OBJECT_CREATED`, `DDL_TABLE_EVENTS`, and an audit
+// specification's action or group, `SUCCESSFUL_DATABASE_AUTHENTICATION_GROUP`, `SELECT`: runs
+// of words, which read the permission rule until that became the engine's list of permissions
+// and these two lists of their own stopped at their first name. They are catalogues too, and
+// are left open until they are asked about.
+ActionWords = PermissionWord+
 
 PermissionEnd = "ON"i | "TO"i | "FROM"i | "WITH"i | "CASCADE"i
 
@@ -4243,3 +4688,10 @@ Principals : @string[]
 	= first: PrincipalName & (',' & rest: PrincipalName)* => @(Syntax.Named(first, rest))
 
 PrincipalName : @string = "PUBLIC"i => @("PUBLIC") | t: QualifiedName => @(t)
+
+// Whom a permission is given to, denied or taken from: a principal, or `NULL`, which the
+// engine reads anywhere in the list and refuses after `AS`.
+Grantees : @string[]
+	= first: Grantee & (',' & rest: Grantee)* => @(Syntax.Named(first, rest))
+
+Grantee : @string = "NULL"i => @("NULL") | t: PrincipalName => @(t)

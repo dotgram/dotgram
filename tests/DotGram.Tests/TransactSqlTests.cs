@@ -918,6 +918,8 @@ public sealed class TransactSqlTests
 	[InlineData("EXECUTE AS USER = 'u' WITH COOKIE INTO c")]
 	[InlineData("EXECUTE AS USER = 'u' WITH NORESET")]
 	[InlineData("EXECUTE AS CALLER, NO REVERT")]
+	[InlineData("EXEC AS CALLER WITH COOKIE INTO @c, NO REVERT")]
+	[InlineData("EXECUTE AS LOGIN = 'l' WITH COOKIE INTO @c, NO REVERT")]
 	[InlineData("REVERT WITH COOKIE @c")]
 	[InlineData("REVERT WITH COOKIE")]
 	[InlineData("REVERT WITH NO REVERT")]
@@ -931,7 +933,7 @@ public sealed class TransactSqlTests
 	/// <summary>And read the forms beside them.</summary>
 	[Theory]
 	[InlineData("EXECUTE AS CALLER")]
-	[InlineData("EXEC AS CALLER WITH COOKIE INTO @c, NO REVERT")]
+	[InlineData("EXEC AS CALLER WITH COOKIE INTO @c")]
 	[InlineData("EXECUTE AS USER = N'u'")]
 	[InlineData("EXECUTE AS USER = dbo.fn_getuser() WITH NO REVERT")]
 	[InlineData("EXECUTE AS USER = 'u' + @v WITH COOKIE INTO @@c")]
@@ -1012,6 +1014,604 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT a FROM t FOR UPDATE OF a, b")]
 	[InlineData("SELECT a FROM t ORDER BY a FOR READ ONLY")]
 	public void The_row_shapes_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>The permission statements, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("GRANT SELECT ON t () TO u")]
+	[InlineData("GRANT SELECT ON t (s.c1) TO u")]
+	[InlineData("GRANT SELECT ON t TO u AS NULL")]
+	[InlineData("GRANT SELECT ON t TO 'u'")]
+	[InlineData("GRANT SELECT ON t TO @u")]
+	[InlineData("REVOKE SELECT ON t TO NULL AS NULL")]
+	[InlineData("GRANT FOO TO u")]
+	[InlineData("GRANT FOO BAR ON t TO u")]
+	[InlineData("GRANT SELECT INSERT ON t TO u")]
+	[InlineData("GRANT create control alter ON [a] TO NULL, user2 AS [all]")]
+	[InlineData("GRANT CREATE TO u")]
+	[InlineData("GRANT CREATE ANY FOO TO u")]
+	[InlineData("GRANT VIEW FOO TO u")]
+	public void The_permission_statements_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("GRANT SELECT ON t (c1, c2) TO u")]
+	[InlineData("GRANT SELECT (c1) ON t (c2) TO u")]
+	[InlineData("GRANT INSERT ON ..t1 (c1) TO PUBLIC")]
+	[InlineData("DENY ALL PRIVILEGES ON ENDPOINT::a.b..d (c1, c2) TO PUBLIC")]
+	[InlineData("REVOKE GRANT OPTION FOR CONTROL ON t1 (c1) TO PUBLIC AS [p1]")]
+	[InlineData("GRANT SELECT ON t TO u, NULL")]
+	[InlineData("DENY SELECT ON t TO NULL CASCADE")]
+	[InlineData("REVOKE SELECT ON t FROM NULL")]
+	[InlineData("GRANT ALL TO NULL WITH GRANT OPTION")]
+	[InlineData("GRANT ALL, SELECT (c1, c2), INSERT, DELETE, UPDATE, EXEC, EXECUTE, REFERENCES (c1) ON t TO u")]
+	[InlineData("GRANT ALL PRIVILEGES (c1) ON t TO u")]
+	[InlineData("GRANT SELECT, ALL PRIVILEGES TO u")]
+	[InlineData("GRANT ALTER ANY DATABASE EVENT SESSION ADD EVENT, ALTER ANY DATABASE, ALTER TO u")]
+	[InlineData("GRANT VIEW ANY COLUMN ENCRYPTION KEY DEFINITION, CONNECT SQL, CONNECT TO u")]
+	[InlineData("GRANT EXEC, EXECUTE ANY EXTERNAL SCRIPT ON p TO u")]
+	[InlineData("GRANT SELECT ALL USER SECURABLES, TAKE OWNERSHIP TO u")]
+	public void The_permission_statements_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>A table's constraints switched, and a graph table's columns carried by an index.</summary>
+	[Theory]
+	[InlineData("ALTER TABLE t WITH CHECK")]
+	[InlineData("ALTER TABLE t WITH CHECK DROP CONSTRAINT c1")]
+	[InlineData("ALTER TABLE t CHECK CONSTRAINT")]
+	[InlineData("CREATE INDEX i ON n (c1) INCLUDE (t.c2)")]
+	[InlineData("CREATE CLUSTERED COLUMNSTORE INDEX i ON n ORDER ($NODE_ID)")]
+	public void Switched_constraints_and_carried_columns_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("ALTER TABLE t WITH NOCHECK CHECK CONSTRAINT ALL")]
+	[InlineData("ALTER TABLE t WITH CHECK NOCHECK CONSTRAINT c1, c2")]
+	[InlineData("CREATE INDEX i ON n (c1) INCLUDE ($node_id, c2)")]
+	[InlineData("CREATE INDEX i ON e (c1) INCLUDE ($FROM_ID, $TO_ID, [$EDGE_ID])")]
+	[InlineData("CREATE TABLE n (c1 INT, INDEX i (c1) INCLUDE ($NODE_ID)) AS NODE")]
+	public void Switched_constraints_and_carried_columns_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>Keys and certificates to a file and back, and a security policy, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = @f")]
+	[InlineData("BACKUP CERTIFICATE c TO URL = 'u'")]
+	[InlineData("BACKUP CERTIFICATE s.c TO FILE = 'f'")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH FORMAT = PFX, PRIVATE KEY (FILE = 'k', ENCRYPTION BY PASSWORD = 'p')")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH PRIVATE KEY (FILE = @k, ENCRYPTION BY PASSWORD = @p)")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH PRIVATE KEY ()")]
+	[InlineData("BACKUP MASTER KEY TO FILE = 'f'")]
+	[InlineData("BACKUP MASTER KEY TO FILE = 'f' ENCRYPTION BY PASSWORD = @p")]
+	[InlineData("BACKUP MASTER KEY TO FILE = 'f' ENCRYPTION BY PASSWORD = 'p' FORCE")]
+	[InlineData("BACKUP SERVICE MASTER KEY TO URL = 'u' ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("BACKUP SYMMETRIC KEY s.k TO FILE = 'f' ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("RESTORE MASTER KEY FROM FILE = 'f' ENCRYPTION BY PASSWORD = 'q' DECRYPTION BY PASSWORD = 'p'")]
+	[InlineData("RESTORE MASTER KEY FROM FILE = 'f' DECRYPTION BY PASSWORD = 'p' FORCE ENCRYPTION BY PASSWORD = 'q'")]
+	[InlineData("RESTORE SERVICE MASTER KEY FROM FILE = 'f' DECRYPTION BY PASSWORD = 'p' ENCRYPTION BY PASSWORD = 'q'")]
+	[InlineData("RESTORE SYMMETRIC KEY k FROM FILE = 'f' DECRYPTION BY PASSWORD = 'p'")]
+	[InlineData("ALTER SECURITY POLICY p NOT FOR REPLICATION")]
+	[InlineData("ALTER SECURITY POLICY p WITH (STATE = ON) ADD NOT FOR REPLICATION")]
+	[InlineData("CREATE SECURITY POLICY p ADD PREDICATE dbo.f(c) ON dbo.t")]
+	[InlineData("CREATE SECURITY POLICY p ADD FILTER PREDICATE dbo.f(c) ON dbo.t AFTER INSERT")]
+	[InlineData("CREATE SECURITY POLICY p ADD BLOCK PREDICATE dbo.f(c) ON dbo.t AFTER DELETE")]
+	[InlineData("CREATE SECURITY POLICY p ADD BLOCK PREDICATE dbo.f(c) ON dbo.t BEFORE INSERT")]
+	public void Keys_and_policies_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = N'f' WITH FORMAT = N'PFX', PRIVATE KEY (FILE = N'k', ENCRYPTION BY PASSWORD = N'p')")]
+	[InlineData("BACKUP CERTIFICATE [c] TO FILE = 'f' WITH PRIVATE KEY (DECRYPTION BY PASSWORD = 'q', FILE = 'k', ENCRYPTION BY PASSWORD = 'p')")]
+	[InlineData("BACKUP MASTER KEY TO URL = 'u' ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("BACKUP SYMMETRIC KEY k TO URL = 'u' ENCRYPTION BY PASSWORD = 'p'")]
+	[InlineData("RESTORE MASTER KEY FROM URL = 'u' DECRYPTION BY PASSWORD = 'p' ENCRYPTION BY PASSWORD = 'q' FORCE")]
+	[InlineData("RESTORE SERVICE MASTER KEY FROM FILE = 'f' DECRYPTION BY PASSWORD = 'p' FORCE")]
+	[InlineData("RESTORE SYMMETRIC KEY [k] FROM URL = 'u' DECRYPTION BY PASSWORD = 'p' ENCRYPTION BY PASSWORD = 'q' FORCE")]
+	[InlineData("ALTER SECURITY POLICY p ADD NOT FOR REPLICATION")]
+	[InlineData("ALTER SECURITY POLICY p DROP NOT FOR REPLICATION")]
+	[InlineData("CREATE SECURITY POLICY p ADD BLOCK PREDICATE dbo.f(c) ON dbo.t BEFORE DELETE NOT FOR REPLICATION")]
+	[InlineData("ALTER SECURITY POLICY p DROP BLOCK PREDICATE ON dbo.t AFTER INSERT")]
+	public void Keys_and_policies_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>The SET statements, as the engine answers them with its variables declared.</summary>
+	[Theory]
+	[InlineData("SET DATEFIRST 7 + 1")]
+	[InlineData("SET DEADLOCK_PRIORITY 5 + 1")]
+	[InlineData("SET LOCK_TIMEOUT @i")]
+	[InlineData("SET LOCK_TIMEOUT '10'")]
+	[InlineData("SET LOCK_TIMEOUT 1.5")]
+	[InlineData("SET LOCK_TIMEOUT x")]
+	[InlineData("SET FIPS_FLAGGER ON")]
+	[InlineData("SET FIPS_FLAGGER @s")]
+	[InlineData("SET FIPS_FLAGGER N'FULL'")]
+	[InlineData("SET QUERY_GOVERNOR_COST_LIMIT @i")]
+	[InlineData("SET QUERY_GOVERNOR_COST_LIMIT '10'")]
+	[InlineData("SET ROWCOUNT -1")]
+	[InlineData("SET ROWCOUNT '5'")]
+	[InlineData("SET ROWCOUNT x")]
+	[InlineData("SET TEXTSIZE @i")]
+	[InlineData("SET TEXTSIZE '10'")]
+	[InlineData("SET USER 'x'")]
+	[InlineData("SET NOCOUNT")]
+	[InlineData("SET NOCOUNT 1")]
+	[InlineData("SET NOCOUNT 'ON'")]
+	[InlineData("SET PARSEONLY")]
+	[InlineData("SET LANGUAGE")]
+	[InlineData("SET NOCOUNT, STATISTICS IO ON")]
+	[InlineData("SET STATISTICS IO")]
+	[InlineData("SET OFFSETS SELECT")]
+	[InlineData("SET IDENTITY_INSERT t 1")]
+	[InlineData("SET TRANSACTION ISOLATION LEVEL FOO")]
+	[InlineData("SET LOCK_TIMEOUT 10,")]
+	[InlineData("SET LOCK_TIMEOUT 1000, ROWCOUNT 5")]
+	[InlineData("SET NOCOUNT ON, LOCK_TIMEOUT 10")]
+	[InlineData("SET @a = 1, LOCK_TIMEOUT 10")]
+	[InlineData("SET FIPS_FLAGGER OFF, DATEFIRST 7")]
+	[InlineData("SET DATEFIRST 7, FIPS_FLAGGER OFF")]
+	[InlineData("SET DATEFIRST 7, ERRLVL 0")]
+	[InlineData("SET DATEFIRST 7, NOCOUNT OFF")]
+	[InlineData("SET NOCOUNT ON, XACT_ABORT ON")]
+	[InlineData("SET STATISTICS IO OFF, TIME OFF")]
+	[InlineData("SET OFFSETS GROUP ON")]
+	[InlineData("SET [NOCOUNT] ON")]
+	[InlineData("SET NOCOUNTON")]
+	public void The_set_statements_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>
+	/// A name the engine does not know, which it parses with whatever follows it to the end of
+	/// the statement and refuses when the statement runs: `Msg 195`, "not a recognized SET
+	/// option", or statistics option, or offset option.
+	/// </summary>
+	[Theory]
+	[InlineData("SET FOO ON")]
+	[InlineData("SET FOO 1")]
+	[InlineData("SET A, B")]
+	[InlineData("SET A, B 5")]
+	[InlineData("SET DATEFIRST 1, FOO 2")]
+	[InlineData("SET NOCOUNT, FOO 1")]
+	[InlineData("SET DATEFIRST ON")]
+	[InlineData("SET LANGUAGE OFF")]
+	[InlineData("SET LOCK_TIMEOUT, DEADLOCK_PRIORITY 5")]
+	[InlineData("SET DISABLE_DEF_CNST_CHK ON")]
+	[InlineData("SET STATISTICS FOO ON")]
+	[InlineData("SET STATISTICS IO, NOCOUNT ON")]
+	[InlineData("SET OFFSETS FOO ON")]
+	public void The_set_statements_refuse_the_names_the_engine_does_not_know(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SET DATEFIRST -1")]
+	[InlineData("SET DATEFIRST x")]
+	[InlineData("SET DATEFORMAT N'dmy'")]
+	[InlineData("SET DEADLOCK_PRIORITY -10")]
+	[InlineData("SET DEADLOCK_PRIORITY @s")]
+	[InlineData("SET LOCK_TIMEOUT -1")]
+	[InlineData("SET LANGUAGE [us_english]")]
+	[InlineData("SET FIPS_FLAGGER 'FULL'")]
+	[InlineData("SET FIPS_FLAGGER OFF")]
+	[InlineData("SET QUERY_GOVERNOR_COST_LIMIT 1.5")]
+	[InlineData("SET CONTEXT_INFO @b")]
+	[InlineData("SET ROWCOUNT @i")]
+	[InlineData("SET TEXTSIZE -1")]
+	[InlineData("SET ERRLVL 1")]
+	[InlineData("SET ANSI_NULLS, NOCOUNT, XACT_ABORT OFF")]
+	[InlineData("SET QUOTED_IDENTIFIER, NO_BROWSETABLE ON")]
+	[InlineData("SET NOCOUNT, NOCOUNT OFF")]
+	[InlineData("SET RESULT_SET_CACHING ON")]
+	[InlineData("SET RECOMMENDATIONS OFF")]
+	[InlineData("SET FIPS_FLAGGER 'FULL', QUERY_GOVERNOR_COST_LIMIT 10")]
+	[InlineData("SET QUERY_GOVERNOR_COST_LIMIT 10, FIPS_FLAGGER 'ENTRY'")]
+	[InlineData("SET STATISTICS IO, TIME ON")]
+	[InlineData("SET STATISTICS PROFILE, XML OFF")]
+	[InlineData("SET OFFSETS SELECT, FROM, ORDER, COMPUTE, TABLE, PROCEDURE, EXECUTE, STATEMENT, PARAM ON")]
+	[InlineData("SET OFFSETS PROC, EXEC OFF")]
+	[InlineData("SET IDENTITY_INSERT d.s.t ON")]
+	[InlineData("SET TRAN ISOLATION LEVEL SNAPSHOT")]
+	[InlineData("SET DATEFIRST 1, DATEFORMAT dmy")]
+	[InlineData("SET DATEFIRST 7, DATEFIRST 7")]
+	[InlineData("SET LANGUAGE us_english, DATEFIRST 7")]
+	[InlineData("SET CONTEXT_INFO 0x01, DATEFIRST 7")]
+	[InlineData("SET DATEFIRST 7, QUERY_GOVERNOR_COST_LIMIT 0")]
+	[InlineData("SET LOCK_TIMEOUT -1, DEADLOCK_PRIORITY NORMAL")]
+	public void The_set_statements_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>
+	/// The graph pattern, as the engine answers it at every level: no comma and no brackets,
+	/// which the syntax shows, a path of any length only inside `SHORTEST_PATH`, one to it,
+	/// and `LAST_NODE` only at its ends.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT * FROM a WHERE MATCH(N-(E)->N2, N2-(E2)->N3)")]
+	[InlineData("SELECT * FROM a WHERE MATCH((N-(E)->N2) AND N2-(E)->N3)")]
+	[InlineData("SELECT * FROM a WHERE MATCH(N(-(E)->N2)+)")]
+	[InlineData("SELECT * FROM a WHERE MATCH(N = N2)")]
+	[InlineData("SELECT * FROM a WHERE MATCH(LAST_NODE(N) = N2)")]
+	[InlineData("SELECT * FROM a WHERE MATCH(LAST_NODE(dbo.N) = LAST_NODE(N3))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N-(E)->N2))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2)))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2)+ AND N2(-(E)->N3)+))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH((LAST_NODE(N)-(E)->)+N2))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->LAST_NODE(N2))+))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH((N-(E)->N2)+N3))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH((N-(E)->N2-(E2)->)+))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2){,3}))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH((N-(E)->){3}N2))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2){1,3}+))")]
+	[InlineData("SELECT * FROM (SELECT * FROM t) FOR PATH")]
+	[InlineData("SELECT * FROM (SELECT * FROM t) AS x FOR PATH")]
+	[InlineData("SELECT * FROM (SELECT * FROM t) FOR SYSTEM_TIME ALL AS x")]
+	[InlineData("SELECT * FROM t FOR PATH FOR SYSTEM_TIME ALL AS x")]
+	[InlineData("SELECT * FROM dbo.f() FOR PATH AS x")]
+	[InlineData("SELECT * FROM @t FOR PATH AS x")]
+	[InlineData("SELECT * FROM OPENJSON('[]') FOR PATH AS x")]
+	public void The_graph_pattern_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH((N-(E)->N2-(E2)->)+N3))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH((N-(E)->N2<-(E2)-)+N3))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2-(E2)->N3)+))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2){1,}))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2){ 1 , 3 }))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(LAST_NODE(N)(-(E)->N2)+))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH((N-(E)->){1,5}LAST_NODE(N2)))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2)+) AND SHORTEST_PATH(N(-(E)->N3)+))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2)+) AND LAST_NODE(N2) = LAST_NODE(N3))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(LAST_NODE(N)-(E)->N2)")]
+	[InlineData("SELECT * FROM a WHERE MATCH(N-(E)->LAST_NODE(N2)-(E2)->N3)")]
+	[InlineData("SELECT * FROM a WHERE MATCH([N]-([E])->[N2])")]
+	[InlineData("SELECT * FROM (SELECT * FROM t) FOR PATH AS x")]
+	[InlineData("SELECT * FROM (SELECT * FROM t) FOR PATH x (c1)")]
+	[InlineData("SELECT * FROM (VALUES (1)) FOR PATH AS x (c)")]
+	[InlineData("SELECT * FROM t FOR SYSTEM_TIME ALL FOR PATH AS x")]
+	[InlineData("SELECT * FROM t FOR PATH AS x WITH (NOLOCK)")]
+	[InlineData("SELECT * FROM (SELECT * FROM t) FOR PATH AS x, (SELECT * FROM u) FOR PATH AS y WHERE MATCH(SHORTEST_PATH(x(-(y)->x)+))")]
+	public void The_graph_pattern_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>A bare `*` as an item of the list, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("SELECT * AS x FROM t")]
+	[InlineData("SELECT (*) FROM t")]
+	[InlineData("SELECT @a = *, 1 FROM t")]
+	[InlineData("SELECT x = * FROM t")]
+	public void A_star_in_the_list_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside it.</summary>
+	[Theory]
+	[InlineData("SELECT 1, *, 2 FROM t")]
+	[InlineData("SELECT *, *, * FROM t")]
+	[InlineData("SELECT *, t.*, a, * FROM t")]
+	[InlineData("SELECT COUNT(*), *, @a + 10 FROM t")]
+	[InlineData("SELECT *, 1")]
+	[InlineData("SELECT * FROM t UNION SELECT 1, * FROM u")]
+	public void A_star_in_the_list_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>`IDENTITY(…)` in a `SELECT … INTO`, as the engine answers it with its variable declared.</summary>
+	[Theory]
+	[InlineData("SELECT IDENTITY(INT, @a, 1) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 1 + 1, 1) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, (1), 1) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 0x1, 1) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 1) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(1, 1) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 1, 1) INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 1, 1) + 1 AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 1, 1) AS id FROM t")]
+	[InlineData("INSERT INTO t SELECT IDENTITY(INT, 1, 1) AS id FROM u")]
+	public void An_identity_column_made_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside it.</summary>
+	[Theory]
+	[InlineData("SELECT IDENTITY(INT) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 1, 1) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(DECIMAL(10, 0), 1, 1) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, -1, 2) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 1.5, +1) id INTO #t FROM t")]
+	[InlineData("SELECT a, IDENTITY(INT, 1, 1) AS id, IDENTITY(INT, 1, 1) AS id2 INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 1, 1) AS id INTO #t")]
+	[InlineData("SELECT identity(int, 1, 1) AS 'id' INTO #t FROM t WHERE 1 = 1 ORDER BY a")]
+	[InlineData("SELECT id = IDENTITY(INT, 1, 1), 'id2' = IDENTITY(INT, 1, 1) INTO #t FROM t")]
+	public void An_identity_column_made_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>
+	/// Reserved words as values: `LEFT` and `RIGHT` called, `IDENTITYCOL` and `ROWGUIDCOL` as
+	/// columns, and a name of one part called only bare, as the engine answers them.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT dbo.LEFT(1)")]
+	[InlineData("SELECT LEFT FROM t")]
+	[InlineData("SELECT a AS LEFT FROM t")]
+	[InlineData("SELECT LEFT('a', 1) OVER ()")]
+	[InlineData("SELECT [LEFT]('a', 1)")]
+	[InlineData("SELECT [LEN]('a')")]
+	[InlineData(@"SELECT ""LEN""('a')")]
+	[InlineData("SELECT a AS IDENTITYCOL FROM t")]
+	[InlineData("UPDATE t SET IDENTITYCOL = 1")]
+	[InlineData("SELECT IDENTITYCOL() FROM t")]
+	public void Reserved_values_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT LEFT('Team System', 4), RIGHT('Team System', 6)")]
+	[InlineData("SELECT left ('a', 1)")]
+	[InlineData("SELECT LEFT('a')")]
+	[InlineData("SELECT [LEFT]")]
+	[InlineData("SELECT foo(1), dbo.[LEN]('a'), [dbo].[f](1)")]
+	[InlineData("SELECT IDENTITYCOL, t.IDENTITYCOL, a.b.ROWGUIDCOL, a.b.c.IDENTITYCOL FROM t")]
+	[InlineData("SELECT * FROM t WHERE IDENTITYCOL > 10 AND ROWGUIDCOL IS NOT NULL ORDER BY IDENTITYCOL")]
+	[InlineData("SELECT IDENTITYCOL AS x, (IDENTITYCOL * 10), IDENTITYCOL + 1 FROM t")]
+	[InlineData("CREATE INDEX ind1 ON t1(c1) WHERE IDENTITYCOL > 10")]
+	[InlineData("SELECT a FROM t ORDER BY a + 1")]
+	[InlineData("SELECT a FROM t ORDER BY LEN(a), 1, t.ROWGUIDCOL DESC")]
+	[InlineData("SELECT a FROM t ORDER BY (SELECT 1)")]
+	[InlineData("SELECT a FROM t ORDER BY CASE WHEN a = 1 THEN 0 END")]
+	[InlineData("SELECT a FROM t ORDER BY a COLLATE Latin1_General_CI_AS DESC")]
+	[InlineData("SELECT ROW_NUMBER() OVER (ORDER BY a + 1) FROM t")]
+	public void Reserved_values_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>
+	/// A variable assigned, in its own `SET` and in an `UPDATE`, as the engine answers it with
+	/// the variable declared: `DEFAULT` is a column's, and a column between the variable and
+	/// its value an `UPDATE`'s.
+	/// </summary>
+	[Theory]
+	[InlineData("SET @a = DEFAULT")]
+	[InlineData("SET @a = c = 1")]
+	[InlineData("SET @a = c += 1")]
+	[InlineData("UPDATE t SET @a = DEFAULT")]
+	[InlineData("UPDATE t SET @a = c = @a = 1")]
+	[InlineData("UPDATE t SET @a = @a = 1")]
+	[InlineData("UPDATE t SET c = @a = 1")]
+	public void A_variable_assigned_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside them.</summary>
+	[Theory]
+	[InlineData("SET @a += 1")]
+	[InlineData("SET @a = NULL")]
+	[InlineData("UPDATE t SET @a = c = DEFAULT")]
+	[InlineData("UPDATE t SET @a = a.b = DEFAULT")]
+	[InlineData("UPDATE t SET @a = c = 1")]
+	[InlineData("UPDATE t SET @a = c += NULL")]
+	[InlineData("UPDATE t SET @a = c, c = DEFAULT, @a += 1")]
+	public void A_variable_assigned_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>A table-valued function as what a statement writes to, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("UPDATE dbo.f() WITH (NOLOCK) SET c = 1")]
+	[InlineData("UPDATE dbo.f() AS x SET c = 1")]
+	[InlineData("UPDATE dbo.f() x SET c = 1")]
+	[InlineData("DELETE dbo.f() WITH (NOLOCK)")]
+	[InlineData("DELETE dbo.f() AS x")]
+	[InlineData("INSERT INTO dbo.f() WITH (TABLOCK) VALUES (1)")]
+	[InlineData("UPDATE @t.f() SET c = 1")]
+	public void A_function_target_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside it.</summary>
+	[Theory]
+	[InlineData("UPDATE dbo.f() SET c = 1")]
+	[InlineData("UPDATE dbo.tvf(-1, 2, DEFAULT) SET c1 = 2")]
+	[InlineData("UPDATE f() SET c = 1")]
+	[InlineData("UPDATE TOP (1) dbo.f() SET c = 1 OUTPUT c INTO @t (c1) FROM t WHERE 1 = 1")]
+	[InlineData("DELETE dbo.f()")]
+	[InlineData("DELETE FROM dbo.f(1) WHERE c = 1")]
+	[InlineData("INSERT dbo.f() SELECT * FROM t2 UNION SELECT * FROM t3")]
+	[InlineData("INSERT dbo.f() (c1) DEFAULT VALUES")]
+	[InlineData("INSERT INTO dbo.tvf(1, -1, DEFAULT) VALUES (2, 3, 4)")]
+	[InlineData("INSERT dbo.f() EXEC p")]
+	[InlineData("MERGE dbo.f() AS t USING s ON 1 = 1 WHEN MATCHED THEN DELETE;")]
+	public void A_function_target_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>`INSERT t (c1)` is a table and its columns, and not a call.</summary>
+	[Fact]
+	public void A_column_list_is_not_a_call()
+	{
+		var insert = Assert.IsType<Statement.Insert>(TransactSql.TryParseStatement("INSERT t (c1) VALUES (1)").Value);
+
+		Assert.IsType<TableReference.Named>(insert.Target);
+		Assert.Equal(new[] { "c1" }, insert.Columns);
+
+		var called = Assert.IsType<Statement.Insert>(TransactSql.TryParseStatement("INSERT dbo.f() (c1) DEFAULT VALUES").Value);
+
+		Assert.IsType<TableReference.FunctionCall>(called.Target);
+		Assert.Equal(new[] { "c1" }, called.Columns);
+	}
+
+	/// <summary>
+	/// A space is what the engine takes for one: every control character below the space,
+	/// Unicode's spaces and separators, and the zero-width space — in the standard's rules
+	/// as much as in T-SQL's, `WHERE` being the standard's.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT\u202F1 AS x")]
+	[InlineData("SELECT\u200B1 AS x")]
+	[InlineData("SELECT\u30001 AS x")]
+	[InlineData("SELECT\u00011 AS x")]
+	[InlineData("SELECT\u00A01 AS x")]
+	[InlineData("SELECT a FROM t\u2028WHERE a\u202F=\u202F1")]
+	[InlineData("SELECT GREATEST\u202F(\u202F'6.62', 3.1415, N'7'\u202F)\u202FAS\u202FGreatestVal")]
+	public void A_space_is_what_the_engine_takes_for_one(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>And not what it does not.</summary>
+	[Theory]
+	[InlineData("SELECT\u200C1 AS x")]
+	[InlineData("SELECT\uFEFF1 AS x")]
+	[InlineData("SELECT\u007F1 AS x")]
+	[InlineData("SELECT\u00AD1 AS x")]
+	[InlineData("SELECT\u180E1 AS x")]
+	public void Nothing_else_is_a_space(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>
+	/// The operators group as the engine computes them — asked with numbers, since a parse
+	/// says nothing of grouping: `&amp;` as weak as `+` and read left to right with it, `%` as
+	/// strong as `*`, `~` a sign, and a comparison weaker than all of them.
+	/// </summary>
+	[Fact]
+	public void The_operators_group_as_the_engine_computes()
+	{
+		var and = Assert.IsType<Expression.BitwiseAnd>(TransactSql.TryParseValueExpression("2 + 5 & 4").Value);
+		Assert.IsType<Expression.Add>(and.Left);
+
+		var add = Assert.IsType<Expression.Add>(TransactSql.TryParseValueExpression("5 & 4 + 2").Value);
+		Assert.IsType<Expression.BitwiseAnd>(add.Left);
+
+		var times = Assert.IsType<Expression.Multiply>(TransactSql.TryParseValueExpression("7 % 3 * 2").Value);
+		Assert.IsType<Expression.Modulo>(times.Left);
+
+		var inverted = Assert.IsType<Expression.Multiply>(TransactSql.TryParseValueExpression("~2 * 3").Value);
+		Assert.IsType<Expression.BitwiseNot>(inverted.Left);
+
+		var masked = Assert.IsType<Expression.BitwiseAnd>(TransactSql.TryParseValueExpression("6 & 3 * 2").Value);
+		Assert.IsType<Expression.Multiply>(masked.Right);
+
+		var compared = Assert.IsType<Expression.Comparison>(TransactSql.TryParseSearchCondition("1 & 3 = 1").Value);
+		Assert.IsType<Expression.BitwiseAnd>(compared.Left);
+
+		Assert.Equal(
+			SqlComparison.NotEqualBang,
+			Assert.IsType<Expression.Comparison>(TransactSql.TryParseSearchCondition("a ! = 1").Value).Operator);
+	}
+
+	/// <summary>T-SQL's operators, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("SELECT a FROM t WHERE a !<> 1")]
+	[InlineData("SELECT a FROM t WHERE a !! 1")]
+	[InlineData("SELECT a FROM t WHERE a !<= 1")]
+	[InlineData("SELECT a FROM t WHERE a *= b")]
+	[InlineData("SELECT a FROM t WHERE a =* b")]
+	public void The_operators_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT ~1")]
+	[InlineData("SELECT ~ ~1")]
+	[InlineData("SELECT -~1")]
+	[InlineData("SELECT ~-1")]
+	[InlineData("SELECT a & ~b FROM t")]
+	[InlineData("SELECT a | b ^ b & a FROM t")]
+	[InlineData("SELECT a % b FROM t")]
+	[InlineData("SELECT ~(a + b) FROM t")]
+	[InlineData("SELECT a FROM t WHERE ~a = 1")]
+	[InlineData("SELECT a FROM t WHERE a !< 1")]
+	[InlineData("SELECT a FROM t WHERE a !> 1")]
+	[InlineData("SELECT a FROM t WHERE a != 1")]
+	[InlineData("SELECT a FROM t WHERE a ! < 1")]
+	[InlineData("SELECT a FROM t WHERE a ! = 1")]
+	[InlineData("SELECT a FROM t WHERE a < > 1")]
+	[InlineData("SELECT a FROM t WHERE a > = 1")]
+	[InlineData("SELECT a FROM t WHERE a !< ALL (SELECT b FROM u)")]
+	[InlineData("CREATE TABLE t (A1 INT CHECK (A1 !< 4))")]
+	[InlineData("CREATE TABLE t (A1 INT DEFAULT +-++~+23)")]
+	[InlineData("SELECT a AT TIME ZONE ~ b FROM T")]
+	public void The_operators_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>`AT TIME ZONE` and `WAITFOR`, as the engine answers them with its variables declared.</summary>
+	[Theory]
+	[InlineData("SELECT a COLLATE Latin1_General_CI_AS COLLATE Latin1_General_CI_AS FROM T")]
+	[InlineData("SELECT a AT TIME ZONE NOT b FROM T")]
+	[InlineData("WAITFOR TIME 1")]
+	[InlineData("WAITFOR TIME (@t)")]
+	[InlineData("WAITFOR TIME '10:00' + ''")]
+	[InlineData("WAITFOR DELAY 1")]
+	[InlineData("WAITFOR DELAY (@t)")]
+	[InlineData("WAITFOR TIME")]
+	public void Zones_and_waits_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT a AT TIME ZONE b AT TIME ZONE c FROM T")]
+	[InlineData("SELECT @v AT TIME ZONE @z AT TIME ZONE @z AT TIME ZONE @z")]
+	[InlineData("SELECT * FROM T WHERE a AT TIME ZONE b AT TIME ZONE c < @v")]
+	[InlineData("SELECT a COLLATE Latin1_General_CI_AS AT TIME ZONE b FROM T")]
+	[InlineData("SELECT a COLLATE Latin1_General_CI_AS AT TIME ZONE b COLLATE Latin1_General_CI_AS FROM T")]
+	[InlineData("SELECT a AT TIME ZONE b COLLATE Latin1_General_CI_AS AT TIME ZONE c FROM T")]
+	[InlineData("SELECT a + b COLLATE Latin1_General_CI_AS AT TIME ZONE c FROM T")]
+	[InlineData("SELECT a AT TIME ZONE - b AT TIME ZONE c FROM T")]
+	[InlineData("SELECT a AT TIME ZONE - - b FROM T")]
+	[InlineData("SELECT a AT TIME ZONE + b FROM T")]
+	[InlineData("SELECT a AT TIME ZONE b::c FROM T")]
+	[InlineData("WAITFOR TIME '10:00'")]
+	[InlineData("waitfor time 'time'")]
+	[InlineData("WAITFOR TIME N'10:00'")]
+	[InlineData("WAITFOR TIME @t")]
+	[InlineData("WAITFOR DELAY N'00:00:00'")]
+	public void Zones_and_waits_read_what_the_engine_does(string input)
 	{
 		var match = TransactSql.TryParseStatement(input);
 
@@ -2307,10 +2907,11 @@ public sealed class TransactSqlTests
 	[InlineData("DENY SELECT ON t TO u",            "Deny")]
 	[InlineData("REVOKE SELECT ON t FROM u",        "Revoke")]
 
-	[InlineData("SET TRANSACTION ISOLATION LEVEL SNAPSHOT", "SetTransactionIsolationLevel")]
-	[InlineData("SET IDENTITY_INSERT t ON",         "SetIdentityInsert")]
-	[InlineData("SET ANSI_NULLS, ANSI_PADDING ON",  "SetOption")]
-	[InlineData("SET LANGUAGE us_english",          "SetCommand")]
+	[InlineData("SET TRANSACTION ISOLATION LEVEL SNAPSHOT", "SetStatement")]
+	[InlineData("SET IDENTITY_INSERT t ON",         "SetStatement")]
+	[InlineData("SET ANSI_NULLS, ANSI_PADDING ON",  "SetStatement")]
+	[InlineData("SET LANGUAGE us_english",          "SetStatement")]
+	[InlineData("SET @a = 1",                       "SetVariable")]
 
 	[InlineData("CREATE DATABASE d",                "CreateDatabase")]
 	[InlineData("ALTER DATABASE d SET AUTO_CLOSE ON", "AlterDatabaseSet")]
@@ -2330,6 +2931,8 @@ public sealed class TransactSqlTests
 	[InlineData("EXECUTE AS USER = 'u' WITH NO REVERT", "ExecuteAs")]
 	[InlineData("REVERT WITH COOKIE = @c",          "Revert")]
 	[InlineData("SETUSER 'u' WITH NORESET",         "SetUser")]
+	[InlineData("RESTORE SYMMETRIC KEY k FROM FILE = 'f' DECRYPTION BY PASSWORD = 'p' ENCRYPTION BY PASSWORD = 'q'",
+		"RestoreSymmetricKey")]
 
 	[InlineData("CREATE TABLE t (a INT)",           "TableDefinition")]
 	[InlineData("CREATE VIEW v AS SELECT a FROM t", "ViewDefinition")]

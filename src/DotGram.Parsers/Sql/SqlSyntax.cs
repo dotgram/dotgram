@@ -101,6 +101,49 @@ public interface ISqlSpan
 	void Locate(int at, int length);
 }
 
+/// <summary>What a statement does, which a reader filters on without naming every record.</summary>
+public enum StatementCategory
+{
+	/// <summary>A query: <c>SELECT</c>, and the clauses the statement wraps around it.</summary>
+	Query,
+
+	/// <summary>Rows changed: <c>INSERT</c>, <c>UPDATE</c>, <c>DELETE</c>, <c>MERGE</c>.</summary>
+	Dml,
+
+	/// <summary>An object defined, changed or removed: <c>CREATE</c>, <c>ALTER</c>, <c>DROP</c>.</summary>
+	Ddl,
+
+	/// <summary>
+	/// Who may do what: <c>GRANT</c>, <c>DENY</c>, <c>REVOKE</c>, and the logins, users and roles
+	/// they name.
+	/// </summary>
+	Dcl,
+
+	/// <summary>
+	/// The flow of a batch: a block, <c>IF</c>, <c>WHILE</c>, <c>TRY</c>, <c>GOTO</c>, <c>RETURN</c>,
+	/// <c>WAITFOR</c>, and what a batch says as it goes — <c>PRINT</c>, <c>RAISERROR</c>, <c>THROW</c>.
+	/// </summary>
+	Control,
+
+	/// <summary>A transaction begun, committed, rolled back or saved.</summary>
+	Transaction,
+
+	/// <summary>The session: an option <c>SET</c>, a database <c>USE</c>d, someone else run as.</summary>
+	Session,
+
+	/// <summary><c>EXECUTE</c>: a procedure called, or a string run.</summary>
+	Execute,
+
+	/// <summary>
+	/// The server looked after: <c>BACKUP</c>, <c>RESTORE</c>, <c>CHECKPOINT</c>,
+	/// <c>UPDATE STATISTICS</c>.
+	/// </summary>
+	Admin,
+
+	/// <summary>A variable or a cursor declared, and a variable set.</summary>
+	Declaration,
+}
+
 /// <summary>A statement: §13 of the standard, and most of a dialect's reference.</summary>
 public abstract record Statement : ISqlSpan
 {
@@ -109,6 +152,12 @@ public abstract record Statement : ISqlSpan
 
 	/// <inheritdoc cref="ISqlSpan.Locate"/>
 	public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+
+	/// <summary>
+	/// What the statement does — a query, rows changed, an object defined, a permission, the flow
+	/// of a batch — for a reader that wants some statements and not others.
+	/// </summary>
+	public abstract StatementCategory Category { get; }
 
 	// ---- §14 the data statements -------------------------------------------------------------
 
@@ -120,7 +169,11 @@ public abstract record Statement : ISqlSpan
 	/// query's — a <c>UNION</c> of two selects has one <c>ORDER BY</c> between them.
 	/// </remarks>
 	public sealed record Select(
-		Clause[] With, Query Of, Clause? OrderBy, Clause[] For, Clause[] Options) : Statement;
+		Clause[] With, Query Of, Clause? OrderBy, Clause[] For, Clause[] Options) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Query;
+	}
 
 	/// <summary>A select with nothing around it, which is the whole of the standard's.</summary>
 	public static Select Selected(Query of, Clause? by = null) =>
@@ -141,6 +194,9 @@ public abstract record Statement : ISqlSpan
 		TableReference? Target, string[]? Columns, Query Rows,
 		Clause[]? With = null, Clause? Top = null, Clause? Output = null, bool Into = true) : Statement
 	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dml;
+
 		/// <summary>
 		/// T-SQL's <c>OPTION (…)</c> after the rows, where they are a query, a <c>VALUES</c>
 		/// or <c>DEFAULT VALUES</c> — the engine refuses it after an <c>EXEC</c>.
@@ -155,12 +211,20 @@ public abstract record Statement : ISqlSpan
 	/// </remarks>
 	public sealed record Update(
 		TableReference? Target, Clause[] Set, TableReference[] From, Expression? Where,
-		Clause[]? With = null, Clause? Top = null, Clause? Output = null, Clause[]? Options = null) : Statement;
+		Clause[]? With = null, Clause? Top = null, Clause? Output = null, Clause[]? Options = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dml;
+	}
 
 	/// <summary>§14.9 rows removed, and the same two ways of saying which.</summary>
 	public sealed record Delete(
 		TableReference? Target, TableReference[] From, Expression? Where,
-		Clause[]? With = null, Clause? Top = null, Clause? Output = null, Clause[]? Options = null) : Statement;
+		Clause[]? With = null, Clause? Top = null, Clause? Output = null, Clause[]? Options = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dml;
+	}
 
 	/// <summary>
 	/// §14.12 one statement that inserts, updates and deletes, according to what a join found.
@@ -168,7 +232,11 @@ public abstract record Statement : ISqlSpan
 	public sealed record Merge(
 		TableReference? Target, TableReference Using, Expression On, Clause[] Whens,
 		Clause[]? With = null, Clause? Top = null, string? Alias = null, Clause? Output = null, Clause[]? Options = null,
-		bool Into = true) : Statement;
+		bool Into = true) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dml;
+	}
 
 	// ---- the procedural level ----------------------------------------------------------------
 	//
@@ -177,25 +245,49 @@ public abstract record Statement : ISqlSpan
 	// has one.
 
 	/// <summary><c>BEGIN … END</c>, and the body of anything that has one.</summary>
-	public sealed record Compound(Statement[] Statements, Clause[]? Atomic = null) : Statement;
+	public sealed record Compound(Statement[] Statements, Clause[]? Atomic = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
 
 	/// <summary><c>IF … ELSE</c>, where either arm is one statement and a block is one.</summary>
-	public sealed record If(Expression Condition, Statement Then, Statement? Else) : Statement;
+	public sealed record If(Expression Condition, Statement Then, Statement? Else) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
 
 	/// <summary><c>WHILE</c>, and the one statement it repeats.</summary>
-	public sealed record While(Expression Condition, Statement Body) : Statement;
+	public sealed record While(Expression Condition, Statement Body) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
 
 	/// <summary><c>BEGIN TRY … END TRY BEGIN CATCH … END CATCH</c>.</summary>
-	public sealed record TryCatch(Statement[] Tried, Statement[] Caught) : Statement;
+	public sealed record TryCatch(Statement[] Tried, Statement[] Caught) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
 
 	/// <summary>One <c>DECLARE</c>, which may declare several.</summary>
-	public sealed record Declare(Clause[] Variables) : Statement;
+	public sealed record Declare(Clause[] Variables) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Declaration;
+	}
 
 	/// <summary>A transaction begun, committed, rolled back or saved, and its name.</summary>
 	/// <param name="Word"><c>TRANSACTION</c>, <c>TRAN</c> or <c>WORK</c>, as written.</param>
 	/// <param name="Tail">A mark or a durability, as written.</param>
 	public sealed record Transaction(
-		string Kind, string? Name, string? Word = null, string? Tail = null) : Statement;
+		string Kind, string? Name, string? Word = null, string? Tail = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Transaction;
+	}
 
 	/// <summary>
 	/// <c>EXECUTE</c>: what is called, with what, and the variable the return code goes to.
@@ -204,7 +296,11 @@ public abstract record Statement : ISqlSpan
 	/// <param name="Tail">The <c>WITH</c> after it — <c>RECOMPILE</c>, <c>RESULT SETS …</c>.</param>
 	public sealed record Execute(
 		string? Into, string Name, Expression[] Arguments,
-		string? At = null, string? Tail = null) : Statement;
+		string? At = null, string? Tail = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Execute;
+	}
 
 	// ---- the tables ---------------------------------------------------------------------------
 
@@ -215,7 +311,11 @@ public abstract record Statement : ISqlSpan
 	/// and the options written after it.
 	/// </summary>
 	public sealed record TableDefinition(
-		string Name, string? Kind, Clause[] Elements, Clause[] Placements, Clause[] Options, bool External = false) : Statement;
+		string Name, string? Kind, Clause[] Elements, Clause[] Placements, Clause[] Options, bool External = false) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
 
 	/// <summary>
 	/// A table whose columns are whatever a query returns — <c>CREATE TABLE … AS SELECT</c>,
@@ -223,7 +323,11 @@ public abstract record Statement : ISqlSpan
 	/// the options between the name and the <c>AS</c>, and the query.
 	/// </summary>
 	public sealed record CreateTableAsSelect(
-		string Name, string[]? Columns, Clause[] Options, Statement Body, bool External = false) : Statement;
+		string Name, string[]? Columns, Clause[] Options, Statement Body, bool External = false) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
 
 	/// <summary>
 	/// §11.10 a table changed: its name, what is being done, to what, and the options the
@@ -262,6 +366,9 @@ public abstract record Statement : ISqlSpan
 	/// </remarks>
 	public abstract record Removal(Expression[] Names) : Statement
 	{
+		/// <summary>Removing an object is DDL; the few that remove a principal say so themselves.</summary>
+		public override StatementCategory Category => StatementCategory.Ddl;
+
 		/// <summary>What was written after the names, or null where nothing was.</summary>
 		public string? Tail { get; init; }
 
@@ -276,6 +383,12 @@ public abstract record Statement : ISqlSpan
 
 	public abstract record Definition(string Name) : Statement
 	{
+		/// <summary>
+		/// Defining an object is DDL; a principal, a backup, a restore and a statistics update say
+		/// otherwise themselves.
+		/// </summary>
+		public override StatementCategory Category => StatementCategory.Ddl;
+
 		/// <summary>What was written after the name, or null where nothing was.</summary>
 		public string? Tail { get; init; }
 
@@ -303,7 +416,11 @@ public abstract record Statement : ISqlSpan
 
 	/// <param name="Tail">What the action was given, where the tree keeps it as written.</param>
 	public sealed record AlterTable(
-		string Name, string Action, Clause[] Elements, Clause[]? Options = null, string? Tail = null) : Statement;
+		string Name, string Action, Clause[] Elements, Clause[]? Options = null, string? Tail = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
 
 	// ---- the routines --------------------------------------------------------------------------
 
@@ -315,7 +432,11 @@ public abstract record Statement : ISqlSpan
 	public sealed record CreateProcedure(
 		string Name, Clause[] Parameters, Statement[] Body,
 		Clause[]? Options = null, bool ForReplication = false, string? External = null, string? Number = null,
-		string Verb = "CREATE") : Statement;
+		string Verb = "CREATE") : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
 
 	/// <summary>
 	/// A function, and what it returns says which of the three shapes it is: a type for a
@@ -329,7 +450,11 @@ public abstract record Statement : ISqlSpan
 	public sealed record CreateFunction(
 		string Name, Clause[] Parameters, string? Returns, Statement[] Body,
 		Clause[]? Options = null, Clause[]? Columns = null, string? Variable = null,
-		Clause[]? Order = null, string? External = null, string Verb = "CREATE") : Statement;
+		Clause[]? Order = null, string? External = null, string Verb = "CREATE") : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
 
 	/// <summary>A trigger: what it is on, what fires it, and what it does then.</summary>
 	/// <param name="When"><c>AFTER</c>, <c>FOR</c> or <c>INSTEAD OF</c>, as written.</param>
@@ -337,7 +462,11 @@ public abstract record Statement : ISqlSpan
 	public sealed record CreateTrigger(
 		string Name, string On, string[] Events, Statement[] Body,
 		string When = "AFTER", Clause[]? Options = null, bool Append = false,
-		bool NotForReplication = false, string? External = null, string Verb = "CREATE") : Statement;
+		bool NotForReplication = false, string? External = null, string Verb = "CREATE") : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
 
 	/// <summary>§11.32 a view, which is a name given to a query.</summary>
 	/// <param name="Options">The <c>WITH</c> between the name and the <c>AS</c>: <c>SCHEMABINDING</c>, a materialized view's distribution.</param>
@@ -345,7 +474,11 @@ public abstract record Statement : ISqlSpan
 	public sealed record ViewDefinition(
 		string Name, string[]? Columns, Statement Body,
 		Clause[]? Options = null, bool CheckOption = false, bool Materialized = false,
-		string Verb = "CREATE") : Statement;
+		string Verb = "CREATE") : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
 
 	// ---- indexes -------------------------------------------------------------------------------
 
@@ -362,7 +495,11 @@ public abstract record Statement : ISqlSpan
 	/// The primary XML index a secondary one is built on — <c>USING XML INDEX i FOR PATH</c>.
 	/// </param>
 	public sealed record CreateIndex(
-		string On, Clause Index, string? Kind = null, string? Using = null) : Statement;
+		string On, Clause Index, string? Kind = null, string? Using = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
 
 	/// <summary>An index changed: which one, on what, and what is being done to it.</summary>
 	/// <summary>
@@ -372,13 +509,21 @@ public abstract record Statement : ISqlSpan
 	/// </summary>
 	public sealed record AlterIndex(
 		string Name, string On, string Action,
-		Expression? Partition = null, Clause[]? Options = null, string[]? Paths = null, string? Namespaces = null) : Statement;
+		Expression? Partition = null, Clause[]? Options = null, string[]? Paths = null, string? Namespaces = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
 
 	/// <summary><c>CREATE STATISTICS</c>.</summary>
 	public sealed record StatisticsDefinition(string Name) : Definition(Name);
 
 	/// <summary><c>UPDATE STATISTICS</c>, which names the table rather than the statistics.</summary>
-	public sealed record UpdateStatistics(string Name) : Definition(Name);
+	public sealed record UpdateStatistics(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	// ---- a word and some values ----------------------------------------------------------------
 	//
@@ -387,54 +532,106 @@ public abstract record Statement : ISqlSpan
 	// look at a string to find it.
 
 	/// <summary>One value printed.</summary>
-	public sealed record Print(Expression Value) : Statement;
+	public sealed record Print(Expression Value) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
 
 	/// <summary>A routine left, with a code where one was given.</summary>
-	public sealed record Return(Expression? Value) : Statement;
+	public sealed record Return(Expression? Value) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
 
 	/// <summary>An error raised, or the caught one raised again.</summary>
-	public sealed record Throw(Expression[] Arguments) : Statement;
+	public sealed record Throw(Expression[] Arguments) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
 
 	/// <summary>A jump to a label.</summary>
-	public sealed record GoTo(Expression Label) : Statement;
+	public sealed record GoTo(Expression Label) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
 
 	/// <summary>A loop left.</summary>
-	public sealed record Break : Statement;
+	public sealed record Break : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
 
 	/// <summary>A loop begun again.</summary>
-	public sealed record Continue : Statement;
+	public sealed record Continue : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
 
 	/// <summary>The log written out.</summary>
-	public sealed record Checkpoint(Expression? Value) : Statement;
+	public sealed record Checkpoint(Expression? Value) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	/// <summary>The database the rest of the batch is read against.</summary>
-	public sealed record Use(Expression Name) : Statement;
+	public sealed record Use(Expression Name) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Session;
+	}
 
 	/// <param name="Tail">The <c>WITH LOG, NOWAIT, SETERROR</c> after it, as written.</param>
-	public sealed record RaiseError(Expression[] Arguments, string? Tail = null) : Statement;
+	public sealed record RaiseError(Expression[] Arguments, string? Tail = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
 
 	/// <summary>A delay, or a time to wait until.</summary>
 	/// <param name="Kind">
 	/// <c>DELAY</c> or <c>TIME</c> — how long to wait against when to stop waiting, which
 	/// the one value cannot say.
 	/// </param>
-	public sealed record WaitFor(Expression Value, string Kind = "DELAY") : Statement;
+	public sealed record WaitFor(Expression Value, string Kind = "DELAY") : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
 
 	/// <summary><c>EXECUTE AS</c>: whom the session runs as until a <c>REVERT</c> says otherwise.</summary>
 	/// <param name="Kind"><c>CALLER</c>, <c>USER</c> or <c>LOGIN</c>.</param>
 	/// <param name="Name">Whom, for a user or a login: any expression the engine will take.</param>
 	/// <param name="NoRevert"><c>WITH NO REVERT</c>: the context is not given back.</param>
 	/// <param name="Cookie">The variable <c>WITH COOKIE INTO</c> names, which a <c>REVERT</c> must show.</param>
-	public sealed record ExecuteAs(string Kind, Expression? Name, bool NoRevert = false, Expression? Cookie = null) : Statement;
+	public sealed record ExecuteAs(string Kind, Expression? Name, bool NoRevert = false, Expression? Cookie = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Session;
+	}
 
 	/// <summary><c>REVERT</c>: the context an <c>EXECUTE AS</c> changed, given back.</summary>
 	/// <param name="Cookie">What <c>WITH COOKIE =</c> shows for it.</param>
-	public sealed record Revert(Expression? Cookie = null) : Statement;
+	public sealed record Revert(Expression? Cookie = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Session;
+	}
 
 	/// <summary><c>SETUSER</c>: a user impersonated, the way before <c>EXECUTE AS</c>.</summary>
 	/// <param name="Name">The user, or nobody, which puts the original back.</param>
 	/// <param name="NoReset"><c>WITH NORESET</c>.</param>
-	public sealed record SetUser(Expression? Name = null, bool NoReset = false) : Statement;
+	public sealed record SetUser(Expression? Name = null, bool NoReset = false) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Session;
+	}
 
 	// ---- who may connect, what lives outside, and what the server watches ----------------------
 	//
@@ -443,34 +640,74 @@ public abstract record Statement : ISqlSpan
 	// wanted it is one field on one record here, which is what having a record each is for.
 
 	/// <summary><c>CREATE LOGIN</c>.</summary>
-	public sealed record CreateLogin(string Name) : Definition(Name);
+	public sealed record CreateLogin(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary><c>ALTER LOGIN</c>.</summary>
-	public sealed record AlterLogin(string Name) : Definition(Name);
+	public sealed record AlterLogin(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary><c>CREATE USER</c>.</summary>
-	public sealed record CreateUser(string Name) : Definition(Name);
+	public sealed record CreateUser(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary><c>ALTER USER</c>.</summary>
-	public sealed record AlterUser(string Name) : Definition(Name);
+	public sealed record AlterUser(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary><c>CREATE ROLE</c>.</summary>
-	public sealed record CreateRole(string Name) : Definition(Name);
+	public sealed record CreateRole(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary><c>ALTER ROLE</c>.</summary>
-	public sealed record AlterRole(string Name) : Definition(Name);
+	public sealed record AlterRole(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary><c>CREATE SERVER ROLE</c>: a role of the server rather than of a database.</summary>
-	public sealed record CreateServerRole(string Name) : Definition(Name);
+	public sealed record CreateServerRole(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary><c>ALTER SERVER ROLE</c>, likewise.</summary>
-	public sealed record AlterServerRole(string Name) : Definition(Name);
+	public sealed record AlterServerRole(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary><c>CREATE APPLICATION ROLE</c>.</summary>
-	public sealed record CreateApplicationRole(string Name) : Definition(Name);
+	public sealed record CreateApplicationRole(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary><c>ALTER APPLICATION ROLE</c>.</summary>
-	public sealed record AlterApplicationRole(string Name) : Definition(Name);
+	public sealed record AlterApplicationRole(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary>§11.1 <c>CREATE SCHEMA</c>.</summary>
 	public sealed record SchemaDefinition(string Name) : Definition(Name);
@@ -479,7 +716,11 @@ public abstract record Statement : ISqlSpan
 	public sealed record AlterSchema(string Name) : Definition(Name);
 
 	/// <summary><c>ALTER AUTHORIZATION</c>.</summary>
-	public sealed record AlterAuthorization(string Name) : Definition(Name);
+	public sealed record AlterAuthorization(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary><c>EXTERNAL DATA SOURCE</c>.</summary>
 	public sealed record ExternalDataSourceDefinition(string Name) : Definition(Name);
@@ -516,7 +757,11 @@ public abstract record Statement : ISqlSpan
 	/// </summary>
 	public sealed record EventSessionDefinition(
 		string Name, string Verb = "CREATE", string On = "SERVER", Clause[]? Pieces = null,
-		Clause[]? Options = null, string? State = null) : Statement;
+		Clause[]? Options = null, string? State = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
 
 	/// <summary><c>EVENT NOTIFICATION</c>.</summary>
 	public sealed record EventNotificationDefinition(string Name) : Definition(Name);
@@ -530,7 +775,11 @@ public abstract record Statement : ISqlSpan
 	public sealed record EndpointDefinition(
 		string Name, string Verb = "CREATE", string? Owner = null, string? State = null,
 		Clause[]? StateOptions = null, string? Protocol = null, Clause[]? ProtocolOptions = null,
-		string? Payload = null, Clause[]? PayloadOptions = null) : Statement;
+		string? Payload = null, Clause[]? PayloadOptions = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
 
 	// ---- the database --------------------------------------------------------------------------
 
@@ -544,14 +793,22 @@ public abstract record Statement : ISqlSpan
 	public sealed record CreateDatabase(
 		string Name, Clause[] Files, bool Primary = false, Clause[]? Log = null,
 		string? Containment = null, string? Collation = null,
-		string? Tail = null, Clause[]? Options = null, Clause[]? With = null) : Statement;
+		string? Tail = null, Clause[]? Options = null, Clause[]? With = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
 
 	/// <summary>
 	/// <c>ALTER DATABASE … SET</c>: what it was set to, and how the sessions in the way are
 	/// dealt with — <c>WITH ROLLBACK AFTER 10 SECONDS</c>, <c>WITH NO_WAIT</c>.
 	/// </summary>
 	public sealed record AlterDatabaseSet(
-		string Name, Clause[] Settings, string? Termination = null) : Statement;
+		string Name, Clause[] Settings, string? Termination = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
 
 	/// <summary>
 	/// <c>ALTER DATABASE SCOPED CONFIGURATION</c>: <c>SET</c> and what it was set to, or
@@ -559,7 +816,11 @@ public abstract record Statement : ISqlSpan
 	/// where it says so.
 	/// </summary>
 	public sealed record AlterDatabaseScopedConfiguration(
-		string Name, string Action, Clause[] Settings, bool Secondary = false, Expression? Argument = null) : Statement;
+		string Name, string Action, Clause[] Settings, bool Secondary = false, Expression? Argument = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
 
 	/// <summary><c>ALTER DATABASE … COLLATE</c>.</summary>
 	public sealed record AlterDatabaseCollate(string Name) : Definition(Name);
@@ -576,7 +837,11 @@ public abstract record Statement : ISqlSpan
 
 	/// <summary><c>ALTER DATABASE … MODIFY</c>.</summary>
 	public sealed record AlterDatabaseModify(
-		string Name, Clause[]? Options = null, Clause[]? With = null) : Statement;
+		string Name, Clause[]? Options = null, Clause[]? With = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
 
 	/// <summary><c>ALTER DATABASE … ADD FILEGROUP</c>.</summary>
 	public sealed record AlterDatabaseAddFileGroup(string Name) : Definition(Name);
@@ -601,21 +866,33 @@ public abstract record Statement : ISqlSpan
 
 	// ---- the SET statements --------------------------------------------------------------------
 
-	/// <summary>§19.4 <c>SET TRANSACTION ISOLATION LEVEL</c>.</summary>
-	public sealed record SetTransactionIsolationLevel(string Level) : Statement;
-
-	/// <summary><c>SET IDENTITY_INSERT t ON</c>.</summary>
-	public sealed record SetIdentityInsert(string Table, bool On) : Statement;
-
 	/// <summary>
-	/// A setting or several turned on or off — <c>SET ANSI_NULLS, ANSI_PADDING ON</c>.
+	/// The SET statements: what follows <c>SET</c>, as <see cref="SetExpression"/>s — one setting,
+	/// or several of one form, <c>SET ANSI_NULLS, NOCOUNT ON</c>, <c>SET DATEFIRST 1, DATEFORMAT dmy</c>.
+	/// A variable assigned is <see cref="SetVariable"/>, the other construction of the word.
 	/// </summary>
-	public sealed record SetOption(string[] Options, bool On) : Statement;
+	public sealed record SetStatement(SetExpression[] Items) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Session;
 
-	/// <summary>
-	/// A setting given a value — <c>SET ROWCOUNT 10</c>, <c>SET LANGUAGE us_english</c>.
-	/// </summary>
-	public sealed record SetCommand(string Option, Expression? Value) : Statement;
+		/// <summary>
+		/// The groups Microsoft's reference puts the settings in, together: one for most
+		/// statements, several where a list mixes them.
+		/// </summary>
+		public SetCategory SetCategory
+		{
+			get
+			{
+				var all = SetCategory.None;
+
+				foreach (var one in Items)
+					all |= one.Category;
+
+				return all;
+			}
+		}
+	}
 
 	/// <summary>
 	/// A variable assigned — <c>SET @a = 1</c>, which is a statement and not a
@@ -624,7 +901,11 @@ public abstract record Statement : ISqlSpan
 	/// <param name="Operator">The assignment as written — <c>=</c>, <c>+=</c>, …</param>
 	/// <param name="Through">The column of <c>SET @v = column op= value</c>, which assigns both.</param>
 	public sealed record SetVariable(
-		string Name, Expression Value, string? Operator = null, string? Through = null) : Statement;
+		string Name, Expression Value, string? Operator = null, string? Through = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Declaration;
+	}
 
 	// ---- §12.1 the permissions -----------------------------------------------------------------
 
@@ -633,17 +914,29 @@ public abstract record Statement : ISqlSpan
 	/// <param name="As">The principal the statement is run as.</param>
 	public sealed record Grant(
 		string[] Privileges, string[] Principals,
-		string? On = null, bool GrantOption = false, string? As = null) : Statement;
+		string? On = null, bool GrantOption = false, string? As = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary><c>DENY</c>: what is being said about, and to whom.</summary>
 	public sealed record Deny(
 		string[] Privileges, string[] Principals,
-		string? On = null, bool Cascade = false, string? As = null) : Statement;
+		string? On = null, bool Cascade = false, string? As = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary><c>REVOKE</c>: what is being said about, and to whom — or from whom.</summary>
 	public sealed record Revoke(
 		string[] Privileges, string[] Principals,
-		string? On = null, bool GrantOptionFor = false, bool From = false, bool Cascade = false, string? As = null) : Statement;
+		string? On = null, bool GrantOptionFor = false, bool From = false, bool Cascade = false, string? As = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	// ---- the full-text catalogue -----------------------------------------------------------------
 
@@ -679,55 +972,130 @@ public abstract record Statement : ISqlSpan
 	// gives each its own page.
 
 	/// <summary><c>BACKUP DATABASE</c>.</summary>
-	public sealed record BackupDatabase(string Name) : Definition(Name);
+	public sealed record BackupDatabase(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	/// <summary><c>BACKUP LOG</c>.</summary>
-	public sealed record BackupTransactionLog(string Name) : Definition(Name);
+	public sealed record BackupTransactionLog(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	/// <summary><c>BACKUP SERVER</c>, which names nothing: there is one.</summary>
-	public sealed record BackupServer(string Name) : Definition(Name);
+	public sealed record BackupServer(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	/// <summary><c>BACKUP GROUP</c>.</summary>
-	public sealed record BackupGroup(string Name) : Definition(Name);
+	public sealed record BackupGroup(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	/// <summary><c>BACKUP CERTIFICATE</c>.</summary>
-	public sealed record BackupCertificate(string Name) : Definition(Name);
+	public sealed record BackupCertificate(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	/// <summary><c>BACKUP MASTER KEY</c>.</summary>
-	public sealed record BackupMasterKey(string Name) : Definition(Name);
+	public sealed record BackupMasterKey(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	/// <summary><c>BACKUP SERVICE MASTER KEY</c>.</summary>
-	public sealed record BackupServiceMasterKey(string Name) : Definition(Name);
+	public sealed record BackupServiceMasterKey(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	/// <summary><c>BACKUP SYMMETRIC KEY</c>.</summary>
-	public sealed record BackupSymmetricKey(string Name) : Definition(Name);
+	public sealed record BackupSymmetricKey(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	/// <summary><c>RESTORE DATABASE</c>.</summary>
-	public sealed record RestoreDatabase(string Name) : Definition(Name);
+	public sealed record RestoreDatabase(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	/// <summary><c>RESTORE LOG</c>.</summary>
-	public sealed record RestoreLog(string Name) : Definition(Name);
+	public sealed record RestoreLog(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	/// <summary><c>RESTORE FILELISTONLY</c>.</summary>
-	public sealed record RestoreFileListOnly(string Name) : Definition(Name);
+	public sealed record RestoreFileListOnly(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	/// <summary><c>RESTORE HEADERONLY</c>.</summary>
-	public sealed record RestoreHeaderOnly(string Name) : Definition(Name);
+	public sealed record RestoreHeaderOnly(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	/// <summary><c>RESTORE LABELONLY</c>.</summary>
-	public sealed record RestoreLabelOnly(string Name) : Definition(Name);
+	public sealed record RestoreLabelOnly(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	/// <summary><c>RESTORE REWINDONLY</c>.</summary>
-	public sealed record RestoreRewindOnly(string Name) : Definition(Name);
+	public sealed record RestoreRewindOnly(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	/// <summary><c>RESTORE VERIFYONLY</c>.</summary>
-	public sealed record RestoreVerifyOnly(string Name) : Definition(Name);
+	public sealed record RestoreVerifyOnly(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	/// <summary><c>RESTORE MASTER KEY</c>.</summary>
-	public sealed record RestoreMasterKey(string Name) : Definition(Name);
+	public sealed record RestoreMasterKey(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	/// <summary><c>RESTORE SERVICE MASTER KEY</c>.</summary>
-	public sealed record RestoreServiceMasterKey(string Name) : Definition(Name);
+	public sealed record RestoreServiceMasterKey(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
+
+	/// <summary><c>RESTORE SYMMETRIC KEY</c>.</summary>
+	public sealed record RestoreSymmetricKey(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
 
 	// ---- the keys, and what is locked with them --------------------------------------------------
 
@@ -790,7 +1158,11 @@ public abstract record Statement : ISqlSpan
 	public sealed record DropAggregate(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP APPLICATION ROLE</c>.</summary>
-	public sealed record DropApplicationRole(Expression[] Names) : Removal(Names);
+	public sealed record DropApplicationRole(Expression[] Names) : Removal(Names)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary><c>DROP AVAILABILITY GROUP</c>.</summary>
 	public sealed record DropAvailabilityGroup(Expression[] Names) : Removal(Names);
@@ -859,7 +1231,11 @@ public abstract record Statement : ISqlSpan
 	public sealed record DropFunction(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP LOGIN</c>.</summary>
-	public sealed record DropLogin(Expression[] Names) : Removal(Names);
+	public sealed record DropLogin(Expression[] Names) : Removal(Names)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary><c>DROP MESSAGE TYPE</c>.</summary>
 	public sealed record DropMessageType(Expression[] Names) : Removal(Names);
@@ -883,7 +1259,11 @@ public abstract record Statement : ISqlSpan
 	public sealed record DropResourcePool(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP ROLE</c>.</summary>
-	public sealed record DropRole(Expression[] Names) : Removal(Names);
+	public sealed record DropRole(Expression[] Names) : Removal(Names)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary><c>DROP ROUTE</c>.</summary>
 	public sealed record DropRoute(Expression[] Names) : Removal(Names);
@@ -910,7 +1290,11 @@ public abstract record Statement : ISqlSpan
 	public sealed record DropServerAudit(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP SERVER ROLE</c>.</summary>
-	public sealed record DropServerRole(Expression[] Names) : Removal(Names);
+	public sealed record DropServerRole(Expression[] Names) : Removal(Names)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary><c>DROP SERVICE</c>.</summary>
 	public sealed record DropService(Expression[] Names) : Removal(Names);
@@ -928,7 +1312,11 @@ public abstract record Statement : ISqlSpan
 	public sealed record DropType(Expression[] Names) : Removal(Names);
 
 	/// <summary><c>DROP USER</c>.</summary>
-	public sealed record DropUser(Expression[] Names) : Removal(Names);
+	public sealed record DropUser(Expression[] Names) : Removal(Names)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Dcl;
+	}
 
 	/// <summary><c>DROP VIEW</c>.</summary>
 	public sealed record DropView(Expression[] Names) : Removal(Names);
@@ -1062,6 +1450,7 @@ public abstract record Statement : ISqlSpan
 			"VERIFYONLY"         => new RestoreVerifyOnly(name),
 			"MASTER KEY"         => new RestoreMasterKey(name),
 			"SERVICE MASTER KEY" => new RestoreServiceMasterKey(name),
+			"SYMMETRIC KEY"      => new RestoreSymmetricKey(name),
 			_                    => throw Syntax.Unknown(what),
 		};
 
@@ -1271,6 +1660,218 @@ public abstract record Statement : ISqlSpan
 public sealed record Batch(Statement[] Statements, string? Go = null);
 
 /// <summary>
+/// The groups Microsoft's page of the SET statements puts them in, as flags, so that a
+/// statement whose list mixes them can say all of its groups.
+/// </summary>
+[Flags]
+public enum SetCategory
+{
+	/// <summary>No setting.</summary>
+	None = 0,
+
+	/// <summary><c>DATEFIRST</c>, <c>DATEFORMAT</c>.</summary>
+	DateAndTime = 1,
+
+	/// <summary><c>DEADLOCK_PRIORITY</c>, <c>LOCK_TIMEOUT</c>.</summary>
+	Locking = 2,
+
+	/// <summary>The rest: a language, a table's identity, the FIPS flagger and others.</summary>
+	Miscellaneous = 4,
+
+	/// <summary><c>NOCOUNT</c>, <c>PARSEONLY</c>, <c>ROWCOUNT</c>, <c>TEXTSIZE</c> and the others that shape how a query runs.</summary>
+	QueryExecution = 8,
+
+	/// <summary>The ISO settings: <c>ANSI_NULLS</c>, <c>ANSI_PADDING</c>, <c>ANSI_WARNINGS</c> and theirs.</summary>
+	IsoSettings = 16,
+
+	/// <summary><c>STATISTICS IO</c>, <c>SHOWPLAN_XML</c>, <c>FORCEPLAN</c> and the others that report on a query.</summary>
+	Statistics = 32,
+
+	/// <summary><c>TRANSACTION ISOLATION LEVEL</c>, <c>XACT_ABORT</c>, <c>IMPLICIT_TRANSACTIONS</c>.</summary>
+	Transactions = 64,
+}
+
+/// <summary>
+/// What follows <c>SET</c> in a SET statement: one setting, in the group Microsoft's reference
+/// puts it in, each group with the settings of its own shapes.
+/// </summary>
+/// <remarks>
+/// A statement's list holds one form: switches turned on or off together, settings given
+/// values, the statistics reported, the offsets returned — the engine refuses a switch among
+/// values, or a variable among either. A switch is one setting to a node, so a list of them
+/// may hold several groups, and the writer puts the one <c>ON</c> after them all again.
+/// </remarks>
+public abstract record SetExpression : ISqlSpan
+{
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span { get; private set; }
+
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
+	public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+
+	/// <summary>The group Microsoft's page of the SET statements puts the setting in.</summary>
+	public abstract SetCategory Category { get; }
+
+	/// <summary>The date's settings.</summary>
+	public abstract record DateAndTime : SetExpression
+	{
+		/// <inheritdoc/>
+		public override SetCategory Category => SetCategory.DateAndTime;
+
+		/// <summary><c>SET DATEFIRST 7</c>: a constant, a word or a variable.</summary>
+		public sealed record DateFirst(Expression Value) : DateAndTime;
+
+		/// <summary><c>SET DATEFORMAT dmy</c>: a constant, a word or a variable.</summary>
+		public sealed record DateFormat(Expression Value) : DateAndTime;
+	}
+
+	/// <summary>The locks' settings.</summary>
+	public abstract record Locking : SetExpression
+	{
+		/// <inheritdoc/>
+		public override SetCategory Category => SetCategory.Locking;
+
+		/// <summary><c>SET DEADLOCK_PRIORITY LOW</c>: a word, a number or a variable.</summary>
+		public sealed record DeadlockPriority(Expression Value) : Locking;
+
+		/// <summary><c>SET LOCK_TIMEOUT 1000</c>: a whole number, and nothing else.</summary>
+		public sealed record LockTimeout(Expression Value) : Locking;
+	}
+
+	/// <summary>What shapes how a query runs.</summary>
+	public abstract record QueryExecution : SetExpression
+	{
+		/// <inheritdoc/>
+		public override SetCategory Category => SetCategory.QueryExecution;
+
+		/// <summary><c>SET NOCOUNT ON</c> and the other switches of the group.</summary>
+		public sealed record Switch(string Option, bool On) : QueryExecution;
+
+		/// <summary><c>SET ROWCOUNT 10</c>: a number that is not negative, or a variable.</summary>
+		public sealed record RowCount(Expression Value) : QueryExecution;
+
+		/// <summary><c>SET TEXTSIZE 2048</c>: a whole number.</summary>
+		public sealed record TextSize(Expression Value) : QueryExecution;
+
+		/// <summary><c>SET QUERY_GOVERNOR_COST_LIMIT 10</c>: a number.</summary>
+		public sealed record QueryGovernorCostLimit(Expression Value) : QueryExecution;
+	}
+
+	/// <summary>The ISO settings, all of them switches.</summary>
+	public abstract record IsoSettings : SetExpression
+	{
+		/// <inheritdoc/>
+		public override SetCategory Category => SetCategory.IsoSettings;
+
+		/// <summary><c>SET ANSI_NULLS ON</c> and the others.</summary>
+		public sealed record Switch(string Option, bool On) : IsoSettings;
+	}
+
+	/// <summary>What reports on a query.</summary>
+	public abstract record Statistics : SetExpression
+	{
+		/// <inheritdoc/>
+		public override SetCategory Category => SetCategory.Statistics;
+
+		/// <summary><c>SET SHOWPLAN_XML ON</c>, <c>SET FORCEPLAN ON</c>.</summary>
+		public sealed record Switch(string Option, bool On) : Statistics;
+
+		/// <summary>One word of <c>SET STATISTICS IO, TIME ON</c>: <c>IO</c>, <c>PROFILE</c>, <c>TIME</c> or <c>XML</c>.</summary>
+		public sealed record Report(string Kind, bool On) : Statistics;
+	}
+
+	/// <summary>The transactions' settings.</summary>
+	public abstract record Transactions : SetExpression
+	{
+		/// <inheritdoc/>
+		public override SetCategory Category => SetCategory.Transactions;
+
+		/// <summary><c>SET XACT_ABORT ON</c> and the other switches of the group.</summary>
+		public sealed record Switch(string Option, bool On) : Transactions;
+
+		/// <summary>§19.4 <c>SET TRANSACTION ISOLATION LEVEL</c>, T-SQL's <c>TRAN</c> read as well.</summary>
+		public sealed record IsolationLevel(string Level) : Transactions;
+	}
+
+	/// <summary>The rest.</summary>
+	public abstract record Miscellaneous : SetExpression
+	{
+		/// <inheritdoc/>
+		public override SetCategory Category => SetCategory.Miscellaneous;
+
+		/// <summary>
+		/// <c>SET QUOTED_IDENTIFIER ON</c>, <c>CONCAT_NULL_YIELDS_NULL</c>, <c>CURSOR_CLOSE_ON_COMMIT</c>,
+		/// <c>NO_BROWSETABLE</c>, which no page describes and the engine knows, and Fabric's <c>RECOMMENDATIONS</c>.
+		/// </summary>
+		public sealed record Switch(string Option, bool On) : Miscellaneous;
+
+		/// <summary><c>SET LANGUAGE us_english</c>: a constant, a name or a variable.</summary>
+		public sealed record Language(Expression Value) : Miscellaneous;
+
+		/// <summary><c>SET FIPS_FLAGGER 'FULL'</c>: a string, or <c>OFF</c>.</summary>
+		public sealed record FipsFlagger(Expression Level) : Miscellaneous;
+
+		/// <summary><c>SET CONTEXT_INFO 0x01</c>: a constant or a variable.</summary>
+		public sealed record ContextInfo(Expression Value) : Miscellaneous;
+
+		/// <summary><c>SET IDENTITY_INSERT t ON</c>.</summary>
+		public sealed record IdentityInsert(string Table, bool On) : Miscellaneous;
+
+		/// <summary>One keyword of <c>SET OFFSETS SELECT, FROM ON</c>.</summary>
+		public sealed record Offset(string Keyword, bool On) : Miscellaneous;
+
+		/// <summary><c>SET ERRLVL 1</c>, which no page describes and the engine reads.</summary>
+		public sealed record ErrorLevel(Expression Value) : Miscellaneous;
+	}
+
+	/// <summary>Switches turned on or off together, each in the group its name is in.</summary>
+	public static SetExpression[] Switches(string[] options, bool on)
+	{
+		var made = new SetExpression[options.Length];
+
+		for (var at = 0; at < options.Length; at++)
+			made[at] = Syntax.Squared(options[at]) switch
+			{
+				"ARITHABORT" or "ARITHIGNORE" or "FMTONLY" or "NOCOUNT" or "NOEXEC" or "NUMERIC_ROUNDABORT"
+					or "PARSEONLY" or "RESULT_SET_CACHING"
+					=> new QueryExecution.Switch(options[at], on),
+				"ANSI_DEFAULTS" or "ANSI_NULL_DFLT_OFF" or "ANSI_NULL_DFLT_ON" or "ANSI_NULLS" or "ANSI_PADDING"
+					or "ANSI_WARNINGS"
+					=> new IsoSettings.Switch(options[at], on),
+				"FORCEPLAN" or "SHOWPLAN_ALL" or "SHOWPLAN_TEXT" or "SHOWPLAN_XML"
+					=> new Statistics.Switch(options[at], on),
+				"IMPLICIT_TRANSACTIONS" or "REMOTE_PROC_TRANSACTIONS" or "XACT_ABORT"
+					=> new Transactions.Switch(options[at], on),
+				_ => new Miscellaneous.Switch(options[at], on),
+			};
+
+		return made;
+	}
+
+	/// <summary>The words of <c>SET STATISTICS …</c>, each a node.</summary>
+	public static SetExpression[] Reported(string[] kinds, bool on)
+	{
+		var made = new SetExpression[kinds.Length];
+
+		for (var at = 0; at < kinds.Length; at++)
+			made[at] = new Statistics.Report(kinds[at], on);
+
+		return made;
+	}
+
+	/// <summary>The keywords of <c>SET OFFSETS …</c>, each a node.</summary>
+	public static SetExpression[] Offsets(string[] keywords, bool on)
+	{
+		var made = new SetExpression[keywords.Length];
+
+		for (var at = 0; at < keywords.Length; at++)
+			made[at] = new Miscellaneous.Offset(keywords[at], on);
+
+		return made;
+	}
+}
+
+/// <summary>
 /// §7 the table level: what produces rows. A statement holds one, an expression holds one,
 /// and a <c>FROM</c> clause holds the <see cref="TableReference"/>s it is read over.
 /// </summary>
@@ -1398,6 +1999,24 @@ public abstract record Expression : ISqlSpan
 
 	/// <summary>A unary <c>+</c>, which the standard keeps and which changes nothing.</summary>
 	public sealed record Plus(Expression Operand) : Expression;
+
+	/// <summary>T-SQL's <c>%</c>, the remainder, as strong as <c>*</c> and <c>/</c> and read left to right with them.</summary>
+	public sealed record Modulo(Expression Left, Expression Right) : Expression;
+
+	/// <summary>
+	/// T-SQL's <c>&amp;</c>, as weak as <c>+</c> and <c>-</c> and read left to right with them:
+	/// the engine answers <c>2 + 5 &amp; 4</c> with 4 and <c>5 &amp; 4 + 2</c> with 6.
+	/// </summary>
+	public sealed record BitwiseAnd(Expression Left, Expression Right) : Expression;
+
+	/// <summary>T-SQL's <c>|</c>, as weak as <c>+</c>.</summary>
+	public sealed record BitwiseOr(Expression Left, Expression Right) : Expression;
+
+	/// <summary>T-SQL's <c>^</c>, as weak as <c>+</c>.</summary>
+	public sealed record BitwiseXor(Expression Left, Expression Right) : Expression;
+
+	/// <summary>T-SQL's <c>~</c>, which binds as a sign does: <c>~2 * 3</c> is -9.</summary>
+	public sealed record BitwiseNot(Expression Operand) : Expression;
 
 	// ---- §8 the predicates ------------------------------------------------------------------------
 	//
@@ -1599,22 +2218,38 @@ public abstract record Expression : ISqlSpan
 	/// <inheritdoc cref="NullValue"/>
 	public static Expression DefaultValue => new Literal(SqlLiteralKind.Default, "DEFAULT");
 
-	/// <summary>An additive operator and its two operands, as the node the operator names.</summary>
+	/// <summary>
+	/// An additive operator and its two operands, as the node the operator names — T-SQL's
+	/// bitwise three among them, which bind as weakly.
+	/// </summary>
 	public static Expression Additive(string operatorText, Expression left, Expression right) =>
 		operatorText switch
 		{
 			"+" => new Add(left, right),
 			"-" => new Subtract(left, right),
+			"&" => new BitwiseAnd(left, right),
+			"|" => new BitwiseOr(left, right),
+			"^" => new BitwiseXor(left, right),
 			_   => new Concatenate(left, right),
 		};
 
-	/// <summary>Likewise for the multiplicative pair.</summary>
+	/// <summary>Likewise for the multiplicative operators, T-SQL's <c>%</c> among them.</summary>
 	public static Expression Multiplicative(string operatorText, Expression left, Expression right) =>
-		operatorText == "*" ? new Multiply(left, right) : new Divide(left, right);
+		operatorText switch
+		{
+			"*" => new Multiply(left, right),
+			"/" => new Divide(left, right),
+			_   => new Modulo(left, right),
+		};
 
-	/// <summary>Likewise for the sign in front of one operand.</summary>
+	/// <summary>Likewise for the sign in front of one operand, T-SQL's <c>~</c> among them.</summary>
 	public static Expression Signed(string sign, Expression operand) =>
-		sign == "-" ? new Negate(operand) : new Plus(operand);
+		sign switch
+		{
+			"-" => new Negate(operand),
+			"~" => new BitwiseNot(operand),
+			_   => new Plus(operand),
+		};
 
 	/// <summary>
 	/// The left operand written into the tail the predicate was read as.
@@ -1659,11 +2294,13 @@ public abstract record TableReference : ISqlSpan
 	/// </summary>
 	/// <remarks>
 	/// The parts in the order the reference writes them: the table, which version of it,
-	/// what it is called here, the names its columns are given, how much of it to read, and
-	/// how to read it.
+	/// whether it is read as a graph's path, what it is called here, the names its columns
+	/// are given, how much of it to read, and how to read it. <c>FOR PATH</c> is a mark on
+	/// the table rather than a clause: it takes nothing, and it makes the alias an ordered
+	/// collection that a <c>SHORTEST_PATH</c> may repeat.
 	/// </remarks>
 	public sealed record Named(
-		string Table, Clause? SystemTime, string? Name, string[]? Columns,
+		string Table, Clause? SystemTime, bool ForPath, string? Name, string[]? Columns,
 		Clause? Sample, Clause[] Hints) : TableReference;
 
 	/// <summary>
@@ -1678,8 +2315,11 @@ public abstract record TableReference : ISqlSpan
 	public sealed record Unpivot(
 		TableReference Of, string Value, string For, string[] In, string? Name) : TableReference;
 
-	/// <summary>§7.6 a query standing where a table does.</summary>
-	public sealed record Derived(Query Query, string? Name, string[]? Columns) : TableReference;
+	/// <summary>
+	/// §7.6 a query standing where a table does, T-SQL's <c>FOR PATH</c> after it as after a
+	/// table named.
+	/// </summary>
+	public sealed record Derived(Query Query, bool ForPath, string? Name, string[]? Columns) : TableReference;
 
 	/// <summary>
 	/// §7.6 a function standing where a table does — T-SQL's rowset functions, and any
@@ -2158,6 +2798,49 @@ public static class Syntax
 	public static string Spaced(string words) => Run(words, false);
 
 	/// <summary>Text with every whitespace character taken out: <c>(1 . 2 . 3 . 4)</c> as <c>(1.2.3.4)</c>.</summary>
+	/// <summary>
+	/// Whether a name may be called as a function: a delimited name of one part may not. The
+	/// engine refuses <c>[LEN]('a')</c> and <c>"LEN"('a')</c>, and reads <c>dbo.[LEN]('a')</c>.
+	/// </summary>
+	public static bool Callable(string name)
+	{
+		if (name.Length == 0 || (name[0] != '[' && name[0] != '"'))
+			return true;
+
+		var close = name[0] == '[' ? ']' : '"';
+
+		for (var at = 1; at < name.Length; at++)
+		{
+			if (name[at] != close)
+				continue;
+
+			if (at + 1 < name.Length && name[at + 1] == close)
+			{
+				at++;
+				continue;
+			}
+
+			return at + 1 < name.Length;
+		}
+
+		return true;
+	}
+
+	/// <summary>
+	/// Whether a select list holds T-SQL's <c>IDENTITY(…)</c>, which only a <c>SELECT … INTO</c>
+	/// may: the engine refuses one without the <c>INTO</c> when it compiles the statement,
+	/// <c>Msg 177</c>.
+	/// </summary>
+	public static bool HasIdentity(Clause[] columns)
+	{
+		foreach (var one in columns)
+			if (one is Clause.DerivedColumn { Value: Expression.RoutineInvocation { Name: var name, Word: not null } }
+				&& string.Equals(name, "IDENTITY", StringComparison.OrdinalIgnoreCase))
+				return true;
+
+		return false;
+	}
+
 	public static string Compacted(string text)
 	{
 		var kept = new char[text.Length];
@@ -2332,13 +3015,16 @@ public static class Syntax
 		                         : SqlOrder.Descending;
 
 	/// <summary>Which comparison operator was written (§8.2's <c>&lt;comp op&gt;</c>).</summary>
-	public static SqlComparison Compared(string operatorText) => operatorText switch
+	public static SqlComparison Compared(string operatorText) => Compacted(operatorText) switch
 	{
 		"="  => SqlComparison.Equal,
 		"<>" => SqlComparison.NotEqual,
+		"!=" => SqlComparison.NotEqualBang,
 		"<"  => SqlComparison.Less,
 		"<=" => SqlComparison.LessOrEqual,
+		"!<" => SqlComparison.NotLess,
 		">"  => SqlComparison.Greater,
+		"!>" => SqlComparison.NotGreater,
 		_    => SqlComparison.GreaterOrEqual,
 	};
 
@@ -2438,11 +3124,11 @@ public static class Syntax
 	/// which record comes out is decided by whether the brackets were there.
 	/// </remarks>
 	public static TableReference Sourced(
-		string name, Clause? when, string? call, Expression[]? arguments,
+		string name, Clause? when, bool path, string? call, Expression[]? arguments,
 		string? alias, string[]? columns, Clause? sample, Clause[]? hints, TableReference? pivot)
 	{
 		TableReference source = call is null
-			? new TableReference.Named(name, when, alias, columns, sample, hints ?? Clause.None)
+			? new TableReference.Named(name, when, path, alias, columns, sample, hints ?? Clause.None)
 			: new TableReference.FunctionCall(
 				new Expression.RoutineInvocation(name, arguments ?? Expression.None),
 				alias, columns, Clause.None);
@@ -2464,20 +3150,28 @@ public static class Syntax
 		tail is null ? call : tail with { Function = call };
 
 	/// <summary>
-	/// A primary and what was reached through it: the members written after it, and the zone
-	/// it is read in. Each member was built with its own left side null, the way a predicate
-	/// tail is, so the chain is closed here.
+	/// A primary and what was reached through it: the members written after it, and the zones
+	/// it is read in, each with the collation written in front of it. Each member and each
+	/// zone was built with its own left side null, the way a predicate tail is, so the chain
+	/// is closed here.
 	/// </summary>
 	public static Expression Reached(
-		Expression primary, Expression.Member[]? members, Expression? zone)
+		Expression primary, Expression.Member[]? members, Expression[]? zones)
 	{
 		if (members is not null)
 			foreach (var member in members)
 				primary = member with { Of = primary };
 
-		return zone is null
-			? primary
-			: new Expression.RoutineInvocation("AT TIME ZONE", [primary, zone]);
+		if (zones is not null)
+			foreach (var zone in zones)
+			{
+				var at = (Expression.RoutineInvocation)zone;
+				var of = at.Arguments[0] is Expression.Collated how ? how with { Value = primary } : primary;
+
+				primary = at with { Arguments = [of, at.Arguments[1]] };
+			}
+
+		return primary;
 	}
 
 	/// <summary>A word the grammar matched, as the one constant that stands for it.</summary>
@@ -2581,6 +3275,15 @@ public static class Syntax
 public enum SqlComparison
 {
 	Equal, NotEqual, Less, LessOrEqual, Greater, GreaterOrEqual,
+
+	/// <summary>T-SQL's <c>!=</c>, which means what <c>&lt;&gt;</c> does and is kept apart because it is written apart.</summary>
+	NotEqualBang,
+
+	/// <summary>T-SQL's <c>!&lt;</c>, not less than.</summary>
+	NotLess,
+
+	/// <summary>T-SQL's <c>!&gt;</c>, not greater than.</summary>
+	NotGreater,
 }
 
 /// <summary>Which join (§7.7), and the two T-SQL adds.</summary>

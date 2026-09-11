@@ -18133,3 +18133,381 @@ otherwise, 61 of 65 agreeing.
 
 At 150: read by both 5,683 (from 5,667), the work list 287 (from 303), read here but refused
 there 43, as before. `--split` 557 cut the same (from 555), and the round trip 100% of 6,772.
+
+## Permissions, three holes
+
+With the `FOR` clause done the work list has no large block left, and the largest family in it
+was `GRANT`, `DENY` and `REVOKE`, stopped in three places. Put to the engine thirty-four times:
+
+- **Columns after the securable.** `ON t (c1)`, and after any class — `ON SCHEMA::s (c1)`,
+  `ON ENDPOINT::e (c1, c2)` — the engine reads, and objects afterwards where the class has
+  none or the permission has its own list too (1019, now on the audit's read side). A column
+  is a bare name. They stay in the securable's words, which the writer prints as they are.
+- **`NULL` as a principal**, anywhere in the list; not after `AS`. The permission statements
+  have a list of their own for it, so that an audit specification's `BY` list is not changed
+  by a probe that never asked about it.
+- **`ALL` in a list.** `GRANT ALL, SELECT …` stopped at the comma: an alternative of its own
+  read `ALL` alone and, being first, won, and ordered choice does not go back into a rule
+  that has already answered. The list reads `ALL` and `ALL PRIVILEGES` like any permission,
+  with columns after them too, and the alternative is gone.
+
+The first run over the corpus after that had thirty-eight more statements read here and
+refused there. None of them was about the three: they were `GRANT create control alter ON
+[a] TO NULL …`, a run of permission words without their commas, which the grammar read as one
+name — any run of words was a permission, a choice its comment recorded as deliberate — and
+which had failed only on the `NULL` until then. Asked, the engine refuses an unknown
+permission as syntax, 102: `GRANT FOO`, `GRANT SELECT INSERT`, `GRANT CREATE` alone. So its
+parser holds the list, and so does this grammar now, after asking whether it should: the 166
+names `sys.fn_builtin_permissions` gives on this server, `EXEC` and `ALL [PRIVILEGES]`,
+longest first so that none is taken for a name it begins with. A name an older release does
+not know is read at every level, which is the version axis's to gate.
+
+The run after that lost the other way: event notifications, `FOR OBJECT_CREATED,
+DDL_TABLE_EVENTS`, and audit specifications, `ADD (SUCCESSFUL_DATABASE_AUTHENTICATION_GROUP)`,
+had been reading their own lists through the permission rule, and stopped at their first name
+once it was the engine's list of permissions. They have a run of words of their own again —
+two catalogues more, left open until they are asked about.
+
+Every probe agreed, 57 of them. At 150: read by both 5,719 (from 5,683), the work list 251
+(from 287), read here but refused there 43, as before — the thirty-eight gone again. `--split`
+560 cut the same (from 557), and the round trip 100% of 6,808.
+
+## Two small ones: constraints switched, and a graph table's columns in an index
+
+- **`ALTER TABLE t WITH NOCHECK CHECK CONSTRAINT ALL`.** The grammar had `WITH CHECK ADD …`
+  and a bare `CHECK CONSTRAINT …`, not the two together. The engine reads all four pairings
+  of `WITH CHECK|NOCHECK` and `CHECK|NOCHECK CONSTRAINT`, and refuses `WITH CHECK` with
+  nothing after it or before a `DROP`. The action keeps both words, as `WITH CHECK ADD` does.
+- **`INCLUDE ($NODE_ID)`.** An index's carried columns were plain names, and a graph table's
+  own columns are `$` names, which the lexeme made a name of one token when the full-text
+  search needed it. The engine reads them in `CREATE INDEX` and in a table's index, and
+  objects afterwards to one it does not know (126) or one an index cannot carry (10712),
+  both now on the audit's read side. A columnstore's `ORDER ($NODE_ID)` it refuses, and so
+  does this.
+
+The third group this far down the work list, `SET FIPS_FLAGGER 'FULL', QUERY_GOVERNOR_COST_LIMIT
+10` — several settings, each with its value, in one `SET` — has nowhere to go in the tree, whose
+`SetCommand` is one setting and one value. That waits for a word on the shape.
+
+Twenty-four probes, all agreed. At 150: read by both 5,729 (from 5,719), the work list 245
+(from 251), read here but refused there 43, and neither 383 (from 387) — those four by the
+audit, statements the engine answered with 126 or 10712. `--split` 566 cut the same (from
+560), the round trip 100% of 6,818.
+
+## Keys and certificates to a file and back, and a security policy
+
+A key's or a certificate's backup was a path as any expression and then any of three words,
+any number of times: `ENCRYPTION BY PASSWORD`, `DECRYPTION BY PASSWORD`, `FORCE`. So a
+certificate's private key, `WITH PRIVATE KEY (FILE = …)`, stopped at `WITH`, a key to a URL
+was not read, and `BACKUP MASTER KEY TO FILE = 'f'` with no password was. Put to the engine
+some seventy-five times:
+
+- **Strings, never variables**, for every path and password, and a key's name is one part.
+- **A certificate** goes to a file, and its private key beside it in a list of its own — a
+  file and the two passwords in any order — after `FORMAT = 'PFX'` if one is named. It takes
+  no password of its own.
+- **A master key and a symmetric key** go to a file or a URL, locked with a password that is
+  required. The service master key goes to a file only.
+- **Back again**, the password it was locked with and then the one to lock it with, in that
+  order, and `FORCE` last. The service master key is not locked again.
+- **`RESTORE SYMMETRIC KEY`** the engine reads and the tree had no node for; it has one now,
+  `Statement.RestoreSymmetricKey`, beside `BackupSymmetricKey`, as agreed before writing it.
+
+And the security policy, from the same corner of the work list: a policy altered is kept
+from replication, or given back to it, as a change of its own — `ALTER SECURITY POLICY p ADD
+NOT FOR REPLICATION` — and never with predicates or options alongside, where a policy created
+takes the words bare after its predicates. A predicate says what it is, `ADD PREDICATE` alone
+being refused, and only a block predicate says what it blocks: after an insert or an update,
+before an update or a delete. `AFTER INSERT` on a filter predicate was read here, and the
+engine refuses it.
+
+One probe of 76 is answered otherwise: a private key's `FILE` said twice, which the engine
+refuses and the walker is left.
+
+At 150: read by both 5,739 (from 5,729), the work list 235 (from 245), read here but refused
+there 43, as before. `--split` 570 cut the same (from 566), and the round trip 100% of 6,828.
+
+## What a statement does: `Kind`
+
+Every statement is a `Statement`, whatever it does, and a reader that wants the queries and
+not the backups had to name the records it wanted. So a statement says what kind it is now —
+`Query`, `Dml`, `Ddl`, `Dcl`, `Control`, `Transaction`, `Session`, `Execute`, `Admin`,
+`Declaration` — as `StatementKind Kind`, the set proposed and agreed before writing it.
+
+It is an abstract property of `Statement`, so a record added without one does not compile.
+`Removal` and `Definition` answer `Ddl` for their families, and the records that are something
+else say so themselves: the logins, users and roles they define or remove are `Dcl`, the
+backups, the restores and a statistics update `Admin`. The rest say it one by one. The
+reference has a column for it, and a test asks each record and reads the column.
+
+Five records had a string of their own called `Kind` — a transaction's `BEGIN` or `COMMIT`, a
+table's `NODE`, an index's type, a wait's `DELAY` or `TIME`, `EXECUTE AS CALLER` — and they
+are `Type` now, as agreed. The writer and the grammar take them apart and make them by
+position, so neither moved.
+
+A day later the name changed: it is `Category`, a `StatementCategory`, since what it says is
+which group a statement is in — Microsoft's page of the `SET` statements calls its groups
+categories too. With the name free again, the five strings are `Kind` once more.
+
+## The probes asked again, with their variables declared
+
+`SET @a = 1, LOCK_TIMEOUT 10` was read, a probe said, and then refused once `@a` was declared:
+the engine had reported the undeclared variable (137, on the audit's read side) before the
+syntax error behind it. `OPENJSON`'s schema had done the same earlier, and was put down to its
+being parsed late. It is not only that: `SET` binds its variable before it is done reading,
+and so, it turns out, does `EXECUTE AS`. So every line of today's probes with a variable in
+it — 88 — was put again with `DECLARE @x SQL_VARIANT` in front, and 13 answered otherwise.
+
+- **`EXECUTE AS … WITH COOKIE INTO @c, NO REVERT`** is refused. The statement takes a cookie
+  or `NO REVERT`, one of the two, as its block says; the grammar read both and the writer
+  printed both, and neither does now.
+- **A second cookie, and `SETUSER @u, @v`,** were written down as read by the engine and
+  refused here for want of a place in the tree. The engine refuses them too.
+- **`SET LOCK_TIMEOUT @t`** is refused: that setting takes a number and not a variable, which
+  is for the `SET` statements' own work.
+- **`OPENJSON`'s schema and `SET @a = 1, …`** answered as already known.
+
+The other 75 lines answered as before, so `REVERT … = @c`, `CONTAINS (b, @s)`, `LANGUAGE @l`,
+`TOP @n` and the passwords refused as variables stand. A probe declares what it uses from now
+on.
+
+## The SET statements: one construction, and what follows the word
+
+Microsoft's reference has two constructions for the word: `SET @local_variable`, which
+assigns a variable, and the SET statements, which change the session. The first stays
+`Statement.SetVariable`. The records the second had — a switch, a list of switches, a value, an
+isolation level — are one now, `Statement.SetStatement(SetExpression[] Items)`, as agreed:
+what follows `SET` is a root of its own, `SetExpression`, in the seven groups Microsoft's page
+puts the settings in — `DateAndTime`, `Locking`, `QueryExecution`, `IsoSettings`,
+`Statistics`, `Transactions`, `Miscellaneous` — each with records of its own shapes. A setting
+says its group as `Category`, and a statement says its settings' groups together as
+`SetCategory`, flags, since a list of switches may mix them.
+
+Put to the engine some four hundred times, its variables declared, and a hundred of those run
+rather than parsed:
+
+- **Each setting takes values of one kind, and never an expression.** A constant, a word or a
+  variable for `DATEFIRST`, `DATEFORMAT`, `DEADLOCK_PRIORITY`, `LANGUAGE` and `CONTEXT_INFO`;
+  a whole number for `LOCK_TIMEOUT` and `TEXTSIZE`; any number for
+  `QUERY_GOVERNOR_COST_LIMIT`; a number or a variable for `ROWCOUNT`, never negative; a
+  string, not a national one, for `FIPS_FLAGGER`.
+- **A list holds one form.** Switches with the one `ON` after them all, or settings given
+  values, which may name one twice. `ROWCOUNT`, `TEXTSIZE`, `ERRLVL`, `FIPS_FLAGGER OFF`,
+  `STATISTICS`, `OFFSETS`, `IDENTITY_INSERT` and the isolation level stand alone.
+- **The names are closed, and `PARSEONLY` does not say so.** The engine parses any word after
+  `SET` and whatever follows it to the end of the statement — `SET FOO, SELECT 1` passes — and
+  refuses the name when the statement runs, `Msg 195`, as it refuses `SET DATEFIRST ON`, `SET
+  A, B 5`, `STATISTICS FOO` and `OFFSETS PARAMETER`. The fallback that read such names was
+  taken out, the permissions' choice again, and the probes' 125 lines naming them stand as
+  read there and refused here: the audit counts 195 as read.
+- **What the grammar did not have**: `STATISTICS` and `OFFSETS` with their words, `TRAN`,
+  `ERRLVL`, which no page describes, and `NO_BROWSETABLE`, which no page describes either and
+  the drivers send. `RESULT_SET_CACHING` is Synapse's and `RECOMMENDATIONS` Fabric's, and
+  both are read. `SET USER` is refused, and is gone.
+
+At 150: read by both 5,747 (from 5,739), the work list 227 (from 235), read here but refused
+there 43, as before. `--split` 574 cut the same (from 570), and the round trip 100% of 6,855.
+
+## The graph pattern, as the engine draws it
+
+`MATCH` was written from its published syntax, and the corpus had three statements it could
+not read: a path of any length written node first with more than one step in its brackets,
+`SHORTEST_PATH((N-(E)->N2<-(E2)-)+N)`. Put to the engine some seventy times, with the
+answer the same at every level, the pattern is narrower than the page and in one place wider:
+
+- **No comma and no brackets.** The syntax shows `[ , ...n ]` and a pattern in brackets after
+  `AND`; the engine refuses both. `AND` is the only way to join two drawings.
+- **A path of any length only inside `SHORTEST_PATH`, and one to it.** `MATCH(N(-(E)->N2)+)`
+  is refused, and so are a simple drawing inside `SHORTEST_PATH` and two paths joined there
+  with `AND`; two `SHORTEST_PATH`s joined with `AND` are read.
+- **`LAST_NODE` at the ends only.** Of a chain, or of a path outside its brackets; inside them
+  it is refused. `=` compares two `LAST_NODE`s and nothing else.
+- **A node or an edge is one part.** `dbo.N` is refused, `[N]` is read.
+- **The quantifier leaves out its most**: `{1,}` is read, and `{3}` and `{,3}` are refused.
+- **Node first, any number of steps in the brackets**, which was the corpus's three.
+
+What is left of the graph on the work list is `FOR PATH` on a derived table and next to `FOR
+SYSTEM_TIME`, which the tree has no place for yet.
+
+At 150: read by both 5,753 (from 5,747), the work list 221 (from 227), read here but refused
+there 43, as before. `--split` 574, and the round trip 100% of 6,861.
+
+## `FOR PATH`, a mark on the source
+
+`FOR PATH` was a `Clause.SystemTime` of the kind `PATH`, in the one slot a table named has for
+its version, so it could not stand beside `FOR SYSTEM_TIME`, and a derived table had no slot
+for it at all. No page gives it a syntax: the reference's `<table_source>` does not have it,
+and the page on `SHORTEST_PATH` says in prose that a node or an edge table in an arbitrary
+length pattern must be marked with it, and shows it between the name and the alias.
+
+Run rather than parsed, the engine says more than the page. A query in brackets marked `FOR
+PATH` serves as an edge or a node in a `SHORTEST_PATH`, and without the mark the statement is
+refused by meaning, `Msg 13948`, "must be marked as FOR PATH". A temporal table takes both
+marks, `FOR SYSTEM_TIME ALL FOR PATH`, in that order; a node or an edge table cannot be
+temporal (`Msg 13912`). It is refused on a function, a variable, a rowset and after the alias.
+
+It takes nothing and changes no row; it changes what the alias is. So it is a property now,
+as agreed — `bool ForPath` on `TableReference.Named`, after `SystemTime`, and on
+`TableReference.Derived`, which a `VALUES` in brackets is too — and `Clause.SystemTime` is
+temporal only. ScriptDom keeps the same flag on the base its functions share, which the
+engine refuses there; here it is on the two records it is read on.
+
+At 150: read by both 5,757 (from 5,753), the work list 217 (from 221), read here but refused
+there 43, as before. `--split` 576 cut the same (from 574), and the round trip 100% of 6,865.
+
+## Zones in a chain, and what a wait waits for
+
+Two corners of the work list, twelve statements between them.
+
+**`AT TIME ZONE`** was read once after a primary. The engine reads the zones in a chain, `a
+AT TIME ZONE b AT TIME ZONE c`, and a collation in front of each, `a COLLATE x AT TIME ZONE
+b`, which the standard's rule could not give: it puts the collation after the primary, and
+the zone was inside it. So the zones are a list now, each with the collation that may stand
+in front of it, and the last collation is still the standard's; two never stand side by side,
+and `a COLLATE x COLLATE y` is refused, as the engine refuses it. A zone is a primary with its
+members and signs in front, `- b`, `b::c`; `~ b` waits for the bitwise `NOT`, which the
+grammar does not have anywhere yet. The tree did not change: a zone is still a call of `AT
+TIME ZONE` on two arguments, the first a `Collated` where one was written.
+
+**`WAITFOR`** took any expression. The engine takes a string, a national string or a
+variable, for `DELAY` and `TIME` alike; `1`, `(@t)` and `'1' + ''` are refused. And `WAITFOR
+TIME '10:00'` was not read at all, with `N'10:00'` and `@t` read: the lexer knows the
+standard's `TIME '…'` as a time literal, and the word `TIME` never came. It is read whole now,
+as a wait for that string.
+
+Two probes of 52 answered otherwise: `~ b`, and `- 'x'`, which the engine reads and refuses
+by meaning (`Msg 403`).
+
+At 150: read by both 5,769 (from 5,757), the work list 205 (from 217), read here but refused
+there 43, as before. `--split` 580 cut the same (from 576), and the round trip 100% of 6,877.
+
+## T-SQL's operators
+
+The work list stopped twice at `~` and twice at `!`, and behind them was more than two
+statements: the grammar had none of T-SQL's own operators. `%`, `&`, `|`, `^`, `~`, `!=`, `!<`
+and `!>` were all refused — the value tower and the comparison were the standard's, and the
+standard has none of them.
+
+Where they bind was asked of the engine with numbers, since a parse says nothing of
+grouping. `&`, `|` and `^` are as weak as `+` and `-` and read left to right with them: `2 + 5
+& 4` is 4 and `5 & 4 + 2` is 6, where either operator binding tighter would give 6 and 4.
+`%` is as strong as `*`; `~` is a sign, `~2 * 3` being -9; and a comparison is weaker than
+all of them, `1 & 3 = 1` holding. The engine reads the two-character comparisons as two tokens,
+so `< >`, `> =` and `! <` are read, and `!<>`, `!<=` and `!!` are not.
+
+So the tower and the comparison operator are T-SQL's own now — two more of the standard's
+rules replaced, seventeen in all — and the tree has what it lacked, as agreed: a record to an
+operator, `Modulo`, `BitwiseAnd`, `BitwiseOr`, `BitwiseXor` and `BitwiseNot`, as the
+arithmetic already was; and `SqlComparison` has `NotLess`, `NotGreater` and `NotEqualBang`,
+the last kept apart from `NotEqual` because `!=` is written apart from `<>` and the writer
+gives back what was written. A zone takes `~` in front of it now too.
+
+The lexer takes `<=` whole wherever it is written together, since other rules have the
+literal, and the first version of the rule read only the spaced forms: `t.q <= 0` stopped,
+and a test said so. Each is read both ways.
+
+At 150: read by both 5,771 (from 5,769), the work list 203 (from 205), read here but refused
+there 43, as before. `--split` 581, and the round trip 100% of 6,879.
+
+## What a space is
+
+`GREATEST` and `LEAST` stopped at their bracket, four statements, and neither was the
+reason: the file writes U+202F, the narrow no-break space, between the words, and two more
+statements of the work list write U+200B and U+3000 in front of a number. The trivia was
+`Std.Spacing`, a space, a tab and the two line endings.
+
+So the engine was asked one character at a time, with `SELECT`, the character and `1`.
+It takes every control character below the space — U+0001 to U+001F, all of them, U+0001
+included — Unicode's spaces and its two separators, U+0085, and the zero-width space, which
+SQL:2003 lists among its white space and .NET does not call white space at all. It refuses
+U+007F, the soft hyphen, the joiners and the direction marks, U+180E, U+2060 and U+FEFF. That
+set is `TSql.Spacing` now, and the trivia is made of it.
+
+The first version gave the standard's rules the same spaces through the dialect's header,
+`Sql92.trivia = trivia`, on the ground that a namespace keeps its own trivia; the header
+takes a plain name on its left and refused the qualified one, and the tests showed it was
+not needed — `FROM t`, a line separator and `WHERE`, and `a`, U+202F, `=`, U+202F, `1`, are
+read with the line gone. The trivia a parser skips is the dialect's wherever it reads.
+
+Left over from the probes: `GREATEST(DISTINCT a, b)` is read here and refused by the engine
+as syntax, which is a question about which calls take `DISTINCT` and for another day.
+
+At 150: read by both 5,778 (from 5,771), the work list 196 (from 203), read here but refused
+there 43, as before. `--split` 583, and the round trip 100% of 6,886.
+
+## A function written to, and a variable given a column's value
+
+**A table-valued function is a target.** The engine reads `UPDATE dbo.f() SET …`, `DELETE
+FROM dbo.f(1)`, `INSERT dbo.f() (c1) DEFAULT VALUES`, `INSERT INTO dbo.tvf(1, -1, DEFAULT)
+VALUES …` and `MERGE dbo.f() USING …`, with `TOP`, `OUTPUT` and a second `FROM` as a table
+has them, and refuses a hint or an alias after the call and a method of a variable. The tree
+had the node already, `TableReference.FunctionCall`, which a rowset function as a target was.
+An `INSERT` has the one ambiguity: `INSERT t (c1) VALUES …` is a table and its columns, so
+the function is the second reading, tried when the first has failed, and a test holds both.
+A first probe declared a table variable beside a scalar in one `DECLARE`, which the engine
+refuses, and so refused every line after it; the second declared them apart.
+
+**A variable in an `UPDATE`** may take a column's new value with the column, `@a = c = 1`,
+and the grammar read that in a variable's own `SET` too, where the engine refuses it. And
+`DEFAULT` was given to variables, which the engine refuses in both places, and refused in
+`@a = c = DEFAULT`, which it reads — the column is what takes it. So the two are apart now:
+a variable's own `SET` takes a value or a compound one, and an `UPDATE`'s variable may name
+the column between.
+
+At 150: read by both 5,798 (from 5,778), the work list 176 (from 196), read here but refused
+there 43, as before. `--split` 589, and the round trip 100% of 6,906.
+
+## Reserved words as values, and what a sort is by
+
+**`LEFT` and `RIGHT`** are reserved for the joins, and are functions besides: the engine reads
+`LEFT('Team System', 4)`, and refuses `dbo.LEFT(1)` and an `OVER` after one. **`IDENTITYCOL`
+and `ROWGUIDCOL`** name a table's identity and row-GUID columns under whatever prefix a column
+takes, `a.b.c.IDENTITYCOL` included, in any value and in an index's filter — and not as an
+alias, not as what a `SET` assigns, not as a call. Both are primaries now.
+
+Asked beside them: **a function's name of one part is called bare.** `[LEN]('a')` and
+`"LEN"('a')` are refused as syntax and were read here; `dbo.[LEN]('a')` and `[dbo].[f](1)`
+are read. A guard on the call says so.
+
+And a test of `ORDER BY IDENTITYCOL` found something larger: **a sort was by a column or a
+position and nothing else.** `SortKey` was still the standard's, §13.1's column reference or
+number, so `ORDER BY a + 1`, `LEN(a)`, a `CASE` and a subquery were all refused, in a
+`SELECT` and in an `OVER` alike. T-SQL sorts by any value, and the engine reads every one of
+them. The dialect replaces it now, eighteen rules in all; a position is a number among the
+values, and a collation is the value's own.
+
+Left for the next piece: `IDENTITY(INT, 1, 1)` in a `SELECT … INTO`, which the engine reads
+with one argument or three, as a whole item of the list and only when there is an `INTO`.
+
+At 150: read by both 5,811 (from 5,798), the work list 163 (from 176), read here but refused
+there 43, as before. `--split` 593, and the round trip 100% of 6,919.
+
+## `IDENTITY` in a `SELECT … INTO`
+
+The function that gives the table a `SELECT … INTO` makes an identity column. Put to the
+engine some thirty times: a type, and then a seed and a step or neither, never one of them;
+the two are numbers, with a sign or without and a fraction allowed, and a variable, an
+expression, a bracket and `0x1` are refused. It is a whole item of the list, and named —
+`AS id`, `id`, `'id'`, `id =` — and `IDENTITY(INT, 1, 1) + 1` and the call without a name
+are refused as syntax. That the statement must have an `INTO` the engine says when it
+compiles one, `Msg 177`; a guard on the query says it here, as the operators' `DEFAULT`
+is refused on the operator.
+
+The tree has it as a call of `IDENTITY` with the type as its word, the way `CAST` has one,
+and the writer gives it back so. The first version put the two alternatives after the list's
+own, and `id = IDENTITY(…)` stopped: `id` alone is an item, and read as one, and PEG does not
+go back into a choice that succeeded. They stand first now.
+
+The corpus did not move: its one statement with `IDENTITY (INT)` stops earlier, at `*, *`.
+At 150 as before: read by both 5,811, the work list 163, read here but refused there 43.
+
+## A star among the items
+
+§7.9 makes a bare `*` the whole select list, and the standard's rule read it so: `SELECT *`
+and nothing after it. T-SQL makes it an item. The engine reads it anywhere in the list and
+more than once — `SELECT 1, *, 2`, `SELECT *, *, *`, `SELECT *, t.*, a, *` — and refuses it
+named, bracketed or assigned: `* AS x`, `(*)`, `x = *`. So the list is the dialect's own,
+nineteen rules in all, and the star is its first alternative, the same node it was.
+
+At 150: read by both 5,817 (from 5,811), the work list 157 (from 163), read here but refused
+there 43, as before. `--split` 593, and the round trip 100% of 6,925.

@@ -515,6 +515,17 @@ static class Engine
 			//  13620  ROOT option and WITHOUT_ARRAY_WRAPPER option cannot be used together in FOR JSON. …
 			or 6859 or 13620
 
+			// And a permission's.
+			//
+			//   1019  Invalid column list after object name in GRANT/REVOKE statement.
+			or 1019
+
+			// And a pseudocolumn's.
+			//
+			//    126  Invalid pseudocolumn "…".
+			//  10712  The pseudocolumn '…' cannot be part of an index or used as partitioning column.
+			or 126 or 10712
+
 			// And a database's creation.
 			//
 			//    188  Cannot specify a log file in a CREATE DATABASE statement without also specifying at least one data file.

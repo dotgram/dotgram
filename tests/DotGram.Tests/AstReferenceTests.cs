@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 using DotGram.Parsers.Sql;
@@ -61,6 +62,30 @@ public sealed class AstReferenceTests
 			Assert.True(allowed.Contains(source), $"{node}: {source}");
 	}
 
+	/// <summary>Every statement says which group it is in, and the reference says the same.</summary>
+	/// <remarks>
+	/// The category is an override on the record, which the compiler asks of every one, and a
+	/// column of the table, which nothing but this asks of. A statement is made without its
+	/// constructor to be asked: the category is the record's, and none of its values are needed.
+	/// </remarks>
+	[Fact]
+	public void Every_statement_says_its_category_as_the_reference_does()
+	{
+		var written = new Dictionary<string, string>(StringComparer.Ordinal);
+		var text    = File.ReadAllText(Path.Combine(Root(AppContext.BaseDirectory), "docs", "ast.md"));
+
+		foreach (Match row in Regex.Matches(text, @"^\| `Statement\.(\w+)` \|[^|]+\|[^|]+\| (\w+) \|", RegexOptions.Multiline))
+			written[row.Groups[1].Value] = row.Groups[2].Value;
+
+		foreach (var type in typeof(Statement).GetNestedTypes(BindingFlags.Public).Where(one => one.IsSealed && one.IsSubclassOf(typeof(Statement))))
+		{
+			var statement = (Statement)RuntimeHelpers.GetUninitializedObject(type);
+
+			Assert.True(written.TryGetValue(type.Name, out var category), $"Statement.{type.Name} has no category in the reference");
+			Assert.Equal(statement.Category.ToString(), category);
+		}
+	}
+
 	/// <summary>The roots: every hierarchy the tree is made of.</summary>
 	/// <remarks>
 	/// Found rather than listed, so that a root added to <c>SqlSyntax.cs</c> and left out of
@@ -75,10 +100,23 @@ public sealed class AstReferenceTests
 
 	/// <summary>Every record of the tree, from the tree itself, named by its root.</summary>
 	static IEnumerable<string> Nodes() =>
-		Roots().SelectMany(root => root
-			.GetNestedTypes(BindingFlags.Public)
-			.Where(one => one.IsSealed && one.IsSubclassOf(root))
-			.Select(one => root.Name + "." + one.Name));
+		Roots().SelectMany(root => Records(root, root, root.Name));
+
+	/// <summary>
+	/// The records under a type, however deeply nested: a <c>SetExpression</c>'s are in the
+	/// groups it is made of, <c>SetExpression.Locking.LockTimeout</c>, and named by the path.
+	/// </summary>
+	static IEnumerable<string> Records(Type root, Type holder, string path)
+	{
+		foreach (var one in holder.GetNestedTypes(BindingFlags.Public).Where(one => one.IsSubclassOf(root)))
+		{
+			if (one.IsSealed)
+				yield return path + "." + one.Name;
+			else if (one.IsAbstract)
+				foreach (var deeper in Records(root, one, path + "." + one.Name))
+					yield return deeper;
+		}
+	}
 
 	static HashSet<string> Documented() =>
 		Rows().Select(one => one.Node).ToHashSet(StringComparer.Ordinal);
