@@ -4043,6 +4043,23 @@ public static class Syntax
 			Statement.Merge { Output: Clause.Output { Target: null, Next: null }, Options: null } or
 			Statement.Insert { Output: Clause.Output { Target: null, Next: null }, Options: null };
 
+	/// <summary>Whether every column of a table's body has a type, or a value it is computed from.</summary>
+	/// <remarks>Asked of a result set, which unlike a table may not leave a type out (<c>Msg 102</c>).</remarks>
+	public static bool Typed(Clause[]? body) =>
+		body is not null && Array.TrueForAll(body, static one => one is not Clause.ColumnDefinition(_, null, null, _));
+
+	/// <summary>Whether what follows a column written without a type is what the engine reads there.</summary>
+	/// <remarks>
+	/// Its constraints, its identity and its nullability, and nothing that belongs to a type: a
+	/// collation (<c>Msg 156</c>), <c>NOT FOR REPLICATION</c>, a mask, an encryption or a
+	/// generation (<c>Msg 102</c>, <c>156</c>).
+	/// </remarks>
+	public static bool Untyped(Clause[]? tail) =>
+		tail is null || Array.TrueForAll(tail, static one =>
+			one is not Clause.ColumnOption { Kind: var kind } ||
+			!(kind is "COLLATE" or "NOT FOR REPLICATION" or "MASKED" or "ENCRYPTED" ||
+			  kind.StartsWith("GENERATED", StringComparison.Ordinal)));
+
 	/// <summary>Nodes told apart by identity, which a record's own equality does not do.</summary>
 	sealed class ByReference : IEqualityComparer<ISqlSpan>
 	{
@@ -4083,18 +4100,43 @@ public static class Syntax
 	public static string Member(string variable, string[]? members) =>
 		members is null or { Length: 0 } ? variable : variable + "." + string.Join(".", members);
 
-	/// <summary>Whether a rowset function's arguments are ones it takes, where that is asked.</summary>
+	/// <summary>Whether <c>PREDICT</c>'s arguments are ones it takes.</summary>
 	/// <remarks>
-	/// Asked of <c>PREDICT</c> alone, which takes a model and data by name and nothing else:
+	/// A model and data, both by name and both required (<c>Msg 39036</c>), and nothing else:
 	/// <c>RUNTIME = ONNX</c> is Azure SQL Edge's and Synapse's, and SQL Server refuses it
-	/// (<c>Msg 102</c>).
+	/// (<c>Msg 102</c>). The model is any value but a subquery.
 	/// </remarks>
-	public static bool Predicts(string? name, Expression[]? arguments) =>
-		!string.Equals(name, "PREDICT", StringComparison.OrdinalIgnoreCase) ||
-		arguments is not null && Array.TrueForAll(arguments, static one =>
-			one is Expression.NamedArgument { Name: var named } &&
-			(string.Equals(named, "MODEL", StringComparison.OrdinalIgnoreCase) ||
-			 string.Equals(named, "DATA", StringComparison.OrdinalIgnoreCase)));
+	public static bool Predicts(Expression[]? arguments)
+	{
+		if (arguments is null)
+			return false;
+
+		var model = false;
+		var data  = false;
+
+		foreach (var one in arguments)
+			switch (one)
+			{
+				case Expression.NamedArgument(var name, var value)
+					when string.Equals(name, "MODEL", StringComparison.OrdinalIgnoreCase):
+					if (value is Expression.Subquery)
+						return false;
+
+					model = true;
+					break;
+
+				case Expression.NamedArgument(var name, _)
+					when string.Equals(name, "DATA", StringComparison.OrdinalIgnoreCase):
+					data = true;
+					break;
+
+				default:
+					return false;
+			}
+
+		return model && data;
+	}
+
 
 	/// <summary>Whether a table's body may be a table type's.</summary>
 	/// <remarks>

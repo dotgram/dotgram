@@ -19134,3 +19134,39 @@ engine reads the empty ones.
 At 150: read by both 5,873 (from 5,862), the work list 103 (from 114), read here but refused
 there 43 (from 43); `--split` 707 (from 705), the round trip 100% of 7,525. The map: read by
 both 7,976 of 8,338 (99.7%), the work list 27 (from 33), defects 0.
+
+## `PREDICT`'s own schema, a selective index's path, and a column with no type
+
+Three groups that stood in both the map and the corpus, each put to the engine some forty
+times, and each other than it looked.
+
+- **`PREDICT` must say what it returns.** Without its `WITH (…)` it is `Msg 102`, which is
+  what the earlier entry read as a refusal of `RUNTIME = ONNX` — and `RUNTIME` is refused as
+  well, with the `WITH` or without it, so `Syntax.Predicts` was right for the wrong reason.
+  The schema is `PREDICT`'s own and not a rowset's: a name, a type, perhaps a collation and
+  then a nullability — no path, no `AS JSON`, no schema named for it — and the alias after it
+  takes no columns. Its model is any value but a subquery; the model and the data are both
+  required (`Msg 39036`). Five defects went with it: this read `PREDICT` with no `WITH`, a
+  path, a column list after the alias, a subquery for the model and a missing `DATA`.
+- **A secondary XML index says which kind it is, or which path.** After `USING XML INDEX p`
+  comes `FOR VALUE`, `PATH` or `PROPERTY` — nothing else bare (`Msg 487`) — or, over a
+  selective index, one path by a name of one part in brackets; one or the other is required.
+  A primary index says neither. Four defects: this read any word after `FOR`, `USING` without
+  `FOR`, and `USING` on a primary index, with `FOR` and without.
+- **A column may have no type.** The published syntax says so of `timestamp` alone; the
+  engine's parser reads it of any column, and `Msg 173` — the definition must include a data
+  type — comes when the statement runs, not when it is read. So the type is optional where a
+  table is declared, and required where a result set is (`WITH RESULT SETS ((a, b))` is
+  refused). After no type there is no collation (`Msg 156`), no `NOT FOR REPLICATION`, no
+  mask, no encryption and no generation (`Syntax.Untyped`). And not where a column is altered:
+  the first draft put the reading in the rule `ALTER COLUMN` shares, and eight tests said what
+  that did — `ALTER COLUMN c1 ADD ROWGUIDCOL` became a column `c1` with no type and a word left
+  over, and `ALTER COLUMN timestamp`, which the engine refuses, was read. A table's column is a
+  rule of its own now, `TableColumn`, and an altered one says its type again.
+
+And one the probes found beside them, left for its own entry: the engine reads `CREATE TABLE
+t (a, b) AS SELECT …` without the `WITH` this grammar asks of it.
+
+At 150: read by both 5,878 (from 5,873), the work list 98 (from 103), read here but refused
+there 43 (from 43); `--split` 712 (from 707), the round trip 100% of 7,530. The map: read by
+both 7,978 of 8,338 (99.7%), the work list 25 (from 27), defects 0.

@@ -857,6 +857,8 @@ TSqlTablePrimary : @TableReference
 	  & pivot: PivotSuffix?
 		=> @(Syntax.Pivoted(
 				 new TableReference.FunctionCall(f, alias, columns, schema ?? Clause.None), pivot))
+	| f: PredictCall & schema: PredictSchema & ("AS"i? & alias: CorrelationName)?
+		=> @(new TableReference.FunctionCall(f, alias, null, schema))
 	| f: RowsetFunction & schema: RowsetSchema?
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & pivot: PivotSuffix?
@@ -1425,7 +1427,7 @@ RowsetValue : @Expression
 	| v: ValueExpression => @(v)
 
 RowsetFunction : @Expression.RoutineInvocation
-	= name: RowsetName & '(' & args: RowsetArguments? & ')' & when @(Syntax.Predicts(name, args))
+	= name: RowsetName & '(' & args: RowsetArguments? & ')'
 		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
 	| name: FullTextTableName & '(' & table: QualifiedName & ',' & c: TableSearchColumns & ','
 	  & s: FullTextSearch & l: SearchLanguage? & n: SearchTop? & ')'
@@ -1465,7 +1467,7 @@ JsonSchema : @Clause[]
 RowsetName
 	= "OPENROWSET"i | "OPENQUERY"i | "OPENXML"i
 	| "CHANGETABLE"i
-	| "PREDICT"i | "VECTOR_SEARCH"i | "GENERATE_SERIES"i | "STRING_SPLIT"i
+	| "VECTOR_SEARCH"i | "GENERATE_SERIES"i | "STRING_SPLIT"i
 
 // `PREDICT`'s data may be named where it stands, `DATA = dbo.t AS d`, and no other argument
 // may: `MODEL = @m AS m` and `FORMATFILE = 'x' AS y` are refused. `PREDICT` takes its model and
@@ -1473,6 +1475,21 @@ RowsetName
 DataAlias : @Expression.Aliased
 	= "AS"i & t: Identifier => @(new Expression.Aliased(Expression.NullValue, t, true))
 	| t: Identifier         => @(new Expression.Aliased(Expression.NullValue, t, false))
+
+// `PREDICT`, which says what it returns and must: without its `WITH` it is `Msg 102`, and so
+// is `RUNTIME = ONNX` with it or without. The `WITH` is its own and not a rowset's schema — a
+// name, a type, perhaps a collation and then a nullability; no path, no `AS JSON`, no schema
+// named for it — and the alias after it takes no columns.
+PredictCall : @Expression.RoutineInvocation
+	= name: "PREDICT"i & '(' & args: RowsetArguments & ')' & when @(Syntax.Predicts(args))
+		=> @(new Expression.RoutineInvocation(name, args))
+
+PredictSchema : @Clause[]
+	= "WITH"i & '(' & first: PredictColumn & (',' & rest: PredictColumn)* & ')' => @(Syntax.Listed(first, rest))
+
+PredictColumn : @Clause
+	= name: Identifier & type: DataType & c: SchemaCollate? & n: NullSpec?
+		=> @(new Clause.JsonColumn(name, type + (c is null ? "" : " COLLATE " + c) + (n is null ? "" : " " + n), null, false))
 
 // `OPENDATASOURCE` is not a rowset: it stands where a server's name does, and the name of what
 // is on that server follows it — `OPENDATASOURCE('MSOLEDBSQL', 'Server=s').db.dbo.t` in a
@@ -2849,6 +2866,10 @@ ExecWith   = "WITH"i & ExecOption & (',' & ExecOption)*
 ExecOption = "RESULT"i & "SETS"i & ResultSets
 		   | Identifier
 
+// A result set's columns are a table's, each with its type: a table's column may leave its
+// type out and a result set's may not, `WITH RESULT SETS ((a, b))` being refused.
+ResultColumns : @Clause[] = body: TableBody & when @(Syntax.Typed(body)) => @(body)
+
 // `WITH RESULT SETS` says what comes back, and the three answers are none, undefined, or
 // the shapes written out. Left-factored on the two words, which is what GRAM4016 asks for
 // where alternatives share a head.
@@ -2857,7 +2878,7 @@ ResultSets = "NONE"i
 		   | '(' & ResultSet & (',' & ResultSet)* & ')'
 
 // One result set: its columns written out, or the name of something already shaped.
-ResultSet = '(' & TableBody & ')'
+ResultSet = '(' & ResultColumns & ')'
 		  | "AS"i & "OBJECT"i & QualifiedName
 		  | "AS"i & "TYPE"i & QualifiedName
 		  | "AS"i & "FOR"i & "XML"i
@@ -3101,10 +3122,23 @@ TableElement : @Clause
 	| i: TableIndex                                => @(i)
 	| "CONSTRAINT"i & name: Identifier & c: ConstraintBody => @(c with { Name = name })
 	| c: ConstraintBody                            => @(c)
-	| f: ColumnDefinition                          => @(f)
+	| f: TableColumn                               => @(f)
 
 ColumnDefinition : @Clause
 	= name: Identifier & f: ColumnBody => @(f with { Name = name })
+
+// A table's column, which may leave its type out: the published syntax allows it `timestamp`
+// alone and the engine's parser any column, `Msg 173` — a definition must include a type —
+// being said when the statement runs. Not before what belongs to a type (`Syntax.Untyped`),
+// and not where a column is altered, which says its type again: `ALTER COLUMN timestamp` is
+// refused, and `ALTER COLUMN c ADD ROWGUIDCOL` is not a column called `c` with no type.
+TableColumn : @Clause
+	= name: Identifier & f: TableColumnBody => @(f with { Name = name })
+
+TableColumnBody : @Clause.ColumnDefinition
+	= f: ColumnBody => @(f)
+	| tail: ColumnTail* & when @(Syntax.Untyped(tail))
+		=> @(new Clause.ColumnDefinition("", null, null, tail ?? Clause.None))
 
 ColumnBody : @Clause.ColumnDefinition
 	= "AS"i & v: ValueExpression & tail: ColumnTail*
@@ -3710,7 +3744,7 @@ CreateIndexStatement : @Statement
 				 Syntax.Squared(kind), Syntax.Tail(over)))
 	| "CREATE"i & kind: ("PRIMARY"i? & "XML"i) & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
-	  & over: XmlIndexUsing? & o: XmlIndexWith?
+	  & over: XmlIndexUsing? & when @(over is null || Syntax.Squared(kind!) == "XML") & o: XmlIndexWith?
 		=> @(new Statement.CreateIndex(
 				 on, Clause.Indexed(name, null, null, null, null, columns, null, null, null, o?.Options, null, null),
 				 Syntax.Squared(kind), Syntax.Tail(over)))
@@ -3739,7 +3773,11 @@ AlterIndexStatement : @Statement
 
 IndexTarget : @string = "ALL"i => @("ALL") | t: Identifier => @(t)
 
-XmlIndexUsing = "USING"i & "XML"i & "INDEX"i & Identifier & ("FOR"i & word)?
+// A secondary XML index is built over a primary one, `USING XML INDEX p`, and says which kind
+// it is — `FOR VALUE`, `PATH` or `PROPERTY`, and no other word (`Msg 487`) — or, over a
+// selective index, which of its paths, by a name of one part in brackets. It says one or the
+// other: `USING XML INDEX p` alone is refused, and a primary index says neither.
+XmlIndexUsing = "USING"i & "XML"i & "INDEX"i & Identifier & "FOR"i & ("VALUE"i | "PATH"i | "PROPERTY"i | '(' & Identifier & ')')
 
 // ── A spatial index's options ───────────────────────────────────────────────
 //

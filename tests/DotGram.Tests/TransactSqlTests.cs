@@ -953,6 +953,168 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary><c>PREDICT</c> and the schema of its own it must say, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d, RUNTIME = ONNX) WITH (s FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d, RUNTIME = ONNX) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH () AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT DEFAULT 1) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT PRIMARY KEY) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s AS 1) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT '$.a') AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT) AS p (x)")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = (SELECT m FROM ms WHERE id = 4), DATA = t AS d) WITH (s FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT) AS p WITH (NOLOCK)")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT NOT NULL NULL) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT NULL COLLATE Latin1_General_CI_AS) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d, RUNTIME = FOO) WITH (s FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m) WITH (s FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(DATA = t AS d) WITH (s FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT,) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT AS JSON) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH s AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d, FOO = 1) WITH (s FLOAT) AS p")]
+	public void Predictions_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT)")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT) p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT, u INT NOT NULL, v NVARCHAR(10) COLLATE Latin1_General_CI_AS NULL) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT, s INT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = 0x01, DATA = t AS d) WITH (s FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = 'm', DATA = t AS d) WITH (s FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = N'm', DATA = t AS d) WITH (s FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = m, DATA = t AS d) WITH (s FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = 1, DATA = t AS d) WITH (s FLOAT) AS p")]
+	[InlineData("SELECT * FROM t CROSS APPLY PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT) AS p JOIN u ON 1 = 1")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s dbo.udt) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH ([s] FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = (SELECT 1 x) AS d) WITH (s FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(DATA = t AS d, MODEL = @m) WITH (s FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t) WITH (s FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s VARCHAR(MAX)) AS p")]
+	[InlineData("INSERT INTO s (c1, score) SELECT d.c1, p.score FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (score FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT COLLATE Latin1_General_CI_AS) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT NULL) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) WITH (s FLOAT NOT NULL, u INT NULL) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = dbo.t AS d) WITH (s FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = @tv AS d) WITH (s FLOAT) AS p")]
+	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t d) WITH (s FLOAT) AS p")]
+	public void Predictions_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>A secondary XML index, and the kind or the path it says, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR ('path1')")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR (p1, p2)")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR ()")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR path1")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR FOO")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR (N'path1')")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR (dbo.path1)")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR (path1) ON fg")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX dbo.sxi FOR (p)")]
+	[InlineData("CREATE PRIMARY XML INDEX i ON t(c) USING XML INDEX sxi FOR VALUE")]
+	[InlineData("CREATE PRIMARY XML INDEX i ON t(c) USING XML INDEX sxi")]
+	[InlineData("CREATE PRIMARY XML INDEX i ON t(c) USING XML INDEX sxi FOR (path1)")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR (path1) WITH (ONLINE = ON)")]
+	public void Secondary_XML_indexes_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR (path1)")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR ([path1])")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR (VALUE)")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR ( path1 )")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR (PATH)")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR (\"p\")")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR (#p)")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX [sxi] FOR ([p])")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR (path1) WITH (PAD_INDEX = ON)")]
+	[InlineData("CREATE XML INDEX i ON dbo.t(c) USING XML INDEX sxi FOR (path1) WITH (FILLFACTOR = 80, MAXDOP = 2)")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR (p) WITH (DROP_EXISTING = ON, ALLOW_ROW_LOCKS = OFF)")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR VALUE")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR PATH")]
+	[InlineData("CREATE XML INDEX i ON t(c) USING XML INDEX sxi FOR PROPERTY")]
+	public void Secondary_XML_indexes_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>A column written without a type, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("EXEC p WITH RESULT SETS ((a, b))")]
+	[InlineData("EXEC p WITH RESULT SETS ((a INT, b))")]
+	[InlineData("CREATE TABLE t (timestamp COLLATE Latin1_General_CI_AS)")]
+	[InlineData("ALTER TABLE t ALTER COLUMN timestamp")]
+	[InlineData("CREATE TABLE t (x GENERATED ALWAYS AS ROW START)")]
+	[InlineData("CREATE TABLE t (x MASKED WITH (FUNCTION = 'default()'))")]
+	[InlineData("CREATE TABLE t (x NOT FOR REPLICATION)")]
+	[InlineData("CREATE TABLE t (x ENCRYPTED WITH (COLUMN_ENCRYPTION_KEY = k, ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256'))")]
+	public void Untyped_columns_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("CREATE TABLE t (timestamp)")]
+	[InlineData("CREATE TABLE t (a INT, timestamp)")]
+	[InlineData("CREATE TABLE t (timestamp NOT NULL)")]
+	[InlineData("CREATE TABLE t (timestamp NOT NULL PRIMARY KEY, CHECK (1 < 2))")]
+	[InlineData("CREATE TABLE t (TIMESTAMP)")]
+	[InlineData("CREATE TABLE t ([timestamp])")]
+	[InlineData("CREATE TABLE t (rowversion)")]
+	[InlineData("CREATE TABLE t (timestamp NULL)")]
+	[InlineData("CREATE TABLE t (timestamp DEFAULT 1)")]
+	[InlineData("CREATE TABLE t (timestamp CONSTRAINT c UNIQUE)")]
+	[InlineData("CREATE TABLE t (timestamp, timestamp)")]
+	[InlineData("CREATE TABLE t (x)")]
+	[InlineData("CREATE TABLE t (a INT, x)")]
+	[InlineData("ALTER TABLE t ADD timestamp")]
+	[InlineData("DECLARE @t TABLE (timestamp)")]
+	[InlineData("CREATE TYPE tt AS TABLE (timestamp)")]
+	[InlineData("CREATE TABLE t (\"timestamp\")")]
+	[InlineData("CREATE TABLE t (timestamp IDENTITY)")]
+	[InlineData("CREATE TABLE t (timestamp ROWGUIDCOL)")]
+	[InlineData("CREATE TABLE t (timestamp INDEX i)")]
+	[InlineData("CREATE TABLE t (PriKey int PRIMARY KEY, timestamp)")]
+	[InlineData("ALTER TABLE t ADD a INT, timestamp")]
+	[InlineData("CREATE FUNCTION f () RETURNS @t TABLE (x) AS BEGIN RETURN END")]
+	[InlineData("CREATE TABLE t (x NOT NULL CONSTRAINT c DEFAULT 1)")]
+	[InlineData("CREATE TABLE t (x) ON [PRIMARY]")]
+	[InlineData("CREATE TABLE t (x NULL, y NOT NULL, z DEFAULT 0)")]
+	[InlineData("CREATE TABLE t (x PRIMARY KEY CLUSTERED)")]
+	[InlineData("CREATE TABLE t (x REFERENCES u (y))")]
+	[InlineData("CREATE TABLE t (x FOREIGN KEY REFERENCES u (y))")]
+	[InlineData("CREATE TABLE t (x CHECK (x > 0))")]
+	[InlineData("CREATE TABLE t (x IDENTITY (1, 1) NOT NULL)")]
+	[InlineData("CREATE TABLE t (x, PRIMARY KEY (x))")]
+	[InlineData("CREATE TABLE t (x, INDEX i (x))")]
+	[InlineData("CREATE TABLE t (x, PERIOD FOR SYSTEM_TIME (a, b))")]
+	[InlineData("CREATE TABLE t (period)")]
+	[InlineData("CREATE TABLE t (x AS 1, y)")]
+	[InlineData("CREATE TABLE t (x SPARSE NULL)")]
+	[InlineData("CREATE TABLE t (x FILESTREAM)")]
+	public void Untyped_columns_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>A statement's <c>OUTPUT</c> read as the rows an <c>INSERT</c> inserts, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3) AS ao")]
