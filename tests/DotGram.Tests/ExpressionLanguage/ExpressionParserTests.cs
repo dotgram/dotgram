@@ -8,7 +8,7 @@ using DotGram.ExpressionLanguage;
 
 using Xunit;
 
-namespace DotGram.Tests.Expressions;
+namespace DotGram.Tests.ExpressionLanguage;
 
 /// <summary>
 /// The expression language of <c>DotGram.ExpressionLanguage</c>, read and run.
@@ -152,7 +152,7 @@ public sealed class ExpressionParserTests
 	[Fact]
 	public void A_member_initializer_may_nest()
 	{
-		ExpressionParser.Using("DotGram.Tests.Expressions");
+		ExpressionParser.Using("DotGram.Tests.ExpressionLanguage");
 
 		var made = ExpressionParser.Compile<Func<Holder>>(
 			"() => new Holder() { Inner = { Count = 7 } }")();
@@ -164,7 +164,7 @@ public sealed class ExpressionParserTests
 	public void And_a_nested_one_may_be_a_collection()
 	{
 		// `ListBind`: the list the member already holds is added to, not replaced.
-		ExpressionParser.Using("DotGram.Tests.Expressions");
+		ExpressionParser.Using("DotGram.Tests.ExpressionLanguage");
 
 		Assert.Equal(
 			[3, 4],
@@ -174,7 +174,7 @@ public sealed class ExpressionParserTests
 	[Fact]
 	public void And_the_three_forms_stand_side_by_side()
 	{
-		ExpressionParser.Using("DotGram.Tests.Expressions");
+		ExpressionParser.Using("DotGram.Tests.ExpressionLanguage");
 
 		var made = ExpressionParser.Compile<Func<Holder>>(
 			"() => new Holder() { Name = \"a\", Inner = { Count = 1 }, Items = { 5 } }")();
@@ -554,7 +554,7 @@ public sealed class ExpressionParserTests
 	[Fact]
 	public void A_params_array_may_be_written_out_and_a_default_left_out()
 	{
-		ExpressionParser.Using("DotGram.Tests.Expressions");
+		ExpressionParser.Using("DotGram.Tests.ExpressionLanguage");
 
 		Assert.Equal(
 			["1-2-3", "30", "7"],
@@ -572,7 +572,7 @@ public sealed class ExpressionParserTests
 	[InlineData("(string s) => s.length",       "no property or field named 'length'")]
 	public void And_where_C_sharp_would_refuse_the_call_so_does_this(string text, string said)
 	{
-		ExpressionParser.Using("DotGram.Tests.Expressions");
+		ExpressionParser.Using("DotGram.Tests.ExpressionLanguage");
 
 		var match = ExpressionParser.TryParse(text);
 

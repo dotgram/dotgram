@@ -5,7 +5,7 @@ using DotGram.ExpressionLanguage;
 
 using Xunit;
 
-namespace DotGram.Tests.Expressions;
+namespace DotGram.Tests.ExpressionLanguage;
 
 /// <summary>
 /// The expression language compiled on the tape and compiled immediately read the same
