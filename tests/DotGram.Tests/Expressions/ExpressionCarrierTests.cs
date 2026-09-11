@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq.Expressions;
 
-using DotGram.Expressions;
+using DotGram.ExpressionLanguage;
 
 using Xunit;
 
@@ -83,8 +83,8 @@ public sealed class ExpressionCarrierTests
 	[MemberData(nameof(Inputs))]
 	public void The_two_carriers_read_one_language(string input)
 	{
-		var tape      = ExpressionLanguage.TryParseLambda(input, new ExpressionLanguage.State());
-		var immediate = ExpressionLanguage.Immediate.TryParseLambda(input, new ExpressionLanguage.State());
+		var tape      = ExpressionParser.TryParseLambda(input, new ExpressionParser.State());
+		var immediate = ExpressionParser.Immediate.TryParseLambda(input, new ExpressionParser.State());
 
 		Assert.Equal(tape.IsSuccess, immediate.IsSuccess);
 

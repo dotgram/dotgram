@@ -27,7 +27,7 @@ namespace DotGram.Generation;
 /// <b>In order, and that is what makes a repeated line answerable.</b> The lines of the
 /// decoded value stand in the spelling in the order they were written, so each is looked
 /// for from where the one before it was found. A line written twice — and a grammar of
-/// any size has them, <c>=&gt; @(ExpressionLanguage.Listed(first, rest))</c> five times
+/// any size has them, <c>=&gt; @(ExpressionParser.Listed(first, rest))</c> five times
 /// over in the expression language — is then found at its own occurrence rather than
 /// refused for having a twin. Searching the whole spelling instead cost eleven of that
 /// grammar's constructions their directive, <c>While</c> and <c>For</c> among them.

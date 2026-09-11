@@ -177,7 +177,7 @@ public enum Side
 public static partial class Settlements
 {
 	// The first grammar here that wants the size set, and it wants the coarse one. Most
-	// grammars gain from being divided small — `ExpressionLanguage` is two to five times
+	// grammars gain from being divided small — `ExpressionParser` is two to five times
 	// faster for it — because their hot path is a fraction of a large machine and the
 	// division puts that fraction in a method the JIT can hold in registers. This one is
 	// the other shape: `Row` is a straight line of fifty fields and every record walks all

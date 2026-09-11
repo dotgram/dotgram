@@ -74,7 +74,7 @@ public sealed class ExecutionPlan
 	/// Measured rather than chosen: across the three parsers in this repository the rules
 	/// this admits have a median of four to six nodes, and the ones worth keeping a
 	/// boundary for stand well clear — 42 for the keyword list of
-	/// <c>ExpressionLanguage</c>, 92 for <c>Rfc3986</c>'s IPv6 address, 228 and 285 for
+	/// <c>ExpressionParser</c>, 92 for <c>Rfc3986</c>'s IPv6 address, 228 and 285 for
 	/// standard SQL's data types and reserved words. There is no continuum here to cut in
 	/// the middle of; there are small helpers and there are tables.
 	/// </remarks>

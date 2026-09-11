@@ -89,9 +89,8 @@ src/
 		SKILL.md          how to write a grammar, for an agent. Ships in the package
 		                  beside that README, which points at it in a comment nothing
 		                  renders
-	DotGram.ExpressionLanguage/ the C#-style expression language, a package of its own.
-	                      Namespace DotGram.Expressions: one named after the type it
-	                      holds would shadow that type inside DotGram.*
+	DotGram.ExpressionLanguage/ the C#-style expression language, a package of its own:
+	                      ExpressionParser, in the namespace the project is named for
 	DotGram.Parsers/      parsers for real formats, written in .gram and meant to ship.
 	                      Not teaching material: an example shows one feature, a parser
 	                      here answers whether the notation is enough for a whole

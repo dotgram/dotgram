@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace DotGram.Expressions;
+namespace DotGram.ExpressionLanguage;
 
 // A small language that compiles to a .NET expression tree — parameters, a block with
 // local variables, and `return`:
@@ -259,7 +259,7 @@ namespace DotGram.Expressions;
 
 	Lambda : @LambdaExpression
 		= '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>" & body: Value
-		=> @(Expression.Lambda(context.Returning(body), ExpressionLanguage.Taking(first, rest)))
+		=> @(Expression.Lambda(context.Returning(body), ExpressionParser.Taking(first, rest)))
 
 	// Each type names itself in C#, so `typeof(int)` is checked where it is written and
 	// a word that is no type is not a declaration — the grammar refusing that reading
@@ -323,22 +323,22 @@ namespace DotGram.Expressions;
 	NamedType? : @Type
 		= head: Word & ('.' & part: NamePart)*
 		  & args: ('<' & first: Type & (',' & rest: Type)* & '>')?
-		  & when @(args != null || ExpressionLanguage.Resolves(ExpressionLanguage.Dotted(head, part)))
+		  & when @(args != null || ExpressionParser.Resolves(ExpressionParser.Dotted(head, part)))
 		  => @(args is null
-		       ? ExpressionLanguage.TypeNamed(ExpressionLanguage.Dotted(head, part))
-		       : ExpressionLanguage.Generic(
-		           ExpressionLanguage.Dotted(head, part), ExpressionLanguage.Types(first!, rest)))
+		       ? ExpressionParser.TypeNamed(ExpressionParser.Dotted(head, part))
+		       : ExpressionParser.Generic(
+		           ExpressionParser.Dotted(head, part), ExpressionParser.Types(first!, rest)))
 
 	// One rule for every argument list there is, so that a call, a constructor and an
 	// indexer all say it the same way and each hands the API one array.
 	Arguments : @Expression[] = '(' & (first: Expression & (',' & rest: Expression)*)? & ')'
-		     => @(ExpressionLanguage.Listed(first, rest))
+		     => @(ExpressionParser.Listed(first, rest))
 
 	// What a member initializer sets, as the text said it: the member's name and the value,
 	// with which member that is left until the type is known — which is at construction,
 	// where the type is.
 	Bindings : @Setting[] = '{' & first: Binding & (',' & rest: Binding)* & '}'
-		    => @(ExpressionLanguage.Set(first, rest))
+		    => @(ExpressionParser.Set(first, rest))
 
 	// Three things one syntax says, told apart by what stands after the `=` — a value, a
 	// nested initializer of members, or a nested one of elements. One route rather than
@@ -355,7 +355,7 @@ namespace DotGram.Expressions;
 
 	Elements : @Element[]
 		= first: Element & (',' & rest: Element)*
-		=> @(ExpressionLanguage.Listed(first, rest))
+		=> @(ExpressionParser.Listed(first, rest))
 
 	// An element is what one call to `Add` takes, which is usually one expression and for
 	// a dictionary is two. C# writes the second in braces of its own, and the API has a
@@ -363,12 +363,12 @@ namespace DotGram.Expressions;
 	// cannot be described by a list of values.
 	Element : @Element
 		= '{' & first: Expression & (',' & rest: Expression)* & '}'
-		  => @(new Element(ExpressionLanguage.Listed(first, rest)))
-		| only: Expression => @(ExpressionLanguage.Only(only))
+		  => @(new Element(ExpressionParser.Listed(first, rest)))
+		| only: Expression => @(ExpressionParser.Only(only))
 
 	Indices : @Expression[]
 		= '[' & first: Expression & (',' & rest: Expression)* & ']'
-		=> @(ExpressionLanguage.Listed(first, rest))
+		=> @(ExpressionParser.Listed(first, rest))
 
 	// The guard is the declaration: it runs while the text is read, which is the only
 	// moment this grammar has in the order it is written — and `parserSpan` is where it
@@ -441,7 +441,7 @@ namespace DotGram.Expressions;
 		| c: Switch  => @(c)
 
 	If : @Expression
-		= "if" & '(' & test: Expression & ')' & then: Branch & "else" & otherwise: Branch => @(ExpressionLanguage.Chosen(test, then, otherwise))
+		= "if" & '(' & test: Expression & ')' & then: Branch & "else" & otherwise: Branch => @(ExpressionParser.Chosen(test, then, otherwise))
 		| "if" & '(' & test: Expression & ')' & then: Statement => @(Expression.IfThen(test, then))
 
 	// The same `if` where a value is wanted: its branches are values, so the `;` after
@@ -450,7 +450,7 @@ namespace DotGram.Expressions;
 	// position keeps the rule above, whose branches are statements first.
 	IfValue : @Expression
 		= "if" & '(' & test: Expression & ')' & then: Value & "else" & otherwise: Value
-		  => @(ExpressionLanguage.Chosen(test, then, otherwise))
+		  => @(ExpressionParser.Chosen(test, then, otherwise))
 
 	// A branch is a statement where one was written and an expression where one was: C#
 	// only has the first, and the second is what `int n = if (c) 1 else 2;` needs. The
@@ -571,14 +571,14 @@ namespace DotGram.Expressions;
 		// a second. So a compound assignment writes to a name or a member of one, and only
 		// the plain `=` writes to an element.
 		= target: Name & at: Indices & '=' & ?!'=' & value: Assignment
-		  => @(Expression.Assign(ExpressionLanguage.Place(target, at), value))
+		  => @(Expression.Assign(ExpressionParser.Place(target, at), value))
 
 		| target: Target & "+="  & value: Assignment
-		  => @(ExpressionLanguage.AddAssign(target, value, parserState))
+		  => @(ExpressionParser.AddAssign(target, value, parserState))
 		| target: Target & "-="  & value: Assignment
-		  => @(ExpressionLanguage.SubtractAssign(target, value, parserState))
+		  => @(ExpressionParser.SubtractAssign(target, value, parserState))
 		| target: Target & "*="  & value: Assignment
-		  => @(ExpressionLanguage.MultiplyAssign(target, value, parserState))
+		  => @(ExpressionParser.MultiplyAssign(target, value, parserState))
 		| target: Target & "/="  & value: Assignment => @(Expression.DivideAssign(target, value))
 		| target: Target & "%="  & value: Assignment => @(Expression.ModuloAssign(target, value))
 		| target: Target & "&="  & value: Assignment => @(Expression.AndAssign(target, value))
@@ -602,8 +602,8 @@ namespace DotGram.Expressions;
 	// only work because it runs after the parse. What the guard asks is what the
 	// construction is about to do, so the two cannot drift.
 	Target : @Expression
-		= n: Name & ('.' & member: Word)? & when @(ExpressionLanguage.Has(n, member))
-		=> @(member is null ? n : ExpressionLanguage.Member(n, member))
+		= n: Name & ('.' & member: Word)? & when @(ExpressionParser.Has(n, member))
+		=> @(member is null ? n : ExpressionParser.Member(n, member))
 
 	// `?:` groups to the right and its condition is one level tighter, so `a ?? b ? c : d`
 	// is `(a ?? b) ? c : d` and `a ? b : c ? d : e` is `a ? b : (c ? d : e)`.
@@ -621,11 +621,11 @@ namespace DotGram.Expressions;
 	// why they are the only two that were written this way.
 	Conditional : @Expression
 		= test: Coalesce & ('?' & then: Conditional & ':' & otherwise: Conditional)?
-		  => @(ExpressionLanguage.Chosen(test, then, otherwise))
+		  => @(ExpressionParser.Chosen(test, then, otherwise))
 
 	Coalesce : @Expression
 		= left: Binary & ("??" & right: Coalesce)?
-		  => @(ExpressionLanguage.Coalesced(left, right))
+		  => @(ExpressionParser.Coalesced(left, right))
 
 	// C#'s ladder, from `||` down to `*`, as one rule with the strengths written down
 	// (§4.3.1) rather than as ten rules stacked on one another. The language and the tree
@@ -664,11 +664,11 @@ namespace DotGram.Expressions;
 		| left: Binary & '<' ~ '<' & right: Binary   << 8  => @(Expression.LeftShift(left, right))
 		| left: Binary & '>' ~ '>' & right: Binary   << 8  => @(Expression.RightShift(left, right))
 		| left: Binary & '+' & right: Binary         << 9
-		  => @(ExpressionLanguage.Add(left, right, parserState))
+		  => @(ExpressionParser.Add(left, right, parserState))
 		| left: Binary & '-' & right: Binary         << 9
-		  => @(ExpressionLanguage.Subtract(left, right, parserState))
+		  => @(ExpressionParser.Subtract(left, right, parserState))
 		| left: Binary & '*' & right: Binary         << 10
-		  => @(ExpressionLanguage.Multiply(left, right, parserState))
+		  => @(ExpressionParser.Multiply(left, right, parserState))
 		| left: Binary & '/' & right: Binary         << 10 => @(Expression.Divide(left, right))
 		| left: Binary & '%' & right: Binary         << 10 => @(Expression.Modulo(left, right))
 		| u: Unary                                          => @(u)
@@ -678,7 +678,7 @@ namespace DotGram.Expressions;
 	Unary : @Expression
 		= "++" & target: Name => @(Expression.PreIncrementAssign(target))
 		| "--" & target: Name => @(Expression.PreDecrementAssign(target))
-		| '-' & operand: Unary => @(ExpressionLanguage.Negate(operand, parserState))
+		| '-' & operand: Unary => @(ExpressionParser.Negate(operand, parserState))
 		| '+' & operand: Unary => @(Expression.UnaryPlus(operand))
 		| '!' & operand: Unary => @(Expression.Not(operand))
 		| '~' & operand: Unary => @(Expression.OnesComplement(operand))
@@ -688,7 +688,7 @@ namespace DotGram.Expressions;
 		// decide this because a type there may be a name; a language whose types are a
 		// closed set of keywords does not.
 		| '(' & type: Type & ')' & operand: Unary
-		  => @(ExpressionLanguage.Cast(operand, type, parserState))
+		  => @(ExpressionParser.Cast(operand, type, parserState))
 
 		| p: Postfix => @(p)
 
@@ -704,7 +704,7 @@ namespace DotGram.Expressions;
 		= target: Postfix & '.' & member: Word & args: Arguments
 		  => @(Expression.Call(target, member, null, args))
 
-		| target: Postfix & '.' & member: Word => @(ExpressionLanguage.Member(target, member))
+		| target: Postfix & '.' & member: Word => @(ExpressionParser.Member(target, member))
 
 		// Written through a rule of its own rather than inline, for a reason that is a
 		// generator defect and not a taste: a capture whose rule leads back into this fold
@@ -715,7 +715,7 @@ namespace DotGram.Expressions;
 		//
 		// It reads better for it: an index is a list, so a two-dimensional array and an
 		// indexer of two arguments are both written without another rule.
-		| target: Postfix & at: Indices => @(ExpressionLanguage.Indexed(target, at))
+		| target: Postfix & at: Indices => @(ExpressionParser.Indexed(target, at))
 
 		| target: Name & args: Arguments => @(Expression.Invoke(target, args))
 
@@ -732,7 +732,7 @@ namespace DotGram.Expressions;
 		// the `[]` back for a `"[]"` written here; the guard asks for an array type instead.
 		| "new" & type: Type & when @(type is { IsArray: true })
 		  & '{' & (first: Expression & (',' & rest: Expression)*)? & '}'
-		  => @(Expression.NewArrayInit(type.GetElementType()!, ExpressionLanguage.Listed(first, rest)))
+		  => @(Expression.NewArrayInit(type.GetElementType()!, ExpressionParser.Listed(first, rest)))
 		// An initializer is written after the constructor's own arguments, and which of the
 		// two it is is what stands inside the braces: `Name = value` sets a member, and an
 		// expression is an element to add. Both are one optional tail rather than three
@@ -741,7 +741,7 @@ namespace DotGram.Expressions;
 		// hold whole expressions. Nine nested `new`s took a second that way.
 		| "new" & type: Type & args: Arguments
 		  & (fields: Bindings | '{' & items: Elements & '}')?
-		  => @(ExpressionLanguage.Made(type, args, fields, items))
+		  => @(ExpressionParser.Made(type, args, fields, items))
 
 		// A type, then something of it. Told from `a.b` by the guard inside `NamedType`,
 		// which is the same question C# answers with a section of its own — a dotted name
@@ -752,7 +752,7 @@ namespace DotGram.Expressions;
 		// '(', which nothing at the end of a member name can be.
 		| type: NamedType & '.' & member: Word & args: Arguments?
 		  => @(args is null
-		       ? ExpressionLanguage.StaticMember(type, member)
+		       ? ExpressionParser.StaticMember(type, member)
 		       : Expression.Call(type, member, null, args))
 
 		// §7.8, and the one thing in this language that changes what a construction builds
@@ -843,7 +843,7 @@ namespace DotGram.Expressions;
 // ExpressionCarrierTests asks. Nothing in this language needs a construction deferred —
 // the one place that did, a name resolved by a factory that threw, is a `when` now.
 [GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
-public static partial class ExpressionLanguage
+public static partial class ExpressionParser
 {
 	// ParseLambda and TryParseLambda are generated here.
 

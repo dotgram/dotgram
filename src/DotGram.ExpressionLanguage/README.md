@@ -8,9 +8,9 @@ compiled, so nothing here carries a parser runtime, and neither does anything th
 references it.
 
 ```csharp
-using DotGram.Expressions;
+using DotGram.ExpressionLanguage;
 
-var square = ExpressionLanguage.Compile<Func<int, int>>("(int x) => x * x - 1");
+var square = ExpressionParser.Compile<Func<int, int>>("(int x) => x * x - 1");
 
 square(3); // 8
 ```
@@ -18,7 +18,7 @@ square(3); // 8
 It supports parameters, local variables, blocks, and `return`:
 
 ```csharp
-var calculate = ExpressionLanguage.Compile<Func<int, int, int>>(
+var calculate = ExpressionParser.Compile<Func<int, int, int>>(
     """
     (int x, int y) =>
     {
@@ -33,7 +33,7 @@ calculate(2, 3); // 25
 Or keep the expression tree instead of compiling it:
 
 ```csharp
-var expression = ExpressionLanguage.Parse("(double x) => x / 2.0");
+var expression = ExpressionParser.Parse("(double x) => x / 2.0");
 
 Console.WriteLine(expression);   // x => (x / 2)
 ```
@@ -44,7 +44,7 @@ means a factory that does not exist, or one handed the wrong type, is a C# error
 line of the grammar that asked for it rather than an exception at run time.
 
 The grammar and the C# it calls are one file,
-[`ExpressionLanguage.cs`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.ExpressionLanguage/ExpressionLanguage.cs).
+[`ExpressionParser.cs`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.ExpressionLanguage/ExpressionParser.cs).
 
 ## Taking it
 

@@ -58,7 +58,7 @@ public sealed class SharedPrefixTests
 	/// </summary>
 	/// <remarks>
 	/// The scope this widened from. Reporting only where the cost compounds with nesting
-	/// left `ExpressionLanguage`'s `Assignment` unmentioned — eleven alternatives each
+	/// left `ExpressionParser`'s `Assignment` unmentioned — eleven alternatives each
 	/// reading a non-recursive operand — where a profile then found reading a body of one
 	/// identifier costing 18 microseconds, most of what the parse cost.
 	/// </remarks>

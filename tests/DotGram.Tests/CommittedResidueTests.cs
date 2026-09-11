@@ -22,7 +22,7 @@ namespace DotGram.Tests;
 /// that choice stayed alive in the arena, and a failed parse came back to it, "reread" the
 /// same span the other way, and walked everything after it again toward the same failure —
 /// once per literal, which made refusing exponential where accepting was linear:
-/// 74/327/1299 us at two, four and six parentheses in <c>ExpressionLanguage</c>, against
+/// 74/327/1299 us at two, four and six parentheses in <c>ExpressionParser</c>, against
 /// 26/47/75 for accepting one character more.
 /// </para>
 /// <para>

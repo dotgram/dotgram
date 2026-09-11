@@ -205,7 +205,7 @@ to quote here, so this is where to read them:
   ([Versions of one language](#versions-of-one-language)). Held against Microsoft's own
   parser, ScriptDom, every statement of ScriptDom's test corpus that both of them read
   comes back through ScriptDom as the same statement.
-* [`ExpressionLanguage.cs`](src/DotGram.ExpressionLanguage/ExpressionLanguage.cs) — a
+* [`ExpressionParser.cs`](src/DotGram.ExpressionLanguage/ExpressionParser.cs) — a
   C#-style expression language in over 80 rules, inside the `[Gram]` attribute beside the
   C# they call. It builds `System.Linq.Expressions` trees directly, with parameters,
   locals, blocks and `return`.
@@ -503,9 +503,9 @@ C#-style expression language with parameters, locals, blocks and `return`. It ca
 afterwards:
 
 ```csharp
-using DotGram.Expressions;
+using DotGram.ExpressionLanguage;
 
-var square = ExpressionLanguage.Compile<Func<int, int>>("(int x) => x * x - 1");
+var square = ExpressionParser.Compile<Func<int, int>>("(int x) => x * x - 1");
 
 square(3);  // 8
 ```

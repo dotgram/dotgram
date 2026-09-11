@@ -200,7 +200,7 @@ public sealed class TerminalInventoryTests
 	/// A rule that is a choice of literals is a set of terminals, and becomes a range.
 	/// </summary>
 	/// <remarks>
-	/// <c>ExpressionLanguage</c> is where this matters: `Keyword` lists thirty-eight words
+	/// <c>ExpressionParser</c> is where this matters: `Keyword` lists thirty-eight words
 	/// in a lexical namespace, every one of which also stands in the syntax as a literal of
 	/// its own, and it is reached only through <c>Name = ?!Keyword &amp; Word</c>. Given a
 	/// kind of its own the lexer would have to decide whether <c>if</c> is the word or the

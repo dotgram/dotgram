@@ -85,7 +85,7 @@ public readonly record struct SqlSpan(int At, int Length)
 /// <para>
 /// A grammar asks for this by naming the interface —
 /// <c>[Gram("X.gram", LocationType = typeof(ISqlSpan))]</c> — and a grammar that does not ask
-/// pays nothing: <c>Rfc3986</c> and <c>ExpressionLanguage</c> are recognizers and want no
+/// pays nothing: <c>Rfc3986</c> and <c>ExpressionParser</c> are recognizers and want no
 /// positions, which is what <c>docs/ast.md</c> says and stays true where it was right.
 /// </para>
 /// </remarks>

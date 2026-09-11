@@ -783,7 +783,7 @@ public sealed class SemanticTests
 		// Splitting the last segment off a path: two alternatives are the only way to say
 		// it, and the operand gives back so the tail fits. This used to go unreported on
 		// the grounds that nothing nests here and so nothing doubles per level — until a
-		// profile of `ExpressionLanguage` found a flat eleven readings of one operand
+		// profile of `ExpressionParser` found a flat eleven readings of one operand
 		// costing most of a parse. Flat is still worth saying.
 		Reported(
 			"""

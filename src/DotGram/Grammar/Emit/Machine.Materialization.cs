@@ -239,7 +239,7 @@ sealed partial class Machine
 
 		// Local functions, for the same reason the recognizer is written in them
 		// (Machine.Parts.cs): the compiler below stops optimizing a method past about two
-		// thousand basic blocks, the limit is per method, and `ExpressionLanguage`'s
+		// thousand basic blocks, the limit is per method, and `ExpressionParser`'s
 		// materializer was past it on its own. The C# compiler writes the frame that
 		// carries the tables and the arena into each part; the span cannot be a field of
 		// any frame and is handed over instead.

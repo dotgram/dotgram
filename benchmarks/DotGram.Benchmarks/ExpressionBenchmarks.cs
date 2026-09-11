@@ -5,12 +5,12 @@ using System.Linq.Expressions;
 
 using BenchmarkDotNet.Attributes;
 
-using DotGram.Expressions;
+using DotGram.ExpressionLanguage;
 
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// <c>src/DotGram.ExpressionLanguage/ExpressionLanguage.cs</c>: the largest grammar in this
+/// <c>src/DotGram.ExpressionLanguage/ExpressionParser.cs</c>: the largest grammar in this
 /// repository, over the shapes a lambda is actually written in.
 /// </summary>
 /// <remarks>
@@ -138,7 +138,7 @@ public class ExpressionBenchmarks
 	[GlobalSetup]
 	public void CheckItReadsAsClaimed()
 	{
-		var match  = ExpressionLanguage.TryParse(Input);
+		var match  = ExpressionParser.TryParse(Input);
 		var should = Array.IndexOf(Refusals, Input) < 0;
 
 		if (match.IsSuccess != should)
@@ -150,7 +150,7 @@ public class ExpressionBenchmarks
 	[Benchmark]
 	public LambdaExpression? Parse()
 	{
-		var match = ExpressionLanguage.TryParse(Input);
+		var match = ExpressionParser.TryParse(Input);
 
 		return match.IsSuccess ? match.Value : null;
 	}

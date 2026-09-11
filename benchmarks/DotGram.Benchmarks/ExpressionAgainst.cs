@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 
-using DotGram.Expressions;
+using DotGram.ExpressionLanguage;
 
 namespace DotGram.Benchmarks;
 
@@ -23,7 +23,7 @@ namespace DotGram.Benchmarks;
 /// grammar with the constructions run where they are read, which is what the hand-written
 /// parser does. And the hand-written one is the mark: a lexer over the whole input and a
 /// recursive descent over the tokens, calling the same factories and handing the same
-/// <see cref="ExpressionLanguage.State"/> the same spans.
+/// <see cref="ExpressionParser.State"/> the same spans.
 /// </para>
 /// </remarks>
 static class ExpressionAgainst
@@ -314,13 +314,13 @@ static class ExpressionAgainst
 
 	static bool Read(bool immediate)
 	{
-		var state = new ExpressionLanguage.State();
+		var state = new ExpressionParser.State();
 
 		try
 		{
 			return immediate
-				? ExpressionLanguage.Immediate.TryParseLambda(_input, state).IsSuccess
-				: ExpressionLanguage.TryParseLambda(_input, state).IsSuccess;
+				? ExpressionParser.Immediate.TryParseLambda(_input, state).IsSuccess
+				: ExpressionParser.TryParseLambda(_input, state).IsSuccess;
 		}
 		catch (Exception exception) when (exception is FormatException or ArgumentException or InvalidOperationException)
 		{
@@ -374,10 +374,10 @@ static class ExpressionAgainst
 			}
 			else
 			{
-				var state = new ExpressionLanguage.State();
+				var state = new ExpressionParser.State();
 				var match = which == Reading.Immediate
-					? ExpressionLanguage.Immediate.TryParseLambda(text, state)
-					: ExpressionLanguage.TryParseLambda(text, state);
+					? ExpressionParser.Immediate.TryParseLambda(text, state)
+					: ExpressionParser.TryParseLambda(text, state);
 
 				lambda = match.IsSuccess ? match.Value : null;
 			}

@@ -2227,7 +2227,7 @@ public sealed class GeneratorDriverTests
 	/// spelling of the literal (<c>InlineLineMap</c>). Looking for each from where the one
 	/// before it was found is what makes a repeated line answerable: searching the whole
 	/// spelling instead finds two and refuses, which cost the expression language eleven of
-	/// its constructions their directive — <c>=&gt; @(ExpressionLanguage.Listed(first,
+	/// its constructions their directive — <c>=&gt; @(ExpressionParser.Listed(first,
 	/// rest))</c> is written there five times over.
 	/// </remarks>
 	[Fact]

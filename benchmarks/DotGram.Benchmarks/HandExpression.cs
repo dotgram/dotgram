@@ -3,25 +3,25 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq.Expressions;
 
-using DotGram.Expressions;
+using DotGram.ExpressionLanguage;
 
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// The expression language of <see cref="ExpressionLanguage"/>, written by hand: a lexer
+/// The expression language of <see cref="ExpressionParser"/>, written by hand: a lexer
 /// over the whole input and a recursive descent over the tokens it makes.
 /// </summary>
 /// <remarks>
 /// <para>
 /// What <see cref="HandSqlTokens"/> is to <c>SqlStandard92</c>, this is to
-/// <c>ExpressionLanguage</c> — the mark a generated parser is measured against, and the
+/// <c>ExpressionParser</c> — the mark a generated parser is measured against, and the
 /// answer to "how fast would a person have written this". It has to keep <em>looking</em>
 /// hand-written: what is here is what someone would write who knew the language and cared
 /// about the result, and nothing is shaped by how the generator happens to work.
 /// </para>
 /// <para>
 /// It calls the same factories the grammar's <c>=&gt;</c> calls, and hands the same
-/// <see cref="ExpressionLanguage.State"/> the same spans. That is deliberate: what is
+/// <see cref="ExpressionParser.State"/> the same spans. That is deliberate: what is
 /// being compared is the reading, not the building, and a second implementation of scopes
 /// and names would be a second thing to be wrong. The same reason
 /// <see cref="HandSqlTokens"/> builds the shipped tree rather than one of its own.
@@ -710,7 +710,7 @@ static class HandExpression
 		if (!Lex(text, tokens))
 			return null;
 
-		var reader = new Reader(tokens, text, new ExpressionLanguage.State());
+		var reader = new Reader(tokens, text, new ExpressionParser.State());
 		var end    = reader.Lambda(0, out var node);
 
 		return end == tokens.Count ? node : null;
@@ -747,7 +747,7 @@ static class HandExpression
 	/// into an <c>out</c> parameter — the position is the return value because every
 	/// caller needs it, the node an argument because only some do.
 	/// </remarks>
-	ref struct Reader(Tokens tokens, string text, ExpressionLanguage.State context)
+	ref struct Reader(Tokens tokens, string text, ExpressionParser.State context)
 	{
 		readonly byte[] _kinds   = tokens.Kinds;
 		readonly int[]  _starts  = tokens.Starts;
@@ -755,24 +755,24 @@ static class HandExpression
 		readonly int    _count   = tokens.Count;
 		readonly string _text    = text;
 
-		readonly ExpressionLanguage.State _context = context;
+		readonly ExpressionParser.State _context = context;
 
 		// What the text being read stands under (§7.8 of the grammar). Two of these is
 		// already more than any expression written by a person, and it grows if it has to.
-		ExpressionLanguage.Reading[] _marks = new ExpressionLanguage.Reading[8];
+		ExpressionParser.Reading[] _marks = new ExpressionParser.Reading[8];
 		int _marked;
 
 		readonly byte Kind(int i) => i < _count ? _kinds[i] : End;
 
 		/// <summary>Where the tokens from one to another stand in the input.</summary>
-		readonly ExpressionLanguage.SourceSpan Span(int from, int to) =>
+		readonly ExpressionParser.SourceSpan Span(int from, int to) =>
 			new(_starts[from], _starts[to - 1] + _lengths[to - 1] - _starts[from]);
 
 		readonly string Cut(int i) => _text.Substring(_starts[i], _lengths[i]);
 
-		readonly ReadOnlySpan<ExpressionLanguage.Reading> Marks => new(_marks, 0, _marked);
+		readonly ReadOnlySpan<ExpressionParser.Reading> Marks => new(_marks, 0, _marked);
 
-		void Mark(ExpressionLanguage.Reading reading)
+		void Mark(ExpressionParser.Reading reading)
 		{
 			if (_marked == _marks.Length)
 				Array.Resize(ref _marks, _marked * 2);
@@ -928,16 +928,16 @@ static class HandExpression
 
 					if (closed >= 0)
 					{
-						type = ExpressionLanguage.Generic(name, arguments!);
+						type = ExpressionParser.Generic(name, arguments!);
 
 						return closed;
 					}
 				}
 
-				if (!ExpressionLanguage.Resolves(name))
+				if (!ExpressionParser.Resolves(name))
 					continue;
 
-				type = ExpressionLanguage.TypeNamed(name);
+				type = ExpressionParser.TypeNamed(name);
 
 				return after;
 			}
@@ -1170,7 +1170,7 @@ static class HandExpression
 
 				if (otherwise >= 0)
 				{
-					node = ExpressionLanguage.Chosen(read!, whenTrue, whenFalse);
+					node = ExpressionParser.Chosen(read!, whenTrue, whenFalse);
 
 					return otherwise;
 				}
@@ -1209,7 +1209,7 @@ static class HandExpression
 			if (otherwise < 0)
 				return -1;
 
-			node = ExpressionLanguage.Chosen(read!, whenTrue, whenFalse);
+			node = ExpressionParser.Chosen(read!, whenTrue, whenFalse);
 
 			return otherwise;
 		}
@@ -1590,7 +1590,7 @@ static class HandExpression
 						if (value < 0)
 							return -1;
 
-						node = Expression.Assign(ExpressionLanguage.Place(written!, indices!), read!);
+						node = Expression.Assign(ExpressionParser.Place(written!, indices!), read!);
 
 						return value;
 					}
@@ -1630,9 +1630,9 @@ static class HandExpression
 		readonly Expression Assigned(byte operation, Expression target, Expression value) =>
 			operation switch
 			{
-				PlusAssign    => ExpressionLanguage.AddAssign(target, value, Marks),
-				MinusAssign   => ExpressionLanguage.SubtractAssign(target, value, Marks),
-				StarAssign    => ExpressionLanguage.MultiplyAssign(target, value, Marks),
+				PlusAssign    => ExpressionParser.AddAssign(target, value, Marks),
+				MinusAssign   => ExpressionParser.SubtractAssign(target, value, Marks),
+				StarAssign    => ExpressionParser.MultiplyAssign(target, value, Marks),
 				SlashAssign   => Expression.DivideAssign(target, value),
 				PercentAssign => Expression.ModuloAssign(target, value),
 				AmpAssign     => Expression.AndAssign(target, value),
@@ -1656,10 +1656,10 @@ static class HandExpression
 
 			var member = Cut(at + 1);
 
-			if (!ExpressionLanguage.Has(node!, member))
+			if (!ExpressionParser.Has(node!, member))
 				return at;
 
-			node = ExpressionLanguage.Member(node!, member);
+			node = ExpressionParser.Member(node!, member);
 
 			return at + 2;
 		}
@@ -1681,7 +1681,7 @@ static class HandExpression
 			if (otherwise < 0)
 				return -1;
 
-			node = ExpressionLanguage.Chosen(node!, whenTrue, whenFalse);
+			node = ExpressionParser.Chosen(node!, whenTrue, whenFalse);
 
 			return otherwise;
 		}
@@ -1712,7 +1712,7 @@ static class HandExpression
 				if (right < 0)
 					return -1;
 
-				node = ExpressionLanguage.Coalesced(node!, other);
+				node = ExpressionParser.Coalesced(node!, other);
 
 				return right;
 			}
@@ -1816,9 +1816,9 @@ static class HandExpression
 				GreaterEq => Expression.GreaterThanOrEqual(left, right),
 				Less      => Expression.LessThan(left, right),
 				Greater   => Expression.GreaterThan(left, right),
-				Plus      => ExpressionLanguage.Add(left, right, Marks),
-				Minus     => ExpressionLanguage.Subtract(left, right, Marks),
-				Star      => ExpressionLanguage.Multiply(left, right, Marks),
+				Plus      => ExpressionParser.Add(left, right, Marks),
+				Minus     => ExpressionParser.Subtract(left, right, Marks),
+				Star      => ExpressionParser.Multiply(left, right, Marks),
 				Slash     => Expression.Divide(left, right),
 				_         => Expression.Modulo(left, right),
 			};
@@ -1860,7 +1860,7 @@ static class HandExpression
 
 				node = kind switch
 				{
-					Minus => ExpressionLanguage.Negate(operand!, Marks),
+					Minus => ExpressionParser.Negate(operand!, Marks),
 					Plus  => Expression.UnaryPlus(operand!),
 					Not   => Expression.Not(operand!),
 					_     => Expression.OnesComplement(operand!),
@@ -1881,7 +1881,7 @@ static class HandExpression
 
 					if (operand >= 0)
 					{
-						node = ExpressionLanguage.Cast(read!, type!, Marks);
+						node = ExpressionParser.Cast(read!, type!, Marks);
 
 						return operand;
 					}
@@ -1952,7 +1952,7 @@ static class HandExpression
 						continue;
 					}
 
-					node = ExpressionLanguage.Member(node!, member);
+					node = ExpressionParser.Member(node!, member);
 					at  += 2;
 
 					continue;
@@ -1965,7 +1965,7 @@ static class HandExpression
 					if (indices < 0)
 						break;
 
-					node = ExpressionLanguage.Indexed(node!, read!);
+					node = ExpressionParser.Indexed(node!, read!);
 					at   = indices;
 
 					continue;
@@ -2005,7 +2005,7 @@ static class HandExpression
 						return arguments;
 					}
 
-					node = ExpressionLanguage.StaticMember(type!, member);
+					node = ExpressionParser.StaticMember(type!, member);
 
 					return named + 2;
 				}
@@ -2017,8 +2017,8 @@ static class HandExpression
 					return -1;
 
 				Mark(kind == KwChecked
-					? ExpressionLanguage.Reading.Checked
-					: ExpressionLanguage.Reading.Unchecked);
+					? ExpressionParser.Reading.Checked
+					: ExpressionParser.Reading.Unchecked);
 
 				var inner = Expr(i + 2, out node);
 
@@ -2135,8 +2135,8 @@ static class HandExpression
 			if (arguments < 0)
 				return -1;
 
-			var fields   = default(ExpressionLanguage.Setting[]);
-			var elements = default(ExpressionLanguage.Element[]);
+			var fields   = default(ExpressionParser.Setting[]);
+			var elements = default(ExpressionParser.Element[]);
 			var after    = arguments;
 
 			// One tail rather than three alternatives: what stands inside the braces is
@@ -2158,19 +2158,19 @@ static class HandExpression
 				}
 			}
 
-			node = ExpressionLanguage.Made(type, args!, fields, elements);
+			node = ExpressionParser.Made(type, args!, fields, elements);
 
 			return after;
 		}
 
-		int Bindings(int i, out ExpressionLanguage.Setting[]? settings)
+		int Bindings(int i, out ExpressionParser.Setting[]? settings)
 		{
 			settings = null;
 
 			if (Kind(i) != LeftBrace)
 				return -1;
 
-			var read = new List<ExpressionLanguage.Setting>();
+			var read = new List<ExpressionParser.Setting>();
 			var at   = Binding(i + 1, out var first);
 
 			if (at < 0)
@@ -2197,7 +2197,7 @@ static class HandExpression
 			return at + 1;
 		}
 
-		int Binding(int i, out ExpressionLanguage.Setting setting)
+		int Binding(int i, out ExpressionParser.Setting setting)
 		{
 			setting = default;
 
@@ -2212,7 +2212,7 @@ static class HandExpression
 
 				if (nested >= 0)
 				{
-					setting = new ExpressionLanguage.Setting(name, null, inside, null);
+					setting = new ExpressionParser.Setting(name, null, inside, null);
 
 					return nested;
 				}
@@ -2221,7 +2221,7 @@ static class HandExpression
 
 				if (listed >= 0 && Kind(listed) == RightBrace)
 				{
-					setting = new ExpressionLanguage.Setting(name, null, null, items);
+					setting = new ExpressionParser.Setting(name, null, null, items);
 
 					return listed + 1;
 				}
@@ -2232,16 +2232,16 @@ static class HandExpression
 			if (value < 0)
 				return -1;
 
-			setting = new ExpressionLanguage.Setting(name, read, null, null);
+			setting = new ExpressionParser.Setting(name, read, null, null);
 
 			return value;
 		}
 
-		int Elements(int i, out ExpressionLanguage.Element[]? elements)
+		int Elements(int i, out ExpressionParser.Element[]? elements)
 		{
 			elements = null;
 
-			var read = new List<ExpressionLanguage.Element>();
+			var read = new List<ExpressionParser.Element>();
 			var at   = Element(i, out var first);
 
 			if (at < 0)
@@ -2265,7 +2265,7 @@ static class HandExpression
 			return at;
 		}
 
-		int Element(int i, out ExpressionLanguage.Element element)
+		int Element(int i, out ExpressionParser.Element element)
 		{
 			element = default;
 
@@ -2295,7 +2295,7 @@ static class HandExpression
 				if (Kind(at) != RightBrace)
 					return -1;
 
-				element = new ExpressionLanguage.Element(arguments.ToArray());
+				element = new ExpressionParser.Element(arguments.ToArray());
 
 				return at + 1;
 			}
@@ -2305,7 +2305,7 @@ static class HandExpression
 			if (only < 0)
 				return -1;
 
-			element = ExpressionLanguage.Only(value!);
+			element = ExpressionParser.Only(value!);
 
 			return only;
 		}

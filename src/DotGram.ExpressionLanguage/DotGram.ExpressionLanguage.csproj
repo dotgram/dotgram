@@ -6,11 +6,6 @@
 		     the shims. -->
 		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
 
-		<!-- Not the project's name, which is what it would default to. The type is
-		     `ExpressionLanguage`, and a namespace of the same name would make that simple
-		     name mean the namespace in any code inside DotGram.* — the tests, for one. -->
-		<RootNamespace>DotGram.Expressions</RootNamespace>
-
 		<Description>A C#-style expression language written in .gram, compiled straight into System.Linq.Expressions trees.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>expressions;expression-tree;linq;linq-expressions;parser;csharp;dsl;dotgram</PackageTags>
