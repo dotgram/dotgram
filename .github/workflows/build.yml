@@ -65,12 +65,24 @@ jobs:
           if [ -d lib ]; then echo "generator package has a lib/ folder:"; find lib -type f; exit 1; fi
           cd ..
 
+          # What nuget.org shows before anyone reads a word, and what no later version can
+          # change for this one: the icon, where the project lives, and what to search for.
+          check_face() {
+            test -f "$1/icon.png"                             || { echo "$1: icon missing";       exit 1; }
+            grep -q '<icon>icon.png</icon>'       "$1"/*.nuspec || { echo "$1: no <icon>";         exit 1; }
+            grep -q '<projectUrl>'                "$1"/*.nuspec || { echo "$1: no <projectUrl>";   exit 1; }
+            grep -q '<tags>'                      "$1"/*.nuspec || { echo "$1: no <tags>";         exit 1; }
+            grep -q '<releaseNotes>'              "$1"/*.nuspec || { echo "$1: no <releaseNotes>"; exit 1; }
+          }
+          check_face generator
+
           unzip -o -q DotGram.Parsers.*.nupkg -d parsers
           cd parsers
           test -f lib/netstandard2.0/DotGram.Parsers.dll || { echo "netstandard2.0 assembly missing"; exit 1; }
           test -f lib/net10.0/DotGram.Parsers.dll        || { echo "net10.0 assembly missing";        exit 1; }
           test -f README.md                              || { echo "readme missing";                  exit 1; }
           if [ -d analyzers ]; then echo "parser package carries the generator:"; find analyzers -type f; exit 1; fi
+          cd .. && check_face parsers && cd parsers
           # No runtime assembly ships (docs/syntax.md §6.1), so the only dependency a
           # parser may acquire is what its framework is missing: System.Memory, for the
           # `ReadOnlySpan<char>` the generated methods take, on netstandard2.0 alone. A
