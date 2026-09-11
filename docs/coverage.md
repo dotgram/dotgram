@@ -24,32 +24,29 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 98.2% | 7861 | 142 | 0 | 4 | 85 | 250 | 0 |
+| **all** | 996 | 8338 | 98.6% | 7887 | 116 | 0 | 4 | 85 | 250 | 0 |
 | [data-types](#data-types) | 29 | 304 | 99.7% | 290 | 1 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 98.7% | 233 | 3 | 0 | 0 | 1 | 5 | 0 |
-| [functions](#functions) | 324 | 2101 | 99.6% | 2074 | 8 | 0 | 3 | 2 | 17 | 0 |
+| [functions](#functions) | 324 | 2101 | 99.8% | 2077 | 5 | 0 | 3 | 2 | 17 | 0 |
 | [includes](#includes) | 3 | 7 | 100.0% | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
-| [language-elements](#language-elements) | 86 | 868 | 98.0% | 837 | 17 | 0 | 0 | 0 | 14 | 0 |
+| [language-elements](#language-elements) | 86 | 868 | 98.1% | 838 | 16 | 0 | 0 | 0 | 14 | 0 |
 | [queries](#queries) | 37 | 747 | 98.2% | 711 | 13 | 0 | 0 | 1 | 22 | 0 |
 | [reference](#reference) | 3 | 32 | 96.9% | 31 | 1 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 99.7% | 310 | 1 | 0 | 0 | 0 | 1 | 0 |
 | [spatial-geometry](#spatial-geometry) | 74 | 357 | 99.7% | 356 | 1 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 96.7% | 2811 | 97 | 0 | 1 | 81 | 174 | 0 |
+| [statements](#statements) | 320 | 3163 | 97.4% | 2833 | 75 | 0 | 1 | 81 | 174 | 0 |
 | [xml](#xml) | 12 | 205 | 100.0% | 201 | 0 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
 
 | Statement | statements | pages | for example |
 | --- | ---: | ---: | --- |
-| CREATE TYPE | 10 | 5 | stops at TYPE — `CREATE TYPE NewType FROM int;` |
-| CREATE XML SCHEMA | 10 | 3 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION MyColl AS ' <schema xmlns="http://www.w3.org/2001/XMLS...` |
 | CREATE SPATIAL INDEX | 9 | 3 | stops at SPATIAL — `CREATE SPATIAL INDEX sample_idx on sample(g);` |
 | KILL | 8 | 4 | stops at KILL — `KILL QUERY NOTIFICATION SUBSCRIPTION ALL ;` |
 | ADD | 7 | 2 | stops at ADD — `ADD SENSITIVITY CLASSIFICATION TO dbo.sales.price, dbo.sales.discount WITH ( LABEL ...` |
 | CREATE ASSEMBLY | 7 | 6 | stops at ASSEMBLY — `CREATE ASSEMBLY mytest FROM 'c:\test.dll' WITH PERMISSION_SET = SAFE` |
 | INSERT | 6 | 6 | stops at ';' — `INSERT INTO likes($edge_id, $from_id, $to_id, rating) SELECT EDGE_ID_FROM_PARTS(OBJ...` |
 | TRUNCATE | 6 | 4 | stops at TRUNCATE — `TRUNCATE TABLE dbo.ErrorLog` |
-| CREATE SYNONYM | 5 | 3 | stops at SYNONYM — `CREATE SYNONYM MyEmployeeTable FOR HumanResources.Employee;` |
 | DISABLE | 5 | 2 | stops at DISABLE — `DISABLE TRIGGER Person.uAddress ON Person.Address;` |
 | IF | 4 | 1 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
 | ALTER ASSEMBLY | 3 | 1 | stops at ASSEMBLY — `ALTER ASSEMBLY ComplexNumber FROM 'C:\Program Files\Microsoft SQL Server\130\Tools\...` |
@@ -74,7 +71,6 @@ rest run rather than read.
 | ALTER EXTERNAL LANGUAGE | 1 | 1 | stops at LANGUAGE — `ALTER EXTERNAL LANGUAGE Java SET (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaexte...` |
 | ALTER SERVICE | 1 | 1 | stops at KEY — `ALTER SERVICE MASTER KEY REGENERATE;` |
 | ALTER TABLE | 1 | 1 | stops at WITH — `ALTER TABLE dbo.doc_exf ADD AddDate smalldatetime NULL CONSTRAINT AddDateDflt DEFAU...` |
-| ALTER XML SCHEMA | 1 | 1 | stops at XML — `ALTER XML SCHEMA COLLECTION MyColl ADD ' <schema xmlns="http://www.w3.org/2001/XMLS...` |
 | COPY | 1 | 1 | stops at COPY — `Copy` |
 | CREATE AGGREGATE | 1 | 1 | stops at AGGREGATE — `CREATE AGGREGATE Concatenate(@input nvarchar(4000)) RETURNS nvarchar(4000) EXTERNAL...` |
 | CREATE CRYPTOGRAPHIC PROVIDER | 1 | 1 | stops at CRYPTOGRAPHIC — `CREATE CRYPTOGRAPHIC PROVIDER SecurityProvider FROM FILE = 'C:\SecurityProvider\Sec...` |
@@ -174,11 +170,9 @@ None: the engine reads every statement this grammar reads.
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | OPENJSON (Transact-SQL) | 23 | 100.0% | 0 | 0 | 3 | 0 | levels 100 engine, 110 engine, 120 engine — `SELECT * FROM OPENJSON(@array) WITH (  month VARCHAR(3), temp int, month_id tinyint...` |
 | TEXTPTR (Transact-SQL) | 20 | 90.0% | 2 | 0 | 0 | 0 | stops at READTEXT — `READTEXT t1.c2 @ptrval 0 1;` |
-| TYPE_ID (Transact-SQL) | 7 | 71.4% | 2 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE NewType FROM int;` |
 | DATE_BUCKET (Transact-SQL) | 27 | 96.3% | 1 | 0 | 0 | 0 | stops at ';' — `DECLARE @days INT = 365, @datetime DATETIME2 = '2000-01-01 01:01:01.1110000'; /* 20...` |
 | EDGE_ID_FROM_PARTS (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at ';' — `INSERT INTO likes($edge_id, $from_id, $to_id, rating) SELECT EDGE_ID_FROM_PARTS(OBJ...` |
 | NODE_ID_FROM_PARTS (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at ';' — `INSERT INTO Person($node_id, ID, [name]) SELECT NODE_ID_FROM_PARTS(OBJECT_ID('Perso...` |
-| OBJECTPROPERTYEX (Transact-SQL) | 10 | 90.0% | 1 | 0 | 0 | 0 | stops at SYNONYM — `CREATE SYNONYM MyEmployeeTable FOR HumanResources.Employee;` |
 | ABS (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ACOS (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | APP_NAME (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -376,6 +370,7 @@ None: the engine reads every statement this grammar reads.
 | OBJECT_NAME (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OBJECT_SCHEMA_NAME (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OBJECTPROPERTY (Transact-SQL) | 8 | 100.0% | 0 | 0 | 0 | 0 |  |
+| OBJECTPROPERTYEX (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ODBC Scalar Functions (Transact-SQL) | 38 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OPENDATASOURCE (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OPENQUERY (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -476,6 +471,7 @@ None: the engine reads every statement this grammar reads.
 | TRY_CAST (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | TRY_CONVERT (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | TRY_PARSE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
+| TYPE_ID (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | TYPE_NAME (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | TYPEPROPERTY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | UNICODE (Transact-SQL) | 8 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -513,11 +509,11 @@ None: the engine reads every statement this grammar reads.
 | Transactions (Azure Synapse Analytics and Microsoft Fabric) | 11 | 72.7% | 3 | 0 | 0 | 0 | stops at AUTOCOMMIT — `SET AUTOCOMMIT ON;` |
 | EXECUTE (Transact-SQL) | 69 | 97.1% | 2 | 0 | 0 | 0 | stops at DBO — `dbo.uspGetEmployeeManagers 6;` |
 | KILL QUERY NOTIFICATION SUBSCRIPTION | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at KILL — `KILL QUERY NOTIFICATION SUBSCRIPTION ALL ;` |
-| SET @local_variable (Transact-SQL) | 54 | 96.3% | 2 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY mytest FROM 'c:\test.dll' WITH PERMISSION_SET = SAFE` |
 | CREATE DIAGNOSTICS SESSION (Transact-SQL) | 9 | 83.3% | 1 | 0 | 0 | 0 | stops at DIAGNOSTICS — `-- Determine the session_id of your current session SELECT TOP 1 session_id();  -- ...` |
 | KILL STATS JOB (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at KILL — `KILL STATS JOB 53;` |
 | NULLIF (Transact-SQL) | 19 | 94.7% | 1 | 0 | 0 | 0 | stops at COPY — `Copy` |
 | RECONFIGURE (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at RECONFIGURE — `RECONFIGURE WITH OVERRIDE;` |
+| SET @local_variable (Transact-SQL) | 54 | 98.1% | 1 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY mytest FROM 'c:\test.dll' WITH PERMISSION_SET = SAFE` |
 | + (Addition) (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALL (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | AND (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -808,15 +804,11 @@ None: the engine reads every statement this grammar reads.
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | CREATE SPATIAL INDEX (Transact-SQL) | 9 | 22.2% | 7 | 0 | 0 | 0 | stops at SPATIAL — `CREATE SPATIAL INDEX SIndx_SpatialTable_geometry_col1 ON SpatialTable(geometry_col)...` |
 | ADD SIGNATURE (Transact-SQL) | 41 | 87.8% | 5 | 0 | 0 | 0 | stops at ADD — `ADD SIGNATURE TO HumanResources.uspUpdateEmployeeLogin BY CERTIFICATE HumanResource...` |
-| ALTER XML SCHEMA COLLECTION (Transact-SQL) | 19 | 70.6% | 5 | 0 | 0 | 0 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION MyColl AS ' <schema xmlns="http://www.w3.org/2001/XMLS...` |
-| CREATE PROCEDURE (Transact-SQL) | 61 | 91.8% | 5 | 0 | 0 | 0 | stops at HUMANRESOURCES — `HumanResources.uspGetAllEmployees;` |
-| CREATE TYPE (Transact-SQL) | 10 | 44.4% | 5 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE dbo.udt_money FROM varchar(11) NOT NULL;` |
-| CREATE XML SCHEMA COLLECTION (Transact-SQL) | 18 | 72.2% | 5 | 0 | 0 | 0 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION ManuInstructionsSchemaCollection AS N'<?xml version="1...` |
 | ENABLE TRIGGER (Transact-SQL) | 6 | 16.7% | 5 | 0 | 0 | 0 | stops at DISABLE — `DISABLE TRIGGER Person.uAddress ON Person.Address;` |
+| CREATE PROCEDURE (Transact-SQL) | 61 | 93.4% | 4 | 0 | 0 | 0 | stops at HUMANRESOURCES — `HumanResources.uspGetAllEmployees;` |
 | ALTER ASSEMBLY (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at ASSEMBLY — `ALTER ASSEMBLY ComplexNumber FROM 'C:\Program Files\Microsoft SQL Server\130\Tools\...` |
 | ALTER CRYPTOGRAPHIC PROVIDER (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at CRYPTOGRAPHIC — `ALTER CRYPTOGRAPHIC PROVIDER SecurityProvider DISABLE;` |
 | CREATE RULE (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at RULE — `CREATE RULE range_rule AS @range>= $1000 AND @range <$20000;` |
-| CREATE SYNONYM (Transact-SQL) | 13 | 76.9% | 3 | 0 | 0 | 0 | stops at SYNONYM — `CREATE SYNONYM MyProduct FOR AdventureWorks2022.Production.Product;` |
 | DISABLE TRIGGER (Transact-SQL) | 4 | 25.0% | 3 | 0 | 0 | 0 | stops at DISABLE — `DISABLE TRIGGER Person.uAddress ON Person.Address;` |
 | TRUNCATE TABLE (Transact-SQL) | 14 | 78.6% | 3 | 0 | 0 | 0 | stops at TRUNCATE — `TRUNCATE TABLE HumanResources.JobCandidate;` |
 | ADD SENSITIVITY CLASSIFICATION (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at ADD — `ADD SENSITIVITY CLASSIFICATION TO dbo.sales.price, dbo.sales.discount WITH ( LABEL ...` |
@@ -832,7 +824,6 @@ None: the engine reads every statement this grammar reads.
 | INSERT (Transact-SQL) | 73 | 97.3% | 2 | 0 | 0 | 0 | stops at ')' — `CREATE TABLE dbo.T1 ( column_1 int IDENTITY, column_2 uniqueidentifier, );` |
 | MERGE (Transact-SQL) | 54 | 96.0% | 2 | 0 | 0 | 0 | stops at MERGE — `INSERT INTO Production.UpdatedInventory SELECT ProductID, LocationID, NewQty, Previ...` |
 | ALTER EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at LANGUAGE — `ALTER EXTERNAL LANGUAGE Java SET (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaexte...` |
-| ALTER SCHEMA (Transact-SQL) | 10 | 90.0% | 1 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE Production.TestType FROM [VARCHAR](10) NOT NULL ;` |
 | ALTER SERVER CONFIGURATION (Transact-SQL) | 20 | 95.0% | 1 | 0 | 0 | 0 | stops at RECONFIGURE — `RECONFIGURE;` |
 | ALTER SERVICE MASTER KEY (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at KEY — `ALTER SERVICE MASTER KEY REGENERATE;` |
 | BACKUP CERTIFICATE (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at ALGORITHM — `BACKUP CERTIFICATE Shipping04 TO FILE = 'c:\storedcerts\shipping04cert.pfx' WITH FO...` |
@@ -841,12 +832,10 @@ None: the engine reads every statement this grammar reads.
 | CREATE CRYPTOGRAPHIC PROVIDER (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at CRYPTOGRAPHIC — `CREATE CRYPTOGRAPHIC PROVIDER SecurityProvider FROM FILE = 'C:\SecurityProvider\Sec...` |
 | CREATE EXTERNAL DATA SOURCE (Transact-SQL) | 115 | 98.9% | 1 | 0 | 0 | 23 | stops at ')' — `CREATE DATABASE SCOPED CREDENTIAL AccessAzureInvoices WITH IDENTITY = 'SHARED ACCES...` |
 | CREATE FUNCTION (Transact-SQL) | 12 | 91.7% | 1 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY [SurrogateStringFunction] FROM @SamplesPath + 'StringManipulate\CS\...` |
-| CREATE MESSAGE TYPE (Transact-SQL) | 5 | 80.0% | 1 | 0 | 0 | 0 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION ExpenseReportSchema AS N'<?xml version="1.0" encoding=...` |
 | CREATE REMOTE TABLE AS SELECT (Parallel Data Warehouse) | 3 | 50.0% | 1 | 0 | 0 | 0 | stops at TABLE — `USE ssawPDW; CREATE REMOTE TABLE OrderReporting.Orders.MyOrdersTable AT ( 'Data Sou...` |
 | CREATE TABLE AS SELECT (Azure Synapse Analytics and Microsoft Fabric) | 53 | 100.0% | 0 | 0 | 1 | 12 | levels 100 engine, 110 engine, 120 engine — `INSERT INTO Users (id, name, age, street, city) SELECT id, name, age, JSON_VALUE(ad...` |
 | CREATE XML INDEX (Selective XML Indexes) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at '(' — `CREATE XML INDEX filt_sxi_index_c ON Tbl(xmlcol) USING XML INDEX sxi_index FOR ( pa...` |
 | DROP EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at LANGUAGE — `CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaex...` |
-| DROP SYNONYM (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at SYNONYM — `CREATE SYNONYM MyProduct FOR AdventureWorks2022.Production.Product;` |
 | DROP TABLE (Transact-SQL) | 6 | 83.3% | 1 | 0 | 0 | 0 | stops at ''' — `CREATE TABLE #temptable (col1 int);  INSERT INTO #temptable VALUES (10);  SELECT co...` |
 | RENAME (Transact-SQL) | 7 | 66.7% | 1 | 0 | 0 | 0 | stops at KILL — `KILL 'SID1234';` |
 | SET ARITHABORT (Transact-SQL) | 30 | 96.7% | 1 | 0 | 0 | 0 | stops at TRUNCATE — `TRUNCATE TABLE t2;` |
@@ -889,6 +878,7 @@ None: the engine reads every statement this grammar reads.
 | ALTER RESOURCE POOL (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER ROLE (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER ROUTE (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER SCHEMA (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SEARCH PROPERTY LIST (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SECURITY POLICY (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SEQUENCE (Transact-SQL) | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -902,6 +892,7 @@ None: the engine reads every statement this grammar reads.
 | ALTER USER (Transact-SQL) | 19 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER VIEW (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER WORKLOAD GROUP (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 1 |  |
+| ALTER XML SCHEMA COLLECTION (Transact-SQL) | 19 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BACKUP MASTER KEY (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BACKUP SERVICE MASTER KEY (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BACKUP SYMMETRIC KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -940,6 +931,7 @@ None: the engine reads every statement this grammar reads.
 | CREATE LOGIN (Transact-SQL) | 48 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE MASTER KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE MATERIALIZED VIEW AS SELECT (Transact-SQL) creates a materialized view to persist the data returned from the view definition query and automatically gets updated as data changes in the underlying tables. | 18 | 100.0% | 0 | 0 | 0 | 2 |  |
+| CREATE MESSAGE TYPE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE PARTITION FUNCTION (Transact-SQL) | 14 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE PARTITION SCHEME (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE QUEUE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -958,17 +950,20 @@ None: the engine reads every statement this grammar reads.
 | CREATE SERVICE (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE STATISTICS (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SYMMETRIC KEY (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE SYNONYM (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE TABLE AS CLONE OF | 4 | — | 0 | 0 | 0 | 0 |  |
 | CREATE TABLE | 12 | — | 0 | 0 | 0 | 1 |  |
 | CREATE TABLE (SQL Graph) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | IDENTITY (Property) (Transact-SQL) | 22 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE TABLE (Transact-SQL) | 69 | 100.0% | 0 | 0 | 0 | 1 |  |
 | CREATE TRIGGER (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE TYPE (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE USER (Transact-SQL) | 42 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE VIEW (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE WORKLOAD Classifier (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE WORKLOAD GROUP (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 1 |  |
 | CREATE XML INDEX (Transact-SQL) | 8 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE XML SCHEMA COLLECTION (Transact-SQL) | 18 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DELETE (Transact-SQL) | 35 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DENY Availability Group Permissions | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DENY Database Permissions (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -1035,6 +1030,7 @@ None: the engine reads every statement this grammar reads.
 | DROP SIGNATURE (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP STATISTICS (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP SYMMETRIC KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DROP SYNONYM (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP TRIGGER (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP TYPE (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP USER (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |

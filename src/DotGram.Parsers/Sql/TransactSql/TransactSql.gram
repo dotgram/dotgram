@@ -1747,6 +1747,7 @@ DefinitionStatement : @Statement
 	| s: ServerStatement         => @(s)
 	| s: PartitionStatement      => @(s)
 	| s: SequenceStatement       => @(s)
+	| s: TypeStatement           => @(s)
 
 // ── A text of statements ────────────────────────────────────────────────────
 //
@@ -1849,6 +1850,33 @@ DeclaredAs : @Clause.VariableDeclaration
 	= "TABLE"i & '(' & body: TableBody & ')'              => @(new Clause.VariableDeclaration("", "TABLE", null, body))
 	| "CURSOR"i                                           => @(new Clause.VariableDeclaration("", "CURSOR", null))
 	| type: DataType & n: NullSpec? & ('=' & v: SetValue)? => @(new Clause.VariableDeclaration("", type, v, null, n))
+
+// ── Types, schema collections and synonyms ──────────────────────────────────
+//
+// Put to the engine some sixty times and kept as every object here is.
+//
+// A type is made of another type, with a nullability and no default; of an assembly's class,
+// by one part or two; or of a table, whose body is a table's but for what ties it elsewhere or
+// names what it holds (`Syntax.TableTyped`), and which may be kept in memory and nothing more
+// — `DATA_COMPRESSION` and a filegroup are refused. A schema collection is made of a value
+// and added to by one, any value. A synonym is named by two parts at most, and stands for a
+// name of as many as it likes, empty ones among them; it is never altered.
+TypeStatement : @Statement
+	= "CREATE"i & "TYPE"i & name: QualifiedName
+	  & tail: ("FROM"i & DataType & NullSpec?
+			  | "EXTERNAL"i & "NAME"i & Identifier & ('.' & Identifier)?
+			  | "AS"i & "TABLE"i & TableTypeBody & ("WITH"i & '(' & "MEMORY_OPTIMIZED"i & '=' & OnOff & ')')?)
+		=> @(Statement.Defined("TYPE", name, Syntax.Tail(tail)))
+	| "CREATE"i & "XML"i & "SCHEMA"i & "COLLECTION"i & name: QualifiedName & tail: ("AS"i & ValueExpression)
+		=> @(Statement.Defined("XML SCHEMA COLLECTION", name, Syntax.Tail(tail)))
+	| "ALTER"i & "XML"i & "SCHEMA"i & "COLLECTION"i & name: QualifiedName & tail: ("ADD"i & ValueExpression)
+		=> @(Statement.Defined("ALTER XML SCHEMA COLLECTION", name, Syntax.Tail(tail)))
+	| "CREATE"i & "SYNONYM"i & synonym: SynonymName & tail: ("FOR"i & Identifier & ('.'+ & Identifier)*)
+		=> @(Statement.Defined("SYNONYM", synonym, Syntax.Tail(tail)))
+
+TableTypeBody : @Clause[] = '(' & body: TableBody & ')' & when @(Syntax.TableTyped(body)) => @(body)
+
+SynonymName : @string = t: (Identifier & ('.' & Identifier)?) => @(t)
 
 // ── Sequences ───────────────────────────────────────────────────────────────
 //

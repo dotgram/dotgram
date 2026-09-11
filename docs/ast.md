@@ -264,6 +264,10 @@ compile, and a test reads this column against every record.
 | `Statement.PartitionSchemeDefinition` | T-SQL | CREATE PARTITION SCHEME | Ddl |
 | `Statement.AlterPartitionScheme` | T-SQL | ALTER PARTITION SCHEME | Ddl |
 | `Statement.SequenceDefinition` | T-SQL | CREATE, ALTER SEQUENCE | Ddl |
+| `Statement.TypeDefinition` | T-SQL | CREATE TYPE | Ddl |
+| `Statement.XmlSchemaCollectionDefinition` | T-SQL | CREATE XML SCHEMA COLLECTION | Ddl |
+| `Statement.AlterXmlSchemaCollection` | T-SQL | ALTER XML SCHEMA COLLECTION | Ddl |
+| `Statement.SynonymDefinition` | T-SQL | CREATE SYNONYM | Ddl |
 | `Statement.EndpointDefinition` | T-SQL | CREATE/ALTER ENDPOINT | Ddl |
 | `Statement.CreateDatabase` | T-SQL | CREATE DATABASE — the standard has no database | Ddl |
 | `Statement.AlterDatabaseSet` | T-SQL | ALTER DATABASE … SET | Ddl |

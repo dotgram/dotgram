@@ -1027,6 +1027,18 @@ public abstract record Statement : ISqlSpan
 	/// <summary><c>SEQUENCE</c>: numbers handed out in order, created or altered.</summary>
 	public sealed record SequenceDefinition(string Name) : Definition(Name);
 
+	/// <summary><c>CREATE TYPE</c>: a type made of another, of an assembly's class, or of a table.</summary>
+	public sealed record TypeDefinition(string Name) : Definition(Name);
+
+	/// <summary><c>CREATE XML SCHEMA COLLECTION</c>: the schemas an <c>xml</c> is typed by.</summary>
+	public sealed record XmlSchemaCollectionDefinition(string Name) : Definition(Name);
+
+	/// <summary><c>ALTER XML SCHEMA COLLECTION</c>: a schema added to one.</summary>
+	public sealed record AlterXmlSchemaCollection(string Name) : Definition(Name);
+
+	/// <summary><c>CREATE SYNONYM</c>: another name for something, here or elsewhere.</summary>
+	public sealed record SynonymDefinition(string Name) : Definition(Name);
+
 	/// <summary><c>ENDPOINT</c>.</summary>
 	/// <summary>
 	/// <c>CREATE</c> or <c>ALTER ENDPOINT</c>: the owner, the state and what was written
@@ -1776,6 +1788,10 @@ public abstract record Statement : ISqlSpan
 			"PARTITION SCHEME"           => new PartitionSchemeDefinition(name),
 			"ALTER PARTITION SCHEME"     => new AlterPartitionScheme(name),
 			"SEQUENCE"                   => new SequenceDefinition(name),
+			"TYPE"                       => new TypeDefinition(name),
+			"XML SCHEMA COLLECTION"      => new XmlSchemaCollectionDefinition(name),
+			"ALTER XML SCHEMA COLLECTION" => new AlterXmlSchemaCollection(name),
+			"SYNONYM"                    => new SynonymDefinition(name),
 
 			"FULLTEXT INDEX"             => new FullTextIndexDefinition(name),
 			"ALTER FULLTEXT INDEX"       => new AlterFullTextIndex(name),
@@ -3744,6 +3760,30 @@ public static class Syntax
 			one is Expression.NamedArgument { Name: var named } &&
 			(string.Equals(named, "MODEL", StringComparison.OrdinalIgnoreCase) ||
 			 string.Equals(named, "DATA", StringComparison.OrdinalIgnoreCase)));
+
+	/// <summary>Whether a table's body may be a table type's.</summary>
+	/// <remarks>
+	/// A table type holds columns, keys, checks and indexes, and nothing that ties it to another
+	/// table or names what it holds: a foreign key and a reference are refused, a constraint's
+	/// name is — an index's is its own and is read — and so is a sparse column (<c>Msg 156</c>,
+	/// <c>102</c>).
+	/// </remarks>
+	public static bool TableTyped(Clause[]? body)
+	{
+		return body is not null && Array.TrueForAll(body, Typed);
+
+		static bool Typed(Clause one) =>
+			one switch
+			{
+				Clause.ConstraintDefinition { Kind: "INDEX" or "UNIQUE INDEX" }     => true,
+				Clause.ConstraintDefinition { Name: not null }                     => false,
+				Clause.ConstraintDefinition { Kind: "FOREIGN KEY" or "REFERENCES" } => false,
+				Clause.ColumnOption { ConstraintName: not null }                   => false,
+				Clause.ColumnOption { Kind: "SPARSE" }                             => false,
+				Clause.ColumnDefinition { Options: var options }                   => Array.TrueForAll(options, Typed),
+				_                                                                  => true,
+			};
+	}
 
 	/// <summary>A cursor's query and what stands around it, its words yet to be said.</summary>
 	public static Clause.CursorDefinition Cursor(

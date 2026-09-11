@@ -953,6 +953,79 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>Types, schema collections and synonyms, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("CREATE TYPE t FROM int NULL NOT NULL")]
+	[InlineData("CREATE TYPE t FROM int DEFAULT 1")]
+	[InlineData("CREATE TYPE t EXTERNAL NAME a.b.c")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT REFERENCES u(a))")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT, FOREIGN KEY (a) REFERENCES u(a))")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT CONSTRAINT c PRIMARY KEY)")]
+	[InlineData("CREATE TYPE t AS TABLE ()")]
+	[InlineData("CREATE TYPE t AS TABLE")]
+	[InlineData("CREATE TYPE t")]
+	[InlineData("CREATE TYPE t FROM")]
+	[InlineData("CREATE TYPE t AS INT")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT SPARSE)")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT) WITH (DATA_COMPRESSION = PAGE)")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT) ON [PRIMARY]")]
+	[InlineData("CREATE XML SCHEMA COLLECTION c")]
+	[InlineData("ALTER XML SCHEMA COLLECTION c")]
+	[InlineData("CREATE SYNONYM db.dbo.s FOR t")]
+	[InlineData("CREATE SYNONYM s FOR 't'")]
+	[InlineData("CREATE SYNONYM s")]
+	[InlineData("CREATE SYNONYM s FOR @t")]
+	[InlineData("ALTER SYNONYM s FOR t")]
+	public void Types_and_synonyms_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("CREATE TYPE t FROM int")]
+	[InlineData("CREATE TYPE dbo.t FROM varchar(10) NOT NULL")]
+	[InlineData("CREATE TYPE t FROM decimal(10, 2) NULL")]
+	[InlineData("CREATE TYPE t FROM nvarchar(max)")]
+	[InlineData("CREATE TYPE db.dbo.t FROM int")]
+	[InlineData("CREATE TYPE t FROM dbo.other")]
+	[InlineData("CREATE TYPE t EXTERNAL NAME a.[b.c]")]
+	[InlineData("CREATE TYPE t EXTERNAL NAME a")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT)")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT PRIMARY KEY, b VARCHAR(10) NOT NULL DEFAULT 'x', c AS a + 1)")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT, INDEX ix (a))")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT, PRIMARY KEY (a), UNIQUE (a), CHECK (a > 0))")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT IDENTITY(1,1))")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT) WITH (MEMORY_OPTIMIZED = ON)")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT ROWGUIDCOL)")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT, INDEX ix NONCLUSTERED HASH (a) WITH (BUCKET_COUNT = 8))")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT, PERIOD FOR SYSTEM_TIME (s, e))")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT PRIMARY KEY WITH (IGNORE_DUP_KEY = ON))")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT PRIMARY KEY NONCLUSTERED)")]
+	[InlineData("CREATE TYPE t AS TABLE (a INT COLLATE Latin1_General_BIN)")]
+	[InlineData("CREATE XML SCHEMA COLLECTION c AS '<schema/>'")]
+	[InlineData("CREATE XML SCHEMA COLLECTION dbo.c AS N'<schema/>'")]
+	[InlineData("CREATE XML SCHEMA COLLECTION c AS @s")]
+	[InlineData("CREATE XML SCHEMA COLLECTION c AS 'a' + 'b'")]
+	[InlineData("CREATE XML SCHEMA COLLECTION c AS (SELECT x FROM t)")]
+	[InlineData("CREATE XML SCHEMA COLLECTION c AS CAST('x' AS XML)")]
+	[InlineData("CREATE XML SCHEMA COLLECTION db.dbo.c AS 'x'")]
+	[InlineData("ALTER XML SCHEMA COLLECTION c ADD '<schema/>'")]
+	[InlineData("ALTER XML SCHEMA COLLECTION dbo.c ADD N'x'")]
+	[InlineData("ALTER XML SCHEMA COLLECTION c ADD @s")]
+	[InlineData("ALTER XML SCHEMA COLLECTION c ADD 'a' + 'b'")]
+	[InlineData("CREATE SYNONYM s FOR t")]
+	[InlineData("CREATE SYNONYM dbo.s FOR srv.db.dbo.t")]
+	[InlineData("CREATE SYNONYM s FOR db..t")]
+	[InlineData("CREATE SYNONYM s FOR srv...t")]
+	[InlineData("CREATE SYNONYM s FOR srv..dbo.t")]
+	[InlineData("CREATE SYNONYM s FOR a.b.c.d.e")]
+	[InlineData("CREATE SYNONYM s FOR [t]")]
+	public void Types_and_synonyms_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>Sequences, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("CREATE SEQUENCE db.dbo.s")]

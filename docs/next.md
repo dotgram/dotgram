@@ -18947,3 +18947,25 @@ asked of them. Put to the engine some sixty times:
 At 150: read by both 5,858 (from 5,858), the work list 118 (from 118), read here but refused
 there 43; `--split` 656 (from 654), the round trip 100% of 7,279. The map: read by both 7,861
 of 8,338 (98.2%), the work list 142 (from 156), defects 0.
+
+## Types, schema collections and synonyms
+
+`CREATE TYPE`, `CREATE` and `ALTER XML SCHEMA COLLECTION` and `CREATE SYNONYM`, some twenty-five
+statements of the map's work list; their `DROP`s were read already. Four records kept as every
+object here is. Put to the engine some sixty times:
+
+- **A type is made of another**, with a nullability and no default; **of an assembly's
+  class**, named by one part or two; **or of a table**. A table type's body is a table's but
+  for what ties it elsewhere or names what it holds: `REFERENCES`, `FOREIGN KEY`, a
+  constraint's name and `SPARSE` are refused, an index's name is read. It may be kept in
+  memory, and nothing more: `DATA_COMPRESSION` and a filegroup are refused. The body is
+  `TableBody`, so the refusals are a guard over its nodes (`Syntax.TableTyped`) — and the
+  guard's first draft refused every index, since an index is a constraint node with its name
+  where a constraint's is.
+- **A schema collection** is made of any value and added to by any value.
+- **A synonym** is named by two parts at most, stands for a name of as many as it likes, empty
+  ones among them, and is never altered.
+
+At 150: read by both 5,858 (from 5,858), the work list 118 (from 118), read here but refused
+there 43; `--split` 672 (from 656), the round trip 100% of 7,323. The map: read by both 7,887
+of 8,338 (98.6%), the work list 116 (from 142), defects 0.
