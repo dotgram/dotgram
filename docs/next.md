@@ -18500,3 +18500,14 @@ go back into a choice that succeeded. They stand first now.
 
 The corpus did not move: its one statement with `IDENTITY (INT)` stops earlier, at `*, *`.
 At 150 as before: read by both 5,811, the work list 163, read here but refused there 43.
+
+## A star among the items
+
+§7.9 makes a bare `*` the whole select list, and the standard's rule read it so: `SELECT *`
+and nothing after it. T-SQL makes it an item. The engine reads it anywhere in the list and
+more than once — `SELECT 1, *, 2`, `SELECT *, *, *`, `SELECT *, t.*, a, *` — and refuses it
+named, bracketed or assigned: `* AS x`, `(*)`, `x = *`. So the list is the dialect's own,
+nineteen rules in all, and the star is its first alternative, the same node it was.
+
+At 150: read by both 5,817 (from 5,811), the work list 157 (from 163), read here but refused
+there 43, as before. `--split` 593, and the round trip 100% of 6,925.

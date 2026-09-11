@@ -8,7 +8,7 @@ using Sql92;
 // grammar is attached to; what is written here is only where T-SQL differs, and
 // §5.1's rebinding is what makes the difference reach every rule that leads to it.
 //
-// Eighteen rules replace eighteen of the standard's. Nothing else is restated and nothing
+// Nineteen rules replace nineteen of the standard's. Nothing else is restated and nothing
 // is copied: a query expression, a join, a predicate and the whole value tower are
 // the ones already read against the standard, reading a dialect's identifiers and
 // a dialect's primaries because the substitution rewrote every call inside them.
@@ -664,12 +664,19 @@ WindowDef : @Clause
 
 // ── §7.9's select list, widened ─────────────────────────────────────────────
 //
+// §7.9 makes a bare `*` the whole list; T-SQL makes it an item, which may stand anywhere
+// in the list and more than once: `SELECT 1, *, 2` and `SELECT *, t.*, *` are read. It is
+// not named, not bracketed and not assigned — `* AS x`, `(*)` and `x = *` are refused.
+TSqlSelectList : @Clause[]
+	= first: SelectSublist & (',' & rest: SelectSublist)* => @(Syntax.Listed(first, rest))
+
 // Two things stand where a value does. A variable takes the value rather than the query
 // returning it — `SELECT @a += 1` is an assignment written as a query — and an alias may
 // be written in front with `=` rather than behind with `AS`. And an alias may be a
 // string, which the standard does not allow and every dialect does.
 TSqlSelectSublist : @Clause
-	= qualifier: QualifiedName & '.' & '*'        => @(new Clause.QualifiedAsterisk(qualifier))
+	= '*'                                          => @(new Clause.QualifiedAsterisk(null))
+	| qualifier: QualifiedName & '.' & '*'        => @(new Clause.QualifiedAsterisk(qualifier))
 	| into: TSql.Variable & by: AssignOp & v: ValueExpression
 		=> @(new Clause.VariableAssignment(into, by, v))
 	| label: TSqlAlias & '=' & v: IdentityFunction => @(new Clause.DerivedColumn(v, label))
@@ -1114,6 +1121,7 @@ namespace Dialect with (
 	ValueExpressionPrimary    = TSqlValuePrimary,
 	CompOp                    = TSqlCompOp,
 	SortKey                   = TSqlSortKey,
+	SelectList                = TSqlSelectList,
 	QuerySpecification        = TSqlQuerySpecification,
 	TablePrimary              = TSqlTablePrimary,
 	TableReference            = TSqlTableReference,
