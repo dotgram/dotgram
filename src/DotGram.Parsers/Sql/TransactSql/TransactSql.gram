@@ -1746,6 +1746,7 @@ DefinitionStatement : @Statement
 	| s: BrokerStatement         => @(s)
 	| s: ServerStatement         => @(s)
 	| s: PartitionStatement      => @(s)
+	| s: SequenceStatement       => @(s)
 
 // ── A text of statements ────────────────────────────────────────────────────
 //
@@ -1848,6 +1849,44 @@ DeclaredAs : @Clause.VariableDeclaration
 	= "TABLE"i & '(' & body: TableBody & ')'              => @(new Clause.VariableDeclaration("", "TABLE", null, body))
 	| "CURSOR"i                                           => @(new Clause.VariableDeclaration("", "CURSOR", null))
 	| type: DataType & n: NullSpec? & ('=' & v: SetValue)? => @(new Clause.VariableDeclaration("", type, v, null, n))
+
+// ── Sequences ───────────────────────────────────────────────────────────────
+//
+// Created and altered, put to the engine some sixty times and kept as every object here is,
+// the options as nodes where the engine counts them. A sequence is named by two parts at most
+// (`Msg 166`). Its options stand in any order and without commas, each group once — a value
+// and its `NO` are one group, and two of a group are `Msg 11712`. A value is a number, signed
+// or not and with a fraction or without, and nothing more: not a variable, an expression, a
+// bracket, a string or an exponent; `MINVALUE` and `MAXVALUE` want theirs, the block
+// notwithstanding. A cache is a number or none. A sequence created is not restarted
+// (`Msg 11709`); one altered does not start, does not change its type (`Msg 11710`, `11711`)
+// and changes something (`Msg 11715`).
+SequenceStatement : @Statement
+	= "CREATE"i & "SEQUENCE"i & name: SequenceName & tail: (options: SequenceOption*)
+	  & when @(Syntax.NamedOnce(null, options) && !Syntax.HasOption(options, "RESTART"))
+		=> @(Statement.Defined("SEQUENCE", name, Syntax.Tail(tail), "CREATE", options))
+	| "ALTER"i & "SEQUENCE"i & name: SequenceName & tail: (options: SequenceOption+)
+	  & when @(Syntax.NamedOnce(null, options) && !Syntax.HasOption(options, "START") && !Syntax.HasOption(options, "AS"))
+		=> @(Statement.Defined("SEQUENCE", name, Syntax.Tail(tail), "ALTER", options))
+
+SequenceName : @string = t: (Identifier & ('.' & Identifier)?) => @(t)
+
+SequenceOption : @Clause
+	= "AS"i & DataType                          => @(new Clause.Option("AS", null, Clause.None))
+	| "START"i & "WITH"i & v: SequenceValue      => @(new Clause.Option("START", v, Clause.None))
+	| "RESTART"i & ("WITH"i & v: SequenceValue)? => @(new Clause.Option("RESTART", v, Clause.None))
+	| "INCREMENT"i & "BY"i & v: SequenceValue    => @(new Clause.Option("INCREMENT", v, Clause.None))
+	| "MINVALUE"i & v: SequenceValue             => @(new Clause.Option("MINVALUE", v, Clause.None))
+	| "MAXVALUE"i & v: SequenceValue             => @(new Clause.Option("MAXVALUE", v, Clause.None))
+	| "CACHE"i & t: ExactNumber?
+		=> @(new Clause.Option("CACHE", t is null ? null : new Expression.Literal(SqlLiteralKind.Number, t), Clause.None))
+	| "CYCLE"i                                   => @(new Clause.Option("CYCLE", null, Clause.None))
+	| "NO"i & w: ("MINVALUE"i | "MAXVALUE"i | "CYCLE"i | "CACHE"i)
+		=> @(new Clause.Option(Syntax.Squared(w), null, Clause.None))
+
+SequenceValue : @Expression
+	= t: (('+' | '-')? & Sql92.Lexical.UnsignedNumericLiteral) & when @(t is not null && t.IndexOfAny(new[] { 'e', 'E' }) < 0)
+		=> @(new Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(t)))
 
 // ── Partitions ──────────────────────────────────────────────────────────────
 //

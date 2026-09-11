@@ -18926,3 +18926,24 @@ the words after the name as its tail. Put to the engine some sixty times:
 At 150: read by both 5,858 (from 5,858), the work list 118 (from 118), read here but refused
 there 43; `--split` 654 (from 652), the round trip 100% of 7,257. The map: read by both 7,847
 of 8,338 (98.1%), the work list 156 (from 179), defects 0.
+
+## Sequences
+
+`CREATE` and `ALTER SEQUENCE`, fourteen statements of the map's work list; `NEXT VALUE FOR`
+was read already. One record, `SequenceDefinition`, created or altered, kept as every object
+here is, and the options as nodes named for their group so that the engine's count can be
+asked of them. Put to the engine some sixty times:
+
+- **Named by two parts at most** (`Msg 166`).
+- **The options stand in any order, without commas, each group once.** A value and its `NO`
+  are one group — `MINVALUE 1 NO MINVALUE` is `Msg 11712`, as `START WITH 1 START WITH 2` is.
+- **A value is a number and nothing more**: signed or not, `- 1` with a space too, a fraction
+  allowed; not an exponent, money, a bracket, an expression, a variable or a string.
+  `MINVALUE` and `MAXVALUE` want theirs, though the block writes them optional. A cache is a
+  whole number or none, and `NOCYCLE` is not a word.
+- **Created, a sequence is not restarted** (`Msg 11709`); **altered, it does not start**, does
+  not change its type (`Msg 11710`, `11711`), and changes something (`Msg 11715`).
+
+At 150: read by both 5,858 (from 5,858), the work list 118 (from 118), read here but refused
+there 43; `--split` 656 (from 654), the round trip 100% of 7,279. The map: read by both 7,861
+of 8,338 (98.2%), the work list 142 (from 156), defects 0.

@@ -24,24 +24,23 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 98.1% | 7847 | 156 | 0 | 4 | 85 | 250 | 0 |
+| **all** | 996 | 8338 | 98.2% | 7861 | 142 | 0 | 4 | 85 | 250 | 0 |
 | [data-types](#data-types) | 29 | 304 | 99.7% | 290 | 1 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 98.7% | 233 | 3 | 0 | 0 | 1 | 5 | 0 |
-| [functions](#functions) | 324 | 2101 | 99.5% | 2072 | 10 | 0 | 3 | 2 | 17 | 0 |
+| [functions](#functions) | 324 | 2101 | 99.6% | 2074 | 8 | 0 | 3 | 2 | 17 | 0 |
 | [includes](#includes) | 3 | 7 | 100.0% | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
 | [language-elements](#language-elements) | 86 | 868 | 98.0% | 837 | 17 | 0 | 0 | 0 | 14 | 0 |
 | [queries](#queries) | 37 | 747 | 98.2% | 711 | 13 | 0 | 0 | 1 | 22 | 0 |
 | [reference](#reference) | 3 | 32 | 96.9% | 31 | 1 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 99.7% | 310 | 1 | 0 | 0 | 0 | 1 | 0 |
 | [spatial-geometry](#spatial-geometry) | 74 | 357 | 99.7% | 356 | 1 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 96.3% | 2799 | 109 | 0 | 1 | 81 | 174 | 0 |
+| [statements](#statements) | 320 | 3163 | 96.7% | 2811 | 97 | 0 | 1 | 81 | 174 | 0 |
 | [xml](#xml) | 12 | 205 | 100.0% | 201 | 0 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
 
 | Statement | statements | pages | for example |
 | --- | ---: | ---: | --- |
-| CREATE SEQUENCE | 11 | 3 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
 | CREATE TYPE | 10 | 5 | stops at TYPE — `CREATE TYPE NewType FROM int;` |
 | CREATE XML SCHEMA | 10 | 3 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION MyColl AS ' <schema xmlns="http://www.w3.org/2001/XMLS...` |
 | CREATE SPATIAL INDEX | 9 | 3 | stops at SPATIAL — `CREATE SPATIAL INDEX sample_idx on sample(g);` |
@@ -56,7 +55,6 @@ rest run rather than read.
 | ALTER ASSEMBLY | 3 | 1 | stops at ASSEMBLY — `ALTER ASSEMBLY ComplexNumber FROM 'C:\Program Files\Microsoft SQL Server\130\Tools\...` |
 | ALTER AVAILABILITY GROUP | 3 | 2 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP AccountsAG JOIN;` |
 | ALTER CRYPTOGRAPHIC PROVIDER | 3 | 1 | stops at CRYPTOGRAPHIC — `ALTER CRYPTOGRAPHIC PROVIDER SecurityProvider DISABLE;` |
-| ALTER SEQUENCE | 3 | 1 | stops at SEQUENCE — `ALTER SEQUENCE Test. TestSeq RESTART WITH 100 INCREMENT BY 50 MINVALUE 50 MAXVALUE ...` |
 | CREATE EXTERNAL LANGUAGE | 3 | 2 | stops at LANGUAGE — `CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaex...` |
 | CREATE RULE | 3 | 1 | stops at RULE — `CREATE RULE range_rule AS @range>= $1000 AND @range <$20000;` |
 | CREATE TABLE | 3 | 3 | stops at ')' — `CREATE TABLE ExampleTable (PriKey int PRIMARY KEY, timestamp);` |
@@ -175,7 +173,6 @@ None: the engine reads every statement this grammar reads.
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | OPENJSON (Transact-SQL) | 23 | 100.0% | 0 | 0 | 3 | 0 | levels 100 engine, 110 engine, 120 engine — `SELECT * FROM OPENJSON(@array) WITH (  month VARCHAR(3), temp int, month_id tinyint...` |
-| NEXT VALUE FOR (Transact-SQL) | 25 | 92.0% | 2 | 0 | 0 | 0 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
 | TEXTPTR (Transact-SQL) | 20 | 90.0% | 2 | 0 | 0 | 0 | stops at READTEXT — `READTEXT t1.c2 @ptrval 0 1;` |
 | TYPE_ID (Transact-SQL) | 7 | 71.4% | 2 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE NewType FROM int;` |
 | DATE_BUCKET (Transact-SQL) | 27 | 96.3% | 1 | 0 | 0 | 0 | stops at ';' — `DECLARE @days INT = 365, @datetime DATETIME2 = '2000-01-01 01:01:01.1110000'; /* 20...` |
@@ -370,6 +367,7 @@ None: the engine reads every statement this grammar reads.
 | @@NESTLEVEL (Transact-SQL) | 8 | 100.0% | 0 | 0 | 0 | 0 |  |
 | NEWID (Transact-SQL) | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
 | NEWSEQUENTIALID (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| NEXT VALUE FOR (Transact-SQL) | 25 | 100.0% | 0 | 0 | 0 | 0 |  |
 | NTILE (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OBJECT_DEFINITION (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OBJECT_ID_FROM_EDGE_ID (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -808,10 +806,8 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| CREATE SEQUENCE (Transact-SQL) | 12 | 41.7% | 7 | 0 | 0 | 0 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
 | CREATE SPATIAL INDEX (Transact-SQL) | 9 | 22.2% | 7 | 0 | 0 | 0 | stops at SPATIAL — `CREATE SPATIAL INDEX SIndx_SpatialTable_geometry_col1 ON SpatialTable(geometry_col)...` |
 | ADD SIGNATURE (Transact-SQL) | 41 | 87.8% | 5 | 0 | 0 | 0 | stops at ADD — `ADD SIGNATURE TO HumanResources.uspUpdateEmployeeLogin BY CERTIFICATE HumanResource...` |
-| ALTER SEQUENCE (Transact-SQL) | 9 | 44.4% | 5 | 0 | 0 | 0 | stops at SEQUENCE — `CREATE SEQUENCE Test.TestSeq AS int START WITH 125 INCREMENT BY 25 MINVALUE 100 MAX...` |
 | ALTER XML SCHEMA COLLECTION (Transact-SQL) | 19 | 70.6% | 5 | 0 | 0 | 0 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION MyColl AS ' <schema xmlns="http://www.w3.org/2001/XMLS...` |
 | CREATE PROCEDURE (Transact-SQL) | 61 | 91.8% | 5 | 0 | 0 | 0 | stops at HUMANRESOURCES — `HumanResources.uspGetAllEmployees;` |
 | CREATE TYPE (Transact-SQL) | 10 | 44.4% | 5 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE dbo.udt_money FROM varchar(11) NOT NULL;` |
@@ -895,6 +891,7 @@ None: the engine reads every statement this grammar reads.
 | ALTER ROUTE (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SEARCH PROPERTY LIST (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SECURITY POLICY (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER SEQUENCE (Transact-SQL) | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SERVER AUDIT SPECIFICATION (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SERVER AUDIT (Transact-SQL) | 17 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SERVER ROLE (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -954,6 +951,7 @@ None: the engine reads every statement this grammar reads.
 | CREATE SEARCH PROPERTY LIST (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SECURITY POLICY (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SELECTIVE XML INDEX (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE SEQUENCE (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SERVER AUDIT SPECIFICATION (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SERVER AUDIT (Transact-SQL) | 15 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SERVER ROLE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |

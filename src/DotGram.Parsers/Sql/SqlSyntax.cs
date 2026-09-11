@@ -1024,6 +1024,9 @@ public abstract record Statement : ISqlSpan
 	/// <summary><c>ALTER PARTITION SCHEME</c>: the filegroup the next partition goes to.</summary>
 	public sealed record AlterPartitionScheme(string Name) : Definition(Name);
 
+	/// <summary><c>SEQUENCE</c>: numbers handed out in order, created or altered.</summary>
+	public sealed record SequenceDefinition(string Name) : Definition(Name);
+
 	/// <summary><c>ENDPOINT</c>.</summary>
 	/// <summary>
 	/// <c>CREATE</c> or <c>ALTER ENDPOINT</c>: the owner, the state and what was written
@@ -1772,6 +1775,7 @@ public abstract record Statement : ISqlSpan
 			"ALTER PARTITION FUNCTION"   => new AlterPartitionFunction(name),
 			"PARTITION SCHEME"           => new PartitionSchemeDefinition(name),
 			"ALTER PARTITION SCHEME"     => new AlterPartitionScheme(name),
+			"SEQUENCE"                   => new SequenceDefinition(name),
 
 			"FULLTEXT INDEX"             => new FullTextIndexDefinition(name),
 			"ALTER FULLTEXT INDEX"       => new AlterFullTextIndex(name),

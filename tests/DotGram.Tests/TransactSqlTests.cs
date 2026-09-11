@@ -953,6 +953,77 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>Sequences, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("CREATE SEQUENCE db.dbo.s")]
+	[InlineData("CREATE SEQUENCE s START WITH 1e1")]
+	[InlineData("CREATE SEQUENCE s START WITH (1)")]
+	[InlineData("CREATE SEQUENCE s START WITH 1 + 1")]
+	[InlineData("CREATE SEQUENCE s START WITH @x")]
+	[InlineData("CREATE SEQUENCE s START WITH '1'")]
+	[InlineData("CREATE SEQUENCE s START 1")]
+	[InlineData("CREATE SEQUENCE s MINVALUE")]
+	[InlineData("CREATE SEQUENCE s MAXVALUE")]
+	[InlineData("CREATE SEQUENCE s START WITH 1 START WITH 2")]
+	[InlineData("CREATE SEQUENCE s MINVALUE 1 NO MINVALUE")]
+	[InlineData("CREATE SEQUENCE s CYCLE NO CYCLE")]
+	[InlineData("CREATE SEQUENCE s CACHE 10 NO CACHE")]
+	[InlineData("CREATE SEQUENCE s START WITH 1, INCREMENT BY 1")]
+	[InlineData("CREATE SEQUENCE s RESTART WITH 1")]
+	[InlineData("CREATE SEQUENCE s NOCYCLE")]
+	[InlineData("CREATE SEQUENCE s NO MINVALUE 1")]
+	[InlineData("CREATE SEQUENCE s CACHE -1")]
+	[InlineData("CREATE SEQUENCE s CACHE 0x10")]
+	[InlineData("CREATE SEQUENCE s START WITH $1")]
+	[InlineData("CREATE SEQUENCE s AS INT AS BIGINT")]
+	[InlineData("ALTER SEQUENCE s")]
+	[InlineData("ALTER SEQUENCE s START WITH 1")]
+	[InlineData("ALTER SEQUENCE s AS BIGINT")]
+	[InlineData("ALTER SEQUENCE s MINVALUE")]
+	[InlineData("ALTER SEQUENCE s MAXVALUE")]
+	[InlineData("ALTER SEQUENCE s RESTART RESTART")]
+	public void Sequences_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("CREATE SEQUENCE s")]
+	[InlineData("CREATE SEQUENCE dbo.s")]
+	[InlineData("CREATE SEQUENCE s AS INT")]
+	[InlineData("CREATE SEQUENCE s AS dbo.myint")]
+	[InlineData("CREATE SEQUENCE s AS DECIMAL(10, 0)")]
+	[InlineData("CREATE SEQUENCE s START WITH 1 INCREMENT BY 1")]
+	[InlineData("CREATE SEQUENCE s START WITH -1")]
+	[InlineData("CREATE SEQUENCE s START WITH +1")]
+	[InlineData("CREATE SEQUENCE s START WITH 1.0")]
+	[InlineData("CREATE SEQUENCE s START WITH - 1")]
+	[InlineData("CREATE SEQUENCE s INCREMENT BY -5")]
+	[InlineData("CREATE SEQUENCE s MINVALUE 1 MAXVALUE 10")]
+	[InlineData("CREATE SEQUENCE s NO MINVALUE NO MAXVALUE")]
+	[InlineData("CREATE SEQUENCE s CYCLE")]
+	[InlineData("CREATE SEQUENCE s NO CYCLE")]
+	[InlineData("CREATE SEQUENCE s CACHE 10")]
+	[InlineData("CREATE SEQUENCE s CACHE")]
+	[InlineData("CREATE SEQUENCE s NO CACHE")]
+	[InlineData("CREATE SEQUENCE s INCREMENT BY 1 START WITH 1")]
+	[InlineData("CREATE SEQUENCE s CYCLE AS INT")]
+	[InlineData("CREATE SEQUENCE s AS INT START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 100 CYCLE CACHE 5")]
+	[InlineData("ALTER SEQUENCE s RESTART")]
+	[InlineData("ALTER SEQUENCE s RESTART WITH 100")]
+	[InlineData("ALTER SEQUENCE dbo.s RESTART WITH 100 INCREMENT BY 50 MINVALUE 50 MAXVALUE 200 NO CYCLE NO CACHE")]
+	[InlineData("ALTER SEQUENCE s CACHE")]
+	[InlineData("ALTER SEQUENCE s INCREMENT BY 1 RESTART WITH 1")]
+	[InlineData("ALTER SEQUENCE s RESTART WITH -5")]
+	[InlineData("ALTER SEQUENCE Test. TestSeq RESTART WITH 100")]
+	[InlineData("ALTER SEQUENCE s CYCLE")]
+	[InlineData("ALTER SEQUENCE s NO MINVALUE NO MAXVALUE NO CACHE")]
+	public void Sequences_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>Partition functions and schemes, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("CREATE PARTITION FUNCTION pf (INT, INT) AS RANGE LEFT FOR VALUES (1)")]
