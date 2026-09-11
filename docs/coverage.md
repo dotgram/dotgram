@@ -24,17 +24,17 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 92.6% | 7408 | 595 | 0 | 4 | 85 | 250 | 0 |
+| **all** | 996 | 8338 | 94.0% | 7526 | 477 | 0 | 4 | 85 | 250 | 0 |
 | [data-types](#data-types) | 29 | 304 | 99.7% | 290 | 1 | 0 | 0 | 0 | 13 | 0 |
-| [database-console-commands](#database-console-commands) | 36 | 242 | 50.8% | 120 | 116 | 0 | 0 | 1 | 5 | 0 |
-| [functions](#functions) | 324 | 2101 | 97.5% | 2030 | 52 | 0 | 3 | 2 | 17 | 0 |
+| [database-console-commands](#database-console-commands) | 36 | 242 | 59.3% | 140 | 96 | 0 | 0 | 1 | 5 | 0 |
+| [functions](#functions) | 324 | 2101 | 98.1% | 2042 | 40 | 0 | 3 | 2 | 17 | 0 |
 | [includes](#includes) | 3 | 7 | 57.1% | 4 | 3 | 0 | 0 | 0 | 0 | 0 |
-| [language-elements](#language-elements) | 86 | 868 | 90.0% | 769 | 85 | 0 | 0 | 0 | 14 | 0 |
-| [queries](#queries) | 37 | 747 | 96.7% | 700 | 24 | 0 | 0 | 1 | 22 | 0 |
+| [language-elements](#language-elements) | 86 | 868 | 97.7% | 834 | 20 | 0 | 0 | 0 | 14 | 0 |
+| [queries](#queries) | 37 | 747 | 97.4% | 705 | 19 | 0 | 0 | 1 | 22 | 0 |
 | [reference](#reference) | 3 | 32 | 96.9% | 31 | 1 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 99.4% | 309 | 2 | 0 | 0 | 0 | 1 | 0 |
 | [spatial-geometry](#spatial-geometry) | 74 | 357 | 99.4% | 355 | 2 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 90.1% | 2620 | 288 | 0 | 1 | 81 | 174 | 0 |
+| [statements](#statements) | 320 | 3163 | 90.6% | 2636 | 272 | 0 | 1 | 81 | 174 | 0 |
 | [xml](#xml) | 12 | 205 | 89.6% | 180 | 21 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
@@ -42,17 +42,14 @@ rest run rather than read.
 | Statement | statements | pages | for example |
 | --- | ---: | ---: | --- |
 | DBCC | 96 | 38 | stops at DBCC — `DBCC CHECKALLOC;` |
-| OPEN | 43 | 27 | stops at OPEN — `OPEN tables;` |
-| SET | 33 | 8 | stops at CURSOR — `SET @MyCursor = CURSOR LOCAL SCROLL FOR SELECT * FROM Person.Person;` |
-| CLOSE | 32 | 23 | stops at CLOSE — `CLOSE tables;` |
-| DEALLOCATE | 26 | 17 | stops at DEALLOCATE — `DEALLOCATE tables;` |
-| FETCH | 26 | 15 | stops at FETCH — `FETCH NEXT FROM tables INTO @tablename;` |
+| SET | 28 | 7 | stops at '.' — `SET @p.X = @p.X + 1.1;` |
 | ALTER RESOURCE GOVERNOR | 25 | 11 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
+| OPEN | 21 | 11 | stops at KEY — `OPEN SYMMETRIC KEY SSN_Key_01 DECRYPTION BY CERTIFICATE HumanResources037;` |
 | SELECT | 19 | 10 | stops at '*' — `SELECT BINARY_CHECKSUM(*) from myTable;` |
 | ALTER SERVER CONFIGURATION | 18 | 1 | stops at CONFIGURATION — `ALTER SERVER CONFIGURATION SET PROCESS AFFINITY CPU=0 TO 63, 128 TO 191;` |
-| WHILE | 14 | 11 | stops at FETCH — `WHILE @@FETCH_STATUS = 0 BEGIN -- Do the showcontig of all indexes of the table INS...` |
 | CREATE PARTITION FUNCTION | 13 | 5 | stops at PARTITION — `CREATE PARTITION FUNCTION RangePF1(INT) AS RANGE LEFT FOR VALUES (10, 100, 1000);` |
 | CREATE BROKER PRIORITY | 12 | 1 | stops at BROKER — `CREATE BROKER PRIORITY InitiatorAToTargetPriority FOR CONVERSATION SET (CONTRACT_NA...` |
+| CLOSE | 11 | 7 | stops at KEY — `CLOSE SYMMETRIC KEY SSN_Key_02;` |
 | CREATE SEQUENCE | 11 | 3 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
 | CREATE TYPE | 10 | 5 | stops at TYPE — `CREATE TYPE NewType FROM int;` |
 | CREATE XML SCHEMA | 10 | 3 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION MyColl AS ' <schema xmlns="http://www.w3.org/2001/XMLS...` |
@@ -70,7 +67,6 @@ rest run rather than read.
 | TRUNCATE | 6 | 4 | stops at TRUNCATE — `TRUNCATE TABLE dbo.ErrorLog` |
 | WAITFOR | 6 | 2 | stops at '(' — `WAITFOR ( GET CONVERSATION GROUP @conversation_group_id FROM ExpenseQueue ) ;` |
 | CREATE SYNONYM | 5 | 3 | stops at SYNONYM — `CREATE SYNONYM MyEmployeeTable FOR HumanResources.Employee;` |
-| DECLARE | 5 | 5 | stops at ';' — `DECLARE @days INT = 365, @datetime DATETIME2 = '2000-01-01 01:01:01.1110000'; /* 20...` |
 | DISABLE | 5 | 2 | stops at DISABLE — `DISABLE TRIGGER Person.uAddress ON Person.Address;` |
 | IF | 5 | 2 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
 | ALTER ROUTE | 4 | 1 | stops at ROUTE — `ALTER ROUTE ExpenseRoute WITH SERVICE_NAME = '//Adventure-Works.com/Expenses';` |
@@ -90,9 +86,9 @@ rest run rather than read.
 | ALTER BROKER PRIORITY | 2 | 1 | stops at BROKER — `ALTER BROKER PRIORITY SimpleContractDefaultPriority FOR CONVERSATION SET (PRIORITY_...` |
 | ALTER PARTITION FUNCTION | 2 | 1 | stops at PARTITION — `ALTER PARTITION FUNCTION myRangePF1 () SPLIT RANGE (500);` |
 | BACKUP | 2 | 2 | stops at ALGORITHM — `BACKUP CERTIFICATE Shipping04 TO FILE = 'c:\storedcerts\shipping04cert.pfx' WITH FO...` |
-| CREATE PROCEDURE | 2 | 1 | stops at CURSOR — `CREATE PROCEDURE dbo.uspCurrencyCursor @CurrencyCursor CURSOR VARYING OUTPUT AS SET...` |
 | CREATE REMOTE SERVICE | 2 | 1 | stops at REMOTE — `CREATE REMOTE SERVICE BINDING APBinding TO SERVICE '//Adventure-Works.com/services/...` |
 | DBO | 2 | 1 | stops at DBO — `dbo.uspGetEmployeeManagers 6;` |
+| DECLARE | 2 | 2 | stops at ';' — `DECLARE @days INT = 365, @datetime DATETIME2 = '2000-01-01 01:01:01.1110000'; /* 20...` |
 | DIALOG_HANDLE | 2 | 1 | stops at '@' — `@dialog_handle ;` |
 | EXPLAIN | 2 | 1 | stops at EXPLAIN — `EXPLAIN` |
 | HUMANRESOURCES | 2 | 1 | stops at HUMANRESOURCES — `HumanResources.uspGetAllEmployees;` |
@@ -111,6 +107,7 @@ rest run rather than read.
 | CREATE DATABASE SCOPED | 1 | 1 | stops at ')' — `CREATE DATABASE SCOPED CREDENTIAL AccessAzureInvoices WITH IDENTITY = 'SHARED ACCES...` |
 | CREATE DEFAULT | 1 | 1 | stops at DEFAULT — `CREATE DEFAULT phonedflt AS 'unknown';` |
 | CREATE OR | 1 | 1 | stops at '$' — `CREATE OR ALTER PROCEDURE mergeEdge @PersonId integer, @CityId integer, @StreetAddr...` |
+| CREATE PROCEDURE | 1 | 1 | stops at TRUNCATE — `CREATE PROCEDURE dbo.TruncateMyTable WITH EXECUTE AS SELF AS TRUNCATE TABLE MyDB..M...` |
 | CREATE XML INDEX | 1 | 1 | stops at '(' — `CREATE XML INDEX filt_sxi_index_c ON Tbl(xmlcol) USING XML INDEX sxi_index FOR ( pa...` |
 | DELETE | 1 | 1 | stops at '.' — `DELETE FROM OPENDATASOURCE('SQLNCLI', 'Data Source= <server_name>; Integrated Secur...` |
 | GET | 1 | 1 | stops at GET — `GET CONVERSATION GROUP @conversation_group_id FROM AdventureWorks.dbo.ExpenseQueue ;` |
@@ -164,14 +161,13 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| DBCC SHOWCONTIG (Transact-SQL) | 33 | 57.6% | 14 | 0 | 0 | 0 | stops at DBCC — `DBCC SHOWCONTIG ('HumanResources.Employee');` |
-| DBCC INDEXDEFRAG (Transact-SQL) | 23 | 52.2% | 11 | 0 | 0 | 0 | stops at DBCC — `DBCC INDEXDEFRAG (AdventureWorks2022, 'Production.Product', PK_Product_ProductID);` |
 | DBCC CHECKIDENT (Transact-SQL) | 11 | 45.5% | 6 | 0 | 0 | 0 | stops at DBCC — `DBCC CHECKIDENT ('Person.AddressType');` |
 | DBCC CLONEDATABASE (Transact-SQL) | 6 | 16.7% | 5 | 0 | 0 | 0 | stops at DBCC — `DBCC CLONEDATABASE (AdventureWorks2022, AdventureWorks_Clone);` |
 | DBCC FREEPROCCACHE (Transact-SQL) | 10 | 50.0% | 5 | 0 | 0 | 0 | stops at DBCC — `DBCC FREEPROCCACHE (0x060006001ECA270EC0215D05000000000000000000000000);` |
 | DBCC PDW_SHOWSPACEUSED (Transact-SQL) | 5 | 0.0% | 5 | 0 | 0 | 0 | stops at DBCC — `DBCC PDW_SHOWSPACEUSED ( "AdventureWorksPDW2012.dbo.FactInternetSales" );` |
 | DBCC SHRINKDATABASE (Transact-SQL) | 5 | 0.0% | 5 | 0 | 0 | 0 | stops at DBCC — `DBCC SHRINKDATABASE (UserDB, 10);` |
 | DBCC SHRINKFILE (Transact-SQL) | 17 | 70.6% | 5 | 0 | 0 | 0 | stops at DBCC — `DBCC SHRINKFILE (DataFile1, 7);` |
+| DBCC SHOWCONTIG (Transact-SQL) | 33 | 87.9% | 4 | 0 | 0 | 0 | stops at DBCC — `DBCC SHOWCONTIG ('HumanResources.Employee');` |
 | DBCC TRACESTATUS (Transact-SQL) | 4 | 0.0% | 4 | 0 | 0 | 0 | stops at DBCC — `DBCC TRACESTATUS (-1);` |
 | DBCC UPDATEUSAGE (Transact-SQL) | 4 | 0.0% | 4 | 0 | 0 | 0 | stops at DBCC — `DBCC UPDATEUSAGE (0);` |
 | DBCC CHECKCONSTRAINTS (Transact-SQL) | 9 | 62.5% | 3 | 0 | 0 | 0 | stops at DBCC — `DBCC CHECKCONSTRAINTS (Table1);` |
@@ -194,6 +190,7 @@ None: the engine reads every statement this grammar reads.
 | DBCC dllname (FREE) (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC xp_sample (FREE);` |
 | DBCC FLUSHAUTHCACHE (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC FLUSHAUTHCACHE;` |
 | DBCC FREESESSIONCACHE (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC FREESESSIONCACHE WITH NO_INFOMSGS;` |
+| DBCC INDEXDEFRAG (Transact-SQL) | 23 | 95.7% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC INDEXDEFRAG (AdventureWorks2022, 'Production.Product', PK_Product_ProductID);` |
 | DBCC INPUTBUFFER (Transact-SQL) | 9 | 88.9% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC INPUTBUFFER (52);` |
 | DBCC OPENTRAN (Transact-SQL) | 9 | 88.9% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC OPENTRAN;` |
 | DBCC OUTPUTBUFFER (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC OUTPUTBUFFER (52);` |
@@ -205,17 +202,14 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| DECRYPTBYKEYAUTOASYMKEY (Transact-SQL) | 13 | 58.3% | 5 | 0 | 0 | 0 | stops at OPEN — `OPEN MASTER KEY DECRYPTION BY PASSWORD = 'mzkvdMlk979438teag$$ds987yghn)(*&4fdg^';` |
-| DECRYPTBYKEYAUTOCERT (Transact-SQL) | 13 | 58.3% | 5 | 0 | 0 | 0 | stops at OPEN — `OPEN MASTER KEY DECRYPTION BY PASSWORD = 'mzkvdlk979438teag$$ds987yghn)(*&4fdg^';` |
-| FETCH_STATUS (Transact-SQL) | 6 | 16.7% | 5 | 0 | 0 | 0 | stops at OPEN — `OPEN Employee_Cursor;` |
-| @@CURSOR_ROWS (Transact-SQL) | 8 | 50.0% | 4 | 0 | 0 | 0 | stops at OPEN — `OPEN Name_Cursor;` |
+| DECRYPTBYKEYAUTOASYMKEY (Transact-SQL) | 13 | 58.3% | 5 | 0 | 0 | 0 | stops at KEY — `OPEN MASTER KEY DECRYPTION BY PASSWORD = 'mzkvdMlk979438teag$$ds987yghn)(*&4fdg^';` |
+| DECRYPTBYKEYAUTOCERT (Transact-SQL) | 13 | 58.3% | 5 | 0 | 0 | 0 | stops at KEY — `OPEN MASTER KEY DECRYPTION BY PASSWORD = 'mzkvdlk979438teag$$ds987yghn)(*&4fdg^';` |
 | GROUPING_ID (Transact-SQL) | 12 | 63.6% | 4 | 0 | 0 | 0 | stops at N — `SELECT D.Name, CASE WHEN GROUPING_ID(D.Name, E.JobTitle) = 0 THEN E.JobTitle WHEN G...` |
-| CURSOR_STATUS (Transact-SQL) | 12 | 75.0% | 3 | 0 | 0 | 0 | stops at OPEN — `OPEN cur` |
-| DECRYPTBYKEY (Transact-SQL) | 26 | 88.5% | 3 | 0 | 0 | 0 | stops at OPEN — `OPEN SYMMETRIC KEY SSN_Key_01 DECRYPTION BY CERTIFICATE HumanResources037;` |
+| DECRYPTBYKEY (Transact-SQL) | 26 | 88.5% | 3 | 0 | 0 | 0 | stops at KEY — `OPEN SYMMETRIC KEY SSN_Key_01 DECRYPTION BY CERTIFICATE HumanResources037;` |
 | OPENDATASOURCE (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at '.' — `SELECT GroupName, Name, DepartmentID FROM OPENDATASOURCE('MSOLEDBSQL', 'Server=Seat...` |
 | OPENJSON (Transact-SQL) | 23 | 100.0% | 0 | 0 | 3 | 0 | levels 100 engine, 110 engine, 120 engine — `SELECT * FROM OPENJSON(@array) WITH (  month VARCHAR(3), temp int, month_id tinyint...` |
 | BINARY_CHECKSUM  (Transact-SQL) | 6 | 66.7% | 2 | 0 | 0 | 0 | stops at '*' — `SELECT BINARY_CHECKSUM(*) from myTable;` |
-| ENCRYPTBYKEY (Transact-SQL) | 8 | 75.0% | 2 | 0 | 0 | 0 | stops at OPEN — `OPEN SYMMETRIC KEY SSN_Key_01 DECRYPTION BY CERTIFICATE HumanResources037;` |
+| ENCRYPTBYKEY (Transact-SQL) | 8 | 75.0% | 2 | 0 | 0 | 0 | stops at KEY — `OPEN SYMMETRIC KEY SSN_Key_01 DECRYPTION BY CERTIFICATE HumanResources037;` |
 | NEXT VALUE FOR (Transact-SQL) | 25 | 92.0% | 2 | 0 | 0 | 0 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
 | $PARTITION (Transact-SQL) | 7 | 71.4% | 2 | 0 | 0 | 0 | stops at PARTITION — `CREATE PARTITION FUNCTION RangePF1(INT) AS RANGE LEFT FOR VALUES (10, 100, 1000);` |
 | ROW_NUMBER (Transact-SQL) | 11 | 81.8% | 2 | 0 | 0 | 0 | stops at '#' — `SELECT ROW_NUMBER() OVER(ORDER BY name ASC) AS Row#, name, recovery_model_desc FROM...` |
@@ -223,7 +217,7 @@ None: the engine reads every statement this grammar reads.
 | TYPE_ID (Transact-SQL) | 7 | 71.4% | 2 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE NewType FROM int;` |
 | DATE_BUCKET (Transact-SQL) | 27 | 96.3% | 1 | 0 | 0 | 0 | stops at ';' — `DECLARE @days INT = 365, @datetime DATETIME2 = '2000-01-01 01:01:01.1110000'; /* 20...` |
 | EDGE_ID_FROM_PARTS (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at ';' — `INSERT INTO likes($edge_id, $from_id, $to_id, rating) SELECT EDGE_ID_FROM_PARTS(OBJ...` |
-| KEY_NAME (Transact-SQL) | 15 | 93.3% | 1 | 0 | 0 | 0 | stops at OPEN — `OPEN SYMMETRIC KEY TestSymKey DECRYPTION BY PASSWORD = 'pGFD4bb925DGvbd2439587y';` |
+| KEY_NAME (Transact-SQL) | 15 | 93.3% | 1 | 0 | 0 | 0 | stops at KEY — `OPEN SYMMETRIC KEY TestSymKey DECRYPTION BY PASSWORD = 'pGFD4bb925DGvbd2439587y';` |
 | NODE_ID_FROM_PARTS (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at ';' — `INSERT INTO Person($node_id, ID, [name]) SELECT NODE_ID_FROM_PARTS(OBJECT_ID('Perso...` |
 | OBJECTPROPERTYEX (Transact-SQL) | 10 | 90.0% | 1 | 0 | 0 | 0 | stops at SYNONYM — `CREATE SYNONYM MyEmployeeTable FOR HumanResources.Employee;` |
 | OPENROWSET (Transact-SQL) | 37 | 97.1% | 1 | 0 | 0 | 2 | stops at ',' — `SELECT * FROM OPENROWSET( BULK ( '/decades/1950s/*.parquet', '/decades/1960s/*.parq...` |
@@ -280,6 +274,8 @@ None: the engine reads every statement this grammar reads.
 | CURRENT_TIMEZONE (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CURRENT_TRANSACTION_ID (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CURRENT_USER (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
+| @@CURSOR_ROWS (Transact-SQL) | 8 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CURSOR_STATUS (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DATABASE_PRINCIPAL_ID (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DATABASEPROPERTYEX (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DATALENGTH (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -320,6 +316,7 @@ None: the engine reads every statement this grammar reads.
 | @@ERROR (Transact-SQL) | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EVENTDATA (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EXP (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
+| FETCH_STATUS (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | FILE_ID (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | FILE_IDEX (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | FILE_NAME (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -542,16 +539,10 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| FETCH (Transact-SQL) | 26 | 26.9% | 19 | 0 | 0 | 0 | stops at OPEN — `OPEN contact_cursor;` |
-| DEALLOCATE (Transact-SQL) | 24 | 50.0% | 12 | 0 | 0 | 0 | stops at SCROLL — `DECLARE abc SCROLL CURSOR FOR SELECT * FROM Person.Person;` |
-| SET @local_variable (Transact-SQL) | 54 | 79.6% | 11 | 0 | 0 | 0 | stops at DEALLOCATE — `DEALLOCATE my_cursor;` |
-| DECLARE CURSOR (Transact-SQL) | 12 | 41.7% | 7 | 0 | 0 | 0 | stops at OPEN — `OPEN vend_cursor` |
-| EXECUTE (Transact-SQL) | 69 | 89.7% | 7 | 0 | 0 | 0 | stops at DBO — `dbo.uspGetEmployeeManagers 6;` |
-| CLOSE (Transact-SQL) | 6 | 16.7% | 5 | 0 | 0 | 0 | stops at OPEN — `OPEN Employee_Cursor;` |
-| OPEN (Transact-SQL) | 6 | 16.7% | 5 | 0 | 0 | 0 | stops at OPEN — `OPEN Employee_Cursor;` |
-| WHILE (Transact-SQL) | 12 | 58.3% | 5 | 0 | 0 | 0 | stops at OPEN — `OPEN Employee_Cursor;` |
 | KILL (Transact-SQL) | 5 | 20.0% | 4 | 0 | 0 | 0 | stops at KILL — `KILL 53;` |
+| SET @local_variable (Transact-SQL) | 54 | 92.6% | 4 | 0 | 0 | 0 | stops at '.' — `SET @p.X = @p.X + 1.1;` |
 | Transactions (Azure Synapse Analytics and Microsoft Fabric) | 11 | 72.7% | 3 | 0 | 0 | 0 | stops at AUTOCOMMIT — `SET AUTOCOMMIT ON;` |
+| EXECUTE (Transact-SQL) | 69 | 97.1% | 2 | 0 | 0 | 0 | stops at DBO — `dbo.uspGetEmployeeManagers 6;` |
 | KILL QUERY NOTIFICATION SUBSCRIPTION | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at KILL — `KILL QUERY NOTIFICATION SUBSCRIPTION ALL ;` |
 | CREATE DIAGNOSTICS SESSION (Transact-SQL) | 9 | 83.3% | 1 | 0 | 0 | 0 | stops at DIAGNOSTICS — `-- Determine the session_id of your current session SELECT TOP 1 session_id();  -- ...` |
 | KILL STATS JOB (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at KILL — `KILL STATS JOB 53;` |
@@ -573,11 +564,14 @@ None: the engine reads every statement this grammar reads.
 | \| (Bitwise OR) (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BREAK (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CASE (Transact-SQL) | 17 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CLOSE (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | COALESCE (Transact-SQL) | 14 | 100.0% | 0 | 0 | 0 | 0 |  |
 | -- (Comment) (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | COMMIT TRANSACTION (Transact-SQL) | 20 | 100.0% | 0 | 0 | 0 | 0 |  |
 | \|\|= (Compound assignment) (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Compound Operators (Transact-SQL) | 24 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DEALLOCATE (Transact-SQL) | 24 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DECLARE CURSOR (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DECLARE @local_variable (Transact-SQL) | 26 | 100.0% | 0 | 0 | 0 | 0 |  |
 | (Division Assignment) (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | (Division) (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -586,6 +580,7 @@ None: the engine reads every statement this grammar reads.
 | = (Equals) (Transact-SQL) | 24 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EXISTS (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Expressions (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
+| FETCH (Transact-SQL) | 26 | 100.0% | 0 | 0 | 0 | 0 |  |
 | &gt;= (Greater Than or Equal To) (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | &gt; (Greater Than) (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | IF...ELSE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -597,6 +592,7 @@ None: the engine reads every statement this grammar reads.
 | * (Multiplication) (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | &lt;&gt; (Not Equal To) (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | NOT (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| OPEN (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Operator Precedence (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OR (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Wildcard search (%) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -625,6 +621,7 @@ None: the engine reads every statement this grammar reads.
 | USE (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Variables (Transact-SQL) | 30 | 100.0% | 0 | 0 | 0 | 0 |  |
 | WAITFOR (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
+| WHILE (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | [^] Wildcard to exclude characters | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | [ ] Wildcard to match characters | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | _ (Wildcard - Match One Character) (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -633,7 +630,7 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| UPDATE (Transact-SQL) | 136 | 92.6% | 10 | 0 | 0 | 0 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
+| UPDATE (Transact-SQL) | 136 | 96.3% | 5 | 0 | 0 | 0 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
 | PREDICT (Transact-SQL) | 8 | 42.9% | 4 | 0 | 0 | 0 | stops at AS — `SELECT d.*, p.Score FROM PREDICT(MODEL = @model, DATA = dbo.mytable AS d) WITH (Sco...` |
 | EXPLAIN (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at EXPLAIN — `EXPLAIN` |
 | GROUP BY (Transact-SQL) | 33 | 93.3% | 2 | 0 | 0 | 0 | stops at N — `SELECT DATEPART(yyyy,OrderDate) AS N'Year' ,SUM(TotalDue) AS N'Total Order Amount' ...` |
@@ -842,10 +839,8 @@ None: the engine reads every statement this grammar reads.
 | ALTER SERVER CONFIGURATION (Transact-SQL) | 20 | 5.0% | 19 | 0 | 0 | 0 | stops at CONFIGURATION — `ALTER SERVER CONFIGURATION SET PROCESS AFFINITY CPU=0 TO 63, 128 TO 191;` |
 | CREATE BROKER PRIORITY (Transact-SQL) | 13 | 0.0% | 12 | 0 | 0 | 0 | stops at BROKER — `CREATE BROKER PRIORITY InitiatorAToTargetPriority FOR CONVERSATION SET (CONTRACT_NA...` |
 | CREATE PARTITION SCHEME (Transact-SQL) | 10 | 0.0% | 10 | 0 | 0 | 0 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1(INT) AS RANGE LEFT FOR VALUES (1, 100, 1000);` |
-| CREATE PROCEDURE (Transact-SQL) | 61 | 85.2% | 9 | 0 | 0 | 0 | stops at HUMANRESOURCES — `HumanResources.uspGetAllEmployees;` |
 | ALTER QUEUE (Transact-SQL) | 8 | 0.0% | 8 | 0 | 0 | 0 | stops at QUEUE — `ALTER QUEUE ExpenseQueue WITH STATUS = OFF ;` |
 | CREATE ROUTE (Transact-SQL) | 11 | 27.3% | 8 | 0 | 0 | 0 | stops at ROUTE — `CREATE ROUTE ExpenseRoute WITH SERVICE_NAME = '//Adventure-Works.com/Expenses', BRO...` |
-| SET CURSOR_CLOSE_ON_COMMIT (Transact-SQL) | 33 | 75.8% | 8 | 0 | 0 | 0 | stops at OPEN — `OPEN testcursor;` |
 | ALTER RESOURCE GOVERNOR (Transact-SQL) | 9 | 22.2% | 7 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | CREATE SEQUENCE (Transact-SQL) | 12 | 41.7% | 7 | 0 | 0 | 0 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
 | CREATE SPATIAL INDEX (Transact-SQL) | 9 | 22.2% | 7 | 0 | 0 | 0 | stops at SPATIAL — `CREATE SPATIAL INDEX SIndx_SpatialTable_geometry_col1 ON SpatialTable(geometry_col)...` |
@@ -854,10 +849,10 @@ None: the engine reads every statement this grammar reads.
 | ALTER SEQUENCE (Transact-SQL) | 9 | 44.4% | 5 | 0 | 0 | 0 | stops at SEQUENCE — `CREATE SEQUENCE Test.TestSeq AS int START WITH 125 INCREMENT BY 25 MINVALUE 100 MAX...` |
 | ALTER XML SCHEMA COLLECTION (Transact-SQL) | 19 | 70.6% | 5 | 0 | 0 | 0 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION MyColl AS ' <schema xmlns="http://www.w3.org/2001/XMLS...` |
 | CREATE MESSAGE TYPE (Transact-SQL) | 5 | 0.0% | 5 | 0 | 0 | 0 | stops at MESSAGE — `CREATE MESSAGE TYPE [//Adventure-Works.com/Expenses/SubmitExpense] VALIDATION = WEL...` |
+| CREATE PROCEDURE (Transact-SQL) | 61 | 91.8% | 5 | 0 | 0 | 0 | stops at HUMANRESOURCES — `HumanResources.uspGetAllEmployees;` |
 | CREATE QUEUE (Transact-SQL) | 5 | 0.0% | 5 | 0 | 0 | 0 | stops at QUEUE — `CREATE QUEUE ExpenseQueue;` |
 | CREATE TYPE (Transact-SQL) | 10 | 44.4% | 5 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE dbo.udt_money FROM varchar(11) NOT NULL;` |
 | CREATE XML SCHEMA COLLECTION (Transact-SQL) | 18 | 72.2% | 5 | 0 | 0 | 0 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION ManuInstructionsSchemaCollection AS N'<?xml version="1...` |
-| DELETE (Transact-SQL) | 35 | 85.7% | 5 | 0 | 0 | 0 | stops at OPEN — `OPEN complex_cursor;` |
 | ENABLE TRIGGER (Transact-SQL) | 6 | 16.7% | 5 | 0 | 0 | 0 | stops at DISABLE — `DISABLE TRIGGER Person.uAddress ON Person.Address;` |
 | ALTER PARTITION FUNCTION (Transact-SQL) | 6 | 33.3% | 4 | 0 | 0 | 0 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1 (int) AS RANGE LEFT FOR VALUES ( 1, 100, 1000 );` |
 | ALTER ROUTE (Transact-SQL) | 7 | 42.9% | 4 | 0 | 0 | 0 | stops at ROUTE — `ALTER ROUTE ExpenseRoute WITH SERVICE_NAME = '//Adventure-Works.com/Expenses';` |
@@ -869,7 +864,7 @@ None: the engine reads every statement this grammar reads.
 | ALTER ASSEMBLY (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at ASSEMBLY — `ALTER ASSEMBLY ComplexNumber FROM 'C:\Program Files\Microsoft SQL Server\130\Tools\...` |
 | ALTER CRYPTOGRAPHIC PROVIDER (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at CRYPTOGRAPHIC — `ALTER CRYPTOGRAPHIC PROVIDER SecurityProvider DISABLE;` |
 | ALTER SERVICE (Transact-SQL) | 4 | 25.0% | 3 | 0 | 0 | 0 | stops at SERVICE — `ALTER SERVICE [//Adventure-Works.com/Expenses] ON QUEUE NewQueue ;` |
-| CLOSE MASTER KEY (Transact-SQL) | 5 | 40.0% | 3 | 0 | 0 | 0 | stops at CLOSE — `CLOSE MASTER KEY;` |
+| CLOSE MASTER KEY (Transact-SQL) | 5 | 40.0% | 3 | 0 | 0 | 0 | stops at KEY — `CLOSE MASTER KEY;` |
 | CREATE EVENT NOTIFICATION (Transact-SQL) | 7 | 57.1% | 3 | 0 | 0 | 0 | stops at QUEUE — `CREATE QUEUE NotifyQueue ;` |
 | CREATE RULE (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at RULE — `CREATE RULE range_rule AS @range>= $1000 AND @range <$20000;` |
 | CREATE SERVICE (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at SERVICE — `CREATE SERVICE [//Adventure-Works.com/Expenses] ON QUEUE [dbo].[ExpenseQueue] ([//A...` |
@@ -878,8 +873,8 @@ None: the engine reads every statement this grammar reads.
 | END CONVERSATION (Transact-SQL) | 6 | 50.0% | 3 | 0 | 0 | 0 | stops at '@' — `@dialog_handle ;` |
 | GET CONVERSATION GROUP (Transact-SQL) | 6 | 50.0% | 3 | 0 | 0 | 0 | stops at '(' — `WAITFOR ( GET CONVERSATION GROUP @conversation_group_id FROM ExpenseQueue ) ;` |
 | INSERT (Transact-SQL) | 73 | 95.9% | 3 | 0 | 0 | 0 | stops at ')' — `CREATE TABLE dbo.T1 ( column_1 int IDENTITY, column_2 uniqueidentifier, );` |
-| OPEN MASTER KEY (Transact-SQL) | 5 | 40.0% | 3 | 0 | 0 | 0 | stops at OPEN — `OPEN MASTER KEY DECRYPTION BY PASSWORD = '43987hkhj4325tsku7';` |
-| OPEN SYMMETRIC KEY (Transact-SQL) | 5 | 40.0% | 3 | 0 | 0 | 0 | stops at OPEN — `OPEN SYMMETRIC KEY SymKeyMarketing3 DECRYPTION BY CERTIFICATE MarketingCert9;` |
+| OPEN MASTER KEY (Transact-SQL) | 5 | 40.0% | 3 | 0 | 0 | 0 | stops at KEY — `OPEN MASTER KEY DECRYPTION BY PASSWORD = '43987hkhj4325tsku7';` |
+| OPEN SYMMETRIC KEY (Transact-SQL) | 5 | 40.0% | 3 | 0 | 0 | 0 | stops at KEY — `OPEN SYMMETRIC KEY SymKeyMarketing3 DECRYPTION BY CERTIFICATE MarketingCert9;` |
 | TRUNCATE TABLE (Transact-SQL) | 14 | 78.6% | 3 | 0 | 0 | 0 | stops at TRUNCATE — `TRUNCATE TABLE HumanResources.JobCandidate;` |
 | ADD SENSITIVITY CLASSIFICATION (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at ADD — `ADD SENSITIVITY CLASSIFICATION TO dbo.sales.price, dbo.sales.discount WITH ( LABEL ...` |
 | ALTER AVAILABILITY GROUP (Transact-SQL) | 3 | 0.0% | 2 | 0 | 0 | 0 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP AccountsAG JOIN;` |
@@ -887,10 +882,10 @@ None: the engine reads every statement this grammar reads.
 | ALTER DATABASE File and Filegroups | 69 | 97.0% | 2 | 0 | 0 | 0 | stops at DBCC — `DBCC SHRINKFILE (AdventureWorks2022_data, 100);` |
 | ALTER EXTERNAL RESOURCE POOL (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | ALTER RESOURCE POOL (Transact-SQL) | 5 | 60.0% | 2 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
-| ALTER SYMMETRIC KEY (Transact-SQL) | 5 | 60.0% | 2 | 0 | 0 | 0 | stops at OPEN — `OPEN SYMMETRIC KEY JanainaKey043 DECRYPTION BY CERTIFICATE Shipping04 WITH PASSWORD...` |
+| ALTER SYMMETRIC KEY (Transact-SQL) | 5 | 60.0% | 2 | 0 | 0 | 0 | stops at KEY — `OPEN SYMMETRIC KEY JanainaKey043 DECRYPTION BY CERTIFICATE Shipping04 WITH PASSWORD...` |
 | ALTER TABLE (Transact-SQL) | 141 | 98.4% | 2 | 0 | 0 | 4 | stops at WITH — `ALTER TABLE dbo.doc_exf ADD AddDate smalldatetime NULL CONSTRAINT AddDateDflt DEFAU...` |
-| BACKUP MASTER KEY (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at OPEN — `OPEN MASTER KEY DECRYPTION BY PASSWORD = 'sfj5300osdVdgwdfkli7';` |
-| CLOSE SYMMETRIC KEY (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at CLOSE — `CLOSE SYMMETRIC KEY ShippingSymKey04;` |
+| BACKUP MASTER KEY (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at KEY — `OPEN MASTER KEY DECRYPTION BY PASSWORD = 'sfj5300osdVdgwdfkli7';` |
+| CLOSE SYMMETRIC KEY (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at KEY — `CLOSE SYMMETRIC KEY ShippingSymKey04;` |
 | CREATE AGGREGATE (Transact-SQL) | 5 | 60.0% | 2 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY StringUtilities FROM @SamplesPath + 'StringUtilities\CS\StringUtili...` |
 | CREATE ASSEMBLY (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY HelloWorld FROM '<system_drive>:\Program Files\Microsoft SQL Server...` |
 | CREATE CREDENTIAL (Transact-SQL) | 26 | 92.3% | 2 | 0 | 0 | 0 | stops at BACKUP_OPTIONS — `BACKUP DATABASE [AdventureWorks2022] TO URL  = 's3://datavirtualizationsample.s3.am...` |
@@ -902,7 +897,7 @@ None: the engine reads every statement this grammar reads.
 | CREATE TABLE (Transact-SQL) | 69 | 96.3% | 2 | 0 | 0 | 1 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1(INT) AS RANGE LEFT FOR VALUES (1, 100, 1000);` |
 | DROP WORKLOAD GROUP (Transact-SQL) | 5 | 60.0% | 2 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | MERGE (Transact-SQL) | 54 | 96.0% | 2 | 0 | 0 | 0 | stops at MERGE — `INSERT INTO Production.UpdatedInventory SELECT ProductID, LocationID, NewQty, Previ...` |
-| ALTER ASYMMETRIC KEY (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at OPEN — `OPEN MASTER KEY DECRYPTION BY PASSWORD = '<database master key password>';` |
+| ALTER ASYMMETRIC KEY (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at KEY — `OPEN MASTER KEY DECRYPTION BY PASSWORD = '<database master key password>';` |
 | ALTER EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at LANGUAGE — `ALTER EXTERNAL LANGUAGE Java SET (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaexte...` |
 | ALTER MESSAGE TYPE (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at MESSAGE — `ALTER MESSAGE TYPE [//Adventure-Works.com/Expenses/SubmitExpense] VALIDATION = WELL...` |
 | ALTER PARTITION SCHEME (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at PARTITION — `ALTER PARTITION SCHEME MyRangePS1 NEXT USED test5fg;` |
@@ -920,10 +915,11 @@ None: the engine reads every statement this grammar reads.
 | CREATE RESOURCE POOL (Transact-SQL) | 5 | 80.0% | 1 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | CREATE TABLE AS SELECT (Azure Synapse Analytics and Microsoft Fabric) | 53 | 100.0% | 0 | 0 | 1 | 12 | levels 100 engine, 110 engine, 120 engine — `INSERT INTO Users (id, name, age, street, city) SELECT id, name, age, JSON_VALUE(ad...` |
 | CREATE XML INDEX (Selective XML Indexes) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at '(' — `CREATE XML INDEX filt_sxi_index_c ON Tbl(xmlcol) USING XML INDEX sxi_index FOR ( pa...` |
+| DELETE (Transact-SQL) | 35 | 97.1% | 1 | 0 | 0 | 0 | stops at '.' — `DELETE FROM OPENDATASOURCE('SQLNCLI', 'Data Source= <server_name>; Integrated Secur...` |
 | DROP EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at LANGUAGE — `CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaex...` |
 | DROP EXTERNAL RESOURCE POOL (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | DROP RESOURCE POOL (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
-| DROP SYMMETRIC KEY (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at CLOSE — `CLOSE SYMMETRIC KEY GailSammamishKey6;` |
+| DROP SYMMETRIC KEY (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at KEY — `CLOSE SYMMETRIC KEY GailSammamishKey6;` |
 | DROP SYNONYM (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at SYNONYM — `CREATE SYNONYM MyProduct FOR AdventureWorks2022.Production.Product;` |
 | DROP TABLE (Transact-SQL) | 6 | 83.3% | 1 | 0 | 0 | 0 | stops at ''' — `CREATE TABLE #temptable (col1 int);  INSERT INTO #temptable VALUES (10);  SELECT co...` |
 | RENAME (Transact-SQL) | 7 | 66.7% | 1 | 0 | 0 | 0 | stops at KILL — `KILL 'SID1234';` |
@@ -1131,6 +1127,7 @@ None: the engine reads every statement this grammar reads.
 | SET ARITHIGNORE (Transact-SQL) | 16 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SET CONCAT_NULL_YIELDS_NULL (Transact-SQL) | 8 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SET CONTEXT_INFO (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
+| SET CURSOR_CLOSE_ON_COMMIT (Transact-SQL) | 33 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SET DATEFIRST (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SET DATEFORMAT (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SET DEADLOCK_PRIORITY (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |

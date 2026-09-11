@@ -1680,6 +1680,7 @@ ControlStatement : @Statement
 	| s: ConditionalStatement => @(s)
 	| s: LoopStatement        => @(s)
 	| s: SimpleCommand        => @(s)
+	| s: CursorStatement      => @(s)
 
 DefinitionStatement : @Statement
 	= s: DeclareStatement     => @(s)
@@ -1793,9 +1794,7 @@ TranName : @string = t: Identifier => @(t) | t: TSql.Variable => @(t)
 
 // ── Declarations ────────────────────────────────────────────────────────────
 DeclareStatement : @Statement
-	= "DECLARE"i & name: Identifier & "CURSOR"i & tail: (CursorOption* & "FOR"i & CursorBody)
-		=> @(new Statement.Declare(new Clause[]
-			 { new Clause.VariableDeclaration(name, "CURSOR", null, null, null, Syntax.Tail(tail)) }))
+	= "DECLARE"i & name: Identifier & d: CursorDefinition => @(new Statement.DeclareCursor(name, d))
 	| "DECLARE"i & first: Declaration & (',' & rest: Declaration)*
 		=> @(new Statement.Declare(Syntax.Listed(first, rest)))
 
@@ -1808,13 +1807,88 @@ DeclaredAs : @Clause.VariableDeclaration
 	| "CURSOR"i                                           => @(new Clause.VariableDeclaration("", "CURSOR", null))
 	| type: DataType & n: NullSpec? & ('=' & v: SetValue)? => @(new Clause.VariableDeclaration("", type, v, null, n))
 
-CursorOption = "LOCAL"i | "GLOBAL"i | "FORWARD_ONLY"i | "SCROLL"i | "STATIC"i | "KEYSET"i
-			 | "DYNAMIC"i | "FAST_FORWARD"i | "READ_ONLY"i | "SCROLL_LOCKS"i | "OPTIMISTIC"i
-			 | "TYPE_WARNING"i | "INSENSITIVE"i
+// ── Cursors ─────────────────────────────────────────────────────────────────
+//
+// Put to the engine some two hundred times, every pair of words among them. A cursor is
+// declared the standard's way, `INSENSITIVE` and `SCROLL` before `CURSOR`, or T-SQL's, its
+// words after it — never both (`Msg 1049`) — and a variable is set to one only T-SQL's way.
+// A word may be said twice and in any order; which words agree is `Syntax.CursorAgrees`.
+CursorDefinition : @Clause.CursorDefinition
+	= before: CursorIsoWord+ & "CURSOR"i & "FOR"i & q: CursorQuery
+	  & when @(Syntax.CursorAgrees(before, q?.Access))
+		=> @(q with { Before = before ?? System.Array.Empty<string>() })
+	| "CURSOR"i & options: CursorOption* & "FOR"i & q: CursorQuery
+	  & when @(Syntax.CursorAgrees(options, q?.Access))
+		=> @(q with { Options = options ?? System.Array.Empty<string>() })
 
-CursorBody = QueryExpression & OrderByClause? & CursorFor?
-CursorFor  = "FOR"i & "UPDATE"i & ("OF"i & ColumnList)?
-		   | "FOR"i & "READ"i & "ONLY"i
+// The same T-SQL form, where a variable is set to it: `READ_ONLY` and `FOR READ ONLY` are read
+// together here, and refused together in a declaration (`Msg 1058`).
+CursorInPlace : @Clause.CursorDefinition
+	= "CURSOR"i & options: CursorOption* & "FOR"i & q: CursorQuery
+	  & when @(Syntax.CursorAgrees(options, q?.Access, false))
+		=> @(q with { Options = options ?? System.Array.Empty<string>() })
+
+CursorIsoWord : @string = t: ("INSENSITIVE"i | "SCROLL"i) => @(Syntax.Squared(t))
+
+CursorOption : @string
+	= t: ("LOCAL"i | "GLOBAL"i | "FORWARD_ONLY"i | "SCROLL_LOCKS"i | "SCROLL"i | "STATIC"i | "KEYSET"i
+		| "DYNAMIC"i | "FAST_FORWARD"i | "READ_ONLY"i | "OPTIMISTIC"i | "TYPE_WARNING"i)
+		=> @(Syntax.Squared(t))
+
+// The query is a whole select — its common table expressions, its order and its hints — and
+// not a shape: `FOR XML`, `FOR JSON` and `FOR BROWSE` are refused (`Msg 6819`, `13602`,
+// `16907`), and so are `INTO` (`Msg 154`) and `VALUES` (`Msg 156`). After it comes `FOR READ
+// ONLY` or `FOR UPDATE`, one of them, before the hints or after: the engine reads both.
+CursorQuery : @Clause.CursorDefinition
+	= with: WithClause? & q: CursorSelect & f: CursorFor & hints: QueryHints
+		=> @(Syntax.Cursor(with, q, f, hints, true))
+	| with: WithClause? & q: CursorSelect & hints: QueryHints? & f: CursorFor?
+		=> @(Syntax.Cursor(with, q, f, hints, false))
+
+CursorSelect : @Query
+	= q: QueryExpression & by: OrderByClause? & window: OffsetFetch? & when @(Syntax.Cursorable(q))
+		=> @(Syntax.Ordered(q, Clause.Ordered(by, window), null))
+
+CursorFor : @Clause
+	= "FOR"i & "READ"i & "ONLY"i => @(new Clause.CursorFor(false))
+	| "FOR"i & "UPDATE"i & columns: CursorColumns? => @(new Clause.CursorFor(true, columns))
+
+// A name each, typed: a text rule captured in a repetition is the turns' text joined (§10).
+CursorColumns : @string[] = "OF"i & first: CursorColumn & (',' & rest: CursorColumn)* => @(Syntax.Named(first, rest))
+CursorColumn  : @string   = t: QualifiedName => @(t)
+
+// A cursor is named by one part, `GLOBAL` before it where it is the connection's, or held in a
+// variable, which `GLOBAL` never stands before; and it may be called `GLOBAL` — `OPEN GLOBAL`
+// opens it. `FETCH` may say which row, and `FROM` after that is not optional. The row of
+// `ABSOLUTE` and `RELATIVE` is a number, negative or not, or a variable, and nothing more: not
+// `+1`, `(1)`, `1 + 1` or `1e1`. It goes into variables and into nothing else. A variable is
+// any but the server's own, which the engine refuses in all three places: `@@x` is read,
+// `@@ROWCOUNT` is not.
+CursorStatement : @Statement
+	= "OPEN"i & c: CursorName       => @(c with { Verb = "OPEN" })
+	| "CLOSE"i & c: CursorName      => @(c with { Verb = "CLOSE" })
+	| "DEALLOCATE"i & c: CursorName => @(c with { Verb = "DEALLOCATE" })
+	| "FETCH"i & t: ("NEXT"i | "PRIOR"i | "FIRST"i | "LAST"i) & "FROM"i & c: CursorName & into: FetchInto?
+		=> @(new Statement.Fetch(Syntax.Squared(t), null, true, c.Cursor, c.Global, into))
+	| "FETCH"i & t: ("ABSOLUTE"i | "RELATIVE"i) & n: FetchRow & "FROM"i & c: CursorName & into: FetchInto?
+		=> @(new Statement.Fetch(Syntax.Squared(t), n, true, c.Cursor, c.Global, into))
+	| "FETCH"i & from: "FROM"i? & c: CursorName & into: FetchInto?
+		=> @(new Statement.Fetch(null, null, from is not null, c.Cursor, c.Global, into))
+
+CursorName : @Statement.CursorAction
+	= "GLOBAL"i & t: Identifier => @(new Statement.CursorAction("", new Expression.ColumnReference(t), true))
+	| t: Identifier             => @(new Statement.CursorAction("", new Expression.ColumnReference(t), false))
+	| v: LocalVariable          => @(new Statement.CursorAction("", v, false))
+
+FetchRow : @Expression
+	= t: ('-'? & Sql92.Lexical.UnsignedNumericLiteral) & when @(t is not null && t.IndexOfAny(new[] { 'e', 'E' }) < 0)
+		=> @(new Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(t)))
+	| v: LocalVariable => @(v)
+
+FetchInto : @Expression[] = "INTO"i & first: LocalVariable & (',' & rest: LocalVariable)* => @(Syntax.Listed(first, rest))
+
+LocalVariable : @Expression
+	= t: TSql.Variable & when @(!Syntax.IsServerVariable(t)) => @(new Expression.Literal(SqlLiteralKind.Parameter, t))
 
 IndexOrder : @string = t: ("CLUSTERED"i | "NONCLUSTERED"i) => @(Syntax.Squared(t))
 
@@ -1839,7 +1913,8 @@ GeneratedWhen = "START"i | "END"i
 // statements puts it in. Put to the engine some hundred times with its variables declared:
 // every setting takes values of its own kind, and none an expression.
 SetStatement : @Statement
-	= "SET"i & name: TSql.Variable & s: AssignTail
+	= "SET"i & name: TSql.Variable & '=' & d: CursorInPlace => @(new Statement.SetCursor(name, d))
+	| "SET"i & name: TSql.Variable & s: AssignTail
 		=> @(new Statement.SetVariable(name, s.Value, s.Operator, s.Through))
 	| "SET"i & items: SetExpressions => @(new Statement.SetStatement(items))
 
@@ -2745,10 +2820,18 @@ RoutineParameters : @Clause[]
 	| first: RoutineParameter & (',' & rest: RoutineParameter)*
 		=> @(Syntax.Listed(first, rest))
 
+// A cursor is passed out and only out, `CURSOR VARYING OUTPUT` and nothing else — without
+// either word `Msg 1051`, with a default, a nullability or `READONLY` refused — and `VARYING`
+// is a cursor's word: `@a INT VARYING OUTPUT` is refused. A function takes no cursor at all
+// (`Msg 5306`), which `FunctionStatement` asks.
 RoutineParameter : @Clause
-	= name: TSql.Variable & "AS"i? & type: DataType & varying: "VARYING"i? & n: NullSpec?
-	  & ('=' & v: SetValue)? & ways: ParameterWay*
-		=> @(new Clause.ParameterDeclaration(name, type, v, n, varying is not null, ways))
+	= name: TSql.Variable & "AS"i? & p: ParameterTail => @(p with { Name = name })
+
+ParameterTail : @Clause.ParameterDeclaration
+	= "CURSOR"i & "VARYING"i & way: ("OUTPUT"i | "OUT"i)
+		=> @(new Clause.ParameterDeclaration("", "CURSOR", null, null, true, new[] { Syntax.Squared(way) }))
+	| type: DataType & n: NullSpec? & ('=' & v: SetValue)? & ways: ParameterWay*
+		=> @(new Clause.ParameterDeclaration("", type, v, n, false, ways))
 
 ParameterWay : @string = t: ("OUTPUT"i | "OUT"i | "READONLY"i) => @(Syntax.Squared(t))
 
@@ -2778,7 +2861,7 @@ ExecuteAsWho : @string
 // variable and the columns it holds.
 FunctionStatement : @Statement
 	= "FUNCTION"i & name: QualifiedName & parameters: RoutineParameters?
-	  & "RETURNS"i & r: FunctionReturns
+	  & "RETURNS"i & r: FunctionReturns & when @(!Syntax.HasCursorParameter(parameters))
 		=> @(r with { Name = name, Parameters = parameters ?? Clause.None })
 
 FunctionReturns : @Statement.CreateFunction

@@ -527,6 +527,64 @@ public abstract record Statement : ISqlSpan
 		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
+	// ---- cursors -------------------------------------------------------------------------------
+	//
+	// T-SQL's cursors: one declared, or set to a variable, and what is done with one. Opening,
+	// closing and letting one go are a word and a cursor, and one record says which; a fetch
+	// says which row, and where it goes.
+
+	/// <summary>A cursor declared by name, and what it is over.</summary>
+	public sealed record DeclareCursor(string Name, Clause.CursorDefinition Cursor) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Declaration;
+	}
+
+	/// <summary>
+	/// A cursor variable set to a cursor defined where it stands, <c>SET @c = CURSOR … FOR …</c>.
+	/// Set to another cursor, it is <see cref="SetVariable"/>.
+	/// </summary>
+	public sealed record SetCursor(string Name, Clause.CursorDefinition Cursor) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Declaration;
+	}
+
+	/// <summary>A cursor opened, closed or let go.</summary>
+	/// <param name="Verb"><c>OPEN</c>, <c>CLOSE</c> or <c>DEALLOCATE</c>.</param>
+	/// <param name="Cursor">A cursor's name, or a variable holding one.</param>
+	/// <param name="Global">
+	/// Whether <c>GLOBAL</c> said the name is the connection's rather than the batch's. Never
+	/// before a variable, which the engine refuses.
+	/// </param>
+	public sealed record CursorAction(string Verb, Expression Cursor, bool Global) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
+
+	/// <summary>A row fetched from a cursor, and the variables it is read into.</summary>
+	/// <param name="Orientation">
+	/// Which row: <c>NEXT</c>, <c>PRIOR</c>, <c>FIRST</c>, <c>LAST</c>, <c>ABSOLUTE</c> or
+	/// <c>RELATIVE</c>. Null where none was said, which is <c>NEXT</c>.
+	/// </param>
+	/// <param name="Offset">
+	/// The row of <c>ABSOLUTE</c> and <c>RELATIVE</c>: a number, negative or not, or a variable.
+	/// </param>
+	/// <param name="From">
+	/// Whether <c>FROM</c> was written. It must be after an orientation and may be without one.
+	/// </param>
+	/// <param name="Cursor">A cursor's name, or a variable holding one.</param>
+	/// <param name="Global">Whether <c>GLOBAL</c> stood before the name.</param>
+	/// <param name="Into">The variables the row's columns go into, where it goes into any.</param>
+	public sealed record Fetch(
+		string? Orientation, Expression? Offset, bool From, Expression Cursor, bool Global,
+		Expression[]? Into) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
+
 	// ---- a word and some values ----------------------------------------------------------------
 	//
 	// Ten statements that are a word and what follows it. They shared one record until the
@@ -2549,7 +2607,6 @@ public abstract record Clause : ISqlSpan
 	/// <summary>
 	/// One variable: its name, the type as written, and what it was given to start with.
 	/// </summary>
-	/// <param name="Tail">A cursor's options and the query it is for, as written.</param>
 	/// <param name="As">
 	/// Whether <c>AS</c> stood between the name and the type. It is optional everywhere and
 	/// only a table variable needs it remembered: <c>DECLARE @v INT</c> and <c>DECLARE @v AS
@@ -2558,7 +2615,33 @@ public abstract record Clause : ISqlSpan
 	/// </param>
 	public sealed record VariableDeclaration(
 		string Name, string? Type, Expression? Value, Clause[]? Elements = null, string? Nullability = null,
-		string? Tail = null, bool As = false) : Clause;
+		bool As = false) : Clause;
+
+	/// <summary>
+	/// What a cursor is: the words it was declared with, the query it is over, and whether its
+	/// rows may be changed through it.
+	/// </summary>
+	/// <param name="Before">
+	/// The standard's words before <c>CURSOR</c>, <c>INSENSITIVE</c> and <c>SCROLL</c>. Empty in
+	/// T-SQL's form, and so always in a cursor a variable is set to.
+	/// </param>
+	/// <param name="Options">T-SQL's words after <c>CURSOR</c>, empty in the standard's form.</param>
+	/// <param name="With">The common table expressions, or the XML namespaces, before the query.</param>
+	/// <param name="Query">The query, with its order where it has one.</param>
+	/// <param name="Access">
+	/// What may be done through it, <see cref="CursorFor"/>, where that was written.
+	/// </param>
+	/// <param name="Hints">The query's <c>OPTION (…)</c>.</param>
+	/// <param name="AccessFirst">
+	/// Whether the <c>FOR</c> stood before the <c>OPTION</c>. The engine reads the two either way
+	/// round, and the text says which.
+	/// </param>
+	public sealed record CursorDefinition(
+		string[] Before, string[] Options, Clause[] With, Query Query, Clause? Access, Clause[] Hints,
+		bool AccessFirst = false) : Clause;
+
+	/// <summary><c>FOR READ ONLY</c>, or <c>FOR UPDATE</c> and the columns it is kept to.</summary>
+	public sealed record CursorFor(bool Update, string[]? Columns = null) : Clause;
 
 	/// <summary>
 	/// One parameter of a routine: its name, its type, and its default — and the words around
@@ -3285,6 +3368,108 @@ public static class Syntax
 			? kind is null ? null : partial ? "PARTIAL" : "FULL"
 			: kind is null ? "UNIQUE" : partial ? "UNIQUE PARTIAL" : "UNIQUE FULL";
 	}
+
+	/// <summary>Whether a cursor's words agree with each other and with its <c>FOR</c>.</summary>
+	/// <remarks>
+	/// <para>
+	/// As the engine answers them, every pair put to it (<c>Msg 1048</c>). A word may be said
+	/// twice, and two words of one group may not — where the cursor is seen, which way it moves,
+	/// what it holds, how its rows are locked. <c>FAST_FORWARD</c> is a way of moving and a way
+	/// of holding at once, and refuses <c>SCROLL</c> and every lock but <c>READ_ONLY</c>.
+	/// </para>
+	/// <para>
+	/// <c>FOR UPDATE</c> refuses what cannot be changed through — <c>STATIC</c>,
+	/// <c>FAST_FORWARD</c>, <c>READ_ONLY</c> and the standard's <c>INSENSITIVE</c> — and
+	/// <c>FOR READ ONLY</c> refuses the locks. A declared cursor refuses <c>READ_ONLY</c> beside
+	/// it as well (<c>Msg 1058</c>); a cursor a variable is set to reads the two together.
+	/// </para>
+	/// </remarks>
+	public static bool CursorAgrees(string[]? words, Clause? @for, bool declared = true)
+	{
+		if (words is null)
+			return true;
+
+		foreach (var one in words)
+		{
+			foreach (var other in words)
+				if (one != other && (Group(one) is > 0 and var group && group == Group(other) || Faster(one, other)))
+					return false;
+
+			if (@for is Clause.CursorFor(var update, _) && (update ? Fixed(one) : Locked(one, declared)))
+				return false;
+		}
+
+		return true;
+
+		static int Group(string word) =>
+			word switch
+			{
+				"LOCAL" or "GLOBAL"                                 => 1,
+				"FORWARD_ONLY" or "SCROLL"                          => 2,
+				"STATIC" or "KEYSET" or "DYNAMIC" or "FAST_FORWARD" => 3,
+				"READ_ONLY" or "SCROLL_LOCKS" or "OPTIMISTIC"       => 4,
+				_                                                   => 0,
+			};
+
+		static bool Faster(string one, string other) =>
+			one == "FAST_FORWARD" && other is "SCROLL" or "SCROLL_LOCKS" or "OPTIMISTIC";
+
+		static bool Fixed(string word) => word is "STATIC" or "FAST_FORWARD" or "READ_ONLY" or "INSENSITIVE";
+
+		static bool Locked(string word, bool declared) =>
+			word is "SCROLL_LOCKS" or "OPTIMISTIC" || declared && word == "READ_ONLY";
+	}
+
+	/// <summary>Whether a query may be a cursor's.</summary>
+	/// <remarks>
+	/// A select, and one that makes no table: the engine refuses <c>INTO</c> in a cursor's query
+	/// (<c>Msg 154</c>) and <c>VALUES</c> standing for one (<c>Msg 156</c>), in brackets or in a
+	/// union as well.
+	/// </remarks>
+	public static bool Cursorable(Query? query) =>
+		query switch
+		{
+			null                                    => false,
+			Query.Specification { Into: not null }  => false,
+			Query.TableValueConstructor             => false,
+			Query.Union(var left, var right, _)     => Cursorable(left) && Cursorable(right),
+			Query.Except(var left, var right, _)    => Cursorable(left) && Cursorable(right),
+			Query.Intersect(var left, var right, _) => Cursorable(left) && Cursorable(right),
+			Query.Parenthesized(var inner)          => Cursorable(inner),
+			Query.Ordered(var inner, _, _)          => Cursorable(inner),
+			_                                       => true,
+		};
+
+	/// <summary>Whether a routine's parameters pass a cursor, which a function may not.</summary>
+	public static bool HasCursorParameter(Clause[]? parameters) =>
+		parameters is not null &&
+		Array.Exists(parameters, static one => one is Clause.ParameterDeclaration(_, "CURSOR", _, _, _, _));
+
+	/// <summary>A cursor's query and what stands around it, its words yet to be said.</summary>
+	public static Clause.CursorDefinition Cursor(
+		Clause[]? with, Query query, Clause? @for, Clause[]? hints, bool forFirst) =>
+		new([], [], with ?? Clause.None, query, @for, hints ?? Clause.None, forFirst);
+
+	/// <summary>Whether a variable is one of the server's, <c>@@ROWCOUNT</c> and its kind.</summary>
+	/// <remarks>
+	/// They read as values and refuse to be anything else: a cursor, a row's destination or a
+	/// row's number (<c>Msg 102</c>), every one of the published names put to the engine. A name
+	/// the server has not heard of, <c>@@x</c>, is a variable like any other.
+	/// </remarks>
+	public static bool IsServerVariable(string? variable) =>
+		variable is not null && ServerVariables.Contains(variable);
+
+	static readonly HashSet<string> ServerVariables = new(StringComparer.OrdinalIgnoreCase)
+	{
+
+		"@@CONNECTIONS", "@@CPU_BUSY", "@@CURSOR_ROWS", "@@DATEFIRST", "@@DBTS", "@@DEFAULT_LANGID",
+		"@@DEF_SORTORDER_ID", "@@ERROR", "@@FETCH_STATUS", "@@IDENTITY", "@@IDLE", "@@IO_BUSY",
+		"@@LANGID", "@@LANGUAGE", "@@LOCK_TIMEOUT", "@@MAX_CONNECTIONS", "@@MAX_PRECISION",
+		"@@MICROSOFTVERSION", "@@NESTLEVEL", "@@OPTIONS", "@@PACKET_ERRORS", "@@PACK_RECEIVED",
+		"@@PACK_SENT", "@@PROCID", "@@REMSERVER", "@@ROWCOUNT", "@@SERVERNAME", "@@SERVICENAME",
+		"@@SPID", "@@TEXTSIZE", "@@TIMETICKS", "@@TOTAL_ERRORS", "@@TOTAL_READ", "@@TOTAL_WRITE",
+		"@@TRANCOUNT", "@@VERSION",
+	};
 
 	/// <summary>A run of words as one upper-case word per space.</summary>
 	public static string Squared(string words) => Run(words, true);

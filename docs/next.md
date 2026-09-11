@@ -18689,3 +18689,53 @@ second comment. Both refuse it now. At 150 nothing moved — read by both 5,837,
 139, read here but refused there 43, `--split` 607, the round trip 100% of 6,951. The map:
 defects 0, neither 250 (from 249), and `docs/coverage.md` says so in a sentence rather than
 an empty table.
+
+## Cursors
+
+The largest family on the map's work list, some 170 statements of the reference. `DECLARE
+CURSOR` was read and its query kept as text, and nothing was done with a cursor once it was
+declared: `OPEN`, `FETCH`, `CLOSE` and `DEALLOCATE` had no rule. Put to the engine some two
+hundred and fifty times, every pair of a cursor's words among them:
+
+- **A cursor is declared one of two ways.** The standard's, `INSENSITIVE` and `SCROLL` before
+  `CURSOR`, or T-SQL's, its words after it — never both (`Msg 1049`). A word may be said twice
+  and in any order. Two words of one group may not (`Msg 1048`): `LOCAL` and `GLOBAL`,
+  `FORWARD_ONLY` and `SCROLL`, `STATIC`, `KEYSET`, `DYNAMIC` and `FAST_FORWARD`, `READ_ONLY`,
+  `SCROLL_LOCKS` and `OPTIMISTIC`. `FAST_FORWARD` refuses `SCROLL` and both locks besides.
+  `FOR UPDATE` refuses `STATIC`, `FAST_FORWARD`, `READ_ONLY` and `INSENSITIVE`; `FOR READ
+  ONLY` refuses the locks, and `READ_ONLY` beside it in a declaration (`Msg 1058`) — though
+  not where a variable is set to the cursor, which reads the two together.
+- **The query is a whole select.** Common table expressions and XML namespaces, `ORDER BY`,
+  `OFFSET`, `OPTION`, and `FOR READ ONLY` or `FOR UPDATE` before the hints or after them. Not
+  a shape — `FOR XML`, `FOR JSON`, `FOR BROWSE` (`Msg 6819`, `13602`, `16907`) — and neither
+  `INTO` (`Msg 154`) nor `VALUES` (`Msg 156`), in brackets or in a union as well. `SELECT …
+  INTO` had been read here all along, hidden in the text the query was kept as.
+- **`SET @c = CURSOR …` is T-SQL's form alone**, `INSENSITIVE` refused on either side of
+  `CURSOR`, and `LOCAL` and `GLOBAL` read there though the page leaves them out.
+- **What is done with one.** `OPEN`, `CLOSE` and `DEALLOCATE` take one part, `GLOBAL` before
+  it, or a variable, which `GLOBAL` never stands before; a cursor may be called `GLOBAL`,
+  `NEXT` or `ABSOLUTE`. After `FETCH`'s orientation `FROM` is not optional. The row of
+  `ABSOLUTE` and `RELATIVE` is a number, negative or not — `- 1` with a space, and `1.5` —
+  or a variable, and nothing more. A variable in any of these places is any but the server's
+  own: the thirty-six published `@@` names are refused as a cursor, a row or a destination,
+  and `@@x` is read.
+- **A cursor is passed out and only out.** A procedure's cursor parameter is `CURSOR VARYING
+  OUTPUT` and nothing else (`Msg 1051`), and a function takes none (`Msg 5306`). `VARYING` is
+  a cursor's word: `@a INT VARYING OUTPUT` was read here and is refused.
+
+The tree is what was agreed. `Statement.DeclareCursor` and `Statement.SetCursor` hold one
+`Clause.CursorDefinition`: the words before `CURSOR` and after it, the `WITH`, the query with
+its order, the hints, `Clause.CursorFor`, and which of `FOR` and `OPTION` came first.
+`Statement.CursorAction` is the three verbs and `Statement.Fetch` the fourth.
+`VariableDeclaration.Tail` was a cursor's alone, and is gone. Two names changed on the way: a
+positional parameter cannot share its name with a nested type, and `Clause.For` and
+`Statement.Definition` exist — `Access` and `Cursor`.
+
+And two things the notation said. A text rule captured in a repetition is the turns' text
+joined (§10), so `rest: QualifiedName` in a loop is one string: a list of names wants a typed
+rule. And two alternatives that begin with the same operand are `GRAM4016` until the operand
+is written once, in front of both.
+
+At 150: read by both 5,844 (from 5,837), the work list 132 (from 139), read here but refused
+there 43; `--split` 614 (from 607), the round trip 100% of 6,980. The map: read by both 7,526 of
+8,338 (94.0%), the work list 477 (from 595), defects 0.

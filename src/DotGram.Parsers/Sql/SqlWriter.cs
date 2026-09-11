@@ -634,6 +634,49 @@ public static class SqlWriter
 
 				break;
 
+			case Statement.DeclareCursor(var name, var definition):
+				text.Append("DECLARE ").Append(name).Append(' ');
+				Put(text, definition);
+				break;
+
+			case Statement.SetCursor(var name, var definition):
+				text.Append("SET ").Append(name).Append(" = ");
+				Put(text, definition);
+				break;
+
+			case Statement.CursorAction(var verb, var cursor, var global):
+				text.Append(verb).Append(global ? " GLOBAL " : " ");
+				Put(text, cursor, 0);
+				break;
+
+			case Statement.Fetch(var orientation, var offset, var from, var cursor, var global, var into):
+				text.Append("FETCH ");
+
+				if (orientation is not null)
+					text.Append(orientation).Append(' ');
+
+				if (offset is not null)
+				{
+					Put(text, offset, 0);
+					text.Append(' ');
+				}
+
+				if (from)
+					text.Append("FROM ");
+
+				if (global)
+					text.Append("GLOBAL ");
+
+				Put(text, cursor, 0);
+
+				if (into is not null)
+				{
+					text.Append(" INTO ");
+					List(text, into);
+				}
+
+				break;
+
 			case Statement.SetStatement(var items):
 				text.Append("SET ");
 				SetItems(text, items);
@@ -1672,6 +1715,58 @@ public static class SqlWriter
 				text.Append(')');
 				break;
 
+			// The standard's words before `CURSOR` or T-SQL's after it, one of the two empty; and the
+			// `FOR` where it stood, before the hints or after them.
+			case Clause.CursorDefinition(
+					var before, var options, var with, var query, var @for, var hints, var forFirst):
+				foreach (var word in before)
+					text.Append(word).Append(' ');
+
+				text.Append("CURSOR");
+
+				foreach (var word in options)
+					text.Append(' ').Append(word);
+
+				text.Append(" FOR ");
+
+				if (with.Length > 0)
+				{
+					text.Append("WITH ");
+					Each(text, with);
+					text.Append(' ');
+				}
+
+				Put(text, query, 0);
+
+				if (forFirst && @for is not null)
+				{
+					text.Append(' ');
+					Put(text, @for);
+				}
+
+				if (hints.Length > 0)
+				{
+					text.Append(" OPTION (");
+					Each(text, hints);
+					text.Append(')');
+				}
+
+				if (!forFirst && @for is not null)
+				{
+					text.Append(' ');
+					Put(text, @for);
+				}
+
+				break;
+
+			case Clause.CursorFor(var update, var columns):
+				text.Append(update ? "FOR UPDATE" : "FOR READ ONLY");
+
+				if (columns is not null)
+					text.Append(" OF ").Append(string.Join(", ", columns));
+
+				break;
+
 			case Clause.ExecutionContext(var kind, var who):
 				text.Append("AS ").Append(kind).Append(" = ");
 				Put(text, who, 0);
@@ -2004,7 +2099,7 @@ public static class SqlWriter
 				break;
 
 			case Clause.VariableDeclaration(
-					var name, var type, var value, var elements, var nullability, var tail, var said):
+					var name, var type, var value, var elements, var nullability, var said):
 				text.Append(name);
 
 				if (said)
@@ -2028,9 +2123,6 @@ public static class SqlWriter
 					text.Append(" = ");
 					Put(text, value, 0);
 				}
-
-				if (tail is not null)
-					text.Append(' ').Append(tail);
 
 				break;
 
