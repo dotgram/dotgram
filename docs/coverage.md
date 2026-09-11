@@ -24,28 +24,25 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 96.8% | 7745 | 258 | 0 | 4 | 85 | 250 | 0 |
+| **all** | 996 | 8338 | 97.5% | 7803 | 200 | 0 | 4 | 85 | 250 | 0 |
 | [data-types](#data-types) | 29 | 304 | 99.7% | 290 | 1 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 98.7% | 233 | 3 | 0 | 0 | 1 | 5 | 0 |
-| [functions](#functions) | 324 | 2101 | 98.1% | 2042 | 40 | 0 | 3 | 2 | 17 | 0 |
+| [functions](#functions) | 324 | 2101 | 98.8% | 2058 | 24 | 0 | 3 | 2 | 17 | 0 |
 | [includes](#includes) | 3 | 7 | 100.0% | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
-| [language-elements](#language-elements) | 86 | 868 | 97.7% | 834 | 20 | 0 | 0 | 0 | 14 | 0 |
+| [language-elements](#language-elements) | 86 | 868 | 97.9% | 836 | 18 | 0 | 0 | 0 | 14 | 0 |
 | [queries](#queries) | 37 | 747 | 97.4% | 705 | 19 | 0 | 0 | 1 | 22 | 0 |
 | [reference](#reference) | 3 | 32 | 96.9% | 31 | 1 | 0 | 0 | 0 | 0 | 0 |
-| [spatial-geography](#spatial-geography) | 72 | 312 | 99.4% | 309 | 2 | 0 | 0 | 0 | 1 | 0 |
-| [spatial-geometry](#spatial-geometry) | 74 | 357 | 99.4% | 355 | 2 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 94.9% | 2759 | 149 | 0 | 1 | 81 | 174 | 0 |
-| [xml](#xml) | 12 | 205 | 89.6% | 180 | 21 | 0 | 0 | 0 | 4 | 0 |
+| [spatial-geography](#spatial-geography) | 72 | 312 | 99.7% | 310 | 1 | 0 | 0 | 0 | 1 | 0 |
+| [spatial-geometry](#spatial-geometry) | 74 | 357 | 99.7% | 356 | 1 | 0 | 0 | 0 | 0 | 0 |
+| [statements](#statements) | 320 | 3163 | 95.5% | 2776 | 132 | 0 | 1 | 81 | 174 | 0 |
+| [xml](#xml) | 12 | 205 | 100.0% | 201 | 0 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
 
 | Statement | statements | pages | for example |
 | --- | ---: | ---: | --- |
-| SET | 28 | 7 | stops at '.' — `SET @p.X = @p.X + 1.1;` |
-| OPEN | 21 | 11 | stops at KEY — `OPEN SYMMETRIC KEY SSN_Key_01 DECRYPTION BY CERTIFICATE HumanResources037;` |
 | SELECT | 19 | 10 | stops at '*' — `SELECT BINARY_CHECKSUM(*) from myTable;` |
 | CREATE PARTITION FUNCTION | 13 | 5 | stops at PARTITION — `CREATE PARTITION FUNCTION RangePF1(INT) AS RANGE LEFT FOR VALUES (10, 100, 1000);` |
-| CLOSE | 11 | 7 | stops at KEY — `CLOSE SYMMETRIC KEY SSN_Key_02;` |
 | CREATE SEQUENCE | 11 | 3 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
 | CREATE TYPE | 10 | 5 | stops at TYPE — `CREATE TYPE NewType FROM int;` |
 | CREATE XML SCHEMA | 10 | 3 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION MyColl AS ' <schema xmlns="http://www.w3.org/2001/XMLS...` |
@@ -59,7 +56,6 @@ rest run rather than read.
 | CREATE SYNONYM | 5 | 3 | stops at SYNONYM — `CREATE SYNONYM MyEmployeeTable FOR HumanResources.Employee;` |
 | DISABLE | 5 | 2 | stops at DISABLE — `DISABLE TRIGGER Person.uAddress ON Person.Address;` |
 | IF | 4 | 1 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
-| USE | 4 | 3 | stops at COMPUTE — `USE UserDbSales; DBCC FREEPROCCACHE (COMPUTE) WITH NO_INFOMSGS;` |
 | ALTER ASSEMBLY | 3 | 1 | stops at ASSEMBLY — `ALTER ASSEMBLY ComplexNumber FROM 'C:\Program Files\Microsoft SQL Server\130\Tools\...` |
 | ALTER AVAILABILITY GROUP | 3 | 2 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP AccountsAG JOIN;` |
 | ALTER CRYPTOGRAPHIC PROVIDER | 3 | 1 | stops at CRYPTOGRAPHIC — `ALTER CRYPTOGRAPHIC PROVIDER SecurityProvider DISABLE;` |
@@ -69,6 +65,8 @@ rest run rather than read.
 | CREATE TABLE | 3 | 3 | stops at ')' — `CREATE TABLE ExampleTable (PriKey int PRIMARY KEY, timestamp);` |
 | ENABLE | 3 | 1 | stops at ENABLE — `ENABLE Trigger Person.uAddress ON Person.Address;` |
 | READTEXT | 3 | 2 | stops at READTEXT — `READTEXT t1.c2 @ptrval 0 1;` |
+| SET | 3 | 1 | stops at AUTOCOMMIT — `SET AUTOCOMMIT ON;` |
+| USE | 3 | 2 | stops at COMPUTE — `USE UserDbSales; DBCC FREEPROCCACHE (COMPUTE) WITH NO_INFOMSGS;` |
 | ALTER PARTITION FUNCTION | 2 | 1 | stops at PARTITION — `ALTER PARTITION FUNCTION myRangePF1 () SPLIT RANGE (500);` |
 | BACKUP | 2 | 2 | stops at ALGORITHM — `BACKUP CERTIFICATE Shipping04 TO FILE = 'c:\storedcerts\shipping04cert.pfx' WITH FO...` |
 | DBO | 2 | 1 | stops at DBO — `dbo.uspGetEmployeeManagers 6;` |
@@ -182,14 +180,10 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| DECRYPTBYKEYAUTOASYMKEY (Transact-SQL) | 13 | 58.3% | 5 | 0 | 0 | 0 | stops at KEY — `OPEN MASTER KEY DECRYPTION BY PASSWORD = 'mzkvdMlk979438teag$$ds987yghn)(*&4fdg^';` |
-| DECRYPTBYKEYAUTOCERT (Transact-SQL) | 13 | 58.3% | 5 | 0 | 0 | 0 | stops at KEY — `OPEN MASTER KEY DECRYPTION BY PASSWORD = 'mzkvdlk979438teag$$ds987yghn)(*&4fdg^';` |
 | GROUPING_ID (Transact-SQL) | 12 | 63.6% | 4 | 0 | 0 | 0 | stops at N — `SELECT D.Name, CASE WHEN GROUPING_ID(D.Name, E.JobTitle) = 0 THEN E.JobTitle WHEN G...` |
-| DECRYPTBYKEY (Transact-SQL) | 26 | 88.5% | 3 | 0 | 0 | 0 | stops at KEY — `OPEN SYMMETRIC KEY SSN_Key_01 DECRYPTION BY CERTIFICATE HumanResources037;` |
 | OPENDATASOURCE (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at '.' — `SELECT GroupName, Name, DepartmentID FROM OPENDATASOURCE('MSOLEDBSQL', 'Server=Seat...` |
 | OPENJSON (Transact-SQL) | 23 | 100.0% | 0 | 0 | 3 | 0 | levels 100 engine, 110 engine, 120 engine — `SELECT * FROM OPENJSON(@array) WITH (  month VARCHAR(3), temp int, month_id tinyint...` |
 | BINARY_CHECKSUM  (Transact-SQL) | 6 | 66.7% | 2 | 0 | 0 | 0 | stops at '*' — `SELECT BINARY_CHECKSUM(*) from myTable;` |
-| ENCRYPTBYKEY (Transact-SQL) | 8 | 75.0% | 2 | 0 | 0 | 0 | stops at KEY — `OPEN SYMMETRIC KEY SSN_Key_01 DECRYPTION BY CERTIFICATE HumanResources037;` |
 | NEXT VALUE FOR (Transact-SQL) | 25 | 92.0% | 2 | 0 | 0 | 0 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
 | $PARTITION (Transact-SQL) | 7 | 71.4% | 2 | 0 | 0 | 0 | stops at PARTITION — `CREATE PARTITION FUNCTION RangePF1(INT) AS RANGE LEFT FOR VALUES (10, 100, 1000);` |
 | ROW_NUMBER (Transact-SQL) | 11 | 81.8% | 2 | 0 | 0 | 0 | stops at '#' — `SELECT ROW_NUMBER() OVER(ORDER BY name ASC) AS Row#, name, recovery_model_desc FROM...` |
@@ -197,7 +191,6 @@ None: the engine reads every statement this grammar reads.
 | TYPE_ID (Transact-SQL) | 7 | 71.4% | 2 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE NewType FROM int;` |
 | DATE_BUCKET (Transact-SQL) | 27 | 96.3% | 1 | 0 | 0 | 0 | stops at ';' — `DECLARE @days INT = 365, @datetime DATETIME2 = '2000-01-01 01:01:01.1110000'; /* 20...` |
 | EDGE_ID_FROM_PARTS (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at ';' — `INSERT INTO likes($edge_id, $from_id, $to_id, rating) SELECT EDGE_ID_FROM_PARTS(OBJ...` |
-| KEY_NAME (Transact-SQL) | 15 | 93.3% | 1 | 0 | 0 | 0 | stops at KEY — `OPEN SYMMETRIC KEY TestSymKey DECRYPTION BY PASSWORD = 'pGFD4bb925DGvbd2439587y';` |
 | NODE_ID_FROM_PARTS (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at ';' — `INSERT INTO Person($node_id, ID, [name]) SELECT NODE_ID_FROM_PARTS(OBJECT_ID('Perso...` |
 | OBJECTPROPERTYEX (Transact-SQL) | 10 | 90.0% | 1 | 0 | 0 | 0 | stops at SYNONYM — `CREATE SYNONYM MyEmployeeTable FOR HumanResources.Employee;` |
 | OPENROWSET (Transact-SQL) | 37 | 97.1% | 1 | 0 | 0 | 2 | stops at ',' — `SELECT * FROM OPENROWSET( BULK ( '/decades/1950s/*.parquet', '/decades/1960s/*.parq...` |
@@ -277,6 +270,9 @@ None: the engine reads every statement this grammar reads.
 | DECOMPRESS (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DECRYPTBYASYMKEY (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DECRYPTBYCERT (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DECRYPTBYKEY (Transact-SQL) | 26 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DECRYPTBYKEYAUTOASYMKEY (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DECRYPTBYKEYAUTOCERT (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DECRYPTBYPASSPHRASE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DEGREES (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DENSE_RANK (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -285,6 +281,7 @@ None: the engine reads every statement this grammar reads.
 | EDIT_DISTANCE (Transact-SQL) | 1 | — | 0 | 0 | 0 | 0 |  |
 | ENCRYPTBYASYMKEY (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ENCRYPTBYCERT (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ENCRYPTBYKEY (Transact-SQL) | 8 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ENCRYPTBYPASSPHRASE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EOMONTH (Transact-SQL) | 8 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ERROR_LINE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -354,6 +351,7 @@ None: the engine reads every statement this grammar reads.
 | JSON_VALUE (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | KEY_GUID (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | KEY_ID (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| KEY_NAME (Transact-SQL) | 15 | 100.0% | 0 | 0 | 0 | 0 |  |
 | LAG (Transact-SQL) | 19 | 100.0% | 0 | 0 | 0 | 0 |  |
 | @@LANGID (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | @@LANGUAGE (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -520,10 +518,10 @@ None: the engine reads every statement this grammar reads.
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | KILL (Transact-SQL) | 5 | 20.0% | 4 | 0 | 0 | 0 | stops at KILL — `KILL 53;` |
-| SET @local_variable (Transact-SQL) | 54 | 92.6% | 4 | 0 | 0 | 0 | stops at '.' — `SET @p.X = @p.X + 1.1;` |
 | Transactions (Azure Synapse Analytics and Microsoft Fabric) | 11 | 72.7% | 3 | 0 | 0 | 0 | stops at AUTOCOMMIT — `SET AUTOCOMMIT ON;` |
 | EXECUTE (Transact-SQL) | 69 | 97.1% | 2 | 0 | 0 | 0 | stops at DBO — `dbo.uspGetEmployeeManagers 6;` |
 | KILL QUERY NOTIFICATION SUBSCRIPTION | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at KILL — `KILL QUERY NOTIFICATION SUBSCRIPTION ALL ;` |
+| SET @local_variable (Transact-SQL) | 54 | 96.3% | 2 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY mytest FROM 'c:\test.dll' WITH PERMISSION_SET = SAFE` |
 | CREATE DIAGNOSTICS SESSION (Transact-SQL) | 9 | 83.3% | 1 | 0 | 0 | 0 | stops at DIAGNOSTICS — `-- Determine the session_id of your current session SELECT TOP 1 session_id();  -- ...` |
 | KILL STATS JOB (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at KILL — `KILL STATS JOB 53;` |
 | NULLIF (Transact-SQL) | 19 | 94.7% | 1 | 0 | 0 | 0 | stops at COPY — `Copy` |
@@ -661,7 +659,6 @@ None: the engine reads every statement this grammar reads.
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | Filter (geography Data Type) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at SPATIAL — `CREATE SPATIAL INDEX sample_idx on sample(g);` |
-| STSrid (geography Data Type) | 5 | 80.0% | 1 | 0 | 0 | 0 | stops at '.' — `SET @g.STSrid = 4267;` |
 | AsBinaryZM (geography Data Type) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | AsGml (geography Data Type) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | AsTextZM (geography Data Type) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -726,6 +723,7 @@ None: the engine reads every statement this grammar reads.
 | STPointN (geography Data Type) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | STPolyFromText (geography Data Type) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | STPolyFromWKB (geography Data Type) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| STSrid (geography Data Type) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | STStartPoint (geography Data Type) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | STSymDifference (geography Data Type) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | STUnion (geography Data Type) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -738,7 +736,6 @@ None: the engine reads every statement this grammar reads.
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | Filter (geometry Data Type) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at SPATIAL — `CREATE SPATIAL INDEX sample_idx ON sample(g) WITH (bounding_box = (-8000, -8000, 80...` |
-| STSrid (geometry Data Type) | 5 | 80.0% | 1 | 0 | 0 | 0 | stops at '.' — `SET @g.STSrid = 23;` |
 | AsBinaryZM (geometry DataType) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | AsGml (geometry Data Type) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | AsTextZM (geometry Data Type) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -803,6 +800,7 @@ None: the engine reads every statement this grammar reads.
 | STPolyFromText (geometry Data Type) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | STPolyFromWKB (geometry Data Type) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | STRelate (geometry Data Type) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
+| STSrid (geometry Data Type) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | STStartPoint (geometry Data Type) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | STSymDifference (geometry Data Type) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | STTouches (geometry Data Type) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -830,20 +828,14 @@ None: the engine reads every statement this grammar reads.
 | CREATE PARTITION FUNCTION (Transact-SQL) | 14 | 71.4% | 4 | 0 | 0 | 0 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1 (int) AS RANGE LEFT FOR VALUES (1, 100, 1000);` |
 | ALTER ASSEMBLY (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at ASSEMBLY — `ALTER ASSEMBLY ComplexNumber FROM 'C:\Program Files\Microsoft SQL Server\130\Tools\...` |
 | ALTER CRYPTOGRAPHIC PROVIDER (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at CRYPTOGRAPHIC — `ALTER CRYPTOGRAPHIC PROVIDER SecurityProvider DISABLE;` |
-| CLOSE MASTER KEY (Transact-SQL) | 5 | 40.0% | 3 | 0 | 0 | 0 | stops at KEY — `CLOSE MASTER KEY;` |
 | CREATE RULE (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at RULE — `CREATE RULE range_rule AS @range>= $1000 AND @range <$20000;` |
 | CREATE SYNONYM (Transact-SQL) | 13 | 76.9% | 3 | 0 | 0 | 0 | stops at SYNONYM — `CREATE SYNONYM MyProduct FOR AdventureWorks2022.Production.Product;` |
 | DISABLE TRIGGER (Transact-SQL) | 4 | 25.0% | 3 | 0 | 0 | 0 | stops at DISABLE — `DISABLE TRIGGER Person.uAddress ON Person.Address;` |
 | INSERT (Transact-SQL) | 73 | 95.9% | 3 | 0 | 0 | 0 | stops at ')' — `CREATE TABLE dbo.T1 ( column_1 int IDENTITY, column_2 uniqueidentifier, );` |
-| OPEN MASTER KEY (Transact-SQL) | 5 | 40.0% | 3 | 0 | 0 | 0 | stops at KEY — `OPEN MASTER KEY DECRYPTION BY PASSWORD = '43987hkhj4325tsku7';` |
-| OPEN SYMMETRIC KEY (Transact-SQL) | 5 | 40.0% | 3 | 0 | 0 | 0 | stops at KEY — `OPEN SYMMETRIC KEY SymKeyMarketing3 DECRYPTION BY CERTIFICATE MarketingCert9;` |
 | TRUNCATE TABLE (Transact-SQL) | 14 | 78.6% | 3 | 0 | 0 | 0 | stops at TRUNCATE — `TRUNCATE TABLE HumanResources.JobCandidate;` |
 | ADD SENSITIVITY CLASSIFICATION (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at ADD — `ADD SENSITIVITY CLASSIFICATION TO dbo.sales.price, dbo.sales.discount WITH ( LABEL ...` |
 | ALTER AVAILABILITY GROUP (Transact-SQL) | 3 | 0.0% | 2 | 0 | 0 | 0 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP AccountsAG JOIN;` |
-| ALTER SYMMETRIC KEY (Transact-SQL) | 5 | 60.0% | 2 | 0 | 0 | 0 | stops at KEY — `OPEN SYMMETRIC KEY JanainaKey043 DECRYPTION BY CERTIFICATE Shipping04 WITH PASSWORD...` |
 | ALTER TABLE (Transact-SQL) | 141 | 98.4% | 2 | 0 | 0 | 4 | stops at WITH — `ALTER TABLE dbo.doc_exf ADD AddDate smalldatetime NULL CONSTRAINT AddDateDflt DEFAU...` |
-| BACKUP MASTER KEY (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at KEY — `OPEN MASTER KEY DECRYPTION BY PASSWORD = 'sfj5300osdVdgwdfkli7';` |
-| CLOSE SYMMETRIC KEY (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at KEY — `CLOSE SYMMETRIC KEY ShippingSymKey04;` |
 | CREATE AGGREGATE (Transact-SQL) | 5 | 60.0% | 2 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY StringUtilities FROM @SamplesPath + 'StringUtilities\CS\StringUtili...` |
 | CREATE ASSEMBLY (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY HelloWorld FROM '<system_drive>:\Program Files\Microsoft SQL Server...` |
 | CREATE CREDENTIAL (Transact-SQL) | 26 | 92.3% | 2 | 0 | 0 | 0 | stops at BACKUP_OPTIONS — `BACKUP DATABASE [AdventureWorks2022] TO URL  = 's3://datavirtualizationsample.s3.am...` |
@@ -853,7 +845,6 @@ None: the engine reads every statement this grammar reads.
 | CREATE TABLE (Transact-SQL) | 69 | 96.3% | 2 | 0 | 0 | 1 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1(INT) AS RANGE LEFT FOR VALUES (1, 100, 1000);` |
 | END CONVERSATION (Transact-SQL) | 6 | 66.7% | 2 | 0 | 0 | 0 | stops at '@' — `@dialog_handle ;` |
 | MERGE (Transact-SQL) | 54 | 96.0% | 2 | 0 | 0 | 0 | stops at MERGE — `INSERT INTO Production.UpdatedInventory SELECT ProductID, LocationID, NewQty, Previ...` |
-| ALTER ASYMMETRIC KEY (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at KEY — `OPEN MASTER KEY DECRYPTION BY PASSWORD = '<database master key password>';` |
 | ALTER EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at LANGUAGE — `ALTER EXTERNAL LANGUAGE Java SET (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaexte...` |
 | ALTER PARTITION SCHEME (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at PARTITION — `ALTER PARTITION SCHEME MyRangePS1 NEXT USED test5fg;` |
 | ALTER SCHEMA (Transact-SQL) | 10 | 90.0% | 1 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE Production.TestType FROM [VARCHAR](10) NOT NULL ;` |
@@ -871,12 +862,12 @@ None: the engine reads every statement this grammar reads.
 | CREATE XML INDEX (Selective XML Indexes) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at '(' — `CREATE XML INDEX filt_sxi_index_c ON Tbl(xmlcol) USING XML INDEX sxi_index FOR ( pa...` |
 | DELETE (Transact-SQL) | 35 | 97.1% | 1 | 0 | 0 | 0 | stops at '.' — `DELETE FROM OPENDATASOURCE('SQLNCLI', 'Data Source= <server_name>; Integrated Secur...` |
 | DROP EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at LANGUAGE — `CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaex...` |
-| DROP SYMMETRIC KEY (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at KEY — `CLOSE SYMMETRIC KEY GailSammamishKey6;` |
 | DROP SYNONYM (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at SYNONYM — `CREATE SYNONYM MyProduct FOR AdventureWorks2022.Production.Product;` |
 | DROP TABLE (Transact-SQL) | 6 | 83.3% | 1 | 0 | 0 | 0 | stops at ''' — `CREATE TABLE #temptable (col1 int);  INSERT INTO #temptable VALUES (10);  SELECT co...` |
 | RENAME (Transact-SQL) | 7 | 66.7% | 1 | 0 | 0 | 0 | stops at KILL — `KILL 'SID1234';` |
 | SET ARITHABORT (Transact-SQL) | 30 | 96.7% | 1 | 0 | 0 | 0 | stops at TRUNCATE — `TRUNCATE TABLE t2;` |
 | ALTER APPLICATION ROLE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER ASYMMETRIC KEY (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER AUTHORIZATION (Transact-SQL) | 19 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER BROKER PRIORITY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER CERTIFICATE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -918,17 +909,21 @@ None: the engine reads every statement this grammar reads.
 | ALTER SERVER AUDIT (Transact-SQL) | 17 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SERVER ROLE (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SERVICE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER SYMMETRIC KEY (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER TABLE index_option (Transact-SQL) | 1 | — | 0 | 0 | 0 | 0 |  |
 | ALTER TRIGGER (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER USER (Transact-SQL) | 19 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER VIEW (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER WORKLOAD GROUP (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 1 |  |
+| BACKUP MASTER KEY (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BACKUP SERVICE MASTER KEY (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BACKUP SYMMETRIC KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BACKUP (Transact-SQL) | 29 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BEGIN CONVERSATION TIMER (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BEGIN DIALOG CONVERSATION (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BULK INSERT (Transact-SQL) | 29 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CLOSE MASTER KEY (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CLOSE SYMMETRIC KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Collation precedence | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | COLLATE (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | COPY INTO (Transact-SQL) | 18 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -1047,6 +1042,7 @@ None: the engine reads every statement this grammar reads.
 | DROP SERVICE (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP SIGNATURE (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP STATISTICS (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DROP SYMMETRIC KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP TRIGGER (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP TYPE (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP USER (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -1075,6 +1071,8 @@ None: the engine reads every statement this grammar reads.
 | GRANT XML Schema Collection Permissions | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | INSERT (SQL Graph) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | MOVE CONVERSATION (Transact-SQL) | 1 | — | 0 | 0 | 0 | 0 |  |
+| OPEN MASTER KEY (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
+| OPEN SYMMETRIC KEY (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | GRANT-DENY-REVOKE permissions | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
 | RECEIVE (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | RESTORE MASTER KEY (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -1141,14 +1139,14 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| insert (XML DML) | 84 | 83.3% | 14 | 0 | 0 | 0 | stops at '.' — `SET @myDoc.modify(' insert <Maintenance>3 year parts and labor extended maintenance...` |
-| delete (XML DML) | 25 | 83.3% | 4 | 0 | 0 | 0 | stops at '.' — `SET @myDoc.modify(' delete /Root/Location/@MachineHours ')` |
-| replace value of (XML DML) | 25 | 87.5% | 3 | 0 | 0 | 0 | stops at '.' — `SET @myDoc.modify(' replace value of (/Root/Location/step[1]/text())[1] with "new t...` |
 | Binding Relational Data Inside XML Data | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| delete (XML DML) | 25 | 100.0% | 0 | 0 | 0 | 0 |  |
 | exist() Method (xml Data Type) | 20 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Guidelines for Using xml Data Type Methods | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
+| insert (XML DML) | 84 | 100.0% | 0 | 0 | 0 | 0 |  |
 | nodes() Method (xml Data Type) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
 | query() Method (xml Data Type) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
+| replace value of (XML DML) | 25 | 100.0% | 0 | 0 | 0 | 0 |  |
 | value() method (xml data type) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | xml Data Type Methods | 1 | — | 0 | 0 | 0 | 0 |  |
 | xml_schema_namespace (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |

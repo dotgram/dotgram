@@ -2200,8 +2200,8 @@ CursorColumn  : @string   = t: QualifiedName => @(t)
 // any but the server's own, which the engine refuses in all three places: `@@x` is read,
 // `@@ROWCOUNT` is not.
 CursorStatement : @Statement
-	= "OPEN"i & c: CursorName       => @(c with { Verb = "OPEN" })
-	| "CLOSE"i & c: CursorName      => @(c with { Verb = "CLOSE" })
+	= "OPEN"i & ?!KeyWord & c: CursorName  => @(c with { Verb = "OPEN" })
+	| "CLOSE"i & ?!KeyWord & c: CursorName => @(c with { Verb = "CLOSE" })
 	| "DEALLOCATE"i & c: CursorName => @(c with { Verb = "DEALLOCATE" })
 	| "FETCH"i & t: ("NEXT"i | "PRIOR"i | "FIRST"i | "LAST"i) & "FROM"i & c: CursorName & into: FetchInto?
 		=> @(new Statement.Fetch(Syntax.Squared(t), null, true, c.Cursor, c.Global, into))
@@ -2209,6 +2209,10 @@ CursorStatement : @Statement
 		=> @(new Statement.Fetch(Syntax.Squared(t), n, true, c.Cursor, c.Global, into))
 	| "FETCH"i & from: "FROM"i? & c: CursorName & into: FetchInto?
 		=> @(new Statement.Fetch(null, null, from is not null, c.Cursor, c.Global, into))
+
+// After `OPEN` and `CLOSE` these three begin a key's statement and not a cursor's name: `OPEN
+// master` is refused, `OPEN [master]`, `OPEN GLOBAL master` and `DEALLOCATE master` are read.
+KeyWord = "MASTER"i | "SYMMETRIC"i | "ASYMMETRIC"i
 
 CursorName : @Statement.CursorAction
 	= "GLOBAL"i & t: Identifier => @(new Statement.CursorAction("", new Expression.ColumnReference(t), true))
@@ -2249,9 +2253,22 @@ GeneratedWhen = "START"i | "END"i
 // every setting takes values of its own kind, and none an expression.
 SetStatement : @Statement
 	= "SET"i & name: TSql.Variable & '=' & d: CursorInPlace => @(new Statement.SetCursor(name, d))
+	| "SET"i & name: TSql.Variable & ('.' & members: MemberName)+ & tail: MemberTail
+	  & when @(tail is not { Operator: "" } || members is { Length: 1 })
+		=> @(new Statement.SetVariable(Syntax.Member(name, members), tail.Value, tail.Operator))
 	| "SET"i & name: TSql.Variable & s: AssignTail
 		=> @(new Statement.SetVariable(name, s.Value, s.Operator, s.Through))
 	| "SET"i & items: SetExpressions => @(new Statement.SetStatement(items))
+
+// A variable's property is assigned, and its method called, the way a column's are in an
+// `UPDATE`: `SET @g.STSrid = 4267`, `SET @x.modify('delete /a')`. A property may be a property's,
+// `@g.a.b = 1`; a method is the variable's own, and `@x.a.b('a')` is refused. `DEFAULT` is not a
+// value here (`Msg 4119`), and a list is not either.
+MemberName : @string = t: Identifier => @(t)
+
+MemberTail : @Clause.Set
+	= '(' & args: Arguments? & ')' => @(new Clause.Set("", "", new Expression.RoutineInvocation("", args ?? Expression.None)))
+	| s: AssignTail                => @(s)
 
 // The forms with words of their own first, reserved words among them, each of them alone: the
 // engine refuses `SET FIPS_FLAGGER OFF, DATEFIRST 7` and `SET DATEFIRST 7, ROWCOUNT 0`. Then
@@ -3369,6 +3386,21 @@ KeyStatement : @Statement
 
 	// Azure SQL Database makes a master key with no password; SQL Server answers that it is
 	// not supported in this version, which is a product's answer and not a syntax's.
+	// Opened for the session and closed again. A symmetric key is named by one part and opened by
+	// a certificate or an asymmetric key, with the password it is kept under, by another symmetric
+	// key with none, or by a password — a string, never a variable. The master key is opened by its
+	// password alone. One key is closed at a time, or all of them.
+	| "OPEN"i & "SYMMETRIC"i & "KEY"i & name: Identifier & tail: ("DECRYPTION"i & "BY"i & KeyDecryptor)
+		=> @(Statement.Defined("OPEN SYMMETRIC KEY", name, Syntax.Tail(tail)))
+	| "OPEN"i & "MASTER"i & "KEY"i & tail: ("DECRYPTION"i & "BY"i & PasswordEncryptor)
+		=> @(Statement.Defined("OPEN MASTER KEY", "", Syntax.Tail(tail)))
+	| "CLOSE"i & "SYMMETRIC"i & "KEY"i & name: Identifier
+		=> @(Statement.Defined("CLOSE SYMMETRIC KEY", name))
+	| "CLOSE"i & "ALL"i & "SYMMETRIC"i & "KEYS"i
+		=> @(Statement.Defined("CLOSE ALL SYMMETRIC KEYS", ""))
+	| "CLOSE"i & "MASTER"i & "KEY"i
+		=> @(Statement.Defined("CLOSE MASTER KEY", ""))
+
 	| "CREATE"i & "MASTER"i & "KEY"i & tail: ("ENCRYPTION"i & "BY"i & PasswordEncryptor)?
 		=> @(Statement.Defined("MASTER KEY", "", Syntax.Tail(tail)))
 	| "ALTER"i & "MASTER"i & "KEY"i & tail: MasterKeyChange
@@ -3411,6 +3443,12 @@ KeyStatement : @Statement
 		=> @(Statement.Defined("SECURITY POLICY", name, Syntax.Tail(tail), "CREATE"))
 	| "ALTER"i & "SECURITY"i & "POLICY"i & name: QualifiedName & tail: PolicyAlteration
 		=> @(Statement.Defined("SECURITY POLICY", name, Syntax.Tail(tail), "ALTER"))
+
+KeyDecryptor
+	= "CERTIFICATE"i & Identifier & ("WITH"i & PasswordEncryptor)?
+	| "ASYMMETRIC"i & "KEY"i & Identifier & ("WITH"i & PasswordEncryptor)?
+	| "SYMMETRIC"i & "KEY"i & Identifier
+	| PasswordEncryptor
 
 Authorization     = "AUTHORIZATION"i & QualifiedName
 NotForReplication = "NOT"i & "FOR"i & "REPLICATION"i

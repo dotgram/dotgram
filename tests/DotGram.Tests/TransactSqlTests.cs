@@ -953,6 +953,78 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>A variable's members, and keys opened and closed, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("SET @x.a.b('a')")]
+	[InlineData("SET @x.modify('a') = 1")]
+	[InlineData("SET @g.STSrid = 1, @g.Z = 2")]
+	[InlineData("SET @g::STSrid = 1")]
+	[InlineData("SET @g.STSrid")]
+	[InlineData("SET @g.STSrid = DEFAULT")]
+	[InlineData("SET @a = @g.STSrid = 1")]
+	[InlineData("SET @x.modify('a').x = 1")]
+	[InlineData("OPEN SYMMETRIC KEY k DECRYPTION BY PASSWORD = @p")]
+	[InlineData("OPEN SYMMETRIC KEY k DECRYPTION BY CERTIFICATE c, PASSWORD = 'p'")]
+	[InlineData("OPEN SYMMETRIC KEY k")]
+	[InlineData("OPEN SYMMETRIC KEY a.k DECRYPTION BY CERTIFICATE c")]
+	[InlineData("OPEN SYMMETRIC KEY k DECRYPTION BY CERTIFICATE c WITH PASSWORD = p")]
+	[InlineData("OPEN SYMMETRIC KEY k DECRYPTION BY SYMMETRIC KEY s WITH PASSWORD = 'p'")]
+	[InlineData("OPEN SYMMETRIC KEY k DECRYPTION BY PASSWORD 'p'")]
+	[InlineData("OPEN MASTER KEY DECRYPTION BY PASSWORD = @p")]
+	[InlineData("OPEN MASTER KEY")]
+	[InlineData("OPEN MASTER KEY DECRYPTION BY CERTIFICATE c")]
+	[InlineData("CLOSE SYMMETRIC KEY a.k")]
+	[InlineData("CLOSE SYMMETRIC KEY k, j")]
+	[InlineData("CLOSE ALL SYMMETRIC KEY")]
+	[InlineData("CLOSE MASTER KEY k")]
+	[InlineData("CLOSE ASYMMETRIC KEY k")]
+	public void Members_and_keys_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SET @x.modify('delete /a')")]
+	[InlineData("SET @x.modify(N'delete /a')")]
+	[InlineData("SET @x.modify(@s)")]
+	[InlineData("SET @x.modify('a' + 'b')")]
+	[InlineData("SET @x.modify()")]
+	[InlineData("SET @x.modify('a', 'b')")]
+	[InlineData("SET @x.modify ('delete /a')")]
+	[InlineData("SET @x . modify('delete /a')")]
+	[InlineData("SET @x.[modify]('delete /a')")]
+	[InlineData("SET @x.MODIFY('delete /a')")]
+	[InlineData("SET @x.foo('a')")]
+	[InlineData("SET @@x.modify('a')")]
+	[InlineData("SET @g.STSrid = 4267")]
+	[InlineData("SET @g.STSrid += 1")]
+	[InlineData("SET @g.[STSrid] = 1")]
+	[InlineData("SET @g.a.b = 1")]
+	[InlineData("SET @g.STSrid = @g.STSrid + 1")]
+	[InlineData("SET @g.STSrid = (SELECT 1)")]
+	[InlineData("OPEN SYMMETRIC KEY k DECRYPTION BY CERTIFICATE c")]
+	[InlineData("OPEN SYMMETRIC KEY k DECRYPTION BY CERTIFICATE c WITH PASSWORD = 'p'")]
+	[InlineData("OPEN SYMMETRIC KEY k DECRYPTION BY ASYMMETRIC KEY a")]
+	[InlineData("OPEN SYMMETRIC KEY k DECRYPTION BY ASYMMETRIC KEY a WITH PASSWORD = 'p'")]
+	[InlineData("OPEN SYMMETRIC KEY k DECRYPTION BY SYMMETRIC KEY s")]
+	[InlineData("OPEN SYMMETRIC KEY k DECRYPTION BY PASSWORD = 'p'")]
+	[InlineData("OPEN SYMMETRIC KEY k DECRYPTION BY PASSWORD = N'p'")]
+	[InlineData("OPEN SYMMETRIC KEY #k DECRYPTION BY PASSWORD = 'p'")]
+	[InlineData("OPEN SYMMETRIC KEY [k] DECRYPTION BY CERTIFICATE [c]")]
+	[InlineData("OPEN MASTER KEY DECRYPTION BY PASSWORD = 'p'")]
+	[InlineData("OPEN MASTER KEY DECRYPTION BY PASSWORD = N'p'")]
+	[InlineData("CLOSE SYMMETRIC KEY k")]
+	[InlineData("CLOSE SYMMETRIC KEY [k]")]
+	[InlineData("CLOSE SYMMETRIC KEY #k")]
+	[InlineData("CLOSE ALL SYMMETRIC KEYS")]
+	[InlineData("CLOSE MASTER KEY")]
+	[InlineData("open symmetric key k decryption by certificate c")]
+	public void Members_and_keys_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>The server's configuration, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("ALTER RESOURCE GOVERNOR WITH (CLASSIFIER_FUNCTION = f)")]
@@ -1500,6 +1572,12 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE PROCEDURE p @c CURSOR NULL VARYING OUTPUT AS SELECT 1")]
 	[InlineData("CREATE PROCEDURE p @c INT VARYING OUTPUT AS SELECT 1")]
 	[InlineData("CREATE FUNCTION f (@c CURSOR VARYING OUTPUT) RETURNS INT AS BEGIN RETURN 1 END")]
+	[InlineData("OPEN master")]
+	[InlineData("OPEN symmetric")]
+	[InlineData("OPEN asymmetric")]
+	[InlineData("CLOSE master")]
+	[InlineData("CLOSE symmetric")]
+	[InlineData("CLOSE asymmetric")]
 	public void Cursors_refuse_what_the_engine_does(string input) =>
 		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
 
@@ -1559,6 +1637,13 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE PROCEDURE p @c CURSOR VARYING OUT AS SELECT 1")]
 	[InlineData("CREATE PROCEDURE p @c AS CURSOR VARYING OUTPUT AS SELECT 1")]
 	[InlineData("CREATE PROCEDURE p (@c CURSOR VARYING OUTPUT, @a INT) AS SELECT 1")]
+	[InlineData("OPEN [master]")]
+	[InlineData("OPEN GLOBAL master")]
+	[InlineData("CLOSE [symmetric]")]
+	[InlineData("DEALLOCATE master")]
+	[InlineData("FETCH master")]
+	[InlineData("OPEN mastery")]
+	[InlineData("OPEN keys")]
 	public void Cursors_read_what_the_engine_does(string input)
 	{
 		var match = TransactSql.TryParseStatement(input);

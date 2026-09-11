@@ -18840,3 +18840,32 @@ words after the phrase as its tail, in `Admin`. Put to the engine some hundred a
 At 150: read by both 5,848 (from 5,848), the work list 128 (from 128), read here but refused
 there 43; `--split` 650 (from 644), the round trip 100% of 7,209. The map: read by both 7,745
 of 8,338 (96.8%), the work list 258 (from 301), defects 0.
+
+## A variable's members, and keys opened and closed
+
+The two largest rows left on the map's work list: `SET @x.modify('…')` and `SET @g.STSrid = …`,
+28 statements, and `OPEN` and `CLOSE` of keys, 32.
+
+**A variable's members are assigned the way a column's are in an `UPDATE`**, as agreed: a
+`SetVariable` whose name is the variable and its members, `@g.STSrid`, and a method call the
+operator `""` with its arguments for a value — the convention `Clause.Set` already had for
+`.WRITE (…)`. No record was added. The engine reads a property of a property, `@g.a.b = 1`,
+and a method only of the variable itself: `@x.a.b('a')` is refused. The method is any name,
+bracketed or not, with any arguments or none; `DEFAULT` is not a property's value (`Msg 4119`).
+
+**Keys are opened and closed as the rest of them are defined**: `OpenSymmetricKey`,
+`OpenMasterKey`, `CloseSymmetricKey`, `CloseAllSymmetricKeys`, `CloseMasterKey`, a `Definition`
+each with the words after the phrase as its tail, in `Session`. A symmetric key is opened by a
+certificate or an asymmetric key with its password, by another symmetric key with none, or by a
+password — a string, never a variable — and closed one at a time or all together.
+
+And the cursors found a defect in themselves by it. `OPEN master` was read as a cursor
+opened, and the engine refuses it: after `OPEN` and `CLOSE`, `MASTER`, `SYMMETRIC` and
+`ASYMMETRIC` begin a key's statement. `OPEN [master]`, `OPEN GLOBAL master` and `DEALLOCATE
+master` it reads. Worse than a defect over one statement, it was a trap for the rest: tried
+first, the cursor's rule took `OPEN SYMMETRIC` whole and left `KEY` to begin a statement of
+its own. A lookahead after the two verbs, and the keys' rules are reached.
+
+At 150: read by both 5,854 (from 5,848), the work list 122 (from 128), read here but refused
+there 43; `--split` 652 (from 650), the round trip 100% of 7,235. The map: read by both 7,803
+of 8,338 (97.5%), the work list 200 (from 258), defects 0.

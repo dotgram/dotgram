@@ -972,6 +972,41 @@ public abstract record Statement : ISqlSpan
 		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
+	/// <summary><c>OPEN SYMMETRIC KEY</c>: a key opened for the session, and what it is decrypted by.</summary>
+	public sealed record OpenSymmetricKey(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Session;
+	}
+
+	/// <summary><c>OPEN MASTER KEY</c>: the database's master key opened for the session.</summary>
+	public sealed record OpenMasterKey(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Session;
+	}
+
+	/// <summary><c>CLOSE SYMMETRIC KEY</c>: one key the session opened, closed.</summary>
+	public sealed record CloseSymmetricKey(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Session;
+	}
+
+	/// <summary><c>CLOSE ALL SYMMETRIC KEYS</c>: every key the session opened, closed.</summary>
+	public sealed record CloseAllSymmetricKeys(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Session;
+	}
+
+	/// <summary><c>CLOSE MASTER KEY</c>.</summary>
+	public sealed record CloseMasterKey(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Session;
+	}
+
 	/// <summary><c>ENDPOINT</c>.</summary>
 	/// <summary>
 	/// <c>CREATE</c> or <c>ALTER ENDPOINT</c>: the owner, the state and what was written
@@ -1104,7 +1139,14 @@ public abstract record Statement : ISqlSpan
 	/// A variable assigned — <c>SET @a = 1</c>, which is a statement and not a
 	/// <see cref="Clause.Set"/>: what a <c>SET</c> clause belongs to is an <c>UPDATE</c>.
 	/// </summary>
-	/// <param name="Operator">The assignment as written — <c>=</c>, <c>+=</c>, …</param>
+	/// <param name="Name">
+	/// The variable, and the property or method of it where one was named: <c>@g.STSrid</c>,
+	/// <c>@x.modify</c>, as <see cref="Clause.Set"/> names a column's.
+	/// </param>
+	/// <param name="Operator">
+	/// The assignment as written — <c>=</c>, <c>+=</c>, …; empty where a method was called, whose
+	/// value is then the call's arguments.
+	/// </param>
 	/// <param name="Through">The column of <c>SET @v = column op= value</c>, which assigns both.</param>
 	public sealed record SetVariable(
 		string Name, Expression Value, string? Operator = null, string? Through = null) : Statement
@@ -1704,6 +1746,11 @@ public abstract record Statement : ISqlSpan
 			"BROKER PRIORITY"         => new BrokerPriorityDefinition(name),
 			"ALTER RESOURCE GOVERNOR"    => new AlterResourceGovernor(name),
 			"ALTER SERVER CONFIGURATION" => new AlterServerConfiguration(name),
+			"OPEN SYMMETRIC KEY"         => new OpenSymmetricKey(name),
+			"OPEN MASTER KEY"            => new OpenMasterKey(name),
+			"CLOSE SYMMETRIC KEY"        => new CloseSymmetricKey(name),
+			"CLOSE ALL SYMMETRIC KEYS"   => new CloseAllSymmetricKeys(name),
+			"CLOSE MASTER KEY"           => new CloseMasterKey(name),
 
 			"FULLTEXT INDEX"             => new FullTextIndexDefinition(name),
 			"ALTER FULLTEXT INDEX"       => new AlterFullTextIndex(name),
@@ -3644,6 +3691,10 @@ public static class Syntax
 	public static bool DialogAgrees(Clause[]? options) =>
 		NamedOnce(null, options) &&
 		!(HasOption(options, "RELATED_CONVERSATION") && HasOption(options, "RELATED_CONVERSATION_GROUP"));
+
+	/// <summary>A variable and the members named after it, joined as one name.</summary>
+	public static string Member(string variable, string[]? members) =>
+		members is null or { Length: 0 } ? variable : variable + "." + string.Join(".", members);
 
 	/// <summary>A cursor's query and what stands around it, its words yet to be said.</summary>
 	public static Clause.CursorDefinition Cursor(

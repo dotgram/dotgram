@@ -821,6 +821,14 @@ public static class SqlWriter
 			case Statement.SetVariable(var name, var value, var by, var through):
 				text.Append("SET ").Append(name);
 
+				// A method called rather than assigned: the value is its arguments.
+				if (by == "")
+				{
+					text.Append(' ');
+					Put(text, value, 0);
+					break;
+				}
+
 				if (through is not null)
 					text.Append(" = ").Append(through);
 

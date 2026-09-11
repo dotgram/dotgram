@@ -254,6 +254,11 @@ compile, and a test reads this column against every record.
 | `Statement.BrokerPriorityDefinition` | T-SQL | CREATE, ALTER BROKER PRIORITY | Ddl |
 | `Statement.AlterResourceGovernor` | T-SQL | ALTER RESOURCE GOVERNOR | Admin |
 | `Statement.AlterServerConfiguration` | T-SQL | ALTER SERVER CONFIGURATION | Admin |
+| `Statement.OpenSymmetricKey` | T-SQL | OPEN SYMMETRIC KEY | Session |
+| `Statement.OpenMasterKey` | T-SQL | OPEN MASTER KEY | Session |
+| `Statement.CloseSymmetricKey` | T-SQL | CLOSE SYMMETRIC KEY | Session |
+| `Statement.CloseAllSymmetricKeys` | T-SQL | CLOSE ALL SYMMETRIC KEYS | Session |
+| `Statement.CloseMasterKey` | T-SQL | CLOSE MASTER KEY | Session |
 | `Statement.EndpointDefinition` | T-SQL | CREATE/ALTER ENDPOINT | Ddl |
 | `Statement.CreateDatabase` | T-SQL | CREATE DATABASE — the standard has no database | Ddl |
 | `Statement.AlterDatabaseSet` | T-SQL | ALTER DATABASE … SET | Ddl |
