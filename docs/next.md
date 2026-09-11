@@ -18408,3 +18408,29 @@ and a test said so. Each is read both ways.
 
 At 150: read by both 5,771 (from 5,769), the work list 203 (from 205), read here but refused
 there 43, as before. `--split` 581, and the round trip 100% of 6,879.
+
+## What a space is
+
+`GREATEST` and `LEAST` stopped at their bracket, four statements, and neither was the
+reason: the file writes U+202F, the narrow no-break space, between the words, and two more
+statements of the work list write U+200B and U+3000 in front of a number. The trivia was
+`Std.Spacing`, a space, a tab and the two line endings.
+
+So the engine was asked one character at a time, with `SELECT`, the character and `1`.
+It takes every control character below the space — U+0001 to U+001F, all of them, U+0001
+included — Unicode's spaces and its two separators, U+0085, and the zero-width space, which
+SQL:2003 lists among its white space and .NET does not call white space at all. It refuses
+U+007F, the soft hyphen, the joiners and the direction marks, U+180E, U+2060 and U+FEFF. That
+set is `TSql.Spacing` now, and the trivia is made of it.
+
+The first version gave the standard's rules the same spaces through the dialect's header,
+`Sql92.trivia = trivia`, on the ground that a namespace keeps its own trivia; the header
+takes a plain name on its left and refused the qualified one, and the tests showed it was
+not needed — `FROM t`, a line separator and `WHERE`, and `a`, U+202F, `=`, U+202F, `1`, are
+read with the line gone. The trivia a parser skips is the dialect's wherever it reads.
+
+Left over from the probes: `GREATEST(DISTINCT a, b)` is read here and refused by the engine
+as syntax, which is a question about which calls take `DISTINCT` and for another day.
+
+At 150: read by both 5,778 (from 5,771), the work list 196 (from 203), read here but refused
+there 43, as before. `--split` 583, and the round trip 100% of 6,886.

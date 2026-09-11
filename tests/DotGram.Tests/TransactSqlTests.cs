@@ -1303,6 +1303,36 @@ public sealed class TransactSqlTests
 	}
 
 	/// <summary>
+	/// A space is what the engine takes for one: every control character below the space,
+	/// Unicode's spaces and separators, and the zero-width space — in the standard's rules
+	/// as much as in T-SQL's, `WHERE` being the standard's.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT\u202F1 AS x")]
+	[InlineData("SELECT\u200B1 AS x")]
+	[InlineData("SELECT\u30001 AS x")]
+	[InlineData("SELECT\u00011 AS x")]
+	[InlineData("SELECT\u00A01 AS x")]
+	[InlineData("SELECT a FROM t\u2028WHERE a\u202F=\u202F1")]
+	[InlineData("SELECT GREATEST\u202F(\u202F'6.62', 3.1415, N'7'\u202F)\u202FAS\u202FGreatestVal")]
+	public void A_space_is_what_the_engine_takes_for_one(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>And not what it does not.</summary>
+	[Theory]
+	[InlineData("SELECT\u200C1 AS x")]
+	[InlineData("SELECT\uFEFF1 AS x")]
+	[InlineData("SELECT\u007F1 AS x")]
+	[InlineData("SELECT\u00AD1 AS x")]
+	[InlineData("SELECT\u180E1 AS x")]
+	public void Nothing_else_is_a_space(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>
 	/// The operators group as the engine computes them — asked with numbers, since a parse
 	/// says nothing of grouping: `&amp;` as weak as `+` and read left to right with it, `%` as
 	/// strong as `*`, `~` a sign, and a comparison weaker than all of them.
