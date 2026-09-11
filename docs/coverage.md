@@ -24,12 +24,12 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 92.6% | 7408 | 595 | 1 | 4 | 85 | 249 | 0 |
+| **all** | 996 | 8338 | 92.6% | 7408 | 595 | 0 | 4 | 85 | 250 | 0 |
 | [data-types](#data-types) | 29 | 304 | 99.7% | 290 | 1 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 50.8% | 120 | 116 | 0 | 0 | 1 | 5 | 0 |
 | [functions](#functions) | 324 | 2101 | 97.5% | 2030 | 52 | 0 | 3 | 2 | 17 | 0 |
 | [includes](#includes) | 3 | 7 | 57.1% | 4 | 3 | 0 | 0 | 0 | 0 | 0 |
-| [language-elements](#language-elements) | 86 | 868 | 89.9% | 769 | 85 | 1 | 0 | 0 | 13 | 0 |
+| [language-elements](#language-elements) | 86 | 868 | 90.0% | 769 | 85 | 0 | 0 | 0 | 14 | 0 |
 | [queries](#queries) | 37 | 747 | 96.7% | 700 | 24 | 0 | 0 | 1 | 22 | 0 |
 | [reference](#reference) | 3 | 32 | 96.9% | 31 | 1 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 99.4% | 309 | 2 | 0 | 0 | 0 | 1 | 0 |
@@ -124,9 +124,7 @@ rest run rather than read.
 
 ## What the engine answered the defects
 
-| Message | statements | for example |
-| --- | ---: | --- |
-| 113 | 1 | `/* SELECT @comment = '/*'; */ SELECT @@VERSION;` |
+None: the engine reads every statement this grammar reads.
 
 ## data-types
 
@@ -559,7 +557,6 @@ rest run rather than read.
 | KILL STATS JOB (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at KILL — `KILL STATS JOB 53;` |
 | NULLIF (Transact-SQL) | 19 | 94.7% | 1 | 0 | 0 | 0 | stops at COPY — `Copy` |
 | RECONFIGURE (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at RECONFIGURE — `RECONFIGURE WITH OVERRIDE;` |
-| Slash Star (Block Comment) (Transact-SQL) | 6 | 83.3% | 0 | 1 | 0 | 0 | read here, Msg 113 there — `/* SELECT @comment = '/*'; */ SELECT @@VERSION;` |
 | Backslash (Line Continuation) (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at '\' — `SELECT 0xabc\ def AS [ColumnResult];` |
 | + (Addition) (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALL (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -612,6 +609,7 @@ rest run rather than read.
 | SELECT @local_variable (Transact-SQL) | 14 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EXCEPT and INTERSECT (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | UNION (Transact-SQL) | 27 | 100.0% | 0 | 0 | 0 | 0 |  |
+| Slash Star (Block Comment) (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SOME \| ANY (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SQL Server Utilities Statements - GO | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
 | = (String comparison or assignment) | 17 | 100.0% | 0 | 0 | 0 | 0 |  |

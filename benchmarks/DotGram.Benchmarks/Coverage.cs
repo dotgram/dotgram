@@ -504,16 +504,22 @@ static class Coverage
 		}
 
 		text.Append("\r\n## What the engine answered the defects\r\n\r\n");
-		text.Append("| Message | statements | for example |\r\n");
-		text.Append("| --- | ---: | --- |\r\n");
 
-		foreach (var (message, (count, like)) in findings.Refused
-			.OrderByDescending(static one => one.Value.Count)
-			.ThenBy(static one => one.Key))
+		if (findings.Refused.Count == 0)
+			text.Append("None: the engine reads every statement this grammar reads.\r\n");
+		else
 		{
-			text.Append("| ").Append(message).Append(" | ")
-				.Append(count).Append(" | ")
-				.Append(like).Append(" |\r\n");
+			text.Append("| Message | statements | for example |\r\n");
+			text.Append("| --- | ---: | --- |\r\n");
+
+			foreach (var (message, (count, like)) in findings.Refused
+				.OrderByDescending(static one => one.Value.Count)
+				.ThenBy(static one => one.Key))
+			{
+				text.Append("| ").Append(message).Append(" | ")
+					.Append(count).Append(" | ")
+					.Append(like).Append(" |\r\n");
+			}
 		}
 
 		foreach (var section in sections)

@@ -406,6 +406,12 @@ sealed partial class Machine
 		if (!FirstSets.Of(one, _graph).Overlaps(FirstSets.Of(other, _graph)))
 			return true;
 
+		// A negative lookahead in front of one says where it cannot begin, and where that is
+		// wherever the other's leading literal stands the two never meet: `"/*" & …` against
+		// `?!"/*" & any`, a comment inside a comment against a character of it.
+		if (Refuses(one, LeadingLiteral(other)) || Refuses(other, LeadingLiteral(one)))
+			return true;
+
 		if (LeadingLiteral(one) is not { } mine || LeadingLiteral(other) is not { } theirs)
 			return false;
 
@@ -476,6 +482,34 @@ sealed partial class Machine
 			=> LeadingLiteral(body),
 		_ => null,
 	};
+
+	/// <summary>Whether a node refuses wherever <paramref name="literal"/> stands.</summary>
+	/// <remarks>
+	/// Asked of the negative lookaheads it opens with, the one place a refusal is written
+	/// down: <c>?!"/*" &amp; any</c> refuses wherever <c>/*</c> begins, and so wherever
+	/// <c>/**</c> does.
+	/// </remarks>
+	static bool Refuses(Node node, string? literal)
+	{
+		if (literal is null)
+			return false;
+
+		IReadOnlyList<Node> parts = node is Node.Sequence(var sequence) ? sequence : [node];
+
+		foreach (var part in parts)
+		{
+			if (part is not Node.Lookahead(var positive, var inside))
+				return false;
+
+			if (!positive && inside is Node.Literal(var guard) { IgnoreCase: false } &&
+				guard.Length > 0 && literal.StartsWith(guard, StringComparison.Ordinal))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
 
 	/// <summary>
 	/// The checkpoint emitter. Every node's code either falls through with <c>p</c>

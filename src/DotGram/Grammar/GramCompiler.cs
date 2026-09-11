@@ -204,6 +204,20 @@ public static class GramCompiler
 			return null;
 		}
 
+		// Braces ask for a scanner and do not make one. The tokenizer skips the seam in one
+		// call, and trivia no scanner can read — a choice whose ways cannot be told apart by
+		// where they begin — was skipped by nothing at all: every space reached the syntax as
+		// input no token reads, and the parser refused what it was written to read.
+		var seam = CSharpEmitter.Seam(split);
+
+		if (!split.Trivia.Any(rule => seam.Scanner(rule) is not null))
+		{
+			Say("`trivia` cannot be read by committing to its first reading, and the seam " +
+				"between tokens is skipped by a scanner that does (§4.5)");
+
+			return null;
+		}
+
 		return split;
 	}
 

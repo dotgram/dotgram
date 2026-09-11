@@ -1304,10 +1304,12 @@ public sealed class TransactSqlTests
 
 	/// <summary>
 	/// The reference's examples the grammar read and the engine refused, and the forms beside
-	/// them: a date part, a row of `VALUES`, the words the engine reserves, a selective XML
-	/// index's name and a search property's options.
+	/// them: a comment in a comment, a date part, a row of `VALUES`, the words the engine
+	/// reserves, a selective XML index's name and a search property's options.
 	/// </summary>
 	[Theory]
+	[InlineData("/* a /* b */ SELECT 1")]
+	[InlineData("SELECT 1 /* /* */")]
 	[InlineData("SELECT DATENAME(datepart, SYSDATETIME())")]
 	[InlineData("SELECT DATEPART(foo, SYSDATETIME())")]
 	[InlineData("SELECT DATEADD(weekdays, 1, SYSDATETIME())")]
@@ -1328,6 +1330,8 @@ public sealed class TransactSqlTests
 
 	/// <summary>And reads the forms beside them.</summary>
 	[Theory]
+	[InlineData("/* a /* b */ c */ SELECT 1")]
+	[InlineData("/* /* */ */ SELECT 1")]
 	[InlineData("SELECT /*/ 1 */ 1")]
 	[InlineData("SELECT DATEPART(w, x), DATENAME(isowk, x), DATEADD(tz, 1, x), DATEDIFF_BIG(ns, 1, 2) FROM t")]
 	[InlineData(@"SELECT DATEPART([yy], x), DATEPART(""yy"", x), DATEPART(YEAR, x), DATEPART((year), x) FROM t")]

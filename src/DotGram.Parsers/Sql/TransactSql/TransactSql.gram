@@ -28,7 +28,7 @@ wordboundary = Sql92.Lexical.IdentifierPart
 // Spacing stops short of a line that says `GO`, which is a lexeme of its own (`TSql.GoLine`).
 // The spaces are the engine's (`TSql.Spacing`), and they are what the standard's rules
 // read between their words too: `FROM t` and a line separator and `WHERE` is read.
-trivia       = { (TSql.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "*/"))* }
+trivia       = { (TSql.Spacing | Std.LineComment("--") | TSql.NestedComment)* }
 
 // ── The lexemes T-SQL has and the standard does not ─────────────────────────
 //
@@ -45,6 +45,18 @@ namespace TSql
 	// or U+FEFF. The corpus writes U+202F between the words of a statement, and U+200B
 	// and U+3000 in front of a number.
 	Spacing = ['\u0001'..'\u001F' | '\u0085' | '\u200B' | \p{Zs} | \p{Zl} | \p{Zp}]+
+
+	// A comment in brackets holds another, as T-SQL's do: `/* a /* b */ c */` is one comment,
+	// and `/* a /* b */` is refused as unclosed (`Msg 113`). A quote inside means nothing —
+	// `/* '*/' */` ends at the first `*/`, as the engine ends it.
+	//
+	// The lexer is a finite machine and nesting is not finite, so the depth is written out:
+	// six comments deep, which is deeper than anything the corpus or the reference writes. A
+	// seventh `/*` inside the sixth leaves the comment unclosed where the engine would read
+	// it — the one place this reads less than the engine does. Each level is, until it
+	// closes, the one inside it or a character that does not open one: the close is asked
+	// first and each way is kept from the other's start, so the seam is still one scan.
+	NestedComment = "/*" & (?!"*/" & ("/*" & (?!"*/" & ("/*" & (?!"*/" & ("/*" & (?!"*/" & ("/*" & (?!"*/" & ("/*" & (?!"*/" & ?!"/*" & any)* & "*/" | ?!"/*" & any))* & "*/" | ?!"/*" & any))* & "*/" | ?!"/*" & any))* & "*/" | ?!"/*" & any))* & "*/" | ?!"/*" & any))* & "*/"
 
 	// A delimited identifier written the way T-SQL writes it, with `]]` for a
 	// bracket inside — the same escape the standard's `""` is.

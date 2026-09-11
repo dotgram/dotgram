@@ -18650,3 +18650,42 @@ indexer — `KeyNotFoundException`, and the build gone. That is its own piece.
 At 150: read by both 5,837 (from 5,835), the work list 139, read here but refused there 43.
 `--split` 607 and the round trip 6,951, two fewer each: names the engine reserves. The map:
 read by both 7,408 of 8,338 (92.6%), the work list 595, defects 1.
+
+## A comment in a comment, and the generator defect it found
+
+The last entry blamed the wrong place. `LexicalSplit` looking a lexeme's results up with an
+indexer was a guess, and the test written for it passed with the indexer as it was: the
+split never fell over. The seam did. `CSharpEmitter.Lexical` renders the scanner the tokenizer
+skips trivia with, and to get it builds a machine over the original graph given the trivia
+rules and nothing else — while a machine compiles every rule it is given, and compiles a call
+as a jump to the callee's state wherever the callee is not a scanner itself. `trivia = { (…
+| TSql.NestedComment)* }` called a rule that machine did not hold: `KeyNotFoundException` in
+`Machine.Compile`, found by putting the exception's stack in the diagnostic for one build.
+The seam's machine is built from the trivia and everything it reaches now
+(`CSharpEmitter.Seam`), as a publication's machine is.
+
+That was the loud half. The quiet one was behind it: with the comment written as named
+rules the build succeeded, and every Unicode-space test failed. A seam is skipped by a
+scanner — a rule read by committing to its first reading — and where the trivia is not one,
+`Lexical` found no scanner and wrote a tokenizer that skipped nothing. Every space went to the
+lexer as input no token reads. `GramCompiler.Cut` asks now, and a grammar whose trivia no
+scanner can read is compiled over characters with the `GRAM5004` warning every other refusal
+to cut gives, rather than into a parser that refuses what it was written to read.
+
+And the comment itself could not be one, as written: each level was `("/*" & … & "*/" | ?!"*/"
+& ?!"/*" & any)* & "*/"`, and a turn that may begin with `*` next to a close that does is a
+repetition greed can get wrong. Asking the close first makes it the guarded scan the scanner
+already knows, `(?!"*/" & (…))* & "*/"`; what is left is the choice between an inner comment
+and a character that is not the start of one, and `Exclusive` learned that a negative
+lookahead on a literal keeps a way from wherever another way's leading literal begins with
+it (`Refuses`). Six levels, as before; the engine nests further, and nothing written does.
+
+`/* a /* b */ c */ SELECT 1` and `/* /* */ */ SELECT 1` read; `/* a /* b */ SELECT 1` and
+`SELECT 1 /* /* */` are refused, as the engine refuses them (`Msg 113`).
+
+The reference's own example was the other way round: `/* SELECT @comment = '/*'; */ SELECT
+@@VERSION;` was read here, and the engine refuses it as unclosed, the quoted `/*` opening a
+second comment. Both refuse it now. At 150 nothing moved — read by both 5,837, the work list
+139, read here but refused there 43, `--split` 607, the round trip 100% of 6,951. The map:
+defects 0, neither 250 (from 249), and `docs/coverage.md` says so in a sentence rather than
+an empty table.

@@ -1221,18 +1221,7 @@ public static partial class CSharpEmitter
 		file.Write(LexerEmitter.Emit(lexical.Inventory.Machine!));
 		file.Line();
 
-		// A machine over the original graph, asked for one rule. Only the seam is compiled:
-		// what it costs is the scanner it renders, not the parser it could have.
-		var seam = new Machine(
-			lexical.Source,
-			new ResultTypes(lexical.Source, "Lexical", null),
-			null,
-			only: lexical.Trivia,
-			// Tagged, because everything a machine emits is named after its tag and this one
-			// stands in a file another machine has already filled: without it the seam's
-			// character tables collide with the syntax's, name for name.
-			tag: "_Seam");
-
+		var seam     = Seam(lexical);
 		var skipping = lexical.Trivia
 			.Select(rule => (Rule: rule, Name: seam.Scanner(rule)))
 			.FirstOrDefault(one => one.Name is not null);
@@ -2578,6 +2567,28 @@ public static partial class CSharpEmitter
 	/// <summary>
 	/// Every rule the second read compiles: the terminals that build, and what they reach.
 	/// </summary>
+	/// <summary>
+	/// A machine over the original graph, asked for the seam. Only the seam is compiled: what
+	/// it costs is the scanner it renders, not the parser it could have.
+	/// </summary>
+	/// <remarks>
+	/// Built from the trivia and everything the trivia reaches. A machine compiles every rule
+	/// it is given, and a comment the trivia calls is compiled as a call wherever it is not a
+	/// scanner of its own — so a machine holding the trivia alone jumped to a state nobody
+	/// wrote, and the generator failed on the first grammar whose trivia called a lexeme of
+	/// its own.
+	/// </remarks>
+	internal static Machine Seam(LexicalSplit lexical) =>
+		new(
+			lexical.Source,
+			new ResultTypes(lexical.Source, "Lexical", null),
+			null,
+			only: [.. lexical.Trivia.SelectMany(rule => Reaches(lexical.Source, rule)).Distinct()],
+			// Tagged, because everything a machine emits is named after its tag and this one
+			// stands in a file another machine has already filled: without it the seam's
+			// character tables collide with the syntax's, name for name.
+			tag: "_Seam");
+
 	static HashSet<RuleSymbol> Rereads(LexicalSplit lexical)
 	{
 		var reached = new HashSet<RuleSymbol>();

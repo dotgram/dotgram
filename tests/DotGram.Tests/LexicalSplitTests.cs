@@ -50,6 +50,62 @@ public sealed class LexicalSplitTests
 		Assert.Null(LexicalSplit.Of(Graph("Start = 'a' & \"bc\"\nparse Start")));
 	}
 
+	/// <summary>Trivia that calls a lexeme of the grammar's own is cut with what it reaches.</summary>
+	/// <remarks>
+	/// The seam is compiled by a machine of its own, and that machine was given the trivia
+	/// alone. A comment the trivia called was compiled as a call to a rule the machine did not
+	/// hold, and the whole generation went down with a <c>KeyNotFoundException</c>. T-SQL's
+	/// nested comment was the grammar that did it.
+	/// </remarks>
+	[Fact]
+	public void Trivia_calling_a_lexeme_of_its_own_is_cut()
+	{
+		var compiled = GramCompiler.Compile("""
+			wordboundary = ['a'..'z']
+			trivia = { (' ' | Lexical.Comment)* }
+			namespace Lexical
+			{
+				trivia = none
+				Comment = "/*" & (?!"*/" & ("/*" & (?!"*/" & ?!"/*" & any)* & "*/" | ?!"/*" & any))* & "*/"
+				Name    = ['a'..'z'] & ['a'..'z']*
+			}
+			Start = Lexical.Name & Lexical.Name
+			parse Start
+			""", new GramCompilerOptions { Lexical = true });
+
+		Assert.DoesNotContain(compiled.Diagnostics, static one => one.Severity == GramSeverity.Error);
+		Assert.DoesNotContain(compiled.Diagnostics, static one => one.Id == GramCompiler.NotCut);
+	}
+
+	/// <summary>Trivia no scanner can read is warned about, and read over characters.</summary>
+	/// <remarks>
+	/// The same comment with the close asked inside the turn rather than before it: a turn
+	/// may then begin where the close does, and committing to the first reading is not the
+	/// same as finding it. The tokenizer skips the seam with a scanner, found none, and
+	/// skipped nothing — every space was left for tokens that do not read one, and the parser
+	/// refused what it was written to read.
+	/// </remarks>
+	[Fact]
+	public void Trivia_no_scanner_can_read_is_not_cut()
+	{
+		var compiled = GramCompiler.Compile("""
+			wordboundary = ['a'..'z']
+			trivia = { (' ' | Lexical.Comment)* }
+			namespace Lexical
+			{
+				trivia = none
+				Comment = "/*" & ("/*" & (?!"*/" & ?!"/*" & any)* & "*/" | ?!"*/" & ?!"/*" & any)* & "*/"
+				Name    = ['a'..'z'] & ['a'..'z']*
+			}
+			Start = Lexical.Name & Lexical.Name
+			parse Start
+			""", new GramCompilerOptions { Lexical = true });
+
+		var said = Assert.Single(compiled.Diagnostics, static one => one.Id == GramCompiler.NotCut);
+
+		Assert.Contains("committing", said.Message, StringComparison.Ordinal);
+	}
+
 	/// <summary>What the rewrite leaves is a graph over kinds, and no trivia at all.</summary>
 	/// <remarks>
 	/// The seam had one job and the lexer has it now, so a place for whitespace between two
