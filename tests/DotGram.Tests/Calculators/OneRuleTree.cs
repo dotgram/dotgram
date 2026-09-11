@@ -60,5 +60,5 @@ namespace DotGram.Tests.Calculators;
 public static partial class OneRuleParser
 {
 	// Read and TryRead are generated here. There is nothing else to write: the walks
-	// live in ExpressionParser and work on the same records.
+	// live in ArithmeticTree and work on the same records.
 }

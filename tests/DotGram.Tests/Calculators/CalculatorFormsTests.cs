@@ -147,7 +147,7 @@ public sealed class CalculatorFormsTests
 		// Not "the same answer" — the same tree, node for node, by record equality. Five
 		// rules of levels and one rule of strengths are two ways of writing one language,
 		// and this is as close as a test can get to saying so.
-		Assert.Equal(ExpressionParser.Read(expression), OneRuleParser.Read(expression));
+		Assert.Equal(ArithmeticTree.Read(expression), OneRuleParser.Read(expression));
 
 	[Fact]
 	public void And_the_walks_do_not_know_which_grammar_built_it() =>
@@ -165,5 +165,5 @@ public sealed class CalculatorFormsTests
 		// — a number or a node — is a separate question from how the grammar is written.
 		Assert.Equal(
 			Decimal(expression),
-			ExpressionParser.Read(expression).Evaluate().ToString(CultureInfo.InvariantCulture));
+			ArithmeticTree.Read(expression).Evaluate().ToString(CultureInfo.InvariantCulture));
 }

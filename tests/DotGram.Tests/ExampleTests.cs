@@ -340,7 +340,7 @@ public sealed class ExampleTests
 	{
 		// The point of the example: what comes back is data, and a pattern is how it is
 		// asked what it is. Nothing here knows anything about the parser.
-		var tree = ExpressionParser.Read("1 + 2 * 3");
+		var tree = ArithmeticTree.Read("1 + 2 * 3");
 
 		// The node type is the operation, so this is `is Add` and not a string compared
 		// against "+".
@@ -364,7 +364,7 @@ public sealed class ExampleTests
 			new Sub(
 				new Add(new Number(1m), new Number(2m)),
 				new Negate(new Number(3m))),
-			ExpressionParser.Read("1 + 2 - -3"));
+			ArithmeticTree.Read("1 + 2 - -3"));
 
 	[Fact]
 	public void And_every_operator_has_a_node_of_its_own() =>
@@ -374,7 +374,7 @@ public sealed class ExampleTests
 				new Div(
 					new Mul(new Number(2m), new Pow(new Number(3m), new Number(4m))),
 					new Negate(new Number(5m)))),
-			ExpressionParser.Read("1 + 2 * 3 ^ 4 / -5"));
+			ArithmeticTree.Read("1 + 2 * 3 ^ 4 / -5"));
 
 	[Theory]
 	[InlineData("1-2-3",   "((1 - 2) - 3)")]      // Sum's left operand is at Sum's level
@@ -383,7 +383,7 @@ public sealed class ExampleTests
 	[InlineData("2*3+4",   "((2 * 3) + 4)")]
 	[InlineData("2*(3+4)", "(2 * (3 + 4))")]
 	public void And_the_shape_is_the_grouping(string expression, string expected) =>
-		Assert.Equal(expected, ExpressionParser.Read(expression).Print());
+		Assert.Equal(expected, ArithmeticTree.Read(expression).Print());
 
 	[Fact]
 	public void And_a_tree_can_be_rewritten_before_it_is_walked()
@@ -391,7 +391,7 @@ public sealed class ExampleTests
 		// What the tree is for, and what stays with patterns: `Evaluate` and `Print` are on
 		// the nodes because every tree needs them, and everything else — this — is written
 		// where it is wanted, over records the tree knows nothing about.
-		Assert.Equal(6m, Double(ExpressionParser.Read("1 + 2")).Evaluate());
+		Assert.Equal(6m, Double(ArithmeticTree.Read("1 + 2")).Evaluate());
 
 		static Expression Double(Expression node) => node switch
 		{

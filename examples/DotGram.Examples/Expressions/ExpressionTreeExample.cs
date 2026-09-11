@@ -14,7 +14,7 @@ namespace DotGram.Examples.Expressions;
 // shape every small DSL wants: a notation goes in, a typed tree comes out, and what the
 // tree means is somebody else's business — Expression.cs, which mentions no parser.
 //
-//     var tree = ExpressionParser.Read("1 + 2 * 3");
+//     var tree = ArithmeticTree.Read("1 + 2 * 3");
 //
 //     tree.Evaluate()   // 7
 //     tree.Print()      // (1 + (2 * 3))
@@ -70,7 +70,7 @@ namespace DotGram.Examples.Expressions;
 
 	parse Sum as Read
 	""")]
-public static partial class ExpressionParser
+public static partial class ArithmeticTree
 {
 	// Read and TryRead are generated here, and hand back an Expression. There is nothing
 	// else to write: what the tree does is on the tree.
