@@ -24,7 +24,7 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 99.5% | 7961 | 42 | 0 | 4 | 85 | 250 | 0 |
+| **all** | 996 | 8338 | 99.6% | 7970 | 33 | 0 | 4 | 85 | 250 | 0 |
 | [data-types](#data-types) | 29 | 304 | 99.7% | 290 | 1 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 99.2% | 234 | 2 | 0 | 0 | 1 | 5 | 0 |
 | [functions](#functions) | 324 | 2101 | 99.9% | 2079 | 3 | 0 | 3 | 2 | 17 | 0 |
@@ -32,16 +32,15 @@ rest run rather than read.
 | [language-elements](#language-elements) | 86 | 868 | 99.5% | 850 | 4 | 0 | 0 | 0 | 14 | 0 |
 | [queries](#queries) | 37 | 747 | 98.9% | 716 | 8 | 0 | 0 | 1 | 22 | 0 |
 | [reference](#reference) | 3 | 32 | 100.0% | 32 | 0 | 0 | 0 | 0 | 0 | 0 |
-| [spatial-geography](#spatial-geography) | 72 | 312 | 99.7% | 310 | 1 | 0 | 0 | 0 | 1 | 0 |
-| [spatial-geometry](#spatial-geometry) | 74 | 357 | 99.7% | 356 | 1 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 99.2% | 2886 | 22 | 0 | 1 | 81 | 174 | 0 |
+| [spatial-geography](#spatial-geography) | 72 | 312 | 100.0% | 311 | 0 | 0 | 0 | 0 | 1 | 0 |
+| [spatial-geometry](#spatial-geometry) | 74 | 357 | 100.0% | 357 | 0 | 0 | 0 | 0 | 0 | 0 |
+| [statements](#statements) | 320 | 3163 | 99.5% | 2893 | 15 | 0 | 1 | 81 | 174 | 0 |
 | [xml](#xml) | 12 | 205 | 100.0% | 201 | 0 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
 
 | Statement | statements | pages | for example |
 | --- | ---: | ---: | --- |
-| CREATE SPATIAL INDEX | 9 | 3 | stops at SPATIAL — `CREATE SPATIAL INDEX sample_idx on sample(g);` |
 | INSERT | 6 | 6 | stops at ';' — `INSERT INTO likes($edge_id, $from_id, $to_id, rating) SELECT EDGE_ID_FROM_PARTS(OBJ...` |
 | IF | 4 | 1 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
 | ALTER AVAILABILITY GROUP | 3 | 2 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP AccountsAG JOIN;` |
@@ -618,7 +617,6 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| Filter (geography Data Type) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at SPATIAL — `CREATE SPATIAL INDEX sample_idx on sample(g);` |
 | AsBinaryZM (geography Data Type) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | AsGml (geography Data Type) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | AsTextZM (geography Data Type) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -630,6 +628,7 @@ None: the engine reads every statement this grammar reads.
 | EnvelopeAggregate (geography Data Type) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EnvelopeAngle (geography Data Type) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EnvelopeCenter (geography Data Type) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| Filter (geography Data Type) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | GeomFromGML (geography Data Type) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | HasM (geography Data Type) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | HasZ (geography Data Type) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -695,7 +694,6 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| Filter (geometry Data Type) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at SPATIAL — `CREATE SPATIAL INDEX sample_idx ON sample(g) WITH (bounding_box = (-8000, -8000, 80...` |
 | AsBinaryZM (geometry DataType) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | AsGml (geometry Data Type) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | AsTextZM (geometry Data Type) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -705,6 +703,7 @@ None: the engine reads every statement this grammar reads.
 | ConvexHullAggregate (geometry Data Type) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CurveToLineWithTolerance (geometry Data Type) | 14 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EnvelopeAggregate (geometry Data Type) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| Filter (geometry Data Type) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | GeomFromGml (geometry Data Type) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | HasM (geometry DataType) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | HasZ (geometry DataType) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -774,7 +773,6 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| CREATE SPATIAL INDEX (Transact-SQL) | 9 | 22.2% | 7 | 0 | 0 | 0 | stops at SPATIAL — `CREATE SPATIAL INDEX SIndx_SpatialTable_geometry_col1 ON SpatialTable(geometry_col)...` |
 | ALTER AVAILABILITY GROUP (Transact-SQL) | 3 | 0.0% | 2 | 0 | 0 | 0 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP AccountsAG JOIN;` |
 | CREATE CREDENTIAL (Transact-SQL) | 26 | 92.3% | 2 | 0 | 0 | 0 | stops at BACKUP_OPTIONS — `BACKUP DATABASE [AdventureWorks2022] TO URL  = 's3://datavirtualizationsample.s3.am...` |
 | INSERT (Transact-SQL) | 73 | 97.3% | 2 | 0 | 0 | 0 | stops at ')' — `CREATE TABLE dbo.T1 ( column_1 int IDENTITY, column_2 uniqueidentifier, );` |
@@ -913,6 +911,7 @@ None: the engine reads every statement this grammar reads.
 | CREATE SERVER AUDIT (Transact-SQL) | 15 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SERVER ROLE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SERVICE (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE SPATIAL INDEX (Transact-SQL) | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE STATISTICS (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SYMMETRIC KEY (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SYNONYM (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |

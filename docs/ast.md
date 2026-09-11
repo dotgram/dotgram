@@ -191,7 +191,7 @@ compile, and a test reads this column against every record.
 | `Statement.CreateFunction` | SQL/PSM | &lt;SQL-invoked function&gt;; T-SQL: CREATE FUNCTION | Ddl |
 | `Statement.CreateTrigger` | SQL:1999 | &lt;trigger definition&gt;; T-SQL: CREATE TRIGGER | Ddl |
 | `Statement.ViewDefinition` | SQL-92 | §11.19 &lt;view definition&gt; | Ddl |
-| `Statement.CreateIndex` | T-SQL | CREATE INDEX — the standard has no index | Ddl |
+| `Statement.CreateIndex` | T-SQL | CREATE INDEX — the standard has no index — and its XML, columnstore and spatial kinds | Ddl |
 | `Statement.AlterIndex` | T-SQL | ALTER INDEX | Ddl |
 | `Statement.StatisticsDefinition` | T-SQL | CREATE STATISTICS | Ddl |
 | `Statement.UpdateStatistics` | T-SQL | UPDATE STATISTICS | Admin |

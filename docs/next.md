@@ -19070,3 +19070,34 @@ And a rule of the last entry's was already in the grammar under another name: `C
 At 150: read by both 5,862 (from 5,862), the work list 114 (from 114), read here but refused
 there 43 (from 43); `--split` 701 (from 699), the round trip 100% of 7,490. The map: read by
 both 7,961 of 8,338 (99.5%), the work list 42 (from 50), defects 0.
+
+## A spatial index, and the list of options it reads as no other
+
+`CREATE SPATIAL INDEX`, the map's largest group of what the engine read and this did not. The
+tree needed nothing: `Statement.CreateIndex` with `SPATIAL` for its kind and the grid for its
+`USING`, as the XML index keeps its own. Put to the engine some two hundred times, in five
+rounds, because the answers kept being stranger than the published block:
+
+- **The index** is on one column by a name of its own — `$node_id` is refused, which an
+  ordinary index takes — and bare: no order, no second column, no filter, no included columns,
+  no stream. The grid is any one name, checked later; the filegroup comes last, without columns.
+- **The options are not the index catalogue.** The engine reads a spatial index's list with a
+  reader of its own: any name it has never heard of, set to any plain value — a word, a
+  number, money, a string, a binary string, `NULL` — or to a bracket of them, all by position
+  or all by name. `FOO = BAR` is read. Never a variable (`Msg 112`), `DEFAULT`, an expression,
+  two parts, a run of words, an empty bracket or one inside another.
+- **Then a word about a few names**, which `Syntax.Spatial` says. `XML_COMPRESSION` and
+  `STATISTICS_INCREMENTAL` are refused whatever they are set to. A bare `ON` or `OFF` belongs to
+  the switches — `FOO = ON` is `Msg 155` where `FOO = BAR` is read — and `ON` is refused to the
+  four a spatial index cannot be (`Msg 153`), though `[ON]`, which is a name, is read. A fill
+  factor is a number with no exponent and not money, whole from 1 to 100 (`Msg 129`) and with a
+  fraction whatever it is: `101.5` and `-1.5` are read, `0` and `-0` are not. A degree of
+  parallelism is whole from 0 to 32767 (`Msg 304`), or a switch, `MAXDOP = OFF` among them. A
+  compression is one of five words, in brackets or quotes or not.
+
+None of that is in the published syntax, which lists a bounding box, grids, cells per object
+and eleven index options as though they were the only names there are.
+
+At 150: read by both 5,862 (from 5,862), the work list 114 (from 114), read here but refused
+there 43 (from 43); `--split` 705 (from 701), the round trip 100% of 7,514. The map: read by
+both 7,970 of 8,338 (99.6%), the work list 33 (from 42), defects 0.

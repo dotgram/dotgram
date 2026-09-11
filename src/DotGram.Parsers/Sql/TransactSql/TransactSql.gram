@@ -3673,6 +3673,14 @@ CreateIndexStatement : @Statement
 		=> @(new Statement.CreateIndex(
 				 on, Clause.Indexed(name, null, null, null, null, Syntax.Columns(promoted), null, null, null, o?.Options, null, null),
 				 "SELECTIVE XML", Syntax.Tail(tail)))
+	// A spatial index: one column, the grid it is cut by, and a list of options the engine reads
+	// as it reads no other (`SpatialWith`). Put to the engine some two hundred times.
+	| "CREATE"i & kind: "SPATIAL"i & "INDEX"i & name: Identifier
+	  & "ON"i & on: QualifiedName & columns: SpatialColumn
+	  & over: ("USING"i & Identifier)? & o: SpatialWith? & p: IndexOn? & when @(p is not Clause.Placement(_, _, not null))
+		=> @(new Statement.CreateIndex(
+				 on, Clause.Indexed(name, null, null, null, null, columns, null, null, null, o?.Options, (Clause.Placement?)p, null),
+				 Syntax.Squared(kind), Syntax.Tail(over)))
 	| "CREATE"i & kind: ("PRIMARY"i? & "XML"i) & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
 	  & over: XmlIndexUsing? & o: XmlIndexWith?
@@ -3705,6 +3713,51 @@ AlterIndexStatement : @Statement
 IndexTarget : @string = "ALL"i => @("ALL") | t: Identifier => @(t)
 
 XmlIndexUsing = "USING"i & "XML"i & "INDEX"i & Identifier & ("FOR"i & word)?
+
+// ── A spatial index's options ───────────────────────────────────────────────
+//
+// One column, by a name of its own — `$node_id` is refused — and bare: no order, no second
+// one, no filter, no included columns, no stream. The
+// grid is any one name, which the engine checks later. The options are a list of their own,
+// not the index catalogue: any name the engine has never heard of, set to any plain value —
+// a word, a number, a string, a binary string, `NULL` — or to a bracket of them, all by
+// position or all by name, is read, and then a word is said about a few names
+// (`Syntax.Spatial`). Never a variable (`Msg 112`), `DEFAULT`, an expression, a name of two
+// parts or a run of words; never an empty bracket, a bracket inside one, or the list without
+// its brackets. Each may be said twice.
+SpatialColumn : @Clause[]
+	= '(' & t: Identifier & ')'
+		=> @(new Clause[] { new Clause.SortSpecification(new Expression.ColumnReference(t), Syntax.Ordered(default(string))) })
+
+SpatialWith : @Clause.Option
+	= "WITH"i & '(' & first: SpatialOption & (',' & rest: SpatialOption)* & ')'
+		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+
+SpatialOption : @Clause
+	= name: word & '=' & o: SpatialSet & when @(Syntax.Spatial(name, o)) => @(o with { Name = name })
+
+// A bracket by name before one by position, which a word would begin as well.
+SpatialSet : @Clause.Option
+	= '(' & first: SpatialSetting & (',' & rest: SpatialSetting)* & ')'
+		=> @(new Clause.Option("", null, Syntax.Listed(first, rest)))
+	| '(' & item: SpatialItem & (',' & items: SpatialItem)* & ')'
+		=> @(new Clause.Option("", new Expression.RoutineInvocation("", Syntax.Listed(item, items)), Clause.None))
+	| v: SpatialValue => @(new Clause.Option("", v, Clause.None))
+
+SpatialSetting : @Clause = name: word & '=' & v: SpatialItem => @(new Clause.Option(name, v, Clause.None))
+
+// A switch stands only where a whole value does: `FOO = (ON)` is refused (`Msg 156`).
+SpatialValue : @Expression
+	= t: ("ON"i | "OFF"i) => @(new Expression.ColumnReference(Syntax.Squared(t)))
+	| v: SpatialItem      => @(v)
+
+SpatialItem : @Expression
+	= "NULL"i                                          => @(Expression.NullValue)
+	| t: ('-'? & Sql92.Lexical.UnsignedNumericLiteral) => @(new Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(t)))
+	| t: ('-'? & TSql.MoneyLiteral)                    => @(new Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(t)))
+	| v: BrokerString                                  => @(v)
+	| t: TSql.BinaryLiteral                            => @(new Expression.Literal(SqlLiteralKind.Hex, t))
+	| t: Identifier                                    => @(new Expression.ColumnReference(t))
 
 // `FOR ( name = '/a/b' AS XQUERY 'xs:double' MAXLENGTH (200) SINGLETON, … )`, and the
 // three ways `ALTER INDEX` changes one of them.

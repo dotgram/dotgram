@@ -3952,6 +3952,74 @@ public static class Syntax
 		}
 	}
 
+	/// <summary>Whether a spatial index takes an option set so, as the engine reads its list.</summary>
+	/// <remarks>
+	/// <para>
+	/// The engine reads a spatial index's options as it reads no other list: any name set to
+	/// any plain value, and then a word about a few names. <c>XML_COMPRESSION</c> and
+	/// <c>STATISTICS_INCREMENTAL</c> are refused whatever they are set to (<c>Msg 155</c>). A bare
+	/// <c>ON</c> or <c>OFF</c> is taken by the switches alone — <c>FOO = ON</c> is <c>Msg 155</c> where
+	/// <c>FOO = BAR</c> is read — and <c>ON</c> is refused to the four a spatial index cannot be
+	/// (<c>Msg 153</c>), though <c>[ON]</c>, a name, is not.
+	/// </para>
+	/// <para>
+	/// A fill factor is a number with no exponent and not money; a whole one from 1 to 100
+	/// (<c>Msg 129</c>), and one with a fraction whatever it is. A degree of parallelism is a
+	/// whole number from 0 to 32767 (<c>Msg 304</c>), or a switch. A compression is one of its
+	/// words, in brackets or not. None of the three is a list.
+	/// </para>
+	/// </remarks>
+	public static bool Spatial(string? name, Clause.Option? set)
+	{
+		if (name is null || set is null)
+			return false;
+
+		var key   = name.ToUpperInvariant();
+		var value = set.Value;
+		var on    = value is Expression.ColumnReference("ON");
+		var off   = value is Expression.ColumnReference("OFF");
+
+		switch (key)
+		{
+			case "XML_COMPRESSION":
+			case "STATISTICS_INCREMENTAL":
+				return false;
+
+			case "FILLFACTOR":
+				return value is Expression.Literal(SqlLiteralKind.Number, var fill) && Plain(fill) &&
+					(fill.IndexOf('.') >= 0 || Whole(fill) is >= 1 and <= 100);
+
+			case "MAXDOP":
+				return on || off ||
+					value is Expression.Literal(SqlLiteralKind.Number, var degree) && Plain(degree) &&
+					degree.IndexOf('.') < 0 && Whole(degree) is >= 0 and <= 32767;
+
+			case "DATA_COMPRESSION":
+				return value is Expression.ColumnReference(var word) &&
+					Array.Exists(Compressions, one => string.Equals(one, word.Trim('[', ']', '"'), StringComparison.OrdinalIgnoreCase));
+		}
+
+		return !(on || off) || Array.IndexOf(Switches, key) >= 0 && !(on && Array.IndexOf(Unswitched, key) >= 0);
+
+		// Digits, perhaps a point and a sign: no exponent, and no currency in front.
+		static bool Plain(string number) =>
+			number.IndexOfAny(['e', 'E']) < 0 && number.TrimStart('-') is { Length: > 0 } digits && (char.IsDigit(digits[0]) || digits[0] == '.');
+
+		static long Whole(string number) =>
+			long.TryParse(number, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out var whole)
+				? whole
+				: long.MinValue;
+	}
+
+	static readonly string[] Switches =
+	[
+		"PAD_INDEX", "SORT_IN_TEMPDB", "IGNORE_DUP_KEY", "STATISTICS_NORECOMPUTE", "DROP_EXISTING", "ONLINE",
+		"ALLOW_ROW_LOCKS", "ALLOW_PAGE_LOCKS", "RESUMABLE", "OPTIMIZE_FOR_SEQUENTIAL_KEY",
+	];
+
+	static readonly string[] Unswitched   = ["ONLINE", "IGNORE_DUP_KEY", "RESUMABLE", "OPTIMIZE_FOR_SEQUENTIAL_KEY"];
+	static readonly string[] Compressions = ["NONE", "ROW", "PAGE", "COLUMNSTORE", "COLUMNSTORE_ARCHIVE"];
+
 	/// <summary>Nodes told apart by identity, which a record's own equality does not do.</summary>
 	sealed class ByReference : IEqualityComparer<ISqlSpan>
 	{
