@@ -7,7 +7,18 @@
 
 # .Gram
 
-.Gram is a source generator that compiles grammars into strongly typed C# parsers.
+[![build](https://github.com/dotgram/dotgram/actions/workflows/build.yml/badge.svg)](https://github.com/dotgram/dotgram/actions/workflows/build.yml)
+[![DotGram on NuGet](https://img.shields.io/nuget/v/DotGram?label=DotGram&logo=nuget)](https://www.nuget.org/packages/DotGram)
+[![DotGram.Parsers on NuGet](https://img.shields.io/nuget/v/DotGram.Parsers?label=DotGram.Parsers&logo=nuget)](https://www.nuget.org/packages/DotGram.Parsers)
+[![NuGet downloads](https://img.shields.io/nuget/dt/DotGram?logo=nuget)](https://www.nuget.org/packages/DotGram)
+[![.NET Standard 2.0](https://img.shields.io/badge/.NET%20Standard-2.0-512BD4?logo=dotnet)](#compatibility)
+[![Roslyn 4.14+](https://img.shields.io/badge/Roslyn-4.14%2B-512BD4)](#compatibility)
+[![Visual Studio 18](https://img.shields.io/badge/Visual%20Studio-18-5C2D91?logo=visualstudio)](#visual-studio)
+[![Runtime dependencies: none](https://img.shields.io/badge/runtime%20dependencies-none-brightgreen)](#no-runtime-parser-library)
+[![License: MIT](https://img.shields.io/github/license/dotgram/dotgram)](LICENSE)
+
+.Gram is a source generator that compiles grammars into strongly typed C# parsers, from
+single-character rules to the SQL standard.
 
 The grammar is known at compile time. The generated parser is ordinary C# in your own
 assembly — there is no parser engine, grammar graph, or runtime library to interpret.
@@ -16,7 +27,7 @@ From a grammar, .Gram can generate:
 
 * `Parse`, `TryParse`, and `Find` APIs;
 * strongly typed results from named captures;
-* parsers specialized for different versions of the same grammar;
+* parsers for [different versions of the same grammar](#versions-of-one-language);
 * streaming parsers for `TextReader`;
 * error recovery for record-oriented input;
 * compile-time diagnostics that point back into the grammar.
@@ -179,6 +190,88 @@ result type.
 
 Keeping a grammar this size in the attribute puts the parser and its C# API on one screen.
 A grammar long enough to want its own place goes in a `.gram` file instead.
+
+## Something much bigger
+
+At the other end of the scale the same notation reads T-SQL. The grammars are far too long
+to quote here, so this is where to read them:
+
+* [`TransactSql.gram`](src/DotGram.Parsers/Sql/TransactSql/TransactSql.gram) — T-SQL in
+  over 600 rules, written from Microsoft's published syntax, which is kept beside it in
+  [`Specification/syntax.md`](src/DotGram.Parsers/Sql/TransactSql/Specification/syntax.md).
+  It reads over tokens rather than characters, builds a tree of records, and has a parser
+  for each SQL Server compatibility level from one grammar
+  ([Versions of one language](#versions-of-one-language)). Held against Microsoft's own
+  parser, ScriptDom, every statement of ScriptDom's test corpus that both of them read
+  comes back through ScriptDom as the same statement.
+* [`ExpressionLanguage.cs`](src/DotGram.Parsers/Expressions/ExpressionLanguage.cs) — a
+  C#-style expression language in over 80 rules, inside the `[Gram]` attribute beside the
+  C# they call. It builds `System.Linq.Expressions` trees directly, with parameters,
+  locals, blocks and `return`.
+
+How to call them is under [DotGram.Parsers](#dotgramparsers).
+
+## Versions of one language
+
+A language changes between releases. SQL Server took the `*=` outer join out after 2000 and
+put `IS DISTINCT FROM` in with 2022. A grammar says that once, and each version is a parser
+generated from it:
+
+```csharp
+using DotGram;
+
+[Gram("""
+	trivia       = ' '*
+	wordboundary = ['a'..'z']
+
+	Version = "2000" | "2008" | "2022"
+
+	Name = { ['a'..'z']+ }
+
+	Test : @string
+		= l: Name & "*=" & r: Name & when Version is "2000"
+			=> @($"{l} left-joined to {r}")
+		| l: Name & "is" & "distinct" & "from" & r: Name & when Version is "2022"
+			=> @($"{l} differs from {r}")
+		| l: Name & "=" & r: Name
+			=> @($"{l} equals {r}")
+
+	parse Test with (Version = "2000") as ParseOld
+	parse Test with (Version = "2022") as ParseNew
+	parse Test as ParseAny
+	""")]
+public static partial class SqlDialect;
+```
+
+```csharp
+SqlDialect.ParseOld("a *= b");                              // a left-joined to b
+SqlDialect.TryParseOld("a is distinct from b").IsSuccess;   // False
+
+SqlDialect.ParseNew("a is distinct from b");                // a differs from b
+SqlDialect.TryParseNew("a *= b").IsSuccess;                 // False
+
+SqlDialect.ParseAny("a *= b");                              // a left-joined to b
+```
+
+`Version` is an ordinary rule, and `when Version is "2000"` asks whether it and `"2000"`
+have a string in common. The question is answered when the parser is generated, not while
+it runs: `with (Version = "2000")` substitutes the rule for that one publication, and an
+alternative whose condition is false is not in that parser at all. `ParseAny` names no
+version, so it keeps the grammar's own choice of every version and reads them all — the
+permissive parser is the widest argument rather than a mode of its own. The three share one
+machine.
+
+A range is a rule too, `Since2008 = "2008" | "2022"`, and so is a set with no order to it,
+such as products: `when Version is Since2008 and Product is not "Azure"`.
+
+Removal is the part a chain of dialects cannot say: each grammar in a chain adds to the one
+below it, so `*=` would have nowhere to be taken out. Here it is one alternative with a
+condition on it.
+
+[`TransactSql`](src/DotGram.Parsers/Sql/TransactSql/TransactSql.gram) reads SQL Server's
+compatibility levels this way — `ParseStatement100` to `ParseStatement170` from one grammar,
+and `ParseStatement` for all of them — with a condition only on what the engine answers
+differently from one level to the next.
 
 ## Typed parsing
 
@@ -478,6 +571,8 @@ generator/runtime version pair that can drift apart.
 * external C# predicates and recognizers;
 * parameterized rules;
 * rule rebinding and parser specialization;
+* conditions about the grammar — `when Version is "2022"` — decided when a parser is
+  generated, which is how one grammar is several versions of a language;
 * left recursion — direct, and indirect through rules that only forward — with
   binding powers for expression grammars;
 * grammar namespaces, and grammar libraries that cross a project reference;
