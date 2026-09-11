@@ -13,6 +13,7 @@
 		<License>LICENSE.txt</License>
 		<ReleaseNotes>VSIX.ReleaseNotes.txt</ReleaseNotes>
 		<Icon>Assets\DotGram.Main.png</Icon>
+		<PreviewImage>Assets\DotGram.Preview.png</PreviewImage>
 		<Tags>.Gram, DotGram, grammar, parser, language, CSharp</Tags>
 	</Metadata>
 	<Installation>
