@@ -497,6 +497,7 @@ together — flags, since a list may mix them. A variable assigned is not here: 
 | `Clause.When` | SQL-92 | §6.9 &lt;simple when clause&gt;, &lt;searched when clause&gt; |
 | `Clause.Set` | SQL-92 | §13.10 &lt;set clause&gt; |
 | `Clause.Output` | T-SQL | the OUTPUT clause of a DML statement: what is written out, the table it goes into, and a second OUTPUT after it |
+| `Clause.ExecutionContext` | T-SQL | EXECUTE — AS LOGIN or AS USER and a name, after a string run |
 | `Clause.MergeWhen` | SQL:2003 | §14.9 &lt;merge when clause&gt; |
 | `Clause.VariableDeclaration` | SQL/PSM | one &lt;variable declaration&gt; of it |
 | `Clause.ParameterDeclaration` | SQL/PSM | &lt;SQL parameter declaration&gt; |

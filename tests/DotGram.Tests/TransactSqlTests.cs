@@ -1302,6 +1302,43 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>A string run, its context and where it runs, as the engine answers it with its variables declared.</summary>
+	[Theory]
+	[InlineData("EXEC ('SELECT 1', 5, @a)")]
+	[InlineData("EXEC ('SELECT 1') AS USER = @s")]
+	[InlineData("EXEC ('SELECT 1') AS USER = 'u' + 'v'")]
+	[InlineData("EXEC ('SELECT 1') AS CALLER")]
+	[InlineData("EXEC ('SELECT 1') AS OWNER")]
+	[InlineData("EXEC ('SELECT 1') AS LOGIN")]
+	[InlineData("EXEC ('SELECT 1') AT srv AS LOGIN = 'x'")]
+	[InlineData("EXEC ('SELECT 1') WITH RESULT SETS NONE AS USER = 'u'")]
+	[InlineData("EXEC p AS USER = 'u'")]
+	[InlineData("EXEC @s AS USER = 'u'")]
+	[InlineData("EXEC ('SELECT 1') AT a.b")]
+	[InlineData("EXEC ('SELECT 1') AT DATA_SOURCE a.b")]
+	public void A_string_run_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside it.</summary>
+	[Theory]
+	[InlineData("EXECUTE ('SELECT 1') AS LOGIN = 'x'")]
+	[InlineData("EXEC ('SELECT 1') AS login = 'x'")]
+	[InlineData("EXEC ('SELECT 1') AS USER = N'u'")]
+	[InlineData("EXEC ('SELECT 1') AS LOGIN = 'x' AT srv")]
+	[InlineData("EXEC ('SELECT ?', 1) AT [srv]")]
+	[InlineData("EXEC ('SELECT 1') AT DATA_SOURCE ds")]
+	[InlineData("EXEC ('SELECT ?', 1) AT DATA_SOURCE [ds]")]
+	[InlineData("EXEC ('SELECT 1') AS USER = 'u' AT DATA_SOURCE ds")]
+	[InlineData("EXEC ('SELECT 1') AS USER = 'u' WITH RESULT SETS NONE")]
+	[InlineData("EXEC (@s) AS USER = 'u'")]
+	[InlineData("INSERT t EXEC ('SELECT 1') AS USER = 'u'")]
+	public void A_string_run_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>
 	/// A query with an order and a shape of its own, inside brackets and in an `INSERT`, as the
 	/// engine answers it.

@@ -261,7 +261,7 @@ public static class SqlWriter
 
 				break;
 
-			case Statement.Execute(var into, var name, var arguments, var at, var with):
+			case Statement.Execute(var into, var name, var arguments, var context, var at, var source, var with):
 				text.Append("EXECUTE ");
 
 				if (into is not null)
@@ -280,8 +280,17 @@ public static class SqlWriter
 				if (name == "(")
 					text.Append(" )");
 
+				if (context is not null)
+				{
+					text.Append(' ');
+					Put(text, context);
+				}
+
 				if (at is not null)
 					text.Append(" AT ").Append(at);
+
+				if (source is not null)
+					text.Append(" AT DATA_SOURCE ").Append(source);
 
 				if (with is not null)
 					text.Append(' ').Append(with);
@@ -1661,6 +1670,11 @@ public static class SqlWriter
 				text.Append(" AS (");
 				Put(text, query, 0);
 				text.Append(')');
+				break;
+
+			case Clause.ExecutionContext(var kind, var who):
+				text.Append("AS ").Append(kind).Append(" = ");
+				Put(text, who, 0);
 				break;
 
 			case Clause.For(var kind, var options):

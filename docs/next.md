@@ -18556,3 +18556,24 @@ query in two pairs of brackets, `((SELECT TOP 1 … ORDER BY a))`.
 
 At 150: read by both 5,833 (from 5,825), the work list 141 (from 149), read here but refused
 there 43, as before. `--split` 609, and the round trip 100% of 6,951.
+
+## A string run, whom it runs as and where
+
+`EXECUTE ('…') AS LOGIN = 'x'` stopped at the `AS`. Put to the engine some thirty times: a
+string run may say whom it runs as, `LOGIN` or `USER`, with a string for the name — not a
+variable, not an expression, not `CALLER`, `OWNER` or `SELF` — before the server it runs on
+and before its `WITH`; a procedure may not. It runs on a linked server, `AT srv`, or on an
+external data source, `AT DATA_SOURCE ds`, one part each, and the values after the string —
+what its `?`s take — only on one of the two: `EXEC ('SELECT 1', 5, @a)` was read here and is
+refused, and `AT a.b` was read and is refused too.
+
+The tree had no place for either, and has one now, as agreed: `Clause.ExecutionContext(Kind,
+Name)` in the statement's `Context`, and a `DataSource` beside its `At`, the two kept apart
+because a linked server and a data source are different things. `Statement.Execute` is built
+in two places and taken apart in one, so the new fields stand in the order the text has them.
+
+The first build refused the guard: a binding in a `when` is nullable to the compiler, and
+`args.Length` was a dereference of one. `args is { Length: 1 }` says the same and compiles.
+
+At 150: read by both 5,835 (from 5,833), the work list 139 (from 141), read here but refused
+there 43, as before. `--split` 609, and the round trip 100% of 6,953.

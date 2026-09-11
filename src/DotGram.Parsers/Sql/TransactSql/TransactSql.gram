@@ -1928,16 +1928,35 @@ SessionUser : @Expression
 // ── EXECUTE ─────────────────────────────────────────────────────────────────
 ExecuteStatement : @Statement.Execute = ExecWord & e: ExecuteBody => @(e)
 
+// A string run: the string, and after it the values its `?`s take, which only a linked
+// server or a data source takes — `EXEC ('SELECT 1', 5, @a)` is refused and `EXEC ('SELECT ?',
+// 1) AT srv` read. The context it runs in, `AS LOGIN = 'x'` or `AS USER = N'u'`, is a string's
+// alone and stands before the server; a variable, an expression and `CALLER` are refused
+// there, and so is a context on a procedure. A server and a data source are one part each.
 ExecuteBody : @Statement.Execute
-	= '(' & args: Arguments & ')' & at: ExecAt? & with: ExecWith?
-		=> @(new Statement.Execute(null, "(", args, at, Syntax.Tail(with)))
+	= '(' & args: Arguments & ')' & context: ExecContext? & source: ExecDataSource? & at: ExecAt?
+	  & when @((source is null || at is null) && (at is not null || source is not null || args is { Length: 1 }))
+	  & with: ExecWith?
+		=> @(new Statement.Execute(null, "(", args, context, at, source, Syntax.Tail(with)))
 	| into: ExecReturn? & name: ExecName & args: ExecArguments? & at: ExecAt? & with: ExecWith?
-		=> @(new Statement.Execute(into, name, args ?? Expression.None, at, Syntax.Tail(with)))
+		=> @(new Statement.Execute(into, name, args ?? Expression.None, At: at, Tail: Syntax.Tail(with)))
 
 ExecWord   = "EXECUTE"i | "EXEC"i
 ExecReturn : @string = t: TSql.Variable & '=' => @(t)
 ExecName   : @string = t: QualifiedName => @(t) | t: TSql.Variable => @(t)
-ExecAt     : @string = "AT"i & t: QualifiedName => @(t)
+ExecAt     : @string = "AT"i & t: Identifier => @(t)
+
+ExecDataSource : @string = "AT"i & "DATA_SOURCE"i & t: Identifier => @(t)
+
+ExecContext : @Clause
+	= "AS"i & kind: ExecContextKind & '=' & name: ExecContextName
+		=> @(new Clause.ExecutionContext(kind, name))
+
+ExecContextKind : @string = t: ("LOGIN"i | "USER"i) => @(Syntax.Squared(t))
+
+ExecContextName : @Expression
+	= t: Sql92.Lexical.NationalCharacterStringLiteral => @(new Expression.Literal(SqlLiteralKind.National, t))
+	| t: Sql92.Lexical.CharacterStringLiteral         => @(new Expression.Literal(SqlLiteralKind.Text, t))
 ExecWith   = "WITH"i & ExecOption & (',' & ExecOption)*
 ExecOption = "RESULT"i & "SETS"i & ResultSets
 		   | Identifier

@@ -292,11 +292,13 @@ public abstract record Statement : ISqlSpan
 	/// <summary>
 	/// <c>EXECUTE</c>: what is called, with what, and the variable the return code goes to.
 	/// </summary>
+	/// <param name="Context">The login or the user a string runs as, <see cref="Clause.ExecutionContext"/>.</param>
 	/// <param name="At">The linked server it runs on.</param>
+	/// <param name="DataSource">The external data source it runs on instead, <c>AT DATA_SOURCE ds</c>.</param>
 	/// <param name="Tail">The <c>WITH</c> after it — <c>RECOMPILE</c>, <c>RESULT SETS …</c>.</param>
 	public sealed record Execute(
 		string? Into, string Name, Expression[] Arguments,
-		string? At = null, string? Tail = null) : Statement
+		Clause? Context = null, string? At = null, string? DataSource = null, string? Tail = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Execute;
@@ -2530,6 +2532,12 @@ public abstract record Clause : ISqlSpan
 	/// </summary>
 	public sealed record Output(
 		Clause[] Items, TableReference? Target = null, string[]? Columns = null, Clause? Next = null) : Clause;
+
+	/// <summary>
+	/// T-SQL's <c>EXECUTE ('…') AS USER = 'u'</c>: whom a string is run as, <c>LOGIN</c> or
+	/// <c>USER</c>, and the name, which is a string and nothing else.
+	/// </summary>
+	public sealed record ExecutionContext(string Kind, Expression Name) : Clause;
 
 	/// <summary>
 	/// §14.12 one arm of a merge: whether it fired on a match, which side the match was missing
