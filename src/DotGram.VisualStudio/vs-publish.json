@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json.schemastore.org/vsix-publish",
+  "assetFiles": [
+    {
+      "pathOnDisk": "Assets/DotGram.Preview.png",
+      "targetPath": "images/dotgram-tooling.png"
+    }
+  ],
+  "categories": [
+    "coding"
+  ],
+  "identity": {
+    "internalName": "DotGram.VisualStudio"
+  },
+  "overview": "README-Marketplace.md",
+  "priceCategory": "free",
+  "publisher": "dotgram",
+  "private": false,
+  "qna": true,
+  "repo": "https://github.com/dotgram/dotgram"
+}

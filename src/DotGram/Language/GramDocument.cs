@@ -158,9 +158,10 @@ public static class GramLanguageService
 		var symbols = SymbolOccurrences(parsed.File.Decls, tokens.Tokens, rules);
 		var symbolsByPosition = symbols.ToDictionary(static symbol => symbol.Position);
 		var givesBackMarkers = GivesBackMarkers(parsed.File.Decls, tokens.Tokens);
+		var conditionKeywords = ConditionKeywordPositions(parsed.File.Decls, tokens.Tokens);
 
 		foreach (var token in tokens.Tokens)
-			if (TryClassify(token, out var kind))
+			if (TryClassify(token, conditionKeywords, out var kind))
 			{
 				if (symbolsByPosition.TryGetValue(token.Position, out var symbol) &&
 					symbol.Kind != GramSymbolKind.Rule)
@@ -221,6 +222,75 @@ public static class GramLanguageService
 			foldingRanges,
 			documentSymbols,
 			publishedApis);
+	}
+
+	static HashSet<int> ConditionKeywordPositions(
+		IReadOnlyList<Decl> declarations,
+		IReadOnlyList<Token> tokens)
+	{
+		var result = new HashSet<int>();
+		Collect(declarations);
+		return result;
+
+		void Collect(IReadOnlyList<Decl> items)
+		{
+			foreach (var declaration in items)
+				switch (declaration)
+				{
+					case Decl.Rule rule:
+						Visit(rule.Body);
+						break;
+					case Decl.Namespace @namespace:
+						Collect(@namespace.Decls);
+						break;
+				}
+		}
+
+		void Visit(Expr expression)
+		{
+			if (expression is Expr.Condition(var test))
+			{
+				var operands = Test.Operands(test).Concat(Test.Guards(test)).ToArray();
+
+				for (var index = FirstTokenAtOrAfter(expression.At.Position);
+					index < tokens.Count && tokens[index].Position < expression.At.End;
+					index++)
+				{
+					var token = tokens[index];
+
+					if (token.Kind == TokenKind.Identifier &&
+						token.Value is "is" or "not" or "and" or "or" &&
+						!operands.Any(operand =>
+							token.Position >= operand.At.Position && token.Position < operand.At.End))
+						result.Add(token.Position);
+				}
+
+				foreach (var operand in operands)
+					Visit(operand);
+
+				return;
+			}
+
+			foreach (var child in Dump.Children(expression))
+				Visit(child);
+		}
+
+		int FirstTokenAtOrAfter(int position)
+		{
+			var low = 0;
+			var high = tokens.Count;
+
+			while (low < high)
+			{
+				var middle = low + (high - low) / 2;
+				if (tokens[middle].Position < position)
+					low = middle + 1;
+				else
+					high = middle;
+			}
+
+			return low;
+		}
 	}
 
 	static HashSet<int> GivesBackMarkers(
@@ -662,6 +732,10 @@ public static class GramLanguageService
 				case Expr.Guard guard:
 					Visit(guard.Value);
 					break;
+				case Expr.Condition condition:
+					foreach (var operand in Test.Operands(condition.Test)) Visit(operand);
+					foreach (var guard in Test.Guards(condition.Test)) Visit(guard);
+					break;
 				case Expr.Capture capture:
 					Visit(capture.Operand);
 					break;
@@ -693,6 +767,10 @@ public static class GramLanguageService
 				case Expr.With with:
 					Visit(with.Operand);
 					foreach (var rebinding in with.Rebindings) AddRebinding(rebinding);
+					break;
+				case Expr.Marked marked:
+					Visit(marked.Operand);
+					Visit(marked.Value);
 					break;
 			}
 		}
@@ -838,6 +916,9 @@ public static class GramLanguageService
 				case Expr.Guard guard:
 					Visit(guard.Value);
 					break;
+				case Expr.Condition condition:
+					foreach (var operand in Test.Operands(condition.Test)) Visit(operand);
+					break;
 				case Expr.Capture capture:
 					Visit(capture.Operand);
 					break;
@@ -871,6 +952,10 @@ public static class GramLanguageService
 						AddName(rebinding.Left);
 						AddName(rebinding.Right);
 					}
+					break;
+				case Expr.Marked marked:
+					Visit(marked.Operand);
+					Visit(marked.Value);
 					break;
 			}
 		}
@@ -958,11 +1043,12 @@ public static class GramLanguageService
 		}
 	}
 
-	static bool TryClassify(Token token, out GramSyntaxKind kind)
+	static bool TryClassify(Token token, HashSet<int> conditionKeywords, out GramSyntaxKind kind)
 	{
 		kind = token.Kind switch
 		{
 			TokenKind.Unknown => GramSyntaxKind.Invalid,
+			TokenKind.Identifier when conditionKeywords.Contains(token.Position) => GramSyntaxKind.Keyword,
 			TokenKind.Identifier when Keywords.Contains(token.Value!) => GramSyntaxKind.Keyword,
 			TokenKind.Identifier => GramSyntaxKind.Identifier,
 			TokenKind.Integer => GramSyntaxKind.Number,
