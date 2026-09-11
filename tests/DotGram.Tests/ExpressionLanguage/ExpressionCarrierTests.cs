@@ -46,7 +46,7 @@ public sealed class ExpressionCarrierTests
 
 		// A name that is a type and not a variable — read speculatively as a variable
 		// first, which is the shape that used to need the tape (docs/next.md).
-		"(int x) => Math.Max(x, 1)",
+		"using System; (int x) => Math.Max(x, 1)",
 		"(int x) => System.Math.Max(x, 1)",
 
 		// §7.8, which is the thing the immediate carrier learned last.
@@ -75,15 +75,20 @@ public sealed class ExpressionCarrierTests
 		"() => 0xFFFFFFFF",
 		"() => 9223372036854775808",
 		"(int x) => -2147483648 + x",
-		"(Exception e) => e.Message.Length",
+		"using System; (Exception e) => e.Message.Length",
 
 		// Conversions C# makes unasked, and the overload they let a call find.
 		"(int x) => x + 1.5",
 		"(string s, int n) => s + n",
-		"(int x) => Math.Sqrt(x)",
+		"using System; (int x) => Math.Sqrt(x)",
 		"(byte b) => { b += 1; b }",
 		"(bool c) => c ? 1 : 2L",
 		"() => -3000000000",
+
+		// A `using`, a nested type through one, and one that names nothing.
+		"using System.Text; (int x) => new StringBuilder(16).Length",
+		"using System; (Environment.SpecialFolder f) => f",
+		"using System.Nowhere; (int x) => x",
 
 		// And the refusals: a refusal is an answer and has to be the same answer.
 		"(int x) => x *",

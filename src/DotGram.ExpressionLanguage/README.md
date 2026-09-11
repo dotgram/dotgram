@@ -53,13 +53,17 @@ match.IsSuccess;   // false: there is no minus over a string
 match.Error;       // what Expression.Subtract said about String and Int32
 ```
 
-A type named rather than spelled as a keyword is looked for in `System`, and in whatever
-namespaces `ExpressionParser.Using` adds:
+A type named rather than spelled as a keyword is found the way C# finds one: written whole,
+or through a `using` at the top of the text. Nothing is imported unasked, `System`
+included, and a text's `using`s are its own — the next text starts with none.
 
 ```csharp
-ExpressionParser.Using("System.Collections.Generic");
+var count = ExpressionParser.Compile<Func<IList<int>, int>>(
+    """
+    using System.Collections.Generic;
 
-var count = ExpressionParser.Compile<Func<IList<int>, int>>("(IList<int> l) => l.Count");
+    (IList<int> l) => l.Count
+    """);
 ```
 
 Conversions, operators and overloads follow C#'s rules: `x + 1.5` over an `int` is a

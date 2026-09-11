@@ -39,7 +39,7 @@ static class ExpressionAgainst
 		"(int x) => x * x - 1",
 		"(int x, int y) => (x + y) * 3 - x / 5",
 		"(string s) => s.Length",
-		"(int x) => Math.Max(x, 1)",
+		"using System; (int x) => Math.Max(x, 1)",
 		"(int x) => { x += 1; x *= 2; return x; }",
 		"(int n) => { int sum = 0; for (int i = 0; i < n; i++) { sum += i; } sum }",
 		"(int x) => ((((x + 1) + 1) + 1) + 1)",
@@ -125,9 +125,9 @@ static class ExpressionAgainst
 		"(string s) => s.Substring(1, 2)",
 		"(int[] a) => a.Length + a[0]",
 		"(int[][] a) => a[0][1]",
-		"(int x) => Math.Max(x, 1)",
+		"using System; (int x) => Math.Max(x, 1)",
 		"(int x) => System.Math.Max(x, 1)",
-		"(int x) => Math.PI > x",
+		"using System; (int x) => Math.PI > x",
 		"(string s) => string.Concat(s, s)",
 
 		// The types, which are what a cast and a declaration are told apart by.
@@ -191,15 +191,20 @@ static class ExpressionAgainst
 
 		// What is left of the language: the constructs a person writes rarely and a
 		// parser has to read all the same.
-		"(int x) => { try { x += 1; } catch (Exception e) { x = 0; } x }",
-		"(int x) => { try { x += 1; } catch (Exception e) { x = 0; } finally { x += 1; } x }",
+		"using System; (int x) => { try { x += 1; } catch (Exception e) { x = 0; } x }",
+		"using System; (int x) => { try { x += 1; } catch (Exception e) { x = 0; } finally { x += 1; } x }",
 		"(int x) => { try { x += 1; } finally { x += 1; } x }",
-		"(int x) => { if (x < 0) throw new Exception(\"no\"); x }",
+		"using System; (int x) => { if (x < 0) throw new Exception(\"no\"); x }",
 		"(int x) => new System.Collections.Generic.List<int>()",
 		"(int x) => new System.Collections.Generic.List<int> { x, 1 }",
 		"(int x) => new System.Collections.Generic.Dictionary<int, string> { { x, \"a\" } }",
 		"(int x) => new System.Text.StringBuilder(16).Length",
 		"(int x) => System.Convert.ToString(x)",
+
+		// A `using`, two of them, and a nested type reached through one.
+		"using System.Text; (int x) => new StringBuilder(16).Length",
+		"using System; using System.Text; (int x) => Math.Max(new StringBuilder(x).Length, 1)",
+		"using System; (Environment.SpecialFolder f) => f",
 		"(int x) => { int[] a = new int[2]; a[0] = x; a[0] }",
 		"(int x) => ++x",
 		"(int x) => --x",
@@ -212,6 +217,8 @@ static class ExpressionAgainst
 		"(int x) => { x += 1;",
 		"(int x) => y",
 		"(int x) => x.NoSuchMember",
+		"using System.Nowhere; (int x) => x",
+		"(int x) => Math.Max(x, 1)",
 		"(int x) => (",
 		"(int x) => )",
 		"int x => x",

@@ -52,11 +52,11 @@ namespace DotGram.ExpressionLanguage;
 //     type or `void`, and which one an `if` meant is a question about this API alone.
 //   * `Implicitly`, and what is written over it — which conversion C# makes unasked, the
 //     one type an operator's operands are promoted to, the overload a call means.
-//   * `Lookup`, `Member`, `Indexed`, `Constructor` and the rest of what a name in metadata
-//     turns into — which namespaces a type is looked for in, which member a name is on a
-//     given type, which constructor takes these arguments. The grammar says where a name
-//     stands; the type it stands against is the host's, and is not known until the
-//     operand is built.
+//   * `TypeNamed`, `Member`, `Indexed`, `Called` and the rest of what a name in metadata
+//     turns into — which type a name means in the namespaces the text's `using`s bring
+//     in, which member a name is on a given type, which overload takes these arguments.
+//     The grammar says where a name stands; the type it stands against is the host's,
+//     and is not known until the operand is built.
 //   * `Integer` — which of four types an integer is depends on its value as well as on
 //     how it was written, and that is a question about the digits rather than the text.
 //   * `Add`, `Negate`, `Cast` and the rest that have a checked form — the API has two
@@ -116,6 +116,9 @@ namespace DotGram.ExpressionLanguage;
 //   * A call is resolved by C#'s rules, less what those rules need and this language
 //     cannot write: no generic method is named or inferred, no extension method is found,
 //     and no argument is passed by `ref`, `out` or name.
+//   * A `using` names a namespace and nothing else — no alias, no `using static` — and
+//     reaches the public types of the assemblies already loaded: there are no references
+//     to say which others, and a type in none of them is not there to be named.
 //   * A constant is a literal, or a literal with a minus before it: `byte b = 1 + 1` is
 //     refused where C# folds the sum first and then converts it.
 //   * An increment or a compound assignment writes to a name or to one member of a name —
@@ -181,7 +184,7 @@ namespace DotGram.ExpressionLanguage;
 			|  "if"      | "int"     | "is"      | "long"      | "new"    | "null"
 			|  "object"  | "return"  | "sbyte"   | "short"     | "string" | "switch"
 			|  "throw"   | "true"    | "try"     | "uint"      | "ulong"  | "unchecked"
-			|  "ushort"  | "while")
+			|  "ushort"  | "using"   | "while")
 			& ?![\p{L} | \p{Nd} | '_']
 
 		// ── Numbers, written the way C# writes them ─────────────────────────────────
@@ -274,8 +277,17 @@ namespace DotGram.ExpressionLanguage;
 	// ── A lambda: what it takes, and what it does ───────────────────────────────
 
 	Lambda : @LambdaExpression
-		= '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>" & body: Value
+		= Import* & '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>" & body: Value
 		=> @(Expression.Lambda(context.Returning(body), ExpressionParser.Taking(first, rest)))
+
+	// A `using` stands before the lambda, as it stands at the top of a C# file, and names a
+	// namespace whose types every name after it may mean. The guard records it while the
+	// text is read, which is the moment every later guard asks about a name — and refuses
+	// a namespace that is not there, as C# does.
+	Import : @string
+		= "using" & head: Word & ('.' & part: NamePart)* & ';'
+		  & when @(context.Imports(ExpressionParser.Dotted(head, part), parserSpan))
+		  => @(ExpressionParser.Dotted(head, part))
 
 	// Each type names itself in C#, so `typeof(int)` is checked where it is written and
 	// a word that is no type is not a declaration — the grammar refusing that reading
@@ -303,9 +315,9 @@ namespace DotGram.ExpressionLanguage;
 	             | t: NamedType => @(t)
 
 	// The keywords above are written where the C# compiler reads them. A name is not a
-	// keyword and cannot be: what `Exception` means is a question about the namespaces this
-	// host was told to look in, and it is asked while the text is read so that the answer
-	// can decide how the text reads.
+	// keyword and cannot be: what `Exception` means is a question about the namespaces the
+	// text's `using`s name, and it is asked while the text is read so that the answer can
+	// decide how the text reads.
 	//
 	// The generic form asks nothing while reading, and cannot: what a guard may look at is
 	// what the text said, and the arguments here are types the `=>` has not built yet. It
@@ -339,10 +351,10 @@ namespace DotGram.ExpressionLanguage;
 	NamedType? : @Type
 		= head: Word & ('.' & part: NamePart)*
 		  & args: ('<' & first: Type & (',' & rest: Type)* & '>')?
-		  & when @(args != null || ExpressionParser.Resolves(ExpressionParser.Dotted(head, part)))
+		  & when @(args != null || context.Resolves(ExpressionParser.Dotted(head, part)))
 		  => @(args is null
-		       ? ExpressionParser.TypeNamed(ExpressionParser.Dotted(head, part))
-		       : ExpressionParser.Generic(
+		       ? context.TypeNamed(ExpressionParser.Dotted(head, part))
+		       : context.Generic(
 		           ExpressionParser.Dotted(head, part), ExpressionParser.Types(first!, rest)))
 
 	// One rule for every argument list there is, so that a call, a constructor and an
@@ -860,12 +872,12 @@ public static partial class ExpressionParser
 	/// <summary>Reads the text as a lambda over an expression tree.</summary>
 	/// <exception cref="FormatException">
 	/// The text is not this language, or names what is not there: a variable nothing
-	/// declares, a type, a member or a constructor the host cannot find.
+	/// declares, a namespace a `using` names, a type or a member.
 	/// </exception>
 	/// <exception cref="InvalidOperationException">
 	/// It is this language and means nothing in it — an operator its operands do not
-	/// support, a call no overload fits or two fit equally, a `?:` whose branches meet in
-	/// no type. In C#'s words where the rule is C#'s, and in
+	/// support, a call no overload fits or two fit equally, a name two `using`s both give,
+	/// a `?:` whose branches meet in no type. In C#'s words where the rule is C#'s, and in
 	/// <c>System.Linq.Expressions</c>' own where it is the API that refuses.
 	/// </exception>
 	/// <exception cref="ArgumentException">
@@ -957,38 +969,10 @@ public static partial class ExpressionParser
 	//
 	// The keywords are the grammar's, written as `typeof(int)` where the C# compiler reads
 	// them. A name is not: `Exception` means something only against a set of namespaces to
-	// look in, and that set is the host's to hold — it is what a `using` is, and no grammar
-	// can carry one for an API it has not been pointed at yet.
-
-	static readonly List<string> _namespaces = ["System"];
-
-	static readonly ConcurrentDictionary<string, Type?> _resolved = new(StringComparer.Ordinal);
-
-	/// <summary>Look for type names in this namespace as well, the way a <c>using</c> does.</summary>
-	public static void Using(string @namespace)
-	{
-		if (string.IsNullOrWhiteSpace(@namespace))
-			throw new ArgumentException("A namespace to search cannot be empty.", nameof(@namespace));
-
-		lock (_namespaces)
-		{
-			if (_namespaces.Contains(@namespace, StringComparer.Ordinal))
-				return;
-
-			_namespaces.Add(@namespace);
-		}
-
-		// What was not found before may be found now, and what was found still is.
-		_resolved.Clear();
-	}
-
-	/// <summary>Whether this name is a type here, asked while the text is read (§8.1).</summary>
-	/// <remarks>
-	/// This is what tells `(Foo)x` from `(foo)`, which C# needs a rule of its own for: a
-	/// parenthesized name is a cast where the name is a type and an expression where it is
-	/// not, and the guard answering no is what sends the parse to the other reading.
-	/// </remarks>
-	public static bool Resolves(string name) => Lookup(name) is not null;
+	// look in, and the text says which with a `using`, as a C# file does. Nothing is
+	// imported unasked, `System` included — what a name means is written where it is used.
+	// The `using`s belong to the reading (`State`); what is shared is only what the loaded
+	// assemblies say, which is the same for every reading.
 
 	/// <summary>A dotted name from the words the grammar read, and nothing between them.</summary>
 	/// <remarks>
@@ -999,35 +983,126 @@ public static partial class ExpressionParser
 	public static string Dotted(string head, string[]? tail) =>
 		tail is null || tail.Length == 0 ? head : head + "." + string.Join(".", tail);
 
-	/// <summary>The type that name means.</summary>
-	/// <exception cref="FormatException">It means none.</exception>
-	public static Type TypeNamed(string name) =>
-		Lookup(name) ?? throw new FormatException($"there is no type named '{name}' here.");
-
-	/// <summary>The name against the namespaces, then against every assembly loaded.</summary>
-	static Type? Lookup(string name)
+	/// <summary>A dotted name within a namespace as a type, or null where it is none.</summary>
+	/// <remarks>
+	/// The longest part of the name that is a type by its full name, and the rest as types
+	/// nested in it one at a time — so `Environment.SpecialFolder` is found through
+	/// <c>Environment</c>, which metadata calls <c>System.Environment+SpecialFolder</c> and no
+	/// full name written with dots would reach.
+	/// </remarks>
+	static Type? Qualified(string? space, string dotted)
 	{
-		if (_resolved.TryGetValue(name, out var known))
-			return known;
+		var end = dotted.Length;
 
-		string[] tries;
+		while (true)
+		{
+			var head = dotted.Substring(0, end);
 
-		lock (_namespaces)
-			tries = [name, .. _namespaces.Select(space => space + "." + name)];
-
-		var found = tries.Select(one => Type.GetType(one, false, false)).FirstOrDefault(one => one is not null);
-
-		if (found is null)
-			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+			if (Loaded.Find(space is null ? head : space + "." + head) is { } type)
 			{
-				found = tries.Select(one => assembly.GetType(one, false, false))
-					.FirstOrDefault(one => one is not null);
+				for (var at = end; type is not null && at < dotted.Length;)
+				{
+					var next = dotted.IndexOf('.', at + 1);
 
-				if (found is not null)
-					break;
+					if (next < 0)
+						next = dotted.Length;
+
+					type = type.GetNestedType(dotted.Substring(at + 1, next - at - 1), BindingFlags.Public);
+					at   = next;
+				}
+
+				return type;
 			}
 
-		return _resolved[name] = found;
+			end = dotted.LastIndexOf('.', end - 1);
+
+			if (end < 0)
+				return null;
+		}
+	}
+
+	/// <summary>What the assemblies loaded into this process say about names.</summary>
+	/// <remarks>
+	/// <para>
+	/// Shared, because it is the same for every reading — unlike the `using`s, which belong
+	/// to one. Public types only: a type another assembly keeps internal is not one C# written
+	/// outside it can name, and neither is it here.
+	/// </para>
+	/// <para>
+	/// Both answers are kept once found, a type's absence included: a name is asked about far
+	/// more often than it names anything, since every `s.Length` asks whether `s` is a type.
+	/// An assembly loaded later may make an absent name present, so a load forgets what was
+	/// kept — which is also why this is a class of its own, whose static constructor is the
+	/// one place the subscription is made exactly once.
+	/// </para>
+	/// </remarks>
+	static class Loaded
+	{
+		static readonly ConcurrentDictionary<string, Type?> _types = new(StringComparer.Ordinal);
+
+		static HashSet<string>? _namespaces;
+
+		static Loaded() =>
+			AppDomain.CurrentDomain.AssemblyLoad += static (_, _) =>
+			{
+				_types.Clear();
+				_namespaces = null;
+			};
+
+		/// <summary>The public type that full name means in any loaded assembly, or null.</summary>
+		public static Type? Find(string fullName) => _types.GetOrAdd(fullName, static name => Search(name));
+
+		/// <summary>Whether a loaded assembly has a public type in that namespace, or in one inside it.</summary>
+		/// <remarks>
+		/// Inside it too, because C# takes `using System.Collections;` whether or not that
+		/// namespace declares a type of its own: it is there because something is in it.
+		/// </remarks>
+		public static bool Has(string @namespace) => (_namespaces ?? Gather()).Contains(@namespace);
+
+		static Type? Search(string name)
+		{
+			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+				if (!assembly.IsDynamic && assembly.GetType(name, false, false) is { IsVisible: true } type)
+					return type;
+
+			return null;
+		}
+
+		static HashSet<string> Gather()
+		{
+			var namespaces = new HashSet<string>(StringComparer.Ordinal);
+
+			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+			{
+				if (assembly.IsDynamic)
+					continue;
+
+				Type[] types;
+
+				try
+				{
+					types = assembly.GetExportedTypes();
+				}
+				catch (Exception exception) when (
+					exception is NotSupportedException or TypeLoadException or ReflectionTypeLoadException or
+						System.IO.FileNotFoundException or System.IO.FileLoadException)
+				{
+					// An assembly whose types cannot all be loaded contributes none, as a
+					// reference C# cannot read contributes none.
+					continue;
+				}
+
+				foreach (var type in types)
+				{
+					var space = type.Namespace;
+
+					while (space is not null && namespaces.Add(space))
+						space = space.LastIndexOf('.') is var dot and >= 0 ? space.Substring(0, dot) : null;
+				}
+			}
+
+			return _namespaces = namespaces;
+		}
 	}
 
 	/// <summary>What a piece of the text is being read under — the grammar's `state` (§7.8).</summary>
@@ -1710,25 +1785,6 @@ public static partial class ExpressionParser
 
 	/// <summary>An expression's type for a message, and the literal <c>null</c> as C# names it.</summary>
 	static string Shown(Expression value) => ReferenceEquals(value, Null) ? "<null>" : value.Type.Name;
-
-	/// <summary>The type that name and those arguments mean.</summary>
-	/// <remarks>
-	/// A generic type is named in metadata by its arity — <c>Func`2</c> — which is one more
-	/// thing about the runtime rather than about the language, and so is here rather than
-	/// in the grammar. The name looked up is the one the author wrote with the count of
-	/// what they wrote it over.
-	/// </remarks>
-	public static Type Generic(string name, Type[] arguments)
-	{
-		if (arguments is null)
-			throw new ArgumentNullException(nameof(arguments));
-
-		var open = Lookup(name + "`" + arguments.Length.ToString(CultureInfo.InvariantCulture))
-			?? throw new FormatException(
-				$"there is no type named '{name}' taking {arguments.Length} of them here.");
-
-		return open.MakeGenericType(arguments);
-	}
 
 	/// <summary>A generic type's arguments, in the order they were written.</summary>
 	public static Type[] Types(Type first, Type[] rest)
@@ -2528,8 +2584,10 @@ public static partial class ExpressionParser
 	/// nothing survives the call.
 	/// </para>
 	/// <para>
-	/// What is not here is the namespace list and the type cache. Those belong to the
-	/// parser rather than to a parse, are shared on purpose, and stayed where they were.
+	/// What is here and not shared includes the `using`s: a text's are its own, and the
+	/// next text reads with none. What is not here is what the loaded assemblies say — the
+	/// type a full name means, the namespaces there are — which is the same for every
+	/// reading and is shared on purpose.
 	/// </para>
 	/// </remarks>
 	public sealed class State
@@ -2644,17 +2702,23 @@ public static partial class ExpressionParser
 			if (Find(name, at) is not null)
 				return true;
 
-			if (at.Start >= _unknownAt)
-			{
-				_unknownAt = at.Start;
-				_unknown   = name;
-			}
+			Refuse(at.Start, NothingNamed(name));
 
 			return false;
 		}
 
-		int     _unknownAt = -1;
-		string? _unknown;
+		/// <summary>Why a guard refused, kept where it is the furthest refusal yet.</summary>
+		void Refuse(int at, string why)
+		{
+			if (at >= _refusedAt)
+			{
+				_refusedAt = at;
+				_refusal   = why;
+			}
+		}
+
+		int     _refusedAt = -1;
+		string? _refusal;
 
 		/// <summary>
 		/// What to say about a parse that refused a name, or null where it refused none and
@@ -2667,10 +2731,112 @@ public static partial class ExpressionParser
 		/// no `y` gives up at the end of the input, four characters past the word that is
 		/// the reason.
 		/// </remarks>
-		public string? Refused() => _unknown is { } name ? NothingNamed(name) : null;
+		public string? Refused() => _refusal;
 
-		/// <summary>Where the name <see cref="Refused"/> speaks of was written.</summary>
-		internal int RefusedAt => _unknownAt;
+		/// <summary>Where what <see cref="Refused"/> speaks of was written.</summary>
+		internal int RefusedAt => _refusedAt;
+
+		// ── What a name written as a type means ─────────────────────────────────────
+
+		/// <summary>The namespaces the text's `using`s named, in the order it named them.</summary>
+		List<string>? _imports;
+
+		/// <summary>A `using`, recorded while the text is read (§8.1).</summary>
+		/// <returns>
+		/// Whether that namespace is there. One that is not is refused, as C# refuses it
+		/// (CS0246), and said so about. One named twice is recorded once, which is also what
+		/// a reading that reads the directive again writes.
+		/// </returns>
+		public bool Imports(string @namespace, SourceSpan at)
+		{
+			if (@namespace is null)
+				throw new ArgumentNullException(nameof(@namespace));
+
+			if (!Loaded.Has(@namespace))
+			{
+				Refuse(at.Start, $"The type or namespace name '{@namespace}' could not be found.");
+
+				return false;
+			}
+
+			if (!(_imports ??= []).Contains(@namespace, StringComparer.Ordinal))
+				_imports.Add(@namespace);
+
+			return true;
+		}
+
+		/// <summary>Whether this name is a type here, asked while the text is read (§8.1).</summary>
+		/// <remarks>
+		/// This is what tells `(Foo)x` from `(foo)`, which C# needs a rule of its own for: a
+		/// parenthesized name is a cast where the name is a type and an expression where it is
+		/// not, and the guard answering no is what sends the parse to the other reading. A
+		/// name two `using`s both give is a type as well — an ambiguous one, which
+		/// <see cref="TypeNamed"/> refuses where it is built.
+		/// </remarks>
+		public bool Resolves(string name) => Meanings(name, out _, out _) > 0;
+
+		/// <summary>The type that name means.</summary>
+		/// <exception cref="FormatException">It means none.</exception>
+		/// <exception cref="InvalidOperationException">It means two, which C# refuses (CS0104).</exception>
+		public Type TypeNamed(string name) => Only(name, name);
+
+		/// <summary>The type that name and those arguments mean.</summary>
+		/// <remarks>
+		/// A generic type is named in metadata by its arity — <c>Func`2</c> — which is one more
+		/// thing about the runtime rather than about the language, and so is here rather than
+		/// in the grammar. The name looked up is the one the author wrote with the count of
+		/// what they wrote it over.
+		/// </remarks>
+		public Type Generic(string name, Type[] arguments)
+		{
+			if (arguments is null)
+				throw new ArgumentNullException(nameof(arguments));
+
+			var open = Only(
+				name + "`" + arguments.Length.ToString(CultureInfo.InvariantCulture),
+				name + "<" + new string(',', arguments.Length - 1) + ">");
+
+			return open.MakeGenericType(arguments);
+		}
+
+		/// <summary>The one type a metadata name means, or why there is not one.</summary>
+		Type Only(string name, string shown) =>
+			Meanings(name, out var first, out var second) switch
+			{
+				0 => throw new FormatException($"The type or namespace name '{shown}' could not be found."),
+				1 => first!,
+				_ => throw new InvalidOperationException(
+					$"'{shown}' is an ambiguous reference between '{first}' and '{second}'."),
+			};
+
+		/// <summary>
+		/// How many types a name means here — written whole, or inside a namespace a `using`
+		/// imported — and the first two of them.
+		/// </summary>
+		int Meanings(string name, out Type? first, out Type? second)
+		{
+			Type? one   = null;
+			Type? two   = null;
+			var   count = 0;
+
+			for (var at = -1; at < (_imports?.Count ?? 0); at++)
+			{
+				var found = Qualified(at < 0 ? null : _imports![at], name);
+
+				if (found is null || found == one || found == two)
+					continue;
+
+				if (count++ == 0)
+					one = found;
+				else
+					two ??= found;
+			}
+
+			first  = one;
+			second = two;
+
+			return count;
+		}
 
 		static string NothingNamed(string name) => $"nothing named '{name}' is declared here.";
 

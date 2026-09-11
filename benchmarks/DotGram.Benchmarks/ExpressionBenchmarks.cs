@@ -112,7 +112,7 @@ public class ExpressionBenchmarks
 		// one costs a reflection lookup the first time and a cache hit afterwards, and
 		// the benchmark measures the second because the setup below has already paid the
 		// first.
-		"(int x) => Math.Max(x, 1)",
+		"using System; (int x) => Math.Max(x, 1)",
 
 		// A block, and `Assignment` reached twice through `Target` — eleven alternatives
 		// each beginning with the same operand, which is the rule that was reading it

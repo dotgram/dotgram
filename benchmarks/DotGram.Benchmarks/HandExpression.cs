@@ -134,7 +134,7 @@ static class HandExpression
 		"if",      "int",     "is",      "long",    "new",      "null",
 		"object",  "return",  "sbyte",   "short",   "string",   "switch",
 		"throw",   "true",    "try",     "uint",    "ulong",    "unchecked",
-		"ushort",  "while",
+		"ushort",  "using",   "while",
 	];
 
 	static byte Of(string word) => (byte)(FirstWord + Array.IndexOf(Words, word));
@@ -176,6 +176,7 @@ static class HandExpression
 	static readonly byte KwUlong     = Of("ulong");
 	static readonly byte KwUnchecked = Of("unchecked");
 	static readonly byte KwUshort    = Of("ushort");
+	static readonly byte KwUsing     = Of("using");
 	static readonly byte KwWhile     = Of("while");
 
 	/// <summary>Which keyword a word is, or <see cref="Identifier"/> where it is none.</summary>
@@ -224,7 +225,7 @@ static class HandExpression
 					case 'f': if (Same(w, "false")) return KwFalse;  if (Same(w, "float")) return KwFloat; break;
 					case 's': if (Same(w, "short")) return KwShort;  break;
 					case 't': if (Same(w, "throw")) return KwThrow;  break;
-					case 'u': if (Same(w, "ulong")) return KwUlong;  break;
+					case 'u': if (Same(w, "ulong")) return KwUlong;  if (Same(w, "using")) return KwUsing; break;
 					case 'w': if (Same(w, "while")) return KwWhile;  break;
 				}
 
@@ -786,6 +787,28 @@ static class HandExpression
 		{
 			node = null;
 
+			// The `using`s before it, each recorded as it is read — where the grammar's guard
+			// records them, and for the reason it does: every name after asks about them.
+			while (Kind(i) == KwUsing)
+			{
+				if (Kind(i + 1) != Identifier)
+					return -1;
+
+				var name = Cut(i + 1);
+				var end  = i + 2;
+
+				while (Kind(end) == Dot && Kind(end + 1) == Identifier)
+				{
+					name += "." + Cut(end + 1);
+					end  += 2;
+				}
+
+				if (Kind(end) != Semicolon || !_context.Imports(name, Span(i, end + 1)))
+					return -1;
+
+				i = end + 1;
+			}
+
 			if (Kind(i) != LeftParen)
 				return -1;
 
@@ -928,16 +951,16 @@ static class HandExpression
 
 					if (closed >= 0)
 					{
-						type = ExpressionParser.Generic(name, arguments!);
+						type = _context.Generic(name, arguments!);
 
 						return closed;
 					}
 				}
 
-				if (!ExpressionParser.Resolves(name))
+				if (!_context.Resolves(name))
 					continue;
 
-				type = ExpressionParser.TypeNamed(name);
+				type = _context.TypeNamed(name);
 
 				return after;
 			}
