@@ -540,7 +540,7 @@ together — flags, since a list may mix them. A variable assigned is not here: 
 | `Clause.SystemTime` | T-SQL | Temporal Tables — `FOR SYSTEM_TIME` |
 | `Clause.Into` | T-SQL | SELECT — `INTO new_table [ON filegroup]` |
 | `Clause.TableSample` | SQL:2003 | &lt;table sample clause&gt;; T-SQL: TABLESAMPLE |
-| `Clause.JsonColumn` | T-SQL | OPENJSON — one column of its `WITH` schema |
+| `Clause.JsonColumn` | T-SQL | one column of a `WITH` schema: OPENJSON's, OPENXML's with its pattern, a bulk rowset's with its number |
 | `Clause.GroupBy` | SQL-92 | §7.7 &lt;group by clause&gt;, with T-SQL's `ALL` and `WITH CUBE` |
 | `Clause.CommonTableExpression` | SQL:1999 | &lt;with list element&gt;; T-SQL: WITH common_table_expression |
 | `Clause.For` | T-SQL | SELECT — the FOR clause: `FOR XML`, `FOR JSON`, `FOR BROWSE` |

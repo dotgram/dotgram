@@ -2931,8 +2931,13 @@ public abstract record Clause : ISqlSpan
 	/// <see cref="Type"/> is null where the whole schema was named rather than written out,
 	/// which is <c>OPENXML</c>'s spelling: <c>WITH tablename</c>.
 	/// </remarks>
+	/// <param name="Ordinal">
+	/// Which column of the file it is, where a bulk rowset numbers them; null where none was
+	/// said. A column has this or a path, never both: the number is `OPENROWSET (BULK …)`'s and
+	/// the path is `OPENXML`'s pattern or `OPENJSON`'s.
+	/// </param>
 	public sealed record JsonColumn(
-		string Name, string? Type, string? Path, bool AsJson) : Clause;
+		string Name, string? Type, string? Path, bool AsJson, string? Ordinal = null) : Clause;
 
 	/// <summary>§7.17 a named query, written in front of the statement that uses it.</summary>
 	public sealed record CommonTableExpression(
@@ -4092,6 +4097,65 @@ public static class Syntax
 			!(flag.EndsWith("ROWGUIDCOL", StringComparison.Ordinal) || flag.EndsWith("NOT FOR REPLICATION", StringComparison.Ordinal) ||
 			  flag.EndsWith("PERSISTED", StringComparison.Ordinal) || flag.EndsWith("HIDDEN", StringComparison.Ordinal));
 	}
+
+	/// <summary>Whether a rowset function takes the schema written after it, and in that shape.</summary>
+	/// <remarks>
+	/// <para>
+	/// Two of them do. <c>OPENXML</c> takes a schema with a pattern in each column or none, and
+	/// takes a name instead of the brackets; <c>OPENROWSET (BULK …)</c> takes one with a number
+	/// in each column or none, and no name. Every other function refuses the clause altogether
+	/// — <c>CHANGETABLE</c> (<c>Msg 22104</c>), <c>STRING_SPLIT</c>, <c>GENERATE_SERIES</c> and
+	/// <c>OPENQUERY</c> (<c>Msg 319</c>), and <c>OPENROWSET</c> over a provider (<c>Msg 102</c>).
+	/// </para>
+	/// <para>
+	/// A bulk rowset read as one value — <c>SINGLE_CLOB</c>, <c>SINGLE_BLOB</c>,
+	/// <c>SINGLE_NCLOB</c> — has one column of its own and takes no schema (<c>Msg 5340</c>),
+	/// unless a format is named beside it, which the engine reads.
+	/// </para>
+	/// </remarks>
+	public static bool Schemas(Expression.RoutineInvocation? call, Clause[]? schema)
+	{
+		if (schema is null)
+			return true;
+
+		if (call is null)
+			return false;
+
+		if (string.Equals(call.Name, "OPENXML", StringComparison.OrdinalIgnoreCase))
+			return Array.TrueForAll(schema, static one => one is not Clause.JsonColumn { Ordinal: not null });
+
+		if (!string.Equals(call.Name, "OPENROWSET", StringComparison.OrdinalIgnoreCase))
+			return false;
+
+		var bulk   = false;
+		var single = false;
+		var format = false;
+
+		foreach (var argument in call.Arguments)
+			switch (argument)
+			{
+				case Expression.Prefixed(var word, _) when string.Equals(word, "BULK", StringComparison.OrdinalIgnoreCase):
+					bulk = true;
+					break;
+
+				case Expression.NamedArgument(var named, _) when string.Equals(named, "FORMAT", StringComparison.OrdinalIgnoreCase):
+					format = true;
+					break;
+
+				case Expression.ColumnReference(var lob) when Array.Exists(Singles, one => string.Equals(one, lob, StringComparison.OrdinalIgnoreCase)):
+					single = true;
+					break;
+			}
+
+		return bulk && (format || !single) &&
+			Array.TrueForAll(schema, static one => one is Clause.JsonColumn { Type: not null, Path: null });
+	}
+
+	static readonly string[] Singles = ["SINGLE_CLOB", "SINGLE_BLOB", "SINGLE_NCLOB"];
+
+	/// <summary>Whether a column's number in a file is one: from one upwards, and no larger than an <c>int</c>.</summary>
+	public static bool Ranked(string? ordinal) =>
+		int.TryParse(ordinal, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var which) && which > 0;
 
 	/// <summary>Nodes told apart by identity, which a record's own equality does not do.</summary>
 	sealed class ByReference : IEqualityComparer<ISqlSpan>

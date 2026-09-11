@@ -859,7 +859,7 @@ TSqlTablePrimary : @TableReference
 				 new TableReference.FunctionCall(f, alias, columns, schema ?? Clause.None), pivot))
 	| f: PredictCall & schema: PredictSchema & ("AS"i? & alias: CorrelationName)?
 		=> @(new TableReference.FunctionCall(f, alias, null, schema))
-	| f: RowsetFunction & schema: RowsetSchema?
+	| f: RowsetFunction & schema: RowsetSchema? & when @(Syntax.Schemas(f, schema))
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & pivot: PivotSuffix?
 		=> @(Syntax.Pivoted(
@@ -1368,9 +1368,15 @@ RowsetSchema : @Clause[]
 // A collation, which no block names and the engine reads straight after the type and
 // nowhere else: a plain name, `[Latin1_General_Bin2]` and a string refused. The node keeps it
 // with the type it belongs to, a collation being what a character type is compared by.
+// A bulk rowset's column says which column of the file it is, after its type and its
+// collation and not before (`Msg 156`): a whole number from one up (`Msg 16204`), no larger
+// than an `int`. A pattern is `OPENXML`'s and a number `OPENROWSET`'s, and no column has both
+// (`Syntax.Schemas` asks which function it belongs to).
 SchemaColumn : @Clause
-	= name: Identifier & type: DataType & c: SchemaCollate? & path: SchemaPath?
-		=> @(new Clause.JsonColumn(name, c is null ? type : type + " COLLATE " + c, path, false))
+	= name: Identifier & type: DataType & c: SchemaCollate? & path: SchemaPath? & ordinal: SchemaOrdinal?
+		=> @(new Clause.JsonColumn(name, c is null ? type : type + " COLLATE " + c, path, false, ordinal))
+
+SchemaOrdinal : @string = t: Sql92.Lexical.Digits & when @(Syntax.Ranked(t)) => @(t)
 
 JsonSchemaColumn : @Clause
 	= name: Identifier & type: DataType & c: SchemaCollate? & path: SchemaPath? & json: SchemaAsJson?
@@ -1830,8 +1836,16 @@ FirstPiece : @Statement
 	| c: BareCall & (';'+ | ?!"WITH"i) => @(c)
 
 SqlPiece : @Statement
-	= (with: WithClause & ?!"WITH"i)? & s: StatementBody & (';'+ | ?!"WITH"i)
+	= (with: WithClause & ?!"WITH"i)? & s: StatementBody & (';'+ | ?!"WITH"i & ?!Unseparated)
 		=> @(Syntax.Preceded(with, s))
+
+// A statement not ended by `;` is not followed by one whose first word is not reserved: the
+// engine reads the word as a continuation of the statement before it and answers `Msg 102`.
+// `END CONVERSATION 10 ENABLE TRIGGER t1 ON o1` is refused and `END CONVERSATION 10; ENABLE
+// TRIGGER t1 ON o1` read, while `PRINT 1 TRUNCATE TABLE t` needs no `;` — `TRUNCATE` is
+// reserved and cannot continue anything. Seven words open a statement and are not reserved,
+// and a block's first statement is none of this: `BEGIN ENABLE TRIGGER t1 ON o1 END` is read.
+Unseparated = "ENABLE"i | "DISABLE"i | "RECEIVE"i | "THROW"i | "MOVE"i | "GET"i | "SEND"i
 
 StatementList : @Statement[] = ';'* & s: SqlPiece+ => @(s)
 
@@ -1858,11 +1872,13 @@ ScriptBatch : @Batch = go: GoText & s: SqlText => @(new Batch(s, go))
 GoText : @string = t: TSql.GoLine => @(Syntax.GoLine(t))
 
 // `BEGIN TRY` and `BEGIN TRANSACTION` open with the same word as a block, so both stand
-// in front of it.
+// in front of it. A `CATCH` may hold nothing — `BEGIN TRY SELECT 1; END TRY BEGIN CATCH END
+// CATCH` is read — and a `TRY` may not (`Msg 102`); neither holds a `;` and nothing else, the
+// list being statements or nothing.
 TryCatchStatement : @Statement
 	= "BEGIN"i & "TRY"i & tried: StatementList & "END"i & "TRY"i
-	  & "BEGIN"i & "CATCH"i & caught: StatementList & "END"i & "CATCH"i
-		=> @(new Statement.TryCatch(tried, caught))
+	  & "BEGIN"i & "CATCH"i & caught: StatementList? & "END"i & "CATCH"i
+		=> @(new Statement.TryCatch(tried, caught ?? System.Array.Empty<Statement>()))
 
 StatementBlock : @Statement
 	= "BEGIN"i & "ATOMIC"i & "WITH"i & '(' & atomic: OptionList & ')' & body: StatementList & "END"i

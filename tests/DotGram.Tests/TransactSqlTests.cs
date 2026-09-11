@@ -953,6 +953,117 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>
+	/// A statement not ended by <c>;</c> is not followed by one whose first word is not
+	/// reserved: the engine reads the word as a continuation of the statement before it.
+	/// </summary>
+	[Theory]
+	[InlineData("END CONVERSATION 10 ENABLE TRIGGER t1 ON o1", false)]
+	[InlineData("END CONVERSATION 10 DISABLE TRIGGER t1 ON o1", false)]
+	[InlineData("PRINT 1 ENABLE TRIGGER t1 ON o1", false)]
+	[InlineData("SET NOCOUNT ON ENABLE TRIGGER t1 ON o1", false)]
+	[InlineData("ENABLE TRIGGER t1 ON o1 ENABLE TRIGGER t2 ON o2", false)]
+	[InlineData("END CONVERSATION 10 RECEIVE TOP (1) * FROM q", false)]
+	[InlineData("END CONVERSATION 10 THROW", false)]
+	[InlineData("PRINT 1 THROW", false)]
+	[InlineData("PRINT 1 RECEIVE * FROM q", false)]
+	[InlineData("END CONVERSATION 10 MOVE CONVERSATION 10 TO 20", false)]
+	[InlineData("END CONVERSATION 10 GET CONVERSATION GROUP @g FROM q", false)]
+	[InlineData("END CONVERSATION 10 SEND ON CONVERSATION 10 MESSAGE TYPE m", false)]
+	[InlineData("SELECT 1 DISABLE TRIGGER t1 ON o1", false)]
+	[InlineData("END CONVERSATION 10 ; ENABLE TRIGGER t1 ON o1", true)]
+	[InlineData("PRINT 1; ENABLE TRIGGER t1 ON o1", true)]
+	[InlineData("ENABLE TRIGGER t1 ON o1; ENABLE TRIGGER t2 ON o2", true)]
+	[InlineData("END CONVERSATION 10 PRINT 1", true)]
+	[InlineData("END CONVERSATION 10 TRUNCATE TABLE t", true)]
+	[InlineData("PRINT 1 PRINT 2", true)]
+	[InlineData("DECLARE @a INT PRINT 1", true)]
+	[InlineData("BEGIN ENABLE TRIGGER t1 ON o1 END", true)]
+	[InlineData("END CONVERSATION 10 SELECT 1", true)]
+	[InlineData("END CONVERSATION 10 WAITFOR DELAY '00:00:01'", true)]
+	[InlineData("END CONVERSATION 10 RECONFIGURE", true)]
+	[InlineData("END CONVERSATION 10 BULK INSERT t FROM 'f'", true)]
+	[InlineData("END CONVERSATION 10 REVERT", true)]
+	[InlineData("END CONVERSATION 10 CHECKPOINT", true)]
+	[InlineData("END CONVERSATION 10 DBCC CHECKDB", true)]
+	[InlineData("END CONVERSATION 10 ALTER TABLE t ADD a INT", true)]
+	[InlineData("END CONVERSATION 10 CREATE TABLE t (a INT)", true)]
+	[InlineData("END CONVERSATION 10 UPDATE t SET c = 1", true)]
+	[InlineData("END CONVERSATION 10 KILL 53", true)]
+	[InlineData("END CONVERSATION 10 OPEN c", true)]
+	[InlineData("END CONVERSATION 10 FETCH NEXT FROM c", true)]
+	[InlineData("END CONVERSATION 10 GRANT SELECT ON t TO u", true)]
+	[InlineData("END CONVERSATION 10 BACKUP DATABASE d TO DISK = 'f'", true)]
+	public void A_statement_not_ended_is_followed_by_a_reserved_word(string input, bool read) =>
+		Assert.Equal(read, TransactSql.TryParseSql(input).IsSuccess);
+
+	/// <summary>The schema a rowset function takes, and a <c>CATCH</c> with nothing in it, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT '@b') AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT 1.5) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT -1) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT 0) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT '1') AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT 1 COLLATE latin1_general_bin2) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT '$.a' 1) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT 1 '@b') AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT 9223372036854775808) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH t AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH dbo.t AS x")]
+	[InlineData("SELECT * FROM OPENXML(@h, '/x') WITH (a INT 1)")]
+	[InlineData("SELECT * FROM OPENXML(@h, '/x') WITH (a INT '@b', c VARCHAR (10) 2)")]
+	[InlineData("SELECT * FROM OPENXML(@h, '/x') WITH (a INT 1, b INT 2)")]
+	[InlineData("SELECT * FROM OPENXML(@h, '/x') WITH (a INT 0)")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', SINGLE_CLOB) WITH ([a] INT) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', SINGLE_BLOB) WITH ([a] INT) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', SINGLE_NCLOB) WITH ([a] INT) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET ('p', 'q', 'r') WITH ([a] INT) AS x")]
+	[InlineData("SELECT * FROM CHANGETABLE (CHANGES t, 0) WITH ([a] INT) AS x")]
+	[InlineData("SELECT * FROM CHANGETABLE (VERSION t, (id), (1)) WITH ([a] INT) AS x")]
+	[InlineData("SELECT * FROM STRING_SPLIT('a,b', ',') WITH ([a] INT)")]
+	[InlineData("SELECT * FROM GENERATE_SERIES(1, 10) WITH ([a] INT)")]
+	[InlineData("SELECT * FROM OPENQUERY(s, 'q') WITH ([a] INT)")]
+	[InlineData("BEGIN TRY END TRY BEGIN CATCH SELECT 1; END CATCH")]
+	[InlineData("BEGIN TRY END TRY BEGIN CATCH END CATCH")]
+	[InlineData("BEGIN TRY ; END TRY BEGIN CATCH ; END CATCH")]
+	[InlineData("BEGIN TRY SELECT 1; END TRY BEGIN CATCH ; END CATCH")]
+	[InlineData("BEGIN TRY BEGIN END END TRY BEGIN CATCH END CATCH")]
+	public void Schemas_and_catches_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT 1) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT 1, [b] VARCHAR (10) COLLATE latin1_general_bin2 2, [c] INT) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT 2147483647) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT COLLATE latin1_general_bin2 2) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT COLLATE latin1_general_bin2) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'PARQUET') WITH ([region] VARCHAR (100) 1) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV', SINGLE_CLOB) WITH ([a] INT) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', SINGLE_CLOB) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET ('p', 'q', 'r') AS x")]
+	[InlineData("SELECT * FROM CHANGETABLE (CHANGES t, 0) AS x")]
+	[InlineData("SELECT * FROM OPENXML(@h, '/x') WITH (a INT)")]
+	[InlineData("SELECT * FROM OPENXML(@h, '/x') WITH (a INT '@b')")]
+	[InlineData("SELECT * FROM OPENXML(@h, '/x') WITH (a INT COLLATE latin1_general_bin2 '@b')")]
+	[InlineData("SELECT * FROM OPENXML(@h, '/x') WITH t")]
+	[InlineData("SELECT * FROM OPENXML(@h, '/x') WITH dbo.t")]
+	[InlineData("BEGIN TRY SELECT 1; END TRY BEGIN CATCH END CATCH")]
+	[InlineData("BEGIN TRY SELECT 1; END TRY BEGIN CATCH SELECT 2; END CATCH")]
+	[InlineData("CREATE PROCEDURE p1 AS BEGIN BEGIN TRY END CONVERSATION 10; ENABLE TRIGGER t1 ON o1; END TRY BEGIN CATCH END CONVERSATION 10; ENABLE TRIGGER t1 ON o1; END CATCH END")]
+	[InlineData("BEGIN TRY END CONVERSATION 10; END TRY BEGIN CATCH END CATCH")]
+	[InlineData("BEGIN TRY END CONVERSATION 10 END TRY BEGIN CATCH END CATCH")]
+	[InlineData("BEGIN TRY END CONVERSATION @h; END TRY BEGIN CATCH END CATCH")]
+	[InlineData("BEGIN TRY END CONVERSATION 10; SELECT 1; END TRY BEGIN CATCH END CATCH")]
+	[InlineData("BEGIN TRY BEGIN END CONVERSATION 10; END END TRY BEGIN CATCH END CATCH")]
+	public void Schemas_and_catches_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>A constraint dropped with its index, a placement by name or string, and a column altered online, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("ALTER TABLE t DROP CONSTRAINT c WITH (WAIT_AT_LOW_PRIORITY (MAX_DURATION = 1 MINUTE, ABORT_AFTER_WAIT = BLOCKERS))")]

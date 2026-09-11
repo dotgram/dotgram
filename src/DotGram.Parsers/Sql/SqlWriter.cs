@@ -1770,7 +1770,7 @@ public static class SqlWriter
 				// `OPENXML (…) WITH t1` names a table whose columns say the shape, and
 				// `WITH (c1 INT, …)` writes the shape out. A schema column has a type where
 				// it was written out, so one column with none is the first spelling.
-				if (schema is [Clause.JsonColumn(var only, null, null, false)])
+				if (schema is [Clause.JsonColumn(var only, null, null, false, null)])
 				{
 					text.Append(" WITH ").Append(only);
 				}
@@ -2161,7 +2161,7 @@ public static class SqlWriter
 
 				break;
 
-			case Clause.JsonColumn(var column, var type, var path, var json):
+			case Clause.JsonColumn(var column, var type, var path, var json, var ordinal):
 				text.Append(column);
 
 				if (type is not null)
@@ -2169,6 +2169,9 @@ public static class SqlWriter
 
 				if (path is not null)
 					text.Append(' ').Append(path);
+
+				if (ordinal is not null)
+					text.Append(' ').Append(ordinal);
 
 				if (json)
 					text.Append(" AS JSON");

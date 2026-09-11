@@ -19254,3 +19254,42 @@ At 150: read by both 5,906 (from 5,900), the work list 70 (from 76), read here b
 there 35 (from 43, the largest fall yet); `--split` 726 (from 722), the round trip 100% of
 7,550 — two fewer than before, which is what closing a defect does to it. The map is as it was:
 read by both 7,982 of 8,338 (99.7%), the work list 21, defects 0.
+
+## Which function takes a schema, what a column of one says, and a `CATCH` with nothing in it
+
+Two groups of the corpus's work list, and the first turned out to be about the second thing
+in it. Put to the engine some eighty times.
+
+- **A `CATCH` may hold nothing.** `BEGIN TRY SELECT 1; END TRY BEGIN CATCH END CATCH` is read
+  and was not, and every statement of that group ended so — the `END CONVERSATION` in front
+  of it, which is what the work list showed, was never the trouble. A `TRY` may not be empty
+  (`Msg 102`), and neither half holds a `;` and nothing else, so the list is statements or
+  nothing at all.
+- **A column of a bulk rowset's schema says which column of the file it is**, after its type
+  and its collation and not before (`Msg 156`): a whole number from one up (`Msg 16204`), no
+  larger than an `int`. It is kept as `Clause.JsonColumn`'s `Ordinal`, as agreed — beside the
+  path and not in it, since a column has one or the other.
+- **And which functions take a schema at all**, which this grammar had never asked: two.
+  `OPENXML` takes one with a pattern in each column, or a name instead of the brackets;
+  `OPENROWSET (BULK …)` takes one with a number, and no name (`Msg 102`). `CHANGETABLE`
+  (`Msg 22104`), `STRING_SPLIT`, `GENERATE_SERIES`, `OPENQUERY` (`Msg 319`) and `OPENROWSET`
+  over a provider refuse the clause altogether, and a bulk rowset read as one value —
+  `SINGLE_CLOB` and its fellows — refuses it unless a format is named beside it (`Msg 5340`).
+  Eight defects went with it, all of them ours to find: the corpus has none of these.
+
+- **And what the empty `CATCH` uncovered.** With it the corpus's `EndConversationStatementTests`
+  procedure was read for the first time, and the engine refuses it — a defect, and one this
+  grammar had all along: a statement not ended by `;` may not be followed by one whose first
+  word is not reserved. The engine reads such a word as a continuation of the statement before
+  it: `END CONVERSATION 10 ENABLE TRIGGER t1 ON o1` is `Msg 102`, `END CONVERSATION 10; ENABLE
+  TRIGGER t1 ON o1` is read, and `PRINT 1 TRUNCATE TABLE t` needs no `;` because `TRUNCATE` is
+  reserved. Seven words open a statement and are not reserved — `ENABLE`, `DISABLE`,
+  `RECEIVE`, `THROW`, `MOVE`, `GET`, `SEND` — and a piece that ends without a `;` now refuses
+  them, as it already refused a `WITH`.
+
+At 150: read by both 5,912 (from 5,906), the work list 64 (from 70), read here but refused
+there 35 — where it began, the one this piece let through having been shut again. `--split`
+728 (from 726): it rose to 731 and fell back, three files holding what ScriptDom reads and the
+engine does not, which this refuses now — the split counts agreement with ScriptDom and not
+with the engine, and where they differ it is the engine this follows. The round trip 100% of
+7,548. The map is as it was: read by both 7,982 of 8,338 (99.7%), the work list 21, defects 0.
