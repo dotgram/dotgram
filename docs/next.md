@@ -18969,3 +18969,27 @@ object here is. Put to the engine some sixty times:
 At 150: read by both 5,858 (from 5,858), the work list 118 (from 118), read here but refused
 there 43; `--split` 672 (from 656), the round trip 100% of 7,323. The map: read by both 7,887
 of 8,338 (98.6%), the work list 116 (from 142), defects 0.
+
+## A table emptied, a trigger switched, a session killed, a column classified
+
+Four statements that define nothing, some thirty of the map's work list, each a record of its
+own as agreed: `Truncate`, `TriggerSwitch`, `Kill`, `Classification`, and a
+`Clause.PartitionRange` for what `TRUNCATE`'s partitions name. Put to the engine some eighty
+times:
+
+- **A table is emptied** by one name of up to four parts, a temporary table's among them and a
+  variable's not; of some partitions where `WITH (PARTITIONS (…))` names them — numbers, any
+  value, ranges of them, backwards too — one option and a list that is not empty.
+- **Triggers are switched** by name, two parts at most, or all of them and never both, on an
+  object, `DATABASE` or `ALL SERVER`.
+- **A session is killed** by its number, negative or not, or a unit of work by its string —
+  not a variable, not an expression — with `STATUSONLY`, `COMMIT` or `ROLLBACK` after it if it
+  likes. A subscription by its number or all of them; a statistics job by its number.
+- **Columns are classified** by two parts or three — one is `Msg 16103`, four `16110` — with
+  strings for the labels and the types, one of five words for the rank, each option once.
+  `DROP SENSITIVITY CLASSIFICATION` was read already and keeps its record; `Classification`
+  says `Add` so the two can share it later if wanted.
+
+At 150: read by both 5,858 (from 5,858), the work list 118 (from 118), read here but refused
+there 43; `--split` 682 (from 672), the round trip 100% of 7,377. The map: read by both 7,912
+of 8,338 (98.9%), the work list 91 (from 116), defects 0.

@@ -1748,6 +1748,7 @@ DefinitionStatement : @Statement
 	| s: PartitionStatement      => @(s)
 	| s: SequenceStatement       => @(s)
 	| s: TypeStatement           => @(s)
+	| s: MaintenanceStatement    => @(s)
 
 // ── A text of statements ────────────────────────────────────────────────────
 //
@@ -1850,6 +1851,64 @@ DeclaredAs : @Clause.VariableDeclaration
 	= "TABLE"i & '(' & body: TableBody & ')'              => @(new Clause.VariableDeclaration("", "TABLE", null, body))
 	| "CURSOR"i                                           => @(new Clause.VariableDeclaration("", "CURSOR", null))
 	| type: DataType & n: NullSpec? & ('=' & v: SetValue)? => @(new Clause.VariableDeclaration("", type, v, null, n))
+
+// ── A table emptied, a trigger switched, a session killed, a column classified ────
+//
+// Four statements, put to the engine some eighty times, each a record of its own.
+//
+// A table is emptied by one name of up to four parts, a temporary table's among them and a
+// variable's not, and of its partitions where `WITH (PARTITIONS (…))` names them: numbers,
+// any value, or ranges of them, backwards too. Triggers are switched by name, two parts at
+// most, or all of them, never both; on an object, `DATABASE` or `ALL SERVER`. A session is
+// killed by its number or a unit of work by its string — not a variable, not an expression —
+// with `STATUSONLY`, `COMMIT` or `ROLLBACK` after it if it likes; a subscription by its number
+// or all of them, a statistics job by its number. Columns are classified by two parts or
+// three, with strings for the labels and the types and a word for the rank, each once.
+MaintenanceStatement : @Statement
+	= "TRUNCATE"i & "TABLE"i & name: QualifiedName & p: TruncatePartitions?
+		=> @(new Statement.Truncate(name, p))
+	| verb: ("ENABLE"i | "DISABLE"i) & "TRIGGER"i & triggers: TriggerNames & "ON"i & on: TriggerScope
+		=> @(new Statement.TriggerSwitch(Syntax.Squared(verb) == "ENABLE", triggers.Length == 0 ? null : triggers, on))
+	| "KILL"i & "QUERY"i & "NOTIFICATION"i & "SUBSCRIPTION"i & t: KillSubscription
+		=> @(new Statement.Kill("QUERY NOTIFICATION SUBSCRIPTION", t))
+	| "KILL"i & "STATS"i & "JOB"i & t: KillNumber
+		=> @(new Statement.Kill("STATS JOB", t))
+	| "KILL"i & t: KillSession & with: KillWith?
+		=> @(new Statement.Kill("", t, with))
+	| "ADD"i & "SENSITIVITY"i & "CLASSIFICATION"i & "TO"i & first: ClassifiedColumn & (',' & rest: ClassifiedColumn)*
+	  & "WITH"i & '(' & option: ClassificationOption & (',' & options: ClassificationOption)* & ')'
+	  & when @(Syntax.NamedOnce(option, options))
+		=> @(new Statement.Classification(true, Syntax.Named(first, rest), Syntax.Listed(option, options)))
+
+TruncatePartitions : @Clause[]
+	= "WITH"i & '(' & "PARTITIONS"i & '(' & first: PartitionSpan & (',' & rest: PartitionSpan)* & ')' & ')'
+		=> @(Syntax.Listed(first, rest))
+
+PartitionSpan : @Clause = from: ValueExpression & ("TO"i & to: ValueExpression)? => @(new Clause.PartitionRange(from, to))
+
+TriggerNames : @string[]
+	= "ALL"i                                          => @(System.Array.Empty<string>())
+	| first: TriggerName & (',' & rest: TriggerName)* => @(Syntax.Named(first, rest))
+
+TriggerName : @string = t: (Identifier & ('.' & Identifier)?) => @(t)
+
+TriggerScope : @string
+	= "ALL"i & "SERVER"i => @("ALL SERVER")
+	| "DATABASE"i        => @("DATABASE")
+	| t: QualifiedName   => @(t)
+
+KillSubscription : @Expression = "ALL"i => @(new Expression.ColumnReference("ALL")) | n: KillNumber => @(n)
+KillNumber       : @Expression = t: ('-'? & Sql92.Lexical.UnsignedNumericLiteral) => @(new Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(t)))
+KillSession      : @Expression = n: KillNumber => @(n) | s: BrokerString => @(s)
+KillWith         : @string = "WITH"i & t: ("STATUSONLY"i | "COMMIT"i | "ROLLBACK"i) => @(Syntax.Squared(t))
+
+ClassifiedColumn : @string = t: (Identifier & '.' & Identifier & ('.' & Identifier)?) => @(t)
+
+ClassificationOption : @Clause
+	= name: ("LABEL_ID"i | "LABEL"i | "INFORMATION_TYPE_ID"i | "INFORMATION_TYPE"i) & '=' & v: BrokerString
+		=> @(new Clause.Option(Syntax.Squared(name), v, Clause.None))
+	| "RANK"i & '=' & t: ("NONE"i | "LOW"i | "MEDIUM"i | "HIGH"i | "CRITICAL"i)
+		=> @(new Clause.Option("RANK", new Expression.ColumnReference(Syntax.Squared(t)), Clause.None))
 
 // ── Types, schema collections and synonyms ──────────────────────────────────
 //

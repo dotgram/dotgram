@@ -220,6 +220,10 @@ compile, and a test reads this column against every record.
 | `Statement.Receive` | T-SQL | RECEIVE | Dml |
 | `Statement.GetConversationGroup` | T-SQL | GET CONVERSATION GROUP | Dml |
 | `Statement.WaitForStatement` | T-SQL | WAITFOR — around RECEIVE or GET CONVERSATION GROUP, and its TIMEOUT | Control |
+| `Statement.Truncate` | T-SQL | TRUNCATE TABLE | Ddl |
+| `Statement.TriggerSwitch` | T-SQL | ENABLE TRIGGER, DISABLE TRIGGER | Ddl |
+| `Statement.Kill` | T-SQL | KILL, KILL QUERY NOTIFICATION SUBSCRIPTION, KILL STATS JOB | Admin |
+| `Statement.Classification` | T-SQL | ADD SENSITIVITY CLASSIFICATION | Ddl |
 | `Statement.SetUser` | T-SQL | SETUSER | Session |
 | `Statement.CreateLogin` | T-SQL | CREATE LOGIN | Dcl |
 | `Statement.AlterLogin` | T-SQL | ALTER LOGIN | Dcl |
@@ -537,6 +541,7 @@ together — flags, since a list may mix them. A variable assigned is not here: 
 | `Clause.ExecutionContext` | T-SQL | EXECUTE — AS LOGIN or AS USER and a name, after a string run |
 | `Clause.CursorDefinition` | T-SQL | DECLARE CURSOR — the standard's words before CURSOR or T-SQL's after it, the query, its hints and what may be done through it |
 | `Clause.CursorFor` | T-SQL | DECLARE CURSOR — FOR READ ONLY, or FOR UPDATE and the columns |
+| `Clause.PartitionRange` | T-SQL | TRUNCATE TABLE — a partition by its number, or a range of them |
 | `Clause.MergeWhen` | SQL:2003 | §14.9 &lt;merge when clause&gt; |
 | `Clause.VariableDeclaration` | SQL/PSM | one &lt;variable declaration&gt; of it |
 | `Clause.ParameterDeclaration` | SQL/PSM | &lt;SQL parameter declaration&gt; |

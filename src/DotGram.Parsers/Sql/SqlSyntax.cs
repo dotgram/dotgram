@@ -625,6 +625,53 @@ public abstract record Statement : ISqlSpan
 		public override StatementCategory Category => StatementCategory.Control;
 	}
 
+	// ---- a table emptied, a trigger switched, a session killed, a column classified ------------
+	//
+	// Four statements, each its own shape, as agreed.
+
+	/// <summary><c>TRUNCATE TABLE</c>: every row of a table removed, or of some of its partitions.</summary>
+	/// <param name="Partitions">
+	/// What <c>WITH (PARTITIONS (…))</c> named, a <see cref="Clause.PartitionRange"/> each;
+	/// null where it named none.
+	/// </param>
+	public sealed record Truncate(string Table, Clause[]? Partitions = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
+
+	/// <summary><c>ENABLE TRIGGER</c> or <c>DISABLE TRIGGER</c>.</summary>
+	/// <param name="Triggers">The triggers by name; null for <c>ALL</c>.</param>
+	/// <param name="On">What they are on: an object's name, <c>DATABASE</c> or <c>ALL SERVER</c>.</param>
+	public sealed record TriggerSwitch(bool Enable, string[]? Triggers, string On) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
+
+	/// <summary><c>KILL</c>: a session or a unit of work ended, or a subscription, or a statistics job.</summary>
+	/// <param name="Kind">
+	/// Empty for a session or a unit of work; <c>QUERY NOTIFICATION SUBSCRIPTION</c> or
+	/// <c>STATS JOB</c> for the other two.
+	/// </param>
+	/// <param name="Target">The session, the unit of work, the subscription or the job; <c>ALL</c> for every subscription.</param>
+	/// <param name="With"><c>STATUSONLY</c>, <c>COMMIT</c> or <c>ROLLBACK</c>, where one was said.</param>
+	public sealed record Kill(string Kind, Expression Target, string? With = null) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
+
+	/// <summary><c>ADD SENSITIVITY CLASSIFICATION</c>: columns labelled for what they hold.</summary>
+	/// <param name="Add">Whether the classification is added; its removal is <c>DropSensitivityClassification</c>.</param>
+	/// <param name="Columns">The columns, by two parts or three.</param>
+	/// <param name="Options">What followed <c>WITH</c>, a <see cref="Clause.Option"/> each.</param>
+	public sealed record Classification(bool Add, string[] Columns, Clause[] Options) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
+
 	// ---- DBCC ----------------------------------------------------------------------------------
 	/// <summary><c>DBCC</c>: a console command, what stood in its brackets, and its options.</summary>
 	/// <remarks>
@@ -2896,6 +2943,9 @@ public abstract record Clause : ISqlSpan
 
 	/// <summary><c>FOR READ ONLY</c>, or <c>FOR UPDATE</c> and the columns it is kept to.</summary>
 	public sealed record CursorFor(bool Update, string[]? Columns = null) : Clause;
+
+	/// <summary>A partition by its number, or a range of them: <c>3</c>, <c>3 TO 5</c>.</summary>
+	public sealed record PartitionRange(Expression From, Expression? To = null) : Clause;
 
 	/// <summary>
 	/// One parameter of a routine: its name, its type, and its default — and the words around

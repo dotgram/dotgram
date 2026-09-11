@@ -759,6 +759,50 @@ public static class SqlWriter
 
 				break;
 
+			case Statement.Truncate(var table, var partitions):
+				text.Append("TRUNCATE TABLE ").Append(table);
+
+				if (partitions is not null)
+				{
+					text.Append(" WITH (PARTITIONS (");
+					Each(text, partitions);
+					text.Append("))");
+				}
+
+				break;
+
+			case Statement.TriggerSwitch(var enable, var triggers, var on):
+				text.Append(enable ? "ENABLE TRIGGER " : "DISABLE TRIGGER ")
+					.Append(triggers is null ? "ALL" : string.Join(", ", triggers))
+					.Append(" ON ").Append(on);
+				break;
+
+			case Statement.Kill(var kind, var target, var with):
+				text.Append("KILL ");
+
+				if (kind.Length > 0)
+					text.Append(kind).Append(' ');
+
+				Put(text, target, 0);
+
+				if (with is not null)
+					text.Append(" WITH ").Append(with);
+
+				break;
+
+			case Statement.Classification(var add, var columns, var options):
+				text.Append(add ? "ADD SENSITIVITY CLASSIFICATION TO " : "DROP SENSITIVITY CLASSIFICATION FROM ")
+					.Append(string.Join(", ", columns));
+
+				if (options.Length > 0)
+				{
+					text.Append(" WITH (");
+					Each(text, options);
+					text.Append(')');
+				}
+
+				break;
+
 			case Statement.Dbcc(var command, var arguments, var options):
 				text.Append("DBCC ").Append(command);
 
@@ -1871,6 +1915,17 @@ public static class SqlWriter
 				text.Append(" AS (");
 				Put(text, query, 0);
 				text.Append(')');
+				break;
+
+			case Clause.PartitionRange(var from, var to):
+				Put(text, from, 0);
+
+				if (to is not null)
+				{
+					text.Append(" TO ");
+					Put(text, to, 0);
+				}
+
 				break;
 
 			// The standard's words before `CURSOR` or T-SQL's after it, one of the two empty; and the
