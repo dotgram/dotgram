@@ -1622,28 +1622,110 @@ GeneratedWhen = "START"i | "END"i
 
 // ── SET ─────────────────────────────────────────────────────────────────────
 //
-// Two statements share the word: one assigns a variable, the other names a setting. The
-// options that are reserved words stand in front, since the general form reads a name.
+// Two constructions share the word, as Microsoft's reference has them: `SET @local_variable`,
+// which assigns a variable, and the SET statements, which change the session. What follows
+// `SET` in the second is a list of `SetExpression`s of one form — the engine refuses a switch
+// among values, or a variable among either — each in the group Microsoft's page of the SET
+// statements puts it in. Put to the engine some hundred times with its variables declared:
+// every setting takes values of its own kind, and none an expression.
 SetStatement : @Statement
-	= "SET"i & "TRANSACTION"i & "ISOLATION"i & "LEVEL"i & level: IsolationLevel
-		=> @(new Statement.SetTransactionIsolationLevel(level))
-	| "SET"i & "IDENTITY_INSERT"i & name: QualifiedName & on: OnOff
-		=> @(new Statement.SetIdentityInsert(name, Syntax.Switched(on)))
-	| "SET"i & option: SetReserved & v: ValueExpression
-		=> @(new Statement.SetCommand(option, v))
-	| "SET"i & name: TSql.Variable & s: AssignTail
+	= "SET"i & name: TSql.Variable & s: AssignTail
 		=> @(new Statement.SetVariable(name, s.Value, s.Operator, s.Through))
-	| "SET"i & first: SetOption & (',' & rest: SetOption)* & on: OnOff
-		=> @(new Statement.SetOption(Syntax.Named(first, rest), Syntax.Switched(on)))
-	| "SET"i & option: SetOptions & v: ValueExpression
-		=> @(new Statement.SetCommand(option, v))
-	| "SET"i & option: SetOptions
-		=> @(new Statement.SetCommand(option, null))
+	| "SET"i & items: SetExpressions => @(new Statement.SetStatement(items))
 
-SetReserved = "ROWCOUNT"i | "TEXTSIZE"i | "OFFSETS"i | "STATISTICS"i | "USER"i
-SetOption : @string = t: Identifier => @(t)
-SetOptions  = Identifier & (',' & Identifier)*
+// The forms with words of their own first, reserved words among them, each of them alone: the
+// engine refuses `SET FIPS_FLAGGER OFF, DATEFIRST 7` and `SET DATEFIRST 7, ROWCOUNT 0`. Then
+// the switches, and then the settings given values, which a list may name twice. A name alone
+// is refused — `SET PARSEONLY` wants its `ON`.
+//
+// Every name is one the engine knows. It parses any word after `SET` and anything after that
+// word to the end of the statement — `SET FOO, SELECT 1` passes `PARSEONLY` — and refuses the
+// name when the statement runs: `Msg 195`, "not a recognized SET option", as it refuses `SET
+// DATEFIRST ON`, `SET A, B 5` and a word of `STATISTICS` or `OFFSETS` it has not heard of.
+// What is read here is what it runs.
+SetExpressions : @SetExpression[]
+	= ("TRANSACTION"i | "TRAN"i) & "ISOLATION"i & "LEVEL"i & level: IsolationLevel
+		=> @(new SetExpression[] { new SetExpression.Transactions.IsolationLevel(level) })
+	| "IDENTITY_INSERT"i & table: QualifiedName & on: OnOff
+		=> @(new SetExpression[] { new SetExpression.Miscellaneous.IdentityInsert(table, Syntax.Switched(on)) })
+	| "STATISTICS"i & kind: SetReport & (',' & kinds: SetReport)* & on: OnOff
+		=> @(SetExpression.Reported(Syntax.Named(kind, kinds), Syntax.Switched(on)))
+	| "OFFSETS"i & word: SetOffset & (',' & words: SetOffset)* & on: OnOff
+		=> @(SetExpression.Offsets(Syntax.Named(word, words), Syntax.Switched(on)))
+	| "ROWCOUNT"i & v: SetRowCount
+		=> @(new SetExpression[] { new SetExpression.QueryExecution.RowCount(v) })
+	| "TEXTSIZE"i & v: SetInteger
+		=> @(new SetExpression[] { new SetExpression.QueryExecution.TextSize(v) })
+	| "ERRLVL"i & v: SetInteger
+		=> @(new SetExpression[] { new SetExpression.Miscellaneous.ErrorLevel(v) })
+	| "FIPS_FLAGGER"i & "OFF"i
+		=> @(new SetExpression[] { new SetExpression.Miscellaneous.FipsFlagger(new Expression.ColumnReference("OFF")) })
+	| option: SetSwitch & (',' & options: SetSwitch)* & on: OnOff
+		=> @(SetExpression.Switches(Syntax.Named(option, options), Syntax.Switched(on)))
+	| first: SettingValue & (',' & rest: SettingValue)*
+		=> @(Syntax.Listed(first, rest))
+
+// The switches of Microsoft's pages, and `NO_BROWSETABLE`, which no page describes and the
+// drivers send. `RESULT_SET_CACHING` is Synapse's and `RECOMMENDATIONS` Fabric's; SQL Server
+// says it has not heard of either.
+SetSwitch : @string = t: SetSwitchName => @(t)
+SetSwitchName
+	= "ANSI_DEFAULTS"i | "ANSI_NULL_DFLT_OFF"i | "ANSI_NULL_DFLT_ON"i | "ANSI_NULLS"i
+	| "ANSI_PADDING"i | "ANSI_WARNINGS"i | "ARITHABORT"i | "ARITHIGNORE"i
+	| "CONCAT_NULL_YIELDS_NULL"i | "CURSOR_CLOSE_ON_COMMIT"i | "FMTONLY"i | "FORCEPLAN"i
+	| "IMPLICIT_TRANSACTIONS"i | "NO_BROWSETABLE"i | "NOCOUNT"i | "NOEXEC"i
+	| "NUMERIC_ROUNDABORT"i | "PARSEONLY"i | "QUOTED_IDENTIFIER"i | "RECOMMENDATIONS"i
+	| "REMOTE_PROC_TRANSACTIONS"i | "RESULT_SET_CACHING"i | "SHOWPLAN_ALL"i | "SHOWPLAN_TEXT"i | "SHOWPLAN_XML"i | "XACT_ABORT"i
+
+// What `STATISTICS` reports, and the keywords `OFFSETS` returns: `PROC` and `EXEC` spelled
+// short, and `COMPUTE`, which the page no longer has and the engine still knows. Longest first.
+SetReport : @string = t: SetReportName => @(t)
+SetReportName = "IO"i | "TIME"i | "PROFILE"i | "XML"i
+SetOffset : @string = t: SetOffsetName => @(t)
+SetOffsetName
+	= "SELECT"i | "FROM"i | "ORDER"i | "COMPUTE"i | "TABLE"i | "PROCEDURE"i | "PROC"i
+	| "STATEMENT"i | "PARAM"i | "EXECUTE"i | "EXEC"i
+
 OnOff : @string = "ON"i => @("ON") | "OFF"i => @("OFF")
+
+// A setting given a value, each the kind of value the engine takes for it.
+SettingValue : @SetExpression
+	= "DATEFIRST"i & v: SetConstant         => @(new SetExpression.DateAndTime.DateFirst(v))
+	| "DATEFORMAT"i & v: SetConstant        => @(new SetExpression.DateAndTime.DateFormat(v))
+	| "DEADLOCK_PRIORITY"i & v: SetConstant => @(new SetExpression.Locking.DeadlockPriority(v))
+	| "LOCK_TIMEOUT"i & v: SetInteger       => @(new SetExpression.Locking.LockTimeout(v))
+	| "LANGUAGE"i & v: SetConstant          => @(new SetExpression.Miscellaneous.Language(v))
+	| "FIPS_FLAGGER"i & v: SetFipsLevel     => @(new SetExpression.Miscellaneous.FipsFlagger(v))
+	| "CONTEXT_INFO"i & v: SetConstant      => @(new SetExpression.Miscellaneous.ContextInfo(v))
+	| "QUERY_GOVERNOR_COST_LIMIT"i & v: SetNumber
+		=> @(new SetExpression.QueryExecution.QueryGovernorCostLimit(v))
+
+// A constant, a word or a variable: `DATEFIRST 1.5`, `DATEFORMAT dmy`, `LANGUAGE [us_english]`,
+// `DEADLOCK_PRIORITY @v`. Not an expression — `DATEFIRST 7 + 1` is refused.
+SetConstant : @Expression
+	= t: ('-'? & Sql92.Lexical.UnsignedNumericLiteral)  => @(new Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(t)))
+	| t: Sql92.Lexical.NationalCharacterStringLiteral   => @(new Expression.Literal(SqlLiteralKind.National, t))
+	| t: Sql92.Lexical.CharacterStringLiteral           => @(new Expression.Literal(SqlLiteralKind.Text, t))
+	| t: TSql.BinaryLiteral                             => @(new Expression.Literal(SqlLiteralKind.Hex, t))
+	| t: TSql.Variable                                  => @(new Expression.Literal(SqlLiteralKind.Parameter, t))
+	| t: Identifier                                     => @(new Expression.ColumnReference(t))
+
+// A whole number, negative or not: `LOCK_TIMEOUT -1`, `TEXTSIZE 2048`. No variable.
+SetInteger : @Expression = t: ('-'? & Sql92.Lexical.Digits) => @(new Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(t)))
+
+// A number, negative or not, a fraction included: `QUERY_GOVERNOR_COST_LIMIT 1.5`.
+SetNumber : @Expression
+	= t: ('-'? & Sql92.Lexical.UnsignedNumericLiteral) => @(new Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(t)))
+
+// A number that is not negative, or a variable: `ROWCOUNT -1` is refused.
+SetRowCount : @Expression
+	= t: Sql92.Lexical.UnsignedNumericLiteral => @(new Expression.Literal(SqlLiteralKind.Number, t))
+	| t: TSql.Variable                        => @(new Expression.Literal(SqlLiteralKind.Parameter, t))
+
+// A level in a string, never a national one. `OFF` is a form of its own, which stands alone:
+// the engine reads `SET FIPS_FLAGGER 'FULL', DATEFIRST 7` and refuses it with `OFF`.
+SetFipsLevel : @Expression
+	= t: Sql92.Lexical.CharacterStringLiteral => @(new Expression.Literal(SqlLiteralKind.Text, t))
 
 IsolationLevel = "READ"i & "UNCOMMITTED"i | "READ"i & "COMMITTED"i | "REPEATABLE"i & "READ"i
 			   | "SNAPSHOT"i | "SERIALIZABLE"i

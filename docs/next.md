@@ -18270,3 +18270,40 @@ it — 88 — was put again with `DECLARE @x SQL_VARIANT` in front, and 13 answe
 The other 75 lines answered as before, so `REVERT … = @c`, `CONTAINS (b, @s)`, `LANGUAGE @l`,
 `TOP @n` and the passwords refused as variables stand. A probe declares what it uses from now
 on.
+
+## The SET statements: one construction, and what follows the word
+
+Microsoft's reference has two constructions for the word: `SET @local_variable`, which
+assigns a variable, and the SET statements, which change the session. The first stays
+`Statement.SetVariable`. The records the second had — a switch, a list of switches, a value, an
+isolation level — are one now, `Statement.SetStatement(SetExpression[] Items)`, as agreed:
+what follows `SET` is a root of its own, `SetExpression`, in the seven groups Microsoft's page
+puts the settings in — `DateAndTime`, `Locking`, `QueryExecution`, `IsoSettings`,
+`Statistics`, `Transactions`, `Miscellaneous` — each with records of its own shapes. A setting
+says its group as `Category`, and a statement says its settings' groups together as
+`SetCategory`, flags, since a list of switches may mix them.
+
+Put to the engine some four hundred times, its variables declared, and a hundred of those run
+rather than parsed:
+
+- **Each setting takes values of one kind, and never an expression.** A constant, a word or a
+  variable for `DATEFIRST`, `DATEFORMAT`, `DEADLOCK_PRIORITY`, `LANGUAGE` and `CONTEXT_INFO`;
+  a whole number for `LOCK_TIMEOUT` and `TEXTSIZE`; any number for
+  `QUERY_GOVERNOR_COST_LIMIT`; a number or a variable for `ROWCOUNT`, never negative; a
+  string, not a national one, for `FIPS_FLAGGER`.
+- **A list holds one form.** Switches with the one `ON` after them all, or settings given
+  values, which may name one twice. `ROWCOUNT`, `TEXTSIZE`, `ERRLVL`, `FIPS_FLAGGER OFF`,
+  `STATISTICS`, `OFFSETS`, `IDENTITY_INSERT` and the isolation level stand alone.
+- **The names are closed, and `PARSEONLY` does not say so.** The engine parses any word after
+  `SET` and whatever follows it to the end of the statement — `SET FOO, SELECT 1` passes — and
+  refuses the name when the statement runs, `Msg 195`, as it refuses `SET DATEFIRST ON`, `SET
+  A, B 5`, `STATISTICS FOO` and `OFFSETS PARAMETER`. The fallback that read such names was
+  taken out, the permissions' choice again, and the probes' 125 lines naming them stand as
+  read there and refused here: the audit counts 195 as read.
+- **What the grammar did not have**: `STATISTICS` and `OFFSETS` with their words, `TRAN`,
+  `ERRLVL`, which no page describes, and `NO_BROWSETABLE`, which no page describes either and
+  the drivers send. `RESULT_SET_CACHING` is Synapse's and `RECOMMENDATIONS` Fabric's, and
+  both are read. `SET USER` is refused, and is gone.
+
+At 150: read by both 5,747 (from 5,739), the work list 227 (from 235), read here but refused
+there 43, as before. `--split` 574 cut the same (from 570), and the round trip 100% of 6,855.

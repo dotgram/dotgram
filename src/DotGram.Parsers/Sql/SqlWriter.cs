@@ -625,27 +625,9 @@ public static class SqlWriter
 
 				break;
 
-			case Statement.SetTransactionIsolationLevel(var level):
-				text.Append("SET TRANSACTION ISOLATION LEVEL ").Append(level);
-				break;
-
-			case Statement.SetIdentityInsert(var table, var on):
-				text.Append("SET IDENTITY_INSERT ").Append(table).Append(on ? " ON" : " OFF");
-				break;
-
-			case Statement.SetOption(var options, var on):
-				text.Append("SET ").Append(string.Join(", ", options)).Append(on ? " ON" : " OFF");
-				break;
-
-			case Statement.SetCommand(var option, var value):
-				text.Append("SET ").Append(option);
-
-				if (value is not null)
-				{
-					text.Append(' ');
-					Put(text, value, 0);
-				}
-
+			case Statement.SetStatement(var items):
+				text.Append("SET ");
+				SetItems(text, items);
 				break;
 
 			case Statement.SetVariable(var name, var value, var by, var through):
@@ -868,6 +850,90 @@ public static class SqlWriter
 				break;
 		}
 	}
+
+	/// <summary>
+	/// What follows <c>SET</c>. The first setting's form says how the list is written: switches
+	/// with the one <c>ON</c> after them all, the statistics and the offsets after their word,
+	/// and settings given values each with its own.
+	/// </summary>
+	static void SetItems(StringBuilder text, SetExpression[] items)
+	{
+		switch (items[0])
+		{
+			case SetExpression.Transactions.IsolationLevel(var level):
+				text.Append("TRANSACTION ISOLATION LEVEL ").Append(level);
+				return;
+
+			case SetExpression.Miscellaneous.IdentityInsert(var table, var on):
+				text.Append("IDENTITY_INSERT ").Append(table).Append(on ? " ON" : " OFF");
+				return;
+
+			case SetExpression.Statistics.Report(_, var on):
+				text.Append("STATISTICS ")
+					.Append(string.Join(", ", items.Select(static one => ((SetExpression.Statistics.Report)one).Kind)))
+					.Append(on ? " ON" : " OFF");
+				return;
+
+			case SetExpression.Miscellaneous.Offset(_, var on):
+				text.Append("OFFSETS ")
+					.Append(string.Join(", ", items.Select(static one => ((SetExpression.Miscellaneous.Offset)one).Keyword)))
+					.Append(on ? " ON" : " OFF");
+				return;
+		}
+
+		if (Switched(items[0]) is { } first)
+		{
+			text.Append(string.Join(", ", items.Select(static one => Switched(one)!.Value.Option)))
+				.Append(first.On ? " ON" : " OFF");
+			return;
+		}
+
+		for (var at = 0; at < items.Length; at++)
+		{
+			if (at > 0)
+				text.Append(", ");
+
+			var (name, value) = Valued(items[at]);
+
+			text.Append(name);
+
+			if (value is not null)
+			{
+				text.Append(' ');
+				Put(text, value, 0);
+			}
+		}
+	}
+
+	/// <summary>A switch of any group, as its name and whether it is on; null for any other setting.</summary>
+	static (string Option, bool On)? Switched(SetExpression one) =>
+		one switch
+		{
+			SetExpression.QueryExecution.Switch(var option, var on) => (option, on),
+			SetExpression.IsoSettings.Switch(var option, var on)    => (option, on),
+			SetExpression.Statistics.Switch(var option, var on)     => (option, on),
+			SetExpression.Transactions.Switch(var option, var on)   => (option, on),
+			SetExpression.Miscellaneous.Switch(var option, var on)  => (option, on),
+			_                                                       => null,
+		};
+
+	/// <summary>A setting given a value, as the name it is written with and the value.</summary>
+	static (string Name, Expression? Value) Valued(SetExpression one) =>
+		one switch
+		{
+			SetExpression.DateAndTime.DateFirst(var value)                 => ("DATEFIRST", value),
+			SetExpression.DateAndTime.DateFormat(var value)                => ("DATEFORMAT", value),
+			SetExpression.Locking.DeadlockPriority(var value)              => ("DEADLOCK_PRIORITY", value),
+			SetExpression.Locking.LockTimeout(var value)                   => ("LOCK_TIMEOUT", value),
+			SetExpression.QueryExecution.RowCount(var value)               => ("ROWCOUNT", value),
+			SetExpression.QueryExecution.TextSize(var value)               => ("TEXTSIZE", value),
+			SetExpression.QueryExecution.QueryGovernorCostLimit(var value) => ("QUERY_GOVERNOR_COST_LIMIT", value),
+			SetExpression.Miscellaneous.Language(var value)                => ("LANGUAGE", value),
+			SetExpression.Miscellaneous.FipsFlagger(var level)             => ("FIPS_FLAGGER", level),
+			SetExpression.Miscellaneous.ContextInfo(var value)             => ("CONTEXT_INFO", value),
+			SetExpression.Miscellaneous.ErrorLevel(var value)              => ("ERRLVL", value),
+			_ => throw new ArgumentOutOfRangeException(nameof(one), one.GetType().Name),
+		};
 
 	static void Block(StringBuilder text, Statement[] body)
 	{

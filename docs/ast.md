@@ -248,10 +248,7 @@ compile, and a test reads this column against every record.
 | `Statement.AlterDatabaseRemoveFile` | T-SQL | ALTER DATABASE … REMOVE FILE | Ddl |
 | `Statement.AlterDatabaseRebuildLog` | T-SQL | ALTER DATABASE … REBUILD LOG | Ddl |
 | `Statement.AlterDatabasePerformCutover` | T-SQL | ALTER DATABASE … PERFORM CUTOVER | Ddl |
-| `Statement.SetTransactionIsolationLevel` | SQL-92 | §13.9 &lt;set transaction statement&gt;; T-SQL spells it SET TRANSACTION ISOLATION LEVEL | Session |
-| `Statement.SetIdentityInsert` | T-SQL | SET IDENTITY_INSERT | Session |
-| `Statement.SetOption` | T-SQL | the SET statements that take ON or OFF | Session |
-| `Statement.SetCommand` | T-SQL | the SET statements that take a value | Session |
+| `Statement.SetStatement` | T-SQL | the SET statements: what follows SET, as `SetExpression`s | Session |
 | `Statement.SetVariable` | T-SQL | SET @local_variable | Declaration |
 | `Statement.Grant` | SQL-92 | §12.1 &lt;grant statement&gt; | Dcl |
 | `Statement.Deny` | T-SQL | DENY | Dcl |
@@ -363,6 +360,37 @@ compile, and a test reads this column against every record.
 | `Statement.DropTrigger` | T-SQL | DROP TRIGGER | Ddl |
 | `Statement.DropMasterKey` | T-SQL | DROP MASTER KEY | Ddl |
 | `Statement.DropDatabaseEncryptionKey` | T-SQL | DROP DATABASE ENCRYPTION KEY | Ddl |
+
+### `SetExpression`
+
+What follows `SET` in a SET statement, a root of its own: the groups Microsoft's page of the
+SET statements puts the settings in, each group with the settings of its own shapes. The group
+is the node's `Category`, a `SetCategory`, and a statement's `SetCategory` is its settings'
+together — flags, since a list may mix them. A variable assigned is not here: `SET
+@local_variable` is the other construction of the word, `Statement.SetVariable`.
+
+| Node | Source | Production or page |
+| --- | --- | --- |
+| `SetExpression.DateAndTime.DateFirst` | T-SQL | SET DATEFIRST |
+| `SetExpression.DateAndTime.DateFormat` | T-SQL | SET DATEFORMAT |
+| `SetExpression.Locking.DeadlockPriority` | T-SQL | SET DEADLOCK_PRIORITY |
+| `SetExpression.Locking.LockTimeout` | T-SQL | SET LOCK_TIMEOUT |
+| `SetExpression.QueryExecution.Switch` | T-SQL | SET ARITHABORT, NOCOUNT, PARSEONLY and the group's other switches |
+| `SetExpression.QueryExecution.RowCount` | T-SQL | SET ROWCOUNT |
+| `SetExpression.QueryExecution.TextSize` | T-SQL | SET TEXTSIZE |
+| `SetExpression.QueryExecution.QueryGovernorCostLimit` | T-SQL | SET QUERY_GOVERNOR_COST_LIMIT |
+| `SetExpression.IsoSettings.Switch` | T-SQL | SET ANSI_NULLS, ANSI_PADDING and the other ISO settings |
+| `SetExpression.Statistics.Switch` | T-SQL | SET FORCEPLAN, SHOWPLAN_ALL, SHOWPLAN_TEXT, SHOWPLAN_XML |
+| `SetExpression.Statistics.Report` | T-SQL | SET STATISTICS IO, PROFILE, TIME, XML |
+| `SetExpression.Transactions.Switch` | T-SQL | SET IMPLICIT_TRANSACTIONS, REMOTE_PROC_TRANSACTIONS, XACT_ABORT |
+| `SetExpression.Transactions.IsolationLevel` | SQL-92 | §13.9 &lt;set transaction statement&gt;; T-SQL spells it SET TRANSACTION ISOLATION LEVEL |
+| `SetExpression.Miscellaneous.Switch` | T-SQL | SET QUOTED_IDENTIFIER and the group's other switches, NO_BROWSETABLE, which no page describes, and SET RECOMMENDATIONS |
+| `SetExpression.Miscellaneous.Language` | T-SQL | SET LANGUAGE |
+| `SetExpression.Miscellaneous.FipsFlagger` | T-SQL | SET FIPS_FLAGGER |
+| `SetExpression.Miscellaneous.ContextInfo` | T-SQL | SET CONTEXT_INFO |
+| `SetExpression.Miscellaneous.IdentityInsert` | T-SQL | SET IDENTITY_INSERT |
+| `SetExpression.Miscellaneous.Offset` | T-SQL | SET OFFSETS |
+| `SetExpression.Miscellaneous.ErrorLevel` | T-SQL | SET ERRLVL, which no page describes |
 
 ### `Query`
 

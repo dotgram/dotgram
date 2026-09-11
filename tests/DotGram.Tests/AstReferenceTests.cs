@@ -100,10 +100,23 @@ public sealed class AstReferenceTests
 
 	/// <summary>Every record of the tree, from the tree itself, named by its root.</summary>
 	static IEnumerable<string> Nodes() =>
-		Roots().SelectMany(root => root
-			.GetNestedTypes(BindingFlags.Public)
-			.Where(one => one.IsSealed && one.IsSubclassOf(root))
-			.Select(one => root.Name + "." + one.Name));
+		Roots().SelectMany(root => Records(root, root, root.Name));
+
+	/// <summary>
+	/// The records under a type, however deeply nested: a <c>SetExpression</c>'s are in the
+	/// groups it is made of, <c>SetExpression.Locking.LockTimeout</c>, and named by the path.
+	/// </summary>
+	static IEnumerable<string> Records(Type root, Type holder, string path)
+	{
+		foreach (var one in holder.GetNestedTypes(BindingFlags.Public).Where(one => one.IsSubclassOf(root)))
+		{
+			if (one.IsSealed)
+				yield return path + "." + one.Name;
+			else if (one.IsAbstract)
+				foreach (var deeper in Records(root, one, path + "." + one.Name))
+					yield return deeper;
+		}
+	}
 
 	static HashSet<string> Documented() =>
 		Rows().Select(one => one.Node).ToHashSet(StringComparer.Ordinal);

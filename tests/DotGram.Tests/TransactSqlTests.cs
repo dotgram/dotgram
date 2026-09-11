@@ -1134,6 +1134,115 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>The SET statements, as the engine answers them with its variables declared.</summary>
+	[Theory]
+	[InlineData("SET DATEFIRST 7 + 1")]
+	[InlineData("SET DEADLOCK_PRIORITY 5 + 1")]
+	[InlineData("SET LOCK_TIMEOUT @i")]
+	[InlineData("SET LOCK_TIMEOUT '10'")]
+	[InlineData("SET LOCK_TIMEOUT 1.5")]
+	[InlineData("SET LOCK_TIMEOUT x")]
+	[InlineData("SET FIPS_FLAGGER ON")]
+	[InlineData("SET FIPS_FLAGGER @s")]
+	[InlineData("SET FIPS_FLAGGER N'FULL'")]
+	[InlineData("SET QUERY_GOVERNOR_COST_LIMIT @i")]
+	[InlineData("SET QUERY_GOVERNOR_COST_LIMIT '10'")]
+	[InlineData("SET ROWCOUNT -1")]
+	[InlineData("SET ROWCOUNT '5'")]
+	[InlineData("SET ROWCOUNT x")]
+	[InlineData("SET TEXTSIZE @i")]
+	[InlineData("SET TEXTSIZE '10'")]
+	[InlineData("SET USER 'x'")]
+	[InlineData("SET NOCOUNT")]
+	[InlineData("SET NOCOUNT 1")]
+	[InlineData("SET NOCOUNT 'ON'")]
+	[InlineData("SET PARSEONLY")]
+	[InlineData("SET LANGUAGE")]
+	[InlineData("SET NOCOUNT, STATISTICS IO ON")]
+	[InlineData("SET STATISTICS IO")]
+	[InlineData("SET OFFSETS SELECT")]
+	[InlineData("SET IDENTITY_INSERT t 1")]
+	[InlineData("SET TRANSACTION ISOLATION LEVEL FOO")]
+	[InlineData("SET LOCK_TIMEOUT 10,")]
+	[InlineData("SET LOCK_TIMEOUT 1000, ROWCOUNT 5")]
+	[InlineData("SET NOCOUNT ON, LOCK_TIMEOUT 10")]
+	[InlineData("SET @a = 1, LOCK_TIMEOUT 10")]
+	[InlineData("SET FIPS_FLAGGER OFF, DATEFIRST 7")]
+	[InlineData("SET DATEFIRST 7, FIPS_FLAGGER OFF")]
+	[InlineData("SET DATEFIRST 7, ERRLVL 0")]
+	[InlineData("SET DATEFIRST 7, NOCOUNT OFF")]
+	[InlineData("SET NOCOUNT ON, XACT_ABORT ON")]
+	[InlineData("SET STATISTICS IO OFF, TIME OFF")]
+	[InlineData("SET OFFSETS GROUP ON")]
+	[InlineData("SET [NOCOUNT] ON")]
+	[InlineData("SET NOCOUNTON")]
+	public void The_set_statements_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>
+	/// A name the engine does not know, which it parses with whatever follows it to the end of
+	/// the statement and refuses when the statement runs: `Msg 195`, "not a recognized SET
+	/// option", or statistics option, or offset option.
+	/// </summary>
+	[Theory]
+	[InlineData("SET FOO ON")]
+	[InlineData("SET FOO 1")]
+	[InlineData("SET A, B")]
+	[InlineData("SET A, B 5")]
+	[InlineData("SET DATEFIRST 1, FOO 2")]
+	[InlineData("SET NOCOUNT, FOO 1")]
+	[InlineData("SET DATEFIRST ON")]
+	[InlineData("SET LANGUAGE OFF")]
+	[InlineData("SET LOCK_TIMEOUT, DEADLOCK_PRIORITY 5")]
+	[InlineData("SET DISABLE_DEF_CNST_CHK ON")]
+	[InlineData("SET STATISTICS FOO ON")]
+	[InlineData("SET STATISTICS IO, NOCOUNT ON")]
+	[InlineData("SET OFFSETS FOO ON")]
+	public void The_set_statements_refuse_the_names_the_engine_does_not_know(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SET DATEFIRST -1")]
+	[InlineData("SET DATEFIRST x")]
+	[InlineData("SET DATEFORMAT N'dmy'")]
+	[InlineData("SET DEADLOCK_PRIORITY -10")]
+	[InlineData("SET DEADLOCK_PRIORITY @s")]
+	[InlineData("SET LOCK_TIMEOUT -1")]
+	[InlineData("SET LANGUAGE [us_english]")]
+	[InlineData("SET FIPS_FLAGGER 'FULL'")]
+	[InlineData("SET FIPS_FLAGGER OFF")]
+	[InlineData("SET QUERY_GOVERNOR_COST_LIMIT 1.5")]
+	[InlineData("SET CONTEXT_INFO @b")]
+	[InlineData("SET ROWCOUNT @i")]
+	[InlineData("SET TEXTSIZE -1")]
+	[InlineData("SET ERRLVL 1")]
+	[InlineData("SET ANSI_NULLS, NOCOUNT, XACT_ABORT OFF")]
+	[InlineData("SET QUOTED_IDENTIFIER, NO_BROWSETABLE ON")]
+	[InlineData("SET NOCOUNT, NOCOUNT OFF")]
+	[InlineData("SET RESULT_SET_CACHING ON")]
+	[InlineData("SET RECOMMENDATIONS OFF")]
+	[InlineData("SET FIPS_FLAGGER 'FULL', QUERY_GOVERNOR_COST_LIMIT 10")]
+	[InlineData("SET QUERY_GOVERNOR_COST_LIMIT 10, FIPS_FLAGGER 'ENTRY'")]
+	[InlineData("SET STATISTICS IO, TIME ON")]
+	[InlineData("SET STATISTICS PROFILE, XML OFF")]
+	[InlineData("SET OFFSETS SELECT, FROM, ORDER, COMPUTE, TABLE, PROCEDURE, EXECUTE, STATEMENT, PARAM ON")]
+	[InlineData("SET OFFSETS PROC, EXEC OFF")]
+	[InlineData("SET IDENTITY_INSERT d.s.t ON")]
+	[InlineData("SET TRAN ISOLATION LEVEL SNAPSHOT")]
+	[InlineData("SET DATEFIRST 1, DATEFORMAT dmy")]
+	[InlineData("SET DATEFIRST 7, DATEFIRST 7")]
+	[InlineData("SET LANGUAGE us_english, DATEFIRST 7")]
+	[InlineData("SET CONTEXT_INFO 0x01, DATEFIRST 7")]
+	[InlineData("SET DATEFIRST 7, QUERY_GOVERNOR_COST_LIMIT 0")]
+	[InlineData("SET LOCK_TIMEOUT -1, DEADLOCK_PRIORITY NORMAL")]
+	public void The_set_statements_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>Table, query and join hints, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM t WITH (FOO)")]
@@ -2423,10 +2532,11 @@ public sealed class TransactSqlTests
 	[InlineData("DENY SELECT ON t TO u",            "Deny")]
 	[InlineData("REVOKE SELECT ON t FROM u",        "Revoke")]
 
-	[InlineData("SET TRANSACTION ISOLATION LEVEL SNAPSHOT", "SetTransactionIsolationLevel")]
-	[InlineData("SET IDENTITY_INSERT t ON",         "SetIdentityInsert")]
-	[InlineData("SET ANSI_NULLS, ANSI_PADDING ON",  "SetOption")]
-	[InlineData("SET LANGUAGE us_english",          "SetCommand")]
+	[InlineData("SET TRANSACTION ISOLATION LEVEL SNAPSHOT", "SetStatement")]
+	[InlineData("SET IDENTITY_INSERT t ON",         "SetStatement")]
+	[InlineData("SET ANSI_NULLS, ANSI_PADDING ON",  "SetStatement")]
+	[InlineData("SET LANGUAGE us_english",          "SetStatement")]
+	[InlineData("SET @a = 1",                       "SetVariable")]
 
 	[InlineData("CREATE DATABASE d",                "CreateDatabase")]
 	[InlineData("ALTER DATABASE d SET AUTO_CLOSE ON", "AlterDatabaseSet")]

@@ -100,6 +100,16 @@ public sealed class SqlWriterTests
 	[InlineData("SELECT a FROM t FOR READ ONLY",          "SELECT a FROM t FOR READ ONLY")]
 	[InlineData("SELECT a FROM t FOR XML AUTO, BINARY BASE64", "SELECT a FROM t FOR XML AUTO, BINARY BASE64")]
 	[InlineData("GRANT ALL, SELECT ON t (c1) TO u, NULL",  "GRANT ALL, SELECT ON t (c1) TO u, NULL")]
+	[InlineData("SET ANSI_NULLS, NOCOUNT, XACT_ABORT OFF", "SET ANSI_NULLS, NOCOUNT, XACT_ABORT OFF")]
+	[InlineData("SET STATISTICS IO, TIME ON",             "SET STATISTICS IO, TIME ON")]
+	[InlineData("SET OFFSETS SELECT, FROM ON",            "SET OFFSETS SELECT, FROM ON")]
+	[InlineData("SET DEADLOCK_PRIORITY HIGH, LOCK_TIMEOUT -1, LANGUAGE 'us_english'",
+		"SET DEADLOCK_PRIORITY HIGH, LOCK_TIMEOUT -1, LANGUAGE 'us_english'")]
+	[InlineData("SET QUOTED_IDENTIFIER, NO_BROWSETABLE ON", "SET QUOTED_IDENTIFIER, NO_BROWSETABLE ON")]
+	[InlineData("SET TRANSACTION ISOLATION LEVEL SNAPSHOT", "SET TRANSACTION ISOLATION LEVEL SNAPSHOT")]
+	[InlineData("SET IDENTITY_INSERT t ON",               "SET IDENTITY_INSERT t ON")]
+	[InlineData("SET ROWCOUNT 10",                        "SET ROWCOUNT 10")]
+	[InlineData("SET ERRLVL 1",                           "SET ERRLVL 1")]
 	public void A_statement_comes_back_as_what_it_said(string input, string printed) =>
 		Assert.Equal(printed, SqlWriter.Write(Read(input)));
 

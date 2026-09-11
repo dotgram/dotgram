@@ -866,36 +866,32 @@ public abstract record Statement : ISqlSpan
 
 	// ---- the SET statements --------------------------------------------------------------------
 
-	/// <summary>§19.4 <c>SET TRANSACTION ISOLATION LEVEL</c>.</summary>
-	public sealed record SetTransactionIsolationLevel(string Level) : Statement
-	{
-		/// <inheritdoc/>
-		public override StatementCategory Category => StatementCategory.Session;
-	}
-
-	/// <summary><c>SET IDENTITY_INSERT t ON</c>.</summary>
-	public sealed record SetIdentityInsert(string Table, bool On) : Statement
-	{
-		/// <inheritdoc/>
-		public override StatementCategory Category => StatementCategory.Session;
-	}
-
 	/// <summary>
-	/// A setting or several turned on or off — <c>SET ANSI_NULLS, ANSI_PADDING ON</c>.
+	/// The SET statements: what follows <c>SET</c>, as <see cref="SetExpression"/>s — one setting,
+	/// or several of one form, <c>SET ANSI_NULLS, NOCOUNT ON</c>, <c>SET DATEFIRST 1, DATEFORMAT dmy</c>.
+	/// A variable assigned is <see cref="SetVariable"/>, the other construction of the word.
 	/// </summary>
-	public sealed record SetOption(string[] Options, bool On) : Statement
+	public sealed record SetStatement(SetExpression[] Items) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Session;
-	}
 
-	/// <summary>
-	/// A setting given a value — <c>SET ROWCOUNT 10</c>, <c>SET LANGUAGE us_english</c>.
-	/// </summary>
-	public sealed record SetCommand(string Option, Expression? Value) : Statement
-	{
-		/// <inheritdoc/>
-		public override StatementCategory Category => StatementCategory.Session;
+		/// <summary>
+		/// The groups Microsoft's reference puts the settings in, together: one for most
+		/// statements, several where a list mixes them.
+		/// </summary>
+		public SetCategory SetCategory
+		{
+			get
+			{
+				var all = SetCategory.None;
+
+				foreach (var one in Items)
+					all |= one.Category;
+
+				return all;
+			}
+		}
 	}
 
 	/// <summary>
@@ -1662,6 +1658,218 @@ public abstract record Statement : ISqlSpan
 /// statements, and it is what <c>ParseScript</c> hands back a list of.
 /// </remarks>
 public sealed record Batch(Statement[] Statements, string? Go = null);
+
+/// <summary>
+/// The groups Microsoft's page of the SET statements puts them in, as flags, so that a
+/// statement whose list mixes them can say all of its groups.
+/// </summary>
+[Flags]
+public enum SetCategory
+{
+	/// <summary>No setting.</summary>
+	None = 0,
+
+	/// <summary><c>DATEFIRST</c>, <c>DATEFORMAT</c>.</summary>
+	DateAndTime = 1,
+
+	/// <summary><c>DEADLOCK_PRIORITY</c>, <c>LOCK_TIMEOUT</c>.</summary>
+	Locking = 2,
+
+	/// <summary>The rest: a language, a table's identity, the FIPS flagger and others.</summary>
+	Miscellaneous = 4,
+
+	/// <summary><c>NOCOUNT</c>, <c>PARSEONLY</c>, <c>ROWCOUNT</c>, <c>TEXTSIZE</c> and the others that shape how a query runs.</summary>
+	QueryExecution = 8,
+
+	/// <summary>The ISO settings: <c>ANSI_NULLS</c>, <c>ANSI_PADDING</c>, <c>ANSI_WARNINGS</c> and theirs.</summary>
+	IsoSettings = 16,
+
+	/// <summary><c>STATISTICS IO</c>, <c>SHOWPLAN_XML</c>, <c>FORCEPLAN</c> and the others that report on a query.</summary>
+	Statistics = 32,
+
+	/// <summary><c>TRANSACTION ISOLATION LEVEL</c>, <c>XACT_ABORT</c>, <c>IMPLICIT_TRANSACTIONS</c>.</summary>
+	Transactions = 64,
+}
+
+/// <summary>
+/// What follows <c>SET</c> in a SET statement: one setting, in the group Microsoft's reference
+/// puts it in, each group with the settings of its own shapes.
+/// </summary>
+/// <remarks>
+/// A statement's list holds one form: switches turned on or off together, settings given
+/// values, the statistics reported, the offsets returned — the engine refuses a switch among
+/// values, or a variable among either. A switch is one setting to a node, so a list of them
+/// may hold several groups, and the writer puts the one <c>ON</c> after them all again.
+/// </remarks>
+public abstract record SetExpression : ISqlSpan
+{
+	/// <inheritdoc cref="ISqlSpan.Span"/>
+	public SqlSpan Span { get; private set; }
+
+	/// <inheritdoc cref="ISqlSpan.Locate"/>
+	public void Locate(int at, int length) => Span = new SqlSpan(at, length);
+
+	/// <summary>The group Microsoft's page of the SET statements puts the setting in.</summary>
+	public abstract SetCategory Category { get; }
+
+	/// <summary>The date's settings.</summary>
+	public abstract record DateAndTime : SetExpression
+	{
+		/// <inheritdoc/>
+		public override SetCategory Category => SetCategory.DateAndTime;
+
+		/// <summary><c>SET DATEFIRST 7</c>: a constant, a word or a variable.</summary>
+		public sealed record DateFirst(Expression Value) : DateAndTime;
+
+		/// <summary><c>SET DATEFORMAT dmy</c>: a constant, a word or a variable.</summary>
+		public sealed record DateFormat(Expression Value) : DateAndTime;
+	}
+
+	/// <summary>The locks' settings.</summary>
+	public abstract record Locking : SetExpression
+	{
+		/// <inheritdoc/>
+		public override SetCategory Category => SetCategory.Locking;
+
+		/// <summary><c>SET DEADLOCK_PRIORITY LOW</c>: a word, a number or a variable.</summary>
+		public sealed record DeadlockPriority(Expression Value) : Locking;
+
+		/// <summary><c>SET LOCK_TIMEOUT 1000</c>: a whole number, and nothing else.</summary>
+		public sealed record LockTimeout(Expression Value) : Locking;
+	}
+
+	/// <summary>What shapes how a query runs.</summary>
+	public abstract record QueryExecution : SetExpression
+	{
+		/// <inheritdoc/>
+		public override SetCategory Category => SetCategory.QueryExecution;
+
+		/// <summary><c>SET NOCOUNT ON</c> and the other switches of the group.</summary>
+		public sealed record Switch(string Option, bool On) : QueryExecution;
+
+		/// <summary><c>SET ROWCOUNT 10</c>: a number that is not negative, or a variable.</summary>
+		public sealed record RowCount(Expression Value) : QueryExecution;
+
+		/// <summary><c>SET TEXTSIZE 2048</c>: a whole number.</summary>
+		public sealed record TextSize(Expression Value) : QueryExecution;
+
+		/// <summary><c>SET QUERY_GOVERNOR_COST_LIMIT 10</c>: a number.</summary>
+		public sealed record QueryGovernorCostLimit(Expression Value) : QueryExecution;
+	}
+
+	/// <summary>The ISO settings, all of them switches.</summary>
+	public abstract record IsoSettings : SetExpression
+	{
+		/// <inheritdoc/>
+		public override SetCategory Category => SetCategory.IsoSettings;
+
+		/// <summary><c>SET ANSI_NULLS ON</c> and the others.</summary>
+		public sealed record Switch(string Option, bool On) : IsoSettings;
+	}
+
+	/// <summary>What reports on a query.</summary>
+	public abstract record Statistics : SetExpression
+	{
+		/// <inheritdoc/>
+		public override SetCategory Category => SetCategory.Statistics;
+
+		/// <summary><c>SET SHOWPLAN_XML ON</c>, <c>SET FORCEPLAN ON</c>.</summary>
+		public sealed record Switch(string Option, bool On) : Statistics;
+
+		/// <summary>One word of <c>SET STATISTICS IO, TIME ON</c>: <c>IO</c>, <c>PROFILE</c>, <c>TIME</c> or <c>XML</c>.</summary>
+		public sealed record Report(string Kind, bool On) : Statistics;
+	}
+
+	/// <summary>The transactions' settings.</summary>
+	public abstract record Transactions : SetExpression
+	{
+		/// <inheritdoc/>
+		public override SetCategory Category => SetCategory.Transactions;
+
+		/// <summary><c>SET XACT_ABORT ON</c> and the other switches of the group.</summary>
+		public sealed record Switch(string Option, bool On) : Transactions;
+
+		/// <summary>§19.4 <c>SET TRANSACTION ISOLATION LEVEL</c>, T-SQL's <c>TRAN</c> read as well.</summary>
+		public sealed record IsolationLevel(string Level) : Transactions;
+	}
+
+	/// <summary>The rest.</summary>
+	public abstract record Miscellaneous : SetExpression
+	{
+		/// <inheritdoc/>
+		public override SetCategory Category => SetCategory.Miscellaneous;
+
+		/// <summary>
+		/// <c>SET QUOTED_IDENTIFIER ON</c>, <c>CONCAT_NULL_YIELDS_NULL</c>, <c>CURSOR_CLOSE_ON_COMMIT</c>,
+		/// <c>NO_BROWSETABLE</c>, which no page describes and the engine knows, and Fabric's <c>RECOMMENDATIONS</c>.
+		/// </summary>
+		public sealed record Switch(string Option, bool On) : Miscellaneous;
+
+		/// <summary><c>SET LANGUAGE us_english</c>: a constant, a name or a variable.</summary>
+		public sealed record Language(Expression Value) : Miscellaneous;
+
+		/// <summary><c>SET FIPS_FLAGGER 'FULL'</c>: a string, or <c>OFF</c>.</summary>
+		public sealed record FipsFlagger(Expression Level) : Miscellaneous;
+
+		/// <summary><c>SET CONTEXT_INFO 0x01</c>: a constant or a variable.</summary>
+		public sealed record ContextInfo(Expression Value) : Miscellaneous;
+
+		/// <summary><c>SET IDENTITY_INSERT t ON</c>.</summary>
+		public sealed record IdentityInsert(string Table, bool On) : Miscellaneous;
+
+		/// <summary>One keyword of <c>SET OFFSETS SELECT, FROM ON</c>.</summary>
+		public sealed record Offset(string Keyword, bool On) : Miscellaneous;
+
+		/// <summary><c>SET ERRLVL 1</c>, which no page describes and the engine reads.</summary>
+		public sealed record ErrorLevel(Expression Value) : Miscellaneous;
+	}
+
+	/// <summary>Switches turned on or off together, each in the group its name is in.</summary>
+	public static SetExpression[] Switches(string[] options, bool on)
+	{
+		var made = new SetExpression[options.Length];
+
+		for (var at = 0; at < options.Length; at++)
+			made[at] = Syntax.Squared(options[at]) switch
+			{
+				"ARITHABORT" or "ARITHIGNORE" or "FMTONLY" or "NOCOUNT" or "NOEXEC" or "NUMERIC_ROUNDABORT"
+					or "PARSEONLY" or "RESULT_SET_CACHING"
+					=> new QueryExecution.Switch(options[at], on),
+				"ANSI_DEFAULTS" or "ANSI_NULL_DFLT_OFF" or "ANSI_NULL_DFLT_ON" or "ANSI_NULLS" or "ANSI_PADDING"
+					or "ANSI_WARNINGS"
+					=> new IsoSettings.Switch(options[at], on),
+				"FORCEPLAN" or "SHOWPLAN_ALL" or "SHOWPLAN_TEXT" or "SHOWPLAN_XML"
+					=> new Statistics.Switch(options[at], on),
+				"IMPLICIT_TRANSACTIONS" or "REMOTE_PROC_TRANSACTIONS" or "XACT_ABORT"
+					=> new Transactions.Switch(options[at], on),
+				_ => new Miscellaneous.Switch(options[at], on),
+			};
+
+		return made;
+	}
+
+	/// <summary>The words of <c>SET STATISTICS …</c>, each a node.</summary>
+	public static SetExpression[] Reported(string[] kinds, bool on)
+	{
+		var made = new SetExpression[kinds.Length];
+
+		for (var at = 0; at < kinds.Length; at++)
+			made[at] = new Statistics.Report(kinds[at], on);
+
+		return made;
+	}
+
+	/// <summary>The keywords of <c>SET OFFSETS …</c>, each a node.</summary>
+	public static SetExpression[] Offsets(string[] keywords, bool on)
+	{
+		var made = new SetExpression[keywords.Length];
+
+		for (var at = 0; at < keywords.Length; at++)
+			made[at] = new Miscellaneous.Offset(keywords[at], on);
+
+		return made;
+	}
+}
 
 /// <summary>
 /// §7 the table level: what produces rows. A statement holds one, an expression holds one,
