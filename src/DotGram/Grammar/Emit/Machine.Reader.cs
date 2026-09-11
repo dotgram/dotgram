@@ -2365,8 +2365,19 @@ sealed partial class Machine
 					code.Line();
 					code.Line("c = text[p];");
 					code.Line();
-					code.Line($"if (!({door}))");
-					code.Then("break;");
+
+					using (code.Block($"if (!({door}))"))
+					{
+						// A fold's loop ending is the operator ladder saying that what stands
+						// here continues nothing — which is what a reader is owed where the
+						// parse then fails at this very token: `x` and then `}` was told
+						// everything but that a `+` could have stood there. One note of the
+						// whole ladder, and not the nine refusals this door exists to stop.
+						NoteTails(code, repeat, body);
+
+						code.Line("break;");
+					}
+
 					code.Line();
 				}
 
@@ -2668,6 +2679,8 @@ sealed partial class Machine
 
 							code.Line();
 						}
+
+						NoteTails(code, repeat, body);
 
 						code.Line("break;");
 					}
@@ -3035,6 +3048,24 @@ sealed partial class Machine
 		{
 			foreach (var line in machine.Carrier.UnwindRecords(count))
 				code.Line(line);
+		}
+
+		/// <summary>What a fold's loop could have gone round with, noted where it stops (§4.3).</summary>
+		/// <remarks>
+		/// A repetition ending is not a failure and records nothing, which is right — and for
+		/// a repetition the author wrote it is the whole story. A fold's loop is the operator
+		/// ladder: where the parse then fails at the token that ended it, what could have
+		/// continued the expression is exactly what the message is missing, and the door's own
+		/// first set is it. `x` and then `}` said everything but that a `+` could have stood
+		/// there.
+		/// </remarks>
+		void NoteTails(Writer code, Node.Repeat repeat, Node body)
+		{
+			if (!machine.IsFoldLoop(repeat) || Doorway([body]) is not { } tails)
+				return;
+
+			code.Line(Noted(machine.DeclareExpected(
+				machine.Displays(new Node.Element(false, [.. tails.Ranges], [], [])))));
 		}
 
 		/// <summary>A refusal recorded and not acted on: what was wanted here, for the message.</summary>

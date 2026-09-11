@@ -2234,6 +2234,7 @@ namespace DotGram.Snapshots
 
 					if (!o1)
 					{
+						Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected3, ways);
 						break;
 					}
 
@@ -2785,6 +2786,8 @@ namespace DotGram.Snapshots
 		static readonly string[] Recognize_DotGram_Primary_Expected1 = { "\"()\"" };
 
 		static readonly string[] Recognize_DotGram_Primary_Expected2 = { "['0'..'9' | '0'..'9']" };
+
+		static readonly string[] Recognize_DotGram_Primary_Expected3 = { "['(']" };
 
 		static void Materialize_DotGram_Word(global::System.ReadOnlySpan<char> text, Parser parser, ParserArena entries)
 		{

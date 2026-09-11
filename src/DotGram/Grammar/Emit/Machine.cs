@@ -40,6 +40,21 @@ sealed partial class Machine
 	/// </summary>
 	readonly TerminalInventory? _inventory;
 
+	/// <summary>Whether a repetition is a fold's loop (§4.3) rather than one the author wrote.</summary>
+	/// <remarks>
+	/// Asked by reference: a node is a record, two of them are equal where they say the same
+	/// thing, and what matters here is whether this very repetition is the one the fold made.
+	/// A grammar has a handful of folds, so the walk is cheaper than the set it would fill.
+	/// </remarks>
+	internal bool IsFoldLoop(Node node)
+	{
+		foreach (var fold in _graph.Folds.Values)
+			if (ReferenceEquals(fold.Loop, node))
+				return true;
+
+		return false;
+	}
+
 	/// <summary>The types this machine builds, for whoever renders a way into it.</summary>
 	public ResultTypes Results => _results;
 	readonly List<Writer> _states = [];

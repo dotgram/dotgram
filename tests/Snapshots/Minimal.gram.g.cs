@@ -2513,6 +2513,7 @@ namespace DotGram.Snapshots
 
 					if (!o1)
 					{
+						Refuse_DotGram(ref failure, p, Recognize_DotGram_Sum_Expected2, ways);
 						break;
 					}
 
@@ -4558,6 +4559,8 @@ namespace DotGram.Snapshots
 		static readonly string[] Recognize_DotGram_Sum_Expected0 = { "'+'" };
 
 		static readonly string[] Recognize_DotGram_Sum_Expected1 = { "['0'..'9']" };
+
+		static readonly string[] Recognize_DotGram_Sum_Expected2 = { "['+']" };
 
 		static readonly string[] Recognize_DotGram_Either_Expected0 = { "['l' | 'r']" };
 

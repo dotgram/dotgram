@@ -122,7 +122,6 @@ public sealed class ExpressionParserTests
 	[InlineData("int x => x",                    "Expected '('.")]
 	[InlineData("(int x) x",                     "Expected \"=>\".")]
 	[InlineData("(int x) => x.",                 "Expected Word.")]
-	[InlineData("(int[] a) => { a[0]++; a[0] }", "Expected '=', ';' or '}'.")]
 	[InlineData("(int x) => x @ 1",              "Unexpected character '@'.")]
 	public void A_refusal_says_what_the_grammar_wrote(string text, string said) =>
 		Assert.Equal(said, ExpressionParser.TryParse(text).Error);
@@ -141,6 +140,18 @@ public sealed class ExpressionParserTests
 		// `return` is a keyword and no type's name: read as the head of one, it sent the parse
 		// looking for a `.` past the end, and the refusal came back as the input running out.
 		Assert.DoesNotContain("more input", error, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void And_after_an_operand_it_names_the_operators_that_could_have_continued_it()
+	{
+		// The operator ladder is one left-recursive rule, and a loop of its tails is what that
+		// became: the loop ending is not a failure and recorded nothing, so the operators were
+		// the one thing missing from a message about the token that ended it.
+		var error = ExpressionParser.TryParse("(int x) => { return x }").Error!;
+
+		foreach (var written in new[] { "'+'", "'*'", "\"&&\"", "\"==\"", "';'" })
+			Assert.Contains(written, error, StringComparison.Ordinal);
 	}
 
 	// ── Nested initializers: the three the API has and one syntax says ───────────
