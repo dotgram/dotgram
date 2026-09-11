@@ -62,14 +62,14 @@ public sealed class AstReferenceTests
 			Assert.True(allowed.Contains(source), $"{node}: {source}");
 	}
 
-	/// <summary>Every statement says what kind it is, and the reference says the same.</summary>
+	/// <summary>Every statement says which group it is in, and the reference says the same.</summary>
 	/// <remarks>
-	/// The kind is an override on the record, which the compiler asks of every one, and a column
-	/// of the table, which nothing but this asks of. A statement is made without its constructor
-	/// to be asked: the kind is the record's, and none of its values are needed for it.
+	/// The category is an override on the record, which the compiler asks of every one, and a
+	/// column of the table, which nothing but this asks of. A statement is made without its
+	/// constructor to be asked: the category is the record's, and none of its values are needed.
 	/// </remarks>
 	[Fact]
-	public void Every_statement_says_what_kind_it_is_as_the_reference_does()
+	public void Every_statement_says_its_category_as_the_reference_does()
 	{
 		var written = new Dictionary<string, string>(StringComparer.Ordinal);
 		var text    = File.ReadAllText(Path.Combine(Root(AppContext.BaseDirectory), "docs", "ast.md"));
@@ -81,8 +81,8 @@ public sealed class AstReferenceTests
 		{
 			var statement = (Statement)RuntimeHelpers.GetUninitializedObject(type);
 
-			Assert.True(written.TryGetValue(type.Name, out var kind), $"Statement.{type.Name} has no kind in the reference");
-			Assert.Equal(statement.Kind.ToString(), kind);
+			Assert.True(written.TryGetValue(type.Name, out var category), $"Statement.{type.Name} has no category in the reference");
+			Assert.Equal(statement.Category.ToString(), category);
 		}
 	}
 

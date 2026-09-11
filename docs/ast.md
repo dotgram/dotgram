@@ -163,14 +163,14 @@ key's or an Always Encrypted value's, is an option holding it.
 
 ### `Statement`
 
-The last column is what the statement says of itself as `Kind`, a `StatementKind`: a query,
-rows changed (`Dml`), an object defined, changed or removed (`Ddl`), a permission or the
-principal it names (`Dcl`), the flow of a batch (`Control`), a transaction, the session, an
-`EXECUTE`, the server looked after (`Admin`), or a variable declared or set. It is abstract on
-`Statement`, so a record added without one does not compile, and a test reads this column
-against every record.
+The last column is the group the statement says it belongs to, its `Category`, a
+`StatementCategory`: a query, rows changed (`Dml`), an object defined, changed or removed
+(`Ddl`), a permission or the principal it names (`Dcl`), the flow of a batch (`Control`), a
+transaction, the session, an `EXECUTE`, the server looked after (`Admin`), or a variable
+declared or set. It is abstract on `Statement`, so a record added without one does not
+compile, and a test reads this column against every record.
 
-| Node | Source | Production or page | Kind |
+| Node | Source | Production or page | Category |
 | --- | --- | --- | --- |
 | `Statement.Select` | SQL-92 | §19.6 &lt;direct select statement: multiple rows&gt; — a query and its order | Query |
 | `Statement.Insert` | SQL-92 | §13.8 &lt;insert statement&gt; | Dml |

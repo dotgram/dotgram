@@ -18244,3 +18244,7 @@ Five records had a string of their own called `Kind` — a transaction's `BEGIN`
 table's `NODE`, an index's type, a wait's `DELAY` or `TIME`, `EXECUTE AS CALLER` — and they
 are `Type` now, as agreed. The writer and the grammar take them apart and make them by
 position, so neither moved.
+
+A day later the name changed: it is `Category`, a `StatementCategory`, since what it says is
+which group a statement is in — Microsoft's page of the `SET` statements calls its groups
+categories too. With the name free again, the five strings are `Kind` once more.

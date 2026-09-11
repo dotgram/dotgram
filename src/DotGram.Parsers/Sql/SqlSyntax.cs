@@ -102,7 +102,7 @@ public interface ISqlSpan
 }
 
 /// <summary>What a statement does, which a reader filters on without naming every record.</summary>
-public enum StatementKind
+public enum StatementCategory
 {
 	/// <summary>A query: <c>SELECT</c>, and the clauses the statement wraps around it.</summary>
 	Query,
@@ -157,7 +157,7 @@ public abstract record Statement : ISqlSpan
 	/// What the statement does — a query, rows changed, an object defined, a permission, the flow
 	/// of a batch — for a reader that wants some statements and not others.
 	/// </summary>
-	public abstract StatementKind Kind { get; }
+	public abstract StatementCategory Category { get; }
 
 	// ---- §14 the data statements -------------------------------------------------------------
 
@@ -172,7 +172,7 @@ public abstract record Statement : ISqlSpan
 		Clause[] With, Query Of, Clause? OrderBy, Clause[] For, Clause[] Options) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Query;
+		public override StatementCategory Category => StatementCategory.Query;
 	}
 
 	/// <summary>A select with nothing around it, which is the whole of the standard's.</summary>
@@ -195,7 +195,7 @@ public abstract record Statement : ISqlSpan
 		Clause[]? With = null, Clause? Top = null, Clause? Output = null, bool Into = true) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dml;
+		public override StatementCategory Category => StatementCategory.Dml;
 
 		/// <summary>
 		/// T-SQL's <c>OPTION (…)</c> after the rows, where they are a query, a <c>VALUES</c>
@@ -214,7 +214,7 @@ public abstract record Statement : ISqlSpan
 		Clause[]? With = null, Clause? Top = null, Clause? Output = null, Clause[]? Options = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dml;
+		public override StatementCategory Category => StatementCategory.Dml;
 	}
 
 	/// <summary>§14.9 rows removed, and the same two ways of saying which.</summary>
@@ -223,7 +223,7 @@ public abstract record Statement : ISqlSpan
 		Clause[]? With = null, Clause? Top = null, Clause? Output = null, Clause[]? Options = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dml;
+		public override StatementCategory Category => StatementCategory.Dml;
 	}
 
 	/// <summary>
@@ -235,7 +235,7 @@ public abstract record Statement : ISqlSpan
 		bool Into = true) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dml;
+		public override StatementCategory Category => StatementCategory.Dml;
 	}
 
 	// ---- the procedural level ----------------------------------------------------------------
@@ -248,45 +248,45 @@ public abstract record Statement : ISqlSpan
 	public sealed record Compound(Statement[] Statements, Clause[]? Atomic = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Control;
+		public override StatementCategory Category => StatementCategory.Control;
 	}
 
 	/// <summary><c>IF … ELSE</c>, where either arm is one statement and a block is one.</summary>
 	public sealed record If(Expression Condition, Statement Then, Statement? Else) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Control;
+		public override StatementCategory Category => StatementCategory.Control;
 	}
 
 	/// <summary><c>WHILE</c>, and the one statement it repeats.</summary>
 	public sealed record While(Expression Condition, Statement Body) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Control;
+		public override StatementCategory Category => StatementCategory.Control;
 	}
 
 	/// <summary><c>BEGIN TRY … END TRY BEGIN CATCH … END CATCH</c>.</summary>
 	public sealed record TryCatch(Statement[] Tried, Statement[] Caught) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Control;
+		public override StatementCategory Category => StatementCategory.Control;
 	}
 
 	/// <summary>One <c>DECLARE</c>, which may declare several.</summary>
 	public sealed record Declare(Clause[] Variables) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Declaration;
+		public override StatementCategory Category => StatementCategory.Declaration;
 	}
 
 	/// <summary>A transaction begun, committed, rolled back or saved, and its name.</summary>
 	/// <param name="Word"><c>TRANSACTION</c>, <c>TRAN</c> or <c>WORK</c>, as written.</param>
 	/// <param name="Tail">A mark or a durability, as written.</param>
 	public sealed record Transaction(
-		string Type, string? Name, string? Word = null, string? Tail = null) : Statement
+		string Kind, string? Name, string? Word = null, string? Tail = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Transaction;
+		public override StatementCategory Category => StatementCategory.Transaction;
 	}
 
 	/// <summary>
@@ -299,7 +299,7 @@ public abstract record Statement : ISqlSpan
 		string? At = null, string? Tail = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Execute;
+		public override StatementCategory Category => StatementCategory.Execute;
 	}
 
 	// ---- the tables ---------------------------------------------------------------------------
@@ -311,10 +311,10 @@ public abstract record Statement : ISqlSpan
 	/// and the options written after it.
 	/// </summary>
 	public sealed record TableDefinition(
-		string Name, string? Type, Clause[] Elements, Clause[] Placements, Clause[] Options, bool External = false) : Statement
+		string Name, string? Kind, Clause[] Elements, Clause[] Placements, Clause[] Options, bool External = false) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Ddl;
+		public override StatementCategory Category => StatementCategory.Ddl;
 	}
 
 	/// <summary>
@@ -326,7 +326,7 @@ public abstract record Statement : ISqlSpan
 		string Name, string[]? Columns, Clause[] Options, Statement Body, bool External = false) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Ddl;
+		public override StatementCategory Category => StatementCategory.Ddl;
 	}
 
 	/// <summary>
@@ -367,7 +367,7 @@ public abstract record Statement : ISqlSpan
 	public abstract record Removal(Expression[] Names) : Statement
 	{
 		/// <summary>Removing an object is DDL; the few that remove a principal say so themselves.</summary>
-		public override StatementKind Kind => StatementKind.Ddl;
+		public override StatementCategory Category => StatementCategory.Ddl;
 
 		/// <summary>What was written after the names, or null where nothing was.</summary>
 		public string? Tail { get; init; }
@@ -387,7 +387,7 @@ public abstract record Statement : ISqlSpan
 		/// Defining an object is DDL; a principal, a backup, a restore and a statistics update say
 		/// otherwise themselves.
 		/// </summary>
-		public override StatementKind Kind => StatementKind.Ddl;
+		public override StatementCategory Category => StatementCategory.Ddl;
 
 		/// <summary>What was written after the name, or null where nothing was.</summary>
 		public string? Tail { get; init; }
@@ -419,7 +419,7 @@ public abstract record Statement : ISqlSpan
 		string Name, string Action, Clause[] Elements, Clause[]? Options = null, string? Tail = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Ddl;
+		public override StatementCategory Category => StatementCategory.Ddl;
 	}
 
 	// ---- the routines --------------------------------------------------------------------------
@@ -435,7 +435,7 @@ public abstract record Statement : ISqlSpan
 		string Verb = "CREATE") : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Ddl;
+		public override StatementCategory Category => StatementCategory.Ddl;
 	}
 
 	/// <summary>
@@ -453,7 +453,7 @@ public abstract record Statement : ISqlSpan
 		Clause[]? Order = null, string? External = null, string Verb = "CREATE") : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Ddl;
+		public override StatementCategory Category => StatementCategory.Ddl;
 	}
 
 	/// <summary>A trigger: what it is on, what fires it, and what it does then.</summary>
@@ -465,7 +465,7 @@ public abstract record Statement : ISqlSpan
 		bool NotForReplication = false, string? External = null, string Verb = "CREATE") : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Ddl;
+		public override StatementCategory Category => StatementCategory.Ddl;
 	}
 
 	/// <summary>§11.32 a view, which is a name given to a query.</summary>
@@ -477,7 +477,7 @@ public abstract record Statement : ISqlSpan
 		string Verb = "CREATE") : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Ddl;
+		public override StatementCategory Category => StatementCategory.Ddl;
 	}
 
 	// ---- indexes -------------------------------------------------------------------------------
@@ -487,7 +487,7 @@ public abstract record Statement : ISqlSpan
 	/// <c>CREATE INDEX</c>: the table, and the index — the same node an index written inside
 	/// a table is, since it is the same thing said in the same words.
 	/// </summary>
-	/// <param name="Type">
+	/// <param name="Kind">
 	/// The words between <c>CREATE</c> and <c>INDEX</c> that are not the index's own —
 	/// <c>PRIMARY XML</c>, <c>XML</c>, <c>SELECTIVE XML</c> — where the index is one of those.
 	/// </param>
@@ -495,10 +495,10 @@ public abstract record Statement : ISqlSpan
 	/// The primary XML index a secondary one is built on — <c>USING XML INDEX i FOR PATH</c>.
 	/// </param>
 	public sealed record CreateIndex(
-		string On, Clause Index, string? Type = null, string? Using = null) : Statement
+		string On, Clause Index, string? Kind = null, string? Using = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Ddl;
+		public override StatementCategory Category => StatementCategory.Ddl;
 	}
 
 	/// <summary>An index changed: which one, on what, and what is being done to it.</summary>
@@ -512,7 +512,7 @@ public abstract record Statement : ISqlSpan
 		Expression? Partition = null, Clause[]? Options = null, string[]? Paths = null, string? Namespaces = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Ddl;
+		public override StatementCategory Category => StatementCategory.Ddl;
 	}
 
 	/// <summary><c>CREATE STATISTICS</c>.</summary>
@@ -522,7 +522,7 @@ public abstract record Statement : ISqlSpan
 	public sealed record UpdateStatistics(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	// ---- a word and some values ----------------------------------------------------------------
@@ -535,85 +535,85 @@ public abstract record Statement : ISqlSpan
 	public sealed record Print(Expression Value) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Control;
+		public override StatementCategory Category => StatementCategory.Control;
 	}
 
 	/// <summary>A routine left, with a code where one was given.</summary>
 	public sealed record Return(Expression? Value) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Control;
+		public override StatementCategory Category => StatementCategory.Control;
 	}
 
 	/// <summary>An error raised, or the caught one raised again.</summary>
 	public sealed record Throw(Expression[] Arguments) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Control;
+		public override StatementCategory Category => StatementCategory.Control;
 	}
 
 	/// <summary>A jump to a label.</summary>
 	public sealed record GoTo(Expression Label) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Control;
+		public override StatementCategory Category => StatementCategory.Control;
 	}
 
 	/// <summary>A loop left.</summary>
 	public sealed record Break : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Control;
+		public override StatementCategory Category => StatementCategory.Control;
 	}
 
 	/// <summary>A loop begun again.</summary>
 	public sealed record Continue : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Control;
+		public override StatementCategory Category => StatementCategory.Control;
 	}
 
 	/// <summary>The log written out.</summary>
 	public sealed record Checkpoint(Expression? Value) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary>The database the rest of the batch is read against.</summary>
 	public sealed record Use(Expression Name) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Session;
+		public override StatementCategory Category => StatementCategory.Session;
 	}
 
 	/// <param name="Tail">The <c>WITH LOG, NOWAIT, SETERROR</c> after it, as written.</param>
 	public sealed record RaiseError(Expression[] Arguments, string? Tail = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Control;
+		public override StatementCategory Category => StatementCategory.Control;
 	}
 
 	/// <summary>A delay, or a time to wait until.</summary>
-	/// <param name="Type">
+	/// <param name="Kind">
 	/// <c>DELAY</c> or <c>TIME</c> — how long to wait against when to stop waiting, which
 	/// the one value cannot say.
 	/// </param>
-	public sealed record WaitFor(Expression Value, string Type = "DELAY") : Statement
+	public sealed record WaitFor(Expression Value, string Kind = "DELAY") : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Control;
+		public override StatementCategory Category => StatementCategory.Control;
 	}
 
 	/// <summary><c>EXECUTE AS</c>: whom the session runs as until a <c>REVERT</c> says otherwise.</summary>
-	/// <param name="Type"><c>CALLER</c>, <c>USER</c> or <c>LOGIN</c>.</param>
+	/// <param name="Kind"><c>CALLER</c>, <c>USER</c> or <c>LOGIN</c>.</param>
 	/// <param name="Name">Whom, for a user or a login: any expression the engine will take.</param>
 	/// <param name="NoRevert"><c>WITH NO REVERT</c>: the context is not given back.</param>
 	/// <param name="Cookie">The variable <c>WITH COOKIE INTO</c> names, which a <c>REVERT</c> must show.</param>
-	public sealed record ExecuteAs(string Type, Expression? Name, bool NoRevert = false, Expression? Cookie = null) : Statement
+	public sealed record ExecuteAs(string Kind, Expression? Name, bool NoRevert = false, Expression? Cookie = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Session;
+		public override StatementCategory Category => StatementCategory.Session;
 	}
 
 	/// <summary><c>REVERT</c>: the context an <c>EXECUTE AS</c> changed, given back.</summary>
@@ -621,7 +621,7 @@ public abstract record Statement : ISqlSpan
 	public sealed record Revert(Expression? Cookie = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Session;
+		public override StatementCategory Category => StatementCategory.Session;
 	}
 
 	/// <summary><c>SETUSER</c>: a user impersonated, the way before <c>EXECUTE AS</c>.</summary>
@@ -630,7 +630,7 @@ public abstract record Statement : ISqlSpan
 	public sealed record SetUser(Expression? Name = null, bool NoReset = false) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Session;
+		public override StatementCategory Category => StatementCategory.Session;
 	}
 
 	// ---- who may connect, what lives outside, and what the server watches ----------------------
@@ -643,70 +643,70 @@ public abstract record Statement : ISqlSpan
 	public sealed record CreateLogin(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>ALTER LOGIN</c>.</summary>
 	public sealed record AlterLogin(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>CREATE USER</c>.</summary>
 	public sealed record CreateUser(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>ALTER USER</c>.</summary>
 	public sealed record AlterUser(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>CREATE ROLE</c>.</summary>
 	public sealed record CreateRole(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>ALTER ROLE</c>.</summary>
 	public sealed record AlterRole(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>CREATE SERVER ROLE</c>: a role of the server rather than of a database.</summary>
 	public sealed record CreateServerRole(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>ALTER SERVER ROLE</c>, likewise.</summary>
 	public sealed record AlterServerRole(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>CREATE APPLICATION ROLE</c>.</summary>
 	public sealed record CreateApplicationRole(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>ALTER APPLICATION ROLE</c>.</summary>
 	public sealed record AlterApplicationRole(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary>§11.1 <c>CREATE SCHEMA</c>.</summary>
@@ -719,7 +719,7 @@ public abstract record Statement : ISqlSpan
 	public sealed record AlterAuthorization(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>EXTERNAL DATA SOURCE</c>.</summary>
@@ -760,7 +760,7 @@ public abstract record Statement : ISqlSpan
 		Clause[]? Options = null, string? State = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Ddl;
+		public override StatementCategory Category => StatementCategory.Ddl;
 	}
 
 	/// <summary><c>EVENT NOTIFICATION</c>.</summary>
@@ -778,7 +778,7 @@ public abstract record Statement : ISqlSpan
 		string? Payload = null, Clause[]? PayloadOptions = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Ddl;
+		public override StatementCategory Category => StatementCategory.Ddl;
 	}
 
 	// ---- the database --------------------------------------------------------------------------
@@ -796,7 +796,7 @@ public abstract record Statement : ISqlSpan
 		string? Tail = null, Clause[]? Options = null, Clause[]? With = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Ddl;
+		public override StatementCategory Category => StatementCategory.Ddl;
 	}
 
 	/// <summary>
@@ -807,7 +807,7 @@ public abstract record Statement : ISqlSpan
 		string Name, Clause[] Settings, string? Termination = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Ddl;
+		public override StatementCategory Category => StatementCategory.Ddl;
 	}
 
 	/// <summary>
@@ -819,7 +819,7 @@ public abstract record Statement : ISqlSpan
 		string Name, string Action, Clause[] Settings, bool Secondary = false, Expression? Argument = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Ddl;
+		public override StatementCategory Category => StatementCategory.Ddl;
 	}
 
 	/// <summary><c>ALTER DATABASE … COLLATE</c>.</summary>
@@ -840,7 +840,7 @@ public abstract record Statement : ISqlSpan
 		string Name, Clause[]? Options = null, Clause[]? With = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Ddl;
+		public override StatementCategory Category => StatementCategory.Ddl;
 	}
 
 	/// <summary><c>ALTER DATABASE … ADD FILEGROUP</c>.</summary>
@@ -870,14 +870,14 @@ public abstract record Statement : ISqlSpan
 	public sealed record SetTransactionIsolationLevel(string Level) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Session;
+		public override StatementCategory Category => StatementCategory.Session;
 	}
 
 	/// <summary><c>SET IDENTITY_INSERT t ON</c>.</summary>
 	public sealed record SetIdentityInsert(string Table, bool On) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Session;
+		public override StatementCategory Category => StatementCategory.Session;
 	}
 
 	/// <summary>
@@ -886,7 +886,7 @@ public abstract record Statement : ISqlSpan
 	public sealed record SetOption(string[] Options, bool On) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Session;
+		public override StatementCategory Category => StatementCategory.Session;
 	}
 
 	/// <summary>
@@ -895,7 +895,7 @@ public abstract record Statement : ISqlSpan
 	public sealed record SetCommand(string Option, Expression? Value) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Session;
+		public override StatementCategory Category => StatementCategory.Session;
 	}
 
 	/// <summary>
@@ -908,7 +908,7 @@ public abstract record Statement : ISqlSpan
 		string Name, Expression Value, string? Operator = null, string? Through = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Declaration;
+		public override StatementCategory Category => StatementCategory.Declaration;
 	}
 
 	// ---- §12.1 the permissions -----------------------------------------------------------------
@@ -921,7 +921,7 @@ public abstract record Statement : ISqlSpan
 		string? On = null, bool GrantOption = false, string? As = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>DENY</c>: what is being said about, and to whom.</summary>
@@ -930,7 +930,7 @@ public abstract record Statement : ISqlSpan
 		string? On = null, bool Cascade = false, string? As = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>REVOKE</c>: what is being said about, and to whom — or from whom.</summary>
@@ -939,7 +939,7 @@ public abstract record Statement : ISqlSpan
 		string? On = null, bool GrantOptionFor = false, bool From = false, bool Cascade = false, string? As = null) : Statement
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	// ---- the full-text catalogue -----------------------------------------------------------------
@@ -979,126 +979,126 @@ public abstract record Statement : ISqlSpan
 	public sealed record BackupDatabase(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary><c>BACKUP LOG</c>.</summary>
 	public sealed record BackupTransactionLog(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary><c>BACKUP SERVER</c>, which names nothing: there is one.</summary>
 	public sealed record BackupServer(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary><c>BACKUP GROUP</c>.</summary>
 	public sealed record BackupGroup(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary><c>BACKUP CERTIFICATE</c>.</summary>
 	public sealed record BackupCertificate(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary><c>BACKUP MASTER KEY</c>.</summary>
 	public sealed record BackupMasterKey(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary><c>BACKUP SERVICE MASTER KEY</c>.</summary>
 	public sealed record BackupServiceMasterKey(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary><c>BACKUP SYMMETRIC KEY</c>.</summary>
 	public sealed record BackupSymmetricKey(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary><c>RESTORE DATABASE</c>.</summary>
 	public sealed record RestoreDatabase(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary><c>RESTORE LOG</c>.</summary>
 	public sealed record RestoreLog(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary><c>RESTORE FILELISTONLY</c>.</summary>
 	public sealed record RestoreFileListOnly(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary><c>RESTORE HEADERONLY</c>.</summary>
 	public sealed record RestoreHeaderOnly(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary><c>RESTORE LABELONLY</c>.</summary>
 	public sealed record RestoreLabelOnly(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary><c>RESTORE REWINDONLY</c>.</summary>
 	public sealed record RestoreRewindOnly(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary><c>RESTORE VERIFYONLY</c>.</summary>
 	public sealed record RestoreVerifyOnly(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary><c>RESTORE MASTER KEY</c>.</summary>
 	public sealed record RestoreMasterKey(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary><c>RESTORE SERVICE MASTER KEY</c>.</summary>
 	public sealed record RestoreServiceMasterKey(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	/// <summary><c>RESTORE SYMMETRIC KEY</c>.</summary>
 	public sealed record RestoreSymmetricKey(string Name) : Definition(Name)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Admin;
+		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
 	// ---- the keys, and what is locked with them --------------------------------------------------
@@ -1165,7 +1165,7 @@ public abstract record Statement : ISqlSpan
 	public sealed record DropApplicationRole(Expression[] Names) : Removal(Names)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>DROP AVAILABILITY GROUP</c>.</summary>
@@ -1238,7 +1238,7 @@ public abstract record Statement : ISqlSpan
 	public sealed record DropLogin(Expression[] Names) : Removal(Names)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>DROP MESSAGE TYPE</c>.</summary>
@@ -1266,7 +1266,7 @@ public abstract record Statement : ISqlSpan
 	public sealed record DropRole(Expression[] Names) : Removal(Names)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>DROP ROUTE</c>.</summary>
@@ -1297,7 +1297,7 @@ public abstract record Statement : ISqlSpan
 	public sealed record DropServerRole(Expression[] Names) : Removal(Names)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>DROP SERVICE</c>.</summary>
@@ -1319,7 +1319,7 @@ public abstract record Statement : ISqlSpan
 	public sealed record DropUser(Expression[] Names) : Removal(Names)
 	{
 		/// <inheritdoc/>
-		public override StatementKind Kind => StatementKind.Dcl;
+		public override StatementCategory Category => StatementCategory.Dcl;
 	}
 
 	/// <summary><c>DROP VIEW</c>.</summary>
