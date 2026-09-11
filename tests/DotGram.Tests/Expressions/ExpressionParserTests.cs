@@ -10,7 +10,7 @@ using Xunit;
 namespace DotGram.Tests.Expressions;
 
 /// <summary>
-/// The expression language of <c>DotGram.Parsers</c>, read and run.
+/// The expression language of <c>DotGram.ExpressionLanguage</c>, read and run.
 /// </summary>
 /// <remarks>
 /// A parser that ships is held to what it does, not to what it emits: every test here
@@ -552,6 +552,26 @@ public sealed class ExpressionParserTests
 			});
 
 	[Fact]
+	public void A_member_is_found_on_the_interface_that_declares_it()
+	{
+		// `Count` is `ICollection<T>`'s and an `IList<T>` inherits it — through its base
+		// interfaces, which are not its base type, so a search up `BaseType` never meets it.
+		ExpressionParser.Using("System.Collections.Generic");
+
+		Assert.Equal(
+			3,
+			ExpressionParser.Compile<Func<IList<int>, int>>("(IList<int> l) => l.Count")([1, 2, 3]));
+	}
+
+	[Theory]
+	[InlineData("(Exception e) => e._message")]
+	[InlineData("(string s) => { s.Empty = \"\"; s }")]
+	public void And_a_member_C_sharp_could_not_reach_from_here_is_not_one(string text) =>
+		// A private field, and a static one read through a value: C# reads neither, and the
+		// API's own `PropertyOrField` reached the first.
+		Assert.False(ExpressionParser.TryParse(text).IsSuccess);
+
+	[Fact]
 	public void A_static_member_names_its_type_first() =>
 		Assert.Equal(
 			[7, 3.0, ""],
@@ -972,13 +992,47 @@ public sealed class ExpressionParserTests
 				.Select(text => ExpressionParser.Parse($"() => {text}").Body.Type));
 
 	[Fact]
-	public void And_an_integer_too_wide_for_an_int_is_a_long_as_it_is_in_C_sharp() =>
-		// Two readings of the same digits rather than a helper: `int.TryParse` is asked
-		// while the text is read, and the alternative it turns down is the `long` one.
+	public void And_an_integer_is_the_first_type_that_holds_it_as_it_is_in_C_sharp() =>
+		// `int`, `uint`, `long`, `ulong`, in that order and whatever the base: hex digits are
+		// a value and not an `int`'s bits, so `0xFFFFFFFF` is 4294967295 and not -1. Compared
+		// as boxed values, so a right number of the wrong type is still a failure.
 		Assert.Equal(
-			[typeof(int), typeof(long)],
-			new[] { "2147483647", "2147483648" }
-				.Select(text => ExpressionParser.Parse($"() => {text}").Body.Type));
+			[
+				2147483647, 2147483648u, 4294967296L, 9223372036854775808ul,
+				4294967295u, 2147483648u, 8589934591L, 18446744073709551615ul, 4294967295u,
+			],
+			new[]
+			{
+				"2147483647", "2147483648", "4294967296", "9223372036854775808",
+				"0xFFFFFFFF", "0x80000000", "0x1FFFFFFFF", "0xFFFFFFFFFFFFFFFF",
+				"0b11111111111111111111111111111111",
+			}
+			.Select(text => ((ConstantExpression)ExpressionParser.Parse($"() => {text}").Body).Value));
+
+	[Fact]
+	public void And_a_suffix_strikes_types_off_the_list_rather_than_naming_one() =>
+		// `u` is `uint` then `ulong`, `l` is `long` then `ulong`: the suffix says which list,
+		// and the value says where in it.
+		Assert.Equal(
+			[4294967296ul, 9223372036854775808ul, 18446744073709551615ul, 1ul],
+			new[] { "4294967296u", "9223372036854775808L", "0xFFFFFFFFFFFFFFFFL", "0b1UL" }
+				.Select(text => ((ConstantExpression)ExpressionParser.Parse($"() => {text}").Body).Value));
+
+	[Fact]
+	public void And_the_two_minimums_are_read_whole_after_a_minus() =>
+		// `2147483648` alone is a `uint`, and `-2147483648` is still the `int` it looks like:
+		// C# reads it as one literal across the minus, and its `long` twin the same way.
+		Assert.Equal(
+			[int.MinValue, long.MinValue],
+			new object[]
+			{
+				ExpressionParser.Compile<Func<int>>("() => -2147483648")(),
+				ExpressionParser.Compile<Func<long>>("() => -9223372036854775808")(),
+			});
+
+	[Fact]
+	public void And_an_integer_no_type_holds_is_refused() =>
+		Assert.False(ExpressionParser.TryParse("() => 18446744073709551616").IsSuccess);
 
 	[Theory]
 	[InlineData("\"\\x41\"",         "A")]
@@ -1002,6 +1056,26 @@ public sealed class ExpressionParserTests
 
 		Assert.False(match.IsSuccess);
 		Assert.NotNull(match.Error);
+	}
+
+	/// <summary>And one that is this language and means nothing in it is refused the same way.</summary>
+	/// <remarks>
+	/// A caller holding text somebody typed cannot tell a name nothing declares, or an
+	/// operator its operands do not support, from a mistake in the syntax before asking —
+	/// so <c>TryParse</c> answers for all of them, with what <c>Parse</c> would have thrown.
+	/// </remarks>
+	[Theory]
+	[InlineData("(int x) => x + y",              "nothing named 'y'")]
+	[InlineData("(long x) => x + 1",             "not defined for the types")]
+	[InlineData("(int x) => new Exception(x)",   "no constructor taking")]
+	[InlineData("(string s) => s.Nothing",       "no property or field named 'Nothing'")]
+	[InlineData("() => 18446744073709551616",    "too large")]
+	public void TryParse_answers_where_Parse_would_throw(string text, string said)
+	{
+		var match = ExpressionParser.TryParse(text);
+
+		Assert.False(match.IsSuccess);
+		Assert.Contains(said, match.Error, StringComparison.Ordinal);
 	}
 }
 

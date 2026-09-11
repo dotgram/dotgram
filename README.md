@@ -207,8 +207,8 @@ to quote here, so this is where to read them:
   comes back through ScriptDom as the same statement.
 * [`ExpressionParser.cs`](src/DotGram.ExpressionLanguage/ExpressionParser.cs) — a
   C#-style expression language in over 80 rules, inside the `[Gram]` attribute beside the
-  C# they call. It builds `System.Linq.Expressions` trees directly, with parameters,
-  locals, blocks and `return`.
+  C# they call. It builds `System.Linq.Expressions` trees directly: C#'s operators and
+  literals, locals, blocks, loops, `switch` and `try`, members, calls and `new`.
 
 How to call them is under [DotGram.Parsers](#dotgramparsers) and
 [DotGram.ExpressionLanguage](#dotgramexpressionlanguage).
@@ -498,9 +498,9 @@ and what it hands back.
 ## DotGram.ExpressionLanguage
 
 [`DotGram.ExpressionLanguage`](src/DotGram.ExpressionLanguage) is a package of its own: a
-C#-style expression language with parameters, locals, blocks and `return`. It calls the
-`System.Linq.Expressions` factories directly, so there is no tree of its own to translate
-afterwards:
+C#-style expression language — C#'s operators and literals, and most of its statements. It
+calls the `System.Linq.Expressions` factories directly, so there is no tree of its own to
+translate afterwards:
 
 ```csharp
 using DotGram.ExpressionLanguage;

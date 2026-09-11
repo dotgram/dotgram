@@ -2419,23 +2419,20 @@ static class HandExpression
 				RealD    => Expression.Constant(double.Parse(digits, NumberStyles.Float, CultureInfo.InvariantCulture)),
 				RealF    => Expression.Constant(float.Parse(digits, NumberStyles.Float, CultureInfo.InvariantCulture)),
 				RealM    => Expression.Constant(decimal.Parse(digits, NumberStyles.Float, CultureInfo.InvariantCulture)),
-				Hex      => Expression.Constant(Convert.ToInt32(digits, 16)),
-				HexU     => Expression.Constant(Convert.ToUInt32(digits, 16)),
-				HexL     => Expression.Constant(Convert.ToInt64(digits, 16)),
-				HexUL    => Expression.Constant(Convert.ToUInt64(digits, 16)),
-				Bits   => Expression.Constant(Convert.ToInt32(digits, 2)),
-				BitsU  => Expression.Constant(Convert.ToUInt32(digits, 2)),
-				BitsL  => Expression.Constant(Convert.ToInt64(digits, 2)),
-				BitsUL => Expression.Constant(Convert.ToUInt64(digits, 2)),
-				NumberU  => Expression.Constant(uint.Parse(digits, CultureInfo.InvariantCulture)),
-				NumberL  => Expression.Constant(long.Parse(digits, CultureInfo.InvariantCulture)),
-				NumberUL => Expression.Constant(ulong.Parse(digits, CultureInfo.InvariantCulture)),
-
-				// An integer with no suffix is an `int` where it fits and a `long` where it
-				// does not, which is C#'s own rule.
-				_ => int.TryParse(digits, NumberStyles.Integer, CultureInfo.InvariantCulture, out var whole)
-					? Expression.Constant(whole)
-					: Expression.Constant(long.Parse(digits, CultureInfo.InvariantCulture)),
+				// Which type an integer is depends on its value, and the parser's own answer
+				// to that is the one to give: the two are held against each other.
+				Hex      => ExpressionParser.Integer(digits, 16, unsigned: false, wide: false),
+				HexU     => ExpressionParser.Integer(digits, 16, unsigned: true,  wide: false),
+				HexL     => ExpressionParser.Integer(digits, 16, unsigned: false, wide: true),
+				HexUL    => ExpressionParser.Integer(digits, 16, unsigned: true,  wide: true),
+				Bits     => ExpressionParser.Integer(digits, 2,  unsigned: false, wide: false),
+				BitsU    => ExpressionParser.Integer(digits, 2,  unsigned: true,  wide: false),
+				BitsL    => ExpressionParser.Integer(digits, 2,  unsigned: false, wide: true),
+				BitsUL   => ExpressionParser.Integer(digits, 2,  unsigned: true,  wide: true),
+				NumberU  => ExpressionParser.Integer(digits, 10, unsigned: true,  wide: false),
+				NumberL  => ExpressionParser.Integer(digits, 10, unsigned: false, wide: true),
+				NumberUL => ExpressionParser.Integer(digits, 10, unsigned: true,  wide: true),
+				_        => ExpressionParser.Integer(digits, 10, unsigned: false, wide: false),
 			};
 		}
 

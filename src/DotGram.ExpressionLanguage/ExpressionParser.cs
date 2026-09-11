@@ -50,6 +50,15 @@ namespace DotGram.ExpressionLanguage;
 //     the lambda rather than to any statement in it.
 //   * `Chosen` — `Expression.Condition` is one factory with two answers, the branches'
 //     type or `void`, and which one an `if` meant is a question about this API alone.
+//   * `Lookup`, `Member`, `Indexed`, `Constructor` and the rest of what a name in metadata
+//     turns into — which namespaces a type is looked for in, which member a name is on a
+//     given type, which constructor takes these arguments. The grammar says where a name
+//     stands; the type it stands against is the host's, and is not known until the
+//     operand is built.
+//   * `Integer` — which of four types an integer is depends on its value as well as on
+//     how it was written, and that is a question about the digits rather than the text.
+//   * `Add`, `Negate`, `Cast` and the rest that have a checked form — the API has two
+//     nodes for each, and which one a `checked` meant is again a question about the API.
 //
 // Everything else the grammar says itself.
 //
@@ -96,16 +105,22 @@ namespace DotGram.ExpressionLanguage;
 // looks like.
 //
 // **Where it is not C#, and why.** None of these is a shape the notation could not
-// carry; each is the same API requirement showing through again.
+// carry; each is an API requirement showing through again, or something not written yet.
 //
 //   * `null` is an `object` rather than whatever the other side of the operator wants.
 //     C# types it by its target, and target typing is a pass over the whole expression —
 //     the second layer this file exists to do without. `(string)null` says which instead.
-//   * There is no member access, no call and no indexer: `x.Length`, `Math.Max(a, b)`
-//     and `a[0]` each need a name looked up in another assembly's metadata, which is a
-//     seam this has not been given. It is the obvious next one to give it.
-//   * `is`, `as`, `typeof`, `default`, `checked` and a lambda inside an expression are
-//     absent for that same reason or for want of a use here.
+//   * A call is resolved by `Expression.Call` and not by C#'s rules: an argument has to
+//     fit its parameter's type exactly or by reference, so `Math.Sqrt(x)` over an `int`
+//     finds no overload and `Console.WriteLine(s)` finds two and refuses both. No
+//     extension method is found, and no generic method can be named.
+//   * A member or a method whose name differs from the one written only in case is read as
+//     that one, where nothing matches exactly. `Expression.Call` searches that way, and a
+//     member search that did not would disagree with it about how a name is spelled.
+//   * An increment or a compound assignment writes to a name or to one member of a name —
+//     not to an element, and not to a longer chain.
+//   * `typeof`, `default`, `nameof`, `?.`, `var`, `foreach`, an interpolated string and a
+//     lambda inside an expression are not written yet.
 //   * A loop is void. The API would type one — a `Loop` whose break label carries a value
 //     is worth it — but only a loop with no ordinary way out can, since the ordinary way
 //     out would have to carry a value too, and C#'s `break` carries nothing.
@@ -683,10 +698,10 @@ namespace DotGram.ExpressionLanguage;
 		| '!' & operand: Unary => @(Expression.Not(operand))
 		| '~' & operand: Unary => @(Expression.OnesComplement(operand))
 
-		// A cast is told from a parenthesized expression by what stands inside it: every
-		// type here is a keyword, and a keyword is no name. C# needs a rule of its own to
-		// decide this because a type there may be a name; a language whose types are a
-		// closed set of keywords does not.
+		// A cast is told from a parenthesized expression by what stands inside it. A keyword
+		// type is no name, and a name is a type only where `NamedType`'s guard finds one —
+		// which is the question C# needs a rule of its own for, asked of the host while the
+		// text is read: `(Exception)e` is a cast, and `(e)` is a parenthesis.
 		| '(' & type: Type & ')' & operand: Unary
 		  => @(ExpressionParser.Cast(operand, type, parserState))
 
@@ -706,15 +721,8 @@ namespace DotGram.ExpressionLanguage;
 
 		| target: Postfix & '.' & member: Word => @(ExpressionParser.Member(target, member))
 
-		// Written through a rule of its own rather than inline, for a reason that is a
-		// generator defect and not a taste: a capture whose rule leads back into this fold
-		// — `index: Expression` here — comes out typed as a sequence with the fold's own
-		// operand dropped, and the emitted C# does not compile. `Arguments` above has the
-		// same shape and is fine, which is what said to write this one the same way. The
-		// two-line reduction is in docs/next.md.
-		//
-		// It reads better for it: an index is a list, so a two-dimensional array and an
-		// indexer of two arguments are both written without another rule.
+		// An index is a list, so a two-dimensional array and an indexer of two arguments are
+		// both written without another rule.
 		| target: Postfix & at: Indices => @(ExpressionParser.Indexed(target, at))
 
 		| target: Name & args: Arguments => @(Expression.Invoke(target, args))
@@ -774,35 +782,24 @@ namespace DotGram.ExpressionLanguage;
 		| token: Floats   => @(Expression.Constant(float.Parse(token, NumberStyles.Float, CultureInfo.InvariantCulture)))
 		| token: Real     => @(Expression.Constant(double.Parse(token, NumberStyles.Float, CultureInfo.InvariantCulture)))
 
-		| token: UnsignedLong(Hex) => @(Expression.Constant(Convert.ToUInt64(token, 16)))
-		| token: SignedLong(Hex)   => @(Expression.Constant(Convert.ToInt64(token, 16)))
-		| token: Unsigned(Hex)     => @(Expression.Constant(Convert.ToUInt32(token, 16)))
-		| token: Hex               => @(Expression.Constant(Convert.ToInt32(token, 16)))
+		// An integer is the first of `int`, `uint`, `long` and `ulong` that holds it, and a
+		// suffix strikes some of them off the list. Which one that is depends on the value,
+		// which is a question about the digits rather than the text, so `Integer` answers
+		// it — one alternative per way of writing a number, and not one per type it may be.
+		| token: UnsignedLong(Hex) => @(ExpressionParser.Integer(token, 16, unsigned: true,  wide: true))
+		| token: SignedLong(Hex)   => @(ExpressionParser.Integer(token, 16, unsigned: false, wide: true))
+		| token: Unsigned(Hex)     => @(ExpressionParser.Integer(token, 16, unsigned: true,  wide: false))
+		| token: Hex               => @(ExpressionParser.Integer(token, 16, unsigned: false, wide: false))
 
-		| token: UnsignedLong(Bin) => @(Expression.Constant(Convert.ToUInt64(token, 2)))
-		| token: SignedLong(Bin)   => @(Expression.Constant(Convert.ToInt64(token, 2)))
-		| token: Unsigned(Bin)     => @(Expression.Constant(Convert.ToUInt32(token, 2)))
-		| token: Bin               => @(Expression.Constant(Convert.ToInt32(token, 2)))
+		| token: UnsignedLong(Bin) => @(ExpressionParser.Integer(token, 2,  unsigned: true,  wide: true))
+		| token: SignedLong(Bin)   => @(ExpressionParser.Integer(token, 2,  unsigned: false, wide: true))
+		| token: Unsigned(Bin)     => @(ExpressionParser.Integer(token, 2,  unsigned: true,  wide: false))
+		| token: Bin               => @(ExpressionParser.Integer(token, 2,  unsigned: false, wide: false))
 
-		| token: UnsignedLong(Dec) => @(Expression.Constant(ulong.Parse(token, CultureInfo.InvariantCulture)))
-		| token: SignedLong(Dec)   => @(Expression.Constant(long.Parse(token, CultureInfo.InvariantCulture)))
-		| token: Unsigned(Dec)     => @(Expression.Constant(uint.Parse(token, CultureInfo.InvariantCulture)))
-
-		// An integer with no suffix is an `int` where it fits and a `long` where it does
-		// not, which is C#'s own rule. `int.TryParse` is what knows, asked while the text
-		// is read (§8.1) — so the two are two readings of the same digits, and not a
-		// helper this class would otherwise have to hold.
-		//
-		// A pair like this is what the fold's committed residue exists for. Both
-		// alternatives read the same digits, so past them the choice is about which
-		// factory runs and not about the text — and left uncommitted it once left a live
-		// way back at every literal, which made refusing exponential: 2^(literals)
-		// rereadings of everything after, 74/327/1299 us at two, four and six
-		// parentheses. `ExpressionBenchmarks` holds the refusals that would say if that
-		// ever comes back.
-		| token: Dec & when @(int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
-		                   => @(Expression.Constant(int.Parse(token, CultureInfo.InvariantCulture)))
-		| token: Dec       => @(Expression.Constant(long.Parse(token, CultureInfo.InvariantCulture)))
+		| token: UnsignedLong(Dec) => @(ExpressionParser.Integer(token, 10, unsigned: true,  wide: true))
+		| token: SignedLong(Dec)   => @(ExpressionParser.Integer(token, 10, unsigned: false, wide: true))
+		| token: Unsigned(Dec)     => @(ExpressionParser.Integer(token, 10, unsigned: true,  wide: false))
+		| token: Dec               => @(ExpressionParser.Integer(token, 10, unsigned: false, wide: false))
 
 		| token: Verbatim  => @(Expression.Constant(token))
 		| token: Text      => @(Expression.Constant(token))
@@ -848,12 +845,21 @@ public static partial class ExpressionParser
 	// ParseLambda and TryParseLambda are generated here.
 
 	/// <summary>Reads the text as a lambda over an expression tree.</summary>
-	/// <exception cref="FormatException">The text is not this language.</exception>
-	/// <exception cref="ArgumentException">
+	/// <exception cref="FormatException">
+	/// The text is not this language, or names what is not there: a variable nothing
+	/// declares, a type, a member or a constructor the host cannot find.
+	/// </exception>
+	/// <exception cref="InvalidOperationException">
 	/// It is this language and means nothing in it — an operator its operands do not
-	/// support, a lambda over a variable nothing declares. Thrown by
-	/// <c>System.Linq.Expressions</c> itself, in its own words: this language holds no
-	/// opinion the API does not already hold.
+	/// support, a call no overload fits. Thrown by <c>System.Linq.Expressions</c> itself, in
+	/// its own words: this language holds no opinion the API does not already hold.
+	/// </exception>
+	/// <exception cref="ArgumentException">
+	/// The same, where the API calls it an argument: a value assigned to what cannot hold
+	/// it, a condition that is not a <c>bool</c>.
+	/// </exception>
+	/// <exception cref="OverflowException">
+	/// An integer too large for any integral type, which C# refuses as well (CS1021).
 	/// </exception>
 	public static LambdaExpression Parse(string text)
 	{
@@ -870,14 +876,49 @@ public static partial class ExpressionParser
 		throw new FormatException(state.Refused() ?? match.Error!);
 	}
 
-	/// <summary>The same, answering rather than throwing where the text is not this language.</summary>
+	/// <summary>The same, answering rather than throwing.</summary>
 	/// <remarks>
-	/// The generated <c>TryParseLambda</c> beside it is the parser and nothing else, and
-	/// what this adds is the one thing a parser cannot know: that a new parse is beginning,
-	/// and that everything the last one wrote down about names, blocks and loops is now
-	/// about a text nobody is reading. Call it rather than the generated one.
+	/// <para>
+	/// For everything <see cref="Parse"/> would throw for, and not only for text that is not
+	/// this language: a name nothing declares, a member the type does not have, an operator
+	/// its operands do not support. A caller holding text somebody typed cannot tell those
+	/// from a mistake in the syntax before asking, and should not need a second way of
+	/// being told.
+	/// </para>
+	/// <para>
+	/// Where the text was read and the tree it asked for could not be built,
+	/// <c>Position</c> is zero: the whole text was read, and the factory that refused it
+	/// does not say where.
+	/// </para>
 	/// </remarks>
-	public static Match<LambdaExpression> TryParse(string text) => TryParseLambda(text, new State());
+	public static Match<LambdaExpression> TryParse(string text)
+	{
+		var state = new State();
+		Match<LambdaExpression> match;
+
+		try
+		{
+			match = TryParseLambda(text, state);
+		}
+		catch (Exception thrown) when (IsRefusal(thrown))
+		{
+			return Match<LambdaExpression>.Failed(Outcome.NoMatch, thrown.Message, 0, null, null);
+		}
+
+		return match.IsSuccess || state.Refused() is not { } refused
+			? match
+			: Match<LambdaExpression>.Failed(Outcome.NoMatch, refused, state.RefusedAt, null, null);
+	}
+
+	/// <summary>Whether an exception is the text being refused, as against a defect here.</summary>
+	/// <remarks>
+	/// The four <see cref="Parse"/> documents, and not the null checks every helper in this
+	/// class makes: an <c>ArgumentNullException</c> is this class handing itself nothing,
+	/// which no text can cause and an answer would hide.
+	/// </remarks>
+	static bool IsRefusal(Exception thrown) =>
+		thrown is FormatException or InvalidOperationException or OverflowException ||
+		thrown is ArgumentException and not ArgumentNullException;
 
 
 	/// <summary>The same, compiled to a delegate of the caller's own type.</summary>
@@ -1021,8 +1062,16 @@ public static partial class ExpressionParser
 	public static Expression Multiply(Expression left, Expression right, ReadOnlySpan<Reading> reading) =>
 		Checked(reading) ? Expression.MultiplyChecked(left, right) : Expression.Multiply(left, right);
 
+	/// <remarks>
+	/// `-2147483648` is the <c>int</c> it looks like, though `2147483648` alone is a
+	/// <c>uint</c>, and `-9223372036854775808` is a <c>long</c> in the same way: C# reads
+	/// each as one literal where it stands after a minus, and they are the only two
+	/// constants that have to be read that way to be written at all.
+	/// </remarks>
 	public static Expression Negate(Expression operand, ReadOnlySpan<Reading> reading) =>
-		Checked(reading) ? Expression.NegateChecked(operand) : Expression.Negate(operand);
+		operand is ConstantExpression { Value: 2147483648u }             ? Expression.Constant(int.MinValue)
+		: operand is ConstantExpression { Value: 9223372036854775808ul } ? Expression.Constant(long.MinValue)
+		: Checked(reading) ? Expression.NegateChecked(operand) : Expression.Negate(operand);
 
 	/// <remarks>
 	/// A cast is where the difference is most visible and least like the others: `(byte)300`
@@ -1049,6 +1098,23 @@ public static partial class ExpressionParser
 			? Expression.MultiplyAssignChecked(target, value)
 			: Expression.MultiplyAssign(target, value);
 
+	/// <summary>Whether <see cref="Member"/> would have something to build, asked before it runs.</summary>
+	/// <remarks>
+	/// The same search <see cref="Member"/> makes, because what this answers has to be what
+	/// that one does. No member is not an error here: it means this reading is not a member
+	/// access, and something else will read the text.
+	/// </remarks>
+	public static bool Has(Expression target, string? name)
+	{
+		if (target is null)
+			throw new ArgumentNullException(nameof(target));
+
+		return
+			name is null ||
+			target.Type.IsArray && string.Equals(name, "Length", StringComparison.Ordinal) ||
+			InstanceMember(target.Type, name) is not null;
+	}
+
 	/// <summary>What <c>a.b</c> reads, which the type of <c>a</c> decides.</summary>
 	/// <remarks>
 	/// An array's length is a node of this tree — <c>ArrayLength</c> — where every other
@@ -1056,48 +1122,72 @@ public static partial class ExpressionParser
 	/// either: a guard runs while the text is read and the operand of a fold is not built
 	/// until after, so the only place that can ask the operand what it is, is here.
 	/// </remarks>
-	/// <summary>Whether <see cref="Member"/> would have something to build, asked before it runs.</summary>
-	/// <remarks>
-	/// The same searches <c>Expression.PropertyOrField</c> makes, in the same order — every
-	/// type up the chain for a property or a field by that exact name, then again ignoring
-	/// case — because what this answers has to be what that one does. No member is not an
-	/// error here: it means this reading is not a member access, and something else will
-	/// read the text.
-	/// </remarks>
-	public static bool Has(Expression target, string? name)
-	{
-		if (target is null)
-			throw new ArgumentNullException(nameof(target));
-
-		if (name is null)
-			return true;
-
-		if (target.Type.IsArray && string.Equals(name, "Length", StringComparison.Ordinal))
-			return true;
-
-		const BindingFlags Any = BindingFlags.Instance | BindingFlags.Static |
-			BindingFlags.Public | BindingFlags.DeclaredOnly;
-
-		for (var type = target.Type; type is not null; type = type.BaseType)
-			if (type.GetProperty(name, Any) is not null || type.GetField(name, Any) is not null)
-				return true;
-
-		for (var type = target.Type; type is not null; type = type.BaseType)
-			if (type.GetProperty(name, Any | BindingFlags.IgnoreCase) is not null ||
-				type.GetField(name, Any | BindingFlags.IgnoreCase) is not null)
-				return true;
-
-		return false;
-	}
-
+	/// <exception cref="FormatException">The type has no such property or field.</exception>
 	public static Expression Member(Expression target, string name)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
 
-		return target.Type.IsArray && string.Equals(name, "Length", StringComparison.Ordinal)
-			? Expression.ArrayLength(target)
-			: Expression.PropertyOrField(target, name);
+		if (target.Type.IsArray && string.Equals(name, "Length", StringComparison.Ordinal))
+			return Expression.ArrayLength(target);
+
+		return InstanceMember(target.Type, name) switch
+		{
+			PropertyInfo property => Expression.Property(target, property),
+			FieldInfo    field    => Expression.Field(target, field),
+			_ => throw new FormatException($"'{target.Type.Name}' has no property or field named '{name}'."),
+		};
+	}
+
+	/// <summary>The public instance property or field a name means on a type, or null.</summary>
+	/// <remarks>
+	/// <para>
+	/// Not <c>Expression.PropertyOrField</c>, which answers a different question in two
+	/// ways. It looks through no interface: an interface's base interfaces are not its base
+	/// type, so `Count` on an `IList&lt;int&gt;` — which is `ICollection&lt;T&gt;`'s — was no
+	/// member at all. And where nothing public matches it goes on to what is not public,
+	/// which no C# written outside the type can read.
+	/// </para>
+	/// <para>
+	/// The name as written is looked for first, all the way up, and only then the same name
+	/// in another case. That is the one thing kept from the API's search, because
+	/// <c>Expression.Call</c> still makes it for methods, and a member and a call should not
+	/// disagree about how a name is spelled.
+	/// </para>
+	/// </remarks>
+	static MemberInfo? InstanceMember(Type type, string name)
+	{
+		const BindingFlags Declared = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+
+		return Searched(type, name, Declared) ?? Searched(type, name, Declared | BindingFlags.IgnoreCase);
+	}
+
+	/// <summary>The type, what it derives from, and — for an interface — what it inherits.</summary>
+	static MemberInfo? Searched(Type type, string name, BindingFlags flags)
+	{
+		for (var each = type; each is not null; each = each.BaseType)
+			if (DeclaredOn(each, name, flags) is { } found)
+				return found;
+
+		if (type.IsInterface)
+			foreach (var inherited in type.GetInterfaces())
+				if (DeclaredOn(inherited, name, flags) is { } found)
+					return found;
+
+		return null;
+	}
+
+	/// <summary>
+	/// A field or a property that takes no index, declared by that type itself. An array
+	/// rather than <c>GetProperty</c>, which throws where two names differ only in case.
+	/// </summary>
+	static MemberInfo? DeclaredOn(Type type, string name, BindingFlags flags)
+	{
+		foreach (var member in type.GetMember(name, MemberTypes.Property | MemberTypes.Field, flags))
+			if (member is FieldInfo || member is PropertyInfo property && property.GetIndexParameters().Length == 0)
+				return member;
+
+		return null;
 	}
 
 	/// <summary>The same element as a place to write rather than a value to read.</summary>
@@ -1440,6 +1530,37 @@ public static partial class ExpressionParser
 	public static Expression Coalesced(Expression left, Expression? right) =>
 		right is null ? left : Expression.Coalesce(left, right);
 
+	/// <summary>An integer constant, typed the way C# types one.</summary>
+	/// <remarks>
+	/// <para>
+	/// The first of a list of types that holds the value, and the suffix is what says which
+	/// list: none is <c>int</c>, <c>uint</c>, <c>long</c>, <c>ulong</c>; <c>u</c> is
+	/// <c>uint</c>, <c>ulong</c>; <c>l</c> is <c>long</c>, <c>ulong</c>; <c>ul</c> is
+	/// <c>ulong</c> alone.
+	/// </para>
+	/// <para>
+	/// The base changes nothing about it. `0xFFFFFFFF` is the <c>uint</c> 4294967295, as it
+	/// is in C#, where reading the digits as an <c>int</c>'s bits — which is what
+	/// <c>Convert.ToInt32(digits, 16)</c> does — makes it −1 without a word.
+	/// </para>
+	/// </remarks>
+	/// <param name="digits">The digits alone: no prefix, no suffix, no separator.</param>
+	/// <param name="radix">The base they are written in: 2, 10 or 16.</param>
+	/// <param name="unsigned">Whether a <c>u</c> struck the signed types off the list.</param>
+	/// <param name="wide">Whether an <c>l</c> struck the 32-bit types off the list.</param>
+	/// <exception cref="OverflowException">No type in the list holds it, which C# refuses as well (CS1021).</exception>
+	public static ConstantExpression Integer(string digits, int radix, bool unsigned, bool wide)
+	{
+		var value = radix == 10
+			? ulong.Parse(digits, NumberStyles.None, CultureInfo.InvariantCulture)
+			: Convert.ToUInt64(digits, radix);
+
+		return !unsigned && !wide && value <= int.MaxValue ? Expression.Constant((int)value)
+			: !wide && value <= uint.MaxValue              ? Expression.Constant((uint)value)
+			: !unsigned && value <= long.MaxValue          ? Expression.Constant((long)value)
+			: Expression.Constant(value);
+	}
+
 	/// <summary>
 	/// What one reading of this language works out, and <c>System.Linq.Expressions</c> has
 	/// nowhere to keep.
@@ -1595,6 +1716,9 @@ public static partial class ExpressionParser
 		/// the reason.
 		/// </remarks>
 		public string? Refused() => _unknown is { } name ? NothingNamed(name) : null;
+
+		/// <summary>Where the name <see cref="Refused"/> speaks of was written.</summary>
+		internal int RefusedAt => _unknownAt;
 
 		static string NothingNamed(string name) => $"nothing named '{name}' is declared here.";
 

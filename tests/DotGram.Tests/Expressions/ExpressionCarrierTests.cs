@@ -71,6 +71,12 @@ public sealed class ExpressionCarrierTests
 		"(int n) => { switch (n) { case 1: n = 10; break; default: n = 0; break; } n }",
 		"(int n) => { while (n < 9) { while (n < 5) { n += 2; } n += 1; } n }",
 
+		// An integer typed by its value, and the one constant read across a minus.
+		"() => 0xFFFFFFFF",
+		"() => 9223372036854775808",
+		"(int x) => -2147483648 + x",
+		"(Exception e) => e.Message.Length",
+
 		// And the refusals: a refusal is an answer and has to be the same answer.
 		"(int x) => x *",
 		"(int x) => { x += 1;",
