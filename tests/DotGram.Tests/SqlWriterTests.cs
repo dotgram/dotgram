@@ -38,6 +38,21 @@ public sealed class SqlWriterTests
 	public void A_bracket_is_written_where_precedence_needs_it(string input, string printed) =>
 		Assert.Equal(printed, SqlWriter.Write(TransactSql.ParseValueExpression(input)));
 
+	/// <summary>
+	/// A statement read as a table comes back one: a <c>MERGE</c> is written with the <c>;</c> it
+	/// is not read back without, and inside the brackets that <c>;</c> would end nothing.
+	/// </summary>
+	[Theory]
+	[InlineData("INSERT INTO t1 SELECT * FROM (MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN MATCHED THEN UPDATE SET pi.Qty = t1.Qty OUTPUT c1) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao (x) WHERE x = 1")]
+	public void A_statement_read_as_a_table_comes_back_one(string input)
+	{
+		var printed = SqlWriter.Write(TransactSql.TryParseStatement(input).Value);
+
+		Assert.DoesNotContain(";)", printed);
+		Assert.True(TransactSql.TryParseStatement(printed).IsSuccess, printed);
+	}
+
 	/// <summary>And the same for the tower of conditions.</summary>
 	[Theory]
 	[InlineData("a = 1 AND b = 2 OR c = 3",   "a = 1 AND b = 2 OR c = 3")]

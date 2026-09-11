@@ -19101,3 +19101,36 @@ and eleven index options as though they were the only names there are.
 At 150: read by both 5,862 (from 5,862), the work list 114 (from 114), read here but refused
 there 43 (from 43); `--split` 705 (from 701), the round trip 100% of 7,514. The map: read by
 both 7,970 of 8,338 (99.6%), the work list 33 (from 42), defects 0.
+
+## A statement's rows read as a table, and the empty statements after one
+
+`INSERT … SELECT … FROM (MERGE … OUTPUT …) AS c`: the published block's `<dml_table_source>`,
+and the map's three `INSERT`s that stopped at `MERGE`. A new node as agreed,
+`TableReference.Changed(Statement, Name, Columns)`, the mirror of `Derived` for a statement, so
+that the `SELECT` around it stays an ordinary `Query.Specification` and the writer, the walker
+and every check see it without being told. Put to the engine some fifty times:
+
+- **Only an `INSERT`'s rows** may be read so. A query of its own, `UPDATE … FROM`, a
+  subquery and a derived table refuse it (`Msg 10729`, `10730`, `10731`), so it is one
+  alternative of `InsertRows` and nowhere else.
+- **The query around it is bare**, as the block writes it: one table and no join or comma
+  (`Msg 10727`), no grouping, order or `TOP` (`Msg 10717`), no `DISTINCT` (`Msg 10722`), no
+  `UNION` (`Msg 10732`), no `INTO`, `FOR`, hint or sample. A condition, and the `INSERT`'s own
+  hints after it.
+- **The statement** is any of the four, with no `WITH` in front and no second bracket round
+  it, and returns its rows: an `OUTPUT`, one, sent nowhere else (`Msg 10716`), and no hints of
+  its own (`Msg 10718`) — `Syntax.Returns`.
+
+The round trip caught one thing before the commit: a `MERGE` is written with the `;` it is not
+read back without, and inside the brackets that `;` ends nothing — `(MERGE … OUTPUT c1;) AS
+ao` is refused by the engine and by ScriptDom alike. The writer leaves it off there, and a
+test in `SqlWriterTests` says so.
+
+And the two graph `INSERT`s on the map were never about graphs: both examples end `AS
+staging_data;` and a `;` on the line after, which the map cuts into one statement ending
+`;;`, and a statement took one `;`. It takes as many as a text of statements does now — the
+engine reads the empty ones.
+
+At 150: read by both 5,873 (from 5,862), the work list 103 (from 114), read here but refused
+there 43 (from 43); `--split` 707 (from 705), the round trip 100% of 7,525. The map: read by
+both 7,976 of 8,338 (99.7%), the work list 27 (from 33), defects 0.

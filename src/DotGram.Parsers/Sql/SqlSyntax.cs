@@ -2797,6 +2797,13 @@ public abstract record TableReference : ISqlSpan
 	public sealed record Derived(Query Query, bool ForPath, string? Name, string[]? Columns) : TableReference;
 
 	/// <summary>
+	/// A statement standing where a table does, its <c>OUTPUT</c> the rows it is read as: <c>INSERT
+	/// … SELECT … FROM (MERGE … OUTPUT …) AS c</c>, which only an <c>INSERT</c>'s rows may be.
+	/// </summary>
+	public sealed record Changed(Statement Statement, string Name, string[]? Columns) : TableReference;
+
+
+	/// <summary>
 	/// §7.6 a function standing where a table does — T-SQL's rowset functions, and any
 	/// table-valued function called in a <c>FROM</c> clause.
 	/// </summary>
@@ -4019,6 +4026,22 @@ public static class Syntax
 
 	static readonly string[] Unswitched   = ["ONLINE", "IGNORE_DUP_KEY", "RESUMABLE", "OPTIMIZE_FOR_SEQUENTIAL_KEY"];
 	static readonly string[] Compressions = ["NONE", "ROW", "PAGE", "COLUMNSTORE", "COLUMNSTORE_ARCHIVE"];
+
+	/// <summary>
+	/// Whether a statement standing where a table does returns its rows as one: an
+	/// <c>OUTPUT</c>, one, sent nowhere else, and no hints.
+	/// </summary>
+	/// <remarks>
+	/// Without an <c>OUTPUT</c> it returns nothing (<c>Msg 10716</c>), and <c>OUTPUT … INTO</c>
+	/// sends the rows elsewhere, which the engine answers the same; a second <c>OUTPUT</c> is
+	/// refused, and so are the statement's own hints (<c>Msg 10718</c>).
+	/// </remarks>
+	public static bool Returns(Statement? statement) =>
+		statement is
+			Statement.Delete { Output: Clause.Output { Target: null, Next: null }, Options: null } or
+			Statement.Update { Output: Clause.Output { Target: null, Next: null }, Options: null } or
+			Statement.Merge { Output: Clause.Output { Target: null, Next: null }, Options: null } or
+			Statement.Insert { Output: Clause.Output { Target: null, Next: null }, Options: null };
 
 	/// <summary>Nodes told apart by identity, which a record's own equality does not do.</summary>
 	sealed class ByReference : IEqualityComparer<ISqlSpan>

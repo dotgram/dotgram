@@ -1751,6 +1751,19 @@ public static class SqlWriter
 				Alias(text, name, columns);
 				break;
 
+			case TableReference.Changed(var changed, var name, var columns):
+				text.Append('(');
+				Put(text, changed);
+
+				// A `MERGE` is written with the `;` it is not read back without, and inside the
+				// brackets that `;` ends nothing: `(MERGE … OUTPUT c;) AS a` is refused.
+				if (text.Length > 0 && text[text.Length - 1] == ';')
+					text.Length--;
+
+				text.Append(')');
+				Alias(text, name, columns);
+				break;
+
 			case TableReference.FunctionCall(var call, var name, var columns, var schema):
 				Put(text, call, 0);
 

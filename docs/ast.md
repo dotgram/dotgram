@@ -518,6 +518,7 @@ together — flags, since a list may mix them. A variable assigned is not here: 
 | --- | --- | --- |
 | `TableReference.Named` | SQL-92 | §6.3 &lt;table reference&gt;; T-SQL adds `FOR SYSTEM_TIME` and SQL Graph's `FOR PATH` |
 | `TableReference.Derived` | SQL-92 | §6.3 &lt;derived table&gt;; T-SQL adds SQL Graph's `FOR PATH` |
+| `TableReference.Changed` | T-SQL | a statement's `OUTPUT` standing where a table does — an `INSERT`'s `<dml_table_source>` |
 | `TableReference.FunctionCall` | T-SQL | a table-valued function in a `FROM` clause, and the rowset functions |
 | `TableReference.Pivot` | T-SQL | FROM — the PIVOT clause |
 | `TableReference.Unpivot` | T-SQL | FROM — the UNPIVOT clause |

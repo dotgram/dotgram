@@ -1524,9 +1524,11 @@ SearchTop : @Expression = ',' & ?=((Sql92.Lexical.Digits | TSql.Variable) & ')')
 // One `WITH` to a statement. A query reads its own as well, so after this one the body may
 // not open with another: `WITH a AS (…) WITH b AS (…) SELECT …` is refused (156), where the
 // two are written as one list, `WITH a AS (…), b AS (…)`.
+// A statement and as many `;` after it as a text of statements takes, the engine reading the
+// empty ones: a statement cut out of a text may carry them, `… AS staging_data;\n;`.
 TSqlStatement : @Statement
-	= (with: WithClause & ?!"WITH"i)? & s: StatementBody & ';'? => @(Syntax.Preceded(with, s))
-	| c: BareCall & ';'?                                         => @(c)
+	= (with: WithClause & ?!"WITH"i)? & s: StatementBody & ';'* => @(Syntax.Preceded(with, s))
+	| c: BareCall & ';'*                                         => @(c)
 
 StatementBody : @Statement
 	= s: TSqlInsert   => @(s)
@@ -1576,8 +1578,33 @@ InsertRows : @Query
 	= "DEFAULT"i & "VALUES"i    => @(new Query.DefaultValues())
 	| v: TableValueConstructor  => @(v)
 	| e: ExecuteStatement       => @(new Query.FromExecute(e))
+	| q: ChangedSource          => @(q)
 	| q: QueryExpression & by: OrderByClause? & window: OffsetFetch? & shape: ForClause?
 		=> @(Syntax.Ordered(q, Clause.Ordered(by, window), shape))
+
+// The rows a statement returns, read as the rows to insert: `SELECT … FROM (MERGE … OUTPUT …)
+// AS c WHERE …`, which the published block calls `<dml_table_source>`. Put to the engine some
+// fifty times. It is the one place such a statement stands where a table does — a query of its
+// own, `UPDATE … FROM`, a subquery and a derived table all refuse it (`Msg 10729` to `10731`)
+// — and the query around it is as bare as the block writes it: one table, no join or comma
+// (`Msg 10727`), no grouping, order or `TOP` (`Msg 10717`), no `DISTINCT` (`Msg 10722`), no
+// `UNION` (`Msg 10732`), no `INTO`, `FOR`, hint or sample; a condition, and the `INSERT`'s own
+// hints after it. The statement is any of the four, with no `WITH` in front of it and no
+// second pair of brackets round it, and it returns its rows (`Syntax.Returns`).
+ChangedSource : @Query
+	= "SELECT"i & columns: SelectList & when @(!Syntax.HasIdentity(columns))
+	  & "FROM"i & source: ChangedTable & where: WhereClause?
+		=> @(new Query.Specification(null, null, columns, null, new TableReference[] { source }, where, null, null))
+
+ChangedTable : @TableReference
+	= '(' & s: ChangedStatement & ')' & "AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?
+		=> @(new TableReference.Changed(s, alias, columns))
+
+ChangedStatement : @Statement
+	= s: TSqlDelete & when @(Syntax.Returns(s)) => @(s)
+	| s: TSqlUpdate & when @(Syntax.Returns(s)) => @(s)
+	| s: TSqlInsert & when @(Syntax.Returns(s)) => @(s)
+	| s: TSqlMerge  & when @(Syntax.Returns(s)) => @(s)
 
 // ── §UPDATE ─────────────────────────────────────────────────────────────────
 TSqlUpdate : @Statement

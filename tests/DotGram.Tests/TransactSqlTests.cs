@@ -953,6 +953,77 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>A statement's <c>OUTPUT</c> read as the rows an <c>INSERT</c> inserts, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1 INTO @v) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1)")]
+	[InlineData("SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao JOIN t5 ON 1 = 1")]
+	[InlineData("INSERT INTO t SELECT * FROM t5, (DELETE t3 OUTPUT deleted.c1) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao GROUP BY c1")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao ORDER BY c1")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao HAVING 1 = 1")]
+	[InlineData("INSERT INTO t SELECT DISTINCT c1 FROM (DELETE t3 OUTPUT deleted.c1) AS ao")]
+	[InlineData("INSERT INTO t SELECT TOP 1 c1 FROM (DELETE t3 OUTPUT deleted.c1) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao UNION SELECT 1")]
+	[InlineData("INSERT INTO t SELECT * FROM ((DELETE t3 OUTPUT deleted.c1)) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (WITH c AS (SELECT 1 x) DELETE t3 OUTPUT deleted.c1) AS ao")]
+	[InlineData("UPDATE t SET c = 1 FROM (DELETE t3 OUTPUT deleted.c1) AS ao")]
+	[InlineData("DELETE t FROM (DELETE t3 OUTPUT deleted.c1) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (SELECT 1 x) AS d, (DELETE t3 OUTPUT deleted.c1) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao CROSS APPLY (SELECT 1 y) z")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1 OUTPUT deleted.c2) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao WITH (NOLOCK)")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao TABLESAMPLE (10 PERCENT)")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao FOR XML AUTO")]
+	[InlineData("INSERT INTO t SELECT * INTO t9 FROM (DELETE t3 OUTPUT deleted.c1) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao WHERE c1 IN (SELECT * FROM (DELETE t4 OUTPUT deleted.c1) AS b)")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1 OPTION (RECOMPILE)) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1;) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao) AS d")]
+	public void Changed_rows_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao")]
+	[InlineData("INSERT INTO t SELECT c1 FROM (UPDATE t3 SET c1 = 10 OUTPUT inserted.c1) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (INSERT INTO t2 OUTPUT inserted.c1 SELECT * FROM t4) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (MERGE INTO t2 USING t1 ON (t2.a = t1.a) WHEN MATCHED THEN DELETE OUTPUT $action) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao (x)")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao WHERE x = 1")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao WHERE x = 1 OPTION (RECOMPILE)")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao WHERE EXISTS (SELECT 1)")]
+	[InlineData("INSERT INTO t (c1) SELECT c1 FROM (DELETE t3 OUTPUT deleted.c1) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE TOP (1) t3 OUTPUT deleted.c1 WHERE c1 = 1) AS ao")]
+	[InlineData("WITH c AS (SELECT 1 x) INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao")]
+	[InlineData("INSERT INTO t SELECT ao.* FROM (DELETE t3 OUTPUT deleted.*) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (UPDATE t3 SET c1 = 1 OUTPUT inserted.c1 FROM t3 JOIN t4 ON 1 = 1) AS ao")]
+	[InlineData("INSERT t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao")]
+	[InlineData("INSERT INTO t WITH (TABLOCK) SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao")]
+	[InlineData("INSERT INTO t OUTPUT inserted.c1 SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS [ao] ([x])")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE FROM t3 OUTPUT deleted.c1 FROM t3 AS x WHERE x.c1 = 1) AS ao")]
+	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1 AS c) AS ao")]
+	[InlineData("INSERT INTO Production.ZeroInventory (DeletedProductID, RemovedOnDate) SELECT ProductID, GETDATE() FROM (MERGE Production.ProductInventory AS pi USING (SELECT ProductID, SUM(OrderQty) FROM Sales.SalesOrderDetail AS sod JOIN Sales.SalesOrderHeader AS soh ON sod.SalesOrderID = soh.SalesOrderID AND soh.OrderDate = '20070401' GROUP BY ProductID) AS src (ProductID, OrderQty) ON (pi.ProductID = src.ProductID) WHEN MATCHED AND pi.Quantity - src.OrderQty <= 0 THEN DELETE WHEN MATCHED THEN UPDATE SET pi.Quantity = pi.Quantity - src.OrderQty OUTPUT $action, deleted.ProductID) AS Changes (Action, ProductID) WHERE Action = 'DELETE'")]
+	public void Changed_rows_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>A statement takes the empty ones after it, as a text of statements does.</summary>
+	[Theory]
+	[InlineData("SELECT 1;;")]
+	[InlineData("SELECT 1; ;")]
+	[InlineData("sp_who ; ;")]
+	[InlineData("INSERT INTO likes($edge_id, $from_id, $to_id, rating) SELECT 1, 2, 3, 4 FROM OPENROWSET (BULK 'f.csv', DATA_SOURCE = 'ds', FORMATFILE = 'f.xml', FORMATFILE_DATA_SOURCE = 'fs', FIRSTROW = 2) AS staging_data;\n;")]
+	public void A_statement_takes_the_empty_ones_after_it(string input) =>
+		Assert.True(TransactSql.TryParseStatement(input).IsSuccess, input);
+
 	/// <summary>A spatial index and the list of options it reads as no other list is read, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("CREATE SPATIAL INDEX i ON t(g, h)")]
