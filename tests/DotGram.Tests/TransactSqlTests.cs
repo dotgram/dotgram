@@ -997,6 +997,67 @@ public sealed class TransactSqlTests
 	public void A_statement_not_ended_is_followed_by_a_reserved_word(string input, bool read) =>
 		Assert.Equal(read, TransactSql.TryParseSql(input).IsSuccess);
 
+	/// <summary>Where a <c>$</c> name may be written as a column, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN NOT MATCHED BY TARGET THEN INSERT (a.c1) VALUES (10)")]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN NOT MATCHED BY TARGET THEN INSERT (..c1) VALUES (10)")]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN NOT MATCHED BY TARGET THEN INSERT (a.b.c.d) VALUES (10)")]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN NOT MATCHED BY TARGET THEN INSERT (IDENTITYCOL) VALUES (10)")]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN NOT MATCHED BY TARGET THEN INSERT (t1.IDENTITYCOL) VALUES (10)")]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN NOT MATCHED BY TARGET THEN INSERT () VALUES (10)")]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN NOT MATCHED BY TARGET THEN INSERT (a.$ACTION) VALUES (10)")]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN MATCHED THEN UPDATE SET a.$ACTION = 1")]
+	[InlineData("INSERT t1 (a.$ACTION) VALUES (1)")]
+	[InlineData("INSERT dbo.f (a.$ACTION) VALUES (1)")]
+	[InlineData("INSERT t1 (t1.$node_id) VALUES (1)")]
+	[InlineData("INSERT t1 (a.b.c.$node_id) VALUES (1)")]
+	[InlineData("INSERT t1 (..$node_id) VALUES (1)")]
+	[InlineData("INSERT @v1 (a.$ACTION) VALUES (1)")]
+	[InlineData("UPDATE t1 SET a.$IDENTITY = 1")]
+	[InlineData("UPDATE t1 SET t1.$node_id = 1")]
+	[InlineData("UPDATE t1 SET [a].$IDENTITY = 1")]
+	public void Written_columns_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN NOT MATCHED BY TARGET THEN INSERT ($ACTION) VALUES (10)")]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN NOT MATCHED BY TARGET THEN INSERT ($ACTION, $CUID) VALUES (10, 1)")]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN NOT MATCHED BY TARGET THEN INSERT (c1, $ACTION) VALUES (10, 1)")]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN NOT MATCHED BY TARGET THEN INSERT ($IDENTITY, $ROWGUID) VALUES (10, 1)")]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN NOT MATCHED BY TARGET THEN INSERT ([$ACTION]) VALUES (10)")]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN NOT MATCHED BY TARGET THEN INSERT ($ACTION) DEFAULT VALUES")]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN MATCHED THEN UPDATE SET $ACTION = 1")]
+	[InlineData("INSERT t1 ($ACTION) VALUES (1)")]
+	[InlineData("INSERT t1 ($ACTION, $CUID) VALUES (1, 2)")]
+	[InlineData("INSERT t1 ($node_id) VALUES (1)")]
+	[InlineData("INSERT t1 (a.[$ACTION]) VALUES (1)")]
+	[InlineData("INSERT t1 ([a].[$node_id]) VALUES (1)")]
+	[InlineData("INSERT @v1 ($ACTION) VALUES (1)")]
+	[InlineData("INSERT dbo.f (1) VALUES (1)")]
+	[InlineData("SELECT $ACTION FROM t1")]
+	[InlineData("SELECT $IDENTITY, $ROWGUID FROM t1")]
+	[InlineData("SELECT t1.$node_id FROM t1")]
+	[InlineData("SELECT dbo.t1.$node_id FROM t1")]
+	[InlineData("SELECT a.$IDENTITY FROM t1 AS a")]
+	[InlineData("SELECT dbo.f (a.$ACTION) FROM t1")]
+	[InlineData("SELECT * FROM t1 WHERE t1.$node_id = 1")]
+	[InlineData("UPDATE t1 SET $IDENTITY = 1")]
+	[InlineData("UPDATE t1 SET $node_id = 1")]
+	[InlineData("UPDATE t1 SET a.[$IDENTITY] = 1")]
+	[InlineData("UPDATE t1 SET t1.c1 = 1")]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN MATCHED THEN DELETE OUTPUT $ACTION")]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN MATCHED THEN DELETE OUTPUT a.$ACTION")]
+	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN MATCHED THEN DELETE OUTPUT INSERTED.$node_id")]
+	[InlineData("DELETE t1 OUTPUT DELETED.$node_id")]
+	[InlineData("INSERT t1 (c1) OUTPUT INSERTED.$node_id VALUES (1)")]
+	public void Written_columns_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What a statement writes to among the rowset functions, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("INSERT OPENROWSET (something, @var1) DEFAULT VALUES")]

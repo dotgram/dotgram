@@ -24,7 +24,7 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 99.7% | 7982 | 21 | 0 | 4 | 85 | 250 | 0 |
+| **all** | 996 | 8338 | 99.8% | 7983 | 20 | 0 | 4 | 85 | 250 | 0 |
 | [data-types](#data-types) | 29 | 304 | 100.0% | 291 | 0 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 99.2% | 234 | 2 | 0 | 0 | 1 | 5 | 0 |
 | [functions](#functions) | 324 | 2101 | 100.0% | 2082 | 0 | 0 | 3 | 2 | 17 | 0 |
@@ -34,7 +34,7 @@ rest run rather than read.
 | [reference](#reference) | 3 | 32 | 100.0% | 32 | 0 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 100.0% | 311 | 0 | 0 | 0 | 0 | 1 | 0 |
 | [spatial-geometry](#spatial-geometry) | 74 | 357 | 100.0% | 357 | 0 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 99.7% | 2900 | 8 | 0 | 1 | 81 | 174 | 0 |
+| [statements](#statements) | 320 | 3163 | 99.8% | 2901 | 7 | 0 | 1 | 81 | 174 | 0 |
 | [xml](#xml) | 12 | 205 | 100.0% | 201 | 0 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
@@ -48,7 +48,6 @@ rest run rather than read.
 | SELECT | 2 | 2 | stops at DIAGNOSTICS — `-- Determine the session_id of your current session SELECT TOP 1 session_id();  -- ...` |
 | ALTER TABLE | 1 | 1 | stops at WITH — `ALTER TABLE dbo.doc_exf ADD AddDate smalldatetime NULL CONSTRAINT AddDateDflt DEFAU...` |
 | CREATE DATABASE SCOPED | 1 | 1 | stops at ')' — `CREATE DATABASE SCOPED CREDENTIAL AccessAzureInvoices WITH IDENTITY = 'SHARED ACCES...` |
-| CREATE OR | 1 | 1 | stops at '$' — `CREATE OR ALTER PROCEDURE mergeEdge @PersonId integer, @CityId integer, @StreetAddr...` |
 | CREATE TABLE | 1 | 1 | stops at ''' — `CREATE TABLE #temptable (col1 int);  INSERT INTO #temptable VALUES (10);  SELECT co...` |
 | DECLARE | 1 | 1 | stops at ',' — `DECLARE @p POINT (32, 23), @distance FLOAT;` |
 | INSERT | 1 | 1 | stops at WITH — `INSERT INTO loan_applications (c1, c2, c3, c4, score) SELECT d.c1, d.c2, d.c3, d.c4...` |
@@ -777,7 +776,6 @@ None: the engine reads every statement this grammar reads.
 | CREATE REMOTE TABLE AS SELECT (Parallel Data Warehouse) | 3 | 50.0% | 1 | 0 | 0 | 0 | stops at TABLE — `USE ssawPDW; CREATE REMOTE TABLE OrderReporting.Orders.MyOrdersTable AT ( 'Data Sou...` |
 | CREATE TABLE AS SELECT (Azure Synapse Analytics and Microsoft Fabric) | 53 | 100.0% | 0 | 0 | 1 | 12 | levels 100 engine, 110 engine, 120 engine — `INSERT INTO Users (id, name, age, street, city) SELECT id, name, age, JSON_VALUE(ad...` |
 | DROP TABLE (Transact-SQL) | 6 | 83.3% | 1 | 0 | 0 | 0 | stops at ''' — `CREATE TABLE #temptable (col1 int);  INSERT INTO #temptable VALUES (10);  SELECT co...` |
-| MERGE (Transact-SQL) | 54 | 98.0% | 1 | 0 | 0 | 0 | stops at '$' — `CREATE OR ALTER PROCEDURE mergeEdge @PersonId integer, @CityId integer, @StreetAddr...` |
 | ADD SENSITIVITY CLASSIFICATION (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ADD SIGNATURE (Transact-SQL) | 41 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER APPLICATION ROLE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -1023,6 +1021,7 @@ None: the engine reads every statement this grammar reads.
 | GRANT XML Schema Collection Permissions | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | INSERT (SQL Graph) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | INSERT (Transact-SQL) | 73 | 100.0% | 0 | 0 | 0 | 0 |  |
+| MERGE (Transact-SQL) | 54 | 100.0% | 0 | 0 | 0 | 0 |  |
 | MOVE CONVERSATION (Transact-SQL) | 1 | — | 0 | 0 | 0 | 0 |  |
 | OPEN MASTER KEY (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OPEN SYMMETRIC KEY (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |

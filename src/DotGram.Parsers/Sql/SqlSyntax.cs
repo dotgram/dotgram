@@ -4048,6 +4048,62 @@ public static class Syntax
 			Statement.Merge { Output: Clause.Output { Target: null, Next: null }, Options: null } or
 			Statement.Insert { Output: Clause.Output { Target: null, Next: null }, Options: null };
 
+	/// <summary>
+	/// Whether a call read where an insert's column list stands names its columns as an insert
+	/// may: a <c>$</c> name alone, never under a prefix.
+	/// </summary>
+	/// <remarks>
+	/// <c>INSERT t1 (a.$ACTION) VALUES (1)</c> is <c>Msg 102</c>, and so is the same list after a
+	/// function — the engine refuses the shape wherever the target came from. The brackets are
+	/// read as arguments here, one reading having failed, so the question is put to them; as a
+	/// value the name is ordinary, and <c>SELECT dbo.f (a.$ACTION)</c> is read.
+	/// </remarks>
+	public static bool Written(TableReference? target) =>
+		target is not TableReference.FunctionCall { Function.Arguments: var arguments } ||
+		Array.TrueForAll(arguments, static one => one is not Expression.ColumnReference(var text) || Written(text));
+
+	/// <summary>Whether a name written as a column carries no <c>$</c> part under a prefix.</summary>
+	static bool Written(string text)
+	{
+		var part  = true;
+		var first = true;
+
+		for (var i = 0; i < text.Length; i++)
+		{
+			var c = text[i];
+
+			if (c is '[')
+			{
+				while (++i < text.Length && text[i] is not ']') { }
+
+				part = false;
+				continue;
+			}
+
+			if (c is '"')
+			{
+				while (++i < text.Length && text[i] is not '"') { }
+
+				part = false;
+				continue;
+			}
+
+			if (c is '.')
+			{
+				part  = true;
+				first = false;
+				continue;
+			}
+
+			if (part && c is '$' && !first)
+				return false;
+
+			part = false;
+		}
+
+		return true;
+	}
+
 	/// <summary>Whether every column of a table's body has a type, or a value it is computed from.</summary>
 	/// <remarks>Asked of a result set, which unlike a table may not leave a type out (<c>Msg 102</c>).</remarks>
 	public static bool Typed(Clause[]? body) =>

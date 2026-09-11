@@ -1612,7 +1612,7 @@ TSqlInsert : @Statement
 	  & ('(' & columns: InsertColumns & ')')? & output: OutputClause?
 	  & rows: InsertRows & options: QueryHints? & when @(options is null || rows is not Query.FromExecute)
 		=> @(new Statement.Insert(target, columns, rows, null, top, output, into is not null) { Options = options })
-	| "INSERT"i & top: Top? & into: "INTO"i? & target: DmlCall
+	| "INSERT"i & top: Top? & into: "INTO"i? & target: DmlCall & when @(Syntax.Written(target))
 	  & ('(' & columns: InsertColumns & ')')? & output: OutputClause?
 	  & rows: InsertRows & options: QueryHints? & when @(options is null || rows is not Query.FromExecute)
 		=> @(new Statement.Insert(target, columns, rows, null, top, output, into is not null) { Options = options })
@@ -1624,7 +1624,7 @@ TSqlInsert : @Statement
 // call, which the engine does not do.
 InsertColumns : @string[] = first: InsertColumn & (',' & rest: InsertColumn)* => @(Syntax.Named(first, rest))
 
-InsertColumn : @string = t: QualifiedName => @(t)
+InsertColumn : @string = t: WrittenColumn => @(t)
 
 InsertRows : @Query
 	= "DEFAULT"i & "VALUES"i    => @(new Query.DefaultValues())
@@ -1674,7 +1674,19 @@ Assignments : @Clause[]
 // already eaten the dot, so what is left is a call.
 Assignment : @Clause
 	= to: TSql.Variable   & s: UpdateVariableTail => @(s with { Target = to })
-	| to: QualifiedName   & s: ColumnAssignTail   => @(s with { Target = to })
+	| to: WrittenColumn   & s: ColumnAssignTail   => @(s with { Target = to })
+
+// The name of a column being written to, which is narrower than the name of one being read.
+// A `$` name stands alone there and carries no prefix: `INSERT t1 ($node_id)` and `UPDATE t1
+// SET $IDENTITY = 1` are read, `INSERT t1 (a.$ACTION)`, `INSERT t1 (t1.$node_id)`, `UPDATE t1
+// SET [a].$IDENTITY = 1` and `..$node_id` are all `Msg 102`. Delimited it is an ordinary name
+// and takes one as it likes — `a.[$ACTION]` is read — and as a value it is ordinary too,
+// `SELECT t1.$node_id` and `OUTPUT INSERTED.$node_id` being read where these are not. So the
+// parts under a prefix are identifiers and the gaps between them, `..a1` and `a..b` included.
+WrittenColumn = PartitionName | WrittenName
+
+WrittenName     = Identifier & WrittenNamePart* | WrittenNamePart+
+WrittenNamePart = '.' & (Identifier | ?='.')
 
 // `DEFAULT` is assigned and not compounded: the engine answers `DEFAULT is not allowed
 // on the right hand side of "-="`, which is a rule about the operator rather than about
@@ -1756,9 +1768,18 @@ MergeChange : @Statement
 	| "DELETE"i
 		=> @(new Statement.Delete(null, TableReference.None, null))
 
+// The columns a merge inserts into, which are the standard's plain names and a `$` name
+// besides: `INSERT ($ACTION, $CUID) VALUES (10)` is read, and so is `$IDENTITY`. Not the
+// insert's own list, which reads a name with parts — here a part is `Msg 10739`, `a.c1`,
+// `..c1` and `a.b.c.d` alike — and not a run of names either, since `IDENTITYCOL` is
+// `Msg 156` where `[$ACTION]` is read as the ordinary name it is.
 MergeInsert : @Statement
-	= "INSERT"i & ('(' & columns: ColumnList & ')')? & rows: MergeInsertRows
+	= "INSERT"i & ('(' & columns: MergeColumns & ')')? & rows: MergeInsertRows
 		=> @(new Statement.Insert(null, columns, rows))
+
+MergeColumns : @string[] = first: MergeColumn & (',' & rest: MergeColumn)* => @(Syntax.Named(first, rest))
+
+MergeColumn : @string = t: (Identifier | PartitionName) => @(t)
 
 MergeInsertRows : @Query
 	= "DEFAULT"i & "VALUES"i   => @(new Query.DefaultValues())

@@ -19348,3 +19348,46 @@ tool and the engine is the authority, so the two files stay refused.
 At 150: read by both 5,918 (from 5,912), the work list 58 (from 64), read here but refused
 there 31 (from 35); `--split` 728 (from 728), the round trip 100% of 7,550. The map: read by
 both 7,982 of 8,338 (99.7%), the work list 21, defects 0.
+
+## Where a `$` name may be written as a column
+
+The corpus's `$ACTION` work, and what following it turned up: a defect the last piece had
+made, four more beside it, and the largest entry on the work list closing as no work at all.
+
+- **A merge's insert list takes a `$` name**: `WHEN NOT MATCHED THEN INSERT ($ACTION, $CUID)
+  VALUES (10)` is read, and `$IDENTITY` and `$ROWGUID` with it. That list is not the insert's
+  own — a part under a prefix is `Msg 10739` there, `a.c1`, `..c1` and `a.b.c.d` alike — and
+  not a run of words either, `IDENTITYCOL` being `Msg 156` where `[$ACTION]` is the ordinary
+  name it looks like. So it has a rule of its own.
+- **A `$` name carries no prefix where a column is written to.** The engine reads `INSERT t1
+  ($node_id)` and `UPDATE t1 SET $IDENTITY = 1`, and refuses `INSERT t1 (a.$ACTION)`, `INSERT
+  t1 (t1.$node_id)`, `INSERT t1 (..$node_id)`, `UPDATE t1 SET a.$IDENTITY = 1` and `UPDATE t1
+  SET [a].$IDENTITY = 1` — every one `Msg 102`, and this read all of them. Delimited it is an
+  ordinary name and takes a prefix as any does, `a.[$ACTION]`, which is read.
+- **As a value the same name is ordinary**, and that is the line: `SELECT t1.$node_id`,
+  `SELECT dbo.t1.$node_id`, `OUTPUT INSERTED.$node_id`, `OUTPUT a.$ACTION` and even `SELECT
+  dbo.f (a.$ACTION)` are all read. The narrowing belongs to the written positions and nowhere
+  else, so it is one rule used by the insert's list and by a `SET`, and `Arguments` is left
+  alone.
+- **One of those defects was the last piece's own.** Reading an insert's columns as qualified
+  names let `a.$ACTION` in; the list had been plain identifiers before, which could not spell
+  it. Worth saying plainly: the fix for one family made a defect in another, and the theory
+  that catches it is here.
+- **A call read where a column list stands is held to the same rule.** `INSERT t1 (a.$ACTION)
+  VALUES (1)` survived the narrowed list by being read as a function call instead — the second
+  reading the insert has always had — and the engine refuses that shape whatever the target,
+  `INSERT dbo.f (a.$ACTION)` included. So the call reading asks the same question of its
+  arguments.
+- **And the work list's largest entry is not work.** All nine of its statements are
+  `PREDICT(… RUNTIME = ONNX) WITH (…)`, which the engine refuses (`Msg 102`) once the
+  variables it names are declared; they count as read only because an undeclared `@model`
+  answers `Msg 137` first, the same artefact as before. Nothing to write.
+
+The defect count does not move, and that is worth saying rather than leaving to look like an
+oversight: not one of those five shapes is in the corpus. They were found by asking the
+engine about the neighbourhood of a statement that is, which is the only way a defect nobody
+has written down gets found at all. What the corpus shows is the work list and the split.
+
+At 150: read by both 5,920 (from 5,918), the work list 56 (from 58), read here but refused
+there 31 (from 31); `--split` 730 (from 728), the round trip 100% of 7,552. The map: read by
+both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
