@@ -18816,3 +18816,27 @@ apart; `RECEIVE`'s columns are a rule of their own rather than the select list a
 At 150: read by both 5,848 (from 5,844), the work list 128 (from 132), read here but refused
 there 43; `--split` 644 (from 618), the round trip 100% of 7,139. The map: read by both 7,702
 of 8,338 (96.2%), the work list 301 (from 381), defects 0.
+
+## The server's configuration
+
+`ALTER RESOURCE GOVERNOR` and `ALTER SERVER CONFIGURATION`, 43 statements of the map's work
+list. Both name nothing and change the server, and both are kept as every object here is —
+`AlterResourceGovernor` and `AlterServerConfiguration`, a `Definition` with no name and the
+words after the phrase as its tail, in `Admin`. Put to the engine some hundred and fifty times.
+
+- **The governor** is reconfigured, disabled, has its statistics reset, or is given one setting
+  in brackets — two are refused, whichever comes first — and any of the four may be followed
+  by `RECONFIGURE`, where `RECONFIGURE RESET STATISTICS` may not. Its classifier is a function
+  named by exactly two parts, or `NULL`: `f` and `db.dbo.f` are refused. Its I/O limit is a
+  number, `1.5` among them, neither negative nor with an exponent, or `DEFAULT`.
+- **The configuration** is one setting after `SET` and no more. Processors are whole numbers
+  and ranges of them, `3 TO 1` too, and `AUTO` for processors only; a log's size is in
+  megabytes and nothing else; a cluster's properties are the seven the block names, the path
+  and the connection options a string and the other five a number; a buffer pool's extension
+  says its file and then its size in a unit, `TB` refused; `SOFTNUMA` takes its `ON` bare.
+  `HARDWARE_OFFLOAD` is in the block and the engine refuses it outright (`Msg 156`), so it is
+  not read.
+
+At 150: read by both 5,848 (from 5,848), the work list 128 (from 128), read here but refused
+there 43; `--split` 650 (from 644), the round trip 100% of 7,209. The map: read by both 7,745
+of 8,338 (96.8%), the work list 258 (from 301), defects 0.

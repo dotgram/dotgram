@@ -24,17 +24,17 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 96.2% | 7702 | 301 | 0 | 4 | 85 | 250 | 0 |
+| **all** | 996 | 8338 | 96.8% | 7745 | 258 | 0 | 4 | 85 | 250 | 0 |
 | [data-types](#data-types) | 29 | 304 | 99.7% | 290 | 1 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 98.7% | 233 | 3 | 0 | 0 | 1 | 5 | 0 |
 | [functions](#functions) | 324 | 2101 | 98.1% | 2042 | 40 | 0 | 3 | 2 | 17 | 0 |
-| [includes](#includes) | 3 | 7 | 57.1% | 4 | 3 | 0 | 0 | 0 | 0 | 0 |
+| [includes](#includes) | 3 | 7 | 100.0% | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
 | [language-elements](#language-elements) | 86 | 868 | 97.7% | 834 | 20 | 0 | 0 | 0 | 14 | 0 |
 | [queries](#queries) | 37 | 747 | 97.4% | 705 | 19 | 0 | 0 | 1 | 22 | 0 |
 | [reference](#reference) | 3 | 32 | 96.9% | 31 | 1 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 99.4% | 309 | 2 | 0 | 0 | 0 | 1 | 0 |
 | [spatial-geometry](#spatial-geometry) | 74 | 357 | 99.4% | 355 | 2 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 93.5% | 2719 | 189 | 0 | 1 | 81 | 174 | 0 |
+| [statements](#statements) | 320 | 3163 | 94.9% | 2759 | 149 | 0 | 1 | 81 | 174 | 0 |
 | [xml](#xml) | 12 | 205 | 89.6% | 180 | 21 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
@@ -42,10 +42,8 @@ rest run rather than read.
 | Statement | statements | pages | for example |
 | --- | ---: | ---: | --- |
 | SET | 28 | 7 | stops at '.' — `SET @p.X = @p.X + 1.1;` |
-| ALTER RESOURCE GOVERNOR | 25 | 11 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | OPEN | 21 | 11 | stops at KEY — `OPEN SYMMETRIC KEY SSN_Key_01 DECRYPTION BY CERTIFICATE HumanResources037;` |
 | SELECT | 19 | 10 | stops at '*' — `SELECT BINARY_CHECKSUM(*) from myTable;` |
-| ALTER SERVER CONFIGURATION | 18 | 1 | stops at CONFIGURATION — `ALTER SERVER CONFIGURATION SET PROCESS AFFINITY CPU=0 TO 63, 128 TO 191;` |
 | CREATE PARTITION FUNCTION | 13 | 5 | stops at PARTITION — `CREATE PARTITION FUNCTION RangePF1(INT) AS RANGE LEFT FOR VALUES (10, 100, 1000);` |
 | CLOSE | 11 | 7 | stops at KEY — `CLOSE SYMMETRIC KEY SSN_Key_02;` |
 | CREATE SEQUENCE | 11 | 3 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
@@ -513,9 +511,9 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| docs/t-sql/includes/alter-workload-group.md | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
-| docs/t-sql/includes/drop-workload-group.md | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
+| docs/t-sql/includes/alter-workload-group.md | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | docs/t-sql/includes/create-workload-group.md | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
+| docs/t-sql/includes/drop-workload-group.md | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 
 ## language-elements
 
@@ -818,9 +816,7 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| ALTER SERVER CONFIGURATION (Transact-SQL) | 20 | 5.0% | 19 | 0 | 0 | 0 | stops at CONFIGURATION — `ALTER SERVER CONFIGURATION SET PROCESS AFFINITY CPU=0 TO 63, 128 TO 191;` |
 | CREATE PARTITION SCHEME (Transact-SQL) | 10 | 0.0% | 10 | 0 | 0 | 0 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1(INT) AS RANGE LEFT FOR VALUES (1, 100, 1000);` |
-| ALTER RESOURCE GOVERNOR (Transact-SQL) | 9 | 22.2% | 7 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | CREATE SEQUENCE (Transact-SQL) | 12 | 41.7% | 7 | 0 | 0 | 0 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
 | CREATE SPATIAL INDEX (Transact-SQL) | 9 | 22.2% | 7 | 0 | 0 | 0 | stops at SPATIAL — `CREATE SPATIAL INDEX SIndx_SpatialTable_geometry_col1 ON SpatialTable(geometry_col)...` |
 | ADD SIGNATURE (Transact-SQL) | 41 | 87.8% | 5 | 0 | 0 | 0 | stops at ADD — `ADD SIGNATURE TO HumanResources.uspUpdateEmployeeLogin BY CERTIFICATE HumanResource...` |
@@ -831,7 +827,6 @@ None: the engine reads every statement this grammar reads.
 | CREATE XML SCHEMA COLLECTION (Transact-SQL) | 18 | 72.2% | 5 | 0 | 0 | 0 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION ManuInstructionsSchemaCollection AS N'<?xml version="1...` |
 | ENABLE TRIGGER (Transact-SQL) | 6 | 16.7% | 5 | 0 | 0 | 0 | stops at DISABLE — `DISABLE TRIGGER Person.uAddress ON Person.Address;` |
 | ALTER PARTITION FUNCTION (Transact-SQL) | 6 | 33.3% | 4 | 0 | 0 | 0 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1 (int) AS RANGE LEFT FOR VALUES ( 1, 100, 1000 );` |
-| ALTER WORKLOAD GROUP (Transact-SQL) | 10 | 55.6% | 4 | 0 | 0 | 1 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | CREATE PARTITION FUNCTION (Transact-SQL) | 14 | 71.4% | 4 | 0 | 0 | 0 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1 (int) AS RANGE LEFT FOR VALUES (1, 100, 1000);` |
 | ALTER ASSEMBLY (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at ASSEMBLY — `ALTER ASSEMBLY ComplexNumber FROM 'C:\Program Files\Microsoft SQL Server\130\Tools\...` |
 | ALTER CRYPTOGRAPHIC PROVIDER (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at CRYPTOGRAPHIC — `ALTER CRYPTOGRAPHIC PROVIDER SecurityProvider DISABLE;` |
@@ -845,8 +840,6 @@ None: the engine reads every statement this grammar reads.
 | TRUNCATE TABLE (Transact-SQL) | 14 | 78.6% | 3 | 0 | 0 | 0 | stops at TRUNCATE — `TRUNCATE TABLE HumanResources.JobCandidate;` |
 | ADD SENSITIVITY CLASSIFICATION (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at ADD — `ADD SENSITIVITY CLASSIFICATION TO dbo.sales.price, dbo.sales.discount WITH ( LABEL ...` |
 | ALTER AVAILABILITY GROUP (Transact-SQL) | 3 | 0.0% | 2 | 0 | 0 | 0 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP AccountsAG JOIN;` |
-| ALTER EXTERNAL RESOURCE POOL (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
-| ALTER RESOURCE POOL (Transact-SQL) | 5 | 60.0% | 2 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | ALTER SYMMETRIC KEY (Transact-SQL) | 5 | 60.0% | 2 | 0 | 0 | 0 | stops at KEY — `OPEN SYMMETRIC KEY JanainaKey043 DECRYPTION BY CERTIFICATE Shipping04 WITH PASSWORD...` |
 | ALTER TABLE (Transact-SQL) | 141 | 98.4% | 2 | 0 | 0 | 4 | stops at WITH — `ALTER TABLE dbo.doc_exf ADD AddDate smalldatetime NULL CONSTRAINT AddDateDflt DEFAU...` |
 | BACKUP MASTER KEY (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at KEY — `OPEN MASTER KEY DECRYPTION BY PASSWORD = 'sfj5300osdVdgwdfkli7';` |
@@ -857,15 +850,14 @@ None: the engine reads every statement this grammar reads.
 | CREATE DATABASE (Transact-SQL) | 54 | 94.9% | 2 | 0 | 0 | 6 | stops at SP_DETACH_DB — `sp_detach_db Archive;` |
 | CREATE DEFAULT (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at DEFAULT — `CREATE DEFAULT phonedflt AS 'unknown';` |
 | CREATE EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at LANGUAGE — `CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaex...` |
-| CREATE EXTERNAL RESOURCE POOL (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | CREATE TABLE (Transact-SQL) | 69 | 96.3% | 2 | 0 | 0 | 1 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1(INT) AS RANGE LEFT FOR VALUES (1, 100, 1000);` |
-| DROP WORKLOAD GROUP (Transact-SQL) | 5 | 60.0% | 2 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | END CONVERSATION (Transact-SQL) | 6 | 66.7% | 2 | 0 | 0 | 0 | stops at '@' — `@dialog_handle ;` |
 | MERGE (Transact-SQL) | 54 | 96.0% | 2 | 0 | 0 | 0 | stops at MERGE — `INSERT INTO Production.UpdatedInventory SELECT ProductID, LocationID, NewQty, Previ...` |
 | ALTER ASYMMETRIC KEY (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at KEY — `OPEN MASTER KEY DECRYPTION BY PASSWORD = '<database master key password>';` |
 | ALTER EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at LANGUAGE — `ALTER EXTERNAL LANGUAGE Java SET (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaexte...` |
 | ALTER PARTITION SCHEME (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at PARTITION — `ALTER PARTITION SCHEME MyRangePS1 NEXT USED test5fg;` |
 | ALTER SCHEMA (Transact-SQL) | 10 | 90.0% | 1 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE Production.TestType FROM [VARCHAR](10) NOT NULL ;` |
+| ALTER SERVER CONFIGURATION (Transact-SQL) | 20 | 95.0% | 1 | 0 | 0 | 0 | stops at RECONFIGURE — `RECONFIGURE;` |
 | ALTER SERVICE MASTER KEY (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at KEY — `ALTER SERVICE MASTER KEY REGENERATE;` |
 | BACKUP CERTIFICATE (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at ALGORITHM — `BACKUP CERTIFICATE Shipping04 TO FILE = 'c:\storedcerts\shipping04cert.pfx' WITH FO...` |
 | CREATE AVAILABILITY GROUP (Transact-SQL) | 2 | 0.0% | 1 | 0 | 0 | 0 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP [MyAg] ADD LISTENER 'MyAgListenerIvP6' ( WITH IP ( ('2001:...` |
@@ -875,13 +867,10 @@ None: the engine reads every statement this grammar reads.
 | CREATE FUNCTION (Transact-SQL) | 12 | 91.7% | 1 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY [SurrogateStringFunction] FROM @SamplesPath + 'StringManipulate\CS\...` |
 | CREATE MESSAGE TYPE (Transact-SQL) | 5 | 80.0% | 1 | 0 | 0 | 0 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION ExpenseReportSchema AS N'<?xml version="1.0" encoding=...` |
 | CREATE REMOTE TABLE AS SELECT (Parallel Data Warehouse) | 3 | 50.0% | 1 | 0 | 0 | 0 | stops at TABLE — `USE ssawPDW; CREATE REMOTE TABLE OrderReporting.Orders.MyOrdersTable AT ( 'Data Sou...` |
-| CREATE RESOURCE POOL (Transact-SQL) | 5 | 80.0% | 1 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | CREATE TABLE AS SELECT (Azure Synapse Analytics and Microsoft Fabric) | 53 | 100.0% | 0 | 0 | 1 | 12 | levels 100 engine, 110 engine, 120 engine — `INSERT INTO Users (id, name, age, street, city) SELECT id, name, age, JSON_VALUE(ad...` |
 | CREATE XML INDEX (Selective XML Indexes) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at '(' — `CREATE XML INDEX filt_sxi_index_c ON Tbl(xmlcol) USING XML INDEX sxi_index FOR ( pa...` |
 | DELETE (Transact-SQL) | 35 | 97.1% | 1 | 0 | 0 | 0 | stops at '.' — `DELETE FROM OPENDATASOURCE('SQLNCLI', 'Data Source= <server_name>; Integrated Secur...` |
 | DROP EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at LANGUAGE — `CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaex...` |
-| DROP EXTERNAL RESOURCE POOL (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
-| DROP RESOURCE POOL (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | DROP SYMMETRIC KEY (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at KEY — `CLOSE SYMMETRIC KEY GailSammamishKey6;` |
 | DROP SYNONYM (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at SYNONYM — `CREATE SYNONYM MyProduct FOR AdventureWorks2022.Production.Product;` |
 | DROP TABLE (Transact-SQL) | 6 | 83.3% | 1 | 0 | 0 | 0 | stops at ''' — `CREATE TABLE #temptable (col1 int);  INSERT INTO #temptable VALUES (10);  SELECT co...` |
@@ -906,6 +895,7 @@ None: the engine reads every statement this grammar reads.
 | ALTER EVENT SESSION (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER EXTERNAL DATA SOURCE (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 1 |  |
 | ALTER EXTERNAL LIBRARY (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER EXTERNAL RESOURCE POOL (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER FULLTEXT CATALOG (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER FULLTEXT INDEX (Transact-SQL) | 14 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER FULLTEXT STOPLIST (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -918,6 +908,8 @@ None: the engine reads every statement this grammar reads.
 | ALTER PROCEDURE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER QUEUE (Transact-SQL) | 8 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER REMOTE SERVICE BINDING (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER RESOURCE GOVERNOR (Transact-SQL) | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER RESOURCE POOL (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER ROLE (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER ROUTE (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SEARCH PROPERTY LIST (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -930,6 +922,7 @@ None: the engine reads every statement this grammar reads.
 | ALTER TRIGGER (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER USER (Transact-SQL) | 19 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER VIEW (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER WORKLOAD GROUP (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 1 |  |
 | BACKUP SERVICE MASTER KEY (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BACKUP SYMMETRIC KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BACKUP (Transact-SQL) | 29 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -954,6 +947,7 @@ None: the engine reads every statement this grammar reads.
 | CREATE EVENT SESSION (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE EXTERNAL FILE FORMAT (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 2 |  |
 | CREATE EXTERNAL LIBRARY (Transact-SQL) - SQL Server | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE EXTERNAL RESOURCE POOL (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE EXTERNAL TABLE AS SELECT (CETAS) (Transact-SQL) | 49 | 100.0% | 0 | 0 | 0 | 10 |  |
 | CREATE EXTERNAL TABLE (Transact-SQL) | 43 | 100.0% | 0 | 0 | 0 | 7 |  |
 | CREATE FULLTEXT CATALOG (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -966,6 +960,7 @@ None: the engine reads every statement this grammar reads.
 | CREATE MATERIALIZED VIEW AS SELECT (Transact-SQL) creates a materialized view to persist the data returned from the view definition query and automatically gets updated as data changes in the underlying tables. | 18 | 100.0% | 0 | 0 | 0 | 2 |  |
 | CREATE QUEUE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE REMOTE SERVICE BINDING (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE RESOURCE POOL (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE ROLE (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE ROUTE (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SCHEMA (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -1022,6 +1017,7 @@ None: the engine reads every statement this grammar reads.
 | DROP EXTERNAL DATA SOURCE (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP EXTERNAL FILE FORMAT (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP EXTERNAL LIBRARY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DROP EXTERNAL RESOURCE POOL (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP EXTERNAL TABLE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP FULLTEXT INDEX (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP FULLTEXT STOPLIST (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -1036,6 +1032,7 @@ None: the engine reads every statement this grammar reads.
 | DROP PROCEDURE (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP QUEUE (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP REMOTE SERVICE BINDING (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DROP RESOURCE POOL (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP ROLE (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP ROUTE (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP RULE (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -1055,6 +1052,7 @@ None: the engine reads every statement this grammar reads.
 | DROP USER (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP VIEW (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP WORKLOAD Classifier (Transact-SQL) | 1 | — | 0 | 0 | 0 | 1 |  |
+| DROP WORKLOAD GROUP (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP XML SCHEMA COLLECTION (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EXECUTE AS Clause (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EXECUTE AS (Transact-SQL) | 21 | 100.0% | 0 | 0 | 0 | 0 |  |

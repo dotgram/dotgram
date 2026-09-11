@@ -252,6 +252,8 @@ compile, and a test reads this column against every record.
 | `Statement.RouteDefinition` | T-SQL | CREATE, ALTER ROUTE | Ddl |
 | `Statement.RemoteServiceBindingDefinition` | T-SQL | CREATE, ALTER REMOTE SERVICE BINDING | Ddl |
 | `Statement.BrokerPriorityDefinition` | T-SQL | CREATE, ALTER BROKER PRIORITY | Ddl |
+| `Statement.AlterResourceGovernor` | T-SQL | ALTER RESOURCE GOVERNOR | Admin |
+| `Statement.AlterServerConfiguration` | T-SQL | ALTER SERVER CONFIGURATION | Admin |
 | `Statement.EndpointDefinition` | T-SQL | CREATE/ALTER ENDPOINT | Ddl |
 | `Statement.CreateDatabase` | T-SQL | CREATE DATABASE — the standard has no database | Ddl |
 | `Statement.AlterDatabaseSet` | T-SQL | ALTER DATABASE … SET | Ddl |

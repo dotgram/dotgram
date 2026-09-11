@@ -1707,6 +1707,7 @@ DefinitionStatement : @Statement
 	| s: PrincipalStatement      => @(s)
 	| s: ExternalStatement       => @(s)
 	| s: BrokerStatement         => @(s)
+	| s: ServerStatement         => @(s)
 
 // ── A text of statements ────────────────────────────────────────────────────
 //
@@ -1809,6 +1810,68 @@ DeclaredAs : @Clause.VariableDeclaration
 	= "TABLE"i & '(' & body: TableBody & ')'              => @(new Clause.VariableDeclaration("", "TABLE", null, body))
 	| "CURSOR"i                                           => @(new Clause.VariableDeclaration("", "CURSOR", null))
 	| type: DataType & n: NullSpec? & ('=' & v: SetValue)? => @(new Clause.VariableDeclaration("", type, v, null, n))
+
+// ── The server's configuration ──────────────────────────────────────────────
+//
+// Two statements that name nothing and change the server, put to the engine some hundred and
+// fifty times. Kept as every object is, the words after the phrase as its tail.
+//
+// The governor is reconfigured, disabled, has its statistics reset, or is given one setting in
+// brackets — two are refused, in either order — and any of those may be followed by
+// `RECONFIGURE`; `RECONFIGURE RESET STATISTICS` may not. Its classifier is a function named
+// by two parts exactly, or `NULL`; its I/O limit a number neither negative nor approximate, or
+// `DEFAULT`.
+//
+// The configuration is one setting after `SET`, as its block writes it, and no more: an
+// affinity's processors are whole numbers and ranges of them, `AUTO` for processors only; a
+// log's size is in megabytes; a cluster's properties are the seven the block names, the path
+// and the connection options a string and the rest a number; a buffer pool's extension says
+// its file and then its size, in a unit. `HARDWARE_OFFLOAD` is refused by the engine on this
+// server, the block's syntax notwithstanding, and is not read.
+ServerStatement : @Statement
+	= "ALTER"i & "RESOURCE"i & "GOVERNOR"i & tail: (GovernorAction & "RECONFIGURE"i?)
+		=> @(Statement.Defined("ALTER RESOURCE GOVERNOR", "", Syntax.Tail(tail)))
+	| "ALTER"i & "SERVER"i & "CONFIGURATION"i & tail: ("SET"i & ServerSetting)
+		=> @(Statement.Defined("ALTER SERVER CONFIGURATION", "", Syntax.Tail(tail)))
+
+GovernorAction = "RECONFIGURE"i | "DISABLE"i | "RESET"i & "STATISTICS"i | "WITH"i & '(' & GovernorSetting & ')'
+
+GovernorSetting = "CLASSIFIER_FUNCTION"i & '=' & ("NULL"i | Identifier & '.' & Identifier)
+				| "MAX_OUTSTANDING_IO_PER_VOLUME"i & '=' & (ExactNumber | "DEFAULT"i)
+
+// A number with no exponent. A rule of its own and a guard, because an exponent is the one
+// thing that tells the two apart and the lexer reads both as one kind.
+ExactNumber : @string = t: Sql92.Lexical.UnsignedNumericLiteral & when @(t is not null && t.IndexOfAny(new[] { 'e', 'E' }) < 0) => @(t)
+
+ServerSetting
+	= "PROCESS"i & "AFFINITY"i & ("CPU"i & '=' & ("AUTO"i | ServerRanges) | "NUMANODE"i & '=' & ServerRanges)
+	| "DIAGNOSTICS"i & "LOG"i
+	  & ("ON"i | "OFF"i
+		| "PATH"i & '=' & (BrokerString | "DEFAULT"i)
+		| "MAX_SIZE"i & '=' & (Sql92.Lexical.Digits & "MB"i | "DEFAULT"i)
+		| "MAX_FILES"i & '=' & (Sql92.Lexical.Digits | "DEFAULT"i))
+	| "FAILOVER"i & "CLUSTER"i & "PROPERTY"i & ClusterProperty
+	| "HADR"i & "CLUSTER"i & "CONTEXT"i & '=' & (BrokerString | "LOCAL"i)
+	| "BUFFER"i & "POOL"i & "EXTENSION"i
+	  & ("OFF"i | "ON"i & '(' & "FILENAME"i & '=' & BrokerString & ',' & "SIZE"i & '=' & Sql92.Lexical.Digits
+				   & ("KB"i | "MB"i | "GB"i) & ')')
+	| "SOFTNUMA"i & OnOff
+	| "MEMORY_OPTIMIZED"i
+	  & ("ON"i | "OFF"i
+		| "TEMPDB_METADATA"i & '=' & ("ON"i & ('(' & "RESOURCE_POOL"i & '=' & BrokerString & ')')? | "OFF"i)
+		| "HYBRID_BUFFER_POOL"i & '=' & OnOff)
+	| "SUSPEND_FOR_SNAPSHOT_BACKUP"i & '=' & OnOff & ('(' & SnapshotScope & ')')?
+
+ServerRanges = ServerRange & (',' & ServerRange)*
+ServerRange  = Sql92.Lexical.Digits & ("TO"i & Sql92.Lexical.Digits)?
+
+ClusterProperty
+	= ("SqlDumperDumpPath"i | "ClusterConnectionOptions"i) & '=' & (BrokerString | "DEFAULT"i)
+	| ("VerboseLogging"i | "SqlDumperDumpFlags"i | "SqlDumperDumpTimeOut"i | "FailureConditionLevel"i | "HealthCheckTimeout"i)
+	  & '=' & (Sql92.Lexical.Digits | "DEFAULT"i)
+
+SnapshotScope = "GROUP"i & '=' & '(' & Identifier & (',' & Identifier)* & ')' & (',' & "MODE"i & '=' & "COPY_ONLY"i)?
+			  | "MODE"i & '=' & "COPY_ONLY"i
 
 // ── Service Broker ──────────────────────────────────────────────────────────
 //

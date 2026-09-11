@@ -958,6 +958,20 @@ public abstract record Statement : ISqlSpan
 	/// <summary><c>BROKER PRIORITY</c>: which conversations go first.</summary>
 	public sealed record BrokerPriorityDefinition(string Name) : Definition(Name);
 
+	/// <summary><c>ALTER RESOURCE GOVERNOR</c>, which names nothing: the server's one governor.</summary>
+	public sealed record AlterResourceGovernor(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
+
+	/// <summary><c>ALTER SERVER CONFIGURATION</c>, which names nothing: one setting of the server's.</summary>
+	public sealed record AlterServerConfiguration(string Name) : Definition(Name)
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
+
 	/// <summary><c>ENDPOINT</c>.</summary>
 	/// <summary>
 	/// <c>CREATE</c> or <c>ALTER ENDPOINT</c>: the owner, the state and what was written
@@ -1688,6 +1702,8 @@ public abstract record Statement : ISqlSpan
 			"ROUTE"                   => new RouteDefinition(name),
 			"REMOTE SERVICE BINDING"  => new RemoteServiceBindingDefinition(name),
 			"BROKER PRIORITY"         => new BrokerPriorityDefinition(name),
+			"ALTER RESOURCE GOVERNOR"    => new AlterResourceGovernor(name),
+			"ALTER SERVER CONFIGURATION" => new AlterServerConfiguration(name),
 
 			"FULLTEXT INDEX"             => new FullTextIndexDefinition(name),
 			"ALTER FULLTEXT INDEX"       => new AlterFullTextIndex(name),
