@@ -3005,15 +3005,19 @@ CreateTableStatement : @Statement
 TableAs : @string = "AS"i & t: Identifier => @(t)
 
 TablePlacement : @Clause
-	= k: ("ON"i | "TEXTIMAGE_ON"i | "FILESTREAM_ON"i) & p: PlacementTarget => @(p with { Kind = Syntax.Squared(k) })
+	// Large values go to a filegroup and not by a partition: `TEXTIMAGE_ON 'fg' (a)` is refused.
+	= k: ("ON"i | "TEXTIMAGE_ON"i | "FILESTREAM_ON"i) & p: PlacementTarget
+	  & when @(p is not { Columns: not null } || Syntax.Squared(k!) != "TEXTIMAGE_ON")
+		=> @(p with { Kind = Syntax.Squared(k) })
 
 // The target and, for a partition scheme, the column it partitions on. The word in front
 // is the caller's to say: the same target stands after `ON`, after `MOVE TO`, and after
-// `FILESTREAM_ON`.
+// `FILESTREAM_ON`. The engine reads the column after a string or a quoted name as after a
+// scheme's: `ON 'fg' (a)`, `MOVE TO "default" (a)`.
 PlacementTarget : @Clause.Placement
 	= t: "DEFAULT"i                                => @(new Clause.Placement("", t, null))
-	| t: Sql92.Lexical.CharacterStringLiteral      => @(new Clause.Placement("", t, null))
-	| t: Sql92.Lexical.DelimitedIdentifier         => @(new Clause.Placement("", t, null))
+	| t: Sql92.Lexical.CharacterStringLiteral & ('(' & c: ColumnList & ')')? => @(new Clause.Placement("", t, c))
+	| t: Sql92.Lexical.DelimitedIdentifier & ('(' & c: ColumnList & ')')?    => @(new Clause.Placement("", t, c))
 	| t: Identifier & ('(' & c: ColumnList & ')')? => @(new Clause.Placement("", t, c))
 
 OptionsWith : @Clause[] = "WITH"i & '(' & o: OptionList & ')' => @(o)
@@ -3551,9 +3555,10 @@ AlterTableAction : @Statement.AlterTable
 		=> @(Statement.Altered("ADD", body))
 	| "WITH"i & mode: CheckWord & "ADD"i & body: TableBody with (ConstraintWith = AlterConstraintWith)
 		=> @(Statement.Altered("WITH " + Syntax.Squared(mode) + " ADD", body))
-	| "ALTER"i & "COLUMN"i & column: ColumnDefinition & options: OptionsWith?
+	| "ALTER"i & "COLUMN"i & column: ColumnDefinition & options: ColumnOnline?
 		=> @(Statement.Altered("ALTER COLUMN", new Clause[] { column }, options))
-	| "ALTER"i & "COLUMN"i & name: Identifier & flag: AlterColumnWord & options: OptionsWith?
+	| "ALTER"i & "COLUMN"i & name: Identifier & flag: AlterColumnWord & options: ColumnOnline?
+	  & when @(Syntax.FlagsOnline(flag, options))
 		=> @(Statement.Flagged(name, flag, options))
 	| "DROP"i & first: DropTarget & (',' & rest: DropTarget)*
 		=> @(Statement.Altered("DROP", Syntax.Listed(first, rest)))
@@ -3587,6 +3592,13 @@ AlterTableAction : @Statement.AlterTable
 
 AlterColumnWord : @string = t: ("ADD"i & AlterColumnFlag | "DROP"i & AlterColumnFlag) => @(Syntax.Squared(t))
 
+// An altered column is altered online or not, and that is all it is asked: `MAXDOP` is refused
+// (`Msg 102`), a name the engine does not know is `Msg 155`, and `ONLINE` is said once. Which
+// flags may be changed online is `Syntax.FlagsOnline`.
+ColumnOnline : @Clause[]
+	= "WITH"i & '(' & "ONLINE"i & '=' & o: OnOff & ')'
+		=> @(new Clause[] { new Clause.Option("ONLINE", new Expression.ColumnReference(o), Clause.None) })
+
 AlterColumnFlag  = "MASKED"i & ("WITH"i & '(' & OptionList & ')')?
 				 | "HIDDEN"i
 				 | ColumnTail
@@ -3600,15 +3612,34 @@ PartitionWhich : @Expression = "ALL"i => @(new Expression.ColumnReference("ALL")
 DropTarget : @Clause
 	= "COLUMN"i & exists: IfExists? & name: Identifier
 		=> @(Clause.Marked("COLUMN", name, exists, null))
-	| "CONSTRAINT"i & exists: IfExists? & name: Identifier & tail: OptionsWithText?
+	| "CONSTRAINT"i & exists: IfExists? & name: Identifier & tail: DropWith?
 		=> @(Clause.Marked("CONSTRAINT", name, exists, tail))
 	| "INDEX"i & name: Identifier      => @(Clause.Marked("INDEX", name))
 	| "PERIOD"i & "FOR"i & "SYSTEM_TIME"i => @(Clause.Marked("PERIOD FOR SYSTEM_TIME", null))
 	// A name on its own, where the `CONSTRAINT` in front of the list stands for it too.
-	| name: Identifier & tail: OptionsWithText?
+	| name: Identifier & tail: DropWith?
 		=> @(Clause.Marked("", name, null, tail))
 
 IfExists = "IF"i & "EXISTS"i
+
+// What a constraint dropped with its index is dropped with: a degree of parallelism, whether it
+// is done online, where the rows go, and how long it waits — each once (`Msg 153`) and nothing
+// else (`Msg 155`). The published block names three; the engine reads the fourth as well, as
+// strictly as an index's rebuild does. The rows go anywhere but a bare `DEFAULT` (`Msg 156`).
+DropWith = "WITH"i & '(' & DropOptions & ')'
+
+DropOptions : @Clause[]
+	= first: DropOption & (',' & rest: DropOption)* & when @(Syntax.NamedOnce(first, rest)) => @(Syntax.Listed(first, rest))
+
+DropOption : @Clause
+	= "MAXDOP"i & '=' & t: Sql92.Lexical.Digits
+		=> @(new Clause.Option("MAXDOP", new Expression.Literal(SqlLiteralKind.Number, t), Clause.None))
+	| "ONLINE"i & '=' & o: OnOff
+		=> @(new Clause.Option("ONLINE", new Expression.ColumnReference(o), Clause.None))
+	| "MOVE"i & "TO"i & ?!"DEFAULT"i & p: PlacementTarget
+		=> @(new Clause.Option("MOVE TO", null, new Clause[] { p }))
+	| LowPriorityWait
+		=> @(new Clause.Option("WAIT_AT_LOW_PRIORITY", null, Clause.None))
 
 // ── The routines: a header and a body ───────────────────────────────────────
 //

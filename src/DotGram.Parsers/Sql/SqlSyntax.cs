@@ -4074,6 +4074,25 @@ public static class Syntax
 		bool Begins(string? one) => one is not null && one.TrimStart().StartsWith(word, StringComparison.OrdinalIgnoreCase);
 	}
 
+	/// <summary>Whether a column's flag, added or dropped, may be so with the options said.</summary>
+	/// <remarks>
+	/// Online is refused to a row GUID, <c>NOT FOR REPLICATION</c>, persistence and hiding
+	/// (<c>Msg 153</c>) — offline is not — and a sparse column set takes no options at all
+	/// (<c>Msg 102</c>). A sparse column and a mask may be changed online.
+	/// </remarks>
+	public static bool FlagsOnline(string? flag, Clause[]? options)
+	{
+		if (flag is null || options is null)
+			return true;
+
+		if (flag.Contains("COLUMN_SET"))
+			return false;
+
+		return options is not [Clause.Option { Value: Expression.ColumnReference("ON") }] ||
+			!(flag.EndsWith("ROWGUIDCOL", StringComparison.Ordinal) || flag.EndsWith("NOT FOR REPLICATION", StringComparison.Ordinal) ||
+			  flag.EndsWith("PERSISTED", StringComparison.Ordinal) || flag.EndsWith("HIDDEN", StringComparison.Ordinal));
+	}
+
 	/// <summary>Nodes told apart by identity, which a record's own equality does not do.</summary>
 	sealed class ByReference : IEqualityComparer<ISqlSpan>
 	{

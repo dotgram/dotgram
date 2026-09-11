@@ -19225,3 +19225,32 @@ At 150: read by both 5,900 (from 5,883), the work list 76 (from 93), read here b
 there 43 (from 43); `--split` 722 (from 716), the round trip 100% of 7,552. The map is as it
 was — read by both 7,982 of 8,338 (99.7%), the work list 21, defects 0 — since these four
 were the corpus's and not the reference's.
+
+## A constraint dropped with its index, a placement in a string, a column altered online
+
+Three lists of options that were the generic list and should not have been, put to the
+engine some eighty times. The generic list reads any name set to any value, which is what
+an option list is for when nobody has asked the engine; these three the engine answers.
+
+- **A constraint dropped with its index** takes a degree of parallelism, a whole number;
+  `ONLINE = ON` or `OFF`; where the rows go; and `WAIT_AT_LOW_PRIORITY`, which the published
+  block does not name and the engine reads as strictly as an index's rebuild does — both parts,
+  in order, `MINUTES` or nothing. Each once (`Msg 153`), nothing else (`Msg 155`). Twelve
+  defects went with it, from `MINUTE` for `MINUTES` to `RESUMABLE = ON`.
+- **A placement in a string or quotes** names a column after it as a scheme's name does:
+  `MOVE TO 'DEFAULT' (COL1)`, `ON 'fg' (a)`, which is what the corpus had. `TEXTIMAGE_ON`
+  places large values on a filegroup and takes no column (`Msg 102`), and `MOVE TO` refuses a
+  bare `DEFAULT` (`Msg 156`) — which was read.
+- **An altered column is altered online or not**, and that is all it is asked: no `MAXDOP`
+  (`Msg 102`), no name the engine does not know (`Msg 155`), `ONLINE` once. Adding or dropping
+  a row GUID, `NOT FOR REPLICATION`, persistence or hiding may not be online (`Msg 153`) —
+  offline may — and a sparse column set takes no options at all; a sparse column and a mask
+  may be changed online (`Syntax.FlagsOnline`). Four of the corpus's defects at 150 were these,
+  `ADD ROWGUIDCOL WITH (ONLINE = ON)` among them, and one of this grammar's own tests, which
+  had read the published block's `ADD ROWGUIDCOL WITH (ONLINE = ON)`: it says `OFF` now, which
+  the engine reads.
+
+At 150: read by both 5,906 (from 5,900), the work list 70 (from 76), read here but refused
+there 35 (from 43, the largest fall yet); `--split` 726 (from 722), the round trip 100% of
+7,550 — two fewer than before, which is what closing a defect does to it. The map is as it was:
+read by both 7,982 of 8,338 (99.7%), the work list 21, defects 0.
