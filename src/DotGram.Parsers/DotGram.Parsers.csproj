@@ -9,6 +9,12 @@
 
 		<Description>Parsers for real formats, written in .gram: expressions, URLs, protocols.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageTags>parser;sql;tsql;t-sql;sql-server;uri;rfc3986;expressions;linq;dotgram</PackageTags>
+		<PackageReleaseNotes>First release. RFC 3986 URIs; a C#-style expression language that builds System.Linq.Expressions trees; SQL-92; and T-SQL, with a parser for each SQL Server compatibility level from 100 to 170. The SQL parsers build one tree of records.</PackageReleaseNotes>
+
+		<!-- Symbols inside the assembly, as the generator carries them: a stack trace from
+		     a parser here has line numbers without a symbol server. -->
+		<DebugType>embedded</DebugType>
 
 		<!-- Generated files land on disk so a reader can open what the grammars became. -->
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>

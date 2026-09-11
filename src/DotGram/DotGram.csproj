@@ -10,6 +10,13 @@
 		     Generation/ is the shell. -->
 		<Description>Source generator that compiles .gram grammars into C# parsers.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageTags>parser;parser-generator;grammar;source-generator;roslyn;analyzer;codegen;dsl;csharp</PackageTags>
+		<PackageReleaseNotes>First release. The .gram notation compiled into C# parsers during the build: typed results from captures, several parsers from one grammar, versions of a language decided when a parser is generated, streaming over TextReader, a lexical split over tokens, recovery inside repetitions, and grammar libraries across project references. No runtime assembly.</PackageReleaseNotes>
+
+		<!-- The symbols inside the assembly rather than beside it. When the generator fails
+		     in somebody else's build — GRAM0001, with the exception in the message — the
+		     stack trace has line numbers without a symbol server to fetch them from. -->
+		<DebugType>embedded</DebugType>
 
 		<!-- Roslyn component: runs inside the compiler, ships as an analyzer. -->
 		<IsRoslynComponent>true</IsRoslynComponent>
