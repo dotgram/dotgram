@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 using DotGram.ExpressionLanguage;
 
@@ -189,8 +190,8 @@ public sealed class ExpressionParserTests
 		ExpressionParser.Using("System.Collections.Generic");
 
 		Assert.Contains(
-			"no 'Add' taking",
-			Assert.Throws<FormatException>(
+			"no method 'Add' taking",
+			Assert.Throws<InvalidOperationException>(
 				() => ExpressionParser.Compile<Func<List<int>>>(
 					"() => new List<int>() { { 1, 2 } }")).Message);
 	}
@@ -408,16 +409,194 @@ public sealed class ExpressionParserTests
 
 	// ── Types, and what mixing them means ───────────────────────────────────────
 
+	// ── Conversions C# makes without being asked ────────────────────────────────
+
+	/// <summary>Binary numeric promotion, which is C#'s overload resolution over its operators.</summary>
+	/// <remarks>
+	/// Every type of the operator's list both operands convert to is a candidate, and the one
+	/// better than the rest is the answer — so a constant that fits keeps `uint + 1` a
+	/// `uint`, and two bytes add as `int`s.
+	/// </remarks>
 	[Fact]
-	public void Nothing_widens_on_its_own_and_the_API_is_what_says_so() =>
-		// The language holds no opinion the API does not hold. Adding an `int` to a
-		// `double` is refused by `Expression.Add` itself, in its own words — which is
-		// better than a message this could invent, and is the whole reason every `=>` in
-		// the grammar names a factory instead of dispatching on the operator's text.
+	public void A_narrower_operand_widens_to_meet_the_wider_one() =>
+		Assert.Equal(
+			[typeof(double), typeof(long), typeof(long), typeof(int), typeof(uint), typeof(decimal)],
+			new[]
+			{
+				"(int x) => x + 1.5",
+				"(long x) => x + 1",
+				"(int x, uint y) => x + y",
+				"(byte a, byte b) => a + b",
+				"(uint x) => x + 1",
+				"(decimal m) => m * 2",
+			}
+			.Select(text => ExpressionParser.Parse(text).Body.Type));
+
+	[Fact]
+	public void And_computes_what_C_sharp_computes() =>
+		Assert.Equal(4.5, ExpressionParser.Compile<Func<int, double>>("(int x) => x + 1.5")(3));
+
+	[Theory]
+	[InlineData("(long x, ulong y) => x + y")]   // CS0034: no one type both convert to
+	[InlineData("(decimal m) => m + 1.5")]       // CS0019: a double does not widen to a decimal
+	[InlineData("(ulong x) => -x")]              // CS0023: no minus over an unsigned type
+	public void And_where_C_sharp_finds_no_operator_neither_does_this(string text) =>
+		Assert.False(ExpressionParser.TryParse(text).IsSuccess);
+
+	[Fact]
+	public void A_uint_is_negated_as_the_long_C_sharp_makes_of_it() =>
+		Assert.Equal(-3000000000L, ExpressionParser.Compile<Func<long>>("() => -3000000000")());
+
+	[Fact]
+	public void An_assignment_converts_what_it_assigns() =>
+		Assert.Equal(
+			201.0,
+			ExpressionParser.Compile<Func<double>>("() => { long a = 1; byte b = 200; double d = a; d + b }")());
+
+	[Fact]
+	public void And_a_constant_with_a_minus_is_still_a_constant_that_fits() =>
+		Assert.Equal((sbyte)-1, ExpressionParser.Compile<Func<sbyte>>("() => { sbyte s = -1; s }")());
+
+	[Theory]
+	[InlineData("() => { int a = 1.5; a }")]    // CS0266: a double does not narrow on its own
+	[InlineData("() => { byte b = 300; b }")]   // CS0031: a constant that does not fit
+	[InlineData("() => { sbyte s = 1u; s }")]   // only an int constant narrows
+	public void But_nothing_narrows_on_its_own(string text) =>
+		Assert.False(ExpressionParser.TryParse(text).IsSuccess);
+
+	[Fact]
+	public void A_compound_assignment_narrows_back_to_its_target() =>
+		// C#'s `b += 10` is `b = (byte)(b + 10)`: the sum is an `int`, and it is cast back.
+		Assert.Equal((byte)4, ExpressionParser.Compile<Func<byte>>("() => { byte b = 250; b += 10; b }")());
+
+	[Fact]
+	public void And_the_cast_back_is_checked_inside_checked() =>
+		Assert.Throws<OverflowException>(
+			() => ExpressionParser.Compile<Func<byte>>("() => { byte b = 250; checked(b += 10); b }")());
+
+	[Fact]
+	public void A_plus_beside_text_is_concatenation() =>
+		Assert.Equal(
+			["a1", "a", "1a", "ab"],
+			new[]
+			{
+				ExpressionParser.Compile<Func<string, int, string>>("(string s, int n) => s + n")("a", 1),
+				ExpressionParser.Compile<Func<string, string>>("(string s) => s + null")("a"),
+				ExpressionParser.Compile<Func<string, string>>("(string s) => 1 + s")("a"),
+				ExpressionParser.Compile<Func<string, string>>("(string s) => { s += \"b\"; s }")("a"),
+			});
+
+	[Fact]
+	public void A_conditional_is_the_type_both_branches_meet_in() =>
+		Assert.Equal(
+			[typeof(long), typeof(string), typeof(int)],
+			new[] { "(bool c) => c ? 1 : 2L", "(bool c) => c ? \"a\" : null", "(bool c) => c ? (byte)1 : 1" }
+				.Select(text => ExpressionParser.Parse(text).Body.Type));
+
+	[Fact]
+	public void And_where_they_meet_in_none_it_is_refused_as_C_sharp_refuses_it() =>
 		Assert.Contains(
-			"not defined for the types",
-			Assert.Throws<InvalidOperationException>(
-				() => ExpressionParser.Parse("(int x) => x + 1.5")).Message);
+			"no implicit conversion between 'Int32' and 'String'",
+			ExpressionParser.TryParse("(bool c) => c ? 1 : \"a\"").Error,
+			StringComparison.Ordinal);
+
+	[Fact]
+	public void A_nullable_meets_its_value_and_null() =>
+		Assert.Equal(
+			[true, false, true, 3L],
+			new object[]
+			{
+				ExpressionParser.Compile<Func<int?, bool>>("(Nullable<int> n) => n == null")(null),
+				ExpressionParser.Compile<Func<int?, bool>>("(Nullable<int> n) => n == 3")(4),
+				ExpressionParser.Compile<Func<int?, bool>>("(Nullable<int> n) => n + 1 == 4")(3),
+				ExpressionParser.Compile<Func<int?, long>>("(Nullable<int> n) => n ?? 3L")(null),
+			});
+
+	[Fact]
+	public void An_enum_combines_and_orders_as_its_number()
+	{
+		ExpressionParser.Using("System.Reflection");
+
+		Assert.Equal(
+			[BindingFlags.Public | BindingFlags.Static, true, true],
+			new object[]
+			{
+				ExpressionParser.Compile<Func<BindingFlags>>("() => BindingFlags.Public | BindingFlags.Static")(),
+				ExpressionParser.Compile<Func<DayOfWeek, bool>>(
+					"(DayOfWeek d) => d > DayOfWeek.Monday")(DayOfWeek.Friday),
+				ExpressionParser.Compile<Func<DayOfWeek, bool>>("(DayOfWeek d) => d == 0")(DayOfWeek.Sunday),
+			});
+	}
+
+	// ── Calls: the overload C# would choose ─────────────────────────────────────
+
+	[Fact]
+	public void An_argument_converts_to_its_parameter_as_C_sharp_converts_it() =>
+		Assert.Equal(
+			[2.0, "a1", true],
+			new object[]
+			{
+				ExpressionParser.Compile<Func<int, double>>("(int x) => Math.Sqrt(x)")(4),
+				ExpressionParser.Compile<Func<int, string>>("(int x) => String.Concat(\"a\", x)")(1),
+				ExpressionParser.Compile<Func<object, bool>>("(object o) => o.Equals(1)")(1),
+			});
+
+	[Fact]
+	public void And_of_several_that_fit_the_better_one_is_called() =>
+		// `Math.Abs(-3)` is the `int` overload, the exact one; `Math.Max(2, 3L)` the `long`
+		// one, the `int` widening to meet it; two strings are joined as strings and not as
+		// objects.
+		Assert.Equal(
+			[typeof(int), typeof(long), typeof(string)],
+			new[] { "() => Math.Abs(-3)", "() => Math.Max(2, 3L)", "(string s) => String.Concat(s, s)" }
+				.Select(text => ExpressionParser.Parse(text).Body.Type));
+
+	[Fact]
+	public void A_params_array_may_be_written_out_and_a_default_left_out()
+	{
+		ExpressionParser.Using("DotGram.Tests.Expressions");
+
+		Assert.Equal(
+			["1-2-3", "30", "7"],
+			new[]
+			{
+				ExpressionParser.Compile<Func<string>>("() => String.Join(\"-\", 1, 2, 3)")(),
+				ExpressionParser.Compile<Func<string>>("() => Tools.Scaled(3).ToString()")(),
+				ExpressionParser.Compile<Func<string>>("() => Tools.Scaled(7, 1).ToString()")(),
+			});
+	}
+
+	[Theory]
+	[InlineData("(long x) => Tools.Pick(x)",    "ambiguous")]
+	[InlineData("(string s) => s.substring(1)", "no method 'substring'")]
+	[InlineData("(string s) => s.length",       "no property or field named 'length'")]
+	public void And_where_C_sharp_would_refuse_the_call_so_does_this(string text, string said)
+	{
+		ExpressionParser.Using("DotGram.Tests.Expressions");
+
+		var match = ExpressionParser.TryParse(text);
+
+		Assert.False(match.IsSuccess);
+		Assert.Contains(said, match.Error, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void A_delegate_an_array_a_collection_and_a_case_convert_what_they_are_given()
+	{
+		ExpressionParser.Using("System.Collections.Generic");
+
+		Assert.Equal(
+			[4L, 3.5, 3L, 10, 5L],
+			new object[]
+			{
+				ExpressionParser.Compile<Func<Func<long, long>, long>>("(Func<long, long> f) => f(1)")(n => n + 3),
+				ExpressionParser.Compile<Func<double>>("() => new double[] { 1, 2.5 }[0] + 2.5")(),
+				ExpressionParser.Compile<Func<long>>("() => new List<long>() { 1, 2 }[1] + 1")(),
+				ExpressionParser.Compile<Func<byte, int>>(
+					"(byte b) => { int r = 0; switch (b) { case 1: r = 10; break; } r }")(1),
+				ExpressionParser.Compile<Func<int, long>>("(int x) => x")(5),
+			});
+	}
 
 	[Fact]
 	public void And_two_doubles_add_as_doubles() =>
@@ -538,10 +717,8 @@ public sealed class ExpressionParserTests
 			});
 
 	[Fact]
-	public void An_instance_member_is_read_by_the_API_own_lookup() =>
-		// `Expression.PropertyOrField` answers this, and `Expression.Call` chooses the
-		// overload — so almost none of it is written in the host, and what cannot be found
-		// is reported in the API's own words.
+	public void An_instance_member_and_a_call_are_found_as_C_sharp_finds_them() =>
+		// A property by its exact name, and of the methods by a name the one C# would call.
 		Assert.Equal(
 			[3, 2, "ABC"],
 			new object[]
@@ -952,10 +1129,10 @@ public sealed class ExpressionParserTests
 			});
 
 	[Fact]
-	public void And_a_cast_is_the_only_place_a_conversion_comes_from() =>
-		// Nothing widens on its own, so `x + 1.5` over an `int` is refused — and the cast
-		// is how the author says they meant it.
-		Assert.Equal(4.5, ExpressionParser.Compile<Func<int, double>>("(int x) => (double)x + 1.5")(3));
+	public void And_a_cast_is_still_how_a_narrowing_is_asked_for() =>
+		// A widening is made unasked, as C# makes it; a narrowing is not, and the cast is how
+		// the author says they meant it.
+		Assert.Equal(4, ExpressionParser.Compile<Func<double, int>>("(double x) => (int)x + 1")(3.7));
 
 	// ── The literal forms, down to the ones that are easy to forget ─────────────
 
@@ -1066,7 +1243,7 @@ public sealed class ExpressionParserTests
 	/// </remarks>
 	[Theory]
 	[InlineData("(int x) => x + y",              "nothing named 'y'")]
-	[InlineData("(long x) => x + 1",             "not defined for the types")]
+	[InlineData("(string s) => s - 1",           "not defined for the types")]
 	[InlineData("(int x) => new Exception(x)",   "no constructor taking")]
 	[InlineData("(string s) => s.Nothing",       "no property or field named 'Nothing'")]
 	[InlineData("() => 18446744073709551616",    "too large")]
@@ -1096,4 +1273,19 @@ public sealed class Holder
 public sealed class Counter
 {
 	public int Count { get; set; }
+}
+
+/// <summary>What the call tests are written against.</summary>
+/// <remarks>
+/// An optional parameter to leave out, and two overloads a <c>long</c> converts to equally
+/// well — neither <c>float</c> nor <c>decimal</c> converts to the other, so C# calls a call
+/// of them with a <c>long</c> ambiguous.
+/// </remarks>
+public static class Tools
+{
+	public static int Scaled(int x, int by = 10) => x * by;
+
+	public static string Pick(float value) => "float";
+
+	public static string Pick(decimal value) => "decimal";
 }

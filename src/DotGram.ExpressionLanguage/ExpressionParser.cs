@@ -48,8 +48,10 @@ namespace DotGram.ExpressionLanguage;
 //     leaves is where it is written, and the label is an identity too.
 //   * `Return`/`Returning` — a `return` is a jump to a label, and the label belongs to
 //     the lambda rather than to any statement in it.
-//   * `Chosen` — `Expression.Condition` is one factory with two answers, the branches'
+//   * `Branched` — `Expression.Condition` is one factory with two answers, the branches'
 //     type or `void`, and which one an `if` meant is a question about this API alone.
+//   * `Implicitly`, and what is written over it — which conversion C# makes unasked, the
+//     one type an operator's operands are promoted to, the overload a call means.
 //   * `Lookup`, `Member`, `Indexed`, `Constructor` and the rest of what a name in metadata
 //     turns into — which namespaces a type is looked for in, which member a name is on a
 //     given type, which constructor takes these arguments. The grammar says where a name
@@ -92,31 +94,30 @@ namespace DotGram.ExpressionLanguage;
 // statement and as a `Primary` is read once as each, at every level of a nest of them, and
 // a chain of three `else if`s took 1.6 seconds before each of them had one route.
 //
-// **And the grammar is shaped to the API in two places**, deliberately:
+// **And the grammar is shaped to the API in one place**, deliberately: a local says its
+// type — `int sum = …`, not `var sum = …` — because `Expression.Variable` wants one where
+// the declaration is read, and the initializer is not built until long after. That is the
+// API's requirement showing through, which is what wiring one up actually looks like.
 //
-//   * a local says its type — `int sum = …`, not `var sum = …` — because
-//     `Expression.Variable` wants one where the declaration is read, and the initializer
-//     is not built until long after;
-//   * nothing widens on its own — `x + 1.5` over an `int` and a `double` is refused by
-//     `Expression.Add` itself, in its own words, because a language that speaks only this
-//     API has no place to put a conversion the API did not ask for.
-//
-// Both are the API's requirements showing through, which is what wiring one up actually
-// looks like.
+// **The conversions C# makes unasked are made here too**, and by the host rather than the
+// grammar. `Expression.Add` over an `int` and a `double` refuses rather than widening, and
+// `Expression.Call` wants an argument of its parameter's own type; `Expression.Convert`
+// builds any conversion it is told to and decides none. Which one C# would have made is a
+// question about types, so it is answered where the types are — `Implicitly`, and the
+// operators and the overload resolution written over it — and the grammar goes on naming
+// the factory each operator is.
 //
 // **Where it is not C#, and why.** None of these is a shape the notation could not
 // carry; each is an API requirement showing through again, or something not written yet.
 //
-//   * `null` is an `object` rather than whatever the other side of the operator wants.
-//     C# types it by its target, and target typing is a pass over the whole expression —
-//     the second layer this file exists to do without. `(string)null` says which instead.
-//   * A call is resolved by `Expression.Call` and not by C#'s rules: an argument has to
-//     fit its parameter's type exactly or by reference, so `Math.Sqrt(x)` over an `int`
-//     finds no overload and `Console.WriteLine(s)` finds two and refuses both. No
-//     extension method is found, and no generic method can be named.
-//   * A member or a method whose name differs from the one written only in case is read as
-//     that one, where nothing matches exactly. `Expression.Call` searches that way, and a
-//     member search that did not would disagree with it about how a name is spelled.
+//   * `null` takes the type of what it is converted to — an argument, an assignment, the
+//     other operand, the other branch — as C#'s does, but where nothing converts it, as
+//     the whole body of a lambda `Parse` reads, it is an `object`.
+//   * A call is resolved by C#'s rules, less what those rules need and this language
+//     cannot write: no generic method is named or inferred, no extension method is found,
+//     and no argument is passed by `ref`, `out` or name.
+//   * A constant is a literal, or a literal with a minus before it: `byte b = 1 + 1` is
+//     refused where C# folds the sum first and then converts it.
 //   * An increment or a compound assignment writes to a name or to one member of a name —
 //     not to an element, and not to a longer chain.
 //   * `typeof`, `default`, `nameof`, `?.`, `var`, `foreach`, an interpolated string and a
@@ -418,7 +419,7 @@ namespace DotGram.ExpressionLanguage;
 	Local : @Expression
 		= type: Type & name: Word & when @(context.Declare(type, name, parserSpan))
 		& '=' & value: Value & ';'
-		=> @(Expression.Assign(context.Named(name, parserSpan), value))
+		=> @(ExpressionParser.Assigned(context.Named(name, parserSpan), value))
 
 	Return : @Expression = "return" & value: Value & ';'
 	                     => @(context.Return(value))
@@ -456,7 +457,7 @@ namespace DotGram.ExpressionLanguage;
 		| c: Switch  => @(c)
 
 	If : @Expression
-		= "if" & '(' & test: Expression & ')' & then: Branch & "else" & otherwise: Branch => @(ExpressionParser.Chosen(test, then, otherwise))
+		= "if" & '(' & test: Expression & ')' & then: Branch & "else" & otherwise: Branch => @(ExpressionParser.Branched(test, then, otherwise))
 		| "if" & '(' & test: Expression & ')' & then: Statement => @(Expression.IfThen(test, then))
 
 	// The same `if` where a value is wanted: its branches are values, so the `;` after
@@ -465,7 +466,7 @@ namespace DotGram.ExpressionLanguage;
 	// position keeps the rule above, whose branches are statements first.
 	IfValue : @Expression
 		= "if" & '(' & test: Expression & ')' & then: Value & "else" & otherwise: Value
-		  => @(ExpressionParser.Chosen(test, then, otherwise))
+		  => @(ExpressionParser.Branched(test, then, otherwise))
 
 	// A branch is a statement where one was written and an expression where one was: C#
 	// only has the first, and the second is what `int n = if (c) 1 else 2;` needs. The
@@ -532,7 +533,7 @@ namespace DotGram.ExpressionLanguage;
 		& cases: Case* & fallback: Fallback? & '}'
 		& when @(context.Breaks(parserSpan))
 		=> @(Expression.Block(
-			Expression.Switch(typeof(void), value, fallback, null, cases),
+			Expression.Switch(typeof(void), value, fallback, null, ExpressionParser.Against(cases, value.Type)),
 			Expression.Label(context.Exit(parserSpan))))
 
 	Case : @SwitchCase
@@ -586,22 +587,32 @@ namespace DotGram.ExpressionLanguage;
 		// a second. So a compound assignment writes to a name or a member of one, and only
 		// the plain `=` writes to an element.
 		= target: Name & at: Indices & '=' & ?!'=' & value: Assignment
-		  => @(Expression.Assign(ExpressionParser.Place(target, at), value))
+		  => @(ExpressionParser.Assigned(ExpressionParser.Place(target, at), value))
 
+		// Each compound form names the assignment the API has for it and the operator it
+		// stands for: C#'s `x op= y` is `x = (T)(x op y)`, which is the node the API has only
+		// where the operator's own type is the target's.
 		| target: Target & "+="  & value: Assignment
 		  => @(ExpressionParser.AddAssign(target, value, parserState))
 		| target: Target & "-="  & value: Assignment
 		  => @(ExpressionParser.SubtractAssign(target, value, parserState))
 		| target: Target & "*="  & value: Assignment
 		  => @(ExpressionParser.MultiplyAssign(target, value, parserState))
-		| target: Target & "/="  & value: Assignment => @(Expression.DivideAssign(target, value))
-		| target: Target & "%="  & value: Assignment => @(Expression.ModuloAssign(target, value))
-		| target: Target & "&="  & value: Assignment => @(Expression.AndAssign(target, value))
-		| target: Target & "|="  & value: Assignment => @(Expression.OrAssign(target, value))
-		| target: Target & "^="  & value: Assignment => @(Expression.ExclusiveOrAssign(target, value))
-		| target: Target & "<<=" & value: Assignment => @(Expression.LeftShiftAssign(target, value))
-		| target: Target & ">>=" & value: Assignment => @(Expression.RightShiftAssign(target, value))
-		| target: Target & '=' & ?!'=' & value: Assignment => @(Expression.Assign(target, value))
+		| target: Target & "/="  & value: Assignment
+		  => @(ExpressionParser.ArithmeticAssign(Expression.DivideAssign, Expression.Divide, target, value, parserState))
+		| target: Target & "%="  & value: Assignment
+		  => @(ExpressionParser.ArithmeticAssign(Expression.ModuloAssign, Expression.Modulo, target, value, parserState))
+		| target: Target & "&="  & value: Assignment
+		  => @(ExpressionParser.IntegralAssign(Expression.AndAssign, Expression.And, target, value, parserState))
+		| target: Target & "|="  & value: Assignment
+		  => @(ExpressionParser.IntegralAssign(Expression.OrAssign, Expression.Or, target, value, parserState))
+		| target: Target & "^="  & value: Assignment
+		  => @(ExpressionParser.IntegralAssign(Expression.ExclusiveOrAssign, Expression.ExclusiveOr, target, value, parserState))
+		| target: Target & "<<=" & value: Assignment
+		  => @(ExpressionParser.ShiftAssign(Expression.LeftShiftAssign, Expression.LeftShift, target, value, parserState))
+		| target: Target & ">>=" & value: Assignment
+		  => @(ExpressionParser.ShiftAssign(Expression.RightShiftAssign, Expression.RightShift, target, value, parserState))
+		| target: Target & '=' & ?!'=' & value: Assignment => @(ExpressionParser.Assigned(target, value))
 		| c: Conditional                           => @(c)
 
 	// What may be written to. An element is read one way and written another — `ArrayIndex`
@@ -665,27 +676,27 @@ namespace DotGram.ExpressionLanguage;
 	Binary : @Expression
 		= left: Binary & "||" & right: Binary        << 1  => @(Expression.OrElse(left, right))
 		| left: Binary & "&&" & right: Binary        << 2  => @(Expression.AndAlso(left, right))
-		| left: Binary & '|' & ?!'|' & right: Binary << 3  => @(Expression.Or(left, right))
-		| left: Binary & '^' & right: Binary         << 4  => @(Expression.ExclusiveOr(left, right))
-		| left: Binary & '&' & ?!'&' & right: Binary << 5  => @(Expression.And(left, right))
-		| left: Binary & "==" & right: Binary        << 6  => @(Expression.Equal(left, right))
-		| left: Binary & "!=" & right: Binary        << 6  => @(Expression.NotEqual(left, right))
+		| left: Binary & '|' & ?!'|' & right: Binary << 3  => @(ExpressionParser.Integral(Expression.Or, left, right))
+		| left: Binary & '^' & right: Binary         << 4  => @(ExpressionParser.Integral(Expression.ExclusiveOr, left, right))
+		| left: Binary & '&' & ?!'&' & right: Binary << 5  => @(ExpressionParser.Integral(Expression.And, left, right))
+		| left: Binary & "==" & right: Binary        << 6  => @(ExpressionParser.Equality(Expression.Equal, left, right))
+		| left: Binary & "!=" & right: Binary        << 6  => @(ExpressionParser.Equality(Expression.NotEqual, left, right))
 		| left: Binary & "is" & type: Type           << 7  => @(Expression.TypeIs(left, type))
 		| left: Binary & "as" & type: Type           << 7  => @(Expression.TypeAs(left, type))
-		| left: Binary & "<=" & right: Binary        << 7  => @(Expression.LessThanOrEqual(left, right))
-		| left: Binary & ">=" & right: Binary        << 7  => @(Expression.GreaterThanOrEqual(left, right))
-		| left: Binary & '<' & ?!'<' & right: Binary << 7  => @(Expression.LessThan(left, right))
-		| left: Binary & '>' & ?!'>' & right: Binary << 7  => @(Expression.GreaterThan(left, right))
-		| left: Binary & '<' ~ '<' & right: Binary   << 8  => @(Expression.LeftShift(left, right))
-		| left: Binary & '>' ~ '>' & right: Binary   << 8  => @(Expression.RightShift(left, right))
+		| left: Binary & "<=" & right: Binary        << 7  => @(ExpressionParser.Relational(Expression.LessThanOrEqual, left, right))
+		| left: Binary & ">=" & right: Binary        << 7  => @(ExpressionParser.Relational(Expression.GreaterThanOrEqual, left, right))
+		| left: Binary & '<' & ?!'<' & right: Binary << 7  => @(ExpressionParser.Relational(Expression.LessThan, left, right))
+		| left: Binary & '>' & ?!'>' & right: Binary << 7  => @(ExpressionParser.Relational(Expression.GreaterThan, left, right))
+		| left: Binary & '<' ~ '<' & right: Binary   << 8  => @(ExpressionParser.Shift(Expression.LeftShift, left, right))
+		| left: Binary & '>' ~ '>' & right: Binary   << 8  => @(ExpressionParser.Shift(Expression.RightShift, left, right))
 		| left: Binary & '+' & right: Binary         << 9
 		  => @(ExpressionParser.Add(left, right, parserState))
 		| left: Binary & '-' & right: Binary         << 9
 		  => @(ExpressionParser.Subtract(left, right, parserState))
 		| left: Binary & '*' & right: Binary         << 10
 		  => @(ExpressionParser.Multiply(left, right, parserState))
-		| left: Binary & '/' & right: Binary         << 10 => @(Expression.Divide(left, right))
-		| left: Binary & '%' & right: Binary         << 10 => @(Expression.Modulo(left, right))
+		| left: Binary & '/' & right: Binary         << 10 => @(ExpressionParser.Arithmetic(Expression.Divide, left, right))
+		| left: Binary & '%' & right: Binary         << 10 => @(ExpressionParser.Arithmetic(Expression.Modulo, left, right))
 		| u: Unary                                          => @(u)
 
 	// `++` and `--` before `+` and `-`, so that `--x` is one operator and not two, and over
@@ -694,9 +705,9 @@ namespace DotGram.ExpressionLanguage;
 		= "++" & target: Name => @(Expression.PreIncrementAssign(target))
 		| "--" & target: Name => @(Expression.PreDecrementAssign(target))
 		| '-' & operand: Unary => @(ExpressionParser.Negate(operand, parserState))
-		| '+' & operand: Unary => @(Expression.UnaryPlus(operand))
+		| '+' & operand: Unary => @(ExpressionParser.Arithmetic(Expression.UnaryPlus, operand))
 		| '!' & operand: Unary => @(Expression.Not(operand))
-		| '~' & operand: Unary => @(Expression.OnesComplement(operand))
+		| '~' & operand: Unary => @(ExpressionParser.Integral(Expression.OnesComplement, operand))
 
 		// A cast is told from a parenthesized expression by what stands inside it. A keyword
 		// type is no name, and a name is a type only where `NamedType`'s guard finds one —
@@ -711,13 +722,13 @@ namespace DotGram.ExpressionLanguage;
 	// what makes `a.b.c(d)[0]` one chain read once — §4.3 reads the operand at the head of
 	// it and then folds the suffixes on, rather than starting over for each.
 	//
-	// `Expression.Call` takes a method by its name and chooses the overload itself, and
-	// `Expression.PropertyOrField` answers the same question for the other two. That is
-	// most of why so little of this is written here: the API's own resolution is better
-	// than one this could invent, and it reports what it could not find in its own words.
+	// Which method a name means is C#'s overload resolution, and `Called` is that. The API's
+	// own, inside `Expression.Call`, takes an argument only of its parameter's exact type or
+	// assignable to it by reference: `Math.Sqrt(x)` over an `int` finds nothing there, and
+	// `Console.WriteLine(s)` finds two and refuses both.
 	Postfix : @Expression
 		= target: Postfix & '.' & member: Word & args: Arguments
-		  => @(Expression.Call(target, member, null, args))
+		  => @(ExpressionParser.Called(target, member, args))
 
 		| target: Postfix & '.' & member: Word => @(ExpressionParser.Member(target, member))
 
@@ -725,7 +736,7 @@ namespace DotGram.ExpressionLanguage;
 		// both written without another rule.
 		| target: Postfix & at: Indices => @(ExpressionParser.Indexed(target, at))
 
-		| target: Name & args: Arguments => @(Expression.Invoke(target, args))
+		| target: Name & args: Arguments => @(ExpressionParser.Invoked(target, args))
 
 		| target: Name & "++" => @(Expression.PostIncrementAssign(target))
 		| target: Name & "--" => @(Expression.PostDecrementAssign(target))
@@ -740,7 +751,9 @@ namespace DotGram.ExpressionLanguage;
 		// the `[]` back for a `"[]"` written here; the guard asks for an array type instead.
 		| "new" & type: Type & when @(type is { IsArray: true })
 		  & '{' & (first: Expression & (',' & rest: Expression)*)? & '}'
-		  => @(Expression.NewArrayInit(type.GetElementType()!, ExpressionParser.Listed(first, rest)))
+		  => @(Expression.NewArrayInit(
+		       type.GetElementType()!,
+		       ExpressionParser.Converted(ExpressionParser.Listed(first, rest), type.GetElementType()!)))
 		// An initializer is written after the constructor's own arguments, and which of the
 		// two it is is what stands inside the braces: `Name = value` sets a member, and an
 		// expression is an element to add. Both are one optional tail rather than three
@@ -761,7 +774,7 @@ namespace DotGram.ExpressionLanguage;
 		| type: NamedType & '.' & member: Word & args: Arguments?
 		  => @(args is null
 		       ? ExpressionParser.StaticMember(type, member)
-		       : Expression.Call(type, member, null, args))
+		       : ExpressionParser.Called(type, member, args))
 
 		// §7.8, and the one thing in this language that changes what a construction builds
 		// without changing anything about what is read. The operand is an ordinary
@@ -808,10 +821,10 @@ namespace DotGram.ExpressionLanguage;
 		| "true"     => @(Expression.Constant(true))
 		| "false"    => @(Expression.Constant(false))
 
-		// Typed `object`, because C# types `null` by what it stands against and that is a
-		// pass over the whole expression this language does not make. `(string)null` says
-		// which, where which one matters.
-		| "null"     => @(Expression.Constant(null, typeof(object)))
+		// One node, and not a fresh constant each time: C# types `null` by where it stands,
+		// and the conversions tell the literal from an `object` that happens to be null by
+		// which node it is.
+		| "null"     => @(ExpressionParser.Null)
 
 		| n: Name    => @(n)
 
@@ -851,8 +864,9 @@ public static partial class ExpressionParser
 	/// </exception>
 	/// <exception cref="InvalidOperationException">
 	/// It is this language and means nothing in it — an operator its operands do not
-	/// support, a call no overload fits. Thrown by <c>System.Linq.Expressions</c> itself, in
-	/// its own words: this language holds no opinion the API does not already hold.
+	/// support, a call no overload fits or two fit equally, a `?:` whose branches meet in
+	/// no type. In C#'s words where the rule is C#'s, and in
+	/// <c>System.Linq.Expressions</c>' own where it is the API that refuses.
 	/// </exception>
 	/// <exception cref="ArgumentException">
 	/// The same, where the API calls it an argument: a value assigned to what cannot hold
@@ -925,14 +939,18 @@ public static partial class ExpressionParser
 	/// <remarks>
 	/// Where the two halves meet a caller: what the text declares has to match what the
 	/// delegate takes, and <c>Expression.Lambda</c> is what says so — in a message naming
-	/// both, which is better than anything this could invent.
+	/// both, which is better than anything this could invent. What the body is worth is
+	/// converted to what the delegate returns, as C# converts a lambda's body, so
+	/// `(int x) => x` is a <c>Func&lt;int, long&gt;</c> as well.
 	/// </remarks>
 	public static TDelegate Compile<TDelegate>(string text)
 		where TDelegate : Delegate
 	{
-		var lambda = Parse(text);
+		var lambda  = Parse(text);
+		var returns = typeof(TDelegate).GetMethod("Invoke")!.ReturnType;
+		var body    = returns == typeof(void) ? lambda.Body : Converted(lambda.Body, returns);
 
-		return (TDelegate)Expression.Lambda(typeof(TDelegate), lambda.Body, lambda.Parameters).Compile();
+		return (TDelegate)Expression.Lambda(typeof(TDelegate), body, lambda.Parameters).Compile();
 	}
 
 	// ── What a name written as a type means ─────────────────────────────────────
@@ -1053,25 +1071,59 @@ public static partial class ExpressionParser
 	// thing worse, and would have put a C# question — which overload — where a reader is
 	// looking for the shape of an expression.
 
+	/// <remarks>
+	/// And the one of them that means something else over text: a `+` with a string on
+	/// either side is concatenation, which C# compiles to <c>string.Concat</c> and the API has
+	/// no operator for.
+	/// </remarks>
 	public static Expression Add(Expression left, Expression right, ReadOnlySpan<Reading> reading) =>
-		Checked(reading) ? Expression.AddChecked(left, right) : Expression.Add(left, right);
+		Joined(left, right) ?? Arithmetic(Checked(reading) ? Expression.AddChecked : Expression.Add, left, right);
 
 	public static Expression Subtract(Expression left, Expression right, ReadOnlySpan<Reading> reading) =>
-		Checked(reading) ? Expression.SubtractChecked(left, right) : Expression.Subtract(left, right);
+		Arithmetic(Checked(reading) ? Expression.SubtractChecked : Expression.Subtract, left, right);
 
 	public static Expression Multiply(Expression left, Expression right, ReadOnlySpan<Reading> reading) =>
-		Checked(reading) ? Expression.MultiplyChecked(left, right) : Expression.Multiply(left, right);
+		Arithmetic(Checked(reading) ? Expression.MultiplyChecked : Expression.Multiply, left, right);
 
 	/// <remarks>
 	/// `-2147483648` is the <c>int</c> it looks like, though `2147483648` alone is a
 	/// <c>uint</c>, and `-9223372036854775808` is a <c>long</c> in the same way: C# reads
 	/// each as one literal where it stands after a minus, and they are the only two
 	/// constants that have to be read that way to be written at all.
+	///
+	/// Any other literal with a minus before it is folded into a constant as well, because
+	/// that is what C# calls it: `sbyte s = -1` converts only because `-1` is a constant
+	/// that fits. And a <c>uint</c> is negated as the <c>long</c> C# makes of it.
 	/// </remarks>
-	public static Expression Negate(Expression operand, ReadOnlySpan<Reading> reading) =>
-		operand is ConstantExpression { Value: 2147483648u }             ? Expression.Constant(int.MinValue)
-		: operand is ConstantExpression { Value: 9223372036854775808ul } ? Expression.Constant(long.MinValue)
-		: Checked(reading) ? Expression.NegateChecked(operand) : Expression.Negate(operand);
+	public static Expression Negate(Expression operand, ReadOnlySpan<Reading> reading)
+	{
+		if (operand is ConstantExpression { Value: var value })
+		{
+			if (value is 2147483648u)
+				return Expression.Constant(int.MinValue);
+
+			if (value is 9223372036854775808ul)
+				return Expression.Constant(long.MinValue);
+
+			if (Negative(value) is { } negative)
+				return Expression.Constant(negative);
+		}
+
+		Func<Expression, UnaryExpression> make = Checked(reading) ? Expression.NegateChecked : Expression.Negate;
+
+		return Operand(_negatables, operand, null) is { } type ? make(Implicitly(operand, type)!) : make(operand);
+	}
+
+	/// <summary>A constant's negation, or null where it has none of its own type.</summary>
+	static object? Negative(object? value) => value switch
+	{
+		int number when number != int.MinValue   => -number,
+		long number when number != long.MinValue => -number,
+		float number                             => -number,
+		double number                            => -number,
+		decimal number                           => -number,
+		_                                        => null,
+	};
 
 	/// <remarks>
 	/// A cast is where the difference is most visible and least like the others: `(byte)300`
@@ -1079,24 +1131,58 @@ public static partial class ExpressionParser
 	/// have caught here — the value is not a constant until the tree is compiled.
 	/// </remarks>
 	public static Expression Cast(Expression operand, Type type, ReadOnlySpan<Reading> reading) =>
-		Checked(reading) ? Expression.ConvertChecked(operand, type) : Expression.Convert(operand, type);
+		ReferenceEquals(operand, Null) && CanBeNull(type) ? Expression.Constant(null, type)
+		: Checked(reading) ? Expression.ConvertChecked(operand, type)
+		: Expression.Convert(operand, type);
 
 	public static Expression AddAssign(Expression target, Expression value, ReadOnlySpan<Reading> reading) =>
-		Checked(reading)
-			? Expression.AddAssignChecked(target, value)
-			: Expression.AddAssign(target, value);
+		Compound(
+			Checked(reading) ? Expression.AddAssignChecked : Expression.AddAssign,
+			Add(target, value, reading), target, reading);
 
-	public static Expression SubtractAssign(
-		Expression target, Expression value, ReadOnlySpan<Reading> reading) =>
-		Checked(reading)
-			? Expression.SubtractAssignChecked(target, value)
-			: Expression.SubtractAssign(target, value);
+	public static Expression SubtractAssign(Expression target, Expression value, ReadOnlySpan<Reading> reading) =>
+		Compound(
+			Checked(reading) ? Expression.SubtractAssignChecked : Expression.SubtractAssign,
+			Subtract(target, value, reading), target, reading);
 
-	public static Expression MultiplyAssign(
+	public static Expression MultiplyAssign(Expression target, Expression value, ReadOnlySpan<Reading> reading) =>
+		Compound(
+			Checked(reading) ? Expression.MultiplyAssignChecked : Expression.MultiplyAssign,
+			Multiply(target, value, reading), target, reading);
+
+	/// <summary>A compound assignment whose operator is arithmetic and has no checked form.</summary>
+	public static Expression ArithmeticAssign(
+		Func<Expression, Expression, BinaryExpression> assign, Func<Expression, Expression, BinaryExpression> make,
 		Expression target, Expression value, ReadOnlySpan<Reading> reading) =>
-		Checked(reading)
-			? Expression.MultiplyAssignChecked(target, value)
-			: Expression.MultiplyAssign(target, value);
+		Compound(assign, Arithmetic(make, target, value), target, reading);
+
+	/// <summary>A compound assignment whose operator is bitwise.</summary>
+	public static Expression IntegralAssign(
+		Func<Expression, Expression, BinaryExpression> assign, Func<Expression, Expression, BinaryExpression> make,
+		Expression target, Expression value, ReadOnlySpan<Reading> reading) =>
+		Compound(assign, Integral(make, target, value), target, reading);
+
+	/// <summary>A compound assignment whose operator is a shift.</summary>
+	public static Expression ShiftAssign(
+		Func<Expression, Expression, BinaryExpression> assign, Func<Expression, Expression, BinaryExpression> make,
+		Expression target, Expression value, ReadOnlySpan<Reading> reading) =>
+		Compound(assign, Shift(make, target, value), target, reading);
+
+	/// <summary>C#'s <c>x op= y</c>, which is <c>x = (T)(x op y)</c>.</summary>
+	/// <remarks>
+	/// The API's own node where the operator came out in the target's type over the target
+	/// itself — `a += 5` over an `int` is <c>AddAssign</c>, as it always was. Where it did not
+	/// — a <c>byte</c>, which C#'s arithmetic reads as an <c>int</c>, or a string, which it
+	/// concatenates — the cast back is written out, checked where a `checked` stands over it.
+	/// Reading the target twice is safe, because a target here is a name or a member of one.
+	/// </remarks>
+	static Expression Compound(
+		Func<Expression, Expression, BinaryExpression> assign, Expression computed, Expression target,
+		ReadOnlySpan<Reading> reading) =>
+		computed is BinaryExpression binary && binary.Left == target && binary.Type == target.Type &&
+		binary.Method?.DeclaringType != typeof(string)
+			? assign(target, binary.Right)
+			: Expression.Assign(target, computed.Type == target.Type ? computed : Cast(computed, target.Type, reading));
 
 	/// <summary>Whether <see cref="Member"/> would have something to build, asked before it runs.</summary>
 	/// <remarks>
@@ -1149,29 +1235,23 @@ public static partial class ExpressionParser
 	/// which no C# written outside the type can read.
 	/// </para>
 	/// <para>
-	/// The name as written is looked for first, all the way up, and only then the same name
-	/// in another case. That is the one thing kept from the API's search, because
-	/// <c>Expression.Call</c> still makes it for methods, and a member and a call should not
-	/// disagree about how a name is spelled.
+	/// The name exactly as written, as C# reads one. <c>PropertyOrField</c> goes on to the
+	/// same name in another case, and <c>Expression.Call</c> does the same for a method, so
+	/// both of them read `s.length` as `s.Length`.
 	/// </para>
 	/// </remarks>
 	static MemberInfo? InstanceMember(Type type, string name)
 	{
 		const BindingFlags Declared = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
-		return Searched(type, name, Declared) ?? Searched(type, name, Declared | BindingFlags.IgnoreCase);
-	}
-
-	/// <summary>The type, what it derives from, and — for an interface — what it inherits.</summary>
-	static MemberInfo? Searched(Type type, string name, BindingFlags flags)
-	{
+		// The type and what it derives from, and — for an interface — what it inherits.
 		for (var each = type; each is not null; each = each.BaseType)
-			if (DeclaredOn(each, name, flags) is { } found)
+			if (DeclaredOn(each, name, Declared) is { } found)
 				return found;
 
 		if (type.IsInterface)
 			foreach (var inherited in type.GetInterfaces())
-				if (DeclaredOn(inherited, name, flags) is { } found)
+				if (DeclaredOn(inherited, name, Declared) is { } found)
 					return found;
 
 		return null;
@@ -1179,7 +1259,7 @@ public static partial class ExpressionParser
 
 	/// <summary>
 	/// A field or a property that takes no index, declared by that type itself. An array
-	/// rather than <c>GetProperty</c>, which throws where two names differ only in case.
+	/// rather than <c>GetProperty</c>, which throws where it finds more than one.
 	/// </summary>
 	static MemberInfo? DeclaredOn(Type type, string name, BindingFlags flags)
 	{
@@ -1205,14 +1285,15 @@ public static partial class ExpressionParser
 		if (at is null)
 			throw new ArgumentNullException(nameof(at));
 
-		return target.Type.IsArray ? Expression.ArrayAccess(target, at) : Indexed(target, at);
+		return target.Type.IsArray ? Expression.ArrayAccess(target, Converted(at, typeof(int))) : Indexed(target, at);
 	}
 
 	/// <summary>What <c>a[i]</c> reads, likewise.</summary>
 	/// <remarks>
 	/// An array's element is a node of this tree and anything else's is an indexer — whose
 	/// name is not always <c>Item</c>, `string` calling its own <c>Chars</c>. The type says
-	/// which through its default member, which is what an indexer is.
+	/// which through its default member, which is what an indexer is, and which of several
+	/// is meant is the same overload resolution a call makes.
 	/// </remarks>
 	public static Expression Indexed(Expression target, Expression[] at)
 	{
@@ -1223,13 +1304,11 @@ public static partial class ExpressionParser
 			throw new ArgumentNullException(nameof(at));
 
 		if (target.Type.IsArray)
-			return Expression.ArrayIndex(target, at);
+			return Expression.ArrayIndex(target, Converted(at, typeof(int)));
 
-		foreach (var member in target.Type.GetDefaultMembers())
-			if (member is PropertyInfo indexer && indexer.GetIndexParameters().Length == at.Length)
-				return Expression.Property(target, indexer, at);
+		var chosen = Resolved(Indexers(target.Type, at), at, $"'{target.Type.Name}' has no indexer");
 
-		throw new FormatException($"'{target.Type.Name}' has no indexer taking {at.Length} of them.");
+		return Expression.Property(target, (PropertyInfo)chosen.Member, Passed(chosen, at));
 	}
 
 	/// <summary>A static property or a static field, whichever that name is.</summary>
@@ -1254,40 +1333,383 @@ public static partial class ExpressionParser
 		throw new FormatException($"'{type.Name}' has no static '{name}'.");
 	}
 
-	/// <summary>The constructor those arguments fit.</summary>
-	/// <remarks>
-	/// <c>Expression.Call</c> takes a method by name and picks the overload itself;
-	/// <c>Expression.New</c> takes a <c>ConstructorInfo</c> and has no such overload, so
-	/// this is the one place the choosing is done here. Assignable rather than equal, so
-	/// that `new Exception(text)` finds the one taking a string.
-	/// </remarks>
-	public static ConstructorInfo Constructor(Type type, Expression[] arguments)
+	// ── Calls: the overload C# would choose ─────────────────────────────────────
+	//
+	// `Expression.Call` takes a method by name and chooses among the overloads itself, and
+	// chooses by a rule that is not C#'s: an argument has to be of its parameter's type or
+	// assignable to it by reference, no overload is better than another, and a name matches
+	// in any case. `Expression.New` and `Expression.Property` take the member and choose
+	// nothing. So the choosing is done here, once, for all four — a method, a constructor,
+	// an indexer, a delegate — by C#'s rules over the conversions below: which forms are
+	// applicable, a `params` array written out one by one, a default for what is left out,
+	// and then the one better than every other.
+
+	/// <summary>A call on a value: the method C# would choose for these arguments.</summary>
+	public static Expression Called(Expression target, string name, Expression[] arguments)
+	{
+		if (target is null)
+			throw new ArgumentNullException(nameof(target));
+
+		var chosen = Resolved(
+			Methods(target.Type, name, instance: true, arguments), arguments,
+			$"'{target.Type.Name}' has no method '{name}'");
+
+		return Expression.Call(target, (MethodInfo)chosen.Member, Passed(chosen, arguments));
+	}
+
+	/// <summary>A call on a type: the static method C# would choose for these arguments.</summary>
+	public static Expression Called(Type type, string name, Expression[] arguments)
 	{
 		if (type is null)
 			throw new ArgumentNullException(nameof(type));
 
-		if (arguments is null)
-			throw new ArgumentNullException(nameof(arguments));
+		var chosen = Resolved(
+			Methods(type, name, instance: false, arguments), arguments, $"'{type.Name}' has no method '{name}'");
 
-		foreach (var candidate in type.GetConstructors())
+		return Expression.Call((MethodInfo)chosen.Member, Passed(chosen, arguments));
+	}
+
+	/// <summary>A delegate called, its arguments converted to what it takes.</summary>
+	public static Expression Invoked(Expression target, Expression[] arguments)
+	{
+		if (target is null)
+			throw new ArgumentNullException(nameof(target));
+
+		// What is not a delegate is the API's to refuse, in its own words.
+		if (!typeof(Delegate).IsAssignableFrom(target.Type) || target.Type.GetMethod("Invoke") is not { } invoke)
+			return Expression.Invoke(target, arguments);
+
+		var chosen = Applicable(invoke, invoke.GetParameters(), arguments) ?? throw new InvalidOperationException(
+			$"'{target.Type.Name}' cannot be invoked with ({Listing(arguments)}).");
+
+		return Expression.Invoke(target, Passed(chosen, arguments));
+	}
+
+	/// <summary>The constructor C# would choose for these arguments, called with them.</summary>
+	/// <remarks>
+	/// A value type's constructor of no arguments is not in its metadata at all, and
+	/// <c>Expression.New</c> has a form for it that takes the type alone.
+	/// </remarks>
+	static NewExpression Constructed(Type type, Expression[] arguments)
+	{
+		if (arguments.Length == 0 && type.IsValueType)
+			return Expression.New(type);
+
+		var found = new List<Candidate>();
+
+		foreach (var (constructor, parameters) in _constructors.GetOrAdd(
+			type, static type => [.. type.GetConstructors().Select(static one => ((MemberInfo)one, one.GetParameters()))]))
+			if (Applicable(constructor, parameters, arguments) is { } candidate)
+				found.Add(candidate);
+
+		var chosen = Resolved(found, arguments, $"'{type.Name}' has no constructor");
+
+		return Expression.New((ConstructorInfo)chosen.Member, Passed(chosen, arguments));
+	}
+
+	/// <summary>One way a call could be read: the member, and the form its arguments take.</summary>
+	/// <param name="Expanded">Whether a <c>params</c> array's elements were written one by one.</param>
+	/// <param name="Defaults">How many optional parameters were left to their defaults.</param>
+	readonly record struct Candidate(MemberInfo Member, ParameterInfo[] Parameters, bool Expanded, int Defaults)
+	{
+		/// <summary>The type the argument at that position is converted to.</summary>
+		public Type At(int position) =>
+			Expanded && position >= Parameters.Length - 1
+				? Parameters[Parameters.Length - 1].ParameterType.GetElementType()!
+				: Parameters[position].ParameterType;
+	}
+
+	/// <summary>The methods by that name the arguments fit, by the name exactly as written.</summary>
+	/// <remarks>
+	/// An interface's own methods do not include what it inherits, nor <c>object</c>'s, and a
+	/// value of an interface type has both — `list.Contains(1)` on an <c>IList&lt;int&gt;</c>
+	/// is <c>ICollection&lt;T&gt;</c>'s. A generic method is no candidate: nothing here can
+	/// name its type arguments, and nothing infers them.
+	/// </remarks>
+	static List<Candidate> Methods(Type type, string name, bool instance, Expression[] arguments)
+	{
+		var found = new List<Candidate>();
+
+		foreach (var (method, parameters) in _methods.GetOrAdd((type, name, instance), static key => Named(key)))
+			if (Applicable(method, parameters, arguments) is { } candidate)
+				found.Add(candidate);
+
+		return found;
+	}
+
+	/// <summary>The methods a type has by that name, with their parameters, before any argument is asked.</summary>
+	static (MemberInfo, ParameterInfo[])[] Named((Type Type, string Name, bool Instance) key)
+	{
+		var named = new List<(MemberInfo, ParameterInfo[])>();
+
+		Consider(key.Type.GetMethods(
+			key.Instance
+				? BindingFlags.Public | BindingFlags.Instance
+				: BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy));
+
+		if (key.Instance && key.Type.IsInterface)
 		{
-			var parameters = candidate.GetParameters();
+			foreach (var inherited in key.Type.GetInterfaces())
+				Consider(inherited.GetMethods(BindingFlags.Public | BindingFlags.Instance));
 
-			if (parameters.Length != arguments.Length)
-				continue;
-
-			var fits = true;
-
-			for (var at = 0; at < parameters.Length; at++)
-				fits &= parameters[at].ParameterType.IsAssignableFrom(arguments[at].Type);
-
-			if (fits)
-				return candidate;
+			Consider(typeof(object).GetMethods(BindingFlags.Public | BindingFlags.Instance));
 		}
 
-		throw new FormatException(
-			$"'{type.Name}' has no constructor taking ({string.Join(", ", arguments.Select(one => one.Type.Name))}).");
+		return [.. named];
+
+		void Consider(MethodInfo[] methods)
+		{
+			foreach (var method in methods)
+				if (string.Equals(method.Name, key.Name, StringComparison.Ordinal) && !method.ContainsGenericParameters)
+					named.Add((method, method.GetParameters()));
+		}
 	}
+
+	// What reflection answers about a type is the same every time it is asked, and costs an
+	// allocation every time: a method's parameters are copied out on each `GetParameters`. A
+	// call over `Math.Max` asks about a dozen overloads and, for each argument, whether
+	// `IntPtr` declares a conversion to it — so each answer is kept once it has been worked
+	// out, as the names of types already are.
+
+	static readonly ConcurrentDictionary<(Type, string, bool), (MemberInfo, ParameterInfo[])[]> _methods = new();
+
+	static readonly ConcurrentDictionary<Type, (MemberInfo, ParameterInfo[])[]> _constructors = new();
+
+	static readonly ConcurrentDictionary<(Type, Type), MethodInfo?> _operators = new();
+
+	/// <summary>The indexers the arguments fit, an interface's inherited ones among them.</summary>
+	static List<Candidate> Indexers(Type type, Expression[] arguments)
+	{
+		var found = new List<Candidate>();
+
+		Consider(type);
+
+		if (type.IsInterface)
+			foreach (var inherited in type.GetInterfaces())
+				Consider(inherited);
+
+		return found;
+
+		void Consider(Type declaring)
+		{
+			foreach (var member in declaring.GetDefaultMembers())
+				if (member is PropertyInfo indexer && indexer.GetIndexParameters() is { Length: > 0 } parameters &&
+					Applicable(indexer, parameters, arguments) is { } candidate)
+					found.Add(candidate);
+		}
+	}
+
+	/// <summary>Whether the arguments fit, and in which form (C#'s applicable function member).</summary>
+	/// <remarks>
+	/// The normal form first — an argument for each parameter, and a default for each one
+	/// after — and then, where the last parameter is a <c>params</c> array, the expanded one,
+	/// with that array's elements written one by one. A parameter taken by reference, or of a
+	/// type an expression tree cannot hold, makes the member no candidate at all: chosen, it
+	/// would build a tree that does not compile, where the overload beside it would have.
+	/// </remarks>
+	static Candidate? Applicable(MemberInfo member, ParameterInfo[] parameters, Expression[] arguments)
+	{
+		foreach (var parameter in parameters)
+			if (parameter.ParameterType.IsByRef || Unrepresentable(parameter.ParameterType))
+				return null;
+
+		var count = parameters.Length;
+
+		if (arguments.Length <= count)
+		{
+			var fits = true;
+
+			for (var at = 0; at < arguments.Length && fits; at++)
+				fits = Converts(arguments[at], parameters[at].ParameterType);
+
+			for (var at = arguments.Length; at < count && fits; at++)
+				fits = parameters[at].IsOptional;
+
+			if (fits)
+				return new Candidate(member, parameters, false, count - arguments.Length);
+		}
+
+		if (count > 0 && arguments.Length >= count - 1 &&
+			parameters[count - 1].IsDefined(typeof(ParamArrayAttribute), false))
+		{
+			var element = parameters[count - 1].ParameterType.GetElementType()!;
+			var fits    = true;
+
+			for (var at = 0; at < arguments.Length && fits; at++)
+				fits = Converts(arguments[at], at < count - 1 ? parameters[at].ParameterType : element);
+
+			if (fits)
+				return new Candidate(member, parameters, true, 0);
+		}
+
+		return null;
+	}
+
+	/// <summary>A ref struct, which an expression tree cannot hold — <c>Span&lt;T&gt;</c> and its kind.</summary>
+	static bool Unrepresentable(Type type) =>
+#if NETSTANDARD2_0
+		type.IsValueType && type.GetCustomAttributesData().Any(
+			static attribute => attribute.AttributeType.FullName == "System.Runtime.CompilerServices.IsByRefLikeAttribute");
+#else
+		type.IsByRefLike;
+#endif
+
+	/// <summary>The one candidate better than every other, which is the one C# calls.</summary>
+	/// <remarks>
+	/// Methods a more derived type declared stand in front of its base types' first, as C#
+	/// has them (§12.8.10.2): an override is found once, and a method hidden by `new` is not
+	/// found beside the one hiding it.
+	/// </remarks>
+	/// <exception cref="InvalidOperationException">No candidate, or two that neither is better than.</exception>
+	static Candidate Resolved(List<Candidate> found, Expression[] arguments, string missing)
+	{
+		var standing = found.FindAll(one => !found.Exists(other =>
+			other.Member.DeclaringType != one.Member.DeclaringType &&
+			one.Member.DeclaringType!.IsAssignableFrom(other.Member.DeclaringType)));
+
+		foreach (var one in standing)
+			if (standing.TrueForAll(other => other.Equals(one) || Compared(one, other, arguments) > 0))
+				return one;
+
+		if (standing.Count == 0)
+			throw new InvalidOperationException($"{missing} taking ({Listing(arguments)}).");
+
+		throw new InvalidOperationException(
+			$"The call is ambiguous between '{standing[0].Member}' and '{standing[1].Member}'.");
+	}
+
+	/// <summary>Which of two candidates is the better function member, as C# decides it.</summary>
+	/// <returns>Above zero where the first is, below where the second is, and zero where neither.</returns>
+	static int Compared(Candidate first, Candidate second, Expression[] arguments)
+	{
+		var firstBetter  = false;
+		var secondBetter = false;
+
+		for (var at = 0; at < arguments.Length; at++)
+		{
+			var better = Better(arguments[at], first.At(at), second.At(at));
+
+			firstBetter  |= better > 0;
+			secondBetter |= better < 0;
+		}
+
+		if (firstBetter != secondBetter)
+			return firstBetter ? 1 : -1;
+
+		if (firstBetter)
+			return 0;
+
+		// Every argument converted equally well: the tie-breakers. The normal form over the
+		// expanded one, and no defaults over some.
+		if (first.Expanded != second.Expanded)
+			return first.Expanded ? -1 : 1;
+
+		if (first.Defaults == 0 != (second.Defaults == 0))
+			return first.Defaults == 0 ? 1 : -1;
+
+		return 0;
+	}
+
+	/// <summary>Which of two conversions of one argument is better (C#'s better conversion).</summary>
+	static int Better(Expression argument, Type first, Type second)
+	{
+		if (first == second)
+			return 0;
+
+		if (!ReferenceEquals(argument, Null))
+		{
+			if (argument.Type == first)
+				return 1;
+
+			if (argument.Type == second)
+				return -1;
+		}
+
+		return BetterTarget(first, second);
+	}
+
+	/// <summary>
+	/// Which of two types is the better one to convert to: the one that converts to the
+	/// other and not back, and a signed type over an unsigned one where neither does.
+	/// </summary>
+	static int BetterTarget(Type first, Type second)
+	{
+		var down = Standard(first, second);
+		var up   = Standard(second, first);
+
+		if (down != up)
+			return down ? 1 : -1;
+
+		if (IsSigned(first) && IsUnsigned(second))
+			return 1;
+
+		if (IsSigned(second) && IsUnsigned(first))
+			return -1;
+
+		return 0;
+	}
+
+	static bool IsSigned(Type type) =>
+		type == typeof(sbyte) || type == typeof(short) || type == typeof(int) || type == typeof(long);
+
+	static bool IsUnsigned(Type type) =>
+		type == typeof(byte) || type == typeof(ushort) || type == typeof(uint) || type == typeof(ulong);
+
+	/// <summary>The arguments as the chosen candidate takes them.</summary>
+	/// <remarks>
+	/// Each converted to its parameter, a default for each optional parameter left out, and
+	/// the tail of an expanded call gathered into the array the <c>params</c> parameter is.
+	/// </remarks>
+	static Expression[] Passed(Candidate chosen, Expression[] arguments)
+	{
+		var parameters = chosen.Parameters;
+		var passed     = new Expression[parameters.Length];
+		var fixedCount = chosen.Expanded ? parameters.Length - 1 : parameters.Length;
+
+		for (var at = 0; at < fixedCount; at++)
+			passed[at] = at < arguments.Length
+				? Implicitly(arguments[at], parameters[at].ParameterType)!
+				: Defaulted(parameters[at]);
+
+		if (chosen.Expanded)
+		{
+			var element = parameters[fixedCount].ParameterType.GetElementType()!;
+			var rest    = new Expression[arguments.Length - fixedCount];
+
+			for (var at = 0; at < rest.Length; at++)
+				rest[at] = Implicitly(arguments[fixedCount + at], element)!;
+
+			passed[fixedCount] = Expression.NewArrayInit(element, rest);
+		}
+
+		return passed;
+	}
+
+	/// <summary>What an optional parameter left out is worth.</summary>
+	/// <remarks>
+	/// Metadata keeps an enum's default as its underlying number, so it is made the enum
+	/// again; a default of <c>null</c> or <c>default</c> is the type's default.
+	/// </remarks>
+	static Expression Defaulted(ParameterInfo parameter)
+	{
+		var type = parameter.ParameterType;
+
+		if (!parameter.HasDefaultValue || parameter.DefaultValue is not { } value)
+			return Expression.Default(type);
+
+		var underlying = Underlying(type);
+
+		if (underlying.IsEnum && value.GetType() != underlying)
+			value = Enum.ToObject(underlying, value);
+
+		return Expression.Constant(value, type);
+	}
+
+	/// <summary>The types of some arguments, for a message.</summary>
+	static string Listing(Expression[] arguments) => string.Join(", ", arguments.Select(Shown));
+
+	/// <summary>An expression's type for a message, and the literal <c>null</c> as C# names it.</summary>
+	static string Shown(Expression value) => ReferenceEquals(value, Null) ? "<null>" : value.Type.Name;
 
 	/// <summary>The type that name and those arguments mean.</summary>
 	/// <remarks>
@@ -1398,7 +1820,7 @@ public static partial class ExpressionParser
 			bound[at] =
 				setting.Fields is { } fields ? Expression.MemberBind(member, Bound(MemberType(member), fields)) :
 				setting.Items  is { } items  ? Expression.ListBind(member, Added(MemberType(member), items)) :
-				Expression.Bind(member, setting.Value!);
+				Expression.Bind(member, Converted(setting.Value!, MemberType(member)));
 		}
 
 		return bound;
@@ -1410,10 +1832,10 @@ public static partial class ExpressionParser
 
 	/// <summary>Those elements against the collection type that has the `Add`.</summary>
 	/// <remarks>
-	/// The overload is chosen by the arguments, the same way `Expression.Call` chooses one
-	/// — and for the same reason it is done here and not in the grammar: what `Add` a
-	/// collection has is a question about the type, and the type is a sibling of the braces
-	/// rather than something inside them.
+	/// The overload is chosen by the arguments, the same way a call's is — and for the same
+	/// reason it is done here and not in the grammar: what `Add` a collection has is a
+	/// question about the type, and the type is a sibling of the braces rather than
+	/// something inside them.
 	/// </remarks>
 	public static ElementInit[] Added(Type type, Element[] elements)
 	{
@@ -1428,18 +1850,10 @@ public static partial class ExpressionParser
 		for (var at = 0; at < elements.Length; at++)
 		{
 			var arguments = elements[at].Arguments;
-			var add = type.GetMethod(
-				"Add",
-				BindingFlags.Public | BindingFlags.Instance,
-				binder: null,
-				[.. arguments.Select(static argument => argument.Type)],
-				modifiers: null);
+			var chosen    = Resolved(
+				Methods(type, "Add", instance: true, arguments), arguments, $"'{type.Name}' has no method 'Add'");
 
-			added[at] = add is not null
-				? Expression.ElementInit(add, arguments)
-				: throw new FormatException(
-					$"'{type.Name}' has no 'Add' taking " +
-					$"({string.Join(", ", arguments.Select(static argument => argument.Type.Name))}).");
+			added[at] = Expression.ElementInit((MethodInfo)chosen.Member, Passed(chosen, arguments));
 		}
 
 		return added;
@@ -1455,7 +1869,7 @@ public static partial class ExpressionParser
 	/// </remarks>
 	public static Expression Made(Type type, Expression[] args, Setting[]? fields, Element[]? items)
 	{
-		var made = Expression.New(Constructor(type, args), args);
+		var made = Constructed(type, args);
 
 		return fields is not null ? Expression.MemberInit(made, Bound(type, fields))
 			: items is not null   ? Expression.ListInit(made, Added(type, items))
@@ -1519,16 +1933,89 @@ public static partial class ExpressionParser
 	/// The grammar says what an `if` is, in the words every language uses for it; this says
 	/// what that turns into here. Written the other way round, the grammar would have to
 	/// carry a distinction that only <c>System.Linq.Expressions</c> makes.
+	///
+	/// Agreeing is what <see cref="Chosen"/> asks of a `?:` — one branch converts to the
+	/// other's type and not back — and where neither does, the answer is <c>void</c> rather
+	/// than a refusal: an `if` is a statement first.
 	/// </remarks>
-	public static Expression Chosen(Expression test, Expression? then, Expression? otherwise) =>
-		then is null || otherwise is null
-			? test
-			: Expression.Condition(
-				test, then, otherwise, then.Type == otherwise.Type ? then.Type : typeof(void));
+	public static Expression Branched(Expression test, Expression then, Expression otherwise) =>
+		Common(then, otherwise) is { } type
+			? Expression.Condition(test, Implicitly(then, type)!, Implicitly(otherwise, type)!, type)
+			: Expression.Condition(test, then, otherwise, typeof(void));
+
+	/// <summary>A <c>?:</c> where one was written, and the test alone where none was.</summary>
+	/// <remarks>
+	/// Typed as C# types one: where one branch converts to the other's type and not back,
+	/// that type, and a literal <c>null</c> takes the type of the branch beside it. Where
+	/// neither — `c ? 1 : "a"` — it is refused as C# refuses it (CS0173), and not made
+	/// <c>void</c> as an `if` would be: a `?:` is always worth something.
+	/// </remarks>
+	public static Expression Chosen(Expression test, Expression? then, Expression? otherwise)
+	{
+		if (then is null || otherwise is null)
+			return test;
+
+		var type = Common(then, otherwise) ?? throw new InvalidOperationException(
+			"Type of conditional expression cannot be determined because there is no implicit " +
+			$"conversion between '{Shown(then)}' and '{Shown(otherwise)}'.");
+
+		return Expression.Condition(test, Implicitly(then, type)!, Implicitly(otherwise, type)!);
+	}
+
+	/// <summary>The one type two branches meet in, or null where they meet in none.</summary>
+	/// <remarks>
+	/// Asked of the expressions first, so that a constant converts as a constant: `c ? u : 1`
+	/// over a <c>ulong</c> is a <c>ulong</c>. Where both convert that way the types decide,
+	/// as `c ? (byte)1 : 1` is an <c>int</c> — the byte widens and the int does not narrow.
+	/// </remarks>
+	static Type? Common(Expression first, Expression second)
+	{
+		if (first.Type == second.Type)
+			return first.Type;
+
+		if (ReferenceEquals(first, Null))
+			return CanBeNull(second.Type) ? second.Type : null;
+
+		if (ReferenceEquals(second, Null))
+			return CanBeNull(first.Type) ? first.Type : null;
+
+		var toSecond = Converts(first, second.Type);
+		var toFirst  = Converts(second, first.Type);
+
+		if (toSecond && toFirst)
+		{
+			toSecond = Standard(first.Type, second.Type);
+			toFirst  = Standard(second.Type, first.Type);
+		}
+
+		return toSecond == toFirst ? null : toSecond ? second.Type : first.Type;
+	}
 
 	/// <summary>A <c>??</c> where one was written, and the left side where none was.</summary>
-	public static Expression Coalesced(Expression left, Expression? right) =>
-		right is null ? left : Expression.Coalesce(left, right);
+	/// <remarks>
+	/// C#'s three cases in C#'s order: the right side converted to what the left one holds,
+	/// to the left side's own type, and then the left side converted to the right's. Where
+	/// none applies, the API is asked as written and refuses in its own words.
+	/// </remarks>
+	public static Expression Coalesced(Expression left, Expression? right)
+	{
+		if (right is null)
+			return left;
+
+		var held = Nullable.GetUnderlyingType(left.Type);
+
+		if (held is not null && Implicitly(right, held) is { } plain)
+			return Expression.Coalesce(left, plain);
+
+		if (Implicitly(right, left.Type) is { } same)
+			return Expression.Coalesce(left, same);
+
+		if (Standard(held ?? left.Type, right.Type))
+			return Expression.Coalesce(
+				Expression.Convert(left, CanBeNull(right.Type) ? right.Type : Lifted(right.Type)), right);
+
+		return Expression.Coalesce(left, right);
+	}
 
 	/// <summary>An integer constant, typed the way C# types one.</summary>
 	/// <remarks>
@@ -1559,6 +2046,471 @@ public static partial class ExpressionParser
 			: !wide && value <= uint.MaxValue              ? Expression.Constant((uint)value)
 			: !unsigned && value <= long.MaxValue          ? Expression.Constant((long)value)
 			: Expression.Constant(value);
+	}
+
+	// ── Conversions: the ones C# makes without being asked ──────────────────────
+	//
+	// `System.Linq.Expressions` builds every conversion there is — `Expression.Convert` takes
+	// a numeric widening, a boxing, a nullable, a user-defined `op_Implicit` alike — and
+	// decides none of them: `Expression.Add` over an `int` and a `double` is refused rather
+	// than widened. Which conversion C# would make unasked is a question about types, and the
+	// API keeps its own answer to it internal. So the answer is here, written from the C#
+	// specification, and every conversion it chooses is built by `Expression.Convert`.
+
+	/// <summary>The literal <c>null</c>, one node wherever it is written.</summary>
+	/// <remarks>
+	/// C# types <c>null</c> by where it stands, and the conversions below are where that is
+	/// decided — so the literal has to be told apart from an <c>object</c> that happens to be
+	/// null, and being this node is how. Typed <c>object</c> until something converts it.
+	/// </remarks>
+	public static readonly ConstantExpression Null = Expression.Constant(null, typeof(object));
+
+	/// <summary>C#'s predefined arithmetic operators take one of these, in this order.</summary>
+	static readonly Type[] _arithmetics =
+		[typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(float), typeof(double), typeof(decimal)];
+
+	/// <summary>And its bitwise ones and its shifts one of these.</summary>
+	static readonly Type[] _integrals = [typeof(int), typeof(uint), typeof(long), typeof(ulong)];
+
+	/// <summary>And its unary minus one of these: there is none over an unsigned type.</summary>
+	static readonly Type[] _negatables = [typeof(int), typeof(long), typeof(float), typeof(double), typeof(decimal)];
+
+	static readonly MethodInfo _concatStrings =
+		typeof(string).GetMethod(nameof(string.Concat), [typeof(string), typeof(string)])!;
+
+	static readonly MethodInfo _concatObjects =
+		typeof(string).GetMethod(nameof(string.Concat), [typeof(object), typeof(object)])!;
+
+	/// <summary>The value converted to that type as C# converts implicitly, or as it is where C# would not.</summary>
+	/// <remarks>
+	/// Unconverted rather than refused where there is no conversion: the factory it is handed
+	/// to is what refuses it, in its own words — `Expression.Assign` says which type cannot be
+	/// assigned to which, better than a message this could invent.
+	/// </remarks>
+	public static Expression Converted(Expression value, Type to)
+	{
+		if (value is null)
+			throw new ArgumentNullException(nameof(value));
+
+		return Implicitly(value, to) ?? value;
+	}
+
+	/// <summary>Each of those values converted to that type.</summary>
+	public static Expression[] Converted(Expression[] values, Type to)
+	{
+		if (values is null)
+			throw new ArgumentNullException(nameof(values));
+
+		var converted = new Expression[values.Length];
+
+		for (var at = 0; at < values.Length; at++)
+			converted[at] = Converted(values[at], to);
+
+		return converted;
+	}
+
+	/// <summary>An assignment, the value converted to what it is assigned to.</summary>
+	public static Expression Assigned(Expression target, Expression value)
+	{
+		if (target is null)
+			throw new ArgumentNullException(nameof(target));
+
+		return Expression.Assign(target, Converted(value, target.Type));
+	}
+
+	/// <summary>A switch's cases, each test converted to the type of what is switched on.</summary>
+	/// <remarks>
+	/// A case is built before the switch it belongs to, so its test is typed by itself:
+	/// `case 1:` is an <c>int</c> until it meets the <c>byte</c> it is compared with.
+	/// </remarks>
+	public static SwitchCase[] Against(SwitchCase[] cases, Type type)
+	{
+		if (cases is null)
+			throw new ArgumentNullException(nameof(cases));
+
+		var against = new SwitchCase[cases.Length];
+
+		for (var at = 0; at < cases.Length; at++)
+			against[at] = Expression.SwitchCase(cases[at].Body, Converted([.. cases[at].TestValues], type));
+
+		return against;
+	}
+
+	/// <summary>The implicit conversion C# makes from that value to that type, or null where it makes none.</summary>
+	/// <remarks>
+	/// An expression and not only a type, because two of C#'s conversions are about the value:
+	/// the literal <c>null</c> converts to anything that can be null, and a constant converts
+	/// to a narrower type it fits in — `byte b = 1` is an <c>int</c> that fits, and a
+	/// literal 0 is any enum. A constant is converted by making the constant it becomes, so
+	/// `1 + x` over a <c>double</c> reads the literal 1.0 rather than a conversion of 1.
+	/// </remarks>
+	static Expression? Implicitly(Expression value, Type to)
+	{
+		var from = value.Type;
+
+		if (from == to)
+			return value;
+
+		if (ReferenceEquals(value, Null))
+			return CanBeNull(to) ? Expression.Constant(null, to) : null;
+
+		if (value is ConstantExpression { Value: { } constant })
+		{
+			if (Narrowed(constant, to) is { } narrowed)
+				return Expression.Constant(narrowed, to);
+
+			if (IsNumeric(from) && IsNumeric(Underlying(to)) && Standard(from, to))
+				return Expression.Constant(Changed(constant, Underlying(to)), to);
+		}
+
+		if (Standard(from, to))
+			return Expression.Convert(value, to);
+
+		return UserDefined(from, to) is { } method ? Through(value, method, to) : null;
+	}
+
+	/// <summary>Whether <see cref="Implicitly"/> would find a conversion, asked without building one.</summary>
+	/// <remarks>
+	/// The question overload resolution and promotion ask of every candidate and every
+	/// argument, most of them to be turned down — so it is answered without the nodes that
+	/// only the chosen one needs.
+	/// </remarks>
+	static bool Converts(Expression value, Type to)
+	{
+		var from = value.Type;
+
+		if (from == to)
+			return true;
+
+		if (ReferenceEquals(value, Null))
+			return CanBeNull(to);
+
+		if (value is ConstantExpression { Value: { } constant } && Narrowed(constant, to) is not null)
+			return true;
+
+		return Standard(from, to) || UserDefined(from, to) is not null;
+	}
+
+	/// <summary>
+	/// A standard implicit conversion between two types: identity, numeric widening,
+	/// nullable, reference and boxing — everything C# converts without an operator.
+	/// </summary>
+	static bool Standard(Type from, Type to)
+	{
+		if (from == to)
+			return true;
+
+		if (Nullable.GetUnderlyingType(to) is { } target)
+		{
+			var source = Underlying(from);
+
+			return source == target || Widens(source, target);
+		}
+
+		if (Nullable.GetUnderlyingType(from) is null && Widens(from, to))
+			return true;
+
+		return !to.IsValueType && to.IsAssignableFrom(from);
+	}
+
+	/// <summary>C#'s implicit numeric conversions, which only ever widen.</summary>
+	static bool Widens(Type from, Type to)
+	{
+		if (from.IsEnum || to.IsEnum)
+			return false;
+
+		return (Type.GetTypeCode(from), Type.GetTypeCode(to)) switch
+		{
+			(TypeCode.SByte,
+			 TypeCode.Int16 or TypeCode.Int32 or TypeCode.Int64 or
+			 TypeCode.Single or TypeCode.Double or TypeCode.Decimal)                     => true,
+			(TypeCode.Byte,
+			 TypeCode.Int16 or TypeCode.UInt16 or TypeCode.Int32 or TypeCode.UInt32 or
+			 TypeCode.Int64 or TypeCode.UInt64 or
+			 TypeCode.Single or TypeCode.Double or TypeCode.Decimal)                     => true,
+			(TypeCode.Int16,
+			 TypeCode.Int32 or TypeCode.Int64 or
+			 TypeCode.Single or TypeCode.Double or TypeCode.Decimal)                     => true,
+			(TypeCode.UInt16,
+			 TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64 or
+			 TypeCode.Single or TypeCode.Double or TypeCode.Decimal)                     => true,
+			(TypeCode.Char,
+			 TypeCode.UInt16 or TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Int64 or TypeCode.UInt64 or
+			 TypeCode.Single or TypeCode.Double or TypeCode.Decimal)                     => true,
+			(TypeCode.Int32,
+			 TypeCode.Int64 or TypeCode.Single or TypeCode.Double or TypeCode.Decimal)  => true,
+			(TypeCode.UInt32,
+			 TypeCode.Int64 or TypeCode.UInt64 or
+			 TypeCode.Single or TypeCode.Double or TypeCode.Decimal)                     => true,
+			(TypeCode.Int64 or TypeCode.UInt64,
+			 TypeCode.Single or TypeCode.Double or TypeCode.Decimal)                     => true,
+			(TypeCode.Single, TypeCode.Double)                                           => true,
+			_                                                                            => false,
+		};
+	}
+
+	/// <summary>A constant in a narrower type it fits in, or null where C# converts it to none.</summary>
+	/// <remarks>
+	/// An <c>int</c> to any integral type that holds it, a <c>long</c> to a <c>ulong</c> where
+	/// it is not negative, and a zero of any integral type to any enum.
+	/// </remarks>
+	static object? Narrowed(object constant, Type to)
+	{
+		var target = Underlying(to);
+
+		if (target.IsEnum)
+			return constant is 0 or 0u or 0L or 0ul ? Enum.ToObject(target, 0) : null;
+
+		return constant switch
+		{
+			int number => Type.GetTypeCode(target) switch
+			{
+				TypeCode.SByte  when number is >= sbyte.MinValue and <= sbyte.MaxValue  => (sbyte)number,
+				TypeCode.Byte   when number is >= byte.MinValue and <= byte.MaxValue    => (byte)number,
+				TypeCode.Int16  when number is >= short.MinValue and <= short.MaxValue  => (short)number,
+				TypeCode.UInt16 when number is >= ushort.MinValue and <= ushort.MaxValue => (ushort)number,
+				TypeCode.UInt32 when number >= 0                                        => (uint)number,
+				TypeCode.UInt64 when number >= 0                                        => (ulong)number,
+				_                                                                       => null,
+			},
+			long number when number >= 0 && target == typeof(ulong) => (ulong)number,
+			_                                                         => null,
+		};
+	}
+
+	/// <summary>A numeric constant as the number of a wider type.</summary>
+	/// <remarks>A <c>char</c> goes through its code, which is all it converts as.</remarks>
+	static object Changed(object constant, Type to) =>
+		Convert.ChangeType(constant is char character ? (int)character : constant, to, CultureInfo.InvariantCulture);
+
+	/// <summary>The user-defined implicit conversion from one type to another, or null.</summary>
+	/// <remarks>
+	/// Looked for where C# looks — the two types and their bases — among operators whose
+	/// parameter the source reaches and whose result reaches the target by a standard
+	/// conversion. One such is the answer; of several, the one that is exact at both ends,
+	/// and where that is not one either, none: C# calls that ambiguous. Two predefined
+	/// numeric types have no user-defined conversion between them even where one is written,
+	/// as <c>decimal</c>'s are, and nothing converts to or from an interface this way.
+	/// </remarks>
+	static MethodInfo? UserDefined(Type from, Type to) =>
+		IsNumeric(Underlying(from)) && IsNumeric(Underlying(to))
+			? null
+			: _operators.GetOrAdd((from, to), static pair => Declared(pair.Item1, pair.Item2));
+
+	/// <summary>The search <see cref="UserDefined"/> makes, once for each pair of types.</summary>
+	static MethodInfo? Declared(Type from, Type to)
+	{
+		var source = Underlying(from);
+		var target = Underlying(to);
+
+		if (source.IsInterface || target.IsInterface)
+			return null;
+
+		var found = new List<MethodInfo>();
+
+		Consider(source);
+		Consider(target);
+
+		if (found.Count == 1)
+			return found[0];
+
+		var exact = found.FindAll(method => method.GetParameters()[0].ParameterType == from && method.ReturnType == to);
+
+		return exact.Count == 1 ? exact[0] : null;
+
+		void Consider(Type start)
+		{
+			for (var type = start; type is not null && type != typeof(object); type = type.BaseType)
+				foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly))
+					if (method.Name == "op_Implicit" && !found.Contains(method) &&
+						method.GetParameters() is { Length: 1 } parameters &&
+						Standard(from, parameters[0].ParameterType) && Standard(method.ReturnType, to))
+						found.Add(method);
+		}
+	}
+
+	/// <summary>The value through a user-defined operator, with a standard conversion either side.</summary>
+	static Expression Through(Expression value, MethodInfo method, Type to)
+	{
+		var input  = Implicitly(value, method.GetParameters()[0].ParameterType)!;
+		var result = Expression.Convert(input, method.ReturnType, method);
+
+		return method.ReturnType == to ? result : Expression.Convert(result, to);
+	}
+
+	/// <summary>Whether a type is one of C#'s numeric types, <c>char</c> among them.</summary>
+	static bool IsNumeric(Type type) =>
+		!type.IsEnum && Type.GetTypeCode(type) is >= TypeCode.Char and <= TypeCode.Decimal;
+
+	static Type Underlying(Type type) => Nullable.GetUnderlyingType(type) ?? type;
+
+	static Type Lifted(Type type) => typeof(Nullable<>).MakeGenericType(type);
+
+	static bool CanBeNull(Type type) => !type.IsValueType || Nullable.GetUnderlyingType(type) is not null;
+
+	static bool IsLifted(Expression operand) =>
+		ReferenceEquals(operand, Null) || Nullable.GetUnderlyingType(operand.Type) is not null;
+
+	// ── Operators: C#'s predefined ones, and the promotion they imply ───────────
+	//
+	// C#'s binary numeric promotion is its overload resolution over the predefined operators,
+	// and it is written that way here: every type of the operator's list both operands
+	// convert to is a candidate, and the answer is the one better than all the others. That
+	// is what makes `byte + byte` an `int`, `int + uint` a `long`, `uint + 1` a `uint` — the
+	// constant fits — and `long + ulong` nothing at all, as in C#. Lifted, where either side
+	// is nullable, to the nullable of the same answer. Where either operand is not a
+	// predefined numeric type the API is asked as written, which is where a user-defined
+	// operator is found — `DateTime - TimeSpan` — and where a refusal is said in its words.
+
+	/// <summary>The type C# promotes the operands to, or null where no predefined operator applies.</summary>
+	static Type? Operand(Type[] among, Expression left, Expression? right)
+	{
+		// The common case: one type already, and one the operator takes.
+		if (!ReferenceEquals(left, Null) &&
+			(right is null || right.Type == left.Type && !ReferenceEquals(right, Null)) &&
+			Array.IndexOf(among, Underlying(left.Type)) >= 0)
+			return left.Type;
+
+		if (!Predefined(left) || right is not null && !Predefined(right))
+			return null;
+
+		var lifted = IsLifted(left) || right is not null && IsLifted(right);
+		var fits   = new List<Type>(among.Length);
+
+		foreach (var each in among)
+		{
+			var operand = lifted ? Lifted(each) : each;
+
+			if (Converts(left, operand) && (right is null || Converts(right, operand)))
+				fits.Add(each);
+		}
+
+		foreach (var each in fits)
+			if (fits.TrueForAll(other => other == each || BetterTarget(each, other) > 0))
+				return lifted ? Lifted(each) : each;
+
+		return null;
+	}
+
+	/// <summary>Whether an operand is one C#'s predefined numeric operators could take.</summary>
+	static bool Predefined(Expression operand) =>
+		ReferenceEquals(operand, Null) || IsNumeric(Underlying(operand.Type));
+
+	/// <summary>An arithmetic operator — <c>+ - * / %</c> — over operands promoted as C# promotes them.</summary>
+	public static Expression Arithmetic(
+		Func<Expression, Expression, BinaryExpression> make, Expression left, Expression right) =>
+		Operand(_arithmetics, left, right) is { } type
+			? make(Implicitly(left, type)!, Implicitly(right, type)!)
+			: make(left, right);
+
+	/// <summary>The unary <c>+</c>, likewise.</summary>
+	public static Expression Arithmetic(Func<Expression, UnaryExpression> make, Expression operand) =>
+		Operand(_arithmetics, operand, null) is { } type ? make(Implicitly(operand, type)!) : make(operand);
+
+	/// <summary>A bitwise operator — <c>&amp; | ^</c> — over integers, <c>bool</c>s or one enum.</summary>
+	/// <remarks>
+	/// An enum's flags are combined as its underlying integers and made the enum again, which
+	/// is what C# does and the API has no operator for.
+	/// </remarks>
+	public static Expression Integral(
+		Func<Expression, Expression, BinaryExpression> make, Expression left, Expression right)
+	{
+		if (Operand(_integrals, left, right) is { } type)
+			return make(Implicitly(left, type)!, Implicitly(right, type)!);
+
+		var (first, second) = Unified(left, right);
+
+		return first.Type == second.Type && Underlying(first.Type).IsEnum
+			? Expression.Convert(make(AsUnderlying(first), AsUnderlying(second)), first.Type)
+			: make(first, second);
+	}
+
+	/// <summary>The unary <c>~</c>, likewise.</summary>
+	public static Expression Integral(Func<Expression, UnaryExpression> make, Expression operand) =>
+		Operand(_integrals, operand, null) is { } type ? make(Implicitly(operand, type)!)
+		: Underlying(operand.Type).IsEnum ? Expression.Convert(make(AsUnderlying(operand)), operand.Type)
+		: make(operand);
+
+	/// <summary>A shift: the left side promoted on its own, and the count an <c>int</c>.</summary>
+	public static Expression Shift(
+		Func<Expression, Expression, BinaryExpression> make, Expression left, Expression right)
+	{
+		if (Operand(_integrals, left, null) is not { } promoted)
+			return make(left, right);
+
+		var lifted = IsLifted(left) || IsLifted(right);
+		var type   = lifted ? Lifted(Underlying(promoted)) : promoted;
+		var count  = lifted ? typeof(int?) : typeof(int);
+
+		return Implicitly(left, type) is { } shifted && Implicitly(right, count) is { } by
+			? make(shifted, by)
+			: make(left, right);
+	}
+
+	/// <summary><c>==</c> and <c>!=</c>: numbers promoted, and otherwise one side converted to the other's type.</summary>
+	/// <remarks>
+	/// Which is how `s == null` compares a string with a string, `n == 3` a nullable with a
+	/// nullable, and `e == 0` an enum with the enum a literal zero converts to.
+	/// </remarks>
+	public static Expression Equality(
+		Func<Expression, Expression, BinaryExpression> make, Expression left, Expression right)
+	{
+		if (Operand(_arithmetics, left, right) is { } type)
+			return make(Implicitly(left, type)!, Implicitly(right, type)!);
+
+		var (first, second) = Unified(left, right);
+
+		return make(first, second);
+	}
+
+	/// <summary><c>&lt; &gt; &lt;= &gt;=</c>: likewise, and an enum ordered by its underlying number.</summary>
+	public static Expression Relational(
+		Func<Expression, Expression, BinaryExpression> make, Expression left, Expression right)
+	{
+		if (Operand(_arithmetics, left, right) is { } type)
+			return make(Implicitly(left, type)!, Implicitly(right, type)!);
+
+		var (first, second) = Unified(left, right);
+
+		return first.Type == second.Type && Underlying(first.Type).IsEnum
+			? make(AsUnderlying(first), AsUnderlying(second))
+			: make(first, second);
+	}
+
+	/// <summary>A `+` over text, which is <c>string.Concat</c>; null where neither side is a string.</summary>
+	/// <remarks>
+	/// Written as the API's <c>Add</c> node with the method it runs, so the tree still reads as
+	/// the `+` the text wrote. Two strings are joined as strings, and anything else beside a
+	/// string as an <c>object</c> — what C#'s own <c>string + object</c> operator takes.
+	/// </remarks>
+	static Expression? Joined(Expression left, Expression right)
+	{
+		var leftText  = left.Type == typeof(string);
+		var rightText = right.Type == typeof(string);
+
+		if (!leftText && !rightText)
+			return null;
+
+		if ((leftText || ReferenceEquals(left, Null)) && (rightText || ReferenceEquals(right, Null)))
+			return Expression.Add(
+				Implicitly(left, typeof(string))!, Implicitly(right, typeof(string))!, _concatStrings);
+
+		return Expression.Add(Converted(left, typeof(object)), Converted(right, typeof(object)), _concatObjects);
+	}
+
+	/// <summary>Two operands of one type where one converts to the other's, and as they are otherwise.</summary>
+	static (Expression, Expression) Unified(Expression left, Expression right) =>
+		left.Type == right.Type                        ? (left, right)
+		: Implicitly(right, left.Type) is { } asLeft  ? (left, asLeft)
+		: Implicitly(left, right.Type) is { } asRight ? (asRight, right)
+		: (left, right);
+
+	/// <summary>An enum as its underlying number, nullable where it was.</summary>
+	static Expression AsUnderlying(Expression value)
+	{
+		var number = Enum.GetUnderlyingType(Underlying(value.Type));
+
+		return Expression.Convert(value, Nullable.GetUnderlyingType(value.Type) is null ? number : Lifted(number));
 	}
 
 	/// <summary>
@@ -1884,7 +2836,7 @@ public static partial class ExpressionParser
 
 			_returns ??= Expression.Label(value.Type, "return");
 
-			return Expression.Return(_returns, value);
+			return Expression.Return(_returns, Converted(value, _returns.Type));
 		}
 
 		/// <summary>The body with the place its returns go to, where any of them do.</summary>

@@ -1088,7 +1088,7 @@ static class HandExpression
 			if (value < 0 || Kind(value) != Semicolon)
 				return -1;
 
-			node = Expression.Assign(_context.Named(name, Span(i, value + 1)), read!);
+			node = ExpressionParser.Assigned(_context.Named(name, Span(i, value + 1)), read!);
 
 			return value + 1;
 		}
@@ -1170,7 +1170,7 @@ static class HandExpression
 
 				if (otherwise >= 0)
 				{
-					node = ExpressionParser.Chosen(read!, whenTrue, whenFalse);
+					node = ExpressionParser.Branched(read!, whenTrue!, whenFalse!);
 
 					return otherwise;
 				}
@@ -1209,7 +1209,7 @@ static class HandExpression
 			if (otherwise < 0)
 				return -1;
 
-			node = ExpressionParser.Chosen(read!, whenTrue, whenFalse);
+			node = ExpressionParser.Branched(read!, whenTrue!, whenFalse!);
 
 			return otherwise;
 		}
@@ -1392,7 +1392,8 @@ static class HandExpression
 				return -1;
 
 			node = Expression.Block(
-				Expression.Switch(typeof(void), read!, fallback, null, cases.ToArray()),
+				Expression.Switch(
+					typeof(void), read!, fallback, null, ExpressionParser.Against(cases.ToArray(), read!.Type)),
 				Expression.Label(_context.Exit(span)));
 
 			return at + 1;
@@ -1590,7 +1591,7 @@ static class HandExpression
 						if (value < 0)
 							return -1;
 
-						node = Expression.Assign(ExpressionParser.Place(written!, indices!), read!);
+						node = ExpressionParser.Assigned(ExpressionParser.Place(written!, indices!), read!);
 
 						return value;
 					}
@@ -1633,14 +1634,21 @@ static class HandExpression
 				PlusAssign    => ExpressionParser.AddAssign(target, value, Marks),
 				MinusAssign   => ExpressionParser.SubtractAssign(target, value, Marks),
 				StarAssign    => ExpressionParser.MultiplyAssign(target, value, Marks),
-				SlashAssign   => Expression.DivideAssign(target, value),
-				PercentAssign => Expression.ModuloAssign(target, value),
-				AmpAssign     => Expression.AndAssign(target, value),
-				PipeAssign    => Expression.OrAssign(target, value),
-				CaretAssign   => Expression.ExclusiveOrAssign(target, value),
-				LeftAssign    => Expression.LeftShiftAssign(target, value),
-				RightAssign   => Expression.RightShiftAssign(target, value),
-				_             => Expression.Assign(target, value),
+				SlashAssign   => ExpressionParser.ArithmeticAssign(
+					Expression.DivideAssign, Expression.Divide, target, value, Marks),
+				PercentAssign => ExpressionParser.ArithmeticAssign(
+					Expression.ModuloAssign, Expression.Modulo, target, value, Marks),
+				AmpAssign     => ExpressionParser.IntegralAssign(
+					Expression.AndAssign, Expression.And, target, value, Marks),
+				PipeAssign    => ExpressionParser.IntegralAssign(
+					Expression.OrAssign, Expression.Or, target, value, Marks),
+				CaretAssign   => ExpressionParser.IntegralAssign(
+					Expression.ExclusiveOrAssign, Expression.ExclusiveOr, target, value, Marks),
+				LeftAssign    => ExpressionParser.ShiftAssign(
+					Expression.LeftShiftAssign, Expression.LeftShift, target, value, Marks),
+				RightAssign   => ExpressionParser.ShiftAssign(
+					Expression.RightShiftAssign, Expression.RightShift, target, value, Marks),
+				_             => ExpressionParser.Assigned(target, value),
 			};
 
 		/// <summary>What may be written to: a name, or a member of one.</summary>
@@ -1807,27 +1815,27 @@ static class HandExpression
 			{
 				OrElse    => Expression.OrElse(left, right),
 				AndAlso   => Expression.AndAlso(left, right),
-				Pipe      => Expression.Or(left, right),
-				Caret     => Expression.ExclusiveOr(left, right),
-				Amp       => Expression.And(left, right),
-				Equal     => Expression.Equal(left, right),
-				NotEqual  => Expression.NotEqual(left, right),
-				LessEq    => Expression.LessThanOrEqual(left, right),
-				GreaterEq => Expression.GreaterThanOrEqual(left, right),
-				Less      => Expression.LessThan(left, right),
-				Greater   => Expression.GreaterThan(left, right),
+				Pipe      => ExpressionParser.Integral(Expression.Or, left, right),
+				Caret     => ExpressionParser.Integral(Expression.ExclusiveOr, left, right),
+				Amp       => ExpressionParser.Integral(Expression.And, left, right),
+				Equal     => ExpressionParser.Equality(Expression.Equal, left, right),
+				NotEqual  => ExpressionParser.Equality(Expression.NotEqual, left, right),
+				LessEq    => ExpressionParser.Relational(Expression.LessThanOrEqual, left, right),
+				GreaterEq => ExpressionParser.Relational(Expression.GreaterThanOrEqual, left, right),
+				Less      => ExpressionParser.Relational(Expression.LessThan, left, right),
+				Greater   => ExpressionParser.Relational(Expression.GreaterThan, left, right),
 				Plus      => ExpressionParser.Add(left, right, Marks),
 				Minus     => ExpressionParser.Subtract(left, right, Marks),
 				Star      => ExpressionParser.Multiply(left, right, Marks),
-				Slash     => Expression.Divide(left, right),
-				_         => Expression.Modulo(left, right),
+				Slash     => ExpressionParser.Arithmetic(Expression.Divide, left, right),
+				_         => ExpressionParser.Arithmetic(Expression.Modulo, left, right),
 			};
 
 		/// <summary>The shift, which the table above reaches with a width of two.</summary>
 		readonly Expression Shifted(byte operation, Expression left, Expression right) =>
 			operation == Less
-				? Expression.LeftShift(left, right)
-				: Expression.RightShift(left, right);
+				? ExpressionParser.Shift(Expression.LeftShift, left, right)
+				: ExpressionParser.Shift(Expression.RightShift, left, right);
 
 		int Unary(int i, out Expression? node)
 		{
@@ -1861,9 +1869,9 @@ static class HandExpression
 				node = kind switch
 				{
 					Minus => ExpressionParser.Negate(operand!, Marks),
-					Plus  => Expression.UnaryPlus(operand!),
+					Plus  => ExpressionParser.Arithmetic(Expression.UnaryPlus, operand!),
 					Not   => Expression.Not(operand!),
-					_     => Expression.OnesComplement(operand!),
+					_     => ExpressionParser.Integral(Expression.OnesComplement, operand!),
 				};
 
 				return at;
@@ -1913,7 +1921,7 @@ static class HandExpression
 
 					if (arguments >= 0)
 					{
-						node = Expression.Invoke(target!, args!);
+						node = ExpressionParser.Invoked(target!, args!);
 						at   = arguments;
 					}
 					else if (Kind(name) == Increment)
@@ -1946,7 +1954,7 @@ static class HandExpression
 
 					if (arguments >= 0)
 					{
-						node = Expression.Call(node!, member, null, args!);
+						node = ExpressionParser.Called(node!, member, args!);
 						at   = arguments;
 
 						continue;
@@ -2000,7 +2008,7 @@ static class HandExpression
 
 					if (arguments >= 0)
 					{
-						node = Expression.Call(type!, member, null, args!);
+						node = ExpressionParser.Called(type!, member, args!);
 
 						return arguments;
 					}
@@ -2056,7 +2064,7 @@ static class HandExpression
 
 			if (kind == KwNull)
 			{
-				node = Expression.Constant(null, typeof(object));
+				node = ExpressionParser.Null;
 
 				return i + 1;
 			}
@@ -2125,7 +2133,8 @@ static class HandExpression
 				if (Kind(read) != RightBrace)
 					return -1;
 
-				node = Expression.NewArrayInit(type.GetElementType()!, items.ToArray());
+				node = Expression.NewArrayInit(
+					type.GetElementType()!, ExpressionParser.Converted(items.ToArray(), type.GetElementType()!));
 
 				return read + 1;
 			}

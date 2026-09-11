@@ -47,10 +47,10 @@ that is not this language, and text that is and means nothing, such as a name no
 declares or an operator its operands do not support.
 
 ```csharp
-var match = ExpressionParser.TryParse("(long x) => x + 1");
+var match = ExpressionParser.TryParse("(string s) => s - 1");
 
-match.IsSuccess;   // false: nothing widens on its own, so this wants 1L
-match.Error;       // what Expression.Add said about Int64 and Int32
+match.IsSuccess;   // false: there is no minus over a string
+match.Error;       // what Expression.Subtract said about String and Int32
 ```
 
 A type named rather than spelled as a keyword is looked for in `System`, and in whatever
@@ -62,9 +62,10 @@ ExpressionParser.Using("System.Collections.Generic");
 var count = ExpressionParser.Compile<Func<IList<int>, int>>("(IList<int> l) => l.Count");
 ```
 
-Where it is not C# — `null` is an `object`, nothing widens on its own, a call is resolved
-by `Expression.Call` rather than by C#'s overload rules — is written down, with the reason
-for each, at the top of the file below.
+Conversions, operators and overloads follow C#'s rules: `x + 1.5` over an `int` is a
+`double`, `byte b = 1` fits, and `Math.Sqrt(x)` finds the `double` overload. Where it is
+not C# — no generic or extension method is called, and a constant is folded only across a
+minus — is written down, with the reason for each, at the top of the file below.
 
 The grammar calls `System.Linq.Expressions` factories directly. There is no intermediate
 AST specific to .Gram that must later be translated into an expression tree — which also

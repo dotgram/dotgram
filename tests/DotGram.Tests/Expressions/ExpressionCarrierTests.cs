@@ -77,6 +77,14 @@ public sealed class ExpressionCarrierTests
 		"(int x) => -2147483648 + x",
 		"(Exception e) => e.Message.Length",
 
+		// Conversions C# makes unasked, and the overload they let a call find.
+		"(int x) => x + 1.5",
+		"(string s, int n) => s + n",
+		"(int x) => Math.Sqrt(x)",
+		"(byte b) => { b += 1; b }",
+		"(bool c) => c ? 1 : 2L",
+		"() => -3000000000",
+
 		// And the refusals: a refusal is an answer and has to be the same answer.
 		"(int x) => x *",
 		"(int x) => { x += 1;",
