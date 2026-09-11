@@ -18993,3 +18993,52 @@ times:
 At 150: read by both 5,858 (from 5,858), the work list 118 (from 118), read here but refused
 there 43; `--split` 682 (from 672), the round trip 100% of 7,377. The map: read by both 7,912
 of 8,338 (98.9%), the work list 91 (from 116), defects 0.
+
+## Code the server loads, what binds or signs it, and a call without `EXEC`
+
+Assemblies, cryptographic providers, external languages, rules, defaults and aggregates, kept
+as every object here is — six `Definition`s — and `ADD SIGNATURE` as the mirror of its `DROP`, a
+record of its own as agreed; and the call without the word, which is `Statement.Execute` with
+`Bare` set, also as agreed. Put to the engine some three hundred times:
+
+- **An assembly** is named by one part and made of one value or more, `NULL` among them, with
+  its permission set said once. Altered, it is given new bits, options each once, files
+  dropped and files added, in that order and at least one of them.
+- **A provider** is made from a file's string, and altered by one of `ENABLE`, `DISABLE` or
+  another file.
+- **An external language** is made of one file or two, each naming its content and its file
+  (`Msg 39123`); `ENVIRONMENT_VARIABLES`, which the published syntax lists, is refused
+  (`Msg 39133`). Two files must be for different platforms (`Msg 39112`), and the engine's
+  answers fix what "different" means: a file that names no platform is for Windows, and one
+  that names both — the engine takes a platform twice — is for the pair, which differs from
+  either. First-wins and last-wins each contradict one answer; the set agrees with all six.
+- **A rule** names one variable outside its subqueries — none is `Msg 160` unless a subquery
+  stands in it, two are `Msg 161`, `@@SPID` is not one — and neither a rule nor a default
+  draws from a sequence outside a subquery (`Msg 11719`). `Syntax.Binds` asks it by walking
+  the tree, a subquery's nodes set aside by identity, since a record's own equality would take
+  two equal subqueries for one.
+- **An aggregate** takes one parameter or more, a type and a nullability each and nothing else.
+- **A module is signed** by certificates and asymmetric keys of one part, with a password or a
+  signature after each; by symmetric keys; or by passwords. Its class is `OBJECT`, `ASSEMBLY`
+  or `DATABASE`. `DROP SIGNATURE` shares the rules and loses two defects of its own: it read
+  `CERTIFICATE dbo.c` and `ASYMMETRIC KEY dbo.k`, which the engine refuses, and refused
+  `ASSEMBLY::a`, a symmetric key and a password, which it reads.
+
+**The call without `EXEC`** is read where the engine reads it: as the first statement of a
+batch, and nowhere else — after a `;`, another statement, in a block or a procedure's body
+the same words are refused. It is the second reading of a batch's first statement, tried where
+no statement could be read, since `THROW` begins both. It takes what `EXEC` takes but `AT`. `--split` caught it once: a file whose last line is a `GO`
+with no line break after it, which no `GoLine` takes, opened an empty batch there, and the call
+read the separator as a procedure called `GO`. The call now looks past `FinalGo` first.
+
+And what `EXEC` takes turned out narrower than this grammar had it. The engine passes a
+procedure a constant, a variable or a name of one part — a number or money with one `-` before
+it, a string, a binary string, an ODBC literal, `NULL`, `DEFAULT` — and refuses an expression:
+`1 + 1`, `(1)`, a call, `-@a`, `+1`, `COLLATE`, two parts. Only a variable is passed back
+(`Msg 179`). This read every `ValueExpression`; it now reads a `DBCC` command's values, which
+are the same set, and shares their rule. `EXEC p (SELECT 1)` stays read, and rightly: the
+engine reads it too, as `EXEC p` and a statement after it.
+
+At 150: read by both 5,862 (from 5,858), the work list 114 (from 118), read here but refused
+there 43 (from 43); `--split` 699 (from 682), the round trip 100% of 7,458. The map: read by
+both 7,953 of 8,338 (99.4%), the work list 50 (from 91), defects 0.

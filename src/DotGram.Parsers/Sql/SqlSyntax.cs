@@ -300,10 +300,14 @@ public abstract record Statement : ISqlSpan
 	/// <c>OPENDATASOURCE (…)</c>, where it stood for the server the procedure is on, with
 	/// <see cref="Name"/> the rest of the name after it.
 	/// </param>
+	/// <param name="Bare">
+	/// Whether the word was left out, as it may be where the call is the first statement of a
+	/// batch: <c>sp_who</c>, <c>dbo.p 1</c>.
+	/// </param>
 	public sealed record Execute(
 		string? Into, string Name, Expression[] Arguments,
 		Clause? Context = null, string? At = null, string? DataSource = null, string? Tail = null,
-		Expression.RoutineInvocation? Server = null) : Statement
+		Expression.RoutineInvocation? Server = null, bool Bare = false) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Execute;
@@ -667,6 +671,19 @@ public abstract record Statement : ISqlSpan
 	/// <param name="Columns">The columns, by two parts or three.</param>
 	/// <param name="Options">What followed <c>WITH</c>, a <see cref="Clause.Option"/> each.</param>
 	public sealed record Classification(bool Add, string[] Columns, Clause[] Options) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Ddl;
+	}
+
+	/// <summary><c>ADD SIGNATURE</c>: a module signed, the mirror of <see cref="DropSignature"/>.</summary>
+	/// <param name="By">
+	/// What signs it, as written: a certificate or an asymmetric key with the password or the
+	/// signature after it, a symmetric key, or a password.
+	/// </param>
+	/// <param name="To">The module, with its class where one was said: <c>OBJECT::dbo.p</c>.</param>
+	/// <param name="Counter">Whether it is a counter signature.</param>
+	public sealed record AddSignature(Expression[] By, string To, bool Counter = false) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Ddl;
@@ -1085,6 +1102,25 @@ public abstract record Statement : ISqlSpan
 
 	/// <summary><c>CREATE SYNONYM</c>: another name for something, here or elsewhere.</summary>
 	public sealed record SynonymDefinition(string Name) : Definition(Name);
+
+	/// <summary><c>CREATE</c> or <c>ALTER ASSEMBLY</c>: a .NET assembly loaded into the database, or changed there.</summary>
+	public sealed record AssemblyDefinition(string Name) : Definition(Name);
+
+	/// <summary><c>CREATE</c> or <c>ALTER CRYPTOGRAPHIC PROVIDER</c>: a key management provider registered, switched or replaced.</summary>
+	public sealed record CryptographicProviderDefinition(string Name) : Definition(Name);
+
+	/// <summary><c>CREATE</c> or <c>ALTER EXTERNAL LANGUAGE</c>: a language extension and the files it is made of.</summary>
+	public sealed record ExternalLanguageDefinition(string Name) : Definition(Name);
+
+	/// <summary><c>CREATE RULE</c>: a condition a column bound to it must meet.</summary>
+	public sealed record RuleDefinition(string Name) : Definition(Name);
+
+	/// <summary><c>CREATE DEFAULT</c>: the value a column bound to it takes where it is given none.</summary>
+	public sealed record DefaultDefinition(string Name) : Definition(Name);
+
+	/// <summary><c>CREATE AGGREGATE</c>: an aggregate an assembly's class computes.</summary>
+	public sealed record AggregateDefinition(string Name) : Definition(Name);
+
 
 	/// <summary><c>ENDPOINT</c>.</summary>
 	/// <summary>
@@ -1839,6 +1875,12 @@ public abstract record Statement : ISqlSpan
 			"XML SCHEMA COLLECTION"      => new XmlSchemaCollectionDefinition(name),
 			"ALTER XML SCHEMA COLLECTION" => new AlterXmlSchemaCollection(name),
 			"SYNONYM"                    => new SynonymDefinition(name),
+			"ASSEMBLY"                   => new AssemblyDefinition(name),
+			"CRYPTOGRAPHIC PROVIDER"     => new CryptographicProviderDefinition(name),
+			"EXTERNAL LANGUAGE"          => new ExternalLanguageDefinition(name),
+			"RULE"                       => new RuleDefinition(name),
+			"DEFAULT"                    => new DefaultDefinition(name),
+			"AGGREGATE"                  => new AggregateDefinition(name),
 
 			"FULLTEXT INDEX"             => new FullTextIndexDefinition(name),
 			"ALTER FULLTEXT INDEX"       => new AlterFullTextIndex(name),
@@ -3767,6 +3809,97 @@ public static class Syntax
 		options is not null &&
 		Array.Exists(options, one => one is Clause.Option { Name: var named } &&
 			string.Equals(named, name, StringComparison.OrdinalIgnoreCase));
+
+	/// <summary>
+	/// Whether an argument is passed back only where it can be: <c>OUTPUT</c> after a variable,
+	/// and <c>Msg 179</c> after anything else.
+	/// </summary>
+	public static bool Passes(Expression? value, string? back) =>
+		string.IsNullOrEmpty(back) || value is Expression.Literal(SqlLiteralKind.Parameter, _);
+
+	/// <summary>Whether what a rule or a default is made of is what the engine binds.</summary>
+	/// <remarks>
+	/// Asked of what stands outside every subquery, and a subquery's inside is its own. A rule's
+	/// condition names one variable, whatever its case — <c>@@</c> ones are not variables here
+	/// — and with none it must hold a subquery (<c>Msg 160</c>); two are <c>Msg 161</c>. A
+	/// default's value names what it likes. Neither draws from a sequence (<c>Msg 11719</c>).
+	/// </remarks>
+	public static bool Binds(Expression? value, bool rule)
+	{
+		if (value is null)
+			return false;
+
+		var inside    = new HashSet<ISqlSpan>(ByReference.Instance);
+		var variables = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		var queried   = false;
+		var drawn     = false;
+
+		SqlWalker.Walk(value, node =>
+		{
+			if (inside.Contains(node))
+				return true;
+
+			switch (node)
+			{
+				case Query query:
+					queried = true;
+					SqlWalker.Walk(query, held => inside.Add(held) || true);
+					break;
+
+				case Expression.Literal(SqlLiteralKind.Parameter, var name)
+					when name.StartsWith("@", StringComparison.Ordinal) && !name.StartsWith("@@", StringComparison.Ordinal):
+					variables.Add(name);
+					break;
+
+				case Expression.RoutineInvocation { Name: var called } when Squared(called) == "NEXT VALUE FOR":
+					drawn = true;
+					break;
+			}
+
+			return true;
+		});
+
+		return !drawn && (!rule || variables.Count == 1 || variables.Count == 0 && queried);
+	}
+
+	/// <summary>
+	/// Whether the files an external language is made of each say what they hold, and are for
+	/// two platforms where there are two.
+	/// </summary>
+	/// <remarks>
+	/// Each names its content and its file (<c>Msg 39123</c>). Of two, the platforms differ
+	/// (<c>Msg 39112</c>) — and the engine takes a platform twice in one file, so what differs
+	/// is the set: a file that names none is for Windows, and one that names both is for the
+	/// two together, which is neither of them. <c>(… PLATFORM = WINDOWS, PLATFORM = LINUX), (…
+	/// PLATFORM = WINDOWS)</c> is read, and <c>(…), (… PLATFORM = WINDOWS)</c> is refused.
+	/// </remarks>
+	public static bool LanguageFiles(Clause[]? file, Clause[]? other)
+	{
+		return Whole(file) && (other is null || Whole(other) && Platforms(file!) != Platforms(other));
+
+		static bool Whole(Clause[]? one) => HasOption(one, "CONTENT") && HasOption(one, "FILE_NAME");
+
+		static int Platforms(Clause[] one)
+		{
+			var platforms = 0;
+
+			foreach (var option in one)
+				if (option is Clause.Option { Name: "PLATFORM", Value: Expression.ColumnReference(var platform) })
+					platforms |= platform == "LINUX" ? 2 : 1;
+
+			return platforms == 0 ? 1 : platforms;
+		}
+	}
+
+	/// <summary>Nodes told apart by identity, which a record's own equality does not do.</summary>
+	sealed class ByReference : IEqualityComparer<ISqlSpan>
+	{
+		public static readonly ByReference Instance = new();
+
+		public bool Equals(ISqlSpan? x, ISqlSpan? y) => ReferenceEquals(x, y);
+
+		public int GetHashCode(ISqlSpan obj) => System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
+	}
 
 	/// <summary>Whether a queue created has what its activation needs.</summary>
 	/// <remarks>

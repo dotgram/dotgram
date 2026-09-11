@@ -262,8 +262,10 @@ public static class SqlWriter
 				break;
 
 			case Statement.Execute(
-					var into, var name, var arguments, var context, var at, var source, var with, var server):
-				text.Append("EXECUTE ");
+					var into, var name, var arguments, var context, var at, var source, var with, var server, var bare):
+				// A call a batch opens with may leave the word out, and is written back as it came.
+				if (!bare)
+					text.Append("EXECUTE ");
 
 				if (into is not null)
 					text.Append(into).Append(" = ");
@@ -755,6 +757,19 @@ public static class SqlWriter
 				{
 					text.Append(", TIMEOUT ");
 					Put(text, timeout, 0);
+				}
+
+				break;
+
+			case Statement.AddSignature(var by, var to, var counter):
+				text.Append(counter ? "ADD COUNTER SIGNATURE TO " : "ADD SIGNATURE TO ").Append(to).Append(" BY ");
+
+				for (var i = 0; i < by.Length; i++)
+				{
+					if (i > 0)
+						text.Append(", ");
+
+					Put(text, by[i], 0);
 				}
 
 				break;

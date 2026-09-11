@@ -183,7 +183,7 @@ compile, and a test reads this column against every record.
 | `Statement.TryCatch` | T-SQL | TRY...CATCH | Control |
 | `Statement.Declare` | SQL/PSM | &lt;SQL variable declaration&gt; | Declaration |
 | `Statement.Transaction` | SQL-92 | §13.2 &lt;commit statement&gt;, §13.3 &lt;rollback statement&gt;, and T-SQL's `BEGIN`/`SAVE` | Transaction |
-| `Statement.Execute` | T-SQL | EXECUTE | Execute |
+| `Statement.Execute` | T-SQL | EXECUTE, and a procedure called without the word as a batch's first statement | Execute |
 | `Statement.TableDefinition` | SQL-92 | §11.3 &lt;table definition&gt; | Ddl |
 | `Statement.CreateTableAsSelect` | T-SQL | CREATE TABLE AS SELECT, and the external table written the same way | Ddl |
 | `Statement.AlterTable` | SQL-92 | §11.10 &lt;alter table statement&gt; | Ddl |
@@ -224,6 +224,7 @@ compile, and a test reads this column against every record.
 | `Statement.TriggerSwitch` | T-SQL | ENABLE TRIGGER, DISABLE TRIGGER | Ddl |
 | `Statement.Kill` | T-SQL | KILL, KILL QUERY NOTIFICATION SUBSCRIPTION, KILL STATS JOB | Admin |
 | `Statement.Classification` | T-SQL | ADD SENSITIVITY CLASSIFICATION | Ddl |
+| `Statement.AddSignature` | T-SQL | ADD SIGNATURE, ADD COUNTER SIGNATURE | Ddl |
 | `Statement.SetUser` | T-SQL | SETUSER | Session |
 | `Statement.CreateLogin` | T-SQL | CREATE LOGIN | Dcl |
 | `Statement.AlterLogin` | T-SQL | ALTER LOGIN | Dcl |
@@ -272,6 +273,12 @@ compile, and a test reads this column against every record.
 | `Statement.XmlSchemaCollectionDefinition` | T-SQL | CREATE XML SCHEMA COLLECTION | Ddl |
 | `Statement.AlterXmlSchemaCollection` | T-SQL | ALTER XML SCHEMA COLLECTION | Ddl |
 | `Statement.SynonymDefinition` | T-SQL | CREATE SYNONYM | Ddl |
+| `Statement.AssemblyDefinition` | T-SQL | CREATE, ALTER ASSEMBLY | Ddl |
+| `Statement.CryptographicProviderDefinition` | T-SQL | CREATE, ALTER CRYPTOGRAPHIC PROVIDER | Ddl |
+| `Statement.ExternalLanguageDefinition` | T-SQL | CREATE, ALTER EXTERNAL LANGUAGE | Ddl |
+| `Statement.RuleDefinition` | T-SQL | CREATE RULE | Ddl |
+| `Statement.DefaultDefinition` | T-SQL | CREATE DEFAULT | Ddl |
+| `Statement.AggregateDefinition` | T-SQL | CREATE AGGREGATE | Ddl |
 | `Statement.EndpointDefinition` | T-SQL | CREATE/ALTER ENDPOINT | Ddl |
 | `Statement.CreateDatabase` | T-SQL | CREATE DATABASE — the standard has no database | Ddl |
 | `Statement.AlterDatabaseSet` | T-SQL | ALTER DATABASE … SET | Ddl |

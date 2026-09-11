@@ -24,17 +24,17 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 98.9% | 7912 | 91 | 0 | 4 | 85 | 250 | 0 |
+| **all** | 996 | 8338 | 99.4% | 7953 | 50 | 0 | 4 | 85 | 250 | 0 |
 | [data-types](#data-types) | 29 | 304 | 99.7% | 290 | 1 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 99.2% | 234 | 2 | 0 | 0 | 1 | 5 | 0 |
 | [functions](#functions) | 324 | 2101 | 99.8% | 2077 | 5 | 0 | 3 | 2 | 17 | 0 |
 | [includes](#includes) | 3 | 7 | 100.0% | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
-| [language-elements](#language-elements) | 86 | 868 | 98.9% | 845 | 9 | 0 | 0 | 0 | 14 | 0 |
-| [queries](#queries) | 37 | 747 | 98.2% | 711 | 13 | 0 | 0 | 1 | 22 | 0 |
+| [language-elements](#language-elements) | 86 | 868 | 99.4% | 849 | 5 | 0 | 0 | 0 | 14 | 0 |
+| [queries](#queries) | 37 | 747 | 98.5% | 713 | 11 | 0 | 0 | 1 | 22 | 0 |
 | [reference](#reference) | 3 | 32 | 100.0% | 32 | 0 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 99.7% | 310 | 1 | 0 | 0 | 0 | 1 | 0 |
 | [spatial-geometry](#spatial-geometry) | 74 | 357 | 99.7% | 356 | 1 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 98.0% | 2849 | 59 | 0 | 1 | 81 | 174 | 0 |
+| [statements](#statements) | 320 | 3163 | 99.2% | 2884 | 24 | 0 | 1 | 81 | 174 | 0 |
 | [xml](#xml) | 12 | 205 | 100.0% | 201 | 0 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
@@ -42,41 +42,23 @@ rest run rather than read.
 | Statement | statements | pages | for example |
 | --- | ---: | ---: | --- |
 | CREATE SPATIAL INDEX | 9 | 3 | stops at SPATIAL — `CREATE SPATIAL INDEX sample_idx on sample(g);` |
-| CREATE ASSEMBLY | 7 | 6 | stops at ASSEMBLY — `CREATE ASSEMBLY mytest FROM 'c:\test.dll' WITH PERMISSION_SET = SAFE` |
 | INSERT | 6 | 6 | stops at ';' — `INSERT INTO likes($edge_id, $from_id, $to_id, rating) SELECT EDGE_ID_FROM_PARTS(OBJ...` |
-| ADD | 5 | 1 | stops at SIGNATURE — `ADD SIGNATURE TO HumanResources.uspUpdateEmployeeLogin BY CERTIFICATE HumanResource...` |
 | IF | 4 | 1 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
-| ALTER ASSEMBLY | 3 | 1 | stops at ASSEMBLY — `ALTER ASSEMBLY ComplexNumber FROM 'C:\Program Files\Microsoft SQL Server\130\Tools\...` |
 | ALTER AVAILABILITY GROUP | 3 | 2 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP AccountsAG JOIN;` |
-| ALTER CRYPTOGRAPHIC PROVIDER | 3 | 1 | stops at CRYPTOGRAPHIC — `ALTER CRYPTOGRAPHIC PROVIDER SecurityProvider DISABLE;` |
-| CREATE EXTERNAL LANGUAGE | 3 | 2 | stops at LANGUAGE — `CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaex...` |
-| CREATE RULE | 3 | 1 | stops at RULE — `CREATE RULE range_rule AS @range>= $1000 AND @range <$20000;` |
 | CREATE TABLE | 3 | 3 | stops at ')' — `CREATE TABLE ExampleTable (PriKey int PRIMARY KEY, timestamp);` |
 | READTEXT | 3 | 2 | stops at READTEXT — `READTEXT t1.c2 @ptrval 0 1;` |
 | SET | 3 | 1 | stops at AUTOCOMMIT — `SET AUTOCOMMIT ON;` |
 | USE | 3 | 2 | stops at COMPUTE — `USE UserDbSales; DBCC FREEPROCCACHE (COMPUTE) WITH NO_INFOMSGS;` |
 | BACKUP | 2 | 2 | stops at ALGORITHM — `BACKUP CERTIFICATE Shipping04 TO FILE = 'c:\storedcerts\shipping04cert.pfx' WITH FO...` |
-| DBO | 2 | 1 | stops at DBO — `dbo.uspGetEmployeeManagers 6;` |
 | DECLARE | 2 | 2 | stops at ';' — `DECLARE @days INT = 365, @datetime DATETIME2 = '2000-01-01 01:01:01.1110000'; /* 20...` |
-| DIALOG_HANDLE | 2 | 1 | stops at '@' — `@dialog_handle ;` |
-| EXPLAIN | 2 | 1 | stops at EXPLAIN — `EXPLAIN` |
-| HUMANRESOURCES | 2 | 1 | stops at HUMANRESOURCES — `HumanResources.uspGetAllEmployees;` |
 | RECONFIGURE | 2 | 2 | stops at RECONFIGURE — `RECONFIGURE WITH OVERRIDE;` |
 | SELECT | 2 | 2 | stops at DIAGNOSTICS — `-- Determine the session_id of your current session SELECT TOP 1 session_id();  -- ...` |
-| SP_DETACH_DB | 2 | 1 | stops at SP_DETACH_DB — `sp_detach_db Archive;` |
-| ALTER EXTERNAL LANGUAGE | 1 | 1 | stops at LANGUAGE — `ALTER EXTERNAL LANGUAGE Java SET (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaexte...` |
 | ALTER SERVICE | 1 | 1 | stops at KEY — `ALTER SERVICE MASTER KEY REGENERATE;` |
 | ALTER TABLE | 1 | 1 | stops at WITH — `ALTER TABLE dbo.doc_exf ADD AddDate smalldatetime NULL CONSTRAINT AddDateDflt DEFAU...` |
-| COPY | 1 | 1 | stops at COPY — `Copy` |
-| CREATE AGGREGATE | 1 | 1 | stops at AGGREGATE — `CREATE AGGREGATE Concatenate(@input nvarchar(4000)) RETURNS nvarchar(4000) EXTERNAL...` |
-| CREATE CRYPTOGRAPHIC PROVIDER | 1 | 1 | stops at CRYPTOGRAPHIC — `CREATE CRYPTOGRAPHIC PROVIDER SecurityProvider FROM FILE = 'C:\SecurityProvider\Sec...` |
 | CREATE DATABASE SCOPED | 1 | 1 | stops at ')' — `CREATE DATABASE SCOPED CREDENTIAL AccessAzureInvoices WITH IDENTITY = 'SHARED ACCES...` |
-| CREATE DEFAULT | 1 | 1 | stops at DEFAULT — `CREATE DEFAULT phonedflt AS 'unknown';` |
 | CREATE OR | 1 | 1 | stops at '$' — `CREATE OR ALTER PROCEDURE mergeEdge @PersonId integer, @CityId integer, @StreetAddr...` |
 | CREATE XML INDEX | 1 | 1 | stops at '(' — `CREATE XML INDEX filt_sxi_index_c ON Tbl(xmlcol) USING XML INDEX sxi_index FOR ( pa...` |
 | RESTORE | 1 | 1 | stops at RESTORE_OPTIONS — `RESTORE DATABASE AdventureWorks2022_1 FROM URL = 's3://datavirtualizationsample.s3....` |
-| SP_BINDEFAULT | 1 | 1 | stops at SP_BINDEFAULT — `sp_bindefault 'phonedflt', 'Person.PersonPhone.PhoneNumber';` |
-| SP_HELP | 1 | 1 | stops at SP_HELP — `sp_help doc_exy;` |
 | UPDATETEXT | 1 | 1 | stops at UPDATETEXT — `UPDATETEXT pub_info.pr_info @ptrval 88 1 'b';` |
 | WRITETEXT | 1 | 1 | stops at WRITETEXT — `WRITETEXT pub_info.pr_info @ptrval 'New Moon Books (NMB) has just released another ...` |
 
@@ -501,11 +483,8 @@ None: the engine reads every statement this grammar reads.
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | Transactions (Azure Synapse Analytics and Microsoft Fabric) | 11 | 72.7% | 3 | 0 | 0 | 0 | stops at AUTOCOMMIT — `SET AUTOCOMMIT ON;` |
-| EXECUTE (Transact-SQL) | 69 | 97.1% | 2 | 0 | 0 | 0 | stops at DBO — `dbo.uspGetEmployeeManagers 6;` |
 | CREATE DIAGNOSTICS SESSION (Transact-SQL) | 9 | 83.3% | 1 | 0 | 0 | 0 | stops at DIAGNOSTICS — `-- Determine the session_id of your current session SELECT TOP 1 session_id();  -- ...` |
-| NULLIF (Transact-SQL) | 19 | 94.7% | 1 | 0 | 0 | 0 | stops at COPY — `Copy` |
 | RECONFIGURE (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at RECONFIGURE — `RECONFIGURE WITH OVERRIDE;` |
-| SET @local_variable (Transact-SQL) | 54 | 98.1% | 1 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY mytest FROM 'c:\test.dll' WITH PERMISSION_SET = SAFE` |
 | + (Addition) (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALL (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | AND (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -535,6 +514,7 @@ None: the engine reads every statement this grammar reads.
 | ELSE (IF...ELSE) (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | END (BEGIN...END) (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | = (Equals) (Transact-SQL) | 24 | 100.0% | 0 | 0 | 0 | 0 |  |
+| EXECUTE (Transact-SQL) | 69 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EXISTS (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Expressions (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | FETCH (Transact-SQL) | 26 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -552,6 +532,7 @@ None: the engine reads every statement this grammar reads.
 | * (Multiplication) (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | &lt;&gt; (Not Equal To) (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | NOT (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| NULLIF (Transact-SQL) | 19 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OPEN (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Operator Precedence (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OR (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -563,6 +544,7 @@ None: the engine reads every statement this grammar reads.
 | SAVE TRANSACTION (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | :: (Scope Resolution) (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SELECT @local_variable (Transact-SQL) | 14 | 100.0% | 0 | 0 | 0 | 0 |  |
+| SET @local_variable (Transact-SQL) | 54 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EXCEPT and INTERSECT (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | UNION (Transact-SQL) | 27 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Slash Star (Block Comment) (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -592,7 +574,6 @@ None: the engine reads every statement this grammar reads.
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | UPDATE (Transact-SQL) | 136 | 97.1% | 4 | 0 | 0 | 0 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
-| EXPLAIN (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at EXPLAIN — `EXPLAIN` |
 | PREDICT (Transact-SQL) | 8 | 71.4% | 2 | 0 | 0 | 0 | stops at WITH — `SELECT d.*, p.Score FROM PREDICT(MODEL = @model, DATA = dbo.mytable AS d, RUNTIME =...` |
 | OUTPUT clause (Transact-SQL) | 67 | 98.5% | 1 | 0 | 0 | 0 | stops at MERGE — `INSERT INTO Production.ZeroInventory ( DeletedProductID, RemovedOnDate ) SELECT Pro...` |
 | READTEXT (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at READTEXT — `READTEXT pub_info.pr_info @ptrval 1 25;` |
@@ -602,6 +583,7 @@ None: the engine reads every statement this grammar reads.
 | Aliasing | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | AT TIME ZONE (Transact-SQL) | 17 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CONTAINS (Transact-SQL) | 40 | 100.0% | 0 | 0 | 0 | 0 |  |
+| EXPLAIN (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | FREETEXT (Transact-SQL) | 14 | 100.0% | 0 | 0 | 0 | 0 |  |
 | FROM clause plus JOIN, APPLY, PIVOT (T-SQL) | 38 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Using PIVOT and UNPIVOT | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -798,44 +780,31 @@ None: the engine reads every statement this grammar reads.
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | CREATE SPATIAL INDEX (Transact-SQL) | 9 | 22.2% | 7 | 0 | 0 | 0 | stops at SPATIAL — `CREATE SPATIAL INDEX SIndx_SpatialTable_geometry_col1 ON SpatialTable(geometry_col)...` |
-| ADD SIGNATURE (Transact-SQL) | 41 | 87.8% | 5 | 0 | 0 | 0 | stops at SIGNATURE — `ADD SIGNATURE TO HumanResources.uspUpdateEmployeeLogin BY CERTIFICATE HumanResource...` |
-| ALTER ASSEMBLY (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at ASSEMBLY — `ALTER ASSEMBLY ComplexNumber FROM 'C:\Program Files\Microsoft SQL Server\130\Tools\...` |
-| ALTER CRYPTOGRAPHIC PROVIDER (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at CRYPTOGRAPHIC — `ALTER CRYPTOGRAPHIC PROVIDER SecurityProvider DISABLE;` |
-| CREATE PROCEDURE (Transact-SQL) | 61 | 95.1% | 3 | 0 | 0 | 0 | stops at HUMANRESOURCES — `HumanResources.uspGetAllEmployees;` |
-| CREATE RULE (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at RULE — `CREATE RULE range_rule AS @range>= $1000 AND @range <$20000;` |
 | ALTER AVAILABILITY GROUP (Transact-SQL) | 3 | 0.0% | 2 | 0 | 0 | 0 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP AccountsAG JOIN;` |
-| ALTER TABLE (Transact-SQL) | 141 | 98.4% | 2 | 0 | 0 | 4 | stops at WITH — `ALTER TABLE dbo.doc_exf ADD AddDate smalldatetime NULL CONSTRAINT AddDateDflt DEFAU...` |
-| CREATE AGGREGATE (Transact-SQL) | 5 | 60.0% | 2 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY StringUtilities FROM @SamplesPath + 'StringUtilities\CS\StringUtili...` |
-| CREATE ASSEMBLY (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY HelloWorld FROM '<system_drive>:\Program Files\Microsoft SQL Server...` |
 | CREATE CREDENTIAL (Transact-SQL) | 26 | 92.3% | 2 | 0 | 0 | 0 | stops at BACKUP_OPTIONS — `BACKUP DATABASE [AdventureWorks2022] TO URL  = 's3://datavirtualizationsample.s3.am...` |
-| CREATE DATABASE (Transact-SQL) | 54 | 94.9% | 2 | 0 | 0 | 6 | stops at SP_DETACH_DB — `sp_detach_db Archive;` |
-| CREATE DEFAULT (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at DEFAULT — `CREATE DEFAULT phonedflt AS 'unknown';` |
-| CREATE EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at LANGUAGE — `CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaex...` |
-| END CONVERSATION (Transact-SQL) | 6 | 66.7% | 2 | 0 | 0 | 0 | stops at '@' — `@dialog_handle ;` |
 | INSERT (Transact-SQL) | 73 | 97.3% | 2 | 0 | 0 | 0 | stops at ')' — `CREATE TABLE dbo.T1 ( column_1 int IDENTITY, column_2 uniqueidentifier, );` |
 | MERGE (Transact-SQL) | 54 | 96.0% | 2 | 0 | 0 | 0 | stops at MERGE — `INSERT INTO Production.UpdatedInventory SELECT ProductID, LocationID, NewQty, Previ...` |
-| ALTER EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at LANGUAGE — `ALTER EXTERNAL LANGUAGE Java SET (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaexte...` |
 | ALTER SERVER CONFIGURATION (Transact-SQL) | 20 | 95.0% | 1 | 0 | 0 | 0 | stops at RECONFIGURE — `RECONFIGURE;` |
 | ALTER SERVICE MASTER KEY (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at KEY — `ALTER SERVICE MASTER KEY REGENERATE;` |
+| ALTER TABLE (Transact-SQL) | 141 | 99.2% | 1 | 0 | 0 | 4 | stops at WITH — `ALTER TABLE dbo.doc_exf ADD AddDate smalldatetime NULL CONSTRAINT AddDateDflt DEFAU...` |
 | BACKUP CERTIFICATE (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at ALGORITHM — `BACKUP CERTIFICATE Shipping04 TO FILE = 'c:\storedcerts\shipping04cert.pfx' WITH FO...` |
 | CREATE AVAILABILITY GROUP (Transact-SQL) | 2 | 0.0% | 1 | 0 | 0 | 0 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP [MyAg] ADD LISTENER 'MyAgListenerIvP6' ( WITH IP ( ('2001:...` |
-| CREATE CERTIFICATE (Transact-SQL) | 7 | 85.7% | 1 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY Shipping19 FROM 'c:\Shipping\Certs\Shipping19.dll' WITH PERMISSION_...` |
-| CREATE CRYPTOGRAPHIC PROVIDER (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at CRYPTOGRAPHIC — `CREATE CRYPTOGRAPHIC PROVIDER SecurityProvider FROM FILE = 'C:\SecurityProvider\Sec...` |
 | CREATE EXTERNAL DATA SOURCE (Transact-SQL) | 115 | 98.9% | 1 | 0 | 0 | 23 | stops at ')' — `CREATE DATABASE SCOPED CREDENTIAL AccessAzureInvoices WITH IDENTITY = 'SHARED ACCES...` |
-| CREATE FUNCTION (Transact-SQL) | 12 | 91.7% | 1 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY [SurrogateStringFunction] FROM @SamplesPath + 'StringManipulate\CS\...` |
 | CREATE REMOTE TABLE AS SELECT (Parallel Data Warehouse) | 3 | 50.0% | 1 | 0 | 0 | 0 | stops at TABLE — `USE ssawPDW; CREATE REMOTE TABLE OrderReporting.Orders.MyOrdersTable AT ( 'Data Sou...` |
 | CREATE TABLE AS SELECT (Azure Synapse Analytics and Microsoft Fabric) | 53 | 100.0% | 0 | 0 | 1 | 12 | levels 100 engine, 110 engine, 120 engine — `INSERT INTO Users (id, name, age, street, city) SELECT id, name, age, JSON_VALUE(ad...` |
 | CREATE XML INDEX (Selective XML Indexes) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at '(' — `CREATE XML INDEX filt_sxi_index_c ON Tbl(xmlcol) USING XML INDEX sxi_index FOR ( pa...` |
-| DROP EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at LANGUAGE — `CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaex...` |
 | DROP TABLE (Transact-SQL) | 6 | 83.3% | 1 | 0 | 0 | 0 | stops at ''' — `CREATE TABLE #temptable (col1 int);  INSERT INTO #temptable VALUES (10);  SELECT co...` |
 | ADD SENSITIVITY CLASSIFICATION (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ADD SIGNATURE (Transact-SQL) | 41 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER APPLICATION ROLE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER ASSEMBLY (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER ASYMMETRIC KEY (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER AUTHORIZATION (Transact-SQL) | 19 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER BROKER PRIORITY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER CERTIFICATE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER COLUMN ENCRYPTION KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER CREDENTIAL (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER CRYPTOGRAPHIC PROVIDER (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE AUDIT SPECIFICATION (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE ENCRYPTION KEY (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE SCOPED CONFIGURATION | 20 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -848,6 +817,7 @@ None: the engine reads every statement this grammar reads.
 | ALTER DATABASE (Transact-SQL) | 35 | 100.0% | 0 | 0 | 0 | 9 |  |
 | ALTER EVENT SESSION (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER EXTERNAL DATA SOURCE (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 1 |  |
+| ALTER EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER EXTERNAL LIBRARY (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER EXTERNAL RESOURCE POOL (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER FULLTEXT CATALOG (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -895,20 +865,27 @@ None: the engine reads every statement this grammar reads.
 | Collation precedence | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | COLLATE (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | COPY INTO (Transact-SQL) | 18 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE AGGREGATE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE APPLICATION ROLE (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE ASSEMBLY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE ASYMMETRIC KEY (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE BROKER PRIORITY (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE CERTIFICATE (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE COLUMN ENCRYPTION KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE COLUMN MASTER KEY (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE COLUMNSTORE INDEX (Transact-SQL) | 52 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE CONTRACT (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE CRYPTOGRAPHIC PROVIDER (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE DATABASE AUDIT SPECIFICATION | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE DATABASE ENCRYPTION KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE DATABASE SCOPED CREDENTIAL (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE DATABASE (Transact-SQL) | 54 | 100.0% | 0 | 0 | 0 | 6 |  |
+| CREATE DEFAULT (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE ENDPOINT (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE EVENT NOTIFICATION (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE EVENT SESSION (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE EXTERNAL FILE FORMAT (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 2 |  |
+| CREATE EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE EXTERNAL LIBRARY (Transact-SQL) - SQL Server | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE EXTERNAL RESOURCE POOL (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE EXTERNAL TABLE AS SELECT (CETAS) (Transact-SQL) | 49 | 100.0% | 0 | 0 | 0 | 10 |  |
@@ -917,6 +894,7 @@ None: the engine reads every statement this grammar reads.
 | CREATE FULLTEXT INDEX (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE FULLTEXT STOPLIST (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE FUNCTION (Azure Synapse Analytics and Microsoft Fabric) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE FUNCTION (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE INDEX (Transact-SQL) | 66 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE LOGIN (Transact-SQL) | 48 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE MASTER KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -924,11 +902,13 @@ None: the engine reads every statement this grammar reads.
 | CREATE MESSAGE TYPE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE PARTITION FUNCTION (Transact-SQL) | 14 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE PARTITION SCHEME (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE PROCEDURE (Transact-SQL) | 61 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE QUEUE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE REMOTE SERVICE BINDING (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE RESOURCE POOL (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE ROLE (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE ROUTE (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE RULE (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SCHEMA (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SEARCH PROPERTY LIST (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SECURITY POLICY (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -989,6 +969,7 @@ None: the engine reads every statement this grammar reads.
 | DROP EVENT SESSION (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP EXTERNAL DATA SOURCE (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP EXTERNAL FILE FORMAT (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DROP EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP EXTERNAL LIBRARY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP EXTERNAL RESOURCE POOL (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP EXTERNAL TABLE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -1030,6 +1011,7 @@ None: the engine reads every statement this grammar reads.
 | DROP WORKLOAD GROUP (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP XML SCHEMA COLLECTION (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ENABLE TRIGGER (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
+| END CONVERSATION (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EXECUTE AS Clause (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EXECUTE AS (Transact-SQL) | 21 | 100.0% | 0 | 0 | 0 | 0 |  |
 | GET CONVERSATION GROUP (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |

@@ -1526,6 +1526,7 @@ SearchTop : @Expression = ',' & ?=((Sql92.Lexical.Digits | TSql.Variable) & ')')
 // two are written as one list, `WITH a AS (…), b AS (…)`.
 TSqlStatement : @Statement
 	= (with: WithClause & ?!"WITH"i)? & s: StatementBody & ';'? => @(Syntax.Preceded(with, s))
+	| c: BareCall & ';'?                                         => @(c)
 
 StatementBody : @Statement
 	= s: TSqlInsert   => @(s)
@@ -1749,6 +1750,7 @@ DefinitionStatement : @Statement
 	| s: SequenceStatement       => @(s)
 	| s: TypeStatement           => @(s)
 	| s: MaintenanceStatement    => @(s)
+	| s: CodeStatement           => @(s)
 
 // ── A text of statements ────────────────────────────────────────────────────
 //
@@ -1761,7 +1763,18 @@ DefinitionStatement : @Statement
 // answers go the other way and are not followed here: after a `DECLARE` whose last variable
 // has no value, `DECLARE @x INT`, and after `RAISERROR (…)` it reads the `WITH` without the
 // `;`.
-SqlText : @Statement[] = ';'* & s: SqlPiece* => @(s ?? System.Array.Empty<Statement>())
+SqlText : @Statement[]
+	= first: FirstPiece & rest: SqlPiece* => @(Syntax.Listed(first, rest))
+	| ';'* & s: SqlPiece*                 => @(s ?? System.Array.Empty<Statement>())
+
+// The first statement of a text may be a procedure's call without the word — `sp_who`,
+// `dbo.p 1, @a OUTPUT` — which the engine reads there and nowhere else: after a `;`, after
+// another statement, in a block and in a procedure's body the same words are refused. It is
+// the second reading, tried where no statement could be read, since a word like `THROW`
+// begins both.
+FirstPiece : @Statement
+	= s: SqlPiece                      => @(s)
+	| c: BareCall & (';'+ | ?!"WITH"i) => @(c)
 
 SqlPiece : @Statement
 	= (with: WithClause & ?!"WITH"i)? & s: StatementBody & (';'+ | ?!"WITH"i)
@@ -1851,6 +1864,115 @@ DeclaredAs : @Clause.VariableDeclaration
 	= "TABLE"i & '(' & body: TableBody & ')'              => @(new Clause.VariableDeclaration("", "TABLE", null, body))
 	| "CURSOR"i                                           => @(new Clause.VariableDeclaration("", "CURSOR", null))
 	| type: DataType & n: NullSpec? & ('=' & v: SetValue)? => @(new Clause.VariableDeclaration("", type, v, null, n))
+
+// ── Code the server loads, and what binds or signs it ─────────────────────────────
+//
+// Put to the engine some two hundred times. The objects are kept as every object here is, a
+// name and the words after it; a signature is the mirror of its `DROP`.
+//
+// An assembly is named by one part and made of one value or more — a path, bits, any value —
+// with its permission set said once. Altered, it is given new bits, options each once
+// (`PERMISSION_SET`, `VISIBILITY`, `UNCHECKED DATA`), files dropped (all of them, or by their
+// strings) and files added (a value, and a string to call it), in that order and at least one
+// of them. A cryptographic provider is named by one part and made from a file's string;
+// altered, it is switched on, off, or given another file, one of the three. An external
+// language is named by one part and made of one file or two, each a bracket that names its
+// content and its file (`Msg 39123`) and perhaps its platform and its parameters, any of them
+// more than once; `ENVIRONMENT_VARIABLES`, which the published syntax lists, is refused
+// (`Msg 39133`). Of two files the platforms differ (`Msg 39112`, `Syntax.LanguageFiles`).
+// Altered, it is given one file anew, one more, or one taken away by its platform.
+//
+// A rule and a default are named by two parts at most (`Msg 166`). A rule's condition names
+// one variable — none is `Msg 160` unless a subquery stands in it, two are `Msg 161` — and a
+// default's value is any value; neither draws from a sequence outside a subquery
+// (`Msg 11719`, `Syntax.Binds`). An aggregate is named by two parts at most, takes one
+// parameter or more with a type and a nullability and nothing else — a default is
+// `Msg 10726`, `OUTPUT` `Msg 181` — and names the assembly's class by one part or two.
+//
+// A module, of the class `OBJECT`, `ASSEMBLY` or `DATABASE` where one is said, is signed by
+// certificates and asymmetric keys, each named by one part and perhaps with its password or
+// the signature after it; by symmetric keys; or by passwords. A signature is a binary string
+// and a password a string, neither a variable. `DROP SIGNATURE` is answered the same and
+// shares the rules, which it did not before: it read `CERTIFICATE dbo.c`, which the engine
+// refuses, and refused `ASSEMBLY::a`, a symmetric key and a password.
+CodeStatement : @Statement
+	= "CREATE"i & "ASSEMBLY"i & name: Identifier
+	  & tail: (("AUTHORIZATION"i & Identifier)? & "FROM"i & SetValue & (',' & SetValue)*
+			   & ("WITH"i & "PERMISSION_SET"i & '=' & AssemblyPermission)?)
+		=> @(Statement.Defined("ASSEMBLY", name, Syntax.Tail(tail), "CREATE"))
+	| "ALTER"i & "ASSEMBLY"i & name: Identifier
+	  & tail: (("FROM"i & SetValue)? & options: AssemblyOptions? & AssemblyDrop? & AssemblyAdd?)
+	  & when @(Syntax.Tail(tail) is not null)
+		=> @(Statement.Defined("ASSEMBLY", name, Syntax.Tail(tail), "ALTER", options))
+	| "CREATE"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & name: Identifier & tail: ("FROM"i & "FILE"i & '=' & CodeString)
+		=> @(Statement.Defined("CRYPTOGRAPHIC PROVIDER", name, Syntax.Tail(tail), "CREATE"))
+	| "ALTER"i & "CRYPTOGRAPHIC"i & "PROVIDER"i & name: Identifier
+	  & tail: ("ENABLE"i | "DISABLE"i | "FROM"i & "FILE"i & '=' & CodeString)
+		=> @(Statement.Defined("CRYPTOGRAPHIC PROVIDER", name, Syntax.Tail(tail), "ALTER"))
+	| "CREATE"i & "EXTERNAL"i & "LANGUAGE"i & name: Identifier
+	  & tail: (("AUTHORIZATION"i & Identifier)? & "FROM"i & file: LanguageFile & (',' & other: LanguageFile)?)
+	  & when @(Syntax.LanguageFiles(file, other))
+		=> @(Statement.Defined("EXTERNAL LANGUAGE", name, Syntax.Tail(tail), "CREATE"))
+	| "ALTER"i & "EXTERNAL"i & "LANGUAGE"i & name: Identifier
+	  & tail: (("AUTHORIZATION"i & Identifier)?
+			   & (("SET"i | "ADD"i) & LanguageFile | "REMOVE"i & "PLATFORM"i & LanguagePlatform))
+		=> @(Statement.Defined("EXTERNAL LANGUAGE", name, Syntax.Tail(tail), "ALTER"))
+	| "CREATE"i & "RULE"i & name: TwoPartName & tail: ("AS"i & c: SearchCondition) & when @(Syntax.Binds(c, true))
+		=> @(Statement.Defined("RULE", name, Syntax.Tail(tail)))
+	| "CREATE"i & "DEFAULT"i & name: TwoPartName & tail: ("AS"i & v: SetValue) & when @(Syntax.Binds(v, false))
+		=> @(Statement.Defined("DEFAULT", name, Syntax.Tail(tail)))
+	| "CREATE"i & "AGGREGATE"i & name: TwoPartName
+	  & tail: ('(' & AggregateParameter & (',' & AggregateParameter)* & ')'
+			   & "RETURNS"i & DataType & "EXTERNAL"i & "NAME"i & Identifier & ('.' & Identifier)?)
+		=> @(Statement.Defined("AGGREGATE", name, Syntax.Tail(tail)))
+	| "ADD"i & counter: "COUNTER"i? & "SIGNATURE"i & "TO"i & to: SignedModule & "BY"i
+	  & crypto: SignatureCrypto & (',' & cryptos: SignatureCrypto)*
+		=> @(new Statement.AddSignature(Syntax.Listed(crypto, cryptos), to, counter is not null))
+
+AssemblyPermission = "SAFE"i | "EXTERNAL_ACCESS"i | "UNSAFE"i
+
+AssemblyOptions : @Clause[]
+	= "WITH"i & first: AssemblyOption & (',' & rest: AssemblyOption)* & when @(Syntax.NamedOnce(first, rest))
+		=> @(Syntax.Listed(first, rest))
+
+AssemblyOption : @Clause
+	= "PERMISSION_SET"i & '=' & t: AssemblyPermission
+		=> @(new Clause.Option("PERMISSION_SET", new Expression.ColumnReference(Syntax.Squared(t)), Clause.None))
+	| "VISIBILITY"i & '=' & on: OnOff => @(new Clause.Option("VISIBILITY", new Expression.ColumnReference(on), Clause.None))
+	| "UNCHECKED"i & "DATA"i           => @(new Clause.Option("UNCHECKED DATA", null, Clause.None))
+
+AssemblyDrop = "DROP"i & "FILE"i & ("ALL"i | CodeString & (',' & CodeString)*)
+AssemblyAdd  = "ADD"i & "FILE"i & "FROM"i & AssemblyFile & (',' & AssemblyFile)*
+AssemblyFile = SetValue & ("AS"i & CodeString)?
+
+CodeString = Sql92.Lexical.NationalCharacterStringLiteral | Sql92.Lexical.CharacterStringLiteral
+
+LanguageFile : @Clause[]
+	= '(' & first: LanguageOption & (',' & rest: LanguageOption)* & ')' => @(Syntax.Listed(first, rest))
+
+LanguageOption : @Clause
+	= "CONTENT"i & '=' & v: SetValue          => @(new Clause.Option("CONTENT", v, Clause.None))
+	| "FILE_NAME"i & '=' & v: BrokerString    => @(new Clause.Option("FILE_NAME", v, Clause.None))
+	| "PARAMETERS"i & '=' & v: BrokerString   => @(new Clause.Option("PARAMETERS", v, Clause.None))
+	| "PLATFORM"i & '=' & t: LanguagePlatform => @(new Clause.Option("PLATFORM", new Expression.ColumnReference(t), Clause.None))
+
+LanguagePlatform : @string = t: ("WINDOWS"i | "LINUX"i) => @(Syntax.Squared(t))
+
+TwoPartName = Identifier & ('.' & Identifier)?
+
+AggregateParameter = TSql.Variable & "AS"i? & DataType & NullSpec?
+
+SignedModule : @string
+	= t: (("OBJECT"i | "ASSEMBLY"i | "DATABASE"i) & "::" & QualifiedName) => @(Syntax.Spaced(t))
+	| t: QualifiedName                                                   => @(t)
+
+SignatureCrypto : @Expression
+	= t: ("CERTIFICATE"i & Identifier & SignatureProof?)         => @(new Expression.ColumnReference(Syntax.Spaced(t)))
+	| t: ("ASYMMETRIC"i & "KEY"i & Identifier & SignatureProof?) => @(new Expression.ColumnReference(Syntax.Spaced(t)))
+	| t: ("SYMMETRIC"i & "KEY"i & Identifier)                    => @(new Expression.ColumnReference(Syntax.Spaced(t)))
+	| t: ("PASSWORD"i & '=' & CodeString)                        => @(new Expression.ColumnReference(Syntax.Spaced(t)))
+
+SignatureProof = "WITH"i & ("PASSWORD"i & '=' & CodeString | "SIGNATURE"i & '=' & TSql.BinaryLiteral)
 
 // ── A table emptied, a trigger switched, a session killed, a column classified ────
 //
@@ -2613,6 +2735,14 @@ ExecuteBody : @Statement.Execute
 	| into: ExecReturn? & target: ExecTarget & args: ExecArguments? & at: ExecAt? & with: ExecWith?
 		=> @(target with { Into = into, Arguments = args ?? Expression.None, At = at, Tail = Syntax.Tail(with) })
 
+// A call without the word, which only a batch's first statement may be (`FirstPiece`): the
+// same call but for `AT`, which the engine refuses there. A `GO` on a file's last line, which
+// no line break ends and so no `GoLine` takes, opens an empty batch there and is the
+// separator (`FinalGo`), not a procedure called `GO`.
+BareCall : @Statement.Execute
+	= ?!FinalGo & into: ExecReturn? & target: ExecTarget & args: ExecArguments? & with: ExecWith?
+		=> @(target with { Into = into, Arguments = args ?? Expression.None, Tail = Syntax.Tail(with), Bare = true })
+
 ExecWord   = "EXECUTE"i | "EXEC"i
 ExecReturn : @string = t: TSql.Variable & '=' => @(t)
 ExecName   : @string = t: QualifiedName => @(t) | t: TSql.Variable => @(t)
@@ -2659,18 +2789,25 @@ ExecArguments : @Expression[]
 // clause it had just eaten. The shape is the same wherever an optional list stands in
 // front of a clause whose first word could belong to the list.
 ExecArgument : @Expression
-	= name: TSql.Variable & '=' & v: ExecValue & back: OutputWord?
+	= name: TSql.Variable & '=' & v: ExecValue & back: OutputWord? & when @(Syntax.Passes(v, back))
 		=> @(Syntax.Hinted(new Expression.NamedArgument(name, v), back))
-	| ?!"AT"i & v: ExecValue & back: OutputWord?
+	| ?!"AT"i & v: ExecValue & back: OutputWord? & when @(Syntax.Passes(v, back))
 		=> @(Syntax.Hinted(v, back))
 
 // The two spellings of the same word, kept as the author wrote it.
 OutputWord = "OUTPUT"i | "OUT"i
 
+// What a procedure is passed is a constant, a variable or a name, and not an expression: the
+// engine refuses `1 + 1`, `(1)`, a call, `-@a`, `+1`, `COLLATE` and a name of two parts, and
+// reads a number or a money amount with one `-` before it, a string, a binary string, an ODBC
+// literal, `NULL`, `DEFAULT`, a variable and a name of one part. Only a variable is passed
+// back: `1 OUTPUT` is `Msg 179`. The values are a `DBCC` command's, and so is the rule.
 ExecValue : @Expression
 	= "DEFAULT"i => @(Expression.DefaultValue)
-	| "NULL"i    => @(Expression.NullValue)
-	| v: ValueExpression => @(v)
+	| '{' & kind: OdbcLiteralKind & t: Sql92.Lexical.CharacterStringLiteral & '}'
+		=> @(new Expression.OdbcEscape(kind, new Expression.Literal(SqlLiteralKind.Text, t)))
+	| t: ('-' & TSql.MoneyLiteral) => @(new Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(t)))
+	| v: DbccValue                 => @(v)
 
 // ── BULK INSERT ─────────────────────────────────────────────────────────────
 BulkInsertStatement : @Statement
@@ -4629,9 +4766,9 @@ DropBody : @Statement
 
 	// A signature is dropped off a module rather than by its own name, and a sensitivity
 	// classification off a column.
-	| counter: "COUNTER"i? & "SIGNATURE"i & "FROM"i & from: QualifiedName & "BY"i
-	  & first: DropCrypto & (',' & rest: DropCrypto)*
-		=> @(new Statement.DropSignature(Syntax.Listed(first, rest), from, counter is not null))
+	| counter: "COUNTER"i? & "SIGNATURE"i & "FROM"i & module: SignedModule & "BY"i
+	  & first: SignatureCrypto & (',' & rest: SignatureCrypto)*
+		=> @(new Statement.DropSignature(Syntax.Listed(first, rest), module, counter is not null))
 	| "SENSITIVITY"i & "CLASSIFICATION"i & from: "FROM"i & names: DropNames
 		=> @(Statement.Dropped("SENSITIVITY CLASSIFICATION", names))
 
@@ -4654,10 +4791,6 @@ DropName : @Expression = t: QualifiedName => @(new Expression.ColumnReference(t)
 DropIndexName : @Expression
 	= t: (Identifier & "ON"i & QualifiedName & OptionsWith?) => @(new Expression.ColumnReference(Syntax.Spaced(t)))
 	| t: QualifiedName                                       => @(new Expression.ColumnReference(t))
-
-DropCrypto : @Expression
-	= t: ("CERTIFICATE"i & QualifiedName)         => @(new Expression.ColumnReference(Syntax.Spaced(t)))
-	| t: ("ASYMMETRIC"i & "KEY"i & QualifiedName) => @(new Expression.ColumnReference(Syntax.Spaced(t)))
 
 DropScope = "ALL"i & "SERVER"i | "SERVER"i | "DATABASE"i | "QUEUE"i & QualifiedName
 
