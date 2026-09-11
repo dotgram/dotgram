@@ -1302,6 +1302,44 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>`AT TIME ZONE` and `WAITFOR`, as the engine answers them with its variables declared.</summary>
+	[Theory]
+	[InlineData("SELECT a COLLATE Latin1_General_CI_AS COLLATE Latin1_General_CI_AS FROM T")]
+	[InlineData("SELECT a AT TIME ZONE NOT b FROM T")]
+	[InlineData("WAITFOR TIME 1")]
+	[InlineData("WAITFOR TIME (@t)")]
+	[InlineData("WAITFOR TIME '10:00' + ''")]
+	[InlineData("WAITFOR DELAY 1")]
+	[InlineData("WAITFOR DELAY (@t)")]
+	[InlineData("WAITFOR TIME")]
+	public void Zones_and_waits_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT a AT TIME ZONE b AT TIME ZONE c FROM T")]
+	[InlineData("SELECT @v AT TIME ZONE @z AT TIME ZONE @z AT TIME ZONE @z")]
+	[InlineData("SELECT * FROM T WHERE a AT TIME ZONE b AT TIME ZONE c < @v")]
+	[InlineData("SELECT a COLLATE Latin1_General_CI_AS AT TIME ZONE b FROM T")]
+	[InlineData("SELECT a COLLATE Latin1_General_CI_AS AT TIME ZONE b COLLATE Latin1_General_CI_AS FROM T")]
+	[InlineData("SELECT a AT TIME ZONE b COLLATE Latin1_General_CI_AS AT TIME ZONE c FROM T")]
+	[InlineData("SELECT a + b COLLATE Latin1_General_CI_AS AT TIME ZONE c FROM T")]
+	[InlineData("SELECT a AT TIME ZONE - b AT TIME ZONE c FROM T")]
+	[InlineData("SELECT a AT TIME ZONE - - b FROM T")]
+	[InlineData("SELECT a AT TIME ZONE + b FROM T")]
+	[InlineData("SELECT a AT TIME ZONE b::c FROM T")]
+	[InlineData("WAITFOR TIME '10:00'")]
+	[InlineData("waitfor time 'time'")]
+	[InlineData("WAITFOR TIME N'10:00'")]
+	[InlineData("WAITFOR TIME @t")]
+	[InlineData("WAITFOR DELAY N'00:00:00'")]
+	public void Zones_and_waits_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>Table, query and join hints, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM t WITH (FOO)")]

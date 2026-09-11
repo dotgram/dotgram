@@ -18354,3 +18354,29 @@ engine refuses there; here it is on the two records it is read on.
 
 At 150: read by both 5,757 (from 5,753), the work list 217 (from 221), read here but refused
 there 43, as before. `--split` 576 cut the same (from 574), and the round trip 100% of 6,865.
+
+## Zones in a chain, and what a wait waits for
+
+Two corners of the work list, twelve statements between them.
+
+**`AT TIME ZONE`** was read once after a primary. The engine reads the zones in a chain, `a
+AT TIME ZONE b AT TIME ZONE c`, and a collation in front of each, `a COLLATE x AT TIME ZONE
+b`, which the standard's rule could not give: it puts the collation after the primary, and
+the zone was inside it. So the zones are a list now, each with the collation that may stand
+in front of it, and the last collation is still the standard's; two never stand side by side,
+and `a COLLATE x COLLATE y` is refused, as the engine refuses it. A zone is a primary with its
+members and signs in front, `- b`, `b::c`; `~ b` waits for the bitwise `NOT`, which the
+grammar does not have anywhere yet. The tree did not change: a zone is still a call of `AT
+TIME ZONE` on two arguments, the first a `Collated` where one was written.
+
+**`WAITFOR`** took any expression. The engine takes a string, a national string or a
+variable, for `DELAY` and `TIME` alike; `1`, `(@t)` and `'1' + ''` are refused. And `WAITFOR
+TIME '10:00'` was not read at all, with `N'10:00'` and `@t` read: the lexer knows the
+standard's `TIME '…'` as a time literal, and the word `TIME` never came. It is read whole now,
+as a wait for that string.
+
+Two probes of 52 answered otherwise: `~ b`, and `- 'x'`, which the engine reads and refuses
+by meaning (`Msg 403`).
+
+At 150: read by both 5,769 (from 5,757), the work list 205 (from 217), read here but refused
+there 43, as before. `--split` 580 cut the same (from 576), and the round trip 100% of 6,877.

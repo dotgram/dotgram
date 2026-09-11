@@ -210,11 +210,25 @@ TSqlValueSpecification : @Expression
 // A postfix stands outside the choice rather than on each arm of it: `AT TIME ZONE`
 // applies to whatever was just read, which is one rule around the core and not
 // twelve inside it.
+//
+// The zones chain, `a AT TIME ZONE b AT TIME ZONE c`, and a collation may stand in front
+// of each, `a COLLATE x AT TIME ZONE b`; the engine reads both. The last collation is the
+// standard's own, after the primary, so two never stand side by side, which the engine
+// refuses.
 TSqlValuePrimary : @Expression
-	= p: TSqlPrimaryCore & members: Member* & zone: AtTimeZone?
-		=> @(Syntax.Reached(p, members, zone))
+	= p: TSqlPrimaryCore & members: Member* & zones: AtTimeZone*
+		=> @(Syntax.Reached(p, members, zones))
 
-AtTimeZone : @Expression = "AT"i & "TIME"i & "ZONE"i & v: TSqlPrimaryCore => @(v)
+// Built with what it applies to left null, the way a member is, and closed in `Reached`.
+AtTimeZone : @Expression
+	= how: Collate? & "AT"i & "TIME"i & "ZONE"i & v: TimeZone
+		=> @(new Expression.RoutineInvocation("AT TIME ZONE",
+				 new Expression[] { how is null ? null! : new Expression.Collated(null!, how), v }))
+
+// A zone is a primary with its members, and signs in front of it: `- b`, `b::c`.
+TimeZone : @Expression
+	= sign: ['+' | '-'] & v: TimeZone         => @(Expression.Signed(sign, v))
+	| p: TSqlPrimaryCore & members: Member*  => @(Syntax.Reached(p, members, null))
 
 TSqlPrimaryCore : @Expression
 	= '(' & v: ValueExpression & ')' => @(new Expression.Parenthesized(v))
@@ -1856,11 +1870,21 @@ SimpleCommand : @Statement
 		=> @(new Statement.RaiseError(args, Syntax.Tail(how)))
 	| "RAISERROR"i & args: Arguments & how: RaiseWith?
 		=> @(new Statement.RaiseError(args, Syntax.Tail(how)))
-	| "WAITFOR"i & kind: WaitKind & v: ValueExpression
+	| "WAITFOR"i & t: Sql92.Lexical.TimeLiteral
+		=> @(new Statement.WaitFor(new Expression.Literal(SqlLiteralKind.Text, t.Substring(t.IndexOf('\''))), "TIME"))
+	| "WAITFOR"i & kind: WaitKind & v: WaitValue
 		=> @(new Statement.WaitFor(v, Syntax.Squared(kind)))
 
 RaiseWith = "WITH"i & Identifier & (',' & Identifier)*
 WaitKind  = "DELAY"i | "TIME"i
+
+// A string, a national one or a variable, and nothing else: `WAITFOR DELAY 1`, `(@t)` and
+// `'1' + ''` are refused. `TIME '10:00'` is a time literal to the lexer and is read whole,
+// above; with a national string or a variable after it, `TIME` is a word.
+WaitValue : @Expression
+	= t: Sql92.Lexical.NationalCharacterStringLiteral => @(new Expression.Literal(SqlLiteralKind.National, t))
+	| t: Sql92.Lexical.CharacterStringLiteral         => @(new Expression.Literal(SqlLiteralKind.Text, t))
+	| t: TSql.Variable                                => @(new Expression.Literal(SqlLiteralKind.Parameter, t))
 
 // ── CREATE TABLE, and the column definitions everything shares ──────────────
 //

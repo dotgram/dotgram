@@ -3070,20 +3070,28 @@ public static class Syntax
 		tail is null ? call : tail with { Function = call };
 
 	/// <summary>
-	/// A primary and what was reached through it: the members written after it, and the zone
-	/// it is read in. Each member was built with its own left side null, the way a predicate
-	/// tail is, so the chain is closed here.
+	/// A primary and what was reached through it: the members written after it, and the zones
+	/// it is read in, each with the collation written in front of it. Each member and each
+	/// zone was built with its own left side null, the way a predicate tail is, so the chain
+	/// is closed here.
 	/// </summary>
 	public static Expression Reached(
-		Expression primary, Expression.Member[]? members, Expression? zone)
+		Expression primary, Expression.Member[]? members, Expression[]? zones)
 	{
 		if (members is not null)
 			foreach (var member in members)
 				primary = member with { Of = primary };
 
-		return zone is null
-			? primary
-			: new Expression.RoutineInvocation("AT TIME ZONE", [primary, zone]);
+		if (zones is not null)
+			foreach (var zone in zones)
+			{
+				var at = (Expression.RoutineInvocation)zone;
+				var of = at.Arguments[0] is Expression.Collated how ? how with { Value = primary } : primary;
+
+				primary = at with { Arguments = [of, at.Arguments[1]] };
+			}
+
+		return primary;
 	}
 
 	/// <summary>A word the grammar matched, as the one constant that stands for it.</summary>

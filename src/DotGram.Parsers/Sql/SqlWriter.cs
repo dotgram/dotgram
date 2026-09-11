@@ -2703,7 +2703,15 @@ public static class SqlWriter
 			case "AT TIME ZONE":
 				Put(text, arguments[0], 8);
 				text.Append(' ').Append(name).Append(' ');
-				Put(text, arguments[1], 8);
+
+				// A zone takes its signs bare, `AT TIME ZONE -c`, and brackets nothing else.
+				if (arguments[1] is Expression.Negate(var negated))
+					Signed(text, '-', negated);
+				else if (arguments[1] is Expression.Plus(var plus))
+					Signed(text, '+', plus);
+				else
+					Put(text, arguments[1], 8);
+
 				return;
 
 			case "NEXT VALUE FOR":
