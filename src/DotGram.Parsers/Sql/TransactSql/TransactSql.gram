@@ -628,6 +628,7 @@ DistinctTail : @Expression
 // statement that came in.
 TSqlQuerySpecification : @Query
 	= "SELECT"i & quantifier: SetQuantifier? & top: Top? & columns: SelectList & into: Into?
+	  & when @(into is not null || !Syntax.HasIdentity(columns))
 	  & from: FromClause? & where: WhereClause? & group: GroupByClause? & having: HavingClause?
 	  & windows: Window?
 		=> @(new Query.Specification(
@@ -671,8 +672,24 @@ TSqlSelectSublist : @Clause
 	= qualifier: QualifiedName & '.' & '*'        => @(new Clause.QualifiedAsterisk(qualifier))
 	| into: TSql.Variable & by: AssignOp & v: ValueExpression
 		=> @(new Clause.VariableAssignment(into, by, v))
+	| label: TSqlAlias & '=' & v: IdentityFunction => @(new Clause.DerivedColumn(v, label))
+	| v: IdentityFunction & alias: TSqlAsClause    => @(new Clause.DerivedColumn(v, alias))
 	| label: TSqlAlias & '=' & v: ValueExpression  => @(new Clause.DerivedColumn(v, label))
 	| v: ValueExpression & alias: TSqlAsClause?    => @(new Clause.DerivedColumn(v, alias))
+
+// T-SQL's `IDENTITY` function, which gives the table a `SELECT … INTO` makes an identity
+// column: a type, and a seed and a step, numbers with a sign or without — `@a`, `1 + 1`,
+// `(1)` and `0x1` are refused. A whole item of the list and never part of a value, and always
+// named: `IDENTITY(INT, 1, 1) + 1` and `IDENTITY(INT, 1, 1)` alone are refused. Only with an
+// `INTO`, which the engine says when the statement is compiled (`Msg 177`) and a guard on the
+// query says here.
+IdentityFunction : @Expression
+	= name: "IDENTITY"i & '(' & type: DataType & (',' & seed: IdentityNumber & ',' & step: IdentityNumber)? & ')'
+		=> @(new Expression.RoutineInvocation(name, seed is null ? Expression.None : new Expression[] { seed, step! }, type))
+
+IdentityNumber : @Expression
+	= t: (['+' | '-']? & Sql92.Lexical.UnsignedNumericLiteral)
+		=> @(new Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(t)))
 
 AssignOp : @string = t: ('=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "||=") => @(t)
 

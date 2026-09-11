@@ -103,6 +103,7 @@ public sealed class SqlWriterTests
 	[InlineData("SELECT * FROM t FOR SYSTEM_TIME ALL FOR PATH AS x", "SELECT * FROM t FOR SYSTEM_TIME ALL FOR PATH AS x")]
 	[InlineData("SELECT a COLLATE x AT TIME ZONE b AT TIME ZONE - c FROM T", "SELECT a COLLATE x AT TIME ZONE b AT TIME ZONE -c FROM T")]
 	[InlineData("WAITFOR TIME '10:00'", "WAITFOR TIME '10:00'")]
+	[InlineData("SELECT IDENTITY(INT, -1, 2) AS id, IDENTITY(BIGINT) AS b INTO #t FROM t", "SELECT IDENTITY(INT, -1, 2) AS id, IDENTITY(BIGINT) AS b INTO #t FROM t")]
 	[InlineData("SELECT a % b & ~c | d ^ e FROM t", "SELECT a % b & ~c | d ^ e FROM t")]
 	[InlineData("SELECT (2 + 5) & 4, 2 + (5 & 4), (2 * 7) % 3, 2 * (7 % 3)", "SELECT (2 + 5) & 4, 2 + (5 & 4), (2 * 7) % 3, 2 * (7 % 3)")]
 	[InlineData("SELECT - ~1, ~~1, ~2 * 3", "SELECT -~1, ~ ~1, ~2 * 3")]

@@ -2826,6 +2826,21 @@ public static class Syntax
 		return true;
 	}
 
+	/// <summary>
+	/// Whether a select list holds T-SQL's <c>IDENTITY(…)</c>, which only a <c>SELECT … INTO</c>
+	/// may: the engine refuses one without the <c>INTO</c> when it compiles the statement,
+	/// <c>Msg 177</c>.
+	/// </summary>
+	public static bool HasIdentity(Clause[] columns)
+	{
+		foreach (var one in columns)
+			if (one is Clause.DerivedColumn { Value: Expression.RoutineInvocation { Name: var name, Word: not null } }
+				&& string.Equals(name, "IDENTITY", StringComparison.OrdinalIgnoreCase))
+				return true;
+
+		return false;
+	}
+
 	public static string Compacted(string text)
 	{
 		var kept = new char[text.Length];

@@ -18481,3 +18481,22 @@ with one argument or three, as a whole item of the list and only when there is a
 
 At 150: read by both 5,811 (from 5,798), the work list 163 (from 176), read here but refused
 there 43, as before. `--split` 593, and the round trip 100% of 6,919.
+
+## `IDENTITY` in a `SELECT … INTO`
+
+The function that gives the table a `SELECT … INTO` makes an identity column. Put to the
+engine some thirty times: a type, and then a seed and a step or neither, never one of them;
+the two are numbers, with a sign or without and a fraction allowed, and a variable, an
+expression, a bracket and `0x1` are refused. It is a whole item of the list, and named —
+`AS id`, `id`, `'id'`, `id =` — and `IDENTITY(INT, 1, 1) + 1` and the call without a name
+are refused as syntax. That the statement must have an `INTO` the engine says when it
+compiles one, `Msg 177`; a guard on the query says it here, as the operators' `DEFAULT`
+is refused on the operator.
+
+The tree has it as a call of `IDENTITY` with the type as its word, the way `CAST` has one,
+and the writer gives it back so. The first version put the two alternatives after the list's
+own, and `id = IDENTITY(…)` stopped: `id` alone is an item, and read as one, and PEG does not
+go back into a choice that succeeded. They stand first now.
+
+The corpus did not move: its one statement with `IDENTITY (INT)` stops earlier, at `*, *`.
+At 150 as before: read by both 5,811, the work list 163, read here but refused there 43.

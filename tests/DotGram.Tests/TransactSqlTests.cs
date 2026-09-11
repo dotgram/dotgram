@@ -1302,6 +1302,39 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>`IDENTITY(…)` in a `SELECT … INTO`, as the engine answers it with its variable declared.</summary>
+	[Theory]
+	[InlineData("SELECT IDENTITY(INT, @a, 1) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 1 + 1, 1) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, (1), 1) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 0x1, 1) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 1) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(1, 1) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 1, 1) INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 1, 1) + 1 AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 1, 1) AS id FROM t")]
+	[InlineData("INSERT INTO t SELECT IDENTITY(INT, 1, 1) AS id FROM u")]
+	public void An_identity_column_made_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside it.</summary>
+	[Theory]
+	[InlineData("SELECT IDENTITY(INT) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 1, 1) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(DECIMAL(10, 0), 1, 1) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, -1, 2) AS id INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 1.5, +1) id INTO #t FROM t")]
+	[InlineData("SELECT a, IDENTITY(INT, 1, 1) AS id, IDENTITY(INT, 1, 1) AS id2 INTO #t FROM t")]
+	[InlineData("SELECT IDENTITY(INT, 1, 1) AS id INTO #t")]
+	[InlineData("SELECT identity(int, 1, 1) AS 'id' INTO #t FROM t WHERE 1 = 1 ORDER BY a")]
+	[InlineData("SELECT id = IDENTITY(INT, 1, 1), 'id2' = IDENTITY(INT, 1, 1) INTO #t FROM t")]
+	public void An_identity_column_made_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>
 	/// Reserved words as values: `LEFT` and `RIGHT` called, `IDENTITYCOL` and `ROWGUIDCOL` as
 	/// columns, and a name of one part called only bare, as the engine answers them.

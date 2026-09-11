@@ -2646,6 +2646,19 @@ public static class SqlWriter
 				text.Append(" AS ").Append(word).Append(')');
 				return;
 
+			case "IDENTITY" when word is not null:
+				// `SELECT IDENTITY(INT, 1, 1) AS id INTO …`: the type, then the seed and the step.
+				text.Append(name).Append('(').Append(word);
+
+				foreach (var one in arguments)
+				{
+					text.Append(", ");
+					Put(text, one, 0);
+				}
+
+				text.Append(')');
+				return;
+
 			case "CONVERT":
 			case "TRY_CONVERT":
 				// T-SQL's, which names the type first. The standard's `CONVERT (v USING cs)`
