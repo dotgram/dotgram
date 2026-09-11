@@ -103,6 +103,8 @@ public sealed class SqlWriterTests
 	[InlineData("SELECT * FROM t FOR SYSTEM_TIME ALL FOR PATH AS x", "SELECT * FROM t FOR SYSTEM_TIME ALL FOR PATH AS x")]
 	[InlineData("SELECT a COLLATE x AT TIME ZONE b AT TIME ZONE - c FROM T", "SELECT a COLLATE x AT TIME ZONE b AT TIME ZONE -c FROM T")]
 	[InlineData("WAITFOR TIME '10:00'", "WAITFOR TIME '10:00'")]
+	[InlineData("INSERT INTO t (a) VALUES (DEFAULT), (NULL), (1)", "INSERT INTO t (a) VALUES (DEFAULT), (NULL), (1)")]
+	[InlineData("SELECT DATEADD(w, 1, x), DATEPART([yy], x) FROM t", "SELECT DATEADD(w, 1, x), DATEPART([yy], x) FROM t")]
 	[InlineData("EXEC ('SELECT 1') AS user = N'u' AT DATA_SOURCE ds", "EXECUTE ( 'SELECT 1' ) AS USER = N'u' AT DATA_SOURCE ds")]
 	[InlineData("EXEC ('SELECT ?', 1) AS LOGIN = 'x' AT srv", "EXECUTE ( 'SELECT ?', 1 ) AS LOGIN = 'x' AT srv")]
 	[InlineData("SELECT * FROM (SELECT TOP 1 a FROM t ORDER BY a DESC) AS x", "SELECT * FROM (SELECT TOP 1 a FROM t ORDER BY a DESC) AS x")]

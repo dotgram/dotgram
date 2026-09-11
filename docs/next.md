@@ -18618,3 +18618,35 @@ defaults; and `KILL`, `TRUNCATE`, the text-pointer statements and a procedure ca
 `EXEC`. The six defects are few and real: a block comment inside a block comment, which
 T-SQL nests; a date part that is not one; `ALTER SEARCH PROPERTY LIST`; and a `VALUES` with a
 row too wide, among them. The order from here is the defects, then the families by size.
+
+## Five of the reference's six defects
+
+- **A date part is one of a closed list.** `DATEPART`, `DATENAME`, `DATEADD`, `DATEDIFF`,
+  `DATEDIFF_BIG`, `DATETRUNC` and `DATE_BUCKET` were ordinary calls, and `DATENAME(datepart,
+  …)` read. The engine takes the published names and abbreviations and `w` beside them, the
+  table leaving it out; in any case, bracketed, quoted or neither, or in brackets of their
+  own. It refuses any other word and a column with a prefix (`Msg 155`), and reads a string,
+  a variable or a call, objecting when it compiles (`Msg 1023`). A rule of its own now, the
+  tree the call's as before.
+- **A row of `VALUES` is in brackets, and the brackets hold values.** The standard's rule
+  read a row of one without brackets and a query as a row: `VALUES 1, 2` and `VALUES (SELECT
+  a FROM u)` read, and `VALUES (DEFAULT)` did not. The engine answers all three the other way.
+  The dialect's own constructor now, twenty-one rules in all.
+- **Ten words are reserved.** Microsoft's list of reserved keywords, asked of the engine one
+  word at a time as a table's name, has fifteen the token table does not; ten of them the
+  engine refuses as a name wherever one stands — `EXTERNAL`, `MERGE`, `PIVOT`, `REVERT`, the
+  three semantic rowsets, `TABLESAMPLE`, `TRY_CONVERT`, `UNPIVOT` — and they are in
+  `TSqlReserved` now. `DISK`, `DUMP`, `LOAD`, `PRECISION` and `SECURITYAUDIT` it reads.
+  `FROM External.Orders` in the reference's page on external tables was the example.
+- **A selective XML index is named**, and **a search property says its set's GUID and its
+  id**, in that order and in brackets, before its description. The reference's example of the
+  second writes the description first, and the engine refuses it.
+
+The sixth is a comment inside a comment, which T-SQL nests and the standard's lexeme does
+not. Writing it found a defect in the generator rather than the grammar: a lexeme only the
+trivia reaches has no entry in the graph's results, and `LexicalSplit` looked it up with an
+indexer — `KeyNotFoundException`, and the build gone. That is its own piece.
+
+At 150: read by both 5,837 (from 5,835), the work list 139, read here but refused there 43.
+`--split` 607 and the round trip 6,951, two fewer each: names the engine reserves. The map:
+read by both 7,408 of 8,338 (92.6%), the work list 595, defects 1.

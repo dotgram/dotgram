@@ -8,7 +8,7 @@ using Sql92;
 // grammar is attached to; what is written here is only where T-SQL differs, and
 // §5.1's rebinding is what makes the difference reach every rule that leads to it.
 //
-// Twenty rules replace twenty of the standard's. Nothing else is restated and nothing
+// Twenty-one rules replace twenty-one of the standard's. Nothing else is restated and nothing
 // is copied: a query expression, a join, a predicate and the whole value tower are
 // the ones already read against the standard, reading a dialect's identifiers and
 // a dialect's primaries because the substitution rewrote every call inside them.
@@ -97,7 +97,7 @@ namespace TSql
 // which the standard has never heard of. So it replaces rather than adds, and the
 // standard's own list stands where the standard's rules still read.
 //
-// All hundred and sixty-nine of them, where `Sql92.Reserved` is a curated part of
+// All hundred and seventy-nine of them, where `Sql92.Reserved` is a curated part of
 // §5.2 — "the part this layer can be confused by". Curating it here was tried and
 // is what let `SELECT TOP` read as a column called `TOP` and `FROM t OPTION (x)`
 // read as a correlation named `OPTION` with a column list: both are refusals in
@@ -130,7 +130,14 @@ TSqlReserved = ("ADD"i | "ALL"i | "ALTER"i | "AND"i | "ANY"i | "AS"i | "ASC"i | 
 	| "THEN"i | "TO"i | "TOP"i | "TRAN"i | "TRANSACTION"i | "TRIGGER"i | "TRUNCATE"i
 	| "TSEQUAL"i | "UNION"i | "UNIQUE"i | "UPDATE"i | "UPDATETEXT"i | "USE"i | "USER"i
 	| "VALUES"i | "VARYING"i | "VIEW"i | "WAITFOR"i | "WHEN"i | "WHERE"i | "WHILE"i
-	| "WITH"i | "WRITETEXT"i)
+	| "WITH"i | "WRITETEXT"i
+	// And ten more, which Microsoft's list of reserved keywords has, the token table does not,
+	// and the engine refuses as a name wherever a name stands — a table, a column, an alias,
+	// after a dot. The list's `DISK`, `DUMP`, `LOAD`, `PRECISION` and `SECURITYAUDIT` it reads
+	// as names, and they are not here.
+	| "EXTERNAL"i | "MERGE"i | "PIVOT"i | "REVERT"i | "SEMANTICKEYPHRASETABLE"i
+	| "SEMANTICSIMILARITYDETAILSTABLE"i | "SEMANTICSIMILARITYTABLE"i | "TABLESAMPLE"i
+	| "TRY_CONVERT"i | "UNPIVOT"i)
 
 // ── §6.20's simple when, widened ───────────────────────────────────────────
 //
@@ -276,6 +283,7 @@ TSqlPrimaryCore : @Expression
 	| f: SetFunctionSpecification & tail: CallTail? => @(Syntax.Called(f, tail))
 	| q: ScalarSubquery                        => @(q)
 	| n: NextValue                             => @(n)
+	| f: DatePartCall                          => @(f)
 	| f: LeftRightCall                         => @(f)
 	| f: FunctionCall                          => @(f)
 	| e: OdbcEscape                            => @(e)
@@ -296,6 +304,24 @@ LeftRightCall : @Expression
 // whatever prefix a column takes: `IDENTITYCOL`, `t.ROWGUIDCOL`, `a.b.c.IDENTITYCOL`. A
 // column only — not an alias, not what a `SET` assigns, not a call.
 RowColumnName = (Identifier & '.')* & ("IDENTITYCOL"i | "ROWGUIDCOL"i)
+
+// The functions whose first argument is a date part. A name there is one of a closed list —
+// `year`, `yy`, `w`, `tzoffset`, `isowk` and the rest — bracketed, quoted or neither, or in
+// brackets of its own; `foo`, `[foo]` and `t.a` are refused (`Msg 155`). Any other value — a
+// string, a variable, a call — the engine reads, and objects to when it compiles (`Msg 1023`).
+// The tree is the call's, the part a column reference as it was.
+DatePartCall : @Expression
+	= name: DatePartFunction & '(' & part: DatePart & (',' & rest: Arguments)? & ')' & tail: CallTail?
+		=> @(Syntax.Called(new Expression.RoutineInvocation(name, Syntax.Listed(part, rest)), tail))
+
+DatePartFunction : @string
+	= t: ("DATEPART"i | "DATENAME"i | "DATEADD"i | "DATEDIFF_BIG"i | "DATEDIFF"i | "DATETRUNC"i | "DATE_BUCKET"i)
+		=> @(t)
+
+DatePart : @Expression
+	= t: Identifier & when @(Syntax.IsDatePart(t)) => @(new Expression.ColumnReference(t))
+	| '(' & p: DatePart & ')'                     => @(new Expression.Parenthesized(p))
+	| v: ValueExpression & when @(!Syntax.IsColumn(v)) => @(v)
 
 // ODBC's escapes, which every driver has understood since before this language had a
 // standard and which SQL Server still reads: a function called the portable way, and the
@@ -422,7 +448,7 @@ NextValue : @Expression
 // A name of one part is called bare: `[LEN]('a')` and `"LEN"('a')` are refused, and
 // `dbo.[LEN]('a')` is read.
 FunctionCall : @Expression
-	= name: QualifiedName & when @(Syntax.Callable(name))
+	= name: QualifiedName & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name))
 	  & '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel?
 	  & returning: JsonReturning? & ')' & tail: CallTail?
 		=> @(Syntax.Called(
@@ -1025,6 +1051,20 @@ TSqlSubquery : @Query
 	= '(' & q: QueryExpression & by: OrderByClause? & window: OffsetFetch? & shape: ForClause? & ')'
 		=> @(Syntax.Ordered(q, Clause.Ordered(by, window), shape))
 
+// §7.3's table value constructor, narrowed: T-SQL writes every row in brackets — `VALUES 1,
+// 2` is refused — and the brackets hold values and never a query: `VALUES (SELECT a FROM u)`
+// is refused, and `VALUES ((SELECT a FROM u))` read. A row of one is `(DEFAULT)` as readily
+// as `(1)`, which the standard's rule, reading a row of one without its brackets, refused.
+TSqlTableValueConstructor : @Query
+	= "VALUES"i & first: TSqlRow & (',' & rest: TSqlRow)*
+		=> @(new Query.TableValueConstructor(Syntax.Listed(first, rest)))
+
+TSqlRow : @Expression
+	= '(' & first: RowValueConstructorElement & (',' & rest: RowValueConstructorElement)* & ')'
+		=> @(rest is { Length: > 0 }
+				 ? new Expression.RowValueConstructor(Syntax.Listed(first, rest))
+				 : new Expression.Parenthesized(first))
+
 // ── §13.1's direct select, widened ──────────────────────────────────────────
 //
 // Where the clauses that belong to the statement rather than to the query go: how many
@@ -1143,6 +1183,7 @@ namespace Dialect with (
 	SortKey                   = TSqlSortKey,
 	SelectList                = TSqlSelectList,
 	Subquery                  = TSqlSubquery,
+	TableValueConstructor     = TSqlTableValueConstructor,
 	QuerySpecification        = TSqlQuerySpecification,
 	TablePrimary              = TSqlTablePrimary,
 	TableReference            = TSqlTableReference,
@@ -2788,11 +2829,12 @@ ViewStatement : @Statement
 // thing said in the same words, so the columns, the options, the placement and the
 // filter are shared and only the header is new.
 CreateIndexStatement : @Statement
-	= "CREATE"i & "SELECTIVE"i & "XML"i & "INDEX"i & name: Identifier?
+	// Named: `CREATE SELECTIVE XML INDEX ON t (c) …`, which the reference writes once, is refused.
+	= "CREATE"i & "SELECTIVE"i & "XML"i & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & '(' & promoted: ColumnList & ')'
 	  & tail: (("WITH"i & XmlNamespaces)? & SelectivePaths) & o: XmlIndexWith?
 		=> @(new Statement.CreateIndex(
-				 on, Clause.Indexed(name ?? "", null, null, null, null, Syntax.Columns(promoted), null, null, null, o?.Options, null, null),
+				 on, Clause.Indexed(name, null, null, null, null, Syntax.Columns(promoted), null, null, null, o?.Options, null, null),
 				 "SELECTIVE XML", Syntax.Tail(tail)))
 	| "CREATE"i & kind: ("PRIMARY"i? & "XML"i) & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
@@ -3224,7 +3266,13 @@ StopListAction = "ADD"i & ValueExpression & "LANGUAGE"i & FullTextLanguage
 			   | "DROP"i & "ALL"i & ("LANGUAGE"i & FullTextLanguage)?
 			   | "DROP"i & ValueExpression & "LANGUAGE"i & FullTextLanguage
 
-PropertyListAction = "ADD"i & ValueExpression & OptionsWith
+// A property added says its set's GUID and its integer id, in that order and in brackets, and
+// may describe itself after them; the engine refuses any other order, either without the
+// other, and the list without brackets — the reference's own example among them.
+PropertyListAction = "ADD"i & ValueExpression & "WITH"i & '('
+					   & "PROPERTY_SET_GUID"i & '=' & ValueExpression
+					   & ',' & "PROPERTY_INT_ID"i & '=' & ValueExpression
+					   & (',' & "PROPERTY_DESCRIPTION"i & '=' & ValueExpression)? & ')'
 				   | "DROP"i & ValueExpression
 
 // ── BACKUP and RESTORE ──────────────────────────────────────────────────────

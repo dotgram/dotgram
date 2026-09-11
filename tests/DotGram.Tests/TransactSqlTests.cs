@@ -1302,6 +1302,53 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>
+	/// The reference's examples the grammar read and the engine refused, and the forms beside
+	/// them: a date part, a row of `VALUES`, the words the engine reserves, a selective XML
+	/// index's name and a search property's options.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT DATENAME(datepart, SYSDATETIME())")]
+	[InlineData("SELECT DATEPART(foo, SYSDATETIME())")]
+	[InlineData("SELECT DATEADD(weekdays, 1, SYSDATETIME())")]
+	[InlineData("SELECT DATEPART([foo], SYSDATETIME())")]
+	[InlineData("SELECT DATEPART(t.a, SYSDATETIME()) FROM t")]
+	[InlineData("INSERT INTO t (a, b) VALUES ('Helmet', 25.50), (SELECT a, b FROM u)")]
+	[InlineData("INSERT INTO t (a) VALUES (SELECT a FROM u)")]
+	[InlineData("INSERT INTO t (a) VALUES 1, 2")]
+	[InlineData("ALTER SEARCH PROPERTY LIST p ADD 'x' WITH (PROPERTY_DESCRIPTION = 'd', PROPERTY_SET_GUID = 'g', PROPERTY_INT_ID = 4)")]
+	[InlineData("ALTER SEARCH PROPERTY LIST p ADD 'x' WITH (PROPERTY_SET_GUID = 'g')")]
+	[InlineData("CREATE SELECTIVE XML INDEX ON T1(C1) FOR ( path1 = '/a' )")]
+	[InlineData("SELECT external FROM t")]
+	[InlineData("SELECT 1 AS merge")]
+	[InlineData("SELECT t.pivot FROM t")]
+	[InlineData("SELECT a FROM TABLESAMPLE")]
+	public void The_reference_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT /*/ 1 */ 1")]
+	[InlineData("SELECT DATEPART(w, x), DATENAME(isowk, x), DATEADD(tz, 1, x), DATEDIFF_BIG(ns, 1, 2) FROM t")]
+	[InlineData(@"SELECT DATEPART([yy], x), DATEPART(""yy"", x), DATEPART(YEAR, x), DATEPART((year), x) FROM t")]
+	[InlineData("SELECT DATEPART(N'year', x), DATEPART(@p + N'', x), DATEPART(dbo.f(), x), DATEPART(1, x) FROM t")]
+	[InlineData("SELECT DATETRUNC(dw, x), DATE_BUCKET(week, 1, x), dbo.DATEPART(foo, 1) FROM t")]
+	[InlineData("INSERT INTO t (a) VALUES ((SELECT a FROM u))")]
+	[InlineData("INSERT INTO t (a) VALUES (DEFAULT), (NULL), (1)")]
+	[InlineData("SELECT * FROM (VALUES (1), ((SELECT 2))) AS v (a)")]
+	[InlineData("ALTER SEARCH PROPERTY LIST p ADD 'x' WITH (PROPERTY_SET_GUID = 'g', PROPERTY_INT_ID = 4, PROPERTY_DESCRIPTION = 'd')")]
+	[InlineData("ALTER SEARCH PROPERTY LIST p ADD N'x' WITH (PROPERTY_SET_GUID = N'g', PROPERTY_INT_ID = 4)")]
+	[InlineData("CREATE SELECTIVE XML INDEX sxi ON T1(C1) WITH XMLNAMESPACES ('https://www.tempuri.org/' as myns) FOR ( path1 = '/myns:book/myns:author/text()' )")]
+	[InlineData("SELECT a FROM [External].Orders")]
+	[InlineData("SELECT * FROM SEMANTICKEYPHRASETABLE(d, c)")]
+	[InlineData("SELECT disk FROM dump")]
+	public void The_reference_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>A string run, its context and where it runs, as the engine answers it with its variables declared.</summary>
 	[Theory]
 	[InlineData("EXEC ('SELECT 1', 5, @a)")]

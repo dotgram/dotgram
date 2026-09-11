@@ -24,17 +24,17 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 92.5% | 7406 | 597 | 6 | 4 | 85 | 244 | 0 |
+| **all** | 996 | 8338 | 92.6% | 7408 | 595 | 1 | 4 | 85 | 249 | 0 |
 | [data-types](#data-types) | 29 | 304 | 99.7% | 290 | 1 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 50.8% | 120 | 116 | 0 | 0 | 1 | 5 | 0 |
-| [functions](#functions) | 324 | 2101 | 97.4% | 2028 | 54 | 1 | 3 | 2 | 16 | 0 |
+| [functions](#functions) | 324 | 2101 | 97.5% | 2030 | 52 | 0 | 3 | 2 | 17 | 0 |
 | [includes](#includes) | 3 | 7 | 57.1% | 4 | 3 | 0 | 0 | 0 | 0 | 0 |
 | [language-elements](#language-elements) | 86 | 868 | 89.9% | 769 | 85 | 1 | 0 | 0 | 13 | 0 |
-| [queries](#queries) | 37 | 747 | 96.6% | 700 | 24 | 1 | 0 | 1 | 21 | 0 |
+| [queries](#queries) | 37 | 747 | 96.7% | 700 | 24 | 0 | 0 | 1 | 22 | 0 |
 | [reference](#reference) | 3 | 32 | 96.9% | 31 | 1 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 99.4% | 309 | 2 | 0 | 0 | 0 | 1 | 0 |
 | [spatial-geometry](#spatial-geometry) | 74 | 357 | 99.4% | 355 | 2 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 90.0% | 2620 | 288 | 3 | 1 | 81 | 171 | 0 |
+| [statements](#statements) | 320 | 3163 | 90.1% | 2620 | 288 | 0 | 1 | 81 | 174 | 0 |
 | [xml](#xml) | 12 | 205 | 89.6% | 180 | 21 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
@@ -56,11 +56,11 @@ rest run rather than read.
 | CREATE SEQUENCE | 11 | 3 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
 | CREATE TYPE | 10 | 5 | stops at TYPE — `CREATE TYPE NewType FROM int;` |
 | CREATE XML SCHEMA | 10 | 3 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION MyColl AS ' <schema xmlns="http://www.w3.org/2001/XMLS...` |
-| INSERT | 10 | 7 | stops at ';' — `INSERT INTO likes($edge_id, $from_id, $to_id, rating) SELECT EDGE_ID_FROM_PARTS(OBJ...` |
 | CREATE ROUTE | 9 | 2 | stops at ROUTE — `CREATE ROUTE NotifyRoute WITH SERVICE_NAME = 'NotifyService', ADDRESS = 'LOCAL';` |
 | CREATE SPATIAL INDEX | 9 | 3 | stops at SPATIAL — `CREATE SPATIAL INDEX sample_idx on sample(g);` |
 | ALTER QUEUE | 8 | 1 | stops at QUEUE — `ALTER QUEUE ExpenseQueue WITH STATUS = OFF ;` |
 | BEGIN | 8 | 3 | stops at CONVERSATION — `BEGIN CONVERSATION TIMER (@dialog_handle) TIMEOUT = 120 ;` |
+| INSERT | 8 | 6 | stops at ';' — `INSERT INTO likes($edge_id, $from_id, $to_id, rating) SELECT EDGE_ID_FROM_PARTS(OBJ...` |
 | KILL | 8 | 4 | stops at KILL — `KILL QUERY NOTIFICATION SUBSCRIPTION ALL ;` |
 | ADD | 7 | 2 | stops at ADD — `ADD SENSITIVITY CLASSIFICATION TO dbo.sales.price, dbo.sales.discount WITH ( LABEL ...` |
 | CREATE ASSEMBLY | 7 | 6 | stops at ASSEMBLY — `CREATE ASSEMBLY mytest FROM 'c:\test.dll' WITH PERMISSION_SET = SAFE` |
@@ -126,10 +126,7 @@ rest run rather than read.
 
 | Message | statements | for example |
 | --- | ---: | --- |
-| 156 | 3 | `-- This statement fails because the third values list contains multiple columns in ...` |
-| 102 | 1 | `ALTER SEARCH PROPERTY LIST CVitaProperties ADD 'System.Author' WITH ( PROPERTY_DESC...` |
 | 113 | 1 | `/* SELECT @comment = '/*'; */ SELECT @@VERSION;` |
-| 155 | 1 | `SELECT DATENAME(datepart,'2007-10-30 12:15:32.1234567 +05:10');` |
 
 ## data-types
 
@@ -221,14 +218,12 @@ rest run rather than read.
 | OPENJSON (Transact-SQL) | 23 | 100.0% | 0 | 0 | 3 | 0 | levels 100 engine, 110 engine, 120 engine — `SELECT * FROM OPENJSON(@array) WITH (  month VARCHAR(3), temp int, month_id tinyint...` |
 | BINARY_CHECKSUM  (Transact-SQL) | 6 | 66.7% | 2 | 0 | 0 | 0 | stops at '*' — `SELECT BINARY_CHECKSUM(*) from myTable;` |
 | ENCRYPTBYKEY (Transact-SQL) | 8 | 75.0% | 2 | 0 | 0 | 0 | stops at OPEN — `OPEN SYMMETRIC KEY SSN_Key_01 DECRYPTION BY CERTIFICATE HumanResources037;` |
-| MIN_ACTIVE_ROWVERSION (Transact-SQL) | 27 | 92.6% | 2 | 0 | 0 | 0 | stops at DEFAULT — `INSERT INTO RowVersionTestTable VALUES (DEFAULT)` |
 | NEXT VALUE FOR (Transact-SQL) | 25 | 92.0% | 2 | 0 | 0 | 0 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
 | $PARTITION (Transact-SQL) | 7 | 71.4% | 2 | 0 | 0 | 0 | stops at PARTITION — `CREATE PARTITION FUNCTION RangePF1(INT) AS RANGE LEFT FOR VALUES (10, 100, 1000);` |
 | ROW_NUMBER (Transact-SQL) | 11 | 81.8% | 2 | 0 | 0 | 0 | stops at '#' — `SELECT ROW_NUMBER() OVER(ORDER BY name ASC) AS Row#, name, recovery_model_desc FROM...` |
 | TEXTPTR (Transact-SQL) | 20 | 90.0% | 2 | 0 | 0 | 0 | stops at READTEXT — `READTEXT t1.c2 @ptrval 0 1;` |
 | TYPE_ID (Transact-SQL) | 7 | 71.4% | 2 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE NewType FROM int;` |
 | DATE_BUCKET (Transact-SQL) | 27 | 96.3% | 1 | 0 | 0 | 0 | stops at ';' — `DECLARE @days INT = 365, @datetime DATETIME2 = '2000-01-01 01:01:01.1110000'; /* 20...` |
-| DATENAME (Transact-SQL) | 4 | 75.0% | 0 | 1 | 0 | 0 | read here, Msg 155 there — `SELECT DATENAME(datepart,'2007-10-30 12:15:32.1234567 +05:10');` |
 | EDGE_ID_FROM_PARTS (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at ';' — `INSERT INTO likes($edge_id, $from_id, $to_id, rating) SELECT EDGE_ID_FROM_PARTS(OBJ...` |
 | KEY_NAME (Transact-SQL) | 15 | 93.3% | 1 | 0 | 0 | 0 | stops at OPEN — `OPEN SYMMETRIC KEY TestSymKey DECRYPTION BY PASSWORD = 'pGFD4bb925DGvbd2439587y';` |
 | NODE_ID_FROM_PARTS (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at ';' — `INSERT INTO Person($node_id, ID, [name]) SELECT NODE_ID_FROM_PARTS(OBJECT_ID('Perso...` |
@@ -295,6 +290,7 @@ rest run rather than read.
 | DATEDIFF (Transact-SQL) | 62 | 100.0% | 0 | 0 | 0 | 0 |  |
 | @@DATEFIRST (Transact-SQL) | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DATEFROMPARTS (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DATENAME (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DATEPART (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DATETIME2FROMPARTS (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DATETIMEFROMPARTS (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -404,6 +400,7 @@ rest run rather than read.
 | @@MAX_CONNECTIONS (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | @@MAX_PRECISION (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | MAX (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| MIN_ACTIVE_ROWVERSION (Transact-SQL) | 27 | 100.0% | 0 | 0 | 0 | 0 |  |
 | MIN (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | MONTH (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | NCHAR (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -642,11 +639,10 @@ rest run rather than read.
 | PREDICT (Transact-SQL) | 8 | 42.9% | 4 | 0 | 0 | 0 | stops at AS — `SELECT d.*, p.Score FROM PREDICT(MODEL = @model, DATA = dbo.mytable AS d) WITH (Sco...` |
 | EXPLAIN (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at EXPLAIN — `EXPLAIN` |
 | GROUP BY (Transact-SQL) | 33 | 93.3% | 2 | 0 | 0 | 0 | stops at N — `SELECT DATEPART(yyyy,OrderDate) AS N'Year' ,SUM(TotalDue) AS N'Total Order Amount' ...` |
-| OUTPUT clause (Transact-SQL) | 67 | 98.5% | 1 | 0 | 0 | 0 | stops at '.' — `INSERT INTO Production.ZeroInventory ( DeletedProductID, RemovedOnDate ) SELECT Pro...` |
+| OUTPUT clause (Transact-SQL) | 67 | 98.5% | 1 | 0 | 0 | 0 | stops at MERGE — `INSERT INTO Production.ZeroInventory ( DeletedProductID, RemovedOnDate ) SELECT Pro...` |
 | READTEXT (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at READTEXT — `READTEXT pub_info.pr_info @ptrval 1 25;` |
 | SELECT Clause (Transact-SQL) | 5 | 80.0% | 1 | 0 | 0 | 0 | stops at ',' — `DECLARE @p POINT (32, 23), @distance FLOAT;` |
 | INTO Clause (Transact-SQL) | 17 | 94.1% | 1 | 0 | 0 | 0 | stops at '.' — `SELECT DepartmentID, Name, GroupName, ModifiedDate INTO dbo.DepartmentsUsingOpenDat...` |
-| Table Value Constructor (Transact-SQL) | 20 | 94.7% | 0 | 1 | 0 | 0 | read here, Msg 156 there — `-- This statement fails because the third values list contains multiple columns in ...` |
 | UPDATETEXT (Transact-SQL) | 6 | 83.3% | 1 | 0 | 0 | 0 | stops at UPDATETEXT — `UPDATETEXT pub_info.pr_info @ptrval 88 1 'b';` |
 | WRITETEXT (Transact-SQL) | 6 | 83.3% | 1 | 0 | 0 | 0 | stops at WRITETEXT — `WRITETEXT pub_info.pr_info @ptrval 'New Moon Books (NMB) has just released another ...` |
 | Aliasing | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -672,6 +668,7 @@ rest run rather than read.
 | SELECT (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | WINDOW (Transact-SQL) | 21 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Subqueries | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
+| Table Value Constructor (Transact-SQL) | 20 | 100.0% | 0 | 0 | 0 | 0 |  |
 | TOP (Transact-SQL) | 28 | 100.0% | 0 | 0 | 0 | 0 |  |
 | WHERE (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | WITH common_table_expression (Transact-SQL) | 28 | 100.0% | 0 | 0 | 0 | 1 |  |
@@ -906,14 +903,13 @@ rest run rather than read.
 | CREATE REMOTE SERVICE BINDING (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at REMOTE — `CREATE REMOTE SERVICE BINDING APBinding TO SERVICE '//Adventure-Works.com/services/...` |
 | CREATE TABLE (Transact-SQL) | 69 | 96.3% | 2 | 0 | 0 | 1 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1(INT) AS RANGE LEFT FOR VALUES (1, 100, 1000);` |
 | DROP WORKLOAD GROUP (Transact-SQL) | 5 | 60.0% | 2 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
-| MERGE (Transact-SQL) | 54 | 96.0% | 2 | 0 | 0 | 0 | stops at '.' — `INSERT INTO Production.UpdatedInventory SELECT ProductID, LocationID, NewQty, Previ...` |
+| MERGE (Transact-SQL) | 54 | 96.0% | 2 | 0 | 0 | 0 | stops at MERGE — `INSERT INTO Production.UpdatedInventory SELECT ProductID, LocationID, NewQty, Previ...` |
 | ALTER ASYMMETRIC KEY (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at OPEN — `OPEN MASTER KEY DECRYPTION BY PASSWORD = '<database master key password>';` |
 | ALTER EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at LANGUAGE — `ALTER EXTERNAL LANGUAGE Java SET (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaexte...` |
 | ALTER MESSAGE TYPE (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at MESSAGE — `ALTER MESSAGE TYPE [//Adventure-Works.com/Expenses/SubmitExpense] VALIDATION = WELL...` |
 | ALTER PARTITION SCHEME (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at PARTITION — `ALTER PARTITION SCHEME MyRangePS1 NEXT USED test5fg;` |
 | ALTER REMOTE SERVICE BINDING (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at REMOTE — `ALTER REMOTE SERVICE BINDING APBinding WITH USER = SecurityAccount ;` |
 | ALTER SCHEMA (Transact-SQL) | 10 | 90.0% | 1 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE Production.TestType FROM [VARCHAR](10) NOT NULL ;` |
-| ALTER SEARCH PROPERTY LIST (Transact-SQL) | 12 | 91.7% | 0 | 1 | 0 | 0 | read here, Msg 102 there — `ALTER SEARCH PROPERTY LIST CVitaProperties ADD 'System.Author' WITH ( PROPERTY_DESC...` |
 | ALTER SERVICE MASTER KEY (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at SERVICE — `ALTER SERVICE MASTER KEY REGENERATE;` |
 | BACKUP CERTIFICATE (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at ALGORITHM — `BACKUP CERTIFICATE Shipping04 TO FILE = 'c:\storedcerts\shipping04cert.pfx' WITH FO...` |
 | BEGIN CONVERSATION TIMER (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at CONVERSATION — `BEGIN CONVERSATION TIMER (@dialog_handle) TIMEOUT = 120 ;` |
@@ -921,11 +917,9 @@ rest run rather than read.
 | CREATE CERTIFICATE (Transact-SQL) | 7 | 85.7% | 1 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY Shipping19 FROM 'c:\Shipping\Certs\Shipping19.dll' WITH PERMISSION_...` |
 | CREATE CRYPTOGRAPHIC PROVIDER (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at CRYPTOGRAPHIC — `CREATE CRYPTOGRAPHIC PROVIDER SecurityProvider FROM FILE = 'C:\SecurityProvider\Sec...` |
 | CREATE EXTERNAL DATA SOURCE (Transact-SQL) | 115 | 98.9% | 1 | 0 | 0 | 23 | stops at ')' — `CREATE DATABASE SCOPED CREDENTIAL AccessAzureInvoices WITH IDENTITY = 'SHARED ACCES...` |
-| CREATE EXTERNAL TABLE (Transact-SQL) | 43 | 96.9% | 0 | 1 | 0 | 7 | read here, Msg 156 there — `SELECT Orders.OrderId, Orders.OrderTotal FROM External.Orders WHERE CustomerId IN (...` |
 | CREATE FUNCTION (Transact-SQL) | 12 | 91.7% | 1 | 0 | 0 | 0 | stops at ASSEMBLY — `CREATE ASSEMBLY [SurrogateStringFunction] FROM @SamplesPath + 'StringManipulate\CS\...` |
 | CREATE REMOTE TABLE AS SELECT (Parallel Data Warehouse) | 3 | 50.0% | 1 | 0 | 0 | 0 | stops at REMOTE — `USE ssawPDW; CREATE REMOTE TABLE OrderReporting.Orders.MyOrdersTable AT ( 'Data Sou...` |
 | CREATE RESOURCE POOL (Transact-SQL) | 5 | 80.0% | 1 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
-| CREATE SELECTIVE XML INDEX (Transact-SQL) | 3 | 66.7% | 0 | 1 | 0 | 0 | read here, Msg 156 there — `CREATE SELECTIVE XML INDEX on T1(C1) WITH XMLNAMESPACES ('https://www.tempuri.org/'...` |
 | CREATE TABLE AS SELECT (Azure Synapse Analytics and Microsoft Fabric) | 53 | 100.0% | 0 | 0 | 1 | 12 | levels 100 engine, 110 engine, 120 engine — `INSERT INTO Users (id, name, age, street, city) SELECT id, name, age, JSON_VALUE(ad...` |
 | CREATE XML INDEX (Selective XML Indexes) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at '(' — `CREATE XML INDEX filt_sxi_index_c ON Tbl(xmlcol) USING XML INDEX sxi_index FOR ( pa...` |
 | DROP EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at LANGUAGE — `CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaex...` |
@@ -964,6 +958,7 @@ rest run rather than read.
 | ALTER MATERIALIZED VIEW (Transact-SQL) | 2 | — | 0 | 0 | 0 | 0 |  |
 | ALTER PROCEDURE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER ROLE (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER SEARCH PROPERTY LIST (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SECURITY POLICY (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SERVER AUDIT SPECIFICATION (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER SERVER AUDIT (Transact-SQL) | 17 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -992,6 +987,7 @@ rest run rather than read.
 | CREATE EXTERNAL FILE FORMAT (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 2 |  |
 | CREATE EXTERNAL LIBRARY (Transact-SQL) - SQL Server | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE EXTERNAL TABLE AS SELECT (CETAS) (Transact-SQL) | 49 | 100.0% | 0 | 0 | 0 | 10 |  |
+| CREATE EXTERNAL TABLE (Transact-SQL) | 43 | 100.0% | 0 | 0 | 0 | 7 |  |
 | CREATE FULLTEXT CATALOG (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE FULLTEXT INDEX (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE FULLTEXT STOPLIST (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -1004,6 +1000,7 @@ rest run rather than read.
 | CREATE SCHEMA (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SEARCH PROPERTY LIST (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SECURITY POLICY (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE SELECTIVE XML INDEX (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SERVER AUDIT SPECIFICATION (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SERVER AUDIT (Transact-SQL) | 15 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SERVER ROLE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |

@@ -2846,6 +2846,43 @@ public static class Syntax
 	}
 
 	/// <summary>
+	/// The names a date part is written with: the published ones and their abbreviations, and
+	/// <c>w</c> beside them, which the engine reads for <c>weekday</c> and the table leaves out.
+	/// </summary>
+	static readonly HashSet<string> DateParts = new(StringComparer.OrdinalIgnoreCase)
+	{
+		"year", "yy", "yyyy", "quarter", "qq", "q", "month", "mm", "m", "dayofyear", "dy", "y",
+		"day", "dd", "d", "week", "wk", "ww", "weekday", "dw", "w", "hour", "hh", "minute", "mi",
+		"n", "second", "ss", "s", "millisecond", "ms", "microsecond", "mcs", "nanosecond", "ns",
+		"tzoffset", "tz", "iso_week", "isowk", "isoww",
+	};
+
+	/// <summary>The functions whose first argument is a date part.</summary>
+	static readonly HashSet<string> DatePartFunctions = new(StringComparer.OrdinalIgnoreCase)
+	{
+		"DATEPART", "DATENAME", "DATEADD", "DATEDIFF", "DATEDIFF_BIG", "DATETRUNC", "DATE_BUCKET",
+	};
+
+	/// <summary>Whether a name, bracketed, quoted or neither, is a date part's.</summary>
+	public static bool IsDatePart(string? name) => name is not null && DateParts.Contains(Unquoted(name));
+
+	/// <summary>Whether a name of one part is a function whose first argument is a date part.</summary>
+	public static bool IsDatePartFunction(string name) => DatePartFunctions.Contains(name);
+
+	/// <summary>Whether a value is a column and nothing more, brackets aside.</summary>
+	public static bool IsColumn(Expression? value) => value switch
+	{
+		Expression.ColumnReference    => true,
+		Expression.Parenthesized(var inner) => IsColumn(inner),
+		_                             => false,
+	};
+
+	static string Unquoted(string name) =>
+		name.Length >= 2 && (name[0] == '[' && name[^1] == ']' || name[0] == '"' && name[^1] == '"')
+			? name[1..^1]
+			: name;
+
+	/// <summary>
 	/// Whether a select list holds T-SQL's <c>IDENTITY(…)</c>, which only a <c>SELECT … INTO</c>
 	/// may: the engine refuses one without the <c>INTO</c> when it compiles the statement,
 	/// <c>Msg 177</c>.
