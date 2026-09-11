@@ -12,7 +12,7 @@
 		<MoreInfo>https://github.com/dotgram/dotgram</MoreInfo>
 		<License>LICENSE.txt</License>
 		<ReleaseNotes>VSIX.ReleaseNotes.txt</ReleaseNotes>
-		<Icon>Assets\DotGram.Love.png</Icon>
+		<Icon>Assets\DotGram.Main.png</Icon>
 		<Tags>.Gram, DotGram, grammar, parser, language, CSharp</Tags>
 	</Metadata>
 	<Installation>

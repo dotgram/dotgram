@@ -57,7 +57,7 @@
 		<Content Include="Assets\DotGram.LetterIcon.16.16.png">
 			<IncludeInVSIX>true</IncludeInVSIX>
 		</Content>
-		<Content Include="Assets\DotGram.Love.png">
+		<Content Include="Assets\DotGram.Main.png">
 			<IncludeInVSIX>true</IncludeInVSIX>
 		</Content>
 		<Content Include="DotGram.VisualStudio.Icon.pkgdef">
