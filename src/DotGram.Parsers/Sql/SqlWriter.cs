@@ -2293,6 +2293,7 @@ public static class SqlWriter
 		{
 			Expression.Negate                      => '-',
 			Expression.Plus                        => '+',
+			Expression.BitwiseNot                  => '~',
 			Expression.Literal { Text: ['-', ..] } => '-',
 			Expression.Literal { Text: ['+', ..] } => '+',
 			_                                      => '\0',
@@ -2316,9 +2317,10 @@ public static class SqlWriter
 		Expression.Match or Expression.Overlaps or Expression.IsDistinctFrom or
 		Expression.IsTruth => 4,
 
-		Expression.Add or Expression.Subtract or Expression.Concatenate => 5,
-		Expression.Multiply or Expression.Divide                        => 6,
-		Expression.Negate or Expression.Plus                            => 7,
+		Expression.Add or Expression.Subtract or Expression.Concatenate or
+		Expression.BitwiseAnd or Expression.BitwiseOr or Expression.BitwiseXor => 5,
+		Expression.Multiply or Expression.Divide or Expression.Modulo          => 6,
+		Expression.Negate or Expression.Plus or Expression.BitwiseNot          => 7,
 
 		_ => 8,
 	};
@@ -2340,6 +2342,10 @@ public static class SqlWriter
 			case Expression.Concatenate(var l, var r):  Binary(text, l, "||", r, binds);         break;
 			case Expression.Multiply(var l, var r):     Binary(text, l, "*", r, binds);          break;
 			case Expression.Divide(var l, var r):       Binary(text, l, "/", r, binds);          break;
+			case Expression.Modulo(var l, var r):       Binary(text, l, "%", r, binds);          break;
+			case Expression.BitwiseAnd(var l, var r):   Binary(text, l, "&", r, binds);          break;
+			case Expression.BitwiseOr(var l, var r):    Binary(text, l, "|", r, binds);          break;
+			case Expression.BitwiseXor(var l, var r):   Binary(text, l, "^", r, binds);          break;
 
 			case Expression.Not(var operand):
 				text.Append("NOT ");
@@ -2348,6 +2354,7 @@ public static class SqlWriter
 
 			case Expression.Negate(var operand): Signed(text, '-', operand); break;
 			case Expression.Plus(var operand):   Signed(text, '+', operand); break;
+			case Expression.BitwiseNot(var operand): Signed(text, '~', operand); break;
 
 			case Expression.IsTruth(var operand, var negated, var truth):
 				Put(text, operand, 4);
@@ -2614,6 +2621,9 @@ public static class SqlWriter
 		SqlComparison.Less           => "<",
 		SqlComparison.LessOrEqual    => "<=",
 		SqlComparison.Greater        => ">",
+		SqlComparison.NotEqualBang   => "!=",
+		SqlComparison.NotLess        => "!<",
+		SqlComparison.NotGreater     => "!>",
 		_                            => ">=",
 	};
 
@@ -2709,6 +2719,8 @@ public static class SqlWriter
 					Signed(text, '-', negated);
 				else if (arguments[1] is Expression.Plus(var plus))
 					Signed(text, '+', plus);
+				else if (arguments[1] is Expression.BitwiseNot(var inverted))
+					Signed(text, '~', inverted);
 				else
 					Put(text, arguments[1], 8);
 

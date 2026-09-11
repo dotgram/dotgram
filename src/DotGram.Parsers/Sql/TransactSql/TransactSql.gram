@@ -8,7 +8,7 @@ using Sql92;
 // grammar is attached to; what is written here is only where T-SQL differs, and
 // §5.1's rebinding is what makes the difference reach every rule that leads to it.
 //
-// Eleven rules replace eleven of the standard's. Nothing else is restated and nothing
+// Seventeen rules replace seventeen of the standard's. Nothing else is restated and nothing
 // is copied: a query expression, a join, a predicate and the whole value tower are
 // the ones already read against the standard, reading a dialect's identifiers and
 // a dialect's primaries because the substitution rewrote every call inside them.
@@ -200,6 +200,32 @@ TSqlValueSpecification : @Expression
 	| t: ("USER"i | "CURRENT_USER"i | "SESSION_USER"i | "SYSTEM_USER"i | "VALUE"i)
 		=> @(new Expression.Literal(SqlLiteralKind.Special, t))
 
+// ── §6.11's value expression, widened ───────────────────────────────────────
+//
+// The standard's tower with T-SQL's operators in it, at the strengths the engine gives
+// them, asked with numbers since a parse says nothing of grouping: `&`, `|` and `^` are as
+// weak as `+` and `-` and read left to right with them — `2 + 5 & 4` is 4 and `5 & 4 + 2`
+// is 6 — `%` is as strong as `*`, and `~` is a sign, `~2 * 3` being -9. A comparison is
+// weaker than all of them: `1 & 3 = 1` holds. Restated rather than called, as a
+// replacement has to be.
+TSqlValueExpression : @Expression
+	= left: TSqlValueExpression & op: ('+' | '-' | "||" | '&' | '|' | '^') & right: TSqlValueExpression << 1
+		=> @(Expression.Additive(op, left, right))
+	| left: TSqlValueExpression & op: ('*' | '/' | '%') & right: TSqlValueExpression           << 2
+		=> @(Expression.Multiplicative(op, left, right))
+	| sign: ['+' | '-' | '~'] & v: TSqlValueExpression                                         >> 3
+		=> @(Expression.Signed(sign, v))
+	| p: TSqlValuePrimary & how: Collate? => @(how is null ? p : new Expression.Collated(p, how))
+
+// §8.2's comparison operators and T-SQL's three, `!=`, `!<` and `!>`. Each of the two
+// character ones is two tokens to the engine, which reads `< >`, `> =` and `! <` as well;
+// `!<>`, `!<=` and `!!` it refuses. Here the lexer takes `<=` whole wherever it is written
+// together, since other rules have the literal, so each is read both ways.
+TSqlCompOp
+	= "<>" | "<=" | ">=" | "!=" | "!<" | "!>"
+	| '<' & '>' | '<' & '=' | '>' & '=' | '!' & '=' | '!' & '<' | '!' & '>'
+	| '=' | '<' | '>'
+
 // ── §6.11's value expression primary, widened ───────────────────────────────
 //
 // The standard names every function it has and leaves the rest to a routine
@@ -225,9 +251,9 @@ AtTimeZone : @Expression
 		=> @(new Expression.RoutineInvocation("AT TIME ZONE",
 				 new Expression[] { how is null ? null! : new Expression.Collated(null!, how), v }))
 
-// A zone is a primary with its members, and signs in front of it: `- b`, `b::c`.
+// A zone is a primary with its members, and signs in front of it: `- b`, `~ b`, `b::c`.
 TimeZone : @Expression
-	= sign: ['+' | '-'] & v: TimeZone         => @(Expression.Signed(sign, v))
+	= sign: ['+' | '-' | '~'] & v: TimeZone   => @(Expression.Signed(sign, v))
 	| p: TSqlPrimaryCore & members: Member*  => @(Syntax.Reached(p, members, null))
 
 TSqlPrimaryCore : @Expression
@@ -1036,7 +1062,9 @@ ForName = '(' & Quoted & ')'
 namespace Dialect with (
 	Identifier                = TSqlIdentifier,
 	GeneralValueSpecification = TSqlValueSpecification,
+	ValueExpression           = TSqlValueExpression,
 	ValueExpressionPrimary    = TSqlValuePrimary,
+	CompOp                    = TSqlCompOp,
 	QuerySpecification        = TSqlQuerySpecification,
 	TablePrimary              = TSqlTablePrimary,
 	TableReference            = TSqlTableReference,

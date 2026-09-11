@@ -2000,6 +2000,24 @@ public abstract record Expression : ISqlSpan
 	/// <summary>A unary <c>+</c>, which the standard keeps and which changes nothing.</summary>
 	public sealed record Plus(Expression Operand) : Expression;
 
+	/// <summary>T-SQL's <c>%</c>, the remainder, as strong as <c>*</c> and <c>/</c> and read left to right with them.</summary>
+	public sealed record Modulo(Expression Left, Expression Right) : Expression;
+
+	/// <summary>
+	/// T-SQL's <c>&amp;</c>, as weak as <c>+</c> and <c>-</c> and read left to right with them:
+	/// the engine answers <c>2 + 5 &amp; 4</c> with 4 and <c>5 &amp; 4 + 2</c> with 6.
+	/// </summary>
+	public sealed record BitwiseAnd(Expression Left, Expression Right) : Expression;
+
+	/// <summary>T-SQL's <c>|</c>, as weak as <c>+</c>.</summary>
+	public sealed record BitwiseOr(Expression Left, Expression Right) : Expression;
+
+	/// <summary>T-SQL's <c>^</c>, as weak as <c>+</c>.</summary>
+	public sealed record BitwiseXor(Expression Left, Expression Right) : Expression;
+
+	/// <summary>T-SQL's <c>~</c>, which binds as a sign does: <c>~2 * 3</c> is -9.</summary>
+	public sealed record BitwiseNot(Expression Operand) : Expression;
+
 	// ---- §8 the predicates ------------------------------------------------------------------------
 	//
 	// A record each, with the operands named rather than numbered. The one word that survives
@@ -2200,22 +2218,38 @@ public abstract record Expression : ISqlSpan
 	/// <inheritdoc cref="NullValue"/>
 	public static Expression DefaultValue => new Literal(SqlLiteralKind.Default, "DEFAULT");
 
-	/// <summary>An additive operator and its two operands, as the node the operator names.</summary>
+	/// <summary>
+	/// An additive operator and its two operands, as the node the operator names — T-SQL's
+	/// bitwise three among them, which bind as weakly.
+	/// </summary>
 	public static Expression Additive(string operatorText, Expression left, Expression right) =>
 		operatorText switch
 		{
 			"+" => new Add(left, right),
 			"-" => new Subtract(left, right),
+			"&" => new BitwiseAnd(left, right),
+			"|" => new BitwiseOr(left, right),
+			"^" => new BitwiseXor(left, right),
 			_   => new Concatenate(left, right),
 		};
 
-	/// <summary>Likewise for the multiplicative pair.</summary>
+	/// <summary>Likewise for the multiplicative operators, T-SQL's <c>%</c> among them.</summary>
 	public static Expression Multiplicative(string operatorText, Expression left, Expression right) =>
-		operatorText == "*" ? new Multiply(left, right) : new Divide(left, right);
+		operatorText switch
+		{
+			"*" => new Multiply(left, right),
+			"/" => new Divide(left, right),
+			_   => new Modulo(left, right),
+		};
 
-	/// <summary>Likewise for the sign in front of one operand.</summary>
+	/// <summary>Likewise for the sign in front of one operand, T-SQL's <c>~</c> among them.</summary>
 	public static Expression Signed(string sign, Expression operand) =>
-		sign == "-" ? new Negate(operand) : new Plus(operand);
+		sign switch
+		{
+			"-" => new Negate(operand),
+			"~" => new BitwiseNot(operand),
+			_   => new Plus(operand),
+		};
 
 	/// <summary>
 	/// The left operand written into the tail the predicate was read as.
@@ -2938,13 +2972,16 @@ public static class Syntax
 		                         : SqlOrder.Descending;
 
 	/// <summary>Which comparison operator was written (§8.2's <c>&lt;comp op&gt;</c>).</summary>
-	public static SqlComparison Compared(string operatorText) => operatorText switch
+	public static SqlComparison Compared(string operatorText) => Compacted(operatorText) switch
 	{
 		"="  => SqlComparison.Equal,
 		"<>" => SqlComparison.NotEqual,
+		"!=" => SqlComparison.NotEqualBang,
 		"<"  => SqlComparison.Less,
 		"<=" => SqlComparison.LessOrEqual,
+		"!<" => SqlComparison.NotLess,
 		">"  => SqlComparison.Greater,
+		"!>" => SqlComparison.NotGreater,
 		_    => SqlComparison.GreaterOrEqual,
 	};
 
@@ -3195,6 +3232,15 @@ public static class Syntax
 public enum SqlComparison
 {
 	Equal, NotEqual, Less, LessOrEqual, Greater, GreaterOrEqual,
+
+	/// <summary>T-SQL's <c>!=</c>, which means what <c>&lt;&gt;</c> does and is kept apart because it is written apart.</summary>
+	NotEqualBang,
+
+	/// <summary>T-SQL's <c>!&lt;</c>, not less than.</summary>
+	NotLess,
+
+	/// <summary>T-SQL's <c>!&gt;</c>, not greater than.</summary>
+	NotGreater,
 }
 
 /// <summary>Which join (§7.7), and the two T-SQL adds.</summary>

@@ -1302,6 +1302,76 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>
+	/// The operators group as the engine computes them — asked with numbers, since a parse
+	/// says nothing of grouping: `&amp;` as weak as `+` and read left to right with it, `%` as
+	/// strong as `*`, `~` a sign, and a comparison weaker than all of them.
+	/// </summary>
+	[Fact]
+	public void The_operators_group_as_the_engine_computes()
+	{
+		var and = Assert.IsType<Expression.BitwiseAnd>(TransactSql.TryParseValueExpression("2 + 5 & 4").Value);
+		Assert.IsType<Expression.Add>(and.Left);
+
+		var add = Assert.IsType<Expression.Add>(TransactSql.TryParseValueExpression("5 & 4 + 2").Value);
+		Assert.IsType<Expression.BitwiseAnd>(add.Left);
+
+		var times = Assert.IsType<Expression.Multiply>(TransactSql.TryParseValueExpression("7 % 3 * 2").Value);
+		Assert.IsType<Expression.Modulo>(times.Left);
+
+		var inverted = Assert.IsType<Expression.Multiply>(TransactSql.TryParseValueExpression("~2 * 3").Value);
+		Assert.IsType<Expression.BitwiseNot>(inverted.Left);
+
+		var masked = Assert.IsType<Expression.BitwiseAnd>(TransactSql.TryParseValueExpression("6 & 3 * 2").Value);
+		Assert.IsType<Expression.Multiply>(masked.Right);
+
+		var compared = Assert.IsType<Expression.Comparison>(TransactSql.TryParseSearchCondition("1 & 3 = 1").Value);
+		Assert.IsType<Expression.BitwiseAnd>(compared.Left);
+
+		Assert.Equal(
+			SqlComparison.NotEqualBang,
+			Assert.IsType<Expression.Comparison>(TransactSql.TryParseSearchCondition("a ! = 1").Value).Operator);
+	}
+
+	/// <summary>T-SQL's operators, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("SELECT a FROM t WHERE a !<> 1")]
+	[InlineData("SELECT a FROM t WHERE a !! 1")]
+	[InlineData("SELECT a FROM t WHERE a !<= 1")]
+	[InlineData("SELECT a FROM t WHERE a *= b")]
+	[InlineData("SELECT a FROM t WHERE a =* b")]
+	public void The_operators_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT ~1")]
+	[InlineData("SELECT ~ ~1")]
+	[InlineData("SELECT -~1")]
+	[InlineData("SELECT ~-1")]
+	[InlineData("SELECT a & ~b FROM t")]
+	[InlineData("SELECT a | b ^ b & a FROM t")]
+	[InlineData("SELECT a % b FROM t")]
+	[InlineData("SELECT ~(a + b) FROM t")]
+	[InlineData("SELECT a FROM t WHERE ~a = 1")]
+	[InlineData("SELECT a FROM t WHERE a !< 1")]
+	[InlineData("SELECT a FROM t WHERE a !> 1")]
+	[InlineData("SELECT a FROM t WHERE a != 1")]
+	[InlineData("SELECT a FROM t WHERE a ! < 1")]
+	[InlineData("SELECT a FROM t WHERE a ! = 1")]
+	[InlineData("SELECT a FROM t WHERE a < > 1")]
+	[InlineData("SELECT a FROM t WHERE a > = 1")]
+	[InlineData("SELECT a FROM t WHERE a !< ALL (SELECT b FROM u)")]
+	[InlineData("CREATE TABLE t (A1 INT CHECK (A1 !< 4))")]
+	[InlineData("CREATE TABLE t (A1 INT DEFAULT +-++~+23)")]
+	[InlineData("SELECT a AT TIME ZONE ~ b FROM T")]
+	public void The_operators_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>`AT TIME ZONE` and `WAITFOR`, as the engine answers them with its variables declared.</summary>
 	[Theory]
 	[InlineData("SELECT a COLLATE Latin1_General_CI_AS COLLATE Latin1_General_CI_AS FROM T")]

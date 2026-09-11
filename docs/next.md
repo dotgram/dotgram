@@ -18380,3 +18380,31 @@ by meaning (`Msg 403`).
 
 At 150: read by both 5,769 (from 5,757), the work list 205 (from 217), read here but refused
 there 43, as before. `--split` 580 cut the same (from 576), and the round trip 100% of 6,877.
+
+## T-SQL's operators
+
+The work list stopped twice at `~` and twice at `!`, and behind them was more than two
+statements: the grammar had none of T-SQL's own operators. `%`, `&`, `|`, `^`, `~`, `!=`, `!<`
+and `!>` were all refused — the value tower and the comparison were the standard's, and the
+standard has none of them.
+
+Where they bind was asked of the engine with numbers, since a parse says nothing of
+grouping. `&`, `|` and `^` are as weak as `+` and `-` and read left to right with them: `2 + 5
+& 4` is 4 and `5 & 4 + 2` is 6, where either operator binding tighter would give 6 and 4.
+`%` is as strong as `*`; `~` is a sign, `~2 * 3` being -9; and a comparison is weaker than
+all of them, `1 & 3 = 1` holding. The engine reads the two-character comparisons as two tokens,
+so `< >`, `> =` and `! <` are read, and `!<>`, `!<=` and `!!` are not.
+
+So the tower and the comparison operator are T-SQL's own now — two more of the standard's
+rules replaced, seventeen in all — and the tree has what it lacked, as agreed: a record to an
+operator, `Modulo`, `BitwiseAnd`, `BitwiseOr`, `BitwiseXor` and `BitwiseNot`, as the
+arithmetic already was; and `SqlComparison` has `NotLess`, `NotGreater` and `NotEqualBang`,
+the last kept apart from `NotEqual` because `!=` is written apart from `<>` and the writer
+gives back what was written. A zone takes `~` in front of it now too.
+
+The lexer takes `<=` whole wherever it is written together, since other rules have the
+literal, and the first version of the rule read only the spaced forms: `t.q <= 0` stopped,
+and a test said so. Each is read both ways.
+
+At 150: read by both 5,771 (from 5,769), the work list 203 (from 205), read here but refused
+there 43, as before. `--split` 581, and the round trip 100% of 6,879.

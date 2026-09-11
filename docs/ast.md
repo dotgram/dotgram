@@ -422,6 +422,11 @@ together — flags, since a list may mix them. A variable assigned is not here: 
 | `Expression.Divide` | SQL-92 | §6.11 the same, with &lt;solidus&gt; |
 | `Expression.Negate` | SQL-92 | §6.11 &lt;factor&gt; with &lt;minus sign&gt; |
 | `Expression.Plus` | SQL-92 | §6.11 the same, with &lt;plus sign&gt; |
+| `Expression.Modulo` | T-SQL | Arithmetic Operators — Modulus |
+| `Expression.BitwiseAnd` | T-SQL | Bitwise Operators — Bitwise AND |
+| `Expression.BitwiseOr` | T-SQL | Bitwise Operators — Bitwise OR |
+| `Expression.BitwiseXor` | T-SQL | Bitwise Operators — Bitwise Exclusive OR |
+| `Expression.BitwiseNot` | T-SQL | Bitwise Operators — Bitwise NOT |
 | `Expression.Comparison` | SQL-92 | §8.2 &lt;comparison predicate&gt; |
 | `Expression.Quantified` | SQL-92 | §8.8 &lt;quantified comparison predicate&gt; |
 | `Expression.Between` | SQL-92 | §8.3 &lt;between predicate&gt; |
