@@ -4060,6 +4060,20 @@ public static class Syntax
 			!(kind is "COLLATE" or "NOT FOR REPLICATION" or "MASKED" or "ENCRYPTED" ||
 			  kind.StartsWith("GENERATED", StringComparison.Ordinal)));
 
+	/// <summary>Whether no more than one of a list's items, as written, begins with a word.</summary>
+	public static bool Once(string word, string? first, string[]? rest)
+	{
+		var said = Begins(first) ? 1 : 0;
+
+		foreach (var one in rest ?? [])
+			if (Begins(one))
+				said++;
+
+		return said <= 1;
+
+		bool Begins(string? one) => one is not null && one.TrimStart().StartsWith(word, StringComparison.OrdinalIgnoreCase);
+	}
+
 	/// <summary>Nodes told apart by identity, which a record's own equality does not do.</summary>
 	sealed class ByReference : IEqualityComparer<ISqlSpan>
 	{

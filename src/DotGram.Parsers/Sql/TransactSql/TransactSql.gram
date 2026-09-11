@@ -2976,7 +2976,13 @@ CreateTableStatement : @Statement
 	= "CREATE"i & "TABLE"i & name: QualifiedName & ('(' & columns: ColumnList & ')')?
 	  & options: OptionsWith & "AS"i & q: DirectSelect
 		=> @(new Statement.CreateTableAsSelect(name, columns, options, q))
-	| "CREATE"i & "TABLE"i & name: QualifiedName & kind: TableAs? & '(' & body: TableBody & ')'
+
+	// Without its options a table made of a query names its columns, and that is what tells it
+	// from a table declared: `CREATE TABLE t AS SELECT …` and `CREATE TABLE t (a INT) AS SELECT
+	// …` are refused (`Msg 156`), and `CREATE TABLE t (a, b) AS SELECT …` is read.
+	| "CREATE"i & "TABLE"i & name: QualifiedName & '(' & columns: ColumnList & ')' & "AS"i & q: DirectSelect
+		=> @(new Statement.CreateTableAsSelect(name, columns, Clause.None, q))
+	| "CREATE"i & "TABLE"i & name: QualifiedName & kind: TableAs? & '(' & body: TableBody & ','? & ')'
 	  & after: TableAs? & placements: TablePlacement* & options: TableWith?
 		=> @(new Statement.TableDefinition(name, kind ?? after, body, placements ?? Clause.None, options ?? Clause.None))
 	| "CREATE"i & "TABLE"i & name: QualifiedName & kind: TableAs & placements: TablePlacement* & options: TableWith?
@@ -4312,9 +4318,18 @@ KeyUnlockedBy = "DECRYPTION"i & "BY"i & "PASSWORD"i & '=' & Quoted
 // A certificate's private key, written beside it: a file and the passwords, in any order,
 // after the format the certificate is written in if one is named.
 CertificatePrivateKey = "WITH"i & ("FORMAT"i & '=' & Quoted & ',')? & "PRIVATE"i & "KEY"i
-					  & '(' & CertificateKeyItem & (',' & CertificateKeyItem)* & ')'
+					  & '(' & CertificateKeyItems & ')'
 
-CertificateKeyItem = "FILE"i & '=' & Quoted | KeyLockedBy | KeyUnlockedBy
+// The algorithm the key is written with, which a backup names and nothing else does — `CREATE`
+// and `ALTER CERTIFICATE` refuse it, and so do the keys' own backups — is a string, whatever
+// it says, and said once (`Msg 102`).
+CertificateKeyItems : @string[]
+	= first: CertificateKeyItem & (',' & rest: CertificateKeyItem)* & when @(Syntax.Once("ALGORITHM", first, rest))
+		=> @(Syntax.Named(first, rest))
+
+CertificateKeyItem : @string
+	= t: ("FILE"i & '=' & Quoted | KeyLockedBy | KeyUnlockedBy | "ALGORITHM"i & '=' & Quoted) => @(t)
+
 
 BackupWhat : @string
 	= "DATABASE"i => @("DATABASE")
@@ -4398,7 +4413,7 @@ BackupOption
 	| "ENCRYPTION"i & '(' & "ALGORITHM"i & '=' & ("AES_128"i | "AES_192"i | "AES_256"i | "TRIPLE_DES_3KEY"i)
 	  & ',' & "SERVER"i & ("CERTIFICATE"i | "ASYMMETRIC"i & "KEY"i) & '=' & Identifier & ')'
 	| ("DESCRIPTION"i | "MEDIADESCRIPTION"i | "EXPIREDATE"i | "RETAINDAYS"i
-	  | "BLOCKSIZE"i | "BUFFERCOUNT"i | "MAXTRANSFERSIZE"i) & '=' & BackupValue
+	  | "BLOCKSIZE"i | "BUFFERCOUNT"i | "MAXTRANSFERSIZE"i | "BACKUP_OPTIONS"i) & '=' & BackupValue
 	| ("NAME"i | "MEDIANAME"i | "CREDENTIAL"i | "PASSWORD"i | "MEDIAPASSWORD"i | "STANDBY"i)
 	  & '=' & BackupString
 	| "INIT"i | "NOINIT"i | "SKIP"i | "NOSKIP"i | "FORMAT"i | "NOFORMAT"i
@@ -4416,7 +4431,7 @@ RestoreOption
 	| "PARTIAL"i | "LOADHISTORY"i | "METADATA_ONLY"i | "SNAPSHOT"i
 	| "STANDBY"i & '=' & BackupString
 	| "MOVE"i & BackupString & "TO"i & BackupString
-	| ("CREDENTIAL"i | "PASSWORD"i | "MEDIAPASSWORD"i | "MEDIANAME"i | "DBNAME"i) & '=' & BackupString
+	| ("CREDENTIAL"i | "PASSWORD"i | "MEDIAPASSWORD"i | "MEDIANAME"i | "DBNAME"i | "RESTORE_OPTIONS"i) & '=' & BackupString
 	| "FILE"i & '=' & (Sql92.Lexical.UnsignedNumericLiteral | TSql.Variable)
 	| ("BLOCKSIZE"i | "BUFFERCOUNT"i | "MAXTRANSFERSIZE"i | "STOPAT"i) & '=' & BackupValue
 	| ("STOPATMARK"i | "STOPBEFOREMARK"i) & '=' & BackupValue & ("AFTER"i & BackupValue)?

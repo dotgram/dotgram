@@ -19170,3 +19170,32 @@ t (a, b) AS SELECT …` without the `WITH` this grammar asks of it.
 At 150: read by both 5,878 (from 5,873), the work list 98 (from 103), read here but refused
 there 43 (from 43); `--split` 712 (from 707), the round trip 100% of 7,530. The map: read by
 both 7,978 of 8,338 (99.7%), the work list 25 (from 27), defects 0.
+
+## A backup's options for a URL, a certificate key's algorithm, a comma, a table of a query
+
+Five small things from the map, each put to the engine before it was written, and one the
+map had wrong:
+
+- **`BACKUP_OPTIONS` and `RESTORE_OPTIONS`**, the JSON a backup to a URL takes, S3's region
+  among it. The first is a string, a variable or a number, the second a string or a
+  variable, each as often as anybody writes it, and each refused in the other's statement
+  (`Msg 155`). A restore of any kind takes the second: a database, a log, `HEADERONLY`,
+  `FILELISTONLY`, `VERIFYONLY`.
+- **The algorithm a certificate's private key is written with.** A backup of the certificate
+  names it, anywhere among the key's items and once (`Msg 102` twice); it is a string, and
+  the engine does not ask which — `'FOO'` is read. `CREATE` and `ALTER CERTIFICATE` refuse it,
+  and so do the backups of a master key and a symmetric key.
+- **A comma after a table's last element**, which `CREATE TABLE` reads once and nothing else
+  does: not a table variable, a table type, `ALTER TABLE … ADD`, a function's table or a
+  result set. The tree does not keep it, as it keeps no optional `;`.
+- **A table made of a query, without its options.** `CREATE TABLE t (a, b) AS SELECT …` is
+  read, and the column list is what tells it from a table declared: without it, or with a
+  type in it, it is `Msg 156`. With `ON` a filegroup before the `AS` it is read too, and left
+  for later, since the record has nowhere to keep a placement.
+
+And `DBCC FREEPROCCACHE (COMPUTE)`, which the map counted as work, is another product's: the
+engine refuses `COMPUTE` and `ALL` there as this does.
+
+At 150: read by both 5,883 (from 5,878), the work list 93 (from 98), read here but refused
+there 43 (from 43); `--split` 716 (from 712), the round trip 100% of 7,535. The map: read by
+both 7,982 of 8,338 (99.7%), the work list 21 (from 25), defects 0.

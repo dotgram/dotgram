@@ -953,6 +953,94 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>The options a backup and a restore take for a URL, and a certificate's key algorithm, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("BACKUP DATABASE d TO URL = 'u' WITH BACKUP_OPTIONS = x")]
+	[InlineData("BACKUP DATABASE d TO URL = 'u' WITH RESTORE_OPTIONS = '{}'")]
+	[InlineData("BACKUP DATABASE d TO URL = 'u' WITH BACKUP_OPTIONS")]
+	[InlineData("RESTORE DATABASE d FROM URL = 'u' WITH BACKUP_OPTIONS = '{}'")]
+	[InlineData("RESTORE DATABASE d FROM URL = 'u' WITH RESTORE_OPTIONS = x")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH FORMAT = 'PFX', PRIVATE KEY (ENCRYPTION BY PASSWORD = 'p', ALGORITHM = AES_256)")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH FORMAT = 'PFX', PRIVATE KEY (ENCRYPTION BY PASSWORD = 'p', ALGORITHM = 'AES_256', ALGORITHM = 'AES_256')")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH FORMAT = 'PFX', PRIVATE KEY (ENCRYPTION BY PASSWORD = 'p', ALGORITHM = @a)")]
+	[InlineData("BACKUP MASTER KEY TO FILE = 'f' ENCRYPTION BY PASSWORD = 'p' ALGORITHM = 'AES_256'")]
+	[InlineData("BACKUP SYMMETRIC KEY k TO FILE = 'f' ENCRYPTION BY PASSWORD = 'p' ALGORITHM = 'AES_256'")]
+	[InlineData("CREATE CERTIFICATE c FROM FILE = 'f' WITH FORMAT = 'PFX', PRIVATE KEY (DECRYPTION BY PASSWORD = 'p', ALGORITHM = 'AES_256')")]
+	[InlineData("CREATE CERTIFICATE c FROM FILE = 'f' WITH PRIVATE KEY (FILE = 'k', DECRYPTION BY PASSWORD = 'p', ALGORITHM = 'AES_256')")]
+	[InlineData("ALTER CERTIFICATE c WITH PRIVATE KEY (FILE = 'k', DECRYPTION BY PASSWORD = 'p', ALGORITHM = 'AES_256')")]
+	public void Backup_options_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("BACKUP DATABASE d TO URL = 'u' WITH BACKUP_OPTIONS = '{}'")]
+	[InlineData("BACKUP DATABASE d TO URL = 'u' WITH BACKUP_OPTIONS = N'{}'")]
+	[InlineData("BACKUP DATABASE d TO URL = 'u' WITH BACKUP_OPTIONS = @o")]
+	[InlineData("BACKUP DATABASE d TO URL = 'u' WITH BACKUP_OPTIONS = '{}', BACKUP_OPTIONS = '{}'")]
+	[InlineData("BACKUP DATABASE d TO URL = 'u' WITH BACKUP_OPTIONS = '{\"s3\": {\"region\":\"us-west-2\"}}', COMPRESSION, FORMAT, MAXTRANSFERSIZE = 20971520")]
+	[InlineData("BACKUP LOG d TO URL = 'u' WITH BACKUP_OPTIONS = '{}'")]
+	[InlineData("BACKUP DATABASE d TO DISK = 'f' WITH BACKUP_OPTIONS = '{}'")]
+	[InlineData("BACKUP DATABASE d TO URL = 'u' WITH BACKUP_OPTIONS = 1")]
+	[InlineData("RESTORE DATABASE d FROM URL = 'u' WITH RESTORE_OPTIONS = '{}'")]
+	[InlineData("RESTORE DATABASE d FROM URL = 'u' WITH MOVE 'a' TO 'b', MOVE 'c' TO 'd', STATS = 10, RECOVERY, REPLACE, RESTORE_OPTIONS = '{\"s3\": {\"region\":\"us-west-2\"}}'")]
+	[InlineData("RESTORE LOG d FROM URL = 'u' WITH RESTORE_OPTIONS = '{}'")]
+	[InlineData("RESTORE HEADERONLY FROM URL = 'u' WITH RESTORE_OPTIONS = '{}'")]
+	[InlineData("RESTORE FILELISTONLY FROM URL = 'u' WITH RESTORE_OPTIONS = '{}'")]
+	[InlineData("RESTORE VERIFYONLY FROM URL = 'u' WITH RESTORE_OPTIONS = '{}'")]
+	[InlineData("RESTORE DATABASE d FROM URL = 'u' WITH RESTORE_OPTIONS = @o")]
+	[InlineData("RESTORE DATABASE d FROM URL = 'u' WITH RESTORE_OPTIONS = N'{}'")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH FORMAT = 'PFX', PRIVATE KEY (ENCRYPTION BY PASSWORD = 'p', ALGORITHM = 'AES_256')")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH FORMAT = 'PFX', PRIVATE KEY (ENCRYPTION BY PASSWORD = 'p', ALGORITHM = 'TRIPLE_DES_3KEY')")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH FORMAT = 'PFX', PRIVATE KEY (ENCRYPTION BY PASSWORD = 'p', ALGORITHM = 'FOO')")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH FORMAT = 'PFX', PRIVATE KEY (ENCRYPTION BY PASSWORD = 'p', ALGORITHM = N'AES_256')")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH FORMAT = 'PFX', PRIVATE KEY (ENCRYPTION BY PASSWORD = 'p', DECRYPTION BY PASSWORD = 'q', ALGORITHM = 'AES_256')")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH PRIVATE KEY (FILE = 'k', ENCRYPTION BY PASSWORD = 'p', ALGORITHM = 'AES_256')")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH PRIVATE KEY (ALGORITHM = 'AES_256', FILE = 'k', ENCRYPTION BY PASSWORD = 'p')")]
+	[InlineData("BACKUP CERTIFICATE c TO FILE = 'f' WITH FORMAT = 'PFX', PRIVATE KEY (ALGORITHM = 'AES_256')")]
+	public void Backup_options_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>A table's body ended by a comma, and a table made of a query without its options, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("CREATE TABLE t (a INT,,)")]
+	[InlineData("CREATE TABLE t (,a INT)")]
+	[InlineData("DECLARE @t TABLE (a INT,)")]
+	[InlineData("CREATE TYPE tt AS TABLE (a INT,)")]
+	[InlineData("ALTER TABLE t ADD a INT,")]
+	[InlineData("CREATE FUNCTION f () RETURNS @t TABLE (a INT,) AS BEGIN RETURN END")]
+	[InlineData("EXEC p WITH RESULT SETS ((a INT,))")]
+	[InlineData("CREATE TABLE t AS SELECT 1 AS a")]
+	[InlineData("CREATE TABLE t (a INT) AS SELECT 1")]
+	[InlineData("CREATE TABLE t AS SELECT * FROM u")]
+	[InlineData("CREATE TABLE #t AS SELECT 1 AS a")]
+	public void Table_edges_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("CREATE TABLE dbo.T1 ( column_1 int IDENTITY, column_2 uniqueidentifier, )")]
+	[InlineData("CREATE TABLE t (a INT,)")]
+	[InlineData("CREATE TABLE t (a INT, PRIMARY KEY (a),)")]
+	[InlineData("CREATE TABLE t (a INT, INDEX i (a),)")]
+	[InlineData("CREATE TABLE t (a, b) AS SELECT 1, 2")]
+	[InlineData("CREATE TABLE t (a) AS SELECT 1")]
+	[InlineData("CREATE TABLE t (a, b) AS SELECT 1, 2 UNION SELECT 3, 4")]
+	[InlineData("CREATE TABLE t (a, b) AS WITH c AS (SELECT 1 x, 2 y) SELECT * FROM c")]
+	[InlineData("CREATE TABLE t (a, b) AS (SELECT 1, 2)")]
+	[InlineData("CREATE TABLE t (a, b) AS SELECT 1, 2 OPTION (LABEL = 'x')")]
+	[InlineData("CREATE TABLE t (a, b) AS SELECT 1, 2 ORDER BY 1")]
+	[InlineData("CREATE TABLE t WITH (DISTRIBUTION = ROUND_ROBIN) AS SELECT 1 AS a")]
+	public void Table_edges_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary><c>PREDICT</c> and the schema of its own it must say, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM PREDICT(MODEL = @m, DATA = t AS d) AS p")]
