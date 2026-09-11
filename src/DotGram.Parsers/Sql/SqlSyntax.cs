@@ -296,9 +296,14 @@ public abstract record Statement : ISqlSpan
 	/// <param name="At">The linked server it runs on.</param>
 	/// <param name="DataSource">The external data source it runs on instead, <c>AT DATA_SOURCE ds</c>.</param>
 	/// <param name="Tail">The <c>WITH</c> after it — <c>RECOMPILE</c>, <c>RESULT SETS …</c>.</param>
+	/// <param name="Server">
+	/// <c>OPENDATASOURCE (…)</c>, where it stood for the server the procedure is on, with
+	/// <see cref="Name"/> the rest of the name after it.
+	/// </param>
 	public sealed record Execute(
 		string? Into, string Name, Expression[] Arguments,
-		Clause? Context = null, string? At = null, string? DataSource = null, string? Tail = null) : Statement
+		Clause? Context = null, string? At = null, string? DataSource = null, string? Tail = null,
+		Expression.RoutineInvocation? Server = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Execute;
@@ -2449,6 +2454,13 @@ public abstract record Expression : ISqlSpan
 	public sealed record NamedArgument(string Name, Expression Value) : Expression;
 
 	/// <summary>
+	/// A value and the name it is given where it stands — <c>DATA = dbo.t AS d</c> in a
+	/// <c>PREDICT</c>, the one argument a name may follow.
+	/// </summary>
+	/// <param name="As">Whether <c>AS</c> stood between the two.</param>
+	public sealed record Aliased(Expression Value, string Alias, bool As) : Expression;
+
+	/// <summary>
 	/// One argument written as several pieces with semicolons between them — <c>OPENROWSET
 	/// ('SQLOLEDB', 'server'; 'user'; 'password', …)</c>, that function's oldest spelling and
 	/// the one place T-SQL joins two values with a semicolon.
@@ -2572,9 +2584,13 @@ public abstract record TableReference : ISqlSpan
 	/// the table rather than a clause: it takes nothing, and it makes the alias an ordered
 	/// collection that a <c>SHORTEST_PATH</c> may repeat.
 	/// </remarks>
+	/// <param name="Server">
+	/// <c>OPENDATASOURCE (…)</c>, where it stood for the server the table is on: the call,
+	/// with <see cref="Table"/> the rest of the name after it.
+	/// </param>
 	public sealed record Named(
 		string Table, Clause? SystemTime, bool ForPath, string? Name, string[]? Columns,
-		Clause? Sample, Clause[] Hints) : TableReference;
+		Clause? Sample, Clause[] Hints, Expression.RoutineInvocation? Server = null) : TableReference;
 
 	/// <summary>
 	/// T-SQL's <c>PIVOT</c>: a source, the aggregate to turn its rows into columns with,
@@ -3695,6 +3711,19 @@ public static class Syntax
 	/// <summary>A variable and the members named after it, joined as one name.</summary>
 	public static string Member(string variable, string[]? members) =>
 		members is null or { Length: 0 } ? variable : variable + "." + string.Join(".", members);
+
+	/// <summary>Whether a rowset function's arguments are ones it takes, where that is asked.</summary>
+	/// <remarks>
+	/// Asked of <c>PREDICT</c> alone, which takes a model and data by name and nothing else:
+	/// <c>RUNTIME = ONNX</c> is Azure SQL Edge's and Synapse's, and SQL Server refuses it
+	/// (<c>Msg 102</c>).
+	/// </remarks>
+	public static bool Predicts(string? name, Expression[]? arguments) =>
+		!string.Equals(name, "PREDICT", StringComparison.OrdinalIgnoreCase) ||
+		arguments is not null && Array.TrueForAll(arguments, static one =>
+			one is Expression.NamedArgument { Name: var named } &&
+			(string.Equals(named, "MODEL", StringComparison.OrdinalIgnoreCase) ||
+			 string.Equals(named, "DATA", StringComparison.OrdinalIgnoreCase)));
 
 	/// <summary>A cursor's query and what stands around it, its words yet to be said.</summary>
 	public static Clause.CursorDefinition Cursor(

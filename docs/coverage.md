@@ -24,34 +24,33 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 97.5% | 7803 | 200 | 0 | 4 | 85 | 250 | 0 |
+| **all** | 996 | 8338 | 97.8% | 7824 | 179 | 0 | 4 | 85 | 250 | 0 |
 | [data-types](#data-types) | 29 | 304 | 99.7% | 290 | 1 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 98.7% | 233 | 3 | 0 | 0 | 1 | 5 | 0 |
-| [functions](#functions) | 324 | 2101 | 98.8% | 2058 | 24 | 0 | 3 | 2 | 17 | 0 |
+| [functions](#functions) | 324 | 2101 | 99.4% | 2070 | 12 | 0 | 3 | 2 | 17 | 0 |
 | [includes](#includes) | 3 | 7 | 100.0% | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
-| [language-elements](#language-elements) | 86 | 868 | 97.9% | 836 | 18 | 0 | 0 | 0 | 14 | 0 |
-| [queries](#queries) | 37 | 747 | 97.4% | 705 | 19 | 0 | 0 | 1 | 22 | 0 |
+| [language-elements](#language-elements) | 86 | 868 | 98.0% | 837 | 17 | 0 | 0 | 0 | 14 | 0 |
+| [queries](#queries) | 37 | 747 | 98.2% | 711 | 13 | 0 | 0 | 1 | 22 | 0 |
 | [reference](#reference) | 3 | 32 | 96.9% | 31 | 1 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 99.7% | 310 | 1 | 0 | 0 | 0 | 1 | 0 |
 | [spatial-geometry](#spatial-geometry) | 74 | 357 | 99.7% | 356 | 1 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 95.5% | 2776 | 132 | 0 | 1 | 81 | 174 | 0 |
+| [statements](#statements) | 320 | 3163 | 95.5% | 2778 | 130 | 0 | 1 | 81 | 174 | 0 |
 | [xml](#xml) | 12 | 205 | 100.0% | 201 | 0 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
 
 | Statement | statements | pages | for example |
 | --- | ---: | ---: | --- |
-| SELECT | 19 | 10 | stops at '*' — `SELECT BINARY_CHECKSUM(*) from myTable;` |
 | CREATE PARTITION FUNCTION | 13 | 5 | stops at PARTITION — `CREATE PARTITION FUNCTION RangePF1(INT) AS RANGE LEFT FOR VALUES (10, 100, 1000);` |
 | CREATE SEQUENCE | 11 | 3 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
 | CREATE TYPE | 10 | 5 | stops at TYPE — `CREATE TYPE NewType FROM int;` |
 | CREATE XML SCHEMA | 10 | 3 | stops at SCHEMA — `CREATE XML SCHEMA COLLECTION MyColl AS ' <schema xmlns="http://www.w3.org/2001/XMLS...` |
 | CREATE SPATIAL INDEX | 9 | 3 | stops at SPATIAL — `CREATE SPATIAL INDEX sample_idx on sample(g);` |
-| INSERT | 8 | 6 | stops at ';' — `INSERT INTO likes($edge_id, $from_id, $to_id, rating) SELECT EDGE_ID_FROM_PARTS(OBJ...` |
 | KILL | 8 | 4 | stops at KILL — `KILL QUERY NOTIFICATION SUBSCRIPTION ALL ;` |
 | ADD | 7 | 2 | stops at ADD — `ADD SENSITIVITY CLASSIFICATION TO dbo.sales.price, dbo.sales.discount WITH ( LABEL ...` |
 | CREATE ASSEMBLY | 7 | 6 | stops at ASSEMBLY — `CREATE ASSEMBLY mytest FROM 'c:\test.dll' WITH PERMISSION_SET = SAFE` |
 | CREATE PARTITION SCHEME | 7 | 3 | stops at PARTITION — `CREATE PARTITION SCHEME RangePS1 AS PARTITION RangePF1 ALL TO ('PRIMARY');` |
+| INSERT | 6 | 6 | stops at ';' — `INSERT INTO likes($edge_id, $from_id, $to_id, rating) SELECT EDGE_ID_FROM_PARTS(OBJ...` |
 | TRUNCATE | 6 | 4 | stops at TRUNCATE — `TRUNCATE TABLE dbo.ErrorLog` |
 | CREATE SYNONYM | 5 | 3 | stops at SYNONYM — `CREATE SYNONYM MyEmployeeTable FOR HumanResources.Employee;` |
 | DISABLE | 5 | 2 | stops at DISABLE — `DISABLE TRIGGER Person.uAddress ON Person.Address;` |
@@ -75,6 +74,7 @@ rest run rather than read.
 | EXPLAIN | 2 | 1 | stops at EXPLAIN — `EXPLAIN` |
 | HUMANRESOURCES | 2 | 1 | stops at HUMANRESOURCES — `HumanResources.uspGetAllEmployees;` |
 | RECONFIGURE | 2 | 2 | stops at RECONFIGURE — `RECONFIGURE WITH OVERRIDE;` |
+| SELECT | 2 | 2 | stops at DIAGNOSTICS — `-- Determine the session_id of your current session SELECT TOP 1 session_id();  -- ...` |
 | SP_DETACH_DB | 2 | 1 | stops at SP_DETACH_DB — `sp_detach_db Archive;` |
 | ALTER EXTERNAL LANGUAGE | 1 | 1 | stops at LANGUAGE — `ALTER EXTERNAL LANGUAGE Java SET (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaexte...` |
 | ALTER PARTITION SCHEME | 1 | 1 | stops at PARTITION — `ALTER PARTITION SCHEME MyRangePS1 NEXT USED test5fg;` |
@@ -89,11 +89,9 @@ rest run rather than read.
 | CREATE OR | 1 | 1 | stops at '$' — `CREATE OR ALTER PROCEDURE mergeEdge @PersonId integer, @CityId integer, @StreetAddr...` |
 | CREATE PROCEDURE | 1 | 1 | stops at TRUNCATE — `CREATE PROCEDURE dbo.TruncateMyTable WITH EXECUTE AS SELF AS TRUNCATE TABLE MyDB..M...` |
 | CREATE XML INDEX | 1 | 1 | stops at '(' — `CREATE XML INDEX filt_sxi_index_c ON Tbl(xmlcol) USING XML INDEX sxi_index FOR ( pa...` |
-| DELETE | 1 | 1 | stops at '.' — `DELETE FROM OPENDATASOURCE('SQLNCLI', 'Data Source= <server_name>; Integrated Secur...` |
 | RESTORE | 1 | 1 | stops at RESTORE_OPTIONS — `RESTORE DATABASE AdventureWorks2022_1 FROM URL = 's3://datavirtualizationsample.s3....` |
 | SP_BINDEFAULT | 1 | 1 | stops at SP_BINDEFAULT — `sp_bindefault 'phonedflt', 'Person.PersonPhone.PhoneNumber';` |
 | SP_HELP | 1 | 1 | stops at SP_HELP — `sp_help doc_exy;` |
-| UPDATE | 1 | 1 | stops at '.' — `UPDATE OPENDATASOURCE('SQLNCLI', 'Data Source=<server name>;Integrated Security=SSP...` |
 | UPDATETEXT | 1 | 1 | stops at UPDATETEXT — `UPDATETEXT pub_info.pr_info @ptrval 88 1 'b';` |
 | WRITETEXT | 1 | 1 | stops at WRITETEXT — `WRITETEXT pub_info.pr_info @ptrval 'New Moon Books (NMB) has just released another ...` |
 
@@ -180,20 +178,15 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| GROUPING_ID (Transact-SQL) | 12 | 63.6% | 4 | 0 | 0 | 0 | stops at N — `SELECT D.Name, CASE WHEN GROUPING_ID(D.Name, E.JobTitle) = 0 THEN E.JobTitle WHEN G...` |
-| OPENDATASOURCE (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at '.' — `SELECT GroupName, Name, DepartmentID FROM OPENDATASOURCE('MSOLEDBSQL', 'Server=Seat...` |
 | OPENJSON (Transact-SQL) | 23 | 100.0% | 0 | 0 | 3 | 0 | levels 100 engine, 110 engine, 120 engine — `SELECT * FROM OPENJSON(@array) WITH (  month VARCHAR(3), temp int, month_id tinyint...` |
-| BINARY_CHECKSUM  (Transact-SQL) | 6 | 66.7% | 2 | 0 | 0 | 0 | stops at '*' — `SELECT BINARY_CHECKSUM(*) from myTable;` |
 | NEXT VALUE FOR (Transact-SQL) | 25 | 92.0% | 2 | 0 | 0 | 0 | stops at SEQUENCE — `CREATE SEQUENCE Test.CountBy1 START WITH 1 INCREMENT BY 1 ;` |
 | $PARTITION (Transact-SQL) | 7 | 71.4% | 2 | 0 | 0 | 0 | stops at PARTITION — `CREATE PARTITION FUNCTION RangePF1(INT) AS RANGE LEFT FOR VALUES (10, 100, 1000);` |
-| ROW_NUMBER (Transact-SQL) | 11 | 81.8% | 2 | 0 | 0 | 0 | stops at '#' — `SELECT ROW_NUMBER() OVER(ORDER BY name ASC) AS Row#, name, recovery_model_desc FROM...` |
 | TEXTPTR (Transact-SQL) | 20 | 90.0% | 2 | 0 | 0 | 0 | stops at READTEXT — `READTEXT t1.c2 @ptrval 0 1;` |
 | TYPE_ID (Transact-SQL) | 7 | 71.4% | 2 | 0 | 0 | 0 | stops at TYPE — `CREATE TYPE NewType FROM int;` |
 | DATE_BUCKET (Transact-SQL) | 27 | 96.3% | 1 | 0 | 0 | 0 | stops at ';' — `DECLARE @days INT = 365, @datetime DATETIME2 = '2000-01-01 01:01:01.1110000'; /* 20...` |
 | EDGE_ID_FROM_PARTS (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at ';' — `INSERT INTO likes($edge_id, $from_id, $to_id, rating) SELECT EDGE_ID_FROM_PARTS(OBJ...` |
 | NODE_ID_FROM_PARTS (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at ';' — `INSERT INTO Person($node_id, ID, [name]) SELECT NODE_ID_FROM_PARTS(OBJECT_ID('Perso...` |
 | OBJECTPROPERTYEX (Transact-SQL) | 10 | 90.0% | 1 | 0 | 0 | 0 | stops at SYNONYM — `CREATE SYNONYM MyEmployeeTable FOR HumanResources.Employee;` |
-| OPENROWSET (Transact-SQL) | 37 | 97.1% | 1 | 0 | 0 | 2 | stops at ',' — `SELECT * FROM OPENROWSET( BULK ( '/decades/1950s/*.parquet', '/decades/1960s/*.parq...` |
 | ABS (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ACOS (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | APP_NAME (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -212,6 +205,7 @@ None: the engine reads every statement this grammar reads.
 | AVG (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BASE64_DECODE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BASE64_ENCODE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
+| BINARY_CHECKSUM  (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | BIT_COUNT (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CAST and CONVERT (Transact-SQL) | 60 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CEILING (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -315,6 +309,7 @@ None: the engine reads every statement this grammar reads.
 | GETUTCDATE (Transact-SQL) | 18 | 100.0% | 0 | 0 | 0 | 0 |  |
 | GRAPH_ID_FROM_EDGE_ID (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | GRAPH_ID_FROM_NODE_ID (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
+| GROUPING_ID (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | GROUPING (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | HAS_DBACCESS (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | HAS_PERMS_BY_NAME (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -389,7 +384,9 @@ None: the engine reads every statement this grammar reads.
 | OBJECT_SCHEMA_NAME (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OBJECTPROPERTY (Transact-SQL) | 8 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ODBC Scalar Functions (Transact-SQL) | 38 | 100.0% | 0 | 0 | 0 | 0 |  |
+| OPENDATASOURCE (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OPENQUERY (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
+| OPENROWSET (Transact-SQL) | 37 | 100.0% | 0 | 0 | 0 | 2 |  |
 | OPENXML (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
 | @@OPTIONS (Transact-SQL) | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ORIGINAL_LOGIN (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -424,6 +421,7 @@ None: the engine reads every statement this grammar reads.
 | RIGHT_SHIFT (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | RIGHT (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ROUND (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ROW_NUMBER (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | @@ROWCOUNT (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | RTRIM (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SCHEMA_ID (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -526,7 +524,6 @@ None: the engine reads every statement this grammar reads.
 | KILL STATS JOB (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at KILL — `KILL STATS JOB 53;` |
 | NULLIF (Transact-SQL) | 19 | 94.7% | 1 | 0 | 0 | 0 | stops at COPY — `Copy` |
 | RECONFIGURE (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at RECONFIGURE — `RECONFIGURE WITH OVERRIDE;` |
-| Backslash (Line Continuation) (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at '\' — `SELECT 0xabc\ def AS [ColumnResult];` |
 | + (Addition) (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALL (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | AND (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -585,6 +582,7 @@ None: the engine reads every statement this grammar reads.
 | UNION (Transact-SQL) | 27 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Slash Star (Block Comment) (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SOME \| ANY (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
+| Backslash (Line Continuation) (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SQL Server Utilities Statements - GO | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
 | = (String comparison or assignment) | 17 | 100.0% | 0 | 0 | 0 | 0 |  |
 | += String concatenation | 20 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -608,14 +606,12 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| UPDATE (Transact-SQL) | 136 | 96.3% | 5 | 0 | 0 | 0 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
-| PREDICT (Transact-SQL) | 8 | 42.9% | 4 | 0 | 0 | 0 | stops at AS — `SELECT d.*, p.Score FROM PREDICT(MODEL = @model, DATA = dbo.mytable AS d) WITH (Sco...` |
+| UPDATE (Transact-SQL) | 136 | 97.1% | 4 | 0 | 0 | 0 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
 | EXPLAIN (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at EXPLAIN — `EXPLAIN` |
-| GROUP BY (Transact-SQL) | 33 | 93.3% | 2 | 0 | 0 | 0 | stops at N — `SELECT DATEPART(yyyy,OrderDate) AS N'Year' ,SUM(TotalDue) AS N'Total Order Amount' ...` |
+| PREDICT (Transact-SQL) | 8 | 71.4% | 2 | 0 | 0 | 0 | stops at WITH — `SELECT d.*, p.Score FROM PREDICT(MODEL = @model, DATA = dbo.mytable AS d, RUNTIME =...` |
 | OUTPUT clause (Transact-SQL) | 67 | 98.5% | 1 | 0 | 0 | 0 | stops at MERGE — `INSERT INTO Production.ZeroInventory ( DeletedProductID, RemovedOnDate ) SELECT Pro...` |
 | READTEXT (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at READTEXT — `READTEXT pub_info.pr_info @ptrval 1 25;` |
 | SELECT Clause (Transact-SQL) | 5 | 80.0% | 1 | 0 | 0 | 0 | stops at ',' — `DECLARE @p POINT (32, 23), @distance FLOAT;` |
-| INTO Clause (Transact-SQL) | 17 | 94.1% | 1 | 0 | 0 | 0 | stops at '.' — `SELECT DepartmentID, Name, GroupName, ModifiedDate INTO dbo.DepartmentsUsingOpenDat...` |
 | UPDATETEXT (Transact-SQL) | 6 | 83.3% | 1 | 0 | 0 | 0 | stops at UPDATETEXT — `UPDATETEXT pub_info.pr_info @ptrval 88 1 'b';` |
 | WRITETEXT (Transact-SQL) | 6 | 83.3% | 1 | 0 | 0 | 0 | stops at WRITETEXT — `WRITETEXT pub_info.pr_info @ptrval 'New Moon Books (NMB) has just released another ...` |
 | Aliasing | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -635,7 +631,9 @@ None: the engine reads every statement this grammar reads.
 | Search condition (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SELECT examples (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | FOR Clause (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
+| GROUP BY (Transact-SQL) | 33 | 100.0% | 0 | 0 | 0 | 0 |  |
 | HAVING (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| INTO Clause (Transact-SQL) | 17 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ORDER BY clause (Transact-SQL) | 53 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OVER Clause (Transact-SQL) | 18 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SELECT (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -831,7 +829,6 @@ None: the engine reads every statement this grammar reads.
 | CREATE RULE (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at RULE — `CREATE RULE range_rule AS @range>= $1000 AND @range <$20000;` |
 | CREATE SYNONYM (Transact-SQL) | 13 | 76.9% | 3 | 0 | 0 | 0 | stops at SYNONYM — `CREATE SYNONYM MyProduct FOR AdventureWorks2022.Production.Product;` |
 | DISABLE TRIGGER (Transact-SQL) | 4 | 25.0% | 3 | 0 | 0 | 0 | stops at DISABLE — `DISABLE TRIGGER Person.uAddress ON Person.Address;` |
-| INSERT (Transact-SQL) | 73 | 95.9% | 3 | 0 | 0 | 0 | stops at ')' — `CREATE TABLE dbo.T1 ( column_1 int IDENTITY, column_2 uniqueidentifier, );` |
 | TRUNCATE TABLE (Transact-SQL) | 14 | 78.6% | 3 | 0 | 0 | 0 | stops at TRUNCATE — `TRUNCATE TABLE HumanResources.JobCandidate;` |
 | ADD SENSITIVITY CLASSIFICATION (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at ADD — `ADD SENSITIVITY CLASSIFICATION TO dbo.sales.price, dbo.sales.discount WITH ( LABEL ...` |
 | ALTER AVAILABILITY GROUP (Transact-SQL) | 3 | 0.0% | 2 | 0 | 0 | 0 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP AccountsAG JOIN;` |
@@ -844,6 +841,7 @@ None: the engine reads every statement this grammar reads.
 | CREATE EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at LANGUAGE — `CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaex...` |
 | CREATE TABLE (Transact-SQL) | 69 | 96.3% | 2 | 0 | 0 | 1 | stops at PARTITION — `CREATE PARTITION FUNCTION myRangePF1(INT) AS RANGE LEFT FOR VALUES (1, 100, 1000);` |
 | END CONVERSATION (Transact-SQL) | 6 | 66.7% | 2 | 0 | 0 | 0 | stops at '@' — `@dialog_handle ;` |
+| INSERT (Transact-SQL) | 73 | 97.3% | 2 | 0 | 0 | 0 | stops at ')' — `CREATE TABLE dbo.T1 ( column_1 int IDENTITY, column_2 uniqueidentifier, );` |
 | MERGE (Transact-SQL) | 54 | 96.0% | 2 | 0 | 0 | 0 | stops at MERGE — `INSERT INTO Production.UpdatedInventory SELECT ProductID, LocationID, NewQty, Previ...` |
 | ALTER EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at LANGUAGE — `ALTER EXTERNAL LANGUAGE Java SET (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaexte...` |
 | ALTER PARTITION SCHEME (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at PARTITION — `ALTER PARTITION SCHEME MyRangePS1 NEXT USED test5fg;` |
@@ -860,7 +858,6 @@ None: the engine reads every statement this grammar reads.
 | CREATE REMOTE TABLE AS SELECT (Parallel Data Warehouse) | 3 | 50.0% | 1 | 0 | 0 | 0 | stops at TABLE — `USE ssawPDW; CREATE REMOTE TABLE OrderReporting.Orders.MyOrdersTable AT ( 'Data Sou...` |
 | CREATE TABLE AS SELECT (Azure Synapse Analytics and Microsoft Fabric) | 53 | 100.0% | 0 | 0 | 1 | 12 | levels 100 engine, 110 engine, 120 engine — `INSERT INTO Users (id, name, age, street, city) SELECT id, name, age, JSON_VALUE(ad...` |
 | CREATE XML INDEX (Selective XML Indexes) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at '(' — `CREATE XML INDEX filt_sxi_index_c ON Tbl(xmlcol) USING XML INDEX sxi_index FOR ( pa...` |
-| DELETE (Transact-SQL) | 35 | 97.1% | 1 | 0 | 0 | 0 | stops at '.' — `DELETE FROM OPENDATASOURCE('SQLNCLI', 'Data Source= <server_name>; Integrated Secur...` |
 | DROP EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at LANGUAGE — `CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = N'<path-to-zip>', FILE_NAME = 'javaex...` |
 | DROP SYNONYM (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at SYNONYM — `CREATE SYNONYM MyProduct FOR AdventureWorks2022.Production.Product;` |
 | DROP TABLE (Transact-SQL) | 6 | 83.3% | 1 | 0 | 0 | 0 | stops at ''' — `CREATE TABLE #temptable (col1 int);  INSERT INTO #temptable VALUES (10);  SELECT co...` |
@@ -978,6 +975,7 @@ None: the engine reads every statement this grammar reads.
 | CREATE WORKLOAD Classifier (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE WORKLOAD GROUP (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 1 |  |
 | CREATE XML INDEX (Transact-SQL) | 8 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DELETE (Transact-SQL) | 35 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DENY Availability Group Permissions | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DENY Database Permissions (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DENY Database Principal Permissions | 6 | 100.0% | 0 | 0 | 0 | 0 |  |

@@ -474,6 +474,7 @@ together — flags, since a list may mix them. A variable assigned is not here: 
 | `Expression.Literal` | SQL-92 | §5.3 &lt;literal&gt; |
 | `Expression.RowValueConstructor` | SQL-92 | §7.1 &lt;row value constructor&gt; |
 | `Expression.NamedArgument` | T-SQL | an argument given by name — `EXECUTE`, and the rowset functions |
+| `Expression.Aliased` | T-SQL | a value named where it stands — `DATA = t AS d` in PREDICT |
 | `Expression.Pieced` | T-SQL | one argument written as several pieces with semicolons between them — `OPENROWSET`'s oldest spelling |
 | `Expression.Prefixed` | T-SQL | a value with a word in front of it — `BULK` in OPENROWSET, `CHANGES` in CHANGETABLE, `LANGUAGE` in CONTAINSTABLE |
 | `Expression.WindowFunction` | SQL:2003 | &lt;window function&gt; — a call and the window it is computed over |

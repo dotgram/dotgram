@@ -23,7 +23,7 @@ using Sql92;
 // Not saying them is not an error and that is the trap: rules without a boundary
 // read their keywords as punctuation, and a grammar that reads `USERS` as `USER`
 // followed by `S` is wrong in a way nothing in it looks wrong.
-wordboundary = Sql92.Lexical.IdentifierPart
+wordboundary = TSql.IdentifierPart
 
 // Spacing stops short of a line that says `GO`, which is a lexeme of its own (`TSql.GoLine`).
 // The spaces are the engine's (`TSql.Spacing`), and they are what the standard's rules
@@ -62,22 +62,30 @@ namespace TSql
 	// bracket inside — the same escape the standard's `""` is.
 	BracketedIdentifier = '[' & ("]]" | [^ ']'])* & ']'
 
+	// A name's characters after its first: the standard's, and `@`, `$` and `#`, which a T-SQL name
+	// may hold anywhere but first — `Row#`, `a$b`, `@a#b` — and which end a word no more than a
+	// letter does: `SELECT FROM#` is a column called `FROM#`, and `SELECT@a` is refused.
+	IdentifierPart    = [\p{L} | \p{Nd} | '_' | '@' | '$' | '#']
+	RegularIdentifier = Sql92.Lexical.IdentifierStart & TSql.IdentifierPart*
+
 	// A local variable, a parameter, and the two `@@` spellings of a built-in.
 	// One rule: what tells them apart is the catalogue and not the syntax.
-	Variable = '@' & '@'? & Sql92.Lexical.IdentifierStart & Sql92.Lexical.IdentifierPart*
+	Variable = '@' & '@'? & Sql92.Lexical.IdentifierStart & TSql.IdentifierPart*
 
 	// Money, written with the sign the culture uses, and a binary string written the
-	// way T-SQL writes one. Neither is a lexeme of the standard.
+	// way T-SQL writes one. Neither is a lexeme of the standard. A binary string goes on past a
+	// backslash at the end of a line, as the engine continues it: `0xabc\` and `def` on the next
+	// line are `0xABCDEF`. A string's backslash is one of its characters and needs nothing.
 	MoneyLiteral  = ['$' | '£' | '¥' | '€'] & ['+' | '-']? & Sql92.Lexical.Digits & ('.' & Sql92.Lexical.Digits?)?
-	BinaryLiteral = '0' & 'x'i & ['0'..'9' | 'a'..'f' | 'A'..'F']*
+	BinaryLiteral = '0' & 'x'i & ['0'..'9' | 'a'..'f' | 'A'..'F']* & ('\\' & ('\r' & '\n'? | '\n') & ['0'..'9' | 'a'..'f' | 'A'..'F']*)*
 
 	// A name the `$` is part of: `$IDENTITY`, `$ROWGUID`, `$PARTITION`, a graph table's
 	// `$node_id`. One token, since the engine refuses `$ IDENTITY`; a digit after the `$`
 	// makes it money instead.
-	PseudoColumn = '$' & Sql92.Lexical.IdentifierStart & Sql92.Lexical.IdentifierPart*
+	PseudoColumn = '$' & Sql92.Lexical.IdentifierStart & TSql.IdentifierPart*
 
 	// A temporary table, local or global. The name is otherwise ordinary.
-	TemporaryName = '#' & '#'? & Sql92.Lexical.IdentifierStart & Sql92.Lexical.IdentifierPart*
+	TemporaryName = '#' & '#'? & Sql92.Lexical.IdentifierStart & TSql.IdentifierPart*
 
 	// The line a client cuts a script at: `GO`, a count where one is written — `GO 5` sends
 	// the batch five times — and whatever may close the line, up to and including its line
@@ -209,7 +217,7 @@ SystemFunction = "::" & Identifier
 // stands in front of the regular one only, exactly as it does in the standard:
 // a bracketed name may be a reserved word, and that is what brackets are for.
 TSqlIdentifier
-	= ?!TSqlReserved & Sql92.Lexical.RegularIdentifier
+	= ?!TSqlReserved & TSql.RegularIdentifier
 	| Sql92.Lexical.DelimitedIdentifier
 	| TSql.BracketedIdentifier
 	| TSql.TemporaryName
@@ -540,7 +548,7 @@ FrameBound
 	| "CURRENT"i & "ROW"i
 	| ValueExpression & ("PRECEDING"i | "FOLLOWING"i)
 
-// A `*` is not an argument. It stands inside three names and no others, and reading it as
+// A `*` is not an argument. It stands inside four names and no others, and reading it as
 // one made `trim(*)` a call — which SQL Server answers with `Incorrect syntax near '*'`,
 // found by putting the corpus to the engine rather than to another parser.
 // An argument may be either of the two words a value expression is not: `string_split
@@ -555,7 +563,7 @@ Argument : @Expression
 	| v: ValueExpression => @(v)
 
 CountStar : @Expression
-	= name: ("COUNT_BIG"i | "CHECKSUM"i) & '(' & '*' & ')'
+	= name: ("COUNT_BIG"i | "CHECKSUM"i | "BINARY_CHECKSUM"i) & '(' & '*' & ')'
 		=> @(new Expression.RoutineInvocation(name, Expression.None, "*"))
 
 // ── §6.1's data type, widened ───────────────────────────────────────────────
@@ -744,7 +752,10 @@ IdentityNumber : @Expression
 
 AssignOp : @string = t: ('=' | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "||=") => @(t)
 
-TSqlAlias    : @string = t: Identifier => @(t) | t: Sql92.Lexical.CharacterStringLiteral => @(t)
+TSqlAlias    : @string
+	= t: Identifier                                  => @(t)
+	| t: Sql92.Lexical.CharacterStringLiteral         => @(t)
+	| t: Sql92.Lexical.NationalCharacterStringLiteral => @(t)
 TSqlAsClause : @string = "AS"i & t: TSqlAlias => @(t) | t: TSqlAlias => @(t)
 
 // ── §7.7's group by, widened ────────────────────────────────────────────────
@@ -851,6 +862,8 @@ TSqlTablePrimary : @TableReference
 	  & pivot: PivotSuffix?
 		=> @(Syntax.Pivoted(
 				 new TableReference.FunctionCall(f, alias, columns, schema ?? Clause.None), pivot))
+	| server: AdHocServer & named: AdHocObject & ("AS"i? & alias: CorrelationName)? & pivot: PivotSuffix?
+		=> @(Syntax.Pivoted(new TableReference.Named(named, null, false, alias, null, null, Clause.None, server), pivot))
 	// A table takes hints and a table-valued function does not: `dbo.f() WITH (NOLOCK)` is
 	// refused.
 	| name: QualifiedName & version: SystemTime? & path: GraphPath? & call: ('(' & args: Arguments? & ')')?
@@ -1385,8 +1398,12 @@ RowsetArgument : @Expression
 	// in a select list.
 	= '*'                                        => @(new Expression.ColumnReference("*"))
 	| n: RowsetOrder                             => @(n)
+	| word: "BULK"i & '(' & first: RowsetValue & (',' & rest: RowsetValue)+ & ')'
+		=> @(new Expression.Prefixed(word, new Expression.RowValueConstructor(Syntax.Listed(first, rest))))
 	| word: "BULK"i & v: RowsetValue             => @(new Expression.Prefixed(word, v))
-	| name: Identifier & '=' & v: RowsetValue    => @(new Expression.NamedArgument(name, v))
+	| name: Identifier & '=' & v: RowsetValue & alias: DataAlias?
+	  & when @(alias is null || string.Equals(name, "DATA", System.StringComparison.OrdinalIgnoreCase))
+		=> @(new Expression.NamedArgument(name, alias is null ? v : (Expression)(alias with { Value = v })))
 	| word: Identifier & v: RowsetValue          => @(new Expression.Prefixed(word, v))
 	| '(' & first: RowsetArgument & (',' & rest: RowsetArgument)* & ')'
 		=> @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
@@ -1408,7 +1425,7 @@ RowsetValue : @Expression
 	| v: ValueExpression => @(v)
 
 RowsetFunction : @Expression.RoutineInvocation
-	= name: RowsetName & '(' & args: RowsetArguments? & ')'
+	= name: RowsetName & '(' & args: RowsetArguments? & ')' & when @(Syntax.Predicts(name, args))
 		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
 	| name: FullTextTableName & '(' & table: QualifiedName & ',' & c: TableSearchColumns & ','
 	  & s: FullTextSearch & l: SearchLanguage? & n: SearchTop? & ')'
@@ -1446,9 +1463,28 @@ JsonSchema : @Clause[]
 		=> @(new Clause[] { new Clause.JsonColumn(name, null, null, false) })
 
 RowsetName
-	= "OPENROWSET"i | "OPENQUERY"i | "OPENDATASOURCE"i | "OPENXML"i
+	= "OPENROWSET"i | "OPENQUERY"i | "OPENXML"i
 	| "CHANGETABLE"i
 	| "PREDICT"i | "VECTOR_SEARCH"i | "GENERATE_SERIES"i | "STRING_SPLIT"i
+
+// `PREDICT`'s data may be named where it stands, `DATA = dbo.t AS d`, and no other argument
+// may: `MODEL = @m AS m` and `FORMATFILE = 'x' AS y` are refused. `PREDICT` takes its model and
+// its data and nothing else — `RUNTIME = ONNX` is another product's (`Syntax.Predicts`).
+DataAlias : @Expression.Aliased
+	= "AS"i & t: Identifier => @(new Expression.Aliased(Expression.NullValue, t, true))
+	| t: Identifier         => @(new Expression.Aliased(Expression.NullValue, t, false))
+
+// `OPENDATASOURCE` is not a rowset: it stands where a server's name does, and the name of what
+// is on that server follows it — `OPENDATASOURCE('MSOLEDBSQL', 'Server=s').db.dbo.t` in a
+// `FROM`, an `EXECUTE`, an `INSERT`, an `UPDATE`, a `DELETE` or a `MERGE`, and never alone
+// (`Msg 102`). Its two arguments are strings written out; the name after it has as many parts
+// as it likes, empty ones among them (`..t`), and no trailing dot. Standing for a table it
+// takes a correlation name, and no columns, no version, no sample and no hints.
+AdHocServer : @Expression.RoutineInvocation
+	= name: "OPENDATASOURCE"i & '(' & provider: BrokerString & ',' & init: BrokerString & ')'
+		=> @(new Expression.RoutineInvocation(name, new Expression[] { provider, init }))
+
+AdHocObject : @string = '.' & t: ('.'* & Identifier & ('.'+ & Identifier)*) => @(t)
 
 // The full-text rowsets, put to the engine some fifty times, and stricter than the predicates
 // they rank: a table by its name, and what is searched a column by its bare name, a list of
@@ -1502,7 +1538,8 @@ StatementBody : @Statement
 // What a statement writes to. Narrower than a table primary on purpose: the syntax gives
 // a target no correlation and no sample, and `UPDATE t AS x SET …` is not T-SQL.
 DmlTarget : @TableReference
-	= f: RowsetFunction                 => @(new TableReference.FunctionCall(f, null, null, Clause.None))
+	= server: AdHocServer & named: AdHocObject => @(new TableReference.Named(named, null, false, null, null, null, Clause.None, server))
+	| f: RowsetFunction                 => @(new TableReference.FunctionCall(f, null, null, Clause.None))
 	| t: TSql.Variable & hints: TableHints?    => @(new TableReference.Named(t, null, false, null, null, null, hints ?? Clause.None))
 	| name: QualifiedName & hints: TableHints? => @(new TableReference.Named(name, null, false, null, null, null, hints ?? Clause.None))
 
@@ -2418,12 +2455,17 @@ ExecuteBody : @Statement.Execute
 	  & when @((source is null || at is null) && (at is not null || source is not null || args is { Length: 1 }))
 	  & with: ExecWith?
 		=> @(new Statement.Execute(null, "(", args, context, at, source, Syntax.Tail(with)))
-	| into: ExecReturn? & name: ExecName & args: ExecArguments? & at: ExecAt? & with: ExecWith?
-		=> @(new Statement.Execute(into, name, args ?? Expression.None, At: at, Tail: Syntax.Tail(with)))
+	| into: ExecReturn? & target: ExecTarget & args: ExecArguments? & at: ExecAt? & with: ExecWith?
+		=> @(target with { Into = into, Arguments = args ?? Expression.None, At = at, Tail = Syntax.Tail(with) })
 
 ExecWord   = "EXECUTE"i | "EXEC"i
 ExecReturn : @string = t: TSql.Variable & '=' => @(t)
 ExecName   : @string = t: QualifiedName => @(t) | t: TSql.Variable => @(t)
+
+// A procedure is named, held in a variable, or on a server `OPENDATASOURCE` stands for.
+ExecTarget : @Statement.Execute
+	= server: AdHocServer & name: AdHocObject => @(new Statement.Execute(null, name, Expression.None, Server: server))
+	| name: ExecName                          => @(new Statement.Execute(null, name, Expression.None))
 ExecAt     : @string = "AT"i & t: Identifier => @(t)
 
 ExecDataSource : @string = "AT"i & "DATA_SOURCE"i & t: Identifier => @(t)

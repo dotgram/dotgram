@@ -261,11 +261,18 @@ public static class SqlWriter
 
 				break;
 
-			case Statement.Execute(var into, var name, var arguments, var context, var at, var source, var with):
+			case Statement.Execute(
+					var into, var name, var arguments, var context, var at, var source, var with, var server):
 				text.Append("EXECUTE ");
 
 				if (into is not null)
 					text.Append(into).Append(" = ");
+
+				if (server is not null)
+				{
+					Put(text, server, 0);
+					text.Append('.');
+				}
 
 				text.Append(name);
 
@@ -1560,7 +1567,14 @@ public static class SqlWriter
 	{
 		switch (source)
 		{
-			case TableReference.Named(var table, var version, var path, var name, var columns, var sample, var hints):
+			case TableReference.Named(
+					var table, var version, var path, var name, var columns, var sample, var hints, var server):
+				if (server is not null)
+				{
+					Put(text, server, 0);
+					text.Append('.');
+				}
+
 				text.Append(table);
 
 				if (version is not null)
@@ -2846,6 +2860,11 @@ public static class SqlWriter
 			case Expression.Prefixed(var word, var value):
 				text.Append(word).Append(' ');
 				Put(text, value, 0);
+				break;
+
+			case Expression.Aliased(var value, var alias, var said):
+				Put(text, value, 0);
+				text.Append(said ? " AS " : " ").Append(alias);
 				break;
 
 			case Expression.NamedArgument(var name, var value):

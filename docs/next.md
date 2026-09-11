@@ -18869,3 +18869,40 @@ its own. A lookahead after the two verbs, and the keys' rules are reached.
 At 150: read by both 5,854 (from 5,848), the work list 122 (from 128), read here but refused
 there 43; `--split` 652 (from 650), the round trip 100% of 7,235. The map: read by both 7,803
 of 8,338 (97.5%), the work list 200 (from 258), defects 0.
+
+## Names, literals and sources
+
+The map's `SELECT` row was not one family but eight small defects, each a page or two of the
+reference. Put to the engine some hundred times:
+
+- **A name's characters after its first** are a letter, a digit, `_`, `@`, `$` or `#`: `Row#`,
+  `a$b`, `@a#b`, `ab#1`. They continue a word as a letter does, so `SELECT FROM#` is a column
+  called `FROM#` and `SELECT@a` is refused — which was read here. `TSql.IdentifierPart` is one
+  class and the word boundary both: made a choice of the standard's class and three more, it
+  could not be resolved to one element, no kind was a word, and every `word` in the grammar
+  lost its kinds (`GRAM5004`) — the same once the boundary was put back and the identifier
+  alone widened, since a kind is a word only where all of it is within the boundary.
+- **A binary string goes on past a backslash at the end of a line**: `0xabc\` and `def` on
+  the next are `0xABCDEF`, and a space after the break ends it. A string's backslash is one of
+  its characters, and a number has no continuation.
+- **`BINARY_CHECKSUM(*)`** is the fourth name a `*` stands inside, with nothing beside it.
+- **An alias may be a national string**, `AS N'Year'`, as it may be a string.
+- **`OPENROWSET(BULK ('a', 'b'), …)`** reads a list of files.
+- **`OPENDATASOURCE` is not a rowset.** It stands where a server's name does, in a `FROM`, an
+  `EXECUTE`, an `INSERT`, an `UPDATE`, a `DELETE` or a `MERGE`, and never alone — `SELECT *
+  FROM OPENDATASOURCE (…)` was read here and is refused. Its two arguments are strings; the name
+  after it has as many parts as it likes, empty ones among them, and a table so named takes a
+  correlation name and nothing else. As agreed, `TableReference.Named` and `Statement.Execute`
+  have a `Server` for it, the call, with the rest of the name where the name was.
+- **`PREDICT`'s data may be named** where it stands, `DATA = dbo.t AS d`, and no other argument
+  may. As agreed, `Expression.Aliased` holds the value and its name. Reading the name brought
+  four statements of the corpus through, and the engine refuses all four: they say `RUNTIME =
+  ONNX`, which is Azure SQL Edge's and Synapse's. The defects at 150 went from 43 to 47 on it,
+  and `PREDICT` takes its model and its data and nothing else now (`Syntax.Predicts`). Two
+  of them, `MODEL = @model`, stand in the work list for it: the variable is not declared, so
+  the engine answers `Msg 137` first and the count takes that for read; declared, it answers
+  `Msg 102`.
+
+At 150: read by both 5,858 (from 5,854), the work list 118 (from 122), read here but refused
+there 43; `--split` 652 (from 652), the round trip 100% of 7,241. The map: read by both 7,824
+of 8,338 (97.8%), the work list 179 (from 200), defects 0.
