@@ -19199,3 +19199,29 @@ engine refuses `COMPUTE` and `ALL` there as this does.
 At 150: read by both 5,883 (from 5,878), the work list 93 (from 98), read here but refused
 there 43 (from 43); `--split` 716 (from 712), the round trip 100% of 7,535. The map: read by
 both 7,982 of 8,338 (99.7%), the work list 21 (from 25), defects 0.
+
+## Four old forms: a `NULL` principal, `(MAX)` on any type, a chained `DEFAULT`, `5:a.b`
+
+The corpus's work list at 150, four groups of it, each put to the engine before it was
+written and each wider than the corpus showed:
+
+- **An audit is watched for `NULL`** as a permission is granted to it: anywhere among the
+  principals after `BY`, in a specification created or altered, added or dropped. The list is
+  the permissions' own now, `Grantees`; `BY NULL AS x` and a string are refused.
+- **A column's type may be sized `(MAX)` whatever the type** — `DECIMAL`, `INT`, `BIT`,
+  `DATETIME2`, `DOUBLE PRECISION` — wherever a column is declared or altered: a table, a table
+  variable, a table type, a function's table, `ALTER TABLE … ADD` and `ALTER COLUMN`. Where a
+  variable, a cast or a type is declared it is `Msg 156`, and after the type's own size it is
+  one more than a type takes (`DECIMAL (MAX, 2)`).
+- **A compound operator takes `DEFAULT` in one place:** the chain a variable takes a column's
+  value through, `SET @a = c1 -= DEFAULT`, with every operator, in an `UPDATE` and in a
+  `MERGE`'s. On the column alone it stays `Msg 10708`, as this had it. The engine reads `@a =
+  c1 += 1 + DEFAULT` too — `DEFAULT` as an operand — which is left on the work list.
+- **A transaction may be named by a number and two parts**, `SAVE TRANSACTION -5:a.b`, in every
+  transaction statement: the number signed or not, with a fraction or without and no
+  exponent; the name two parts exactly, quoted or not, and not a variable's.
+
+At 150: read by both 5,900 (from 5,883), the work list 76 (from 93), read here but refused
+there 43 (from 43); `--split` 722 (from 716), the round trip 100% of 7,552. The map is as it
+was — read by both 7,982 of 8,338 (99.7%), the work list 21, defects 0 — since these four
+were the corpus's and not the reference's.

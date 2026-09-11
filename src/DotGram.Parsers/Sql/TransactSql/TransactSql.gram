@@ -1655,12 +1655,20 @@ AssignTail : @Clause.Set
 // 1` or `@a = c += 1`, with `DEFAULT` where the column is assigned plainly — `@a = c =
 // DEFAULT` is read. A variable's own `SET` refuses the column: `SET @a = c = 1`.
 UpdateVariableTail : @Clause.Set
-	= '=' & c: QualifiedName & s: ChainTail => @(s with { Through = c })
+	= '=' & c: QualifiedName & s: VariableChainTail => @(s with { Through = c })
+
 	| s: AssignTail                         => @(s)
 
 ChainTail : @Clause.Set
 	= '=' & v: AssignedValue     => @(new Clause.Set("", "=", v))
 	| op: AssignOp & v: SetValue => @(new Clause.Set("", op, v))
+
+// The chain a variable takes a column's value through, which is the one place a compound
+// operator takes `DEFAULT`: `SET c1 -= DEFAULT` is `Msg 10708`, and `SET @a = c1 -= DEFAULT` is
+// read — with every operator, in an `UPDATE` and in a `MERGE`'s.
+VariableChainTail : @Clause.Set
+	= '=' & v: AssignedValue       => @(new Clause.Set("", "=", v))
+	| op: AssignOp & v: AssignedValue => @(new Clause.Set("", op, v))
 
 ColumnAssignTail : @Clause.Set
 	= '(' & args: Arguments? & ')' => @(new Clause.Set("", "", new Expression.RoutineInvocation("", args ?? Expression.None)))
@@ -1893,7 +1901,13 @@ TranWord : @string = t: ("TRANSACTION"i | "TRAN"i | "WORK"i) => @(Syntax.Squared
 TranMark    = "WITH"i & "MARK"i & ValueExpression?
 TranDelayed = "WITH"i & '(' & OptionList & ')'
 
-TranName : @string = t: Identifier => @(t) | t: TSql.Variable => @(t)
+// A name, a variable, or a number and a name of two parts: `SAVE TRANSACTION -5:a.b`, which
+// every transaction statement reads. The number has a sign or not and a fraction or not, and
+// no exponent; the name has two parts and no more, quoted or not, and no empty one.
+TranName : @string
+	= t: Identifier                                              => @(t)
+	| t: TSql.Variable                                           => @(t)
+	| t: ('-'? & ExactNumber & ':' & Identifier & '.' & Identifier) => @(Syntax.Spaced(t))
 
 // ── Declarations ────────────────────────────────────────────────────────────
 DeclareStatement : @Statement
@@ -3149,8 +3163,12 @@ TableColumnBody : @Clause.ColumnDefinition
 ColumnBody : @Clause.ColumnDefinition
 	= "AS"i & v: ValueExpression & tail: ColumnTail*
 		=> @(new Clause.ColumnDefinition("", null, v, tail ?? Clause.None))
-	| type: DataType & tail: ColumnTail*
-		=> @(new Clause.ColumnDefinition("", type, null, tail ?? Clause.None))
+	// A column's type may be sized `(MAX)` whatever the type is — `DECIMAL (MAX)`, `INT (MAX)`,
+	// `DOUBLE PRECISION (MAX)` are read wherever a column is declared or altered, and refused
+	// where a variable, a cast or a type is (`Msg 156`). The type's own size said, `MAX` is
+	// one more: `NVARCHAR (MAX, 1)` and `DECIMAL (MAX, 2)` are refused.
+	| type: DataType & max: ('(' & "MAX"i & ')')? & tail: ColumnTail*
+		=> @(new Clause.ColumnDefinition("", max is null ? type : type + " " + Syntax.Spaced(max), null, tail ?? Clause.None))
 
 // What may be said about a column after its type, each kept as what it is: an option, a
 // constraint, or an index, in the order they were written.
@@ -4507,7 +4525,9 @@ AddOrDrop = "ADD"i | "DROP"i
 
 AuditActionBody = ActionWords & (',' & ActionWords)* & AuditActionOn?
 
-AuditActionOn = "ON"i & SecurableClass? & QualifiedName & "BY"i & Principals
+// Whom an action is watched for: principals, and `NULL` among them anywhere, as a permission's
+// grantees are — `BY PUBLIC, NULL, dbo` is read, and `BY NULL AS x` refused.
+AuditActionOn = "ON"i & SecurableClass? & QualifiedName & "BY"i & Grantees
 
 // ── An extended-event session ───────────────────────────────────────────────
 EventPieces : @Clause[] = first: EventPiece & (','? & rest: EventPiece)* => @(Syntax.Listed(first, rest))
@@ -5769,9 +5789,6 @@ PermissionWord = ?!PermissionEnd & word
 ActionWords = PermissionWord+
 
 PermissionEnd = "ON"i | "TO"i | "FROM"i | "WITH"i | "CASCADE"i
-
-Principals : @string[]
-	= first: PrincipalName & (',' & rest: PrincipalName)* => @(Syntax.Named(first, rest))
 
 PrincipalName : @string = "PUBLIC"i => @("PUBLIC") | t: QualifiedName => @(t)
 

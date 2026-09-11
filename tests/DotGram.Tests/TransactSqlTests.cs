@@ -953,6 +953,88 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>An audit's <c>NULL</c> principal, a column sized <c>MAX</c>, a chained <c>DEFAULT</c> and a numbered savepoint, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("CREATE DATABASE AUDIT SPECIFICATION s FOR SERVER AUDIT a ADD (SELECT ON t BY 'x')")]
+	[InlineData("CREATE DATABASE AUDIT SPECIFICATION s FOR SERVER AUDIT a ADD (SELECT ON t BY NULL AS x)")]
+	[InlineData("CREATE TYPE ssn FROM DECIMAL (MAX)")]
+	[InlineData("DECLARE @d DECIMAL (MAX)")]
+	[InlineData("SELECT CAST(1 AS DECIMAL (MAX))")]
+	[InlineData("CREATE TABLE t1 (c1 DECIMAL (MAX, 2))")]
+	[InlineData("CREATE TABLE t (c NVARCHAR (MAX, 1))")]
+	[InlineData("UPDATE t1 SET c1 -= DEFAULT")]
+	[InlineData("UPDATE t1 SET c1 += DEFAULT")]
+	[InlineData("SET @a += DEFAULT")]
+	[InlineData("SET @a = DEFAULT")]
+	[InlineData("UPDATE t1 SET c1 *= DEFAULT, c1 /= DEFAULT")]
+	[InlineData("SAVE TRANSACTION 5:a")]
+	[InlineData("SAVE TRANSACTION 5:a.b.c")]
+	[InlineData("SAVE TRANSACTION +5:a.b")]
+	[InlineData("SAVE TRANSACTION a:b")]
+	[InlineData("SAVE TRANSACTION 0x05:a.b")]
+	[InlineData("SAVE TRANSACTION 5:a..b")]
+	[InlineData("SAVE TRANSACTION 5:@a.b")]
+	[InlineData("SAVE TRANSACTION 5e1:a.b")]
+	[InlineData("SAVE TRANSACTION $5:a.b")]
+	public void Old_forms_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("CREATE DATABASE AUDIT SPECIFICATION s FOR SERVER AUDIT a ADD (EXECUTE, RECEIVE, REFERENCES ON zzz BY PUBLIC, NULL, dbo)")]
+	[InlineData("CREATE DATABASE AUDIT SPECIFICATION s FOR SERVER AUDIT a ADD (SELECT ON t BY NULL)")]
+	[InlineData("CREATE DATABASE AUDIT SPECIFICATION s FOR SERVER AUDIT a ADD (SELECT ON t BY dbo, NULL)")]
+	[InlineData("CREATE DATABASE AUDIT SPECIFICATION s FOR SERVER AUDIT a ADD (SELECT ON t BY [NULL])")]
+	[InlineData("CREATE DATABASE AUDIT SPECIFICATION s FOR SERVER AUDIT a ADD (SELECT ON t BY NULL, NULL)")]
+	[InlineData("ALTER DATABASE AUDIT SPECIFICATION s ADD (SELECT ON t BY NULL)")]
+	[InlineData("ALTER DATABASE AUDIT SPECIFICATION s DROP (SELECT ON t BY NULL)")]
+	[InlineData("CREATE DATABASE AUDIT SPECIFICATION s FOR SERVER AUDIT a ADD (SELECT ON OBJECT::dbo.t BY NULL)")]
+	[InlineData("CREATE TABLE t1 (c1 DECIMAL (MAX))")]
+	[InlineData("CREATE TABLE t1 (c1 decimal(max) not null)")]
+	[InlineData("CREATE TABLE t1 (c1 NUMERIC (MAX))")]
+	[InlineData("CREATE TABLE t1 (c1 INT (MAX))")]
+	[InlineData("CREATE TABLE t1 (c1 FLOAT (MAX))")]
+	[InlineData("ALTER TABLE t ADD c DECIMAL (MAX)")]
+	[InlineData("DECLARE @t TABLE (c DECIMAL (MAX))")]
+	[InlineData("CREATE TYPE tt AS TABLE (c DECIMAL (MAX))")]
+	[InlineData("ALTER TABLE t ALTER COLUMN c DECIMAL (MAX)")]
+	[InlineData("CREATE TABLE t (c DECIMAL (MAX) NOT NULL PRIMARY KEY)")]
+	[InlineData("CREATE TABLE t (c DECIMAL ( MAX ))")]
+	[InlineData("CREATE TABLE t (c BIT (MAX))")]
+	[InlineData("CREATE TABLE t (c DATETIME2 (MAX))")]
+	[InlineData("CREATE FUNCTION f () RETURNS @t TABLE (c DECIMAL (MAX)) AS BEGIN RETURN END")]
+	[InlineData("CREATE TABLE t (c DECIMAL (MAX) COLLATE Latin1_General_CI_AS)")]
+	[InlineData("CREATE TABLE t (c DOUBLE PRECISION (MAX))")]
+	[InlineData("CREATE TABLE t1 (c1 VARCHAR (MAX))")]
+	[InlineData("UPDATE t1 SET @a = c1 -= DEFAULT")]
+	[InlineData("UPDATE t1 SET @a = c1 *= DEFAULT")]
+	[InlineData("UPDATE t1 SET @a = c1 %= DEFAULT, @b = c2 ^= DEFAULT")]
+	[InlineData("MERGE t USING s ON 1 = 1 WHEN MATCHED THEN UPDATE SET @a = c1 -= DEFAULT")]
+	[InlineData("UPDATE t1 SET @a = c1 -= DEFAULT FROM t1")]
+	[InlineData("UPDATE t1 SET @a = c1 = DEFAULT")]
+	[InlineData("UPDATE t1 set @a = c1 += null, @a = c1 -= default, @a = c1 *= 1 + 1, @a = c1 /= 1, @a = c1 %= 1, @a = c1 &= 1, @a = c1 |= 1, @a = c1 ^= 1")]
+	[InlineData("SAVE TRANSACTION 5:a.b")]
+	[InlineData("SAVE TRANSACTION -5:a.b")]
+	[InlineData("SAVE TRANSACTION -100:a.b")]
+	[InlineData("SAVE TRANSACTION 5 : a.b")]
+	[InlineData("SAVE TRANSACTION 5:[a].[b]")]
+	[InlineData("SAVE TRANSACTION 1.5:a.b")]
+	[InlineData("SAVE TRAN 5:a.b")]
+	[InlineData("BEGIN TRANSACTION 5:a.b")]
+	[InlineData("COMMIT TRANSACTION 5:a.b")]
+	[InlineData("ROLLBACK TRANSACTION 5:a.b")]
+	[InlineData("BEGIN TRAN 5:a.b WITH MARK 'x'")]
+	[InlineData("BEGIN DISTRIBUTED TRANSACTION 5:a.b")]
+	[InlineData("SAVE TRANSACTION 5:\"a\".\"b\"")]
+	[InlineData("COMMIT TRAN -1:x.y")]
+	[InlineData("ROLLBACK TRAN 1:x.y")]
+	public void Old_forms_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>The options a backup and a restore take for a URL, and a certificate's key algorithm, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("BACKUP DATABASE d TO URL = 'u' WITH BACKUP_OPTIONS = x")]
