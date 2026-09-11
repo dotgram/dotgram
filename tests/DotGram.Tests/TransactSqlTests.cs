@@ -1265,6 +1265,13 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2){,3}))")]
 	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH((N-(E)->){3}N2))")]
 	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2){1,3}+))")]
+	[InlineData("SELECT * FROM (SELECT * FROM t) FOR PATH")]
+	[InlineData("SELECT * FROM (SELECT * FROM t) AS x FOR PATH")]
+	[InlineData("SELECT * FROM (SELECT * FROM t) FOR SYSTEM_TIME ALL AS x")]
+	[InlineData("SELECT * FROM t FOR PATH FOR SYSTEM_TIME ALL AS x")]
+	[InlineData("SELECT * FROM dbo.f() FOR PATH AS x")]
+	[InlineData("SELECT * FROM @t FOR PATH AS x")]
+	[InlineData("SELECT * FROM OPENJSON('[]') FOR PATH AS x")]
 	public void The_graph_pattern_refuses_what_the_engine_does(string input) =>
 		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
 
@@ -1282,6 +1289,12 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT * FROM a WHERE MATCH(LAST_NODE(N)-(E)->N2)")]
 	[InlineData("SELECT * FROM a WHERE MATCH(N-(E)->LAST_NODE(N2)-(E2)->N3)")]
 	[InlineData("SELECT * FROM a WHERE MATCH([N]-([E])->[N2])")]
+	[InlineData("SELECT * FROM (SELECT * FROM t) FOR PATH AS x")]
+	[InlineData("SELECT * FROM (SELECT * FROM t) FOR PATH x (c1)")]
+	[InlineData("SELECT * FROM (VALUES (1)) FOR PATH AS x (c)")]
+	[InlineData("SELECT * FROM t FOR SYSTEM_TIME ALL FOR PATH AS x")]
+	[InlineData("SELECT * FROM t FOR PATH AS x WITH (NOLOCK)")]
+	[InlineData("SELECT * FROM (SELECT * FROM t) FOR PATH AS x, (SELECT * FROM u) FOR PATH AS y WHERE MATCH(SHORTEST_PATH(x(-(y)->x)+))")]
 	public void The_graph_pattern_reads_what_the_engine_does(string input)
 	{
 		var match = TransactSql.TryParseStatement(input);

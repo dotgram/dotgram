@@ -18331,3 +18331,26 @@ SYSTEM_TIME`, which the tree has no place for yet.
 
 At 150: read by both 5,753 (from 5,747), the work list 221 (from 227), read here but refused
 there 43, as before. `--split` 574, and the round trip 100% of 6,861.
+
+## `FOR PATH`, a mark on the source
+
+`FOR PATH` was a `Clause.SystemTime` of the kind `PATH`, in the one slot a table named has for
+its version, so it could not stand beside `FOR SYSTEM_TIME`, and a derived table had no slot
+for it at all. No page gives it a syntax: the reference's `<table_source>` does not have it,
+and the page on `SHORTEST_PATH` says in prose that a node or an edge table in an arbitrary
+length pattern must be marked with it, and shows it between the name and the alias.
+
+Run rather than parsed, the engine says more than the page. A query in brackets marked `FOR
+PATH` serves as an edge or a node in a `SHORTEST_PATH`, and without the mark the statement is
+refused by meaning, `Msg 13948`, "must be marked as FOR PATH". A temporal table takes both
+marks, `FOR SYSTEM_TIME ALL FOR PATH`, in that order; a node or an edge table cannot be
+temporal (`Msg 13912`). It is refused on a function, a variable, a rowset and after the alias.
+
+It takes nothing and changes no row; it changes what the alias is. So it is a property now,
+as agreed — `bool ForPath` on `TableReference.Named`, after `SystemTime`, and on
+`TableReference.Derived`, which a `VALUES` in brackets is too — and `Clause.SystemTime` is
+temporal only. ScriptDom keeps the same flag on the base its functions share, which the
+engine refuses there; here it is on the two records it is read on.
+
+At 150: read by both 5,757 (from 5,753), the work list 217 (from 221), read here but refused
+there 43, as before. `--split` 576 cut the same (from 574), and the round trip 100% of 6,865.

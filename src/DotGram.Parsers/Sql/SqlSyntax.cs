@@ -2260,11 +2260,13 @@ public abstract record TableReference : ISqlSpan
 	/// </summary>
 	/// <remarks>
 	/// The parts in the order the reference writes them: the table, which version of it,
-	/// what it is called here, the names its columns are given, how much of it to read, and
-	/// how to read it.
+	/// whether it is read as a graph's path, what it is called here, the names its columns
+	/// are given, how much of it to read, and how to read it. <c>FOR PATH</c> is a mark on
+	/// the table rather than a clause: it takes nothing, and it makes the alias an ordered
+	/// collection that a <c>SHORTEST_PATH</c> may repeat.
 	/// </remarks>
 	public sealed record Named(
-		string Table, Clause? SystemTime, string? Name, string[]? Columns,
+		string Table, Clause? SystemTime, bool ForPath, string? Name, string[]? Columns,
 		Clause? Sample, Clause[] Hints) : TableReference;
 
 	/// <summary>
@@ -2279,8 +2281,11 @@ public abstract record TableReference : ISqlSpan
 	public sealed record Unpivot(
 		TableReference Of, string Value, string For, string[] In, string? Name) : TableReference;
 
-	/// <summary>§7.6 a query standing where a table does.</summary>
-	public sealed record Derived(Query Query, string? Name, string[]? Columns) : TableReference;
+	/// <summary>
+	/// §7.6 a query standing where a table does, T-SQL's <c>FOR PATH</c> after it as after a
+	/// table named.
+	/// </summary>
+	public sealed record Derived(Query Query, bool ForPath, string? Name, string[]? Columns) : TableReference;
 
 	/// <summary>
 	/// §7.6 a function standing where a table does — T-SQL's rowset functions, and any
@@ -3039,11 +3044,11 @@ public static class Syntax
 	/// which record comes out is decided by whether the brackets were there.
 	/// </remarks>
 	public static TableReference Sourced(
-		string name, Clause? when, string? call, Expression[]? arguments,
+		string name, Clause? when, bool path, string? call, Expression[]? arguments,
 		string? alias, string[]? columns, Clause? sample, Clause[]? hints, TableReference? pivot)
 	{
 		TableReference source = call is null
-			? new TableReference.Named(name, when, alias, columns, sample, hints ?? Clause.None)
+			? new TableReference.Named(name, when, path, alias, columns, sample, hints ?? Clause.None)
 			: new TableReference.FunctionCall(
 				new Expression.RoutineInvocation(name, arguments ?? Expression.None),
 				alias, columns, Clause.None);

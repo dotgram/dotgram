@@ -1347,7 +1347,7 @@ public static class SqlWriter
 	{
 		switch (source)
 		{
-			case TableReference.Named(var table, var version, var name, var columns, var sample, var hints):
+			case TableReference.Named(var table, var version, var path, var name, var columns, var sample, var hints):
 				text.Append(table);
 
 				if (version is not null)
@@ -1355,6 +1355,9 @@ public static class SqlWriter
 					text.Append(' ');
 					Put(text, version);
 				}
+
+				if (path)
+					text.Append(" FOR PATH");
 
 				Alias(text, name, columns);
 
@@ -1394,10 +1397,14 @@ public static class SqlWriter
 				text.Append(string.Join(", ", names)).Append(")) AS ").Append(alias);
 				break;
 
-			case TableReference.Derived(var query, var name, var columns):
+			case TableReference.Derived(var query, var path, var name, var columns):
 				text.Append('(');
 				Put(text, query, 0);
 				text.Append(')');
+
+				if (path)
+					text.Append(" FOR PATH");
+
 				Alias(text, name, columns);
 				break;
 
@@ -1677,8 +1684,7 @@ public static class SqlWriter
 				break;
 
 			case Clause.SystemTime(var kind, var at):
-				// `FOR PATH` is a graph table's, written without the SYSTEM_TIME.
-				text.Append(kind == "PATH" ? "FOR " : "FOR SYSTEM_TIME ").Append(kind);
+				text.Append("FOR SYSTEM_TIME ").Append(kind);
 
 				if (at.Length == 1)
 				{

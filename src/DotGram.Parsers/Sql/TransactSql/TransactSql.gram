@@ -719,14 +719,15 @@ TSqlTablePrimary : @TableReference
 				 new TableReference.FunctionCall(f, alias, columns, schema ?? Clause.None), pivot))
 	// A table takes hints and a table-valued function does not: `dbo.f() WITH (NOLOCK)` is
 	// refused.
-	| name: QualifiedName & version: SystemTime? & call: ('(' & args: Arguments? & ')')?
+	| name: QualifiedName & version: SystemTime? & path: GraphPath? & call: ('(' & args: Arguments? & ')')?
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
-	  & sample: TableSample? & hints: TableHints? & when @(call is null || hints is null) & pivot: PivotSuffix?
-		=> @(Syntax.Sourced(name, version, call, args, alias, columns, sample, hints, pivot))
+	  & sample: TableSample? & hints: TableHints? & when @(call is null || (hints is null && path is null))
+	  & pivot: PivotSuffix?
+		=> @(Syntax.Sourced(name, version, path is not null, call, args, alias, columns, sample, hints, pivot))
 	| t: TSql.Variable & s: VariableSource => @(Syntax.OfVariable(t, s))
-	| derived: TableSubquery & "AS"i? & alias: CorrelationName
+	| derived: TableSubquery & path: GraphPath? & "AS"i? & alias: CorrelationName
 	  & ('(' & columns: ColumnList & ')')? & pivot: PivotSuffix?
-		=> @(Syntax.Pivoted(new TableReference.Derived(derived, alias, columns), pivot))
+		=> @(Syntax.Pivoted(new TableReference.Derived(derived, path is not null, alias, columns), pivot))
 	| '(' & j: TableReference & ')' & TableSample? & TableHints?
 		=> @(new TableReference.Parenthesized(j))
 	| '{' & "OJ"i & j: TableReference & '}' => @(new TableReference.OdbcJoin(j))
@@ -741,7 +742,7 @@ VariableSource : @TableReference
 				 new Expression.RoutineInvocation("." + method, args ?? Expression.None),
 				 alias, columns, Clause.None))
 	| ("AS"i? & alias: CorrelationName)? & sample: TableSample? & hints: TableHints?
-		=> @(new TableReference.Named("", null, alias, null, sample, hints ?? Clause.None))
+		=> @(new TableReference.Named("", null, false, alias, null, sample, hints ?? Clause.None))
 
 // The published syntax makes a pivoted table a source of its own — `table_source PIVOT
 // (…) [AS] alias` — which is left recursion, and §4.3 folds that only where the rule
@@ -769,11 +770,16 @@ PivotNames : @string[]
 
 PivotName : @string = t: QualifiedName => @(t)
 
+// A graph's table read as a path: a mark on the source, which a `SHORTEST_PATH` needs on
+// every alias it repeats (`Msg 13948`). No page gives it a syntax; the engine takes it
+// after a table's version and before its alias, and after a query or `VALUES` in brackets,
+// and refuses it on a function, a variable and a rowset.
+GraphPath = "FOR"i & "PATH"i
+
 // Which version of a temporal table to read. `FOR` is reserved, so nothing here can be
 // mistaken for the correlation name it stands in front of.
 SystemTime : @Clause
 	= "FOR"i & "SYSTEM_TIME"i & w: SystemTimeWhen => @(w)
-	| "FOR"i & "PATH"i => @(new Clause.SystemTime("PATH", Expression.None))
 
 SystemTimeWhen : @Clause
 	= "AS"i & "OF"i & v: ValueExpression
@@ -1324,8 +1330,8 @@ StatementBody : @Statement
 // a target no correlation and no sample, and `UPDATE t AS x SET …` is not T-SQL.
 DmlTarget : @TableReference
 	= f: RowsetFunction                 => @(new TableReference.FunctionCall(f, null, null, Clause.None))
-	| t: TSql.Variable & hints: TableHints?    => @(new TableReference.Named(t, null, null, null, null, hints ?? Clause.None))
-	| name: QualifiedName & hints: TableHints? => @(new TableReference.Named(name, null, null, null, null, hints ?? Clause.None))
+	| t: TSql.Variable & hints: TableHints?    => @(new TableReference.Named(t, null, false, null, null, null, hints ?? Clause.None))
+	| name: QualifiedName & hints: TableHints? => @(new TableReference.Named(name, null, false, null, null, null, hints ?? Clause.None))
 
 // ── §INSERT ─────────────────────────────────────────────────────────────────
 // The query hints stand after the rows, as they do after an `UPDATE`'s — except where the
