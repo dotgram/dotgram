@@ -2798,6 +2798,34 @@ public static class Syntax
 	public static string Spaced(string words) => Run(words, false);
 
 	/// <summary>Text with every whitespace character taken out: <c>(1 . 2 . 3 . 4)</c> as <c>(1.2.3.4)</c>.</summary>
+	/// <summary>
+	/// Whether a name may be called as a function: a delimited name of one part may not. The
+	/// engine refuses <c>[LEN]('a')</c> and <c>"LEN"('a')</c>, and reads <c>dbo.[LEN]('a')</c>.
+	/// </summary>
+	public static bool Callable(string name)
+	{
+		if (name.Length == 0 || (name[0] != '[' && name[0] != '"'))
+			return true;
+
+		var close = name[0] == '[' ? ']' : '"';
+
+		for (var at = 1; at < name.Length; at++)
+		{
+			if (name[at] != close)
+				continue;
+
+			if (at + 1 < name.Length && name[at + 1] == close)
+			{
+				at++;
+				continue;
+			}
+
+			return at + 1 < name.Length;
+		}
+
+		return true;
+	}
+
 	public static string Compacted(string text)
 	{
 		var kept = new char[text.Length];

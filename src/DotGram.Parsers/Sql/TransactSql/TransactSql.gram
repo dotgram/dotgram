@@ -8,7 +8,7 @@ using Sql92;
 // grammar is attached to; what is written here is only where T-SQL differs, and
 // §5.1's rebinding is what makes the difference reach every rule that leads to it.
 //
-// Seventeen rules replace seventeen of the standard's. Nothing else is restated and nothing
+// Eighteen rules replace eighteen of the standard's. Nothing else is restated and nothing
 // is copied: a query expression, a join, a predicate and the whole value tower are
 // the ones already read against the standard, reading a dialect's identifiers and
 // a dialect's primaries because the substitution rewrote every call inside them.
@@ -276,13 +276,26 @@ TSqlPrimaryCore : @Expression
 	| f: SetFunctionSpecification & tail: CallTail? => @(Syntax.Called(f, tail))
 	| q: ScalarSubquery                        => @(q)
 	| n: NextValue                             => @(n)
+	| f: LeftRightCall                         => @(f)
 	| f: FunctionCall                          => @(f)
 	| e: OdbcEscape                            => @(e)
 	| t: TSql.MoneyLiteral                     => @(new Expression.Literal(SqlLiteralKind.Number, t))
 	| t: TSql.BinaryLiteral                    => @(new Expression.Literal(SqlLiteralKind.Hex, t))
 	| v: UnsignedValueSpecification            => @(v)
 	| "NULL"i                                  => @(Expression.NullValue)
+	| t: RowColumnName                         => @(new Expression.ColumnReference(t))
 	| n: ColumnReference                       => @(n)
+
+// `LEFT` and `RIGHT` are reserved for the joins and are functions besides: `LEFT('a', 1)` is
+// read, and `dbo.LEFT(1)` and `LEFT('a', 1) OVER ()` are refused.
+LeftRightCall : @Expression
+	= name: ("LEFT"i | "RIGHT"i) & '(' & args: Arguments? & ')'
+		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
+
+// A table's identity and row-GUID columns by the reserved words that name them, under
+// whatever prefix a column takes: `IDENTITYCOL`, `t.ROWGUIDCOL`, `a.b.c.IDENTITYCOL`. A
+// column only — not an alias, not what a `SET` assigns, not a call.
+RowColumnName = (Identifier & '.')* & ("IDENTITYCOL"i | "ROWGUIDCOL"i)
 
 // ODBC's escapes, which every driver has understood since before this language had a
 // standard and which SQL Server still reads: a function called the portable way, and the
@@ -406,8 +419,11 @@ NextValue : @Expression
 
 // A call to something this grammar has never heard of, which is most of them: the
 // name is a catalogue's business and the arguments are values.
+// A name of one part is called bare: `[LEN]('a')` and `"LEN"('a')` are refused, and
+// `dbo.[LEN]('a')` is read.
 FunctionCall : @Expression
-	= name: QualifiedName & '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel?
+	= name: QualifiedName & when @(Syntax.Callable(name))
+	  & '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel?
 	  & returning: JsonReturning? & ')' & tail: CallTail?
 		=> @(Syntax.Called(
 				 new Expression.RoutineInvocation(
@@ -1007,6 +1023,11 @@ CteDefinition : @Clause.CommonTableExpression
 	= name: Identifier & ('(' & columns: ColumnList & ')')? & "AS"i & '(' & q: CteBody & ')'
 		=> @(new Clause.CommonTableExpression(name, columns, q))
 
+// §13.1 sorts by a column or by its position in the select list; T-SQL sorts by any value —
+// `ORDER BY a + 1`, `LEN(a)`, a `CASE`, a subquery — and a position is a number among them.
+// A collation is the value's own, as a primary's is.
+TSqlSortKey : @Expression = v: ValueExpression => @(v)
+
 // The order a named query is written in is read and dropped: a `WITH` defines a table, and
 // a table has no order until something asks for one.
 CteBody : @Query = q: QueryExpression & OrderByClause? & OffsetFetch? => @(q)
@@ -1075,6 +1096,7 @@ namespace Dialect with (
 	ValueExpression           = TSqlValueExpression,
 	ValueExpressionPrimary    = TSqlValuePrimary,
 	CompOp                    = TSqlCompOp,
+	SortKey                   = TSqlSortKey,
 	QuerySpecification        = TSqlQuerySpecification,
 	TablePrimary              = TSqlTablePrimary,
 	TableReference            = TSqlTableReference,

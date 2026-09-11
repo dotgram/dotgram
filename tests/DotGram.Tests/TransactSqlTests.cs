@@ -1303,6 +1303,48 @@ public sealed class TransactSqlTests
 	}
 
 	/// <summary>
+	/// Reserved words as values: `LEFT` and `RIGHT` called, `IDENTITYCOL` and `ROWGUIDCOL` as
+	/// columns, and a name of one part called only bare, as the engine answers them.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT dbo.LEFT(1)")]
+	[InlineData("SELECT LEFT FROM t")]
+	[InlineData("SELECT a AS LEFT FROM t")]
+	[InlineData("SELECT LEFT('a', 1) OVER ()")]
+	[InlineData("SELECT [LEFT]('a', 1)")]
+	[InlineData("SELECT [LEN]('a')")]
+	[InlineData(@"SELECT ""LEN""('a')")]
+	[InlineData("SELECT a AS IDENTITYCOL FROM t")]
+	[InlineData("UPDATE t SET IDENTITYCOL = 1")]
+	[InlineData("SELECT IDENTITYCOL() FROM t")]
+	public void Reserved_values_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT LEFT('Team System', 4), RIGHT('Team System', 6)")]
+	[InlineData("SELECT left ('a', 1)")]
+	[InlineData("SELECT LEFT('a')")]
+	[InlineData("SELECT [LEFT]")]
+	[InlineData("SELECT foo(1), dbo.[LEN]('a'), [dbo].[f](1)")]
+	[InlineData("SELECT IDENTITYCOL, t.IDENTITYCOL, a.b.ROWGUIDCOL, a.b.c.IDENTITYCOL FROM t")]
+	[InlineData("SELECT * FROM t WHERE IDENTITYCOL > 10 AND ROWGUIDCOL IS NOT NULL ORDER BY IDENTITYCOL")]
+	[InlineData("SELECT IDENTITYCOL AS x, (IDENTITYCOL * 10), IDENTITYCOL + 1 FROM t")]
+	[InlineData("CREATE INDEX ind1 ON t1(c1) WHERE IDENTITYCOL > 10")]
+	[InlineData("SELECT a FROM t ORDER BY a + 1")]
+	[InlineData("SELECT a FROM t ORDER BY LEN(a), 1, t.ROWGUIDCOL DESC")]
+	[InlineData("SELECT a FROM t ORDER BY (SELECT 1)")]
+	[InlineData("SELECT a FROM t ORDER BY CASE WHEN a = 1 THEN 0 END")]
+	[InlineData("SELECT a FROM t ORDER BY a COLLATE Latin1_General_CI_AS DESC")]
+	[InlineData("SELECT ROW_NUMBER() OVER (ORDER BY a + 1) FROM t")]
+	public void Reserved_values_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>
 	/// A variable assigned, in its own `SET` and in an `UPDATE`, as the engine answers it with
 	/// the variable declared: `DEFAULT` is a column's, and a column between the variable and
 	/// its value an `UPDATE`'s.

@@ -18456,3 +18456,28 @@ the column between.
 
 At 150: read by both 5,798 (from 5,778), the work list 176 (from 196), read here but refused
 there 43, as before. `--split` 589, and the round trip 100% of 6,906.
+
+## Reserved words as values, and what a sort is by
+
+**`LEFT` and `RIGHT`** are reserved for the joins, and are functions besides: the engine reads
+`LEFT('Team System', 4)`, and refuses `dbo.LEFT(1)` and an `OVER` after one. **`IDENTITYCOL`
+and `ROWGUIDCOL`** name a table's identity and row-GUID columns under whatever prefix a column
+takes, `a.b.c.IDENTITYCOL` included, in any value and in an index's filter — and not as an
+alias, not as what a `SET` assigns, not as a call. Both are primaries now.
+
+Asked beside them: **a function's name of one part is called bare.** `[LEN]('a')` and
+`"LEN"('a')` are refused as syntax and were read here; `dbo.[LEN]('a')` and `[dbo].[f](1)`
+are read. A guard on the call says so.
+
+And a test of `ORDER BY IDENTITYCOL` found something larger: **a sort was by a column or a
+position and nothing else.** `SortKey` was still the standard's, §13.1's column reference or
+number, so `ORDER BY a + 1`, `LEN(a)`, a `CASE` and a subquery were all refused, in a
+`SELECT` and in an `OVER` alike. T-SQL sorts by any value, and the engine reads every one of
+them. The dialect replaces it now, eighteen rules in all; a position is a number among the
+values, and a collation is the value's own.
+
+Left for the next piece: `IDENTITY(INT, 1, 1)` in a `SELECT … INTO`, which the engine reads
+with one argument or three, as a whole item of the list and only when there is an `INTO`.
+
+At 150: read by both 5,811 (from 5,798), the work list 163 (from 176), read here but refused
+there 43, as before. `--split` 593, and the round trip 100% of 6,919.
