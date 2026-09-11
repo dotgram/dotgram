@@ -90,6 +90,9 @@ public sealed class ExpressionCarrierTests
 		"using System; (Environment.SpecialFolder f) => f",
 		"using System.Nowhere; (int x) => x",
 
+		// The calling assembly's internal type, constructor, field, method and property.
+		"using DotGram.Tests.ExpressionLanguage; () => new Hidden(21).Twice() + new Hidden(1).Value + Hidden.Seven",
+
 		// And the refusals: a refusal is an answer and has to be the same answer.
 		"(int x) => x *",
 		"(int x) => { x += 1;",

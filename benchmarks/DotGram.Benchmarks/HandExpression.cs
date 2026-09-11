@@ -1614,7 +1614,7 @@ static class HandExpression
 						if (value < 0)
 							return -1;
 
-						node = ExpressionParser.Assigned(ExpressionParser.Place(written!, indices!), read!);
+						node = ExpressionParser.Assigned(ExpressionParser.Place(written!, indices!, _context.Caller), read!);
 
 						return value;
 					}
@@ -1687,10 +1687,10 @@ static class HandExpression
 
 			var member = Cut(at + 1);
 
-			if (!ExpressionParser.Has(node!, member))
+			if (!ExpressionParser.Has(node!, member, _context.Caller))
 				return at;
 
-			node = ExpressionParser.Member(node!, member);
+			node = ExpressionParser.Member(node!, member, _context.Caller);
 
 			return at + 2;
 		}
@@ -1977,13 +1977,13 @@ static class HandExpression
 
 					if (arguments >= 0)
 					{
-						node = ExpressionParser.Called(node!, member, args!);
+						node = ExpressionParser.Called(node!, member, args!, _context.Caller);
 						at   = arguments;
 
 						continue;
 					}
 
-					node = ExpressionParser.Member(node!, member);
+					node = ExpressionParser.Member(node!, member, _context.Caller);
 					at  += 2;
 
 					continue;
@@ -1996,7 +1996,7 @@ static class HandExpression
 					if (indices < 0)
 						break;
 
-					node = ExpressionParser.Indexed(node!, read!);
+					node = ExpressionParser.Indexed(node!, read!, _context.Caller);
 					at   = indices;
 
 					continue;
@@ -2031,12 +2031,12 @@ static class HandExpression
 
 					if (arguments >= 0)
 					{
-						node = ExpressionParser.Called(type!, member, args!);
+						node = ExpressionParser.Called(type!, member, args!, _context.Caller);
 
 						return arguments;
 					}
 
-					node = ExpressionParser.StaticMember(type!, member);
+					node = ExpressionParser.StaticMember(type!, member, _context.Caller);
 
 					return named + 2;
 				}
@@ -2190,7 +2190,7 @@ static class HandExpression
 				}
 			}
 
-			node = ExpressionParser.Made(type, args!, fields, elements);
+			node = ExpressionParser.Made(type, args!, fields, elements, _context.Caller);
 
 			return after;
 		}

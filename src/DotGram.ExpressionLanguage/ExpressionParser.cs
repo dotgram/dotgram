@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace DotGram.ExpressionLanguage;
 
@@ -117,8 +118,9 @@ namespace DotGram.ExpressionLanguage;
 //     cannot write: no generic method is named or inferred, no extension method is found,
 //     and no argument is passed by `ref`, `out` or name.
 //   * A `using` names a namespace and nothing else — no alias, no `using static` — and
-//     reaches the public types of the assemblies already loaded: there are no references
-//     to say which others, and a type in none of them is not there to be named.
+//     reaches the public types of the assemblies already loaded, and the internal ones of
+//     the assembly that called: there are no references to say which others, and a type
+//     in none of them is not there to be named.
 //   * A constant is a literal, or a literal with a minus before it: `byte b = 1 + 1` is
 //     refused where C# folds the sum first and then converts it.
 //   * An increment or a compound assignment writes to a name or to one member of a name —
@@ -599,7 +601,7 @@ namespace DotGram.ExpressionLanguage;
 		// a second. So a compound assignment writes to a name or a member of one, and only
 		// the plain `=` writes to an element.
 		= target: Name & at: Indices & '=' & ?!'=' & value: Assignment
-		  => @(ExpressionParser.Assigned(ExpressionParser.Place(target, at), value))
+		  => @(ExpressionParser.Assigned(ExpressionParser.Place(target, at, context.Caller), value))
 
 		// Each compound form names the assignment the API has for it and the operator it
 		// stands for: C#'s `x op= y` is `x = (T)(x op y)`, which is the node the API has only
@@ -640,8 +642,8 @@ namespace DotGram.ExpressionLanguage;
 	// only work because it runs after the parse. What the guard asks is what the
 	// construction is about to do, so the two cannot drift.
 	Target : @Expression
-		= n: Name & ('.' & member: Word)? & when @(ExpressionParser.Has(n, member))
-		=> @(member is null ? n : ExpressionParser.Member(n, member))
+		= n: Name & ('.' & member: Word)? & when @(ExpressionParser.Has(n, member, context.Caller))
+		=> @(member is null ? n : ExpressionParser.Member(n, member, context.Caller))
 
 	// `?:` groups to the right and its condition is one level tighter, so `a ?? b ? c : d`
 	// is `(a ?? b) ? c : d` and `a ? b : c ? d : e` is `a ? b : (c ? d : e)`.
@@ -740,13 +742,13 @@ namespace DotGram.ExpressionLanguage;
 	// `Console.WriteLine(s)` finds two and refuses both.
 	Postfix : @Expression
 		= target: Postfix & '.' & member: Word & args: Arguments
-		  => @(ExpressionParser.Called(target, member, args))
+		  => @(ExpressionParser.Called(target, member, args, context.Caller))
 
-		| target: Postfix & '.' & member: Word => @(ExpressionParser.Member(target, member))
+		| target: Postfix & '.' & member: Word => @(ExpressionParser.Member(target, member, context.Caller))
 
 		// An index is a list, so a two-dimensional array and an indexer of two arguments are
 		// both written without another rule.
-		| target: Postfix & at: Indices => @(ExpressionParser.Indexed(target, at))
+		| target: Postfix & at: Indices => @(ExpressionParser.Indexed(target, at, context.Caller))
 
 		| target: Name & args: Arguments => @(ExpressionParser.Invoked(target, args))
 
@@ -774,7 +776,7 @@ namespace DotGram.ExpressionLanguage;
 		// hold whole expressions. Nine nested `new`s took a second that way.
 		| "new" & type: Type & args: Arguments
 		  & (fields: Bindings | '{' & items: Elements & '}')?
-		  => @(ExpressionParser.Made(type, args, fields, items))
+		  => @(ExpressionParser.Made(type, args, fields, items, context.Caller))
 
 		// A type, then something of it. Told from `a.b` by the guard inside `NamedType`,
 		// which is the same question C# answers with a section of its own — a dotted name
@@ -785,8 +787,8 @@ namespace DotGram.ExpressionLanguage;
 		// '(', which nothing at the end of a member name can be.
 		| type: NamedType & '.' & member: Word & args: Arguments?
 		  => @(args is null
-		       ? ExpressionParser.StaticMember(type, member)
-		       : ExpressionParser.Called(type, member, args))
+		       ? ExpressionParser.StaticMember(type, member, context.Caller)
+		       : ExpressionParser.Called(type, member, args, context.Caller))
 
 		// §7.8, and the one thing in this language that changes what a construction builds
 		// without changing anything about what is read. The operand is an ordinary
@@ -887,9 +889,20 @@ public static partial class ExpressionParser
 	/// <exception cref="OverflowException">
 	/// An integer too large for any integral type, which C# refuses as well (CS1021).
 	/// </exception>
-	public static LambdaExpression Parse(string text)
+	/// <remarks>
+	/// What a text may name is what C# written in the calling assembly could: public types,
+	/// and that assembly's internal ones and their internal members. Which assembly that is,
+	/// is asked of the call itself — which is why this is never inlined into its caller, and
+	/// why it is asked here and not further in, where the frame asked about would be this
+	/// class's own.
+	/// </remarks>
+	[MethodImpl(MethodImplOptions.NoInlining)]
+	public static LambdaExpression Parse(string text) => Parse(text, Assembly.GetCallingAssembly());
+
+	/// <summary>The same, for a caller already asked.</summary>
+	static LambdaExpression Parse(string text, Assembly caller)
 	{
-		var state = new State();
+		var state = new State(caller);
 		var match = TryParseLambda(text, state);
 
 		if (match.IsSuccess)
@@ -917,9 +930,10 @@ public static partial class ExpressionParser
 	/// does not say where.
 	/// </para>
 	/// </remarks>
+	[MethodImpl(MethodImplOptions.NoInlining)]
 	public static Match<LambdaExpression> TryParse(string text)
 	{
-		var state = new State();
+		var state = new State(Assembly.GetCallingAssembly());
 		Match<LambdaExpression> match;
 
 		try
@@ -955,10 +969,11 @@ public static partial class ExpressionParser
 	/// converted to what the delegate returns, as C# converts a lambda's body, so
 	/// `(int x) => x` is a <c>Func&lt;int, long&gt;</c> as well.
 	/// </remarks>
+	[MethodImpl(MethodImplOptions.NoInlining)]
 	public static TDelegate Compile<TDelegate>(string text)
 		where TDelegate : Delegate
 	{
-		var lambda  = Parse(text);
+		var lambda  = Parse(text, Assembly.GetCallingAssembly());
 		var returns = typeof(TDelegate).GetMethod("Invoke")!.ReturnType;
 		var body    = returns == typeof(void) ? lambda.Body : Converted(lambda.Body, returns);
 
@@ -989,16 +1004,21 @@ public static partial class ExpressionParser
 	/// nested in it one at a time — so `Environment.SpecialFolder` is found through
 	/// <c>Environment</c>, which metadata calls <c>System.Environment+SpecialFolder</c> and no
 	/// full name written with dots would reach.
+	///
+	/// The calling assembly is asked first, and its internal types answer as well as its
+	/// public ones: a type the calling code declares stands in front of one of the same full
+	/// name elsewhere, as a type in C#'s own compilation does.
 	/// </remarks>
-	static Type? Qualified(string? space, string dotted)
+	static Type? Qualified(string? space, string dotted, Assembly caller)
 	{
 		var end = dotted.Length;
 
 		while (true)
 		{
 			var head = dotted.Substring(0, end);
+			var full = space is null ? head : space + "." + head;
 
-			if (Loaded.Find(space is null ? head : space + "." + head) is { } type)
+			if ((Loaded.Inside(caller, full) ?? Loaded.Find(full)) is { } type)
 			{
 				for (var at = end; type is not null && at < dotted.Length;)
 				{
@@ -1007,7 +1027,7 @@ public static partial class ExpressionParser
 					if (next < 0)
 						next = dotted.Length;
 
-					type = type.GetNestedType(dotted.Substring(at + 1, next - at - 1), BindingFlags.Public);
+					type = Nested(type, dotted.Substring(at + 1, next - at - 1), caller);
 					at   = next;
 				}
 
@@ -1020,6 +1040,18 @@ public static partial class ExpressionParser
 				return null;
 		}
 	}
+
+	/// <summary>A type nested in another by that name, where C# in the calling assembly could name it.</summary>
+	/// <remarks>
+	/// Public, or — inside a type the calling assembly declares — internal or protected
+	/// internal. Never private or protected alone: nothing here is written inside the type
+	/// that holds it, or one derived from it.
+	/// </remarks>
+	static Type? Nested(Type outer, string name, Assembly caller) =>
+		outer.GetNestedType(name, BindingFlags.Public | BindingFlags.NonPublic) is { } nested &&
+		(nested.IsNestedPublic || outer.Assembly == caller && (nested.IsNestedAssembly || nested.IsNestedFamORAssem))
+			? nested
+			: null;
 
 	/// <summary>What the assemblies loaded into this process say about names.</summary>
 	/// <remarks>
@@ -1058,6 +1090,70 @@ public static partial class ExpressionParser
 		/// namespace declares a type of its own: it is there because something is in it.
 		/// </remarks>
 		public static bool Has(string @namespace) => (_namespaces ?? Gather()).Contains(@namespace);
+
+		static readonly ConcurrentDictionary<(Assembly, string), Type?> _inside = new();
+
+		static readonly ConcurrentDictionary<Assembly, HashSet<string>> _insideNamespaces = new();
+
+		/// <summary>
+		/// The type that full name means in the calling assembly — an internal one as well —
+		/// where that assembly's own code could name it; or null.
+		/// </summary>
+		/// <remarks>
+		/// Kept apart from the rest and never forgotten: what one assembly declares does not
+		/// change when another loads.
+		/// </remarks>
+		public static Type? Inside(Assembly caller, string fullName) =>
+			_inside.GetOrAdd(
+				(caller, fullName),
+				static key => key.Item1.GetType(key.Item2, false, false) is { } type && Nameable(type) ? type : null);
+
+		/// <summary>Whether the calling assembly declares a type in that namespace, or in one inside it.</summary>
+		public static bool HasInside(Assembly caller, string @namespace) =>
+			_insideNamespaces.GetOrAdd(caller, static assembly => Spaces(assembly)).Contains(@namespace);
+
+		/// <summary>Every namespace an assembly's nameable types stand in, and each one around those.</summary>
+		static HashSet<string> Spaces(Assembly assembly)
+		{
+			IEnumerable<Type> types;
+
+			try
+			{
+				types = assembly.GetTypes();
+			}
+			catch (ReflectionTypeLoadException partial)
+			{
+				types = partial.Types.OfType<Type>();
+			}
+
+			var namespaces = new HashSet<string>(StringComparer.Ordinal);
+
+			foreach (var type in types)
+			{
+				if (!Nameable(type))
+					continue;
+
+				var space = type.Namespace;
+
+				while (space is not null && namespaces.Add(space))
+					space = space.LastIndexOf('.') is var dot and >= 0 ? space.Substring(0, dot) : null;
+			}
+
+			return namespaces;
+		}
+
+		/// <summary>
+		/// Whether code in a type's own assembly could name it: nested, if at all, only in types
+		/// it could name, and never private or protected alone.
+		/// </summary>
+		static bool Nameable(Type type)
+		{
+			for (var each = type; each.IsNested; each = each.DeclaringType!)
+				if (!(each.IsNestedPublic || each.IsNestedAssembly || each.IsNestedFamORAssem))
+					return false;
+
+			return true;
+		}
 
 		static Type? Search(string name)
 		{
@@ -1265,7 +1361,7 @@ public static partial class ExpressionParser
 	/// that one does. No member is not an error here: it means this reading is not a member
 	/// access, and something else will read the text.
 	/// </remarks>
-	public static bool Has(Expression target, string? name)
+	public static bool Has(Expression target, string? name, Assembly caller)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
@@ -1273,7 +1369,7 @@ public static partial class ExpressionParser
 		return
 			name is null ||
 			target.Type.IsArray && string.Equals(name, "Length", StringComparison.Ordinal) ||
-			InstanceMember(target.Type, name) is not null;
+			InstanceMember(target.Type, name, caller) is not null;
 	}
 
 	/// <summary>What <c>a.b</c> reads, which the type of <c>a</c> decides.</summary>
@@ -1284,7 +1380,7 @@ public static partial class ExpressionParser
 	/// until after, so the only place that can ask the operand what it is, is here.
 	/// </remarks>
 	/// <exception cref="FormatException">The type has no such property or field.</exception>
-	public static Expression Member(Expression target, string name)
+	public static Expression Member(Expression target, string name, Assembly caller)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
@@ -1292,7 +1388,7 @@ public static partial class ExpressionParser
 		if (target.Type.IsArray && string.Equals(name, "Length", StringComparison.Ordinal))
 			return Expression.ArrayLength(target);
 
-		return InstanceMember(target.Type, name) switch
+		return InstanceMember(target.Type, name, caller) switch
 		{
 			PropertyInfo property => Expression.Property(target, property),
 			FieldInfo    field    => Expression.Field(target, field),
@@ -1300,7 +1396,10 @@ public static partial class ExpressionParser
 		};
 	}
 
-	/// <summary>The public instance property or field a name means on a type, or null.</summary>
+	/// <summary>
+	/// The instance property or field a name means on a type, where C# in the calling
+	/// assembly could reach it — public, or internal to that assembly — or null.
+	/// </summary>
 	/// <remarks>
 	/// <para>
 	/// Not <c>Expression.PropertyOrField</c>, which answers a different question in two
@@ -1315,35 +1414,60 @@ public static partial class ExpressionParser
 	/// both of them read `s.length` as `s.Length`.
 	/// </para>
 	/// </remarks>
-	static MemberInfo? InstanceMember(Type type, string name)
+	static MemberInfo? InstanceMember(Type type, string name, Assembly caller) =>
+		_instanceMembers.GetOrAdd((type, name, caller), static key => SearchedMember(key.Item1, key.Item2, key.Item3));
+
+	/// <summary>The search <see cref="InstanceMember"/> makes, once for each type, name and caller.</summary>
+	static MemberInfo? SearchedMember(Type type, string name, Assembly caller)
 	{
-		const BindingFlags Declared = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+		const BindingFlags Declared =
+			BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
 		// The type and what it derives from, and — for an interface — what it inherits.
 		for (var each = type; each is not null; each = each.BaseType)
-			if (DeclaredOn(each, name, Declared) is { } found)
+			if (DeclaredOn(each, name, Declared, caller) is { } found)
 				return found;
 
 		if (type.IsInterface)
 			foreach (var inherited in type.GetInterfaces())
-				if (DeclaredOn(inherited, name, Declared) is { } found)
+				if (DeclaredOn(inherited, name, Declared, caller) is { } found)
 					return found;
 
 		return null;
 	}
 
 	/// <summary>
-	/// A field or a property that takes no index, declared by that type itself. An array
-	/// rather than <c>GetProperty</c>, which throws where it finds more than one.
+	/// A field or a property that takes no index, declared by that type itself and reachable
+	/// from the calling assembly. An array rather than <c>GetProperty</c>, which throws where
+	/// it finds more than one.
 	/// </summary>
-	static MemberInfo? DeclaredOn(Type type, string name, BindingFlags flags)
+	static MemberInfo? DeclaredOn(Type type, string name, BindingFlags flags, Assembly caller)
 	{
 		foreach (var member in type.GetMember(name, MemberTypes.Property | MemberTypes.Field, flags))
-			if (member is FieldInfo || member is PropertyInfo property && property.GetIndexParameters().Length == 0)
+			if (Reachable(member, caller) &&
+				(member is FieldInfo || member is PropertyInfo property && property.GetIndexParameters().Length == 0))
 				return member;
 
 		return null;
 	}
+
+	/// <summary>Whether C# written in the calling assembly could reach that member.</summary>
+	/// <remarks>
+	/// Public, or internal — `protected internal` included, being internal as well — to the
+	/// assembly that calls. Never private or protected alone: nothing here is written inside
+	/// the type or one derived from it. A property is reachable where either of its accessors
+	/// is, as C# declares a property's accessibility and lets an accessor narrow it.
+	/// </remarks>
+	static bool Reachable(MemberInfo? member, Assembly caller) => member switch
+	{
+		FieldInfo field =>
+			field.IsPublic || (field.IsAssembly || field.IsFamilyOrAssembly) && field.DeclaringType!.Assembly == caller,
+		MethodBase method =>
+			method.IsPublic || (method.IsAssembly || method.IsFamilyOrAssembly) && method.DeclaringType!.Assembly == caller,
+		PropertyInfo property =>
+			Reachable(property.GetMethod, caller) || Reachable(property.SetMethod, caller),
+		_ => false,
+	};
 
 	/// <summary>The same element as a place to write rather than a value to read.</summary>
 	/// <remarks>
@@ -1352,7 +1476,7 @@ public static partial class ExpressionParser
 	/// Which one `a[0]` means is decided by which side of the `=` it stands on, which the
 	/// grammar knows and the API cannot.
 	/// </remarks>
-	public static Expression Place(Expression target, Expression[] at)
+	public static Expression Place(Expression target, Expression[] at, Assembly caller)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
@@ -1360,7 +1484,9 @@ public static partial class ExpressionParser
 		if (at is null)
 			throw new ArgumentNullException(nameof(at));
 
-		return target.Type.IsArray ? Expression.ArrayAccess(target, Converted(at, typeof(int))) : Indexed(target, at);
+		return target.Type.IsArray
+			? Expression.ArrayAccess(target, Converted(at, typeof(int)))
+			: Indexed(target, at, caller);
 	}
 
 	/// <summary>What <c>a[i]</c> reads, likewise.</summary>
@@ -1370,7 +1496,7 @@ public static partial class ExpressionParser
 	/// which through its default member, which is what an indexer is, and which of several
 	/// is meant is the same overload resolution a call makes.
 	/// </remarks>
-	public static Expression Indexed(Expression target, Expression[] at)
+	public static Expression Indexed(Expression target, Expression[] at, Assembly caller)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
@@ -1381,7 +1507,7 @@ public static partial class ExpressionParser
 		if (target.Type.IsArray)
 			return Expression.ArrayIndex(target, Converted(at, typeof(int)));
 
-		var chosen = Resolved(Indexers(target.Type, at), at, $"'{target.Type.Name}' has no indexer");
+		var chosen = Resolved(Indexers(target.Type, at, caller), at, $"'{target.Type.Name}' has no indexer");
 
 		return Expression.Property(target, (PropertyInfo)chosen.Member, Passed(chosen, at));
 	}
@@ -1389,23 +1515,36 @@ public static partial class ExpressionParser
 	/// <summary>A static property or a static field, whichever that name is.</summary>
 	/// <remarks>
 	/// Two factories and one syntax: `T.Name` says nothing about which, and the type does.
-	/// The instance form needs no such method — <c>Expression.PropertyOrField</c> is the
-	/// API's own answer to the same question, and there is no static overload of it.
+	/// Looked for up the base types, as C# finds a static member through a derived type, and
+	/// among the members the calling assembly could reach — the instance form's rule, which
+	/// is <see cref="InstanceMember"/>.
 	/// </remarks>
-	public static Expression StaticMember(Type type, string name)
+	public static Expression StaticMember(Type type, string name, Assembly caller)
 	{
 		if (type is null)
 			throw new ArgumentNullException(nameof(type));
 
-		const BindingFlags Statics = BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy;
+		return _staticMembers.GetOrAdd((type, name, caller), static key => SearchedStatic(key.Item1, key.Item2, key.Item3))
+			switch
+			{
+				PropertyInfo property => Expression.Property(null, property),
+				FieldInfo    field    => Expression.Field(null, field),
+				_                     => throw new FormatException($"'{type.Name}' has no static '{name}'."),
+			};
+	}
 
-		if (type.GetProperty(name, Statics) is { } property)
-			return Expression.Property(null, property);
+	/// <summary>The search <see cref="StaticMember"/> makes, once for each type, name and caller.</summary>
+	static MemberInfo? SearchedStatic(Type type, string name, Assembly caller)
+	{
+		const BindingFlags Statics =
+			BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly;
 
-		if (type.GetField(name, Statics) is { } field)
-			return Expression.Field(null, field);
+		for (var each = type; each is not null; each = each.BaseType)
+			foreach (var member in each.GetMember(name, MemberTypes.Property | MemberTypes.Field, Statics))
+				if (Reachable(member, caller))
+					return member;
 
-		throw new FormatException($"'{type.Name}' has no static '{name}'.");
+		return null;
 	}
 
 	// ── Calls: the overload C# would choose ─────────────────────────────────────
@@ -1420,26 +1559,27 @@ public static partial class ExpressionParser
 	// and then the one better than every other.
 
 	/// <summary>A call on a value: the method C# would choose for these arguments.</summary>
-	public static Expression Called(Expression target, string name, Expression[] arguments)
+	public static Expression Called(Expression target, string name, Expression[] arguments, Assembly caller)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
 
 		var chosen = Resolved(
-			Methods(target.Type, name, instance: true, arguments), arguments,
+			Methods(target.Type, name, instance: true, arguments, caller), arguments,
 			$"'{target.Type.Name}' has no method '{name}'");
 
 		return Expression.Call(target, (MethodInfo)chosen.Member, Passed(chosen, arguments));
 	}
 
 	/// <summary>A call on a type: the static method C# would choose for these arguments.</summary>
-	public static Expression Called(Type type, string name, Expression[] arguments)
+	public static Expression Called(Type type, string name, Expression[] arguments, Assembly caller)
 	{
 		if (type is null)
 			throw new ArgumentNullException(nameof(type));
 
 		var chosen = Resolved(
-			Methods(type, name, instance: false, arguments), arguments, $"'{type.Name}' has no method '{name}'");
+			Methods(type, name, instance: false, arguments, caller), arguments,
+			$"'{type.Name}' has no method '{name}'");
 
 		return Expression.Call((MethodInfo)chosen.Member, Passed(chosen, arguments));
 	}
@@ -1465,15 +1605,14 @@ public static partial class ExpressionParser
 	/// A value type's constructor of no arguments is not in its metadata at all, and
 	/// <c>Expression.New</c> has a form for it that takes the type alone.
 	/// </remarks>
-	static NewExpression Constructed(Type type, Expression[] arguments)
+	static NewExpression Constructed(Type type, Expression[] arguments, Assembly caller)
 	{
 		if (arguments.Length == 0 && type.IsValueType)
 			return Expression.New(type);
 
 		var found = new List<Candidate>();
 
-		foreach (var (constructor, parameters) in _constructors.GetOrAdd(
-			type, static type => [.. type.GetConstructors().Select(static one => ((MemberInfo)one, one.GetParameters()))]))
+		foreach (var (constructor, parameters) in _constructors.GetOrAdd((type, caller), static key => Constructors(key)))
 			if (Applicable(constructor, parameters, arguments) is { } candidate)
 				found.Add(candidate);
 
@@ -1501,31 +1640,36 @@ public static partial class ExpressionParser
 	/// is <c>ICollection&lt;T&gt;</c>'s. A generic method is no candidate: nothing here can
 	/// name its type arguments, and nothing infers them.
 	/// </remarks>
-	static List<Candidate> Methods(Type type, string name, bool instance, Expression[] arguments)
+	static List<Candidate> Methods(Type type, string name, bool instance, Expression[] arguments, Assembly caller)
 	{
 		var found = new List<Candidate>();
 
-		foreach (var (method, parameters) in _methods.GetOrAdd((type, name, instance), static key => Named(key)))
+		foreach (var (method, parameters) in _methods.GetOrAdd((type, name, instance, caller), static key => Named(key)))
 			if (Applicable(method, parameters, arguments) is { } candidate)
 				found.Add(candidate);
 
 		return found;
 	}
 
-	/// <summary>The methods a type has by that name, with their parameters, before any argument is asked.</summary>
-	static (MemberInfo, ParameterInfo[])[] Named((Type Type, string Name, bool Instance) key)
+	/// <summary>
+	/// The methods a type has by that name that the calling assembly could reach, with their
+	/// parameters, before any argument is asked.
+	/// </summary>
+	static (MemberInfo, ParameterInfo[])[] Named((Type Type, string Name, bool Instance, Assembly Caller) key)
 	{
+		const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic;
+
 		var named = new List<(MemberInfo, ParameterInfo[])>();
 
 		Consider(key.Type.GetMethods(
 			key.Instance
-				? BindingFlags.Public | BindingFlags.Instance
-				: BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy));
+				? Any | BindingFlags.Instance
+				: Any | BindingFlags.Static | BindingFlags.FlattenHierarchy));
 
 		if (key.Instance && key.Type.IsInterface)
 		{
 			foreach (var inherited in key.Type.GetInterfaces())
-				Consider(inherited.GetMethods(BindingFlags.Public | BindingFlags.Instance));
+				Consider(inherited.GetMethods(Any | BindingFlags.Instance));
 
 			Consider(typeof(object).GetMethods(BindingFlags.Public | BindingFlags.Instance));
 		}
@@ -1535,10 +1679,19 @@ public static partial class ExpressionParser
 		void Consider(MethodInfo[] methods)
 		{
 			foreach (var method in methods)
-				if (string.Equals(method.Name, key.Name, StringComparison.Ordinal) && !method.ContainsGenericParameters)
+				if (string.Equals(method.Name, key.Name, StringComparison.Ordinal) && !method.ContainsGenericParameters &&
+					Reachable(method, key.Caller))
 					named.Add((method, method.GetParameters()));
 		}
 	}
+
+	/// <summary>A type's constructors the calling assembly could reach, with their parameters.</summary>
+	static (MemberInfo, ParameterInfo[])[] Constructors((Type Type, Assembly Caller) key) =>
+	[
+		.. key.Type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+			.Where(one => Reachable(one, key.Caller))
+			.Select(static one => ((MemberInfo)one, one.GetParameters())),
+	];
 
 	// What reflection answers about a type is the same every time it is asked, and costs an
 	// allocation every time: a method's parameters are copied out on each `GetParameters`. A
@@ -1546,31 +1699,66 @@ public static partial class ExpressionParser
 	// `IntPtr` declares a conversion to it — so each answer is kept once it has been worked
 	// out, as the names of types already are.
 
-	static readonly ConcurrentDictionary<(Type, string, bool), (MemberInfo, ParameterInfo[])[]> _methods = new();
+	// Kept by caller as well, since what is reachable depends on who asks.
 
-	static readonly ConcurrentDictionary<Type, (MemberInfo, ParameterInfo[])[]> _constructors = new();
+	static readonly ConcurrentDictionary<(Type, string, bool, Assembly), (MemberInfo, ParameterInfo[])[]> _methods = new();
+
+	static readonly ConcurrentDictionary<(Type, Assembly), (MemberInfo, ParameterInfo[])[]> _constructors = new();
+
+	static readonly ConcurrentDictionary<(Type, Assembly), (MemberInfo, ParameterInfo[])[]> _indexers = new();
+
+	// A member read is asked about as often as a call, and more: every `s.Length` asks it,
+	// and every compound assignment asks it once in a guard and again where it is built.
+
+	static readonly ConcurrentDictionary<(Type, string, Assembly), MemberInfo?> _instanceMembers = new();
+
+	static readonly ConcurrentDictionary<(Type, string, Assembly), MemberInfo?> _staticMembers = new();
 
 	static readonly ConcurrentDictionary<(Type, Type), MethodInfo?> _operators = new();
 
-	/// <summary>The indexers the arguments fit, an interface's inherited ones among them.</summary>
-	static List<Candidate> Indexers(Type type, Expression[] arguments)
+	/// <summary>
+	/// The indexers the arguments fit and the calling assembly could reach, an interface's
+	/// inherited ones among them.
+	/// </summary>
+	/// <remarks>
+	/// An indexer is the property a type's <c>DefaultMemberAttribute</c> names — `Item`
+	/// usually, `Chars` for a string — and it is looked for by that name among every property
+	/// rather than through <c>GetDefaultMembers</c>, which answers with public ones only.
+	/// </remarks>
+	static List<Candidate> Indexers(Type type, Expression[] arguments, Assembly caller)
 	{
 		var found = new List<Candidate>();
 
-		Consider(type);
-
-		if (type.IsInterface)
-			foreach (var inherited in type.GetInterfaces())
-				Consider(inherited);
+		foreach (var (indexer, parameters) in _indexers.GetOrAdd((type, caller), static key => Indexing(key)))
+			if (Applicable(indexer, parameters, arguments) is { } candidate)
+				found.Add(candidate);
 
 		return found;
+	}
+
+	/// <summary>A type's indexers the caller could reach, with their parameters, before any argument is asked.</summary>
+	static (MemberInfo, ParameterInfo[])[] Indexing((Type Type, Assembly Caller) key)
+	{
+		var indexers = new List<(MemberInfo, ParameterInfo[])>();
+
+		Consider(key.Type);
+
+		if (key.Type.IsInterface)
+			foreach (var inherited in key.Type.GetInterfaces())
+				Consider(inherited);
+
+		return [.. indexers];
 
 		void Consider(Type declaring)
 		{
-			foreach (var member in declaring.GetDefaultMembers())
-				if (member is PropertyInfo indexer && indexer.GetIndexParameters() is { Length: > 0 } parameters &&
-					Applicable(indexer, parameters, arguments) is { } candidate)
-					found.Add(candidate);
+			if (declaring.GetCustomAttribute<DefaultMemberAttribute>(true)?.MemberName is not { } name)
+				return;
+
+			foreach (var indexer in declaring.GetProperties(
+				BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+				if (string.Equals(indexer.Name, name, StringComparison.Ordinal) && Reachable(indexer, key.Caller) &&
+					indexer.GetIndexParameters() is { Length: > 0 } parameters)
+					indexers.Add((indexer, parameters));
 		}
 	}
 
@@ -1847,7 +2035,7 @@ public static partial class ExpressionParser
 	/// something above them. So the pairs travel as text and a value, and the member is
 	/// found here, where the type is in hand.
 	/// </remarks>
-	public static MemberBinding[] Bound(Type type, Setting[] settings)
+	public static MemberBinding[] Bound(Type type, Setting[] settings, Assembly caller)
 	{
 		if (type is null)
 			throw new ArgumentNullException(nameof(type));
@@ -1860,22 +2048,15 @@ public static partial class ExpressionParser
 		for (var at = 0; at < settings.Length; at++)
 		{
 			var setting = settings[at];
-			var members = type.GetMember(
-				setting.Name,
-				MemberTypes.Property | MemberTypes.Field,
-				BindingFlags.Public | BindingFlags.Instance);
-
-			if (members.Length != 1)
-				throw new FormatException($"'{type.Name}' has no one member named '{setting.Name}'.");
-
-			var member = members[0];
+			var member  = InstanceMember(type, setting.Name, caller) ?? throw new FormatException(
+				$"'{type.Name}' has no property or field named '{setting.Name}'.");
 
 			// Which of the three the text wrote, answered here rather than where it was
 			// read: a nested initializer needs the *member's* type to go on, and that is
 			// known one step further in than the name was.
 			bound[at] =
-				setting.Fields is { } fields ? Expression.MemberBind(member, Bound(MemberType(member), fields)) :
-				setting.Items  is { } items  ? Expression.ListBind(member, Added(MemberType(member), items)) :
+				setting.Fields is { } fields ? Expression.MemberBind(member, Bound(MemberType(member), fields, caller)) :
+				setting.Items  is { } items  ? Expression.ListBind(member, Added(MemberType(member), items, caller)) :
 				Expression.Bind(member, Converted(setting.Value!, MemberType(member)));
 		}
 
@@ -1893,7 +2074,7 @@ public static partial class ExpressionParser
 	/// question about the type, and the type is a sibling of the braces rather than
 	/// something inside them.
 	/// </remarks>
-	public static ElementInit[] Added(Type type, Element[] elements)
+	public static ElementInit[] Added(Type type, Element[] elements, Assembly caller)
 	{
 		if (type is null)
 			throw new ArgumentNullException(nameof(type));
@@ -1907,7 +2088,7 @@ public static partial class ExpressionParser
 		{
 			var arguments = elements[at].Arguments;
 			var chosen    = Resolved(
-				Methods(type, "Add", instance: true, arguments), arguments, $"'{type.Name}' has no method 'Add'");
+				Methods(type, "Add", instance: true, arguments, caller), arguments, $"'{type.Name}' has no method 'Add'");
 
 			added[at] = Expression.ElementInit((MethodInfo)chosen.Member, Passed(chosen, arguments));
 		}
@@ -1923,12 +2104,12 @@ public static partial class ExpressionParser
 	/// — so the reading is one and the choosing is here. It is the shape a generator that
 	/// factored the common head of its alternatives would let the grammar keep.
 	/// </remarks>
-	public static Expression Made(Type type, Expression[] args, Setting[]? fields, Element[]? items)
+	public static Expression Made(Type type, Expression[] args, Setting[]? fields, Element[]? items, Assembly caller)
 	{
-		var made = Constructed(type, args);
+		var made = Constructed(type, args, caller);
 
-		return fields is not null ? Expression.MemberInit(made, Bound(type, fields))
-			: items is not null   ? Expression.ListInit(made, Added(type, items))
+		return fields is not null ? Expression.MemberInit(made, Bound(type, fields, caller))
+			: items is not null   ? Expression.ListInit(made, Added(type, items, caller))
 			: made;
 	}
 
@@ -2592,6 +2773,25 @@ public static partial class ExpressionParser
 	/// </remarks>
 	public sealed class State
 	{
+		/// <summary>A reading on behalf of whoever calls this.</summary>
+		/// <remarks>
+		/// Asked of the call itself — which is why this is never inlined into its caller — so
+		/// that a parser used through the generated <c>TryParseLambda</c> sees what one used
+		/// through <see cref="Parse"/> sees: public types, and the calling assembly's internal
+		/// ones.
+		/// </remarks>
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		public State()
+			: this(Assembly.GetCallingAssembly())
+		{
+		}
+
+		/// <summary>A reading on behalf of that assembly, asked already.</summary>
+		internal State(Assembly caller) => Caller = caller ?? throw new ArgumentNullException(nameof(caller));
+
+		/// <summary>The assembly the text is read for, whose internal types and members it may name.</summary>
+		public Assembly Caller { get; }
+
 		/// <summary>A block's extent, which is the whole of what a scope is.</summary>
 		readonly record struct Scope(int From, int To);
 
@@ -2752,7 +2952,7 @@ public static partial class ExpressionParser
 			if (@namespace is null)
 				throw new ArgumentNullException(nameof(@namespace));
 
-			if (!Loaded.Has(@namespace))
+			if (!Loaded.Has(@namespace) && !Loaded.HasInside(Caller, @namespace))
 			{
 				Refuse(at.Start, $"The type or namespace name '{@namespace}' could not be found.");
 
@@ -2821,7 +3021,7 @@ public static partial class ExpressionParser
 
 			for (var at = -1; at < (_imports?.Count ?? 0); at++)
 			{
-				var found = Qualified(at < 0 ? null : _imports![at], name);
+				var found = Qualified(at < 0 ? null : _imports![at], name, Caller);
 
 				if (found is null || found == one || found == two)
 					continue;

@@ -55,7 +55,9 @@ match.Error;       // what Expression.Subtract said about String and Int32
 
 A type named rather than spelled as a keyword is found the way C# finds one: written whole,
 or through a `using` at the top of the text. Nothing is imported unasked, `System`
-included, and a text's `using`s are its own — the next text starts with none.
+included, and a text's `using`s are its own — the next text starts with none. What it can
+name is what C# written in the calling assembly could: public types, and that assembly's
+own internal types and members.
 
 ```csharp
 var count = ExpressionParser.Compile<Func<IList<int>, int>>(

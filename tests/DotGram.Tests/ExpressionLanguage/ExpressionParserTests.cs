@@ -567,13 +567,22 @@ public sealed class ExpressionParserTests
 				"using System; () => Environment.SpecialFolder.Desktop")());
 
 	[Fact]
-	public void Only_a_public_type_is_one() =>
-		// `Tools` is public and `Hidden` is not: C# in another assembly names the first and not
-		// the second, and so does this.
+	public void The_calling_assembly_names_its_internal_types_and_members_as_its_own_code_does() =>
+		// `Hidden` is internal to this assembly, which is the one calling: C# written here
+		// names it, its internal constructor and its internal members, and so does a text
+		// read for it — through `Compile`, so the compiled tree is what reaches them.
 		Assert.Equal(
-			[true, false],
-			new[] { "() => Tools.Scaled(1)", "() => Hidden.Value" }.Select(
-				text => ExpressionParser.TryParse("using DotGram.Tests.ExpressionLanguage; " + text).IsSuccess));
+			[42, 3, 7],
+			new[] { "() => new Hidden(21).Twice()", "() => new Hidden(3).Value", "() => Hidden.Seven" }.Select(
+				text => ExpressionParser.Compile<Func<int>>("using DotGram.Tests.ExpressionLanguage; " + text)()));
+
+	[Fact]
+	public void But_not_another_assembly_s()
+	{
+		// `System.SR` is internal to the runtime's own library: nameable there, and not here.
+		Assert.NotNull(typeof(object).Assembly.GetType("System.SR"));
+		Assert.False(ExpressionParser.TryParse("() => System.SR.ArgumentNull_Generic").IsSuccess);
+	}
 
 	// ── Calls: the overload C# would choose ─────────────────────────────────────
 
@@ -1335,8 +1344,17 @@ public static class Tools
 	public static string Pick(decimal value) => "decimal";
 }
 
-/// <summary>A type internal to this assembly, which a text read by another does not reach.</summary>
-static class Hidden
+/// <summary>
+/// A type internal to this assembly, with internal members, which a text this assembly
+/// reads may name and one read for another may not.
+/// </summary>
+sealed class Hidden
 {
-	public static int Value => 3;
+	internal Hidden(int value) => Value = value;
+
+	internal static int Seven => 7;
+
+	internal int Value;
+
+	internal int Twice() => Value * 2;
 }
