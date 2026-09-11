@@ -1243,6 +1243,52 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>
+	/// The graph pattern, as the engine answers it at every level: no comma and no brackets,
+	/// which the syntax shows, a path of any length only inside `SHORTEST_PATH`, one to it,
+	/// and `LAST_NODE` only at its ends.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT * FROM a WHERE MATCH(N-(E)->N2, N2-(E2)->N3)")]
+	[InlineData("SELECT * FROM a WHERE MATCH((N-(E)->N2) AND N2-(E)->N3)")]
+	[InlineData("SELECT * FROM a WHERE MATCH(N(-(E)->N2)+)")]
+	[InlineData("SELECT * FROM a WHERE MATCH(N = N2)")]
+	[InlineData("SELECT * FROM a WHERE MATCH(LAST_NODE(N) = N2)")]
+	[InlineData("SELECT * FROM a WHERE MATCH(LAST_NODE(dbo.N) = LAST_NODE(N3))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N-(E)->N2))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2)))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2)+ AND N2(-(E)->N3)+))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH((LAST_NODE(N)-(E)->)+N2))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->LAST_NODE(N2))+))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH((N-(E)->N2)+N3))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH((N-(E)->N2-(E2)->)+))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2){,3}))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH((N-(E)->){3}N2))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2){1,3}+))")]
+	public void The_graph_pattern_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH((N-(E)->N2-(E2)->)+N3))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH((N-(E)->N2<-(E2)-)+N3))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2-(E2)->N3)+))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2){1,}))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2){ 1 , 3 }))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(LAST_NODE(N)(-(E)->N2)+))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH((N-(E)->){1,5}LAST_NODE(N2)))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2)+) AND SHORTEST_PATH(N(-(E)->N3)+))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(SHORTEST_PATH(N(-(E)->N2)+) AND LAST_NODE(N2) = LAST_NODE(N3))")]
+	[InlineData("SELECT * FROM a WHERE MATCH(LAST_NODE(N)-(E)->N2)")]
+	[InlineData("SELECT * FROM a WHERE MATCH(N-(E)->LAST_NODE(N2)-(E2)->N3)")]
+	[InlineData("SELECT * FROM a WHERE MATCH([N]-([E])->[N2])")]
+	public void The_graph_pattern_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>Table, query and join hints, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM t WITH (FOO)")]

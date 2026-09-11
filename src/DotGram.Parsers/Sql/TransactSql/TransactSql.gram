@@ -1110,45 +1110,45 @@ parse Dialect.Script with (Version = "170") as ParseScript170
 GraphMatch : @Expression
 	= "MATCH"i & '(' & t: GraphPattern & ')' => @(new Expression.GraphMatch(t))
 
-GraphPattern = GraphAnd & (',' & GraphAnd)*
+// `AND` inside a drawing joins two drawings, and it is the only connective there is: the
+// syntax says `OR` and `NOT` are not supported in a pattern. It shows a comma as well, and
+// a drawing in brackets after `AND`; the engine refuses both, at every level, and so does
+// this.
+GraphPattern = GraphItem & ("AND"i & GraphItem)*
 
-// `AND` inside a drawing joins two drawings, and it is the only connective there is:
-// the syntax says `OR` and `NOT` are not supported in a pattern.
-GraphAnd = GraphItem & ("AND"i & GraphItem)*
-
+// A path of any length only inside `SHORTEST_PATH`, one to it; the last nodes of two paths
+// compared, and nothing else compared; or a chain of nodes and edges, either end of which
+// may be a path's last node.
 GraphItem
-	= "SHORTEST_PATH"i & '(' & GraphAnd & ')'
-	| '(' & GraphAnd & ')'
-	| GraphLengthPattern & GraphNode
-	| GraphNode & GraphItemTail
+	= "SHORTEST_PATH"i & '(' & GraphLengthPattern & ')'
+	| GraphLastNode & GraphLastTail
+	| GraphAlias & GraphChain
 
-GraphItemTail
-	= '=' & GraphNode
-	| GraphStep+
+GraphLastTail = '=' & GraphLastNode | GraphChain
+GraphChain    = (GraphEdge & GraphNode)+
 
-GraphStep
-	= GraphEdge & GraphNode
-	| GraphLengthPattern
-
-// A node is a table's name or the alias it was given in the `FROM` clause, and
-// `LAST_NODE` names the far end of a path rather than a table.
-GraphNode
-	= "LAST_NODE"i & '(' & QualifiedName & ')'
-	| QualifiedName
+// A node is the alias a table was given in the `FROM` clause, or its name, one part and no
+// more: `dbo.N` is refused. `LAST_NODE` names the far end of a path rather than a table.
+GraphNode     = GraphLastNode | GraphAlias
+GraphLastNode = "LAST_NODE"i & '(' & GraphAlias & ')'
+GraphAlias    = Identifier
 
 // An edge points one way or the other and must say which.
 GraphEdge
-	= '<' & '-' & '(' & QualifiedName & ')' & '-'
-	| '-' & '(' & QualifiedName & ')' & '-' & '>'
+	= '<' & '-' & '(' & GraphAlias & ')' & '-'
+	| '-' & '(' & GraphAlias & ')' & '-' & '>'
 
 // The pattern `SHORTEST_PATH` repeats, with the regular expression's own two quantifiers.
 // It is written edge first or node first, and the difference is which end the node that
-// bounds it stands at.
+// bounds it stands at. Inside the brackets the nodes are aliases: `LAST_NODE` is refused
+// there and read at the end outside them.
 GraphLengthPattern
-	= '(' & GraphStep+ & ')' & GraphQuantifier
-	| '(' & GraphNode & GraphEdge & ')' & GraphQuantifier
+	= GraphNode & '(' & (GraphEdge & GraphAlias)+ & ')' & GraphQuantifier
+	| '(' & (GraphAlias & GraphEdge)+ & ')' & GraphQuantifier & GraphNode
 
-GraphQuantifier = '+' | '{' & Sql92.Lexical.Digits & ',' & Sql92.Lexical.Digits & '}'
+// `+`, or at least so many and at most so many, the most left out: `{1,}` is read, and `{3}`
+// and `{,3}` are refused.
+GraphQuantifier = '+' | '{' & Sql92.Lexical.Digits & ',' & Sql92.Lexical.Digits? & '}'
 
 // ── The rowset functions ────────────────────────────────────────────────────
 //

@@ -18307,3 +18307,27 @@ rather than parsed:
 
 At 150: read by both 5,747 (from 5,739), the work list 227 (from 235), read here but refused
 there 43, as before. `--split` 574 cut the same (from 570), and the round trip 100% of 6,855.
+
+## The graph pattern, as the engine draws it
+
+`MATCH` was written from its published syntax, and the corpus had three statements it could
+not read: a path of any length written node first with more than one step in its brackets,
+`SHORTEST_PATH((N-(E)->N2<-(E2)-)+N)`. Put to the engine some seventy times, with the
+answer the same at every level, the pattern is narrower than the page and in one place wider:
+
+- **No comma and no brackets.** The syntax shows `[ , ...n ]` and a pattern in brackets after
+  `AND`; the engine refuses both. `AND` is the only way to join two drawings.
+- **A path of any length only inside `SHORTEST_PATH`, and one to it.** `MATCH(N(-(E)->N2)+)`
+  is refused, and so are a simple drawing inside `SHORTEST_PATH` and two paths joined there
+  with `AND`; two `SHORTEST_PATH`s joined with `AND` are read.
+- **`LAST_NODE` at the ends only.** Of a chain, or of a path outside its brackets; inside them
+  it is refused. `=` compares two `LAST_NODE`s and nothing else.
+- **A node or an edge is one part.** `dbo.N` is refused, `[N]` is read.
+- **The quantifier leaves out its most**: `{1,}` is read, and `{3}` and `{,3}` are refused.
+- **Node first, any number of steps in the brackets**, which was the corpus's three.
+
+What is left of the graph on the work list is `FOR PATH` on a derived table and next to `FOR
+SYSTEM_TIME`, which the tree has no place for yet.
+
+At 150: read by both 5,753 (from 5,747), the work list 221 (from 227), read here but refused
+there 43, as before. `--split` 574, and the round trip 100% of 6,861.
