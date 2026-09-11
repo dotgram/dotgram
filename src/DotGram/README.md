@@ -7,7 +7,15 @@
 
 # .Gram
 
-.Gram is a source generator that compiles grammars into strongly typed C# parsers.
+[![NuGet](https://img.shields.io/nuget/v/DotGram?logo=nuget)](https://www.nuget.org/packages/DotGram)
+[![build](https://img.shields.io/github/actions/workflow/status/dotgram/dotgram/build.yml?branch=main&label=build)](https://github.com/dotgram/dotgram/actions/workflows/build.yml)
+[![.NET Standard 2.0](https://img.shields.io/badge/.NET%20Standard-2.0-512BD4?logo=dotnet)](https://github.com/dotgram/dotgram#compatibility)
+[![Roslyn 4.14+](https://img.shields.io/badge/Roslyn-4.14%2B-512BD4)](https://github.com/dotgram/dotgram#compatibility)
+[![Runtime dependencies: none](https://img.shields.io/badge/runtime%20dependencies-none-brightgreen)](https://github.com/dotgram/dotgram#no-runtime-parser-library)
+[![License: MIT](https://img.shields.io/github/license/dotgram/dotgram)](https://github.com/dotgram/dotgram/blob/main/LICENSE)
+
+.Gram is a source generator that compiles grammars into strongly typed C# parsers, from
+single-character rules to the SQL standard.
 
 The grammar is known at compile time. The generated parser is ordinary C# in your own
 assembly — there is no parser engine, grammar graph, or runtime library to interpret, and
@@ -173,6 +181,49 @@ public static partial class Tags;
 
 The same boundary calls predicates, external recognizers and constructors.
 
+## Versions of one language
+
+A language changes between releases. SQL Server took the `*=` outer join out after 2000 and
+put `IS DISTINCT FROM` in with 2022. A grammar says that once, and each version is a parser
+generated from it:
+
+```csharp
+using DotGram;
+
+[Gram("""
+	trivia       = ' '*
+	wordboundary = ['a'..'z']
+
+	Version = "2000" | "2008" | "2022"
+
+	Name = { ['a'..'z']+ }
+
+	Test : @string
+		= l: Name & "*=" & r: Name & when Version is "2000"
+			=> @($"{l} left-joined to {r}")
+		| l: Name & "is" & "distinct" & "from" & r: Name & when Version is "2022"
+			=> @($"{l} differs from {r}")
+		| l: Name & "=" & r: Name
+			=> @($"{l} equals {r}")
+
+	parse Test with (Version = "2000") as ParseOld
+	parse Test with (Version = "2022") as ParseNew
+	parse Test as ParseAny
+	""")]
+public static partial class SqlDialect;
+```
+
+```csharp
+SqlDialect.ParseOld("a *= b");                              // a left-joined to b
+SqlDialect.TryParseNew("a *= b").IsSuccess;                 // False
+SqlDialect.ParseAny("a is distinct from b");                // a differs from b
+```
+
+`when Version is "2000"` is decided when the parser is generated, not while it runs:
+`with (Version = "2000")` substitutes the rule for that one publication, and an alternative
+whose condition is false is not in that parser at all. `ParseAny` names no version, so it
+keeps every one and reads them all.
+
 ## What .Gram supports
 
 * literals, element sets, ranges and Unicode categories;
@@ -182,6 +233,8 @@ The same boundary calls predicates, external recognizers and constructors.
 * existing C# result types, filled by constructor or by `required` properties;
 * semantic actions, guards, external C# predicates and recognizers;
 * parameterized rules, rule rebinding and parser specialization;
+* conditions about the grammar — `when Version is "2022"` — decided when a parser is
+  generated, which is how one grammar is several versions of a language;
 * left recursion — direct, and indirect through rules that only forward — with
   binding powers for expression grammars;
 * grammar namespaces, and grammar libraries that cross a project reference;
@@ -206,6 +259,9 @@ The generated parser is C# 8 and targets whatever the project around it targets.
 * `netstandard2.0` and `net472` need `System.Memory`, for the `ReadOnlySpan<char>` the
   generated methods take.
 
+The generator is a Roslyn analyzer built against `Microsoft.CodeAnalysis` 4.14 and needs a
+compiler at least that new.
+
 ## Documentation
 
 Everything else is at [github.com/dotgram/dotgram](https://github.com/dotgram/dotgram):
@@ -218,6 +274,10 @@ and the [benchmarks](https://github.com/dotgram/dotgram/tree/main/benchmarks).
 package of its own — RFC 3986 URIs, and SQL-92 with T-SQL written as a dialect over it — and
 [`DotGram.ExpressionLanguage`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.ExpressionLanguage)
 is another: a C#-style expression language that builds `System.Linq.Expressions` trees. They
-are also the largest grammars there are to read.
+are also the largest grammars there are to read —
+[T-SQL](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Parsers/Sql/TransactSql/TransactSql.gram) in over 600
+rules, and the
+[expression language](https://github.com/dotgram/dotgram/blob/main/src/DotGram.ExpressionLanguage/ExpressionParser.cs) in
+over 80.
 
 [MIT](https://github.com/dotgram/dotgram/blob/main/LICENSE)
