@@ -18739,3 +18739,37 @@ is written once, in front of both.
 At 150: read by both 5,844 (from 5,837), the work list 132 (from 139), read here but refused
 there 43; `--split` 614 (from 607), the round trip 100% of 6,980. The map: read by both 7,526 of
 8,338 (94.0%), the work list 477 (from 595), defects 0.
+
+## DBCC, one way
+
+Next on the map's work list, 96 statements and thirty-nine documented commands, none of them
+read. The published syntax is a page a command, each with its own arguments and its own
+options, and a catalogue written from them was the obvious thing to do. The engine said not
+to: `DBCC FOO`, `DBCC PAGE (1, 1, 1, 3)` and `DBCC CHECKDB WITH FOO` all pass `PARSEONLY`. It
+reads every DBCC one way, the documented and the rest, and a catalogue would have refused
+what it reads — the work list with an authority behind it, written in on purpose. So the
+grammar is that one way, put to the engine some two hundred times:
+
+- **The command is a word.** Not in brackets or quotes, not qualified, not a variable, not a
+  reserved word. `_x`, `x1` and `#x` are words.
+- **What stands in its brackets is nothing or a list.** `DBCC CHECKDB ()` is read. Each is a
+  number, negative or not — `- 2` with a space, `1.`, `.5`, `1e1`, never `+2` — money, a
+  string, binary, `NULL`, a variable, `@@x` among them, or a name of one part that is not
+  reserved: `NOINDEX` and `NEXT` are read, `KEY` and `COMPUTE` are not, and `DEFAULT` is
+  refused apart (`Msg 1009`). Or one of those given a name, `SIZE = 10`, `@p = 1`, the name
+  bare. Not an expression, a call, `a.b`, or a bracket inside one.
+- **After `WITH`, a list of words**, each once or twice, as the author likes. `MAXDOP` alone
+  takes a value, a number neither negative nor approximate; `TABLERESULTS = 1` is refused.
+  `WAIT_AT_LOW_PRIORITY` alone takes a list, of `MAX_DURATION` in minutes and
+  `ABORT_AFTER_WAIT` and any word at all, each named once (`Msg 401`) — where `ALTER INDEX`'s
+  takes `NONE`, `SELF` or `BLOCKERS` and both of them in order. The page's `SIZE = 10 GB` for
+  `SHRINKLOG` is refused; `SIZE = 10` is read.
+
+The tree is what was agreed: `Statement.Dbcc(Command, Arguments, Options)`, a named argument
+the `Expression.NamedArgument` an `EXECUTE` already has, and an option the `Clause.Option`
+every other list of them uses. Arguments are null where there were no brackets and empty
+where they held nothing, which is two texts.
+
+At 150: read by both 5,844 (from 5,844), the work list 132 (from 132), read here but refused
+there 43; `--split` 618 (from 614), the round trip 100% of 7,008. The map: read by both 7,622
+of 8,338 (95.2%), the work list 381 (from 477), defects 0.

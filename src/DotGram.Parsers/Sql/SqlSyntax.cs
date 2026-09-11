@@ -527,6 +527,24 @@ public abstract record Statement : ISqlSpan
 		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
+	// ---- DBCC ----------------------------------------------------------------------------------
+	/// <summary><c>DBCC</c>: a console command, what stood in its brackets, and its options.</summary>
+	/// <remarks>
+	/// One record for every command, the documented and the rest, because the engine reads them
+	/// all one way: what a command means is its own business, not the tree's.
+	/// </remarks>
+	/// <param name="Command">The command as written, <c>CHECKDB</c> or a library's name.</param>
+	/// <param name="Arguments">
+	/// A value each, or a <see cref="Expression.NamedArgument"/>. Null where there were no
+	/// brackets, and empty where they held nothing.
+	/// </param>
+	/// <param name="Options">What followed <c>WITH</c>, a <see cref="Clause.Option"/> each.</param>
+	public sealed record Dbcc(string Command, Expression[]? Arguments, Clause[] Options) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
+
 	// ---- cursors -------------------------------------------------------------------------------
 	//
 	// T-SQL's cursors: one declared, or set to a variable, and what is done with one. Opening,
@@ -3444,6 +3462,19 @@ public static class Syntax
 	public static bool HasCursorParameter(Clause[]? parameters) =>
 		parameters is not null &&
 		Array.Exists(parameters, static one => one is Clause.ParameterDeclaration(_, "CURSOR", _, _, _, _));
+
+	/// <summary>Whether a name was written bare, rather than in brackets or quotes.</summary>
+	public static bool IsBare(string? name) => name is { Length: > 0 } && name[0] is not ('[' or '"');
+
+	/// <summary>Whether no option of a list is named twice.</summary>
+	public static bool NamedOnce(Clause? first, Clause[]? rest)
+	{
+		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+		return Fresh(first) && Array.TrueForAll(rest ?? [], Fresh);
+
+		bool Fresh(Clause? one) => one is not Clause.Option { Name: var name } || seen.Add(name);
+	}
 
 	/// <summary>A cursor's query and what stands around it, its words yet to be said.</summary>
 	public static Clause.CursorDefinition Cursor(

@@ -24,9 +24,9 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 94.0% | 7526 | 477 | 0 | 4 | 85 | 250 | 0 |
+| **all** | 996 | 8338 | 95.2% | 7622 | 381 | 0 | 4 | 85 | 250 | 0 |
 | [data-types](#data-types) | 29 | 304 | 99.7% | 290 | 1 | 0 | 0 | 0 | 13 | 0 |
-| [database-console-commands](#database-console-commands) | 36 | 242 | 59.3% | 140 | 96 | 0 | 0 | 1 | 5 | 0 |
+| [database-console-commands](#database-console-commands) | 36 | 242 | 98.7% | 233 | 3 | 0 | 0 | 1 | 5 | 0 |
 | [functions](#functions) | 324 | 2101 | 98.1% | 2042 | 40 | 0 | 3 | 2 | 17 | 0 |
 | [includes](#includes) | 3 | 7 | 57.1% | 4 | 3 | 0 | 0 | 0 | 0 | 0 |
 | [language-elements](#language-elements) | 86 | 868 | 97.7% | 834 | 20 | 0 | 0 | 0 | 14 | 0 |
@@ -34,14 +34,13 @@ rest run rather than read.
 | [reference](#reference) | 3 | 32 | 96.9% | 31 | 1 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 99.4% | 309 | 2 | 0 | 0 | 0 | 1 | 0 |
 | [spatial-geometry](#spatial-geometry) | 74 | 357 | 99.4% | 355 | 2 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 90.6% | 2636 | 272 | 0 | 1 | 81 | 174 | 0 |
+| [statements](#statements) | 320 | 3163 | 90.7% | 2639 | 269 | 0 | 1 | 81 | 174 | 0 |
 | [xml](#xml) | 12 | 205 | 89.6% | 180 | 21 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
 
 | Statement | statements | pages | for example |
 | --- | ---: | ---: | --- |
-| DBCC | 96 | 38 | stops at DBCC — `DBCC CHECKALLOC;` |
 | SET | 28 | 7 | stops at '.' — `SET @p.X = @p.X + 1.1;` |
 | ALTER RESOURCE GOVERNOR | 25 | 11 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | OPEN | 21 | 11 | stops at KEY — `OPEN SYMMETRIC KEY SSN_Key_01 DECRYPTION BY CERTIFICATE HumanResources037;` |
@@ -72,7 +71,7 @@ rest run rather than read.
 | ALTER ROUTE | 4 | 1 | stops at ROUTE — `ALTER ROUTE ExpenseRoute WITH SERVICE_NAME = '//Adventure-Works.com/Expenses';` |
 | ALTER SERVICE | 4 | 2 | stops at SERVICE — `ALTER SERVICE MASTER KEY REGENERATE;` |
 | CREATE SERVICE | 4 | 2 | stops at SERVICE — `CREATE SERVICE NotifyService ON QUEUE NotifyQueue ([https://schemas.microsoft.com/S...` |
-| USE | 4 | 3 | stops at DBCC — `USE UserDbSales; DBCC FREEPROCCACHE (COMPUTE) WITH NO_INFOMSGS;` |
+| USE | 4 | 3 | stops at COMPUTE — `USE UserDbSales; DBCC FREEPROCCACHE (COMPUTE) WITH NO_INFOMSGS;` |
 | ALTER ASSEMBLY | 3 | 1 | stops at ASSEMBLY — `ALTER ASSEMBLY ComplexNumber FROM 'C:\Program Files\Microsoft SQL Server\130\Tools\...` |
 | ALTER AVAILABILITY GROUP | 3 | 2 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP AccountsAG JOIN;` |
 | ALTER CRYPTOGRAPHIC PROVIDER | 3 | 1 | stops at CRYPTOGRAPHIC — `ALTER CRYPTOGRAPHIC PROVIDER SecurityProvider DISABLE;` |
@@ -161,42 +160,42 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| DBCC CHECKIDENT (Transact-SQL) | 11 | 45.5% | 6 | 0 | 0 | 0 | stops at DBCC — `DBCC CHECKIDENT ('Person.AddressType');` |
-| DBCC CLONEDATABASE (Transact-SQL) | 6 | 16.7% | 5 | 0 | 0 | 0 | stops at DBCC — `DBCC CLONEDATABASE (AdventureWorks2022, AdventureWorks_Clone);` |
-| DBCC FREEPROCCACHE (Transact-SQL) | 10 | 50.0% | 5 | 0 | 0 | 0 | stops at DBCC — `DBCC FREEPROCCACHE (0x060006001ECA270EC0215D05000000000000000000000000);` |
-| DBCC PDW_SHOWSPACEUSED (Transact-SQL) | 5 | 0.0% | 5 | 0 | 0 | 0 | stops at DBCC — `DBCC PDW_SHOWSPACEUSED ( "AdventureWorksPDW2012.dbo.FactInternetSales" );` |
-| DBCC SHRINKDATABASE (Transact-SQL) | 5 | 0.0% | 5 | 0 | 0 | 0 | stops at DBCC — `DBCC SHRINKDATABASE (UserDB, 10);` |
-| DBCC SHRINKFILE (Transact-SQL) | 17 | 70.6% | 5 | 0 | 0 | 0 | stops at DBCC — `DBCC SHRINKFILE (DataFile1, 7);` |
-| DBCC SHOWCONTIG (Transact-SQL) | 33 | 87.9% | 4 | 0 | 0 | 0 | stops at DBCC — `DBCC SHOWCONTIG ('HumanResources.Employee');` |
-| DBCC TRACESTATUS (Transact-SQL) | 4 | 0.0% | 4 | 0 | 0 | 0 | stops at DBCC — `DBCC TRACESTATUS (-1);` |
-| DBCC UPDATEUSAGE (Transact-SQL) | 4 | 0.0% | 4 | 0 | 0 | 0 | stops at DBCC — `DBCC UPDATEUSAGE (0);` |
-| DBCC CHECKCONSTRAINTS (Transact-SQL) | 9 | 62.5% | 3 | 0 | 0 | 0 | stops at DBCC — `DBCC CHECKCONSTRAINTS (Table1);` |
-| DBCC CHECKDB (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at DBCC — `DBCC CHECKDB;` |
-| DBCC CHECKFILEGROUP (Transact-SQL) | 5 | 40.0% | 3 | 0 | 0 | 0 | stops at DBCC — `DBCC CHECKFILEGROUP;` |
-| DBCC CHECKTABLE (Transact-SQL) | 5 | 40.0% | 3 | 0 | 0 | 0 | stops at DBCC — `DBCC CHECKTABLE ('HumanResources.Employee');` |
-| DBCC PDW_SHOWMATERIALIZEDVIEWOVERHEAD  (Transact-SQL) | 14 | 75.0% | 3 | 0 | 0 | 1 | stops at DBCC — `DBCC PDW_SHOWMATERIALIZEDVIEWOVERHEAD ("dbo.MyIndexedView");` |
-| DBCC PDW_SHOWPARTITIONSTATS (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at DBCC — `DBCC PDW_SHOWPARTITIONSTATS ("ssawPDW.dbo.FactInternetSales");` |
-| DBCC SHOW_STATISTICS (Transact-SQL) | 4 | 25.0% | 3 | 0 | 0 | 0 | stops at DBCC — `DBCC SHOW_STATISTICS ("Person.Address", AK_Address_rowguid);` |
-| DBCC TRACEOFF (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at DBCC — `DBCC TRACEOFF (3205);` |
-| DBCC TRACEON (Transact-SQL) | 3 | 0.0% | 3 | 0 | 0 | 0 | stops at DBCC — `DBCC TRACEON (3205);` |
-| DBCC CHECKALLOC (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at DBCC — `DBCC CHECKALLOC;` |
-| DBCC CHECKCATALOG (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at DBCC — `DBCC CHECKCATALOG;` |
-| DBCC CLEANTABLE (Transact-SQL) | 22 | 90.9% | 2 | 0 | 0 | 0 | stops at DBCC — `DBCC CLEANTABLE (AdventureWorks2022, 'Production.Document', 1000) WITH NO_INFOMSGS;` |
-| DBCC DBREINDEX (Transact-SQL) | 5 | 50.0% | 2 | 0 | 0 | 0 | stops at DBCC — `DBCC DBREINDEX ('HumanResources.Employee', PK_Employee_BusinessEntityID, 80);` |
-| DBCC FREESYSTEMCACHE (Transact-SQL) | 3 | 33.3% | 2 | 0 | 0 | 0 | stops at DBCC — `DBCC FREESYSTEMCACHE ('ALL', [default]);` |
-| DBCC HELP (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at DBCC — `DBCC HELP (@dbcc_stmt);` |
-| DBCC PDW_SHOWEXECUTIONPLAN (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at DBCC — `DBCC PDW_SHOWEXECUTIONPLAN (1, 375);` |
-| DBCC SQLPERF (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at DBCC — `DBCC SQLPERF (LOGSPACE);` |
-| DBCC dllname (FREE) (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC xp_sample (FREE);` |
-| DBCC FLUSHAUTHCACHE (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC FLUSHAUTHCACHE;` |
-| DBCC FREESESSIONCACHE (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC FREESESSIONCACHE WITH NO_INFOMSGS;` |
-| DBCC INDEXDEFRAG (Transact-SQL) | 23 | 95.7% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC INDEXDEFRAG (AdventureWorks2022, 'Production.Product', PK_Product_ProductID);` |
-| DBCC INPUTBUFFER (Transact-SQL) | 9 | 88.9% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC INPUTBUFFER (52);` |
-| DBCC OPENTRAN (Transact-SQL) | 9 | 88.9% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC OPENTRAN;` |
-| DBCC OUTPUTBUFFER (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC OUTPUTBUFFER (52);` |
-| DBCC SHRINKLOG - Analytics Platform System (PDW) | 4 | 50.0% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC SHRINKLOG;` |
-| Trace flags (Transact-SQL) | 2 | 50.0% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC TRACEON (3205, -1);` |
-| DBCC USEROPTIONS (Transact-SQL) | 1 | 0.0% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC USEROPTIONS;` |
+| DBCC FREEPROCCACHE (Transact-SQL) | 10 | 80.0% | 2 | 0 | 0 | 0 | stops at COMPUTE — `USE UserDbSales; DBCC FREEPROCCACHE (COMPUTE) WITH NO_INFOMSGS;` |
+| DBCC CHECKIDENT (Transact-SQL) | 11 | 90.9% | 1 | 0 | 0 | 0 | stops at TRUNCATE — `TRUNCATE TABLE dbo.ErrorLog` |
+| DBCC CHECKALLOC (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC CHECKCATALOG (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC CHECKCONSTRAINTS (Transact-SQL) | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC CHECKDB (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC CHECKFILEGROUP (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC CHECKTABLE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC CLEANTABLE (Transact-SQL) | 22 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC CLONEDATABASE (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC DBREINDEX (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC dllname (FREE) (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC FLUSHAUTHCACHE (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC FREESESSIONCACHE (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC FREESYSTEMCACHE (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC HELP (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC INDEXDEFRAG (Transact-SQL) | 23 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC INPUTBUFFER (Transact-SQL) | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC OPENTRAN (Transact-SQL) | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC OUTPUTBUFFER (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC PDW_SHOWEXECUTIONPLAN (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC PDW_SHOWMATERIALIZEDVIEWOVERHEAD  (Transact-SQL) | 14 | 100.0% | 0 | 0 | 0 | 1 |  |
+| DBCC PDW_SHOWPARTITIONSTATS (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC PDW_SHOWSPACEUSED (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC SHOW_STATISTICS (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC SHOWCONTIG (Transact-SQL) | 33 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC SHRINKDATABASE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC SHRINKFILE (Transact-SQL) | 17 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC SHRINKLOG - Analytics Platform System (PDW) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC SQLPERF (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC TRACEOFF (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| Trace flags (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC TRACEON (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC TRACESTATUS (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC UPDATEUSAGE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC USEROPTIONS (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 
 ## functions
 
@@ -879,7 +878,6 @@ None: the engine reads every statement this grammar reads.
 | ADD SENSITIVITY CLASSIFICATION (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at ADD — `ADD SENSITIVITY CLASSIFICATION TO dbo.sales.price, dbo.sales.discount WITH ( LABEL ...` |
 | ALTER AVAILABILITY GROUP (Transact-SQL) | 3 | 0.0% | 2 | 0 | 0 | 0 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP AccountsAG JOIN;` |
 | ALTER BROKER PRIORITY (Transact-SQL) | 2 | 0.0% | 2 | 0 | 0 | 0 | stops at BROKER — `ALTER BROKER PRIORITY SimpleContractDefaultPriority FOR CONVERSATION SET (PRIORITY_...` |
-| ALTER DATABASE File and Filegroups | 69 | 97.0% | 2 | 0 | 0 | 0 | stops at DBCC — `DBCC SHRINKFILE (AdventureWorks2022_data, 100);` |
 | ALTER EXTERNAL RESOURCE POOL (Transact-SQL) | 4 | 50.0% | 2 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | ALTER RESOURCE POOL (Transact-SQL) | 5 | 60.0% | 2 | 0 | 0 | 0 | stops at GOVERNOR — `ALTER RESOURCE GOVERNOR RECONFIGURE;` |
 | ALTER SYMMETRIC KEY (Transact-SQL) | 5 | 60.0% | 2 | 0 | 0 | 0 | stops at KEY — `OPEN SYMMETRIC KEY JanainaKey043 DECRYPTION BY CERTIFICATE Shipping04 WITH PASSWORD...` |
@@ -923,7 +921,6 @@ None: the engine reads every statement this grammar reads.
 | DROP SYNONYM (Transact-SQL) | 4 | 75.0% | 1 | 0 | 0 | 0 | stops at SYNONYM — `CREATE SYNONYM MyProduct FOR AdventureWorks2022.Production.Product;` |
 | DROP TABLE (Transact-SQL) | 6 | 83.3% | 1 | 0 | 0 | 0 | stops at ''' — `CREATE TABLE #temptable (col1 int);  INSERT INTO #temptable VALUES (10);  SELECT co...` |
 | RENAME (Transact-SQL) | 7 | 66.7% | 1 | 0 | 0 | 0 | stops at KILL — `KILL 'SID1234';` |
-| SET ANSI_DEFAULTS (Transact-SQL) | 3 | 66.7% | 1 | 0 | 0 | 0 | stops at DBCC — `DBCC USEROPTIONS;` |
 | SET ARITHABORT (Transact-SQL) | 30 | 96.7% | 1 | 0 | 0 | 0 | stops at TRUNCATE — `TRUNCATE TABLE t2;` |
 | ALTER APPLICATION ROLE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER AUTHORIZATION (Transact-SQL) | 19 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -936,6 +933,7 @@ None: the engine reads every statement this grammar reads.
 | ALTER DATABASE SCOPED CREDENTIAL (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE Compatibility Level (Transact-SQL) | 21 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE Database Mirroring (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER DATABASE File and Filegroups | 69 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE SET HADR (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE SET Options (Transact-SQL) | 48 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE (Transact-SQL) | 35 | 100.0% | 0 | 0 | 0 | 9 |  |
@@ -1119,6 +1117,7 @@ None: the engine reads every statement this grammar reads.
 | REVOKE (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | REVOKE Type Permissions (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | REVOKE XML Schema Collection Permissions | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| SET ANSI_DEFAULTS (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SET ANSI_NULL_DFLT_OFF (Transact-SQL) | 23 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SET ANSI_NULL_DFLT_ON (Transact-SQL) | 24 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SET ANSI_NULLS (Transact-SQL) | 29 | 100.0% | 0 | 0 | 0 | 0 |  |

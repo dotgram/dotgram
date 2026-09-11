@@ -1681,6 +1681,7 @@ ControlStatement : @Statement
 	| s: LoopStatement        => @(s)
 	| s: SimpleCommand        => @(s)
 	| s: CursorStatement      => @(s)
+	| s: DbccStatement        => @(s)
 
 DefinitionStatement : @Statement
 	= s: DeclareStatement     => @(s)
@@ -1806,6 +1807,60 @@ DeclaredAs : @Clause.VariableDeclaration
 	= "TABLE"i & '(' & body: TableBody & ')'              => @(new Clause.VariableDeclaration("", "TABLE", null, body))
 	| "CURSOR"i                                           => @(new Clause.VariableDeclaration("", "CURSOR", null))
 	| type: DataType & n: NullSpec? & ('=' & v: SetValue)? => @(new Clause.VariableDeclaration("", type, v, null, n))
+
+// ── DBCC ────────────────────────────────────────────────────────────────────
+//
+// The engine reads every DBCC one way, the thirty-nine it documents and the ones it does not —
+// `DBCC PAGE`, `DBCC FOO` — so this is that one way, and not a catalogue of commands, which
+// would refuse what the engine reads. Put to it some two hundred times.
+//
+// The command is a word: not a delimited name, a qualified one or a variable. What stands in
+// its brackets is nothing or a list, each a number, negative or not (`- 1` with a space, never
+// `+1`), money, a string, binary, `NULL`, a variable, or a name of one part that is not
+// reserved — or one of those given a name, `SIZE = 10`, `@p = 1`, the name bare. Not an
+// expression, a call, `DEFAULT` (`Msg 1009`), `a.b` or a bracket inside. After `WITH`, a list
+// of words, each at most a word: `MAXDOP` alone takes a value, a number neither negative nor
+// approximate, and `WAIT_AT_LOW_PRIORITY` alone a list of its own, of `MAX_DURATION` in
+// minutes and `ABORT_AFTER_WAIT` and any word, each named once (`Msg 401`).
+DbccStatement : @Statement
+	= "DBCC"i & name: DbccWord & args: DbccArguments? & options: DbccOptions?
+		=> @(new Statement.Dbcc(name, args, options ?? Clause.None))
+
+DbccWord : @string = t: Identifier & when @(Syntax.IsBare(t)) => @(t)
+
+DbccArguments : @Expression[]
+	= '(' & ')' => @(System.Array.Empty<Expression>())
+	| '(' & first: DbccArgument & (',' & rest: DbccArgument)* & ')' => @(Syntax.Listed(first, rest))
+
+DbccArgument : @Expression
+	= name: DbccWord & '=' & v: DbccValue          => @(new Expression.NamedArgument(name, v))
+	| variable: TSql.Variable & '=' & v: DbccValue => @(new Expression.NamedArgument(variable, v))
+	| v: DbccValue                                 => @(v)
+
+DbccValue : @Expression
+	= t: ('-'? & Sql92.Lexical.UnsignedNumericLiteral) => @(new Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(t)))
+	| t: TSql.MoneyLiteral                              => @(new Expression.Literal(SqlLiteralKind.Number, t))
+	| t: Sql92.Lexical.NationalCharacterStringLiteral   => @(new Expression.Literal(SqlLiteralKind.National, t))
+	| t: Sql92.Lexical.CharacterStringLiteral           => @(new Expression.Literal(SqlLiteralKind.Text, t))
+	| t: TSql.BinaryLiteral                             => @(new Expression.Literal(SqlLiteralKind.Hex, t))
+	| "NULL"i                                           => @(Expression.NullValue)
+	| t: TSql.Variable                                  => @(new Expression.Literal(SqlLiteralKind.Parameter, t))
+	| t: Identifier                                     => @(new Expression.ColumnReference(t))
+
+DbccOptions : @Clause[] = "WITH"i & first: DbccOption & (',' & rest: DbccOption)* => @(Syntax.Listed(first, rest))
+
+DbccOption : @Clause
+	= "MAXDOP"i & '=' & t: Sql92.Lexical.UnsignedNumericLiteral & when @(t is not null && t.IndexOfAny(new[] { 'e', 'E' }) < 0)
+		=> @(new Clause.Option("MAXDOP", new Expression.Literal(SqlLiteralKind.Number, t), Clause.None))
+	| "WAIT_AT_LOW_PRIORITY"i & '(' & first: DbccWait & (',' & rest: DbccWait)* & ')' & when @(Syntax.NamedOnce(first, rest))
+		=> @(new Clause.Option("WAIT_AT_LOW_PRIORITY", null, Syntax.Listed(first, rest), null, true))
+	| name: DbccWord => @(new Clause.Option(Syntax.Squared(name), null, Clause.None))
+
+DbccWait : @Clause
+	= "MAX_DURATION"i & '=' & t: Sql92.Lexical.UnsignedNumericLiteral & u: "MINUTES"i?
+		=> @(new Clause.Option("MAX_DURATION", Syntax.Measured(new Expression.Literal(SqlLiteralKind.Number, t), u), Clause.None))
+	| "ABORT_AFTER_WAIT"i & '=' & w: DbccWord
+		=> @(new Clause.Option("ABORT_AFTER_WAIT", new Expression.ColumnReference(Syntax.Squared(w)), Clause.None))
 
 // ── Cursors ─────────────────────────────────────────────────────────────────
 //

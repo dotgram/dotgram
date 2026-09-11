@@ -211,6 +211,7 @@ compile, and a test reads this column against every record.
 | `Statement.SetCursor` | T-SQL | SET @local_variable — a cursor variable set to `CURSOR … FOR …` | Declaration |
 | `Statement.CursorAction` | T-SQL | OPEN, CLOSE, DEALLOCATE | Control |
 | `Statement.Fetch` | T-SQL | FETCH | Control |
+| `Statement.Dbcc` | T-SQL | DBCC — every command, what stands in its brackets and its options | Admin |
 | `Statement.SetUser` | T-SQL | SETUSER | Session |
 | `Statement.CreateLogin` | T-SQL | CREATE LOGIN | Dcl |
 | `Statement.AlterLogin` | T-SQL | ALTER LOGIN | Dcl |

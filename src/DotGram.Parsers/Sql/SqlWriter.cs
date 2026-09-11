@@ -634,6 +634,24 @@ public static class SqlWriter
 
 				break;
 
+			case Statement.Dbcc(var command, var arguments, var options):
+				text.Append("DBCC ").Append(command);
+
+				if (arguments is not null)
+				{
+					text.Append(" (");
+					List(text, arguments);
+					text.Append(')');
+				}
+
+				if (options.Length > 0)
+				{
+					text.Append(" WITH ");
+					Each(text, options);
+				}
+
+				break;
+
 			case Statement.DeclareCursor(var name, var definition):
 				text.Append("DECLARE ").Append(name).Append(' ');
 				Put(text, definition);
