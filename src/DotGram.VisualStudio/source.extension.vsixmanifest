@@ -6,7 +6,7 @@
 		<Identity Id="DotGram.VisualStudio"
 		          Version="|%CurrentProject%;GetVsixVersion|"
 		          Language="en-US"
-		          Publisher="dotgram" />
+		          Publisher=".Gram" />
 		<DisplayName>.Gram language support</DisplayName>
 		<Description xml:space="preserve">First-class Visual Studio tooling for .Gram parser grammars, both in standalone .gram files and embedded in C# attributes.
 
