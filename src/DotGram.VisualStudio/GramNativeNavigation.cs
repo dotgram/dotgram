@@ -372,19 +372,24 @@ sealed class GramDropdownClient : IVsDropdownBarClient, IDisposable
 	void Refresh(ITextSnapshot snapshot)
 	{
 		_items.Clear();
-		Append(_analysis.Document(snapshot).DocumentSymbols, 0);
+		Append(_analysis.Document(snapshot).DocumentSymbols);
+		_items.Sort(static (left, right) =>
+		{
+			var byName = StringComparer.OrdinalIgnoreCase.Compare(left.Display, right.Display);
+			return byName != 0 ? byName : left.Position.CompareTo(right.Position);
+		});
 	}
 
-	void Append(IReadOnlyList<GramDocumentSymbol> symbols, int depth)
+	void Append(IReadOnlyList<GramDocumentSymbol> symbols)
 	{
 		foreach (var symbol in symbols)
 		{
 			_items.Add(new Item(
-				new string(' ', depth * 2) + symbol.Name,
+				symbol.Name.TrimStart(' ', '\t'),
 				symbol.Position,
 				symbol.Length,
 				symbol.SelectionPosition));
-			Append(symbol.Children, depth + 1);
+			Append(symbol.Children);
 		}
 	}
 

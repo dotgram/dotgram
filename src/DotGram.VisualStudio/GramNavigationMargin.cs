@@ -169,21 +169,26 @@ sealed class EmbeddedGramNavigationMargin : GramNavigationMargin
 	{
 		var result = new List<NavigationItem>();
 		if (_analysis.TryGetDocumentSymbols(snapshot, out var symbols))
-			Append(symbols, 0, result);
+			Append(symbols, result);
+		result.Sort(static (left, right) =>
+		{
+			var byName = StringComparer.OrdinalIgnoreCase.Compare(left.Display, right.Display);
+			return byName != 0 ? byName : left.Position.CompareTo(right.Position);
+		});
 		return result;
 	}
 
-	static void Append(IReadOnlyList<HostDocumentSymbol> symbols, int depth, List<NavigationItem> result)
+	static void Append(IReadOnlyList<HostDocumentSymbol> symbols, List<NavigationItem> result)
 	{
 		foreach (var symbol in symbols)
 		{
 			result.Add(new NavigationItem(
-				new string(' ', depth * 2) + symbol.Name,
+				symbol.Name.TrimStart(' ', '\t'),
 				symbol.Span.Start,
 				symbol.Span.Length,
 				symbol.SelectionSpan.Start,
 				symbol.SelectionSpan.Length));
-			Append(symbol.Children, depth + 1, result);
+			Append(symbol.Children, result);
 		}
 	}
 
