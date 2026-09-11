@@ -350,8 +350,12 @@ namespace DotGram.ExpressionLanguage;
 	// has nothing in it the author did not name.
 	NamePart : @string = w: Word => @(w)
 
+	//
+	// A keyword is no type's name, which C# says by making it one and this says by refusing it
+	// here: read as the head of a dotted name, `return` in `x + return` sent the parse looking
+	// for a `.` after it, and the refusal came back as the end of the input.
 	NamedType? : @Type
-		= head: Word & ('.' & part: NamePart)*
+		= ?!Keyword & head: Word & ('.' & part: NamePart)*
 		  & args: ('<' & first: Type & (',' & rest: Type)* & '>')?
 		  & when @(args != null || context.Resolves(ExpressionParser.Dotted(head, part)))
 		  => @(args is null

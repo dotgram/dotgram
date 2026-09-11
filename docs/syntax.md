@@ -551,7 +551,7 @@ A rule that needs to give back says so on its name:
 
 ```dotgram
 NamedType? : @Type
-    = head: Word & ('.' & part: NamePart)*
+    = ?!Keyword & head: Word & ('.' & part: NamePart)*
     & when @(context.Resolves(ExpressionParser.Dotted(head, part)))
     => ...
 ```

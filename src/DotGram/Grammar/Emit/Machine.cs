@@ -34,6 +34,12 @@ sealed partial class Machine
 	/// </remarks>
 	readonly IReadOnlyCollection<RuleSymbol>? _reread;
 
+	/// <summary>
+	/// What each kind stands for, where this machine reads kinds — the one thing that can say
+	/// a refusal in the words the grammar wrote rather than in the numbers the lexer made up.
+	/// </summary>
+	readonly TerminalInventory? _inventory;
+
 	/// <summary>The types this machine builds, for whoever renders a way into it.</summary>
 	public ResultTypes Results => _results;
 	readonly List<Writer> _states = [];
@@ -232,7 +238,7 @@ sealed partial class Machine
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, bool starves = false,
 		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "", int? partSize = null,
 		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null,
-		CarrierKind carrier = CarrierKind.Tape, int stacks = 0)
+		CarrierKind carrier = CarrierKind.Tape, int stacks = 0, TerminalInventory? inventory = null)
 	{
 		_graph = graph;
 		_carrierKind = carrier;
@@ -243,6 +249,7 @@ sealed partial class Machine
 		_tag = tag;
 		OverKinds = overKinds;
 		_reread = reread;
+		_inventory = inventory;
 		PartSize = partSize ?? Part;
 		_rules = only ?? graph.Rules;
 		_guardValues = HasTypedGuards(graph);
@@ -1637,7 +1644,7 @@ sealed partial class Machine
 			case Node.Literal(var value) { IgnoreCase: var ignoreCase }:
 			{
 				var state     = Reserve(out var writer);
-				var arrayName = DeclareExpected([node.ToString()]);
+				var arrayName = DeclareExpected(Displays(node));
 
 				// Two or more characters are one comparison, not one per character.
 				// `SequenceEqual` against a constant string is folded by the JIT into
@@ -1801,7 +1808,7 @@ sealed partial class Machine
 			{
 				var state     = Reserve(out var writer);
 				var test      = CSharpEmitter.Test(element, Tabulate);
-				var arrayName = DeclareExpected([node.ToString()]);
+				var arrayName = DeclareExpected(Displays(node));
 
 				if (test == "false")
 				{
@@ -2636,7 +2643,7 @@ sealed partial class Machine
 					"if (p > 0 && p < text.Length && " +
 					"parserStarts[p - 1] + parserLengths[p - 1] != parserStarts[p])");
 				using (atGlue.Block(""))
-					EmitTerminalFailure(atGlue, _fail, DeclareExpected([node.ToString()]));
+					EmitTerminalFailure(atGlue, _fail, DeclareExpected(Displays(node)));
 
 				atGlue.Line($"goto {Label(atGlue, next)};");
 
@@ -2648,7 +2655,7 @@ sealed partial class Machine
 			case Node.Behind(var boundary):
 			{
 				var state     = Reserve(out var writer);
-				var arrayName = DeclareExpected([node.ToString()]);
+				var arrayName = DeclareExpected(Displays(node));
 
 				_usesChar = true;
 
@@ -2696,7 +2703,7 @@ sealed partial class Machine
 						_usesChar = true;
 
 						var predicate = Reserve(out var atAsk);
-						var askedName = DeclareExpected([node.ToString()]);
+						var askedName = DeclareExpected(Displays(node));
 
 						if (isPositive)
 						{
@@ -2763,7 +2770,7 @@ sealed partial class Machine
 					// failures rewind and continue; the body matching is this failing.
 					var resume    = GiveBack(next, mine, out var begun);
 					var matched   = Reserve(out var atMatched);
-					var arrayName = DeclareExpected([node.ToString()]);
+					var arrayName = DeclareExpected(Displays(node));
 					var saved     = _fail;
 
 					_fail = resume;
@@ -2999,7 +3006,7 @@ sealed partial class Machine
 			if (alternatives[i] is Node.Literal(var text))
 			{
 				texts.Add(text);
-				displays.Add(alternatives[i].ToString());
+				displays.Add(Display(alternatives[i]));
 			}
 
 		var shared = texts[0];
@@ -3445,7 +3452,7 @@ sealed partial class Machine
 			heads[i] = CompileChainedChoice(groups[i].Members, next, following, groups[i].Set);
 
 		var state     = Reserve(out var writer);
-		var arrayName = DeclareExpected([.. alternatives.Select(alternative => alternative.ToString())]);
+		var arrayName = DeclareExpected([.. alternatives.SelectMany(Displays).Distinct()]);
 
 		_usesChar = true;
 
@@ -3507,7 +3514,7 @@ sealed partial class Machine
 		// nullable, or Predictive would have refused to predict at all — so the union of
 		// their ranges is exactly what this position accepts, on either failure path
 		// below.
-		var arrayName = DeclareExpected([PredictedDisplay(alternatives)]);
+		var arrayName = DeclareExpected(PredictedDisplays(alternatives));
 
 		writer.Line("if ((uint)p >= (uint)text.Length)");
 		using (writer.Block(""))
@@ -3633,15 +3640,15 @@ sealed partial class Machine
 			_                        => false,
 		};
 
-	/// <summary>What a predicted choice's disjoint first sets accept, rendered as one element set.</summary>
-	string PredictedDisplay(IReadOnlyList<Node> alternatives)
+	/// <summary>What a predicted choice's disjoint first sets accept, said as one element set would be.</summary>
+	IReadOnlyList<string> PredictedDisplays(IReadOnlyList<Node> alternatives)
 	{
 		var ranges = new List<CharRange>();
 
 		foreach (var alternative in alternatives)
 			ranges.AddRange(FirstSets.Of(alternative, _graph).Ranges);
 
-		return new Node.Element(false, ranges, [], []).ToString();
+		return Displays(new Node.Element(false, ranges, [], []));
 	}
 
 	/// <summary>
@@ -3709,7 +3716,7 @@ sealed partial class Machine
 
 		if (min > 0)
 		{
-			var arrayName = DeclareExpected([repeatNode.Body.ToString()]);
+			var arrayName = DeclareExpected(Displays(repeatNode.Body));
 
 			writer.Line($"if (p < {floor})");
 			using (writer.Block(""))
@@ -4756,6 +4763,130 @@ sealed partial class Machine
 	/// ASCII there, and a set read from a table is one load where a search is a call.
 	/// </summary>
 	internal const int TableSize = 256;
+
+	/// <summary>What a node accepts, said the way the grammar's author wrote it.</summary>
+	/// <remarks>
+	/// <para>
+	/// Over characters that is the node itself, printed. Over kinds it is not: a kind is a
+	/// number the lexer made up, and <c>['\u0001'..')']</c> is what a set of them looks like
+	/// printed as characters — which is what every refusal of a split grammar said until this
+	/// asked the inventory what each number stands for.
+	/// </para>
+	/// <para>
+	/// A set of kinds comes out as the classes that fill it, the widest first — <c>Word</c>
+	/// for every kind an identifier can be, keywords included — and then as the literal or
+	/// the class each remaining kind was made for, so that <c>?!Keyword &amp; Word</c> is
+	/// <c>Word</c> as well, and the first set of an expression is <c>Word</c>, <c>'('</c>,
+	/// <c>"new"</c> and the rest of what can begin one.
+	/// </para>
+	/// </remarks>
+	IReadOnlyList<string> Displays(Node node)
+	{
+		if (!OverKinds || _inventory is not { Kinds.Count: > 0 } inventory)
+			return [node.ToString()];
+
+		return node switch
+		{
+			Node.Literal literal =>
+				[string.Join(" ", literal.Text.Select(kind => Said(inventory, kind)))],
+			Node.Element { Categories.Count: 0, References.Count: 0 } element =>
+				Covered(inventory, KindsIn(element, inventory.Kinds.Count)),
+			Node.Choice choice =>
+				[.. choice.Nodes.SelectMany(Displays).Distinct()],
+			Node.Sequence { Nodes.Count: > 0 } sequence =>
+				Displays(sequence.Nodes[0]),
+			_ => [node.ToString()],
+		};
+	}
+
+	/// <summary>The same, as one entry: an alternative among literals has exactly one.</summary>
+	string Display(Node node) => string.Join(" or ", Displays(node));
+
+	/// <summary>The kinds an element over kinds admits, its complement where it is negated.</summary>
+	static SortedSet<int> KindsIn(Node.Element element, int count)
+	{
+		var kinds = new SortedSet<int>();
+
+		foreach (var range in element.Ranges)
+			for (int kind = Math.Max(1, (int)range.From); kind <= range.To && kind <= count; kind++)
+				kinds.Add(kind);
+
+		if (!element.IsNegated)
+			return kinds;
+
+		var others = new SortedSet<int>(Enumerable.Range(1, count));
+
+		others.ExceptWith(kinds);
+
+		return others;
+	}
+
+	/// <summary>A set of kinds as the classes that fill it, and then each kind left by its own name.</summary>
+	static IReadOnlyList<string> Covered(TerminalInventory inventory, SortedSet<int> kinds)
+	{
+		var said = new List<string>();
+		var left = new SortedSet<int>(kinds);
+
+		var fitting = inventory.Patterns
+			.OfType<TerminalInventory.Pattern.Class>()
+			.Select(pattern => (Pattern: pattern, Kinds: Numbers(inventory.KindsOf(pattern))))
+			.Where(one => one.Kinds.Count > 0 && one.Kinds.IsSubsetOf(kinds))
+			.OrderByDescending(one => one.Kinds.Count);
+
+		foreach (var (pattern, covered) in fitting)
+			if (covered.Overlaps(left))
+			{
+				if (!said.Contains(Named(pattern)))
+					said.Add(Named(pattern));
+
+				left.ExceptWith(covered);
+			}
+
+		foreach (var kind in left)
+			if (Said(inventory, kind) is var name && !said.Contains(name))
+				said.Add(name);
+
+		return said;
+	}
+
+	/// <summary>Every kind in some runs of them.</summary>
+	static SortedSet<int> Numbers(IReadOnlyList<TerminalInventory.Group> runs)
+	{
+		var numbers = new SortedSet<int>();
+
+		foreach (var run in runs)
+			for (var kind = run.From; kind <= run.To; kind++)
+				numbers.Add(kind);
+
+		return numbers;
+	}
+
+	/// <summary>
+	/// One kind by what it was made for: the literal whose kind it is where there is one — a
+	/// keyword is also a word, and the keyword is what the grammar asked for — and the class
+	/// where there is not.
+	/// </summary>
+	static string Said(TerminalInventory inventory, int kind)
+	{
+		if (kind < 1 || kind > inventory.Kinds.Count)
+			return CharRange.Quote((char)kind);
+
+		var matched = inventory.Kinds[kind - 1].Matched;
+
+		return (matched.FirstOrDefault(one => one is not TerminalInventory.Pattern.Class) ?? matched.FirstOrDefault())
+			is { } pattern ? Named(pattern) : CharRange.Quote((char)kind);
+	}
+
+	/// <summary>A pattern as the grammar wrote it: a literal as itself, a class by its rule's declared name.</summary>
+	/// <remarks>
+	/// The declared name and not the rule's own: a specialization is a clone, called
+	/// <c>UnsignedLong_Hex</c> inside the generator, and what the author wrote is
+	/// <c>UnsignedLong</c> — the same leak a publication's <c>Lambda_With1</c> once was.
+	/// </remarks>
+	static string Named(TerminalInventory.Pattern pattern) =>
+		pattern is TerminalInventory.Pattern.Class @class
+			? @class.Rule.Declaration?.Name ?? @class.Rule.Name
+			: pattern.ToString();
 
 	string DeclareExpected(IReadOnlyList<string> display)
 	{

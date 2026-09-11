@@ -111,6 +111,38 @@ public sealed class ExpressionParserTests
 		Assert.Equal(terms.Length, terms.Distinct().Count());
 	}
 
+	/// <summary>A refusal says what the grammar wrote, and not the numbers its lexer made up.</summary>
+	/// <remarks>
+	/// The syntactic half reads kinds, and a kind printed as a character — `['\u0001'..')']`
+	/// — is what every refusal said before the generator printed it as the literal or the
+	/// class it stands for. And where the lexer itself stops, the character it stopped at is
+	/// what there is to say.
+	/// </remarks>
+	[Theory]
+	[InlineData("int x => x",                    "Expected '('.")]
+	[InlineData("(int x) x",                     "Expected \"=>\".")]
+	[InlineData("(int x) => x.",                 "Expected Word.")]
+	[InlineData("(int[] a) => { a[0]++; a[0] }", "Expected '=', ';' or '}'.")]
+	[InlineData("(int x) => x @ 1",              "Unexpected character '@'.")]
+	public void A_refusal_says_what_the_grammar_wrote(string text, string said) =>
+		Assert.Equal(said, ExpressionParser.TryParse(text).Error);
+
+	[Theory]
+	[InlineData("(int x) => x +")]
+	[InlineData("(string s) => s?.Length")]
+	[InlineData("(int x) => { return x }")]
+	[InlineData("(int x) => x + return")]
+	public void And_nothing_it_says_is_a_character_nobody_wrote(string text)
+	{
+		var error = ExpressionParser.TryParse(text).Error!;
+
+		Assert.DoesNotContain(error, char.IsControl);
+
+		// `return` is a keyword and no type's name: read as the head of one, it sent the parse
+		// looking for a `.` past the end, and the refusal came back as the input running out.
+		Assert.DoesNotContain("more input", error, StringComparison.Ordinal);
+	}
+
 	// ── Nested initializers: the three the API has and one syntax says ───────────
 
 	/// <summary>A collection whose `Add` takes two things, which is what `ElementInit` is for.</summary>

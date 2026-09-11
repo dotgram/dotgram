@@ -183,7 +183,7 @@ public static partial class CSharpEmitter
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
-				lexical?.Valued, carrier, stacks);
+				lexical?.Valued, carrier, stacks, lexical?.Inventory);
 
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one
@@ -1107,9 +1107,20 @@ public static partial class CSharpEmitter
 					file.Line();
 					file.Line("Recycle_DotGram(tokens);");
 					file.Line();
+
+					// The lexer stopped where no token begins, and the character standing there
+					// is what there is to say: the syntactic half never ran, so it has no
+					// expectation to offer. A character a message could not show plainly — a
+					// control, the quote around it, a backslash — is shown by its code.
+					file.Line("var stopped = at < source.Length ? source[at] : '\\0';");
+					file.Line();
 					file.Line(
 						$"return {match}.Failed({OutcomeType}.NoMatch, " +
-						$"\"Input does not match '{name}'.\", at, null, null);");
+						"at >= source.Length ? \"Expected more input.\" : " +
+						"\"Unexpected character '\" + " +
+						"(global::System.Char.IsControl(stopped) || stopped == '\\'' || stopped == '\\\\' " +
+						"? \"\\\\u\" + ((int)stopped).ToString(\"X4\", global::System.Globalization.CultureInfo.InvariantCulture) " +
+						": stopped.ToString()) + \"'.\", at, null, null);");
 				}
 
 				file.Line();

@@ -1128,7 +1128,7 @@ sealed partial class Machine
 							"if (p > 0 && p < text.Length && " +
 							"parserStarts[p - 1] + parserLengths[p - 1] != parserStarts[p])"))
 						{
-							Refused(code, machine.DeclareExpected([node.ToString()]));
+							Refused(code, machine.DeclareExpected(machine.Displays(node)));
 						}
 					}
 
@@ -1195,7 +1195,7 @@ sealed partial class Machine
 				// hand was in `c`, it is put back after.
 				case Node.Behind(var boundary):
 				{
-					var name = machine.DeclareExpected([node.ToString()]);
+					var name = machine.DeclareExpected(machine.Displays(node));
 
 					_character = true;
 
@@ -1408,7 +1408,7 @@ sealed partial class Machine
 			if (text.Length == 0)
 				return;
 
-			var name = machine.DeclareExpected([node.ToString()]);
+			var name = machine.DeclareExpected(machine.Displays(node));
 
 			if (text.Length == 1)
 			{
@@ -1460,7 +1460,7 @@ sealed partial class Machine
 
 		void EmitElement(Writer code, Node.Element element, bool loaded = false)
 		{
-			var name  = machine.DeclareExpected([element.ToString()]);
+			var name  = machine.DeclareExpected(machine.Displays(element));
 			var first = FirstSets.Of(element, _graph);
 
 			_character = true;
@@ -1537,7 +1537,7 @@ sealed partial class Machine
 
 			if (machine.Dispatchable(alternatives, least: 2) is { } groups)
 			{
-				var name = machine.DeclareExpected([machine.PredictedDisplay(alternatives)]);
+				var name = machine.DeclareExpected(machine.PredictedDisplays(alternatives));
 
 				_character = true;
 
@@ -1726,7 +1726,7 @@ sealed partial class Machine
 			if (alternatives[alternatives.Count - 1] is not Node.Empty &&
 				Doorway(alternatives) is { } gate && !(loaded && Chosen(gate)))
 			{
-				var whole = machine.DeclareExpected([machine.PredictedDisplay(alternatives)]);
+				var whole = machine.DeclareExpected(machine.PredictedDisplays(alternatives));
 
 				if (!loaded)
 				{
@@ -1770,7 +1770,7 @@ sealed partial class Machine
 				// it did not take, and a message that leaves it out is a worse message —
 				// but it is a note and not a failure: the reading goes on with nothing.
 				var wanted = machine.DeclareExpected(
-					[machine.PredictedDisplay(alternatives.Take(alternatives.Count - 1).ToList())]);
+					machine.PredictedDisplays(alternatives.Take(alternatives.Count - 1).ToList()));
 
 				if (!loaded)
 				{
@@ -2512,7 +2512,7 @@ sealed partial class Machine
 		/// </param>
 		void EmitRun(Writer code, Node body, string test, int min, int? max, bool settled)
 		{
-			var name = machine.DeclareExpected([body.ToString()]);
+			var name = machine.DeclareExpected(machine.Displays(body));
 			var mark = $"m{_marks++}";
 
 			// Where the run has no ceiling, no floor and nothing to give back, nobody ever
@@ -2664,7 +2664,7 @@ sealed partial class Machine
 						if (min > 0)
 						{
 							using (code.Block($"if ({turn} < {min})"))
-								Refused(code, machine.DeclareExpected([body.ToString()]));
+								Refused(code, machine.DeclareExpected(machine.Displays(body)));
 
 							code.Line();
 						}
