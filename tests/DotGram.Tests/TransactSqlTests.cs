@@ -1302,6 +1302,30 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>A bare `*` as an item of the list, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("SELECT * AS x FROM t")]
+	[InlineData("SELECT (*) FROM t")]
+	[InlineData("SELECT @a = *, 1 FROM t")]
+	[InlineData("SELECT x = * FROM t")]
+	public void A_star_in_the_list_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside it.</summary>
+	[Theory]
+	[InlineData("SELECT 1, *, 2 FROM t")]
+	[InlineData("SELECT *, *, * FROM t")]
+	[InlineData("SELECT *, t.*, a, * FROM t")]
+	[InlineData("SELECT COUNT(*), *, @a + 10 FROM t")]
+	[InlineData("SELECT *, 1")]
+	[InlineData("SELECT * FROM t UNION SELECT 1, * FROM u")]
+	public void A_star_in_the_list_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>`IDENTITY(…)` in a `SELECT … INTO`, as the engine answers it with its variable declared.</summary>
 	[Theory]
 	[InlineData("SELECT IDENTITY(INT, @a, 1) AS id INTO #t FROM t")]
