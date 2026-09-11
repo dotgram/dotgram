@@ -7,8 +7,8 @@
 		          Version="|%CurrentProject%;GetVsixVersion|"
 		          Language="en-US"
 		          Publisher="DotGram" />
-		<DisplayName>DotGram language support</DisplayName>
-		<Description xml:space="preserve">Language support for standalone .gram files and DotGram grammars embedded in C#.</Description>
+		<DisplayName>.Gram language support</DisplayName>
+		<Description xml:space="preserve">Language support for .Gram files and grammars embedded in C#.</Description>
 		<MoreInfo>https://github.com/dotgram/dotgram</MoreInfo>
 		<License>LICENSE.txt</License>
 		<ReleaseNotes>VSIX.ReleaseNotes.txt</ReleaseNotes>
