@@ -321,9 +321,10 @@ LeftRightCall : @Expression
 		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
 
 // A table's identity and row-GUID columns by the reserved words that name them, under
-// whatever prefix a column takes: `IDENTITYCOL`, `t.ROWGUIDCOL`, `a.b.c.IDENTITYCOL`. A
-// column only — not an alias, not what a `SET` assigns, not a call.
-RowColumnName = (Identifier & '.')* & ("IDENTITYCOL"i | "ROWGUIDCOL"i)
+// whatever prefix a column takes: `IDENTITYCOL`, `t.ROWGUIDCOL`, `a.b.c.IDENTITYCOL`, and
+// `master..t1.IDENTITYCOL`, whose middle part is left out as any name's may be. A column only
+// — not an alias, not what a `SET` assigns (`Msg 156`), not a call.
+RowColumnName = (NamePartName & '.')* & ("IDENTITYCOL"i | "ROWGUIDCOL"i)
 
 // The functions whose first argument is a date part. A name there is one of a closed list —
 // `year`, `yy`, `w`, `tzoffset`, `isowk` and the rest — bracketed, quoted or neither, or in
@@ -1432,8 +1433,18 @@ RowsetValue : @Expression
 	| "DEFAULT"i => @(Expression.DefaultValue)
 	| v: ValueExpression => @(v)
 
+// `OPENQUERY` takes a server and a query and neither is an expression: the server is one
+// identifier, plain or delimited, and no more — `OPENQUERY('s1', 'q')`, `OPENQUERY(s1.a, 'q')`
+// and `OPENQUERY(@s, 'q')` are all `Msg 102` — and the query is a string written out, `'q'` or
+// `N'q'` but not `'q' + 'r'`. Two arguments exactly: one is `Msg 102` and so are three. It has
+// a rule of its own because it is also the only rowset a statement writes to (`DmlTarget`).
+OpenQueryCall : @Expression.RoutineInvocation
+	= name: "OPENQUERY"i & '(' & server: Identifier & ',' & query: BrokerString & ')'
+		=> @(new Expression.RoutineInvocation(name, new Expression[] { new Expression.ColumnReference(server), query }))
+
 RowsetFunction : @Expression.RoutineInvocation
-	= name: RowsetName & '(' & args: RowsetArguments? & ')'
+	= f: OpenQueryCall => @(f)
+	| name: RowsetName & '(' & args: RowsetArguments? & ')'
 		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
 	| name: FullTextTableName & '(' & table: QualifiedName & ',' & c: TableSearchColumns & ','
 	  & s: FullTextSearch & l: SearchLanguage? & n: SearchTop? & ')'
@@ -1471,7 +1482,7 @@ JsonSchema : @Clause[]
 		=> @(new Clause[] { new Clause.JsonColumn(name, null, null, false) })
 
 RowsetName
-	= "OPENROWSET"i | "OPENQUERY"i | "OPENXML"i
+	= "OPENROWSET"i | "OPENXML"i
 	| "CHANGETABLE"i
 	| "VECTOR_SEARCH"i | "GENERATE_SERIES"i | "STRING_SPLIT"i
 
@@ -1563,9 +1574,18 @@ StatementBody : @Statement
 
 // What a statement writes to. Narrower than a table primary on purpose: the syntax gives
 // a target no correlation and no sample, and `UPDATE t AS x SET …` is not T-SQL.
+//
+// A rowset function is not a target either, `OPENQUERY` excepted: the engine refuses
+// `INSERT INTO OPENROWSET (BULK 'f1', FORMATFILE = 'g1') SELECT …` (`Msg 156`, the
+// documented form among them), `DELETE FROM OPENXML (@h, '/a')` and `DELETE FROM
+// CHANGETABLE (CHANGES t1, 1)` (`Msg 102`), under every one of `INSERT`, `UPDATE`,
+// `DELETE` and `MERGE`. `OPENQUERY` it reads under all four. The names it refuses are
+// reserved words, so nothing reads them back in as a call; `OPENJSON`, `STRING_SPLIT`
+// and `GENERATE_SERIES` are not reserved and are read as one, which is what the engine
+// does with them.
 DmlTarget : @TableReference
 	= server: AdHocServer & named: AdHocObject => @(new TableReference.Named(named, null, false, null, null, null, Clause.None, server))
-	| f: RowsetFunction                 => @(new TableReference.FunctionCall(f, null, null, Clause.None))
+	| f: OpenQueryCall                  => @(new TableReference.FunctionCall(f, null, null, Clause.None))
 	| t: TSql.Variable & hints: TableHints?    => @(new TableReference.Named(t, null, false, null, null, null, hints ?? Clause.None))
 	| name: QualifiedName & hints: TableHints? => @(new TableReference.Named(name, null, false, null, null, null, hints ?? Clause.None))
 
@@ -1589,13 +1609,22 @@ DmlSubject : @TableReference = c: DmlCall => @(c) | t: DmlTarget => @(t)
 // VALUES …` are what cannot be.
 TSqlInsert : @Statement
 	= "INSERT"i & top: Top? & into: "INTO"i? & target: DmlTarget
-	  & ('(' & columns: ColumnList & ')')? & output: OutputClause?
+	  & ('(' & columns: InsertColumns & ')')? & output: OutputClause?
 	  & rows: InsertRows & options: QueryHints? & when @(options is null || rows is not Query.FromExecute)
 		=> @(new Statement.Insert(target, columns, rows, null, top, output, into is not null) { Options = options })
 	| "INSERT"i & top: Top? & into: "INTO"i? & target: DmlCall
-	  & ('(' & columns: ColumnList & ')')? & output: OutputClause?
+	  & ('(' & columns: InsertColumns & ')')? & output: OutputClause?
 	  & rows: InsertRows & options: QueryHints? & when @(options is null || rows is not Query.FromExecute)
 		=> @(new Statement.Insert(target, columns, rows, null, top, output, into is not null) { Options = options })
+
+// What an `INSERT` names its columns by, which is not the standard's plain identifier: a part
+// may be left out, `INSERT @v1 (..a1)`, as it may wherever a name is written. Reading them as
+// names is what tells the columns of a table from the arguments of a function besides: with a
+// plain identifier `INSERT t1 (..a1) VALUES (1)` was read as an insert into `t1 (..a1)`, a
+// call, which the engine does not do.
+InsertColumns : @string[] = first: InsertColumn & (',' & rest: InsertColumn)* => @(Syntax.Named(first, rest))
+
+InsertColumn : @string = t: QualifiedName => @(t)
 
 InsertRows : @Query
 	= "DEFAULT"i & "VALUES"i    => @(new Query.DefaultValues())
@@ -5053,8 +5082,33 @@ DropNames : @Expression[]
 DropName : @Expression = t: QualifiedName => @(new Expression.ColumnReference(t))
 
 DropIndexName : @Expression
-	= t: (Identifier & "ON"i & QualifiedName & OptionsWith?) => @(new Expression.ColumnReference(Syntax.Spaced(t)))
+	= t: (Identifier & "ON"i & QualifiedName & DropIndexWith?) => @(new Expression.ColumnReference(Syntax.Spaced(t)))
 	| t: QualifiedName                                       => @(new Expression.ColumnReference(t))
+
+// What an index is dropped with: a degree of parallelism, whether it is done online, where the
+// rows go, what they are compressed as and on which partitions, how long it waits, and the
+// filegroup the streams go to — each once (`Msg 153`), and nothing else (`Msg 155`), an
+// index's own options among the refusals (`PAD_INDEX`, `SORT_IN_TEMPDB`, `DROP_EXISTING` are
+// `Msg 102`). The rows go anywhere but a bare `DEFAULT`, and the streams take no column.
+DropIndexWith = "WITH"i & '(' & DropIndexOptions & ')'
+
+DropIndexOptions : @Clause[]
+	= first: DropIndexOption & (',' & rest: DropIndexOption)* & when @(Syntax.NamedOnce(first, rest))
+		=> @(Syntax.Listed(first, rest))
+
+DropIndexOption : @Clause
+	= "MAXDOP"i & '=' & t: Sql92.Lexical.Digits
+		=> @(new Clause.Option("MAXDOP", new Expression.Literal(SqlLiteralKind.Number, t), Clause.None))
+	| "ONLINE"i & '=' & o: OnOff
+		=> @(new Clause.Option("ONLINE", new Expression.ColumnReference(o), Clause.None))
+	| "MOVE"i & "TO"i & ?!"DEFAULT"i & p: PlacementTarget
+		=> @(new Clause.Option("MOVE TO", null, new Clause[] { p }))
+	| "FILESTREAM_ON"i & p: PlacementTarget & when @(p is not { Columns: not null })
+		=> @(new Clause.Option("FILESTREAM_ON", null, new Clause[] { p }))
+	| "DATA_COMPRESSION"i & '=' & w: (RowCompression | ColumnstoreCompression) & OnPartitions?
+		=> @(new Clause.Option("DATA_COMPRESSION", new Expression.ColumnReference(Syntax.Squared(w)), Clause.None))
+	| LowPriorityWait
+		=> @(new Clause.Option("WAIT_AT_LOW_PRIORITY", null, Clause.None))
 
 DropScope = "ALL"i & "SERVER"i | "SERVER"i | "DATABASE"i | "QUEUE"i & QualifiedName
 
@@ -5297,7 +5351,8 @@ AlterDatabaseAction : @Statement.AlterTable
 	// Two actions that are only a word. Written out, and this is a place where the words
 	// are the syntax: `ALTER DATABASE d AUDIT SPECIFICATION s` is a different statement,
 	// and a rule that read any word here would take it and call it this one.
-	| "REBUILD"i & "LOG"i  => @(Statement.Altered("REBUILD LOG", null))
+	| "REBUILD"i & "LOG"i & tail: ("ON"i & FileSpecText)?
+		=> @(Statement.Altered("REBUILD LOG", null, null, tail))
 	| "PERFORM_CUTOVER"i   => @(Statement.Altered("PERFORM_CUTOVER", null))
 
 DatabaseModify : @Statement.AlterTable

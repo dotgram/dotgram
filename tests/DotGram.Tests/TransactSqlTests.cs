@@ -997,6 +997,134 @@ public sealed class TransactSqlTests
 	public void A_statement_not_ended_is_followed_by_a_reserved_word(string input, bool read) =>
 		Assert.Equal(read, TransactSql.TryParseSql(input).IsSuccess);
 
+	/// <summary>What a statement writes to among the rowset functions, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("INSERT OPENROWSET (something, @var1) DEFAULT VALUES")]
+	[InlineData("INSERT OPENROWSET (something, @var1) (..a1, b.c) DEFAULT VALUES")]
+	[InlineData("DELETE OPENROWSET (something, @var1)")]
+	[InlineData("UPDATE OPENROWSET (something, @var1) SET c1 = 1")]
+	[InlineData("INSERT INTO OPENROWSET (BULK 'f1', FORMATFILE = 'g1') SELECT * FROM t1")]
+	[InlineData("INSERT INTO OPENROWSET (BULK 'f1', FORMATFILE = 'g1') DEFAULT VALUES")]
+	[InlineData("DELETE FROM OPENROWSET (BULK 'f1', FORMATFILE = 'g1')")]
+	[InlineData("UPDATE OPENROWSET (BULK 'f1', FORMATFILE = 'g1') SET c1 = 1")]
+	[InlineData("MERGE INTO OPENROWSET (BULK 'f1', FORMATFILE = 'g1') AS a USING t2 ON a.c1 = t2.c1 WHEN MATCHED THEN DELETE")]
+	[InlineData("INSERT INTO OPENXML (@h1, '/a') SELECT * FROM t1")]
+	[InlineData("DELETE FROM OPENXML (@h1, '/a')")]
+	[InlineData("UPDATE OPENXML (@h1, '/a') SET c1 = 1")]
+	[InlineData("DELETE FROM CHANGETABLE (CHANGES t1, 1)")]
+	[InlineData("INSERT INTO OPENQUERY (s1) VALUES (1)")]
+	[InlineData("INSERT INTO OPENQUERY (s1, 'q', 'r') VALUES (1)")]
+	[InlineData("INSERT INTO OPENQUERY () VALUES (1)")]
+	[InlineData("INSERT INTO OPENQUERY ('s1', 'q') VALUES (1)")]
+	[InlineData("INSERT INTO OPENQUERY (s1.a, 'q') VALUES (1)")]
+	[InlineData("INSERT INTO OPENQUERY (s1, @v1) VALUES (1)")]
+	[InlineData("INSERT INTO OPENQUERY (s1, 'q' + 'r') VALUES (1)")]
+	[InlineData("SELECT * FROM OPENQUERY (s1)")]
+	[InlineData("SELECT * FROM OPENQUERY (s1, @v1)")]
+	[InlineData("SELECT * FROM OPENQUERY (s1, 'q', 'r')")]
+	public void Rowsets_written_to_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("INSERT INTO OPENQUERY (s1, 'q') VALUES (1)")]
+	[InlineData("INSERT INTO OPENQUERY ([s1], 'q') VALUES (1)")]
+	[InlineData("INSERT INTO OPENQUERY (s1, N'q') VALUES (1)")]
+	[InlineData("INSERT INTO OPENQUERY (s1, 'q') (..a1) VALUES (1)")]
+	[InlineData("INSERT INTO OPENQUERY (s1, 'q') DEFAULT VALUES")]
+	[InlineData("DELETE FROM OPENQUERY (s1, 'q')")]
+	[InlineData("DELETE FROM OPENQUERY (s1, 'q') OUTPUT DELETED.c1")]
+	[InlineData("UPDATE OPENQUERY (s1, 'q') SET c1 = 1")]
+	[InlineData("MERGE INTO OPENQUERY (s1, 'q') AS a USING t2 ON a.c1 = t2.c1 WHEN MATCHED THEN DELETE")]
+	[InlineData("SELECT * FROM OPENQUERY (s1, 'q')")]
+	[InlineData("SELECT * FROM OPENQUERY ([s1], 'q')")]
+	[InlineData("SELECT * FROM OPENQUERY (s1, N'q')")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMATFILE = 'g1')")]
+	[InlineData("SELECT * FROM OPENXML (@h1, '/a')")]
+	[InlineData("DELETE FROM OPENJSON (@j1)")]
+	[InlineData("INSERT INTO OPENJSON (@j1) SELECT * FROM t1")]
+	[InlineData("DELETE FROM STRING_SPLIT ('a', ',')")]
+	[InlineData("INSERT INTO STRING_SPLIT ('a', ',') VALUES (1)")]
+	[InlineData("DELETE FROM GENERATE_SERIES (1, 10)")]
+	[InlineData("DELETE FROM dbo.f1 ()")]
+	[InlineData("INSERT INTO OPENDATASOURCE ('p1', 'c1').db1.dbo.t1 (a1) VALUES (1)")]
+	[InlineData("DELETE FROM OPENDATASOURCE ('p1', 'c1').db1.dbo.t1")]
+	public void Rowsets_written_to_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>What an index is dropped with, a name with a part left out, and a log rebuilt, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("DROP INDEX i1 ON t1 WITH (MAXDOP = x)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (ONLINE = FOO)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (ONLINE = ON (WAIT_AT_LOW_PRIORITY (MAX_DURATION = 1 MINUTES, ABORT_AFTER_WAIT = NONE)))")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (MOVE TO DEFAULT)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (DATA_COMPRESSION = FOO)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (RESUMABLE = ON)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (FOO = 1)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (MAXDOP = 1, MAXDOP = 2)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (ONLINE = ON, ONLINE = OFF)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (SORT_IN_TEMPDB = ON)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (PAD_INDEX = ON)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (DROP_EXISTING = ON)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH ()")]
+	[InlineData("DROP INDEX i1 ON t1 WITH ONLINE = ON")]
+	[InlineData("DROP INDEX t1.i1 WITH (MAXDOP = 1)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (FILESTREAM_ON ab (c1))")]
+	[InlineData("UPDATE t1 SET t1.IDENTITYCOL = 1")]
+	[InlineData("ALTER DATABASE db1 REBUILD LOG ON (NAME = 'n1', FILENAME = 'zzz'), (NAME = 'n2', FILENAME = 'yyy')")]
+	[InlineData("SELECT IDENTITY (INT) FROM t1")]
+	[InlineData("SELECT IDENTITY (INT) INTO t2 FROM t1")]
+	[InlineData("SELECT *, IDENTITY (INT)")]
+	[InlineData("SELECT IDENTITY (INT), c1 FROM t1")]
+	public void Dropped_indexes_and_dotted_names_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("DROP INDEX i1 ON t1 WITH (MAXDOP = 1)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (ONLINE = ON)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (ONLINE = OFF)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (MOVE TO fg1)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (MOVE TO fg1 (c1))")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (MOVE TO \"default\")")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (MOVE TO 'fg' (c1))")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (DATA_COMPRESSION = PAGE)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (DATA_COMPRESSION = COLUMNSTORE)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (DATA_COMPRESSION = PAGE ON PARTITIONS (1))")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (WAIT_AT_LOW_PRIORITY (MAX_DURATION = 1 MINUTES, ABORT_AFTER_WAIT = NONE))")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (FILESTREAM_ON fg1)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (FILESTREAM_ON \"ab\")")]
+	[InlineData("DROP INDEX IF EXISTS i1 ON t1 WITH (MAXDOP = 1)")]
+	[InlineData("DROP INDEX i1 ON t1 WITH (ONLINE = ON, MOVE TO fg1, FILESTREAM_ON \"ab\"), i2 ON t2 WITH (ONLINE = OFF, MOVE TO fg1 (c1), DATA_COMPRESSION = PAGE)")]
+	[InlineData("SELECT master..t1.IDENTITYCOL FROM t1")]
+	[InlineData("SELECT ..t1.IDENTITYCOL FROM t1")]
+	[InlineData("SELECT db.dbo.t1.IDENTITYCOL FROM t1")]
+	[InlineData("SELECT t1.ROWGUIDCOL FROM t1")]
+	[InlineData("SELECT master..t1.ROWGUIDCOL FROM t1")]
+	[InlineData("SELECT IDENTITYCOL FROM t1")]
+	[InlineData("INSERT @v1 (..a1) VALUES (1)")]
+	[InlineData("INSERT @v1 (a..b) VALUES (1)")]
+	[InlineData("INSERT t1 (..a1) VALUES (1)")]
+	[InlineData("INSERT t1 (a1, ..b1) VALUES (1, 2)")]
+	[InlineData("INSERT @v1 (a1) VALUES (1)")]
+	[InlineData("INSERT @v1 (..a1) ((SELECT * FROM t1) UNION SELECT * FROM t2)")]
+	[InlineData("SELECT IDENTITY (INT) AS c INTO t2 FROM t1")]
+	[InlineData("ALTER DATABASE db1 REBUILD LOG")]
+	[InlineData("ALTER DATABASE db1 REBUILD LOG ON (NAME = 'n1', FILENAME = 'zzz')")]
+	[InlineData("ALTER DATABASE db1 REBUILD LOG ON (NAME = n1, FILENAME = 'zzz')")]
+	[InlineData("ALTER DATABASE db1 REBUILD LOG ON (FILENAME = 'zzz')")]
+	[InlineData("ALTER DATABASE db1 REBUILD LOG ON (NAME = 'n1')")]
+	public void Dropped_indexes_and_dotted_names_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>The schema a rowset function takes, and a <c>CATCH</c> with nothing in it, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT '@b') AS x")]

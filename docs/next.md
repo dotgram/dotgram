@@ -19293,3 +19293,58 @@ there 35 — where it began, the one this piece let through having been shut aga
 engine does not, which this refuses now — the split counts agreement with ScriptDom and not
 with the engine, and where they differ it is the engine this follows. The round trip 100% of
 7,548. The map is as it was: read by both 7,982 of 8,338 (99.7%), the work list 21, defects 0.
+
+## What a statement writes to, what an index is dropped with, and a name with a part left out
+
+Four of the corpus's work list, put to the engine some hundred and thirty times; one of them
+was never work at all, and the last of them came out of checking the others.
+
+- **An index is dropped with a list of its own**, which this had read as the generic one:
+  a degree of parallelism, `ONLINE`, where the rows go, what they are compressed as and on
+  which partitions, how long it waits, and the filegroup the streams go to — each once
+  (`Msg 153`) and nothing else (`Msg 155`). An index's own options are refused there
+  (`PAD_INDEX`, `SORT_IN_TEMPDB`, `DROP_EXISTING`), the rows go anywhere but a bare `DEFAULT`,
+  and the streams take no column. Eleven defects went with it, and the work was one: the
+  filegroup in quotes, `FILESTREAM_ON "ab"`, which a placement reads.
+- **A name may leave a part out before `IDENTITYCOL`**: `master..t1.IDENTITYCOL` is read and
+  was not, since the prefix was a run of `identifier .` pairs with no way to write the gap. It
+  is the qualified name's own part now. What a `SET` assigns is still refused (`Msg 156`).
+- **An `INSERT` names its columns by names**, not by the standard's plain identifiers:
+  `INSERT @v1 (..a1)` is read. It corrects a tree besides — with a plain identifier the list
+  could not hold `..a1`, so `INSERT t1 (..a1) VALUES (1)` had been read as an insert into
+  `t1 (..a1)`, a function call, which is not what the engine reads it as.
+- **A log rebuilt names its file**: `ALTER DATABASE d REBUILD LOG ON (NAME = 'n1', FILENAME =
+  'zzz')`, one clause and not two.
+- **And `IDENTITY (INT)` in a select list needed nothing.** The corpus's statement is counted
+  as read by the engine only because an undeclared `@a` in it answers `Msg 137`, which the
+  harness reads as read — the same artefact as `PREDICT`'s `RUNTIME`. Put to the engine on its
+  own, `IDENTITY (INT)` is refused everywhere but aliased with an `INTO`, which is what this
+  reads.
+
+The columns made one statement more a defect than before — `INSERT OPENROWSET (something,
+@var1) (..a1, b.c) DEFAULT VALUES` could not be written with a plain identifier and now could
+— which was worth following, because the target was the wrong part and had been wrong all
+along.
+
+- **A rowset function is not what a statement writes to**, `OPENQUERY` excepted. The engine
+  refuses `OPENROWSET` and `OPENXML` as a target under every one of `INSERT`, `UPDATE`,
+  `DELETE` and `MERGE` — `Msg 156` for the `BULK` form, the documented `INSERT INTO OPENROWSET
+  (BULK …) SELECT …` among them, `Msg 102` for the rest — and refuses `CHANGETABLE (CHANGES
+  t1, 1)` there too. It reads `OPENQUERY` under all four. Both stand in a `FROM` as they
+  always did; only the target narrows. The names refused are reserved words, so nothing reads
+  them back in as a call, while `OPENJSON`, `STRING_SPLIT` and `GENERATE_SERIES` are not
+  reserved and are read as calls, which is what the engine does with them.
+- **And `OPENQUERY` is written out.** Its server is one identifier, plain or delimited, and no
+  more: `OPENQUERY('s1', 'q')`, `OPENQUERY(s1.a, 'q')` and `OPENQUERY(@s, 'q')` are `Msg 102`.
+  Its query is a string written out, `'q'` or `N'q'` but not `'q' + 'r'`. Two arguments
+  exactly — one is `Msg 102` and so are three. That holds in a `FROM` as much as in a target,
+  so it is a rule of its own and out of the rowset names.
+
+The narrowing costs something and it is worth naming: `--split` had gone to 730 with the
+rowset target read, and is back at 728. Two files ScriptDom reads whole are refused here now,
+because ScriptDom reads an insert into a rowset and the engine does not. ScriptDom is the
+tool and the engine is the authority, so the two files stay refused.
+
+At 150: read by both 5,918 (from 5,912), the work list 58 (from 64), read here but refused
+there 31 (from 35); `--split` 728 (from 728), the round trip 100% of 7,550. The map: read by
+both 7,982 of 8,338 (99.7%), the work list 21, defects 0.
