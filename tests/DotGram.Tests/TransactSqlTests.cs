@@ -1302,6 +1302,59 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>
+	/// A query with an order and a shape of its own, inside brackets and in an `INSERT`, as the
+	/// engine answers it.
+	/// </summary>
+	[Theory]
+	[InlineData("(SELECT TOP 1 a FROM t ORDER BY a) UNION SELECT 1")]
+	[InlineData("SELECT 1 UNION (SELECT TOP 1 a FROM t ORDER BY a)")]
+	[InlineData("SELECT (SELECT a FROM t ORDER BY a OPTION (MAXDOP 1))")]
+	public void An_ordered_query_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside it.</summary>
+	[Theory]
+	[InlineData("SELECT (SELECT TOP 1 a FROM t ORDER BY a)")]
+	[InlineData("SELECT (SELECT a FROM t ORDER BY a OFFSET 1 ROWS)")]
+	[InlineData("SELECT (SELECT a FROM t ORDER BY a FOR XML PATH)")]
+	[InlineData("SELECT * FROM u WHERE a IN (SELECT TOP 1 a FROM t ORDER BY a) AND EXISTS (SELECT TOP 1 a FROM t ORDER BY a)")]
+	[InlineData("SELECT * FROM (SELECT TOP 1 a FROM t ORDER BY a) AS x")]
+	[InlineData("SELECT * FROM (SELECT * FROM t FOR XML AUTO) AS x(c)")]
+	[InlineData("SELECT * FROM (SELECT a FROM t ORDER BY a FOR JSON AUTO) AS x(j)")]
+	[InlineData("SELECT * FROM u CROSS APPLY (SELECT * FROM t ORDER BY 1 OFFSET 1 ROWS) AS x")]
+	[InlineData("WITH c AS (SELECT TOP 1 a FROM t ORDER BY a) SELECT * FROM c")]
+	[InlineData("INSERT INTO x SELECT TOP 1 y FROM x ORDER BY y")]
+	[InlineData("INSERT INTO x SELECT y FROM x ORDER BY y OFFSET 1 ROWS FETCH NEXT 2 ROWS ONLY")]
+	[InlineData("INSERT INTO x SELECT 1 UNION SELECT 2 ORDER BY 1")]
+	[InlineData("SELECT TOP (SELECT TOP 1 1 FROM t ORDER BY 1) a FROM t")]
+	[InlineData("SELECT TOP (SELECT 1 FROM t FOR XML PATH) a FROM t")]
+	public void An_ordered_query_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>The order is the whole query's, and the tree keeps it where it was written.</summary>
+	[Fact]
+	public void An_ordered_query_keeps_its_order()
+	{
+		var select = Assert.IsType<Statement.Select>(
+			TransactSql.TryParseStatement("SELECT * FROM (SELECT TOP 1 a FROM t UNION SELECT b FROM u ORDER BY 1) AS x").Value);
+		var outer  = Assert.IsType<Query.Specification>(select.Of);
+		var derived = Assert.IsType<TableReference.Derived>(Assert.Single(outer.From));
+		var ordered = Assert.IsType<Query.Ordered>(derived.Query);
+
+		Assert.IsType<Query.Union>(ordered.Query);
+		Assert.NotNull(ordered.By);
+		Assert.Null(ordered.For);
+
+		var insert = Assert.IsType<Statement.Insert>(TransactSql.TryParseStatement("INSERT INTO x SELECT y FROM z").Value);
+
+		Assert.IsType<Query.Specification>(insert.Rows);
+	}
+
 	/// <summary>A subquery as the count of a `TOP`, whose brackets are the subquery's own.</summary>
 	[Theory]
 	[InlineData("SELECT TOP (WITH x AS (SELECT 1 AS n) SELECT n FROM x) a FROM t")]

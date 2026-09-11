@@ -8,7 +8,7 @@ using Sql92;
 // grammar is attached to; what is written here is only where T-SQL differs, and
 // §5.1's rebinding is what makes the difference reach every rule that leads to it.
 //
-// Nineteen rules replace nineteen of the standard's. Nothing else is restated and nothing
+// Twenty rules replace twenty of the standard's. Nothing else is restated and nothing
 // is copied: a query expression, a join, a predicate and the whole value tower are
 // the ones already read against the standard, reading a dialect's identifiers and
 // a dialect's primaries because the substitution rewrote every call inside them.
@@ -642,7 +642,7 @@ TSqlQuerySpecification : @Query
 // ((SELECT …) EXCEPT (SELECT …))` are read, and kept as the subquery they are, so that the
 // bracket is written once. A `WITH` or a `VALUES` there is refused.
 Top : @Clause.Top
-	= "TOP"i & '(' & ?!"VALUES"i & q: QueryExpression & ')' & suffix: TopSuffix?
+	= "TOP"i & ?!('(' & "VALUES"i) & q: Subquery & suffix: TopSuffix?
 		=> @(Clause.Topped(new Expression.Subquery(q), suffix))
 	| "TOP"i & '(' & v: ValueExpression & ')' & suffix: TopSuffix?
 		=> @(Clause.Topped(new Expression.Parenthesized(v), suffix))
@@ -1014,6 +1014,17 @@ TableSample : @Clause
 SampleUnit      : @string     = t: ("PERCENT"i | "ROWS"i) => @(t)
 TableRepeatable : @Expression = "REPEATABLE"i & '(' & v: ValueExpression & ')' => @(v)
 
+// ── §7.13's subquery, widened ───────────────────────────────────────────────
+//
+// A query in brackets may carry an order and a shape of its own — `(SELECT TOP 1 a FROM t
+// ORDER BY a)`, `(SELECT … ORDER BY 1 OFFSET 1 ROWS)`, `(SELECT … FOR XML PATH)` — as a
+// value, under `IN` and `EXISTS`, as a derived table, after `APPLY` and in a `TOP`; kept as
+// a `Query.Ordered`. An `ORDER BY` without a `TOP` or an `OFFSET` the engine reads and then
+// refuses (`Msg 1033`); an `OPTION` there it refuses as syntax, since that is a statement's.
+TSqlSubquery : @Query
+	= '(' & q: QueryExpression & by: OrderByClause? & window: OffsetFetch? & shape: ForClause? & ')'
+		=> @(Syntax.Ordered(q, Clause.Ordered(by, window), shape))
+
 // ── §13.1's direct select, widened ──────────────────────────────────────────
 //
 // Where the clauses that belong to the statement rather than to the query go: how many
@@ -1058,9 +1069,12 @@ CteDefinition : @Clause.CommonTableExpression
 // A collation is the value's own, as a primary's is.
 TSqlSortKey : @Expression = v: ValueExpression => @(v)
 
-// The order a named query is written in is read and dropped: a `WITH` defines a table, and
-// a table has no order until something asks for one.
-CteBody : @Query = q: QueryExpression & OrderByClause? & OffsetFetch? => @(q)
+// The order a named query is written in is kept, as a `Query.Ordered`: a `WITH` defines a
+// table, and a table has no order until something asks for one, but the order was written
+// and a statement printed without it is not the one that came in.
+CteBody : @Query
+	= q: QueryExpression & by: OrderByClause? & window: OffsetFetch?
+		=> @(Syntax.Ordered(q, Clause.Ordered(by, window), null))
 
 // `FETCH` without `OFFSET` in front of it is not a clause: the engine answers
 // `Incorrect syntax`, though ScriptDom reads it. The corpus statement that asked for it was
@@ -1128,6 +1142,7 @@ namespace Dialect with (
 	CompOp                    = TSqlCompOp,
 	SortKey                   = TSqlSortKey,
 	SelectList                = TSqlSelectList,
+	Subquery                  = TSqlSubquery,
 	QuerySpecification        = TSqlQuerySpecification,
 	TablePrimary              = TSqlTablePrimary,
 	TableReference            = TSqlTableReference,
@@ -1470,7 +1485,8 @@ InsertRows : @Query
 	= "DEFAULT"i & "VALUES"i    => @(new Query.DefaultValues())
 	| v: TableValueConstructor  => @(v)
 	| e: ExecuteStatement       => @(new Query.FromExecute(e))
-	| q: QueryExpression        => @(q)
+	| q: QueryExpression & by: OrderByClause? & window: OffsetFetch? & shape: ForClause?
+		=> @(Syntax.Ordered(q, Clause.Ordered(by, window), shape))
 
 // ── §UPDATE ─────────────────────────────────────────────────────────────────
 TSqlUpdate : @Statement

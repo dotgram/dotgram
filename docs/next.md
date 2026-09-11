@@ -18532,3 +18532,27 @@ main one is left to whoever else is working in it; the commits go to `main` as b
 
 At 150: read by both 5,825 (from 5,817), the work list 149 (from 157), read here but refused
 there 43, as before. `--split` 601, and the round trip 100% of 6,933.
+
+## `Query.Ordered`: a query with an order of its own
+
+The tree had an `ORDER BY` and a `FOR` in one place, `Statement.Select`, and the engine reads
+them in more: a subquery's `ORDER BY` under its `TOP` or with an `OFFSET` — as a value, under
+`IN` and `EXISTS`, as a derived table, after `APPLY`, in a `TOP` — a derived table's `FOR XML`
+or `FOR JSON`, an `INSERT … SELECT … ORDER BY`, and a named query's order, which was read and
+dropped. So there is a record for it, as agreed: `Query.Ordered(Query, Clause.OrderBy? By,
+Clause? For)`. It wraps the query rather than being a field of a specification, because the
+order is the whole query's — a `UNION` has one, after its last part.
+
+The standard's subquery is the dialect's now, twenty rules in all, and it keeps what its
+brackets hold; an `INSERT`'s rows and a named query do the same, and the writer gives each
+back where it was. An `ORDER BY` with no `TOP` and no `OFFSET` the engine reads and refuses by
+meaning (`Msg 1033`), as it does a `FOR XML` in an `INSERT` (`Msg 6819`); an `OPTION` inside
+the brackets it refuses as syntax, and so does this. So does a bracketed ordered query beside
+a `UNION`, `(SELECT TOP 1 … ORDER BY a) UNION SELECT 1`.
+
+Two of the probes' lines are left: an `ORDER BY` in front of a `UNION` inside a derived table,
+`(SELECT TOP 1 a FROM t ORDER BY a UNION SELECT 1)`, which the engine reads, and an ordered
+query in two pairs of brackets, `((SELECT TOP 1 … ORDER BY a))`.
+
+At 150: read by both 5,833 (from 5,825), the work list 141 (from 149), read here but refused
+there 43, as before. `--split` 609, and the round trip 100% of 6,951.

@@ -400,6 +400,7 @@ together — flags, since a list may mix them. A variable assigned is not here: 
 | `Query.TableValueConstructor` | SQL-92 | §7.3 &lt;table value constructor&gt; |
 | `Query.ExplicitTable` | SQL-92 | §7.10 &lt;explicit table&gt; |
 | `Query.Parenthesized` | SQL-92 | §7.10 a query expression in brackets |
+| `Query.Ordered` | T-SQL | SELECT — a query with its own ORDER BY and FOR clause, where no statement holds them |
 | `Query.Union` | SQL-92 | §7.10 &lt;query expression&gt; with `UNION` |
 | `Query.Except` | SQL-92 | §7.10 the same, with `EXCEPT` |
 | `Query.Intersect` | SQL-92 | §7.10 the same, with `INTERSECT` |

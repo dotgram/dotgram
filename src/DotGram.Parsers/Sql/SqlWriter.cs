@@ -1283,6 +1283,23 @@ public static class SqlWriter
 				Set(text, left, right, "INTERSECT", all, binds);
 				break;
 
+			case Query.Ordered(var inner, var by, var shape):
+				Put(text, inner, 0);
+
+				if (by is not null)
+				{
+					text.Append(' ');
+					Put(text, by);
+				}
+
+				if (shape is not null)
+				{
+					text.Append(' ');
+					Put(text, shape);
+				}
+
+				break;
+
 			case Query.Parenthesized(var inner):
 				text.Append('(');
 				Put(text, inner, 0);

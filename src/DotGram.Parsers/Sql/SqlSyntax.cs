@@ -1907,6 +1907,17 @@ public abstract record Query : ISqlSpan
 	/// <summary>§7.13 a query in brackets, for <see cref="Expression.Parenthesized"/>'s reason.</summary>
 	public sealed record Parenthesized(Query Query) : Query;
 
+	/// <summary>
+	/// T-SQL's query with an order and a shape of its own, where no statement holds them: a
+	/// subquery's <c>ORDER BY</c> under its <c>TOP</c>, a derived table's <c>FOR XML</c>, an
+	/// <c>INSERT … SELECT … ORDER BY</c>, a named query's order.
+	/// </summary>
+	/// <remarks>
+	/// It wraps the query rather than being a field of a specification because the order is
+	/// the whole query's: a <c>UNION</c> has one <c>ORDER BY</c>, after the last of its parts.
+	/// </remarks>
+	public sealed record Ordered(Query Query, Clause.OrderBy? By, Clause? For) : Query;
+
 	/// <summary>§7.4 <c>TABLE t</c>, which is every column and every row of one table.</summary>
 	public sealed record ExplicitTable(string Name) : Query;
 
@@ -3007,6 +3018,13 @@ public static class Syntax
 
 	/// <summary>Whether a word that is <c>ON</c> or <c>OFF</c> was the first of the two.</summary>
 	public static bool Switched(string word) => (word[0] | 0x20) == 'o' && word.Length == 2;
+
+	/// <summary>
+	/// A query with the order and the shape written inside its brackets, where either was;
+	/// the query alone where neither was.
+	/// </summary>
+	public static Query Ordered(Query query, Clause.OrderBy? by, Clause? shape) =>
+		by is null && shape is null ? query : new Query.Ordered(query, by, shape);
 
 	/// <summary>Which way a sort specification asked for its rows (§10.10).</summary>
 	public static SqlOrder Ordered(string? order) =>
