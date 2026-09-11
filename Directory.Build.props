@@ -24,12 +24,6 @@
 		<RepositoryUrl>https://github.com/dotgram/dotgram</RepositoryUrl>
 		<PackageProjectUrl>https://github.com/dotgram/dotgram</PackageProjectUrl>
 		<PackageIcon>icon.png</PackageIcon>
-
-		<!-- Paths in the PDBs and the package normalized to the repository rather than
-		     the runner's disk, so that what CI packs can be rebuilt byte for byte from the
-		     commit it names. Only on CI: locally it would point a debugger at /_/ instead
-		     of at the file being edited. -->
-		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
 	</PropertyGroup>
 
 	<!-- The icon every package carries. Items are evaluated after every property, so

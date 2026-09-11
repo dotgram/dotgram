@@ -16,6 +16,14 @@
 		     a parser here has line numbers without a symbol server. -->
 		<DebugType>embedded</DebugType>
 
+		<!-- Paths in the PDB and the package normalized to the repository rather than the
+		     runner's disk, so that what CI packs can be rebuilt byte for byte from the commit
+		     its nuspec names. Here and not in Directory.Build.props: it rewrites every source
+		     path, [CallerFilePath] included, to /_/, and nine test classes find the
+		     repository from their own file — set for everything, it failed eighty of them.
+		     Only on CI, because locally it would point a debugger at /_/. -->
+		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+
 		<!-- Generated files land on disk so a reader can open what the grammars became. -->
 		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 		<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
