@@ -887,9 +887,11 @@ TSqlTablePrimary : @TableReference
 	// refused.
 	| name: QualifiedName & version: SystemTime? & path: GraphPath? & call: ('(' & args: Arguments? & ')')?
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
-	  & sample: TableSample? & hints: TableHints? & when @(call is null || (hints is null && path is null))
+	  & sample: TableSample? & close: SampledHint? & hints: SourceHints?
+	  & when @((call is null || (hints is null && close is null && path is null))
+			   && (close is null || (alias is not null && hints is null)))
 	  & pivot: PivotSuffix?
-		=> @(Syntax.Sourced(name, version, path is not null, call, args, alias, columns, sample, hints, pivot))
+		=> @(Syntax.Sourced(name, version, path is not null, call, args, alias, columns, sample, hints ?? close, pivot))
 	| t: TSql.Variable & s: VariableSource => @(Syntax.OfVariable(t, s))
 	| derived: TableSubquery & path: GraphPath? & "AS"i? & alias: CorrelationName
 	  & ('(' & columns: ColumnList & ')')? & pivot: PivotSuffix?
@@ -999,6 +1001,17 @@ SourceClause    = "WINDOW"i | "PIVOT"i | "UNPIVOT"i | "TABLESAMPLE"i | "USING"i
 TableHints : @Clause[]
 	= "WITH"i & '(' & first: TableHint & (','? & rest: TableHint)* & ')'
 		=> @(Syntax.Listed(first, rest))
+
+// The same, where a source may say the old `WITH (0)` besides: one number and nothing else.
+SourceHints : @Clause[]
+	= "WITH"i & '(' & t: Sql92.Lexical.Digits & ')' => @(new Clause[] { new Clause.Hint(t) })
+	| h: TableHints                                 => @(h)
+
+// A hint written against the sample rather than after it, `TABLESAMPLE (1000 ROWS) (NOLOCK)`,
+// which the published syntax does not give and the engine reads. One hint and no list
+// (`(NOLOCK, HOLDLOCK)` is `Msg 1018`), never a number (`Msg 102`), and only where the source
+// was named — without a correlation name it is `Msg 480`.
+SampledHint : @Clause[] = '(' & h: TableHint & ')' => @(new Clause[] { h })
 
 TableHint : @Clause = t: TableHintSyntax => @(new Clause.Hint(t))
 

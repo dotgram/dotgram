@@ -19629,3 +19629,35 @@ like reading.
 At 150: read by both 5,948 (from 5,944), the work list 36 (from 40), read here but refused
 there 12 (from 12); `--split` 730 (from 728), the round trip 100% of 7,569. The map: read by
 both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
+
+## A number where a source's hints stand, and a hint written against a sample
+
+Two of the work list, both about a bracket after a table, and putting them to the engine cost
+more than writing them: half of what the corpus shows around them the engine does not read
+at all.
+
+- **`FROM t1 WITH (0)`** is the old way to force an index, and the engine still reads it —
+  `WITH (1)` too. The number stands alone there: `WITH (0, NOLOCK)` and `WITH (NOLOCK, 0)`
+  are `Msg 102`, so it is the whole of the list rather than one of its items. And it is a
+  source's alone: `UPDATE t1 WITH (0)` and `DELETE FROM t1 WITH (0)` are refused, which is
+  why the rule stands beside `TableHints` instead of inside it — a target keeps calling the
+  list that has no number in it.
+- **`TABLESAMPLE (1000 ROWS) (NOLOCK)`**, a hint written against the sample with no `WITH`
+  between them, which no page gives and the engine reads. One hint and not a list
+  (`(NOLOCK, HOLDLOCK)` is `Msg 1018`), never a number (`Msg 102`), and only where the source
+  carries a correlation name — without one it is `Msg 480`.
+
+What the corpus writes beside these is not work, and the engine says so: `FROM t1 table1 (1)`
+is `Msg 102`, `FROM t1 t (0)` and `AS t (0)` likewise, and `FROM t1 holdlock` — a hint with no
+brackets at all — is `Msg 1018`. Four statements that look like the same family and are the
+corpus being a corpus of errors. The two that were work are the two above.
+
+Left where they were, with the measurement written down rather than the rule: a type whose
+name carries a dot under `national` (`c3 national sys.Char varying` is read, `national
+varchar` and `sys.text varying` are `Msg 102` — the boundary is only half measured), and a
+variable named by digits (`@3`), which is the standard's identifier start and wants a lexeme
+of its own.
+
+At 150: read by both 5,950 (from 5,948), the work list 34 (from 36), read here but refused
+there 12 (from 12); `--split` 730 (from 730), the round trip 100% of 7,571. The map: read by
+both 7,983 of 8,338 (99.8%), the work list 20, defects 0.

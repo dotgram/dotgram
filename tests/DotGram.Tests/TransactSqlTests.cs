@@ -997,6 +997,44 @@ public sealed class TransactSqlTests
 	public void A_statement_not_ended_is_followed_by_a_reserved_word(string input, bool read) =>
 		Assert.Equal(read, TransactSql.TryParseSql(input).IsSuccess);
 
+	/// <summary>A number where a source's hints stand, and a hint written against a sample, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("SELECT c1 FROM t1 WITH (0, NOLOCK)")]
+	[InlineData("SELECT c1 FROM t1 WITH (NOLOCK, 0)")]
+	[InlineData("UPDATE t1 WITH (0) SET c1 = 1")]
+	[InlineData("DELETE FROM t1 WITH (0)")]
+	[InlineData("SELECT * FROM authors t1 TABLESAMPLE (1000 ROWS) (NOLOCK, HOLDLOCK)")]
+	[InlineData("SELECT * FROM authors t1 TABLESAMPLE (1000 ROWS) (0)")]
+	[InlineData("SELECT * FROM authors TABLESAMPLE (1000 ROWS) (NOLOCK)")]
+	[InlineData("SELECT c1 FROM t1 t (0)")]
+	[InlineData("SELECT c1 FROM t1 AS t (0)")]
+	[InlineData("SELECT c1 FROM t1 table1 (1)")]
+	public void Old_hints_and_sampled_ones_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT c1 FROM t1 WITH (0)")]
+	[InlineData("SELECT c1 FROM t1 WITH (1)")]
+	[InlineData("SELECT c1 FROM t1 WITH (0) WHERE c1 = 1")]
+	[InlineData("SELECT c1 FROM t1 WITH (0), t2 WITH (1)")]
+	[InlineData("SELECT c1 FROM t1 WITH (INDEX (0), NOLOCK)")]
+	[InlineData("SELECT c1 FROM t1 WITH (NOLOCK)")]
+	[InlineData("SELECT c1 FROM t1 (0)")]
+	[InlineData("SELECT c1 FROM t1 (1, 2)")]
+	[InlineData("SELECT * FROM authors t1 TABLESAMPLE (1000 ROWS) (NOLOCK)")]
+	[InlineData("SELECT * FROM authors t1 TABLESAMPLE SYSTEM (10 PERCENT) (NOLOCK)")]
+	[InlineData("SELECT * FROM authors t1 TABLESAMPLE (1000 ROWS) REPEATABLE (5) (NOLOCK)")]
+	[InlineData("SELECT * FROM authors t1 TABLESAMPLE (1000 ROWS) WITH (NOLOCK)")]
+	[InlineData("SELECT * FROM authors t1 TABLESAMPLE (1000 ROWS)")]
+	[InlineData("SELECT * FROM authors t1 (NOLOCK)")]
+	public void Old_hints_and_sampled_ones_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>An exponent with no digits, and a procedure called by its number, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("SELECT 2e.5")]
