@@ -997,6 +997,33 @@ public sealed class TransactSqlTests
 	public void A_statement_not_ended_is_followed_by_a_reserved_word(string input, bool read) =>
 		Assert.Equal(read, TransactSql.TryParseSql(input).IsSuccess);
 
+	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
+	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').db.'Something' AS Z")]
+	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'Something'.dbo.t1 AS Z")]
+	public void A_server_named_by_a_string_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'Something' AS Z")]
+	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'Something'")]
+	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=ServerName;User ID=MyUID;Password=PLACEHOLDER').'Something' AS Z")]
+	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s')...xactions")]
+	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s')..xactions")]
+	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').xactions")]
+	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s')....xactions")]
+	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').db..t1")]
+	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').[Something] AS Z")]
+	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').\"Something\" AS Z")]
+	public void A_server_named_by_a_string_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>Where a mask stands among a column's words, and which types take a collation, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("CREATE TABLE t (c1 VARCHAR (100) MASKED WITH (FUNCTION = 'default()') SPARSE NULL)")]

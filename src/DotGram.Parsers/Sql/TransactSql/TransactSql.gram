@@ -1561,7 +1561,9 @@ AdHocServer : @Expression.RoutineInvocation
 	= name: "OPENDATASOURCE"i & '(' & provider: BrokerString & ',' & init: BrokerString & ')'
 		=> @(new Expression.RoutineInvocation(name, new Expression[] { provider, init }))
 
-AdHocObject : @string = '.' & t: ('.'* & Identifier & ('.'+ & Identifier)*) => @(t)
+AdHocObject : @string
+	= '.' & t: Quoted                                       => @(t)
+	| '.' & t: ('.'* & Identifier & ('.'+ & Identifier)*)    => @(t)
 
 // The full-text rowsets, put to the engine some fifty times, and stricter than the predicates
 // they rank: a table by its name, and what is searched a column by its bare name, a list of

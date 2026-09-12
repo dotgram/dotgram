@@ -19729,3 +19729,30 @@ statement writes to.
 At 150: read by both 5,952 (from 5,952), the work list 32 (from 32), read here but refused
 there 9 (from 12); `--split` 729 (from 731), the round trip 100% of 7,570. The map: read by
 both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
+
+## A server named by a string
+
+Two of the work list, and the rule is narrower than the two statements suggested.
+
+- **What follows an ad hoc data source may be a string**, and then it is the whole of the
+  name: `OPENDATASOURCE ('SQLOLEDB', 'Data Source=…').'Something'` is read, with a correlation
+  name and without. Nothing may stand beside it — `.'a'.'b'`, `.db.'Something'` and
+  `.'Something'.dbo.t1` are all `Msg 102` — so the string is its own alternative rather than
+  another kind of part in the name that was already read there.
+- The rest of what the corpus writes around it was already read: `...xactions`, `..xactions`,
+  `....xactions`, `.db..t1`, a bracketed name, a quoted one, and `OPENROWSET ('SQLOLEDB',
+  N'seattle1'; 'manager'; 'MyPass', …)` with its arguments joined by semicolons.
+
+**What is left in the defect list is not work on this grammar.** Nine remain: six are
+`OPENROWSET (BULK …)` writing `PARSER_VERSION`, `HEADER_ROW` and `ROWSET_OPTIONS`, which the
+engine refuses and this reads because the rowset argument vocabulary is deliberately open
+(the comment above `RowsetArguments` says so: a name there is a catalogue's business).
+Closing it is a decision about that comment, not a defect to fix quietly. Two are `{ T '1' }`
+answering `Msg 241` — the engine objecting to a value it read, the same kind of answer as
+`Msg 8183` and `16548`, and the number is not on the benchmark's `AboutNames` list. The last
+is `create view "Category Sales for 1997"`, which reads here and at the engine when put to
+either on its own: it is the corpus being cut into statements by ScriptDom, not a rule.
+
+At 150: read by both 5,954 (from 5,952), the work list 30 (from 32), read here but refused
+there 9 (from 9); `--split` 730 (from 729), the round trip 100% of 7,572. The map: read by
+both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
