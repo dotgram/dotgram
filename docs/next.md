@@ -19803,3 +19803,50 @@ Three families off the work list, and the third was not a family at all.
 At 150: read by both 5,956 (from 5,954), the work list 28 (from 30), read here but refused
 there 9 (from 9); `--split` 732 (from 730), the round trip 100% of 7,574. The map: read by
 both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
+
+## Which signs money is written with
+
+The corpus writes fifteen currency signs into one procedure's defaults and calls each of them
+money. Four were read here — `$`, `£`, `¥`, `€` — so the rest were a work list entry, and the
+obvious rule was that the sign is a currency symbol and the list was an accident of whoever
+wrote it first.
+
+**It is not a category. It is a closed list, and the engine was asked one sign at a time.**
+
+Read: `$`, `¢`, `£`, `¤`, `¥`, `৲`, `৳`, `฿`, `៛`, the whole of `₠`…`₱` without a gap, `﷼`,
+`﹩`, `＄`, `￠`, `￡`, `￥`, `￦`. Refused, every one `Msg 102` at every level: `₲`, `₳`, `₴`,
+`₵`, `₶`, `₷`, `₸`, `₺`, `₾`, `₿` and `₹` — all of them currency symbols, all of them above
+`₱`, which is where the engine's list stops — and `№`, `§`, `©`, `°`, which are not currency
+symbols and would have been read had the rule been the category.
+
+Two things it does not depend on. The type declared: `DECLARE @m INT = ¤10.00` is read, the
+sign making the literal and not the column. And where it stands: `SELECT ৳10.00` is a value
+like any other. So this is the lexeme's own list and nothing else's, written as the signs and
+the one range the engine actually takes.
+
+**Two more of the work list are not work.** `SELECT …, IDENTITY (INT), IDENTITY (TINYINT, 10,
+5), …` is `Msg 156` once `@a` in it is declared — the engine wants the alias, and
+`SELECT IDENTITY (INT) AS 'column1' INTO t2 FROM t1` is read here already. The corpus counted
+it read through the `Msg 137` its undeclared variable earns first, which is the same mirage
+as the nine `PREDICT`s and the two `AS LOGIN`s. Eleven of the twenty-six left are that mirage
+and no rule will ever take them off the list.
+
+**Two measured and waiting on a decision.** `{ESCAPE '%'}` after a `LIKE` is read by the
+engine everywhere one may stand — after `LIKE`, after `NOT LIKE`, inside a `CHECK`, brackets
+tight or loose — and the escape it brackets is `§8.5`'s, which lives in the standard's
+`PredicateTail`. Reading it means either naming the escape in the standard and replacing that
+name in the dialect, or restating six alternatives here, and the file's own header says
+nothing is copied.
+
+And `OPTION (CHECKCONSTRAINTS PLAN, OPTIMIZE CORRELATED UNION ALL)` is read while
+`OPTION (OPTIMIZE CORRELATED UNION ALL)` alone is `Msg 102`. Asked further:
+`OPTION (CHECKCONSTRAINTS PLAN, SOMETHING ELSE ENTIRELY)` is read too, and so is
+`BYPASS OPTIMIZER_QUEUE` behind the same three words. After `CHECKCONSTRAINTS`, `SHRINKDB` or
+`ALTERCOLUMN` and their `PLAN`, the engine stops reading the list at all. That is not a
+vocabulary to extend — it is the 2005 parser giving up — and writing it down means reading
+arbitrary words as hints. It belongs beside the open rowset vocabulary as a question, not a
+rule.
+
+At 150: read by both 5,958 (from 5,956), the work list 26 (from 28), read here but refused
+there 9 (from 9); `--split` 734 (from 732), the round trip 100% of 7,576. The map: read by
+both 7,983 of 8,338 (99.8%), the work list 20, defects 0.

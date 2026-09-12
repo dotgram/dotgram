@@ -81,7 +81,16 @@ namespace TSql
 	// — `$ 10.12`, `-$   10.12`, `$ -10.12` and `-£ 10.12` are all read — which is why this is
 	// not one run of characters. The point is not so free: `$10 . 12` is `Msg 102`, so the
 	// digits on either side of it hug it, and each side is a lexeme of its own.
-	MoneyLiteral  = ['$' | '£' | '¥' | '€'] & Spacing? & ['+' | '-']? & Spacing? & MoneyDigits
+	//
+	// Which signs, asked of the engine one at a time: a closed list and not a category. The
+	// whole of `₠`…`₱` is read and everything above it refused — `₲`, `₸`, `₺`, `₹`, `₿` are
+	// `Msg 102` though every one of them is a currency symbol — and so are `№`, `§`, `©` and `°`,
+	// which are not. The list is the engine's own and the same at every level; the type
+	// declared does not narrow it, `DECLARE @m INT = ¤10.00` being read too, and neither does
+	// where it stands: `SELECT ৳10.00` is a value like any other.
+	MoneyLiteral  = ['$' | '¢'..'¥' | '৲'..'৳' | '฿' | '៛' | '₠'..'₱'
+					| '﷼' | '﹩' | '＄' | '￠'..'￡' | '￥'..'￦']
+				  & Spacing? & ['+' | '-']? & Spacing? & MoneyDigits
 	MoneyDigits   = Sql92.Lexical.Digits & ('.' & Sql92.Lexical.Digits?)?
 
 	// A number whose exponent may be written with no digits at all: `2e` is read wherever a

@@ -1037,6 +1037,46 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>The currency signs the engine takes and the ones it does not.</summary>
+	[Theory]
+	[InlineData("DECLARE @m MONEY = ₲10.00")]
+	[InlineData("DECLARE @m MONEY = ₹10.00")]
+	[InlineData("DECLARE @m MONEY = ₿10.00")]
+	[InlineData("DECLARE @m MONEY = ₸10.00")]
+	[InlineData("DECLARE @m MONEY = №10.00")]
+	[InlineData("DECLARE @m MONEY = ©10.00")]
+	[InlineData("DECLARE @m MONEY = °10.00")]
+	[InlineData("DECLARE @m MONEY = ¤10 . 12")]
+	public void The_signs_money_is_written_with_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the ones it does.</summary>
+	[Theory]
+	[InlineData("DECLARE @m MONEY = ¤10.00")]
+	[InlineData("DECLARE @m MONEY = ¢10.00")]
+	[InlineData("DECLARE @m MONEY = ৳10.00")]
+	[InlineData("DECLARE @m MONEY = ৲10.00")]
+	[InlineData("DECLARE @m MONEY = ฿10.00")]
+	[InlineData("DECLARE @m MONEY = ៛10.00")]
+	[InlineData("DECLARE @m MONEY = ₠10.00")]
+	[InlineData("DECLARE @m MONEY = ₥10.00")]
+	[InlineData("DECLARE @m MONEY = ₱10.00")]
+	[InlineData("DECLARE @m MONEY = ﷼10.00")]
+	[InlineData("DECLARE @m MONEY = ﹩10.00")]
+	[InlineData("DECLARE @m MONEY = ＄10.00")]
+	[InlineData("DECLARE @m MONEY = ￠10.00")]
+	[InlineData("DECLARE @m MONEY = ￦10.00")]
+	[InlineData("DECLARE @m MONEY = -¤ 10.12")]
+	[InlineData("DECLARE @m MONEY = ¤ -10.12")]
+	[InlineData("DECLARE @m INT = ¤10.00")]
+	[InlineData("SELECT ৳10.00")]
+	public void The_signs_money_is_written_with_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
