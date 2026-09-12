@@ -205,6 +205,7 @@ compile, and a test reads this column against every record.
 | `Statement.Use` | T-SQL | USE | Session |
 | `Statement.RaiseError` | T-SQL | RAISERROR | Control |
 | `Statement.WaitFor` | T-SQL | WAITFOR | Control |
+| `Statement.Label` | T-SQL | a label, the place a GOTO goes | Control |
 | `Statement.ExecuteAs` | T-SQL | EXECUTE AS | Session |
 | `Statement.Revert` | T-SQL | REVERT | Session |
 | `Statement.DeclareCursor` | T-SQL | DECLARE CURSOR | Declaration |

@@ -19557,3 +19557,45 @@ authority, so the twelve stay refused.
 At 150: read by both 5,936 (from 5,936), the work list 48 (from 48), read here but refused
 there 10 (from 25); `--split` 722 (from 734), the round trip 100% of 7,551. The map: read by
 both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
+
+## A label, an `OVER` where `INTO` stands, and a file put in a filegroup
+
+Four small things the corpus asks for, and one of them was missing from the grammar
+altogether rather than being written narrowly.
+
+- **A label had no rule at all.** `finish:` is where a `GOTO` goes, and the engine reads it in
+  a batch and in a procedure alike — `SELECT 1; go2: SELECT 2` too. Nothing here read any of
+  them. It is `Statement.Label` now, beside the jump that names it, and the second colon is
+  refused so that `t::a` stays what it is.
+
+  The work list called this family `GOGO`, which read like a lexeme's fault — a label
+  beginning with the word a batch is cut at. It was not: `go2:` and `goto2:` failed the same
+  way, and so did `finish:`. The name in the report is the word a statement stopped at, not
+  the reason it stopped.
+- **`OVER` stands where `INTO` stands.** `INSERT OVER t1 DEFAULT VALUES` is read, with `TOP`,
+  with an `OUTPUT`, with columns and with a query; `INSERT OVER INTO t1` and `INSERT INTO
+  OVER t1` are `Msg 156`. No page describes it.
+
+  The tree kept `bool Into` — whether a word was written, not which — so the first reading of
+  it printed `INSERT INTO t1` and the round trip caught two statements coming back changed.
+  It keeps the word now. A writer test pins it, which is the lesson: the round trip found
+  this, and a test of the writer is what should have.
+- **A log file goes to a filegroup** as any file does: `ADD LOG FILE (…) TO FILEGROUP FG`. The
+  clause was written for `ADD FILE` and left off its neighbour.
+- **An ODBC literal may be written as a national string**, `{ GUID N'…' }`.
+
+Two statements of the corpus now count as defects that are not this grammar's doing: `SELECT
+{ T '1' }, { D '1' }, { TS '1' }` answers `Msg 241` — "Conversion failed when converting date
+and/or time from character string" — which is the engine objecting to a value it read, as
+`Msg 8183` and `16548` were. The number is not on the benchmark's `AboutNames` list, and
+putting it there is a change to the instrument rather than to the parser, so it is left for
+its owner to weigh.
+
+And a note on how this went, since it cost three builds to land four small rules: the label's
+record went into `Clause` instead of `Statement`, its writer case went into the clause switch
+instead of the statement one, and the record's name collided with `GoTo`'s parameter. Every
+one of those came from choosing an anchor by the text next to it rather than by what owns it.
+
+At 150: read by both 5,944 (from 5,936), the work list 40 (from 48), read here but refused
+there 12 (from 10); `--split` 728 (from 722), the round trip 100% of 7,565. The map: read by
+both 7,983 of 8,338 (99.8%), the work list 20, defects 0.

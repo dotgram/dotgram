@@ -38,6 +38,24 @@ public sealed class SqlWriterTests
 	public void A_bracket_is_written_where_precedence_needs_it(string input, string printed) =>
 		Assert.Equal(printed, SqlWriter.Write(TransactSql.ParseValueExpression(input)));
 
+	/// <summary>The word before an insert's target comes back as it was written.</summary>
+	/// <remarks>
+	/// <c>OVER</c> stands where <c>INTO</c> does, which no page describes and the engine
+	/// reads; the tree keeps the word rather than whether there was one.
+	/// </remarks>
+	[Theory]
+	[InlineData("INSERT OVER t1 DEFAULT VALUES")]
+	[InlineData("INSERT INTO t1 DEFAULT VALUES")]
+	[InlineData("INSERT t1 DEFAULT VALUES")]
+	[InlineData("INSERT OVER t1 (c1) VALUES (1)")]
+	public void An_insert_keeps_the_word_before_its_target(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input);
+		Assert.Equal(input, SqlWriter.Write(match.Value!));
+	}
+
 	/// <summary>
 	/// A statement read as a table comes back one: a <c>MERGE</c> is written with the <c>;</c> it
 	/// is not read back without, and inside the brackets that <c>;</c> would end nothing.

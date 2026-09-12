@@ -997,6 +997,40 @@ public sealed class TransactSqlTests
 	public void A_statement_not_ended_is_followed_by_a_reserved_word(string input, bool read) =>
 		Assert.Equal(read, TransactSql.TryParseSql(input).IsSuccess);
 
+	/// <summary>A label, an <c>OVER</c> where <c>INTO</c> stands, a log file in a filegroup and a national ODBC literal, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("INSERT OVER INTO t1 DEFAULT VALUES")]
+	[InlineData("INSERT INTO OVER t1 DEFAULT VALUES")]
+	[InlineData("INSERT OVER DEFAULT VALUES")]
+	public void Labels_and_the_forms_beside_them_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("CREATE PROCEDURE p1 AS finish: RETURN")]
+	[InlineData("CREATE PROCEDURE p1 AS GOTO finish; finish: RETURN")]
+	[InlineData("CREATE PROCEDURE __Test AS SET NOCOUNT ON; gogo: RETURN")]
+	[InlineData("SELECT 1; go2: SELECT 2")]
+	[InlineData("SELECT 1; goto2: SELECT 2")]
+	[InlineData("INSERT OVER t1 DEFAULT VALUES")]
+	[InlineData("INSERT OVER t1 VALUES (1)")]
+	[InlineData("INSERT OVER t1 (c1) VALUES (1)")]
+	[InlineData("INSERT OVER t1 SELECT 1")]
+	[InlineData("INSERT OVER t1 OUTPUT INSERTED.c1 DEFAULT VALUES")]
+	[InlineData("INSERT TOP (1) OVER t1 DEFAULT VALUES")]
+	[InlineData("ALTER DATABASE d1 ADD LOG FILE (FILENAME = 'log2', NAME = t2) TO FILEGROUP FG")]
+	[InlineData("ALTER DATABASE d1 ADD LOG FILE (FILENAME = 'log2', NAME = t2), (FILENAME = 'log3', NAME = t3) TO FILEGROUP FG")]
+	[InlineData("ALTER DATABASE d1 ADD LOG FILE (FILENAME = 'log2', NAME = t2)")]
+	[InlineData("SELECT { GUID N'34501789-D036-DD11-8F91-F6311CA728A5' } AS myguid")]
+	[InlineData("SELECT { GUID '34501789-D036-DD11-8F91-F6311CA728A5' } AS myguid")]
+	[InlineData("SELECT { D N'2020-01-01' }")]
+	public void Labels_and_the_forms_beside_them_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseSql(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>A variable's nullability, a method's name, a persisted sample, an external body and a table's first column, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("DECLARE @v2 AS INT NULL")]

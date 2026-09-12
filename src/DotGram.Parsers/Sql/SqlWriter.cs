@@ -150,8 +150,8 @@ public static class SqlWriter
 				text.Append("INSERT ");
 				Top(text, top);
 
-				if (into)
-					text.Append("INTO ");
+				if (into is not null)
+					text.Append(into).Append(' ');
 
 				Put(text, target!);
 				Names(text, columns);
@@ -574,6 +574,10 @@ public static class SqlWriter
 			case Statement.GoTo(var label):
 				text.Append("GOTO ");
 				Put(text, label, 0);
+				break;
+
+			case Statement.Label(var label):
+				text.Append(label).Append(':');
 				break;
 
 			case Statement.Break:

@@ -357,6 +357,8 @@ DatePart : @Expression
 // disagreeing about what was named inside it.
 OdbcEscape : @Expression
 	= '{' & fn: "FN"i & f: OdbcFunction & '}' => @(f with { Kind = fn })
+	| '{' & kind: OdbcLiteralKind & t: Sql92.Lexical.NationalCharacterStringLiteral & '}'
+		=> @(new Expression.OdbcEscape(kind, new Expression.Literal(SqlLiteralKind.National, t)))
 	| '{' & kind: OdbcLiteralKind & t: Sql92.Lexical.CharacterStringLiteral & '}'
 		=> @(new Expression.OdbcEscape(kind, new Expression.Literal(SqlLiteralKind.Text, t)))
 
@@ -1614,20 +1616,22 @@ DmlSubject : @TableReference = c: DmlCall => @(c) | t: DmlTarget => @(t)
 // …` is a table and its columns, and `INSERT dbo.f() (c1) …` and `INSERT dbo.f(1, DEFAULT)
 // VALUES …` are what cannot be.
 TSqlInsert : @Statement
-	= "INSERT"i & top: Top? & into: "INTO"i? & target: DmlTarget
+	= "INSERT"i & top: Top? & into: InsertInto? & target: DmlTarget
 	  & ('(' & columns: InsertColumns & ')')? & output: OutputClause?
 	  & rows: InsertRows & options: QueryHints? & when @(options is null || rows is not Query.FromExecute)
-		=> @(new Statement.Insert(target, columns, rows, null, top, output, into is not null) { Options = options })
-	| "INSERT"i & top: Top? & into: "INTO"i? & target: DmlCall & when @(Syntax.Written(target))
+		=> @(new Statement.Insert(target, columns, rows, null, top, output, into) { Options = options })
+	| "INSERT"i & top: Top? & into: InsertInto? & target: DmlCall & when @(Syntax.Written(target))
 	  & ('(' & columns: InsertColumns & ')')? & output: OutputClause?
 	  & rows: InsertRows & options: QueryHints? & when @(options is null || rows is not Query.FromExecute)
-		=> @(new Statement.Insert(target, columns, rows, null, top, output, into is not null) { Options = options })
+		=> @(new Statement.Insert(target, columns, rows, null, top, output, into) { Options = options })
 
 // What an `INSERT` names its columns by, which is not the standard's plain identifier: a part
 // may be left out, `INSERT @v1 (..a1)`, as it may wherever a name is written. Reading them as
 // names is what tells the columns of a table from the arguments of a function besides: with a
 // plain identifier `INSERT t1 (..a1) VALUES (1)` was read as an insert into `t1 (..a1)`, a
 // call, which the engine does not do.
+InsertInto = "INTO"i | "OVER"i
+
 InsertColumns : @string[] = first: InsertColumn & (',' & rest: InsertColumn)* => @(Syntax.Named(first, rest))
 
 InsertColumn : @string = t: WrittenColumn => @(t)
@@ -3013,14 +3017,14 @@ ExecValue : @Expression
 BulkInsertStatement : @Statement
 	= "BULK"i & "INSERT"i & target: BulkTarget & "FROM"i & file: BulkFile
 	  & options: BulkWith?
-		=> @(new Statement.Insert(target, null, new Query.FromFile(file, options), null, null, null, false))
+		=> @(new Statement.Insert(target, null, new Query.FromFile(file, options), null, null, null, null))
 
 	// `INSERT BULK`, which names its columns instead of a file and must name them: every
 	// bare form is `Msg 102`. Its options are its own and fewer — `KEEPNULLS` is refused
 	// here and read above.
 	| "INSERT"i & "BULK"i & target: BulkTarget & '(' & columns: BulkColumns & ')'
 	  & options: BulkStreamWith?
-		=> @(new Statement.Insert(target, null, new Query.FromStream(columns, options), null, null, null, false))
+		=> @(new Statement.Insert(target, null, new Query.FromStream(columns, options), null, null, null, null))
 
 BulkTarget : @TableReference
 	= name: QualifiedName => @(new TableReference.Named(name, null, false, null, null, null, Clause.None))
@@ -3131,6 +3135,7 @@ SimpleCommand : @Statement
 	| "RETURN"i & v: ValueExpression?    => @(Statement.Commanded("RETURN", v))
 	| "THROW"i & args: Arguments?        => @(Statement.Commanded("THROW", args))
 	| "GOTO"i & name: Identifier         => @(Statement.Commanded("GOTO", new Expression.ColumnReference(name)))
+	| name: Identifier & ':' & ?!':'     => @(new Statement.Label(name))
 	| "BREAK"i                           => @(Statement.Commanded("BREAK", (Expression?)null))
 	| "CONTINUE"i                        => @(Statement.Commanded("CONTINUE", (Expression?)null))
 	| "CHECKPOINT"i & v: ValueExpression? => @(Statement.Commanded("CHECKPOINT", v))
@@ -5580,7 +5585,7 @@ DatabaseModify : @Statement.AlterTable
 DatabaseAdd : @Statement.AlterTable
 	= "FILEGROUP"i & tail: (Identifier & FileGroupContains?)
 		=> @(Statement.Altered("ADD FILEGROUP", null, null, tail))
-	| "LOG"i & "FILE"i & tail: (FileSpecText & (',' & FileSpecText)*)
+	| "LOG"i & "FILE"i & tail: (FileSpecText & (',' & FileSpecText)* & ("TO"i & "FILEGROUP"i & Identifier)?)
 		=> @(Statement.Altered("ADD LOG FILE", null, null, tail))
 	| "FILE"i & tail: (FileSpecText & (',' & FileSpecText)* & ("TO"i & "FILEGROUP"i & Identifier)?)
 		=> @(Statement.Altered("ADD FILE", null, null, tail))

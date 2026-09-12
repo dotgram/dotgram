@@ -189,10 +189,14 @@ public abstract record Statement : ISqlSpan
 	/// <param name="With">The common table expressions in front of it.</param>
 	/// <param name="Top">T-SQL's <c>TOP</c>, where one was written.</param>
 	/// <param name="Output">T-SQL's <c>OUTPUT</c> clause, where one was written.</param>
-	/// <param name="Into">Whether the optional <c>INTO</c> was written, which is a spelling the tree keeps.</param>
+	/// <param name="Into">
+	/// The word written before the target, which the tree keeps because two of them stand
+	/// there: <c>INTO</c>, and <c>OVER</c> that no page describes and the engine reads —
+	/// <c>INSERT OVER t1 DEFAULT VALUES</c>. Null where neither was written.
+	/// </param>
 	public sealed record Insert(
 		TableReference? Target, string[]? Columns, Query Rows,
-		Clause[]? With = null, Clause? Top = null, Clause? Output = null, bool Into = true) : Statement
+		Clause[]? With = null, Clause? Top = null, Clause? Output = null, string? Into = "INTO") : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Dml;
@@ -846,7 +850,12 @@ public abstract record Statement : ISqlSpan
 	}
 
 	/// <summary>A jump to a label.</summary>
-	public sealed record GoTo(Expression Label) : Statement
+	/// <remarks>
+	/// The parameter is <c>Name</c> and not <c>Label</c> because <see cref="Label"/> is a
+	/// statement of its own here, and a nested type takes the name from a member of the same
+	/// class.
+	/// </remarks>
+	public sealed record GoTo(Expression Name) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Control;
@@ -893,6 +902,17 @@ public abstract record Statement : ISqlSpan
 	/// the one value cannot say.
 	/// </param>
 	public sealed record WaitFor(Expression Value, string Kind = "DELAY") : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Control;
+	}
+
+	/// <summary>T-SQL's label, the place a <c>GOTO</c> goes: a name and a colon.</summary>
+	/// <remarks>
+	/// Not a command, whatever it stands among: nothing is done here, and the name is the
+	/// whole of it. <c>GOTO finish</c> names one and <c>finish:</c> is one.
+	/// </remarks>
+	public sealed record Label(string Name) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Control;
