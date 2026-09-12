@@ -997,6 +997,49 @@ public sealed class TransactSqlTests
 	public void A_statement_not_ended_is_followed_by_a_reserved_word(string input, bool read) =>
 		Assert.Equal(read, TransactSql.TryParseSql(input).IsSuccess);
 
+	/// <summary>Where a mask stands among a column's words, and which types take a collation, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("CREATE TABLE t (c1 VARCHAR (100) MASKED WITH (FUNCTION = 'default()') SPARSE NULL)")]
+	[InlineData("CREATE TABLE t (c1 VARCHAR (100) COLLATE SQL_Latin1_General_CP1_CI_AS MASKED WITH (FUNCTION = 'default()') SPARSE NULL)")]
+	[InlineData("CREATE TABLE t (c1 VARCHAR (100) SPARSE MASKED WITH (FUNCTION = 'default()') NULL, c2 VARCHAR (100) MASKED WITH (FUNCTION = 'default()') SPARSE NULL)")]
+	[InlineData("CREATE TABLE t1 (c DECIMAL (50, 3) COLLATE Latin1_General_CI_AS NULL)")]
+	[InlineData("CREATE TABLE t1 (c DECIMAL (10, 3) COLLATE Latin1_General_CI_AS)")]
+	[InlineData("CREATE TABLE t1 (c NUMERIC (10, 3) COLLATE Latin1_General_CI_AS NULL)")]
+	[InlineData("CREATE TABLE t1 (c DEC (10, 3) COLLATE Latin1_General_CI_AS)")]
+	public void Masks_and_collations_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("CREATE TABLE t (c1 VARCHAR (100) SPARSE MASKED WITH (FUNCTION = 'default()') NULL)")]
+	[InlineData("CREATE TABLE t (c1 VARCHAR (100) COLLATE SQL_Latin1_General_CP1_CI_AS SPARSE MASKED WITH (FUNCTION = 'default()') NULL)")]
+	[InlineData("CREATE TABLE t (c1 VARCHAR (100) MASKED WITH (FUNCTION = 'default()') NULL)")]
+	[InlineData("CREATE TABLE t (c1 VARCHAR (100) SPARSE NULL)")]
+	[InlineData("CREATE TABLE t1 (c DECIMAL (50, 3))")]
+	[InlineData("CREATE TABLE t1 (c DECIMAL (50, 3) NULL)")]
+	[InlineData("CREATE TABLE t1 (c INT COLLATE Latin1_General_CI_AS NULL)")]
+	[InlineData("CREATE TABLE t1 (c DATETIME COLLATE Latin1_General_CI_AS NULL)")]
+	[InlineData("CREATE TABLE t1 (c VARCHAR (50) COLLATE Latin1_General_CI_AS NULL)")]
+	[InlineData("CREATE TABLE t1 (c XML COLLATE Latin1_General_CI_AS NULL)")]
+	[InlineData("CREATE TABLE [dbo].[DatabaseDefinitions] ([DatabaseDefinitionId] INT IDENTITY (1, 1) NOT NULL, [Name] VARCHAR (50) COLLATE Latin1_General_CI_AS NOT NULL, [PhysicalName] DECIMAL (50, 3) NULL)")]
+	[InlineData("CREATE TABLE t (c1 VARCHAR (100) MASKED WITH (FUNCTION = 'default()') NOT NULL)")]
+	[InlineData("CREATE TABLE t (c1 VARCHAR (100) MASKED WITH (FUNCTION = 'default()'))")]
+	[InlineData("CREATE TABLE t (c DECIMAL (MAX) COLLATE Latin1_General_CI_AS)")]
+	[InlineData("CREATE TABLE t (c DECIMAL (MAX) COLLATE Latin1_General_CI_AS NULL)")]
+	[InlineData("CREATE TABLE t (c NUMERIC (MAX) COLLATE Latin1_General_CI_AS)")]
+	[InlineData("CREATE TABLE t (c DECIMAL COLLATE Latin1_General_CI_AS)")]
+	[InlineData("CREATE TABLE t (c DECIMAL (10) COLLATE Latin1_General_CI_AS)")]
+	[InlineData("CREATE TABLE t (c INT (MAX) COLLATE Latin1_General_CI_AS)")]
+	[InlineData("CREATE TABLE t (c FLOAT COLLATE Latin1_General_CI_AS)")]
+	[InlineData("CREATE TABLE t (c MONEY COLLATE Latin1_General_CI_AS)")]
+	[InlineData("CREATE TABLE t (c BIGINT COLLATE Latin1_General_CI_AS)")]
+	public void Masks_and_collations_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>A join whose right side is a join of its own, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM t1 INNER LOCAL MERGE JOIN t10 ON t1.c1 = t10.c1")]

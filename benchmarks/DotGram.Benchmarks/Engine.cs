@@ -147,7 +147,7 @@ static class Engine
 						mineAbout[message] = Corpus.One(one);
 
 					if (overRead.Count < shown * 20)
-						overRead.Add(Corpus.One(one));
+						overRead.Add(Corpus.Flat(one));
 				}
 				else
 				{

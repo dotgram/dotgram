@@ -190,6 +190,15 @@ static class Corpus
 		return statement.Substring(at, to - at).ToUpperInvariant();
 	}
 
+	/// <summary>One statement on one line, whole.</summary>
+	/// <remarks>
+	/// A defect is looked at rather than counted, and what tells one from another is usually
+	/// past the width a list is read at: five of them running were reconstructed from the
+	/// first eighty characters and none was the statement that failed.
+	/// </remarks>
+	internal static string Flat(string statement) =>
+		string.Join(" ", statement.Split('\n').Select(one => one.Trim()));
+
 	/// <summary>One statement on one line, short enough to read in a list.</summary>
 	internal static string One(string statement)
 	{

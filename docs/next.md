@@ -19691,3 +19691,41 @@ things, which the engine said before any of it was written.
 At 150: read by both 5,952 (from 5,950), the work list 32 (from 34), read here but refused
 there 12 (from 12); `--split` 731 (from 730), the round trip 100% of 7,573. The map: read by
 both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
+
+## Where a mask stands, which numerics take a collation, and a defect read whole
+
+Two defects, and most of the work was not in the rules: it was in finding which statements
+they were.
+
+- **A column is sparse before it is masked.** `SPARSE MASKED WITH (…) NULL` is read and
+  `MASKED WITH (…) SPARSE NULL` is `Msg 102`. Nothing else about the order matters — a
+  nullability after a mask is read either way, and so is a collation — and the first writing
+  of this refused all three, which the theories already in the file caught.
+- **An exact numeric given both its numbers takes no collation.** `DECIMAL (10, 3) COLLATE
+  Latin1_General_CI_AS` and `DEC (10, 3)`'s are `Msg 156`; `DECIMAL (10)`, a bare `DECIMAL`
+  and `DECIMAL (MAX)` all take one, as do `INT`, `FLOAT`, `MONEY`, `VARCHAR` and `XML`. The
+  first writing of this asked only the type's first word and refused three forms the engine
+  reads — one of them a row this file already had.
+
+**And the reason those two took five tries to find.** The defect list printed each statement
+through `Corpus.One`, which cuts it to eighty-three characters. Every one of these is a wide
+`CREATE TABLE`, and what the engine objects to is past the cut: the collation on
+`[PhysicalName] DECIMAL (50, 3)` is the hundred-and-twentieth character of its statement, and
+the second column's `MASKED … SPARSE` is past the two hundredth. Five times running I rebuilt
+the statement from its first line, put that to the engine, and got agreement — because the
+part I could see was the part both already agreed about.
+
+So the benchmark now prints a defect whole. The work list keeps its short form, which is read
+by the shape of the gap and not by the statement; this list is read by the statement, and
+cutting it was hiding exactly the half that matters.
+
+The split pays three files for it, 731 to 729, and the payment is the point rather than a
+slip. `MASKED WITH` is written in six files of the corpus and a collated exact numeric in two;
+ScriptDom reads both shapes and the engine refuses them, so where this now agrees with the
+engine it parts from ScriptDom. The engine is the authority and ScriptDom the tool, so the
+three files stay unread — the same trade as when a rowset function stopped being something a
+statement writes to.
+
+At 150: read by both 5,952 (from 5,952), the work list 32 (from 32), read here but refused
+there 9 (from 12); `--split` 729 (from 731), the round trip 100% of 7,570. The map: read by
+both 7,983 of 8,338 (99.8%), the work list 20, defects 0.

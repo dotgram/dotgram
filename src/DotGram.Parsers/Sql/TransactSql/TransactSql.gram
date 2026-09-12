@@ -3406,6 +3406,7 @@ ColumnBody : @Clause.ColumnDefinition
 	// where a variable, a cast or a type is (`Msg 156`). The type's own size said, `MAX` is
 	// one more: `NVARCHAR (MAX, 1)` and `DECIMAL (MAX, 2)` are refused.
 	| type: DataType & max: ('(' & "MAX"i & ')')? & tail: ColumnTail*
+	  & when @(Syntax.Masked(tail) && Syntax.Collated(type, tail))
 		=> @(new Clause.ColumnDefinition("", max is null ? type : type + " " + Syntax.Spaced(max), null, tail ?? Clause.None))
 
 // What may be said about a column after its type, each kept as what it is: an option, a

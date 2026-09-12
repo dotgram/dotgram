@@ -4255,6 +4255,62 @@ public static class Syntax
 			   rest.IndexOf("SAMPLE", StringComparison.OrdinalIgnoreCase) >= 0;
 	}
 
+	/// <summary>Whether a column takes the collation it was given.</summary>
+	/// <remarks>
+	/// An exact numeric given both its numbers does not: <c>DECIMAL (10, 3) COLLATE
+	/// Latin1_General_CI_AS</c> and <c>DEC (10, 3)</c>'s are <c>Msg 156</c>. Given one number,
+	/// none at all, or <c>(MAX)</c>, it does — <c>DECIMAL (10)</c>, <c>DECIMAL</c> and
+	/// <c>DECIMAL (MAX)</c> are all read with a collation, and so are <c>INT</c>, <c>FLOAT</c>,
+	/// <c>MONEY</c>, <c>VARCHAR</c> and <c>XML</c>. Asked of the type as written, which is
+	/// where the two numbers show.
+	/// </remarks>
+	public static bool Collated(string? type, Clause[]? tail)
+	{
+		if (type is null || tail is null)
+			return true;
+
+		var word = type.TrimStart();
+		var end  = word.IndexOfAny(new[] { ' ', '\t', '(' });
+		var name = end > 0 ? word.Substring(0, end) : word;
+
+		if (!(string.Equals(name, "DECIMAL", StringComparison.OrdinalIgnoreCase) ||
+			  string.Equals(name, "NUMERIC", StringComparison.OrdinalIgnoreCase) ||
+			  string.Equals(name, "DEC", StringComparison.OrdinalIgnoreCase)))
+			return true;
+
+		var open = word.IndexOf('(');
+
+		if (open < 0 || word.IndexOf(',', open) < 0)
+			return true;
+
+		return !Array.Exists(tail, static one => one is Clause.ColumnOption { Kind: "COLLATE" });
+	}
+
+	/// <summary>Whether a column's mask stands where the engine reads one.</summary>
+	/// <remarks>
+	/// <c>SPARSE MASKED WITH (…) NULL</c> is read and <c>MASKED WITH (…) SPARSE NULL</c> is
+	/// <c>Msg 102</c>: a column is sparse before it is masked. A nullability is free either
+	/// way — <c>MASKED WITH (…) NULL</c> and <c>… NOT NULL</c> are both read — and so is a
+	/// collation.
+	/// </remarks>
+	public static bool Masked(Clause[]? tail)
+	{
+		if (tail is null)
+			return true;
+
+		var masked = false;
+
+		foreach (var one in tail)
+		{
+			if (one is Clause.ColumnOption { Kind: "MASKED" })
+				masked = true;
+			else if (masked && one is Clause.ColumnOption { Kind: "SPARSE" })
+				return false;
+		}
+
+		return true;
+	}
+
 	/// <summary>Whether every column of a table's body has a type, or a value it is computed from.</summary>
 	/// <remarks>Asked of a result set, which unlike a table may not leave a type out (<c>Msg 102</c>).</remarks>
 	public static bool Typed(Clause[]? body) =>
