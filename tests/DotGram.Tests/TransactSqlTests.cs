@@ -1077,6 +1077,38 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>ODBC's brackets around a <c>LIKE</c>'s escape, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("SELECT 1 WHERE 'a' LIKE 'b' {ESCAPE}")]
+	[InlineData("SELECT 1 WHERE 'a' LIKE 'b' {ESCAPE '%'} {ESCAPE '%'}")]
+	[InlineData("SELECT 1 WHERE 'a' LIKE 'b' ESCAPE '%' {ESCAPE '%'}")]
+	[InlineData("SELECT 1 WHERE 'a' IN ('b') {ESCAPE '%'}")]
+	[InlineData("SELECT 1 WHERE 'a' LIKE {ESCAPE '%'}")]
+	public void An_escape_in_braces_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT 1 WHERE 'a' LIKE 'b' {ESCAPE '%'}")]
+	[InlineData("SELECT 1 WHERE 'a' LIKE 'b' {escape '%'}")]
+	[InlineData("SELECT 1 WHERE 'a' LIKE 'b' { ESCAPE '%' }")]
+	[InlineData("SELECT 1 WHERE 'a' LIKE 'b' {ESCAPE N'%'}")]
+	[InlineData("SELECT 1 WHERE 'a' LIKE 'b' {ESCAPE @v}")]
+	[InlineData("SELECT 1 WHERE 'a' LIKE 'b' {ESCAPE 'xy'}")]
+	[InlineData("SELECT 1 WHERE 'a' LIKE 'b' {ESCAPE 'x' + 'y'}")]
+	[InlineData("SELECT 1 WHERE 'a' NOT LIKE 'b' {ESCAPE '%'} AND 1 = 1")]
+	[InlineData("SELECT * FROM t1 WHERE c1 LIKE 'b' {ESCAPE '%'} ORDER BY c1")]
+	[InlineData("UPDATE t1 SET c1 = 1 WHERE c1 LIKE 'b' {ESCAPE '%'}")]
+	[InlineData("DELETE t1 WHERE c1 LIKE 'b' {ESCAPE '%'}")]
+	[InlineData("CREATE TABLE t (A1 INT, CHECK (A1 LIKE 'foo' {ESCAPE '%' }))")]
+	[InlineData("SELECT 1 WHERE 'a' LIKE 'b' ESCAPE '%'")]
+	public void An_escape_in_braces_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]

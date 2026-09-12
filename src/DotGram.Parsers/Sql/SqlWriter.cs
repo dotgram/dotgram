@@ -2806,7 +2806,7 @@ public static class SqlWriter
 
 			case Expression.Not(var operand):
 				text.Append("NOT ");
-				Put(text, operand, 4);
+				Put(text, operand, 3);
 				break;
 
 			case Expression.Negate(var operand): Signed(text, '-', operand); break;
@@ -2850,7 +2850,16 @@ public static class SqlWriter
 				text.Append(negated ? " NOT LIKE " : " LIKE ");
 				Put(text, pattern, 5);
 
-				if (escape is not null)
+				// ODBC brackets the whole clause, the word with it, so where the escape is
+				// one of those the word is the node's to print and not this case's: printed
+				// through the keyword here, `{ESCAPE '%'}` comes back as
+				// `ESCAPE { ESCAPE '%' }`, which is not the statement that came in.
+				if (escape is Expression.OdbcEscape)
+				{
+					text.Append(' ');
+					Put(text, escape, 5);
+				}
+				else if (escape is not null)
 				{
 					text.Append(" ESCAPE ");
 					Put(text, escape, 5);

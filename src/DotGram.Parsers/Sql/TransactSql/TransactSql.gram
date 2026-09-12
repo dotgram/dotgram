@@ -8,7 +8,7 @@ using Sql92;
 // grammar is attached to; what is written here is only where T-SQL differs, and
 // §5.1's rebinding is what makes the difference reach every rule that leads to it.
 //
-// Twenty-two rules replace twenty-two of the standard's. Nothing else is restated and nothing
+// Twenty-three rules replace twenty-three of the standard's. Nothing else is restated and nothing
 // is copied: a query expression, a join, a predicate and the whole value tower are
 // the ones already read against the standard, reading a dialect's identifiers and
 // a dialect's primaries because the substitution rewrote every call inside them.
@@ -689,6 +689,21 @@ DistinctTail : @Expression
 	= q: Quantifier & sub: TableSubquery => @(new Expression.Prefixed(Syntax.Squared(q), new Expression.Subquery(sub)))
 	| right: RowValueConstructor         => @(right)
 
+// ── §8.5's escape, bracketed ────────────────────────────────────────────────
+//
+// ODBC brackets the whole clause and the engine reads it: `WHERE 'a' LIKE 'b' {ESCAPE '%'}`,
+// tight or spaced, lower case, a national string, a variable, a computed value, two
+// characters — all read, wherever a `LIKE` may stand: a `SELECT`'s `WHERE`, an `UPDATE`'s, a
+// `DELETE`'s, before an `ORDER BY`, inside a `CHECK`. What it refuses says as much: `{ESCAPE}`
+// with nothing in it, two of them, a bracketed one after a plain one, and one after any
+// predicate but `LIKE` are each `Msg 102`, and `LIKE {ESCAPE '%'}` with no pattern is 156.
+//
+// Kept in its braces like every other ODBC escape, so that what came in is what goes out —
+// which is `Expression.OdbcEscape`'s whole purpose and why nothing is added to the writer.
+TSqlEscapeClause : @Expression
+	= "ESCAPE"i & v: ValueExpression                   => @(v)
+	| '{' & word: "ESCAPE"i & v: ValueExpression & '}'  => @(new Expression.OdbcEscape(word, v))
+
 // ── §8.12's boolean factor, widened ─────────────────────────────────────────
 //
 // A negation standing on a negation, which the engine reads and the standard has no room
@@ -1291,6 +1306,7 @@ namespace Dialect with (
 	DataType                  = TSqlDataType,
 	Predicate                 = TSqlPredicate,
 	BooleanFactor             = TSqlBooleanFactor,
+	EscapeClause              = TSqlEscapeClause,
 	TrimSpecification         = TSqlTrimSpecification)
 {
 	Select    : @Statement  = q: Sql92.DirectSelect    => @(q)

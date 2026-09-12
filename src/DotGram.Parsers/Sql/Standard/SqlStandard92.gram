@@ -126,7 +126,7 @@ PredicateTail : @Expression
           // §8.5 <like predicate>. The standard narrows both sides to character
           // strings; that is a type rule and not a syntax one, so it is not written
           // here — see the note on the collapsed towers above.
-          | negated: "NOT"i? & "LIKE"i & pattern: ValueExpression & ("ESCAPE"i & escape: ValueExpression)? =>
+          | negated: "NOT"i? & "LIKE"i & pattern: ValueExpression & escape: EscapeClause? =>
               @(new Expression.Like(null!, negated is not null, pattern, escape))
 
           // §8.6 <null predicate>
@@ -139,6 +139,12 @@ PredicateTail : @Expression
           // §8.12 <overlaps predicate>
           | "OVERLAPS"i & right: RowValueConstructor =>
               @(new Expression.Overlaps(null!, right))
+
+// §8.5 writes the escape as two things, the word and the character after it. They are
+// named together here because a dialect may bracket the pair rather than extend it —
+// T-SQL reads ODBC's `{ESCAPE '%'}` wherever this stands — and a replacement replaces
+// a whole rule. What is inside is the standard's own <escape character>.
+EscapeClause : @Expression = "ESCAPE"i & v: ValueExpression => @(v)
 
 CompOp      = "<>" | "<=" | ">=" | '=' | '<' | '>'
 Quantifier = "ALL"i | "SOME"i | "ANY"i

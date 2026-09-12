@@ -19885,3 +19885,44 @@ standard and replaced in the dialect, one line each side.
 At 150: read by both 5,960 (from 5,958), the work list 26 (from 26), read here but refused
 there **1 (from 9)**, another product's 258 (from 252); `--split` 734 (from 734), the round
 trip 100% of 7,576. The map: read by both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
+
+## The escape in braces, and a negation that was printing its own brackets
+
+ODBC brackets the whole escape clause and SQL Server reads it wherever a plain one stands.
+Measured: `WHERE 'a' LIKE 'b' {ESCAPE '%'}` tight and `{ ESCAPE '%' }` spaced, `{escape '%'}`
+in lower case, `{ESCAPE N'%'}`, `{ESCAPE @v}`, `{ESCAPE 'xy'}`, `{ESCAPE 'x' + 'y'}`, after a
+`NOT LIKE`, in a `SELECT`'s `WHERE`, an `UPDATE`'s, a `DELETE`'s, before an `ORDER BY`, inside
+a `CHECK`. Refused as clearly: `{ESCAPE}` with nothing in it, two of them, a bracketed one
+after a plain one, and one after any predicate but `LIKE` — each `Msg 102` — and
+`LIKE {ESCAPE '%'}` with no pattern at all is `Msg 156`.
+
+**The escape is now a rule of the standard's.** §8.5 writes the word and the character apart,
+and a replacement replaces a whole rule, so `EscapeClause` names the pair there and the
+dialect replaces it — the twenty-third rule to do so. What is inside stays §8.5's own
+<escape character>. The bracketed form builds `Expression.OdbcEscape`, which is what every
+other ODBC escape builds and what keeps the braces in the tree.
+
+**Then the round trip earned its keep twice over.**
+
+The first was mine to expect and I said the opposite: the writer needed nothing, I wrote,
+because `OdbcEscape` already prints `{ … }`. It does — and the `LIKE` case prints the word
+`ESCAPE` in front of whatever the escape is, so `{ESCAPE '%'}` came back as
+`ESCAPE { ESCAPE '%' }`. Where the escape is bracketed the word belongs to the node and this
+case may not write it.
+
+**The second was two pieces old and had been invisible.** `Expression.Not` asked its operand
+to bind at 4 while a negation binds at 3, so a negation inside a negation was bracketed:
+`NOT NOT A1 < 23` printed as `NOT (NOT A1 < 23)`. That went in with the repeated-negation rule
+and nothing could see it — the round trip compares trees only for statements both sides read,
+and `CHECK (… NOT NOT …)` only entered that set when this grammar learned to read it. Asking
+the operand for 3 leaves a negation bare and still brackets `AND` and `OR`, which are looser.
+
+One thing worth its own piece: the report cuts each side of a difference at 140 characters,
+and both differences here were past the cut in a three-thousand-character `CREATE TABLE`. That
+is the same blindness the defect list had before `Corpus.Flat`, and the cause was found by
+reading the writer rather than the report. What that show wants is the part that differs.
+
+At 150: read by both 5,962 (from 5,960), the work list 24 (from 26), read here but refused
+there 1 (from 1), another product's 258; `--split` 736 (from 734) — ScriptDom reads the
+bracketed escape too, so nothing was paid for it — the round trip 100% of 7,578. The map:
+read by both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
