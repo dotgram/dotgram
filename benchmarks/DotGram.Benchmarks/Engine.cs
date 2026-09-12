@@ -554,7 +554,16 @@ static class Engine
 			// is about a character string that would not become a uniqueidentifier.
 			//
 			//    241  Conversion failed when converting date and/or time from character string.
-			or 241;
+			or 241
+
+			// And the numbers inside a type's brackets, 2026-09-12. `CREATE TABLE t (c
+			// [dbo].mytype (10, 20))` is read — the name, the brackets and both numbers
+			// understood as a precision and a scale — and then answered about the numbers
+			// themselves, a scale larger than the precision it belongs to. The same kind of
+			// answer as 241's and 8169's: what was read is not in question.
+			//
+			//    183  The scale (…) for column '…' must be within the range … to ….
+			or 183;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open

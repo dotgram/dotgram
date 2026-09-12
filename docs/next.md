@@ -20101,3 +20101,33 @@ refused there 4 (the same four); `--split` 740 (from 738), the round trip 100% o
 map: read by both 7,984 of 8,338 (99.8%), the work list 19, defects 0. The suite is 6,967
 rows: seventeen spellings this grammar read that the engine does not, and two dozen it
 refused that it does.
+
+## A scale the engine read and would not take
+
+`CREATE TABLE t (c [dbo].mytype (10, 20))` is read by the engine — the name, the brackets and
+both numbers understood as a precision and a scale — and then answered `Msg 183`, "The scale
+(…) for column '…' must be within the range … to …". Nothing about the reading is in
+question there: what came back is about the numbers.
+
+That is the answer `241` gives about a string that would not become a date and `8169` about
+one that would not become a uniqueidentifier, and both are on `AboutNames` already. 183 joins
+them, with the audit round it came from written beside it, as every number on that list has.
+
+**The corpus now holds no defect that is a rule.** Two remain and both are the corpus being
+cut into statements by ScriptDom: the long `CREATE TABLE [dbo].[DatabaseDefinitions] (…)`,
+which the engine reads when it is given the statement whole — all thirteen of its columns
+were put to it one at a time and together — and `create view "Category Sales for 1997"`,
+which both sides read when either is asked on its own.
+
+**And the work list holds nothing that is work.** All twenty-two of what is left were
+measured in the course of the day and none is a gap in this grammar: nine `PREDICT`s and two
+`EXECUTE (…, 5, @a) AS LOGIN`s are counted read only through the `Msg 137` an undeclared
+variable earns before the real answer; three `IDENTITY (INT)`s in a select list are the same
+mirage, `Msg 156` once the statement's `@a` is declared; two `sum(*)`s the engine refuses
+outright; two `OPTION (CHECKCONSTRAINTS PLAN, …)`s are the 2005 parser giving up on the rest
+of its list, which this grammar deliberately does not copy; and two pivots over a join were
+left as they are by a decision of their own.
+
+At 150: read by both 5,966 (from 5,964), the work list 22, read here but refused there **2
+(from 4)**; `--split` 740, the round trip 100% of 7,583. The map: read by both 7,984 of 8,338
+(99.8%), the work list 19, defects 0.
