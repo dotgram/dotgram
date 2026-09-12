@@ -63,6 +63,21 @@ static class ExpressionAgainst
 
 		"(int x) => (x + x)",
 		"(int x) => (((x + x) + x) + x)",
+
+		// `Math.Max(x, 1)` is the dearest row there is, and these take it apart one piece at
+		// a time, the way the parenthesis pair above takes a level of the ladder apart. Over
+		// the bare lambda, the first is what recording a `using` costs. Over that, the second
+		// is what turning a name into a type costs — `Environment` is read as a variable
+		// first and asked about afterwards — with no arguments and no overloads behind it.
+		// The imported `Math.Max` row above, over this one, is the overloads. And the dotted
+		// name here, against the imported one, is what searching the imports costs.
+		"using System; (int x) => x",
+		"using System; (int x) => Environment.NewLine",
+		"(int x) => System.Math.Max(x, 1)",
+
+		// A call with no type name in it at all, beside the member that pays none of the
+		// call's own cost: `s.Length` is a property and `s.Trim()` chooses among three.
+		"(string s) => s.Trim()",
 	];
 
 	/// <summary>
