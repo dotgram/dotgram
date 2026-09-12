@@ -458,6 +458,7 @@ together — flags, since a list may mix them. A variable assigned is not here: 
 | `Query.Intersect` | SQL-92 | §7.10 the same, with `INTERSECT` |
 | `Query.DefaultValues` | T-SQL | INSERT — `DEFAULT VALUES` |
 | `Query.FromFile` | T-SQL | BULK INSERT — a file where a query stands |
+| `Query.FromStream` | T-SQL | INSERT BULK — the rows a client streams, named by the columns |
 | `Query.FromExecute` | T-SQL | INSERT — `INSERT … EXECUTE` |
 
 ### `Expression`

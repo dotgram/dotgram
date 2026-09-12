@@ -119,6 +119,22 @@ public static class SqlWriter
 
 				break;
 
+			// `INSERT BULK` is the other way round: the columns stand where a file would, and
+			// the rows come over the connection.
+			case Statement.Insert(var target, _, Query.FromStream(var streamed, var stream), _, _, _, _):
+				text.Append("INSERT BULK ");
+				Put(text, target!);
+
+				if (streamed is { Length: > 0 })
+				{
+					text.Append(" (");
+					Each(text, streamed);
+					text.Append(')');
+				}
+
+				Optioned(text, stream);
+				break;
+
 			// `BULK INSERT` is an insert whose rows come from a file, and it is written
 			// nothing like one; the rows say which of the two this is.
 			case Statement.Insert(var target, _, Query.FromFile(var file, var bulk), _, _, _, _):
@@ -1631,6 +1647,10 @@ public static class SqlWriter
 
 			case Query.FromFile(var file, _):
 				Put(text, file, 0);
+				break;
+
+			// The rows are not written: they are what follows the statement on the wire.
+			case Query.FromStream:
 				break;
 
 			case Query.FromExecute(var execute):

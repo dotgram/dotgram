@@ -2389,6 +2389,18 @@ public abstract record Query : ISqlSpan
 	/// <summary>T-SQL's <c>BULK INSERT</c>: a file standing where a query does.</summary>
 	public sealed record FromFile(Expression File, Clause[]? Options = null) : Query;
 
+	/// <summary>T-SQL's <c>INSERT BULK</c>: the rows a client streams, named by the columns.</summary>
+	/// <remarks>
+	/// No file and no values: the statement says what the columns are and the rows arrive over
+	/// the connection. A <see cref="FromFile"/> without a file would say the same thing and
+	/// leave every reader of one to ask whether the file is there, so it is its own record.
+	///
+	/// The columns are held here and not in <see cref="Statement.Insert.Columns"/>, which is a
+	/// list of names: these carry a type, and may carry only a name where the column is the
+	/// engine's own.
+	/// </remarks>
+	public sealed record FromStream(Clause[]? Columns = null, Clause[]? Options = null) : Query;
+
 	/// <summary>
 	/// T-SQL's <c>INSERT … EXEC</c>: a procedure standing where a query stands.
 	/// </summary>
@@ -4118,6 +4130,34 @@ public static class Syntax
 		string.Equals(verb, "CREATE", StringComparison.OrdinalIgnoreCase) ||
 		spoken?.Options is not { } options ||
 		!Array.Exists(options, static one => one is Clause.Option { Name: "WEBMETHOD" });
+
+	/// <summary>Whether a string written out is one of a catalogue, whatever its quotes and case.</summary>
+	/// <remarks>
+	/// <c>DATAFILETYPE = 'char'</c> and <c>FORMAT = 'csv'</c> name closed lists — <c>'foo'</c>
+	/// and <c>'parquet'</c> are <c>Msg 102</c> — and the list is short enough to ask about
+	/// here rather than spell as alternatives, the quotes being the lexeme's and not the
+	/// value's.
+	/// </remarks>
+	public static bool OneOf(Expression? value, params string[] names)
+	{
+		if (value is not Expression.Literal(_, var text))
+			return false;
+
+		var start = text.IndexOf('\'');
+		var end   = text.LastIndexOf('\'');
+		var said  = start >= 0 && end > start ? text.Substring(start + 1, end - start - 1) : text;
+
+		return Array.Exists(names, one => string.Equals(one, said, StringComparison.OrdinalIgnoreCase));
+	}
+
+	/// <summary>Whether a number is written without an exponent, as a bulk insert's counts are.</summary>
+	/// <remarks>
+	/// <c>BATCHSIZE = 1e3</c> is <c>Msg 102</c> where <c>100.5</c> is read. The literal holds
+	/// its own exponent, so this is a question about what was read rather than about what
+	/// follows it.
+	/// </remarks>
+	public static bool Plain(string? text) =>
+		text is not null && text.IndexOf('e') < 0 && text.IndexOf('E') < 0;
 
 	/// <summary>Whether every column of a table's body has a type, or a value it is computed from.</summary>
 	/// <remarks>Asked of a result set, which unlike a table may not leave a type out (<c>Msg 102</c>).</remarks>

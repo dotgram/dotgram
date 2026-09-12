@@ -2998,21 +2998,124 @@ ExecValue : @Expression
 	| v: DbccValue                 => @(v)
 
 // ── BULK INSERT ─────────────────────────────────────────────────────────────
+//
+// A table and a file, and what the file is is narrower than a value: a string or a name —
+// `FROM someFile` is read — and never a number (`Msg 596`, which is what it says of `FROM
+// 11`) nor a variable (`Msg 102`, declared or not). The table takes no variable and no call.
 BulkInsertStatement : @Statement
-	= "BULK"i & "INSERT"i & target: DmlTarget & "FROM"i & file: ValueExpression
-	  & ("WITH"i & '(' & first: BulkOption & (',' & rest: BulkOption)* & ')')?
-		=> @(new Statement.Insert(target, null, new Query.FromFile(file, first is null ? null : Syntax.Listed(first, rest)), null, null, null, false))
+	= "BULK"i & "INSERT"i & target: BulkTarget & "FROM"i & file: BulkFile
+	  & options: BulkWith?
+		=> @(new Statement.Insert(target, null, new Query.FromFile(file, options), null, null, null, false))
 
-// `ORDER (c1 ASC, c2 DESC)` is an option whose value is a sort, kept as the words; the
-// rest are a name, and what it is set to or given in brackets.
+	// `INSERT BULK`, which names its columns instead of a file and must name them: every
+	// bare form is `Msg 102`. Its options are its own and fewer — `KEEPNULLS` is refused
+	// here and read above.
+	| "INSERT"i & "BULK"i & target: BulkTarget & '(' & columns: BulkColumns & ')'
+	  & options: BulkStreamWith?
+		=> @(new Statement.Insert(target, null, new Query.FromStream(columns, options), null, null, null, false))
+
+BulkTarget : @TableReference
+	= name: QualifiedName => @(new TableReference.Named(name, null, false, null, null, null, Clause.None))
+
+BulkFile : @Expression
+	= t: Quoted        => @(new Expression.Literal(SqlLiteralKind.Text, t))
+	| t: QualifiedName => @(new Expression.ColumnReference(t))
+
+// A streamed insert's columns, which are a name and a type as a table's are — and the type
+// may be left out, `INSERT BULK t1 (TIMESTAMP)`, where the name is the column's own.
+BulkColumns : @Clause[]
+	= first: BulkColumn & (',' & rest: BulkColumn)* => @(Syntax.Listed(first, rest))
+
+BulkColumn : @Clause
+	= name: Identifier & tail: BulkColumnTail?
+		=> @(tail is null ? new Clause.ColumnDefinition(name, null, null, Clause.None) : tail with { Name = name })
+
+BulkColumnTail : @Clause.ColumnDefinition
+	= type: DataType & c: SchemaCollate? & n: NullSpec?
+		=> @(new Clause.ColumnDefinition(
+				 "", type + (c is null ? "" : " COLLATE " + c) + (n is null ? "" : " " + n), null, Clause.None))
+
+// Each option once (`Msg 102` for a repeat), a flag with no value at all (`= ON` is `Msg
+// 156`), a count an unsigned number and everything else a string written out. The names are
+// a catalogue: `INCLUDE_HIDDEN` and `FOO` alike are `Msg 102`.
+BulkWith : @Clause[]
+	= "WITH"i & '(' & first: BulkOption & (',' & rest: BulkOption)* & ')' & when @(Syntax.NamedOnce(first, rest))
+		=> @(Syntax.Listed(first, rest))
+
+BulkStreamWith : @Clause[]
+	= "WITH"i & '(' & first: BulkStreamOption & (',' & rest: BulkStreamOption)* & ')' & when @(Syntax.NamedOnce(first, rest))
+		=> @(Syntax.Listed(first, rest))
+
 BulkOption : @Clause
+	= o: BulkOrder                    => @(o)
+	| name: BulkFlag                  => @(new Clause.Option(name, null, Clause.None))
+	| name: BulkCount & '=' & v: BulkNumber
+		=> @(new Clause.Option(name, v, Clause.None))
+	| name: BulkWhole & '=' & v: BulkDigits
+		=> @(new Clause.Option(name, v, Clause.None))
+	| name: "CODEPAGE"i & '=' & v: BulkCodePage
+		=> @(new Clause.Option(name, v, Clause.None))
+	| name: BulkText & '=' & v: BulkString
+		=> @(new Clause.Option(name, v, Clause.None))
+	| name: "DATAFILETYPE"i & '=' & v: BulkFileType
+		=> @(new Clause.Option(name, v, Clause.None))
+	| name: "FORMAT"i & '=' & v: BulkFormat
+		=> @(new Clause.Option(name, v, Clause.None))
+
+BulkStreamOption : @Clause
+	= o: BulkOrder    => @(o)
+	| name: BulkStreamFlag => @(new Clause.Option(name, null, Clause.None))
+	| name: "ROWS_PER_BATCH"i & '=' & v: BulkNumber
+		=> @(new Clause.Option(name, v, Clause.None))
+	| name: "KILOBYTES_PER_BATCH"i & '=' & v: BulkDigits
+		=> @(new Clause.Option(name, v, Clause.None))
+
+BulkOrder : @Clause
 	= t: ("ORDER"i & '(' & SortSpecification & (',' & SortSpecification)* & ')')
 		=> @(new Clause.Option(Syntax.Spaced(t), null, Clause.None))
-	| name: Identifier & tail: BulkOptionTail? => @(tail is null ? new Clause.Option(name, null, Clause.None) : tail with { Name = name })
 
-BulkOptionTail : @Clause.Option
-	= '=' & v: ValueExpression   => @(new Clause.Option("", v, Clause.None))
-	| '(' & a: Arguments & ')'   => @(new Clause.Option("", new Expression.RoutineInvocation("", a), Clause.None, null, true))
+BulkFlag
+	= "CHECK_CONSTRAINTS"i | "FIRE_TRIGGERS"i | "KEEPIDENTITY"i | "KEEPNULLS"i
+	| "TABLOCK"i | "NO_TRIGGERS"i
+
+BulkStreamFlag = "CHECK_CONSTRAINTS"i | "FIRE_TRIGGERS"i | "TABLOCK"i | "NO_TRIGGERS"i
+
+// A count written with a point, which four of them take: `BATCHSIZE = 100.5` and
+// `ROWS_PER_BATCH = 100.0` are read.
+BulkCount = "BATCHSIZE"i | "FIRSTROW"i | "LASTROW"i | "ROWS_PER_BATCH"i
+
+// And three that will not have one at all — not even `10.0`, so it is the spelling that is
+// refused and not the value (`Msg 102`). No exponent anywhere: `BATCHSIZE = 1e3` is refused.
+BulkWhole = "MAXERRORS"i | "KILOBYTES_PER_BATCH"i
+
+BulkText
+	= "ERRORFILE"i | "ERRORFILE_DATA_SOURCE"i | "FORMATFILE"i | "FORMATFILE_DATA_SOURCE"i
+	| "DATA_SOURCE"i | "FIELDTERMINATOR"i | "ROWTERMINATOR"i | "FIELDQUOTE"i | "ESCAPECHAR"i
+	| "CREDENTIAL"i
+
+// A code page is a whole number or the string of one, `866` and `'866'` alike; `866.5` is
+// refused.
+BulkCodePage : @Expression
+	= v: BulkDigits => @(v)
+	| v: BulkString => @(v)
+
+BulkNumber : @Expression
+	= t: Sql92.Lexical.UnsignedNumericLiteral & when @(Syntax.Plain(t))
+		=> @(new Expression.Literal(SqlLiteralKind.Number, t))
+
+BulkDigits : @Expression
+	= t: Sql92.Lexical.Digits => @(new Expression.Literal(SqlLiteralKind.Number, t))
+
+BulkString : @Expression
+	= t: Sql92.Lexical.NationalCharacterStringLiteral => @(new Expression.Literal(SqlLiteralKind.National, t))
+	| t: Sql92.Lexical.CharacterStringLiteral         => @(new Expression.Literal(SqlLiteralKind.Text, t))
+
+BulkFileType : @Expression
+	= t: BulkString & when @(Syntax.OneOf(t, "char", "native", "widechar", "widenative", "widechar_ansi", "dts_buffers"))
+		=> @(t)
+
+BulkFormat : @Expression
+	= t: BulkString & when @(Syntax.OneOf(t, "csv")) => @(t)
 
 // ── A word and some values ──────────────────────────────────────────────────
 SimpleCommand : @Statement

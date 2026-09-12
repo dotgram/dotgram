@@ -19457,3 +19457,51 @@ lexeme that had been reading less than the engine does.
 At 150: read by both 5,936 (from 5,930), the work list 48 (from 54), read here but refused
 there 31 (from 31); `--split` 734 (from 732), the round trip 100% of 7,568. The map: read by
 both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
+
+## What a bulk insert takes, and the statement beside it
+
+The largest heap of defects left in the corpus, and a whole statement that was missing. Six
+rounds of probes, because almost nothing here was what the rule assumed.
+
+- **A file is a string or a name, and nothing else.** It had been any value expression, so
+  `BULK INSERT v1 FROM 11` was read; the engine answers `Msg 596` — a number is not a file —
+  and `FROM @f1` is `Msg 102` whether the variable is declared or not. `FROM someFile`, a bare
+  name, is read, which is why the rule is not simply a string.
+- **The target takes no variable and no call**: `BULK INSERT @v1 FROM 'f1'` and `BULK INSERT
+  dbo.f1 () FROM 'f1'` are both refused, and both were read here.
+- **The options are a catalogue, not an identifier and a value.** `INCLUDE_HIDDEN`, which the
+  corpus writes twice, is `Msg 102`, and so is `FOO`. Each option once — a repeat is
+  `Msg 102`. A flag takes no value at all: `TABLOCK = ON` is `Msg 156`. And every name fixes
+  what may stand after it, which is four kinds:
+  - a count with a point allowed — `BATCHSIZE`, `FIRSTROW`, `LASTROW`, `ROWS_PER_BATCH`;
+  - a count without one — `MAXERRORS`, `KILOBYTES_PER_BATCH`, and strictly, since `10.0` is
+    refused as surely as `10.5`: it is the spelling and not the value. No exponent anywhere,
+    `1e3` being refused, which is asked of the text because the literal holds its own;
+  - a string written out — the two files, the two data sources, the terminators, the quote;
+  - a closed list — `DATAFILETYPE` of six words, `FORMAT` of one, `CODEPAGE` a whole number or
+    the string of one.
+- **`INSERT BULK` is its own statement**, and it was missing altogether. It names columns where
+  the other names a file, and it must name them: every bare form is `Msg 102`, which makes
+  four of the corpus's lines error cases rather than work. A column may have no type at all
+  (`INSERT BULK t1 (TIMESTAMP)`), or a type with a collation. Its options are its own and
+  fewer — `KEEPNULLS` is refused here and read above — and the rows come over the connection,
+  so `Query.FromStream` holds them: a `FromFile` without a file would say the same thing and
+  leave every reader of one asking whether the file is there.
+
+- **A catalogue is only as good as its completeness**, and the first one was not. Written from
+  the probes alone it left out `ESCAPECHAR`, which every one of the corpus's level-150 bulk
+  inserts uses — twelve statements went onto the work list at a stroke, and the measurement
+  said so before the commit did. `CREDENTIAL` was the same kind of gap, found by asking:
+  `Msg 16548` is a name check, so the engine had read it. Both are strings, and both belong to
+  the file's statement alone — under `INSERT BULK` they are `Msg 102`. The lesson is to read
+  what the corpus writes as well as what the published page lists, and the order — probe,
+  measure, then commit — is what caught it.
+- **And the columns were going into the wrong slot.** `Statement.Insert.Columns` is a list of
+  names; these carry a type, so they had been put in the `With` beside them, which compiled
+  and printed nothing: four statements read, printed back, and came back shorter. The round
+  trip found it. They are `Query.FromStream`'s own now, which is where a stream's columns
+  belong.
+
+At 150: read by both 5,936 (from 5,936), the work list 48 (from 48), read here but refused
+there 25 (from 31); `--split` 734 (from 734), the round trip 100% of 7,566. The map: read by
+both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
