@@ -806,7 +806,7 @@ namespace DotGram.ExpressionLanguage;
 	// `Console.WriteLine(s)` finds two and refuses both.
 	Postfix : @Expression
 		= target: Postfix & '.' & member: Word & args: Arguments
-		  => @(ExpressionParser.Called(target, member, args, context.Caller))
+		  => @(context.Calling(target, member, args))
 
 		| target: Postfix & '.' & member: Word => @(ExpressionParser.Member(target, member, context.Caller))
 
@@ -820,7 +820,7 @@ namespace DotGram.ExpressionLanguage;
 		// builds as it goes, so by the time `.c` is reached `a?.b` is already a tree. So the
 		// tail is read as data and handed over whole, and `Chained` builds it inside the test.
 		| target: Postfix & chain: Guarded
-		  => @(ExpressionParser.Chained(target, chain, context.Caller))
+		  => @(ExpressionParser.Chained(target, chain, context))
 
 		| target: Name & args: Arguments => @(ExpressionParser.Invoked(target, args))
 
@@ -1203,8 +1203,77 @@ public static partial class ExpressionParser
 			AppDomain.CurrentDomain.AssemblyLoad += static (_, _) =>
 			{
 				_types.Clear();
+				_holders.Clear();
 				_namespaces = null;
 			};
+
+		static readonly ConcurrentDictionary<string, Type[]> _holders = new(StringComparer.Ordinal);
+
+		static readonly ConcurrentDictionary<(Assembly, string), Type[]> _holdersInside = new();
+
+		/// <summary>The public static classes standing in that namespace, in any loaded assembly.</summary>
+		/// <remarks>
+		/// What an extension method is written in, and the only thing worth walking a namespace
+		/// for: a class that is not static holds none, and C# looks for one nowhere else.
+		/// </remarks>
+		public static Type[] Holders(string @namespace) =>
+			Cached(_holders, @namespace, static space => Held(space));
+
+		/// <summary>The same in the calling assembly, where an internal class is nameable too.</summary>
+		public static Type[] HoldersInside(Assembly caller, string @namespace) =>
+			_holdersInside.GetOrAdd(
+				(caller, @namespace),
+				static key =>
+				{
+					var holders = new List<Type>();
+
+					foreach (var type in Declared(key.Item1))
+						if (Nameable(type) && Holds(type, key.Item2))
+							holders.Add(type);
+
+					return [.. holders];
+				});
+
+		static Type[] Held(string @namespace)
+		{
+			var holders = new List<Type>();
+
+			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+			{
+				if (assembly.IsDynamic)
+					continue;
+
+				foreach (var type in Declared(assembly))
+					if (type.IsVisible && Holds(type, @namespace))
+						holders.Add(type);
+			}
+
+			return [.. holders];
+		}
+
+		/// <summary>Whether a type is a static class standing in that namespace, extensions and all.</summary>
+		/// <remarks>
+		/// A static class is abstract and sealed at once, which is how C# writes one into
+		/// metadata, and one holding extension methods carries the attribute the compiler puts
+		/// on it — asked here so that a namespace of ordinary classes costs one test each.
+		/// </remarks>
+		static bool Holds(Type type, string @namespace) =>
+			type is { IsAbstract: true, IsSealed: true, IsNested: false, IsGenericTypeDefinition: false } &&
+			string.Equals(type.Namespace, @namespace, StringComparison.Ordinal) &&
+			type.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false);
+
+		/// <summary>An assembly's types, or as many of them as it can load.</summary>
+		static IEnumerable<Type> Declared(Assembly assembly)
+		{
+			try
+			{
+				return assembly.GetTypes();
+			}
+			catch (ReflectionTypeLoadException partial)
+			{
+				return partial.Types.OfType<Type>();
+			}
+		}
 
 		/// <summary>The public type that full name means in any loaded assembly, or null.</summary>
 		public static Type? Find(string fullName) => Cached(_types, fullName, static name => Search(name));
@@ -1670,7 +1739,12 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>A chain whose first step is guarded: the receiver read once, and null where it is.</summary>
-	public static Expression Chained(Expression target, Step[] chain, Assembly caller)
+	/// <remarks>
+	/// Given the whole context and not only the calling assembly, because a step of a chain is
+	/// a call like any other and may be an extension method — `s?.Shout("!")` finds what
+	/// `s.Shout("!")` finds, and the `using`s that say so live there.
+	/// </remarks>
+	public static Expression Chained(Expression target, Step[] chain, State context)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
@@ -1678,19 +1752,22 @@ public static partial class ExpressionParser
 		if (chain is null)
 			throw new ArgumentNullException(nameof(chain));
 
-		return Tested(target, chain, 0, caller);
+		if (context is null)
+			throw new ArgumentNullException(nameof(context));
+
+		return Tested(target, chain, 0, context);
 	}
 
 	/// <summary>The steps from one on, built onto a value until a guarded one is met.</summary>
-	static Expression Continued(Expression value, Step[] steps, int from, Assembly caller)
+	static Expression Continued(Expression value, Step[] steps, int from, State context)
 	{
 		for (var at = from; at < steps.Length; at++)
 		{
 			// Everything after it belongs inside its test, so the rest is built there.
 			if (steps[at].Guarded)
-				return Tested(value, steps, at, caller);
+				return Tested(value, steps, at, context);
 
-			value = Applied(value, steps[at], caller);
+			value = Applied(value, steps[at], context);
 		}
 
 		return value;
@@ -1703,14 +1780,14 @@ public static partial class ExpressionParser
 	/// is worth — `s?.Length` is an `int?` — except where it is worth nothing at all, and
 	/// there the whole thing is a statement that runs or does not.
 	/// </remarks>
-	static Expression Tested(Expression value, Step[] steps, int at, Assembly caller)
+	static Expression Tested(Expression value, Step[] steps, int at, State context)
 	{
 		if (!CanBeNull(value.Type))
 			throw new FormatException(
 				$"Operator '?' cannot be applied to '{value.Type.Name}', which is never null.");
 
 		var held  = Expression.Variable(value.Type);
-		var inner = Continued(Applied(Unwrapped(held), steps[at], caller), steps, at + 1, caller);
+		var inner = Continued(Applied(Unwrapped(held), steps[at], context), steps, at + 1, context);
 
 		var type =
 			inner.Type == typeof(void) || CanBeNull(inner.Type)
@@ -1726,10 +1803,10 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>One step built onto what it is written after.</summary>
-	static Expression Applied(Expression value, Step step, Assembly caller) =>
-		step.Indices is { } at       ? Indexed(value, at, caller)
-		: step.Arguments is { } args ? Called(value, step.Member!, args, caller)
-		:                              Member(value, step.Member!, caller);
+	static Expression Applied(Expression value, Step step, State context) =>
+		step.Indices is { } at       ? Indexed(value, at, context.Caller)
+		: step.Arguments is { } args ? context.Calling(value, step.Member!, args)
+		:                              Member(value, step.Member!, context.Caller);
 
 	/// <summary>Whether that value is null, asked as its type allows.</summary>
 	static Expression IsNull(Expression value) =>
@@ -1888,6 +1965,45 @@ public static partial class ExpressionParser
 				found.Add(candidate);
 
 		return found;
+	}
+
+	/// <summary>The extension methods by that name the arguments fit, through the text's `using`s.</summary>
+	/// <remarks>
+	/// An extension method is a static method whose first parameter is the receiver, so the
+	/// candidates are gathered over the arguments with the receiver written in front of them
+	/// and nothing else here has to know the difference. A generic one is no candidate, for
+	/// the reason <see cref="Methods"/> gives: nothing infers its type arguments yet, which is
+	/// what keeps `Where` and `Select` out until they can be inferred.
+	/// </remarks>
+	static List<Candidate> Extensions(string name, Expression[] extended, Assembly caller, List<string>? imports)
+	{
+		var found = new List<Candidate>();
+		var seen  = new HashSet<MethodInfo>();
+
+		foreach (var space in imports ?? [])
+		{
+			Consider(Loaded.Holders(space));
+			Consider(Loaded.HoldersInside(caller, space));
+		}
+
+		return found;
+
+		// A class the calling assembly declares publicly stands in both lists, and the same
+		// method twice is two candidates neither of which is better than the other.
+		void Consider(Type[] holders)
+		{
+			foreach (var holder in holders)
+				foreach (var method in holder.GetMethods(
+					BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
+					if (!method.IsGenericMethodDefinition &&
+						string.Equals(method.Name, name, StringComparison.Ordinal) &&
+						Reachable(method, caller) &&
+						method.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false) &&
+						method.GetParameters() is { Length: > 0 } parameters &&
+						seen.Add(method) &&
+						Applicable(method, parameters, extended) is { } candidate)
+						found.Add(candidate);
+		}
 	}
 
 	/// <summary>
@@ -3480,6 +3596,45 @@ public static partial class ExpressionParser
 			_returns ??= Expression.Label(value.Type, "return");
 
 			return Expression.Return(_returns, Converted(value, _returns.Type));
+		}
+
+		/// <summary>A call on a value: its own method, or an extension where it has none.</summary>
+		/// <remarks>
+		/// C#'s order, and C#'s reason for it. An extension method is looked for only where
+		/// nothing of the receiver's own fits, so a `using` can never take a method away from
+		/// the type that declares one — bringing a namespace into a text changes what names
+		/// mean, and must not change what a type does.
+		/// </remarks>
+		public Expression Calling(Expression target, string name, Expression[] arguments)
+		{
+			if (target is null)
+				throw new ArgumentNullException(nameof(target));
+
+			if (arguments is null)
+				throw new ArgumentNullException(nameof(arguments));
+
+			if (Methods(target.Type, name, true, arguments, Caller) is { Count: > 0 } own)
+			{
+				var mine = Resolved(own, arguments, $"'{target.Type.Name}' has no method '{name}'");
+
+				return Expression.Call(target, (MethodInfo)mine.Member, Passed(mine, arguments));
+			}
+
+			var extended = new Expression[arguments.Length + 1];
+
+			extended[0] = target;
+
+			arguments.CopyTo(extended, 1);
+
+			if (Extensions(name, extended, Caller, _imports) is { Count: > 0 } found)
+			{
+				var chosen = Resolved(found, extended, $"nothing extends '{target.Type.Name}' with '{name}'");
+
+				return Expression.Call((MethodInfo)chosen.Member, Passed(chosen, extended));
+			}
+
+			// Neither, which is what the language has always said in these words.
+			return Called(target, name, arguments, Caller);
 		}
 
 		/// <summary>A lambda written inside an expression, which is a value like any other.</summary>

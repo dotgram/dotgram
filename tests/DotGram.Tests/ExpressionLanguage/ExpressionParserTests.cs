@@ -479,6 +479,47 @@ public sealed class ExpressionParserTests
 			0.5,
 			ExpressionParser.Compile<Func<int, double>>("(int x) => x > 0 ? .5 : 1.5")(1));
 
+	// ── Extension methods, found through the text's `using`s ────────────────────
+
+	[Fact]
+	public void A_method_a_using_brings_is_found_where_the_type_has_none() =>
+		Assert.Equal(
+			10,
+			ExpressionParser.Compile<Func<int, int>>(
+				"using DotGram.Tests.ExpressionLanguage; (int x) => x.Doubled()")(5));
+
+	[Fact]
+	public void And_it_takes_its_arguments_as_any_other_call_does() =>
+		Assert.Equal(
+			"hi!",
+			ExpressionParser.Compile<Func<string, string>>(
+				"using DotGram.Tests.ExpressionLanguage; (string s) => s.Shout(\"!\")")("hi"));
+
+	[Fact]
+	public void But_a_method_the_type_declares_is_the_one_chosen() =>
+		// C#'s order: an extension is looked for only where nothing of the receiver's own
+		// fits, so a `using` can change what names mean and never what a type does.
+		Assert.Equal(
+			2,
+			ExpressionParser.Compile<Func<int>>(
+				"using DotGram.Tests.ExpressionLanguage; () => new Held().Twice()")());
+
+	[Fact]
+	public void And_without_the_using_there_is_no_such_method() =>
+		Assert.Contains(
+			"has no method 'Doubled'",
+			Assert.Throws<InvalidOperationException>(
+				() => ExpressionParser.Parse("(int x) => x.Doubled()")).Message);
+
+	[Fact]
+	public void And_a_guarded_chain_finds_one_too() =>
+		// A step of a chain is a call like any other, which it would not be if the `using`s
+		// reached one and not the other.
+		Assert.Equal(
+			"hi!",
+			ExpressionParser.Compile<Func<string, string>>(
+				"using DotGram.Tests.ExpressionLanguage; (string s) => s?.Shout(\"!\")")("hi"));
+
 	// ── A lambda written inside an expression ───────────────────────────────────
 
 	[Fact]

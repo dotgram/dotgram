@@ -2088,7 +2088,7 @@ static class HandExpression
 
 					if (arguments >= 0)
 					{
-						node = ExpressionParser.Called(node!, member, args!, _context.Caller);
+						node = _context.Calling(node!, member, args!);
 						at   = arguments;
 
 						continue;
@@ -2124,7 +2124,7 @@ static class HandExpression
 					if (chain < 0)
 						break;
 
-					node = ExpressionParser.Chained(node!, steps!, _context.Caller);
+					node = ExpressionParser.Chained(node!, steps!, _context);
 					at   = chain;
 
 					continue;

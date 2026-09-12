@@ -85,6 +85,10 @@ public sealed class ExpressionCarrierTests
 		"(bool c) => c ? 1 : 2L",
 		"() => -3000000000",
 
+		// A method a `using` brings rather than the type declaring it, plain and guarded.
+		"using DotGram.Tests.ExpressionLanguage; (int x) => x.Doubled()",
+		"using DotGram.Tests.ExpressionLanguage; (string s) => s?.Shout(\"!\")",
+
 		// A lambda inside an expression: one that closes over what is around it, and two
 		// beside each other whose parameters are each their own.
 		"(int x) => { var f = (int y) => y + x; f(1) }",
