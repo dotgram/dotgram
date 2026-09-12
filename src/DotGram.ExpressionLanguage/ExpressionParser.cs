@@ -2078,6 +2078,13 @@ public static partial class ExpressionParser
 		ConcurrentDictionary<TKey, TValue> cache, TKey key, Func<TKey, TValue> answer)
 		where TKey : notnull
 	{
+		// Asked only where the answer is not here yet. `ConcurrentDictionary.Count` takes every
+		// bucket lock and adds the buckets up, so asking it on the way in makes each lookup
+		// cost what the cache has grown to — and a lookup is what this is for. A process that
+		// has read one rich text paid that on every parse after it.
+		if (cache.TryGetValue(key, out var found))
+			return found;
+
 		if (cache.Count >= Remembered)
 			cache.Clear();
 
