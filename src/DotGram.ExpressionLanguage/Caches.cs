@@ -51,12 +51,18 @@ public static partial class ExpressionParser
 	}
 
 	// Kept by caller as well, since what is reachable depends on who asks.
+	//
+	// What is kept is the overload and not its parameters alone. Whether a parameter is taken
+	// by reference, and whether the last one is a `params` array, are answers about the member
+	// rather than about any call, and asking them again for every call is most of what choosing
+	// among overloads was spending itself on: over `Math.Max`, thirteen of them, ~57 ns a
+	// candidate for the `params` attribute and ~20 ns for each parameter looked over.
 
-	static readonly ConcurrentDictionary<(Type, string, bool, Assembly), (MemberInfo, ParameterInfo[])[]> _methods = new();
+	static readonly ConcurrentDictionary<(Type, string, bool, Assembly), Overload[]> _methods = new();
 
-	static readonly ConcurrentDictionary<(Type, Assembly), (MemberInfo, ParameterInfo[])[]> _constructors = new();
+	static readonly ConcurrentDictionary<(Type, Assembly), Overload[]> _constructors = new();
 
-	static readonly ConcurrentDictionary<(Type, Assembly), (MemberInfo, ParameterInfo[])[]> _indexers = new();
+	static readonly ConcurrentDictionary<(Type, Assembly), Overload[]> _indexers = new();
 
 	// A member read is asked about as often as a call, and more: every `s.Length` asks it,
 	// and every compound assignment asks it once in a guard and again where it is built.

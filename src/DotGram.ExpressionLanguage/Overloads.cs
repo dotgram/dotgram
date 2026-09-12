@@ -72,8 +72,9 @@ public static partial class ExpressionParser
 	{
 		var invoke = target.Type.GetMethod("Invoke")!;
 
-		var chosen = Applicable(invoke, invoke.GetParameters(), arguments) ?? throw new InvalidOperationException(
-			$"'{target.Type.Name}' cannot be invoked with ({Listing(arguments)}).");
+		var chosen = Applicable(Overload.Of(invoke, invoke.GetParameters()), arguments) ??
+			throw new InvalidOperationException(
+				$"'{target.Type.Name}' cannot be invoked with ({Listing(arguments)}).");
 
 		return new Resolution(chosen.Member, Passed(chosen, arguments));
 	}
@@ -98,8 +99,8 @@ public static partial class ExpressionParser
 	{
 		var found = new List<Candidate>();
 
-		foreach (var (constructor, parameters) in _constructors.GetOrAdd((type, caller), static key => Constructors(key)))
-			if (Applicable(constructor, parameters, arguments) is { } candidate)
+		foreach (var one in _constructors.GetOrAdd((type, caller), static key => Constructors(key)))
+			if (Applicable(one, arguments) is { } candidate)
 				found.Add(candidate);
 
 		return found;
@@ -130,6 +131,38 @@ public static partial class ExpressionParser
 				: Parameters[position].ParameterType;
 	}
 
+	/// <summary>An overload before any argument is asked: its parameters, and what they already say.</summary>
+	/// <param name="Params">Whether the last parameter is a <c>params</c> array.</param>
+	/// <param name="Usable">Whether an expression tree could hold every parameter it takes.</param>
+	/// <remarks>
+	/// Those two ride along because neither is an answer about a call. A member taking a
+	/// parameter by reference is no candidate whatever it is handed, and a <c>params</c> array
+	/// is one whatever it is handed — so both are worked out where the parameters are, once and
+	/// for as long as they are kept, and the choosing below reads them instead of asking
+	/// metadata again for every overload of every call.
+	/// </remarks>
+	readonly record struct Overload(MemberInfo Member, ParameterInfo[] Parameters, bool Params, bool Usable)
+	{
+		/// <summary>An overload with what its parameters say already worked out.</summary>
+		public static Overload Of(MemberInfo member, ParameterInfo[] parameters)
+		{
+			var usable = true;
+
+			foreach (var parameter in parameters)
+				if (parameter.ParameterType.IsByRef || Unrepresentable(parameter.ParameterType))
+				{
+					usable = false;
+					break;
+				}
+
+			return new Overload(
+				member, parameters,
+				parameters.Length > 0 &&
+					parameters[parameters.Length - 1].IsDefined(typeof(ParamArrayAttribute), false),
+				usable);
+		}
+	}
+
 	/// <summary>The methods by that name the arguments fit, by the name exactly as written.</summary>
 	/// <remarks>
 	/// An interface's own methods do not include what it inherits, nor <c>object</c>'s, and a
@@ -141,8 +174,8 @@ public static partial class ExpressionParser
 	{
 		var found = new List<Candidate>();
 
-		foreach (var (method, parameters) in Cached(_methods, (type, name, instance, caller), static key => Named(key)))
-			if (Fitting(method, parameters, arguments) is { } candidate)
+		foreach (var one in Cached(_methods, (type, name, instance, caller), static key => Named(key)))
+			if (Fitting(one, arguments) is { } candidate)
 				found.Add(candidate);
 
 		return found;
@@ -183,7 +216,7 @@ public static partial class ExpressionParser
 						method.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false) &&
 						method.GetParameters() is { Length: > 0 } parameters &&
 						seen.Add(method) &&
-						Fitting(method, parameters, extended) is { } candidate)
+						Fitting(Overload.Of(method, parameters), extended) is { } candidate)
 						found.Add(candidate);
 		}
 	}
@@ -192,11 +225,11 @@ public static partial class ExpressionParser
 	/// The methods a type has by that name that the calling assembly could reach, with their
 	/// parameters, before any argument is asked.
 	/// </summary>
-	static (MemberInfo, ParameterInfo[])[] Named((Type Type, string Name, bool Instance, Assembly Caller) key)
+	static Overload[] Named((Type Type, string Name, bool Instance, Assembly Caller) key)
 	{
 		const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic;
 
-		var named = new List<(MemberInfo, ParameterInfo[])>();
+		var named = new List<Overload>();
 
 		Consider(key.Type.GetMethods(
 			key.Instance
@@ -222,17 +255,23 @@ public static partial class ExpressionParser
 				if (string.Equals(method.Name, key.Name, StringComparison.Ordinal) &&
 					(!method.ContainsGenericParameters || method.IsGenericMethodDefinition) &&
 					Reachable(method, key.Caller))
-					named.Add((method, method.GetParameters()));
+					named.Add(Overload.Of(method, method.GetParameters()));
 		}
 	}
 
 	/// <summary>A type's constructors the calling assembly could reach, with their parameters.</summary>
-	static (MemberInfo, ParameterInfo[])[] Constructors((Type Type, Assembly Caller) key) =>
-	[
-		.. key.Type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-			.Where(one => Reachable(one, key.Caller))
-			.Select(static one => ((MemberInfo)one, one.GetParameters())),
-	];
+	static Overload[] Constructors((Type Type, Assembly Caller) key)
+	{
+		var constructors = new List<Overload>();
+
+		foreach (var one in key.Type.GetConstructors(
+			BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+			if (Reachable(one, key.Caller))
+				constructors.Add(Overload.Of(one, one.GetParameters()));
+
+		return [.. constructors];
+	}
+
 	/// <summary>
 	/// The indexers the arguments fit and the calling assembly could reach, an interface's
 	/// inherited ones among them.
@@ -246,17 +285,17 @@ public static partial class ExpressionParser
 	{
 		var found = new List<Candidate>();
 
-		foreach (var (indexer, parameters) in _indexers.GetOrAdd((type, caller), static key => Indexing(key)))
-			if (Applicable(indexer, parameters, arguments) is { } candidate)
+		foreach (var one in _indexers.GetOrAdd((type, caller), static key => Indexing(key)))
+			if (Applicable(one, arguments) is { } candidate)
 				found.Add(candidate);
 
 		return found;
 	}
 
 	/// <summary>A type's indexers the caller could reach, with their parameters, before any argument is asked.</summary>
-	static (MemberInfo, ParameterInfo[])[] Indexing((Type Type, Assembly Caller) key)
+	static Overload[] Indexing((Type Type, Assembly Caller) key)
 	{
-		var indexers = new List<(MemberInfo, ParameterInfo[])>();
+		var indexers = new List<Overload>();
 
 		Consider(key.Type);
 
@@ -275,9 +314,10 @@ public static partial class ExpressionParser
 				BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
 				if (string.Equals(indexer.Name, name, StringComparison.Ordinal) && Reachable(indexer, key.Caller) &&
 					indexer.GetIndexParameters() is { Length: > 0 } parameters)
-					indexers.Add((indexer, parameters));
+					indexers.Add(Overload.Of(indexer, parameters));
 		}
 	}
+
 	/// <summary>Whether the arguments fit, and in which form (C#'s applicable function member).</summary>
 	/// <remarks>
 	/// The normal form first — an argument for each parameter, and a default for each one
@@ -286,13 +326,13 @@ public static partial class ExpressionParser
 	/// type an expression tree cannot hold, makes the member no candidate at all: chosen, it
 	/// would build a tree that does not compile, where the overload beside it would have.
 	/// </remarks>
-	static Candidate? Applicable(MemberInfo member, ParameterInfo[] parameters, Expression[] arguments)
+	static Candidate? Applicable(Overload one, Expression[] arguments)
 	{
-		foreach (var parameter in parameters)
-			if (parameter.ParameterType.IsByRef || Unrepresentable(parameter.ParameterType))
-				return null;
+		if (!one.Usable)
+			return null;
 
-		var count = parameters.Length;
+		var parameters = one.Parameters;
+		var count      = parameters.Length;
 
 		if (arguments.Length <= count)
 		{
@@ -305,11 +345,10 @@ public static partial class ExpressionParser
 				fits = parameters[at].IsOptional;
 
 			if (fits)
-				return new Candidate(member, parameters, false, count - arguments.Length);
+				return new Candidate(one.Member, parameters, false, count - arguments.Length);
 		}
 
-		if (count > 0 && arguments.Length >= count - 1 &&
-			parameters[count - 1].IsDefined(typeof(ParamArrayAttribute), false))
+		if (one.Params && arguments.Length >= count - 1)
 		{
 			var element = parameters[count - 1].ParameterType.GetElementType()!;
 			var fits    = true;
@@ -318,7 +357,7 @@ public static partial class ExpressionParser
 				fits = Converts(arguments[at], at < count - 1 ? parameters[at].ParameterType : element);
 
 			if (fits)
-				return new Candidate(member, parameters, true, 0);
+				return new Candidate(one.Member, parameters, true, 0);
 		}
 
 		return null;

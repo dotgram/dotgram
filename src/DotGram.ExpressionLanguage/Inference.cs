@@ -18,14 +18,17 @@ public static partial class ExpressionParser
 	// its parameters — `l.Where((int n) => n > 1)` — and arrives as a `Func<int, bool>`,
 	// which is a type like any other and says everything the inference needs.
 
-	/// <summary>The candidate these arguments make of a member, a generic method's inferred.</summary>
-	static Candidate? Fitting(MemberInfo member, ParameterInfo[] parameters, Expression[] arguments)
+	/// <summary>The candidate these arguments make of an overload, a generic method's inferred.</summary>
+	static Candidate? Fitting(Overload one, Expression[] arguments)
 	{
-		if (member is not MethodInfo { IsGenericMethodDefinition: true } definition)
-			return Applicable(member, parameters, arguments);
+		if (one.Member is not MethodInfo { IsGenericMethodDefinition: true } definition)
+			return Applicable(one, arguments);
 
-		return Inferred(definition, parameters, arguments) is { } made
-			? Applicable(made, made.GetParameters(), arguments)
+		// What is made from a definition is not the overload that was kept: the type arguments
+		// are substituted into its parameters, so what those parameters say is worked out again
+		// — which is the rare path, and the one the keeping was never for.
+		return Inferred(definition, one.Parameters, arguments) is { } made
+			? Applicable(Overload.Of(made, made.GetParameters()), arguments)
 			: null;
 	}
 

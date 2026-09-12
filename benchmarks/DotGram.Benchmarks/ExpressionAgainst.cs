@@ -78,6 +78,14 @@ static class ExpressionAgainst
 		// A call with no type name in it at all, beside the member that pays none of the
 		// call's own cost: `s.Length` is a property and `s.Trim()` chooses among three.
 		"(string s) => s.Trim()",
+
+		// How the choosing grows with the number of candidates, which is the one thing a
+		// ratio on a mixed input cannot say. `ToUpperInvariant` is the only one of its name,
+		// `Trim` is three, `Math.Max` is thirteen — the same act each time, over a longer
+		// list. It grew linearly, which said the cost was in asking each candidate whether it
+		// applies rather than in weighing every pair against every other — and `Trim`, which
+		// pays it with no arguments to convert at all, said the asking was reading metadata.
+		"(string s) => s.ToUpperInvariant()",
 	];
 
 	/// <summary>
