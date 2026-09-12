@@ -1088,7 +1088,7 @@ public static partial class ExpressionParser
 			};
 
 		/// <summary>The public type that full name means in any loaded assembly, or null.</summary>
-		public static Type? Find(string fullName) => _types.GetOrAdd(fullName, static name => Search(name));
+		public static Type? Find(string fullName) => Cached(_types, fullName, static name => Search(name));
 
 		/// <summary>Whether a loaded assembly has a public type in that namespace, or in one inside it.</summary>
 		/// <remarks>
@@ -1110,7 +1110,8 @@ public static partial class ExpressionParser
 		/// change when another loads.
 		/// </remarks>
 		public static Type? Inside(Assembly caller, string fullName) =>
-			_inside.GetOrAdd(
+			Cached(
+				_inside,
 				(caller, fullName),
 				static key => key.Item1.GetType(key.Item2, false, false) is { } type && Nameable(type) ? type : null);
 
@@ -1421,7 +1422,9 @@ public static partial class ExpressionParser
 	/// </para>
 	/// </remarks>
 	static MemberInfo? InstanceMember(Type type, string name, Assembly caller) =>
-		_instanceMembers.GetOrAdd((type, name, caller), static key => SearchedMember(key.Item1, key.Item2, key.Item3));
+		Cached(
+			_instanceMembers, (type, name, caller),
+			static key => SearchedMember(key.Item1, key.Item2, key.Item3));
 
 	/// <summary>The search <see cref="InstanceMember"/> makes, once for each type, name and caller.</summary>
 	static MemberInfo? SearchedMember(Type type, string name, Assembly caller)
@@ -1530,7 +1533,8 @@ public static partial class ExpressionParser
 		if (type is null)
 			throw new ArgumentNullException(nameof(type));
 
-		return _staticMembers.GetOrAdd((type, name, caller), static key => SearchedStatic(key.Item1, key.Item2, key.Item3))
+		return Cached(
+			_staticMembers, (type, name, caller), static key => SearchedStatic(key.Item1, key.Item2, key.Item3))
 			switch
 			{
 				PropertyInfo property => Expression.Property(null, property),
@@ -1650,7 +1654,7 @@ public static partial class ExpressionParser
 	{
 		var found = new List<Candidate>();
 
-		foreach (var (method, parameters) in _methods.GetOrAdd((type, name, instance, caller), static key => Named(key)))
+		foreach (var (method, parameters) in Cached(_methods, (type, name, instance, caller), static key => Named(key)))
 			if (Applicable(method, parameters, arguments) is { } candidate)
 				found.Add(candidate);
 
@@ -1704,6 +1708,32 @@ public static partial class ExpressionParser
 	// call over `Math.Max` asks about a dozen overloads and, for each argument, whether
 	// `IntPtr` declares a conversion to it — so each answer is kept once it has been worked
 	// out, as the names of types already are.
+
+	/// <summary>How many answers keyed by what a text said are kept before they are forgotten.</summary>
+	/// <remarks>
+	/// A cache whose key comes out of the text is a cache a text can grow: every `s.Nothing`
+	/// anybody types is a name that is not there and an answer that says so, and a service
+	/// reading what people send it would keep every one of them for ever.
+	/// </remarks>
+	const int Remembered = 4096;
+
+	/// <summary>An answer kept, where what is kept cannot grow past <see cref="Remembered"/>.</summary>
+	/// <remarks>
+	/// Cleared whole rather than evicted one at a time. What a grammar really asks about
+	/// settles far below the bound — the types, members and methods one language names — and
+	/// what pushes past it is a text naming something new each time, which nothing will ask
+	/// about again. Keeping the order to evict the oldest would cost every lookup something
+	/// to spare that case a rebuild it does not need.
+	/// </remarks>
+	static TValue Cached<TKey, TValue>(
+		ConcurrentDictionary<TKey, TValue> cache, TKey key, Func<TKey, TValue> answer)
+		where TKey : notnull
+	{
+		if (cache.Count >= Remembered)
+			cache.Clear();
+
+		return cache.GetOrAdd(key, answer);
+	}
 
 	// Kept by caller as well, since what is reachable depends on who asks.
 

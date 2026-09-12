@@ -572,6 +572,19 @@ public sealed class ExpressionParserTests
 			});
 	}
 
+	[Fact]
+	public void What_a_text_names_is_remembered_only_so_far()
+	{
+		// What reflection answers is kept so that a name is not looked up twice — and a cache
+		// keyed by what the text said is one a text can grow, since every name that is not
+		// there is an answer saying so. Past the bound they are forgotten whole and worked out
+		// again, which is the only thing a caller can tell from outside.
+		for (var at = 0; at < 5000; at++)
+			Assert.False(ExpressionParser.TryParse($"(string s) => s.Nothing{at}").IsSuccess);
+
+		Assert.Equal(3, ExpressionParser.Compile<Func<string, int>>("(string s) => s.Length")("abc"));
+	}
+
 	// ── using: what a name written as a type may mean ───────────────────────────
 
 	[Fact]
