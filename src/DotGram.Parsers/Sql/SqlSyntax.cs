@@ -308,10 +308,15 @@ public abstract record Statement : ISqlSpan
 	/// Whether the word was left out, as it may be where the call is the first statement of a
 	/// batch: <c>sp_who</c>, <c>dbo.p 1</c>.
 	/// </param>
+	/// <param name="Number">
+	/// The number after the name, <c>EXECUTE dbo.p;1</c>: one of a group of procedures sharing
+	/// a name, which <see cref="CreateProcedure"/> declares the same way. A whole number from
+	/// one — <c>;0</c> is <c>Msg 1005</c> and <c>;1.5</c> is <c>Msg 102</c>.
+	/// </param>
 	public sealed record Execute(
 		string? Into, string Name, Expression[] Arguments,
 		Clause? Context = null, string? At = null, string? DataSource = null, string? Tail = null,
-		Expression.RoutineInvocation? Server = null, bool Bare = false) : Statement
+		Expression.RoutineInvocation? Server = null, bool Bare = false, string? Number = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Execute;

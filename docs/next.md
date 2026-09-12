@@ -19599,3 +19599,33 @@ one of those came from choosing an anchor by the text next to it rather than by 
 At 150: read by both 5,944 (from 5,936), the work list 40 (from 48), read here but refused
 there 12 (from 10); `--split` 728 (from 722), the round trip 100% of 7,565. The map: read by
 both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
+
+## An exponent with no digits, and a procedure called by its number
+
+Two of the work list, both small, and both were being read here in a way that only looked
+like reading.
+
+- **`2e` is a number.** The standard's §5.3 wants digits after the `E`, and the engine does
+  not: `2e`, `2E`, `2.5e` and `.5e` are read wherever a value stands — `2e + 1`, `2e * 2`,
+  `WHERE 1 < 2e`, `IF (1 < 2e)`, `DECLARE @a FLOAT = 2e`. Only a point after the `e` is
+  refused, `2e.5` being `Msg 102`.
+
+  `SELECT 2e` passed here before this, which is what hid it: the number was read as `2` and
+  the `e` as the column's alias. Every place an alias cannot stand — an operand, a condition,
+  a default — refused it, and the work list showed the family as `E`. The lexeme is restated
+  in the T-SQL block rather than narrowed in the standard's, beside the money literal, which
+  is where a dialect's numbers already live.
+- **A procedure is called by its number**, `EXECUTE dbo.ProcTestDefaults;1 DEFAULT, 'I', @p3 =
+  DEFAULT`, as it is declared by one. With arguments, with `WITH RECOMPILE`, with a return
+  into a variable, with the `;` apart from the name, and without a schema — the engine reads
+  them all, and the tree keeps the number beside the name so the writer puts it back before
+  the arguments.
+
+  `;1.5` is `Msg 102` and stays refused. `;0` is not: the engine answers `Msg 1005`, "The
+  number must be from 1 to 32767", which is it objecting to a number it read — the same kind
+  of answer as `Msg 241` about a date and `Msg 8183` about a computed column. So the rule
+  takes any digits and the test says `;0` is read, which is what the engine does.
+
+At 150: read by both 5,948 (from 5,944), the work list 36 (from 40), read here but refused
+there 12 (from 12); `--split` 730 (from 728), the round trip 100% of 7,569. The map: read by
+both 7,983 of 8,338 (99.8%), the work list 20, defects 0.

@@ -997,6 +997,44 @@ public sealed class TransactSqlTests
 	public void A_statement_not_ended_is_followed_by_a_reserved_word(string input, bool read) =>
 		Assert.Equal(read, TransactSql.TryParseSql(input).IsSuccess);
 
+	/// <summary>An exponent with no digits, and a procedure called by its number, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("SELECT 2e.5")]
+	[InlineData("EXECUTE dbo.p1;1.5")]
+	public void Exponents_and_procedure_numbers_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT 2e")]
+	[InlineData("SELECT 2E")]
+	[InlineData("SELECT 2e + 1")]
+	[InlineData("SELECT 2e * 2")]
+	[InlineData("SELECT 2e AS c")]
+	[InlineData("SELECT 1 WHERE 1 < 2e")]
+	[InlineData("SELECT 2e1")]
+	[InlineData("SELECT 2e+1")]
+	[InlineData("SELECT 2e-1")]
+	[InlineData("SELECT 2.5e")]
+	[InlineData("SELECT .5e")]
+	[InlineData("DECLARE @a FLOAT = 2e")]
+	[InlineData("CREATE PROCEDURE p1 AS IF (1 < 2e) PRINT 'hi'")]
+	[InlineData("EXECUTE dbo.ProcTestDefaults;1 DEFAULT, 'I', @p3 = DEFAULT")]
+	[InlineData("EXECUTE dbo.ProcTestDefaults;1")]
+	[InlineData("EXEC dbo.ProcTestDefaults;22 'I'")]
+	[InlineData("EXECUTE dbo.p1;1 @a = 1")]
+	[InlineData("EXECUTE dbo.p1 ;1")]
+	[InlineData("EXECUTE p1;1")]
+	[InlineData("EXECUTE @v = dbo.p1;1")]
+	[InlineData("EXECUTE dbo.p1;1 WITH RECOMPILE")]
+	[InlineData("EXECUTE dbo.p1;0")]
+	public void Exponents_and_procedure_numbers_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>A label, an <c>OVER</c> where <c>INTO</c> stands, a log file in a filegroup and a national ODBC literal, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("INSERT OVER INTO t1 DEFAULT VALUES")]

@@ -38,6 +38,19 @@ public sealed class SqlWriterTests
 	public void A_bracket_is_written_where_precedence_needs_it(string input, string printed) =>
 		Assert.Equal(printed, SqlWriter.Write(TransactSql.ParseValueExpression(input)));
 
+	/// <summary>A procedure called by its number comes back with it.</summary>
+	[Theory]
+	[InlineData("EXECUTE dbo.p1;1")]
+	[InlineData("EXECUTE dbo.p1;22")]
+	[InlineData("EXECUTE dbo.p1")]
+	public void A_call_keeps_the_number_after_its_name(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input);
+		Assert.Equal(input, SqlWriter.Write(match.Value!));
+	}
+
 	/// <summary>The word before an insert's target comes back as it was written.</summary>
 	/// <remarks>
 	/// <c>OVER</c> stands where <c>INTO</c> does, which no page describes and the engine

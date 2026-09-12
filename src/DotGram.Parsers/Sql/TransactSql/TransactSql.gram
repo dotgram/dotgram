@@ -83,6 +83,13 @@ namespace TSql
 	// digits on either side of it hug it, and each side is a lexeme of its own.
 	MoneyLiteral  = ['$' | '£' | '¥' | '€'] & Spacing? & ['+' | '-']? & Spacing? & MoneyDigits
 	MoneyDigits   = Sql92.Lexical.Digits & ('.' & Sql92.Lexical.Digits?)?
+
+	// A number whose exponent may be written with no digits at all: `2e` is read wherever a
+	// value stands — `2e + 1`, `WHERE 1 < 2e`, `DECLARE @a FLOAT = 2e` — and so are `2E`,
+	// `2.5e` and `.5e`. Only a point after the `e` is refused (`Msg 102`, `2e.5`). The
+	// standard's §5.3 wants the digits, so the lexeme is restated here instead of narrowed
+	// there, and the exact form is the one that keeps `ExactNumber` telling the two apart.
+	NumericLiteral = Sql92.Lexical.ExactNumericLiteral & ('e'i & ['+' | '-']? & Sql92.Lexical.Digits?)?
 	BinaryLiteral = '0' & 'x'i & ['0'..'9' | 'a'..'f' | 'A'..'F']* & ('\\' & ('\r' & '\n'? | '\n') & ['0'..'9' | 'a'..'f' | 'A'..'F']*)*
 
 	// A name the `$` is part of: `$IDENTITY`, `$ROWGUID`, `$PARTITION`, a graph table's
@@ -315,6 +322,7 @@ TSqlPrimaryCore : @Expression
 	| e: OdbcEscape                            => @(e)
 	| t: TSql.MoneyLiteral                     => @(new Expression.Literal(SqlLiteralKind.Number, t))
 	| t: TSql.BinaryLiteral                    => @(new Expression.Literal(SqlLiteralKind.Hex, t))
+	| t: TSql.NumericLiteral                   => @(new Expression.Literal(SqlLiteralKind.Number, t))
 	| v: UnsignedValueSpecification            => @(v)
 	| "NULL"i                                  => @(Expression.NullValue)
 	| t: RowColumnName                         => @(new Expression.ColumnReference(t))
@@ -2943,10 +2951,14 @@ ExecWord   = "EXECUTE"i | "EXEC"i
 ExecReturn : @string = t: TSql.Variable & '=' => @(t)
 ExecName   : @string = t: QualifiedName => @(t) | t: TSql.Variable => @(t)
 
+// `EXECUTE dbo.p;1`, one of a group of procedures sharing a name. A whole number from one:
+// `;0` is `Msg 1005` and `;1.5` is `Msg 102`, and the `;` may stand apart from the name.
+ExecNumber : @string = ';' & t: Sql92.Lexical.Digits => @(t)
+
 // A procedure is named, held in a variable, or on a server `OPENDATASOURCE` stands for.
 ExecTarget : @Statement.Execute
 	= server: AdHocServer & name: AdHocObject => @(new Statement.Execute(null, name, Expression.None, Server: server))
-	| name: ExecName                          => @(new Statement.Execute(null, name, Expression.None))
+	| name: ExecName & number: ExecNumber?    => @(new Statement.Execute(null, name, Expression.None, Number: number))
 ExecAt     : @string = "AT"i & t: Identifier => @(t)
 
 ExecDataSource : @string = "AT"i & "DATA_SOURCE"i & t: Identifier => @(t)

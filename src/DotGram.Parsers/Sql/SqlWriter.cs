@@ -278,7 +278,8 @@ public static class SqlWriter
 				break;
 
 			case Statement.Execute(
-					var into, var name, var arguments, var context, var at, var source, var with, var server, var bare):
+					var into, var name, var arguments, var context, var at, var source, var with, var server, var bare,
+					var number):
 				// A call a batch opens with may leave the word out, and is written back as it came.
 				if (!bare)
 					text.Append("EXECUTE ");
@@ -293,6 +294,11 @@ public static class SqlWriter
 				}
 
 				text.Append(name);
+
+				// One of a group of procedures sharing a name, and it belongs to the name:
+				// `EXECUTE dbo.p;1 @a = 1` puts the number before the arguments.
+				if (number is not null)
+					text.Append(';').Append(number);
 
 				for (var i = 0; i < arguments.Length; i++)
 				{
