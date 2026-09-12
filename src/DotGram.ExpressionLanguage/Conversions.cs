@@ -68,6 +68,12 @@ public static partial class ExpressionParser
 		if (ReferenceEquals(value, Null))
 			return CanBeNull(to);
 
+		// A lambda not yet built goes to any delegate that takes as many parameters as it was
+		// written with. Whether its body fits is not a question yet — it has no body until
+		// this is the delegate it is being built for.
+		if (value is Unbuilt lambda)
+			return Unbuilt.Taken(to) is { } types && types.Length == lambda.Arity;
+
 		if (value is ConstantExpression { Value: { } constant } && Narrowed(constant, to) is not null)
 			return true;
 

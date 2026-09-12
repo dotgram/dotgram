@@ -399,7 +399,9 @@ public static partial class ExpressionParser
 		if (first == second)
 			return 0;
 
-		if (!ReferenceEquals(argument, Null))
+		// An argument with no type of its own matches neither exactly, so the targets are
+		// weighed against each other alone.
+		if (Typed(argument))
 		{
 			if (argument.Type == first)
 				return 1;
@@ -456,7 +458,7 @@ public static partial class ExpressionParser
 
 		for (var at = 0; at < fixedCount; at++)
 			passed[at] = at < arguments.Length
-				? Implicitly(arguments[at], parameters[at].ParameterType)!
+				? Given(arguments[at], parameters[at].ParameterType)
 				: Defaulted(parameters[at]);
 
 		if (chosen.Expanded)
@@ -465,13 +467,22 @@ public static partial class ExpressionParser
 			var rest    = new Expression[arguments.Length - fixedCount];
 
 			for (var at = 0; at < rest.Length; at++)
-				rest[at] = Implicitly(arguments[fixedCount + at], element)!;
+				rest[at] = Given(arguments[fixedCount + at], element);
 
 			passed[fixedCount] = Expression.NewArrayInit(element, rest);
 		}
 
 		return passed;
 	}
+
+	/// <summary>One argument as the parameter it goes to takes it.</summary>
+	/// <remarks>
+	/// This is where a lambda that had no types is built: the parameter says which delegate
+	/// it is, and the delegate says what its parameters are. Nothing after this point has a
+	/// node of this file's own in it.
+	/// </remarks>
+	static Expression Given(Expression argument, Type to) =>
+		argument is Unbuilt lambda ? lambda.Built(to) : Implicitly(argument, to)!;
 
 	/// <summary>What an optional parameter left out is worth.</summary>
 	/// <remarks>

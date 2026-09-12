@@ -41,12 +41,20 @@ public static partial class ExpressionParser
 		var wanted = definition.GetGenericArguments();
 		var bounds = new List<Type>?[wanted.Length];
 
+		// The first round: everything that has a type of its own says what it can. The
+		// literal `null` has none, and C# infers nothing from it either — it refuses the
+		// call outright where that was the only thing that could have spoken (CS0411).
 		for (var at = 0; at < parameters.Length && at < arguments.Length; at++)
-			// The literal `null` has no type of its own and so says nothing about anything.
-			// C# infers nothing from it either, and refuses the call outright where it was
-			// the only thing that could have said what a type parameter is (CS0411).
-			if (!ReferenceEquals(arguments[at], Null))
+			if (Typed(arguments[at]))
 				Bind(parameters[at].ParameterType, arguments[at].Type, bounds);
+
+		// The second: a lambda that had no types may have them now, and once built it says
+		// what it gives back — which is how a `Select` learns its `TResult` from a body
+		// nobody could read until its parameter was settled.
+		for (var at = 0; at < parameters.Length && at < arguments.Length; at++)
+			if (arguments[at] is Unbuilt lambda &&
+				Settled(parameters[at].ParameterType, bounds, lambda.Arity) is { } types)
+				Bind(parameters[at].ParameterType, lambda.Built(types).Type, bounds);
 
 		var made = new Type[bounds.Length];
 
@@ -64,6 +72,40 @@ public static partial class ExpressionParser
 		{
 			return null;
 		}
+	}
+
+	/// <summary>
+	/// The parameter types a lambda would be built with, where every one of them is settled,
+	/// or null where any is not.
+	/// </summary>
+	/// <remarks>
+	/// A lambda is handed to a delegate, and what that delegate takes is written in the
+	/// parameter's own type — `Func&lt;TSource, TResult&gt;` takes one thing, a `TSource`.
+	/// Where the first round has already fixed what that stands for, the lambda can be built;
+	/// where it has not, nothing here can say what its parameter would be and the method is
+	/// left to the fixing below to refuse.
+	/// </remarks>
+	static Type[]? Settled(Type parameter, List<Type>?[] bounds, int arity)
+	{
+		if (Unbuilt.Taken(parameter) is not { } taken || taken.Length != arity)
+			return null;
+
+		var types = new Type[taken.Length];
+
+		for (var at = 0; at < taken.Length; at++)
+			if (taken[at].IsGenericParameter && taken[at].DeclaringMethod is not null)
+			{
+				if (Fixed(bounds[taken[at].GenericParameterPosition]) is not { } one)
+					return null;
+
+				types[at] = one;
+			}
+			else if (taken[at].ContainsGenericParameters)
+				return null;
+			else
+				types[at] = taken[at];
+
+		return types;
 	}
 
 	/// <summary>The one bound that every other bound reaches, which is what fixing is (§12.6.3).</summary>

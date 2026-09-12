@@ -256,6 +256,82 @@ public sealed class MemberResolverTests
 			Assert.Throws<InvalidOperationException>(
 				() => Asking().Static(typeof(Inferring), "One", [ExpressionParser.Null])).Message);
 
+	// ── A lambda with no types yet, which the chosen overload settles ───────────
+	//
+	// The half of the inference a built argument cannot answer: `n => n * 2` has no tree
+	// until `n` has a type, and `n`'s type is the parameter of whatever overload is chosen.
+	// The argument arrives unbuilt, says how many parameters it has, and is built once the
+	// delegate it goes to is known. Here the building is handed over by the test; in the
+	// language it will be the parser re-reading the body.
+
+	/// <summary>`n => n * 2`, once something says what `n` is.</summary>
+	static ExpressionParser.Unbuilt Doubling() =>
+		new(1, types =>
+		{
+			var n = Expression.Parameter(types[0], "n");
+
+			return Expression.Lambda(Expression.Multiply(n, Expression.Constant(2)), n);
+		});
+
+	/// <summary>`n => n > 1`, likewise.</summary>
+	static ExpressionParser.Unbuilt Above() =>
+		new(1, types =>
+		{
+			var n = Expression.Parameter(types[0], "n");
+
+			return Expression.Lambda(Expression.GreaterThan(n, Expression.Constant(1)), n);
+		});
+
+	[Fact]
+	public void A_lambda_with_no_types_takes_them_from_the_overload_that_wins()
+	{
+		var list   = Expression.Parameter(typeof(List<int>), "l");
+		var chosen = Asking("System.Linq").Method(list, "Where", [Above()]);
+
+		Assert.Equal([typeof(int)], ((MethodInfo)chosen.Member).GetGenericArguments());
+	}
+
+	[Fact]
+	public void And_what_it_gives_back_settles_the_rest()
+	{
+		// `Select<TSource, TResult>`: the first comes from the list, and the second from a
+		// body nobody could read until the first was settled.
+		var list   = Expression.Parameter(typeof(List<int>), "l");
+		var chosen = Asking("System.Linq").Method(list, "Select", [Doubling()]);
+
+		Assert.Equal([typeof(int), typeof(int)], ((MethodInfo)chosen.Member).GetGenericArguments());
+	}
+
+	[Fact]
+	public void And_what_comes_back_is_an_ordinary_lambda()
+	{
+		// Nothing of the language's own reaches the tree: a visitor written elsewhere would
+		// not know a node of ours, so the argument handed over is a `LambdaExpression`.
+		var list   = Expression.Parameter(typeof(List<int>), "l");
+		var chosen = Asking("System.Linq").Method(list, "Where", [Above()]);
+
+		var given = Assert.IsAssignableFrom<LambdaExpression>(chosen.Arguments[1]);
+
+		Assert.Equal(typeof(Func<int, bool>), given.Type);
+	}
+
+	[Fact]
+	public void But_one_of_an_arity_nothing_takes_fits_nothing() =>
+		// `Where` takes a lambda of one parameter, and in its indexed form one of two — so
+		// two is not a mismatch at all, which is what a first draft of this test got wrong.
+		// Three is neither, and a lambda no delegate can hold is an argument no overload fits.
+		Assert.Contains(
+			"has no method 'Where'",
+			Assert.Throws<InvalidOperationException>(
+				() => Asking("System.Linq").Method(
+					Expression.Parameter(typeof(List<int>), "l"),
+					"Where",
+					[
+						new ExpressionParser.Unbuilt(3, types => Expression.Lambda(
+							Expression.Constant(true),
+							Array.ConvertAll(types, one => Expression.Parameter(one)))),
+					])).Message);
+
 	// ── A generic method, an indexer, a constructor, a delegate ─────────────────
 
 	[Fact]
