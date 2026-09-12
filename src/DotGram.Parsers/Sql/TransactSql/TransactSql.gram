@@ -1678,9 +1678,17 @@ Assignments : @Clause[]
 // variable, a variable and a column at once, a member of a user-defined type, and a
 // method called on one. `.WRITE (…)` needs no rule of its own — a qualified name has
 // already eaten the dot, so what is left is a call.
+// A method is called on a name of one part: `SET c1.WRITE(…)` and `SET a.func()` are read
+// and `SET a.b.func()` is `Msg 102`, however many parts follow. A column assigned plainly
+// takes as many as it likes, `SET a.b.c.d = 1` being read.
 Assignment : @Clause
 	= to: TSql.Variable   & s: UpdateVariableTail => @(s with { Target = to })
-	| to: WrittenColumn   & s: ColumnAssignTail   => @(s with { Target = to })
+	| to: Identifier      & s: MethodCallTail     => @(s with { Target = to })
+	| to: WrittenColumn   & s: ChainTail          => @(s with { Target = to })
+
+MethodCallTail : @Clause.Set
+	= '.' & method: Identifier & '(' & args: Arguments? & ')'
+		=> @(new Clause.Set("", "", new Expression.RoutineInvocation("." + method, args ?? Expression.None)))
 
 // The name of a column being written to, which is narrower than the name of one being read.
 // A `$` name stands alone there and carries no prefix: `INSERT t1 ($node_id)` and `UPDATE t1
@@ -1722,10 +1730,6 @@ ChainTail : @Clause.Set
 VariableChainTail : @Clause.Set
 	= '=' & v: AssignedValue       => @(new Clause.Set("", "=", v))
 	| op: AssignOp & v: AssignedValue => @(new Clause.Set("", op, v))
-
-ColumnAssignTail : @Clause.Set
-	= '(' & args: Arguments? & ')' => @(new Clause.Set("", "", new Expression.RoutineInvocation("", args ?? Expression.None)))
-	| s: ChainTail                 => @(s)
 
 AssignedValue : @Expression
 	= "DEFAULT"i => @(Expression.DefaultValue)
@@ -1991,10 +1995,14 @@ Declaration : @Clause
 	= name: TSql.Variable & said: "AS"i? & d: DeclaredAs
 		=> @(d with { Name = name, As = said is not null })
 
+// A variable is not a column and takes no nullability: `DECLARE @v INT NULL`, `INT NOT NULL`,
+// with `AS` or without and wherever in the list it stands, are all `Msg 102`. Its columns do,
+// where it is a table — `DECLARE @t TABLE (c1 INT NOT NULL)` is read — and that is the body's
+// business rather than this rule's.
 DeclaredAs : @Clause.VariableDeclaration
-	= "TABLE"i & '(' & body: TableBody & ')'              => @(new Clause.VariableDeclaration("", "TABLE", null, body))
-	| "CURSOR"i                                           => @(new Clause.VariableDeclaration("", "CURSOR", null))
-	| type: DataType & n: NullSpec? & ('=' & v: SetValue)? => @(new Clause.VariableDeclaration("", type, v, null, n))
+	= "TABLE"i & '(' & body: DeclaredBody & ')'    => @(new Clause.VariableDeclaration("", "TABLE", null, body))
+	| "CURSOR"i                                    => @(new Clause.VariableDeclaration("", "CURSOR", null))
+	| type: DataType & ('=' & v: SetValue)?        => @(new Clause.VariableDeclaration("", type, v, null))
 
 // ── Text read and written in place, and a configuration taken up ──────────────────
 //
@@ -2239,7 +2247,7 @@ TypeStatement : @Statement
 	| "CREATE"i & "SYNONYM"i & synonym: SynonymName & tail: ("FOR"i & Identifier & ('.'+ & Identifier)*)
 		=> @(Statement.Defined("SYNONYM", synonym, Syntax.Tail(tail)))
 
-TableTypeBody : @Clause[] = '(' & body: TableBody & ')' & when @(Syntax.TableTyped(body)) => @(body)
+TableTypeBody : @Clause[] = '(' & body: DeclaredBody & ')' & when @(Syntax.TableTyped(body)) => @(body)
 
 SynonymName : @string = t: (Identifier & ('.' & Identifier)?) => @(t)
 
@@ -3171,7 +3179,7 @@ CreateTableStatement : @Statement
 	// …` are refused (`Msg 156`), and `CREATE TABLE t (a, b) AS SELECT …` is read.
 	| "CREATE"i & "TABLE"i & name: QualifiedName & '(' & columns: ColumnList & ')' & "AS"i & q: DirectSelect
 		=> @(new Statement.CreateTableAsSelect(name, columns, Clause.None, q))
-	| "CREATE"i & "TABLE"i & name: QualifiedName & kind: TableAs? & '(' & body: TableBody & ','? & ')'
+	| "CREATE"i & "TABLE"i & name: QualifiedName & kind: TableAs? & '(' & body: DeclaredBody & ','? & ')'
 	  & after: TableAs? & placements: TablePlacement* & options: TableWith?
 		=> @(new Statement.TableDefinition(name, kind ?? after, body, placements ?? Clause.None, options ?? Clause.None))
 	| "CREATE"i & "TABLE"i & name: QualifiedName & kind: TableAs & placements: TablePlacement* & options: TableWith?
@@ -3314,6 +3322,13 @@ PartitionRange = ValueExpression & ("TO"i & ValueExpression)?
 // ── The body ────────────────────────────────────────────────────────────────
 TableBody : @Clause[]
 	= first: TableElement & (',' & rest: TableElement)* => @(Syntax.Listed(first, rest))
+
+// A table declared has a column of its own somewhere in it: `CREATE TABLE t (x AS 1)` is
+// `Msg 102` and `(x AS 1, y)` is read, in any order — `(A31 AS -A1, A1 INT)` too. Neither an
+// index nor a period counts, `(x AS 1, INDEX i (x))` being refused. A table variable, a table
+// type and a function's returned table say it the same way; `ALTER TABLE t ADD c1 AS 1` does
+// not, the columns of its own being already there.
+DeclaredBody : @Clause[] = body: TableBody & when @(Syntax.Stored(body)) => @(body)
 
 TableElement : @Clause
 	= "PERIOD"i & "FOR"i & "SYSTEM_TIME"i & '(' & columns: ColumnList & ')'
@@ -3840,6 +3855,7 @@ ProcedureStatement : @Statement
 	= ProcWord & name: QualifiedName & (';' & number: Sql92.Lexical.Digits)?
 	  & parameters: RoutineParameters? & options: RoutineOptions? & replication: ("FOR"i & "REPLICATION"i)?
 	  & "AS"i & ("EXTERNAL"i & "NAME"i & external: QualifiedName | body: StatementList)
+	  & when @(external is null || Syntax.Externally(options))
 		=> @(new Statement.CreateProcedure(name, parameters ?? Clause.None, body ?? Statement.None, options, replication is not null, external, number))
 
 ProcWord = "PROCEDURE"i | "PROC"i
@@ -3901,9 +3917,13 @@ FunctionReturns : @Statement.CreateFunction
 	= "TABLE"i & '(' & columns: TableBody & ')' & ("ORDER"i & order: IndexColumns)? & options: RoutineOptions?
 	  & "AS"i & "EXTERNAL"i & "NAME"i & external: QualifiedName
 		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", Statement.None, options, columns, null, order, external))
+	// `CALLED ON NULL INPUT` and `RETURNS NULL ON NULL INPUT` are `Msg 487` here and read of a
+	// scalar function: what a null argument does is the body's business, and this body is a
+	// query.
 	| "TABLE"i & options: RoutineOptions? & "AS"i? & "RETURN"i & body: InlineReturn
+	  & when @(Syntax.Inlined(options))
 		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", body, options))
-	| name: TSql.Variable & "TABLE"i & '(' & columns: TableBody & ')' & options: RoutineOptions? & "AS"i?
+	| name: TSql.Variable & "TABLE"i & '(' & columns: DeclaredBody & ')' & options: RoutineOptions? & "AS"i?
 	  & body: StatementList
 		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", body, options, columns, name))
 	| type: DataType & options: RoutineOptions? & "AS"i?
@@ -4991,7 +5011,11 @@ LibraryFile   = '(' & OptionList & ')'
 // neither a resample nor which statistics to make — `RESAMPLE` and `COLUMNS` are refused
 // there — and of the stream it may be handed, only the stream: `ROWCOUNT` and `PAGECOUNT`,
 // which its block lists beside it, are refused.
-CreateStatisticsWith = "WITH"i & CreateStatisticsOption & (',' & CreateStatisticsOption)*
+// A sample kept is kept from a scan: `PERSIST_SAMPLE_PERCENT` is `Msg 153` unless `FULLSCAN`,
+// `SAMPLE` or `RESAMPLE` stands in the same list — `NORECOMPUTE`, `ALL` and `MAXDOP` will not
+// do — and both statements say it the same way.
+CreateStatisticsWith
+	= t: ("WITH"i & CreateStatisticsOption & (',' & CreateStatisticsOption)*) & when @(Syntax.Sampled(t))
 
 CreateStatisticsOption
 	= "FULLSCAN"i
@@ -5003,7 +5027,8 @@ CreateStatisticsOption
 	| "AUTO_DROP"i & OnOffValue
 	| "STATS_STREAM"i & '=' & TSql.BinaryLiteral
 
-UpdateStatisticsWith = "WITH"i & UpdateStatisticsOption & (',' & UpdateStatisticsOption)*
+UpdateStatisticsWith
+	= t: ("WITH"i & UpdateStatisticsOption & (',' & UpdateStatisticsOption)*) & when @(Syntax.Sampled(t))
 
 UpdateStatisticsOption
 	= CreateStatisticsOption

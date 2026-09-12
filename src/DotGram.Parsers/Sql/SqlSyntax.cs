@@ -4159,6 +4159,68 @@ public static class Syntax
 	public static bool Plain(string? text) =>
 		text is not null && text.IndexOf('e') < 0 && text.IndexOf('E') < 0;
 
+	/// <summary>
+	/// Whether a procedure written against somebody else's code carries only the options it may.
+	/// </summary>
+	/// <remarks>
+	/// <c>AS EXTERNAL NAME</c> takes <c>EXECUTE AS</c> and nothing else: <c>WITH RECOMPILE</c>
+	/// and <c>WITH ENCRYPTION</c> are <c>Msg 155</c> there and read of a procedure whose body is
+	/// written out.
+	/// </remarks>
+	public static bool Externally(Clause[]? options) =>
+		options is null ||
+		Array.TrueForAll(options, static one =>
+			one is Clause.Option { Name: var name } && name.StartsWith("EXECUTE AS", StringComparison.OrdinalIgnoreCase));
+
+	/// <summary>Whether a function returning a query is told nothing about a null argument.</summary>
+	/// <remarks>
+	/// <c>CALLED ON NULL INPUT</c> and <c>RETURNS NULL ON NULL INPUT</c> are <c>Msg 487</c> of an
+	/// inline table function and read of a scalar one.
+	/// </remarks>
+	public static bool Inlined(Clause[]? options) =>
+		options is null ||
+		Array.TrueForAll(options, static one =>
+			one is not Clause.Option { Name: var name } ||
+			!(name.EndsWith("ON NULL INPUT", StringComparison.OrdinalIgnoreCase)));
+
+	/// <summary>Whether a table computing a column has one of its own to compute it from.</summary>
+	/// <remarks>
+	/// <c>CREATE TABLE t (x AS 1)</c> is <c>Msg 102</c> and <c>(x AS 1, y)</c> is read, in
+	/// either order. Only a column answers for it: <c>(x AS 1, INDEX i (x))</c> and <c>(x AS 1,
+	/// PERIOD FOR SYSTEM_TIME (a, b))</c> are refused. A table computing nothing is asked
+	/// nothing — <c>CREATE TABLE e (CONSTRAINT c CONNECTION (a TO b)) AS EDGE</c> has no column
+	/// at all and is read. Asked of a table variable, a table type and a function's returned
+	/// table as well, and not of <c>ALTER TABLE … ADD</c>, whose table has its columns already.
+	/// </remarks>
+	public static bool Stored(Clause[]? body) =>
+		body is null ||
+		!Array.Exists(body, static one => one is Clause.ColumnDefinition(_, _, not null, _)) ||
+		Array.Exists(body, static one => one is Clause.ColumnDefinition(_, _, null, _));
+
+	/// <summary>Whether a kept sample percentage stands beside the scan it was kept from.</summary>
+	/// <remarks>
+	/// <c>PERSIST_SAMPLE_PERCENT</c> is <c>Msg 153</c> alone and read beside <c>FULLSCAN</c>,
+	/// <c>SAMPLE … PERCENT</c>, <c>SAMPLE … ROWS</c> or <c>RESAMPLE</c>; <c>NORECOMPUTE</c>,
+	/// <c>ALL</c> and <c>MAXDOP</c> will not do. Asked of the list as written, and the long name
+	/// is struck out of it first: <c>SAMPLE</c> is a part of the name being asked about.
+	/// </remarks>
+	public static bool Sampled(string? text)
+	{
+		const string Kept = "PERSIST_SAMPLE_PERCENT";
+
+		if (text is null || text.IndexOf(Kept, StringComparison.OrdinalIgnoreCase) < 0)
+			return true;
+
+		var rest = text;
+
+		for (var at = rest.IndexOf(Kept, StringComparison.OrdinalIgnoreCase); at >= 0;
+				 at = rest.IndexOf(Kept, StringComparison.OrdinalIgnoreCase))
+			rest = rest.Remove(at, Kept.Length);
+
+		return rest.IndexOf("FULLSCAN", StringComparison.OrdinalIgnoreCase) >= 0 ||
+			   rest.IndexOf("SAMPLE", StringComparison.OrdinalIgnoreCase) >= 0;
+	}
+
 	/// <summary>Whether every column of a table's body has a type, or a value it is computed from.</summary>
 	/// <remarks>Asked of a result set, which unlike a table may not leave a type out (<c>Msg 102</c>).</remarks>
 	public static bool Typed(Clause[]? body) =>

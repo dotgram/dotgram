@@ -997,6 +997,115 @@ public sealed class TransactSqlTests
 	public void A_statement_not_ended_is_followed_by_a_reserved_word(string input, bool read) =>
 		Assert.Equal(read, TransactSql.TryParseSql(input).IsSuccess);
 
+	/// <summary>A variable's nullability, a method's name, a persisted sample, an external body and a table's first column, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("DECLARE @v2 AS INT NULL")]
+	[InlineData("DECLARE @v3 AS INT NOT NULL = 4")]
+	[InlineData("DECLARE @v2 INT NULL")]
+	[InlineData("DECLARE @v3 INT NOT NULL")]
+	[InlineData("DECLARE @v3 INT NULL = 4")]
+	[InlineData("DECLARE @v3 AS INT NOT NULL = 4, @v4 INT")]
+	[InlineData("DECLARE @v4 INT, @v3 AS INT NULL")]
+	[InlineData("UPDATE t1 SET a.b.func()")]
+	[InlineData("UPDATE t1 SET a.b.c.func()")]
+	[InlineData("UPDATE t1 SET a.b.c.d.func()")]
+	[InlineData("UPDATE t1 SET a.b.c.d.func(DEFAULT, 12, 102 + 123)")]
+	[InlineData("UPDATE t1 SET a.b.c.d.e.func()")]
+	[InlineData("UPDATE t1 SET dbo.t1.c1.func()")]
+	[InlineData("UPDATE t1 SET a.b.func(1)")]
+	[InlineData("UPDATE STATISTICS dbo.T WITH PERSIST_SAMPLE_PERCENT = ON")]
+	[InlineData("UPDATE STATISTICS dbo.T WITH PERSIST_SAMPLE_PERCENT = OFF")]
+	[InlineData("CREATE PROCEDURE p1 @lastname NVARCHAR (100) WITH RECOMPILE, EXECUTE AS OWNER, ENCRYPTION AS EXTERNAL NAME A.B.C")]
+	[InlineData("CREATE PROCEDURE p1 @lastname NVARCHAR (100) WITH RECOMPILE AS EXTERNAL NAME A.B.C")]
+	[InlineData("CREATE PROCEDURE p1 @lastname NVARCHAR (100) WITH ENCRYPTION AS EXTERNAL NAME A.B.C")]
+	[InlineData("CREATE FUNCTION f1 (@storeid VARCHAR (30)) RETURNS TABLE WITH ENCRYPTION, SCHEMABINDING, CALLED ON NULL INPUT RETURN (SELECT 1 AS c)")]
+	[InlineData("CREATE FUNCTION f1 (@storeid VARCHAR (30)) RETURNS TABLE WITH CALLED ON NULL INPUT RETURN (SELECT 1 AS c)")]
+	[InlineData("CREATE FUNCTION f1 (@storeid VARCHAR (30)) RETURNS TABLE WITH RETURNS NULL ON NULL INPUT RETURN (SELECT 1 AS c)")]
+	[InlineData("CREATE TABLE t0 (A31 AS -A1 PERSISTED)")]
+	[InlineData("CREATE TABLE t0 (A31 AS -A1 PERSISTED) ON partitionScheme (someColumn)")]
+	[InlineData("CREATE TABLE t0 (A31 AS -A1 PERSISTED, A32 AS -A1 PERSISTED NOT NULL)")]
+	[InlineData("CREATE TABLE t0 (A34 AS -A1 PERSISTED FOREIGN KEY REFERENCES t1 (c1))")]
+	[InlineData("CREATE TABLE t0 (A51 AS A0 PERSISTED CONSTRAINT PK_KEY PRIMARY KEY)")]
+	[InlineData("CREATE STATISTICS s1 ON dbo.T (c1) WITH PERSIST_SAMPLE_PERCENT = ON")]
+	[InlineData("CREATE STATISTICS s1 ON dbo.T (c1) WITH PERSIST_SAMPLE_PERCENT = OFF")]
+	[InlineData("CREATE STATISTICS s1 ON dbo.T (c1) WITH NORECOMPUTE, PERSIST_SAMPLE_PERCENT = ON")]
+	[InlineData("UPDATE STATISTICS dbo.T WITH NORECOMPUTE, PERSIST_SAMPLE_PERCENT = ON")]
+	[InlineData("UPDATE STATISTICS dbo.T WITH ALL, PERSIST_SAMPLE_PERCENT = ON")]
+	[InlineData("UPDATE STATISTICS dbo.T WITH MAXDOP = 2, PERSIST_SAMPLE_PERCENT = ON")]
+	[InlineData("CREATE TABLE t (x AS 1)")]
+	[InlineData("CREATE TABLE t (x AS 1 PERSISTED)")]
+	[InlineData("CREATE TABLE t (x AS y)")]
+	[InlineData("CREATE TABLE t (x AS 1 + 1)")]
+	[InlineData("CREATE TABLE t (x AS 1, PRIMARY KEY (x))")]
+	[InlineData("CREATE TABLE t (x AS 1, INDEX i (x))")]
+	[InlineData("CREATE TABLE t (x AS 1, PERIOD FOR SYSTEM_TIME (a, b))")]
+	[InlineData("DECLARE @t TABLE (x AS 1)")]
+	[InlineData("CREATE TYPE t1 AS TABLE (x AS 1)")]
+	[InlineData("CREATE FUNCTION f () RETURNS @t TABLE (x AS 1) AS BEGIN RETURN END")]
+	public void Variables_methods_and_first_columns_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("DECLARE @v1 AS INT")]
+	[InlineData("DECLARE @v1 INT = 4")]
+	[InlineData("DECLARE @v1 AS INT = 4")]
+	[InlineData("DECLARE @t1 AS TABLE (c1 INT NULL)")]
+	[InlineData("DECLARE @t1 TABLE (c1 INT NOT NULL)")]
+	[InlineData("UPDATE t1 SET a.func()")]
+	[InlineData("UPDATE t1 SET c1.func()")]
+	[InlineData("UPDATE t1 SET c1.WRITE('a', 1, 2)")]
+	[InlineData("UPDATE t1 SET a.b.c.d = 1")]
+	[InlineData("UPDATE STATISTICS dbo.T WITH FULLSCAN, PERSIST_SAMPLE_PERCENT = ON")]
+	[InlineData("UPDATE STATISTICS dbo.T WITH PERSIST_SAMPLE_PERCENT = ON, FULLSCAN")]
+	[InlineData("UPDATE STATISTICS dbo.T WITH SAMPLE 50 PERCENT, PERSIST_SAMPLE_PERCENT = ON")]
+	[InlineData("UPDATE STATISTICS dbo.T WITH SAMPLE 25 PERCENT, PERSIST_SAMPLE_PERCENT = OFF")]
+	[InlineData("UPDATE STATISTICS dbo.T WITH FULLSCAN")]
+	[InlineData("CREATE PROCEDURE p1 @lastname NVARCHAR (100) WITH EXECUTE AS OWNER AS EXTERNAL NAME A.B.C")]
+	[InlineData("CREATE PROCEDURE p1 @lastname NVARCHAR (100) AS EXTERNAL NAME A.B.C")]
+	[InlineData("CREATE PROCEDURE p1 @lastname NVARCHAR (100) WITH RECOMPILE, EXECUTE AS OWNER, ENCRYPTION AS SELECT 1")]
+	[InlineData("CREATE FUNCTION f1 (@storeid VARCHAR (30)) RETURNS TABLE WITH ENCRYPTION, SCHEMABINDING RETURN (SELECT 1 AS c)")]
+	[InlineData("CREATE FUNCTION f1 (@storeid VARCHAR (30)) RETURNS INT WITH CALLED ON NULL INPUT AS BEGIN RETURN 1 END")]
+	[InlineData("CREATE TABLE t0 (A1 INT, A31 AS -A1 PERSISTED)")]
+	[InlineData("CREATE TABLE t0 (A1 INT, A31 AS -A1 PERSISTED) ON partitionScheme (someColumn)")]
+	[InlineData("CREATE TABLE t0 (A1 INT, A31 AS -A1 PERSISTED, A32 AS -A1 PERSISTED NOT NULL, A33 AS -A1 PERSISTED CHECK (A33 < 10))")]
+	[InlineData("CREATE TABLE t0 (A1 INT) ON partitionScheme (someColumn)")]
+	[InlineData("CREATE TABLE foo (id INT NOT NULL) ON partitionScheme (someColumn) TEXTIMAGE_ON [default]")]
+	[InlineData("CREATE TABLE t0 (A1 INT, A31 AS -A1)")]
+	[InlineData("CREATE TABLE t0 (A1 INT, A31 AS -A1 PERSISTED NULL)")]
+	[InlineData("CREATE TABLE t0 (A1 INT, A31 AS -A1 NULL)")]
+	[InlineData("CREATE STATISTICS s1 ON dbo.T (c1) WITH FULLSCAN, PERSIST_SAMPLE_PERCENT = ON")]
+	[InlineData("CREATE STATISTICS s1 ON dbo.T (c1) WITH SAMPLE 50 PERCENT, PERSIST_SAMPLE_PERCENT = ON")]
+	[InlineData("UPDATE STATISTICS dbo.T WITH RESAMPLE, PERSIST_SAMPLE_PERCENT = ON")]
+	[InlineData("UPDATE STATISTICS dbo.T WITH SAMPLE 50 ROWS, PERSIST_SAMPLE_PERCENT = ON")]
+	[InlineData("UPDATE STATISTICS dbo.T WITH FULLSCAN, NORECOMPUTE, PERSIST_SAMPLE_PERCENT = ON")]
+	[InlineData("UPDATE STATISTICS dbo.T WITH NORECOMPUTE")]
+	[InlineData("CREATE STATISTICS s1 ON dbo.T (c1) WITH NORECOMPUTE")]
+	[InlineData("CREATE TABLE t (x AS 1, y)")]
+	[InlineData("CREATE TABLE t (x AS 1, y INT)")]
+	[InlineData("CREATE TABLE t (x AS 1 PERSISTED, y INT)")]
+	[InlineData("CREATE TABLE t0 (A31 AS -A1, A1 INT)")]
+	[InlineData("CREATE TABLE t0 (A31 AS -A1 PERSISTED, A1 INT)")]
+	[InlineData("CREATE TABLE t (x AS y, y INT)")]
+	[InlineData("ALTER TABLE t ADD c1 AS 1")]
+	[InlineData("ALTER TABLE t ADD c1 AS 1 PERSISTED")]
+	[InlineData("ALTER TABLE t ADD c1 AS -a1")]
+	[InlineData("ALTER TABLE t ADD c1 AS 1, c2 AS 2")]
+	[InlineData("DECLARE @t TABLE (x AS 1, y INT)")]
+	[InlineData("CREATE TYPE t1 AS TABLE (x AS 1, y INT)")]
+	[InlineData("CREATE FUNCTION f () RETURNS @t TABLE (x AS 1, y INT) AS BEGIN RETURN END")]
+	[InlineData("CREATE TABLE e25 (CONSTRAINT cnst CONNECTION (N1 TO N2)) AS EDGE")]
+	[InlineData("CREATE TABLE e25 (CONSTRAINT cnst CONNECTION (N1 TO N2), CONSTRAINT c2 CONNECTION (N3 TO N4)) AS EDGE")]
+	[InlineData("CREATE TABLE t (PRIMARY KEY (x))")]
+	[InlineData("CREATE TABLE t (INDEX i (x))")]
+	[InlineData("CREATE TABLE t (PERIOD FOR SYSTEM_TIME (a, b))")]
+	public void Variables_methods_and_first_columns_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What a bulk insert takes for a file, a target and an option, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("BULK INSERT t1 FROM 11")]
@@ -5072,7 +5181,7 @@ public sealed class TransactSqlTests
 	[InlineData("UPDATE t SET a += 1, b -= 2, c ||= 'x'")]
 	[InlineData("UPDATE t SET @v = a = 1")]
 	[InlineData("UPDATE t SET @v += 1")]
-	[InlineData("UPDATE t SET s.DocumentSummary.WRITE (N'features', 28, 10)")]
+	[InlineData("UPDATE t SET DocumentSummary.WRITE (N'features', 28, 10)")]
 	[InlineData("UPDATE t SET a = 1 OUTPUT DELETED.a, INSERTED.a INTO @v FROM t AS x JOIN u ON x.id = u.id")]
 	[InlineData("UPDATE t SET a = 1 WHERE CURRENT OF GLOBAL c1")]
 	[InlineData("UPDATE @rows SET a = 1")]
@@ -5482,10 +5591,6 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER TABLE t SPLIT RANGE (10)")]
 	[InlineData("ALTER TABLE t DROP CONSTRAINT c WITH (MOVE TO fg, ONLINE = ON)")]
 
-	// `DECLARE` gives a variable a nullability, which nothing about a variable suggests.
-	[InlineData("DECLARE @v AS INT NOT NULL = 4")]
-	[InlineData("DECLARE @v AS INT NULL")]
-
 	// `[ NULL | NOT NULL ] [ = default ]`, in that order, from the natively compiled form.
 	[InlineData("CREATE PROCEDURE p @p1 INT, @p2 INT NULL = NULL, @p3 INT NOT NULL AS SELECT 1")]
 	[InlineData("CREATE PROCEDURE p WITH NATIVE_COMPILATION, SCHEMABINDING AS " +
@@ -5537,6 +5642,13 @@ public sealed class TransactSqlTests
 	/// ScriptDom reads a cursor variable with a default. The engine answers
 	/// `Incorrect syntax`, and the published syntax gives a cursor no default.
 	/// <para>
+	/// The published `DECLARE` gives a variable a nullability and the published `.WRITE`
+	/// names its column in two parts. The engine answers `Msg 102` to both, in every
+	/// spelling — `INT NULL`, `INT NOT NULL = 4`, with `AS` and without, anywhere in the
+	/// list — and reads them where they belong to something else: a table variable's
+	/// columns take a nullability, and `SET DocumentSummary.WRITE (…)` is read of one part.
+	/// </para>
+	/// <para>
 	/// A `CHANGE_TRACKING_CONTEXT` joined to a named query by a comma was here too, on the
 	/// same argument, and the corpus is what took it out: seven statements carry the shape
 	/// and it is read above with the rest of the clause.
@@ -5544,6 +5656,9 @@ public sealed class TransactSqlTests
 	/// </remarks>
 	[Theory]
 	[InlineData("DECLARE @c AS CURSOR = 'x'")]
+	[InlineData("DECLARE @v AS INT NOT NULL = 4")]
+	[InlineData("DECLARE @v AS INT NULL")]
+	[InlineData("UPDATE t SET s.DocumentSummary.WRITE (N'features', 28, 10)")]
 	public void And_what_only_ScriptDom_reads_is_refused(string input) =>
 		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
 

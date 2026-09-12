@@ -19505,3 +19505,55 @@ rounds of probes, because almost nothing here was what the rule assumed.
 At 150: read by both 5,936 (from 5,936), the work list 48 (from 48), read here but refused
 there 25 (from 31); `--split` 734 (from 734), the round trip 100% of 7,566. The map: read by
 both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
+
+## A variable's nullability, a method's name, and a table with nothing of its own
+
+Five families of defect, none related to another, and three of them turned out to be
+assertions this repository already held that the engine does not agree with.
+
+- **A variable takes no nullability.** `DECLARE @v INT NULL`, `INT NOT NULL`, with `AS` and
+  without, with a default and without, anywhere in the list — every spelling is `Msg 102`.
+  The published `DECLARE` gives one, which is where the rule here came from; the engine is the
+  authority and the rows move to the refusals beside the cursor's default. A table variable's
+  columns still take one, `DECLARE @t TABLE (c1 INT NOT NULL)` being read, and that is the
+  body's business rather than the declaration's.
+- **A method is called on a name of one part.** `SET c1.WRITE (…)` and `SET a.func()` are read,
+  `SET a.b.func()` is `Msg 102`, and so is `SET s.DocumentSummary.WRITE (…)` — which is how the
+  published example writes it. A column assigned plainly takes as many parts as it likes.
+- **A kept sample is kept from a scan.** `PERSIST_SAMPLE_PERCENT` is `Msg 153` alone and read
+  beside `FULLSCAN`, `SAMPLE … PERCENT`, `SAMPLE … ROWS` or `RESAMPLE`; `NORECOMPUTE`, `ALL`
+  and `MAXDOP` will not do. Both statistics statements say it the same way.
+- **A procedure written against somebody else's code takes `EXECUTE AS` and nothing else.**
+  `WITH RECOMPILE` and `WITH ENCRYPTION` before `AS EXTERNAL NAME` are `Msg 155`, and the same
+  options before a body written out are read. An inline table function is not told what to do
+  with a null argument either: `CALLED ON NULL INPUT` and `RETURNS NULL ON NULL INPUT` are
+  `Msg 487` of `RETURNS TABLE … RETURN (…)` and read of a scalar function.
+- **A table declared has a column of its own somewhere in it.** `CREATE TABLE t (x AS 1)` is
+  `Msg 102` and `(x AS 1, y)` is read — in either order, `(A31 AS -A1, A1 INT)` too. Only a
+  column counts: `(x AS 1, INDEX i (x))` and `(x AS 1, PERIOD FOR SYSTEM_TIME (a, b))` are
+  refused. A table variable, a table type and a function's returned table are held to it, and
+  `ALTER TABLE t ADD c1 AS 1` is not — its table has columns already, and reading the corpus
+  first would have said so before the condition went on the shared body and broke a dozen
+  rows that were right.
+
+That last condition was got wrong twice before it was got right, and both times the
+measurement said so rather than the tests. It began as "the first element is not computed",
+which fitted the one statement in the corpus and nothing else — the theories already in the
+file refused it. Widened to "a column of its own is somewhere in it", it fitted every table
+that computes something and refused forty-eight that compute nothing: `CREATE TABLE e25
+(CONSTRAINT cnst CONNECTION (N1 TO N2)) AS EDGE` has no column at all and is read. A table
+computing nothing is asked nothing, which is the third and last shape of it.
+
+And `Msg 8183` — "CHECK, FOREIGN KEY, and NOT NULL constraints require that computed columns
+be persisted" — is the engine objecting to what it read, so those rows are read here, not
+refused.
+
+The split pays for it, and the payment is the point rather than a slip: it goes from 734 to
+722, twelve files that ScriptDom reads whole and this no longer does. They are the files
+writing `DECLARE @v INT NULL` and `SET s.DocumentSummary.WRITE (…)` — the two forms the
+published pages give and the engine refuses. ScriptDom is the tool and the engine is the
+authority, so the twelve stay refused.
+
+At 150: read by both 5,936 (from 5,936), the work list 48 (from 48), read here but refused
+there 10 (from 25); `--split` 722 (from 734), the round trip 100% of 7,551. The map: read by
+both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
