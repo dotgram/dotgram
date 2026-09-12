@@ -167,6 +167,10 @@ static class ExpressionAgainst
 		"(int x) => default(int) + x",
 		"(int x) => nameof(x)",
 
+		// LINQ: an extension method through a `using`, its type arguments inferred, taking a
+		// lambda written where a value is wanted.
+		"using System.Collections.Generic; using System.Linq; (List<int> l) => l.Where((int n) => n > 1).Select((int n) => n * 2).ToArray()",
+
 		// A lambda inside an expression: one that closes over what is around it, and two
 		// beside each other whose parameters are each their own.
 		"(int x) => { var f = (int y) => y + x; f(1) }",

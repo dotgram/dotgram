@@ -85,6 +85,10 @@ public sealed class ExpressionCarrierTests
 		"(bool c) => c ? 1 : 2L",
 		"() => -3000000000",
 
+		// A generic method whose type arguments nobody wrote, which is LINQ.
+		"using System.Collections.Generic; using System.Linq; (List<int> l) => l.Where((int n) => n > 1).Select((int n) => n * 2).ToArray()",
+		"using System.Collections.Generic; using System.Linq; (List<int> l) => l.Select((int n) => n.ToString()).ToArray()",
+
 		// A method a `using` brings rather than the type declaring it, plain and guarded.
 		"using DotGram.Tests.ExpressionLanguage; (int x) => x.Doubled()",
 		"using DotGram.Tests.ExpressionLanguage; (string s) => s?.Shout(\"!\")",

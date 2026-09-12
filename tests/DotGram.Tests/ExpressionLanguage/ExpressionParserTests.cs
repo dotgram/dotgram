@@ -520,6 +520,55 @@ public sealed class ExpressionParserTests
 			ExpressionParser.Compile<Func<string, string>>(
 				"using DotGram.Tests.ExpressionLanguage; (string s) => s?.Shout(\"!\")")("hi"));
 
+	// ── A generic method's type arguments, taken from what it is handed ─────────
+
+	[Fact]
+	public void A_generic_method_takes_its_type_arguments_from_its_arguments() =>
+		// LINQ, which is the whole of what the three pieces were for: an extension method,
+		// found through a `using`, whose type arguments nobody wrote, taking a lambda written
+		// where a value is wanted.
+		Assert.Equal(
+			[4, 6],
+			ExpressionParser.Compile<Func<System.Collections.Generic.List<int>, int[]>>(
+				"using System.Collections.Generic; using System.Linq; " +
+				"(List<int> l) => l.Where((int n) => n > 1).Select((int n) => n * 2).ToArray()")(
+				new System.Collections.Generic.List<int> { 1, 2, 3 }));
+
+	[Fact]
+	public void And_from_what_the_lambda_gives_back_as_well() =>
+		// `Select<TSource, TResult>` learns `TResult` from the `Func<int, string>` it is
+		// handed, which is what a built lambda is able to say.
+		Assert.Equal(
+			["1", "2"],
+			ExpressionParser.Compile<Func<System.Collections.Generic.List<int>, string[]>>(
+				"using System.Collections.Generic; using System.Linq; " +
+				"(List<int> l) => l.Select((int n) => n.ToString()).ToArray()")(
+				new System.Collections.Generic.List<int> { 1, 2 }));
+
+	[Fact]
+	public void And_a_method_needing_no_inference_is_the_better_of_two() =>
+		// C#'s tie-breaker, and the only thing that tells `Kind(int)` from `Kind<T>` when
+		// both of them apply.
+		Assert.Equal(
+			["int", "any"],
+			new[]
+			{
+				ExpressionParser.Compile<Func<int, string>>(
+					"using DotGram.Tests.ExpressionLanguage; (int x) => x.Kind()")(1),
+				ExpressionParser.Compile<Func<string, string>>(
+					"using DotGram.Tests.ExpressionLanguage; (string s) => s.Kind()")("a"),
+			});
+
+	[Fact]
+	public void But_a_constraint_the_inference_breaks_leaves_no_candidate() =>
+		// Not a refusal of its own: what `MakeGenericMethod` will not make is a method C#
+		// would not have found either, and a method that is not there is said in those words.
+		Assert.Contains(
+			"has no method 'Sized'",
+			Assert.Throws<InvalidOperationException>(
+				() => ExpressionParser.Parse(
+					"using DotGram.Tests.ExpressionLanguage; (string s) => s.Sized()")).Message);
+
 	// ── A lambda written inside an expression ───────────────────────────────────
 
 	[Fact]

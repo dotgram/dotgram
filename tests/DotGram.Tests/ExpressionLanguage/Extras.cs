@@ -20,6 +20,18 @@ static class Extras
 	/// asked rather than assumed.
 	/// </remarks>
 	public static int Twice(this Held held) => -1;
+
+	/// <summary>The pair that says which of two applicable methods is the better one.</summary>
+	/// <remarks>
+	/// Both apply to an <c>int</c>, and C# takes the one whose type arguments it did not have
+	/// to infer. Anything else takes the generic one, there being nothing else to take.
+	/// </remarks>
+	public static string Kind(this int value) => "int";
+
+	public static string Kind<T>(this T value) => "any";
+
+	/// <summary>An extension no <c>string</c> can call, the constraint being what says so.</summary>
+	public static int Sized<T>(this T value) where T : struct => 1;
 }
 
 /// <summary>A type with a method an extension beside it would shadow, if extensions could.</summary>
