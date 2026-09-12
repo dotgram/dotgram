@@ -1269,6 +1269,167 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary><c>SORTED_DATA</c> and <c>SORTED_DATA_REORG</c>, where the engine still reads them.</summary>
+	[Theory]
+	[InlineData("ALTER INDEX i1 ON t1 REBUILD WITH sorted_data")]
+	[InlineData("ALTER INDEX i1 ON t1 REBUILD WITH sorted_data_reorg")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH sorted_data sorted_data_reorg")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH sorted_data fillfactor = 12 pad_index)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH sorted_data pad_index)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH pad_index fillfactor = 12)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH pad_index)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH statistics_norecompute)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH fillfactor = 12 fillfactor = 13)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH sorted_data sorted_data)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH sorted_data, fillfactor = 12)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH (sorted_data))")]
+	[InlineData("ALTER TABLE t1 ADD CONSTRAINT C8 PRIMARY KEY (c1) WITH sorted_data, fillfactor = 12")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 FOREIGN KEY REFERENCES t2 WITH sorted_data)")]
+	public void The_index_options_older_than_the_brackets_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the places it does.</summary>
+	[Theory]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH sorted_data")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH sorted_data_reorg")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH sorted_data, fillfactor = 12")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH sorted_data, pad_index")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH pad_index, sorted_data")]
+	[InlineData("CREATE TABLE t1 (a11 int CONSTRAINT C8 PRIMARY KEY WITH sorted_data_reorg ON MyGroup)")]
+	[InlineData("CREATE TABLE t1 (a12 int CONSTRAINT C8 PRIMARY KEY WITH sorted_data fillfactor = 1 ON MyGroup)")]
+	[InlineData("CREATE TABLE t1 (a13 int CONSTRAINT C8 PRIMARY KEY WITH fillfactor = 12 sorted_data_reorg ON MyGroup)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH sorted_data)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY CLUSTERED WITH sorted_data)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 UNIQUE WITH sorted_data_reorg)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 UNIQUE WITH sorted_data fillfactor = 12)")]
+	[InlineData("CREATE TABLE t1 (a1 int, CONSTRAINT C21 PRIMARY KEY (a1 ASC) WITH sorted_data ON MyGroup)")]
+	[InlineData("CREATE TABLE t1 (a1 int, CONSTRAINT C8 PRIMARY KEY (a1) WITH sorted_data fillfactor = 12)")]
+	[InlineData("ALTER TABLE t1 ADD CONSTRAINT C8 PRIMARY KEY (c1) WITH sorted_data")]
+	[InlineData("ALTER TABLE t1 ADD CONSTRAINT C8 PRIMARY KEY (c1) WITH sorted_data fillfactor = 12")]
+	[InlineData("ALTER TABLE t1 ADD CONSTRAINT C8 PRIMARY KEY (c1) WITH fillfactor = 12 sorted_data_reorg")]
+	[InlineData("ALTER TABLE t1 ADD CONSTRAINT C8 PRIMARY KEY (c1) WITH sorted_data_reorg ON MyGroup")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH fillfactor = 12)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH (fillfactor = 12))")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH fillfactor = 12")]
+	public void The_index_options_older_than_the_brackets_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>A word alone where the brackets would want a value, and what separates two of them.</summary>
+	[Theory]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH pad_index sorted_data")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH sort_in_tempdb drop_existing")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH ignore_dup_key statistics_norecompute")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH pad_index fillfactor = 12")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH fillfactor = 12 pad_index")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH pad_index = ON")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH ignore_dup_key = ON")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH allow_row_locks")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH pad_index)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH statistics_norecompute)")]
+	[InlineData("ALTER TABLE t1 ADD CONSTRAINT C8 PRIMARY KEY (c1) WITH fillfactor = 12, sorted_data ON MyGroup")]
+	public void An_option_standing_without_brackets_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the spellings it takes.</summary>
+	[Theory]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH pad_index")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH sort_in_tempdb")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH ignore_dup_key")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH statistics_norecompute")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH drop_existing")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH pad_index, ignore_dup_key, statistics_norecompute")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH sorted_data, pad_index, fillfactor = 12")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH fillfactor = 12, pad_index")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH pad_index, fillfactor = 12")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH sorted_data fillfactor = 12)")]
+	[InlineData("DECLARE @t TABLE (a1 int PRIMARY KEY WITH sorted_data fillfactor = 12)")]
+	[InlineData("DECLARE @t TABLE (a1 int, PRIMARY KEY (a1) WITH sorted_data fillfactor = 12)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH fillfactor = 12 sorted_data_reorg)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH sorted_data fillfactor = 12 ON MyGroup)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH fillfactor = 12 sorted_data ON MyGroup)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH fillfactor = 12, nosuchword)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH fillfactor = 12, a2 int)")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY WITH fillfactor = 12, sorted_data int)")]
+	[InlineData("ALTER TABLE t1 ADD CONSTRAINT C8 PRIMARY KEY (c1) WITH sorted_data fillfactor = 12")]
+	[InlineData("ALTER TABLE t1 ADD CONSTRAINT C8 PRIMARY KEY (c1) WITH fillfactor = 12 sorted_data_reorg")]
+	[InlineData("CREATE TABLE t1 (a1 int, CONSTRAINT C22 PRIMARY KEY (a1) WITH sorted_data_reorg fillfactor = 12 ON MyGroup)")]
+	[InlineData("CREATE UNIQUE INDEX i1 ON t1 (c1) WITH sorted_data, fillfactor = 12")]
+	public void An_option_standing_without_brackets_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>What a table variable, a returned table and a table type refuse that a table does not.</summary>
+	[Theory]
+	[InlineData("DECLARE @t TABLE (a1 int CONSTRAINT C8 PRIMARY KEY)")]
+	[InlineData("DECLARE @t TABLE (a1 int CONSTRAINT C8 UNIQUE)")]
+	[InlineData("DECLARE @t TABLE (a1 int CONSTRAINT C8 CHECK (a1 > 0))")]
+	[InlineData("DECLARE @t TABLE (a1 int CONSTRAINT C8 DEFAULT 1)")]
+	[InlineData("DECLARE @t TABLE (a1 int, CONSTRAINT C8 PRIMARY KEY (a1))")]
+	[InlineData("DECLARE @t TABLE (a1 int, CONSTRAINT C8 INDEX i1 (a1))")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS @t TABLE (a1 int CONSTRAINT C8 PRIMARY KEY) AS BEGIN RETURN END")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS @t TABLE (a1 int, CONSTRAINT C8 PRIMARY KEY (a1)) AS BEGIN RETURN END")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int PRIMARY KEY WITH fillfactor = 12)")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int PRIMARY KEY WITH sorted_data fillfactor = 12)")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int PRIMARY KEY WITH fillfactor = 12 sorted_data)")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int PRIMARY KEY WITH (fillfactor = 12))")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int PRIMARY KEY WITH (pad_index = ON))")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int PRIMARY KEY WITH (data_compression = page))")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int PRIMARY KEY WITH pad_index)")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int, PRIMARY KEY (a1) WITH fillfactor = 12)")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int PRIMARY KEY WITH (ignore_dup_key = ON, fillfactor = 12))")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int PRIMARY KEY WITH (statistics_norecompute = ON))")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int UNIQUE WITH (fillfactor = 12))")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int, INDEX i1 (a1) WITH (pad_index = ON))")]
+	public void A_body_that_is_not_a_tables_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads what each of them takes.</summary>
+	[Theory]
+	[InlineData("DECLARE @t TABLE (a1 int PRIMARY KEY)")]
+	[InlineData("DECLARE @t TABLE (a1 int UNIQUE)")]
+	[InlineData("DECLARE @t TABLE (a1 int CHECK (a1 > 0))")]
+	[InlineData("DECLARE @t TABLE (a1 int DEFAULT 1)")]
+	[InlineData("DECLARE @t TABLE (a1 int, PRIMARY KEY (a1))")]
+	[InlineData("DECLARE @t TABLE (a1 int, INDEX i1 (a1))")]
+	[InlineData("DECLARE @t TABLE (a1 int PRIMARY KEY WITH (fillfactor = 12))")]
+	[InlineData("DECLARE @t TABLE (a1 int PRIMARY KEY WITH fillfactor = 12)")]
+	[InlineData("DECLARE @t TABLE (a1 int PRIMARY KEY WITH sorted_data)")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS @t TABLE (a1 int PRIMARY KEY) AS BEGIN RETURN END")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS @t TABLE (a1 int PRIMARY KEY WITH fillfactor = 12) AS BEGIN RETURN END")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS @t TABLE (a1 int, INDEX i1 (a1)) AS BEGIN RETURN END")]
+	[InlineData("CREATE TABLE t1 (a1 int CONSTRAINT C8 PRIMARY KEY)")]
+	[InlineData("CREATE TABLE t1 (a1 int, CONSTRAINT C8 PRIMARY KEY (a1))")]
+	[InlineData("ALTER TABLE t1 ADD CONSTRAINT C8 PRIMARY KEY (c1)")]
+	[InlineData("ALTER TABLE t1 ADD c1 int CONSTRAINT C8 PRIMARY KEY")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int PRIMARY KEY)")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int PRIMARY KEY WITH sorted_data)")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int PRIMARY KEY WITH sorted_data_reorg)")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int UNIQUE WITH sorted_data)")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int, PRIMARY KEY (a1) WITH sorted_data)")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int, INDEX i1 (a1))")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int PRIMARY KEY WITH (ignore_dup_key = ON))")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int PRIMARY KEY WITH (ignore_dup_key = OFF))")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int UNIQUE WITH (ignore_dup_key = ON))")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int, PRIMARY KEY (a1) WITH (ignore_dup_key = ON))")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int PRIMARY KEY WITH (bucket_count = 8))")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int PRIMARY KEY NONCLUSTERED HASH WITH (bucket_count = 8))")]
+	[InlineData("CREATE TYPE tt AS TABLE (a1 int, INDEX i1 (a1) WITH (ignore_dup_key = ON))")]
+	[InlineData("DECLARE @t TABLE (a1 int PRIMARY KEY WITH (pad_index = ON))")]
+	[InlineData("DECLARE @t TABLE (a1 int PRIMARY KEY WITH (data_compression = page))")]
+	public void A_body_that_is_not_a_tables_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]

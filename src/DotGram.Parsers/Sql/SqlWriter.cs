@@ -1910,16 +1910,35 @@ public static class SqlWriter
 	}
 
 	/// <summary>A <c>WITH (…)</c>, or nothing where there is none.</summary>
-	static void Optioned(StringBuilder text, Clause[]? options, bool bracketed = true)
+	/// <remarks>
+	/// What separates an unbracketed list is the statement's and not the layout's: an index
+	/// writes commas — <c>WITH FILLFACTOR = 23, PAD_INDEX</c>, and the two words without one
+	/// are <c>Msg 102</c> — and a key writes none, <c>WITH sorted_data fillfactor = 12</c>
+	/// being read and the comma there closing the column instead (<c>Msg 156</c>). Both were
+	/// printed the other way round at one time or another, and the round trip said so each
+	/// time: six indexes the first way, two keys the second.
+	/// </remarks>
+	static void Optioned(StringBuilder text, Clause[]? options, bool bracketed = true, bool listed = true)
 	{
 		if (options is not { Length: > 0 })
 			return;
 
 		text.Append(bracketed ? " WITH (" : " WITH ");
-		Each(text, options);
 
 		if (bracketed)
+		{
+			Each(text, options);
 			text.Append(')');
+			return;
+		}
+
+		for (var i = 0; i < options.Length; i++)
+		{
+			if (i > 0)
+				text.Append(listed ? ", " : " ");
+
+			Put(text, options[i]);
+		}
 	}
 
 	/// <summary>What was written, one space between the pieces and nothing for a piece that was not.</summary>
@@ -2633,7 +2652,7 @@ public static class SqlWriter
 			foreach (var word in words)
 				text.Append(' ').Append(word.Name);
 
-		Optioned(text, options, constraint.Bracketed);
+		Optioned(text, options, constraint.Bracketed, index);
 		Placed(text, constraint.Placements);
 
 		if (constraint.Enforced is { } enforced)

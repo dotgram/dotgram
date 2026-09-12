@@ -20047,3 +20047,57 @@ map: read by both 7,984 of 8,338 (99.8%), the work list 19, defects 0. The suite
 rows (from 6,742): the figures stand still because what moved is not in the corpus — forty
 types that may be sized, three spellings that may not, and six the standard has and T-SQL
 does not.
+
+## Two words older than the brackets, and three bodies that are not a table's
+
+`CREATE INDEX i ON t (c) WITH sorted_data` was one line of the work list — two words from
+before an index's options had brackets round them. Reading them took four rounds, and each
+round found something next to them that this grammar had wrong.
+
+**The words themselves.** `SORTED_DATA` and `SORTED_DATA_REORG` are read by `CREATE INDEX`
+and by a key, and nowhere else an index is built: `ALTER INDEX … REBUILD` answers `Msg 102`,
+an XML index `Msg 6343`, a columnstore one `Msg 18054`. In the index's list they stand as
+ordinary members, in any order, and the comma is what makes it a list.
+
+**A word without a value is one word and not a run of them.** An option's name is
+`OptionName`, which is `OptionWord+` — right inside brackets, where a run like `MOVE TO` is a
+name, and wrong outside them. Read that way, `WITH pad_index sorted_data` came out as a
+single option named by both, and three spellings the engine refuses were read here:
+`pad_index sorted_data`, `sort_in_tempdb drop_existing`, `ignore_dup_key
+statistics_norecompute`, each `Msg 102`. All seven bare words now build where they are read,
+which is one word each.
+
+**A key's unbracketed `WITH` has no comma in it at all.** `PRIMARY KEY WITH sorted_data
+fillfactor = 12` is read and `WITH sorted_data, fillfactor = 12` is `Msg 156` — and the
+spellings that looked like a list with a comma were the comma closing the *column*:
+`WITH fillfactor = 12, nosuchword` reads because `nosuchword` is a second column with no
+type, `…, a2 int` reads as an ordinary one, and in a table variable — where a column must
+have a type — those very lines are `Msg 156`. So the pair is two options side by side, no
+more than two and never the same one twice.
+
+**Three bodies are not a table's, and two of them said nothing about it.** A constraint may
+not be named in a table variable or in a function's `RETURNS @t TABLE`: `DECLARE @t TABLE (a1
+INT CONSTRAINT C8 PRIMARY KEY)` is `Msg 156`, and so are a named `UNIQUE`, `CHECK` and
+`DEFAULT`, at the column or at the table. Without the name every one is read; an index keeps
+its own name, and a name in front of one is refused apart (`Msg 1018`). `CREATE TABLE` and
+`ALTER TABLE … ADD` take names as they always did. Eight spellings gone.
+
+**And a table type's key may be told four things.** Unbracketed, the two old words.
+Bracketed, `IGNORE_DUP_KEY` and `BUCKET_COUNT` — an index's own too. Everything else is `Msg
+155`: `FILLFACTOR`, `PAD_INDEX`, `STATISTICS_NORECOMPUTE`, `DATA_COMPRESSION`, and the list
+is judged by each member rather than by its first, `WITH (IGNORE_DUP_KEY = ON, FILLFACTOR =
+12)` being refused. A table variable's key takes the lot. Six more spellings gone.
+
+**The round trip caught the printing twice, and the second time it was mine to have
+foreseen.** The unbracketed list was printed with commas, which broke the two keys of
+`UniqueConstraintTests`; printed with spaces, it broke six indexes of `OptimizerHintsTests`.
+Both are true at once — an index writes commas and a key writes none — and which it is is the
+statement's question, so it is now answered where the kind is known and passed down to the
+printer rather than guessed inside it. I knew both halves an hour before I wrote the first
+half down.
+
+At 150: read by both 5,964 (from 5,963), the work list **22** (from 23), read here but
+refused there 4 (the same four); `--split` 740 (from 738), the round trip 100% of 7,583. The
+map: read by both 7,984 of 8,338 (99.8%), the work list 19, defects 0. The suite is 6,967
+rows: seventeen spellings this grammar read that the engine does not, and two dozen it
+refused that it does.

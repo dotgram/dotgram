@@ -3140,8 +3140,12 @@ public abstract record Clause : ISqlSpan
 	/// <param name="ForColumn">The column a <c>DEFAULT … FOR</c> names.</param>
 	/// <param name="Bracketed">
 	/// Whether the <c>WITH</c> had brackets. The two spellings are two syntaxes and not two
-	/// layouts: <c>WITH FILLFACTOR = 23, PAD_INDEX</c> lets an option stand as a word alone,
-	/// and <c>WITH (…)</c> does not — inside the brackets it has to be <c>PAD_INDEX = ON</c>.
+	/// layouts: without them an option stands as a word alone — <c>PAD_INDEX</c>, and
+	/// <c>PAD_INDEX = ON</c> is <c>Msg 156</c> — while inside the brackets it has to be
+	/// <c>PAD_INDEX = ON</c>. What separates them differs too, and by the statement rather
+	/// than by the layout: an index writes commas (<c>WITH FILLFACTOR = 23, PAD_INDEX</c>,
+	/// and without one the two words are <c>Msg 102</c>), a key writes none (<c>WITH
+	/// sorted_data FILLFACTOR = 12</c>, and a comma there closes the column instead).
 	/// </param>
 	public sealed record ConstraintDefinition(
 		string? Name, string Kind, Clause[] Columns, Expression? Check,
@@ -4340,6 +4344,19 @@ public static class Syntax
 	/// <summary>The types a dotted name may put <c>NATIONAL</c> in front of.</summary>
 	static readonly string[] Nationally = ["CHAR", "CHARACTER", "TEXT"];
 
+	/// <summary>Whether a key's two unbracketed options are two different ones.</summary>
+	/// <remarks>
+	/// The pair is a <c>FILLFACTOR</c> and one of the two old words, in either order:
+	/// <c>WITH sorted_data fillfactor = 12</c> and <c>WITH fillfactor = 12
+	/// sorted_data_reorg</c> are read. The same one said twice is not — <c>WITH fillfactor =
+	/// 12 fillfactor = 13</c> is <c>Msg 156</c> and <c>WITH sorted_data sorted_data</c> is
+	/// <c>Msg 102</c> — and neither is a third.
+	/// </remarks>
+	public static bool Paired(Clause first, Clause? second) =>
+		second is null ||
+		first is Clause.Option { Name: var one } && second is Clause.Option { Name: var other } &&
+		!string.Equals(one, other, StringComparison.OrdinalIgnoreCase);
+
 	/// <summary>Whether a kept sample percentage stands beside the scan it was kept from.</summary>
 	/// <remarks>
 	/// <c>PERSIST_SAMPLE_PERCENT</c> is <c>Msg 153</c> alone and read beside <c>FULLSCAN</c>,
@@ -4609,10 +4626,24 @@ public static class Syntax
 
 	/// <summary>Whether a table's body may be a table type's.</summary>
 	/// <remarks>
+	/// <para>
 	/// A table type holds columns, keys, checks and indexes, and nothing that ties it to another
 	/// table or names what it holds: a foreign key and a reference are refused, a constraint's
 	/// name is — an index's is its own and is read — and so is a sparse column (<c>Msg 156</c>,
 	/// <c>102</c>).
+	/// </para>
+	/// <para>
+	/// And a key or an index of its own may be told four things and no more. Unbracketed, the
+	/// two words older than the brackets: <c>PRIMARY KEY WITH sorted_data</c>, <c>WITH
+	/// sorted_data_reorg</c>, at the column or at the table, of a key or of a unique
+	/// constraint. Bracketed, <c>IGNORE_DUP_KEY</c> and <c>BUCKET_COUNT</c>: <c>WITH
+	/// (IGNORE_DUP_KEY = ON)</c>, <c>WITH (BUCKET_COUNT = 8)</c>, and an index's own <c>WITH
+	/// (IGNORE_DUP_KEY = ON)</c> too. Everything else is <c>Msg 155</c> — <c>FILLFACTOR</c>,
+	/// <c>PAD_INDEX</c>, <c>STATISTICS_NORECOMPUTE</c>, <c>DATA_COMPRESSION</c> — and the list
+	/// is judged by each of its members rather than by its first: <c>WITH (IGNORE_DUP_KEY =
+	/// ON, FILLFACTOR = 12)</c> is refused. <c>WITH pad_index</c> unbracketed is <c>Msg
+	/// 102</c>. A table variable's key takes the lot; this is the type's own narrowness.
+	/// </para>
 	/// </remarks>
 	public static bool TableTyped(Clause[]? body)
 	{
@@ -4621,15 +4652,58 @@ public static class Syntax
 		static bool Typed(Clause one) =>
 			one switch
 			{
-				Clause.ConstraintDefinition { Kind: "INDEX" or "UNIQUE INDEX" }     => true,
-				Clause.ConstraintDefinition { Name: not null }                     => false,
-				Clause.ConstraintDefinition { Kind: "FOREIGN KEY" or "REFERENCES" } => false,
-				Clause.ColumnOption { ConstraintName: not null }                   => false,
-				Clause.ColumnOption { Kind: "SPARSE" }                             => false,
-				Clause.ColumnDefinition { Options: var options }                   => Array.TrueForAll(options, Typed),
-				_                                                                  => true,
+				Clause.ConstraintDefinition { Kind: "INDEX" or "UNIQUE INDEX" } index => Told(index),
+				Clause.ConstraintDefinition { Name: not null }                        => false,
+				Clause.ConstraintDefinition { Kind: "FOREIGN KEY" or "REFERENCES" }   => false,
+				Clause.ConstraintDefinition { Kind: "PRIMARY KEY" or "UNIQUE" } key   => Told(key),
+				Clause.ColumnOption { ConstraintName: not null }                      => false,
+				Clause.ColumnOption { Kind: "SPARSE" }                                => false,
+				Clause.ColumnDefinition { Options: var options }                      => Array.TrueForAll(options, Typed),
+				_                                                                     => true,
+			};
+
+		// What a key or an index of a table type may be told, which is the brackets' question
+		// as much as the name's: the constraint holds the list itself and says on `Bracketed`
+		// which spelling it was written in.
+		static bool Told(Clause.ConstraintDefinition constraint) =>
+			constraint.Options is not { } options ||
+			Array.TrueForAll(options, one =>
+				one is Clause.Option { Name: var name } &&
+				Array.Exists(
+					constraint.Bracketed ? TypeKeyBracketed : TypeKeyBare,
+					word => string.Equals(word, name, StringComparison.OrdinalIgnoreCase)));
+	}
+
+	/// <summary>Whether a table's body may be a table variable's or a returned table's.</summary>
+	/// <remarks>
+	/// A constraint there may not be named. <c>DECLARE @t TABLE (a1 INT CONSTRAINT C8 PRIMARY
+	/// KEY)</c> is <c>Msg 156</c> and so are a named <c>UNIQUE</c>, <c>CHECK</c> and
+	/// <c>DEFAULT</c>, at the column or at the table, and the same in a function's
+	/// <c>RETURNS @t TABLE</c>. Without the name every one of them is read. An index keeps its
+	/// own name — <c>INDEX i1 (a1)</c> is read — and a name in front of one is refused apart
+	/// (<c>Msg 1018</c>). <c>CREATE TABLE</c> and <c>ALTER TABLE … ADD</c> take names as they
+	/// always did, which is why this is asked of the two bodies and not of <c>DeclaredBody</c>.
+	/// </remarks>
+	public static bool Declared(Clause[]? body)
+	{
+		return body is not null && Array.TrueForAll(body, Nameless);
+
+		static bool Nameless(Clause one) =>
+			one switch
+			{
+				Clause.ConstraintDefinition { Kind: "INDEX" or "UNIQUE INDEX" }  => true,
+				Clause.ConstraintDefinition { Name: not null }                  => false,
+				Clause.ColumnOption { ConstraintName: not null }                => false,
+				Clause.ColumnDefinition { Options: var options }                => Array.TrueForAll(options, Nameless),
+				_                                                               => true,
 			};
 	}
+
+	/// <summary>What a table type's key or index may be told inside brackets.</summary>
+	static readonly string[] TypeKeyBracketed = ["IGNORE_DUP_KEY", "BUCKET_COUNT"];
+
+	/// <summary>And what it may be told without them, which is what `CREATE INDEX` said in 1998.</summary>
+	static readonly string[] TypeKeyBare = ["SORTED_DATA", "SORTED_DATA_REORG"];
 
 	/// <summary>A cursor's query and what stands around it, its words yet to be said.</summary>
 	public static Clause.CursorDefinition Cursor(

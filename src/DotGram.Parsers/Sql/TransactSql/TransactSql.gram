@@ -2139,7 +2139,8 @@ Declaration : @Clause
 // where it is a table — `DECLARE @t TABLE (c1 INT NOT NULL)` is read — and that is the body's
 // business rather than this rule's.
 DeclaredAs : @Clause.VariableDeclaration
-	= "TABLE"i & '(' & body: DeclaredBody & ')'    => @(new Clause.VariableDeclaration("", "TABLE", null, body))
+	= "TABLE"i & '(' & body: DeclaredBody & ')' & when @(Syntax.Declared(body))
+		=> @(new Clause.VariableDeclaration("", "TABLE", null, body))
 	| "CURSOR"i                                    => @(new Clause.VariableDeclaration("", "CURSOR", null))
 	| type: DataType & ('=' & v: SetValue)?        => @(new Clause.VariableDeclaration("", type, v, null))
 
@@ -3674,12 +3675,31 @@ IndexOptionSyntax
 	| DropExisting | OnlineOption | Resumable | MaxDuration | RowLocks | PageLocks | SequentialKey
 	| MaxDop | RowDataCompression | XmlCompression | BucketCount
 
-// The unbracketed list `CREATE INDEX` still reads, and only its six — `WITH ALLOW_ROW_LOCKS
-// = ON` without brackets is refused.
-OldIndexOption : @Clause = ?=OldIndexOptionSyntax & o: OptionSetting => @(o)
-OldIndexOptionSyntax
-	= ("PAD_INDEX"i | "SORT_IN_TEMPDB"i | "IGNORE_DUP_KEY"i | "STATISTICS_NORECOMPUTE"i | "DROP_EXISTING"i) & ?!'='
-	| FillFactor
+// The unbracketed list `CREATE INDEX` still reads, and only its eight. Seven of them stand
+// as a word with nothing after it — `WITH pad_index`, `sort_in_tempdb`, `ignore_dup_key`,
+// `statistics_norecompute`, `drop_existing`, `sorted_data`, `sorted_data_reorg` are each read
+// alone, and `WITH pad_index = ON` is `Msg 156`: the value is what the brackets are for.
+// `ALLOW_ROW_LOCKS` is not among them (`Msg 153`), and the eighth is `FILLFACTOR`, whose
+// number it keeps.
+//
+// **The comma is what makes it a list.** Any two of the words side by side are `Msg 102` —
+// `pad_index sorted_data`, `sort_in_tempdb drop_existing`, `ignore_dup_key
+// statistics_norecompute` — and so is `fillfactor = 12 pad_index`, while every pairing with
+// a comma is read in either order. So a bare word is one word here and not a run of them:
+// read through `OptionName`, which is a run (§4.6), `WITH pad_index sorted_data` came out as
+// one option named by both and three such spellings were read that the engine refuses.
+//
+// The two oldest belong to `CREATE INDEX` and to nowhere else an index is built: `ALTER
+// INDEX … REBUILD` answers `Msg 102`, an XML index `Msg 6343`, a columnstore one `Msg 18054`.
+OldIndexOption : @Clause
+	= name: BareIndexWord => @(new Clause.Option(name, null, Clause.None))
+	| ?=FillFactor & o: OptionSetting => @(o)
+
+// One word, and the lookahead is what keeps it from taking a value the brackets would want.
+BareIndexWord : @string
+	= t: ("PAD_INDEX"i | "SORT_IN_TEMPDB"i | "IGNORE_DUP_KEY"i | "STATISTICS_NORECOMPUTE"i
+		  | "DROP_EXISTING"i | "SORTED_DATA_REORG"i | "SORTED_DATA"i) & ?!'='
+		=> @(t)
 
 // A columnstore index's five.
 ColumnstoreOption : @Clause = ?=(ColumnstoreOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
@@ -3715,13 +3735,39 @@ ConstraintOptionSyntax
 	= PadIndex | FillFactor | IgnoreDupKey | NoRecompute | IncrementalStats | RowLocks | PageLocks
 	| SequentialKey | AnyDataCompression | XmlCompression | BucketCount
 
-FillFactorAlone : @Clause = ?=FillFactor & o: OptionSetting => @(o)
+// What a key takes without brackets, which is not a list and not one option either: a
+// `FILLFACTOR` and one of the two old words, **side by side with no comma**, in either
+// order, and no more than the two. `WITH sorted_data`, `WITH fillfactor = 12`, `WITH
+// sorted_data fillfactor = 12` and `WITH fillfactor = 12 sorted_data_reorg` are read, in
+// `CREATE TABLE` and in `ALTER TABLE … ADD`, of a `PRIMARY KEY` and of a `UNIQUE`, named at
+// the column or at the table.
+//
+// A comma there is not a separator and never was: `PRIMARY KEY WITH fillfactor = 12,
+// nosuchword` is read because the comma closed the column and `nosuchword` is a second one
+// with no type; `…, a2 int` and `…, sorted_data int` read the same way; and in a table
+// variable, whose columns must have a type, those very lines are `Msg 156`. So the pair is
+// written with a space between its two and printed that way.
+//
+// The rest of what is refused says the shape: brackets round them are `Msg 102`, three of
+// them `Msg 102`, the same one twice `Msg 156` and `Msg 102`, and a word from the bracketed
+// catalogue — `pad_index`, `statistics_norecompute` — `Msg 102` even alone.
+BareKeyOption : @Clause
+	= name: SortedData => @(new Clause.Option(name, null, Clause.None))
+	| ?=FillFactor & o: OptionSetting => @(o)
+
+// The key's two are the old words alone: `pad_index` and `statistics_norecompute` are
+// `Msg 102` there even by themselves, the bracketed catalogue being the brackets' own.
+SortedData : @string = t: ("SORTED_DATA_REORG"i | "SORTED_DATA"i) & ?!'=' => @(t)
+
+BareKeyOptions : @Clause[]
+	= first: BareKeyOption & rest: BareKeyOption? & when @(Syntax.Paired(first, rest))
+		=> @(rest is null ? new Clause[] { first } : new Clause[] { first, rest })
 
 ConstraintWith : @Clause.Option
 	= "WITH"i & '(' & first: ConstraintOption & (',' & rest: ConstraintOption)* & ')'
 		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
-	| "WITH"i & only: FillFactorAlone
-		=> @(new Clause.Option("WITH", null, new Clause[] { only }, null, true))
+	| "WITH"i & only: BareKeyOptions
+		=> @(new Clause.Option("WITH", null, only, null, true))
 
 // And one `ALTER TABLE` adds, which may be built online and resumed — put in place of the
 // one above by `ALTER TABLE … ADD`, not written twice.
@@ -3732,8 +3778,8 @@ AlterConstraintOptionSyntax
 AlterConstraintWith : @Clause.Option
 	= "WITH"i & '(' & first: AlterConstraintOption & (',' & rest: AlterConstraintOption)* & ')'
 		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
-	| "WITH"i & only: FillFactorAlone
-		=> @(new Clause.Option("WITH", null, new Clause[] { only }, null, true))
+	| "WITH"i & only: BareKeyOptions
+		=> @(new Clause.Option("WITH", null, only, null, true))
 
 // `ALTER INDEX`: a rebuild of every partition, of one, a reorganization, a resumption and
 // the settings an index keeps.
@@ -4070,7 +4116,8 @@ FunctionReturns : @Statement.CreateFunction
 	| "TABLE"i & options: RoutineOptions? & "AS"i? & "RETURN"i & body: InlineReturn
 	  & when @(Syntax.Inlined(options))
 		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", body, options))
-	| name: TSql.Variable & "TABLE"i & '(' & columns: DeclaredBody & ')' & options: RoutineOptions? & "AS"i?
+	| name: TSql.Variable & "TABLE"i & '(' & columns: DeclaredBody & ')' & when @(Syntax.Declared(columns))
+	  & options: RoutineOptions? & "AS"i?
 	  & body: StatementList
 		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", body, options, columns, name))
 	| type: DataType & options: RoutineOptions? & "AS"i?
