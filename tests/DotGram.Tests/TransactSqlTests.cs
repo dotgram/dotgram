@@ -997,6 +997,65 @@ public sealed class TransactSqlTests
 	public void A_statement_not_ended_is_followed_by_a_reserved_word(string input, bool read) =>
 		Assert.Equal(read, TransactSql.TryParseSql(input).IsSuccess);
 
+	/// <summary>A parameter given <c>DEFAULT</c>, a language dropped under an owner, and a log forced open, as the engine reads them.</summary>
+	[Theory]
+	[InlineData("CREATE PROCEDURE dbo.p1 @p INT = DEFAULT AS SELECT @p")]
+	[InlineData("CREATE PROCEDURE dbo.p1 @p INT = NULL AS SELECT @p")]
+	[InlineData("CREATE PROCEDURE dbo.p1 @p INT = DEFAULT, @q INT = 1 AS SELECT @p")]
+	[InlineData("CREATE PROCEDURE dbo.p1 (@p INT = DEFAULT) AS SELECT @p")]
+	[InlineData("CREATE FUNCTION dbo.f1 (@p INT = DEFAULT) RETURNS INT AS BEGIN RETURN 1 END")]
+	[InlineData("DROP EXTERNAL LANGUAGE language2 AUTHORIZATION bing")]
+	[InlineData("DROP EXTERNAL LANGUAGE language2")]
+	[InlineData("DROP EXTERNAL LANGUAGE l1, l2 AUTHORIZATION dbo.bing")]
+	[InlineData("DROP EXTERNAL LIBRARY lib1 AUTHORIZATION bing")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_FORCE_REBUILD_LOG")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_FORCE_REBUILD_LOG WITH TRUSTWORTHY OFF, DB_CHAINING ON")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_REBUILD_LOG")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH WITH RESTRICTED_USER")]
+	public void Defaults_owners_and_logs_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>How far a money literal's sign, currency and digits stand apart, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("SELECT $10 . 12")]
+	public void Money_written_apart_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT $10.12")]
+	[InlineData("SELECT -$10.12")]
+	[InlineData("SELECT - $10.12")]
+	[InlineData("SELECT -$ 10.12")]
+	[InlineData("SELECT -$   10.12")]
+	[InlineData("SELECT $ 10.12")]
+	[InlineData("SELECT $-10.12")]
+	[InlineData("SELECT $+10.12")]
+	[InlineData("SELECT $   -10.12")]
+	[InlineData("SELECT -   $10.12")]
+	[InlineData("SELECT £ 10.12")]
+	[InlineData("SELECT -£ 10.12")]
+	[InlineData("SELECT 1 + -$ 10")]
+	[InlineData("SELECT * FROM t1 WHERE c1 = -$ 10.12")]
+	[InlineData("EXECUTE dbo.p1 -$ 10.12")]
+	[InlineData("CREATE PROCEDURE proc3 @m MONEY = -$   10.12, @n MONEY = $23 AS SELECT 1")]
+	[InlineData("CREATE PROCEDURE proc3 @m MONEY = $ 23 AS SELECT 1")]
+	[InlineData("SELECT $23")]
+	[InlineData("SELECT 2e")]
+	[InlineData("SELECT 2e1")]
+	[InlineData("SELECT 1 + 2e")]
+	public void Money_written_apart_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>The web methods a SOAP endpoint lists, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1')")]

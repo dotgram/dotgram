@@ -76,7 +76,13 @@ namespace TSql
 	// way T-SQL writes one. Neither is a lexeme of the standard. A binary string goes on past a
 	// backslash at the end of a line, as the engine continues it: `0xabc\` and `def` on the next
 	// line are `0xABCDEF`. A string's backslash is one of its characters and needs nothing.
-	MoneyLiteral  = ['$' | '£' | '¥' | '€'] & ['+' | '-']? & Sql92.Lexical.Digits & ('.' & Sql92.Lexical.Digits?)?
+	//
+	// The currency sign, the sign of the number and the digits stand as far apart as they like
+	// — `$ 10.12`, `-$   10.12`, `$ -10.12` and `-£ 10.12` are all read — which is why this is
+	// not one run of characters. The point is not so free: `$10 . 12` is `Msg 102`, so the
+	// digits on either side of it hug it, and each side is a lexeme of its own.
+	MoneyLiteral  = ['$' | '£' | '¥' | '€'] & Spacing? & ['+' | '-']? & Spacing? & MoneyDigits
+	MoneyDigits   = Sql92.Lexical.Digits & ('.' & Sql92.Lexical.Digits?)?
 	BinaryLiteral = '0' & 'x'i & ['0'..'9' | 'a'..'f' | 'A'..'F']* & ('\\' & ('\r' & '\n'? | '\n') & ['0'..'9' | 'a'..'f' | 'A'..'F']*)*
 
 	// A name the `$` is part of: `$IDENTITY`, `$ROWGUID`, `$PARTITION`, a graph table's
@@ -3754,7 +3760,7 @@ RoutineParameter : @Clause
 ParameterTail : @Clause.ParameterDeclaration
 	= "CURSOR"i & "VARYING"i & way: ("OUTPUT"i | "OUT"i)
 		=> @(new Clause.ParameterDeclaration("", "CURSOR", null, null, true, new[] { Syntax.Squared(way) }))
-	| type: DataType & n: NullSpec? & ('=' & v: SetValue)? & ways: ParameterWay*
+	| type: DataType & n: NullSpec? & ('=' & v: AssignedValue)? & ways: ParameterWay*
 		=> @(new Clause.ParameterDeclaration("", type, v, n, false, ways))
 
 ParameterWay : @string = t: ("OUTPUT"i | "OUT"i | "READONLY"i) => @(Syntax.Squared(t))
@@ -5117,6 +5123,8 @@ DropBody : @Statement
 		=> @(Statement.Dropped("ASSEMBLY", names, tail, exists))
 	| "EXTERNAL"i & "LIBRARY"i & names: DropNames & tail: ("AUTHORIZATION"i & QualifiedName)?
 		=> @(Statement.Dropped("EXTERNAL LIBRARY", names, tail))
+	| "EXTERNAL"i & "LANGUAGE"i & names: DropNames & tail: ("AUTHORIZATION"i & QualifiedName)?
+		=> @(Statement.Dropped("EXTERNAL LANGUAGE", names, tail))
 	| "EVENT"i & "SESSION"i & names: DropNames & tail: ("ON"i & DropScope)
 		=> @(Statement.Dropped("EVENT SESSION", names, tail))
 	| "EVENT"i & "NOTIFICATION"i & names: DropNames & tail: ("ON"i & DropScope)
@@ -5279,6 +5287,13 @@ DatabaseTail : @Statement.CreateDatabase
 				 With: first is null ? null : Syntax.Listed(first, rest)))
 	| "FOR"i & "ATTACH_REBUILD_LOG"i
 		=> @(new Statement.CreateDatabase("", Clause.None, Tail: "FOR ATTACH_REBUILD_LOG"))
+
+	// Undocumented and read: the same as `FOR ATTACH`, options and `WITH` and all.
+	| "FOR"i & "ATTACH_FORCE_REBUILD_LOG"i & ('(' & options: OptionList & ')')?
+	  & ("WITH"i & first: AttachOption & (',' & rest: AttachOption)*)?
+		=> @(new Statement.CreateDatabase(
+				 "", Clause.None, Tail: "FOR ATTACH_FORCE_REBUILD_LOG", Options: options,
+				 With: first is null ? null : Syntax.Listed(first, rest)))
 
 	// A snapshot takes a database's options too, which the block does not say and the engine
 	// reads.

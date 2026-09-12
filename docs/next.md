@@ -19428,3 +19428,32 @@ on what it would still run.
 At 150: read by both 5,930 (from 5,920), the work list 54 (from 56), read here but refused
 there 31 (from 31); `--split` 732 (from 730), the round trip 100% of 7,562. The map: read by
 both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
+
+## Money written apart, a parameter given `DEFAULT`, a language dropped, a log forced
+
+Four of the work list, none of them related except in being small, and one of them is a
+lexeme that had been reading less than the engine does.
+
+- **A money literal's parts stand as far apart as they like.** `$ 10.12`, `-$   10.12`,
+  `$ -10.12` and `-£ 10.12` are all read, and were all refused here: the lexeme bound the
+  currency sign, the sign of the number and the digits into one run of characters. They are
+  three things now, with spacing allowed between them. The point is not so free — `$10 . 12`
+  is `Msg 102` — so the digits on either side of it still hug it, and that is a lexeme of its
+  own.
+
+  It is worth saying where this was found: the work list said `CREATE PROCEDURE proc3
+  @money1 MONEY=$23, @money2 MONEY=-$   10.12`, which reads like a rule about parameter
+  defaults. It is not. `SELECT -$ 10.12`, `WHERE c1 = -$ 10.12` and `EXECUTE dbo.p1 -$ 10.12`
+  are refused here for the same reason, and one line fixes all of them, so the line to change
+  is the lexeme and not the statement.
+- **A parameter may be given `DEFAULT`**: `CREATE PROCEDURE dbo.p1 @p INT = DEFAULT`. The
+  value of a default was `SetValue`, which is a value or `NULL`; `AssignedValue`, which is
+  the same and `DEFAULT` besides, was already written down a few rules away.
+- **A language is dropped under an owner**, `DROP EXTERNAL LANGUAGE l2 AUTHORIZATION bing`,
+  exactly as a library is. The library's rule was there and the language's was not.
+- **And a log may be forced open again**: `FOR ATTACH_FORCE_REBUILD_LOG`, which no page
+  describes and the engine reads, with the same bracket and `WITH` as `FOR ATTACH`.
+
+At 150: read by both 5,936 (from 5,930), the work list 48 (from 54), read here but refused
+there 31 (from 31); `--split` 734 (from 732), the round trip 100% of 7,568. The map: read by
+both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
