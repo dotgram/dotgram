@@ -167,6 +167,11 @@ static class ExpressionAgainst
 		"(int x) => default(int) + x",
 		"(int x) => nameof(x)",
 
+		// A lambda inside an expression: one that closes over what is around it, and two
+		// beside each other whose parameters are each their own.
+		"(int x) => { var f = (int y) => y + x; f(1) }",
+		"(int x) => { var f = (int y) => y + 1; var g = (int y) => y * 2; f(1) + g(2) }",
+
 		// A guard and how far it reaches: one step, a whole chain protected by it, an index,
 		// what a nullable holds, and the ternary whose number keeps its point.
 		"(string s) => s?.Length",

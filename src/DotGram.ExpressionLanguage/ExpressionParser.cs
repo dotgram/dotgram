@@ -125,8 +125,12 @@ namespace DotGram.ExpressionLanguage;
 //     refused where C# folds the sum first and then converts it.
 //   * An increment or a compound assignment writes to a name or to one member of a name —
 //     not to an element, and not to a longer chain.
-//   * `foreach`, an interpolated string and a lambda inside an expression are not written
-//     yet.
+//   * `foreach` and an interpolated string are not written yet.
+//   * A lambda may be written inside an expression, with the types of its parameters said:
+//     `(int y) => y * 2`. C# takes them from what the lambda is passed to, which is a
+//     question about the method being chosen and cannot be asked before the argument is
+//     built. A `return` inside one is refused — the label a `return` goes to belongs to the
+//     outermost lambda, as it does in C#.
 //   * `?.` guards the whole chain after it, as C#'s does, and is worth the nullable of what
 //     the chain is worth: `s?.Length` is an `int?`. Written as `?` and `.`, which is what
 //     lets `x ? .5 : 1` keep its number.
@@ -293,6 +297,23 @@ namespace DotGram.ExpressionLanguage;
 	Lambda : @LambdaExpression
 		= Import* & '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>" & body: Value
 		=> @(Expression.Lambda(context.Returning(body), ExpressionParser.Taking(first, rest)))
+
+	// The same thing written inside an expression, where it is an operand like any other.
+	//
+	// Its parameters say their types. C# reads `y => y * 2` and takes the type from what the
+	// lambda is passed to, which is a question about the method being chosen — and that
+	// cannot be asked before the argument it would choose by is built. So `(int y) => y * 2`
+	// here, and the bare form when overload resolution can be asked to wait.
+	//
+	// The guard at the end is what keeps the parameter inside. A name is looked up by where
+	// it is written (§7.7), and this records the extent an inner `y` is written in — the way
+	// a `catch` keeps the variable it catches. Without it the parameter would be a name in
+	// every block, which is right for the outer lambda's parameters, written as they are
+	// outside every block, and wrong for these.
+	Inner : @Expression
+		= '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>" & body: Value
+		& when @(context.Scoped(parserSpan))
+		=> @(context.Nested(body, ExpressionParser.Taking(first, rest)))
 
 	// A `using` stands before the lambda, as it stands at the top of a C# file, and names a
 	// namespace whose types every name after it may mean. The guard records it while the
@@ -890,6 +911,8 @@ namespace DotGram.ExpressionLanguage;
 		// the operand it is on is built, which is the one question a guard cannot ask (§8.1).
 		| "nameof" & '(' & head: Word & ('.' & part: NamePart)* & ')'
 		  => @(Expression.Constant(ExpressionParser.Last(head, part)))
+
+		| l: Inner => @(l)
 
 		| '(' & inner: Expression & ')' => @(inner)
 
@@ -3457,6 +3480,50 @@ public static partial class ExpressionParser
 			_returns ??= Expression.Label(value.Type, "return");
 
 			return Expression.Return(_returns, Converted(value, _returns.Type));
+		}
+
+		/// <summary>A lambda written inside an expression, which is a value like any other.</summary>
+		/// <remarks>
+		/// A `return` inside one is refused rather than mis-built. There is one label for the
+		/// text being read, made by the first `return` and belonging to the outermost lambda,
+		/// which is what a `return` means in C#: it leaves the whole method. A jump to it from
+		/// inside a nested lambda leaves two, which is a tree the API will not compile — it
+		/// answers that with a label it cannot find, about a label nobody wrote. So it is said
+		/// here instead, in words about what the text says.
+		/// </remarks>
+		public Expression Nested(Expression body, ParameterExpression[] parameters)
+		{
+			if (body is null)
+				throw new ArgumentNullException(nameof(body));
+
+			if (_returns is not null && Jumps.To(_returns, body))
+				throw new FormatException(
+					"A 'return' inside a lambda written in an expression is not read yet.");
+
+			return Expression.Lambda(body, parameters);
+		}
+
+		/// <summary>Whether anything in a body jumps to that label, which is what a `return` is.</summary>
+		sealed class Jumps(LabelTarget target) : ExpressionVisitor
+		{
+			bool _found;
+
+			public static bool To(LabelTarget target, Expression body)
+			{
+				var jumps = new Jumps(target);
+
+				jumps.Visit(body);
+
+				return jumps._found;
+			}
+
+			protected override Expression VisitGoto(GotoExpression node)
+			{
+				if (node.Target == target)
+					_found = true;
+
+				return base.VisitGoto(node);
+			}
 		}
 
 		/// <summary>The body with the place its returns go to, where any of them do.</summary>

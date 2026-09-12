@@ -479,6 +479,53 @@ public sealed class ExpressionParserTests
 			0.5,
 			ExpressionParser.Compile<Func<int, double>>("(int x) => x > 0 ? .5 : 1.5")(1));
 
+	// ── A lambda written inside an expression ───────────────────────────────────
+
+	[Fact]
+	public void A_lambda_may_be_written_where_a_value_is_wanted() =>
+		Assert.Equal(
+			10,
+			ExpressionParser.Compile<Func<int, int>>(
+				"(int x) => { var f = (int y) => y * 2; f(x) }")(5));
+
+	[Fact]
+	public void And_it_may_take_nothing_and_it_may_close_over_what_is_around_it() =>
+		Assert.Equal(
+			[7, 6],
+			new[]
+			{
+				ExpressionParser.Compile<Func<int, int>>("(int x) => { var f = () => 7; f() }")(5),
+				ExpressionParser.Compile<Func<int, int>>("(int x) => { var f = (int y) => y + x; f(1) }")(5),
+			});
+
+	[Fact]
+	public void And_its_parameter_is_a_name_inside_it_and_nowhere_else() =>
+		// The guard records the extent, and a name is looked up by where it is written. So
+		// two lambdas beside each other may each take a `y`, and neither `y` is a name in the
+		// block that holds them.
+		Assert.Equal(
+			6,
+			ExpressionParser.Compile<Func<int, int>>(
+				"(int x) => { var f = (int y) => y + 1; var g = (int y) => y * 2; f(1) + g(2) }")(0));
+
+	[Fact]
+	public void And_a_name_of_its_own_is_not_one_outside_it() =>
+		Assert.Contains(
+			"nothing named 'y'",
+			Assert.Throws<FormatException>(
+				() => ExpressionParser.Parse("(int x) => { var f = (int y) => y * 2; y }")).Message);
+
+	[Fact]
+	public void But_a_return_inside_one_is_refused_rather_than_mis_built() =>
+		// The label a `return` goes to belongs to the outermost lambda, which is what `return`
+		// means in C#. A jump to it from inside a nested one leaves two lambdas at once, and
+		// the API answers that with a label it cannot find — about a label nobody wrote.
+		Assert.Contains(
+			"not read yet",
+			Assert.Throws<FormatException>(
+				() => ExpressionParser.Parse(
+					"(int x) => { var f = (int y) => { return y; }; f(x) }")).Message);
+
 	// ── A block is an expression, and it holds a scope ──────────────────────────
 
 	[Fact]

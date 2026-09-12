@@ -85,6 +85,11 @@ public sealed class ExpressionCarrierTests
 		"(bool c) => c ? 1 : 2L",
 		"() => -3000000000",
 
+		// A lambda inside an expression: one that closes over what is around it, and two
+		// beside each other whose parameters are each their own.
+		"(int x) => { var f = (int y) => y + x; f(1) }",
+		"(int x) => { var f = (int y) => y + 1; var g = (int y) => y * 2; f(1) + g(2) }",
+
 		// A guard and how far it reaches: one step, a whole chain, an index, a nullable held
 		// value, and the ternary whose number keeps its point. A receiver that is never null
 		// is not here: that one throws rather than refuses, and this asks about answers.

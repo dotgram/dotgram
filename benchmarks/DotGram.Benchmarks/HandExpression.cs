@@ -881,6 +881,62 @@ static class HandExpression
 			return at + 1;
 		}
 
+		/// <summary>A lambda written inside an expression.</summary>
+		/// <remarks>
+		/// The scope is recorded before the lambda is built and after its body is read, which
+		/// is where the grammar's guard stands: a name is looked up by where it is written, and
+		/// this is what says where the parameter's inside is.
+		/// </remarks>
+		int Inner(int i, out Expression? node)
+		{
+			node = null;
+
+			if (Kind(i) != LeftParen)
+				return -1;
+
+			var taken = new List<ParameterExpression>();
+			var at    = i + 1;
+
+			if (Kind(at) != RightParen)
+			{
+				var first = Parameter(at, out var one);
+
+				if (first < 0)
+					return -1;
+
+				taken.Add(one!);
+				at = first;
+
+				while (Kind(at) == Comma)
+				{
+					var more = Parameter(at + 1, out var next);
+
+					if (more < 0)
+						return -1;
+
+					taken.Add(next!);
+					at = more;
+				}
+			}
+
+			if (Kind(at) != RightParen || Kind(at + 1) != Arrow)
+				return -1;
+
+			var body = Value(at + 2, out var read);
+
+			if (body < 0)
+				return -1;
+
+			var span = Span(i, body);
+
+			if (!_context.Scoped(span))
+				return -1;
+
+			node = _context.Nested(read!, taken.ToArray());
+
+			return body;
+		}
+
 		// ── Types ───────────────────────────────────────────────────────────────
 
 		int Type(int i, out Type? type)
@@ -2227,6 +2283,17 @@ static class HandExpression
 				node = Expression.Constant(name);
 
 				return read + 1;
+			}
+
+			// A lambda written where a value is wanted, tried before the parenthesis it begins
+			// like: `(int y) => y * 2` and `(y)` are told apart by what stands after the `)`,
+			// which is further than a kind can see.
+			if (kind == LeftParen)
+			{
+				var lambda = Inner(i, out node);
+
+				if (lambda >= 0)
+					return lambda;
 			}
 
 			if (kind == LeftParen)
