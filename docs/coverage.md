@@ -24,13 +24,13 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 99.8% | 7983 | 20 | 0 | 4 | 85 | 250 | 0 |
+| **all** | 996 | 8338 | 99.8% | 7984 | 19 | 0 | 4 | 85 | 250 | 0 |
 | [data-types](#data-types) | 29 | 304 | 100.0% | 291 | 0 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 99.2% | 234 | 2 | 0 | 0 | 1 | 5 | 0 |
 | [functions](#functions) | 324 | 2101 | 100.0% | 2082 | 0 | 0 | 3 | 2 | 17 | 0 |
 | [includes](#includes) | 3 | 7 | 100.0% | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
 | [language-elements](#language-elements) | 86 | 868 | 99.5% | 850 | 4 | 0 | 0 | 0 | 14 | 0 |
-| [queries](#queries) | 37 | 747 | 99.0% | 717 | 7 | 0 | 0 | 1 | 22 | 0 |
+| [queries](#queries) | 37 | 747 | 99.2% | 718 | 6 | 0 | 0 | 1 | 22 | 0 |
 | [reference](#reference) | 3 | 32 | 100.0% | 32 | 0 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 100.0% | 311 | 0 | 0 | 0 | 0 | 1 | 0 |
 | [spatial-geometry](#spatial-geometry) | 74 | 357 | 100.0% | 357 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -49,7 +49,6 @@ rest run rather than read.
 | ALTER TABLE | 1 | 1 | stops at WITH — `ALTER TABLE dbo.doc_exf ADD AddDate smalldatetime NULL CONSTRAINT AddDateDflt DEFAU...` |
 | CREATE DATABASE SCOPED | 1 | 1 | stops at ')' — `CREATE DATABASE SCOPED CREDENTIAL AccessAzureInvoices WITH IDENTITY = 'SHARED ACCES...` |
 | CREATE TABLE | 1 | 1 | stops at ''' — `CREATE TABLE #temptable (col1 int);  INSERT INTO #temptable VALUES (10);  SELECT co...` |
-| DECLARE | 1 | 1 | stops at ',' — `DECLARE @p POINT (32, 23), @distance FLOAT;` |
 | INSERT | 1 | 1 | stops at WITH — `INSERT INTO loan_applications (c1, c2, c3, c4, score) SELECT d.c1, d.c2, d.c3, d.c4...` |
 
 ## What the engine answered the defects
@@ -565,7 +564,6 @@ None: the engine reads every statement this grammar reads.
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | UPDATE (Transact-SQL) | 136 | 97.1% | 4 | 0 | 0 | 0 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
 | PREDICT (Transact-SQL) | 8 | 71.4% | 2 | 0 | 0 | 0 | stops at WITH — `SELECT d.*, p.Score FROM PREDICT(MODEL = @model, DATA = dbo.mytable AS d, RUNTIME =...` |
-| SELECT Clause (Transact-SQL) | 5 | 80.0% | 1 | 0 | 0 | 0 | stops at ',' — `DECLARE @p POINT (32, 23), @distance FLOAT;` |
 | Aliasing | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | AT TIME ZONE (Transact-SQL) | 17 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CONTAINS (Transact-SQL) | 40 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -584,6 +582,7 @@ None: the engine reads every statement this grammar reads.
 | OUTPUT clause (Transact-SQL) | 67 | 100.0% | 0 | 0 | 0 | 0 |  |
 | READTEXT (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Search condition (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
+| SELECT Clause (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SELECT examples (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | FOR Clause (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
 | GROUP BY (Transact-SQL) | 33 | 100.0% | 0 | 0 | 0 | 0 |  |

@@ -19926,3 +19926,64 @@ At 150: read by both 5,962 (from 5,960), the work list 24 (from 26), read here b
 there 1 (from 1), another product's 258; `--split` 736 (from 734) — ScriptDom reads the
 bracketed escape too, so nothing was paid for it — the round trip 100% of 7,578. The map:
 read by both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
+
+## A type named through its schema, and what its last word allows
+
+`CREATE TABLE t1 (c1 sys.int, c2 national sys.text, c3 national sys.Char varying, c4
+sys.binARY varying, c5 [sys]."Char" varying, c6 sys.[xml](CONTENT dbo.xsd1))` was one line of
+the work list, and the obvious reading — a dotted name takes whatever a type takes — is wrong
+in both directions. Asked of the engine one tail at a time, the rule is exact: **what may
+follow a dotted name is the last word of that name's own business.**
+
+- **`VARYING`** follows `char`, `character`, `nchar` and `binary`, with a length or without,
+  bracketed or quoted: `sys.char varying (MAX)`, `[sys].[char] varying (10)`, `sys."Char"
+  varying` are read. After anything else it is `Msg 102` — `sys.text varying`, `sys.varchar
+  varying`, `sys.varbinary varying`, `sys.image varying`, `sys.int varying`, `sys.nosuchtype
+  varying`, `dbo.mytype varying (10)`.
+- **`NATIONAL`** stands in front of `char`, `character` and `text`: `national sys.char varying
+  (10)`, `national sys.character`, `national sys.text (10)`, `national [sys].[char]`. Before
+  anything else, `Msg 102` — including `national sys.nchar` and `national sys.ntext`, which
+  are national already — and `national sys.text varying` is refused too: `TEXT` takes the word
+  in front of it and not the one behind.
+- **Numbers in brackets are nobody's business but the length's**: `sys.nosuchtype (10)`,
+  `sys.nosuchtype (10, 2)`, `dbo.mytype (10, 2)`, `dbo.mytype (MAX)` are all read.
+- **A bracket that is not numbers belongs to `xml`**: `sys.xml (CONTENT dbo.xsd1)`,
+  `(DOCUMENT dbo.xsd1)`, `(dbo.xsd1)`, `"xml"(myCollection)`, `[XmL](document [myCollection])`
+  and even `dbo.xml (myCollection)` are read, while `dbo.mytype (CONTENT dbo.xsd1)` and
+  `[mytype](content [dbo].myCollection)` are `Msg 102`.
+- And `national text` with no schema at all was missing from the unqualified rule, which had
+  `NATIONAL` in front of `CHARACTER` and `CHAR` alone. `national text (10)` is read as well.
+
+**The condition lives in a rule of its own, and that is not a matter of taste.** `TSqlDataType`
+has no type: it is worth the words it matched, and twenty-odd callers take it as text. A
+capture put into one of its alternatives makes the generator build a record for the whole
+rule, and every one of those callers stops compiling — which is what happened, twice, before
+the shape came out right. A rule with no type of its own must be uniform; `DottedType` is one
+alternative with one capture, the way `CreateStatisticsWith` is, and the condition reads the
+type as written, the way `Syntax.Collated` does.
+
+**The defect list went from one to four and none of the four is a rule.** Two are `Msg 183`,
+"The scale (…) for column '…' must be within the range … to …": `[dbo].mytype (10, 20)` was
+read, the brackets understood as a precision and a scale, and the numbers themselves refused.
+That is an objection to a value and not to a shape — the same kind as `241`, which joined
+`AboutNames` this morning — and 183 is not on that list. The other two are the corpus being
+cut: `CREATE TABLE [dbo].[DatabaseDefinitions] (…)` put to the engine as the corpus writes it,
+all thirteen columns of it, is read by both.
+
+**And a hole was found that has nothing to do with dots.** The engine takes one bracket after
+*any* type: `int(10)`, `money(10)`, `text(10)`, `ntext(10)`, `image(10)`, `datetime(3)`,
+`uniqueidentifier(10)`, `sql_variant(10)`, `geography(10)`, `hierarchyid(10)`, `sysname(10)`,
+`rowversion(10)`, `json(10)`, `xml(10)`, `real(10)`, `Double Precision(10)`, `int(1.5)` — and
+two numbers as well, `int(10, 2)` and `double precision(10, 2)`. What it refuses is only
+`int()`, `int(max, 1)`, `int(-1)` and `int(a)`: one or two whole numbers, or `MAX`, and
+nothing else. It reads them in a column, in a `DECLARE`, in a `CAST`, a `CONVERT`, a
+`CREATE TYPE … FROM` and a `RETURNS` alike — so `ColumnBody`'s `max: ('(' & "MAX"i & ')')?`
+is a special case of a general rule written in the wrong place. This grammar reads `float(10)`,
+`timestamp(10)`, `int(max)` and the column's `(MAX)`, and nothing else. That is the next
+piece, and it belongs inside `TSqlDataType` once rather than in the twenty places a type is
+read.
+
+At 150: read by both 5,963 (from 5,962), the work list 23 (from 24), read here but refused
+there 4 (from 1, and all four explained above), another product's 258; `--split` 738 (from
+736), the round trip 100% of 7,582. The map: read by both **7,984 of 8,338 (99.8%), the work
+list 19** (from 7,983 and 20), defects 0.

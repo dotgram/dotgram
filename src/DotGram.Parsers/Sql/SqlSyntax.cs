@@ -4231,6 +4231,115 @@ public static class Syntax
 		!Array.Exists(body, static one => one is Clause.ColumnDefinition(_, _, not null, _)) ||
 		Array.Exists(body, static one => one is Clause.ColumnDefinition(_, _, null, _));
 
+	/// <summary>Whether a type named through its schema takes the tail it was given.</summary>
+	/// <remarks>
+	/// <para>
+	/// A dotted name is read wherever a type stands — <c>sys.int</c>, <c>sys..int</c>,
+	/// <c>master.sys.int</c>, <c>[sys].[int]</c>, <c>dbo.int</c>, <c>sys.nosuchtype</c> — and
+	/// what may follow it is the last part's own business. Asked of the engine one tail at a
+	/// time, at every level from 100 to 170.
+	/// </para>
+	/// <para>
+	/// <c>VARYING</c> follows <c>char</c>, <c>character</c>, <c>nchar</c> and <c>binary</c>,
+	/// with a length or without: <c>sys.char varying (MAX)</c>, <c>[sys].[char] varying
+	/// (10)</c>, <c>sys."Char" varying</c> are read. It follows nothing else —
+	/// <c>sys.text varying</c>, <c>sys.varchar varying</c>, <c>sys.varbinary varying</c>,
+	/// <c>sys.image varying</c>, <c>sys.int varying</c>, <c>sys.nosuchtype varying</c> and
+	/// <c>dbo.mytype varying (10)</c> are each <c>Msg 102</c>.
+	/// </para>
+	/// <para>
+	/// <c>NATIONAL</c> stands in front of <c>char</c>, <c>character</c> and <c>text</c>:
+	/// <c>national sys.char varying (10)</c>, <c>national sys.character</c>, <c>national
+	/// sys.text (10)</c>, <c>national [sys].[char]</c> are read. Before anything else it is
+	/// <c>Msg 102</c> — <c>national sys.nchar</c>, <c>national sys.ntext</c>, <c>national
+	/// sys.varchar</c>, <c>national sys.int</c>, <c>national dbo.mytype</c> — and
+	/// <c>national sys.text varying</c> is refused as well, <c>TEXT</c> taking the word in
+	/// front and not the one behind.
+	/// </para>
+	/// <para>
+	/// Numbers in brackets are nobody's business but the length's: <c>sys.nosuchtype (10)</c>,
+	/// <c>sys.nosuchtype (10, 2)</c>, <c>dbo.mytype (10, 2)</c> and <c>dbo.mytype (MAX)</c>
+	/// are all read. What is in brackets and is not a number belongs to <c>xml</c> alone —
+	/// <c>sys.xml (CONTENT dbo.xsd1)</c>, <c>(DOCUMENT dbo.xsd1)</c> and <c>(dbo.xsd1)</c>
+	/// are read, and <c>dbo.mytype (CONTENT dbo.xsd1)</c> is <c>Msg 102</c>.
+	/// </para>
+	/// </remarks>
+	public static bool Dotted(string? text)
+	{
+		if (text is null)
+			return false;
+
+		var rest     = text.TrimStart();
+		var national = rest.StartsWith("NATIONAL", StringComparison.OrdinalIgnoreCase);
+
+		if (national)
+			rest = rest.Substring("NATIONAL".Length).TrimStart();
+
+		// The name ends at the first space or bracket standing outside a quoted part, so that
+		// `[sys]."Char" varying` is the name `[sys]."Char"` and the tail `varying`.
+		var at    = 0;
+		var until = '\0';
+
+		while (at < rest.Length)
+		{
+			var one = rest[at];
+
+			if (until != '\0')
+			{
+				if (one == until)
+					until = '\0';
+			}
+			else if (one == '[')
+			{
+				until = ']';
+			}
+			else if (one == '"')
+			{
+				until = '"';
+			}
+			else if (char.IsWhiteSpace(one) || one == '(')
+			{
+				break;
+			}
+
+			at++;
+		}
+
+		var name = rest.Substring(0, at);
+		var tail = rest.Substring(at).TrimStart();
+		var dot  = name.LastIndexOf('.');
+		var last = Unquoted(dot < 0 ? name : name.Substring(dot + 1));
+
+		if (national && !Array.Exists(Nationally, one => string.Equals(one, last, StringComparison.OrdinalIgnoreCase)))
+			return false;
+
+		if (tail.Length == 0)
+			return true;
+
+		if (tail.StartsWith("VARYING", StringComparison.OrdinalIgnoreCase))
+			return national
+				? !string.Equals("TEXT", last, StringComparison.OrdinalIgnoreCase)
+				: Array.Exists(Varyingly, one => string.Equals(one, last, StringComparison.OrdinalIgnoreCase));
+
+		// A bracket holding anything but numbers is the xml content's.
+		return Array.TrueForAll(tail.Trim('(', ')').Split(','), static piece => Numbered(piece)) ||
+			   string.Equals("XML", last, StringComparison.OrdinalIgnoreCase);
+
+		static bool Numbered(string piece)
+		{
+			var word = piece.Trim();
+
+			return string.Equals(word, "MAX", StringComparison.OrdinalIgnoreCase) ||
+				   word.Length > 0 && Array.TrueForAll(word.ToCharArray(), char.IsDigit);
+		}
+	}
+
+	/// <summary>The types a dotted name may put <c>VARYING</c> after.</summary>
+	static readonly string[] Varyingly = ["CHAR", "CHARACTER", "NCHAR", "BINARY"];
+
+	/// <summary>The types a dotted name may put <c>NATIONAL</c> in front of.</summary>
+	static readonly string[] Nationally = ["CHAR", "CHARACTER", "TEXT"];
+
 	/// <summary>Whether a kept sample percentage stands beside the scan it was kept from.</summary>
 	/// <remarks>
 	/// <c>PERSIST_SAMPLE_PERCENT</c> is <c>Msg 153</c> alone and read beside <c>FULLSCAN</c>,

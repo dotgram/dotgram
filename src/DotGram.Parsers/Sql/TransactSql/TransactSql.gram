@@ -605,7 +605,8 @@ CountStar : @Expression
 // after `AS` inside a cast.
 TSqlDataType
 	= ("CHARACTER"i & "VARYING"i? | "CHAR"i & "VARYING"i? | "VARCHAR"i
-	  | "NATIONAL"i & ("CHARACTER"i | "CHAR"i) & "VARYING"i? | "NCHAR"i & "VARYING"i? | "NVARCHAR"i
+	  | "NATIONAL"i & ("CHARACTER"i | "CHAR"i) & "VARYING"i? | "NATIONAL"i & "TEXT"i
+	  | "NCHAR"i & "VARYING"i? | "NVARCHAR"i
 	  | "BINARY"i & "VARYING"i? | "VARBINARY"i | "VECTOR"i) & TSqlLength?
 	| ("NUMERIC"i | "DECIMAL"i | "DEC"i)
 	  & ('(' & Sql92.Lexical.Digits & (',' & Sql92.Lexical.Digits)? & ')')?
@@ -620,7 +621,21 @@ TSqlDataType
 	| "UNIQUEIDENTIFIER"i | "SQL_VARIANT"i | "ROWVERSION"i | "SYSNAME"i
 	| "GEOGRAPHY"i | "GEOMETRY"i | "HIERARCHYID"i
 	| "INTERVAL"i & IntervalQualifier
-	| QualifiedName & TSqlLength?
+	| DottedType
+
+// What may follow a type named through its schema. One rule rather than an alternative
+// each, because they all begin with the name and GRAM4016 is right to ask for the operand
+// once; what tells them apart is the text, which is what the condition reads.
+DottedTail
+	= "VARYING"i & TSqlLength?
+	| '(' & XmlContent? & QualifiedName & ')'
+	| '(' & Sql92.Lexical.Digits & ',' & Sql92.Lexical.Digits & ')'
+	| TSqlLength
+
+// `NATIONAL` in front is part of the same question and not a second rule: whether it may
+// stand there is the last part's business too, which is why the condition is asked of the
+// whole of what was written.
+DottedType = t: ("NATIONAL"i? & QualifiedName & DottedTail?) & when @(Syntax.Dotted(t))
 
 TSqlLength = '(' & (Sql92.Lexical.Digits | "MAX"i) & ')'
 

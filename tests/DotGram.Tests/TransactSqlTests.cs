@@ -1109,6 +1109,67 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>What may follow a type named through its schema, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("CREATE TABLE t1 (c1 national sys.varchar)")]
+	[InlineData("CREATE TABLE t1 (c1 national sys.varchar (10))")]
+	[InlineData("CREATE TABLE t1 (c1 national sys.int)")]
+	[InlineData("CREATE TABLE t1 (c1 national sys.nchar)")]
+	[InlineData("CREATE TABLE t1 (c1 national sys.ntext)")]
+	[InlineData("CREATE TABLE t1 (c1 national sys.nosuchtype)")]
+	[InlineData("CREATE TABLE t1 (c1 national dbo.mytype)")]
+	[InlineData("CREATE TABLE t1 (c1 national sys.text varying)")]
+	[InlineData("CREATE TABLE t1 (c1 sys.text varying)")]
+	[InlineData("CREATE TABLE t1 (c1 sys.varchar varying)")]
+	[InlineData("CREATE TABLE t1 (c1 sys.varbinary varying)")]
+	[InlineData("CREATE TABLE t1 (c1 sys.image varying)")]
+	[InlineData("CREATE TABLE t1 (c1 sys.int varying)")]
+	[InlineData("CREATE TABLE t1 (c1 sys.nosuchtype varying)")]
+	[InlineData("CREATE TABLE t1 (c1 dbo.mytype varying (10))")]
+	[InlineData("CREATE TABLE t1 (c1 dbo.mytype (CONTENT dbo.xsd1))")]
+	[InlineData("CREATE TABLE t1 (c1 sys.nosuchtype (DOCUMENT dbo.xsd1))")]
+	[InlineData("CREATE TABLE t1 (c1 sys.interval year)")]
+	public void A_type_named_through_its_schema_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads the tails it takes.</summary>
+	[Theory]
+	[InlineData("CREATE TABLE t1 (c1 national text)")]
+	[InlineData("CREATE TABLE t1 (c1 national sys.text)")]
+	[InlineData("CREATE TABLE t1 (c1 national sys.text (10))")]
+	[InlineData("CREATE TABLE t1 (c1 national sys.char)")]
+	[InlineData("CREATE TABLE t1 (c1 national sys.char varying)")]
+	[InlineData("CREATE TABLE t1 (c1 national sys.char varying (10))")]
+	[InlineData("CREATE TABLE t1 (c1 national sys.character)")]
+	[InlineData("CREATE TABLE t1 (c1 national sys.character varying (10))")]
+	[InlineData("CREATE TABLE t1 (c1 national [sys].[char])")]
+	[InlineData("CREATE TABLE t1 (c1 sys.char varying)")]
+	[InlineData("CREATE TABLE t1 (c1 sys.char varying (10))")]
+	[InlineData("CREATE TABLE t1 (c1 sys.char varying (MAX))")]
+	[InlineData("CREATE TABLE t1 (c1 sys.character varying (10))")]
+	[InlineData("CREATE TABLE t1 (c1 sys.nchar varying (10))")]
+	[InlineData("CREATE TABLE t1 (c1 sys.binARY varying)")]
+	[InlineData("CREATE TABLE t1 (c1 [sys].[char] varying (10))")]
+	[InlineData("CREATE TABLE t1 (c5 [sys].\"Char\" varying)")]
+	[InlineData("CREATE TABLE t1 (c1 sys.decimal (10, 2))")]
+	[InlineData("CREATE TABLE t1 (c1 sys.numeric (10, 2))")]
+	[InlineData("CREATE TABLE t1 (c1 sys.nosuchtype (10, 2))")]
+	[InlineData("CREATE TABLE t1 (c1 dbo.mytype (10, 2))")]
+	[InlineData("CREATE TABLE t1 (c1 sys.xml (CONTENT dbo.xsd1))")]
+	[InlineData("CREATE TABLE t1 (c1 sys.xml (DOCUMENT dbo.xsd1))")]
+	[InlineData("CREATE TABLE t1 (c1 sys.xml (dbo.xsd1))")]
+	[InlineData("CREATE TABLE t1 (c1 sys.int, c2 national sys.text, c3 national sys.Char varying, c4 sys.binARY varying, c5 [sys].\"Char\" varying, c6 sys.[xml](CONTENT dbo.xsd1))")]
+	[InlineData("DECLARE @a national sys.text")]
+	[InlineData("CREATE TABLE t1 (c1 sys.int)")]
+	[InlineData("CREATE TABLE t1 (c1 sys.nosuchtype)")]
+	[InlineData("CREATE TABLE t1 (c1 master.sys.int)")]
+	public void A_type_named_through_its_schema_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
