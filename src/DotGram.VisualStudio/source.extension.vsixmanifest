@@ -8,16 +8,7 @@
 		          Language="en-US"
 		          Publisher=".Gram" />
 		<DisplayName>.Gram language support</DisplayName>
-		<Description xml:space="preserve">First-class Visual Studio tooling for .Gram parser grammars, both in standalone .gram files and embedded in C# attributes.
-
-Features:
-• Theme-aware syntax highlighting and live diagnostics
-• Completion, signature help, Quick Info, brace matching, and folding
-• Go To Definition, Find All References, reference highlighting, and Rename
-• Navigation between grammar rules and generated C# APIs
-• Embedded DSL highlighting and diagnostics through StringSyntax
-
-Design grammars and use their generated parsers without leaving the C# editor.</Description>
+		<Description>Visual Studio language support for .Gram parser grammars.</Description>
 		<MoreInfo>https://github.com/dotgram/dotgram</MoreInfo>
 		<License>LICENSE.txt</License>
 		<GettingStartedGuide>https://github.com/dotgram/dotgram/blob/main/docs/syntax.md</GettingStartedGuide>
