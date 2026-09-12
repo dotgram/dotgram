@@ -199,6 +199,63 @@ public sealed class MemberResolverTests
 		// compiler beside this test has already answered it.
 		Assert.Equal(Choosing.Given(1), Chose("Given", Value(1)));
 
+	// ── What a type argument is inferred to be, the compiler adjudicating ───────
+	//
+	// A type parameter bound more than once is the whole of §12.6.3's fixing: the bounds are
+	// gathered and the one every other reaches is the answer. Each of these calls the method
+	// in ordinary C#, where that is worked out, and asks the resolver for the same.
+
+	/// <summary>The type argument the resolver inferred, by name.</summary>
+	static string Inferred(string name, params Expression[] arguments) =>
+		((MethodInfo)Asking().Static(typeof(Inferring), name, arguments).Member)
+			.GetGenericArguments()[0].Name;
+
+	[Fact]
+	public void A_type_parameter_bound_twice_takes_what_both_bounds_reach() =>
+		Assert.Equal(Inferring.Both(1, 2L), Inferred("Both", Value(1), Value(2L)));
+
+	[Fact]
+	public void And_it_is_the_bounds_and_not_their_order_that_decide() =>
+		// The same question asked with the narrower bound first and with it second: an answer
+		// that depends on which was read first is an answer to a different question.
+		Assert.Equal(
+			[Inferring.Both((byte)1, 2), Inferring.Both(1, (short)2)],
+			new[]
+			{
+				Inferred("Both", Value((byte)1), Value(2)),
+				Inferred("Both", Value(1), Value((short)2)),
+			});
+
+	[Fact]
+	public void And_an_array_and_one_of_its_elements_agree() =>
+		Assert.Equal(
+			Inferring.Array([1, 2], (byte)3),
+			Inferred("Array", Value(new[] { 1, 2 }), Value((byte)3)));
+
+	[Fact]
+	public void And_a_sequence_says_what_it_holds() =>
+		Assert.Equal(
+			Inferring.Sequence(new List<int>()),
+			Inferred("Sequence", Value(new List<int>())));
+
+	[Fact]
+	public void But_bounds_with_nothing_in_common_infer_nothing() =>
+		// `Both(1, "x")` is CS0411 to the compiler — asked, and that is what it answered. A
+		// method whose type arguments cannot be worked out is a method that is not there.
+		Assert.Contains(
+			"has no method 'Both'",
+			Assert.Throws<InvalidOperationException>(
+				() => Asking().Static(typeof(Inferring), "Both", [Value(1), Value("x")])).Message);
+
+	[Fact]
+	public void And_the_literal_null_is_no_bound_at_all() =>
+		// `One(null)` is CS0411 as well, and for the reason the language says everywhere else:
+		// the literal has no type of its own, so it says nothing about what `T` is.
+		Assert.Contains(
+			"has no method 'One'",
+			Assert.Throws<InvalidOperationException>(
+				() => Asking().Static(typeof(Inferring), "One", [ExpressionParser.Null])).Message);
+
 	// ── A generic method, an indexer, a constructor, a delegate ─────────────────
 
 	[Fact]

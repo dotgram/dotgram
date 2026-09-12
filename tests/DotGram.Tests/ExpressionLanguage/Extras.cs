@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace DotGram.Tests.ExpressionLanguage;
 
@@ -38,6 +39,27 @@ static class Extras
 sealed class Held
 {
 	public int Twice() => 2;
+}
+
+/// <summary>Generic methods that say what was inferred for them, so the compiler can be asked.</summary>
+/// <remarks>
+/// Each answers with the name of its own type argument, which is what the compiler worked
+/// out — so a test calls the method in ordinary C# to learn what C# infers, and asks the
+/// resolver the same question.
+/// </remarks>
+static class Inferring
+{
+	/// <summary>One type parameter bound twice, which is what fixing is for (§12.6.3).</summary>
+	public static string Both<T>(T first, T second) => typeof(T).Name;
+
+	/// <summary>Bound through an array and directly, which must agree.</summary>
+	public static string Array<T>(T[] values, T one) => typeof(T).Name;
+
+	/// <summary>Bound through an interface the argument implements.</summary>
+	public static string Sequence<T>(IEnumerable<T> values) => typeof(T).Name;
+
+	/// <summary>Bound once, or not at all where the argument has no type of its own.</summary>
+	public static string One<T>(T only) => typeof(T).Name;
 }
 
 /// <summary>Overloads whose choosing the C# compiler itself can be asked about.</summary>
