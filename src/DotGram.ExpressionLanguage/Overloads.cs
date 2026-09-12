@@ -415,10 +415,15 @@ public static partial class ExpressionParser
 	/// Which of two types is the better one to convert to: the one that converts to the
 	/// other and not back, and a signed type over an unsigned one where neither does.
 	/// </summary>
+	/// <remarks>
+	/// The converting asked about here is every implicit conversion C# has, an operator the
+	/// author wrote among them — which is what tells `Given(Money)` from `Given(decimal)`
+	/// when both are handed an `int`, and what the standard conversions alone called a tie.
+	/// </remarks>
 	static int BetterTarget(Type first, Type second)
 	{
-		var down = Standard(first, second);
-		var up   = Standard(second, first);
+		var down = Converts(first, second);
+		var up   = Converts(second, first);
 
 		if (down != up)
 			return down ? 1 : -1;

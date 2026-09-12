@@ -40,6 +40,57 @@ sealed class Held
 	public int Twice() => 2;
 }
 
+/// <summary>Overloads whose choosing the C# compiler itself can be asked about.</summary>
+/// <remarks>
+/// Each pair is one rule of §12.6.4, and each overload answers with what tells it from the
+/// other. A test calls the pair in ordinary C# — where the compiler chooses — and asks the
+/// resolver the same question, so what is asserted is that the two agree. Written this way
+/// because a test that encodes my reading of the specification proves only that I read it
+/// the same way twice.
+/// </remarks>
+static class Choosing
+{
+	/// <summary>An exact match against a widening (§12.6.4.4).</summary>
+	public static string Near(int value) => "Int32";
+
+	public static string Near(long value) => "Int64";
+
+	/// <summary>Neither exact, and one target converts to the other (§12.6.4.6).</summary>
+	public static string Wider(long value) => "Int64";
+
+	public static string Wider(double value) => "Double";
+
+	/// <summary>Neither target converts to the other, and one of them is signed.</summary>
+	public static string Signed(int value) => "Int32";
+
+	public static string Signed(uint value) => "UInt32";
+
+	/// <summary>One leaves nothing to a default, the other leaves one.</summary>
+	public static string Filled(int first) => "1";
+
+	public static string Filled(int first, int second = 5) => "2";
+
+	/// <summary>One applies in its normal form, the other only expanded.</summary>
+	public static string Spread(int first, int second) => "normal";
+
+	public static string Spread(int first, params int[] rest) => "expanded";
+
+	/// <summary>A conversion the author wrote against one the language has (§12.6.4.6).</summary>
+	public static string Given(Money value) => "Money";
+
+	public static string Given(decimal value) => "Decimal";
+}
+
+/// <summary>A type with a conversion of its own, for the rule about conversions of one's own.</summary>
+readonly struct Money(decimal amount)
+{
+	public decimal Amount { get; } = amount;
+
+	public static implicit operator Money(int value) => new(value);
+
+	public static implicit operator decimal(Money value) => value.Amount;
+}
+
 /// <summary>Overloads written to be chosen between, for asking the resolver without a text.</summary>
 /// <remarks>
 /// Each pair is one question C#'s overload resolution answers: which is better where both

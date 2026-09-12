@@ -149,6 +149,56 @@ public sealed class MemberResolverTests
 			Assert.Throws<InvalidOperationException>(
 				() => Asking("DotGram.Tests.ExpressionLanguage").Method(Value("a"), "Sized", [])).Message);
 
+	// ── Which of two is better, with the C# compiler as the oracle ──────────────
+	//
+	// Each of these calls a pair of overloads in ordinary C#, where the compiler chooses and
+	// the chosen one says so, and asks the resolver the same question. What is asserted is
+	// that the two agree — so a test cannot hold a misreading of §12.6.4 in place, because
+	// the compiler beside it did not read anything.
+
+	/// <summary>The first parameter's type of the overload the resolver chose.</summary>
+	static string Chose(string name, params Expression[] arguments) =>
+		((MethodInfo)Asking().Static(typeof(Choosing), name, arguments).Member)
+			.GetParameters()[0].ParameterType.Name;
+
+	[Fact]
+	public void An_exact_match_beats_a_widening() =>
+		Assert.Equal(Choosing.Near(1), Chose("Near", Value(1)));
+
+	[Fact]
+	public void And_where_neither_is_exact_the_nearer_target_wins() =>
+		// `long` converts to `double` and not back, so it is the better target of the two.
+		Assert.Equal(Choosing.Wider((short)1), Chose("Wider", Value((short)1)));
+
+	[Fact]
+	public void And_where_neither_target_converts_to_the_other_the_signed_one_wins() =>
+		// A `byte` reaches both `int` and `uint`, and neither of those reaches the other.
+		Assert.Equal(Choosing.Signed((byte)1), Chose("Signed", Value((byte)1)));
+
+	[Fact]
+	public void And_the_one_leaving_nothing_to_a_default_wins() =>
+		Assert.Equal(
+			Choosing.Filled(1),
+			((MethodInfo)Asking().Static(typeof(Choosing), "Filled", [Value(1)]).Member)
+				.GetParameters().Length.ToString());
+
+	[Fact]
+	public void And_a_normal_form_beats_an_expanded_one()
+	{
+		var chosen = Asking().Static(typeof(Choosing), "Spread", [Value(1), Value(2)]);
+
+		Assert.Equal(
+			Choosing.Spread(1, 2),
+			chosen.Arguments[1].Type.IsArray ? "expanded" : "normal");
+	}
+
+	[Fact]
+	public void And_a_conversion_of_the_author_s_own_is_weighed_with_the_rest() =>
+		// `int` reaches `Money` by the conversion `Money` declares and `decimal` by the one
+		// the language has. Which of the two targets is better is the question, and the
+		// compiler beside this test has already answered it.
+		Assert.Equal(Choosing.Given(1), Chose("Given", Value(1)));
+
 	// ── A generic method, an indexer, a constructor, a delegate ─────────────────
 
 	[Fact]

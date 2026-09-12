@@ -71,8 +71,19 @@ public static partial class ExpressionParser
 		if (value is ConstantExpression { Value: { } constant } && Narrowed(constant, to) is not null)
 			return true;
 
-		return Standard(from, to) || UserDefined(from, to) is not null;
+		return Converts(from, to);
 	}
+
+	/// <summary>Whether C# converts one type to another unasked, an operator the author wrote included.</summary>
+	/// <remarks>
+	/// What the form above falls back to once the value itself has had its say, and what
+	/// <see cref="BetterTarget"/> asks of two candidate parameter types. It has to count a
+	/// conversion of the author's own: §12.6.4.6 weighs one beside the conversions the
+	/// language has, and `Money` beats `decimal` where `Money` is what declares the operator
+	/// between them — asked of the C# compiler itself, which is what chooses there.
+	/// </remarks>
+	static bool Converts(Type from, Type to) =>
+		Standard(from, to) || UserDefined(from, to) is not null;
 
 	/// <summary>
 	/// A standard implicit conversion between two types: identity, numeric widening,
