@@ -421,14 +421,17 @@ public static class SqlWriter
 					text.Append(')');
 				}
 
-				if (order is not null)
-					Columns(text, order, "ORDER");
-
 				if (options is not null)
 				{
 					text.Append(" WITH ");
 					Each(text, options);
 				}
+
+				// What a CLR table function promises about the order of its rows is written
+				// after its options and not before them: `WITH EXECUTE AS 'User1' ORDER (c1
+				// ASC)` is what the engine reads, and the other way round is `Msg 156`.
+				if (order is not null)
+					Columns(text, order, "ORDER");
 
 				text.Append(' ');
 

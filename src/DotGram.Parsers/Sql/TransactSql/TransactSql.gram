@@ -8,7 +8,7 @@ using Sql92;
 // grammar is attached to; what is written here is only where T-SQL differs, and
 // §5.1's rebinding is what makes the difference reach every rule that leads to it.
 //
-// Twenty-one rules replace twenty-one of the standard's. Nothing else is restated and nothing
+// Twenty-two rules replace twenty-two of the standard's. Nothing else is restated and nothing
 // is copied: a query expression, a join, a predicate and the whole value tower are
 // the ones already read against the standard, reading a dialect's identifiers and
 // a dialect's primaries because the substitution rewrote every call inside them.
@@ -680,6 +680,21 @@ DistinctTail : @Expression
 	= q: Quantifier & sub: TableSubquery => @(new Expression.Prefixed(Syntax.Squared(q), new Expression.Subquery(sub)))
 	| right: RowValueConstructor         => @(right)
 
+// ── §8.12's boolean factor, widened ─────────────────────────────────────────
+//
+// A negation standing on a negation, which the engine reads and the standard has no room
+// for: `WHERE NOT NOT 1 < 23`, three of them, four of them, before `EXISTS`, before `IN`,
+// before `IS NULL`, inside an `AND`, in an `IF`, in a `DELETE`'s and an `UPDATE`'s `WHERE`,
+// and in a `CHECK`. §8.12 writes one optional `NOT` and there is nowhere to put a second.
+//
+// Written around itself rather than as a repetition, so that each `NOT` folds its own
+// `Expression.Not` and the tree holds as many as were written. It calls this name and not
+// the standard's for the reason §6.3's replacement gives: a rule that named the one it
+// replaces would be rewritten into itself.
+TSqlBooleanFactor : @Expression
+	= "NOT"i & t: TSqlBooleanFactor => @(new Expression.Not(t))
+	| t: BooleanTest                => @(t)
+
 // ── §7.9's query specification, widened ─────────────────────────────────────
 //
 // What may be left out and what may be added. T-SQL's `FROM` is optional — `SELECT 1`
@@ -1266,6 +1281,7 @@ namespace Dialect with (
 	SimpleWhen                = TSqlSimpleWhen,
 	DataType                  = TSqlDataType,
 	Predicate                 = TSqlPredicate,
+	BooleanFactor             = TSqlBooleanFactor,
 	TrimSpecification         = TSqlTrimSpecification)
 {
 	Select    : @Statement  = q: Sql92.DirectSelect    => @(q)
@@ -3961,7 +3977,7 @@ FunctionStatement : @Statement
 		=> @(r with { Name = name, Parameters = parameters ?? Clause.None })
 
 FunctionReturns : @Statement.CreateFunction
-	= "TABLE"i & '(' & columns: TableBody & ')' & ("ORDER"i & order: IndexColumns)? & options: RoutineOptions?
+	= "TABLE"i & '(' & columns: TableBody & ')' & options: RoutineOptions? & ("ORDER"i & order: IndexColumns)?
 	  & "AS"i & "EXTERNAL"i & "NAME"i & external: QualifiedName
 		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", Statement.None, options, columns, null, order, external))
 	// `CALLED ON NULL INPUT` and `RETURNS NULL ON NULL INPUT` are `Msg 487` here and read of a

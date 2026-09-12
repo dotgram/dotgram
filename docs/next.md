@@ -19756,3 +19756,50 @@ either on its own: it is the corpus being cut into statements by ScriptDom, not 
 At 150: read by both 5,954 (from 5,952), the work list 30 (from 32), read here but refused
 there 9 (from 9); `--split` 730 (from 729), the round trip 100% of 7,572. The map: read by
 both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
+
+## A negation on a negation, and an order after the options
+
+Three families off the work list, and the third was not a family at all.
+
+- **A `NOT` standing on a `NOT`**, which the engine reads and §8.12 has no room for. Put to it
+  every way the corpus writes one: `WHERE NOT NOT 1 < 23`, three of them and four, before
+  `EXISTS`, before `IN`, before `IS NULL`, inside an `AND`, in an `IF`, in a `DELETE`'s and an
+  `UPDATE`'s `WHERE`, and inside a `CHECK`. All read, at every level.
+
+  The standard writes `<boolean factor> ::= [ NOT ] <boolean test>` and there is nowhere to
+  hang a second one, so this is the twenty-second rule to replace one of the standard's —
+  written the way the other twenty-one are, as a rule of its own name bound over the
+  standard's in `namespace Dialect with (…)`. A replacement that named the rule it replaces
+  would be rewritten into itself, which is why it is `TSqlBooleanFactor` and why the negation
+  calls *that* name: written around itself rather than as a repetition, so each `NOT` folds
+  its own `Expression.Not` and the tree holds as many as were written.
+
+- **A CLR table function says how its rows are ordered after its options, not before them.**
+  `RETURNS TABLE (c1 INT, c2 NCHAR (5), c3 DATETIME) WITH EXECUTE AS 'User1' ORDER (c3 DESC,
+  c1 ASC) AS EXTERNAL NAME …` is read and the other way round is `Msg 156`. `WITH
+  SCHEMABINDING` beside an `ORDER` is `Msg 487` and a table variable's function takes no
+  `ORDER` at all (`Msg 156`) — both about what it promises rather than where the words stand,
+  so neither is a rule here.
+
+  Reading it was one swap; printing it was the half I forgot. The round trip caught it
+  immediately — two statements printed into something ScriptDom will not read, both of them
+  this function — which is exactly what that pass is for. The writer now puts the `ORDER`
+  after the `WITH`, with the reason beside it.
+
+- **A context with no name is not a family.** `EXEC ('SELECT 1') AS LOGIN` looked read in the
+  first probe, and a rule was written for it. It is `Msg 102`, at every level, in every
+  spelling — `AS LOGIN`, `AS USER`, one argument or three. The single answer that looked like
+  a reading came from `@a` being undeclared: the engine objects to the name first with `Msg
+  137`, which the harness counts as a name objection and not a refusal, and the real `Msg 102`
+  never gets asked. There is a memory of mine that says exactly this, and I walked into it
+  anyway. The rule went back to `'=' & name`, and the two rows written under it moved into the
+  refusals beside the row that had been asserting the truth all along.
+
+  **The same mirage is in the corpus.** Two of the work list are
+  `EXECUTE ('select' + ' * from t1', 5, @a) AS LOGIN`, counted as read there for the same
+  reason and by the same `Msg 137`. They are not work, and nothing written here will take them
+  off the list: the corpus asks the engine about a statement whose variable nobody declared.
+
+At 150: read by both 5,956 (from 5,954), the work list 28 (from 30), read here but refused
+there 9 (from 9); `--split` 732 (from 730), the round trip 100% of 7,574. The map: read by
+both 7,983 of 8,338 (99.8%), the work list 20, defects 0.

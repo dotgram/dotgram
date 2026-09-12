@@ -997,6 +997,46 @@ public sealed class TransactSqlTests
 	public void A_statement_not_ended_is_followed_by_a_reserved_word(string input, bool read) =>
 		Assert.Equal(read, TransactSql.TryParseSql(input).IsSuccess);
 
+	/// <summary>A negation repeated, an <c>ORDER</c> after the options, and the name a context cannot leave out, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE (c1 INT) ORDER (c1 ASC) WITH EXECUTE AS 'User1' AS EXTERNAL NAME a.b.c")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS @t TABLE (c1 INT) WITH EXECUTE AS 'User1' ORDER (c1 ASC) AS BEGIN RETURN END")]
+	[InlineData("EXECUTE ('select * from t1', 5) AS LOGIN = 'sa'")]
+	[InlineData("EXECUTE ('select') AS LOGIN")]
+	[InlineData("EXECUTE ('select', 5, @a) AS LOGIN")]
+	public void Negations_orders_and_contexts_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT 1 WHERE NOT NOT 1 < 23")]
+	[InlineData("SELECT 1 WHERE NOT NOT NOT 1 < 23")]
+	[InlineData("SELECT 1 WHERE NOT NOT NOT NOT 1 < 23")]
+	[InlineData("SELECT 1 WHERE NOT (NOT 1 < 23)")]
+	[InlineData("SELECT 1 WHERE NOT NOT EXISTS (SELECT 1)")]
+	[InlineData("SELECT 1 WHERE NOT NOT 1 IN (1, 2)")]
+	[InlineData("SELECT 1 WHERE NOT NOT 1 IS NULL")]
+	[InlineData("IF NOT NOT 1 < 23 PRINT 'x'")]
+	[InlineData("SELECT 1 WHERE 1 = 1 AND NOT NOT 2 < 3")]
+	[InlineData("SELECT 1 WHERE NOT NOT 1 < 23 AND 2 > 1")]
+	[InlineData("DELETE t1 WHERE NOT NOT c1 = 1")]
+	[InlineData("UPDATE t1 SET c1 = 1 WHERE NOT NOT c1 = 1")]
+	[InlineData("CREATE TABLE t (A1 INT, CHECK (NOT NOT A1 < 23))")]
+	[InlineData("CREATE TABLE t (A1 INT, A2 INT, A3 INT, A4 INT, CHECK (A1 IS NULL AND A2 > 34 OR A3 IS NOT NULL AND NOT A4 = 23 AND NOT NOT A1 < 23 OR A2 <= 1000))")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE (c1 INT) WITH EXECUTE AS 'User1' ORDER (c1 ASC) AS EXTERNAL NAME a.b.c")]
+	[InlineData("CREATE FUNCTION [dbo].[TableFunction2] (@param1 INT, @param2 NCHAR (5)) RETURNS TABLE (c1 INT, c2 NCHAR (5), c3 DATETIME) WITH EXECUTE AS 'User1' ORDER (c3 DESC, c1 ASC) AS EXTERNAL NAME CLR1.UserDefinedFunctions.TableFunction1")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE (c1 INT) ORDER (c1 ASC) AS EXTERNAL NAME a.b.c")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE (c1 INT) WITH EXECUTE AS 'User1' AS EXTERNAL NAME a.b.c")]
+	[InlineData("EXECUTE ('select * from t1') AS LOGIN = 'sa'")]
+	[InlineData("EXECUTE ('select * from t1') AT srv")]
+	[InlineData("EXECUTE ('select', 5, @a) AT srv")]
+	public void Negations_orders_and_contexts_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
