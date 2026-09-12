@@ -599,6 +599,27 @@ CountStar : @Expression
 // three — and one thing that is not a type at all: `MAX` where a length stands,
 // which says the largest the type allows rather than a number of characters.
 //
+// **A length stands after any type at all, which is the engine's rule and not the blocks'.**
+// `int(10)`, `money(10)`, `text(10)`, `ntext(10)`, `image(10)`, `datetime(3)`, `date(3)`,
+// `uniqueidentifier(10)`, `sql_variant(10)`, `geography(10)`, `geometry(10)`,
+// `hierarchyid(10)`, `sysname(10)`, `rowversion(10)`, `json(10)`, `real(10)` and
+// `Double Precision(10)` are all read — in a column, a `DECLARE`, a `CAST`, a `CONVERT`, a
+// `CREATE TYPE … FROM`, a parameter and a `RETURNS` alike — so it is written once, after the
+// whole choice, and the types that carried one of their own no longer do. Inside are one or
+// two whole numbers or `MAX`; `int()`, `int(+1)`, `int(1e2)`, `int(10, max)`,
+// `decimal(10, 2, 3)`, `nvarchar(MAX, 1)` and `decimal(MAX, 2)` are each `Msg 102`. **They do
+// not stack**: `varchar(10)(20)`, `int(10)(20)`, `varchar(MAX)(10)`, `decimal(10, 2)(MAX)`
+// and `varchar(10) (MAX)` are refused, the last three of which this grammar used to read.
+//
+// A number with a point is the one place the two part: `int(10.0)` is read by the engine and
+// `int(1.5)` is `Msg 102`, which is a question about the value and not the shape. Whole
+// numbers are what is written here, so both are refused.
+//
+// `WITH TIME ZONE` and `INTERVAL YEAR TO MONTH` are the standard's and not T-SQL's: the
+// engine refuses a time zone wherever a type stands (`Msg 102`, `156` in a cast and a
+// column, `319` in a `CREATE TYPE … FROM`) and an interval qualifier as well. Bare
+// `interval` is read, being an ordinary name nobody declared.
+//
 // A bare qualified name stands last, and it is not a catch-all by accident: a type in
 // T-SQL may be one somebody declared, and no parser can tell without the catalogue.
 // What keeps it from swallowing everything is that the only place a type is read is
@@ -607,21 +628,42 @@ TSqlDataType
 	= ("CHARACTER"i & "VARYING"i? | "CHAR"i & "VARYING"i? | "VARCHAR"i
 	  | "NATIONAL"i & ("CHARACTER"i | "CHAR"i) & "VARYING"i? | "NATIONAL"i & "TEXT"i
 	  | "NCHAR"i & "VARYING"i? | "NVARCHAR"i
-	  | "BINARY"i & "VARYING"i? | "VARBINARY"i | "VECTOR"i) & TSqlLength?
-	| ("NUMERIC"i | "DECIMAL"i | "DEC"i)
-	  & ('(' & Sql92.Lexical.Digits & (',' & Sql92.Lexical.Digits)? & ')')?
-	| "FLOAT"i & ('(' & Sql92.Lexical.Digits & ')')?
-	| ("DATETIME2"i | "DATETIMEOFFSET"i | "TIME"i | "TIMESTAMP"i)
-	  & ('(' & Sql92.Lexical.Digits & ')')? & ("WITH"i & "TIME"i & "ZONE"i)?
-	| "INTEGER"i | "INT"i | "SMALLINT"i | "TINYINT"i | "BIGINT"i | "BIT"i
-	| "REAL"i | "DOUBLE"i & "PRECISION"i | "MONEY"i | "SMALLMONEY"i
-	| "DATE"i | "DATETIME"i | "SMALLDATETIME"i
-	| "TEXT"i | "NTEXT"i | "IMAGE"i | "JSON"i
-	| "XML"i & ('(' & XmlContent? & QualifiedName & ')')?
-	| "UNIQUEIDENTIFIER"i | "SQL_VARIANT"i | "ROWVERSION"i | "SYSNAME"i
-	| "GEOGRAPHY"i | "GEOMETRY"i | "HIERARCHYID"i
-	| "INTERVAL"i & IntervalQualifier
+	  | "BINARY"i & "VARYING"i? | "VARBINARY"i | "VECTOR"i
+	  | "FLOAT"i
+	  | "DATETIME2"i | "DATETIMEOFFSET"i | "TIME"i | "TIMESTAMP"i
+	  | "INTEGER"i | "INT"i | "SMALLINT"i | "TINYINT"i | "BIGINT"i | "BIT"i
+	  | "REAL"i | "DOUBLE"i & "PRECISION"i | "MONEY"i | "SMALLMONEY"i
+	  | "DATE"i | "DATETIME"i | "SMALLDATETIME"i
+	  | "TEXT"i | "NTEXT"i | "IMAGE"i | "JSON"i
+	  | "UNIQUEIDENTIFIER"i | "SQL_VARIANT"i | "ROWVERSION"i | "SYSNAME"i
+	  | "GEOGRAPHY"i | "GEOMETRY"i | "HIERARCHYID"i) & AnyLength?
+
+	// An exact numeric takes `MAX` only where a column is declared, which is the one place
+	// the length is substituted (`ColumnBody`): `DECLARE @a DECIMAL (MAX)`, a cast's, a
+	// parameter's and a scalar `RETURNS`' are `Msg 156`, and `CREATE TABLE t (c DECIMAL
+	// (MAX))` is read.
+	| ("NUMERIC"i | "DECIMAL"i | "DEC"i) & ExactLength?
+
+	// `xml` takes the collection its block gives it, or a length like any other type, and
+	// never two numbers: `xml(10)` and `xml(max)` are read and `xml(10, 2)` is `Msg 102`.
+	| "XML"i & ('(' & XmlContent? & QualifiedName & ')' | TSqlLength)?
 	| DottedType
+
+// One or two whole numbers, or `MAX`. Never a second bracket after the first, which is why
+// this stands after the whole choice rather than on each arm of it.
+AnyLength   = '(' & (Sql92.Lexical.Digits & (',' & Sql92.Lexical.Digits)? | "MAX"i) & ')'
+
+// The same without `MAX`, which an exact numeric takes in a column alone.
+ExactLength = '(' & Sql92.Lexical.Digits & (',' & Sql92.Lexical.Digits)? & ')'
+
+// A column's type, which is every type and one more spelling: an exact numeric sized `MAX`.
+// `CREATE TABLE t (c DECIMAL (MAX))` is read, and so are `NUMERIC (MAX)` and `DEC (MAX)`
+// wherever a column is declared or altered — a table, `ALTER COLUMN`, `ALTER TABLE … ADD`, a
+// table variable, a table type, a function's returned table. Everywhere else a type stands
+// they are `Msg 156`, which is why this spelling is the column's and not the type's.
+ColumnType = ExactMax | DataType
+
+ExactMax   = ("NUMERIC"i | "DECIMAL"i | "DEC"i) & '(' & "MAX"i & ')'
 
 // What may follow a type named through its schema. One rule rather than an alternative
 // each, because they all begin with the name and GRAM4016 is right to ask for the operand
@@ -3459,13 +3501,15 @@ TableColumnBody : @Clause.ColumnDefinition
 ColumnBody : @Clause.ColumnDefinition
 	= "AS"i & v: ValueExpression & tail: ColumnTail*
 		=> @(new Clause.ColumnDefinition("", null, v, tail ?? Clause.None))
-	// A column's type may be sized `(MAX)` whatever the type is — `DECIMAL (MAX)`, `INT (MAX)`,
-	// `DOUBLE PRECISION (MAX)` are read wherever a column is declared or altered, and refused
-	// where a variable, a cast or a type is (`Msg 156`). The type's own size said, `MAX` is
-	// one more: `NVARCHAR (MAX, 1)` and `DECIMAL (MAX, 2)` are refused.
-	| type: DataType & max: ('(' & "MAX"i & ')')? & tail: ColumnTail*
+	// The length belongs to the type (`AnyLength`) and not to the column — with one
+	// exception, which is why the exact numerics' length is substituted here: `DECIMAL
+	// (MAX)`, `NUMERIC (MAX)` and `DEC (MAX)` are read where a column is declared or
+	// altered — `CREATE TABLE`, `ALTER COLUMN`, `ALTER TABLE … ADD`, a table variable, a
+	// table type, a function's returned table — and are `Msg 156` in a `DECLARE`, a cast, a
+	// `CREATE TYPE … FROM`, a parameter and a scalar `RETURNS`.
+	| type: ColumnType & tail: ColumnTail*
 	  & when @(Syntax.Masked(tail) && Syntax.Collated(type, tail))
-		=> @(new Clause.ColumnDefinition("", max is null ? type : type + " " + Syntax.Spaced(max), null, tail ?? Clause.None))
+		=> @(new Clause.ColumnDefinition("", type, null, tail ?? Clause.None))
 
 // What may be said about a column after its type, each kept as what it is: an option, a
 // constraint, or an index, in the order they were written.

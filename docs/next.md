@@ -19987,3 +19987,63 @@ At 150: read by both 5,963 (from 5,962), the work list 23 (from 24), read here b
 there 4 (from 1, and all four explained above), another product's 258; `--split` 738 (from
 736), the round trip 100% of 7,582. The map: read by both **7,984 of 8,338 (99.8%), the work
 list 19** (from 7,983 and 20), defects 0.
+
+## One length, after any type at all
+
+The published blocks give a length to the types that have one — `varchar(10)`, `decimal(10,
+2)`, `float(10)`, `time(3)` — and this grammar wrote it on each of them. The engine does
+something else entirely: **it takes one bracket after any type whatsoever.**
+
+`int(10)`, `money(10)`, `smallmoney(10)`, `text(10)`, `ntext(10)`, `image(10)`,
+`datetime(3)`, `smalldatetime(3)`, `date(3)`, `uniqueidentifier(10)`, `sql_variant(10)`,
+`geography(10)`, `geometry(10)`, `hierarchyid(10)`, `sysname(10)`, `rowversion(10)`,
+`json(10)`, `xml(10)`, `real(10)`, `Double Precision(10)` — all read, and read alike in a
+column, a `DECLARE`, a `CAST`, a `CONVERT`, a `CREATE TYPE … FROM`, a parameter and a
+`RETURNS`. Inside are one or two whole numbers or `MAX`: `int(10, 2)` and
+`double precision(10, 2)` are read, and `int()`, `int(+1)`, `int(1e2)`, `int(10, max)`,
+`decimal(10, 2, 3)`, `nvarchar(MAX, 1)` and `decimal(MAX, 2)` are each `Msg 102`. So the
+length is written once, after the whole choice, and the types that carried one of their own
+no longer do.
+
+**The brackets do not stack, and three of the forms this grammar read were its own
+invention.** `varchar(10)(20)`, `int(10)(20)`, `varchar(MAX)(10)` and `dbo.mytype(10)(20)` are
+refused — and so are `varchar(10) (MAX)`, `decimal(10) (MAX)` and `decimal(10, 2)(MAX)`,
+which `ColumnBody` used to read through a `max:` of its own. The comment above it said `MAX`
+was "one more" beyond the type's own size. It is not.
+
+**What that comment had right, it had right about two types out of forty.** An exact numeric
+sized `MAX` is the column's spelling and nobody else's: `CREATE TABLE t (c DECIMAL (MAX))`,
+`ALTER COLUMN`, `ALTER TABLE … ADD`, a table variable, a table type and a function's returned
+table read it, while `DECLARE @a DECIMAL (MAX)`, a cast's, a `CREATE TYPE … FROM`'s, a
+parameter's and a scalar `RETURNS`' are `Msg 156`. `NUMERIC` and `DEC` say the same. Every
+other type takes `MAX` wherever it stands.
+
+**And two forms went the other way — out.** `WITH TIME ZONE` is the standard's: the engine
+refuses it wherever a type stands, `Msg 102` in a `DECLARE` and a `RETURNS`, `156` in a cast
+and a column, `319` in a `CREATE TYPE … FROM`. `INTERVAL YEAR`, `INTERVAL YEAR TO MONTH` and
+`INTERVAL DAY (2) TO SECOND (6)` are refused too. Bare `interval` still reads, being an
+ordinary name nobody declared. Six spellings this grammar accepted are gone.
+
+A number with a point is the one place the two knowingly part. `int(10.0)` is read by the
+engine and `int(1.5)` is `Msg 102` — a question about the value, not the shape. Whole numbers
+are what the length is written with, so both are refused here.
+
+**Two lessons about the notation, both paid for twice over.**
+
+`with (A = B)` written on an operand reaches that operand alone (§5.1) — and the operand
+here was the name `DataType`, which §5.1's own rebinding replaces with `TSqlDataType`. The
+substitution went out with the operand it was written on, and the column silently got the
+ordinary length: twenty-three rows failed, every one of them `DECIMAL (MAX)`. What the column
+needed was a top of its own, `ColumnType = ExactMax | DataType`, and no substitution at all.
+
+And a rule that builds a value with `=>` must say what type that value is (GRAM4008). A rule
+that says nothing and captures nothing is worth the words it matched, which is what both
+`TSqlDataType` and `ColumnType` want to be — so the `=> @(t)` came off rather than a type
+going on.
+
+At 150: read by both 5,963 (from 5,963), the work list 23 (from 23), read here but refused
+there 4 (from 4, the same four); `--split` 738 (from 738), the round trip 100% of 7,582. The
+map: read by both 7,984 of 8,338 (99.8%), the work list 19, defects 0. The suite is 6,827
+rows (from 6,742): the figures stand still because what moved is not in the corpus — forty
+types that may be sized, three spellings that may not, and six the standard has and T-SQL
+does not.
