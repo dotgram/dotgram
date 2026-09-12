@@ -39,3 +39,28 @@ sealed class Held
 {
 	public int Twice() => 2;
 }
+
+/// <summary>Overloads written to be chosen between, for asking the resolver without a text.</summary>
+/// <remarks>
+/// Each pair is one question C#'s overload resolution answers: which is better where both
+/// apply, what a <c>params</c> tail does, what an omitted default becomes, and what the
+/// literal <c>null</c> can be handed to.
+/// </remarks>
+static class Choices
+{
+	/// <summary>Neither is better: each converts one argument exactly and widens the other.</summary>
+	public static int Two(int first, long second) => 1;
+
+	public static int Two(long first, int second) => 2;
+
+	/// <summary>A <c>params</c> tail, which is read in the expanded form or as an array.</summary>
+	public static int Sum(params int[] values) => values.Length;
+
+	/// <summary>An optional parameter, which is a default where it is left out.</summary>
+	public static int Some(int first, int second = 5) => first + second;
+
+	/// <summary>What the literal <c>null</c> can be handed to, and what it cannot.</summary>
+	public static string Took(string text) => "string";
+
+	public static string Took(int number) => "int";
+}
