@@ -20131,3 +20131,36 @@ left as they are by a decision of their own.
 At 150: read by both 5,966 (from 5,964), the work list 22, read here but refused there **2
 (from 4)**; `--split` 740, the round trip 100% of 7,583. The map: read by both 7,984 of 8,338
 (99.8%), the work list 19, defects 0.
+
+## The report shows where two printings part
+
+A difference in the round trip is one place inside two whole statements, and the report cut
+each side at a hundred and forty characters — which is where a statement begins, not where it
+differs. Twice today that hid the finding, and both times it was the same three-thousand
+character `CREATE TABLE` parting at its last constraint: once over an escape printed with its
+keyword twice, once over a negation bracketing itself. Both causes were read out of the
+writer instead of out of the report, which is the report failing at the one thing it is for.
+
+It now looks for the first character the two do not share and shows a window round it,
+marking with ellipses what lies either side. The heading keeps its old shape — a statement is
+recognised by its opening, which is what `One` is right for — and the two sides are compared
+as `Normalized` leaves them, since that is what decided they differ.
+
+**And it has not run once.** There is no statement in the corpus whose printing differs:
+7,583 of 7,583 at the ceiling and 3,687 of 3,687 at 100. Both runs say the healthy path is
+untouched, which is worth something and is not the same as the new branch being right; that
+rests on reading it. Adding a switch to the benchmark to force a difference would leave a
+permanent door open for one afternoon's question, so it was not added. The next difference
+will be the first reader of this code, and if it is wrong that is where it will show.
+
+**Where the two corpora stand at the end of the day.** Against the engine at 150: 5,966 of
+6,654 read by both, a work list of 22 and 2 read here and refused there. Neither of those two
+is a rule — the engine reads both when it is given the statement whole, and they are defects
+only as ScriptDom cuts the corpus into statements. Nor is any of the 22 a gap: nine
+`PREDICT`s, two `EXECUTE (…, @a) AS LOGIN`s and three `IDENTITY (INT)`s are counted read only
+through the `Msg 137` an undeclared variable earns first; two `sum(*)`s the engine refuses
+outright; two `OPTION (CHECKCONSTRAINTS PLAN, …)`s are the 2005 parser giving up on its own
+list, which this grammar will not copy; and two pivots over a join were left as they are by a
+decision of their own. Against the reference: 7,984 of 8,338 (99.8%), a work list of 19 and
+no defect. The round trip is 100% of 7,583, and `--split` cuts 740 files where ScriptDom
+does.

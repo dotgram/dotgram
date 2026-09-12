@@ -160,7 +160,10 @@ static class RoundTrip
 				else
 				{
 					lost++;
-					Show(shown, wanted, most, kind, original, "A: " + One(a) + "\n     B: " + One(b));
+
+					var (left, right) = Parted(a, b);
+
+					Show(shown, wanted, most, kind, original, "A: " + left + "\n     B: " + right);
 				}
 			}
 		}
@@ -246,6 +249,38 @@ static class RoundTrip
 			.Where(static one => one.Length > 0));
 
 		return line.Length > 140 ? line[..140] + "…" : line;
+	}
+
+	/// <summary>The part of two printings where they part, with a little of each side round it.</summary>
+	/// <remarks>
+	/// Both sides are whole statements and one place in them is the finding: a
+	/// <c>CREATE TABLE</c> of three thousand characters parts at its last constraint, and the
+	/// first hundred and forty are where it begins rather than where it differs. Twice in one
+	/// day the cause was read out of the writer instead of out of this report, which is the
+	/// report failing at the one thing it is for. The two are compared as
+	/// <see cref="Normalized"/> leaves them, since that is what decided they differ.
+	/// </remarks>
+	static (string A, string B) Parted(string a, string b)
+	{
+		const int Round = 60;
+
+		var left  = Normalized(a);
+		var right = Normalized(b);
+		var at    = 0;
+
+		while (at < left.Length && at < right.Length && left[at] == right[at])
+			at++;
+
+		var from = Math.Max(0, at - Round);
+
+		return (Window(left, from), Window(right, from));
+
+		static string Window(string text, int from)
+		{
+			var part = text.Substring(from, Math.Min(Round * 3, text.Length - from));
+
+			return (from > 0 ? "…" : "") + part + (from + part.Length < text.Length ? "…" : "");
+		}
 	}
 
 	/// <summary>
