@@ -167,6 +167,14 @@ static class ExpressionAgainst
 		"(int x) => default(int) + x",
 		"(int x) => nameof(x)",
 
+		// A guard and how far it reaches: one step, a whole chain protected by it, an index,
+		// what a nullable holds, and the ternary whose number keeps its point.
+		"(string s) => s?.Length",
+		"(string s) => s?.Trim().Length",
+		"(int[] a) => a?[0]",
+		"(string s) => (s?.Length)?.ToString()",
+		"(int x) => x > 0 ? .5 : 1.5",
+
 		// A declaration whose type is its initializer's, the same inside a `for`, and the
 		// word itself as a name — which is what makes `var` contextual rather than reserved.
 		"(int x) => { var doubled = x * 2; doubled }",

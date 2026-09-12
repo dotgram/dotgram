@@ -125,8 +125,11 @@ namespace DotGram.ExpressionLanguage;
 //     refused where C# folds the sum first and then converts it.
 //   * An increment or a compound assignment writes to a name or to one member of a name —
 //     not to an element, and not to a longer chain.
-//   * `?.`, `foreach`, an interpolated string and a lambda inside an expression are not
-//     written yet.
+//   * `foreach`, an interpolated string and a lambda inside an expression are not written
+//     yet.
+//   * `?.` guards the whole chain after it, as C#'s does, and is worth the nullable of what
+//     the chain is worth: `s?.Length` is an `int?`. Written as `?` and `.`, which is what
+//     lets `x ? .5 : 1` keep its number.
 //   * `default` is written with its type — `default(int)`. A bare one is typed by what it
 //     stands against, which is the pass this language does not make, and `nameof` answers
 //     with the name as written rather than looking it up.
@@ -790,11 +793,45 @@ namespace DotGram.ExpressionLanguage;
 		// both written without another rule.
 		| target: Postfix & at: Indices => @(ExpressionParser.Indexed(target, at, context.Caller))
 
+		// `?.`, which reads the rest of the chain rather than one step of it. In C# the guard
+		// protects everything written after it — `a?.b.c` is `a == null ? null : a.b.c` and
+		// not `(a == null ? null : a.b).c`, which would read `.c` off a null — and a fold
+		// builds as it goes, so by the time `.c` is reached `a?.b` is already a tree. So the
+		// tail is read as data and handed over whole, and `Chained` builds it inside the test.
+		| target: Postfix & chain: Guarded
+		  => @(ExpressionParser.Chained(target, chain, context.Caller))
+
 		| target: Name & args: Arguments => @(ExpressionParser.Invoked(target, args))
 
 		| target: Name & "++" => @(Expression.PostIncrementAssign(target))
 		| target: Name & "--" => @(Expression.PostDecrementAssign(target))
 		| p: Primary          => @(p)
+
+	// One step of a chain, said rather than built: which member, the arguments where it is a
+	// call, the indices where it is an index, and whether a `?` stands before it.
+	//
+	// A guard is written with two tokens and not one. A lexer takes the longest match, so a
+	// `"?."` of its own would swallow the `?` and the point of `.5` in `x ? .5 : 1`, where
+	// the point belongs to the number. Read apart, that reads as C# reads it, and the only
+	// thing the two spellings disagree about — `a ? . b : c` — is no C# at all.
+	Step : @Step
+		= '?' & '.' & member: Word & args: Arguments? => @(new Step(member, args, null, true))
+		| '?' & at: Indices                           => @(new Step(null, null, at, true))
+		| '.' & member: Word & args: Arguments?       => @(new Step(member, args, null))
+		| at: Indices                                 => @(new Step(null, null, at))
+
+	// A guarded step and every step written after it, which belong to it: the guard protects
+	// all of them, so all of them have to arrive together and unbuilt.
+	//
+	// The repetition is here, behind a rule of its own, and not in `Postfix` beside the
+	// guard. Written there it is drawn into the fold that makes `Postfix` left recursive —
+	// the loop that reads one suffix per turn — and `steps` comes back as the one step that
+	// turn read rather than as the list of them.
+	Guarded : @Step[]
+		= '?' & '.' & member: Word & args: Arguments? & steps: Step*
+		  => @(ExpressionParser.Chain(new Step(member, args, null, true), steps))
+		| '?' & at: Indices & steps: Step*
+		  => @(ExpressionParser.Chain(new Step(null, null, at, true), steps))
 
 	Primary : @Expression
 		= "new" & type: Type & '[' & size: Expression & ']'
@@ -1579,6 +1616,116 @@ public static partial class ExpressionParser
 
 		return Expression.Property(target, (PropertyInfo)chosen.Member, Passed(chosen, at));
 	}
+
+	// ── A chain a `?` guards ────────────────────────────────────────────────────
+	//
+	// The API has no node for `?.` and there is nothing to add: what C# means by it is a
+	// test, a temporary and a conditional, which the API does have. What it takes to say it
+	// correctly is the order — the guard protects the whole of the chain after it, so the
+	// chain has to arrive unbuilt.
+
+	/// <summary>One step of a chain: a member, a call or an index, and whether a `?` guards it.</summary>
+	/// <remarks>
+	/// Said rather than built, because a step written after a `?` belongs inside the test and
+	/// a fold would have built it outside. <see cref="Indices"/> tells an index from a member;
+	/// <see cref="Arguments"/>, which is empty for `a.b()` and null for `a.b`, tells a call.
+	/// </remarks>
+	public readonly record struct Step(
+		string? Member, Expression[]? Arguments, Expression[]? Indices, bool Guarded = false);
+
+	/// <summary>A guarded step and the steps written after it, as the one chain they are.</summary>
+	public static Step[] Chain(Step head, Step[]? steps)
+	{
+		var all = new Step[(steps?.Length ?? 0) + 1];
+
+		all[0] = head;
+
+		if (steps is { Length: > 0 })
+			Array.Copy(steps, 0, all, 1, steps.Length);
+
+		return all;
+	}
+
+	/// <summary>A chain whose first step is guarded: the receiver read once, and null where it is.</summary>
+	public static Expression Chained(Expression target, Step[] chain, Assembly caller)
+	{
+		if (target is null)
+			throw new ArgumentNullException(nameof(target));
+
+		if (chain is null)
+			throw new ArgumentNullException(nameof(chain));
+
+		return Tested(target, chain, 0, caller);
+	}
+
+	/// <summary>The steps from one on, built onto a value until a guarded one is met.</summary>
+	static Expression Continued(Expression value, Step[] steps, int from, Assembly caller)
+	{
+		for (var at = from; at < steps.Length; at++)
+		{
+			// Everything after it belongs inside its test, so the rest is built there.
+			if (steps[at].Guarded)
+				return Tested(value, steps, at, caller);
+
+			value = Applied(value, steps[at], caller);
+		}
+
+		return value;
+	}
+
+	/// <summary>A guarded step and all that follows it, inside the test the `?` asks for.</summary>
+	/// <remarks>
+	/// The receiver is held in a variable because C# evaluates it once, however many times
+	/// the test and the access mention it. What comes back is the nullable of what the chain
+	/// is worth — `s?.Length` is an `int?` — except where it is worth nothing at all, and
+	/// there the whole thing is a statement that runs or does not.
+	/// </remarks>
+	static Expression Tested(Expression value, Step[] steps, int at, Assembly caller)
+	{
+		if (!CanBeNull(value.Type))
+			throw new FormatException(
+				$"Operator '?' cannot be applied to '{value.Type.Name}', which is never null.");
+
+		var held  = Expression.Variable(value.Type);
+		var inner = Continued(Applied(Unwrapped(held), steps[at], caller), steps, at + 1, caller);
+
+		var type =
+			inner.Type == typeof(void) || CanBeNull(inner.Type)
+				? inner.Type
+				: Lifted(inner.Type);
+
+		return Expression.Block(
+			new[] { held },
+			Expression.Assign(held, value),
+			type == typeof(void)
+				? Expression.IfThen(Expression.Not(IsNull(held)), inner)
+				: Expression.Condition(IsNull(held), Expression.Default(type), Converted(inner, type), type));
+	}
+
+	/// <summary>One step built onto what it is written after.</summary>
+	static Expression Applied(Expression value, Step step, Assembly caller) =>
+		step.Indices is { } at       ? Indexed(value, at, caller)
+		: step.Arguments is { } args ? Called(value, step.Member!, args, caller)
+		:                              Member(value, step.Member!, caller);
+
+	/// <summary>Whether that value is null, asked as its type allows.</summary>
+	static Expression IsNull(Expression value) =>
+		Nullable.GetUnderlyingType(value.Type) is not null
+			? Expression.Not(Expression.Property(value, "HasValue"))
+			: Expression.ReferenceEqual(value, Expression.Constant(null, value.Type));
+
+	/// <summary>
+	/// What a guarded step is written on, which for a nullable value type is what it holds.
+	/// </summary>
+	/// <remarks>
+	/// C# looks the member up on the underlying type: `int? x` answers `x?.GetTypeCode()`,
+	/// which `Nullable&lt;int&gt;` has no method for. Reached past the test, so the value is
+	/// there to be had.
+	/// </remarks>
+	static Expression Unwrapped(Expression value) =>
+		Nullable.GetUnderlyingType(value.Type) is not null
+			? Expression.Property(value, "Value")
+			: value;
 
 	/// <summary>A static property or a static field, whichever that name is.</summary>
 	/// <remarks>

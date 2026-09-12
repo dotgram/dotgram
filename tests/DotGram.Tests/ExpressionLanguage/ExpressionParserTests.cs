@@ -137,7 +137,9 @@ public sealed class ExpressionParserTests
 
 	[Theory]
 	[InlineData("(int x) => x +")]
-	[InlineData("(string s) => s?.Length")]
+	// `s?.Length` stood here until the guard was written and it began to read. What is left of
+	// it that still refuses is the guard with nothing after it.
+	[InlineData("(string s) => s?.")]
 	[InlineData("(int x) => { return x }")]
 	[InlineData("(int x) => x + return")]
 	public void And_nothing_it_says_is_a_character_nobody_wrote(string text)
@@ -401,6 +403,81 @@ public sealed class ExpressionParserTests
 		Assert.Equal(
 			7,
 			ExpressionParser.Compile<Func<int, int>>("(int var) => { var += 2; var }")(5));
+
+	// ── `?.`, and how far its guard reaches ─────────────────────────────────────
+
+	[Fact]
+	public void A_guarded_chain_is_null_where_its_receiver_is()
+	{
+		// And worth the nullable of what it would be worth: `s?.Length` is an `int?`.
+		var read = ExpressionParser.Compile<Func<string, int?>>("(string s) => s?.Length");
+
+		Assert.Equal(new int?[] { null, 3 }, new[] { read(null!), read("abc") });
+	}
+
+	[Fact]
+	public void And_the_guard_reaches_over_the_whole_chain_after_it()
+	{
+		// The difference between right and nearly right. `s?.Trim().Length` is
+		// `s == null ? null : s.Trim().Length`, so a null receiver never reaches `Trim`.
+		// Folded the other way — the guard over its own step only — `.Trim()` would be called
+		// on the null the first step handed back, and this would throw instead of answering.
+		var read = ExpressionParser.Compile<Func<string, int?>>("(string s) => s?.Trim().Length");
+
+		Assert.Equal(new int?[] { null, 1 }, new[] { read(null!), read(" x ") });
+	}
+
+	[Fact]
+	public void And_an_index_may_be_guarded_as_a_member_is()
+	{
+		var read = ExpressionParser.Compile<Func<int[], int?>>("(int[] a) => a?[0]");
+
+		Assert.Equal(new int?[] { null, 7 }, new[] { read(null!), read([7]) });
+	}
+
+	[Fact]
+	public void And_a_guard_may_stand_on_what_a_nullable_holds()
+	{
+		// C# looks the member up on the underlying type, so this is `int.ToString()` and not
+		// anything of `Nullable<int>`'s — reached past the test, where the value is there.
+		var read = ExpressionParser.Compile<Func<string, string>>(
+			"(string s) => (s?.Length)?.ToString()");
+
+		Assert.Equal(new string?[] { null, "3" }, new[] { read(null!), read("abc") });
+	}
+
+	[Fact]
+	public void And_a_guarded_call_worth_nothing_is_a_statement_that_runs_or_does_not()
+	{
+		var read = ExpressionParser.Compile<Func<System.Collections.Generic.List<int>, int>>(
+			"using System.Collections.Generic; (List<int> l) => { l?.Add(7); l == null ? 0 : l.Count }");
+
+		Assert.Equal([0, 1], new[] { read(null!), read([]) });
+	}
+
+	[Fact]
+	public void But_what_is_never_null_has_nothing_for_a_guard_to_ask()
+	{
+		// C#'s own refusal, said the way this language says a binder's: a throw, and not a
+		// refusal to read. `Postfix` is a fold and a fold builds its operand after the text
+		// is read, so no guard can ask what the receiver's type is while it is being read —
+		// the same reason `Member` decides what `a.b` is where it does.
+		//
+		// `(s?.Length)?.ToString()` reads, because the parentheses make an `int?` of it.
+		// `s?.Length?.ToString()` does not: inside one chain `Length` is an `int`.
+		foreach (var text in new[] { "(int x) => x?.ToString()", "(string s) => s?.Length?.ToString()" })
+			Assert.Contains(
+				"never null",
+				Assert.Throws<FormatException>(() => ExpressionParser.Parse(text)).Message);
+	}
+
+	[Fact]
+	public void And_a_ternary_keeps_the_point_that_belongs_to_its_number() =>
+		// Why `?.` is read as two tokens: a lexer takes the longest match, and a `"?."` of
+		// its own would take the `?` and the point of `.5` with it.
+		Assert.Equal(
+			0.5,
+			ExpressionParser.Compile<Func<int, double>>("(int x) => x > 0 ? .5 : 1.5")(1));
 
 	// ── A block is an expression, and it holds a scope ──────────────────────────
 

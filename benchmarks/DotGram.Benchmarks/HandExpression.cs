@@ -2057,8 +2057,78 @@ static class HandExpression
 					continue;
 				}
 
+				// A guard takes the rest of the chain with it: what is written after it is
+				// protected by it, so all of it is read as steps and built inside the test.
+				// A `?` that begins no step is the ternary's, and is left where it is.
+				if (Kind(at) == Question &&
+					(Kind(at + 1) == LeftBracket || Kind(at + 1) == Dot && Kind(at + 2) == Identifier))
+				{
+					var chain = Chain(at, out var steps);
+
+					if (chain < 0)
+						break;
+
+					node = ExpressionParser.Chained(node!, steps!, _context.Caller);
+					at   = chain;
+
+					continue;
+				}
+
 				break;
 			}
+
+			return at;
+		}
+
+		/// <summary>A guarded step and every step written after it, as the one chain they are.</summary>
+		/// <remarks>
+		/// Read rather than built, which is what `?.` costs: the steps after the guard belong
+		/// inside its test, and a reader that builds as it goes would have built them outside.
+		/// The grammar's `Guarded` rule says the same thing by handing `Chained` an array.
+		/// </remarks>
+		int Chain(int i, out ExpressionParser.Step[]? steps)
+		{
+			steps = null;
+
+			var read = new List<ExpressionParser.Step>();
+			var at   = i;
+
+			while (true)
+			{
+				var guarded = Kind(at) == Question;
+				var from    = guarded ? at + 1 : at;
+
+				if (Kind(from) == Dot && Kind(from + 1) == Identifier)
+				{
+					var member    = Cut(from + 1);
+					var arguments = Arguments(from + 2, out var args);
+
+					read.Add(new ExpressionParser.Step(member, arguments >= 0 ? args : null, null, guarded));
+					at = arguments >= 0 ? arguments : from + 2;
+
+					continue;
+				}
+
+				if (Kind(from) == LeftBracket)
+				{
+					var indices = Indices(from, out var at2);
+
+					if (indices < 0)
+						break;
+
+					read.Add(new ExpressionParser.Step(null, null, at2, guarded));
+					at = indices;
+
+					continue;
+				}
+
+				break;
+			}
+
+			if (read.Count == 0)
+				return -1;
+
+			steps = read.ToArray();
 
 			return at;
 		}

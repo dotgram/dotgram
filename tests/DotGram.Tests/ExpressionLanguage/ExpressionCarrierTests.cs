@@ -85,6 +85,15 @@ public sealed class ExpressionCarrierTests
 		"(bool c) => c ? 1 : 2L",
 		"() => -3000000000",
 
+		// A guard and how far it reaches: one step, a whole chain, an index, a nullable held
+		// value, and the ternary whose number keeps its point. A receiver that is never null
+		// is not here: that one throws rather than refuses, and this asks about answers.
+		"(string s) => s?.Length",
+		"(string s) => s?.Trim().Length",
+		"(int[] a) => a?[0]",
+		"(string s) => (s?.Length)?.ToString()",
+		"(int x) => x > 0 ? .5 : 1.5",
+
 		// A declaration whose type is its initializer's, the same inside a `for`, and the word
 		// itself used as a name.
 		"(double x) => { var half = x / 2.0; return half; }",
