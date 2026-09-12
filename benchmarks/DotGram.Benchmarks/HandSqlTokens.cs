@@ -88,7 +88,14 @@ static class HandSqlTokens
 		"WHEN", "WHERE",
 	];
 
-	static byte Of(string word) => (byte)(FirstWord + Array.IndexOf(Words, word));
+	// The same guard HandExpression.Of carries, and for the reason found there: a word left
+	// out of the list would be `FirstWord - 1`, and whatever kind that lands on is read for a
+	// keyword from then on.
+	static byte Of(string word) =>
+		Array.IndexOf(Words, word) is var at && at >= 0
+			? (byte)(FirstWord + at)
+			: throw new ArgumentOutOfRangeException(
+				nameof(word), word, "Not a word this language reserves.");
 
 	internal static readonly byte All = Of("ALL"), And = Of("AND"), Any = Of("ANY"), As = Of("AS"),
 		Avg = Of("AVG"), Between = Of("BETWEEN"), BitLength = Of("BIT_LENGTH"),

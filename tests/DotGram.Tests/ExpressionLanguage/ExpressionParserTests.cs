@@ -585,6 +585,58 @@ public sealed class ExpressionParserTests
 		Assert.Equal(3, ExpressionParser.Compile<Func<string, int>>("(string s) => s.Length")("abc"));
 	}
 
+	// ── typeof, default and nameof ──────────────────────────────────────────────
+
+	[Fact]
+	public void A_type_may_stand_where_a_value_is_wanted() =>
+		// `Type` is the same rule a cast and a declaration read, so everything it can say —
+		// a keyword, an array of one, a generic named through a `using` — is said here too.
+		Assert.Equal(
+			[typeof(int), typeof(int[]), typeof(string), typeof(List<int>)],
+			new[]
+			{
+				"() => typeof(int)",
+				"() => typeof(int[])",
+				"() => typeof(string)",
+				"using System.Collections.Generic; () => typeof(List<int>)",
+			}
+			.Select(text => ExpressionParser.Compile<Func<Type>>(text)()));
+
+	[Fact]
+	public void And_a_type_says_what_it_defaults_to() =>
+		Assert.Equal(
+			[0, 0.0, false, null!],
+			new object?[]
+			{
+				ExpressionParser.Compile<Func<int>>("() => default(int)")(),
+				ExpressionParser.Compile<Func<double>>("() => default(double)")(),
+				ExpressionParser.Compile<Func<bool>>("() => default(bool)")(),
+				ExpressionParser.Compile<Func<string>>("() => default(string)")(),
+			});
+
+	[Fact]
+	public void And_a_bare_default_is_not_written_here() =>
+		// C# types it by what it stands against, which is the pass this language does not make.
+		Assert.False(ExpressionParser.TryParse("() => { int a = default; a }").IsSuccess);
+
+	[Fact]
+	public void A_name_may_be_asked_for_as_it_was_written() =>
+		// The last part of it, as C#'s answer is, and nothing is looked up: `nameof(s.Nothing)`
+		// is a string where `s.Nothing` is an error.
+		Assert.Equal(
+			["x", "Length", "Nothing"],
+			new[] { "(int x) => nameof(x)", "(string s) => nameof(s.Length)", "(string s) => nameof(s.Nothing)" }
+				.Select(text => ExpressionParser.Parse(text).Body)
+				.Select(body => (string)((ConstantExpression)body).Value!));
+
+	[Fact]
+	public void And_none_of_the_three_words_stops_a_name_that_begins_with_one() =>
+		// §4.6: a keyword is a whole word, so `typeofSomething` is a name like any other.
+		Assert.Equal(
+			7,
+			ExpressionParser.Compile<Func<int, int>>(
+				"(int x) => { int nameofTotal = x + 2; nameofTotal }")(5));
+
 	// ── using: what a name written as a type may mean ───────────────────────────
 
 	[Fact]

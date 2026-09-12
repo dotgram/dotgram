@@ -161,6 +161,12 @@ static class ExpressionAgainst
 		"(int x) => checked(x + unchecked(x * 2))",
 		"(int x) => checked(x + 1) + x",
 
+		// A type where a value is wanted, what a type defaults to, and a name as written.
+		"(int x) => typeof(int)",
+		"(int x) => typeof(int[])",
+		"(int x) => default(int) + x",
+		"(int x) => nameof(x)",
+
 		// The constants, every form of them.
 		"(int x) => 1",
 		"(int x) => 2147483648",

@@ -85,6 +85,11 @@ public sealed class ExpressionCarrierTests
 		"(bool c) => c ? 1 : 2L",
 		"() => -3000000000",
 
+		// A type where a value is wanted, what it defaults to, and a name asked for as written.
+		"using System; (int x) => typeof(int[])",
+		"(int x) => default(int) + x",
+		"(int x) => nameof(x)",
+
 		// A `using`, a nested type through one, and one that names nothing.
 		"using System.Text; (int x) => new StringBuilder(16).Length",
 		"using System; (Environment.SpecialFolder f) => f",

@@ -125,8 +125,11 @@ namespace DotGram.ExpressionLanguage;
 //     refused where C# folds the sum first and then converts it.
 //   * An increment or a compound assignment writes to a name or to one member of a name —
 //     not to an element, and not to a longer chain.
-//   * `typeof`, `default`, `nameof`, `?.`, `var`, `foreach`, an interpolated string and a
-//     lambda inside an expression are not written yet.
+//   * `?.`, `var`, `foreach`, an interpolated string and a lambda inside an expression are
+//     not written yet.
+//   * `default` is written with its type — `default(int)`. A bare one is typed by what it
+//     stands against, which is the pass this language does not make, and `nameof` answers
+//     with the name as written rather than looking it up.
 //   * A loop is void. The API would type one — a `Loop` whose break label carries a value
 //     is worth it — but only a loop with no ordinary way out can, since the ordinary way
 //     out would have to carry a value too, and C#'s `break` carries nothing.
@@ -182,13 +185,13 @@ namespace DotGram.ExpressionLanguage;
 		// inside a lookahead is a question for the notation; saying it here is right either
 		// way, because what this rule means is "one of these words, whole".
 		Keyword
-			= ("as"      | "bool"    | "break"   | "byte"      | "case"   | "catch"
-			|  "char"    | "checked" | "continue"| "decimal"   | "default"| "do"
-			|  "double"  | "else"    | "false"   | "finally"   | "float"  | "for"
-			|  "if"      | "int"     | "is"      | "long"      | "new"    | "null"
-			|  "object"  | "return"  | "sbyte"   | "short"     | "string" | "switch"
-			|  "throw"   | "true"    | "try"     | "uint"      | "ulong"  | "unchecked"
-			|  "ushort"  | "using"   | "while")
+			= ("as"      | "bool"     | "break"   | "byte"    | "case"   | "catch"
+			|  "char"    | "checked"  | "continue"| "decimal" | "default"| "do"
+			|  "double"  | "else"     | "false"   | "finally" | "float"  | "for"
+			|  "if"      | "int"      | "is"      | "long"    | "nameof" | "new"
+			|  "null"    | "object"   | "return"  | "sbyte"   | "short"  | "string"
+			|  "switch"  | "throw"    | "true"    | "try"     | "typeof" | "uint"
+			|  "ulong"   | "unchecked"| "ushort"  | "using"   | "while")
 			& ?![\p{L} | \p{Nd} | '_']
 
 		// ── Numbers, written the way C# writes them ─────────────────────────────────
@@ -803,6 +806,23 @@ namespace DotGram.ExpressionLanguage;
 		| "checked"   & '(' & inner: Expression with state @(Reading.Checked)   & ')' => @(inner)
 		| "unchecked" & '(' & inner: Expression with state @(Reading.Unchecked) & ')' => @(inner)
 
+		// A type where a value is wanted, which is what `Type` already reads: the constant is
+		// the `Type` object itself, as C#'s is. `Type` names the keywords and resolves a name
+		// through the text's `using`s, so `typeof(int[])` and `typeof(List<int>)` come free.
+		| "typeof" & '(' & type: Type & ')' => @(Expression.Constant(type, typeof(Type)))
+
+		// `Expression.Default` is the API's own word for it. Only the written form: C# types a
+		// bare `default` by what it stands against, and target typing is the pass this
+		// language does not make.
+		| "default" & '(' & type: Type & ')' => @(Expression.Default(type))
+
+		// The name as written, which is what C# answers with — the last part of it, so
+		// `nameof(s.Length)` is "Length". Nothing is looked up: C# requires the name to mean
+		// something and refusing here would need a guard that asks what a member is before
+		// the operand it is on is built, which is the one question a guard cannot ask (§8.1).
+		| "nameof" & '(' & head: Word & ('.' & part: NamePart)* & ')'
+		  => @(Expression.Constant(ExpressionParser.Last(head, part)))
+
 		| '(' & inner: Expression & ')' => @(inner)
 
 		// The suffixed and prefixed forms first: ordered choice would otherwise read `1L`
@@ -1001,6 +1021,14 @@ public static partial class ExpressionParser
 	/// stood between them in the text is not in the name. `System . Text` is `System.Text`,
 	/// which is what it means and what the lookup below can answer about.
 	/// </remarks>
+	/// <summary>The last word of a dotted name, which is what <c>nameof</c> answers with.</summary>
+	/// <remarks>
+	/// `nameof(s.Length)` is "Length" and `nameof(x)` is "x": C# answers with the name and
+	/// not with the path to it, and the path is what the parts before the last one are.
+	/// </remarks>
+	public static string Last(string head, string[]? tail) =>
+		tail is { Length: > 0 } ? tail[tail.Length - 1] : head;
+
 	public static string Dotted(string head, string[]? tail) =>
 		tail is null || tail.Length == 0 ? head : head + "." + string.Join(".", tail);
 

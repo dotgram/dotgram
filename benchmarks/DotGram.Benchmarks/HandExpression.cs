@@ -128,16 +128,23 @@ static class HandExpression
 
 	static readonly string[] Words =
 	[
-		"as",      "bool",    "break",   "byte",    "case",     "catch",
-		"char",    "checked", "continue","decimal", "default",  "do",
-		"double",  "else",    "false",   "finally", "float",    "for",
-		"if",      "int",     "is",      "long",    "new",      "null",
-		"object",  "return",  "sbyte",   "short",   "string",   "switch",
-		"throw",   "true",    "try",     "uint",    "ulong",    "unchecked",
-		"ushort",  "using",   "while",
+		"as",     "bool",      "break",    "byte",    "case",    "catch",
+		"char",   "checked",   "continue", "decimal", "default", "do",
+		"double", "else",      "false",    "finally", "float",   "for",
+		"if",     "int",       "is",       "long",    "nameof",  "new",
+		"null",   "object",    "return",   "sbyte",   "short",   "string",
+		"switch", "throw",     "true",     "try",     "typeof",  "uint",
+		"ulong",  "unchecked", "ushort",   "using",   "while",
 	];
 
-	static byte Of(string word) => (byte)(FirstWord + Array.IndexOf(Words, word));
+	// A word that is not in the list would be `FirstWord - 1`, which is `Identifier`, and a
+	// parser that reads every name as a keyword refuses everything. Said here, where the word
+	// is known, rather than found later as a parser that reads nothing.
+	static byte Of(string word) =>
+		Array.IndexOf(Words, word) is var at && at >= 0
+			? (byte)(FirstWord + at)
+			: throw new ArgumentOutOfRangeException(
+				nameof(word), word, "Not a word this language reserves.");
 
 	static readonly byte KwAs        = Of("as");
 	static readonly byte KwBool      = Of("bool");
@@ -161,6 +168,7 @@ static class HandExpression
 	static readonly byte KwInt       = Of("int");
 	static readonly byte KwIs        = Of("is");
 	static readonly byte KwLong      = Of("long");
+	static readonly byte KwNameof    = Of("nameof");
 	static readonly byte KwNew       = Of("new");
 	static readonly byte KwNull      = Of("null");
 	static readonly byte KwObject    = Of("object");
@@ -172,6 +180,7 @@ static class HandExpression
 	static readonly byte KwThrow     = Of("throw");
 	static readonly byte KwTrue      = Of("true");
 	static readonly byte KwTry       = Of("try");
+	static readonly byte KwTypeof    = Of("typeof");
 	static readonly byte KwUint      = Of("uint");
 	static readonly byte KwUlong     = Of("ulong");
 	static readonly byte KwUnchecked = Of("unchecked");
@@ -235,9 +244,11 @@ static class HandExpression
 				switch (w[0])
 				{
 					case 'd': if (Same(w, "double")) return KwDouble; break;
+					case 'n': if (Same(w, "nameof")) return KwNameof; break;
 					case 'o': if (Same(w, "object")) return KwObject; break;
 					case 'r': if (Same(w, "return")) return KwReturn; break;
 					case 's': if (Same(w, "string")) return KwString; if (Same(w, "switch")) return KwSwitch; break;
+					case 't': if (Same(w, "typeof")) return KwTypeof; break;
 					case 'u': if (Same(w, "ushort")) return KwUshort; break;
 				}
 
@@ -2059,6 +2070,49 @@ static class HandExpression
 					return -1;
 
 				return inner + 1;
+			}
+
+			// A type where a value is wanted, and what a type defaults to: the same reading
+			// twice over, told apart by which word opened it.
+			if (kind == KwTypeof || kind == KwDefault)
+			{
+				if (Kind(i + 1) != LeftParen)
+					return -1;
+
+				var read = Type(i + 2, out var type);
+
+				if (read < 0 || Kind(read) != RightParen)
+					return -1;
+
+				node = kind == KwTypeof
+					? Expression.Constant(type, typeof(Type))
+					: Expression.Default(type!);
+
+				return read + 1;
+			}
+
+			// A name answered with as it was written, which is its last part and nothing
+			// looked up.
+			if (kind == KwNameof)
+			{
+				if (Kind(i + 1) != LeftParen || Kind(i + 2) != Identifier)
+					return -1;
+
+				var name = Cut(i + 2);
+				var read = i + 3;
+
+				while (Kind(read) == Dot && Kind(read + 1) == Identifier)
+				{
+					name  = Cut(read + 1);
+					read += 2;
+				}
+
+				if (Kind(read) != RightParen)
+					return -1;
+
+				node = Expression.Constant(name);
+
+				return read + 1;
 			}
 
 			if (kind == LeftParen)
