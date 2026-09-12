@@ -997,6 +997,65 @@ public sealed class TransactSqlTests
 	public void A_statement_not_ended_is_followed_by_a_reserved_word(string input, bool read) =>
 		Assert.Equal(read, TransactSql.TryParseSql(input).IsSuccess);
 
+	/// <summary>The web methods a SOAP endpoint lists, as the engine answers them.</summary>
+	[Theory]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1')")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1'())")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD m1 (NAME = 'n1'))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ALTER WEBMETHOD m1 (NAME = 'n1'))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1'(NAME = d1.dbo.n1))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1'(NAME = 'd1.dbo.n1', FORMAT = FOO))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1'(NAME = 'd1.dbo.n1', SCHEMA = FOO))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1'(NAME = 'd1.dbo.n1', DESCRIPTION = 'd'))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ALTER WEBMETHOD 'm1')")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'n1'.'m1'.'x1'(NAME = 'd1.dbo.n1'))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ALTER WEBMETHOD 'm1'())")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (DROP WEBMETHOD 'n1'.'m1'.'x1')")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (DROP WEBMETHOD m1)")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (DROP WEBMETHOD 'm1'(NAME = 'd1.dbo.n1'))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (WEBMETHOD 'm1'(NAME = 'd1.dbo.n1'))")]
+	[InlineData("CREATE ENDPOINT e1 AS TCP (LISTENER_PORT = 4022) FOR SOAP (WEBMETHOD 'm1')")]
+	public void Soap_endpoints_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (DROP WEBMETHOD 'm1')")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (DROP WEBMETHOD 'n1'.'m1')")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1'(NAME = 'd1.dbo.n1'))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'n1'.'m1'(NAME = 'd1.dbo.n1'))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ALTER WEBMETHOD 'm1'(NAME = 'd1.dbo.n1'))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1'(NAME = 'n1'))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'n1'.'m1'(NAME = 'd1.dbo.n1'), ALTER WEBMETHOD 'm2'(NAME = 'd1.dbo.n2'))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (DROP WEBMETHOD 'm1', ADD WEBMETHOD 'm2'(NAME = 'd1.dbo.n1'))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1'(SCHEMA = STANDARD))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1'(NAME = 'd1.dbo.n1', NAME = 'd1.dbo.n2'))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1'(NAME = 'd1.dbo.n1', SCHEMA = NONE, FORMAT = NONE))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1'(NAME = 'd1.dbo.n1', SCHEMA = DEFAULT, FORMAT = ALL_RESULTS))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1'(NAME = 'd1.dbo.n1', FORMAT = ROWSETS_ONLY))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1'(NAME = 'd1.dbo.n1'), BATCHES = ENABLED, WSDL = NONE)")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (BATCHES = ENABLED, ADD WEBMETHOD 'm1'(NAME = 'd1.dbo.n1'))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP ()")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (WSDL = NONE)")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (WSDL = DEFAULT, SESSIONS = ENABLED, LOGIN_TYPE = MIXED)")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (WSDL = 'sp_name', SESSIONS = DISABLED, LOGIN_TYPE = WINDOWS)")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (SESSION_TIMEOUT = 100, CHARACTER_SET = XML, HEADER_LIMIT = 100)")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (DATABASE = 'd1', NAMESPACE = 'n1', SCHEMA = STANDARD)")]
+	[InlineData("ALTER ENDPOINT e1 AS TCP (LISTENER_PORT = 4022) FOR SOAP (DROP WEBMETHOD 'm1')")]
+	[InlineData("CREATE ENDPOINT e1 AS TCP (LISTENER_PORT = 4022) FOR SOAP (WEBMETHOD 'n1'.'m1'(NAME = 'd1.dbo.n1'), BATCHES = ENABLED)")]
+	[InlineData("CREATE ENDPOINT e1 AS TCP (LISTENER_PORT = 4022) FOR SOAP (WEBMETHOD 'm1'(NAME = 'd1.dbo.n1', SCHEMA = STANDARD), WSDL = NONE)")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1'(NAME = N'd1.dbo.n1'))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1'(SCHEMA = STANDARD, SCHEMA = NONE))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1'(FORMAT = NONE))")]
+	[InlineData("ALTER ENDPOINT e1 FOR SOAP (ADD WEBMETHOD 'm1'(NAME = 'd1.dbo.n1') , DROP WEBMETHOD 'm2')")]
+	[InlineData("CREATE ENDPOINT e1 AS TCP (LISTENER_PORT = 4022) FOR SOAP (DROP WEBMETHOD 'm1')")]
+	public void Soap_endpoints_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>Where a <c>$</c> name may be written as a column, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("MERGE INTO pi USING t1 ON (pi.PID = t1.PID) WHEN NOT MATCHED BY TARGET THEN INSERT (a.c1) VALUES (10)")]

@@ -397,13 +397,15 @@ static class Engine
 			//   1020  Sub-entity lists cannot be specified for entity-level permissions.
 			//   1054  Syntax '…' is not allowed in schema-bound objects.
 			//   7801  The required parameter … was not specified.
+			//   7819  The SOAP method object '…' must be specified using a fully qualified
+			//         three-part name.
 			//   7853  The URL specified as the path … must begin with "/".
 			//   7861  "…" endpoints can only be of the "FOR …" type.
 			//  13539  Setting SYSTEM_VERSIONING to ON failed because history table ….
 			//  15151  Cannot … the … , because it does not exist or you do not have permission.
 			or 135 or 148
 			or 1003 or 1020 or 1054
-			or 7801 or 7853 or 7861
+			or 7801 or 7819 or 7853 or 7861
 			or 13539 or 15151
 
 			// The same audit run again over what was left, which is how a list like this is

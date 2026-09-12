@@ -19391,3 +19391,40 @@ has written down gets found at all. What the corpus shows is the work list and t
 At 150: read by both 5,920 (from 5,918), the work list 56 (from 58), read here but refused
 there 31 (from 31); `--split` 730 (from 728), the round trip 100% of 7,552. The map: read by
 both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
+
+## The web methods a SOAP endpoint lists
+
+`FOR SOAP` had been reading the generic option list, which is a run of words and a value. That
+is enough for the settings and nothing like enough for a web method, so four of the corpus's
+work list sat there — and the run of words read one form the engine refuses, which is a defect
+the same rule closes.
+
+- **`Msg 7819` is a name check, not a refusal of the shape.** Put `ADD WEBMETHOD 'm1'(NAME =
+  'n1')` to the engine and it answers *"The SOAP method object 'n1' must be specified using a
+  fully qualified three-part name"* — it read the statement and objected to what was in it.
+  That is what told this family apart from one the parser really refuses, and it is why the
+  work here is as large as it is.
+- **A method is added, altered or dropped**, and written bare where the endpoint is created.
+  Bare under an `ALTER` is `Msg 7803`, "The WEBMETHOD clause is not allowed in ALTER ENDPOINT",
+  so the verb decides — and since the verb is read by the statement and the list by a rule of
+  its own, the statement is where that question is asked.
+- **Its name is one quoted string or two**, `'m1'` or `'n1'.'m1'`, and three is `Msg 102`. An
+  identifier is refused: `ADD WEBMETHOD m1 (NAME = 'n1')` is `Msg 102` and the run of option
+  words had read it — the defect this closes.
+- **Dropped, a method takes nothing further**; added or altered it takes a bracket, and the
+  bracket may not be empty. Inside are `NAME` (a string, `N'…'` included, and never an
+  unquoted name), `SCHEMA` from `NONE`/`STANDARD`/`DEFAULT` and `FORMAT` from
+  `NONE`/`ALL_RESULTS`/`ROWSETS_ONLY`. Anything else is `Msg 102`, `DESCRIPTION` among them;
+  each may be written twice and the engine reads it.
+- **Methods and settings mix in either order**, `(BATCHES = ENABLED, ADD WEBMETHOD …)` as
+  readily as the reverse, and an `ADD` may be followed by a `DROP` in one list. The settings
+  themselves — `WSDL`, `SESSIONS`, `LOGIN_TYPE`, `SESSION_TIMEOUT`, `CHARACTER_SET`,
+  `HEADER_LIMIT`, `DATABASE`, `NAMESPACE` — the generic list already read, and still does.
+
+These endpoints were removed from the product in 2012 and the parser reads them yet, which is
+the same reason `AS HTTP` has a place here. The engine is the authority on what it reads, not
+on what it would still run.
+
+At 150: read by both 5,930 (from 5,920), the work list 54 (from 56), read here but refused
+there 31 (from 31); `--split` 732 (from 730), the round trip 100% of 7,562. The map: read by
+both 7,983 of 8,338 (99.8%), the work list 20, defects 0.

@@ -4595,7 +4595,8 @@ AuditStatement : @Statement
 	// either order, and an owner is given only when the endpoint is created.
 	| verb: CreateOrAlter & "ENDPOINT"i & name: Identifier & ("AUTHORIZATION"i & owner: QualifiedName)?
 	  & standing: EndpointState? & reached: EndpointAs? & spoken: EndpointFor? & late: EndpointAs?
-	  & when @((owner is null || verb == "CREATE") && (reached is null || late is null))
+	  & when @((owner is null || verb == "CREATE") && (reached is null || late is null)
+			  && Syntax.Created(verb, spoken))
 		=> @(new Statement.EndpointDefinition(name, verb, owner,
 				 standing?.Name is "" ? null : standing?.Name, standing?.Options,
 				 (reached ?? late)?.Name, (reached ?? late)?.Options, spoken?.Name, spoken?.Options))
@@ -4721,12 +4722,62 @@ EndpointFor : @Clause.Option
 	= "FOR"i & w: EndpointTsql & '(' & o: EndpointTsqlOptions? & ')' => @(new Clause.Option(w, null, o ?? Clause.None))
 	| "FOR"i & w: EndpointBroker & '(' & o: EndpointBrokerOptions? & ')' => @(new Clause.Option(w, null, o ?? Clause.None))
 	| "FOR"i & w: EndpointMirroring & '(' & o: EndpointMirroringOptions? & ')' => @(new Clause.Option(w, null, o ?? Clause.None))
-	| "FOR"i & w: EndpointSoap & '(' & o: OptionList? & ')' => @(new Clause.Option(w, null, o ?? Clause.None))
+	| "FOR"i & w: EndpointSoap & '(' & o: EndpointSoapOptions? & ')' => @(new Clause.Option(w, null, o ?? Clause.None))
 
 EndpointTsql      = "TSQL"i
 EndpointBroker    = "SERVICE_BROKER"i
 EndpointMirroring = "DATABASE_MIRRORING"i | "DATA_MIRRORING"i
 EndpointSoap      = "SOAP"i
+
+// SOAP's own list, which is its settings and its web methods mixed in either order. A method
+// is added, altered or dropped where the endpoint is altered, and written bare where it is
+// created — bare under an `ALTER` is `Msg 7803`, which the statement asks about since the verb
+// is read there and not here. Its name is one quoted string or two, `'n1'.'m1'`, and never an
+// identifier —
+// `ADD WEBMETHOD m1 (NAME = 'n1')` is `Msg 102` and a run of option words had read it.
+// Dropped it takes nothing further; added or altered it takes a bracket that may not be empty,
+// holding `NAME` (a string, and `NAME = d1.dbo.n1` is refused), `SCHEMA` and `FORMAT` from
+// their catalogues, each of them readable twice.
+//
+// What the engine says of `ADD WEBMETHOD 'm1'(NAME = 'n1')` is `Msg 7819`, "The SOAP method
+// object 'n1' must be specified using a fully qualified three-part name" — a judgement about
+// the name it was given rather than about the shape it was written in, so the statement was
+// read. These endpoints were removed in 2012 and the parser still reads them, which is the
+// same reason `AS HTTP` is here.
+EndpointSoapOptions : @Clause[]
+	= first: EndpointSoapOption & (',' & rest: EndpointSoapOption)* => @(Syntax.Listed(first, rest))
+
+EndpointSoapOption : @Clause
+	= verb: ("ADD"i | "ALTER"i) & "WEBMETHOD"i & name: WebMethodName
+	  & '(' & method: WebMethodOptions & ')'
+		=> @(new Clause.Option(Syntax.Spaced(verb) + " WEBMETHOD",
+				 new Expression.Literal(SqlLiteralKind.Text, name), method, null, true))
+	| "DROP"i & "WEBMETHOD"i & name: WebMethodName
+		=> @(new Clause.Option("DROP WEBMETHOD",
+				 new Expression.Literal(SqlLiteralKind.Text, name), Clause.None, null, true))
+	| "WEBMETHOD"i & name: WebMethodName & '(' & method: WebMethodOptions & ')'
+		=> @(new Clause.Option("WEBMETHOD",
+				 new Expression.Literal(SqlLiteralKind.Text, name), method, null, true))
+
+	// A setting, and never a web method the alternatives above have refused: a run of option
+	// words would read `ADD WEBMETHOD m1 (NAME = 'n1')` whole, which is `Msg 102`.
+	| ?!(("ADD"i | "ALTER"i | "DROP"i)? & "WEBMETHOD"i) & o: OptionSetting => @(o)
+
+WebMethodName : @string = t: (Quoted & ('.' & Quoted)?) => @(t)
+
+WebMethodOptions : @Clause[]
+	= first: WebMethodOption & (',' & rest: WebMethodOption)* => @(Syntax.Listed(first, rest))
+
+WebMethodOption : @Clause
+	= "NAME"i & '=' & v: BrokerString
+		=> @(new Clause.Option("NAME", v, Clause.None))
+	| "SCHEMA"i & '=' & t: WebMethodSchema
+		=> @(new Clause.Option("SCHEMA", new Expression.ColumnReference(t), Clause.None))
+	| "FORMAT"i & '=' & t: WebMethodFormat
+		=> @(new Clause.Option("FORMAT", new Expression.ColumnReference(t), Clause.None))
+
+WebMethodSchema = "NONE"i | "STANDARD"i | "DEFAULT"i
+WebMethodFormat = "NONE"i | "ALL_RESULTS"i | "ROWSETS_ONLY"i
 
 EndpointTsqlOptions : @Clause[]
 	= first: EndpointEncryption & (',' & rest: EndpointEncryption)* => @(Syntax.Listed(first, rest))

@@ -4104,6 +4104,21 @@ public static class Syntax
 		return true;
 	}
 
+	/// <summary>
+	/// Whether a web method written bare stands where one may: under a created endpoint and not
+	/// under an altered one.
+	/// </summary>
+	/// <remarks>
+	/// <c>CREATE ENDPOINT … FOR SOAP (WEBMETHOD 'm1'(…))</c> is read and <c>ALTER ENDPOINT …
+	/// FOR SOAP (WEBMETHOD 'm1'(…))</c> is <c>Msg 7803</c>, "The WEBMETHOD clause is not allowed
+	/// in ALTER ENDPOINT"; altered, a method is added, altered or dropped by name. The verb is
+	/// read by the statement and the list by a rule of its own, so the question is put here.
+	/// </remarks>
+	public static bool Created(string? verb, Clause.Option? spoken) =>
+		string.Equals(verb, "CREATE", StringComparison.OrdinalIgnoreCase) ||
+		spoken?.Options is not { } options ||
+		!Array.Exists(options, static one => one is Clause.Option { Name: "WEBMETHOD" });
+
 	/// <summary>Whether every column of a table's body has a type, or a value it is computed from.</summary>
 	/// <remarks>Asked of a result set, which unlike a table may not leave a type out (<c>Msg 102</c>).</remarks>
 	public static bool Typed(Clause[]? body) =>
