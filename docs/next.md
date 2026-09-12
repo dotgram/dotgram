@@ -19661,3 +19661,33 @@ of its own.
 At 150: read by both 5,950 (from 5,948), the work list 34 (from 36), read here but refused
 there 12 (from 12); `--split` 730 (from 730), the round trip 100% of 7,571. The map: read by
 both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
+
+## A join hanging off the right of a join
+
+Four of the work list looked like one family — `INNER REMOTE JOIN` — and were three different
+things, which the engine said before any of it was written.
+
+- **The work: a join whose right side is a join, with no brackets saying so.** `FROM t1 INNER
+  REMOTE JOIN t10 LEFT JOIN t11 ON t10.c1 > t11.c1 ON t1.c1 = t10.c1` is read, the inner
+  condition belonging to the inner join and the outer one to the join outside. The hint has
+  nothing to do with it: `INNER JOIN`, a bare `JOIN`, `LEFT`/`RIGHT` and `INNER LOOP` all fail
+  the same way here and are all read there. The rule took a primary on the right, so the
+  second `ON` had nowhere to go.
+
+  Written with the primary read once and the join as what may follow it, because two
+  alternatives beginning with a primary is what `GRAM4016` refuses — and the diagnostic names
+  that remedy exactly. The tail is built with its left side null and the source put in
+  afterwards, the way a pivot's suffix already is.
+- **Not the work: `INNER LOCAL MERGE JOIN`.** The corpus calls it an undocumented feature and
+  the engine answers `Msg 155`; `(t10 LEFT JOIN t11 ON …) AS x` is `Msg 156`. Two more
+  statements that look like the family and are the corpus being a corpus of errors.
+- **Measured and left alone: a pivot applied to a join.** `FROM (t10 LEFT JOIN t11 ON …) PIVOT
+  (…) AS p` is read by the engine and refused here, and the reason is written down in the
+  grammar: a pivot is the suffix of a primary "rather than of a join", which is where the
+  §4.3 folding stops. Extending it rewrites how sources are read, so it stays as it is and
+  three corpus statements stay on the work list — put here with a number beside them rather
+  than as a note, so the cost of that decision is visible.
+
+At 150: read by both 5,952 (from 5,950), the work list 32 (from 34), read here but refused
+there 12 (from 12); `--split` 731 (from 730), the round trip 100% of 7,573. The map: read by
+both 7,983 of 8,338 (99.8%), the work list 20, defects 0.

@@ -3738,6 +3738,15 @@ public static class Syntax
 		return Pivoted(source, pivot);
 	}
 
+	/// <summary>A source and the join hanging off it, where one was written.</summary>
+	/// <remarks>
+	/// The right side of a join may be a join itself with no brackets saying so — <c>t1 JOIN
+	/// t10 LEFT JOIN t11 ON … ON …</c> — and the tail is read without its left side, which is
+	/// this source.
+	/// </remarks>
+	public static TableReference Hanging(TableReference source, TableReference? tail) =>
+		tail is TableReference.Joined joined ? joined with { Left = source } : source;
+
 	/// <summary>A source and the pivot applied to it, where one was written.</summary>
 	public static TableReference Pivoted(TableReference source, TableReference? pivot) =>
 		pivot switch

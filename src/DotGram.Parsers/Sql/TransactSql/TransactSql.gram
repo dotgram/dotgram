@@ -852,10 +852,24 @@ TSqlTableReference : @TableReference
 		=> @(new TableReference.Joined(SqlJoin.CrossApply, false, false, left, right))
 	| left: TSqlTableReference & "OUTER"i & "APPLY"i & right: TablePrimary
 		=> @(new TableReference.Joined(SqlJoin.OuterApply, false, false, left, right))
-	| left: TSqlTableReference & kind: TSqlJoinType? & hint: JoinHint? & "JOIN"i & right: TablePrimary
+	| left: TSqlTableReference & kind: TSqlJoinType? & hint: JoinHint? & "JOIN"i & right: JoinedRight
 	  & "ON"i & on: SearchCondition
 		=> @(TableReference.Joining(kind, null, left, right, on, null, hint))
 	| t: TablePrimary => @(t)
+
+// What may stand on the right of a join: a primary, and a join of its own hanging off it —
+// `JOIN t10 LEFT JOIN t11 ON t10.c1 > t11.c1` — whose condition is read here and belongs to
+// it, leaving the outer `ON` to the join outside.
+//
+// The primary is read once and the join is what may follow it (§4.5), which is what keeps the
+// two alternatives from reading it twice. The tail is built with its left side null and the
+// source put in afterwards, the way a pivot's suffix is.
+JoinedRight : @TableReference
+	= t: TablePrimary & tail: JoinedTail? => @(Syntax.Hanging(t, tail))
+
+JoinedTail : @TableReference
+	= kind: TSqlJoinType? & hint: JoinHint? & "JOIN"i & right: JoinedRight & "ON"i & on: SearchCondition
+		=> @(TableReference.Joining(kind, null, null!, right, on, null, hint))
 
 TSqlJoinType : @string = t: JoinType => @(t)
 

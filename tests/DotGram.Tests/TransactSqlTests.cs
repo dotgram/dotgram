@@ -997,6 +997,36 @@ public sealed class TransactSqlTests
 	public void A_statement_not_ended_is_followed_by_a_reserved_word(string input, bool read) =>
 		Assert.Equal(read, TransactSql.TryParseSql(input).IsSuccess);
 
+	/// <summary>A join whose right side is a join of its own, as the engine answers it.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM t1 INNER LOCAL MERGE JOIN t10 ON t1.c1 = t10.c1")]
+	[InlineData("SELECT * FROM t1 INNER LOCAL HASH JOIN t10 ON t1.c1 = t10.c1")]
+	[InlineData("SELECT * FROM (t10 LEFT JOIN t11 ON t10.c1 > t11.c1) AS x")]
+	public void Joins_hanging_off_joins_refuse_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And read the forms beside them.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM t1 INNER REMOTE JOIN t10 LEFT OUTER JOIN t11 ON t10.c1 > t11.c1 ON t1.c1 = t10.c1")]
+	[InlineData("SELECT * FROM t1 INNER REMOTE JOIN t10 LEFT JOIN t11 ON t10.c1 > t11.c1 ON t1.c1 = t10.c1")]
+	[InlineData("SELECT * FROM t1 INNER JOIN t10 LEFT OUTER JOIN t11 ON t10.c1 > t11.c1 ON t1.c1 = t10.c1")]
+	[InlineData("SELECT * FROM t1 JOIN t10 JOIN t11 ON t10.c1 = t11.c1 ON t1.c1 = t10.c1")]
+	[InlineData("SELECT * FROM t1 LEFT JOIN t10 RIGHT JOIN t11 ON t10.c1 = t11.c1 ON t1.c1 = t10.c1")]
+	[InlineData("SELECT * FROM t1 INNER LOOP JOIN t10 LEFT OUTER JOIN t11 ON t10.c1 > t11.c1 ON t1.c1 = t10.c1")]
+	[InlineData("SELECT * FROM t1 INNER REMOTE JOIN t10 LEFT OUTER JOIN t11 ON t10.c1 > t11.c1 ON t1.c1 = t10.c1 WHERE c1 = 1")]
+	[InlineData("SELECT * FROM t1 INNER REMOTE JOIN (t10 LEFT OUTER JOIN t11 ON t10.c1 > t11.c1) ON t1.c1 = t10.c1")]
+	[InlineData("SELECT * FROM (t1 INNER REMOTE JOIN (t10 LEFT JOIN t11 ON t10.c1 > t11.c1) ON t1.c1 = t10.c1)")]
+	[InlineData("SELECT * FROM t1 INNER REMOTE JOIN t10 ON t1.c1 = t10.c1")]
+	[InlineData("SELECT * FROM t1 INNER HASH JOIN t10 ON t1.c1 = t10.c1")]
+	[InlineData("SELECT * FROM t1 CROSS JOIN t10 LEFT OUTER JOIN t11 ON t10.c1 = t11.c1")]
+	[InlineData("SELECT * FROM (t10 LEFT JOIN t11 ON t10.c1 > t11.c1)")]
+	public void Joins_hanging_off_joins_read_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>A number where a source's hints stand, and a hint written against a sample, as the engine answers them.</summary>
 	[Theory]
 	[InlineData("SELECT c1 FROM t1 WITH (0, NOLOCK)")]
