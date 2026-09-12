@@ -85,6 +85,12 @@ public sealed class ExpressionCarrierTests
 		"(bool c) => c ? 1 : 2L",
 		"() => -3000000000",
 
+		// A declaration whose type is its initializer's, the same inside a `for`, and the word
+		// itself used as a name.
+		"(double x) => { var half = x / 2.0; return half; }",
+		"(int n) => { int sum = 0; for (var i = 0; i < n; i++) { sum += i; } sum }",
+		"(int var) => { var += 2; var }",
+
 		// A type where a value is wanted, what it defaults to, and a name asked for as written.
 		"using System; (int x) => typeof(int[])",
 		"(int x) => default(int) + x",

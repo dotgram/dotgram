@@ -349,14 +349,58 @@ public sealed class ExpressionParserTests
 				"(int x) => { int doubled = x * 2; int more = doubled + 2; return more; }")(5));
 
 	[Fact]
-	public void And_a_local_says_its_type_because_the_API_asks_where_it_is_read() =>
-		// `Expression.Variable` wants a type at the declaration, and the initializer is
-		// not built until long after — so the language says `double half`, not `var half`.
-		// The grammar shaped to the API, which is what wiring one up looks like.
+	public void And_a_local_may_say_its_type() =>
+		// `Expression.Variable` wants a type at the declaration, and a written one is there
+		// to be handed over before anything else is read.
 		Assert.Equal(
 			2.5,
 			ExpressionParser.Compile<Func<double, double>>(
 				"(double x) => { double half = x / 2.0; return half; }")(5));
+
+	[Fact]
+	public void Or_take_it_from_what_it_is_given() =>
+		// `var`, which the API has nothing to say about: the initializer is a tree and a tree
+		// carries its type, so the declaration is made after it is read rather than before.
+		Assert.Equal(
+			2.5,
+			ExpressionParser.Compile<Func<double, double>>(
+				"(double x) => { var half = x / 2.0; return half; }")(5));
+
+	[Fact]
+	public void And_the_type_taken_is_the_initializer_s_own() =>
+		// Not what it is later assigned to and not `object`: over two `int`s the division is
+		// integer division, and `half` is an `int` holding 2 before the return widens it.
+		Assert.Equal(
+			2.0,
+			ExpressionParser.Compile<Func<int, double>>(
+				"(int x) => { var half = x / 2; return half; }")(5));
+
+	[Fact]
+	public void And_a_for_may_declare_its_counter_that_way_too() =>
+		Assert.Equal(
+			10,
+			ExpressionParser.Compile<Func<int, int>>(
+				"(int n) => { int sum = 0; for (var i = 0; i < n; i++) { sum += i; } sum }")(5));
+
+	[Fact]
+	public void But_nothing_is_taken_from_null_or_from_a_statement() =>
+		// C# refuses both: the literal is typed by where it stands, and a loop is worth
+		// nothing. A refusal, not a throw, so the reading falls to the alternatives after it.
+		Assert.All(
+			new[]
+			{
+				"(int x) => { var nothing = null; x }",
+				"(int x) => { var done = while (x > 0) { x -= 1; }; x }",
+			},
+			text => Assert.False(ExpressionParser.TryParse(text).IsSuccess));
+
+	[Fact]
+	public void And_var_is_a_word_before_it_is_anything_else() =>
+		// Contextual, as C# has it: it means inference only where a type could stand, and
+		// everywhere else it is a name like any other.
+		Assert.Equal(
+			7,
+			ExpressionParser.Compile<Func<int, int>>("(int var) => { var += 2; var }")(5));
 
 	// ── A block is an expression, and it holds a scope ──────────────────────────
 

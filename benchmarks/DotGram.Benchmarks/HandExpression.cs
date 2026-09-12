@@ -1060,6 +1060,11 @@ static class HandExpression
 			if (local >= 0)
 				return local;
 
+			var inferred = Inferred(i, out node);
+
+			if (inferred >= 0)
+				return inferred;
+
 			if (Kind(i) == KwReturn)
 			{
 				var value = Value(i + 1, out var read);
@@ -1098,6 +1103,45 @@ static class HandExpression
 			node = null;
 
 			return -1;
+		}
+
+		/// <summary>Whether that token is the word `var`, without cutting a string to find out.</summary>
+		/// <remarks>
+		/// Asked of every statement that is not a declaration, which is why it is asked this
+		/// way: `var` is contextual and so there is no kind to switch on, and a `Substring`
+		/// per statement would be a string allocated to answer no.
+		/// </remarks>
+		readonly bool IsVar(int i) =>
+			Kind(i) == Identifier && _lengths[i] == 3 && Same(_text.AsSpan(_starts[i], 3), "var");
+
+		/// <summary>A declaration whose type is its initializer's.</summary>
+		/// <remarks>
+		/// Read where <see cref="Local"/> could not read a type, which is what leaves a real
+		/// type named `var` winning and `var` itself usable as a name. The declaration is made
+		/// after the initializer, because until that is a tree there is no type to make it
+		/// with — the same order the grammar's `Inferred` rule is written in.
+		/// </remarks>
+		int Inferred(int i, out Expression? node)
+		{
+			node = null;
+
+			if (!IsVar(i) || Kind(i + 1) != Identifier || Kind(i + 2) != Assign)
+				return -1;
+
+			var name  = Cut(i + 1);
+			var value = Value(i + 3, out var read);
+
+			if (value < 0 || Kind(value) != Semicolon)
+				return -1;
+
+			var span = Span(i, value + 1);
+
+			if (!ExpressionParser.Inferable(read!) || !_context.Declare(read!.Type, name, span))
+				return -1;
+
+			node = ExpressionParser.Assigned(_context.Named(name, span), read!);
+
+			return value + 1;
 		}
 
 		int Local(int i, out Expression? node)

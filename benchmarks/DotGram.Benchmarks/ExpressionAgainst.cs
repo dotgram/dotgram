@@ -167,6 +167,14 @@ static class ExpressionAgainst
 		"(int x) => default(int) + x",
 		"(int x) => nameof(x)",
 
+		// A declaration whose type is its initializer's, the same inside a `for`, and the
+		// word itself as a name — which is what makes `var` contextual rather than reserved.
+		"(int x) => { var doubled = x * 2; doubled }",
+		"(double x) => { var half = x / 2.0; return half; }",
+		"(int n) => { int sum = 0; for (var i = 0; i < n; i++) { sum += i; } sum }",
+		"(int var) => { var += 2; var }",
+		"(int x) => { var nothing = null; x }",
+
 		// The constants, every form of them.
 		"(int x) => 1",
 		"(int x) => 2147483648",

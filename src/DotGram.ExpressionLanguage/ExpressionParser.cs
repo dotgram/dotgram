@@ -125,11 +125,15 @@ namespace DotGram.ExpressionLanguage;
 //     refused where C# folds the sum first and then converts it.
 //   * An increment or a compound assignment writes to a name or to one member of a name —
 //     not to an element, and not to a longer chain.
-//   * `?.`, `var`, `foreach`, an interpolated string and a lambda inside an expression are
-//     not written yet.
+//   * `?.`, `foreach`, an interpolated string and a lambda inside an expression are not
+//     written yet.
 //   * `default` is written with its type — `default(int)`. A bare one is typed by what it
 //     stands against, which is the pass this language does not make, and `nameof` answers
 //     with the name as written rather than looking it up.
+//   * `var` takes its type from the initializer, which it can because the declaration is
+//     made after that is read. It refuses what C# refuses — `null`, which has no type of
+//     its own, and a statement, which is worth nothing — and it is contextual, so `var` is
+//     still a name a text may use.
 //   * A loop is void. The API would type one — a `Loop` whose break label carries a value
 //     is worth it — but only a loop with no ordinary way out can, since the ordinary way
 //     out would have to carry a value too, and C#'s `break` carries nothing.
@@ -433,6 +437,7 @@ namespace DotGram.ExpressionLanguage;
 
 	Statement : @Expression
 		= s: Local            => @(s)
+		| s: Inferred         => @(s)
 		| s: Return           => @(s)
 		| s: Block            => @(s)
 		| s: Control          => @(s)
@@ -442,6 +447,32 @@ namespace DotGram.ExpressionLanguage;
 	Local : @Expression
 		= type: Type & name: Word & when @(context.Declare(type, name, parserSpan))
 		& '=' & value: Value & ';'
+		=> @(ExpressionParser.Assigned(context.Named(name, parserSpan), value))
+
+	// The same declaration with its type left to the initializer. The difference is when the
+	// name is recorded: a written type is recorded before the initializer is read, which is
+	// the order the API wants — `Expression.Variable` is handed a type at the declaration —
+	// and `var` has nothing to hand over until the initializer is a tree, so it is recorded
+	// after. A guard's `parserSpan` runs from where the rule began (§4.1) and not from where
+	// the guard stands, so both record the same position and a name declared either way is
+	// visible over the same extent.
+	//
+	// What the order does change is whether a name can see itself: `int x = x;` reads and
+	// `var x = x;` does not, which is C#'s answer to each.
+	//
+	// A rule of its own rather than an alternative of `Local`, because a capture only some
+	// alternatives make is nullable in every guard of the rule (§4.2): written there, the
+	// `type` of the form above would have to be checked for null in a guard that cannot
+	// receive one. Two rules, two sets of captures, and neither says anything about the other.
+	//
+	// `var` is contextual here as it is in C#, and nothing reserves it. `Local` is read
+	// first, so a real type named `var` still wins; a text may still call a variable `var`;
+	// and what tells the two apart is a guard over the word, which is all a contextual
+	// keyword has ever been.
+	Inferred : @Expression
+		= inferred: Word & when @(inferred == "var")
+		& name: Word & '=' & value: Value & ';'
+		& when @(ExpressionParser.Inferable(value) && context.Declare(value.Type, name, parserSpan))
 		=> @(ExpressionParser.Assigned(context.Named(name, parserSpan), value))
 
 	Return : @Expression = "return" & value: Value & ';'
@@ -2365,6 +2396,18 @@ public static partial class ExpressionParser
 	/// null, and being this node is how. Typed <c>object</c> until something converts it.
 	/// </remarks>
 	public static readonly ConstantExpression Null = Expression.Constant(null, typeof(object));
+
+	/// <summary>Whether a declaration can take its type from this initializer.</summary>
+	/// <remarks>
+	/// C# refuses both of these, and this refuses them for C#'s reasons. The literal
+	/// <c>null</c> is typed by where it stands and so has none of its own to give — told from
+	/// an <c>object</c> that happens to be null by being <see cref="Null"/>, the same question
+	/// the conversions ask. And a statement is worth nothing at all: a loop, or a block that
+	/// ends in one, is <c>void</c>, which no variable can be. Answering rather than throwing
+	/// leaves the reading to the alternatives after it (§8.1).
+	/// </remarks>
+	public static bool Inferable(Expression value) =>
+		value is not null && value.Type != typeof(void) && !ReferenceEquals(value, Null);
 
 	/// <summary>C#'s predefined arithmetic operators take one of these, in this order.</summary>
 	static readonly Type[] _arithmetics =
