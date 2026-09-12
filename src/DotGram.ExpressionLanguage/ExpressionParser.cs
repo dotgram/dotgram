@@ -1977,10 +1977,23 @@ public static partial class ExpressionParser
 		}
 
 		/// <summary>A reading on behalf of that assembly, asked already.</summary>
-		internal State(Assembly caller) => Caller = caller ?? throw new ArgumentNullException(nameof(caller));
+		internal State(Assembly caller)
+		{
+			Caller  = caller ?? throw new ArgumentNullException(nameof(caller));
+			Members = new MemberResolver(Caller, _imports);
+		}
 
 		/// <summary>The assembly the text is read for, whose internal types and members it may name.</summary>
 		public Assembly Caller { get; }
+
+		/// <summary>What a member is here: the two things it needs from the reading, and nothing else.</summary>
+		/// <remarks>
+		/// The resolver holds the calling assembly and this reading's `using`s, which is all
+		/// that a question about members depends on. Everything it answers can be asked of it
+		/// directly, without a text to parse — which is the whole reason it is a thing of its
+		/// own and not a set of methods taking the same two arguments over and over.
+		/// </remarks>
+		public MemberResolver Members { get; }
 
 		/// <summary>A block's extent, which is the whole of what a scope is.</summary>
 		readonly record struct Scope(int From, int To);
@@ -2129,7 +2142,13 @@ public static partial class ExpressionParser
 		// ── What a name written as a type means ─────────────────────────────────────
 
 		/// <summary>The namespaces the text's `using`s named, in the order it named them.</summary>
-		List<string>? _imports;
+		/// <remarks>
+		/// Made at once rather than on the first directive, because <see cref="Members"/> is
+		/// handed this very list and must see what is recorded into it after it was handed
+		/// over: a `using` is read before the lambda, and the resolver is asked while the body
+		/// is.
+		/// </remarks>
+		readonly List<string> _imports = [];
 
 		/// <summary>A `using`, recorded while the text is read (§8.1).</summary>
 		/// <returns>
@@ -2149,7 +2168,7 @@ public static partial class ExpressionParser
 				return false;
 			}
 
-			if (!(_imports ??= []).Contains(@namespace, StringComparer.Ordinal))
+			if (!_imports.Contains(@namespace, StringComparer.Ordinal))
 				_imports.Add(@namespace);
 
 			return true;
@@ -2209,9 +2228,9 @@ public static partial class ExpressionParser
 			Type? two   = null;
 			var   count = 0;
 
-			for (var at = -1; at < (_imports?.Count ?? 0); at++)
+			for (var at = -1; at < _imports.Count; at++)
 			{
-				var found = Qualified(at < 0 ? null : _imports![at], name, Caller);
+				var found = Qualified(at < 0 ? null : _imports[at], name, Caller);
 
 				if (found is null || found == one || found == two)
 					continue;
@@ -2404,34 +2423,14 @@ public static partial class ExpressionParser
 		/// </remarks>
 		public Expression Calling(Expression target, string name, Expression[] arguments)
 		{
-			if (target is null)
-				throw new ArgumentNullException(nameof(target));
+			var chosen = Members.Method(target, name, arguments);
 
-			if (arguments is null)
-				throw new ArgumentNullException(nameof(arguments));
-
-			if (Methods(target.Type, name, true, arguments, Caller) is { Count: > 0 } own)
-			{
-				var mine = Resolved(own, arguments, $"'{target.Type.Name}' has no method '{name}'");
-
-				return Expression.Call(target, (MethodInfo)mine.Member, Passed(mine, arguments));
-			}
-
-			var extended = new Expression[arguments.Length + 1];
-
-			extended[0] = target;
-
-			arguments.CopyTo(extended, 1);
-
-			if (Extensions(name, extended, Caller, _imports) is { Count: > 0 } found)
-			{
-				var chosen = Resolved(found, extended, $"nothing extends '{target.Type.Name}' with '{name}'");
-
-				return Expression.Call((MethodInfo)chosen.Member, Passed(chosen, extended));
-			}
-
-			// Neither, which is what the language has always said in these words.
-			return Called(target, name, arguments, Caller);
+			// An extension method is a static one with the receiver standing first among the
+			// arguments — which is what an extension method is — so the member says which of
+			// the two forms was chosen and nothing here has to remember.
+			return chosen.Member is MethodInfo { IsStatic: true } extension
+				? Expression.Call(extension, chosen.Arguments)
+				: Expression.Call(target, (MethodInfo)chosen.Member, chosen.Arguments);
 		}
 
 		/// <summary>A lambda written inside an expression, which is a value like any other.</summary>

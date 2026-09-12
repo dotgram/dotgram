@@ -29,11 +29,11 @@ public static partial class ExpressionParser
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
 
-		var chosen = Resolved(
+		var chosen = Chose(
 			Methods(target.Type, name, instance: true, arguments, caller), arguments,
 			$"'{target.Type.Name}' has no method '{name}'");
 
-		return Expression.Call(target, (MethodInfo)chosen.Member, Passed(chosen, arguments));
+		return Expression.Call(target, (MethodInfo)chosen.Member, chosen.Arguments);
 	}
 
 	/// <summary>A call on a type: the static method C# would choose for these arguments.</summary>
@@ -42,11 +42,11 @@ public static partial class ExpressionParser
 		if (type is null)
 			throw new ArgumentNullException(nameof(type));
 
-		var chosen = Resolved(
+		var chosen = Chose(
 			Methods(type, name, instance: false, arguments, caller), arguments,
 			$"'{type.Name}' has no method '{name}'");
 
-		return Expression.Call((MethodInfo)chosen.Member, Passed(chosen, arguments));
+		return Expression.Call((MethodInfo)chosen.Member, chosen.Arguments);
 	}
 
 	/// <summary>A delegate called, its arguments converted to what it takes.</summary>
@@ -56,13 +56,26 @@ public static partial class ExpressionParser
 			throw new ArgumentNullException(nameof(target));
 
 		// What is not a delegate is the API's to refuse, in its own words.
-		if (!typeof(Delegate).IsAssignableFrom(target.Type) || target.Type.GetMethod("Invoke") is not { } invoke)
+		if (!typeof(Delegate).IsAssignableFrom(target.Type) || target.Type.GetMethod("Invoke") is null)
 			return Expression.Invoke(target, arguments);
+
+		return Expression.Invoke(target, Invoking(target, arguments).Arguments);
+	}
+
+	/// <summary>A delegate's <c>Invoke</c>, and the arguments it takes.</summary>
+	/// <remarks>
+	/// One candidate and nothing to choose between, so this asks whether it applies rather
+	/// than which of several is better. No calling assembly comes into it: a delegate's
+	/// <c>Invoke</c> is reachable wherever the delegate type itself is.
+	/// </remarks>
+	static Resolution Invoking(Expression target, Expression[] arguments)
+	{
+		var invoke = target.Type.GetMethod("Invoke")!;
 
 		var chosen = Applicable(invoke, invoke.GetParameters(), arguments) ?? throw new InvalidOperationException(
 			$"'{target.Type.Name}' cannot be invoked with ({Listing(arguments)}).");
 
-		return Expression.Invoke(target, Passed(chosen, arguments));
+		return new Resolution(chosen.Member, Passed(chosen, arguments));
 	}
 
 	/// <summary>The constructor C# would choose for these arguments, called with them.</summary>
@@ -75,15 +88,34 @@ public static partial class ExpressionParser
 		if (arguments.Length == 0 && type.IsValueType)
 			return Expression.New(type);
 
+		var chosen = Chose(Constructing(type, arguments, caller), arguments, $"'{type.Name}' has no constructor");
+
+		return Expression.New((ConstructorInfo)chosen.Member, chosen.Arguments);
+	}
+
+	/// <summary>The constructors these arguments fit.</summary>
+	static List<Candidate> Constructing(Type type, Expression[] arguments, Assembly caller)
+	{
 		var found = new List<Candidate>();
 
 		foreach (var (constructor, parameters) in _constructors.GetOrAdd((type, caller), static key => Constructors(key)))
 			if (Applicable(constructor, parameters, arguments) is { } candidate)
 				found.Add(candidate);
 
-		var chosen = Resolved(found, arguments, $"'{type.Name}' has no constructor");
+		return found;
+	}
 
-		return Expression.New((ConstructorInfo)chosen.Member, Passed(chosen, arguments));
+	/// <summary>The candidate C# would call, with the arguments as it takes them.</summary>
+	/// <remarks>
+	/// The pair every caller wants: <see cref="Resolved"/> says which member, and
+	/// <see cref="Passed"/> says what it is handed, and working the second out apart from the
+	/// first is how two callers come to disagree about the same call.
+	/// </remarks>
+	static Resolution Chose(List<Candidate> found, Expression[] arguments, string missing)
+	{
+		var chosen = Resolved(found, arguments, missing);
+
+		return new Resolution(chosen.Member, Passed(chosen, arguments));
 	}
 
 	/// <summary>One way a call could be read: the member, and the form its arguments take.</summary>
@@ -124,7 +156,8 @@ public static partial class ExpressionParser
 	/// the reason <see cref="Methods"/> gives: nothing infers its type arguments yet, which is
 	/// what keeps `Where` and `Select` out until they can be inferred.
 	/// </remarks>
-	static List<Candidate> Extensions(string name, Expression[] extended, Assembly caller, List<string>? imports)
+	static List<Candidate> Extensions(
+		string name, Expression[] extended, Assembly caller, IReadOnlyList<string>? imports)
 	{
 		var found = new List<Candidate>();
 		var seen  = new HashSet<MethodInfo>();

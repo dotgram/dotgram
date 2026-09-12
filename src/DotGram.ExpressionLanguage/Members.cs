@@ -166,9 +166,9 @@ public static partial class ExpressionParser
 		if (target.Type.IsArray)
 			return Expression.ArrayIndex(target, Converted(at, typeof(int)));
 
-		var chosen = Resolved(Indexers(target.Type, at, caller), at, $"'{target.Type.Name}' has no indexer");
+		var chosen = Chose(Indexers(target.Type, at, caller), at, $"'{target.Type.Name}' has no indexer");
 
-		return Expression.Property(target, (PropertyInfo)chosen.Member, Passed(chosen, at));
+		return Expression.Property(target, (PropertyInfo)chosen.Member, chosen.Arguments);
 	}
 	/// <summary>A static property or a static field, whichever that name is.</summary>
 	/// <remarks>
