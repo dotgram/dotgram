@@ -366,8 +366,13 @@ static class Engine
 		"MERGE RANGE",
 		"WITH (ORDER (",
 
-		// Synapse serverless and Fabric: a Parquet file read as a rowset.
+		// Synapse serverless and Fabric: a Parquet file read as a rowset, and three options
+		// only that reader has. The engine answers each with Msg 102, as it does any syntax it
+		// has never had, so a list is the only auditable way to tell them from a defect here.
 		"'PARQUET'",
+		"PARSER_VERSION",
+		"HEADER_ROW",
+		"ROWSET_OPTIONS",
 
 		// Azure SQL Database: automatic tuning inherited from the logical server, and the two
 		// index recommendations only it makes. SQL Server has FORCE_LAST_GOOD_PLAN alone.
@@ -541,7 +546,15 @@ static class Engine
 			//   1065  The NOLOCK and READUNCOMMITTED lock hints are not allowed for target tables of ….
 			//   1069  Index hints are only allowed in a FROM or OPTION clause.
 			//  10724  The FORCESEEK hint is not allowed for target tables of INSERT, UPDATE, or DELETE statements.
-			or 1065 or 1069 or 10724;
+			or 1065 or 1069 or 10724
+
+			// And a value inside an ODBC escape, 2026-09-12. `SELECT { T '1' }` is read —
+			// the escape, the type it names and the string in it all understood — and then
+			// answered about what the string holds. The same answer as 8169's above, which
+			// is about a character string that would not become a uniqueidentifier.
+			//
+			//    241  Conversion failed when converting date and/or time from character string.
+			or 241;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open

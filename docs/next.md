@@ -19850,3 +19850,38 @@ rule.
 At 150: read by both 5,958 (from 5,956), the work list 26 (from 28), read here but refused
 there 9 (from 9); `--split` 734 (from 732), the round trip 100% of 7,576. The map: read by
 both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
+
+## Eight of the nine defects were not defects
+
+The defect list had stood at nine for three pieces, and none of the nine was grammar work.
+Four questions were put and all four answered; two of the answers are here and two are the
+pieces after this one.
+
+**Six were another product's.** `OPENROWSET (BULK …)` writing `PARSER_VERSION`, `HEADER_ROW`
+and `ROWSET_OPTIONS` is the serverless pool's reader and this server has never had those
+options. The engine says so the only way it can — `Msg 102`, the same answer it gives any
+syntax it lacks — so there is no message to tell them by, and the comment over `OtherProducts`
+already says what to do when the authority has none: a list, each name in it because a
+statement using it was seen in the corpus, the product beside it. They join `'PARQUET'`, which
+is in that list for reading the same files in the same place.
+
+**Two were a value, not a shape.** `SELECT { T '1' }` is read — the escape, the type it names
+and the string in it all understood — and then answered `Msg 241`, about what the string
+holds. `Msg 8169` was already in `AboutNames` for exactly this, being about a character string
+that would not become a uniqueidentifier. 241 now stands beside it.
+
+**One is left and it is not a rule.** `create view "Category Sales for 1997"` is read here and
+by the engine when either is asked on its own; it is a defect only as the corpus cuts it.
+
+**And two refusals are kept on purpose.** `OPTION (CHECKCONSTRAINTS PLAN, OPTIMIZE CORRELATED
+UNION ALL)` is read by the engine while the same hint alone is `Msg 102` — because after
+`CHECKCONSTRAINTS`, `SHRINKDB` or `ALTERCOLUMN` and their `PLAN` the 2005 parser stops reading
+the list at all, and `OPTION (CHECKCONSTRAINTS PLAN, SOMETHING ELSE ENTIRELY)` is read too.
+Copying that means reading arbitrary words as hints, so the two corpus statements stay on the
+work list and the reason is written here rather than in the grammar. The braced `{ESCAPE '%'}`
+after a `LIKE` is the piece after this one: the escape is `§8.5`'s, so it will be named in the
+standard and replaced in the dialect, one line each side.
+
+At 150: read by both 5,960 (from 5,958), the work list 26 (from 26), read here but refused
+there **1 (from 9)**, another product's 258 (from 252); `--split` 734 (from 734), the round
+trip 100% of 7,576. The map: read by both 7,983 of 8,338 (99.8%), the work list 20, defects 0.
