@@ -4932,7 +4932,7 @@ KeyStatement : @Statement
 	// And with no variable in it: `dbo.f (c, @user_id)` is `Msg 112`, "variables are not
 	// allowed in the CREATE SECURITY POLICY statement", where `@@ROWCOUNT` and `'a@b'` read.
 	| "CREATE"i & "SECURITY"i & "POLICY"i & name: QualifiedName
-	  & tail: (PolicyPredicates? & OptionsWith? & NotForReplication?)
+	  & tail: (PolicyPredicates? & PolicyWith? & NotForReplication?)
 	  & when @(Syntax.WithoutVariable(tail))
 		=> @(Statement.Defined("SECURITY POLICY", name, Syntax.Tail(tail), "CREATE"))
 	| "ALTER"i & "SECURITY"i & "POLICY"i & name: QualifiedName & tail: PolicyAlteration
@@ -5148,8 +5148,20 @@ CredentialWith = "WITH"i & "IDENTITY"i & '=' & Quoted & (',' & "SECRET"i & '=' &
 
 PolicyPredicates = PolicyPredicate & (',' & PolicyPredicate)*
 
+// A policy made says whether it is on and whether its functions must be bound to their schema,
+// in either order, with a comma between and as often as wanted: `WITH (STATE = ON SCHEMABINDING
+// = OFF)`, which the published block's `[,]` allows, is `Msg 102`, and so is any other name or
+// value.
+PolicyWith = "WITH"i & '(' & PolicySetting & (',' & PolicySetting)* & ')'
+PolicySetting = ("STATE"i | "SCHEMABINDING"i) & '=' & OnOff
+
+// A policy altered is altered one way: its predicates, its state, or whether replication leaves
+// it alone, and never two of them. `WITH` after a predicate is `Msg 319`, `NOT FOR REPLICATION`
+// after one `Msg 102`, a policy altered by nothing 102; the binding to schemas is not altered
+// (102), and the state is said once.
 PolicyAlteration = ("ADD"i | "DROP"i) & NotForReplication
-				 | PolicyPredicates? & OptionsWith?
+				 | PolicyPredicates
+				 | "WITH"i & '(' & "STATE"i & '=' & OnOff & ')'
 
 // A predicate says what it is — `ADD PREDICATE` alone is refused — and only a block predicate
 // says which change it blocks: after an insert or an update, before an update or a delete,

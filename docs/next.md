@@ -21313,3 +21313,29 @@ At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 15
 226 and 539; `--split` 780, the round trip 100% of 7,717, the map 7,994 both and 0 defects,
 `--levels` 145 of 145 — unchanged. The suite is 12,976 rows (from 12,842): 96 refusals, 34 readings
 and 4 of Synapse's.
+
+## A security policy's options, made and altered
+
+A security policy's `WITH (…)` read any option, and its alteration any mixture of predicates,
+options and replication. Asked 132 lines.
+
+**Made**, a policy takes `STATE = ON | OFF` and `SCHEMABINDING = ON | OFF`, in either order and as
+often as wanted, with a comma between them: the published block writes the comma as optional,
+`[,]`, and `WITH (STATE = ON SCHEMABINDING = OFF)` is `Msg 102`. `'ON'`, `1`, `[ON]`, `STATE ON`, an
+empty list, a stray comma and any other name are 102 or 156. `NOT FOR REPLICATION` comes after the
+list, once.
+
+**Altered**, a policy is altered one way at a time: its predicates, or `WITH (STATE = ON | OFF)`
+once, or `ADD NOT FOR REPLICATION`, or `DROP NOT FOR REPLICATION`. The published block puts a `WITH`
+and a `NOT FOR REPLICATION` after the predicates; the engine answers the first with `Msg 319` — it
+takes the `WITH` for the beginning of a statement that needed a `;` before it — and the second with
+102. The binding to schemas is not altered (102), which the reference says in prose, and a policy
+altered by nothing is 102; this grammar read both.
+
+`Msg 319` is a refusal like 102 — only a message about names counts as read (`Engine.AboutNames`)
+— which the theory scripts now say too.
+
+At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 150: 6,616 both,
+226 and 539; `--split` 780, the round trip 100% of 7,717, the map 7,994 both and 0 defects,
+`--levels` 145 of 145 — unchanged. The suite is 13,102 rows (from 12,976): 95 refusals and 31
+readings.
