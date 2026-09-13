@@ -2775,7 +2775,9 @@ BrokerStatement : @Statement
 	| "CREATE"i & "CONTRACT"i & name: Identifier
 	  & tail: (Authorization? & '(' & ContractMessage & (',' & ContractMessage)* & ')')
 		=> @(Statement.Defined("CONTRACT", name, Syntax.Tail(tail)))
-	| "CREATE"i & "QUEUE"i & name: QualifiedName & tail: (options: QueueWith? & ("ON"i & Identifier)?)
+	// A queue's filegroup is a name or a string — `ON 'filegroup'`, `ON N'fg'` — and one part:
+	// `ON fg.x` is `Msg 102`. It stands after the options and not before them (`Msg 319`).
+	| "CREATE"i & "QUEUE"i & name: QualifiedName & tail: (options: QueueWith? & ("ON"i & (Identifier | Quoted))?)
 	  & when @(Syntax.NamedOnce(null, options) && Syntax.Activates(options))
 		=> @(Statement.Defined("QUEUE", name, Syntax.Tail(tail), "CREATE", options))
 	| "ALTER"i & "QUEUE"i & name: QualifiedName & tail: (options: QueueWith | QueueAction)
@@ -3011,7 +3013,16 @@ DbccValue : @Expression
 	| t: TSql.Variable                                  => @(new Expression.Literal(SqlLiteralKind.Parameter, t))
 	| t: Identifier                                     => @(new Expression.ColumnReference(t))
 
-DbccOptions : @Clause[] = "WITH"i & first: DbccOption & (',' & rest: DbccOption)* => @(Syntax.Listed(first, rest))
+// The first option may be a run joined by `JOIN` — `WITH STAT_HEADER JOIN DENSITY_VECTOR`,
+// `SHOW_STATISTICS`' way of asking for its result sets as one — and only the first: `WITH
+// NO_INFOMSGS, STAT_HEADER JOIN DENSITY_VECTOR` is `Msg 156`, where `WITH STAT_HEADER JOIN
+// DENSITY_VECTOR, NO_INFOMSGS` reads. Any words join, as any word is an option: the engine
+// reads `DBCC myDll WITH a JOIN b`. The run is one option named by its words.
+DbccOptions : @Clause[] = "WITH"i & first: DbccFirst & (',' & rest: DbccOption)* => @(Syntax.Listed(first, rest))
+
+DbccFirst : @Clause
+	= t: (DbccWord & ("JOIN"i & DbccWord)+) => @(new Clause.Option(Syntax.Squared(Syntax.Spaced(t)), null, Clause.None))
+	| o: DbccOption => @(o)
 
 DbccOption : @Clause
 	= "MAXDOP"i & '=' & t: Sql92.Lexical.UnsignedNumericLiteral & when @(t is not null && t.IndexOfAny(new[] { 'e', 'E' }) < 0)
@@ -3517,6 +3528,11 @@ SimpleCommand : @Statement
 	| "BREAK"i                           => @(Statement.Commanded("BREAK", (Expression?)null))
 	| "CONTINUE"i                        => @(Statement.Commanded("CONTINUE", (Expression?)null))
 	| "CHECKPOINT"i & v: ValueExpression? => @(Statement.Commanded("CHECKPOINT", v))
+	// `SHUTDOWN` and `SHUTDOWN WITH NOWAIT`, and nothing else after the word: `WITH X` is
+	// `Msg 102`, `NOWAIT` alone 1018, the option twice 102. `LINENO n`: a whole number and
+	// only that — a variable, `-1`, `1 + 1`, `'a'`, `1.5` and nothing are each `Msg 102`.
+	| "SHUTDOWN"i & w: ("WITH"i & "NOWAIT"i)? => @(new Statement.Shutdown(w is not null))
+	| "LINENO"i & n: Sql92.Lexical.Digits => @(new Statement.LineNumber(new Expression.Literal(SqlLiteralKind.Number, n)))
 	| "USE"i & name: QualifiedName       => @(Statement.Commanded("USE", new Expression.ColumnReference(name)))
 	| "RAISERROR"i & '(' & args: Arguments & ')' & how: RaiseWith?
 		=> @(new Statement.RaiseError(args, Syntax.Tail(how)))

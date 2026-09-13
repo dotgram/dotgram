@@ -20672,3 +20672,29 @@ Ten refusals and ten readings in the theory. At 170: read by both **7,333 (from 
 work list 91 (from 96)**. At 150: 6,582 both, 53 work (from 58). `--split` 764 (from 761),
 201 files not read whole (from 204); the round trip 100% of 7,681 (from 7,676). The map
 unchanged; `--levels` 138 of 138. The suite is 7,353 rows (from 7,333).
+
+## Two words that are statements, and two lists
+
+Ten of the honest work list in four small pieces, each measured on the engine first. `SHUTDOWN`
+and `SHUTDOWN WITH NOWAIT`, which the grammar had as a reserved word and a permission and not
+as a statement: nothing else follows the word — `WITH X` is `Msg 102`, `NOWAIT` alone 1018, the
+option twice 102. `LINENO 42`: a whole number and only that — a variable, `-1`, `1 + 1`,
+`'a'`, `1.5` and nothing are each 102 — so it is `Digits` and not the number the text
+utilities take, which reads `1.5` as the engine does there. Two records, `Shutdown` and
+`LineNumber`, and the writer prints them.
+
+`DBCC myDll WITH STAT_HEADER JOIN DENSITY_VECTOR JOIN STAT_HEADER`: `SHOW_STATISTICS`' way of
+asking for its result sets as one, and the option list read a comma between options and
+nothing else. Measured, the `JOIN` run is the first option's alone — `STAT_HEADER JOIN
+DENSITY_VECTOR, NO_INFOMSGS` reads and `NO_INFOMSGS, STAT_HEADER JOIN DENSITY_VECTOR` is `Msg
+156` — and any words join, as any word is an option: `DBCC myDll WITH a JOIN b` is read. The run
+is one option named by its words, which the writer puts back as written.
+
+`CREATE QUEUE [q1] ON 'filegroup'`: the filegroup is a name or a string, `N'fg'` too, one part
+(`fg.x` is 102), after the options and not before them (319), and `ALTER QUEUE` takes none
+(156). Thirteen refusals and thirteen readings in the theory, three rows for the writer.
+
+At 170: read by both **7,343 (from 7,333), the work list 81 (from 91)**. At 150: 6,592 both,
+43 work (from 53). `--split` 770 (from 764), 195 files not read whole (from 201); the round
+trip 100% of 7,691 (from 7,681). The map unchanged; `--levels` 138 of 138. The suite is 7,382
+rows (from 7,353).

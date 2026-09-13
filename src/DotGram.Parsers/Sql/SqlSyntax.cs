@@ -755,6 +755,22 @@ public abstract record Statement : ISqlSpan
 		public override StatementCategory Category => StatementCategory.Admin;
 	}
 
+	/// <summary><c>SHUTDOWN</c>: the server stopped.</summary>
+	/// <param name="NoWait">Whether <c>WITH NOWAIT</c> was said, which skips the checkpoint.</param>
+	public sealed record Shutdown(bool NoWait = false) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Admin;
+	}
+
+	/// <summary><c>LINENO</c>: the line number the next line of the batch is to be counted as.</summary>
+	/// <param name="Line">The number, a whole one.</param>
+	public sealed record LineNumber(Expression Line) : Statement
+	{
+		/// <inheritdoc/>
+		public override StatementCategory Category => StatementCategory.Session;
+	}
+
 	// ---- DBCC ----------------------------------------------------------------------------------
 	/// <summary><c>DBCC</c>: a console command, what stood in its brackets, and its options.</summary>
 	/// <remarks>

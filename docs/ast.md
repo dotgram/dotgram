@@ -230,6 +230,8 @@ compile, and a test reads this column against every record.
 | `Statement.WriteText` | T-SQL | WRITETEXT | Dml |
 | `Statement.UpdateText` | T-SQL | UPDATETEXT | Dml |
 | `Statement.Reconfigure` | T-SQL | RECONFIGURE | Admin |
+| `Statement.Shutdown` | T-SQL | SHUTDOWN | Admin |
+| `Statement.LineNumber` | T-SQL | LINENO | Session |
 | `Statement.SetUser` | T-SQL | SETUSER | Session |
 | `Statement.CreateLogin` | T-SQL | CREATE LOGIN | Dcl |
 | `Statement.AlterLogin` | T-SQL | ALTER LOGIN | Dcl |

@@ -1967,6 +1967,46 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>`SHUTDOWN [WITH NOWAIT]` and `LINENO n`, `DBCC`'s options joined by `JOIN`, and a queue's filegroup as a string.</summary>
+	[Theory]
+	[InlineData("SHUTDOWN WITH X")]
+	[InlineData("SHUTDOWN NOWAIT")]
+	[InlineData("SHUTDOWN WITH NOWAIT, NOWAIT")]
+	[InlineData("LINENO @x")]
+	[InlineData("LINENO")]
+	[InlineData("LINENO -1")]
+	[InlineData("LINENO 1 + 1")]
+	[InlineData("LINENO 'a'")]
+	[InlineData("LINENO 1.5")]
+	[InlineData("DBCC SHOW_STATISTICS (t, i) WITH NO_INFOMSGS, STAT_HEADER JOIN DENSITY_VECTOR")]
+	[InlineData("CREATE QUEUE q1 ON 'fg' WITH STATUS = ON")]
+	[InlineData("CREATE QUEUE q1 ON fg.x")]
+	[InlineData("ALTER QUEUE q1 ON 'fg'")]
+	public void Two_words_that_are_statements_is_refused_where_the_engine_refuses_it(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And is read where the engine reads it.</summary>
+	[Theory]
+	[InlineData("SHUTDOWN")]
+	[InlineData("shutdown with nowait")]
+	[InlineData("LINENO 42")]
+	[InlineData("dbcc myDll with stat_header join density_vector join stat_header")]
+	[InlineData("DBCC SHOW_STATISTICS (t, i) WITH STAT_HEADER JOIN DENSITY_VECTOR")]
+	[InlineData("DBCC SHOW_STATISTICS (t, i) WITH STAT_HEADER JOIN DENSITY_VECTOR, NO_INFOMSGS")]
+	[InlineData("DBCC SHOW_STATISTICS (t, i) WITH STAT_HEADER, DENSITY_VECTOR")]
+	[InlineData("DBCC CHECKDB WITH NO_INFOMSGS JOIN TABLOCK")]
+	[InlineData("DBCC myDll WITH a JOIN b")]
+	[InlineData("create queue [q1] on 'filegroup'")]
+	[InlineData("CREATE QUEUE q1 ON N'fg'")]
+	[InlineData("CREATE QUEUE q1 WITH STATUS = ON ON 'fg'")]
+	[InlineData("CREATE QUEUE q1 ON [DEFAULT]")]
+	public void Two_words_that_are_statements_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]

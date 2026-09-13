@@ -860,6 +860,15 @@ public static class SqlWriter
 				text.Append(overridden ? "RECONFIGURE WITH OVERRIDE" : "RECONFIGURE");
 				break;
 
+			case Statement.Shutdown(var noWait):
+				text.Append(noWait ? "SHUTDOWN WITH NOWAIT" : "SHUTDOWN");
+				break;
+
+			case Statement.LineNumber(var line):
+				text.Append("LINENO ");
+				Put(text, line, 0);
+				break;
+
 			case Statement.AddSignature(var by, var to, var counter):
 				text.Append(counter ? "ADD COUNTER SIGNATURE TO " : "ADD SIGNATURE TO ").Append(to).Append(" BY ");
 
