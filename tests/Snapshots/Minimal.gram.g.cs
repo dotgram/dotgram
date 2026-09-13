@@ -651,6 +651,39 @@ namespace DotGram.Snapshots
 			return Match<int>.Success(recognized, at, end - at);
 		}
 
+		/// <summary>Reads a <c>Sum</c> inside a window of the input.</summary>
+		/// <remarks>
+		/// The reading begins at <paramref name="at"/> and sees no character from
+		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
+		/// says how far it got. Positions are offsets into the whole input.
+		/// </remarks>
+		public static Match<int> TryParseSum(string input, int at, int length)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+			{
+				return Match<int>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
+			var parserWhole = global::System.MemoryExtensions.AsMemory(input, 0, at + length);
+			var failure = new Failure();
+
+			var end = Recognize_Sum(text, at, 0, ref failure, out var recognized, parserWhole);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'Sum'.";
+
+				return Match<int>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<int>.Success(recognized, at, end - at);
+		}
+
 		/// <summary>Parses the whole input as <c>Either</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Either</c>. <c>TryParseEither</c> answers instead.
@@ -773,6 +806,38 @@ namespace DotGram.Snapshots
 			}
 
 			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Sheet(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'Sheet'.";
+
+				return Match<string[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<string[]>.Success(recognized, at, end - at);
+		}
+
+		/// <summary>Reads a <c>Sheet</c> inside a window of the input.</summary>
+		/// <remarks>
+		/// The reading begins at <paramref name="at"/> and sees no character from
+		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
+		/// says how far it got. Positions are offsets into the whole input.
+		/// </remarks>
+		public static Match<string[]> TryParseSheet(string input, int at, int length)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+			{
+				return Match<string[]>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure();
 
 			var end = Recognize_Sheet(text, at, ref failure, out var recognized);

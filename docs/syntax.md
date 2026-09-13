@@ -1586,6 +1586,24 @@ cannot take one back. docs/syntax.md §6.3 says which rules get one, and why.
 Which is the shared responsibility: the author picks an overload, and the compiler
 offers one only where it provably works.
 
+**A position and a window.** Beside `TryParseX(string input)` a `parse` gets two more
+forms wherever it is read by the shared automaton or by methods:
+
+```csharp
+Match<T> TryParseX(string input, int at);              // begins at `at`, need not reach the end
+Match<T> TryParseX(string input, int at, int length);  // and sees nothing from `at + length` on
+```
+
+Neither demands the end of the input. What comes back says where the reading began and
+how far it got, and every position in it — and in whatever the reading builds — is an
+offset into `input`, so a host reading a piece of a text it holds keeps what those
+positions mean. Over a grammar cut into tokens (§4) the first form has to begin where a
+token of the whole text begins, and is refused elsewhere. The second cuts only the window
+into tokens, so it may begin anywhere, and a character no token begins with ends the
+tokens rather than refusing the reading: a hole in an interpolated string, read up to the
+`:` its format begins with, is the shape it is for. A publication compiled with the one
+entry a whole parse needs gets neither, and says so (`GRAM5010`).
+
 **What "how far back" means is fixed by §4**, and this is the whole of the retention
 rule:
 

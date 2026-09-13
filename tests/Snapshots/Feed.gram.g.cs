@@ -73,6 +73,38 @@ namespace DotGram.Snapshots
 			return Match<global::DotGram.Snapshots.Feed.FeedValue>.Success(recognized, at, end - at);
 		}
 
+		/// <summary>Reads a <c>Feed</c> inside a window of the input.</summary>
+		/// <remarks>
+		/// The reading begins at <paramref name="at"/> and sees no character from
+		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
+		/// says how far it got. Positions are offsets into the whole input.
+		/// </remarks>
+		public static Match<global::DotGram.Snapshots.Feed.FeedValue> TryParseFeed(string input, int at, int length)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+			{
+				return Match<global::DotGram.Snapshots.Feed.FeedValue>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
+			var failure = new Failure();
+
+			var end = Recognize_Feed(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'Feed'.";
+
+				return Match<global::DotGram.Snapshots.Feed.FeedValue>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<global::DotGram.Snapshots.Feed.FeedValue>.Success(recognized, at, end - at);
+		}
+
 		/// <summary>Every occurrence of <c>Name</c>, in order, found as it is asked for.</summary>
 		public static global::System.Collections.Generic.IEnumerable<Match<string>> FindName(string input)
 		{

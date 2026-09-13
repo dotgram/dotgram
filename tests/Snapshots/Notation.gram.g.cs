@@ -73,6 +73,38 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
 		}
 
+		/// <summary>Reads a <c>Hashed</c> inside a window of the input.</summary>
+		/// <remarks>
+		/// The reading begins at <paramref name="at"/> and sees no character from
+		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
+		/// says how far it got. Positions are offsets into the whole input.
+		/// </remarks>
+		public static Match<string> TryHashed(string input, int at, int length)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+			{
+				return Match<string>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
+			var failure = new Failure();
+
+			var end = Recognize_Hashed(text, at, ref failure);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'Hashed'.";
+
+				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
+		}
+
 		/// <summary>Parses the whole input as <c>Marked</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Marked</c>. <c>TryMarked</c> answers instead.
@@ -177,6 +209,38 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
 		}
 
+		/// <summary>Reads a <c>List</c> inside a window of the input.</summary>
+		/// <remarks>
+		/// The reading begins at <paramref name="at"/> and sees no character from
+		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
+		/// says how far it got. Positions are offsets into the whole input.
+		/// </remarks>
+		public static Match<string> TryLoose(string input, int at, int length)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+			{
+				return Match<string>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
+			var failure = new Failure();
+
+			var end = Recognize_List_With1(text, at, ref failure);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'List'.";
+
+				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
+		}
+
 		/// <summary>Parses the whole input as <c>List</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>List</c>. <c>TryTight</c> answers instead.
@@ -227,6 +291,38 @@ namespace DotGram.Snapshots
 			}
 
 			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_List(text, at, ref failure);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'List'.";
+
+				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
+		}
+
+		/// <summary>Reads a <c>List</c> inside a window of the input.</summary>
+		/// <remarks>
+		/// The reading begins at <paramref name="at"/> and sees no character from
+		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
+		/// says how far it got. Positions are offsets into the whole input.
+		/// </remarks>
+		public static Match<string> TryTight(string input, int at, int length)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+			{
+				return Match<string>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure();
 
 			var end = Recognize_List(text, at, ref failure);
@@ -313,6 +409,38 @@ namespace DotGram.Snapshots
 			return Match<int>.Success(recognized, at, end - at);
 		}
 
+		/// <summary>Reads a <c>Small</c> inside a window of the input.</summary>
+		/// <remarks>
+		/// The reading begins at <paramref name="at"/> and sees no character from
+		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
+		/// says how far it got. Positions are offsets into the whole input.
+		/// </remarks>
+		public static Match<int> TrySmallOld(string input, int at, int length)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+			{
+				return Match<int>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
+			var failure = new Failure();
+
+			var end = Recognize_Small(text, at, ref failure, out var recognized, 1);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'Small'.";
+
+				return Match<int>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<int>.Success(recognized, at, end - at);
+		}
+
 		/// <summary>Parses the whole input as <c>Small</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Small</c>. <c>TryParseSmall</c> answers instead.
@@ -363,6 +491,38 @@ namespace DotGram.Snapshots
 			}
 
 			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Small(text, at, ref failure, out var recognized, 0);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'Small'.";
+
+				return Match<int>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<int>.Success(recognized, at, end - at);
+		}
+
+		/// <summary>Reads a <c>Small</c> inside a window of the input.</summary>
+		/// <remarks>
+		/// The reading begins at <paramref name="at"/> and sees no character from
+		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
+		/// says how far it got. Positions are offsets into the whole input.
+		/// </remarks>
+		public static Match<int> TryParseSmall(string input, int at, int length)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+			{
+				return Match<int>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure();
 
 			var end = Recognize_Small(text, at, ref failure, out var recognized, 0);
@@ -467,6 +627,38 @@ namespace DotGram.Snapshots
 			}
 
 			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Primary(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'Primary'.";
+
+				return Match<int>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<int>.Success(recognized, at, end - at);
+		}
+
+		/// <summary>Reads a <c>Primary</c> inside a window of the input.</summary>
+		/// <remarks>
+		/// The reading begins at <paramref name="at"/> and sees no character from
+		/// <c>at + length</c> on; it is not required to reach that far, and what comes back
+		/// says how far it got. Positions are offsets into the whole input.
+		/// </remarks>
+		public static Match<int> TryParsePrimary(string input, int at, int length)
+		{
+			if (at < 0 || length < 0 || at > input.Length - length)
+			{
+				return Match<int>.Failed(Outcome.NoMatch, "The window " + at.ToString() + ".." + (at + length).ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure();
 
 			var end = Recognize_Primary(text, at, ref failure, out var recognized);

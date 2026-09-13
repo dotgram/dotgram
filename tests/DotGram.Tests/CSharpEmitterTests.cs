@@ -1070,6 +1070,108 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("two ways", said.Message, StringComparison.Ordinal);
 	}
 
+	// ── A reading over a window (§6.3) ──────────────────────────────────────────
+
+	const string TwoNames = """
+		using Lexical;
+
+		trivia = { ' '* }
+
+		namespace Lexical
+		{
+			trivia = none
+
+			Name = ['a'..'z']+
+		}
+
+		// Recursive only so that it is not lowered: a lowered publication gets no position.
+		Start = Name & Rest
+		Rest  = Name | '(' & Start & ')'
+		parse Start
+		""";
+
+	/// <summary>A window may begin where no token of the whole text does.</summary>
+	/// <remarks>
+	/// <c>zzab</c> is one token of the whole input, so a reading asked to begin at its third
+	/// character is refused by the form that cuts the whole input — and read by the one that
+	/// cuts only the window.
+	/// </remarks>
+	[Fact]
+	public void A_window_begins_inside_what_the_whole_text_calls_one_token()
+	{
+		var parser = EmittedCode.Compile(EmitSplit(TwoNames));
+
+		Assert.False(EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "zzab cd", 2).IsSuccess);
+
+		var window = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "zzab cd", 2, 5);
+
+		Assert.True(window.IsSuccess, window.Error);
+		Assert.Equal((2L, 5L), (window.Position, window.Length));
+	}
+
+	/// <summary>What stands past the window is not read, whatever it is.</summary>
+	[Fact]
+	public void A_window_does_not_see_what_follows_it()
+	{
+		var parser = EmittedCode.Compile(EmitSplit(TwoNames));
+
+		// `<` begins no token, so the whole input cannot be cut at all.
+		Assert.False(EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "q<ab cd>q", 2).IsSuccess);
+
+		var window = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "q<ab cd>q", 2, 5);
+
+		Assert.True(window.IsSuccess, window.Error);
+		Assert.Equal((2L, 5L), (window.Position, window.Length));
+	}
+
+	/// <summary>A character inside the window that begins no token ends its tokens.</summary>
+	[Fact]
+	public void Inside_a_window_the_lexer_stopping_ends_the_tokens()
+	{
+		var parser = EmittedCode.Compile(EmitSplit(TwoNames));
+		var window = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "ab cd#,##0", 0, 10);
+
+		Assert.True(window.IsSuccess, window.Error);
+		Assert.Equal(5L, window.Length);
+
+		var refused = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "ab #cd", 0, 6);
+
+		Assert.False(refused.IsSuccess);
+		Assert.Equal(3L, refused.Position);
+	}
+
+	[Theory]
+	[InlineData(-1, 2)]
+	[InlineData(0, 8)]
+	[InlineData(3, -1)]
+	public void A_window_outside_the_input_is_refused(int at, int length)
+	{
+		var parser = EmittedCode.Compile(EmitSplit(TwoNames));
+		var window = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "ab cd", at, length);
+
+		Assert.False(window.IsSuccess);
+		Assert.Contains("outside the input", window.Error, StringComparison.Ordinal);
+	}
+
+	/// <summary>Over characters the window's edge is the end of the text.</summary>
+	/// <remarks>
+	/// On the shared automaton: a rule that reaches itself is not lowered, and a lowered one
+	/// gets no positional form at all (<c>GRAM5010</c>).
+	/// </remarks>
+	[Fact]
+	public void Over_characters_a_window_ends_where_it_says()
+	{
+		var parser = EmittedCode.Compile(Emit("""
+			Start = ['a'..'z'] & Start | ['a'..'z']
+			parse Start
+			"""));
+
+		var window = EmittedCode.Positioned(parser, "Grammar", "TryParseStart", "12abc34", 2, 2);
+
+		Assert.True(window.IsSuccess, window.Error);
+		Assert.Equal((2L, 2L), (window.Position, window.Length));
+	}
+
 	/// <summary>A terminal read again for its value is read where it stands in the text.</summary>
 	/// <remarks>
 	/// Its value is built by a second machine over characters, and that machine used to be

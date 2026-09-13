@@ -1175,9 +1175,33 @@ public static partial class CSharpEmitter
 			extent   = overKinds ? "over - at" : "end - at";
 
 			Asking("string input, int at", positional: true);
+
+			// And read inside a window: from `at`, and seeing nothing past `at + length`. What
+			// a host holding a text reads a piece of it with when the piece is not where a
+			// token of the whole text begins — the hole of an interpolated string, the body
+			// of a template — and when what follows the piece is not this language at all.
+			file.Line();
+			file.Line($"/// <summary>Reads a <c>{name}</c> inside a window of the input.</summary>");
+			file.Line("/// <remarks>");
+			file.Line("/// The reading begins at <paramref name=\"at\"/> and sees no character from");
+			file.Line("/// <c>at + length</c> on; it is not required to reach that far, and what comes back");
+			file.Line("/// says how far it got. Positions are offsets into the whole input." +
+				(overKinds
+					? " Only the window is cut into tokens, so a reading may begin where no token of"
+					: ""));
+			if (overKinds)
+			{
+				file.Line("/// the whole input does, and a character no token begins with ends the tokens");
+				file.Line("/// there rather than refusing the reading.");
+			}
+			file.Line("/// </remarks>");
+
+			begins = overKinds ? "0" : "at";
+
+			Asking("string input, int at, int length", positional: true, windowed: true);
 		}
 
-		void Asking(string parameters, bool positional)
+		void Asking(string parameters, bool positional, bool windowed = false)
 		{
 			// The positional form takes a parameter called `at`, so what the body would have
 			// called the place it stopped is called something else there. Only there: the
@@ -1186,47 +1210,67 @@ public static partial class CSharpEmitter
 
 			using (file.Block($"public static {match} Try{method}({parameters}{takes})"))
 			{
+				// A window is refused before anything is read where it does not lie in the text.
+				if (windowed)
+				{
+					using (file.Block("if (at < 0 || length < 0 || at > input.Length - length)"))
+						file.Line(
+							$"return {match}.Failed({OutcomeType}.NoMatch, " +
+							"\"The window \" + at.ToString() + \"..\" + (at + length).ToString() + " +
+							"\" is outside the input.\", at, null, null);");
+
+					file.Line();
+				}
+
 				// A split grammar reads its input twice: once into kinds and once as kinds. What
 				// the caller hands over is a string either way — the two halves are the parser's
 				// business and not theirs.
 				if (overKinds)
 				{
 					file.Line("var source = input;");
-					file.Line("var tokens = Tokenize_DotGram(source);");
+					file.Line(windowed
+						? "var tokens = Tokenize_DotGram(source, at, at + length);"
+						: "var tokens = Tokenize_DotGram(source);");
 					file.Line();
 					file.Line("var starts  = tokens.Starts;");
 					file.Line("var lengths = tokens.Lengths;");
 					file.Line("var count   = tokens.Count;");
 					file.Line();
 
-					using (file.Block("if (tokens.Stopped >= 0)"))
+					// Inside a window a character no token begins with is where the tokens end:
+					// what the caller asked for is a reading of what can be read from `at`, and
+					// the piece of text after it is commonly not this language at all.
+					if (!windowed)
 					{
-						file.Line($"var {halt} = tokens.Stopped;");
-						file.Line();
-						file.Line("Recycle_DotGram(tokens);");
-						file.Line();
+						using (file.Block("if (tokens.Stopped >= 0)"))
+						{
+							file.Line($"var {halt} = tokens.Stopped;");
+							file.Line();
+							file.Line("Recycle_DotGram(tokens);");
+							file.Line();
 
-						// The lexer stopped where no token begins, and the character standing there
-						// is what there is to say: the syntactic half never ran, so it has no
-						// expectation to offer. A character a message could not show plainly — a
-						// control, the quote around it, a backslash — is shown by its code.
-						file.Line($"var stopped = {halt} < source.Length ? source[{halt}] : '\\0';");
+							// The lexer stopped where no token begins, and the character standing
+							// there is what there is to say: the syntactic half never ran, so it has
+							// no expectation to offer. A character a message could not show plainly
+							// — a control, the quote around it, a backslash — is shown by its code.
+							file.Line($"var stopped = {halt} < source.Length ? source[{halt}] : '\\0';");
+							file.Line();
+							file.Line(
+								$"return {match}.Failed({OutcomeType}.NoMatch, " +
+								$"{halt} >= source.Length ? \"Expected more input.\" : " +
+								"\"Unexpected character '\" + " +
+								"(global::System.Char.IsControl(stopped) || stopped == '\\'' || stopped == '\\\\' " +
+								"? \"\\\\u\" + ((int)stopped).ToString(\"X4\", global::System.Globalization.CultureInfo.InvariantCulture) " +
+								$": stopped.ToString()) + \"'.\", {halt}, null, null);");
+						}
+
 						file.Line();
-						file.Line(
-							$"return {match}.Failed({OutcomeType}.NoMatch, " +
-							$"{halt} >= source.Length ? \"Expected more input.\" : " +
-							"\"Unexpected character '\" + " +
-							"(global::System.Char.IsControl(stopped) || stopped == '\\'' || stopped == '\\\\' " +
-							"? \"\\\\u\" + ((int)stopped).ToString(\"X4\", global::System.Globalization.CultureInfo.InvariantCulture) " +
-							$": stopped.ToString()) + \"'.\", {halt}, null, null);");
 					}
-
-					file.Line();
 
 					// Out here a position is an offset into the text; in there it is a token.
 					// A reading has to begin where one begins, and where none does the caller
 					// named a place inside a token or past the end.
-					if (positional)
+					if (positional && !windowed)
 					{
 						// Named with this machine's tag, as everything it writes is: two machines
 						// in one class must not collide (Machine.Provenance).
@@ -1245,7 +1289,7 @@ public static partial class CSharpEmitter
 						file.Line();
 					}
 				}
-				else if (positional)
+				else if (positional && !windowed)
 				{
 					// The same refusal over characters, where a position is already one.
 					using (file.Block("if (at < 0 || at > input.Length)"))
@@ -1261,7 +1305,9 @@ public static partial class CSharpEmitter
 				file.Line(
 					overKinds
 						? "var text    = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);"
-						: "var text    = global::System.MemoryExtensions.AsSpan(input);");
+						: windowed
+							? "var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);"
+							: "var text    = global::System.MemoryExtensions.AsSpan(input);");
 
 				// The same characters again, in the one shape that may be handed to another
 				// thread: what a reading that runs the stack low goes on with.
@@ -1269,7 +1315,9 @@ public static partial class CSharpEmitter
 					file.Line(
 						overKinds
 							? "var parserWhole = new global::System.ReadOnlyMemory<char>(tokens.Kinds, 0, count);"
-							: "var parserWhole = global::System.MemoryExtensions.AsMemory(input);");
+							: windowed
+								? "var parserWhole = global::System.MemoryExtensions.AsMemory(input, 0, at + length);"
+								: "var parserWhole = global::System.MemoryExtensions.AsMemory(input);");
 
 				// Carried through every recognizer this call reaches, so that what comes back
 				// is the furthest the input was followed and not merely "no".
@@ -1302,7 +1350,12 @@ public static partial class CSharpEmitter
 					file.Line();
 					if (overKinds)
 					{
-						file.Line($"var {halt} = failure.Position < count ? starts[failure.Position] : source.Length;");
+						// Past the last token of a window is where its tokens ended: where the lexer
+						// stopped inside it, or its edge.
+						file.Line(windowed
+							? $"var {halt} = failure.Position < count ? starts[failure.Position] : " +
+								"tokens.Stopped >= 0 ? tokens.Stopped : at + length;"
+							: $"var {halt} = failure.Position < count ? starts[failure.Position] : source.Length;");
 						file.Line();
 						file.Line("Recycle_DotGram(tokens);");
 						file.Line();
@@ -1470,21 +1523,30 @@ public static partial class CSharpEmitter
 		file.Line("/// the input stopped being this language.");
 		file.Line("/// </remarks>");
 
-		using (file.Block("static Tokens_DotGram Tokenize_DotGram(string input)"))
+		file.Line("static Tokens_DotGram Tokenize_DotGram(string input) => Tokenize_DotGram(input, 0, input.Length);");
+		file.Line();
+		file.Line("/// <summary>The kinds between two offsets of the input, with where each one was.</summary>");
+		file.Line("/// <remarks>");
+		file.Line("/// What a reading over a window of the text reads. The characters past the window are");
+		file.Line("/// not there for it — a token that would run over the edge ends at it — and the");
+		file.Line("/// positions are still offsets into the whole input.");
+		file.Line("/// </remarks>");
+
+		using (file.Block("static Tokens_DotGram Tokenize_DotGram(string input, int from, int to)"))
 		{
 			file.Line("var tokens = Rented_DotGram();");
 			file.Line();
 			// A quarter of the characters is a fair first guess at how many tokens there
 			// are, and being wrong costs a doubling rather than a document's worth of array.
-			file.Line("tokens.Room(input.Length / 4 + 16);");
+			file.Line("tokens.Room((to - from) / 4 + 16);");
 			file.Line();
-			file.Line("var text    = global::System.MemoryExtensions.AsSpan(input);");
+			file.Line("var text    = global::System.MemoryExtensions.AsSpan(input, 0, to);");
 			file.Line("var kinds   = tokens.Kinds;");
 			file.Line("var starts  = tokens.Starts;");
 			file.Line("var lengths = tokens.Lengths;");
 			file.Line();
 			file.Line("var count = 0;");
-			file.Line("var p     = 0;");
+			file.Line("var p     = from;");
 			file.Line();
 
 			using (file.Block("while (true)"))

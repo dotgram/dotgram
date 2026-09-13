@@ -121,6 +121,27 @@ static class EmittedCode
 	}
 
 	/// <summary>
+	/// The same call begun at <paramref name="at"/> — over the whole input where no
+	/// <paramref name="length"/> is given, and over that window of it where one is.
+	/// </summary>
+	public static (bool IsSuccess, string? Error, long Position, long Length) Positioned(
+		Assembly assembly, string className, string method, string input, int at, int? length = null)
+	{
+		var type  = assembly.GetType(className)!;
+		var match = length is { } seen
+			? type.GetMethod(method, [typeof(string), typeof(int), typeof(int)])!.Invoke(null, [input, at, seen])!
+			: type.GetMethod(method, [typeof(string), typeof(int)])!.Invoke(null, [input, at])!;
+
+		object? Read(string name) => match.GetType().GetProperty(name)!.GetValue(match);
+
+		return (
+			(bool)Read("IsSuccess")!,
+			(string?)Read("Error"),
+			Convert.ToInt64(Read("Position")),
+			Convert.ToInt64(Read("Length")));
+	}
+
+	/// <summary>
 	/// The same call, reading the <c>Outcome</c> the match carries (§7.5) by name — the
 	/// enum is generated, so there is no type here to compare against.
 	/// </summary>
