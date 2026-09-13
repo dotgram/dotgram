@@ -1549,7 +1549,12 @@ SchemaColumn : @Clause
 	= name: Identifier & type: DataType & c: SchemaCollate? & path: SchemaPath? & ordinal: SchemaOrdinal?
 		=> @(new Clause.JsonColumn(name, c is null ? type : type + " COLLATE " + c, path, false, ordinal))
 
-SchemaOrdinal : @string = t: Sql92.Lexical.Digits & when @(Syntax.Ranked(t)) => @(t)
+// A column's number in the file: a whole number an `int` holds, read as written and objected
+// to after the parse where it is not one from one upwards — `0`, `00` and `-1` are `Msg 16204`,
+// "column ordinal has to be greater than zero", which is the value and not the shape, where
+// `1.5` and `2147483648` are `Msg 102`. A path is the same kind of thing: `'$.x'` is read and
+// `'@b'`, `'1'` and `'x'` are `Msg 13607`, "JSON path is not properly formatted", after it.
+SchemaOrdinal : @string = t: ('-'? & Sql92.Lexical.Digits) & when @(Syntax.Ranked(t)) => @(t)
 
 JsonSchemaColumn : @Clause
 	= name: Identifier & type: DataType & c: SchemaCollate? & path: SchemaPath? & json: SchemaAsJson?

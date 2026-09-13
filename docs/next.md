@@ -20439,3 +20439,32 @@ Seen on the way and left: `OPENROWSET (BULK 'a', FORMAT = 'CSV') WITH (c VARCHAR
 `Msg 16204` — a column's number in a file read and objected to as a value — where
 `Syntax.Ranked` refuses the zero; if 16204 is about the value, the zero should be read and
 the message counted with the names. Not this piece's.
+
+## A path in a bulk rowset's schema, and two messages about values
+
+Two of the level-170 list: `OPENROWSET (BULK 'https://…/*.parquet', FORMAT = 'PARQUET') WITH
+([stateName] VARCHAR (50), [stateName_explicit_path] VARCHAR (50) '$.stateName', …)` — a
+column of a bulk rowset's schema with a JSON path after its type, which `Syntax.Schemas` held
+to be `OPENJSON`'s and `OPENXML`'s alone and refused here. Measured: a bulk rowset's column
+takes a number or a path after its type, with `FORMAT = 'CSV'` as with `'PARQUET'`, `N'…'` as
+`'…'`, a collation before either and never after (`Msg 156`), and never both — `1 '$.x'` and
+`'$.x' 1` are `Msg 102`, so is a second path; `AS JSON` is 156, as it was. Without a `FORMAT`
+the schema is `Msg 5340` with a number and with a path alike, so the guard the format already
+stood in stays. `Schemas` now asks for a type and not both of a path and a number.
+
+And the strings and numbers themselves: `'$.x'` is read and `'@b'`, `'1'`, `'x'` are `Msg
+13607`, "JSON path is not properly formatted"; `1` is read and `0`, `00` and `-1` are `Msg
+16204`, "column ordinal has to be greater than zero"; `1.5` and `2147483648` are `Msg 102`.
+The two messages are the engine having read the column and objected to what its number or
+its path says, which is `AboutNames`' kind, and both went there — with `Msg 11438`, "the
+RESUMABLE option cannot be set to ON when the ONLINE option is set to OFF", which is the
+same kind and was four of the level-170 defects. Four rows of the schema theory that held the
+zero, the minus and the two strings as refusals hold them as readings now: `Syntax.Ranked`
+asks the shape — a whole number an `int` holds, signed or not — and no longer the value. The
+older theory had taken the engine's objection for a refusal, which is the thing the
+`AboutNames` list exists to keep apart.
+
+At 170: read by both **6,718 (from 6,712), the work list 23 (from 25), defects 18 (from
+22)**. At 150 nothing moved. `--split` 752 (from 751), 213 files not read whole (from 214); the
+round trip 100% of 7,650 (from 7,648). The map is unchanged; `--levels` 138 of 138. The suite
+is 7,200 rows (from 7,182).

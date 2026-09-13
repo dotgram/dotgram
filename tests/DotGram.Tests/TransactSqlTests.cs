@@ -1693,6 +1693,42 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>A bulk rowset's column takes a number or a path after its type, a collation before either, and never both.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM OPENROWSET(BULK 'a', FORMAT = 'CSV') WITH (c VARCHAR(5) 1 COLLATE Latin1_General_BIN2) AS r")]
+	[InlineData("SELECT * FROM OPENROWSET(BULK 'a', FORMAT = 'PARQUET') WITH (c VARCHAR(50) '$.x' COLLATE Latin1_General_BIN2) AS r")]
+	[InlineData("SELECT * FROM OPENROWSET(BULK 'a', FORMAT = 'PARQUET') WITH (c VARCHAR(50) 1 '$.x') AS r")]
+	[InlineData("SELECT * FROM OPENROWSET(BULK 'a', FORMAT = 'PARQUET') WITH (c VARCHAR(50) '$.x' 1) AS r")]
+	[InlineData("SELECT * FROM OPENROWSET(BULK 'a', FORMAT = 'PARQUET') WITH (c VARCHAR(50) '$.x' AS JSON) AS r")]
+	[InlineData("SELECT * FROM OPENROWSET(BULK 'a', FORMAT = 'PARQUET') WITH (c VARCHAR(50) '$.x' + 'y') AS r")]
+	[InlineData("SELECT * FROM OPENROWSET(BULK 'a', FORMAT = 'CSV') WITH (c VARCHAR(50) '$.x' '$.y') AS r")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT 2147483648) AS x")]
+	public void A_path_in_a_bulk_rowsets_schema_is_refused_where_the_engine_refuses_it(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And is read where the engine reads it.</summary>
+	[Theory]
+	[InlineData("SELECT TOP 1 * FROM OPENROWSET( BULK 'https://x/year=20*/*.parquet', FORMAT = 'PARQUET')WITH([stateName] VARCHAR(50), [stateName_explicit_path] VARCHAR(50) '$.stateName', [population] bigint 'strict $.population') AS [r7]")]
+	[InlineData("SELECT * FROM OPENROWSET(BULK 'a', FORMAT = 'PARQUET') WITH (c VARCHAR(50) '$.stateName') AS r")]
+	[InlineData("SELECT * FROM OPENROWSET(BULK 'a', FORMAT = 'CSV') WITH (c VARCHAR(50) '$.x', d INT 2) AS r")]
+	[InlineData("SELECT * FROM OPENROWSET(BULK 'a', FORMAT = 'CSV') WITH (c VARCHAR(50) COLLATE Latin1_General_BIN2 '$.x', d INT COLLATE Latin1_General_BIN2 2) AS r")]
+	[InlineData("SELECT * FROM OPENROWSET(BULK 'a', FORMAT = 'PARQUET') WITH (c VARCHAR(50) N'$.x') AS r")]
+	[InlineData("SELECT * FROM OPENROWSET(BULK 'a', FORMAT = 'PARQUET') WITH (c VARCHAR(50) 'x') AS r")]
+	[InlineData("SELECT * FROM OPENROWSET(BULK 'a', FORMAT = 'CSV') WITH (c VARCHAR(50) '') AS r")]
+	[InlineData("SELECT * FROM OPENROWSET(BULK 'a', FORMAT = 'CSV') WITH (c VARCHAR(5) COLLATE Latin1_General_BIN2 1) AS r")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT '@b') AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT '1') AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT -1) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT 0) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT 00) AS x")]
+	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT 2147483647) AS x")]
+	public void A_path_in_a_bulk_rowsets_schema_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
@@ -2446,11 +2482,7 @@ public sealed class TransactSqlTests
 
 	/// <summary>The schema a rowset function takes, and a <c>CATCH</c> with nothing in it, as the engine answers them.</summary>
 	[Theory]
-	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT '@b') AS x")]
 	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT 1.5) AS x")]
-	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT -1) AS x")]
-	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT 0) AS x")]
-	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT '1') AS x")]
 	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT 1 COLLATE latin1_general_bin2) AS x")]
 	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT '$.a' 1) AS x")]
 	[InlineData("SELECT * FROM OPENROWSET (BULK 'f1', FORMAT = 'CSV') WITH ([a] INT 1 '@b') AS x")]

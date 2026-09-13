@@ -4536,7 +4536,8 @@ public static class Syntax
 	/// <para>
 	/// Two of them do. <c>OPENXML</c> takes a schema with a pattern in each column or none, and
 	/// takes a name instead of the brackets; <c>OPENROWSET (BULK …)</c> takes one with a number
-	/// in each column or none, and no name. Every other function refuses the clause altogether
+	/// or a path in each column or none — <c>[c] VARCHAR (50) '$.stateName'</c>, a collation
+	/// before either, never both (<c>Msg 102</c>) — and no name. Every other function refuses the clause altogether
 	/// — <c>CHANGETABLE</c> (<c>Msg 22104</c>), <c>STRING_SPLIT</c>, <c>GENERATE_SERIES</c> and
 	/// <c>OPENQUERY</c> (<c>Msg 319</c>), and <c>OPENROWSET</c> over a provider (<c>Msg 102</c>).
 	/// </para>
@@ -4581,14 +4582,18 @@ public static class Syntax
 			}
 
 		return bulk && (format || !single) &&
-			Array.TrueForAll(schema, static one => one is Clause.JsonColumn { Type: not null, Path: null });
+			Array.TrueForAll(schema, static one => one is Clause.JsonColumn { Type: not null } and not Clause.JsonColumn { Path: not null, Ordinal: not null });
 	}
 
 	static readonly string[] Singles = ["SINGLE_CLOB", "SINGLE_BLOB", "SINGLE_NCLOB"];
 
-	/// <summary>Whether a column's number in a file is one: from one upwards, and no larger than an <c>int</c>.</summary>
+	/// <summary>
+	/// Whether a column's number in a file has the shape of one: a whole number an <c>int</c>
+	/// holds, signed or not. Zero and a negative are read by the engine and objected to after
+	/// the parse (<c>Msg 16204</c>); a number past an <c>int</c> is <c>Msg 102</c>.
+	/// </summary>
 	public static bool Ranked(string? ordinal) =>
-		int.TryParse(ordinal, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var which) && which > 0;
+		int.TryParse(ordinal, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out _);
 
 	/// <summary>Nodes told apart by identity, which a record's own equality does not do.</summary>
 	sealed class ByReference : IEqualityComparer<ISqlSpan>

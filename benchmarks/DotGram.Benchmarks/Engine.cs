@@ -575,7 +575,21 @@ static class Engine
 			//
 			//  41198  The AVAILABILITY_MODE option has not been specified for the replica '…'.
 			//  47110  The '…' option is not valid for the '…' replica as it is a configuration-only.
-			or 41198 or 47110;
+			or 41198 or 47110
+
+			// A bulk rowset's schema, 2026-09-13. Both answered after the column is read, about
+			// what its number or its path says: `[a] INT 0` and `[a] INT -1`, and `[a] INT '@b'`
+			// where a JSON path was expected.
+			//
+			//  16204  Invalid column ordinal provided for column %d. Column ordinal has to be greater than zero.
+			//  13607  JSON path is not properly formatted. Unexpected character '…' is found at position %d.
+			or 16204 or 13607
+
+			// And a constraint added resumably, 2026-09-13: read, and then one option held against
+			// another — `ADD CONSTRAINT … WITH (RESUMABLE = ON)` without `ONLINE = ON`.
+			//
+			//  11438  The %S_MSG option cannot be set to '%ls' when the %S_MSG option is set to '%ls'.
+			or 11438;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open
