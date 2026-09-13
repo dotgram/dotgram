@@ -158,10 +158,11 @@ public static class GramLanguageService
 		var symbols = SymbolOccurrences(parsed.File.Decls, tokens.Tokens, rules);
 		var symbolsByPosition = symbols.ToDictionary(static symbol => symbol.Position);
 		var givesBackMarkers = GivesBackMarkers(parsed.File.Decls, tokens.Tokens);
-		var conditionKeywords = ConditionKeywordPositions(parsed.File.Decls, tokens.Tokens);
+		var contextualKeywords = ConditionKeywordPositions(parsed.File.Decls, tokens.Tokens);
+		contextualKeywords.UnionWith(OnFailKeywordPositions(parsed.File.Decls, tokens.Tokens));
 
 		foreach (var token in tokens.Tokens)
-			if (TryClassify(token, conditionKeywords, out var kind))
+			if (TryClassify(token, contextualKeywords, out var kind))
 			{
 				if (symbolsByPosition.TryGetValue(token.Position, out var symbol) &&
 					symbol.Kind != GramSymbolKind.Rule)
@@ -290,6 +291,41 @@ public static class GramLanguageService
 			}
 
 			return low;
+		}
+	}
+
+	static HashSet<int> OnFailKeywordPositions(
+		IReadOnlyList<Decl> declarations,
+		IReadOnlyList<Token> tokens)
+	{
+		var result = new HashSet<int>();
+		Collect(declarations);
+		return result;
+
+		void Collect(IReadOnlyList<Decl> items)
+		{
+			foreach (var declaration in items)
+				switch (declaration)
+				{
+					case Decl.Rule { OnFail: not null } rule:
+						for (var index = 0; index + 2 < tokens.Count; index++)
+							if (tokens[index].Position >= rule.At.Position &&
+								tokens[index + 2].Position < rule.Body.At.Position &&
+								tokens[index].Kind == TokenKind.Identifier &&
+								tokens[index].Value == "on" &&
+								tokens[index + 1].Kind == TokenKind.Identifier &&
+								tokens[index + 1].Value == "fail" &&
+								tokens[index + 2].Kind == TokenKind.String)
+							{
+								result.Add(tokens[index].Position);
+								result.Add(tokens[index + 1].Position);
+								break;
+							}
+						break;
+					case Decl.Namespace @namespace:
+						Collect(@namespace.Decls);
+						break;
+				}
 		}
 	}
 

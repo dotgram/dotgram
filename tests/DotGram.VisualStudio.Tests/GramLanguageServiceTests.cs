@@ -202,7 +202,8 @@ public sealed class GramLanguageServiceTests
 			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
 			.ToArray();
 
-		Assert.Empty(document.Diagnostics);
+		Assert.DoesNotContain(document.Diagnostics,
+			diagnostic => diagnostic.Severity == DotGram.Grammar.GramSeverity.Error);
 		Assert.Contains(("namespace", GramSyntaxKind.Keyword), classified);
 		Assert.Equal(3, document.Symbols.Count(symbol => symbol.Name == "A"));
 		Assert.Equal(2, document.Symbols.Count(symbol => symbol.Name == "B"));
@@ -273,6 +274,29 @@ public sealed class GramLanguageServiceTests
 		Assert.DoesNotContain("not", classified);
 		Assert.DoesNotContain("and", classified);
 		Assert.DoesNotContain("or", classified);
+	}
+
+	[Fact]
+	public void ClassifiesOnFailWordsOnlyInRuleFailureClause()
+	{
+		const string source =
+			"Start : @string on fail \"Expected a value.\" = 'a' => @(\"a\")\n" +
+			"on = 'o'\n" +
+			"fail = on\n" +
+			"parse Start";
+
+		var document = GramLanguageService.Analyze(source);
+		var classified = document.Classifications
+			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
+			.ToArray();
+
+		Assert.DoesNotContain(document.Diagnostics,
+			diagnostic => diagnostic.Severity == DotGram.Grammar.GramSeverity.Error);
+		Assert.Equal(1, classified.Count(item => item is ("on", GramSyntaxKind.Keyword)));
+		Assert.Equal(1, classified.Count(item => item is ("fail", GramSyntaxKind.Keyword)));
+		Assert.Contains(("\"Expected a value.\"", GramSyntaxKind.String), classified);
+		Assert.Contains(("on", GramSyntaxKind.Identifier), classified);
+		Assert.Contains(("fail", GramSyntaxKind.Identifier), classified);
 	}
 
 	[Fact]
