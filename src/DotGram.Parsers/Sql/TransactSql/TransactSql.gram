@@ -3950,8 +3950,10 @@ TableColumnBody : @Clause.ColumnDefinition
 	| tail: ColumnTail* & when @(Syntax.Untyped(tail))
 		=> @(new Clause.ColumnDefinition("", null, null, tail ?? Clause.None))
 
+// A column's tail is read as it comes and then asked whether it came in the engine's order
+// (`Syntax.Tailed`): what belongs to the column's storage first, and then a free list.
 ColumnBody : @Clause.ColumnDefinition
-	= "AS"i & v: ValueExpression & tail: ColumnTail*
+	= "AS"i & v: ValueExpression & tail: ColumnTail* & when @(Syntax.Tailed(null, tail))
 		=> @(new Clause.ColumnDefinition("", null, v, tail ?? Clause.None))
 	// The length belongs to the type (`AnyLength`) and not to the column — with one
 	// exception, which is why the exact numerics' length is substituted here: `DECIMAL
@@ -3960,7 +3962,7 @@ ColumnBody : @Clause.ColumnDefinition
 	// table type, a function's returned table — and are `Msg 156` in a `DECLARE`, a cast, a
 	// `CREATE TYPE … FROM`, a parameter and a scalar `RETURNS`.
 	| type: ColumnType & tail: ColumnTail*
-	  & when @(Syntax.Masked(tail) && Syntax.Collated(type, tail))
+	  & when @(Syntax.Tailed(type, tail) && Syntax.Collated(type, tail))
 		=> @(new Clause.ColumnDefinition("", type, null, tail ?? Clause.None))
 
 // What may be said about a column after its type, each kept as what it is: an option, a
@@ -4049,9 +4051,15 @@ Enforced : @string = t: ("NOT"i? & "ENFORCED"i) => @(t)
 // Which node tables an edge may join, which is the one constraint only a graph has.
 EdgePair : @Clause = f: QualifiedName & "TO"i & t: QualifiedName => @(new Clause.Connection(f, t))
 
+// What a foreign key does on a delete and on an update, each once and in either order, and then
+// whether replication leaves it alone, once and last: `NOT FOR REPLICATION ON DELETE CASCADE` and
+// a second `ON DELETE` are `Msg 156`, a second `NOT FOR REPLICATION` `Msg 102`.
 References : @Clause
-	= "REFERENCES"i & t: QualifiedName & ('(' & c: ColumnList & ')')? & a: ReferenceAction*
-		=> @(Syntax.Referenced(t, c, a))
+	= "REFERENCES"i & t: QualifiedName & ('(' & c: ColumnList & ')')? & a: ReferenceOn*
+	  & n: ("NOT"i & "FOR"i & "REPLICATION"i)? & when @(Syntax.ActedOnce(a))
+		=> @(Syntax.Referenced(t, c, a, n))
+
+ReferenceOn : @string = t: ("ON"i & DeleteOrUpdate & RefAction) => @(t)
 
 ReferenceAction : @string
 	= t: ("ON"i & DeleteOrUpdate & RefAction) => @(t)
@@ -4428,7 +4436,7 @@ AlterTableAction : @Statement.AlterTable
 	| "WITH"i & mode: CheckWord & "ADD"i
 	  & body: TableBody with (ConstraintWith = AlterConstraintWith, DefaultTail = AddedDefaultTail)
 		=> @(Statement.Altered("WITH " + Syntax.Squared(mode) + " ADD", body))
-	| "ALTER"i & "COLUMN"i & column: ColumnDefinition & options: ColumnOnline?
+	| "ALTER"i & "COLUMN"i & column: ColumnDefinition & options: ColumnOnline? & when @(Syntax.AlteredColumn(column))
 		=> @(Statement.Altered("ALTER COLUMN", new Clause[] { column }, options))
 	| "ALTER"i & "COLUMN"i & name: Identifier & flag: AlterColumnWord & options: ColumnOnline?
 	  & when @(Syntax.FlagsOnline(flag, options))
@@ -4601,7 +4609,8 @@ FunctionStatement : @Statement
 		=> @(r with { Name = name, Parameters = parameters ?? Clause.None })
 
 FunctionReturns : @Statement.CreateFunction
-	= "TABLE"i & '(' & columns: TableBody & ')' & options: RoutineOptions? & ("ORDER"i & order: IndexColumns)?
+	= "TABLE"i & '(' & columns: TableBody & ')' & when @(Syntax.Returned(columns))
+	  & options: RoutineOptions? & ("ORDER"i & order: IndexColumns)?
 	  & "AS"i & "EXTERNAL"i & "NAME"i & external: QualifiedName
 		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", Statement.None, options, columns, null, order, external))
 	// `CALLED ON NULL INPUT` and `RETURNS NULL ON NULL INPUT` are `Msg 487` here and read of a
@@ -4610,7 +4619,7 @@ FunctionReturns : @Statement.CreateFunction
 	| "TABLE"i & options: RoutineOptions? & "AS"i? & "RETURN"i & body: InlineReturn
 	  & when @(Syntax.Inlined(options))
 		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", body, options))
-	| name: TSql.Variable & "TABLE"i & '(' & columns: DeclaredBody & ')' & when @(Syntax.Declared(columns))
+	| name: TSql.Variable & "TABLE"i & '(' & columns: DeclaredBody & ')' & when @(Syntax.Declared(columns) && Syntax.Returned(columns))
 	  & options: RoutineOptions? & "AS"i?
 	  & body: StatementList
 		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", body, options, columns, name))

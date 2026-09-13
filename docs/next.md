@@ -21241,3 +21241,46 @@ At 170, unchanged: 7,403 both, 5 work, 2 defects, 266 another product's, 641 nei
 226 another product's, 539 neither. `--split` 780, the round trip 100% of 7,717, the map 7,994
 both, 8 work, 0 defects, 73 another product's, 263 neither, `--levels` 145 of 145 — all unchanged.
 The suite is 9,882 rows (from 8,574): 719 refusals and 589 readings the engine answered.
+
+## A column's tail, in the engine's order
+
+A column's tail was read as any of its things in any order, with one exception written down
+(`SPARSE` before a mask). The engine was asked every ordered pair of twenty-four things a column
+may be told, for a typed column and a computed one; then triples of the front in every order;
+twenty-seven ways of writing the type against twenty-seven tails; and each place a column is
+declared — 3,384 lines in six probes.
+
+**A tail has a front and a free list.** The front is a collation, and then one of three: a
+generation, `GENERATED ALWAYS AS … [HIDDEN]`; a column set; or `FILESTREAM` and `SPARSE`, each once
+and in either order, and after them a mask or an encryption, not both, and no encryption with
+`FILESTREAM`. The free list is a default, an identity, a nullability, `ROWGUIDCOL`, the
+constraints and an index, in any order and as often as wanted — `NULL NULL` and `INDEX a INDEX b`
+are read — with `NOT FOR REPLICATION` directly after an identity, once. Anything of the front after
+the free list is `Msg 102` (`NULL MASKED WITH (…)`), a collation after the rest of the front `Msg
+156`. A computed column's tail is `PERSISTED` or not, then the free list, and nothing of the front.
+
+**Which front depends on how the type was written, not on the type.** A `FILESTREAM` follows a type
+whose brackets hold a word — `VARBINARY (MAX)`, `DECIMAL (MAX)`, `XML (CONTENT s)` — and nothing
+else; a generation follows anything but that; a column set follows a type with no brackets at all,
+`XML`, `INT`, `dbo.t`, and not `VARCHAR (10)`. Three shapes, `Bare`, `Sized` and `Worded`, which
+is what `Syntax.Tailed` asks of the type's text.
+
+**And the place decides the rest.** An altered column takes the front and one nullability at its
+end — `ALTER COLUMN c INT DEFAULT 1`, `… IDENTITY`, `… PRIMARY KEY`, `… NULL NULL` are 156, `…
+INDEX ix` 1018, `… PERSISTED` 102. A table variable takes no `FILESTREAM`, no `NOT FOR
+REPLICATION` and no `REFERENCES` (156). A function's returned table, written in T-SQL or in a CLR
+assembly alike, takes none of those and no sparse column and no column set either
+(`Syntax.Returned`, new). A table type takes none of it and no encryption. And a foreign key says
+what it does on a delete and on an update once each, in either order, and `NOT FOR REPLICATION`
+once and last: `NOT FOR REPLICATION ON DELETE CASCADE` and a second `ON DELETE` are 156.
+
+**A mirage, left out.** `CREATE TABLE t (c AS 1 NULL)` — a table with no column of its own — is
+`Msg 8183` for most tails, a message about a computed column's constraint that the engine says
+before it says the table has nothing to compute from (102, as `(c AS 1)` alone is). Two hundred and
+fifty such lines were counted as read and are not in the theory; beside a stored column every one
+of them agrees.
+
+The guard replaces `Syntax.Masked`; the tree is unchanged. At 170: 7,403 both, 5 work, 2 defects,
+266 another product's, 641 neither; at 150: 226 and 539; `--split` 780, the round trip 100% of
+7,717, the map 7,994 both and 0 defects, `--levels` 145 of 145 — all unchanged. The suite is 12,841
+rows (from 9,900): 1,602 refusals and 1,339 readings.

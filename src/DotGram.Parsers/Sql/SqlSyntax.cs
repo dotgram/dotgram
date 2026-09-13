@@ -3654,10 +3654,10 @@ public static class Syntax
 		words is null ? null : !Squared(words).StartsWith("NOT", StringComparison.Ordinal);
 
 	/// <summary>A <c>REFERENCES</c> from its parts, the actions read back from the words.</summary>
-	public static Clause.References Referenced(string table, string[]? columns, string[]? actions)
+	public static Clause.References Referenced(string table, string[]? columns, string[]? actions, string? replication = null)
 	{
 		string? onDelete = null, onUpdate = null;
-		var replication = false;
+		var replicated = false;
 
 		foreach (var action in actions ?? NoNames)
 		{
@@ -3668,10 +3668,29 @@ public static class Syntax
 			else if (squared.StartsWith("ON UPDATE ", StringComparison.Ordinal))
 				onUpdate = squared[10..];
 			else
-				replication = true;
+				replicated = true;
 		}
 
-		return new Clause.References(table, columns, onDelete, onUpdate, replication);
+		return new Clause.References(table, columns, onDelete, onUpdate, replicated || replication is not null);
+	}
+
+	/// <summary>Whether a foreign key says what it does on a delete, and on an update, once each at most.</summary>
+	public static bool ActedOnce(string[]? actions)
+	{
+		var deletes = 0;
+		var updates = 0;
+
+		foreach (var action in actions ?? NoNames)
+		{
+			var squared = Squared(action);
+
+			if (squared.StartsWith("ON DELETE ", StringComparison.Ordinal))
+				deletes++;
+			else if (squared.StartsWith("ON UPDATE ", StringComparison.Ordinal))
+				updates++;
+		}
+
+		return deletes <= 1 && updates <= 1;
 	}
 
 	/// <summary>A <c>CONNECTION</c>'s pairs and the actions after them, as one list.</summary>
@@ -4707,29 +4726,182 @@ public static class Syntax
 		return !Array.Exists(tail, static one => one is Clause.ColumnOption { Kind: "COLLATE" });
 	}
 
-	/// <summary>Whether a column's mask stands where the engine reads one.</summary>
+	/// <summary>Whether what is said about a column after its type comes in the engine's order.</summary>
 	/// <remarks>
-	/// <c>SPARSE MASKED WITH (…) NULL</c> is read and <c>MASKED WITH (…) SPARSE NULL</c> is
-	/// <c>Msg 102</c>: a column is sparse before it is masked. A nullability is free either
-	/// way — <c>MASKED WITH (…) NULL</c> and <c>… NOT NULL</c> are both read — and so is a
-	/// collation.
+	/// <para>
+	/// Asked of the engine by every pair of twenty-four things a column may be told, by twenty-seven
+	/// ways of writing its type, and in each place a column is declared (docs/next.md, 2026-09-13).
+	/// A tail has a front, which is the column's storage, and then a free list.
+	/// </para>
+	/// <para>
+	/// The front is a collation, and then one of three: a generation, <c>GENERATED ALWAYS AS …
+	/// [HIDDEN]</c>; a column set; or <c>FILESTREAM</c> and <c>SPARSE</c>, each once and in
+	/// either order, and after them a mask or an encryption, not both. What the type was written
+	/// with decides which. A <c>FILESTREAM</c> follows a type whose brackets hold a word —
+	/// <c>VARBINARY (MAX)</c>, <c>XML (CONTENT s)</c> — and nothing else (<c>Msg 102</c>), and
+	/// is never encrypted; a generation follows any type but that one; a column set follows a type
+	/// written with no brackets at all, <c>XML</c>, <c>INT</c>. It is how the type was written and
+	/// not what it is: <c>DECIMAL (MAX)</c> takes a <c>FILESTREAM</c> and <c>VARCHAR (10)</c> no
+	/// column set. A collation after any of the front is <c>Msg 156</c>, and any of it after the
+	/// free list is <c>Msg 102</c>: <c>NULL MASKED WITH (…)</c>, <c>IDENTITY SPARSE</c>.
+	/// </para>
+	/// <para>
+	/// The free list is a default, an identity, a nullability, <c>ROWGUIDCOL</c>, the constraints
+	/// and an index, in any order and as often as wanted — <c>NULL NULL</c> and <c>INDEX a INDEX
+	/// b</c> are read. <c>NOT FOR REPLICATION</c> stands directly after an identity, once. A
+	/// computed column's tail is <c>PERSISTED</c> or not, and then the same free list; nothing of
+	/// the front.
+	/// </para>
 	/// </remarks>
-	public static bool Masked(Clause[]? tail)
+	public static bool Tailed(string? type, Clause[]? tail)
 	{
 		if (tail is null)
 			return true;
 
-		var masked = false;
+		var at = 0;
 
-		foreach (var one in tail)
+		if (type is null)
 		{
-			if (one is Clause.ColumnOption { Kind: "MASKED" })
-				masked = true;
-			else if (masked && one is Clause.ColumnOption { Kind: "SPARSE" })
+			if (Is(at, "PERSISTED"))
+				at++;
+		}
+		else
+		{
+			var written = HowWritten(type);
+
+			if (Is(at, "COLLATE"))
+				at++;
+
+			if (at < tail.Length && Kind(tail[at]) is { } kind && kind.StartsWith("GENERATED", StringComparison.Ordinal))
+			{
+				if (written == TypeWritten.Worded)
+					return false;
+
+				at++;
+			}
+			else if (Is(at, ColumnSet))
+			{
+				if (written != TypeWritten.Bare)
+					return false;
+
+				at++;
+			}
+			else
+			{
+				var filestream = false;
+				var sparse     = false;
+
+				for (; at < tail.Length; at++)
+				{
+					if (!filestream && written == TypeWritten.Worded && Is(at, "FILESTREAM"))
+						filestream = true;
+					else if (!sparse && Is(at, "SPARSE"))
+						sparse = true;
+					else
+						break;
+				}
+
+				if (Is(at, "MASKED") || !filestream && Is(at, "ENCRYPTED"))
+					at++;
+			}
+		}
+
+		for (; at < tail.Length; at++)
+		{
+			var kind = Kind(tail[at]);
+
+			if (kind is not null && (Fronting(kind) || kind == "PERSISTED"))
+				return false;
+
+			if (kind == "NOT FOR REPLICATION" && (at == 0 || Kind(tail[at - 1]) != "IDENTITY"))
 				return false;
 		}
 
 		return true;
+
+		bool Is(int index, string wanted) => index < tail.Length && Kind(tail[index]) == wanted;
+
+		static string? Kind(Clause one) => one is Clause.ColumnOption { Kind: var kind } ? kind : null;
+	}
+
+	/// <summary>Whether an altered column is told only what an altered column may be.</summary>
+	/// <remarks>
+	/// The front of a tail, and one nullability at its end: <c>ALTER COLUMN c INT DEFAULT 1</c>,
+	/// <c>… IDENTITY</c>, <c>… ROWGUIDCOL</c>, <c>… PRIMARY KEY</c> and <c>… NULL NULL</c> are
+	/// <c>Msg 156</c>, <c>… INDEX ix</c> <c>Msg 1018</c>, and <c>… PERSISTED</c> and <c>… NOT FOR
+	/// REPLICATION</c> <c>Msg 102</c>.
+	/// </remarks>
+	public static bool AlteredColumn(Clause? column)
+	{
+		if (column is not Clause.ColumnDefinition { Options: var options })
+			return true;
+
+		for (var at = 0; at < options.Length; at++)
+		{
+			if (options[at] is not Clause.ColumnOption { Kind: var kind, ConstraintName: null })
+				return false;
+
+			if (Fronting(kind) || at == options.Length - 1 && kind is "NULL" or "NOT NULL")
+				continue;
+
+			return false;
+		}
+
+		return true;
+	}
+
+	/// <summary>Whether something said about a column belongs to the front of its tail.</summary>
+	static bool Fronting(string kind) =>
+		kind is "COLLATE" or "FILESTREAM" or "SPARSE" or "MASKED" or "ENCRYPTED" or ColumnSet ||
+		kind.StartsWith("GENERATED", StringComparison.Ordinal);
+
+	const string ColumnSet = "COLUMN_SET FOR ALL_SPARSE_COLUMNS";
+
+	/// <summary>How a type was written, which is what the front of a column's tail asks.</summary>
+	enum TypeWritten
+	{
+		/// <summary>With no brackets: <c>INT</c>, <c>XML</c>, <c>dbo.t</c>.</summary>
+		Bare,
+
+		/// <summary>With numbers in brackets: <c>VARCHAR (10)</c>, <c>DECIMAL (10, 2)</c>.</summary>
+		Sized,
+
+		/// <summary>With a word in brackets: <c>VARCHAR (MAX)</c>, <c>XML (CONTENT s)</c>.</summary>
+		Worded,
+	}
+
+	static TypeWritten HowWritten(string type)
+	{
+		var until = '\0';
+		var open  = -1;
+
+		for (var at = 0; at < type.Length && open < 0; at++)
+		{
+			var c = type[at];
+
+			if (until != '\0')
+			{
+				if (c == until)
+					until = '\0';
+			}
+			else if (c is '[')
+				until = ']';
+			else if (c is '"')
+				until = '"';
+			else if (c is '(')
+				open = at;
+		}
+
+		if (open < 0)
+			return TypeWritten.Bare;
+
+		var close = type.LastIndexOf(')');
+
+		for (var at = open + 1; at < close; at++)
+			if (char.IsLetter(type[at]))
+				return TypeWritten.Worded;
+
+		return TypeWritten.Sized;
 	}
 
 	/// <summary>Whether every column of a table's body has a type, or a value it is computed from.</summary>
@@ -4953,7 +5125,7 @@ public static class Syntax
 				Clause.ConstraintDefinition { Kind: "FOREIGN KEY" or "REFERENCES" }   => false,
 				Clause.ConstraintDefinition { Kind: "PRIMARY KEY" or "UNIQUE" } key   => Told(key),
 				Clause.ColumnOption { ConstraintName: not null }                      => false,
-				Clause.ColumnOption { Kind: "SPARSE" }                                => false,
+				Clause.ColumnOption { Kind: "SPARSE" or "FILESTREAM" or "ENCRYPTED" or "NOT FOR REPLICATION" or ColumnSet } => false,
 				Clause.ColumnDefinition { Options: var options }                      => Array.TrueForAll(options, Typed),
 				_                                                                     => true,
 			};
@@ -4975,7 +5147,9 @@ public static class Syntax
 	/// A constraint there may not be named. <c>DECLARE @t TABLE (a1 INT CONSTRAINT C8 PRIMARY
 	/// KEY)</c> is <c>Msg 156</c> and so are a named <c>UNIQUE</c>, <c>CHECK</c> and
 	/// <c>DEFAULT</c>, at the column or at the table, and the same in a function's
-	/// <c>RETURNS @t TABLE</c>. Without the name every one of them is read. An index keeps its
+	/// <c>RETURNS @t TABLE</c>. Without the name every one of them is read. Nor may a column be
+	/// <c>FILESTREAM</c> there, or kept from replication (<c>Msg 102</c>), or refer to another
+	/// table (<c>Msg 156</c>). An index keeps its
 	/// own name — <c>INDEX i1 (a1)</c> is read — and a name in front of one is refused apart
 	/// (<c>Msg 1018</c>). <c>CREATE TABLE</c> and <c>ALTER TABLE … ADD</c> take names as they
 	/// always did, which is why this is asked of the two bodies and not of <c>DeclaredBody</c>.
@@ -4990,8 +5164,30 @@ public static class Syntax
 				Clause.ConstraintDefinition { Kind: "INDEX" or "UNIQUE INDEX" }  => true,
 				Clause.ConstraintDefinition { Name: not null }                  => false,
 				Clause.ColumnOption { ConstraintName: not null }                => false,
+				Clause.ColumnOption { Kind: "FILESTREAM" or "NOT FOR REPLICATION" } => false,
+				Clause.ConstraintDefinition { Kind: "REFERENCES" }              => false,
 				Clause.ColumnDefinition { Options: var options }                => Array.TrueForAll(options, Nameless),
 				_                                                               => true,
+			};
+	}
+
+	/// <summary>Whether a table's body may be a function's returned table.</summary>
+	/// <remarks>
+	/// Narrower than a table variable, and the same whether the function is written in T-SQL or
+	/// in a CLR assembly: a returned column is not sparse, not a column set and not
+	/// <c>FILESTREAM</c> (<c>Msg 102</c>), which a table variable's may be.
+	/// </remarks>
+	public static bool Returned(Clause[]? body)
+	{
+		return body is not null && Array.TrueForAll(body, Kept);
+
+		static bool Kept(Clause one) =>
+			one switch
+			{
+				Clause.ColumnOption { Kind: "SPARSE" or "FILESTREAM" or "NOT FOR REPLICATION" or ColumnSet } => false,
+				Clause.ConstraintDefinition { Kind: "REFERENCES" }                                          => false,
+				Clause.ColumnDefinition { Options: var options }                                            => Array.TrueForAll(options, Kept),
+				_                                                                                           => true,
 			};
 	}
 
