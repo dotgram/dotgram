@@ -2354,6 +2354,21 @@ CodeStatement : @Statement
 	  & tail: (("AUTHORIZATION"i & Identifier)?
 			   & (("SET"i | "ADD"i) & LanguageFile | "REMOVE"i & "PLATFORM"i & LanguagePlatform))
 		=> @(Statement.Defined("EXTERNAL LANGUAGE", name, Syntax.Tail(tail), "ALTER"))
+	// A model served from outside, SQL Server 2025's, on no page on disk; put to the engine
+	// forty-three times. Created with an owner and its settings in brackets after `WITH`,
+	// altered with `SET (…)` and nothing else — no owner, no `WITH`, no second `SET` (`Msg
+	// 156`). The settings are seven and no other (102): `LOCATION`, `API_FORMAT`, `MODEL`,
+	// `PARAMETERS` and `LOCAL_RUNTIME_PATH` are strings, `N` or not; `MODEL_TYPE` the one
+	// word `EMBEDDINGS`, bare; `CREDENTIAL` a name and not a string. In any order, any of
+	// them left out — the empty brackets read — and none twice (102), no trailing comma, no
+	// variable. The model is named in one part.
+	| "CREATE"i & "EXTERNAL"i & "MODEL"i & name: Identifier
+	  & tail: (("AUTHORIZATION"i & Identifier)? & "WITH"i & options: ModelOptions)
+	  & when @(Syntax.NamedOnce(null, options))
+		=> @(Statement.Defined("EXTERNAL MODEL", name, Syntax.Tail(tail), "CREATE", options))
+	| "ALTER"i & "EXTERNAL"i & "MODEL"i & name: Identifier & tail: ("SET"i & options: ModelOptions)
+	  & when @(Syntax.NamedOnce(null, options))
+		=> @(Statement.Defined("EXTERNAL MODEL", name, Syntax.Tail(tail), "ALTER", options))
 	| "CREATE"i & "RULE"i & name: TwoPartName & tail: ("AS"i & c: SearchCondition) & when @(Syntax.Binds(c, true))
 		=> @(Statement.Defined("RULE", name, Syntax.Tail(tail)))
 	| "CREATE"i & "DEFAULT"i & name: TwoPartName & tail: ("AS"i & v: SetValue) & when @(Syntax.Binds(v, false))
@@ -2396,6 +2411,15 @@ LanguageOption : @Clause
 	| "ENVIRONMENT_VARIABLES"i & '=' & v: BrokerString => @(new Clause.Option("ENVIRONMENT_VARIABLES", v, Clause.None))
 
 LanguagePlatform : @string = t: ("WINDOWS"i | "LINUX"i) => @(Syntax.Squared(t))
+
+ModelOptions : @Clause[]
+	= '(' & (first: ModelOption & (',' & rest: ModelOption)*)? & ')' => @(first is null ? Clause.None : Syntax.Listed(first, rest))
+
+ModelOption : @Clause
+	= "MODEL_TYPE"i & '=' & t: "EMBEDDINGS"i => @(new Clause.Option("MODEL_TYPE", new Expression.ColumnReference(t), Clause.None))
+	| "CREDENTIAL"i & '=' & c: Identifier    => @(new Clause.Option("CREDENTIAL", new Expression.ColumnReference(c), Clause.None))
+	| name: ("LOCATION"i | "API_FORMAT"i | "MODEL"i | "PARAMETERS"i | "LOCAL_RUNTIME_PATH"i) & '=' & v: BrokerString
+		=> @(new Clause.Option(Syntax.Squared(name), v, Clause.None))
 
 TwoPartName = Identifier & ('.' & Identifier)?
 

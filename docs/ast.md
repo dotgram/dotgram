@@ -284,6 +284,7 @@ compile, and a test reads this column against every record.
 | `Statement.AssemblyDefinition` | T-SQL | CREATE, ALTER ASSEMBLY | Ddl |
 | `Statement.CryptographicProviderDefinition` | T-SQL | CREATE, ALTER CRYPTOGRAPHIC PROVIDER | Ddl |
 | `Statement.ExternalLanguageDefinition` | T-SQL | CREATE, ALTER EXTERNAL LANGUAGE | Ddl |
+| `Statement.ExternalModelDefinition` | T-SQL | CREATE, ALTER EXTERNAL MODEL | Ddl |
 | `Statement.RuleDefinition` | T-SQL | CREATE RULE | Ddl |
 | `Statement.DefaultDefinition` | T-SQL | CREATE DEFAULT | Ddl |
 | `Statement.AggregateDefinition` | T-SQL | CREATE AGGREGATE | Ddl |

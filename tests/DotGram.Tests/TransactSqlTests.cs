@@ -2096,6 +2096,54 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>`CREATE EXTERNAL MODEL … WITH (…)` and `ALTER … SET (…)`: seven settings and no other, in any order, none twice.</summary>
+	[Theory]
+	[InlineData("CREATE EXTERNAL MODEL m WITH (LOCATION = 'x', API_FORMAT = 'OpenAI', MODEL_TYPE = EMBEDDINGS, MODEL = 'm', CREDENTIAL = 'c1')")]
+	[InlineData("CREATE EXTERNAL MODEL m WITH (LOCATION = 'x', API_FORMAT = 'OpenAI', MODEL_TYPE = EMBEDDINGS, MODEL = 'm', NOSUCH = 'x')")]
+	[InlineData("CREATE EXTERNAL MODEL m WITH (LOCATION = 'x', API_FORMAT = 'OpenAI', MODEL_TYPE = 'EMBEDDINGS', MODEL = 'm')")]
+	[InlineData("CREATE EXTERNAL MODEL m WITH (LOCATION = 'x', API_FORMAT = 'OpenAI', MODEL_TYPE = OTHER, MODEL = 'm')")]
+	[InlineData("CREATE EXTERNAL MODEL m WITH (LOCATION = 'x', API_FORMAT = 'OpenAI', MODEL_TYPE = EMBEDDINGS, MODEL = 'm', LOCATION = 'y')")]
+	[InlineData("CREATE EXTERNAL MODEL m WITH (LOCATION = 'x', API_FORMAT = 'OpenAI', MODEL_TYPE = EMBEDDINGS, MODEL = 'm',)")]
+	[InlineData("CREATE EXTERNAL MODEL m")]
+	[InlineData("CREATE EXTERNAL MODEL dbo.m WITH (LOCATION = 'x', API_FORMAT = 'OpenAI', MODEL_TYPE = EMBEDDINGS, MODEL = 'm')")]
+	[InlineData("CREATE EXTERNAL MODEL m WITH (LOCATION = 'x', API_FORMAT = 'OpenAI', MODEL_TYPE = EMBEDDINGS, MODEL = 'm') AUTHORIZATION dbo")]
+	[InlineData("CREATE EXTERNAL MODEL m WITH (LOCATION = @l, API_FORMAT = 'OpenAI', MODEL_TYPE = EMBEDDINGS, MODEL = 'm')")]
+	[InlineData("ALTER EXTERNAL MODEL m SET (NOSUCH = 'x')")]
+	[InlineData("ALTER EXTERNAL MODEL m")]
+	[InlineData("ALTER EXTERNAL MODEL m WITH (MODEL = 'x')")]
+	[InlineData("ALTER EXTERNAL MODEL m AUTHORIZATION dbo SET (MODEL = 'x')")]
+	[InlineData("ALTER EXTERNAL MODEL m SET (MODEL = 'x') SET (MODEL = 'y')")]
+	public void A_model_served_from_outside_is_refused_where_the_engine_refuses_it(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And is read where the engine reads it.</summary>
+	[Theory]
+	[InlineData("CREATE EXTERNAL MODEL abc AUTHORIZATION dbo WITH (LOCATION = 'sdfasfd', API_FORMAT = 'Ollama', MODEL_TYPE = EMBEDDINGS, MODEL = 'shghfh', PARAMETERS = '{\"key\":\"valuoipe\"}')")]
+	[InlineData("CREATE EXTERNAL MODEL simple_model WITH (LOCATION = '/models/simple', API_FORMAT = 'OpenAI', MODEL_TYPE = EMBEDDINGS, MODEL = 'gpt-3.5-turbo')")]
+	[InlineData("CREATE EXTERNAL MODEL [model_name] WITH (LOCATION = 'FILE PATH', API_FORMAT = 'onnx runtime', MODEL_TYPE = EMBEDDINGS, MODEL = 'text-embedding-ada-002,etc', PARAMETERS = '{ \"valid\":\"JSON\"}', LOCAL_RUNTIME_PATH = 'Path on local server to onnx runtime')")]
+	[InlineData("CREATE EXTERNAL MODEL m WITH (LOCATION = 'x', API_FORMAT = 'OpenAI', MODEL_TYPE = EMBEDDINGS, MODEL = 'm', CREDENTIAL = c1)")]
+	[InlineData("CREATE EXTERNAL MODEL m WITH (LOCATION = 'x', API_FORMAT = 'OpenAI', MODEL_TYPE = EMBEDDINGS, MODEL = 'm', CREDENTIAL = [c1])")]
+	[InlineData("CREATE EXTERNAL MODEL m WITH (API_FORMAT = 'OpenAI', MODEL_TYPE = EMBEDDINGS, MODEL = 'm')")]
+	[InlineData("CREATE EXTERNAL MODEL m WITH (MODEL = 'm', MODEL_TYPE = EMBEDDINGS, API_FORMAT = 'OpenAI', LOCATION = 'x')")]
+	[InlineData("CREATE EXTERNAL MODEL m WITH (LOCATION = N'x', API_FORMAT = N'OpenAI', MODEL_TYPE = EMBEDDINGS, MODEL = N'm')")]
+	[InlineData("CREATE EXTERNAL MODEL m WITH (LOCATION = 'x', API_FORMAT = 'OpenAI', MODEL_TYPE = EMBEDDINGS, MODEL = 'm', PARAMETERS = N'{}')")]
+	[InlineData("CREATE EXTERNAL MODEL m WITH ()")]
+	[InlineData("ALTER EXTERNAL MODEL abc SET (LOCATION = 'new_location', API_FORMAT = 'Ollama', MODEL_TYPE = EMBEDDINGS, MODEL = 'new_model', PARAMETERS = '{\"key\":\"new_value\"}')")]
+	[InlineData("ALTER EXTERNAL MODEL abc SET (MODEL = 'new_model')")]
+	[InlineData("ALTER EXTERNAL MODEL location_change SET (LOCATION = '/new/model/path', MODEL_TYPE = EMBEDDINGS)")]
+	[InlineData("ALTER EXTERNAL MODEL m SET (CREDENTIAL = c1)")]
+	[InlineData("ALTER EXTERNAL MODEL m SET (LOCAL_RUNTIME_PATH = 'p')")]
+	[InlineData("ALTER EXTERNAL MODEL m SET ()")]
+	[InlineData("DROP EXTERNAL MODEL my_model1")]
+	[InlineData("GRANT ALTER ANY EXTERNAL MODEL TO datascientist")]
+	[InlineData("GRANT EXECUTE ON EXTERNAL MODEL::MyPredictionModel TO analyst")]
+	public void A_model_served_from_outside_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]

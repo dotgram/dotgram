@@ -20757,3 +20757,34 @@ the database does not exist — and the rest of the line is never read, so every
 …` the corpus has, garbage after it included (`USE FEDERATION f1 junk junk junk` is "read"),
 is the engine stopping at the name. The mirage of `Msg 137` again, on `USE`. The six stay on
 the work list as the nineteen do, and are not work.
+
+## A model served from outside, and the honest list spent
+
+The last eighteen of the level-170 list: `CREATE EXTERNAL MODEL abc AUTHORIZATION dbo WITH
+(LOCATION = …, API_FORMAT = 'Ollama', MODEL_TYPE = EMBEDDINGS, MODEL = …, PARAMETERS = …)` and
+`ALTER EXTERNAL MODEL abc SET (…)`, SQL Server 2025's and on no page on disk. Forty-three lines
+to the engine. Created with an owner before the `WITH` and not after it, altered with `SET
+(…)` and nothing else — no owner, no `WITH`, no second `SET`, each `Msg 156`. The settings are
+seven and no other (102): five strings, `N` or not — `LOCATION`, `API_FORMAT`, `MODEL`,
+`PARAMETERS`, `LOCAL_RUNTIME_PATH`; `MODEL_TYPE`, the one bare word `EMBEDDINGS`, not quoted
+and no other word; and `CREDENTIAL`, a name and not a string. In any order, any of them left
+out — the empty brackets read, on both statements — and none twice, no trailing comma, no
+variable; the model named in one part. `DROP EXTERNAL MODEL` reads one name and takes no `IF
+EXISTS` (156) and no list (102), which `DropBody`, one rule for every kind, does not know —
+the drop by kind is still a piece to measure. `GRANT … ON EXTERNAL MODEL::m` already read.
+
+Two alternatives beside the external language's, the settings typed as options and held to
+being named once, a record `ExternalModelDefinition` in the catalogue. Fifteen refusals and
+nineteen readings in the theory.
+
+At 170: read by both **7,397 (from 7,379), the work list 27 (from 45)**. At 150 nothing moved.
+`--split` 784 (from 780), 181 files not read whole (from 185); the round trip 100% of 7,745
+(from 7,727). The map unchanged; `--levels` 138 of 138. The suite is 7,476 rows (from 7,442).
+
+**The honest list is spent.** Every statement of the corpus that the engine reads and this
+grammar does not is one of the twenty-seven: the nineteen decided long ago (`PREDICT`,
+`IDENTITY (INT)`, `@3` and `AS LOGIN` behind `Msg 137`; `sum (*)`; the legacy `PLAN` hints;
+the pivot over a join), two more `PREDICT` and six `USE FEDERATION` behind `Msg 911` — the
+engine stopping at a name it does not have. Two defects, both the corpus cut wrong. The
+catalogue that hid a hundred statements went this morning; a hundred and seven of them are
+read by both now, in eleven pieces.

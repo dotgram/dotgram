@@ -1217,6 +1217,9 @@ public abstract record Statement : ISqlSpan
 	/// <summary><c>CREATE</c> or <c>ALTER EXTERNAL LANGUAGE</c>: a language extension and the files it is made of.</summary>
 	public sealed record ExternalLanguageDefinition(string Name) : Definition(Name);
 
+	/// <summary><c>CREATE</c> or <c>ALTER EXTERNAL MODEL</c>: a model served from outside the server, and where and how it is reached.</summary>
+	public sealed record ExternalModelDefinition(string Name) : Definition(Name);
+
 	/// <summary><c>CREATE RULE</c>: a condition a column bound to it must meet.</summary>
 	public sealed record RuleDefinition(string Name) : Definition(Name);
 
@@ -1991,6 +1994,7 @@ public abstract record Statement : ISqlSpan
 			"ASSEMBLY"                   => new AssemblyDefinition(name),
 			"CRYPTOGRAPHIC PROVIDER"     => new CryptographicProviderDefinition(name),
 			"EXTERNAL LANGUAGE"          => new ExternalLanguageDefinition(name),
+			"EXTERNAL MODEL"             => new ExternalModelDefinition(name),
 			"RULE"                       => new RuleDefinition(name),
 			"DEFAULT"                    => new DefaultDefinition(name),
 			"AGGREGATE"                  => new AggregateDefinition(name),
