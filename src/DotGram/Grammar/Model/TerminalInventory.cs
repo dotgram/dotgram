@@ -175,6 +175,33 @@ public sealed class TerminalInventory
 
 	IReadOnlyList<(Pattern.External Pattern, int Kind)>? _externals;
 
+	/// <summary>The terminals the lexer begins and something else ends, with the kind each one is.</summary>
+	/// <remarks>
+	/// <para>
+	/// A rule written as a regular beginning and then one operand that is not regular —
+	/// <c>'/*' &amp; Nested</c>, <c>'&lt;' &amp; @ReadBlob</c>. The automaton reads the beginning
+	/// together with every other pattern, so it is longest match that decides a raw string's
+	/// <c>"""</c> against an empty string's <c>""</c>, and nothing is asked at a position where the
+	/// beginning does not stand. Where it does, the rest is measured from there: by the host,
+	/// or by the rule's own machine over characters.
+	/// </para>
+	/// <para>
+	/// A kind is the whole terminal and holds nothing else. A beginning that was also a token
+	/// of its own would leave the lexer holding a string it has two meanings for and no way to
+	/// pick between them short of trying both, and that is refused rather than guessed.
+	/// </para>
+	/// </remarks>
+	public IReadOnlyList<Continuation> Continued { get; private init; } = [];
+
+	/// <summary>One terminal the lexer begins, and what measures the rest of it.</summary>
+	/// <param name="Pattern">The class, as every other stage knows it.</param>
+	/// <param name="Kind">The one kind it is.</param>
+	/// <param name="Tail">
+	/// A <see cref="Node.External"/>, or a <see cref="Node.Call"/> to a rule: a synthesized one
+	/// whose body is an external with a value, or one the grammar wrote.
+	/// </param>
+	public sealed record Continuation(Pattern.Class Pattern, int Kind, Node Tail);
+
 	static Text Spelling(Pattern pattern) =>
 		pattern switch
 		{
@@ -807,6 +834,41 @@ public sealed class TerminalInventory
 				.Select((set, at) => new Kind(at + 1, [.. set.Select(one => patterns[one])]))
 				.ToList();
 
+			// A terminal the lexer only begins has to be told apart by that beginning alone,
+			// because the beginning is all the lexer reads of it. One that can begin with
+			// nothing would be begun everywhere; one whose beginning is also some other token
+			// would give the lexer a string with two meanings. Both are refused.
+			var continued = new List<Continuation>();
+
+			foreach (var pattern in patterns.OfType<Pattern.Class>())
+			{
+				if (Continuation(pattern.Rule) is not var (prefix, tail))
+					continue;
+
+				if (Language.Shortest(graph, prefix) is { Length: 0 })
+				{
+					Refuse($"what begins {pattern.Rule.Name} can be nothing, so the lexer cannot tell where one stands: {prefix}");
+
+					continue;
+				}
+
+				var holding = kinds.Where(kind => kind.Matched.Contains(pattern)).ToList();
+
+				if (holding.Count != 1 || holding[0].Matched.Count != 1)
+				{
+					Refuse($"what begins {pattern.Rule.Name} is also " +
+						string.Join(", ", holding.SelectMany(kind => kind.Matched).Where(one => one != pattern).Distinct()) +
+						", and the lexer would read one string two ways");
+
+					continue;
+				}
+
+				continued.Add(new Continuation(pattern, holding[0].Number, tail));
+			}
+
+			if (continued.Count < patterns.OfType<Pattern.Class>().Count(one => Continuation(one.Rule) is not null))
+				return new TerminalInventory(true, patterns, [], [], _reasons);
+
 			// And then the terminals the machine never saw. Appended rather than woven in, for
 			// the reason the numbering exists at all: `machine.Sets` holds indices into the
 			// patterns it was given, so anything added before them would renumber what the
@@ -840,6 +902,7 @@ public sealed class TerminalInventory
 			{
 				Machine   = machine,
 				WordKinds = wordly,
+				Continued = continued,
 			};
 		}
 
@@ -967,8 +1030,70 @@ public sealed class TerminalInventory
 			{
 				Pattern.Word(_, var word, var fold) => new Node.Literal(word) { IgnoreCase = fold },
 				Pattern.Mark(_, var mark, var fold) => new Node.Literal(mark) { IgnoreCase = fold },
-				Pattern.Class(_, var rule)          => graph.Bodies.TryGetValue(rule, out var body) ? body : null,
+				Pattern.Class(_, var rule)          => Continuation(rule) is var (prefix, _)
+					? prefix
+					: graph.Bodies.TryGetValue(rule, out var body) ? body : null,
 				_                                   => null,
+			};
+
+		/// <summary>
+		/// A class that is a regular beginning and then one operand that is not, split there.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// Only the last operand, and only one that cannot be read by an automaton: an external
+		/// recognizer, or a call to a rule that is not a regular language. A class whose last
+		/// call is regular is a class like any other and the automaton reads all of it — this is
+		/// asked of what used to be refused, never of what used to be read.
+		/// </para>
+		/// <para>
+		/// A value is looked through, and so is a capture of the last operand: <c>Tag : @T =
+		/// '&lt;' &amp; b: Inner =&gt; …</c> is still where the lexer stops and something else
+		/// goes on, and its value is read afterwards over the whole token as any terminal's is.
+		/// </para>
+		/// </remarks>
+		(Node Prefix, Node Tail)? Continuation(RuleSymbol rule)
+		{
+			if (_tails.TryGetValue(rule, out var known))
+				return known;
+
+			if (!graph.Bodies.TryGetValue(rule, out var body))
+				return null;
+
+			while (true)
+			{
+				if (body is Node.Construct(var built, _))
+					body = built;
+				else if (body is Node.Marked(var noted, _))
+					body = noted;
+				else
+					break;
+			}
+
+			(Node Prefix, Node Tail)? found = null;
+
+			if (body is Node.Sequence(var parts) && parts.Count >= 2 &&
+				(parts[parts.Count - 1] is Node.Capture(_, var held) ? held : parts[parts.Count - 1]) is var tail &&
+				Unread(tail))
+			{
+				found = (parts.Count == 2 ? parts[0] : new Node.Sequence([.. parts.Take(parts.Count - 1)]), tail);
+			}
+
+			_tails[rule] = found;
+
+			return found;
+		}
+
+		readonly Dictionary<RuleSymbol, (Node Prefix, Node Tail)?> _tails = [];
+
+		/// <summary>Whether no automaton can read this operand, so something else has to.</summary>
+		bool Unread(Node tail) =>
+			tail switch
+			{
+				Node.External => true,
+				Node.Call(var called, _) when !called.IsBuiltIn && graph.Bodies.TryGetValue(called, out var body) =>
+					body is Node.External || LexicalAutomaton.Of(graph, [body], []) is null,
+				_ => false,
 			};
 
 		/// <summary>

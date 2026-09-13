@@ -221,7 +221,7 @@ public static partial class CSharpEmitter
 		// Built here rather than beside the lexer because it has to join the file's value
 		// tables: it writes into the same parser, and a machine numbers a type by where it
 		// sits in one list they all agree on.
-		var valuing = lexical is { Valued.Count: > 0 }
+		var valuing = lexical is not null && (lexical.Valued.Count > 0 || Measuring(lexical).Count > 0)
 			? new Machine(
 				lexical.Source,
 				new ResultTypes(lexical.Source, scoped, @namespace),
@@ -235,8 +235,15 @@ public static partial class CSharpEmitter
 		// disagreeing rather than a longer match. Registered before the tables are gathered,
 		// because compiling a root is what discovers the types under it.
 		if (valuing is not null && lexical is not null)
+		{
 			foreach (var rule in lexical.Valued)
 				valuing.Register(rule, whole: true);
+
+			// And what measures the rest of a terminal the lexer only begins. Not whole: it is
+			// entered where the beginning ended, and where it stops is the answer.
+			foreach (var rule in Measuring(lexical))
+				valuing.Register(rule, whole: false);
+		}
 
 		// Every machine numbers a value type by where it sits in one list, because the parser
 		// they share holds one table per entry. The union is only knowable once they all
@@ -498,7 +505,10 @@ public static partial class CSharpEmitter
 				reach: graph.Recoveries.Count > 0 && Streaming(graph, overKinds),
 				starved: Streaming(graph, overKinds),
 				expected: true,
-				expectedMore: machines.Exists(static compiled =>
+				// The machine that reads a terminal again is an engine too, and an engine
+				// writes the ties it meets. It is not among `machines`, so a grammar whose
+				// syntax was all flat declared a failure its lexical half could not compile.
+				expectedMore: valuing is not null || machines.Exists(static compiled =>
 					!compiled.Flat || compiled.Machine.Ties)));
 			file.Line();
 		}
@@ -1530,6 +1540,43 @@ public static partial class CSharpEmitter
 				}
 
 				file.Line();
+
+				// A terminal the lexer only begins goes on from where its beginning ended, and
+				// is measured there by the host or by its rule's machine over characters. Asked
+				// only when the automaton stopped on that beginning, so it costs a comparison
+				// on every other token; a refusal is a character nothing reads.
+				var continued = 0;
+
+				foreach (var continuation in lexical.Inventory.Continued)
+				{
+					using (file.Block($"{(continued++ == 0 ? "if" : "else if")} (kind == {continuation.Kind})"))
+					{
+						if (MeasuredBy(lexical, continuation.Tail) is { } rule)
+						{
+							var output = valuing!.Results.QualifiedOf(rule) is null ? "" : ", out _";
+
+							file.Line($"var failure  = new {FailureType}();");
+							file.Line($"var measured = Measure_{IdentifierOf(rule)}_DotGram(text, end, ref failure{output});");
+							file.Line();
+							file.Line("if (measured < 0)");
+							file.Then("kind = 0;");
+							file.Line("else");
+							file.Then("end = measured;");
+						}
+						else
+						{
+							file.Line("var measured = end;");
+							file.Line();
+							file.Line($"if ({HostMeasure(lexical, continuation.Tail)})");
+							file.Then("end = measured;");
+							file.Line("else");
+							file.Then("kind = 0;");
+						}
+					}
+				}
+
+				if (continued > 0)
+					file.Line();
 
 				using (file.Block("if (kind == 0 || end <= p)"))
 				{
@@ -2770,6 +2817,15 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
+		// What the tokenizer calls where the automaton stopped on the beginning of a terminal
+		// it does not end. Entered there and not whole: how far it reads is the answer.
+		foreach (var rule in Measuring(lexical))
+		{
+			file.Line($"/// <summary>Where a token ends whose rest <c>{rule.Name}</c> reads.</summary>");
+			file.Write(valuing.RenderWrapper(rule, "Measure_" + IdentifierOf(rule) + "_DotGram", engine, whole: false));
+			file.Line();
+		}
+
 		return file.ToString();
 	}
 
@@ -2798,10 +2854,42 @@ public static partial class CSharpEmitter
 			// character tables collide with the syntax's, name for name.
 			tag: "_Seam");
 
+	/// <summary>The rules that measure the rest of a terminal the lexer only begins, each once.</summary>
+	static IReadOnlyList<RuleSymbol> Measuring(LexicalSplit lexical) =>
+	[
+		.. lexical.Inventory.Continued
+			.Select(one => MeasuredBy(lexical, one.Tail))
+			.OfType<RuleSymbol>()
+			.Distinct(),
+	];
+
+	/// <summary>The rule a terminal's rest is measured by, or null where the host measures it.</summary>
+	static RuleSymbol? MeasuredBy(LexicalSplit lexical, Node tail) =>
+		tail is Node.Call(var rule, _) &&
+		lexical.Source.Bodies.TryGetValue(rule, out var body) &&
+		body is not Node.External
+			? rule
+			: null;
+
+	/// <summary>The host's call measuring a terminal's rest, moving <c>measured</c> on.</summary>
+	/// <remarks>
+	/// §7.1's second row where the grammar wrote a bare <c>@M</c>, and its third where the host
+	/// has an overload with a value — which the normalizer made a rule of. The value is not
+	/// wanted here: the lexer asks how far, and a terminal that builds reads its value again.
+	/// </remarks>
+	static string HostMeasure(LexicalSplit lexical, Node tail) =>
+		tail switch
+		{
+			Node.External(var method) => $"{method}(text, ref measured)",
+			Node.Call(var rule, _) when lexical.Source.Bodies[rule] is Node.External(var method) =>
+				$"{method}(text, ref measured, out _)",
+			_ => throw new InvalidOperationException($"{tail} is not measured by the host"),
+		};
+
 	static HashSet<RuleSymbol> Rereads(LexicalSplit lexical)
 	{
 		var reached = new HashSet<RuleSymbol>();
-		var pending = new Stack<RuleSymbol>(lexical.Valued);
+		var pending = new Stack<RuleSymbol>(lexical.Valued.Concat(Measuring(lexical)));
 
 		while (pending.Count > 0)
 		{

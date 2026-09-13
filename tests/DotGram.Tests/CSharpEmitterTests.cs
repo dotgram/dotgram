@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -36,6 +37,30 @@ public sealed class CSharpEmitterTests
 			static diagnostic => diagnostic.Severity != GramSeverity.Info);
 
 		return Assert.Single(result.Sources).Text;
+	}
+
+	/// <summary>Compiles a grammar cut into a lexer and a syntactic half, and returns the C#.</summary>
+	/// <remarks>
+	/// Asserts the cut was made. A grammar that is not cut is read over characters, and a test
+	/// of what the lexer does then passes without a lexer — which is what the first tests of a
+	/// terminal the host measures did, written against <see cref="Emit"/>, whose options never
+	/// asked for one.
+	/// </remarks>
+	static string EmitSplit(string grammar)
+	{
+		var result = GramCompiler.Compile(
+			grammar,
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = true });
+
+		Assert.DoesNotContain(
+			result.Diagnostics,
+			static diagnostic => diagnostic.Severity != GramSeverity.Info);
+
+		var text = Assert.Single(result.Sources).Text;
+
+		Assert.Contains("Tokenize_DotGram(", text, StringComparison.Ordinal);
+
+		return text;
 	}
 
 	/// <summary>Compiles the emitted source and calls the asking half of a publication.</summary>
@@ -811,17 +836,49 @@ public sealed class CSharpEmitterTests
 	public void As_renames_the_pair() =>
 		Assert.True(Invoke(Digits + "parse Start as ReadDigits", "ReadDigits", "12").Matched);
 
-	/// <summary>A terminal the lexer does not measure, because host code does (§7.1).</summary>
+	/// <summary>Balanced angle brackets, measured after the first one by the host.</summary>
+	/// <remarks>
+	/// Counts what it was asked, so a test can say how often that was. The first bracket is
+	/// the grammar's and has been read: the host starts inside, one deep.
+	/// </remarks>
+	const string BlobReader = """
+		static int Asked;
+
+		static bool ReadBlob(global::System.ReadOnlySpan<char> text, ref int pos)
+		{
+			Asked++;
+
+			var depth = 1;
+
+			for (var p = pos; p < text.Length; p++)
+			{
+				if (text[p] == '<')
+				{
+					depth++;
+				}
+				else if (text[p] == '>' && --depth == 0)
+				{
+					pos = p + 1;
+
+					return true;
+				}
+			}
+
+			return false;
+		}
+		""";
+
+	/// <summary>A terminal the lexer begins and the host ends (§7.1).</summary>
 	/// <remarks>
 	/// <para>
 	/// Balanced angle brackets, which are not a regular language and so are not something a
-	/// lexical machine can be asked for at all. The rule is a bare <c>@M</c>: the grammar says
-	/// where such a terminal stands and what it is called, and the host says how far it runs —
-	/// <c>ref int pos</c> is §7.1's way of saying where it ended.
+	/// lexical machine can be asked for at all. The grammar says what one begins with and the
+	/// host how far it runs from there — <c>ref int pos</c> is §7.1's way of saying where it
+	/// ended.
 	/// </para>
 	/// <para>
-	/// The lexer stays a lexer. It learns no nesting and no brackets: it reads a table that
-	/// says this kind is measured elsewhere, and takes the end it is handed.
+	/// The lexer stays a lexer. It learns no nesting and no brackets: its automaton reads the
+	/// <c>&lt;</c> with every other token, and a table says that kind goes on elsewhere.
 	/// </para>
 	/// </remarks>
 	[Theory]
@@ -843,47 +900,174 @@ public sealed class CSharpEmitterTests
 				trivia = none
 
 				Name = ['a'..'z']+
+				Blob = '<' & @ReadBlob
 			}
 
-			Blob  = @ReadBlob
 			Start = Name & Blob & Name
 			parse Start
 			""";
 
-		const string Host = """
-			static bool ReadBlob(global::System.ReadOnlySpan<char> text, ref int pos)
-			{
-				if (pos >= text.Length || text[pos] != '<')
-					return false;
-
-				var depth = 0;
-
-				for (var p = pos; p < text.Length; p++)
-				{
-					if (text[p] == '<')
-					{
-						depth++;
-					}
-					else if (text[p] == '>')
-					{
-						depth--;
-
-						if (depth == 0)
-						{
-							pos = p + 1;
-
-							return true;
-						}
-					}
-				}
-
-				return false;
-			}
-			""";
-
-		var parser = EmittedCode.Compile(Emit(Grammar), declarationMembers: Host);
+		var parser = EmittedCode.Compile(EmitSplit(Grammar), declarationMembers: BlobReader);
 
 		Assert.Equal(expected, EmittedCode.Match(parser, "Grammar", "TryParseStart", input).IsSuccess);
+	}
+
+	/// <summary>And is asked where its beginning stands, and nowhere else.</summary>
+	/// <remarks>
+	/// Three tokens and one bracket. A terminal that was nothing but <c>@M</c> had no
+	/// beginning to be found by, so the host was asked at every one of the three.
+	/// </remarks>
+	[Fact]
+	public void The_host_is_asked_only_where_the_beginning_stands()
+	{
+		const string Grammar = """
+			using Lexical;
+
+			trivia = { ' '* }
+
+			namespace Lexical
+			{
+				trivia = none
+
+				Name = ['a'..'z']+
+				Blob = '<' & @ReadBlob
+			}
+
+			Start = Name & Blob & Name
+			parse Start
+			""";
+
+		var parser = EmittedCode.Compile(EmitSplit(Grammar), declarationMembers: BlobReader);
+
+		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseStart", "ab <x> cd").IsSuccess);
+
+		var asked = parser.GetType("Grammar")!.GetField("Asked", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+		Assert.Equal(1, asked.GetValue(null));
+	}
+
+	/// <summary>A terminal the lexer begins and a rule of the grammar ends.</summary>
+	/// <remarks>
+	/// Comments that nest. <c>Nested</c> reaches itself, so no automaton reads it; the
+	/// automaton reads <c>/*</c>, and the rule's own machine over characters goes on from
+	/// there. Nothing about it is written in C#.
+	/// </remarks>
+	[Theory]
+	[InlineData("ab /* x */ cd", true,  "one comment")]
+	[InlineData("ab /* x /* y */ z */ cd", true,  "nested, which no automaton reads")]
+	[InlineData("ab /* x /* y */ cd", false, "unclosed: the rule reads to the end and finds no close")]
+	[InlineData("ab / cd", false, "no beginning, and nothing else reads a slash")]
+	public void A_terminal_a_rule_measures(string input, bool expected, string what)
+	{
+		Assert.NotNull(what);
+
+		const string Grammar = """
+			using Lexical;
+
+			trivia = { ' '* }
+
+			namespace Lexical
+			{
+				trivia = none
+
+				Name    = ['a'..'z']+
+				Comment = "/*" & Nested
+				Nested  = ([^ '*' | '/'] | '*' & ?!'/' | '/' & ?!'*' | "/*" & Nested)* & "*/"
+			}
+
+			Start = Name & Comment & Name
+			parse Start
+			""";
+
+		var parser = EmittedCode.Compile(EmitSplit(Grammar));
+
+		Assert.Equal(expected, EmittedCode.Match(parser, "Grammar", "TryParseStart", input).IsSuccess);
+	}
+
+	/// <summary>Such a terminal builds a value, read over the whole token where it stands.</summary>
+	[Fact]
+	public void A_terminal_a_rule_measures_is_read_again_for_its_value()
+	{
+		const string Grammar = """
+			using Lexical;
+
+			trivia = { ' '* }
+
+			namespace Lexical
+			{
+				trivia = none
+
+				Name    = ['a'..'z']+
+				Comment : @int = "/*" & Nested => @((int)parserSpan.Start * 100 + parserSpan.Length)
+				Nested  = ([^ '*' | '/'] | '*' & ?!'/' | '/' & ?!'*' | "/*" & Nested)* & "*/"
+			}
+
+			Start : @int = Name & t: Comment => @(t)
+			parse Start
+			""";
+
+		var parser = EmittedCode.Compile(EmitSplit(Grammar));
+		var match  = EmittedCode.Match(parser, "Grammar", "TryParseStart", "ab /* x /* y */ z */");
+
+		Assert.True(match.IsSuccess);
+		Assert.Equal(3 * 100 + 17, match.Value);
+	}
+
+	/// <summary>A terminal that is nothing but <c>@M</c> is said to be asked at every token.</summary>
+	[Fact]
+	public void A_terminal_with_no_beginning_is_warned_about()
+	{
+		var result = GramCompiler.Compile(
+			"""
+			using Lexical;
+
+			trivia = { ' '* }
+
+			namespace Lexical
+			{
+				trivia = none
+
+				Name = ['a'..'z']+
+				Blob = @ReadBlob
+			}
+
+			Start = Name & Blob & Name
+			parse Start
+			""",
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = true });
+
+		var said = Assert.Single(result.Diagnostics, static one => one.Id == GramCompiler.Unanchored);
+
+		Assert.Equal(GramSeverity.Warning, said.Severity);
+		Assert.Contains("'Blob'", said.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>A beginning that is also a token of its own is refused, not guessed at.</summary>
+	[Fact]
+	public void A_beginning_that_is_also_a_token_is_not_cut()
+	{
+		var result = GramCompiler.Compile(
+			"""
+			using Lexical;
+
+			trivia = { ' '* }
+
+			namespace Lexical
+			{
+				trivia = none
+
+				Name = ['a'..'z']+
+				Blob = '<' & @ReadBlob
+			}
+
+			Start = Name & (Blob | '<') & Name
+			parse Start
+			""",
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = true });
+
+		var said = Assert.Single(result.Diagnostics, static one => one.Id == GramCompiler.NotCut);
+
+		Assert.Contains("two ways", said.Message, StringComparison.Ordinal);
 	}
 
 	/// <summary>A terminal read again for its value is read where it stands in the text.</summary>
@@ -915,7 +1099,7 @@ public sealed class CSharpEmitterTests
 			parse Start
 			""";
 
-		var parser = EmittedCode.Compile(Emit(Grammar));
+		var parser = EmittedCode.Compile(EmitSplit(Grammar));
 		var match  = EmittedCode.Match(parser, "Grammar", "TryParseStart", "ab <cd>");
 
 		Assert.True(match.IsSuccess);

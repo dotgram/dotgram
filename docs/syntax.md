@@ -1857,6 +1857,37 @@ handed a span and told nothing about where it came from, so it cannot tell the e
 window from the end of the input, and nothing in its signature lets it say which it hit.
 It would read a record cut in half as a record that ended.
 
+**A terminal the lexer begins and something else ends.** In a grammar cut into a lexer
+and a syntactic half (§4, `Lexical = true`), a terminal is read by one automaton together
+with every other, and an automaton reads only regular languages. Comments that nest,
+interpolated strings, raw strings whose delimiter varies are not regular. They are written
+as a regular beginning followed by one operand that is not:
+
+```dotgram
+namespace Lexical
+{
+    trivia = none
+
+    Comment = "/*" & Nested
+    Nested  = ([^ '*' | '/'] | '*' & ?!'/' | '/' & ?!'*' | "/*" & Nested)* & "*/"
+
+    Blob    = '<' & @ReadBlob
+}
+```
+
+The automaton reads the beginning with every other token, so longest match decides between
+them as it decides everything else, and nothing is asked where the beginning does not stand.
+Where it does, the rest is measured from where the beginning ended: by the grammar's own
+rule, read over characters, or by the host, handed the position after the beginning. The
+lexer learns nothing about nesting or quoting. A kind of it is simply measured elsewhere.
+A terminal written this way may build a value like any other, and its value is read over
+the whole token.
+
+The beginning has to be the terminal's alone. One that can be empty, or that is also a
+token of its own, is refused (`GRAM5004`): the lexer would have a string it cannot give
+one meaning to. A terminal that is nothing but `@M` has no beginning at all, so the host
+is asked at the start of every token before the automaton runs, which `GRAM5011` says.
+
 An inline `@(...)` expression plays the same role as a value transformation, only
 without a name: it receives no input, sees captures as local variables, and is checked
 by C#'s type system exactly where the generator placed it.

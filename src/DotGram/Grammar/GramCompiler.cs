@@ -119,6 +119,21 @@ public static class GramCompiler
 		if (lexical is not null && !HasErrors(diagnostics))
 			diagnostics.AddRange(FirstSets.Committed(lexical.Syntax, lexical.Inventory));
 
+		// A terminal that is nothing but `@M` has no beginning the automaton could stop on, so
+		// the lexer asks the host at the start of every token. Correct and a call a token; the
+		// beginning written in front of it is what makes it one call a terminal.
+		if (lexical is not null)
+			foreach (var (pattern, _) in lexical.Inventory.Externals)
+				diagnostics.Add(new GramDiagnostic(
+					Unanchored,
+					$"'{pattern.Rule.Name}' is nothing but '@{pattern.Method}', so the lexer asks " +
+					$"'{pattern.Method}' at the start of every token. Write what it begins with in front " +
+					$"of it — '{pattern.Rule.Name} = \"…\" & @{pattern.Method}' — and it is asked only " +
+					"where that stands.",
+					pattern.Rule.Declaration?.At.Position ?? 0,
+					pattern.Rule.Declaration?.At.Length ?? 0,
+					GramSeverity.Warning));
+
 		if (!HasErrors(diagnostics))
 			sources.Add(new GeneratedSource(
 				options.Suffix is { Length: > 0 } suffix
@@ -229,6 +244,9 @@ public static class GramCompiler
 
 	/// <summary>The tape is holding constructions back for a promise the grammar may not need.</summary>
 	public const string TapeNotNeeded = "GRAM5008";
+
+	/// <summary>A terminal the host measures has nothing in front of it to be found by.</summary>
+	public const string Unanchored = "GRAM5011";
 
 	/// <summary>
 	/// One error per position, in the order they were raised.
