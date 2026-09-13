@@ -5852,20 +5852,19 @@ DropStatement : @Statement
 	= "DROP"i & d: DropBody => @(d)
 
 DropBody : @Statement
-	// The five that name something and then say where it is or what to do about it.
-	= what: DropKeyKind & exists: IfExists? & names: DropNames
-	  & tail: ("REMOVE"i & "PROVIDER"i & "KEY"i)?
-		=> @(Statement.Dropped(what, names, tail, exists))
+	// A key names one part and may say its provider's key goes with it.
+	= what: DropKeyKind & name: DropOnePart & tail: ("REMOVE"i & "PROVIDER"i & "KEY"i)?
+		=> @(Statement.Dropped(what, new Expression[] { name }, tail))
 	| "ASSEMBLY"i & exists: IfExists? & names: DropNames
 	  & tail: ("WITH"i & "NO"i & "DEPENDENTS"i)?
 		=> @(Statement.Dropped("ASSEMBLY", names, tail, exists))
-	| "EXTERNAL"i & "LIBRARY"i & names: DropNames & tail: ("AUTHORIZATION"i & QualifiedName)?
-		=> @(Statement.Dropped("EXTERNAL LIBRARY", names, tail))
-	| "EXTERNAL"i & "LANGUAGE"i & names: DropNames & tail: ("AUTHORIZATION"i & QualifiedName)?
-		=> @(Statement.Dropped("EXTERNAL LANGUAGE", names, tail))
-	| "EVENT"i & "SESSION"i & names: DropNames & tail: ("ON"i & DropScope)
-		=> @(Statement.Dropped("EVENT SESSION", names, tail))
-	| "EVENT"i & "NOTIFICATION"i & names: DropNames & tail: ("ON"i & DropScope)
+	| "EXTERNAL"i & "LIBRARY"i & name: DropOnePart & tail: ("AUTHORIZATION"i & Identifier)?
+		=> @(Statement.Dropped("EXTERNAL LIBRARY", new Expression[] { name }, tail))
+	| "EXTERNAL"i & "LANGUAGE"i & name: DropOnePart & tail: ("AUTHORIZATION"i & Identifier)?
+		=> @(Statement.Dropped("EXTERNAL LANGUAGE", new Expression[] { name }, tail))
+	| "EVENT"i & "SESSION"i & name: DropOnePart & tail: ("ON"i & ("SERVER"i | "DATABASE"i))
+		=> @(Statement.Dropped("EVENT SESSION", new Expression[] { name }, tail))
+	| "EVENT"i & "NOTIFICATION"i & names: DropOneParts & tail: ("ON"i & ("SERVER"i | "DATABASE"i | "QUEUE"i & QualifiedName))
 		=> @(Statement.Dropped("EVENT NOTIFICATION", names, tail))
 
 	// An index is named twice — once for itself and once for what it is on — and the older
@@ -5883,21 +5882,47 @@ DropBody : @Statement
 	| "SENSITIVITY"i & "CLASSIFICATION"i & from: "FROM"i & names: DropNames
 		=> @(Statement.Dropped("SENSITIVITY CLASSIFICATION", names))
 
-	// A trigger says which of the three kinds it is by what it is on.
-	| "TRIGGER"i & exists: IfExists? & names: DropNames & tail: ("ON"i & DropScope)?
+	// A trigger says which of the kinds it is by what it is on: a database's or every server's,
+	// and nothing for a table's. `ON SERVER` and `ON QUEUE q` are `Msg 102`.
+	| "TRIGGER"i & exists: IfExists? & names: DropNames & tail: ("ON"i & ("DATABASE"i | "ALL"i & "SERVER"i))?
 		=> @(Statement.Dropped("TRIGGER", names, tail, exists))
 
 	// The two that name nothing: there is one of each per database.
 	| what: DropOnlyKind
 		=> @(Statement.Dropped(what, Expression.None))
 
-	| what: DropKind & exists: IfExists? & names: DropNames
+	// Statistics are named by their table and themselves, in a list; one part the engine reads
+	// and objects to (`Msg 1053`, "you must provide both the object name and the statistics name").
+	| "STATISTICS"i & names: DropNames
+		=> @(Statement.Dropped("STATISTICS", names))
+	| what: DropListedKind & exists: IfExists? & names: DropNames
 		=> @(Statement.Dropped(what, names, null, exists))
+	| what: DropSingleKind & exists: IfExists? & name: DropOnePart
+		=> @(Statement.Dropped(what, new Expression[] { name }, null, exists))
+	| "TYPE"i & exists: IfExists? & name: DropLedName
+		=> @(Statement.Dropped("TYPE", new Expression[] { name }, null, exists))
+	| what: DropQualifiedKind & name: DropName
+		=> @(Statement.Dropped(what, new Expression[] { name }))
+	| "XML"i & "SCHEMA"i & "COLLECTION"i & name: DropLedName
+		=> @(Statement.Dropped("XML SCHEMA COLLECTION", new Expression[] { name }))
+	| "WORKLOAD"i & "CLASSIFIER"i & names: DropLedNames
+		=> @(Statement.Dropped("WORKLOAD CLASSIFIER", names))
+	| what: DropNamedKind & name: DropOnePart
+		=> @(Statement.Dropped(what, new Expression[] { name }))
+	// After the kinds that begin with its word.
+	| "DATABASE"i & exists: IfExists? & names: DropOneParts
+		=> @(Statement.Dropped("DATABASE", names, null, exists))
 
 DropNames : @Expression[]
 	= first: DropName & (',' & rest: DropName)* => @(Syntax.Listed(first, rest))
 
 DropName : @Expression = t: QualifiedName => @(new Expression.ColumnReference(t))
+
+// A name of one part, and a name that begins with a part and may leave any after it empty.
+DropOnePart  : @Expression   = t: Identifier => @(new Expression.ColumnReference(t))
+DropOneParts : @Expression[] = first: DropOnePart & (',' & rest: DropOnePart)* => @(Syntax.Listed(first, rest))
+DropLedName  : @Expression   = t: (Identifier & NamePart*) => @(new Expression.ColumnReference(t))
+DropLedNames : @Expression[] = first: DropLedName & (',' & rest: DropLedName)* => @(Syntax.Listed(first, rest))
 
 DropIndexName : @Expression
 	= t: (Identifier & "ON"i & QualifiedName & DropIndexWith?) => @(new Expression.ColumnReference(Syntax.Spaced(t)))
@@ -5928,66 +5953,58 @@ DropIndexOption : @Clause
 	| LowPriorityWait
 		=> @(new Clause.Option("WAIT_AT_LOW_PRIORITY", null, Clause.None))
 
-DropScope = "ALL"i & "SERVER"i | "SERVER"i | "DATABASE"i | "QUEUE"i & QualifiedName
-
 DropKeyKind  = "ASYMMETRIC"i & "KEY"i | "SYMMETRIC"i & "KEY"i
 DropOnlyKind = "MASTER"i & "KEY"i | "DATABASE"i & "ENCRYPTION"i & "KEY"i
 
-// The rest, longest first where one name begins another.
-DropKind
-	= "AGGREGATE"i
-	| "APPLICATION"i & "ROLE"i
+// The rest, by what each takes — which is not what the published blocks say. Put to the engine
+// fifty-eight kinds times seven shapes (docs/next.md, 2026-09-13): `IF EXISTS`, a list, and a
+// name with a leading dot, two parts, three and an empty one.
+//
+// Eleven take all of it, `DROP TABLE IF EXISTS .x, a..b` among them.
+DropListedKind
+	= "AGGREGATE"i | "DEFAULT"i | "FUNCTION"i | "PROCEDURE"i | "PROC"i | "RULE"i
+	| "SECURITY"i & "POLICY"i | "SEQUENCE"i | "SYNONYM"i | "TABLE"i | "VIEW"i
+
+// Three take `IF EXISTS` and one name of one part — `DROP USER x, y` and `DROP SCHEMA a.b` are
+// `Msg 102`. A type takes a name that begins with a part (`DROP TYPE .t` is 102, `a..b` read),
+// and so does an XML schema collection, which takes no `IF EXISTS` (156).
+DropSingleKind = "ROLE"i | "SCHEMA"i | "USER"i
+
+// Seven take one name as a table's is, and no `IF EXISTS`: the Service Broker's objects and an
+// external table.
+DropQualifiedKind
+	= "CONTRACT"i | "EXTERNAL"i & "TABLE"i | "MESSAGE"i & "TYPE"i | "QUEUE"i
+	| "REMOTE"i & "SERVICE"i & "BINDING"i | "ROUTE"i | "SERVICE"i
+
+// And the rest one name of one part and nothing else: `IF EXISTS` is `Msg 156`, a list and any
+// dot 102. Longest first where one name begins another.
+DropNamedKind
+	= "APPLICATION"i & "ROLE"i
 	| "AVAILABILITY"i & "GROUP"i
 	| "BROKER"i & "PRIORITY"i
 	| "CERTIFICATE"i
 	| "COLUMN"i & "ENCRYPTION"i & "KEY"i
 	| "COLUMN"i & "MASTER"i & "KEY"i
-	| "CONTRACT"i
 	| "CREDENTIAL"i
 	| "CRYPTOGRAPHIC"i & "PROVIDER"i
 	| "DATABASE"i & "AUDIT"i & "SPECIFICATION"i
 	| "DATABASE"i & "SCOPED"i & "CREDENTIAL"i
-	| "DATABASE"i
-	| "DEFAULT"i
 	| "ENDPOINT"i
 	| "EXTERNAL"i & "DATA"i & "SOURCE"i
 	| "EXTERNAL"i & "FILE"i & "FORMAT"i
-	| "EXTERNAL"i & "LANGUAGE"i
 	| "EXTERNAL"i & "MODEL"i
 	| "EXTERNAL"i & "RESOURCE"i & "POOL"i
-	| "EXTERNAL"i & "TABLE"i
 	| "FULLTEXT"i & "CATALOG"i
 	| "FULLTEXT"i & "STOPLIST"i
-	| "FUNCTION"i
 	| "LOGIN"i
-	| "MESSAGE"i & "TYPE"i
 	| "PARTITION"i & "FUNCTION"i
 	| "PARTITION"i & "SCHEME"i
-	| "PROCEDURE"i
-	| "PROC"i
-	| "QUEUE"i
-	| "REMOTE"i & "SERVICE"i & "BINDING"i
 	| "RESOURCE"i & "POOL"i
-	| "ROLE"i
-	| "ROUTE"i
-	| "RULE"i
-	| "SCHEMA"i
 	| "SEARCH"i & "PROPERTY"i & "LIST"i
-	| "SECURITY"i & "POLICY"i
-	| "SEQUENCE"i
 	| "SERVER"i & "AUDIT"i & "SPECIFICATION"i
 	| "SERVER"i & "AUDIT"i
 	| "SERVER"i & "ROLE"i
-	| "SERVICE"i
-	| "STATISTICS"i
-	| "SYNONYM"i
-	| "TABLE"i
-	| "TYPE"i
-	| "USER"i
-	| "VIEW"i
-	| "WORKLOAD"i & "CLASSIFIER"i
 	| "WORKLOAD"i & "GROUP"i
-	| "XML"i & "SCHEMA"i & "COLLECTION"i
 
 // ── The database ────────────────────────────────────────────────────────────
 //

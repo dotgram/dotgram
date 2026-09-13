@@ -429,6 +429,9 @@ static class Engine
 		// instance '…'" — the edition rather than the version, and the same kind of answer:
 		// `CREATE AVAILABILITY GROUP … WITH (BASIC)` is read and then turned down for it.
 		message is 534 ||
+		// 22487 "… is allowed only when connected to Synapse frontend": `DROP WORKLOAD CLASSIFIER`,
+		// read and turned down for the product, 2026-09-13.
+		message is 22487 ||
 		OtherProducts.Any(word => Compact(statement).IndexOf(Compact(word), StringComparison.OrdinalIgnoreCase) >= 0);
 
 	/// <summary>A text with its whitespace taken out, so that `with(order(A))` is `WITH (ORDER (A))`.</summary>
@@ -738,7 +741,16 @@ static class Engine
 			// procedure with its parameter declared again.
 			//
 			//    134  The variable name '%.*ls' has already been declared. Variable names must be unique within a query batch or stored procedure.
-			or 134;
+			or 134
+
+			// And the drops, 2026-09-13: a name with a part too many or too few, and a column a
+			// classification cannot be on — each read, and objected to by what it names.
+			//
+			//    486  "…" does not allow specifying a schema name as a prefix to the assembly name.
+			//   1053  For DROP STATISTICS, you must provide both the object (table or view) name and the statistics name.
+			//  16103  Sensitivity classification is not supported for the specified object.
+			//  16110  Specification of database part of object name is not supported.
+			or 486 or 1053 or 16103 or 16110;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open

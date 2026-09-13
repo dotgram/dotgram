@@ -21006,3 +21006,53 @@ the round trip reads back every statement ScriptDom cuts the same. What is left 
 on a list: the drop by kind, and the reference's pages the snapshot on disk has not got —
 `JSON INDEX`, `EXTERNAL MODEL`, `AI_GENERATE_CHUNKS`, `VECTOR (n, type)`, `EXTERNAL
 AUTHENTICATION`, `WITH APPROXIMATE` — which a newer snapshot would put on the map.
+
+## A drop by what it drops
+
+`DropBody` was written from the sixty-six published blocks, which agree about everything
+but the words in the middle — and so it read every kind with `IF EXISTS`, a list and a
+qualified name. The engine does not. Put to it fifty-eight kinds by seven shapes — one name,
+`IF EXISTS`, a list, a leading dot, two parts, three, an empty part — four hundred and six
+lines, and seventy more for the kinds with a clause of their own. Two hundred and thirty
+disagreed, every one of them this grammar reading what the engine refuses.
+
+The kinds fall into eight shapes. **Eleven take all of it** — `AGGREGATE`, `DEFAULT`,
+`FUNCTION`, `PROCEDURE`, `PROC`, `RULE`, `SECURITY POLICY`, `SEQUENCE`, `SYNONYM`, `TABLE`,
+`VIEW` — and so do `ASSEMBLY` and `TRIGGER`, whose clauses stay theirs. **A database** takes
+`IF EXISTS` and a list of names of one part. **A role, a schema and a user** take `IF EXISTS`
+and one name of one part: `DROP USER x, y` and `DROP SCHEMA a.b` are `Msg 102`. **A type**
+takes `IF EXISTS` and one name that begins with a part — `.t` is 102, `a..b` read — and **an
+XML schema collection** the same name and no `IF EXISTS` (156). **Seven take one name as a
+table's is** and nothing else: the Service Broker's `CONTRACT`, `MESSAGE TYPE`, `QUEUE`,
+`REMOTE SERVICE BINDING`, `ROUTE`, `SERVICE`, and `EXTERNAL TABLE`. **Statistics** take a list
+of qualified names and no `IF EXISTS`; one part is read and objected to, `Msg 1053`, "you must
+provide both the object name and the statistics name". **A workload classifier** takes a list
+of names that begin with a part, and is then Synapse's (`Msg 22487`, "allowed only when
+connected to Synapse frontend"). **And the other twenty-six take one name of one part and
+nothing more** — `IF EXISTS` is 156, a list and any dot 102 — the keys, the logins, the
+certificates, the endpoints, the external data sources, the audits and the rest.
+
+The clauses were measured with them. An event session is one name on `SERVER` or `DATABASE`,
+not `ALL SERVER` (156); an event notification a list on `SERVER`, `DATABASE` or `QUEUE q`; a
+trigger `ON DATABASE` or `ON ALL SERVER` and not `ON SERVER` or `ON QUEUE` (102); an external
+library's and language's owner one part, `AUTHORIZATION a.b` 102. `Msg 486` (a schema before
+an assembly's name) and `16103`, `16110` (a sensitivity classification on what cannot carry
+one, a database part in its column) are the engine reading and objecting to the name, and
+went with the messages about names; `22487` went with the other products.
+
+So `DropKind` is four rules by what each takes — `DropListedKind`, `DropSingleKind`,
+`DropQualifiedKind`, `DropNamedKind` — the rest alternatives of their own, and three name
+rules beside `DropName`: one part, a list of them, and a name led by a part. `DropScope` is
+gone, the clauses written where they differ. `Every_word_after_drop_has_a_record` takes its
+words from the four rules now, split by alternative, since several stand on one line. The
+older theory read `DROP EXTERNAL LANGUAGE l1, l2 AUTHORIZATION dbo.bing`, which the engine
+refuses at the comma; it moved. Two hundred and thirty-six refusals and two hundred and five
+readings in the theory, every one a line the engine answered.
+
+At 170: read by both 7,395, the work list 5, defects 2 — unchanged — another product's 294
+(from 298), neither 621 (from 617): `DROP EXTERNAL TABLE t1, t2` and `Test.dbo.t1,
+Test.dbo.t2`, twice each in the corpus, were read here and counted as Synapse's by the word
+`EXTERNAL TABLE`; the engine refuses the list, and so does this grammar now. At 150 the same
+four. `--split` 782 (from 784); the round trip 100% of 7,737 (from 7,741), the same four. The
+map unchanged at 7,984 both, 8 work, 0 defects; `--levels` 145 of 145. The suite is 8,111
+rows (from 7,672).
