@@ -340,7 +340,7 @@ sealed partial class Machine
 				if (_start is null)
 					throw new InvalidOperationException($"'{rule.Name}' builds from its text and its reader keeps no positions.");
 
-				return $"{into} = Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram({machine.Cut(_start, $"{_end} - {_start}")});";
+				return $"{into} = Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram({machine.TokenOf(_start)});";
 			}
 
 			// The span an alternative stands on, where the record would have carried one —

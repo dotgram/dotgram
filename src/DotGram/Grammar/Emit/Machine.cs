@@ -945,6 +945,20 @@ sealed partial class Machine
 			? $"Text_DotGram{_tag}(parserSource, parserStarts, parserLengths, {from}, {length})"
 			: $"text.Slice({from}, {length}).ToString()";
 
+	/// <summary>
+	/// The token a terminal that builds stands on: the source it came from, where it begins,
+	/// and how many characters it is.
+	/// </summary>
+	/// <remarks>
+	/// One token and never more — the split tests such a terminal as a single kind — so its
+	/// extent is that token's start and length, with no run to add up. Only over kinds: a
+	/// terminal is read again only because a lexer swallowed it.
+	/// </remarks>
+	string TokenOf(string at) =>
+		OverKinds
+			? $"parserSource, parserStarts[{at}], parserLengths[{at}]"
+			: throw new InvalidOperationException("A terminal is read again only over kinds.");
+
 	/// <summary>Where one position of the machine's own stands in the input.</summary>
 	/// <remarks>
 	/// A token's position is its first character's. Past the last token it is the end of the

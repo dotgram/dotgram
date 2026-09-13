@@ -2696,6 +2696,34 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
+		// A terminal whose value is its own text still needs that text as a string, and most
+		// of them are one character — a digit. `Text_DotGram` keeps those in a table rather
+		// than cutting them again (every operator of standard SQL was a fresh string before
+		// it did), and a construction handed its token here would otherwise undo that for
+		// every one-digit number. Written once, and only where such a terminal exists.
+		if (lexical.Valued.Any(rule => Verbatim(lexical.Source, valuing.Results, rule) is not null))
+		{
+			file.Line("/// <summary>The strings of one character a token's own text comes to, made once each.</summary>");
+			file.Line("static readonly string[] Letters_DotGram_Value = new string[128];");
+			file.Line();
+			file.Line("/// <summary>A token's text, and a character of it kept rather than cut again.</summary>");
+
+			using (file.Block("static string Cut_DotGram_Value(string source, int at, int length)"))
+			{
+				using (file.Block("if (length == 1 && source[at] < 128)"))
+				{
+					file.Line("var one = source[at];");
+					file.Line();
+					file.Line("return Letters_DotGram_Value[one] ??= source.Substring(at, 1);");
+				}
+
+				file.Line();
+				file.Line("return source.Substring(at, length);");
+			}
+
+			file.Line();
+		}
+
 		foreach (var rule in lexical.Valued)
 		{
 			var type = valuing.Results.QualifiedOf(rule)!;
@@ -2707,7 +2735,9 @@ public static partial class CSharpEmitter
 			{
 				file.Line($"/// <summary>What the text of one <c>{rule.Name}</c> token is worth.</summary>");
 				file.Line("/// <remarks>The token itself: the capture spans it, so nothing about how it was read is wanted.</remarks>");
-				file.Line($"static {type} Value_{IdentifierOf(rule)}_DotGram(string token) => {made}(token);");
+				file.Line(
+					$"static {type} Value_{IdentifierOf(rule)}_DotGram(string source, int at, int length) => " +
+					$"{made}(Cut_DotGram_Value(source, at, length));");
 				file.Line();
 
 				continue;
@@ -2717,13 +2747,23 @@ public static partial class CSharpEmitter
 			file.Line();
 
 			file.Line($"/// <summary>What the text of one <c>{rule.Name}</c> token is worth.</summary>");
+			file.Line("/// <remarks>");
+			file.Line("/// Read where the token stands in the text and not over a copy of it: the span ends");
+			file.Line("/// where the token ends, so the whole reading still has to consume exactly the token,");
+			file.Line("/// and a position inside it is a position in the input.");
+			file.Line("/// </remarks>");
 
-			using (file.Block($"static {type} Value_{IdentifierOf(rule)}_DotGram(string token)"))
+			// Over the source up to the token's end, entered where the token begins. A cut-out
+			// string started every position inside at zero and cost a string a token; a span
+			// costs nothing and keeps the positions true. The reading stays whole: a rule's
+			// first derivation may be shorter than what the lexer measured, and only reading to
+			// the end of the span says it was the token that was read.
+			using (file.Block($"static {type} Value_{IdentifierOf(rule)}_DotGram(string source, int at, int length)"))
 			{
 				file.Line($"var failure = new {FailureType}();");
 				file.Line();
 				file.Line(
-					$"return {read}(global::System.MemoryExtensions.AsSpan(token), 0, " +
+					$"return {read}(global::System.MemoryExtensions.AsSpan(source, 0, at + length), at, " +
 					$"ref failure, out {type} value) < 0 ? default! : value;");
 			}
 

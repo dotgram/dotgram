@@ -886,6 +886,42 @@ public sealed class CSharpEmitterTests
 		Assert.Equal(expected, EmittedCode.Match(parser, "Grammar", "TryParseStart", input).IsSuccess);
 	}
 
+	/// <summary>A terminal read again for its value is read where it stands in the text.</summary>
+	/// <remarks>
+	/// Its value is built by a second machine over characters, and that machine used to be
+	/// handed a copy of the token — so every position inside it started again at zero, and a
+	/// construction asking where it stood was told it stood at the beginning of the input.
+	/// Now it reads the source itself, up to where the token ends, from where the token
+	/// begins. `<cd>` below stands after `ab `, which is three characters in.
+	/// </remarks>
+	[Fact]
+	public void A_terminal_read_again_is_read_where_it_stands()
+	{
+		const string Grammar = """
+			using Lexical;
+
+			trivia = { ' '* }
+
+			namespace Lexical
+			{
+				trivia = none
+
+				Name = ['a'..'z']+
+
+				Tag : @int = '<' & ['a'..'z']+ & '>' => @((int)parserSpan.Start)
+			}
+
+			Start : @int = Name & t: Tag => @(t)
+			parse Start
+			""";
+
+		var parser = EmittedCode.Compile(Emit(Grammar));
+		var match  = EmittedCode.Match(parser, "Grammar", "TryParseStart", "ab <cd>");
+
+		Assert.True(match.IsSuccess);
+		Assert.Equal(3, match.Value);
+	}
+
 	[Fact]
 	public void One_grammar_can_publish_the_same_rule_both_ways()
 	{

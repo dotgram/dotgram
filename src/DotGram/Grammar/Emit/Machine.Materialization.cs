@@ -450,7 +450,7 @@ sealed partial class Machine
 				file.Line(
 					$"{ValueInto(type, "completedAt")} = " +
 					$"Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram(" +
-					Cut("completed.Position", "completed.Value - completed.Position") + ");");
+					TokenOf("completed.Position") + ");");
 				file.Line("break;");
 			}
 

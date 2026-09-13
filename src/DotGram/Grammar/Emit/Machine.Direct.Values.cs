@@ -921,7 +921,7 @@ sealed partial class Machine
 			{
 				// A terminal that builds: the lexer measured it, and the character machine of its
 				// own builds it from the text.
-				file.Line($"{DirectInto(type, "slot")} = Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram({Cut("start", "end - start")});");
+				file.Line($"{DirectInto(type, "slot")} = Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram({TokenOf("start")});");
 				file.Line("break;");
 
 				return;
