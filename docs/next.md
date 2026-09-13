@@ -21056,3 +21056,30 @@ Test.dbo.t2`, twice each in the corpus, were read here and counted as Synapse's 
 four. `--split` 782 (from 784); the round trip 100% of 7,737 (from 7,741), the same four. The
 map unchanged at 7,984 both, 8 work, 0 defects; `--levels` 145 of 145. The suite is 8,111
 rows (from 7,672).
+
+## The SQL yardstick keeps the brackets
+
+`--bytes 200` threw in `SqlAgainst.Agree()` before measuring anything, on `(a + b) * c - d /
+e > f AND NOT g < h`: the generated parser built `(Multiply (?Parenthesized) (name c))` and the
+hand-written one `(Multiply (Add (name a) (name b)) (name c))`. No test reads
+`HandSqlTokens`, so the suite stayed green while the SQL yardstick could not run at all. It
+failed the same way at c707801; the bracket node has stood in the standard grammar since the
+parsers were moved by family (34802dc), and was not traced further back.
+
+The grammar is the side that is right. `SqlStandard92.gram` builds `Expression.Parenthesized`
+for a condition in brackets and a value in brackets, and it does so on purpose:
+`SqlWriterTests.A_bracket_is_written_where_precedence_needs_it` holds `(a) + b` to come back as
+`(a) + b`, which a tree without the node cannot do. So the two readers of the yardstick had
+fallen behind. `HandSqlTokens` built no bracket node — its `BooleanPrimary` and `Primary`
+returned what the brackets held — and `SqlTree`, which renders both trees to compare them,
+had no case for the node: its fallback printed `(?Parenthesized)` and dropped the children,
+hiding the inner `Add` along with it. Both keep it now, the hand parser in the two places the
+grammar builds it.
+
+`--bytes 200` and `--hand` both agree over all 42 shapes, the tape against the immediate and
+the mixed carriers included — the checks after the first had never been reached. `--hand` at
+this commit: tape/hand 2.58x to 4.61x, immediate/hand 1.25x to 1.64x, mixed/hand 2.68x to
+4.73x. **These are not comparable with the SQL ratios quoted before this entry.** The hand
+parser allocates one more node for every pair of brackets now — on `((((a + 1) * 2) - 3) / 4)
++ b > 0` it allocates 808 bytes to the generated parser's 744 — so its time is not the same
+quantity it was, and a ratio against it measures a different yardstick.

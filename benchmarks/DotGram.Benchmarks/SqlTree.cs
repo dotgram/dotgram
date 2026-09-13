@@ -50,6 +50,10 @@ static class SqlTree
 			case Expression.Not(var operand):    One(text, "Not",      operand); break;
 			case Expression.Negate(var operand): One(text, "Negate",   operand); break;
 			case Expression.Plus(var operand):   One(text, "Identity", operand); break;
+
+			// Brackets somebody wrote are a node, so that the writer puts them back; shown with
+			// what they hold, which the fallback below would hide along with them.
+			case Expression.Parenthesized(var value): One(text, "Parenthesized", value); break;
 			case Expression.Exists(var query):   One(text, "Exists",   query);   break;
 			case Expression.Unique(var query):   One(text, "Unique",   query);   break;
 

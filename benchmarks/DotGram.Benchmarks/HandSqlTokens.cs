@@ -844,9 +844,17 @@ static class HandSqlTokens
 			if (Kind(i) != Open)
 				return -1;
 
-			at = SearchCondition(i + 1, out node);
+			at = SearchCondition(i + 1, out var inner);
 
-			return at < 0 ? -1 : At(at, Close);
+			if (at < 0)
+				return -1;
+
+			at = At(at, Close);
+
+			// The brackets are kept, as the grammar keeps them.
+			node = at < 0 ? null : new Expression.Parenthesized(inner!);
+
+			return at;
 		}
 
 		// ── §8.1 Predicate ──────────────────────────────────────────────────────
@@ -1237,9 +1245,20 @@ static class HandSqlTokens
 					return sub;
 				}
 
-				var inner = ValueExpression(i + 1, out node);
+				var inner = ValueExpression(i + 1, out var value);
 
-				return inner < 0 ? -1 : At(inner, Close);
+				if (inner < 0)
+					return -1;
+
+				var close = At(inner, Close);
+
+				if (close < 0)
+					return -1;
+
+				// Kept, as the grammar keeps them, so that `(a) + b` is not `a + b`.
+				node = new Expression.Parenthesized(value!);
+
+				return close;
 			}
 
 			if (kind == Number || kind == Text)
