@@ -4147,8 +4147,10 @@ CompressionDelay = "COMPRESSION_DELAY"i & '=' & DelayMinutes
 XmlCompression   = "XML_COMPRESSION"i & OnOffValue & OnPartitions?
 
 // A memory-optimized hash index's size. The engine reads it wherever an index is built or
-// rebuilt and objects later to one that is not a hash index, so it is in every such list.
-BucketCount      = "BUCKET_COUNT"i & '=' & Number
+// rebuilt and objects later to one that is not a hash index, so it is in every such list. A
+// number with a fraction and no exponent, in each of them: `1.5` and `.5` are read, `1e3` is
+// `Msg 102`.
+BucketCount      = "BUCKET_COUNT"i & '=' & ExactNumber
 
 RowDataCompression         = "DATA_COMPRESSION"i & '=' & RowCompression & OnPartitions?
 ColumnstoreDataCompression = "DATA_COMPRESSION"i & '=' & ColumnstoreCompression & OnPartitions?
@@ -4452,11 +4454,19 @@ AlterTableAction : @Statement.AlterTable
 		=> @(Statement.Altered("WITH " + Syntax.Squared(mode) + " " + Syntax.Squared(word), null, null, tail))
 	| word: EnableWord & tail: ("TRIGGER"i & ConstraintNames)
 		=> @(Statement.Altered(Syntax.Squared(word), null, null, tail))
-	| word: EnableWord & tail: ("CHANGE_TRACKING"i & OptionsWith?)
+	// Change tracking switched on may say whether it tracks which columns changed, once and `ON`
+	// or `OFF`; switched off it says nothing (`Msg 102`, for any option).
+	| word: "ENABLE"i & tail: ("CHANGE_TRACKING"i & ("WITH"i & '(' & "TRACK_COLUMNS_UPDATED"i & '=' & OnOff & ')')?)
+		=> @(Statement.Altered(Syntax.Squared(word), null, null, tail))
+	| word: "DISABLE"i & tail: "CHANGE_TRACKING"i
 		=> @(Statement.Altered(Syntax.Squared(word), null, null, tail))
 	| word: EnableWord & tail: "FILETABLE_NAMESPACE"i
 		=> @(Statement.Altered(Syntax.Squared(word), null, null, tail))
-	| "ALTER"i & tail: ("INDEX"i & Identifier & "REBUILD"i & IndexOrder? & OptionsWith?)
+	// A memory-optimized table's index is rebuilt with options, and with an index's options:
+	// `REBUILD` alone is `Msg 102`, `REBUILD NONCLUSTERED WITH (…)` `Msg 156`, and a name no
+	// rebuild knows `Msg 155`. The published block has the bucket count only; the engine reads
+	// the rest of `ALTER INDEX … REBUILD`'s list too, and a duplicate.
+	| "ALTER"i & tail: ("INDEX"i & Identifier & "REBUILD"i & RebuildWith)
 		=> @(Statement.Altered("ALTER", null, null, tail))
 	| word: SplitOrMerge & tail: ("RANGE"i & '(' & SetValue & ')')
 		=> @(Statement.Altered(Syntax.Squared(word), null, null, tail))
@@ -4467,8 +4477,12 @@ AlterTableAction : @Statement.AlterTable
 						| ("PARTITION"i & '=' & "ALL"i)?
 						  & ("WITH"i & '(' & TableRebuild & (',' & TableRebuild)* & ')')?)
 		=> @(Statement.Altered("REBUILD", null, null, tail))
+	// A switch waits at low priority or does not, and says nothing else: its duration first and
+	// its abort second, once (`Msg 102`). Synapse's `TRUNCATE_TARGET`, which this server refuses,
+	// is read by its published syntax.
 	| "SWITCH"i & tail: (("PARTITION"i & ValueExpression)? & "TO"i & QualifiedName
-						 & ("PARTITION"i & ValueExpression)? & OptionsWith?)
+						 & ("PARTITION"i & ValueExpression)?
+						 & ("WITH"i & '(' & (LowPriorityWait | "TRUNCATE_TARGET"i & '=' & OnOff) & ')')?)
 		=> @(Statement.Altered("SWITCH", null, null, tail))
 
 // What an altered column may be given and have taken away: a mask given with its function and

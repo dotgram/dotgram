@@ -21284,3 +21284,32 @@ The guard replaces `Syntax.Masked`; the tree is unchanged. At 170: 7,403 both, 5
 266 another product's, 641 neither; at 150: 226 and 539; `--split` 780, the round trip 100% of
 7,717, the map 7,994 both and 0 defects, `--levels` 145 of 145 — all unchanged. The suite is 12,841
 rows (from 9,900): 1,602 refusals and 1,339 readings.
+
+## An altered table's change tracking, rebuilt index and switch
+
+Three `WITH (…)`s in `ALTER TABLE` still read any name set to any value. Asked 141 lines.
+
+**Change tracking** switched on takes `WITH (TRACK_COLUMNS_UPDATED = ON | OFF)`, once, and
+switched off takes nothing: `DISABLE CHANGE_TRACKING WITH (…)` is `Msg 102` for any option, the
+published one included. `'ON'`, `1`, a second option and any other name are 102.
+
+**A memory-optimized table's index**, `ALTER TABLE t ALTER INDEX ix REBUILD`, is rebuilt with
+options and not without: `REBUILD` alone is 102, `REBUILD NONCLUSTERED WITH (…)` 156. The published
+block has `BUCKET_COUNT` only; the engine reads the whole of `ALTER INDEX … REBUILD`'s list —
+`FILLFACTOR`, `ONLINE`, `DATA_COMPRESSION`, `RESUMABLE` — and a name it does not know is `Msg 155`,
+so the rule is that catalogue (`RebuildWith`). And a bucket count is a number with no exponent in
+every list it is in: `1.5` and `.5` are read, `1e3` is 102 in `CREATE INDEX`, a table's hash index
+and key, `ALTER INDEX`, a table type, a table variable and `ALTER TABLE … ADD INDEX` alike —
+`BucketCount` took `Number` and takes `ExactNumber`.
+
+**A switch** waits at low priority or says nothing: `WAIT_AT_LOW_PRIORITY (MAX_DURATION = n
+[MINUTES], ABORT_AFTER_WAIT = NONE | SELF | BLOCKERS)`, in that order and once, which
+`LowPriorityWait` already said. `ONLINE`, `MAXDOP`, `HOURS`, the two the other way round and either
+alone are 102. `TRUNCATE_TARGET = ON | OFF` is Synapse's and Parallel Data Warehouse's, published in
+their own block and refused here; it is read by that syntax and `TRUNCATE_TARGET` joins the other
+products' words.
+
+At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 150: 6,616 both,
+226 and 539; `--split` 780, the round trip 100% of 7,717, the map 7,994 both and 0 defects,
+`--levels` 145 of 145 — unchanged. The suite is 12,976 rows (from 12,842): 96 refusals, 34 readings
+and 4 of Synapse's.

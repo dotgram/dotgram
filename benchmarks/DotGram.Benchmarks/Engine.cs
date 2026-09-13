@@ -538,6 +538,10 @@ static class Engine
 		// Synapse serverless: a Cosmos DB container read through Synapse Link. SQL Server has
 		// no such provider and answers Msg 102.
 		"PROVIDER = 'CosmosDB'",
+
+		// Synapse's and Parallel Data Warehouse's switch into a table it empties first. SQL Server
+		// has no such option and answers Msg 102.
+		"TRUNCATE_TARGET",
 	];
 
 	internal static bool AboutNames(int message) =>
