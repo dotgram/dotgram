@@ -960,12 +960,14 @@ namespace DotGram.ExpressionLanguage;
 
 		// A type, then something of it. Told from `a.b` by the guard inside `NamedType`,
 		// which is the same question C# answers with a section of its own — a dotted name
-		// is a type where it names one, and an expression where it does not.
+		// is a type where it names one, and an expression where it does not. A keyword that
+		// names a type is one too, so `string.Concat(a, b)` and `int.Parse(s)` read as
+		// `Math.Max(a, b)` does: `Core` is the keywords and then `NamedType`.
 		// The arguments are an optional tail rather than a second alternative: written as
 		// two, the type and the member are read once for each, and a dotted type name is
 		// not cheap to read. One reading is the same language because arguments begin with
 		// '(', which nothing at the end of a member name can be.
-		| type: NamedType & '.' & member: Word & args: Arguments?
+		| type: Core & '.' & member: Word & args: Arguments?
 		  => @(args is null
 		       ? ExpressionParser.StaticMember(type, member, context.Caller)
 		       : ExpressionParser.Called(type, member, args, context.Caller))

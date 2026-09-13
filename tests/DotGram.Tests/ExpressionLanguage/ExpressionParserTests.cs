@@ -1801,6 +1801,47 @@ public sealed class ExpressionParserTests
 		}
 	}
 
+	/// <summary>A keyword that names a type names its static members, as C#'s does.</summary>
+	/// <remarks>Held against C# itself: each text is also written below as the C# it is.</remarks>
+	[Fact]
+	public void A_keyword_type_reaches_its_static_members()
+	{
+		const string s = "12";
+
+		(string Text, object Expected)[] cases =
+		[
+			("string.Concat(s, \"3\")",        string.Concat(s, "3")),
+			("string.Empty + s",               string.Empty + s),
+			("int.Parse(s)",                   int.Parse(s)),
+			("int.MaxValue",                   int.MaxValue),
+			("char.IsDigit(s[0])",             char.IsDigit(s[0])),
+			("long.MinValue",                  long.MinValue),
+			("double.IsNaN(double.NaN)",       double.IsNaN(double.NaN)),
+			("object.ReferenceEquals(s, s)",   object.ReferenceEquals(s, s)),
+			("decimal.One",                    decimal.One),
+		];
+
+		var wrong = cases
+			.Select(one => (one.Text, one.Expected, Actual: Answered(() =>
+				ExpressionParser.Compile<Func<string, object>>($"(string s) => (object)({one.Text})")(s))))
+			.Where(one => !Equals(one.Actual, one.Expected))
+			.ToArray();
+
+		Assert.Empty(wrong);
+
+		static object Answered(Func<object> run)
+		{
+			try
+			{
+				return run();
+			}
+			catch (Exception thrown)
+			{
+				return thrown.GetType().Name + ": " + thrown.Message;
+			}
+		}
+	}
+
 	[Fact]
 	public void A_conditional_in_a_hole_needs_its_brackets_as_in_C_sharp() =>
 		Assert.Contains(

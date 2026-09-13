@@ -996,6 +996,12 @@ static class HandExpression
 			return type is not null ? i + 1 : Named(i, out type);
 		}
 
+		/// <summary>Whether a token is a keyword that names a type.</summary>
+		static bool IsCore(byte kind) =>
+			kind == KwSbyte || kind == KwByte  || kind == KwShort   || kind == KwUshort || kind == KwInt  ||
+			kind == KwUint  || kind == KwLong  || kind == KwUlong   || kind == KwFloat  || kind == KwDouble ||
+			kind == KwDecimal || kind == KwBool || kind == KwChar   || kind == KwString || kind == KwObject;
+
 		/// <summary>
 		/// A dotted name, and the type arguments where there are any. What decides that it
 		/// is a type at all is whether the name resolves — asked here, while the text is
@@ -2286,10 +2292,13 @@ static class HandExpression
 			if (kind == KwNew)
 				return New(i, out node);
 
-			// A type and something of it, told from `a.b` by whether the name resolves.
-			if (kind == Identifier)
+			// A type and something of it, told from `a.b` by whether the name resolves — or a
+			// keyword that names a type, which `Core` reads before it asks for a name.
+			if (kind == Identifier || IsCore(kind))
 			{
-				var named = Named(i, out var type);
+				Type? type;
+
+				var named = kind == Identifier ? Named(i, out type) : Core(i, out type);
 
 				if (named >= 0 && Kind(named) == Dot && Kind(named + 1) == Identifier)
 				{
