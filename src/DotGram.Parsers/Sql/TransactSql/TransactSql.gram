@@ -2893,7 +2893,9 @@ BrokerTarget : @Expression = v: BrokerString => @(v) | t: TSql.Variable => @(new
 // brackets and its timeout follows `=`. A conversation is ended plainly, with `CLEANUP`, or
 // with an error — a number or a variable, never negative — and its description, in that
 // order and with no comma. `SEND` takes one handle bare or any in brackets, a message type by
-// name and a body in brackets.
+// name or held in a local variable — `MESSAGE TYPE @m`, but not `@@SPID`, `'m1'`, `(@m)` or
+// `@m + 'x'`, each `Msg 102` — and a body in brackets, one value; `()` and `(1, 2)` are
+// refused, and a value with no brackets.
 ConversationStatement : @Statement
 	= "BEGIN"i & "DIALOG"i & said: "CONVERSATION"i? & handle: TSql.Variable
 	  & "FROM"i & "SERVICE"i & from: QualifiedName & "TO"i & "SERVICE"i & to: BrokerTarget
@@ -2906,7 +2908,7 @@ ConversationStatement : @Statement
 		=> @(ending is null ? new Statement.EndConversation(h) : ending with { Handle = h })
 	| "MOVE"i & "CONVERSATION"i & h: ValueExpression & "TO"i & group: ValueExpression
 		=> @(new Statement.MoveConversation(h, group))
-	| "SEND"i & "ON"i & "CONVERSATION"i & targets: SendTargets & ("MESSAGE"i & "TYPE"i & type: QualifiedName)?
+	| "SEND"i & "ON"i & "CONVERSATION"i & targets: SendTargets & ("MESSAGE"i & "TYPE"i & type: MessageTypeName)?
 	  & ('(' & body: ValueExpression & ')')?
 		=> @(targets with { MessageType = type, Body = body })
 	| s: GetConversationGroup => @(s)
@@ -2928,6 +2930,10 @@ EndConversationWith : @Statement.EndConversation
 ConversationError : @Expression
 	= t: Sql92.Lexical.UnsignedNumericLiteral => @(new Expression.Literal(SqlLiteralKind.Number, t))
 	| t: TSql.Variable                         => @(new Expression.Literal(SqlLiteralKind.Parameter, t))
+
+MessageTypeName : @string
+	= t: QualifiedName => @(t)
+	| t: TSql.Variable & when @(!Syntax.IsServerVariable(t)) => @(t)
 
 SendTargets : @Statement.Send
 	= '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'

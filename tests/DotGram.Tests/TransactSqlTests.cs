@@ -1933,6 +1933,40 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>`SEND`'s message type is a name or a local variable, and nothing else; its body is one value in brackets.</summary>
+	[Theory]
+	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE 'm1'")]
+	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE N'm1'")]
+	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE (@m)")]
+	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE @@SPID")]
+	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE @m + 'x'")]
+	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE m1 'x'")]
+	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE m1 (1, 2)")]
+	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE m1 ()")]
+	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE DEFAULT")]
+	[InlineData("SEND ON CONVERSATION @h, @h MESSAGE TYPE m1")]
+	public void A_message_type_held_in_a_variable_is_refused_where_the_engine_refuses_it(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And is read where the engine reads it.</summary>
+	[Theory]
+	[InlineData("SEND ON CONVERSATION @dialog_handle MESSAGE TYPE @msg")]
+	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE @m (@b)")]
+	[InlineData("SEND ON CONVERSATION ((@dialog_handle)) MESSAGE TYPE @msg")]
+	[InlineData("SEND ON CONVERSATION (@dialog_handle, @dialog2, @dialog3) MESSAGE TYPE [//Adventure-Works.com/Expenses/SubmitExpense] (@ExpenseReport)")]
+	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE a.b")]
+	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE [DEFAULT]")]
+	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE m1 ((SELECT 1))")]
+	[InlineData("SEND ON CONVERSATION @h MESSAGE TYPE m1 (NULL)")]
+	[InlineData("SEND ON CONVERSATION NEWID() MESSAGE TYPE m1")]
+	[InlineData("SEND ON CONVERSATION @h")]
+	public void A_message_type_held_in_a_variable_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]

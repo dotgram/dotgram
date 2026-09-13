@@ -20656,3 +20656,19 @@ Seven refusals and thirty-one readings in the theory. At 170: read by both **7,3
 7,310), the work list 96 (from 114)**. At 150: 6,577 both, 58 work (from 76). `--split` 761
 (from 755), 204 files not read whole (from 210); the round trip 100% of 7,676 (from 7,658).
 The map unchanged; `--levels` 138 of 138. The suite is 7,333 rows (from 7,304).
+
+## A message type held in a variable
+
+Seven of the honest work list: `SEND ON CONVERSATION @dialog_handle MESSAGE TYPE @msg`. The
+published syntax has `MESSAGE TYPE message_type_name` and the rule read a qualified name;
+the engine reads a local variable there as well, with the variables declared, and nothing
+else — `@@SPID`, `'m1'`, `N'm1'`, `(@m)` and `@m + 'x'` are each `Msg 102`, `DEFAULT` 156 and
+`[DEFAULT]` a name. The body is one value in brackets, a subquery or `NULL` among them; `()`,
+`(1, 2)` and a value with no brackets are refused, and a handle list without brackets. So
+`MessageTypeName` is a qualified name or a variable that is not the server's, and the tree
+keeps the variable's text where it kept the name's.
+
+Ten refusals and ten readings in the theory. At 170: read by both **7,333 (from 7,328), the
+work list 91 (from 96)**. At 150: 6,582 both, 53 work (from 58). `--split` 764 (from 761),
+201 files not read whole (from 204); the round trip 100% of 7,681 (from 7,676). The map
+unchanged; `--levels` 138 of 138. The suite is 7,353 rows (from 7,333).
