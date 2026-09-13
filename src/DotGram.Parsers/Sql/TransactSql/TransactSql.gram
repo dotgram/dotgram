@@ -201,6 +201,12 @@ TSqlSimpleWhen : @Clause.When
 //
 // The strengths are the standard's own — `INTERSECT` tighter than the two beside it, all
 // three to the left (§4.3.1).
+// A select that assigns a variable stands alone: `SELECT @v = 1 UNION ALL SELECT 2` is `Msg
+// 141`, "must not be combined with data-retrieval operations", on either side and in brackets,
+// and `UNION`, `EXCEPT` and `INTERSECT` alike — where a subquery, a derived table and a common
+// table expression may combine as they like under it. Said at the statement
+// (`TSqlDirectSelect`), since a guard on an alternative that climbs precedence has no
+// operands to ask; measured with the variable declared.
 TSqlQueryExpression : @Query
 	= left: TSqlQueryExpression & "UNION"i & all: "ALL"i? & right: TSqlQueryExpression  << 1
 		=> @(Query.Combined("UNION", all, left, right))
@@ -1307,9 +1313,12 @@ TSqlRow : @Expression
 //
 // Where the clauses that belong to the statement rather than to the query go: how many
 // rows to skip and take, what shape to return them in, and how to run the whole thing.
+// And ordered only with something to order: `SELECT @v = 1 ORDER BY 1` is `Msg 156`, where
+// `SELECT @v = c FROM t ORDER BY c` reads.
 TSqlDirectSelect : @Statement
 	= with: WithClause? & q: QueryExpression & by: OrderByClause? & window: OffsetFetch?
 	  & shape: ForClause? & options: QueryHints?
+	  & when @((by is null || !Syntax.AssignsFromNothing(q)) && !Syntax.AssignsCombined(q))
 		=> @(new Statement.Select(
 				 with ?? Clause.None, q, Clause.Ordered(by, window),
 				 shape is null ? Clause.None : new Clause[] { shape },
@@ -1665,7 +1674,10 @@ OpenQueryCall : @Expression.RoutineInvocation
 
 RowsetFunction : @Expression.RoutineInvocation
 	= f: OpenQueryCall => @(f)
-	| name: RowsetName & '(' & args: RowsetArguments? & ')'
+	// `OPENROWSET` over a provider is three arguments, the first two strings — `'p', 'c'; 'u';
+	// 'pw'` being one — and the third a string or an object's name: `OPENROWSET (something, @v)`
+	// is `Msg 156`, `('p', @v)` and `(@p, 'c', 'q')` 102, where `('p', 'c', db.dbo.t)` reads.
+	| name: RowsetName & '(' & args: RowsetArguments? & ')' & when @(Syntax.Provided(name, args))
 		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
 	| name: FullTextTableName & '(' & table: QualifiedName & ',' & c: TableSearchColumns & ','
 	  & s: FullTextSearch & l: SearchLanguage? & n: SearchTop? & ')'
@@ -1977,12 +1989,14 @@ ChainTail : @Clause.Set
 	= '=' & v: AssignedValue     => @(new Clause.Set("", "=", v))
 	| op: AssignOp & v: SetValue => @(new Clause.Set("", op, v))
 
-// The chain a variable takes a column's value through, which is the one place a compound
-// operator takes `DEFAULT`: `SET c1 -= DEFAULT` is `Msg 10708`, and `SET @a = c1 -= DEFAULT` is
-// read — with every operator, in an `UPDATE` and in a `MERGE`'s.
+// The chain a variable takes a column's value through. `DEFAULT` stands after `=` in it and
+// not after a compound operator: `SET @a = c1 -= DEFAULT` is `Msg 10708` as `SET c1 -= DEFAULT`
+// is — the rule had it read, on a measurement the undeclared variable had made. And the
+// chain is an `UPDATE`'s alone: in a `MERGE` `SET @a = t.c = 1` and `SET @a = t.c += 1` are
+// `Msg 10723`, a variable being set to a column or to a value and not to both.
 VariableChainTail : @Clause.Set
-	= '=' & v: AssignedValue       => @(new Clause.Set("", "=", v))
-	| op: AssignOp & v: AssignedValue => @(new Clause.Set("", op, v))
+	= '=' & v: AssignedValue    => @(new Clause.Set("", "=", v))
+	| op: AssignOp & v: SetValue => @(new Clause.Set("", op, v))
 
 AssignedValue : @Expression
 	= "DEFAULT"i => @(Expression.DefaultValue)
@@ -2026,7 +2040,7 @@ MergeArm : @Clause
 		=> @(new Clause.MergeWhen(false, by is null ? null : "TARGET", c, a))
 
 MergeChange : @Statement
-	= "UPDATE"i & "SET"i & sets: Assignments
+	= "UPDATE"i & "SET"i & sets: Assignments & when @(Syntax.Unchained(sets))
 		=> @(new Statement.Update(null, sets, TableReference.None, null))
 	| "DELETE"i
 		=> @(new Statement.Delete(null, TableReference.None, null))
@@ -3006,9 +3020,12 @@ GetConversationGroup : @Statement
 // written in front with `=` and a table's star; a queue named, with no alias or hints; the
 // rows into a table variable; and `WHERE` one comparison, of one of two columns written bare
 // on its left, with a string or a variable. No `DISTINCT` and no `ORDER BY`.
+// And it assigns variables or retrieves columns, never both: `RECEIVE @v = 10, 20 FROM q` is
+// `Msg 8447` either way round.
 ReceiveStatement : @Statement
 	= "RECEIVE"i & top: ReceiveTop? & first: ReceiveColumn & (',' & rest: ReceiveColumn)* & "FROM"i & q: QualifiedName
 	  & ("INTO"i & into: TSql.Variable)? & ("WHERE"i & where: ReceiveWhere)?
+	  & when @(Syntax.OneWay(first, rest))
 		=> @(new Statement.Receive(top, Syntax.Listed(first, rest), q, into, where))
 
 ReceiveTop : @Clause = "TOP"i & '(' & v: ValueExpression & ')' => @(Clause.Topped(new Expression.Parenthesized(v), null))
@@ -3374,8 +3391,10 @@ ExecuteBody : @Statement.Execute
 // same call but for `AT`, which the engine refuses there. A `GO` on a file's last line, which
 // no line break ends and so no `GoLine` takes, opens an empty batch there and is the
 // separator (`FinalGo`), not a procedure called `GO`.
+// A procedure called bare is named and not held in a variable: `@p 1, 2` and `@p` alone are
+// `Msg 102`, where `EXEC @p` reads.
 BareCall : @Statement.Execute
-	= ?!FinalGo & into: ExecReturn? & target: ExecTarget & args: ExecArguments? & with: ExecWith?
+	= ?!FinalGo & ?!TSql.Variable & into: ExecReturn? & target: ExecTarget & args: ExecArguments? & with: ExecWith?
 		=> @(target with { Into = into, Arguments = args ?? Expression.None, Tail = Syntax.Tail(with), Bare = true })
 
 ExecWord   = "EXECUTE"i | "EXEC"i
@@ -4735,10 +4754,14 @@ KeyStatement : @Statement
 	// A policy created may be kept from replication after its predicates; one altered is
 	// kept from it or given back to it as a change of its own, `ADD NOT FOR REPLICATION`,
 	// and never alongside predicates or options.
+	// And with no variable in it: `dbo.f (c, @user_id)` is `Msg 112`, "variables are not
+	// allowed in the CREATE SECURITY POLICY statement", where `@@ROWCOUNT` and `'a@b'` read.
 	| "CREATE"i & "SECURITY"i & "POLICY"i & name: QualifiedName
 	  & tail: (PolicyPredicates? & OptionsWith? & NotForReplication?)
+	  & when @(Syntax.WithoutVariable(tail))
 		=> @(Statement.Defined("SECURITY POLICY", name, Syntax.Tail(tail), "CREATE"))
 	| "ALTER"i & "SECURITY"i & "POLICY"i & name: QualifiedName & tail: PolicyAlteration
+	  & when @(Syntax.WithoutVariable(tail))
 		=> @(Statement.Defined("SECURITY POLICY", name, Syntax.Tail(tail), "ALTER"))
 
 KeyDecryptor

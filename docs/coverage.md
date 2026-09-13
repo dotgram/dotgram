@@ -24,7 +24,7 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 99.9% | 7984 | 8 | 3 | 0 | 88 | 255 | 0 |
+| **all** | 996 | 8338 | 99.9% | 7984 | 8 | 0 | 0 | 88 | 258 | 0 |
 | [data-types](#data-types) | 29 | 304 | 100.0% | 291 | 0 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 100.0% | 234 | 0 | 0 | 0 | 1 | 7 | 0 |
 | [functions](#functions) | 324 | 2101 | 100.0% | 2082 | 0 | 0 | 0 | 2 | 17 | 0 |
@@ -34,7 +34,7 @@ rest run rather than read.
 | [reference](#reference) | 3 | 32 | 100.0% | 32 | 0 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 100.0% | 311 | 0 | 0 | 0 | 0 | 1 | 0 |
 | [spatial-geometry](#spatial-geometry) | 74 | 357 | 100.0% | 357 | 0 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 99.9% | 2901 | 1 | 3 | 0 | 84 | 174 | 0 |
+| [statements](#statements) | 320 | 3163 | 100.0% | 2901 | 1 | 0 | 0 | 84 | 177 | 0 |
 | [xml](#xml) | 12 | 205 | 100.0% | 201 | 0 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
@@ -47,10 +47,7 @@ rest run rather than read.
 
 ## What the engine answered the defects
 
-| Message | statements | for example |
-| --- | ---: | --- |
-| 102 | 2 | `@dialog_handle ;` |
-| 10734 | 1 | `SELECT @v = BusinessEntityID FROM HumanResources.Employee UNION ALL SELECT @v = Bus...` |
+None: the engine reads every statement this grammar reads.
 
 ## data-types
 
@@ -765,8 +762,6 @@ rest run rather than read.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| END CONVERSATION (Transact-SQL) | 6 | 66.7% | 0 | 2 | 0 | 0 | read here, Msg 102 there — `@dialog_handle ;` |
-| ALTER DATABASE Compatibility Level (Transact-SQL) | 21 | 95.2% | 0 | 1 | 0 | 0 | read here, Msg 10734 there — `SELECT @v = BusinessEntityID FROM HumanResources.Employee UNION ALL SELECT @v = Bus...` |
 | DROP TABLE (Transact-SQL) | 6 | 83.3% | 1 | 0 | 0 | 0 | stops at ''' — `CREATE TABLE #temptable (col1 int);  INSERT INTO #temptable VALUES (10);  SELECT co...` |
 | ADD SENSITIVITY CLASSIFICATION (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ADD SIGNATURE (Transact-SQL) | 41 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -784,6 +779,7 @@ rest run rather than read.
 | ALTER DATABASE ENCRYPTION KEY (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE SCOPED CONFIGURATION | 20 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE SCOPED CREDENTIAL (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER DATABASE Compatibility Level (Transact-SQL) | 21 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE Database Mirroring (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE File and Filegroups | 69 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE SET HADR (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -996,6 +992,7 @@ rest run rather than read.
 | DROP WORKLOAD GROUP (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP XML SCHEMA COLLECTION (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ENABLE TRIGGER (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
+| END CONVERSATION (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EXECUTE AS Clause (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EXECUTE AS (Transact-SQL) | 21 | 100.0% | 0 | 0 | 0 | 0 |  |
 | GET CONVERSATION GROUP (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |

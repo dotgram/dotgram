@@ -3434,6 +3434,12 @@ public static class Syntax
 	/// </summary>
 	public static bool Callable(string name)
 	{
+		// Not through an empty part: `.f2 (1)` and `db..f2 (1)` are `Msg 102` as a value, where
+		// `FROM .f2 (1)` and `FROM dbo..f2 (1)` read a table-valued function — that is another
+		// rule's business.
+		if (name.Length > 0 && (name[0] == '.' || name.IndexOf("..", StringComparison.Ordinal) >= 0))
+			return false;
+
 		if (name.Length == 0 || (name[0] != '[' && name[0] != '"'))
 			return true;
 
@@ -4048,6 +4054,119 @@ public static class Syntax
 	}
 
 	static readonly string[] Brokers = ["ENABLE_BROKER", "NEW_BROKER", "ERROR_BROKER_CONVERSATIONS"];
+
+	/// <summary>Whether a query assigns a variable in its select list, anywhere down its brackets.</summary>
+	public static bool Assigns(Query? query) =>
+		query switch
+		{
+			Query.Specification { Columns: var columns } => Array.Exists(columns, static one => one is Clause.VariableAssignment),
+			Query.Parenthesized(var inner)               => Assigns(inner),
+			_                                            => false,
+		};
+
+	/// <summary>
+	/// Whether a query combines, by <c>UNION</c>, <c>EXCEPT</c> or <c>INTERSECT</c>, a select that
+	/// assigns a variable — on either side, in brackets, or under another such operator.
+	/// </summary>
+	public static bool AssignsCombined(Query? query) =>
+		query switch
+		{
+			Query.Union(var left, var right, _)     => Assigns(left) || Assigns(right) || AssignsCombined(left) || AssignsCombined(right),
+			Query.Except(var left, var right, _)    => Assigns(left) || Assigns(right) || AssignsCombined(left) || AssignsCombined(right),
+			Query.Intersect(var left, var right, _) => Assigns(left) || Assigns(right) || AssignsCombined(left) || AssignsCombined(right),
+			Query.Parenthesized(var inner)          => AssignsCombined(inner),
+			_                                       => false,
+		};
+
+	/// <summary>Whether a query assigns a variable and has nothing to select from — which no `ORDER BY` may follow.</summary>
+	public static bool AssignsFromNothing(Query? query) =>
+		query is Query.Specification { From: null or { Length: 0 } } && Assigns(query);
+
+	/// <summary>Whether no assignment of a list goes through a column — `@a = c = 1`, which a `MERGE` refuses.</summary>
+	public static bool Unchained(Clause[]? sets) =>
+		sets is null || Array.TrueForAll(sets, static one => one is not Clause.Set { Through: not null });
+
+	/// <summary>Whether a <c>RECEIVE</c>'s list assigns variables or retrieves columns, and not both.</summary>
+	public static bool OneWay(Clause? first, Clause[]? rest)
+	{
+		var assigns  = false;
+		var retrieves = false;
+
+		foreach (var one in first is null ? [] : Listed(first, rest))
+			if (one is Clause.VariableAssignment)
+				assigns = true;
+			else
+				retrieves = true;
+
+		return !(assigns && retrieves);
+	}
+
+	/// <summary>
+	/// Whether a rowset call names its provider as the engine takes it: <c>OPENROWSET</c> over a
+	/// provider is three arguments, the first two strings — one of them possibly in pieces — and
+	/// the third a string or an object's name; a bulk rowset and every other function are their
+	/// own business.
+	/// </summary>
+	public static bool Provided(string? name, Expression[]? arguments)
+	{
+		if (!string.Equals(name, "OPENROWSET", StringComparison.OrdinalIgnoreCase) || arguments is null)
+			return true;
+
+		if (arguments.Length > 0 && arguments[0] is Expression.Prefixed(var word, _) && string.Equals(word, "BULK", StringComparison.OrdinalIgnoreCase))
+			return true;
+
+		// The object is a name in as many parts as it likes, which the arguments read as any
+		// value and not as a string: so a string, or whatever is not one.
+		return arguments.Length == 3 && Stringy(arguments[0]) && Stringy(arguments[1])
+			&& (Stringy(arguments[2]) || arguments[2] is not Expression.Literal);
+
+		static bool Stringy(Expression one) =>
+			one switch
+			{
+				Expression.Literal { Kind: SqlLiteralKind.Text or SqlLiteralKind.National } => true,
+				Expression.Pieced(var parts) => Array.TrueForAll(parts, Stringy),
+				_ => false,
+			};
+	}
+
+	/// <summary>
+	/// Whether a statement's words hold no local variable: an <c>@</c> that opens a name, outside
+	/// a string, and is not the <c>@@</c> of the server's own.
+	/// </summary>
+	public static bool WithoutVariable(string? words)
+	{
+		if (words is null)
+			return true;
+
+		var inString = false;
+
+		for (var at = 0; at < words.Length; at++)
+		{
+			var one = words[at];
+
+			if (one == '\'')
+			{
+				inString = !inString;
+				continue;
+			}
+
+			if (inString || one != '@')
+				continue;
+
+			if (at + 1 < words.Length && words[at + 1] == '@')
+			{
+				at++;
+				continue;
+			}
+
+			if (at > 0 && (char.IsLetterOrDigit(words[at - 1]) || words[at - 1] is '_' or '$' or '#' or '"' or ']'))
+				continue;
+
+			return false;
+		}
+
+		return true;
+	}
 
 	/// <summary>Whether no option of a list is named twice.</summary>
 	public static bool NamedOnce(Clause? first, Clause[]? rest)

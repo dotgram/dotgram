@@ -20906,3 +20906,42 @@ left on the work list are the two decisions (`OPTION (… PLAN)`, the pivot over
 cutting artefact, and two of one new thing the mirage had hidden: `CREATE FUNCTION f1 ()
 RETURNS TABLE AS RETURN WITH XMLNAMESPACES (DEFAULT 'u') SELECT …` — a `WITH` opening the
 query an inline function returns — which is measured next.
+
+## What the mirages hid, and the engine refuses
+
+The other half of the honest list: seven shapes this grammar read and the engine refuses,
+each hidden until the variable in it was declared, each measured on the engine before it
+was written.
+
+A variable in a security policy's predicate arguments — `dbo.f6 (c6 - c5, @user_id, c8, c9)`
+is `Msg 112`, "variables are not allowed in the CREATE SECURITY POLICY statement", on `ALTER`
+too, where `@@ROWCOUNT` and a string with an `@` in it read. `Syntax.WithoutVariable` walks
+the words. A `RECEIVE` that assigns and retrieves at once — `RECEIVE @v = 10, 20 FROM q` is
+`Msg 8447` either way round, where all assignments or all columns read; `Syntax.OneWay`. A
+`DEFAULT` after a compound operator in the variable chain — `SET @a = c1 -= DEFAULT` is `Msg
+10708` as `SET c1 -= DEFAULT` was known to be; the rule had said the chain was the one place
+a compound operator took `DEFAULT`, on the mirage's word, and six rows of the older theory
+that held it as read hold it as refused. And the chain itself in a `MERGE`: `SET @a = t.c =
+1` and `SET @a = t.c += 1` are `Msg 10723`, a variable being set to a column or to a value
+and not to both; `Syntax.Unchained`. A provider named bare — `OPENROWSET (something, @v)` is
+`Msg 156`, `('p', @v)` and `(@p, 'c', 'q')` 102, where the provider form is three arguments,
+the first two strings, one of them possibly in pieces, and the third a string or an object's
+name; `Syntax.Provided`. A function called through an empty part — `.f2 (1)` and `db..f2
+(1)` are 102 as a value, where `FROM .f2 (1)` reads a table-valued one; `Syntax.Callable`. A
+variable as a statement — `@p 1, 2`, `@p` and `@r = p 1` are 102 where `EXEC @p` and `p1 1,
+2` read, so a bare call is not a variable, and two rows of the older theory move to
+refusals. And an assignment in a set operation — `SELECT @v = 1 UNION ALL SELECT 2` is `Msg
+141` on either side, in brackets, and under `EXCEPT` and `INTERSECT`, where a subquery, a
+derived table and a common table expression combine as they like beneath it; and `SELECT @v
+= 1 ORDER BY 1`, ordered with nothing to select from, is 156 where `SELECT @v = c FROM t
+ORDER BY c` reads. Both said at the statement, `Syntax.AssignsCombined` and
+`AssignsFromNothing` — a guard on an alternative that climbs precedence has no operands to
+ask, which the first writing found out.
+
+Thirty-two refusals and thirty-six readings in the theory. At 170: read by both 7,393, the
+work list 7, **defects 4 (from 12)** — `{fn convert (@a, sql_int)}` and the two cutting
+artefacts — another product's 298 (from 302), neither 615. At 150: 6,606 both, 7 work, 4
+defects. `--split` 784 (from 788): four files ScriptDom reads whole hold what the engine
+refuses, and this grammar sides with the engine; the round trip 100% of 7,741 (from 7,753),
+the same four. The map: 7,984 both, 8 work, **0 defects (from 3)**. `--levels` 145 of 145.
+The suite is 7,618 rows (from 7,550).
