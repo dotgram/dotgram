@@ -4010,6 +4010,45 @@ public static class Syntax
 	/// <summary>Whether a name was written bare, rather than in brackets or quotes.</summary>
 	public static bool IsBare(string? name) => name is { Length: > 0 } && name[0] is not ('[' or '"');
 
+	/// <summary>
+	/// Whether a type is one <c>JSON_VALUE</c> may return: any but the large and the special —
+	/// <c>XML</c>, <c>TEXT</c>, <c>NTEXT</c>, <c>IMAGE</c>, <c>SQL_VARIANT</c>, <c>JSON</c>, a
+	/// vector, the CLR types and a type of the user's — each <c>Msg 102</c>.
+	/// </summary>
+	public static bool JsonValued(string? type)
+	{
+		if (type is null || type.IndexOf('.') >= 0)
+			return false;
+
+		var end  = type.IndexOfAny([' ', '(', '\t', '\r', '\n']);
+		var word = end < 0 ? type : type.Substring(0, end);
+
+		return !Array.Exists(NotJsonValued, one => string.Equals(one, word, StringComparison.OrdinalIgnoreCase));
+	}
+
+	static readonly string[] NotJsonValued =
+		["XML", "TEXT", "NTEXT", "IMAGE", "SQL_VARIANT", "JSON", "VECTOR", "GEOGRAPHY", "GEOMETRY", "HIERARCHYID"];
+
+	/// <summary>
+	/// Whether a database attached names each option once and a broker option at most once —
+	/// <c>WITH ENABLE_BROKER, NEW_BROKER</c> is <c>Msg 102</c>.
+	/// </summary>
+	public static bool Attached(Clause? first, Clause[]? rest)
+	{
+		if (!NamedOnce(first, rest))
+			return false;
+
+		var brokers = 0;
+
+		foreach (var option in first is null ? [] : Listed(first, rest))
+			if (option is Clause.Option { Name: var name } && Array.Exists(Brokers, one => string.Equals(one, name, StringComparison.OrdinalIgnoreCase)))
+				brokers++;
+
+		return brokers <= 1;
+	}
+
+	static readonly string[] Brokers = ["ENABLE_BROKER", "NEW_BROKER", "ERROR_BROKER_CONVERSATIONS"];
+
 	/// <summary>Whether no option of a list is named twice.</summary>
 	public static bool NamedOnce(Clause? first, Clause[]? rest)
 	{

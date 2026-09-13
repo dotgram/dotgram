@@ -458,6 +458,20 @@ TSqlValueFunction : @Expression
 	// the order alone, and the null clause with the return type, with or without an order —
 	// which the engine refuses with `Incorrect syntax near the keyword 'OVER'` and no reason
 	// anyone has written down. `JSON_OBJECTAGG` takes its `OVER` after every shape.
+	// `JSON_VALUE (x, path RETURNING type)`: the type is `JSON_VALUE`'s alone — `LEN ('a'
+	// RETURNING INT)`, `ISJSON (… RETURNING INT)` and `JSON_QUERY (…, '$.a' RETURNING JSON)` are
+	// `Msg 102`, where the ordinary call had read a `RETURNING` after any function's arguments
+	// — and stands after two arguments and no other count: `JSON_VALUE ('{}' RETURNING INT)` is
+	// 102, where `JSON_VALUE ('{}')`, `JSON_VALUE ('{}', '$.a', 3)` and `JSON_VALUE ()` the
+	// parser passes and counts later. The type is any but the ones `Syntax.JsonValued` lists.
+	// `JSON_QUERY (x [, path] [WITH ARRAY WRAPPER])`: one argument or two — `JSON_QUERY ()`
+	// and three are `Msg 189` at the parse — and the wrapper after either, the three words in
+	// that order: `WITHOUT`, `WITH WRAPPER`, `CONDITIONAL` and a value after them are 102.
+	| name: "JSON_VALUE"i & '(' & args: Arguments? & returning: JsonValueReturning? & ')' & tail: CallTail?
+	  & when @(returning is null || args is { Length: 2 })
+		=> @(Syntax.Called(new Expression.RoutineInvocation(name, Syntax.Tailed(args ?? Expression.None, returning)), tail))
+	| name: "JSON_QUERY"i & '(' & first: ValueExpression & (',' & second: ValueExpression)? & wrapped: JsonWrapper? & ')' & tail: CallTail?
+		=> @(Syntax.Called(new Expression.RoutineInvocation(name, Syntax.Tailed(second is null ? new[] { first } : new[] { first, second }, wrapped)), tail))
 	| name: "JSON_ARRAYAGG"i & '(' & items: Arguments? & order: JsonOrder? & nulls: JsonNullClause? & returning: JsonReturningJson? & ')'
 	  & tail: CallTail? & when @(Syntax.Aggregated(items, order, nulls, returning, tail))
 		=> @(Syntax.Called(new Expression.RoutineInvocation(name, Syntax.Tailed(items ?? Expression.None, order, nulls, returning)), tail))
@@ -478,10 +492,11 @@ JsonArrayBody : @Expression[]
 	= items: Arguments & nulls: JsonNullClause? & returning: JsonReturningJson?
 		=> @(Syntax.Tailed(items, nulls, returning))
 
-// The four names above have rules of their own, and the call any name may be does not read
+// The six names above have rules of their own, and the call any name may be does not read
 // them: `JSON_ARRAY (RETURNING JSON)` and `JSON_ARRAYAGG (data RETURNING JSON) WITHIN GROUP
-// (…)` fell through to it, which reads a `RETURNING` for `JSON_VALUE`'s sake and any tail.
-JsonOwnName = "JSON_ARRAYAGG"i | "JSON_ARRAY"i | "JSON_OBJECTAGG"i | "JSON_OBJECT"i
+// (…)` fell through to it, which once read a `RETURNING` after any function's arguments for
+// `JSON_VALUE`'s sake, and any tail.
+JsonOwnName = "JSON_ARRAYAGG"i | "JSON_ARRAY"i | "JSON_OBJECTAGG"i | "JSON_OBJECT"i | "JSON_VALUE"i | "JSON_QUERY"i
 
 JsonObjectName = "JSON_OBJECT"i | "JSON_OBJECTAGG"i
 
@@ -504,8 +519,9 @@ UseModel : @string = t: ("USE"i & "MODEL"i & QualifiedName & UseModelParameters?
 UseModelParameters = "PARAMETERS"i & ValueExpression
 
 JsonNullClause : @string = t: ("NULL"i & "ON"i & "NULL"i | "ABSENT"i & "ON"i & "NULL"i) => @(t)
-JsonReturning  : @string = t: ("RETURNING"i & DataType) => @(t)
 JsonReturningJson : @string = t: ("RETURNING"i & "JSON"i) => @(t)
+JsonValueReturning : @string = "RETURNING"i & type: DataType & when @(Syntax.JsonValued(type)) => @("RETURNING " + type)
+JsonWrapper : @string = t: ("WITH"i & "ARRAY"i & "WRAPPER"i) => @(t)
 JsonOrder      : @string = t: ("ORDER"i & "BY"i & SortSpecification & (',' & SortSpecification)*) => @(t)
 
 // A sequence, read where a value stands. `FOR` here is not the `FOR` of `FOR JSON`;
@@ -521,11 +537,10 @@ NextValue : @Expression
 // `dbo.[LEN]('a')` is read.
 FunctionCall : @Expression
 	= ?!(JsonOwnName & '(') & name: QualifiedName & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name))
-	  & '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel?
-	  & returning: JsonReturning? & ')' & tail: CallTail?
+	  & '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
 		=> @(Syntax.Called(
 				 new Expression.RoutineInvocation(
-					 name, Syntax.Tailed(args ?? Expression.None, model, returning), Syntax.Distinctly(quantifier)), tail))
+					 name, Syntax.Tailed(args ?? Expression.None, model), Syntax.Distinctly(quantifier)), tail))
 
 // What may follow a call: which rows of a window it sees when they are null, what a
 // set function inside a window is ordered by, and the window itself. All three are kept,
@@ -5955,19 +5970,29 @@ CreateDatabaseStatement : @Statement
 DatabaseTail : @Statement.CreateDatabase
 	= "WITH"i & first: CreateDatabaseOption & (',' & rest: CreateDatabaseOption)*
 		=> @(new Statement.CreateDatabase("", Clause.None, With: Syntax.Listed(first, rest)))
-	| "FOR"i & "ATTACH"i & ('(' & options: OptionList & ')')?
-	  & ("WITH"i & first: AttachOption & (',' & rest: AttachOption)*)?
+	// A database attached takes its options after `WITH` and nowhere else — `FOR ATTACH
+	// (ENABLE_BROKER)` is `Msg 102`, which this read — and one broker option at most, `WITH
+	// ENABLE_BROKER, NEW_BROKER` being 102 too. With the log rebuilt the list is narrower:
+	// `TRUSTWORTHY`, `DB_CHAINING`, `CATALOG_COLLATION` and `FILESTREAM (…)` read, and
+	// `ENABLE_BROKER`, `RESTRICTED_USER` and an option twice are 102. Measured with the
+	// variables declared; the mirage had said the rebuilt log took no `WITH` at all.
+	| "FOR"i & "ATTACH"i & ("WITH"i & first: AttachOption & (',' & rest: AttachOption)*)?
+	  & when @(Syntax.Attached(first, rest))
 		=> @(new Statement.CreateDatabase(
-				 "", Clause.None, Tail: "FOR ATTACH", Options: options,
+				 "", Clause.None, Tail: "FOR ATTACH",
 				 With: first is null ? null : Syntax.Listed(first, rest)))
-	| "FOR"i & "ATTACH_REBUILD_LOG"i
-		=> @(new Statement.CreateDatabase("", Clause.None, Tail: "FOR ATTACH_REBUILD_LOG"))
-
-	// Undocumented and read: the same as `FOR ATTACH`, options and `WITH` and all.
-	| "FOR"i & "ATTACH_FORCE_REBUILD_LOG"i & ('(' & options: OptionList & ')')?
-	  & ("WITH"i & first: AttachOption & (',' & rest: AttachOption)*)?
+	| "FOR"i & "ATTACH_REBUILD_LOG"i & ("WITH"i & first: RebuildLogOption & (',' & rest: RebuildLogOption)*)?
+	  & when @(Syntax.NamedOnce(first, rest))
 		=> @(new Statement.CreateDatabase(
-				 "", Clause.None, Tail: "FOR ATTACH_FORCE_REBUILD_LOG", Options: options,
+				 "", Clause.None, Tail: "FOR ATTACH_REBUILD_LOG",
+				 With: first is null ? null : Syntax.Listed(first, rest)))
+
+	// Undocumented and read: the same as `FOR ATTACH`, `WITH` and all.
+	| "FOR"i & "ATTACH_FORCE_REBUILD_LOG"i
+	  & ("WITH"i & first: AttachOption & (',' & rest: AttachOption)*)?
+	  & when @(Syntax.Attached(first, rest))
+		=> @(new Statement.CreateDatabase(
+				 "", Clause.None, Tail: "FOR ATTACH_FORCE_REBUILD_LOG",
 				 With: first is null ? null : Syntax.Listed(first, rest)))
 
 	// A snapshot takes a database's options too, which the block does not say and the engine
@@ -6032,6 +6057,13 @@ AttachOption : @Clause
 	= name: ("RESTRICTED_USER"i | "ENABLE_BROKER"i | "NEW_BROKER"i | "ERROR_BROKER_CONVERSATIONS"i)
 		=> @(new Clause.Option(name, null, Clause.None))
 	| name: "FILESTREAM"i & '(' & ?=("DIRECTORY_NAME"i & '=' & (Quoted | "NULL"i) & ')') & o: OptionSetting & ')'
+		=> @(new Clause.Option(name, null, new Clause[] { o }, null, true))
+	| ?!"FILESTREAM"i & o: CreateDatabaseOption => @(o)
+
+// What a database attached with its log rebuilt takes after `WITH`: the settings a created
+// one does, `FILESTREAM (…)` among them, and none of the attaching's own words.
+RebuildLogOption : @Clause
+	= name: "FILESTREAM"i & '(' & ?=("DIRECTORY_NAME"i & '=' & (Quoted | "NULL"i) & ')') & o: OptionSetting & ')'
 		=> @(new Clause.Option(name, null, new Clause[] { o }, null, true))
 	| ?!"FILESTREAM"i & o: CreateDatabaseOption => @(o)
 

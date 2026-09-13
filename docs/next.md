@@ -20871,3 +20871,38 @@ At 170: read by both **7,389 (from 7,385), the work list 11 (from 13)**, defects
 6,604 both, 9 work. `--split` 786 (from 784), 179 files not read whole (from 181); the round
 trip 100% of 7,749 (from 7,745). The map unchanged at 8 work and 3 defects; `--levels` 145 of
 145. The suite is 7,490 rows (from 7,480).
+
+## What the mirages hid, and the engine reads
+
+The half of the honest list that is refused here and read there, in two rules.
+
+`JSON_QUERY ('{ "a": [1,2,3] }', '$.a' WITH ARRAY WRAPPER)`, six of them, and `JSON_VALUE`
+beside it, which the same measuring redrew. The ordinary call had read a `RETURNING type`
+after any function's arguments for `JSON_VALUE`'s sake, and the engine gives it to
+`JSON_VALUE` alone — `LEN ('a' RETURNING INT)`, `ISJSON (… RETURNING INT)` and `JSON_QUERY (…
+RETURNING JSON)` are `Msg 102` — after two arguments and no other count, and of a type that
+is not `XML`, `TEXT`, `NTEXT`, `IMAGE`, `SQL_VARIANT`, `JSON`, a vector, a CLR type or the
+user's own (each 102). `JSON_VALUE ('{}')`, `JSON_VALUE ('{}', '$.a', 3)` and `JSON_VALUE ()`
+the parser passes and the binder counts later; `JSON_QUERY ()` and `JSON_QUERY (x, p, 3)` are
+`Msg 189` at the parse, so it is one argument or two, and the wrapper after either, the three
+words in that order — `WITHOUT`, `WITH WRAPPER`, `CONDITIONAL` and a value after them are 102.
+Both have alternatives of their own now, the `RETURNING` left the ordinary call, and
+`Syntax.JsonValued` lists the types refused.
+
+`CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_REBUILD_LOG WITH TRUSTWORTHY OFF`,
+four of them. The rule had the rebuilt log taking no `WITH` at all, on a measurement the
+mirage had made; it takes `TRUSTWORTHY`, `DB_CHAINING`, `CATALOG_COLLATION` and `FILESTREAM
+(…)`, once each, and not the attaching's own words — `ENABLE_BROKER`, `RESTRICTED_USER` are
+102. And two things beside it the same measuring turned up: `FOR ATTACH (ENABLE_BROKER)`, the
+options in brackets, which this read and the engine refuses for every spelling of the
+attach; and `WITH ENABLE_BROKER, NEW_BROKER`, two broker options, 102 — `Syntax.Attached`
+holds the list to one.
+
+Thirty refusals and thirty readings in the theory. At 170: read by both **7,393 (from
+7,389), the work list 7 (from 11)**, defects 12. At 150: 6,606 both, 7 work. `--split` 788
+(from 786), 177 files not read whole (from 179); the round trip 100% of 7,753 (from 7,749).
+The map unchanged; `--levels` 145 of 145. The suite is 7,550 rows (from 7,490). The seven
+left on the work list are the two decisions (`OPTION (… PLAN)`, the pivot over a join), the
+cutting artefact, and two of one new thing the mirage had hidden: `CREATE FUNCTION f1 ()
+RETURNS TABLE AS RETURN WITH XMLNAMESPACES (DEFAULT 'u') SELECT …` — a `WITH` opening the
+query an inline function returns — which is measured next.

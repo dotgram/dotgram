@@ -2164,6 +2164,80 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>`JSON_VALUE`'s `RETURNING` and `JSON_QUERY`'s wrapper, each its own; a database attached with its log rebuilt and what it takes after `WITH`.</summary>
+	[Theory]
+	[InlineData("SELECT LEN('a' RETURNING INT)")]
+	[InlineData("SELECT ISJSON('{\"a\":1}' RETURNING INT)")]
+	[InlineData("SELECT JSON_QUERY('{\"a\":1}', '$.a' RETURNING JSON)")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}', '$.a' RETURNING JSON)")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}', '$.a' RETURNING XML)")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}', '$.a' RETURNING TEXT)")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}', '$.a' RETURNING SQL_VARIANT)")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}', '$.a' RETURNING GEOGRAPHY)")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}', '$.a' RETURNING VECTOR(3))")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}', '$.a' RETURNING dbo.mytype)")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}', '$.a' RETURNING INT, 3)")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}' RETURNING INT)")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}', '$.a' RETURNING)")]
+	[InlineData("SELECT JSON_QUERY()")]
+	[InlineData("SELECT JSON_QUERY('{\"a\":1}', '$.a', 3)")]
+	[InlineData("SELECT JSON_QUERY('{ \"a\": [1,2,3] }', '$.a' WITHOUT ARRAY WRAPPER)")]
+	[InlineData("SELECT JSON_QUERY('{ \"a\": [1,2,3] }', '$.a' WITH WRAPPER)")]
+	[InlineData("SELECT JSON_QUERY('{ \"a\": [1,2,3] }', '$.a' WITH ARRAY WRAPPER, 1)")]
+	[InlineData("SELECT JSON_QUERY('{ \"a\": [1,2,3] }', '$.a' WITH CONDITIONAL ARRAY WRAPPER)")]
+	[InlineData("SELECT JSON_VALUE('{ \"a\": [1,2,3] }', '$.a' WITH ARRAY WRAPPER)")]
+	[InlineData("SELECT JSON_QUERY('{ \"a\": [1,2,3] }', '$.a' WITH ARRAY WRAPPER RETURNING JSON)")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH (ENABLE_BROKER)")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_FORCE_REBUILD_LOG (ENABLE_BROKER)")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_REBUILD_LOG (ENABLE_BROKER)")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH WITH ENABLE_BROKER, NEW_BROKER")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_REBUILD_LOG WITH ENABLE_BROKER")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_REBUILD_LOG WITH RESTRICTED_USER")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_REBUILD_LOG WITH TRUSTWORTHY ON, ENABLE_BROKER")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_REBUILD_LOG WITH TRUSTWORTHY ON, TRUSTWORTHY OFF")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_REBUILD_LOG WITH NOSUCH ON")]
+	public void What_the_mirages_hid_and_the_engine_reads_is_refused_where_the_engine_refuses_it(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And is read where the engine reads it.</summary>
+	[Theory]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}')")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}', '$.a')")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}', '$.a' RETURNING INT)")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}', '$.a' RETURNING VARCHAR(10))")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}', '$.a' RETURNING NVARCHAR(MAX))")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}', '$.a' RETURNING BIT)")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}', '$.a' RETURNING DATETIME2)")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}', '$.a', 3)")]
+	[InlineData("SELECT JSON_VALUE('{\"a\":1}', '$.a' RETURNING INT) OVER ()")]
+	[InlineData("SELECT JSON_VALUE()")]
+	[InlineData("SELECT JSON_QUERY('{\"a\":1}')")]
+	[InlineData("SELECT JSON_QUERY('{\"a\":1}', '$.a')")]
+	[InlineData("SELECT JSON_QUERY('{ \"a\": [1,2,3] }', '$.a' WITH ARRAY WRAPPER)")]
+	[InlineData("SELECT JSON_QUERY('{\"a\":1}', '$.a' WITH ARRAY WRAPPER) AS x")]
+	[InlineData("SELECT JSON_QUERY(N'{\"a\":1}' WITH ARRAY WRAPPER)")]
+	[InlineData("SELECT JSON_QUERY('{\"a\":1}', @p WITH ARRAY WRAPPER)")]
+	[InlineData("SELECT JSON_QUERY('{\"a\":1}', '$.a' with array wrapper)")]
+	[InlineData("SELECT JSON_QUERY((SELECT '{\"a\":1}'), '$.a' WITH ARRAY WRAPPER)")]
+	[InlineData("SELECT JSON_QUERY('{\"a\":1}', '$.a' + '' WITH ARRAY WRAPPER)")]
+	[InlineData("SELECT JSON_QUERY('{ \"a\": [1,2,3] }', '$.a' WITH ARRAY WRAPPER) OVER ()")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR attach_rebuild_log WITH trustworthy off")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_REBUILD_LOG WITH DB_CHAINING ON")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_REBUILD_LOG WITH FILESTREAM (DIRECTORY_NAME = 'd')")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_REBUILD_LOG WITH TRUSTWORTHY ON, FILESTREAM (DIRECTORY_NAME = 'd')")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_REBUILD_LOG WITH TRUSTWORTHY ON, DB_CHAINING ON")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_REBUILD_LOG WITH CATALOG_COLLATION = DATABASE_DEFAULT")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_REBUILD_LOG")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH WITH TRUSTWORTHY ON, ENABLE_BROKER")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH WITH RESTRICTED_USER")]
+	[InlineData("CREATE DATABASE Archive ON (FILENAME = 'zzz') FOR ATTACH_FORCE_REBUILD_LOG WITH TRUSTWORTHY ON")]
+	public void What_the_mirages_hid_and_the_engine_reads_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
