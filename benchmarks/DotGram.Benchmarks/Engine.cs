@@ -234,8 +234,12 @@ static class Engine
 	/// answer stands. <b>Msg
 	/// 911</b>, "database does not exist": `USE nosuchdb junk junk` is "read", the parser having
 	/// stopped at the name. A statement beginning `USE` and answered so is asked again with the
-	/// connection's own database in the name's place. What the two mirages hid was measured by
-	/// hand for a day before this (docs/next.md, 2026-09-13); this is that measuring, done once.
+	/// connection's own database in the name's place. And <b>Msg 195</b>, "is not a recognized
+	/// built-in function name": `SELECT time (), sum (*)` is "read", the parser having stopped at
+	/// `time`. The name is in the message, and a call of it qualified — `dbo.time ()` — is a
+	/// user's function the parser passes over, so the statement is asked again so written, as
+	/// often as the answer names another function. What the mirages hid was measured by hand
+	/// for a day before this (docs/next.md, 2026-09-13); this is that measuring, done once.
 	/// </para>
 	/// <para>
 	/// A statement in this corpus can take the connection down with it — a severity the
@@ -262,7 +266,36 @@ static class Engine
 		if (message == 911 && Housed(statement, connection.Database) is { } housed)
 			return Ask(connection, housed);
 
+		for (var tries = 0; message == 195 && tries < 8; tries++)
+		{
+			if (Qualified(statement, Said) is not { } qualified)
+				break;
+
+			statement = qualified;
+			message   = Ask(connection, statement);
+		}
+
 		return message;
+	}
+
+	/// <summary>The text of the last message the engine answered with.</summary>
+	[ThreadStatic]
+	static string? Said;
+
+	static readonly Regex NamedFunction = new(@"'([^']+)' is not a recognized built-in function name", RegexOptions.Compiled);
+
+	/// <summary>The statement with the function the message names called through `dbo.` wherever it is called bare; null where the message names none or the statement has no such call.</summary>
+	static string? Qualified(string statement, string? said)
+	{
+		if (said is null || NamedFunction.Match(said) is not { Success: true } named)
+			return null;
+
+		var name = Regex.Escape(named.Groups[1].Value);
+		// Not inside an ODBC escape: `{fn x ()}` takes ODBC's own functions and no schema, so a
+		// name qualified there would be refused for the qualifying and not for what it hid.
+		var call = new Regex(@"(?<![\w.\]@#$])(?<!\{\s*fn\s+)" + name + @"(?=\s*\()", RegexOptions.IgnoreCase);
+
+		return call.IsMatch(statement) ? call.Replace(statement, "dbo." + named.Groups[1].Value) : null;
 	}
 
 	static readonly Regex VariableUsed = new(@"(?<![@\w])@(\w+)", RegexOptions.Compiled);
@@ -333,6 +366,8 @@ static class Engine
 		}
 		catch (SqlException failed)
 		{
+			Said = failed.Message;
+
 			return failed.Number;
 		}
 	}

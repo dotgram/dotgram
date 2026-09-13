@@ -24,12 +24,12 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 99.8% | 7984 | 9 | 3 | 0 | 88 | 254 | 0 |
+| **all** | 996 | 8338 | 99.9% | 7984 | 8 | 3 | 0 | 88 | 255 | 0 |
 | [data-types](#data-types) | 29 | 304 | 100.0% | 291 | 0 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 100.0% | 234 | 0 | 0 | 0 | 1 | 7 | 0 |
 | [functions](#functions) | 324 | 2101 | 100.0% | 2082 | 0 | 0 | 0 | 2 | 17 | 0 |
 | [includes](#includes) | 3 | 7 | 100.0% | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
-| [language-elements](#language-elements) | 86 | 868 | 99.5% | 850 | 4 | 0 | 0 | 0 | 14 | 0 |
+| [language-elements](#language-elements) | 86 | 868 | 99.6% | 850 | 3 | 0 | 0 | 0 | 15 | 0 |
 | [queries](#queries) | 37 | 747 | 99.4% | 718 | 4 | 0 | 0 | 1 | 24 | 0 |
 | [reference](#reference) | 3 | 32 | 100.0% | 32 | 0 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 100.0% | 311 | 0 | 0 | 0 | 0 | 1 | 0 |
@@ -44,7 +44,6 @@ rest run rather than read.
 | IF | 4 | 1 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
 | SET | 3 | 1 | stops at AUTOCOMMIT — `SET AUTOCOMMIT ON;` |
 | CREATE TABLE | 1 | 1 | stops at ''' — `CREATE TABLE #temptable (col1 int);  INSERT INTO #temptable VALUES (10);  SELECT co...` |
-| SELECT | 1 | 1 | stops at DIAGNOSTICS — `-- Determine the session_id of your current session SELECT TOP 1 session_id();  -- ...` |
 
 ## What the engine answered the defects
 
@@ -470,7 +469,6 @@ rest run rather than read.
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | Transactions (Azure Synapse Analytics and Microsoft Fabric) | 11 | 72.7% | 3 | 0 | 0 | 0 | stops at AUTOCOMMIT — `SET AUTOCOMMIT ON;` |
-| CREATE DIAGNOSTICS SESSION (Transact-SQL) | 9 | 83.3% | 1 | 0 | 0 | 0 | stops at DIAGNOSTICS — `-- Determine the session_id of your current session SELECT TOP 1 session_id();  -- ...` |
 | + (Addition) (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALL (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | AND (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -492,6 +490,7 @@ rest run rather than read.
 | COMMIT TRANSACTION (Transact-SQL) | 20 | 100.0% | 0 | 0 | 0 | 0 |  |
 | \|\|= (Compound assignment) (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Compound Operators (Transact-SQL) | 24 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE DIAGNOSTICS SESSION (Transact-SQL) | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DEALLOCATE (Transact-SQL) | 24 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DECLARE CURSOR (Transact-SQL) | 12 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DECLARE @local_variable (Transact-SQL) | 26 | 100.0% | 0 | 0 | 0 | 0 |  |

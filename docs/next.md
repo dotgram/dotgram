@@ -20828,3 +20828,26 @@ through a leading dot (102, where `.t1` as a table reads); `@x ;` as a statement
 and `JSON_QUERY (…, '$.a' RETURNING JSON)`, the `RETURNING` the ordinary call reads for
 `JSON_VALUE`'s sake and no other function takes. The two cutting artefacts stand. Each of
 these is measured next and written as a piece.
+
+## The third mirage
+
+`select time () over (), …, sum (*) over (partition by c1), …` was on the work list as "the
+engine reads and this does not", and `sum (*)` alone is `Msg 102` — so what was the engine
+reading? `Msg 195`, "'time' is not a recognized built-in function name", at the first call,
+and nothing after it: a one-part function name the engine has not got ends the parse as an
+undeclared variable does, and the memory has known it since the map was built — "probes count
+195 as read". The name is in the message, and a call of it qualified — `dbo.time ()` — is a
+user's function the parser passes over, so `Engine.Answer` asks again so written, as often as
+the answer names another function; not inside an ODBC escape, where `{fn x ()}` takes ODBC's
+own functions and no schema, and a name qualified there is refused for the qualifying and
+not for what it hid — which the first writing did to `{fn BuiltinFunc1 ()}` and the corpus
+showed. `sum (*)` is refused on both sides now and leaves the work list, where it stood as a
+decision for weeks.
+
+At 170: 7,385 both, **the work list 13 (from 15)**, defects 12, neither 605. At 150: 6,600
+both, 11 work. `--levels`: **145 part by level (from 143), 145 the same here**. The map: 7,984
+both, 8 work (from 9), 3 defects, 0 parting at a level.
+
+The three mirages accounted for every "decision" the lists had carried: `PREDICT`, `IDENTITY
+(INT)`, `@3`, `AS LOGIN`, `USE FEDERATION`, `sum (*)`. What the honest instrument leaves is
+the list in the entry before, less `sum (*)`, and it is the next work.
