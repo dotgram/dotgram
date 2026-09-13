@@ -20290,3 +20290,46 @@ NULL`, three `SET AUTOCOMMIT`, three `DBCC FREEPROCCACHE (COMPUTE)` behind a `US
 for this engine; what is left to decide is whether the map's work bucket should ask
 `Elsewhere` before counting a statement, which is a question for the reader of the map and
 not for the grammar.
+
+## The levels, held against the engine's one by one
+
+The map's work list is spent, and the first thing on the versions axis was to find out what
+`--levels` had been measuring. It asked every level about every statement of the corpus and
+kept the 138 whose answer moves — and then said whether the union reads each, which is not
+the question. A level is only right where it parts from the others in the same place the
+engine does. The corpus form now asks each level's parser beside the engine's answer at it,
+as the probe form has since the levels were built, and counts a statement as answered the
+same way here only when all eight agree: **112 of the 138 were, 26 were not.** Fourteen of
+the 26 are `AI_GENERATE_CHUNKS`, which reads from 170 and is not read here at all — the
+one construct on this axis still to write. The other twelve were one thing.
+
+`WITHIN GROUP (GRAPH PATH)` reads from 110, not from 100. The rule said the opposite, in a
+comment — "the graph path it has as well reads at every level" — that no probe had earned:
+`SELECT MIN (n2.c1) WITHIN GROUP (GRAPH PATH) FROM n1, n2` is `Msg 102` at 100 and read from
+110, so are `COUNT`'s and `STRING_AGG`'s, and `LAST_VALUE`'s is `Msg 10753` — "must have an
+OVER clause" — which is level 100 having read the `WITHIN GROUP` as nothing and found a
+window function standing without its window. The rest of the graph syntax reads at every
+level: `FOR PATH`, `MATCH (SHORTEST_PATH (…))`, `LAST_NODE`. The gate the `ORDER BY` form
+already had went onto the path's alternative, the comment says what was measured, and six
+rows went into the level theory — four at 110, two at 100 to hold the rest of the graph
+syntax where it is. (`PERCENTILE_CONT`'s `WITHIN GROUP` at 100 is `Msg 10762`, "only
+allowed in 110 mode or higher" — the engine saying the gate in words, for that one function.)
+
+The map's four "parting at a level" are not this: all four are `OPENJSON (@var) WITH (…)`
+with the variable declared in the statement before, so the engine answers `Msg 137` at every
+level and the map counts that as read at 100 — the mirage again, now on the levels column.
+Declared, the same statement is `Msg 102` at 100 to 120 and read from 130, which is where
+this grammar has it.
+
+At 150: 5,969 both, the work list 19, 2 defects, 258 another product's; `--split` 743, the
+round trip 100% of 7,594. `--levels`: 138 part, **124 answered the same way here (from 112)**,
+the 14 left being `AI_GENERATE_CHUNKS`. The map: 7,989 of 8,338, 14 work, 0 defects, 4 at a
+level. The suite is 7,085 rows (from 7,076).
+
+One thing decided and not done: the fourteen remaining map lines that are no engine's work
+(`SET AUTOCOMMIT`, `CREATE DIAGNOSTICS SESSION`, the `isn't NULL` typos, `PREDICT`, `DBCC …
+(COMPUTE)`) were to go onto `OtherProducts`, and do not. `Elsewhere` is consulted only for a
+statement this grammar reads and the engine refuses; these are the reverse, unread here and
+"read" there by a message about a name. Listing them would change no count, and the list's
+own rule — a word is on it because a statement using it was read here — does not hold for
+them. `TYPE = HADOOP` is already another product's through `EXTERNAL DATA SOURCE`.

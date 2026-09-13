@@ -98,7 +98,7 @@ static class CompatibilityLevels
 		var readers  = new Dictionary<string, TSqlParser>(StringComparer.Ordinal);
 		var seen     = new HashSet<string>(StringComparer.Ordinal);
 		var asked    = 0;
-		var moved    = new Dictionary<string, (int Count, int Here, List<string> Like)>(StringComparer.Ordinal);
+		var moved    = new Dictionary<string, (int Count, int Here, int Same, List<string> Like)>(StringComparer.Ordinal);
 
 		foreach (var file in files)
 		{
@@ -132,26 +132,30 @@ static class CompatibilityLevels
 				var key  = $"{statement.GetType().Name,-40} {Shape(answers)}";
 				var here = TransactSql.TryParseStatement(one).IsSuccess;
 
-				var (count, read, like) = moved.TryGetValue(key, out var before) ? before : (0, 0, new List<string>());
+				// And this grammar's parser for each level against the engine's answer at it: a
+				// statement the levels part on is only right here when they part in the same place.
+				var agreed = here && Asked.Select(level => Engine.Parse(level, one).Read).SequenceEqual(answers.Select(static message => message == 0));
+
+				var (count, read, same, like) = moved.TryGetValue(key, out var before) ? before : (0, 0, 0, new List<string>());
 
 				if (like.Count < shown)
-					like.Add((here ? "  read here  " : "  refused    ") + Corpus.One(one));
+					like.Add((agreed ? "  agrees     " : here ? "  parts      " : "  refused    ") + Corpus.One(one));
 
-				moved[key] = (count + 1, read + (here ? 1 : 0), like);
+				moved[key] = (count + 1, read + (here ? 1 : 0), same + (agreed ? 1 : 0), like);
 			}
 		}
 
 		Console.WriteLine();
 		Console.WriteLine($"every compatibility level from {Asked[0]} to {Asked[^1]}, asked about each statement once");
 		Console.WriteLine();
-		Console.WriteLine($"  {asked} statements, {moved.Values.Sum(static one => one.Count)} of them answered differently by level");
+		Console.WriteLine($"  {asked} statements, {moved.Values.Sum(static one => one.Count)} of them answered differently by level, {moved.Values.Sum(static one => one.Same)} of those answered the same way here at every level");
 		Console.WriteLine();
-		Console.WriteLine($"  {"kind",-40} {string.Join(" ", Asked.Select(static level => $"{level,5}"))}   count  read here");
+		Console.WriteLine($"  {"kind",-40} {string.Join(" ", Asked.Select(static level => $"{level,5}"))}   count  read here  the same");
 		Console.WriteLine();
 
-		foreach (var (key, (count, read, like)) in moved.OrderBy(static one => one.Key, StringComparer.Ordinal))
+		foreach (var (key, (count, read, same, like)) in moved.OrderBy(static one => one.Key, StringComparer.Ordinal))
 		{
-			Console.WriteLine($"  {key}   {count,5}  {read,9}");
+			Console.WriteLine($"  {key}   {count,5}  {read,9}  {same,8}");
 
 			foreach (var example in like)
 				Console.WriteLine($"        {example}");

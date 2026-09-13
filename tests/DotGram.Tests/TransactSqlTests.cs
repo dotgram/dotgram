@@ -5748,6 +5748,11 @@ public sealed class TransactSqlTests
 	/// </remarks>
 	[Theory]
 	[InlineData("SELECT STRING_AGG (c, ',') WITHIN GROUP (ORDER BY c) FROM t", 110)]
+	[InlineData("SELECT MIN (n2.c1) WITHIN GROUP (GRAPH PATH) FROM n1, n2",     110)]
+	[InlineData("SELECT LAST_VALUE (n2.c1) WITHIN GROUP (GRAPH PATH) FROM n1, n2", 110)]
+	[InlineData("SELECT MIN (n2.c1) WITHIN GROUP (GRAPH PATH) FROM n1, e1 FOR PATH, n2 FOR PATH WHERE MATCH (SHORTEST_PATH (n1(-(e1)->n2)+))", 110)]
+	[InlineData("SELECT MIN (n2.c1) FROM n1, e1 FOR PATH, n2 FOR PATH WHERE MATCH (SHORTEST_PATH (n1(-(e1)->n2)+))", 100)]
+	[InlineData("SELECT LAST_NODE (n2) FROM n1, n2",                             100)]
 	[InlineData("SELECT * FROM OPENJSON (N'[]') WITH (a INT)",                  130)]
 	[InlineData("SELECT 1 FROM t WINDOW w AS (ORDER BY c)",                     160)]
 	[InlineData("SELECT TRIM (LEADING 'x' FROM 'xa')",                          160)]

@@ -522,10 +522,16 @@ CallTail : @Expression.WindowFunction
 Nulls : @string = t: ("RESPECT"i & "NULLS"i | "IGNORE"i & "NULLS"i) => @(t)
 
 // The ordered set a call is computed over reads from level 110; below it the engine answers
-// `Incorrect syntax`. The graph path it has as well reads at every level.
+// `Incorrect syntax`, or `Msg 10762` — "only allowed in 110 mode or higher" — where the call
+// is `PERCENTILE_CONT`'s. The graph path reads from 110 as well: `Msg 102` at 100 for an
+// aggregate, `Msg 10753` — "must have an OVER clause" — for `LAST_VALUE`, which is the level
+// having read `WITHIN GROUP` as nothing and found a window function without its window. The
+// rest of the graph syntax reads at every level: `FOR PATH`, `MATCH (SHORTEST_PATH (…))`,
+// `LAST_NODE`. This said the path read at every level once, unmeasured; twelve statements
+// of the corpus said otherwise.
 WithinGroup : @string
 	= t: ("WITHIN"i & "GROUP"i & '(' & OrderByClause & ')') & when Version is Since110 => @(t)
-	| t: ("WITHIN"i & "GROUP"i & '(' & "GRAPH"i & "PATH"i & ')') => @(t)
+	| t: ("WITHIN"i & "GROUP"i & '(' & "GRAPH"i & "PATH"i & ')') & when Version is Since110 => @(t)
 
 // `TRIM(LEADING … FROM …)`: the standard's three words, which T-SQL reads from level 160.
 // `TRIM(x FROM y)` without one reads at every level, and is the standard's own rule still.
