@@ -21403,3 +21403,39 @@ At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 15
 226 and 539; `--split` 783, the round trip 100% of 7,717, the map 7,994 both and 0 defects,
 `--levels` 145 of 145 — unchanged. The suite is 13,551 rows (from 13,337): 96 refusals, 107
 readings and 11 of the other products.
+
+## Built: a publication another reaches is read by that one's machine
+
+"One machine per published rule" was refined once already, for rules that reach each other.
+What it left was the rule reached one way: `QueryExpression` inside `DirectSelect`, `Uri`
+inside `UriReference`, the expression language's hole reader inside `Lambda`. Each had a
+machine of its own, compiling again every rule it reaches, while the larger machine held all
+of them already and needed nothing but an entry.
+
+`CSharpEmitter.Joined` folds it in, once the machines exist, and only where joining changes
+how neither publication is read: a lowered publication keeps its flat method (the reason
+`Minimal` was split in the first place), methods join methods and the engine joins the
+engine, a streamed publication keeps its machine, and methods are asked again over both
+lists. The old comment in `Sharing` said one-way sharing would leave the smaller rule no entry
+of its own. It was written before the reader, which writes an entry per publication of its
+group, as the engine registers a root per publication.
+
+| grammar | before | after |
+| --- | --: | --: |
+| standard SQL | 26,756 | 16,932 |
+| RFC 3986 | 13,498 | 7,731 |
+| expression language, tape | 46,475 | 36,318 |
+| expression language, immediate | 37,832 | 29,910 |
+| `FileNames` example | 1,717 | 1,536 |
+
+The snapshots do not change; allocations do not change on either yardstick; time is noise
+(SQL tape +0.8%, immediate +1.5%, control -0.4%; EL within its control).
+
+**A forwarder is not in any machine.** `Expression = e: Assignment => @(e)` is collapsed
+wherever it is called, so `Lambda`'s machine holds `Assignment` and never `Expression`, and
+publishing `Expression` cannot be joined to anything. The hole reader publishes `Assignment`.
+Worth knowing for any grammar that publishes a rule which only hands another on.
+
+**And a latent bug it exposed:** a split grammar's publication of text read its value with
+`Text_DotGram(...)`, while the helper is named with the machine's tag. No grammar with two
+machines and an untyped publication could compile; none of this repository's had one.

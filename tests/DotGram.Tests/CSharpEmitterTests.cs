@@ -2340,6 +2340,84 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("Recognize_DotGram_Right", source, StringComparison.Ordinal);
 	}
 
+	const string Nested = """
+		Outer = '[' & Inner & ']' | Inner
+		Inner = ['0'..'9']+ | '(' & Inner & ')'
+		parse Outer
+		parse Inner
+		""";
+
+	/// <summary>A published rule another publication reaches is read by that one's machine.</summary>
+	/// <remarks>
+	/// One way only: `Outer` reaches `Inner` and not the other way round. The machine built
+	/// over `Outer` holds every rule `Inner` does, so a second machine over `Inner` was a
+	/// second copy of it — which is what `ParseHole` beside `ParseLambda` cost the expression
+	/// language, a fifth of each file.
+	/// </remarks>
+	[Fact]
+	public void A_publication_another_reaches_is_entered_in_its_machine()
+	{
+		var source = Emit(Nested);
+
+		Assert.Contains("Recognize_DotGram_Outer(", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Recognize_DotGram_Inner(", source, StringComparison.Ordinal);
+
+		Assert.True(Invoke(Nested, "ParseOuter", "[(2)]").Matched);
+		Assert.True(Invoke(Nested, "ParseInner", "((1))").Matched);
+		Assert.False(Invoke(Nested, "ParseInner", "[1]").Matched);
+	}
+
+	const string NestedNames = """
+		using Lexical;
+
+		trivia = { ' '* }
+
+		namespace Lexical
+		{
+			trivia = none
+
+			Name = ['a'..'z']+
+		}
+
+		Outer = '[' & Inner & ']' | Inner
+		Inner = Name | '(' & Inner & ')'
+		parse Outer
+		""";
+
+	/// <summary>And read by the same methods, where the machine is read by methods.</summary>
+	[Fact]
+	public void A_publication_another_reaches_is_read_by_its_methods()
+	{
+		var source = EmitSplit(NestedNames + "\nparse Inner\n");
+
+		Assert.Contains("ref struct Reader_DotGram_Outer", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("ref struct Reader_DotGram_Inner", source, StringComparison.Ordinal);
+
+		var parser = EmittedCode.Compile(source);
+
+		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseOuter", "[ (ab) ]").IsSuccess);
+		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseInner", "((ab))").IsSuccess);
+		Assert.False(EmittedCode.Match(parser, "Grammar", "TryParseInner", "[ab]").IsSuccess);
+	}
+
+	/// <summary>But not where joining would change how either is read.</summary>
+	/// <remarks>
+	/// A `find` runs on the engine and `Outer` is read by methods: one machine for both would
+	/// put `Outer` on the engine too, which is slower and, over kinds, a different reading (§4).
+	/// </remarks>
+	[Fact]
+	public void A_find_another_reaches_keeps_its_own_machine()
+	{
+		var result = GramCompiler.Compile(
+			NestedNames + "\nfind Inner\n",
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = true });
+
+		var source = Assert.Single(result.Sources).Text;
+
+		Assert.Contains("ref struct Reader_DotGram_Outer", source, StringComparison.Ordinal);
+		Assert.Contains("Recognize_DotGram_Inner(", source, StringComparison.Ordinal);
+	}
+
 	/// <summary>A list of keywords is entered through a switch on the first character.</summary>
 	/// <remarks>
 	/// The alternatives do not have to be told apart by one character — <c>and</c> and

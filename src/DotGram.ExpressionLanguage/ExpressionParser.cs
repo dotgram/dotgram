@@ -1057,8 +1057,11 @@ namespace DotGram.ExpressionLanguage;
 	parse Lambda as ParseLambda
 
 	// What a hole of an interpolated string is read with: an expression over a window of
-	// the text, demanding no end (§6.3).
-	parse Expression as ParseHole
+	// the text, demanding no end (§6.3). `Assignment` and not `Expression`, which only hands
+	// it on and is collapsed into it wherever it is called — so `Lambda`'s machine holds
+	// `Assignment` and never `Expression`, and publishing the latter compiled the whole
+	// expression grammar a second time.
+	parse Assignment as ParseHole
 
 	// The same language with its identifiers spelled in ASCII, and one line to say so
 	// (§5.1). A binding on a publication clones what the directive reaches and rewrites
