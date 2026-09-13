@@ -20576,3 +20576,34 @@ is written, as the rest were.
 
 The `--split` list, then, was not a list of errors: it was where the catalogue's blind spot
 showed through. Nothing in the grammar changed for this entry; the instrument did.
+
+## A name with empty parts
+
+The first group of the honest work list: ten that stop at a dot, `create synonym .mysyn2 for
+dbo.t1`, `create synonym [dbo].[mysyn3] for ...t1`, `create synonym dbo.mysyn4 for .[db]..t1`.
+The dialect's qualified name has read empty parts for a long time — `.db..t1` is a database
+and a table with no schema between — and `CREATE TABLE .t`, `SELECT * FROM ...t1`, `ALTER
+INDEX i ON .db..t1` all read; the synonym's own name and the name it stands for were written
+as `Identifier ('.' Identifier)?` and `Identifier ('.'+ Identifier)*`, and neither takes a
+leading dot. Measured across the objects: a synonym's name and a sequence's are qualified
+names as a table's is, empty parts and all — `..mysyn5`, `.dbo.mysyn7`, `....mysyn8`, `CREATE
+SEQUENCE ...s`, `.dbo.s` — and what a synonym stands for is `.....t1` or `a.b.c.d.e` as
+readily. Three named parts, `db.dbo.s`, or a hole between two, `a..b`, the engine reads and
+then objects to: `Msg 166`, "does not allow specifying the database name as a prefix to the
+object name", which is the value and not the shape, so 166 went with the messages about names
+and two rows of the older theory that held `db.dbo.s` as a refusal hold it as a reading. A
+type's name is not a qualified name: `CREATE TYPE .tt FROM int` is `Msg 102` where `a.b.c` is
+read, and the rule that read it whole reads `Identifier ('.' Identifier)*` now. A statistic's
+name and an alias refuse the dot too, and did.
+
+Five refusals and twenty-six readings in the theory. At 170: read by both **7,306 (from
+7,300), the work list 118 (from 120)**, neither 591 (from 595) — four `db.dbo.s` shapes that
+were refused on both sides are read on both now. At 150: 6,555 both, 80 work. `--split` 753
+(from 752); the round trip 100% of 7,654 (from 7,650). The map unchanged; `--levels` 138 of
+138. The suite is 7,289 rows (from 7,260).
+
+Eight still stop at a dot, and they are two other things: `ENABLE TRIGGER a.b.c, d.e ON t1`,
+a trigger named in three parts, and `READTEXT ..t1.c1 …`, a text column named with a leading
+dot. Each its own piece. And `DROP TYPE .tt` is `Msg 102` where `DROP TABLE .t1` reads, which
+`DropName`, one rule for every kind, does not know; measuring the drop by kind is a piece
+too.

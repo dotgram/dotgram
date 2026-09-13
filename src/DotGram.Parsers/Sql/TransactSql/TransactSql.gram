@@ -2472,7 +2472,7 @@ ClassificationOption : @Clause
 // and added to by one, any value. A synonym is named by two parts at most, and stands for a
 // name of as many as it likes, empty ones among them; it is never altered.
 TypeStatement : @Statement
-	= "CREATE"i & "TYPE"i & name: QualifiedName
+	= "CREATE"i & "TYPE"i & name: TypeName
 	  & tail: ("FROM"i & DataType & NullSpec?
 			  | "EXTERNAL"i & "NAME"i & Identifier & ('.' & Identifier)?
 			  | "AS"i & "TABLE"i & TableTypeBody & ("WITH"i & '(' & "MEMORY_OPTIMIZED"i & '=' & OnOff & ')')?)
@@ -2481,12 +2481,19 @@ TypeStatement : @Statement
 		=> @(Statement.Defined("XML SCHEMA COLLECTION", name, Syntax.Tail(tail)))
 	| "ALTER"i & "XML"i & "SCHEMA"i & "COLLECTION"i & name: QualifiedName & tail: ("ADD"i & ValueExpression)
 		=> @(Statement.Defined("ALTER XML SCHEMA COLLECTION", name, Syntax.Tail(tail)))
-	| "CREATE"i & "SYNONYM"i & synonym: SynonymName & tail: ("FOR"i & Identifier & ('.'+ & Identifier)*)
+	| "CREATE"i & "SYNONYM"i & synonym: SynonymName & tail: ("FOR"i & QualifiedName)
 		=> @(Statement.Defined("SYNONYM", synonym, Syntax.Tail(tail)))
 
 TableTypeBody : @Clause[] = '(' & body: DeclaredBody & ')' & when @(Syntax.TableTyped(body)) => @(body)
 
-SynonymName : @string = t: (Identifier & ('.' & Identifier)?) => @(t)
+// A synonym's name, and a sequence's, is a qualified name as any table's is, empty parts and
+// all: `.mysyn2`, `..mysyn5`, `.dbo.mysyn7` and `....mysyn8` are read, and what the synonym
+// stands for is `...t1` or `.[db]..t1` as readily. Three named parts, `db.dbo.s`, or a hole
+// between two, `a..b`, the engine reads and then objects to (`Msg 166`, "does not allow
+// specifying the database name as a prefix"), which is the value and not the shape. A type's
+// name is not: `CREATE TYPE .tt FROM int` is `Msg 102`, and `a.b.c` is read.
+SynonymName : @string = t: QualifiedName => @(t)
+TypeName    = Identifier & ('.' & Identifier)*
 
 // ── Sequences ───────────────────────────────────────────────────────────────
 //
@@ -2507,7 +2514,7 @@ SequenceStatement : @Statement
 	  & when @(Syntax.NamedOnce(null, options) && !Syntax.HasOption(options, "START") && !Syntax.HasOption(options, "AS"))
 		=> @(Statement.Defined("SEQUENCE", name, Syntax.Tail(tail), "ALTER", options))
 
-SequenceName : @string = t: (Identifier & ('.' & Identifier)?) => @(t)
+SequenceName : @string = t: QualifiedName => @(t)
 
 SequenceOption : @Clause
 	= "AS"i & DataType                          => @(new Clause.Option("AS", null, Clause.None))

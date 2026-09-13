@@ -595,7 +595,13 @@ static class Engine
 			// another — `ADD CONSTRAINT … WITH (RESUMABLE = ON)` without `ONLINE = ON`.
 			//
 			//  11438  The %S_MSG option cannot be set to '%ls' when the %S_MSG option is set to '%ls'.
-			or 11438;
+			or 11438
+
+			// And a name with one part too many, 2026-09-13: `CREATE SYNONYM db.dbo.s FOR t1` and
+			// `CREATE SEQUENCE a.b.c` are read and then told the database may not be named.
+			//
+			//    166  '%ls' does not allow specifying the database name as a prefix to the object name.
+			or 166;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open

@@ -1808,6 +1808,51 @@ public sealed class TransactSqlTests
 	public void An_approximation_nobody_published_is_refused(string input) =>
 		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
 
+	/// <summary>A synonym's and a sequence's name takes empty parts as a table's does; a type's, a statistic's and an alias do not.</summary>
+	[Theory]
+	[InlineData("CREATE TYPE .tt FROM int")]
+	[InlineData("CREATE TYPE ..tt FROM int")]
+	[InlineData("CREATE TYPE .tt AS TABLE (c int)")]
+	[InlineData("CREATE STATISTICS .st ON t1 (c)")]
+	[InlineData("SELECT * FROM t1 AS .a")]
+	public void A_name_with_empty_parts_is_refused_where_the_engine_refuses_it(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And is read where the engine reads it, or reads it and objects to the value.</summary>
+	[Theory]
+	[InlineData("create synonym .mysyn2 for dbo.t1")]
+	[InlineData("create synonym [dbo].[mysyn3] for ...t1")]
+	[InlineData("create synonym dbo.mysyn4 for .[db]..t1")]
+	[InlineData("create synonym ..mysyn5 for t1")]
+	[InlineData("create synonym ...mysyn6 for t1")]
+	[InlineData("create synonym .dbo.mysyn7 for t1")]
+	[InlineData("create synonym ....mysyn8 for t1")]
+	[InlineData("create synonym .a.b for t1")]
+	[InlineData("create synonym a.b.c for t1")]
+	[InlineData("create synonym a..b for t1")]
+	[InlineData("create synonym mysyn for .t1")]
+	[InlineData("create synonym mysyn for .....t1")]
+	[InlineData("create synonym mysyn for a.b.c.d.e")]
+	[InlineData("create synonym mysyn for srv.db.dbo.t1")]
+	[InlineData("CREATE SEQUENCE .s")]
+	[InlineData("CREATE SEQUENCE ...s")]
+	[InlineData("CREATE SEQUENCE .dbo.s")]
+	[InlineData("CREATE SEQUENCE a.b.c")]
+	[InlineData("ALTER SEQUENCE .s RESTART")]
+	[InlineData("DROP SEQUENCE .s")]
+	[InlineData("CREATE TYPE a.b.c FROM int")]
+	[InlineData("CREATE TRIGGER .tr ON t1 AFTER INSERT AS SELECT 1")]
+	[InlineData("CREATE STATISTICS st ON .t1 (c)")]
+	[InlineData("CREATE TABLE ..t (c int)")]
+	[InlineData("SELECT * FROM .db..t1")]
+	[InlineData("EXEC .p")]
+	public void A_name_with_empty_parts_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
@@ -3929,7 +3974,6 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE TYPE t AS TABLE (a INT) ON [PRIMARY]")]
 	[InlineData("CREATE XML SCHEMA COLLECTION c")]
 	[InlineData("ALTER XML SCHEMA COLLECTION c")]
-	[InlineData("CREATE SYNONYM db.dbo.s FOR t")]
 	[InlineData("CREATE SYNONYM s FOR 't'")]
 	[InlineData("CREATE SYNONYM s")]
 	[InlineData("CREATE SYNONYM s FOR @t")]
@@ -3986,7 +4030,6 @@ public sealed class TransactSqlTests
 
 	/// <summary>Sequences, as the engine answers them.</summary>
 	[Theory]
-	[InlineData("CREATE SEQUENCE db.dbo.s")]
 	[InlineData("CREATE SEQUENCE s START WITH 1e1")]
 	[InlineData("CREATE SEQUENCE s START WITH (1)")]
 	[InlineData("CREATE SEQUENCE s START WITH 1 + 1")]
