@@ -811,6 +811,81 @@ public sealed class CSharpEmitterTests
 	public void As_renames_the_pair() =>
 		Assert.True(Invoke(Digits + "parse Start as ReadDigits", "ReadDigits", "12").Matched);
 
+	/// <summary>A terminal the lexer does not measure, because host code does (§7.1).</summary>
+	/// <remarks>
+	/// <para>
+	/// Balanced angle brackets, which are not a regular language and so are not something a
+	/// lexical machine can be asked for at all. The rule is a bare <c>@M</c>: the grammar says
+	/// where such a terminal stands and what it is called, and the host says how far it runs —
+	/// <c>ref int pos</c> is §7.1's way of saying where it ended.
+	/// </para>
+	/// <para>
+	/// The lexer stays a lexer. It learns no nesting and no brackets: it reads a table that
+	/// says this kind is measured elsewhere, and takes the end it is handed.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("ab <x> cd", true,  "one pair")]
+	[InlineData("ab <x<y>z> cd", true,  "nested, which no pattern could match")]
+	[InlineData("ab <x<y> cd", false, "unbalanced: the host says no and nothing else takes it")]
+	[InlineData("ab cd", false, "absent where the grammar requires one")]
+	public void A_terminal_the_host_measures(string input, bool expected, string what)
+	{
+		Assert.NotNull(what);
+
+		const string Grammar = """
+			using Lexical;
+
+			trivia = { ' '* }
+
+			namespace Lexical
+			{
+				trivia = none
+
+				Name = ['a'..'z']+
+			}
+
+			Blob  = @ReadBlob
+			Start = Name & Blob & Name
+			parse Start
+			""";
+
+		const string Host = """
+			static bool ReadBlob(global::System.ReadOnlySpan<char> text, ref int pos)
+			{
+				if (pos >= text.Length || text[pos] != '<')
+					return false;
+
+				var depth = 0;
+
+				for (var p = pos; p < text.Length; p++)
+				{
+					if (text[p] == '<')
+					{
+						depth++;
+					}
+					else if (text[p] == '>')
+					{
+						depth--;
+
+						if (depth == 0)
+						{
+							pos = p + 1;
+
+							return true;
+						}
+					}
+				}
+
+				return false;
+			}
+			""";
+
+		var parser = EmittedCode.Compile(Emit(Grammar), declarationMembers: Host);
+
+		Assert.Equal(expected, EmittedCode.Match(parser, "Grammar", "TryParseStart", input).IsSuccess);
+	}
+
 	[Fact]
 	public void One_grammar_can_publish_the_same_rule_both_ways()
 	{

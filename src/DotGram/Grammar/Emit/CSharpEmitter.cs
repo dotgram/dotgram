@@ -1491,7 +1491,44 @@ public static partial class CSharpEmitter
 				file.Line("if (p >= text.Length)");
 				file.Then("break;");
 				file.Line();
-				file.Line("var end = Scan(text, p, out var kind);");
+
+				// The terminals the lexer does not measure, asked before it and in the order
+				// the grammar names them: there is no automaton to run them together, so there
+				// is nothing to decide between them by, and ordered choice (§3) is the only
+				// rule that does not need one. A grammar with none of them writes exactly what
+				// it always wrote.
+				if (lexical.Inventory.Externals.Count > 0)
+				{
+					file.Line("var kind = 0;");
+					file.Line("var end  = p;");
+					file.Line();
+
+					var asked = 0;
+
+					foreach (var (pattern, number) in lexical.Inventory.Externals)
+					{
+						var at = "at" + asked++;
+
+						file.Line($"var {at} = p;");
+						file.Line();
+
+						using (file.Block($"if (kind == 0 && {pattern.Method}(text, ref {at}) && {at} > p)"))
+						{
+							file.Line($"kind = {number};");
+							file.Line($"end  = {at};");
+						}
+
+						file.Line();
+					}
+
+					file.Line("if (kind == 0)");
+					file.Then("end = Scan(text, p, out kind);");
+				}
+				else
+				{
+					file.Line("var end = Scan(text, p, out var kind);");
+				}
+
 				file.Line();
 
 				using (file.Block("if (kind == 0 || end <= p)"))

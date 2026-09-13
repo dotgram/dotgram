@@ -125,25 +125,55 @@ public sealed class TerminalInventory
 	}
 
 	/// <summary>The pattern a literal is, or null where the grammar has no such terminal.</summary>
+	/// <remarks>
+	/// Only what is spelled out: a class is a rule rather than a spelling, and an external is
+	/// a method. <see cref="Spelling"/> answers the empty string for both, so leaving either
+	/// in would file it under a spelling nothing writes — and two of them under the same one.
+	/// </remarks>
 	public Pattern? PatternOf(string text, bool ignoreCase)
 	{
 		_literals ??= Patterns
-			.Where(one => one is not Pattern.Class)
+			.Where(one => one is Pattern.Word or Pattern.Mark)
 			.ToDictionary(Spelling, one => one);
 
 		return _literals.TryGetValue((text, ignoreCase), out var pattern) ? pattern : null;
 	}
 
 	/// <summary>The pattern a crossing into a rule is, or null where the rule is not one.</summary>
+	/// <remarks>
+	/// A terminal the host recognizes answers here too. It is a terminal like any other to
+	/// everything that asks this — which rule is the lexer's, and which the syntax keeps —
+	/// and differs only in who measures it.
+	/// </remarks>
 	public Pattern? PatternOf(RuleSymbol rule)
 	{
-		_classes ??= Patterns.OfType<Pattern.Class>().ToDictionary(one => one.Rule, one => (Pattern)one);
+		_classes ??= Patterns
+			.Where(one => one is Pattern.Class or Pattern.External)
+			.ToDictionary(
+				one => one is Pattern.Class(_, var crossed) ? crossed : ((Pattern.External)one).Rule,
+				one => one);
 
 		return rule is not null && _classes.TryGetValue(rule, out var pattern) ? pattern : null;
 	}
 
 	/// <summary>The ranges a rule that is a set of terminals occupies, or null.</summary>
 	public Named? SetOf(string name) => Sets.FirstOrDefault(set => set.Name == name);
+
+	/// <summary>The terminals host code measures, with the kind each one is.</summary>
+	/// <remarks>
+	/// In the order the grammar names them, which is the order they are asked in: the lexer
+	/// has no way to choose between two of these, there being no automaton to run them
+	/// together, so the first that matches is the one — ordered choice, as §3 has it.
+	/// </remarks>
+	public IReadOnlyList<(Pattern.External Pattern, int Kind)> Externals =>
+		_externals ??=
+		[
+			.. Kinds
+				.Where(kind => kind.Matched.Count == 1 && kind.Matched[0] is Pattern.External)
+				.Select(kind => ((Pattern.External)kind.Matched[0], kind.Number)),
+		];
+
+	IReadOnlyList<(Pattern.External Pattern, int Kind)>? _externals;
 
 	static Text Spelling(Pattern pattern) =>
 		pattern switch
@@ -199,6 +229,20 @@ public sealed class TerminalInventory
 		public sealed record Class(int Index, RuleSymbol Rule) : Pattern(Index)
 		{
 			public override string ToString() => Rule.Name;
+		}
+
+		/// <summary>A terminal the host recognizes: a rule whose whole body is a bare `@M`.</summary>
+		/// <remarks>
+		/// The lexer does not measure this one — host code does, by §7.1's
+		/// <c>bool M(ReadOnlySpan&lt;char&gt;, ref int pos)</c>, which says where it ended. It
+		/// is a pattern so that everything downstream can find it by rule as it finds a class,
+		/// and it carries no shape: it is not a regular language, which is the whole reason it
+		/// is written this way. So it never reaches the automaton, and its kind is numbered
+		/// after every kind the automaton gives.
+		/// </remarks>
+		public sealed record External(int Index, RuleSymbol Rule, string Method) : Pattern(Index)
+		{
+			public override string ToString() => $"@{Method}";
 		}
 	}
 
@@ -278,6 +322,9 @@ public sealed class TerminalInventory
 		readonly List<Text>       _words   = [];
 		readonly List<Text>       _marks   = [];
 		readonly List<RuleSymbol> _classes = [];
+
+		/// <summary>The terminals host code measures, in the order the grammar names them.</summary>
+		readonly List<(RuleSymbol Rule, string Method)> _externals = [];
 		readonly HashSet<string>  _seen    = [];
 		readonly HashSet<string>  _refused = [];
 		readonly List<string>     _reasons = [];
@@ -367,6 +414,19 @@ public sealed class TerminalInventory
 
 					if (_lexical.Contains(called) || graph.Trivia.ContainsKey(called))
 						return;
+
+					// A crossing into a rule that is nothing but `@M` is a terminal host code
+					// measures. Written this way and not as an external standing in the syntax
+					// itself, which is refused below: a terminal is a rule, and what the lexer
+					// hands the syntactic half is a kind, so there has to be a rule to name it.
+					if (graph.Bodies.TryGetValue(called, out var only) &&
+						only is Node.External(var measured))
+					{
+						if (_seen.Add("external " + called.Namespace + "." + called.Name))
+							_externals.Add((called, measured));
+
+						return;
+					}
 
 					if (_seen.Add("class " + called.Namespace + "." + called.Name))
 						_classes.Add(called);
@@ -746,6 +806,20 @@ public sealed class TerminalInventory
 			var kinds = machine.Sets
 				.Select((set, at) => new Kind(at + 1, [.. set.Select(one => patterns[one])]))
 				.ToList();
+
+			// And then the terminals the machine never saw. Appended rather than woven in, for
+			// the reason the numbering exists at all: `machine.Sets` holds indices into the
+			// patterns it was given, so anything added before them would renumber what the
+			// automaton already decided. Each is a kind of its own and matches nothing but
+			// itself — two strings cannot make one of these accept together, there being no
+			// automaton to accept in.
+			foreach (var (rule, method) in _externals)
+			{
+				var pattern = new Pattern.External(patterns.Count, rule, method);
+
+				patterns.Add(pattern);
+				kinds.Add(new Kind(kinds.Count + 1, [pattern]));
+			}
 
 			var counted = new TerminalInventory(true, patterns, kinds, [], _reasons);
 			var wordly  = Runs(
