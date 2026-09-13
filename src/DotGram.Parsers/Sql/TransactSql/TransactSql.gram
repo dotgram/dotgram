@@ -441,27 +441,46 @@ TSqlValueFunction : @Expression
 		=> @(new Expression.RoutineInvocation(name, Syntax.Listed(at, Syntax.Listed(first, rest))))
 	| name: JsonObjectName & '(' & body: JsonObjectBody? & ')' & tail: CallTail?
 		=> @(Syntax.Called(new Expression.RoutineInvocation(name, body ?? Expression.None), tail))
-	| name: JsonArrayName & '(' & body: JsonArrayBody? & ')' & tail: CallTail?
+	| name: "JSON_ARRAY"i & '(' & body: JsonArrayBody? & ')' & tail: CallTail?
 		=> @(Syntax.Called(new Expression.RoutineInvocation(name, body ?? Expression.None), tail))
 
-// **The null clause needs something to be null.** The published syntax makes the key
-// values and the clause independently optional — `JSON_OBJECT ( [ <json_key_value>
-// [ , ...n ] ] [ json_null_clause ] [ RETURNING json ] )` — so `JSON_OBJECT(NULL ON NULL)`
-// reads by the documentation and is answered by SQL Server 2025 with `Incorrect syntax near
-// the keyword 'ON'`. The engine is right and the syntax block is wrong, which is the first
-// thing found on that side rather than in a parser.
+	// `JSON_ARRAYAGG (value [ORDER BY list] [null clause] [RETURNING JSON])`, in that order —
+	// `NULL ON NULL ORDER BY x` and `RETURNING JSON ORDER BY x` are `Msg 156` — and the order
+	// is the aggregate's alone: `JSON_ARRAY (1 ORDER BY 1)` is `Msg 102`, and so is `ORDER BY`
+	// inside `STRING_AGG`, `COUNT` and `JSON_OBJECTAGG` (156). Any of the three after nothing
+	// is refused — `JSON_ARRAYAGG (ORDER BY x)` 156, `JSON_ARRAYAGG (RETURNING JSON)` 102 —
+	// where `JSON_ARRAYAGG ()` is read and objected to as a call (`Msg 174`). What may follow
+	// the bracket depends on what stood inside it, and `Syntax.Aggregated` says how: a
+	// `WITHIN GROUP` only after the bare value, and an `OVER` after every shape but three —
+	// the order alone, and the null clause with the return type, with or without an order —
+	// which the engine refuses with `Incorrect syntax near the keyword 'OVER'` and no reason
+	// anyone has written down. `JSON_OBJECTAGG` takes its `OVER` after every shape.
+	| name: "JSON_ARRAYAGG"i & '(' & items: Arguments? & order: JsonOrder? & nulls: JsonNullClause? & returning: JsonReturningJson? & ')'
+	  & tail: CallTail? & when @(Syntax.Aggregated(items, order, nulls, returning, tail))
+		=> @(Syntax.Called(new Expression.RoutineInvocation(name, Syntax.Tailed(items ?? Expression.None, order, nulls, returning)), tail))
+
+// **The null clause needs something to be null, and so does the return type.** The published
+// syntax makes the key values and the clauses independently optional — `JSON_OBJECT (
+// [ <json_key_value> [ , ...n ] ] [ json_null_clause ] [ RETURNING json ] )` — so
+// `JSON_OBJECT(NULL ON NULL)` reads by the documentation and is answered by SQL Server 2025
+// with `Incorrect syntax near the keyword 'ON'`, and `JSON_OBJECT (RETURNING JSON)` and
+// `JSON_ARRAY (RETURNING JSON)` with `Msg 102`. The engine is right and the syntax block is
+// wrong, which is the first thing found on that side rather than in a parser. And the type
+// returned is `JSON` and no other: `RETURNING NVARCHAR (MAX)` is `Msg 102` in all four.
 JsonObjectBody : @Expression[]
-	= pairs: JsonKeyValues & nulls: JsonNullClause? & returning: JsonReturning?
+	= pairs: JsonKeyValues & nulls: JsonNullClause? & returning: JsonReturningJson?
 		=> @(Syntax.Tailed(pairs, nulls, returning))
-	| returning: JsonReturning => @(Syntax.Tailed(Expression.None, returning))
 
 JsonArrayBody : @Expression[]
-	= items: Arguments & order: JsonOrder? & nulls: JsonNullClause? & returning: JsonReturning?
-		=> @(Syntax.Tailed(items, order, nulls, returning))
-	| returning: JsonReturning => @(Syntax.Tailed(Expression.None, returning))
+	= items: Arguments & nulls: JsonNullClause? & returning: JsonReturningJson?
+		=> @(Syntax.Tailed(items, nulls, returning))
+
+// The four names above have rules of their own, and the call any name may be does not read
+// them: `JSON_ARRAY (RETURNING JSON)` and `JSON_ARRAYAGG (data RETURNING JSON) WITHIN GROUP
+// (…)` fell through to it, which reads a `RETURNING` for `JSON_VALUE`'s sake and any tail.
+JsonOwnName = "JSON_ARRAYAGG"i | "JSON_ARRAY"i | "JSON_OBJECTAGG"i | "JSON_OBJECT"i
 
 JsonObjectName = "JSON_OBJECT"i | "JSON_OBJECTAGG"i
-JsonArrayName  = "JSON_ARRAY"i  | "JSON_ARRAYAGG"i
 
 JsonKeyValues : @Expression[]
 	= first: JsonKeyValue & (',' & rest: JsonKeyValue)* => @(Syntax.Listed(first, rest))
@@ -483,7 +502,8 @@ UseModelParameters = "PARAMETERS"i & ValueExpression
 
 JsonNullClause : @string = t: ("NULL"i & "ON"i & "NULL"i | "ABSENT"i & "ON"i & "NULL"i) => @(t)
 JsonReturning  : @string = t: ("RETURNING"i & DataType) => @(t)
-JsonOrder      : @string = t: ("ORDER"i & "BY"i & ValueExpression & ("ASC"i | "DESC"i)?) => @(t)
+JsonReturningJson : @string = t: ("RETURNING"i & "JSON"i) => @(t)
+JsonOrder      : @string = t: ("ORDER"i & "BY"i & SortSpecification & (',' & SortSpecification)*) => @(t)
 
 // A sequence, read where a value stands. `FOR` here is not the `FOR` of `FOR JSON`;
 // it is the middle of one three-word name.
@@ -497,7 +517,7 @@ NextValue : @Expression
 // A name of one part is called bare: `[LEN]('a')` and `"LEN"('a')` are refused, and
 // `dbo.[LEN]('a')` is read.
 FunctionCall : @Expression
-	= name: QualifiedName & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name))
+	= ?!(JsonOwnName & '(') & name: QualifiedName & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name))
 	  & '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel?
 	  & returning: JsonReturning? & ')' & tail: CallTail?
 		=> @(Syntax.Called(

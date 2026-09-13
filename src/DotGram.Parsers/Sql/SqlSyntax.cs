@@ -3809,6 +3809,31 @@ public static class Syntax
 		tail is null ? call : tail with { Function = call };
 
 	/// <summary>
+	/// Whether <c>JSON_ARRAYAGG</c>'s clauses and what follows its bracket stand as the engine
+	/// reads them: the order, the null clause and the return type only after a value; a
+	/// <c>WITHIN GROUP</c> only after the bare value and with no <c>OVER</c> after it; and an
+	/// <c>OVER</c> after every shape but three — the order alone, and the null clause with the
+	/// return type, ordered or not — which the engine answers with <c>Incorrect syntax near
+	/// the keyword 'OVER'</c>.
+	/// </summary>
+	public static bool Aggregated(Expression[]? items, string? order, string? nulls, string? returning, Expression.WindowFunction? tail)
+	{
+		if (items is null && (order is not null || nulls is not null || returning is not null))
+			return false;
+
+		if (tail is null)
+			return true;
+
+		if (tail.Within is not null)
+			return order is null && nulls is null && returning is null && tail.Over is null;
+
+		if (order is not null && nulls is null && returning is null)
+			return false;
+
+		return nulls is null || returning is null;
+	}
+
+	/// <summary>
 	/// A primary and what was reached through it: the members written after it, and the zones
 	/// it is read in, each with the collation written in front of it. Each member and each
 	/// zone was built with its own left side null, the way a predicate tail is, so the chain

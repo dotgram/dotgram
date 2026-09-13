@@ -20468,3 +20468,45 @@ At 170: read by both **6,718 (from 6,712), the work list 23 (from 25), defects 1
 22)**. At 150 nothing moved. `--split` 752 (from 751), 213 files not read whole (from 214); the
 round trip 100% of 7,650 (from 7,648). The map is unchanged; `--levels` 138 of 138. The suite
 is 7,200 rows (from 7,182).
+
+## An aggregate of JSON values, and what may follow its bracket
+
+`JSON_ARRAYAGG (data ORDER BY priority DESC, created_at ASC)` was the level-170 list's last
+construct: the aggregate's order was one key, and the reference's `ORDER BY <column_list>`
+says a list. Measured, the aggregate's inside is `value [ORDER BY list] [NULL | ABSENT ON
+NULL] [RETURNING JSON]` in that order and no other — `NULL ON NULL ORDER BY x` and `RETURNING
+JSON ORDER BY x` are `Msg 156` — with a collation in the list and no `OFFSET`; any of the
+three after nothing is refused (`ORDER BY x` alone 156, `RETURNING JSON` alone 102) where
+`JSON_ARRAYAGG ()` is read and objected to as a call. The order is the aggregate's alone:
+`JSON_ARRAY (1 ORDER BY 1)`, `STRING_AGG (x, ',' ORDER BY x)` and `COUNT (x ORDER BY x)` are
+102, `JSON_OBJECTAGG (k:v ORDER BY k)` 156. And the type returned is `JSON` and no other, in
+all four: `RETURNING NVARCHAR (MAX)` is 102 — `JSON_VALUE`'s `RETURNING INT` is a different
+clause and stays wide.
+
+**What may follow the bracket depends on what stood inside it.** A `WITHIN GROUP` only after
+the bare value, and with no `OVER` after it. An `OVER` after every shape but three: the order
+alone, and the null clause with the return type, ordered or not — `JSON_ARRAYAGG (name ORDER
+BY name) OVER ()` and `JSON_ARRAYAGG (name NULL ON NULL RETURNING JSON) OVER ()` are
+`Incorrect syntax near the keyword 'OVER'`, where `ORDER BY name NULL ON NULL) OVER ()`,
+`ORDER BY name RETURNING JSON) OVER ()`, `NULL ON NULL) OVER ()` and `RETURNING JSON) OVER
+()` all read. Nineteen lines to establish it, no reason anyone has written down, and
+`JSON_OBJECTAGG` takes its `OVER` after every shape. Two of the level-170 defects were the
+reference's own example on the corpus page, `ORDER BY name NULL ON NULL RETURNING JSON) OVER
+(PARTITION BY dept)`, which the engine refuses and this grammar read. So the aggregate has an
+alternative of its own with the four parts captured, and `Syntax.Aggregated` says which tail
+each shape takes.
+
+Two over-acceptances the measuring turned up, neither in the corpus. `JSON_OBJECT (RETURNING
+JSON)` and `JSON_ARRAY (RETURNING JSON)` read by the documentation's syntax and are `Msg 102`
+— the clause needs a value as the null clause does, which that comment already said of the
+null clause — and their bare-`RETURNING` alternatives are gone. And the refusals were not
+refusals: with the JSON constructors' own alternative failed, `FunctionCall`, the call any name
+may be, read `JSON_ARRAY (RETURNING JSON)` and `JSON_ARRAYAGG (data RETURNING JSON) WITHIN
+GROUP (…)` whole — it takes a `RETURNING` for `JSON_VALUE`'s sake and any tail after the
+bracket. The four names are kept from it now by a lookahead, the way the reserved rowset's is
+from the ordinary source. Twenty-eight refusals and twenty-eight readings in the theory.
+
+At 170: read by both **6,720 (from 6,718), the work list 21 (from 23), defects 16 (from 18)**.
+The 21 are the 150 list's nineteen and two more `PREDICT` behind an undeclared variable: the
+level-170 list is spent as work. At 150 nothing moved; `--split` 752, the round trip 100% of
+7,650, the map unchanged, `--levels` 138 of 138. The suite is 7,256 rows (from 7,200).

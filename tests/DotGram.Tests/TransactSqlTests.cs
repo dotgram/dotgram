@@ -1729,6 +1729,76 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>`JSON_ARRAYAGG`'s clauses in their order, the order its alone, and what may follow its bracket depending on what stood inside it.</summary>
+	[Theory]
+	[InlineData("SELECT JSON_ARRAYAGG(data NULL ON NULL ORDER BY priority) FROM records")]
+	[InlineData("SELECT JSON_ARRAYAGG(data RETURNING JSON ORDER BY priority) FROM records")]
+	[InlineData("SELECT JSON_ARRAYAGG(data RETURNING NVARCHAR(MAX)) FROM records")]
+	[InlineData("SELECT JSON_ARRAYAGG(data RETURNING VARCHAR) FROM records")]
+	[InlineData("SELECT JSON_ARRAYAGG(ORDER BY priority) FROM records")]
+	[InlineData("SELECT JSON_ARRAYAGG(NULL ON NULL) FROM records")]
+	[InlineData("SELECT JSON_ARRAYAGG(RETURNING JSON) FROM records")]
+	[InlineData("SELECT JSON_ARRAYAGG(data ORDER BY priority, ) FROM records")]
+	[InlineData("SELECT JSON_ARRAYAGG(data ORDER BY priority OFFSET 1 ROWS) FROM records")]
+	[InlineData("SELECT JSON_ARRAYAGG(DISTINCT data ORDER BY data) FROM records")]
+	[InlineData("SELECT JSON_ARRAYAGG(data ORDER BY priority) OVER (PARTITION BY dept) FROM records")]
+	[InlineData("SELECT JSON_ARRAYAGG(data ORDER BY priority DESC, created_at) OVER () FROM records")]
+	[InlineData("SELECT JSON_ARRAYAGG(name ORDER BY name) OVER (ORDER BY name) FROM employees")]
+	[InlineData("SELECT JSON_ARRAYAGG(name NULL ON NULL RETURNING JSON) OVER () FROM employees")]
+	[InlineData("SELECT JSON_ARRAYAGG(name ORDER BY name NULL ON NULL RETURNING JSON) OVER (PARTITION BY dept) FROM employees")]
+	[InlineData("SELECT JSON_ARRAYAGG(name ORDER BY name ABSENT ON NULL RETURNING JSON) OVER () FROM employees")]
+	[InlineData("SELECT JSON_ARRAYAGG(data ORDER BY priority) WITHIN GROUP (ORDER BY priority) FROM records")]
+	[InlineData("SELECT JSON_ARRAYAGG(data NULL ON NULL) WITHIN GROUP (ORDER BY x) FROM r")]
+	[InlineData("SELECT JSON_ARRAYAGG(data RETURNING JSON) WITHIN GROUP (ORDER BY x) FROM r")]
+	[InlineData("SELECT JSON_ARRAYAGG(data) WITHIN GROUP (ORDER BY x) OVER () FROM r")]
+	[InlineData("SELECT JSON_OBJECTAGG(k:v ORDER BY k) FROM records")]
+	[InlineData("SELECT JSON_ARRAY(1, 2 ORDER BY 1)")]
+	[InlineData("SELECT JSON_ARRAY(RETURNING JSON)")]
+	[InlineData("SELECT JSON_OBJECT(RETURNING JSON)")]
+	[InlineData("SELECT JSON_ARRAY(1 RETURNING NVARCHAR(MAX))")]
+	[InlineData("SELECT JSON_OBJECT('a':1 RETURNING NVARCHAR(MAX))")]
+	[InlineData("SELECT STRING_AGG(data, ',' ORDER BY priority) FROM records")]
+	[InlineData("SELECT COUNT(data ORDER BY priority) FROM records")]
+	public void An_aggregate_of_json_values_is_refused_where_the_engine_refuses_it(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And is read where the engine reads it.</summary>
+	[Theory]
+	[InlineData("SELECT JSON_ARRAYAGG(value ORDER BY value) FROM mytable")]
+	[InlineData("SELECT JSON_ARRAYAGG(name ORDER BY name ASC) FROM users")]
+	[InlineData("SELECT JSON_ARRAYAGG(data ORDER BY priority DESC, created_at ASC) FROM records")]
+	[InlineData("SELECT JSON_ARRAYAGG(value ORDER BY value NULL ON NULL) FROM data")]
+	[InlineData("SELECT JSON_ARRAYAGG(data ORDER BY priority ABSENT ON NULL) FROM records")]
+	[InlineData("SELECT JSON_ARRAYAGG(data ORDER BY priority RETURNING JSON) FROM records")]
+	[InlineData("SELECT JSON_ARRAYAGG(data ORDER BY priority DESC, created_at ASC NULL ON NULL RETURNING JSON) FROM r")]
+	[InlineData("SELECT JSON_ARRAYAGG(data ORDER BY 1) FROM r")]
+	[InlineData("SELECT JSON_ARRAYAGG(data, 1 ORDER BY priority) FROM r")]
+	[InlineData("SELECT JSON_ARRAYAGG(data ORDER BY priority COLLATE Latin1_General_BIN) FROM r")]
+	[InlineData("SELECT JSON_ARRAYAGG(data RETURNING JSON) FROM records")]
+	[InlineData("SELECT JSON_ARRAYAGG() FROM r")]
+	[InlineData("SELECT TOP(5) c.object_id, JSON_ARRAYAGG(c.name ORDER BY c.column_id) AS column_list FROM sys.columns AS c GROUP BY c.object_id")]
+	[InlineData("SELECT JSON_ARRAYAGG(name) OVER (PARTITION BY dept) FROM employees")]
+	[InlineData("SELECT JSON_ARRAYAGG(name ABSENT ON NULL) OVER (PARTITION BY dept) FROM employees")]
+	[InlineData("SELECT JSON_ARRAYAGG(name NULL ON NULL) OVER () FROM employees")]
+	[InlineData("SELECT JSON_ARRAYAGG(name RETURNING JSON) OVER () FROM employees")]
+	[InlineData("SELECT JSON_ARRAYAGG(name ORDER BY name NULL ON NULL) OVER () FROM employees")]
+	[InlineData("SELECT JSON_ARRAYAGG(name ORDER BY name ABSENT ON NULL) OVER () FROM employees")]
+	[InlineData("SELECT JSON_ARRAYAGG(name ORDER BY name RETURNING JSON) OVER () FROM employees")]
+	[InlineData("SELECT JSON_ARRAYAGG(name ORDER BY name DESC, x NULL ON NULL) OVER () FROM employees")]
+	[InlineData("SELECT JSON_ARRAYAGG(name ORDER BY name NULL ON NULL) OVER (PARTITION BY dept ORDER BY name ROWS UNBOUNDED PRECEDING) FROM employees")]
+	[InlineData("SELECT JSON_ARRAYAGG(data) WITHIN GROUP (ORDER BY priority) FROM records")]
+	[InlineData("SELECT JSON_OBJECTAGG(k:v) OVER () FROM employees")]
+	[InlineData("SELECT JSON_OBJECTAGG(k:v NULL ON NULL RETURNING JSON) OVER () FROM employees")]
+	[InlineData("SELECT JSON_OBJECTAGG(k:v ABSENT ON NULL RETURNING JSON) FROM records")]
+	[InlineData("SELECT JSON_ARRAY(1 NULL ON NULL) OVER ()")]
+	[InlineData("SELECT JSON_ARRAY(1 RETURNING JSON)")]
+	public void An_aggregate_of_json_values_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
