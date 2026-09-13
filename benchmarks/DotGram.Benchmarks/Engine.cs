@@ -129,8 +129,10 @@ static class Engine
 				{
 					elsewhere++;
 
-					if (elsewhereShown.Count < shown)
-						elsewhereShown.Add(Corpus.One(one));
+					// Whole, with the message and what it was found by, since a word is a guess and
+					// this is the list a guess is checked against.
+					if (elsewhereShown.Count < shown * 20)
+						elsewhereShown.Add($"Msg {message}  [{ElsewhereBecause(one, message)}]  {Corpus.Flat(one)}");
 				}
 				else if (here)
 				{
@@ -419,20 +421,35 @@ static class Engine
 	/// </para>
 	/// </remarks>
 	internal static bool Elsewhere(string statement, int message) =>
-		// 40514 "'…' is not supported in this version of SQL Server", and 40517 the same
-		// answer about one keyword or option rather than a whole feature.
-		message is 40514 or 40517 ||
-		// 33161 "Database master keys without password are not supported in this version of
-		// SQL Server" — the same answer about one statement, which Azure SQL Database reads.
-		message is 33161 ||
-		// 534 "'…' failed because it is not supported in the edition of this SQL Server
-		// instance '…'" — the edition rather than the version, and the same kind of answer:
-		// `CREATE AVAILABILITY GROUP … WITH (BASIC)` is read and then turned down for it.
-		message is 534 ||
-		// 22487 "… is allowed only when connected to Synapse frontend": `DROP WORKLOAD CLASSIFIER`,
-		// read and turned down for the product, 2026-09-13.
-		message is 22487 ||
-		OtherProducts.Any(word => Compact(statement).IndexOf(Compact(word), StringComparison.OrdinalIgnoreCase) >= 0);
+		ElsewhereBecause(statement, message) is not null;
+
+	/// <summary>
+	/// Why a statement is counted as another product's — the message that said so, or the word
+	/// of <see cref="OtherProducts"/> it was found by — or null where it is not.
+	/// </summary>
+	/// <remarks>
+	/// Said, and not only decided, because a word is a guess where a message is an answer: a
+	/// statement found by a word may be this product's refusal all the same, and the report has
+	/// to show which statements rest on a guess for anybody to check them.
+	/// </remarks>
+	internal static string? ElsewhereBecause(string statement, int message) =>
+		message switch
+		{
+			// 40514 "'…' is not supported in this version of SQL Server", and 40517 the same
+			// answer about one keyword or option rather than a whole feature.
+			40514 or 40517 => $"Msg {message}",
+			// 33161 "Database master keys without password are not supported in this version of
+			// SQL Server" — the same answer about one statement, which Azure SQL Database reads.
+			33161 => $"Msg {message}",
+			// 534 "'…' failed because it is not supported in the edition of this SQL Server
+			// instance '…'" — the edition rather than the version, and the same kind of answer:
+			// `CREATE AVAILABILITY GROUP … WITH (BASIC)` is read and then turned down for it.
+			534 => $"Msg {message}",
+			// 22487 "… is allowed only when connected to Synapse frontend": `DROP WORKLOAD CLASSIFIER`,
+			// read and turned down for the product, 2026-09-13.
+			22487 => $"Msg {message}",
+			_ => OtherProducts.FirstOrDefault(word => Compact(statement).IndexOf(Compact(word), StringComparison.OrdinalIgnoreCase) >= 0),
+		};
 
 	/// <summary>A text with its whitespace taken out, so that `with(order(A))` is `WITH (ORDER (A))`.</summary>
 	static string Compact(string text) => string.Concat(text.Where(static one => !char.IsWhiteSpace(one)));
@@ -462,13 +479,32 @@ static class Engine
 		// as syntax, except where a unit it does not know makes it read it and object (47305).
 		"DATA_DELETION",
 
-		// Synapse and PolyBase: what is read from outside the database.
-		"EXTERNAL DATA SOURCE",
-		"EXTERNAL FILE FORMAT",
-		"EXTERNAL TABLE",
+		// What is read from outside the database, by the words of the products that are not this
+		// one. These were `EXTERNAL DATA SOURCE`, `EXTERNAL FILE FORMAT` and `EXTERNAL TABLE`,
+		// which SQL Server has as well, so any refusal of its own PolyBase objects was counted
+		// here — `DROP EXTERNAL TABLE t1, t2` sat in this bucket until the grammar was measured
+		// against it, 2026-09-13. Hadoop, which SQL Server 2022 removed: a Hadoop source, its
+		// resource manager, and the Hive formats.
+		"TYPE = HADOOP",
+		"RESOURCE_MANAGER_LOCATION",
+		"SERDE_METHOD",
+		"'hdfs://",
+		// Azure SQL Edge: JSON files read as an external table's rows.
+		"FORMAT_TYPE = JSON",
+		// Azure SQL Database's elastic query: a source over another database or a shard map.
+		"TYPE = RDBMS",
+		"TYPE = SHARD_MAP_MANAGER",
+		"SHARD_MAP_NAME",
+		"DATABASE_NAME =",
+		// Synapse serverless: how an external table reads files that are still being appended to.
+		"TABLE_OPTIONS",
 
-		// Synapse dedicated pools: the resource governor's own vocabulary there.
-		"WORKLOAD GROUP",
+		// Synapse dedicated pools: the resource governor's own vocabulary there — by its options,
+		// since SQL Server's Resource Governor has a `WORKLOAD GROUP` of its own, and the one
+		// object SQL Server has no counterpart to.
+		"MIN_PERCENTAGE_RESOURCE",
+		"CAP_PERCENTAGE_RESOURCE",
+		"REQUEST_MIN_RESOURCE_GRANT_PERCENT",
 		"WORKLOAD CLASSIFIER",
 
 		// Synapse dedicated pools: partitions split, merged and switched over data already in
@@ -750,7 +786,14 @@ static class Engine
 			//   1053  For DROP STATISTICS, you must provide both the object (table or view) name and the statistics name.
 			//  16103  Sensitivity classification is not supported for the specified object.
 			//  16110  Specification of database part of object name is not supported.
-			or 486 or 1053 or 16103 or 16110;
+			or 486 or 1053 or 16103 or 16110
+
+			// And a feature the server has and has switched off, 2026-09-13: `CREATE EXTERNAL
+			// TABLE … AS SELECT` read, and refused for a configuration option. It was counted as
+			// another product's by the word `EXTERNAL TABLE` until that word went.
+			//
+			//  46553  Create External Table as Select is disabled. See sp_configure 'allow polybase export' option to enable.
+			or 46553;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open
@@ -837,7 +880,7 @@ static class Engine
 		Console.WriteLine();
 		Console.WriteLine(
 			$"against the engine at compatibility level {version}, " +
-			$"on the kinds this grammar has a rule for");
+			$"on every statement of the corpus");
 		Console.WriteLine();
 		Console.WriteLine($"  {all} statements");
 		Console.WriteLine($"  {both,6}  both read");

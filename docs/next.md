@@ -21083,3 +21083,44 @@ this commit: tape/hand 2.58x to 4.61x, immediate/hand 1.25x to 1.64x, mixed/hand
 parser allocates one more node for every pair of brackets now — on `((((a + 1) * 2) - 3) / 4)
 + b > 0` it allocates 808 bytes to the generated parser's 744 — so its time is not the same
 quantity it was, and a ratio against it measures a different yardstick.
+
+## The bucket a word decides
+
+`--engine` counts a statement this grammar reads and the engine refuses as another product's
+in two ways: by a message that says so — 40514, "not supported in this version" — or by a word
+of `OtherProducts` found in the statement. The first is the engine's answer and the second is a
+guess, and `DROP EXTERNAL TABLE t1, t2` had shown the guess could hide a defect: it sat in that
+bucket, found by the word `EXTERNAL TABLE`, until the drop piece measured it. So the bucket was
+audited whole. The report says why now — `Msg 102  [EXTERNAL TABLE]  CREATE EXTERNAL TABLE …`, the
+message, what the statement was found by, and the statement in full, up to twenty times the
+number asked for — where it had shown a handful, cut at eighty-six characters, with neither.
+
+Grouped by reason, 294 at 170. The messages stand. The words were read one by one against the
+reference: `EDITION =` and `MAXSIZE` are Azure SQL Database's `CREATE DATABASE d1 (MAXSIZE = 1
+GB)`; `DISTRIBUTION =`, `SPLIT RANGE`, `MERGE RANGE`, `TRUNCATE_TARGET` and `'PARQUET'` are
+Synapse's; `TABLE_OPTIONS` is "available in serverless SQL pool". Every statement was another
+product's. But four of the words name objects SQL Server has too — `EXTERNAL DATA SOURCE`,
+`EXTERNAL FILE FORMAT`, `EXTERNAL TABLE`, and `WORKLOAD GROUP`, which its Resource Governor
+has — so any refusal of those objects' own syntax would land here and be called Synapse's. They
+went, and the words of the products themselves came instead: Hadoop's `TYPE = HADOOP`,
+`RESOURCE_MANAGER_LOCATION`, `SERDE_METHOD` and `'hdfs://`, which SQL Server 2022 removed; Azure
+SQL Database's elastic query, `TYPE = RDBMS`, `TYPE = SHARD_MAP_MANAGER`, `SHARD_MAP_NAME`,
+`DATABASE_NAME =`; Synapse's `TABLE_OPTIONS`; Azure SQL Edge's `FORMAT_TYPE = JSON`; and a
+Synapse workload group by its options, `MIN_PERCENTAGE_RESOURCE`, `CAP_PERCENTAGE_RESOURCE`,
+`REQUEST_MIN_RESOURCE_GRANT_PERCENT`.
+
+Eight statements were no product's but this one's: `CREATE EXTERNAL TABLE … AS SELECT`, answered
+`Msg 46553`, "Create External Table as Select is disabled. See sp_configure 'allow polybase
+export'" — read, and refused for a setting of this server. 46553 went with the messages about
+names, and the eight are read by both.
+
+At 170: read by both **7,403 (from 7,395)**, the work list 5, defects 2, another product's **286
+(from 294)**, neither 621. At 150: 6,616 both, 5 work, 2 defects, 246 another product's. No
+statement of the corpus moved to the defects: the words had hidden none there. **The map did**:
+7,994 read by both (from 7,984), 8 work, another product's 76 (from 88), and **2 defects (from
+0)** — one statement counted twice, `CREATE EXTERNAL TABLE Region (…) WITH (LOCATION =
+'/region/', DATA_SOURCE = 's3_ds', FILE_FORMAT = ParquetFileFormat)`, on a section that "applies
+to SQL Server 2022 and later". The engine refuses a data source written as a string; this grammar
+reads any value in an external object's option list. Put to the engine with the variants beside
+it, that list turned out not to be a list at all but a catalogue with a type for every value —
+sixteen disagreements in thirty lines — and it is the next piece.
