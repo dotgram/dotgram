@@ -24,7 +24,7 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 99.9% | 7994 | 8 | 0 | 0 | 73 | 263 | 0 |
+| **all** | 996 | 8338 | 99.9% | 7994 | 8 | 0 | 0 | 81 | 255 | 0 |
 | [data-types](#data-types) | 29 | 304 | 100.0% | 291 | 0 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 100.0% | 234 | 0 | 0 | 0 | 1 | 7 | 0 |
 | [functions](#functions) | 324 | 2101 | 100.0% | 2082 | 0 | 0 | 0 | 2 | 17 | 0 |
@@ -34,7 +34,7 @@ rest run rather than read.
 | [reference](#reference) | 3 | 32 | 100.0% | 32 | 0 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 100.0% | 311 | 0 | 0 | 0 | 0 | 1 | 0 |
 | [spatial-geometry](#spatial-geometry) | 74 | 357 | 100.0% | 357 | 0 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 100.0% | 2911 | 1 | 0 | 0 | 70 | 181 | 0 |
+| [statements](#statements) | 320 | 3163 | 100.0% | 2911 | 1 | 0 | 0 | 78 | 173 | 0 |
 | [xml](#xml) | 12 | 205 | 100.0% | 201 | 0 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
@@ -784,7 +784,7 @@ None: the engine reads every statement this grammar reads.
 | ALTER DATABASE File and Filegroups | 69 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE SET HADR (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE SET Options (Transact-SQL) | 48 | 100.0% | 0 | 0 | 0 | 0 |  |
-| ALTER DATABASE (Transact-SQL) | 35 | 100.0% | 0 | 0 | 0 | 9 |  |
+| ALTER DATABASE (Transact-SQL) | 35 | 100.0% | 0 | 0 | 0 | 10 |  |
 | ALTER EVENT SESSION (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER EXTERNAL DATA SOURCE (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 1 |  |
 | ALTER EXTERNAL LANGUAGE (Transact-SQL) - SQL Server | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -855,7 +855,7 @@ None: the engine reads every statement this grammar reads.
 | CREATE DATABASE AUDIT SPECIFICATION | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE DATABASE ENCRYPTION KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE DATABASE SCOPED CREDENTIAL (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
-| CREATE DATABASE (Transact-SQL) | 54 | 100.0% | 0 | 0 | 0 | 6 |  |
+| CREATE DATABASE (Transact-SQL) | 54 | 100.0% | 0 | 0 | 0 | 12 |  |
 | CREATE DEFAULT (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE ENDPOINT (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE EVENT NOTIFICATION (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -905,7 +905,7 @@ None: the engine reads every statement this grammar reads.
 | CREATE TABLE | 12 | — | 0 | 0 | 0 | 1 |  |
 | CREATE TABLE (SQL Graph) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | IDENTITY (Property) (Transact-SQL) | 22 | 100.0% | 0 | 0 | 0 | 0 |  |
-| CREATE TABLE (Transact-SQL) | 69 | 100.0% | 0 | 0 | 0 | 1 |  |
+| CREATE TABLE (Transact-SQL) | 69 | 100.0% | 0 | 0 | 0 | 2 |  |
 | CREATE TRIGGER (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE TYPE (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE USER (Transact-SQL) | 42 | 100.0% | 0 | 0 | 0 | 0 |  |

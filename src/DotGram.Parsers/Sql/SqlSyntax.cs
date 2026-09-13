@@ -1328,6 +1328,9 @@ public abstract record Statement : ISqlSpan
 	/// <summary><c>ALTER DATABASE … PERFORM_CUTOVER</c>.</summary>
 	public sealed record AlterDatabasePerformCutover(string Name) : Definition(Name);
 
+	/// <summary><c>ALTER DATABASE … MODIFY BACKUP_STORAGE_REDUNDANCY</c>, Azure SQL Database's.</summary>
+	public sealed record AlterDatabaseModifyBackupStorageRedundancy(string Name) : Definition(Name);
+
 	// ---- the SET statements --------------------------------------------------------------------
 
 	/// <summary>
@@ -2049,6 +2052,7 @@ public abstract record Statement : ISqlSpan
 			"REMOVE FILE"          => new AlterDatabaseRemoveFile(name),
 			"REBUILD LOG"          => new AlterDatabaseRebuildLog(name),
 			"PERFORM_CUTOVER"      => new AlterDatabasePerformCutover(name),
+			"MODIFY BACKUP_STORAGE_REDUNDANCY" => new AlterDatabaseModifyBackupStorageRedundancy(name),
 			_                      => throw Syntax.Unknown(action),
 		};
 

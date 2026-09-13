@@ -304,6 +304,7 @@ compile, and a test reads this column against every record.
 | `Statement.AlterDatabaseRemoveFile` | T-SQL | ALTER DATABASE … REMOVE FILE | Ddl |
 | `Statement.AlterDatabaseRebuildLog` | T-SQL | ALTER DATABASE … REBUILD LOG | Ddl |
 | `Statement.AlterDatabasePerformCutover` | T-SQL | ALTER DATABASE … PERFORM CUTOVER | Ddl |
+| `Statement.AlterDatabaseModifyBackupStorageRedundancy` | T-SQL | ALTER DATABASE … MODIFY BACKUP_STORAGE_REDUNDANCY, Azure SQL Database's | Ddl |
 | `Statement.SetStatement` | T-SQL | the SET statements: what follows SET, as `SetExpression`s | Session |
 | `Statement.SetVariable` | T-SQL | SET @local_variable | Declaration |
 | `Statement.Grant` | SQL-92 | §12.1 &lt;grant statement&gt; | Dcl |

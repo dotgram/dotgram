@@ -21510,3 +21510,31 @@ number or `NULL`. And one row the old open list had written into a theory, `AFFI
 NUMANODE = (0)`, was never asked: the engine refuses it and seventeen shapes like it.
 
 At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 150: 6,616 both, 226 and 539; `--split` 783, the round trip 100% of 7,717, the map 7,994 both and 0 defects, `--levels` 145 of 145 — unchanged, once the corpus's own options were in. The suite is 14,086 rows (from 13,667): 266 refusals, 144 readings and 10 of Synapse's.
+
+## Azure SQL Database's edition options, its copy and its redundancy
+
+Azure SQL Database's and Synapse's `CREATE DATABASE`, `AS COPY OF` and `ALTER DATABASE … MODIFY`
+took a bracket of any options. This server refuses every one of them with `Msg 102`, so the rows are
+the published blocks' and not an engine's: 20 readings and 12 refusals.
+
+**The edition options** are a size in megabytes or gigabytes, an edition and a service objective as
+strings, and an elastic pool by name, in any order. A collation may come before the bracket, and the
+creation's own options after it with `WITH` — `CATALOG_COLLATION`, `LEDGER`, and now
+`BACKUP_STORAGE_REDUNDANCY` as a string. An edition unquoted, a size without its unit, an empty
+bracket or an unknown name are refused.
+
+**A copy** names a database on this server or another, two parts at most; its edition options follow
+in a bracket, and its backups' redundancy in a bracket after `WITH`, where unbracketed or any other
+option is refused.
+
+**A database modified** takes the same bracket, then `WITH MANUAL_CUTOVER` and nothing else, or
+`MODIFY BACKUP_STORAGE_REDUNDANCY = '…'`, which is a record of its own in the tree
+(`AlterDatabaseModifyBackupStorageRedundancy`). The round trip found the ten corpus statements now
+read coming back different: the writer dropped an Azure creation's collation and its options after
+the bracket, and wrote a copy's `WITH` unbracketed. Written back with them, all ten are the same.
+
+At 170: 7,403 both, 5 work, 2 defects, 276 another product's, 631 neither — ten Azure statements
+moved from neither to another product's; at 150: 6,616 both, 236 and 529. `--split` 785 cut the same
+(from 783), the round trip 100% of 7,727 (from 7,717), the map 7,994 both and 0 defects with 81
+another product's and 255 neither (from 73 and 263), `--levels` 145 of 145. The suite is 14,120
+rows (from 14,087).

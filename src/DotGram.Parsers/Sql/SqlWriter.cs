@@ -1066,14 +1066,28 @@ public static class SqlWriter
 			case Statement.CreateDatabase(var name, var files, var primary, var log, var containment, var collation, var tail, var options, var with):
 				text.Append("CREATE DATABASE ").Append(name);
 
-				// The Azure spelling: a bracket of options and nothing else.
+				// The Azure spelling: a collation, a bracket of options, and the creation's options
+				// after it.
 				if (tail == "")
 				{
+					if (collation is not null)
+						text.Append(" COLLATE ").Append(collation);
+
 					text.Append(" (");
 					Each(text, options ?? Clause.None);
 					text.Append(')');
+
+					if (with is not null)
+					{
+						text.Append(" WITH ");
+						Each(text, with);
+					}
+
 					break;
 				}
+
+				// Azure's copy: its backups' redundancy is bracketed after `WITH`.
+				var copy = tail?.StartsWith("AS COPY OF", StringComparison.OrdinalIgnoreCase) == true;
 
 				if (containment is not null)
 					text.Append(" CONTAINMENT = ").Append(containment);
@@ -1105,8 +1119,11 @@ public static class SqlWriter
 
 				if (with is not null)
 				{
-					text.Append(" WITH ");
+					text.Append(copy ? " WITH (" : " WITH ");
 					Each(text, with);
+
+					if (copy)
+						text.Append(')');
 				}
 
 				break;
@@ -1532,6 +1549,7 @@ public static class SqlWriter
 	{
 		["BackupTransactionLog"]   = "BACKUP LOG",
 		["PerformCutover"]         = "PERFORM_CUTOVER",
+		["ModifyBackupStorageRedundancy"]        = "MODIFY BACKUP_STORAGE_REDUNDANCY",
 		["RestoreFileListOnly"]    = "RESTORE FILELISTONLY",
 		["RestoreHeaderOnly"]      = "RESTORE HEADERONLY",
 		["RestoreLabelOnly"]       = "RESTORE LABELONLY",

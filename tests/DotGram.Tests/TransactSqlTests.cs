@@ -8986,6 +8986,55 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>
+	/// Azure SQL Database's and Synapse's edition options and copies, read by their published blocks:
+	/// this server refuses every one of them, so these rows are the pages' and not an engine's.
+	/// </summary>
+	[Theory]
+	[InlineData("CREATE DATABASE db1 (EDITION = 'GeneralPurpose')")]
+	[InlineData("CREATE DATABASE db1 (MAXSIZE = 500 MB, EDITION = 'GeneralPurpose', SERVICE_OBJECTIVE = 'GP_Gen5_8')")]
+	[InlineData("CREATE DATABASE db1 (SERVICE_OBJECTIVE = ELASTIC_POOL (name = S3M100))")]
+	[InlineData("CREATE DATABASE TestDB3 COLLATE Japanese_XJIS_140 (MAXSIZE = 100 MB, EDITION = 'Basic') WITH CATALOG_COLLATION = DATABASE_DEFAULT")]
+	[InlineData("CREATE DATABASE db1 (EDITION = 'GeneralPurpose') WITH BACKUP_STORAGE_REDUNDANCY = 'ZONE'")]
+	[InlineData("CREATE DATABASE MyLedgerDB (EDITION = 'GeneralPurpose') WITH LEDGER = ON")]
+	[InlineData("CREATE DATABASE dw1 (EDITION = 'datawarehouse', SERVICE_OBJECTIVE = 'DW100c')")]
+	[InlineData("CREATE DATABASE dw1 (MAXSIZE = 10240 GB, EDITION = 'datawarehouse', SERVICE_OBJECTIVE = 'DW1000c')")]
+	[InlineData("CREATE DATABASE escuela AS COPY OF school")]
+	[InlineData("CREATE DATABASE db2 AS COPY OF ozabzw7545.db_original (EDITION = 'GeneralPurpose', SERVICE_OBJECTIVE = 'GP_Gen5_8')")]
+	[InlineData("CREATE DATABASE db2 AS COPY OF ozabzw7545.db_original (SERVICE_OBJECTIVE = ELASTIC_POOL (name = ep1))")]
+	[InlineData("CREATE DATABASE db2 AS COPY OF [test_db] (EDITION = 'GeneralPurpose', SERVICE_OBJECTIVE = 'GP_Gen5_8') WITH (BACKUP_STORAGE_REDUNDANCY = 'LOCAL')")]
+	[InlineData("ALTER DATABASE db1 MODIFY (EDITION = 'Premium')")]
+	[InlineData("ALTER DATABASE db1 MODIFY (SERVICE_OBJECTIVE = 'P6')")]
+	[InlineData("ALTER DATABASE [db1] MODIFY (EDITION = 'Premium', MAXSIZE = 1024 GB, SERVICE_OBJECTIVE = 'P15')")]
+	[InlineData("ALTER DATABASE db1 MODIFY (SERVICE_OBJECTIVE = ELASTIC_POOL (name = pool1))")]
+	[InlineData("ALTER DATABASE db1 MODIFY BACKUP_STORAGE_REDUNDANCY = 'ZONE'")]
+	[InlineData("ALTER DATABASE db1 MODIFY (EDITION = 'Hyperscale', SERVICE_OBJECTIVE = 'HS_Gen5_2') WITH MANUAL_CUTOVER")]
+	[InlineData("ALTER DATABASE dw1 MODIFY (MAXSIZE = 10240 GB)")]
+	[InlineData("ALTER DATABASE dw1 MODIFY (MAXSIZE = 10240 GB, SERVICE_OBJECTIVE = 'DW1200')")]
+	public void An_azure_databases_edition_is_read_by_its_published_syntax(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>And refused where the published blocks do not write it.</summary>
+	[Theory]
+	[InlineData("CREATE DATABASE db1 (EDITION = GeneralPurpose)")]
+	[InlineData("CREATE DATABASE db1 (MAXSIZE = 500)")]
+	[InlineData("CREATE DATABASE db1 (MAXSIZE = 500 KB)")]
+	[InlineData("CREATE DATABASE db1 (NOSUCH = 1)")]
+	[InlineData("CREATE DATABASE db1 ()")]
+	[InlineData("CREATE DATABASE db1 (SERVICE_OBJECTIVE = ELASTIC_POOL (pool1))")]
+	[InlineData("CREATE DATABASE db2 AS COPY OF a.b.c")]
+	[InlineData("CREATE DATABASE db2 AS COPY OF db1 WITH BACKUP_STORAGE_REDUNDANCY = 'LOCAL'")]
+	[InlineData("CREATE DATABASE db2 AS COPY OF db1 WITH (LEDGER = ON)")]
+	[InlineData("ALTER DATABASE db1 MODIFY (NOSUCH = 1)")]
+	[InlineData("ALTER DATABASE db1 MODIFY (EDITION = 'Premium') WITH NO_WAIT_AT_ALL")]
+	[InlineData("ALTER DATABASE db1 MODIFY BACKUP_STORAGE_REDUNDANCY = ZONE")]
+	public void An_azure_databases_edition_is_refused_where_its_published_syntax_does_not_say_it(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
@@ -14260,6 +14309,7 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER DATABASE d COLLATE Estonian_CS_AS", "AlterDatabaseCollate")]
 	[InlineData("ALTER DATABASE d MODIFY NAME = e", "AlterDatabaseModifyName")]
 	[InlineData("ALTER DATABASE d REBUILD LOG",     "AlterDatabaseRebuildLog")]
+	[InlineData("ALTER DATABASE d MODIFY BACKUP_STORAGE_REDUNDANCY = 'ZONE'", "AlterDatabaseModifyBackupStorageRedundancy")]
 
 	[InlineData("CREATE LOGIN l WITH PASSWORD = 'p'", "CreateLogin")]
 	[InlineData("CREATE USER u",                    "CreateUser")]
