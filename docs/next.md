@@ -21313,3 +21313,161 @@ At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 15
 226 and 539; `--split` 780, the round trip 100% of 7,717, the map 7,994 both and 0 defects,
 `--levels` 145 of 145 — unchanged. The suite is 12,976 rows (from 12,842): 96 refusals, 34 readings
 and 4 of Synapse's.
+
+## A security policy's options, made and altered
+
+A security policy's `WITH (…)` read any option, and its alteration any mixture of predicates,
+options and replication. Asked 132 lines.
+
+**Made**, a policy takes `STATE = ON | OFF` and `SCHEMABINDING = ON | OFF`, in either order and as
+often as wanted, with a comma between them: the published block writes the comma as optional,
+`[,]`, and `WITH (STATE = ON SCHEMABINDING = OFF)` is `Msg 102`. `'ON'`, `1`, `[ON]`, `STATE ON`, an
+empty list, a stray comma and any other name are 102 or 156. `NOT FOR REPLICATION` comes after the
+list, once.
+
+**Altered**, a policy is altered one way at a time: its predicates, or `WITH (STATE = ON | OFF)`
+once, or `ADD NOT FOR REPLICATION`, or `DROP NOT FOR REPLICATION`. The published block puts a `WITH`
+and a `NOT FOR REPLICATION` after the predicates; the engine answers the first with `Msg 319` — it
+takes the `WITH` for the beginning of a statement that needed a `;` before it — and the second with
+102. The binding to schemas is not altered (102), which the reference says in prose, and a policy
+altered by nothing is 102; this grammar read both.
+
+`Msg 319` is a refusal like 102 — only a message about names counts as read (`Engine.AboutNames`)
+— which the theory scripts now say too.
+
+At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 150: 6,616 both,
+226 and 539; `--split` 780, the round trip 100% of 7,717, the map 7,994 both and 0 defects,
+`--levels` 145 of 145 — unchanged. The suite is 13,102 rows (from 12,976): 95 refusals and 31
+readings.
+
+## Full-text options: a catalog's, an index's, a stoplist's
+
+The full-text statements read their options as any list, a `START` as any word, a stop word and
+its language as any expression. Asked 240 lines.
+
+**A catalog**, made or rebuilt, is told `ACCENT_SENSITIVITY = ON | OFF` and nothing else, once and
+without brackets: `WITH ACCENT_SENSITIVITY ON` is 156, `'ON'`, `1`, a second one and any other
+name 102.
+
+**An index** is told its options bracketed or not — the engine reads both, as the corpus writes
+both — each once and in any order, the equals sign wanted or not: `CHANGE_TRACKING` `MANUAL`,
+`AUTO` or `OFF`; `STOPLIST` `OFF`, `SYSTEM` or a name of one part; `SEARCH PROPERTY LIST` `OFF` or a
+name of one part. `NO POPULATION` stands directly after a tracking and nowhere else — alone, first
+or twice it is 102 — and after `AUTO` it is read and objected to (`Msg 7663`). A string or a dotted
+name for either list is 102, `ON` 156, `FILLFACTOR` 156.
+
+**Altered**, an index is set one thing: a tracking, which says nothing about population (`… OFF WITH
+NO POPULATION` is `Msg 319`), or a stoplist or a property list, which may. Two at once are 102.
+`START` begins a `FULL`, `INCREMENTAL` or `UPDATE` population and no other.
+
+**A stoplist's word** is a string, national or not, and its language a string, a number, a binary
+string or a name — `LANGUAGE Spanish` and `LANGUAGE 0x0409` are read — never a variable or an
+expression, and the word never unquoted. A stoplist is copied from one named in two parts at
+most.
+
+At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 150: 6,616 both,
+226 and 539; the round trip 100% of 7,717, the map 7,994 both and 0 defects, `--levels` 145 of
+145 — unchanged. `--split` reads 783 files whole and cut the same (from 780), none cut
+differently: three files whose full-text statements the open lists had run on into the next one.
+The suite is 13,337 rows (from 13,102): 136 refusals and 99 readings.
+
+## An audit's options, and a specification's
+
+An audit's target was a word or a file with any list, its options and a specification's any
+list. Asked 249 lines.
+
+**A file** is told its path, a size, how many files it rolls over and how many it keeps, and
+whether it reserves the space — in any order and as often as wanted, which the published block,
+writing them in a row with each after a comma, does not say. A size is a number, a fraction
+allowed, in `MB`, `GB` or `TB`, spaced or not, or `UNLIMITED`: `1 KB` and a bare `1` are 102. A
+rollover is a whole number or `UNLIMITED`, a file count a whole number only. A file made is told
+its path somewhere among the rest (`TO FILE (MAXSIZE = 1 MB)` is 102); a file altered need not
+be. The logs are `APPLICATION_LOG` and `SECURITY_LOG`; `EXTERNAL_MONITOR` and `OPERATOR_AUDIT` are
+Azure's and answered `Msg 40517`; `TO URL` is Managed Instance's, refused here and read by its
+published syntax. `TO NOSUCH` and `TO FILE` without its bracket are 102.
+
+**An audit** is told a delay in whole milliseconds and what to do on a failure, in any order and
+as often as wanted; made, its GUID as a string; altered, whether it is on — and each is the other's
+102: `CREATE … WITH (STATE = ON)` and `ALTER … WITH (AUDIT_GUID = '…')`. An audit altered by
+nothing is 102.
+
+**A specification** is switched on or off and told nothing else, as often as wanted. Except where
+the engine does not hold to it: after an action on an object — `ADD (SELECT ON t BY dbo)`, dropped
+or added, anywhere in the list — a database audit specification reads anything at all to the end of
+its batch: `WITH (NOSUCH = ON)`, `WITH ()`, `x y z`, an unclosed bracket, a second `WITH`. After a
+group of actions alone it is strict. That is recovery rather than syntax, it reaches past the
+statement, and this grammar does not follow it; the twenty-three lines are left out of the theory,
+and the corpus has none.
+
+At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 150: 6,616 both,
+226 and 539; `--split` 783, the round trip 100% of 7,717, the map 7,994 both and 0 defects,
+`--levels` 145 of 145 — unchanged. The suite is 13,551 rows (from 13,337): 96 refusals, 107
+readings and 11 of the other products.
+
+## Built: a publication another reaches is read by that one's machine
+
+"One machine per published rule" was refined once already, for rules that reach each other.
+What it left was the rule reached one way: `QueryExpression` inside `DirectSelect`, `Uri`
+inside `UriReference`, the expression language's hole reader inside `Lambda`. Each had a
+machine of its own, compiling again every rule it reaches, while the larger machine held all
+of them already and needed nothing but an entry.
+
+`CSharpEmitter.Joined` folds it in, once the machines exist, and only where joining changes
+how neither publication is read: a lowered publication keeps its flat method (the reason
+`Minimal` was split in the first place), methods join methods and the engine joins the
+engine, a streamed publication keeps its machine, and methods are asked again over both
+lists. The old comment in `Sharing` said one-way sharing would leave the smaller rule no entry
+of its own. It was written before the reader, which writes an entry per publication of its
+group, as the engine registers a root per publication.
+
+| grammar | before | after |
+| --- | --: | --: |
+| standard SQL | 26,756 | 16,932 |
+| RFC 3986 | 13,498 | 7,731 |
+| expression language, tape | 46,475 | 36,318 |
+| expression language, immediate | 37,832 | 29,910 |
+| `FileNames` example | 1,717 | 1,536 |
+
+The snapshots do not change; allocations do not change on either yardstick; time is noise
+(SQL tape +0.8%, immediate +1.5%, control -0.4%; EL within its control).
+
+**A forwarder is not in any machine.** `Expression = e: Assignment => @(e)` is collapsed
+wherever it is called, so `Lambda`'s machine holds `Assignment` and never `Expression`, and
+publishing `Expression` cannot be joined to anything. The hole reader publishes `Assignment`.
+Worth knowing for any grammar that publishes a rule which only hands another on.
+
+**And a latent bug it exposed:** a split grammar's publication of text read its value with
+`Text_DotGram(...)`, while the helper is named with the machine's tag. No grammar with two
+machines and an untyped publication could compile; none of this repository's had one.
+
+## HTTP's and SOAP's settings
+
+The last open lists of an endpoint: `AS HTTP (…)`, and a SOAP endpoint's settings beside its web
+methods. Both were published by SQL Server 2005 and removed in 2012, so no page of the reference
+has their syntax any more; the engine still reads them, and was asked 116 lines written as the 2005
+block wrote them.
+
+**HTTP** takes a path and a site as strings; a realm and a logon domain as strings or `NONE`; the
+ways it authenticates — `BASIC`, `DIGEST`, `NTLM`, `KERBEROS`, `INTEGRATED` — and the ports it
+listens on, `CLEAR` and `SSL`, each a bracketed list; the clear and SSL port numbers as whole
+numbers, a sign allowed as TCP's port allows one; and compression `ENABLED` or `DISABLED`. In any
+order and as often as wanted, and at least one: `AS HTTP ()` is 102. A path unquoted or `NONE`,
+`AUTHENTICATION = INTEGRATED` without its bracket, a word out of either list, a port in quotes or
+with a fraction, `COMPRESSION = ON` and TCP's `LISTENER_PORT` are 102 or 156.
+
+The first cut took the realm and the logon domain as strings only, which the probe had asked, and
+the passes caught what it had not: ScriptDom's `AUTH_REALM = NONE, DEFAULT_LOGON_DOMAIN = NONE`,
+twice in the corpus, went from read by both to the work list, and `--split` and the round trip lost
+the two with it. A second probe of the words beside each string and number found `NONE` for those
+two and a sign for the ports, and nothing else.
+
+**SOAP's settings**, over HTTP or TCP alike: a WSDL `DEFAULT`, `NONE` or a procedure named in a
+string; batches and sessions `ENABLED` or `DISABLED`; a login `WINDOWS` or `MIXED`; a session
+timeout in whole seconds or `NEVER`; a database and a namespace `DEFAULT` or a string; a schema
+`NONE` or `STANDARD` — not `DEFAULT`, which a web method's schema takes; a character set `SQL` or
+`XML`; a header limit in whole bytes. As often as wanted, mixed with the web methods; `BATCHES =
+ON`, `DATABASE = db`, `NAMESPACE = x` and a name no endpoint knows are 102 or 156.
+
+At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 150: 6,616 both,
+226 and 539; `--split` 783, the round trip 100% of 7,717, the map 7,994 both and 0 defects,
+`--levels` 145 of 145 — unchanged. The suite is 13,664 rows (from 13,551): 47 refusals and 66 readings.

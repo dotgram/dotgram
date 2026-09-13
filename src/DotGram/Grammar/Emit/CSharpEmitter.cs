@@ -213,6 +213,10 @@ public static partial class CSharpEmitter
 				made, group.Publications, "Recognize_DotGram" + tag, tag, lowered, asMethods));
 		}
 
+		// A publication whose rule another machine already reaches is read by that machine,
+		// entered at its own rule, rather than by a second copy of everything it reaches.
+		Joined(graph, machines, overKinds);
+
 		// A second machine over the characters, for the terminals whose value the lexer
 		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds
 		// what that rule builds, which is the same code the character parser would have run
@@ -1134,7 +1138,7 @@ public static partial class CSharpEmitter
 		// the same care the machine takes for a capture, taken once more at the edge.
 		string Recognized(string from, string to) =>
 			built is not null ? "recognized" :
-			overKinds        ? $"Text_DotGram(source, starts, lengths, {from}, {to})" :
+			overKinds        ? $"Text_DotGram{tag}(source, starts, lengths, {from}, {to})" :
 			$"input.Substring({from}, {to})";
 
 		// Where the reading begins, which recognizer reads it, and what the match then says
@@ -2690,11 +2694,80 @@ public static partial class CSharpEmitter
 	/// it, or null where there are none.
 	/// </summary>
 	/// <remarks>
-	/// Mutual reachability and not one-way: a machine is compiled over what its root
-	/// reaches, so two rules can share one exactly when each reaches what the other does.
-	/// One-way would put a rule's machine inside another's and leave the smaller with no
-	/// entry of its own.
+	/// Mutual reachability, because a machine is compiled over what its root reaches and two
+	/// rules reaching each other reach the same things. A rule reached one way only is asked
+	/// about later, by <see cref="Joined"/>, once the machines exist: whether it may join
+	/// depends on how each of them turned out to be written.
 	/// </remarks>
+	/// <summary>
+	/// Every machine whose root another machine reaches, folded into that one.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A machine holds every rule its root reaches, so a publication of one of those rules
+	/// needs nothing of its own but an entry — and it used to get a whole machine, compiling
+	/// again everything it reaches. `Expression` inside `Lambda`, `QueryExpression` inside
+	/// `DirectSelect` and `Uri` inside `UriReference` were a fifth to a half of their files.
+	/// </para>
+	/// <para>
+	/// Only where the larger machine is written the way the smaller one was, so that joining
+	/// changes how neither publication is read: a lowered publication keeps its flat method,
+	/// methods join methods and the engine joins the engine, and a streamed publication keeps
+	/// the machine it was compiled for. Methods are asked again over both lists of
+	/// publications, since what they need is worked out from the publications they serve.
+	/// </para>
+	/// </remarks>
+	static void Joined(RecognitionGraph graph, List<Compiled> machines, bool overKinds)
+	{
+		for (var joined = true; joined; )
+		{
+			joined = false;
+
+			for (var guest = 0; guest < machines.Count && !joined; guest++)
+			{
+				var smaller = machines[guest];
+
+				if (smaller.Flat ||
+					smaller.Machine.Anchor is not { } root ||
+					smaller.Publications.Count == 0 ||
+					smaller.Publications.Any(publication => Streams(graph, publication, overKinds)))
+				{
+					continue;
+				}
+
+				for (var host = 0; host < machines.Count; host++)
+				{
+					var larger = machines[host];
+
+					if (host == guest ||
+						larger.Flat ||
+						larger.Direct != smaller.Direct ||
+						larger.Machine.Anchor is not { } owner ||
+						!Reaches(graph, owner).Contains(root))
+					{
+						continue;
+					}
+
+					var publications = larger.Publications.Concat(smaller.Publications).ToList();
+
+					if (larger.Direct && !larger.Machine.CanDirect(publications))
+					{
+						// Put back what the refused question worked out.
+						larger.Machine.CanDirect(larger.Publications);
+
+						continue;
+					}
+
+					machines[host] = larger with { Publications = publications };
+					machines.RemoveAt(guest);
+					joined = true;
+
+					break;
+				}
+			}
+		}
+	}
+
 	static List<Publication>? Sharing(
 		List<(RuleSymbol? Rule, IReadOnlyList<Publication> Publications)> groups,
 		RecognitionGraph graph,

@@ -4932,7 +4932,7 @@ KeyStatement : @Statement
 	// And with no variable in it: `dbo.f (c, @user_id)` is `Msg 112`, "variables are not
 	// allowed in the CREATE SECURITY POLICY statement", where `@@ROWCOUNT` and `'a@b'` read.
 	| "CREATE"i & "SECURITY"i & "POLICY"i & name: QualifiedName
-	  & tail: (PolicyPredicates? & OptionsWith? & NotForReplication?)
+	  & tail: (PolicyPredicates? & PolicyWith? & NotForReplication?)
 	  & when @(Syntax.WithoutVariable(tail))
 		=> @(Statement.Defined("SECURITY POLICY", name, Syntax.Tail(tail), "CREATE"))
 	| "ALTER"i & "SECURITY"i & "POLICY"i & name: QualifiedName & tail: PolicyAlteration
@@ -5148,8 +5148,20 @@ CredentialWith = "WITH"i & "IDENTITY"i & '=' & Quoted & (',' & "SECRET"i & '=' &
 
 PolicyPredicates = PolicyPredicate & (',' & PolicyPredicate)*
 
+// A policy made says whether it is on and whether its functions must be bound to their schema,
+// in either order, with a comma between and as often as wanted: `WITH (STATE = ON SCHEMABINDING
+// = OFF)`, which the published block's `[,]` allows, is `Msg 102`, and so is any other name or
+// value.
+PolicyWith = "WITH"i & '(' & PolicySetting & (',' & PolicySetting)* & ')'
+PolicySetting = ("STATE"i | "SCHEMABINDING"i) & '=' & OnOff
+
+// A policy altered is altered one way: its predicates, its state, or whether replication leaves
+// it alone, and never two of them. `WITH` after a predicate is `Msg 319`, `NOT FOR REPLICATION`
+// after one `Msg 102`, a policy altered by nothing 102; the binding to schemas is not altered
+// (102), and the state is said once.
 PolicyAlteration = ("ADD"i | "DROP"i) & NotForReplication
-				 | PolicyPredicates? & OptionsWith?
+				 | PolicyPredicates
+				 | "WITH"i & '(' & "STATE"i & '=' & OnOff & ')'
 
 // A predicate says what it is — `ADD PREDICATE` alone is refused — and only a block predicate
 // says which change it blocks: after an insert or an update, before an update or a delete,
@@ -5181,7 +5193,7 @@ FullTextStatement : @Statement
 
 	| "CREATE"i & "FULLTEXT"i & "CATALOG"i & name: Identifier
 	  & tail: (("ON"i & "FILEGROUP"i & Identifier)? & ("IN"i & "PATH"i & ValueExpression)?
-			   & ("WITH"i & OptionList)? & AsDefault? & ("AUTHORIZATION"i & QualifiedName)?)
+			   & CatalogWith? & AsDefault? & ("AUTHORIZATION"i & QualifiedName)?)
 		=> @(Statement.Defined("FULLTEXT CATALOG", name, Syntax.Tail(tail)))
 	| "ALTER"i & "FULLTEXT"i & "CATALOG"i & name: Identifier & tail: FullTextCatalogAction
 		=> @(Statement.Defined("ALTER FULLTEXT CATALOG", name, Syntax.Tail(tail)))
@@ -5198,9 +5210,30 @@ FullTextStatement : @Statement
 	| "ALTER"i & "SEARCH"i & "PROPERTY"i & "LIST"i & name: Identifier & tail: PropertyListAction
 		=> @(Statement.Defined("ALTER SEARCH PROPERTY LIST", name, Syntax.Tail(tail)))
 
-// Bracketed or not, which the published block writes one way and the corpus both.
-FullTextWith = "WITH"i & '(' & OptionList & ')'
-			 | "WITH"i & OptionList
+// Bracketed or not, which the published block writes one way and the corpus both — and the engine
+// reads both. Each option once and in any order (`Msg 102`), the equals sign wanted or not: how
+// changes are tracked, then perhaps `NO POPULATION` right after it, which stands nowhere else;
+// the stoplist, `OFF`, `SYSTEM` or one by a name of one part; the search property list, `OFF`
+// or one by name. A tracking of `AUTO` with no population is read and objected to (7663).
+FullTextWith = "WITH"i & '(' & FullTextOptions & ')'
+			 | "WITH"i & FullTextOptions
+
+FullTextOptions : @string[]
+	= first: FullTextOption & (',' & rest: FullTextOption)*
+	  & when @(Syntax.Once("CHANGE_TRACKING", first, rest) && Syntax.Once("STOPLIST", first, rest) && Syntax.Once("SEARCH", first, rest))
+		=> @(Syntax.Named(first, rest))
+
+FullTextOption : @string
+	= t: ("CHANGE_TRACKING"i & '='? & FullTextTracking & (',' & "NO"i & "POPULATION"i)?) => @(t)
+	| t: ("STOPLIST"i & '='? & FullTextStopList)                                         => @(t)
+	| t: ("SEARCH"i & "PROPERTY"i & "LIST"i & '='? & FullTextPropertyList)              => @(t)
+
+FullTextTracking     = "MANUAL"i | "AUTO"i | "OFF"i
+FullTextStopList     = "OFF"i | "SYSTEM"i | Identifier & ?!'.'
+FullTextPropertyList = "OFF"i | Identifier & ?!'.'
+
+// A catalog is told whether it minds accents, and nothing else, once and not in brackets.
+CatalogWith = "WITH"i & "ACCENT_SENSITIVITY"i & '=' & OnOff
 
 AsDefault = "AS"i & "DEFAULT"i
 
@@ -5218,26 +5251,35 @@ FullTextPlace = "FILEGROUP"i & Identifier | Identifier
 FullTextAction
 	= "ENABLE"i
 	| "DISABLE"i
-	| "SET"i & OptionList & NoPopulation?
+	// One setting at a time; a tracking changed says nothing about population (`Msg 319`).
+	| "SET"i & "CHANGE_TRACKING"i & '='? & FullTextTracking
+	| "SET"i & "STOPLIST"i & '='? & FullTextStopList & NoPopulation?
+	| "SET"i & "SEARCH"i & "PROPERTY"i & "LIST"i & '='? & FullTextPropertyList & NoPopulation?
 	| "ADD"i & '(' & FullTextColumn & (',' & FullTextColumn)* & ')' & NoPopulation?
 	| "ALTER"i & "COLUMN"i & Identifier & AddOrDrop & "STATISTICAL_SEMANTICS"i & NoPopulation?
 	| "DROP"i & '(' & ColumnList & ')' & NoPopulation?
-	| "START"i & word & "POPULATION"i
+	| "START"i & ("FULL"i | "INCREMENTAL"i | "UPDATE"i) & "POPULATION"i
 	| PopulationWord & "POPULATION"i
 
 NoPopulation   = "WITH"i & "NO"i & "POPULATION"i
 PopulationWord = "STOP"i | "PAUSE"i | "RESUME"i
 
-FullTextCatalogAction = "REBUILD"i & ("WITH"i & OptionList)?
+FullTextCatalogAction = "REBUILD"i & CatalogWith?
 					  | "REORGANIZE"i
 					  | AsDefault
 
+// A stoplist copied from the system's, or from another by a name of two parts at most:
+// `FROM db.dbo.o` is `Msg 102`.
 StopListFrom = "FROM"i & "SYSTEM"i & "STOPLIST"i
-			 | "FROM"i & QualifiedName
+			 | "FROM"i & Identifier & ('.' & Identifier)?
 
-StopListAction = "ADD"i & ValueExpression & "LANGUAGE"i & FullTextLanguage
-			   | "DROP"i & "ALL"i & ("LANGUAGE"i & FullTextLanguage)?
-			   | "DROP"i & ValueExpression & "LANGUAGE"i & FullTextLanguage
+// A stop word is a string, national or not, and its language a string, a number, a binary string
+// or a name: a word unquoted, a variable, and an expression for either are `Msg 102`.
+StopListAction = "ADD"i & Quoted & "LANGUAGE"i & StopListLanguage
+			   | "DROP"i & "ALL"i & ("LANGUAGE"i & StopListLanguage)?
+			   | "DROP"i & Quoted & "LANGUAGE"i & StopListLanguage
+
+StopListLanguage = Quoted | Sql92.Lexical.UnsignedNumericLiteral | TSql.BinaryLiteral | Identifier
 
 // A property added says its set's GUID and its integer id, in that order and in brackets, and
 // may describe itself after them; the engine refuses any other order, either without the
@@ -5434,13 +5476,13 @@ AuditStatement : @Statement
 	// with `ALTER SERVER AUDIT` and every clause of an audit is optional — so the shorter
 	// reading fits, and over kinds a reading that fits is the one that stands (§4).
 	= verb: CreateOrAlter & scope: ServerOrDatabase & "AUDIT"i & "SPECIFICATION"i & name: Identifier
-	  & tail: (("FOR"i & "SERVER"i & "AUDIT"i & QualifiedName)? & AuditAction* & OptionsWith?)
+	  & tail: (("FOR"i & "SERVER"i & "AUDIT"i & QualifiedName)? & AuditAction* & AuditStateWith?)
 		=> @(Statement.Defined(
 				 scope == "SERVER" ? "AUDIT SPECIFICATION" : "DATABASE AUDIT SPECIFICATION",
 				 name, Syntax.Tail(tail), verb))
 
 	| said: "CREATE"i & "SERVER"i & "AUDIT"i & name: Identifier
-	  & tail: ("TO"i & AuditTarget & OptionsWith? & AuditWhere?)
+	  & tail: ("TO"i & AuditCreatedTarget & AuditCreatedWith? & AuditWhere?)
 		=> @(Statement.Defined("SERVER AUDIT", name, Syntax.Tail(tail), said))
 	| said: "ALTER"i & "SERVER"i & "AUDIT"i & name: Identifier & tail: AlterAuditBody
 		=> @(Statement.Defined("SERVER AUDIT", name, Syntax.Tail(tail), said))
@@ -5472,14 +5514,57 @@ ServerOrDatabase : @string = "SERVER"i => @("SERVER") | "DATABASE"i => @("DATABA
 NotificationScope = "QUEUE"i & QualifiedName | "SERVER"i | "DATABASE"i
 
 // ── An audit ────────────────────────────────────────────────────────────────
-AuditTarget = "FILE"i & '(' & OptionList & ')'
-			| word
+// Where an audit writes: a file, the two logs, Managed Instance's URL — which this server refuses,
+// read by its published syntax — or Azure's monitor (`Msg 40517`). A file is told its path, a
+// size in megabytes, gigabytes or terabytes or none, how many files it rolls over and keeps, and
+// whether it reserves the space, in any order and as often as wanted; a file made is told its
+// path somewhere among them (`Msg 102`), a file altered need not be. A size with no unit, a
+// kilobyte, a count of -1 and any other name are 102.
+AuditTarget = "FILE"i & '(' & AuditFileOption & (',' & AuditFileOption)* & ')'
+			| AuditLog
+
+AuditCreatedTarget
+	= "FILE"i & '(' & (?!"FILEPATH"i & AuditFileOption & ',')* & AuditFilePath & (',' & AuditFileOption)* & ')'
+	| AuditLog
+
+AuditLog = "APPLICATION_LOG"i | "SECURITY_LOG"i | "URL"i | "EXTERNAL_MONITOR"i
+
+AuditFileOption
+	= AuditFilePath
+	| "MAXSIZE"i & '=' & (ExactNumber & ("MB"i | "GB"i | "TB"i) | "UNLIMITED"i)
+	| "MAX_ROLLOVER_FILES"i & '=' & (Sql92.Lexical.Digits | "UNLIMITED"i)
+	| "MAX_FILES"i & '=' & Sql92.Lexical.Digits
+	| "RESERVE_DISK_SPACE"i & '=' & OnOff
+
+AuditFilePath = "FILEPATH"i & '=' & Quoted
+
+// What an audit is told, in any order and as often as wanted: a delay in whole milliseconds, what
+// to do on a failure, and Azure's operator audit (`Msg 40517`). Made, it may be given its GUID as
+// a string; altered, it may be switched on or off — each the other's `Msg 102`.
+AuditCreatedWith = "WITH"i & '(' & AuditCreatedOption & (',' & AuditCreatedOption)* & ')'
+AuditAlteredWith = "WITH"i & '(' & AuditAlteredOption & (',' & AuditAlteredOption)* & ')'
+
+AuditCreatedOption = AuditOption | "AUDIT_GUID"i & '=' & Quoted
+AuditAlteredOption = AuditOption | "STATE"i & '=' & OnOff
+
+AuditOption
+	= "QUEUE_DELAY"i & '=' & Sql92.Lexical.Digits
+	| "ON_FAILURE"i & '=' & ("CONTINUE"i | "SHUTDOWN"i | "FAIL_OPERATION"i)
+	| "OPERATOR_AUDIT"i & '=' & OnOff
+
+// A specification is switched on or off, and told nothing else. After an action on an object — `ADD
+// (SELECT ON t BY dbo)` — a database's specification reads anything at all to the end of the batch,
+// which this does not follow (docs/next.md, 2026-09-13).
+AuditStateWith = "WITH"i & '(' & "STATE"i & '=' & OnOff & (',' & "STATE"i & '=' & OnOff)* & ')'
 
 AuditWhere = "WHERE"i & SearchCondition
 
+// An audit altered is altered by something: `ALTER SERVER AUDIT a` alone is `Msg 102`.
 AlterAuditBody = "REMOVE"i & "WHERE"i
 			   | "MODIFY"i & "NAME"i & '=' & Identifier
-			   | ("TO"i & AuditTarget)? & OptionsWith? & AuditWhere?
+			   | "TO"i & AuditTarget & AuditAlteredWith? & AuditWhere?
+			   | AuditAlteredWith & AuditWhere?
+			   | AuditWhere
 
 // `ADD (SELECT ON t BY dbo)`, `DROP (DATABASE_PERMISSION_CHANGE_GROUP)`. The comma between
 // two of them is optional in the corpus and required in the block, so it is read as neither.
@@ -5565,10 +5650,30 @@ EndpointAffinity : @Clause
 EndpointAs : @Clause.Option
 	= "AS"i & w: EndpointTcp & '(' & first: EndpointTcpOption & (',' & rest: EndpointTcpOption)* & ')'
 		=> @(new Clause.Option(w, null, Syntax.Listed(first, rest)))
-	| "AS"i & w: EndpointHttp & '(' & o: OptionList & ')' => @(new Clause.Option(w, null, o))
+	| "AS"i & w: EndpointHttp & '(' & first: EndpointHttpOption & (',' & rest: EndpointHttpOption)* & ')'
+		=> @(new Clause.Option(w, null, Syntax.Listed(first, rest)))
 
 EndpointTcp  = "TCP"i
 EndpointHttp = "HTTP"i
+
+// HTTP's own list, which SQL Server 2005 published and 2012 removed and the engine still reads:
+// a path and a site as strings; a realm and a logon domain as strings or `NONE`; the ways it
+// authenticates and the ports it listens on, each a bracketed list of its words; the two port
+// numbers as whole numbers, a sign allowed, as TCP's port; and compression enabled or disabled.
+// In any order and as often as wanted, at least one (`AS HTTP ()` is 102); a path unquoted or
+// `NONE`, a word out of the lists, a port in quotes or with a fraction and `COMPRESSION = ON` are
+// 102 or 156, and so is TCP's `LISTENER_PORT`.
+EndpointHttpOption : @Clause = ?=(EndpointHttpSyntax & OptionEnds) & o: OptionSetting => @(o)
+
+EndpointHttpSyntax
+	= ("PATH"i | "SITE"i) & '=' & Quoted
+	| ("AUTH_REALM"i | "DEFAULT_LOGON_DOMAIN"i) & '=' & (Quoted | "NONE"i)
+	| "AUTHENTICATION"i & '=' & '(' & EndpointHttpAuthentication & (',' & EndpointHttpAuthentication)* & ')'
+	| "PORTS"i & '=' & '(' & ("CLEAR"i | "SSL"i) & (',' & ("CLEAR"i | "SSL"i))* & ')'
+	| ("CLEAR_PORT"i | "SSL_PORT"i) & '=' & '-'? & Sql92.Lexical.Digits
+	| "COMPRESSION"i & '=' & ("ENABLED"i | "DISABLED"i)
+
+EndpointHttpAuthentication = "BASIC"i | "DIGEST"i | "NTLM"i | "KERBEROS"i | "INTEGRATED"i
 
 // A port is a whole number — `-1` is read, and then found out of range (7810) — and an
 // address `ALL`, strings in brackets for IPv6, or four numbers in brackets however they are
@@ -5625,9 +5730,12 @@ EndpointSoapOption : @Clause
 		=> @(new Clause.Option("WEBMETHOD",
 				 new Expression.Literal(SqlLiteralKind.Text, name), method, null, true))
 
-	// A setting, and never a web method the alternatives above have refused: a run of option
-	// words would read `ADD WEBMETHOD m1 (NAME = 'n1')` whole, which is `Msg 102`.
-	| ?!(("ADD"i | "ALTER"i | "DROP"i)? & "WEBMETHOD"i) & o: OptionSetting => @(o)
+	// A setting, from its catalogue: the WSDL `DEFAULT`, `NONE` or a procedure's name as a string;
+	// batches and sessions enabled or disabled; a login `WINDOWS` or `MIXED`; a timeout in whole
+	// seconds or `NEVER`; a database and a namespace `DEFAULT` or a string; a schema `NONE` or
+	// `STANDARD`; a character set `SQL` or `XML`; a header limit in whole bytes. As often as
+	// wanted; anything else is 102 or 156 — `BATCHES = ON`, `DATABASE = db`, `SCHEMA = DEFAULT`.
+	| ?=(EndpointSoapSetting & OptionEnds) & o: OptionSetting => @(o)
 
 WebMethodName : @string = t: (Quoted & ('.' & Quoted)?) => @(t)
 
@@ -5643,6 +5751,16 @@ WebMethodOption : @Clause
 		=> @(new Clause.Option("FORMAT", new Expression.ColumnReference(t), Clause.None))
 
 WebMethodSchema = "NONE"i | "STANDARD"i | "DEFAULT"i
+
+EndpointSoapSetting
+	= "WSDL"i & '=' & ("DEFAULT"i | "NONE"i | Quoted)
+	| ("BATCHES"i | "SESSIONS"i) & '=' & ("ENABLED"i | "DISABLED"i)
+	| "LOGIN_TYPE"i & '=' & ("WINDOWS"i | "MIXED"i)
+	| "SESSION_TIMEOUT"i & '=' & (Sql92.Lexical.Digits | "NEVER"i)
+	| ("DATABASE"i | "NAMESPACE"i) & '=' & ("DEFAULT"i | Quoted)
+	| "SCHEMA"i & '=' & ("NONE"i | "STANDARD"i)
+	| "CHARACTER_SET"i & '=' & ("SQL"i | "XML"i)
+	| "HEADER_LIMIT"i & '=' & Sql92.Lexical.Digits
 WebMethodFormat = "NONE"i | "ALL_RESULTS"i | "ROWSETS_ONLY"i
 
 EndpointTsqlOptions : @Clause[]
