@@ -21370,3 +21370,36 @@ At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 15
 145 — unchanged. `--split` reads 783 files whole and cut the same (from 780), none cut
 differently: three files whose full-text statements the open lists had run on into the next one.
 The suite is 13,337 rows (from 13,102): 136 refusals and 99 readings.
+
+## An audit's options, and a specification's
+
+An audit's target was a word or a file with any list, its options and a specification's any
+list. Asked 249 lines.
+
+**A file** is told its path, a size, how many files it rolls over and how many it keeps, and
+whether it reserves the space — in any order and as often as wanted, which the published block,
+writing them in a row with each after a comma, does not say. A size is a number, a fraction
+allowed, in `MB`, `GB` or `TB`, spaced or not, or `UNLIMITED`: `1 KB` and a bare `1` are 102. A
+rollover is a whole number or `UNLIMITED`, a file count a whole number only. A file made is told
+its path somewhere among the rest (`TO FILE (MAXSIZE = 1 MB)` is 102); a file altered need not
+be. The logs are `APPLICATION_LOG` and `SECURITY_LOG`; `EXTERNAL_MONITOR` and `OPERATOR_AUDIT` are
+Azure's and answered `Msg 40517`; `TO URL` is Managed Instance's, refused here and read by its
+published syntax. `TO NOSUCH` and `TO FILE` without its bracket are 102.
+
+**An audit** is told a delay in whole milliseconds and what to do on a failure, in any order and
+as often as wanted; made, its GUID as a string; altered, whether it is on — and each is the other's
+102: `CREATE … WITH (STATE = ON)` and `ALTER … WITH (AUDIT_GUID = '…')`. An audit altered by
+nothing is 102.
+
+**A specification** is switched on or off and told nothing else, as often as wanted. Except where
+the engine does not hold to it: after an action on an object — `ADD (SELECT ON t BY dbo)`, dropped
+or added, anywhere in the list — a database audit specification reads anything at all to the end of
+its batch: `WITH (NOSUCH = ON)`, `WITH ()`, `x y z`, an unclosed bracket, a second `WITH`. After a
+group of actions alone it is strict. That is recovery rather than syntax, it reaches past the
+statement, and this grammar does not follow it; the twenty-three lines are left out of the theory,
+and the corpus has none.
+
+At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 150: 6,616 both,
+226 and 539; `--split` 783, the round trip 100% of 7,717, the map 7,994 both and 0 defects,
+`--levels` 145 of 145 — unchanged. The suite is 13,551 rows (from 13,337): 96 refusals, 107
+readings and 11 of the other products.

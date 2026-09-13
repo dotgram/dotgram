@@ -5476,13 +5476,13 @@ AuditStatement : @Statement
 	// with `ALTER SERVER AUDIT` and every clause of an audit is optional — so the shorter
 	// reading fits, and over kinds a reading that fits is the one that stands (§4).
 	= verb: CreateOrAlter & scope: ServerOrDatabase & "AUDIT"i & "SPECIFICATION"i & name: Identifier
-	  & tail: (("FOR"i & "SERVER"i & "AUDIT"i & QualifiedName)? & AuditAction* & OptionsWith?)
+	  & tail: (("FOR"i & "SERVER"i & "AUDIT"i & QualifiedName)? & AuditAction* & AuditStateWith?)
 		=> @(Statement.Defined(
 				 scope == "SERVER" ? "AUDIT SPECIFICATION" : "DATABASE AUDIT SPECIFICATION",
 				 name, Syntax.Tail(tail), verb))
 
 	| said: "CREATE"i & "SERVER"i & "AUDIT"i & name: Identifier
-	  & tail: ("TO"i & AuditTarget & OptionsWith? & AuditWhere?)
+	  & tail: ("TO"i & AuditCreatedTarget & AuditCreatedWith? & AuditWhere?)
 		=> @(Statement.Defined("SERVER AUDIT", name, Syntax.Tail(tail), said))
 	| said: "ALTER"i & "SERVER"i & "AUDIT"i & name: Identifier & tail: AlterAuditBody
 		=> @(Statement.Defined("SERVER AUDIT", name, Syntax.Tail(tail), said))
@@ -5514,14 +5514,57 @@ ServerOrDatabase : @string = "SERVER"i => @("SERVER") | "DATABASE"i => @("DATABA
 NotificationScope = "QUEUE"i & QualifiedName | "SERVER"i | "DATABASE"i
 
 // ── An audit ────────────────────────────────────────────────────────────────
-AuditTarget = "FILE"i & '(' & OptionList & ')'
-			| word
+// Where an audit writes: a file, the two logs, Managed Instance's URL — which this server refuses,
+// read by its published syntax — or Azure's monitor (`Msg 40517`). A file is told its path, a
+// size in megabytes, gigabytes or terabytes or none, how many files it rolls over and keeps, and
+// whether it reserves the space, in any order and as often as wanted; a file made is told its
+// path somewhere among them (`Msg 102`), a file altered need not be. A size with no unit, a
+// kilobyte, a count of -1 and any other name are 102.
+AuditTarget = "FILE"i & '(' & AuditFileOption & (',' & AuditFileOption)* & ')'
+			| AuditLog
+
+AuditCreatedTarget
+	= "FILE"i & '(' & (?!"FILEPATH"i & AuditFileOption & ',')* & AuditFilePath & (',' & AuditFileOption)* & ')'
+	| AuditLog
+
+AuditLog = "APPLICATION_LOG"i | "SECURITY_LOG"i | "URL"i | "EXTERNAL_MONITOR"i
+
+AuditFileOption
+	= AuditFilePath
+	| "MAXSIZE"i & '=' & (ExactNumber & ("MB"i | "GB"i | "TB"i) | "UNLIMITED"i)
+	| "MAX_ROLLOVER_FILES"i & '=' & (Sql92.Lexical.Digits | "UNLIMITED"i)
+	| "MAX_FILES"i & '=' & Sql92.Lexical.Digits
+	| "RESERVE_DISK_SPACE"i & '=' & OnOff
+
+AuditFilePath = "FILEPATH"i & '=' & Quoted
+
+// What an audit is told, in any order and as often as wanted: a delay in whole milliseconds, what
+// to do on a failure, and Azure's operator audit (`Msg 40517`). Made, it may be given its GUID as
+// a string; altered, it may be switched on or off — each the other's `Msg 102`.
+AuditCreatedWith = "WITH"i & '(' & AuditCreatedOption & (',' & AuditCreatedOption)* & ')'
+AuditAlteredWith = "WITH"i & '(' & AuditAlteredOption & (',' & AuditAlteredOption)* & ')'
+
+AuditCreatedOption = AuditOption | "AUDIT_GUID"i & '=' & Quoted
+AuditAlteredOption = AuditOption | "STATE"i & '=' & OnOff
+
+AuditOption
+	= "QUEUE_DELAY"i & '=' & Sql92.Lexical.Digits
+	| "ON_FAILURE"i & '=' & ("CONTINUE"i | "SHUTDOWN"i | "FAIL_OPERATION"i)
+	| "OPERATOR_AUDIT"i & '=' & OnOff
+
+// A specification is switched on or off, and told nothing else. After an action on an object — `ADD
+// (SELECT ON t BY dbo)` — a database's specification reads anything at all to the end of the batch,
+// which this does not follow (docs/next.md, 2026-09-13).
+AuditStateWith = "WITH"i & '(' & "STATE"i & '=' & OnOff & (',' & "STATE"i & '=' & OnOff)* & ')'
 
 AuditWhere = "WHERE"i & SearchCondition
 
+// An audit altered is altered by something: `ALTER SERVER AUDIT a` alone is `Msg 102`.
 AlterAuditBody = "REMOVE"i & "WHERE"i
 			   | "MODIFY"i & "NAME"i & '=' & Identifier
-			   | ("TO"i & AuditTarget)? & OptionsWith? & AuditWhere?
+			   | "TO"i & AuditTarget & AuditAlteredWith? & AuditWhere?
+			   | AuditAlteredWith & AuditWhere?
+			   | AuditWhere
 
 // `ADD (SELECT ON t BY dbo)`, `DROP (DATABASE_PERMISSION_CHANGE_GROUP)`. The comma between
 // two of them is optional in the corpus and required in the block, so it is read as neither.
