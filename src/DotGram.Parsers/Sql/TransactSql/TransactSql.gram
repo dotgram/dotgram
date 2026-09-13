@@ -3801,8 +3801,6 @@ PlacementTarget : @Clause.Placement
 
 OptionsWith : @Clause[] = "WITH"i & '(' & o: OptionList & ')' => @(o)
 
-// The same, where the statement keeps what it read as the words rather than as options.
-OptionsWithText = "WITH"i & '(' & OptionList & ')'
 OptionList  : @Clause[] = first: OptionSetting & (',' & rest: OptionSetting)* => @(Syntax.Listed(first, rest))
 
 OptionSetting : @Clause
@@ -5827,19 +5825,25 @@ ExternalStatement : @Statement
 
 	| said: "CREATE"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
 	  & tail: (("AUTHORIZATION"i & QualifiedName)?
-			   & "FROM"i & LibraryFile & (',' & LibraryFile)* & OptionsWith?)
+			   & "FROM"i & LibraryFileMade & (',' & LibraryFileMade)* & LibraryWith)
 		=> @(Statement.Defined("EXTERNAL LIBRARY", name, Syntax.Tail(tail), said))
 	| said: "ALTER"i & "EXTERNAL"i & "LIBRARY"i & name: Identifier
 	  & tail: (("AUTHORIZATION"i & QualifiedName)?
-			   & LibraryChange & LibraryFile & (',' & LibraryFile)* & OptionsWith?)
+			   & LibraryChange & LibraryFile & (',' & LibraryFile)* & LibraryWith)
 		=> @(Statement.Defined("EXTERNAL LIBRARY", name, Syntax.Tail(tail), said))
 
-	| verb: CreateOrAlter & "EXTERNAL"i & "RESOURCE"i & "POOL"i & pool: PoolName & tail: OptionsWithText?
-		=> @(Statement.Defined("EXTERNAL RESOURCE POOL", pool, Syntax.Tail(tail), verb))
-	| verb: CreateOrAlter & "RESOURCE"i & "POOL"i & pool: PoolName & tail: OptionsWithText?
-		=> @(Statement.Defined("RESOURCE POOL", pool, Syntax.Tail(tail), verb))
+	// A pool altered is told something (`ALTER RESOURCE POOL [default]` alone is `Msg 102`); a pool
+	// made need not be.
+	| said: "CREATE"i & "EXTERNAL"i & "RESOURCE"i & "POOL"i & pool: PoolName & tail: ExternalPoolWith?
+		=> @(Statement.Defined("EXTERNAL RESOURCE POOL", pool, Syntax.Tail(tail), said))
+	| said: "ALTER"i & "EXTERNAL"i & "RESOURCE"i & "POOL"i & pool: PoolName & tail: ExternalPoolWith
+		=> @(Statement.Defined("EXTERNAL RESOURCE POOL", pool, Syntax.Tail(tail), said))
+	| said: "CREATE"i & "RESOURCE"i & "POOL"i & pool: PoolName & tail: PoolWith?
+		=> @(Statement.Defined("RESOURCE POOL", pool, Syntax.Tail(tail), said))
+	| said: "ALTER"i & "RESOURCE"i & "POOL"i & pool: PoolName & tail: PoolWith
+		=> @(Statement.Defined("RESOURCE POOL", pool, Syntax.Tail(tail), said))
 	| verb: CreateOrAlter & "WORKLOAD"i & "GROUP"i & pool: PoolName
-	  & tail: (OptionsWithText? & ("USING"i & WorkloadPool & (',' & WorkloadPool)*)?)
+	  & tail: (WorkloadWith? & ("USING"i & WorkloadPool & (',' & WorkloadPool)*)?)
 		=> @(Statement.Defined("WORKLOAD GROUP", pool, Syntax.Tail(tail), verb))
 
 	// Statistics: a name, what they are on, and how they are gathered. `SAMPLE 50 PERCENT`
@@ -5856,7 +5860,56 @@ CreateOrAlter : @string = "CREATE"i => @("CREATE") | "ALTER"i => @("ALTER")
 // `"default"` is a pool, and a delimited name is how the syntax says so.
 PoolName : @string = t: Identifier => @(t) | t: Sql92.Lexical.CharacterStringLiteral => @(t)
 
-WorkloadPool = "EXTERNAL"i? & PoolName
+// A pool a group uses is named, not quoted: `USING 'p'` is `Msg 102`.
+WorkloadPool = "EXTERNAL"i? & Identifier
+
+// A resource pool's percentages and IO rates as whole numbers, and its affinity to schedulers or to
+// NUMA nodes; an external pool's percentages and processes, and its affinity to CPUs or to NUMA
+// nodes — each the other's `Msg 102`, and `AFFINITY NUMANODE = AUTO` both's. In any order and as
+// often as wanted; a number in quotes, negative or with a fraction is 102.
+PoolWith         = "WITH"i & '(' & PoolOption & (',' & PoolOption)* & ')'
+ExternalPoolWith = "WITH"i & '(' & ExternalPoolOption & (',' & ExternalPoolOption)* & ')'
+
+// And four no page publishes and the engine reads, which the corpus writes: a target for memory and
+// three IO percentages, SQL Server 2012's.
+PoolOption
+	= ("MIN_CPU_PERCENT"i | "MAX_CPU_PERCENT"i | "CAP_CPU_PERCENT"i | "MIN_MEMORY_PERCENT"i | "MAX_MEMORY_PERCENT"i
+	   | "MIN_IOPS_PER_VOLUME"i | "MAX_IOPS_PER_VOLUME"i
+	   | "TARGET_MEMORY_PERCENT"i | "MIN_IO_PERCENT"i | "MAX_IO_PERCENT"i | "CAP_IO_PERCENT"i) & '=' & Sql92.Lexical.Digits
+	| "AFFINITY"i & "SCHEDULER"i & '=' & ("AUTO"i | PoolRanges)
+	| "AFFINITY"i & "NUMANODE"i & '=' & PoolRanges
+
+ExternalPoolOption
+	= ("MAX_CPU_PERCENT"i | "MAX_MEMORY_PERCENT"i | "MAX_PROCESSES"i) & '=' & Sql92.Lexical.Digits
+	| "AFFINITY"i & "CPU"i & '=' & ("AUTO"i | PoolRanges)
+	| "AFFINITY"i & "NUMANODE"i & '=' & PoolRanges
+
+PoolRanges = '(' & PartitionRange & (',' & PartitionRange)* & ')'
+
+// A workload group's importance `LOW`, `MEDIUM` or `HIGH` — Synapse's `BELOW_NORMAL`, `NORMAL` and
+// `ABOVE_NORMAL` are refused here — a memory grant as a number, a fraction allowed, and its time,
+// its timeout, its parallelism and its requests as whole numbers. Synapse's own options are read by
+// their published syntax, which this server refuses.
+WorkloadWith = "WITH"i & '(' & WorkloadOption & (',' & WorkloadOption)* & ')'
+
+WorkloadOption
+	= "IMPORTANCE"i & '=' & ("LOW"i | "MEDIUM"i | "HIGH"i | "BELOW_NORMAL"i | "NORMAL"i | "ABOVE_NORMAL"i)
+	| "REQUEST_MAX_MEMORY_GRANT_PERCENT"i & '=' & ExactNumber
+	| ("REQUEST_MAX_CPU_TIME_SEC"i | "REQUEST_MEMORY_GRANT_TIMEOUT_SEC"i | "MAX_DOP"i | "GROUP_MAX_REQUESTS"i) & '=' & Sql92.Lexical.Digits
+
+	// Unpublished and read: a group's minimum memory, a whole number or `NULL`, which the corpus
+	// writes; and its tempdb limits, SQL Server 2025's, a number or `NULL`.
+	| "GROUP_MIN_MEMORY_PERCENT"i & '=' & (Sql92.Lexical.Digits | "NULL"i)
+	| ("GROUP_MAX_TEMPDB_DATA_MB"i | "GROUP_MAX_TEMPDB_DATA_PERCENT"i) & '=' & (ExactNumber | "NULL"i)
+	| ("MIN_PERCENTAGE_RESOURCE"i | "CAP_PERCENTAGE_RESOURCE"i | "REQUEST_MIN_RESOURCE_GRANT_PERCENT"i
+	   | "REQUEST_MAX_RESOURCE_GRANT_PERCENT"i) & '=' & ExactNumber
+	| "QUERY_EXECUTION_TIMEOUT_SEC"i & '=' & Sql92.Lexical.Digits
+
+// An external library's file: its content — a string, a binary string, `NONE`, a name or a number —
+// and the platform it is for, `WINDOWS` or `LINUX`, in either order and as often as wanted. A file
+// made names its content (`FROM (PLATFORM = WINDOWS)` is `Msg 319`); one set or added need not.
+// And a library says the language it is in, as a string and once (`Msg 102`).
+LibraryWith = "WITH"i & '(' & "LANGUAGE"i & '=' & Quoted & ')'
 
 // ── The PolyBase objects' options ───────────────────────────────────────────
 //
@@ -5958,7 +6011,12 @@ FormatOption
 
 
 LibraryChange = "SET"i | "ADD"i
-LibraryFile   = '(' & OptionList & ')'
+LibraryFile   = '(' & LibraryFileOption & (',' & LibraryFileOption)* & ')'
+LibraryFileMade
+	= '(' & (?!"CONTENT"i & LibraryFileOption & ',')* & LibraryContent & (',' & LibraryFileOption)* & ')'
+
+LibraryFileOption = LibraryContent | "PLATFORM"i & '=' & ("WINDOWS"i | "LINUX"i)
+LibraryContent    = "CONTENT"i & '=' & (Quoted | TSql.BinaryLiteral | "NONE"i | Identifier | Sql92.Lexical.UnsignedNumericLiteral)
 
 // Statistics' own lists, the commas required and the order free. Making statistics takes
 // neither a resample nor which statistics to make — `RESAMPLE` and `COLUMNS` are refused

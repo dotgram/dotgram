@@ -21471,3 +21471,42 @@ ON`, `DATABASE = db`, `NAMESPACE = x` and a name no endpoint knows are 102 or 15
 At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 150: 6,616 both,
 226 and 539; `--split` 783, the round trip 100% of 7,717, the map 7,994 both and 0 defects,
 `--levels` 145 of 145 — unchanged. The suite is 13,664 rows (from 13,551): 47 refusals and 66 readings.
+
+## An external library's files, the resource pools', and a workload group's
+
+A library's file, a resource pool's options, an external pool's and a workload group's were open
+lists. Asked 271 lines.
+
+**A library's file** is its content — a string, a binary string, `NONE`, a name or a number — and
+the platform it is for, `WINDOWS` or `LINUX`, in either order and as often as wanted; a string for
+the platform, any other name and a trailing comma are 102. A library made names its content — `FROM
+(PLATFORM = WINDOWS)` is `Msg 319` — one set or added need not. And every library says its language,
+as a string, once: without `WITH (LANGUAGE = …)` it is 102, and so is a language unquoted, a second
+one or a platform beside it.
+
+**A resource pool** takes its CPU and memory percentages and its IO rates as whole numbers, and its
+affinity to schedulers, `AUTO` or ranges, or to NUMA nodes, ranges only. **An external pool** takes
+its CPU and memory percentages and its processes, and its affinity to CPUs or to NUMA nodes. Each
+refuses the other's (`AFFINITY CPU` in a resource pool, `MIN_CPU_PERCENT` in an external one are
+102), both refuse a number quoted, negative or with a fraction, and both take an option twice. A
+pool made may be told nothing; a pool altered must be told something.
+
+**A workload group** is `LOW`, `MEDIUM` or `HIGH` in importance — the page's `BELOW_NORMAL`,
+`NORMAL` and `ABOVE_NORMAL` are Synapse's, whose block the SQL Server tab of the same page does not
+share, and this server refuses them — takes its memory grant as a number with a fraction allowed and
+its CPU time, grant timeout, parallelism and requests as whole numbers, and uses pools by name:
+`USING 'p'` is 102, `USING "default"` read. Synapse's own options, and the three importances, are
+read by that block and counted apart; three more of Synapse's words join the other products'.
+
+**And what no page publishes.** The first cut was the published blocks and the probe's own
+spellings of them, and the passes found the corpus writing more: ScriptDom's
+`TARGET_MEMORY_PERCENT`, `MIN_IO_PERCENT`, `MAX_IO_PERCENT` and `CAP_IO_PERCENT` for a resource
+pool, and `GROUP_MIN_MEMORY_PERCENT` for a workload group — twelve statements the engine reads
+went to the work list. Asked by name across the three statements, with seven names that might have
+been and are not (`MIN_IOPS`, `CPU_CAP_PERCENT`, `MAX_OUTSTANDING_IO_PER_VOLUME`, …): the four IO and
+memory names are a resource pool's, as whole numbers; `GROUP_MIN_MEMORY_PERCENT` a group's, a whole
+number or `NULL`; and SQL Server 2025's `GROUP_MAX_TEMPDB_DATA_MB` and `_PERCENT` a group's too, a
+number or `NULL`. And one row the old open list had written into a theory, `AFFINITY SCHEDULER =
+NUMANODE = (0)`, was never asked: the engine refuses it and seventeen shapes like it.
+
+At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 150: 6,616 both, 226 and 539; `--split` 783, the round trip 100% of 7,717, the map 7,994 both and 0 defects, `--levels` 145 of 145 — unchanged, once the corpus's own options were in. The suite is 14,086 rows (from 13,667): 266 refusals, 144 readings and 10 of Synapse's.
