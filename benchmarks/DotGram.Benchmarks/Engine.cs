@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 using DotGram.Parsers.Sql;
 
@@ -217,15 +218,88 @@ static class Engine
 	}
 
 	/// <summary>
-	/// The message the engine answered with, or zero where it had nothing to say.
+	/// The message the engine answered with, or zero where it had nothing to say — asked so
+	/// that the answer is about the syntax and not about a name the parser stopped at.
 	/// </summary>
 	/// <remarks>
+	/// <para>
+	/// Two messages end the parse before the statement is read to its end, and either would
+	/// hide a refusal behind it. <b>Msg 137</b>, "must declare the scalar variable": the parser
+	/// stops at the first variable nobody declared, so `SELECT * FROM PREDICT (MODEL = @m, …)`
+	/// is "read" whatever follows the variable. A statement answered so is asked again with
+	/// every variable it uses declared in front of it, except the ones it declares itself — as
+	/// `sql_variant`, which any value is, and as `CURSOR` where the engine answers that a cursor
+	/// was expected (16948); if the second asking says a variable is declared twice (134), or
+	/// that the statement had to come first in its batch (111 — a procedure, a view), the first
+	/// answer stands. <b>Msg
+	/// 911</b>, "database does not exist": `USE nosuchdb junk junk` is "read", the parser having
+	/// stopped at the name. A statement beginning `USE` and answered so is asked again with the
+	/// connection's own database in the name's place. What the two mirages hid was measured by
+	/// hand for a day before this (docs/next.md, 2026-09-13); this is that measuring, done once.
+	/// </para>
+	/// <para>
 	/// A statement in this corpus can take the connection down with it — a severity the
 	/// server ends the session over rather than answers. So the state is checked before each
 	/// one and the session is built again where it has gone, which costs nothing on the
 	/// thousands that do not and is the difference between a number and a stack trace.
+	/// </para>
 	/// </remarks>
-	internal static int Answer(SqlConnection connection, string statement, bool again = false)
+	internal static int Answer(SqlConnection connection, string statement)
+	{
+		var message = Ask(connection, statement);
+
+		if (message == 137 && Declared(statement, "sql_variant") is { } declared)
+		{
+			var asked = Ask(connection, declared);
+
+			if (asked == 16948)
+				asked = Ask(connection, Declared(statement, "CURSOR")!);
+
+			if (asked is not (134 or 111))
+				return asked;
+		}
+
+		if (message == 911 && Housed(statement, connection.Database) is { } housed)
+			return Ask(connection, housed);
+
+		return message;
+	}
+
+	static readonly Regex VariableUsed = new(@"(?<![@\w])@(\w+)", RegexOptions.Compiled);
+	static readonly Regex VariableDeclared = new(@"\bDECLARE\b([^;]*)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+	static readonly Regex UsedDatabase = new(@"^(\s*USE\s+)(\[[^\]]+\]|""[^""]+""|\w+)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+	/// <summary>The statement with every variable it uses and does not declare declared in front of it, as the type given; null where it uses none.</summary>
+	static string? Declared(string statement, string type)
+	{
+		var own = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+		foreach (Match declaring in VariableDeclared.Matches(statement))
+			foreach (Match used in VariableUsed.Matches(declaring.Groups[1].Value))
+				own.Add(used.Groups[1].Value);
+
+		var names = VariableUsed.Matches(statement)
+			.Select(static one => one.Groups[1].Value)
+			.Where(one => !own.Contains(one))
+			.Distinct(StringComparer.OrdinalIgnoreCase)
+			.ToList();
+
+		return names.Count == 0
+			? null
+			: "DECLARE " + string.Join(", ", names.Select(one => "@" + one + " " + type)) + "; " + statement;
+	}
+
+	/// <summary>A `USE` with the connection's own database in place of the one named; null where the statement is not a `USE`.</summary>
+	static string? Housed(string statement, string database)
+	{
+		var match = UsedDatabase.Match(statement);
+
+		return match.Success
+			? match.Groups[1].Value + "[" + database + "]" + statement.Substring(match.Length)
+			: null;
+	}
+
+	static int Ask(SqlConnection connection, string statement, bool again = false)
 	{
 		if (connection.State != ConnectionState.Open)
 		{
@@ -255,7 +329,7 @@ static class Engine
 
 			ParseOnly(connection);
 
-			return Answer(connection, statement, again: true);
+			return Ask(connection, statement, again: true);
 		}
 		catch (SqlException failed)
 		{
@@ -616,7 +690,13 @@ static class Engine
 			// not to hold what it should.
 			//
 			//  39133  CREATE/ALTER EXTERNAL LANGUAGE statement failed. The environment variables string is invalid.
-			or 39133;
+			or 39133
+
+			// And a label a `GOTO` names that the batch has not got, 2026-09-13 — which a statement
+			// asked about on its own never has, its label being in the batch it was cut from.
+			//
+			//    133  A GOTO statement references the label '%.*ls' but the label has not been declared.
+			or 133;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open

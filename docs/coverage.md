@@ -24,17 +24,17 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 99.8% | 7989 | 14 | 0 | 4 | 86 | 249 | 0 |
+| **all** | 996 | 8338 | 99.8% | 7984 | 9 | 3 | 0 | 88 | 254 | 0 |
 | [data-types](#data-types) | 29 | 304 | 100.0% | 291 | 0 | 0 | 0 | 0 | 13 | 0 |
-| [database-console-commands](#database-console-commands) | 36 | 242 | 99.2% | 234 | 2 | 0 | 0 | 1 | 5 | 0 |
-| [functions](#functions) | 324 | 2101 | 100.0% | 2082 | 0 | 0 | 3 | 2 | 17 | 0 |
+| [database-console-commands](#database-console-commands) | 36 | 242 | 100.0% | 234 | 0 | 0 | 0 | 1 | 7 | 0 |
+| [functions](#functions) | 324 | 2101 | 100.0% | 2082 | 0 | 0 | 0 | 2 | 17 | 0 |
 | [includes](#includes) | 3 | 7 | 100.0% | 7 | 0 | 0 | 0 | 0 | 0 | 0 |
 | [language-elements](#language-elements) | 86 | 868 | 99.5% | 850 | 4 | 0 | 0 | 0 | 14 | 0 |
-| [queries](#queries) | 37 | 747 | 99.2% | 718 | 6 | 0 | 0 | 1 | 22 | 0 |
+| [queries](#queries) | 37 | 747 | 99.4% | 718 | 4 | 0 | 0 | 1 | 24 | 0 |
 | [reference](#reference) | 3 | 32 | 100.0% | 32 | 0 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 100.0% | 311 | 0 | 0 | 0 | 0 | 1 | 0 |
 | [spatial-geometry](#spatial-geometry) | 74 | 357 | 100.0% | 357 | 0 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 99.9% | 2906 | 2 | 0 | 1 | 82 | 173 | 0 |
+| [statements](#statements) | 320 | 3163 | 99.9% | 2901 | 1 | 3 | 0 | 84 | 174 | 0 |
 | [xml](#xml) | 12 | 205 | 100.0% | 201 | 0 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
@@ -43,14 +43,15 @@ rest run rather than read.
 | --- | ---: | ---: | --- |
 | IF | 4 | 1 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
 | SET | 3 | 1 | stops at AUTOCOMMIT — `SET AUTOCOMMIT ON;` |
-| USE | 3 | 2 | stops at COMPUTE — `USE UserDbSales; DBCC FREEPROCCACHE (COMPUTE) WITH NO_INFOMSGS;` |
-| SELECT | 2 | 2 | stops at DIAGNOSTICS — `-- Determine the session_id of your current session SELECT TOP 1 session_id();  -- ...` |
 | CREATE TABLE | 1 | 1 | stops at ''' — `CREATE TABLE #temptable (col1 int);  INSERT INTO #temptable VALUES (10);  SELECT co...` |
-| INSERT | 1 | 1 | stops at WITH — `INSERT INTO loan_applications (c1, c2, c3, c4, score) SELECT d.c1, d.c2, d.c3, d.c4...` |
+| SELECT | 1 | 1 | stops at DIAGNOSTICS — `-- Determine the session_id of your current session SELECT TOP 1 session_id();  -- ...` |
 
 ## What the engine answered the defects
 
-None: the engine reads every statement this grammar reads.
+| Message | statements | for example |
+| --- | ---: | --- |
+| 102 | 2 | `@dialog_handle ;` |
+| 10734 | 1 | `SELECT @v = BusinessEntityID FROM HumanResources.Employee UNION ALL SELECT @v = Bus...` |
 
 ## data-types
 
@@ -90,7 +91,6 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| DBCC FREEPROCCACHE (Transact-SQL) | 10 | 80.0% | 2 | 0 | 0 | 0 | stops at COMPUTE — `USE UserDbSales; DBCC FREEPROCCACHE (COMPUTE) WITH NO_INFOMSGS;` |
 | DBCC CHECKALLOC (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DBCC CHECKCATALOG (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DBCC CHECKCONSTRAINTS (Transact-SQL) | 9 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -103,6 +103,7 @@ None: the engine reads every statement this grammar reads.
 | DBCC DBREINDEX (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DBCC dllname (FREE) (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DBCC FLUSHAUTHCACHE (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
+| DBCC FREEPROCCACHE (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DBCC FREESESSIONCACHE (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DBCC FREESYSTEMCACHE (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DBCC HELP (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -131,7 +132,6 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| OPENJSON (Transact-SQL) | 23 | 100.0% | 0 | 0 | 3 | 0 | levels 100 engine, 110 engine, 120 engine — `SELECT * FROM OPENJSON(@array) WITH (  month VARCHAR(3), temp int, month_id tinyint...` |
 | ABS (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ACOS (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | APP_NAME (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -335,6 +335,7 @@ None: the engine reads every statement this grammar reads.
 | OBJECTPROPERTYEX (Transact-SQL) | 10 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ODBC Scalar Functions (Transact-SQL) | 38 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OPENDATASOURCE (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| OPENJSON (Transact-SQL) | 23 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OPENQUERY (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OPENROWSET (Transact-SQL) | 37 | 100.0% | 0 | 0 | 0 | 2 |  |
 | OPENXML (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -560,7 +561,6 @@ None: the engine reads every statement this grammar reads.
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
 | UPDATE (Transact-SQL) | 136 | 97.1% | 4 | 0 | 0 | 0 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
-| PREDICT (Transact-SQL) | 8 | 71.4% | 2 | 0 | 0 | 0 | stops at WITH — `SELECT d.*, p.Score FROM PREDICT(MODEL = @model, DATA = dbo.mytable AS d, RUNTIME =...` |
 | Aliasing | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | AT TIME ZONE (Transact-SQL) | 17 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CONTAINS (Transact-SQL) | 40 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -577,6 +577,7 @@ None: the engine reads every statement this grammar reads.
 | Nested Common Table Expression (CTE) in Fabric data warehousing | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OPTION clause (Transact-SQL) | 14 | 100.0% | 0 | 0 | 0 | 0 |  |
 | OUTPUT clause (Transact-SQL) | 67 | 100.0% | 0 | 0 | 0 | 0 |  |
+| PREDICT (Transact-SQL) | 8 | 100.0% | 0 | 0 | 0 | 0 |  |
 | READTEXT (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | Search condition (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | SELECT Clause (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -765,8 +766,8 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| CREATE REMOTE TABLE AS SELECT (Parallel Data Warehouse) | 3 | 50.0% | 1 | 0 | 0 | 0 | stops at TABLE — `USE ssawPDW; CREATE REMOTE TABLE OrderReporting.Orders.MyOrdersTable AT ( 'Data Sou...` |
-| CREATE TABLE AS SELECT (Azure Synapse Analytics and Microsoft Fabric) | 53 | 100.0% | 0 | 0 | 1 | 12 | levels 100 engine, 110 engine, 120 engine — `INSERT INTO Users (id, name, age, street, city) SELECT id, name, age, JSON_VALUE(ad...` |
+| END CONVERSATION (Transact-SQL) | 6 | 66.7% | 0 | 2 | 0 | 0 | read here, Msg 102 there — `@dialog_handle ;` |
+| ALTER DATABASE Compatibility Level (Transact-SQL) | 21 | 95.2% | 0 | 1 | 0 | 0 | read here, Msg 10734 there — `SELECT @v = BusinessEntityID FROM HumanResources.Employee UNION ALL SELECT @v = Bus...` |
 | DROP TABLE (Transact-SQL) | 6 | 83.3% | 1 | 0 | 0 | 0 | stops at ''' — `CREATE TABLE #temptable (col1 int);  INSERT INTO #temptable VALUES (10);  SELECT co...` |
 | ADD SENSITIVITY CLASSIFICATION (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ADD SIGNATURE (Transact-SQL) | 41 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -784,7 +785,6 @@ None: the engine reads every statement this grammar reads.
 | ALTER DATABASE ENCRYPTION KEY (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE SCOPED CONFIGURATION | 20 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE SCOPED CREDENTIAL (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
-| ALTER DATABASE Compatibility Level (Transact-SQL) | 21 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE Database Mirroring (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE File and Filegroups | 69 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER DATABASE SET HADR (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -887,6 +887,7 @@ None: the engine reads every statement this grammar reads.
 | CREATE PROCEDURE (Transact-SQL) | 61 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE QUEUE (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE REMOTE SERVICE BINDING (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE REMOTE TABLE AS SELECT (Parallel Data Warehouse) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE RESOURCE POOL (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE ROLE (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE ROUTE (Transact-SQL) | 11 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -905,6 +906,7 @@ None: the engine reads every statement this grammar reads.
 | CREATE SYMMETRIC KEY (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE SYNONYM (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE TABLE AS CLONE OF | 4 | — | 0 | 0 | 0 | 0 |  |
+| CREATE TABLE AS SELECT (Azure Synapse Analytics and Microsoft Fabric) | 53 | 100.0% | 0 | 0 | 0 | 14 |  |
 | CREATE TABLE | 12 | — | 0 | 0 | 0 | 1 |  |
 | CREATE TABLE (SQL Graph) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | IDENTITY (Property) (Transact-SQL) | 22 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -995,7 +997,6 @@ None: the engine reads every statement this grammar reads.
 | DROP WORKLOAD GROUP (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | DROP XML SCHEMA COLLECTION (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ENABLE TRIGGER (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
-| END CONVERSATION (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EXECUTE AS Clause (Transact-SQL) | 5 | 100.0% | 0 | 0 | 0 | 0 |  |
 | EXECUTE AS (Transact-SQL) | 21 | 100.0% | 0 | 0 | 0 | 0 |  |
 | GET CONVERSATION GROUP (Transact-SQL) | 6 | 100.0% | 0 | 0 | 0 | 0 |  |

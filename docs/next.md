@@ -20788,3 +20788,43 @@ the pivot over a join), two more `PREDICT` and six `USE FEDERATION` behind `Msg 
 engine stopping at a name it does not have. Two defects, both the corpus cut wrong. The
 catalogue that hid a hundred statements went this morning; a hundred and seven of them are
 read by both now, in eleven pieces.
+
+## The mirages taken out of the instrument
+
+Two messages end the engine's parse before the statement is read to its end, and each had
+been hiding refusals behind it for as long as the corpus has been asked. `Msg 137`, "must
+declare the scalar variable": the parser stops at the first variable nobody declared, so
+`SELECT * FROM PREDICT (MODEL = @m, …)` was "read" whatever followed — the memory says declare
+every variable in a probe line, and the work lists carried `PREDICT`, `IDENTITY (INT)`, `@3`
+and `AS LOGIN` as mirages for weeks. `Msg 911`, "database does not exist": `USE nosuchdb junk
+junk` was "read", the parser having stopped at the name, which is what made `USE FEDERATION`
+look like work yesterday. `Engine.Answer` does now what the hand did: a statement answered 137
+is asked again with every variable it uses and does not declare declared in front of it, as
+`sql_variant` — any value is one — and as `CURSOR` where the engine answers that a cursor was
+expected (16948); if the second asking says a variable is declared twice (134) or that the
+statement had to come first in its batch (111 — a procedure, a view), the first answer stands.
+A statement beginning `USE` and answered 911 is asked again with the connection's own
+database in the name's place. And `Msg 133`, a `GOTO` to a label the batch has not got — which
+a statement asked about alone never has — went with the messages about names.
+
+**What the honest instrument says.** At 170: read by both 7,385 (from 7,397 — twelve that were
+"read" by 137 are refused on both sides now, neither 603 from 591), **the work list 15 (from
+27), defects 12 (from 2)**. At 150: 6,600 both, 13 work, 12 defects. `--levels`: **143 part by
+level (from 138), 143 the same here** — five statements the variable had hidden from the
+levels too. The map: 7,984 both, **9 work (from 14), 3 defects (from 0), 0 parting at a level
+(from 4)** — the four `OPENJSON (@var) WITH (…)` partings were the mirage.
+
+The mirages had hidden work in both directions, and it is the next list. **Refused here and
+read there:** `JSON_QUERY ('…', '$.a' WITH ARRAY WRAPPER)` (six), a variable named by a digit —
+`@3` is one, the engine declaring and reading it (two), and `CREATE DATABASE … FOR
+ATTACH_REBUILD_LOG WITH TRUSTWORTHY OFF` (four, `FOR ATTACH WITH …` reading already). **Read
+here and refused there**, the more interesting half: a variable in a security policy's
+predicate arguments (`Msg 112`, "variables are not allowed"); `RECEIVE @v = 10, 20`, an
+assignment mixed with a column (8447); `SET c1 -= DEFAULT`, a default after a compound
+operator (10708); `{fn convert (x, sql_int)}`, an ODBC type the engine has not got (155);
+`OPENROWSET (something, @v)`, a provider named bare (156); `.f2 (1)`, a function called
+through a leading dot (102, where `.t1` as a table reads); `@x ;` as a statement of its own
+(102); `SELECT @v = 1 UNION ALL SELECT @v = 2`, an assignment in a set operation (10734, 141);
+and `JSON_QUERY (…, '$.a' RETURNING JSON)`, the `RETURNING` the ordinary call reads for
+`JSON_VALUE`'s sake and no other function takes. The two cutting artefacts stand. Each of
+these is measured next and written as a piece.
