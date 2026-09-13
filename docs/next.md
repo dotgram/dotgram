@@ -20698,3 +20698,32 @@ At 170: read by both **7,343 (from 7,333), the work list 81 (from 91)**. At 150:
 43 work (from 53). `--split` 770 (from 764), 195 files not read whole (from 201); the round
 trip 100% of 7,691 (from 7,681). The map unchanged; `--levels` 138 of 138. The suite is 7,382
 rows (from 7,353).
+
+## A partition split bare, and a server authenticated outside
+
+Eighteen of the honest work list in four rules, measured on the engine first. `ALTER
+PARTITION FUNCTION f1 () SPLIT` and `MERGE` with no `RANGE (…)`: read, where the rule
+demanded the range — `RANGE` with nothing after it, `()` and two boundaries stay `Msg 102`,
+as does the function named without its brackets. `CREATE PARTITION FUNCTION f (char (10)
+COLLATE Estonian_CS_AS)`: a collation after the type, and no nullability — `NULL` and `NOT
+NULL` on either side of the collation are `Msg 156`. `CREATE EXTERNAL LANGUAGE … (…,
+ENVIRONMENT_VARIABLES = N'{"TEST":"C:\\Python37"}')`, and `ALTER … ADD (…)` and `SET (…)`
+with it: an option the file list did not have, a string as `PARAMETERS` is; what the string
+holds the engine reads and objects to — `Msg 39133`, "the environment variables string is
+invalid", for `'x'` and for the option twice — which went with the messages about names,
+and two rows of the older theory that held `= 'e'` and `= 'p'` as refusals hold them as
+readings; a binary string is `Msg 102` and stays refused. And `ALTER SERVER CONFIGURATION
+SET EXTERNAL AUTHENTICATION`, which no page on disk has: `OFF`, or `ON` with the one way in
+brackets, `(USE_IDENTITY)` or `(CREDENTIAL_NAME = 'x')` with `N` or without — not both, not
+neither, not a bare name, not `OFF (…)`, each `Msg 102`.
+
+Fourteen refusals and sixteen readings in the theory. At 170: read by both **7,361 (from
+7,343), the work list 63 (from 81)**. At 150: 6,610 both, **25 work (from 43)**. `--split` 780
+(from 770), 185 files not read whole (from 195); the round trip 100% of 7,709 (from 7,691).
+The map unchanged; `--levels` 138 of 138. The suite is 7,410 rows (from 7,382).
+
+What is left at 150 is the nineteen of the old list and `USE FEDERATION` — six statements of
+Azure's retired federations that this engine, oddly, still reads: `USE FEDERATION ROOT WITH
+RESET` and `USE FEDERATION f1 (d1 = 20) WITH FILTERING = ON, RESET` are answered as read at
+every level. On the other-products list and on the work list both, since the work bucket
+does not consult the list; and read by the engine, so a rule to write, measured next.

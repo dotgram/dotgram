@@ -610,7 +610,13 @@ static class Engine
 			//    182  Table and column names must be supplied for the READTEXT or WRITETEXT utility.
 			//    185  Data stream is invalid for WRITETEXT statement in bulk form.
 			//    186  Data stream missing from WRITETEXT statement.
-			or 182 or 185 or 186;
+			or 182 or 185 or 186
+
+			// And an external language's environment, 2026-09-13: the string read and found
+			// not to hold what it should.
+			//
+			//  39133  CREATE/ALTER EXTERNAL LANGUAGE statement failed. The environment variables string is invalid.
+			or 39133;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open

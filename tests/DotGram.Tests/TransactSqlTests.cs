@@ -2007,6 +2007,50 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>A partition split or merged with no `RANGE`, a partition type with its collation, an external language's environment, and how the server proves itself outside.</summary>
+	[Theory]
+	[InlineData("alter partition function f1() split range")]
+	[InlineData("alter partition function f1() split ()")]
+	[InlineData("alter partition function f1 split range (10)")]
+	[InlineData("alter partition function f1() split range (10, 20)")]
+	[InlineData("CREATE PARTITION FUNCTION myRangePF1 (char(10) COLLATE Estonian_CS_AS NULL) AS RANGE RIGHT FOR VALUES (1)")]
+	[InlineData("CREATE PARTITION FUNCTION myRangePF1 (char(10) NOT NULL) AS RANGE RIGHT FOR VALUES (1)")]
+	[InlineData("CREATE PARTITION FUNCTION myRangePF1 (char(10) NULL COLLATE Estonian_CS_AS) AS RANGE RIGHT FOR VALUES (1)")]
+	[InlineData("CREATE EXTERNAL LANGUAGE l1 FROM (CONTENT = 0x5678, FILE_NAME = 'x.dll', ENVIRONMENT_VARIABLES = 0x12)")]
+	[InlineData("ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION ON")]
+	[InlineData("ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION ON (USE_IDENTITY, CREDENTIAL_NAME = 'x')")]
+	[InlineData("ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION ON (CREDENTIAL_NAME = x)")]
+	[InlineData("ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION ON (NOSUCH)")]
+	[InlineData("ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION OFF (USE_IDENTITY)")]
+	[InlineData("ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION ON ()")]
+	public void A_partition_split_bare_and_a_server_authenticated_outside_is_refused_where_the_engine_refuses_it(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And is read where the engine reads it, or reads it and objects to the value.</summary>
+	[Theory]
+	[InlineData("alter partition function f1() split")]
+	[InlineData("alter partition function f1() merge")]
+	[InlineData("alter partition function f1() split range (10)")]
+	[InlineData("CREATE PARTITION FUNCTION myRangePF1 (char(10) COLLATE Estonian_CS_AS) AS RANGE RIGHT FOR VALUES (1)")]
+	[InlineData("CREATE PARTITION FUNCTION myRangePF1 (int COLLATE Estonian_CS_AS) AS RANGE RIGHT FOR VALUES (1)")]
+	[InlineData("CREATE EXTERNAL LANGUAGE l1 FROM (CONTENT = 0x5678, FILE_NAME = 'x.dll', ENVIRONMENT_VARIABLES = N'{\"TEST\":\"C:\\\\Python37\"}')")]
+	[InlineData("CREATE EXTERNAL LANGUAGE l1 FROM (CONTENT = 0x5678, FILE_NAME = 'x.dll', PARAMETERS = N'{\"a\":\"b\"}', ENVIRONMENT_VARIABLES = N'{\"Var\":\"v\"}')")]
+	[InlineData("CREATE EXTERNAL LANGUAGE l1 FROM (CONTENT = 0x5678, FILE_NAME = 'x.dll', ENVIRONMENT_VARIABLES = 'x')")]
+	[InlineData("ALTER EXTERNAL LANGUAGE language2 AUTHORIZATION bing ADD (CONTENT=0x5678, FILE_NAME = 'AlteredExtension.dll', PLATFORM = WINDOWS, PARAMETERS=N'newParam', ENVIRONMENT_VARIABLES=N'{\"altered\":\"variable\"}')")]
+	[InlineData("ALTER EXTERNAL LANGUAGE language2 SET (CONTENT=0x5678, FILE_NAME = 'x.dll', ENVIRONMENT_VARIABLES=N'{\"altered\":\"variable\"}')")]
+	[InlineData("ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION ON ( USE_IDENTITY)")]
+	[InlineData("ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION ON (CREDENTIAL_NAME = 'AFASDF')")]
+	[InlineData("ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION ON (CREDENTIAL_NAME = N'x')")]
+	[InlineData("ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION OFF")]
+	[InlineData("CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = 'a', FILE_NAME = 'x', ENVIRONMENT_VARIABLES = 'e')")]
+	[InlineData("ALTER EXTERNAL LANGUAGE Java SET (ENVIRONMENT_VARIABLES = 'p')")]
+	public void A_partition_split_bare_and_a_server_authenticated_outside_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
@@ -3717,7 +3761,6 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE EXTERNAL LANGUAGE dbo.Java FROM (CONTENT = 'a', FILE_NAME = 'x')")]
 	[InlineData("CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = 'a')")]
 	[InlineData("CREATE EXTERNAL LANGUAGE Java FROM (FILE_NAME = 'x')")]
-	[InlineData("CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = 'a', FILE_NAME = 'x', ENVIRONMENT_VARIABLES = 'e')")]
 	[InlineData("CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = 'a', FILE_NAME = 'x'), (CONTENT = 'b', FILE_NAME = 'y')")]
 	[InlineData("CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = 'a', FILE_NAME = 'x', PLATFORM = LINUX), (CONTENT = 'b', FILE_NAME = 'y', PLATFORM = LINUX)")]
 	[InlineData("CREATE EXTERNAL LANGUAGE Java FROM (CONTENT = 'a', FILE_NAME = 'x', PLATFORM = WINDOWS), (CONTENT = 'b', FILE_NAME = 'y')")]
@@ -3733,7 +3776,6 @@ public sealed class TransactSqlTests
 	[InlineData("ALTER EXTERNAL LANGUAGE Java SET (CONTENT = 'a', FILE_NAME = 'x'), (CONTENT = 'b', FILE_NAME = 'y')")]
 	[InlineData("ALTER EXTERNAL LANGUAGE Java REMOVE PLATFORM FOO")]
 	[InlineData("ALTER EXTERNAL LANGUAGE Java REMOVE PLATFORM")]
-	[InlineData("ALTER EXTERNAL LANGUAGE Java SET (ENVIRONMENT_VARIABLES = 'p')")]
 	[InlineData("ALTER EXTERNAL LANGUAGE Java SET ()")]
 	[InlineData("ALTER EXTERNAL LANGUAGE Java REMOVE (PLATFORM = LINUX)")]
 	[InlineData("CREATE RULE r AS 1 = 1")]
