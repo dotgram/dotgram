@@ -20851,3 +20851,23 @@ both, 8 work (from 9), 3 defects, 0 parting at a level.
 The three mirages accounted for every "decision" the lists had carried: `PREDICT`, `IDENTITY
 (INT)`, `@3`, `AS LOGIN`, `USE FEDERATION`, `sum (*)`. What the honest instrument leaves is
 the list in the entry before, less `sum (*)`, and it is the next work.
+
+## A variable named by anything
+
+`[funcType]::f (DEFAULT, 1, @3 + t::Pi)` had been on the work list as a mirage, and with the
+mirage gone it was work: the engine declares `@3` and reads it. Measured, what follows the
+`@` is anything a name goes on with, and nothing at all — `@3`, `@3a`, `@$x`, `@#x`, `@@3` and
+`@` alone are each declared and read, `CREATE PROCEDURE p @1 INT` among them — where the rule
+had asked for a letter or an underscore first. So `Variable` is `'@'` and `IdentifierPart*`,
+the `@@` of a built-in being one more character of the same kind, and a row of the older
+theory that held `SELECT @` as a refusal holds it as a reading. Ten readings in the theory.
+
+And `Msg 134`, a variable declared twice, went with the messages about names: `CREATE
+PROCEDURE p1 @ INT AS BEGIN RETURN 0; END DECLARE @ AS INT` is one statement to the corpus's
+cutter and one procedure to the engine, its parameter declared again in its body — read, and
+objected to as a name.
+
+At 170: read by both **7,389 (from 7,385), the work list 11 (from 13)**, defects 12. At 150:
+6,604 both, 9 work. `--split` 786 (from 784), 179 files not read whole (from 181); the round
+trip 100% of 7,749 (from 7,745). The map unchanged at 8 work and 3 defects; `--levels` 145 of
+145. The suite is 7,490 rows (from 7,480).

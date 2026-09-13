@@ -2144,6 +2144,26 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>After the `@` anything a name goes on with, and nothing at all: the engine declares and reads each.</summary>
+	[Theory]
+	[InlineData("DECLARE @3 int")]
+	[InlineData("DECLARE @3a int")]
+	[InlineData("DECLARE @$x int")]
+	[InlineData("DECLARE @#x int")]
+	[InlineData("DECLARE @@3 int")]
+	[InlineData("DECLARE @ int")]
+	[InlineData("SELECT @3, @3a, @$x, @#x, @@3, @")]
+	[InlineData("SET @3 = @3 + 1")]
+	[InlineData("SELECT @")]
+	[InlineData("CREATE PROCEDURE p @1 int AS SELECT @1")]
+	[InlineData("SELECT t::a, t2::f(), dbo.[type 1]::[Property], [funcType]::f(DEFAULT, 1, @3 + t::Pi)")]
+	public void A_variable_named_by_anything_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
@@ -7709,7 +7729,6 @@ public sealed class TransactSqlTests
 	[Theory]
 	[InlineData("SELECT TOP")]
 	[InlineData("SELECT [a")]
-	[InlineData("SELECT @")]
 	public void What_is_not_read_yet_is_refused(string input)
 	{
 		var match = TransactSql.TryParseSelect(input);

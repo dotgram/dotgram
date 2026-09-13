@@ -69,8 +69,11 @@ namespace TSql
 	RegularIdentifier = Sql92.Lexical.IdentifierStart & TSql.IdentifierPart*
 
 	// A local variable, a parameter, and the two `@@` spellings of a built-in.
-	// One rule: what tells them apart is the catalogue and not the syntax.
-	Variable = '@' & '@'? & Sql92.Lexical.IdentifierStart & TSql.IdentifierPart*
+	// One rule: what tells them apart is the catalogue and not the syntax. After the `@`
+	// anything a name goes on with, and nothing at all: `@3`, `@3a`, `@$x`, `@#x`, `@@3`
+	// and `@` alone are each declared and read by the engine, `CREATE PROCEDURE p @1 int`
+	// among them, where this rule had asked for a letter first.
+	Variable = '@' & TSql.IdentifierPart*
 
 	// Money, written with the sign the culture uses, and a binary string written the
 	// way T-SQL writes one. Neither is a lexeme of the standard. A binary string goes on past a

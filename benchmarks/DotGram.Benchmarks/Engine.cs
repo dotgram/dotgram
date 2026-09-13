@@ -731,7 +731,14 @@ static class Engine
 			// asked about on its own never has, its label being in the batch it was cut from.
 			//
 			//    133  A GOTO statement references the label '%.*ls' but the label has not been declared.
-			or 133;
+			or 133
+
+			// And a variable declared twice, 2026-09-13 — `CREATE PROCEDURE p1 @ INT AS BEGIN … END
+			// DECLARE @ AS INT`, which the corpus cuts as one statement and the engine reads as one
+			// procedure with its parameter declared again.
+			//
+			//    134  The variable name '%.*ls' has already been declared. Variable names must be unique within a query batch or stored procedure.
+			or 134;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open
