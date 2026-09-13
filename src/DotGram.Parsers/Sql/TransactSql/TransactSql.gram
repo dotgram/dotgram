@@ -856,8 +856,12 @@ Top : @Clause.Top
 
 // Read as the words they are and taken apart in C#: two questions and a rule, and asking
 // them here would be three captures where one run of words says it.
+// `WITH APPROXIMATE` is SQL Server 2025's vector search, published for `TOP (n)` and refused
+// by this server's build (`Msg 102`, with `PREVIEW_FEATURES` on as off) — a version of this
+// product this server is not, which `--engine` counts apart. `WITH APPROX` was read here
+// from ScriptDom's grammar; nothing published says it and the engine refuses it, so it is not.
 TopSuffix : @string = t: ("PERCENT"i & TopWith? | TopWith) => @(t)
-TopWith   = "WITH"i & "TIES"i | "WITH"i & "APPROXIMATE"i | "WITH"i & "APPROX"i
+TopWith   = "WITH"i & "TIES"i | "WITH"i & "APPROXIMATE"i
 
 // §7.9 has nowhere to put this: the rows go into a table instead of coming back, and
 // the filegroup says where that table's pages live.
@@ -1342,9 +1346,11 @@ OffsetFetch : @Clause.OrderBy
 	= "OFFSET"i & skip: ValueExpression & RowWord & take: FetchClause?
 		=> @(new Clause.OrderBy(Clause.None, skip, take))
 
+// `FETCH APPROXIMATE NEXT n ROWS ONLY` was read here from ScriptDom's grammar, which has it
+// from level 170; nothing published says it and the engine refuses it with an `OFFSET` and
+// without, so it is not.
 FetchClause : @Expression
-	= "FETCH"i & "APPROXIMATE"i & FetchAt & v: ValueExpression & RowWord & "ONLY"i => @(v)
-	| "FETCH"i & FetchAt & v: ValueExpression & RowWord & "ONLY"i                  => @(v)
+	= "FETCH"i & FetchAt & v: ValueExpression & RowWord & "ONLY"i => @(v)
 
 FetchAt = "NEXT"i | "FIRST"i
 RowWord = "ROWS"i | "ROW"i

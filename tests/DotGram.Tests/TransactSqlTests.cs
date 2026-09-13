@@ -1799,6 +1799,15 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>Two spellings ScriptDom reads that nothing published says and the engine refuses.</summary>
+	[Theory]
+	[InlineData("SELECT TOP 10 WITH APPROX * FROM Orders ORDER BY OrderDate")]
+	[InlineData("SELECT TOP (10) WITH APPROX * FROM Orders ORDER BY OrderDate")]
+	[InlineData("SELECT * FROM t ORDER BY c FETCH APPROXIMATE NEXT 20 ROWS ONLY")]
+	[InlineData("SELECT * FROM t ORDER BY c OFFSET 0 ROWS FETCH APPROXIMATE FIRST 15 ROWS ONLY")]
+	public void An_approximation_nobody_published_is_refused(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]

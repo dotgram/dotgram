@@ -384,6 +384,15 @@ static class Engine
 		"CREATE_INDEX =",
 		"DROP_INDEX =",
 		"MAINTAIN_INDEX =",
+
+		// SQL Server 2025's vector search, published for `TOP (n)` and in preview: this server's
+		// build (17.0.1125, RTM-GDR) answers Msg 102 with PREVIEW_FEATURES on as off — a
+		// version of this product this server is not, 2026-09-13.
+		"WITH APPROXIMATE",
+
+		// Synapse serverless: a Cosmos DB container read through Synapse Link. SQL Server has
+		// no such provider and answers Msg 102.
+		"PROVIDER = 'CosmosDB'",
 	];
 
 	internal static bool AboutNames(int message) =>

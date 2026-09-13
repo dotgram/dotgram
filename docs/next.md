@@ -20510,3 +20510,33 @@ At 170: read by both **6,720 (from 6,718), the work list 21 (from 23), defects 1
 The 21 are the 150 list's nineteen and two more `PREDICT` behind an undeclared variable: the
 level-170 list is spent as work. At 150 nothing moved; `--split` 752, the round trip 100% of
 7,650, the map unchanged, `--levels` 138 of 138. The suite is 7,256 rows (from 7,200).
+
+## What the level-170 defects were, and two spellings nobody published
+
+Sixteen defects stood at 170 after the aggregate, and thirteen of them were two things.
+Nine `SELECT TOP 10 WITH APPROXIMATE * FROM Orders ORDER BY OrderDate` — SQL Server 2025's
+vector search, published for `TOP (n)` in preview, and refused by this server's build
+(17.0.1125, RTM-GDR) with `Msg 102`, with `PREVIEW_FEATURES` on as off; a version of this
+product this server is not, which is what the other-products list is for, and `WITH
+APPROXIMATE` went onto it. Four `OPENROWSET (PROVIDER = 'CosmosDB', CONNECTION = …, OBJECT =
+…)` — Synapse serverless reading a Cosmos DB container through Synapse Link, no provider
+SQL Server has; onto the list. What is left is the two cutting artefacts the 150 list has had
+since the start.
+
+And two spellings went out of the grammar. `TOP 10 WITH APPROX` was read here from
+ScriptDom's grammar; nothing published says it — the reference says `APPROXIMATE` — and the
+engine refuses it, so the alternative is gone. `FETCH APPROXIMATE NEXT n ROWS ONLY` the same:
+ScriptDom has it from 170 with a test file of its own, written without an `OFFSET`, which
+this grammar never read anyway; nothing published says it and the engine refuses it with an
+`OFFSET` and without, so its alternative is gone too. Both are "written from the published
+syntax, not ScriptDom's" applied late; four refusals hold them out.
+
+At 170: read by both 6,720, the work list 21, **defects 2 (from 16)**, another product's 300
+(from 288). At 150 nothing moved. `--split` 751 (from 752) — a file of ScriptDom's with `WITH
+APPROX` in it is not read whole now, which is right; the round trip 100% of 7,648 (from
+7,650), the same two statements. The map is unchanged; `--levels` 138 of 138. The suite is
+7,260 rows (from 7,256).
+
+The level-170 list is done: 21 on the work list, every one a mirage or a decision already
+taken (`PREDICT` behind an undeclared variable, `IDENTITY (INT)`, `@3`, `sum (*)`, the legacy
+`PLAN` hints, the pivot over a join, `AS LOGIN`); 2 defects, both the corpus cut wrong.
