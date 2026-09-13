@@ -1647,6 +1647,52 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>`VECTOR (3, FLOAT32)`: the dimensions and then a plain word or a number, and nothing else in the second place.</summary>
+	[Theory]
+	[InlineData("SELECT CAST ('x' AS VECTOR(3.0, float32))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(3, float32)(4))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR())")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(3, float32 float16))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(3, @a))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(3, \"float32\"))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(3, [float32]))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(3, 'float32'))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(3, select))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(3, NULL))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(float32, 3))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(3, float32, 1))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(, float32))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(3, float32.x))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(3, dbo.float32))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(3, float32, ))")]
+	public void A_vector_with_its_base_type_is_refused_where_the_engine_refuses_it(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And is read where the engine reads it, wherever a type stands.</summary>
+	[Theory]
+	[InlineData("SELECT CAST ('test' AS VECTOR(3, Float32))")]
+	[InlineData("SELECT CAST ('test' AS VECTOR (3, FLOAT16))")]
+	[InlineData("SELECT CAST ('test' AS VECTOR(3))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR)")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(MAX))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(3, MAX))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(3, foo))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(3, 4))")]
+	[InlineData("SELECT CAST ('x' AS VECTOR(3, int))")]
+	[InlineData("SELECT CAST ('test' AS VECTOR(3, float32)), CONVERT (VECTOR(3, float16), 'x')")]
+	[InlineData("SELECT 1 WHERE col IN (SELECT CAST('test' AS VECTOR (3, Float32)))")]
+	[InlineData("DECLARE @v VECTOR(3, float32) = '[1,2,3]'")]
+	[InlineData("CREATE TYPE vt FROM VECTOR(3, float32)")]
+	[InlineData("CREATE TABLE tbl (embedding VECTOR(3, float32) NOT NULL, e2 VECTOR(3 , float16 ))")]
+	[InlineData("CREATE PROCEDURE p @v VECTOR(3, float32) AS SELECT 1")]
+	[InlineData("CREATE FUNCTION f () RETURNS VECTOR(3, float32) AS BEGIN RETURN NULL END")]
+	public void A_vector_with_its_base_type_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]

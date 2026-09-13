@@ -20409,3 +20409,33 @@ At 170: read by both **6,694 (from 6,688), the work list 43 (from 49)**, defects
 product's 288. At 150 nothing moved. `--split` 747 (from 745), 218 files not read whole (from
 220); the round trip 100% of 7,630 (from 7,624). The map is unchanged — the reference on disk
 predates the shifts. The suite is 7,150 rows (from 7,128).
+
+## A vector's base type
+
+Eighteen of the level-170 list: `VECTOR (3, FLOAT32)` and `VECTOR (1, FLOAT16)`, a type whose
+second argument is a word where every other type's is a number. The reference on disk has
+no `float16` yet, so the engine was asked, and reads at every level: the dimensions and then
+a plain name — `float32`, `float16`, and `foo` and `int` the same way, objected to after the
+parse if at all, so the grammar lists none of them; or a number, read as any type's second
+number and answered `Msg 192`, "the scale must be less than or equal to the precision",
+which is the value and not the shape; `MAX` in either place. Not a name in brackets or
+quotes, not a reserved word (`Msg 156`), not a qualified name, not two words, not a variable,
+not a decimal, not an empty bracket, and never a second bracket after the first — each `Msg
+102`. Wherever a type stands: a column, a `DECLARE`, a `CAST`, a `CONVERT`, a `CREATE TYPE …
+FROM`, a parameter, a `RETURNS`.
+
+`VECTOR` left the group of types that take `AnyLength` and stands first with a length of its
+own: `VectorLength` is `( Digits [, Digits | VectorBase] )` or `( MAX )`, and `VectorBase` a
+regular identifier that is not reserved — the same lookahead `TSqlIdentifier` opens with, and
+none of its other alternatives. The type is text in the tree, as every type is, and the
+writer puts it back as read. Sixteen refusals and sixteen readings in the theory.
+
+At 170: read by both **6,712 (from 6,694), the work list 25 (from 43)**, defects 22. At 150
+nothing moved. `--split` 751 (from 747), 214 files not read whole (from 218); the round trip
+100% of 7,648 (from 7,630). The map is unchanged. `--levels` 138 of 138. The suite is 7,182
+rows (from 7,150).
+
+Seen on the way and left: `OPENROWSET (BULK 'a', FORMAT = 'CSV') WITH (c VARCHAR (50) 0)` is
+`Msg 16204` — a column's number in a file read and objected to as a value — where
+`Syntax.Ranked` refuses the zero; if 16204 is about the value, the zero should be read and
+the message counted with the names. Not this piece's.

@@ -629,15 +629,28 @@ CountStar : @Expression
 // column, `319` in a `CREATE TYPE … FROM`) and an interval qualifier as well. Bare
 // `interval` is read, being an ordinary name nobody declared.
 //
+// `vector` takes its dimensions and then the base type its elements are stored as, `VECTOR
+// (3, FLOAT32)`, `VECTOR (1, FLOAT16)` — a second argument that is a word where every other
+// type's is a number. The word is any plain name: `float32` and `float16` are what the
+// server has, and `foo` and `int` are read the same way and objected to later, so the
+// grammar does not list them. A number stands there too, read as any type's second number
+// and answered `Msg 192` as a scale (the value, not the shape); `MAX` reads in either place.
+// Not a word in brackets or quotes, not a reserved word, not a qualified name, not two words,
+// not a variable, and not a decimal: `[float32]`, `"float32"`, `'float32'`, `(3, select)`,
+// `(3, dbo.float32)`, `(3, float32 float16)`, `(3, @a)` and `(3.0, float32)` are refused.
+// In a column, a `DECLARE`, a `CAST`, a `CONVERT`, a `CREATE TYPE … FROM`, a parameter and
+// a `RETURNS` alike, as any type, and no second bracket after the first.
+//
 // A bare qualified name stands last, and it is not a catch-all by accident: a type in
 // T-SQL may be one somebody declared, and no parser can tell without the catalogue.
 // What keeps it from swallowing everything is that the only place a type is read is
 // after `AS` inside a cast.
 TSqlDataType
-	= ("CHARACTER"i & "VARYING"i? | "CHAR"i & "VARYING"i? | "VARCHAR"i
+	= "VECTOR"i & VectorLength?
+	| ("CHARACTER"i & "VARYING"i? | "CHAR"i & "VARYING"i? | "VARCHAR"i
 	  | "NATIONAL"i & ("CHARACTER"i | "CHAR"i) & "VARYING"i? | "NATIONAL"i & "TEXT"i
 	  | "NCHAR"i & "VARYING"i? | "NVARCHAR"i
-	  | "BINARY"i & "VARYING"i? | "VARBINARY"i | "VECTOR"i
+	  | "BINARY"i & "VARYING"i? | "VARBINARY"i
 	  | "FLOAT"i
 	  | "DATETIME2"i | "DATETIMEOFFSET"i | "TIME"i | "TIMESTAMP"i
 	  | "INTEGER"i | "INT"i | "SMALLINT"i | "TINYINT"i | "BIGINT"i | "BIT"i
@@ -664,6 +677,10 @@ AnyLength   = '(' & (Sql92.Lexical.Digits & (',' & Sql92.Lexical.Digits)? | "MAX
 
 // The same without `MAX`, which an exact numeric takes in a column alone.
 ExactLength = '(' & Sql92.Lexical.Digits & (',' & Sql92.Lexical.Digits)? & ')'
+
+// A vector's: its dimensions, and then a number or the plain word its base type is.
+VectorLength = '(' & (Sql92.Lexical.Digits & (',' & (Sql92.Lexical.Digits | VectorBase))? | "MAX"i) & ')'
+VectorBase   = ?!TSqlReserved & TSql.RegularIdentifier
 
 // A column's type, which is every type and one more spelling: an exact numeric sized `MAX`.
 // `CREATE TABLE t (c DECIMAL (MAX))` is read, and so are `NUMERIC (MAX)` and `DEC (MAX)`
