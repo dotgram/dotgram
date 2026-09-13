@@ -793,7 +793,16 @@ static class Engine
 			// another product's by the word `EXTERNAL TABLE` until that word went.
 			//
 			//  46553  Create External Table as Select is disabled. See sp_configure 'allow polybase export' option to enable.
-			or 46553;
+			or 46553
+
+			// And a PolyBase object's options read and then found wanting by what the string
+			// in them holds, 2026-09-13: connection options that are not S3's JSON, a
+			// compression or an encoding this server does not have.
+			//
+			//  12708  S3 connection options string is not a well formed JSON document. Parsing error %d.
+			//  12709  Structure of JSON with S3 connection options is not correct. Cannot get subobject "s3".
+			//  46508  Incorrect syntax on external DDL option '%S_MSG'.
+			or 12708 or 12709 or 46508;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open

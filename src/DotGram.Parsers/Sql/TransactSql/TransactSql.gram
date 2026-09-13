@@ -5541,18 +5541,19 @@ EndpointWindowsMode = "NTLM"i | "KERBEROS"i | "NEGOTIATE"i
 // option list — which is the shape this grammar has been reading since `CREATE TABLE`.
 // What is new is four clauses that are not a name and a value.
 ExternalStatement : @Statement
-	= verb: CreateOrAlter & "EXTERNAL"i & "DATA"i & "SOURCE"i & name: Identifier & tail: DataSourceBody
+	= verb: CreateOrAlter & "EXTERNAL"i & "DATA"i & "SOURCE"i & name: Identifier
+	  & tail: (options: DataSourceBody) & when @(Syntax.NamedOnce(null, options))
 		=> @(Statement.Defined("EXTERNAL DATA SOURCE", name, Syntax.Tail(tail), verb))
-	| "CREATE"i & "EXTERNAL"i & "FILE"i & "FORMAT"i & name: Identifier & tail: LooseOptionsWithText
+	| "CREATE"i & "EXTERNAL"i & "FILE"i & "FORMAT"i & name: Identifier & tail: FileFormatWith
 		=> @(Statement.Defined("EXTERNAL FILE FORMAT", name, Syntax.Tail(tail)))
 
 	// A table of somebody else's rows: the columns as this grammar reads any columns, and
 	// then where they are. Synapse writes the query instead and lets it say the columns.
 	// The columns take a comma before the bracket, as a table's do.
 	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & '(' & body: TableBody & ','? & ')'
-	  & options: LooseOptionsWith
+	  & options: ExternalTableWith
 		=> @(new Statement.TableDefinition(name, null, body, Clause.None, options, true))
-	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & options: LooseOptionsWith
+	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & options: ExternalTableWith
 	  & "AS"i & q: DirectSelect
 		=> @(new Statement.CreateTableAsSelect(name, null, options, q, true))
 
@@ -5589,30 +5590,104 @@ PoolName : @string = t: Identifier => @(t) | t: Sql92.Lexical.CharacterStringLit
 
 WorkloadPool = "EXTERNAL"i? & PoolName
 
-DataSourceBody = LooseOptionsWith
-			   | "SET"i & OptionList
+// ── The PolyBase objects' options ───────────────────────────────────────────
+//
+// A data source, a file format and an external table each take a catalogue of options, and
+// every option a value of one kind. They were read as any name and any value, and the engine,
+// put the three objects' options by eight kinds of value — a name, a name in brackets, a string,
+// a national string, a whole number, a decimal, `ON`, a name in two parts — answered 384 lines
+// and 83 more (docs/next.md, 2026-09-13). `DATA_SOURCE = 's3_ds'`, which the reference writes in
+// a section for SQL Server 2022, is `Msg 102`: a data source is named, not quoted.
+//
+// Their bracketed lists take the commas loose in a way no other list does: `WITH (LOCATION =
+// 'x',)`, `WITH (,LOCATION = 'x')`, `WITH (LOCATION = 'x',,)`, `WITH (,)` and `WITH ()` are all
+// read, and `FORMAT_OPTIONS (FIELD_TERMINATOR = ',',)` as well. Every other list refuses a
+// comma with nothing after it (`Msg 102`): `CREATE TABLE … WITH (DATA_COMPRESSION = PAGE,)`,
+// `CREATE INDEX … WITH (PAD_INDEX = ON,)`, `ALTER DATABASE … SET (…,)`, `OPENROWSET (…,)`, and
+// the unbracketed `ALTER EXTERNAL DATA SOURCE … SET …,` and `CREATE CREDENTIAL … WITH …,`. A
+// stray comma is nothing, and the tree keeps nothing for it.
+//
+// The options of the products that are not this server — Hadoop, which SQL Server 2022
+// removed, Azure SQL Database's elastic query, Synapse and Azure SQL Edge — are read by their
+// published syntax, since `--engine` counts them apart rather than as defects; this server
+// refuses every one of them.
 
-// The three PolyBase objects — a data source, a file format, an external table — take their
-// bracketed list with the commas loose in a way no other list is: `WITH (LOCATION = 'x',)`,
-// `WITH (,LOCATION = 'x')`, `WITH (LOCATION = 'x',,)`, `WITH (,)` and `WITH ()` are all
-// read, and a nested list is as loose — `FORMAT_OPTIONS (FIELD_TERMINATOR = ',',)`. The
-// reference writes one of them so, at the end of an example, which is how it was found.
-// Every other list refuses a comma with nothing after it (`Msg 102`): `CREATE TABLE … WITH
-// (DATA_COMPRESSION = PAGE,)`, `CREATE INDEX … WITH (PAD_INDEX = ON,)`, `ALTER DATABASE …
-// SET (…,)`, `OPENROWSET (…,)`, and the unbracketed `ALTER EXTERNAL DATA SOURCE … SET …,`
-// and `CREATE CREDENTIAL … WITH …,` — so this is the three objects' own and stays with them.
-// A stray comma is nothing, and the tree keeps nothing for it: where the tail is kept as
-// text it survives as written, and where the options are nodes it is gone, as the comma
-// after a table's last column is.
-LooseOptionsWith : @Clause[]
-	= "WITH"i & '(' & o: LooseOptionList with (OptionList = LooseOptionList) & ')' => @(o)
+// An external table's, and a table made from a query's, which are the same. A location is a
+// string, a data source and a file format one part of a name — not a string, not `dbo.x` — a
+// rejection `VALUE` or `PERCENTAGE` and its numbers unsigned, with no exponent. Each once
+// (`Msg 46547`, "attempted to set the option multiple times"), and nothing else (`Msg 102`).
+ExternalTableWith : @Clause[]
+	= "WITH"i & '(' & ','* & items: ExternalTableItem* & ')' & when @(Syntax.NamedOnce(null, items))
+		=> @(items ?? Clause.None)
 
-// The same, where the statement keeps what it read as the words rather than as options.
-LooseOptionsWithText = "WITH"i & '(' & LooseOptionList with (OptionList = LooseOptionList) & ')'
+ExternalTableItem : @Clause = o: ExternalTableOption & ','* => @(o)
 
-LooseOptionList : @Clause[] = ','* & items: LooseOption* => @(items ?? Clause.None)
+ExternalTableOption : @Clause = ?=(ExternalTableSyntax & OptionEnds) & o: OptionSetting => @(o)
 
-LooseOption : @Clause = o: OptionSetting & ','* => @(o)
+ExternalTableSyntax
+	= ("LOCATION"i | "REJECTED_ROW_LOCATION"i) & '=' & Quoted
+	| ("DATA_SOURCE"i | "FILE_FORMAT"i) & '=' & ExternalName
+	| "REJECT_TYPE"i & '=' & ("VALUE"i | "PERCENTAGE"i)
+	| ("REJECT_VALUE"i | "REJECT_SAMPLE_VALUE"i) & '=' & ExactNumber
+	// Elastic query's and Synapse serverless's.
+	| ("SCHEMA_NAME"i | "OBJECT_NAME"i | "TABLE_OPTIONS"i) & '=' & Quoted
+	| "DISTRIBUTION"i & '=' & ("SHARDED"i & '(' & Identifier & ')' | "REPLICATED"i | "ROUND_ROBIN"i)
+
+// A name of one part: `[c]` and `"c"` are, `dbo.c` is not.
+ExternalName = Identifier & ?!'.'
+
+// A data source's. Made, it takes a location, a credential by name, whether to push work down,
+// the connection's options as a string, and a type — `BLOB_STORAGE`, the one this server has,
+// and not as a string. Altered, it takes the location, the credential, the pushdown and the
+// connection's options, and the published `TYPE` and resource manager of the Hadoop years. Each
+// once either way (`Msg 102`). `CONNECTION_OPTIONS` holding what S3 cannot use is read and then
+// objected to (`Msg 12708`, `12709`), which is the value.
+DataSourceBody : @Clause[]
+	= "WITH"i & '(' & ','* & items: DataSourceItem* & ')' => @(items ?? Clause.None)
+	| "SET"i & first: DataSourceChange & (',' & rest: DataSourceChange)* => @(Syntax.Listed(first, rest))
+
+DataSourceItem : @Clause = o: DataSourceOption & ','* => @(o)
+
+DataSourceOption : @Clause = ?=(DataSourceSyntax & OptionEnds) & o: OptionSetting => @(o)
+
+DataSourceSyntax
+	= DataSourceShared
+	| "TYPE"i & '=' & ("BLOB_STORAGE"i | "HADOOP"i | "RDBMS"i | "SHARD_MAP_MANAGER"i)
+	// Hadoop's, and elastic query's.
+	| ("RESOURCE_MANAGER_LOCATION"i | "DATABASE_NAME"i | "SHARD_MAP_NAME"i) & '=' & Quoted
+
+DataSourceChange : @Clause = ?=DataSourceChangeSyntax & o: OptionSetting => @(o)
+
+DataSourceChangeSyntax
+	= DataSourceShared
+	| "TYPE"i & '=' & ("BLOB_STORAGE"i | "HADOOP"i)
+	| "RESOURCE_MANAGER_LOCATION"i & '=' & Quoted
+
+DataSourceShared
+	= ("LOCATION"i | "CONNECTION_OPTIONS"i) & '=' & Quoted
+	| "CREDENTIAL"i & '=' & ExternalName
+	| "PUSHDOWN"i & OnOffValue
+
+// A file format's, kept as the words: a type out of six, a compression and a Hive method as
+// strings, and the options a delimited text takes, in brackets and as often as wanted — the
+// type twice is read, and an option twice inside the brackets, and the brackets twice.
+// `FORMAT_OPTIONS = (…)` is `Msg 102`. A compression or an encoding this server does not know is
+// read and objected to (`Msg 46508`). `SERDE_METHOD` and `PARSER_VERSION` are Hadoop's and
+// Synapse's, and `JSON` Azure SQL Edge's.
+FileFormatWith = "WITH"i & '(' & ','* & (FileFormatOption & ','*)* & ')'
+
+FileFormatOption
+	= "FORMAT_TYPE"i & '=' & ("DELIMITEDTEXT"i | "RCFILE"i | "ORC"i | "PARQUET"i | "DELTA"i | "JSON"i)
+	| ("DATA_COMPRESSION"i | "SERDE_METHOD"i) & '=' & Quoted
+	| "FORMAT_OPTIONS"i & '(' & ','* & (FormatOption & ','*)* & ')'
+
+// A delimited text's: strings, a first row as a whole number, and whether a missing value takes
+// its type's default, `TRUE` or `FALSE` — not `ON`, not `1`, not `'TRUE'`.
+FormatOption
+	= ("FIELD_TERMINATOR"i | "STRING_DELIMITER"i | "DATE_FORMAT"i | "ENCODING"i | "PARSER_VERSION"i) & '=' & Quoted
+	| "FIRST_ROW"i & '=' & Sql92.Lexical.Digits
+	| "USE_TYPE_DEFAULT"i & '=' & ("TRUE"i | "FALSE"i)
+
 
 LibraryChange = "SET"i | "ADD"i
 LibraryFile   = '(' & OptionList & ')'

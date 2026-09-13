@@ -21124,3 +21124,58 @@ to SQL Server 2022 and later". The engine refuses a data source written as a str
 reads any value in an external object's option list. Put to the engine with the variants beside
 it, that list turned out not to be a list at all but a catalogue with a type for every value —
 sixteen disagreements in thirty lines — and it is the next piece.
+
+## The PolyBase objects' options, each of its kind
+
+The defect the narrower words had uncovered on the map — `CREATE EXTERNAL TABLE Region (…) WITH
+(LOCATION = '/region/', DATA_SOURCE = 's3_ds', FILE_FORMAT = ParquetFileFormat)`, on a section
+that "applies to SQL Server 2022 and later" — was not a typo of the reference's but the tip of a
+list this grammar did not type. A data source, a file format and an external table each took
+any name and any value in their `WITH (…)`; the engine takes a catalogue, a kind of value for
+each option. Asked about every option of the three by eight kinds of value — a name, a name in
+brackets, a string, a national string, a whole number, a decimal, `ON`, a name in two parts —
+384 lines, and 83 more for the words, the duplicates and the corners.
+
+**An external table**, and one made from a query, alike: `LOCATION` and `REJECTED_ROW_LOCATION` a
+string; `DATA_SOURCE` and `FILE_FORMAT` a name of one part — `'s3_ds'`, `N's3_ds'` and `dbo.s3_ds`
+are `Msg 102`, `[s3_ds]` and `"s3_ds"` read; `REJECT_TYPE` `VALUE` or `PERCENTAGE`; `REJECT_VALUE`
+and `REJECT_SAMPLE_VALUE` a number with no sign and no exponent; each once (`Msg 46547`), nothing
+else (102). **A data source**, made: `LOCATION`, `CONNECTION_OPTIONS`, `DATABASE_NAME` and
+`RESOURCE_MANAGER_LOCATION` a string, `CREDENTIAL` a name of one part, `PUSHDOWN` `ON` or `OFF`,
+`TYPE` the word `BLOB_STORAGE` and not the string; each once (102). Altered, `SET` takes
+`LOCATION`, `CREDENTIAL`, `PUSHDOWN`, `CONNECTION_OPTIONS`, and the published `TYPE` and
+`RESOURCE_MANAGER_LOCATION` of the Hadoop years. **A file format**: `FORMAT_TYPE` one of
+`DELIMITEDTEXT`, `RCFILE`, `ORC`, `PARQUET`, `DELTA`; `DATA_COMPRESSION` a string; and
+`FORMAT_OPTIONS (…)` holding `FIELD_TERMINATOR`, `STRING_DELIMITER`, `DATE_FORMAT` and `ENCODING`
+as strings, `FIRST_ROW` as a whole number and `USE_TYPE_DEFAULT` as `TRUE` or `FALSE` — not `ON`,
+not `1`, not `'TRUE'`. Here alone a duplicate is read: the type twice, an option twice inside the
+brackets, the brackets twice. `FORMAT_OPTIONS = (…)` is 102. `WITH ()` reads for all three.
+
+What a string holds is the value and not the shape: connection options that are not S3's JSON
+(`Msg 12708`, `12709`), a compression or an encoding this server does not have (`Msg 46508`,
+"incorrect syntax on external DDL option", answered only to the string's content) went with the
+messages about names.
+
+**The other products stay read by their published syntax**, since `--engine` counts them apart:
+Hadoop's `TYPE = HADOOP`, `RESOURCE_MANAGER_LOCATION`, `SERDE_METHOD`; elastic query's
+`TYPE = RDBMS | SHARD_MAP_MANAGER`, `DATABASE_NAME`, `SHARD_MAP_NAME`, and an external table's
+`SCHEMA_NAME`, `OBJECT_NAME`, `DISTRIBUTION = SHARDED (c) | REPLICATED | ROUND_ROBIN`;
+Synapse's `TABLE_OPTIONS` and `PARSER_VERSION`; Azure SQL Edge's `FORMAT_TYPE = JSON` — this
+server refuses every one. What nothing publishes is refused: `ALTER EXTERNAL DATA SOURCE … SET
+DATABASE_NAME = …` and `SHARD_MAP_NAME`, which no `ALTER` block has though the corpus writes
+them; and three of the reference's own examples that contradict its syntax blocks — an
+external table given `FORMAT_OPTIONS (…)` in its `WITH`, twice, and a file format written
+`FORMAT = ORC, COMPRESSION = '…'` — which count as neither, as its typos do.
+
+The rules are the index catalogues' shape: a look ahead at the typed form and then
+`OptionSetting` for the node, `NamedOnce` where the engine refuses a duplicate; the file format,
+kept as words, a text rule. `LooseOptionsWith` and its three companions are gone, the three
+objects being the only ones that used them, and their account of the loose commas moved to the
+new rules, whose lists take the commas as loosely. The theory is built from the engine's answers
+— 334 refusals, 104 readings, and 29 other products' lines read by their published syntax.
+
+At 170: read by both 7,403, the work list 5, defects 2 — unchanged — another product's 266
+(from 286), neither 641 (from 621): the ten unpublished `ALTER … SET`s, twice each. At 150: 246
+to 226. `--split` 780 (from 782); the round trip 100% of 7,717 (from 7,737), the same twenty.
+**The map: 7,994 read by both, 8 work, 0 defects (from 2)**, another product's 73, neither 263.
+`--levels` 145 of 145. The suite is 8,574 rows (from 8,112).
