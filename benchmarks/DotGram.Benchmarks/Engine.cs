@@ -334,6 +334,9 @@ static class Engine
 			: null;
 	}
 
+	/// <summary>A statement that sets an option of the session: `SET` and not `SET @a`.</summary>
+	static readonly Regex SetsOption = new(@"(^|\n|;)\s*SET\s+(?!@)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
 	static int Ask(SqlConnection connection, string statement, bool again = false)
 	{
 		if (connection.State != ConnectionState.Open)
@@ -371,6 +374,20 @@ static class Engine
 			Said = failed.Message;
 
 			return failed.Number;
+		}
+		finally
+		{
+			// A `SET` the engine honours under `PARSEONLY` stays with the session and changes how
+			// everything asked after it is read: `SET ANSI_DEFAULTS OFF` in one file turns quoted
+			// identifiers off, and every double-quoted name in the files after it was `Msg 102`.
+			// Each statement is asked of the session as it began.
+			if (SetsOption.IsMatch(statement) && connection.State == ConnectionState.Open)
+			{
+				connection.Close();
+				connection.Open();
+
+				ParseOnly(connection);
+			}
 		}
 	}
 

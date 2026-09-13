@@ -708,10 +708,10 @@ CountStar : @Expression
 // after `AS` inside a cast.
 TSqlDataType
 	= "VECTOR"i & VectorLength?
-	| ("CHARACTER"i & "VARYING"i? | "CHAR"i & "VARYING"i? | "VARCHAR"i
-	  | "NATIONAL"i & ("CHARACTER"i | "CHAR"i) & "VARYING"i? | "NATIONAL"i & "TEXT"i
-	  | "NCHAR"i & "VARYING"i? | "NVARCHAR"i
-	  | "BINARY"i & "VARYING"i? | "VARBINARY"i
+	| ("CHARACTER"i & "VARYING"i | "CHAR"i & "VARYING"i | "VARCHAR"i
+	  | "NATIONAL"i & ("CHARACTER"i | "CHAR"i) & "VARYING"i | "NATIONAL"i & "TEXT"i
+	  | "NCHAR"i & "VARYING"i | "NVARCHAR"i
+	  | "BINARY"i & "VARYING"i | "VARBINARY"i
 	  | "FLOAT"i
 	  | "DATETIME2"i | "DATETIMEOFFSET"i | "TIME"i | "TIMESTAMP"i
 	  | "INTEGER"i | "INT"i | "SMALLINT"i | "TINYINT"i | "BIGINT"i | "BIT"i
@@ -720,6 +720,12 @@ TSqlDataType
 	  | "TEXT"i | "NTEXT"i | "IMAGE"i | "JSON"i
 	  | "UNIQUEIDENTIFIER"i | "SQL_VARIANT"i | "ROWVERSION"i | "SYSNAME"i
 	  | "GEOGRAPHY"i | "GEOMETRY"i | "HIERARCHYID"i) & AnyLength?
+
+	// A fixed-length string or binary is never `MAX`: `char(max)`, `character(max)`, `nchar(max)`,
+	// `national char(max)` and `binary(max)` are `Msg 156` wherever a type stands — a column, a
+	// `DECLARE`, a cast, a parameter, a `CREATE TYPE … FROM` — where their `VARYING` spellings
+	// are read.
+	| ("CHARACTER"i | "CHAR"i | "NATIONAL"i & ("CHARACTER"i | "CHAR"i) | "NCHAR"i | "BINARY"i) & ExactLength?
 
 	// An exact numeric takes `MAX` only where a column is declared, which is the one place
 	// the length is substituted (`ColumnBody`): `DECLARE @a DECIMAL (MAX)`, a cast's, a

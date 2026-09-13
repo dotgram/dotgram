@@ -21538,3 +21538,25 @@ moved from neither to another product's; at 150: 6,616 both, 236 and 529. `--spl
 (from 783), the round trip 100% of 7,727 (from 7,717), the map 7,994 both and 0 defects with 81
 another product's and 255 neither (from 73 and 263), `--levels` 145 of 145. The suite is 14,120
 rows (from 14,087).
+
+## The two defects: a session a SET left behind, and a fixed length that is never MAX
+
+`--engine` counted two statements this grammar reads and the engine refuses: a table whose columns
+are typed `"xml"(myCollection)` and the like, and a view named `"Category Sales for 1997"`. Asked
+alone, the engine reads both, column by column and whole. The answer was the harness's:
+`PredicateSetTests.sql` holds `SET ANSI_DEFAULTS OFF`, which the engine honours under `PARSEONLY`,
+and every statement is asked on one session — so quoted identifiers were off for every file after
+it, and a double-quoted name was a string (`SET ANSI_DEFAULTS OFF; CREATE TABLE t (c "xml"(x))` is
+`Msg 102`). A statement that sets an option now gives the session back as it began. Both are read
+by both at 170 and at 150, and nothing else moved.
+
+**And a defect no corpus had.** Probing the columns one by one turned up `char(max)`: a fixed-length
+string or binary — `char`, `character`, `nchar`, `national char`, `national character`, `binary` —
+never takes `MAX`, and is `Msg 156` in a column, a `DECLARE`, a cast, a parameter and a `CREATE TYPE
+… FROM` alike, however its name is written (`[char](max)`, `dbo.char(max)`, `"char"(max)`); its
+`VARYING` spelling and every other type take it as before. Asked of 38 types in five places: 60
+refusals and 130 readings.
+
+At 170: 7,405 both, 5 work, 0 defects, 276 another product's, 631 neither; at 150: 6,618 both, 5,
+0, 236 and 529. `--split` 785, the round trip 100% of 7,727, the map 7,994 both and 0 defects,
+`--levels` 145 of 145 — unchanged. The suite is 14,310 rows (from 14,120).

@@ -4643,6 +4643,12 @@ public static class Syntax
 				? !string.Equals("TEXT", last, StringComparison.OrdinalIgnoreCase)
 				: Array.Exists(Varyingly, one => string.Equals(one, last, StringComparison.OrdinalIgnoreCase));
 
+		// A fixed-length string or binary is never `MAX`, however its name is written: `[char]
+		// (max)`, `dbo.char (max)` and `"char" (max)` are `Msg 156` as `char (max)` is.
+		if (Array.Exists(Varyingly, one => string.Equals(one, last, StringComparison.OrdinalIgnoreCase)) &&
+			Array.Exists(tail.Trim('(', ')').Split(','), static piece => string.Equals(piece.Trim(), "MAX", StringComparison.OrdinalIgnoreCase)))
+			return false;
+
 		// A bracket holding anything but numbers is the xml content's.
 		return Array.TrueForAll(tail.Trim('(', ')').Split(','), static piece => Numbered(piece)) ||
 			   string.Equals("XML", last, StringComparison.OrdinalIgnoreCase);
