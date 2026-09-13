@@ -803,9 +803,15 @@ public static class SqlWriter
 
 				break;
 
-			case Statement.WriteText(var column, var pointer, var data, var bulk, var log):
+			case Statement.WriteText(var column, var pointer, var data, var bulk, var log, var stamp):
 				text.Append(bulk ? "WRITETEXT BULK " : "WRITETEXT ").Append(column).Append(' ');
 				Put(text, pointer, 0);
+
+				if (stamp is not null)
+				{
+					text.Append(" TIMESTAMP = ");
+					Put(text, stamp, 0);
+				}
 
 				if (log)
 					text.Append(" WITH LOG");
@@ -819,9 +825,16 @@ public static class SqlWriter
 				break;
 
 			case Statement.UpdateText(
-					var column, var pointer, var offset, var length, var data, var source, var sourcePointer, var bulk, var log):
+					var column, var pointer, var offset, var length, var data, var source, var sourcePointer, var bulk, var log, var stamp):
 				text.Append(bulk ? "UPDATETEXT BULK " : "UPDATETEXT ").Append(column).Append(' ');
 				Put(text, pointer, 0);
+
+				if (stamp is not null)
+				{
+					text.Append(" TIMESTAMP = ");
+					Put(text, stamp, 0);
+				}
+
 				text.Append(' ');
 				Put(text, offset, 0);
 				text.Append(' ');

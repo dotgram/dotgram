@@ -20626,3 +20626,33 @@ Two refusals and twelve readings in the theory. At 170: read by both **7,310 (fr
 the work list 114 (from 118)**. At 150: 6,559 both, 76 work (from 80). `--split` 755 (from
 753), 210 files not read whole (from 212); the round trip 100% of 7,658 (from 7,654). The map
 unchanged; `--levels` 138 of 138. The suite is 7,304 rows (from 7,289).
+
+## A text utility with its timestamp
+
+Twelve of the honest work list, and the last four that stopped at a dot: `updatetext bulk
+t1.c1 @var TimeStamp = 0xFFFF null @DeleteLength 'hi'`, `updatetext t1.c1 1234 @var1 -15
+dbo.[t1].[c1] @col`, `writetext t1.c1 100 'hello'`, `readtext ..t1.c1 0xAB… @offset 25`.
+The text utilities had been put to the engine some hundred and twenty times already, and
+three things were outside what that measuring asked. `TIMESTAMP = 0xFF` stands after the
+pointer in `WRITETEXT` and `UPDATETEXT` both, a binary string alone — a variable and a number
+are `Msg 102`, `NULL` is 156 — and before `WITH LOG`, which stands where it did: after the
+pointer in `WRITETEXT`, after the length in `UPDATETEXT`; on the other side of the log, or
+after the length, it is refused. The pointer is a whole number as readily as a variable or a
+binary string. And the column is a qualified name as any table's is, `..t1.c1` and `.t1.c1`
+read.
+
+The third thing turned on the same judgement as the last two pieces. The older theory held a
+column of one part and of five (`Msg 182`, "table and column names must be supplied"), a
+value written after `BULK` (`Msg 185`, "data stream is invalid … in bulk form") and none
+written without it (`Msg 186`, "data stream missing") as refusals, and the rule was written
+to those: two parts to four, nothing after `BULK`, something without. Each is the engine
+having read the statement and objected to what it supplied, which is `AboutNames`' kind and
+the same kind as 166 and 1094 the piece before; so the three went there, and the rule reads
+a value in either place and demands it in neither, with eleven rows of the older theory
+moved from refusals to readings. The tree gained a `Timestamp` on both records, the writer
+prints it after the pointer, and two rows hold the printing.
+
+Seven refusals and thirty-one readings in the theory. At 170: read by both **7,328 (from
+7,310), the work list 96 (from 114)**. At 150: 6,577 both, 58 work (from 76). `--split` 761
+(from 755), 204 files not read whole (from 210); the round trip 100% of 7,676 (from 7,658).
+The map unchanged; `--levels` 138 of 138. The suite is 7,333 rows (from 7,304).

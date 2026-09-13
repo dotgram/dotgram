@@ -175,6 +175,8 @@ public sealed class SqlWriterTests
 	[InlineData("SELECT a % b & ~c | d ^ e FROM t", "SELECT a % b & ~c | d ^ e FROM t")]
 	[InlineData("SELECT (2 + 5) & 4, 2 + (5 & 4), (2 * 7) % 3, 2 * (7 % 3)", "SELECT (2 + 5) & 4, 2 + (5 & 4), (2 * 7) % 3, 2 * (7 % 3)")]
 	[InlineData("SELECT - ~1, ~~1, ~2 * 3", "SELECT -~1, ~ ~1, ~2 * 3")]
+	[InlineData("updatetext bulk t1.c1 @var TimeStamp = 0xFFFF null @DeleteLength 'hi'", "UPDATETEXT BULK t1.c1 @var TIMESTAMP = 0xFFFF NULL @DeleteLength 'hi'")]
+	[InlineData("writetext t1.c1 100 TIMESTAMP = 0xFF with log 'hi'", "WRITETEXT t1.c1 100 TIMESTAMP = 0xFF WITH LOG 'hi'")]
 	[InlineData("SELECT 1 << 1 >> 1, (1 + 1) << 1, 1 << (1 + 1), 1 << 1 * 2", "SELECT 1 << 1 >> 1, (1 + 1) << 1, 1 << (1 + 1), 1 << 1 * 2")]
 	[InlineData("SELECT a FROM t WHERE a != 1 AND b !< 2 AND c !> 3 AND d < > 4", "SELECT a FROM t WHERE a != 1 AND b !< 2 AND c !> 3 AND d <> 4")]
 	[InlineData("SELECT * FROM (SELECT * FROM t) FOR PATH AS x (c1)", "SELECT * FROM (SELECT * FROM t) FOR PATH AS x (c1)")]

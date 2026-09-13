@@ -2247,36 +2247,42 @@ DeclaredAs : @Clause.VariableDeclaration
 // through its pointer, and `RECONFIGURE`: a record each, put to the engine some hundred and
 // twenty times.
 //
-// The column is named by two parts to four (`Msg 182`), and the pointer is a variable or a
-// binary string, never `NULL` or an `@@` one. What is read is a start and a size, each a number
-// with no sign and no exponent or a variable, and then `HOLDLOCK` if wanted — once, and no
-// other hint (`Msg 1018`). What is written is a string, a binary string, a variable or `NULL`,
-// never a number or an expression; after `BULK` nothing is, the data coming by the bulk
-// protocol (`Msg 185`), and without it something must be (`Msg 186`). What is updated is a start
-// and a length, each `NULL`, a variable or a number that may be negative, and then a value,
-// another column and its pointer, or nothing. `RECONFIGURE` takes `WITH OVERRIDE` and no more.
+// The column is a qualified name as any table's is, empty parts and all — `..t1.c1`, `.t1.c1`
+// — and one part, or five, the engine reads and then objects to (`Msg 182`, "table and column
+// names must be supplied"), which is the value; the pointer is a variable, a binary string or
+// a whole number, never `NULL` or an `@@` one. What is read is a start and a size, each a
+// number with no sign and no exponent or a variable, and then `HOLDLOCK` if wanted — once, and
+// no other hint (`Msg 1018`). What is written is a string, a binary string, a variable or
+// `NULL`, never a number or an expression; after `BULK` the data comes by the bulk protocol,
+// and a value written there the engine reads and objects to (`Msg 185`), as it does to none
+// written without `BULK` (`Msg 186`) — both the value and not the shape, so a value is read
+// in either place and demanded in neither. What is updated is a start and a length, each
+// `NULL`, a variable or a number that may be negative, and then a value, another column and
+// its pointer, or nothing. `TIMESTAMP = 0xFF` stands after the pointer in both, a binary
+// string alone (a variable, `NULL` and a number are refused) and before `WITH LOG`, which
+// stands where it did — after the pointer in `WRITETEXT` and after the length in
+// `UPDATETEXT`. `RECONFIGURE` takes `WITH OVERRIDE` and no more.
 TextStatement : @Statement
 	= "READTEXT"i & column: TextColumn & pointer: TextPointer & offset: TextAmount & size: TextAmount
 	  & hold: "HOLDLOCK"i?
 		=> @(new Statement.ReadText(column, pointer, offset, size, hold is not null))
-	| "WRITETEXT"i & "BULK"i & column: TextColumn & pointer: TextPointer & log: TextLog?
-		=> @(new Statement.WriteText(column, pointer, null, true, log is not null))
-	| "WRITETEXT"i & column: TextColumn & pointer: TextPointer & log: TextLog? & data: TextData
-		=> @(new Statement.WriteText(column, pointer, data, false, log is not null))
-	| "UPDATETEXT"i & "BULK"i & column: TextColumn & pointer: TextPointer & offset: TextPlace & length: TextPlace
-	  & log: TextLog?
-		=> @(new Statement.UpdateText(column, pointer, offset, length, null, null, null, true, log is not null))
-	| "UPDATETEXT"i & column: TextColumn & pointer: TextPointer & offset: TextPlace & length: TextPlace
-	  & log: TextLog? & (source: TextColumn & from: TextPointer | data: TextData)?
-		=> @(new Statement.UpdateText(column, pointer, offset, length, data, source, from, false, log is not null))
+	| "WRITETEXT"i & bulk: "BULK"i? & column: TextColumn & pointer: TextPointer & stamp: TextStamp?
+	  & log: TextLog? & data: TextData?
+		=> @(new Statement.WriteText(column, pointer, data, bulk is not null, log is not null, stamp))
+	| "UPDATETEXT"i & bulk: "BULK"i? & column: TextColumn & pointer: TextPointer & stamp: TextStamp?
+	  & offset: TextPlace & length: TextPlace & log: TextLog? & (source: TextColumn & from: TextPointer | data: TextData)?
+		=> @(new Statement.UpdateText(column, pointer, offset, length, data, source, from, bulk is not null, log is not null, stamp))
 	| "RECONFIGURE"i & o: ("WITH"i & "OVERRIDE"i)?
 		=> @(new Statement.Reconfigure(o is not null))
 
-TextColumn : @string = t: (Identifier & '.' & Identifier & ('.' & Identifier)? & ('.' & Identifier)?) => @(t)
+TextColumn : @string = t: QualifiedName => @(t)
+
+TextStamp : @Expression = "TIMESTAMP"i & '=' & t: TSql.BinaryLiteral => @(new Expression.Literal(SqlLiteralKind.Hex, t))
 
 TextPointer : @Expression
 	= v: LocalVariable      => @(v)
 	| t: TSql.BinaryLiteral => @(new Expression.Literal(SqlLiteralKind.Hex, t))
+	| n: ExactNumber        => @(new Expression.Literal(SqlLiteralKind.Number, n))
 
 TextAmount : @Expression
 	= n: ExactNumber   => @(new Expression.Literal(SqlLiteralKind.Number, n))

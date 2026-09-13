@@ -1881,6 +1881,58 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>`TIMESTAMP = 0x…` stands after the pointer and is a binary string alone; the column is any qualified name, and a value after `BULK` or none without it is the engine's objection, not the parser's.</summary>
+	[Theory]
+	[InlineData("UPDATETEXT t.c @p TIMESTAMP = @ts NULL 0 'hi'")]
+	[InlineData("UPDATETEXT t.c @p TIMESTAMP = NULL NULL 0 'hi'")]
+	[InlineData("UPDATETEXT t.c @p TIMESTAMP = 1 NULL 0 'hi'")]
+	[InlineData("UPDATETEXT t.c @p NULL 0 TIMESTAMP = 0xFF 'hi'")]
+	[InlineData("UPDATETEXT t.c @p WITH LOG TIMESTAMP = 0xFF NULL 0 'hi'")]
+	[InlineData("UPDATETEXT t.c @p TIMESTAMP = 0xFF WITH LOG NULL 0 'hi'")]
+	[InlineData("WRITETEXT t.c @p WITH LOG TIMESTAMP = 0xFF 'hi'")]
+	public void A_text_utility_with_its_timestamp_is_refused_where_the_engine_refuses_it(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And is read where the engine reads it, or reads it and objects to the value.</summary>
+	[Theory]
+	[InlineData("READTEXT c @p 0 1")]
+	[InlineData("READTEXT srv.db.dbo.t.c @p 0 1")]
+	[InlineData("WRITETEXT BULK t.c @p 'x'")]
+	[InlineData("WRITETEXT BULK t.c @p WITH LOG 'x'")]
+	[InlineData("WRITETEXT t.c @p")]
+	[InlineData("WRITETEXT c @p 'x'")]
+	[InlineData("WRITETEXT srv.db.dbo.t.c @p 'x'")]
+	[InlineData("UPDATETEXT c @p 0 1 'x'")]
+	[InlineData("UPDATETEXT BULK t.c @p 0 1 'x'")]
+	[InlineData("UPDATETEXT srv.db.dbo.t.c @p 0 1 'x'")]
+	[InlineData("readtext t1.c1 @ptrval 1 @size")]
+	[InlineData("readtext ..t1.c1 0xAB10002000FFFFFF @offset 25")]
+	[InlineData("readtext .t1.c1 @ptr 0 25")]
+	[InlineData("readtext ...t1.c1 @ptr 0 25")]
+	[InlineData("readtext t1 @ptr 0 25")]
+	[InlineData("readtext master.dbo.t1.c1 @ptr 0 25 Holdlock")]
+	[InlineData("updatetext t1.c1 0xABAA10 @InsertOffset null @str")]
+	[InlineData("updatetext bulk t1.c1 @var TimeStamp = 0xFFFF null @DeleteLength 'hi'")]
+	[InlineData("updatetext bulk t1.c1 @var TimeStamp = 0xFFFF null @DeleteLength")]
+	[InlineData("updatetext t1.c1 @var TimeStamp = 0xFFFF null @DeleteLength 'hi'")]
+	[InlineData("updatetext bulk t1.c1 1234 @var1 -15 dbo.[t1].[c1] @col")]
+	[InlineData("updatetext t1.c1 1234 @var1 -15 dbo.[t1].[c1] @col")]
+	[InlineData("updatetext t1.c1 100 @var1 -15 'hello'")]
+	[InlineData("updatetext t1.c1 @var @var1 -15 .t1.c2 0xABC")]
+	[InlineData("UPDATETEXT dbo.t1 @ptrval @Position @PropLen")]
+	[InlineData("writetext bulk t1.c1 @var 'hi'")]
+	[InlineData("writetext t1.c1 100 'hello'")]
+	[InlineData("writetext t1.c1 @var TIMESTAMP = 0xFF 'hi'")]
+	[InlineData("writetext bulk t1.c1 @var TIMESTAMP = 0xFF")]
+	[InlineData("writetext t1.c1 @var TIMESTAMP = 0xFF with log 'hi'")]
+	[InlineData("UPDATETEXT t.c @p 0 1 c2 @p")]
+	public void A_text_utility_with_its_timestamp_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
@@ -3435,8 +3487,6 @@ public sealed class TransactSqlTests
 
 	/// <summary>Text read and written through its pointer, a configuration taken up and the service master key altered, as the engine answers them.</summary>
 	[Theory]
-	[InlineData("READTEXT c @p 0 1")]
-	[InlineData("READTEXT srv.db.dbo.t.c @p 0 1")]
 	[InlineData("READTEXT t.c NULL 0 1")]
 	[InlineData("READTEXT t.c @@SPID 0 1")]
 	[InlineData("READTEXT t.c @p -1 1")]
@@ -3454,12 +3504,8 @@ public sealed class TransactSqlTests
 	[InlineData("READTEXT t.c @p @@SPID 1")]
 	[InlineData("READTEXT t.c @p 0 1 HOLDLOCK HOLDLOCK")]
 	[InlineData("READTEXT t.c @p 0 NULL")]
-	[InlineData("WRITETEXT BULK t.c @p 'x'")]
-	[InlineData("WRITETEXT BULK t.c @p WITH LOG 'x'")]
-	[InlineData("WRITETEXT t.c @p")]
 	[InlineData("WRITETEXT t.c @p 1")]
 	[InlineData("WRITETEXT t.c @p 'a' + 'b'")]
-	[InlineData("WRITETEXT c @p 'x'")]
 	[InlineData("WRITETEXT t.c @p x")]
 	[InlineData("WRITETEXT t.c @p ('x')")]
 	[InlineData("WRITETEXT t.c @p WITH 'x'")]
@@ -3470,22 +3516,17 @@ public sealed class TransactSqlTests
 	[InlineData("WRITETEXT t.c @p DEFAULT")]
 	[InlineData("WRITETEXT t.c NULL 'x'")]
 	[InlineData("WRITETEXT t.c @@SPID 'x'")]
-	[InlineData("WRITETEXT srv.db.dbo.t.c @p 'x'")]
 	[InlineData("UPDATETEXT t.c @p 0 1 'a' + 'b'")]
 	[InlineData("UPDATETEXT t.c @p 0")]
 	[InlineData("UPDATETEXT t.c @p 0 1 1")]
-	[InlineData("UPDATETEXT c @p 0 1 'x'")]
 	[InlineData("UPDATETEXT t.c @p 1 + 1 1 'x'")]
 	[InlineData("UPDATETEXT t.c @p 0 1 t2.c2")]
-	[InlineData("UPDATETEXT BULK t.c @p 0 1 'x'")]
 	[InlineData("UPDATETEXT t.c @p $1 NULL")]
 	[InlineData("UPDATETEXT t.c @p 0 1e1")]
-	[InlineData("UPDATETEXT t.c @p 0 1 c2 @p")]
 	[InlineData("UPDATETEXT t.c @p @@SPID 1")]
 	[InlineData("UPDATETEXT t.c @p 0 1 $1")]
 	[InlineData("UPDATETEXT t.c @p 0 1 x")]
 	[InlineData("UPDATETEXT t.c NULL 0 1 'x'")]
-	[InlineData("UPDATETEXT srv.db.dbo.t.c @p 0 1 'x'")]
 	[InlineData("RECONFIGURE WITH FOO")]
 	[InlineData("RECONFIGURE OVERRIDE")]
 	[InlineData("RECONFIGURE WITH OVERRIDE, OVERRIDE")]

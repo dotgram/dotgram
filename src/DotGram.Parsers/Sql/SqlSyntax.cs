@@ -713,13 +713,15 @@ public abstract record Statement : ISqlSpan
 
 	/// <summary><c>WRITETEXT</c>: a <c>text</c>, <c>ntext</c> or <c>image</c> value replaced through its pointer.</summary>
 	/// <param name="Data">
-	/// What it is replaced with; null after <c>BULK</c>, where the data comes by the bulk
-	/// protocol instead.
+	/// What it is replaced with; null where nothing was written, as after <c>BULK</c>, where
+	/// the data comes by the bulk protocol instead.
 	/// </param>
 	/// <param name="Bulk">Whether <c>BULK</c> was said.</param>
 	/// <param name="Log">Whether <c>WITH LOG</c> was said.</param>
+	/// <param name="Timestamp">The <c>TIMESTAMP = 0x…</c> the row must still carry, where one was said.</param>
 	public sealed record WriteText(
-		string Column, Expression Pointer, Expression? Data, bool Bulk = false, bool Log = false) : Statement
+		string Column, Expression Pointer, Expression? Data, bool Bulk = false, bool Log = false,
+		Expression? Timestamp = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Dml;
@@ -735,9 +737,11 @@ public abstract record Statement : ISqlSpan
 	/// </param>
 	/// <param name="Bulk">Whether <c>BULK</c> was said, the data then coming by the bulk protocol.</param>
 	/// <param name="Log">Whether <c>WITH LOG</c> was said.</param>
+	/// <param name="Timestamp">The <c>TIMESTAMP = 0x…</c> the row must still carry, where one was said.</param>
 	public sealed record UpdateText(
 		string Column, Expression Pointer, Expression Offset, Expression Length, Expression? Data = null,
-		string? Source = null, Expression? SourcePointer = null, bool Bulk = false, bool Log = false) : Statement
+		string? Source = null, Expression? SourcePointer = null, bool Bulk = false, bool Log = false,
+		Expression? Timestamp = null) : Statement
 	{
 		/// <inheritdoc/>
 		public override StatementCategory Category => StatementCategory.Dml;

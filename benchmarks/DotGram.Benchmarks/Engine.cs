@@ -602,7 +602,15 @@ static class Engine
 			//
 			//    166  '%ls' does not allow specifying the database name as a prefix to the object name.
 			//   1094  Cannot specify a schema name as a prefix to the trigger name for database and server level triggers.
-			or 166 or 1094;
+			or 166 or 1094
+
+			// And the text utilities, 2026-09-13: a column named in one part or five, a value
+			// written after `BULK`, none written without it — each read and then objected to.
+			//
+			//    182  Table and column names must be supplied for the READTEXT or WRITETEXT utility.
+			//    185  Data stream is invalid for WRITETEXT statement in bulk form.
+			//    186  Data stream missing from WRITETEXT statement.
+			or 182 or 185 or 186;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open
