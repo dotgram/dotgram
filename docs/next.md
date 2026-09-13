@@ -20246,3 +20246,47 @@ At 150: read by both 5,969 (from 5,966), the work list **19 (from 22)**, read he
 refused there 2; `--split` 743 (from 740), the round trip 100% of 7,594 (from 7,591). The map:
 read by both **7,988 of 8,338 (from 7,987), the work list 15 (from 16)**, defects 0. The
 suite is 7,050 rows.
+
+## A comma with nothing after it
+
+The map's one line that was work and not a mirage: `CREATE EXTERNAL DATA SOURCE MyAzureInvoices
+WITH (LOCATION = 'abs://…', CREDENTIAL = AccessAzureInvoices,)` — the reference ends an
+example with a comma before the bracket, and the engine reads it. Measured, the engine reads
+a comma with nothing after it in exactly three places, the three PolyBase objects' bracketed
+`WITH`: `CREATE EXTERNAL DATA SOURCE`, `CREATE EXTERNAL FILE FORMAT` and `CREATE EXTERNAL
+TABLE`, in both of the table's forms. Trailing, leading and doubled alike — `WITH (,LOCATION =
+'x')`, `WITH (LOCATION = 'x',,)`, `WITH (LOCATION = 'x' , , )` — and `WITH (,)` and `WITH
+()` with nothing in them; a nested list is as loose, `FORMAT_OPTIONS (FIELD_TERMINATOR =
+',',)`. Every other list is `Msg 102` at the comma: `CREATE TABLE … WITH (DATA_COMPRESSION =
+PAGE,)`, `CREATE INDEX … WITH (PAD_INDEX = ON,)`, `ALTER DATABASE … SET (…,)`, `OPENROWSET
+(…,)`, and the unbracketed `ALTER EXTERNAL DATA SOURCE … SET LOCATION = 'x',` and `CREATE
+CREDENTIAL … WITH IDENTITY = 'x', SECRET = 'y',`. `ALTER EXTERNAL DATA SOURCE ds SET
+(LOCATION = 'x',)` is 102 too — the loose list is the `CREATE`'s and not the object's. `CREATE
+TABLE t1 (c1 int,)` was already read, by the `','?` the table's column list has carried since
+the corpus showed it; the external table's column list now carries the same.
+
+**One loose list, bound into the three objects' `WITH` and nowhere else.** `LooseOptionList`
+is `','*` and then a run of `OptionSetting & ','*`; empty, it is `Clause.None`. The nested
+lists an option carries — `FORMAT_OPTIONS (…)`, an `OptionNest`, a `SwitchTail` — all read
+`OptionList`, and `LooseOptionList with (OptionList = LooseOptionList)` reaches them through
+`OptionSetting`, which is the substitution working as §5.1 says it does on an operand the
+dialect's header does not rebind. The file format keeps its tail as words, so it has a
+text twin, `LooseOptionsWithText`, the way `OptionsWith` has `OptionsWithText`. A stray comma
+is nothing, and the tree keeps nothing for it: the file format's words survive as written,
+and the data source's and the table's options are the same nodes with or without it, as a
+table's columns are with or without theirs. The writer prints the list it has, and the
+round trip does not see the comma because the corpus has none.
+
+The theory: eight refusals and eighteen readings, every one a line the engine answered.
+
+At 150: read by both 5,969, the work list 19, read here but refused there 2 — unchanged, the
+corpus has no such comma; `--split` 743, the round trip 100% of 7,594. The map: read by both
+**7,989 of 8,338 (from 7,988), the work list 14 (from 15)**, defects 0. The suite is 7,076
+rows (from 7,050).
+
+The map's fourteen are what the last entry measured and this one did not touch: five `isn't
+NULL`, three `SET AUTOCOMMIT`, three `DBCC FREEPROCCACHE (COMPUTE)` behind a `USE`, two
+`CREATE DIAGNOSTICS SESSION` behind a `session_id()`, one `PREDICT`. None is a rule to write
+for this engine; what is left to decide is whether the map's work bucket should ask
+`Elsewhere` before counting a statement, which is a question for the reader of the map and
+not for the grammar.

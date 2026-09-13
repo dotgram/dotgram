@@ -5280,15 +5280,16 @@ EndpointWindowsMode = "NTLM"i | "KERBEROS"i | "NEGOTIATE"i
 ExternalStatement : @Statement
 	= verb: CreateOrAlter & "EXTERNAL"i & "DATA"i & "SOURCE"i & name: Identifier & tail: DataSourceBody
 		=> @(Statement.Defined("EXTERNAL DATA SOURCE", name, Syntax.Tail(tail), verb))
-	| "CREATE"i & "EXTERNAL"i & "FILE"i & "FORMAT"i & name: Identifier & tail: OptionsWithText
+	| "CREATE"i & "EXTERNAL"i & "FILE"i & "FORMAT"i & name: Identifier & tail: LooseOptionsWithText
 		=> @(Statement.Defined("EXTERNAL FILE FORMAT", name, Syntax.Tail(tail)))
 
 	// A table of somebody else's rows: the columns as this grammar reads any columns, and
 	// then where they are. Synapse writes the query instead and lets it say the columns.
-	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & '(' & body: TableBody & ')'
-	  & options: OptionsWith
+	// The columns take a comma before the bracket, as a table's do.
+	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & '(' & body: TableBody & ','? & ')'
+	  & options: LooseOptionsWith
 		=> @(new Statement.TableDefinition(name, null, body, Clause.None, options, true))
-	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & options: OptionsWith
+	| "CREATE"i & "EXTERNAL"i & "TABLE"i & name: QualifiedName & options: LooseOptionsWith
 	  & "AS"i & q: DirectSelect
 		=> @(new Statement.CreateTableAsSelect(name, null, options, q, true))
 
@@ -5325,8 +5326,30 @@ PoolName : @string = t: Identifier => @(t) | t: Sql92.Lexical.CharacterStringLit
 
 WorkloadPool = "EXTERNAL"i? & PoolName
 
-DataSourceBody = OptionsWith
+DataSourceBody = LooseOptionsWith
 			   | "SET"i & OptionList
+
+// The three PolyBase objects — a data source, a file format, an external table — take their
+// bracketed list with the commas loose in a way no other list is: `WITH (LOCATION = 'x',)`,
+// `WITH (,LOCATION = 'x')`, `WITH (LOCATION = 'x',,)`, `WITH (,)` and `WITH ()` are all
+// read, and a nested list is as loose — `FORMAT_OPTIONS (FIELD_TERMINATOR = ',',)`. The
+// reference writes one of them so, at the end of an example, which is how it was found.
+// Every other list refuses a comma with nothing after it (`Msg 102`): `CREATE TABLE … WITH
+// (DATA_COMPRESSION = PAGE,)`, `CREATE INDEX … WITH (PAD_INDEX = ON,)`, `ALTER DATABASE …
+// SET (…,)`, `OPENROWSET (…,)`, and the unbracketed `ALTER EXTERNAL DATA SOURCE … SET …,`
+// and `CREATE CREDENTIAL … WITH …,` — so this is the three objects' own and stays with them.
+// A stray comma is nothing, and the tree keeps nothing for it: where the tail is kept as
+// text it survives as written, and where the options are nodes it is gone, as the comma
+// after a table's last column is.
+LooseOptionsWith : @Clause[]
+	= "WITH"i & '(' & o: LooseOptionList with (OptionList = LooseOptionList) & ')' => @(o)
+
+// The same, where the statement keeps what it read as the words rather than as options.
+LooseOptionsWithText = "WITH"i & '(' & LooseOptionList with (OptionList = LooseOptionList) & ')'
+
+LooseOptionList : @Clause[] = ','* & items: LooseOption* => @(items ?? Clause.None)
+
+LooseOption : @Clause = o: OptionSetting & ','* => @(o)
 
 LibraryChange = "SET"i | "ADD"i
 LibraryFile   = '(' & OptionList & ')'

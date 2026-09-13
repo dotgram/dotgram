@@ -1527,6 +1527,46 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>The three PolyBase objects' lists take a comma with nothing after it, and no other list does.</summary>
+	[Theory]
+	[InlineData("CREATE TABLE t1 (c1 int) WITH (DATA_COMPRESSION = PAGE,)")]
+	[InlineData("CREATE INDEX i1 ON t1 (c1) WITH (PAD_INDEX = ON,)")]
+	[InlineData("ALTER DATABASE d1 SET (ACCELERATED_DATABASE_RECOVERY = ON,)")]
+	[InlineData("ALTER EXTERNAL DATA SOURCE ds SET LOCATION = 'https://x',")]
+	[InlineData("ALTER EXTERNAL DATA SOURCE ds SET (LOCATION = 'https://x',)")]
+	[InlineData("CREATE CREDENTIAL c1 WITH IDENTITY = 'x', SECRET = 'y',")]
+	[InlineData("CREATE DATABASE SCOPED CREDENTIAL c1 WITH IDENTITY = 'x', SECRET = 'y',")]
+	[InlineData("SELECT * FROM OPENROWSET(BULK 'f', FORMAT = 'CSV',) AS r")]
+	public void A_comma_with_nothing_after_it_is_refused_where_the_engine_refuses_it(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And is read where the engine reads it.</summary>
+	[Theory]
+	[InlineData("CREATE EXTERNAL DATA SOURCE MyAzureInvoices WITH (LOCATION = 'abs://c@a.blob.core.windows.net/', CREDENTIAL = AccessAzureInvoices,)")]
+	[InlineData("CREATE EXTERNAL DATA SOURCE MyAzureInvoices WITH (LOCATION = 'https://x',)")]
+	[InlineData("CREATE EXTERNAL DATA SOURCE MyAzureInvoices WITH (LOCATION = 'https://x', TYPE = BLOB_STORAGE,)")]
+	[InlineData("CREATE EXTERNAL DATA SOURCE MyAzureInvoices WITH (,LOCATION = 'https://x')")]
+	[InlineData("CREATE EXTERNAL DATA SOURCE MyAzureInvoices WITH (LOCATION = 'https://x',,)")]
+	[InlineData("CREATE EXTERNAL DATA SOURCE ds WITH (LOCATION = 'https://x' ,  ,  )")]
+	[InlineData("CREATE EXTERNAL DATA SOURCE ds WITH (,)")]
+	[InlineData("CREATE EXTERNAL DATA SOURCE ds WITH ()")]
+	[InlineData("CREATE EXTERNAL FILE FORMAT f1 WITH (FORMAT_TYPE = PARQUET,)")]
+	[InlineData("CREATE EXTERNAL FILE FORMAT f1 WITH (,FORMAT_TYPE = PARQUET)")]
+	[InlineData("CREATE EXTERNAL FILE FORMAT f1 WITH (FORMAT_TYPE = PARQUET,,)")]
+	[InlineData("CREATE EXTERNAL FILE FORMAT f1 WITH (FORMAT_TYPE = DELIMITEDTEXT, FORMAT_OPTIONS (FIELD_TERMINATOR = ',',))")]
+	[InlineData("CREATE EXTERNAL TABLE t1 (c1 int) WITH (LOCATION = '/x', DATA_SOURCE = ds,)")]
+	[InlineData("CREATE EXTERNAL TABLE t1 (c1 int) WITH (,LOCATION = '/x', DATA_SOURCE = ds)")]
+	[InlineData("CREATE EXTERNAL TABLE t1 (c1 int) WITH (LOCATION = '/x',, DATA_SOURCE = ds)")]
+	[InlineData("CREATE EXTERNAL TABLE t1 (c1 int,) WITH (LOCATION = '/x', DATA_SOURCE = ds)")]
+	[InlineData("CREATE EXTERNAL TABLE t1 (c1 int) WITH (LOCATION = '/x', DATA_SOURCE = ds, REJECT_TYPE = VALUE, REJECT_VALUE = 0,)")]
+	[InlineData("CREATE EXTERNAL DATA SOURCE MyAzureInvoices WITH (LOCATION = 'https://newinvoices.blob.core.windows.net/week3', CREDENTIAL = AccessAzureInvoices, TYPE = BLOB_STORAGE)")]
+	public void A_comma_with_nothing_after_it_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
