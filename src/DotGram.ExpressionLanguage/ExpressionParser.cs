@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace DotGram.ExpressionLanguage;
 
@@ -115,8 +116,8 @@ namespace DotGram.ExpressionLanguage;
 //     other operand, the other branch — as C#'s does, but where nothing converts it, as
 //     the whole body of a lambda `Parse` reads, it is an `object`.
 //   * A call is resolved by C#'s rules, less what those rules need and this language
-//     cannot write: no generic method is named or inferred, no extension method is found,
-//     and no argument is passed by `ref`, `out` or name.
+//     cannot write: no generic method is named with its type arguments, and no argument
+//     is passed by `ref`, `out` or name.
 //   * A `using` names a namespace and nothing else — no alias, no `using static` — and
 //     reaches the public types of the assemblies already loaded, and the internal ones of
 //     the assembly that called: there are no references to say which others, and a type
@@ -125,12 +126,13 @@ namespace DotGram.ExpressionLanguage;
 //     refused where C# folds the sum first and then converts it.
 //   * An increment or a compound assignment writes to a name or to one member of a name —
 //     not to an element, and not to a longer chain.
-//   * `foreach` and an interpolated string are not written yet.
+//   * An interpolated string is `$"…"` and lowers to `string.Format`, which is what C#
+//     makes of one inside a tree. There is no `$@"…"`, no raw `$"""…"""`, and it is always
+//     a `string` — never a `FormattableString`, which C# would give where one is wanted.
 //   * A lambda may be written inside an expression, with the types of its parameters said:
 //     `(int y) => y * 2`. C# takes them from what the lambda is passed to, which is a
 //     question about the method being chosen and cannot be asked before the argument is
-//     built. A `return` inside one is refused — the label a `return` goes to belongs to the
-//     outermost lambda, as it does in C#.
+//     built. A `return` inside one leaves that lambda, as it does in C#.
 //   * `?.` guards the whole chain after it, as C#'s does, and is worth the nullable of what
 //     the chain is worth: `s?.Length` is an `int?`. Written as `?` and `.`, which is what
 //     lets `x ? .5 : 1` keep its number.
@@ -287,6 +289,41 @@ namespace DotGram.ExpressionLanguage;
 		VerbatimPart : @string = "\"\"" => @("\"") | t: [^ '"']+ => @(t)
 
 		Verbatim : @string = "@\"" & parts: VerbatimPart* & '"' => @(string.Concat(parts))
+
+		// ── Interpolation ───────────────────────────────────────────────────────────
+
+		// What the lexer needs of a hole is where it ends, and C#'s own lexer answers that
+		// without reading the expression: brackets and quotes balanced, and a colon standing
+		// at the top of the hole the start of its format. The expression is read afterwards
+		// by the syntactic half, over exactly that window of the text, so every name in it
+		// keeps the position it has in the text.
+		HoleQuoted = "$\"" & InterpolatedBody | Verbatim | Text | Char
+		HoleNested = '(' & HoleInside & ')' | '[' & HoleInside & ']' | '{' & HoleInside & '}'
+		HoleInside = ( HoleNested | HoleQuoted | ':' | '@' & ?!'"' | '$' & ?!'"'
+		             | [^ '(' | ')' | '[' | ']' | '{' | '}' | '"' | '\'' | '@' | '$' | ':'])*
+		HoleRun    = ( HoleNested | HoleQuoted | '@' & ?!'"' | '$' & ?!'"'
+		             | [^ '(' | ')' | '[' | ']' | '{' | '}' | '"' | '\'' | '@' | '$' | ':'])*
+
+		HoleAt     : @Segment = HoleRun => @(Segment.Hole(parserSpan.Start, parserSpan.Length))
+		HoleFormat : @string  = t: [^ '{' | '}' | '"' | '\\']* => @(t)
+		Hole       : @Segment = s: HoleAt & (':' & f: HoleFormat)? => @(s.Formatted(f))
+
+		// `{{` and `}}` are a brace each, and a hole is everything between one brace and its
+		// match. An escape means what it means in any string.
+		InterpolatedPiece : @Segment
+			= "{{"                           => @(Segment.Of("{"))
+			| "}}"                           => @(Segment.Of("}"))
+			| e: Escape                      => @(Segment.Of(e))
+			| t: [^ '"' | '\\' | '{' | '}']+ => @(Segment.Of(t))
+			| '{' & h: Hole & '}'            => @(h)
+
+		InterpolatedBody : @Segment[] = parts: InterpolatedPiece* & '"' => @(parts)
+
+		// One token: the automaton reads `$"`, and the rule reads the rest, which no automaton
+		// can — a hole may hold brackets, strings, and another interpolated string. The value
+		// keeps the input, which its holes are read over, so the syntax never has to ask for
+		// it: a construction that did would take the whole syntactic half off its methods.
+		Interpolated : @InterpolatedText = "$\"" & body: InterpolatedBody => @(new InterpolatedText(body, parserInput))
 	}
 
 	// §4.6: a keyword is a whole word, so `returned` is a name and not a jump, and
@@ -994,6 +1031,10 @@ namespace DotGram.ExpressionLanguage;
 		| token: Text      => @(Expression.Constant(token))
 		| token: Char      => @(Expression.Constant(token[0]))
 
+		// Its holes are read here, each over its own window of the text, by the publication
+		// below — this reading's own, whichever carrier it is.
+		| literal: Interpolated => @(ExpressionParser.Interpolation(literal, context, TryParseHole))
+
 		| "true"     => @(Expression.Constant(true))
 		| "false"    => @(Expression.Constant(false))
 
@@ -1014,6 +1055,10 @@ namespace DotGram.ExpressionLanguage;
 	                   => @(context.Named(name, parserSpan))
 
 	parse Lambda as ParseLambda
+
+	// What a hole of an interpolated string is read with: an expression over a window of
+	// the text, demanding no end (§6.3).
+	parse Expression as ParseHole
 
 	// The same language with its identifiers spelled in ASCII, and one line to say so
 	// (§5.1). A binding on a publication clones what the directive reaches and rewrites
@@ -1324,6 +1369,137 @@ public static partial class ExpressionParser
 		binary.Method?.DeclaringType != typeof(string)
 			? assign(target, binary.Right)
 			: Expression.Assign(target, computed.Type == target.Type ? computed : Cast(computed, target.Type, reading));
+
+	// ── An interpolated string ──────────────────────────────────────────────────
+
+	/// <summary>One piece of an interpolated string: text as it reads, or a hole where it stands.</summary>
+	/// <remarks>
+	/// A hole is a window of the input and not its text. The expression in it is read over
+	/// that window, where every name keeps the position it has in the text — which is what
+	/// finds a lambda's parameter from inside a string. <see cref="Text"/> is null for a hole.
+	/// </remarks>
+	public readonly record struct Segment(string? Text, int At, int Length, string? Format)
+	{
+		/// <summary>Text, standing for itself.</summary>
+		public static Segment Of(string text) => new(text, 0, 0, null);
+
+		/// <summary>A hole, and where in the input its expression stands.</summary>
+		public static Segment Hole(int at, int length) => new(null, at, length, null);
+
+		/// <summary>The same hole, with the format written after its colon.</summary>
+		public Segment Formatted(string? format) => this with { Format = format };
+	}
+
+	/// <summary>An interpolated string as the lexer measured it: its pieces, and the text they stand in.</summary>
+	public readonly record struct InterpolatedText(Segment[] Parts, string Input);
+
+	static readonly MethodInfo FormatOne   = typeof(string).GetMethod(nameof(string.Format), new[] { typeof(string), typeof(object) })!;
+	static readonly MethodInfo FormatTwo   = typeof(string).GetMethod(nameof(string.Format), new[] { typeof(string), typeof(object), typeof(object) })!;
+	static readonly MethodInfo FormatThree = typeof(string).GetMethod(nameof(string.Format), new[] { typeof(string), typeof(object), typeof(object), typeof(object) })!;
+	static readonly MethodInfo FormatMany  = typeof(string).GetMethod(nameof(string.Format), new[] { typeof(string), typeof(object[]) })!;
+
+	/// <summary>An interpolated string, lowered the way C# lowers one inside an expression tree.</summary>
+	/// <remarks>
+	/// <para>
+	/// C# builds such a string with a handler that is a <c>ref struct</c>, which no tree can
+	/// hold, so in a lambda converted to a tree it calls <c>string.Format</c> instead: a
+	/// constant where there is no hole, the overloads of one, two and three arguments, and an
+	/// array past that. So does this.
+	/// </para>
+	/// <para>
+	/// Each hole is read by <paramref name="read"/> over its window, which the lexer ended where
+	/// C#'s lexer ends one — at the colon standing at its top. A conditional written there
+	/// without brackets is therefore cut in half, and is refused in C#'s words (CS8361). What is
+	/// left of the window after the expression is its alignment, or nothing.
+	/// </para>
+	/// </remarks>
+	public static Expression Interpolation(
+		InterpolatedText literal, State context, Func<string, int, int, State, Match<Expression>> read)
+	{
+		var (parts, input) = literal;
+
+		if (parts is null || input is null)
+			throw new ArgumentNullException(nameof(literal));
+
+		if (read is null)
+			throw new ArgumentNullException(nameof(read));
+
+		var format    = new StringBuilder();
+		var arguments = new List<Expression>();
+
+		foreach (var part in parts)
+		{
+			if (part.Text is { } text)
+			{
+				format.Append(text.Replace("{", "{{").Replace("}", "}}"));
+
+				continue;
+			}
+
+			var match = read(input, part.At, part.Length, context);
+
+			if (!match.IsSuccess)
+			{
+				var cut = part.Format is not null &&
+					match.Position >= part.At + part.Length &&
+					input.IndexOf('?', part.At, part.Length) >= 0;
+
+				throw new FormatException(cut
+					? "A conditional expression cannot be used directly in a string interpolation because " +
+						"the ':' ends the interpolation. Parenthesize the conditional expression."
+					: match.Error + " at " + match.Position.ToString(CultureInfo.InvariantCulture));
+			}
+
+			var value = match.Value!;
+
+			if (value.Type == typeof(void))
+				throw new InvalidOperationException("An expression of type 'void' cannot be interpolated.");
+
+			format.Append('{').Append(arguments.Count.ToString(CultureInfo.InvariantCulture));
+
+			var rest = input.Substring(part.At + match.Length, part.Length - match.Length).Trim();
+
+			if (rest.Length > 0)
+			{
+				// The window ended at the colon, so a conditional stood there cut in half, and
+				// the expression read is its condition alone.
+				if (rest[0] == '?' && part.Format is not null)
+					throw new FormatException(
+						"A conditional expression cannot be used directly in a string interpolation because " +
+						"the ':' ends the interpolation. Parenthesize the conditional expression.");
+
+				if (rest[0] != ',' ||
+					!int.TryParse(rest.Substring(1).Trim(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var width))
+				{
+					throw new FormatException(
+						"Expected ',' and an alignment, or '}', at " +
+						(part.At + match.Length).ToString(CultureInfo.InvariantCulture));
+				}
+
+				format.Append(',').Append(width.ToString(CultureInfo.InvariantCulture));
+			}
+
+			if (part.Format is { } written)
+				format.Append(':').Append(written);
+
+			format.Append('}');
+
+			arguments.Add(value.Type.IsValueType ? Expression.Convert(value, typeof(object)) : value);
+		}
+
+		if (arguments.Count == 0)
+			return Expression.Constant(string.Concat(parts.Select(one => one.Text)));
+
+		var made = Expression.Constant(format.ToString());
+
+		return arguments.Count switch
+		{
+			1 => Expression.Call(FormatOne,   made, arguments[0]),
+			2 => Expression.Call(FormatTwo,   made, arguments[0], arguments[1]),
+			3 => Expression.Call(FormatThree, made, arguments[0], arguments[1], arguments[2]),
+			_ => Expression.Call(FormatMany,  made, Expression.NewArrayInit(typeof(object), arguments)),
+		};
+	}
 
 	// ── A chain a `?` guards ────────────────────────────────────────────────────
 	//

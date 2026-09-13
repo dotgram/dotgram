@@ -1747,6 +1747,74 @@ public sealed class ExpressionParserTests
 	public void And_the_escapes_and_the_verbatim_form_read_as_C_sharp_reads_them(string text, string expected) =>
 		Assert.Equal(expected, ExpressionParser.Compile<Func<string>>($"() => {text}")());
 
+	// ── An interpolated string ──────────────────────────────────────────────────
+
+	/// <summary>Held against C# itself: each text is also written below as the C# it is.</summary>
+	/// <remarks>
+	/// The holes are read over their windows of the text, so the parameter <c>x</c> is found
+	/// from inside the string; the brackets, strings and the nested literal are what the
+	/// rule measuring the token balances.
+	/// </remarks>
+	[Fact]
+	public void An_interpolated_string_reads_as_C_sharp_reads_it()
+	{
+		var x = 5;
+
+		(string Text, string Expected)[] cases =
+		[
+			("$\"abc\"",                     $"abc"),
+			("$\"a{x}b\"",                   $"a{x}b"),
+			("$\"{{{x}}}\"",                 $"{{{x}}}"),
+			("$\"a\\tb{x}\"",                $"a\tb{x}"),
+			("$\"[{x,4}]\"",                 $"[{x,4}]"),
+			("$\"[{x, -4}]\"",               $"[{x, -4}]"),
+			("$\"{x:D3}\"",                  $"{x:D3}"),
+			("$\"{x,5:D2}|\"",               $"{x,5:D2}|"),
+			("$\"{(x > 1 ? 1 : 2)}\"",       $"{(x > 1 ? 1 : 2)}"),
+			("$\"{\"}\" + x}\"",             $"{"}" + x}"),
+			("$\"{$\"<{x}>\"}\"",            $"{$"<{x}>"}"),
+			("$\"{x}{x + 1}{x + 2}{x + 3}\"", $"{x}{x + 1}{x + 2}{x + 3}"),
+			("$\"{x.ToString(\"D3\").PadLeft(5, '*'),6}\"", $"{x.ToString("D3").PadLeft(5, '*'),6}"),
+			("$\"{\"{\" + x}\"",             $"{"{" + x}"),
+			("$\"{x.ToString(\"a:0\")}\"",   $"{x.ToString("a:0")}"),
+		];
+
+		// Every disagreement at once, each with its text: one case failing hides the rest.
+		var wrong = cases
+			.Select(one => (one.Text, one.Expected, Actual: Answered(() =>
+				ExpressionParser.Compile<Func<int, string>>($"(int x) => {one.Text}")(x))))
+			.Where(one => one.Actual != one.Expected)
+			.ToArray();
+
+		Assert.Empty(wrong);
+
+		static string Answered(Func<string> run)
+		{
+			try
+			{
+				return run();
+			}
+			catch (Exception thrown)
+			{
+				return thrown.GetType().Name + ": " + thrown.Message;
+			}
+		}
+	}
+
+	[Fact]
+	public void A_conditional_in_a_hole_needs_its_brackets_as_in_C_sharp() =>
+		Assert.Contains(
+			"Parenthesize the conditional expression",
+			ExpressionParser.TryParse("(bool c) => $\"{c ? 1 : 2}\"").Error,
+			StringComparison.Ordinal);
+
+	[Fact]
+	public void A_hole_is_read_by_both_carriers_alike() =>
+		Assert.Equal(
+			ExpressionParser.Compile<Func<int, string>>("(int x) => $\"<{x,3}>\"")(7),
+			ExpressionParser.Immediate.TryParseLambda("(int x) => $\"<{x,3}>\"", new ExpressionParser.State(typeof(ExpressionParserTests).Assembly)).Value!
+				.Compile().DynamicInvoke(7));
+
 	// ── What it refuses to read at all ──────────────────────────────────────────
 
 	[Theory]

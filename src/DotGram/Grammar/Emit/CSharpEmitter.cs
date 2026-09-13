@@ -1618,7 +1618,11 @@ public static partial class CSharpEmitter
 							var output = valuing!.Results.QualifiedOf(rule) is null ? "" : ", out _";
 
 							file.Line($"var failure  = new {FailureType}();");
-							file.Line($"var measured = Measure_{IdentifierOf(rule)}_DotGram(text, end, ref failure{output});");
+							// The whole input where a construction in that machine asks for it: a
+							// terminal's value may be a piece of the text it has to read again later.
+							file.Line(
+								$"var measured = Measure_{IdentifierOf(rule)}_DotGram(text, end, ref failure{output}" +
+								$"{(valuing!.UsesInput ? ", input" : "")});");
 							file.Line();
 							file.Line("if (measured < 0)");
 							file.Then("kind = 0;");
@@ -2873,7 +2877,7 @@ public static partial class CSharpEmitter
 				file.Line();
 				file.Line(
 					$"return {read}(global::System.MemoryExtensions.AsSpan(source, 0, at + length), at, " +
-					$"ref failure, out {type} value) < 0 ? default! : value;");
+					$"ref failure, out {type} value{(valuing.UsesInput ? ", source" : "")}) < 0 ? default! : value;");
 			}
 
 			file.Line();
