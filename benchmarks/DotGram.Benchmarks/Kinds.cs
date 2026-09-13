@@ -80,99 +80,13 @@ static class Kinds
 		return parser;
 	}
 
-	/// <summary>
-	/// The kinds this grammar has a rule for, which is what the two interesting cells are
-	/// about: a refusal here is work to do, and reading anything else is a defect.
-	/// </summary>
-	internal static bool Modelled(string kind) =>
-		// The whole `DROP` family at once, since the grammar reads it as one rule written
-		// from the sixty-six published blocks — naming them one by one here would be the
-		// same catalogue said a second time, and it would go stale the same way.
-		kind.StartsWith("Drop", StringComparison.Ordinal) ||
-		kind is nameof(SelectStatement) or nameof(InsertStatement) or nameof(UpdateStatement)
-			or nameof(DeleteStatement) or nameof(MergeStatement) or nameof(BulkInsertStatement)
-			or nameof(BeginEndBlockStatement) or nameof(IfStatement) or nameof(WhileStatement)
-			or nameof(TryCatchStatement) or nameof(DeclareVariableStatement)
-			or nameof(DeclareTableVariableStatement) or nameof(DeclareCursorStatement)
-			or nameof(SetVariableStatement) or nameof(ExecuteStatement) or nameof(ExecuteAsStatement)
-			or nameof(BeginTransactionStatement) or nameof(CommitTransactionStatement)
-			or nameof(RollbackTransactionStatement) or nameof(SaveTransactionStatement)
-			or nameof(SetTransactionIsolationLevelStatement) or nameof(SetIdentityInsertStatement)
-			or nameof(SetRowCountStatement) or nameof(SetTextSizeStatement)
-			or nameof(PredicateSetStatement) or nameof(SetCommandStatement)
-			or nameof(PrintStatement) or nameof(ReturnStatement) or nameof(ThrowStatement)
-			or nameof(RaiseErrorStatement) or nameof(GoToStatement) or nameof(BreakStatement)
-			or nameof(ContinueStatement) or nameof(WaitForStatement) or nameof(UseStatement)
-			or nameof(CheckpointStatement)
-			or nameof(CreateTableStatement) or nameof(AlterTableAddTableElementStatement)
-			or nameof(AlterTableAlterColumnStatement) or nameof(AlterTableDropTableElementStatement)
-			or nameof(AlterTableConstraintModificationStatement)
-			or nameof(AlterTableTriggerModificationStatement) or nameof(AlterTableSetStatement)
-			or nameof(AlterTableRebuildStatement) or nameof(AlterTableSwitchStatement)
-			or nameof(AlterTableChangeTrackingModificationStatement)
-			or nameof(AlterTableFileTableNamespaceStatement)
-			or nameof(AlterTableAlterIndexStatement) or nameof(AlterTableAlterPartitionStatement)
-			or nameof(CreateProcedureStatement) or nameof(AlterProcedureStatement)
-			or nameof(CreateFunctionStatement) or nameof(AlterFunctionStatement)
-			or nameof(CreateTriggerStatement) or nameof(AlterTriggerStatement)
-			or nameof(CreateViewStatement) or nameof(AlterViewStatement)
-			or nameof(CreateOrAlterProcedureStatement) or nameof(CreateOrAlterFunctionStatement)
-			or nameof(CreateOrAlterTriggerStatement) or nameof(CreateOrAlterViewStatement)
-			or nameof(CreateIndexStatement) or nameof(AlterIndexStatement)
-			or nameof(CreateColumnStoreIndexStatement) or nameof(CreateXmlIndexStatement)
-			or nameof(CreateSelectiveXmlIndexStatement) or nameof(AlterIndexStatement)
-			or nameof(GrantStatement) or nameof(RevokeStatement) or nameof(DenyStatement)
-			or nameof(CreateLoginStatement) or nameof(AlterLoginOptionsStatement)
-			or nameof(AlterLoginEnableDisableStatement)
-			or nameof(AlterLoginAddDropCredentialStatement)
-			or nameof(CreateUserStatement) or nameof(AlterUserStatement)
-			or nameof(CreateRoleStatement) or nameof(AlterRoleStatement)
-			or nameof(CreateServerRoleStatement) or nameof(AlterServerRoleStatement)
-			or nameof(CreateApplicationRoleStatement) or nameof(AlterApplicationRoleStatement)
-			or nameof(CreateSchemaStatement) or nameof(AlterSchemaStatement)
-			or nameof(AlterAuthorizationStatement)
-			or nameof(CreateExternalDataSourceStatement) or nameof(AlterExternalDataSourceStatement)
-			or nameof(CreateExternalFileFormatStatement) or nameof(CreateExternalTableStatement)
-			or nameof(CreateExternalLibraryStatement) or nameof(AlterExternalLibraryStatement)
-			or nameof(CreateExternalResourcePoolStatement) or nameof(AlterExternalResourcePoolStatement)
-			or nameof(CreateResourcePoolStatement) or nameof(AlterResourcePoolStatement)
-			or nameof(CreateWorkloadGroupStatement) or nameof(AlterWorkloadGroupStatement)
-			or nameof(CreateStatisticsStatement) or nameof(UpdateStatisticsStatement)
-			or nameof(CreateServerAuditStatement) or nameof(AlterServerAuditStatement)
-			or nameof(CreateServerAuditSpecificationStatement)
-			or nameof(AlterServerAuditSpecificationStatement)
-			or nameof(CreateDatabaseAuditSpecificationStatement)
-			or nameof(AlterDatabaseAuditSpecificationStatement)
-			or nameof(CreateEventSessionStatement) or nameof(AlterEventSessionStatement)
-			or nameof(CreateEventNotificationStatement)
-			or nameof(CreateEndpointStatement) or nameof(AlterEndpointStatement)
-			or nameof(CreateFullTextIndexStatement) or nameof(AlterFullTextIndexStatement)
-			or nameof(CreateFullTextCatalogStatement) or nameof(AlterFullTextCatalogStatement)
-			or nameof(CreateFullTextStopListStatement) or nameof(AlterFullTextStopListStatement)
-			or nameof(CreateSearchPropertyListStatement) or nameof(AlterSearchPropertyListStatement)
-			or nameof(BackupDatabaseStatement) or nameof(BackupTransactionLogStatement)
-			or nameof(BackupCertificateStatement) or nameof(BackupMasterKeyStatement)
-			or nameof(BackupServiceMasterKeyStatement) or nameof(RestoreStatement)
-			or nameof(RestoreMasterKeyStatement) or nameof(RestoreServiceMasterKeyStatement)
-			or nameof(CreateAsymmetricKeyStatement) or nameof(AlterAsymmetricKeyStatement)
-			or nameof(CreateSymmetricKeyStatement) or nameof(AlterSymmetricKeyStatement)
-			or nameof(CreateCertificateStatement) or nameof(AlterCertificateStatement)
-			or nameof(CreateMasterKeyStatement) or nameof(AlterMasterKeyStatement)
-			or nameof(CreateDatabaseEncryptionKeyStatement)
-			or nameof(AlterDatabaseEncryptionKeyStatement)
-			or nameof(CreateColumnEncryptionKeyStatement)
-			or nameof(AlterColumnEncryptionKeyStatement)
-			or nameof(CreateColumnMasterKeyStatement)
-			or nameof(CreateCredentialStatement) or nameof(AlterCredentialStatement)
-			or nameof(CreateSecurityPolicyStatement) or nameof(AlterSecurityPolicyStatement)
-			or nameof(CreateDatabaseStatement) or nameof(AlterDatabaseSetStatement)
-			or nameof(AlterDatabaseScopedConfigurationSetStatement)
-			or nameof(AlterDatabaseScopedConfigurationClearStatement)
-			or nameof(AlterDatabaseCollateStatement) or nameof(AlterDatabaseModifyNameStatement)
-			or nameof(AlterDatabaseAddFileStatement) or nameof(AlterDatabaseAddFileGroupStatement)
-			or nameof(AlterDatabaseModifyFileStatement) or nameof(AlterDatabaseModifyFileGroupStatement)
-			or nameof(AlterDatabaseRemoveFileStatement) or nameof(AlterDatabaseRemoveFileGroupStatement)
-			or nameof(AlterDatabaseRebuildLogStatement) or nameof(AlterDatabasePerformCutoverStatement);
+	// There was a catalogue here of the kinds this grammar had a rule for, and `--engine` and
+	// this report asked about those alone. The grammar reads every kind of statement the
+	// corpus has now, so the catalogue was a list of what had been done by one date — and it
+	// hid from `--engine`'s work list every statement of a kind it did not name: `SHUTDOWN`,
+	// `SEND ON CONVERSATION`, `CREATE SYNONYM`, `SET DISABLE_DEF_CNST_CHK ON`, which the
+	// engine reads and this grammar did not, were never counted. Every statement is asked
+	// about now, 2026-09-13.
 
 	public static void Run(string? root, string version, int shown)
 	{
@@ -199,7 +113,6 @@ static class Kinds
 		var refused  = 0;
 		var counted  = new Dictionary<string, (int Total, int Read)>(StringComparer.Ordinal);
 		var missed   = new Dictionary<string, List<string>>(StringComparer.Ordinal);
-		var overRead = new List<string>();
 		var stopped  = new Dictionary<string, (int Count, List<string> Like)>(StringComparer.Ordinal);
 
 		foreach (var file in files)
@@ -253,9 +166,6 @@ static class Kinds
 
 				counted[kind] = (total + 1, already + (ours ? 1 : 0));
 
-				if (ours && !Modelled(kind))
-					overRead.Add(Corpus.One(one));
-
 				if (!ours)
 				{
 					if (!missed.TryGetValue(kind, out var some))
@@ -264,31 +174,26 @@ static class Kinds
 					if (some.Count < shown)
 						some.Add(Corpus.One(one));
 
-					// And for the kinds this grammar is about, where it stopped — which
-					// names the feature, where the kind only names the statement.
-					if (Modelled(kind))
-					{
-						var why = Corpus.Stopped(one, (int)TransactSql.TryParseStatement(one).Position);
+					// And where it stopped — which names the feature, where the kind only
+					// names the statement.
+					var why = Corpus.Stopped(one, (int)TransactSql.TryParseStatement(one).Position);
 
-						var (count, like) = stopped.TryGetValue(why, out var before)
-							? before
-							: (0, new List<string>());
+					var (count, like) = stopped.TryGetValue(why, out var before)
+						? before
+						: (0, new List<string>());
 
-						if (like.Count < shown)
-							like.Add(Corpus.One(one));
+					if (like.Count < shown)
+						like.Add(Corpus.One(one));
 
-						stopped[why] = (count + 1, like);
-					}
+					stopped[why] = (count + 1, like);
 				}
 			}
 		}
 
-		Report(version, files.Length, whole, refused, counted, missed, overRead, shown);
+		Report(version, files.Length, whole, refused, counted, missed, shown);
 
 		Console.WriteLine();
-		Console.WriteLine(
-			$"  of the kinds this grammar has a rule for, " +
-			$"where the {stopped.Values.Sum(static one => one.Count)} refusals stopped");
+		Console.WriteLine($"  where the {stopped.Values.Sum(static one => one.Count)} refusals stopped");
 		Console.WriteLine();
 
 		foreach (var (why, one) in stopped.OrderByDescending(one => one.Value.Count).ThenBy(one => one.Key))
@@ -304,7 +209,6 @@ static class Kinds
 		string version, int files, int whole, int refused,
 		Dictionary<string, (int Total, int Read)> counted,
 		Dictionary<string, List<string>> missed,
-		List<string> overRead,
 		int shown)
 	{
 		var statements = counted.Values.Sum(static one => one.Total);
@@ -331,15 +235,6 @@ static class Kinds
 
 		Console.WriteLine($"  {new string('-', 42 + 7 + 8 + 9)}");
 		Console.WriteLine($"  {"",-42}{statements,7}{ours,8}{Share(ours, statements),9}");
-		Console.WriteLine();
-
-		Console.WriteLine(
-			overRead.Count == 0
-				? "  Nothing ScriptDom calls something other than a query reads as one here."
-				: $"  {overRead.Count} read here as a query and called something else there — a defect on this side:");
-
-		foreach (var one in overRead.Take(shown * 4))
-			Console.WriteLine($"      {one}");
 	}
 
 	static string Share(int part, int whole) =>

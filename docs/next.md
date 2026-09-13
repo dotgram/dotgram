@@ -20540,3 +20540,39 @@ APPROX` in it is not read whole now, which is right; the round trip 100% of 7,64
 The level-170 list is done: 21 on the work list, every one a mirage or a decision already
 taken (`PREDICT` behind an undeclared variable, `IDENTITY (INT)`, `@3`, `sum (*)`, the legacy
 `PLAN` hints, the pivot over a join, `AS LOGIN`); 2 defects, both the corpus cut wrong.
+
+## The catalogue that hid a hundred statements
+
+With the level-170 list spent, the last list left was `--split`'s: 214 files ScriptDom reads
+whole and this grammar does not. The file stops were put to the engine, forty-four of them,
+expecting refusals — a file not read whole because one statement in it is an error is what a
+corpus of errors looks like. Half were refusals. The other half the engine reads: `SHUTDOWN`,
+`SEND ON CONVERSATION @h MESSAGE TYPE @m`, `CREATE SYNONYM .mysyn2 FOR dbo.t1`, `CREATE QUEUE
+[q1] ON 'filegroup'`, `SET DISABLE_DEF_CNST_CHK ON`, `CREATE JSON INDEX …`, `alter partition
+function f1() merge`, `CREATE DATABASE … FOR ATTACH_REBUILD_LOG WITH TRUSTWORTHY ON` — and
+not one of them had ever been on `--engine`'s work list.
+
+`Kinds.Modelled` was why. A catalogue of the ScriptDom statement kinds this grammar had a
+rule for, written when the grammar was a subset and the interesting cells were "a refusal of
+a modelled kind is work, reading an unmodelled one is a defect"; `--engine` asked the engine
+only about statements of a kind on it. The grammar reads every kind the corpus has now, and
+the catalogue had become a list of what was done by one date, which every statement of a
+kind it did not name fell outside of — `ShutdownStatement`, `SendStatement`,
+`CreateSynonymStatement`, `CreateJsonIndexStatement`, and many more. The catalogue is gone,
+`--engine` asks about every statement, and `--kinds` reports every kind's stops.
+
+**The honest figures.** At 170: 7,300 read by both, **the work list 120** (from 21), 2
+defects, 300 another product's, 595 neither — 8,317 statements asked where 7,521 were. At 150:
+6,549 both, **82 work** (from 19), 2 defects, 258 another product's, 497 neither. The new
+work, grouped: `CREATE JSON INDEX` (18, 170 only) and `CREATE | ALTER EXTERNAL MODEL` (18,
+170 only); a synonym or a table named with a leading dot, `.mysyn2` (10); `UPDATETEXT BULK`
+and `WRITETEXT BULK` (12); `SEND ON CONVERSATION` (7); `ALTER EXTERNAL LANGUAGE … ADD (… ,
+ENVIRONMENT_VARIABLES = …)` (6); `ALTER SERVER CONFIGURATION SET EXTERNAL AUTHENTICATION`
+(6); `CREATE QUEUE … ON 'filegroup'` (4); `SHUTDOWN` (4); `ALTER PARTITION FUNCTION f1 ()
+SPLIT` with no `RANGE` (6); `CREATE PARTITION FUNCTION f (CHAR (10) COLLATE …)` (2); `DBCC …
+WITH a JOIN b` (2); `LINENO` (2); `USE FEDERATION` (6 — Azure's retired federations, on the
+other-products list, which the work bucket does not consult). Each to be measured before it
+is written, as the rest were.
+
+The `--split` list, then, was not a list of errors: it was where the catalogue's blind spot
+showed through. Nothing in the grammar changed for this entry; the instrument did.

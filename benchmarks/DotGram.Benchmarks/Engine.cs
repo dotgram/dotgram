@@ -87,9 +87,6 @@ static class Engine
 
 			foreach (var statement in script.Batches.SelectMany(static batch => batch.Statements))
 			{
-				if (!Kinds.Modelled(statement.GetType().Name))
-					continue;
-
 				var one = text.Substring(statement.StartOffset, statement.FragmentLength).TrimEnd();
 
 				var here    = Parse(version, one).Read;
