@@ -693,8 +693,8 @@ sealed partial class Machine
 				}
 			}
 
-			for (var i = 0; i < _valueTypes.Count; i++)
-				file.Line($"var values{i} = values.V{i};");
+			foreach (var type in _valueTypes)
+				file.Line($"var values{TableName(type)} = values.V{TableName(type)};");
 
 			file.Line();
 
@@ -1162,8 +1162,8 @@ sealed partial class Machine
 	string RecordValue(string type, string record) =>
 		type == "SourceSpan"
 			? Span($"log[{record} + 2]", $"log[{record} + 3] - log[{record} + 2]")
-			: TableFor(type) is var table && table >= 0
-				? $"values{table}[{record}].Value"
+			: TableFor(type) >= 0
+				? $"values{TableName(type)}[{record}].Value"
 				: throw new InvalidOperationException($"No value table for '{type}'.");
 
 	/// <summary>The factory's arguments as the walk over the log supplies them.</summary>

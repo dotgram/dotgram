@@ -1153,6 +1153,49 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("outside the input", window.Error, StringComparison.Ordinal);
 	}
 
+	/// <summary>A guard on the shared engine is handed values of two types, one of them a terminal's.</summary>
+	/// <remarks>
+	/// The shape the expression language fell into for a moment: a construction asking for the
+	/// input sends a split grammar's syntax to the engine (GRAM5005), a guard there is handed a
+	/// value built by it and a value a terminal was read again for, and the generated code
+	/// indexed the value tables of the one with the numbering of the other.
+	/// </remarks>
+	[Fact]
+	public void A_guard_on_the_engine_reads_each_value_from_its_own_table()
+	{
+		var result = GramCompiler.Compile(
+			"""
+			using Lexical;
+
+			trivia = { ' '* }
+
+			namespace Lexical
+			{
+				trivia = none
+
+				Name = ['a'..'z']+
+				Num : @long = t: ['0'..'9']+ => @(long.Parse(t))
+			}
+
+			Word  : @string = n: Name => @(parserInput.Length > 0 ? n : "")
+			Pair  : @int    = w: Word & k: Num & when @(w.Length + k > 0) => @(w.Length)
+			Start : @int    = p: Pair => @(p)
+			Other : @bool   = k: Num & d: Deep => @(k > 0 && d.Length > 0)
+			Deep  : @string = n: Name => @(n) | '(' & d: Deep & ')' => @(d)
+			parse Other
+			parse Start
+			""",
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = true });
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		var parser = EmittedCode.Compile(Assert.Single(result.Sources).Text);
+		var match  = EmittedCode.Match(parser, "Grammar", "TryParseStart", "abc 12");
+
+		Assert.True(match.IsSuccess, match.Error);
+		Assert.Equal(3, match.Value);
+	}
+
 	/// <summary>Over characters the window's edge is the end of the text.</summary>
 	/// <remarks>
 	/// On the shared automaton: a rule that reaches itself is not lowered, and a lowered one

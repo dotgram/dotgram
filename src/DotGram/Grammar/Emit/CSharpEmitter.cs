@@ -644,7 +644,9 @@ public static partial class CSharpEmitter
 		while (scope.Count > 0)
 			scope.Pop().Dispose();
 
-		var written = file.ToString();
+		// Every value table the machines named by its type, said as its number in the one
+		// order they all share — which is only known now (Machine.TableName).
+		var written = Numbered(file.ToString(), tables);
 
 		// A mark stands for a state whose final name was not known when it was written, and
 		// `Settle` puts the name in. One that reaches here would be a control character in
@@ -689,6 +691,50 @@ public static partial class CSharpEmitter
 		}
 
 		return written;
+	}
+
+	/// <summary>The file with every value table said by its number rather than by its type.</summary>
+	/// <remarks>
+	/// Once, here, because only here is the order every machine agreed on known. A type the
+	/// file keeps no table for is the generator's mistake, and it says so rather than writing
+	/// a number that reads another table.
+	/// </remarks>
+	static string Numbered(string text, IReadOnlyList<string> tables)
+	{
+		var open = text.IndexOf(Machine.TableOpens);
+
+		if (open < 0)
+			return text;
+
+		var into = new StringBuilder(text.Length);
+		var from = 0;
+
+		while (open >= 0)
+		{
+			var close  = text.IndexOf(Machine.TableCloses, open);
+			var type   = text.Substring(open + 1, close - open - 1);
+			var number = -1;
+
+			for (var at = 0; at < tables.Count; at++)
+			{
+				if (tables[at] == type)
+				{
+					number = at;
+
+					break;
+				}
+			}
+
+			if (number < 0)
+				throw new InvalidOperationException($"A value table for '{type}' was named, and the file keeps none.");
+
+			into.Append(text, from, open - from).Append(number.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+			from = close + 1;
+			open = text.IndexOf(Machine.TableOpens, from);
+		}
+
+		return into.Append(text, from, text.Length - from).ToString();
 	}
 
 	static string LanguageDescriptorAttribute(

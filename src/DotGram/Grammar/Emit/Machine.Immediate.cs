@@ -178,8 +178,8 @@ sealed partial class Machine
 		{
 			get
 			{
-				for (var i = 0; i < machine._valueTypes.Count; i++)
-					yield return (machine._valueTypes[i], "last" + i.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
+				foreach (var type in machine._valueTypes)
+					yield return (type, "last" + TableName(type));
 
 				// A span is not one of the tables — nothing stores one, the tape reading an
 				// extent off the record it stands on — so its register is named rather than
@@ -387,7 +387,7 @@ sealed partial class Machine
 		public override string Last(RuleSymbol rule) => Register(machine._results.ValueOf(rule));
 
 		string Register(string valueType) =>
-			valueType == "SourceSpan" ? "lastSpan" : $"last{machine.TableFor(valueType)}";
+			valueType == "SourceSpan" ? "lastSpan" : $"last{TableName(valueType)}";
 
 		public override string PushText(int slot, string from, string to) =>
 			$"values.PushText({machine.Cut(from, $"{to} - {from}")});";
@@ -486,8 +486,8 @@ sealed partial class Machine
 
 		/// <summary>The stack a type's gathered values go on: the one numbered as its table is.</summary>
 		string StackOf(string valueType) =>
-			machine.TableFor(valueType) is var table && table >= 0
-				? table.ToString(System.Globalization.CultureInfo.InvariantCulture)
+			machine.TableFor(valueType) >= 0
+				? TableName(valueType)
 				: throw new InvalidOperationException($"No value table for '{valueType}'.");
 	}
 }

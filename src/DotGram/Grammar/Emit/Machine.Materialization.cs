@@ -354,8 +354,8 @@ sealed partial class Machine
 	string ValueFrom(string type, string index) =>
 		type == "SourceSpan"
 			? Span($"entries[{index}].Position", $"entries[{index}].Value - entries[{index}].Position")
-			: TableFor(type) is var table && table >= 0
-				? $"values{table}[{index}]"
+			: TableFor(type) >= 0
+				? $"values{TableName(type)}[{index}]"
 				: $"({type})values[{index}]!";
 
 	/// <summary>Writing a rule's value where whatever reads it will look.</summary>
@@ -371,7 +371,7 @@ sealed partial class Machine
 	/// walk that only runs once never needed either.
 	/// </remarks>
 	string ValueInto(string type, string index) =>
-		TableFor(type) is var table && table >= 0 ? $"values{table}[{index}]" : $"values[{index}]";
+		TableFor(type) >= 0 ? $"values{TableName(type)}[{index}]" : $"values[{index}]";
 
 	/// <summary>
 	/// Handing the root's value out, which is the one place a type has to be forgotten.
@@ -418,8 +418,8 @@ sealed partial class Machine
 	/// <summary>The tables in view wherever values are read or written.</summary>
 	void DeclareTables(Writer writer)
 	{
-		for (var i = 0; i < _valueTypes.Count; i++)
-			writer.Line($"var values{i} = parser.Materialization{i}();");
+		foreach (var type in _valueTypes)
+			writer.Line($"var values{TableName(type)} = parser.Materialization{TableName(type)}();");
 	}
 
 	void MaterializeRule(Writer file, RuleSymbol rule)

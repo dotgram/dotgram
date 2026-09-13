@@ -472,7 +472,7 @@ sealed partial class Machine
 		string ValueOfType(string type, string record) =>
 			type == "SourceSpan"
 				? machine.RecordValue(type, record).Replace("log[", "ways.Log[")
-				: $"values.V{machine.TableFor(type)}[{record}].Value";
+				: $"values.V{TableName(type)}[{record}].Value";
 
 		/// <remarks>
 		/// Gathered turn by turn on the tape, and collected here the way the rule's end would

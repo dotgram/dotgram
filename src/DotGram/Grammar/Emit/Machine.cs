@@ -586,8 +586,9 @@ sealed partial class Machine
 	/// A machine names a value type by where it sits in this list, and the parser holds one
 	/// table per entry — one parser for the file, however many machines wrote into it. So
 	/// the order has to be the union of theirs, which is only known once they all exist.
-	/// Called before anything is rendered and after every machine is built; nothing read
-	/// during construction depends on it.
+	/// Called before anything is rendered and after every machine is built. Code written while
+	/// a machine was being built names its tables by type rather than by number
+	/// (<see cref="TableName"/>), so it reads the same tables as code written after this.
 	/// </remarks>
 	public void ShareValueTables(IReadOnlyList<string> tables)
 	{
@@ -633,6 +634,30 @@ sealed partial class Machine
 	/// answer here would be a table that does not exist, and this cannot give one.
 	/// </remarks>
 	int TableFor(string type) => _valueTypes.IndexOf(type);
+
+	/// <summary>A value table's number as the emitted text says it: by its type, until the file's order is known.</summary>
+	/// <remarks>
+	/// <para>
+	/// A table is numbered by where its type stands in the file's one list, and that list is
+	/// the union of every machine's, known only once they all exist (<see cref="ShareValueTables"/>).
+	/// But a machine writes code while it is being built — a guard's arguments are read out of
+	/// the tables in the state compiled for it — and a number written then was this machine's
+	/// own. With one machine the two orders are one; with two the guard read a string's
+	/// argument out of the table of longs, and the file did not compile.
+	/// </para>
+	/// <para>
+	/// So nothing writes a number. It writes the type between two control characters no C#
+	/// text holds, and <c>CSharpEmitter.Numbered</c> says every one of them in the file's order
+	/// once, after the last machine has shared it.
+	/// </para>
+	/// </remarks>
+	internal static string TableName(string type) => TableOpens + type + TableCloses;
+
+	/// <summary>What a table's type stands between in the emitted text, for <c>CSharpEmitter.Numbered</c> to find.</summary>
+	internal const char TableOpens  = (char)3;
+
+	/// <summary>And where it ends.</summary>
+	internal const char TableCloses = (char)4;
 
 	string RecoveredType(RecoveryPlan plan) =>
 		plan.Element is { } element ? _results.ValueOf(element) : _results.ValueOf(plan.Rule);
