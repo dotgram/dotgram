@@ -403,17 +403,21 @@ sealed class GramBufferAnalysis
 	static bool IsIdentifier(char character) =>
 		character == '_' || char.IsLetterOrDigit(character);
 
-	static GramDocument Project(GramDocument document, int length, bool suppressUnresolved) =>
+	static GramDocument Project(GramDocument document, int length, bool suppressContextDiagnostics) =>
 		new(
 			document.Classifications.Where(item => item.Position < length).ToArray(),
 			document.Diagnostics.Where(item =>
 				item.Position < length &&
-				(!suppressUnresolved || item.Id is not "GRAM3002" and not "GRAM3003")).ToArray(),
+				(!suppressContextDiagnostics || IsSyntaxDiagnostic(item.Id))).ToArray(),
 			document.Symbols.Where(item => item.Position < length).ToArray(),
 			document.Braces.Where(item => item.OpenPosition < length && item.ClosePosition < length).ToArray(),
 			document.FoldingRanges.Where(item => item.Position < length).ToArray(),
 			document.DocumentSymbols.Where(item => item.Position < length).ToArray(),
 			document.PublishedApis.Where(item => item.Position < length).ToArray());
+
+	static bool IsSyntaxDiagnostic(string id) =>
+		id.StartsWith("GRAM1", StringComparison.Ordinal) ||
+		id.StartsWith("GRAM2", StringComparison.Ordinal);
 
 	void BufferChanged(object sender, TextContentChangedEventArgs change)
 	{
@@ -462,16 +466,16 @@ sealed class GramBufferAnalysis
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 				string tail;
-				bool suppressUnresolved;
+				bool suppressContextDiagnostics;
 				lock (_gate)
 				{
 					tail = _inheritance?.AnalysisTail ?? "";
-					suppressUnresolved = _inheritancePending;
+					suppressContextDiagnostics = _inheritancePending;
 				}
 
 				var own = snapshot.GetText();
 				var document = Project(
-					GramLanguageService.Analyze(own + tail), own.Length, suppressUnresolved);
+					GramLanguageService.Analyze(own + tail), own.Length, suppressContextDiagnostics);
 
 				lock (_gate)
 				{
