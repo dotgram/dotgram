@@ -2226,9 +2226,105 @@ TryCatchStatement : @Statement
 		=> @(new Statement.TryCatch(tried, caught ?? System.Array.Empty<Statement>()))
 
 StatementBlock : @Statement
-	= "BEGIN"i & "ATOMIC"i & "WITH"i & '(' & atomic: OptionList & ')' & body: StatementList & "END"i
+	= "BEGIN"i & "ATOMIC"i & "WITH"i & atomic: AtomicOptions & body: StatementList & "END"i
 		=> @(new Statement.Compound(body, atomic))
 	| "BEGIN"i & body: StatementList & "END"i => @(new Statement.Compound(body))
+
+// ── A natively compiled block's options ─────────────────────────────────────
+//
+// `BEGIN ATOMIC WITH (…)`. The reference lists five settings; the engine, asked in eleven probes
+// (docs/next.md, 2026-09-13), reads a list of its own shape, and reads it in two halves.
+//
+// Until something loosens it, an option is one of the five, set to one value of its kind and
+// nothing after it: a level of `SNAPSHOT`, `REPEATABLE READ` or `SERIALIZABLE`, after
+// `TRANSACTION` or `TRAN`; a `DATEFIRST`, `DATEFORMAT` or `LANGUAGE` set to a name, a string, a
+// number, a binary string, money, `NULL` or an ODBC literal — not `DEFAULT`, not `ON`, not `x.y`,
+// not two of them; a `TEXTSIZE` set to a number with no exponent; a `DELAYED_DURABILITY` set to
+// `ON` or `OFF`. The words of `SET` — `ANSI_NULLS`, `XACT_ABORT`, `LOCK_TIMEOUT` and twenty-six
+// more — are refused whatever they are set to (`Msg 102`), and so is a name in brackets.
+//
+// Three things loosen it: a level of `READ COMMITTED` or `READ UNCOMMITTED`; one of the five
+// named a second time, set to a first value of its kind; and a name the engine does not know,
+// set to anything that does not begin with `ON`, `OFF`, a reserved word or an operator. From
+// there anything at all is read — more commas, `ANSI_NULLS = 1`, a `(` with no `)` and a `)` with
+// no `(` — and the list ends at the bracket the block's body follows. A list without its level
+// or its language is read and refused when the procedure is made (`Msg 10784`).
+AtomicOptions : @Clause[]
+	= '(' & first: AtomicOption & (',' & rest: AtomicOption)* & AtomicClose => @(Syntax.Listed(first, rest))
+	| '(' & (strict: AtomicOption & ',')* & loose: AtomicLoosened & AtomicClose & when @(Syntax.Loosens(strict, loose))
+		=> @(Syntax.Loosened(strict, loose))
+
+	// An option named a second time loosens what follows it even where what follows is not an
+	// option, and a list reads every one it can before it looks for what loosened it.
+	| '(' & (strict: AtomicOption & ',')+ & left: AtomicLeft & AtomicClose & when @(Syntax.Repeats(strict))
+		=> @(Syntax.Loosened(strict, left))
+
+// The bracket the body follows, which is the one that ends even a list read strictly: a strict
+// half that ends at a `)` with more after it is the loosened list's beginning.
+AtomicClose = ')' & ?=(StatementList & "END"i)
+
+AtomicOption : @Clause = ?=(AtomicSyntax & OptionEnds) & o: OptionSetting => @(o)
+
+AtomicSyntax
+	= AtomicLevelName & '=' & ("SNAPSHOT"i | "SERIALIZABLE"i | "REPEATABLE"i & "READ"i)
+	| AtomicSetting
+
+// The option that loosens a list, whose value runs on with the rest of it, kept as written.
+AtomicLoosened : @Clause
+	= ?=AtomicLoosening & name: AtomicName & '=' & value: AtomicRun
+		=> @(new Clause.Option(name, new Expression.ColumnReference(value), Clause.None))
+
+AtomicLoosening
+	= AtomicLevelName & '=' & "READ"i & ("COMMITTED"i | "UNCOMMITTED"i)
+	| AtomicSetting
+	| ?!AtomicKnown & ?!TSqlReserved & TSql.RegularIdentifier & '=' & AtomicFirst
+
+AtomicLeft : @Clause = t: AtomicRest => @(new Clause.Option(Syntax.Spaced(t ?? ""), null, Clause.None))
+
+AtomicName : @string = t: (AtomicLevelName | word) => @(Syntax.Squared(t))
+AtomicRun  : @string = t: AtomicRest => @(Syntax.Spaced(t))
+
+AtomicLevelName = ("TRANSACTION"i | "TRAN"i) & "ISOLATION"i & "LEVEL"i
+
+AtomicSetting
+	= ("DATEFIRST"i | "DATEFORMAT"i | "LANGUAGE"i) & '=' & AtomicConstant
+	| "TEXTSIZE"i & '=' & '-'? & ExactNumber
+	| "DELAYED_DURABILITY"i & '=' & OnOff
+
+AtomicConstant
+	= '-'? & (Sql92.Lexical.UnsignedNumericLiteral | TSql.MoneyLiteral)
+	| Quoted | TSql.BinaryLiteral | Identifier | TSql.Variable | "NULL"i
+	| '{' & OdbcLiteralKind & Quoted & '}'
+
+// What a name the engine does not know may be set to first: what a setting may, and `DEFAULT`, a
+// temporary table's name and a number whose exponent has no digits.
+AtomicFirst = AtomicConstant | TSql.NumericLiteral | "DEFAULT"i | TSql.TemporaryName
+
+// The names a list knows: the settings it takes, and the words of `SET` it refuses.
+AtomicKnown
+	= "DATEFIRST"i | "DATEFORMAT"i | "LANGUAGE"i | "TEXTSIZE"i | "DELAYED_DURABILITY"i
+	| "ANSI_DEFAULTS"i | "ANSI_NULL_DFLT_OFF"i | "ANSI_NULL_DFLT_ON"i | "ANSI_NULLS"i | "ANSI_PADDING"i
+	| "ANSI_WARNINGS"i | "ARITHABORT"i | "ARITHIGNORE"i | "CONCAT_NULL_YIELDS_NULL"i
+	| "CURSOR_CLOSE_ON_COMMIT"i | "FMTONLY"i | "FORCEPLAN"i | "IMPLICIT_TRANSACTIONS"i | "NO_BROWSETABLE"i
+	| "NOCOUNT"i | "NOEXEC"i | "NUMERIC_ROUNDABORT"i | "PARSEONLY"i | "QUOTED_IDENTIFIER"i
+	| "REMOTE_PROC_TRANSACTIONS"i | "SHOWPLAN_ALL"i | "SHOWPLAN_TEXT"i | "SHOWPLAN_XML"i | "XACT_ABORT"i
+	| "FIPS_FLAGGER"i | "DEADLOCK_PRIORITY"i | "LOCK_TIMEOUT"i | "CONTEXT_INFO"i | "QUERY_GOVERNOR_COST_LIMIT"i
+
+// Anything, up to the bracket the block's body follows.
+AtomicRest = (?!(')' & StatementList & "END"i) & AtomicToken)*
+
+// The marks are in threes and fours between the lexemes, since a class in syntactic position names
+// eight characters at most and a choice of single characters is one.
+AtomicToken
+	= '(' | ')' | ',' | '.' | word
+	| '=' | '<' | '>' | '!' | Quoted
+	| ':' | ';' | '+' | '-' | TSql.BracketedIdentifier
+	| '*' | '/' | '%' | '&' | Sql92.Lexical.DelimitedIdentifier
+	| '|' | '^' | '~' | TSql.NumericLiteral
+	| '{' | '}' | '?' | TSql.MoneyLiteral
+	| '\\' | '`' | ']' | TSql.BinaryLiteral
+	| TSql.Variable | TSql.TemporaryName | TSql.PseudoColumn
+	| "||" | "::" | "<>" | "<=" | ">=" | "!=" | "!<" | "!>" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^="
 
 // A branch leaves its `;` to the statement it is a branch of, unless an `ELSE` follows: the
 // `;` of `IF c SELECT 1; WITH a AS (…) SELECT …` ends the `IF`, and a `WITH` after it is the
@@ -2251,16 +2347,27 @@ TransactionStatement : @Statement
 		=> @(new Statement.Transaction("BEGIN DISTRIBUTED", name, word, Syntax.Tail(mark)))
 	| "BEGIN"i & word: TranWord & name: TranName? & mark: TranMark?
 		=> @(new Statement.Transaction("BEGIN", name, word, Syntax.Tail(mark)))
+
+	// `WORK` ends a transaction and begins none, and a transaction it ends has no name: `BEGIN
+	// WORK`, `SAVE WORK` and `COMMIT WORK t1` are `Msg 102`.
+	| "COMMIT"i & word: WorkWord & how: TranDelayed?
+		=> @(new Statement.Transaction("COMMIT", null, word, Syntax.Tail(how)))
 	| "COMMIT"i & word: TranWord? & name: TranName? & how: TranDelayed?
 		=> @(new Statement.Transaction("COMMIT", name, word, Syntax.Tail(how)))
+	| "ROLLBACK"i & word: WorkWord
+		=> @(new Statement.Transaction("ROLLBACK", null, word))
 	| "ROLLBACK"i & word: TranWord? & name: TranName?
 		=> @(new Statement.Transaction("ROLLBACK", name, word))
 	| "SAVE"i & word: TranWord & name: TranName
 		=> @(new Statement.Transaction("SAVE", name, word))
 
-TranWord : @string = t: ("TRANSACTION"i | "TRAN"i | "WORK"i) => @(Syntax.Squared(t))
+TranWord : @string = t: ("TRANSACTION"i | "TRAN"i) => @(Syntax.Squared(t))
+WorkWord : @string = t: "WORK"i => @(Syntax.Squared(t))
 TranMark    = "WITH"i & "MARK"i & ValueExpression?
-TranDelayed = "WITH"i & '(' & OptionList & ')'
+
+// One option, once, and one of two values: `DELAYED_DURABILITY = 'ON'`, `= 1`, a second one and any
+// other name are `Msg 102`.
+TranDelayed = "WITH"i & '(' & "DELAYED_DURABILITY"i & '=' & OnOff & ')'
 
 // A name, a variable, or a number and a name of two parts: `SAVE TRANSACTION -5:a.b`, which
 // every transaction statement reads. The number has a sign or not and a fraction or not, and
@@ -3862,8 +3969,8 @@ ColumnTail : @Clause
 	= t: "FILESTREAM"i                => @(Clause.Optioned(t))
 	| "COLLATE"i & q: QualifiedName   => @(Clause.Optioned("COLLATE", new Expression.ColumnReference(q)))
 	| t: "SPARSE"i                    => @(Clause.Optioned(t))
-	| "MASKED"i & "WITH"i & '(' & o: OptionList & ')'
-		=> @(new Clause.ColumnOption("MASKED", Expression.None, o, null))
+	| "MASKED"i & "WITH"i & '(' & o: MaskOption & ')'
+		=> @(new Clause.ColumnOption("MASKED", Expression.None, new Clause[] { o }, null))
 	| "IDENTITY"i & ('(' & a: Arguments & ')')?
 		=> @(new Clause.ColumnOption("IDENTITY", a ?? Expression.None, Clause.None, null))
 	| t: ("NOT"i & "FOR"i & "REPLICATION"i) => @(Clause.Optioned(t))
@@ -3871,8 +3978,9 @@ ColumnTail : @Clause
 	| t: ("GENERATED"i & "ALWAYS"i & "AS"i & GeneratedWhat & GeneratedWhen) & h: "HIDDEN"i?
 		=> @(new Clause.ColumnOption(Syntax.Squared(t), Expression.None, Syntax.Unit(h), null))
 	| t: "ROWGUIDCOL"i                => @(Clause.Optioned(t))
-	| "ENCRYPTED"i & "WITH"i & '(' & o: OptionList & ')'
-		=> @(new Clause.ColumnOption("ENCRYPTED", Expression.None, o, null))
+	| "ENCRYPTED"i & "WITH"i & '(' & first: EncryptionOption & (',' & rest: EncryptionOption)* & ')'
+	  & when @(Syntax.Encrypts(first, rest))
+		=> @(new Clause.ColumnOption("ENCRYPTED", Expression.None, Syntax.Listed(first, rest), null))
 	| t: "PERSISTED"i                 => @(Clause.Optioned(t))
 	| t: ("COLUMN_SET"i & "FOR"i & "ALL_SPARSE_COLUMNS"i) => @(Clause.Optioned(t))
 	| "CONSTRAINT"i & name: Identifier & n: NamedConstraint => @(Clause.Named(n, name))
@@ -3886,6 +3994,21 @@ NamedConstraint : @Clause
 	| c: ConstraintBody => @(c)
 
 NullSpec : @string = t: ("NOT"i & "NULL"i | "NULL"i) => @(Syntax.Squared(t))
+
+// A mask is a function named in a string, national or not, and nothing else: `FUNCTION = x`,
+// `FUNCTION = default`, a second function and any other name are refused. What the string names
+// is the value's business — `FUNCTION = 'x'` is read.
+MaskOption : @Clause = ?=("FUNCTION"i & '=' & Quoted & ')') & o: OptionSetting => @(o)
+
+// A column's encryption names its key, its type and its algorithm, in any order and each as
+// often as wanted, and all three (`Msg 102`): the key by a name of one part, the type as one of
+// two words, the algorithm as a string, whichever it names. Nothing else.
+EncryptionOption : @Clause = ?=(EncryptionSyntax & OptionEnds) & o: OptionSetting => @(o)
+
+EncryptionSyntax
+	= "COLUMN_ENCRYPTION_KEY"i & '=' & Identifier & ?!'.'
+	| "ENCRYPTION_TYPE"i & '=' & ("DETERMINISTIC"i | "RANDOMIZED"i)
+	| "ALGORITHM"i & '=' & Quoted
 
 // ── Constraints ─────────────────────────────────────────────────────────────
 ConstraintBody : @Clause.ConstraintDefinition
@@ -4340,7 +4463,13 @@ AlterTableAction : @Statement.AlterTable
 						 & ("PARTITION"i & ValueExpression)? & OptionsWith?)
 		=> @(Statement.Altered("SWITCH", null, null, tail))
 
-AlterColumnWord : @string = t: ("ADD"i & AlterColumnFlag | "DROP"i & AlterColumnFlag) => @(Syntax.Squared(t))
+// What an altered column may be given and have taken away: a mask given with its function and
+// taken away bare, and five flags either way. Not a nullability, a collation, an identity, a
+// default, a constraint, an encryption, `FILESTREAM` or a column set (`Msg 102`, `156`).
+AlterColumnWord : @string
+	= t: ("ADD"i & ("MASKED"i & "WITH"i & '(' & "FUNCTION"i & '=' & Quoted & ')' | AlterColumnFlag)
+		| "DROP"i & ("MASKED"i | AlterColumnFlag))
+		=> @(Syntax.Squared(t))
 
 // An altered column is altered online or not, and that is all it is asked: `MAXDOP` is refused
 // (`Msg 102`), a name the engine does not know is `Msg 155`, and `ONLINE` is said once. Which
@@ -4349,9 +4478,7 @@ ColumnOnline : @Clause[]
 	= "WITH"i & '(' & "ONLINE"i & '=' & o: OnOff & ')'
 		=> @(new Clause[] { new Clause.Option("ONLINE", new Expression.ColumnReference(o), Clause.None) })
 
-AlterColumnFlag  = "MASKED"i & ("WITH"i & '(' & OptionList & ')')?
-				 | "HIDDEN"i
-				 | ColumnTail
+AlterColumnFlag  = "HIDDEN"i | "ROWGUIDCOL"i | "PERSISTED"i | "NOT"i & "FOR"i & "REPLICATION"i | "SPARSE"i
 CheckWord        = "CHECK"i | "NOCHECK"i
 SplitOrMerge     = "SPLIT"i | "MERGE"i
 LeftOrRight      = "LEFT"i | "RIGHT"i

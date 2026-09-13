@@ -4184,6 +4184,50 @@ public static class Syntax
 		Array.Exists(options, one => one is Clause.Option { Name: var named } &&
 			string.Equals(named, name, StringComparison.OrdinalIgnoreCase));
 
+	/// <summary>Whether a column's encryption names its key, its type and its algorithm.</summary>
+	public static bool Encrypts(Clause? first, Clause[]? rest)
+	{
+		if (first is null)
+			return false;
+
+		var options = Listed(first, rest);
+
+		return HasOption(options, "COLUMN_ENCRYPTION_KEY") && HasOption(options, "ENCRYPTION_TYPE") &&
+			HasOption(options, "ALGORITHM");
+	}
+
+	/// <summary>
+	/// Whether an option may loosen a natively compiled block's list: a level read committed or
+	/// uncommitted and a name the engine does not know always may, and a setting it knows only
+	/// where the list has named it already.
+	/// </summary>
+	public static bool Loosens(Clause[]? strict, Clause? loose) =>
+		loose is Clause.Option { Name: var name } &&
+		(AtomicKey(name) is not ("DATEFIRST" or "DATEFORMAT" or "LANGUAGE" or "TEXTSIZE" or "DELAYED_DURABILITY") ||
+		 Array.Exists(strict ?? [], one => one is Clause.Option { Name: var named } && AtomicKey(named) == AtomicKey(name)));
+
+	/// <summary>Whether a natively compiled block's list names an option twice, which loosens what follows.</summary>
+	public static bool Repeats(Clause[]? strict)
+	{
+		var seen = new HashSet<string>(StringComparer.Ordinal);
+
+		return Array.Exists(strict ?? [], one => one is Clause.Option { Name: var name } && !seen.Add(AtomicKey(name)));
+	}
+
+	/// <summary>The options a natively compiled block's list read strictly, and what loosened it.</summary>
+	public static Clause[] Loosened(Clause[]? strict, Clause last) => [.. strict ?? [], last];
+
+	/// <summary>An option's name as the engine matches it: its words, in capitals, and <c>TRAN</c> as <c>TRANSACTION</c>.</summary>
+	static string AtomicKey(string name)
+	{
+		var words = name.ToUpperInvariant().Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+
+		if (words is ["TRAN", ..])
+			words[0] = "TRANSACTION";
+
+		return string.Join(" ", words);
+	}
+
 	/// <summary>
 	/// Whether an argument is passed back only where it can be: <c>OUTPUT</c> after a variable,
 	/// and <c>Msg 179</c> after anything else.
@@ -4722,16 +4766,12 @@ public static class Syntax
 	/// <summary>Whether a column's flag, added or dropped, may be so with the options said.</summary>
 	/// <remarks>
 	/// Online is refused to a row GUID, <c>NOT FOR REPLICATION</c>, persistence and hiding
-	/// (<c>Msg 153</c>) — offline is not — and a sparse column set takes no options at all
-	/// (<c>Msg 102</c>). A sparse column and a mask may be changed online.
+	/// (<c>Msg 153</c>) — offline is not. A sparse column and a mask may be changed online.
 	/// </remarks>
 	public static bool FlagsOnline(string? flag, Clause[]? options)
 	{
 		if (flag is null || options is null)
 			return true;
-
-		if (flag.Contains("COLUMN_SET"))
-			return false;
 
 		return options is not [Clause.Option { Value: Expression.ColumnReference("ON") }] ||
 			!(flag.EndsWith("ROWGUIDCOL", StringComparison.Ordinal) || flag.EndsWith("NOT FOR REPLICATION", StringComparison.Ordinal) ||

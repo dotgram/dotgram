@@ -21179,3 +21179,65 @@ At 170: read by both 7,403, the work list 5, defects 2 — unchanged — another
 to 226. `--split` 780 (from 782); the round trip 100% of 7,717 (from 7,737), the same twenty.
 **The map: 7,994 read by both, 8 work, 0 defects (from 2)**, another product's 73, neither 263.
 `--levels` 145 of 145. The suite is 8,574 rows (from 8,112).
+
+## A natively compiled block's options, and a column's mask and key
+
+The smallest of the option lists still read as any name set to any value: `BEGIN ATOMIC WITH
+(…)`, a commit's `WITH (…)`, and a column's `MASKED WITH (…)` and `ENCRYPTED WITH (…)`. Put to
+the engine in eleven probes, 2,554 lines.
+
+**A commit** takes one option, once: `DELAYED_DURABILITY = ON | OFF`. `'ON'`, `1`, a second one
+and any other name are `Msg 102`. And `WORK` ends a transaction and begins none — `BEGIN WORK` and
+`SAVE WORK` are 102 — and ends one without a name: `COMMIT WORK t1` is 102.
+
+**A mask** is `FUNCTION =` a string, national or not, and nothing else; `FUNCTION = default` is
+156. An altered column is given a mask with its function — `ADD MASKED` alone is 102 — and has it
+taken away bare. `ADD` and `DROP` took any column tail and take five flags: `HIDDEN`,
+`ROWGUIDCOL`, `PERSISTED`, `NOT FOR REPLICATION`, `SPARSE`. `ADD NOT NULL`, `ADD IDENTITY`,
+`ADD DEFAULT 1`, `ADD COLLATE …`, `ADD FILESTREAM`, `ADD ENCRYPTED WITH (…)`, `ADD PRIMARY KEY`
+and the column set are refused. **An encryption** names its key by a name of one part, its type
+`DETERMINISTIC` or `RANDOMIZED`, its algorithm by a string — all three (102), in any order, and
+each as often as wanted.
+
+**A natively compiled block** was not a catalogue, and took most of the probes. The engine reads
+its list in two halves. Until something loosens it, an option is one of five, set to one value
+of its kind and nothing after it: a level `SNAPSHOT`, `REPEATABLE READ` or `SERIALIZABLE`; a
+`DATEFIRST`, `DATEFORMAT` or `LANGUAGE` set to a name, a string, a number, a binary string,
+money, `NULL` or an ODBC literal, and not `DEFAULT`, `ON`, `x.y` or two of them; a `TEXTSIZE` set
+to a number without an exponent; a `DELAYED_DURABILITY` set to `ON` or `OFF`. Twenty-nine words
+of `SET` — `ANSI_NULLS`, `XACT_ABORT`, `LOCK_TIMEOUT`, `CONTEXT_INFO` — are refused whatever
+their value. Names match in any case.
+
+Three things loosen it: a level `READ COMMITTED` or `READ UNCOMMITTED`; one of the five named a
+second time, set to a first value of its kind; a name the engine does not know, set to anything
+not beginning with `ON`, `OFF`, a reserved word or an operator. From there anything is read — a
+`SET` word, more commas, `,,`, a `(` never closed, a `)` never opened — up to the bracket the body
+follows. After the level and the language, `…, DATEFIRST = 7, DATEFIRST = 1 ))` is read, and so is
+`…, NOSUCH = 1, ANSI_NULLS = 1)`; `…, ANSI_NULLS = 1)` is not. A list without its level or its
+language is read and refused when the procedure is made (`Msg 10784`).
+
+The strict half is the catalogue pattern; what loosens the list is a `Clause.Option` holding the
+rest as written for its value. Three alternatives, because a repetition does not give back what
+it took: all strict; strict and then the loosening option, which `Syntax.Loosens` lets stand only
+where it is known or repeated; strict with a repeat and then anything (`Syntax.Repeats`). Each
+ends at `AtomicClose`, a `)` the body follows, since a strict list ending at the first `)`
+committed the block to a body that was not there. The loose run is its lexemes and marks, and the
+marks stand four at a time between lexemes: a choice of single characters is one class, and a
+class in syntactic position names eight characters at most (`TerminalInventory.Named`; GRAM5004
+otherwise, and a grammar compiled over characters).
+
+**A mirage of the harness, found on the way:** a line holding a variable cannot be asked inside
+`CREATE PROCEDURE`. The second asking, with the variable declared in front, is `Msg 111` — the
+statement must begin its batch — so the first answer, `Msg 137`, stands and counts as read. Every
+such line was left out of the theory.
+
+**Left, and not by accident.** The order of a column's tail: the engine takes a mask and an
+encryption after the type, a collation and `SPARSE`, and before everything else, once and not
+both — `NULL MASKED WITH (…)`, `IDENTITY MASKED …`, `MASKED … COLLATE …`, `ENCRYPTED … SPARSE`, a
+mask twice. Twenty probe lines this reads and the engine refuses; that is the next piece. And a
+`§` in a loosened list, which no lexeme holds.
+
+At 170, unchanged: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither. At 150:
+226 another product's, 539 neither. `--split` 780, the round trip 100% of 7,717, the map 7,994
+both, 8 work, 0 defects, 73 another product's, 263 neither, `--levels` 145 of 145 — all unchanged.
+The suite is 9,882 rows (from 8,574): 719 refusals and 589 readings the engine answered.

@@ -553,7 +553,7 @@ together — flags, since a list may mix them. A variable assigned is not here: 
 | `Clause.CommonTableExpression` | SQL:1999 | &lt;with list element&gt;; T-SQL: WITH common_table_expression |
 | `Clause.For` | T-SQL | SELECT — the FOR clause: `FOR XML`, `FOR JSON`, `FOR BROWSE` |
 | `Clause.Hint` | T-SQL | Query Hints, and the table hints, kept as the words they were written as |
-| `Clause.Option` | T-SQL | one option of any of the lists: `WITH (…)`, `SET (…)`, `ALTER DATABASE SET`, `MASKED WITH (…)` — a name, a value, nested options, partitions; and what stands in a `WITH` beside the named queries |
+| `Clause.Option` | T-SQL | one option of any of the lists: `WITH (…)`, `SET (…)`, `ALTER DATABASE SET`, `MASKED WITH (…)` — a name, a value, nested options, partitions; and what stands in a `WITH` beside the named queries. In `BEGIN ATOMIC WITH (…)` the option that loosens the list holds the rest of it, as written, for its value |
 | `Clause.Placement` | T-SQL | where a table or an index is put: `ON`, `TEXTIMAGE_ON`, `FILESTREAM_ON`, and the target after `MOVE TO` |
 | `Clause.VariableAssignment` | T-SQL | SELECT — `@variable = expression` in a select list |
 | `Clause.When` | SQL-92 | §6.9 &lt;simple when clause&gt;, &lt;searched when clause&gt; |
