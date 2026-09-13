@@ -3679,8 +3679,19 @@ ConstraintBody : @Clause.ConstraintDefinition
 		=> @(Clause.Constrained("CHECK", null, c) with { Options = Syntax.Unit(n) })
 	| "CONNECTION"i & '(' & first: EdgePair & (',' & rest: EdgePair)* & ')' & a: ReferenceAction*
 		=> @(Clause.Constrained("CONNECTION", null, null) with { Options = Syntax.Connected(first, rest, a) })
-	| "DEFAULT"i & v: ValueExpression & ("FOR"i & f: Identifier)?
-		=> @(Clause.Constrained("DEFAULT", null, v) with { ForColumn = f })
+	| "DEFAULT"i & v: ValueExpression & tail: DefaultTail
+		=> @(Clause.Defaulted(v, tail))
+
+// What follows a default: the column it is for, where the constraint stands at the table.
+// Where a column is added, one thing more, whether the rows already there take the value —
+// `ALTER TABLE t ADD c INT DEFAULT 1 WITH VALUES`, `ADD CONSTRAINT d DEFAULT 1 FOR c WITH
+// VALUES` — and the tail goes on after it: `WITH VALUES NOT NULL`, `WITH VALUES CHECK (…)`.
+// Nowhere else: `CREATE TABLE t (c INT DEFAULT 1 WITH VALUES)` and `ALTER COLUMN`'s are
+// `Msg 156`, a column without a default is 156 too, and `WITH NOVALUES` and `WITH (VALUES)`
+// are `Msg 102`. So the words are read by the rule `ALTER TABLE … ADD` puts in this one's
+// place, and by no other.
+DefaultTail      = ("FOR"i & Identifier)?
+AddedDefaultTail = ("FOR"i & Identifier)? & ("WITH"i & "VALUES"i)?
 
 // A key a warehouse declares and does not check. Not the box's syntax and refused there,
 // which is where the version chain will put it.
@@ -4052,9 +4063,10 @@ AlterTableAction : @Statement.AlterTable
 		=> @(Statement.Altered("ADD", new Clause[] { c with { Name = name } }))
 	// A key `ALTER TABLE` adds may be built online and resumed, which one `CREATE TABLE`
 	// declares may not: the same body, with the other list of index options in its place.
-	| "ADD"i & body: TableBody with (ConstraintWith = AlterConstraintWith)
+	| "ADD"i & body: TableBody with (ConstraintWith = AlterConstraintWith, DefaultTail = AddedDefaultTail)
 		=> @(Statement.Altered("ADD", body))
-	| "WITH"i & mode: CheckWord & "ADD"i & body: TableBody with (ConstraintWith = AlterConstraintWith)
+	| "WITH"i & mode: CheckWord & "ADD"i
+	  & body: TableBody with (ConstraintWith = AlterConstraintWith, DefaultTail = AddedDefaultTail)
 		=> @(Statement.Altered("WITH " + Syntax.Squared(mode) + " ADD", body))
 	| "ALTER"i & "COLUMN"i & column: ColumnDefinition & options: ColumnOnline?
 		=> @(Statement.Altered("ALTER COLUMN", new Clause[] { column }, options))

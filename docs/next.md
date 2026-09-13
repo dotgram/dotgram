@@ -20214,3 +20214,35 @@ Against the engine at 150 nothing moves — the corpus has no availability group
 round trip grows to 100% of 7,591 (from 7,583), eight more statements read by both. The map:
 read by both **7,987 of 8,338 (from 7,984), the work list 16 (from 19)**, defects 0. The
 suite is 7,028 rows.
+
+## A default the rows already there take
+
+`ALTER TABLE dbo.doc_exf ADD AddDate smalldatetime NULL CONSTRAINT AddDateDflt DEFAULT
+GETDATE() WITH VALUES` was one line of the map's work list. Measured, the two words stand in
+one place and one place only: after a `DEFAULT`, where a column is added — at the column,
+with a named constraint or without, `NULL` or `NOT NULL` on either side of it, in a list of
+two columns, and at the table as `ADD CONSTRAINT d DEFAULT 1 FOR c WITH VALUES`. The tail goes
+on after them: `WITH VALUES NOT NULL` and `WITH VALUES CHECK (…)` are read. Nowhere else:
+`CREATE TABLE t (c INT DEFAULT 1 WITH VALUES)` is `Msg 156`, so is `ALTER COLUMN`'s, so is a
+column with no default; `WITH NOVALUES` and `WITH (VALUES)` are `Msg 102`.
+
+**Read by the rule `ALTER TABLE … ADD` puts in the default's place, and by no other.** That
+path already differs from `CREATE TABLE` by one rebinding — `TableBody with (ConstraintWith =
+AlterConstraintWith)` — and a second binding on the same operand does the rest: the default's
+tail is `("FOR"i & Identifier)?` everywhere and `… & ("WITH"i & "VALUES"i)?` there. This is
+the substitution working as §5.1 says it does, on an operand that is not itself rebound; the
+one that did not work this morning was written on `DataType`, which the dialect's header
+replaces, and went out with it. The tail is captured as words and `Clause.Defaulted` reads
+them, the way `Dotted` and `Sampled` read theirs; `WITH VALUES` is the constraint's one
+unbracketed option, and the writer puts it back after the `FOR` with nothing added.
+
+I had written that the ScriptDom corpus has no `WITH VALUES` and the round trip would never
+see it, and wrote four rows for the writer in its place. The corpus has three, and they left
+the work list with this piece — the group "stops at `WITH`" went from nine to six, the six
+being `PREDICT` — and the round trip read them back whole. The four rows stay; they cost
+nothing and say what the printing is held to.
+
+At 150: read by both 5,969 (from 5,966), the work list **19 (from 22)**, read here but
+refused there 2; `--split` 743 (from 740), the round trip 100% of 7,594 (from 7,591). The map:
+read by both **7,988 of 8,338 (from 7,987), the work list 15 (from 16)**, defects 0. The
+suite is 7,050 rows.

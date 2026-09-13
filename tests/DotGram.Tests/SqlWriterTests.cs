@@ -38,6 +38,20 @@ public sealed class SqlWriterTests
 	public void A_bracket_is_written_where_precedence_needs_it(string input, string printed) =>
 		Assert.Equal(printed, SqlWriter.Write(TransactSql.ParseValueExpression(input)));
 
+	/// <summary>A default's <c>WITH VALUES</c> comes back after the column it is for.</summary>
+	[Theory]
+	[InlineData("ALTER TABLE t1 ADD c1 int DEFAULT 1 WITH VALUES")]
+	[InlineData("ALTER TABLE t1 ADD c1 int DEFAULT 1 WITH VALUES NOT NULL")]
+	[InlineData("ALTER TABLE t1 ADD CONSTRAINT d1 DEFAULT 1 FOR c1 WITH VALUES")]
+	[InlineData("ALTER TABLE t1 ADD CONSTRAINT d1 DEFAULT 1 FOR c1")]
+	public void A_default_keeps_the_values_it_was_given_with(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input);
+		Assert.Equal(input, SqlWriter.Write(match.Value!));
+	}
+
 	/// <summary>A procedure called by its number comes back with it.</summary>
 	[Theory]
 	[InlineData("EXECUTE dbo.p1;1")]

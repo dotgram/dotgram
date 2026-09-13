@@ -1495,6 +1495,38 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary><c>WITH VALUES</c> after a default, where the engine reads it.</summary>
+	[Theory]
+	[InlineData("ALTER TABLE t1 ADD c1 int WITH VALUES")]
+	[InlineData("ALTER TABLE t1 ADD c1 int DEFAULT 1 WITH NOVALUES")]
+	[InlineData("ALTER TABLE t1 ADD c1 int DEFAULT 1 WITH (VALUES)")]
+	[InlineData("ALTER TABLE t1 ALTER COLUMN c1 int DEFAULT 1 WITH VALUES")]
+	[InlineData("CREATE TABLE t1 (c1 int DEFAULT 1 WITH VALUES)")]
+	[InlineData("DECLARE @t TABLE (c1 int DEFAULT 1 WITH VALUES)")]
+	public void A_default_the_rows_already_there_take_refuses_what_the_engine_does(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And reads it where a column is added.</summary>
+	[Theory]
+	[InlineData("ALTER TABLE dbo.doc_exf ADD AddDate smalldatetime NULL CONSTRAINT AddDateDflt DEFAULT GETDATE() WITH VALUES")]
+	[InlineData("ALTER TABLE t1 ADD c1 int DEFAULT 1 WITH VALUES")]
+	[InlineData("ALTER TABLE t1 ADD c1 int NOT NULL DEFAULT 1 WITH VALUES")]
+	[InlineData("ALTER TABLE t1 ADD c1 int NULL DEFAULT 1 WITH VALUES")]
+	[InlineData("ALTER TABLE t1 ADD c1 int CONSTRAINT d1 DEFAULT 1 WITH VALUES")]
+	[InlineData("ALTER TABLE t1 ADD c1 int DEFAULT 1 WITH VALUES, c2 int DEFAULT 2 WITH VALUES")]
+	[InlineData("ALTER TABLE t1 ADD c1 int DEFAULT 1 WITH VALUES NOT NULL")]
+	[InlineData("ALTER TABLE t1 ADD c1 int DEFAULT 1 WITH VALUES CHECK (c1 > 0)")]
+	[InlineData("ALTER TABLE t1 ADD CONSTRAINT d1 DEFAULT 1 FOR c1 WITH VALUES")]
+	[InlineData("ALTER TABLE t1 WITH NOCHECK ADD c1 int DEFAULT 1 WITH VALUES")]
+	[InlineData("ALTER TABLE t1 ADD CONSTRAINT d1 DEFAULT 1 FOR c1")]
+	[InlineData("CREATE TABLE t1 (c1 int DEFAULT 1)")]
+	public void A_default_the_rows_already_there_take_reads_what_the_engine_does(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]

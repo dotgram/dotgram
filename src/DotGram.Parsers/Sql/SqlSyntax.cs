@@ -3205,6 +3205,31 @@ public abstract record Clause : ISqlSpan
 	public static ConstraintDefinition Constrained(
 		string kind, Clause[]? columns, Expression? check) => new(null, kind, columns ?? None, check);
 
+	/// <summary>A default and what was written after it: the column it is for, and whether the rows already there take it.</summary>
+	/// <remarks>
+	/// <c>WITH VALUES</c> is kept as the one option of the constraint, unbracketed, which is
+	/// how the writer puts it back after the <c>FOR</c>: <c>ALTER TABLE t ADD CONSTRAINT d
+	/// DEFAULT 1 FOR c WITH VALUES</c> is the order the engine reads. Asked of the tail as
+	/// written, since the grammar reads it as words and only where a column is added.
+	/// </remarks>
+	public static ConstraintDefinition Defaulted(Expression value, string? tail)
+	{
+		const string Valued = "WITH VALUES";
+
+		var words = tail is null ? "" : Syntax.Spaced(tail).Trim();
+		var kept  = words.EndsWith(Valued, StringComparison.OrdinalIgnoreCase);
+
+		if (kept)
+			words = words.Substring(0, words.Length - Valued.Length).TrimEnd();
+
+		var made = Constrained("DEFAULT", null, value) with
+		{
+			ForColumn = words.StartsWith("FOR ", StringComparison.OrdinalIgnoreCase) ? words.Substring("FOR ".Length) : null,
+		};
+
+		return kept ? made with { Options = [new Option("VALUES", null, None)], Bracketed = false } : made;
+	}
+
 	/// <summary>A named thing dropped, where only the kind and the name matter.</summary>
 	public static Dropped Marked(string kind, string? name) => new(kind, name);
 
