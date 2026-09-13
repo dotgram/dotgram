@@ -21439,3 +21439,35 @@ Worth knowing for any grammar that publishes a rule which only hands another on.
 **And a latent bug it exposed:** a split grammar's publication of text read its value with
 `Text_DotGram(...)`, while the helper is named with the machine's tag. No grammar with two
 machines and an untyped publication could compile; none of this repository's had one.
+
+## HTTP's and SOAP's settings
+
+The last open lists of an endpoint: `AS HTTP (…)`, and a SOAP endpoint's settings beside its web
+methods. Both were published by SQL Server 2005 and removed in 2012, so no page of the reference
+has their syntax any more; the engine still reads them, and was asked 116 lines written as the 2005
+block wrote them.
+
+**HTTP** takes a path and a site as strings; a realm and a logon domain as strings or `NONE`; the
+ways it authenticates — `BASIC`, `DIGEST`, `NTLM`, `KERBEROS`, `INTEGRATED` — and the ports it
+listens on, `CLEAR` and `SSL`, each a bracketed list; the clear and SSL port numbers as whole
+numbers, a sign allowed as TCP's port allows one; and compression `ENABLED` or `DISABLED`. In any
+order and as often as wanted, and at least one: `AS HTTP ()` is 102. A path unquoted or `NONE`,
+`AUTHENTICATION = INTEGRATED` without its bracket, a word out of either list, a port in quotes or
+with a fraction, `COMPRESSION = ON` and TCP's `LISTENER_PORT` are 102 or 156.
+
+The first cut took the realm and the logon domain as strings only, which the probe had asked, and
+the passes caught what it had not: ScriptDom's `AUTH_REALM = NONE, DEFAULT_LOGON_DOMAIN = NONE`,
+twice in the corpus, went from read by both to the work list, and `--split` and the round trip lost
+the two with it. A second probe of the words beside each string and number found `NONE` for those
+two and a sign for the ports, and nothing else.
+
+**SOAP's settings**, over HTTP or TCP alike: a WSDL `DEFAULT`, `NONE` or a procedure named in a
+string; batches and sessions `ENABLED` or `DISABLED`; a login `WINDOWS` or `MIXED`; a session
+timeout in whole seconds or `NEVER`; a database and a namespace `DEFAULT` or a string; a schema
+`NONE` or `STANDARD` — not `DEFAULT`, which a web method's schema takes; a character set `SQL` or
+`XML`; a header limit in whole bytes. As often as wanted, mixed with the web methods; `BATCHES =
+ON`, `DATABASE = db`, `NAMESPACE = x` and a name no endpoint knows are 102 or 156.
+
+At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 150: 6,616 both,
+226 and 539; `--split` 783, the round trip 100% of 7,717, the map 7,994 both and 0 defects,
+`--levels` 145 of 145 — unchanged. The suite is 13,664 rows (from 13,551): 47 refusals and 66 readings.
