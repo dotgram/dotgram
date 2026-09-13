@@ -30,6 +30,28 @@ public sealed class ExpressionParserTests
 	public void An_expression_body_reads_and_runs(string text, int argument, int expected) =>
 		Assert.Equal(expected, ExpressionParser.Compile<Func<int, int>>(text)(argument));
 
+	/// <summary>A `return` inside a lambda written in an expression leaves that lambda.</summary>
+	/// <remarks>
+	/// Which is what a `return` means in C#: it leaves the method it is written in, not the
+	/// one around it. So the label belongs to an extent rather than to the reading — the same
+	/// answer a `break` gets, and for the same reason, since both are built before the thing
+	/// they leave.
+	/// </remarks>
+	[Fact]
+	public void A_return_inside_a_nested_lambda_leaves_that_lambda() =>
+		Assert.Equal(
+			4,
+			ExpressionParser.Compile<Func<int, int>>(
+				"(int x) => { var f = (int y) => { return y + 1; }; f(x) }")(3));
+
+	/// <summary>And two of them in one text are two labels, each its own lambda's.</summary>
+	[Fact]
+	public void And_two_returns_in_one_text_leave_two_different_lambdas() =>
+		Assert.Equal(
+			7,
+			ExpressionParser.Compile<Func<int, int>>(
+				"(int x) => { var f = (int y) => { return y * 2; }; return f(x) + 1; }")(3));
+
 	/// <summary>`foreach`, which this API has no node for and the host writes out.</summary>
 	/// <remarks>
 	/// Both forms, because the element type is known at a different moment in each: written,
@@ -683,15 +705,15 @@ public sealed class ExpressionParserTests
 				() => ExpressionParser.Parse("(int x) => { var f = (int y) => y * 2; y }")).Message);
 
 	[Fact]
-	public void But_a_return_inside_one_is_refused_rather_than_mis_built() =>
-		// The label a `return` goes to belongs to the outermost lambda, which is what `return`
-		// means in C#. A jump to it from inside a nested one leaves two lambdas at once, and
-		// the API answers that with a label it cannot find — about a label nobody wrote.
-		Assert.Contains(
-			"not read yet",
-			Assert.Throws<FormatException>(
-				() => ExpressionParser.Parse(
-					"(int x) => { var f = (int y) => { return y; }; f(x) }")).Message);
+	public void And_a_return_inside_one_leaves_it_carrying_its_own_type() =>
+		// Two lambdas, two labels, and each label is worth what the `return`s in its own
+		// lambda are worth: the inner one a string, the outer one an int. One label for the
+		// text could not have been both, which is what this text is here to say — it was
+		// refused outright until the label moved onto the lambda's extent.
+		Assert.Equal(
+			2,
+			ExpressionParser.Compile<Func<int, int>>(
+				"(int x) => { var f = (int y) => { return \"n\" + y; }; return f(x).Length; }")(3));
 
 	// ── A block is an expression, and it holds a scope ──────────────────────────
 

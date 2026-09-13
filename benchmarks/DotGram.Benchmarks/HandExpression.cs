@@ -856,12 +856,21 @@ static class HandExpression
 			if (Kind(at) != RightParen || Kind(at + 1) != Arrow)
 				return -1;
 
+			// Where this lambda is, recorded before its body and closed after it, which is
+			// what says which lambda a `return` written inside it leaves.
+			_context.Entering(Span(i, at + 2));
+
 			var body = Value(at + 2, out var read);
 
 			if (body < 0)
 				return -1;
 
-			node = Expression.Lambda(_context.Returning(read!), taken.ToArray());
+			var span = Span(i, body);
+
+			if (!_context.Leaves(span))
+				return -1;
+
+			node = Expression.Lambda(_context.Returning(read!, span), taken.ToArray());
 
 			return body;
 		}
@@ -927,6 +936,8 @@ static class HandExpression
 			if (Kind(at) != RightParen || Kind(at + 1) != Arrow)
 				return -1;
 
+			_context.Entering(Span(i, at + 2));
+
 			var body = Value(at + 2, out var read);
 
 			if (body < 0)
@@ -934,10 +945,10 @@ static class HandExpression
 
 			var span = Span(i, body);
 
-			if (!_context.Scoped(span))
+			if (!_context.Scoped(span) || !_context.Leaves(span))
 				return -1;
 
-			node = _context.Nested(read!, taken.ToArray());
+			node = _context.Nested(read!, taken.ToArray(), span);
 
 			return body;
 		}
@@ -1133,7 +1144,7 @@ static class HandExpression
 
 				if (value >= 0 && Kind(value) == Semicolon)
 				{
-					node = _context.Return(read!);
+					node = _context.Return(read!, Span(i, value + 1));
 
 					return value + 1;
 				}

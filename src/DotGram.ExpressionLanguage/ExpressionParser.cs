@@ -297,9 +297,15 @@ namespace DotGram.ExpressionLanguage;
 
 	// ── A lambda: what it takes, and what it does ───────────────────────────────
 
+	// The guards record where the lambda is, which is what says which lambda a `return`
+	// written inside it leaves — the same shape a loop uses for `break`, and for the same
+	// reason: the jump is built before the thing it leaves.
 	Lambda : @LambdaExpression
-		= Import* & '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>" & body: Value
-		=> @(Expression.Lambda(context.Returning(body), ExpressionParser.Taking(first, rest)))
+		= Import* & '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>"
+		& when @(context.Entering(parserSpan)) & body: Value
+		& when @(context.Leaves(parserSpan))
+		=> @(Expression.Lambda(
+			context.Returning(body, parserSpan), ExpressionParser.Taking(first, rest)))
 
 	// The same thing written inside an expression, where it is an operand like any other.
 	//
@@ -314,9 +320,10 @@ namespace DotGram.ExpressionLanguage;
 	// every block, which is right for the outer lambda's parameters, written as they are
 	// outside every block, and wrong for these.
 	Inner : @Expression
-		= '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>" & body: Value
-		& when @(context.Scoped(parserSpan))
-		=> @(context.Nested(body, ExpressionParser.Taking(first, rest)))
+		= '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>"
+		& when @(context.Entering(parserSpan)) & body: Value
+		& when @(context.Scoped(parserSpan) && context.Leaves(parserSpan))
+		=> @(context.Nested(body, ExpressionParser.Taking(first, rest), parserSpan))
 
 	// A `using` stands before the lambda, as it stands at the top of a C# file, and names a
 	// namespace whose types every name after it may mean. The guard records it while the
@@ -503,7 +510,7 @@ namespace DotGram.ExpressionLanguage;
 		=> @(ExpressionParser.Assigned(context.Named(name, parserSpan), value))
 
 	Return : @Expression = "return" & value: Value & ';'
-	                     => @(context.Return(value))
+	                     => @(context.Return(value, parserSpan))
 
 	// ── The statements that carry a body, and so end without a semicolon ────────
 	//
@@ -2216,8 +2223,22 @@ public static partial class ExpressionParser
 		/// </remarks>
 		List<Declaration>? _declared;
 
-		/// <summary>Where a <c>return</c> goes, made once the first one says what it yields.</summary>
-		LabelTarget? _returns;
+		/// <summary>The extent of each lambda being read, the way a loop's is recorded.</summary>
+		/// <remarks>
+		/// Opened before the body and closed after it, for the reason a loop's is: a reading
+		/// that builds as it goes runs a <c>return</c>'s construction before the lambda holding
+		/// it has said where it ends, and an extent open to the end of the text is right until
+		/// the closed one replaces it.
+		/// </remarks>
+		List<Scope>? _lambdas;
+
+		/// <summary>Where a <c>return</c> goes, one label per lambda, made by the first one in it.</summary>
+		/// <remarks>
+		/// Keyed by where the lambda begins, as a loop's <c>break</c> is: which lambda a
+		/// <c>return</c> leaves is where it is written, and nothing else can say it — the jump
+		/// is built before the lambda that holds it.
+		/// </remarks>
+		Dictionary<int, LabelTarget>? _returns;
 
 		/// <summary>A block, recorded while the text is read (§8.1).</summary>
 		/// <remarks>
@@ -2598,15 +2619,48 @@ public static partial class ExpressionParser
 			return target;
 		}
 
-		/// <summary>A jump to the lambda's label, which the first <c>return</c> is what makes.</summary>
-		public Expression Return(Expression value)
+		/// <summary>A lambda begun: everything from here on is inside it until it says where it ends.</summary>
+		public bool Entering(SourceSpan span)
+		{
+			(_lambdas ??= []).Add(new Scope(span.Start, int.MaxValue));
+
+			return true;
+		}
+
+		/// <summary>And the extent it turned out to have.</summary>
+		public bool Leaves(SourceSpan span)
+		{
+			Close(_lambdas ??= [], span);
+
+			return true;
+		}
+
+		/// <summary>A jump to the label of the lambda this is written in.</summary>
+		/// <remarks>
+		/// The first <c>return</c> in a lambda is what makes its label, and what it yields is
+		/// what the label carries — so a later one converts to that, as every later one already
+		/// did when there was a single label for the text.
+		/// </remarks>
+		public Expression Return(Expression value, SourceSpan at)
 		{
 			if (value is null)
 				throw new ArgumentNullException(nameof(value));
 
-			_returns ??= Expression.Label(value.Type, "return");
+			var target = Returns(at.Start, value.Type);
 
-			return Expression.Return(_returns, Converted(value, _returns.Type));
+			return Expression.Return(target, Converted(value, target.Type));
+		}
+
+		/// <summary>The label of the innermost lambda a position stands in.</summary>
+		LabelTarget Returns(int position, Type type)
+		{
+			var of = Innermost(_lambdas, position) ??
+				throw new FormatException("a 'return' here is inside no lambda.");
+
+			if (!(_returns ??= []).TryGetValue(of.From, out var target))
+				_returns[of.From] = target = Expression.Label(type, "return");
+
+			return target;
 		}
 
 		/// <summary>A call on a value: its own method, or an extension where it has none.</summary>
@@ -2630,46 +2684,17 @@ public static partial class ExpressionParser
 
 		/// <summary>A lambda written inside an expression, which is a value like any other.</summary>
 		/// <remarks>
-		/// A `return` inside one is refused rather than mis-built. There is one label for the
-		/// text being read, made by the first `return` and belonging to the outermost lambda,
-		/// which is what a `return` means in C#: it leaves the whole method. A jump to it from
-		/// inside a nested lambda leaves two, which is a tree the API will not compile — it
-		/// answers that with a label it cannot find, about a label nobody wrote. So it is said
-		/// here instead, in words about what the text says.
+		/// A `return` inside one leaves it and not the lambda around it, which is what a
+		/// `return` means in C#: it leaves the method it is written in. That is why the label
+		/// belongs to an extent rather than to the reading — the same answer a `break` gets,
+		/// and for the same reason, since both are built before the thing they leave.
 		/// </remarks>
-		public Expression Nested(Expression body, ParameterExpression[] parameters)
+		public Expression Nested(Expression body, ParameterExpression[] parameters, SourceSpan at)
 		{
 			if (body is null)
 				throw new ArgumentNullException(nameof(body));
 
-			if (_returns is not null && Jumps.To(_returns, body))
-				throw new FormatException(
-					"A 'return' inside a lambda written in an expression is not read yet.");
-
-			return Expression.Lambda(body, parameters);
-		}
-
-		/// <summary>Whether anything in a body jumps to that label, which is what a `return` is.</summary>
-		sealed class Jumps(LabelTarget target) : ExpressionVisitor
-		{
-			bool _found;
-
-			public static bool To(LabelTarget target, Expression body)
-			{
-				var jumps = new Jumps(target);
-
-				jumps.Visit(body);
-
-				return jumps._found;
-			}
-
-			protected override Expression VisitGoto(GotoExpression node)
-			{
-				if (node.Target == target)
-					_found = true;
-
-				return base.VisitGoto(node);
-			}
+			return Expression.Lambda(Returning(body, at), parameters);
 		}
 
 		/// <summary>The body with the place its returns go to, where any of them do.</summary>
@@ -2679,10 +2704,16 @@ public static partial class ExpressionParser
 		/// lambda is also the only place that can hold it — a block is built before the blocks
 		/// around it, so no block knows whether it is the outermost.
 		/// </remarks>
-		public Expression Returning(Expression body)
+		public Expression Returning(Expression body, SourceSpan at)
 		{
 			if (body is null)
 				throw new ArgumentNullException(nameof(body));
+
+			// The label of this lambda and of no other: one written inside it made it, and one
+			// written inside a lambda nested in it made that one's instead.
+			var returns = _returns is not null && _returns.TryGetValue(at.Start, out var made)
+				? made
+				: null;
 
 			// Where the body is worth what a `return` is worth, the label takes it: control that
 			// reaches the end of the body arrives at the label, and what the label is worth
@@ -2692,11 +2723,11 @@ public static partial class ExpressionParser
 			//
 			// Where the body is worth nothing, because every path out of it is a `return`, there
 			// is nothing to fall through with and the default is the only thing to put there.
-			return _returns is null
+			return returns is null
 				? body
-				: body.Type == _returns.Type
-					? Expression.Label(_returns, body)
-					: Expression.Block(body, Expression.Label(_returns, Expression.Default(_returns.Type)));
+				: body.Type == returns.Type
+					? Expression.Label(returns, body)
+					: Expression.Block(body, Expression.Label(returns, Expression.Default(returns.Type)));
 		}
 
 		/// <summary>

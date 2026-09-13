@@ -208,6 +208,11 @@ static class ExpressionAgainst
 		"(int x) => { var f = (int y) => y + x; f(1) }",
 		"(int x) => { var f = (int y) => y + 1; var g = (int y) => y * 2; f(1) + g(2) }",
 
+		// And a `return` inside one, which leaves that lambda and not the one around it:
+		// alone, and beside a `return` of the outer lambda's own, which is two labels.
+		"(int x) => { var f = (int y) => { return y + 1; }; f(x) }",
+		"(int x) => { var f = (int y) => { return y * 2; }; return f(x) + 1; }",
+
 		// A guard and how far it reaches: one step, a whole chain protected by it, an index,
 		// what a nullable holds, and the ternary whose number keeps its point.
 		"(string s) => s?.Length",
