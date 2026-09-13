@@ -2367,6 +2367,38 @@ public sealed class CSharpEmitterTests
 		Assert.False(Invoke(Nested, "ParseInner", "[1]").Matched);
 	}
 
+	/// <summary>A directive says who may call what it makes, and every method it makes is declared so.</summary>
+	/// <remarks>
+	/// Every one and not the principal pair: the overloads taking a position and a window are
+	/// the same entry, and one left public beside a private pair is what the modifier is for.
+	/// </remarks>
+	[Fact]
+	public void A_directive_declares_its_methods_as_it_says()
+	{
+		var parser = EmittedCode.Compile(Emit("""
+			Outer = '[' & Inner & ']' | Inner
+			Inner = ['0'..'9']+ | '(' & Inner & ')'
+			internal parse Outer
+			private parse Inner
+			find Inner as AllInner
+			"""));
+
+		const BindingFlags Everything = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+
+		var methods = parser.GetType("Grammar")!.GetMethods(Everything);
+
+		MethodInfo[] Named(params string[] names) => [.. methods.Where(method => names.Contains(method.Name))];
+
+		var outer = Named("ParseOuter", "TryParseOuter");
+		var inner = Named("ParseInner", "TryParseInner");
+
+		Assert.True(outer.Length >= 3, "the whole form, a position and a window");
+		Assert.True(inner.Length >= 3, "the whole form, a position and a window");
+		Assert.All(outer, method => Assert.True(method.IsAssembly, method.ToString()));
+		Assert.All(inner, method => Assert.True(method.IsPrivate, method.ToString()));
+		Assert.All(Named("AllInner"), method => Assert.True(method.IsPublic, method.ToString()));
+	}
+
 	const string NestedNames = """
 		using Lexical;
 

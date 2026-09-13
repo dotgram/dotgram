@@ -502,7 +502,7 @@ public sealed class DslEmbeddedSiteAnalysisTests
 			.Select(static item => item.ToString("x2")));
 	}
 
-	static string Support => SupportEmitter.Attributes + """
+	static string Support => SupportEmitter.Attributes + SupportEmitter.EmbeddedAttribute + """
 
 		namespace System.Diagnostics.CodeAnalysis
 		{

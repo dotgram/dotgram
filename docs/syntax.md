@@ -1460,6 +1460,22 @@ Anything else is a consequence rather than a directive. Where a match may sit is
 grammar's business, how much is held is the input's (§6.3), and picking things out of
 a sequence is the caller's.
 
+**Who may call it.** A directive publishes `public` methods unless it says otherwise, and it
+may say so the way C# does:
+
+```dotgram
+parse Lambda as ParseLambda                                     // public
+internal parse Lambda with (Word = AsciiWord) as ParseAsciiLambda // the assembly and its friends
+private parse Assignment as ParseHole                           // the class the grammar is attached to
+```
+
+The modifier is every method the directive makes: the whole form, the one taking a
+position, the one taking a window, the ones over a reader. An entry point left public beside
+a private pair is exactly what it is for. It is a word only in front of `parse` or `find`, so
+a rule may still be called `internal`. A `private` publication in a nested reading
+(`[GramOptions]`, §6.6) is private to that nested class, which is where that reading's own
+constructions call it from.
+
 **What a directive names is an expression, not only a rule.** Wherever the notation
 refers to a rule, any operand may stand — the same bound `recover`'s synchronization
 expression has (§8.2), so a choice needs brackets and the `with` that may follow is the

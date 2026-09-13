@@ -1062,15 +1062,16 @@ namespace DotGram.ExpressionLanguage;
 	// the text, demanding no end (§6.3). `Assignment` and not `Expression`, which only hands
 	// it on and is collapsed into it wherever it is called — so `Lambda`'s machine holds
 	// `Assignment` and never `Expression`, and publishing the latter compiled the whole
-	// expression grammar a second time.
-	parse Assignment as ParseHole
+	// expression grammar a second time. Private: nothing but this grammar reads a hole.
+	private parse Assignment as ParseHole
 
 	// The same language with its identifiers spelled in ASCII, and one line to say so
 	// (§5.1). A binding on a publication clones what the directive reaches and rewrites
 	// every call inside the clones, so every rule that reads a word — a parameter, a
 	// member, a type, a label, a name — reads this one, while `ParseLambda` beside it
 	// goes on reading what Unicode calls a letter.
-	parse Lambda with (Word = AsciiWord) as ParseAsciiLambda
+	// Internal: it is what the tests hold the binding against, and no part of the language.
+	internal parse Lambda with (Word = AsciiWord) as ParseAsciiLambda
 	""", Lexical = true)]
 
 // The same grammar with the constructions run where they are read rather than after

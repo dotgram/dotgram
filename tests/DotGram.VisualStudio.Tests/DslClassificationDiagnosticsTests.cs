@@ -18,7 +18,7 @@ public sealed class DslClassificationDiagnosticsTests
 	[Fact]
 	public async Task MapsInvalidTargetsToTheirExactStringContents()
 	{
-		var source = SupportEmitter.Attributes + """
+		var source = SupportEmitter.Attributes + SupportEmitter.EmbeddedAttribute + """
 
 			[DotGram.Gram("Start = name: Identifier\nIdentifier = ['a'..'z']+")]
 			[DotGram.GramLanguage("test")]
@@ -39,7 +39,7 @@ public sealed class DslClassificationDiagnosticsTests
 	[Fact]
 	public async Task ReportsFileGrammarTargetsInTheHostDocument()
 	{
-		var source = SupportEmitter.Attributes + """
+		var source = SupportEmitter.Attributes + SupportEmitter.EmbeddedAttribute + """
 
 			[DotGram.Gram("Syntax/Filter.gram")]
 			[DotGram.GramLanguage("test")]
@@ -58,7 +58,7 @@ public sealed class DslClassificationDiagnosticsTests
 	[Fact]
 	public async Task IgnoresValidTargetsAndAttributesInOtherDocuments()
 	{
-		var source = SupportEmitter.Attributes + """
+		var source = SupportEmitter.Attributes + SupportEmitter.EmbeddedAttribute + """
 
 			[DotGram.Gram("Start = name: Identifier\nIdentifier = ['a'..'z']+")]
 			[DotGram.GramLanguage("test")]

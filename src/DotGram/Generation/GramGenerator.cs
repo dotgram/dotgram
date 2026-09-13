@@ -46,6 +46,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 		{
 			var source = GramCompiler.EmitMarkerAttributes();
 
+			// What `[Embedded]` on each of them names, shared with every other generator that
+			// asks: the attributes are the assembly's own and are not seen from outside it.
+			postInit.AddEmbeddedAttributeDefinition();
 			postInit.AddSource(source.HintName, source.Text);
 		});
 

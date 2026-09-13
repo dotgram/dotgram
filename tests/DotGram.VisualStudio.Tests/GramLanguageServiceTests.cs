@@ -202,7 +202,10 @@ public sealed class GramLanguageServiceTests
 			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
 			.ToArray();
 
-		Assert.Empty(document.Diagnostics);
+		// Anything but information, which a correct grammar may still be told (GRAM5010).
+		Assert.DoesNotContain(
+			document.Diagnostics,
+			static diagnostic => diagnostic.Severity != DotGram.Grammar.GramSeverity.Info);
 		Assert.Contains(("namespace", GramSyntaxKind.Keyword), classified);
 		Assert.Equal(3, document.Symbols.Count(symbol => symbol.Name == "A"));
 		Assert.Equal(2, document.Symbols.Count(symbol => symbol.Name == "B"));

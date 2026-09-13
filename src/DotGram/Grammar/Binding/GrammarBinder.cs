@@ -438,7 +438,10 @@ public sealed class GrammarBinder
 
 					_publications.Add(new Publication(
 						publish.Kind, published, method, publish.At, ns,
-						ChainResolve(EmptyBindings, ownPublicationBindings), ownPublicationBindings));
+						ChainResolve(EmptyBindings, ownPublicationBindings), ownPublicationBindings)
+					{
+						Access = publish.Access,
+					});
 
 					break;
 			}

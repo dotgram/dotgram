@@ -91,7 +91,7 @@ public sealed class DslClassificationBinderTests
 	{
 		var attributes = string.Join("\n", classifications.Select(item =>
 			$"[DotGram.GramClassify(\"{item.Target}\", DotGram.GramClassification.{item.Role})]"));
-		var source = SupportEmitter.Attributes + $$"""
+		var source = SupportEmitter.Attributes + SupportEmitter.EmbeddedAttribute + $$"""
 
 			[DotGram.Gram({{SymbolDisplay.FormatLiteral(grammar, true)}})]
 			[DotGram.GramLanguage("test")]

@@ -42,6 +42,34 @@ namespace DotGram.Grammar.Emit;
 /// </remarks>
 public static class SupportEmitter
 {
+	/// <summary>
+	/// What <c>[Embedded]</c> on the attributes below names, for a compilation the generator
+	/// does not run over.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Every attribute here is marked with it, and it is what keeps two assemblies' copies
+	/// apart when one can see the other's internals: without it, an assembly that grants
+	/// <c>InternalsVisibleTo</c> to one that also uses .Gram gives that one two
+	/// <c>DotGram.GramAttribute</c>s, and every use of it warns (CS0436). A type marked
+	/// embedded is not seen from another compilation at all.
+	/// </para>
+	/// <para>
+	/// The generator asks Roslyn for the definition (<c>AddEmbeddedAttributeDefinition</c>),
+	/// which every generator in a compilation shares. This copy is the same text, for the
+	/// tests and tools that compile <see cref="Attributes"/> without a generator.
+	/// </para>
+	/// </remarks>
+	public const string EmbeddedAttribute = """
+		namespace Microsoft.CodeAnalysis
+		{
+			internal sealed partial class EmbeddedAttribute : global::System.Attribute
+			{
+			}
+		}
+
+		""";
+
 	/// <summary>Emitted from post-initialization, in every assembly, unconditionally.</summary>
 	/// <remarks>
 	/// Before any compilation analysis, so that <c>[Gram]</c> can be written in source at
@@ -65,6 +93,7 @@ public static class SupportEmitter
 			/// </remarks>
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			[global::Microsoft.CodeAnalysis.Embedded]
 			internal class GramOptionsAttribute : global::System.Attribute
 			{
 				/// <summary>
@@ -199,6 +228,7 @@ public static class SupportEmitter
 			}
 
 			/// <summary>How a generated reader carries what it has read (docs/next.md, the redesign).</summary>
+			[global::Microsoft.CodeAnalysis.Embedded]
 			internal enum GramCarrier
 			{
 				/// <summary>Records on a tape, built into values once the parse is accepted. The default.</summary>
@@ -232,6 +262,7 @@ public static class SupportEmitter
 			/// theme decides how an identifier looks, and this says only that something is
 			/// one.
 			/// </summary>
+			[global::Microsoft.CodeAnalysis.Embedded]
 			internal enum GramClassification
 			{
 				Keyword,
@@ -289,6 +320,7 @@ public static class SupportEmitter
 			/// </remarks>
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			[global::Microsoft.CodeAnalysis.Embedded]
 			internal sealed class GramAttribute : GramOptionsAttribute
 			{
 				/// <summary>The grammar is the <c>.gram</c> file named after the class.</summary>
@@ -323,6 +355,7 @@ public static class SupportEmitter
 			/// </remarks>
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			[global::Microsoft.CodeAnalysis.Embedded]
 			internal sealed class GramSourceAttribute : global::System.Attribute
 			{
 				public GramSourceAttribute(string text) => Text = text;
@@ -332,6 +365,7 @@ public static class SupportEmitter
 
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			[global::Microsoft.CodeAnalysis.Embedded]
 			internal sealed class GramIncludeAttribute : global::System.Attribute
 			{
 				/// <param name="grammar">The class whose grammar is included.</param>
@@ -352,6 +386,7 @@ public static class SupportEmitter
 
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			[global::Microsoft.CodeAnalysis.Embedded]
 			internal sealed class GramLanguageAttribute : global::System.Attribute
 			{
 				/// <param name="id">
@@ -376,6 +411,7 @@ public static class SupportEmitter
 			/// </remarks>
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			[global::Microsoft.CodeAnalysis.Embedded]
 			internal sealed class GramClassifyAttribute : global::System.Attribute
 			{
 				/// <param name="target">
@@ -395,6 +431,7 @@ public static class SupportEmitter
 			/// <summary>Declares a non-executing editor decision for a grammar guard.</summary>
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			[global::Microsoft.CodeAnalysis.Embedded]
 			internal sealed class GramToolingGuardAttribute : global::System.Attribute
 			{
 				public GramToolingGuardAttribute(string expression, bool accepted)
@@ -410,6 +447,7 @@ public static class SupportEmitter
 			/// <summary>Maps an external recognizer to an equivalent grammar rule for editors.</summary>
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			[global::Microsoft.CodeAnalysis.Embedded]
 			internal sealed class GramToolingExternalAttribute : global::System.Attribute
 			{
 				public GramToolingExternalAttribute(string method, string rule)
@@ -425,6 +463,7 @@ public static class SupportEmitter
 			/// <summary>Locates the versioned language descriptor carried by a generated parser.</summary>
 			[global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 			[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+			[global::Microsoft.CodeAnalysis.Embedded]
 			internal sealed class GramLanguageDescriptorAttribute : global::System.Attribute
 			{
 				public GramLanguageDescriptorAttribute(

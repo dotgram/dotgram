@@ -286,6 +286,14 @@ public sealed record Publication(
 	public static string DefaultMethodName(PublishKind kind, string ruleName) =>
 		(kind == PublishKind.Parse ? "Parse" : "Find") + ruleName;
 
+	/// <summary>What every method this publication makes is declared as (§6).</summary>
+	/// <remarks>
+	/// All of them and not the principal pair alone: an overload taking a position or a reader
+	/// is the same entry point, and one left public beside a private pair is what this exists
+	/// to stop.
+	/// </remarks>
+	public PublishAccess Access { get; init; }
+
 	public override string ToString() => $"{Kind} {Rule.Name} -> {MethodName}";
 }
 

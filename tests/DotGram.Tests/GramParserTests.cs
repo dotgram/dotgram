@@ -435,6 +435,36 @@ public sealed class GramParserTests
 		Assert.Empty(result.File.Decls.OfType<Decl.Publish>());
 	}
 
+	[Theory]
+	[InlineData("A = 'a'\nparse A",          PublishAccess.Public)]
+	[InlineData("A = 'a'\npublic parse A",   PublishAccess.Public)]
+	[InlineData("A = 'a'\ninternal parse A", PublishAccess.Internal)]
+	[InlineData("A = 'a'\nprivate find A",   PublishAccess.Private)]
+	[InlineData("A = 'a'\nprivate parse ('a' | 'b') as Ab", PublishAccess.Private)]
+	public void A_directive_says_who_may_call_what_it_makes(string source, PublishAccess expected)
+	{
+		var result = GramParser.Parse(GramLexer.Tokenize(source, null));
+
+		EmittedCode.Quiet(result.Diagnostics);
+		Assert.Equal(expected, Assert.Single(result.File.Decls.OfType<Decl.Publish>()).Access);
+	}
+
+	[Fact]
+	public void And_a_rule_called_internal_is_still_a_rule()
+	{
+		// The three words are modifiers only in front of a directive, as `parse` is a
+		// directive only where no `=` makes it a rule.
+		var result = GramParser.Parse(GramLexer.Tokenize(
+			"internal = 'i'\nprivate = internal & 'p'\npublic = private\nprivate parse public", null));
+
+		EmittedCode.Quiet(result.Diagnostics);
+		Assert.Equal(["internal", "private", "public"], result.File.Decls.OfType<Decl.Rule>().Select(rule => rule.Name));
+
+		var publish = Assert.Single(result.File.Decls.OfType<Decl.Publish>());
+
+		Assert.Equal(("public", PublishAccess.Private), (publish.RuleName, publish.Access));
+	}
+
 	[Fact]
 	public void A_correct_grammar_reports_nothing()
 	{

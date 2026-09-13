@@ -46,4 +46,11 @@
 		<None Include="README.md" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<!-- What the tests read and no caller should: a publication written `internal`. It
+		     costs nothing across the boundary since the attributes the generator writes into
+		     both assemblies are marked embedded, and neither sees the other's. -->
+		<InternalsVisibleTo Include="DotGram.Tests" />
+	</ItemGroup>
+
 </Project>

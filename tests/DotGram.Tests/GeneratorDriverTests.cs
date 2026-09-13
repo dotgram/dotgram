@@ -678,6 +678,15 @@ public sealed class GeneratorDriverTests
 		Assert.Throws<TargetInvocationException>(() => parse.Invoke(null, ["b3ab."]));
 	}
 
+	/// <summary>Whether a generated source is one every compilation gets, rather than a parser.</summary>
+	/// <remarks>
+	/// The attributes are ours, and the definition of <c>[Embedded]</c> they are marked with is
+	/// Roslyn's, asked for beside them and named in its namespace rather than ours.
+	/// </remarks>
+	static bool IsSupport(string hintName) =>
+		hintName.StartsWith("DotGram.", StringComparison.Ordinal) ||
+		hintName.StartsWith("Microsoft.CodeAnalysis.", StringComparison.Ordinal);
+
 	[Fact]
 	public void An_external_recognizer_is_silent_and_the_grammar_lowers()
 	{
@@ -710,7 +719,7 @@ public sealed class GeneratorDriverTests
 
 		var generated = RunGenerator(source).Results
 			.SelectMany(static r => r.GeneratedSources)
-			.Where(static s => !s.HintName.StartsWith("DotGram.", StringComparison.Ordinal))
+			.Where(static s => !IsSupport(s.HintName))
 			.Select(static s => s.SourceText.ToString())
 			.Single();
 
@@ -2349,7 +2358,7 @@ public sealed class GeneratorDriverTests
 
 		var generatedParser = run.Results
 			.SelectMany(result => result.GeneratedSources)
-			.Any(source => !source.HintName.StartsWith("DotGram.", StringComparison.Ordinal));
+			.Any(source => !IsSupport(source.HintName));
 		var reported = diagnostics.Any(diagnostic =>
 			diagnostic.Id.StartsWith("GRAM", StringComparison.Ordinal) ||
 			diagnostic.Id.StartsWith("CS", StringComparison.Ordinal));
@@ -2516,7 +2525,7 @@ public sealed class GeneratorDriverTests
 			"\n\n" + string.Join(
 				"\n",
 				run.Results.SelectMany(static r => r.GeneratedSources)
-					.Where(static s => !s.HintName.StartsWith("DotGram.", StringComparison.Ordinal))
+					.Where(static s => !IsSupport(s.HintName))
 					.Select(static s => s.SourceText.ToString())));
 
 		return Assembly.Load(stream.ToArray());

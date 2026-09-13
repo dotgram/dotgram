@@ -72,6 +72,8 @@ static class EmittedCode
 			[
 				CSharpSyntaxTree.ParseText(declaration, Floor),
 				CSharpSyntaxTree.ParseText(GramCompiler.EmitMarkerAttributes().Text, Floor),
+				// What the generator asks Roslyn for beside them, and a harness has to bring.
+				CSharpSyntaxTree.ParseText(SupportEmitter.EmbeddedAttribute, Floor),
 				CSharpSyntaxTree.ParseText(source, Floor),
 			],
 			References,

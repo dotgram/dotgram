@@ -126,10 +126,12 @@ namespace DotGram.Examples.Languages;
 	// What a directive names is an expression, not only a rule (§6) — one operand, so
 	// the `with` that may follow is the directive's own rather than the operand's, and
 	// the type is the third part a rule has, in the place that reads as the method's.
+	// Who may call the methods it makes comes first, and public is what saying nothing means.
 	Publication : @GramDecl
-		= kind: ("parse" | "find") & target: QuantifiedCore & With?
+		= access: ("public" | "internal" | "private")?
+		& kind: ("parse" | "find") & target: QuantifiedCore & With?
 		& ("as" & alias: Identifier & (':' & type: Type)?)?
-		=> @(new GramPublication(kind, target, alias, type))
+		=> @(new GramPublication(kind, target, alias, type, access))
 
 	// `?` after the name says the rule may give back (§4); over characters, where this
 	// grammar reads, every rule does, and the mark is kept for what it says.
@@ -304,7 +306,8 @@ public partial class GramGrammar
 
 	public sealed record GramNamespace(string Name, GramUsing[] Usings, GramDecl[] Declarations) : GramDecl;
 
-	public sealed record GramPublication(string Kind, GramExpr Target, string? Alias, string? Type) : GramDecl;
+	public sealed record GramPublication(
+		string Kind, GramExpr Target, string? Alias, string? Type, string? Access = null) : GramDecl;
 
 	public sealed record GramRule(
 		string Name, string? Type, GramExpr Body, bool GivesBack, string? OnFail = null) : GramDecl;

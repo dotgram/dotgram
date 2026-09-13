@@ -129,7 +129,7 @@ public static partial class CSharpEmitter
 	[
 		"static int ", "static bool ", "static void ", "static string ",
 		"internal static int ", "internal static bool ", "internal static void ",
-		"public static ",
+		"public static ", "private static ",
 		// The reader's members, and the reader's own constructor.
 		"public int ", "internal ",
 		"int ", "bool ", "void ",
@@ -1170,7 +1170,7 @@ public static partial class CSharpEmitter
 		file.Line($"/// The input is not <c>{name}</c>. <c>Try{method}</c> answers instead.");
 		file.Line("/// </exception>");
 
-		using (file.Block($"public static {value} {method}(string input{takes})"))
+		using (file.Block($"{AccessOf(publication)} static {value} {method}(string input{takes})"))
 		{
 			file.Line($"var match = Try{method}(input{gives});");
 			file.Line();
@@ -1258,7 +1258,7 @@ public static partial class CSharpEmitter
 			// whole form is emitted exactly as it always was.
 			var halt = positional ? "halted" : "at";
 
-			using (file.Block($"public static {match} Try{method}({parameters}{takes})"))
+			using (file.Block($"{AccessOf(publication)} static {match} Try{method}({parameters}{takes})"))
 			{
 				// A window is refused before anything is read where it does not lie in the text.
 				if (windowed)
@@ -1749,7 +1749,7 @@ public static partial class CSharpEmitter
 		file.Line($"/// <summary>Every occurrence of <c>{name}</c>, in order, found as it is asked for.</summary>");
 
 		using (file.Block(
-			$"public static global::System.Collections.Generic.IEnumerable<{match}> {method}(string input{takes})"))
+			$"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{match}> {method}(string input{takes})"))
 		{
 			using (file.Block("for (var start = 0; start <= input.Length; )"))
 			{
@@ -2619,6 +2619,15 @@ public static partial class CSharpEmitter
 	internal static string MethodOf(
 		RecognitionGraph graph, RuleSymbol rule, RuleSymbol? owner, string tag) =>
 		MethodOf(rule) + (rule.Equals(owner) || !IsPublished(graph, rule) ? "" : tag);
+
+	/// <summary>What a publication's methods are declared as: what its directive said (§6).</summary>
+	internal static string AccessOf(Publication publication) =>
+		publication.Access switch
+		{
+			PublishAccess.Internal => "internal",
+			PublishAccess.Private  => "private",
+			_                      => "public",
+		};
 
 	/// <summary>Whether a rule is published, and so owns the plain name of its wrapper.</summary>
 	static bool IsPublished(RecognitionGraph graph, RuleSymbol rule)
