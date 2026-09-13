@@ -3839,23 +3839,84 @@ public static class Syntax
 		return Pivoted(source, pivot);
 	}
 
-	/// <summary>A source and the join hanging off it, where one was written.</summary>
+	/// <summary>A source and the joins hanging off it, where any were written.</summary>
 	/// <remarks>
-	/// The right side of a join may be a join itself with no brackets saying so — <c>t1 JOIN
-	/// t10 LEFT JOIN t11 ON … ON …</c> — and the tail is read without its left side, which is
-	/// this source.
+	/// The right side of a join may be joins itself with no brackets saying so — <c>t1 JOIN
+	/// t10 LEFT JOIN t11 ON … ON …</c>, <c>t1 JOIN t2 CROSS JOIN t3 ON …</c> — and each tail is
+	/// read without its left side, which is everything before it. A tail a pivot was applied to
+	/// takes its left side under the pivot.
 	/// </remarks>
-	public static TableReference Hanging(TableReference source, TableReference? tail) =>
-		tail is TableReference.Joined joined ? joined with { Left = source } : source;
+	public static TableReference Hanging(TableReference source, TableReference[]? tails)
+	{
+		foreach (var tail in tails ?? TableReference.None)
+			source = Hung(source, tail);
 
-	/// <summary>A source and the pivot applied to it, where one was written.</summary>
+		return source;
+
+		static TableReference Hung(TableReference source, TableReference tail) =>
+			tail switch
+			{
+				TableReference.Joined joined  => joined with { Left = source },
+				TableReference.Pivot turned   => turned with { Of = Hung(source, turned.Of) },
+				TableReference.Unpivot turned => turned with { Of = Hung(source, turned.Of) },
+				_                             => source,
+			};
+	}
+
+	/// <summary>A source and the pivots applied to it, where any were written.</summary>
+	/// <remarks>The source goes to the first of them, which is the innermost (<see cref="Chained"/>).</remarks>
 	public static TableReference Pivoted(TableReference source, TableReference? pivot) =>
 		pivot switch
 		{
-			TableReference.Pivot turned   => turned with { Of = source },
-			TableReference.Unpivot turned => turned with { Of = source },
+			TableReference.Pivot turned   => turned with { Of = turned.Of is null ? source : Pivoted(source, turned.Of) },
+			TableReference.Unpivot turned => turned with { Of = turned.Of is null ? source : Pivoted(source, turned.Of) },
 			_                             => source,
 		};
+
+	/// <summary>
+	/// Pivots one after another, each applied to the one before it: <c>t PIVOT (…) p UNPIVOT (…)
+	/// q</c> is <c>q</c> of <c>p</c>, and <c>p</c>'s source is left for <see cref="Pivoted"/>.
+	/// </summary>
+	public static TableReference Chained(TableReference first, TableReference[]? rest)
+	{
+		foreach (var next in rest ?? TableReference.None)
+		{
+			first = next switch
+			{
+				TableReference.Pivot turned   => turned with { Of = first },
+				TableReference.Unpivot turned => turned with { Of = first },
+				_                             => first,
+			};
+		}
+
+		return first;
+	}
+
+	/// <summary>Whether what stands in a source's brackets may stand there: a join, and not a source alone.</summary>
+	/// <remarks>
+	/// <c>(t1 JOIN t2 ON …)</c>, <c>(t1 CROSS JOIN t2)</c>, <c>((…))</c> and <c>({ OJ … })</c> are
+	/// read. A table, a function, a rowset or a derived table alone in brackets is <c>Msg 102</c>,
+	/// and so is a join a pivot ends — <c>(t1 CROSS JOIN t2 PIVOT (…) p)</c>, <c>(t1 JOIN t2 ON …
+	/// PIVOT (…) p)</c> — where a pivot before an <c>ON</c> inside them is read. A table variable
+	/// is the exception, <c>(@t)</c> being read.
+	/// </remarks>
+	public static bool Bracketable(TableReference? inner) =>
+		inner switch
+		{
+			TableReference.Joined { Kind: SqlJoin.Cross or SqlJoin.CrossApply or SqlJoin.OuterApply, Right: TableReference.Pivot or TableReference.Unpivot } => false,
+			TableReference.Joined or TableReference.Parenthesized or TableReference.OdbcJoin => true,
+			TableReference.Named { Table: var name } => name.StartsWith("@", StringComparison.Ordinal),
+			_ => false,
+		};
+
+	/// <summary>The hints before an old plan, the plan, and what followed it, as one hint.</summary>
+	/// <remarks>
+	/// After <c>CHECKCONSTRAINTS PLAN</c>, <c>SHRINKDB PLAN</c> or <c>ALTERCOLUMN PLAN</c> and a comma
+	/// the engine reads anything: <c>OPTION (CHECKCONSTRAINTS PLAN, OPTIMIZE CORRELATED UNION ALL)</c>,
+	/// which it refuses alone, and <c>OPTION (CHECKCONSTRAINTS PLAN, foo bar baz)</c> as well.
+	/// </remarks>
+	public static Clause[] LeftOpen(Clause[]? lead, Clause plan, string? left) =>
+		[.. lead ?? Clause.None, plan, new Clause.Hint(Spaced(left ?? ""))];
 
 	/// <summary>A call and what was written after it, where anything was.</summary>
 	public static Expression Called(Expression call, Expression.WindowFunction? tail) =>
@@ -4663,7 +4724,7 @@ public static class Syntax
 	}
 
 	/// <summary>The types a dotted name may put <c>VARYING</c> after.</summary>
-	static readonly string[] Varyingly = ["CHAR", "CHARACTER", "NCHAR", "BINARY"];
+	static readonly string[] Varyingly = ["CHAR", "CHARACTER", "NCHAR", "NCHARACTER", "BINARY"];
 
 	/// <summary>The types a dotted name may put <c>NATIONAL</c> in front of.</summary>
 	static readonly string[] Nationally = ["CHAR", "CHARACTER", "TEXT"];

@@ -21560,3 +21560,39 @@ refusals and 130 readings.
 At 170: 7,405 both, 5 work, 0 defects, 276 another product's, 631 neither; at 150: 6,618 both, 5,
 0, 236 and 529. `--split` 785, the round trip 100% of 7,727, the map 7,994 both and 0 defects,
 `--levels` 145 of 145 — unchanged. The suite is 14,310 rows (from 14,120).
+
+## The work list: an old plan's open hints, pivots after a join, a source in brackets, ncharacter
+
+`--engine` had five statements the engine reads and this did not: two `OPTION (CHECKCONSTRAINTS
+PLAN, OPTIMIZE CORRELATED UNION ALL)`, two remote joins with a pivot after them, and the corpus's
+table of every scalar type. Asked in five probes, 331 rows.
+
+**An old plan's hints are open.** `OPTIMIZE CORRELATED UNION ALL` is refused alone, and after
+`CHECKCONSTRAINTS PLAN`, `SHRINKDB PLAN` or `ALTERCOLUMN PLAN` and a comma the engine reads anything
+at all — `foo bar baz`, `1 2 3`, `select`, nothing — wherever a statement takes `OPTION`, and with
+any hints before the plan. Not after `USEPLAN 1` or `KEEP UNION`, and not without the comma. What is
+read after it is words and marks in balanced brackets, kept as one hint. The engine's own anything
+is to the end of the batch — `(CHECKCONSTRAINTS PLAN, x) SELECT 1)` and an unclosed bracket are read,
+and so is `FOR XML` after the list — which this does not follow, as with a database audit
+specification's.
+
+**A pivot follows a join.** The published syntax applies `PIVOT` and `UNPIVOT` to any table source,
+and the grammar applied them to a primary: the engine applies them after a qualified join's
+condition, after a join in brackets or braces, after a variable, and one after another — `t PIVOT (…)
+p UNPIVOT (…) q` — after all of these. **The right of a join is joins**: `t1 JOIN t2 CROSS JOIN t3 ON
+…`, with `CROSS APPLY` and `OUTER APPLY` as well, and a qualified join's pivots before the outer `ON`.
+
+**A source in brackets is a join.** `(t1)`, `(dbo.f(1))`, `((select 1 a) d)`, `(openrowset(…) x)`,
+`(t1 WITH (NOLOCK))` and `(t1 PIVOT (…) p)` are `Msg 102`, where the grammar read them, and so are a
+join its pivot ends — `(t1 CROSS JOIN t2 PIVOT (…) p)`, `(t1 JOIN t2 ON … PIVOT (…) p)`, and the same
+in `{ OJ … }` — and a sample, hints or a name after the brackets (`156`, `319`, `102`). A pivot inside
+before an `ON` is read, and so is `(@t)`. A table variable in brackets is looser than that — `(@t)
+x`, `(@t, t2)`, `(@t PIVOT (…) p)` are read — and is not followed.
+
+**`ncharacter varying`** is a type nobody declared, with `VARYING` after it as `nchar`'s: read bare,
+through a schema, quoted and bracketed, where `foo varying` and `nvarchar varying` are `Msg 102`; and
+`ncharacter(max)` is `Msg 156`, as a fixed length's is.
+
+At 170: 7,410 both, 0 work, 0 defects, 276 another product's, 631 neither; at 150: 6,623 both, 0, 0,
+236 and 529. `--split` 788 cut the same (from 785), the round trip 100% of 7,732 (from 7,727), the
+map 7,994 both and 0 defects, `--levels` 145 of 145. The suite is 14,641 rows (from 14,310).

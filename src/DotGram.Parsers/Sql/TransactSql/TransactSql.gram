@@ -1046,23 +1046,33 @@ TSqlTableReference : @TableReference
 	| left: TSqlTableReference & "OUTER"i & "APPLY"i & right: TablePrimary
 		=> @(new TableReference.Joined(SqlJoin.OuterApply, false, false, left, right))
 	| left: TSqlTableReference & kind: TSqlJoinType? & hint: JoinHint? & "JOIN"i & right: JoinedRight
-	  & "ON"i & on: SearchCondition
-		=> @(TableReference.Joining(kind, null, left, right, on, null, hint))
+	  & "ON"i & on: SearchCondition & pivot: PivotSuffix?
+		=> @(Syntax.Pivoted(TableReference.Joining(kind, null, left, right, on, null, hint), pivot))
 	| t: TablePrimary => @(t)
 
-// What may stand on the right of a join: a primary, and a join of its own hanging off it —
-// `JOIN t10 LEFT JOIN t11 ON t10.c1 > t11.c1` — whose condition is read here and belongs to
-// it, leaving the outer `ON` to the join outside.
+// What may stand on the right of a join: a primary, and the joins hanging off it — `JOIN t10
+// LEFT JOIN t11 ON t10.c1 > t11.c1`, `JOIN t2 CROSS JOIN t3`, `JOIN t2 CROSS APPLY f(t2.c) x`,
+// one after another — whose conditions are read here and belong to them, leaving the outer
+// `ON` to the join outside: `t1 JOIN t2 CROSS JOIN t3 ON …` is read, and without its `ON` it is
+// `Msg 102`.
 //
-// The primary is read once and the join is what may follow it (§4.5), which is what keeps the
-// two alternatives from reading it twice. The tail is built with its left side null and the
+// The primary is read once and the joins are what may follow it (§4.5), which is what keeps the
+// two alternatives from reading it twice. Each tail is built with its left side null and the
 // source put in afterwards, the way a pivot's suffix is.
 JoinedRight : @TableReference
-	= t: TablePrimary & tail: JoinedTail? => @(Syntax.Hanging(t, tail))
+	= t: TablePrimary & tails: JoinedTail* => @(Syntax.Hanging(t, tails))
 
+// A qualified join's pivots follow its condition, as they do outside.
 JoinedTail : @TableReference
 	= kind: TSqlJoinType? & hint: JoinHint? & "JOIN"i & right: JoinedRight & "ON"i & on: SearchCondition
-		=> @(TableReference.Joining(kind, null, null!, right, on, null, hint))
+	  & pivot: PivotSuffix?
+		=> @(Syntax.Pivoted(TableReference.Joining(kind, null, null!, right, on, null, hint), pivot))
+	| "CROSS"i & "JOIN"i & right: TablePrimary
+		=> @(new TableReference.Joined(SqlJoin.Cross, false, false, null!, right))
+	| "CROSS"i & "APPLY"i & right: TablePrimary
+		=> @(new TableReference.Joined(SqlJoin.CrossApply, false, false, null!, right))
+	| "OUTER"i & "APPLY"i & right: TablePrimary
+		=> @(new TableReference.Joined(SqlJoin.OuterApply, false, false, null!, right))
 
 TSqlJoinType : @string = t: JoinType => @(t)
 
@@ -1102,13 +1112,20 @@ TSqlTablePrimary : @TableReference
 			   && (close is null || (alias is not null && hints is null)))
 	  & pivot: PivotSuffix?
 		=> @(Syntax.Sourced(name, version, path is not null, call, args, alias, columns, sample, hints ?? close, pivot))
-	| t: TSql.Variable & s: VariableSource => @(Syntax.OfVariable(t, s))
+	| t: TSql.Variable & s: VariableSource & pivot: PivotSuffix? => @(Syntax.Pivoted(Syntax.OfVariable(t, s), pivot))
 	| derived: TableSubquery & path: GraphPath? & "AS"i? & alias: CorrelationName
 	  & ('(' & columns: ColumnList & ')')? & pivot: PivotSuffix?
 		=> @(Syntax.Pivoted(new TableReference.Derived(derived, path is not null, alias, columns), pivot))
-	| '(' & j: TableReference & ')' & TableSample? & TableHints?
-		=> @(new TableReference.Parenthesized(j))
-	| '{' & "OJ"i & j: TableReference & '}' => @(new TableReference.OdbcJoin(j))
+	// A join in brackets, and never one source alone, nor a join its pivot ends
+	// (`Syntax.Bracketable`). Pivots may follow the brackets; a sample or hints may not (`Msg
+	// 156`, `Msg 319`), and neither may a name (`Msg 102`).
+	| '(' & j: TableReference & ')' & when @(Syntax.Bracketable(j)) & pivot: PivotSuffix?
+		=> @(Syntax.Pivoted(new TableReference.Parenthesized(j), pivot))
+	// ODBC's braces hold a join a pivot does not end — `{ OJ t1 LEFT JOIN t2 ON … PIVOT (…) p }`
+	// is `Msg 102` — and pivots may follow them.
+	| '{' & "OJ"i & j: TableReference & when @(j is not (TableReference.Pivot or TableReference.Unpivot)) & '}'
+	  & pivot: PivotSuffix?
+		=> @(Syntax.Pivoted(new TableReference.OdbcJoin(j), pivot))
 
 // What a variable may be as a table: the table variable itself, or a table-valued method
 // on a variable of a user-defined type — `FROM @v.f(1) AS t(c)`. Left-factored because
@@ -1124,14 +1141,17 @@ VariableSource : @TableReference
 
 // The published syntax makes a pivoted table a source of its own — `table_source PIVOT
 // (…) [AS] alias` — which is left recursion, and §4.3 folds that only where the rule
-// recurses on itself. So it is written as what follows a primary instead, which reads
-// the same language wherever a pivot is applied to one source rather than to a join.
+// recurses on itself. So it is written as what follows a source instead: a primary, a
+// qualified join's condition, a join in brackets. The engine applies one pivot to another,
+// `t PIVOT (…) p UNPIVOT (…) q`, after every one of them, so a suffix is as many as were written.
 //
 // The alias is required and not optional, which the syntax says and the examples did
 // not: `PIVOT (…)` with nothing after it is not a table source.
 // Built with the source it is applied to left null, the way a predicate tail is: the
 // source is read once and the pivot is what may follow it.
-PivotSuffix : @TableReference = p: Pivot => @(p) | u: Unpivot => @(u)
+PivotSuffix : @TableReference = first: PivotOne & rest: PivotOne* => @(Syntax.Chained(first, rest))
+
+PivotOne : @TableReference = p: Pivot => @(p) | u: Unpivot => @(u)
 
 Pivot : @TableReference
 	= "PIVOT"i & '(' & aggregate: ValueExpression & "FOR"i & column: QualifiedName
@@ -1248,6 +1268,20 @@ IndexValue = Identifier | Sql92.Lexical.UnsignedNumericLiteral
 QueryHints : @Clause[]
 	= "OPTION"i & '(' & first: QueryHint & (',' & rest: QueryHint)* & ')'
 		=> @(Syntax.Listed(first, rest))
+	| "OPTION"i & '(' & lead: LeadHint* & plan: PlanHint & ',' & left: HintLeft & ')'
+		=> @(Syntax.LeftOpen(lead, plan, left))
+
+// After one of the three old plans and a comma the engine reads anything at all:
+// `CHECKCONSTRAINTS PLAN, OPTIMIZE CORRELATED UNION ALL`, which it refuses alone, `SHRINKDB
+// PLAN, foo bar`, `ALTERCOLUMN PLAN, 1 2 3`, and nothing. Anything means to the end of the
+// batch — `(CHECKCONSTRAINTS PLAN, x) SELECT 1)` and an unclosed bracket are read — which this
+// does not follow: what is read here is words and marks in balanced brackets up to the one that
+// closes the list, kept as one hint.
+LeadHint : @Clause = ?!(PlanHint & ',') & h: QueryHint & ',' => @(h)
+
+PlanHint : @Clause = t: (("CHECKCONSTRAINTS"i | "SHRINKDB"i | "ALTERCOLUMN"i) & "PLAN"i) => @(new Clause.Hint(t))
+
+HintLeft = ('(' & HintLeft & ')' | ?!('(' | ')') & AtomicToken)*
 
 // Kept as the words it was written as, which is what a hint is: see `Clause.Hint`.
 QueryHint : @Clause = t: QueryHintSyntax => @(new Clause.Hint(t))
@@ -1279,7 +1313,7 @@ QueryHintSyntax
 
 	// Five the block does not name and the engine reads, all from the corpus of SQL Server
 	// 2005's days; two more from the same file, `OPTIMIZE CORRELATED UNION ALL` and `BYPASS
-	// OPTIMIZER_QUEUE`, it refuses.
+	// OPTIMIZER_QUEUE`, it refuses — the first of them alone, and not after a plan (`QueryHints`).
 	| ("CHECKCONSTRAINTS"i | "SHRINKDB"i | "ALTERCOLUMN"i) & "PLAN"i
 	| "USEPLAN"i & Sql92.Lexical.Digits
 	| "KEEP"i & "UNION"i
