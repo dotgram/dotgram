@@ -259,6 +259,7 @@ sealed class GramBufferAnalysis
 	CancellationTokenSource? _analysisCancellation;
 	StandaloneGrammarContext? _inheritance;
 	bool           _inheritanceStarted;
+	bool           _inheritancePending;
 
 	GramBufferAnalysis(ITextBuffer buffer)
 	{
@@ -279,6 +280,7 @@ sealed class GramBufferAnalysis
 				return;
 
 			_inheritanceStarted = true;
+			_inheritancePending = true;
 		}
 
 		_ = LoadInheritanceAsync(workspace, filePath);
@@ -388,12 +390,10 @@ sealed class GramBufferAnalysis
 				await Task.Delay(500).ConfigureAwait(false);
 		}
 
-		if (inherited is null)
-			return;
-
 		lock (_gate)
 		{
 			_inheritance    = inherited;
+			_inheritancePending = false;
 			_scheduledSnapshot = null;
 		}
 
@@ -403,10 +403,12 @@ sealed class GramBufferAnalysis
 	static bool IsIdentifier(char character) =>
 		character == '_' || char.IsLetterOrDigit(character);
 
-	static GramDocument Project(GramDocument document, int length) =>
+	static GramDocument Project(GramDocument document, int length, bool suppressUnresolved) =>
 		new(
 			document.Classifications.Where(item => item.Position < length).ToArray(),
-			document.Diagnostics.Where(item => item.Position < length).ToArray(),
+			document.Diagnostics.Where(item =>
+				item.Position < length &&
+				(!suppressUnresolved || item.Id is not "GRAM3002" and not "GRAM3003")).ToArray(),
 			document.Symbols.Where(item => item.Position < length).ToArray(),
 			document.Braces.Where(item => item.OpenPosition < length && item.ClosePosition < length).ToArray(),
 			document.FoldingRanges.Where(item => item.Position < length).ToArray(),
@@ -460,11 +462,16 @@ sealed class GramBufferAnalysis
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 				string tail;
+				bool suppressUnresolved;
 				lock (_gate)
+				{
 					tail = _inheritance?.AnalysisTail ?? "";
+					suppressUnresolved = _inheritancePending;
+				}
 
 				var own = snapshot.GetText();
-				var document = Project(GramLanguageService.Analyze(own + tail), own.Length);
+				var document = Project(
+					GramLanguageService.Analyze(own + tail), own.Length, suppressUnresolved);
 
 				lock (_gate)
 				{
