@@ -5193,7 +5193,7 @@ FullTextStatement : @Statement
 
 	| "CREATE"i & "FULLTEXT"i & "CATALOG"i & name: Identifier
 	  & tail: (("ON"i & "FILEGROUP"i & Identifier)? & ("IN"i & "PATH"i & ValueExpression)?
-			   & ("WITH"i & OptionList)? & AsDefault? & ("AUTHORIZATION"i & QualifiedName)?)
+			   & CatalogWith? & AsDefault? & ("AUTHORIZATION"i & QualifiedName)?)
 		=> @(Statement.Defined("FULLTEXT CATALOG", name, Syntax.Tail(tail)))
 	| "ALTER"i & "FULLTEXT"i & "CATALOG"i & name: Identifier & tail: FullTextCatalogAction
 		=> @(Statement.Defined("ALTER FULLTEXT CATALOG", name, Syntax.Tail(tail)))
@@ -5210,9 +5210,30 @@ FullTextStatement : @Statement
 	| "ALTER"i & "SEARCH"i & "PROPERTY"i & "LIST"i & name: Identifier & tail: PropertyListAction
 		=> @(Statement.Defined("ALTER SEARCH PROPERTY LIST", name, Syntax.Tail(tail)))
 
-// Bracketed or not, which the published block writes one way and the corpus both.
-FullTextWith = "WITH"i & '(' & OptionList & ')'
-			 | "WITH"i & OptionList
+// Bracketed or not, which the published block writes one way and the corpus both — and the engine
+// reads both. Each option once and in any order (`Msg 102`), the equals sign wanted or not: how
+// changes are tracked, then perhaps `NO POPULATION` right after it, which stands nowhere else;
+// the stoplist, `OFF`, `SYSTEM` or one by a name of one part; the search property list, `OFF`
+// or one by name. A tracking of `AUTO` with no population is read and objected to (7663).
+FullTextWith = "WITH"i & '(' & FullTextOptions & ')'
+			 | "WITH"i & FullTextOptions
+
+FullTextOptions : @string[]
+	= first: FullTextOption & (',' & rest: FullTextOption)*
+	  & when @(Syntax.Once("CHANGE_TRACKING", first, rest) && Syntax.Once("STOPLIST", first, rest) && Syntax.Once("SEARCH", first, rest))
+		=> @(Syntax.Named(first, rest))
+
+FullTextOption : @string
+	= t: ("CHANGE_TRACKING"i & '='? & FullTextTracking & (',' & "NO"i & "POPULATION"i)?) => @(t)
+	| t: ("STOPLIST"i & '='? & FullTextStopList)                                         => @(t)
+	| t: ("SEARCH"i & "PROPERTY"i & "LIST"i & '='? & FullTextPropertyList)              => @(t)
+
+FullTextTracking     = "MANUAL"i | "AUTO"i | "OFF"i
+FullTextStopList     = "OFF"i | "SYSTEM"i | Identifier & ?!'.'
+FullTextPropertyList = "OFF"i | Identifier & ?!'.'
+
+// A catalog is told whether it minds accents, and nothing else, once and not in brackets.
+CatalogWith = "WITH"i & "ACCENT_SENSITIVITY"i & '=' & OnOff
 
 AsDefault = "AS"i & "DEFAULT"i
 
@@ -5230,26 +5251,35 @@ FullTextPlace = "FILEGROUP"i & Identifier | Identifier
 FullTextAction
 	= "ENABLE"i
 	| "DISABLE"i
-	| "SET"i & OptionList & NoPopulation?
+	// One setting at a time; a tracking changed says nothing about population (`Msg 319`).
+	| "SET"i & "CHANGE_TRACKING"i & '='? & FullTextTracking
+	| "SET"i & "STOPLIST"i & '='? & FullTextStopList & NoPopulation?
+	| "SET"i & "SEARCH"i & "PROPERTY"i & "LIST"i & '='? & FullTextPropertyList & NoPopulation?
 	| "ADD"i & '(' & FullTextColumn & (',' & FullTextColumn)* & ')' & NoPopulation?
 	| "ALTER"i & "COLUMN"i & Identifier & AddOrDrop & "STATISTICAL_SEMANTICS"i & NoPopulation?
 	| "DROP"i & '(' & ColumnList & ')' & NoPopulation?
-	| "START"i & word & "POPULATION"i
+	| "START"i & ("FULL"i | "INCREMENTAL"i | "UPDATE"i) & "POPULATION"i
 	| PopulationWord & "POPULATION"i
 
 NoPopulation   = "WITH"i & "NO"i & "POPULATION"i
 PopulationWord = "STOP"i | "PAUSE"i | "RESUME"i
 
-FullTextCatalogAction = "REBUILD"i & ("WITH"i & OptionList)?
+FullTextCatalogAction = "REBUILD"i & CatalogWith?
 					  | "REORGANIZE"i
 					  | AsDefault
 
+// A stoplist copied from the system's, or from another by a name of two parts at most:
+// `FROM db.dbo.o` is `Msg 102`.
 StopListFrom = "FROM"i & "SYSTEM"i & "STOPLIST"i
-			 | "FROM"i & QualifiedName
+			 | "FROM"i & Identifier & ('.' & Identifier)?
 
-StopListAction = "ADD"i & ValueExpression & "LANGUAGE"i & FullTextLanguage
-			   | "DROP"i & "ALL"i & ("LANGUAGE"i & FullTextLanguage)?
-			   | "DROP"i & ValueExpression & "LANGUAGE"i & FullTextLanguage
+// A stop word is a string, national or not, and its language a string, a number, a binary string
+// or a name: a word unquoted, a variable, and an expression for either are `Msg 102`.
+StopListAction = "ADD"i & Quoted & "LANGUAGE"i & StopListLanguage
+			   | "DROP"i & "ALL"i & ("LANGUAGE"i & StopListLanguage)?
+			   | "DROP"i & Quoted & "LANGUAGE"i & StopListLanguage
+
+StopListLanguage = Quoted | Sql92.Lexical.UnsignedNumericLiteral | TSql.BinaryLiteral | Identifier
 
 // A property added says its set's GUID and its integer id, in that order and in brackets, and
 // may describe itself after them; the engine refuses any other order, either without the

@@ -21339,3 +21339,34 @@ At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 15
 226 and 539; `--split` 780, the round trip 100% of 7,717, the map 7,994 both and 0 defects,
 `--levels` 145 of 145 — unchanged. The suite is 13,102 rows (from 12,976): 95 refusals and 31
 readings.
+
+## Full-text options: a catalog's, an index's, a stoplist's
+
+The full-text statements read their options as any list, a `START` as any word, a stop word and
+its language as any expression. Asked 240 lines.
+
+**A catalog**, made or rebuilt, is told `ACCENT_SENSITIVITY = ON | OFF` and nothing else, once and
+without brackets: `WITH ACCENT_SENSITIVITY ON` is 156, `'ON'`, `1`, a second one and any other
+name 102.
+
+**An index** is told its options bracketed or not — the engine reads both, as the corpus writes
+both — each once and in any order, the equals sign wanted or not: `CHANGE_TRACKING` `MANUAL`,
+`AUTO` or `OFF`; `STOPLIST` `OFF`, `SYSTEM` or a name of one part; `SEARCH PROPERTY LIST` `OFF` or a
+name of one part. `NO POPULATION` stands directly after a tracking and nowhere else — alone, first
+or twice it is 102 — and after `AUTO` it is read and objected to (`Msg 7663`). A string or a dotted
+name for either list is 102, `ON` 156, `FILLFACTOR` 156.
+
+**Altered**, an index is set one thing: a tracking, which says nothing about population (`… OFF WITH
+NO POPULATION` is `Msg 319`), or a stoplist or a property list, which may. Two at once are 102.
+`START` begins a `FULL`, `INCREMENTAL` or `UPDATE` population and no other.
+
+**A stoplist's word** is a string, national or not, and its language a string, a number, a binary
+string or a name — `LANGUAGE Spanish` and `LANGUAGE 0x0409` are read — never a variable or an
+expression, and the word never unquoted. A stoplist is copied from one named in two parts at
+most.
+
+At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 150: 6,616 both,
+226 and 539; the round trip 100% of 7,717, the map 7,994 both and 0 defects, `--levels` 145 of
+145 — unchanged. `--split` reads 783 files whole and cut the same (from 780), none cut
+differently: three files whose full-text statements the open lists had run on into the next one.
+The suite is 13,337 rows (from 13,102): 136 refusals and 99 readings.
