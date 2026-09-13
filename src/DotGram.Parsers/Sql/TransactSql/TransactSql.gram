@@ -399,13 +399,30 @@ OdbcLiteralKind : @string = t: ("TS"i | "D"i | "T"i | "GUID"i) => @(t)
 // Built as the escape itself and not as what is inside it: whether the brackets of a call
 // were written is a fact about this rule's two alternatives, and the rule above has no way
 // to ask which of them answered.
+// `{fn CONVERT (value, type)}` names its type as ODBC does, and the engine has a list: the
+// twenty-seven below read, and `SQL_INTERVAL_YEAR`, `SQL_VARIANT`, `SQL_XML`, `SQL_SS_TIME2`
+// and `INT` are `Msg 155`, "not a recognized CONVERT option" — the engine having read the
+// escape and disagreed about the name — where `[SQL_INTEGER]` and `'SQL_INTEGER'` are 102, and
+// so are one argument and three. `sql_integer` in any case. Measured, since the corpus wrote
+// `sql_int` and was read under the mirage.
 OdbcFunction : @Expression.OdbcEscape
-	= name: OdbcName & '(' & args: Arguments? & ')'
+	= name: "CONVERT"i & '(' & v: ValueExpression & ',' & t: OdbcType & ')'
+		=> @(new Expression.OdbcEscape(
+				 "", new Expression.RoutineInvocation(name, new Expression[] { v, new Expression.ColumnReference(t) }), true))
+	| ?!("CONVERT"i & '(') & name: OdbcName & '(' & args: Arguments? & ')'
 		=> @(new Expression.OdbcEscape(
 				 "", new Expression.RoutineInvocation(name, args ?? Expression.None), true))
 	| v: ValueExpression => @(new Expression.OdbcEscape("", v))
 
 OdbcName = word
+
+OdbcType : @string
+	= t: ("SQL_BIGINT"i | "SQL_BINARY"i | "SQL_BIT"i | "SQL_CHAR"i | "SQL_DECIMAL"i | "SQL_DOUBLE"i
+		  | "SQL_FLOAT"i | "SQL_GUID"i | "SQL_INTEGER"i | "SQL_LONGVARBINARY"i | "SQL_LONGVARCHAR"i
+		  | "SQL_NUMERIC"i | "SQL_REAL"i | "SQL_SMALLINT"i | "SQL_DATE"i | "SQL_TIME"i | "SQL_TIMESTAMP"i
+		  | "SQL_TYPE_DATE"i | "SQL_TYPE_TIME"i | "SQL_TYPE_TIMESTAMP"i | "SQL_TINYINT"i | "SQL_VARBINARY"i
+		  | "SQL_VARCHAR"i | "SQL_WCHAR"i | "SQL_WLONGVARCHAR"i | "SQL_WVARCHAR"i)
+		=> @(t)
 
 // A property or a method reached through a name: `(c1).SomeProperty`, `t::a`,
 // `dbo.[type 1]::[Property]`. Kept, as a collate clause is — what it names is a

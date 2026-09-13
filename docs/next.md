@@ -20945,3 +20945,33 @@ defects. `--split` 784 (from 788): four files ScriptDom reads whole hold what th
 refuses, and this grammar sides with the engine; the round trip 100% of 7,741 (from 7,753),
 the same four. The map: 7,984 both, 8 work, **0 defects (from 3)**. `--levels` 145 of 145.
 The suite is 7,618 rows (from 7,550).
+
+## An ODBC conversion to a type ODBC names
+
+The last defect that was not the corpus cut wrong: `SELECT { FN convert (@a, sql_int) }`, read
+here as any escaped call is read — a name and arguments — and answered `Msg 155`, "'sql_int'
+is not a recognized CONVERT option", once the variable was declared. `{fn CONVERT (value,
+type)}` names its type as ODBC does, and the engine has a list. Asked about forty names: the
+twenty-six of ODBC's own — `SQL_BIGINT` to `SQL_WVARCHAR`, the three `SQL_TYPE_…` among them,
+in any case — read; `SQL_INTERVAL_YEAR`, `SQL_VARIANT`, `SQL_XML`, `SQL_SS_TIME2`,
+`SQL_UNKNOWN_TYPE` and a T-SQL type's name are 155, the engine having read the escape and
+disagreed about the name inside, which is a refusal here as 153 and 155 are elsewhere — a
+catalogue the grammar writes; `[SQL_INTEGER]` and `'SQL_INTEGER'` are 102, and so are one
+argument and three. So `CONVERT` has an alternative of its own inside the escape, the type a
+choice of the twenty-six, and the generic call is kept from the name. `{fn BuiltinFunc1 ()}`
+stays read: a function ODBC has not got is `Msg 195`, about a name, as it is outside the
+escape.
+
+Eleven refusals and thirty-one readings in the theory, and a row of the older theory that
+held `sql_int` as read moves. At 170: 7,393 both, 7 work, **defects 2**, both the corpus cut
+wrong; another product's 298, neither 617. At 150: 6,606 both, 7 work, 2 defects. `--split`
+782 (from 784), 183 files not read whole; the round trip 100% of 7,739 (from 7,741) — the one
+file with `sql_int`. The map 7,984 both, 8 work, 0 defects; `--levels` 145 of 145. The suite
+is 7,659 rows (from 7,618).
+
+**The honest lists are spent, and this time without a decision on them.** Every statement of
+the corpus the engine reads and this grammar does not is a decision taken long ago (`OPTION
+(… PLAN)`, the pivot over a join), the cutting artefact, or the one `CREATE FUNCTION … RETURNS
+TABLE AS RETURN WITH XMLNAMESPACES (…) SELECT …` left to measure; every statement this grammar
+reads and the engine does not is the corpus cut wrong. The map's eight are the `isn't NULL`
+typos, Synapse's `AUTOCOMMIT` and the diagnostics session, and the map has no defects.

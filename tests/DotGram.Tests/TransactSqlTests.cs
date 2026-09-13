@@ -2328,6 +2328,62 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>`{fn CONVERT (value, type)}` takes one of ODBC's twenty-six type names, bare, and two arguments.</summary>
+	[Theory]
+	[InlineData("SELECT { fn convert ('1', INT) }")]
+	[InlineData("SELECT { FN convert (@a, sql_int) }, { FN database () }")]
+	[InlineData("SELECT { fn convert ('1', SQL_INTERVAL_YEAR) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_VARIANT) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_XML) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_SS_TIME2) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_UNKNOWN_TYPE) }")]
+	[InlineData("SELECT { fn convert ('1', [SQL_INTEGER]) }")]
+	[InlineData("SELECT { fn convert ('1', 'SQL_INTEGER') }")]
+	[InlineData("SELECT { fn convert ('1', SQL_INTEGER, 1) }")]
+	[InlineData("SELECT { fn convert ('1') }")]
+	public void An_odbc_conversion_to_a_type_odbc_names_is_refused_where_the_engine_refuses_it(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And is read where the engine reads it.</summary>
+	[Theory]
+	[InlineData("SELECT { fn convert ('1', SQL_BIGINT) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_BINARY) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_BIT) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_CHAR) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_DECIMAL) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_DOUBLE) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_FLOAT) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_GUID) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_INTEGER) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_LONGVARBINARY) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_LONGVARCHAR) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_NUMERIC) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_REAL) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_SMALLINT) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_DATE) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_TIME) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_TIMESTAMP) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_TYPE_DATE) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_TYPE_TIME) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_TYPE_TIMESTAMP) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_TINYINT) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_VARBINARY) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_VARCHAR) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_WCHAR) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_WLONGVARCHAR) }")]
+	[InlineData("SELECT { fn convert ('1', SQL_WVARCHAR) }")]
+	[InlineData("SELECT { fn convert ('1', sql_integer) }")]
+	[InlineData("SELECT { fn convert (1 + 1, SQL_INTEGER) }")]
+	[InlineData("SELECT { fn convert ((select 1), SQL_INTEGER) }")]
+	[InlineData("SELECT { FN database () }")]
+	[InlineData("SELECT { fn BuiltinFunc1 () }")]
+	public void An_odbc_conversion_to_a_type_odbc_names_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
@@ -6694,7 +6750,6 @@ public sealed class TransactSqlTests
 	// What a model is asked for, and the escapes every driver has understood since before
 	// this language had a standard.
 	[InlineData("SELECT AI_GENERATE_EMBEDDINGS ('text' USE MODEL MyDefaultModel)")]
-	[InlineData("SELECT { FN convert (@a, sql_int) }, { FN database () }")]
 	[InlineData("SELECT { d '2020-01-01' }, { ts '2020-01-01 00:00:00' }")]
 	[InlineData("SELECT * FROM { oj t LEFT OUTER JOIN u ON t.a = u.a }")]
 	[InlineData("SELECT @a ||= 1")]
