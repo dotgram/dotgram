@@ -195,14 +195,17 @@ namespace DotGram.ExpressionLanguage;
 		// `checked` until the boundary was said out loud. Whether the weaving should reach
 		// inside a lookahead is a question for the notation; saying it here is right either
 		// way, because what this rule means is "one of these words, whole".
+		// `for` standing before `foreach` costs nothing: the boundary below is what ends an
+		// alternative, so `for` read against `foreach` meets an `e` and is refused there.
 		Keyword
-			= ("as"      | "bool"     | "break"   | "byte"    | "case"   | "catch"
-			|  "char"    | "checked"  | "continue"| "decimal" | "default"| "do"
-			|  "double"  | "else"     | "false"   | "finally" | "float"  | "for"
-			|  "if"      | "int"      | "is"      | "long"    | "nameof" | "new"
-			|  "null"    | "object"   | "return"  | "sbyte"   | "short"  | "string"
-			|  "switch"  | "throw"    | "true"    | "try"     | "typeof" | "uint"
-			|  "ulong"   | "unchecked"| "ushort"  | "using"   | "while")
+			= ("as"      | "bool"     | "break"    | "byte"     | "case"    | "catch"
+			|  "char"    | "checked"  | "continue" | "decimal"  | "default" | "do"
+			|  "double"  | "else"     | "false"    | "finally"  | "float"   | "for"
+			|  "foreach" | "if"       | "in"       | "int"      | "is"      | "long"
+			|  "nameof"  | "new"      | "null"     | "object"   | "return"  | "sbyte"
+			|  "short"   | "string"   | "switch"   | "throw"    | "true"    | "try"
+			|  "typeof"  | "uint"     | "ulong"    | "unchecked"| "ushort"  | "using"
+			|  "while")
 			& ?![\p{L} | \p{Nd} | '_']
 
 		// ── Numbers, written the way C# writes them ─────────────────────────────────
@@ -527,12 +530,14 @@ namespace DotGram.ExpressionLanguage;
 		= b: Block => @(b) | c: IfValue => @(c) | c: Control => @(c) | e: Expression => @(e)
 
 	Control : @Expression
-		= c: Try     => @(c)
-		| c: If      => @(c)
-		| c: While   => @(c)
-		| c: DoWhile => @(c)
-		| c: For     => @(c)
-		| c: Switch  => @(c)
+		= c: Try             => @(c)
+		| c: If              => @(c)
+		| c: While           => @(c)
+		| c: DoWhile         => @(c)
+		| c: For             => @(c)
+		| c: Foreach         => @(c)
+		| c: ForeachInferred => @(c)
+		| c: Switch          => @(c)
 
 	If : @Expression
 		= "if" & '(' & test: Expression & ')' & then: Branch & "else" & otherwise: Branch => @(ExpressionParser.Branched(test, then, otherwise))
@@ -601,6 +606,39 @@ namespace DotGram.ExpressionLanguage;
 					Expression.Break(context.Exit(parserSpan)),
 					typeof(void)),
 				context.Exit(parserSpan))))
+
+	// A `foreach` is a scope and a loop like a `for`, and what it declares belongs to it. The
+	// API has no node for one, so the host writes out what C# lowers it to — the enumerator,
+	// the test, the assignment that begins each turn, and the disposal.
+	//
+	// The name is recorded before the source is read here and after it in the rule below, for
+	// the reason `Local` and `Inferred` are two rules: a written type is known where it is
+	// written, and `var` is not known until the source is a tree with an element type to ask
+	// for. Two rules rather than two alternatives of one, because a capture only some
+	// alternatives make is nullable in every guard of the rule (§4.2).
+	Foreach : @Expression
+		= "foreach" & '(' & type: Type & name: Word
+		& when @(context.Declare(type, name, parserSpan))
+		& "in" & source: Expression & ')'
+		& when @(context.Opening(parserSpan)) & body: Statement
+		& when @(context.Loops(parserSpan) && context.Scoped(parserSpan))
+		=> @(context.Block(
+			[], parserSpan,
+			ExpressionParser.Iterated(
+				context.Named(name, parserSpan), source, body,
+				context.Exit(parserSpan), context.Again(parserSpan))))
+
+	ForeachInferred : @Expression
+		= "foreach" & '(' & inferred: Word & when @(inferred == "var")
+		& name: Word & "in" & source: Expression & ')'
+		& when @(ExpressionParser.Yielded(source) is { } item && context.Declare(item, name, parserSpan))
+		& when @(context.Opening(parserSpan)) & body: Statement
+		& when @(context.Loops(parserSpan) && context.Scoped(parserSpan))
+		=> @(context.Block(
+			[], parserSpan,
+			ExpressionParser.Iterated(
+				context.Named(name, parserSpan), source, body,
+				context.Exit(parserSpan), context.Again(parserSpan))))
 
 	// A `switch` is what a `break` may name besides a loop, and C# says so — a `break` in a
 	// case leaves the switch and not the loop around it. So it records an extent of its own
@@ -1806,6 +1844,126 @@ public static partial class ExpressionParser
 			against[at] = Expression.SwitchCase(cases[at].Body, Converted([.. cases[at].TestValues], type));
 
 		return against;
+	}
+
+	// ── `foreach`, which this API has no node for ───────────────────────────────
+
+	static readonly MethodInfo _dispose = typeof(IDisposable).GetMethod(nameof(IDisposable.Dispose))!;
+
+	/// <summary>How a value is iterated: one decision, read by both halves of a `foreach`.</summary>
+	/// <param name="Enumerable">What the source is converted to before it is asked for an enumerator.</param>
+	/// <param name="Item">What each turn yields, before the declared type takes it.</param>
+	readonly record struct Iteration(
+		Type Enumerable, MethodInfo GetEnumerator, MethodInfo MoveNext, PropertyInfo Current, Type Item);
+
+	/// <summary>C#'s <c>foreach</c> pattern over a type, or null where the type has none.</summary>
+	/// <remarks>
+	/// C# looks for a public <c>GetEnumerator()</c> first and falls back to the interfaces.
+	/// An array is taken as the <c>IEnumerable&lt;T&gt;</c> it implements and not by the
+	/// pattern, which is what gives `foreach (int n in a)` its <c>int</c> where
+	/// <c>Array.GetEnumerator</c> would give an <c>object</c>.
+	///
+	/// One decision with two readers, deliberately: <see cref="Yielded"/> asks it for the
+	/// element type before the variable is declared, and <see cref="Iterated"/> asks it for
+	/// everything. Written twice, the two could disagree about what a text means.
+	/// </remarks>
+	static Iteration? Iterating(Type type)
+	{
+		const BindingFlags Instance = BindingFlags.Public | BindingFlags.Instance;
+
+		if (type.IsArray && type.GetArrayRank() == 1)
+			return Interface(typeof(IEnumerable<>).MakeGenericType(type.GetElementType()!));
+
+		if (type.GetMethod("GetEnumerator", Instance, null, Type.EmptyTypes, null) is { } pattern &&
+			pattern.ReturnType.GetMethod("MoveNext", Instance, null, Type.EmptyTypes, null) is { } moves &&
+			moves.ReturnType == typeof(bool) &&
+			pattern.ReturnType.GetProperty("Current", Instance) is { } current)
+			return new Iteration(type, pattern, moves, current, current.PropertyType);
+
+		foreach (var each in Kinds(type))
+			if (each.IsGenericType && each.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+				return Interface(each);
+
+		return typeof(System.Collections.IEnumerable).IsAssignableFrom(type)
+			? Interface(typeof(System.Collections.IEnumerable))
+			: null;
+
+		// The non-generic pair yields an `object`, which is what C# yields there too — and
+		// what makes `foreach (int n in ...)` over one a conversion the declaration asks for.
+		static Iteration Interface(Type enumerable)
+		{
+			var enumerator = enumerable == typeof(System.Collections.IEnumerable)
+				? typeof(System.Collections.IEnumerator)
+				: typeof(IEnumerator<>).MakeGenericType(enumerable.GetGenericArguments()[0]);
+
+			var current = enumerator.GetProperty("Current")!;
+
+			return new Iteration(
+				enumerable,
+				enumerable.GetMethod("GetEnumerator")!,
+				typeof(System.Collections.IEnumerator).GetMethod("MoveNext")!,
+				current,
+				current.PropertyType);
+		}
+	}
+
+	/// <summary>What a <c>foreach</c> over this value yields, for the form that writes no type.</summary>
+	/// <remarks>
+	/// Answering rather than throwing: it stands in a guard, and a source nothing can iterate
+	/// leaves the reading to the alternatives after it (§8.1). Named for what it answers and
+	/// not for the element it names, because <see cref="Element"/> is already what one call to
+	/// a collection's <c>Add</c> takes.
+	/// </remarks>
+	public static Type? Yielded(Expression source) =>
+		source is not null && Iterating(source.Type) is { } plan ? plan.Item : null;
+
+	/// <summary>A <c>foreach</c>, written out as what C# lowers one to.</summary>
+	/// <remarks>
+	/// The enumerator in a variable of its own, a loop whose test is <c>MoveNext</c>, each
+	/// turn beginning by taking <c>Current</c> into the declared name, and — where the
+	/// enumerator is disposable — the whole of it inside a <c>finally</c> that disposes it.
+	/// The <c>continue</c> label stands at the end of the body, which is where a turn ends.
+	///
+	/// The declared variable belongs to the block the rule makes around this, and is not
+	/// declared here: the text declared it, and what collects a block's declarations is the
+	/// state that recorded them.
+	///
+	/// C# converts what a turn yields to the declared type explicitly — `foreach (int n in`
+	/// an <c>IEnumerable</c>`)` is the case it exists for — so an implicit conversion is
+	/// taken where there is one and a cast where there is not.
+	/// </remarks>
+	public static Expression Iterated(
+		ParameterExpression item, Expression source, Expression body, LabelTarget exit, LabelTarget again)
+	{
+		if (item is null)
+			throw new ArgumentNullException(nameof(item));
+
+		if (source is null)
+			throw new ArgumentNullException(nameof(source));
+
+		var plan = Iterating(source.Type) ?? throw new InvalidOperationException(
+			$"'{source.Type.Name}' cannot be iterated: it has no public 'GetEnumerator' and is no 'IEnumerable'.");
+
+		var enumerator = Expression.Variable(plan.GetEnumerator.ReturnType, "enumerator");
+		var current    = (Expression)Expression.Property(enumerator, plan.Current);
+
+		var loop = Expression.Loop(
+			Expression.Condition(
+				Expression.Call(enumerator, plan.MoveNext),
+				Expression.Block(
+					Expression.Assign(item, Implicitly(current, item.Type) ?? Expression.Convert(current, item.Type)),
+					body,
+					Expression.Label(again)),
+				Expression.Break(exit),
+				typeof(void)),
+			exit);
+
+		return Expression.Block(
+			[enumerator],
+			Expression.Assign(enumerator, Expression.Call(Converted(source, plan.Enumerable), plan.GetEnumerator)),
+			typeof(IDisposable).IsAssignableFrom(enumerator.Type)
+				? Expression.TryFinally(loop, Expression.Call(enumerator, _dispose))
+				: loop);
 	}
 
 	// ── Operators: C#'s predefined ones, and the promotion they imply ───────────

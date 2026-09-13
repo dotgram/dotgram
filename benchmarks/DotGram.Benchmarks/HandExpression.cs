@@ -128,13 +128,14 @@ static class HandExpression
 
 	static readonly string[] Words =
 	[
-		"as",     "bool",      "break",    "byte",    "case",    "catch",
-		"char",   "checked",   "continue", "decimal", "default", "do",
-		"double", "else",      "false",    "finally", "float",   "for",
-		"if",     "int",       "is",       "long",    "nameof",  "new",
-		"null",   "object",    "return",   "sbyte",   "short",   "string",
-		"switch", "throw",     "true",     "try",     "typeof",  "uint",
-		"ulong",  "unchecked", "ushort",   "using",   "while",
+		"as",      "bool",      "break",    "byte",      "case",    "catch",
+		"char",    "checked",   "continue", "decimal",   "default", "do",
+		"double",  "else",      "false",    "finally",   "float",   "for",
+		"foreach", "if",        "in",       "int",       "is",      "long",
+		"nameof",  "new",       "null",     "object",    "return",  "sbyte",
+		"short",   "string",    "switch",   "throw",     "true",    "try",
+		"typeof",  "uint",      "ulong",    "unchecked", "ushort",  "using",
+		"while",
 	];
 
 	// A word that is not in the list would be `FirstWord - 1`, which is `Identifier`, and a
@@ -164,7 +165,9 @@ static class HandExpression
 	static readonly byte KwFinally   = Of("finally");
 	static readonly byte KwFloat     = Of("float");
 	static readonly byte KwFor       = Of("for");
+	static readonly byte KwForeach   = Of("foreach");
 	static readonly byte KwIf        = Of("if");
+	static readonly byte KwIn        = Of("in");
 	static readonly byte KwInt       = Of("int");
 	static readonly byte KwIs        = Of("is");
 	static readonly byte KwLong      = Of("long");
@@ -202,6 +205,7 @@ static class HandExpression
 				if (w[0] == 'a' && w[1] == 's') return KwAs;
 				if (w[0] == 'd' && w[1] == 'o') return KwDo;
 				if (w[0] == 'i' && w[1] == 'f') return KwIf;
+				if (w[0] == 'i' && w[1] == 'n') return KwIn;
 				if (w[0] == 'i' && w[1] == 's') return KwIs;
 				break;
 
@@ -259,6 +263,7 @@ static class HandExpression
 				if (Same(w, "decimal")) return KwDecimal;
 				if (Same(w, "default")) return KwDefault;
 				if (Same(w, "finally")) return KwFinally;
+				if (Same(w, "foreach")) return KwForeach;
 				break;
 
 			case 8:
@@ -1104,8 +1109,9 @@ static class HandExpression
 		}
 
 		readonly bool IsControl(byte kind) =>
-			kind == KwTry || kind == KwIf || kind == KwWhile ||
-			kind == KwDo  || kind == KwFor || kind == KwSwitch;
+			kind == KwTry || kind == KwIf  || kind == KwWhile ||
+			kind == KwDo  || kind == KwFor || kind == KwSwitch ||
+			kind == KwForeach;
 
 		int Statement(int i, out Expression? node)
 		{
@@ -1278,8 +1284,9 @@ static class HandExpression
 			if (kind == KwIf)     return If(i, out node);
 			if (kind == KwWhile)  return While(i, out node);
 			if (kind == KwDo)     return DoWhile(i, out node);
-			if (kind == KwFor)    return For(i, out node);
-			if (kind == KwSwitch) return Switch(i, out node);
+			if (kind == KwFor)     return For(i, out node);
+			if (kind == KwForeach) return Foreach(i, out node);
+			if (kind == KwSwitch)  return Switch(i, out node);
 
 			return -1;
 		}
@@ -1469,6 +1476,74 @@ static class HandExpression
 						Expression.Break(_context.Exit(span)),
 						typeof(void)),
 					_context.Exit(span)));
+
+			return body;
+		}
+
+		/// <summary>`foreach`, in both the form that writes the element type and the `var` one.</summary>
+		/// <remarks>
+		/// The declaration is made at a different moment in each, as it is in the grammar's two
+		/// rules: a written type is known where it is written, and `var` is not known until the
+		/// source is a tree with an element type to ask for.
+		/// </remarks>
+		int Foreach(int i, out Expression? node)
+		{
+			node = null;
+
+			if (Kind(i) != KwForeach || Kind(i + 1) != LeftParen)
+				return -1;
+
+			string      name;
+			int         over;
+			Expression? read;
+
+			if (IsVar(i + 2) && Kind(i + 3) == Identifier && Kind(i + 4) == KwIn)
+			{
+				name = Cut(i + 3);
+				over = Expr(i + 5, out read);
+
+				if (over < 0 || Kind(over) != RightParen)
+					return -1;
+
+				if (ExpressionParser.Yielded(read!) is not { } item ||
+					!_context.Declare(item, name, Span(i, over)))
+					return -1;
+			}
+			else
+			{
+				var at = Type(i + 2, out var type);
+
+				if (at < 0 || Kind(at) != Identifier || Kind(at + 1) != KwIn)
+					return -1;
+
+				name = Cut(at);
+
+				if (!_context.Declare(type!, name, Span(i, at + 1)))
+					return -1;
+
+				over = Expr(at + 2, out read);
+
+				if (over < 0 || Kind(over) != RightParen)
+					return -1;
+			}
+
+			_context.Opening(Span(i, over + 1));
+
+			var body = Statement(over + 1, out var inside);
+
+			if (body < 0)
+				return -1;
+
+			var span = Span(i, body);
+
+			if (!_context.Loops(span) || !_context.Scoped(span))
+				return -1;
+
+			node = _context.Block(
+				[], span,
+				ExpressionParser.Iterated(
+					_context.Named(name, span), read!, inside!,
+					_context.Exit(span), _context.Again(span)));
 
 			return body;
 		}

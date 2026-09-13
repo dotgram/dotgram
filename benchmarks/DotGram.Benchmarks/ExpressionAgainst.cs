@@ -178,6 +178,15 @@ static class ExpressionAgainst
 		"(int n) => { while (true) { if (n > 3) break; n += 1; } n }",
 		"(int n) => { switch (n) { case 1: n = 10; break; default: n = 0; break; } n }",
 
+		// `foreach`, which the API has no node for: over an array, over a list through the
+		// enumerator it declares, over a string, with the element type written and with `var`,
+		// and the jumps that name the loop it makes.
+		"(int[] a) => { int sum = 0; foreach (int n in a) sum += n; sum }",
+		"(int[] a) => { int sum = 0; foreach (var n in a) { sum += n; } sum }",
+		"(string s) => { int n = 0; foreach (char c in s) n += 1; n }",
+		"using System.Collections.Generic; (List<int> l) => { int sum = 0; foreach (var n in l) sum += n; sum }",
+		"(int[] a) => { int sum = 0; foreach (var n in a) { if (n < 0) continue; if (n > 3) break; sum += n; } sum }",
+
 		// The marks, which change what is built and nothing about what is read.
 		"(int x) => checked(x + 1)",
 		"(int x) => unchecked(x * 2)",

@@ -30,6 +30,43 @@ public sealed class ExpressionParserTests
 	public void An_expression_body_reads_and_runs(string text, int argument, int expected) =>
 		Assert.Equal(expected, ExpressionParser.Compile<Func<int, int>>(text)(argument));
 
+	/// <summary>`foreach`, which this API has no node for and the host writes out.</summary>
+	/// <remarks>
+	/// Both forms, because the element type is known at a different moment in each: written,
+	/// it is known where it is written; left to `var`, not until the source is a tree.
+	/// </remarks>
+	[Theory]
+	[InlineData("(int[] a) => { int sum = 0; foreach (int n in a) sum += n; sum }")]
+	[InlineData("(int[] a) => { int sum = 0; foreach (var n in a) { sum += n; } sum }")]
+	public void A_foreach_reads_and_runs(string text) =>
+		Assert.Equal(6, ExpressionParser.Compile<Func<int[], int>>(text)([1, 2, 3]));
+
+	/// <summary>And a `break` and a `continue` in it name the loop it makes.</summary>
+	[Fact]
+	public void A_jump_inside_a_foreach_names_the_loop_it_makes() =>
+		Assert.Equal(
+			4,
+			ExpressionParser.Compile<Func<int[], int>>(
+				"(int[] a) => { int sum = 0; foreach (var n in a) " +
+				"{ if (n < 0) continue; if (n > 3) break; sum += n; } sum }")([1, -5, 3, 9, 2]));
+
+	/// <summary>A string is iterated as its characters, by the enumerator it declares itself.</summary>
+	[Fact]
+	public void A_string_is_iterated_as_its_characters() =>
+		Assert.Equal(
+			3,
+			ExpressionParser.Compile<Func<string, int>>(
+				"(string s) => { int n = 0; foreach (char c in s) n += 1; n }")("abc"));
+
+	/// <summary>And a list through the struct enumerator it declares, which is disposed.</summary>
+	[Fact]
+	public void A_list_is_iterated_through_the_enumerator_it_declares() =>
+		Assert.Equal(
+			6,
+			ExpressionParser.Compile<Func<List<int>, int>>(
+				"using System.Collections.Generic; " +
+				"(List<int> l) => { int sum = 0; foreach (var n in l) sum += n; sum }")([1, 2, 3]));
+
 	/// <summary>A caller may name its assembly instead of being asked which it is.</summary>
 	/// <remarks>
 	/// Asking the call itself is a stack crawl — about 296 ns, a quarter of the shortest parse
