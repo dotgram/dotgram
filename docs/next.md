@@ -20727,3 +20727,33 @@ Azure's retired federations that this engine, oddly, still reads: `USE FEDERATIO
 RESET` and `USE FEDERATION f1 (d1 = 20) WITH FILTERING = ON, RESET` are answered as read at
 every level. On the other-products list and on the work list both, since the work bucket
 does not consult the list; and read by the engine, so a rule to write, measured next.
+
+## A JSON index
+
+Eighteen of the level-170 list, and SQL Server 2025's: `CREATE JSON INDEX IX_JSON_Basic ON
+dbo.Users (JsonData)`, with `FOR ('$.name', '$.email')` and `WITH (MAXDOP = 4, DATA_COMPRESSION
+= ROW)`. No page on disk has it, so the engine was asked thirty-three lines. It is an index
+over one column of a table and nothing an index usually takes besides: no order on the
+column, no second one, no `INCLUDE`, no `WHERE`, no `ON [PRIMARY]`, not `UNIQUE`, not
+`CLUSTERED`, named in one part — `Msg 102` and `156` each. After the column, `FOR (…)`: the
+paths it covers, strings with `N` or without, one at least (`FOR ()` and a trailing comma are
+102), once, and before the options. The options are five and no other: `MAXDOP`,
+`DATA_COMPRESSION` with its partitions, `PAD_INDEX`, `DROP_EXISTING`,
+`OPTIMIZE_FOR_ARRAY_SEARCH`; the rest of an index's are `Msg 153`, a name it has never heard
+of 155, the list without brackets 153. The corpus's own `WITH (FILLFACTOR = 90, ONLINE =
+OFF)` is one of the 153s — ScriptDom reads it and the engine does not, and this grammar
+sides with the engine.
+
+One alternative of `CreateIndexStatement` beside the XML and spatial ones, the kind `JSON`
+and the paths kept as the words they were, the way an XML index's `USING` is; a `JsonIndexWith`
+of the five. Twenty-one refusals and ten readings in the theory, one row for the writer.
+
+At 170: read by both **7,379 (from 7,361), the work list 45 (from 63)**. At 150 nothing moved.
+`--split` 780; the round trip 100% of 7,727 (from 7,709). The map unchanged; `--levels` 138 of
+138. The suite is 7,442 rows (from 7,410).
+
+And `USE FEDERATION`, measured on the way and not a rule: `USE nosuchdb junk` is `Msg 911` —
+the database does not exist — and the rest of the line is never read, so every `USE FEDERATION
+…` the corpus has, garbage after it included (`USE FEDERATION f1 junk junk junk` is "read"),
+is the engine stopping at the name. The mirage of `Msg 137` again, on `USE`. The six stay on
+the work list as the nineteen do, and are not work.

@@ -175,6 +175,7 @@ public sealed class SqlWriterTests
 	[InlineData("SELECT a % b & ~c | d ^ e FROM t", "SELECT a % b & ~c | d ^ e FROM t")]
 	[InlineData("SELECT (2 + 5) & 4, 2 + (5 & 4), (2 * 7) % 3, 2 * (7 % 3)", "SELECT (2 + 5) & 4, 2 + (5 & 4), (2 * 7) % 3, 2 * (7 % 3)")]
 	[InlineData("SELECT - ~1, ~~1, ~2 * 3", "SELECT -~1, ~ ~1, ~2 * 3")]
+	[InlineData("create json index ix on dbo.t (c) for ('$.a', N'$.b') with (MAXDOP = 4, OPTIMIZE_FOR_ARRAY_SEARCH = ON)", "CREATE JSON INDEX ix ON dbo.t (c) for ('$.a', N'$.b') WITH (MAXDOP = 4, OPTIMIZE_FOR_ARRAY_SEARCH = ON)")]
 	[InlineData("shutdown with nowait", "SHUTDOWN WITH NOWAIT")]
 	[InlineData("lineno 42", "LINENO 42")]
 	[InlineData("dbcc myDll with stat_header join density_vector, no_infomsgs", "DBCC myDll WITH STAT_HEADER JOIN DENSITY_VECTOR, NO_INFOMSGS")]

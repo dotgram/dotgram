@@ -2051,6 +2051,51 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>A JSON index: one column, the paths it covers, five options and no other.</summary>
+	[Theory]
+	[InlineData("CREATE JSON INDEX IX_JSON_WithOptions ON dbo.Users (JsonData) WITH (FILLFACTOR = 90, ONLINE = OFF)")]
+	[InlineData("CREATE JSON INDEX ix ON t (c) FOR ()")]
+	[InlineData("CREATE JSON INDEX ix ON t (c) FOR ('$.a',)")]
+	[InlineData("CREATE JSON INDEX ix ON t (c) FOR ('$.a') FOR ('$.b')")]
+	[InlineData("CREATE JSON INDEX ix ON t (c) WITH (MAXDOP = 4) FOR ('$.a')")]
+	[InlineData("CREATE JSON INDEX ix ON t (c, d)")]
+	[InlineData("CREATE JSON INDEX ix ON t (c ASC)")]
+	[InlineData("CREATE JSON INDEX ix ON t")]
+	[InlineData("CREATE JSON INDEX ix ON t (c) ON [PRIMARY]")]
+	[InlineData("CREATE JSON INDEX ix ON t (c) FOR ('$.a') WITH (MAXDOP = 4) ON [PRIMARY]")]
+	[InlineData("CREATE JSON INDEX ix ON t (c) INCLUDE (d)")]
+	[InlineData("CREATE JSON INDEX ix ON t (c) WHERE c IS NOT NULL")]
+	[InlineData("CREATE JSON INDEX ix ON t (c) FOR ('$.a') WITH (NOSUCH = ON)")]
+	[InlineData("CREATE JSON INDEX ix ON t (c) FOR ($.a)")]
+	[InlineData("CREATE JSON INDEX ix ON t (c) FOR 'a'")]
+	[InlineData("CREATE UNIQUE JSON INDEX ix ON t (c)")]
+	[InlineData("CREATE CLUSTERED JSON INDEX ix ON t (c)")]
+	[InlineData("CREATE JSON INDEX dbo.ix ON t (c)")]
+	[InlineData("CREATE JSON INDEX ix ON t (c) WITH MAXDOP = 4")]
+	[InlineData("CREATE JSON INDEX ix ON t (c) WITH (SORT_IN_TEMPDB = ON)")]
+	[InlineData("CREATE JSON INDEX ix ON t (c) WITH (ONLINE = ON)")]
+	public void A_json_index_is_refused_where_the_engine_refuses_it(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And is read where the engine reads it.</summary>
+	[Theory]
+	[InlineData("CREATE JSON INDEX IX_JSON_Basic ON dbo.Users (JsonData)")]
+	[InlineData("CREATE JSON INDEX IX_JSON_SinglePath ON dbo.Users (JsonData) FOR ('$.name')")]
+	[InlineData("CREATE JSON INDEX IX_JSON_MultiplePaths ON dbo.Users (JsonData) FOR ('$.name', '$.email', '$.age')")]
+	[InlineData("CREATE JSON INDEX IX_JSON_Complete ON dbo.Users (JsonData) FOR ('$.profile.name', '$.profile.email') WITH (MAXDOP = 4, DATA_COMPRESSION = ROW)")]
+	[InlineData("CREATE JSON INDEX [IX JSON Index] ON [dbo].[Users] ([Json Data]) FOR ('$.data.attributes')")]
+	[InlineData("CREATE JSON INDEX IX_JSON_Complex ON dbo.Documents (Content) FOR ('$.metadata.title', '$.content.sections[*].text', '$.tags[*]')")]
+	[InlineData("CREATE JSON INDEX IX_JSON ON dbo.Users (JsonData) WITH (OPTIMIZE_FOR_ARRAY_SEARCH = ON)")]
+	[InlineData("CREATE JSON INDEX IX_JSON ON dbo.Users (JsonData) WITH (PAD_INDEX = ON, DROP_EXISTING = ON)")]
+	[InlineData("CREATE JSON INDEX ix ON t (c) FOR (N'$.a')")]
+	[InlineData("CREATE JSON INDEX ix ON t (c) WITH (DATA_COMPRESSION = PAGE ON PARTITIONS (1))")]
+	public void A_json_index_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]

@@ -3997,6 +3997,17 @@ XmlIndexWith : @Clause.Option
 	= "WITH"i & '(' & first: XmlIndexOption & (',' & rest: XmlIndexOption)* & ')'
 		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
 
+// A JSON index's: the five above and no other.
+JsonIndexPath = Sql92.Lexical.NationalCharacterStringLiteral | Sql92.Lexical.CharacterStringLiteral
+
+JsonIndexOption : @Clause = ?=(JsonIndexOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
+JsonIndexOptionSyntax = PadIndex | DropExisting | MaxDop | RowDataCompression | OptimizeForArraySearch
+OptimizeForArraySearch = "OPTIMIZE_FOR_ARRAY_SEARCH"i & OnOffValue
+
+JsonIndexWith : @Clause.Option
+	= "WITH"i & '(' & first: JsonIndexOption & (',' & rest: JsonIndexOption)* & ')'
+		=> @(new Clause.Option("WITH", null, Syntax.Listed(first, rest)))
+
 // An index written inside the table, which may be a columnstore and so takes a delay.
 TableIndexOption : @Clause = ?=(TableIndexOptionSyntax & OptionEnds) & o: OptionSetting => @(o)
 TableIndexOptionSyntax = ConstraintOptionSyntax | CompressionDelay
@@ -4469,6 +4480,20 @@ CreateIndexStatement : @Statement
 	  & over: XmlIndexUsing? & when @(over is null || Syntax.Squared(kind!) == "XML") & o: XmlIndexWith?
 		=> @(new Statement.CreateIndex(
 				 on, Clause.Indexed(name, null, null, null, null, columns, null, null, null, o?.Options, null, null),
+				 Syntax.Squared(kind), Syntax.Tail(over)))
+	// A JSON index, SQL Server 2025's, over one column of a table — no order on it, no second
+	// column, no included columns, no filter, no placement (`Msg 102`, `156`) — the paths it
+	// covers in `FOR ('$.a', …)` after the column, strings and one at least, and then its
+	// options: five and no other, `MAXDOP`, `DATA_COMPRESSION` with its partitions,
+	// `PAD_INDEX`, `DROP_EXISTING` and `OPTIMIZE_FOR_ARRAY_SEARCH`; the rest of an index's
+	// are `Msg 153` and a name it has never heard of 155, and the list without brackets 153.
+	// Not unique, not clustered, named in one part. No page on disk has it; put to the engine
+	// thirty-three times.
+	| "CREATE"i & kind: "JSON"i & "INDEX"i & name: Identifier
+	  & "ON"i & on: QualifiedName & '(' & column: Identifier & ')'
+	  & over: ("FOR"i & '(' & JsonIndexPath & (',' & JsonIndexPath)* & ')')? & o: JsonIndexWith?
+		=> @(new Statement.CreateIndex(
+				 on, Clause.Indexed(name, null, null, null, null, Syntax.Columns(new[] { column }), null, null, null, o?.Options, null, null),
 				 Syntax.Squared(kind), Syntax.Tail(over)))
 	| "CREATE"i & u: "UNIQUE"i? & k: IndexOrder? & "INDEX"i & name: Identifier
 	  & "ON"i & on: QualifiedName & columns: IndexColumns
