@@ -24,7 +24,7 @@ rest run rather than read.
 
 | Section | pages | statements | read | both | work | defects | levels | other | neither | left out |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **all** | 996 | 8338 | 99.8% | 7984 | 19 | 0 | 4 | 85 | 250 | 0 |
+| **all** | 996 | 8338 | 99.8% | 7987 | 16 | 0 | 4 | 85 | 250 | 0 |
 | [data-types](#data-types) | 29 | 304 | 100.0% | 291 | 0 | 0 | 0 | 0 | 13 | 0 |
 | [database-console-commands](#database-console-commands) | 36 | 242 | 99.2% | 234 | 2 | 0 | 0 | 1 | 5 | 0 |
 | [functions](#functions) | 324 | 2101 | 100.0% | 2082 | 0 | 0 | 3 | 2 | 17 | 0 |
@@ -34,7 +34,7 @@ rest run rather than read.
 | [reference](#reference) | 3 | 32 | 100.0% | 32 | 0 | 0 | 0 | 0 | 0 | 0 |
 | [spatial-geography](#spatial-geography) | 72 | 312 | 100.0% | 311 | 0 | 0 | 0 | 0 | 1 | 0 |
 | [spatial-geometry](#spatial-geometry) | 74 | 357 | 100.0% | 357 | 0 | 0 | 0 | 0 | 0 | 0 |
-| [statements](#statements) | 320 | 3163 | 99.8% | 2901 | 7 | 0 | 1 | 81 | 174 | 0 |
+| [statements](#statements) | 320 | 3163 | 99.9% | 2904 | 4 | 0 | 1 | 81 | 174 | 0 |
 | [xml](#xml) | 12 | 205 | 100.0% | 201 | 0 | 0 | 0 | 0 | 4 | 0 |
 
 ## The work list, by what a statement begins with
@@ -42,7 +42,6 @@ rest run rather than read.
 | Statement | statements | pages | for example |
 | --- | ---: | ---: | --- |
 | IF | 4 | 1 | stops at ''' — `IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1;` |
-| ALTER AVAILABILITY GROUP | 3 | 2 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP AccountsAG JOIN;` |
 | SET | 3 | 1 | stops at AUTOCOMMIT — `SET AUTOCOMMIT ON;` |
 | USE | 3 | 2 | stops at COMPUTE — `USE UserDbSales; DBCC FREEPROCCACHE (COMPUTE) WITH NO_INFOMSGS;` |
 | SELECT | 2 | 2 | stops at DIAGNOSTICS — `-- Determine the session_id of your current session SELECT TOP 1 session_id();  -- ...` |
@@ -768,9 +767,7 @@ None: the engine reads every statement this grammar reads.
 
 | Page | statements | read | work | defects | levels | other | first thing to do |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| ALTER AVAILABILITY GROUP (Transact-SQL) | 3 | 0.0% | 2 | 0 | 0 | 0 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP AccountsAG JOIN;` |
 | ALTER TABLE (Transact-SQL) | 141 | 99.2% | 1 | 0 | 0 | 4 | stops at WITH — `ALTER TABLE dbo.doc_exf ADD AddDate smalldatetime NULL CONSTRAINT AddDateDflt DEFAU...` |
-| CREATE AVAILABILITY GROUP (Transact-SQL) | 2 | 0.0% | 1 | 0 | 0 | 0 | stops at AVAILABILITY — `ALTER AVAILABILITY GROUP [MyAg] ADD LISTENER 'MyAgListenerIvP6' ( WITH IP ( ('2001:...` |
 | CREATE EXTERNAL DATA SOURCE (Transact-SQL) | 115 | 98.9% | 1 | 0 | 0 | 23 | stops at ')' — `CREATE DATABASE SCOPED CREDENTIAL AccessAzureInvoices WITH IDENTITY = 'SHARED ACCES...` |
 | CREATE REMOTE TABLE AS SELECT (Parallel Data Warehouse) | 3 | 50.0% | 1 | 0 | 0 | 0 | stops at TABLE — `USE ssawPDW; CREATE REMOTE TABLE OrderReporting.Orders.MyOrdersTable AT ( 'Data Sou...` |
 | CREATE TABLE AS SELECT (Azure Synapse Analytics and Microsoft Fabric) | 53 | 100.0% | 0 | 0 | 1 | 12 | levels 100 engine, 110 engine, 120 engine — `INSERT INTO Users (id, name, age, street, city) SELECT id, name, age, JSON_VALUE(ad...` |
@@ -781,6 +778,7 @@ None: the engine reads every statement this grammar reads.
 | ALTER ASSEMBLY (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER ASYMMETRIC KEY (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER AUTHORIZATION (Transact-SQL) | 19 | 100.0% | 0 | 0 | 0 | 0 |  |
+| ALTER AVAILABILITY GROUP (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER BROKER PRIORITY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER CERTIFICATE (Transact-SQL) | 4 | 100.0% | 0 | 0 | 0 | 0 |  |
 | ALTER COLUMN ENCRYPTION KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
@@ -853,6 +851,7 @@ None: the engine reads every statement this grammar reads.
 | CREATE APPLICATION ROLE (Transact-SQL) | 1 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE ASSEMBLY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE ASYMMETRIC KEY (Transact-SQL) | 3 | 100.0% | 0 | 0 | 0 | 0 |  |
+| CREATE AVAILABILITY GROUP (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE BROKER PRIORITY (Transact-SQL) | 13 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE CERTIFICATE (Transact-SQL) | 7 | 100.0% | 0 | 0 | 0 | 0 |  |
 | CREATE COLUMN ENCRYPTION KEY (Transact-SQL) | 2 | 100.0% | 0 | 0 | 0 | 0 |  |

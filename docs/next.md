@@ -20164,3 +20164,53 @@ list, which this grammar will not copy; and two pivots over a join were left as 
 decision of their own. Against the reference: 7,984 of 8,338 (99.8%), a work list of 19 and
 no defect. The round trip is 100% of 7,583, and `--split` cuts 740 files where ScriptDom
 does.
+
+## Availability groups, and what the map had that was not work
+
+The corpus of ScriptDom is done as work, so the map took over — the reference's 8,338
+statements from 996 pages, with 19 on its work list. Measured one at a time, most of the 19
+were the same mirage the other corpus had, in a different coat.
+
+- `IF OBJECT_ID (…) isn't NULL` — four statements, one page, and a typo in the reference:
+  the engine answers `Msg 4145` and then `105` for the unclosed quote, and the first of those
+  is on `AboutNames` as an objection about a name. Not work.
+- `SET AUTOCOMMIT ON` — three, and `Msg 195`, "'AUTOCOMMIT' is not a recognized SET option":
+  the engine has never heard of it, and 195 is on the list too. Not work, and the page is
+  Synapse's besides.
+- `DBCC FREEPROCCACHE (COMPUTE)` is `Msg 102`; `session_id()` and `CREATE DATABASE SCOPED
+  CREDENTIAL` are read by both when put on their own. Not work.
+- `ALTER TABLE … ADD … DEFAULT GETDATE() WITH VALUES` — one, read there and not here. Work,
+  and small; it waits.
+- **`ALTER AVAILABILITY GROUP`** — three statements on two pages, and both pages read here
+  at 0.0%: this grammar had the phrase only as something `DROP` takes and as a database's
+  `HADR` setting. Work.
+
+**Two statements, forty-four readings, and the answers are narrower than the blocks in four
+places.** An `ALTER` does one thing: twenty-four actions are read and two side by side are
+`Msg 102`; `ADD DATABASE db1, db2` is refused, the block's `[ ,...n ]` notwithstanding, and
+so is a second replica after `ADD REPLICA ON` — the list of two belongs to `JOIN` and
+`MODIFY AVAILABILITY GROUP` alone. A `CREATE` must say what the group is made of, and takes
+`WITH (…)` of seven settings, `FOR` with databases or without, replicas in a list, and a
+listener by DHCP or by address; `CONTAINED REUSE_SYSTEM_DATABASES` is `Msg 102` though the
+block writes it.
+
+Three answers came after the reading and are about what was read. `534` says a feature "is
+not supported in the edition of this SQL Server instance" — the edition and not the version,
+and the same kind of answer as `40514`'s, so it joins the other product's marks rather than
+`AboutNames`. `41198` (a replica missing its availability mode) and `47110` (an option a
+configuration-only replica cannot take) are objections to the content and join `AboutNames`
+beside `183` and `241`.
+
+**The node is one line and the printing came free.** `Statement.Defined("AVAILABILITY GROUP",
+name, tail, verb)` was the shape chosen — the name and the words after it, as `EVENT
+NOTIFICATION` is kept — and the first run threw: `Named` is a catalogue of what the tree has
+a record for, and this had none. `AvailabilityGroupDefinition(string Name) : Definition(Name)`
+is the whole of it; `Words` splits the record's name into `CREATE AVAILABILITY GROUP` on its
+own, and the verb prints from `Definition.Verb`. The statements live in a section of their
+own, since neither "what the server watches" nor "what lives outside the database" is what
+they are.
+
+Against the engine at 150 nothing moves — the corpus has no availability groups — and the
+round trip grows to 100% of 7,591 (from 7,583), eight more statements read by both. The map:
+read by both **7,987 of 8,338 (from 7,984), the work list 16 (from 19)**, defects 0. The
+suite is 7,028 rows.

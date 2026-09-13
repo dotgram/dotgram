@@ -1084,6 +1084,13 @@ public abstract record Statement : ISqlSpan
 	/// <summary><c>EVENT NOTIFICATION</c>.</summary>
 	public sealed record EventNotificationDefinition(string Name) : Definition(Name);
 
+	/// <summary>
+	/// <c>CREATE</c> or <c>ALTER AVAILABILITY GROUP</c>: a group of databases that fail over
+	/// together, its replicas, its listener and what it is told, kept as the words after the
+	/// name.
+	/// </summary>
+	public sealed record AvailabilityGroupDefinition(string Name) : Definition(Name);
+
 	/// <summary><c>MESSAGE TYPE</c>, a kind of message a conversation may carry.</summary>
 	public sealed record MessageTypeDefinition(string Name) : Definition(Name);
 
@@ -1937,6 +1944,7 @@ public abstract record Statement : ISqlSpan
 			"AUDIT SPECIFICATION"     => new AuditSpecificationDefinition(name),
 			"DATABASE AUDIT SPECIFICATION" => new DatabaseAuditSpecificationDefinition(name),
 			"EVENT NOTIFICATION"      => new EventNotificationDefinition(name),
+			"AVAILABILITY GROUP"      => new AvailabilityGroupDefinition(name),
 			"MESSAGE TYPE"            => new MessageTypeDefinition(name),
 			"CONTRACT"                => new ContractDefinition(name),
 			"QUEUE"                   => new QueueDefinition(name),

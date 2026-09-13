@@ -255,6 +255,7 @@ compile, and a test reads this column against every record.
 | `Statement.DatabaseAuditSpecificationDefinition` | T-SQL | CREATE/ALTER DATABASE AUDIT SPECIFICATION | Ddl |
 | `Statement.EventSessionDefinition` | T-SQL | CREATE/ALTER EVENT SESSION | Ddl |
 | `Statement.EventNotificationDefinition` | T-SQL | CREATE EVENT NOTIFICATION | Ddl |
+| `Statement.AvailabilityGroupDefinition` | T-SQL | CREATE/ALTER AVAILABILITY GROUP | Ddl |
 | `Statement.MessageTypeDefinition` | T-SQL | CREATE, ALTER MESSAGE TYPE | Ddl |
 | `Statement.ContractDefinition` | T-SQL | CREATE CONTRACT | Ddl |
 | `Statement.QueueDefinition` | T-SQL | CREATE, ALTER QUEUE | Ddl |

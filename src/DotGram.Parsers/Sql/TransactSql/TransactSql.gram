@@ -2003,6 +2003,7 @@ DefinitionStatement : @Statement
 	| s: ExternalStatement       => @(s)
 	| s: BrokerStatement         => @(s)
 	| s: ServerStatement         => @(s)
+	| s: AvailabilityStatement   => @(s)
 	| s: PartitionStatement      => @(s)
 	| s: SequenceStatement       => @(s)
 	| s: TypeStatement           => @(s)
@@ -2518,6 +2519,123 @@ ClusterProperty
 
 SnapshotScope = "GROUP"i & '=' & '(' & Identifier & (',' & Identifier)* & ')' & (',' & "MODE"i & '=' & "COPY_ONLY"i)?
 			  | "MODE"i & '=' & "COPY_ONLY"i
+
+// ── Availability groups ─────────────────────────────────────────────────────
+//
+// A group of databases that fail over together, created on the instance and joined by each
+// replica in turn. Two statements and forty-four readings put to the engine, and the answers
+// are narrower than the published blocks in four places.
+//
+// **An `ALTER` does one thing.** Twenty-four of them are read — `JOIN`, `FAILOVER`,
+// `FORCE_FAILOVER_ALLOW_DATA_LOSS`, `OFFLINE`, `GRANT`/`DENY CREATE ANY DATABASE`, a database
+// added or removed, a `SET (…)` of any one setting, a replica added, modified or removed, a
+// listener added, modified, restarted or removed, and a group joined or modified — and two of
+// them side by side are `Msg 102`. `ADD DATABASE db1, db2` is refused too, the block's
+// `[ ,...n ]` notwithstanding, and so is a second replica after `ADD REPLICA ON …`: the list
+// of two belongs to `JOIN AVAILABILITY GROUP` and `MODIFY AVAILABILITY GROUP` alone.
+//
+// **A `CREATE` must say what the group is made of.** `CREATE AVAILABILITY GROUP ag1;` is
+// `Msg 102`, as is a word the statement does not know. `WITH (…)` takes the seven settings
+// its block names, and `BASIC` is read and then turned down by the edition (`Msg 534`);
+// `CONTAINED` is read and `CONTAINED REUSE_SYSTEM_DATABASES` is `Msg 102`, the block
+// notwithstanding. What the engine answers about a replica missing its availability mode
+// (`41198`) or given an option a configuration-only replica cannot take (`47110`) is about
+// what was read rather than how it was written.
+//
+// Kept as every object of this kind is: the name, and the words after it as the tail.
+AvailabilityStatement : @Statement
+	= verb: CreateOrAlter & "AVAILABILITY"i & "GROUP"i & name: Identifier & tail: AvailabilityBody
+		=> @(Statement.Defined("AVAILABILITY GROUP", name, Syntax.Tail(tail), verb))
+
+AvailabilityBody
+	= AvailabilityAction
+	| AvailabilityMade
+
+// What an `ALTER` does, one of them and no more.
+AvailabilityAction
+	= "SET"i & '(' & AvailabilitySetting & ')'
+	| "ADD"i & "DATABASE"i & Identifier
+	| "REMOVE"i & "DATABASE"i & Identifier
+	| "ADD"i & "REPLICA"i & "ON"i & AvailabilityReplica
+	| "MODIFY"i & "REPLICA"i & "ON"i & AvailabilityReplica
+	| "REMOVE"i & "REPLICA"i & "ON"i & BrokerString
+	| "JOIN"i & "AVAILABILITY"i & "GROUP"i & "ON"i & AvailabilityGroupSpec & (',' & AvailabilityGroupSpec)?
+	| "MODIFY"i & "AVAILABILITY"i & "GROUP"i & "ON"i & AvailabilityGroupSpec & (',' & AvailabilityGroupSpec)?
+	| "JOIN"i
+	| ("GRANT"i | "DENY"i) & "CREATE"i & "ANY"i & "DATABASE"i
+	| "FAILOVER"i
+	| "FORCE_FAILOVER_ALLOW_DATA_LOSS"i
+	| "ADD"i & "LISTENER"i & BrokerString & '(' & AvailabilityListener & ')'
+	| "MODIFY"i & "LISTENER"i & BrokerString & '(' & AvailabilityListenerChange & ')'
+	| "RESTART"i & "LISTENER"i & BrokerString
+	| "REMOVE"i & "LISTENER"i & BrokerString
+	| "OFFLINE"i
+
+// And what a `CREATE` is made of, which it may not leave out altogether.
+AvailabilityMade
+	= ("WITH"i & '(' & AvailabilityWith & (',' & AvailabilityWith)* & ')')?
+	  & ("FOR"i & ("DATABASE"i & Identifier & (',' & Identifier)*)?
+		 & "REPLICA"i & "ON"i & AvailabilityReplica & (',' & AvailabilityReplica)*
+		| "AVAILABILITY"i & "GROUP"i & "ON"i & AvailabilityGroupSpec & (',' & AvailabilityGroupSpec)?)
+	  & ("LISTENER"i & BrokerString & '(' & AvailabilityListener & ')')?
+
+AvailabilityWith
+	= "AUTOMATED_BACKUP_PREFERENCE"i & '=' & ("PRIMARY"i | "SECONDARY_ONLY"i | "SECONDARY"i | "NONE"i)
+	| "FAILURE_CONDITION_LEVEL"i & '=' & Sql92.Lexical.Digits
+	| "HEALTH_CHECK_TIMEOUT"i & '=' & Sql92.Lexical.Digits
+	| "DB_FAILOVER"i & OnOffValue
+	| "DTC_SUPPORT"i & '=' & ("PER_DB"i | "NONE"i)
+	| "REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT"i & '=' & Sql92.Lexical.Digits
+	| "CLUSTER_TYPE"i & '=' & ("WSFC"i | "EXTERNAL"i | "NONE"i)
+	| "BASIC"i | "DISTRIBUTED"i | "CONTAINED"i
+
+AvailabilitySetting
+	= AvailabilityWith
+	| "ROLE"i & '=' & "SECONDARY"i
+
+// A replica is a server instance and the bracket that says how it takes part.
+AvailabilityReplica = BrokerString & "WITH"i & '(' & AvailabilityReplicaOption & (',' & AvailabilityReplicaOption)* & ')'
+
+AvailabilityReplicaOption
+	= "ENDPOINT_URL"i & '=' & BrokerString
+	| "AVAILABILITY_MODE"i & '=' & ("SYNCHRONOUS_COMMIT"i | "ASYNCHRONOUS_COMMIT"i | "CONFIGURATION_ONLY"i)
+	| "FAILOVER_MODE"i & '=' & ("AUTOMATIC"i | "MANUAL"i | "EXTERNAL"i)
+	| "SEEDING_MODE"i & '=' & ("AUTOMATIC"i | "MANUAL"i)
+	| "BACKUP_PRIORITY"i & '=' & Sql92.Lexical.Digits
+	| "SESSION_TIMEOUT"i & '=' & Sql92.Lexical.Digits
+	| "SECONDARY_ROLE"i & '(' & AvailabilitySecondary & (',' & AvailabilitySecondary)* & ')'
+	| "PRIMARY_ROLE"i & '(' & AvailabilityPrimary & (',' & AvailabilityPrimary)* & ')'
+
+AvailabilitySecondary
+	= "ALLOW_CONNECTIONS"i & '=' & ("NO"i | "READ_ONLY"i | "ALL"i)
+	| "READ_ONLY_ROUTING_URL"i & '=' & BrokerString
+
+AvailabilityPrimary
+	= "ALLOW_CONNECTIONS"i & '=' & ("READ_WRITE"i | "ALL"i)
+	| "READ_ONLY_ROUTING_LIST"i & '=' & ('(' & BrokerString & (',' & BrokerString)* & ')' | "NONE"i)
+	| "READ_WRITE_ROUTING_URL"i & '=' & BrokerString
+
+// A group joined to another is named and told where to listen.
+AvailabilityGroupSpec = BrokerString & "WITH"i & '(' & AvailabilityGroupOption & (',' & AvailabilityGroupOption)* & ')'
+
+AvailabilityGroupOption
+	= "LISTENER_URL"i & '=' & BrokerString
+	| "LISTENER"i & '=' & BrokerString
+	| "AVAILABILITY_MODE"i & '=' & ("SYNCHRONOUS_COMMIT"i | "ASYNCHRONOUS_COMMIT"i)
+	| "FAILOVER_MODE"i & '=' & "MANUAL"i
+	| "SEEDING_MODE"i & '=' & ("AUTOMATIC"i | "MANUAL"i)
+
+// A listener takes its address from the network or is given one, and a port with it.
+AvailabilityListener
+	= "WITH"i & "DHCP"i & ("ON"i & '(' & BrokerString & ',' & BrokerString & ')')?
+	| "WITH"i & "IP"i & '(' & AvailabilityAddress & (',' & AvailabilityAddress)* & ')'
+	  & (',' & "PORT"i & '=' & Sql92.Lexical.Digits)?
+
+AvailabilityAddress = '(' & BrokerString & (',' & BrokerString)? & ')'
+
+AvailabilityListenerChange
+	= "ADD"i & "IP"i & '(' & BrokerString & (',' & BrokerString)? & ')'
+	| "PORT"i & '=' & Sql92.Lexical.Digits
 
 // ── Service Broker ──────────────────────────────────────────────────────────
 //

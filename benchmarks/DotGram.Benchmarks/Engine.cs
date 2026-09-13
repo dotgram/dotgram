@@ -319,6 +319,10 @@ static class Engine
 		// 33161 "Database master keys without password are not supported in this version of
 		// SQL Server" — the same answer about one statement, which Azure SQL Database reads.
 		message is 33161 ||
+		// 534 "'…' failed because it is not supported in the edition of this SQL Server
+		// instance '…'" — the edition rather than the version, and the same kind of answer:
+		// `CREATE AVAILABILITY GROUP … WITH (BASIC)` is read and then turned down for it.
+		message is 534 ||
 		OtherProducts.Any(word => Compact(statement).IndexOf(Compact(word), StringComparison.OrdinalIgnoreCase) >= 0);
 
 	/// <summary>A text with its whitespace taken out, so that `with(order(A))` is `WITH (ORDER (A))`.</summary>
@@ -563,7 +567,15 @@ static class Engine
 			// answer as 241's and 8169's: what was read is not in question.
 			//
 			//    183  The scale (…) for column '…' must be within the range … to ….
-			or 183;
+			or 183
+
+			// And an availability group's replicas, 2026-09-12. Both are answered after the
+			// statement is read, about what it says rather than how it is written: one option
+			// missing from a replica, and one that the replica it was given to cannot take.
+			//
+			//  41198  The AVAILABILITY_MODE option has not been specified for the replica '…'.
+			//  47110  The '…' option is not valid for the '…' replica as it is a configuration-only.
+			or 41198 or 47110;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open
