@@ -1612,6 +1612,41 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>`&lt;&lt;` and `&gt;&gt;` are two characters and nothing else, and a comparison is not a value.</summary>
+	[Theory]
+	[InlineData("SELECT 1 <<< 1")]
+	[InlineData("SELECT 1 < < 1")]
+	[InlineData("SELECT 1 >> > 1")]
+	[InlineData("SELECT 1 <<= 1")]
+	[InlineData("SELECT 1 >>= 1")]
+	[InlineData("DECLARE @a int; SET @a <<= 1")]
+	[InlineData("SELECT 1 << 1 = 2")]
+	public void A_shift_is_refused_where_the_engine_refuses_it(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And is read where the engine reads it, at every level.</summary>
+	[Theory]
+	[InlineData("SELECT 1 << 1 >> 1")]
+	[InlineData("SELECT c1 << c1 >> c1 FROM t1")]
+	[InlineData("SELECT 1<<1>>1")]
+	[InlineData("SELECT 1 <<1, 1<< 1")]
+	[InlineData("SELECT 1 << 1 + 1, 1 + 1 << 1, 1 << 1 * 2, 1 & 1 << 1, 1 | 1 << 1, 1 << 1 ^ 2, 1 << 1 % 2")]
+	[InlineData("SELECT -1 << 1, ~1 << 1, 1 << -1, 1 << (1 >> 1), (1) << (2)")]
+	[InlineData("SELECT 'a' << 1")]
+	[InlineData("SELECT 1 WHERE 1 << 1 = 2")]
+	[InlineData("SELECT 1 WHERE 1 << 1 IN (2)")]
+	[InlineData("SELECT 1 WHERE 1 << 1 BETWEEN 1 AND 3")]
+	[InlineData("SELECT CASE WHEN 1 << 1 = 2 THEN 1 END")]
+	[InlineData("SELECT a.b << @c FROM t AS a")]
+	[InlineData("UPDATE t SET c = c << 1")]
+	[InlineData("SELECT 1 >> 1 >> 1 >> 1")]
+	public void A_shift_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
@@ -5476,6 +5511,29 @@ public sealed class TransactSqlTests
 
 		var masked = Assert.IsType<Expression.BitwiseAnd>(TransactSql.TryParseValueExpression("6 & 3 * 2").Value);
 		Assert.IsType<Expression.Multiply>(masked.Right);
+
+		// The shifts stand with `+`: `1 << 1 + 1` is 3, `1 + 1 << 1` is 4, `1 & 1 << 1` is 2,
+		// `8 >> 1 + 1` is 5, and `1 << 1 * 2` is 4 because `*` is stronger.
+		var shifted = Assert.IsType<Expression.Add>(TransactSql.TryParseValueExpression("1 << 1 + 1").Value);
+		Assert.IsType<Expression.ShiftLeft>(shifted.Left);
+
+		var summed = Assert.IsType<Expression.ShiftLeft>(TransactSql.TryParseValueExpression("1 + 1 << 1").Value);
+		Assert.IsType<Expression.Add>(summed.Left);
+
+		var anded = Assert.IsType<Expression.ShiftLeft>(TransactSql.TryParseValueExpression("1 & 1 << 1").Value);
+		Assert.IsType<Expression.BitwiseAnd>(anded.Left);
+
+		var right = Assert.IsType<Expression.Add>(TransactSql.TryParseValueExpression("8 >> 1 + 1").Value);
+		Assert.IsType<Expression.ShiftRight>(right.Left);
+
+		var scaled = Assert.IsType<Expression.ShiftLeft>(TransactSql.TryParseValueExpression("1 << 1 * 2").Value);
+		Assert.IsType<Expression.Multiply>(scaled.Right);
+
+		var twice = Assert.IsType<Expression.ShiftRight>(TransactSql.TryParseValueExpression("1 << 1 >> 1").Value);
+		Assert.IsType<Expression.ShiftLeft>(twice.Left);
+
+		var compared2 = Assert.IsType<Expression.Comparison>(TransactSql.TryParseSearchCondition("1 << 1 = 2").Value);
+		Assert.IsType<Expression.ShiftLeft>(compared2.Left);
 
 		var compared = Assert.IsType<Expression.Comparison>(TransactSql.TryParseSearchCondition("1 & 3 = 1").Value);
 		Assert.IsType<Expression.BitwiseAnd>(compared.Left);

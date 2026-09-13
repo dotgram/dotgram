@@ -20374,3 +20374,38 @@ directory has what the others do not, `FLOAT32`/`FLOAT16` vector types, `<`, and
 is the next list. `--split` 745 (from 743), 220 files not read whole (from 222); the round
 trip 100% of 7,624 (from 7,594). The map: 7,989 of 8,338, 14 work, 0 defects, 4 at a level —
 none of it is here, the reference having no page. The suite is 7,128 rows (from 7,085).
+
+## The level-170 list, and the shifts
+
+`--engine 170` is the whole corpus, the 160 and 170 directories included, and asked for the
+first time it had 49 on the work list and 22 defects. Grouped: fourteen `VECTOR (3,
+FLOAT32)` and four `VECTOR (1, FLOAT16)`, six `1 << 1 >> 1`, five `JSON_ARRAYAGG (data
+ORDER BY priority DESC, created_at ASC)`, two `OPENROWSET … WITH ([c] VARCHAR (50)
+'$.stateName')`, and the eighteen the 150 list already had — `PREDICT` behind an undeclared
+`@model`, `IDENTITY (INT)`, `sum (*)`, the legacy `PLAN` hints, the pivot over a join, `AS
+LOGIN`. On the defects' side: four `ADD CONSTRAINT … WITH (RESUMABLE = ON)` the engine answers
+with `Msg 11438`, "the RESUMABLE option cannot be set to ON when the ONLINE option is set to
+OFF" — read, and objected to as a value, which is `AboutNames`' kind; nine `TOP 10 WITH
+APPROXIMATE` and four `OPENROWSET (PROVIDER = 'CosmosDB', …)`, `Msg 102` at every level and
+another product's; two `JSON_ARRAYAGG (… NULL ON NULL RETURNING JSON) OVER (…)`, which the
+engine refuses and this grammar read; and the `DatabaseDefinitions` cutting artefact. Four
+pieces of work and a bookkeeping piece, then. Every group was put to all eight levels first:
+none is gated — the shifts, the vector's second argument and the aggregate's order all read at
+100 on this engine — so `--levels` stays at 138 of 138 and the level-170 list is a list of
+what a 2025 server reads, not of what 170 unlocks.
+
+**The shifts first, being the smallest.** `<<` and `>>` are two more operators in the tower,
+and where they stand was asked with numbers, since a parse says nothing of grouping: `1 <<
+1 + 1` is 3 and `1 + 1 << 1` is 4, so they are as weak as `+` and read left to right with it;
+`1 & 1 << 1` is 2 and `8 >> 1 + 1` is 5; `1 << 1 * 2` is 4 and `1 << 1 % 2` is 2, so `*` and
+`%` are stronger; `~0 << 1` is -2, so `~` is a sign; `1 << 1 = 2` holds, so a comparison is
+weaker. That is one alternative widened by two literals and two records, `ShiftLeft` and
+`ShiftRight`, beside the bitwise three at the same strength in the writer. The shifts are
+two characters and nothing else — `<<<`, `< <`, `>> >`, `<<=` and `>>=` are each `Msg 102` —
+which the literal says on its own. Seven groupings in the operator test, seven refusals and
+fourteen readings in the theory, one row for the writer.
+
+At 170: read by both **6,694 (from 6,688), the work list 43 (from 49)**, defects 22, another
+product's 288. At 150 nothing moved. `--split` 747 (from 745), 218 files not read whole (from
+220); the round trip 100% of 7,630 (from 7,624). The map is unchanged — the reference on disk
+predates the shifts. The suite is 7,150 rows (from 7,128).

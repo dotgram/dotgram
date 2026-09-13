@@ -2794,7 +2794,8 @@ public static class SqlWriter
 		Expression.IsTruth => 4,
 
 		Expression.Add or Expression.Subtract or Expression.Concatenate or
-		Expression.BitwiseAnd or Expression.BitwiseOr or Expression.BitwiseXor => 5,
+		Expression.BitwiseAnd or Expression.BitwiseOr or Expression.BitwiseXor or
+		Expression.ShiftLeft or Expression.ShiftRight                          => 5,
 		Expression.Multiply or Expression.Divide or Expression.Modulo          => 6,
 		Expression.Negate or Expression.Plus or Expression.BitwiseNot          => 7,
 
@@ -2822,6 +2823,8 @@ public static class SqlWriter
 			case Expression.BitwiseAnd(var l, var r):   Binary(text, l, "&", r, binds);          break;
 			case Expression.BitwiseOr(var l, var r):    Binary(text, l, "|", r, binds);          break;
 			case Expression.BitwiseXor(var l, var r):   Binary(text, l, "^", r, binds);          break;
+			case Expression.ShiftLeft(var l, var r):    Binary(text, l, "<<", r, binds);         break;
+			case Expression.ShiftRight(var l, var r):   Binary(text, l, ">>", r, binds);         break;
 
 			case Expression.Not(var operand):
 				text.Append("NOT ");

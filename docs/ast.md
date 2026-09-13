@@ -483,6 +483,8 @@ together — flags, since a list may mix them. A variable assigned is not here: 
 | `Expression.BitwiseOr` | T-SQL | Bitwise Operators — Bitwise OR |
 | `Expression.BitwiseXor` | T-SQL | Bitwise Operators — Bitwise Exclusive OR |
 | `Expression.BitwiseNot` | T-SQL | Bitwise Operators — Bitwise NOT |
+| `Expression.ShiftLeft` | T-SQL | Bit shift operators — `<<` (Left Shift) |
+| `Expression.ShiftRight` | T-SQL | Bit shift operators — `>>` (Right Shift) |
 | `Expression.Comparison` | SQL-92 | §8.2 &lt;comparison predicate&gt; |
 | `Expression.Quantified` | SQL-92 | §8.8 &lt;quantified comparison predicate&gt; |
 | `Expression.Between` | SQL-92 | §8.3 &lt;between predicate&gt; |

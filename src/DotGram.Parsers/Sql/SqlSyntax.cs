@@ -2524,6 +2524,15 @@ public abstract record Expression : ISqlSpan
 	/// <summary>T-SQL's <c>^</c>, as weak as <c>+</c>.</summary>
 	public sealed record BitwiseXor(Expression Left, Expression Right) : Expression;
 
+	/// <summary>
+	/// T-SQL's <c>&lt;&lt;</c>, as weak as <c>+</c> and read left to right with it: the engine
+	/// answers <c>1 &lt;&lt; 1 + 1</c> with 3 and <c>1 + 1 &lt;&lt; 1</c> with 4.
+	/// </summary>
+	public sealed record ShiftLeft(Expression Left, Expression Right) : Expression;
+
+	/// <summary>T-SQL's <c>&gt;&gt;</c>, as weak as <c>+</c>: <c>8 &gt;&gt; 1 + 1</c> is 5.</summary>
+	public sealed record ShiftRight(Expression Left, Expression Right) : Expression;
+
 	/// <summary>T-SQL's <c>~</c>, which binds as a sign does: <c>~2 * 3</c> is -9.</summary>
 	public sealed record BitwiseNot(Expression Operand) : Expression;
 
@@ -2736,7 +2745,7 @@ public abstract record Expression : ISqlSpan
 
 	/// <summary>
 	/// An additive operator and its two operands, as the node the operator names — T-SQL's
-	/// bitwise three among them, which bind as weakly.
+	/// bitwise three and its two shifts among them, which bind as weakly.
 	/// </summary>
 	public static Expression Additive(string operatorText, Expression left, Expression right) =>
 		operatorText switch
@@ -2746,6 +2755,8 @@ public abstract record Expression : ISqlSpan
 			"&" => new BitwiseAnd(left, right),
 			"|" => new BitwiseOr(left, right),
 			"^" => new BitwiseXor(left, right),
+			"<<" => new ShiftLeft(left, right),
+			">>" => new ShiftRight(left, right),
 			_   => new Concatenate(left, right),
 		};
 
