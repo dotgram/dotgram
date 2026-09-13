@@ -425,6 +425,17 @@ static class Program
 			return;
 		}
 
+		// `--elbytes [iterations]` is `--bytes` for the expression language: what one parse
+		// allocates in each of the three readings. An allocation is a fact where a time is a
+		// measurement, so it is the cheaper question and comes first. See
+		// ExpressionAgainst.Bytes.
+		if (args.Length >= 1 && args[0] == "--elbytes")
+		{
+			ExpressionAgainst.Bytes(args.Length >= 2 && int.TryParse(args[1], out var counted) ? counted : 2000);
+
+			return;
+		}
+
 		// `--against [rounds] [iterations]` is not a benchmark either: it measures the URL
 		// comparison round-robin instead of one method at a time, so that the ratios hold
 		// on a machine that is not idle. See Against.cs.

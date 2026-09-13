@@ -333,6 +333,57 @@ static class ExpressionAgainst
 		}
 	}
 
+	/// <summary>What each reading allocates for one parse, which a ratio of times cannot say.</summary>
+	/// <remarks>
+	/// An allocation is a fact where a time is a measurement, so this needs no rounds, no
+	/// warming and no idle machine, and it answers whether a timing experiment is worth
+	/// running at all. The measured methods take the input out of the field rather than the
+	/// argument — a lambda closing over it would allocate once a call and be measured doing
+	/// it — so it is set here as <see cref="Time"/> sets it.
+	/// </remarks>
+	public static void Bytes(int iterations)
+	{
+		Agree();
+
+		Console.WriteLine();
+		Console.Write($"{"",-40}");
+
+		foreach (var (name, _) in Methods)
+			Console.Write($" {name,11}");
+
+		Console.WriteLine("   immediate over hand");
+
+		foreach (var input in Inputs)
+		{
+			var taken = new double[Methods.Length];
+
+			for (var i = 0; i < Methods.Length; i++)
+			{
+				_input = input;
+
+				Methods[i].Measure(input);
+
+				var before = GC.GetAllocatedBytesForCurrentThread();
+				var sink   = 0;
+
+				for (var one = 0; one < iterations; one++)
+					sink += Methods[i].Measure(input);
+
+				taken[i] = (GC.GetAllocatedBytesForCurrentThread() - before) / (double)iterations;
+				_sink    = sink;
+			}
+
+			var shown = input.Length <= 38 ? input : input.Substring(0, 35) + "...";
+
+			Console.Write($"{shown,-40}");
+
+			foreach (var one in taken)
+				Console.Write($" {one,8:N0} b ");
+
+			Console.WriteLine($"    {taken[1] - taken[2],+8:N0} b");
+		}
+	}
+
 	/// <summary>
 	/// One input read over and over, for a profiler rather than for a number.
 	/// </summary>
