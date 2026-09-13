@@ -20607,3 +20607,22 @@ a trigger named in three parts, and `READTEXT ..t1.c1 …`, a text column named 
 dot. Each its own piece. And `DROP TYPE .tt` is `Msg 102` where `DROP TABLE .t1` reads, which
 `DropName`, one rule for every kind, does not know; measuring the drop by kind is a piece
 too.
+
+## A trigger switched by a qualified name
+
+Four of the eight that still stopped at a dot: `ENABLE TRIGGER a.b.c, d.e, f, a.b ON t1` and
+its `DISABLE`. `TriggerName` was two parts, `Identifier ('.' Identifier)?`, and the engine
+reads the trigger switched on or off in as many parts as are written, empty ones among them:
+`a.b.c.d`, `.a`, `a..b`, `[a].[b].[c]`, and `a.b.c ON ALL SERVER`; `a.b ON DATABASE` it reads
+and objects to — `Msg 1094`, "cannot specify a schema name as a prefix to the trigger name
+for database and server level triggers" — and `db.dbo.tr ON t` the same with `Msg 166`, the
+database may not be named. Both are the value, so 1094 joined 166 among the messages about
+names, and one row of the older theory that held `db.dbo.tr` as a refusal holds it as a
+reading. `ALTER TABLE t1 ENABLE TRIGGER a.b.c` is another statement's trigger list and `Msg
+102`, as it was. So the name is `QualifiedName`, the two-part rule gone; `CREATE`, `ALTER` and
+`DROP TRIGGER a.b.c` already read.
+
+Two refusals and twelve readings in the theory. At 170: read by both **7,310 (from 7,306),
+the work list 114 (from 118)**. At 150: 6,559 both, 76 work (from 80). `--split` 755 (from
+753), 210 files not read whole (from 212); the round trip 100% of 7,658 (from 7,654). The map
+unchanged; `--levels` 138 of 138. The suite is 7,304 rows (from 7,289).

@@ -601,7 +601,8 @@ static class Engine
 			// `CREATE SEQUENCE a.b.c` are read and then told the database may not be named.
 			//
 			//    166  '%ls' does not allow specifying the database name as a prefix to the object name.
-			or 166;
+			//   1094  Cannot specify a schema name as a prefix to the trigger name for database and server level triggers.
+			or 166 or 1094;
 
 		// Not 153, 155 or 487 — an option the engine does not know, or one where it does not
 		// belong. They stood here while this grammar read every option list as an open

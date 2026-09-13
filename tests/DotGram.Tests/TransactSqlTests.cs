@@ -1853,6 +1853,34 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>A trigger switched on or off is named in as many parts as are written; a table's own switch names one.</summary>
+	[Theory]
+	[InlineData("ALTER TABLE t1 ENABLE TRIGGER a.b.c")]
+	[InlineData("ALTER TABLE t1 DISABLE TRIGGER a.b, c")]
+	public void A_trigger_switched_by_a_qualified_name_is_refused_where_the_engine_refuses_it(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And is read where the engine reads it.</summary>
+	[Theory]
+	[InlineData("enable trigger a.b.c, d.e, f, a.b on t1")]
+	[InlineData("disable trigger a.b.c, d.e, f, a.b on t1")]
+	[InlineData("enable trigger a.b.c.d on t1")]
+	[InlineData("enable trigger .a on t1")]
+	[InlineData("enable trigger a..b on t1")]
+	[InlineData("enable trigger [a].[b].[c] on t1")]
+	[InlineData("enable trigger a.b.c on all server")]
+	[InlineData("enable trigger a.b on database")]
+	[InlineData("enable trigger a.b.c on b.c.t1")]
+	[InlineData("enable trigger all on .t1")]
+	[InlineData("enable trigger all on a.b.c.d")]
+	[InlineData("DISABLE TRIGGER db.dbo.tr ON t")]
+	public void A_trigger_switched_by_a_qualified_name_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
@@ -3877,7 +3905,6 @@ public sealed class TransactSqlTests
 	[InlineData("TRUNCATE t")]
 	[InlineData("TRUNCATE TABLE @t")]
 	[InlineData("TRUNCATE TABLE t, u")]
-	[InlineData("DISABLE TRIGGER db.dbo.tr ON t")]
 	[InlineData("ENABLE TRIGGER tr")]
 	[InlineData("ENABLE TRIGGER ON t")]
 	[InlineData("ENABLE TRIGGER ALL, tr ON t")]

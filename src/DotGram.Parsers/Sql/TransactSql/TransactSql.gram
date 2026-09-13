@@ -2441,7 +2441,12 @@ TriggerNames : @string[]
 	= "ALL"i                                          => @(System.Array.Empty<string>())
 	| first: TriggerName & (',' & rest: TriggerName)* => @(Syntax.Named(first, rest))
 
-TriggerName : @string = t: (Identifier & ('.' & Identifier)?) => @(t)
+// A trigger switched on or off is named as any object is, in as many parts as are written,
+// empty ones among them: `ENABLE TRIGGER a.b.c, d.e, f, a.b ON t1`, `a.b.c.d`, `.a`, `a..b`,
+// `[a].[b].[c]`, and `a.b.c ON ALL SERVER`. A schema before a database trigger's name is read
+// and then objected to (`Msg 1094`), which is the value. `ALTER TABLE t1 ENABLE TRIGGER
+// a.b.c` is another statement and `Msg 102`, as it was.
+TriggerName : @string = t: QualifiedName => @(t)
 
 TriggerScope : @string
 	= "ALL"i & "SERVER"i => @("ALL SERVER")
