@@ -1567,6 +1567,51 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>`AI_GENERATE_CHUNKS`'s list is its own: five names in one order, the type one bare word, no alias on a value.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = 'fixed', CHUNK_SIZE = 5)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = N'fixed', CHUNK_SIZE = 5)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = [fixed], CHUNK_SIZE = 5)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = other, CHUNK_SIZE = 5)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (CHUNK_TYPE = fixed, SOURCE = 'x', CHUNK_SIZE = 5)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_SIZE = 5)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5, NOSUCH = 1)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5, ENABLE_CHUNK_SET_ID = 1, OVERLAP = 50)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5, CHUNK_SIZE = 6)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5,)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x' AS s, CHUNK_TYPE = fixed, CHUNK_SIZE = 5)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed AS t, CHUNK_SIZE = 5)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5, OVERLAP = DEFAULT)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5) AS c (a, b)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5) WITH (NOLOCK)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5) TABLESAMPLE (10 PERCENT)")]
+	[InlineData("SELECT * FROM dbo.AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5)")]
+	[InlineData("SELECT AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5)")]
+	[InlineData("UPDATE AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5) SET chunk = 'y'")]
+	[InlineData("DELETE FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5)")]
+	public void A_text_cut_into_chunks_is_refused_where_the_engine_refuses_it(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And is read where the engine reads it.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (source = 'x', chunk_type = fixed, chunk_size = 5)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'a' + 'b', CHUNK_TYPE = fixed, CHUNK_SIZE = 5 + 1)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = (SELECT 'x'), CHUNK_TYPE = fixed, CHUNK_SIZE = -5, OVERLAP = (SELECT 1))")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = NULL, CHUNK_TYPE = fixed, CHUNK_SIZE = NULL, OVERLAP = NULL, ENABLE_CHUNK_SET_ID = NULL)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = @s, CHUNK_TYPE = fixed, CHUNK_SIZE = @n, OVERLAP = 50.5)")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5) c PIVOT (MAX (chunk) FOR chunk_order_id IN ([1], [2])) p")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5) AS c INNER JOIN t1 ON t1.c1 = c.chunk")]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5), t1")]
+	[InlineData("SELECT * FROM (SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'x', CHUNK_TYPE = fixed, CHUNK_SIZE = 5)) AS d")]
+	[InlineData("SELECT * FROM t1 OUTER APPLY AI_GENERATE_CHUNKS (SOURCE = t1.c1, CHUNK_TYPE = fixed, CHUNK_SIZE = 10, OVERLAP = t1.c2) c")]
+	public void A_text_cut_into_chunks_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
@@ -5716,6 +5761,8 @@ public sealed class TransactSqlTests
 	[InlineData("CREATE ASYMMETRIC KEY k WITH ALGORITHM = RSA_1024",                              120)]
 	[InlineData("CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = TRIPLE_DES_3KEY ENCRYPTION BY SERVER ASYMMETRIC KEY k", 120)]
 	[InlineData("ALTER DATABASE ENCRYPTION KEY REGENERATE WITH ALGORITHM = TRIPLE_DES_3KEY",      120)]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS ('some text', fixed, 5)",                        160)]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS ()",                                             160)]
 	public void Each_level_reads_until_where_the_engine_stops(string input, int until)
 	{
 		foreach (var level in new[] { 100, 110, 120, 130, 140, 150, 160, 170 })
@@ -5756,6 +5803,11 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT * FROM OPENJSON (N'[]') WITH (a INT)",                  130)]
 	[InlineData("SELECT 1 FROM t WINDOW w AS (ORDER BY c)",                     160)]
 	[InlineData("SELECT TRIM (LEADING 'x' FROM 'xa')",                          160)]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = 'some text', CHUNK_TYPE = fixed, CHUNK_SIZE = 5)", 170)]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS (SOURCE = N'x', CHUNK_TYPE = FIXED, CHUNK_SIZE = 5, OVERLAP = 50, ENABLE_CHUNK_SET_ID = 1) AS c", 170)]
+	[InlineData("SELECT * FROM t1 CROSS APPLY AI_GENERATE_CHUNKS (SOURCE = t1.c1, CHUNK_TYPE = fixed, CHUNK_SIZE = 10)", 170)]
+	[InlineData("SELECT * FROM dbo.AI_GENERATE_CHUNKS (3)",                          100)]
+	[InlineData("SELECT * FROM AI_GENERATE_CHUNKS",                                  100)]
 	[InlineData("SELECT * FROM SEMANTICKEYPHRASETABLE (t1, *) AS x",            110)]
 	[InlineData("SELECT * FROM SEMANTICKEYPHRASETABLE (t1, (c1, c2)) AS x",     110)]
 	[InlineData("SELECT * FROM OPENXML (@h, '/r', 1) WITH (a INT)",             100)]

@@ -992,6 +992,8 @@ TSqlTablePrimary : @TableReference
 				 new TableReference.FunctionCall(f, alias, columns, schema ?? Clause.None), pivot))
 	| f: PredictCall & schema: PredictSchema & ("AS"i? & alias: CorrelationName)?
 		=> @(new TableReference.FunctionCall(f, alias, null, schema))
+	| f: ChunksFunction & ("AS"i? & alias: CorrelationName)? & pivot: PivotSuffix?
+		=> @(Syntax.Pivoted(new TableReference.FunctionCall(f, alias, null, Clause.None), pivot))
 	| f: RowsetFunction & schema: RowsetSchema? & when @(Syntax.Schemas(f, schema))
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & pivot: PivotSuffix?
@@ -1000,8 +1002,9 @@ TSqlTablePrimary : @TableReference
 	| server: AdHocServer & named: AdHocObject & ("AS"i? & alias: CorrelationName)? & pivot: PivotSuffix?
 		=> @(Syntax.Pivoted(new TableReference.Named(named, null, false, alias, null, null, Clause.None, server), pivot))
 	// A table takes hints and a table-valued function does not: `dbo.f() WITH (NOLOCK)` is
-	// refused.
-	| name: QualifiedName & version: SystemTime? & path: GraphPath? & call: ('(' & args: Arguments? & ')')?
+	// refused. The name is `SourceName` for one word's sake: from 170 the plain
+	// `AI_GENERATE_CHUNKS` with a bracket after it is the rowset's and not a function's.
+	| name: SourceName & version: SystemTime? & path: GraphPath? & call: ('(' & args: Arguments? & ')')?
 	  & ("AS"i? & alias: CorrelationName & ('(' & columns: ColumnList & ')')?)?
 	  & sample: TableSample? & close: SampledHint? & hints: SourceHints?
 	  & when @((call is null || (hints is null && close is null && path is null))
@@ -1405,8 +1408,10 @@ Version  = "100" | "110" | "120" | "130" | "140" | "150" | "160" | "170"
 Since110 = "110" | "120" | "130" | "140" | "150" | "160" | "170"
 Since130 = "130" | "140" | "150" | "160" | "170"
 Since160 = "160" | "170"
+Since170 = "170"
 Until100 = "100"
 Until120 = "100" | "110" | "120"
+Until160 = "100" | "110" | "120" | "130" | "140" | "150" | "160"
 
 parse Dialect.Statement with (Version = "100") as ParseStatement100
 parse Dialect.Statement with (Version = "110") as ParseStatement110
@@ -1627,6 +1632,40 @@ JsonSchema : @Clause[]
 		=> @(Syntax.Listed(first, rest))
 	| "WITH"i & name: QualifiedName & when Version is Since130
 		=> @(new Clause[] { new Clause.JsonColumn(name, null, null, false) })
+
+// `AI_GENERATE_CHUNKS (SOURCE = v, CHUNK_TYPE = FIXED, CHUNK_SIZE = v [, OVERLAP = v [,
+// ENABLE_CHUNK_SET_ID = v]])` reads from level 170, and its list is neither an argument list
+// nor the rowset arguments above: the five names stand in this order and no other, the first
+// three are demanded, an unknown name and a name twice are `Msg 102`, and the type is the one
+// bare word `FIXED` — `'fixed'`, `N'fixed'` and `[fixed]` are refused. A value is any
+// expression, `NULL` and a subquery among them; `DEFAULT` is `Msg 156`, and so is naming a
+// value where it stands (`SOURCE = 'x' AS s`), which `PREDICT`'s data may. After the call: a
+// correlation name without a column list — `AS c (a, b)` is 102 — a `PIVOT`, a join; a hint is
+// `Msg 319` and a sample `Msg 156`. It is not written to (`UPDATE`, `DELETE FROM` are 102) and
+// is not a scalar. The arguments come out named, as `PREDICT`'s do.
+//
+// And the name is taken at 170: `AI_GENERATE_CHUNKS ('some text', fixed, 5)` and
+// `AI_GENERATE_CHUNKS ()` are a function of the user's at every level below and `Msg 102`
+// there, where `dbo.AI_GENERATE_CHUNKS (3)` and a table called `AI_GENERATE_CHUNKS` read on.
+// So the name an ordinary source has is any but that one before a bracket, and that one
+// until 160 — said as an alternative present below 170 rather than a refusal from it, so
+// that the union, which keeps every alternative, reads what any level reads.
+ChunksFunction : @Expression.RoutineInvocation
+	= name: "AI_GENERATE_CHUNKS"i & '(' & s: ChunksSource & ',' & t: ChunksType & ',' & z: ChunksSize
+	  & (',' & o: ChunksOverlap & (',' & e: ChunksSet)?)? & ')' & when Version is Since170
+		=> @(new Expression.RoutineInvocation(name, Syntax.Written(s, t, z, o, e)))
+
+SourceName
+	= ?!("AI_GENERATE_CHUNKS"i & '(') & QualifiedName
+	| "AI_GENERATE_CHUNKS"i & ?='(' & when Version is Until160
+
+ChunksSource  : @Expression = n: "SOURCE"i & '=' & v: ChunksValue => @(new Expression.NamedArgument(n, v))
+ChunksType    : @Expression = n: "CHUNK_TYPE"i & '=' & w: "FIXED"i => @(new Expression.NamedArgument(n, new Expression.ColumnReference(w)))
+ChunksSize    : @Expression = n: "CHUNK_SIZE"i & '=' & v: ChunksValue => @(new Expression.NamedArgument(n, v))
+ChunksOverlap : @Expression = n: "OVERLAP"i & '=' & v: ChunksValue => @(new Expression.NamedArgument(n, v))
+ChunksSet     : @Expression = n: "ENABLE_CHUNK_SET_ID"i & '=' & v: ChunksValue => @(new Expression.NamedArgument(n, v))
+
+ChunksValue : @Expression = "NULL"i => @(Expression.NullValue) | v: ValueExpression => @(v)
 
 RowsetName
 	= "OPENROWSET"i | "OPENXML"i

@@ -20333,3 +20333,44 @@ statement this grammar reads and the engine refuses; these are the reverse, unre
 "read" there by a message about a name. Listing them would change no count, and the list's
 own rule — a word is on it because a statement using it was read here — does not hold for
 them. `TYPE = HADOOP` is already another product's through `EXTERNAL DATA SOURCE`.
+
+## A text cut into chunks, and the levels closed
+
+`AI_GENERATE_CHUNKS` was the one construct on the versions axis not read here: fourteen
+statements of the corpus, read by the engine at 170 and refused at every level below. The
+reference has no page for it yet, so the engine was the whole authority, asked forty-four
+lines. What it reads at 170 is `AI_GENERATE_CHUNKS (SOURCE = v, CHUNK_TYPE = FIXED,
+CHUNK_SIZE = v [, OVERLAP = v [, ENABLE_CHUNK_SET_ID = v]])` and nothing wider: the five names
+in that order and no other, the first three demanded, an unknown name and a name twice `Msg
+102`, and the type the one bare word `FIXED` — `'fixed'`, `N'fixed'`, `[fixed]` refused. A
+value is any expression, `NULL`, a subquery, a negative number among them; `DEFAULT` is `Msg
+156`, and so is naming a value where it stands, `SOURCE = 'x' AS s`, which `PREDICT`'s data
+may. After the call a correlation name without a column list (`AS c (a, b)` is 102), a
+`PIVOT`, a join; a hint is `Msg 319` and a sample `Msg 156`; it is not written to and not a
+scalar. So it has a rule of its own, `ChunksFunction`, behind `when Version is Since170`, one
+small rule per argument, and its arguments come out named as `PREDICT`'s do — the writer
+already prints a `NamedArgument`, and the round trip read all fourteen back whole.
+
+**The name is taken at 170, and that is a removal.** `AI_GENERATE_CHUNKS ('some text', fixed,
+5)` and `AI_GENERATE_CHUNKS ()` are a function of the user's at every level to 160 and `Msg
+102` at 170, where `dbo.AI_GENERATE_CHUNKS (3)` and a table called `AI_GENERATE_CHUNKS` read
+on. The first writing was a negative lookahead on the ordinary source, `?!ReservedRowset`,
+with the reservation behind `Since170` — and each level answered exactly as the engine does
+while the union refused the two lines every level below reads. The union keeps every
+alternative, so a condition that *removes* by lookahead is on in the union; a condition
+that removes by an alternative's absence is not. So the source's name is a rule, any
+qualified name but that one before a bracket, or that one until 160 — the same shape the
+weak algorithms have, present below a level rather than refused from it. The level theory
+holds both directions: three rows from 170, two until 160, and two at 100 for the
+qualified call and the table.
+
+`--levels` over the corpus: **138 of 138 answered the same way here at every level**, from
+124. The versions axis, as the corpus measures it, is closed: every statement the engine
+answers differently by level is answered the same way by the parser of that level.
+
+At 150 nothing moved — 5,969 both, 19 work, 2 defects, 258 another product's. At 170, asked
+for the first time: 6,688 both, 49 work, 22 defects, 288 another product's — the 170 corpus
+directory has what the others do not, `FLOAT32`/`FLOAT16` vector types, `<`, and more, which
+is the next list. `--split` 745 (from 743), 220 files not read whole (from 222); the round
+trip 100% of 7,624 (from 7,594). The map: 7,989 of 8,338, 14 work, 0 defects, 4 at a level —
+none of it is here, the reference having no page. The suite is 7,128 rows (from 7,085).
