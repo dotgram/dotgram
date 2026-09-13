@@ -444,7 +444,17 @@ public static class SqlWriter
 				else if (returns == "TABLE" && columns is null && body is [Statement.Select select])
 				{
 					text.Append("AS RETURN ");
-					Put(text, select);
+
+					// Brackets around the whole of it, `WITH` and order included, where they were
+					// written so: the tree keeps the query in brackets and the rest on the statement.
+					if (select.Of is Query.Parenthesized(var inner) && (select.With.Length > 0 || select.OrderBy is not null))
+					{
+						text.Append('(');
+						Put(text, select with { Of = inner });
+						text.Append(')');
+					}
+					else
+						Put(text, select);
 				}
 				else
 				{

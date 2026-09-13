@@ -2384,6 +2384,26 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>The query an inline function returns may open with a `WITH` and carry its order, in brackets or bare.</summary>
+	[Theory]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN (WITH XMLNAMESPACES (DEFAULT 'u') SELECT c1 FROM t1)")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN WITH XMLNAMESPACES (DEFAULT 'u') SELECT c1 FROM t1")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN (WITH c AS (SELECT 1 AS a) SELECT * FROM c)")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN WITH c AS (SELECT 1 AS a) SELECT * FROM c")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN (WITH XMLNAMESPACES (DEFAULT 'u'), c AS (SELECT 1 AS a) SELECT * FROM c)")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN (WITH c AS (SELECT 1 AS a) SELECT * FROM c ORDER BY a OFFSET 1 ROWS)")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN (WITH c AS (SELECT 1 AS a) SELECT * FROM c UNION ALL SELECT 2)")]
+	[InlineData("CREATE OR ALTER FUNCTION f1 () RETURNS TABLE AS RETURN (WITH c AS (SELECT 1 AS a) SELECT * FROM c)")]
+	[InlineData("ALTER FUNCTION f1 () RETURNS TABLE AS RETURN WITH c AS (SELECT 1 AS a) SELECT * FROM c")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN (WITH c AS (SELECT 1 AS a) (SELECT * FROM c))")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN ((SELECT 1 AS a))")]
+	public void An_inline_function_returning_a_query_that_opens_with_with_is_read_where_the_engine_reads_it(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]

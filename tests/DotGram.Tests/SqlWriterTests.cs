@@ -175,6 +175,8 @@ public sealed class SqlWriterTests
 	[InlineData("SELECT a % b & ~c | d ^ e FROM t", "SELECT a % b & ~c | d ^ e FROM t")]
 	[InlineData("SELECT (2 + 5) & 4, 2 + (5 & 4), (2 * 7) % 3, 2 * (7 % 3)", "SELECT (2 + 5) & 4, 2 + (5 & 4), (2 * 7) % 3, 2 * (7 % 3)")]
 	[InlineData("SELECT - ~1, ~~1, ~2 * 3", "SELECT -~1, ~ ~1, ~2 * 3")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN (WITH c AS (SELECT 1 AS a) SELECT * FROM c ORDER BY a OFFSET 1 ROWS)", "CREATE FUNCTION f1 () RETURNS TABLE AS RETURN (WITH c AS (SELECT 1 AS a) SELECT * FROM c ORDER BY a OFFSET 1 ROWS)")]
+	[InlineData("CREATE FUNCTION f1 () RETURNS TABLE AS RETURN WITH XMLNAMESPACES (DEFAULT 'u') SELECT c1 FROM t1", "CREATE FUNCTION f1 () RETURNS TABLE AS RETURN WITH XMLNAMESPACES (DEFAULT 'u') SELECT c1 FROM t1")]
 	[InlineData("create json index ix on dbo.t (c) for ('$.a', N'$.b') with (MAXDOP = 4, OPTIMIZE_FOR_ARRAY_SEARCH = ON)", "CREATE JSON INDEX ix ON dbo.t (c) for ('$.a', N'$.b') WITH (MAXDOP = 4, OPTIMIZE_FOR_ARRAY_SEARCH = ON)")]
 	[InlineData("shutdown with nowait", "SHUTDOWN WITH NOWAIT")]
 	[InlineData("lineno 42", "LINENO 42")]

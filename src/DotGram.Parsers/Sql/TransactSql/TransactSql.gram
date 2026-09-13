@@ -4491,10 +4491,18 @@ FunctionReturns : @Statement.CreateFunction
 	  & ("EXTERNAL"i & "NAME"i & external: QualifiedName | body: StatementList)
 		=> @(new Statement.CreateFunction("", Clause.None, type, body ?? Statement.None, options, null, null, null, external))
 
+// The query an inline function returns may open with a `WITH` — a common table expression,
+// `XMLNAMESPACES (…)`, both — in brackets or bare, and carry its order and window: `RETURN
+// (WITH XMLNAMESPACES (DEFAULT 'u') SELECT c1 FROM t1)`, `RETURN WITH c AS (…) SELECT * FROM c`,
+// `… ORDER BY a OFFSET 1 ROWS`, `… UNION ALL SELECT 2` are each read by the engine, of `CREATE`,
+// `CREATE OR ALTER` and `ALTER` alike. The rule had read the order and dropped it, and had no
+// `WITH`; the corpus's own was hidden by the mirage. The brackets are kept as the query in
+// brackets, and the writer puts the `WITH` and the order back inside them.
 InlineReturn : @Statement[]
-	= '(' & q: QueryExpression & OrderByClause? & ')'
-		=> @(new Statement[] { Statement.Selected(new Query.Parenthesized(q)) })
-	| q: QueryExpression & OrderByClause?             => @(new Statement[] { Statement.Selected(q) })
+	= '(' & with: WithClause? & q: QueryExpression & by: OrderByClause? & window: OffsetFetch? & ')'
+		=> @(new Statement[] { new Statement.Select(with ?? Clause.None, new Query.Parenthesized(q), Clause.Ordered(by, window), Clause.None, Clause.None) })
+	| with: WithClause? & q: QueryExpression & by: OrderByClause? & window: OffsetFetch?
+		=> @(new Statement[] { new Statement.Select(with ?? Clause.None, q, Clause.Ordered(by, window), Clause.None, Clause.None) })
 
 // ── CREATE TRIGGER ──────────────────────────────────────────────────────────
 TriggerStatement : @Statement

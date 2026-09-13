@@ -20975,3 +20975,34 @@ the corpus the engine reads and this grammar does not is a decision taken long a
 TABLE AS RETURN WITH XMLNAMESPACES (…) SELECT …` left to measure; every statement this grammar
 reads and the engine does not is the corpus cut wrong. The map's eight are the `isn't NULL`
 typos, Synapse's `AUTOCOMMIT` and the diagnostics session, and the map has no defects.
+
+## An inline function returning a query that opens with WITH
+
+The last of the honest work list: `CREATE FUNCTION f1 () RETURNS TABLE AS RETURN (WITH
+XMLNAMESPACES (DEFAULT 'u') SELECT c1 FROM t1)`, two of them, hidden by the mirage until
+yesterday. Measured: the query an inline function returns may open with a `WITH` — a common
+table expression, `XMLNAMESPACES (…)`, both — in brackets or bare, and carry its order and
+window, and combine: `RETURN WITH c AS (…) SELECT * FROM c`, `… ORDER BY a OFFSET 1 ROWS`, `…
+UNION ALL SELECT 2`, and `RETURN (WITH c AS (…) (SELECT * FROM c))` are each read, of `CREATE`,
+`CREATE OR ALTER` and `ALTER` alike. The rule had no `WITH`, and it read the `ORDER BY` and
+dropped it — the one place in the grammar a clause was read and not kept, found because the
+brackets had to be put back. Now `InlineReturn` reads the `WITH`, the order and the window
+into the `Select` the body already was; the brackets stay as the query in brackets, and the
+writer, seeing a bracketed query with a `WITH` or an order beside it, puts the whole of it
+back inside them — `RETURN (WITH c AS (…) SELECT * FROM c ORDER BY a OFFSET 1 ROWS)` comes out
+as it went in.
+
+Eleven readings in the theory, two rows for the writer. At 170: read by both **7,395 (from
+7,393), the work list 5** — the two decisions and the cutting artefact — defects 2. At 150:
+6,608 both, 5 work. `--split` 784, 181 files not read whole; the round trip 100% of 7,741
+(from 7,739). The map 7,984 both, 8 work, 0 defects; `--levels` 145 of 145. The suite is
+7,672 rows (from 7,659).
+
+**Nothing is left on any list that is work.** The corpus: five the engine reads and this does
+not, each a decision taken or the corpus cut wrong; two this reads and the engine does not,
+both the corpus cut wrong. The map: eight, each a typo of the reference's or another
+product's. Every level agrees with the engine on every statement the levels part on, and
+the round trip reads back every statement ScriptDom cuts the same. What is left to do is not
+on a list: the drop by kind, and the reference's pages the snapshot on disk has not got —
+`JSON INDEX`, `EXTERNAL MODEL`, `AI_GENERATE_CHUNKS`, `VECTOR (n, type)`, `EXTERNAL
+AUTHENTICATION`, `WITH APPROXIMATE` — which a newer snapshot would put on the map.
