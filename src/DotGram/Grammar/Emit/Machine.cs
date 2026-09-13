@@ -840,6 +840,40 @@ sealed partial class Machine
 		helper.Line("/// </remarks>");
 		helper.Line($"static readonly string[] Letters_DotGram{_tag} = new string[128];");
 		helper.Line();
+		helper.Line("/// <summary>The token beginning at a character offset, or -1 where none does.</summary>");
+		helper.Line("/// <remarks>");
+		helper.Line("/// A position is a character offset to a caller holding the text and a token to the");
+		helper.Line("/// machine reading it, and this is where the two meet: a reading asked to begin");
+		helper.Line("/// somewhere has to begin at a token. Binary, because the starts are ordered and a");
+		helper.Line("/// caller with several places to read from would otherwise walk the whole array for");
+		helper.Line("/// each of them.");
+		helper.Line("/// </remarks>");
+
+		using (helper.Block($"static int TokenAt_DotGram{_tag}(int[] starts, int count, int at)"))
+		{
+			helper.Line("var low  = 0;");
+			helper.Line("var high = count - 1;");
+			helper.Line();
+
+			using (helper.Block("while (low <= high)"))
+			{
+				helper.Line("var middle = low + ((high - low) >> 1);");
+				helper.Line("var began  = starts[middle];");
+				helper.Line();
+				helper.Line("if (began == at)");
+				helper.Then("return middle;");
+				helper.Line();
+				helper.Line("if (began < at)");
+				helper.Then("low = middle + 1;");
+				helper.Line("else");
+				helper.Then("high = middle - 1;");
+			}
+
+			helper.Line();
+			helper.Line("return -1;");
+		}
+
+		helper.Line();
 		helper.Line("/// <summary>The text a run of tokens came from.</summary>");
 
 		using (helper.Block(

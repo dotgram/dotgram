@@ -618,6 +618,39 @@ namespace DotGram.Snapshots
 			return Match<int>.Success(recognized, 0, end);
 		}
 
+		/// <summary>Reads a <c>Sum</c> beginning at <paramref name="at"/>.</summary>
+		/// <remarks>
+		/// The input is not required to end there: what comes back says where the
+		/// reading began and how far it got, so a caller may go on from it. A position
+		/// is an offset into the text.
+		/// </remarks>
+		public static Match<int> TryParseSum(string input, int at)
+		{
+			if (at < 0 || at > input.Length)
+			{
+				return Match<int>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var parserWhole = global::System.MemoryExtensions.AsMemory(input);
+			var failure = new Failure();
+
+			var end = Recognize_Sum(text, at, 0, ref failure, out var recognized, parserWhole);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'Sum'.";
+
+				return Match<int>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<int>.Success(recognized, at, end - at);
+		}
+
 		/// <summary>Parses the whole input as <c>Either</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Either</c>. <c>TryParseEither</c> answers instead.
@@ -724,6 +757,38 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<string[]>.Success(recognized, 0, end);
+		}
+
+		/// <summary>Reads a <c>Sheet</c> beginning at <paramref name="at"/>.</summary>
+		/// <remarks>
+		/// The input is not required to end there: what comes back says where the
+		/// reading began and how far it got, so a caller may go on from it. A position
+		/// is an offset into the text.
+		/// </remarks>
+		public static Match<string[]> TryParseSheet(string input, int at)
+		{
+			if (at < 0 || at > input.Length)
+			{
+				return Match<string[]>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Sheet(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'Sheet'.";
+
+				return Match<string[]>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<string[]>.Success(recognized, at, end - at);
 		}
 
 		/// <summary>Parses the whole input as <c>Ci</c>.</summary>
@@ -2638,6 +2703,43 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
+			/// <summary>A reading of <c>Sum</c>, and the way back into it.</summary>
+			public int Recognize_Sum_Read(int pos, int power)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Recognize_Sum_Read_Body(pos, power);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>Sum</c> is read by, whichever stack it is read on.</summary>
+			public int Recognize_Sum_Read_Body(int pos, int power)
+			{
+				var p = pos;
+				var rb = ways.RefsCount;
+				var q0 = Read_Sum_Sum(p, power);
+				if (q0 < 0) return -1;
+				p = q0;
+				return p;
+			}
+
 		}
 
 		/// <summary>A reading, in a shape another thread can pick up (Machine.Reader.cs).</summary>
@@ -2690,6 +2792,41 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 
 				var end = reader.Recognize_Sum_Whole_Read(pos, power);
+
+				failure = reader.failure;
+
+				if (end < 0)
+				{
+					value = default!;
+
+					return end;
+				}
+
+				Materialize_DotGram_Sum_Direct(ways, text, values, ways.Last, 0, 0);
+				value = values.V1[ways.Last].Value;
+
+				return end;
+			}
+			finally
+			{
+				Ways.Return(ways);
+				DirectValues.Return(values);
+			}
+		}
+
+		/// <summary>The whole input as <c>Sum</c>, read by methods.</summary>
+		static int Recognize_Sum(global::System.ReadOnlySpan<char> text, int pos, int power, ref Failure failure, out int value, global::System.ReadOnlyMemory<char> parserWhole)
+		{
+			var ways = Ways.Rent();
+			var values = DirectValues.Rent();
+
+			try
+			{
+				var reader = new Reader_DotGram_Sum(text, ways, parserWhole);
+
+				reader.failure = failure;
+
+				var end = reader.Recognize_Sum_Read(pos, power);
 
 				failure = reader.failure;
 
@@ -3623,6 +3760,14 @@ namespace DotGram.Snapshots
 		{
 			object? recognized;
 			var end = Recognize_DotGram_Sheet(text, pos, 3, 0, 0, true, true, ref failure, out recognized);
+			value = end < 0 ? default! : (string[])recognized!;
+			return end;
+		}
+
+		static int Recognize_Sheet(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string[] value)
+		{
+			object? recognized;
+			var end = Recognize_DotGram_Sheet(text, pos, 3, 0, 0, false, true, ref failure, out recognized);
 			value = end < 0 ? default! : (string[])recognized!;
 			return end;
 		}

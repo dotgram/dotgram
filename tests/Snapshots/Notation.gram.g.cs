@@ -41,6 +41,38 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(input.Substring(0, end), 0, end);
 		}
 
+		/// <summary>Reads a <c>Hashed</c> beginning at <paramref name="at"/>.</summary>
+		/// <remarks>
+		/// The input is not required to end there: what comes back says where the
+		/// reading began and how far it got, so a caller may go on from it. A position
+		/// is an offset into the text.
+		/// </remarks>
+		public static Match<string> TryHashed(string input, int at)
+		{
+			if (at < 0 || at > input.Length)
+			{
+				return Match<string>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Hashed(text, at, ref failure);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'Hashed'.";
+
+				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
+		}
+
 		/// <summary>Parses the whole input as <c>Marked</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Marked</c>. <c>TryMarked</c> answers instead.
@@ -113,6 +145,38 @@ namespace DotGram.Snapshots
 			return Match<string>.Success(input.Substring(0, end), 0, end);
 		}
 
+		/// <summary>Reads a <c>List</c> beginning at <paramref name="at"/>.</summary>
+		/// <remarks>
+		/// The input is not required to end there: what comes back says where the
+		/// reading began and how far it got, so a caller may go on from it. A position
+		/// is an offset into the text.
+		/// </remarks>
+		public static Match<string> TryLoose(string input, int at)
+		{
+			if (at < 0 || at > input.Length)
+			{
+				return Match<string>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_List_With1(text, at, ref failure);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'List'.";
+
+				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
+		}
+
 		/// <summary>Parses the whole input as <c>List</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>List</c>. <c>TryTight</c> answers instead.
@@ -147,6 +211,38 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<string>.Success(input.Substring(0, end), 0, end);
+		}
+
+		/// <summary>Reads a <c>List</c> beginning at <paramref name="at"/>.</summary>
+		/// <remarks>
+		/// The input is not required to end there: what comes back says where the
+		/// reading began and how far it got, so a caller may go on from it. A position
+		/// is an offset into the text.
+		/// </remarks>
+		public static Match<string> TryTight(string input, int at)
+		{
+			if (at < 0 || at > input.Length)
+			{
+				return Match<string>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_List(text, at, ref failure);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'List'.";
+
+				return Match<string>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<string>.Success(input.Substring(at, end - at), at, end - at);
 		}
 
 		/// <summary>Parses the whole input as <c>Small</c>.</summary>
@@ -185,6 +281,38 @@ namespace DotGram.Snapshots
 			return Match<int>.Success(recognized, 0, end);
 		}
 
+		/// <summary>Reads a <c>Small</c> beginning at <paramref name="at"/>.</summary>
+		/// <remarks>
+		/// The input is not required to end there: what comes back says where the
+		/// reading began and how far it got, so a caller may go on from it. A position
+		/// is an offset into the text.
+		/// </remarks>
+		public static Match<int> TrySmallOld(string input, int at)
+		{
+			if (at < 0 || at > input.Length)
+			{
+				return Match<int>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Small(text, at, ref failure, out var recognized, 1);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'Small'.";
+
+				return Match<int>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<int>.Success(recognized, at, end - at);
+		}
+
 		/// <summary>Parses the whole input as <c>Small</c>.</summary>
 		/// <exception cref="global::System.FormatException">
 		/// The input is not <c>Small</c>. <c>TryParseSmall</c> answers instead.
@@ -219,6 +347,38 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<int>.Success(recognized, 0, end);
+		}
+
+		/// <summary>Reads a <c>Small</c> beginning at <paramref name="at"/>.</summary>
+		/// <remarks>
+		/// The input is not required to end there: what comes back says where the
+		/// reading began and how far it got, so a caller may go on from it. A position
+		/// is an offset into the text.
+		/// </remarks>
+		public static Match<int> TryParseSmall(string input, int at)
+		{
+			if (at < 0 || at > input.Length)
+			{
+				return Match<int>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Small(text, at, ref failure, out var recognized, 0);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'Small'.";
+
+				return Match<int>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<int>.Success(recognized, at, end - at);
 		}
 
 		/// <summary>Parses the whole input as <c>Ab</c>.</summary>
@@ -291,6 +451,38 @@ namespace DotGram.Snapshots
 			}
 
 			return Match<int>.Success(recognized, 0, end);
+		}
+
+		/// <summary>Reads a <c>Primary</c> beginning at <paramref name="at"/>.</summary>
+		/// <remarks>
+		/// The input is not required to end there: what comes back says where the
+		/// reading began and how far it got, so a caller may go on from it. A position
+		/// is an offset into the text.
+		/// </remarks>
+		public static Match<int> TryParsePrimary(string input, int at)
+		{
+			if (at < 0 || at > input.Length)
+			{
+				return Match<int>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Primary(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'Primary'.";
+
+				return Match<int>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<int>.Success(recognized, at, end - at);
 		}
 
 		/// <summary>Every occurrence of <c>Word</c>, in order, found as it is asked for.</summary>
@@ -653,6 +845,42 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
+			/// <summary>A reading of <c>Hashed</c>, and the way back into it.</summary>
+			public int Recognize_Hashed_Read(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Recognize_Hashed_Read_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>Hashed</c> is read by, whichever stack it is read on.</summary>
+			public int Recognize_Hashed_Read_Body(int pos)
+			{
+				var p = pos;
+				var q0 = Read_Hashed_Hashed(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				return p;
+			}
+
 		}
 
 		/// <summary>The whole input as <c>Hashed</c>, read by methods.</summary>
@@ -667,6 +895,29 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 
 				var end = reader.Recognize_Hashed_Whole_Read(pos);
+
+				failure = reader.failure;
+
+				return end;
+			}
+			finally
+			{
+				Ways.Return(ways);
+			}
+		}
+
+		/// <summary>The whole input as <c>Hashed</c>, read by methods.</summary>
+		static int Recognize_Hashed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		{
+			var ways = Ways.Rent();
+
+			try
+			{
+				var reader = new Reader_DotGram_Hashed(text, ways);
+
+				reader.failure = failure;
+
+				var end = reader.Recognize_Hashed_Read(pos);
 
 				failure = reader.failure;
 
@@ -1089,6 +1340,42 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
+			/// <summary>A reading of <c>List_With1</c>, and the way back into it.</summary>
+			public int Recognize_List_With1_Read(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Recognize_List_With1_Read_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>List_With1</c> is read by, whichever stack it is read on.</summary>
+			public int Recognize_List_With1_Read_Body(int pos)
+			{
+				var p = pos;
+				var q0 = Read_List_With1_List_With1(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				return p;
+			}
+
 		}
 
 		/// <summary>The whole input as <c>List_With1</c>, read by methods.</summary>
@@ -1103,6 +1390,29 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 
 				var end = reader.Recognize_List_With1_Whole_Read(pos);
+
+				failure = reader.failure;
+
+				return end;
+			}
+			finally
+			{
+				Ways.Return(ways);
+			}
+		}
+
+		/// <summary>The whole input as <c>List_With1</c>, read by methods.</summary>
+		static int Recognize_List_With1(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		{
+			var ways = Ways.Rent();
+
+			try
+			{
+				var reader = new Reader_DotGram_List_With1(text, ways);
+
+				reader.failure = failure;
+
+				var end = reader.Recognize_List_With1_Read(pos);
 
 				failure = reader.failure;
 
@@ -1417,6 +1727,42 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
+			/// <summary>A reading of <c>List</c>, and the way back into it.</summary>
+			public int Recognize_List_Read(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Recognize_List_Read_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>List</c> is read by, whichever stack it is read on.</summary>
+			public int Recognize_List_Read_Body(int pos)
+			{
+				var p = pos;
+				var q0 = Read_List_List(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				return p;
+			}
+
 		}
 
 		/// <summary>The whole input as <c>List</c>, read by methods.</summary>
@@ -1431,6 +1777,29 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 
 				var end = reader.Recognize_List_Whole_Read(pos);
+
+				failure = reader.failure;
+
+				return end;
+			}
+			finally
+			{
+				Ways.Return(ways);
+			}
+		}
+
+		/// <summary>The whole input as <c>List</c>, read by methods.</summary>
+		static int Recognize_List(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		{
+			var ways = Ways.Rent();
+
+			try
+			{
+				var reader = new Reader_DotGram_List(text, ways);
+
+				reader.failure = failure;
+
+				var end = reader.Recognize_List_Read(pos);
 
 				failure = reader.failure;
 
@@ -1884,6 +2253,45 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
+			/// <summary>A reading of <c>Small</c>, and the way back into it.</summary>
+			public int Recognize_Small_Read(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Recognize_Small_Read_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					if (ways.Built > lmR) ways.Built = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>Small</c> is read by, whichever stack it is read on.</summary>
+			public int Recognize_Small_Read_Body(int pos)
+			{
+				var p = pos;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var q0 = Read_Small_Small(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				return p;
+			}
+
 		}
 
 		/// <summary>The whole input as <c>Small</c>, read by methods.</summary>
@@ -1899,6 +2307,41 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 
 				var end = reader.Recognize_Small_Whole_Read(pos);
+
+				failure = reader.failure;
+
+				if (end < 0)
+				{
+					value = default!;
+
+					return end;
+				}
+
+				Materialize_DotGram_Small_Direct(ways, text, values, ways.Last, 0, 0, parserReading);
+				value = values.V1[ways.Last].Value;
+
+				return end;
+			}
+			finally
+			{
+				Ways.Return(ways);
+				DirectValues.Return(values);
+			}
+		}
+
+		/// <summary>The whole input as <c>Small</c>, read by methods.</summary>
+		static int Recognize_Small(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value, int parserReading)
+		{
+			var ways = Ways.Rent();
+			var values = DirectValues.Rent();
+
+			try
+			{
+				var reader = new Reader_DotGram_Small(text, ways, values, parserReading);
+
+				reader.failure = failure;
+
+				var end = reader.Recognize_Small_Read(pos);
 
 				failure = reader.failure;
 
@@ -2358,6 +2801,42 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
+			/// <summary>A reading of <c>Primary</c>, and the way back into it.</summary>
+			public int Recognize_Primary_Read(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Recognize_Primary_Read_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>Primary</c> is read by, whichever stack it is read on.</summary>
+			public int Recognize_Primary_Read_Body(int pos)
+			{
+				var p = pos;
+				var q0 = Read_Primary_Primary(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				return p;
+			}
+
 		}
 
 		/// <summary>The whole input as <c>Primary</c>, read by methods.</summary>
@@ -2373,6 +2852,41 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 
 				var end = reader.Recognize_Primary_Whole_Read(pos);
+
+				failure = reader.failure;
+
+				if (end < 0)
+				{
+					value = default!;
+
+					return end;
+				}
+
+				Materialize_DotGram_Primary_Direct(ways, text, values, ways.Last, 0, 0);
+				value = values.V1[ways.Last].Value;
+
+				return end;
+			}
+			finally
+			{
+				Ways.Return(ways);
+				DirectValues.Return(values);
+			}
+		}
+
+		/// <summary>The whole input as <c>Primary</c>, read by methods.</summary>
+		static int Recognize_Primary(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value)
+		{
+			var ways = Ways.Rent();
+			var values = DirectValues.Rent();
+
+			try
+			{
+				var reader = new Reader_DotGram_Primary(text, ways);
+
+				reader.failure = failure;
+
+				var end = reader.Recognize_Primary_Read(pos);
 
 				failure = reader.failure;
 

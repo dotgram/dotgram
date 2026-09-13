@@ -1314,12 +1314,18 @@ public sealed class SemanticTests
 	[Fact]
 	public void A_rule_nothing_reaches_is_reported()
 	{
-		var told = Assert.Single(Compile(
-			"""
-			Start = 'a'
-			Stray = 'b'
-			parse Start
-			""").Diagnostics);
+		// The one thing the grammar is told is wrong. A remark may stand beside it and one
+		// does: a grammar this small is compiled as a method, so it is also told that its
+		// publication gets no overload taking a position (GRAM5010, Info). What this test
+		// is about is the rule nothing reaches.
+		var told = Assert.Single(
+			Compile(
+				"""
+				Start = 'a'
+				Stray = 'b'
+				parse Start
+				""").Diagnostics,
+			diagnostic => diagnostic.Severity != GramSeverity.Info);
 
 		Assert.Equal(GrammarNormalizer.UnusedRule, told.Id);
 		Assert.Contains("Stray", told.Message, StringComparison.Ordinal);

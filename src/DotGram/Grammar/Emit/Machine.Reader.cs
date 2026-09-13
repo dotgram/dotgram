@@ -4,6 +4,7 @@ using System.Linq;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
+using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Emit;
 
@@ -283,8 +284,16 @@ sealed partial class Machine
 
 		foreach (var publication in publications)
 		{
-			if (seen.Add(publication.Rule))
-				RenderReaderEntry(entries, members, publication.Rule);
+			if (!seen.Add(publication.Rule))
+				continue;
+
+			RenderReaderEntry(entries, members, publication.Rule);
+
+			// And the entry that begins where it is told and demands no end, which is what a
+			// positional overload calls. Only for a whole parse: `find` already reads from a
+			// position, and asking for both would write one method twice.
+			if (publication.Kind == PublishKind.Parse)
+				RenderReaderEntry(entries, members, publication.Rule, ends: false);
 		}
 
 		RenderReaderStruct(file, members);
@@ -780,11 +789,17 @@ sealed partial class Machine
 	}
 
 	/// <summary>The whole input as one rule, which is what a publication asks for.</summary>
-	void RenderReaderEntry(Writer file, Writer members, RuleSymbol rule)
+	/// <param name="ends">
+	/// Whether the input has to be finished where the rule is: what a whole parse asks and a
+	/// reading that begins where it was told does not. The two are the same entry otherwise —
+	/// the same renting, the same reader, the same root built — so they are written by one
+	/// method and told apart by this.
+	/// </param>
+	void RenderReaderEntry(Writer file, Writer members, RuleSymbol rule, bool ends = true)
 	{
 		_seam = FollowSets.SeamOf(rule, _graph);
 
-		var core   = CSharpEmitter.MethodOf(rule) + "_Whole";
+		var core   = CSharpEmitter.MethodOf(rule) + (ends ? "_Whole" : "");
 		var type   = _results.QualifiedOf(rule);
 		var valued = type is not null;
 		var value  = valued ? $", out {type} value" : "";
@@ -866,8 +881,10 @@ sealed partial class Machine
 		var tape = _opens is null || _opens.Contains(rule) ||
 			(_graph.Trivia.TryGetValue(rule, out var around) && Opens(around));
 
+		var said = ends ? "The whole input as" : "A reading of";
+
 		if (tape)
-			RenderWayBack(members, core + "_Read", $"/// <summary>The whole input as <c>{rule.Name}</c>, and the way back into it.</summary>", DirectStrength(rule));
+			RenderWayBack(members, core + "_Read", $"/// <summary>{said} <c>{rule.Name}</c>, and the way back into it.</summary>", DirectStrength(rule));
 
 		members.Line($"/// <summary>What <c>{rule.Name}</c> is read by, whichever stack it is read on.</summary>");
 
@@ -878,7 +895,11 @@ sealed partial class Machine
 				? new Node.Sequence([seam, new Node.Call(rule, []), seam])
 				: (Node)new Node.Call(rule, []);
 
-			members.Write(reader.Render(body, FollowSets.Continuation.End, entry: true, ends: true));
+			members.Write(reader.Render(
+				body,
+				ends ? FollowSets.Continuation.End : FollowSets.Continuation.All,
+				entry: true,
+				ends: ends));
 		}
 
 		members.Line();

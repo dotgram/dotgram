@@ -348,7 +348,10 @@ public static partial class CSharpEmitter
 					compiled.Machine.UsesContext ? graph.Context : null,
 					overKinds,
 					compiled.Direct && compiled.Machine.Probes,
-					compiled.Machine.UsesReading ? publication.Reading : null);
+					compiled.Machine.UsesReading ? publication.Reading : null,
+					compiled.Direct,
+					diagnostics,
+					compiled.Tag);
 
 				file.Line();
 			}
@@ -948,6 +951,17 @@ public static partial class CSharpEmitter
 
 				file.Line();
 
+				// And the same rule entered where the caller says it begins, which is what a
+				// positional overload calls. The state is already a root — `Register` adds the
+				// one that demands no end whatever the publication asked for — so this is a
+				// wrapper over it and nothing more.
+				if (whole && wrappers.Add((publication.Rule, false)))
+				{
+					file.Write(machine.RenderWrapper(
+						publication.Rule, MethodOf(publication.Rule), engine, whole: false));
+
+					file.Line();
+				}
 			}
 
 
@@ -998,10 +1012,24 @@ public static partial class CSharpEmitter
 		}
 	}
 
+	/// <summary>A publication that gets no overload taking a position, and why.</summary>
+	public const string NoPosition = "GRAM5010";
+
+	/// <param name="direct">
+	/// Whether this machine's rules are read by methods rather than by the engine. Together
+	/// with <paramref name="flat"/> it says which of the three renderings stands behind this
+	/// publication, and so which entries there are to call — a question the published methods
+	/// have to ask now that a rule may be entered at a position as well as at zero.
+	/// </param>
+	/// <param name="diagnostics">
+	/// Where a remark about this publication goes. Null where the caller wants none; an
+	/// overload that is not offered says so here, as §6.3's reader overload does.
+	/// </param>
 	static void EmitPublication(
 		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat,
 		bool ties, bool input, string? context, bool overKinds = false, bool probes = false,
-		int? reading = null)
+		int? reading = null, bool direct = false, ICollection<GramDiagnostic>? diagnostics = null,
+		string tag = "")
 	{
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
@@ -1053,6 +1081,15 @@ public static partial class CSharpEmitter
 			overKinds        ? $"Text_DotGram(source, starts, lengths, {from}, {to})" :
 			$"input.Substring({from}, {to})";
 
+		// Where the reading begins, which recognizer reads it, and what the match then says
+		// about where it was. Named rather than written inline because the same body writes
+		// the form that begins where it was told: there the position is the caller's, the
+		// recognizer is the one that demands no end, and the extent is measured from it.
+		var begins   = "0";
+		var reader   = WholeOf(publication.Rule);
+		var position = "0";
+		var extent   = overKinds ? "over" : "end";
+
 		if (publication.Kind == PublishKind.Find)
 		{
 			EmitFind(file, publication, method, name, value, match, hands, Recognized, takes);
@@ -1086,125 +1123,209 @@ public static partial class CSharpEmitter
 		file.Line();
 		file.Line($"/// <summary>Parses the whole input as <c>{name}</c>, answering rather than throwing.</summary>");
 
-		using (file.Block($"public static {match} Try{method}(string input{takes})"))
+		Asking("string input", positional: false);
+
+		// And the same rule read where the caller says it begins. No end of input is
+		// demanded — what comes back says how far the reading got — which is what lets a
+		// host read one piece of a text it is already holding, with every position in it
+		// still meaning what it meant.
+		//
+		// Offered only where the engine reads this publication. A lowered or a directly
+		// read one was compiled with the single entry a whole parse asks for, and §6.3's
+		// shape is that an overload appears where it provably works and is accounted for
+		// where it does not.
+		if (flat)
 		{
-			// A split grammar reads its input twice: once into kinds and once as kinds. What
-			// the caller hands over is a string either way — the two halves are the parser's
-			// business and not theirs.
-			if (overKinds)
+			var at = publication.Rule.Declaration?.At ?? default;
+
+			diagnostics?.Add(new GramDiagnostic(
+				NoPosition,
+				$"'Try{method}' gets no overload taking a position: the rules this publication " +
+				"reaches need none of what the shared automaton is for, so they are compiled " +
+				"with the one entry a whole parse asks for — the input, from zero. " +
+				"docs/syntax.md §6.3 says which publications get one, and why.",
+				at.Position,
+				at.Length,
+				GramSeverity.Info));
+		}
+		else
+		{
+			file.Line();
+			file.Line($"/// <summary>Reads a <c>{name}</c> beginning at <paramref name=\"at\"/>.</summary>");
+			file.Line("/// <remarks>");
+			file.Line("/// The input is not required to end there: what comes back says where the");
+			file.Line("/// reading began and how far it got, so a caller may go on from it. A position");
+			file.Line("/// is an offset into the text" +
+				(overKinds ? ", and a reading begins at a token, so one has to begin there." : "."));
+			file.Line("/// </remarks>");
+
+			begins   = overKinds ? "from" : "at";
+			reader   = MethodOf(publication.Rule);
+			position = "at";
+			extent   = overKinds ? "over - at" : "end - at";
+
+			Asking("string input, int at", positional: true);
+		}
+
+		void Asking(string parameters, bool positional)
+		{
+			// The positional form takes a parameter called `at`, so what the body would have
+			// called the place it stopped is called something else there. Only there: the
+			// whole form is emitted exactly as it always was.
+			var halt = positional ? "halted" : "at";
+
+			using (file.Block($"public static {match} Try{method}({parameters}{takes})"))
 			{
-				file.Line("var source = input;");
-				file.Line("var tokens = Tokenize_DotGram(source);");
-				file.Line();
-				file.Line("var starts  = tokens.Starts;");
-				file.Line("var lengths = tokens.Lengths;");
-				file.Line("var count   = tokens.Count;");
-				file.Line();
-
-				using (file.Block("if (tokens.Stopped >= 0)"))
+				// A split grammar reads its input twice: once into kinds and once as kinds. What
+				// the caller hands over is a string either way — the two halves are the parser's
+				// business and not theirs.
+				if (overKinds)
 				{
-					file.Line("var at = tokens.Stopped;");
+					file.Line("var source = input;");
+					file.Line("var tokens = Tokenize_DotGram(source);");
 					file.Line();
-					file.Line("Recycle_DotGram(tokens);");
+					file.Line("var starts  = tokens.Starts;");
+					file.Line("var lengths = tokens.Lengths;");
+					file.Line("var count   = tokens.Count;");
 					file.Line();
 
-					// The lexer stopped where no token begins, and the character standing there
-					// is what there is to say: the syntactic half never ran, so it has no
-					// expectation to offer. A character a message could not show plainly — a
-					// control, the quote around it, a backslash — is shown by its code.
-					file.Line("var stopped = at < source.Length ? source[at] : '\\0';");
+					using (file.Block("if (tokens.Stopped >= 0)"))
+					{
+						file.Line($"var {halt} = tokens.Stopped;");
+						file.Line();
+						file.Line("Recycle_DotGram(tokens);");
+						file.Line();
+
+						// The lexer stopped where no token begins, and the character standing there
+						// is what there is to say: the syntactic half never ran, so it has no
+						// expectation to offer. A character a message could not show plainly — a
+						// control, the quote around it, a backslash — is shown by its code.
+						file.Line($"var stopped = {halt} < source.Length ? source[{halt}] : '\\0';");
+						file.Line();
+						file.Line(
+							$"return {match}.Failed({OutcomeType}.NoMatch, " +
+							$"{halt} >= source.Length ? \"Expected more input.\" : " +
+							"\"Unexpected character '\" + " +
+							"(global::System.Char.IsControl(stopped) || stopped == '\\'' || stopped == '\\\\' " +
+							"? \"\\\\u\" + ((int)stopped).ToString(\"X4\", global::System.Globalization.CultureInfo.InvariantCulture) " +
+							$": stopped.ToString()) + \"'.\", {halt}, null, null);");
+					}
+
 					file.Line();
-					file.Line(
-						$"return {match}.Failed({OutcomeType}.NoMatch, " +
-						"at >= source.Length ? \"Expected more input.\" : " +
-						"\"Unexpected character '\" + " +
-						"(global::System.Char.IsControl(stopped) || stopped == '\\'' || stopped == '\\\\' " +
-						"? \"\\\\u\" + ((int)stopped).ToString(\"X4\", global::System.Globalization.CultureInfo.InvariantCulture) " +
-						": stopped.ToString()) + \"'.\", at, null, null);");
+
+					// Out here a position is an offset into the text; in there it is a token.
+					// A reading has to begin where one begins, and where none does the caller
+					// named a place inside a token or past the end.
+					if (positional)
+					{
+						// Named with this machine's tag, as everything it writes is: two machines
+						// in one class must not collide (Machine.Provenance).
+						file.Line($"var from = TokenAt_DotGram{tag}(starts, count, at);");
+						file.Line();
+
+						using (file.Block("if (from < 0)"))
+						{
+							file.Line("Recycle_DotGram(tokens);");
+							file.Line();
+							file.Line(
+								$"return {match}.Failed({OutcomeType}.NoMatch, " +
+								"\"No token begins at \" + at.ToString() + \".\", at, null, null);");
+						}
+
+						file.Line();
+					}
+				}
+				else if (positional)
+				{
+					// The same refusal over characters, where a position is already one.
+					using (file.Block("if (at < 0 || at > input.Length)"))
+						file.Line(
+							$"return {match}.Failed({OutcomeType}.NoMatch, " +
+							"\"Position \" + at.ToString() + \" is outside the input.\", at, null, null);");
+
+					file.Line();
 				}
 
-				file.Line();
-			}
-
-			// Fully qualified, and as a static call rather than an extension method:
-			// the emitted file carries no usings at all (.claude/rules/emitted-code.md).
-			file.Line(
-				overKinds
-					? "var text    = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);"
-					: "var text    = global::System.MemoryExtensions.AsSpan(input);");
-
-			// The same characters again, in the one shape that may be handed to another
-			// thread: what a reading that runs the stack low goes on with.
-			if (probes)
+				// Fully qualified, and as a static call rather than an extension method:
+				// the emitted file carries no usings at all (.claude/rules/emitted-code.md).
 				file.Line(
 					overKinds
-						? "var parserWhole = new global::System.ReadOnlyMemory<char>(tokens.Kinds, 0, count);"
-						: "var parserWhole = global::System.MemoryExtensions.AsMemory(input);");
+						? "var text    = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);"
+						: "var text    = global::System.MemoryExtensions.AsSpan(input);");
 
-			// Carried through every recognizer this call reaches, so that what comes back
-			// is the furthest the input was followed and not merely "no".
-			file.Line($"var failure = new {FailureType}();");
-			file.Line();
-			file.Line($"var end = {WholeOf(publication.Rule)}(text, 0{hands});");
-			file.Line();
-			file.Line("if (end < 0)");
-			using (file.Block(""))
-			{
-				// Nothing is built here. What the arrays recorded is handed over as it
-				// stands, and `Match<T>.Error` merges and words it if anybody asks —
-				// a caller that only wants to know whether the input matched pays for
-				// none of it. `.NET`'s own `Group.Value` is the same bargain from the
-				// other side: it stores where a capture was and cuts the string on
-				// access. A flat recognizer without checkpoint sites never reaches a
-				// tie at all (Machine.Flat.cs's own Fail:), so it has no second array
-				// to hand over; one with them accumulates ties the way the engine does.
-				//
-				// The one thing chosen here rather than there is which literal stands in
-				// when nothing named what would have fit: only this end knows how far the
-				// input went, and both answers are literals, so choosing costs a branch
-				// and no allocation at all. The same test says which outcome this is
-				// (§7.5), which is why the two are read off one comparison.
-				file.Line("var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;");
+				// The same characters again, in the one shape that may be handed to another
+				// thread: what a reading that runs the stack low goes on with.
+				if (probes)
+					file.Line(
+						overKinds
+							? "var parserWhole = new global::System.ReadOnlyMemory<char>(tokens.Kinds, 0, count);"
+							: "var parserWhole = global::System.MemoryExtensions.AsMemory(input);");
+
+				// Carried through every recognizer this call reaches, so that what comes back
+				// is the furthest the input was followed and not merely "no".
+				file.Line($"var failure = new {FailureType}();");
 				file.Line();
-				file.Line("var otherwise = starved");
-				file.Then("? \"Expected more input.\"");
-				file.Then($": \"Input does not match '{name}'.\";");
+				file.Line($"var end = {reader}(text, {begins}{hands});");
+				file.Line();
+				file.Line("if (end < 0)");
+				using (file.Block(""))
+				{
+					// Nothing is built here. What the arrays recorded is handed over as it
+					// stands, and `Match<T>.Error` merges and words it if anybody asks —
+					// a caller that only wants to know whether the input matched pays for
+					// none of it. `.NET`'s own `Group.Value` is the same bargain from the
+					// other side: it stores where a capture was and cuts the string on
+					// access. A flat recognizer without checkpoint sites never reaches a
+					// tie at all (Machine.Flat.cs's own Fail:), so it has no second array
+					// to hand over; one with them accumulates ties the way the engine does.
+					//
+					// The one thing chosen here rather than there is which literal stands in
+					// when nothing named what would have fit: only this end knows how far the
+					// input went, and both answers are literals, so choosing costs a branch
+					// and no allocation at all. The same test says which outcome this is
+					// (§7.5), which is why the two are read off one comparison.
+					file.Line("var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;");
+					file.Line();
+					file.Line("var otherwise = starved");
+					file.Then("? \"Expected more input.\"");
+					file.Then($": \"Input does not match '{name}'.\";");
+					file.Line();
+					if (overKinds)
+					{
+						file.Line($"var {halt} = failure.Position < count ? starts[failure.Position] : source.Length;");
+						file.Line();
+						file.Line("Recycle_DotGram(tokens);");
+						file.Line();
+					}
+
+					file.Line(
+						$"return {match}.Failed(" +
+						$"starved ? {OutcomeType}.Starved : {OutcomeType}.NoMatch, " +
+						"otherwise, " +
+						// Against the token count and not the array's length: the caller sizes the
+						// arrays for the worst case and fills the front of them, so past the count
+						// they hold zeros — and a refusal at the end came back as a refusal at the
+						// beginning, which the character parser next door reported correctly. The
+						// count is the length of the kinds, there being one character a token.
+						(overKinds ? $"{halt}, " : "failure.Position, ") +
+						"failure.Expected, " +
+						(flat && !ties ? "null);" : "failure.ExpectedMore);"));
+				}
 				file.Line();
 				if (overKinds)
 				{
-					file.Line("var at = failure.Position < count ? starts[failure.Position] : source.Length;");
+					// Both read the arrays, so both are worked out before the set goes back.
+					file.Line($"var whole = {Recognized(begins, "end")};");
+					file.Line("var over  = end == 0 ? 0 : starts[end - 1] + lengths[end - 1];");
 					file.Line();
 					file.Line("Recycle_DotGram(tokens);");
 					file.Line();
+					file.Line($"return {match}.Success(whole, {position}, {extent});");
 				}
-
-				file.Line(
-					$"return {match}.Failed(" +
-					$"starved ? {OutcomeType}.Starved : {OutcomeType}.NoMatch, " +
-					"otherwise, " +
-					// Against the token count and not the array's length: the caller sizes the
-					// arrays for the worst case and fills the front of them, so past the count
-					// they hold zeros — and a refusal at the end came back as a refusal at the
-					// beginning, which the character parser next door reported correctly. The
-					// count is the length of the kinds, there being one character a token.
-					(overKinds ? "at, " : "failure.Position, ") +
-					"failure.Expected, " +
-					(flat && !ties ? "null);" : "failure.ExpectedMore);"));
-			}
-			file.Line();
-			if (overKinds)
-			{
-				// Both read the arrays, so both are worked out before the set goes back.
-				file.Line($"var whole = {Recognized("0", "end")};");
-				file.Line("var over  = end == 0 ? 0 : starts[end - 1] + lengths[end - 1];");
-				file.Line();
-				file.Line("Recycle_DotGram(tokens);");
-				file.Line();
-				file.Line($"return {match}.Success(whole, 0, over);");
-			}
-			else
-			{
-				file.Line($"return {match}.Success({Recognized("0", "end")}, 0, end);");
+				else
+				{
+					file.Line($"return {match}.Success({Recognized(begins, extent)}, {position}, {extent});");
+				}
 			}
 		}
 	}

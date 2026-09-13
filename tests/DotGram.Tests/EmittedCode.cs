@@ -110,7 +110,10 @@ static class EmittedCode
 		Assembly assembly, string className, string method, string input)
 	{
 		var type  = assembly.GetType(className)!;
-		var match = type.GetMethod(method)!.Invoke(null, [input])!;
+		// By the parameter it takes and not by name alone: a publication may have a second
+		// form taking the position to begin at, and a name that names two methods is no name
+		// to `GetMethod` at all.
+		var match = type.GetMethod(method, [typeof(string)])!.Invoke(null, [input])!;
 
 		object? Read(string name) => match.GetType().GetProperty(name)!.GetValue(match);
 
@@ -124,7 +127,7 @@ static class EmittedCode
 	public static string Outcome(Assembly assembly, string className, string method, string input)
 	{
 		var type  = assembly.GetType(className)!;
-		var match = type.GetMethod(method)!.Invoke(null, [input])!;
+		var match = type.GetMethod(method, [typeof(string)])!.Invoke(null, [input])!;
 
 		return match.GetType().GetProperty("Outcome")!.GetValue(match)!.ToString()!;
 	}

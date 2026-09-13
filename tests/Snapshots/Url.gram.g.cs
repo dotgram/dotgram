@@ -41,6 +41,38 @@ namespace DotGram.Snapshots
 			return Match<global::DotGram.Snapshots.Url.UrlValue>.Success(recognized, 0, end);
 		}
 
+		/// <summary>Reads a <c>Url</c> beginning at <paramref name="at"/>.</summary>
+		/// <remarks>
+		/// The input is not required to end there: what comes back says where the
+		/// reading began and how far it got, so a caller may go on from it. A position
+		/// is an offset into the text.
+		/// </remarks>
+		public static Match<global::DotGram.Snapshots.Url.UrlValue> TryParseUrl(string input, int at)
+		{
+			if (at < 0 || at > input.Length)
+			{
+				return Match<global::DotGram.Snapshots.Url.UrlValue>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Url(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'Url'.";
+
+				return Match<global::DotGram.Snapshots.Url.UrlValue>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<global::DotGram.Snapshots.Url.UrlValue>.Success(recognized, at, end - at);
+		}
+
 		/// <summary>Every occurrence of <c>Url</c>, in order, found as it is asked for.</summary>
 		public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.UrlValue>> AllUrls(string input)
 		{

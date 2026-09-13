@@ -118,8 +118,10 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("ParserArena Entries", source);
 		Assert.DoesNotContain("List<ParserEntry>", source);
-		Assert.DoesNotContain("Recognize_A(", source);
-		Assert.DoesNotContain("Recognize_B(", source);
+		// One automaton, asked of the automaton itself. A per-rule `Recognize_A` says
+		// nothing about that any more: a published rule has one of those for every entry
+		// it can be read at, and they all select a state in the machine below.
+		Assert.Contains("int Recognize_DotGram(", source);
 		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseA", input).IsSuccess);
 		Assert.False(EmittedCode.Match(parser, "Grammar", "TryParseA", input + "b").IsSuccess);
 	}
@@ -369,7 +371,7 @@ public sealed class CSharpEmitterTests
 		var source = Emit("Start = digits: ['0'..'9']+\nparse Start");
 
 		Assert.Contains("ParserEntry.Capture", source);
-		Assert.DoesNotContain("Recognize_Start(", source);
+		Assert.Contains("int Recognize_DotGram(", source);
 
 		// No longer also `Assert.DoesNotContain("List<string>", source)`: every
 		// TryParseX wrapper flattens `Failure.Expected`/`ExpectedMore` into a local
@@ -393,7 +395,7 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("ParserEntry.Construct", source);
 		Assert.Contains("entries[call] = new ParserEntry(ParserEntry.Completed", source);
-		Assert.DoesNotContain("Recognize_Start(", source);
+		Assert.Contains("int Recognize_DotGram(", source);
 		Assert.True(
 			source.IndexOf("Accept:", StringComparison.Ordinal) <
 			 source.LastIndexOf("[completedAt] = Construct_Start(", StringComparison.Ordinal));
@@ -452,7 +454,7 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("ParserEntry.RuleCapture", source);
 		Assert.Contains("parser.Materialization(entries.Count)", source);
-		Assert.DoesNotContain("Recognize_Inner(", source);
+		Assert.Contains("int Recognize_DotGram(", source);
 		Assert.DoesNotContain("List<Inner>", source);
 	}
 
@@ -483,7 +485,7 @@ public sealed class CSharpEmitterTests
 		// One repetition and nothing else: the array the materializer built is the
 		// result, handed back without being counted into a copy of itself.
 		Assert.Contains("item0 ?? new string[0];", source);
-		Assert.DoesNotContain("Recognize_Start(", source);
+		Assert.Contains("int Recognize_DotGram(", source);
 
 		// No longer also `Assert.DoesNotContain("List<string>", source)`: every
 		// TryParseX wrapper flattens `Failure.Expected`/`ExpectedMore` into a local
@@ -511,7 +513,7 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("var hasAccumulated = false;", source);
 		Assert.Contains("for (var constructAt = completedAt + 1;", source);
-		Assert.DoesNotContain("Recognize_Start(", source);
+		Assert.Contains("int Recognize_DotGram(", source);
 		Assert.True(match.IsSuccess);
 		Assert.Equal(terms, match.Value);
 	}
@@ -536,7 +538,7 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("Recognize_DotGram_Guard0(string value)", source);
 		Assert.Contains("candidate.Kind == ParserEntry.Capture", source);
 		Assert.DoesNotContain("bool[] _built", source);
-		Assert.DoesNotContain("Recognize_Start(", source);
+		Assert.Contains("int Recognize_DotGram(", source);
 		Assert.True(match.IsSuccess);
 	}
 
@@ -554,7 +556,7 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("bool[] _built", source);
 		Assert.Contains("parser.Materialized();", source);
 		Assert.DoesNotContain("parser.Materialized(entries.Count);", source);
-		Assert.DoesNotContain("Recognize_Start(", source);
+		Assert.Contains("int Recognize_DotGram(", source);
 		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseStart", "2").IsSuccess);
 		Assert.False(EmittedCode.Match(parser, "Grammar", "TryParseStart", "4").IsSuccess);
 	}
@@ -595,7 +597,7 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("capture lookahead", source);
 		Assert.Contains("var seenTo = p;", source);
-		Assert.DoesNotContain("Recognize_Start(", source);
+		Assert.Contains("int Recognize_DotGram(", source);
 	}
 
 	[Fact]
@@ -604,7 +606,7 @@ public sealed class CSharpEmitterTests
 		var source = Emit("Start = seen: ?!'z' & 'a'\nparse Start");
 
 		Assert.Contains("capture negative lookahead", source);
-		Assert.DoesNotContain("Recognize_Start(", source);
+		Assert.Contains("int Recognize_DotGram(", source);
 	}
 
 	[Fact]

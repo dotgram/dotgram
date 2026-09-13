@@ -41,6 +41,38 @@ namespace DotGram.Snapshots
 			return Match<global::DotGram.Snapshots.Feed.FeedValue>.Success(recognized, 0, end);
 		}
 
+		/// <summary>Reads a <c>Feed</c> beginning at <paramref name="at"/>.</summary>
+		/// <remarks>
+		/// The input is not required to end there: what comes back says where the
+		/// reading began and how far it got, so a caller may go on from it. A position
+		/// is an offset into the text.
+		/// </remarks>
+		public static Match<global::DotGram.Snapshots.Feed.FeedValue> TryParseFeed(string input, int at)
+		{
+			if (at < 0 || at > input.Length)
+			{
+				return Match<global::DotGram.Snapshots.Feed.FeedValue>.Failed(Outcome.NoMatch, "Position " + at.ToString() + " is outside the input.", at, null, null);
+			}
+
+			var text    = global::System.MemoryExtensions.AsSpan(input);
+			var failure = new Failure();
+
+			var end = Recognize_Feed(text, at, ref failure, out var recognized);
+
+			if (end < 0)
+			{
+				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
+
+				var otherwise = starved
+					? "Expected more input."
+					: "Input does not match 'Feed'.";
+
+				return Match<global::DotGram.Snapshots.Feed.FeedValue>.Failed(starved ? Outcome.Starved : Outcome.NoMatch, otherwise, failure.Position, failure.Expected, failure.ExpectedMore);
+			}
+
+			return Match<global::DotGram.Snapshots.Feed.FeedValue>.Success(recognized, at, end - at);
+		}
+
 		/// <summary>Every occurrence of <c>Name</c>, in order, found as it is asked for.</summary>
 		public static global::System.Collections.Generic.IEnumerable<Match<string>> FindName(string input)
 		{
@@ -1116,6 +1148,43 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
+			/// <summary>A reading of <c>Feed</c>, and the way back into it.</summary>
+			public int Recognize_Feed_Read(int pos)
+			{
+				var s  = ways.Cursor;
+				var lm  = ways.LogCount;
+				var lmR = ways.Records;
+				var rb = ways.RefsCount;
+
+				while (true)
+				{
+					var q = Recognize_Feed_Read_Body(pos);
+
+					if (q >= 0)
+						return q;
+
+					ways.LogCount  = lm;
+					ways.Records   = lmR;
+					ways.RefsCount = rb;
+
+					if (ways.Cursor > s && ways.Retry(s))
+						continue;
+
+					return -1;
+				}
+			}
+
+			/// <summary>What <c>Feed</c> is read by, whichever stack it is read on.</summary>
+			public int Recognize_Feed_Read_Body(int pos)
+			{
+				var p = pos;
+				var rb = ways.RefsCount;
+				var q0 = Read_Feed_Feed(p);
+				if (q0 < 0) return -1;
+				p = q0;
+				return p;
+			}
+
 		}
 
 		/// <summary>The whole input as <c>Feed</c>, read by methods.</summary>
@@ -1131,6 +1200,41 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 
 				var end = reader.Recognize_Feed_Whole_Read(pos);
+
+				failure = reader.failure;
+
+				if (end < 0)
+				{
+					value = default!;
+
+					return end;
+				}
+
+				Materialize_DotGram_Feed_Direct(ways, text, values, ways.Last, 0, 0);
+				value = values.V0[ways.Last].Value;
+
+				return end;
+			}
+			finally
+			{
+				Ways.Return(ways);
+				DirectValues.Return(values);
+			}
+		}
+
+		/// <summary>The whole input as <c>Feed</c>, read by methods.</summary>
+		static int Recognize_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.FeedValue value)
+		{
+			var ways = Ways.Rent();
+			var values = DirectValues.Rent();
+
+			try
+			{
+				var reader = new Reader_DotGram_Feed(text, ways);
+
+				reader.failure = failure;
+
+				var end = reader.Recognize_Feed_Read(pos);
 
 				failure = reader.failure;
 
