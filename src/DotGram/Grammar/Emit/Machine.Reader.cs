@@ -878,7 +878,7 @@ sealed partial class Machine
 				? new Node.Sequence([seam, new Node.Call(rule, []), seam])
 				: (Node)new Node.Call(rule, []);
 
-			members.Write(reader.Render(body, FollowSets.Continuation.End, whole: true));
+			members.Write(reader.Render(body, FollowSets.Continuation.End, entry: true, ends: true));
 		}
 
 		members.Line();
@@ -988,11 +988,29 @@ sealed partial class Machine
 		/// <summary>Whether this method writes a record, and so needs the side stack mark.</summary>
 		bool _records;
 
-		public string Render(Node body, FollowSets.Continuation following, bool whole = false)
+		/// <summary>One body as statements: a rule's own, a part of one, or an entry's.</summary>
+		/// <param name="entry">
+		/// Whether this body is an entry's rather than the rule's own. An entry wraps a
+		/// <em>call</em> to the rule instead of being what the rule is, so the rule is called at
+		/// the strength the entry was asked, and the two tails a rule writes at the end of its
+		/// own body are not written here — they belong to the body this one calls.
+		/// </param>
+		/// <param name="ends">
+		/// Whether the input has to be finished where this body is: what <c>parse</c> says and
+		/// <c>find</c> does not.
+		/// </param>
+		/// <remarks>
+		/// The two were one flag called <c>whole</c>, which was true of every entry there was
+		/// because every entry read the whole input from zero. They are apart now because that
+		/// is no longer the only kind: an entry asked to read from a position is an entry — it
+		/// calls the rule and writes no tails — and is not an end.
+		/// </remarks>
+		public string Render(
+			Node body, FollowSets.Continuation following, bool entry = false, bool ends = false)
 		{
 			var code = new Writer(0);
 
-			_entry = whole;
+			_entry = entry;
 
 			Emit(code, body, following);
 
@@ -1000,16 +1018,16 @@ sealed partial class Machine
 			// construction to write that record at, so it is written where the rule ends —
 			// by the rule's body and not by a part of it, and not by the entry that reads
 			// the whole input through it.
-			if (!whole && !_part && machine.RecordsAtEnd(owner))
+			if (!entry && !_part && machine.RecordsAtEnd(owner))
 				EmitRecord(code, -1);
 
 			// And a folding rule is worth its base and the turns over it, which is known
 			// where the turns stop — the loop being an ordinary repetition, the only place
 			// that knows is after the body.
-			if (!whole && !_part && _folds)
+			if (!entry && !_part && _folds)
 				Carried(code, machine.Carrier.Folded(owner));
 
-			if (whole)
+			if (ends)
 			{
 				using (code.Block("if (p != text.Length)"))
 				{
