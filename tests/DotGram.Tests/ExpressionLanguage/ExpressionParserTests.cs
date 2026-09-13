@@ -30,6 +30,46 @@ public sealed class ExpressionParserTests
 	public void An_expression_body_reads_and_runs(string text, int argument, int expected) =>
 		Assert.Equal(expected, ExpressionParser.Compile<Func<int, int>>(text)(argument));
 
+	/// <summary>A caller may name its assembly instead of being asked which it is.</summary>
+	/// <remarks>
+	/// Asking the call itself is a stack crawl — about 296 ns, a quarter of the shortest parse
+	/// there is — and it is paid for every reading, so a caller reading many texts would rather
+	/// ask once and hand the answer over. What the two forms build has to be the same tree, or
+	/// the cheaper one is a different language.
+	/// </remarks>
+	[Theory]
+	[InlineData("(int x) => x + 1")]
+	[InlineData("(string s) => s.Trim().Length")]
+	[InlineData("using System; (int x) => Math.Max(x, 1)")]
+	public void A_caller_may_name_its_assembly_instead_of_being_asked(string text)
+	{
+		var here  = typeof(ExpressionParserTests).Assembly;
+		var asked = ExpressionParser.Parse(text).ToString();
+
+		Assert.Equal(asked, ExpressionParser.Parse(text, here).ToString());
+		Assert.Equal(asked, ExpressionParser.TryParse(text, here).Value!.ToString());
+	}
+
+	/// <summary>And which assembly it names is what the text may reach into.</summary>
+	/// <remarks>
+	/// The saving is the lesser half of that overload. What a text may name is what C# written
+	/// in the calling assembly could — public types, and that assembly's internal ones — so
+	/// naming another assembly reads the text with that assembly's reach. <c>Held</c> is
+	/// internal to this one; read on behalf of the assembly that declares <c>object</c> it is
+	/// no name at all.
+	/// </remarks>
+	[Fact]
+	public void And_which_assembly_it_names_is_what_the_text_may_reach_into()
+	{
+		const string Text = "(int x) => new DotGram.Tests.ExpressionLanguage.Held().Twice()";
+
+		Assert.Equal(
+			2,
+			ExpressionParser.Compile<Func<int, int>>(Text, typeof(ExpressionParserTests).Assembly)(0));
+
+		Assert.False(ExpressionParser.TryParse(Text, typeof(object).Assembly).IsSuccess);
+	}
+
 	/// <summary>
 	/// The same language with its identifiers spelled in ASCII, which is one line of
 	/// grammar and no second grammar (§5.1).

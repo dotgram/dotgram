@@ -1016,8 +1016,21 @@ public static partial class ExpressionParser
 	[MethodImpl(MethodImplOptions.NoInlining)]
 	public static LambdaExpression Parse(string text) => Parse(text, Assembly.GetCallingAssembly());
 
-	/// <summary>The same, for a caller already asked.</summary>
-	static LambdaExpression Parse(string text, Assembly caller)
+	/// <summary>The same, on behalf of an assembly the caller names.</summary>
+	/// <remarks>
+	/// <para>
+	/// The form above asks the call itself who is calling, and that question is a stack crawl:
+	/// ~296 ns, which is a quarter of the shortest parse there is. A caller reading many texts
+	/// asks it once instead — <c>typeof(Whatever).Assembly</c> costs about 7 ns, and a static
+	/// field holding it about 3 — and hands the answer to each reading.
+	/// </para>
+	/// <para>
+	/// What is handed over is not only a saving. The assembly is what decides which internal
+	/// types and members a text may name, so naming another one here reads the text with that
+	/// assembly's reach rather than the caller's.
+	/// </para>
+	/// </remarks>
+	public static LambdaExpression Parse(string text, Assembly caller)
 	{
 		var state = new State(caller);
 		var match = TryParseLambda(text, state);
@@ -1035,7 +1048,7 @@ public static partial class ExpressionParser
 	/// <summary>The same, answering rather than throwing.</summary>
 	/// <remarks>
 	/// <para>
-	/// For everything <see cref="Parse"/> would throw for, and not only for text that is not
+	/// For everything <see cref="Parse(string)"/> would throw for, and not only for text that is not
 	/// this language: a name nothing declares, a member the type does not have, an operator
 	/// its operands do not support. A caller holding text somebody typed cannot tell those
 	/// from a mistake in the syntax before asking, and should not need a second way of
@@ -1048,9 +1061,17 @@ public static partial class ExpressionParser
 	/// </para>
 	/// </remarks>
 	[MethodImpl(MethodImplOptions.NoInlining)]
-	public static Match<LambdaExpression> TryParse(string text)
+	public static Match<LambdaExpression> TryParse(string text) =>
+		TryParse(text, Assembly.GetCallingAssembly());
+
+	/// <summary>The same, on behalf of an assembly the caller names.</summary>
+	/// <remarks>
+	/// What that assembly decides, and what asking the call for it costs, is written under
+	/// <see cref="Parse(string, Assembly)"/>.
+	/// </remarks>
+	public static Match<LambdaExpression> TryParse(string text, Assembly caller)
 	{
-		var state = new State(Assembly.GetCallingAssembly());
+		var state = new State(caller);
 		Match<LambdaExpression> match;
 
 		try
@@ -1069,7 +1090,7 @@ public static partial class ExpressionParser
 
 	/// <summary>Whether an exception is the text being refused, as against a defect here.</summary>
 	/// <remarks>
-	/// The four <see cref="Parse"/> documents, and not the null checks every helper in this
+	/// The four <see cref="Parse(string)"/> documents, and not the null checks every helper in this
 	/// class makes: an <c>ArgumentNullException</c> is this class handing itself nothing,
 	/// which no text can cause and an answer would hide.
 	/// </remarks>
@@ -1087,9 +1108,18 @@ public static partial class ExpressionParser
 	/// </remarks>
 	[MethodImpl(MethodImplOptions.NoInlining)]
 	public static TDelegate Compile<TDelegate>(string text)
+		where TDelegate : Delegate =>
+		Compile<TDelegate>(text, Assembly.GetCallingAssembly());
+
+	/// <summary>The same, on behalf of an assembly the caller names.</summary>
+	/// <remarks>
+	/// What that assembly decides, and what asking the call for it costs, is written under
+	/// <see cref="Parse(string, Assembly)"/>.
+	/// </remarks>
+	public static TDelegate Compile<TDelegate>(string text, Assembly caller)
 		where TDelegate : Delegate
 	{
-		var lambda  = Parse(text, Assembly.GetCallingAssembly());
+		var lambda  = Parse(text, caller);
 		var returns = typeof(TDelegate).GetMethod("Invoke")!.ReturnType;
 		var body    = returns == typeof(void) ? lambda.Body : Converted(lambda.Body, returns);
 
@@ -1967,7 +1997,7 @@ public static partial class ExpressionParser
 		/// <remarks>
 		/// Asked of the call itself — which is why this is never inlined into its caller — so
 		/// that a parser used through the generated <c>TryParseLambda</c> sees what one used
-		/// through <see cref="Parse"/> sees: public types, and the calling assembly's internal
+		/// through <see cref="Parse(string)"/> sees: public types, and the calling assembly's internal
 		/// ones.
 		/// </remarks>
 		[MethodImpl(MethodImplOptions.NoInlining)]
@@ -1976,8 +2006,15 @@ public static partial class ExpressionParser
 		{
 		}
 
-		/// <summary>A reading on behalf of that assembly, asked already.</summary>
-		internal State(Assembly caller)
+		/// <summary>A reading on behalf of an assembly the caller names.</summary>
+		/// <remarks>
+		/// The form above asks the call who is calling, and that is a stack crawl — ~296 ns,
+		/// a quarter of the shortest parse there is — paid once for every reading. A caller
+		/// reading many texts asks once and hands the answer to each. And it is a choice as
+		/// well as a saving: the assembly is what decides which internal types and members
+		/// the text may name.
+		/// </remarks>
+		public State(Assembly caller)
 		{
 			Caller  = caller ?? throw new ArgumentNullException(nameof(caller));
 			Members = new MemberResolver(Caller, _imports);
