@@ -659,6 +659,16 @@ public sealed class ExpressionParserTests
 			("l.Max(n => n / 2.0)",                               l.Max(n => n / 2.0)),
 			("l.Average(n => n)",                                 l.Average(n => n)),
 			("l.Select(n => n.ToString()).Sum(s => s.Length)",    l.Select(n => n.ToString()).Sum(s => s.Length)),
+			// A body read before its parameters have types, and read again once they do: what asks
+			// what a value is worth — `var`, `foreach (var …)` — waits for the second reading.
+			("l.Select(n => { var m = n * 2; return m + 1; }).ToArray()", l.Select(n => { var m = n * 2; return m + 1; }).ToArray()),
+			("l.Select(n => { var s = n.ToString(); return s.Length; }).ToArray()", l.Select(n => { var s = n.ToString(); return s.Length; }).ToArray()),
+			("l.Select(n => n.ToString()).Select(s => { int t = 0; foreach (var c in s) t += c; return t; }).ToArray()", l.Select(n => n.ToString()).Select(s => { int t = 0; foreach (var c in s) t += c; return t; }).ToArray()),
+			("l.Select(n => l.Where(m => { var d = m - n; return d > 0; }).Count()).ToArray()", l.Select(n => l.Where(m => { var d = m - n; return d > 0; }).Count()).ToArray()),
+			("l.Select(n => n.ToString()?.Length).ToArray()",     l.Select(n => n.ToString()?.Length).ToArray()),
+			("l.Select(n => { int s = 0; foreach (var c in n.ToString()) s += c; return s; }).ToArray()", l.Select(n => { int s = 0; foreach (var c in n.ToString()) s += c; return s; }).ToArray()),
+			("l.Select(n => n.CompareTo(2)).ToArray()",           l.Select(n => n.CompareTo(2)).ToArray()),
+			("l.Select(n => n.ToString().Length).ToArray()",      l.Select(n => n.ToString().Length).ToArray()),
 		];
 
 		var wrong = cases
@@ -686,19 +696,6 @@ public sealed class ExpressionParserTests
 			}
 		}
 	}
-
-	/// <summary>Where such a lambda is not C# yet, said rather than hidden.</summary>
-	/// <remarks>
-	/// Its body is read once to find where it ends, with the parameters not yet typed, and a
-	/// guard that is handed a value while the text is read builds that value then: `var`
-	/// asks what its initializer is worth, and `n * 2` over an untyped `n` is worth nothing
-	/// yet. C# reads it. When this starts passing, the case belongs in the test above.
-	/// </remarks>
-	[Fact]
-	public void A_var_in_the_body_of_a_lambda_that_says_no_types_is_not_read_yet() =>
-		Assert.False(ExpressionParser.TryParse(
-			"using System.Collections.Generic; using System.Linq; " +
-			"(List<int> l) => l.Select(n => { var m = n * 2; return m; }).ToArray()").IsSuccess);
 
 	[Fact]
 	public void A_lambda_that_says_no_types_and_is_handed_to_nothing_is_refused() =>

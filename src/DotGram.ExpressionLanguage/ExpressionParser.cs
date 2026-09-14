@@ -132,9 +132,7 @@ namespace DotGram.ExpressionLanguage;
 //   * A lambda may be written inside an expression, with the types of its parameters said or
 //     not: `(int y) => y * 2` and `y => y * 2`. The second takes them from the parameter of the
 //     overload it is handed to, as C#'s does, and its body is read again once they are known.
-//     A guard in that body which is handed a value while the text is first read — a `var`, a
-//     `?.` over the parameter — sees the parameter before it has a type, and refuses. A
-//     `return` inside a lambda leaves that lambda, as it does in C#.
+//     A `return` inside a lambda leaves that lambda, as it does in C#.
 //   * `?.` guards the whole chain after it, as C#'s does, and is worth the nullable of what
 //     the chain is worth: `s?.Length` is an `int?`. Written as `?` and `.`, which is what
 //     lets `x ? .5 : 1` keep its number.
@@ -399,7 +397,7 @@ namespace DotGram.ExpressionLanguage;
 		& (one: Awaiting | '(' & first: Awaiting & (',' & rest: Awaiting)* & ')') & "=>"
 		& when @(context.Awaits(Awaited.Of(one, first, rest), parserSpan))
 		& when @(context.Entering(parserSpan)) & body: Held
-		& when @(context.Scoped(parserSpan) && context.Leaves(parserSpan))
+		& when @(context.Scoped(parserSpan) && context.Leaves(parserSpan) && context.Settles(parserSpan))
 		=> @(context.Deferred(Awaited.Of(one, first, rest), body, parserSpan, TryParseBody))
 
 	Awaiting : @Awaited = name: Word => @(new Awaited(name, parserSpan.Start))
@@ -558,8 +556,9 @@ namespace DotGram.ExpressionLanguage;
 		=> @(context.Block(statements, parserSpan, value))
 
 	Statement : @Expression
-		= s: Local            => @(s)
-		| s: Inferred         => @(s)
+		= s: Local             => @(s)
+		| s: InferredUnsettled => @(s)
+		| s: Inferred          => @(s)
 		| s: Return           => @(s)
 		| s: Block            => @(s)
 		| s: Control          => @(s)
@@ -597,6 +596,20 @@ namespace DotGram.ExpressionLanguage;
 		& when @(ExpressionParser.Inferable(value) && context.Declare(value.Type, name, parserSpan))
 		=> @(ExpressionParser.Assigned(context.Named(name, parserSpan), value))
 
+	// `var` in the body of a lambda whose parameters say no types, while that body is read
+	// before they have them (`Untyped`). `Inferred` asks what the initializer is worth, and a
+	// guard is handed what it names built: `n * 2` over an `n` with no type yet is worth nothing
+	// and cannot be built. So this reads the initializer without naming it and declares the
+	// name the way the parameters are declared, an `object` standing in. Nothing it makes is
+	// kept — the body is read again once the types are known, and there this refuses at its
+	// first guard and `Inferred` reads the declaration. A rule of its own for the reason
+	// `Inferred` is one.
+	InferredUnsettled : @Expression
+		= inferred: Word & when @(inferred == "var" && context.Unsettled(parserSpan))
+		& name: Word & '=' & Value & ';'
+		& when @(context.Declare(typeof(object), name, parserSpan))
+		=> @(Expression.Empty())
+
 	Return : @Expression = "return" & value: Value & ';'
 	                     => @(context.Return(value, parserSpan))
 
@@ -630,8 +643,9 @@ namespace DotGram.ExpressionLanguage;
 		| c: While           => @(c)
 		| c: DoWhile         => @(c)
 		| c: For             => @(c)
-		| c: Foreach         => @(c)
-		| c: ForeachInferred => @(c)
+		| c: Foreach          => @(c)
+		| c: ForeachUnsettled => @(c)
+		| c: ForeachInferred  => @(c)
 		| c: Switch          => @(c)
 
 	If : @Expression
@@ -734,6 +748,18 @@ namespace DotGram.ExpressionLanguage;
 			ExpressionParser.Iterated(
 				context.Named(name, parserSpan), source, body,
 				context.Exit(parserSpan), context.Again(parserSpan))))
+
+	// The same where the source is not worth anything yet, for the reason `InferredUnsettled`
+	// is: the element type is asked of a source built over parameters that have no type, so
+	// the name stands as an `object` until the body is read again. The loop still records its
+	// extents, since what is declared inside it is looked up by them.
+	ForeachUnsettled : @Expression
+		= "foreach" & '(' & inferred: Word & when @(inferred == "var" && context.Unsettled(parserSpan))
+		& name: Word & "in" & Expression & ')'
+		& when @(context.Declare(typeof(object), name, parserSpan))
+		& when @(context.Opening(parserSpan)) & Statement
+		& when @(context.Loops(parserSpan) && context.Scoped(parserSpan))
+		=> @(Expression.Empty())
 
 	// A `switch` is what a `break` may name besides a loop, and C# says so — a `break` in a
 	// case leaves the switch and not the loop around it. So it records an extent of its own
@@ -2571,8 +2597,47 @@ public static partial class ExpressionParser
 			foreach (var one in parameters ?? throw new ArgumentNullException(nameof(parameters)))
 				Holds(Expression.Parameter(typeof(object), one.Name), one.Name, new SourceSpan(one.At, one.Name.Length));
 
+			(_unsettled ??= []).Add(new Pending(at.Start + at.Length, Array.ConvertAll(parameters, static one => one.At)));
+
 			return true;
 		}
+
+		/// <summary>The extent a body read by <see cref="Awaits"/> turned out to have.</summary>
+		internal bool Settles(SourceSpan span)
+		{
+			if (_unsettled is not null)
+				foreach (var one in _unsettled)
+					if (one.To == int.MaxValue && one.From >= span.Start && one.From <= span.Start + span.Length)
+						one.To = span.Start + span.Length;
+
+			return true;
+		}
+
+		/// <summary>Whether a position is in a body read before the lambda holding it has types.</summary>
+		/// <remarks>
+		/// What the forms that ask what a value is worth — `var`, `foreach (var …)` — ask first:
+		/// there nothing over the parameters can be built, and the body is read again once it can.
+		/// Known by position, as every extent here is, and marked settled by <see cref="Rebind"/>
+		/// once the parameters have types — which is what tells the first reading of a body from
+		/// the one a call makes, and a lambda nested in a body read again from the one around it,
+		/// whose own parameters are declared afresh there and wait for types of their own.
+		/// </remarks>
+		internal bool Unsettled(SourceSpan at) =>
+			_unsettled is not null && _unsettled.Exists(one => !one.Known && one.From <= at.Start && at.Start < one.To);
+
+		/// <summary>A body read before its lambda has types: where it begins, where it ends, and whose parameters wait.</summary>
+		sealed class Pending(int from, int[] parameters)
+		{
+			public int From { get; } = from;
+
+			public int To { get; set; } = int.MaxValue;
+
+			public int[] Parameters { get; } = parameters;
+
+			public bool Known { get; set; }
+		}
+
+		List<Pending>? _unsettled;
 
 		/// <summary>A parameter declared by <see cref="Awaits"/>, given the type it turned out to have.</summary>
 		/// <remarks>
@@ -2581,6 +2646,11 @@ public static partial class ExpressionParser
 		/// </remarks>
 		void Rebind(Awaited parameter, ParameterExpression typed)
 		{
+			if (_unsettled is not null)
+				foreach (var one in _unsettled)
+					if (Array.IndexOf(one.Parameters, parameter.At) >= 0)
+						one.Known = true;
+
 			if (_declared is null)
 				return;
 
@@ -2800,7 +2870,10 @@ public static partial class ExpressionParser
 
 				var from = block?.From ?? int.MinValue + 1;
 
-				if (from > inner || from == inner && declaration.At > wrote)
+				// The later of two declarations at one place, which is the same text read twice: a
+				// body whose lambda had no types is read before it has them and again after, and
+				// what the second reading declared is what the name means there.
+				if (from > inner || from == inner && declaration.At >= wrote)
 				{
 					found = declaration.Variable;
 					inner = from;
