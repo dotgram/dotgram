@@ -1013,6 +1013,60 @@ public sealed class CSharpEmitterTests
 		Assert.Equal(3 * 100 + 17, match.Value);
 	}
 
+	/// <summary>Terminals whose beginnings share a prefix, each ended by one parameterized rule.</summary>
+	/// <remarks>
+	/// <para>
+	/// A fence of three and a fence of four: the automaton tells `###` from `####` by the longest
+	/// match, as it tells any two tokens apart, and each is ended by the same rule specialized
+	/// for its own closing. What a raw string of C# is, with `#` for the quote and the braces for
+	/// its holes — which are what make the rest no regular language, so that a rule measures it.
+	/// </para>
+	/// <para>
+	/// Held against the question it answers: whether two beginnings where one is a prefix of the
+	/// other are refused as one string read two ways, and whether a rule called with arguments
+	/// can be what ends a terminal.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("ab ### x ## y ### cd",    true,  "three, with two inside")]
+	[InlineData("ab #### x ### y #### cd", true,  "four, with three inside")]
+	[InlineData("ab ### {x ### {y}} ### cd", true, "a closing inside braces closes nothing")]
+	[InlineData("ab ### x #### cd",        false, "three ends at the first three, and the fourth is a token nothing reads")]
+	[InlineData("ab ### x cd",             false, "unclosed")]
+	public void Terminals_whose_beginnings_share_a_prefix_are_each_ended_by_their_own_rule(string input, bool expected, string what)
+	{
+		Assert.NotNull(what);
+
+		const string Grammar = """
+			using Lexical;
+
+			trivia = { ' '* }
+
+			namespace Lexical
+			{
+				trivia = none
+
+				Name         = ['a'..'z']+
+				Braces       = '{' & (Braces | [^ '{' | '}'])* & '}'
+				Fence(close) = (Braces | ?!close & any)* & close
+				Three        = "###" & Fence("###")
+				Four         = "####" & Fence("####")
+			}
+
+			Start = Name & (Three | Four) & Name
+			parse Start
+			""";
+
+		var emitted = EmitSplit(Grammar);
+
+		// Measured by the rule and not read by the automaton, or this is some other test.
+		Assert.Contains("Measure_", emitted, StringComparison.Ordinal);
+
+		Assert.Equal(
+			expected,
+			EmittedCode.Match(EmittedCode.Compile(emitted), "Grammar", "TryParseStart", input).IsSuccess);
+	}
+
 	/// <summary>A terminal that is nothing but <c>@M</c> is said to be asked at every token.</summary>
 	[Fact]
 	public void A_terminal_with_no_beginning_is_warned_about()

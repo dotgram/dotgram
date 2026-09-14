@@ -1922,6 +1922,74 @@ public sealed class ExpressionParserTests
 			ExpressionParser.TryParse("(bool c) => $\"{c ? 1 : 2}\"").Error,
 			StringComparison.Ordinal);
 
+	/// <summary>A raw string, held against C# itself: each text is also written as the C# it is.</summary>
+	/// <remarks>
+	/// Up to five quotes and two dollars the grammar reads the literal; past that it is measured
+	/// and cut by hand, and the last rows are those.
+	/// </remarks>
+	[Fact]
+	public void A_raw_string_reads_as_C_sharp_reads_it()
+	{
+		var x = 5;
+
+		(string Text, string Expected)[] cases =
+		[
+			("\"\"\"abc\"\"\"",                         """abc"""),
+			("\"\"\"a \"b\" c\"\"\"",                """a "b" c"""),
+			("\"\"\"\"a\"\"\"b\"\"\"\"",             """"a"""b""""),
+			("\"\"\"\"\"a\"\"\"\"b\"\"\"\"\"",       """""a""""b"""""),
+			("$\"\"\"a{x}b\"\"\"",                      $"""a{x}b"""),
+			("$\"\"\"{x,3}|{x:D3}\"\"\"",               $"""{x,3}|{x:D3}"""),
+			("$$\"\"\"{x} and {{x}}\"\"\"",             $$"""{x} and {{x}}"""),
+			("$$\"\"\"{{{x}}}\"\"\"",                    $$"""{{{x}}}"""),
+			("$\"\"\"\"a\"\"\"{x}\"\"\"\"",           $""""a"""{x}""""),
+			("$\"\"\"{\"}\" + x}\"\"\"",                $"""{"}" + x}"""),
+			("$\"\"\"\n    a {x}\n      b\n    \"\"\"",    "a 5\n  b"),
+			("\"\"\"\r\n\tline\r\n\t\"\"\"",               "line"),
+			("\"\"\"\n  one\n\n  two\n  \"\"\"",         "one\n\ntwo"),
+			// By hand: six quotes, three dollars.
+			("\"\"\"\"\"\"a\"\"\"\"\"b\"\"\"\"\"\"", """"""a"""""b""""""),
+			("$$$\"\"\"{{{x}}} {{x}}\"\"\"",           $$$"""{{{x}}} {{x}}"""),
+			("$\"\"\"\"\"\"{x}\"\"\"\"\"\"",           $""""""{x}""""""),
+			("$$$\"\"\"\n  {{{x}}}\n\n  z\n  \"\"\"",     "5\n\nz"),
+			("$\"\"\"{$$$\"\"\"<{{{x}}}>\"\"\"}\"\"\"",    "<5>"),
+		];
+
+		var wrong = cases
+			.Select(one => (one.Text, one.Expected, Actual: Answered(() =>
+				ExpressionParser.Compile<Func<int, string>>($"(int x) => {one.Text}")(x))))
+			.Where(one => one.Actual != one.Expected)
+			.ToArray();
+
+		Assert.Empty(wrong);
+
+		static string Answered(Func<string> run)
+		{
+			try
+			{
+				return run();
+			}
+			catch (Exception e)
+			{
+				return e.GetType().Name + ": " + e.Message;
+			}
+		}
+	}
+
+	/// <summary>And a raw string C# refuses is refused.</summary>
+	[Theory]
+	[InlineData("\"\"\"a\"\"\"\"",               "a run of quotes at the end would have closed it sooner")]
+	[InlineData("$\"\"\"}\"\"\"",                  "a closing brace outside a hole")]
+	[InlineData("\"\"\"\n  a\n b\n  \"\"\"",     "a line that does not begin with the closing line's indentation")]
+	[InlineData("\"\"\"a\n  \"\"\"",               "text after the opening quotes of a multi-line one")]
+	[InlineData("\"\"\"\n  a\n  b \"\"\"",         "the closing quotes not on a line of their own")]
+	[InlineData("$$$\"\"\"{{{{{{x}}}}}}\"\"\"",     "a run of braces twice the dollars")]
+	public void A_raw_string_C_sharp_refuses_is_refused(string text, string why)
+	{
+		Assert.NotNull(why);
+		Assert.False(ExpressionParser.TryParse($"(int x) => {text}").IsSuccess);
+	}
+
 	[Fact]
 	public void A_hole_is_read_by_both_carriers_alike() =>
 		Assert.Equal(
