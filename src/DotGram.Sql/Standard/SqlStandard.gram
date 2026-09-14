@@ -10,7 +10,8 @@
 // Written chapter by chapter. So far: §5, the lexical elements, with the literals §5.3 makes of
 // them and the names §5.4 does; §6, scalar expressions, with window functions and row pattern
 // navigation and the JSON functions; §7, query expressions, with row pattern recognition and JSON
-// tables; §8, predicates; §10.9, aggregates; §14, the data change statements. What the BNF leaves to
+// tables; §8, predicates; §10.9, aggregates; §11 and §12, the schema's core — schemas, tables, views,
+// domains, sequences, assertions, roles and privileges; §14, the data change statements. What the BNF leaves to
 // the Syntax Rules — the JSON path
 // language's literals and names among it — is read as nothing, as `--standard` reads it.
 
@@ -1058,7 +1059,7 @@ TableReference = TableFactor & Joins
 // Whether any join follows.
 Joins : @bool
 	= JoinPartitioning & PartitionedJoin & (trivia & JoinStep)* => @(true)
-	| (trivia & JoinStep)+ => @(true)
+	| { (trivia & JoinStep)+ } => @(true)
 	| none => @(false)
 
 JoinStep
@@ -1401,6 +1402,285 @@ SetTarget = ColumnName & (LeftBracketOrTrigraph & SimpleValueSpecification & Rig
 // <data change delta table>, <data change statement>: what a data change statement changed, as a table.
 DataChangeDeltaTable = ("FINAL"i | "NEW"i | "OLD"i) & "TABLE"i & '(' & (DeleteStatementSearched | InsertStatement | MergeStatement | UpdateStatementSearched) & ')'
 
+// ── §11 Schema definition and manipulation ──────────────────────────────────
+//
+// The schema's core: schemas, tables, views, domains, sequence generators, assertions, roles and
+// privileges, and what alters and drops them. What a schema also holds and is written in chapters of
+// its own — routines, triggers, user-defined types, typed tables and views, character sets,
+// collations, transliterations, casts, orderings and transforms — waits for them, and so does a
+// privilege on a routine.
+
+// <SQL schema statement>, as far as it is written.
+SQLSchemaStatement
+	= SchemaDefinition
+	| TableDefinition
+	| ViewDefinition
+	| DomainDefinition
+	| AssertionDefinition
+	| SequenceGeneratorDefinition
+	| RoleDefinition
+	| GrantStatement
+	| RevokeStatement
+	| DropSchemaStatement
+	| AlterTableStatement
+	| DropTableStatement
+	| DropViewStatement
+	| AlterDomainStatement
+	| DropDomainStatement
+	| DropAssertionStatement
+	| AlterSequenceGeneratorStatement
+	| DropSequenceGeneratorStatement
+	| DropRoleStatement
+
+// A drop behavior, which every drop but an assertion's must say.
+DropBehavior = "CASCADE"i | "RESTRICT"i
+
+// ── §11.1 Schema definition, §11.2 Drop schema statement ────────────────────
+
+// <schema definition>. A schema's name and its authorization, or either; the longer is asked first.
+SchemaDefinition = "CREATE"i & "SCHEMA"i & SchemaNameClause & SchemaCharacterSetOrPath? & { (trivia & SchemaElement)* }
+
+SchemaNameClause
+	= SchemaName & "AUTHORIZATION"i & Identifier
+	| "AUTHORIZATION"i & Identifier
+	| SchemaName
+
+SchemaCharacterSetOrPath
+	= SchemaCharacterSetSpecification & ("PATH"i & SchemaName & (',' & SchemaName)*)?
+	| "PATH"i & SchemaName & (',' & SchemaName)* & SchemaCharacterSetSpecification?
+
+SchemaCharacterSetSpecification = "DEFAULT"i & "CHARACTER"i & "SET"i & CharacterSetSpecification
+
+SchemaElement = TableDefinition | ViewDefinition | DomainDefinition | AssertionDefinition | SequenceGeneratorDefinition
+
+DropSchemaStatement = "DROP"i & "SCHEMA"i & SchemaName & DropBehavior
+
+// ── §11.3 Table definition ──────────────────────────────────────────────────
+
+// <table definition>. A table's contents are its elements or a query's result. A column list before
+// a query is an element list in shape — `(a, b)` is two columns with no type — so the query is asked
+// first: in a schema's elements, which give nothing back, the element list would end the table before
+// its `AS`.
+TableDefinition = "CREATE"i & (("GLOBAL"i | "LOCAL"i) & "TEMPORARY"i)? & "TABLE"i & TableName & TableContentsSource
+	  & ("WITH"i & "SYSTEM"i & "VERSIONING"i)? & ("ON"i & "COMMIT"i & ("PRESERVE"i | "DELETE"i) & "ROWS"i)?
+
+TableContentsSource
+	= ('(' & ColumnNameList & ')')? & "AS"i & TableSubquery & "WITH"i & "NO"i? & "DATA"i
+	| TableElementList
+
+// The list is atomic: a list refused at its end gave back its elements, and their shorter readings,
+// and read every later element again for each — a square of its length.
+TableElementList = '(' & { TableElement & (',' & TableElement)* } & ')'
+
+// <table element>. A column begins with its name, which none of the others' key words can be.
+TableElement = ColumnDefinition | TablePeriodDefinition | TableConstraintDefinition | LikeClause
+
+// <like clause>.
+LikeClause = "LIKE"i & TableName & (("INCLUDING"i | "EXCLUDING"i) & ("IDENTITY"i | "DEFAULTS"i | "GENERATED"i))*
+
+// <table period definition>.
+TablePeriodDefinition = PeriodForSpecification & '(' & ColumnName & ',' & ColumnName & ')'
+PeriodForSpecification = "PERIOD"i & "FOR"i & ("SYSTEM_TIME"i | Identifier)
+
+// ── §11.4 Column definition ─────────────────────────────────────────────────
+
+// <column definition>: a name, a type or a domain's name — which <data type> reads — or neither, one
+// of a default, an identity, a generation expression and a system time period's row start or end,
+// then constraints, and a collation.
+//
+// `GENERATED` is not reserved, and a user-defined type may be named so; the list of elements gives
+// nothing back once it is read, so a type is not taken where `GENERATED ALWAYS` or `GENERATED BY`
+// follows, which only a generation can go on from.
+ColumnDefinition = ColumnName & (?!("GENERATED"i & ("ALWAYS"i | "BY"i)) & DataType)? & ColumnValueSource? & (trivia & { ColumnConstraintDefinition })* & CollateClause?
+
+ColumnValueSource
+	= DefaultClause
+	| "GENERATED"i & ("ALWAYS"i | "BY"i & "DEFAULT"i) & "AS"i & "IDENTITY"i & ('(' & CommonSequenceGeneratorOptions & ')')?
+	| "GENERATED"i & "ALWAYS"i & "AS"i & '(' & ValueExpression & ')'
+	| "GENERATED"i & "ALWAYS"i & "AS"i & "ROW"i & ("START"i | "END"i)
+
+ColumnConstraintDefinition = ConstraintNameDefinition? & ColumnConstraint & ConstraintCharacteristics?
+
+ColumnConstraint
+	= "NOT"i & "NULL"i
+	| "UNIQUE"i
+	| "PRIMARY"i & "KEY"i
+	| ReferencesSpecification
+	| CheckConstraintDefinition
+
+// ── §11.5 Default clause ────────────────────────────────────────────────────
+
+// <default clause>: a literal, a datetime value function, a user or a schema of the session, or a
+// value whose type comes from the column; no expression.
+DefaultClause = "DEFAULT"i & DefaultOption
+
+DefaultOption
+	= Literal
+	| DatetimeValueFunction
+	| "USER"i | "CURRENT_USER"i | "CURRENT_ROLE"i | "SESSION_USER"i | "SYSTEM_USER"i
+	| "CURRENT_CATALOG"i | "CURRENT_SCHEMA"i | "CURRENT_PATH"i
+	| ImplicitlyTypedValueSpecification
+
+// ── §11.6 Table constraint definition ───────────────────────────────────────
+
+TableConstraintDefinition = ConstraintNameDefinition? & TableConstraint & ConstraintCharacteristics?
+
+TableConstraint
+	= "UNIQUE"i & '(' & "VALUE"i & ')'
+	| ("UNIQUE"i | "PRIMARY"i & "KEY"i) & ("NULLS"i & "NOT"i? & "DISTINCT"i)? & '(' & ColumnNameList & (',' & Identifier & "WITHOUT"i & "OVERLAPS"i)? & ')'
+	| "FOREIGN"i & "KEY"i & '(' & ColumnNameList & (',' & "PERIOD"i & Identifier)? & ')' & ReferencesSpecification
+	| CheckConstraintDefinition
+
+ConstraintNameDefinition = "CONSTRAINT"i & SchemaQualifiedName
+
+// <constraint characteristics>: when it is checked, whether that may be deferred, and whether it is enforced.
+ConstraintCharacteristics
+	= ConstraintCheckTime & ("NOT"i? & "DEFERRABLE"i)? & ConstraintEnforcement?
+	| "NOT"i? & "DEFERRABLE"i & ConstraintCheckTime? & ConstraintEnforcement?
+	| ConstraintEnforcement
+
+ConstraintCheckTime   = "INITIALLY"i & ("DEFERRED"i | "IMMEDIATE"i)
+ConstraintEnforcement = "NOT"i? & "ENFORCED"i
+
+// ── §11.8 Referential constraint definition, §11.9 Check constraint definition ─
+
+ReferencesSpecification = "REFERENCES"i & TableName & ('(' & ColumnNameList & (',' & "PERIOD"i & Identifier)? & ')')?
+	  & ("MATCH"i & ("FULL"i | "PARTIAL"i | "SIMPLE"i))? & ReferentialTriggeredAction?
+
+// <referential triggered action>: an update rule, a delete rule, or both in either order.
+ReferentialTriggeredAction
+	= UpdateRule & DeleteRule?
+	| DeleteRule & UpdateRule?
+
+UpdateRule        = "ON"i & "UPDATE"i & ReferentialAction
+DeleteRule        = "ON"i & "DELETE"i & ReferentialAction
+ReferentialAction = "CASCADE"i | "SET"i & ("NULL"i | "DEFAULT"i) | "RESTRICT"i | "NO"i & "ACTION"i
+
+CheckConstraintDefinition = "CHECK"i & '(' & SearchCondition & ')'
+
+// ── §11.10 Alter table statement and its actions ────────────────────────────
+
+AlterTableStatement = "ALTER"i & "TABLE"i & TableName & AlterTableAction
+
+// <alter table action>: one. A column is named with or without `COLUMN`, and a column's name is none
+// of the key words that begin the other actions.
+AlterTableAction
+	= "ADD"i & "COLUMN"i? & ColumnDefinition
+	| "ALTER"i & "COLUMN"i? & ColumnName & AlterColumnAction
+	| "DROP"i & "COLUMN"i? & ColumnName & DropBehavior
+	| "ADD"i & TableConstraintDefinition
+	| "ALTER"i & "CONSTRAINT"i & SchemaQualifiedName & ConstraintEnforcement
+	| "DROP"i & "CONSTRAINT"i & SchemaQualifiedName & DropBehavior
+	| "ADD"i & TablePeriodDefinition & ("ADD"i & "COLUMN"i? & ColumnDefinition & "ADD"i & "COLUMN"i? & ColumnDefinition)?
+	| "DROP"i & PeriodForSpecification & DropBehavior
+	| "ADD"i & "SYSTEM"i & "VERSIONING"i
+	| "DROP"i & "SYSTEM"i & "VERSIONING"i & DropBehavior
+
+// <alter column action>.
+AlterColumnAction
+	= "SET"i & DefaultClause
+	| "DROP"i & "DEFAULT"i
+	| "SET"i & "NOT"i & "NULL"i
+	| "DROP"i & "NOT"i & "NULL"i
+	| "ADD"i & "SCOPE"i & TableName
+	| "DROP"i & "SCOPE"i & DropBehavior
+	| "SET"i & "DATA"i & "TYPE"i & DataType
+	| "SET"i & "GENERATED"i & ("ALWAYS"i | "BY"i & "DEFAULT"i) & (trivia & AlterIdentityColumnOption)*
+	| AlterIdentityColumnOption & (trivia & AlterIdentityColumnOption)*
+	| "DROP"i & "IDENTITY"i
+	| "DROP"i & "EXPRESSION"i
+
+AlterIdentityColumnOption
+	= "RESTART"i & ("WITH"i & SignedNumericLiteral)?
+	| "SET"i & BasicSequenceGeneratorOption
+
+DropTableStatement = "DROP"i & "TABLE"i & TableName & DropBehavior
+
+// ── §11.22 View definition, §11.23 Drop view statement ──────────────────────
+
+ViewDefinition = "CREATE"i & "RECURSIVE"i? & "VIEW"i & TableName & ('(' & ColumnNameList & ')')? & "AS"i & QueryExpression
+	  & ("WITH"i & ("CASCADED"i | "LOCAL"i)? & "CHECK"i & "OPTION"i)?
+
+DropViewStatement = "DROP"i & "VIEW"i & TableName & DropBehavior
+
+// ── §11.24 Domain definition, §11.26–11.31 Alter and drop domain ────────────
+
+// <domain definition>: of a predefined type only, which a collection is not.
+DomainDefinition = "CREATE"i & "DOMAIN"i & SchemaQualifiedName & "AS"i? & PredefinedType & DefaultClause? & { (trivia & DomainConstraint)* } & CollateClause?
+DomainConstraint = ConstraintNameDefinition? & CheckConstraintDefinition & ConstraintCharacteristics?
+
+AlterDomainStatement = "ALTER"i & "DOMAIN"i & SchemaQualifiedName & AlterDomainAction
+AlterDomainAction
+	= "SET"i & DefaultClause
+	| "DROP"i & "DEFAULT"i
+	| "ADD"i & DomainConstraint
+	| "DROP"i & "CONSTRAINT"i & SchemaQualifiedName
+
+DropDomainStatement = "DROP"i & "DOMAIN"i & SchemaQualifiedName & DropBehavior
+
+// ── §11.47 Assertion definition, §11.48 Drop assertion statement ────────────
+
+AssertionDefinition    = "CREATE"i & "ASSERTION"i & SchemaQualifiedName & CheckConstraintDefinition & ConstraintCharacteristics?
+DropAssertionStatement = "DROP"i & "ASSERTION"i & SchemaQualifiedName & DropBehavior?
+
+// ── §11.74 Sequence generator definition, §11.75–11.76 Alter and drop ───────
+
+SequenceGeneratorDefinition = "CREATE"i & "SEQUENCE"i & SchemaQualifiedName & (trivia & ("AS"i & DataType | CommonSequenceGeneratorOption))*
+
+CommonSequenceGeneratorOptions = CommonSequenceGeneratorOption & (trivia & CommonSequenceGeneratorOption)*
+CommonSequenceGeneratorOption  = "START"i & "WITH"i & SignedNumericLiteral | BasicSequenceGeneratorOption
+
+BasicSequenceGeneratorOption
+	= "INCREMENT"i & "BY"i & SignedNumericLiteral
+	| "MAXVALUE"i & SignedNumericLiteral
+	| "MINVALUE"i & SignedNumericLiteral
+	| "NO"i & ("MAXVALUE"i | "MINVALUE"i | "CYCLE"i)
+	| "CYCLE"i
+
+// <alter sequence generator statement>: a restart or a basic option, at least one; a start is not
+// altered.
+AlterSequenceGeneratorStatement = "ALTER"i & "SEQUENCE"i & SchemaQualifiedName & AlterSequenceGeneratorOption & (trivia & AlterSequenceGeneratorOption)*
+AlterSequenceGeneratorOption    = "RESTART"i & ("WITH"i & SignedNumericLiteral)? | BasicSequenceGeneratorOption
+
+DropSequenceGeneratorStatement = "DROP"i & "SEQUENCE"i & SchemaQualifiedName & DropBehavior
+
+// ── §12 Access control: roles and privileges ────────────────────────────────
+
+RoleDefinition    = "CREATE"i & "ROLE"i & Identifier & ("WITH"i & "ADMIN"i & Grantor)?
+DropRoleStatement = "DROP"i & "ROLE"i & Identifier & DropBehavior
+
+// <grant statement>: privileges, asked first since they begin with key words, or roles, whose names
+// are identifiers — `USAGE` among them, which is not reserved.
+GrantStatement
+	= "GRANT"i & Privileges & "TO"i & Grantees & ("WITH"i & "HIERARCHY"i & "OPTION"i)? & ("WITH"i & "GRANT"i & "OPTION"i)? & GrantedBy?
+	| "GRANT"i & Identifier & (',' & Identifier)* & "TO"i & Grantees & ("WITH"i & "ADMIN"i & "OPTION"i)? & GrantedBy?
+
+RevokeStatement
+	= "REVOKE"i & (("GRANT"i | "HIERARCHY"i) & "OPTION"i & "FOR"i)? & Privileges & "FROM"i & Grantees & GrantedBy? & DropBehavior
+	| "REVOKE"i & ("ADMIN"i & "OPTION"i & "FOR"i)? & Identifier & (',' & Identifier)* & "FROM"i & Grantees & GrantedBy? & DropBehavior
+
+Privileges = ("ALL"i & "PRIVILEGES"i | PrivilegeAction & (',' & PrivilegeAction)*) & "ON"i & ObjectName
+
+// <action>, but a privilege on a method.
+PrivilegeAction
+	= ("SELECT"i | "INSERT"i | "UPDATE"i | "REFERENCES"i) & ('(' & ColumnNameList & ')')?
+	| "DELETE"i | "USAGE"i | "TRIGGER"i | "UNDER"i | "EXECUTE"i
+
+// <object name>, but a routine's. A kind of object is named before a table's name, which could be
+// the kind's word: `TYPE` and `SEQUENCE` are not reserved.
+ObjectName
+	= "DOMAIN"i & SchemaQualifiedName
+	| "COLLATION"i & SchemaQualifiedName
+	| "CHARACTER"i & "SET"i & CharacterSetSpecification
+	| "TRANSLATION"i & SchemaQualifiedName
+	| "TYPE"i & SchemaQualifiedName
+	| "SEQUENCE"i & SchemaQualifiedName
+	| "TABLE"i? & TableName
+
+Grantees  = ("PUBLIC"i | Identifier) & (',' & ("PUBLIC"i | Identifier))*
+Grantor   = "CURRENT_USER"i | "CURRENT_ROLE"i
+GrantedBy = "GRANTED"i & "BY"i & Grantor
+
 parse Literal                  as ParseLiteral
 parse UnsignedLiteral          as ParseUnsignedLiteral
 parse Identifier               as ParseIdentifier
@@ -1432,3 +1712,4 @@ parse DeleteStatementSearched  as ParseDeleteStatementSearched
 parse DeleteStatementPositioned as ParseDeleteStatementPositioned
 parse MergeStatement           as ParseMergeStatement
 parse TruncateTableStatement   as ParseTruncateTableStatement
+parse SQLSchemaStatement       as ParseSQLSchemaStatement
