@@ -8,8 +8,9 @@
 // spelled as one character (<period>, <left paren>) is written as that character.
 //
 // Written chapter by chapter. So far: §5, the lexical elements, with the literals §5.3 makes of
-// them and the names §5.4 does; §6, scalar expressions; §7, query expressions; §8, predicates.
-// Aggregates, window functions, row pattern recognition and the JSON functions are still to come.
+// them and the names §5.4 does; §6, scalar expressions, with window functions and row pattern
+// navigation; §7, query expressions; §8, predicates; §10.9, aggregates. Row pattern recognition and
+// the JSON functions are still to come.
 
 @using System;
 @using DotGram.Sql.Standard;
@@ -439,8 +440,12 @@ Predicate : @int = e: BooleanPrimary & when @((e & Towers.Logical) != 0) => @(e)
 // The second parts, which is what the BNF calls them too: each says what it takes before it. Most
 // take any row value predicand; a JSON predicate a string or a JSON value; a period predicate a
 // period's name.
+//
+// A quantified comparison is asked after a comparison: `ANY ((SELECT …))` and `SOME ((SELECT …))`
+// are aggregates of a scalar subquery too, and read as one they may go on — `a = ANY ((SELECT a FROM
+// t)) + 1` — where the quantifier's reading would stop.
 PredicatePart2 : @int
-	= CompOp & (("ALL"i | "SOME"i | "ANY"i) & TableSubquery | RowValuePredicand) => @(Towers.Any)
+	= CompOp & (RowValuePredicand | ("ALL"i | "SOME"i | "ANY"i) & TableSubquery) => @(Towers.Any)
 	| "MATCH"i & "UNIQUE"i? & ("SIMPLE"i | "PARTIAL"i | "FULL"i)? & TableSubquery => @(Towers.Any)
 	| "NOT"i? & NegatablePredicatePart2 => @(Towers.Any)
 	| "IS"i & "NOT"i? & t: IsPredicatePart2 => @(t)
@@ -614,9 +619,16 @@ PrimaryBase : @int
 	| MultisetElementReference => @(Towers.Value | Towers.Truth | Towers.Bare)
 	| GreatestOrLeastFunction => @(Towers.Value | Towers.Truth | Towers.Bare)
 	| StaticMethodInvocation => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| WindowedFunction => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| RowPatternNavigationOperation => @(Towers.Value | Towers.Truth | Towers.Bare)
 	| RoutineInvocation => @(Towers.Value | Towers.Truth | Towers.Bare)
 	| "MODULE"i & '.' & QualifiedIdentifier & '.' & ColumnName => @(Towers.Value | Towers.Truth | Towers.Bare)
-	| Identifier & ('.' & Identifier & ?!'(')* => @(Towers.Value | Towers.Truth | Towers.Bare | Towers.Chain)
+	| Identifier & c: ChainOrMeasure => @(Towers.Value | Towers.Truth | Towers.Bare | c)
+
+// After a name: the rest of an identifier chain, or `OVER` and a window, which makes the name a
+// <window row pattern measure>'s.
+ChainOrMeasure : @int = WindowOver => @(0)
+                      | ('.' & Identifier & ?!'(')* => @(Towers.Chain)
 
 // <generalized invocation>: a primary seen as a supertype, and a method of it.
 GeneralizedInvocation = '(' & ValueExpressionPrimary & "AS"i & DataType & ')' & '.' & MethodName & SQLArgumentList?
@@ -756,6 +768,68 @@ OverlayFunction : @bool = "OVERLAY"i & '(' & a: StringValueExpression & "PLACING
 DatetimeValueFunction
 	= "CURRENT_DATE"i
 	| ("CURRENT_TIMESTAMP"i | "CURRENT_TIME"i | "LOCALTIMESTAMP"i | "LOCALTIME"i) & ('(' & UnsignedInteger & ')')?
+
+// ── §6.10 Window function, §6.11 Nested window function, §10.9 Aggregate function ──
+
+// <set function specification>, <window function>, <nested window function>. A window function's
+// type may be an aggregate, so an aggregate is read once, with `OVER` after it or not; `RUNNING` and
+// `FINAL` stand before one only where it is not a window's.
+WindowedFunction
+	= ("RUNNING"i | "FINAL"i) & AggregateFunction
+	| AggregateFunction & WindowOver?
+	| "GROUPING"i & '(' & ColumnReference & (',' & ColumnReference)* & ')'
+	| ("RANK"i | "DENSE_RANK"i | "PERCENT_RANK"i | "CUME_DIST"i | "ROW_NUMBER"i) & '(' & ')' & WindowOver
+	| "NTILE"i & '(' & SimpleOrDynamicValue & ')' & WindowOver
+	| ("LEAD"i | "LAG"i) & '(' & ValueExpression & (',' & UnsignedInteger & (',' & ValueExpression)?)? & ')' & NullTreatment? & WindowOver
+	| ("FIRST_VALUE"i | "LAST_VALUE"i) & '(' & ValueExpression & ')' & NullTreatment? & WindowOver
+	| "NTH_VALUE"i & '(' & ValueExpression & ',' & SimpleOrDynamicValue & ')' & ("FROM"i & ("FIRST"i | "LAST"i))? & NullTreatment? & WindowOver
+	| "ROW_NUMBER"i & '(' & RowMarker & ')'
+	| "VALUE_OF"i & '(' & ValueExpression & "AT"i & RowMarker & (['+' | '-'] & SimpleOrDynamicValue)? & (',' & ValueExpression)? & ')'
+
+// <window name or specification>, after `OVER`.
+WindowOver    = "OVER"i & (WindowName | WindowSpecification)
+NullTreatment = ("RESPECT"i | "IGNORE"i) & "NULLS"i
+RowMarker     = "BEGIN_PARTITION"i | "BEGIN_FRAME"i | "CURRENT_ROW"i | "FRAME_ROW"i | "END_FRAME"i | "END_PARTITION"i
+
+// What <number of tiles>, <nth row>, <row marker offset> and a row pattern navigation's offsets are:
+// a simple value specification, or a dynamic parameter.
+SimpleOrDynamicValue = SimpleValueSpecification | '?'
+
+// <aggregate function>, but a JSON aggregate. `COUNT(*)` and `COUNT(v.*)` are asked before `COUNT`
+// of a value, which would take the `v` and stop.
+AggregateFunction = AggregateCall & ("FILTER"i & '(' & "WHERE"i & SearchCondition & ')')?
+
+AggregateCall
+	= "COUNT"i & '(' & '*' & ')'
+	| "COUNT"i & '(' & Identifier & '.' & '*' & ')'
+	| ComputationalOperation & '(' & SetQuantifier? & ValueExpression & ')'
+	| BinarySetFunctionType & '(' & NumericValueExpression & ',' & NumericValueExpression & ')'
+	| ("RANK"i | "DENSE_RANK"i | "PERCENT_RANK"i | "CUME_DIST"i) & '(' & ValueExpression & (',' & ValueExpression)* & ')' & WithinGroupSpecification
+	| ("PERCENTILE_CONT"i | "PERCENTILE_DISC"i) & '(' & NumericValueExpression & ')' & WithinGroupSpecification
+	| "ARRAY_AGG"i & '(' & ValueExpression & ("ORDER"i & "BY"i & SortSpecificationList)? & ')'
+	| "LISTAGG"i & '(' & SetQuantifier? & CharacterValueExpression & ',' & CharacterStringLiteral & ListaggOverflowClause? & ')' & WithinGroupSpecification
+
+ComputationalOperation
+	= "AVG"i | "MAX"i | "MIN"i | "SUM"i | "EVERY"i | "ANY_VALUE"i | "ANY"i | "SOME"i | "COUNT"i
+	| "STDDEV_POP"i | "STDDEV_SAMP"i | "VAR_SAMP"i | "VAR_POP"i | "COLLECT"i | "FUSION"i | "INTERSECTION"i
+
+BinarySetFunctionType
+	= "COVAR_POP"i | "COVAR_SAMP"i | "CORR"i | "REGR_SLOPE"i | "REGR_INTERCEPT"i | "REGR_COUNT"i
+	| "REGR_R2"i | "REGR_AVGX"i | "REGR_AVGY"i | "REGR_SXX"i | "REGR_SYY"i | "REGR_SXY"i
+
+WithinGroupSpecification = "WITHIN"i & "GROUP"i & '(' & "ORDER"i & "BY"i & SortSpecificationList & ')'
+ListaggOverflowClause    = "ON"i & "OVERFLOW"i & ("ERROR"i | "TRUNCATE"i & CharacterStringLiteral? & ("WITH"i | "WITHOUT"i) & "COUNT"i)
+
+// ── §6.26 Row pattern navigation operation ──────────────────────────────────
+
+// <row pattern navigation operation>. A compound one is a physical one whose argument is a logical
+// one, and a logical one is a routine's invocation in shape: it is taken as the logical one only where
+// the physical one's offset or its end follows, and otherwise as a value expression.
+RowPatternNavigationOperation
+	= RowPatternNavigationLogical
+	| ("PREV"i | "NEXT"i) & '(' & (RowPatternNavigationLogical & ?=[',' | ')'] | ValueExpression) & (',' & SimpleOrDynamicValue)? & ')'
+
+RowPatternNavigationLogical = ("RUNNING"i | "FINAL"i)? & ("FIRST"i | "LAST"i) & '(' & ValueExpression & (',' & SimpleOrDynamicValue)? & ')'
 
 // ── §7.2 Row value expression list, §7.3 Table value constructor ────────────
 

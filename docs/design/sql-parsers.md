@@ -53,9 +53,10 @@ is open until it is built, and `status.md` is what will say when it has been.
   marks where the two differ.
 - ~~**Convert a BNF into `.gram`.**~~ Done, 2026-09-13: `--bnf-gram` writes the skeleton.
 - **The SQL:2023 grammar, chapter by chapter** (`Standard/SqlStandard.gram`). §5 is written —
-  tokens, separators, literals, names and the reserved words — §6, §7's query expression with the
-  subqueries §6 and §8 held, and §8: every row tried and 48,000 random verdicts agree with the BNF.
-  Then aggregates, window functions, row pattern recognition and the JSON functions; DML; DDL.
+  tokens, separators, literals, names and the reserved words — §6 with window functions, §7's query
+  expression with the subqueries §6 and §8 held, §8, and §10.9's aggregates: every row tried and
+  54,000 random verdicts agree with the BNF. Then row pattern recognition and the JSON functions;
+  DML; DDL.
 - **A test that says which productions are not written yet.**
 - **Whether the standard reads through a lexical split.** Not for now: its tokens overlap — a
   date string is a character string too, and which one a token is depends on the key word before

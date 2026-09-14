@@ -41,6 +41,31 @@ static class Standard
 			return;
 		}
 
+		// `=` before the production asks the grammar alone, and times it: the recognizer takes seconds
+		// over a long line, which is no way to look for what makes the grammar slow.
+		if (start.StartsWith('=') && path is not null)
+		{
+			var alone = typeof(SqlStandardParser).GetMethod("TryParse" + Bnf.RuleName(start[1..]), [typeof(string)])
+				?? throw new ArgumentException($"SqlStandardParser publishes no rule for <{start[1..]}>");
+
+			foreach (var line in File.ReadLines(path))
+			{
+				if (line.Trim().Length == 0 || line.TrimStart().StartsWith("--", StringComparison.Ordinal))
+					continue;
+
+				alone.Invoke(null, [line]);
+
+				watch.Restart();
+				var result = alone.Invoke(null, [line])!;
+				var ticks  = watch.Elapsed.Ticks;
+				var ours   = (bool)result.GetType().GetProperty("IsSuccess")!.GetValue(result)!;
+
+				Console.WriteLine($"{(ours ? "ok" : "no"),3} {TimeSpan.FromTicks(ticks).TotalMilliseconds,9:0.000} ms  {line}");
+			}
+
+			return;
+		}
+
 		var lines = path is null
 			? Enumerable.Repeat(0, int.MaxValue).Select(_ => Console.ReadLine()).TakeWhile(static one => one is not null).Select(static one => one!)
 			: File.ReadLines(path);

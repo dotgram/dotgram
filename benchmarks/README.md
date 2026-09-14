@@ -582,6 +582,8 @@ side with `≠` where they differ, and the count of both closes the run. That is
 held to the standard: a row goes into `SqlStandardParserTests` once the two agree on it. A line's
 milliseconds are mostly the recognizer's; the grammar's own time, and its slowest line, are said
 after the count, timed on a second reading of each line so that compiling the parser is not counted.
+`--standard =production file` leaves the recognizer out and prints the grammar's verdict and time
+alone, line by line — what to use when looking for a line the grammar is slow on.
 
 `--bnf-gram [file]` (`BnfGram.cs`) writes the same BNF as a `.gram` skeleton — every production
 under a rule named after it, the lexical ones in a namespace of their own — by default to

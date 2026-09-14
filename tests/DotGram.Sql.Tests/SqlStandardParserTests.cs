@@ -491,6 +491,116 @@ public sealed class SqlStandardParserTests
 		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
 	}
 
+	// ── §6.10 Window functions, §10.9 Aggregates ─────────────────────────────────
+
+	/// <summary>An aggregate, a window function, a nested window function or a row pattern navigation, as a value.</summary>
+	[Theory]
+	[InlineData("COUNT(*)", true)]
+	[InlineData("COUNT(DISTINCT a)", true)]
+	[InlineData("SUM(a) FILTER (WHERE a > 1)", true)]
+	[InlineData("AVG(ALL a + 1)", true)]
+	[InlineData("ANY(a)", true)]
+	[InlineData("a = ANY (1)", true)]
+	[InlineData("EVERY(a) AND b", true)]
+	[InlineData("COVAR_POP(a, b)", true)]
+	[InlineData("RANK(1, 2) WITHIN GROUP (ORDER BY a)", true)]
+	[InlineData("PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY a DESC)", true)]
+	[InlineData("LISTAGG(DISTINCT a, ', ' ON OVERFLOW TRUNCATE '...' WITH COUNT) WITHIN GROUP (ORDER BY a)", true)]
+	[InlineData("ARRAY_AGG(a ORDER BY b)", true)]
+	[InlineData("COUNT(v.*)", true)]
+	[InlineData("GROUPING(a, b.c)", true)]
+	[InlineData("RUNNING SUM(a)", true)]
+	[InlineData("FINAL COUNT(*)", true)]
+	[InlineData("ROW_NUMBER() OVER w", true)]
+	[InlineData("RANK() OVER (PARTITION BY a ORDER BY b)", true)]
+	[InlineData("SUM(a) OVER (w ROWS UNBOUNDED PRECEDING)", true)]
+	[InlineData("NTILE(4) OVER w", true)]
+	[InlineData("LEAD(a, 1, 0) IGNORE NULLS OVER w", true)]
+	[InlineData("FIRST_VALUE(a) RESPECT NULLS OVER w", true)]
+	[InlineData("NTH_VALUE(a, 2) FROM LAST OVER w", true)]
+	[InlineData("m OVER w", true)]
+	[InlineData("ROW_NUMBER(CURRENT_ROW)", true)]
+	[InlineData("VALUE_OF(a AT BEGIN_PARTITION + 1, 0)", true)]
+	[InlineData("SUM(a) + 1", true)]
+	[InlineData("COUNT(*) FILTER (WHERE a) OVER w", true)]
+	[InlineData("SUM(a) || 'x'", true)]
+	[InlineData("PREV(a)", true)]
+	[InlineData("FIRST(a.b, 1)", true)]
+	[InlineData("PREV(FIRST(a, 1), 2)", true)]
+	[InlineData("MATCH_NUMBER()", true)]
+	[InlineData("CLASSIFIER(a)", true)]
+	[InlineData("ROW_NUMBER()", false)]
+	[InlineData("RANK(1)", false)]
+	[InlineData("SUM(a)[1]", true)]
+	[InlineData("COUNT(DISTINCT *)", false)]
+	public void An_aggregate_or_a_window_function(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseValueExpression(input).IsSuccess);
+	}
+
+	/// <summary>
+	/// The same in a query. `ANY (SELECT …)` is a quantifier's and nothing more, since an aggregate's
+	/// brackets hold a value expression; `ANY ((SELECT …))` is an aggregate's too, and may go on.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT COUNT(*), SUM(a) OVER w FROM t GROUP BY a HAVING COUNT(*) > 1 WINDOW w AS (ORDER BY a)", true)]
+	[InlineData("SELECT a FROM t WHERE a = ANY (SELECT a FROM t) + 1", false)]
+	[InlineData("SELECT a FROM t WHERE a = ALL (SELECT a FROM t) + 1", false)]
+	[InlineData("SELECT a FROM t WHERE a = SOME (SELECT a FROM t) FILTER (WHERE b)", false)]
+	[InlineData("SELECT m OVER (PARTITION BY a), m.n OVER w FROM t", false)]
+	[InlineData("SELECT RANK(1) WITHIN GROUP (ORDER BY a) OVER w FROM t", true)]
+	[InlineData("SELECT RANK(1) WITHIN GROUP (ORDER BY a) FILTER (WHERE b) FROM t", true)]
+	[InlineData("SELECT RUNNING SUM(a) OVER w FROM t", false)]
+	[InlineData("SELECT FINAL FIRST(a) FROM t", true)]
+	[InlineData("SELECT PREV(RUNNING FIRST(a, 1), 2) FROM t", true)]
+	[InlineData("SELECT PREV(FIRST(a) + 1) FROM t", true)]
+	[InlineData("SELECT PREV(FIRST(a, b + 1)) FROM t", true)]
+	[InlineData("SELECT FIRST(a, b + 1) FROM t", true)]
+	[InlineData("SELECT RUNNING FIRST(a, b + 1) FROM t", false)]
+	[InlineData("SELECT NEXT(FINAL LAST(a), ?) FROM t", true)]
+	[InlineData("SELECT NEXT VALUE FOR s FROM t", true)]
+	[InlineData("SELECT COUNT(ALL *) FROM t", false)]
+	[InlineData("SELECT COUNT(a.*) OVER w FROM t", true)]
+	[InlineData("SELECT ARRAY_AGG(a ORDER BY b DESC, c) FILTER (WHERE d) FROM t", true)]
+	[InlineData("SELECT LISTAGG(a, ',') WITHIN GROUP (ORDER BY a) FROM t", true)]
+	[InlineData("SELECT LISTAGG(a, b) WITHIN GROUP (ORDER BY a) FROM t", false)]
+	[InlineData("SELECT LISTAGG(a, ',' ON OVERFLOW ERROR) FROM t", false)]
+	[InlineData("SELECT PERCENTILE_DISC(a + 1) WITHIN GROUP (ORDER BY a) FROM t", true)]
+	[InlineData("SELECT PERCENTILE_DISC('x') WITHIN GROUP (ORDER BY a) FROM t", true)]
+	[InlineData("SELECT REGR_COUNT(a, 'x') FROM t", true)]
+	[InlineData("SELECT LEAD(a) OVER w, LAG(a, 2) RESPECT NULLS OVER (ORDER BY b) FROM t", true)]
+	[InlineData("SELECT LEAD(a, 1 + 1) OVER w FROM t", false)]
+	[InlineData("SELECT LEAD(a, -1) OVER w FROM t", false)]
+	[InlineData("SELECT NTILE(:n) OVER w, NTILE(?) OVER w FROM t", true)]
+	[InlineData("SELECT NTILE(a + 1) OVER w FROM t", false)]
+	[InlineData("SELECT NTH_VALUE(a, 1) FROM FIRST IGNORE NULLS OVER w FROM t", true)]
+	[InlineData("SELECT FIRST_VALUE(a) OVER w FROM t", true)]
+	[InlineData("SELECT FIRST_VALUE(a) FROM t", false)]
+	[InlineData("SELECT ROW_NUMBER() OVER () FROM t", true)]
+	[InlineData("SELECT VALUE_OF(a AT CURRENT_ROW - :k) FROM t", true)]
+	[InlineData("SELECT VALUE_OF(a + 1 AT END_FRAME, 0) FROM t", true)]
+	[InlineData("SELECT GROUPING(a) FROM t GROUP BY ROLLUP (a)", true)]
+	[InlineData("SELECT GROUPING(a + 1) FROM t", false)]
+	[InlineData("SELECT SUM(a) OVER w.x FROM t", true)]
+	[InlineData("SELECT (SUM(a)) OVER w FROM t", false)]
+	[InlineData("SELECT SUM(a) OVER w OVER v FROM t", false)]
+	[InlineData("SELECT EVERY(a = 1) IS TRUE FROM t", true)]
+	[InlineData("SELECT ANY_VALUE(DISTINCT a) FROM t", true)]
+	[InlineData("SELECT CUME_DIST() OVER w * 100 FROM t", true)]
+	[InlineData("SELECT INTERSECTION(a) MULTISET UNION FUSION(b) FROM t", true)]
+	[InlineData("SELECT COLLECT(a)[1] FROM t", true)]
+	[InlineData("SELECT a FROM t WINDOW w AS (ORDER BY SUM(a))", true)]
+	[InlineData("SELECT a FROM t ORDER BY COUNT(*) DESC", true)]
+	[InlineData("SELECT CASE WHEN COUNT(*) > 1 THEN MAX(a) END FROM t", true)]
+	[InlineData("SELECT a FROM t WHERE a = ANY ((SELECT a FROM t)) + 1", true)]
+	[InlineData("SELECT a FROM t WHERE a = SOME ((SELECT a FROM t)) FILTER (WHERE b)", true)]
+	[InlineData("SELECT a FROM t WHERE a = ALL ((SELECT a FROM t)) + 1", false)]
+	[InlineData("SELECT a FROM t WHERE a = ANY ((SELECT a FROM t))", true)]
+	public void An_aggregate_in_a_query(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+	}
+
 	// ── §6.1 Data types ──────────────────────────────────────────────────────────
 
 	[Theory]

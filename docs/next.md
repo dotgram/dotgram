@@ -22074,3 +22074,41 @@ first runs found were what is still to come: `a + b.*`
 is `a + b` and a JSON simplified accessor, and `a = ANY (1)` compares with the aggregate `ANY`.
 `--standard` now says the grammar's own time apart from the recognizer's, which is most of a line's.
 The 120 probe lines went into `SqlStandardParserTests`.
+
+## SQL:2023 §6.10 and §10.9: aggregates and window functions
+
+The standard's grammar has its aggregates now — `COUNT(*)`, the general and binary set functions,
+the hypothetical and inverse distribution functions `WITHIN GROUP`, `ARRAY_AGG`, `LISTAGG`,
+`GROUPING`, `FILTER`, `RUNNING` and `FINAL` — and its window functions: an aggregate `OVER` a window,
+the rank functions, `NTILE`, `LEAD` and `LAG`, `FIRST_VALUE`, `LAST_VALUE` and `NTH_VALUE` with their
+null treatment, a row pattern measure `OVER` a window, and the nested window functions `ROW_NUMBER`
+of a row marker and `VALUE_OF`; with them the row pattern navigation operations `FIRST`, `LAST`,
+`PREV` and `NEXT`. A JSON aggregate waits for the JSON functions.
+
+**An aggregate is read once, windowed or not.** A window function's type may be an aggregate, so the
+two are one alternative with `OVER` after it or not; `RUNNING` and `FINAL` stand before one only
+where no window follows, as the BNF has it: `RUNNING SUM(a) OVER w` is refused.
+
+**A name followed by `OVER` is a measure.** The primary that reads an identifier chain reads one
+name and then either the rest of the chain or `OVER` and a window, so `m OVER w` is read and
+`m.n OVER w` is not.
+
+**A compound navigation is a physical one around a logical one, and a logical one is a routine's
+call in shape.** `PREV(FIRST(a) + 1)` is a physical navigation of a value expression, and
+`PREV(RUNNING FIRST(a, 1), 2)` one of a logical navigation. The logical reading is taken only where
+the physical one's offset or its bracket follows it, and otherwise the argument is a value
+expression — which reads `FIRST(a) + 1` as a routine's call and a sum.
+
+**A comparison is asked before a quantified comparison now, and an aggregate is why.** `ANY` and
+`SOME` are aggregates too: `a = ANY ((SELECT a FROM t)) + 1` is a comparison with the aggregate of a
+scalar subquery and a sum, and the quantifier's reading would have stopped before the `+`. Not so for
+`ANY (SELECT a FROM t)`: an aggregate's brackets hold a value expression, which `SELECT` does not
+begin, so that is a quantifier's alone — which is what the first version of the comment above the
+rule said wrongly, and the probe caught.
+
+**How it is held.** Two probe files, 91 lines, and `.work/fuzz_query.py` with aggregates and window
+functions among its values: 6,000 verdicts, 3,000 of them on broken lines, and none differ. One
+difference the probe found, `COUNT(a.b.*)`, is a JSON simplified accessor counted, and waits with it.
+
+`--standard =production file` asks the grammar alone and times each line on a second reading: the
+recognizer takes seconds over a long line, which is no way to look for what makes the grammar slow.
