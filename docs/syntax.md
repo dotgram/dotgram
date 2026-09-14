@@ -1887,12 +1887,13 @@ Finding one hands the rule-shaped identity a value-producing call needs; finding
 leaves bare `@M` exactly what it always was. More than one such overload with a different
 `T` is a tie, reported rather than guessed at, the same as an ambiguous constructor (§7.3).
 
-The second: whether `M` can be called as a recognizer at all. Where no method of the
-second or third row's shape is in reach of the class the grammar is attached to — in it,
-around it, in what it derives from, or in the class of a grammar it includes — that is
-said about the grammar (`GRAM4025`), rather than by the C# compiler about a call in a
-generated file. It is said only where it is certain, and it changes nothing about what
-`@M` means: the role is still the position's.
+The second: whether `M` can be called in its role at all — as a recognizer where it is bare,
+as a predicate over a character where it is `[@M]`. Where no method of that row's shape is
+in reach of the class the grammar is attached to — in it, around it, in what it derives
+from, or in the class of a grammar it includes — that is said about the grammar
+(`GRAM4025`), rather than by the C# compiler about a call in a generated file. It is said
+only where it is certain, and it changes nothing about what `@M` means: the role is still
+the position's.
 
 The same C# name may therefore implement both contracts without ambiguity:
 

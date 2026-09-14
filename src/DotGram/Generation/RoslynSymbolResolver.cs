@@ -208,7 +208,8 @@ public sealed class RoslynSymbolResolver(
 	}
 
 	/// <summary>
-	/// Whether a bare <c>@Name</c> can be called the way §7.1's second and third rows call it.
+	/// Whether a named method can be called the way its position calls it: §7.1's second and
+	/// third rows for a bare <c>@Name</c>, its first for an <c>[@Name]</c>.
 	/// </summary>
 	/// <remarks>
 	/// <para>
@@ -216,7 +217,9 @@ public sealed class RoslynSymbolResolver(
 	/// the classes around it and what each of them derives from, and the classes of the
 	/// grammars the host includes, which the generated file imports statically. A recognizer
 	/// is a static method returning <c>bool</c> over <c>(ReadOnlySpan&lt;char&gt;, ref int)</c>,
-	/// with or without an <c>out</c> after, that the host can reach.
+	/// with or without an <c>out</c> after; a predicate one returning <c>bool</c> that a
+	/// character can be passed to, which is what <c>M(c)</c> needs and no more; both reachable
+	/// from the host.
 	/// </para>
 	/// <para>
 	/// A no fails a build that might have compiled, so it is said only where it is certain: a
@@ -224,10 +227,10 @@ public sealed class RoslynSymbolResolver(
 	/// and where there is no host to look from nothing is looked for at all.
 	/// </para>
 	/// </remarks>
-	public ExternalRecognizerResolution ResolveExternalRecognizer(string methodName)
+	public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role)
 	{
 		if (_host is null || _compilation.GetTypeByMetadataName(_host) is not { } host)
-			return ExternalRecognizerResolution.Found;
+			return ExternalMethodResolution.Found;
 
 		var named = false;
 
@@ -239,8 +242,8 @@ public sealed class RoslynSymbolResolver(
 
 				named = true;
 
-				if (Recognizes(method, host))
-					return ExternalRecognizerResolution.Found;
+				if (Callable(method, host, role))
+					return ExternalMethodResolution.Found;
 			}
 
 		foreach (var symbol in _compilation.GetSymbolsWithName(
@@ -251,11 +254,11 @@ public sealed class RoslynSymbolResolver(
 
 			named = true;
 
-			if (Recognizes(method, host))
-				return ExternalRecognizerResolution.Found;
+			if (Callable(method, host, role))
+				return ExternalMethodResolution.Found;
 		}
 
-		return named ? ExternalRecognizerResolution.NoRecognizerOverload : ExternalRecognizerResolution.NoMethod;
+		return named ? ExternalMethodResolution.NoOverload : ExternalMethodResolution.NoMethod;
 	}
 
 	/// <summary>The classes a simple name in a call written inside the host is bound in.</summary>
@@ -275,8 +278,13 @@ public sealed class RoslynSymbolResolver(
 				yield return type;
 	}
 
-	/// <summary>Whether a method is one §7.1 calls as a recognizer, from where the host is.</summary>
-	bool Recognizes(IMethodSymbol method, INamedTypeSymbol host) =>
+	/// <summary>Whether a method can be called in a role from where the host is.</summary>
+	bool Callable(IMethodSymbol method, INamedTypeSymbol host, ExternalMethodRole role) =>
+		(role == ExternalMethodRole.Predicate ? Tests(method) : Recognizes(method)) &&
+		_compilation.IsSymbolAccessibleWithin(method, host);
+
+	/// <summary>A recognizer: <c>bool M(ReadOnlySpan&lt;char&gt;, ref int)</c>, with or without <c>out T</c> after.</summary>
+	static bool Recognizes(IMethodSymbol method) =>
 		method is
 		{
 			IsStatic: true,
@@ -285,8 +293,22 @@ public sealed class RoslynSymbolResolver(
 		} &&
 		(parameters.Length == 2 || parameters.Length == 3 && parameters[2].RefKind == RefKind.Out) &&
 		IsReadOnlySpanOfChar(input.Type) &&
-		position.Type.SpecialType == SpecialType.System_Int32 &&
-		_compilation.IsSymbolAccessibleWithin(method, host);
+		position.Type.SpecialType == SpecialType.System_Int32;
+
+	/// <summary>
+	/// A predicate: a static <c>bool</c> method <c>M(c)</c> binds to with a <c>char</c> — one a
+	/// character converts to implicitly, whatever the parameter is called or typed as, and
+	/// nothing after it that has to be passed.
+	/// </summary>
+	bool Tests(IMethodSymbol method) =>
+		method is
+		{
+			IsStatic: true,
+			ReturnType.SpecialType: SpecialType.System_Boolean,
+			Parameters: [{ RefKind: RefKind.None } item, ..] parameters,
+		} &&
+		parameters.Skip(1).All(static one => one.IsOptional) &&
+		_compilation.ClassifyCommonConversion(_compilation.GetSpecialType(SpecialType.System_Char), item.Type).IsImplicit;
 
 	/// <summary>The symbol-typed core of <see cref="IsAssignable"/>, shared rather than
 	/// re-derived by round-tripping a symbol through a display string and back.</summary>

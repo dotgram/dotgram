@@ -923,6 +923,49 @@ public sealed class GeneratorDriverTests
 		Assert.Equal("abc", parse.Invoke(null, ["abc"]));
 	}
 
+	/// <summary>A predicate in an element set that is not there, or not one, is said about the brackets.</summary>
+	[Theory]
+	[InlineData("",                                                        "'@IsVowel' names no method")]
+	[InlineData("static bool IsVowel(string text) => text.Length > 0;",    "'IsVowel' has no overload")]
+	[InlineData("static int IsVowel(char c) => c;",                        "'IsVowel' has no overload")]
+	public void A_predicate_the_parser_cannot_call_is_said_about_the_grammar(string members, string said)
+	{
+		var run = RunGenerator($$"""
+			[DotGram.Gram("Start = [@IsVowel]+\nparse Start")]
+			public partial class Vowels
+			{
+				{{members}}
+			}
+			""");
+
+		var reported = Assert.Single(run.Diagnostics, static one => one.Id == GrammarNormalizer.UnresolvedExternal);
+
+		Assert.Contains(said, reported.GetMessage(), StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A predicate is whatever <c>M(c)</c> binds to — a parameter a character converts to is one,
+	/// and so is one with more parameters that need not be passed — and nothing is said.
+	/// </summary>
+	[Theory]
+	[InlineData("static bool IsVowel(char c) => \"aeiou\".IndexOf(c) >= 0;")]
+	[InlineData("static bool IsVowel(int c) => \"aeiou\".IndexOf((char)c) >= 0;")]
+	[InlineData("static bool IsVowel(char c, bool upper = false) => \"aeiou\".IndexOf(c) >= 0;")]
+	public void A_predicate_the_call_binds_to_is_found(string members)
+	{
+		var parse = Build($$"""
+			[DotGram.Gram("Start = [@IsVowel]+\nparse Start")]
+			public partial class Vowels
+			{
+				{{members}}
+			}
+			""")
+			.GetType("Vowels")!
+			.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal("aei", parse.Invoke(null, ["aei"]));
+	}
+
 	[Fact]
 	public void A_value_returning_and_a_classic_external_recognizer_coexist()
 	{
@@ -2791,25 +2834,19 @@ public sealed class GeneratorDriverTests
 		Assert.Equal(["ab1"], (List<string>)type.GetField("Bad")!.GetValue(null)!);
 	}
 
+	/// <summary>A predicate missing from an element set beside other items is said about the grammar (GRAM4025).</summary>
+	/// <remarks>It was C#'s `CS0103`, about the call in a generated file.</remarks>
 	[Fact]
-	public void A_missing_predicate_inside_an_element_set_is_reported_by_C_sharp()
+	public void A_missing_predicate_inside_an_element_set_is_reported_about_the_grammar()
 	{
-		RunGenerator(
+		var run = RunGenerator(
 			"[DotGram.Gram(\"Start = [@IsVowel | \'0\'..\'9\']+\\nparse Start\")]\n"
-			+ "public partial class Sets;",
-			out var output);
+			+ "public partial class Sets;");
 
-		var errors = output
-			.GetDiagnostics(TestContext.Current.CancellationToken)
-			.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-			.ToArray();
+		var said = Assert.Single(run.Diagnostics, static one => one.Id == GrammarNormalizer.UnresolvedExternal);
 
-		Assert.NotEmpty(errors);
-		Assert.All(errors, error =>
-		{
-			Assert.Equal("CS0103", error.Id);
-			Assert.Contains("IsVowel", error.GetMessage(), StringComparison.Ordinal);
-		});
+		Assert.Equal(DiagnosticSeverity.Error, said.Severity);
+		Assert.Contains("'@IsVowel' names no method", said.GetMessage(), StringComparison.Ordinal);
 	}
 
 	// ── Publishing one rule several ways ─────────────────────────────────────────

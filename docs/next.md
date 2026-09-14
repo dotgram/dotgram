@@ -21972,3 +21972,11 @@ characters can go back where one over tokens cannot. Asked again once the gramma
 **Where both read less than the standard.** `UESCAPE` may choose another escape character; the
 recognizer takes only the reverse solidus and the grammar follows it, so `U&'#0041' UESCAPE '#'` is
 refused by both. A Syntax Rule to write into both when a statement needs it.
+## A predicate that is not there is said about the grammar too
+
+`[@M]` is asked the question a bare `@M` is (the entry two above), in its own role: `ISymbolResolver.ResolveExternalRecognizer`
+became `ResolveExternalMethod(name, role)`, a day old and unshipped, rather than gaining a twin.
+A predicate is whatever `M(c)` binds to, and the shape is checked no tighter than that: a static
+`bool` method whose first parameter a `char` converts to implicitly and whose others may be left
+out. `bool IsVowel(int c)` compiles as a predicate and is one; checking for `(char c)` exactly
+would have said otherwise about a grammar that builds.

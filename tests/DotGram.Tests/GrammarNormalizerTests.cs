@@ -761,8 +761,8 @@ public sealed class GrammarNormalizerTests
 			return ExternalValueResolution.NotFound;
 		}
 
-		public ExternalRecognizerResolution ResolveExternalRecognizer(string methodName) =>
-			ExternalRecognizerResolution.Found;
+		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
+			ExternalMethodResolution.Found;
 	}
 
 	// ── External recognizers with a value of their own — §7.1's third row ────────
@@ -809,8 +809,8 @@ public sealed class GrammarNormalizerTests
 			return ExternalValueResolution.Found;
 		}
 
-		public ExternalRecognizerResolution ResolveExternalRecognizer(string methodName) =>
-			ExternalRecognizerResolution.Found;
+		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
+			ExternalMethodResolution.Found;
 	}
 
 	[Fact]
@@ -882,8 +882,8 @@ public sealed class GrammarNormalizerTests
 			return ExternalValueResolution.Ambiguous;
 		}
 
-		public ExternalRecognizerResolution ResolveExternalRecognizer(string methodName) =>
-			ExternalRecognizerResolution.Found;
+		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
+			ExternalMethodResolution.Found;
 	}
 
 	/// <summary>A recognizer the host cannot call is said about the grammar, in the words of what is wrong with it.</summary>
@@ -898,6 +898,21 @@ public sealed class GrammarNormalizerTests
 
 		Assert.Equal(GramSeverity.Error, reported.Severity);
 		Assert.Contains(said, reported.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>And so is a predicate in an element set, named as one.</summary>
+	[Theory]
+	[InlineData("Nowhere",   "names no method")]
+	[InlineData("Misshapen", "has no overload")]
+	public void A_predicate_the_host_cannot_call_is_reported(string method, string said)
+	{
+		var reported = Assert.Single(
+			Normalize($"Value = ['a'..'z' | @{method}]+", new MissingResolver()).Diagnostics,
+			static one => one.Id == GrammarNormalizer.UnresolvedExternal);
+
+		Assert.Contains(said,          reported.Message, StringComparison.Ordinal);
+		Assert.Contains("(char c)",   reported.Message, StringComparison.Ordinal);
+		Assert.Contains("element set", reported.Message, StringComparison.Ordinal);
 	}
 
 	/// <summary>`@Nowhere` names nothing, and `@Misshapen` names methods of another shape.</summary>
@@ -929,9 +944,9 @@ public sealed class GrammarNormalizerTests
 			return ExternalValueResolution.NotFound;
 		}
 
-		public ExternalRecognizerResolution ResolveExternalRecognizer(string methodName) =>
+		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
 			methodName == "Nowhere"
-				? ExternalRecognizerResolution.NoMethod
-				: ExternalRecognizerResolution.NoRecognizerOverload;
+				? ExternalMethodResolution.NoMethod
+				: ExternalMethodResolution.NoOverload;
 	}
 }

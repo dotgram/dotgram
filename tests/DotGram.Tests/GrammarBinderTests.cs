@@ -469,7 +469,7 @@ public sealed class GrammarBinderTests
 			return ExternalValueResolution.NotFound;
 		}
 
-		public ExternalRecognizerResolution ResolveExternalRecognizer(string methodName) =>
-			ExternalRecognizerResolution.Found;
+		public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
+			ExternalMethodResolution.Found;
 	}
 }

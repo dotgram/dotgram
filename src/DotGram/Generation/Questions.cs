@@ -35,8 +35,11 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 	/// <summary>And whether a bare `@Name` recognizer hands back a value of its own (§7.1).</summary>
 	public const int ExternalValue = -5;
 
-	/// <summary>And whether it can be called as a recognizer at all (§7.1).</summary>
-	public const int ExternalRecognizer = -6;
+	/// <summary>
+	/// And whether a named method can be called the way its position calls it (§7.1): as a
+	/// recognizer, or — with <see cref="Against"/> saying so — as a predicate over a character.
+	/// </summary>
+	public const int ExternalMethod = -6;
 
 	public static Question Fits(string from, string to) => new(from, Assignability, to);
 
@@ -50,7 +53,12 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 	/// </param>
 	public static Question ValueOf(string method, string? against = null) => new(method, ExternalValue, against);
 
-	public static Question Recognizes(string method) => new(method, ExternalRecognizer);
+	public static Question Recognizes(string method) => new(method, ExternalMethod);
+
+	public static Question Tests(string method) => new(method, ExternalMethod, "char");
+
+	/// <summary>The role an <see cref="ExternalMethod"/> question asks about.</summary>
+	public ExternalMethodRole Role => Against is null ? ExternalMethodRole.Recognizer : ExternalMethodRole.Predicate;
 }
 
 /// <param name="Yes">Whether the host has it.</param>
@@ -69,7 +77,7 @@ readonly record struct Answer(
 	EquatableArray<ObjectMember> Properties = default,
 	string? ExternalType = null,
 	bool ExternalAmbiguous = false,
-	ExternalRecognizerResolution Recognizer = ExternalRecognizerResolution.Found);
+	ExternalMethodResolution Method = ExternalMethodResolution.Found);
 
 /// <summary>
 /// Everything a grammar could ask the host compilation, worked out from its text alone.
@@ -112,6 +120,7 @@ static class Questions
 		var declared  = new List<string>();
 		var sequences = new List<string>();
 		var externals = new List<string>();
+		var predicates = new List<string>();
 		var producers = new List<(string Method, string Against)>();
 		var contexts  = new List<string>();
 
@@ -210,6 +219,9 @@ static class Questions
 			questions.Add(Question.ValueOf(method));
 			questions.Add(Question.Recognizes(method));
 		}
+
+		foreach (var method in predicates)
+			questions.Add(Question.Tests(method));
 
 		foreach (var (method, against) in producers)
 			questions.Add(Question.ValueOf(method, against));
@@ -329,6 +341,15 @@ static class Questions
 				case Expr.Reference(true, var method, _):
 					externals.Add(method);
 					break;
+
+				// And [@Name], its first row: a predicate over one character, which is asked
+				// about for the same reason — whether there is one to call at all.
+				case Expr.ElementSet(_, var items):
+					foreach (var item in items)
+						if (item is Elem.Ref(Expr.Reference(true, var predicate, _)))
+							predicates.Add(predicate);
+
+					break;
 			}
 
 			foreach (var child in Dump.Children(expression))
@@ -368,8 +389,8 @@ static class Questions
 						_                                 => new Answer(question, false),
 					},
 
-				Question.ExternalRecognizer =>
-					new Answer(question, true, Recognizer: resolver.ResolveExternalRecognizer(question.Name)),
+				Question.ExternalMethod =>
+					new Answer(question, true, Method: resolver.ResolveExternalMethod(question.Name, question.Role)),
 
 				_ => throw new InvalidOperationException($"Unknown question kind {question.Kind}."),
 			});
@@ -452,8 +473,8 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 			: ExternalValueResolution.NotFound;
 	}
 
-	public ExternalRecognizerResolution ResolveExternalRecognizer(string methodName) =>
-		Look(Question.Recognizes(methodName)).Recognizer;
+	public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
+		Look(role == ExternalMethodRole.Predicate ? Question.Tests(methodName) : Question.Recognizes(methodName)).Method;
 
 	/// <summary>
 	/// The answer, or a failure — never a guess.
