@@ -90,40 +90,71 @@ public static class FirstSets
 
 		internal static IReadOnlyList<CharRange> Normalized(IEnumerable<CharRange> ranges)
 		{
-			var sorted = new List<CharRange>(ranges);
+			// Worked in a list kept for the thread and handed back as an array of exactly what
+			// it holds: this runs for every union of every first set, and two lists a call —
+			// one to sort, one to merge into — were most of what those unions allocated. Taken
+			// out of its slot while in use, so that anything `ranges` computes as it is read
+			// gets a list of its own rather than this one cleared under it.
+			var sorted = _sorting ?? new List<CharRange>();
 
-			// Most of what arrives is in order already — `Or` merges two lists that are — and a
-			// sort of what is sorted was a fifth of the time spent working out first sets.
-			for (var i = 1; i < sorted.Count; i++)
-				if (sorted[i].From < sorted[i - 1].From)
-				{
-					sorted.Sort(static (a, b) => a.From.CompareTo(b.From));
+			_sorting = null;
 
-					break;
-				}
-
-			var merged = new List<CharRange>(sorted.Count);
-
-			foreach (var range in sorted)
+			try
 			{
-				if (range.To < range.From)
-					continue;
+				sorted.Clear();
+				sorted.AddRange(ranges);
 
-				// Overlapping or adjacent: one maximal range. `To + 1` is int arithmetic,
-				// so the top of the character space does not wrap.
-				if (merged.Count > 0 && merged[^1].To + 1 >= range.From)
+				// Most of what arrives is in order already — `Or` merges two lists that are — and
+				// a sort of what is sorted was a fifth of the time spent working out first sets.
+				for (var i = 1; i < sorted.Count; i++)
+					if (sorted[i].From < sorted[i - 1].From)
+					{
+						sorted.Sort(static (a, b) => a.From.CompareTo(b.From));
+
+						break;
+					}
+
+				// Merged in place: what is written never runs ahead of what is read.
+				var count = 0;
+
+				for (var i = 0; i < sorted.Count; i++)
 				{
-					if (range.To > merged[^1].To)
-						merged[^1] = merged[^1] with { To = range.To };
+					var range = sorted[i];
 
-					continue;
+					if (range.To < range.From)
+						continue;
+
+					// Overlapping or adjacent: one maximal range. `To + 1` is int arithmetic,
+					// so the top of the character space does not wrap.
+					if (count > 0 && sorted[count - 1].To + 1 >= range.From)
+					{
+						if (range.To > sorted[count - 1].To)
+							sorted[count - 1] = sorted[count - 1] with { To = range.To };
+
+						continue;
+					}
+
+					sorted[count++] = range;
 				}
 
-				merged.Add(range);
-			}
+				if (count == 0)
+					return [];
 
-			return merged;
+				var merged = new CharRange[count];
+
+				sorted.CopyTo(0, merged, 0, count);
+
+				return merged;
+			}
+			finally
+			{
+				sorted.Clear();
+				_sorting = sorted;
+			}
 		}
+
+		[ThreadStatic] static List<CharRange>? _sorting;
+		[ThreadStatic] static List<CharRange>? _merging;
 
 		/// <summary>Whether it says anything a repetition can be held to.</summary>
 		public bool IsKnown => !Anything && !Nothing;
@@ -140,19 +171,32 @@ public static class FirstSets
 			if (other.Ends == (Ends || other.Ends) && other.Covers(this))
 				return other;
 
-			// Both sorted, so merged in order rather than appended and sorted again.
-			var ranges = new List<CharRange>(Ranges.Count + other.Ranges.Count);
+			// Both sorted, so merged in order rather than appended and sorted again — into a
+			// list kept for the thread, for the reason `Normalized` keeps one.
+			var ranges = _merging ?? new List<CharRange>();
 			var mine   = 0;
 			var theirs = 0;
 
-			while (mine < Ranges.Count || theirs < other.Ranges.Count)
-				ranges.Add(
-					theirs >= other.Ranges.Count ||
-					mine < Ranges.Count && Ranges[mine].From <= other.Ranges[theirs].From
-						? Ranges[mine++]
-						: other.Ranges[theirs++]);
+			_merging = null;
 
-			return Chars(ranges, Ends || other.Ends);
+			try
+			{
+				ranges.Clear();
+
+				while (mine < Ranges.Count || theirs < other.Ranges.Count)
+					ranges.Add(
+						theirs >= other.Ranges.Count ||
+						mine < Ranges.Count && Ranges[mine].From <= other.Ranges[theirs].From
+							? Ranges[mine++]
+							: other.Ranges[theirs++]);
+
+				return Chars(ranges, Ends || other.Ends);
+			}
+			finally
+			{
+				ranges.Clear();
+				_merging = ranges;
+			}
 		}
 
 		/// <summary>
