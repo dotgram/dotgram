@@ -170,6 +170,9 @@ sealed class StandardOracle
 		_                             => null,
 	};
 
+	/// <summary>The productions a text's tokens are made of, as this recognizer draws the line.</summary>
+	public static HashSet<string> LexicalProductions(Dictionary<string, BnfNode> rules) => Lexical(rules);
+
 	/// <summary>Every production the lexical rules reach from a token and a separator.</summary>
 	/// <remarks>
 	/// Not through <c>&lt;character set specification&gt;</c>, which a character string literal may be

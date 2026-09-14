@@ -239,6 +239,15 @@ static class Program
 			return;
 		}
 
+		// `--bnf-gram [file]` writes the same BNF as a `.gram` skeleton — every production under its
+		// own name — for the standard's grammar to be written from. See BnfGram.cs.
+		if (args.Length >= 1 && args[0] == "--bnf-gram")
+		{
+			BnfGram.Run(args.Length > 1 ? args[1] : null);
+
+			return;
+		}
+
 		// `--levels [path] [shown]` asks every compatibility level from 100 to 170 about every
 		// statement and keeps the ones whose answer moves: what a level gates on a server
 		// that has one parser. See CompatibilityLevels.cs.

@@ -21885,3 +21885,25 @@ identifier>` is no `<reserved word>`, checked wherever one is completed and not 
 production` which pieces of the BNF read as empty and which productions the one named reaches that
 derive nothing — the two questions these three were found by. Over a first probe of twenty lines the
 recognizer reads the fourteen the standard allows and refuses the six it does not.
+
+## The BNF as a .gram skeleton
+
+The standard's grammar starts from its BNF written out once, as decided: `--bnf-gram [file]`
+(`BnfGram.cs`) writes the 1,758 productions of ISO/IEC 9075-2:2023 as a `.gram` file, by default
+`.work/SqlStandard.skeleton.gram`, which is not committed — the command makes it again from the file
+the repository keeps.
+
+**What it keeps is what a hand-written grammar must not lose: every name, and every shape.** A
+production is a rule named after it — each part of the name capitalized and what divides the parts
+dropped, so `<query expression>` is `QueryExpression` and `<SQL/JSON special symbol>`
+`SQLJSONSpecialSymbol`, none of the 1,758 meeting another — with the BNF's name in a comment above it.
+The 138 lexical productions, as the recognizer draws the line, are a `Lexical` namespace with no
+trivia and exact characters; the 1,620 syntactic ones follow it, key words written `"SELECT"i`. `[ … ]`
+is `?`, `…...` is `+`, `[ …... ]` is `*`, `{ … }` a group; 35 productions the BNF leaves to the Syntax
+Rules are `none` and say so, and three it narrows by them say that.
+
+**And what it does not settle, because a skeleton cannot.** The BNF's choice is unordered and a `.gram`
+one takes the first alternative that matches; its left recursion runs through other productions,
+which a rule may only do through itself; and its lexical productions spell classes of characters one
+at a time. Those are the hand's, rule by rule, with `--standard` to say whether what was written reads
+what the BNF reads.

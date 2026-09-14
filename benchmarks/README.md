@@ -576,6 +576,10 @@ A line that begins `--` is skipped. `--standard ? file` says which lexical produ
 each word of a line, and `--standard ! production` which pieces of the BNF read as empty and
 which productions the one named reaches that derive nothing.
 
+`--bnf-gram [file]` (`BnfGram.cs`) writes the same BNF as a `.gram` skeleton — every production
+under a rule named after it, the lexical ones in a namespace of their own — by default to
+`.work/SqlStandard.skeleton.gram`, for the standard's grammar to be written from by hand.
+
 ## The SQL recognizer against a hand-written one
 
 `--hand [rounds] [iterations]` (`SqlAgainst.cs`) measures

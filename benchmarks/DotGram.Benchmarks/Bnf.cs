@@ -53,6 +53,21 @@ static class Bnf
 
 	static readonly Regex Named = new(@"<[A-Za-z][^>\n]*>", RegexOptions.Compiled);
 
+	/// <summary>
+	/// A production's name as a rule of a `.gram` grammar spells it: each part capitalized and what
+	/// divides the parts dropped, so that <c>&lt;non-delimiter token&gt;</c> is <c>NonDelimiterToken</c>.
+	/// </summary>
+	public static string RuleName(string name)
+	{
+		var spelled = new StringBuilder();
+
+		foreach (var part in Regex.Split(name, "[^A-Za-z0-9]+"))
+			if (part.Length > 0)
+				spelled.Append(char.ToUpperInvariant(part[0])).Append(part, 1, part.Length - 1);
+
+		return spelled.ToString();
+	}
+
 	/// <summary>Every production of the text, by name.</summary>
 	public static Dictionary<string, BnfNode> Read(string text)
 	{
