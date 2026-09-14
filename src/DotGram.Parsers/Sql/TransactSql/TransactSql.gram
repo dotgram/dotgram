@@ -2260,105 +2260,58 @@ TryCatchStatement : @Statement
 		=> @(new Statement.TryCatch(tried, caught ?? System.Array.Empty<Statement>()))
 
 StatementBlock : @Statement
-	= "BEGIN"i & "ATOMIC"i & "WITH"i & atomic: AtomicOptions & body: StatementList & "END"i
-		=> @(new Statement.Compound(body, atomic))
-	| "BEGIN"i & body: StatementList & "END"i => @(new Statement.Compound(body))
+	= "BEGIN"i & body: StatementList & "END"i => @(new Statement.Compound(body))
+
+// A natively compiled module's body, which is one atomic block and nothing after it: `… AS BEGIN
+// ATOMIC WITH (…) SELECT 1; END; SELECT 2` is `Msg 156`. There is one nowhere else — in a batch,
+// nested in another or inside an `IF` it is `Msg 102`, in a module not compiled natively `Msg
+// 10782` — and a natively compiled module has no other body (`Msg 10783`, `Syntax.Natively`). A
+// plain block inside it is read.
+AtomicBody : @Statement[]
+	= "BEGIN"i & "ATOMIC"i & "WITH"i & atomic: AtomicOptions & body: StatementList & "END"i & ';'* & ?!SqlPiece
+		=> @(new Statement[] { new Statement.Compound(body, atomic) })
 
 // ── A natively compiled block's options ─────────────────────────────────────
 //
-// `BEGIN ATOMIC WITH (…)`. The reference lists five settings; the engine, asked in eleven probes
-// (docs/next.md, 2026-09-13), reads a list of its own shape, and reads it in two halves.
+// `BEGIN ATOMIC WITH (…)`. The reference lists five settings, and the engine reads those five and
+// nothing else, each of them once. A level of `SNAPSHOT`, `REPEATABLE READ` or `SERIALIZABLE`
+// after `TRANSACTION` or `TRAN`, and `READ COMMITTED` and `READ UNCOMMITTED` as well, which are read
+// and objected to as a natively compiled module's (`Msg 10794`); a `DATEFIRST`, `DATEFORMAT` or
+// `LANGUAGE` set to a name, a string, a number, a binary string, money, `NULL` or an ODBC literal —
+// not `DEFAULT`, not `ON`, not `x.y`, not two of them; a `TEXTSIZE` set to a whole number, `-1`
+// among them; a `DELAYED_DURABILITY` set to `ON` or `OFF`. The words of `SET` — `ANSI_NULLS`,
+// `XACT_ABORT`, `LOCK_TIMEOUT` and twenty-six more — are refused whatever they are set to (`Msg
+// 102`), and so is a name in brackets.
 //
-// Until something loosens it, an option is one of the five, set to one value of its kind and
-// nothing after it: a level of `SNAPSHOT`, `REPEATABLE READ` or `SERIALIZABLE`, after
-// `TRANSACTION` or `TRAN`; a `DATEFIRST`, `DATEFORMAT` or `LANGUAGE` set to a name, a string, a
-// number, a binary string, money, `NULL` or an ODBC literal — not `DEFAULT`, not `ON`, not `x.y`,
-// not two of them; a `TEXTSIZE` set to a number with no exponent; a `DELAYED_DURABILITY` set to
-// `ON` or `OFF`. The words of `SET` — `ANSI_NULLS`, `XACT_ABORT`, `LOCK_TIMEOUT` and twenty-six
-// more — are refused whatever they are set to (`Msg 102`), and so is a name in brackets.
-//
-// Three things loosen it: a level of `READ COMMITTED` or `READ UNCOMMITTED`; one of the five
-// named a second time, set to a first value of its kind; and a name the engine does not know,
-// set to anything that does not begin with `ON`, `OFF`, a reserved word or an operator. From
-// there anything at all is read — more commas, `ANSI_NULLS = 1`, a `(` with no `)` and a `)` with
-// no `(` — and the list ends at the bracket the block's body follows. A list without its level
-// or its language is read and refused when the procedure is made (`Msg 10784`).
+// A name the engine does not know is `Msg 195`, an option named twice `Msg 1039`, and a `TEXTSIZE`
+// of `1.5` `Msg 1080`: answers about what was written rather than its shape, which the parser
+// gives and then says nothing of what follows — `NOSUCH = 1, anything at all` is the same answer,
+// which is why the list once looked open after them (docs/next.md, 2026-09-13). They are refused
+// when the procedure is made, and a closed list is decided by that. A list names its level and its
+// language, in either order: without one it is `Msg 10784`, "must specify a value for the option".
+// `TEXTSIZE = 1e3` is `Msg 102`.
 AtomicOptions : @Clause[]
-	= '(' & first: AtomicOption & (',' & rest: AtomicOption)* & AtomicClose => @(Syntax.Listed(first, rest))
-	| '(' & (strict: AtomicOption & ',')* & loose: AtomicLoosened & AtomicClose & when @(Syntax.Loosens(strict, loose))
-		=> @(Syntax.Loosened(strict, loose))
-
-	// An option named a second time loosens what follows it even where what follows is not an
-	// option, and a list reads every one it can before it looks for what loosened it.
-	| '(' & (strict: AtomicOption & ',')+ & left: AtomicLeft & AtomicClose & when @(Syntax.Repeats(strict))
-		=> @(Syntax.Loosened(strict, left))
-
-// The bracket the body follows, which is the one that ends even a list read strictly: a strict
-// half that ends at a `)` with more after it is the loosened list's beginning.
-AtomicClose = ')' & ?=(StatementList & "END"i)
+	= '(' & first: AtomicOption & (',' & rest: AtomicOption)* & ')'
+	  & when @(first is null || (!Syntax.Repeats(Syntax.Listed(first, rest)) && Syntax.Atomically(Syntax.Listed(first, rest))))
+		=> @(Syntax.Listed(first, rest))
 
 AtomicOption : @Clause = ?=(AtomicSyntax & OptionEnds) & o: OptionSetting => @(o)
 
 AtomicSyntax
-	= AtomicLevelName & '=' & ("SNAPSHOT"i | "SERIALIZABLE"i | "REPEATABLE"i & "READ"i)
+	= AtomicLevelName & '=' & ("SNAPSHOT"i | "SERIALIZABLE"i | "REPEATABLE"i & "READ"i | "READ"i & ("COMMITTED"i | "UNCOMMITTED"i))
 	| AtomicSetting
-
-// The option that loosens a list, whose value runs on with the rest of it, kept as written.
-AtomicLoosened : @Clause
-	= ?=AtomicLoosening & name: AtomicName & '=' & value: AtomicRun
-		=> @(new Clause.Option(name, new Expression.ColumnReference(value), Clause.None))
-
-AtomicLoosening
-	= AtomicLevelName & '=' & "READ"i & ("COMMITTED"i | "UNCOMMITTED"i)
-	| AtomicSetting
-	| ?!AtomicKnown & ?!TSqlReserved & TSql.RegularIdentifier & '=' & AtomicFirst
-
-AtomicLeft : @Clause = t: AtomicRest => @(new Clause.Option(Syntax.Spaced(t ?? ""), null, Clause.None))
-
-AtomicName : @string = t: (AtomicLevelName | word) => @(Syntax.Squared(t))
-AtomicRun  : @string = t: AtomicRest => @(Syntax.Spaced(t))
 
 AtomicLevelName = ("TRANSACTION"i | "TRAN"i) & "ISOLATION"i & "LEVEL"i
 
 AtomicSetting
 	= ("DATEFIRST"i | "DATEFORMAT"i | "LANGUAGE"i) & '=' & AtomicConstant
-	| "TEXTSIZE"i & '=' & '-'? & ExactNumber
+	| "TEXTSIZE"i & '=' & '-'? & Sql92.Lexical.Digits
 	| "DELAYED_DURABILITY"i & '=' & OnOff
 
 AtomicConstant
 	= '-'? & (Sql92.Lexical.UnsignedNumericLiteral | TSql.MoneyLiteral)
 	| Quoted | TSql.BinaryLiteral | Identifier | TSql.Variable | "NULL"i
 	| '{' & OdbcLiteralKind & Quoted & '}'
-
-// What a name the engine does not know may be set to first: what a setting may, and `DEFAULT`, a
-// temporary table's name and a number whose exponent has no digits.
-AtomicFirst = AtomicConstant | TSql.NumericLiteral | "DEFAULT"i | TSql.TemporaryName
-
-// The names a list knows: the settings it takes, and the words of `SET` it refuses.
-AtomicKnown
-	= "DATEFIRST"i | "DATEFORMAT"i | "LANGUAGE"i | "TEXTSIZE"i | "DELAYED_DURABILITY"i
-	| "ANSI_DEFAULTS"i | "ANSI_NULL_DFLT_OFF"i | "ANSI_NULL_DFLT_ON"i | "ANSI_NULLS"i | "ANSI_PADDING"i
-	| "ANSI_WARNINGS"i | "ARITHABORT"i | "ARITHIGNORE"i | "CONCAT_NULL_YIELDS_NULL"i
-	| "CURSOR_CLOSE_ON_COMMIT"i | "FMTONLY"i | "FORCEPLAN"i | "IMPLICIT_TRANSACTIONS"i | "NO_BROWSETABLE"i
-	| "NOCOUNT"i | "NOEXEC"i | "NUMERIC_ROUNDABORT"i | "PARSEONLY"i | "QUOTED_IDENTIFIER"i
-	| "REMOTE_PROC_TRANSACTIONS"i | "SHOWPLAN_ALL"i | "SHOWPLAN_TEXT"i | "SHOWPLAN_XML"i | "XACT_ABORT"i
-	| "FIPS_FLAGGER"i | "DEADLOCK_PRIORITY"i | "LOCK_TIMEOUT"i | "CONTEXT_INFO"i | "QUERY_GOVERNOR_COST_LIMIT"i
-
-// Anything, up to the bracket the block's body follows.
-AtomicRest = (?!(')' & StatementList & "END"i) & AtomicToken)*
-
-// The marks are in threes and fours between the lexemes, since a class in syntactic position names
-// eight characters at most and a choice of single characters is one.
-AtomicToken
-	= '(' | ')' | ',' | '.' | word
-	| '=' | '<' | '>' | '!' | Quoted
-	| ':' | ';' | '+' | '-' | TSql.BracketedIdentifier
-	| '*' | '/' | '%' | '&' | Sql92.Lexical.DelimitedIdentifier
-	| '|' | '^' | '~' | TSql.NumericLiteral
-	| '{' | '}' | '?' | TSql.MoneyLiteral
-	| '\\' | '`' | ']' | TSql.BinaryLiteral
-	| TSql.Variable | TSql.TemporaryName | TSql.PseudoColumn
-	| "||" | "::" | "<>" | "<=" | ">=" | "!=" | "!<" | "!>" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^="
 
 // A branch leaves its `;` to the statement it is a branch of, unless an `ELSE` follows: the
 // `;` of `IF c SELECT 1; WITH a AS (…) SELECT …` ends the `IF`, and a `WITH` after it is the
@@ -4595,9 +4548,9 @@ RoutineBody : @Statement
 ProcedureStatement : @Statement
 	= ProcWord & name: QualifiedName & (';' & number: Sql92.Lexical.Digits)?
 	  & parameters: RoutineParameters? & options: RoutineOptions? & replication: ("FOR"i & "REPLICATION"i)?
-	  & "AS"i & ("EXTERNAL"i & "NAME"i & external: QualifiedName | body: StatementList)
-	  & when @(external is null || Syntax.Externally(options))
-		=> @(new Statement.CreateProcedure(name, parameters ?? Clause.None, body ?? Statement.None, options, replication is not null, external, number))
+	  & "AS"i & ("EXTERNAL"i & "NAME"i & external: QualifiedName | atomic: AtomicBody | body: StatementList)
+	  & when @((external is null || Syntax.Externally(options)) && Syntax.Natively(options, atomic is not null))
+		=> @(new Statement.CreateProcedure(name, parameters ?? Clause.None, atomic ?? body ?? Statement.None, options, replication is not null, external, number))
 
 ProcWord = "PROCEDURE"i | "PROC"i
 
@@ -4667,11 +4620,12 @@ FunctionReturns : @Statement.CreateFunction
 		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", body, options))
 	| name: TSql.Variable & "TABLE"i & '(' & columns: DeclaredBody & ')' & when @(Syntax.Declared(columns) && Syntax.Returned(columns))
 	  & options: RoutineOptions? & "AS"i?
-	  & body: StatementList
-		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", body, options, columns, name))
+	  & (atomic: AtomicBody | body: StatementList) & when @(Syntax.Natively(options, atomic is not null))
+		=> @(new Statement.CreateFunction("", Clause.None, "TABLE", atomic ?? body ?? Statement.None, options, columns, name))
 	| type: DataType & options: RoutineOptions? & "AS"i?
-	  & ("EXTERNAL"i & "NAME"i & external: QualifiedName | body: StatementList)
-		=> @(new Statement.CreateFunction("", Clause.None, type, body ?? Statement.None, options, null, null, null, external))
+	  & ("EXTERNAL"i & "NAME"i & external: QualifiedName | atomic: AtomicBody | body: StatementList)
+	  & when @(Syntax.Natively(options, atomic is not null))
+		=> @(new Statement.CreateFunction("", Clause.None, type, atomic ?? body ?? Statement.None, options, null, null, null, external))
 
 // The query an inline function returns may open with a `WITH` — a common table expression,
 // `XMLNAMESPACES (…)`, both — in brackets or bare, and carry its order and window: `RETURN
@@ -4691,8 +4645,9 @@ TriggerStatement : @Statement
 	= "TRIGGER"i & name: QualifiedName & "ON"i & on: TriggerOn & options: RoutineOptions?
 	  & fires: TriggerWhen & events: TriggerEvents
 	  & append: ("WITH"i & "APPEND"i)? & replication: ("NOT"i & "FOR"i & "REPLICATION"i)?
-	  & "AS"i & ("EXTERNAL"i & "NAME"i & external: QualifiedName | body: StatementList)
-		=> @(new Statement.CreateTrigger(name, on, events, body ?? Statement.None, fires, options,
+	  & "AS"i & ("EXTERNAL"i & "NAME"i & external: QualifiedName | atomic: AtomicBody | body: StatementList)
+	  & when @(Syntax.Natively(options, atomic is not null))
+		=> @(new Statement.CreateTrigger(name, on, events, atomic ?? body ?? Statement.None, fires, options,
 				 append is not null, replication is not null, external))
 
 TriggerOn : @string

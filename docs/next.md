@@ -21681,3 +21681,42 @@ At 170: 7,394 both, 0 work, 0 defects, 276 another product's, 647 neither — th
 neither; at 150: 6,607, 0, 0, 236 and 545. The round trip 100% of 7,716 (from 7,732), `--split` 784
 (from 788, four files ScriptDom reads whole and this no longer does). The map 7,997 both and 0
 defects, and `--levels` 165 of 165, unchanged. The suite is 14,766 rows (from 14,754).
+
+## An atomic block's list is closed, and it is a natively compiled module's body alone
+
+The last thing left as the engine reading anything was `BEGIN ATOMIC WITH (…)` after something
+"loosened" its list — a level of `READ COMMITTED`, one of the five options named twice, a name the
+engine does not know — and a `§` in what followed, which no lexeme held. Asked through `sqlcmd`, each
+message whole:
+
+- **`READ COMMITTED` and `READ UNCOMMITTED` loosen nothing.** They are `Msg 10794`, "not supported with
+  natively compiled modules", and a list after them is read as strictly as any: `garbage` and `§` are
+  `Msg 102`. They are two more levels of the list.
+- **A name the engine does not know (`Msg 195`), an option named twice (`Msg 1039`), `TEXTSIZE = 1.5`
+  (`Msg 1080`)** are the parser's answer about what was written, and it says nothing of what follows:
+  `NOSUCH = 1, BAR baz qux ) (` has the same three messages as `NOSUCH = 1`. That was the openness. All
+  three are refused when the procedure is made, which is what decides a closed list, so they are
+  refused here, and the loosened alternatives, their open tail and its token soup are gone.
+- **A list names its level and its language**, in either order, `TRAN` for `TRANSACTION`, a comment
+  between the words of the level: without one it is `Msg 10784`. `TEXTSIZE` is a whole number, `-1`
+  among them; `1e3` is `Msg 102`.
+- **The block is a natively compiled module's body and nothing else.** A procedure, a function or a
+  trigger `WITH NATIVE_COMPILATION` has that body and no other (`Msg 10783` for `BEGIN … END` or one
+  statement), and nothing after it (`END; SELECT 2` is `Msg 156`); in a module not compiled natively it
+  is `Msg 10782`, in a batch, nested in another block or under an `IF` `Msg 102`. A plain block inside it
+  is read. It was a kind of `BEGIN … END` any statement list could hold.
+
+**And a harness rule tried and taken back.** `SqlException.Errors` holds every message, and counting a
+statement read only where all of them were about names first looked like the answer to all of this:
+the atomic list's `195` is followed by `102` and `10783`. Across the corpus it made nine defects that
+are not — `137 → 156` in a nested `IF`, `1047 → 319` among conflicting hints, `7887 → 102` on the same
+IPv6 literal — each gone once its first cause is removed. A later message is the parser's recovery as
+often as it is a verdict; the harness keeps the first, and a first cause is removed and asked again.
+
+The theory of a transaction's and a column's options was asked again, every line of it, and rewritten
+from the answers with fifteen more on where a block stands: 134 readings and 1,186 refusals, from 589 and
+719 — every one that moved an atomic list's, and no column option among them.
+
+At 170: 7,394 both, 0 work, 0 defects, 276 another product's, 647 neither; at 150: 6,607, 0, 0, 236
+and 545. The map 7,997 both, 0 work, 0 defects; `--levels` 165 of 165; `--split` 784; the round trip
+100% of 7,716 — all unchanged. The suite is 14,782 rows (from 14,766).

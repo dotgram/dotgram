@@ -4270,17 +4270,7 @@ public static class Syntax
 			HasOption(options, "ALGORITHM");
 	}
 
-	/// <summary>
-	/// Whether an option may loosen a natively compiled block's list: a level read committed or
-	/// uncommitted and a name the engine does not know always may, and a setting it knows only
-	/// where the list has named it already.
-	/// </summary>
-	public static bool Loosens(Clause[]? strict, Clause? loose) =>
-		loose is Clause.Option { Name: var name } &&
-		(AtomicKey(name) is not ("DATEFIRST" or "DATEFORMAT" or "LANGUAGE" or "TEXTSIZE" or "DELAYED_DURABILITY") ||
-		 Array.Exists(strict ?? [], one => one is Clause.Option { Name: var named } && AtomicKey(named) == AtomicKey(name)));
-
-	/// <summary>Whether a natively compiled block's list names an option twice, which loosens what follows.</summary>
+	/// <summary>Whether a natively compiled block's list names an option twice, which the engine refuses (<c>Msg 1039</c>).</summary>
 	public static bool Repeats(Clause[]? strict)
 	{
 		var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -4288,13 +4278,42 @@ public static class Syntax
 		return Array.Exists(strict ?? [], one => one is Clause.Option { Name: var name } && !seen.Add(AtomicKey(name)));
 	}
 
-	/// <summary>The options a natively compiled block's list read strictly, and what loosened it.</summary>
-	public static Clause[] Loosened(Clause[]? strict, Clause last) => [.. strict ?? [], last];
+	/// <summary>
+	/// Whether a natively compiled block's list names its isolation level and its language, which
+	/// it must: without either it is <c>Msg 10784</c>.
+	/// </summary>
+	public static bool Atomically(Clause[] options) =>
+		Array.Exists(options, static one => one is Clause.Option { Name: var name } && AtomicKey(name) == "TRANSACTION ISOLATION LEVEL") &&
+		Array.Exists(options, static one => one is Clause.Option { Name: var name } && AtomicKey(name) == "LANGUAGE");
+
+	/// <summary>Whether a module's body is the one its options call for.</summary>
+	/// <remarks>
+	/// A module compiled natively has one body, an atomic block — <c>Msg 10783</c> for any other —
+	/// and an atomic block is no other module's body, <c>Msg 10782</c>.
+	/// </remarks>
+	public static bool Natively(Clause[]? options, bool atomic) =>
+		atomic == (options is not null && Array.Exists(options, static one =>
+			one is Clause.Option { Name: var name } && name.Equals("NATIVE_COMPILATION", StringComparison.OrdinalIgnoreCase)));
 
 	/// <summary>An option's name as the engine matches it: its words, in capitals, and <c>TRAN</c> as <c>TRANSACTION</c>.</summary>
 	static string AtomicKey(string name)
 	{
-		var words = name.ToUpperInvariant().Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+		// A comment between the words is none of them: `TRANSACTION  ISOLATION /**/ LEVEL` is read.
+		var text = name;
+
+		for (int open; (open = text.IndexOf("/*", StringComparison.Ordinal)) >= 0;)
+		{
+			var close = text.IndexOf("*/", open + 2, StringComparison.Ordinal);
+			text = text.Substring(0, open) + " " + (close < 0 ? "" : text.Substring(close + 2));
+		}
+
+		for (int open; (open = text.IndexOf("--", StringComparison.Ordinal)) >= 0;)
+		{
+			var end = text.IndexOfAny(['\r', '\n'], open);
+			text = text.Substring(0, open) + " " + (end < 0 ? "" : text.Substring(end));
+		}
+
+		var words = text.ToUpperInvariant().Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
 
 		if (words is ["TRAN", ..])
 			words[0] = "TRANSACTION";
