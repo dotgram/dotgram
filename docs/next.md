@@ -22328,3 +22328,35 @@ it is the generator's — was wrong. A prefix reading stops at the first prefix 
 refused at the end, gives back its repetitions one element at a time and reads what follows again
 for each, which is what full backtracking means. An atomic repetition gives nothing back and costs
 what a valid line does; see the schema's core.
+
+## SQL:2023: the query grammar's lists give nothing back
+
+What the schema's core found, done for the queries: the lists that no valid reading needs given
+back are atomic — `FROM`, `GROUP BY`, an in value list, an argument list, both `VALUES`, `WITH`, the
+set operators' operands, the select list, `ORDER BY`, `SET`, the window clause, and `CASE`'s and
+`MERGE`'s `WHEN` clauses. A column name list is not: `UNIQUE (a, p WITHOUT OVERLAPS)` gives `, p`
+back. Nor, yet, the chains the towers guard — operands and operators, `AND` and `OR`.
+
+Refused at the end, with n from 16 to 128 elements:
+
+| list | before | after |
+| --- | --- | --- |
+| `AND` chain | 1.1 → 107 ms | 0.24 → 2.3 ms |
+| `VALUES` | 1.3 → 42 ms | 0.20 → 1.6 ms |
+| arguments | 0.7 → 33 ms | 0.19 → 1.2 ms |
+| `FROM` with commas | 0.3 → 8.5 ms | 0.07 → 0.6 ms |
+| `GROUP BY` | 0.3 → 6.4 ms | 0.07 → 0.2 ms |
+
+The `AND` chain was not made atomic and is fast anyway: its operands' own lists were what it paid
+for. A refused schema statement of 1,907 characters took 407 ms and takes 1.2; the aggregate fuzz file
+took 0.7 seconds and takes 0.3. An in value list showed 7.5 ms at 62 and 128 elements and 0.2 between;
+the spike moves with a line's place in the file and not with the line, and is the runtime compiling
+a method again.
+
+**The trap came back, as the schema's core said it would.** `JSON_ARRAY(SELECT a FROM t FORMAT JSON
+…)` was refused: `FORMAT` is not reserved, so it was table `t`'s correlation name, and the list of
+tables, atomic, kept it. A correlation name is not read now where `FORMAT JSON`, `RETURNING` and a
+type, or `ABSENT ON NULL` follow — words no correlation name could stand before, since nothing that
+follows a table begins so. The recorded rows found it; then every fuzzer ran over the atomic lists —
+queries, schema statements and all seven data change statements, 19,000 verdicts, 6,000 of them on
+broken lines — and none differ.

@@ -476,7 +476,7 @@ CompOp = "<>" | "<=" | ">=" | '=' | '<' | '>'
 NegatablePredicatePart2 : @bool
 	= "BETWEEN"i & ("ASYMMETRIC"i | "SYMMETRIC"i)? & RowValuePredicand & "AND"i & RowValuePredicand => @(true)
 	| "IN"i & TableSubquery => @(true)
-	| "IN"i & '(' & RowValueExpression & (',' & RowValueExpression)* & ')' => @(true)
+	| "IN"i & '(' & { RowValueExpression & (',' & RowValueExpression)* } & ')' => @(true)
 	| "LIKE"i & p: StringValueExpression & e: LikeEscape & when @((p & e & Towers.String) != 0) => @(true)
 	| "SIMILAR"i & "TO"i & CharacterValueExpression & ("ESCAPE"i & CharacterValueExpression)? => @(true)
 	| "LIKE_REGEX"i & CharacterValueExpression & ("FLAG"i & CharacterValueExpression)? => @(true)
@@ -678,8 +678,8 @@ GeneralValueSpecification
 CaseExpression
 	= "NULLIF"i & '(' & ValueExpression & ',' & ValueExpression & ')'
 	| "COALESCE"i & '(' & ValueExpression & (',' & ValueExpression)+ & ')'
-	| "CASE"i & RowValuePredicand & (trivia & SimpleWhenClause)+ & ElseClause? & "END"i
-	| "CASE"i & (trivia & SearchedWhenClause)+ & ElseClause? & "END"i
+	| "CASE"i & RowValuePredicand & { (trivia & SimpleWhenClause)+ } & ElseClause? & "END"i
+	| "CASE"i & { (trivia & SearchedWhenClause)+ } & ElseClause? & "END"i
 
 SimpleWhenClause   = "WHEN"i & WhenOperand & (',' & WhenOperand)* & "THEN"i & Result
 SearchedWhenClause = "WHEN"i & SearchCondition & "THEN"i & Result
@@ -713,7 +713,7 @@ CollectionValueConstructor
 
 // <SQL argument list>, but table and descriptor arguments. A named argument is asked first, since
 // its name would otherwise be read as a value.
-SQLArgumentList = '(' & (SQLArgument & (',' & SQLArgument)*)? & ')'
+SQLArgumentList = '(' & { SQLArgument & (',' & SQLArgument)* }? & ')'
 SQLArgument
 	= Identifier & "=>" & (ValueExpression | ContextuallyTypedValueSpecification)
 	| ValueExpression & ("AS"i & PathResolvedUserDefinedTypeName)?
@@ -1040,12 +1040,12 @@ JSONTablePlanTail : @int
 // <table value constructor>. A <table row value expression> is a row value special case or a row
 // value constructor — a common, a boolean or an explicit row value — and a value expression is
 // each of those.
-TableValueConstructor = "VALUES"i & ValueExpression & (',' & ValueExpression)*
+TableValueConstructor = "VALUES"i & { ValueExpression & (',' & ValueExpression)* }
 
 // ── §7.4 Table expression, §7.5 From clause ─────────────────────────────────
 
 TableExpression = FromClause & WhereClause? & GroupByClause? & HavingClause? & WindowClause?
-FromClause      = "FROM"i & TableReference & (',' & TableReference)*
+FromClause      = "FROM"i & { TableReference & (',' & TableReference)* }
 
 // ── §7.6 Table reference, §7.10 Joined table ────────────────────────────────
 
@@ -1120,7 +1120,11 @@ ParenthesizedJoinedTable : @bool = '(' & f: TableFactor & j: Joins & ')' & when 
 // read as a correlation and leave the clause behind.
 CorrelationOrRecognition : @bool = c: Correlated & r: Recognized & when @(c || r) => @(true)
 
-Correlated : @bool = "AS"i? & CorrelationName & ('(' & ColumnNameList & ')')? => @(true)
+// A query's lists give nothing back once read, and a correlation name is a word that is not reserved:
+// in `JSON_ARRAY(SELECT a FROM t FORMAT JSON)` the last table would be called `FORMAT`, and the JSON
+// constructor's own words left unread. So a name is not taken where one of those goes on after it —
+// no table's name could stand there either.
+Correlated : @bool = ?!("FORMAT"i & "JSON"i | "RETURNING"i & DataType | "ABSENT"i & "ON"i & "NULL"i) & "AS"i? & CorrelationName & ('(' & ColumnNameList & ')')? => @(true)
                    | none => @(false)
 Recognized : @bool = RowPatternRecognitionClause & Correlated => @(true)
                    | none => @(false)
@@ -1194,7 +1198,7 @@ QueryName       = Identifier
 WhereClause  = "WHERE"i & SearchCondition
 HavingClause = "HAVING"i & SearchCondition
 
-GroupByClause = "GROUP"i & "BY"i & SetQuantifier? & GroupingElement & (',' & GroupingElement)*
+GroupByClause = "GROUP"i & "BY"i & SetQuantifier? & { GroupingElement & (',' & GroupingElement)* }
 
 // <grouping element>, <grouping set>: the two are the same five. `()` is an empty grouping set, and
 // asked before an ordinary one, which would take its bracket.
@@ -1213,7 +1217,7 @@ GroupingColumnReference = ColumnReference & CollateClause?
 
 // ── §7.11 Window clause ─────────────────────────────────────────────────────
 
-WindowClause               = "WINDOW"i & WindowDefinition & (',' & WindowDefinition)*
+WindowClause               = "WINDOW"i & { WindowDefinition & (',' & WindowDefinition)* }
 WindowDefinition           = WindowName & "AS"i & WindowSpecification
 WindowSpecification        = '(' & WindowSpecificationDetails & ')'
 WindowSpecificationDetails = ExistingWindowName? & WindowPartitionClause? & WindowOrderClause? & WindowFrameClause?
@@ -1256,7 +1260,7 @@ SimpleValueSpecification   = Literal | ':' & Identifier | IdentifierChain
 QuerySpecification = "SELECT"i & SetQuantifier? & SelectList & TableExpression
 SetQuantifier      = "DISTINCT"i | "ALL"i
 
-SelectList = '*' | SelectSublist & (',' & SelectSublist)*
+SelectList = '*' | { SelectSublist & (',' & SelectSublist)* }
 
 // <select sublist>: a <derived column>, or a <qualified asterisk>. Each begins with a value
 // expression — an <asterisked identifier chain> is a column reference in shape, and an <all fields
@@ -1278,13 +1282,13 @@ AsClause = "AS"i? & ColumnName
 
 QueryExpression = WithClause? & QueryExpressionBody & OrderByClause? & ResultOffsetClause? & FetchFirstClause?
 
-WithClause      = "WITH"i & "RECURSIVE"i? & WithListElement & (',' & WithListElement)*
+WithClause      = "WITH"i & "RECURSIVE"i? & { WithListElement & (',' & WithListElement)* }
 WithListElement = QueryName & ('(' & ColumnNameList & ')')? & "AS"i & TableSubquery & SearchOrCycleClause?
 
 // <query expression body>, <query term>: each recurses through itself on the left, so the operators
 // are a repetition here, and `INTERSECT` is read inside a term.
-QueryExpressionBody = QueryTerm & (("UNION"i | "EXCEPT"i) & ("ALL"i | "DISTINCT"i)? & CorrespondingSpec? & QueryTerm)*
-QueryTerm           = QueryPrimary & ("INTERSECT"i & ("ALL"i | "DISTINCT"i)? & CorrespondingSpec? & QueryPrimary)*
+QueryExpressionBody = { QueryTerm & (("UNION"i | "EXCEPT"i) & ("ALL"i | "DISTINCT"i)? & CorrespondingSpec? & QueryTerm)* }
+QueryTerm           = { QueryPrimary & ("INTERSECT"i & ("ALL"i | "DISTINCT"i)? & CorrespondingSpec? & QueryPrimary)* }
 
 QueryPrimary
 	= SimpleTable
@@ -1321,7 +1325,7 @@ Subquery       = '(' & QueryExpression & ')'
 
 // ── §10.10 Sort specification list ──────────────────────────────────────────
 
-SortSpecificationList = SortSpecification & (',' & SortSpecification)*
+SortSpecificationList = { SortSpecification & (',' & SortSpecification)* }
 SortSpecification     = ValueExpression & ("ASC"i | "DESC"i)? & ("NULLS"i & ("FIRST"i | "LAST"i))?
 
 // ── §14.8 Delete statement, §14.9 Truncate table statement ──────────────────
@@ -1356,7 +1360,7 @@ OverrideClause = "OVERRIDING"i & ("USER"i | "SYSTEM"i) & "VALUE"i
 
 // <contextually typed table value constructor>: rows whose values may be `DEFAULT`, `NULL` or an
 // empty collection, which take their type from where they go.
-ContextuallyTypedTableValueConstructor = "VALUES"i & ContextuallyTypedRowValueExpression & (',' & ContextuallyTypedRowValueExpression)*
+ContextuallyTypedTableValueConstructor = "VALUES"i & { ContextuallyTypedRowValueExpression & (',' & ContextuallyTypedRowValueExpression)* }
 
 // <contextually typed row value expression>. A bracket holds such a specification alone, or two or
 // more elements; a value expression reads any other row and value.
@@ -1371,7 +1375,7 @@ ContextuallyTypedElement = ContextuallyTypedValueSpecification | ValueExpression
 
 // ── §14.12 Merge statement ──────────────────────────────────────────────────
 
-MergeStatement = "MERGE"i & "INTO"i & TargetTable & ("AS"i? & CorrelationName)? & "USING"i & TableReference & "ON"i & SearchCondition & (trivia & MergeWhenClause)+
+MergeStatement = "MERGE"i & "INTO"i & TargetTable & ("AS"i? & CorrelationName)? & "USING"i & TableReference & "ON"i & SearchCondition & { (trivia & MergeWhenClause)+ }
 
 MergeWhenClause
 	= "WHEN"i & "MATCHED"i & ("AND"i & SearchCondition)? & "THEN"i & ("UPDATE"i & "SET"i & SetClauseList | "DELETE"i)
@@ -1386,7 +1390,7 @@ UpdateStatementPositioned = "UPDATE"i & TargetTable & ("AS"i? & CorrelationName)
 
 // ── §14.15 Set clause list ──────────────────────────────────────────────────
 
-SetClauseList = SetClause & (',' & SetClause)*
+SetClauseList = { SetClause & (',' & SetClause)* }
 
 // <set clause>: several targets and a row, or a target and a value.
 SetClause
