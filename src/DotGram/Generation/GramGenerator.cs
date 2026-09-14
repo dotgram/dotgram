@@ -134,7 +134,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 			{
 				Answers = new EquatableArray<Answer>(Questions.Ask(
 					grammar.Questions.Items,
-					new RoslynSymbolResolver(compilation, grammar.Host.MetadataName))),
+					new RoslynSymbolResolver(
+						compilation,
+						grammar.Host.MetadataName,
+						[.. grammar.Host.Includes.Items.Select(static one => one.ClassName)]))),
 			};
 		}
 		catch (Exception exception) when (Recoverable(exception))

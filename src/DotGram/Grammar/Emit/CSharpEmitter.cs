@@ -293,8 +293,11 @@ public static partial class CSharpEmitter
 
 		// The grammar's own `@using` directives and no others. Everything this file
 		// generates is written with `global::`; these are here for the C# the grammar
-		// supplied, which was written expecting them (§1).
-		if (graph.CSharpImports.Count > 0)
+		// supplied, which was written expecting them (§1). And the hosts of the grammars this
+		// one includes, whether or not it has any of its own: they used to be written only
+		// beside those, and a grammar that included another and said no `@using` called the
+		// helpers of the included class by names nothing in its file could see.
+		if (graph.CSharpImports.Count > 0 || statics.Count > 0)
 		{
 			foreach (var import in graph.CSharpImports)
 				file.Line($"using {import};");

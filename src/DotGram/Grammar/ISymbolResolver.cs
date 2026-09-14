@@ -79,6 +79,18 @@ public interface ISymbolResolver
 	/// exists to find out.
 	/// </param>
 	ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType);
+
+	/// <summary>
+	/// Whether a bare <c>@Name</c> operand names a method the generated parser can call as a
+	/// recognizer — §7.1's second row, or its third.
+	/// </summary>
+	/// <remarks>
+	/// Asked so that a method missing or of another shape is said about the grammar, where it
+	/// was written, and not by the C# compiler about a call in a file the author never wrote.
+	/// A no fails the build, so a resolver that cannot be sure answers
+	/// <see cref="ExternalRecognizerResolution.Found"/>.
+	/// </remarks>
+	ExternalRecognizerResolution ResolveExternalRecognizer(string methodName);
 }
 
 /// <summary>What asking about an external recognizer's value overload found.</summary>
@@ -95,6 +107,19 @@ public enum ExternalValueResolution
 
 	/// <summary>More than one, with different <c>T</c>. Left as a tie.</summary>
 	Ambiguous,
+}
+
+/// <summary>What asking whether a bare <c>@Name</c> can be called as a recognizer found.</summary>
+public enum ExternalRecognizerResolution
+{
+	/// <summary>It can — or nothing says for certain that it cannot.</summary>
+	Found,
+
+	/// <summary>No method of that name anywhere the call could reach.</summary>
+	NoMethod,
+
+	/// <summary>Methods of that name, and none of them one the parser can call as a recognizer.</summary>
+	NoRecognizerOverload,
 }
 
 /// <summary>A property an object initializer may write.</summary>
@@ -151,4 +176,11 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 
 		return ExternalValueResolution.NotFound;
 	}
+
+	/// <remarks>
+	/// Yes, unlike the answers above: here a no is an error, and a grammar tested without a host
+	/// names methods that are nowhere.
+	/// </remarks>
+	public ExternalRecognizerResolution ResolveExternalRecognizer(string methodName) =>
+		ExternalRecognizerResolution.Found;
 }

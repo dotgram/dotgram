@@ -1880,14 +1880,19 @@ There is one rule to read this by: **syntactic position determines the call shap
 values. The generator never inspects a method signature to choose among those roles;
 overloads, accessibility, parameter types and result types are C#'s responsibility.
 
-One exception, narrow and specific: bare `@M` alone does not say whether `M` is the
-second row or the third, since the notation is the same either way. The host is asked
-whether `M` also has a `(ReadOnlySpan<char>, ref int, out T)` overload — the only place
-this generator inspects a method's signature at all, and only to settle that one
-question. Finding one hands the rule-shaped identity a value-producing call needs;
-finding none leaves bare `@M` exactly what it always was. More than one such overload
-with a different `T` is a tie, reported rather than guessed at, the same as an
-ambiguous constructor (§7.3).
+Two exceptions, narrow and specific, both about bare `@M`. The first: it alone does not
+say whether `M` is the second row or the third, since the notation is the same either way.
+The host is asked whether `M` also has a `(ReadOnlySpan<char>, ref int, out T)` overload.
+Finding one hands the rule-shaped identity a value-producing call needs; finding none
+leaves bare `@M` exactly what it always was. More than one such overload with a different
+`T` is a tie, reported rather than guessed at, the same as an ambiguous constructor (§7.3).
+
+The second: whether `M` can be called as a recognizer at all. Where no method of the
+second or third row's shape is in reach of the class the grammar is attached to — in it,
+around it, in what it derives from, or in the class of a grammar it includes — that is
+said about the grammar (`GRAM4025`), rather than by the C# compiler about a call in a
+generated file. It is said only where it is certain, and it changes nothing about what
+`@M` means: the role is still the position's.
 
 The same C# name may therefore implement both contracts without ambiguity:
 

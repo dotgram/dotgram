@@ -760,6 +760,9 @@ public sealed class GrammarNormalizerTests
 
 			return ExternalValueResolution.NotFound;
 		}
+
+		public ExternalRecognizerResolution ResolveExternalRecognizer(string methodName) =>
+			ExternalRecognizerResolution.Found;
 	}
 
 	// ── External recognizers with a value of their own — §7.1's third row ────────
@@ -805,6 +808,9 @@ public sealed class GrammarNormalizerTests
 
 			return ExternalValueResolution.Found;
 		}
+
+		public ExternalRecognizerResolution ResolveExternalRecognizer(string methodName) =>
+			ExternalRecognizerResolution.Found;
 	}
 
 	[Fact]
@@ -875,5 +881,57 @@ public sealed class GrammarNormalizerTests
 
 			return ExternalValueResolution.Ambiguous;
 		}
+
+		public ExternalRecognizerResolution ResolveExternalRecognizer(string methodName) =>
+			ExternalRecognizerResolution.Found;
+	}
+
+	/// <summary>A recognizer the host cannot call is said about the grammar, in the words of what is wrong with it.</summary>
+	[Theory]
+	[InlineData("Nowhere",   "names no method")]
+	[InlineData("Misshapen", "has no overload")]
+	public void A_recognizer_the_host_cannot_call_is_reported(string method, string said)
+	{
+		var reported = Assert.Single(
+			Normalize($"Value = 'a' & @{method}", new MissingResolver()).Diagnostics,
+			static one => one.Id == GrammarNormalizer.UnresolvedExternal);
+
+		Assert.Equal(GramSeverity.Error, reported.Severity);
+		Assert.Contains(said, reported.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>`@Nowhere` names nothing, and `@Misshapen` names methods of another shape.</summary>
+	sealed class MissingResolver : ISymbolResolver
+	{
+		public bool TypeExists(string qualifiedName) => true;
+
+		public bool IsAssignable(string from, string to) => string.Equals(from, to, StringComparison.Ordinal);
+
+		public bool TryResolveConstructors(
+			string qualifiedName, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
+		{
+			constructors = [];
+
+			return false;
+		}
+
+		public bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties)
+		{
+			properties = [];
+
+			return false;
+		}
+
+		public ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType)
+		{
+			valueType = null;
+
+			return ExternalValueResolution.NotFound;
+		}
+
+		public ExternalRecognizerResolution ResolveExternalRecognizer(string methodName) =>
+			methodName == "Nowhere"
+				? ExternalRecognizerResolution.NoMethod
+				: ExternalRecognizerResolution.NoRecognizerOverload;
 	}
 }

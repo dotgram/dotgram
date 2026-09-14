@@ -324,7 +324,9 @@ public sealed class GeneratorDriverTests
 				.SelectMany(result => result.GeneratedSources)
 				.Single(source => source.HintName.StartsWith("Reader", StringComparison.Ordinal))
 				.SourceText
-				.ToString(),
+				.ToString() +
+				// The base, which the file imports statically and this harness does not declare.
+				"\npublic partial class Lexemes { }\n",
 			className: "Reader");
 
 		Assert.Equal(
@@ -863,6 +865,64 @@ public sealed class GeneratorDriverTests
 		Assert.Contains(GrammarNormalizer.AmbiguousExternal, diagnostics.Select(d => d.Id));
 	}
 
+	/// <summary>A recognizer the host inherits is one the generated call reaches, and nothing is said.</summary>
+	[Fact]
+	public void An_external_recognizer_inherited_from_a_base_class_is_found()
+	{
+		var parse = Build("""
+			public class Readers
+			{
+				protected static bool ReadRest(System.ReadOnlySpan<char> input, ref int pos)
+				{
+					pos = input.Length;
+
+					return true;
+				}
+			}
+
+			[DotGram.Gram("Start = 'a' & @ReadRest\nparse Start")]
+			public partial class InheritedRecognizer : Readers
+			{
+			}
+			""")
+			.GetType("InheritedRecognizer")!
+			.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal("abc", parse.Invoke(null, ["abc"]));
+	}
+
+	/// <summary>And so is one of an included grammar, where the rule that calls it is used.</summary>
+	/// <remarks>
+	/// Not a base class, which the walk above already covers: the including class derives from
+	/// nothing, and the call reaches the method through the static import the include writes.
+	/// </remarks>
+	[Fact]
+	public void An_external_recognizer_of_an_included_grammar_is_found()
+	{
+		var parse = Build("""
+			[DotGram.Gram("Rest = @ReadRest")]
+			public partial class ReaderGrammar
+			{
+				internal static bool ReadRest(System.ReadOnlySpan<char> input, ref int pos)
+				{
+					pos = input.Length;
+
+					return true;
+				}
+			}
+
+			[DotGram.GramInclude(typeof(ReaderGrammar))]
+			[DotGram.Gram("using ReaderGrammar;\nStart = 'a' & Rest\nparse Start")]
+			public partial class IncludingRecognizer
+			{
+			}
+			""")
+			.GetType("IncludingRecognizer")!
+			.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal("abc", parse.Invoke(null, ["abc"]));
+	}
+
 	[Fact]
 	public void A_value_returning_and_a_classic_external_recognizer_coexist()
 	{
@@ -1007,6 +1067,15 @@ public sealed class GeneratorDriverTests
 		Assert.DoesNotContain("TextReader", source, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// A bare operand is an external recognizer whatever the method it names turns out to be,
+	/// and one of another shape is told the shape the position asks for.
+	/// </summary>
+	/// <remarks>
+	/// The role is still the position's (§7.1): `Convert` is not taken for a transformation
+	/// because it returns an `int`. What changed is who says it cannot be called that way —
+	/// the grammar, naming the contract, where it used to be C# about the call it was given.
+	/// </remarks>
 	[Fact]
 	public void A_bare_C_sharp_operand_uses_the_external_recognizer_contract()
 	{
@@ -1016,17 +1085,13 @@ public sealed class GeneratorDriverTests
 			{
 				static int Convert(string text) => text.Length;
 			}
-			""", out var output);
+			""");
 
-		var source = GetGeneratedSource(run, "Converting.g.cs");
-		var errors = output
-			.GetDiagnostics(TestContext.Current.CancellationToken)
-			.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-			.ToArray();
+		var said = Assert.Single(run.Diagnostics, static one => one.Id == GrammarNormalizer.UnresolvedExternal);
 
-		Assert.Contains("Convert(text, ref p)", source, StringComparison.Ordinal);
-		Assert.NotEmpty(errors);
-		Assert.All(errors, error => Assert.StartsWith("CS", error.Id, StringComparison.Ordinal));
+		Assert.Contains("'Convert' has no overload", said.GetMessage(), StringComparison.Ordinal);
+		Assert.Contains(
+			"static bool Convert(System.ReadOnlySpan<char> input, ref int pos)", said.GetMessage(), StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -2064,25 +2129,22 @@ public sealed class GeneratorDriverTests
 		});
 	}
 
+	/// <summary>A bare recognizer that is not there is said about the grammar (GRAM4025).</summary>
+	/// <remarks>
+	/// It was left to C#, which said `CS0103` about a call in a generated file, at a line of it
+	/// nobody wrote. The grammar names the method, so the grammar is where it is said.
+	/// </remarks>
 	[Fact]
-	public void A_missing_bare_recognizer_is_reported_by_C_sharp()
+	public void A_missing_bare_recognizer_is_reported_about_the_grammar()
 	{
-		RunGenerator(
+		var run = RunGenerator(
 			"[DotGram.Gram(\"Start = @Unknown & eol\\nparse Start\")]\n" +
-			"public partial class Bare;",
-			out var output);
+			"public partial class Bare;");
 
-		var errors = output
-			.GetDiagnostics(TestContext.Current.CancellationToken)
-			.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-			.ToArray();
+		var said = Assert.Single(run.Diagnostics, static one => one.Id == GrammarNormalizer.UnresolvedExternal);
 
-		Assert.NotEmpty(errors);
-		Assert.All(errors, error =>
-		{
-			Assert.Equal("CS0103", error.Id);
-			Assert.Contains("Unknown", error.GetMessage(), StringComparison.Ordinal);
-		});
+		Assert.Equal(DiagnosticSeverity.Error, said.Severity);
+		Assert.Contains("'@Unknown' names no method", said.GetMessage(), StringComparison.Ordinal);
 	}
 
 	/// <summary>

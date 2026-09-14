@@ -21907,3 +21907,28 @@ one takes the first alternative that matches; its left recursion runs through ot
 which a rule may only do through itself; and its lexical productions spell classes of characters one
 at a time. Those are the hand's, rule by rule, with `--standard` to say whether what was written reads
 what the BNF reads.
+## A recognizer that is not there is said about the grammar
+
+A bare `@M` was the one reference a grammar could get wrong and hear about only from the C#
+compiler, as `CS0103` or `CS1501` on a line of a generated file. `GRAM4025` says it where it was
+written. The host is asked a second question about a method's signature beside the value overload
+(`ISymbolResolver.ResolveExternalRecognizer`, collected for every bare `@Name` like `ValueOf`):
+whether a static `bool M(ReadOnlySpan<char>, ref int)`, with or without an `out`, is reachable,
+and if not, whether anything of that name is. That breaks §7.1's "the generator never inspects a
+signature" a second time, deliberately, and §7.1 says so now; the role is still read off the
+position, and the answer changes only whether an error is said.
+
+Where it looks is where C# binds the call the generator writes: the host, the classes around it
+and their bases, and the classes of the grammars it includes, which the file imports statically.
+A no fails a build that might have compiled, so it is said only where it is certain — a method of
+the right shape anywhere in the compilation's source is taken as the one meant, and a resolver
+without a host answers yes. No grammar in `src/` or `examples/` has a bare `@M` operand, so this
+changes nothing the SQL work in flight builds.
+
+A predicate in an element set, `[@M]`, is not asked about yet.
+
+The test that a recognizer of an included grammar is found found something else first: the
+`using static` of the included hosts was written only inside the block for the grammar's own
+`@using` directives, so a grammar that included another through `[GramInclude]` and said no
+`@using` called the included class's helpers by names nothing in its file could see (`CS0103`).
+T-SQL has directives of its own and never met it. The block is written where there is either.

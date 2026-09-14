@@ -222,6 +222,34 @@ public sealed partial class GrammarNormalizer
 					goto default;
 
 				default:
+					// And whether it can be called at all. Without this the grammar compiled and the C#
+					// compiler refused the call, in a generated file, at a line of it the author never
+					// wrote. The host says no only where it is sure (RoslynSymbolResolver).
+					switch (_resolver.ResolveExternalRecognizer(reader.Name))
+					{
+						case ExternalRecognizerResolution.NoMethod:
+							Report(
+								UnresolvedExternal,
+								$"'@{reader.Name}' names no method the parser can call. An external recognizer is " +
+								$"'static bool {reader.Name}(System.ReadOnlySpan<char> input, ref int pos)', or the same " +
+								"with 'out T value' after the position, declared in the class the grammar is attached " +
+								"to, a class around it, or one it derives from (docs/syntax.md §7.1).",
+								expression.At);
+
+							break;
+
+						case ExternalRecognizerResolution.NoRecognizerOverload:
+							Report(
+								UnresolvedExternal,
+								$"'{reader.Name}' has no overload the parser can call as an external recognizer: " +
+								$"'static bool {reader.Name}(System.ReadOnlySpan<char> input, ref int pos)', or the same " +
+								"with 'out T value' after the position, that the class the grammar is attached to can " +
+								"reach (docs/syntax.md §7.1).",
+								expression.At);
+
+							break;
+					}
+
 					return new Node.External(reader.Name);
 			}
 

@@ -35,6 +35,9 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 	/// <summary>And whether a bare `@Name` recognizer hands back a value of its own (§7.1).</summary>
 	public const int ExternalValue = -5;
 
+	/// <summary>And whether it can be called as a recognizer at all (§7.1).</summary>
+	public const int ExternalRecognizer = -6;
+
 	public static Question Fits(string from, string to) => new(from, Assignability, to);
 
 	public static Question Builds(string type) => new(type, Constructors);
@@ -46,6 +49,8 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 	/// or null for a captured or otherwise nested use, which only asks what <c>T</c> is.
 	/// </param>
 	public static Question ValueOf(string method, string? against = null) => new(method, ExternalValue, against);
+
+	public static Question Recognizes(string method) => new(method, ExternalRecognizer);
 }
 
 /// <param name="Yes">Whether the host has it.</param>
@@ -63,7 +68,8 @@ readonly record struct Answer(
 	EquatableArray<EquatableArray<MethodParameter>> Constructors = default,
 	EquatableArray<ObjectMember> Properties = default,
 	string? ExternalType = null,
-	bool ExternalAmbiguous = false);
+	bool ExternalAmbiguous = false,
+	ExternalRecognizerResolution Recognizer = ExternalRecognizerResolution.Found);
 
 /// <summary>
 /// Everything a grammar could ask the host compilation, worked out from its text alone.
@@ -196,8 +202,14 @@ static class Questions
 		// Not qualified under each import the way a type name is: a method is found by
 		// Roslyn searching the compilation for its simple name (RoslynSymbolResolver.
 		// TryResolveExternalValue), not by trying it beside each `using` in turn.
+		//
+		// And whether it can be called at all, which is asked of every one: the answer is what
+		// says a method is missing about the grammar rather than about a generated file.
 		foreach (var method in externals)
+		{
 			questions.Add(Question.ValueOf(method));
+			questions.Add(Question.Recognizes(method));
+		}
 
 		foreach (var (method, against) in producers)
 			questions.Add(Question.ValueOf(method, against));
@@ -356,6 +368,9 @@ static class Questions
 						_                                 => new Answer(question, false),
 					},
 
+				Question.ExternalRecognizer =>
+					new Answer(question, true, Recognizer: resolver.ResolveExternalRecognizer(question.Name)),
+
 				_ => throw new InvalidOperationException($"Unknown question kind {question.Kind}."),
 			});
 
@@ -436,6 +451,9 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 			: answer.ExternalAmbiguous ? ExternalValueResolution.Ambiguous
 			: ExternalValueResolution.NotFound;
 	}
+
+	public ExternalRecognizerResolution ResolveExternalRecognizer(string methodName) =>
+		Look(Question.Recognizes(methodName)).Recognizer;
 
 	/// <summary>
 	/// The answer, or a failure — never a guess.
