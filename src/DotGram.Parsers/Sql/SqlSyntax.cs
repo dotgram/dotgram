@@ -3364,6 +3364,10 @@ public static class Syntax
 		return all;
 	}
 
+	/// <summary>A session's events and the targets written after them, as its one list of pieces.</summary>
+	public static Clause[] Pieces(Clause[]? events, Clause[]? targets) =>
+		[.. events ?? Clause.None, .. targets ?? Clause.None];
+
 	/// <summary>A head and a tail of names as one array, the way <see cref="Listed"/> does nodes.</summary>
 	public static string[] Named(string first, string[]? rest) => Listed(first, rest);
 

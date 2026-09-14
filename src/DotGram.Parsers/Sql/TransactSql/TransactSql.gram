@@ -5474,10 +5474,16 @@ AuditStatement : @Statement
 	| said: "ALTER"i & "SERVER"i & "AUDIT"i & name: Identifier & tail: AlterAuditBody
 		=> @(Statement.Defined("SERVER AUDIT", name, Syntax.Tail(tail), said))
 
-	// An extended-event session: events, targets, and what to spend on them.
-	| verb: CreateOrAlter & "EVENT"i & "SESSION"i & name: Identifier & "ON"i & on: ServerOrDatabase
-	  & pieces: EventPieces? & options: OptionsWith? & ("STATE"i & '=' & status: word)?
-		=> @(new Statement.EventSessionDefinition(name, verb, on, pieces, options, status))
+	// An extended-event session made: its events, its targets after them, and what it spends on
+	// them, in that order and each once. Altered: events added or dropped, or targets, one of the
+	// four, and then its options; or its options alone; or its state alone. `CREATE OR ALTER` is
+	// `Msg 102`.
+	| "CREATE"i & "EVENT"i & "SESSION"i & name: Identifier & "ON"i & on: ServerOrDatabase
+	  & events: EventAdds & targets: TargetAdds? & options: EventSessionWith?
+		=> @(new Statement.EventSessionDefinition(name, "CREATE", on, Syntax.Pieces(events, targets), options, null))
+	| "ALTER"i & "EVENT"i & "SESSION"i & name: Identifier & "ON"i & on: ServerOrDatabase
+	  & (pieces: EventAlterations & options: EventSessionWith? | options: EventSessionWith | "STATE"i & '=' & status: EventSessionState)
+		=> @(new Statement.EventSessionDefinition(name, "ALTER", on, pieces, options, status))
 
 	| "CREATE"i & "EVENT"i & "NOTIFICATION"i & name: Identifier
 	  & tail: ("ON"i & NotificationScope & ("WITH"i & "FAN_IN"i)?
@@ -5566,40 +5572,103 @@ AuditActionBody = ActionWords & (',' & ActionWords)* & AuditActionOn?
 AuditActionOn = "ON"i & SecurableClass? & QualifiedName & "BY"i & Grantees
 
 // ── An extended-event session ───────────────────────────────────────────────
-EventPieces : @Clause[] = first: EventPiece & (','? & rest: EventPiece)* => @(Syntax.Listed(first, rest))
+//
+// The published blocks, put to the engine some two hundred and sixty times (docs/next.md,
+// 2026-09-13). Every list the grammar kept open is closed.
+//
+// A session made has an event (`Msg 102` without one, `156` with only options), and events are
+// written first with a comma between them, then targets with a comma between them, and none
+// between the last event and the first target; nothing is dropped from it (`Msg 156`). A session
+// altered adds events, drops events, adds targets or drops targets — one of the four, with commas:
+// `ADD EVENT a.b, DROP EVENT c.d` is `Msg 156` and an event beside a target `102`. Its state is
+// said alone, `START` or `STOP`, and neither with a piece nor with options (`Msg 102`).
+EventAdds  : @Clause[] = first: EventAdd & (',' & rest: EventAdd)* => @(Syntax.Listed(first, rest))
+TargetAdds : @Clause[] = first: TargetAdd & (',' & rest: TargetAdd)* => @(Syntax.Listed(first, rest))
 
-EventPiece : @Clause
-	= "ADD"i & "EVENT"i & name: QualifiedName & ('(' & body: EventBody & ')')?
+EventAlterations : @Clause[]
+	= added: EventAdds => @(added)
+	| first: EventDrop & (',' & rest: EventDrop)* => @(Syntax.Listed(first, rest))
+	| targets: TargetAdds => @(targets)
+	| first: TargetDrop & (',' & rest: TargetDrop)* => @(Syntax.Listed(first, rest))
+
+EventAdd : @Clause
+	= "ADD"i & "EVENT"i & name: EventObject & ('(' & body: EventBody & ')')?
 		=> @((body ?? new Clause.EventPiece("", "")) with { Action = "ADD EVENT", Name = name })
-	| "DROP"i & "EVENT"i & name: QualifiedName  => @(new Clause.EventPiece("DROP EVENT", name))
-	| "ADD"i & "TARGET"i & name: QualifiedName & ('(' & "SET"i & set: OptionList & ')')?
-		=> @(new Clause.EventPiece("ADD TARGET", name, set))
-	| "DROP"i & "TARGET"i & name: QualifiedName => @(new Clause.EventPiece("DROP TARGET", name))
 
+EventDrop : @Clause = "DROP"i & "EVENT"i & name: EventObject => @(new Clause.EventPiece("DROP EVENT", name))
+
+// A target is told its parameters and nothing else, once: `(SET a = 1) (SET b = 2)` is `Msg 156`.
+TargetAdd : @Clause
+	= "ADD"i & "TARGET"i & name: EventObject & ('(' & "SET"i & set: EventSet & ')')?
+		=> @(new Clause.EventPiece("ADD TARGET", name, set))
+
+TargetDrop : @Clause = "DROP"i & "TARGET"i & name: EventObject => @(new Clause.EventPiece("DROP TARGET", name))
+
+EventSessionState : @string = t: ("START"i | "STOP"i) => @(t)
+
+// An event, a target, an action, a field and a comparison's source are named in one part, two or
+// three — `[guid].package.name` — and never four (`Msg 102`).
+EventObject : @string = t: (Identifier & ('.' & Identifier)? & ('.' & Identifier)?) & ?!'.' => @(Syntax.Compacted(t))
+
+// What a session spends, each option its own kind of value and the comma between them required;
+// an option said twice is read. A size is whole kilobytes or megabytes, a latency whole seconds or
+// `INFINITE`, a duration whole seconds, minutes, hours or days or `UNLIMITED`: without the unit, with
+// another, or a word another option takes, it is `Msg 25703`, "the event session option has an
+// invalid value", and a number with a sign or a fraction, a string, or a name no option has is `Msg
+// 102`.
+EventSessionWith : @Clause[]
+	= "WITH"i & '(' & first: EventSessionOption & (',' & rest: EventSessionOption)* & ')' => @(Syntax.Listed(first, rest))
+
+EventSessionOption : @Clause = ?=(EventSessionSyntax & OptionEnds) & o: OptionSetting => @(o)
+
+EventSessionSyntax
+	= ("MAX_MEMORY"i | "MAX_EVENT_SIZE"i) & '=' & Sql92.Lexical.Digits & ("KB"i | "MB"i)
+	| "EVENT_RETENTION_MODE"i & '=' & ("ALLOW_SINGLE_EVENT_LOSS"i | "ALLOW_MULTIPLE_EVENT_LOSS"i | "NO_EVENT_LOSS"i)
+	| "MAX_DISPATCH_LATENCY"i & '=' & (Sql92.Lexical.Digits & "SECONDS"i | "INFINITE"i)
+	| "MEMORY_PARTITION_MODE"i & '=' & ("NONE"i | "PER_NODE"i | "PER_CPU"i)
+	| ("TRACK_CAUSALITY"i | "STARTUP_STATE"i) & '=' & OnOff
+	| "MAX_DURATION"i & '=' & (Sql92.Lexical.Digits & ("SECONDS"i | "MINUTES"i | "HOURS"i | "DAYS"i) | "UNLIMITED"i)
+
+// An event is told what it collects, the actions it takes and when it fires, in that order and each
+// once (`Msg 156` for `ACTION` before `SET`, `102` for a second `ACTION`).
 EventBody : @Clause.EventPiece
-	= ("SET"i & set: OptionList)? & actions: EventActions? & ("WHERE"i & where: EventPredicate)?
+	= ("SET"i & set: EventSet)? & actions: EventActions? & ("WHERE"i & where: EventPredicate)?
 		=> @(new Clause.EventPiece("", "", set, actions, where))
 
-// Not a search condition. An event's predicate compares a field with a constant, and it
-// also *calls* a comparison the package supplies — `sqlserver.equal_i_sql_unicode_string
-// (field, N'x')` — which is a call standing where a condition goes and is not one anywhere
-// else in this language. The comma joins two of them, as `AND` does.
+// A setting is a plain name, one part (`[a] = 1`, `a.b = 1` are `Msg 102`), set to a value; the
+// comma between two is required and a name said twice is read.
+EventSet : @Clause[] = first: EventSetting & (',' & rest: EventSetting)* => @(Syntax.Listed(first, rest))
+
+EventSetting : @Clause = ?=(?!TSqlReserved & TSql.RegularIdentifier & '=' & EventValue & EventEnds) & o: OptionSetting => @(o)
+
+EventEnds = ?=(',' | ')' | "ACTION"i | "WHERE"i)
+
+// The block's `number | 'string'`: a number with a minus, a fraction or an exponent, a string, a
+// binary string, in as many brackets as are written. Not a name, `NULL`, a variable, money, a sign
+// of plus or an expression (`Msg 102`, `156` for `NULL`).
+EventValue = '(' & EventValue & ')' | '-'? & (TSql.NumericLiteral | TSql.BinaryLiteral) | Quoted
+
+// Not a search condition. An event's predicate compares a field with a value, and it also *calls*
+// a comparison the package supplies — `sqlserver.equal_i_sql_unicode_string (field, N'x')` — which
+// is a call standing where a condition goes and is not one anywhere else in this language. Terms
+// are joined by `AND` and `OR`, not by the comma the block writes (`Msg 102`), and a `NOT` may be
+// said more than once. The block's source in brackets, `(package.source) = 1`, is `Msg 102` in a
+// comparison and in a call alike. The field comes first (`1 = duration` is `Msg 102`), a call names a
+// package (`f (duration, 1)` is `Msg 102`) and takes the field and a value and nothing else.
 EventPredicate : @string = t: (EventFactor & (EventJoin & EventFactor)*) => @(Syntax.Spaced(t))
 
-EventJoin   = "AND"i | "OR"i | ','
-EventFactor = "NOT"i? & EventTerm
+EventJoin   = "AND"i | "OR"i
+EventFactor = "NOT"i* & EventTerm
 
 EventTerm = '(' & EventPredicate & ')'
-		  | name: QualifiedName & EventTermTail
+		  | EventCall & '(' & EventObject & ',' & EventValue & ')'
+		  | EventObject & EventCompare & EventValue
 
-EventTermTail = '(' & EventSource & ',' & ValueExpression & ')'
-			  | EventCompare & ValueExpression
-
-EventSource  = '(' & QualifiedName & ')' | QualifiedName
-EventCompare = "<>" | "!=" | ">=" | "<=" | '=' | '>' | '<' | "NOT"i? & "LIKE"i
+EventCall    = Identifier & '.' & Identifier & ('.' & Identifier)? & ?!'.'
+EventCompare = "<>" | "!=" | "!<" | "!>" | ">=" | "<=" | '=' | '>' | '<' | "NOT"i? & "LIKE"i
 
 EventActions : @string[] = "ACTION"i & '(' & first: EventAction & (',' & rest: EventAction)* & ')' => @(Syntax.Named(first, rest))
-EventAction  : @string   = t: QualifiedName => @(t)
+EventAction  : @string   = t: EventObject => @(t)
 
 // ── An endpoint ─────────────────────────────────────────────────────────────
 //

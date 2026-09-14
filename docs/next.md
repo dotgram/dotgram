@@ -21720,3 +21720,43 @@ from the answers with fifteen more on where a block stands: 134 readings and 1,1
 At 170: 7,394 both, 0 work, 0 defects, 276 another product's, 647 neither; at 150: 6,607, 0, 0, 236
 and 545. The map 7,997 both, 0 work, 0 defects; `--levels` 165 of 165; `--split` 784; the round trip
 100% of 7,716 — all unchanged. The suite is 14,782 rows (from 14,766).
+
+## An extended-event session, closed
+
+The session was the last statement with open lists of its own: any option in `WITH (…)`, any
+setting and value in `SET`, any word for `STATE`, and pieces in any order for `CREATE` and `ALTER`
+alike. Put to the engine in four probes, some two hundred and sixty lines.
+
+**What it spends.** Eight options, each its own kind of value: sizes in whole `KB` or `MB`, a
+latency in whole `SECONDS` or `INFINITE`, a duration in whole seconds, minutes, hours or days or
+`UNLIMITED`, a retention mode and a partition mode of their words, causality and startup `ON` or
+`OFF`. Without the unit, with another or with another option's word it is `Msg 25703`, "the event
+session option has an invalid value" — which no run of the statement gets past, so a refusal; a
+sign, a fraction, a string or a name no option has is `Msg 102`. The comma between two is required
+and an option said twice is read.
+
+**What an event and a target are told.** A setting is a plain name of one part set to the block's
+`number | 'string'`: a number with a minus, a fraction or an exponent, a string, a binary string, in
+as many brackets as are written — never a name, `NULL`, a variable or an expression. An event says
+`SET`, `ACTION` and `WHERE` in that order and each once; a target says `SET` and nothing else, once.
+Names of events, targets, actions and fields have one part, two or three, never four.
+
+**The predicate.** Terms join by `AND` and `OR`, and not by the comma the block writes; `NOT` may be
+said twice; the field comes first; a call names a package and takes the field and a value. The
+block's source in brackets, `(package.source) = 1`, is `Msg 102` both as a comparison and inside a
+call, and the grammar had read it. `!<` and `!>` compare, which it had not.
+
+**The pieces.** A session made has an event, events first with commas, then targets with commas,
+and no comma between the two kinds; nothing dropped. A session altered does one of four things —
+adds events, drops events, adds targets, drops targets — with commas, and then its options; or its
+options alone; or its state alone, `START` or `STOP`. `ADD EVENT a.b, DROP EVENT c.d` is `Msg 156`, an
+event beside a target `102`, a state beside anything `102`. One row of an older theory, `ALTER EVENT
+SESSION es ON SERVER DROP EVENT b.c, ADD TARGET b.d (…)`, was never asked, and is `Msg 156`; it reads
+`ADD TARGET b.d (…)` now. `CREATE OR ALTER` is `Msg 102`.
+
+The rule is two, and the tree the same: the options are still `Clause.Option`s, read through the
+catalogue in front of them, and the pieces the same `Clause.EventPiece`s in the order written.
+
+At 170: 7,394 both, 0 work, 0 defects, 276 another product's, 647 neither; at 150: 6,607, 0, 0, 236
+and 545. The map 7,997 both, 0 work, 0 defects; `--levels` 165 of 165; `--split` 784; the round trip
+100% of 7,716 — all unchanged. The suite is 15,039 rows (from 14,785): 131 refusals and 123 readings.
