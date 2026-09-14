@@ -78,9 +78,16 @@ public static partial class ExpressionParser
 			var made = Built(types);
 
 			// The body decides what it gives back, and the delegate may want that widened —
-			// a body worth an `int` handed to a `Func<int, long>` is the delegate's to say.
+			// a body worth an `int` handed to a `Func<int, long>` is the delegate's to say, and
+			// the widening is written into the body, which is where C# puts it.
 			if (!delegated.IsAssignableFrom(made.Type))
-				made = Expression.Lambda(delegated, made.Body, made.Parameters);
+			{
+				var body = Returned(delegated) is { } returned && returned != typeof(void) && made.Body.Type != returned
+					? Expression.Convert(made.Body, returned)
+					: made.Body;
+
+				made = Expression.Lambda(delegated, body, made.Parameters);
+			}
 
 			return _built[delegated] = made;
 		}
@@ -158,6 +165,12 @@ public static partial class ExpressionParser
 		internal static Type[]? Taken(Type delegated) =>
 			typeof(Delegate).IsAssignableFrom(delegated) && delegated.GetMethod("Invoke") is { } invoke
 				? Array.ConvertAll(invoke.GetParameters(), one => one.ParameterType)
+				: null;
+
+		/// <summary>What a delegate gives back — <c>void</c> where it gives nothing — or null where it is no delegate.</summary>
+		internal static Type? Returned(Type delegated) =>
+			typeof(Delegate).IsAssignableFrom(delegated) && delegated.GetMethod("Invoke") is { } invoke
+				? invoke.ReturnType
 				: null;
 	}
 

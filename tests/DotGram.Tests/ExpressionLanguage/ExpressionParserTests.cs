@@ -652,6 +652,13 @@ public sealed class ExpressionParserTests
 			("l.Select(n => { int m = n * 2; return m + 1; }).ToArray()", l.Select(n => { int m = n * 2; return m + 1; }).ToArray()),
 			("l.Select(n => n.ToString()).ToArray()",             l.Select(n => n.ToString()).ToArray()),
 			("(l.Count) + 1",                                     (l.Count) + 1),
+			// Overloads told apart only by what the delegate gives back (§12.6.4.5): `Sum` and
+			// its kin take ten delegates of one parameter each, and the body says which.
+			("l.Sum(n => n * 2)",                                 l.Sum(n => n * 2)),
+			("l.Sum(n => n * 2L)",                                l.Sum(n => n * 2L)),
+			("l.Max(n => n / 2.0)",                               l.Max(n => n / 2.0)),
+			("l.Average(n => n)",                                 l.Average(n => n)),
+			("l.Select(n => n.ToString()).Sum(s => s.Length)",    l.Select(n => n.ToString()).Sum(s => s.Length)),
 		];
 
 		var wrong = cases

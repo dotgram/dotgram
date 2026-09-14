@@ -429,7 +429,74 @@ public static partial class ExpressionParser
 		if (first.Defaults == 0 != (second.Defaults == 0))
 			return first.Defaults == 0 ? 1 : -1;
 
-		return 0;
+		// And the one whose parameters were written more specifically, before any type argument
+		// was put into them (§12.6.4.3): `Max(Func<TSource, double>)` over
+		// `Max<TSource, TResult>(Func<TSource, TResult>)` where both became `Func<int, double>`.
+		return MoreSpecific(first.Member, second.Member, arguments.Length);
+	}
+
+	/// <summary>Which of two members' written parameters are the more specific, over the arguments given.</summary>
+	/// <returns>Above zero where the first's are, below where the second's are, and zero where neither.</returns>
+	static int MoreSpecific(MemberInfo first, MemberInfo second, int count)
+	{
+		if (Written(first) is not { } mine || Written(second) is not { } theirs)
+			return 0;
+
+		var more = false;
+		var less = false;
+
+		for (var at = 0; at < count && at < mine.Length && at < theirs.Length; at++)
+		{
+			var specific = Specific(mine[at].ParameterType, theirs[at].ParameterType);
+
+			more |= specific > 0;
+			less |= specific < 0;
+		}
+
+		return more == less ? 0 : more ? 1 : -1;
+
+		static ParameterInfo[]? Written(MemberInfo member) => member switch
+		{
+			MethodInfo { IsGenericMethod: true } method => method.GetGenericMethodDefinition().GetParameters(),
+			MethodBase method                           => method.GetParameters(),
+			_                                           => null,
+		};
+	}
+
+	/// <summary>Whether one written type is more specific than another (§12.6.4.3).</summary>
+	/// <remarks>
+	/// A type parameter is less specific than anything that is not one; a constructed type is
+	/// more specific where one of its type arguments is and none is less, and an array where its
+	/// element type is.
+	/// </remarks>
+	static int Specific(Type first, Type second)
+	{
+		if (first.IsGenericParameter != second.IsGenericParameter)
+			return first.IsGenericParameter ? -1 : 1;
+
+		if (first.IsArray && second.IsArray && first.GetArrayRank() == second.GetArrayRank())
+			return Specific(first.GetElementType()!, second.GetElementType()!);
+
+		if (!first.IsGenericType || !second.IsGenericType ||
+			first.GetGenericTypeDefinition() != second.GetGenericTypeDefinition())
+		{
+			return 0;
+		}
+
+		var mine   = first.GetGenericArguments();
+		var theirs = second.GetGenericArguments();
+		var more   = false;
+		var less   = false;
+
+		for (var at = 0; at < mine.Length; at++)
+		{
+			var specific = Specific(mine[at], theirs[at]);
+
+			more |= specific > 0;
+			less |= specific < 0;
+		}
+
+		return more == less ? 0 : more ? 1 : -1;
 	}
 
 	/// <summary>Which of two conversions of one argument is better (C#'s better conversion).</summary>
@@ -439,7 +506,7 @@ public static partial class ExpressionParser
 			return 0;
 
 		// An argument with no type of its own matches neither exactly, so the targets are
-		// weighed against each other alone.
+		// weighed against each other alone — except a lambda, which has a body to be weighed by.
 		if (Typed(argument))
 		{
 			if (argument.Type == first)
@@ -448,8 +515,51 @@ public static partial class ExpressionParser
 			if (argument.Type == second)
 				return -1;
 		}
+		else if (argument is Unbuilt lambda)
+		{
+			return BetterReturn(lambda, first, second);
+		}
 
 		return BetterTarget(first, second);
+	}
+
+	/// <summary>Which of two delegates a lambda with no types is the better one to hand to (§12.6.4.5).</summary>
+	/// <remarks>
+	/// Only two that take the same parameters are compared this way, which is every pair that
+	/// `Sum`, `Max` and their kin offer: the one whose return type the body is worth exactly,
+	/// then one that gives something back over one that gives nothing, then the better of the
+	/// two return types as targets. The body is built for those parameters to be asked — once,
+	/// since a built lambda is kept.
+	/// </remarks>
+	static int BetterReturn(Unbuilt lambda, Type first, Type second)
+	{
+		if (Unbuilt.Taken(first) is not { } taken ||
+			Unbuilt.Taken(second) is not { } other ||
+			taken.Length != lambda.Arity ||
+			!System.Linq.Enumerable.SequenceEqual(taken, other) ||
+			Array.Exists(taken, static one => one.ContainsGenericParameters) ||
+			Unbuilt.Returned(first) is not { } one ||
+			Unbuilt.Returned(second) is not { } two ||
+			one == two)
+		{
+			return 0;
+		}
+
+		var worth = lambda.Built(taken).ReturnType;
+
+		if (worth == one)
+			return 1;
+
+		if (worth == two)
+			return -1;
+
+		if (two == typeof(void))
+			return 1;
+
+		if (one == typeof(void))
+			return -1;
+
+		return BetterTarget(one, two);
 	}
 
 	/// <summary>

@@ -68,11 +68,19 @@ public static partial class ExpressionParser
 		if (ReferenceEquals(value, Null))
 			return CanBeNull(to);
 
-		// A lambda not yet built goes to any delegate that takes as many parameters as it was
-		// written with. Whether its body fits is not a question yet — it has no body until
-		// this is the delegate it is being built for.
+		// A lambda not yet built goes to a delegate that takes as many parameters as it was
+		// written with, and gives back something its body can be: `s => s.Length` is no
+		// `Func<string, bool>`, which is what leaves that one of a pair of overloads out, as C#
+		// leaves it out. The body is built for those parameter types to be asked, once and kept.
+		// A delegate still open over a type argument is asked its arity alone — the inference
+		// has more to settle first — and one that gives nothing takes any body.
 		if (value is Unbuilt lambda)
-			return Unbuilt.Taken(to) is { } types && types.Length == lambda.Arity;
+			return Unbuilt.Taken(to) is { } types && types.Length == lambda.Arity &&
+				(Array.Exists(types, static one => one.ContainsGenericParameters) ||
+					Unbuilt.Returned(to) is not { } returned ||
+					returned == typeof(void) ||
+					returned.ContainsGenericParameters ||
+					Converts(lambda.Built(types).Body, returned));
 
 		if (value is ConstantExpression { Value: { } constant } && Narrowed(constant, to) is not null)
 			return true;
