@@ -9,8 +9,9 @@
 //
 // Written chapter by chapter. So far: §5, the lexical elements, with the literals §5.3 makes of
 // them and the names §5.4 does; §6, scalar expressions, with window functions and row pattern
-// navigation; §7, query expressions, with row pattern recognition; §8, predicates; §10.9,
-// aggregates. The JSON functions are still to come.
+// navigation and the JSON functions; §7, query expressions, with row pattern recognition and JSON
+// tables; §8, predicates; §10.9, aggregates. What the BNF leaves to the Syntax Rules — the JSON path
+// language's literals and names among it — is read as nothing, as `--standard` reads it.
 
 @using System;
 @using DotGram.Sql.Standard;
@@ -280,7 +281,12 @@ IntervalLeadingFieldPrecision      = UnsignedInteger
 
 // ── §5.4 Names and identifiers ──────────────────────────────────────────────
 
-Identifier = ActualIdentifier
+// <identifier>, read whole. Over characters a rule gives back what it read when what follows fails
+// (docs/syntax.md §4), and an identifier would give back its letters: `COLUMNS (xy)` was a column `x`
+// of a type `y`, and `ROW(ab)` a field `a` of a type `b`. §5.2 cuts a text into its longest tokens,
+// so a name is one token, and the braces say so; a refused line no longer tries every place a name
+// could be cut, either.
+Identifier = { ActualIdentifier }
 
 // <actual identifier>. A Unicode one begins `U&`, which a regular identifier would take the
 // `U` of, so it is asked first. §5.4's Syntax Rule is the lookahead: a regular identifier is
@@ -430,6 +436,7 @@ TruthValue  = "TRUE"i | "FALSE"i | "UNKNOWN"i
 // a predicand; a predicate's second part, and it is that predicate, if the second part takes it.
 BooleanPrimary : @int
 	= "EXISTS"i & TableSubquery => @(Towers.Logical | Towers.Truth)
+	| JSONExistsPredicate => @(Towers.Logical | Towers.Truth)
 	| "UNIQUE"i & ("NULLS"i & "NOT"i? & "DISTINCT"i)? & TableSubquery => @(Towers.Logical | Towers.Truth)
 	| PeriodConstructor & PeriodPredicatePart2 => @(Towers.Logical | Towers.Truth)
 	| e: RowValuePredicand & takes: PredicatePart2Mark & when @(takes == 0 || (e & takes) != 0) => @(takes == 0 ? e : Towers.Logical | Towers.Truth)
@@ -608,10 +615,18 @@ BracketTail : @int
 	| "AS"i & DataType & ')' & '.' & MethodName & SQLArgumentList? => @(Towers.Bare)
 
 PrimarySteps : @int = s: PrimaryStep* => @(Towers.Steps(s))
+//
+// With them the operations of a <JSON simplified accessor>, which is a primary and its operations:
+// `.*`, an item method — asked before a method, since its names are mostly reserved words and its
+// arguments are fixed — `[*]`, and subscripts in the path language, asked after an array element's.
 PrimaryStep  : @int
-	= '.' & MethodName & SQLArgumentList? => @(Towers.Bare)
+	= '.' & '*' => @(Towers.Bare | Towers.Starred)
+	| '.' & JSONMethod => @(Towers.Bare)
+	| '.' & MethodName & SQLArgumentList? => @(Towers.Bare)
 	| "->" & Identifier & SQLArgumentList? => @(Towers.Bare)
 	| ArrayElementStep => @(Towers.Subscript)
+	| '[' & '*' & ']' => @(Towers.Bare)
+	| '[' & JSONSubscript & (',' & JSONSubscript)* & ']' => @(Towers.Bare)
 
 ArrayElementStep = LeftBracketOrTrigraph & NumericValueExpression & RightBracketOrTrigraph
 
@@ -633,6 +648,10 @@ PrimaryBase : @int
 	| GreatestOrLeastFunction => @(Towers.Value | Towers.Truth | Towers.Bare)
 	| StaticMethodInvocation => @(Towers.Value | Towers.Truth | Towers.Bare)
 	| WindowedFunction => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| JSONValueFunction => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| JSONQuery => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| JSONObjectConstructor => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| JSONArrayConstructor => @(Towers.Value | Towers.Truth | Towers.Bare)
 	| RowPatternNavigationOperation => @(Towers.Value | Towers.Truth | Towers.Bare)
 	| RoutineInvocation => @(Towers.Value | Towers.Truth | Towers.Bare | Towers.Invoked)
 	| "MODULE"i & '.' & QualifiedIdentifier & '.' & ColumnName => @(Towers.Value | Towers.Truth | Towers.Bare)
@@ -709,6 +728,7 @@ ValueFunction : @int
 	| DatetimeValueFunction => @(Towers.Datetime)
 	| "TRIM_ARRAY"i & '(' & ArrayValueExpression & ',' & NumericValueExpression & ')' => @(Towers.Array)
 	| "SET"i & '(' & MultisetValueExpression & ')' => @(Towers.Multiset)
+	| JSONTypedValueFunction => @(Towers.Json)
 
 // <absolute value expression>, <interval absolute value function>.
 AbsoluteValue : @int = "ABS"i & '(' & e: CommonValueExpression & ')' & when @((e & (Towers.Numeric | Towers.Interval)) != 0) => @(e & (Towers.Numeric | Towers.Interval))
@@ -742,10 +762,10 @@ ExtractField      = NonSecondPrimaryDatetimeField | "SECOND"i | "TIMEZONE_HOUR"i
 UsingUnits : @bool = "USING"i & CharLengthUnits => @(true)
                    | none => @(false)
 
-// <string value function>, but a JSON serialization and <specific type method>, which follows a
-// primary (`Primary`).
+// <string value function>, but <specific type method>, which follows a primary (`Primary`).
 StringValueFunction
 	= SubstringFunction
+	| JSONSerialize
 	| "SUBSTRING_REGEX"i & '(' & RegexSearch & ("OCCURRENCE"i & NumericValueExpression)? & ("GROUP"i & NumericValueExpression)? & ')'
 	| ("UPPER"i | "LOWER"i) & '(' & CharacterValueExpression & ')'
 	| ("CONVERT"i | "TRANSLATE"i) & '(' & CharacterValueExpression & "USING"i & SchemaQualifiedName & ')'
@@ -822,13 +842,13 @@ RowMarker     = "BEGIN_PARTITION"i | "BEGIN_FRAME"i | "CURRENT_ROW"i | "FRAME_RO
 // a simple value specification, or a dynamic parameter.
 SimpleOrDynamicValue = SimpleValueSpecification | '?'
 
-// <aggregate function>, but a JSON aggregate. `COUNT(*)` and `COUNT(v.*)` are asked before `COUNT`
-// of a value, which would take the `v` and stop.
+// <aggregate function>. A <row pattern count function>, `COUNT(v.*)`, is `COUNT` of a value too, whose
+// `v.*` is a JSON accessor, with the same verdict; written apart, a refused line read each twice.
 AggregateFunction = AggregateCall & ("FILTER"i & '(' & "WHERE"i & SearchCondition & ')')?
 
 AggregateCall
 	= "COUNT"i & '(' & '*' & ')'
-	| "COUNT"i & '(' & Identifier & '.' & '*' & ')'
+	| JSONAggregateFunction
 	| ComputationalOperation & '(' & SetQuantifier? & ValueExpression & ')'
 	| BinarySetFunctionType & '(' & NumericValueExpression & ',' & NumericValueExpression & ')'
 	| ("RANK"i | "DENSE_RANK"i | "PERCENT_RANK"i | "CUME_DIST"i) & '(' & ValueExpression & (',' & ValueExpression)* & ')' & WithinGroupSpecification
@@ -857,6 +877,161 @@ ListaggOverflowClause    = "ON"i & "OVERFLOW"i & ("ERROR"i | "TRUNCATE"i & Chara
 // routine after, every argument was read twice, and a line refused inside nested navigations cost a
 // power of their depth.
 RowPatternNavigationOperation = ("RUNNING"i | "FINAL"i) & ("FIRST"i | "LAST"i) & '(' & ValueExpression & (',' & SimpleOrDynamicValue)? & ')'
+
+// ── §6.33 JSON value function, §6.37 JSON value constructor, §6.38 JSON query ──
+//
+// What the BNF spells, and only that: a path is a <character string literal>, which the functions
+// take whole. Inside the simplified accessor the path language is read where the SQL tokens reach —
+// its literals, identifiers and key names are left to the Syntax Rules (`!! See the Syntax Rules.`)
+// and read as nothing, here as in `--standard`; so `a[$ to last]` is read and `a[1 to last]` is not.
+
+// <JSON value function>. What happens on an empty result is said before what happens on an error.
+JSONValueFunction = "JSON_VALUE"i & '(' & JSONAPICommonSyntax & ("RETURNING"i & DataType)?
+	  & (JSONValueBehavior & "ON"i & "EMPTY"i)? & (JSONValueBehavior & "ON"i & "ERROR"i)? & ')'
+JSONValueBehavior = "ERROR"i | "NULL"i | "DEFAULT"i & ValueExpression
+
+// <JSON query>.
+JSONQuery = "JSON_QUERY"i & '(' & JSONAPICommonSyntax & JSONOutputClause? & (JSONQueryWrapperBehavior & "WRAPPER"i)?
+	  & (("KEEP"i | "OMIT"i) & "QUOTES"i & ("ON"i & "SCALAR"i & "STRING"i)?)?
+	  & (JSONQueryBehavior & "ON"i & "EMPTY"i)? & (JSONQueryBehavior & "ON"i & "ERROR"i)? & ')'
+JSONQueryWrapperBehavior = "WITHOUT"i & "ARRAY"i? | "WITH"i & ("CONDITIONAL"i | "UNCONDITIONAL"i)? & "ARRAY"i?
+JSONQueryBehavior        = "ERROR"i | "NULL"i | "EMPTY"i & ("ARRAY"i | "OBJECT"i)
+
+// <JSON API common syntax>: a context item, a path, the path's name, and what the path is passed.
+JSONAPICommonSyntax = JSONInputExpression & ',' & CharacterStringLiteral & ("AS"i & Identifier)?
+	  & ("PASSING"i & JSONInputExpression & "AS"i & Identifier & (',' & JSONInputExpression & "AS"i & Identifier)*)?
+JSONInputExpression = ValueExpression & JSONInputClause?
+JSONOutputClause    = "RETURNING"i & DataType & ("FORMAT"i & JSONRepresentation)?
+
+// <JSON object constructor>. A name and a value are `KEY name VALUE value`, `name VALUE value` or
+// `name : value`; what follows the name says which, and the name is read once.
+JSONObjectConstructor = "JSON_OBJECT"i & '(' & (JSONNameAndValue & (',' & JSONNameAndValue)* & JSONConstructorNullClause? & JSONKeyUniquenessConstraint?)? & JSONOutputClause? & ')'
+JSONNameAndValue
+	= "KEY"i & CharacterValueExpression & "VALUE"i & JSONInputExpression
+	| CharacterValueExpression & ("VALUE"i | ':') & JSONInputExpression
+JSONConstructorNullClause = ("NULL"i | "ABSENT"i) & "ON"i & "NULL"i
+
+// <JSON array constructor>, by enumeration and by query. A query begins with a key word a value
+// expression does not, or with a bracket, where the enumeration is asked first.
+JSONArrayConstructor
+	= "JSON_ARRAY"i & '(' & (JSONInputExpression & (',' & JSONInputExpression)* & JSONConstructorNullClause?)? & JSONOutputClause? & ')'
+	| "JSON_ARRAY"i & '(' & QueryExpression & JSONInputClause? & JSONConstructorNullClause? & JSONOutputClause? & ')'
+
+// <JSON exists predicate>.
+JSONExistsPredicate = "JSON_EXISTS"i & '(' & JSONAPICommonSyntax & (("TRUE"i | "FALSE"i | "UNKNOWN"i | "ERROR"i) & "ON"i & "ERROR"i)? & ')'
+
+// <JSON typed value function>: <JSON parse> and <JSON scalar>, each a <JSON primary> and nothing else
+// — no concatenation takes one, which `Towers.Json` alone says.
+JSONTypedValueFunction
+	= "JSON"i & '(' & StringValueExpression & JSONInputClause? & JSONKeyUniquenessConstraint? & ')'
+	| "JSON_SCALAR"i & '(' & ValueExpression & ')'
+
+// <JSON serialize>, of a <JSON value expression>: a value expression primary or a typed value function.
+JSONSerialize        = "JSON_SERIALIZE"i & '(' & JSONValueExpression & JSONOutputClause? & ')'
+JSONValueExpression : @int = e: CommonValueExpression & when @((e & Towers.Json) != 0) => @(e)
+
+// <JSON array aggregate constructor>, <JSON object aggregate constructor>.
+JSONAggregateFunction
+	= "JSON_ARRAYAGG"i & '(' & JSONInputExpression & ("ORDER"i & "BY"i & SortSpecificationList)? & JSONConstructorNullClause? & JSONOutputClause? & ')'
+	| "JSON_OBJECTAGG"i & '(' & JSONNameAndValue & JSONConstructorNullClause? & JSONKeyUniquenessConstraint? & JSONOutputClause? & ')'
+
+// ── §6.39 JSON simplified accessor, as far as the SQL tokens reach ──────────
+//
+// Its operations are steps after a value expression primary (`PrimaryStep`), beside a field
+// reference's and an array element's: `.*`, `[*]`, subscripts in the path language, and an item
+// method, whose names are mostly reserved words of SQL and so no method's names: `a.decimal(1, 2)`.
+
+// <JSON method>. A datetime's template is a path string literal, which the Syntax Rules keep.
+JSONMethod
+	= ("TYPE"i | "SIZE"i | "DOUBLE"i | "CEILING"i | "FLOOR"i | "ABS"i | "KEYVALUE"i | "BIGINT"i | "BOOLEAN"i
+	  | "DATETIME"i | "DATE"i | "INTEGER"i | "NUMBER"i | "STRING"i) & '(' & ')'
+	| "DECIMAL"i & '(' & (UnsignedInteger & (',' & UnsignedInteger)?)? & ')'
+	| ("TIMESTAMP_TZ"i | "TIMESTAMP"i | "TIME_TZ"i | "TIME"i) & '(' & UnsignedInteger? & ')'
+
+// <JSON subscript>, <JSON path wff>: the path language's arithmetic over its primaries.
+JSONSubscript          = JSONPathWff & ("TO"i & JSONPathWff)?
+JSONPathWff            = JSONPathMultiplicative & (['+' | '-'] & JSONPathMultiplicative)*
+JSONPathMultiplicative = JSONPathUnary & (['*' | '/' | '%'] & JSONPathUnary)*
+JSONPathUnary          = (trivia & ['+' | '-'])* & JSONPathAccessor
+JSONPathAccessor       = JSONPathPrimary & (trivia & JSONPathAccessorOp)*
+
+// <JSON path primary>: the context variable, `last`, or a wff in brackets. A named variable is `$` and
+// a path identifier, and `@` is no SQL token.
+JSONPathPrimary = '$' | "LAST"i | '(' & JSONPathWff & ')'
+
+// <JSON accessor op>: those of the simplified accessor, and a filter; a member's name is a key name.
+JSONPathAccessorOp
+	= '.' & '*'
+	| '[' & '*' & ']'
+	| '[' & JSONSubscript & (',' & JSONSubscript)* & ']'
+	| '?' & '(' & JSONPathPredicate & ')'
+	| '.' & JSONMethod
+
+// <JSON path predicate>. `&&`, `!`, `==` and `!=` are no SQL tokens — `!` is no SQL character at all
+// (§5.1) — so a conjunction of two, a negation and those comparisons are never read; `||` is the
+// concatenation operator's token, and a disjunction is. `like_regex` and `starts with` need a path
+// string literal.
+JSONPathPredicate = JSONPredicatePrimary & ("||" & JSONPredicatePrimary)*
+JSONPredicatePrimary
+	= "EXISTS"i & '(' & JSONPathWff & ')'
+	| '(' & JSONPathPredicate & ')' & ("IS"i & "UNKNOWN"i)?
+	| JSONPathWff & ("<>" | "<=" | ">=" | '<' | '>') & JSONPathWff
+
+// ── §7.11 JSON table ─────────────────────────────────────────────────────────
+
+JSONTable = "JSON_TABLE"i & '(' & JSONAPICommonSyntax & JSONTableColumnsClause & JSONTablePlanClause? & (("ERROR"i | "EMPTY"i) & "ON"i & "ERROR"i)? & ')'
+JSONTablePrimitive = "JSON_TABLE_PRIMITIVE"i & '(' & JSONAPICommonSyntax & "COLUMNS"i & '(' & JSONTablePrimitiveColumn & (',' & JSONTablePrimitiveColumn)* & ')' & ("ERROR"i | "EMPTY"i) & "ON"i & "ERROR"i & ')'
+
+JSONTableColumnsClause = "COLUMNS"i & '(' & JSONTableColumnDefinition & (',' & JSONTableColumnDefinition)* & ')'
+
+JSONTableColumnDefinition
+	= "NESTED"i & "PATH"i? & CharacterStringLiteral & ("AS"i & Identifier)? & JSONTableColumnsClause
+	| ColumnName & "FOR"i & "ORDINALITY"i
+	| JSONTableTypedColumn
+
+JSONTablePrimitiveColumn
+	= ColumnName & "FOR"i & ("ORDINALITY"i | "CHAINING"i)
+	| JSONTableTypedColumn
+
+// <JSON table regular column definition>, <JSON table formatted column definition>. Both are a name,
+// a type, a path and what happens on empty and on error, and neither needs to say which it is; read
+// once, a guard refuses what only a regular one has (`DEFAULT … ON`, 1) beside what only a formatted
+// one has (`FORMAT`, a wrapper, quotes, `EMPTY ARRAY` or `EMPTY OBJECT`, 2).
+JSONTableTypedColumn : @bool = ColumnName & DataType & f: JSONColumnFormat & ("PATH"i & CharacterStringLiteral)? & w: JSONColumnWrapper & e: JSONColumnOnEmpty & r: JSONColumnOnError & when @((f | w | e | r) != 3) => @(true)
+
+JSONColumnFormat  : @int = "FORMAT"i & JSONRepresentation => @(2)
+                         | none => @(0)
+JSONColumnWrapper : @int = JSONQueryWrapperBehavior & "WRAPPER"i & JSONColumnQuotes => @(2)
+                         | q: JSONColumnQuotes => @(q)
+JSONColumnQuotes  : @int = ("KEEP"i | "OMIT"i) & "QUOTES"i & ("ON"i & "SCALAR"i & "STRING"i)? => @(2)
+                         | none => @(0)
+JSONColumnOnEmpty : @int = b: JSONColumnBehavior & "ON"i & "EMPTY"i => @(b)
+                         | none => @(0)
+JSONColumnOnError : @int = b: JSONColumnBehavior & "ON"i & "ERROR"i => @(b)
+                         | none => @(0)
+JSONColumnBehavior : @int
+	= "ERROR"i => @(0)
+	| "NULL"i => @(0)
+	| "DEFAULT"i & ValueExpression => @(1)
+	| "EMPTY"i & ("ARRAY"i | "OBJECT"i) => @(2)
+
+// <JSON table plan clause>. A plan is a path's name, a parent and child, or siblings; each begins with
+// a plan primary, which is read once and what follows it says which. A parent is a name, and a plan
+// in brackets alone is no plan.
+JSONTablePlanClause
+	= "PLAN"i & '(' & JSONTablePlan & ')'
+	| "PLAN"i & "DEFAULT"i & '(' & (("INNER"i | "OUTER"i) & (',' & ("UNION"i | "CROSS"i))? | ("UNION"i | "CROSS"i) & (',' & ("INNER"i | "OUTER"i))?) & ')'
+
+JSONTablePlan : @bool = p: JSONTablePlanPrimary & t: JSONTablePlanTail & when @(t == 2 || p == true) => @(true)
+
+JSONTablePlanPrimary : @bool = Identifier => @(true)
+                             | '(' & JSONTablePlan & ')' => @(false)
+
+JSONTablePlanTail : @int
+	= ("OUTER"i | "INNER"i) & JSONTablePlanPrimary => @(1)
+	| ("UNION"i & JSONTablePlanPrimary)+ => @(2)
+	| ("CROSS"i & JSONTablePlanPrimary)+ => @(2)
+	| none => @(0)
 
 // ── §7.2 Row value expression list, §7.3 Table value constructor ────────────
 
@@ -918,9 +1093,9 @@ SampleClause = "TABLESAMPLE"i & ("BERNOULLI"i | "SYSTEM"i) & '(' & NumericValueE
 
 // <table primary>: whether it is a parenthesized joined table. `TABLE (f(x))` is a collection's and
 // then a correlation name must follow, or a polymorphic table function's and one need not: the
-// expression is read once, and a routine's invocation alone (`Towers.Invoked`) is the latter. <data
-// change delta table>, <JSON table> and <JSON table primitive> wait for the chapters they are
-// written in.
+// expression is read once, and a routine's invocation alone (`Towers.Invoked`) is the latter. A JSON
+// table primitive takes a correlation name and nothing else. <data change delta table> waits for the
+// data change statements.
 TablePrimary : @bool
 	= TableOrQueryName & QuerySystemTimePeriodSpecification? & CorrelationOrRecognition? => @(false)
 	| "LATERAL"i & TableSubquery & CorrelationOrRecognition => @(false)
@@ -928,6 +1103,8 @@ TablePrimary : @bool
 	| "TABLE"i & '(' & e: CollectionValueExpression & ')' & c: Correlated & r: Recognized & when @(c == true || r == true || (e & Towers.Invoked) != 0) => @(false)
 	| "ONLY"i & '(' & TableOrQueryName & ')' & CorrelationOrRecognition? => @(false)
 	| TableSubquery & CorrelationOrRecognition => @(false)
+	| JSONTable & CorrelationOrRecognition => @(false)
+	| JSONTablePrimitive & CorrelationName => @(false)
 	| ParenthesizedJoinedTable => @(true)
 
 // <parenthesized joined table>: a joined table in brackets, or one such in brackets again. Both
@@ -1080,10 +1257,15 @@ SelectList = '*' | SelectSublist & (',' & SelectSublist)*
 
 // <select sublist>: a <derived column>, or a <qualified asterisk>. Each begins with a value
 // expression — an <asterisked identifier chain> is a column reference in shape, and an <all fields
-// reference> a value expression primary — so the expression is read once, and `.*` after it asks
-// that it be a primary. Tried apart, a subquery in a select list would be read twice at every depth.
-SelectSublist : @bool = e: ValueExpression & f: AllFields & when @(f == false || (e & (Towers.Bare | Towers.Parenthesized)) != 0) => @(true)
-AllFields     : @bool = '.' & '*' & ("AS"i & '(' & ColumnNameList & ')')? => @(true)
+// reference> a value expression primary — so the expression is read once. `t.*` is a JSON simplified
+// accessor too, and the expression reads its `.*`; `AS (…)` after it asks that `.*` was the last
+// step (`Towers.Starred`). Tried apart, a subquery in a select list would be read twice at every depth.
+//
+// Nothing reads a `.*` after the expression: every primary takes it as a step, and what cannot — a
+// row, `(a, b).*` — is no primary to take it. Read there as well, a refused line gave each `.*` back
+// to be read the second way, and a select list of them cost a power of their number.
+SelectSublist : @bool = e: ValueExpression & f: AllFields & when @(f == false || (e & Towers.Starred) != 0) => @(true)
+AllFields     : @bool = "AS"i & '(' & ColumnNameList & ')' => @(true)
                       | AsClause => @(false)
                       | none => @(false)
 

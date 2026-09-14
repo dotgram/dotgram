@@ -63,6 +63,9 @@ static class Towers
 	/// <summary>A <c>&lt;routine invocation&gt;</c> and nothing more, which `TABLE (…)` reads as a polymorphic table function's.</summary>
 	public const int Invoked = 1 << 16;
 
+	/// <summary>A primary whose last step is `.*`, which an <c>&lt;all fields reference&gt;</c> may name columns after.</summary>
+	public const int Starred = 1 << 17;
+
 	public const int String = Character | Binary;
 
 	/// <summary>A <c>&lt;value expression primary&gt;</c>, which has every type.</summary>
@@ -82,7 +85,7 @@ static class Towers
 		var made = 0;
 
 		foreach (var step in steps ?? [])
-			made |= step;
+			made = made & ~Starred | step;
 
 		return made;
 	}
@@ -121,7 +124,7 @@ static class Towers
 		if (piece.Signed)
 			return roles & (Numeric | Interval);
 
-		return piece.Postfix == 0 ? roles | primary & (Truth | Chain | Bare | Parenthesized | Row | Invoked) : roles;
+		return piece.Postfix == 0 ? roles | primary & (Truth | Chain | Bare | Parenthesized | Row | Invoked | Starred) : roles;
 	}
 
 	// ── The operators ──────────────────────────────────────────────────────────

@@ -22171,6 +22171,62 @@ generalized invocation of a sum, `TABLE (…)` of a routine alone and of anythin
 and `SUBSTRING` forms, a compound navigation — 57 lines, which went into the tests; and every row
 the tests held before still gets its verdict from both.
 
+## SQL:2023 JSON, as far as the BNF spells it
+
+The standard's grammar has its JSON now: `JSON_VALUE` and `JSON_QUERY` with their behaviours on empty
+and on error, `JSON_EXISTS`, `JSON_OBJECT` and `JSON_ARRAY` by enumeration and by query, `JSON_ARRAYAGG`
+and `JSON_OBJECTAGG`, `JSON(…)`, `JSON_SCALAR` and `JSON_SERIALIZE`, `JSON_TABLE` with nested columns
+and plans, `JSON_TABLE_PRIMITIVE`, and the simplified accessor.
+
+**What the BNF leaves to prose is read as nothing, on both sides.** Decided with Igor: the JSON path
+language's literals, identifiers and key names are `!! See the Syntax Rules.`, which `--standard` reads
+as matching nothing, and the text of those rules is not in the repository. So the grammar writes what
+the BNF spells and no more, and says so: `a[$ to last]`, `a[$?(exists($))]` and `a.decimal(1, 2)` are
+read, `a[1 to last]` and `a.key` as a member accessor are not. The SQL tokens settle the rest: `&&`,
+`==` and `!=` are no tokens, and `!` and `@` no SQL characters (§5.1), so a conjunction, a negation,
+those comparisons and `@` never reach the path language; `||` is the concatenation operator's token,
+and a disjunction does.
+
+**Where the towers put it.** `JSON(…)` and `JSON_SCALAR` are JSON primaries and nothing else, so
+`JSON_SCALAR(a) || 'x'` is refused; a JSON value expression is a primary or one of them
+(`Towers.Json`), so `JSON_SERIALIZE(a + 1)` is refused. `JSON_VALUE`, `JSON_QUERY` and the constructors
+are value expression primaries; `JSON_EXISTS` is a predicate.
+
+**Two readings the accessor changed.** `t.*` is an accessor, so the select list's value expression
+reads the `.*` itself, and `AS (x, y)` after it asks that `.*` was the last step (`Towers.Starred`).
+The item methods' names are mostly reserved words — `double`, `abs`, `date`, `decimal` — so no method
+invocation reads them, and they are asked first, with the arguments the BNF gives each.
+
+**Read once where alternatives begin alike.** A `JSON_TABLE` column is regular or formatted, and
+neither need say which: read as one, a guard refuses a regular one's `DEFAULT … ON` beside a formatted
+one's `FORMAT`, wrapper, quotes or `EMPTY ARRAY`. A plan is a primary and what follows it. Families
+refused at their core, eight deep, stay under half a millisecond for every JSON construct.
+
+**Over characters a rule gives back what it read, and the grammar was written as if it did not.**
+docs/syntax.md §4 says so: a later failure may resume a choice or a repetition inside a called rule.
+The JSON fuzz found it twice.
+
+- `COLUMNS (ORDINALITY)` read, and the BNF refuses it; so did `COLUMNS (xy)` and `ROW(ab)`. A column
+  is a name and a type, both identifiers, and the identifier gave back its letters: `x` of a type `y`.
+  §5.2 cuts a text into its longest tokens, so a name is one; `Identifier = { ActualIdentifier }` now,
+  and an atomic group gives nothing back.
+- The grammar alone took 2.3 seconds over the aggregate fuzz file that took 0.8 before JSON, with no
+  verdict changed; a line-by-line comparison put 70% of it on thirty refused lines full of `t.*`,
+  `(a).*` and `f(a).* AS (x, y)`. The accessor had made `.*` a step of every primary, and the select
+  list still read a `.*` after the expression too: a refused line gave every `.*` back to be read the
+  second way, a power of their number. Only the step reads it now — whatever cannot take one is no
+  primary — and `COUNT(v.*)`, the same text as `COUNT` of a value, is read only as that. The file
+  takes 0.72 seconds, less than before JSON, and the slowest line fell from half a second to 10 ms.
+
+The lesson is older than JSON: two readings of one text in a grammar that backtracks fully cost a
+power of how often the text occurs, on the lines that are refused, and every refusal family in this
+diary was one. Where a lexeme is meant, braces say so. The lines that found the cut name — 19 of
+them, with a key word alone as a column and a field with no type — went into the tests.
+
+Held by 189 probe lines — the rows, less five that two files shared — and 6,000 random verdicts,
+3,000 of them on broken lines, over the grammar as it stands after both fixes: none differ, and the
+grammar reads each 3,000 in under half a second.
+
 **Every refused line costs a square, and the grammar is not why.** The aggregate fuzz showed a line of
 1,358 characters that took 47 ms. `--standard =…` over families of lines found the shape: none —
 every family is linear where the line is read, and quadratic where it is refused at the end, however
