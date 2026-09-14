@@ -10,7 +10,8 @@
 // Written chapter by chapter. So far: §5, the lexical elements, with the literals §5.3 makes of
 // them and the names §5.4 does; §6, scalar expressions, with window functions and row pattern
 // navigation and the JSON functions; §7, query expressions, with row pattern recognition and JSON
-// tables; §8, predicates; §10.9, aggregates. What the BNF leaves to the Syntax Rules — the JSON path
+// tables; §8, predicates; §10.9, aggregates; §14, the data change statements. What the BNF leaves to
+// the Syntax Rules — the JSON path
 // language's literals and names among it — is read as nothing, as `--standard` reads it.
 
 @using System;
@@ -1094,10 +1095,11 @@ SampleClause = "TABLESAMPLE"i & ("BERNOULLI"i | "SYSTEM"i) & '(' & NumericValueE
 // <table primary>: whether it is a parenthesized joined table. `TABLE (f(x))` is a collection's and
 // then a correlation name must follow, or a polymorphic table function's and one need not: the
 // expression is read once, and a routine's invocation alone (`Towers.Invoked`) is the latter. A JSON
-// table primitive takes a correlation name and nothing else. <data change delta table> waits for the
-// data change statements.
+// table primitive takes a correlation name and nothing else. A <data change delta table> is asked
+// first: `FINAL` is not reserved, and would be taken for a table's name.
 TablePrimary : @bool
-	= TableOrQueryName & QuerySystemTimePeriodSpecification? & CorrelationOrRecognition? => @(false)
+	= DataChangeDeltaTable & CorrelationOrRecognition? => @(false)
+	| TableOrQueryName & QuerySystemTimePeriodSpecification? & CorrelationOrRecognition? => @(false)
 	| "LATERAL"i & TableSubquery & CorrelationOrRecognition => @(false)
 	| "UNNEST"i & '(' & CollectionValueExpression & (',' & CollectionValueExpression)* & ')' & ("WITH"i & "ORDINALITY"i)? & CorrelationOrRecognition => @(false)
 	| "TABLE"i & '(' & e: CollectionValueExpression & ')' & c: Correlated & r: Recognized & when @(c == true || r == true || (e & Towers.Invoked) != 0) => @(false)
@@ -1321,6 +1323,84 @@ Subquery       = '(' & QueryExpression & ')'
 SortSpecificationList = SortSpecification & (',' & SortSpecification)*
 SortSpecification     = ValueExpression & ("ASC"i | "DESC"i)? & ("NULLS"i & ("FIRST"i | "LAST"i))?
 
+// ── §14.8 Delete statement, §14.9 Truncate table statement ──────────────────
+
+// <delete statement: searched>, <delete statement: positioned>.
+DeleteStatementSearched   = "DELETE"i & "FROM"i & TargetTable & ForPortionOf? & ("AS"i? & CorrelationName)? & ("WHERE"i & SearchCondition)?
+DeleteStatementPositioned = "DELETE"i & "FROM"i & TargetTable & ("AS"i? & CorrelationName)? & "WHERE"i & "CURRENT"i & "OF"i & CursorName
+
+TruncateTableStatement = "TRUNCATE"i & "TABLE"i & TargetTable & (("CONTINUE"i | "RESTART"i) & "IDENTITY"i)?
+
+// <target table>.
+TargetTable = TableName | "ONLY"i & '(' & TableName & ')'
+
+// An application time period's portion, which a searched delete and update may name.
+ForPortionOf = "FOR"i & "PORTION"i & "OF"i & Identifier & "FROM"i & DatetimeValueExpression & "TO"i & DatetimeValueExpression
+
+// <cursor name>, a <local qualified name>.
+CursorName = ("MODULE"i & '.')? & Identifier
+
+// ── §14.11 Insert statement ─────────────────────────────────────────────────
+
+// <insert statement>. A column list and an override clause stand before a query and before a
+// constructor alike, and are read once; the constructor is asked first, since it reads what a
+// query's table value constructor does and `DEFAULT` too.
+InsertStatement = "INSERT"i & "INTO"i & TableName & InsertColumnsAndSource
+
+InsertColumnsAndSource
+	= ('(' & ColumnNameList & ')')? & OverrideClause? & (ContextuallyTypedTableValueConstructor | QueryExpression)
+	| "DEFAULT"i & "VALUES"i
+
+OverrideClause = "OVERRIDING"i & ("USER"i | "SYSTEM"i) & "VALUE"i
+
+// <contextually typed table value constructor>: rows whose values may be `DEFAULT`, `NULL` or an
+// empty collection, which take their type from where they go.
+ContextuallyTypedTableValueConstructor = "VALUES"i & ContextuallyTypedRowValueExpression & (',' & ContextuallyTypedRowValueExpression)*
+
+// <contextually typed row value expression>. A bracket holds such a specification alone, or two or
+// more elements; a value expression reads any other row and value.
+ContextuallyTypedRowValueExpression
+	= ContextuallyTypedValueSpecification
+	| '(' & ContextuallyTypedValueSpecification & ')'
+	| '(' & ContextuallyTypedElement & (',' & ContextuallyTypedElement)+ & ')'
+	| "ROW"i & '(' & ContextuallyTypedElement & (',' & ContextuallyTypedElement)* & ')'
+	| ValueExpression
+
+ContextuallyTypedElement = ContextuallyTypedValueSpecification | ValueExpression
+
+// ── §14.12 Merge statement ──────────────────────────────────────────────────
+
+MergeStatement = "MERGE"i & "INTO"i & TargetTable & ("AS"i? & CorrelationName)? & "USING"i & TableReference & "ON"i & SearchCondition & (trivia & MergeWhenClause)+
+
+MergeWhenClause
+	= "WHEN"i & "MATCHED"i & ("AND"i & SearchCondition)? & "THEN"i & ("UPDATE"i & "SET"i & SetClauseList | "DELETE"i)
+	| "WHEN"i & "NOT"i & "MATCHED"i & ("AND"i & SearchCondition)? & "THEN"i & MergeInsertSpecification
+
+MergeInsertSpecification = "INSERT"i & ('(' & ColumnNameList & ')')? & OverrideClause? & "VALUES"i & '(' & ContextuallyTypedElement & (',' & ContextuallyTypedElement)* & ')'
+
+// ── §14.13 Update statement: positioned, §14.14 Update statement: searched ─
+
+UpdateStatementSearched   = "UPDATE"i & TargetTable & ForPortionOf? & ("AS"i? & CorrelationName)? & "SET"i & SetClauseList & ("WHERE"i & SearchCondition)?
+UpdateStatementPositioned = "UPDATE"i & TargetTable & ("AS"i? & CorrelationName)? & "SET"i & SetClauseList & "WHERE"i & "CURRENT"i & "OF"i & CursorName
+
+// ── §14.15 Set clause list ──────────────────────────────────────────────────
+
+SetClauseList = SetClause & (',' & SetClause)*
+
+// <set clause>: several targets and a row, or a target and a value.
+SetClause
+	= '(' & SetTarget & (',' & SetTarget)* & ')' & '=' & ContextuallyTypedRowValueExpression
+	| SetTarget & '=' & (ContextuallyTypedValueSpecification | ValueExpression)
+
+// <set target>: a column, an element of one, or a column's attribute set by a mutator, as often as
+// there are attributes on the way — <mutated set clause> recurses through <mutated target> on the left.
+SetTarget = ColumnName & (LeftBracketOrTrigraph & SimpleValueSpecification & RightBracketOrTrigraph | ('.' & MethodName)*)
+
+// ── §7.6 Data change delta table ────────────────────────────────────────────
+
+// <data change delta table>, <data change statement>: what a data change statement changed, as a table.
+DataChangeDeltaTable = ("FINAL"i | "NEW"i | "OLD"i) & "TABLE"i & '(' & (DeleteStatementSearched | InsertStatement | MergeStatement | UpdateStatementSearched) & ')'
+
 parse Literal                  as ParseLiteral
 parse UnsignedLiteral          as ParseUnsignedLiteral
 parse Identifier               as ParseIdentifier
@@ -1345,3 +1425,10 @@ parse ValueExpressionPrimary   as ParseValueExpressionPrimary
 parse QueryExpression          as ParseQueryExpression
 parse QuerySpecification       as ParseQuerySpecification
 parse TableReference           as ParseTableReference
+parse InsertStatement          as ParseInsertStatement
+parse UpdateStatementSearched  as ParseUpdateStatementSearched
+parse UpdateStatementPositioned as ParseUpdateStatementPositioned
+parse DeleteStatementSearched  as ParseDeleteStatementSearched
+parse DeleteStatementPositioned as ParseDeleteStatementPositioned
+parse MergeStatement           as ParseMergeStatement
+parse TruncateTableStatement   as ParseTruncateTableStatement

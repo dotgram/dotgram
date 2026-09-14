@@ -55,8 +55,8 @@ is open until it is built, and `status.md` is what will say when it has been.
 - **The SQL:2023 grammar, chapter by chapter** (`Standard/SqlStandard.gram`). §5 is written —
   tokens, separators, literals, names and the reserved words — §6 with window functions, §7's query
   expression with the subqueries §6 and §8 held and row pattern recognition, §8, and §10.9's
-  aggregates, and the JSON functions as far as the BNF spells them: every row tried and 66,000
-  random verdicts agree with the BNF. Then DML; DDL.
+  aggregates, the JSON functions as far as the BNF spells them, and §14's data change statements:
+  every row tried and 80,000 random verdicts agree with the BNF. Then DDL.
 - **A test that says which productions are not written yet.**
 - **Whether the standard reads through a lexical split.** Not for now: its tokens overlap — a
   date string is a character string too, and which one a token is depends on the key word before

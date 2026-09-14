@@ -14,7 +14,7 @@ in `DotGram.Sql` — the records, [`SqlWriter`](SqlWriter.cs), which prints them
 
 | Parser | Namespace | What it reads |
 | --- | --- | --- |
-| [`SqlStandardParser`](Standard/SqlStandard.gram) | `DotGram.Sql.Standard` | ISO SQL:2023, being written: so far its lexical elements, names, scalar expressions, aggregates and window functions, the JSON functions, query expressions with row pattern recognition, and predicates |
+| [`SqlStandardParser`](Standard/SqlStandard.gram) | `DotGram.Sql.Standard` | ISO SQL:2023, being written: so far its lexical elements, names, scalar expressions, aggregates and window functions, the JSON functions, query expressions with row pattern recognition, predicates, and the data change statements |
 | [`Sql92Parser`](Standard/SqlStandard92.gram) | `DotGram.Sql.Standard` | SQL-92 as the standard writes it, until SQL:2023 replaces it |
 | [`TransactSqlParser`](TransactSql/TransactSql.gram) | `DotGram.Sql.TransactSql` | SQL Server's T-SQL, as the engine reads it |
 

@@ -993,6 +993,174 @@ public sealed class SqlStandardParserTests
 		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
 	}
 
+	// ── §14 Data change statements ─────────────────────────────────────────────
+
+	/// <summary>`INSERT`: a column list, an override clause and a query, a contextually typed `VALUES`, or `DEFAULT VALUES` alone.</summary>
+	[Theory]
+	[InlineData("INSERT INTO t VALUES (1, 2)", true)]
+	[InlineData("INSERT INTO t (a, b) VALUES (1, DEFAULT), (2, NULL)", true)]
+	[InlineData("INSERT INTO t SELECT a FROM u", true)]
+	[InlineData("INSERT INTO t (a) OVERRIDING SYSTEM VALUE SELECT a FROM u", true)]
+	[InlineData("INSERT INTO t DEFAULT VALUES", true)]
+	[InlineData("INSERT INTO t (a) DEFAULT VALUES", false)]
+	[InlineData("INSERT INTO t VALUES DEFAULT", true)]
+	[InlineData("INSERT INTO t VALUES (DEFAULT)", true)]
+	[InlineData("INSERT INTO t VALUES (ARRAY[], NULL)", true)]
+	[InlineData("INSERT t VALUES (1)", false)]
+	[InlineData("INSERT INTO t (a) VALUES (1) ORDER BY 1", true)]
+	[InlineData("INSERT INTO t VALUES (1), (2) UNION SELECT a FROM u", true)]
+	[InlineData("INSERT INTO t (SELECT a FROM u)", true)]
+	[InlineData("INSERT INTO t ((SELECT a FROM u))", true)]
+	[InlineData("INSERT INTO t (a, b) (SELECT a, b FROM u)", true)]
+	[InlineData("INSERT INTO t VALUES ((DEFAULT))", false)]
+	[InlineData("INSERT INTO t VALUES ROW (DEFAULT, 1)", true)]
+	[InlineData("INSERT INTO t VALUES (1, (DEFAULT))", false)]
+	[InlineData("INSERT INTO t VALUES NULL, ARRAY[]", true)]
+	[InlineData("INSERT INTO t VALUES (NULL, MULTISET[])", true)]
+	[InlineData("INSERT INTO s.t (a) OVERRIDING USER VALUE VALUES (1)", true)]
+	[InlineData("INSERT INTO ONLY (t) VALUES (1)", false)]
+	[InlineData("INSERT INTO t OVERRIDING SYSTEM VALUE DEFAULT VALUES", false)]
+	[InlineData("INSERT INTO t VALUES (a + 1, DEFAULT)", true)]
+	[InlineData("INSERT INTO t VALUES DEFAULT + 1", false)]
+	public void An_insert_statement(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseInsertStatement(input).IsSuccess);
+	}
+
+	/// <summary>A searched `UPDATE`: `FOR PORTION OF` before the correlation name, and set targets that are columns, elements or mutated attributes.</summary>
+	[Theory]
+	[InlineData("UPDATE t SET a = 1, b = DEFAULT WHERE c = 2", true)]
+	[InlineData("UPDATE t AS x SET (a, b) = (1, 2)", true)]
+	[InlineData("UPDATE t SET (a, b) = ROW (1, 2)", true)]
+	[InlineData("UPDATE t SET a[1] = 2", true)]
+	[InlineData("UPDATE t SET a.m = 1", true)]
+	[InlineData("UPDATE t SET a = NULL", true)]
+	[InlineData("UPDATE t FOR PORTION OF p FROM 1 TO 2 SET a = 1", true)]
+	[InlineData("UPDATE t SET a = 1 WHERE CURRENT OF c", false)]
+	[InlineData("UPDATE t SET a.m.n = 1", true)]
+	[InlineData("UPDATE t SET a[1].m = 1", false)]
+	[InlineData("UPDATE t SET (a[1], b.m) = (1, DEFAULT)", true)]
+	[InlineData("UPDATE t SET (a) = (1)", true)]
+	[InlineData("UPDATE t SET (a) = ROW (1)", true)]
+	[InlineData("UPDATE t SET (a, b) = (SELECT a, b FROM u)", true)]
+	[InlineData("UPDATE t SET a = (DEFAULT)", false)]
+	[InlineData("UPDATE t SET a = DEFAULT + 1", false)]
+	[InlineData("UPDATE ONLY (t) x SET a = 1", true)]
+	[InlineData("UPDATE t SET a = 1, (b, c) = (1, 2)", true)]
+	[InlineData("UPDATE t FOR PORTION OF p FROM 1 TO 2 AS x SET a = 1", true)]
+	[InlineData("UPDATE t AS x FOR PORTION OF p FROM 1 TO 2 SET a = 1", false)]
+	[InlineData("UPDATE t SET a[b] = 1", true)]
+	[InlineData("UPDATE t SET a[b + 1] = 1", false)]
+	[InlineData("UPDATE t SET t.a = 1", true)]
+	public void A_searched_update(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseUpdateStatementSearched(input).IsSuccess);
+	}
+
+	/// <summary>A positioned `UPDATE`: `WHERE CURRENT OF` a cursor, and nothing a searched one says instead.</summary>
+	[Theory]
+	[InlineData("UPDATE t SET a = 1, b = DEFAULT WHERE c = 2", false)]
+	[InlineData("UPDATE t AS x SET (a, b) = (1, 2)", false)]
+	[InlineData("UPDATE t SET (a, b) = ROW (1, 2)", false)]
+	[InlineData("UPDATE t SET a[1] = 2", false)]
+	[InlineData("UPDATE t SET a.m = 1", false)]
+	[InlineData("UPDATE t SET a = NULL", false)]
+	[InlineData("UPDATE t FOR PORTION OF p FROM 1 TO 2 SET a = 1", false)]
+	[InlineData("UPDATE t SET a = 1 WHERE CURRENT OF c", true)]
+	[InlineData("UPDATE t SET a.m.n = 1", false)]
+	[InlineData("UPDATE t SET a[1].m = 1", false)]
+	[InlineData("UPDATE t SET (a[1], b.m) = (1, DEFAULT)", false)]
+	[InlineData("UPDATE t SET (a) = (1)", false)]
+	[InlineData("UPDATE t SET (a) = ROW (1)", false)]
+	[InlineData("UPDATE t SET (a, b) = (SELECT a, b FROM u)", false)]
+	[InlineData("UPDATE t SET a = (DEFAULT)", false)]
+	[InlineData("UPDATE t SET a = DEFAULT + 1", false)]
+	[InlineData("UPDATE ONLY (t) x SET a = 1", false)]
+	[InlineData("UPDATE t SET a = 1, (b, c) = (1, 2)", false)]
+	[InlineData("UPDATE t FOR PORTION OF p FROM 1 TO 2 AS x SET a = 1", false)]
+	[InlineData("UPDATE t AS x FOR PORTION OF p FROM 1 TO 2 SET a = 1", false)]
+	[InlineData("UPDATE t SET a[b] = 1", false)]
+	[InlineData("UPDATE t SET a[b + 1] = 1", false)]
+	[InlineData("UPDATE t SET t.a = 1", false)]
+	public void A_positioned_update(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseUpdateStatementPositioned(input).IsSuccess);
+	}
+
+	/// <summary>A searched `DELETE`.</summary>
+	[Theory]
+	[InlineData("DELETE FROM t WHERE a = 1", true)]
+	[InlineData("DELETE FROM t AS x", true)]
+	[InlineData("DELETE FROM ONLY (t)", true)]
+	[InlineData("DELETE FROM t FOR PORTION OF p FROM 1 TO 2 WHERE a", true)]
+	[InlineData("DELETE FROM t WHERE CURRENT OF c", false)]
+	[InlineData("DELETE FROM t x WHERE x.a IN (SELECT a FROM u)", true)]
+	[InlineData("DELETE FROM t WHERE", false)]
+	[InlineData("DELETE t", false)]
+	[InlineData("DELETE FROM MODULE.t", true)]
+	public void A_searched_delete(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseDeleteStatementSearched(input).IsSuccess);
+	}
+
+	/// <summary>A positioned `DELETE`.</summary>
+	[Theory]
+	[InlineData("DELETE FROM t WHERE a = 1", false)]
+	[InlineData("DELETE FROM t AS x", false)]
+	[InlineData("DELETE FROM ONLY (t)", false)]
+	[InlineData("DELETE FROM t FOR PORTION OF p FROM 1 TO 2 WHERE a", false)]
+	[InlineData("DELETE FROM t WHERE CURRENT OF c", true)]
+	[InlineData("DELETE FROM t x WHERE x.a IN (SELECT a FROM u)", false)]
+	[InlineData("DELETE FROM t WHERE", false)]
+	[InlineData("DELETE t", false)]
+	[InlineData("DELETE FROM MODULE.t", false)]
+	public void A_positioned_delete(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseDeleteStatementPositioned(input).IsSuccess);
+	}
+
+	/// <summary>`MERGE`: at least one `WHEN`, and one row to insert.</summary>
+	[Theory]
+	[InlineData("MERGE INTO t USING u ON t.a = u.a WHEN MATCHED THEN UPDATE SET b = u.b WHEN NOT MATCHED THEN INSERT VALUES (u.a, u.b)", true)]
+	[InlineData("MERGE INTO t AS x USING (SELECT a FROM u) AS y ON x.a = y.a WHEN MATCHED AND x.b > 1 THEN DELETE", true)]
+	[InlineData("MERGE INTO t USING u ON a WHEN NOT MATCHED BY SOURCE THEN DELETE WHEN NOT MATCHED BY TARGET AND b THEN INSERT (a) OVERRIDING USER VALUE VALUES (DEFAULT)", false)]
+	[InlineData("MERGE INTO t USING u ON a WHEN MATCHED THEN INSERT VALUES (1)", false)]
+	[InlineData("MERGE INTO t USING u ON a WHEN MATCHED THEN DELETE WHEN MATCHED AND b THEN UPDATE SET c = 1 WHEN NOT MATCHED THEN INSERT (a, b) VALUES (1, DEFAULT)", true)]
+	[InlineData("MERGE INTO t x USING (SELECT a FROM u) y JOIN v ON c ON x.a = y.a WHEN NOT MATCHED THEN INSERT VALUES (NULL)", true)]
+	[InlineData("MERGE INTO t USING u ON a", false)]
+	[InlineData("MERGE INTO t USING u ON a WHEN NOT MATCHED THEN INSERT VALUES (1), (2)", false)]
+	[InlineData("MERGE INTO ONLY (t) USING u ON a WHEN MATCHED THEN UPDATE SET (a, b) = (1, 2)", true)]
+	[InlineData("MERGE INTO t USING u ON a WHEN NOT MATCHED THEN INSERT OVERRIDING SYSTEM VALUE VALUES (1)", true)]
+	public void A_merge_statement(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseMergeStatement(input).IsSuccess);
+	}
+
+	/// <summary>`TRUNCATE TABLE`.</summary>
+	[Theory]
+	[InlineData("TRUNCATE TABLE t", true)]
+	[InlineData("TRUNCATE TABLE t RESTART IDENTITY", true)]
+	[InlineData("TRUNCATE TABLE ONLY (t) CONTINUE IDENTITY", true)]
+	[InlineData("TRUNCATE t", false)]
+	public void A_truncate_table_statement(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseTruncateTableStatement(input).IsSuccess);
+	}
+
+	/// <summary>A data change delta table: what a searched data change statement changed, as a table.</summary>
+	[Theory]
+	[InlineData("SELECT a FROM NEW TABLE (INSERT INTO t VALUES (1)) AS x", true)]
+	[InlineData("SELECT a FROM FINAL TABLE (UPDATE t SET a = 1)", true)]
+	[InlineData("SELECT a FROM OLD TABLE (DELETE FROM t) x", true)]
+	[InlineData("SELECT a FROM NEW TABLE (MERGE INTO t USING u ON a WHEN MATCHED THEN DELETE)", true)]
+	[InlineData("SELECT a FROM FINAL TABLE (INSERT INTO t DEFAULT VALUES) MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM FINAL TABLE (TRUNCATE TABLE t)", false)]
+	[InlineData("SELECT a FROM OLD TABLE (UPDATE t SET a = 1 WHERE CURRENT OF c)", false)]
+	public void A_data_change_delta_table(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+	}
+
 	// ── §6.1 Data types ──────────────────────────────────────────────────────────
 
 	[Theory]

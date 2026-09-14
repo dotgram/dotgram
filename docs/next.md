@@ -22227,6 +22227,39 @@ Held by 189 probe lines — the rows, less five that two files shared — and 6,
 3,000 of them on broken lines, over the grammar as it stands after both fixes: none differ, and the
 grammar reads each 3,000 in under half a second.
 
+## SQL:2023 §14: the data change statements
+
+`INSERT` with a column list, an override clause and a query, a contextually typed `VALUES` or
+`DEFAULT VALUES`; `UPDATE` and `DELETE`, searched — with `FOR PORTION OF` — and positioned, `WHERE
+CURRENT OF` a cursor; `MERGE` with its matched and not matched clauses; `TRUNCATE TABLE`; and the data
+change delta table, `FINAL`, `NEW` or `OLD TABLE (…)`, in a `FROM`. Each statement is published under
+its production's name, and `--standard` asks them all.
+
+**A contextually typed row is a value expression or what gives it a type.** `VALUES DEFAULT`, `(1,
+DEFAULT)` and `ROW (DEFAULT)` are read: `DEFAULT`, `NULL` and an empty collection take their type from
+where they go. `(DEFAULT)` is such a specification in brackets and alone, so `VALUES ((DEFAULT))`,
+`(1, (DEFAULT))`, `SET a = (DEFAULT)` and `DEFAULT + 1` are refused, as the BNF has them.
+
+**What the BNF says about each part's place.** `INSERT INTO ONLY (t)` is refused, where `UPDATE`,
+`DELETE`, `MERGE` and `TRUNCATE` take `ONLY`; `FOR PORTION OF` stands before a correlation name; a
+`DEFAULT VALUES` has no column list and no override; `MERGE` needs a `WHEN` and inserts one row; a set
+target is a column, an element of one by a simple value, or a column's attributes by mutators —
+`SET t.a = 1` is the attribute `a` of a column `t` — and not an element's attribute; a delta table
+holds a searched statement and no `TRUNCATE`. `FINAL` is not reserved, so a delta table is asked
+before a table's name.
+
+**One refusal still costs a power, and is left.** A contextually typed `VALUES` is asked before a
+query, whose table value constructor reads what it reads and may go on — `VALUES (1) UNION SELECT …`
+is a query's alone — so a row refused deep inside is read by the row's forms and then by the query's.
+`INSERT INTO t VALUES ((SELECT a FROM NEW TABLE (INSERT INTO t VALUES (…)) x))`, refused five deep,
+costs 141 ms. Reading both at once would put `DEFAULT` and `NULL` among the towers as operands of
+their own; an insert inside a delta table inside a row is not worth that, and every other data change
+family refused five deep stays under a quarter of a millisecond.
+
+Held by 78 probe lines, put to all eight productions, 624 verdicts; and `.work/fuzz_dml.py`, which
+builds statements of each kind out of the query fuzzer's values, conditions, tables and queries:
+14,000 random verdicts, 7,000 of them on broken lines, none differ.
+
 **Every refused line costs a square, and the grammar is not why.** The aggregate fuzz showed a line of
 1,358 characters that took 47 ms. `--standard =…` over families of lines found the shape: none —
 every family is linear where the line is read, and quadratic where it is refused at the end, however
