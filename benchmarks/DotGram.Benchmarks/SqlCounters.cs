@@ -46,7 +46,7 @@ public class SqlCounters
 	public bool Immediate() => ImmediateSql.TryParseSearchCondition(Long).IsSuccess;
 
 	[Benchmark]
-	public bool Tape() => SqlStandardParser.TryParseSearchCondition(Long).IsSuccess;
+	public bool Tape() => Sql92Parser.TryParseSearchCondition(Long).IsSuccess;
 
 	/// <summary>The lexer alone, to take it off all three.</summary>
 	[Benchmark]

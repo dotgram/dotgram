@@ -6,7 +6,7 @@ using DotGram.Sql.Standard;
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// <see cref="SqlStandardParser"/>'s grammar compiled immediately: the same file, the same tree,
+/// <see cref="Sql92Parser"/>'s grammar compiled immediately: the same file, the same tree,
 /// and every <c>=&gt;</c> run the moment its alternative is read rather than after the
 /// parse is accepted.
 /// </summary>

@@ -583,7 +583,7 @@ under a rule named after it, the lexical ones in a namespace of their own — by
 ## The SQL recognizer against a hand-written one
 
 `--hand [rounds] [iterations]` (`SqlAgainst.cs`) measures
-`SqlStandardParser.TryParseSearchCondition` against a hand-written recognizer of the same
+`Sql92Parser.TryParseSearchCondition` against a hand-written recognizer of the same
 language, round-robin and in one process, for the reason `--against` exists.
 `SqlComparisonBenchmarks` measures the same methods under BenchmarkDotNet, where the
 absolute numbers and the allocation come from.
@@ -676,7 +676,7 @@ anything, which is not what a consumer does and is not what the generator mostly
 parse records what it read and materializes the value afterwards, and none of that
 machinery had ever appeared in a number.
 
-`SqlStandardParser` builds now — `docs/syntax.md`'s constructions on every production of §6
+`Sql92Parser` builds now — `docs/syntax.md`'s constructions on every production of §6
 through §8, into the flat tree in `SqlSyntax.cs` — and `HandSqlTokens` builds the same
 tree, node for node. `Agree()` holds them to it: over all forty-two shapes the two
 answer the same *and* render identically (`SqlTree.cs`), so a difference in the numbers

@@ -1787,7 +1787,7 @@ carriers over one grammar comparable at all.
 ### 6.7 `[GramInclude]`, a grammar built on another
 
 ```csharp
-[GramInclude(typeof(SqlStandardParser), As = "Sql92")]
+[GramInclude(typeof(Sql92Parser), As = "Sql92")]
 [Gram("TransactSql.gram", Lexical = true)]
 public abstract partial class TransactSqlParser { }
 ```

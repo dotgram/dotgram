@@ -61,7 +61,7 @@ public class SqlComparisonBenchmarks
 	public void CheckTheyReadTheSameLanguage() => SqlAgainst.Agree();
 
 	[Benchmark(Baseline = true, Description = "generated")]
-	public bool Generated() => SqlStandardParser.TryParseSearchCondition(Input).IsSuccess;
+	public bool Generated() => Sql92Parser.TryParseSearchCondition(Input).IsSuccess;
 
 	[Benchmark(Description = "by hand, over tokens")]
 	public bool Hand() => HandSqlTokens.Parse(Input);

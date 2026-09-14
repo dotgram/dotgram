@@ -11,7 +11,7 @@ using DotGram.Sql.TransactSql;
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// What <see cref="SqlStandardParser"/> makes of somebody else's corpus.
+/// What <see cref="Sql92Parser"/> makes of somebody else's corpus.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -58,7 +58,7 @@ static class Corpus
 		// and the only number worth anything here is the difference between them.
 		Read("SQL-92", files.Length, statements, shown, static one =>
 		{
-			var match = SqlStandardParser.TryParseSelect(one);
+			var match = Sql92Parser.TryParseSelect(one);
 
 			return match.IsSuccess ? -1 : (int)match.Position;
 		});

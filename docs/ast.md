@@ -1,7 +1,7 @@
 # The tree
 
 `src/DotGram.Sql/SqlSyntax.cs` holds one tree for every dialect this project reads —
-`SqlStandardParser`, `TransactSqlParser`, and whatever comes after them. This is what is in it and
+`Sql92Parser`, `TransactSqlParser`, and whatever comes after them. This is what is in it and
 where each node comes from.
 
 ## The rule

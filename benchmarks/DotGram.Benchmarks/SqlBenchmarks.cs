@@ -10,7 +10,7 @@ using DotGram.Sql.Standard;
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// <c>src/DotGram.Sql/Standard/SqlStandardParser.cs</c>: the only parser here that reads token
+/// <c>src/DotGram.Sql/Standard/Sql92Parser.cs</c>: the only parser here that reads token
 /// kinds rather than characters.
 /// </summary>
 /// <remarks>
@@ -130,7 +130,7 @@ public class SqlBenchmarks
 	[GlobalSetup]
 	public void CheckItReadsAsClaimed()
 	{
-		var match  = SqlStandardParser.TryParseSearchCondition(Input);
+		var match  = Sql92Parser.TryParseSearchCondition(Input);
 		var should = Array.IndexOf(Refusals, Input) < 0 && Input != "! a = 1";
 
 		if (match.IsSuccess != should)
@@ -140,5 +140,5 @@ public class SqlBenchmarks
 	}
 
 	[Benchmark]
-	public bool Parse() => SqlStandardParser.TryParseSearchCondition(Input).IsSuccess;
+	public bool Parse() => Sql92Parser.TryParseSearchCondition(Input).IsSuccess;
 }

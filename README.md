@@ -499,7 +499,7 @@ query.From[0];  // TableReference.Named { Table = "Users" }
 
 | Parser | What it reads |
 | --- | --- |
-| [`SqlStandardParser`](src/DotGram.Sql/Standard/SqlStandard92.gram) | SQL-92, read through a lexical split |
+| [`Sql92Parser`](src/DotGram.Sql/Standard/SqlStandard92.gram) | SQL-92, read through a lexical split |
 | [`TransactSqlParser`](src/DotGram.Sql/TransactSql/TransactSql.gram) | T-SQL, written as a dialect over SQL-92 rather than as a copy of it |
 
 [`src/DotGram.Sql/README.md`](src/DotGram.Sql/README.md) has what each one parses and what it

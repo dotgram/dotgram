@@ -14,10 +14,10 @@ in `DotGram.Sql` — the records, [`SqlWriter`](SqlWriter.cs), which prints them
 
 | Parser | Namespace | What it reads |
 | --- | --- | --- |
-| [`SqlStandardParser`](Standard/SqlStandard92.gram) | `DotGram.Sql.Standard` | SQL-92 as the standard writes it |
+| [`Sql92Parser`](Standard/SqlStandard92.gram) | `DotGram.Sql.Standard` | SQL-92 as the standard writes it |
 | [`TransactSqlParser`](TransactSql/TransactSql.gram) | `DotGram.Sql.TransactSql` | SQL Server's T-SQL, as the engine reads it |
 
-For now the second names the first — `[GramInclude(typeof(SqlStandardParser), As = "Sql92")]` —
+For now the second names the first — `[GramInclude(typeof(Sql92Parser), As = "Sql92")]` —
 and rebinds the rules where T-SQL differs, so what the two languages share is written once and the
 dialect is the size of the difference.
 

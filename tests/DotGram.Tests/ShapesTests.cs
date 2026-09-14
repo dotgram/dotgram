@@ -192,7 +192,7 @@ public sealed class ShapesTests
 
 				// The yardstick, in full: the grammar whose generated parser is measured against
 				// the hand-written one.
-				if (file.EndsWith("SqlStandardParser.cs", StringComparison.Ordinal))
+				if (file.EndsWith("Sql92Parser.cs", StringComparison.Ordinal))
 				{
 					tables.Append($"\n=== {name}\n{report.Table()}");
 					tables.Append($"on ways: {string.Join(", ", ways.Select(one => one.Name).OrderBy(one => one, StringComparer.Ordinal))}\n");

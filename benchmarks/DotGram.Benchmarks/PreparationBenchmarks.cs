@@ -59,9 +59,9 @@ public class PreparationBenchmarks
 		yield return new("Config", "real", Settings(400), static text => Config.Read(text).Length >= 0);
 
 		yield return new("Sql-92", "least", "a > 1",
-			static text => SqlStandardParser.TryParseSearchCondition(text).IsSuccess);
+			static text => Sql92Parser.TryParseSearchCondition(text).IsSuccess);
 		yield return new("Sql-92", "real", Condition(),
-			static text => SqlStandardParser.TryParseSearchCondition(text).IsSuccess);
+			static text => Sql92Parser.TryParseSearchCondition(text).IsSuccess);
 
 		yield return new("TransactSql", "least", "SELECT 1",
 			static text => TransactSqlParser.TryParseStatement(text).IsSuccess);

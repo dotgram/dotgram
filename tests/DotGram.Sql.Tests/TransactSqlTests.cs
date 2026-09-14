@@ -17,7 +17,7 @@ namespace DotGram.Sql.Tests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// What is under test is not that T-SQL reads. <see cref="SqlStandardParserTests"/> already asks
+/// What is under test is not that T-SQL reads. <see cref="Sql92ParserTests"/> already asks
 /// that of the rules these ones stand in for, and asking it again of a dialect would say
 /// nothing new. What is under test is that <em>a dialect is five rules and a header</em>:
 /// <c>TransactSql.gram</c> replaces an identifier, a value specification, a value primary, a
@@ -80,7 +80,7 @@ public sealed class TransactSqlTests
 	public void What_the_dialect_adds_reads_here_and_not_in_the_standard(string input)
 	{
 		Assert.True(TransactSqlParser.TryParseSelect(input).IsSuccess, input);
-		Assert.False(SqlStandardParser.TryParseSelect(input).IsSuccess, input);
+		Assert.False(Sql92Parser.TryParseSelect(input).IsSuccess, input);
 	}
 
 	// ── That the substitution reached ────────────────────────────────────────────
@@ -137,7 +137,7 @@ public sealed class TransactSqlTests
 	[InlineData("(SELECT a FROM t)")]
 	public void What_the_standard_reads_the_dialect_reads_too(string input)
 	{
-		Assert.True(SqlStandardParser.TryParseSelect(input).IsSuccess, input);
+		Assert.True(Sql92Parser.TryParseSelect(input).IsSuccess, input);
 		Assert.True(TransactSqlParser.TryParseSelect(input).IsSuccess, input);
 	}
 
@@ -314,7 +314,7 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT a FROM t JOIN u USING (id)")]
 	public void What_is_the_standard_and_not_the_dialect_is_refused(string input)
 	{
-		Assert.True (SqlStandardParser.TryParseSelect(input).IsSuccess, input);
+		Assert.True (Sql92Parser.TryParseSelect(input).IsSuccess, input);
 		Assert.False(TransactSqlParser.TryParseSelect(input).IsSuccess, input);
 	}
 
@@ -15559,8 +15559,8 @@ public sealed class TransactSqlTests
 		Assert.True(TransactSqlParser.TryParseSearchCondition("[a] > dbo.f(@v)")                  .IsSuccess);
 		Assert.True(TransactSqlParser.TryParseValueExpression("dbo.f(@v) + [b]")                  .IsSuccess);
 
-		Assert.False(SqlStandardParser.TryParseSearchCondition("[a] > dbo.f(@v)").IsSuccess);
-		Assert.False(SqlStandardParser.TryParseValueExpression("dbo.f(@v) + [b]").IsSuccess);
+		Assert.False(Sql92Parser.TryParseSearchCondition("[a] > dbo.f(@v)").IsSuccess);
+		Assert.False(Sql92Parser.TryParseValueExpression("dbo.f(@v) + [b]").IsSuccess);
 	}
 
 	/// <summary>And what is not read yet is refused, where the reading stopped.</summary>

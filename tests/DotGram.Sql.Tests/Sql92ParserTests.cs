@@ -23,7 +23,7 @@ namespace DotGram.Sql.Tests;
 /// this one says it where CI can hear.
 /// </para>
 /// </remarks>
-public sealed class SqlStandardParserTests
+public sealed class Sql92ParserTests
 {
 	[Theory]
 	[InlineData("a = 1")]
@@ -42,7 +42,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("CAST(x AS VARCHAR(20)) = 'a'")]
 	public void A_search_condition_reads(string input)
 	{
-		Assert.True(SqlStandardParser.TryParseSearchCondition(input).IsSuccess, input);
+		Assert.True(Sql92Parser.TryParseSearchCondition(input).IsSuccess, input);
 	}
 
 	// ── §7, the query level ──────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SELECT a COLLATE SQL_Latin1_General_CP1_CI_AS FROM t")]
 	[InlineData("SELECT a FROM t WHERE b COLLATE X = c")]
 	public void A_query_reads(string input) =>
-		Assert.True(SqlStandardParser.TryParseSelect(input).IsSuccess, input);
+		Assert.True(Sql92Parser.TryParseSelect(input).IsSuccess, input);
 
 	/// <summary>And what it reads, it builds.</summary>
 	[Fact]
@@ -136,7 +136,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("SELECT a FROM t UNION SELECT b FROM u EXCEPT SELECT c FROM v",    "Except", "Union")]
 	public void Set_operators_group_as_the_standard_says(string input, string outer, string inner)
 	{
-		var read = SqlStandardParser.TryParseQuery(input).Value!;
+		var read = Sql92Parser.TryParseQuery(input).Value!;
 
 		Assert.Equal(outer, read.GetType().Name);
 		Assert.Contains(inner, Sides(read).Select(static one => one.GetType().Name));
@@ -169,7 +169,7 @@ public sealed class SqlStandardParserTests
 	/// <summary>What the standard read, where it was a query specification.</summary>
 	static Query.Specification Selected(string input) =>
 		Assert.IsType<Query.Specification>(
-			Assert.IsType<Statement.Select>(SqlStandardParser.TryParseSelect(input).Value).Of);
+			Assert.IsType<Statement.Select>(Sql92Parser.TryParseSelect(input).Value).Of);
 
 	/// <summary>
 	/// And it groups the way §6.11 says, which the tower states as three strengths
@@ -192,7 +192,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("a || b || c", "((a Concatenate b) Concatenate c)")]
 	public void And_groups_the_way_the_standard_says(string input, string shape)
 	{
-		var read = SqlStandardParser.TryParseValueExpression(input);
+		var read = Sql92Parser.TryParseValueExpression(input);
 
 		Assert.True(read.IsSuccess, input);
 		Assert.Equal(shape, Shape(read.Value!));
@@ -239,7 +239,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("value = 1",      true)]
 	public void A_non_reserved_word_may_be_a_name(string input, bool reads)
 	{
-		Assert.Equal(reads, SqlStandardParser.TryParseSearchCondition(input).IsSuccess);
+		Assert.Equal(reads, Sql92Parser.TryParseSearchCondition(input).IsSuccess);
 	}
 
 	/// <summary>
@@ -250,7 +250,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("CASE a WHEN 1 THEN 2 WHEN 3 THEN 4 END = label")]
 	public void A_case_may_have_more_than_one_when(string input)
 	{
-		Assert.True(SqlStandardParser.TryParseSearchCondition(input).IsSuccess, input);
+		Assert.True(Sql92Parser.TryParseSearchCondition(input).IsSuccess, input);
 	}
 
 	/// <summary>What is refused, and where.</summary>
@@ -269,7 +269,7 @@ public sealed class SqlStandardParserTests
 	[InlineData("x IN")]
 	public void What_is_not_a_search_condition_is_refused(string input)
 	{
-		var match = SqlStandardParser.TryParseSearchCondition(input);
+		var match = Sql92Parser.TryParseSearchCondition(input);
 
 		Assert.False(match.IsSuccess, input);
 		Assert.InRange(match.Position, 0, input.Length);
@@ -279,8 +279,8 @@ public sealed class SqlStandardParserTests
 	[Fact]
 	public void A_refusal_says_how_far_it_got()
 	{
-		var early = SqlStandardParser.TryParseSearchCondition("= 1");
-		var late  = SqlStandardParser.TryParseSearchCondition("a = 1 AND b = 2 AND c =");
+		var early = Sql92Parser.TryParseSearchCondition("= 1");
+		var late  = Sql92Parser.TryParseSearchCondition("a = 1 AND b = 2 AND c =");
 
 		Assert.False(early.IsSuccess);
 		Assert.False(late.IsSuccess);
@@ -295,6 +295,6 @@ public sealed class SqlStandardParserTests
 	[InlineData("'a' || 'b'")]
 	public void A_value_expression_reads(string input)
 	{
-		Assert.True(SqlStandardParser.TryParseValueExpression(input).IsSuccess, input);
+		Assert.True(Sql92Parser.TryParseValueExpression(input).IsSuccess, input);
 	}
 }

@@ -6,7 +6,7 @@ namespace DotGram.Sql;
 //
 // Five hierarchies, one per category the standard has: `Statement`, `Query`, `Expression`,
 // `TableReference` and `Clause`. They are named after the productions they come from and are
-// shared by every parser of the language — `SqlStandardParser`, `TransactSqlParser`, and whatever reads
+// shared by every parser of the language — `Sql92Parser`, `TransactSqlParser`, and whatever reads
 // the same grammar next. `docs/ast.md` lists each node and the specification it is named from.
 //
 // **Why five and not one.** A tree with a single root types nothing: a field of it accepts a

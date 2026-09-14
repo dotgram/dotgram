@@ -13,7 +13,7 @@ namespace DotGram.Benchmarks;
 /// </summary>
 /// <remarks>
 /// <para>
-/// What <see cref="HandSqlTokens"/> is to <c>SqlStandardParser</c>, this is to
+/// What <see cref="HandSqlTokens"/> is to <c>Sql92Parser</c>, this is to
 /// <c>ExpressionParser</c> — the mark a generated parser is measured against, and the
 /// answer to "how fast would a person have written this". It has to keep <em>looking</em>
 /// hand-written: what is here is what someone would write who knew the language and cared

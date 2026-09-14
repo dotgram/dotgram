@@ -5,7 +5,7 @@ using DotGram;
 namespace DotGram.Sql.Standard;
 
 /// <summary>
-/// The expression layer of standard SQL — <c>&lt;value expression&gt;</c> and
+/// SQL-92, kept for now. The expression layer of standard SQL — <c>&lt;value expression&gt;</c> and
 /// <c>&lt;search condition&gt;</c> — as ISO/IEC 9075:1992 defines them.
 /// </summary>
 /// <remarks>
@@ -43,8 +43,13 @@ namespace DotGram.Sql.Standard;
 /// the shape of the node classes is a decision of its own, and getting the language
 /// right first is what makes that decision about the tree rather than about the parse.
 /// </para>
+/// <para>
+/// <b>Temporary.</b> The standard's parser is <c>SqlStandardParser</c>, written from SQL:2023 down
+/// through the earlier editions (docs/design/sql-parsers.md). This one stays while T-SQL still
+/// includes it and the benchmarks hold it against a hand-written recognizer, and goes when neither does.
+/// </para>
 /// </remarks>
 [Gram("SqlStandard92.gram", Lexical = true)]
-public abstract partial class SqlStandardParser
+public abstract partial class Sql92Parser
 {
 }

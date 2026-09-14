@@ -7,7 +7,7 @@ using DotGram.Sql.Standard;
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// <c>SqlStandardParser</c>'s search condition written by hand, the way the generated parser
+/// <c>Sql92Parser</c>'s search condition written by hand, the way the generated parser
 /// reads it: a lexer into kinds, and precedence climbing over those. The yardstick every
 /// claim about what the generated parser costs is divided by.
 /// </summary>
