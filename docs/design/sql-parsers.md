@@ -56,9 +56,9 @@ is open until it is built, and `status.md` is what will say when it has been.
   tokens, separators, literals, names and the reserved words — §6 with window functions, §7's query
   expression with the subqueries §6 and §8 held and row pattern recognition, §8, and §10.9's
   aggregates, the JSON functions as far as the BNF spells them, §14's data change statements, and the
-  schema's core of §11 and §12, and the control, transaction, connection, session, diagnostics,
-  dynamic and direct statements: every row tried and 108,000 random verdicts agree with the BNF.
-  Then routines, triggers and user-defined types, and the tree.
+  schema's core of §11 and §12 with routines and triggers, and the control, transaction, connection,
+  session, diagnostics, dynamic and direct statements: every row tried and 128,000 random verdicts
+  agree with the BNF. Then user-defined types, and the tree.
 - **A test that says which productions are not written yet.**
 - **Whether the standard reads through a lexical split.** Not for now: its tokens overlap — a
   date string is a character string too, and which one a token is depends on the key word before

@@ -22410,3 +22410,34 @@ USING …`, of one named `INPUT`.
 Held by 76 probe lines and `.work/fuzz_dynamic.py`: 6,000 random verdicts, 3,000 of them on broken
 lines, and none differ. The lists — arguments, results, a descriptor's items — are atomic from the
 start, and refused at 128 elements cost under 0.2 ms.
+
+## SQL:2023: routines and triggers
+
+Procedures, functions and methods created — parameters with their modes, types, locators, generic
+tables, descriptors and defaults, what a routine returns, its characteristics, and its body: a
+`<SQL procedure statement>` of every kind with the rights it runs with, a reference to an external
+body with its transform groups, or a polymorphic table function's component procedures — and what alters
+and drops them. Triggers with their transition tables and variables, a `WHEN` and a compound triggered
+statement, and what drops them. A privilege on a routine, and a selection's on methods. A schema's
+elements now have routines, triggers, grants and roles, as the BNF gives them. They are read as
+`SQLSchemaStatement`, and a body as `SQLProcedureStatement`, published beside it.
+
+**What the BNF fixes.** A routine's body is one statement: `BEGIN ATOMIC … END` is a trigger's, and a
+procedure's `BEGIN` is SQL/PSM's, not the foundation's; a compound triggered statement has one statement
+at least, each with its semicolon. `SELECT a FROM t` is no body, `SELECT a INTO :x FROM t` is. A
+method's specification has no characteristics, a function's characteristics come in any number and any
+repetition but `STATIC DISPATCH` once, after them. `ALTER` of a routine says a characteristic and
+`RESTRICT`, never `CASCADE`, and no `SPECIFIC` or `DETERMINISTIC`; `DROP` of a routine says its behavior,
+`DROP TRIGGER` none. A trigger's event is one: `INSERT OR DELETE` is refused, and so is `REFERENCING`
+with nothing after it and a `WHEN` without brackets. `CALL` is a control statement, no schema statement.
+
+**One trap, found by a probe.** A parameter list gives nothing back, and `DESCRIPTOR` is not reserved: a
+default of `DESCRIPTOR (a INT)` read as a value expression first stopped at the column `DESCRIPTOR`,
+which let the list end before its bracket, and the declaration was refused. The descriptor is asked
+first now. A parameter's name is asked before its type, which a user-defined type's name could be:
+`(a b)` is `a` of type `b`, `(a)` is of type `a`.
+
+Held by 137 probe lines and `.work/fuzz_routine.py`, whose bodies are made by the other fuzzers: 20,000
+random verdicts, half of them on broken lines, and none differ. Refused lines nested eight deep —
+procedures in procedures, compound statements in triggers, schemas in routines in schemas — and
+parameter lists of 64 cost under 0.2 ms.

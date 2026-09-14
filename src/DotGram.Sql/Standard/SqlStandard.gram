@@ -1410,11 +1410,10 @@ DataChangeDeltaTable = ("FINAL"i | "NEW"i | "OLD"i) & "TABLE"i & '(' & (DeleteSt
 
 // ── §11 Schema definition and manipulation ──────────────────────────────────
 //
-// The schema's core: schemas, tables, views, domains, sequence generators, assertions, roles and
-// privileges, and what alters and drops them. What a schema also holds and is written in chapters of
-// its own — routines, triggers, user-defined types, typed tables and views, character sets,
-// collations, transliterations, casts, orderings and transforms — waits for them, and so does a
-// privilege on a routine.
+// Schemas, tables, views, domains, sequence generators, assertions, triggers, routines, roles and
+// privileges, and what alters and drops them. What a schema also holds — user-defined types, typed
+// tables and views, character sets, collations, transliterations, casts, orderings and transforms —
+// is not written yet.
 
 // <SQL schema statement>, as far as it is written.
 SQLSchemaStatement
@@ -1423,6 +1422,8 @@ SQLSchemaStatement
 	| ViewDefinition
 	| DomainDefinition
 	| AssertionDefinition
+	| TriggerDefinition
+	| SchemaRoutine
 	| SequenceGeneratorDefinition
 	| RoleDefinition
 	| GrantStatement
@@ -1431,9 +1432,12 @@ SQLSchemaStatement
 	| AlterTableStatement
 	| DropTableStatement
 	| DropViewStatement
+	| AlterRoutineStatement
+	| DropRoutineStatement
 	| AlterDomainStatement
 	| DropDomainStatement
 	| DropAssertionStatement
+	| DropTriggerStatement
 	| AlterSequenceGeneratorStatement
 	| DropSequenceGeneratorStatement
 	| DropRoleStatement
@@ -1457,7 +1461,16 @@ SchemaCharacterSetOrPath
 
 SchemaCharacterSetSpecification = "DEFAULT"i & "CHARACTER"i & "SET"i & CharacterSetSpecification
 
-SchemaElement = TableDefinition | ViewDefinition | DomainDefinition | AssertionDefinition | SequenceGeneratorDefinition
+SchemaElement
+	= TableDefinition
+	| ViewDefinition
+	| DomainDefinition
+	| AssertionDefinition
+	| TriggerDefinition
+	| SchemaRoutine
+	| SequenceGeneratorDefinition
+	| GrantStatement
+	| RoleDefinition
 
 DropSchemaStatement = "DROP"i & "SCHEMA"i & SchemaName & DropBehavior
 
@@ -1629,6 +1642,139 @@ DropDomainStatement = "DROP"i & "DOMAIN"i & SchemaQualifiedName & DropBehavior
 AssertionDefinition    = "CREATE"i & "ASSERTION"i & SchemaQualifiedName & CheckConstraintDefinition & ConstraintCharacteristics?
 DropAssertionStatement = "DROP"i & "ASSERTION"i & SchemaQualifiedName & DropBehavior?
 
+// ── §11.49 Trigger definition, §11.50 Drop trigger statement ────────────────
+
+TriggerDefinition = "CREATE"i & "TRIGGER"i & SchemaQualifiedName & TriggerActionTime & TriggerEvent & "ON"i & TableName
+	  & ("REFERENCING"i & { (trivia & TransitionTableOrVariable)+ })? & TriggeredAction
+
+TriggerActionTime = "BEFORE"i | "AFTER"i | "INSTEAD"i & "OF"i
+TriggerEvent      = "INSERT"i | "DELETE"i | "UPDATE"i & ("OF"i & ColumnNameList)?
+
+// <transition table or variable>: a table asked first, since `TABLE` is reserved and no variable's name.
+TransitionTableOrVariable = ("OLD"i | "NEW"i) & ("TABLE"i & "AS"i? & Identifier | "ROW"i? & "AS"i? & CorrelationName)
+
+TriggeredAction       = ("FOR"i & "EACH"i & ("ROW"i | "STATEMENT"i))? & ("WHEN"i & '(' & SearchCondition & ')')? & TriggeredSQLStatement
+TriggeredSQLStatement = SQLProcedureStatement | CompoundTriggeredSQLStatement
+
+// <compound triggered SQL statement>: one statement at least, each with its semicolon.
+CompoundTriggeredSQLStatement = "BEGIN"i & "ATOMIC"i & { (SQLProcedureStatement & ';')+ } & "END"i
+
+// <drop trigger statement>, which says no drop behavior.
+DropTriggerStatement = "DROP"i & "TRIGGER"i & SchemaQualifiedName
+
+// ── §11 SQL-invoked routines, alter routine, drop routine ───────────────────
+
+// <schema routine>: a procedure, a function or a method, created.
+SchemaRoutine       = "CREATE"i & (SQLInvokedProcedure | SQLInvokedFunction)
+SQLInvokedProcedure = "PROCEDURE"i & SchemaQualifiedName & SQLParameterDeclarationList & RoutineCharacteristics & RoutineBody
+SQLInvokedFunction  = (FunctionSpecification | MethodSpecificationDesignator) & RoutineBody
+
+FunctionSpecification = "FUNCTION"i & SchemaQualifiedName & SQLParameterDeclarationList & ReturnsClause & RoutineCharacteristics & ("STATIC"i & "DISPATCH"i)?
+
+// <method specification designator>, which says no characteristics.
+MethodSpecificationDesignator
+	= "SPECIFIC"i & "METHOD"i & SchemaQualifiedName
+	| ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i & MethodName & SQLParameterDeclarationList & ReturnsClause? & "FOR"i & SchemaQualifiedName
+
+SQLParameterDeclarationList = '(' & { SQLParameterDeclaration & (',' & SQLParameterDeclaration)* }? & ')'
+
+// <SQL parameter declaration>. A parameter's name is asked before its type, which a user-defined
+// type's name could be: `(a b)` is a parameter `a` of type `b`, and `(a)` one of type `a`.
+SQLParameterDeclaration = ("IN"i | "OUT"i | "INOUT"i)? & Identifier? & ParameterType & "RESULT"i? & ("DEFAULT"i & ParameterDefault)?
+
+ParameterType
+	= DataType & LocatorIndication?
+	| "TABLE"i & ("PASS"i & "THROUGH"i | "NO"i & "PASS"i & "THROUGH"i)? & ("WITH"i & ("ROW"i & "SEMANTICS"i | "SET"i & "SEMANTICS"i & (("PRUNE"i | "KEEP"i) & "ON"i & "EMPTY"i)?))?
+	| "DESCRIPTOR"i
+
+LocatorIndication = "AS"i & "LOCATOR"i
+
+// <parameter default>. A descriptor is asked first: `DESCRIPTOR` is not reserved, and a value
+// expression would read it as a column and end the parameter list, which gives nothing back.
+ParameterDefault = DescriptorValueConstructor | ValueExpression | ContextuallyTypedValueSpecification
+
+DescriptorValueConstructor = "DESCRIPTOR"i & '(' & { DescriptorColumnSpecification & (',' & DescriptorColumnSpecification)* } & ')'
+DescriptorColumnSpecification = ColumnName & DataType?
+
+ReturnsClause = "RETURNS"i & ReturnsType
+
+// <returns type>: a table, asked first since `TABLE` and `ONLY` are reserved, or a data type.
+ReturnsType
+	= "TABLE"i & ('(' & { ColumnName & DataType & (',' & ColumnName & DataType)* } & ')')?
+	| "ONLY"i & "PASS"i & "THROUGH"i
+	| DataType & LocatorIndication? & ("CAST"i & "FROM"i & DataType & LocatorIndication?)?
+
+// <routine characteristics>: none begins a statement, so all of them are read before the body.
+RoutineCharacteristics = { (trivia & RoutineCharacteristic)* }
+
+RoutineCharacteristic
+	= LanguageClause
+	| ParameterStyleClause
+	| "SPECIFIC"i & SchemaQualifiedName
+	| "NOT"i? & "DETERMINISTIC"i
+	| SQLDataAccessIndication
+	| NullCallClause
+	| ReturnedResultSetsCharacteristic
+	| ("NEW"i | "OLD"i) & "SAVEPOINT"i & "LEVEL"i
+
+LanguageClause                   = "LANGUAGE"i & ("ADA"i | "COBOL"i | "C"i | "FORTRAN"i | "MUMPS"i | "M"i | "PASCAL"i | "PLI"i | "SQL"i)
+ParameterStyleClause             = "PARAMETER"i & "STYLE"i & ("SQL"i | "GENERAL"i)
+SQLDataAccessIndication          = ("NO"i | "CONTAINS"i) & "SQL"i | ("READS"i | "MODIFIES"i) & "SQL"i & "DATA"i
+NullCallClause                   = ("RETURNS"i & "NULL"i | "CALLED"i) & "ON"i & "NULL"i & "INPUT"i
+ReturnedResultSetsCharacteristic = "DYNAMIC"i & "RESULT"i & "SETS"i & UnsignedInteger
+
+// <routine body>: a statement, with the rights it runs with, or a reference to an external body, or a
+// polymorphic table function's component procedures.
+RoutineBody
+	= ("SQL"i & "SECURITY"i & ("INVOKER"i | "DEFINER"i))? & SQLProcedureStatement
+	| ExternalBodyReference
+	| PolymorphicTableFunctionBody
+
+ExternalBodyReference = "EXTERNAL"i & ("NAME"i & ExternalRoutineName)? & ParameterStyleClause? & TransformGroupSpecification?
+	  & ("EXTERNAL"i & "SECURITY"i & ("DEFINER"i | "INVOKER"i | "IMPLEMENTATION"i & "DEFINED"i))?
+
+ExternalRoutineName = Identifier | CharacterStringLiteral
+
+// <transform group specification>: groups for types, asked before a single group, whose name begins them.
+TransformGroupSpecification = "TRANSFORM"i & "GROUP"i & (GroupSpecification & (',' & GroupSpecification)* | Identifier)
+GroupSpecification          = Identifier & "FOR"i & "TYPE"i & SchemaQualifiedName
+
+PolymorphicTableFunctionBody = ("PRIVATE"i & "DATA"i? & SQLParameterDeclarationList)? & ("DESCRIBE"i & "WITH"i & SpecificRoutineDesignator)?
+	  & ("START"i & "WITH"i & SpecificRoutineDesignator)? & "FULFILL"i & "WITH"i & SpecificRoutineDesignator & ("FINISH"i & "WITH"i & SpecificRoutineDesignator)?
+
+// <SQL procedure statement>, <SQL executable statement>: what a routine's body and a trigger's action are.
+SQLProcedureStatement = SQLExecutableStatement
+
+SQLExecutableStatement
+	= SQLSchemaStatement
+	| SQLDataStatement
+	| SQLControlStatement
+	| SQLTransactionStatement
+	| SQLConnectionStatement
+	| SQLSessionStatement
+	| SQLDiagnosticsStatement
+	| SQLDynamicStatement
+
+// <alter routine statement>: a characteristic at least, and no behavior but `RESTRICT`.
+AlterRoutineStatement = "ALTER"i & SpecificRoutineDesignator & { (trivia & AlterRoutineCharacteristic)+ } & "RESTRICT"i
+
+AlterRoutineCharacteristic
+	= LanguageClause
+	| ParameterStyleClause
+	| SQLDataAccessIndication
+	| NullCallClause
+	| ReturnedResultSetsCharacteristic
+	| "NAME"i & ExternalRoutineName
+
+DropRoutineStatement = "DROP"i & SpecificRoutineDesignator & DropBehavior
+
+// <specific routine designator>: a routine by its specific name, or by its name and its parameters' types.
+SpecificRoutineDesignator
+	= "SPECIFIC"i & RoutineType & SchemaQualifiedName
+	| RoutineType & SchemaQualifiedName & ('(' & (DataType & (',' & DataType)*)? & ')')? & ("FOR"i & SchemaQualifiedName)?
+
+RoutineType = "ROUTINE"i | "FUNCTION"i | "PROCEDURE"i | ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i
+
 // ── §11.74 Sequence generator definition, §11.75–11.76 Alter and drop ───────
 
 SequenceGeneratorDefinition = "CREATE"i & "SEQUENCE"i & SchemaQualifiedName & (trivia & ("AS"i & DataType | CommonSequenceGeneratorOption))*
@@ -1667,13 +1813,15 @@ RevokeStatement
 
 Privileges = ("ALL"i & "PRIVILEGES"i | PrivilegeAction & (',' & PrivilegeAction)*) & "ON"i & ObjectName
 
-// <action>, but a privilege on a method.
+// <action>. A selection names columns or methods; a column's name could be a routine type's word,
+// `ROUTINE`, which is not reserved.
 PrivilegeAction
-	= ("SELECT"i | "INSERT"i | "UPDATE"i | "REFERENCES"i) & ('(' & ColumnNameList & ')')?
+	= "SELECT"i & ('(' & (ColumnNameList | SpecificRoutineDesignator & (',' & SpecificRoutineDesignator)*) & ')')?
+	| ("INSERT"i | "UPDATE"i | "REFERENCES"i) & ('(' & ColumnNameList & ')')?
 	| "DELETE"i | "USAGE"i | "TRIGGER"i | "UNDER"i | "EXECUTE"i
 
-// <object name>, but a routine's. A kind of object is named before a table's name, which could be
-// the kind's word: `TYPE` and `SEQUENCE` are not reserved.
+// <object name>. A kind of object is named before a table's name, which could be the kind's word:
+// `TYPE`, `SEQUENCE` and `ROUTINE` are not reserved.
 ObjectName
 	= "DOMAIN"i & SchemaQualifiedName
 	| "COLLATION"i & SchemaQualifiedName
@@ -1681,6 +1829,7 @@ ObjectName
 	| "TRANSLATION"i & SchemaQualifiedName
 	| "TYPE"i & SchemaQualifiedName
 	| "SEQUENCE"i & SchemaQualifiedName
+	| SpecificRoutineDesignator
 	| "TABLE"i? & TableName
 
 Grantees  = ("PUBLIC"i | Identifier) & (',' & ("PUBLIC"i | Identifier))*
@@ -1958,13 +2107,6 @@ AllocateReceivedCursorStatement        = "ALLOCATE"i & CursorName & "CURSOR"i? &
 CursorProperties = ("SENSITIVE"i | "INSENSITIVE"i | "ASENSITIVE"i)? & ("SCROLL"i | "NO"i & "SCROLL"i)? & "CURSOR"i
 	  & (("WITH"i | "WITHOUT"i) & "HOLD"i)? & (("WITH"i | "WITHOUT"i) & "RETURN"i)?
 
-// <specific routine designator>: a routine by its specific name, or by its name and its parameters' types.
-SpecificRoutineDesignator
-	= "SPECIFIC"i & RoutineType & SchemaQualifiedName
-	| RoutineType & SchemaQualifiedName & ('(' & (DataType & (',' & DataType)*)? & ')')? & ("FOR"i & SchemaQualifiedName)?
-
-RoutineType = "ROUTINE"i | "FUNCTION"i | "PROCEDURE"i | ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i
-
 parse Literal                  as ParseLiteral
 parse UnsignedLiteral          as ParseUnsignedLiteral
 parse Identifier               as ParseIdentifier
@@ -2006,3 +2148,4 @@ parse DirectSQLDataStatement   as ParseDirectSQLDataStatement
 parse SQLControlStatement      as ParseSQLControlStatement
 parse SQLDataStatement         as ParseSQLDataStatement
 parse SQLDynamicStatement      as ParseSQLDynamicStatement
+parse SQLProcedureStatement    as ParseSQLProcedureStatement
