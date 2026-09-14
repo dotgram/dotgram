@@ -750,7 +750,7 @@ public sealed class LexicalAutomaton
 		/// </remarks>
 		LexicalAutomaton Subsets(int start)
 		{
-			var numbered = new Dictionary<ulong[], int>(Bits.Same);
+			var numbered = new Dictionary<int[], int>(Members.Same);
 			var pending  = new Queue<(HashSet<int> States, int Number)>();
 			var sets     = new List<IReadOnlyList<int>>();
 			var named    = new Dictionary<string, int>();
@@ -898,30 +898,30 @@ public sealed class LexicalAutomaton
 			return reached;
 		}
 
-		/// <summary>A subset as one bit per state, which is what identifies it.</summary>
+		/// <summary>A subset as its members in ascending order, which is what identifies it.</summary>
 		/// <remarks>
-		/// It was a comma-joined string of the sorted members, built and hashed once per
-		/// state of the machine under construction and once more per transition into it —
-		/// a sort, an allocation the length of the set, and a walk of that string to hash.
-		/// A bit per state is a walk of the members and nothing else, and the memory is a
-		/// word per sixty-four states held for as long as the generator runs.
+		/// It was a comma-joined string of the sorted members, and then a bit per state of the
+		/// whole nondeterministic machine. The string cost an allocation and a walk of its text;
+		/// the bits cost a word per sixty-four states on every transition — hundreds of words
+		/// for T-SQL, hashed and compared each time, where a subset holds a few dozen members.
+		/// The members themselves are as long as the subset and no longer.
 		/// </remarks>
-		ulong[] Key(HashSet<int> states)
+		static int[] Key(HashSet<int> states)
 		{
-			var key = new ulong[(_on.Count + 63) / 64];
+			var key = new int[states.Count];
 
-			foreach (var one in states)
-				key[one >> 6] |= 1UL << (one & 63);
+			states.CopyTo(key);
+			Array.Sort(key);
 
 			return key;
 		}
 
-		/// <summary>Two subsets are the same when the same bits are set.</summary>
-		sealed class Bits : IEqualityComparer<ulong[]>
+		/// <summary>Two subsets are the same when they hold the same members.</summary>
+		sealed class Members : IEqualityComparer<int[]>
 		{
-			public static readonly Bits Same = new();
+			public static readonly Members Same = new();
 
-			public bool Equals(ulong[]? left, ulong[]? right)
+			public bool Equals(int[]? left, int[]? right)
 			{
 				if (ReferenceEquals(left, right))
 					return true;
@@ -936,12 +936,12 @@ public sealed class LexicalAutomaton
 				return true;
 			}
 
-			public int GetHashCode(ulong[] key)
+			public int GetHashCode(int[] key)
 			{
 				var hash = 17;
 
-				foreach (var word in key)
-					hash = hash * 31 + word.GetHashCode();
+				foreach (var one in key)
+					hash = hash * 31 + one;
 
 				return hash;
 			}

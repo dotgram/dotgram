@@ -461,9 +461,10 @@ public static class LexerEmitter
 		// and the characters that *end* a token — the space, the comma, the operator — are
 		// all below 128 in every language there is, so a window that begins part way up
 		// ASCII is never the right answer: it buys Latin-1 letters and sells the space.
-		var best = (Low: 0, Ways: 0L, Chars: 0);
+		var best  = (Low: 0, Ways: 0L, Chars: 0);
+		var ranks = Ranked.Of(ways);
 
-		Weigh(ref best, ways, 0);
+		Weigh(ref best, ranks, 0);
 
 		foreach (var start in ways
 			.SelectMany(way => way.On)
@@ -471,10 +472,80 @@ public static class LexerEmitter
 			.Where(from => from >= Reach)
 			.Distinct())
 		{
-			Weigh(ref best, ways, start);
+			Weigh(ref best, ranks, start);
 		}
 
 		return best.Ways == 0 ? -1 : best.Low;
+	}
+
+	/// <summary>
+	/// Every range of every way out, in one list ordered by where it begins.
+	/// </summary>
+	/// <remarks>
+	/// A state over <c>\p{L}</c> has hundreds of ranges and as many candidate windows, and
+	/// weighing each candidate against every range was the most expensive thing the lexer's
+	/// emitter did. In order, a window only has to look at the ranges that reach it: they
+	/// start at the first one that ends inside or past it and stop at the first one that
+	/// begins past its top. Where the ranges are disjoint — which ways out of a deterministic
+	/// state always are — the first of them is a binary search; where they are not, the walk
+	/// starts at the beginning and reads the same ranges.
+	/// </remarks>
+	sealed class Ranked
+	{
+		public int[] From = [];
+		public int[] To   = [];
+		public int[] Way  = [];
+		public bool Disjoint;
+
+		public static Ranked Of(IReadOnlyList<(IReadOnlyList<CharRange> On, int To)> ways)
+		{
+			var all = new List<(int From, int To, int Way)>();
+
+			for (var at = 0; at < ways.Count; at++)
+				foreach (var range in ways[at].On)
+					all.Add((range.From, range.To, at));
+
+			all.Sort(static (a, b) => a.From.CompareTo(b.From));
+
+			var ranked = new Ranked
+			{
+				From     = new int[all.Count],
+				To       = new int[all.Count],
+				Way      = new int[all.Count],
+				Disjoint = true,
+			};
+
+			for (var i = 0; i < all.Count; i++)
+			{
+				(ranked.From[i], ranked.To[i], ranked.Way[i]) = all[i];
+
+				if (i > 0 && all[i].From <= all[i - 1].To)
+					ranked.Disjoint = false;
+			}
+
+			return ranked;
+		}
+
+		/// <summary>The first range that could reach a window beginning at <paramref name="low"/>.</summary>
+		public int FirstReaching(int low)
+		{
+			if (!Disjoint)
+				return 0;
+
+			int lo = 0, hi = To.Length;
+
+			while (lo < hi)
+			{
+				var mid = (lo + hi) >> 1;
+
+				if (To[mid] < low)
+					lo = mid + 1;
+				else
+					hi = mid;
+			}
+
+			return lo;
+		}
 	}
 
 	/// <summary>One candidate window, scored and kept if it is the best so far.</summary>
@@ -497,7 +568,7 @@ public static class LexerEmitter
 	/// </remarks>
 	static void Weigh(
 		ref (int Low, long Ways, int Chars) best,
-		IReadOnlyList<(IReadOnlyList<CharRange> On, int To)> ways,
+		Ranked ways,
 		int low)
 	{
 		var high  = low + Reach - 1;
@@ -506,29 +577,22 @@ public static class LexerEmitter
 		var least = int.MaxValue;
 		var most  = -1;
 
-		for (var at = 0; at < ways.Count; at++)
+		for (var i = ways.FirstReaching(low); i < ways.From.Length && ways.From[i] <= high; i++)
 		{
-			var inside = false;
+			var from = Math.Max(ways.From[i], low);
+			var to   = Math.Min(ways.To[i], high);
 
-			foreach (var range in ways[at].On)
-			{
-				var from = Math.Max((int)range.From, low);
-				var to   = Math.Min((int)range.To, high);
+			if (from > to)
+				continue;
 
-				if (from > to)
-					continue;
-
-				inside = true;
-				held  += to - from + 1;
-				least  = Math.Min(least, from);
-				most   = Math.Max(most, to);
-			}
+			held  += to - from + 1;
+			least  = Math.Min(least, from);
+			most   = Math.Max(most, to);
 
 			// Sixty-four ways out is more than any state here has, and a state with more
 			// simply shares one bit between two of them — which costs a worse window and
 			// never a wrong one.
-			if (inside)
-				taken |= 1L << (at & 63);
+			taken |= 1L << (ways.Way[i] & 63);
 		}
 
 		if (taken == 0)

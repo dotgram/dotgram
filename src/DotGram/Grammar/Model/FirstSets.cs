@@ -92,7 +92,15 @@ public static class FirstSets
 		{
 			var sorted = new List<CharRange>(ranges);
 
-			sorted.Sort(static (a, b) => a.From.CompareTo(b.From));
+			// Most of what arrives is in order already — `Or` merges two lists that are — and a
+			// sort of what is sorted was a fifth of the time spent working out first sets.
+			for (var i = 1; i < sorted.Count; i++)
+				if (sorted[i].From < sorted[i - 1].From)
+				{
+					sorted.Sort(static (a, b) => a.From.CompareTo(b.From));
+
+					break;
+				}
 
 			var merged = new List<CharRange>(sorted.Count);
 
@@ -132,10 +140,17 @@ public static class FirstSets
 			if (other.Ends == (Ends || other.Ends) && other.Covers(this))
 				return other;
 
+			// Both sorted, so merged in order rather than appended and sorted again.
 			var ranges = new List<CharRange>(Ranges.Count + other.Ranges.Count);
+			var mine   = 0;
+			var theirs = 0;
 
-			ranges.AddRange(Ranges);
-			ranges.AddRange(other.Ranges);
+			while (mine < Ranges.Count || theirs < other.Ranges.Count)
+				ranges.Add(
+					theirs >= other.Ranges.Count ||
+					mine < Ranges.Count && Ranges[mine].From <= other.Ranges[theirs].From
+						? Ranges[mine++]
+						: other.Ranges[theirs++]);
 
 			return Chars(ranges, Ends || other.Ends);
 		}
