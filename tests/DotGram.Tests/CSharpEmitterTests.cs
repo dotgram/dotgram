@@ -1199,7 +1199,7 @@ public sealed class CSharpEmitterTests
 	/// <summary>Over characters the window's edge is the end of the text.</summary>
 	/// <remarks>
 	/// On the shared automaton: a rule that reaches itself is not lowered, and a lowered one
-	/// gets no positional form at all (<c>GRAM5010</c>).
+	/// gets no positional form at all (§6.3).
 	/// </remarks>
 	[Fact]
 	public void Over_characters_a_window_ends_where_it_says()

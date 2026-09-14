@@ -46,7 +46,7 @@ public sealed class EmbeddedGrammarAnalysisTests
 		Assert.True(symbols[0].IsDefinition);
 		Assert.False(symbols[1].IsDefinition);
 
-		// Anything but information, which a correct grammar may still be told (GRAM5010).
+		// Anything but information, which a correct grammar may still be told.
 		Assert.DoesNotContain(
 			analysis.Diagnostics,
 			static item => item.Diagnostic.Severity != DotGram.Grammar.GramSeverity.Info);

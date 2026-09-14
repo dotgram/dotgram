@@ -1077,9 +1077,6 @@ public static partial class CSharpEmitter
 		}
 	}
 
-	/// <summary>A publication that gets no overload taking a position, and why.</summary>
-	public const string NoPosition = "GRAM5010";
-
 	/// <param name="direct">
 	/// Whether this machine's rules are read by methods rather than by the engine. Together
 	/// with <paramref name="flat"/> it says which of the three renderings stands behind this
@@ -1195,25 +1192,12 @@ public static partial class CSharpEmitter
 		// host read one piece of a text it is already holding, with every position in it
 		// still meaning what it meant.
 		//
-		// Offered only where the engine reads this publication. A lowered or a directly
-		// read one was compiled with the single entry a whole parse asks for, and §6.3's
-		// shape is that an overload appears where it provably works and is accounted for
-		// where it does not.
-		if (flat)
-		{
-			var at = publication.Rule.Declaration?.At ?? default;
-
-			diagnostics?.Add(new GramDiagnostic(
-				NoPosition,
-				$"'Try{method}' gets no overload taking a position: the rules this publication " +
-				"reaches need none of what the shared automaton is for, so they are compiled " +
-				"with the one entry a whole parse asks for — the input, from zero. " +
-				"docs/syntax.md §6.3 says which publications get one, and why.",
-				at.Position,
-				at.Length,
-				GramSeverity.Info));
-		}
-		else
+		// Offered where the rules are read by the engine or by methods. A lowered publication
+		// was compiled with the single entry a whole parse asks for — its rules were proved to
+		// need nothing more only against the end of the input — so it has no entry for these
+		// to call. §6.3 says so, and the grammar is not told on every compilation: the
+		// overload's absence is plain where it is called, and nothing in the grammar is wrong.
+		if (!flat)
 		{
 			file.Line();
 			file.Line($"/// <summary>Reads a <c>{name}</c> beginning at <paramref name=\"at\"/>.</summary>");

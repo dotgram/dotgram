@@ -1314,10 +1314,8 @@ public sealed class SemanticTests
 	[Fact]
 	public void A_rule_nothing_reaches_is_reported()
 	{
-		// The one thing the grammar is told is wrong. A remark may stand beside it and one
-		// does: a grammar this small is compiled as a method, so it is also told that its
-		// publication gets no overload taking a position (GRAM5010, Info). What this test
-		// is about is the rule nothing reaches.
+		// The one thing the grammar is told is wrong. A remark may stand beside it — that is
+		// what information is for — and what this test is about is the rule nothing reaches.
 		var told = Assert.Single(
 			Compile(
 				"""

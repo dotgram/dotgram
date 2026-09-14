@@ -202,7 +202,7 @@ public sealed class GramLanguageServiceTests
 			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
 			.ToArray();
 
-		// Anything but information, which a correct grammar may still be told (GRAM5010).
+		// Anything but information, which a correct grammar may still be told.
 		Assert.DoesNotContain(
 			document.Diagnostics,
 			static diagnostic => diagnostic.Severity != DotGram.Grammar.GramSeverity.Info);

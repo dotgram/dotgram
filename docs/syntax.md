@@ -1617,8 +1617,9 @@ positions mean. Over a grammar cut into tokens (§4) the first form has to begin
 token of the whole text begins, and is refused elsewhere. The second cuts only the window
 into tokens, so it may begin anywhere, and a character no token begins with ends the
 tokens rather than refusing the reading: a hole in an interpolated string, read up to the
-`:` its format begins with, is the shape it is for. A publication compiled with the one
-entry a whole parse needs gets neither, and says so (`GRAM5010`).
+`:` its format begins with, is the shape it is for. A publication compiled as a plain
+method, with the one entry a whole parse needs, gets neither: its rules were proved to
+need nothing else only against the end of the input.
 
 **What "how far back" means is fixed by §4**, and this is the whole of the retention
 rule:
