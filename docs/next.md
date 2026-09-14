@@ -22019,3 +22019,58 @@ moods — operators and postfixes thrown together, one tower kept to, and templa
 their holes — and `--standard` put 37,000 verdicts across seven publications to both the BNF and the
 grammar: none differ. Deep nesting costs milliseconds. The probe lines went into
 `SqlStandardParserTests` with the verdicts both gave, taken from `--standard`'s own output.
+
+## SQL:2023 §7: query expressions, and what §6 and §8 held for them
+
+The standard's grammar reads queries now: the query expression with `WITH` and its search and cycle
+clauses, `UNION`, `EXCEPT` and `INTERSECT` with `CORRESPONDING`, `ORDER BY`, `OFFSET` and `FETCH`;
+the query specification and its select list; the table expression with every table primary but a
+data change delta table, `JSON_TABLE` and a row pattern recognition clause; joins of all three
+kinds, partitioned join tables among them; `GROUP BY` with `ROLLUP`, `CUBE`, `GROUPING SETS` and
+`()`; `HAVING`; the window clause but its row pattern parts. And what §6 and §8 waited for: the
+scalar subquery, `EXISTS`, `UNIQUE`, `MATCH`, the quantified comparison, `IN (SELECT …)`, and the
+array, multiset and table value constructors by query. Aggregates, window functions, row pattern
+recognition and the JSON functions are next.
+
+**The oracle was wrong first.** `SELECT a FROM t GROUP BY ()` was refused by `--standard`, while
+`<empty grouping set>` asked alone read `()`. The recognizer takes a syntactic production spelled of
+single characters alone for one token, so that `<SQL language identifier>` in `CHARACTER SET LATIN1`
+is one; `<empty grouping set> ::= <left paren> <right paren>` is spelled that way too, and a token
+`()` the tokenizer never makes could not be matched. A production that begins with an `<SQL special
+character>` — a token by itself, §5.2 — is no longer one token: that took `<empty grouping set>`,
+`<upper limit>` (`, [n]`), `<JSON wildcard member accessor>` (`.*`) and `<Ada assignment operator>`
+out. Every row the tests held before was put to the BNF again, 285 of them, and none changed.
+
+**What an ordered choice would have read twice, read once.** The BNF's alternatives often begin
+alike, and where the common beginning holds a query, trying one alternative and then the next reads
+the query again at every depth — 2ⁿ for n nested subqueries.
+
+- A <select sublist> is a <derived column> or a <qualified asterisk>, and both begin with a value
+  expression: `t.*` is a column reference in shape, `f(x).*` an all fields reference. The expression
+  is read once, and a `.*` after it asks that it be a primary.
+- A <table reference> may begin with a <partitioned join table>, which is a table factor and
+  `PARTITION BY`. It is read as a factor and then its partitioning, which must be followed by a
+  qualified or a natural join.
+- A <parenthesized joined table> is a joined table in brackets or one such in brackets again; both
+  begin with a table factor, and the factor says whether it was one.
+
+**Left recursion through other productions, as steps.** A join begins with a table reference, so the
+joins are steps after the first factor. A qualified join's right side is a table reference too, and
+it is read as far as it goes: a join specification must follow it, and one a join inside it had
+taken could not have been the outer join's, which would then have none — so `t JOIN u JOIN v ON a
+ON b` reads and `t JOIN u JOIN v ON a` does not, as the BNF has them. `UNION`, `EXCEPT` and
+`INTERSECT` recurse through their own productions on the left and are repetitions.
+
+**A scalar subquery is asked before a parenthesized value expression.** `((SELECT a FROM t))` is
+both, and only the subquery reading — a query primary in brackets inside the subquery's own — is a
+non-parenthesized value expression primary, which an in value list holds: `a IN (1, ((SELECT a FROM
+t)))` is read, as the BNF reads it.
+
+**How it is held.** `.work/fuzz_query.py` writes random query expressions — clauses thrown together,
+joins and subqueries nested in each other, and with `broken` a word dropped, doubled or swapped —
+and 11,000 of their verdicts, 3,000 of them on broken lines, agree with the BNF's; none differ. The
+grammar reads 3,000 such lines in about a second, the recognizer in minutes. Two differences the
+first runs found were what is still to come: `a + b.*`
+is `a + b` and a JSON simplified accessor, and `a = ANY (1)` compares with the aggregate `ANY`.
+`--standard` now says the grammar's own time apart from the recognizer's, which is most of a line's.
+The 120 probe lines went into `SqlStandardParserTests`.

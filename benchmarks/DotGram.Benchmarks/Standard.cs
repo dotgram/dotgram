@@ -49,6 +49,8 @@ static class Standard
 		// asked of `SqlStandardParser.TryParseColumnReference` beside the BNF.
 		var parser = typeof(SqlStandardParser).GetMethod("TryParse" + Bnf.RuleName(start), [typeof(string)]);
 		var (agree, differ) = (0, 0);
+		var grammar = new Stopwatch();
+		var slowest = (Ticks: 0L, Line: "");
 
 		foreach (var line in lines)
 		{
@@ -77,9 +79,21 @@ static class Standard
 				continue;
 			}
 
-			// What the grammar says, and a mark where it does not say what the BNF does.
+			// What the grammar says, and a mark where it does not say what the BNF does. The grammar's
+			// time is kept apart from the BNF's, which is most of a line's, and taken on a second
+			// reading: the first compiles whatever part of the parser the line is the first to reach.
+			var before = grammar.Elapsed.Ticks;
+
+			parser.Invoke(null, [line]);
+
+			grammar.Start();
 			var result = parser.Invoke(null, [line])!;
-			var ours   = (bool)result.GetType().GetProperty("IsSuccess")!.GetValue(result)!;
+			grammar.Stop();
+
+			if (grammar.Elapsed.Ticks - before > slowest.Ticks)
+				slowest = (grammar.Elapsed.Ticks - before, line);
+
+			var ours = (bool)result.GetType().GetProperty("IsSuccess")!.GetValue(result)!;
 
 			if (ours == read)
 				agree++;
@@ -90,7 +104,10 @@ static class Standard
 		}
 
 		if (parser is not null)
+		{
 			Console.WriteLine($"\nthe BNF and {parser.Name}: {agree} agree, {differ} differ");
+			Console.WriteLine($"the grammar alone: {grammar.ElapsedMilliseconds} ms, the slowest line {TimeSpan.FromTicks(slowest.Ticks).TotalMilliseconds:0.0} ms: {slowest.Line}");
+		}
 	}
 
 	static bool HasEmpty(BnfNode node) => node switch

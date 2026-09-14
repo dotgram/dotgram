@@ -204,8 +204,17 @@ sealed class StandardOracle
 	/// character, and those spelled of such characters alone — <c>&lt;SQL language identifier&gt;</c>
 	/// in <c>CHARACTER SET LATIN1</c> — but not one that names another production of several tokens.
 	/// </summary>
+	/// <remarks>
+	/// Nor one that begins with an <c>&lt;SQL special character&gt;</c>, which is a token by itself
+	/// (§5.2): <c>&lt;empty grouping set&gt;</c> is <c>&lt;left paren&gt; &lt;right paren&gt;</c>,
+	/// two tokens, and taken as one it could never be read.
+	/// </remarks>
 	static HashSet<string> Spelled(Dictionary<string, BnfNode> rules, HashSet<string> lexical)
 	{
+		var special = rules.TryGetValue("SQL special character", out var specials)
+			? new HashSet<string>(Used(specials), StringComparer.Ordinal)
+			: new HashSet<string>(StringComparer.Ordinal);
+
 		var single = new HashSet<string>(StringComparer.Ordinal);
 
 		for (var changed = true; changed;)
@@ -230,7 +239,7 @@ sealed class StandardOracle
 
 			foreach (var (name, body) in rules)
 			{
-				if (!spelled.Contains(name) && Characters(body, spelled))
+				if (!spelled.Contains(name) && !BeginsSpecial(body, special) && Characters(body, spelled))
 				{
 					spelled.Add(name);
 					changed = true;
@@ -241,6 +250,9 @@ sealed class StandardOracle
 		spelled.UnionWith(lexical);
 		return spelled;
 	}
+
+	static bool BeginsSpecial(BnfNode node, HashSet<string> special) =>
+		node is BnfSequence { Items: [BnfRule first, _, ..] } && special.Contains(first.Name);
 
 	static bool OneCharacter(string name, BnfNode node, HashSet<string> single) => node switch
 	{

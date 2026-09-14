@@ -8,8 +8,8 @@
 // spelled as one character (<period>, <left paren>) is written as that character.
 //
 // Written chapter by chapter. So far: §5, the lexical elements, with the literals §5.3 makes of
-// them and the names §5.4 does; §6, scalar expressions; §8, predicates — all but what holds a
-// query, which waits for §7.
+// them and the names §5.4 does; §6, scalar expressions; §7, query expressions; §8, predicates.
+// Aggregates, window functions, row pattern recognition and the JSON functions are still to come.
 
 @using System;
 @using DotGram.Sql.Standard;
@@ -423,7 +423,9 @@ TruthValue  = "TRUE"i | "FALSE"i | "UNKNOWN"i
 // value predicand, so the predicand is read once and what follows it says which: nothing, and it is
 // a predicand; a predicate's second part, and it is that predicate, if the second part takes it.
 BooleanPrimary : @int
-	= PeriodConstructor & PeriodPredicatePart2 => @(Towers.Logical | Towers.Truth)
+	= "EXISTS"i & TableSubquery => @(Towers.Logical | Towers.Truth)
+	| "UNIQUE"i & ("NULLS"i & "NOT"i? & "DISTINCT"i)? & TableSubquery => @(Towers.Logical | Towers.Truth)
+	| PeriodConstructor & PeriodPredicatePart2 => @(Towers.Logical | Towers.Truth)
 	| e: RowValuePredicand & takes: PredicatePart2Mark & when @(takes == 0 || (e & takes) != 0) => @(takes == 0 ? e : Towers.Logical | Towers.Truth)
 
 PredicatePart2Mark : @int = p: PredicatePart2 => @(p)
@@ -438,7 +440,8 @@ Predicate : @int = e: BooleanPrimary & when @((e & Towers.Logical) != 0) => @(e)
 // take any row value predicand; a JSON predicate a string or a JSON value; a period predicate a
 // period's name.
 PredicatePart2 : @int
-	= CompOp & RowValuePredicand => @(Towers.Any)
+	= CompOp & (("ALL"i | "SOME"i | "ANY"i) & TableSubquery | RowValuePredicand) => @(Towers.Any)
+	| "MATCH"i & "UNIQUE"i? & ("SIMPLE"i | "PARTIAL"i | "FULL"i)? & TableSubquery => @(Towers.Any)
 	| "NOT"i? & NegatablePredicatePart2 => @(Towers.Any)
 	| "IS"i & "NOT"i? & t: IsPredicatePart2 => @(t)
 	| "OVERLAPS"i & RowValuePredicand => @(Towers.Any)
@@ -453,6 +456,7 @@ CompOp = "<>" | "<=" | ">=" | '=' | '<' | '>'
 // 2>, <regex like predicate part 2>, <member predicate part 2>, <submultiset predicate part 2>.
 NegatablePredicatePart2 : @bool
 	= "BETWEEN"i & ("ASYMMETRIC"i | "SYMMETRIC"i)? & RowValuePredicand & "AND"i & RowValuePredicand => @(true)
+	| "IN"i & TableSubquery => @(true)
 	| "IN"i & '(' & RowValueExpression & (',' & RowValueExpression)* & ')' => @(true)
 	| "LIKE"i & p: StringValueExpression & e: LikeEscape & when @((p & e & Towers.String) != 0) => @(true)
 	| "SIMILAR"i & "TO"i & CharacterValueExpression & ("ESCAPE"i & CharacterValueExpression)? => @(true)
@@ -499,7 +503,8 @@ RowValuePredicand : @int = e: CommonValueExpression => @(e)
 // `x IN (a + 1)` is refused by the BNF, whose <in value list> holds row value expressions.
 RowValueExpression = ExplicitRowValueConstructor | NonParenthesizedValueExpressionPrimary
 
-// <explicit row value constructor>, but a row subquery.
+// <explicit row value constructor>. A row subquery is written as a scalar subquery is, and a value
+// expression primary reads that wherever a row may stand.
 ExplicitRowValueConstructor
 	= '(' & ValueExpression & ',' & ValueExpression & (',' & ValueExpression)* & ')'
 	| "ROW"i & '(' & ValueExpression & (',' & ValueExpression)* & ')'
@@ -574,8 +579,12 @@ NonParenthesizedValueExpressionPrimary : @int = e: CommonValueExpression & when 
 // method reference> and <array element reference> each begin with a value expression primary,
 // which is left recursion through other productions; they are steps after one here, as many as
 // there are. A primary in brackets is a parenthesized one only while no step follows it.
+//
+// A <scalar subquery> is asked before a parenthesized value expression: `((SELECT a FROM t))` is
+// both, and only the subquery is a non-parenthesized primary, which an in value list asks for.
 PrimaryReading : @int
-	= v: ParenthesizedValueExpression & s: PrimarySteps => @(Towers.Stepped(Towers.Value | Towers.Parenthesized | (v & Towers.Truth), s))
+	= ScalarSubquery & s: PrimarySteps => @(Towers.Stepped(Towers.Value | Towers.Truth | Towers.Bare, s))
+	| v: ParenthesizedValueExpression & s: PrimarySteps => @(Towers.Stepped(Towers.Value | Towers.Parenthesized | (v & Towers.Truth), s))
 	| p: PrimaryBase & s: PrimarySteps => @(Towers.Stepped(p, s))
 
 ParenthesizedValueExpression : @int = '(' & e: ValueExpression & ')' => @(e)
@@ -654,8 +663,10 @@ GreatestOrLeastFunction  = ("GREATEST"i | "LEAST"i) & '(' & ValueExpression & ('
 StaticMethodInvocation   = PathResolvedUserDefinedTypeName & "::" & MethodName & SQLArgumentList?
 RoutineInvocation        = RoutineName & SQLArgumentList
 
-// <collection value constructor>, by enumeration; by query waits for §7.
-CollectionValueConstructor = ("ARRAY"i | "MULTISET"i) & LeftBracketOrTrigraph & ValueExpression & (',' & ValueExpression)* & RightBracketOrTrigraph
+// <collection value constructor>: by enumeration, and by query — `TABLE (…)` is a multiset's.
+CollectionValueConstructor
+	= ("ARRAY"i | "MULTISET"i) & LeftBracketOrTrigraph & ValueExpression & (',' & ValueExpression)* & RightBracketOrTrigraph
+	| ("ARRAY"i | "MULTISET"i | "TABLE"i) & TableSubquery
 
 // <SQL argument list>, but table and descriptor arguments. A named argument is asked first, since
 // its name would otherwise be read as a value.
@@ -746,6 +757,223 @@ DatetimeValueFunction
 	= "CURRENT_DATE"i
 	| ("CURRENT_TIMESTAMP"i | "CURRENT_TIME"i | "LOCALTIMESTAMP"i | "LOCALTIME"i) & ('(' & UnsignedInteger & ')')?
 
+// ── §7.2 Row value expression list, §7.3 Table value constructor ────────────
+
+// <table value constructor>. A <table row value expression> is a row value special case or a row
+// value constructor — a common, a boolean or an explicit row value — and a value expression is
+// each of those.
+TableValueConstructor = "VALUES"i & ValueExpression & (',' & ValueExpression)*
+
+// ── §7.4 Table expression, §7.5 From clause ─────────────────────────────────
+
+TableExpression = FromClause & WhereClause? & GroupByClause? & HavingClause? & WindowClause?
+FromClause      = "FROM"i & TableReference & (',' & TableReference)*
+
+// ── §7.6 Table reference, §7.10 Joined table ────────────────────────────────
+
+// <table reference>, <joined table>. A join begins with a table reference, which is left recursion
+// through other productions, so the joins are steps after the first table factor, as many as there
+// are. A partitioned join table stands on the left of a qualified or a natural join, and is a table
+// factor with `PARTITION BY` after it; it is read as a factor and its partitioning, and not tried
+// as a whole and then again without, which would read a derived table twice at every depth.
+TableReference = TableFactor & Joins
+
+// Whether any join follows.
+Joins : @bool
+	= JoinPartitioning & PartitionedJoin & (trivia & JoinStep)* => @(true)
+	| (trivia & JoinStep)+ => @(true)
+	| none => @(false)
+
+JoinStep
+	= "CROSS"i & "JOIN"i & TableFactor
+	| PartitionedJoin
+
+// Not a production: a <qualified join> or a <natural join>, from `JOIN` on — what a partitioned join
+// table may stand before.
+PartitionedJoin
+	= "NATURAL"i & JoinType? & "JOIN"i & TableFactor & JoinPartitioning?
+	| JoinType? & "JOIN"i & JoinOperand & JoinSpecification
+
+// A qualified join's right side: a table reference, or a partitioned join table. It is read as far
+// as it goes: a join specification must follow it, and one a join inside it took could not have been
+// the outer join's, since that join would then have none.
+JoinOperand = TableFactor & (JoinPartitioning & (PartitionedJoin & (trivia & JoinStep)*)? | (trivia & JoinStep)*)
+
+// <partitioned join table>'s partitioning.
+JoinPartitioning = "PARTITION"i & "BY"i & '(' & ColumnReference & (',' & ColumnReference)* & ')'
+
+JoinType = "INNER"i | ("LEFT"i | "RIGHT"i | "FULL"i) & "OUTER"i?
+
+JoinSpecification
+	= "ON"i & SearchCondition
+	| "USING"i & '(' & ColumnNameList & ')' & ("AS"i & CorrelationName)?
+
+// <table factor>: whether it is a parenthesized joined table, which a sample clause after it ends.
+TableFactor : @bool = p: TablePrimary & s: Sampled => @(p && !s)
+Sampled     : @bool = SampleClause => @(true)
+                    | none => @(false)
+
+SampleClause = "TABLESAMPLE"i & ("BERNOULLI"i | "SYSTEM"i) & '(' & NumericValueExpression & ')' & ("REPEATABLE"i & '(' & NumericValueExpression & ')')?
+
+// <table primary>: whether it is a parenthesized joined table. `TABLE (f(x))` is a collection's and
+// then a correlation name must follow, or a polymorphic table function's and one need not. <data
+// change delta table>, <JSON table>, <JSON table primitive> and a row pattern recognition clause
+// wait for the chapters they are written in.
+TablePrimary : @bool
+	= TableOrQueryName & QuerySystemTimePeriodSpecification? & CorrelationOrRecognition? => @(false)
+	| "LATERAL"i & TableSubquery & CorrelationOrRecognition => @(false)
+	| "UNNEST"i & '(' & CollectionValueExpression & (',' & CollectionValueExpression)* & ')' & ("WITH"i & "ORDINALITY"i)? & CorrelationOrRecognition => @(false)
+	| "TABLE"i & '(' & CollectionValueExpression & ')' & CorrelationOrRecognition => @(false)
+	| "TABLE"i & '(' & RoutineInvocation & ')' & CorrelationOrRecognition? => @(false)
+	| "ONLY"i & '(' & TableOrQueryName & ')' & CorrelationOrRecognition? => @(false)
+	| TableSubquery & CorrelationOrRecognition => @(false)
+	| ParenthesizedJoinedTable => @(true)
+
+// <parenthesized joined table>: a joined table in brackets, or one such in brackets again. Both
+// begin with a table factor, which is read once.
+ParenthesizedJoinedTable : @bool = '(' & f: TableFactor & j: Joins & ')' & when @(f || j) => @(true)
+
+// <correlation or recognition>, but a row pattern recognition clause.
+CorrelationOrRecognition = "AS"i? & CorrelationName & ('(' & ColumnNameList & ')')?
+
+// <table or query name>: a transition table's name and a query's are identifiers, which a table name is.
+TableOrQueryName = TableName
+
+QuerySystemTimePeriodSpecification
+	= "FOR"i & "SYSTEM_TIME"i & "AS"i & "OF"i & DatetimeValueExpression
+	| "FOR"i & "SYSTEM_TIME"i & "BETWEEN"i & ("ASYMMETRIC"i | "SYMMETRIC"i)? & DatetimeValueExpression & "AND"i & DatetimeValueExpression
+	| "FOR"i & "SYSTEM_TIME"i & "FROM"i & DatetimeValueExpression & "TO"i & DatetimeValueExpression
+
+ColumnNameList  = ColumnName & (',' & ColumnName)*
+CorrelationName = Identifier
+QueryName       = Identifier
+
+// ── §7.8 Where clause, §7.9 Group by clause, §7.10 Having clause ────────────
+
+WhereClause  = "WHERE"i & SearchCondition
+HavingClause = "HAVING"i & SearchCondition
+
+GroupByClause = "GROUP"i & "BY"i & SetQuantifier? & GroupingElement & (',' & GroupingElement)*
+
+// <grouping element>, <grouping set>: the two are the same five. `()` is an empty grouping set, and
+// asked before an ordinary one, which would take its bracket.
+GroupingElement
+	= "ROLLUP"i & '(' & OrdinaryGroupingSet & (',' & OrdinaryGroupingSet)* & ')'
+	| "CUBE"i & '(' & OrdinaryGroupingSet & (',' & OrdinaryGroupingSet)* & ')'
+	| "GROUPING"i & "SETS"i & '(' & GroupingElement & (',' & GroupingElement)* & ')'
+	| '(' & ')'
+	| OrdinaryGroupingSet
+
+OrdinaryGroupingSet
+	= GroupingColumnReference
+	| '(' & GroupingColumnReference & (',' & GroupingColumnReference)* & ')'
+
+GroupingColumnReference = ColumnReference & CollateClause?
+
+// ── §7.11 Window clause ─────────────────────────────────────────────────────
+
+WindowClause               = "WINDOW"i & WindowDefinition & (',' & WindowDefinition)*
+WindowDefinition           = WindowName & "AS"i & WindowSpecification
+WindowSpecification        = '(' & WindowSpecificationDetails & ')'
+WindowSpecificationDetails = WindowName? & WindowPartitionClause? & WindowOrderClause? & WindowFrameClause?
+WindowName                 = Identifier
+
+WindowPartitionClause = "PARTITION"i & "BY"i & WindowPartitionColumnReference & (',' & WindowPartitionColumnReference)*
+WindowPartitionColumnReference = ColumnReference & CollateClause?
+WindowOrderClause     = "ORDER"i & "BY"i & SortSpecificationList
+
+// <window frame clause>, but the row pattern measures before it and the row pattern syntax after.
+WindowFrameClause = ("ROWS"i | "RANGE"i | "GROUPS"i) & WindowFrameExtent & WindowFrameExclusion?
+
+WindowFrameExtent
+	= "BETWEEN"i & WindowFrameBound & "AND"i & WindowFrameBound
+	| WindowFrameStart
+
+WindowFrameStart
+	= "UNBOUNDED"i & "PRECEDING"i
+	| UnsignedValueSpecification & "PRECEDING"i
+	| "CURRENT"i & "ROW"i
+
+WindowFrameBound
+	= WindowFrameStart
+	| "UNBOUNDED"i & "FOLLOWING"i
+	| UnsignedValueSpecification & "FOLLOWING"i
+
+WindowFrameExclusion = "EXCLUDE"i & ("CURRENT"i & "ROW"i | "GROUP"i | "TIES"i | "NO"i & "OTHERS"i)
+
+// <unsigned value specification>, <simple value specification>: an SQL parameter reference is an
+// identifier chain, and a host's embedded variable is written as a host parameter is.
+UnsignedValueSpecification = UnsignedLiteral | GeneralValueSpecification | IdentifierChain
+SimpleValueSpecification   = Literal | ':' & Identifier | IdentifierChain
+
+// ── §7.12 Query specification ───────────────────────────────────────────────
+
+QuerySpecification = "SELECT"i & SetQuantifier? & SelectList & TableExpression
+SetQuantifier      = "DISTINCT"i | "ALL"i
+
+SelectList = '*' | SelectSublist & (',' & SelectSublist)*
+
+// <select sublist>: a <derived column>, or a <qualified asterisk>. Each begins with a value
+// expression — an <asterisked identifier chain> is a column reference in shape, and an <all fields
+// reference> a value expression primary — so the expression is read once, and `.*` after it asks
+// that it be a primary. Tried apart, a subquery in a select list would be read twice at every depth.
+SelectSublist : @bool = e: ValueExpression & f: AllFields & when @(f == false || (e & (Towers.Bare | Towers.Parenthesized)) != 0) => @(true)
+AllFields     : @bool = '.' & '*' & ("AS"i & '(' & ColumnNameList & ')')? => @(true)
+                      | AsClause => @(false)
+                      | none => @(false)
+
+AsClause = "AS"i? & ColumnName
+
+// ── §7.13 Query expression ──────────────────────────────────────────────────
+
+QueryExpression = WithClause? & QueryExpressionBody & OrderByClause? & ResultOffsetClause? & FetchFirstClause?
+
+WithClause      = "WITH"i & "RECURSIVE"i? & WithListElement & (',' & WithListElement)*
+WithListElement = QueryName & ('(' & ColumnNameList & ')')? & "AS"i & TableSubquery & SearchOrCycleClause?
+
+// <query expression body>, <query term>: each recurses through itself on the left, so the operators
+// are a repetition here, and `INTERSECT` is read inside a term.
+QueryExpressionBody = QueryTerm & (("UNION"i | "EXCEPT"i) & ("ALL"i | "DISTINCT"i)? & CorrespondingSpec? & QueryTerm)*
+QueryTerm           = QueryPrimary & ("INTERSECT"i & ("ALL"i | "DISTINCT"i)? & CorrespondingSpec? & QueryPrimary)*
+
+QueryPrimary
+	= SimpleTable
+	| '(' & QueryExpressionBody & OrderByClause? & ResultOffsetClause? & FetchFirstClause? & ')'
+
+// <simple table>, with <explicit table>.
+SimpleTable
+	= QuerySpecification
+	| TableValueConstructor
+	| "TABLE"i & TableOrQueryName
+
+CorrespondingSpec  = "CORRESPONDING"i & ("BY"i & '(' & ColumnNameList & ')')?
+OrderByClause      = "ORDER"i & "BY"i & SortSpecificationList
+ResultOffsetClause = "OFFSET"i & SimpleValueSpecification & ("ROW"i | "ROWS"i)
+
+// <fetch first clause>. A <fetch first percentage> is a row count and `PERCENT`.
+FetchFirstClause   = "FETCH"i & ("FIRST"i | "NEXT"i) & FetchFirstQuantity? & ("ROW"i | "ROWS"i) & ("ONLY"i | "WITH"i & "TIES"i)
+FetchFirstQuantity = SimpleValueSpecification & "PERCENT"i?
+
+// ── §7.14 Search or cycle clause ────────────────────────────────────────────
+
+SearchOrCycleClause
+	= SearchClause & CycleClause?
+	| CycleClause
+
+SearchClause = "SEARCH"i & ("DEPTH"i | "BREADTH"i) & "FIRST"i & "BY"i & ColumnNameList & "SET"i & ColumnName
+CycleClause  = "CYCLE"i & ColumnNameList & "SET"i & ColumnName & ("TO"i & ValueExpression & "DEFAULT"i & ValueExpression)? & "USING"i & ColumnName
+
+// ── §7.15 Subquery ──────────────────────────────────────────────────────────
+
+ScalarSubquery = Subquery
+TableSubquery  = Subquery
+Subquery       = '(' & QueryExpression & ')'
+
+// ── §10.10 Sort specification list ──────────────────────────────────────────
+
+SortSpecificationList = SortSpecification & (',' & SortSpecification)*
+SortSpecification     = ValueExpression & ("ASC"i | "DESC"i)? & ("NULLS"i & ("FIRST"i | "LAST"i))?
+
 parse Literal                  as ParseLiteral
 parse UnsignedLiteral          as ParseUnsignedLiteral
 parse Identifier               as ParseIdentifier
@@ -767,3 +995,6 @@ parse SearchCondition          as ParseSearchCondition
 parse Predicate                as ParsePredicate
 parse RowValuePredicand        as ParseRowValuePredicand
 parse ValueExpressionPrimary   as ParseValueExpressionPrimary
+parse QueryExpression          as ParseQueryExpression
+parse QuerySpecification       as ParseQuerySpecification
+parse TableReference           as ParseTableReference
