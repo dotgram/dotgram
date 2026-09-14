@@ -573,7 +573,9 @@ static class Engine
 		// type specified in a context where a condition is expected": it is the parser finding a
 		// value where a predicate stands — `IF 1`, `WHERE c`, `ON t.c`, `HAVING count(*)` — and it
 		// stops there, so the reference's `IF OBJECT_ID (…) isn't NULL` was read with an unclosed
-		// quote after it.
+		// quote after it. Nor 1003, "… clause allowed only for …": a clause of another statement —
+		// `FOR UPDATE` outside a cursor, `CHECKCONSTRAINTS PLAN` outside `DBCC` — at which it stops as
+		// well, and `OPTION (CHECKCONSTRAINTS PLAN, x) SELECT 1)` was read.
 		message is 117 or 137 or 195 or 207 or 208 or 448 or 911 or 1047 or 1087 or 12703
 			or 4104 or 4112
 			or 5369 or 5371 or 5374
@@ -586,7 +588,6 @@ static class Engine
 			//
 			//    135  Cannot use a BREAK statement outside the scope of a WHILE statement.
 			//    148  Incorrect time syntax in time string '…' used with WAITFOR.
-			//   1003  Line …: … clause allowed only for ….
 			//   1020  Sub-entity lists cannot be specified for entity-level permissions.
 			//   1054  Syntax '…' is not allowed in schema-bound objects.
 			//   7801  The required parameter … was not specified.
@@ -597,7 +598,7 @@ static class Engine
 			//  13539  Setting SYSTEM_VERSIONING to ON failed because history table ….
 			//  15151  Cannot … the … , because it does not exist or you do not have permission.
 			or 135 or 148
-			or 1003 or 1020 or 1054
+			or 1020 or 1054
 			or 7801 or 7819 or 7853 or 7861
 			or 13539 or 15151
 

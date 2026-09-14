@@ -3908,15 +3908,6 @@ public static class Syntax
 			_ => false,
 		};
 
-	/// <summary>The hints before an old plan, the plan, and what followed it, as one hint.</summary>
-	/// <remarks>
-	/// After <c>CHECKCONSTRAINTS PLAN</c>, <c>SHRINKDB PLAN</c> or <c>ALTERCOLUMN PLAN</c> and a comma
-	/// the engine reads anything: <c>OPTION (CHECKCONSTRAINTS PLAN, OPTIMIZE CORRELATED UNION ALL)</c>,
-	/// which it refuses alone, and <c>OPTION (CHECKCONSTRAINTS PLAN, foo bar baz)</c> as well.
-	/// </remarks>
-	public static Clause[] LeftOpen(Clause[]? lead, Clause plan, string? left) =>
-		[.. lead ?? Clause.None, plan, new Clause.Hint(Spaced(left ?? ""))];
-
 	/// <summary>A call and what was written after it, where anything was.</summary>
 	public static Expression Called(Expression call, Expression.WindowFunction? tail) =>
 		tail is null ? call : tail with { Function = call };

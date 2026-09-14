@@ -1278,20 +1278,6 @@ IndexValue = Identifier | Sql92.Lexical.UnsignedNumericLiteral
 QueryHints : @Clause[]
 	= "OPTION"i & '(' & first: QueryHint & (',' & rest: QueryHint)* & ')'
 		=> @(Syntax.Listed(first, rest))
-	| "OPTION"i & '(' & lead: LeadHint* & plan: PlanHint & ',' & left: HintLeft & ')'
-		=> @(Syntax.LeftOpen(lead, plan, left))
-
-// After one of the three old plans and a comma the engine reads anything at all:
-// `CHECKCONSTRAINTS PLAN, OPTIMIZE CORRELATED UNION ALL`, which it refuses alone, `SHRINKDB
-// PLAN, foo bar`, `ALTERCOLUMN PLAN, 1 2 3`, and nothing. Anything means to the end of the
-// batch — `(CHECKCONSTRAINTS PLAN, x) SELECT 1)` and an unclosed bracket are read — which this
-// does not follow: what is read here is words and marks in balanced brackets up to the one that
-// closes the list, kept as one hint.
-LeadHint : @Clause = ?!(PlanHint & ',') & h: QueryHint & ',' => @(h)
-
-PlanHint : @Clause = t: (("CHECKCONSTRAINTS"i | "SHRINKDB"i | "ALTERCOLUMN"i) & "PLAN"i) => @(new Clause.Hint(t))
-
-HintLeft = ('(' & HintLeft & ')' | ?!('(' | ')') & AtomicToken)*
 
 // Kept as the words it was written as, which is what a hint is: see `Clause.Hint`.
 QueryHint : @Clause = t: QueryHintSyntax => @(new Clause.Hint(t))
@@ -1321,10 +1307,10 @@ QueryHintSyntax
 	  & (',' & TableHintSyntax & (','? & TableHintSyntax)*)? & ')'
 	| "LABEL"i & '=' & HintString
 
-	// Five the block does not name and the engine reads, all from the corpus of SQL Server
-	// 2005's days; two more from the same file, `OPTIMIZE CORRELATED UNION ALL` and `BYPASS
-	// OPTIMIZER_QUEUE`, it refuses — the first of them alone, and not after a plan (`QueryHints`).
-	| ("CHECKCONSTRAINTS"i | "SHRINKDB"i | "ALTERCOLUMN"i) & "PLAN"i
+	// Two the block does not name and the engine reads, from the corpus of SQL Server 2005's days.
+	// Three more from the same files are clauses of other statements — `CHECKCONSTRAINTS PLAN` and
+	// `SHRINKDB PLAN` "allowed only for DBCC", `ALTERCOLUMN PLAN` "only for ALTER TABLE" (`Msg
+	// 1003`) — and `OPTIMIZE CORRELATED UNION ALL` and `BYPASS OPTIMIZER_QUEUE` it refuses outright.
 	| "USEPLAN"i & Sql92.Lexical.Digits
 	| "KEEP"i & "UNION"i
 
@@ -1451,8 +1437,9 @@ RowWord = "ROWS"i | "ROW"i
 
 // ── The shape the rows come back in ─────────────────────────────────────────
 //
-// `FOR XML`, `FOR JSON` and `FOR BROWSE`, put to the engine some seventy times, and the
-// cursor's `FOR UPDATE` and `FOR READ ONLY`, which a plain `SELECT` takes as well. XML has four
+// `FOR XML`, `FOR JSON` and `FOR BROWSE`, put to the engine some seventy times. A cursor's `FOR
+// UPDATE` and `FOR READ ONLY` are not here: after a plain `SELECT`, an `INSERT`'s, a `UNION` or an
+// `ORDER BY` they are `Msg 1003`, "clause allowed only for DECLARE CURSOR" (`CursorFor`). XML has four
 // modes, each with an element name in a string, which the engine reads for all four and
 // objects to for two (6859); then one list of directives for every mode, in any order — the
 // block gives each mode its own list and an order, and the engine reads `EXPLICIT, ELEMENTS`
@@ -1465,9 +1452,6 @@ ForClause : @Clause
 		=> @(new Clause.For(kind, Syntax.Named(first, rest)))
 	| "FOR"i & kind: ForJson & first: JsonMode & (',' & rest: JsonDirective)*
 		=> @(new Clause.For(kind, Syntax.Named(first, rest)))
-	| "FOR"i & "UPDATE"i & "OF"i & columns: ColumnList => @(new Clause.For("UPDATE OF", columns))
-	| "FOR"i & "UPDATE"i => @(new Clause.For("UPDATE", Syntax.NoNames))
-	| "FOR"i & "READ"i & "ONLY"i => @(new Clause.For("READ ONLY", Syntax.NoNames))
 
 ForXml  = "XML"i
 ForJson = "JSON"i
@@ -5601,8 +5585,8 @@ AuditOption
 	| "OPERATOR_AUDIT"i & '=' & OnOff
 
 // A specification is switched on or off, and told nothing else. After an action on an object — `ADD
-// (SELECT ON t BY dbo)` — a database's specification reads anything at all to the end of the batch,
-// which this does not follow (docs/next.md, 2026-09-13).
+// (SELECT ON t BY dbo)` — the engine stops at an object that does not exist (`Msg 15151`) and says
+// nothing of what follows; on one that does, `ADD (SELECT ON sys.objects BY dbo) garbage` is `Msg 102`.
 AuditStateWith = "WITH"i & '(' & "STATE"i & '=' & OnOff & (',' & "STATE"i & '=' & OnOff)* & ')'
 
 AuditWhere = "WHERE"i & SearchCondition

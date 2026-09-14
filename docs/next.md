@@ -21652,3 +21652,32 @@ list's theory had from the undeclared probes are replaced by the declared ones.
 At 170: 7,410 both, 0 work, 0 defects, 276 another product's, 631 neither; at 150: 6,623, 0, 0, 236
 and 529. The map 7,997 both, 0 work, 0 defects; `--levels` 165 of 165; `--split` 788; the round trip
 100% of 7,732 — all unchanged. The suite is 14,754 rows (from 14,692).
+
+## Neither reads to the end of the batch: 1003 and 15151
+
+Two behaviours were left as the engine reading anything to the end of a batch: an old plan's hint
+list after `CHECKCONSTRAINTS PLAN,`, which the work list's entry followed in balanced brackets, and
+a database audit specification after an action on an object, which it did not. Asked through
+`sqlcmd`, where the message is whole, both are an answer that stops the parser and was counted as
+reading.
+
+- **`Msg 1003`, "Line …: … clause allowed only for …".** `OPTION (CHECKCONSTRAINTS PLAN)` is
+  "CHECKCONSTRAINTS clause allowed only for DBCC", `SHRINKDB PLAN` the same and `ALTERCOLUMN PLAN`
+  "only for ALTER TABLE" — alone, after other hints, before anything, and executed as well as
+  parsed. Nothing after it is looked at. Sixteen statements of the corpus had it: the eight with one
+  of the three plans, and eight `SELECT … FOR UPDATE [OF …]` and `FOR READ ONLY`, "clause allowed only
+  for DECLARE CURSOR" — as is the same after an `ORDER BY`, a `UNION` or in an `INSERT`'s query, where a
+  cursor declaration reads them. It is the clause of another statement, which is a refusal.
+- **`Msg 15151`, an object that does not exist,** is about a name, and stays on `AboutNames`. But the
+  engine stops at it: with an object that exists, `ADD (SELECT ON sys.objects BY dbo) garbage` is `Msg
+  102`, and so after `OBJECT::`, `SCHEMA::` and `DATABASE::`. The grammar refused the garbage already;
+  its comment said otherwise.
+
+`1003` is off `AboutNames`. The three old plans are gone from the hint catalogue, and with them the
+open list the work list's entry wrote; `FOR UPDATE`, `FOR UPDATE OF` and `FOR READ ONLY` are gone from
+a query's `FOR` and stay the cursor's.
+
+At 170: 7,394 both, 0 work, 0 defects, 276 another product's, 647 neither — the sixteen from both to
+neither; at 150: 6,607, 0, 0, 236 and 545. The round trip 100% of 7,716 (from 7,732), `--split` 784
+(from 788, four files ScriptDom reads whole and this no longer does). The map 7,997 both and 0
+defects, and `--levels` 165 of 165, unchanged. The suite is 14,766 rows (from 14,754).
