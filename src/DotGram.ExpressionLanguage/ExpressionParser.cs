@@ -129,10 +129,12 @@ namespace DotGram.ExpressionLanguage;
 //   * An interpolated string is `$"…"` and lowers to `string.Format`, which is what C#
 //     makes of one inside a tree. There is no `$@"…"`, no raw `$"""…"""`, and it is always
 //     a `string` — never a `FormattableString`, which C# would give where one is wanted.
-//   * A lambda may be written inside an expression, with the types of its parameters said:
-//     `(int y) => y * 2`. C# takes them from what the lambda is passed to, which is a
-//     question about the method being chosen and cannot be asked before the argument is
-//     built. A `return` inside one leaves that lambda, as it does in C#.
+//   * A lambda may be written inside an expression, with the types of its parameters said or
+//     not: `(int y) => y * 2` and `y => y * 2`. The second takes them from the parameter of the
+//     overload it is handed to, as C#'s does, and its body is read again once they are known.
+//     A guard in that body which is handed a value while the text is first read — a `var`, a
+//     `?.` over the parameter — sees the parameter before it has a type, and refuses. A
+//     `return` inside a lambda leaves that lambda, as it does in C#.
 //   * `?.` guards the whole chain after it, as C#'s does, and is worth the nullable of what
 //     the chain is worth: `s?.Length` is an `int?`. Written as `?` and `.`, which is what
 //     lets `x ? .5 : 1` keep its number.
@@ -339,17 +341,15 @@ namespace DotGram.ExpressionLanguage;
 	// reason: the jump is built before the thing it leaves.
 	Lambda : @LambdaExpression
 		= Import* & '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>"
-		& when @(context.Entering(parserSpan)) & body: Value
+		& when @(context.Entering(parserSpan)) & body: Body
 		& when @(context.Leaves(parserSpan))
-		=> @(Expression.Lambda(
-			context.Returning(body, parserSpan), ExpressionParser.Taking(first, rest)))
+		=> @(context.Finished(Expression.Lambda(
+			context.Returning(body, parserSpan), ExpressionParser.Taking(first, rest))))
 
 	// The same thing written inside an expression, where it is an operand like any other.
 	//
-	// Its parameters say their types. C# reads `y => y * 2` and takes the type from what the
-	// lambda is passed to, which is a question about the method being chosen — and that
-	// cannot be asked before the argument it would choose by is built. So `(int y) => y * 2`
-	// here, and the bare form when overload resolution can be asked to wait.
+	// Its parameters say their types, which is what lets it be built where it is read.
+	// `y => y * 2`, which says none, is `Untyped` below.
 	//
 	// The guard at the end is what keeps the parameter inside. A name is looked up by where
 	// it is written (§7.7), and this records the extent an inner `y` is written in — the way
@@ -358,9 +358,37 @@ namespace DotGram.ExpressionLanguage;
 	// outside every block, and wrong for these.
 	Inner : @Expression
 		= '(' & (first: Parameter & (',' & rest: Parameter)*)? & ')' & "=>"
-		& when @(context.Entering(parserSpan)) & body: Value
+		& when @(context.Entering(parserSpan)) & body: Body
 		& when @(context.Scoped(parserSpan) && context.Leaves(parserSpan))
 		=> @(context.Nested(body, ExpressionParser.Taking(first, rest), parserSpan))
+
+	// A lambda whose parameters say no types — `n => n * 2`, `(a, b) => a + b` — as C# writes
+	// the one it hands to LINQ. Their types are the delegate's the chosen overload takes, and
+	// that overload is chosen by the arguments, this one among them: so what is built here is
+	// not a lambda but `Unbuilt`, which the call builds once it knows what it is handing it to.
+	//
+	// The body is read to find where it ends and nothing is built of it (`Held`): building it
+	// needs the types. The parameters are declared after the `=>` and not before, because a
+	// guard that ran on `(x) + 1` before finding no `=>` would leave an `x` behind that means
+	// nothing. The call reads the body again over exactly its own text, the parameters now
+	// typed, which is what the window a publication takes is for (§6.3).
+	Untyped : @Expression
+		= (one: Awaiting | '(' & first: Awaiting & (',' & rest: Awaiting)* & ')') & "=>"
+		& when @(context.Awaits(Awaited.Of(one, first, rest), parserSpan))
+		& when @(context.Entering(parserSpan)) & body: Held
+		& when @(context.Scoped(parserSpan) && context.Leaves(parserSpan))
+		=> @(context.Deferred(Awaited.Of(one, first, rest), body, parserSpan, TryParseBody))
+
+	Awaiting : @Awaited = name: Word => @(new Awaited(name, parserSpan.Start))
+
+	Held : @Held = Body => @(new Held(parserSpan.Start, parserSpan.Length))
+
+	// What a lambda is worth: a value, a block, a statement. A rule of its own and not `Value`
+	// written in place, because `Value` only hands on what each of its ways built, and a rule
+	// that only hands on is folded into whatever calls it — so no machine holds it, and the
+	// body could not be read again by the machine that read the lambda (ParseBody below).
+	// The call is what keeps this one a rule.
+	Body : @Expression = v: Value => @(ExpressionParser.Body(v))
 
 	// A `using` stands before the lambda, as it stands at the top of a C# file, and names a
 	// namespace whose types every name after it may mean. The guard records it while the
@@ -998,6 +1026,8 @@ namespace DotGram.ExpressionLanguage;
 
 		| l: Inner => @(l)
 
+		| u: Untyped => @(u)
+
 		| '(' & inner: Expression & ')' => @(inner)
 
 		// The suffixed and prefixed forms first: ordered choice would otherwise read `1L`
@@ -1066,6 +1096,9 @@ namespace DotGram.ExpressionLanguage;
 	// `Assignment` and never `Expression`, and publishing the latter compiled the whole
 	// expression grammar a second time. Private: nothing but this grammar reads a hole.
 	private parse Assignment as ParseHole
+
+	// And the body of a lambda whose parameters say no types, read again once they have one.
+	private parse Body as ParseBody
 
 	// The same language with its identifiers spelled in ASCII, and one line to say so
 	// (§5.1). A binding on a publication clones what the directive reaches and rewrites
@@ -1136,7 +1169,7 @@ public static partial class ExpressionParser
 	/// </remarks>
 	public static LambdaExpression Parse(string text, Assembly caller)
 	{
-		var state = new State(caller);
+		var state = new State(caller) { Text = text };
 		var match = TryParseLambda(text, state);
 
 		if (match.IsSuccess)
@@ -1175,7 +1208,7 @@ public static partial class ExpressionParser
 	/// </remarks>
 	public static Match<LambdaExpression> TryParse(string text, Assembly caller)
 	{
-		var state = new State(caller);
+		var state = new State(caller) { Text = text };
 		Match<LambdaExpression> match;
 
 		try
@@ -1406,6 +1439,29 @@ public static partial class ExpressionParser
 
 	/// <summary>An interpolated string as the lexer measured it: its pieces, and the text they stand in.</summary>
 	internal readonly record struct InterpolatedText(Segment[] Parts, string Input);
+
+	/// <summary>A lambda's body, as it was built.</summary>
+	/// <remarks>
+	/// Nothing is done here, and that is the point: a rule whose every way hands on what it
+	/// read is folded into its callers, and `Body` has to stay a rule, so that the machine
+	/// reading a lambda holds it and a body can be read again there on its own.
+	/// </remarks>
+	internal static Expression Body(Expression value) => value;
+
+	/// <summary>A parameter written with no type: its name, and where it was written.</summary>
+	internal readonly record struct Awaited(string Name, int At)
+	{
+		/// <summary>The parameters of either form, as one list.</summary>
+		public static Awaited[] Of(Awaited? one, Awaited? first, Awaited[]? rest) =>
+			one is { } only
+				? [only]
+				: first is { } head
+					? [head, .. rest ?? []]
+					: [];
+	}
+
+	/// <summary>Where a lambda's body stands in the text, which is all that is kept of it until it can be built.</summary>
+	internal readonly record struct Held(int At, int Length);
 
 	static readonly MethodInfo FormatOne   = typeof(string).GetMethod(nameof(string.Format), new[] { typeof(string), typeof(object) })!;
 	static readonly MethodInfo FormatTwo   = typeof(string).GetMethod(nameof(string.Format), new[] { typeof(string), typeof(object), typeof(object) })!;
@@ -2387,6 +2443,15 @@ public static partial class ExpressionParser
 		/// </remarks>
 		internal MemberResolver Members { get; }
 
+		/// <summary>The text being read, where the one reading it said so.</summary>
+		/// <remarks>
+		/// What a lambda whose parameters say no types is read again over, once they have one.
+		/// Set by <see cref="Parse(string, Assembly)"/> and <see cref="TryParse(string, Assembly)"/>
+		/// rather than asked of the parse: a construction that asks for the input takes the
+		/// whole syntactic half off its methods (GRAM5005).
+		/// </remarks>
+		internal string? Text { get; set; }
+
 		/// <summary>A block's extent, which is the whole of what a scope is.</summary>
 		readonly record struct Scope(int From, int To);
 
@@ -2469,6 +2534,39 @@ public static partial class ExpressionParser
 		/// </remarks>
 		internal bool Takes(Type type, string name, SourceSpan at) =>
 			Holds(Expression.Parameter(type ?? throw new ArgumentNullException(nameof(type)), name), name, at);
+
+		/// <summary>The parameters of a lambda that says no types, declared until they have one.</summary>
+		/// <remarks>
+		/// Each stands as an <c>object</c>, which is enough for a name in the body to be known
+		/// while the body is read to find where it ends — nothing is built of it then.
+		/// <see cref="Deferred"/> puts the typed parameter in its place before the body is read
+		/// again.
+		/// </remarks>
+		internal bool Awaits(Awaited[] parameters, SourceSpan at)
+		{
+			foreach (var one in parameters ?? throw new ArgumentNullException(nameof(parameters)))
+				Holds(Expression.Parameter(typeof(object), one.Name), one.Name, new SourceSpan(one.At, one.Name.Length));
+
+			return true;
+		}
+
+		/// <summary>A parameter declared by <see cref="Awaits"/>, given the type it turned out to have.</summary>
+		/// <remarks>
+		/// Every declaration of it, since reading the body again reads any lambda nested in it
+		/// again too, and that declares its own parameters a second time at the same place.
+		/// </remarks>
+		void Rebind(Awaited parameter, ParameterExpression typed)
+		{
+			if (_declared is null)
+				return;
+
+			for (var at = 0; at < _declared.Count; at++)
+				if (_declared[at].At == parameter.At &&
+					string.Equals(_declared[at].Name, parameter.Name, StringComparison.Ordinal))
+				{
+					_declared[at] = _declared[at] with { Variable = typed };
+				}
+		}
 
 		bool Holds(ParameterExpression variable, string name, SourceSpan at)
 		{
@@ -2879,6 +2977,78 @@ public static partial class ExpressionParser
 		/// belongs to an extent rather than to the reading — the same answer a `break` gets,
 		/// and for the same reason, since both are built before the thing they leave.
 		/// </remarks>
+		/// <summary>A lambda that says no types, as what builds it once the call knows them.</summary>
+		/// <remarks>
+		/// <para>
+		/// Built as often as it is asked for with different types — a candidate weighed, and
+		/// then the one chosen — and <see cref="Unbuilt"/> keeps each. Every build gives the
+		/// parameters their types, forgets the label an earlier build made for its
+		/// <c>return</c>s, and reads the body again over its own text with
+		/// <paramref name="read"/>, which is this reading's own publication of the body.
+		/// </para>
+		/// <para>
+		/// The body has to be read whole: a reading that stops short of where the first one
+		/// ended read a different body, and says so.
+		/// </para>
+		/// </remarks>
+		internal Expression Deferred(
+			Awaited[] parameters, Held body, SourceSpan at, Func<string, int, int, State, Match<Expression>> read)
+		{
+			if (parameters is null)
+				throw new ArgumentNullException(nameof(parameters));
+
+			if (read is null)
+				throw new ArgumentNullException(nameof(read));
+
+			var text = Text ?? throw new InvalidOperationException(
+				"A lambda whose parameters say no types is read again once they have one, " +
+				"and this reading was not given its text.");
+
+			_deferred = true;
+
+			return new Unbuilt(parameters.Length, types =>
+			{
+				var taken = new ParameterExpression[types.Length];
+
+				for (var index = 0; index < types.Length; index++)
+					Rebind(parameters[index], taken[index] = Expression.Parameter(types[index], parameters[index].Name));
+
+				_returns?.Remove(at.Start);
+
+				var match = read(text, body.At, body.Length, this);
+
+				if (!match.IsSuccess)
+					throw new FormatException(match.Error + " at " + match.Position.ToString(CultureInfo.InvariantCulture));
+
+				if (match.Length != body.Length)
+					throw new FormatException(
+						"Expected the end of the lambda at " +
+						(body.At + match.Length).ToString(CultureInfo.InvariantCulture));
+
+				return Expression.Lambda(Returning(match.Value!, at), taken);
+			});
+		}
+
+		/// <summary>Whether this reading made a lambda that waits for its types.</summary>
+		bool _deferred;
+
+		/// <summary>The whole lambda, with no lambda left in it still waiting for its types.</summary>
+		/// <remarks>
+		/// One that was handed to a call was built there. One that was not — kept in a
+		/// <c>var</c>, returned, compared — has nothing to take its types from, and C# refuses
+		/// it where this refuses it (CS8917). Asked only of a reading that made one, so a text
+		/// without such a lambda is not walked at all.
+		/// </remarks>
+		internal LambdaExpression Finished(LambdaExpression lambda)
+		{
+			if (_deferred && Unbuilt.Remains(lambda ?? throw new ArgumentNullException(nameof(lambda))))
+				throw new InvalidOperationException(
+					"The delegate type could not be inferred: a lambda whose parameters say no types " +
+					"takes them from the parameter it is handed to, and this one is handed to none.");
+
+			return lambda;
+		}
+
 		internal Expression Nested(Expression body, ParameterExpression[] parameters, SourceSpan at)
 		{
 			if (body is null)

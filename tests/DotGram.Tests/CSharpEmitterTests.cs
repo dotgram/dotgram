@@ -2340,6 +2340,43 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("Recognize_DotGram_Right", source, StringComparison.Ordinal);
 	}
 
+	/// <summary>A publication of a rule named what the file calls one of its own machines.</summary>
+	/// <remarks>
+	/// A machine's tag names everything it writes, and the second read of a terminal's value is
+	/// tagged `_Value`. A grammar publishing a rule called `Value` in a machine of its own wrote
+	/// every name of that machine twice, and the file did not compile.
+	/// </remarks>
+	[Fact]
+	public void A_rule_named_value_is_published_beside_the_second_read()
+	{
+		var result = GramCompiler.Compile(
+			"""
+			using Lexical;
+
+			trivia = { ' '* }
+
+			namespace Lexical
+			{
+				trivia = none
+
+				Num : @int = t: ['0'..'9']+ => @(int.Parse(t))
+			}
+
+			Value : @int = n: Num => @(n + 1)
+			Other : @int = n: Num => @(n * 2)
+			parse Value
+			parse Other
+			""",
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = true });
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		var parser = EmittedCode.Compile(Assert.Single(result.Sources).Text);
+
+		Assert.Equal(13, EmittedCode.Match(parser, "Grammar", "TryParseValue", "12").Value);
+		Assert.Equal(24, EmittedCode.Match(parser, "Grammar", "TryParseOther", "12").Value);
+	}
+
 	const string Nested = """
 		Outer = '[' & Inner & ']' | Inner
 		Inner = ['0'..'9']+ | '(' & Inner & ')'

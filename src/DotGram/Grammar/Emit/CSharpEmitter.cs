@@ -177,9 +177,18 @@ public static partial class CSharpEmitter
 		var groups   = Published(graph);
 		var machines = new List<Compiled>();
 
+		// A machine's tag names everything it writes, and two machines sharing one write the same
+		// names twice. The two the file keeps for itself — the second read of a terminal's value
+		// and the seam — are named by what they are, and a rule may be called that too: a
+		// grammar publishing a rule named `Value` wrote `Recognize_DotGram_Value_Expected0` twice.
+		var tags = new HashSet<string>(StringComparer.Ordinal) { "_Value", "_Seam" };
+
 		foreach (var group in groups)
 		{
 			var tag = groups.Count > 1 && group.Rule is not null ? "_" + IdentifierOf(group.Rule) : "";
+
+			while (tag.Length > 0 && !tags.Add(tag))
+				tag += "_";
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,

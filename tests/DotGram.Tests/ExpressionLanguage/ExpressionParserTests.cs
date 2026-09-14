@@ -633,6 +633,70 @@ public sealed class ExpressionParserTests
 				"(List<int> l) => l.Where((int n) => n > 1).Select((int n) => n * 2).ToArray()")(
 				new System.Collections.Generic.List<int> { 1, 2, 3 }));
 
+	/// <summary>A lambda whose parameters say no types takes them from what it is handed to.</summary>
+	/// <remarks>Held against C# itself: each text is also written below as the C# it is.</remarks>
+	[Fact]
+	public void A_lambda_takes_its_parameter_types_from_what_it_is_handed_to()
+	{
+		const string Imports = "using System.Collections.Generic; using System.Linq; ";
+
+		var l = new List<int> { 1, 2, 3 };
+		var k = 3;
+
+		(string Text, object Expected)[] cases =
+		[
+			("l.Where(n => n > 1).Select(n => n * 2).ToArray()", l.Where(n => n > 1).Select(n => n * 2).ToArray()),
+			("l.Aggregate((a, b) => a + b)",                      l.Aggregate((a, b) => a + b)),
+			("l.Select(n => n * k).Sum()",                        l.Select(n => n * k).Sum()),
+			("l.Select(n => l.Where(m => m > n).Count()).ToArray()", l.Select(n => l.Where(m => m > n).Count()).ToArray()),
+			("l.Select(n => { int m = n * 2; return m + 1; }).ToArray()", l.Select(n => { int m = n * 2; return m + 1; }).ToArray()),
+			("l.Select(n => n.ToString()).ToArray()",             l.Select(n => n.ToString()).ToArray()),
+			("(l.Count) + 1",                                     (l.Count) + 1),
+		];
+
+		var wrong = cases
+			.Select(one => (one.Text, one.Expected, Actual: Answered(() =>
+				ExpressionParser.Compile<Func<List<int>, int, object>>($"{Imports}(List<int> l, int k) => (object)({one.Text})")(l, k))))
+			.Where(one => !Same(one.Actual, one.Expected))
+			.ToArray();
+
+		Assert.Empty(wrong);
+
+		static bool Same(object actual, object expected) =>
+			actual is System.Collections.IEnumerable many && expected is System.Collections.IEnumerable all && actual is not string
+				? many.Cast<object>().SequenceEqual(all.Cast<object>())
+				: Equals(actual, expected);
+
+		static object Answered(Func<object> run)
+		{
+			try
+			{
+				return run();
+			}
+			catch (Exception thrown)
+			{
+				return thrown.GetType().Name + ": " + thrown.Message;
+			}
+		}
+	}
+
+	/// <summary>Where such a lambda is not C# yet, said rather than hidden.</summary>
+	/// <remarks>
+	/// Its body is read once to find where it ends, with the parameters not yet typed, and a
+	/// guard that is handed a value while the text is read builds that value then: `var`
+	/// asks what its initializer is worth, and `n * 2` over an untyped `n` is worth nothing
+	/// yet. C# reads it. When this starts passing, the case belongs in the test above.
+	/// </remarks>
+	[Fact]
+	public void A_var_in_the_body_of_a_lambda_that_says_no_types_is_not_read_yet() =>
+		Assert.False(ExpressionParser.TryParse(
+			"using System.Collections.Generic; using System.Linq; " +
+			"(List<int> l) => l.Select(n => { var m = n * 2; return m; }).ToArray()").IsSuccess);
+
+	[Fact]
+	public void A_lambda_that_says_no_types_and_is_handed_to_nothing_is_refused() =>
+		Assert.False(ExpressionParser.TryParse("(int x) => { var f = n => n; return x; }").IsSuccess);
+
 	[Fact]
 	public void And_from_what_the_lambda_gives_back_as_well() =>
 		// `Select<TSource, TResult>` learns `TResult` from the `Func<int, string>` it is

@@ -120,6 +120,40 @@ public static partial class ExpressionParser
 			return true;
 		}
 
+		/// <summary>Whether a tree still holds one, anywhere in it.</summary>
+		internal static bool Remains(Expression tree)
+		{
+			var finder = new Finder();
+
+			finder.Visit(tree);
+
+			return finder.Found;
+		}
+
+		/// <summary>A walk that stops looking once it has seen one.</summary>
+		/// <remarks>
+		/// Its own <c>VisitExtension</c>, since the base one reduces the node to look inside it,
+		/// and this one cannot be reduced.
+		/// </remarks>
+		sealed class Finder : ExpressionVisitor
+		{
+			public bool Found { get; private set; }
+
+			public override Expression? Visit(Expression? node) => Found ? node : base.Visit(node);
+
+			protected override Expression VisitExtension(Expression node)
+			{
+				if (node is Unbuilt)
+				{
+					Found = true;
+
+					return node;
+				}
+
+				return base.VisitExtension(node);
+			}
+		}
+
 		/// <summary>The parameter types a delegate takes, or null where it is no delegate.</summary>
 		internal static Type[]? Taken(Type delegated) =>
 			typeof(Delegate).IsAssignableFrom(delegated) && delegated.GetMethod("Invoke") is { } invoke
