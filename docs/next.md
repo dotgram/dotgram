@@ -21840,3 +21840,48 @@ back; it reads rules for alternatives it then abandons, which `Immediate` runs t
 That is harmless for factories that only build, and saying so is the grammar author's to do.
 
 The suite is 14,786 rows, all passing.
+
+## The standard's authority: an Earley recognizer over the ISO BNF
+
+The standard is next, and it is the standard as a whole: SQL:2023 first and each earlier edition
+after it, as readings of one grammar. Decided with Igor on 2026-09-13, after the options were laid
+out. SQL-92 is a grammar for exercising the generator and no fixed point — neither it nor what leans
+on it now, T-SQL's include and the benchmarks' hand-written yardstick, which is the lowest priority
+there is; when the name `SqlStandardParser` is wanted for 2023 they move to another base or go.
+Where the standard and T-SQL disagree about the tree, the standard wins. The grammar starts from a
+converter's skeleton. And the authority is the BNF itself.
+
+**The standard has no engine to ask, so the BNF is read as one.** `--standard production file`
+(`Standard.cs`) reads `ISO_IEC_9075-2(E)_Foundation.bnf.txt` into productions (`Bnf.cs`) and puts
+each line of a file to them with Earley's recognizer (`StandardOracle.cs`), as `--engine` puts T-SQL
+to SQL Server. Two levels, as §5 has them: a text is cut into the longest `<token>` after the longest
+`<separator>`, over characters, and the tokens are recognized against the production named; a
+lexical production a syntactic one names is a terminal that must derive a whole token, and a key
+word matches a token spelled the same in either case. The 1,758 productions read in 20 to 35 ms, and
+a statement is recognized in one to five.
+
+**What is written by hand is marked so.** The `!!` productions are one-character predicates where
+they are lexical — a space, an identifier's start and continuation, a quote's complement, whitespace,
+a newline — and match nothing where they are not. One Syntax Rule is kept, §5.4's: a `<regular
+identifier>` is no `<reserved word>`, checked wherever one is completed and not only at the top.
+
+**Three things the file needed read with care.**
+
+- It sets five lists with a bar before the first alternative, after an empty line — `<set function
+  specification>`, `<reserved word>`, `<JSON name and value>`, `<SQL/JSON special symbol>`, `<alter
+  identity column specification>` — and read literally that is an alternative deriving nothing.
+  `<set function specification>` alone made every value expression empty, and `WHERE;` and `SELECT
+  FROM t;` read. What stands before such a bar is dropped; no other production has an empty
+  alternative.
+- A character string literal may be introduced by a `<character set specification>`, and following
+  the lexical rules through it made `<identifier>`, `<schema name>` and `<catalog name>` lexical: one
+  token each, with no reserved words refused. The lexical closure stops there, by hand, and a
+  production spelled of single characters alone — `<SQL language identifier>` — is a token where the
+  syntax names it.
+- A body that is one word and nothing else is that word: `<left bracket> ::= [`,
+  `<concatenation operator> ::= ||`, `<not equals operator> ::= <>`.
+
+`--standard ? file` says which lexical productions derive each word of a line, and `--standard !
+production` which pieces of the BNF read as empty and which productions the one named reaches that
+derive nothing — the two questions these three were found by. Over a first probe of twenty lines the
+recognizer reads the fourteen the standard allows and refuses the six it does not.

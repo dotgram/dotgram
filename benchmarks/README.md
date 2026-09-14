@@ -557,6 +557,25 @@ read is a tree that has lost something *structural* rather than decorative — a
 that kept the word and not the thing it was done to, a `CREATE STATISTICS` with no columns.
 Those are nodes to add, not fields.
 
+## What the standard reads
+
+`--standard production file` (`Standard.cs`) puts each line of a file to the BNF of ISO/IEC
+9075-2:2023 — `src/DotGram.Sql/Standard/Specification/ISO_IEC_9075-2(E)_Foundation.bnf.txt`,
+read as ISO publishes it (`Bnf.cs`) — and prints whether the line is the production named, how
+many tokens it is, and the token the reading could not go past. The standard has no engine to
+ask, so this is its authority, as `--engine` is T-SQL's: an Earley recognizer
+(`StandardOracle.cs`) that cuts the text into the standard's own tokens and recognizes them
+against its productions, with the one Syntax Rule it cannot do without — a regular identifier
+is no reserved word — written in by hand.
+
+```
+dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --standard "direct SQL statement" lines.sql
+```
+
+A line that begins `--` is skipped. `--standard ? file` says which lexical productions derive
+each word of a line, and `--standard ! production` which pieces of the BNF read as empty and
+which productions the one named reaches that derive nothing.
+
 ## The SQL recognizer against a hand-written one
 
 `--hand [rounds] [iterations]` (`SqlAgainst.cs`) measures

@@ -229,6 +229,16 @@ static class Program
 		// list with an authority behind it, a defect here where this reads what the engine
 		// will not, and a finding about ScriptDom where it reads what the engine will not.
 		// Needs a server on the machine, and says so where there is none. See Engine.cs.
+		// `--standard production [file]` puts each line of a file to the ISO BNF of SQL:2023, read by
+		// an Earley recognizer: the standard's authority, as `--engine` is T-SQL's. See Standard.cs
+		// and StandardOracle.cs.
+		if (args.Length >= 2 && args[0] == "--standard")
+		{
+			Standard.Run(args[1], args.Length > 2 ? args[2] : null);
+
+			return;
+		}
+
 		// `--levels [path] [shown]` asks every compatibility level from 100 to 170 about every
 		// statement and keeps the ones whose answer moves: what a level gates on a server
 		// that has one parser. See CompatibilityLevels.cs.

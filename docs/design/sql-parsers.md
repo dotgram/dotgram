@@ -23,6 +23,22 @@ is open until it is built, and `status.md` is what will say when it has been.
   `RECURSIVE` and a list, not a list of clauses. T-SQL's own nodes are marked as T-SQL's.
 - **Order of work:** T-SQL first, to the end of its programme; then the standard's grammar
   on SQL:2023, and the tree reshaped to it.
+- **The standard is written from the newest edition down** (Igor, 2026-09-13). SQL:2023 first,
+  then each earlier edition as a reading of the same grammar. The goal is the standard as a
+  whole, every edition; SQL-92 is kept only while something still leans on it, and is no fixed
+  point to preserve: `SqlStandard92.gram` moves to a temporary `Sql92Parser`, which T-SQL
+  includes and the benchmarks hold against a hand-written parser, and goes when T-SQL restates
+  what it takes from it and 1992 is an edition of the new grammar.
+- **Where the standard and T-SQL disagree about the tree, the standard wins.** It is formal and
+  T-SQL is not; the reshaping is the test of the decisions taken while T-SQL alone shaped the
+  tree, and T-SQL's measurements have to stay where they were through each of them.
+- **The authority is the BNF itself, read by an Earley recognizer** (Igor, 2026-09-13). The
+  standard has no engine to ask; a recognizer that reads `ISO_IEC_9075-2(E)_Foundation.bnf.txt`
+  as a context-free grammar answers exactly what its productions allow, and the grammar is held
+  to it the way T-SQL is held to SQL Server. What the Syntax Rules of the text narrow is written
+  by hand, and says so.
+- **The grammar starts from a converter's output** (Igor, 2026-09-13): a skeleton with the BNF's
+  names, finished by hand, and a test that says which productions are not written yet.
 - **One project, a directory and a namespace per dialect** (2026-09-13). The parsers are
   named for what they are, `SqlStandardParser` and `TransactSqlParser`, so that no namespace
   shares a name with a type in it. For now T-SQL still includes the standard's grammar; it
@@ -32,6 +48,7 @@ is open until it is built, and `status.md` is what will say when it has been.
 
 ## To do
 
+- **An Earley recognizer over a BNF**, the standard's authority (above).
 - **Convert a BNF into `.gram`.** A tool that reads the ISO BNF (and any BNF of the same
   shape) and writes a `.gram` skeleton: rule names kept from the BNF, `[ … ]` and `{ … }…`
   turned into `?` and `*`, the lexical part separated. The standard's grammar starts from
@@ -48,5 +65,3 @@ is open until it is built, and `status.md` is what will say when it has been.
 
 ## Open
 
-- Whether `SqlStandard92` is replaced by the SQL:2023 grammar with 1992 as one edition, or
-  kept apart.
