@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.RegularExpressions;
 
 using DotGram.Grammar.Binding;
@@ -408,7 +410,7 @@ sealed partial class Machine
 		// What follows each rule, before any of them is compiled. A body is compiled once and
 		// called from everywhere, so what it is told has to be the union over its callers —
 		// and that is only known once every one of them has been looked at.
-		_follow = FollowSets.Of(graph);
+		_follow = _follows ??= FollowSets.Of(graph);
 
 
 		foreach (var rule in _rules)
@@ -4880,7 +4882,7 @@ sealed partial class Machine
 			Node.Literal literal =>
 				[string.Join(" ", literal.Text.Select(kind => Said(inventory, kind)))],
 			Node.Element { Categories.Count: 0, References.Count: 0 } element =>
-				Covered(inventory, KindsIn(element, inventory.Kinds.Count)),
+				Covered(inventory, element),
 			Node.Choice choice =>
 				[.. choice.Nodes.SelectMany(Displays).Distinct()],
 			Node.Sequence { Nodes.Count: > 0 } sequence =>
@@ -4892,55 +4894,122 @@ sealed partial class Machine
 	/// <summary>The same, as one entry: an alternative among literals has exactly one.</summary>
 	string Display(Node node) => string.Join(" or ", Displays(node));
 
-	/// <summary>The kinds an element over kinds admits, its complement where it is negated.</summary>
-	static SortedSet<int> KindsIn(Node.Element element, int count)
+	/// <summary>
+	/// The kinds an element over kinds admits, its complement where it is negated, as a mask
+	/// indexed by kind — slot zero is never one.
+	/// </summary>
+	static bool[] KindsIn(Node.Element element, int count)
 	{
-		var kinds = new SortedSet<int>();
+		var kinds = new bool[count + 1];
 
 		foreach (var range in element.Ranges)
 			for (int kind = Math.Max(1, (int)range.From); kind <= range.To && kind <= count; kind++)
-				kinds.Add(kind);
+				kinds[kind] = true;
 
-		if (!element.IsNegated)
-			return kinds;
+		if (element.IsNegated)
+			for (var kind = 1; kind <= count; kind++)
+				kinds[kind] = !kinds[kind];
 
-		var others = new SortedSet<int>(Enumerable.Range(1, count));
-
-		others.ExceptWith(kinds);
-
-		return others;
+		return kinds;
 	}
 
-	/// <summary>A set of kinds as the classes that fill it, and then each kind left by its own name.</summary>
-	static IReadOnlyList<string> Covered(TerminalInventory inventory, SortedSet<int> kinds)
+	/// <summary>What an element over kinds admits, said as <see cref="Covered(TerminalInventory, bool[])"/> says it.</summary>
+	/// <remarks>
+	/// Asked for every refusal a machine over kinds writes, which in T-SQL is tens of thousands
+	/// of times over an inventory of a few thousand kinds, and mostly of the same few elements
+	/// — every machine of a grammar asks again for what its siblings asked. So the classes and
+	/// what each covers are worked out once per inventory, and so is each answer.
+	/// </remarks>
+	static IReadOnlyList<string> Covered(TerminalInventory inventory, Node.Element element)
 	{
-		var said = new List<string>();
-		var left = new SortedSet<int>(kinds);
+		var covering = _coveringOf.GetValue(inventory, static inventory => new Covering(inventory));
+		var key      = new StringBuilder(element.IsNegated ? "!" : "");
 
-		var fitting = inventory.Patterns
-			.OfType<TerminalInventory.Pattern.Class>()
-			.Select(pattern => (Pattern: pattern, Kinds: Numbers(inventory.KindsOf(pattern))))
-			.Where(one => one.Kinds.Count > 0 && one.Kinds.IsSubsetOf(kinds))
-			.OrderByDescending(one => one.Kinds.Count);
+		foreach (var range in element.Ranges)
+			key.Append((int)range.From).Append('-').Append((int)range.To).Append(',');
 
-		foreach (var (pattern, covered) in fitting)
-			if (covered.Overlaps(left))
-			{
-				if (!said.Contains(Named(pattern)))
-					said.Add(Named(pattern));
+		var asked = key.ToString();
 
-				left.ExceptWith(covered);
-			}
+		lock (covering.Answers)
+			if (covering.Answers.TryGetValue(asked, out var known))
+				return known;
 
-		foreach (var kind in left)
-			if (Said(inventory, kind) is var name && !said.Contains(name))
-				said.Add(name);
+		var said = Covered(inventory, KindsIn(element, inventory.Kinds.Count));
+
+		lock (covering.Answers)
+			covering.Answers[asked] = said;
 
 		return said;
 	}
 
-	/// <summary>Every kind in some runs of them.</summary>
-	static SortedSet<int> Numbers(IReadOnlyList<TerminalInventory.Group> runs)
+	/// <summary>A set of kinds as the classes that fill it, and then each kind left by its own name.</summary>
+	static IReadOnlyList<string> Covered(TerminalInventory inventory, bool[] kinds)
+	{
+		var said = new List<string>();
+		var left = (bool[])kinds.Clone();
+
+		foreach (var (pattern, covered) in _coveringOf.GetValue(inventory, static inventory => new Covering(inventory)).Classes)
+			if (Within(covered, kinds) && Meets(covered, left))
+			{
+				if (!said.Contains(Named(pattern)))
+					said.Add(Named(pattern));
+
+				foreach (var kind in covered)
+					left[kind] = false;
+			}
+
+		for (var kind = 1; kind < left.Length; kind++)
+			if (left[kind] && Said(inventory, kind) is var name && !said.Contains(name))
+				said.Add(name);
+
+		return said;
+
+		static bool Within(int[] covered, bool[] mask)
+		{
+			foreach (var kind in covered)
+				if (kind >= mask.Length || !mask[kind])
+					return false;
+
+			return true;
+		}
+
+		static bool Meets(int[] covered, bool[] mask)
+		{
+			foreach (var kind in covered)
+				if (kind < mask.Length && mask[kind])
+					return true;
+
+			return false;
+		}
+	}
+
+	/// <summary>What one inventory's kinds are said as, kept beside the inventory.</summary>
+	sealed class Covering(TerminalInventory inventory)
+	{
+		/// <summary>
+		/// Every class that covers some kind, with the kinds it covers in ascending order, the
+		/// widest class first and classes of one width in the order the inventory has them.
+		/// </summary>
+		public readonly IReadOnlyList<(TerminalInventory.Pattern.Class Pattern, int[] Kinds)> Classes =
+		[
+			.. inventory.Patterns
+				.OfType<TerminalInventory.Pattern.Class>()
+				.Select(pattern => (Pattern: pattern, Kinds: Numbers(inventory.KindsOf(pattern))))
+				.Where(one => one.Kinds.Length > 0)
+				.OrderByDescending(one => one.Kinds.Length),
+		];
+
+		/// <summary>Each element's answer, by its ranges and whether it is negated.</summary>
+		public readonly Dictionary<string, IReadOnlyList<string>> Answers = new(StringComparer.Ordinal);
+	}
+
+	static readonly ConditionalWeakTable<TerminalInventory, Covering> _coveringOf = new();
+
+	/// <summary>A list of what was expected, as the items of the array that declares it.</summary>
+	static readonly ConditionalWeakTable<IReadOnlyList<string>, string> _itemsOf = new();
+
+	/// <summary>Every kind in some runs of them, once each and ascending.</summary>
+	static int[] Numbers(IReadOnlyList<TerminalInventory.Group> runs)
 	{
 		var numbers = new SortedSet<int>();
 
@@ -4948,7 +5017,7 @@ sealed partial class Machine
 			for (var kind = run.From; kind <= run.To; kind++)
 				numbers.Add(kind);
 
-		return numbers;
+		return [.. numbers];
 	}
 
 	/// <summary>
@@ -4996,7 +5065,9 @@ sealed partial class Machine
 
 	string DeclareExpected(IReadOnlyList<string> display)
 	{
-		var items = string.Join(", ", display.Select(d => $"\"{EscapeExpected(d)}\""));
+		// Written out once per list: an answer kept by `Covered` is the same list every time it
+		// is asked for, and in T-SQL some of them name every keyword there is.
+		var items = _itemsOf.GetValue(display, static display => string.Join(", ", display.Select(d => $"\"{EscapeExpected(d)}\"")));
 
 		// The same set asked for twice is the same array. Two terminals that accept the
 		// same thing are commonplace — a rule called from two places, a character class
@@ -5026,10 +5097,10 @@ sealed partial class Machine
 	/// </summary>
 	static string EscapeExpected(string value)
 	{
-		var text = "";
+		var text = new StringBuilder(value.Length);
 
 		foreach (var character in value)
-			text += character switch
+			text.Append(character switch
 			{
 				'\\'              => "\\\\",
 				'"'               => "\\\"",
@@ -5043,9 +5114,9 @@ sealed partial class Machine
 				'\t'              => "\\t",
 				'\v'              => "\\v",
 				_                 => $"\\u{(int)character:X4}",
-			};
+			});
 
-		return text;
+		return text.ToString();
 	}
 
 	/// <summary>

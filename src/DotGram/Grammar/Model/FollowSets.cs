@@ -72,6 +72,11 @@ public static class FollowSets
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
+		return graph.FollowByRule ??= Settle(graph);
+	}
+
+	static IReadOnlyDictionary<RuleSymbol, Continuation> Settle(RecognitionGraph graph)
+	{
 		var follow = new Dictionary<RuleSymbol, Continuation>();
 
 		foreach (var rule in graph.Rules)

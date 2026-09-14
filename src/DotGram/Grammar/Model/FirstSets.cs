@@ -977,11 +977,8 @@ public static class FirstSets
 	/// </summary>
 	static First Folded(char first)
 	{
-		lock (_folded)
-		{
-			if (_folded.TryGetValue(first, out var cached))
-				return cached;
-		}
+		if (_folded[first] is { } cached)
+			return cached;
 
 		var upper  = char.ToUpperInvariant(first);
 		var ranges = new List<CharRange>();
@@ -1005,13 +1002,18 @@ public static class FirstSets
 
 		var folded = First.Chars(ranges);
 
-		lock (_folded)
-			_folded[first] = folded;
+		_folded[first] = folded;
 
 		return folded;
 	}
 
-	static readonly Dictionary<char, First> _folded = [];
+	/// <summary>Each character's answer, by the character.</summary>
+	/// <remarks>
+	/// A slot per character rather than a dictionary behind a lock: asked on every literal of
+	/// every grammar, and the lock was what the asking cost. Two threads missing the same slot
+	/// both work out the same answer, and whichever lands is the one kept.
+	/// </remarks>
+	static readonly First?[] _folded = new First?[char.MaxValue + 1];
 
 	/// <summary>
 	/// What must begin the input where a node begins, given what must begin it where the
