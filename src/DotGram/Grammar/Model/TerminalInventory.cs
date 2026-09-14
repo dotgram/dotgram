@@ -1087,12 +1087,17 @@ public sealed class TerminalInventory
 		readonly Dictionary<RuleSymbol, (Node Prefix, Node Tail)?> _tails = [];
 
 		/// <summary>Whether no automaton can read this operand, so something else has to.</summary>
+		/// <remarks>
+		/// A call whose body is <c>@M</c> is the rule the normalizer makes of a method with an
+		/// overload that has a value (§7.1's third row). It has no declaration, which is what
+		/// <see cref="RuleSymbol.IsBuiltIn"/> asks, so that question is kept for the rest.
+		/// </remarks>
 		bool Unread(Node tail) =>
 			tail switch
 			{
 				Node.External => true,
-				Node.Call(var called, _) when !called.IsBuiltIn && graph.Bodies.TryGetValue(called, out var body) =>
-					body is Node.External || LexicalAutomaton.Of(graph, [body], []) is null,
+				Node.Call(var called, _) when graph.Bodies.TryGetValue(called, out var body) =>
+					body is Node.External || !called.IsBuiltIn && LexicalAutomaton.Of(graph, [body], []) is null,
 				_ => false,
 			};
 

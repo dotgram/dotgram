@@ -917,6 +917,76 @@ public sealed class GeneratorDriverTests
 			parse.Invoke(null, ["2024-03-01T12:00:00 rest"]));
 	}
 
+	[Theory]
+	[InlineData("ab <x> cd",       1)]
+	[InlineData("ab <x<y<z>>> cd", 3)]
+	[InlineData("ab <x<y> cd",     null)]
+	public void A_terminal_the_host_measures_may_say_what_it_is_worth(string input, int? expected)
+	{
+		// §7.1's third row where a terminal ends. The lexer asks the host only how far, and
+		// drops the value; the terminal declares a type, so it is read again where it stands
+		// and the value is taken then. Through a real compilation because only one says the
+		// method has the overload with a value — a resolver without a host says no to all.
+		var parse = Build("""
+			[DotGram.Gram(@"
+				using Lexical;
+
+				trivia = { ' '* }
+
+				namespace Lexical
+				{
+					trivia = none
+
+					Name = ['a'..'z']+
+					Blob : @int = '<' & depth: @ReadBlob => @(depth)
+				}
+
+				Start : @int = Name & b: Blob & Name => @(b)
+				parse Start",
+				Lexical = true)]
+			public partial class Blobs
+			{
+				static bool ReadBlob(System.ReadOnlySpan<char> text, ref int pos, out int deepest)
+				{
+					var depth = 1;
+
+					deepest = 1;
+
+					for (var p = pos; p < text.Length; p++)
+					{
+						if (text[p] == '<')
+						{
+							deepest = System.Math.Max(deepest, ++depth);
+						}
+						else if (text[p] == '>' && --depth == 0)
+						{
+							pos = p + 1;
+
+							return true;
+						}
+					}
+
+					return false;
+				}
+			}
+			""")
+			.GetType("Blobs")!;
+
+		// Cut, or the test passes over characters with no lexer in it at all.
+		Assert.Contains(
+			parse.Assembly.GetTypes().SelectMany(static type => type.GetMethods(
+				BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly)),
+			static method => method.Name.StartsWith("Tokenize_DotGram", StringComparison.Ordinal));
+
+		var match = parse.GetMethod("TryParseStart", [typeof(string)])!.Invoke(null, [input])!;
+		var type  = match.GetType();
+
+		Assert.Equal(expected is not null, (bool)type.GetProperty("IsSuccess")!.GetValue(match)!);
+
+		if (expected is not null)
+			Assert.Equal(expected, type.GetProperty("Value")!.GetValue(match));
+	}
+
 	[Fact]
 	public void And_a_grammar_that_reads_its_own_input_is_not_streamed()
 	{
