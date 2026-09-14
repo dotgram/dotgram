@@ -153,7 +153,7 @@ public sealed class ReaderTests
 	[Fact]
 	public void The_reader_hands_a_shared_head_to_the_alternative()
 	{
-		var written = Written(Lexical + SharedAlike + Line + "parse Start", reader: true);
+		var written = Written(Lexical + SharedAlike + Line + "parse Start", reader: true, carrier: CarrierKind.Tape);
 		var part    = Reading(written, "Read_Value_Part0");
 		var head    = part.Substring(0, part.IndexOf(')'));
 
@@ -290,7 +290,7 @@ public sealed class ReaderTests
 	[Fact]
 	public void The_reader_writes_the_value_so_far_into_a_step()
 	{
-		var written = Written(Lexical + Folded + Line + "parse Start", reader: true);
+		var written = Written(Lexical + Folded + Line + "parse Start", reader: true, carrier: CarrierKind.Tape);
 
 		// The base is the rule's own method and the steps are the loop's parts, so the
 		// value so far is written into a step and handed to it.
@@ -326,7 +326,7 @@ public sealed class ReaderTests
 	[Fact]
 	public void The_reader_writes_no_jumps_where_it_keeps_a_value()
 	{
-		var written = Written(Lexical + Valued + "\nparse Start", reader: true);
+		var written = Written(Lexical + Valued + "\nparse Start", reader: true, carrier: CarrierKind.Tape);
 
 		Assert.Contains("ways.Begin", Reading(written, "Read_Value"), StringComparison.Ordinal);
 		Assert.DoesNotContain("goto", Reading(written, "Read_Value"), StringComparison.Ordinal);
@@ -564,7 +564,11 @@ public sealed class ReaderTests
 				EmittedCode.Compile(Written(grammar, reader, lexical)), "Grammar", "TryParseStart", input)
 			.IsSuccess;
 
-	static string Written(string grammar, bool reader, bool lexical = true)
+	/// <param name="carrier">
+	/// The generator's own choice unless a test is about what one carrier writes: a test that
+	/// reads the tape's calls out of the source has to be given the tape.
+	/// </param>
+	static string Written(string grammar, bool reader, bool lexical = true, CarrierKind carrier = CarrierKind.Auto)
 	{
 		var result = GramCompiler.Compile(
 			grammar,
@@ -574,6 +578,7 @@ public sealed class ReaderTests
 				CSharpScanner = RoslynCSharpScanner.Instance,
 				Lexical       = lexical,
 				Direct        = reader,
+				Carrier       = carrier,
 			});
 
 		Assert.DoesNotContain(result.Diagnostics, one => one.Severity == GramSeverity.Error);

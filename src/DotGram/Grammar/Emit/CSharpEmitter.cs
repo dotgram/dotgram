@@ -183,6 +183,10 @@ public static partial class CSharpEmitter
 		// grammar publishing a rule named `Value` wrote `Recognize_DotGram_Value_Expected0` twice.
 		var tags = new HashSet<string>(StringComparer.Ordinal) { "_Value", "_Seam" };
 
+		// What the graph says about readings that may not stand, asked once for every machine
+		// left to choose its own carrier, and not at all where the author chose.
+		var replay = carrier == CarrierKind.Auto ? Replay.Of(graph) : null;
+
 		foreach (var group in groups)
 		{
 			var tag = groups.Count > 1 && group.Rule is not null ? "_" + IdentifierOf(group.Rule) : "";
@@ -192,7 +196,7 @@ public static partial class CSharpEmitter
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
-				lexical?.Valued, carrier, stacks, lexical?.Inventory);
+				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay);
 
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one
@@ -615,7 +619,7 @@ public static partial class CSharpEmitter
 		// that comes out is correct and is the one the tape would have written, and nothing
 		// the author did is wrong — but a carrier chosen and silently not used is a
 		// measurement about to be misread.
-		if (carrier != CarrierKind.Tape && diagnostics is not null)
+		if (carrier is not (CarrierKind.Tape or CarrierKind.Auto) && diagnostics is not null)
 		{
 			// Two ways to end up on the tape after asking not to be, and only one of them
 			// used to be said. A carrier that refuses a machine says so. A machine with no
@@ -645,18 +649,62 @@ public static partial class CSharpEmitter
 					GramSeverity.Info));
 			}
 		}
-		else if (carrier == CarrierKind.Tape && diagnostics is not null && machines.Count > 0)
+		else if (carrier == CarrierKind.Auto && diagnostics is not null)
 		{
-			// Offered only where taking it would do something. A grammar the methods refused
-			// gets the same file whichever carrier is asked for, and one the carrier itself
-			// would refuse gets told so a moment after being told to ask — advice and a
-			// refusal of the same thing, from one compiler, about one grammar.
-			var carrying = machines.FindAll(static one => one.Direct);
-			var takeable = carrying.Count > 0 && carrying.TrueForAll(
-				static one => one.Machine.WouldRefuse(CarrierKind.Immediate) is null);
+			// Left to the generator, which says what it chose (GRAM5012): the one thing a parse
+			// carried immediately gives up is a parse that fails having run constructions, and
+			// an author whose constructions mind has to be told the word that takes it back.
+			// The machines kept on the tape where they could have been carried are said as one,
+			// by the names the grammar gave its rules: a grammar is one thing to its author however
+			// many machines it came out as, and a rule cloned by a `with` or a dialect is still the
+			// rule that was written. Where nothing was chosen between — nothing is read by methods, nothing is
+			// built, or the carrier would refuse — nothing is said.
+			if (machines.Exists(static one => one.Direct && one.Machine.CarriesImmediately))
+				diagnostics.Add(new GramDiagnostic(
+					GramCompiler.CarrierChosen,
+					"This grammar is carried as Immediate: nothing it builds is read for a derivation " +
+					"that is then given up, so every construction runs where it is read and none waits " +
+					"for a walk at the end (§3.7). A parse that fails may already have run the " +
+					"constructions of what it read before failing; Carrier = GramCarrier.Tape holds " +
+					"every one back until a parse has accepted.",
+					0,
+					0,
+					GramSeverity.Info));
 
-			if (takeable)
-				Deferring(graph, results, diagnostics);
+			var kept = machines
+				.Where(static one => one.Direct)
+				.Select(static one => one.Machine.KeptOnTape)
+				.OfType<Machine.Kept>()
+				.ToList();
+
+			if (kept.Count > 0)
+			{
+				var building = Named(kept.SelectMany(static one => one.Building));
+				var replayed = Named(kept.SelectMany(static one => one.Replayed));
+				var again    = Named(kept.SelectMany(static one => one.Again));
+
+				var why = replayed.Count > 0
+					? $"{replayed.Count} of the {building.Count} rules it builds are read for derivations " +
+						$"that may not stand — {Listed(replayed)}"
+					: $"{Listed(again)} can be read again after answering, and what the first reading " +
+						"built would stay built";
+
+				diagnostics.Add(new GramDiagnostic(
+					GramCompiler.CarrierChosen,
+					$"This grammar is carried on the tape: {why}. Under Carrier = GramCarrier.Immediate " +
+					"those constructions would run for readings that were then given up. A construction " +
+					"that only builds does not mind, and for one that does not mind that carrier puts " +
+					"down a walk of about two fifths of a parse.",
+					0,
+					0,
+					GramSeverity.Info));
+			}
+
+			static List<string> Named(IEnumerable<RuleSymbol> rules) =>
+				[.. rules.Select(static rule => rule.Declaration?.Name ?? rule.Name).Distinct(StringComparer.Ordinal)];
+
+			static string Listed(List<string> names) =>
+				string.Join(", ", names.Take(3)) + (names.Count > 3 ? " and " + (names.Count - 3) + " more" : "");
 		}
 
 		while (scope.Count > 0)
@@ -1910,76 +1958,6 @@ public static partial class CSharpEmitter
 				if (one is Node.Capture && layout.SlotOrNone(one) is var slot && slot >= 0)
 					found.Add(slot);
 		}
-	}
-
-	/// <summary>
-	/// What the tape is being kept for, said once where it may not be worth keeping.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// The tape holds every construction until the parse has accepted, which is what §7.3
-	/// promises and what lets an author write a <c>=&gt;</c> that is not safe to run for a
-	/// derivation that then failed. It is not free: the walk that runs them is two fifths of
-	/// a parse of standard SQL, and the reader that writes the log costs more again than a
-	/// reader that simply builds (docs/next.md).
-	/// </para>
-	/// <para>
-	/// <see cref="Replay"/> says which of those constructions the promise is doing any work
-	/// for. Where it is doing none the grammar is paying for a promise it is not using, and
-	/// this says so outright; where it is doing some, this says how much and for which rules,
-	/// so that an author whose constructions are ordinary — a <c>new</c> and nothing else,
-	/// which most are — decides with the facts rather than with a rumour.
-	/// </para>
-	/// <para>
-	/// Information and not a warning: nothing here is wrong, and a grammar whose author
-	/// weighed this and kept the tape is a grammar that got it right.
-	/// </para>
-	/// </remarks>
-	static void Deferring(
-		RecognitionGraph graph, ResultTypes results, ICollection<GramDiagnostic> diagnostics)
-	{
-		var stands   = new List<RuleSymbol>();
-		var replayed = new List<RuleSymbol>();
-		var report   = Replay.Of(graph);
-
-		foreach (var rule in graph.Rules)
-		{
-			if (results.QualifiedOf(rule) is null)
-				continue;
-
-			(report.Keeps(rule) ? stands : replayed).Add(rule);
-		}
-
-		// A grammar that builds nothing has no constructions to defer and no walk to run.
-		if (stands.Count + replayed.Count == 0)
-			return;
-
-		// The ones to name are the ones something could be done about: a rule read
-		// speculatively because something after it can refuse, and not the two dozen above
-		// it that are read speculatively because it is.
-		var roots = replayed
-			.OrderBy(one => report.Rules[one] == Replay.Because.Under ? 1 : 0)
-			.Select(static one => one.Name)
-			.ToList();
-
-		var named = string.Join(", ", roots.Take(3)) +
-			(roots.Count > 3 ? " and " + (roots.Count - 3) + " more" : "");
-
-		diagnostics.Add(new GramDiagnostic(
-			GramCompiler.TapeNotNeeded,
-			replayed.Count == 0
-				? "Nothing this grammar builds is ever read for a derivation that did not stand, so " +
-					"the tape is holding constructions back for a promise nothing here needs (§7.3). " +
-					"Carrier = GramCarrier.Immediate builds where it reads, keeps that promise, and puts " +
-					"down a walk that is about two fifths of a parse."
-				: replayed.Count + " of the " + (stands.Count + replayed.Count) + " rules this grammar " +
-					"builds are read for derivations that may not stand — " + named + " — so under " +
-					"Carrier = GramCarrier.Immediate their constructions would run for readings that were " +
-					"then given up. A construction that only builds does not mind, and for one that does " +
-					"not mind that carrier puts down a walk of about two fifths of a parse.",
-			0,
-			0,
-			GramSeverity.Info));
 	}
 
 	/// <summary>

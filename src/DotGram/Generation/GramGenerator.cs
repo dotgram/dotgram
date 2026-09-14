@@ -908,7 +908,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.Value.Value as INamedTypeSymbol)?.ToDisplayString() ?? first?.LocationType;
 
 			// Which carrier the author chose (docs/next.md, the redesign). An enum constant
-			// reaches an analyzer as its underlying integer, and nought is the tape.
+			// reaches an analyzer as its underlying integer, and nought is the generator's own
+			// choice.
 			var carrier = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.Carrier))
 				.Value.Value as int? ?? first?.Carrier ?? 0;

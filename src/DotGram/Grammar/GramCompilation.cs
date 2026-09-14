@@ -162,11 +162,10 @@ public sealed class GramCompilerOptions
 
 	/// <summary>
 	/// How a reader carries what it has read until the author's constructions run
-	/// (<see cref="CarrierKind"/>). The tape by default, which keeps §7.3; the others are
-	/// the author's choice, and a grammar a chosen carrier cannot carry is compiled on the
-	/// tape instead.
+	/// (<see cref="CarrierKind"/>). The generator's choice by default; the others are the
+	/// author's, and a grammar a chosen carrier cannot carry is compiled on the tape instead.
 	/// </summary>
-	public CarrierKind Carrier { get; set; } = CarrierKind.Tape;
+	public CarrierKind Carrier { get; set; } = CarrierKind.Auto;
 
 	/// <summary>
 	/// How many stacks one parse may take beyond the one it began on, or nought for as

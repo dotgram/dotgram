@@ -202,8 +202,12 @@ sealed partial class Machine
 
 		_opens = Opens(rules, written);
 
+		// And a machine left to choose its carrier chooses now, knowing which rules open a way.
+		Choose(rules, _opens);
+
 		// Written again, because a part that cannot open a way needs no loop around it and
-		// the first pass could not know which those were.
+		// the first pass could not know which those were — nor, where the carrier was left to
+		// the generator, which carrier it would be written for.
 		foreach (var rule in rules)
 		{
 			_seam       = FollowSets.SeamOf(rule, _graph);
@@ -779,6 +783,9 @@ sealed partial class Machine
 				RenderDeepening(file, state, registers);
 
 			file.Line();
+			if (Carrier.ReaderMethods is { Length: > 0 } methods)
+				file.Write(methods);
+
 			file.Write(members.ToString());
 		}
 
@@ -825,7 +832,12 @@ sealed partial class Machine
 			// builds into.
 			file.Line($"var ways = {WaysType}.Rent();");
 
-			if (valued)
+			// The store is rented where the entry builds, and also where the reader is handed
+			// one anyway: a carrier that builds as it reads hands its reader the store in every
+			// entry of a machine that builds anywhere, a recognizing one included.
+			var renting = valued || Carrier.ReaderState.Any(static one => one.Name == "values");
+
+			if (renting)
 				foreach (var line in Carrier.Rent())
 					file.Line(line);
 
@@ -866,7 +878,7 @@ sealed partial class Machine
 			{
 				file.Line($"{WaysType}.Return(ways);");
 
-				if (valued)
+				if (renting)
 					foreach (var line in Carrier.Return())
 						file.Line(line);
 			}
@@ -1121,7 +1133,7 @@ sealed partial class Machine
 						break;
 
 					default:
-						head.Line(machine.Carrier.DeclareRecordLocal(slot, RuleOfSlot(slot)));
+						head.Line(machine.Carrier.DeclareRecordLocal(slot, RuleOfSlot(slot), Optional(slot)));
 						break;
 				}
 			}
@@ -2135,7 +2147,7 @@ sealed partial class Machine
 
 			foreach (var slot in taken)
 				foreach (var name2 in Names(slot))
-					undo.Append(name2[0] == 'r' ? machine.Carrier.ResetRecordLocal(slot) : name2 + " = -1;").Append(' ');
+					undo.Append(name2[0] == 'r' ? machine.Carrier.ResetRecordLocal(slot, Optional(slot)) : name2 + " = -1;").Append(' ');
 
 			// What it wrote itself, what its own parts wrote, and what the rules it calls
 			// were found to write.
@@ -2232,7 +2244,7 @@ sealed partial class Machine
 		/// this is the argument list rather than the parameters.
 		/// </summary>
 		string TypeOf(string type, int slot, string name) =>
-			name[0] == 'r' ? Typed(type, machine.Carrier.RecordLocalType(RuleOfSlot(slot))) : type;
+			name[0] == 'r' ? Typed(type, machine.Carrier.RecordLocalType(RuleOfSlot(slot), Optional(slot))) : type;
 
 		/// <summary>The carrier's type where a type is wanted, nothing where it is not.</summary>
 		static string Typed(string type, string carried) => type.Length > 0 ? carried : "";
@@ -2248,6 +2260,9 @@ sealed partial class Machine
 			machine.Carrier.ByPlace && machine.RuleAt(owner, slot) is { } read
 				? read
 				: machine.MemberOfSlot(owner, slot)!.Member.Rule!;
+
+		/// <summary>Whether the member a slot belongs to may be left out, which a carrier may keep a local for differently.</summary>
+		bool Optional(int slot) => machine.MemberOfSlot(owner, slot)?.Member.IsOptional == true;
 
 		/// <summary>What a position is called: two names where it is a run of text, one where it is a record.</summary>
 		IEnumerable<string> Names(int slot)

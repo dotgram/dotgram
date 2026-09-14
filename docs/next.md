@@ -21793,3 +21793,50 @@ Mechanical, and measured as such: the suite is 12,891 rows in `DotGram.Sql.Tests
 `DotGram.Tests`, the 15,039 there were; at 170 7,394 both, 0 work, 0 defects; at 150 6,607, 0, 0;
 the map 7,997 both, 0 work, 0 defects; `--levels` 165 of 165; `--split` 784; the round trip 100% of
 7,716 — all unchanged. The diary keeps the old names where it used them.
+## The generator chooses the carrier
+
+`GramCarrier.Auto` is first in the enum now, and a `[Gram]` that names no carrier gets it. A
+machine left to choose reads its rules once on the tape and then settles (`Machine.Choose`, called
+the moment `_opens` is known): `Immediate` where every rule it builds keeps — `Replay` says it
+stands, or is lost only with the whole parse — and no rule opens a way back; the tape anywhere
+else, and anywhere nothing is built or the immediate carrier would refuse. The way back is the part
+the graph cannot see: an alternative that answered and is asked for the next one, a turn given
+back, both read as `Losing` by a walk of the graph. That is why the choice waits for the reader's
+first pass instead of being made from `Replay` up front, and why the reader is written again for
+what was chosen. `GRAM5012` says which, once for a compilation and in the rules' written names;
+an author who named a carrier is told nothing. `GRAM5008`, which offered `Immediate` to a grammar
+compiled on the tape, is retired: the offer is what `Auto` now takes.
+
+What it gives up is written into §3.7: a parse that fails may already have run the constructions
+of what it read. Igor's decision, with `Carrier = GramCarrier.Tape` as the way back. Holding the
+failed parse to the promise as well was not possible here — `Losing` is nearly every rule of any
+grammar, since `A & B` loses `A` whenever `B` fails — so a criterion that excluded it would have
+been the tape under another name.
+
+**Asked by default, the immediate carrier met shapes nothing had asked it about, and answered
+three of them unlike the tape.** Each was a defect of `Immediate` as an author could already choose
+it, found because `Auto` put the reader tests and the semantic tests on it:
+
+- **A run of text gathered over kinds dropped what stood between the tokens** (`aa bb cc` read as
+  `aabbcc`). It pushed each piece's text and joined the strings, which is the fault the tape's walk
+  had fixed for itself. It now pushes positions (`Spans`, a `long` each) and a method of the reader,
+  `Joined_DotGram`, joins as the walk does: one cut from the first start to the last end where the
+  pieces tile, each piece cut on its own where they do not.
+- **An optional capture of a value type was `0` where it was left out.** A local's default was what
+  said "never written", and for an `int` the default is also a value. A slot of an optional member
+  is kept in a `T?`, so a left-out `int` is `null` and a read nought is nought; `IsDefault` on an
+  `int?` tells them apart. The slots of members that must be there are unchanged.
+- **A recognizing entry of a machine that builds handed its reader a store it had not rented**
+  (`CS0103`, `values`). The entry rented only where it built; it now rents wherever the reader
+  takes one.
+
+**What `Auto` chose for the real grammars: the tape, every one.** SQL-92 reads 43 of the 47 rules
+it builds for derivations that may not stand, T-SQL 617 of 632, the expression language 60 of 62;
+RFC 3986 reads its rules again after they have answered. An ordered choice that fails after it has
+read a rule gives that reading up, and that is most of what a real grammar is — so the yardsticks'
+tape columns still measure the tape, and the immediate readings are still the ones asked for by
+name. The earlier note that SQL "opens no ways, so `Immediate` is correct for it" was about ways
+back; it reads rules for alternatives it then abandons, which `Immediate` runs the factories of.
+That is harmless for factories that only build, and saying so is the grammar author's to do.
+
+The suite is 14,786 rows, all passing.

@@ -434,6 +434,20 @@ same path explicitly asks for the computed value. In that case the construction 
 the guard and its result is cached. An alternative later abandoned by backtracking does
 not invoke an unrequested construction.
 
+**A parse that fails is the one exception, and it can be closed.** Where no reading of a
+rule that builds can be given up and replaced, the generator runs each construction where
+it is read rather than holding it for a walk at the end, which is about two fifths of a
+parse (`GRAM5012` says which it did, and why). A parse that succeeds then runs exactly the
+constructions it would have run anyway. A parse that fails may already have run those of
+what it read before failing, since nothing was held back to be dropped. Where a construction
+must not run for input that is refused — it counts, logs, or throws — say so:
+
+```csharp
+[Gram("…", Carrier = GramCarrier.Tape)]
+```
+
+and every construction waits until the parse has accepted.
+
 **It binds to one alternative, not to the rule body** — by §3.8 it sits below `&` and
 above `|`. So every branch of a `|` builds its own result, and no parentheses are
 needed for that:

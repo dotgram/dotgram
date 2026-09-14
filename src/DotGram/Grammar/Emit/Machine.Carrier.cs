@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using DotGram.Grammar.Binding;
+using DotGram.Grammar.Model;
 
 namespace DotGram.Grammar.Emit;
 
@@ -11,8 +12,91 @@ sealed partial class Machine
 	/// <summary>Which carrier the host asked for; what it gets is <see cref="Carrier"/>.</summary>
 	readonly CarrierKind _carrierKind;
 
+	/// <summary>
+	/// Which rules of the graph are read where the reading may not stand, asked once for the
+	/// file and handed to every machine that chooses its own carrier; null where none does.
+	/// </summary>
+	readonly Replay.Report? _replay;
+
 	/// <summary>Why the carrier asked for was not the one used, or null.</summary>
 	public string? CarrierRefusal { get; private set; }
+
+	/// <summary>What kept a machine left to choose on the tape where the immediate carrier could have carried it.</summary>
+	/// <param name="Building">The rules it builds.</param>
+	/// <param name="Replayed">Those of them read for derivations that may not stand, the ones to look at first.</param>
+	/// <param name="Again">The rules that can be read again after answering, where nothing was replayed.</param>
+	internal sealed record Kept(
+		IReadOnlyList<RuleSymbol> Building, IReadOnlyList<RuleSymbol> Replayed, IReadOnlyList<RuleSymbol> Again);
+
+	/// <summary>
+	/// Why <see cref="CarrierKind.Auto"/> kept this machine on the tape where the immediate
+	/// carrier could have carried it, or null: where it chose that carrier, and where there
+	/// was nothing to choose between. Said once for a file, however many machines it has
+	/// (CSharpEmitter), so it is kept as the rules and not as a sentence.
+	/// </summary>
+	internal Kept? KeptOnTape { get; private set; }
+
+	/// <summary>The tape a machine choosing its carrier reads with until it knows enough to choose.</summary>
+	TapeCarrier? _provisional;
+
+	/// <summary>What a machine choosing its carrier chose, once it has.</summary>
+	ValueCarrier? _chosen;
+
+	/// <summary>
+	/// What <see cref="CarrierKind.Auto"/> settles on, once a first reading of the rules has
+	/// said which of them can be read again after answering.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The immediate carrier where every rule this machine builds is read only for the
+	/// derivation that stands or for one the whole parse fails on (<see cref="Replay"/>), and
+	/// where no rule opens a way back. The graph cannot see a way back — an alternative that
+	/// answered being asked for the next one, a turn given back — which is why the report
+	/// alone is not enough and this waits for the reader to have been written once.
+	/// </para>
+	/// <para>
+	/// Otherwise the tape it has been reading with. The reason is kept only where the
+	/// immediate carrier could have been asked for instead: a machine that builds nothing has
+	/// nothing to carry, and one that carrier would refuse is not offered it.
+	/// </para>
+	/// </remarks>
+	void Choose(IReadOnlyList<RuleSymbol> rules, HashSet<RuleSymbol> opens)
+	{
+		if (_carrierKind != CarrierKind.Auto || _chosen is not null)
+			return;
+
+		var tape      = _provisional ??= new TapeCarrier(this);
+		var immediate = new ImmediateCarrier(this);
+		var building  = rules.Where(rule => _results.QualifiedOf(rule) is not null).ToList();
+
+		_chosen = tape;
+
+		if (building.Count == 0 || _replay is null || immediate.Refuses() is not null)
+			return;
+
+		var replayed = building
+			.Where(rule => !_replay.Keeps(rule))
+			.OrderBy(rule => _replay.Rules.TryGetValue(rule, out var because) && because == Replay.Because.Under ? 1 : 0)
+			.ToList();
+
+		if (replayed.Count > 0)
+		{
+			KeptOnTape = new Kept(building, replayed, []);
+
+			return;
+		}
+
+		var again = rules.Where(opens.Contains).ToList();
+
+		if (again.Count > 0)
+		{
+			KeptOnTape = new Kept(building, [], again);
+
+			return;
+		}
+
+		_chosen = immediate;
+	}
 
 	/// <summary>How this machine's readers carry what they read.</summary>
 	/// <remarks>
@@ -28,6 +112,11 @@ sealed partial class Machine
 		{
 			if (field is not null)
 				return field;
+
+			// Not kept until chosen: what reads before then reads on the tape, and is written
+			// again once the choice is made (RenderReader).
+			if (_carrierKind == CarrierKind.Auto)
+				return _chosen is null ? _provisional ??= new TapeCarrier(this) : field = _chosen;
 
 			if (Asked() is { } asked)
 			{
@@ -123,6 +212,9 @@ sealed partial class Machine
 		/// </summary>
 		public virtual IEnumerable<(string Type, string Name)> ReaderRegisters => [];
 
+		/// <summary>Methods of the reader's own that what this carrier writes calls, or nothing.</summary>
+		public virtual string ReaderMethods => "";
+
 		/// <summary>
 		/// What a part of a rule that gathers is handed so that it can gather into the same
 		/// place, each item with its leading comma: declarations where <paramref name="declared"/>,
@@ -156,7 +248,8 @@ sealed partial class Machine
 		/// The local a captured record is kept in until the rule's own record is written — on
 		/// the tape an index, elsewhere the value itself.
 		/// </summary>
-		public abstract string DeclareRecordLocal(int slot, RuleSymbol rule);
+		/// <param name="optional">Whether the member the slot belongs to may be left out, so that nothing read is a value of its own.</param>
+		public abstract string DeclareRecordLocal(int slot, RuleSymbol rule, bool optional);
 
 		/// <summary>The local a fold's value so far is kept in (§4.3).</summary>
 		public abstract string DeclareAccumulator(RuleSymbol rule);
@@ -195,10 +288,10 @@ sealed partial class Machine
 		public abstract IEnumerable<string> DeclareGathered(int slot, string elementType);
 
 		/// <summary>The type of a record local, with a trailing space, for a parameter that hands it on.</summary>
-		public abstract string RecordLocalType(RuleSymbol rule);
+		public abstract string RecordLocalType(RuleSymbol rule, bool optional = false);
 
 		/// <summary>A record local put back to nothing, when the part that wrote it failed.</summary>
-		public abstract string ResetRecordLocal(int slot);
+		public abstract string ResetRecordLocal(int slot, bool optional);
 
 		/// <summary>Whether a record local was never written.</summary>
 		public abstract string Absent(RuleSymbol rule, string local);
@@ -402,15 +495,15 @@ sealed partial class Machine
 			yield return $"ways.RefsCount = {name};";
 		}
 
-		public override string DeclareRecordLocal(int slot, RuleSymbol rule) => $"var r{slot} = -1;";
+		public override string DeclareRecordLocal(int slot, RuleSymbol rule, bool optional) => $"var r{slot} = -1;";
 
 		public override string DeclareAccumulator(RuleSymbol rule) => "var fold = -1;";
 
 		public override IEnumerable<string> DeclareGathered(int slot, string elementType) => [];
 
-		public override string RecordLocalType(RuleSymbol rule) => "int ";
+		public override string RecordLocalType(RuleSymbol rule, bool optional = false) => "int ";
 
-		public override string ResetRecordLocal(int slot) => $"r{slot} = -1;";
+		public override string ResetRecordLocal(int slot, bool optional) => $"r{slot} = -1;";
 
 		public override string Absent(RuleSymbol rule, string local) => $"{local} < 0";
 

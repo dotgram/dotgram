@@ -404,10 +404,10 @@ public sealed class CarrierTests
 			parse Sheet
 			""";
 
-		// On the tape, nothing offers the carrier away.
+		// Left to the generator, nothing offers the carrier.
 		Assert.DoesNotContain(
-			Diagnostics(Recovering, CarrierKind.Tape),
-			one => one.Id == GramCompiler.TapeNotNeeded);
+			Diagnostics(Recovering, CarrierKind.Auto),
+			one => one.Id == GramCompiler.CarrierChosen);
 
 		// And asking for it anyway says so, naming what stands in the way. Recovery keeps
 		// this grammar off the reader altogether, so that is the answer rather than the
@@ -418,9 +418,43 @@ public sealed class CarrierTests
 		Assert.Contains("recover",                told.Message, StringComparison.Ordinal);
 	}
 
-	/// <summary>And it is still offered where it could be taken.</summary>
+	/// <summary>The carrier the generator chooses agrees with the tape on every shape and every input.</summary>
+	/// <remarks>
+	/// Whichever it chose: a machine choosing reads once on the tape to learn which rules open a
+	/// way back, and is written again for what it chose, so this is also what holds that first
+	/// reading to leaving nothing behind.
+	/// </remarks>
+	[Theory]
+	[MemberData(nameof(Every))]
+	public void Auto_agrees_with_the_tape(string name)
+	{
+		var (_, grammar, inputs) = Shapes.Single(one => one.Name == name);
+
+		var tape = Compiled(grammar, CarrierKind.Tape);
+		var auto = Compiled(grammar, CarrierKind.Auto);
+
+		foreach (var input in inputs)
+		{
+			var expected = EmittedCode.Match(tape.Assembly, "Carried.Probe", "TryParseStart", input);
+			var actual   = EmittedCode.Match(auto.Assembly, "Carried.Probe", "TryParseStart", input);
+
+			Assert.True(
+				expected.IsSuccess == actual.IsSuccess,
+				$"{name} on \"{input}\": the tape says {expected.IsSuccess}, auto says {actual.IsSuccess}.");
+
+			if (expected.IsSuccess)
+				Assert.Equal(ValueOf(expected), ValueOf(actual));
+		}
+	}
+
+	/// <summary>Left to the generator, a grammar that gives up no reading is carried immediately, and told so.</summary>
+	/// <remarks>
+	/// Told, because what it gives up is a parse that fails having run the constructions of what
+	/// it read, and the author whose constructions mind needs the word that takes it back. An
+	/// author who chose either carrier is told nothing.
+	/// </remarks>
 	[Fact]
-	public void And_is_offered_where_it_could_be_taken()
+	public void Left_to_the_generator_a_grammar_that_gives_up_nothing_is_carried_immediately()
 	{
 		const string Plain =
 			"""
@@ -430,12 +464,76 @@ public sealed class CarrierTests
 			parse Start
 			""";
 
-		var told = Assert.Single(Diagnostics(Plain, CarrierKind.Tape));
+		var (source, _) = Compiled(Plain, CarrierKind.Auto);
 
-		Assert.Equal(GramCompiler.TapeNotNeeded, told.Id);
+		Assert.Contains("ImmediateValues",           source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Materialize_DotGram", source, StringComparison.Ordinal);
 
-		// And taking it is silent, which is what an offer worth making looks like.
+		var told = Assert.Single(Diagnostics(Plain, CarrierKind.Auto));
+
+		Assert.Equal(GramCompiler.CarrierChosen, told.Id);
+		Assert.Equal(GramSeverity.Info,          told.Severity);
+		Assert.Contains("as Immediate",          told.Message, StringComparison.Ordinal);
+		Assert.Contains("GramCarrier.Tape",      told.Message, StringComparison.Ordinal);
+
+		Assert.Empty(Diagnostics(Plain, CarrierKind.Tape));
 		Assert.Empty(Diagnostics(Plain, CarrierKind.Immediate));
+	}
+
+	/// <summary>A rule read for a reading that is thrown away keeps the grammar on the tape, and is named.</summary>
+	[Fact]
+	public void Left_to_the_generator_a_rule_read_for_nothing_keeps_the_tape()
+	{
+		const string Ahead =
+			"""
+			Start : @string = ?=Name & n: Name => @(n)
+			Name  : @string = t: ['a'..'z']+ => @(t)
+			parse Start
+			""";
+
+		var (source, _) = Compiled(Ahead, CarrierKind.Auto);
+
+		Assert.Contains("Materialize_DotGram", source, StringComparison.Ordinal);
+
+		var told = Assert.Single(Diagnostics(Ahead, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierChosen);
+
+		Assert.Contains("on the tape", told.Message, StringComparison.Ordinal);
+		Assert.Contains("Name",        told.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>And so does a rule read again after it answered, which the graph alone does not show.</summary>
+	/// <remarks>
+	/// The repetition takes every letter and gives the last one back for the <c>'a'</c> after
+	/// it. Every reading of <c>Letter</c> is on the derivation that stands or on a parse that
+	/// fails, as far as the graph can say; it is the reader that opens the way back.
+	/// </remarks>
+	[Fact]
+	public void Left_to_the_generator_a_turn_given_back_keeps_the_tape()
+	{
+		const string GivesBack =
+			"""
+			Start  : @string = parts: Letter* & 'a' => @(string.Concat(parts))
+			Letter : @string = t: ['a'..'z'] => @(t)
+			parse Start
+			""";
+
+		var (source, assembly) = Compiled(GivesBack, CarrierKind.Auto);
+		var tape = Compiled(GivesBack, CarrierKind.Tape);
+
+		Assert.Contains("Materialize_DotGram", source, StringComparison.Ordinal);
+
+		foreach (var input in new[] { "bca", "a", "ba", "b", "" })
+		{
+			var expected = EmittedCode.Match(tape.Assembly, "Carried.Probe", "TryParseStart", input);
+			var actual   = EmittedCode.Match(assembly,      "Carried.Probe", "TryParseStart", input);
+
+			Assert.Equal(expected.IsSuccess, actual.IsSuccess);
+			Assert.Equal(ValueOf(expected),  ValueOf(actual));
+		}
+
+		var told = Assert.Single(Diagnostics(GivesBack, CarrierKind.Auto), static one => one.Id == GramCompiler.CarrierChosen);
+
+		Assert.Contains("read again", told.Message, StringComparison.Ordinal);
 	}
 
 	static IReadOnlyList<GramDiagnostic> Diagnostics(string grammar, CarrierKind carrier) =>

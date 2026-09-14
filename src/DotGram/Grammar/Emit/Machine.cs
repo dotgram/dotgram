@@ -253,10 +253,12 @@ sealed partial class Machine
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, bool starves = false,
 		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "", int? partSize = null,
 		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null,
-		CarrierKind carrier = CarrierKind.Tape, int stacks = 0, TerminalInventory? inventory = null)
+		CarrierKind carrier = CarrierKind.Tape, int stacks = 0, TerminalInventory? inventory = null,
+		Replay.Report? replay = null)
 	{
 		_graph = graph;
 		_carrierKind = carrier;
+		_replay = replay;
 		_stacks = stacks;
 		_results = results;
 		_lines = lines;

@@ -337,6 +337,7 @@ it entered.
 [Gram("…",
 	Lexical      = true,                 // compile over tokens, not characters
 	LocationType = typeof(ISqlSpan),     // offer every rule the range it matched
+	Carrier      = GramCarrier.Tape,     // run no construction for a parse that fails (§3.7)
 	Stacks       = 4,                    // how many stacks a deep reading may take; 0 is no limit
 	PartSize     = 60_000,               // how large a generated method may grow
 	Portable     = false)]               // do not carry the grammar text in the assembly

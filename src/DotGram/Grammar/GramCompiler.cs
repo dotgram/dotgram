@@ -242,8 +242,8 @@ public static class GramCompiler
 	/// <summary>The carrier the author asked for could not carry the grammar.</summary>
 	public const string CarrierRefused = "GRAM5007";
 
-	/// <summary>The tape is holding constructions back for a promise the grammar may not need.</summary>
-	public const string TapeNotNeeded = "GRAM5008";
+	/// <summary>Which carrier the generator chose, where it was left to choose, and why.</summary>
+	public const string CarrierChosen = "GRAM5012";
 
 	/// <summary>A terminal the host measures has nothing in front of it to be found by.</summary>
 	public const string Unanchored = "GRAM5011";

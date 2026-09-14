@@ -299,11 +299,11 @@ sealed partial class Machine
 				yield return $"values.Count{stack} = {name}_{stack};";
 		}
 
-		public override string DeclareRecordLocal(int slot, RuleSymbol rule) => $"{Held(rule)} r{slot} = default;";
+		public override string DeclareRecordLocal(int slot, RuleSymbol rule, bool optional) => $"{Held(rule)} r{slot} = default;";
 
-		public override string RecordLocalType(RuleSymbol rule) => Held(rule) + " ";
+		public override string RecordLocalType(RuleSymbol rule, bool optional = false) => Held(rule) + " ";
 
-		public override string ResetRecordLocal(int slot) => $"r{slot} = default;";
+		public override string ResetRecordLocal(int slot, bool optional) => $"r{slot} = default;";
 
 		public override string Absent(RuleSymbol rule, string local) => Nothing(rule, local);
 

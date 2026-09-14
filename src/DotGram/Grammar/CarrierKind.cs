@@ -9,16 +9,28 @@ namespace DotGram.Grammar;
 /// <para>
 /// The reader recognizes the same way whichever is chosen; what differs is where the
 /// pieces of a value wait and when a <c>=&gt;</c> is called (<c>docs/next.md</c>, the
-/// redesign). The default keeps §7.3's promise — a construction runs once, for the
-/// derivation that was accepted — and the others are the author's to choose, with what
-/// each gives up written beside it.
+/// redesign). The default is the generator's choice between the first two; the others are
+/// the author's to choose, with what each gives up written beside it.
 /// </para>
 /// </remarks>
 public enum CarrierKind
 {
 	/// <summary>
+	/// Chosen by the generator, and the default: <see cref="Immediate"/> where it keeps §3.7
+	/// for every parse that succeeds, <see cref="Tape"/> everywhere else.
+	/// </summary>
+	/// <remarks>
+	/// A machine is carried immediately where every rule it builds is read only for the
+	/// derivation that stands, or for one the whole parse then fails on, and where no rule of
+	/// it can be read again after it has answered. What that gives up is the one case the
+	/// tape still covers: a parse that fails has already run the constructions of what it
+	/// read before failing. Said by <c>GRAM5012</c>, either way.
+	/// </remarks>
+	Auto,
+
+	/// <summary>
 	/// Records on a tape, built into values by a walk once the parse has been accepted. The
-	/// carrier that streams, finds and recovers, and the default.
+	/// carrier that streams, finds and recovers, and the one that keeps §3.7 whole.
 	/// </summary>
 	Tape,
 

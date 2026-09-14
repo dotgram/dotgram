@@ -162,10 +162,9 @@ public static class SupportEmitter
 				/// How the reader carries what it has read until the constructions run.
 				/// </summary>
 				/// <remarks>
-				/// The tape unless set, which keeps §7.3: a construction runs once, for the
-				/// derivation that was accepted. The others are the author's to choose, and
-				/// what each gives up is written on it. A grammar the chosen carrier cannot
-				/// carry is compiled on the tape.
+				/// The generator's choice unless set (<c>GramCarrier.Auto</c>), said as GRAM5012.
+				/// The others are the author's to choose, and what each gives up is written on
+				/// it. A grammar the chosen carrier cannot carry is compiled on the tape.
 				/// </remarks>
 				public GramCarrier Carrier { get; set; }
 
@@ -231,7 +230,15 @@ public static class SupportEmitter
 			[global::Microsoft.CodeAnalysis.Embedded]
 			internal enum GramCarrier
 			{
-				/// <summary>Records on a tape, built into values once the parse is accepted. The default.</summary>
+				/// <summary>
+				/// Chosen by the generator, and the default: <c>Immediate</c> where every parse
+				/// that succeeds runs only the constructions of what it accepted, the tape
+				/// everywhere else. A parse that fails may already have run the constructions
+				/// of what it read; <c>Tape</c> holds them back until a parse has accepted.
+				/// </summary>
+				Auto,
+
+				/// <summary>Records on a tape, built into values once the parse is accepted.</summary>
 				Tape,
 
 				/// <summary>
