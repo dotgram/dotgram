@@ -201,9 +201,137 @@ same functions side by side. The call tree itself is in the snapshot, for the UI
 `Buffer.Memmove` at 20%, `RuntimeHelpers.GetHashCode` at 14% and `Monitor.Enter_Slowpath` at 9%,
 and dotTrace shows none of those.
 
-## 5. dotMemory — allocations and GC
+## 5. Allocations and GC
 
-Not a dotnet tool. The console profiler is the NuGet package
+What reads back as text is the runtime's own allocation events. dotTrace's Timeline snapshot
+holds allocations too, but Reporter refuses it ("unsupported snapshot format"), and dotMemory has
+no command-line report at all.
+
+```powershell
+dotnet-trace collect --profile gc-verbose -o $scratch\gc.nettrace -- `
+    P:\...\.work\genprof\bin\Release\net10.0\genprof.exe $scratch\dump
+
+dotnet build .work/allocs -c Release
+dotnet .work\allocs\bin\Release\net10.0\allocs.dll $scratch\gc.nettrace 30
+```
+
+`gc-verbose` carries `GCAllocationTick` — one sample per ~100 KB, with its stack — and the
+collections. The parser sums the samples by type, by the first `DotGram.*` frame on the stack,
+and by both, and counts collections by generation with the time the runtime was suspended.
+Unlike `dotnet-trace`'s stack sampling these are events the runtime raises, and they agree with
+what dotTrace shows. The amounts are estimates from the samples; the pauses are inflated by the
+tracing itself, so compare them only with another traced run.
+
+`.work/allocs/allocs.csproj`:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.1.23" />
+	</ItemGroup>
+</Project>
+```
+
+`.work/allocs/Program.cs`:
+
+```csharp
+using Microsoft.Diagnostics.Tracing;
+using Microsoft.Diagnostics.Tracing.Etlx;
+using Microsoft.Diagnostics.Tracing.Parsers.Clr;
+
+// allocs <trace.nettrace> [top]
+
+var path = args[0];
+var top  = args.Length > 1 ? int.Parse(args[1]) : 30;
+
+var etlx = TraceLog.CreateFromEventPipeDataFile(path);
+using var log = new TraceLog(etlx);
+
+var byType   = new Dictionary<string, long>();
+var bySite   = new Dictionary<string, long>();
+var byPair   = new Dictionary<string, long>();
+var total    = 0L;
+var gens     = new long[3];
+var paused   = 0.0;
+double? suspended = null;
+
+foreach (var data in log.Events)
+{
+	switch (data)
+	{
+		case GCAllocationTickTraceData tick:
+		{
+			var amount = tick.AllocationAmount64;
+			var type   = tick.TypeName ?? "?";
+			var site   = Site(data.CallStack());
+
+			total += amount;
+			Add(byType, type, amount);
+			Add(bySite, site, amount);
+			Add(byPair, type + "  <=  " + site, amount);
+			break;
+		}
+
+		case GCStartTraceData start:
+			if (start.Depth is >= 0 and <= 2)
+				gens[start.Depth]++;
+			break;
+
+		case GCSuspendEETraceData:
+			suspended = data.TimeStampRelativeMSec;
+			break;
+
+		case GCNoUserDataTraceData when data.EventName.Contains("RestartEEStop") && suspended is { } began:
+			paused   += data.TimeStampRelativeMSec - began;
+			suspended = null;
+			break;
+	}
+}
+
+Console.WriteLine($"sampled allocations: {total / 1024.0 / 1024.0:N0} MB");
+Console.WriteLine($"collections: gen0 {gens[0]}, gen1 {gens[1]}, gen2 {gens[2]}; paused {paused / 1000.0:N1} s");
+
+Print("by type", byType);
+Print("by first DotGram frame", bySite);
+Print("by type and frame", byPair);
+
+void Print(string title, Dictionary<string, long> table)
+{
+	Console.WriteLine();
+	Console.WriteLine($"== {title} ==");
+
+	foreach (var (key, amount) in table.OrderByDescending(one => one.Value).Take(top))
+		Console.WriteLine($"{amount / 1024.0 / 1024.0,9:N0} MB {100.0 * amount / total,5:N1}%  {key}");
+}
+
+static void Add(Dictionary<string, long> table, string key, long amount) =>
+	table[key] = table.GetValueOrDefault(key) + amount;
+
+static string Site(TraceCallStack? stack)
+{
+	for (var frame = stack; frame is not null; frame = frame.Caller)
+	{
+		var name = frame.CodeAddress.FullMethodName;
+
+		if (name.StartsWith("DotGram.", StringComparison.Ordinal))
+			return name;
+	}
+
+	return "(no DotGram frame)";
+}
+```
+
+### dotMemory, for the UI
+
+When the question needs the object graph rather than a table. Not a dotnet tool. The console
+profiler is the NuGet package
 `JetBrains.dotMemory.Console.windows-x64`, unpacked into the scratchpad. The `dotMemory.exe` of
 the installed dotMemory prints nothing, and the one under Rider fails to load
 `JetBrains.Platform.Core`.
