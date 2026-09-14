@@ -22,8 +22,9 @@ namespace DotGram.Sql.Standard;
 /// <para>
 /// Written from the newest edition down, chapter by chapter: so far §5, the lexical elements, §6,
 /// scalar expressions, §7, query expressions with row pattern recognition, §8, predicates, and §10.9,
-/// aggregates, with the JSON functions as far as the BNF spells them, §11 and §12's schema core, and
-/// §14's data change statements.
+/// aggregates, with the JSON functions as far as the BNF spells them, §11 and §12's schema core, §14's
+/// data change statements and cursors, and the control, transaction, connection, session, direct and
+/// diagnostics statements.
 /// Nothing is built yet: the
 /// grammar recognizes, and the tree follows the standard's shape once the language is right.
 /// </para>

@@ -22360,3 +22360,30 @@ type, or `ABSENT ON NULL` follow — words no correlation name could stand befor
 follows a table begins so. The recorded rows found it; then every fuzzer ran over the atomic lists —
 queries, schema statements and all seven data change statements, 19,000 verdicts, 6,000 of them on
 broken lines — and none differ.
+
+## SQL:2023: the rest of the statements a routine's body and a direct invocation are made of
+
+The transaction statements of §17, the connection statements of §18, the session statements of §19,
+`GET DIAGNOSTICS` of §23, `CALL` and `RETURN` of §16, the data statements a routine's body holds —
+cursors opened, fetched from and closed, `SELECT … INTO`, locators freed and held — and §22's direct
+SQL statement: a directly executable statement and its semicolon, whose data statements are a cursor
+specification, a temporary table declared, and the data changes. Eight publications, one per group.
+Dynamic SQL (§20: prepare, execute, describe, descriptors) is not written yet,
+and without it a routine's body cannot be all a `<SQL procedure statement>` is; routines and triggers
+wait for it.
+
+**What the BNF fixes.** A session's catalog, schema, path and names are given as values — `SET PATH
+'s1, s2'` is read and `SET PATH s1, s2` refused — and so is a connection's server; `SET TIME ZONE 1` is
+read, since a literal is of every tower. `START TRANSACTION,` and `SET CONSTRAINTS ALL` with no mode are
+refused; a savepoint has a one-part name; `ROLLBACK TO` names a `SAVEPOINT`; `CONNECT … USER … AS` is in
+the wrong order. `GET DIAGNOSTICS CONDITION 1 :m = NUMBER` asks a statement's item of a condition and
+is refused. A target is a host parameter with its indicator, an SQL parameter or column with an
+element, or a dynamic parameter — `:a[1]` is none. `FETCH PRIOR c` needs its `FROM`; `SELECT … INTO`
+takes no `ORDER BY`; `CALL p` needs its brackets; `CALL` is no direct statement.
+
+**Four lists paid a square refused, and give nothing back now:** a diagnostics statement's items, the
+targets of `FETCH` and of `SELECT … INTO`, and the character sets of `SET COLLATION … FOR` — 3 to 6 ms
+at 128 before, 0.16 to 0.26 now; a transaction's modes never did.
+
+Held by 122 probe lines and `.work/fuzz_statements.py`, one production per run: 15,982 random
+verdicts over the atomic lists, half of them on broken lines, and none differ.

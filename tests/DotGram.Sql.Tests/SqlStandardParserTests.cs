@@ -1325,6 +1325,186 @@ public sealed class SqlStandardParserTests
 		Assert.Equal(reads, SqlStandardParser.TryParseSQLSchemaStatement(input).IsSuccess);
 	}
 
+	// ── §16–§19, §22, §23 Control, transaction, connection, session, direct, diagnostics
+
+	/// <summary>Transaction statements: modes in any number, a savepoint by name, and a chain or not.</summary>
+	[Theory]
+	[InlineData("START TRANSACTION", true)]
+	[InlineData("START TRANSACTION ISOLATION LEVEL SERIALIZABLE, READ ONLY", true)]
+	[InlineData("START TRANSACTION READ WRITE, DIAGNOSTICS SIZE 5", true)]
+	[InlineData("SET TRANSACTION ISOLATION LEVEL READ COMMITTED", true)]
+	[InlineData("SET LOCAL TRANSACTION READ ONLY", true)]
+	[InlineData("SET CONSTRAINTS ALL DEFERRED", true)]
+	[InlineData("SET CONSTRAINTS c1, s.c2 IMMEDIATE", true)]
+	[InlineData("SAVEPOINT sp", true)]
+	[InlineData("RELEASE SAVEPOINT sp", true)]
+	[InlineData("COMMIT", true)]
+	[InlineData("COMMIT WORK AND NO CHAIN", true)]
+	[InlineData("ROLLBACK AND CHAIN", true)]
+	[InlineData("ROLLBACK TO SAVEPOINT sp", true)]
+	[InlineData("ROLLBACK WORK TO SAVEPOINT sp", true)]
+	[InlineData("START TRANSACTION ISOLATION LEVEL READ UNCOMMITTED, ISOLATION LEVEL REPEATABLE READ", true)]
+	[InlineData("START TRANSACTION DIAGNOSTICS SIZE :n", true)]
+	[InlineData("START TRANSACTION,", false)]
+	[InlineData("SET TRANSACTION", true)]
+	[InlineData("SET LOCAL TRANSACTION ISOLATION LEVEL SERIALIZABLE, READ WRITE", true)]
+	[InlineData("SET CONSTRAINTS ALL", false)]
+	[InlineData("SET CONSTRAINTS c DEFERRED, d IMMEDIATE", false)]
+	[InlineData("SAVEPOINT s.p", false)]
+	[InlineData("COMMIT AND CHAIN", true)]
+	[InlineData("COMMIT WORK", true)]
+	[InlineData("ROLLBACK WORK AND NO CHAIN TO SAVEPOINT sp", true)]
+	[InlineData("ROLLBACK TO sp", false)]
+	public void A_transaction_statement(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseSQLTransactionStatement(input).IsSuccess);
+	}
+
+	/// <summary>Connection statements: a server, a connection and a user each a simple value, in that order.</summary>
+	[Theory]
+	[InlineData("CONNECT TO DEFAULT", true)]
+	[InlineData("CONNECT TO 'srv' AS 'c' USER 'u'", true)]
+	[InlineData("SET CONNECTION DEFAULT", true)]
+	[InlineData("DISCONNECT ALL", true)]
+	[InlineData("DISCONNECT CURRENT", true)]
+	[InlineData("CONNECT TO :srv AS :c USER :u", true)]
+	[InlineData("CONNECT TO srv", true)]
+	[InlineData("CONNECT TO 'srv' USER 'u' AS 'c'", false)]
+	[InlineData("SET CONNECTION 'c'", true)]
+	[InlineData("SET CONNECTION ALL", false)]
+	[InlineData("DISCONNECT 'c'", true)]
+	[InlineData("DISCONNECT DEFAULT", true)]
+	public void A_connection_statement(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseSQLConnectionStatement(input).IsSuccess);
+	}
+
+	/// <summary>Session statements: a catalog, a schema, a path and names each given as a value, not written as a name.</summary>
+	[Theory]
+	[InlineData("SET SESSION AUTHORIZATION 'u'", true)]
+	[InlineData("SET ROLE r", true)]
+	[InlineData("SET ROLE NONE", true)]
+	[InlineData("SET TIME ZONE LOCAL", true)]
+	[InlineData("SET TIME ZONE INTERVAL '1' HOUR", true)]
+	[InlineData("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY", true)]
+	[InlineData("SET CATALOG 'c'", true)]
+	[InlineData("SET SCHEMA 's'", true)]
+	[InlineData("SET NAMES 'latin1'", true)]
+	[InlineData("SET PATH s1, s2", false)]
+	[InlineData("SET TRANSFORM GROUP g", false)]
+	[InlineData("SET COLLATION c", true)]
+	[InlineData("SET NO COLLATION", true)]
+	[InlineData("SET SESSION AUTHORIZATION CURRENT_USER", true)]
+	[InlineData("SET ROLE 'r'", true)]
+	[InlineData("SET ROLE CURRENT_ROLE", true)]
+	[InlineData("SET TIME ZONE '+01:00'", true)]
+	[InlineData("SET TIME ZONE a + INTERVAL '1' HOUR", true)]
+	[InlineData("SET TIME ZONE 1", true)]
+	[InlineData("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY, TRANSACTION ISOLATION LEVEL SERIALIZABLE", true)]
+	[InlineData("SET SESSION CHARACTERISTICS AS TRANSACTION", false)]
+	[InlineData("SET SCHEMA CURRENT_SCHEMA", true)]
+	[InlineData("SET SCHEMA s", true)]
+	[InlineData("SET CATALOG :c", true)]
+	[InlineData("SET PATH 's1, s2'", true)]
+	[InlineData("SET DEFAULT TRANSFORM GROUP 'g'", true)]
+	[InlineData("SET TRANSFORM GROUP FOR TYPE s.t 'g'", true)]
+	[InlineData("SET COLLATION 'c' FOR latin1, s.utf8", true)]
+	[InlineData("SET NO COLLATION FOR latin1", true)]
+	public void A_session_statement(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseSQLSessionStatement(input).IsSuccess);
+	}
+
+	/// <summary>`GET DIAGNOSTICS`: statement items, a condition's items, or all of it; an item of the other kind is refused.</summary>
+	[Theory]
+	[InlineData("GET DIAGNOSTICS :n = NUMBER, :r = ROW_COUNT", true)]
+	[InlineData("GET DIAGNOSTICS CONDITION 1 :m = MESSAGE_TEXT", true)]
+	[InlineData("GET DIAGNOSTICS :x = ALL", true)]
+	[InlineData("GET DIAGNOSTICS a = NUMBER, t.b = MORE, :c = COMMAND_FUNCTION_CODE", true)]
+	[InlineData("GET DIAGNOSTICS CONDITION :n :m = MESSAGE_TEXT, :s = RETURNED_SQLSTATE", true)]
+	[InlineData("GET DIAGNOSTICS :x = ALL STATEMENT", true)]
+	[InlineData("GET DIAGNOSTICS :x = ALL CONDITION", true)]
+	[InlineData("GET DIAGNOSTICS :x = ALL CONDITION 2", true)]
+	[InlineData("GET DIAGNOSTICS CONDITION 1 :m = NUMBER", false)]
+	[InlineData("GET DIAGNOSTICS :n = MESSAGE_TEXT", false)]
+	[InlineData("GET DIAGNOSTICS", false)]
+	public void A_diagnostics_statement(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseSQLDiagnosticsStatement(input).IsSuccess);
+	}
+
+	/// <summary>A direct data statement: a cursor specification, a temporary table declared, or a data change.</summary>
+	[Theory]
+	[InlineData("SELECT a FROM t ORDER BY a FOR UPDATE OF b", true)]
+	[InlineData("SELECT a FROM t FOR READ ONLY", true)]
+	[InlineData("DECLARE c CURSOR FOR SELECT a FROM t", false)]
+	[InlineData("DECLARE c INSENSITIVE SCROLL CURSOR WITH HOLD WITH RETURN FOR SELECT a FROM t", false)]
+	[InlineData("DECLARE LOCAL TEMPORARY TABLE t (a INT) ON COMMIT DELETE ROWS", true)]
+	[InlineData("SELECT a FROM t FOR UPDATE", true)]
+	[InlineData("SELECT a FROM t FOR UPDATE OF a, b", true)]
+	[InlineData("SELECT a FROM t UNION SELECT b FROM u FOR READ ONLY", true)]
+	[InlineData("SELECT a FROM t FOR READ WRITE", false)]
+	[InlineData("DECLARE LOCAL TEMPORARY TABLE t AS (SELECT a FROM u) WITH DATA", false)]
+	[InlineData("DECLARE GLOBAL TEMPORARY TABLE t (a INT)", false)]
+	public void A_direct_data_statement(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseDirectSQLDataStatement(input).IsSuccess);
+	}
+
+	/// <summary>`CALL` of a routine with its arguments, and `RETURN` of a value.</summary>
+	[Theory]
+	[InlineData("CALL p(1, 2)", true)]
+	[InlineData("RETURN 1", true)]
+	[InlineData("RETURN NULL", true)]
+	[InlineData("CALL p()", true)]
+	[InlineData("CALL s.p(a => 1)", true)]
+	[InlineData("CALL p", false)]
+	[InlineData("RETURN a + 1", true)]
+	[InlineData("RETURN", false)]
+	public void A_control_statement(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseSQLControlStatement(input).IsSuccess);
+	}
+
+	/// <summary>A data statement in a routine: cursors opened, fetched from and closed, a single row selected into targets, locators.</summary>
+	[Theory]
+	[InlineData("OPEN c", true)]
+	[InlineData("OPEN MODULE.c", true)]
+	[InlineData("CLOSE c", true)]
+	[InlineData("FETCH c INTO :a", true)]
+	[InlineData("FETCH FROM c INTO :a, :b INDICATOR :i", true)]
+	[InlineData("FETCH NEXT FROM c INTO a, t.b", true)]
+	[InlineData("FETCH ABSOLUTE 5 FROM c INTO :a", true)]
+	[InlineData("FETCH RELATIVE -1 FROM c INTO :a[1]", false)]
+	[InlineData("FETCH PRIOR c INTO :a", false)]
+	[InlineData("SELECT a, b INTO :x, :y FROM t WHERE a = 1", true)]
+	[InlineData("SELECT DISTINCT a INTO x FROM t", true)]
+	[InlineData("SELECT a INTO :x FROM t ORDER BY a", false)]
+	[InlineData("SELECT a INTO ? FROM t", true)]
+	[InlineData("FREE LOCATOR :l, :m", true)]
+	[InlineData("HOLD LOCATOR :l", true)]
+	[InlineData("DELETE FROM t WHERE CURRENT OF c", true)]
+	[InlineData("UPDATE t SET a = 1 WHERE CURRENT OF c", true)]
+	[InlineData("CALL p(1)", false)]
+	[InlineData("RETURN 1", false)]
+	public void A_data_statement(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseSQLDataStatement(input).IsSuccess);
+	}
+
+	/// <summary>A direct statement ends in its semicolon, and a control statement is none.</summary>
+	[Theory]
+	[InlineData("COMMIT;", true)]
+	[InlineData("SELECT a FROM t;", true)]
+	[InlineData("SELECT a FROM t", false)]
+	[InlineData("COMMIT ;", true)]
+	[InlineData("INSERT INTO t VALUES (1);", true)]
+	[InlineData("CALL p();", false)]
+	public void A_direct_statement(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseDirectSQLStatement(input).IsSuccess);
+	}
+
 	// ── §6.1 Data types ──────────────────────────────────────────────────────────
 
 	[Theory]

@@ -11,7 +11,9 @@
 // them and the names §5.4 does; §6, scalar expressions, with window functions and row pattern
 // navigation and the JSON functions; §7, query expressions, with row pattern recognition and JSON
 // tables; §8, predicates; §10.9, aggregates; §11 and §12, the schema's core — schemas, tables, views,
-// domains, sequences, assertions, roles and privileges; §14, the data change statements. What the BNF leaves to
+// domains, sequences, assertions, roles and privileges; §14, the data change statements and the cursors;
+// §16 to §19, §22 and §23, the control, transaction, connection, session, direct and
+// diagnostics statements. What the BNF leaves to
 // the Syntax Rules — the JSON path
 // language's literals and names among it — is read as nothing, as `--standard` reads it.
 
@@ -1685,6 +1687,161 @@ Grantees  = ("PUBLIC"i | Identifier) & (',' & ("PUBLIC"i | Identifier))*
 Grantor   = "CURRENT_USER"i | "CURRENT_ROLE"i
 GrantedBy = "GRANTED"i & "BY"i & Grantor
 
+// ── §22 Direct invocation of SQL, and the statements it invokes ─────────────
+//
+// <direct SQL statement>: a statement and its semicolon. What an implementation defines for itself is
+// none of the standard's, and not read.
+DirectSQLStatement = DirectlyExecutableStatement & ';'
+
+DirectlyExecutableStatement
+	= DirectSQLDataStatement
+	| SQLSchemaStatement
+	| SQLTransactionStatement
+	| SQLConnectionStatement
+	| SQLSessionStatement
+
+// <direct SQL data statement>. A multiple row select statement is a cursor specification; a searched
+// statement is asked before a query only by its key word.
+DirectSQLDataStatement
+	= DeleteStatementSearched
+	| InsertStatement
+	| UpdateStatementSearched
+	| TruncateTableStatement
+	| MergeStatement
+	| TemporaryTableDeclaration
+	| CursorSpecification
+
+// <cursor specification>: a query, and whether it is updated through.
+CursorSpecification = QueryExpression & ("FOR"i & ("READ"i & "ONLY"i | "UPDATE"i & ("OF"i & ColumnNameList)?))?
+
+TemporaryTableDeclaration = "DECLARE"i & "LOCAL"i & "TEMPORARY"i & "TABLE"i & TableName & TableElementList & ("ON"i & "COMMIT"i & ("PRESERVE"i | "DELETE"i) & "ROWS"i)?
+
+// ── §14.7 Select statement: single row, §14 cursors and locators ────────────
+
+// <SQL data statement>, in a routine's body.
+SQLDataStatement
+	= OpenStatement
+	| FetchStatement
+	| CloseStatement
+	| SelectStatementSingleRow
+	| FreeLocatorStatement
+	| HoldLocatorStatement
+	| DeleteStatementPositioned
+	| DeleteStatementSearched
+	| InsertStatement
+	| UpdateStatementPositioned
+	| UpdateStatementSearched
+	| TruncateTableStatement
+	| MergeStatement
+
+OpenStatement  = "OPEN"i & CursorName
+CloseStatement = "CLOSE"i & CursorName
+FetchStatement = "FETCH"i & (FetchOrientation? & "FROM"i)? & CursorName & "INTO"i & { TargetSpecification & (',' & TargetSpecification)* }
+
+FetchOrientation = "NEXT"i | "PRIOR"i | "FIRST"i | "LAST"i | ("ABSOLUTE"i | "RELATIVE"i) & SimpleValueSpecification
+
+// <select statement: single row>: a query specification whose select list is followed by `INTO`.
+SelectStatementSingleRow = "SELECT"i & SetQuantifier? & SelectList & "INTO"i & { TargetSpecification & (',' & TargetSpecification)* } & TableExpression
+
+// <target specification>: a host parameter with its indicator, an SQL parameter or a column — an
+// identifier chain either — an element of an array, or a dynamic parameter. An embedded variable is
+// written as a host parameter is.
+TargetSpecification
+	= ':' & Identifier & ("INDICATOR"i? & ':' & Identifier)?
+	| IdentifierChain & (LeftBracketOrTrigraph & SimpleValueSpecification & RightBracketOrTrigraph)?
+	| "MODULE"i & '.' & Identifier & '.' & Identifier
+	| '?'
+
+FreeLocatorStatement = "FREE"i & "LOCATOR"i & LocatorReference & (',' & LocatorReference)*
+HoldLocatorStatement = "HOLD"i & "LOCATOR"i & LocatorReference & (',' & LocatorReference)*
+LocatorReference     = ':' & Identifier | '?'
+
+// ── §16 Control statements ──────────────────────────────────────────────────
+
+SQLControlStatement = CallStatement | ReturnStatement
+CallStatement       = "CALL"i & RoutineInvocation
+ReturnStatement     = "RETURN"i & (ValueExpression | "NULL"i)
+
+// ── §17 Transaction management ──────────────────────────────────────────────
+
+SQLTransactionStatement
+	= StartTransactionStatement
+	| SetTransactionStatement
+	| SetConstraintsModeStatement
+	| SavepointStatement
+	| ReleaseSavepointStatement
+	| CommitStatement
+	| RollbackStatement
+
+StartTransactionStatement   = "START"i & "TRANSACTION"i & (TransactionMode & (',' & TransactionMode)*)?
+SetTransactionStatement     = "SET"i & "LOCAL"i? & "TRANSACTION"i & (TransactionMode & (',' & TransactionMode)*)?
+SetConstraintsModeStatement = "SET"i & "CONSTRAINTS"i & ("ALL"i | SchemaQualifiedName & (',' & SchemaQualifiedName)*) & ("DEFERRED"i | "IMMEDIATE"i)
+SavepointStatement          = "SAVEPOINT"i & Identifier
+ReleaseSavepointStatement   = "RELEASE"i & "SAVEPOINT"i & Identifier
+CommitStatement             = "COMMIT"i & "WORK"i? & ("AND"i & "NO"i? & "CHAIN"i)?
+RollbackStatement           = "ROLLBACK"i & "WORK"i? & ("AND"i & "NO"i? & "CHAIN"i)? & ("TO"i & "SAVEPOINT"i & Identifier)?
+
+// <transaction mode>.
+TransactionMode
+	= "ISOLATION"i & "LEVEL"i & ("READ"i & ("UNCOMMITTED"i | "COMMITTED"i) | "REPEATABLE"i & "READ"i | "SERIALIZABLE"i)
+	| "READ"i & ("ONLY"i | "WRITE"i)
+	| "DIAGNOSTICS"i & "SIZE"i & SimpleValueSpecification
+
+// ── §18 Connection management ───────────────────────────────────────────────
+
+SQLConnectionStatement = ConnectStatement | SetConnectionStatement | DisconnectStatement
+
+ConnectStatement       = "CONNECT"i & "TO"i & ("DEFAULT"i | SimpleValueSpecification & ("AS"i & SimpleValueSpecification)? & ("USER"i & SimpleValueSpecification)?)
+SetConnectionStatement = "SET"i & "CONNECTION"i & ("DEFAULT"i | SimpleValueSpecification)
+DisconnectStatement    = "DISCONNECT"i & ("DEFAULT"i | "ALL"i | "CURRENT"i | SimpleValueSpecification)
+
+// ── §19 Session management ──────────────────────────────────────────────────
+
+// <SQL session statement>. A value specification is a literal or a general value specification; a
+// catalog's, schema's, path's and names' are all given as a value, not written as a name.
+SQLSessionStatement
+	= "SET"i & "SESSION"i & "AUTHORIZATION"i & ValueSpecification
+	| "SET"i & "ROLE"i & ("NONE"i | ValueSpecification)
+	| "SET"i & "TIME"i & "ZONE"i & ("LOCAL"i | IntervalValueExpression)
+	| "SET"i & "SESSION"i & "CHARACTERISTICS"i & "AS"i & SessionTransactionCharacteristics & (',' & SessionTransactionCharacteristics)*
+	| "SET"i & ("CATALOG"i | "SCHEMA"i | "NAMES"i | "PATH"i) & ValueSpecification
+	| "SET"i & "DEFAULT"i & "TRANSFORM"i & "GROUP"i & ValueSpecification
+	| "SET"i & "TRANSFORM"i & "GROUP"i & "FOR"i & "TYPE"i & PathResolvedUserDefinedTypeName & ValueSpecification
+	| "SET"i & "COLLATION"i & ValueSpecification & ("FOR"i & { CharacterSetSpecification & (',' & CharacterSetSpecification)* })?
+	| "SET"i & "NO"i & "COLLATION"i & ("FOR"i & { CharacterSetSpecification & (',' & CharacterSetSpecification)* })?
+
+SessionTransactionCharacteristics = "TRANSACTION"i & TransactionMode & (',' & TransactionMode)*
+
+// <value specification>.
+ValueSpecification = Literal | GeneralValueSpecification | IdentifierChain
+
+// ── §23 Diagnostics management ──────────────────────────────────────────────
+
+SQLDiagnosticsStatement = "GET"i & "DIAGNOSTICS"i & SQLDiagnosticsInformation
+
+// <SQL diagnostics information>: statement information, a condition's, or all of it.
+SQLDiagnosticsInformation
+	= SimpleTargetSpecification & '=' & "ALL"i & ("STATEMENT"i | "CONDITION"i & SimpleValueSpecification?)?
+	| "CONDITION"i & SimpleValueSpecification & { ConditionInformationItem & (',' & ConditionInformationItem)* }
+	| { StatementInformationItem & (',' & StatementInformationItem)* }
+
+StatementInformationItem = SimpleTargetSpecification & '=' & StatementInformationItemName
+ConditionInformationItem = SimpleTargetSpecification & '=' & ConditionInformationItemName
+
+SimpleTargetSpecification = ':' & Identifier | IdentifierChain | "MODULE"i & '.' & Identifier & '.' & Identifier
+
+StatementInformationItemName
+	= "NUMBER"i | "MORE"i | "COMMAND_FUNCTION_CODE"i | "COMMAND_FUNCTION"i | "DYNAMIC_FUNCTION_CODE"i | "DYNAMIC_FUNCTION"i
+	| "ROW_COUNT"i | "TRANSACTIONS_COMMITTED"i | "TRANSACTIONS_ROLLED_BACK"i | "TRANSACTION_ACTIVE"i
+
+ConditionInformationItemName
+	= "CATALOG_NAME"i | "CLASS_ORIGIN"i | "COLUMN_NAME"i | "CONDITION_NUMBER"i | "CONNECTION_NAME"i
+	| "CONSTRAINT_CATALOG"i | "CONSTRAINT_NAME"i | "CONSTRAINT_SCHEMA"i | "CURSOR_NAME"i
+	| "MESSAGE_LENGTH"i | "MESSAGE_OCTET_LENGTH"i | "MESSAGE_TEXT"i | "PARAMETER_MODE"i | "PARAMETER_NAME"i
+	| "PARAMETER_ORDINAL_POSITION"i | "RETURNED_SQLSTATE"i | "ROUTINE_CATALOG"i | "ROUTINE_NAME"i | "ROUTINE_SCHEMA"i
+	| "SCHEMA_NAME"i | "SERVER_NAME"i | "SPECIFIC_NAME"i | "SUBCLASS_ORIGIN"i | "TABLE_NAME"i
+	| "TRIGGER_CATALOG"i | "TRIGGER_NAME"i | "TRIGGER_SCHEMA"i
+
 parse Literal                  as ParseLiteral
 parse UnsignedLiteral          as ParseUnsignedLiteral
 parse Identifier               as ParseIdentifier
@@ -1717,3 +1874,11 @@ parse DeleteStatementPositioned as ParseDeleteStatementPositioned
 parse MergeStatement           as ParseMergeStatement
 parse TruncateTableStatement   as ParseTruncateTableStatement
 parse SQLSchemaStatement       as ParseSQLSchemaStatement
+parse DirectSQLStatement       as ParseDirectSQLStatement
+parse SQLTransactionStatement  as ParseSQLTransactionStatement
+parse SQLConnectionStatement   as ParseSQLConnectionStatement
+parse SQLSessionStatement      as ParseSQLSessionStatement
+parse SQLDiagnosticsStatement  as ParseSQLDiagnosticsStatement
+parse DirectSQLDataStatement   as ParseDirectSQLDataStatement
+parse SQLControlStatement      as ParseSQLControlStatement
+parse SQLDataStatement         as ParseSQLDataStatement
