@@ -569,9 +569,13 @@ static class Engine
 	internal static bool AboutNames(int message) =>
 		// 911: a database that does not exist — `USE AdventureWorks2022`, which the reference's
 		// examples open with, read and then objected to by name. 12703: an external data source
-		// that does not exist, named in an `OPENROWSET`.
+		// that does not exist, named in an `OPENROWSET`. Not 4145, "an expression of non-boolean
+		// type specified in a context where a condition is expected": it is the parser finding a
+		// value where a predicate stands — `IF 1`, `WHERE c`, `ON t.c`, `HAVING count(*)` — and it
+		// stops there, so the reference's `IF OBJECT_ID (…) isn't NULL` was read with an unclosed
+		// quote after it.
 		message is 117 or 137 or 195 or 207 or 208 or 448 or 911 or 1047 or 1087 or 12703
-			or 4104 or 4112 or 4145
+			or 4104 or 4112
 			or 5369 or 5371 or 5374
 			or 10715
 

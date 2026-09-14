@@ -21596,3 +21596,37 @@ through a schema, quoted and bracketed, where `foo varying` and `nvarchar varyin
 At 170: 7,410 both, 0 work, 0 defects, 276 another product's, 631 neither; at 150: 6,623 both, 0, 0,
 236 and 529. `--split` 788 cut the same (from 785), the round trip 100% of 7,732 (from 7,727), the
 map 7,994 both and 0 defects, `--levels` 145 of 145. The suite is 14,641 rows (from 14,310).
+
+## The map's last eight: a value where a condition stands, AUTOCOMMIT, and what 4145 hid
+
+The reference's map had eight statements on its work list, and an earlier entry had judged all of
+them not work and left them counted. Asked again, one at a time and through `sqlcmd`:
+
+- `IF OBJECT_ID (…) isn't NULL`, a typo in two pages, five statements: the engine answers `Msg 4145`,
+  "an expression of non-boolean type specified in a context where a condition is expected", near
+  `isn`, and stops there — the unclosed quote after it is never looked at (`SELECT 1 isn't` is
+  `102`).
+- `SET AUTOCOMMIT ON` and `OFF`, three statements, Synapse's and Fabric's: `Msg 195`, a `SET` option the
+  engine has not heard of.
+
+**4145 is not about a name.** It had been on `AboutNames` since the harness was first written, and
+it is the parser finding a value where a predicate stands: `IF 1`, `WHERE c`, `WHERE dbo.f(1)`, `ON
+t.c`, `HAVING count(*)`, `CASE WHEN 1`, `WHILE 1`, `MERGE … ON t.c` — twenty shapes, every one of
+which this grammar refuses, where `CONTAINS`, `FREETEXT`, `EXISTS` and `UPDATE (c)` are read by both.
+Off the list, the typo's five statements are neither, and nothing in the corpus moved.
+
+**And what it hid.** `--levels` then counted twenty statements it had called read at every level:
+`REGEXP_LIKE` is a condition from 170 and `Msg 4145` before it, which the grammar read at every
+level. It is now a predicate `when Version is Since170`. Three of the twenty still parted — `IIF
+(REGEXP_LIKE (…), 1, 0)`, read before 170 through the call of a name nobody declared — and asking
+`IIF` on its own found a defect of this grammar's: a bare `IIF` is never such a call. `IIF (1, 2,
+3)`, `IIF (c, 1, 0)`, `IIF (NULL, 1, 0)`, `IIF ((SELECT 1), 1, 0)`, `IIF ()` and `IIF (1)` are all `Msg
+4145`, and `dbo.IIF (1, 2, 3)` and `x.IIF (1, 2, 3)` are read.
+
+**`AUTOCOMMIT`** joins `RESULT_SET_CACHING` and `RECOMMENDATIONS` among the switches, read by both
+the way theirs are.
+
+At 170: 7,410 both, 0 work, 0 defects, 276 another product's, 631 neither; at 150: 6,623 both, 0, 0,
+236 and 529 — unchanged. The map 7,997 both, 0 work, 0 defects, 0 parting at a level, 81 another
+product's and 260 neither (from 7,994, 8, 0, 0, 81 and 255). `--levels` 165 of 165 (from 145 of 145).
+`--split` 788, the round trip 100% of 7,732. The suite is 14,684 rows (from 14,641).

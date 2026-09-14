@@ -557,9 +557,11 @@ NextValue : @Expression
 // A call to something this grammar has never heard of, which is most of them: the
 // name is a catalogue's business and the arguments are values.
 // A name of one part is called bare: `[LEN]('a')` and `"LEN"('a')` are refused, and
-// `dbo.[LEN]('a')` is read.
+// `dbo.[LEN]('a')` is read. A bare `IIF` is never a call of this kind: `IIF (1, 2, 3)`, `IIF
+// (NULL, 1, 0)` and `IIF ()` are `Msg 4145`, a value where its condition stands, and `dbo.IIF
+// (1, 2, 3)` is read.
 FunctionCall : @Expression
-	= ?!(JsonOwnName & '(') & name: QualifiedName & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name))
+	= ?!((JsonOwnName | "IIF"i) & '(') & name: QualifiedName & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name))
 	  & '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
 		=> @(Syntax.Called(
 				 new Expression.RoutineInvocation(
@@ -826,7 +828,12 @@ TSqlPredicate : @Expression
 	= "EXISTS"i & q: TableSubquery => @(new Expression.Exists(q))
 	| "UNIQUE"i & q: TableSubquery => @(new Expression.Unique(q))
 	| f: FullTextPredicate => @(f)
-	| name: ("TSEQUAL"i | "REGEXP_LIKE"i | "UPDATE"i)
+	| name: ("TSEQUAL"i | "UPDATE"i)
+	  & '(' & args: Arguments? & ')'
+		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
+	// A condition from 170: before it `WHERE REGEXP_LIKE ('abc', '^a')` is `Msg 4145`, a value
+	// where a condition stands, which a call of that name is here too.
+	| name: "REGEXP_LIKE"i & when Version is Since170
 	  & '(' & args: Arguments? & ')'
 		=> @(new Expression.RoutineInvocation(name, args ?? Expression.None))
 	| m: GraphMatch => @(m)
@@ -3433,11 +3440,11 @@ SetExpressions : @SetExpression[]
 		=> @(Syntax.Listed(first, rest))
 
 // The switches of Microsoft's pages, and `NO_BROWSETABLE`, which no page describes and the
-// drivers send. `RESULT_SET_CACHING` is Synapse's and `RECOMMENDATIONS` Fabric's; SQL Server
-// says it has not heard of either.
+// drivers send. `RESULT_SET_CACHING` is Synapse's, `RECOMMENDATIONS` Fabric's and `AUTOCOMMIT`
+// both of theirs; SQL Server says it has not heard of any of them (`Msg 195`).
 SetSwitch : @string = t: SetSwitchName => @(t)
 SetSwitchName
-	= "ANSI_DEFAULTS"i | "ANSI_NULL_DFLT_OFF"i | "ANSI_NULL_DFLT_ON"i | "ANSI_NULLS"i
+	= "ANSI_DEFAULTS"i | "ANSI_NULL_DFLT_OFF"i | "ANSI_NULL_DFLT_ON"i | "ANSI_NULLS"i | "AUTOCOMMIT"i
 	| "ANSI_PADDING"i | "ANSI_WARNINGS"i | "ARITHABORT"i | "ARITHIGNORE"i
 	| "CONCAT_NULL_YIELDS_NULL"i | "CURSOR_CLOSE_ON_COMMIT"i | "FMTONLY"i | "FORCEPLAN"i
 	| "IMPLICIT_TRANSACTIONS"i | "NO_BROWSETABLE"i | "NOCOUNT"i | "NOEXEC"i

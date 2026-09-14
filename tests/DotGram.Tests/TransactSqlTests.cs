@@ -9584,6 +9584,63 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
+	/// <summary>
+	/// A value where a condition stands, which the engine answers <c>Msg 4145</c> and stops at, the
+	/// predicates that are conditions, and <c>SET AUTOCOMMIT</c>, Synapse's and Fabric's.
+	/// </summary>
+	[Theory]
+	[InlineData("IF OBJECT_ID('x') SELECT 1")]
+	[InlineData("IF dbo.f() SELECT 1")]
+	[InlineData("IF 1 SELECT 1")]
+	[InlineData("IF (SELECT 1) SELECT 1")]
+	[InlineData("DECLARE @a bit; IF @a SELECT 1")]
+	[InlineData("WHILE 1 BREAK")]
+	[InlineData("SELECT * FROM t WHERE dbo.f(1)")]
+	[InlineData("SELECT * FROM t WHERE c")]
+	[InlineData("SELECT CASE WHEN 1 THEN 2 END")]
+	[InlineData("SELECT c FROM t GROUP BY c HAVING count(*)")]
+	[InlineData("SELECT * FROM t JOIN u ON t.c")]
+	[InlineData("SELECT * FROM t WHERE (c)")]
+	[InlineData("SELECT * FROM t WHERE c.STIntersects(d)")]
+	[InlineData("SELECT * FROM t WHERE NOT dbo.f(1)")]
+	[InlineData("DELETE FROM t WHERE 1")]
+	[InlineData("UPDATE t SET c = 1 WHERE dbo.f(1)")]
+	[InlineData("SELECT * FROM t WHERE c = 1 AND dbo.f(1)")]
+	[InlineData("MERGE t USING u ON t.c WHEN MATCHED THEN DELETE")]
+	[InlineData("SELECT * FROM t WHERE $PARTITION.pf(c)")]
+	[InlineData("IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1")]
+	[InlineData("SET AUTOCOMMIT")]
+	[InlineData("SELECT IIF(1, 2, 3)")]
+	[InlineData("SELECT IIF(c, 1, 0) FROM t")]
+	[InlineData("SELECT IIF(dbo.f(), 1, 0)")]
+	[InlineData("SELECT IIF(NULL, 1, 0)")]
+	[InlineData("SELECT IIF((SELECT 1), 1, 0)")]
+	[InlineData("SELECT IIF()")]
+	[InlineData("SELECT IIF(1)")]
+	public void A_condition_that_is_a_value_is_refused(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And a predicate is read.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM t WHERE CONTAINS(c, 'x')")]
+	[InlineData("SELECT * FROM t WHERE FREETEXT(c, 'x')")]
+	[InlineData("IF UPDATE(c) SELECT 1")]
+	[InlineData("SELECT * FROM t WHERE EXISTS (SELECT 1)")]
+	[InlineData("IF OBJECT_ID ('dbo.Table1', 'U') IS NOT NULL DROP TABLE dbo.Table1")]
+	[InlineData("SET AUTOCOMMIT ON")]
+	[InlineData("SET AUTOCOMMIT OFF")]
+	[InlineData("SELECT IIF((1 = 1), 1, 0)")]
+	[InlineData("SELECT dbo.IIF(1, 2, 3)")]
+	[InlineData("SELECT x.IIF(1, 2, 3) FROM t x")]
+	[InlineData("SELECT IIF(EXISTS (SELECT 1), 1, 0)")]
+	[InlineData("SELECT IIF(UPDATE(c), 1, 0)")]
+	public void A_condition_or_a_predicate_is_read(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
 	/// <summary>What may follow an ad hoc data source, as the engine answers it.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM OPENDATASOURCE ('SQLOLEDB', 'Data Source=s').'a'.'b' AS Z")]
@@ -13779,6 +13836,9 @@ public sealed class TransactSqlTests
 	[InlineData("SELECT * FROM OPENXML (@h, '/r', 1) WITH (a INT)",             100)]
 	[InlineData("SELECT * FROM SEMANTICKEYPHRASETABLE (t1, c1) AS x",           100)]
 	[InlineData("SELECT * FROM CONTAINSTABLE (t1, *, 'x') AS x",                100)]
+	[InlineData("SELECT 1 WHERE REGEXP_LIKE ('abc', '^a')",                     170)]
+	[InlineData("SELECT 1 WHERE NOT REGEXP_LIKE ('abc', '^b')",                 170)]
+	[InlineData("SELECT IIF (REGEXP_LIKE ('abc', '^a'), 1, 0)",                170)]
 	public void Each_level_reads_from_where_the_engine_does(string input, int from)
 	{
 		foreach (var level in new[] { 100, 110, 120, 130, 140, 150, 160, 170 })
