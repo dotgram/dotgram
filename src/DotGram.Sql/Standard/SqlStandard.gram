@@ -12,7 +12,7 @@
 // navigation and the JSON functions; §7, query expressions, with row pattern recognition and JSON
 // tables; §8, predicates; §10.9, aggregates; §11 and §12, the schema's core — schemas, tables, views,
 // domains, sequences, assertions, roles and privileges; §14, the data change statements and the cursors;
-// §16 to §19, §22 and §23, the control, transaction, connection, session, direct and
+// §16 to §20, §22 and §23, the control, transaction, connection, session, dynamic, direct and
 // diagnostics statements. What the BNF leaves to
 // the Syntax Rules — the JSON path
 // language's literals and names among it — is read as nothing, as `--standard` reads it.
@@ -1842,6 +1842,129 @@ ConditionInformationItemName
 	| "SCHEMA_NAME"i | "SERVER_NAME"i | "SPECIFIC_NAME"i | "SUBCLASS_ORIGIN"i | "TABLE_NAME"i
 	| "TRIGGER_CATALOG"i | "TRIGGER_NAME"i | "TRIGGER_SCHEMA"i
 
+// ── §20 Dynamic SQL ─────────────────────────────────────────────────────────
+
+// <SQL dynamic statement>.
+SQLDynamicStatement
+	= SQLDescriptorStatement
+	| PrepareStatement
+	| DeallocatePreparedStatement
+	| DescribeStatement
+	| ExecuteImmediateStatement
+	| ExecuteStatement
+	| SQLDynamicDataStatement
+	| CopyDescriptorStatement
+	| PipeRowStatement
+
+// <scope option>.
+ScopeOption = "GLOBAL"i | "LOCAL"i
+
+// <SQL statement name>: a statement's name, an identifier, or an extended one — a scope and a simple
+// value, which an identifier already is.
+SQLStatementName = ScopeOption? & SimpleValueSpecification
+
+// <descriptor name>: a conventional one — an identifier, or a scope and a simple value — or a
+// polymorphic table function's.
+DescriptorName             = ConventionalDescriptorName | "PTF"i & SimpleValueSpecification
+ConventionalDescriptorName = ScopeOption? & SimpleValueSpecification
+
+// <conventional dynamic cursor name>: a cursor's name, or an extended one.
+ConventionalDynamicCursorName = CursorName | ScopeOption? & SimpleValueSpecification
+DynamicCursorName             = ConventionalDynamicCursorName | "PTF"i & SimpleValueSpecification
+
+// ── §20.1 Descriptor statements ─────────────────────────────────────────────
+
+SQLDescriptorStatement
+	= "ALLOCATE"i & "SQL"i? & "DESCRIPTOR"i & ConventionalDescriptorName & ("WITH"i & "MAX"i & SimpleValueSpecification)?
+	| "DEALLOCATE"i & "SQL"i? & "DESCRIPTOR"i & ConventionalDescriptorName
+	| "GET"i & "SQL"i? & "DESCRIPTOR"i & DescriptorName & GetDescriptorInformation
+	| "SET"i & "SQL"i? & "DESCRIPTOR"i & DescriptorName & SetDescriptorInformation
+
+// <get descriptor information>, <set descriptor information>: the header's items, or one item's.
+GetDescriptorInformation
+	= { SimpleTargetSpecification & '=' & HeaderItemName & (',' & SimpleTargetSpecification & '=' & HeaderItemName)* }
+	| "VALUE"i & SimpleValueSpecification & { SimpleTargetSpecification & '=' & DescriptorItemName & (',' & SimpleTargetSpecification & '=' & DescriptorItemName)* }
+
+SetDescriptorInformation
+	= { HeaderItemName & '=' & SimpleValueSpecification & (',' & HeaderItemName & '=' & SimpleValueSpecification)* }
+	| "VALUE"i & SimpleValueSpecification & { DescriptorItemName & '=' & SimpleValueSpecification & (',' & DescriptorItemName & '=' & SimpleValueSpecification)* }
+
+HeaderItemName = "COUNT"i | "KEY_TYPE"i | "DYNAMIC_FUNCTION_CODE"i | "DYNAMIC_FUNCTION"i | "TOP_LEVEL_COUNT"i
+
+DescriptorItemName
+	= "CARDINALITY"i | "CHARACTER_SET_CATALOG"i | "CHARACTER_SET_NAME"i | "CHARACTER_SET_SCHEMA"i
+	| "COLLATION_CATALOG"i | "COLLATION_NAME"i | "COLLATION_SCHEMA"i | "DATA"i | "DATETIME_INTERVAL_CODE"i
+	| "DATETIME_INTERVAL_PRECISION"i | "DEGREE"i | "INDICATOR"i | "KEY_MEMBER"i | "LENGTH"i | "LEVEL"i | "NAME"i
+	| "NULLABLE"i | "NULL_ORDERING"i | "OCTET_LENGTH"i | "PARAMETER_MODE"i | "PARAMETER_ORDINAL_POSITION"i
+	| "PARAMETER_SPECIFIC_CATALOG"i | "PARAMETER_SPECIFIC_NAME"i | "PARAMETER_SPECIFIC_SCHEMA"i | "PRECISION"i
+	| "RETURNED_CARDINALITY"i | "RETURNED_LENGTH"i | "RETURNED_OCTET_LENGTH"i | "SCALE"i | "SCOPE_CATALOG"i
+	| "SCOPE_NAME"i | "SCOPE_SCHEMA"i | "SORT_DIRECTION"i | "TYPE"i | "UNNAMED"i | "USER_DEFINED_TYPE_CATALOG"i
+	| "USER_DEFINED_TYPE_NAME"i | "USER_DEFINED_TYPE_SCHEMA"i | "USER_DEFINED_TYPE_CODE"i
+
+// <copy descriptor statement>: to a polymorphic table function's descriptor, the whole or an item.
+CopyDescriptorStatement = "COPY"i & DescriptorName & CopyDescriptorTail
+
+CopyDescriptorTail
+	= "TO"i & "PTF"i & SimpleValueSpecification
+	| "VALUE"i & SimpleValueSpecification & '(' & ("NAME"i & ',' & "TYPE"i | "NAME"i | "TYPE"i | "DATA"i) & ')'
+	  & "TO"i & "PTF"i & SimpleValueSpecification & "VALUE"i & SimpleValueSpecification
+
+PipeRowStatement = "PIPE"i & "ROW"i & "PTF"i & SimpleValueSpecification
+
+// ── §20.6–20.11 Prepare, deallocate, describe, execute ──────────────────────
+
+PrepareStatement            = "PREPARE"i & SQLStatementName & ("ATTRIBUTES"i & SimpleValueSpecification)? & "FROM"i & SimpleValueSpecification
+DeallocatePreparedStatement = "DEALLOCATE"i & "PREPARE"i & SQLStatementName
+
+// <describe statement>. `INPUT` and `OUTPUT` are not reserved, and a statement may be named so.
+DescribeStatement
+	= "DESCRIBE"i & "INPUT"i & SQLStatementName & UsingDescriptor & NestingOption?
+	| "DESCRIBE"i & "OUTPUT"i? & ("CURSOR"i & CursorName & "STRUCTURE"i | SQLStatementName) & UsingDescriptor & NestingOption?
+
+UsingDescriptor = "USING"i & "SQL"i? & "DESCRIPTOR"i & DescriptorName
+NestingOption   = ("WITH"i | "WITHOUT"i) & "NESTING"i
+
+// <execute immediate statement>, asked before <execute statement>, which names a statement `IMMEDIATE` as readily.
+ExecuteImmediateStatement = "EXECUTE"i & "IMMEDIATE"i & SimpleValueSpecification
+ExecuteStatement          = "EXECUTE"i & SQLStatementName & OutputUsingClause? & InputUsingClause?
+
+// <input using clause>, <output using clause>: arguments, or a descriptor. A <using argument> is a
+// general value specification, whose SQL parameter reference is an identifier chain.
+InputUsingClause
+	= "USING"i & "SQL"i? & "DESCRIPTOR"i & DescriptorName
+	| "USING"i & { UsingArgument & (',' & UsingArgument)* }
+
+UsingArgument = GeneralValueSpecification | IdentifierChain
+
+OutputUsingClause
+	= "INTO"i & "SQL"i? & "DESCRIPTOR"i & DescriptorName
+	| "INTO"i & { TargetSpecification & (',' & TargetSpecification)* }
+
+// ── §20.12–20.23 Dynamic cursors ────────────────────────────────────────────
+
+SQLDynamicDataStatement
+	= AllocateExtendedDynamicCursorStatement
+	| AllocateReceivedCursorStatement
+	| "OPEN"i & ConventionalDynamicCursorName & InputUsingClause?
+	| "FETCH"i & (FetchOrientation? & "FROM"i)? & DynamicCursorName & OutputUsingClause
+	| "CLOSE"i & ConventionalDynamicCursorName
+	| "DELETE"i & "FROM"i & TargetTable & "WHERE"i & "CURRENT"i & "OF"i & ConventionalDynamicCursorName
+	| "UPDATE"i & TargetTable & "SET"i & SetClauseList & "WHERE"i & "CURRENT"i & "OF"i & ConventionalDynamicCursorName
+
+AllocateExtendedDynamicCursorStatement = "ALLOCATE"i & ScopeOption? & SimpleValueSpecification & CursorProperties & "FOR"i & ScopeOption? & SimpleValueSpecification
+AllocateReceivedCursorStatement        = "ALLOCATE"i & CursorName & "CURSOR"i? & "FOR"i & SpecificRoutineDesignator
+
+// <cursor properties>.
+CursorProperties = ("SENSITIVE"i | "INSENSITIVE"i | "ASENSITIVE"i)? & ("SCROLL"i | "NO"i & "SCROLL"i)? & "CURSOR"i
+	  & (("WITH"i | "WITHOUT"i) & "HOLD"i)? & (("WITH"i | "WITHOUT"i) & "RETURN"i)?
+
+// <specific routine designator>: a routine by its specific name, or by its name and its parameters' types.
+SpecificRoutineDesignator
+	= "SPECIFIC"i & RoutineType & SchemaQualifiedName
+	| RoutineType & SchemaQualifiedName & ('(' & (DataType & (',' & DataType)*)? & ')')? & ("FOR"i & SchemaQualifiedName)?
+
+RoutineType = "ROUTINE"i | "FUNCTION"i | "PROCEDURE"i | ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i
+
 parse Literal                  as ParseLiteral
 parse UnsignedLiteral          as ParseUnsignedLiteral
 parse Identifier               as ParseIdentifier
@@ -1882,3 +2005,4 @@ parse SQLDiagnosticsStatement  as ParseSQLDiagnosticsStatement
 parse DirectSQLDataStatement   as ParseDirectSQLDataStatement
 parse SQLControlStatement      as ParseSQLControlStatement
 parse SQLDataStatement         as ParseSQLDataStatement
+parse SQLDynamicStatement      as ParseSQLDynamicStatement

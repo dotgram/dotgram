@@ -22387,3 +22387,26 @@ at 128 before, 0.16 to 0.26 now; a transaction's modes never did.
 
 Held by 122 probe lines and `.work/fuzz_statements.py`, one production per run: 15,982 random
 verdicts over the atomic lists, half of them on broken lines, and none differ.
+
+## SQL:2023 §20: dynamic SQL
+
+`PREPARE`, `DEALLOCATE PREPARE`, `DESCRIBE`, `EXECUTE` and `EXECUTE IMMEDIATE`; descriptors allocated,
+deallocated, read and set, and copied to a polymorphic table function's; `PIPE ROW`; dynamic cursors
+allocated, opened, fetched from and closed, and the positioned data changes through one; with them the
+specific routine designator a received cursor names. One publication, `SQLDynamicStatement`. With it
+a `<SQL procedure statement>` has every kind of statement the foundation gives it, and routines and
+triggers are next.
+
+**What the BNF fixes.** An `EXECUTE`'s results go `INTO` before its arguments come `USING`; an argument
+is a general value specification — a parameter, a host variable, `CURRENT_USER`, `?` — and no
+expression. A descriptor's header items (`COUNT`, `KEY_TYPE`) are set and read without `VALUE`, and an
+item's (`TYPE`, `DATA`) with one, and neither in the other's place. `COPY` and `PIPE ROW` go to a
+polymorphic table function's descriptor, `ALLOCATE DESCRIPTOR` names a conventional one, and `COPY`'s
+options are `NAME`, `TYPE`, `NAME, TYPE` or `DATA`, in that order. `DESCRIBE` needs its descriptor.
+`SQL` is reserved, so `PREPARE s FROM :sql` is refused — a host parameter's name is an identifier.
+`EXECUTE IMMEDIATE` alone is read: it executes a statement named `IMMEDIATE`, and so is `DESCRIBE INPUT
+USING …`, of one named `INPUT`.
+
+Held by 76 probe lines and `.work/fuzz_dynamic.py`: 6,000 random verdicts, 3,000 of them on broken
+lines, and none differ. The lists — arguments, results, a descriptor's items — are atomic from the
+start, and refused at 128 elements cost under 0.2 ms.
