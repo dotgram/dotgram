@@ -63,6 +63,12 @@ deliberately anyway.
 
 Enforced by `.editorconfig`: `dotnet_style_require_accessibility_modifiers = omit_if_default`.
 
+## Profiling
+
+How the generator is measured and profiled — the harness, the byte-for-byte check against a
+baseline, dotTrace with its Reporter, dotMemory — is in `.claude/rules/profiling.md`. Read it
+before measuring anything rather than working it out again.
+
 ## Git
 
 Commits go straight to `main`. No feature branches — this is a single-user
