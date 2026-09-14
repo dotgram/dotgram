@@ -388,8 +388,15 @@ namespace DotGram.ExpressionLanguage;
 	// guard that ran on `(x) + 1` before finding no `=>` would leave an `x` behind that means
 	// nothing. The call reads the body again over exactly its own text, the parameters now
 	// typed, which is what the window a publication takes is for (§6.3).
+	//
+	// Asked first whether a `=>` follows at all, in a lookahead, because this is tried at every
+	// name and every bracket an expression begins with — before `Name` and before a bracketed
+	// expression, or `(a) => …` would be read as `(a)` — and nearly none of them is a lambda.
+	// A lookahead refuses without saying what it wanted, so the expression that follows is
+	// not also told it might have been a lambda at every one of those places.
 	Untyped : @Expression
-		= (one: Awaiting | '(' & first: Awaiting & (',' & rest: Awaiting)* & ')') & "=>"
+		= ?=((Word | '(' & Word & (',' & Word)* & ')') & "=>")
+		& (one: Awaiting | '(' & first: Awaiting & (',' & rest: Awaiting)* & ')') & "=>"
 		& when @(context.Awaits(Awaited.Of(one, first, rest), parserSpan))
 		& when @(context.Entering(parserSpan)) & body: Held
 		& when @(context.Scoped(parserSpan) && context.Leaves(parserSpan))
@@ -2987,13 +2994,6 @@ public static partial class ExpressionParser
 				: Expression.Call(target, (MethodInfo)chosen.Member, chosen.Arguments);
 		}
 
-		/// <summary>A lambda written inside an expression, which is a value like any other.</summary>
-		/// <remarks>
-		/// A `return` inside one leaves it and not the lambda around it, which is what a
-		/// `return` means in C#: it leaves the method it is written in. That is why the label
-		/// belongs to an extent rather than to the reading — the same answer a `break` gets,
-		/// and for the same reason, since both are built before the thing they leave.
-		/// </remarks>
 		/// <summary>A lambda that says no types, as what builds it once the call knows them.</summary>
 		/// <remarks>
 		/// <para>
@@ -3066,6 +3066,13 @@ public static partial class ExpressionParser
 			return lambda;
 		}
 
+		/// <summary>A lambda written inside an expression, which is a value like any other.</summary>
+		/// <remarks>
+		/// A `return` inside one leaves it and not the lambda around it, which is what a
+		/// `return` means in C#: it leaves the method it is written in. That is why the label
+		/// belongs to an extent rather than to the reading — the same answer a `break` gets,
+		/// and for the same reason, since both are built before the thing they leave.
+		/// </remarks>
 		internal Expression Nested(Expression body, ParameterExpression[] parameters, SourceSpan at)
 		{
 			if (body is null)
