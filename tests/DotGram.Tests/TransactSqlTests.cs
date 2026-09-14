@@ -9239,7 +9239,64 @@ public sealed class TransactSqlTests
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 	}
 
-	/// <summary>An old plan's hints, the pivots after a join, a source in brackets and a type called ncharacter, as the engine answered 331 lines.</summary>
+	/// <summary>
+	/// A value where a condition stands, which the engine answers <c>Msg 4145</c> and stops at, the
+	/// predicates that are conditions, and <c>SET AUTOCOMMIT</c>, Synapse's and Fabric's.
+	/// </summary>
+	[Theory]
+	[InlineData("IF OBJECT_ID('x') SELECT 1")]
+	[InlineData("IF dbo.f() SELECT 1")]
+	[InlineData("IF 1 SELECT 1")]
+	[InlineData("IF (SELECT 1) SELECT 1")]
+	[InlineData("DECLARE @a bit; IF @a SELECT 1")]
+	[InlineData("WHILE 1 BREAK")]
+	[InlineData("SELECT * FROM t WHERE dbo.f(1)")]
+	[InlineData("SELECT * FROM t WHERE c")]
+	[InlineData("SELECT CASE WHEN 1 THEN 2 END")]
+	[InlineData("SELECT c FROM t GROUP BY c HAVING count(*)")]
+	[InlineData("SELECT * FROM t JOIN u ON t.c")]
+	[InlineData("SELECT * FROM t WHERE (c)")]
+	[InlineData("SELECT * FROM t WHERE c.STIntersects(d)")]
+	[InlineData("SELECT * FROM t WHERE NOT dbo.f(1)")]
+	[InlineData("DELETE FROM t WHERE 1")]
+	[InlineData("UPDATE t SET c = 1 WHERE dbo.f(1)")]
+	[InlineData("SELECT * FROM t WHERE c = 1 AND dbo.f(1)")]
+	[InlineData("MERGE t USING u ON t.c WHEN MATCHED THEN DELETE")]
+	[InlineData("SELECT * FROM t WHERE $PARTITION.pf(c)")]
+	[InlineData("IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1")]
+	[InlineData("SET AUTOCOMMIT")]
+	[InlineData("SELECT IIF(1, 2, 3)")]
+	[InlineData("SELECT IIF(c, 1, 0) FROM t")]
+	[InlineData("SELECT IIF(dbo.f(), 1, 0)")]
+	[InlineData("SELECT IIF(NULL, 1, 0)")]
+	[InlineData("SELECT IIF((SELECT 1), 1, 0)")]
+	[InlineData("SELECT IIF()")]
+	[InlineData("SELECT IIF(1)")]
+	public void A_condition_that_is_a_value_is_refused(string input) =>
+		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
+
+	/// <summary>And a predicate is read.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM t WHERE CONTAINS(c, 'x')")]
+	[InlineData("SELECT * FROM t WHERE FREETEXT(c, 'x')")]
+	[InlineData("IF UPDATE(c) SELECT 1")]
+	[InlineData("SELECT * FROM t WHERE EXISTS (SELECT 1)")]
+	[InlineData("IF OBJECT_ID ('dbo.Table1', 'U') IS NOT NULL DROP TABLE dbo.Table1")]
+	[InlineData("SET AUTOCOMMIT ON")]
+	[InlineData("SET AUTOCOMMIT OFF")]
+	[InlineData("SELECT IIF((1 = 1), 1, 0)")]
+	[InlineData("SELECT dbo.IIF(1, 2, 3)")]
+	[InlineData("SELECT x.IIF(1, 2, 3) FROM t x")]
+	[InlineData("SELECT IIF(EXISTS (SELECT 1), 1, 0)")]
+	[InlineData("SELECT IIF(UPDATE(c), 1, 0)")]
+	public void A_condition_or_a_predicate_is_read(string input)
+	{
+		var match = TransactSql.TryParseStatement(input);
+
+		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
+	}
+
+	/// <summary>An old plan's hints, the pivots after a join, a source in brackets and a type called ncharacter, as the engine answered 393 lines.</summary>
 	[Theory]
 	[InlineData("SELECT * FROM t1 OPTION (OPTIMIZE CORRELATED UNION ALL)")]
 	[InlineData("UPDATE t1 SET c1 = 1 OPTION (OPTIMIZE CORRELATED UNION ALL)")]
@@ -9335,6 +9392,56 @@ public sealed class TransactSqlTests
 	[InlineData("select * from (t1 join t2 on 1 = 1 cross join t3 pivot (sum(c1) for c2 in (a)) p)")]
 	[InlineData("select * from (t1 join t2 on 1 = 1) as x")]
 	[InlineData("select * from (t1 join t2 on 1 = 1) x")]
+	[InlineData("select * from (@t)")]
+	[InlineData("select * from (@t) x")]
+	[InlineData("select * from (@t) as x")]
+	[InlineData("select * from (@t x)")]
+	[InlineData("select * from (@t as x)")]
+	[InlineData("select * from (@t x) y")]
+	[InlineData("select * from (@t, t2)")]
+	[InlineData("select * from (@t, t2) x")]
+	[InlineData("select * from (t2, @t)")]
+	[InlineData("select * from (@t, @u)")]
+	[InlineData("select * from (@t join t2 on 1 = 1) x")]
+	[InlineData("select * from (@t cross join t2) x")]
+	[InlineData("select * from (@t pivot (sum(c1) for c2 in (a)) p)")]
+	[InlineData("select * from (@t) pivot (sum(c1) for c2 in (a)) p")]
+	[InlineData("select * from (@t x pivot (sum(c1) for c2 in (a)) p)")]
+	[InlineData("select * from (@t tablesample (10 percent))")]
+	[InlineData("select * from (@t) tablesample (10 percent)")]
+	[InlineData("select * from (@t with (nolock))")]
+	[InlineData("select * from (@t) with (nolock)")]
+	[InlineData("select * from (@t x with (nolock))")]
+	[InlineData("select * from ((@t))")]
+	[InlineData("select * from ((@t)) x")]
+	[InlineData("select * from ((@t) x)")]
+	[InlineData("select * from (@t) x (c)")]
+	[InlineData("select * from (@t x (c))")]
+	[InlineData("select * from (@t) x, t2")]
+	[InlineData("select * from (@t) x join t2 on 1 = 1")]
+	[InlineData("select * from (@t.f(1))")]
+	[InlineData("select * from (@t.f(1) x)")]
+	[InlineData("select * from (@t.f(1)) x")]
+	[InlineData("select * from (@t + 1)")]
+	[InlineData("select * from (@t = 1)")]
+	[InlineData("select * from (@t, 1)")]
+	[InlineData("select * from (@t.c)")]
+	[InlineData("select * from (@t) (c)")]
+	[InlineData("select * from (@t x y)")]
+	[InlineData("select * from (@t, t2, t3)")]
+	[InlineData("select * from (@t, t2 join t3 on 1 = 1)")]
+	[InlineData("select * from (@t, (t2))")]
+	[InlineData("select * from (@t, dbo.f(1) x)")]
+	[InlineData("select * from (@t, (select 1 a) d)")]
+	[InlineData("select * from (@t outer apply dbo.f(1) x) y")]
+	[InlineData("select * from (@t for system_time as of '2020-01-01')")]
+	[InlineData("select * from (@t, t2) pivot (sum(c1) for c2 in (a)) p")]
+	[InlineData("select * from (@t) unpivot (c1 for c2 in (a)) p")]
+	[InlineData("select * from @t with (nolock)")]
+	[InlineData("select * from @t x with (nolock)")]
+	[InlineData("select * from @t tablesample (10 percent)")]
+	[InlineData("select * from @t x tablesample (10 percent)")]
+	[InlineData("select * from (@t x) join t2 on 1 = 1")]
 	public void A_plans_hints_a_joins_pivots_or_a_bracket_is_refused_where_the_engine_refuses_it(string input) =>
 		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
 
@@ -9513,8 +9620,6 @@ public sealed class TransactSqlTests
 	[InlineData("select * from (t1 cross apply dbo.f(1) x)")]
 	[InlineData("select * from (select 1 a) d")]
 	[InlineData("select * from ((select 1 a)) d")]
-	[InlineData("select * from (@t)")]
-	[InlineData("select * from (@t x)")]
 	[InlineData("update t1 set c = 1 from t1 join t2 on 1 = 1 pivot (sum(c1) for c2 in (a)) p")]
 	[InlineData("delete t1 from t1 join t2 on 1 = 1 unpivot (c1 for c2 in (a)) p")]
 	[InlineData("select * from t1 join t2 on 1 = 1 pivot (sum(c1) for c2 in (a)) p cross join t3")]
@@ -9533,8 +9638,6 @@ public sealed class TransactSqlTests
 	[InlineData("select * from (t1 join t2 join t3 on 1 = 1 pivot (sum(c1) for c2 in (a)) p on 1 = 1)")]
 	[InlineData("select * from (t1 join t2 on 1 = 1) pivot (sum(c1) for c2 in (a)) p")]
 	[InlineData("select * from (t1 join t2 on 1 = 1) pivot (sum(c1) for c2 in (a)) p pivot (sum(c3) for c4 in (b)) q")]
-	[InlineData("select * from (@t with (nolock))")]
-	[InlineData("select * from (@t x) join t2 on 1 = 1")]
 	[InlineData("select * from t1 join t2 on 1 = 1 pivot (sum(c1) for c2 in (a)) p where 1 = 1")]
 	[InlineData("select * from {oj t1 left outer join t2 on 1 = 1} pivot (sum(c1) for c2 in (a)) p")]
 	[InlineData("select * from t1 join t2 on 1 = 1 pivot (sum(c1) for c2 in (a)) p join t3 on 1 = 1 pivot (sum(c3) for c4 in (b)) q")]
@@ -9568,73 +9671,32 @@ public sealed class TransactSqlTests
 	[InlineData("select * from ((t1 join t2 on 1 = 1)) pivot (sum(c1) for c2 in (a)) p")]
 	[InlineData("select * from (t1 cross join t2) pivot (sum(c1) for c2 in (a)) p")]
 	[InlineData("select * from ((t1 cross join t2))")]
-	[InlineData("select * from (@t cross join t2)")]
 	[InlineData("select * from dbo.f(1) x pivot (sum(c1) for c2 in (a)) p pivot (sum(c3) for c4 in (b)) q")]
 	[InlineData("select * from openrowset(bulk 'f', single_blob) x pivot (sum(c1) for c2 in (a)) p pivot (sum(c3) for c4 in (b)) q")]
 	[InlineData("select * from (select 1 a) d pivot (sum(c1) for c2 in (a)) p pivot (sum(c3) for c4 in (b)) q")]
-	[InlineData("select * from @t x pivot (sum(c1) for c2 in (a)) p")]
-	[InlineData("select * from @t pivot (sum(c1) for c2 in (a)) p")]
 	[InlineData("select * from t1 with (nolock) pivot (sum(c1) for c2 in (a)) p pivot (sum(c3) for c4 in (b)) q")]
 	[InlineData("select * from t1 x pivot (sum(c1) for c2 in (a)) p pivot (sum(c3) for c4 in (b)) q")]
 	[InlineData("select * from t1 unpivot (c1 for c2 in (a)) p pivot (sum(c3) for c4 in (b)) q")]
+	[InlineData("select * from (@t cross apply dbo.f(1) x)")]
+	[InlineData("select * from @t")]
+	[InlineData("select * from @t x")]
+	[InlineData("select * from @t as x")]
+	[InlineData("select * from @t pivot (sum(c1) for c2 in (a)) p")]
+	[InlineData("select * from @t x pivot (sum(c1) for c2 in (a)) p")]
+	[InlineData("select * from @t as x pivot (sum(c1) for c2 in (a)) p")]
+	[InlineData("select * from @t pivot (sum(c1) for c2 in (a)) p pivot (sum(c3) for c4 in (b)) q")]
+	[InlineData("select * from @t x unpivot (c1 for c2 in (a)) p")]
+	[InlineData("select * from @t x join t2 on 1 = 1")]
+	[InlineData("select * from @t x join t2 on 1 = 1 pivot (sum(c1) for c2 in (a)) p")]
+	[InlineData("select * from (@t cross join t2)")]
+	[InlineData("select * from (@t x cross join t2)")]
+	[InlineData("select * from (t2 cross join @t)")]
+	[InlineData("select * from (@t join t2 on 1 = 1)")]
+	[InlineData("select * from (@t x join t2 on 1 = 1)")]
+	[InlineData("select * from (@t x join t2 on 1 = 1) pivot (sum(c1) for c2 in (a)) p")]
+	[InlineData("select * from ((@t x join t2 on 1 = 1))")]
+	[InlineData("select * from @t x cross apply dbo.f(x.c1) y")]
 	public void A_plans_hints_a_joins_pivots_or_a_bracket_is_read_where_the_engine_reads_it(string input)
-	{
-		var match = TransactSql.TryParseStatement(input);
-
-		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
-	}
-
-	/// <summary>
-	/// A value where a condition stands, which the engine answers <c>Msg 4145</c> and stops at, the
-	/// predicates that are conditions, and <c>SET AUTOCOMMIT</c>, Synapse's and Fabric's.
-	/// </summary>
-	[Theory]
-	[InlineData("IF OBJECT_ID('x') SELECT 1")]
-	[InlineData("IF dbo.f() SELECT 1")]
-	[InlineData("IF 1 SELECT 1")]
-	[InlineData("IF (SELECT 1) SELECT 1")]
-	[InlineData("DECLARE @a bit; IF @a SELECT 1")]
-	[InlineData("WHILE 1 BREAK")]
-	[InlineData("SELECT * FROM t WHERE dbo.f(1)")]
-	[InlineData("SELECT * FROM t WHERE c")]
-	[InlineData("SELECT CASE WHEN 1 THEN 2 END")]
-	[InlineData("SELECT c FROM t GROUP BY c HAVING count(*)")]
-	[InlineData("SELECT * FROM t JOIN u ON t.c")]
-	[InlineData("SELECT * FROM t WHERE (c)")]
-	[InlineData("SELECT * FROM t WHERE c.STIntersects(d)")]
-	[InlineData("SELECT * FROM t WHERE NOT dbo.f(1)")]
-	[InlineData("DELETE FROM t WHERE 1")]
-	[InlineData("UPDATE t SET c = 1 WHERE dbo.f(1)")]
-	[InlineData("SELECT * FROM t WHERE c = 1 AND dbo.f(1)")]
-	[InlineData("MERGE t USING u ON t.c WHEN MATCHED THEN DELETE")]
-	[InlineData("SELECT * FROM t WHERE $PARTITION.pf(c)")]
-	[InlineData("IF OBJECT_ID ('dbo.Table1', 'U') isn't NULL DROP TABLE dbo.Table1")]
-	[InlineData("SET AUTOCOMMIT")]
-	[InlineData("SELECT IIF(1, 2, 3)")]
-	[InlineData("SELECT IIF(c, 1, 0) FROM t")]
-	[InlineData("SELECT IIF(dbo.f(), 1, 0)")]
-	[InlineData("SELECT IIF(NULL, 1, 0)")]
-	[InlineData("SELECT IIF((SELECT 1), 1, 0)")]
-	[InlineData("SELECT IIF()")]
-	[InlineData("SELECT IIF(1)")]
-	public void A_condition_that_is_a_value_is_refused(string input) =>
-		Assert.False(TransactSql.TryParseStatement(input).IsSuccess, input);
-
-	/// <summary>And a predicate is read.</summary>
-	[Theory]
-	[InlineData("SELECT * FROM t WHERE CONTAINS(c, 'x')")]
-	[InlineData("SELECT * FROM t WHERE FREETEXT(c, 'x')")]
-	[InlineData("IF UPDATE(c) SELECT 1")]
-	[InlineData("SELECT * FROM t WHERE EXISTS (SELECT 1)")]
-	[InlineData("IF OBJECT_ID ('dbo.Table1', 'U') IS NOT NULL DROP TABLE dbo.Table1")]
-	[InlineData("SET AUTOCOMMIT ON")]
-	[InlineData("SET AUTOCOMMIT OFF")]
-	[InlineData("SELECT IIF((1 = 1), 1, 0)")]
-	[InlineData("SELECT dbo.IIF(1, 2, 3)")]
-	[InlineData("SELECT x.IIF(1, 2, 3) FROM t x")]
-	[InlineData("SELECT IIF(EXISTS (SELECT 1), 1, 0)")]
-	[InlineData("SELECT IIF(UPDATE(c), 1, 0)")]
-	public void A_condition_or_a_predicate_is_read(string input)
 	{
 		var match = TransactSql.TryParseStatement(input);
 

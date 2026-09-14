@@ -21630,3 +21630,25 @@ At 170: 7,410 both, 0 work, 0 defects, 276 another product's, 631 neither; at 15
 236 and 529 — unchanged. The map 7,997 both, 0 work, 0 defects, 0 parting at a level, 81 another
 product's and 260 neither (from 7,994, 8, 0, 0, 81 and 255). `--levels` 165 of 165 (from 145 of 145).
 `--split` 788, the round trip 100% of 7,732. The suite is 14,684 rows (from 14,641).
+
+## A table variable, asked declared
+
+The work list's entry left a table variable in brackets as looser than a table — `(@t) x`, `(@t,
+t2)` and `(@t PIVOT (…) p)` read — and not followed, and read `(@t)` on the strength of it. Every
+one of those was asked with `@t` undeclared, and the engine's `Msg 137` for the name hid what came
+after it: the mirage an earlier entry named, which a probe avoids by declaring what it uses. Asked
+again with `DECLARE @t TABLE (…)` in front:
+
+- **In brackets a variable is a source like any other**, and alone is `Msg 102` — `(@t)`, `(@t x)`,
+  `((@t))`, `(@t) PIVOT (…) p`, `(@t x) JOIN t2 ON …` — or `156` with a sample or hints inside. A join
+  that begins or ends with it is read: `(@t CROSS JOIN t2)`, `(t2 CROSS JOIN @t)`, `(@t x JOIN t2 ON
+  …) PIVOT (…) p`.
+- **Out of them it takes a name and pivots**, one after another, and no sample (`156`) and no hints
+  (`319`), which the grammar had read.
+
+The bracket takes no exception for a variable, and a variable no sample or hints. The rows the work
+list's theory had from the undeclared probes are replaced by the declared ones.
+
+At 170: 7,410 both, 0 work, 0 defects, 276 another product's, 631 neither; at 150: 6,623, 0, 0, 236
+and 529. The map 7,997 both, 0 work, 0 defects; `--levels` 165 of 165; `--split` 788; the round trip
+100% of 7,732 — all unchanged. The suite is 14,754 rows (from 14,692).

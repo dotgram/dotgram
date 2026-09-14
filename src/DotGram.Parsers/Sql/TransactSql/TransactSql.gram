@@ -1143,8 +1143,11 @@ VariableSource : @TableReference
 		=> @(new TableReference.FunctionCall(
 				 new Expression.RoutineInvocation("." + method, args ?? Expression.None),
 				 alias, columns, Clause.None))
-	| ("AS"i? & alias: CorrelationName)? & sample: TableSample? & hints: TableHints?
-		=> @(new TableReference.Named("", null, false, alias, null, sample, hints ?? Clause.None))
+	// The variable itself takes a name and nothing a table does: `FROM @t TABLESAMPLE (10 PERCENT)`
+	// is `Msg 156` and `FROM @t WITH (NOLOCK)` is `Msg 319`, with the variable declared. Undeclared,
+	// the engine stops at its name with `Msg 137` and says nothing of the rest.
+	| ("AS"i? & alias: CorrelationName)?
+		=> @(new TableReference.Named("", null, false, alias, null, null, Clause.None))
 
 // The published syntax makes a pivoted table a source of its own — `table_source PIVOT
 // (…) [AS] alias` — which is left recursion, and §4.3 folds that only where the rule

@@ -3898,14 +3898,13 @@ public static class Syntax
 	/// read. A table, a function, a rowset or a derived table alone in brackets is <c>Msg 102</c>,
 	/// and so is a join a pivot ends — <c>(t1 CROSS JOIN t2 PIVOT (…) p)</c>, <c>(t1 JOIN t2 ON …
 	/// PIVOT (…) p)</c> — where a pivot before an <c>ON</c> inside them is read. A table variable
-	/// is the exception, <c>(@t)</c> being read.
+	/// is no exception: <c>(@t)</c> and <c>(@t x)</c> are <c>Msg 102</c> once it is declared.
 	/// </remarks>
 	public static bool Bracketable(TableReference? inner) =>
 		inner switch
 		{
 			TableReference.Joined { Kind: SqlJoin.Cross or SqlJoin.CrossApply or SqlJoin.OuterApply, Right: TableReference.Pivot or TableReference.Unpivot } => false,
 			TableReference.Joined or TableReference.Parenthesized or TableReference.OdbcJoin => true,
-			TableReference.Named { Table: var name } => name.StartsWith("@", StringComparison.Ordinal),
 			_ => false,
 		};
 
