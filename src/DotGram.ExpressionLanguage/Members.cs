@@ -18,7 +18,7 @@ public static partial class ExpressionParser
 	/// that one does. No member is not an error here: it means this reading is not a member
 	/// access, and something else will read the text.
 	/// </remarks>
-	public static bool Has(Expression target, string? name, Assembly caller)
+	internal static bool Has(Expression target, string? name, Assembly caller)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
@@ -37,7 +37,7 @@ public static partial class ExpressionParser
 	/// until after, so the only place that can ask the operand what it is, is here.
 	/// </remarks>
 	/// <exception cref="FormatException">The type has no such property or field.</exception>
-	public static Expression Member(Expression target, string name, Assembly caller)
+	internal static Expression Member(Expression target, string name, Assembly caller)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
@@ -135,7 +135,7 @@ public static partial class ExpressionParser
 	/// Which one `a[0]` means is decided by which side of the `=` it stands on, which the
 	/// grammar knows and the API cannot.
 	/// </remarks>
-	public static Expression Place(Expression target, Expression[] at, Assembly caller)
+	internal static Expression Place(Expression target, Expression[] at, Assembly caller)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
@@ -155,7 +155,7 @@ public static partial class ExpressionParser
 	/// which through its default member, which is what an indexer is, and which of several
 	/// is meant is the same overload resolution a call makes.
 	/// </remarks>
-	public static Expression Indexed(Expression target, Expression[] at, Assembly caller)
+	internal static Expression Indexed(Expression target, Expression[] at, Assembly caller)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
@@ -177,7 +177,7 @@ public static partial class ExpressionParser
 	/// among the members the calling assembly could reach — the instance form's rule, which
 	/// is <see cref="InstanceMember"/>.
 	/// </remarks>
-	public static Expression StaticMember(Type type, string name, Assembly caller)
+	internal static Expression StaticMember(Type type, string name, Assembly caller)
 	{
 		if (type is null)
 			throw new ArgumentNullException(nameof(type));

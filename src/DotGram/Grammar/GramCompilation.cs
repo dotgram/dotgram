@@ -195,6 +195,18 @@ public sealed class GramCompilerOptions
 	public string? Suffix { get; set; }
 
 	/// <summary>
+	/// Whether the host declares the <see cref="Suffix"/> class itself, and so decides who may
+	/// see it.
+	/// </summary>
+	/// <remarks>
+	/// A nested class written by the author as <c>internal static partial class Immediate { }</c>
+	/// is the author's to make internal, and the generated part then says nothing of its own
+	/// about accessibility. Where the author declares nothing the part is <c>public</c>, which
+	/// is what it has always been — a nested class would otherwise default to private.
+	/// </remarks>
+	public bool SuffixDeclared { get; set; }
+
+	/// <summary>
 	/// Which compilation of a host writes the types the host's own C# names — the span
 	/// (§7.5) and the match (§6.1). Null where the host has one grammar and they are its
 	/// own; true for the one that writes them for every other; false for the others.

@@ -24,7 +24,7 @@ public static partial class ExpressionParser
 	// and then the one better than every other.
 
 	/// <summary>A call on a value: the method C# would choose for these arguments.</summary>
-	public static Expression Called(Expression target, string name, Expression[] arguments, Assembly caller)
+	internal static Expression Called(Expression target, string name, Expression[] arguments, Assembly caller)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));
@@ -37,7 +37,7 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>A call on a type: the static method C# would choose for these arguments.</summary>
-	public static Expression Called(Type type, string name, Expression[] arguments, Assembly caller)
+	internal static Expression Called(Type type, string name, Expression[] arguments, Assembly caller)
 	{
 		if (type is null)
 			throw new ArgumentNullException(nameof(type));
@@ -50,7 +50,7 @@ public static partial class ExpressionParser
 	}
 
 	/// <summary>A delegate called, its arguments converted to what it takes.</summary>
-	public static Expression Invoked(Expression target, Expression[] arguments)
+	internal static Expression Invoked(Expression target, Expression[] arguments)
 	{
 		if (target is null)
 			throw new ArgumentNullException(nameof(target));

@@ -24,7 +24,7 @@ public static partial class ExpressionParser
 	/// takes are one act — the conversions are how the choice was made — and a caller handed
 	/// only the member would have to work them out a second time, by a second rule.
 	/// </remarks>
-	public readonly record struct Resolution(MemberInfo Member, Expression[] Arguments);
+	internal readonly record struct Resolution(MemberInfo Member, Expression[] Arguments);
 
 	/// <summary>What a member is, for a text read on behalf of one assembly with these `using`s.</summary>
 	/// <remarks>
@@ -32,7 +32,7 @@ public static partial class ExpressionParser
 	/// is recorded while the text is read, and this must see what has been recorded by the
 	/// time it is asked.
 	/// </remarks>
-	public sealed class MemberResolver
+	internal sealed class MemberResolver
 	{
 		public MemberResolver(Assembly caller, IReadOnlyList<string>? imports)
 		{

@@ -2081,6 +2081,50 @@ public sealed class GeneratorDriverTests
 		Assert.Equal("abc@3", immediate.Invoke(null, ["abc"]));
 	}
 
+	/// <summary>A reading's nested class the host declares itself is as visible as the host says.</summary>
+	/// <remarks>
+	/// Written by the generator it is public, as it always was — a nested class would
+	/// otherwise be private. Declared by the author, the generated part names no accessibility
+	/// and the author's decides.
+	/// </remarks>
+	[Fact]
+	public void A_reading_the_host_declares_is_as_visible_as_it_says()
+	{
+		const string source = """"
+			using DotGram;
+
+			[Gram("""
+				Start = ['a'..'z']+
+				parse Start
+				""")]
+			[GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+			public static partial class Hidden
+			{
+				internal static partial class Immediate
+				{
+				}
+			}
+
+			[Gram("""
+				Start = ['a'..'z']+
+				parse Start
+				""")]
+			[GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+			public static partial class Shown
+			{
+			}
+			"""";
+
+		var built = Build(source);
+
+		var hidden = built.GetType("Hidden+Immediate")!;
+		var shown  = built.GetType("Shown+Immediate")!;
+
+		Assert.True(hidden.IsNestedAssembly);
+		Assert.True(shown.IsNestedPublic);
+		Assert.Equal("abc", hidden.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["abc"]));
+	}
+
 	/// <summary>
 	/// Two readings cannot share one scope, and are told so rather than colliding. A second
 	/// <c>[Gram]</c> is no longer how a second reading is asked for — the attribute is one

@@ -152,7 +152,7 @@ public static partial class CSharpEmitter
 		int stacks = 0, string? suffix = null, bool? shared = null, bool inherits = false,
 		string? languageId = null, string? languageSource = null,
 		string? languageClassifications = null, string? languageRecognitionContract = null,
-		IReadOnlyList<string>? statics = null, string? grammarSource = null)
+		IReadOnlyList<string>? statics = null, string? grammarSource = null, bool suffixDeclared = false)
 	{
 		statics ??= [];
 
@@ -341,8 +341,13 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
+		// Unless the author declared that class, in which case what the author wrote says who
+		// may see it and this part says nothing: `internal static partial class Immediate { }`
+		// beside `[GramOptions(Suffix = "Immediate")]` is a reading nobody outside can reach.
 		if (suffix is { Length: > 0 })
-			scope.Push(file.Block($"public static partial class {suffix}"));
+			scope.Push(file.Block(suffixDeclared
+				? $"static partial class {suffix}"
+				: $"public static partial class {suffix}"));
 
 		foreach (var compiled in machines)
 			foreach (var publication in compiled.Publications)

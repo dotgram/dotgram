@@ -452,6 +452,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			Carrier        = (CarrierKind)host.Carrier,
 			Stacks         = host.Stacks,
 			Suffix         = host.Suffix,
+			SuffixDeclared = host.SuffixDeclared,
 			SharedTypes    = host.Shared,
 			Inherits       = inherits,
 			Own            = inherits ? grammar.Pieces.Items[0].Length : null,
@@ -735,6 +736,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		int       Carrier    = 0,
 		int       Stacks     = 0,
 		string?   Suffix     = null,
+		bool      SuffixDeclared = false,
 		bool      Repeated   = false,
 		bool?     Shared     = null,
 		string?   LocationType = null,
@@ -923,6 +925,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.FirstOrDefault(static named => named.Key == nameof(Host.Suffix))
 				.Value.Value as string;
 
+			// Whether the host declares that nested class itself, and so says how visible it
+			// is. What a generator sees is the author's code alone — its own output is not in
+			// the compilation yet — so a member of that name is the author's.
+			var suffixDeclared = suffix is { Length: > 0 } && type.GetTypeMembers(suffix).Length > 0;
+
 			// A request, like `Lexical`: a grammar the reader cannot write is written the
 			// way it was before the reader existed and told so (GRAM5006).
 			// The literal as written, kept beside the value it decodes to. A diagnostic
@@ -983,6 +990,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Carrier:    carrier,
 				Stacks:     stacks,
 				Suffix:     suffix,
+				SuffixDeclared: suffixDeclared,
 				LocationType: locationType,
 				Portable:   portable);
 		}

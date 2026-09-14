@@ -145,7 +145,7 @@ public static class GramCompiler
 					options.Suffix, options.SharedTypes, options.Inherits,
 					options.LanguageId, options.LanguageSource, options.LanguageClassifications,
 					options.LanguageRecognitionContract, options.StaticImports,
-					options.Portable ? grammarText : null)));
+					options.Portable ? grammarText : null, options.SuffixDeclared)));
 
 		return new GramCompilation(sources, OnePerPosition(diagnostics));
 	}

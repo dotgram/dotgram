@@ -31,7 +31,7 @@ public static partial class ExpressionParser
 	/// Everything here that would be misled by that asks <see cref="Typed"/> first.
 	/// </para>
 	/// </remarks>
-	public sealed class Unbuilt : Expression
+	internal sealed class Unbuilt : Expression
 	{
 		public Unbuilt(int arity, Func<Type[], LambdaExpression> build)
 		{

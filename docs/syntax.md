@@ -1743,6 +1743,19 @@ from around it. Otherwise a factory handing a span to a method of the host would
 handing it a type of the same name that is not the same type, and neither compilation
 would build.
 
+**The nested class is public unless the host declares it.** A nested class would be
+private by default, so the generator writes it `public`. Declared by the author, it is the
+author's to decide, and the generated part adds no accessibility of its own:
+
+```csharp
+[Gram("Sql.gram", Lexical = true)]
+[GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+public static partial class Sql
+{
+    internal static partial class Immediate { }   // a reading for tests and measurements
+}
+```
+
 Two readings wanting the same scope — the same `Suffix`, or a `[GramOptions]` with none,
 which is the scope the `[Gram]` already has — is refused (`GRAM0006`), because one of them
 would silently win.

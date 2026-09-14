@@ -47,10 +47,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- What the tests read and no caller should: a publication written `internal`. It
-		     costs nothing across the boundary since the attributes the generator writes into
-		     both assemblies are marked embedded, and neither sees the other's. -->
+		<!-- What the tests and the hand-written yardstick read and no caller should: the
+		     factories the grammar builds with, the resolver, a publication written
+		     `internal`. It costs nothing across the boundary since the attributes the
+		     generator writes into each assembly are marked embedded, and neither sees the
+		     other's. -->
 		<InternalsVisibleTo Include="DotGram.Tests" />
+		<InternalsVisibleTo Include="DotGram.Benchmarks" />
 	</ItemGroup>
 
 </Project>
