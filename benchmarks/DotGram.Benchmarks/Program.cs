@@ -2,7 +2,8 @@
 
 using BenchmarkDotNet.Running;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.Standard;
 
 namespace DotGram.Benchmarks;
 
@@ -75,7 +76,7 @@ static class Program
 
 				foreach (var (name, what) in new (string Name, Func<string, bool> What)[]
 				{
-					("generated", static one => SqlStandard92.TryParseSearchCondition(one).IsSuccess),
+					("generated", static one => SqlStandardParser.TryParseSearchCondition(one).IsSuccess),
 					("by hand",   static one => HandSqlTokens.Parse(one)),
 				})
 				{
@@ -157,7 +158,7 @@ static class Program
 				for (var i = 0; i < 2000; i++)
 					read += byHand  ? HandSqlTokens.Parse(text) ? 1 : 0 :
 					        immediately ? ImmediateSql.TryParseSearchCondition(text).IsSuccess ? 1 : 0 :
-					                  SqlStandard92.TryParseSearchCondition(text).IsSuccess ? 1 : 0;
+					                  SqlStandardParser.TryParseSearchCondition(text).IsSuccess ? 1 : 0;
 
 			Console.WriteLine($"{read:N0} parses of \"{text}\"");
 

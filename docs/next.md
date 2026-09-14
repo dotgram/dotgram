@@ -21760,3 +21760,36 @@ catalogue in front of them, and the pieces the same `Clause.EventPiece`s in the 
 At 170: 7,394 both, 0 work, 0 defects, 276 another product's, 647 neither; at 150: 6,607, 0, 0, 236
 and 545. The map 7,997 both, 0 work, 0 defects; `--levels` 165 of 165; `--split` 784; the round trip
 100% of 7,716 — all unchanged. The suite is 15,039 rows (from 14,785): 131 refusals and 123 readings.
+
+## SQL is a project of its own: DotGram.Sql
+
+The standard's grammar is next, and the tree will be reshaped to it, so SQL leaves
+`DotGram.Parsers` first — decided with Igor after the options were laid out, 2026-09-13.
+
+**One project, `src/DotGram.Sql`, and a directory and a namespace per dialect.** The records, the
+writer and the walker are `DotGram.Sql`; the standard is `DotGram.Sql.Standard` and T-SQL
+`DotGram.Sql.TransactSql`, and another database is another directory beside them. One project and
+not one per dialect, because T-SQL still names the standard's grammar (`[GramInclude]`) and an
+include inside one assembly needs nothing more; packages can be cut apart later if a consumer of
+the standard should not carry T-SQL.
+
+**The parsers are named for what they are: `SqlStandardParser` and `TransactSqlParser`.** A class
+`TransactSql` in a namespace `DotGram.Sql.TransactSql` makes `TransactSql.TryParseStatement` a
+namespace from outside it (`CS0118`). The grammar files keep their names — `SqlStandard92.gram` is
+the 1992 edition, and `TransactSql.gram` what it says.
+
+**The tests went with them.** `TransactSqlTests`, `SqlWriterTests`, `SqlWalkerTests`,
+`AstReferenceTests` and `SqlStandard92Tests`, now `SqlStandardParserTests`, are
+`tests/DotGram.Sql.Tests`, referencing the project as a consumer would. The generator's own tests
+that read the grammars as files — `GeneratorCostTests`, `ReaderCoverageTests`, `ShapesTests` — stay
+in `DotGram.Tests` and read `src/DotGram.Sql` beside `src/DotGram.Parsers`.
+
+**`DotGram.Parsers` keeps the URI**, and is a package whose next version no longer has SQL in it:
+the 0.1.0 that did is on NuGet, so for anyone who took it for SQL this is a breaking change, and
+the release notes of both packages say where SQL went. CI packs `DotGram.Sql` and holds it to the
+same shape as the other libraries.
+
+Mechanical, and measured as such: the suite is 12,891 rows in `DotGram.Sql.Tests` and 2,148 in
+`DotGram.Tests`, the 15,039 there were; at 170 7,394 both, 0 work, 0 defects; at 150 6,607, 0, 0;
+the map 7,997 both, 0 work, 0 defects; `--levels` 165 of 165; `--split` 784; the round trip 100% of
+7,716 — all unchanged. The diary keeps the old names where it used them.

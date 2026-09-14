@@ -97,11 +97,13 @@ src/
 	                      specification — and, being an ordinary project the generator
 	                      runs over, it is where a real symbol resolver is exercised
 		Uri/              RFC 3986
-		Sql/              the one tree every SQL grammar builds, its writer and walker
-			Standard/     ISO SQL; Specification/ holds the ISO BNF it answers to
-			TransactSql/  T-SQL; Specification/ holds Microsoft's published syntax
-			              Each dialect is its own directory and its own grammar, meeting
-			              the others only in the tree (docs/design/sql-parsers.md)
+	DotGram.Sql/          SQL, a package of its own, with room for other databases: the one
+	                      tree every SQL grammar builds, its writer and walker, in the
+	                      DotGram.Sql namespace, and a directory and namespace per dialect
+		Standard/         ISO SQL, SqlStandardParser; Specification/ holds the ISO BNF
+		TransactSql/      T-SQL, TransactSqlParser; Specification/ holds Microsoft's
+		                  published syntax. Each dialect is its own grammar, meeting the
+		                  others only in the tree (docs/design/sql-parsers.md)
 examples/
 	DotGram.Examples/     whole parsers meant to be copied: a grammar, the class it
 	                      attaches to, and the code written against it. No test
@@ -113,6 +115,8 @@ tests/
 	                      and the generator attached as an analyzer
 	  Calculators/        one language spelled several ways, held against itself: the
 	                      spellings an example would only repeat
+	DotGram.Sql.Tests/    the SQL parsers held to what SQL Server answers, and the tree, its
+	                      writer and walker
 	DotGram.Compatibility/ the generated code built for netstandard2.0, net472 and
 	                      net8.0 at the C# 8 floor. Building it is the assertion
 	DotGram.VisualStudio.Tests/

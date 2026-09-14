@@ -4,7 +4,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.TransactSql;
 
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 
@@ -215,7 +216,7 @@ static class Speed
 
 				try
 				{
-					if (!TransactSql.TryParseStatement(one).IsSuccess)
+					if (!TransactSqlParser.TryParseStatement(one).IsSuccess)
 						continue;
 				}
 				catch (Exception)
@@ -264,7 +265,7 @@ static class Speed
 		var sink = 0;
 
 		foreach (var (one, _) in statements)
-			sink += TransactSql.TryParseStatement(one).IsSuccess ? 1 : 0;
+			sink += TransactSqlParser.TryParseStatement(one).IsSuccess ? 1 : 0;
 
 		return sink;
 	}
@@ -275,7 +276,7 @@ static class Speed
 		var sink = 0;
 
 		foreach (var (one, _) in statements)
-			sink += TransactSql.Located.TryParseStatement(one).IsSuccess ? 1 : 0;
+			sink += TransactSqlParser.Located.TryParseStatement(one).IsSuccess ? 1 : 0;
 
 		return sink;
 	}

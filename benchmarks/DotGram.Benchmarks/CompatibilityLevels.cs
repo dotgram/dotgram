@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.TransactSql;
 
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
@@ -130,7 +131,7 @@ static class CompatibilityLevels
 					continue;
 
 				var key  = $"{statement.GetType().Name,-40} {Shape(answers)}";
-				var here = TransactSql.TryParseStatement(one).IsSuccess;
+				var here = TransactSqlParser.TryParseStatement(one).IsSuccess;
 
 				// And this grammar's parser for each level against the engine's answer at it: a
 				// statement the levels part on is only right here when they part in the same place.

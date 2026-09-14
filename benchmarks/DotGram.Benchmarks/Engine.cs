@@ -5,7 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.TransactSql;
 
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
@@ -174,15 +175,15 @@ static class Engine
 	{
 		var match = version switch
 		{
-			"100" => TransactSql.TryParseStatement100(text),
-			"110" => TransactSql.TryParseStatement110(text),
-			"120" => TransactSql.TryParseStatement120(text),
-			"130" => TransactSql.TryParseStatement130(text),
-			"140" => TransactSql.TryParseStatement140(text),
-			"150" => TransactSql.TryParseStatement150(text),
-			"160" => TransactSql.TryParseStatement160(text),
-			"170" => TransactSql.TryParseStatement170(text),
-			_     => TransactSql.TryParseStatement(text),
+			"100" => TransactSqlParser.TryParseStatement100(text),
+			"110" => TransactSqlParser.TryParseStatement110(text),
+			"120" => TransactSqlParser.TryParseStatement120(text),
+			"130" => TransactSqlParser.TryParseStatement130(text),
+			"140" => TransactSqlParser.TryParseStatement140(text),
+			"150" => TransactSqlParser.TryParseStatement150(text),
+			"160" => TransactSqlParser.TryParseStatement160(text),
+			"170" => TransactSqlParser.TryParseStatement170(text),
+			_     => TransactSqlParser.TryParseStatement(text),
 		};
 
 		return (match.IsSuccess, (int)match.Position);
@@ -196,15 +197,15 @@ static class Engine
 	{
 		var match = version switch
 		{
-			"100" => TransactSql.TryParseSql100(text),
-			"110" => TransactSql.TryParseSql110(text),
-			"120" => TransactSql.TryParseSql120(text),
-			"130" => TransactSql.TryParseSql130(text),
-			"140" => TransactSql.TryParseSql140(text),
-			"150" => TransactSql.TryParseSql150(text),
-			"160" => TransactSql.TryParseSql160(text),
-			"170" => TransactSql.TryParseSql170(text),
-			_     => TransactSql.TryParseSql(text),
+			"100" => TransactSqlParser.TryParseSql100(text),
+			"110" => TransactSqlParser.TryParseSql110(text),
+			"120" => TransactSqlParser.TryParseSql120(text),
+			"130" => TransactSqlParser.TryParseSql130(text),
+			"140" => TransactSqlParser.TryParseSql140(text),
+			"150" => TransactSqlParser.TryParseSql150(text),
+			"160" => TransactSqlParser.TryParseSql160(text),
+			"170" => TransactSqlParser.TryParseSql170(text),
+			_     => TransactSqlParser.TryParseSql(text),
 		};
 
 		return (match.IsSuccess, (int)match.Position);

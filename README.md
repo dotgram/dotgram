@@ -10,6 +10,7 @@
 [![build](https://github.com/dotgram/dotgram/actions/workflows/build.yml/badge.svg)](https://github.com/dotgram/dotgram/actions/workflows/build.yml)
 [![DotGram on NuGet](https://img.shields.io/nuget/v/DotGram?label=DotGram&logo=nuget)](https://www.nuget.org/packages/DotGram)
 [![DotGram.Parsers on NuGet](https://img.shields.io/nuget/v/DotGram.Parsers?label=DotGram.Parsers&logo=nuget)](https://www.nuget.org/packages/DotGram.Parsers)
+[![DotGram.Sql on NuGet](https://img.shields.io/nuget/v/DotGram.Sql?label=DotGram.Sql&logo=nuget)](https://www.nuget.org/packages/DotGram.Sql)
 [![DotGram.ExpressionLanguage on NuGet](https://img.shields.io/nuget/v/DotGram.ExpressionLanguage?label=DotGram.ExpressionLanguage&logo=nuget)](https://www.nuget.org/packages/DotGram.ExpressionLanguage)
 [![NuGet downloads](https://img.shields.io/nuget/dt/DotGram?logo=nuget)](https://www.nuget.org/packages/DotGram)
 [![.NET Standard 2.0](https://img.shields.io/badge/.NET%20Standard-2.0-512BD4?logo=dotnet)](#compatibility)
@@ -197,9 +198,9 @@ A grammar long enough to want its own place goes in a `.gram` file instead.
 At the other end of the scale the same notation reads T-SQL. The grammars are far too long
 to quote here, so this is where to read them:
 
-* [`TransactSql.gram`](src/DotGram.Parsers/Sql/TransactSql/TransactSql.gram) — T-SQL in
+* [`TransactSql.gram`](src/DotGram.Sql/TransactSql/TransactSql.gram) — T-SQL in
   over 600 rules, written from Microsoft's published syntax, which is kept beside it in
-  [`Specification/syntax.md`](src/DotGram.Parsers/Sql/TransactSql/Specification/syntax.md).
+  [`Specification/syntax.md`](src/DotGram.Sql/TransactSql/Specification/syntax.md).
   It reads over tokens rather than characters, builds a tree of records, and has a parser
   for each SQL Server compatibility level from one grammar
   ([Versions of one language](#versions-of-one-language)). Held against Microsoft's own
@@ -210,7 +211,7 @@ to quote here, so this is where to read them:
   C# they call. It builds `System.Linq.Expressions` trees directly: C#'s operators and
   literals, locals, blocks, loops, `switch` and `try`, members, calls and `new`.
 
-How to call them is under [DotGram.Parsers](#dotgramparsers) and
+How to call them is under [DotGram.Sql](#dotgramsql) and
 [DotGram.ExpressionLanguage](#dotgramexpressionlanguage).
 
 ## Versions of one language
@@ -270,7 +271,7 @@ Removal is the part a chain of dialects cannot say: each grammar in a chain adds
 below it, so `*=` would have nowhere to be taken out. Here it is one alternative with a
 condition on it.
 
-[`TransactSql`](src/DotGram.Parsers/Sql/TransactSql/TransactSql.gram) reads SQL Server's
+[`TransactSql`](src/DotGram.Sql/TransactSql/TransactSql.gram) reads SQL Server's
 compatibility levels this way — `ParseStatement100` to `ParseStatement170` from one grammar,
 and `ParseStatement` for all of them — with a condition only on what the engine answers
 differently from one level to the next.
@@ -458,8 +459,8 @@ own are different rules and cannot collide by accident.
 The include crosses a project reference, which is what makes a grammar a library. What
 travels is the grammar rather than a parser: the including assembly generates its own from
 it, under its own substitutions.
-[`TransactSql`](src/DotGram.Parsers/Sql/TransactSql/TransactSql.gram) is built that way on
-[`SqlStandard92`](src/DotGram.Parsers/Sql/Standard/SqlStandard92.gram) — a dialect the size of its
+[`TransactSql`](src/DotGram.Sql/TransactSql/TransactSql.gram) is built that way on
+[`SqlStandard92`](src/DotGram.Sql/Standard/SqlStandard92.gram) — a dialect the size of its
 difference, with the standard underneath written once.
 
 ## DotGram.Parsers
@@ -476,10 +477,20 @@ uri.Path;   // /a/b
 uri.Query;  // q=1
 ```
 
-The SQL parsers build a tree of their own, and read it back as ordinary records:
+| Parser | What it reads |
+| --- | --- |
+| [`Rfc3986`](src/DotGram.Parsers/Uri/Rfc3986.cs) | URIs and relative references after RFC 3986 — authority, IPv4, IPv6, `IPvFuture`, paths, queries, fragments, percent encoding |
+
+[`src/DotGram.Parsers/README.md`](src/DotGram.Parsers/README.md) has what it parses and what it
+hands back.
+
+## DotGram.Sql
+
+[`DotGram.Sql`](src/DotGram.Sql) is SQL, a package of its own: the one tree of records every SQL
+grammar builds, and a parser per dialect beside it, each in a namespace of its own.
 
 ```csharp
-var match  = TransactSql.TryParseSelect("select name from Users where id > @id");
+var match  = TransactSqlParser.TryParseSelect("select name from Users where id > @id");
 var select = (Statement.Select)match.Value;
 var query  = (Query.Specification)select.Of;
 
@@ -488,12 +499,11 @@ query.From[0];  // TableReference.Named { Table = "Users" }
 
 | Parser | What it reads |
 | --- | --- |
-| [`Rfc3986`](src/DotGram.Parsers/Uri/Rfc3986.cs) | URIs and relative references after RFC 3986 — authority, IPv4, IPv6, `IPvFuture`, paths, queries, fragments, percent encoding |
-| [`SqlStandard92`](src/DotGram.Parsers/Sql/Standard/SqlStandard92.gram) | SQL-92, read through a lexical split |
-| [`TransactSql`](src/DotGram.Parsers/Sql/TransactSql/TransactSql.gram) | T-SQL, written as a dialect over SQL-92 rather than as a copy of it |
+| [`SqlStandardParser`](src/DotGram.Sql/Standard/SqlStandard92.gram) | SQL-92, read through a lexical split |
+| [`TransactSqlParser`](src/DotGram.Sql/TransactSql/TransactSql.gram) | T-SQL, written as a dialect over SQL-92 rather than as a copy of it |
 
-[`src/DotGram.Parsers/README.md`](src/DotGram.Parsers/README.md) has what each one parses
-and what it hands back.
+[`src/DotGram.Sql/README.md`](src/DotGram.Sql/README.md) has what each one parses and what it
+hands back.
 
 ## DotGram.ExpressionLanguage
 

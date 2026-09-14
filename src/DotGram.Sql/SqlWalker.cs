@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace DotGram.Parsers.Sql;
+namespace DotGram.Sql;
 
 /// <summary>
 /// Every node of a tree, each put to one question.

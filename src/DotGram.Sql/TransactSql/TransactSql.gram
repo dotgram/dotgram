@@ -1,5 +1,5 @@
 @using System;
-@using DotGram.Parsers.Sql;
+@using DotGram.Sql;
 
 using Sql92;
 

@@ -5,12 +5,12 @@
 		     over a generated one, so netstandard2.0 is what every consumer can read and
 		     net10.0 is what a consumer on the newest runtime gets without the shims. -->
 		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
-		<RootNamespace>DotGram.Parsers</RootNamespace>
+		<RootNamespace>DotGram.Sql</RootNamespace>
 
-		<Description>Parsers for real formats, written in .gram: URIs after RFC 3986.</Description>
+		<Description>SQL parsers written in .gram, building one tree of records: the ISO standard's SQL-92 and Microsoft's T-SQL.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageTags>parser;uri;rfc3986;dotgram</PackageTags>
-		<PackageReleaseNotes>RFC 3986 URIs. SQL-92 and T-SQL have moved to a package of their own, DotGram.Sql.</PackageReleaseNotes>
+		<PackageTags>parser;sql;iso-sql;tsql;t-sql;sql-server;dotgram</PackageTags>
+		<PackageReleaseNotes>First release as a package of its own, moved out of DotGram.Parsers: SQL-92, and T-SQL with a parser for each SQL Server compatibility level from 100 to 170, both building one tree of records.</PackageReleaseNotes>
 
 		<!-- Symbols inside the assembly, as the generator carries them: a stack trace from
 		     a parser here has line numbers without a symbol server. -->
@@ -59,6 +59,14 @@
 		     README points at them: a parser here is worth reading as much as it is worth
 		     calling. -->
 		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- The grammars as files the generator reads: a .gram beside the class that hosts
+		     it, so that another project can point the generator at the same text and compile
+		     it another way — which is what DotGram.Benchmarks does with the SQL grammar. -->
+		<AdditionalFiles Include="Standard\SqlStandard92.gram" />
+		<AdditionalFiles Include="TransactSql\TransactSql.gram" />
 	</ItemGroup>
 
 </Project>

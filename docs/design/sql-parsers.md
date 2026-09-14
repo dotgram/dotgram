@@ -23,6 +23,10 @@ is open until it is built, and `status.md` is what will say when it has been.
   `RECURSIVE` and a list, not a list of clauses. T-SQL's own nodes are marked as T-SQL's.
 - **Order of work:** T-SQL first, to the end of its programme; then the standard's grammar
   on SQL:2023, and the tree reshaped to it.
+- **One project, a directory and a namespace per dialect** (2026-09-13). The parsers are
+  named for what they are, `SqlStandardParser` and `TransactSqlParser`, so that no namespace
+  shares a name with a type in it. For now T-SQL still includes the standard's grammar; it
+  stops when the SQL:2023 grammar replaces `SqlStandard92.gram`.
 - **The specifications are kept beside the parsers that read them**, so that the answer
   to "why is it written so" is a file in the repository.
 
@@ -33,8 +37,10 @@ is open until it is built, and `status.md` is what will say when it has been.
   turned into `?` and `*`, the lexical part separated. The standard's grammar starts from
   its output, so that each rule is traceable to the BNF by name and a test can say which
   BNF rules a grammar has not written yet.
-- **Split `DotGram.Parsers` into directories**, one per family and one per SQL dialect,
-  with room for other databases.
+- ~~**Split `DotGram.Parsers` into directories**~~ Done, 2026-09-13: SQL is a project and a
+  package of its own, `DotGram.Sql` — the tree, its writer and walker in `DotGram.Sql`, and a
+  directory and a namespace per dialect, `DotGram.Sql.Standard` and `DotGram.Sql.TransactSql`,
+  with room for other databases beside them. `DotGram.Parsers` keeps the URI.
 - ~~**T-SQL's published syntax as a file.**~~ Done: Microsoft publishes no BNF for T-SQL,
   and `--syntax` gathers the reference's syntax blocks into
   `src/DotGram.Parsers/Sql/TransactSql/Specification/syntax.md` from a clone of
@@ -42,6 +48,5 @@ is open until it is built, and `status.md` is what will say when it has been.
 
 ## Open
 
-- The directory layout and whether the namespaces follow it.
 - Whether `SqlStandard92` is replaced by the SQL:2023 grammar with 1992 as one edition, or
   kept apart.

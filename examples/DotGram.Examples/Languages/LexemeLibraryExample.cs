@@ -21,7 +21,7 @@ namespace DotGram.Examples.Languages;
 // What travels is the grammar, not a parser. Across a project reference the generator
 // reads the text off the class it was compiled into and compiles it again here, under
 // this grammar's own substitutions — which is what makes a dialect the size of its
-// difference rather than a fork. `DotGram.Parsers` is the real one: T-SQL is written as
+// difference rather than a fork. `DotGram.Sql` is the real one: T-SQL is written as
 // SQL-92 and the places it parts from it.
 //
 // One thing to know before writing a library. A rule an including grammar never reaches

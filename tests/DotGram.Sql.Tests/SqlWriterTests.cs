@@ -1,10 +1,11 @@
 ﻿using System;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.TransactSql;
 
 using Xunit;
 
-namespace DotGram.Tests;
+namespace DotGram.Sql.Tests;
 
 /// <summary>
 /// <see cref="SqlWriter"/>: the tree back as SQL.
@@ -36,7 +37,7 @@ public sealed class SqlWriterTests
 	[InlineData("- a * b",          "-a * b")]
 	[InlineData("- (a * b)",        "-(a * b)")]
 	public void A_bracket_is_written_where_precedence_needs_it(string input, string printed) =>
-		Assert.Equal(printed, SqlWriter.Write(TransactSql.ParseValueExpression(input)));
+		Assert.Equal(printed, SqlWriter.Write(TransactSqlParser.ParseValueExpression(input)));
 
 	/// <summary>A default's <c>WITH VALUES</c> comes back after the column it is for.</summary>
 	[Theory]
@@ -46,7 +47,7 @@ public sealed class SqlWriterTests
 	[InlineData("ALTER TABLE t1 ADD CONSTRAINT d1 DEFAULT 1 FOR c1")]
 	public void A_default_keeps_the_values_it_was_given_with(string input)
 	{
-		var match = TransactSql.TryParseStatement(input);
+		var match = TransactSqlParser.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input);
 		Assert.Equal(input, SqlWriter.Write(match.Value!));
@@ -59,7 +60,7 @@ public sealed class SqlWriterTests
 	[InlineData("EXECUTE dbo.p1")]
 	public void A_call_keeps_the_number_after_its_name(string input)
 	{
-		var match = TransactSql.TryParseStatement(input);
+		var match = TransactSqlParser.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input);
 		Assert.Equal(input, SqlWriter.Write(match.Value!));
@@ -77,7 +78,7 @@ public sealed class SqlWriterTests
 	[InlineData("INSERT OVER t1 (c1) VALUES (1)")]
 	public void An_insert_keeps_the_word_before_its_target(string input)
 	{
-		var match = TransactSql.TryParseStatement(input);
+		var match = TransactSqlParser.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input);
 		Assert.Equal(input, SqlWriter.Write(match.Value!));
@@ -92,10 +93,10 @@ public sealed class SqlWriterTests
 	[InlineData("INSERT INTO t SELECT * FROM (DELETE t3 OUTPUT deleted.c1) AS ao (x) WHERE x = 1")]
 	public void A_statement_read_as_a_table_comes_back_one(string input)
 	{
-		var printed = SqlWriter.Write(TransactSql.TryParseStatement(input).Value);
+		var printed = SqlWriter.Write(TransactSqlParser.TryParseStatement(input).Value);
 
 		Assert.DoesNotContain(";)", printed);
-		Assert.True(TransactSql.TryParseStatement(printed).IsSuccess, printed);
+		Assert.True(TransactSqlParser.TryParseStatement(printed).IsSuccess, printed);
 	}
 
 	/// <summary>And the same for the tower of conditions.</summary>
@@ -110,7 +111,7 @@ public sealed class SqlWriterTests
 	[InlineData("a LIKE 'x%' ESCAPE '\\'",    "a LIKE 'x%' ESCAPE '\\'")]
 	[InlineData("a IS NOT NULL",              "a IS NOT NULL")]
 	public void And_where_a_condition_needs_it(string input, string printed) =>
-		Assert.Equal(printed, SqlWriter.Write(TransactSql.ParseSearchCondition(input)));
+		Assert.Equal(printed, SqlWriter.Write(TransactSqlParser.ParseSearchCondition(input)));
 
 	/// <summary>The calls whose syntax is their own, and not an argument list.</summary>
 	[Theory]
@@ -126,7 +127,7 @@ public sealed class SqlWriterTests
 	[InlineData("dbo.f(a, 1)",                 "dbo.f(a, 1)")]
 	[InlineData("CASE WHEN a > 1 THEN 2 ELSE 3 END", "CASE WHEN a > 1 THEN 2 ELSE 3 END")]
 	public void A_call_with_a_syntax_of_its_own_comes_back_in_it(string input, string printed) =>
-		Assert.Equal(printed, SqlWriter.Write(TransactSql.ParseValueExpression(input)));
+		Assert.Equal(printed, SqlWriter.Write(TransactSqlParser.ParseValueExpression(input)));
 
 	/// <summary>And the statements the tree holds whole.</summary>
 	[Theory]
@@ -268,7 +269,7 @@ public sealed class SqlWriterTests
 	{
 		const string input = "SELECT a + 1 FROM t WHERE b = 2";
 
-		var match = TransactSql.Located.TryParseStatement(input);
+		var match = TransactSqlParser.Located.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input);
 
@@ -299,7 +300,7 @@ public sealed class SqlWriterTests
 
 	static Statement Read(string input)
 	{
-		var match = TransactSql.TryParseStatement(input);
+		var match = TransactSqlParser.TryParseStatement(input);
 
 		Assert.True(match.IsSuccess, input + "  ||  stopped at: " + input.Substring((int)match.Position));
 

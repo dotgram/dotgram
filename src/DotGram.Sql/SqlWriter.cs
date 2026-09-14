@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DotGram.Parsers.Sql;
+namespace DotGram.Sql;
 
 /// <summary>The tree back as SQL.</summary>
 /// <remarks>

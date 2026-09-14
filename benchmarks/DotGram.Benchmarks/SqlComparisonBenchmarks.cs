@@ -3,7 +3,8 @@ using System.Linq;
 
 using BenchmarkDotNet.Attributes;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.Standard;
 
 namespace DotGram.Benchmarks;
 
@@ -60,7 +61,7 @@ public class SqlComparisonBenchmarks
 	public void CheckTheyReadTheSameLanguage() => SqlAgainst.Agree();
 
 	[Benchmark(Baseline = true, Description = "generated")]
-	public bool Generated() => SqlStandard92.TryParseSearchCondition(Input).IsSuccess;
+	public bool Generated() => SqlStandardParser.TryParseSearchCondition(Input).IsSuccess;
 
 	[Benchmark(Description = "by hand, over tokens")]
 	public bool Hand() => HandSqlTokens.Parse(Input);

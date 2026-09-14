@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
 
 namespace DotGram.Benchmarks;
 

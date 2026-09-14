@@ -560,7 +560,7 @@ Those are nodes to add, not fields.
 ## The SQL recognizer against a hand-written one
 
 `--hand [rounds] [iterations]` (`SqlAgainst.cs`) measures
-`SqlStandard92.TryParseSearchCondition` against a hand-written recognizer of the same
+`SqlStandardParser.TryParseSearchCondition` against a hand-written recognizer of the same
 language, round-robin and in one process, for the reason `--against` exists.
 `SqlComparisonBenchmarks` measures the same methods under BenchmarkDotNet, where the
 absolute numbers and the allocation come from.
@@ -653,7 +653,7 @@ anything, which is not what a consumer does and is not what the generator mostly
 parse records what it read and materializes the value afterwards, and none of that
 machinery had ever appeared in a number.
 
-`SqlStandard92` builds now — `docs/syntax.md`'s constructions on every production of §6
+`SqlStandardParser` builds now — `docs/syntax.md`'s constructions on every production of §6
 through §8, into the flat tree in `SqlSyntax.cs` — and `HandSqlTokens` builds the same
 tree, node for node. `Agree()` holds them to it: over all forty-two shapes the two
 answer the same *and* render identically (`SqlTree.cs`), so a difference in the numbers

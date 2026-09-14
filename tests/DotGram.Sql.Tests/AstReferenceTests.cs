@@ -6,11 +6,11 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
 
 using Xunit;
 
-namespace DotGram.Tests;
+namespace DotGram.Sql.Tests;
 
 /// <summary>
 /// <c>docs/ast.md</c> says where every node of the tree comes from, and it has to keep

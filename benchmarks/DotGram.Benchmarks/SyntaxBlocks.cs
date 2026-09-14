@@ -315,6 +315,6 @@ static class SyntaxBlocks
 
 		var root = at?.FullName ?? ".";
 
-		return Path.Combine(root, "src", "DotGram.Parsers", "Sql", "TransactSql", "Specification", "syntax.md");
+		return Path.Combine(root, "src", "DotGram.Sql", "TransactSql", "Specification", "syntax.md");
 	}
 }

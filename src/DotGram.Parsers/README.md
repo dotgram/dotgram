@@ -48,50 +48,8 @@ it into a path separator it is not.
 
 ## SQL
 
-Two grammars, and the second is written as a dialect of the first rather than as a copy
-of it.
-
-[`SqlStandard92.gram`](Sql/Standard/SqlStandard92.gram) is SQL-92 as the standard writes it.
-[`TransactSql.gram`](Sql/TransactSql/TransactSql.gram) names it — `[GramInclude(typeof(SqlStandard92), As
-= "Sql92")]` — and rebinds the rules where T-SQL differs, so what the two languages share
-is written once and the dialect is the size of the difference.
-
-Both read through a lexical split (`Lexical = true`): a lexical half makes tokens, and the
-syntactic half above it decides each choice by the token in front of it, which is what a
-parser written by hand does.
-
-```csharp
-using DotGram.Parsers.Sql;
-
-var match = TransactSql.TryParseSelect("select name from Users where id > @id");
-
-var select = (Statement.Select)match.Value;
-var query  = (Query.Specification)select.Of;
-
-query.From[0];   // TableReference.Named { Table = "Users" }
-```
-
-A database's compatibility level gates a small part of what SQL Server reads — the
-`WINDOW` clause from 160, `OPENJSON`'s schema from 130. `TransactSql.ParseStatement130`
-reads what the engine reads at level 130, and so on from `100` to `170`; `ParseStatement`
-names no level and reads them all. The levels are one grammar and one machine, told apart
-by a number, and what each gates was measured against SQL Server rather than remembered.
-
-`TransactSql.ParseStatement` reads one statement. `TransactSql.ParseSql` reads a text of
-them — what a client sends the server in one call — and gives back a `Statement[]`: each
-ended by a `;` or by nothing, except before a `WITH`, which needs the statement before it
-ended, as the server does. `ParseSql100` to `ParseSql170` are its levels.
-
-`GO` is not T-SQL: it is the line a client cuts a script at, and the server never sees it.
-`TransactSql.ParseScript` reads a script — batches cut apart at the lines that say `GO`,
-the way ScriptDom and the management tools cut them — and gives back a `Batch[]`, each with
-its statements and the `GO` line that ended it. `GO 5`, a batch sent five times, is read
-too. `ParseSql` is one batch, and a `GO` in it is refused.
-
-The tree they build is described in [`docs/ast.md`](https://github.com/dotgram/dotgram/blob/main/docs/ast.md). Both are still
-growing: what they read is held against a corpus of somebody else's SQL and against a
-round trip — parse, print, and compare the two readings — which catches a parser that
-answers yes and builds the wrong thing.
+The SQL parsers are a package of their own now,
+[`DotGram.Sql`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Sql).
 
 ## Taking one
 

@@ -173,8 +173,8 @@ static class Questions
 
 			// A declared type is written the way C# would write it beside a `using`, so the
 			// pairing is asked the way a type name is asked: bare first, then under each
-			// import. `@Statement` in a grammar importing `DotGram.Parsers.Sql` is
-			// `DotGram.Parsers.Sql.Statement`, and only the second spelling resolves.
+			// import. `@Statement` in a grammar importing `DotGram.Sql` is
+			// `DotGram.Sql.Statement`, and only the second spelling resolves.
 			foreach (var type in declared)
 			{
 				questions.Add(Question.Fits(type, locationType));

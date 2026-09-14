@@ -2,7 +2,7 @@
 
 using DotGram;
 
-namespace DotGram.Parsers.Sql;
+namespace DotGram.Sql.Standard;
 
 /// <summary>
 /// The expression layer of standard SQL — <c>&lt;value expression&gt;</c> and
@@ -45,6 +45,6 @@ namespace DotGram.Parsers.Sql;
 /// </para>
 /// </remarks>
 [Gram("SqlStandard92.gram", Lexical = true)]
-public abstract partial class SqlStandard92
+public abstract partial class SqlStandardParser
 {
 }

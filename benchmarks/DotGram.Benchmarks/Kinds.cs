@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.TransactSql;
 
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 
@@ -153,7 +154,7 @@ static class Kinds
 
 				try
 				{
-					ours = TransactSql.TryParseStatement(one).IsSuccess;
+					ours = TransactSqlParser.TryParseStatement(one).IsSuccess;
 				}
 				catch (Exception thrown)
 				{
@@ -176,7 +177,7 @@ static class Kinds
 
 					// And where it stopped — which names the feature, where the kind only
 					// names the statement.
-					var why = Corpus.Stopped(one, (int)TransactSql.TryParseStatement(one).Position);
+					var why = Corpus.Stopped(one, (int)TransactSqlParser.TryParseStatement(one).Position);
 
 					var (count, like) = stopped.TryGetValue(why, out var before)
 						? before

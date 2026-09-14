@@ -52,6 +52,9 @@
 		<Project Path="src/DotGram.Parsers/DotGram.Parsers.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
+		<Project Path="src/DotGram.Sql/DotGram.Sql.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<Project Path="src/DotGram.VisualStudio/DotGram.VisualStudio.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 			<Build Solution="Linux|*" Project="false" />
@@ -63,6 +66,9 @@
 			<Build Solution="Linux|*" Project="false" />
 		</Project>
 		<Project Path="tests/DotGram.Tests/DotGram.Tests.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
+		<Project Path="tests/DotGram.Sql.Tests/DotGram.Sql.Tests.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 		<Project Path="tests/DotGram.Compatibility/DotGram.Compatibility.csproj">

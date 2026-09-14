@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>DotGram.Sql.Tests</RootNamespace>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+
+		<!-- A test project is an executable: it hosts Microsoft.Testing.Platform itself
+		     rather than being hosted by VSTest. -->
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="xunit.v3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- The SQL parsers as a consumer takes them: the assembly, with the parsers the
+		     generator put into it when it was built. -->
+		<ProjectReference Include="..\..\src\DotGram.Sql\DotGram.Sql.csproj" />
+	</ItemGroup>
+
+</Project>

@@ -4,7 +4,9 @@ using System.Linq;
 
 using BenchmarkDotNet.Attributes;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.Standard;
+using DotGram.Sql.TransactSql;
 
 namespace DotGram.Benchmarks;
 
@@ -57,14 +59,14 @@ public class PreparationBenchmarks
 		yield return new("Config", "real", Settings(400), static text => Config.Read(text).Length >= 0);
 
 		yield return new("Sql-92", "least", "a > 1",
-			static text => SqlStandard92.TryParseSearchCondition(text).IsSuccess);
+			static text => SqlStandardParser.TryParseSearchCondition(text).IsSuccess);
 		yield return new("Sql-92", "real", Condition(),
-			static text => SqlStandard92.TryParseSearchCondition(text).IsSuccess);
+			static text => SqlStandardParser.TryParseSearchCondition(text).IsSuccess);
 
 		yield return new("TransactSql", "least", "SELECT 1",
-			static text => TransactSql.TryParseStatement(text).IsSuccess);
+			static text => TransactSqlParser.TryParseStatement(text).IsSuccess);
 		yield return new("TransactSql", "real", Sql(),
-			static text => TransactSql.TryParseStatement(text).IsSuccess);
+			static text => TransactSqlParser.TryParseStatement(text).IsSuccess);
 	}
 
 	[ParamsSource(nameof(Cases))]
