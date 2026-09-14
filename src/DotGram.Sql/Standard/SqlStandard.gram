@@ -7,8 +7,12 @@
 // production says, or says it in another shape, the comment above it says why. A production
 // spelled as one character (<period>, <left paren>) is written as that character.
 //
-// Written chapter by chapter, and this is the first part: §5, the lexical elements, with the
-// literals §5.3 makes of them and the names §5.4 does.
+// Written chapter by chapter. So far: §5, the lexical elements, with the literals §5.3 makes of
+// them and the names §5.4 does; §6, scalar expressions; §8, predicates — all but what holds a
+// query, which waits for §7.
+
+@using System;
+@using DotGram.Sql.Standard;
 
 using Lexical;
 
@@ -109,7 +113,11 @@ namespace Lexical
 	IntroducedName         = UnicodeDelimitedIdentifier | ?!ReservedWord & RegularIdentifier | DelimitedIdentifier
 
 	// <SQL language identifier>: a Latin letter, then Latin letters, digits and underscores.
-	SQLLanguageIdentifier = SimpleLatinLetter & (SimpleLatinLetter | Digit | '_')*
+	SQLLanguageIdentifier = SimpleLatinLetter & (SimpleLatinLetter | Digit | '_')* & ?!IdentifierPart
+
+	// <multiplier>, of a large object's length: `2 K` and the one token `2K` alike. A letter, and a
+	// whole word.
+	Multiplier = ['K' | 'M' | 'G' | 'T' | 'P' | 'k' | 'm' | 'g' | 't' | 'p'] & ?!IdentifierPart
 
 	// <national character string literal>, <Unicode character string literal>, and <binary
 	// string literal>, whose hexits come in pairs that spaces may stand between.
@@ -300,10 +308,462 @@ ColumnReference
 	= BasicIdentifierChain
 	| "MODULE"i & '.' & QualifiedIdentifier & '.' & ColumnName
 
-parse Literal         as ParseLiteral
-parse UnsignedLiteral as ParseUnsignedLiteral
-parse Identifier      as ParseIdentifier
-parse IdentifierChain as ParseIdentifierChain
-parse ColumnReference as ParseColumnReference
-parse TableName       as ParseTableName
-parse SchemaName      as ParseSchemaName
+SchemaQualifiedName             = Identifier & ('.' & Identifier){0,2}
+PathResolvedUserDefinedTypeName = Identifier & ('.' & Identifier){0,2}
+RoutineName                     = Identifier & ('.' & Identifier){0,2}
+MethodName                      = Identifier
+
+// ── §6.1 Data types ─────────────────────────────────────────────────────────
+
+// <data type>, with <collection type>'s `ARRAY` and `MULTISET` written after it as often as they
+// stand there: the BNF says `<data type> ARRAY`, which recurses through itself on the left.
+DataType             = (PredefinedType | RowType | ReferenceType | PathResolvedUserDefinedTypeName) & (trivia & CollectionTypeSuffix)*
+CollectionTypeSuffix = "ARRAY"i & (LeftBracketOrTrigraph & UnsignedInteger & RightBracketOrTrigraph)?
+                     | "MULTISET"i
+
+PredefinedType
+	= CharacterStringType & ("CHARACTER"i & "SET"i & CharacterSetSpecification)? & CollateClause?
+	| NationalCharacterStringType & CollateClause?
+	| BinaryStringType
+	| NumericType
+	| "BOOLEAN"i
+	| DatetimeType
+	| "INTERVAL"i & IntervalQualifier
+	| "JSON"i
+
+// The character string types. A type the BNF spells as a longer one's beginning — `CHARACTER`
+// before `CHARACTER VARYING` — is asked after it, so that the choice does not take the beginning
+// and leave the rest.
+CharacterStringType
+	= ("CHARACTER"i | "CHAR"i) & "VARYING"i & ('(' & CharacterLength & ')')?
+	| ("CHARACTER"i | "CHAR"i) & "LARGE"i & "OBJECT"i & ('(' & CharacterLargeObjectLength & ')')?
+	| ("CHARACTER"i | "CHAR"i) & ('(' & CharacterLength & ')')?
+	| "VARCHAR"i & ('(' & CharacterLength & ')')?
+	| "CLOB"i & ('(' & CharacterLargeObjectLength & ')')?
+
+NationalCharacterStringType
+	= "NATIONAL"i & ("CHARACTER"i | "CHAR"i) & "VARYING"i & ('(' & CharacterLength & ')')?
+	| "NATIONAL"i & "CHARACTER"i & "LARGE"i & "OBJECT"i & ('(' & CharacterLargeObjectLength & ')')?
+	| "NATIONAL"i & ("CHARACTER"i | "CHAR"i) & ('(' & CharacterLength & ')')?
+	| "NCHAR"i & "VARYING"i & ('(' & CharacterLength & ')')?
+	| "NCHAR"i & "LARGE"i & "OBJECT"i & ('(' & CharacterLargeObjectLength & ')')?
+	| "NCHAR"i & ('(' & CharacterLength & ')')?
+	| "NCLOB"i & ('(' & CharacterLargeObjectLength & ')')?
+
+BinaryStringType
+	= "BINARY"i & "VARYING"i & ('(' & UnsignedInteger & ')')?
+	| "BINARY"i & "LARGE"i & "OBJECT"i & ('(' & LargeObjectLength & ')')?
+	| "BINARY"i & ('(' & UnsignedInteger & ')')?
+	| "VARBINARY"i & ('(' & UnsignedInteger & ')')?
+	| "BLOB"i & ('(' & LargeObjectLength & ')')?
+
+NumericType
+	= ("NUMERIC"i | "DECIMAL"i | "DEC"i) & ('(' & UnsignedInteger & (',' & UnsignedInteger)? & ')')?
+	| "SMALLINT"i | "INTEGER"i | "INT"i | "BIGINT"i
+	| "FLOAT"i & ('(' & UnsignedInteger & ')')?
+	| "REAL"i
+	| "DOUBLE"i & "PRECISION"i
+	| "DECFLOAT"i & ('(' & UnsignedInteger & ')')?
+
+DatetimeType
+	= "DATE"i
+	| ("TIME"i | "TIMESTAMP"i) & ('(' & UnsignedInteger & ')')? & (("WITH"i | "WITHOUT"i) & "TIME"i & "ZONE"i)?
+
+// <character length>, <large object length>: `2 K` is a length and `2K` one token of it.
+CharacterLength            = UnsignedInteger & CharLengthUnits?
+CharacterLargeObjectLength = LargeObjectLength & CharLengthUnits?
+LargeObjectLength          = UnsignedInteger & Multiplier?
+CharLengthUnits            = "CHARACTERS"i | "OCTETS"i
+
+RowType         = "ROW"i & '(' & FieldDefinition & (',' & FieldDefinition)* & ')'
+FieldDefinition = Identifier & DataType
+ReferenceType   = "REF"i & '(' & PathResolvedUserDefinedTypeName & ')' & ("SCOPE"i & TableName)?
+
+// <character set specification>, <character set name>: names, and an SQL language identifier last.
+CharacterSetSpecification = (Identifier & '.'){0,2} & SQLLanguageIdentifier
+
+CollateClause = "COLLATE"i & SchemaQualifiedName
+
+LeftBracketOrTrigraph  = "??(" | '['
+RightBracketOrTrigraph = "??)" | ']'
+
+// ── §6.28 Value expressions, §8.1 Boolean value expressions ────────────────
+//
+// The BNF types its value expressions — a numeric one, a character one, a datetime one, an
+// interval one and more — as towers that meet only in a <value expression primary>, and a
+// <value expression> is any of them or a boolean or a row. An ordered choice cannot try them one
+// after another: each would take the first operand and stop. So each is read once, in the shape
+// they share, and what a piece can still be comes back beside it (Towers.cs): a guard refuses a
+// reading that is none of them. `a || b + c` is refused, `x + y AT LOCAL` read and `x - y AT LOCAL`
+// refused, as the BNF has them.
+
+// <value expression>. A value that is no boolean is a boolean primary with nothing around it, so
+// the boolean reading is the one reading.
+ValueExpression : @int = e: Disjunction => @(e)
+
+// <boolean value expression>, <search condition>: what only a boolean can be, or a predicand.
+BooleanValueExpression : @int = e: Disjunction & when @((e & Towers.Truth) != 0) => @(e)
+SearchCondition        : @int = e: BooleanValueExpression => @(e)
+
+// `OR`, `AND` and `NOT` join booleans; a term with none of them is whatever it is.
+Disjunction   : @int = first: Conjunction & rest: OrOperand* & when @(Towers.Connect(first, rest) != 0) => @(Towers.Connect(first, rest))
+OrOperand     : @int = "OR"i & e: Conjunction => @(e)
+Conjunction   : @int = first: BooleanFactor & rest: AndOperand* & when @(Towers.Connect(first, rest) != 0) => @(Towers.Connect(first, rest))
+AndOperand    : @int = "AND"i & e: BooleanFactor => @(e)
+BooleanFactor : @int = "NOT"i & e: BooleanTest & when @((e & Towers.Truth) != 0) => @(Towers.Logical | Towers.Truth)
+                     | e: BooleanTest => @(e)
+
+// <boolean test>: `IS TRUE`, `IS NOT UNKNOWN`.
+BooleanTest : @int = e: BooleanPrimary & t: TruthTest & when @(t != true || (e & Towers.Truth) != 0) => @(t == true ? Towers.Logical | Towers.Truth : e)
+TruthTest   : @bool = "IS"i & "NOT"i? & TruthValue => @(true)
+                    | none => @(false)
+TruthValue  = "TRUE"i | "FALSE"i | "UNKNOWN"i
+
+// <boolean primary>: a predicate, or a boolean predicand. Almost every predicate begins with a row
+// value predicand, so the predicand is read once and what follows it says which: nothing, and it is
+// a predicand; a predicate's second part, and it is that predicate, if the second part takes it.
+BooleanPrimary : @int
+	= PeriodConstructor & PeriodPredicatePart2 => @(Towers.Logical | Towers.Truth)
+	| e: RowValuePredicand & takes: PredicatePart2Mark & when @(takes == 0 || (e & takes) != 0) => @(takes == 0 ? e : Towers.Logical | Towers.Truth)
+
+PredicatePart2Mark : @int = p: PredicatePart2 => @(p)
+                          | none => @(0)
+
+// <predicate>: a boolean primary that is not only a predicand.
+Predicate : @int = e: BooleanPrimary & when @((e & Towers.Logical) != 0) => @(e)
+
+// ── §8 Predicates ───────────────────────────────────────────────────────────
+//
+// The second parts, which is what the BNF calls them too: each says what it takes before it. Most
+// take any row value predicand; a JSON predicate a string or a JSON value; a period predicate a
+// period's name.
+PredicatePart2 : @int
+	= CompOp & RowValuePredicand => @(Towers.Any)
+	| "NOT"i? & NegatablePredicatePart2 => @(Towers.Any)
+	| "IS"i & "NOT"i? & t: IsPredicatePart2 => @(t)
+	| "OVERLAPS"i & RowValuePredicand => @(Towers.Any)
+	| JSONInputClause & "IS"i & "NOT"i? & "JSON"i & JSONPredicateTypeConstraint? & JSONKeyUniquenessConstraint? => @(Towers.String | Towers.Json)
+	| PeriodPredicatePart2 => @(Towers.Chain)
+
+// <comp op>, the longer operators first.
+CompOp = "<>" | "<=" | ">=" | '=' | '<' | '>'
+
+// What may stand after `NOT`: <between predicate part 2>, <in predicate part 2>, <like predicate>'s
+// — a character pattern or a binary one, with an escape of the same kind — <similar predicate part
+// 2>, <regex like predicate part 2>, <member predicate part 2>, <submultiset predicate part 2>.
+NegatablePredicatePart2 : @bool
+	= "BETWEEN"i & ("ASYMMETRIC"i | "SYMMETRIC"i)? & RowValuePredicand & "AND"i & RowValuePredicand => @(true)
+	| "IN"i & '(' & RowValueExpression & (',' & RowValueExpression)* & ')' => @(true)
+	| "LIKE"i & p: StringValueExpression & e: LikeEscape & when @((p & e & Towers.String) != 0) => @(true)
+	| "SIMILAR"i & "TO"i & CharacterValueExpression & ("ESCAPE"i & CharacterValueExpression)? => @(true)
+	| "LIKE_REGEX"i & CharacterValueExpression & ("FLAG"i & CharacterValueExpression)? => @(true)
+	| ("MEMBER"i | "SUBMULTISET"i) & "OF"i? & MultisetValueExpression => @(true)
+
+LikeEscape : @int = "ESCAPE"i & e: StringValueExpression => @(e)
+                  | none => @(Towers.String)
+
+// What may stand after `IS` and `NOT`: <null predicate part 2>, <normalized predicate part 2>,
+// <distinct predicate part 2>, <set predicate part 2>, <type predicate part 2>, <JSON predicate>'s.
+IsPredicatePart2 : @int
+	= "NULL"i => @(Towers.Any)
+	| NormalForm? & "NORMALIZED"i => @(Towers.Any)
+	| "DISTINCT"i & "FROM"i & RowValuePredicand => @(Towers.Any)
+	| "A"i & "SET"i => @(Towers.Any)
+	| "OF"i & '(' & UserDefinedTypeSpecification & (',' & UserDefinedTypeSpecification)* & ')' => @(Towers.Any)
+	| "JSON"i & JSONPredicateTypeConstraint? & JSONKeyUniquenessConstraint? => @(Towers.String | Towers.Json)
+
+NormalForm                   = "NFC"i | "NFD"i | "NFKC"i | "NFKD"i
+UserDefinedTypeSpecification = "ONLY"i? & PathResolvedUserDefinedTypeName
+
+// <JSON input clause>, <JSON representation>, and what a JSON predicate asks of the value.
+JSONInputClause             = "FORMAT"i & JSONRepresentation
+JSONRepresentation          = "JSON"i & ("ENCODING"i & ("UTF8"i | "UTF16"i | "UTF32"i))?
+JSONPredicateTypeConstraint = "VALUE"i | "ARRAY"i | "OBJECT"i | "SCALAR"i
+JSONKeyUniquenessConstraint = ("WITH"i | "WITHOUT"i) & "UNIQUE"i & "KEYS"i?
+
+// <period predicate>: a period, named or constructed, and another, or a point in time it contains.
+PeriodPredicatePart2
+	= ("OVERLAPS"i | "EQUALS"i | "PRECEDES"i | "SUCCEEDS"i | "IMMEDIATELY"i & ("PRECEDES"i | "SUCCEEDS"i)) & PeriodPredicand
+	| "CONTAINS"i & (DatetimeValueExpression | PeriodPredicand)
+PeriodPredicand   = PeriodConstructor | IdentifierChain
+PeriodConstructor = "PERIOD"i & '(' & DatetimeValueExpression & ',' & DatetimeValueExpression & ')'
+
+// ── §7.1 Row value constructors, as far as a predicate needs them ───────────
+
+// <row value predicand>: a common value expression — which a boolean predicand in brackets and a
+// value expression primary already are — or an explicit row.
+RowValuePredicand : @int = e: CommonValueExpression => @(e)
+                         | ExplicitRowValueConstructor => @(Towers.Row)
+
+// <row value expression>: a value expression primary not in brackets, or an explicit row. So
+// `x IN (a + 1)` is refused by the BNF, whose <in value list> holds row value expressions.
+RowValueExpression = ExplicitRowValueConstructor | NonParenthesizedValueExpressionPrimary
+
+// <explicit row value constructor>, but a row subquery.
+ExplicitRowValueConstructor
+	= '(' & ValueExpression & ',' & ValueExpression & (',' & ValueExpression)* & ')'
+	| "ROW"i & '(' & ValueExpression & (',' & ValueExpression)* & ')'
+
+// ── §6.28 Common value expressions ──────────────────────────────────────────
+
+// <common value expression>: operands and the operators between them, which Towers.cs holds to
+// the towers.
+CommonValueExpression : @int = first: Operand & rest: Operated* & when @(Towers.Common(first, rest) != 0) => @(Towers.Common(first, rest))
+
+// Not productions: the operators the towers share, read once for all of them. `||` joins character,
+// binary and array operands; `MULTISET UNION`, `EXCEPT` and `INTERSECT` multisets; `*`, `/`, `+`
+// and `-` numbers, intervals and datetimes.
+Operated : @Towers.Operated = o: Operator & e: Operand => @(new Towers.Operated(o, e))
+Operator : @int
+	= "||" => @(Towers.Concatenate)
+	| "MULTISET"i & ("UNION"i | "EXCEPT"i | "INTERSECT"i) & ("ALL"i | "DISTINCT"i)? => @(Towers.MultisetOperator)
+	| '*' => @(Towers.Times)
+	| '/' => @(Towers.Divided)
+	| '+' => @(Towers.Plus)
+	| '-' => @(Towers.Minus)
+
+// Not a production: what every tower's factor is made of. A sign (<factor>, <interval factor>),
+// a primary, and what may follow one: an interval qualifier (<interval primary>), a time zone
+// (<datetime factor>), a collate clause (<character factor>), or a type's name (<specific type
+// method>), which is a character value function and may be collated in turn.
+Operand : @Towers.Piece = s: Signed & p: Primary & x: Postfix & when @(Towers.Roles(new Towers.Piece(s == true, p, x)) != 0) => @(new Towers.Piece(s == true, p, x))
+Signed  : @bool = Sign => @(true)
+                | none => @(false)
+Postfix : @int = '.' & "SPECIFICTYPE"i & ('(' & ')')? & CollateClause => @(Towers.TypedCollated)
+               | '.' & "SPECIFICTYPE"i & ('(' & ')')? => @(Towers.Typed)
+               | IntervalQualifier => @(Towers.Qualified)
+               | TimeZone => @(Towers.Zoned)
+               | CollateClause => @(Towers.Collated)
+               | none => @(0)
+
+// <time zone>. The zone is an interval primary: a value expression primary with or without a
+// qualifier, or an interval's `ABS`.
+TimeZone        = "AT"i & ("LOCAL"i | "TIME"i & "ZONE"i & IntervalPrimary)
+IntervalPrimary : @bool = p: Primary & q: QualifierMark & when @(q == true ? (p & Towers.Value) == Towers.Value : (p & Towers.Interval) != 0) => @(true)
+QualifierMark   : @bool = IntervalQualifier => @(true)
+                        | none => @(false)
+
+// Not a production: a primary of any tower. A value function is of the tower it names; an array's
+// may be subscripted, and is then a value expression primary.
+Primary : @int
+	= f: ValueFunction & s: FunctionSubscript & when @(s == 0 || (f & Towers.Array) != 0) => @(Towers.Stepped(f, s))
+	| p: PrimaryReading => @(p)
+
+FunctionSubscript : @int = ArrayElementStep & s: PrimarySteps => @(Towers.Subscript | s)
+                         | none => @(0)
+
+// The towers, each an expression the towers say it can be.
+NumericValueExpression    : @int = e: CommonValueExpression & when @((e & Towers.Numeric) != 0) => @(e)
+StringValueExpression     : @int = e: CommonValueExpression & when @((e & Towers.String) != 0) => @(e)
+CharacterValueExpression  : @int = e: CommonValueExpression & when @((e & Towers.Character) != 0) => @(e)
+BinaryValueExpression     : @int = e: CommonValueExpression & when @((e & Towers.Binary) != 0) => @(e)
+DatetimeValueExpression   : @int = e: CommonValueExpression & when @((e & Towers.Datetime) != 0) => @(e)
+IntervalValueExpression   : @int = e: CommonValueExpression & when @((e & Towers.Interval) != 0) => @(e)
+ArrayValueExpression      : @int = e: CommonValueExpression & when @((e & Towers.Array) != 0) => @(e)
+MultisetValueExpression   : @int = e: CommonValueExpression & when @((e & Towers.Multiset) != 0) => @(e)
+CollectionValueExpression : @int = e: CommonValueExpression & when @((e & (Towers.Array | Towers.Multiset)) != 0) => @(e)
+
+// ── §6.3 Value expression primary ───────────────────────────────────────────
+
+// <value expression primary>, <non-parenthesized value expression primary>: a common value
+// expression that is one — which a subscripted concatenation is too (Towers.cs).
+ValueExpressionPrimary                 : @int = e: CommonValueExpression & when @((e & (Towers.Bare | Towers.Parenthesized)) != 0) => @(e)
+NonParenthesizedValueExpressionPrimary : @int = e: CommonValueExpression & when @((e & Towers.Bare) != 0) => @(e)
+
+// Not a production: a primary read as one. <field reference>, <method invocation>, <attribute or
+// method reference> and <array element reference> each begin with a value expression primary,
+// which is left recursion through other productions; they are steps after one here, as many as
+// there are. A primary in brackets is a parenthesized one only while no step follows it.
+PrimaryReading : @int
+	= v: ParenthesizedValueExpression & s: PrimarySteps => @(Towers.Stepped(Towers.Value | Towers.Parenthesized | (v & Towers.Truth), s))
+	| p: PrimaryBase & s: PrimarySteps => @(Towers.Stepped(p, s))
+
+ParenthesizedValueExpression : @int = '(' & e: ValueExpression & ')' => @(e)
+
+PrimarySteps : @int = s: PrimaryStep* => @(Towers.Steps(s))
+PrimaryStep  : @int
+	= '.' & MethodName & SQLArgumentList? => @(Towers.Bare)
+	| "->" & Identifier & SQLArgumentList? => @(Towers.Bare)
+	| ArrayElementStep => @(Towers.Subscript)
+
+ArrayElementStep = LeftBracketOrTrigraph & NumericValueExpression & RightBracketOrTrigraph
+
+// Not a production: what a non-parenthesized primary begins with. A name followed by arguments is
+// a routine's, and a name followed by a method call stops before the method: `a.b.c.d(1)` is
+// `a.b.c` and a method `d`.
+PrimaryBase : @int
+	= GeneralizedInvocation => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| UnsignedLiteral => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| GeneralValueSpecification => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| CaseExpression => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| CastSpecification => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| NextValueExpression => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| SubtypeTreatment => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| NewSpecification => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| ReferenceResolution => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| CollectionValueConstructor => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| MultisetElementReference => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| GreatestOrLeastFunction => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| StaticMethodInvocation => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| RoutineInvocation => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| "MODULE"i & '.' & QualifiedIdentifier & '.' & ColumnName => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| Identifier & ('.' & Identifier & ?!'(')* => @(Towers.Value | Towers.Truth | Towers.Bare | Towers.Chain)
+
+// <generalized invocation>: a primary seen as a supertype, and a method of it.
+GeneralizedInvocation = '(' & ValueExpressionPrimary & "AS"i & DataType & ')' & '.' & MethodName & SQLArgumentList?
+
+// <general value specification>, but an SQL parameter reference, which is an identifier chain and
+// read as one; <embedded variable specification> is left to a host language.
+GeneralValueSpecification
+	= ':' & Identifier & ("INDICATOR"i? & ':' & Identifier)?
+	| '?'
+	| "COLLATION"i & "FOR"i & '(' & StringValueExpression & ')'
+	| "CURRENT_TRANSFORM_GROUP_FOR_TYPE"i & PathResolvedUserDefinedTypeName
+	| "CURRENT_CATALOG"i | "CURRENT_DEFAULT_TRANSFORM_GROUP"i | "CURRENT_PATH"i | "CURRENT_ROLE"i
+	| "CURRENT_SCHEMA"i | "CURRENT_USER"i | "SESSION_USER"i | "SYSTEM_USER"i | "USER"i | "VALUE"i
+
+// <case expression>.
+CaseExpression
+	= "NULLIF"i & '(' & ValueExpression & ',' & ValueExpression & ')'
+	| "COALESCE"i & '(' & ValueExpression & (',' & ValueExpression)+ & ')'
+	| "CASE"i & RowValuePredicand & (trivia & SimpleWhenClause)+ & ElseClause? & "END"i
+	| "CASE"i & (trivia & SearchedWhenClause)+ & ElseClause? & "END"i
+
+SimpleWhenClause   = "WHEN"i & WhenOperand & (',' & WhenOperand)* & "THEN"i & Result
+SearchedWhenClause = "WHEN"i & SearchCondition & "THEN"i & Result
+ElseClause         = "ELSE"i & Result
+Result             = ValueExpression | "NULL"i
+
+// <when operand>: a row value predicand, or a predicate's second part with nothing before it — any
+// but a JSON predicate's and a period predicate's.
+WhenOperand : @bool = p: PredicatePart2 & when @(p == Towers.Any) => @(true)
+                    | RowValuePredicand => @(true)
+
+// <cast specification>. A domain's name is a user-defined type's in shape, and <data type> reads it.
+CastSpecification = "CAST"i & '(' & (ValueExpression | ImplicitlyTypedValueSpecification) & "AS"i & DataType & ("FORMAT"i & CharacterStringLiteral)? & ')'
+
+ImplicitlyTypedValueSpecification   = "NULL"i | ("ARRAY"i | "MULTISET"i) & LeftBracketOrTrigraph & RightBracketOrTrigraph
+ContextuallyTypedValueSpecification = ImplicitlyTypedValueSpecification | "DEFAULT"i
+
+NextValueExpression      = "NEXT"i & "VALUE"i & "FOR"i & SchemaQualifiedName
+SubtypeTreatment         = "TREAT"i & '(' & ValueExpression & "AS"i & (ReferenceType | PathResolvedUserDefinedTypeName) & ')'
+NewSpecification         = "NEW"i & PathResolvedUserDefinedTypeName & SQLArgumentList
+ReferenceResolution      = "DEREF"i & '(' & ValueExpressionPrimary & ')'
+MultisetElementReference = "ELEMENT"i & '(' & MultisetValueExpression & ')'
+GreatestOrLeastFunction  = ("GREATEST"i | "LEAST"i) & '(' & ValueExpression & (',' & ValueExpression)+ & ')'
+StaticMethodInvocation   = PathResolvedUserDefinedTypeName & "::" & MethodName & SQLArgumentList?
+RoutineInvocation        = RoutineName & SQLArgumentList
+
+// <collection value constructor>, by enumeration; by query waits for §7.
+CollectionValueConstructor = ("ARRAY"i | "MULTISET"i) & LeftBracketOrTrigraph & ValueExpression & (',' & ValueExpression)* & RightBracketOrTrigraph
+
+// <SQL argument list>, but table and descriptor arguments. A named argument is asked first, since
+// its name would otherwise be read as a value.
+SQLArgumentList = '(' & (SQLArgument & (',' & SQLArgument)*)? & ')'
+SQLArgument
+	= Identifier & "=>" & (ValueExpression | ContextuallyTypedValueSpecification)
+	| ValueExpression & ("AS"i & PathResolvedUserDefinedTypeName)?
+	| ContextuallyTypedValueSpecification
+
+// ── §6.30–6.36 Value functions ──────────────────────────────────────────────
+
+// Not a production: a function of some tower, and the tower it is of. `ABS` is a number's and an
+// interval's both.
+ValueFunction : @int
+	= NumericValueFunction => @(Towers.Numeric)
+	| a: AbsoluteValue => @(a)
+	| StringValueFunction => @(Towers.String)
+	| DatetimeValueFunction => @(Towers.Datetime)
+	| "TRIM_ARRAY"i & '(' & ArrayValueExpression & ',' & NumericValueExpression & ')' => @(Towers.Array)
+	| "SET"i & '(' & MultisetValueExpression & ')' => @(Towers.Multiset)
+
+// <absolute value expression>, <interval absolute value function>.
+AbsoluteValue : @int = "ABS"i & '(' & e: CommonValueExpression & ')' & when @((e & (Towers.Numeric | Towers.Interval)) != 0) => @(e & (Towers.Numeric | Towers.Interval))
+
+// <numeric value function>, but `ABS`.
+NumericValueFunction
+	= PositionExpression
+	| "OCCURRENCES_REGEX"i & '(' & RegexSearch & ')'
+	| "POSITION_REGEX"i & '(' & ("START"i | "AFTER"i)? & RegexSearch & ("OCCURRENCE"i & NumericValueExpression)? & ("GROUP"i & NumericValueExpression)? & ')'
+	| ExtractExpression
+	| ("CHAR_LENGTH"i | "CHARACTER_LENGTH"i) & '(' & CharacterValueExpression & ("USING"i & CharLengthUnits)? & ')'
+	| "OCTET_LENGTH"i & '(' & StringValueExpression & ')'
+	| "CARDINALITY"i & '(' & CollectionValueExpression & ')'
+	| "ARRAY_MAX_CARDINALITY"i & '(' & ArrayValueExpression & ')'
+	| ("MOD"i | "LOG"i | "POWER"i) & '(' & NumericValueExpression & ',' & NumericValueExpression & ')'
+	| ("SIN"i | "COS"i | "TAN"i | "SINH"i | "COSH"i | "TANH"i | "ASIN"i | "ACOS"i | "ATAN"i
+	  | "LOG10"i | "LN"i | "EXP"i | "SQRT"i | "FLOOR"i | "CEIL"i | "CEILING"i) & '(' & NumericValueExpression & ')'
+	| "WIDTH_BUCKET"i & '(' & NumericValueExpression & ',' & NumericValueExpression & ',' & NumericValueExpression & ',' & NumericValueExpression & ')'
+	| "MATCH_NUMBER"i & '(' & ')'
+
+// <character position expression>, <binary position expression>.
+PositionExpression : @bool = "POSITION"i & '(' & a: StringValueExpression & "IN"i & b: StringValueExpression & u: UsingUnits & ')' & when @(Towers.Characters(a & b, u == true)) => @(true)
+
+// What the regular expression functions share: a pattern, its flags, the string searched, and where.
+RegexSearch = CharacterValueExpression & ("FLAG"i & CharacterValueExpression)? & "IN"i & CharacterValueExpression & ("FROM"i & NumericValueExpression)? & ("USING"i & CharLengthUnits)?
+
+// <extract expression>: a datetime's field, or an interval's.
+ExtractExpression : @bool = "EXTRACT"i & '(' & ExtractField & "FROM"i & e: CommonValueExpression & ')' & when @((e & (Towers.Datetime | Towers.Interval)) != 0) => @(true)
+ExtractField      = NonSecondPrimaryDatetimeField | "SECOND"i | "TIMEZONE_HOUR"i | "TIMEZONE_MINUTE"i
+
+UsingUnits : @bool = "USING"i & CharLengthUnits => @(true)
+                   | none => @(false)
+
+// <string value function>, but a JSON serialization and <specific type method>, which follows a
+// primary (`Primary`).
+StringValueFunction
+	= SubstringFunction
+	| "SUBSTRING"i & '(' & CharacterValueExpression & "SIMILAR"i & CharacterValueExpression & "ESCAPE"i & CharacterValueExpression & ')'
+	| "SUBSTRING_REGEX"i & '(' & RegexSearch & ("OCCURRENCE"i & NumericValueExpression)? & ("GROUP"i & NumericValueExpression)? & ')'
+	| ("UPPER"i | "LOWER"i) & '(' & CharacterValueExpression & ')'
+	| ("CONVERT"i | "TRANSLATE"i) & '(' & CharacterValueExpression & "USING"i & SchemaQualifiedName & ')'
+	| "TRANSLATE_REGEX"i & '(' & CharacterValueExpression & ("FLAG"i & CharacterValueExpression)? & "IN"i & CharacterValueExpression
+	  & ("WITH"i & CharacterValueExpression)? & ("FROM"i & NumericValueExpression)? & ("USING"i & CharLengthUnits)?
+	  & ("OCCURRENCE"i & (NumericValueExpression | "ALL"i))? & ')'
+	| ("LPAD"i | "RPAD"i) & '(' & CharacterValueExpression & ',' & NumericValueExpression & (',' & CharacterValueExpression)? & ')'
+	| TrimFunction
+	| ("BTRIM"i | "LTRIM"i | "RTRIM"i) & '(' & CharacterValueExpression & (',' & CharacterValueExpression)? & ')'
+	| OverlayFunction
+	| "NORMALIZE"i & '(' & CharacterValueExpression & (',' & NormalForm & (',' & CharacterLargeObjectLength)?)? & ')'
+	| "CLASSIFIER"i & '(' & Identifier? & ')'
+
+// <character substring function>, <binary substring function>.
+SubstringFunction : @bool = "SUBSTRING"i & '(' & s: StringValueExpression & "FROM"i & NumericValueExpression & ("FOR"i & NumericValueExpression)? & u: UsingUnits & ')' & when @(Towers.Characters(s, u == true)) => @(true)
+
+// <single-character trim function>, <binary trim function>: what is trimmed, and from what, of one kind.
+TrimFunction : @bool = "TRIM"i & '(' & t: TrimOperands & ')' & when @((t & Towers.String) != 0) => @(true)
+TrimOperands : @int
+	= TrimSpecification? & c: StringValueExpression & "FROM"i & s: StringValueExpression => @(c & s)
+	| TrimSpecification? & "FROM"i & s: StringValueExpression => @(s)
+	| s: StringValueExpression => @(s)
+TrimSpecification = "LEADING"i | "TRAILING"i | "BOTH"i
+
+// <character overlay function>, <binary overlay function>.
+OverlayFunction : @bool = "OVERLAY"i & '(' & a: StringValueExpression & "PLACING"i & b: StringValueExpression & "FROM"i & NumericValueExpression & ("FOR"i & NumericValueExpression)? & u: UsingUnits & ')' & when @(Towers.Characters(a & b, u == true)) => @(true)
+
+// <datetime value function>.
+DatetimeValueFunction
+	= "CURRENT_DATE"i
+	| ("CURRENT_TIMESTAMP"i | "CURRENT_TIME"i | "LOCALTIMESTAMP"i | "LOCALTIME"i) & ('(' & UnsignedInteger & ')')?
+
+parse Literal                  as ParseLiteral
+parse UnsignedLiteral          as ParseUnsignedLiteral
+parse Identifier               as ParseIdentifier
+parse IdentifierChain          as ParseIdentifierChain
+parse ColumnReference          as ParseColumnReference
+parse TableName                as ParseTableName
+parse SchemaName               as ParseSchemaName
+parse DataType                 as ParseDataType
+parse ValueExpression          as ParseValueExpression
+parse CommonValueExpression    as ParseCommonValueExpression
+parse NumericValueExpression   as ParseNumericValueExpression
+parse StringValueExpression    as ParseStringValueExpression
+parse CharacterValueExpression as ParseCharacterValueExpression
+parse BinaryValueExpression    as ParseBinaryValueExpression
+parse DatetimeValueExpression  as ParseDatetimeValueExpression
+parse IntervalValueExpression  as ParseIntervalValueExpression
+parse BooleanValueExpression   as ParseBooleanValueExpression
+parse SearchCondition          as ParseSearchCondition
+parse Predicate                as ParsePredicate
+parse RowValuePredicand        as ParseRowValuePredicand
+parse ValueExpressionPrimary   as ParseValueExpressionPrimary

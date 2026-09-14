@@ -20,9 +20,14 @@ namespace DotGram.Sql.Standard;
 /// because an ordered choice commits where the BNF's does not — says why above it.
 /// </para>
 /// <para>
-/// Written from the newest edition down, chapter by chapter; §5, the lexical elements, is first.
-/// Nothing is built yet: the grammar recognizes, and the tree follows the standard's shape once
-/// the language is right.
+/// Written from the newest edition down, chapter by chapter: so far §5, the lexical elements, §6,
+/// scalar expressions, and §8, predicates, but for what holds a query. Nothing is built yet: the
+/// grammar recognizes, and the tree follows the standard's shape once the language is right.
+/// </para>
+/// <para>
+/// <b>The towers are carried, not tried.</b> The BNF types its value expressions — numeric,
+/// character, datetime, interval — as towers that meet only in a primary, and a parser has no
+/// types; an expression is read once and <see cref="Towers"/> says which towers it still belongs to.
 /// </para>
 /// </remarks>
 [Gram("SqlStandard.gram")]

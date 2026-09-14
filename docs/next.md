@@ -21980,3 +21980,42 @@ A predicate is whatever `M(c)` binds to, and the shape is checked no tighter tha
 `bool` method whose first parameter a `char` converts to implicitly and whose others may be left
 out. `bool IsVowel(int c)` compiles as a predicate and is one; checking for `(char c)` exactly
 would have said otherwise about a grammar that builds.
+
+## SQL:2023 §6 and §8: the towers, read once
+
+The standard's grammar now has its scalar expressions and its predicates: data types (§6.1), value
+expression primaries with every step the BNF writes after one, `CASE`, `CAST`, `NEXT VALUE FOR`,
+`TREAT`, `NEW`, `DEREF`, the collection constructors, routine and method invocations with named
+arguments, the numeric, string, datetime, interval, array and multiset value functions, the boolean
+value expression, and every predicate that holds no query. What holds one — a scalar subquery,
+`EXISTS`, `UNIQUE`, `MATCH`, a quantified comparison, `IN (SELECT …)` — waits for §7, and so do
+aggregates, window functions, row pattern navigation and the JSON functions.
+
+**The BNF types its expressions, and a parser has no types.** A numeric, a character, a datetime and
+an interval value expression are towers of their own that meet only in a value expression primary,
+so `a || b + c` is none of them and the BNF refuses it; `x + y AT LOCAL` is a datetime (an interval
+plus a datetime term) and `x - y AT LOCAL` is nothing; `2 * a DAY` is an interval and `2 / a DAY` is
+not; `x IN (a + 1)` is refused, because an in value list holds row value expressions. An ordered
+choice cannot try the towers one after another — each would take the first operand and stop — and
+writing every mixture out is a grammar the size of their product. So an expression is read once, as
+operands and the operators between them, and `Towers.cs` says which towers the whole still belongs
+to; a guard refuses a reading where none is left. A boolean works the same way: `NOT`, `AND`, `OR` and
+`IS TRUE` take boolean predicands, and a boolean predicand is a value expression primary, so
+`(a + 1) IS TRUE` is refused and `((a)) IS TRUE` read, as the BNF has them.
+
+**One production cuts across that shape, and random input found it.** An array element reference
+subscripts an array value expression, and a concatenation is one: `-f(a) || a[1]` is `-((f(a) ||
+a)[1])`, a number. The operands are read flat and a run of `||` that ends in a subscript folds into
+one primary before the operators are asked; folding only takes operators away, so the run is taken as
+far as it goes.
+
+**A repetition of a choice is not spaced** (docs/syntax.md §4.5), and the grammar had leaned on it:
+`INTEGER MULTISET MULTISET` and `CASE WHEN a THEN 1 WHEN b THEN 2 END` were refused. The steps after
+a primary are a valued rule now, whose repetition is a list and spaced; the collection suffixes of a
+data type and the `WHEN` clauses name `trivia` in their turns.
+
+**How it is held.** Besides the probe files, `.work/fuzz_values.py` writes random expressions in three
+moods — operators and postfixes thrown together, one tower kept to, and templates with expressions in
+their holes — and `--standard` put 37,000 verdicts across seven publications to both the BNF and the
+grammar: none differ. Deep nesting costs milliseconds. The probe lines went into
+`SqlStandardParserTests` with the verdicts both gave, taken from `--standard`'s own output.
