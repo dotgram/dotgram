@@ -21,8 +21,8 @@ namespace DotGram.Sql.Standard;
 /// </para>
 /// <para>
 /// Written from the newest edition down, chapter by chapter: so far §5, the lexical elements, §6,
-/// scalar expressions, §7, query expressions, §8, predicates, and §10.9, aggregates — but row pattern
-/// recognition and the JSON functions. Nothing is built yet: the
+/// scalar expressions, §7, query expressions with row pattern recognition, §8, predicates, and §10.9,
+/// aggregates — but the JSON functions. Nothing is built yet: the
 /// grammar recognizes, and the tree follows the standard's shape once the language is right.
 /// </para>
 /// <para>

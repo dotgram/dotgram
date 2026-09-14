@@ -9,8 +9,8 @@
 //
 // Written chapter by chapter. So far: §5, the lexical elements, with the literals §5.3 makes of
 // them and the names §5.4 does; §6, scalar expressions, with window functions and row pattern
-// navigation; §7, query expressions; §8, predicates; §10.9, aggregates. Row pattern recognition and
-// the JSON functions are still to come.
+// navigation; §7, query expressions, with row pattern recognition; §8, predicates; §10.9,
+// aggregates. The JSON functions are still to come.
 
 @using System;
 @using DotGram.Sql.Standard;
@@ -218,6 +218,11 @@ namespace Lexical
 		| "VERSIONING"i | "WHEN"i | "WHENEVER"i | "WHERE"i | "WIDTH_BUCKET"i | "WINDOW"i | "WITH"i
 		| "WITHIN"i | "WITHOUT"i | "YEAR"i)
 		& ?!IdentifierPart
+
+	// A question mark in a <row pattern quantifier>. `??(` and `??)` are the trigraph brackets, each one
+	// token (§5.2), so a question mark that begins one is not a quantifier's: `(A??)` is refused.
+	// Lexical, so that `(A? ?)` — two question marks and a bracket — is not taken for one.
+	PatternQuestionMark = '?' & ?!("?(" | "?)")
 }
 
 // §5.2: a key word is a whole word, so `ABSOLUTE` is a name and not `ABS` and what follows it.
@@ -500,25 +505,22 @@ PeriodConstructor = "PERIOD"i & '(' & DatetimeValueExpression & ',' & DatetimeVa
 // ── §7.1 Row value constructors, as far as a predicate needs them ───────────
 
 // <row value predicand>: a common value expression — which a boolean predicand in brackets and a
-// value expression primary already are — or an explicit row.
-RowValuePredicand : @int = e: CommonValueExpression => @(e)
-                         | ExplicitRowValueConstructor => @(Towers.Row)
+// value expression primary already are — or an explicit row value constructor. A row is read where a
+// bracket is (`Bracketed`), and `ROW (…)` where a primary begins; a row subquery is written as a
+// scalar subquery is, and read as one.
+RowValuePredicand : @int = e: CommonValueExpressionOrRow => @(e)
 
 // <row value expression>: a value expression primary not in brackets, or an explicit row. So
 // `x IN (a + 1)` is refused by the BNF, whose <in value list> holds row value expressions.
-RowValueExpression = ExplicitRowValueConstructor | NonParenthesizedValueExpressionPrimary
-
-// <explicit row value constructor>. A row subquery is written as a scalar subquery is, and a value
-// expression primary reads that wherever a row may stand.
-ExplicitRowValueConstructor
-	= '(' & ValueExpression & ',' & ValueExpression & (',' & ValueExpression)* & ')'
-	| "ROW"i & '(' & ValueExpression & (',' & ValueExpression)* & ')'
+RowValueExpression : @int = e: CommonValueExpressionOrRow & when @((e & (Towers.Row | Towers.Bare)) != 0) => @(e)
 
 // ── §6.28 Common value expressions ──────────────────────────────────────────
 
 // <common value expression>: operands and the operators between them, which Towers.cs holds to
-// the towers.
-CommonValueExpression : @int = first: Operand & rest: Operated* & when @(Towers.Common(first, rest) != 0) => @(Towers.Common(first, rest))
+// the towers. An explicit row is an operand in shape, and something only alone: where a row may
+// stand, the one reading serves both.
+CommonValueExpressionOrRow : @int = first: Operand & rest: Operated* & when @(Towers.Common(first, rest) != 0) => @(Towers.Common(first, rest))
+CommonValueExpression      : @int = e: CommonValueExpressionOrRow & when @((e & Towers.Value) != 0) => @(e)
 
 // Not productions: the operators the towers share, read once for all of them. `||` joins character,
 // binary and array operands; `MULTISET UNION`, `EXCEPT` and `INTERSECT` multisets; `*`, `/`, `+`
@@ -575,24 +577,35 @@ CollectionValueExpression : @int = e: CommonValueExpression & when @((e & (Tower
 
 // ── §6.3 Value expression primary ───────────────────────────────────────────
 
-// <value expression primary>, <non-parenthesized value expression primary>: a common value
-// expression that is one — which a subscripted concatenation is too (Towers.cs).
-ValueExpressionPrimary                 : @int = e: CommonValueExpression & when @((e & (Towers.Bare | Towers.Parenthesized)) != 0) => @(e)
-NonParenthesizedValueExpressionPrimary : @int = e: CommonValueExpression & when @((e & Towers.Bare) != 0) => @(e)
+// <value expression primary>: a common value expression that is one — which a subscripted
+// concatenation is too (Towers.cs). A non-parenthesized one is `Towers.Bare`, asked where it stands.
+ValueExpressionPrimary : @int = e: CommonValueExpression & when @((e & (Towers.Bare | Towers.Parenthesized)) != 0) => @(e)
 
 // Not a production: a primary read as one. <field reference>, <method invocation>, <attribute or
 // method reference> and <array element reference> each begin with a value expression primary,
 // which is left recursion through other productions; they are steps after one here, as many as
-// there are. A primary in brackets is a parenthesized one only while no step follows it.
+// there are. A primary in brackets is a parenthesized one only while no step follows it, and a row
+// takes no step.
 //
-// A <scalar subquery> is asked before a parenthesized value expression: `((SELECT a FROM t))` is
-// both, and only the subquery is a non-parenthesized primary, which an in value list asks for.
+// A <scalar subquery> is asked before a bracket's value expression: `((SELECT a FROM t))` is both,
+// and only the subquery is a non-parenthesized primary, which an in value list asks for.
 PrimaryReading : @int
 	= ScalarSubquery & s: PrimarySteps => @(Towers.Stepped(Towers.Value | Towers.Truth | Towers.Bare, s))
-	| v: ParenthesizedValueExpression & s: PrimarySteps => @(Towers.Stepped(Towers.Value | Towers.Parenthesized | (v & Towers.Truth), s))
-	| p: PrimaryBase & s: PrimarySteps => @(Towers.Stepped(p, s))
+	| b: Bracketed & s: PrimarySteps & when @(s == 0 || (b & Towers.Row) == 0) => @(Towers.Stepped(b, s))
+	| p: PrimaryBase & s: PrimarySteps & when @(s == 0 || (p & Towers.Row) == 0) => @(Towers.Stepped(p, s))
 
-ParenthesizedValueExpression : @int = '(' & e: ValueExpression & ')' => @(e)
+// Not a production: a bracket, read once. A <parenthesized value expression>, an <explicit row value
+// constructor> and a <generalized invocation> each begin with a bracket and a value expression, and
+// what follows the value expression says which: the closing bracket, a comma, or `AS`. Tried one
+// after another, each read the bracket's contents again, and a line refused deep inside nested
+// brackets cost a power of their depth — eight of them, 46 ms. A generalized invocation's value
+// expression is a primary.
+Bracketed : @int = '(' & e: ValueExpression & t: BracketTail & when @(t != Towers.Bare || (e & (Towers.Bare | Towers.Parenthesized)) != 0) => @(t == Towers.Parenthesized ? Towers.Value | Towers.Parenthesized | (e & Towers.Truth) : t == Towers.Row ? Towers.Row : Towers.Value | Towers.Truth | Towers.Bare)
+
+BracketTail : @int
+	= ')' => @(Towers.Parenthesized)
+	| (',' & ValueExpression)+ & ')' => @(Towers.Row)
+	| "AS"i & DataType & ')' & '.' & MethodName & SQLArgumentList? => @(Towers.Bare)
 
 PrimarySteps : @int = s: PrimaryStep* => @(Towers.Steps(s))
 PrimaryStep  : @int
@@ -606,8 +619,8 @@ ArrayElementStep = LeftBracketOrTrigraph & NumericValueExpression & RightBracket
 // a routine's, and a name followed by a method call stops before the method: `a.b.c.d(1)` is
 // `a.b.c` and a method `d`.
 PrimaryBase : @int
-	= GeneralizedInvocation => @(Towers.Value | Towers.Truth | Towers.Bare)
-	| UnsignedLiteral => @(Towers.Value | Towers.Truth | Towers.Bare)
+	= UnsignedLiteral => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| "ROW"i & '(' & ValueExpression & (',' & ValueExpression)* & ')' => @(Towers.Row)
 	| GeneralValueSpecification => @(Towers.Value | Towers.Truth | Towers.Bare)
 	| CaseExpression => @(Towers.Value | Towers.Truth | Towers.Bare)
 	| CastSpecification => @(Towers.Value | Towers.Truth | Towers.Bare)
@@ -621,7 +634,7 @@ PrimaryBase : @int
 	| StaticMethodInvocation => @(Towers.Value | Towers.Truth | Towers.Bare)
 	| WindowedFunction => @(Towers.Value | Towers.Truth | Towers.Bare)
 	| RowPatternNavigationOperation => @(Towers.Value | Towers.Truth | Towers.Bare)
-	| RoutineInvocation => @(Towers.Value | Towers.Truth | Towers.Bare)
+	| RoutineInvocation => @(Towers.Value | Towers.Truth | Towers.Bare | Towers.Invoked)
 	| "MODULE"i & '.' & QualifiedIdentifier & '.' & ColumnName => @(Towers.Value | Towers.Truth | Towers.Bare)
 	| Identifier & c: ChainOrMeasure => @(Towers.Value | Towers.Truth | Towers.Bare | c)
 
@@ -629,9 +642,6 @@ PrimaryBase : @int
 // <window row pattern measure>'s.
 ChainOrMeasure : @int = WindowOver => @(0)
                       | ('.' & Identifier & ?!'(')* => @(Towers.Chain)
-
-// <generalized invocation>: a primary seen as a supertype, and a method of it.
-GeneralizedInvocation = '(' & ValueExpressionPrimary & "AS"i & DataType & ')' & '.' & MethodName & SQLArgumentList?
 
 // <general value specification>, but an SQL parameter reference, which is an identifier chain and
 // read as one; <embedded variable specification> is left to a host language.
@@ -736,7 +746,6 @@ UsingUnits : @bool = "USING"i & CharLengthUnits => @(true)
 // primary (`Primary`).
 StringValueFunction
 	= SubstringFunction
-	| "SUBSTRING"i & '(' & CharacterValueExpression & "SIMILAR"i & CharacterValueExpression & "ESCAPE"i & CharacterValueExpression & ')'
 	| "SUBSTRING_REGEX"i & '(' & RegexSearch & ("OCCURRENCE"i & NumericValueExpression)? & ("GROUP"i & NumericValueExpression)? & ')'
 	| ("UPPER"i | "LOWER"i) & '(' & CharacterValueExpression & ')'
 	| ("CONVERT"i | "TRANSLATE"i) & '(' & CharacterValueExpression & "USING"i & SchemaQualifiedName & ')'
@@ -750,15 +759,33 @@ StringValueFunction
 	| "NORMALIZE"i & '(' & CharacterValueExpression & (',' & NormalForm & (',' & CharacterLargeObjectLength)?)? & ')'
 	| "CLASSIFIER"i & '(' & Identifier? & ')'
 
-// <character substring function>, <binary substring function>.
-SubstringFunction : @bool = "SUBSTRING"i & '(' & s: StringValueExpression & "FROM"i & NumericValueExpression & ("FOR"i & NumericValueExpression)? & u: UsingUnits & ')' & when @(Towers.Characters(s, u == true)) => @(true)
+// <character substring function>, <binary substring function>, <regular expression substring
+// function>. All three begin with the string, which is read once and what follows it says which: the
+// last is a character string's alone.
+SubstringFunction : @bool = "SUBSTRING"i & '(' & s: StringValueExpression & t: SubstringTail & ')' & when @(t == 2 ? (s & Towers.Character) != 0 : Towers.Characters(s, t == 1)) => @(true)
+
+// 1 where a length unit is named, 2 for `SIMILAR`.
+SubstringTail : @int
+	= "FROM"i & NumericValueExpression & ("FOR"i & NumericValueExpression)? & u: UsingUnits => @(u == true ? 1 : 0)
+	| "SIMILAR"i & CharacterValueExpression & "ESCAPE"i & CharacterValueExpression => @(2)
 
 // <single-character trim function>, <binary trim function>: what is trimmed, and from what, of one kind.
 TrimFunction : @bool = "TRIM"i & '(' & t: TrimOperands & ')' & when @((t & Towers.String) != 0) => @(true)
+//
+// <trim operands> is `[ [ spec ] [ character ] FROM ] source`. What the operands begin with is read
+// once: a specification, `FROM`, or a string that is the source or, with `FROM` after it, the
+// character trimmed.
 TrimOperands : @int
-	= TrimSpecification? & c: StringValueExpression & "FROM"i & s: StringValueExpression => @(c & s)
-	| TrimSpecification? & "FROM"i & s: StringValueExpression => @(s)
-	| s: StringValueExpression => @(s)
+	= TrimSpecification & t: TrimAfterSpecification => @(t)
+	| "FROM"i & s: StringValueExpression => @(s)
+	| c: StringValueExpression & f: TrimFrom => @(f == 0 ? c : c & f)
+
+TrimAfterSpecification : @int
+	= "FROM"i & s: StringValueExpression => @(s)
+	| c: StringValueExpression & "FROM"i & s: StringValueExpression => @(c & s)
+
+TrimFrom : @int = "FROM"i & s: StringValueExpression => @(s)
+                | none => @(0)
 TrimSpecification = "LEADING"i | "TRAILING"i | "BOTH"i
 
 // <character overlay function>, <binary overlay function>.
@@ -822,14 +849,14 @@ ListaggOverflowClause    = "ON"i & "OVERFLOW"i & ("ERROR"i | "TRUNCATE"i & Chara
 
 // ── §6.26 Row pattern navigation operation ──────────────────────────────────
 
-// <row pattern navigation operation>. A compound one is a physical one whose argument is a logical
-// one, and a logical one is a routine's invocation in shape: it is taken as the logical one only where
-// the physical one's offset or its end follows, and otherwise as a value expression.
-RowPatternNavigationOperation
-	= RowPatternNavigationLogical
-	| ("PREV"i | "NEXT"i) & '(' & (RowPatternNavigationLogical & ?=[',' | ')'] | ValueExpression) & (',' & SimpleOrDynamicValue)? & ')'
-
-RowPatternNavigationLogical = ("RUNNING"i | "FINAL"i)? & ("FIRST"i | "LAST"i) & '(' & ValueExpression & (',' & SimpleOrDynamicValue)? & ')'
+// <row pattern navigation operation>. `FIRST`, `LAST`, `PREV` and `NEXT` are not reserved, and a
+// navigation without `RUNNING` or `FINAL` is a routine's invocation in shape — `PREV(a, 1)`,
+// `FIRST(A.x)` — which a routine invocation reads, with the same verdict. What only a navigation is
+// begins with one of those words; a compound one, `PREV(RUNNING FIRST(a, 1), 2)`, is a routine's
+// invocation too, whose first argument is such a navigation. Asked as a navigation first and a
+// routine after, every argument was read twice, and a line refused inside nested navigations cost a
+// power of their depth.
+RowPatternNavigationOperation = ("RUNNING"i | "FINAL"i) & ("FIRST"i | "LAST"i) & '(' & ValueExpression & (',' & SimpleOrDynamicValue)? & ')'
 
 // ── §7.2 Row value expression list, §7.3 Table value constructor ────────────
 
@@ -890,15 +917,15 @@ Sampled     : @bool = SampleClause => @(true)
 SampleClause = "TABLESAMPLE"i & ("BERNOULLI"i | "SYSTEM"i) & '(' & NumericValueExpression & ')' & ("REPEATABLE"i & '(' & NumericValueExpression & ')')?
 
 // <table primary>: whether it is a parenthesized joined table. `TABLE (f(x))` is a collection's and
-// then a correlation name must follow, or a polymorphic table function's and one need not. <data
-// change delta table>, <JSON table>, <JSON table primitive> and a row pattern recognition clause
-// wait for the chapters they are written in.
+// then a correlation name must follow, or a polymorphic table function's and one need not: the
+// expression is read once, and a routine's invocation alone (`Towers.Invoked`) is the latter. <data
+// change delta table>, <JSON table> and <JSON table primitive> wait for the chapters they are
+// written in.
 TablePrimary : @bool
 	= TableOrQueryName & QuerySystemTimePeriodSpecification? & CorrelationOrRecognition? => @(false)
 	| "LATERAL"i & TableSubquery & CorrelationOrRecognition => @(false)
 	| "UNNEST"i & '(' & CollectionValueExpression & (',' & CollectionValueExpression)* & ')' & ("WITH"i & "ORDINALITY"i)? & CorrelationOrRecognition => @(false)
-	| "TABLE"i & '(' & CollectionValueExpression & ')' & CorrelationOrRecognition => @(false)
-	| "TABLE"i & '(' & RoutineInvocation & ')' & CorrelationOrRecognition? => @(false)
+	| "TABLE"i & '(' & e: CollectionValueExpression & ')' & c: Correlated & r: Recognized & when @(c == true || r == true || (e & Towers.Invoked) != 0) => @(false)
 	| "ONLY"i & '(' & TableOrQueryName & ')' & CorrelationOrRecognition? => @(false)
 	| TableSubquery & CorrelationOrRecognition => @(false)
 	| ParenthesizedJoinedTable => @(true)
@@ -907,8 +934,68 @@ TablePrimary : @bool
 // begin with a table factor, which is read once.
 ParenthesizedJoinedTable : @bool = '(' & f: TableFactor & j: Joins & ')' & when @(f || j) => @(true)
 
-// <correlation or recognition>, but a row pattern recognition clause.
-CorrelationOrRecognition = "AS"i? & CorrelationName & ('(' & ColumnNameList & ')')?
+// <correlation or recognition>: a correlation name, or a row pattern recognition clause with the
+// input's name before it, the output's after it, both or neither. Both begin with a name where they
+// have one, so a name is read and then a clause: `t s (c) MATCH_RECOGNIZE (…)` would otherwise be
+// read as a correlation and leave the clause behind.
+CorrelationOrRecognition : @bool = c: Correlated & r: Recognized & when @(c || r) => @(true)
+
+Correlated : @bool = "AS"i? & CorrelationName & ('(' & ColumnNameList & ')')? => @(true)
+                   | none => @(false)
+Recognized : @bool = RowPatternRecognitionClause & Correlated => @(true)
+                   | none => @(false)
+
+// ── §7.6 Row pattern recognition clause ─────────────────────────────────────
+
+RowPatternRecognitionClause
+	= "MATCH_RECOGNIZE"i & '(' & RowPatternPartitionBy? & ("ORDER"i & "BY"i & SortSpecificationList)?
+	  & RowPatternMeasures? & RowPatternRowsPerMatch? & RowPatternCommonSyntax & ')'
+
+RowPatternPartitionBy = "PARTITION"i & "BY"i & ColumnReference & CollateClause? & (',' & ColumnReference & CollateClause?)*
+RowPatternMeasures    = "MEASURES"i & ValueExpression & "AS"i & Identifier & (',' & ValueExpression & "AS"i & Identifier)*
+
+RowPatternRowsPerMatch
+	= "ONE"i & "ROW"i & "PER"i & "MATCH"i
+	| "ALL"i & "ROWS"i & "PER"i & "MATCH"i & ("SHOW"i & "EMPTY"i & "MATCHES"i | "OMIT"i & "EMPTY"i & "MATCHES"i | "WITH"i & "UNMATCHED"i & "ROWS"i)?
+
+// <row pattern common syntax>, which a window frame ends in too.
+RowPatternCommonSyntax
+	= ("AFTER"i & "MATCH"i & RowPatternSkipTo)? & ("INITIAL"i | "SEEK"i)? & "PATTERN"i & '(' & RowPattern & ')'
+	  & RowPatternSubsetClause? & "DEFINE"i & RowPatternDefinition & (',' & RowPatternDefinition)*
+
+// <row pattern skip to>. A variable's name is an identifier, and `FIRST`, `LAST` and `NEXT` are none
+// of them reserved: `SKIP TO FIRST A` is asked before `SKIP TO FIRST`, which names a variable `FIRST`.
+RowPatternSkipTo
+	= "SKIP"i & "TO"i & "NEXT"i & "ROW"i
+	| "SKIP"i & "PAST"i & "LAST"i & "ROW"i
+	| "SKIP"i & "TO"i & ("FIRST"i | "LAST"i) & Identifier
+	| "SKIP"i & "TO"i & Identifier
+
+// <row pattern>, <row pattern alternation>, <row pattern term>: the BNF recurses through the first
+// and the last on the left, and they are repetitions here.
+RowPattern       = RowPatternTerm & ('|' & RowPatternTerm)*
+RowPatternTerm   = RowPatternFactor & (trivia & RowPatternFactor)*
+RowPatternFactor = RowPatternPrimary & RowPatternQuantifier?
+
+// <row pattern primary>. `PERMUTE` is not reserved, and is asked before a variable of that name.
+RowPatternPrimary
+	= "PERMUTE"i & '(' & RowPattern & (',' & RowPattern)* & ')'
+	| Identifier
+	| '$'
+	| '^'
+	| '(' & RowPattern? & ')'
+	| "{-" & RowPattern & "-}"
+
+RowPatternQuantifier
+	= '*' & PatternQuestionMark?
+	| '+' & PatternQuestionMark?
+	| PatternQuestionMark & PatternQuestionMark?
+	| '{' & UnsignedInteger? & ',' & UnsignedInteger? & '}' & PatternQuestionMark?
+	| '{' & UnsignedInteger & '}'
+
+RowPatternSubsetClause = "SUBSET"i & RowPatternSubsetItem & (',' & RowPatternSubsetItem)*
+RowPatternSubsetItem   = Identifier & '=' & '(' & Identifier & (',' & Identifier)* & ')'
+RowPatternDefinition   = Identifier & "AS"i & SearchCondition
 
 // <table or query name>: a transition table's name and a query's are identifiers, which a table name is.
 TableOrQueryName = TableName
@@ -949,15 +1036,19 @@ GroupingColumnReference = ColumnReference & CollateClause?
 WindowClause               = "WINDOW"i & WindowDefinition & (',' & WindowDefinition)*
 WindowDefinition           = WindowName & "AS"i & WindowSpecification
 WindowSpecification        = '(' & WindowSpecificationDetails & ')'
-WindowSpecificationDetails = WindowName? & WindowPartitionClause? & WindowOrderClause? & WindowFrameClause?
+WindowSpecificationDetails = ExistingWindowName? & WindowPartitionClause? & WindowOrderClause? & WindowFrameClause?
+
+// <existing window name>. A frame may begin with `MEASURES`, which is not reserved, so a name is one
+// only where what may follow a name follows it.
+ExistingWindowName = WindowName & ?=("PARTITION"i | "ORDER"i | "ROWS"i | "RANGE"i | "GROUPS"i | "MEASURES"i | ')')
 WindowName                 = Identifier
 
 WindowPartitionClause = "PARTITION"i & "BY"i & WindowPartitionColumnReference & (',' & WindowPartitionColumnReference)*
 WindowPartitionColumnReference = ColumnReference & CollateClause?
 WindowOrderClause     = "ORDER"i & "BY"i & SortSpecificationList
 
-// <window frame clause>, but the row pattern measures before it and the row pattern syntax after.
-WindowFrameClause = ("ROWS"i | "RANGE"i | "GROUPS"i) & WindowFrameExtent & WindowFrameExclusion?
+// <window frame clause>, with the row pattern measures before it and the row pattern syntax after.
+WindowFrameClause = RowPatternMeasures? & ("ROWS"i | "RANGE"i | "GROUPS"i) & WindowFrameExtent & WindowFrameExclusion? & RowPatternCommonSyntax?
 
 WindowFrameExtent
 	= "BETWEEN"i & WindowFrameBound & "AND"i & WindowFrameBound

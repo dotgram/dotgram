@@ -601,6 +601,165 @@ public sealed class SqlStandardParserTests
 		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
 	}
 
+	// ── §7.6 Row pattern recognition ─────────────────────────────────────────────
+
+	/// <summary>
+	/// `MATCH_RECOGNIZE` after a table, and a row pattern in a window frame. `??)` is the trigraph bracket,
+	/// one token, so `(A??)` is refused and `(A? ?)` read; a frame may begin with `MEASURES`, which is not
+	/// reserved and may also name a window.
+	/// </summary>
+	[Theory]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a > 1)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PARTITION BY a ORDER BY b MEASURES FIRST(A.x) AS f, LAST(B.x) AS l ONE ROW PER MATCH AFTER MATCH SKIP PAST LAST ROW PATTERN (A B+ C*?) DEFINE B AS B.x > PREV(B.x), C AS C.x < 1) AS m", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (ALL ROWS PER MATCH SHOW EMPTY MATCHES PATTERN (A | B) DEFINE A AS TRUE)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (ALL ROWS PER MATCH WITH UNMATCHED ROWS AFTER MATCH SKIP TO FIRST A INITIAL PATTERN (^ A{2,} $) SUBSET U = (A, B) DEFINE A AS 1 = 1)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A {- B -} C{,3} D{2} E{1,}? PERMUTE (A, B C)) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (()) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A??) DEFINE A AS a)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN () DEFINE A AS a)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a) m (x, y)", true)]
+	[InlineData("SELECT a FROM t AS s MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a) AS m", true)]
+	[InlineData("SELECT a FROM t s (c) MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM (SELECT a FROM t) MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (MEASURES MATCH_NUMBER() AS n, CLASSIFIER() AS c PATTERN (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a, B AS b)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (AFTER MATCH SKIP TO NEXT ROW SEEK PATTERN (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (AFTER MATCH SKIP TO A PATTERN (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a) MATCH_RECOGNIZE (PATTERN (B) DEFINE B AS b)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A B | C D | E) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a) TABLESAMPLE SYSTEM (5)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A) SUBSET U = (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (DEFINE A AS a PATTERN (A))", false)]
+	[InlineData("SELECT a FROM t WINDOW w AS (ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING PATTERN (A B+) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t WINDOW w AS (MEASURES LAST(A.x) AS l ROWS BETWEEN CURRENT ROW AND 5 FOLLOWING AFTER MATCH SKIP PAST LAST ROW INITIAL PATTERN (A) SUBSET U = (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t WINDOW w AS (MEASURES LAST(A.x) AS l ROWS CURRENT ROW)", true)]
+	[InlineData("SELECT l OVER w FROM t WINDOW w AS (ROWS CURRENT ROW PATTERN (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A? ?) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A ? ?) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A*??) DEFINE A AS a)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A*? ) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A { 2 , 3 } ?) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A{2}?) DEFINE A AS a)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A{}) DEFINE A AS a)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A{,}) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A {-B-} $ ^) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN ({- -}) DEFINE A AS a)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A{ - B - }) DEFINE A AS a)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (PERMUTE) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (PERMUTE ()) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A | | B) DEFINE A AS a)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A || B) DEFINE A AS a)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A|B) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN ((A B)+ C) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a) x (b)", true)]
+	[InlineData("SELECT a FROM t x (b) MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a) y (c)", true)]
+	[InlineData("SELECT a FROM LATERAL (SELECT a FROM t) MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM UNNEST (a) MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM ONLY (t) MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a) m", true)]
+	[InlineData("SELECT a FROM t FOR SYSTEM_TIME AS OF a MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a) JOIN u ON a", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (AFTER MATCH SKIP TO FIRST PATTERN (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (AFTER MATCH SKIP TO NEXT PATTERN (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (AFTER MATCH SKIP TO LAST B PATTERN (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (AFTER MATCH SKIP PAST LAST PATTERN (A) DEFINE A AS a)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (INITIAL SEEK PATTERN (A) DEFINE A AS a)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (MEASURES a AS b PARTITION BY a PATTERN (A) DEFINE A AS a)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PARTITION BY a COLLATE c, b ORDER BY a MEASURES a + 1 AS b, RUNNING LAST(A.x) AS c PATTERN (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (MEASURES a PATTERN (A) DEFINE A AS a)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A) SUBSET U = (A, B), V = (C) DEFINE A AS PREV(A.x) < a AND B.x IS NULL)", true)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A) SUBSET U = () DEFINE A AS a)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A) DEFINE A a)", false)]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PATTERN (A))", false)]
+	[InlineData("SELECT a FROM t WINDOW w AS (measures ORDER BY a)", true)]
+	[InlineData("SELECT a FROM t WINDOW w AS (measures)", true)]
+	[InlineData("SELECT a FROM t WINDOW w AS (measures MEASURES a AS b ROWS CURRENT ROW)", true)]
+	[InlineData("SELECT a FROM t WINDOW w AS (MEASURES a AS b)", false)]
+	[InlineData("SELECT a FROM t WINDOW w AS (ORDER BY a MEASURES a AS b GROUPS 1 PRECEDING EXCLUDE GROUP SEEK PATTERN (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t WINDOW w AS (ROWS CURRENT ROW PATTERN (A))", false)]
+	[InlineData("SELECT a FROM t WINDOW w AS (PATTERN (A) DEFINE A AS a)", false)]
+	[InlineData("SELECT SUM(a) OVER (w MEASURES x AS y ROWS CURRENT ROW) FROM t", true)]
+	public void Row_pattern_recognition(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+	}
+
+	// ── A bracket, read once ─────────────────────────────────────────────────────
+
+	/// <summary>
+	/// What begins with a bracket and a value expression, told apart by what follows it: a parenthesized
+	/// value expression, an explicit row — which takes no step, no sign and no operator — or a generalized
+	/// invocation; and the forms that were read twice before, `SUBSTRING`, `TRIM` and a compound navigation.
+	/// </summary>
+	[Theory]
+	[InlineData("(a AS t).m()", true)]
+	[InlineData("(a AS t).m", true)]
+	[InlineData("(a + 1 AS t).m()", false)]
+	[InlineData("((a) AS t).m()", true)]
+	[InlineData("(a AS t)", false)]
+	[InlineData("(a, b)", true)]
+	[InlineData("((a, b))", true)]
+	[InlineData("(a, b).x", false)]
+	[InlineData("(a, b)[1]", false)]
+	[InlineData("-(a, b)", false)]
+	[InlineData("(a, b) + 1", false)]
+	[InlineData("ROW(a).x", false)]
+	[InlineData("ROW(a) = ROW(b)", true)]
+	[InlineData("(a, b) IS NULL", true)]
+	[InlineData("((a, b)) IS NULL", true)]
+	[InlineData("(a, b) || c", false)]
+	[InlineData("x IN ((a, b), (c, d))", true)]
+	[InlineData("x IN ((a, b))", true)]
+	[InlineData("x IN (ROW(a), (b))", false)]
+	[InlineData("(a) IN ((a))", false)]
+	[InlineData("((a)).x", true)]
+	[InlineData("(a).x[1]", true)]
+	[InlineData("(a, (b, c)) = (1, (2, 3))", true)]
+	[InlineData("CASE (a, b) WHEN (1, 2) THEN 1 END", true)]
+	[InlineData("SUBSTRING('a' SIMILAR 'b' ESCAPE 'c')", true)]
+	[InlineData("SUBSTRING(X'0A' SIMILAR 'b' ESCAPE 'c')", true)]
+	[InlineData("SUBSTRING(X'0A' FROM 1 USING OCTETS)", true)]
+	[InlineData("SUBSTRING('a' FROM 1 FOR 2 USING CHARACTERS)", true)]
+	[InlineData("TRIM(LEADING FROM 'a')", true)]
+	[InlineData("TRIM(LEADING 'x' FROM 'a')", true)]
+	[InlineData("TRIM('x' FROM 'a')", true)]
+	[InlineData("TRIM(FROM 'a')", true)]
+	[InlineData("TRIM('a')", true)]
+	[InlineData("TRIM(LEADING 'a')", false)]
+	[InlineData("TRIM(X'00' FROM 'a')", true)]
+	[InlineData("TRIM(BOTH X'00' FROM X'0000')", true)]
+	[InlineData("PREV(RUNNING FIRST(a, 1), 2)", true)]
+	[InlineData("NEXT(FINAL LAST(a))", true)]
+	[InlineData("PREV(RUNNING FIRST(a) + 1)", true)]
+	[InlineData("RUNNING FIRST(a) + FINAL LAST(b)", true)]
+	[InlineData("FINAL PREV(a)", false)]
+	public void A_bracket_read_once(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseValueExpression(input).IsSuccess);
+	}
+
+	/// <summary>`TABLE (…)`: a routine's invocation alone needs no correlation name, and any other collection does.</summary>
+	[Theory]
+	[InlineData("SELECT a FROM TABLE (f(x))", true)]
+	[InlineData("SELECT a FROM TABLE (f(x)) x", true)]
+	[InlineData("SELECT a FROM TABLE (f(x) || g(y))", false)]
+	[InlineData("SELECT a FROM TABLE (f(x) || g(y)) x", true)]
+	[InlineData("SELECT a FROM TABLE (f(x)[1])", false)]
+	[InlineData("SELECT a FROM TABLE (-f(x))", false)]
+	[InlineData("SELECT a FROM TABLE ((f(x)))", false)]
+	[InlineData("SELECT a FROM TABLE (s.f(x))", true)]
+	[InlineData("SELECT a FROM TABLE (a.b)", false)]
+	[InlineData("SELECT a FROM TABLE (f(x)) MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a)", true)]
+	[InlineData("SELECT a FROM t WHERE (a, b) IN (SELECT a, b FROM u)", true)]
+	[InlineData("SELECT a FROM t WHERE ((a, b)) = (1, 2)", true)]
+	[InlineData("SELECT (a, b) FROM t", true)]
+	[InlineData("SELECT ROW(a, b) FROM t", true)]
+	[InlineData("VALUES (1, 2), ((3, 4))", true)]
+	[InlineData("SELECT a FROM t GROUP BY (a, b)", true)]
+	public void A_table_function_or_a_collection(string input, bool reads)
+	{
+		Assert.Equal(reads, SqlStandardParser.TryParseQueryExpression(input).IsSuccess);
+	}
+
 	// ── §6.1 Data types ──────────────────────────────────────────────────────────
 
 	[Theory]

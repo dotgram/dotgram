@@ -22112,3 +22112,70 @@ difference the probe found, `COUNT(a.b.*)`, is a JSON simplified accessor counte
 
 `--standard =production file` asks the grammar alone and times each line on a second reading: the
 recognizer takes seconds over a long line, which is no way to look for what makes the grammar slow.
+
+## SQL:2023 row pattern recognition, and a refusal that costs a square
+
+**`MATCH_RECOGNIZE`** is read where the BNF has it: after a table primary, in place of or between
+correlation names, and in a window frame — its measures before the frame units, its pattern and
+definitions after the exclusion. The pattern is alternation of terms of quantified factors: variables,
+`$`, `^`, bracketed patterns, `{- … -}` exclusions and `PERMUTE`.
+
+- **A correlation name and a recognition clause both begin with a name where they have one.** `t s (c)
+  MATCH_RECOGNIZE (…)` names the input `s`; read as a correlation first, the clause is left behind.
+  So a name is read, then a clause, and a guard asks that one of them be there where the BNF
+  requires one — a derived table, `LATERAL`, `UNNEST`.
+- **A frame may begin with `MEASURES`, which is not reserved**, and an existing window name is an
+  identifier: `(MEASURES a AS b ROWS …)` would give the name `MEASURES` and leave `a` unread. A name is
+  a window's only where what may follow one follows it.
+- **`??(` and `??)` are one token each** (§5.2, the trigraph brackets), so `(A??)` is refused by the
+  BNF: its tokens are `A` and `??)`. The grammar reads characters and would have taken a reluctant
+  question mark. A pattern's question mark is lexical now and stands before neither; `(A? ?)`,
+  spaced, is read as the BNF reads it.
+- `FIRST`, `LAST`, `NEXT` and `PERMUTE` are not reserved: `SKIP TO FIRST A` is asked before `SKIP TO
+  FIRST`, which skips to a variable named `FIRST`, and `PERMUTE` before a variable of that name.
+
+Held by 69 probe lines and 6,000 random verdicts, 3,000 of them on broken lines, over half of them
+with a recognition clause or a row pattern in a window. One differs: `SELECT ALL a + t.*, …`, where
+the BNF reads `t.*` as a JSON simplified accessor, which waits for the JSON functions.
+
+**A refused line could cost a power of its depth, and that was the grammar.** The first fuzz run with
+row patterns stopped on one line — 4,034 characters, thirteen `SELECT`s, eight `MATCH_RECOGNIZE`s —
+and the grammar alone did not answer in two minutes. Valid, the same text read in a millisecond and
+a half; refused by `GROUP BY ROLLUP (())` alone, it read for ever. An ordered choice commits to the
+first alternative that succeeds, so a valid line never tries the others; a refused one tries them
+all at every level on its way out, and where alternatives begin alike each reads the same contents
+again. Families of lines refused at their core, nested two to eight deep, found five such places,
+each a factor of two to three a level:
+
+- a bracket: a scalar subquery, a parenthesized value expression, a generalized invocation, and an
+  explicit row where a predicand or an in value list may hold one — `SELECT ((((((((SELECT a FROM t
+  GROUP BY ROLLUP (()))))))))) FROM t`, 46 ms. The bracket is read once now: its value expression,
+  then the closing bracket, a comma or `AS` says which (`Bracketed`). A row is a primary in shape
+  and something only alone, so the towers carry it (`Towers.Row`) and whatever wants a value refuses it.
+- a row pattern navigation and a routine invocation: without `RUNNING` or `FINAL` a navigation is a
+  routine's invocation in shape, `PREV(a, 1)`, and a compound one a routine's invocation whose first
+  argument is a logical navigation. Only what begins with `RUNNING` or `FINAL` is written as a
+  navigation now.
+- `SUBSTRING`'s three forms, and `TRIM`'s operands: read up to where they differ, once.
+- `TABLE (f(x))` as a collection and as a polymorphic table function: the expression is read once,
+  and a routine's invocation alone (`Towers.Invoked`) needs no correlation name.
+
+The line reads in half a second now; eight levels of each family cost well under a millisecond.
+One stays: `a = ANY ((SELECT …))` is an aggregate of a scalar subquery and a quantified comparison,
+the one reading a value expression inside the bracket and the other a query expression, and a line
+refused inside eight of them costs 7 ms. Asked the other way round, `ANY ((SELECT a FROM t)) + 1`
+would be refused; nested that deep, it is not worth a third reading of brackets.
+
+What the one reading decides was put to the BNF again — a row with a step, a sign or an operator, a
+generalized invocation of a sum, `TABLE (…)` of a routine alone and of anything else, the `TRIM`
+and `SUBSTRING` forms, a compound navigation — 57 lines, which went into the tests; and every row
+the tests held before still gets its verdict from both.
+
+**Every refused line costs a square, and the grammar is not why.** The aggregate fuzz showed a line of
+1,358 characters that took 47 ms. `--standard =…` over families of lines found the shape: none —
+every family is linear where the line is read, and quadratic where it is refused at the end, however
+it is refused. `SELECT a FROM t` and 128 `CROSS JOIN v` takes 0.24 ms; with ` +` after it, 7.9 ms.
+Asked from a console, `TryParseQueryExpression(line, 0)`, which reads a prefix, takes 0.6 ms at 256
+joins on that same refused line, and `TryParseQueryExpression(line)` 9 ms: it is the whole reading, in
+the generated code, and not a re-read in `SqlStandard.gram`. Not looked into further here — it is the
+generator's, and T-SQL and SQL-92, whose publications are whole readings too, may pay it as well.

@@ -60,6 +60,9 @@ static class Towers
 	/// <summary>A primary with a subscript among its steps.</summary>
 	public const int Subscript = 1 << 15;
 
+	/// <summary>A <c>&lt;routine invocation&gt;</c> and nothing more, which `TABLE (…)` reads as a polymorphic table function's.</summary>
+	public const int Invoked = 1 << 16;
+
 	public const int String = Character | Binary;
 
 	/// <summary>A <c>&lt;value expression primary&gt;</c>, which has every type.</summary>
@@ -99,7 +102,7 @@ static class Towers
 	/// What an operand can be. A sign leaves a numeric and an interval factor; an interval qualifier
 	/// makes an interval primary of a value expression primary, and `.SPECIFICTYPE` a character value
 	/// function of one; `AT` keeps a datetime factor and `COLLATE` a character one. Only a primary left
-	/// alone keeps being a predicand, a chain, or a primary of its kind.
+	/// alone keeps being a predicand, a chain, a primary of its kind, or an explicit row.
 	/// </summary>
 	public static int Roles(Piece piece)
 	{
@@ -118,7 +121,7 @@ static class Towers
 		if (piece.Signed)
 			return roles & (Numeric | Interval);
 
-		return piece.Postfix == 0 ? roles | primary & (Truth | Chain | Bare | Parenthesized) : roles;
+		return piece.Postfix == 0 ? roles | primary & (Truth | Chain | Bare | Parenthesized | Row | Invoked) : roles;
 	}
 
 	// ── The operators ──────────────────────────────────────────────────────────
@@ -127,7 +130,10 @@ static class Towers
 
 	public readonly record struct Operated(int Operator, Piece Operand);
 
-	/// <summary>What the expression can be, or nothing where it can be nothing.</summary>
+	/// <summary>
+	/// What the expression can be, or nothing where it can be nothing. An explicit row is read where a
+	/// bracket is, and is something only alone: no operator joins one.
+	/// </summary>
 	public static int Common(Piece first, Operated[]? rest)
 	{
 		var pieces    = new List<Piece> { first };
@@ -143,7 +149,7 @@ static class Towers
 
 		var roles = Join(pieces, operators);
 
-		return (roles & Value) != 0 ? roles : 0;
+		return (roles & (Value | Row)) != 0 ? roles : 0;
 	}
 
 	/// <summary>
