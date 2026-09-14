@@ -169,3 +169,18 @@ static class Choices
 
 	public static string Took(int number) => "int";
 }
+
+/// <summary>What takes an interpolated string as more than a string, and what C# hands it.</summary>
+static class Formats
+{
+	/// <summary>Both apply to an interpolated string, and C# takes the string.</summary>
+	public static string Kind(string text) => "string";
+
+	public static string Kind(FormattableString text) => "formattable";
+
+	/// <summary>What the formattable string was made of.</summary>
+	public static string Shape(FormattableString text) => text.Format + "|" + text.ArgumentCount;
+
+	/// <summary>An interpolated string formatted later, in a culture of the caller's choosing.</summary>
+	public static string Invariant(IFormattable text) => text.ToString(null, System.Globalization.CultureInfo.InvariantCulture);
+}

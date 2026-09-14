@@ -1990,6 +1990,64 @@ public sealed class ExpressionParserTests
 		Assert.False(ExpressionParser.TryParse($"(int x) => {text}").IsSuccess);
 	}
 
+	/// <summary>
+	/// An interpolated string is a <c>FormattableString</c> or an <c>IFormattable</c> where one is
+	/// wanted, held against C# itself.
+	/// </summary>
+	[Fact]
+	public void An_interpolated_string_is_formattable_where_that_is_wanted()
+	{
+		const string Imports = "using System; using DotGram.Tests.ExpressionLanguage; ";
+
+		var x = 5;
+
+		(string Text, string Expected)[] cases =
+		[
+			("Formats.Kind($\"a{x}\")",                          Formats.Kind($"a{x}")),
+			("Formats.Shape($\"a{x}b{x,3}c{x:D2}\")",            Formats.Shape($"a{x}b{x,3}c{x:D2}")),
+			("Formats.Shape($\"abc\")",                          Formats.Shape($"abc")),
+			("Formats.Shape($\"{{x}}\")",                        Formats.Shape($"{{x}}")),
+			("Formats.Invariant($\"{x / 2.0}\")",                Formats.Invariant($"{x / 2.0}")),
+			("Formats.Shape($$\"\"\"{{x}}\"\"\")",               Formats.Shape($$"""{{x}}""")),
+			("((FormattableString)$\"<{x}>\").Format",           ((FormattableString)$"<{x}>").Format),
+			("((IFormattable)$\"<{x}>\").ToString(null, null)",  ((IFormattable)$"<{x}>").ToString(null, null)),
+		];
+
+		var wrong = cases
+			.Select(one => (one.Text, one.Expected, Actual: Answered(() =>
+				ExpressionParser.Compile<Func<int, string>>($"{Imports}(int x) => {one.Text}")(x))))
+			.Where(one => one.Actual != one.Expected)
+			.ToArray();
+
+		Assert.Empty(wrong);
+
+		// And held where it is declared rather than handed over.
+		Assert.Equal(
+			"{0}|1",
+			ExpressionParser.Compile<Func<int, string>>(
+				$"{Imports}(int x) => {{ FormattableString f = $\"{{x}}\"; return Formats.Shape(f); }}")(x));
+
+		static string Answered(Func<string> run)
+		{
+			try
+			{
+				return run();
+			}
+			catch (Exception e)
+			{
+				return e.GetType().Name + ": " + e.Message;
+			}
+		}
+	}
+
+	/// <summary>And what is made of one, or a string that was never one, is only a string.</summary>
+	[Theory]
+	[InlineData("Formats.Shape(\"a\")")]
+	[InlineData("Formats.Shape($\"a{x}\" + \"b\")")]
+	[InlineData("(FormattableString)\"a\"")]
+	public void But_a_string_that_was_not_interpolated_is_not_formattable(string text) =>
+		Assert.False(ExpressionParser.TryParse($"using System; using DotGram.Tests.ExpressionLanguage; (int x) => {text}").IsSuccess);
+
 	[Fact]
 	public void A_hole_is_read_by_both_carriers_alike() =>
 		Assert.Equal(

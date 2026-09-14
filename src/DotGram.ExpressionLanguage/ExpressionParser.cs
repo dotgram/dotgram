@@ -129,7 +129,8 @@ namespace DotGram.ExpressionLanguage;
 //   * An interpolated string is `$"…"`, or `$@"…"` and `@$"…"`, and lowers to `string.Format`,
 //     which is what C# makes of one inside a tree. A raw string and its interpolated forms read
 //     as C# 11 reads them, whatever their number of quotes and dollars. An interpolated string is
-//     always a `string` — never a `FormattableString`, which C# would give where one is wanted.
+//     a `string`, and a `FormattableString` or an `IFormattable` where one of those is wanted,
+//     made as C# makes one. What is made of it — `$"a" + "b"` — is a string and nothing else.
 //   * A lambda may be written inside an expression, with the types of its parameters said or
 //     not: `(int y) => y * 2` and `y => y * 2`. The second takes them from the parameter of the
 //     overload it is handed to, as C#'s does, and its body is read again once they are known.
@@ -1489,6 +1490,7 @@ public static partial class ExpressionParser
 	/// </remarks>
 	internal static Expression Cast(Expression operand, Type type, ReadOnlySpan<Reading> reading) =>
 		ReferenceEquals(operand, Null) && CanBeNull(type) ? Expression.Constant(null, type)
+		: Formattable(operand, type) is { } formattable ? formattable
 		: Checked(reading) ? Expression.ConvertChecked(operand, type)
 		: Expression.Convert(operand, type);
 
@@ -1681,18 +1683,59 @@ public static partial class ExpressionParser
 			arguments.Add(value.Type.IsValueType ? Expression.Convert(value, typeof(object)) : value);
 		}
 
-		if (arguments.Count == 0)
-			return Expression.Constant(string.Concat(parts.Select(one => one.Text)));
-
 		var made = Expression.Constant(format.ToString());
 
-		return arguments.Count switch
+		Expression lowered = arguments.Count switch
 		{
+			0 => Expression.Constant(string.Concat(parts.Select(one => one.Text))),
 			1 => Expression.Call(FormatOne,   made, arguments[0]),
 			2 => Expression.Call(FormatTwo,   made, arguments[0], arguments[1]),
 			3 => Expression.Call(FormatThree, made, arguments[0], arguments[1], arguments[2]),
 			_ => Expression.Call(FormatMany,  made, Expression.NewArrayInit(typeof(object), arguments)),
 		};
+
+		Interpolations.Add(lowered, new Interpolated(format.ToString(), [.. arguments]));
+
+		return lowered;
+	}
+
+	/// <summary>What an interpolated string was made of: the format it lowered to, and the values in its holes.</summary>
+	sealed record Interpolated(string Format, Expression[] Arguments);
+
+	/// <summary>Every interpolated string made, by the node it was made into.</summary>
+	/// <remarks>
+	/// <para>
+	/// An interpolated string is a <c>string</c>, and it also converts to a <c>FormattableString</c> and
+	/// an <c>IFormattable</c> — a conversion no other string has, so what was interpolated has to be
+	/// known after it is built: `$"abc"` is a constant exactly like `"abc"`, and only the first
+	/// converts. Kept beside the tree by the node rather than in it, so that nothing of this
+	/// language's own reaches a tree a caller is handed, and weakly, so that a tree let go of lets go
+	/// of this too.
+	/// </para>
+	/// <para>
+	/// A node is itself and nothing it is put into: `$"a" + "b"` is not interpolated, and C#
+	/// converts it to nothing but what a string converts to either.
+	/// </para>
+	/// </remarks>
+	static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Expression, Interpolated> Interpolations = new();
+
+	static readonly MethodInfo FormattableCreate = typeof(System.Runtime.CompilerServices.FormattableStringFactory)
+		.GetMethod(nameof(System.Runtime.CompilerServices.FormattableStringFactory.Create), new[] { typeof(string), typeof(object[]) })!;
+
+	/// <summary>An interpolated string as the <c>FormattableString</c> or <c>IFormattable</c> it converts to, or null where it is none.</summary>
+	/// <remarks>
+	/// Made by <c>FormattableStringFactory.Create</c> over the format and the holes, which is the
+	/// call C# makes for one inside a tree as well.
+	/// </remarks>
+	static Expression? Formattable(Expression value, Type to)
+	{
+		if (to != typeof(FormattableString) && to != typeof(IFormattable) || !Interpolations.TryGetValue(value, out var made))
+			return null;
+
+		var created = Expression.Call(
+			FormattableCreate, Expression.Constant(made.Format), Expression.NewArrayInit(typeof(object), made.Arguments));
+
+		return to == created.Type ? created : Expression.Convert(created, to);
 	}
 
 	// ── A chain a `?` guards ────────────────────────────────────────────────────

@@ -34,6 +34,10 @@ public static partial class ExpressionParser
 		if (from == to)
 			return value;
 
+		// An interpolated string converts to what formats it later as well as being a string.
+		if (Formattable(value, to) is { } formattable)
+			return formattable;
+
 		if (ReferenceEquals(value, Null))
 			return CanBeNull(to) ? Expression.Constant(null, to) : null;
 
@@ -63,6 +67,9 @@ public static partial class ExpressionParser
 		var from = value.Type;
 
 		if (from == to)
+			return true;
+
+		if ((to == typeof(FormattableString) || to == typeof(IFormattable)) && Interpolations.TryGetValue(value, out _))
 			return true;
 
 		if (ReferenceEquals(value, Null))
