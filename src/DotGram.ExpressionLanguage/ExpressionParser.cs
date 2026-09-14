@@ -126,9 +126,9 @@ namespace DotGram.ExpressionLanguage;
 //     refused where C# folds the sum first and then converts it.
 //   * An increment or a compound assignment writes to a name or to one member of a name —
 //     not to an element, and not to a longer chain.
-//   * An interpolated string is `$"…"` and lowers to `string.Format`, which is what C#
-//     makes of one inside a tree. There is no `$@"…"`, no raw `$"""…"""`, and it is always
-//     a `string` — never a `FormattableString`, which C# would give where one is wanted.
+//   * An interpolated string is `$"…"`, or `$@"…"` and `@$"…"`, and lowers to `string.Format`,
+//     which is what C# makes of one inside a tree. There is no raw `$"""…"""`, and it is
+//     always a `string` — never a `FormattableString`, which C# would give where one is wanted.
 //   * A lambda may be written inside an expression, with the types of its parameters said or
 //     not: `(int y) => y * 2` and `y => y * 2`. The second takes them from the parameter of the
 //     overload it is handed to, as C#'s does, and its body is read again once they are known.
@@ -299,7 +299,7 @@ namespace DotGram.ExpressionLanguage;
 		// at the top of the hole the start of its format. The expression is read afterwards
 		// by the syntactic half, over exactly that window of the text, so every name in it
 		// keeps the position it has in the text.
-		HoleQuoted = "$\"" & InterpolatedBody | Verbatim | Text | Char
+		HoleQuoted = "$\"" & InterpolatedBody | ("$@\"" | "@$\"") & VerbatimInterpolatedBody | Verbatim | Text | Char
 		HoleNested = '(' & HoleInside & ')' | '[' & HoleInside & ']' | '{' & HoleInside & '}'
 		HoleInside = ( HoleNested | HoleQuoted | ':' | '@' & ?!'"' | '$' & ?!'"'
 		             | [^ '(' | ')' | '[' | ']' | '{' | '}' | '"' | '\'' | '@' | '$' | ':'])*
@@ -326,6 +326,22 @@ namespace DotGram.ExpressionLanguage;
 		// keeps the input, which its holes are read over, so the syntax never has to ask for
 		// it: a construction that did would take the whole syntactic half off its methods.
 		Interpolated : @InterpolatedText = "$\"" & body: InterpolatedBody => @(new InterpolatedText(body, parserInput))
+
+		// The verbatim one, with its two spellings: every character as written, a doubled quote
+		// for a quote, and the holes and braces of the other. A rule of its own rather than an
+		// alternative of `Interpolated`, because what the lexer begins and a rule ends is a
+		// beginning and then that rule — one sequence, which a choice of two is not.
+		VerbatimInterpolatedPiece : @Segment
+			= "{{"                        => @(Segment.Of("{"))
+			| "}}"                        => @(Segment.Of("}"))
+			| "\"\""                      => @(Segment.Of("\""))
+			| t: [^ '"' | '{' | '}']+      => @(Segment.Of(t))
+			| '{' & h: Hole & '}'         => @(h)
+
+		VerbatimInterpolatedBody : @Segment[] = parts: VerbatimInterpolatedPiece* & '"' => @(parts)
+
+		VerbatimInterpolated : @InterpolatedText
+			= ("$@\"" | "@$\"") & body: VerbatimInterpolatedBody => @(new InterpolatedText(body, parserInput))
 	}
 
 	// §4.6: a keyword is a whole word, so `returned` is a name and not a jump, and
@@ -1066,6 +1082,7 @@ namespace DotGram.ExpressionLanguage;
 		// Its holes are read here, each over its own window of the text, by the publication
 		// below — this reading's own, whichever carrier it is.
 		| literal: Interpolated => @(ExpressionParser.Interpolation(literal, context, TryParseHole))
+		| literal: VerbatimInterpolated => @(ExpressionParser.Interpolation(literal, context, TryParseHole))
 
 		| "true"     => @(Expression.Constant(true))
 		| "false"    => @(Expression.Constant(false))
