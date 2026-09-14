@@ -14,14 +14,15 @@ in `DotGram.Sql` — the records, [`SqlWriter`](SqlWriter.cs), which prints them
 
 | Parser | Namespace | What it reads |
 | --- | --- | --- |
-| [`Sql92Parser`](Standard/SqlStandard92.gram) | `DotGram.Sql.Standard` | SQL-92 as the standard writes it |
+| [`SqlStandardParser`](Standard/SqlStandard.gram) | `DotGram.Sql.Standard` | ISO SQL:2023, being written: so far its lexical elements, literals and names |
+| [`Sql92Parser`](Standard/SqlStandard92.gram) | `DotGram.Sql.Standard` | SQL-92 as the standard writes it, until SQL:2023 replaces it |
 | [`TransactSqlParser`](TransactSql/TransactSql.gram) | `DotGram.Sql.TransactSql` | SQL Server's T-SQL, as the engine reads it |
 
 For now the second names the first — `[GramInclude(typeof(Sql92Parser), As = "Sql92")]` —
 and rebinds the rules where T-SQL differs, so what the two languages share is written once and the
 dialect is the size of the difference.
 
-Both read through a lexical split (`Lexical = true`): a lexical half makes tokens, and the
+The last two read through a lexical split (`Lexical = true`): a lexical half makes tokens, and the
 syntactic half above it decides each choice by the token in front of it, which is what a parser
 written by hand does.
 

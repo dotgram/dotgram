@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
+using DotGram.Sql.Standard;
+
 namespace DotGram.Benchmarks;
 
 /// <summary>
@@ -43,6 +45,11 @@ static class Standard
 			? Enumerable.Repeat(0, int.MaxValue).Select(_ => Console.ReadLine()).TakeWhile(static one => one is not null).Select(static one => one!)
 			: File.ReadLines(path);
 
+		// The grammar's rule of the same name, where one is published: `<column reference>` is
+		// asked of `SqlStandardParser.TryParseColumnReference` beside the BNF.
+		var parser = typeof(SqlStandardParser).GetMethod("TryParse" + Bnf.RuleName(start), [typeof(string)]);
+		var (agree, differ) = (0, 0);
+
 		foreach (var line in lines)
 		{
 			if (line.Trim().Length == 0 || line.TrimStart().StartsWith("--", StringComparison.Ordinal))
@@ -64,8 +71,26 @@ static class Standard
 			var (read, stopped, count) = oracle.Reads(start, line + "\n");
 			var where = read ? "" : stopped < 0 ? "  (no token here)" : $"  (stops at token {stopped + 1} of {count}{At(oracle, line, stopped)})";
 
-			Console.WriteLine($"{(read ? "ok" : "no"),3} {count,4} {watch.ElapsedMilliseconds,6} ms  {line}{where}");
+			if (parser is null)
+			{
+				Console.WriteLine($"{(read ? "ok" : "no"),3} {count,4} {watch.ElapsedMilliseconds,6} ms  {line}{where}");
+				continue;
+			}
+
+			// What the grammar says, and a mark where it does not say what the BNF does.
+			var result = parser.Invoke(null, [line])!;
+			var ours   = (bool)result.GetType().GetProperty("IsSuccess")!.GetValue(result)!;
+
+			if (ours == read)
+				agree++;
+			else
+				differ++;
+
+			Console.WriteLine($"{(read ? "ok" : "no"),3} {(ours ? "ok" : "no"),3} {(ours == read ? "" : "≠"),1} {count,4} {watch.ElapsedMilliseconds,6} ms  {line}{where}");
 		}
+
+		if (parser is not null)
+			Console.WriteLine($"\nthe BNF and {parser.Name}: {agree} agree, {differ} differ");
 	}
 
 	static bool HasEmpty(BnfNode node) => node switch

@@ -21932,3 +21932,43 @@ The test that a recognizer of an included grammar is found found something else 
 `@using` directives, so a grammar that included another through `[GramInclude]` and said no
 `@using` called the included class's helpers by names nothing in its file could see (`CS0103`).
 T-SQL has directives of its own and never met it. The block is written where there is either.
+
+## SQL:2023 begins: §5, held to the BNF
+
+`SqlStandardParser` exists (`src/DotGram.Sql/Standard/SqlStandard.gram`), and its first part is §5:
+the tokens and separators, every literal §5.3 has, the names of §5.4 and the 376 reserved words,
+with §10.1's interval qualifier because an interval literal ends in one. Seven publications —
+`Literal`, `UnsignedLiteral`, `Identifier`, `IdentifierChain`, `ColumnReference`, `TableName`,
+`SchemaName` — so that each can be put to the BNF on its own.
+
+**`--standard` now asks both.** Where the grammar publishes a rule named after the production, each
+line goes to the Earley recognizer and to `TryParse…`, the verdicts stand side by side, and `≠`
+marks a difference. Over 121 probe lines, 277 verdicts across six of the publications, there is
+none; the rows went into `SqlStandardParserTests` (118 cases) with the verdicts both gave.
+
+**What the two disagreed about on the way, and who was right.**
+
+- `absolute` was refused as an identifier: the reserved word `ABS` was taken for the start of it.
+  The boundary was `IdentifierPart` written as a choice of `IdentifierStart` and `IdentifierExtend`,
+  and a boundary guards the literals whose characters all fall in a *class* — a choice between
+  rules is not one, so no literal was guarded. One set now.
+- `_select.latin1'a'` was read, and the BNF refuses it: the name after an introducer is an
+  identifier, and §5.4's rule reaches inside the token. Asking the key-word list there did not
+  help, because a key word at the top is guarded on both sides and the `_` before `select` is a
+  connector — a letter, as far as a word goes. The reserved words are lexical now, a whole word
+  checked by `?!IdentifierPart` after it, and asked from both places.
+
+**Shapes an ordered choice needed that the BNF does not have.** The BNF nests a table name's
+qualifiers, and a choice that takes the longest qualifier leaves no name for the end (`a.b` would be
+a schema and nothing after it), so a table name is a run of at most three identifiers. An interval
+string's forms begin alike (`'5'` is a year, a day, an hour, a minute and a second), so each form
+is asked to reach the closing quote before the next is tried. A Unicode identifier is asked before
+a regular one, which would take its `U`. Each says so above it.
+
+**Written over characters, not tokens.** The standard's tokens overlap — `'2020-01-01'` is a date
+string and a character string, and only the key word before it says which — and a choice over
+characters can go back where one over tokens cannot. Asked again once the grammar is whole.
+
+**Where both read less than the standard.** `UESCAPE` may choose another escape character; the
+recognizer takes only the reverse solidus and the grammar follows it, so `U&'#0041' UESCAPE '#'` is
+refused by both. A Syntax Rule to write into both when a statement needs it.

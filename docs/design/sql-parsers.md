@@ -48,12 +48,18 @@ is open until it is built, and `status.md` is what will say when it has been.
 
 ## To do
 
-- **An Earley recognizer over a BNF**, the standard's authority (above).
-- **Convert a BNF into `.gram`.** A tool that reads the ISO BNF (and any BNF of the same
-  shape) and writes a `.gram` skeleton: rule names kept from the BNF, `[ … ]` and `{ … }…`
-  turned into `?` and `*`, the lexical part separated. The standard's grammar starts from
-  its output, so that each rule is traceable to the BNF by name and a test can say which
-  BNF rules a grammar has not written yet.
+- ~~**An Earley recognizer over a BNF**~~ Done, 2026-09-13: `--standard` in DotGram.Benchmarks,
+  which since 2026-09-14 also asks `SqlStandardParser`'s rule of the production's name and
+  marks where the two differ.
+- ~~**Convert a BNF into `.gram`.**~~ Done, 2026-09-13: `--bnf-gram` writes the skeleton.
+- **The SQL:2023 grammar, chapter by chapter** (`Standard/SqlStandard.gram`). §5 is written —
+  tokens, separators, literals, names and the reserved words — and agrees with the BNF on every
+  row tried. Then values and predicates, §7's query expression, DML, DDL.
+- **A test that says which productions are not written yet.**
+- **Whether the standard reads through a lexical split.** Not for now: its tokens overlap — a
+  date string is a character string too, and which one a token is depends on the key word before
+  it — and a choice over characters can go back where one over tokens cannot. Asked again when
+  the grammar is whole and fast enough matters.
 - ~~**Split `DotGram.Parsers` into directories**~~ Done, 2026-09-13: SQL is a project and a
   package of its own, `DotGram.Sql` — the tree, its writer and walker in `DotGram.Sql`, and a
   directory and a namespace per dialect, `DotGram.Sql.Standard` and `DotGram.Sql.TransactSql`,

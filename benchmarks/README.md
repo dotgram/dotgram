@@ -576,6 +576,11 @@ A line that begins `--` is skipped. `--standard ? file` says which lexical produ
 each word of a line, and `--standard ! production` which pieces of the BNF read as empty and
 which productions the one named reaches that derive nothing.
 
+Where `SqlStandardParser` publishes a rule of the production's name — `<identifier chain>` as
+`TryParseIdentifierChain` — each line is put to it as well, the two verdicts are printed side by
+side with `≠` where they differ, and the count of both closes the run. That is how the grammar is
+held to the standard: a row goes into `SqlStandardParserTests` once the two agree on it.
+
 `--bnf-gram [file]` (`BnfGram.cs`) writes the same BNF as a `.gram` skeleton — every production
 under a rule named after it, the lexical ones in a namespace of their own — by default to
 `.work/SqlStandard.skeleton.gram`, for the standard's grammar to be written from by hand.

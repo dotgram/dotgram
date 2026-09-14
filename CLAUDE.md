@@ -100,7 +100,8 @@ src/
 	DotGram.Sql/          SQL, a package of its own, with room for other databases: the one
 	                      tree every SQL grammar builds, its writer and walker, in the
 	                      DotGram.Sql namespace, and a directory and namespace per dialect
-		Standard/         ISO SQL, Sql92Parser; Specification/ holds the ISO BNF
+		Standard/         ISO SQL: SqlStandardParser (SQL:2023) and, for now, Sql92Parser;
+		                  Specification/ holds the ISO BNF
 		TransactSql/      T-SQL, TransactSqlParser; Specification/ holds Microsoft's
 		                  published syntax. Each dialect is its own grammar, meeting the
 		                  others only in the tree (docs/design/sql-parsers.md)

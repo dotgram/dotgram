@@ -1,0 +1,309 @@
+// ISO/IEC 9075-2:2023, SQL/Foundation: the standard's grammar, written from its BNF
+// (Specification/ISO_IEC_9075-2(E)_Foundation.bnf.txt) and held to it by `--standard`, which
+// puts each line of a file to the BNF itself and to the rule of the same name here.
+//
+// A rule is named after its production: each part capitalized and what divides the parts
+// dropped, so <query expression> is `QueryExpression`. Where a rule says less or more than its
+// production says, or says it in another shape, the comment above it says why. A production
+// spelled as one character (<period>, <left paren>) is written as that character.
+//
+// Written chapter by chapter, and this is the first part: §5, the lexical elements, with the
+// literals §5.3 makes of them and the names §5.4 does.
+
+using Lexical;
+
+// ── §5.1 SQL terminal character, §5.2 Tokens and separators ─────────────────
+//
+// A namespace with no trivia, so a token is its characters and nothing stands between them.
+// Everything outside it may be separated freely, which is what §5.2 says a <separator> is for.
+namespace Lexical
+{
+	trivia = none
+
+	// <simple Latin letter>, <digit>, <hexit>, <octal digit>, <binary digit>.
+	SimpleLatinLetter = ['A'..'Z' | 'a'..'z']
+	Digit             = ['0'..'9']
+	Hexit             = ['0'..'9' | 'A'..'F' | 'a'..'f']
+	OctalDigit        = ['0'..'7']
+	BinaryDigit       = ['0' | '1']
+
+	// §5.2 leaves four characters to its Syntax Rules. <space> is the space itself. An
+	// <identifier start> is a letter of any script or a letter-like number (Unicode's L and Nl),
+	// and an <identifier extend> the middle dot, a combining mark, a decimal digit, a connector
+	// or a format character (Mn, Mc, Nd, Pc, Cf). <whitespace> is what Unicode calls white space.
+	//
+	// <identifier part> is either, and written as one set rather than a choice of the two: it is
+	// also the word boundary, and a boundary guards the literals whose characters all fall in a
+	// class — which a choice between rules is not.
+	Space            = ' '
+	IdentifierStart  = [\p{L} | \p{Nl}]
+	IdentifierPart   = [\p{L} | \p{Nl} | '·' | \p{Mn} | \p{Mc} | \p{Nd} | \p{Pc} | \p{Cf}]
+	Whitespace       = ['\t'..'\r' | '\u0085' | \p{Zs} | \p{Zl} | \p{Zp}]
+
+	// <regular identifier>: <identifier body>, a start and parts. That it is no <reserved word>
+	// is a Syntax Rule of §5.4, and it is kept where an identifier is read (`ActualIdentifier`).
+	RegularIdentifier = IdentifierStart & IdentifierPart*
+
+	// <delimited identifier>, with "" for a double quote inside; the body is not empty.
+	DelimitedIdentifier     = '"' & DelimitedIdentifierPart+ & '"'
+	DelimitedIdentifierPart = [^ '"'] | "\"\""
+
+	// <Unicode delimited identifier>: `U&"…"`, where an escape names a character by its code
+	// point. The Syntax Rules let `UESCAPE` choose the escape character; what is read here is
+	// the default one, the reverse solidus, as `--standard` reads it too.
+	UnicodeDelimitedIdentifier = 'U'i & '&' & '"' & UnicodeIdentifierPart+ & '"' & UnicodeEscapeSpecifier
+	UnicodeEscapeSpecifier     = ("UESCAPE"i & '\'' & UnicodeEscapeCharacter & '\'')?
+	UnicodeIdentifierPart      = UnicodeEscapeValue | DelimitedIdentifierPart
+	UnicodeEscapeValue         = Unicode6DigitEscapeValue | Unicode4DigitEscapeValue | UnicodeCharacterEscapeValue
+	Unicode4DigitEscapeValue   = UnicodeEscapeCharacter & Hexit{4}
+	Unicode6DigitEscapeValue   = UnicodeEscapeCharacter & '+' & Hexit{6}
+	UnicodeCharacterEscapeValue = UnicodeEscapeCharacter & UnicodeEscapeCharacter
+	UnicodeEscapeCharacter     = '\\'
+
+	// <separator>: comments and whitespace, as many as there are.
+	Separator = (Comment | Whitespace)+
+	Comment   = SimpleComment | BracketedComment
+
+	// <simple comment> runs to the end of its line. §5.2 ends it with a <newline>, and the end
+	// of the text ends the last line as well as a line break would.
+	SimpleComment = "--" & (?!eol & any)* & (eol | eof)
+
+	// <bracketed comment>: its contents are characters and separators, and a separator may be a
+	// bracketed comment, so one holds another: `/* a /* b */ c */` is one comment.
+	BracketedComment = "/*" & (BracketedComment | ?!"*/" & any)* & "*/"
+
+	// ── §5.3 Literals ────────────────────────────────────────────────────────
+	//
+	// The letter that begins a literal is read in either case, as a key word is: `n'abc'`,
+	// `x'0A'`, `u&'…'`, `0x1F` and `1e5`.
+
+	// <unsigned numeric literal>. An approximate one is an exact one and an exponent, so it is
+	// asked first; an integer in another radix begins with a `0`, so it is asked before the
+	// decimal one. A digit may follow an underscore, once: `1_000` and not `1__0`.
+	UnsignedNumericLiteral     = ApproximateNumericLiteral | ExactNumericLiteral
+	ApproximateNumericLiteral  = ExactNumericLiteral & 'E'i & Sign? & UnsignedDecimalInteger
+	ExactNumericLiteral        = UnsignedDecimalInteger & '.' & UnsignedDecimalInteger?
+	                           | '.' & UnsignedDecimalInteger
+	                           | UnsignedInteger
+	Sign                       = ['+' | '-']
+	UnsignedInteger            = UnsignedHexadecimalInteger | UnsignedOctalInteger | UnsignedBinaryInteger | UnsignedDecimalInteger
+	UnsignedDecimalInteger     = Digit & ('_'? & Digit)*
+	UnsignedHexadecimalInteger = "0X"i & ('_'? & Hexit)+
+	UnsignedOctalInteger       = "0O"i & ('_'? & OctalDigit)+
+	UnsignedBinaryInteger      = "0B"i & ('_'? & BinaryDigit)+
+
+	// <character string literal>: quoted parts with '' for a quote inside, which a separator
+	// may divide — `'a' 'b'` is one literal — and in front of them, optionally, the character
+	// set they are written in: `_latin1'abc'`. The introducer's name is a part of the token,
+	// with nothing between it and the quote.
+	CharacterStringLiteral  = (Introducer & IntroducedCharacterSet)? & QuotedParts(CharacterRepresentation)
+	CharacterRepresentation = [^ '\''] | "''"
+	QuotedParts(part)       = '\'' & part* & '\'' & (Separator & '\'' & part* & '\'')*
+	Introducer              = '_'
+
+	// <character set name> as it stands after an introducer: a schema's name, and a catalog's
+	// before it, and then an <SQL language identifier>. Said as a run, since a name the chain
+	// could still go on from is not yet the last. The names are identifiers, so §5.4's Syntax
+	// Rule reaches inside the token: `_select.latin1'a'` is refused.
+	IntroducedCharacterSet = (IntroducedName & '.'){0,2} & SQLLanguageIdentifier
+	IntroducedName         = UnicodeDelimitedIdentifier | ?!ReservedWord & RegularIdentifier | DelimitedIdentifier
+
+	// <SQL language identifier>: a Latin letter, then Latin letters, digits and underscores.
+	SQLLanguageIdentifier = SimpleLatinLetter & (SimpleLatinLetter | Digit | '_')*
+
+	// <national character string literal>, <Unicode character string literal>, and <binary
+	// string literal>, whose hexits come in pairs that spaces may stand between.
+	NationalCharacterStringLiteral = 'N'i & QuotedParts(CharacterRepresentation)
+	UnicodeCharacterStringLiteral  = (Introducer & IntroducedCharacterSet)? & 'U'i & '&' & QuotedParts(UnicodeRepresentation) & UnicodeEscapeSpecifier
+	UnicodeRepresentation          = UnicodeEscapeValue | CharacterRepresentation
+	BinaryStringLiteral            = 'X'i & QuotedParts(BinaryPart)
+	BinaryPart                     = Space | Hexit & Space* & Hexit
+
+	// <date string>, <time string>, <timestamp string>, <interval string>: a string whose
+	// characters are a value of the type. A <datetime value> is an unsigned integer, so
+	// `'2020-1-1'` is a date string.
+	DateString      = '\'' & DateValue & '\''
+	TimeString      = '\'' & TimeValue & TimeZoneInterval? & '\''
+	TimestampString = '\'' & DateValue & Space & TimeValue & TimeZoneInterval? & '\''
+	DateValue        = UnsignedDecimalInteger & '-' & UnsignedDecimalInteger & '-' & UnsignedDecimalInteger
+	TimeValue        = UnsignedDecimalInteger & ':' & UnsignedDecimalInteger & ':' & SecondsValue
+	TimeZoneInterval = Sign & UnsignedDecimalInteger & ':' & UnsignedDecimalInteger
+	SecondsValue     = UnsignedDecimalInteger & ('.' & UnsignedDecimalInteger?)?
+
+	// <interval string>. A year-month and a day-time literal, and a day-time literal's forms,
+	// begin alike — `'5'` is a year, a day, an hour, a minute and a second — so each form is
+	// asked to reach the closing quote before the next is tried: a form that stops short of it
+	// would otherwise be taken, and `'5.5'` read as an hour followed by what no string holds.
+	IntervalString   = '\'' & Sign? & (YearMonthLiteral & ?='\'' | DayTimeLiteral) & '\''
+	YearMonthLiteral = UnsignedDecimalInteger & ('-' & UnsignedDecimalInteger)?
+	DayTimeLiteral   = DayTimeInterval & ?='\''
+	                 | TimeInterval
+	DayTimeInterval  = UnsignedDecimalInteger & (Space & UnsignedDecimalInteger & (':' & UnsignedDecimalInteger & (':' & SecondsValue)?)?)?
+	TimeInterval     = UnsignedDecimalInteger & (':' & UnsignedDecimalInteger & (':' & SecondsValue)?)? & ?='\''
+	                 | UnsignedDecimalInteger & (':' & SecondsValue)? & ?='\''
+	                 | SecondsValue
+
+	// ── §5.2 <reserved word> ─────────────────────────────────────────────────
+	//
+	// The whole list, as the standard gives it, and a whole word: `ABSOLUTE` is not `ABS`.
+	//
+	// Lexical, and not a list of key words at the top, because a key word there is guarded on
+	// both sides and §5.4's Syntax Rule is asked inside a token too: after an introducer the `_`
+	// stands before the name, and a guarded `SELECT` would take the `_` for a letter before it
+	// and let `_select.latin1'a'` through.
+	ReservedWord
+		= ("ABS"i | "ABSENT"i | "ACOS"i | "ALL"i | "ALLOCATE"i | "ALTER"i | "AND"i | "ANY"i
+		| "ANY_VALUE"i | "ARE"i | "ARRAY"i | "ARRAY_AGG"i | "ARRAY_MAX_CARDINALITY"i | "AS"i
+		| "ASENSITIVE"i | "ASIN"i | "ASYMMETRIC"i | "AT"i | "ATAN"i | "ATOMIC"i | "AUTHORIZATION"i
+		| "AVG"i | "BEGIN"i | "BEGIN_FRAME"i | "BEGIN_PARTITION"i | "BETWEEN"i | "BIGINT"i | "BINARY"i
+		| "BLOB"i | "BOOLEAN"i | "BOTH"i | "BTRIM"i | "BY"i | "CALL"i | "CALLED"i | "CARDINALITY"i
+		| "CASCADED"i | "CASE"i | "CAST"i | "CEIL"i | "CEILING"i | "CHAR"i | "CHAR_LENGTH"i
+		| "CHARACTER"i | "CHARACTER_LENGTH"i | "CHECK"i | "CLASSIFIER"i | "CLOB"i | "CLOSE"i
+		| "COALESCE"i | "COLLATE"i | "COLLECT"i | "COLUMN"i | "COMMIT"i | "CONDITION"i | "CONNECT"i
+		| "CONSTRAINT"i | "CONTAINS"i | "CONVERT"i | "COPY"i | "CORR"i | "CORRESPONDING"i | "COS"i
+		| "COSH"i | "COUNT"i | "COVAR_POP"i | "COVAR_SAMP"i | "CREATE"i | "CROSS"i | "CUBE"i
+		| "CUME_DIST"i | "CURRENT"i | "CURRENT_CATALOG"i | "CURRENT_DATE"i
+		| "CURRENT_DEFAULT_TRANSFORM_GROUP"i | "CURRENT_PATH"i | "CURRENT_ROLE"i | "CURRENT_ROW"i
+		| "CURRENT_SCHEMA"i | "CURRENT_TIME"i | "CURRENT_TIMESTAMP"i
+		| "CURRENT_TRANSFORM_GROUP_FOR_TYPE"i | "CURRENT_USER"i | "CURSOR"i | "CYCLE"i | "DATE"i
+		| "DAY"i | "DEALLOCATE"i | "DEC"i | "DECFLOAT"i | "DECIMAL"i | "DECLARE"i | "DEFAULT"i
+		| "DEFINE"i | "DELETE"i | "DENSE_RANK"i | "DEREF"i | "DESCRIBE"i | "DETERMINISTIC"i
+		| "DISCONNECT"i | "DISTINCT"i | "DOUBLE"i | "DROP"i | "DYNAMIC"i | "EACH"i | "ELEMENT"i
+		| "ELSE"i | "EMPTY"i | "END"i | "END_FRAME"i | "END_PARTITION"i | "END-EXEC"i | "EQUALS"i
+		| "ESCAPE"i | "EVERY"i | "EXCEPT"i | "EXEC"i | "EXECUTE"i | "EXISTS"i | "EXP"i | "EXTERNAL"i
+		| "EXTRACT"i | "FALSE"i | "FETCH"i | "FILTER"i | "FIRST_VALUE"i | "FLOAT"i | "FLOOR"i | "FOR"i
+		| "FOREIGN"i | "FRAME_ROW"i | "FREE"i | "FROM"i | "FULL"i | "FUNCTION"i | "FUSION"i | "GET"i
+		| "GLOBAL"i | "GRANT"i | "GREATEST"i | "GROUP"i | "GROUPING"i | "GROUPS"i | "HAVING"i | "HOLD"i
+		| "HOUR"i | "IDENTITY"i | "IN"i | "INDICATOR"i | "INITIAL"i | "INNER"i | "INOUT"i
+		| "INSENSITIVE"i | "INSERT"i | "INT"i | "INTEGER"i | "INTERSECT"i | "INTERSECTION"i
+		| "INTERVAL"i | "INTO"i | "IS"i | "JOIN"i | "JSON"i | "JSON_ARRAY"i | "JSON_ARRAYAGG"i
+		| "JSON_EXISTS"i | "JSON_OBJECT"i | "JSON_OBJECTAGG"i | "JSON_QUERY"i | "JSON_SCALAR"i
+		| "JSON_SERIALIZE"i | "JSON_TABLE"i | "JSON_TABLE_PRIMITIVE"i | "JSON_VALUE"i | "LAG"i
+		| "LANGUAGE"i | "LARGE"i | "LAST_VALUE"i | "LATERAL"i | "LEAD"i | "LEADING"i | "LEAST"i
+		| "LEFT"i | "LIKE"i | "LIKE_REGEX"i | "LISTAGG"i | "LN"i | "LOCAL"i | "LOCALTIME"i
+		| "LOCALTIMESTAMP"i | "LOG"i | "LOG10"i | "LOWER"i | "LPAD"i | "LTRIM"i | "MATCH"i
+		| "MATCH_NUMBER"i | "MATCH_RECOGNIZE"i | "MATCHES"i | "MAX"i | "MEMBER"i | "MERGE"i | "METHOD"i
+		| "MIN"i | "MINUTE"i | "MOD"i | "MODIFIES"i | "MODULE"i | "MONTH"i | "MULTISET"i | "NATIONAL"i
+		| "NATURAL"i | "NCHAR"i | "NCLOB"i | "NEW"i | "NO"i | "NONE"i | "NORMALIZE"i | "NOT"i
+		| "NTH_VALUE"i | "NTILE"i | "NULL"i | "NULLIF"i | "NUMERIC"i | "OCCURRENCES_REGEX"i
+		| "OCTET_LENGTH"i | "OF"i | "OFFSET"i | "OLD"i | "OMIT"i | "ON"i | "ONE"i | "ONLY"i | "OPEN"i
+		| "OR"i | "ORDER"i | "OUT"i | "OUTER"i | "OVER"i | "OVERLAPS"i | "OVERLAY"i | "PARAMETER"i
+		| "PARTITION"i | "PATTERN"i | "PER"i | "PERCENT"i | "PERCENT_RANK"i | "PERCENTILE_CONT"i
+		| "PERCENTILE_DISC"i | "PERIOD"i | "PORTION"i | "POSITION"i | "POSITION_REGEX"i | "POWER"i
+		| "PRECEDES"i | "PRECISION"i | "PREPARE"i | "PRIMARY"i | "PROCEDURE"i | "PTF"i | "RANGE"i
+		| "RANK"i | "READS"i | "REAL"i | "RECURSIVE"i | "REF"i | "REFERENCES"i | "REFERENCING"i
+		| "REGR_AVGX"i | "REGR_AVGY"i | "REGR_COUNT"i | "REGR_INTERCEPT"i | "REGR_R2"i | "REGR_SLOPE"i
+		| "REGR_SXX"i | "REGR_SXY"i | "REGR_SYY"i | "RELEASE"i | "RESULT"i | "RETURN"i | "RETURNS"i
+		| "REVOKE"i | "RIGHT"i | "ROLLBACK"i | "ROLLUP"i | "ROW"i | "ROW_NUMBER"i | "ROWS"i | "RPAD"i
+		| "RTRIM"i | "RUNNING"i | "SAVEPOINT"i | "SCOPE"i | "SCROLL"i | "SEARCH"i | "SECOND"i | "SEEK"i
+		| "SELECT"i | "SENSITIVE"i | "SESSION_USER"i | "SET"i | "SHOW"i | "SIMILAR"i | "SIN"i | "SINH"i
+		| "SKIP"i | "SMALLINT"i | "SOME"i | "SPECIFIC"i | "SPECIFICTYPE"i | "SQL"i | "SQLEXCEPTION"i
+		| "SQLSTATE"i | "SQLWARNING"i | "SQRT"i | "START"i | "STATIC"i | "STDDEV_POP"i | "STDDEV_SAMP"i
+		| "SUBMULTISET"i | "SUBSET"i | "SUBSTRING"i | "SUBSTRING_REGEX"i | "SUCCEEDS"i | "SUM"i
+		| "SYMMETRIC"i | "SYSTEM"i | "SYSTEM_TIME"i | "SYSTEM_USER"i | "TABLE"i | "TABLESAMPLE"i
+		| "TAN"i | "TANH"i | "THEN"i | "TIME"i | "TIMESTAMP"i | "TIMEZONE_HOUR"i | "TIMEZONE_MINUTE"i
+		| "TO"i | "TRAILING"i | "TRANSLATE"i | "TRANSLATE_REGEX"i | "TRANSLATION"i | "TREAT"i
+		| "TRIGGER"i | "TRIM"i | "TRIM_ARRAY"i | "TRUE"i | "TRUNCATE"i | "UESCAPE"i | "UNION"i
+		| "UNIQUE"i | "UNKNOWN"i | "UNNEST"i | "UPDATE"i | "UPPER"i | "USER"i | "USING"i | "VALUE"i
+		| "VALUES"i | "VALUE_OF"i | "VAR_POP"i | "VAR_SAMP"i | "VARBINARY"i | "VARCHAR"i | "VARYING"i
+		| "VERSIONING"i | "WHEN"i | "WHENEVER"i | "WHERE"i | "WIDTH_BUCKET"i | "WINDOW"i | "WITH"i
+		| "WITHIN"i | "WITHOUT"i | "YEAR"i)
+		& ?!IdentifierPart
+}
+
+// §5.2: a key word is a whole word, so `ABSOLUTE` is a name and not `ABS` and what follows it.
+wordboundary = IdentifierPart
+
+// §5.2: tokens may be separated by a <separator>, and nothing else stands between them.
+trivia       = { Separator? }
+
+// ── §5.3 Literals ───────────────────────────────────────────────────────────
+
+Literal         = SignedNumericLiteral | GeneralLiteral
+UnsignedLiteral = UnsignedNumericLiteral | GeneralLiteral
+
+// <general literal>. What begins with a letter is asked before what may begin with the same
+// letter as a name would — none of these is a name, and the typed literals begin with key words.
+GeneralLiteral
+	= NationalCharacterStringLiteral
+	| UnicodeCharacterStringLiteral
+	| BinaryStringLiteral
+	| CharacterStringLiteral
+	| DatetimeLiteral
+	| IntervalLiteral
+	| BooleanLiteral
+
+SignedNumericLiteral = Sign? & UnsignedNumericLiteral
+
+DatetimeLiteral  = DateLiteral | TimeLiteral | TimestampLiteral
+DateLiteral      = "DATE"i & DateString
+TimeLiteral      = "TIME"i & TimeString
+TimestampLiteral = "TIMESTAMP"i & TimestampString
+IntervalLiteral  = "INTERVAL"i & Sign? & IntervalString & IntervalQualifier
+BooleanLiteral   = "TRUE"i | "FALSE"i | "UNKNOWN"i
+
+// ── §10.1 Interval qualifier ────────────────────────────────────────────────
+//
+// Here because an interval literal ends in one.
+
+IntervalQualifier
+	= StartField & "TO"i & EndField
+	| SingleDatetimeField
+
+StartField = NonSecondPrimaryDatetimeField & ('(' & IntervalLeadingFieldPrecision & ')')?
+
+EndField
+	= NonSecondPrimaryDatetimeField
+	| "SECOND"i & ('(' & IntervalFractionalSecondsPrecision & ')')?
+
+SingleDatetimeField
+	= NonSecondPrimaryDatetimeField & ('(' & IntervalLeadingFieldPrecision & ')')?
+	| "SECOND"i & ('(' & IntervalLeadingFieldPrecision & (',' & IntervalFractionalSecondsPrecision)? & ')')?
+
+NonSecondPrimaryDatetimeField      = "YEAR"i | "MONTH"i | "DAY"i | "HOUR"i | "MINUTE"i
+IntervalFractionalSecondsPrecision = UnsignedInteger
+IntervalLeadingFieldPrecision      = UnsignedInteger
+
+// ── §5.4 Names and identifiers ──────────────────────────────────────────────
+
+Identifier = ActualIdentifier
+
+// <actual identifier>. A Unicode one begins `U&`, which a regular identifier would take the
+// `U` of, so it is asked first. §5.4's Syntax Rule is the lookahead: a regular identifier is
+// no reserved word, in any case.
+ActualIdentifier
+	= UnicodeDelimitedIdentifier
+	| ?!ReservedWord & RegularIdentifier
+	| DelimitedIdentifier
+
+// <table name>, <local or schema qualified name>: a name, a schema's before it and a catalog's
+// before that, or `MODULE` for a module's own. The standard nests the qualifiers, and an ordered
+// choice would take the longest one and leave no name for the end, so the names are a run.
+TableName                  = LocalOrSchemaQualifiedName
+LocalOrSchemaQualifiedName = LocalQualifier & '.' & QualifiedIdentifier
+                           | Identifier & ('.' & Identifier){0,2}
+LocalQualifier             = "MODULE"i
+QualifiedIdentifier        = Identifier
+
+// <schema name>: a catalog's name may stand before it.
+SchemaName            = CatalogName & ('.' & UnqualifiedSchemaName)?
+UnqualifiedSchemaName = Identifier
+CatalogName           = Identifier
+
+ColumnName = Identifier
+
+// §6.6 <identifier chain>, and a column reference made of one.
+IdentifierChain      = Identifier & ('.' & Identifier)*
+BasicIdentifierChain = IdentifierChain
+
+ColumnReference
+	= BasicIdentifierChain
+	| "MODULE"i & '.' & QualifiedIdentifier & '.' & ColumnName
+
+parse Literal         as ParseLiteral
+parse UnsignedLiteral as ParseUnsignedLiteral
+parse Identifier      as ParseIdentifier
+parse IdentifierChain as ParseIdentifierChain
+parse ColumnReference as ParseColumnReference
+parse TableName       as ParseTableName
+parse SchemaName      as ParseSchemaName
