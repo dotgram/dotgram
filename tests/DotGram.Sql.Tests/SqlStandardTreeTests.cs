@@ -445,7 +445,18 @@ public sealed class SqlStandardTreeTests
 		"Revoke(Body: Roles(true, [r1, r2], [Identifier(AuthorizationIdentifier(u))], null, Cascade))")]
 	[InlineData("CREATE SCHEMA s AUTHORIZATION u PATH s, t DEFAULT CHARACTER SET utf8 CREATE TABLE x (a INT) CREATE ROLE r",
 		"CreateSchema(Name: s, PathFirst: true, Authorization: AuthorizationIdentifier(u), DefaultCharacterSet: CharacterSetName(utf8), Path: PathSpecification([s, t]), Elements: [CreateTable(Name: x, Contents: Elements([Column(ColumnDefinition(a, Numeric(Int, null, null), null, [], null))])), CreateRole(Name: r)])")]
-	[InlineData("DROP TRIGGER g", "Extension(Dialect: SQL:2023, Kind: Unbuilt)")]
+	[InlineData("DROP TYPE t CASCADE", "Extension(Dialect: SQL:2023, Kind: Unbuilt)")]
+	[InlineData("DROP TRIGGER g", "DropTrigger(Name: g)")]
+	[InlineData("CREATE TRIGGER s.g BEFORE UPDATE OF a ON t REFERENCING OLD ROW AS o NEW TABLE n FOR EACH ROW WHEN (a > 1) BEGIN ATOMIC SET SCHEMA 's'; COMMIT; END",
+		"CreateTrigger(Name: s.g, Time: Before, Event: TriggerEvent(Update, [a]), Table: t, Referencing: [TransitionReference(OldRow, o, true, true), TransitionReference(NewTable, n, false, false)], Action: TriggerAction(Row, Comparison(a, Greater, 1), [SetSchema(Value: 's'), Commit()], true))")]
+	[InlineData("CREATE PROCEDURE p (IN a INT, OUT b TABLE PASS THROUGH WITH SET SEMANTICS KEEP ON EMPTY) LANGUAGE SQL NOT DETERMINISTIC SQL SECURITY DEFINER CALL q(a)",
+		"CreateRoutine(Definition: RoutineDefinition(Procedure, p, [ParameterDefinition(In, a, Numeric(Int, null, null), false, null, false), ParameterDefinition(Out, b, GenericTable(PassThrough, Set, KeepOnEmpty), false, null, false)], null, [Language(SQL), Deterministic(false)], Sql(Call(Invocation: Invocation(q, [Argument(a, null, false)])), Definer), null, null, false, false))")]
+	[InlineData("CREATE FUNCTION f (x INT) RETURNS TABLE (a INT) READS SQL DATA RETURNS NULL ON NULL INPUT DYNAMIC RESULT SETS 2 STATIC DISPATCH EXTERNAL NAME 'lib' PARAMETER STYLE GENERAL TRANSFORM GROUP g FOR TYPE t EXTERNAL SECURITY IMPLEMENTATION DEFINED",
+		"CreateRoutine(Definition: RoutineDefinition(Function, f, [ParameterDefinition(null, x, Numeric(Int, null, null), false, null, false)], ReturnsDefinition(null, [FieldDefinition(a, Numeric(Int, null, null))], false, TableKeyword: true), [DataAccess(ReadsSqlData), NullCall(ReturnsNullOnNullInput), DynamicResultSets(2)], External('lib', General, TransformGroupSpecification(null, [TransformGroupForType(g, t)]), ImplementationDefined), null, null, true, false))")]
+	[InlineData("ALTER SPECIFIC PROCEDURE s.p NAME x MODIFIES SQL DATA RESTRICT",
+		"AlterRoutine(Routine: RoutineDesignator(Procedure, s.p, null, null, true, null), Characteristics: [ExternalName(x), DataAccess(ModifiesSqlData)], Behavior: Restrict)")]
+	[InlineData("DROP FUNCTION f (INT, DATE) FOR s.t CASCADE",
+		"DropRoutine(Routine: RoutineDesignator(Function, f, [Numeric(Int, null, null), DateTime(Date, null, null)], s.t, false, null), Behavior: Cascade)")]
 	public void A_schema_statement_is_built_as_written(string input, string tree) =>
 		Assert.Equal(tree, Show(SqlStandardParser.ParseSQLSchemaStatement(input)));
 

@@ -1516,13 +1516,13 @@ DataChangeStatement : @Statement = d: DeleteStatementSearched => @(d)
 // transliterations, assertions, triggers, user-defined types, routines, casts, orderings, transforms,
 // sequence generators, roles and privileges — and what alters and drops them.
 
-// <SQL schema statement>: a definition or a manipulation. What does not build its tree yet — routines,
-// triggers, user-defined types, casts, orderings and transforms — stands as `Nodes.UnbuiltStatement`.
+// <SQL schema statement>: a definition or a manipulation. What does not build its tree yet — user-defined
+// types, casts, orderings and transforms — stands as `Nodes.UnbuiltStatement`.
 SQLSchemaStatement : @Statement
 	= s: SchemaDefinition => @(s)
 	| t: TableDefinition => @(t)
 	| v: ViewDefinition => @(v)
-	| SchemaRoutine => @(Nodes.UnbuiltStatement())
+	| sr: SchemaRoutine => @(sr)
 	| g: GrantStatement => @(g)
 	| r: RoleDefinition => @(r)
 	| d: DomainDefinition => @(d)
@@ -1530,7 +1530,7 @@ SQLSchemaStatement : @Statement
 	| o: CollationDefinition => @(o)
 	| l: TransliterationDefinition => @(l)
 	| a: AssertionDefinition => @(a)
-	| TriggerDefinition => @(Nodes.UnbuiltStatement())
+	| tr: TriggerDefinition => @(tr)
 	| UserDefinedTypeDefinition => @(Nodes.UnbuiltStatement())
 	| UserDefinedCastDefinition => @(Nodes.UnbuiltStatement())
 	| UserDefinedOrderingDefinition => @(Nodes.UnbuiltStatement())
@@ -1540,8 +1540,8 @@ SQLSchemaStatement : @Statement
 	| at: AlterTableStatement => @(at)
 	| dt: DropTableStatement => @(dt)
 	| dv: DropViewStatement => @(dv)
-	| AlterRoutineStatement => @(Nodes.UnbuiltStatement())
-	| DropRoutineStatement => @(Nodes.UnbuiltStatement())
+	| ar: AlterRoutineStatement => @(ar)
+	| xr: DropRoutineStatement => @(xr)
 	| DropUserDefinedCastStatement => @(Nodes.UnbuiltStatement())
 	| rv: RevokeStatement => @(rv)
 	| dr: DropRoleStatement => @(dr)
@@ -1551,7 +1551,7 @@ SQLSchemaStatement : @Statement
 	| dl: DropCollationStatement => @(dl)
 	| dx: DropTransliterationStatement => @(dx)
 	| da: DropAssertionStatement => @(da)
-	| DropTriggerStatement => @(Nodes.UnbuiltStatement())
+	| xt: DropTriggerStatement => @(xt)
 	| AlterTypeStatement => @(Nodes.UnbuiltStatement())
 	| DropDataTypeStatement => @(Nodes.UnbuiltStatement())
 	| DropUserDefinedOrderingStatement => @(Nodes.UnbuiltStatement())
@@ -1588,12 +1588,12 @@ SchemaElement : @Statement
 	| o: CollationDefinition => @(o)
 	| l: TransliterationDefinition => @(l)
 	| a: AssertionDefinition => @(a)
-	| TriggerDefinition => @(Nodes.UnbuiltStatement())
+	| tr: TriggerDefinition => @(tr)
 	| UserDefinedTypeDefinition => @(Nodes.UnbuiltStatement())
 	| UserDefinedCastDefinition => @(Nodes.UnbuiltStatement())
 	| UserDefinedOrderingDefinition => @(Nodes.UnbuiltStatement())
 	| TransformDefinition => @(Nodes.UnbuiltStatement())
-	| SchemaRoutine => @(Nodes.UnbuiltStatement())
+	| sr: SchemaRoutine => @(sr)
 	| q: SequenceGeneratorDefinition => @(q)
 	| g: GrantStatement => @(g)
 	| r: RoleDefinition => @(r)
@@ -1820,103 +1820,146 @@ DropAssertionStatement : @Statement.DropAssertion = "DROP"i & "ASSERTION"i & n: 
 
 // ── §11.49 Trigger definition, §11.50 Drop trigger statement ────────────────
 
-TriggerDefinition = "CREATE"i & "TRIGGER"i & SchemaQualifiedName & TriggerActionTime & TriggerEvent & "ON"i & TableName
-	  & ("REFERENCING"i & { (trivia & TransitionTableOrVariable)+ })? & TriggeredAction
+TriggerDefinition : @Statement.CreateTrigger = "CREATE"i & "TRIGGER"i & n: SchemaQualifiedName & t: TriggerActionTime & e: TriggerEvent & "ON"i & o: TableName
+	  & ("REFERENCING"i & { (trivia & references: TransitionTableOrVariable)+ })? & a: TriggeredAction
+	  => @(new Statement.CreateTrigger { Name = n, Time = t, Event = e, Table = o, Referencing = references ?? System.Array.Empty<TransitionReference>(), Action = a })
 
-TriggerActionTime = "BEFORE"i | "AFTER"i | "INSTEAD"i & "OF"i
-TriggerEvent      = "INSERT"i | "DELETE"i | "UPDATE"i & ("OF"i & ColumnNameList)?
+TriggerActionTime : @TriggerTime = "BEFORE"i => @(TriggerTime.Before)
+                                 | "AFTER"i => @(TriggerTime.After)
+                                 | "INSTEAD"i & "OF"i => @(TriggerTime.InsteadOf)
+TriggerEvent      : @TriggerEvent = "INSERT"i => @(new TriggerEvent(TriggerEventKind.Insert, System.Array.Empty<Identifier>()))
+                                  | "DELETE"i => @(new TriggerEvent(TriggerEventKind.Delete, System.Array.Empty<Identifier>()))
+                                  | "UPDATE"i & ("OF"i & columns: ColumnNameList)? => @(new TriggerEvent(TriggerEventKind.Update, columns ?? System.Array.Empty<Identifier>()))
 
 // <transition table or variable>: a table asked first, since `TABLE` is reserved and no variable's name.
-TransitionTableOrVariable = ("OLD"i | "NEW"i) & ("TABLE"i & "AS"i? & Identifier | "ROW"i? & "AS"i? & CorrelationName)
+TransitionTableOrVariable : @TransitionReference
+	= w: ("OLD"i | "NEW"i) & "TABLE"i & a: "AS"i? & n: Identifier => @(new TransitionReference((w[0] | 0x20) == 'o' ? TransitionKind.OldTable : TransitionKind.NewTable, n, false, a is not null))
+	| w: ("OLD"i | "NEW"i) & r: "ROW"i? & a: "AS"i? & n: CorrelationName => @(new TransitionReference((w[0] | 0x20) == 'o' ? TransitionKind.OldRow : TransitionKind.NewRow, n, r is not null, a is not null))
 
-TriggeredAction       = ("FOR"i & "EACH"i & ("ROW"i | "STATEMENT"i))? & ("WHEN"i & '(' & SearchCondition & ')')? & TriggeredSQLStatement
-TriggeredSQLStatement = SQLProcedureStatement | CompoundTriggeredSQLStatement
+TriggeredAction       : @TriggerAction = ("FOR"i & "EACH"i & g: ("ROW"i | "STATEMENT"i))? & c: TriggeredWhenClause? & s: TriggeredSQLStatement => @(new TriggerAction(Nodes.GranularityOf(g), c, s.Statements, s.Atomic))
+TriggeredWhenClause   : @Expression = "WHEN"i & '(' & c: SearchCondition & ')' => @(c.Node)
+TriggeredSQLStatement : @Nodes.Triggered = s: SQLProcedureStatement => @(new Nodes.Triggered(new[] { s }, false))
+                                         | c: CompoundTriggeredSQLStatement => @(c)
 
 // <compound triggered SQL statement>: one statement at least, each with its semicolon.
-CompoundTriggeredSQLStatement = "BEGIN"i & "ATOMIC"i & { (SQLProcedureStatement & ';')+ } & "END"i
+CompoundTriggeredSQLStatement : @Nodes.Triggered = "BEGIN"i & "ATOMIC"i & { (statements: SQLProcedureStatement & ';')+ } & "END"i => @(new Nodes.Triggered(statements, true))
 
 // <drop trigger statement>, which says no drop behavior.
-DropTriggerStatement = "DROP"i & "TRIGGER"i & SchemaQualifiedName
+DropTriggerStatement : @Statement.DropTrigger = "DROP"i & "TRIGGER"i & n: SchemaQualifiedName => @(new Statement.DropTrigger { Name = n })
 
 // ── §11 SQL-invoked routines, alter routine, drop routine ───────────────────
 
 // <schema routine>: a procedure, a function or a method, created.
-SchemaRoutine       = "CREATE"i & (SQLInvokedProcedure | SQLInvokedFunction)
-SQLInvokedProcedure = "PROCEDURE"i & SchemaQualifiedName & SQLParameterDeclarationList & RoutineCharacteristics & RoutineBody
-SQLInvokedFunction  = (FunctionSpecification | MethodSpecificationDesignator) & RoutineBody
+SchemaRoutine       : @Statement.CreateRoutine = "CREATE"i & d: InvokedRoutine => @(new Statement.CreateRoutine { Definition = d })
+InvokedRoutine      : @RoutineDefinition = p: SQLInvokedProcedure => @(p)
+                                         | f: SQLInvokedFunction => @(f)
+SQLInvokedProcedure : @RoutineDefinition = "PROCEDURE"i & n: SchemaQualifiedName & p: SQLParameterDeclarationList & c: RoutineCharacteristics & b: RoutineBody
+	  => @(new RoutineDefinition(RoutineKind.Procedure, n, p, null, c, b))
+SQLInvokedFunction  : @RoutineDefinition = f: FunctionSpecification & b: RoutineBody => @(f with { Body = b })
+                                         | m: MethodSpecificationDesignator & body: RoutineBody => @(m with { Body = body })
 
-FunctionSpecification = "FUNCTION"i & SchemaQualifiedName & SQLParameterDeclarationList & ReturnsClause & RoutineCharacteristics & ("STATIC"i & "DISPATCH"i)?
+FunctionSpecification : @RoutineDefinition = "FUNCTION"i & n: SchemaQualifiedName & p: SQLParameterDeclarationList & r: ReturnsClause & c: RoutineCharacteristics & d: ("STATIC"i & "DISPATCH"i)?
+	  => @(new RoutineDefinition(RoutineKind.Function, n, p, r, c, null!, StaticDispatch: d is not null))
 
 // <method specification designator>, which says no characteristics.
-MethodSpecificationDesignator
-	= "SPECIFIC"i & "METHOD"i & SchemaQualifiedName
-	| ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i & MethodName & SQLParameterDeclarationList & ReturnsClause? & "FOR"i & SchemaQualifiedName
+MethodSpecificationDesignator : @RoutineDefinition
+	= "SPECIFIC"i & "METHOD"i & n: SchemaQualifiedName
+	  => @(new RoutineDefinition(RoutineKind.Method, n, System.Array.Empty<ParameterDefinition>(), null, System.Array.Empty<RoutineCharacteristic>(), null!, SpecificMethod: true))
+	| m: ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i & k: MethodName & p: SQLParameterDeclarationList & r: ReturnsClause? & "FOR"i & t: SchemaQualifiedName
+	  => @(new RoutineDefinition(RoutineKind.Method, new QualifiedName([k]), p, r, System.Array.Empty<RoutineCharacteristic>(), null!, Nodes.Method(m).Modifier, t))
 
-SQLParameterDeclarationList = '(' & { SQLParameterDeclaration & (',' & SQLParameterDeclaration)* }? & ')'
+SQLParameterDeclarationList : @IReadOnlyList<ParameterDefinition> = '(' & { first: SQLParameterDeclaration & (',' & rest: SQLParameterDeclaration)* }? & ')' => @(Nodes.ListOrEmpty(first, rest))
 
 // <SQL parameter declaration>. A parameter's name is asked before its type, which a user-defined
 // type's name could be: `(a b)` is a parameter `a` of type `b`, and `(a)` one of type `a`.
-SQLParameterDeclaration = ("IN"i | "OUT"i | "INOUT"i)? & Identifier? & ParameterType & "RESULT"i? & ("DEFAULT"i & ParameterDefault)?
+SQLParameterDeclaration : @ParameterDefinition = m: ("IN"i | "OUT"i | "INOUT"i)? & n: Identifier? & t: ParameterType & r: "RESULT"i? & ("DEFAULT"i & d: ParameterDefault)?
+	  => @(new ParameterDefinition(Nodes.ModeOf(m), n, t.Type, r is not null, d, t.Locator))
 
-ParameterType
-	= DataType & LocatorIndication?
-	| "TABLE"i & ("PASS"i & "THROUGH"i | "NO"i & "PASS"i & "THROUGH"i)? & ("WITH"i & ("ROW"i & "SEMANTICS"i | "SET"i & "SEMANTICS"i & (("PRUNE"i | "KEEP"i) & "ON"i & "EMPTY"i)?))?
-	| "DESCRIPTOR"i
+ParameterType : @Nodes.ParameterTyped
+	= t: DataType & l: LocatorIndication? => @(new Nodes.ParameterTyped(t, l is not null))
+	| "TABLE"i & p: PassThroughOption? & s: TableSemanticsOption? => @(new Nodes.ParameterTyped(new DataType.GenericTable(p, s?.Semantics, s?.Pruning), false))
+	| "DESCRIPTOR"i => @(new Nodes.ParameterTyped(new DataType.Descriptor(), false))
+
+// A table parameter's pass-through, its semantics, and what a set's does with no rows.
+PassThroughOption    : @PassThroughMode = "PASS"i & "THROUGH"i => @(PassThroughMode.PassThrough)
+                                        | "NO"i & "PASS"i & "THROUGH"i => @(PassThroughMode.NoPassThrough)
+TableSemanticsOption : @Nodes.TableSemanticsOf = "WITH"i & "ROW"i & "SEMANTICS"i => @(new Nodes.TableSemanticsOf(TableSemantics.Row, null))
+                                        | "WITH"i & "SET"i & "SEMANTICS"i & u: PruningOption? => @(new Nodes.TableSemanticsOf(TableSemantics.Set, u))
+PruningOption        : @TablePruning = "PRUNE"i & "ON"i & "EMPTY"i => @(TablePruning.PruneOnEmpty)
+                                     | "KEEP"i & "ON"i & "EMPTY"i => @(TablePruning.KeepOnEmpty)
 
 LocatorIndication = "AS"i & "LOCATOR"i
 
 // <parameter default>. A descriptor is asked first: `DESCRIPTOR` is not reserved, and a value
 // expression would read it as a column and end the parameter list, which gives nothing back.
-ParameterDefault = DescriptorValueConstructor | ValueExpression | ContextuallyTypedValueSpecification
+ParameterDefault : @Expression = d: DescriptorValueConstructor => @(d)
+                               | v: ValueExpression => @(v.Node)
+                               | c: ContextuallyTypedValueSpecification => @(c)
 
-DescriptorValueConstructor = "DESCRIPTOR"i & '(' & { DescriptorColumnSpecification & (',' & DescriptorColumnSpecification)* } & ')'
-DescriptorColumnSpecification = ColumnName & DataType?
+DescriptorValueConstructor    : @Expression = "DESCRIPTOR"i & '(' & { first: DescriptorColumnSpecification & (',' & rest: DescriptorColumnSpecification)* } & ')' => @(new Expression.DescriptorConstructor(Nodes.List(first, rest)))
+DescriptorColumnSpecification : @DescriptorColumn = n: ColumnName & t: DataType? => @(new DescriptorColumn(n, t))
 
-ReturnsClause = "RETURNS"i & ReturnsType
+ReturnsClause : @ReturnsDefinition = "RETURNS"i & t: ReturnsType => @(t)
 
 // <returns type>: a table, asked first since `TABLE` and `ONLY` are reserved, or a data type.
-ReturnsType
-	= "TABLE"i & ('(' & { ColumnName & DataType & (',' & ColumnName & DataType)* } & ')')?
-	| "ONLY"i & "PASS"i & "THROUGH"i
-	| DataType & LocatorIndication? & ("CAST"i & "FROM"i & DataType & LocatorIndication?)?
+ReturnsType : @ReturnsDefinition
+	= "TABLE"i & ('(' & { first: ReturnsTableColumn & (',' & rest: ReturnsTableColumn)* } & ')')? => @(new ReturnsDefinition(null, first is null ? null : Nodes.List(first, rest)) { TableKeyword = true })
+	| "ONLY"i & "PASS"i & "THROUGH"i => @(new ReturnsDefinition(null, null, true))
+	| t: DataType & l: LocatorIndication? & ("CAST"i & "FROM"i & f: DataType & fl: LocatorIndication?)? => @(new ReturnsDefinition(t, null) { Locator = l is not null, CastFrom = f, CastFromLocator = fl is not null })
+
+// A column of a returned table.
+ReturnsTableColumn : @FieldDefinition = n: ColumnName & t: DataType => @(new FieldDefinition(n, t))
 
 // <routine characteristics>: none begins a statement, so all of them are read before the body.
-RoutineCharacteristics = { (trivia & RoutineCharacteristic)* }
+RoutineCharacteristics : @IReadOnlyList<RoutineCharacteristic> = { (trivia & items: RoutineCharacteristic)* } => @(items ?? System.Array.Empty<RoutineCharacteristic>())
 
-RoutineCharacteristic
-	= LanguageClause
-	| ParameterStyleClause
-	| "SPECIFIC"i & SchemaQualifiedName
-	| "NOT"i? & "DETERMINISTIC"i
-	| SQLDataAccessIndication
-	| NullCallClause
-	| ReturnedResultSetsCharacteristic
-	| ("NEW"i | "OLD"i) & "SAVEPOINT"i & "LEVEL"i
+RoutineCharacteristic : @RoutineCharacteristic
+	= l: LanguageClause => @(l)
+	| s: ParameterStyleClause => @(new RoutineCharacteristic.ParameterStyle(s))
+	| "SPECIFIC"i & n: SchemaQualifiedName => @(new RoutineCharacteristic.Specific(n))
+	| d: "NOT"i? & "DETERMINISTIC"i => @(new RoutineCharacteristic.Deterministic(d is null))
+	| a: SQLDataAccessIndication => @(new RoutineCharacteristic.DataAccess(a))
+	| c: NullCallClause => @(new RoutineCharacteristic.NullCall(c))
+	| r: ReturnedResultSetsCharacteristic => @(new RoutineCharacteristic.DynamicResultSets(r))
+	| w: ("NEW"i | "OLD"i) & "SAVEPOINT"i & "LEVEL"i => @(new RoutineCharacteristic.SavepointLevel((w[0] | 0x20) == 'n' ? SavepointLevelKind.New : SavepointLevelKind.Old))
 
-LanguageClause                   = "LANGUAGE"i & ("ADA"i | "COBOL"i | "C"i | "FORTRAN"i | "MUMPS"i | "M"i | "PASCAL"i | "PLI"i | "SQL"i)
-ParameterStyleClause             = "PARAMETER"i & "STYLE"i & ("SQL"i | "GENERAL"i)
-SQLDataAccessIndication          = ("NO"i | "CONTAINS"i) & "SQL"i | ("READS"i | "MODIFIES"i) & "SQL"i & "DATA"i
-NullCallClause                   = ("RETURNS"i & "NULL"i | "CALLED"i) & "ON"i & "NULL"i & "INPUT"i
-ReturnedResultSetsCharacteristic = "DYNAMIC"i & "RESULT"i & "SETS"i & UnsignedInteger
+LanguageClause                   : @RoutineCharacteristic = "LANGUAGE"i & n: ("ADA"i | "COBOL"i | "C"i | "FORTRAN"i | "MUMPS"i | "M"i | "PASCAL"i | "PLI"i | "SQL"i) => @(new RoutineCharacteristic.Language(n))
+ParameterStyleClause             : @ParameterStyleKind = "PARAMETER"i & "STYLE"i & "SQL"i => @(ParameterStyleKind.Sql)
+                                                       | "PARAMETER"i & "STYLE"i & "GENERAL"i => @(ParameterStyleKind.General)
+SQLDataAccessIndication          : @SqlDataAccess = "NO"i & "SQL"i => @(SqlDataAccess.NoSql)
+                                                  | "CONTAINS"i & "SQL"i => @(SqlDataAccess.ContainsSql)
+                                                  | "READS"i & "SQL"i & "DATA"i => @(SqlDataAccess.ReadsSqlData)
+                                                  | "MODIFIES"i & "SQL"i & "DATA"i => @(SqlDataAccess.ModifiesSqlData)
+NullCallClause                   : @NullCallMode = "RETURNS"i & "NULL"i & "ON"i & "NULL"i & "INPUT"i => @(NullCallMode.ReturnsNullOnNullInput)
+                                                 | "CALLED"i & "ON"i & "NULL"i & "INPUT"i => @(NullCallMode.CalledOnNullInput)
+ReturnedResultSetsCharacteristic : @int = "DYNAMIC"i & "RESULT"i & "SETS"i & n: UnsignedInteger => @(Nodes.Integer(n)!.Value)
 
 // <routine body>: a statement, with the rights it runs with, or a reference to an external body, or a
 // polymorphic table function's component procedures.
-RoutineBody
-	= ("SQL"i & "SECURITY"i & ("INVOKER"i | "DEFINER"i))? & SQLProcedureStatement
-	| ExternalBodyReference
-	| PolymorphicTableFunctionBody
+RoutineBody : @RoutineBody
+	= ("SQL"i & "SECURITY"i & s: ("INVOKER"i | "DEFINER"i))? & p: SQLProcedureStatement => @(new RoutineBody.Sql(p, Nodes.SecurityOf(s)))
+	| e: ExternalBodyReference => @(e)
+	| t: PolymorphicTableFunctionBody => @(new RoutineBody.PolymorphicTableFunction(t))
 
-ExternalBodyReference = "EXTERNAL"i & ("NAME"i & ExternalRoutineName)? & ParameterStyleClause? & TransformGroupSpecification?
-	  & ("EXTERNAL"i & "SECURITY"i & ("DEFINER"i | "INVOKER"i | "IMPLEMENTATION"i & "DEFINED"i))?
+ExternalBodyReference : @RoutineBody = "EXTERNAL"i & ("NAME"i & n: ExternalRoutineName)? & p: ParameterStyleClause? & g: TransformGroupSpecification? & ("EXTERNAL"i & "SECURITY"i & s: ExternalSecurityClause)?
+	  => @(new RoutineBody.External(n, p, g, s))
 
+ExternalSecurityClause : @ExternalSecurity = "DEFINER"i => @(ExternalSecurity.Definer)
+                                           | "INVOKER"i => @(ExternalSecurity.Invoker)
+                                           | "IMPLEMENTATION"i & "DEFINED"i => @(ExternalSecurity.ImplementationDefined)
+
+// <external routine name>, as it is written: `x` and `'x'` are two names.
 ExternalRoutineName = Identifier | CharacterStringLiteral
 
 // <transform group specification>: groups for types, asked before a single group, whose name begins them.
-TransformGroupSpecification = "TRANSFORM"i & "GROUP"i & (GroupSpecification & (',' & GroupSpecification)* | Identifier)
-GroupSpecification          = Identifier & "FOR"i & "TYPE"i & SchemaQualifiedName
+TransformGroupSpecification : @TransformGroupSpecification
+	= "TRANSFORM"i & "GROUP"i & first: GroupSpecification & (',' & rest: GroupSpecification)* => @(new TransformGroupSpecification(null, Nodes.List(first, rest)))
+	| "TRANSFORM"i & "GROUP"i & i: Identifier => @(new TransformGroupSpecification(i, System.Array.Empty<TransformGroupForType>()))
+GroupSpecification          : @TransformGroupForType = i: Identifier & "FOR"i & "TYPE"i & t: SchemaQualifiedName => @(new TransformGroupForType(i, t))
 
-PolymorphicTableFunctionBody = ("PRIVATE"i & "DATA"i? & SQLParameterDeclarationList)? & ("DESCRIBE"i & "WITH"i & SpecificRoutineDesignator)?
-	  & ("START"i & "WITH"i & SpecificRoutineDesignator)? & "FULFILL"i & "WITH"i & SpecificRoutineDesignator & ("FINISH"i & "WITH"i & SpecificRoutineDesignator)?
+PolymorphicTableFunctionBody : @PolymorphicTableFunctionBody = ("PRIVATE"i & k: "DATA"i? & p: SQLParameterDeclarationList)? & ("DESCRIBE"i & "WITH"i & d: SpecificRoutineDesignator)?
+	  & ("START"i & "WITH"i & s: SpecificRoutineDesignator)? & "FULFILL"i & "WITH"i & f: SpecificRoutineDesignator & ("FINISH"i & "WITH"i & e: SpecificRoutineDesignator)?
+	  => @(new PolymorphicTableFunctionBody(p, d, s, f, e, k is not null))
 
 // <SQL procedure statement>, <SQL executable statement>: what a routine's body and a trigger's action are.
 SQLProcedureStatement : @Statement = s: SQLExecutableStatement => @(s)
@@ -1935,17 +1978,18 @@ SQLExecutableStatement : @Statement
 	| g: SQLDiagnosticsStatement => @(g)
 
 // <alter routine statement>: a characteristic at least, and no behavior but `RESTRICT`.
-AlterRoutineStatement = "ALTER"i & SpecificRoutineDesignator & { (trivia & AlterRoutineCharacteristic)+ } & "RESTRICT"i
+AlterRoutineStatement : @Statement.AlterRoutine = "ALTER"i & r: SpecificRoutineDesignator & { (trivia & items: AlterRoutineCharacteristic)+ } & "RESTRICT"i
+	  => @(new Statement.AlterRoutine { Routine = r, Characteristics = items, Behavior = AlterRoutineBehavior.Restrict })
 
-AlterRoutineCharacteristic
-	= LanguageClause
-	| ParameterStyleClause
-	| SQLDataAccessIndication
-	| NullCallClause
-	| ReturnedResultSetsCharacteristic
-	| "NAME"i & ExternalRoutineName
+AlterRoutineCharacteristic : @RoutineCharacteristic
+	= l: LanguageClause => @(l)
+	| s: ParameterStyleClause => @(new RoutineCharacteristic.ParameterStyle(s))
+	| a: SQLDataAccessIndication => @(new RoutineCharacteristic.DataAccess(a))
+	| c: NullCallClause => @(new RoutineCharacteristic.NullCall(c))
+	| r: ReturnedResultSetsCharacteristic => @(new RoutineCharacteristic.DynamicResultSets(r))
+	| "NAME"i & n: ExternalRoutineName => @(new RoutineCharacteristic.ExternalName(n))
 
-DropRoutineStatement = "DROP"i & SpecificRoutineDesignator & DropBehavior
+DropRoutineStatement : @Statement.DropRoutine = "DROP"i & r: SpecificRoutineDesignator & b: DropBehavior => @(new Statement.DropRoutine { Routine = r, Behavior = b })
 
 // <specific routine designator>: a routine by its specific name, or by its name and its parameters' types.
 SpecificRoutineDesignator : @RoutineDesignator

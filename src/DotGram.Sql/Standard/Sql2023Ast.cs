@@ -1086,7 +1086,9 @@ public enum TransformDirection { ToSql, FromSql }
 public sealed record TransformAlterGroup(Identifier Name, IReadOnlyList<TransformAlterAction> Actions) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
 public sealed record TransformAlterAction(bool Add, IReadOnlyList<TransformElement> Elements, IReadOnlyList<TransformDirection> DropKinds, DropBehavior? Behavior) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
 public abstract record TransformDropTarget : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record All : TransformDropTarget; public record Group(Identifier Name) : TransformDropTarget; }
-public sealed record TransformGroupSpecification(Identifier? SingleGroup, IReadOnlyList<(Identifier Group, QualifiedName Type)> Groups) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+public sealed record TransformGroupSpecification(Identifier? SingleGroup, IReadOnlyList<TransformGroupForType> Groups) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+// BNF: <group specification>, a transform group for a type.
+public sealed record TransformGroupForType(Identifier Group, QualifiedName Type) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
 
 // --- Sequences --------------------------------------------------------------
 public abstract record SequenceOption : ISqlNode

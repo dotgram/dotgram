@@ -22804,7 +22804,8 @@ names, literals and data types; value expressions and predicates; functions, win
 recognition and JSON; queries — query expressions, table references and joins, `JSON_TABLE`; the data
 change statements of §14; then §11 and §12 but for routines, triggers, user-defined types, casts,
 orderings and transforms, which stand as placeholders until their part; then the other statements, §14's
-cursors and §16–§23, before the routines whose bodies they are. Each slice kept every verdict: the
+cursors and §16–§23, before the routines whose bodies they are; then triggers and routines. User-defined
+types, casts, orderings and transforms are the last placeholders. Each slice kept every verdict: the
 1,574 BNF rows unchanged, 50,000 fuzz lines of queries, routines and types agreeing with the oracle.
 
 The towers of §6 were already read once and carried as bit sets; the node now rides beside the bits in

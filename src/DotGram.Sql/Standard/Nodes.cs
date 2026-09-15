@@ -704,6 +704,29 @@ static class Nodes
 			direction is null ? null : (direction[0] | 0x20) == 'a' ? SortDirection.Asc : SortDirection.Desc,
 			nulls is null ? null : (nulls[0] | 0x20) == 'f' ? NullOrdering.First : NullOrdering.Last);
 
+	// ── §11 Triggers and SQL-invoked routines ──────────────────────────────────
+
+	/// <summary>A triggered SQL statement: the statements, and whether they were a `BEGIN ATOMIC` block.</summary>
+	public sealed record Triggered(IReadOnlyList<Statement> Statements, bool Atomic);
+
+	/// <summary>`FOR EACH ROW` or `FOR EACH STATEMENT`.</summary>
+	public static TriggerGranularity? GranularityOf(string? word) =>
+		word is null ? null : (word[0] | 0x20) == 'r' ? TriggerGranularity.Row : TriggerGranularity.Statement;
+
+	/// <summary>A parameter's type, and whether `AS LOCATOR` followed it.</summary>
+	public sealed record ParameterTyped(DataType Type, bool Locator);
+
+	/// <summary>A table parameter's semantics, and a set's pruning.</summary>
+	public sealed record TableSemanticsOf(TableSemantics Semantics, TablePruning? Pruning);
+
+	/// <summary>`IN`, `OUT` or `INOUT`.</summary>
+	public static ParameterMode? ModeOf(string? word) =>
+		word is null ? null : word.Length == 2 ? ParameterMode.In : word.Length == 3 ? ParameterMode.Out : ParameterMode.InOut;
+
+	/// <summary>`SQL SECURITY INVOKER` or `SQL SECURITY DEFINER`.</summary>
+	public static SqlSecurity? SecurityOf(string? word) =>
+		word is null ? null : (word[0] | 0x20) == 'i' ? SqlSecurity.Invoker : SqlSecurity.Definer;
+
 	// ── §14, §16–§23 Statements ────────────────────────────────────────────────
 
 	/// <summary>A key word as the member of <typeparamref name="T"/> spelled like it: `ABSOLUTE`, `ROW_COUNT`, `KEY_TYPE`.</summary>
@@ -767,8 +790,8 @@ static class Nodes
 	// ── §11 Schema definition and manipulation ─────────────────────────────────
 
 	/// <summary>
-	/// What a statement stands in for until its part of §11 builds its tree: routines, triggers,
-	/// user-defined types, casts, orderings and transforms. Each goes as its part builds.
+	/// What a statement stands in for until its part of §11 builds its tree: user-defined types,
+	/// casts, orderings and transforms. Each goes as its part builds.
 	/// </summary>
 	public static Statement UnbuiltStatement() => new Statement.Extension { Dialect = "SQL:2023", Kind = "Unbuilt" };
 

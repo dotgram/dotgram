@@ -239,3 +239,5 @@ must fit it.
 - `CursorReference.Name` is nullable: a dynamic cursor may be named by an extended name alone —
   `GLOBAL :c`, `PTF :d` — and then it has no local qualified name, as a statement's and a descriptor's
   reference already had none.
+- `TransformGroupForType`: a transform group specification's groups were a list of tuples, which no
+  location can be attached to (requirement 8); each `<group specification>` is a record of its own.
