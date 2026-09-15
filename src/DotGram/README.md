@@ -271,7 +271,8 @@ the [notation in full](https://github.com/dotgram/dotgram/blob/main/docs/syntax.
 and the [benchmarks](https://github.com/dotgram/dotgram/tree/main/benchmarks).
 
 [`DotGram.Web`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Web) is a
-package of its own — RFC 3986 URIs and RFC 9651 structured field values —
+package of its own — RFC 3986 URIs, RFC 6570 URI templates and RFC 9651 structured field
+values —
 [`DotGram.Sql`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Sql) another, ISO
 SQL:2023, and SQL-92 with T-SQL written as a dialect over it, and
 [`DotGram.ExpressionLanguage`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.ExpressionLanguage)
