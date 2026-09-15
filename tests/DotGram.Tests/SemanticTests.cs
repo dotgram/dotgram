@@ -2333,6 +2333,29 @@ public sealed class SemanticTests
 		Assert.Equal("ab+cd", EmittedCode.Match(assembly, "Grammar", "TrySemicolon", "ab;cd").Value);
 	}
 
+	/// <summary>A rule may build a generic C# type, and a sequence may collect one.</summary>
+	[Fact]
+	public void A_rule_may_build_a_generic_type()
+	{
+		var result = Compile("""
+			@using System.Collections.Generic;
+
+			Pair  : @KeyValuePair<string, int> = key: ['a'..'z']+ & '=' & value: ['0'..'9']+
+				=> @(new KeyValuePair<string, int>(key, int.Parse(value)))
+			Pairs : @KeyValuePair<string, int>[] = Pair & (',' & Pair)*
+
+			parse Pairs
+			""");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal(
+			new[] { new KeyValuePair<string, int>("a", 1), new KeyValuePair<string, int>("bc", 23) },
+			EmittedCode.Match(assembly, "Grammar", "TryParsePairs", "a=1,bc=23").Value);
+	}
+
 	const string Rereading = """
 		Word  : @string = w: ['a'..'z']+ => @(w)
 		Wide  : @string = w: ['a'..'z' | 'A'..'Z']+ => @(w)

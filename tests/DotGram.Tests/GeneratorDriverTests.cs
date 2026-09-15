@@ -294,6 +294,41 @@ public sealed class GeneratorDriverTests
 			.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
 	}
 
+	/// <summary>
+	/// A generic result type is found in a real compilation, by its definition and its
+	/// arguments, and one that is not there is named.
+	/// </summary>
+	/// <remarks>
+	/// The generator asks every question before binding and refuses one it did not foresee, so
+	/// a binder asking about a spelling nobody asked for would throw here rather than report.
+	/// </remarks>
+	[Theory]
+	[InlineData("int",     null)]
+	[InlineData("Missing", "Missing")]
+	public void A_generic_result_type_is_found_by_its_definition_and_its_arguments(string argument, string? missing)
+	{
+		var run = RunGenerator(
+			"[DotGram.Gram] public partial class Pairs;",
+			out var output,
+			("/proj/Pairs.gram",
+				"@using System.Collections.Generic;\n" +
+				$"Pair : @KeyValuePair<string, {argument}> = k: ['a'..'z']+ & '=' & v: ['0'..'9']+ " +
+				$"=> @(new KeyValuePair<string, {argument}>(k, default!))\n" +
+				"parse Pair"));
+
+		var reported = run.Diagnostics.Where(static one => one.Id == "GRAM3004").Select(static one => one.GetMessage()).ToList();
+
+		if (missing is null)
+		{
+			Assert.Empty(run.Diagnostics.Where(static one => one.Severity == DiagnosticSeverity.Error));
+			Assert.Empty(output
+				.GetDiagnostics(TestContext.Current.CancellationToken)
+				.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
+		}
+		else
+			Assert.Equal($"No C# type named '{missing}' is in view here.", Assert.Single(reported));
+	}
+
 	// ── Driving it ───────────────────────────────────────────────────────────────
 
 	// ── A host inheriting a grammar ─────────────────────────────────────────────

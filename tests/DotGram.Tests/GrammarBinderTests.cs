@@ -433,14 +433,44 @@ public sealed class GrammarBinderTests
 		Assert.Empty(strict.Asked);
 	}
 
-	sealed class StrictResolver : ISymbolResolver
+	/// <summary>
+	/// A generic C# type is asked about as its definition and as each argument, and whichever
+	/// of them is missing is the one named.
+	/// </summary>
+	/// <remarks>
+	/// No host can say whether <c>List&lt;Row&gt;</c> exists — Roslyn finds a type by the name
+	/// metadata gives it, <c>List`1</c> — so the spelling itself is never asked.
+	/// </remarks>
+	[Theory]
+	[InlineData("Start : @List<Row> = 'a' => @(null!)", null)]
+	[InlineData("Start : @Lsit<Row> = 'a' => @(null!)", "Lsit<Row>")]
+	[InlineData("Start : @List<Rwo> = 'a' => @(null!)", "Rwo")]
+	public void A_generic_CSharp_type_is_its_definition_and_its_arguments(string source, string? missing)
+	{
+		var strict = new StrictResolver("List`1", "Row");
+		var model  = GrammarBinder.Bind(
+			GramParser.Parse(GramLexer.Tokenize(source, RoslynCSharpScanner.Instance)).File,
+			strict);
+
+		Assert.DoesNotContain(strict.Asked, static name => name.Contains('<'));
+
+		if (missing is null)
+			Assert.Empty(model.Diagnostics);
+		else
+			Assert.Equal(
+				$"No C# type named '{missing}' is in view here.",
+				Assert.Single(model.Diagnostics, static one => one.Id == GrammarBinder.UnknownCSharp).Message);
+	}
+
+	/// <summary>Answers no to every type but the ones it is given, and remembers what it was asked.</summary>
+	sealed class StrictResolver(params string[] known) : ISymbolResolver
 	{
 		public System.Collections.Generic.List<string> Asked { get; } = [];
 
 		public bool TypeExists(string qualifiedName)
 		{
 			Asked.Add(qualifiedName);
-			return false;
+			return known.Contains(qualifiedName);
 		}
 
 		public bool IsAssignable(string from, string to) => false;

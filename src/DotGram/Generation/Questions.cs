@@ -276,7 +276,7 @@ static class Questions
 					// pairing is asked for here — the same superset as §4.1's above.
 					case Decl.Context(var contract):
 
-						names.Add(new Question(contract.Name, Question.Exists));
+						Exists(contract);
 
 						if (!contexts.Contains(contract.Name))
 							contexts.Add(contract.Name);
@@ -294,7 +294,7 @@ static class Questions
 			if (type is null)
 				return;
 
-			names.Add(new Question(type.Name, Question.Exists));
+			Exists(type);
 
 			(type.IsSequence ? sequences : declared).Add(type.Name);
 
@@ -311,6 +311,16 @@ static class Questions
 				if (!declared.Contains(type.Name + "[]"))
 					declared.Add(type.Name + "[]");
 			}
+		}
+
+		// Whether a type exists, asked the way the binder asks it: a generic one as its
+		// definition and then each argument, since no host can answer for the spelling.
+		void Exists(TypeRef type)
+		{
+			names.Add(new Question(type.Definition, Question.Exists));
+
+			foreach (var argument in type.TypeArguments)
+				Exists(argument);
 		}
 
 		void Walk(Expr expression)

@@ -480,6 +480,7 @@ uri.Query;  // q=1
 | Parser | What it reads |
 | --- | --- |
 | [`Rfc3986`](src/DotGram.Web/Rfc3986.cs) | URIs and relative references after RFC 3986 — authority, IPv4, IPv6, `IPvFuture`, paths, queries, fragments, percent encoding |
+| [`Rfc9651`](src/DotGram.Web/Rfc9651.cs) | Structured Field Values for HTTP — Items, Lists and Dictionaries of integers, decimals, strings, tokens, byte sequences, booleans, dates and display strings, with their parameters; held to the HTTP working group's test suite |
 
 [`src/DotGram.Web/README.md`](src/DotGram.Web/README.md) has what it parses and what it
 hands back.

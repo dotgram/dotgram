@@ -106,7 +106,7 @@ src/
 		                  published syntax. Each dialect is its own grammar, meeting the
 		                  others only in the tree (docs/design/sql-parsers.md)
 	DotGram.Web/          the formats of the web, a package of its own, in the DotGram.Web
-	                      namespace: Rfc3986. Written against whole specifications, not as
+	                      namespace: Rfc3986, Rfc9651. Written against whole specifications, not as
 	                      teaching material — and, being an ordinary project the generator
 	                      runs over, it is where a real symbol resolver is exercised
 examples/

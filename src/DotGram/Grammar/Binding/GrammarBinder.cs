@@ -676,8 +676,13 @@ public sealed class GrammarBinder
 			if (IsSourceSpan(type.Name))
 				return;
 
-			if (!TypeInView(type.Name, ns))
+			// A generic type is its definition and its arguments, each of which has to exist:
+			// `List<Row>` is asked as `List`1` and as `Row`, never as the spelling.
+			if (!TypeInView(type.Definition, ns))
 				Report(UnknownCSharp, $"No C# type named '{type.Name}' is in view here.", type.At);
+
+			foreach (var argument in type.TypeArguments)
+				ResolveType(argument, ns, parameters);
 
 			return;
 		}

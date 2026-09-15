@@ -7,10 +7,10 @@
 		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
 		<RootNamespace>DotGram.Web</RootNamespace>
 
-		<Description>The formats of the web, written in .gram against their specifications: URIs after RFC 3986.</Description>
+		<Description>The formats of the web, written in .gram against their specifications: URIs after RFC 3986, and Structured Field Values for HTTP after RFC 9651.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageTags>parser;uri;rfc3986;web;dotgram</PackageTags>
-		<PackageReleaseNotes>First release: RFC 3986 URIs and relative references.</PackageReleaseNotes>
+		<PackageTags>parser;uri;rfc3986;http;structured-fields;rfc9651;web;dotgram</PackageTags>
+		<PackageReleaseNotes>First release: RFC 3986 URIs and relative references, and RFC 9651 Structured Field Values for HTTP.</PackageReleaseNotes>
 
 		<!-- Symbols inside the assembly, as the generator carries them: a stack trace from
 		     a parser here has line numbers without a symbol server. -->

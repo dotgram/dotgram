@@ -46,6 +46,37 @@ Rfc3986.Decode("hello%20world"); // hello world
 `%2F` inside a path segment is encoded data during parsing; decoding it early would turn
 it into a path separator it is not.
 
+## RFC 9651 Structured Field Values
+
+[`Rfc9651`](Rfc9651.cs) reads the fields HTTP now defines this way — `Priority`,
+`Cache-Status`, `Proxy-Status`, signatures — as the three types the RFC gives them: an Item,
+a List and a Dictionary.
+
+```csharp
+using DotGram.Web;
+
+var list = Rfc9651.ParseList("text/html;q=1.0, (\"a\" \"b\");lvl=5");
+
+var item = (Item)list[0];
+item.Value;                    // BareItem.Token { Value = "text/html" }
+item.Parameters["q"];          // BareItem.Decimal { Value = 1.0 }
+
+var inner = (InnerList)list[1];
+inner.Items.Count;             // 2
+inner.Parameters["lvl"];       // BareItem.Integer { Value = 5 }
+
+var dictionary = Rfc9651.ParseDictionary("u=3, i");
+dictionary["i"];               // Item { Value = BareItem.Boolean { Value = true } }
+```
+
+Parameters and Dictionaries are read by position and by key, in the order they were
+written; a key written twice keeps its first place and its last value. A field that
+arrives in several lines is one value: `Rfc9651.Combine(lines)` joins them as §4.2 says.
+Every `Parse…` has a `TryParse…` beside it, and a field that does not parse is refused
+whole — the RFC allows nothing else.
+
+It is held to [the HTTP working group's test suite](https://github.com/httpwg/structured-field-tests).
+
 ## Taking it
 
 ```xml

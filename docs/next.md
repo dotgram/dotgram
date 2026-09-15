@@ -22521,3 +22521,44 @@ names, `Rfc3986` and `UriParts`, in the `DotGram.Web` namespace; the file sits a
 root, since a `Uri/` directory would ask for the namespace that hides `System.Uri`. Its tests
 moved to `tests/DotGram.Tests/Web/`. `DotGram.Parsers` was never published, so nothing outside
 the repository names it: the packages' release notes and READMEs say nothing of it.
+
+## A rule may declare a generic C# type
+
+Found writing RFC 9651: `ListField : @IReadOnlyList<Member> = …` was GRAM2001 "Expected '='" at the
+`<`. `GramParser.ParseType` read a name and an optional `[]`, and `TypeRef` had nowhere to keep type
+arguments — a reference `@Name<T>` inside an expression had them all along, through its own
+production, which is why nothing in the repository had met the gap: no rule declared one.
+
+Decided with Igor 2026-09-14 to support it in the notation rather than shape an API around it. A C#
+type's arguments are C# too, with or without an `@` of their own, and may be generic in turn. The
+**name is spelled whole** — `KeyValuePair<string, Row>` — because every later stage writes the name
+into the generated file and already treats a C# type as its spelling; `TypeRef.TypeArguments` keeps
+the arguments beside it for the one question the spelling cannot be asked as. **Whether a type
+exists is asked as its definition and its arguments**: `TypeRef.Definition` is `KeyValuePair`2`, the
+name Roslyn's `GetTypeByMetadataName` finds, and the binder resolves each argument in turn, so a
+missing one is the one GRAM3004 names. `Questions` asks the same set ahead of binding
+(`Exists(TypeRef)`, for a rule's type, a parameter's and `context`'s): the generator refuses a
+question it did not foresee, so the two must agree, and `GeneratorDriverTests` holds that against a
+real compilation. `>>` needed nothing — the lexer makes two `>` tokens, and a binding power is only
+looked for after an operand.
+
+## RFC 9651, Structured Field Values for HTTP
+
+`src/DotGram.Web/Rfc9651.cs`: Appendix C's ABNF rule for rule, with §4.2's algorithms winning where
+they differ — whitespace (a field's own spaces at either end, a tab between the members of a List or
+a Dictionary, only spaces inside an Inner List and after `;`), a base64 body that must decode and may
+lack its padding, a Display String whose bytes must be UTF-8. Those last two are `when`s over C#.
+A Decimal is tried before an Integer; a digit too many is refused by whatever must follow the number,
+which is what §4.2.4 says happens. The model: `Member` (`Item`, `InnerList`), `BareItem` with its
+eight cases nested, and `OrderedMap<T>` for Parameters and Dictionaries — by index and by key, as the
+RFC requires, a repeated key keeping its first place and its last value.
+
+Held by httpwg/structured-field-tests at 1e280c3, vendored under
+`tests/DotGram.Tests/Web/StructuredFields/` with its BSD-3-Clause licence: 1,591 cases, every one
+passing on the first run — `must_fail` refused, `can_fail` either way, the rest read as expected.
+Serialization (§4.1) is not written yet; its own suite is in the same repository.
+
+**A build trap met on the way, not a code one.** A project directory created mid-session could not
+be written by `dotnet build`: "Access to the path … is denied" on `obj`, even outside the sandbox. The
+build was joining MSBuild nodes and a compiler server started earlier inside it, with their rights.
+`-nodeReuse:false -p:UseSharedCompilation=false` (or `MSBUILDDISABLENODEREUSE=1`) is the way out.

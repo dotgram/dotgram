@@ -435,6 +435,45 @@ public sealed class GramParserTests
 		Assert.Empty(result.File.Decls.OfType<Decl.Publish>());
 	}
 
+	/// <summary>A C# type a rule builds may be generic, and what its brackets hold is C# too.</summary>
+	/// <remarks>
+	/// The name is spelled whole, because it is what the generated file is written from; the
+	/// arguments are kept beside it, because whether a type exists is asked of each one and of
+	/// the definition, and never of the spelling.
+	/// </remarks>
+	[Fact]
+	public void A_CSharp_type_may_be_generic()
+	{
+		var result = GramParser.Parse(
+			GramLexer.Tokenize("Start : @Dictionary<string, Row[]>[] = 'a' => @(null!)", RoslynCSharpScanner.Instance));
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var type = Assert.Single(result.File.Decls.OfType<Decl.Rule>()).Type!;
+
+		Assert.Equal(("Dictionary<string, Row[]>", true, true), (type.Name, type.IsCSharp, type.IsSequence));
+		Assert.Equal("Dictionary`2", type.Definition);
+		Assert.Collection(
+			type.TypeArguments,
+			first  => Assert.Equal(("string", true, false), (first.Name, first.IsCSharp, first.IsSequence)),
+			second => Assert.Equal(("Row", true, true), (second.Name, second.IsCSharp, second.IsSequence)));
+	}
+
+	/// <summary>And nested, where the two closing brackets are two tokens and not a binding power.</summary>
+	[Fact]
+	public void And_nested()
+	{
+		var result = GramParser.Parse(
+			GramLexer.Tokenize("Start : @List<List<int>> = 'a' => @(null!)", RoslynCSharpScanner.Instance));
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var type = Assert.Single(result.File.Decls.OfType<Decl.Rule>()).Type!;
+
+		Assert.Equal(("List<List<int>>", "List`1"), (type.Name, type.Definition));
+		Assert.Equal("List`1", Assert.Single(type.TypeArguments).Definition);
+	}
+
 	[Theory]
 	[InlineData("A = 'a'\nparse A",          PublishAccess.Public)]
 	[InlineData("A = 'a'\npublic parse A",   PublishAccess.Public)]

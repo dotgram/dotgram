@@ -640,12 +640,42 @@ public sealed class GramParser
 		return new Decl.State(ParseType()) { At = From(start) };
 	}
 
-	TypeRef ParseType()
+	/// <param name="withinCSharp">
+	/// Whether this is an argument of a C# type, which is C# whether or not it was written
+	/// with an <c>@</c> of its own — and so may be generic in turn.
+	/// </param>
+	TypeRef ParseType(bool withinCSharp = false)
 	{
-		var start    = Current.Position;
-		var isCSharp = TakeIf(TokenKind.At);
-		var name     = ExpectQualifiedName();
-		var sequence = false;
+		var start     = Current.Position;
+		var isCSharp  = TakeIf(TokenKind.At) || withinCSharp;
+		var name      = ExpectQualifiedName();
+		var arguments = new List<TypeRef>();
+		var sequence  = false;
+
+		// A C# type may be generic, and what stands between its brackets is C# as well:
+		// `@KeyValuePair<string, Row>` names the type `Row`, not a rule. Only for a C# type,
+		// since a rule and a parameter take no arguments. The arguments are spelled into the
+		// name, which is what the generated file is written from.
+		if (isCSharp && TakeIf(TokenKind.Less))
+		{
+			var spelled = new StringBuilder(name).Append('<');
+
+			do
+			{
+				var argument = ParseType(withinCSharp: true);
+
+				if (arguments.Count > 0)
+					spelled.Append(", ");
+
+				spelled.Append(argument.Name).Append(argument.IsSequence ? "[]" : "");
+				arguments.Add(argument);
+			}
+			while (TakeIf(TokenKind.Comma));
+
+			Expect(TokenKind.Greater);
+
+			name = spelled.Append('>').ToString();
+		}
 
 		if (At(TokenKind.OpenBracket) && Next.Kind == TokenKind.CloseBracket)
 		{
@@ -655,7 +685,7 @@ public sealed class GramParser
 			sequence = true;
 		}
 
-		return new TypeRef(isCSharp, name, sequence, From(start));
+		return new TypeRef(isCSharp, name, sequence, From(start)) { TypeArguments = arguments };
 	}
 
 	// ── Expressions ──────────────────────────────────────────────────────────────
