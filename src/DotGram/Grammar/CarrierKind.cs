@@ -51,9 +51,10 @@ public enum CarrierKind
 	/// log and a walk over it.
 	/// </summary>
 	/// <remarks>
-	/// Written one shape at a time, and it carries none of them yet: a grammar asking for
-	/// it is compiled on the tape and told which shape it was refused for. Not offered on
-	/// <c>[Gram]</c> until there is something to offer.
+	/// A grammar it cannot carry is compiled on the tape and told why. What it does not
+	/// carry: a recovery, a mark (§7.8), a rule whose value is the extent it matched, a rule
+	/// read at a strength, a terminal built again from its text, and a rule with a guard
+	/// that gathers a member across the turns of a repetition.
 	/// </remarks>
 	Mixed,
 }

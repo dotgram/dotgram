@@ -256,10 +256,4 @@ public sealed class GramCompilerOptions
 	/// </para>
 	/// </remarks>
 	public int? Own { get; set; }
-
-	/// <summary>
-	/// Whether a publication the reader can write is written by it
-	/// (<c>Machine.Reader.cs</c>) rather than by the rendering it is replacing. Off by
-	/// default while the reader is being taught the rest of the language.
-	/// </summary>
 }
