@@ -545,8 +545,260 @@ public sealed class CarrierTests
 			Carrier       = carrier,
 		}).Diagnostics;
 
-	static string? ValueOf(object match) =>
-		match.GetType().GetProperty("Value")?.GetValue(match)?.ToString();
+	[Theory]
+	[InlineData("Letter = ['a'..'z']")]
+	[InlineData("Letter = Inner\nInner = ['a'..'z']")]
+	[InlineData("Letter = ['a'..'m'] | ['n'..'z']")]
+	public void Repeated_text_calls_use_one_extent_without_pooled_storage(string leaf)
+	{
+		var grammar = "Start : @string = t: Letter+ => @(t)\n" + leaf + "\nparse Start";
+		var (source, assembly) = Compiled(grammar, CarrierKind.Auto);
+
+		Assert.DoesNotContain("Ways.Rent()", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("ImmediateValues", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("DirectValues", source, StringComparison.Ordinal);
+
+		foreach (var input in new[] { "a", new string('x', 40), new string('z', 256) })
+		{
+			var match = EmittedCode.Match(assembly, "Carried.Probe", "TryParseStart", input);
+
+			Assert.True(match.IsSuccess);
+			Assert.Equal(input, ValueOf(match));
+		}
+
+		foreach (var input in new[] { "", "!", "abc!" })
+			Assert.False(EmittedCode.Match(assembly, "Carried.Probe", "TryParseStart", input).IsSuccess);
+	}
+
+	[Theory]
+	[InlineData("Start : @string = t: Letter+ & 'a' => @(t)\nLetter = ['a'..'z']", "bca", "bc")]
+	[InlineData("Start : @string = t: Letter* => @(t)\nLetter = ['a'..'z']", "", "")]
+	[InlineData("Start : @string = t: Letter? => @(t ?? \"missing\")\nLetter = ['a'..'z']", "", "missing")]
+	[InlineData("trivia = ' '*\nStart : @string = (t: Letter & ',')+ => @(t)\nLetter = ['a'..'z']", "a , b , c ,", "abc")]
+	[InlineData("Start : @string = t: Letter+ => @(t)\nLetter = 'a' | '(' & Letter & ')'", "a(a)", "a(a)")]
+	[InlineData("Start : @string = t: Letter+ => @(string.Join(\"|\", t))\nLetter : @string = c: ['a'..'z'] => @(c)", "abc", "a|b|c")]
+	[InlineData("Start : @string = t: Letter+ => @(t)\nLetter = ?=['a'..'z'] & ['a'..'z']", "abc", "abc")]
+	[InlineData("Start : @string = t: Letter+ => @(t)\nLetter = ['a'..'z'] & when @(true)", "abc", "abc")]
+	public void Text_call_capture_preserves_returns_gaps_and_value_shapes(string grammar, string input, string expected)
+	{
+		foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape })
+		{
+			var (_, assembly) = Compiled(grammar + "\nparse Start", carrier);
+			var match = EmittedCode.Match(assembly, "Carried.Probe", "TryParseStart", input);
+
+			Assert.True(match.IsSuccess);
+			Assert.Equal(expected, ValueOf(match));
+		}
+	}
+
+	[Fact]
+	public void Immediate_storage_contains_only_the_gathered_value_type()
+	{
+		const string Grammar = """
+			Start : @int = items: Item+ => @(items.Length)
+			Item : @string = c: ['a'..'z'] => @(c)
+			parse Start
+			""";
+
+		var (source, assembly) = Compiled(Grammar, CarrierKind.Immediate);
+
+		Assert.DoesNotContain("StackText", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("StackSpans", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("internal int[] Stack", source, StringComparison.Ordinal);
+		Assert.Contains("internal string[] Stack", source, StringComparison.Ordinal);
+
+		foreach (var input in new[] { "a", new string('x', 40), "b", new string('y', 100), "c" })
+		{
+			var match = EmittedCode.Match(assembly, "Carried.Probe", "TryParseStart", input);
+
+			Assert.True(match.IsSuccess);
+			Assert.Equal(input.Length, Assert.IsType<int>(match.Value));
+		}
+	}
+
+	[Fact]
+	public void Immediate_text_pieces_do_not_allocate_value_stacks()
+	{
+		const string Grammar = """
+			Start : @string = (piece: Letter & ',')+ => @(piece)
+			Letter = ['a'..'z']
+			parse Start
+			""";
+
+		var (source, assembly) = Compiled(Grammar, CarrierKind.Immediate);
+
+		Assert.Contains("internal long[] StackSpans", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("StackText", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("internal string[] Stack", source, StringComparison.Ordinal);
+
+		foreach (var input in new[] { "a,b,c,", "x,", "a,b,c," })
+		{
+			var match = EmittedCode.Match(assembly, "Carried.Probe", "TryParseStart", input);
+
+			Assert.True(match.IsSuccess);
+			Assert.Equal(input.Replace(",", "", StringComparison.Ordinal), match.Value);
+		}
+	}
+
+	[Fact]
+	public void Immediate_publications_share_the_union_of_their_required_stacks()
+	{
+		const string Grammar = """
+			Words : @int = items: Word+ => @(items.Length)
+			Word : @string = c: ['a'..'z'] => @(c)
+			Numbers : @string = items: Number+ => @(string.Join(",", items))
+			Number : @int = ['0'..'9'] => @(1)
+			parse Words
+			parse Numbers
+			""";
+
+		var (source, assembly) = Compiled(Grammar, CarrierKind.Immediate);
+
+		Assert.Contains("internal int[] Stack", source, StringComparison.Ordinal);
+		Assert.Contains("internal string[] Stack", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("StackText", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("StackSpans", source, StringComparison.Ordinal);
+
+		for (var pass = 0; pass < 3; pass++)
+		{
+			Assert.Equal(3, EmittedCode.Match(assembly, "Carried.Probe", "TryParseWords", "abc").Value);
+			Assert.Equal("1,1", EmittedCode.Match(assembly, "Carried.Probe", "TryParseNumbers", "12").Value);
+		}
+	}
+
+	[Theory]
+	[InlineData(CarrierKind.Auto)]
+	[InlineData(CarrierKind.Immediate)]
+	public void Immediate_scalar_recursion_does_not_rent_value_storage(CarrierKind carrier)
+	{
+		const string Grammar = """
+			Depth : @int = 'a' => @(1) | '(' & n: Depth & ')' => @(n + 1)
+			parse Depth
+			""";
+
+		var (source, assembly) = Compiled(Grammar, carrier);
+
+		Assert.DoesNotContain("Ways.Rent()", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("readonly Ways ways", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("ImmediateValues.Rent()", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("ImmediateValues.Return(", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("ImmediateValues values", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("static ImmediateValues? _spare", source, StringComparison.Ordinal);
+
+		foreach (var depth in new[] { 0, 40, 1, 100, 0 })
+		{
+			var input = new string('(', depth) + "a" + new string(')', depth);
+			var match = EmittedCode.Match(assembly, "Carried.Probe", "TryParseDepth", input);
+
+			Assert.True(match.IsSuccess);
+			Assert.Equal(depth + 1, match.Value);
+			Assert.False(EmittedCode.Match(assembly, "Carried.Probe", "TryParseDepth", input + ")").IsSuccess);
+		}
+	}
+
+	[Fact]
+	public void Immediate_scalar_reader_does_not_rent_another_publications_stacks()
+	{
+		const string Grammar = """
+			Depth : @int = 'a' => @(1) | '(' & n: Depth & ')' => @(n + 1)
+			Words : @int = items: Word+ => @(items.Length)
+			Word : @string = c: ['a'..'z'] => @(c)
+			parse Depth
+			parse Words
+			""";
+
+		var (source, assembly) = Compiled(Grammar, CarrierKind.Immediate);
+
+		// Only Words and its positional entry rent the shared store.
+		Assert.Equal(2, source.Split("var values = ImmediateValues.Rent();", StringSplitOptions.None).Length - 1);
+		Assert.Contains("internal string[] Stack", source, StringComparison.Ordinal);
+
+		for (var pass = 0; pass < 3; pass++)
+		{
+			Assert.Equal(3, EmittedCode.Match(assembly, "Carried.Probe", "TryParseWords", "abc").Value);
+			Assert.Equal(3, EmittedCode.Match(assembly, "Carried.Probe", "TryParseDepth", "((a))").Value);
+			Assert.False(EmittedCode.Match(assembly, "Carried.Probe", "TryParseWords", "abc!").IsSuccess);
+			Assert.False(EmittedCode.Match(assembly, "Carried.Probe", "TryParseDepth", "((a)").IsSuccess);
+		}
+	}
+
+	[Theory]
+	[InlineData("Start : @int = items: Item+ => @(items.Length)\nItem : @int = 'a' => @(1)")]
+	[InlineData("Start : @int = 'a' => @(1) | '(' & n: Start & ')' => @(n + 1)")]
+	[InlineData("Start : @int = items: Item* & 'a' => @(items.Length)\nItem : @int = 'a' => @(1)")]
+	[InlineData("Start : @int = ?!'b' & n: Item => @(n)\nItem : @int = 'a' => @(1)")]
+	[InlineData("Start : @int = { n: Item } & 'a' => @(n)\nItem : @int = 'a' => @(1) | 'a' & 'a' => @(2)")]
+	[InlineData("trivia = ' '*\nStart : @int = n: Item => @(n)\nItem : @int = 'a' => @(1)")]
+	public void Optional_ways_preserve_results_and_failures(string grammar)
+	{
+		var (_, immediate) = Compiled(grammar + "\nparse Start", CarrierKind.Immediate);
+		var (_, tape) = Compiled(grammar + "\nparse Start", CarrierKind.Tape);
+
+		foreach (var input in new[] { "", "a", "aa", "aaa", "b", "ab", "(a)", "((a))", "((a)", "(b)", " a ", " a b " })
+		{
+			var expected = EmittedCode.Match(tape, "Carried.Probe", "TryParseStart", input);
+			var actual = EmittedCode.Match(immediate, "Carried.Probe", "TryParseStart", input);
+
+			Assert.Equal(expected, actual);
+		}
+	}
+
+	[Fact]
+	public void Immediate_publications_rent_ways_only_for_the_reader_that_replays()
+	{
+		const string Grammar = """
+			Depth : @int = 'x' => @(1) | '(' & n: Depth & ')' => @(n + 1)
+			Replay : @int = items: Item* & 'a' => @(items.Length)
+			Item : @int = 'a' => @(1)
+			parse Depth
+			parse Replay
+			""";
+
+		var (source, assembly) = Compiled(Grammar, CarrierKind.Immediate);
+
+		Assert.Equal(2, source.Split("var ways = Ways.Rent();", StringSplitOptions.None).Length - 1);
+
+		for (var pass = 0; pass < 3; pass++)
+		{
+			Assert.Equal(2, EmittedCode.Match(assembly, "Carried.Probe", "TryParseReplay", "aaa").Value);
+			Assert.Equal(3, EmittedCode.Match(assembly, "Carried.Probe", "TryParseDepth", "((x))").Value);
+			Assert.False(EmittedCode.Match(assembly, "Carried.Probe", "TryParseReplay", "aaab").IsSuccess);
+			Assert.False(EmittedCode.Match(assembly, "Carried.Probe", "TryParseDepth", "((x)").IsSuccess);
+		}
+	}
+
+	[Theory]
+	[InlineData("' '*", false)]
+	[InlineData("'a'*", true)]
+	public void Entry_trivia_rents_ways_only_when_its_reading_needs_them(string trivia, bool needsWays)
+	{
+		var grammar = "trivia = " + trivia + "\n" + """
+			Depth : @int = 'a' => @(1) | '(' & n: Depth & ')' => @(n + 1)
+			parse Depth
+			""";
+		var (source, immediate) = Compiled(grammar, CarrierKind.Immediate);
+		var (_, tape) = Compiled(grammar, CarrierKind.Tape);
+
+		Assert.Equal(needsWays, source.Contains("Ways.Rent()", StringComparison.Ordinal));
+
+		foreach (var input in new[] { "", "a", "aaa", "  a  ", "( a )", " (( a )) ", "(a)", "((a))", "(a", "a!", " b " })
+		{
+			Assert.Equal(
+				EmittedCode.Match(tape, "Carried.Probe", "TryParseDepth", input),
+				EmittedCode.Match(immediate, "Carried.Probe", "TryParseDepth", input));
+
+			var window = "!" + input + "!";
+			Assert.Equal(
+				EmittedCode.Positioned(tape, "Carried.Probe", "TryParseDepth", window, 1),
+				EmittedCode.Positioned(immediate, "Carried.Probe", "TryParseDepth", window, 1));
+			Assert.Equal(
+				EmittedCode.Positioned(tape, "Carried.Probe", "TryParseDepth", window, 1, input.Length),
+				EmittedCode.Positioned(immediate, "Carried.Probe", "TryParseDepth", window, 1, input.Length));
+		}
+	}
+
+	static string? ValueOf((bool IsSuccess, object? Value, string? Error, long Position) match) =>
+		match.Value?.ToString();
 
 	static (string Source, Assembly Assembly) Compiled(string grammar, CarrierKind carrier)
 	{

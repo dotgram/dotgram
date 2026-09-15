@@ -145,7 +145,7 @@ public static class GramCompiler
 					options.Suffix, options.SharedTypes, options.Inherits,
 					options.LanguageId, options.LanguageSource, options.LanguageClassifications,
 					options.LanguageRecognitionContract, options.StaticImports,
-					options.Portable ? grammarText : null, options.SuffixDeclared)));
+					options.Portable ? grammarText : null, options.SuffixDeclared, options.ValueStorage, options.BufferedInput, options.BufferedBytes, options.SpanCaptures)));
 
 		return new GramCompilation(sources, OnePerPosition(diagnostics));
 	}
@@ -241,6 +241,9 @@ public static class GramCompiler
 
 	/// <summary>The carrier the author asked for could not carry the grammar.</summary>
 	public const string CarrierRefused = "GRAM5007";
+
+	/// <summary>An explicitly requested buffered input form is not supported.</summary>
+	public const string BufferedUnsupported = "GRAM4026";
 
 	/// <summary>Which carrier the generator chose, where it was left to choose, and why.</summary>
 	public const string CarrierChosen = "GRAM5012";

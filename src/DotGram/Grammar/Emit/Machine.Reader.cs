@@ -45,6 +45,8 @@ sealed partial class Machine
 	/// <summary>The refusal recorder the emitted readers call.</summary>
 	const string Refusing = "Refuse_DotGram";
 
+	bool _readerWays = true;
+
 	/// <summary>
 	/// Whether a rule is a token or a few tokens and nothing else — no rule under it, no
 	/// repetition, no guard, no look — so that its reader is what a hand-written parser would
@@ -286,20 +288,33 @@ sealed partial class Machine
 		}
 
 		var entries = new Writer(0);
+		var entryPoints = new List<(RuleSymbol Rule, bool Ends)>();
 
 		foreach (var publication in publications)
 		{
 			if (!seen.Add(publication.Rule))
 				continue;
 
-			RenderReaderEntry(entries, members, publication.Rule);
+			entryPoints.Add((publication.Rule, true));
+			RenderReaderEntryBody(members, publication.Rule, ends: true);
 
 			// And the entry that begins where it is told and demands no end, which is what a
 			// positional overload calls. Only for a whole parse: `find` already reads from a
 			// position, and asking for both would write one method twice.
 			if (publication.Kind == PublishKind.Parse)
-				RenderReaderEntry(entries, members, publication.Rule, ends: false);
+			{
+				entryPoints.Add((publication.Rule, false));
+				RenderReaderEntryBody(members, publication.Rule, ends: false);
+			}
 		}
+
+		// Include entry trivia under both whole-input and positional continuations.
+		// A body or wrapper can use replay state even without opening a new way.
+		_readerWays = Carrier is not ImmediateCarrier ||
+			members.ToString().Contains("ways.", StringComparison.Ordinal);
+
+		foreach (var (rule, ends) in entryPoints)
+			RenderReaderEntry(entries, rule, ends);
 
 		RenderReaderStruct(file, members);
 		file.Write(entries.ToString());
@@ -584,7 +599,8 @@ sealed partial class Machine
 			file.Line($"var deep = new Deep_DotGram{_tag}();");
 			file.Line();
 			file.Line("deep.whole  = this.whole;");
-			file.Line("deep.ways   = this.ways;");
+			if (_readerWays)
+				file.Line("deep.ways   = this.ways;");
 
 			foreach (var (_, name) in carried)
 				file.Line($"deep.{name} = this.{name};");
@@ -636,7 +652,8 @@ sealed partial class Machine
 		using (file.Block($"private sealed class Deep_DotGram{_tag}"))
 		{
 			file.Line("internal global::System.ReadOnlyMemory<char> whole;");
-			file.Line($"internal {WaysType} ways = default!;");
+			if (_readerWays)
+				file.Line($"internal {WaysType} ways = default!;");
 
 			foreach (var (type, name) in carried)
 				file.Line($"internal {type} {name} = default!;");
@@ -658,7 +675,7 @@ sealed partial class Machine
 				using (file.Block("try"))
 				{
 					file.Line(
-						$"var reader = new {ReaderStruct}(this.whole.Span, this.ways" +
+						$"var reader = new {ReaderStruct}(this.whole.Span{(_readerWays ? ", this.ways" : "")}" +
 						string.Concat(state.Select(one => $", this.{one.Name}")) + ", this.whole);");
 					file.Line();
 
@@ -739,7 +756,7 @@ sealed partial class Machine
 				}
 			}
 
-			file.Line($"readonly {WaysType} ways;");
+			file.Line(_readerWays ? $"readonly {WaysType} ways;" : $"const {WaysType}? ways = null;");
 
 			if (Probes)
 			{
@@ -756,12 +773,13 @@ sealed partial class Machine
 			file.Line();
 
 			using (file.Block(
-				$"internal {ReaderStruct}(global::System.ReadOnlySpan<char> text, {WaysType} ways" +
+				$"internal {ReaderStruct}(global::System.ReadOnlySpan<char> text{(_readerWays ? $", {WaysType} ways" : "")}" +
 				string.Concat(state.Select(one => $", {one.Type} {one.Name}")) + WholeParameter + ")"))
 			{
 				file.Line("this.text    = text;");
 				file.Line("this.failure = default;");
-				file.Line("this.ways    = ways;");
+				if (_readerWays)
+					file.Line("this.ways    = ways;");
 
 				// A C# 8 struct auto-defaults nothing, and the floor is C# 8.
 				if (Probes)
@@ -803,7 +821,7 @@ sealed partial class Machine
 	/// the same renting, the same reader, the same root built — so they are written by one
 	/// method and told apart by this.
 	/// </param>
-	void RenderReaderEntry(Writer file, Writer members, RuleSymbol rule, bool ends = true)
+	void RenderReaderEntry(Writer file, RuleSymbol rule, bool ends)
 	{
 		_seam = FollowSets.SeamOf(rule, _graph);
 
@@ -823,20 +841,18 @@ sealed partial class Machine
 			$"global::System.ReadOnlySpan<char> text, int pos{(climbs ? ", int power" : "")}, " +
 			$"ref {CSharpEmitter.FailureType} failure{value}{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}{WholeParameter})"))
 		{
-			var reader = new ReaderWriter(this, rule);
-			var body   = _graph.Trivia.TryGetValue(rule, out var seam)
-				? new Node.Sequence([seam, new Node.Call(rule, []), seam])
-				: (Node)new Node.Call(rule, []);
-
 			// The tape is what a refusal inside a lookahead is kept quiet by, and what the
 			// records of a parse are written on; the tables are what the walk at the end
 			// builds into.
-			file.Line($"var ways = {WaysType}.Rent();");
+			if (_readerWays)
+				file.Line($"var ways = {WaysType}.Rent();");
 
 			// The store is rented where the entry builds, and also where the reader is handed
 			// one anyway: a carrier that builds as it reads hands its reader the store in every
 			// entry of a machine that builds anywhere, a recognizing one included.
 			var renting = valued || Carrier.ReaderState.Any(static one => one.Name == "values");
+			var returning = renting ? Carrier.Return().ToList() : new List<string>();
+			var cleanup = _readerWays || returning.Count > 0;
 
 			if (renting)
 				foreach (var line in Carrier.Rent())
@@ -844,9 +860,9 @@ sealed partial class Machine
 
 			file.Line();
 
-			using (file.Block("try"))
+			using (cleanup ? file.Block("try") : null)
 			{
-				file.Line($"var reader = new {ReaderStruct}(text, ways{Carrier.ReaderArgument}{WholeArgument});");
+				file.Line($"var reader = new {ReaderStruct}(text{(_readerWays ? ", ways" : "")}{Carrier.ReaderArgument}{WholeArgument});");
 				file.Line();
 				file.Line("reader.failure = failure;");
 				file.Line();
@@ -873,19 +889,31 @@ sealed partial class Machine
 				file.Line("return end;");
 			}
 
-			file.Line("finally");
-
-			using (file.Block(""))
+			if (cleanup)
 			{
-				file.Line($"{WaysType}.Return(ways);");
+				file.Line("finally");
 
-				if (renting)
-					foreach (var line in Carrier.Return())
+				using (file.Block(""))
+				{
+					if (_readerWays)
+						file.Line($"{WaysType}.Return(ways);");
+
+					foreach (var line in returning)
 						file.Line(line);
+				}
 			}
 		}
 
 		file.Line();
+
+	}
+
+	/// <summary>The entry's reading, including trivia and its continuation.</summary>
+	void RenderReaderEntryBody(Writer members, RuleSymbol rule, bool ends)
+	{
+		_seam = FollowSets.SeamOf(rule, _graph);
+
+		var core = CSharpEmitter.MethodOf(rule) + (ends ? "_Whole" : "");
 
 		// Over characters the whole input is a reading like any other: the rule may have
 		// answered with less than all of it, and then it is asked for its next answer
@@ -2980,7 +3008,7 @@ sealed partial class Machine
 
 			if (CSharpEmitter.Uses(_graph, text, "parserText"))
 			{
-				parameters.Add("string parserText");
+				parameters.Add((machine.BorrowedCaptures ? machine.CaptureSpanType : "string") + " parserText");
 				arguments.Add(machine.Cut(begun, $"p - {begun}"));
 			}
 
@@ -2999,10 +3027,10 @@ sealed partial class Machine
 			foreach (var (member, slots) in machine.GuardMembers(rule, guard))
 			{
 				var handed = $"g{_guardLocals++}";
-				var type   = member.Rule is null ? "string" : machine._results.ValueOf(member.Rule);
+				var type   = member.Rule is null ? machine.BorrowedCaptures ? machine.CaptureSpanType : "string" : machine._results.ValueOf(member.Rule);
 
 				parameters.Add(
-					$"{type}{(member.IsSequence ? "[]" : member.IsOptional ? "?" : "")} " +
+					$"{type}{(member.IsSequence ? "[]" : member.IsOptional && !(machine.BorrowedCaptures && member.Rule is null) ? "?" : "")} " +
 					ResultTypes.ParameterOf(member));
 				arguments.Add(handed);
 
@@ -3011,7 +3039,7 @@ sealed partial class Machine
 					code.Line($"var {handed}From = {First("a", "a", slots)};");
 					code.Line($"var {handed}To   = {First("a", "b", slots)};");
 					code.Line(
-						$"var {handed} = {handed}From < 0 ? {(member.IsOptional ? "null" : "string.Empty")} : " +
+						$"var {handed} = {handed}From < 0 ? {(machine.BorrowedCaptures ? machine.EmptyCapture : member.IsOptional ? "null" : "string.Empty")} : " +
 						machine.Cut($"{handed}From", $"{handed}To - {handed}From") + ";");
 
 					continue;

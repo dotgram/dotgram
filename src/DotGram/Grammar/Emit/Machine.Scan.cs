@@ -32,6 +32,9 @@ sealed partial class Machine
 	/// <summary>The scanner a call to <paramref name="rule"/> may become, if any.</summary>
 	string? ScannerOf(RuleSymbol rule)
 	{
+		if (BufferedInput)
+			return null;
+
 		if (_scanners.TryGetValue(rule, out var known))
 			return known;
 
@@ -525,6 +528,8 @@ sealed partial class Machine
 		string tag = "",
 		bool starves = false)
 	{
+		static string Short(int count) => count == 1 ? "(uint)p >= (uint)text.Length" : $"text.Length - p < {count}";
+
 		int _labels;
 		int _marks;
 		int _deepestMark;

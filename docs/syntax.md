@@ -1627,6 +1627,111 @@ cannot take one back. docs/syntax.md §6.3 says which rules get one, and why.
 Which is the shared responsibility: the author picks an overload, and the compiler
 offers one only where it provably works.
 
+**An additional buffered input form.** `stream` on a `parse` publication requests
+a synchronous pull reader that continues recognition when its buffer is refilled:
+
+```gram
+parse Document stream
+parse Packet stream bytes
+```
+
+The modifier follows any `with`, `as`, or publication result-type clause. It adds
+methods; all existing publications, including eligible reader overloads above,
+remain available. The added methods use the same names, overloaded by input type:
+
+```csharp
+Match<Document> TryParseDocument(TextReader input,
+    int bufferSize = 4096, int maxRetained = int.MaxValue);
+Document ParseDocument(TextReader input,
+    int bufferSize = 4096, int maxRetained = int.MaxValue);
+```
+
+The byte form uses `Stream` under the same method names. Where the legacy
+`ParseX(TextReader)` overload exists, a call with just the reader still selects it
+and returns the existing sequence. Use `TryParseX(reader)` or specify
+`ParseX(reader, bufferSize: 4096)` to select the new whole-result form.
+
+An untyped root returns
+an owned `string` for characters or an owned `byte[]` for bytes. Typed roots retain
+their declared result type. Context, when used, precedes the buffer parameters.
+The caller owns the reader or stream; parsing does not dispose it. Parsing consumes
+input and may read ahead, including when recognition fails; it cannot restore the
+underlying source for another consumer.
+
+`[Gram(..., BufferedInput = true)]` adds the character form to parse publications;
+`BufferedBytes = true` adds the byte form. Both default to false. `GramOptions`
+inherits these settings and can override either with false. An explicit publication
+modifier still requests its form. Host options do not add forms to `find`.
+
+The generated machine uses a concrete buffered reader and block I/O, with no input
+interface dispatch per symbol. A short nonempty read is not EOF. Refilling does not
+restart recognition or rerun semantic guards. Backtracking changes a logical index
+into retained input; the source need not support seeking.
+
+`bufferSize` is the initial capacity. `maxRetained` bounds buffer capacity in input
+elements, not total parser memory; both must be positive. The buffer grows when
+needed and reuses a proven-dead prefix, compacting on refill rather than on every
+symbol. Exceeding retention or position capacity throws `IOException`, separately
+from a grammar mismatch. Determining EOF at the retention limit may consume one
+additional element before reporting that limit.
+
+Release analysis is currently conservative: source-independent, single-rule
+deterministic loops can release completed iterations. Other grammars retain input
+until completion, including roots returning the entire matched text. This form
+does not promise bounded memory for arbitrary grammars, nor incremental result
+delivery. Captured strings own their contents; a `SourceSpan` remains an extent,
+not an owner of the input. Positions currently fit in `int`, including after buffer
+compaction; inputs approaching that limit produce a resource error rather than wrap.
+
+Byte input is compared numerically without text decoding. Byte literals are
+case-sensitive values in 0..255; sets use byte values or `any`. Unicode categories,
+case folding, external sets, and line/column recovery are unsupported. Typed scalar
+values and typed rule captures are supported. Raw captures and `parserText` are
+passed to byte-form semantic actions and guards as `ReadOnlySpan<byte>`. No
+decoding, byte-to-character conversion, or intermediate string is performed for
+these captures. Encoding syntax remains future work.
+
+#### Native capture spans
+
+`[Gram(..., SpanCaptures = true)]` (or `GramCompilerOptions.SpanCaptures`) changes
+raw character captures and `parserText` in actions/guards from `string` to
+`ReadOnlySpan<char>`. It applies to both the contiguous string parser and its
+buffered character form. It defaults to false to preserve existing string-based
+actions, and follows `GramOptions` inheritance and explicit overrides.
+The byte form always uses `ReadOnlySpan<byte>` for raw captures, independently
+of `SpanCaptures`.
+
+```gram
+Number : @int = text: ['0'..'9']+ => @(ToInt(text))
+parse Number stream bytes
+```
+
+Provide `ToInt(ReadOnlySpan<char>)` and `ToInt(ReadOnlySpan<byte>)` overloads in the
+host. C# selects the overload directly; the generator does not insert conversions
+or a runtime interface. The author controls validation, overflow, encoding and
+ownership. Missing or incompatible overloads are normal C# compilation errors.
+The character parser requires `SpanCaptures = true` to avoid its usual string
+capture allocation. A small helper is eligible for JIT inlining; inlining is not
+guaranteed by the generator.
+
+A contiguous capture borrows a slice of the input. Repeated captures whose pieces
+do not touch are joined into one temporary `char[]` or `byte[]`, preserving the
+existing exclusion of separators. In span mode an absent optional raw capture is
+an empty span, not null; retain the default string mode if that distinction is
+required. Typed rule captures keep their declared types.
+
+Spans are valid during the action/guard call. The buffered parser retains source
+needed by pending captures and `parserText` until materialization; it may therefore
+retain the whole parse. To store source in the result, explicitly copy it or
+construct an owned value inside the action. A span cannot be stored in a normal
+class or survive asynchronous work. These options do not silently change the
+return type or ownership of an untyped publication.
+
+Explicitly requested unsupported forms report `GRAM4026`. Current exclusions also
+include token-kind machines, external recognizers, and `parserInput` factories.
+Async refill, caller-fed chunks, and a contiguous byte publication are not supplied
+by these options.
+
 **A position and a window.** Beside `TryParseX(string input)` a `parse` gets two more
 forms wherever it is read by the shared automaton or by methods:
 
@@ -1786,6 +1891,45 @@ The value types a grammar generates are the compilation's own, so two compilatio
 grammar that builds its own types build two families of them. Where the types are
 written by hand and named with `@`, both build the same ones, which is what makes two
 carriers over one grammar comparable at all.
+
+#### Choosing value-table storage
+
+`ValueStorage` controls typed value tables in direct tape readers. It applies to the
+whole compilation, including its publications, because those readers share tables.
+It does not change the carrier or factory semantics. Immediate/Mixed readers and the
+non-direct engine do not use these tables; if a requested carrier falls back to a
+direct tape reader, that reader uses the selected storage.
+
+```csharp
+[Gram("Sql.gram", Carrier = GramCarrier.Tape, ValueStorage = GramValueStorage.Auto)]
+[GramOptions(Suffix = "Flat", ValueStorage = GramValueStorage.Flat)]
+[GramOptions(Suffix = "Adaptive", ValueStorage = GramValueStorage.Adaptive)]
+public static partial class Sql { }
+```
+
+| Strategy | Generated storage |
+| --- | --- |
+| `Auto` (default) | Conservative selection from grammar structure at generation time. |
+| `Flat` | One array per value type, indexed by record; disables dense and paged selection. |
+| `Adaptive` | Arrays growing to 256 slots, then lazy 64-slot pages per type; disables dense selection. |
+| `Paged` | Lazy 64-slot pages from the first value, without a flat prefix or eager per-type arrays. |
+
+`Auto` adds no runtime policy dispatch. Its current policy keeps small grammars flat,
+uses dense indexing for final-only materializers with at least eight value types, and
+uses adaptive tables for eligible guarded grammars with at least 32 types when the
+shared store does not need dense indexing. Other cases retain flat tables. These
+thresholds are implementation heuristics, not a promise of optimal performance or a
+stable generated layout. The compiler cannot infer future input sizes or call frequency.
+
+Keep `Auto` for a general default. For a performance-critical parser, compare explicit
+variants on representative short, long, and refused inputs, including fresh-store and
+warm-pool allocations. `Adaptive` can reduce allocation on large sparse tables while
+increasing generated code and retained pool memory. Select `Flat`, `Adaptive`, or `Paged` to fix
+that design choice. A per-rule override is not offered because rules can share the same
+value table; use separate compilations when storage choices must differ.
+
+The compiler API exposes the same choice as
+`GramCompilerOptions.ValueStorage = ValueStorageKind.Adaptive`.
 
 ---
 

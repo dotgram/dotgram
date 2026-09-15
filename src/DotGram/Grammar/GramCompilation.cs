@@ -168,6 +168,22 @@ public sealed class GramCompilerOptions
 	public CarrierKind Carrier { get; set; } = CarrierKind.Auto;
 
 	/// <summary>
+	/// Typed value storage for all direct tape readers in this compilation. Other
+	/// carriers and the non-direct engine do not use these tables. Auto chooses at
+	/// generation time; explicit strategies override both dense and paged heuristics.
+	/// </summary>
+	public ValueStorageKind ValueStorage { get; set; } = ValueStorageKind.Auto;
+
+	/// <summary>Add a buffered pull-input form beside existing publications.</summary>
+	public bool BufferedInput { get; set; }
+
+	/// <summary>Add buffered byte-input publications; no text decoding is performed.</summary>
+	public bool BufferedBytes { get; set; }
+
+	/// <summary>Pass character captures to semantic actions as ReadOnlySpan&lt;char&gt;.</summary>
+	public bool SpanCaptures { get; set; }
+
+	/// <summary>
 	/// How many stacks one parse may take beyond the one it began on, or nought for as
 	/// many as there is memory for.
 	/// </summary>
