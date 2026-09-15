@@ -239,46 +239,50 @@ trivia       = { Separator? }
 
 // ── §5.3 Literals ───────────────────────────────────────────────────────────
 
-Literal         = SignedNumericLiteral | GeneralLiteral
-UnsignedLiteral = UnsignedNumericLiteral | GeneralLiteral
+Literal         : @LiteralValue = v: SignedNumericLiteral => @(v) | v: GeneralLiteral => @(v)
+UnsignedLiteral : @LiteralValue = t: UnsignedNumericLiteral => @(Nodes.NumericLiteral(t)) | v: GeneralLiteral => @(v)
 
 // <general literal>. What begins with a letter is asked before what may begin with the same
 // letter as a name would — none of these is a name, and the typed literals begin with key words.
-GeneralLiteral
-	= NationalCharacterStringLiteral
-	| UnicodeCharacterStringLiteral
-	| BinaryStringLiteral
-	| CharacterStringLiteral
-	| DatetimeLiteral
-	| IntervalLiteral
-	| BooleanLiteral
+//
+// A literal keeps what was written from its first quote to its last, the letter that begins it and
+// its introducer apart: `N'a' 'b'` is a national string whose text is `'a' 'b'`.
+GeneralLiteral : @LiteralValue
+	= t: NationalCharacterStringLiteral => @(Nodes.StringLiteral(t, StringLiteralKind.National))
+	| t: UnicodeCharacterStringLiteral => @(Nodes.StringLiteral(t, StringLiteralKind.Unicode))
+	| t: BinaryStringLiteral => @(Nodes.BinaryLiteral(t))
+	| t: CharacterStringLiteral => @(Nodes.StringLiteral(t, StringLiteralKind.Character))
+	| v: DatetimeLiteral => @(v)
+	| v: IntervalLiteral => @(v)
+	| v: BooleanLiteral => @(v)
 
-SignedNumericLiteral = Sign? & UnsignedNumericLiteral
+// A sign and a number are one literal, and its text is both.
+SignedNumericLiteral : @LiteralValue = s: Sign? & n: UnsignedNumericLiteral => @(Nodes.NumericLiteral(s + n))
 
-DatetimeLiteral  = DateLiteral | TimeLiteral | TimestampLiteral
-DateLiteral      = "DATE"i & DateString
-TimeLiteral      = "TIME"i & TimeString
-TimestampLiteral = "TIMESTAMP"i & TimestampString
-IntervalLiteral  = "INTERVAL"i & Sign? & IntervalString & IntervalQualifier
-BooleanLiteral   = "TRUE"i | "FALSE"i | "UNKNOWN"i
+DatetimeLiteral  : @LiteralValue = v: DateLiteral => @(v) | v: TimeLiteral => @(v) | v: TimestampLiteral => @(v)
+DateLiteral      : @LiteralValue = "DATE"i & t: DateString => @(new LiteralValue.DateTime(DateTimeLiteralKind.Date, t))
+TimeLiteral      : @LiteralValue = "TIME"i & t: TimeString => @(new LiteralValue.DateTime(DateTimeLiteralKind.Time, t))
+TimestampLiteral : @LiteralValue = "TIMESTAMP"i & t: TimestampString => @(new LiteralValue.DateTime(DateTimeLiteralKind.Timestamp, t))
+IntervalLiteral  : @LiteralValue = "INTERVAL"i & s: Sign? & t: IntervalString & q: IntervalQualifier => @(new LiteralValue.Interval(t, q, Nodes.SignOf(s)))
+BooleanLiteral   : @LiteralValue = t: ("TRUE"i | "FALSE"i | "UNKNOWN"i) => @(Nodes.BooleanLiteral(t))
 
 // ── §10.1 Interval qualifier ────────────────────────────────────────────────
 //
 // Here because an interval literal ends in one.
 
-IntervalQualifier
-	= StartField & "TO"i & EndField
-	| SingleDatetimeField
+IntervalQualifier : @IntervalQualifier
+	= s: StartField & "TO"i & e: EndField => @(Nodes.Qualifier(s, e))
+	| f: SingleDatetimeField => @(f)
 
-StartField = NonSecondPrimaryDatetimeField & ('(' & IntervalLeadingFieldPrecision & ')')?
+StartField : @IntervalQualifier = f: NonSecondPrimaryDatetimeField & ('(' & p: IntervalLeadingFieldPrecision & ')')? => @(new IntervalQualifier(Nodes.Field(f), Nodes.Integer(p)))
 
-EndField
-	= NonSecondPrimaryDatetimeField
-	| "SECOND"i & ('(' & IntervalFractionalSecondsPrecision & ')')?
+EndField : @IntervalQualifier
+	= f: NonSecondPrimaryDatetimeField => @(new IntervalQualifier(Nodes.Field(f)))
+	| f: "SECOND"i & ('(' & p: IntervalFractionalSecondsPrecision & ')')? => @(new IntervalQualifier(Nodes.Field(f), null, null, Nodes.Integer(p)))
 
-SingleDatetimeField
-	= NonSecondPrimaryDatetimeField & ('(' & IntervalLeadingFieldPrecision & ')')?
-	| "SECOND"i & ('(' & IntervalLeadingFieldPrecision & (',' & IntervalFractionalSecondsPrecision)? & ')')?
+SingleDatetimeField : @IntervalQualifier
+	= f: NonSecondPrimaryDatetimeField & ('(' & p: IntervalLeadingFieldPrecision & ')')? => @(new IntervalQualifier(Nodes.Field(f), Nodes.Integer(p)))
+	| f: "SECOND"i & ('(' & p: IntervalLeadingFieldPrecision & (',' & q: IntervalFractionalSecondsPrecision)? & ')')? => @(new IntervalQualifier(Nodes.Field(f), Nodes.Integer(p), null, Nodes.Integer(q)))
 
 NonSecondPrimaryDatetimeField      = "YEAR"i | "MONTH"i | "DAY"i | "HOUR"i | "MINUTE"i
 IntervalFractionalSecondsPrecision = UnsignedInteger
@@ -334,72 +338,77 @@ MethodName                      : @Identifier = i: Identifier => @(i)
 
 // <data type>, with <collection type>'s `ARRAY` and `MULTISET` written after it as often as they
 // stand there: the BNF says `<data type> ARRAY`, which recurses through itself on the left.
-DataType             = (PredefinedType | RowType | ReferenceType | PathResolvedUserDefinedTypeName) & (trivia & CollectionTypeSuffix)*
-CollectionTypeSuffix = "ARRAY"i & (LeftBracketOrTrigraph & UnsignedInteger & RightBracketOrTrigraph)?
-                     | "MULTISET"i
+DataType             : @DataType = b: DataTypeBase & (trivia & s: CollectionTypeSuffix)* => @(Nodes.Collected(b, s))
+DataTypeBase         : @DataType
+	= t: PredefinedType => @(t)
+	| t: RowType => @(t)
+	| t: ReferenceType => @(t)
+	| n: PathResolvedUserDefinedTypeName => @(new DataType.UserDefined(n))
+CollectionTypeSuffix : @Nodes.Suffix
+	= "ARRAY"i & (l: LeftBracketOrTrigraph & n: UnsignedInteger & RightBracketOrTrigraph)? => @(Nodes.ArraySuffix(l, n))
+	| "MULTISET"i => @(Nodes.MultisetSuffix())
 
-PredefinedType
-	= CharacterStringType & ("CHARACTER"i & "SET"i & CharacterSetSpecification)? & CollateClause?
-	| NationalCharacterStringType & CollateClause?
-	| BinaryStringType
-	| NumericType
-	| "BOOLEAN"i
-	| DatetimeType
-	| "INTERVAL"i & IntervalQualifier
-	| "JSON"i
+PredefinedType : @DataType
+	= t: CharacterStringType & ("CHARACTER"i & "SET"i & cs: CharacterSetSpecification)? & c: CollateClause? => @(Nodes.Characters(t, cs, c))
+	| t: NationalCharacterStringType & c: CollateClause? => @(Nodes.Characters(t, null, c))
+	| t: BinaryStringType => @(t)
+	| t: NumericType => @(t)
+	| "BOOLEAN"i => @(new DataType.Boolean())
+	| t: DatetimeType => @(t)
+	| "INTERVAL"i & q: IntervalQualifier => @(new DataType.Interval(q))
+	| "JSON"i => @(new DataType.Json())
 
 // The character string types. A type the BNF spells as a longer one's beginning — `CHARACTER`
 // before `CHARACTER VARYING` — is asked after it, so that the choice does not take the beginning
-// and leave the rest.
-CharacterStringType
-	= ("CHARACTER"i | "CHAR"i) & "VARYING"i & ('(' & CharacterLength & ')')?
-	| ("CHARACTER"i | "CHAR"i) & "LARGE"i & "OBJECT"i & ('(' & CharacterLargeObjectLength & ')')?
-	| ("CHARACTER"i | "CHAR"i) & ('(' & CharacterLength & ')')?
-	| "VARCHAR"i & ('(' & CharacterLength & ')')?
-	| "CLOB"i & ('(' & CharacterLargeObjectLength & ')')?
+// and leave the rest. Each keeps which of its spellings was written.
+CharacterStringType : @DataType
+	= w: ("CHARACTER"i | "CHAR"i) & "VARYING"i & ('(' & l: CharacterLength & ')')? => @(Nodes.Character(w + " VARYING", l))
+	| w: ("CHARACTER"i | "CHAR"i) & "LARGE"i & "OBJECT"i & ('(' & l: CharacterLargeObjectLength & ')')? => @(Nodes.Character(w + " LARGE OBJECT", l))
+	| w: ("CHARACTER"i | "CHAR"i) & ('(' & l: CharacterLength & ')')? => @(Nodes.Character(w, l))
+	| "VARCHAR"i & ('(' & l: CharacterLength & ')')? => @(Nodes.Character("VARCHAR", l))
+	| "CLOB"i & ('(' & l: CharacterLargeObjectLength & ')')? => @(Nodes.Character("CLOB", l))
 
-NationalCharacterStringType
-	= "NATIONAL"i & ("CHARACTER"i | "CHAR"i) & "VARYING"i & ('(' & CharacterLength & ')')?
-	| "NATIONAL"i & "CHARACTER"i & "LARGE"i & "OBJECT"i & ('(' & CharacterLargeObjectLength & ')')?
-	| "NATIONAL"i & ("CHARACTER"i | "CHAR"i) & ('(' & CharacterLength & ')')?
-	| "NCHAR"i & "VARYING"i & ('(' & CharacterLength & ')')?
-	| "NCHAR"i & "LARGE"i & "OBJECT"i & ('(' & CharacterLargeObjectLength & ')')?
-	| "NCHAR"i & ('(' & CharacterLength & ')')?
-	| "NCLOB"i & ('(' & CharacterLargeObjectLength & ')')?
+NationalCharacterStringType : @DataType
+	= "NATIONAL"i & w: ("CHARACTER"i | "CHAR"i) & "VARYING"i & ('(' & l: CharacterLength & ')')? => @(Nodes.Character("NATIONAL " + w + " VARYING", l))
+	| "NATIONAL"i & "CHARACTER"i & "LARGE"i & "OBJECT"i & ('(' & l: CharacterLargeObjectLength & ')')? => @(Nodes.Character("NATIONAL CHARACTER LARGE OBJECT", l))
+	| "NATIONAL"i & w: ("CHARACTER"i | "CHAR"i) & ('(' & l: CharacterLength & ')')? => @(Nodes.Character("NATIONAL " + w, l))
+	| "NCHAR"i & "VARYING"i & ('(' & l: CharacterLength & ')')? => @(Nodes.Character("NCHAR VARYING", l))
+	| "NCHAR"i & "LARGE"i & "OBJECT"i & ('(' & l: CharacterLargeObjectLength & ')')? => @(Nodes.Character("NCHAR LARGE OBJECT", l))
+	| "NCHAR"i & ('(' & l: CharacterLength & ')')? => @(Nodes.Character("NCHAR", l))
+	| "NCLOB"i & ('(' & l: CharacterLargeObjectLength & ')')? => @(Nodes.Character("NCLOB", l))
 
-BinaryStringType
-	= "BINARY"i & "VARYING"i & ('(' & UnsignedInteger & ')')?
-	| "BINARY"i & "LARGE"i & "OBJECT"i & ('(' & LargeObjectLength & ')')?
-	| "BINARY"i & ('(' & UnsignedInteger & ')')?
-	| "VARBINARY"i & ('(' & UnsignedInteger & ')')?
-	| "BLOB"i & ('(' & LargeObjectLength & ')')?
+BinaryStringType : @DataType
+	= "BINARY"i & "VARYING"i & ('(' & n: UnsignedInteger & ')')? => @(Nodes.Binary("BINARY VARYING", n, null))
+	| "BINARY"i & "LARGE"i & "OBJECT"i & ('(' & s: LargeObjectLength & ')')? => @(Nodes.Binary("BINARY LARGE OBJECT", null, s))
+	| "BINARY"i & ('(' & n: UnsignedInteger & ')')? => @(Nodes.Binary("BINARY", n, null))
+	| "VARBINARY"i & ('(' & n: UnsignedInteger & ')')? => @(Nodes.Binary("VARBINARY", n, null))
+	| "BLOB"i & ('(' & s: LargeObjectLength & ')')? => @(Nodes.Binary("BLOB", null, s))
 
-NumericType
-	= ("NUMERIC"i | "DECIMAL"i | "DEC"i) & ('(' & UnsignedInteger & (',' & UnsignedInteger)? & ')')?
-	| "SMALLINT"i | "INTEGER"i | "INT"i | "BIGINT"i
-	| "FLOAT"i & ('(' & UnsignedInteger & ')')?
-	| "REAL"i
-	| "DOUBLE"i & "PRECISION"i
-	| "DECFLOAT"i & ('(' & UnsignedInteger & ')')?
+NumericType : @DataType
+	= w: ("NUMERIC"i | "DECIMAL"i | "DEC"i) & ('(' & p: UnsignedInteger & (',' & s: UnsignedInteger)? & ')')? => @(Nodes.NumericType(w, p, s))
+	| w: ("SMALLINT"i | "INTEGER"i | "INT"i | "BIGINT"i | "REAL"i) => @(Nodes.NumericType(w, null, null))
+	| w: "FLOAT"i & ('(' & p: UnsignedInteger & ')')? => @(Nodes.NumericType(w, p, null))
+	| "DOUBLE"i & "PRECISION"i => @(Nodes.NumericType("DOUBLE PRECISION", null, null))
+	| w: "DECFLOAT"i & ('(' & p: UnsignedInteger & ')')? => @(Nodes.NumericType(w, p, null))
 
-DatetimeType
-	= "DATE"i
-	| ("TIME"i | "TIMESTAMP"i) & ('(' & UnsignedInteger & ')')? & (("WITH"i | "WITHOUT"i) & "TIME"i & "ZONE"i)?
+DatetimeType : @DataType
+	= "DATE"i => @(new DataType.DateTime(DateTimeTypeKind.Date))
+	| w: ("TIME"i | "TIMESTAMP"i) & ('(' & p: UnsignedInteger & ')')? & (z: ("WITH"i | "WITHOUT"i) & "TIME"i & "ZONE"i)? => @(Nodes.DateTime(w, p, z))
 
 // <character length>, <large object length>: `2 K` is a length and `2K` one token of it.
-CharacterLength            = UnsignedInteger & CharLengthUnits?
-CharacterLargeObjectLength = LargeObjectLength & CharLengthUnits?
-LargeObjectLength          = UnsignedInteger & Multiplier?
+CharacterLength            : @Nodes.Length = n: UnsignedInteger & u: CharLengthUnits? => @(Nodes.LengthOf(n, u))
+CharacterLargeObjectLength : @Nodes.Length = s: LargeObjectLength & u: CharLengthUnits? => @(Nodes.LengthOf(s, u))
+LargeObjectLength          : @LargeObjectSize = n: UnsignedInteger & m: Multiplier? => @(Nodes.Size(n, m))
 CharLengthUnits            = "CHARACTERS"i | "OCTETS"i
 
-RowType         = "ROW"i & '(' & FieldDefinition & (',' & FieldDefinition)* & ')'
-FieldDefinition = Identifier & DataType
-ReferenceType   = "REF"i & '(' & PathResolvedUserDefinedTypeName & ')' & ("SCOPE"i & TableName)?
+RowType         : @DataType = "ROW"i & '(' & first: FieldDefinition & (',' & rest: FieldDefinition)* & ')' => @(new DataType.Row(Nodes.List(first, rest)))
+FieldDefinition : @FieldDefinition = n: Identifier & t: DataType => @(new FieldDefinition(n, t))
+ReferenceType   : @DataType = "REF"i & '(' & n: PathResolvedUserDefinedTypeName & ')' & ("SCOPE"i & s: TableName)? => @(new DataType.Reference(n, s))
 
 // <character set specification>, <character set name>: names, and an SQL language identifier last.
-CharacterSetSpecification = (Identifier & '.'){0,2} & SQLLanguageIdentifier
+CharacterSetSpecification : @CharacterSetName = (q: Identifier & '.'){0,2} & l: SQLLanguageIdentifier => @(Nodes.CharacterSet(q, l))
 
-CollateClause = "COLLATE"i & SchemaQualifiedName
+CollateClause : @CollationName = "COLLATE"i & n: SchemaQualifiedName => @(new CollationName(n))
 
 LeftBracketOrTrigraph  = "??(" | '['
 RightBracketOrTrigraph = "??)" | ']'

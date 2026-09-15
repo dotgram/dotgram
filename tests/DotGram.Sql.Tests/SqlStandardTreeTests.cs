@@ -71,4 +71,165 @@ public sealed class SqlStandardTreeTests
 
 		Assert.Equal(parts, reference.Name.Parts.Select(one => one.Text));
 	}
+
+	// ── §5.3 Literals ───────────────────────────────────────────────────────────
+
+	[Theory]
+	[InlineData("1", "1", NumericLiteralKind.DecimalInteger)]
+	[InlineData("-1.5e3", "-1.5e3", NumericLiteralKind.Approximate)]
+	[InlineData("+.5", "+.5", NumericLiteralKind.Decimal)]
+	[InlineData("0x1F", "0x1F", NumericLiteralKind.HexInteger)]
+	[InlineData("0o17", "0o17", NumericLiteralKind.OctalInteger)]
+	[InlineData("0b101", "0b101", NumericLiteralKind.BinaryInteger)]
+	public void A_number_keeps_its_sign_and_its_kind(string input, string text, NumericLiteralKind kind)
+	{
+		var literal = Assert.IsType<LiteralValue.Numeric>(SqlStandardParser.ParseLiteral(input));
+
+		Assert.Equal(text, literal.Text);
+		Assert.Equal(kind, literal.Kind);
+	}
+
+	[Theory]
+	[InlineData("'abc'", "'abc'", StringLiteralKind.Character, null)]
+	[InlineData("'a' 'b'", "'a' 'b'", StringLiteralKind.Character, null)]
+	[InlineData("N'a'", "'a'", StringLiteralKind.National, null)]
+	[InlineData("_latin1'abc'", "'abc'", StringLiteralKind.Character, "latin1")]
+	[InlineData("_s.utf8'abc'", "'abc'", StringLiteralKind.Character, "s.utf8")]
+	[InlineData("U&'a\\0041'", "'a\\0041'", StringLiteralKind.Unicode, null)]
+	public void A_string_keeps_its_quotes_its_kind_and_its_character_set(string input, string text, StringLiteralKind kind, string? characterSet)
+	{
+		var literal = Assert.IsType<LiteralValue.String>(SqlStandardParser.ParseLiteral(input));
+
+		Assert.Equal(text, literal.Text);
+		Assert.Equal(kind, literal.Kind);
+		Assert.Equal(characterSet, literal.CharacterSet is null ? null : string.Join(".", literal.CharacterSet.Name.Parts.Select(one => one.Text)));
+		Assert.Null(literal.UnicodeEscape);
+	}
+
+	[Fact]
+	public void A_Unicode_string_keeps_its_escape_character()
+	{
+		var literal = Assert.IsType<LiteralValue.String>(SqlStandardParser.ParseLiteral("U&'a\\0041'UESCAPE'\\'"));
+
+		Assert.Equal("'a\\0041'", literal.Text);
+		Assert.Equal('\\', literal.UnicodeEscape);
+	}
+
+	[Fact]
+	public void A_binary_string_keeps_its_quotes() =>
+		Assert.Equal("'0A 1B'", Assert.IsType<LiteralValue.Binary>(SqlStandardParser.ParseLiteral("X'0A 1B'")).Text);
+
+	[Theory]
+	[InlineData("DATE '2020-01-01'", DateTimeLiteralKind.Date, "'2020-01-01'")]
+	[InlineData("TIME '10:00:00'", DateTimeLiteralKind.Time, "'10:00:00'")]
+	[InlineData("TIMESTAMP '2020-01-01 10:00:00'", DateTimeLiteralKind.Timestamp, "'2020-01-01 10:00:00'")]
+	public void A_datetime_keeps_its_kind_and_its_string(string input, DateTimeLiteralKind kind, string text)
+	{
+		var literal = Assert.IsType<LiteralValue.DateTime>(SqlStandardParser.ParseLiteral(input));
+
+		Assert.Equal(kind, literal.Kind);
+		Assert.Equal(text, literal.Text);
+	}
+
+	[Fact]
+	public void An_interval_keeps_its_sign_its_string_and_its_qualifier()
+	{
+		var literal = Assert.IsType<LiteralValue.Interval>(SqlStandardParser.ParseLiteral("INTERVAL -'1:30' HOUR(2) TO MINUTE"));
+
+		Assert.Equal("'1:30'", literal.Text);
+		Assert.Equal(UnaryOperator.Minus, literal.Sign);
+		Assert.Equal(new IntervalQualifier(DateTimeField.Hour, 2, DateTimeField.Minute), literal.Qualifier with { });
+		Assert.Null(SqlStandardParser.ParseLiteral("INTERVAL '1' DAY") is LiteralValue.Interval { Sign: { } } ? "signed" : null);
+	}
+
+	[Theory]
+	[InlineData("TRUE", BooleanLiteral.True)]
+	[InlineData("false", BooleanLiteral.False)]
+	[InlineData("Unknown", BooleanLiteral.Unknown)]
+	public void A_truth_value_is_a_boolean_literal(string input, BooleanLiteral value) =>
+		Assert.Equal(value, Assert.IsType<LiteralValue.Boolean>(SqlStandardParser.ParseLiteral(input)).Value);
+
+	// ── §6.1 Data types ─────────────────────────────────────────────────────────
+
+	[Fact]
+	public void A_character_type_keeps_its_spelling_length_units_character_set_and_collation()
+	{
+		var type = Assert.IsType<DataType.Character>(SqlStandardParser.ParseDataType("CHAR VARYING(10 CHARACTERS) CHARACTER SET s.latin1 COLLATE c"));
+
+		Assert.Equal(CharacterTypeKind.CharVarying, type.Kind);
+		Assert.Equal(10, type.Length);
+		Assert.Equal(LengthUnit.Characters, type.Unit);
+		Assert.Equal(new[] { "s", "latin1" }, type.CharacterSet!.Name.Parts.Select(one => one.Text));
+		Assert.Equal(new[] { "c" }, type.Collation!.Name.Parts.Select(one => one.Text));
+	}
+
+	[Theory]
+	[InlineData("CHARACTER", CharacterTypeKind.Character)]
+	[InlineData("VARCHAR(5)", CharacterTypeKind.Varchar)]
+	[InlineData("CLOB", CharacterTypeKind.Clob)]
+	[InlineData("NATIONAL CHAR VARYING(3)", CharacterTypeKind.NationalCharVarying)]
+	[InlineData("NCHAR LARGE OBJECT", CharacterTypeKind.NcharLargeObject)]
+	[InlineData("national character large object", CharacterTypeKind.NationalCharacterLargeObject)]
+	public void A_character_type_is_the_spelling_written(string input, CharacterTypeKind kind) =>
+		Assert.Equal(kind, Assert.IsType<DataType.Character>(SqlStandardParser.ParseDataType(input)).Kind);
+
+	[Fact]
+	public void A_large_object_keeps_its_multiplier()
+	{
+		var type = Assert.IsType<DataType.Character>(SqlStandardParser.ParseDataType("CHAR LARGE OBJECT(2K OCTETS)"));
+
+		Assert.Equal(new LargeObjectSize(2, 'K'), type.LargeObject);
+		Assert.Equal(LengthUnit.Octets, type.Unit);
+		Assert.Equal(new LargeObjectSize(4, 'm'), Assert.IsType<DataType.Binary>(SqlStandardParser.ParseDataType("BLOB(4 m)")).LargeObject);
+	}
+
+	[Theory]
+	[InlineData("DECIMAL(10, 2)", NumericTypeKind.Decimal, 10, 2)]
+	[InlineData("INT", NumericTypeKind.Int, null, null)]
+	[InlineData("DOUBLE PRECISION", NumericTypeKind.DoublePrecision, null, null)]
+	[InlineData("FLOAT(0x10)", NumericTypeKind.Float, 16, null)]
+	public void A_numeric_type_keeps_its_spelling_precision_and_scale(string input, NumericTypeKind kind, int? precision, int? scale)
+	{
+		var type = Assert.IsType<DataType.Numeric>(SqlStandardParser.ParseDataType(input));
+
+		Assert.Equal(kind, type.Kind);
+		Assert.Equal(precision, type.Precision);
+		Assert.Equal(scale, type.Scale);
+	}
+
+	[Fact]
+	public void A_datetime_type_keeps_its_precision_and_its_time_zone()
+	{
+		var type = Assert.IsType<DataType.DateTime>(SqlStandardParser.ParseDataType("TIMESTAMP(3) WITHOUT TIME ZONE"));
+
+		Assert.Equal(DateTimeTypeKind.Timestamp, type.Kind);
+		Assert.Equal(3, type.Precision);
+		Assert.Equal(TimeZoneMode.Without, type.TimeZone);
+		Assert.Null(Assert.IsType<DataType.DateTime>(SqlStandardParser.ParseDataType("TIME")).TimeZone);
+	}
+
+	[Fact]
+	public void A_collection_type_wraps_what_stands_before_it()
+	{
+		var multiset = Assert.IsType<DataType.Multiset>(SqlStandardParser.ParseDataType("INT ARRAY??(10??) MULTISET"));
+		var array    = Assert.IsType<DataType.Array>(multiset.ElementType);
+
+		Assert.Equal(10, array.MaximumCardinality);
+		Assert.True(array.Trigraphs);
+		Assert.IsType<DataType.Numeric>(array.ElementType);
+	}
+
+	[Fact]
+	public void Row_reference_interval_and_user_defined_types_have_their_parts()
+	{
+		var row = Assert.IsType<DataType.Row>(SqlStandardParser.ParseDataType("ROW(a INT, b s.t)"));
+
+		Assert.Equal(new[] { "a", "b" }, row.Fields.Select(one => one.Name.Text));
+		Assert.Equal(new[] { "s", "t" }, Assert.IsType<DataType.UserDefined>(row.Fields[1].Type).Name.Parts.Select(one => one.Text));
+
+		var reference = Assert.IsType<DataType.Reference>(SqlStandardParser.ParseDataType("REF(t) SCOPE s.u"));
+
+		Assert.Equal(new[] { "s", "u" }, reference.Scope!.Parts.Select(one => one.Text));
+		Assert.Equal(new IntervalQualifier(DateTimeField.Second, 2, null, 3), Assert.IsType<DataType.Interval>(SqlStandardParser.ParseDataType("INTERVAL SECOND(2, 3)")).Qualifier);
+	}
 }
