@@ -78,7 +78,7 @@ public static partial class ClampedExample
 	/// <remarks>
 	/// A field rather than something the grammar declares, because this example is about
 	/// what a `=&gt;` may build and not about how a parameter comes to be named — the
-	/// expression language in <c>DotGram.Parsers</c> is where that question is answered.
+	/// expression language in <c>DotGram.ExpressionLanguage</c> is where that question is answered.
 	/// </remarks>
 	public static readonly ParameterExpression Argument =
 		System.Linq.Expressions.Expression.Parameter(typeof(int), "x");

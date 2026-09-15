@@ -97,12 +97,6 @@ src/
 		                  renders
 	DotGram.ExpressionLanguage/ the C#-style expression language, a package of its own:
 	                      ExpressionParser, in the namespace the project is named for
-	DotGram.Parsers/      parsers for real formats, written in .gram and meant to ship.
-	                      Not teaching material: an example shows one feature, a parser
-	                      here answers whether the notation is enough for a whole
-	                      specification — and, being an ordinary project the generator
-	                      runs over, it is where a real symbol resolver is exercised
-		Uri/              RFC 3986
 	DotGram.Sql/          SQL, a package of its own, with room for other databases: the one
 	                      tree every SQL grammar builds, its writer and walker, in the
 	                      DotGram.Sql namespace, and a directory and namespace per dialect
@@ -111,6 +105,10 @@ src/
 		TransactSql/      T-SQL, TransactSqlParser; Specification/ holds Microsoft's
 		                  published syntax. Each dialect is its own grammar, meeting the
 		                  others only in the tree (docs/design/sql-parsers.md)
+	DotGram.Web/          the formats of the web, a package of its own, in the DotGram.Web
+	                      namespace: Rfc3986. Written against whole specifications, not as
+	                      teaching material — and, being an ordinary project the generator
+	                      runs over, it is where a real symbol resolver is exercised
 examples/
 	DotGram.Examples/     whole parsers meant to be copied: a grammar, the class it
 	                      attaches to, and the code written against it. No test

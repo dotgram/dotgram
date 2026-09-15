@@ -270,7 +270,7 @@ the [notation in full](https://github.com/dotgram/dotgram/blob/main/docs/syntax.
 [whole parsers to copy](https://github.com/dotgram/dotgram/tree/main/examples/DotGram.Examples),
 and the [benchmarks](https://github.com/dotgram/dotgram/tree/main/benchmarks).
 
-[`DotGram.Parsers`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Parsers) is a
+[`DotGram.Web`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Web) is a
 package of its own — RFC 3986 URIs —
 [`DotGram.Sql`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Sql) another, SQL-92
 with T-SQL written as a dialect over it, and

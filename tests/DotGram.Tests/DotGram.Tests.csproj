@@ -41,10 +41,10 @@
 		     this project is what runs them. -->
 		<ProjectReference Include="..\..\examples\DotGram.Examples\DotGram.Examples.csproj" />
 
-		<!-- And the parsers, for the same reason and one more: they are the only place
+		<!-- And the parsers that ship, for the same reason and one more: they are where
 		     the generator runs against a real Roslyn compilation of a real grammar, so
 		     what only a true symbol resolver can reach is reachable from here. -->
-		<ProjectReference Include="..\..\src\DotGram.Parsers\DotGram.Parsers.csproj" />
+		<ProjectReference Include="..\..\src\DotGram.Web\DotGram.Web.csproj" />
 		<ProjectReference Include="..\..\src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj" />
 	</ItemGroup>
 

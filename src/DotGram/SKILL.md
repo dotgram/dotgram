@@ -13,12 +13,13 @@ Everything below is checkable. The full specification is [`docs/syntax.md`][synt
 diagnostic is [`docs/diagnostics.md`][diagnostics], whole parsers to copy are under
 [`examples/`][examples], and the largest grammars written in this notation — RFC 3986, an
 expression language, SQL-92 and T-SQL as a dialect over it — are
-[`DotGram.Parsers`][parsers] and [`DotGram.Sql`][sql].
+[`DotGram.Web`][web], [`DotGram.ExpressionLanguage`][expressions] and [`DotGram.Sql`][sql].
 
 [syntax]:      https://github.com/dotgram/dotgram/blob/main/docs/syntax.md
 [diagnostics]: https://github.com/dotgram/dotgram/blob/main/docs/diagnostics.md
 [examples]:    https://github.com/dotgram/dotgram/tree/main/examples/DotGram.Examples
-[parsers]:     https://github.com/dotgram/dotgram/tree/main/src/DotGram.Parsers
+[web]:         https://github.com/dotgram/dotgram/tree/main/src/DotGram.Web
+[expressions]: https://github.com/dotgram/dotgram/tree/main/src/DotGram.ExpressionLanguage
 [sql]:         https://github.com/dotgram/dotgram/tree/main/src/DotGram.Sql
 
 ## The order to do it in

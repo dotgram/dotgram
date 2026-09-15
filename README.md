@@ -9,8 +9,8 @@
 
 [![build](https://github.com/dotgram/dotgram/actions/workflows/build.yml/badge.svg)](https://github.com/dotgram/dotgram/actions/workflows/build.yml)
 [![DotGram on NuGet](https://img.shields.io/nuget/v/DotGram?label=DotGram&logo=nuget)](https://www.nuget.org/packages/DotGram)
-[![DotGram.Parsers on NuGet](https://img.shields.io/nuget/v/DotGram.Parsers?label=DotGram.Parsers&logo=nuget)](https://www.nuget.org/packages/DotGram.Parsers)
 [![DotGram.Sql on NuGet](https://img.shields.io/nuget/v/DotGram.Sql?label=DotGram.Sql&logo=nuget)](https://www.nuget.org/packages/DotGram.Sql)
+[![DotGram.Web on NuGet](https://img.shields.io/nuget/v/DotGram.Web?label=DotGram.Web&logo=nuget)](https://www.nuget.org/packages/DotGram.Web)
 [![DotGram.ExpressionLanguage on NuGet](https://img.shields.io/nuget/v/DotGram.ExpressionLanguage?label=DotGram.ExpressionLanguage&logo=nuget)](https://www.nuget.org/packages/DotGram.ExpressionLanguage)
 [![NuGet downloads](https://img.shields.io/nuget/dt/DotGram?logo=nuget)](https://www.nuget.org/packages/DotGram)
 [![.NET Standard 2.0](https://img.shields.io/badge/.NET%20Standard-2.0-512BD4?logo=dotnet)](#compatibility)
@@ -463,10 +463,10 @@ it, under its own substitutions.
 [`SqlStandard92`](src/DotGram.Sql/Standard/SqlStandard92.gram) — a dialect the size of its
 difference, with the standard underneath written once.
 
-## DotGram.Parsers
+## DotGram.Web
 
-[`DotGram.Parsers`](src/DotGram.Parsers) is a set of parsers written in .Gram against
-published specifications, and a package of its own.
+[`DotGram.Web`](src/DotGram.Web) is the formats of the web, written in .Gram against the
+specifications that define them, and a package of its own.
 
 ```csharp
 var uri = Rfc3986.ParseUri("https://user@example.com:8080/a/b?q=1#top");
@@ -479,9 +479,9 @@ uri.Query;  // q=1
 
 | Parser | What it reads |
 | --- | --- |
-| [`Rfc3986`](src/DotGram.Parsers/Uri/Rfc3986.cs) | URIs and relative references after RFC 3986 — authority, IPv4, IPv6, `IPvFuture`, paths, queries, fragments, percent encoding |
+| [`Rfc3986`](src/DotGram.Web/Rfc3986.cs) | URIs and relative references after RFC 3986 — authority, IPv4, IPv6, `IPvFuture`, paths, queries, fragments, percent encoding |
 
-[`src/DotGram.Parsers/README.md`](src/DotGram.Parsers/README.md) has what it parses and what it
+[`src/DotGram.Web/README.md`](src/DotGram.Web/README.md) has what it parses and what it
 hands back.
 
 ## DotGram.Sql

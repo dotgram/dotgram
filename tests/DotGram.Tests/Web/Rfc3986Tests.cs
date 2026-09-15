@@ -1,10 +1,10 @@
 ﻿using System;
 
-using DotGram.Parsers.Uri;
+using DotGram.Web;
 
 using Xunit;
 
-namespace DotGram.Tests.Parsers;
+namespace DotGram.Tests.Web;
 
 /// <summary>
 /// RFC 3986, read against the specification's own examples.

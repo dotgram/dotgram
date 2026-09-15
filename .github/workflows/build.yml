@@ -47,8 +47,8 @@ jobs:
       - name: Pack
         run: |
           dotnet pack src/DotGram/DotGram.csproj         --no-build --configuration Release --output artifacts
-          dotnet pack src/DotGram.Parsers/DotGram.Parsers.csproj --no-build --configuration Release --output artifacts
           dotnet pack src/DotGram.Sql/DotGram.Sql.csproj         --no-build --configuration Release --output artifacts
+          dotnet pack src/DotGram.Web/DotGram.Web.csproj         --no-build --configuration Release --output artifacts
           dotnet pack src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj --no-build --configuration Release --output artifacts
 
       # Each package is the opposite shape of the other, and getting either one wrong
@@ -99,8 +99,8 @@ jobs:
               echo "$2: the newest target is not dependency-free:"; grep -A3 'net10.0' "$1/$2.nuspec"; exit 1
             }
           }
-          check_library parsers     DotGram.Parsers
           check_library sql         DotGram.Sql
+          check_library web         DotGram.Web
           check_library expressions DotGram.ExpressionLanguage
 
       # Everything above builds the generator from source and trusts the package to be

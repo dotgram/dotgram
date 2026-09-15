@@ -49,15 +49,15 @@
 		<Project Path="src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
-		<Project Path="src/DotGram.Parsers/DotGram.Parsers.csproj">
-			<BuildType Solution="Linux|*" Project="Release" />
-		</Project>
 		<Project Path="src/DotGram.Sql/DotGram.Sql.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 		<Project Path="src/DotGram.VisualStudio/DotGram.VisualStudio.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 			<Build Solution="Linux|*" Project="false" />
+		</Project>
+		<Project Path="src/DotGram.Web/DotGram.Web.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 	</Folder>
 	<Folder Name="/tests/">

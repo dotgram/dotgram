@@ -22505,3 +22505,19 @@ What is left out: a name written after a dot (`Owner.TryParseHole` is somebody e
 only a condition asks about, and the two other extents — a `with` expression and a `namespace …
 with` block — whose clones have no publication of their own to name. Held by three tests in
 `SemanticTests` and the ASCII reading's in `ExpressionParserTests`.
+
+## DotGram.Parsers is DotGram.Web
+
+With SQL in `DotGram.Sql` and the expression language in `DotGram.ExpressionLanguage`, what was
+left in `DotGram.Parsers` was RFC 3986 alone, and a package called "parsers" beside three that
+say what they read said nothing. It is `src/DotGram.Web` now, decided with Igor 2026-09-14: a
+family, the way `DotGram.Sql` is one, with room for what else the web specifies in ABNF — URI
+templates, IRIs, HTTP field values, cookies, language tags.
+
+`DotGram.Uri` was the obvious name and is refused for a reason worth keeping: a namespace
+`DotGram.Uri` hides `System.Uri` from every file inside `DotGram.*`, where `new Uri(…)` becomes
+CS0118 — and `DotGram.Rfc3986` does the same to the class of that name. The types keep their
+names, `Rfc3986` and `UriParts`, in the `DotGram.Web` namespace; the file sits at the project's
+root, since a `Uri/` directory would ask for the namespace that hides `System.Uri`. Its tests
+moved to `tests/DotGram.Tests/Web/`. `DotGram.Parsers` stays on nuget.org at the version it
+last had, and the new package's release notes say what it became.

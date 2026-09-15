@@ -1008,7 +1008,7 @@ TypeName = Word & ('.' & Word)*      // no braces: a dotted name is a type only 
                                      // as it resolves, and the rest is member access
 ```
 
-`DotGram.Parsers` holds one of each, and the difference between them is not in their shape
+The grammars that ship hold both, and the difference between them is not in their shape
 — it is in what the author meant. That is why this is written here rather than diagnosed:
 the compiler can see that the reading is unsettled, and cannot see whether that was the
 intention.
