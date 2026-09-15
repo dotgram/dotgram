@@ -7,6 +7,32 @@ It is an ordinary C# library. .Gram generates the parsers into this assembly at 
 time, so nothing here carries a parser runtime, and neither does anything that references
 it.
 
+## RFC 3339 timestamps
+
+[`Rfc3339`](Rfc3339.cs) reads the date and time format of the Internet — the profile of
+ISO 8601 that HTTP, JSON Schema and most protocols since use.
+
+```csharp
+using DotGram.Web;
+
+var timestamp = Rfc3339.ParseTimestamp("1996-12-19T16:39:57-08:00");
+
+timestamp.Date;                // FullDate { Year = 1996, Month = 12, Day = 19 }
+timestamp.Time.Offset;         // -08:00:00
+timestamp.ToDateTimeOffset();  // 12/19/1996 4:39:57 PM -08:00
+
+Rfc3339.ParseFullDate("2020-02-29");            // a leap year
+Rfc3339.TryParseFullDate("2021-02-29").IsSuccess; // false
+Rfc3339.ParseFullTime("15:59:60-08:00").Second;   // 60: the leap second, at 23:59:60 UTC
+```
+
+A day has to be in its month and a leap second in the last minute of the UTC day; an hour
+is 00 to 23. The fraction of a second is kept as written, however long. `-00:00` is UTC
+with the local offset unknown, and `LocalOffsetUnknown` tells it from `Z`.
+`ToDateTimeOffset()` throws for a leap second, which `DateTimeOffset` cannot hold. It is
+held to the [JSON Schema test suite](https://github.com/json-schema-org/JSON-Schema-Test-Suite)'s
+`date`, `time` and `date-time` formats.
+
 ## RFC 3986 URI parser
 
 [`Rfc3986`](Rfc3986.cs) follows RFC 3986 closely, including absolute URIs, relative
@@ -100,6 +126,31 @@ A template that does not follow the grammar is refused whole, including one usin
 operator the RFC reserves. A prefix on a list or an associative array throws on
 expansion, since the RFC gives it no meaning. It is held to
 [the implementers' test suite](https://github.com/uri-templates/uritemplate-test).
+
+## RFC 6901 JSON Pointer
+
+[`Rfc6901`](Rfc6901.cs) reads a pointer into its reference tokens, with `~1` and `~0` undone
+in the order the RFC gives, so `~01` is `~1`.
+
+```csharp
+using DotGram.Web;
+
+var pointer = Rfc6901.ParsePointer("/a~1b/0");
+
+pointer.Tokens;          // [a/b, 0]
+pointer.ToString();      // /a~1b/0
+pointer.ToUriFragment(); // #/a~1b/0
+
+Rfc6901.ParseFragment("#/c%25d").Tokens;   // [c%d]
+
+JsonPointer.ArrayIndex("10");   // 10
+JsonPointer.ArrayIndex("01");   // null: a leading zero is no index
+JsonPointer.IsPastTheEnd("-");  // true
+```
+
+What a pointer refers to is a question about a document, and answering it takes a JSON
+library this package does not depend on: `Tokens` is what the pointer says, and an object
+member or an array element is what it reaches, token by token.
 
 ## RFC 9651 Structured Field Values
 

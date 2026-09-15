@@ -22614,6 +22614,50 @@ registered; every subtag of every type reads where its type puts it, after each 
 names; and Appendix A's examples, including the two it calls invalid, which are refused, and
 `ar-a-aaa-b-bbb-a-ccc`, which it calls invalid and the ABNF makes well-formed.
 
+## RFC 6901, JSON Pointer
+
+The third of the order. `src/DotGram.Web/Rfc6901.cs`: §3's ABNF into `JsonPointer(Tokens)`, each token
+unescaped `~1` before `~0`; §6's fragment form as RFC 3986's fragment rule, its triplets decoded as
+strict UTF-8 and the result read again by `TryParsePointer` from inside a `when`. `ToString()` and
+`ToUriFragment()` write the two forms back; `ArrayIndex` is §4's `array-index` and `IsPastTheEnd` its
+`-`.
+
+**Evaluation is left out, and on purpose.** A pointer reaches a value in a document, and the package
+may depend on `System.Memory` alone on netstandard2.0 — CI checks it — so no JSON model is in reach.
+The tests evaluate over `System.Text.Json` with §4's two rules and nothing more, which holds that the
+tokens are the ones the RFC means: every example of §5 and §6 lands on the value it names. There is
+no suite for JSON Pointer on its own; json-patch-tests exercise RFC 6902 whole.
+
+## RFC 3339, timestamps
+
+The fourth of the order. `src/DotGram.Web/Rfc3339.cs`: §5.6's ABNF for `date-time`, `full-date` and
+`full-time`, published as three parsers into `Rfc3339.Timestamp`, `FullDate` and `FullTime` — nested,
+and not `DateTime`, which inside the class would have hidden `System.DateTime`. §5.7 is what the ABNF
+writes as comments, and each piece is a `when` over the digits read: the days of a month with Appendix
+C's leap years, an hour to 23, a minute to 59, and a second of 60 only where the time less its offset is
+23:59 UTC. No date is asked of a leap second, because which days have one is the IERS's to announce.
+
+`-00:00` (§4.3) is kept apart from `Z` as `LocalOffsetUnknown`; the fraction is kept as written, any
+length; `ToDateTimeOffset()` cuts the fraction to a tick and throws for a leap second, which the type
+cannot hold. Held by JSON-Schema-Test-Suite's `date`, `time` and `date-time` format tests at 1d82f70,
+vendored with its MIT licence — their string cases only, since a number ignored by a string format is
+JSON Schema's rule and not the RFC's — and by §5.8's examples as instants: 168 cases, all passing.
+
+**Two generator defects met on the way, worked around in the grammar and not fixed yet.**
+
+- *A `when` is handed the last turn of a repeated text capture.* `year: Digit{4} & … & when @(IsDate(year!, …))`
+  compiled and passed the guard `"0"` for `2020`: every month and day check was made on one digit, so
+  `2020-13-01` read and `2020-06-30` did not. status.md says a repeated capture of text is the text
+  joined, so the guard's reading disagrees with the construction's. Worked around by capturing a rule
+  whose extent is the field — `DateFullYear = Digit{4}`, `year: DateFullYear`.
+- *A capture inside an optional group beside a `when` names a local that is not declared.*
+  `('.' & fraction: SecFrac)?` in `FullTime`, inlined into `Timestamp`, generated
+  `Read_FullTime_Timestamp_Part0(p, pos, lm, ref a3, ref b3)` with no `lm` in scope — CS0103 in the
+  consumer's build. Worked around by making the fraction a rule that may read nothing,
+  `SecFrac = ('.' & Digit+)?`, captured unconditionally.
+
+Both want a minimal repro in `SemanticTests` before anyone touches the emitter.
+
 **A build trap met on the way, not a code one.** A project directory created mid-session could not
 be written by `dotnet build`: "Access to the path … is denied" on `obj`, even outside the sandbox. The
 build was joining MSBuild nodes and a compiler server started earlier inside it, with their rights.
