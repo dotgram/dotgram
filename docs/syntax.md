@@ -48,6 +48,7 @@ that thing is what the notation already means in C# or in .NET regular expressio
   - [6.5 `Stacks`, how deep a reading may go](#65-stacks-how-deep-a-reading-may-go)
   - [6.6 `[GramOptions]`, a second reading of the same grammar](#66-gramoptions-a-second-reading-of-the-same-grammar)
   - [6.7 `[GramInclude]`, a grammar built on another](#67-graminclude-a-grammar-built-on-another)
+  - [6.8 Generation options](#68-generation-options)
 - [7. The bond with C#](#7-the-bond-with-c)
   - [7.1 Recognizer signatures and C# values](#71-recognizer-signatures-and-c-values)
   - [7.2 What the C# side must guarantee](#72-what-the-c-side-must-guarantee)
@@ -1838,6 +1839,108 @@ what the class already says: a publicly visible host carries its grammar and one
 outside can name does not, and `[Gram(Portable = …)]` says otherwise where that guess
 is wrong. An include that finds neither a file nor a carried text is `GRAM0003`.
 
+### 6.8 Generation options
+
+The options written on `[Gram]` and `[GramOptions]` change how a grammar is compiled into a
+parser — which machine reads it, how it carries what it read until it builds, how its
+methods are divided, what a value is told about where it was written — and not what the
+grammar means. Under every setting a grammar accepts the same texts and builds the same
+values, except where an entry below says otherwise: `Lexical` reads over tokens, where a
+rule's answer stands (§4); `Direct` off reads such a grammar on the automaton, where it does
+not; `Carrier` decides whether a construction may run for a reading that is abandoned or
+refused; `LocationType` hands values their positions; `Stacks` fails a reading deeper than
+it allows.
+
+`Lexical`, `Carrier` and `Direct` are requests rather than settings. Where a grammar cannot
+be compiled the way one asks, the parser is compiled the way it would have been without the
+request, and a diagnostic says why: `GRAM5004`, `GRAM5007`, and `GRAM5005` for a rule of a
+grammar cut into tokens that the methods refuse. `PartSize` is a wish (§6.4), and no value
+of it fails a build.
+
+| Option | Default | What it says |
+| --- | --- | --- |
+| `Source` | the `.gram` file named after the class | `[Gram]` only, as its constructor argument: a path to a `.gram` file, or the grammar text itself. A single-line value ending in `.gram` is a path (§1). |
+| `IncludedAs` | the class's own name | `[Gram]` only: the name another grammar includes this one under where its `[GramInclude]` gives no `As` (§6.7). |
+| `Suffix` | none — the host class itself | the nested class a reading goes into (§6.6). |
+| `PartSize` | `0`, the measured default | how large the parts of a divided recognizer are aimed to be (§6.4). |
+| `Stacks` | `0`, no limit | how many stacks one parse may take beyond the one it began on (§6.5). |
+| `Portable` | follows the class's visibility | whether the grammar's text travels on the class, for an include across a project reference (§6.7). |
+| `Lexical` | `false` | read the input as tokens, the grammar cut into a lexer and a syntactic half (§4, §7.1). A grammar that cannot be cut is `GRAM5004`. |
+| `Carrier` | `GramCarrier.Auto` | how a reader carries what it read until the constructions run; below. |
+| `Direct` | `true` | compile as methods where the automaton is not needed; below. |
+| `LocationType` | none | an interface whose implementors are told where they were written; below. |
+
+`[Gram]` is a `[GramOptions]` with a grammar in it, so every option but `Source` and
+`IncludedAs` may be written on either, and a `[GramOptions]` takes what it does not say from
+the `[Gram]` (§6.6).
+
+#### `Carrier`
+
+A reader holds what it has read until the constructions (§3.7) run, and the carrier is how:
+
+- **`Auto`** — the generator chooses, and says which as `GRAM5012`: `Immediate` where every
+  parse that succeeds runs only the constructions of what it accepted, the tape everywhere
+  else. A parse that fails may already have run the constructions of what it read.
+- **`Tape`** — records on a tape, built into values once the parse is accepted. No
+  construction runs for input that is refused (§3.7).
+- **`Immediate`** — no deferral: a construction runs the moment its alternative has been
+  read, and one abandoned afterwards has already run. That is once per derivation tried
+  rather than once per derivation accepted: invisible to a pure allocation, visible to a
+  counter. It is for factories the author knows to be pure.
+- **`Mixed`** — deferral without a tape: what a rule read is kept in a typed shape of its
+  own, and the constructions run over those shapes once the parse is accepted, once per node
+  of the accepted derivation, as on the tape. It does not carry a rule whose value is the
+  extent it matched, a recovery, a mark (§7.8), or a rule read at a strength (§4.3.1).
+
+A grammar the chosen carrier cannot carry is compiled on the tape, and `GRAM5007` says why —
+among the reasons, that no part of the grammar is read by methods, since a carrier is what a
+reader holds.
+
+#### `Direct`
+
+On, a publication is compiled as methods wherever the automaton is not needed, and the
+automaton keeps what the methods refuse: a stream, a `find`, a recovery, a captured
+lookahead, a rule called with arguments. Off keeps the automaton for every publication.
+
+Over characters the two read alike. Over a grammar cut into tokens they do not: it is the
+methods that make a rule's answer stand (§4), and on the automaton a choice that has matched
+can be revisited when something later fails. Where the methods refuse a rule of such a
+grammar, `GRAM5005` names it; `Direct = false` asks for that reading and is not reported.
+
+#### `LocationType`
+
+```csharp
+[Gram("Sql.gram", Lexical = true, LocationType = typeof(ISqlSpan))]
+```
+
+Name an interface with a settable property called `Span`, and every rule whose value
+implements it is handed the range of input it was built from — the rule's own text, without
+the trivia around it, so that a comment falls between two values rather than inside one. The
+property is written once, by the reader, on a value it has just made and nothing has yet
+seen.
+
+It changes nothing about what is read, and a grammar that names no interface pays nothing.
+Being an option, it may be given to one reading of a grammar and not to another (§6.6).
+
+#### Attributes for tooling
+
+These describe the language to editors. An editor reads them rather than executing them, and
+they change nothing a parser reads or builds.
+
+| Attribute | What it says |
+| --- | --- |
+| `[GramLanguage(id, Extensions = …)]` | a stable identifier for the language, unique to whoever owns it — a reverse domain name is the usual shape — and the file extensions it claims, with the dot |
+| `[GramClassify(target, role)]` | gives a rule (`Keyword`) or a capture of one (`Declaration.type`) a role from `GramClassification`: `Keyword`, `Identifier`, `Type`, `Variable`, `Function`, `Method`, `Property`, `Number`, `String`, `Comment`, `Operator`, `Punctuation`, `Namespace`, `Parameter` or `Label`. A capture's role overrides its rule's |
+| `[GramToolingGuard(expression, accepted)]` | the answer an editor takes for a guard it does not execute |
+| `[GramToolingExternal(method, rule)]` | a grammar rule equivalent to an external recognizer, for an editor to read in its place |
+
+A role says what something means, not how it looks: an editor's theme decides that.
+
+Two more are written by the generator and never by an author. `[GramSource]` carries the
+grammar's text on the class it compiled, which is how an include across a project reference
+finds it (§6.7). `[GramLanguageDescriptor]` carries a versioned description of the language
+on a generated parser, for tooling to read.
+
 ## 7. The bond with C#
 
 This is the language's other half, not an appendix to it: the grammar describes
@@ -2498,6 +2601,22 @@ members drawn from the BCL and from the grammar's own types. It follows the rule
 rather than being an exception to it: no C# type declared, so one is generated. Nothing
 about it is shared between assemblies, which is what §6.2 says of everything.
 
+**The sink of the fourth row is a method of the host.** A grammar with a `recover` that has
+no `=>` (§8.2) gets this declaration in its host class:
+
+```csharp
+static partial void OnRecovered(
+    string rule, string text, long position, int line, int column, int ordinal, string message);
+```
+
+It is called for every element a recovering repetition could not read, with the rule the
+element should have been, the input it covered up to where the parse picked up again, where
+it began, which element of the repetition it was, and why it was rejected — the numbers
+counted as §8.2 counts them. There is one per host class, which is why it is told the rule.
+It is a `partial void` without an access modifier, so an implementation is optional: where
+there is none the compiler removes every call to it together with its arguments, and a parse
+materializes no text and counts no lines for a channel nobody listens on.
+
 **A rejection carries the text it was rejected from.** A position alone is useless in a
 streamed parse — a `TextReader` cannot be wound back and the buffer has been reused —
 so the text of a failed element is materialized. Only of a failed one: the premise is
@@ -2526,7 +2645,7 @@ Trailer : @Trailer = "T" & '|' & count: Number & eol
 
 Date : @DateOnly =
     y: Digits(4) & '-' & m: Digits(2) & '-' & d: Digits(2)
-    => @DateOnly(y, m, d)
+    => @(new DateOnly(y, m, d))
 
 Digits(n: int) : int = ['0'..'9']{n} => @int.Parse(parserText)
 Number         : int = ['0'..'9']+   => @int.Parse(parserText)
@@ -2537,6 +2656,8 @@ Text        : string = [^ '|' | '\r' | '\n']+
 [Gram]
 public partial class FeedGrammar
 {
+    static readonly HashSet<string> Symbols = new(StringComparer.Ordinal) { "AAPL", "MSFT", "NVDA" };
+
     static bool IsSupportedSymbol(string symbol)
         => Symbols.Contains(symbol);
 }
