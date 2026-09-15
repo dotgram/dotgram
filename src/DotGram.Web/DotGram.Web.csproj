@@ -10,7 +10,7 @@
 		<Description>The formats of the web, written in .gram against their specifications: URIs after RFC 3986.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>parser;uri;rfc3986;web;dotgram</PackageTags>
-		<PackageReleaseNotes>First release as a package of its own, and the one DotGram.Parsers became: RFC 3986 URIs, in the DotGram.Web namespace.</PackageReleaseNotes>
+		<PackageReleaseNotes>First release: RFC 3986 URIs and relative references.</PackageReleaseNotes>
 
 		<!-- Symbols inside the assembly, as the generator carries them: a stack trace from
 		     a parser here has line numbers without a symbol server. -->

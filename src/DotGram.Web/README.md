@@ -54,6 +54,3 @@ it into a path separator it is not.
 
 There is no companion runtime package, and no generator to install alongside it: the
 parsers were generated when this assembly was compiled.
-
-This package was `DotGram.Parsers`, whose SQL went to
-[`DotGram.Sql`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Sql) before it.

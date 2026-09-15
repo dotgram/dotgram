@@ -22519,5 +22519,5 @@ templates, IRIs, HTTP field values, cookies, language tags.
 CS0118 — and `DotGram.Rfc3986` does the same to the class of that name. The types keep their
 names, `Rfc3986` and `UriParts`, in the `DotGram.Web` namespace; the file sits at the project's
 root, since a `Uri/` directory would ask for the namespace that hides `System.Uri`. Its tests
-moved to `tests/DotGram.Tests/Web/`. `DotGram.Parsers` stays on nuget.org at the version it
-last had, and the new package's release notes say what it became.
+moved to `tests/DotGram.Tests/Web/`. `DotGram.Parsers` was never published, so nothing outside
+the repository names it: the packages' release notes and READMEs say nothing of it.

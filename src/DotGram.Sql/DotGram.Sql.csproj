@@ -10,7 +10,7 @@
 		<Description>SQL parsers written in .gram, building one tree of records: the ISO standard's SQL-92 and Microsoft's T-SQL.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>parser;sql;iso-sql;tsql;t-sql;sql-server;dotgram</PackageTags>
-		<PackageReleaseNotes>First release as a package of its own, moved out of DotGram.Parsers: SQL-92, and T-SQL with a parser for each SQL Server compatibility level from 100 to 170, both building one tree of records.</PackageReleaseNotes>
+		<PackageReleaseNotes>First release: SQL-92, and T-SQL with a parser for each SQL Server compatibility level from 100 to 170, both building one tree of records.</PackageReleaseNotes>
 
 		<!-- Symbols inside the assembly, as the generator carries them: a stack trace from
 		     a parser here has line numbers without a symbol server. -->
