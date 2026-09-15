@@ -12,8 +12,8 @@ time, no runtime package, and nothing to deploy beside the application.
 Everything below is checkable. The full specification is [`docs/syntax.md`][syntax], every
 diagnostic is [`docs/diagnostics.md`][diagnostics], whole parsers to copy are under
 [`examples/`][examples], and the largest grammars written in this notation — RFC 3986,
-RFC 6570 and RFC 9651, an expression language, SQL:2023, and SQL-92 with T-SQL as a dialect
-over it — are
+RFC 5646, RFC 6570 and RFC 9651, an expression language, SQL:2023, and SQL-92 with T-SQL as
+a dialect over it — are
 [`DotGram.Web`][web], [`DotGram.ExpressionLanguage`][expressions] and [`DotGram.Sql`][sql].
 
 [syntax]:      https://github.com/dotgram/dotgram/blob/main/docs/syntax.md
