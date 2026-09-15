@@ -41,9 +41,21 @@ namespace DotGram.Tests;
 /// This is a report and not an assertion: it passes as long as the pipeline runs, and what
 /// it is for is that a change to any stage moves a number somebody is looking at.
 /// </para>
+/// <para>
+/// <b>Run alone.</b> Every run begins with a full, blocking collection, and a collection
+/// stops the whole process rather than this test. Beside the tests that compile every
+/// grammar in the repository the heap is gigabytes, and nine hundred such collections
+/// held the suite for twenty-five minutes — while the numbers taken between them measured
+/// the neighbours as much as the generator.
+/// </para>
 /// </remarks>
+[Collection(typeof(Alone))]
 public sealed class GeneratorCostTests(Xunit.ITestOutputHelper output)
 {
+	/// <summary>The collection xunit runs after every parallel one, with nothing beside it.</summary>
+	[CollectionDefinition(DisableParallelization = true)]
+	public sealed class Alone;
+
 	const int Runs = 9;
 
 	[Fact]
