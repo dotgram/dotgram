@@ -213,6 +213,29 @@ any precision, so `1` equals `1.0`, and objects whatever the order of their memb
 takes are each written once; other members are ignored. Removing the whole document is an
 error. It is held to the [JSON Patch test suite](https://github.com/json-patch/json-patch-tests).
 
+## RFC 7239 Forwarded
+
+[`Rfc7239`](Rfc7239.cs) reads the `Forwarded` header field into its elements, one per proxy.
+
+```csharp
+using DotGram.Web;
+
+var elements = Rfc7239.ParseForwarded(
+    "for=192.0.2.43, for=\"[2001:db8:cafe::17]:4711\";by=_hidden;proto=https;host=example.com");
+
+elements[0].For!.Name;         // 192.0.2.43
+elements[1].For!.Kind;         // ForwardedNode.Kinds.IPv6
+elements[1].For!.PortNumber;   // 4711
+elements[1].By!.Kind;          // ForwardedNode.Kinds.Obfuscated
+elements[1].Proto;             // https
+```
+
+Parameter names compare without case, and each appears once in an element. A `by` or `for`
+value has to be a node identifier, `host` a host and port, and `proto` a URI scheme; a field
+where one is not is refused. `Rfc7239.ParseNode` reads a node identifier alone. Empty elements
+and empty pairs are accepted and left out. Several `Forwarded` fields are one list: join them
+with commas, or read each and concatenate. Nothing in the field can be trusted (§8.1).
+
 ## RFC 8259 JSON
 
 [`Rfc8259`](Rfc8259.cs) reads a JSON text into `JsonValue`.

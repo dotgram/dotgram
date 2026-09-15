@@ -22797,6 +22797,22 @@ recovers a type from an invalid field, or calls the meaning undefined, are refus
 RFC 2231 continuations (`filename*0`, ...) are extension parameters and give no filename, since RFC 6266
 does not take them in.
 
+## RFC 7239, Forwarded
+
+Igor, 2026-09-15: go on with the specifications. `src/DotGram.Web/Rfc7239.cs` reads the field into
+`ForwardedElement`s — pairs, `Find`, and `By`/`For` as `ForwardedNode`, `Host`, `Proto` — and a node
+identifier alone through a second publication, `ParseNode`. No verified errata; 5275 (reported) spells
+out the list rule, and 7973 is rejected.
+
+The list is RFC 9110's with empty elements; an element is its slots with no whitespace around `;` or
+`=`, as §4's ABNF has none. §5's MUSTs on values are checked in one `when` per element: `by` and `for`
+through `TryParseNode` of the same class, `host` through `Rfc3986` as `//host` with no userinfo, path,
+query or fragment, `proto` as a scheme. A nested parse of the same class is safe: a parse rents its tape
+and value stores from a thread-static spare it empties, so the inner one allocates its own. The address
+rules are copied from `Rfc3986`, since a grammar includes no other.
+
+No shared suite exists; the RFC's examples in §4, §6 and §7 and each rule of §4 to §6 are the tests.
+
 ## The SQL:2023 tree, built by the standard's grammar
 
 `SqlStandard.gram` now builds `Sql2023Ast.cs` for what it once only recognized, chapter by chapter:
