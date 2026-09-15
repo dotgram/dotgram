@@ -576,6 +576,23 @@ public sealed class RecognitionGraph(
 	/// </remarks>
 	internal IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation>? FollowByRule { get; set; }
 
+	/// <summary>Whether <see cref="FirstByRule"/> has stopped growing.</summary>
+	/// <remarks>
+	/// Not the same as its being there: it is set before its fixed point begins, so that a rule
+	/// reached mid-way reads the estimate, and an answer worked out from an estimate is not one
+	/// to keep.
+	/// </remarks>
+	internal bool FirstSettled { get; set; }
+
+	/// <summary>What each node can begin with, once the rules have settled. A memo, not model state.</summary>
+	/// <remarks>
+	/// The emitter asks it of the same nodes over and over — of a repetition's body for every
+	/// continuation it is compiled against, twice in one expression in places — and each answer
+	/// was a walk that built and merged lists of ranges again. By identity, because a node is a
+	/// record and two equal nodes are still two places in the grammar.
+	/// </remarks>
+	internal Dictionary<Node, FirstSets.First>? FirstByNode { get; set; }
+
 	public string? Context { get; init; }
 
 	/// <summary>

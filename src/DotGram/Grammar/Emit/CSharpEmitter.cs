@@ -3309,10 +3309,13 @@ public static partial class CSharpEmitter
 	/// <summary>Whether an element with no C# predicate in it admits a character.</summary>
 	static bool Admits(Node.Element element, int mask, char c)
 	{
-		var takes = false;
+		var takes  = false;
+		var ranges = element.Ranges;
 
-		foreach (var range in element.Ranges)
-			if (c >= range.From && c <= range.To)
+		// By index: asked for each of the 128 characters of every element written, and a
+		// `foreach` over the interface makes an enumerator each time.
+		for (var i = 0; i < ranges.Count; i++)
+			if (c >= ranges[i].From && c <= ranges[i].To)
 			{
 				takes = true;
 				break;

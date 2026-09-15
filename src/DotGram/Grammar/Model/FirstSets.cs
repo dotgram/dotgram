@@ -686,7 +686,7 @@ public static class FirstSets
 			if (nothing &&
 				parts[i] is Node.Lookahead(true, var expected) &&
 				!Nullable(expected, graph) &&
-				Of(expected, graph, byRule) is { IsKnown: true } ahead)
+				Inner(expected, graph, byRule) is { IsKnown: true } ahead)
 			{
 				expects = expects is { } held ? held.And(ahead) : ahead;
 
@@ -703,7 +703,7 @@ public static class FirstSets
 			if (nothing &&
 				parts[i] is Node.Lookahead(false, var refused) &&
 				OneCharacter(refused, graph, []) &&
-				Of(refused, graph, byRule) is { IsKnown: true } barred)
+				Inner(refused, graph, byRule) is { IsKnown: true } barred)
 			{
 				var admitted = First.Chars(Complement(First.Normalized(barred.Ranges)));
 
@@ -712,7 +712,7 @@ public static class FirstSets
 				continue;
 			}
 
-			var first = Of(parts[i], graph, byRule);
+			var first = Inner(parts[i], graph, byRule);
 
 			if (expects is { } bound)
 				first = first.And(bound);
@@ -740,7 +740,30 @@ public static class FirstSets
 	}
 
 	/// <summary>What a node can begin with.</summary>
-	public static First Of(Node node, RecognitionGraph graph) => Of(node, graph, ByRule(graph));
+	public static First Of(Node node, RecognitionGraph graph) => Inner(node, graph, ByRule(graph));
+
+	/// <summary>
+	/// What a node begins with, kept on the graph once what the rules begin with has settled
+	/// and asked of the settled answers; worked out afresh while it is still growing.
+	/// </summary>
+	/// <remarks>
+	/// Everything that walks into a node's parts comes through here, and not only the first
+	/// question: a choice's alternatives, a sequence's parts, the body of a repetition are
+	/// asked again by every node around them, and each answer was lists of ranges built,
+	/// sorted and merged once more.
+	/// </remarks>
+	static First Inner(Node node, RecognitionGraph graph, IReadOnlyDictionary<RuleSymbol, First> byRule)
+	{
+		if (!graph.FirstSettled || !ReferenceEquals(byRule, graph.FirstByRule))
+			return Of(node, graph, byRule);
+
+		var known = graph.FirstByNode ??= new Dictionary<Node, First>(NodeIdentity.Instance);
+
+		if (!known.TryGetValue(node, out var first))
+			known[node] = first = Of(node, graph, byRule);
+
+		return first;
+	}
 
 	/// <summary>
 	/// What each rule can begin with, as the least set that satisfies every rule at once.
@@ -798,6 +821,8 @@ public static class FirstSets
 				changed         = true;
 			}
 		}
+
+		graph.FirstSettled = true;
 
 		return estimates;
 	}
@@ -897,11 +922,11 @@ public static class FirstSets
 			case Node.Reading:
 				return First.None;
 
-			case Node.Capture  (_,  var captured): return Of(captured, graph, byRule);
-			case Node.Construct(var built, _):     return Of(built,    graph, byRule);
-			case Node.Atomic   (var body):         return Of(body,     graph, byRule);
-			case Node.Marked   (var body, _):      return Of(body,     graph, byRule);
-			case Node.Repeat   (var body, _, _):   return Of(body,     graph, byRule);
+			case Node.Capture  (_,  var captured): return Inner(captured, graph, byRule);
+			case Node.Construct(var built, _):     return Inner(built,    graph, byRule);
+			case Node.Atomic   (var body):         return Inner(body,     graph, byRule);
+			case Node.Marked   (var body, _):      return Inner(body,     graph, byRule);
+			case Node.Repeat   (var body, _, _):   return Inner(body,     graph, byRule);
 
 			// What has to stop the walk is a cycle, and a cycle is a rule already on the way
 			// down — not one met and left somewhere else. Kept as the path rather than as
@@ -922,7 +947,7 @@ public static class FirstSets
 
 				foreach (var alternative in alternatives)
 				{
-					var first = Of(alternative, graph, byRule);
+					var first = Inner(alternative, graph, byRule);
 
 					if (first.Anything)
 						return First.All;

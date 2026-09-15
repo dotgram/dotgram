@@ -307,13 +307,40 @@ public sealed class LexicalAutomaton
 		}
 
 		/// <summary>The atoms a set holds.</summary>
+		/// <remarks>
+		/// One walk over both, both in order: the atoms are disjoint and ascending, and so are a
+		/// known set's ranges. It asked <c>Overlaps</c> of a set made of each atom in turn, which
+		/// was a list, an array and a set for every atom of the alphabet on every edge built.
+		/// </remarks>
 		List<int> Atoms(FirstSets.First set)
 		{
 			var held = new List<int>();
 
-			for (var i = 0; i < _atoms.Count; i++)
-				if (set.Overlaps(FirstSets.First.Chars([_atoms[i]])))
+			if (set.Nothing)
+				return held;
+
+			if (set.Anything)
+			{
+				for (var i = 0; i < _atoms.Count; i++)
 					held.Add(i);
+
+				return held;
+			}
+
+			var ranges = set.Ranges;
+			var at     = 0;
+
+			for (var i = 0; i < _atoms.Count; i++)
+			{
+				while (at < ranges.Count && ranges[at].To < _atoms[i].From)
+					at++;
+
+				if (at == ranges.Count)
+					break;
+
+				if (ranges[at].From <= _atoms[i].To)
+					held.Add(i);
+			}
 
 			return held;
 		}

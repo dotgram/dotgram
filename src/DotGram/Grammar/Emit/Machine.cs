@@ -4789,26 +4789,33 @@ sealed partial class Machine
 	/// </remarks>
 	string Wide(IReadOnlyList<CharRange> ranges)
 	{
-		var bounds = new List<string>(ranges.Count * 2);
-
-		foreach (var range in ranges)
-		{
-			bounds.Add(CSharpEmitter.Char(range.From));
-			bounds.Add(CSharpEmitter.Char(range.To));
-		}
-
-		var items = string.Join(", ", bounds);
-
-		if (_setsByRanges.TryGetValue(items, out var already))
+		// Found by the ranges themselves: nearly every set asked for is one already declared,
+		// and spelling all its bounds out only to look it up was a string the size of the set
+		// every time. Two lists of ranges spell the same items exactly when they are the same
+		// ranges, so nothing is shared that was not shared before.
+		if (_setsByRanges.TryGetValue(ranges, out var already))
 		{
 			_classesUsed.Add(already);
 
 			return already;
 		}
 
+		var items = new StringBuilder(ranges.Count * 16);
+
+		for (var i = 0; i < ranges.Count; i++)
+		{
+			if (i > 0)
+				items.Append(", ");
+
+			items.Append(CSharpEmitter.Char(ranges[i].From)).Append(", ").Append(CSharpEmitter.Char(ranges[i].To));
+		}
+
 		var name = $"Recognize_DotGram{_tag}_Set" + _setCount++;
 
-		_setsByRanges[items] = name;
+		// A copy for the key: what was asked with may be a list its owner goes on using.
+		CharRange[] key = [.. ranges];
+
+		_setsByRanges[key] = name;
 		_classesUsed.Add(name);
 		_classes.Add((name, $"static readonly char[] {name} = {{ {items} }};"));
 
@@ -4842,7 +4849,38 @@ sealed partial class Machine
 		"\treturn false;\n" +
 		"}";
 
-	readonly Dictionary<string, string> _setsByRanges = new(StringComparer.Ordinal);
+	readonly Dictionary<IReadOnlyList<CharRange>, string> _setsByRanges = new(SameRanges.Instance);
+
+	/// <summary>Two lists of ranges are the same set when they hold the same ranges in the same order.</summary>
+	sealed class SameRanges : IEqualityComparer<IReadOnlyList<CharRange>>
+	{
+		public static readonly SameRanges Instance = new();
+
+		public bool Equals(IReadOnlyList<CharRange>? left, IReadOnlyList<CharRange>? right)
+		{
+			if (ReferenceEquals(left, right))
+				return true;
+
+			if (left is null || right is null || left.Count != right.Count)
+				return false;
+
+			for (var i = 0; i < left.Count; i++)
+				if (left[i].From != right[i].From || left[i].To != right[i].To)
+					return false;
+
+			return true;
+		}
+
+		public int GetHashCode(IReadOnlyList<CharRange> ranges)
+		{
+			var hash = ranges.Count;
+
+			for (var i = 0; i < ranges.Count; i++)
+				hash = (hash * 31 + ranges[i].From) * 31 + ranges[i].To;
+
+			return hash;
+		}
+	}
 
 	int _setCount;
 
