@@ -50,6 +50,8 @@ and it is out of date from the first change to the grammar until it is run again
 | [`design/lexical-adt-design.md`](design/lexical-adt-design.md) | Separating the lexical and syntactic machines. |
 | [`design/sql-parsers.md`](design/sql-parsers.md) | The SQL parsers: independent grammars meeting in one tree, the standard's BNF as the reference, and the work that follows — a BNF-to-`.gram` converter among it. |
 | [`design/sql-ast.md`](design/sql-ast.md) | The requirements the SQL tree is held to — lossless, flat, composed rather than inherited, validation outside it — and how the SQL:2023 blank is adapted to them. |
+| [`design/sql-tsql-tree.md`](design/sql-tsql-tree.md) | T-SQL moved onto the SQL:2023 tree: what is decided, and a numbered proposal for the rest. |
+| [`design/sql-tsql-tree-inventory.md`](design/sql-tsql-tree-inventory.md) | Every node of the old SQL tree held against the SQL:2023 tree, the reference the proposal answers to. |
 | [`design/visual-studio-tooling-plan.md`](design/visual-studio-tooling-plan.md) | The living checklist for the extension. |
 | [`design/dsl-tooling-design.md`](design/dsl-tooling-design.md) | A plan for tooling an arbitrary DSL. |
 | [`design/DotGram_Tooling_Agent_Handoff.md`](design/DotGram_Tooling_Agent_Handoff.md) | A separate future project: IDE and LSP tooling. Not a description of anything that exists. |
