@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 using DotGram.Sql.Ast;
@@ -155,7 +155,7 @@ static class Towers
 	public readonly record struct Bracket(int Kind, Expression[]? Rest = null, DataType? Type = null, Identifier? Method = null, IReadOnlyList<Argument>? Arguments = null);
 
 	/// <summary>What follows a name: the rest of an identifier chain, or `OVER` and a window.</summary>
-	public readonly record struct Chained(bool Measure, Identifier[]? Rest);
+	public readonly record struct Chained(bool Measure, Identifier[]? Rest, WindowReference? Over = null);
 
 	/// <summary>A predicate's second part: the predicate with its left side empty, and what it takes there.</summary>
 	public readonly record struct Tail(int Roles, Expression? Node);
@@ -168,6 +168,7 @@ static class Towers
 				Expression.Member m   => m with { Target = primary },
 				Expression.Element e  => e with { Collection = primary },
 				Expression.Wildcard w => w with { Target = primary },
+				Expression.JsonAccessor j => j with { Target = primary },
 				_                     => throw new ArgumentOutOfRangeException(nameof(steps), step.Node, "A step this method cannot complete."),
 			};
 

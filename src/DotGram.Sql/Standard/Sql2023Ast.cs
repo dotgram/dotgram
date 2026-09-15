@@ -471,6 +471,9 @@ public abstract record Expression : ISqlNode
 	// BNF: a JSON simplified accessor's `.*` and `[*]`.
 	public record Wildcard(Expression Target, WildcardKind Kind) : Expression;
 
+	// BNF: a JSON simplified accessor's <JSON array accessor>, whose subscripts are in the path language: `a[$ to last]`.
+	public record JsonAccessor(Expression Target, JsonPathAccessor Accessor) : Expression;
+
 	public record NextValue(QualifiedName Sequence) : Expression;
 
 	// BNF: <collate clause> on a character factor.
@@ -550,8 +553,20 @@ public abstract record Expression : ISqlNode
 	public record JsonObject(IReadOnlyList<JsonMember> Members, JsonNullHandling? Nulls, JsonKeyUniqueness? Uniqueness, JsonOutput? Output) : Expression;
 	public record JsonArray(IReadOnlyList<JsonElement> Elements, JsonNullHandling? Nulls, JsonOutput? Output) : Expression;
 	public record JsonArrayQuery(Statement.Select Query, JsonInputClause? Format, JsonOutput? Output, JsonNullHandling? Nulls = null) : Expression;
-	public record JsonObjectAggregate(JsonMember Pair, JsonNullHandling? Nulls, JsonKeyUniqueness? Uniqueness, JsonOutput? Output) : Expression;
-	public record JsonArrayAggregate(JsonElement Item, OrderByClause? OrderBy, JsonNullHandling? Nulls, JsonOutput? Output) : Expression;
+	public record JsonObjectAggregate(JsonMember Pair, JsonNullHandling? Nulls, JsonKeyUniqueness? Uniqueness, JsonOutput? Output) : Expression
+	{
+		// BNF: <aggregate function>'s <filter clause>, a <window function>'s window, a navigation's `RUNNING` or `FINAL`.
+		public FilterClause? Filter { get; init; }
+		public WindowReference? Over { get; init; }
+		public RowPatternSemantics? Semantics { get; init; }
+	}
+	public record JsonArrayAggregate(JsonElement Item, OrderByClause? OrderBy, JsonNullHandling? Nulls, JsonOutput? Output) : Expression
+	{
+		// BNF: <aggregate function>'s <filter clause>, a <window function>'s window, a navigation's `RUNNING` or `FINAL`.
+		public FilterClause? Filter { get; init; }
+		public WindowReference? Over { get; init; }
+		public RowPatternSemantics? Semantics { get; init; }
+	}
 	public record JsonParse(Expression Value, JsonInputClause? Input, JsonKeyUniqueness? Uniqueness) : Expression;
 	public record JsonScalar(Expression Value) : Expression;
 	public record JsonSerialize(Expression Value, JsonOutput? Output) : Expression;

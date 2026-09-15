@@ -99,7 +99,7 @@ static class Nodes
 	/// <summary>A name and what followed it: a row pattern measure called over a window, or a chain.</summary>
 	public static Towers.Typed ChainOrMeasure(Identifier name, Towers.Chained chained) =>
 		chained.Measure
-			? new(new Expression.Invocation(new QualifiedName([name]), []) { WithoutParentheses = true, Over = null }, Towers.Value | Towers.Truth | Towers.Bare)
+			? new(new Expression.Invocation(new QualifiedName([name]), []) { WithoutParentheses = true, Over = chained.Over }, Towers.Value | Towers.Truth | Towers.Bare)
 			: new(new Expression.Reference(Chain(name, chained.Rest)), Towers.Value | Towers.Truth | Towers.Bare | Towers.Chain);
 
 	/// <summary>`.SPECIFICTYPE`, with its brackets where they were written.</summary>
@@ -140,7 +140,7 @@ static class Nodes
 		});
 
 	/// <summary>A function the BNF spells out whose arguments are a comma list: its name as written, and the values.</summary>
-	public static Expression Invoked(string word, Expression first, Expression[]? rest)
+	public static Expression.Invocation Invoked(string word, Expression first, Expression[]? rest)
 	{
 		var arguments = new Argument[(rest?.Length ?? 0) + 1];
 
@@ -353,6 +353,367 @@ static class Nodes
 			_ when immediately          => PeriodOperator.ImmediatelySucceeds,
 			_                           => PeriodOperator.Succeeds,
 		};
+
+	// ── §6.30–6.36 Value functions ─────────────────────────────────────────────
+
+	/// <summary>A name read as a key word, as the one part of a routine's name.</summary>
+	public static QualifiedName Name(string word) => new([new Identifier(word)]);
+
+	/// <summary>A function the BNF spells out whose arguments are a comma list: its name as written, and the arguments written, in order.</summary>
+	public static Expression.Invocation Call(string word, params Expression?[] arguments)
+	{
+		var written = new List<Argument>(arguments.Length);
+
+		foreach (var argument in arguments)
+			if (argument is not null)
+				written.Add(new Argument(argument));
+
+		return new Expression.Invocation(Name(word), written);
+	}
+
+	/// <summary>What a regular expression function searches: a pattern, its flags, the string, where to start, and the units.</summary>
+	public sealed record Search(Expression Pattern, Expression? Flag, Expression Value, Expression? From, CharacterLengthUnits? Using);
+
+	public static Expression.Regex Regex(RegexFunction function, Search search) =>
+		new(function, search.Pattern, search.Value) { Flag = search.Flag, From = search.From, Using = search.Using };
+
+	public static RegexPositionStartOrAfter? StartOrAfter(string? word) =>
+		word is null ? null : (word[0] | 0x20) == 's' ? RegexPositionStartOrAfter.Start : RegexPositionStartOrAfter.After;
+
+	public static LengthFunction LengthFunctionOf(string word) =>
+		word.Length > "CHAR_LENGTH".Length ? LengthFunction.CharacterLength : LengthFunction.CharLength;
+
+	public static int UnitCode(string units) => (units[0] | 0x20) == 'c' ? 1 : 2;
+
+	public static CharacterLengthUnits? UnitsOf(int code) =>
+		code switch
+		{
+			1 => CharacterLengthUnits.Characters,
+			2 => CharacterLengthUnits.Octets,
+			_ => null,
+		};
+
+	public static CharacterLengthUnits? UnitsOf(string? units) => units is null ? null : UnitsOf(UnitCode(units));
+
+	public static ExtractField ExtractFieldOf(string word) =>
+		word.ToUpperInvariant() switch
+		{
+			"YEAR"            => Ast.ExtractField.Year,
+			"MONTH"           => Ast.ExtractField.Month,
+			"DAY"             => Ast.ExtractField.Day,
+			"HOUR"            => Ast.ExtractField.Hour,
+			"MINUTE"          => Ast.ExtractField.Minute,
+			"SECOND"          => Ast.ExtractField.Second,
+			"TIMEZONE_HOUR"   => Ast.ExtractField.TimezoneHour,
+			_                 => Ast.ExtractField.TimezoneMinute,
+		};
+
+	public static TranslateFunction TranslateOf(string word) =>
+		(word[0] | 0x20) == 'c' ? TranslateFunction.Convert : TranslateFunction.Translate;
+
+	/// <summary>`NORMALIZE`: the value, the form, and the result's length with its multiplier and units.</summary>
+	public static Expression Normalized(Expression value, string? form, Length? length)
+	{
+		var size = length?.LargeObject;
+
+		return new Expression.Normalize(value, Form(form), size is null ? null : new Expression.Literal(NumericLiteral(size.Value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))))
+		{
+			MaxLengthMultiplier = size?.Multiplier,
+			MaxLengthUnit       = length?.Unit,
+		};
+	}
+
+	/// <summary>What follows a substring's string: `FROM`, `FOR` and units (kind 0, or 1 with units), or `SIMILAR` and `ESCAPE` (kind 2).</summary>
+	public sealed record SubstringParts(int Kind, Expression? From, Expression? For, CharacterLengthUnits? Using, Expression? Pattern, Expression? Escape);
+
+	/// <summary>A character substring, or a binary one where no units are named; `SIMILAR` a character one's alone.</summary>
+	public static bool SubstringFits(Towers.Typed? value, SubstringParts? tail)
+	{
+		var roles = Towers.RolesOf(value);
+		var kind  = tail?.Kind ?? 0;
+
+		return kind == 2 ? (roles & Towers.Character) != 0 : Towers.Characters(roles, kind == 1);
+	}
+
+	public static Expression Substring(Expression value, SubstringParts tail) =>
+		tail.Kind == 2
+			? new Expression.SubstringSimilar(value, tail.Pattern!, tail.Escape!)
+			: new Expression.Substring(value, tail.From!, tail.For, tail.Using);
+
+	/// <summary>A trim's operands as read, and what they can be: the towers of the character and the source together.</summary>
+	public sealed record TrimParts(int Roles, TrimSpecification? Specification, Expression? Character, bool From, Expression Source);
+
+	public static int RolesOf(TrimParts? parts) => parts?.Roles ?? 0;
+
+	public static TrimSpecification TrimSpecificationOf(string word) =>
+		(word[0] | 0x20) switch
+		{
+			'l' => TrimSpecification.Leading,
+			't' => TrimSpecification.Trailing,
+			_   => TrimSpecification.Both,
+		};
+
+	public static Expression Trimmed(TrimParts parts) =>
+		new Expression.Trim(parts.Specification, parts.Character, parts.From, parts.Source);
+
+	public static Expression CurrentTime(string word, string? precision) =>
+		new Expression.Current(
+			word.ToUpperInvariant() switch
+			{
+				"CURRENT_TIMESTAMP" => CurrentValue.Timestamp,
+				"CURRENT_TIME"      => CurrentValue.Time,
+				"LOCALTIMESTAMP"    => CurrentValue.LocalTimestamp,
+				_                   => CurrentValue.LocalTime,
+			},
+			null,
+			precision is null ? null : new Expression.Literal(NumericLiteral(precision)));
+
+	// ── §6.10 Window functions, §10.9 Aggregates ───────────────────────────────
+
+	/// <summary>An aggregate with `RUNNING` or `FINAL` before it.</summary>
+	public static Expression WithSemantics(Expression aggregate, string word) =>
+		aggregate switch
+		{
+			Expression.Invocation i         => i with { Semantics = SemanticsOf(word) },
+			Expression.JsonArrayAggregate a  => a with { Semantics = SemanticsOf(word) },
+			Expression.JsonObjectAggregate o => o with { Semantics = SemanticsOf(word) },
+			_                                => throw new ArgumentOutOfRangeException(nameof(aggregate), aggregate, "An aggregate this method does not know."),
+		};
+
+	/// <summary>An aggregate with the window it is computed over, where one was named.</summary>
+	public static Expression WithOver(Expression aggregate, WindowReference? over) =>
+		over is null ? aggregate : aggregate switch
+		{
+			Expression.Invocation i         => i with { Over = over },
+			Expression.JsonArrayAggregate a  => a with { Over = over },
+			Expression.JsonObjectAggregate o => o with { Over = over },
+			_                                => throw new ArgumentOutOfRangeException(nameof(aggregate), aggregate, "An aggregate this method does not know."),
+		};
+
+	/// <summary>An aggregate with its `FILTER`.</summary>
+	public static Expression Filtered(Expression aggregate, FilterClause filter) =>
+		aggregate switch
+		{
+			Expression.Invocation i         => i with { Filter = filter },
+			Expression.JsonArrayAggregate a  => a with { Filter = filter },
+			Expression.JsonObjectAggregate o => o with { Filter = filter },
+			_                                => throw new ArgumentOutOfRangeException(nameof(aggregate), aggregate, "An aggregate this method does not know."),
+		};
+
+	public static RowPatternSemantics SemanticsOf(string word) =>
+		(word[0] | 0x20) == 'r' ? RowPatternSemantics.Running : RowPatternSemantics.Final;
+
+	public static NullTreatment? NullTreatmentOf(string? words) =>
+		words is null ? null : (words.TrimStart()[0] | 0x20) == 'r' ? NullTreatment.RespectNulls : NullTreatment.IgnoreNulls;
+
+	public static FromFirstOrLast? FirstOrLast(string? word) =>
+		word is null ? null : (word[0] | 0x20) == 'f' ? FromFirstOrLast.First : FromFirstOrLast.Last;
+
+	/// <summary>A row marker, and the sign and delta after it where they were written.</summary>
+	public static Expression Marked(string word, string? sign, Expression? delta) =>
+		new Expression.RowMarker(
+			word.ToUpperInvariant() switch
+			{
+				"BEGIN_PARTITION" => RowMarkerKind.BeginPartition,
+				"BEGIN_FRAME"     => RowMarkerKind.BeginFrame,
+				"CURRENT_ROW"     => RowMarkerKind.CurrentRow,
+				"FRAME_ROW"       => RowMarkerKind.FrameRow,
+				"END_FRAME"       => RowMarkerKind.EndFrame,
+				_                 => RowMarkerKind.EndPartition,
+			},
+			SignOf(sign), delta);
+
+	/// <summary>`ON OVERFLOW TRUNCATE`: the filler where one was written, and `WITH COUNT` or `WITHOUT COUNT`.</summary>
+	public static ListaggOverflow Truncated(string? filler, string count) =>
+		new(true, filler is null ? null : new Expression.Literal(StringLiteral(filler, StringLiteralKind.Character)), count.Length == 4);
+
+	// ── JSON ───────────────────────────────────────────────────────────────────
+
+	/// <summary>A list whose first element may not have been written, and then none was.</summary>
+	public static IReadOnlyList<T> ListOrEmpty<T>(T? first, T[]? rest) where T : class =>
+		first is null ? [] : List(first, rest);
+
+	public static JsonNullHandling? NullHandling(string? words) =>
+		words is null ? null : (words.TrimStart()[0] | 0x20) == 'n' ? JsonNullHandling.NullOnNull : JsonNullHandling.AbsentOnNull;
+
+	/// <summary>A wrapper behavior from its words: `WITHOUT [ARRAY]`, `WITH [CONDITIONAL | UNCONDITIONAL] [ARRAY]`.</summary>
+	public static JsonWrapperBehavior? Wrapper(string? words)
+	{
+		if (words is null)
+			return null;
+
+		var upper = words.ToUpperInvariant();
+		var array = upper.TrimEnd().EndsWith("ARRAY", StringComparison.Ordinal);
+
+		if (upper.TrimStart().StartsWith("WITHOUT", StringComparison.Ordinal))
+			return array ? JsonWrapperBehavior.WithoutArray : JsonWrapperBehavior.Without;
+
+		if (upper.Contains("UNCONDITIONAL"))
+			return array ? JsonWrapperBehavior.WithUnconditionalArray : JsonWrapperBehavior.WithUnconditional;
+
+		if (upper.Contains("CONDITIONAL"))
+			return array ? JsonWrapperBehavior.WithConditionalArray : JsonWrapperBehavior.WithConditional;
+
+		return array ? JsonWrapperBehavior.WithArray : JsonWrapperBehavior.With;
+	}
+
+	public static JsonQueryBehavior? QueryBehavior(string? words)
+	{
+		if (words is null)
+			return null;
+
+		var upper = words.ToUpperInvariant().Trim();
+
+		return upper.StartsWith("ERROR", StringComparison.Ordinal) ? JsonQueryBehavior.Error
+			: upper.StartsWith("NULL", StringComparison.Ordinal) ? JsonQueryBehavior.Null
+			: upper.EndsWith("ARRAY", StringComparison.Ordinal) ? JsonQueryBehavior.EmptyArray
+			: JsonQueryBehavior.EmptyObject;
+	}
+
+	public static JsonExistsErrorBehavior? ExistsBehavior(string? word) =>
+		word?.ToUpperInvariant() switch
+		{
+			null      => null,
+			"TRUE"    => JsonExistsErrorBehavior.True,
+			"FALSE"   => JsonExistsErrorBehavior.False,
+			"UNKNOWN" => JsonExistsErrorBehavior.Unknown,
+			_         => JsonExistsErrorBehavior.Error,
+		};
+
+	// ── §6.39 The path language ────────────────────────────────────────────────
+
+	/// <summary>A path operator and the operand after it.</summary>
+	public sealed record PathOperated(string Operator, JsonPathExpression Operand);
+
+	public static JsonPathExpression PathFold(JsonPathExpression first, PathOperated[]? rest)
+	{
+		foreach (var (op, operand) in rest ?? [])
+			first = new JsonPathExpression.Binary(first, op switch
+			{
+				"+" => JsonPathBinaryOperator.Add,
+				"-" => JsonPathBinaryOperator.Subtract,
+				"*" => JsonPathBinaryOperator.Multiply,
+				"/" => JsonPathBinaryOperator.Divide,
+				_   => JsonPathBinaryOperator.Modulo,
+			}, operand);
+
+		return first;
+	}
+
+	/// <summary>Signs before a path accessor, the first written outermost.</summary>
+	public static JsonPathExpression PathSigned(string? signs, JsonPathExpression operand)
+	{
+		for (var at = (signs?.Length ?? 0) - 1; at >= 0; at--)
+			operand = new JsonPathExpression.Unary(signs![at] == '-' ? JsonPathUnaryOperator.Minus : JsonPathUnaryOperator.Plus, operand);
+
+		return operand;
+	}
+
+	public static JsonPathExpression PathAccessed(JsonPathExpression primary, JsonPathAccessor[]? accessors)
+	{
+		foreach (var accessor in accessors ?? [])
+			primary = new JsonPathExpression.Access(primary, accessor);
+
+		return primary;
+	}
+
+	/// <summary>An item method in the path language, from the method the SQL accessor reads it as.</summary>
+	public static JsonMethod PathMethod(Expression method)
+	{
+		var member    = (Expression.Member)method;
+		var arguments = member.Arguments ?? [];
+		int? First() => arguments.Count > 0 ? Integer(((LiteralValue.Numeric)((Expression.Literal)arguments[0].Value).Value).Text) : null;
+		int? Second() => arguments.Count > 1 ? Integer(((LiteralValue.Numeric)((Expression.Literal)arguments[1].Value).Value).Text) : null;
+
+		return member.Name.Text.ToUpperInvariant() switch
+		{
+			"TYPE"         => new JsonMethod(JsonMethodKind.Type),
+			"SIZE"         => new JsonMethod(JsonMethodKind.Size),
+			"DOUBLE"       => new JsonMethod(JsonMethodKind.Double),
+			"CEILING"      => new JsonMethod(JsonMethodKind.Ceiling),
+			"FLOOR"        => new JsonMethod(JsonMethodKind.Floor),
+			"ABS"          => new JsonMethod(JsonMethodKind.Abs),
+			"KEYVALUE"     => new JsonMethod(JsonMethodKind.KeyValue),
+			"BIGINT"       => new JsonMethod(JsonMethodKind.BigInt),
+			"BOOLEAN"      => new JsonMethod(JsonMethodKind.Boolean),
+			"DATETIME"     => new JsonMethod(JsonMethodKind.DateTime),
+			"DATE"         => new JsonMethod(JsonMethodKind.Date),
+			"INTEGER"      => new JsonMethod(JsonMethodKind.Integer),
+			"NUMBER"       => new JsonMethod(JsonMethodKind.Number),
+			"STRING"       => new JsonMethod(JsonMethodKind.String),
+			"DECIMAL"      => new JsonMethod(JsonMethodKind.Decimal, First(), Second()),
+			"TIMESTAMP_TZ" => new JsonMethod(JsonMethodKind.TimestampTz, First()),
+			"TIMESTAMP"    => new JsonMethod(JsonMethodKind.Timestamp, First()),
+			"TIME_TZ"      => new JsonMethod(JsonMethodKind.TimeTz, First()),
+			_              => new JsonMethod(JsonMethodKind.Time, First()),
+		};
+	}
+
+	public static JsonPathPredicate PathOr(JsonPathPredicate first, JsonPathPredicate[]? rest) =>
+		rest is not { Length: > 0 } ? first : new JsonPathPredicate.Or(List(first, rest));
+
+	public static JsonPathComparisonOperator PathComparison(string op) =>
+		op switch
+		{
+			"<>" => JsonPathComparisonOperator.NotEqual,
+			"<=" => JsonPathComparisonOperator.LessOrEqual,
+			">=" => JsonPathComparisonOperator.GreaterOrEqual,
+			"<"  => JsonPathComparisonOperator.Less,
+			_    => JsonPathComparisonOperator.Greater,
+		};
+
+	// ── §7.6 Row pattern recognition, §7.11 Windows, §10.10 Sort specifications ─
+
+	/// <summary>`MATCH_RECOGNIZE`: what its common syntax said, with its partitioning, order, measures and rows per match.</summary>
+	public static RowPatternClause Recognized(IReadOnlyList<Expression>? partition, OrderByClause? order, IReadOnlyList<RowPatternMeasure>? measures, RowsPerMatch? rows, RowPatternClause common) =>
+		common with { PartitionBy = partition ?? [], OrderBy = order, Measures = measures ?? [], RowsPerMatch = rows };
+
+	public static RowsPerMatch AllRows(string? handling) =>
+		handling is null ? RowsPerMatch.All : (handling.TrimStart()[0] | 0x20) switch
+		{
+			's' => RowsPerMatch.AllShowEmpty,
+			'o' => RowsPerMatch.AllOmitEmpty,
+			_   => RowsPerMatch.AllWithUnmatched,
+		};
+
+	/// <summary>The common syntax of a row pattern: the skip, `INITIAL` or `SEEK`, the pattern, its subsets and its definitions.</summary>
+	public static RowPatternClause Common(RowPatternSkip? skip, string? initial, RowPattern pattern, IReadOnlyList<RowPatternSubset>? subsets, RowPatternDefinition first, RowPatternDefinition[]? rest) =>
+		new([], null, [], null, skip, initial is null ? null : (initial[0] | 0x20) == 'i' ? RowPatternInitial.Initial : RowPatternInitial.Seek, pattern, subsets ?? [], List(first, rest));
+
+	public static RowPattern Alternation(RowPattern first, RowPattern[]? rest) =>
+		rest is not { Length: > 0 } ? first : new RowPattern.Alternation(List(first, rest));
+
+	public static RowPattern Sequence(RowPattern first, RowPattern[]? rest) =>
+		rest is not { Length: > 0 } ? first : new RowPattern.Sequence(List(first, rest));
+
+	/// <summary>A window frame: the measures before it, its units, extent and exclusion, and the row pattern after it.</summary>
+	public static WindowFrame Framed(IReadOnlyList<RowPatternMeasure>? measures, string units, WindowFrameExtent extent, WindowFrameExclusion? exclusion, RowPatternClause? common)
+	{
+		var unit = (units[0] | 0x20) switch
+		{
+			'r' when (units[1] | 0x20) == 'o' => WindowFrameUnit.Rows,
+			'r'                               => WindowFrameUnit.Range,
+			_                                 => WindowFrameUnit.Groups,
+		};
+
+		var pattern = common is null && measures is null ? null : (common ?? new RowPatternClause([], null, [], null, null, null, null, [], [])) with { Measures = measures ?? [] };
+
+		return new WindowFrame(unit, extent, exclusion, pattern);
+	}
+
+	public static WindowFrameExclusion Exclusion(string words) =>
+		(words.TrimStart()[0] | 0x20) switch
+		{
+			'c' => WindowFrameExclusion.CurrentRow,
+			'g' => WindowFrameExclusion.Group,
+			't' => WindowFrameExclusion.Ties,
+			_   => WindowFrameExclusion.NoOthers,
+		};
+
+	public static SortItem Sorted(Expression key, string? direction, string? nulls) =>
+		new(key,
+			direction is null ? null : (direction[0] | 0x20) == 'a' ? SortDirection.Asc : SortDirection.Desc,
+			nulls is null ? null : (nulls[0] | 0x20) == 'f' ? NullOrdering.First : NullOrdering.Last);
 
 	// ── Lists ──────────────────────────────────────────────────────────────────
 

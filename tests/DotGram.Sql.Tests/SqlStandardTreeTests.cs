@@ -287,6 +287,50 @@ public sealed class SqlStandardTreeTests
 	public void A_search_condition_is_built_as_written(string input, string tree) =>
 		Assert.Equal(tree, Show(SqlStandardParser.ParseSearchCondition(input)));
 
+	// ── §6.30–6.36 Value functions, §6.10 Windows, §10.9 Aggregates, JSON ───────
+
+	[Theory]
+	[InlineData("COUNT(*)", "Invocation(COUNT, [Argument(Asterisk(), null, false)])")]
+	[InlineData("SUM(DISTINCT a) FILTER (WHERE a > 1)", "Invocation(SUM, [Argument(a, null, false)], Quantifier: Distinct, Filter: FilterClause(Comparison(a, Greater, 1)))")]
+	[InlineData("RANK() OVER (PARTITION BY a ORDER BY b DESC NULLS LAST ROWS BETWEEN 1 PRECEDING AND CURRENT ROW EXCLUDE TIES)",
+		"Invocation(RANK, [], Over: Specification(WindowSpecification(null, [a], OrderByClause([SortItem(b, Desc, Last)]), WindowFrame(Rows, Between(WindowFrameBound(Preceding, 1), WindowFrameBound(CurrentRow, null)), Ties, null))))")]
+	[InlineData("LAG(a, 1, 0) IGNORE NULLS OVER w", "Invocation(LAG, [Argument(a, null, false), Argument(1, null, false), Argument(0, null, false)], Nulls: IgnoreNulls, Over: NameRef(w))")]
+	[InlineData("NTH_VALUE(a, 2) FROM LAST OVER w", "Invocation(NTH_VALUE, [Argument(a, null, false), Argument(2, null, false)], From: Last, Over: NameRef(w))")]
+	[InlineData("LISTAGG(DISTINCT a, ', ' ON OVERFLOW TRUNCATE '...' WITH COUNT) WITHIN GROUP (ORDER BY a)",
+		"Invocation(LISTAGG, [Argument(a, null, false), Argument(', ', null, false)], Quantifier: Distinct, Overflow: ListaggOverflow(true, '...', true), WithinGroup: WithinGroupClause(OrderByClause([SortItem(a, null, null)])))")]
+	[InlineData("ARRAY_AGG(a ORDER BY b)", "Invocation(ARRAY_AGG, [Argument(a, null, false)], OrderBy: OrderByClause([SortItem(b, null, null)]))")]
+	[InlineData("RUNNING FIRST(a, 1)", "Invocation(FIRST, [Argument(a, null, false), Argument(1, null, false)], Semantics: Running)")]
+	[InlineData("GROUPING(a, b)", "Invocation(GROUPING, [Argument(a, null, false), Argument(b, null, false)])")]
+	[InlineData("SUBSTRING(a FROM 1 FOR 2 USING OCTETS)", "Substring(a, 1, 2, Octets)")]
+	[InlineData("TRIM(LEADING 'x' FROM a)", "Trim(Leading, 'x', true, a)")]
+	[InlineData("TRIM(a)", "Trim(null, null, false, a)")]
+	[InlineData("EXTRACT(TIMEZONE_HOUR FROM a)", "Extract(TimezoneHour, a)")]
+	[InlineData("POSITION('a' IN b)", "Position('a', b, null)")]
+	[InlineData("CHAR_LENGTH(a USING CHARACTERS)", "Length(CharLength, a, Characters)")]
+	[InlineData("CURRENT_TIMESTAMP(3)", "Current(Timestamp, null, 3)")]
+	[InlineData("ABS(a)", "Invocation(ABS, [Argument(a, null, false)])")]
+	[InlineData("JSON_VALUE(a, '$.x' RETURNING INTEGER NULL ON EMPTY ERROR ON ERROR)", "JsonValue(JsonApiCommon(a, '$.x', null, [], null), Numeric(Integer, null, null), Null(), Error())")]
+	[InlineData("JSON_OBJECT(KEY 'a' VALUE 1, 'b' : 2 ABSENT ON NULL)", "JsonObject([JsonMember('a', 1, KeyValue, null), JsonMember('b', 2, Colon, null)], AbsentOnNull, null, null)")]
+	[InlineData("a[$ to last]", "JsonAccessor(a, Array([JsonSubscript(Variable(Context, null), Variable(Last, null))]))")]
+	[InlineData("a.double()", "Member(a, Dot, double, [])")]
+	public void A_function_is_built_as_written(string input, string tree) =>
+		Assert.Equal(tree, Show(SqlStandardParser.ParseValueExpression(input)));
+
+	[Fact]
+	public void A_window_frame_keeps_the_row_pattern_after_it()
+	{
+		var measure = Assert.IsType<DotGram.Sql.Ast.Expression.Invocation>(SqlStandardParser.ParseValueExpression("m OVER (ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING PATTERN (A B*) DEFINE A AS a > 1)"));
+		var frame   = Assert.IsType<WindowReference.Specification>(measure.Over).Value.Frame!;
+
+		Assert.True(measure.WithoutParentheses);
+		Assert.Equal("Sequence([Variable(A), Quantified(Variable(B), RowPatternQuantifier(ZeroOrMore, null, null, false))])", Show(frame.Pattern!.Pattern));
+		Assert.Equal("[RowPatternDefinition(A, Comparison(a, Greater, 1))]", Show(frame.Pattern.Definitions));
+	}
+
+	[Fact]
+	public void A_JSON_exists_predicate_keeps_what_happens_on_error() =>
+		Assert.Equal("JsonExists(JsonApiCommon(a, '$.x', null, [], null), True)", Show(SqlStandardParser.ParseSearchCondition("JSON_EXISTS(a, '$.x' TRUE ON ERROR)")));
+
 	/// <summary>
 	/// A node as one line: its record's name and its positional values in order, then what else it
 	/// holds that is not a default; a name, a reference and a literal as they were written.

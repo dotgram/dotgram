@@ -480,7 +480,7 @@ JSON query wrapper behavior,family/value/enum,JsonWrapperBehavior; Expression.Js
 JSON query quotes behavior,family/value/enum,JsonQuotesBehavior; JsonQuotes.Behavior,JSON/JSON Path AST,no,no,0,KEEP | OMIT
 JSON query empty behavior,family/value/enum,JsonQueryBehavior; Expression.JsonQuery.OnEmpty,JSON/JSON Path AST,no,no,0,ERROR | NULL | EMPTY ARRAY | EMPTY OBJECT
 JSON query error behavior,family/value/enum,JsonQueryBehavior; Expression.JsonQuery.OnError,JSON/JSON Path AST,no,no,0,ERROR | NULL | EMPTY ARRAY | EMPTY OBJECT
-JSON simplified accessor,family/value/enum,Expression.Member; Expression.Element; Expression.Wildcard,JSON/JSON Path AST,no,yes,2,<value expression primary> <JSON simplified accessor op chain>
+JSON simplified accessor,family/value/enum,Expression.Member; Expression.Element; Expression.Wildcard; Expression.JsonAccessor,JSON/JSON Path AST,no,yes,2,<value expression primary> <JSON simplified accessor op chain>
 JSON simplified accessor op chain,family/value/enum,erased,JSON/JSON Path AST,no,yes,3,<JSON simplified accessor op> | <JSON simplified accessor op chain> <JSON simplified accessor op>
 JSON simplified accessor op,family/value/enum,erased,JSON/JSON Path AST,no,yes,5,<JSON member accessor> | <JSON wildcard member accessor> | <JSON array accessor> | <JSON wildcard array accessor> | <JSON item method>
 JSON serialize,family/value/enum,Expression.JsonSerialize,JSON/JSON Path AST,no,no,4,JSON_SERIALIZE <left paren> <JSON value expression> [ <JSON output clause> ] <right paren>

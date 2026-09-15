@@ -454,7 +454,7 @@ TruthValue  = "TRUE"i | "FALSE"i | "UNKNOWN"i
 // a predicand; a predicate's second part, and it is that predicate, if the second part takes it.
 BooleanPrimary : @Towers.Typed
 	= "EXISTS"i & TableSubquery => @(new Towers.Typed(new Expression.Exists(Nodes.UnbuiltQuery()), Towers.Logical | Towers.Truth))
-	| JSONExistsPredicate => @(new Towers.Typed(Nodes.Unbuilt(), Towers.Logical | Towers.Truth))
+	| j: JSONExistsPredicate => @(new Towers.Typed(j, Towers.Logical | Towers.Truth))
 	| "UNIQUE"i & ("NULLS"i & n: "NOT"i? & d: "DISTINCT"i)? & TableSubquery => @(new Towers.Typed(new Expression.Unique(Nodes.Nulls(d, n), Nodes.UnbuiltQuery()), Towers.Logical | Towers.Truth))
 	| p: PeriodConstructor & t: PeriodPredicatePart2 => @(new Towers.Typed(t with { Left = p }, Towers.Logical | Towers.Truth))
 	| e: RowValuePredicand & takes: PredicatePart2Mark & when @(Towers.RolesOf(takes) == 0 || (Towers.RolesOf(e) & Towers.RolesOf(takes)) != 0) => @(takes.Roles == 0 ? e : new Towers.Typed(Nodes.Predicated(e.Node, takes.Node!), Towers.Logical | Towers.Truth))
@@ -593,7 +593,7 @@ IntervalPrimary : @Towers.Typed = p: Primary & q: IntervalQualifier? & when @(q 
 // Not a production: a primary of any tower. A value function is of the tower it names; an array's
 // may be subscripted, and is then a value expression primary.
 Primary : @Towers.Typed
-	= f: ValueFunction & s: FunctionSubscript & when @(Towers.RolesOf(s) == 0 || (f & Towers.Array) != 0) => @(Towers.Stepped(new Towers.Typed(Nodes.Unbuilt(), f), s))
+	= f: ValueFunction & s: FunctionSubscript & when @(Towers.RolesOf(s) == 0 || (Towers.RolesOf(f) & Towers.Array) != 0) => @(Towers.Stepped(f, s))
 	| p: PrimaryReading => @(p)
 
 FunctionSubscript : @Towers.Stepping = e: ArrayElementStep & s: PrimaryStep* => @(Towers.Subscripted(e, s))
@@ -659,7 +659,7 @@ PrimaryStep : @Towers.Step
 	| "->" & m: Identifier & a: SQLArgumentList? => @(new Towers.Step(Towers.Bare, new Expression.Member(null!, MemberAccessKind.Dereference, m, a)))
 	| e: ArrayElementStep => @(e)
 	| '[' & '*' & ']' => @(new Towers.Step(Towers.Bare, new Expression.Wildcard(null!, WildcardKind.Array)))
-	| '[' & JSONSubscript & (',' & JSONSubscript)* & ']' => @(new Towers.Step(Towers.Bare, new Expression.Element(null!, Nodes.Unbuilt())))
+	| '[' & first: JSONSubscript & (',' & rest: JSONSubscript)* & ']' => @(new Towers.Step(Towers.Bare, new Expression.JsonAccessor(null!, new JsonPathAccessor.Array(Nodes.List(first, rest)))))
 
 ArrayElementStep : @Towers.Step = l: LeftBracketOrTrigraph & i: NumericValueExpression & RightBracketOrTrigraph => @(new Towers.Step(Towers.Subscript, new Expression.Element(null!, i.Node, null, l == "??(")))
 
@@ -680,19 +680,19 @@ PrimaryBase : @Towers.Typed
 	| v: MultisetElementReference => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
 	| v: GreatestOrLeastFunction => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
 	| v: StaticMethodInvocation => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
-	| WindowedFunction => @(new Towers.Typed(Nodes.Unbuilt(), Towers.Value | Towers.Truth | Towers.Bare))
-	| JSONValueFunction => @(new Towers.Typed(Nodes.Unbuilt(), Towers.Value | Towers.Truth | Towers.Bare))
-	| JSONQuery => @(new Towers.Typed(Nodes.Unbuilt(), Towers.Value | Towers.Truth | Towers.Bare))
-	| JSONObjectConstructor => @(new Towers.Typed(Nodes.Unbuilt(), Towers.Value | Towers.Truth | Towers.Bare))
-	| JSONArrayConstructor => @(new Towers.Typed(Nodes.Unbuilt(), Towers.Value | Towers.Truth | Towers.Bare))
-	| RowPatternNavigationOperation => @(new Towers.Typed(Nodes.Unbuilt(), Towers.Value | Towers.Truth | Towers.Bare))
+	| v: WindowedFunction => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
+	| v: JSONValueFunction => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
+	| v: JSONQuery => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
+	| v: JSONObjectConstructor => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
+	| v: JSONArrayConstructor => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
+	| v: RowPatternNavigationOperation => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare))
 	| v: RoutineInvocation => @(new Towers.Typed(v, Towers.Value | Towers.Truth | Towers.Bare | Towers.Invoked))
 	| m: "MODULE"i & '.' & q: QualifiedIdentifier & '.' & c: ColumnName => @(new Towers.Typed(new Expression.Reference(Nodes.Named(m, q, c)), Towers.Value | Towers.Truth | Towers.Bare))
 	| i: Identifier & chained: ChainOrMeasure => @(Nodes.ChainOrMeasure(i, chained))
 
 // After a name: the rest of an identifier chain, or `OVER` and a window, which makes the name a
 // <window row pattern measure>'s.
-ChainOrMeasure : @Towers.Chained = WindowOver => @(new Towers.Chained(true, null))
+ChainOrMeasure : @Towers.Chained = o: WindowOver => @(new Towers.Chained(true, null, o))
                                  | ('.' & rest: Identifier & ?!'(')* => @(new Towers.Chained(false, rest))
 
 // <general value specification>, but an SQL parameter reference, which is an identifier chain and
@@ -763,140 +763,147 @@ ArgumentValue : @Expression = v: ValueNode => @(v)
 
 // Not a production: a function of some tower, and the tower it is of. `ABS` is a number's and an
 // interval's both.
-ValueFunction : @int
-	= NumericValueFunction => @(Towers.Numeric)
-	| a: AbsoluteValue => @(a)
-	| StringValueFunction => @(Towers.String)
-	| DatetimeValueFunction => @(Towers.Datetime)
-	| "TRIM_ARRAY"i & '(' & ArrayValueExpression & ',' & NumericValueExpression & ')' => @(Towers.Array)
-	| "SET"i & '(' & MultisetValueExpression & ')' => @(Towers.Multiset)
-	| JSONTypedValueFunction => @(Towers.Json)
+ValueFunction : @Towers.Typed
+	= numeric: NumericValueFunction => @(new Towers.Typed(numeric, Towers.Numeric))
+	| absolute: AbsoluteValue => @(absolute)
+	| text: StringValueFunction => @(new Towers.Typed(text, Towers.String))
+	| datetime: DatetimeValueFunction => @(new Towers.Typed(datetime, Towers.Datetime))
+	| w: "TRIM_ARRAY"i & '(' & array: ArrayValueExpression & ',' & count: NumericValueExpression & ')' => @(new Towers.Typed(Nodes.Call(w, array.Node, count.Node), Towers.Array))
+	| w: "SET"i & '(' & multiset: MultisetValueExpression & ')' => @(new Towers.Typed(Nodes.Call(w, multiset.Node), Towers.Multiset))
+	| json: JSONTypedValueFunction => @(new Towers.Typed(json, Towers.Json))
 
 // <absolute value expression>, <interval absolute value function>.
-AbsoluteValue : @int = "ABS"i & '(' & e: CommonValueExpression & ')' & when @((Towers.RolesOf(e) & (Towers.Numeric | Towers.Interval)) != 0) => @(e.Roles & (Towers.Numeric | Towers.Interval))
+AbsoluteValue : @Towers.Typed = w: "ABS"i & '(' & e: CommonValueExpression & ')' & when @((Towers.RolesOf(e) & (Towers.Numeric | Towers.Interval)) != 0) => @(new Towers.Typed(Nodes.Call(w, e.Node), e.Roles & (Towers.Numeric | Towers.Interval)))
 
 // <numeric value function>, but `ABS`.
-NumericValueFunction
-	= PositionExpression
-	| "OCCURRENCES_REGEX"i & '(' & RegexSearch & ')'
-	| "POSITION_REGEX"i & '(' & ("START"i | "AFTER"i)? & RegexSearch & ("OCCURRENCE"i & NumericValueExpression)? & ("GROUP"i & NumericValueExpression)? & ')'
-	| ExtractExpression
-	| ("CHAR_LENGTH"i | "CHARACTER_LENGTH"i) & '(' & CharacterValueExpression & ("USING"i & CharLengthUnits)? & ')'
-	| "OCTET_LENGTH"i & '(' & StringValueExpression & ')'
-	| "CARDINALITY"i & '(' & CollectionValueExpression & ')'
-	| "ARRAY_MAX_CARDINALITY"i & '(' & ArrayValueExpression & ')'
-	| ("MOD"i | "LOG"i | "POWER"i) & '(' & NumericValueExpression & ',' & NumericValueExpression & ')'
-	| ("SIN"i | "COS"i | "TAN"i | "SINH"i | "COSH"i | "TANH"i | "ASIN"i | "ACOS"i | "ATAN"i
-	  | "LOG10"i | "LN"i | "EXP"i | "SQRT"i | "FLOOR"i | "CEIL"i | "CEILING"i) & '(' & NumericValueExpression & ')'
-	| "WIDTH_BUCKET"i & '(' & NumericValueExpression & ',' & NumericValueExpression & ',' & NumericValueExpression & ',' & NumericValueExpression & ')'
-	| "MATCH_NUMBER"i & '(' & ')'
+NumericValueFunction : @Expression
+	= position: PositionExpression => @(position)
+	| "OCCURRENCES_REGEX"i & '(' & r: RegexSearch & ')' => @(Nodes.Regex(RegexFunction.OccurrencesRegex, r))
+	| "POSITION_REGEX"i & '(' & where: ("START"i | "AFTER"i)? & r: RegexSearch & ("OCCURRENCE"i & occurrence: NumericNode)? & ("GROUP"i & grouping: NumericNode)? & ')' => @(Nodes.Regex(RegexFunction.PositionRegex, r) with { StartOrAfter = Nodes.StartOrAfter(where), Occurrence = occurrence, Group = grouping })
+	| extract: ExtractExpression => @(extract)
+	| w: ("CHAR_LENGTH"i | "CHARACTER_LENGTH"i) & '(' & v: CharacterValueExpression & ("USING"i & u: CharLengthUnits)? & ')' => @(new Expression.Length(Nodes.LengthFunctionOf(w), v.Node, Nodes.UnitsOf(u)))
+	| "OCTET_LENGTH"i & '(' & v: StringValueExpression & ')' => @(new Expression.Length(LengthFunction.OctetLength, v.Node, null))
+	| w: "CARDINALITY"i & '(' & c: CollectionValueExpression & ')' => @(Nodes.Call(w, c.Node))
+	| w: "ARRAY_MAX_CARDINALITY"i & '(' & c: ArrayValueExpression & ')' => @(Nodes.Call(w, c.Node))
+	| w: ("MOD"i | "LOG"i | "POWER"i) & '(' & x: NumericValueExpression & ',' & y: NumericValueExpression & ')' => @(Nodes.Call(w, x.Node, y.Node))
+	| w: ("SIN"i | "COS"i | "TAN"i | "SINH"i | "COSH"i | "TANH"i | "ASIN"i | "ACOS"i | "ATAN"i
+	  | "LOG10"i | "LN"i | "EXP"i | "SQRT"i | "FLOOR"i | "CEIL"i | "CEILING"i) & '(' & x: NumericValueExpression & ')' => @(Nodes.Call(w, x.Node))
+	| w: "WIDTH_BUCKET"i & '(' & x: NumericValueExpression & ',' & y: NumericValueExpression & ',' & z: NumericValueExpression & ',' & t: NumericValueExpression & ')' => @(Nodes.Call(w, x.Node, y.Node, z.Node, t.Node))
+	| w: "MATCH_NUMBER"i & '(' & ')' => @(Nodes.Call(w))
 
 // <character position expression>, <binary position expression>.
-PositionExpression : @bool = "POSITION"i & '(' & a: StringValueExpression & "IN"i & b: StringValueExpression & u: UsingUnits & ')' & when @(Towers.Characters(Towers.RolesOf(a) & Towers.RolesOf(b), u == true)) => @(true)
+PositionExpression : @Expression = "POSITION"i & '(' & a: StringValueExpression & "IN"i & b: StringValueExpression & u: UsingUnits & ')' & when @(Towers.Characters(Towers.RolesOf(a) & Towers.RolesOf(b), u > 0)) => @(new Expression.Position(a.Node, b.Node, Nodes.UnitsOf(u)))
 
 // What the regular expression functions share: a pattern, its flags, the string searched, and where.
-RegexSearch = CharacterValueExpression & ("FLAG"i & CharacterValueExpression)? & "IN"i & CharacterValueExpression & ("FROM"i & NumericValueExpression)? & ("USING"i & CharLengthUnits)?
+RegexSearch : @Nodes.Search = p: CharacterValueExpression & ("FLAG"i & f: CharacterNode)? & "IN"i & v: CharacterValueExpression & ("FROM"i & start: NumericNode)? & ("USING"i & u: CharLengthUnits)? => @(new Nodes.Search(p.Node, f, v.Node, start, Nodes.UnitsOf(u)))
 
 // <extract expression>: a datetime's field, or an interval's.
-ExtractExpression : @bool = "EXTRACT"i & '(' & ExtractField & "FROM"i & e: CommonValueExpression & ')' & when @((Towers.RolesOf(e) & (Towers.Datetime | Towers.Interval)) != 0) => @(true)
+ExtractExpression : @Expression = "EXTRACT"i & '(' & f: ExtractField & "FROM"i & e: CommonValueExpression & ')' & when @((Towers.RolesOf(e) & (Towers.Datetime | Towers.Interval)) != 0) => @(new Expression.Extract(Nodes.ExtractFieldOf(f), e.Node))
 ExtractField      = NonSecondPrimaryDatetimeField | "SECOND"i | "TIMEZONE_HOUR"i | "TIMEZONE_MINUTE"i
 
-UsingUnits : @bool = "USING"i & CharLengthUnits => @(true)
-                   | none => @(false)
+// Which units were named: none (0), characters (1), octets (2).
+UsingUnits : @int = "USING"i & u: CharLengthUnits => @(Nodes.UnitCode(u))
+                  | none => @(0)
 
 // <string value function>, but <specific type method>, which follows a primary (`Primary`).
-StringValueFunction
-	= SubstringFunction
-	| JSONSerialize
-	| "SUBSTRING_REGEX"i & '(' & RegexSearch & ("OCCURRENCE"i & NumericValueExpression)? & ("GROUP"i & NumericValueExpression)? & ')'
-	| ("UPPER"i | "LOWER"i) & '(' & CharacterValueExpression & ')'
-	| ("CONVERT"i | "TRANSLATE"i) & '(' & CharacterValueExpression & "USING"i & SchemaQualifiedName & ')'
-	| "TRANSLATE_REGEX"i & '(' & CharacterValueExpression & ("FLAG"i & CharacterValueExpression)? & "IN"i & CharacterValueExpression
-	  & ("WITH"i & CharacterValueExpression)? & ("FROM"i & NumericValueExpression)? & ("USING"i & CharLengthUnits)?
-	  & ("OCCURRENCE"i & (NumericValueExpression | "ALL"i))? & ')'
-	| ("LPAD"i | "RPAD"i) & '(' & CharacterValueExpression & ',' & NumericValueExpression & (',' & CharacterValueExpression)? & ')'
-	| TrimFunction
-	| ("BTRIM"i | "LTRIM"i | "RTRIM"i) & '(' & CharacterValueExpression & (',' & CharacterValueExpression)? & ')'
-	| OverlayFunction
-	| "NORMALIZE"i & '(' & CharacterValueExpression & (',' & NormalForm & (',' & CharacterLargeObjectLength)?)? & ')'
-	| "CLASSIFIER"i & '(' & Identifier? & ')'
+StringValueFunction : @Expression
+	= substring: SubstringFunction => @(substring)
+	| serialize: JSONSerialize => @(serialize)
+	| "SUBSTRING_REGEX"i & '(' & r: RegexSearch & ("OCCURRENCE"i & occurrence: NumericNode)? & ("GROUP"i & grouping: NumericNode)? & ')' => @(Nodes.Regex(RegexFunction.SubstringRegex, r) with { Occurrence = occurrence, Group = grouping })
+	| w: ("UPPER"i | "LOWER"i) & '(' & v: CharacterValueExpression & ')' => @(Nodes.Call(w, v.Node))
+	| w: ("CONVERT"i | "TRANSLATE"i) & '(' & v: CharacterValueExpression & "USING"i & n: SchemaQualifiedName & ')' => @(new Expression.TranslateUsing(Nodes.TranslateOf(w), v.Node, n))
+	| "TRANSLATE_REGEX"i & '(' & p: CharacterValueExpression & ("FLAG"i & f: CharacterNode)? & "IN"i & v: CharacterValueExpression
+	  & ("WITH"i & replacement: CharacterNode)? & ("FROM"i & start: NumericNode)? & ("USING"i & u: CharLengthUnits)?
+	  & ("OCCURRENCE"i & (occurrence: NumericNode | all: "ALL"i))? & ')' => @(new Expression.Regex(RegexFunction.TranslateRegex, p.Node, v.Node) { Flag = f, Replacement = replacement, From = start, Using = Nodes.UnitsOf(u), Occurrence = occurrence, AllOccurrences = all is not null })
+	| w: ("LPAD"i | "RPAD"i) & '(' & v: CharacterValueExpression & ',' & l: NumericValueExpression & (',' & pad: CharacterNode)? & ')' => @(Nodes.Call(w, v.Node, l.Node, pad))
+	| trim: TrimFunction => @(trim)
+	| w: ("BTRIM"i | "LTRIM"i | "RTRIM"i) & '(' & v: CharacterValueExpression & (',' & characters: CharacterNode)? & ')' => @(Nodes.Call(w, v.Node, characters))
+	| overlay: OverlayFunction => @(overlay)
+	| "NORMALIZE"i & '(' & v: CharacterValueExpression & (',' & form: NormalForm & (',' & length: CharacterLargeObjectLength)?)? & ')' => @(Nodes.Normalized(v.Node, form, length))
+	| w: "CLASSIFIER"i & '(' & variable: Identifier? & ')' => @(Nodes.Call(w, variable is null ? null : new Expression.Reference(new QualifiedName([variable]))))
 
 // <character substring function>, <binary substring function>, <regular expression substring
 // function>. All three begin with the string, which is read once and what follows it says which: the
 // last is a character string's alone.
-SubstringFunction : @bool = "SUBSTRING"i & '(' & s: StringValueExpression & t: SubstringTail & ')' & when @(t == 2 ? (Towers.RolesOf(s) & Towers.Character) != 0 : Towers.Characters(Towers.RolesOf(s), t == 1)) => @(true)
+SubstringFunction : @Expression = "SUBSTRING"i & '(' & s: StringValueExpression & t: SubstringTail & ')' & when @(Nodes.SubstringFits(s, t)) => @(Nodes.Substring(s.Node, t))
 
-// 1 where a length unit is named, 2 for `SIMILAR`.
-SubstringTail : @int
-	= "FROM"i & NumericValueExpression & ("FOR"i & NumericValueExpression)? & u: UsingUnits => @(u == true ? 1 : 0)
-	| "SIMILAR"i & CharacterValueExpression & "ESCAPE"i & CharacterValueExpression => @(2)
+SubstringTail : @Nodes.SubstringParts
+	= "FROM"i & start: NumericNode & ("FOR"i & length: NumericNode)? & u: UsingUnits => @(new Nodes.SubstringParts(u > 0 ? 1 : 0, start, length, Nodes.UnitsOf(u), null, null))
+	| "SIMILAR"i & pattern: CharacterNode & "ESCAPE"i & escape: CharacterNode => @(new Nodes.SubstringParts(2, null, null, null, pattern, escape))
 
 // <single-character trim function>, <binary trim function>: what is trimmed, and from what, of one kind.
-TrimFunction : @bool = "TRIM"i & '(' & t: TrimOperands & ')' & when @((t & Towers.String) != 0) => @(true)
+TrimFunction : @Expression = "TRIM"i & '(' & t: TrimOperands & ')' & when @((Nodes.RolesOf(t) & Towers.String) != 0) => @(Nodes.Trimmed(t))
 //
 // <trim operands> is `[ [ spec ] [ character ] FROM ] source`. What the operands begin with is read
 // once: a specification, `FROM`, or a string that is the source or, with `FROM` after it, the
 // character trimmed.
-TrimOperands : @int
-	= TrimSpecification & t: TrimAfterSpecification => @(t)
-	| "FROM"i & s: StringValueExpression => @(s.Roles)
-	| c: StringValueExpression & f: TrimFrom => @(f == 0 ? c.Roles : c.Roles & f)
+TrimOperands : @Nodes.TrimParts
+	= spec: TrimSpecification & after: TrimAfterSpecification => @(after with { Specification = Nodes.TrimSpecificationOf(spec) })
+	| "FROM"i & source: StringValueExpression => @(new Nodes.TrimParts(source.Roles, null, null, true, source.Node))
+	| c: StringValueExpression & f: TrimFrom => @(f.Node is null ? new Nodes.TrimParts(c.Roles, null, null, false, c.Node) : new Nodes.TrimParts(c.Roles & f.Roles, null, c.Node, true, f.Node))
 
-TrimAfterSpecification : @int
-	= "FROM"i & s: StringValueExpression => @(s.Roles)
-	| c: StringValueExpression & "FROM"i & s: StringValueExpression => @(c.Roles & s.Roles)
+TrimAfterSpecification : @Nodes.TrimParts
+	= "FROM"i & source: StringValueExpression => @(new Nodes.TrimParts(source.Roles, null, null, true, source.Node))
+	| c: StringValueExpression & "FROM"i & source: StringValueExpression => @(new Nodes.TrimParts(c.Roles & source.Roles, null, c.Node, true, source.Node))
 
-TrimFrom : @int = "FROM"i & s: StringValueExpression => @(s.Roles)
-                | none => @(0)
+TrimFrom : @Towers.Typed = "FROM"i & s: StringValueExpression => @(s)
+                         | none => @(default)
 TrimSpecification = "LEADING"i | "TRAILING"i | "BOTH"i
 
 // <character overlay function>, <binary overlay function>.
-OverlayFunction : @bool = "OVERLAY"i & '(' & a: StringValueExpression & "PLACING"i & b: StringValueExpression & "FROM"i & NumericValueExpression & ("FOR"i & NumericValueExpression)? & u: UsingUnits & ')' & when @(Towers.Characters(Towers.RolesOf(a) & Towers.RolesOf(b), u == true)) => @(true)
+OverlayFunction : @Expression = "OVERLAY"i & '(' & a: StringValueExpression & "PLACING"i & b: StringValueExpression & "FROM"i & start: NumericNode & ("FOR"i & length: NumericNode)? & u: UsingUnits & ')' & when @(Towers.Characters(Towers.RolesOf(a) & Towers.RolesOf(b), u > 0)) => @(new Expression.Overlay(a.Node, b.Node, start, length, Nodes.UnitsOf(u)))
 
 // <datetime value function>.
-DatetimeValueFunction
-	= "CURRENT_DATE"i
-	| ("CURRENT_TIMESTAMP"i | "CURRENT_TIME"i | "LOCALTIMESTAMP"i | "LOCALTIME"i) & ('(' & UnsignedInteger & ')')?
+DatetimeValueFunction : @Expression
+	= "CURRENT_DATE"i => @(new Expression.Current(CurrentValue.Date))
+	| w: ("CURRENT_TIMESTAMP"i | "CURRENT_TIME"i | "LOCALTIMESTAMP"i | "LOCALTIME"i) & ('(' & p: UnsignedInteger & ')')? => @(Nodes.CurrentTime(w, p))
+
+// Not a production: a numeric value expression's node alone, where one may be left out.
+NumericNode : @Expression = e: NumericValueExpression => @(e.Node)
 
 // ── §6.10 Window function, §6.11 Nested window function, §10.9 Aggregate function ──
 
 // <set function specification>, <window function>, <nested window function>. A window function's
 // type may be an aggregate, so an aggregate is read once, with `OVER` after it or not; `RUNNING` and
 // `FINAL` stand before one only where it is not a window's.
-WindowedFunction
-	= ("RUNNING"i | "FINAL"i) & AggregateFunction
-	| AggregateFunction & WindowOver?
-	| "GROUPING"i & '(' & ColumnReference & (',' & ColumnReference)* & ')'
-	| ("RANK"i | "DENSE_RANK"i | "PERCENT_RANK"i | "CUME_DIST"i | "ROW_NUMBER"i) & '(' & ')' & WindowOver
-	| "NTILE"i & '(' & SimpleOrDynamicValue & ')' & WindowOver
-	| ("LEAD"i | "LAG"i) & '(' & ValueExpression & (',' & UnsignedInteger & (',' & ValueExpression)?)? & ')' & NullTreatment? & WindowOver
-	| ("FIRST_VALUE"i | "LAST_VALUE"i) & '(' & ValueExpression & ')' & NullTreatment? & WindowOver
-	| "NTH_VALUE"i & '(' & ValueExpression & ',' & SimpleOrDynamicValue & ')' & ("FROM"i & ("FIRST"i | "LAST"i))? & NullTreatment? & WindowOver
-	| "ROW_NUMBER"i & '(' & RowMarker & ')'
-	| "VALUE_OF"i & '(' & ValueExpression & "AT"i & RowMarker & (['+' | '-'] & SimpleOrDynamicValue)? & (',' & ValueExpression)? & ')'
+WindowedFunction : @Expression
+	= s: ("RUNNING"i | "FINAL"i) & a: AggregateFunction => @(Nodes.WithSemantics(a, s))
+	| a: AggregateFunction & o: WindowOver? => @(Nodes.WithOver(a, o))
+	| w: "GROUPING"i & '(' & first: ColumnReference & (',' & rest: ColumnReference)* & ')' => @(Nodes.Invoked(w, first, rest))
+	| w: ("RANK"i | "DENSE_RANK"i | "PERCENT_RANK"i | "CUME_DIST"i | "ROW_NUMBER"i) & '(' & ')' & o: WindowOver => @(Nodes.Call(w) with { Over = o })
+	| w: "NTILE"i & '(' & n: SimpleOrDynamicValue & ')' & o: WindowOver => @(Nodes.Call(w, n) with { Over = o })
+	| w: ("LEAD"i | "LAG"i) & '(' & v: ValueNode & (',' & offset: UnsignedInteger & (',' & otherwise: ValueNode)?)? & ')' & t: NullTreatment? & o: WindowOver => @(Nodes.Call(w, v, offset is null ? null : new Expression.Literal(Nodes.NumericLiteral(offset)), otherwise) with { Nulls = Nodes.NullTreatmentOf(t), Over = o })
+	| w: ("FIRST_VALUE"i | "LAST_VALUE"i) & '(' & v: ValueNode & ')' & t: NullTreatment? & o: WindowOver => @(Nodes.Call(w, v) with { Nulls = Nodes.NullTreatmentOf(t), Over = o })
+	| w: "NTH_VALUE"i & '(' & v: ValueNode & ',' & n: SimpleOrDynamicValue & ')' & ("FROM"i & end: ("FIRST"i | "LAST"i))? & t: NullTreatment? & o: WindowOver => @(Nodes.Call(w, v, n) with { From = Nodes.FirstOrLast(end), Nulls = Nodes.NullTreatmentOf(t), Over = o })
+	| w: "ROW_NUMBER"i & '(' & m: RowMarker & ')' => @(Nodes.Call(w, Nodes.Marked(m, null, null)))
+	| "VALUE_OF"i & '(' & v: ValueNode & "AT"i & m: RowMarker & (d: ['+' | '-'] & delta: SimpleOrDynamicValue)? & (',' & otherwise: ValueNode)? & ')' => @(new Expression.ValueOf(v, Nodes.Marked(m, d, delta), otherwise))
 
 // <window name or specification>, after `OVER`.
-WindowOver    = "OVER"i & (WindowName | WindowSpecification)
+WindowOver                : @WindowReference = "OVER"i & r: WindowNameOrSpecification => @(r)
+WindowNameOrSpecification : @WindowReference = n: WindowName => @(new WindowReference.NameRef(n))
+                                             | s: WindowSpecification => @(new WindowReference.Specification(s))
 NullTreatment = ("RESPECT"i | "IGNORE"i) & "NULLS"i
 RowMarker     = "BEGIN_PARTITION"i | "BEGIN_FRAME"i | "CURRENT_ROW"i | "FRAME_ROW"i | "END_FRAME"i | "END_PARTITION"i
 
 // What <number of tiles>, <nth row>, <row marker offset> and a row pattern navigation's offsets are:
 // a simple value specification, or a dynamic parameter.
-SimpleOrDynamicValue = SimpleValueSpecification | '?'
+SimpleOrDynamicValue : @Expression = v: SimpleValueSpecification => @(v)
+                                   | '?' => @(new Expression.Parameter(ParameterKind.Dynamic))
 
 // <aggregate function>. A <row pattern count function>, `COUNT(v.*)`, is `COUNT` of a value too, whose
 // `v.*` is a JSON accessor, with the same verdict; written apart, a refused line read each twice.
-AggregateFunction = AggregateCall & ("FILTER"i & '(' & "WHERE"i & SearchCondition & ')')?
+AggregateFunction : @Expression = a: AggregateCall & f: FilterClause? => @(f is null ? a : Nodes.Filtered(a, f))
+FilterClause      : @FilterClause = "FILTER"i & '(' & "WHERE"i & c: SearchCondition & ')' => @(new FilterClause(c.Node))
 
-AggregateCall
-	= "COUNT"i & '(' & '*' & ')'
-	| JSONAggregateFunction
-	| ComputationalOperation & '(' & SetQuantifier? & ValueExpression & ')'
-	| BinarySetFunctionType & '(' & NumericValueExpression & ',' & NumericValueExpression & ')'
-	| ("RANK"i | "DENSE_RANK"i | "PERCENT_RANK"i | "CUME_DIST"i) & '(' & ValueExpression & (',' & ValueExpression)* & ')' & WithinGroupSpecification
-	| ("PERCENTILE_CONT"i | "PERCENTILE_DISC"i) & '(' & NumericValueExpression & ')' & WithinGroupSpecification
-	| "ARRAY_AGG"i & '(' & ValueExpression & ("ORDER"i & "BY"i & SortSpecificationList)? & ')'
-	| "LISTAGG"i & '(' & SetQuantifier? & CharacterValueExpression & ',' & CharacterStringLiteral & ListaggOverflowClause? & ')' & WithinGroupSpecification
+AggregateCall : @Expression
+	= w: "COUNT"i & '(' & '*' & ')' => @(Nodes.Call(w, new Expression.Asterisk()))
+	| json: JSONAggregateFunction => @(json)
+	| w: ComputationalOperation & '(' & q: SetQuantifier? & v: ValueNode & ')' => @(Nodes.Call(w, v) with { Quantifier = Nodes.Quantifier(q) })
+	| w: BinarySetFunctionType & '(' & x: NumericValueExpression & ',' & y: NumericValueExpression & ')' => @(Nodes.Call(w, x.Node, y.Node))
+	| w: ("RANK"i | "DENSE_RANK"i | "PERCENT_RANK"i | "CUME_DIST"i) & '(' & first: ValueNode & (',' & rest: ValueNode)* & ')' & g: WithinGroupSpecification => @(Nodes.Invoked(w, first, rest) with { WithinGroup = g })
+	| w: ("PERCENTILE_CONT"i | "PERCENTILE_DISC"i) & '(' & x: NumericValueExpression & ')' & g: WithinGroupSpecification => @(Nodes.Call(w, x.Node) with { WithinGroup = g })
+	| w: "ARRAY_AGG"i & '(' & v: ValueNode & ("ORDER"i & "BY"i & o: SortSpecificationList)? & ')' => @(Nodes.Call(w, v) with { OrderBy = o })
+	| w: "LISTAGG"i & '(' & q: SetQuantifier? & listed: CharacterValueExpression & ',' & separator: CharacterStringLiteral & l: ListaggOverflowClause? & ')' & g: WithinGroupSpecification => @(Nodes.Call(w, listed.Node, new Expression.Literal(Nodes.StringLiteral(separator, StringLiteralKind.Character))) with { Quantifier = Nodes.Quantifier(q), Overflow = l, WithinGroup = g })
 
 ComputationalOperation
 	= "AVG"i | "MAX"i | "MIN"i | "SUM"i | "EVERY"i | "ANY_VALUE"i | "ANY"i | "SOME"i | "COUNT"i
@@ -906,8 +913,10 @@ BinarySetFunctionType
 	= "COVAR_POP"i | "COVAR_SAMP"i | "CORR"i | "REGR_SLOPE"i | "REGR_INTERCEPT"i | "REGR_COUNT"i
 	| "REGR_R2"i | "REGR_AVGX"i | "REGR_AVGY"i | "REGR_SXX"i | "REGR_SYY"i | "REGR_SXY"i
 
-WithinGroupSpecification = "WITHIN"i & "GROUP"i & '(' & "ORDER"i & "BY"i & SortSpecificationList & ')'
-ListaggOverflowClause    = "ON"i & "OVERFLOW"i & ("ERROR"i | "TRUNCATE"i & CharacterStringLiteral? & ("WITH"i | "WITHOUT"i) & "COUNT"i)
+WithinGroupSpecification : @WithinGroupClause = "WITHIN"i & "GROUP"i & '(' & "ORDER"i & "BY"i & s: SortSpecificationList & ')' => @(new WithinGroupClause(s))
+ListaggOverflowClause    : @ListaggOverflow = "ON"i & "OVERFLOW"i & b: OverflowBehavior => @(b)
+OverflowBehavior         : @ListaggOverflow = "ERROR"i => @(new ListaggOverflow(false))
+                                            | "TRUNCATE"i & filler: CharacterStringLiteral? & c: ("WITH"i | "WITHOUT"i) & "COUNT"i => @(Nodes.Truncated(filler, c))
 
 // ── §6.26 Row pattern navigation operation ──────────────────────────────────
 
@@ -918,7 +927,7 @@ ListaggOverflowClause    = "ON"i & "OVERFLOW"i & ("ERROR"i | "TRUNCATE"i & Chara
 // invocation too, whose first argument is such a navigation. Asked as a navigation first and a
 // routine after, every argument was read twice, and a line refused inside nested navigations cost a
 // power of their depth.
-RowPatternNavigationOperation = ("RUNNING"i | "FINAL"i) & ("FIRST"i | "LAST"i) & '(' & ValueExpression & (',' & SimpleOrDynamicValue)? & ')'
+RowPatternNavigationOperation : @Expression = s: ("RUNNING"i | "FINAL"i) & w: ("FIRST"i | "LAST"i) & '(' & v: ValueNode & (',' & n: SimpleOrDynamicValue)? & ')' => @(Nodes.Call(w, v, n) with { Semantics = Nodes.SemanticsOf(s) })
 
 // ── §6.33 JSON value function, §6.37 JSON value constructor, §6.38 JSON query ──
 //
@@ -928,54 +937,57 @@ RowPatternNavigationOperation = ("RUNNING"i | "FINAL"i) & ("FIRST"i | "LAST"i) &
 // and read as nothing, here as in `--standard`; so `a[$ to last]` is read and `a[1 to last]` is not.
 
 // <JSON value function>. What happens on an empty result is said before what happens on an error.
-JSONValueFunction = "JSON_VALUE"i & '(' & JSONAPICommonSyntax & ("RETURNING"i & DataType)?
-	  & (JSONValueBehavior & "ON"i & "EMPTY"i)? & (JSONValueBehavior & "ON"i & "ERROR"i)? & ')'
-JSONValueBehavior = "ERROR"i | "NULL"i | "DEFAULT"i & ValueExpression
+JSONValueFunction : @Expression = "JSON_VALUE"i & '(' & c: JSONAPICommonSyntax & ("RETURNING"i & t: DataType)?
+	  & (empty: JSONValueBehavior & "ON"i & "EMPTY"i)? & (error: JSONValueBehavior & "ON"i & "ERROR"i)? & ')' => @(new Expression.JsonValue(c, t, empty, error))
+JSONValueBehavior : @JsonValueBehavior = "ERROR"i => @(new JsonValueBehavior.Error())
+                                       | "NULL"i => @(new JsonValueBehavior.Null())
+                                       | "DEFAULT"i & v: ValueNode => @(new JsonValueBehavior.Default(v))
 
 // <JSON query>.
-JSONQuery = "JSON_QUERY"i & '(' & JSONAPICommonSyntax & JSONOutputClause? & (JSONQueryWrapperBehavior & "WRAPPER"i)?
-	  & (("KEEP"i | "OMIT"i) & "QUOTES"i & ("ON"i & "SCALAR"i & "STRING"i)?)?
-	  & (JSONQueryBehavior & "ON"i & "EMPTY"i)? & (JSONQueryBehavior & "ON"i & "ERROR"i)? & ')'
+JSONQuery : @Expression = "JSON_QUERY"i & '(' & c: JSONAPICommonSyntax & o: JSONOutputClause? & (w: JSONQueryWrapperBehavior & "WRAPPER"i)?
+	  & q: JSONQueryQuotes? & (empty: JSONQueryBehavior & "ON"i & "EMPTY"i)? & (error: JSONQueryBehavior & "ON"i & "ERROR"i)? & ')' => @(new Expression.JsonQuery(c, o, Nodes.Wrapper(w), q, Nodes.QueryBehavior(empty), Nodes.QueryBehavior(error)))
 JSONQueryWrapperBehavior = "WITHOUT"i & "ARRAY"i? | "WITH"i & ("CONDITIONAL"i | "UNCONDITIONAL"i)? & "ARRAY"i?
+JSONQueryQuotes          : @JsonQuotes = w: ("KEEP"i | "OMIT"i) & "QUOTES"i & s: ("ON"i & "SCALAR"i & "STRING"i)? => @(new JsonQuotes((w[0] | 0x20) == 'k' ? JsonQuotesBehavior.Keep : JsonQuotesBehavior.Omit, s is not null))
 JSONQueryBehavior        = "ERROR"i | "NULL"i | "EMPTY"i & ("ARRAY"i | "OBJECT"i)
 
 // <JSON API common syntax>: a context item, a path, the path's name, and what the path is passed.
-JSONAPICommonSyntax = JSONInputExpression & ',' & CharacterStringLiteral & ("AS"i & Identifier)?
-	  & ("PASSING"i & JSONInputExpression & "AS"i & Identifier & (',' & JSONInputExpression & "AS"i & Identifier)*)?
-JSONInputExpression = ValueExpression & JSONInputClause?
-JSONOutputClause    = "RETURNING"i & DataType & ("FORMAT"i & JSONRepresentation)?
+JSONAPICommonSyntax : @JsonApiCommon = i: JSONInputExpression & ',' & p: CharacterStringLiteral & ("AS"i & n: Identifier)?
+	  & ("PASSING"i & first: JSONArgument & (',' & rest: JSONArgument)*)? => @(new JsonApiCommon(i.Value, p, n, Nodes.ListOrEmpty(first, rest), i.Format))
+JSONArgument        : @JsonArgument = e: JSONInputExpression & "AS"i & n: Identifier => @(new JsonArgument(e.Value, n, e.Format))
+JSONInputExpression : @JsonElement = v: ValueNode & f: JSONInputClause? => @(new JsonElement(v, f))
+JSONOutputClause    : @JsonOutput = "RETURNING"i & t: DataType & ("FORMAT"i & r: JSONRepresentation)? => @(new JsonOutput(t, r))
 
 // <JSON object constructor>. A name and a value are `KEY name VALUE value`, `name VALUE value` or
 // `name : value`; what follows the name says which, and the name is read once.
-JSONObjectConstructor = "JSON_OBJECT"i & '(' & (JSONNameAndValue & (',' & JSONNameAndValue)* & JSONConstructorNullClause? & JSONKeyUniquenessConstraint?)? & JSONOutputClause? & ')'
-JSONNameAndValue
-	= "KEY"i & CharacterValueExpression & "VALUE"i & JSONInputExpression
-	| CharacterValueExpression & ("VALUE"i | ':') & JSONInputExpression
+JSONObjectConstructor : @Expression = "JSON_OBJECT"i & '(' & (first: JSONNameAndValue & (',' & rest: JSONNameAndValue)* & n: JSONConstructorNullClause? & k: JSONKeyUniquenessConstraint?)? & o: JSONOutputClause? & ')' => @(new Expression.JsonObject(Nodes.ListOrEmpty(first, rest), Nodes.NullHandling(n), Nodes.Uniqueness(k), o))
+JSONNameAndValue : @JsonMember
+	= "KEY"i & k: CharacterNode & "VALUE"i & v: JSONInputExpression => @(new JsonMember(k, v.Value, JsonMemberSyntax.KeyValue, v.Format))
+	| k: CharacterNode & s: ("VALUE"i | ':') & v: JSONInputExpression => @(new JsonMember(k, v.Value, s == ":" ? JsonMemberSyntax.Colon : JsonMemberSyntax.Value, v.Format))
 JSONConstructorNullClause = ("NULL"i | "ABSENT"i) & "ON"i & "NULL"i
 
 // <JSON array constructor>, by enumeration and by query. A query begins with a key word a value
 // expression does not, or with a bracket, where the enumeration is asked first.
-JSONArrayConstructor
-	= "JSON_ARRAY"i & '(' & (JSONInputExpression & (',' & JSONInputExpression)* & JSONConstructorNullClause?)? & JSONOutputClause? & ')'
-	| "JSON_ARRAY"i & '(' & QueryExpression & JSONInputClause? & JSONConstructorNullClause? & JSONOutputClause? & ')'
+JSONArrayConstructor : @Expression
+	= "JSON_ARRAY"i & '(' & (first: JSONInputExpression & (',' & rest: JSONInputExpression)* & n: JSONConstructorNullClause?)? & o: JSONOutputClause? & ')' => @(new Expression.JsonArray(Nodes.ListOrEmpty(first, rest), Nodes.NullHandling(n), o))
+	| "JSON_ARRAY"i & '(' & QueryExpression & f: JSONInputClause? & n: JSONConstructorNullClause? & o: JSONOutputClause? & ')' => @(new Expression.JsonArrayQuery(Nodes.UnbuiltQuery(), f, o, Nodes.NullHandling(n)))
 
 // <JSON exists predicate>.
-JSONExistsPredicate = "JSON_EXISTS"i & '(' & JSONAPICommonSyntax & (("TRUE"i | "FALSE"i | "UNKNOWN"i | "ERROR"i) & "ON"i & "ERROR"i)? & ')'
+JSONExistsPredicate : @Expression = "JSON_EXISTS"i & '(' & c: JSONAPICommonSyntax & (b: ("TRUE"i | "FALSE"i | "UNKNOWN"i | "ERROR"i) & "ON"i & "ERROR"i)? & ')' => @(new Expression.JsonExists(c, Nodes.ExistsBehavior(b)))
 
 // <JSON typed value function>: <JSON parse> and <JSON scalar>, each a <JSON primary> and nothing else
 // — no concatenation takes one, which `Towers.Json` alone says.
-JSONTypedValueFunction
-	= "JSON"i & '(' & StringValueExpression & JSONInputClause? & JSONKeyUniquenessConstraint? & ')'
-	| "JSON_SCALAR"i & '(' & ValueExpression & ')'
+JSONTypedValueFunction : @Expression
+	= "JSON"i & '(' & v: StringValueExpression & f: JSONInputClause? & k: JSONKeyUniquenessConstraint? & ')' => @(new Expression.JsonParse(v.Node, f, Nodes.Uniqueness(k)))
+	| "JSON_SCALAR"i & '(' & s: ValueNode & ')' => @(new Expression.JsonScalar(s))
 
 // <JSON serialize>, of a <JSON value expression>: a value expression primary or a typed value function.
-JSONSerialize        = "JSON_SERIALIZE"i & '(' & JSONValueExpression & JSONOutputClause? & ')'
+JSONSerialize        : @Expression = "JSON_SERIALIZE"i & '(' & v: JSONValueExpression & o: JSONOutputClause? & ')' => @(new Expression.JsonSerialize(v.Node, o))
 JSONValueExpression : @Towers.Typed = e: CommonValueExpression & when @((Towers.RolesOf(e) & Towers.Json) != 0) => @(e)
 
 // <JSON array aggregate constructor>, <JSON object aggregate constructor>.
-JSONAggregateFunction
-	= "JSON_ARRAYAGG"i & '(' & JSONInputExpression & ("ORDER"i & "BY"i & SortSpecificationList)? & JSONConstructorNullClause? & JSONOutputClause? & ')'
-	| "JSON_OBJECTAGG"i & '(' & JSONNameAndValue & JSONConstructorNullClause? & JSONKeyUniquenessConstraint? & JSONOutputClause? & ')'
+JSONAggregateFunction : @Expression
+	= "JSON_ARRAYAGG"i & '(' & e: JSONInputExpression & ("ORDER"i & "BY"i & s: SortSpecificationList)? & n: JSONConstructorNullClause? & o: JSONOutputClause? & ')' => @(new Expression.JsonArrayAggregate(e, s, Nodes.NullHandling(n), o))
+	| "JSON_OBJECTAGG"i & '(' & m: JSONNameAndValue & n: JSONConstructorNullClause? & k: JSONKeyUniquenessConstraint? & o: JSONOutputClause? & ')' => @(new Expression.JsonObjectAggregate(m, Nodes.NullHandling(n), Nodes.Uniqueness(k), o))
 
 // ── §6.39 JSON simplified accessor, as far as the SQL tokens reach ──────────
 //
@@ -983,7 +995,8 @@ JSONAggregateFunction
 // reference's and an array element's: `.*`, `[*]`, subscripts in the path language, and an item
 // method, whose names are mostly reserved words of SQL and so no method's names: `a.decimal(1, 2)`.
 
-// <JSON method>. A datetime's template is a path string literal, which the Syntax Rules keep.
+// <JSON method>, as a method called on what stands before it. A datetime's template is a path string
+// literal, which the Syntax Rules keep.
 JSONMethod : @Expression
 	= w: ("TYPE"i | "SIZE"i | "DOUBLE"i | "CEILING"i | "FLOOR"i | "ABS"i | "KEYVALUE"i | "BIGINT"i | "BOOLEAN"i
 	  | "DATETIME"i | "DATE"i | "INTEGER"i | "NUMBER"i | "STRING"i) & '(' & ')' => @(Nodes.Method(w, null, null))
@@ -991,33 +1004,37 @@ JSONMethod : @Expression
 	| w: ("TIMESTAMP_TZ"i | "TIMESTAMP"i | "TIME_TZ"i | "TIME"i) & '(' & p: UnsignedInteger? & ')' => @(Nodes.Method(w, p, null))
 
 // <JSON subscript>, <JSON path wff>: the path language's arithmetic over its primaries.
-JSONSubscript          = JSONPathWff & ("TO"i & JSONPathWff)?
-JSONPathWff            = JSONPathMultiplicative & (['+' | '-'] & JSONPathMultiplicative)*
-JSONPathMultiplicative = JSONPathUnary & (['*' | '/' | '%'] & JSONPathUnary)*
-JSONPathUnary          = (trivia & ['+' | '-'])* & JSONPathAccessor
-JSONPathAccessor       = JSONPathPrimary & (trivia & JSONPathAccessorOp)*
+JSONSubscript          : @JsonSubscript = low: JSONPathWff & ("TO"i & high: JSONPathWff)? => @(new JsonSubscript(low, high))
+JSONPathWff            : @JsonPathExpression = first: JSONPathMultiplicative & (trivia & rest: JSONPathAdded)* => @(Nodes.PathFold(first, rest))
+JSONPathAdded          : @Nodes.PathOperated = o: ['+' | '-'] & e: JSONPathMultiplicative => @(new Nodes.PathOperated(o, e))
+JSONPathMultiplicative : @JsonPathExpression = first: JSONPathUnary & (trivia & rest: JSONPathMultiplied)* => @(Nodes.PathFold(first, rest))
+JSONPathMultiplied     : @Nodes.PathOperated = o: ['*' | '/' | '%'] & e: JSONPathUnary => @(new Nodes.PathOperated(o, e))
+JSONPathUnary          : @JsonPathExpression = (trivia & signs: ['+' | '-'])* & a: JSONPathAccessor => @(Nodes.PathSigned(signs, a))
+JSONPathAccessor       : @JsonPathExpression = p: JSONPathPrimary & (trivia & ops: JSONPathAccessorOp)* => @(Nodes.PathAccessed(p, ops))
 
 // <JSON path primary>: the context variable, `last`, or a wff in brackets. A named variable is `$` and
 // a path identifier, and `@` is no SQL token.
-JSONPathPrimary = '$' | "LAST"i | '(' & JSONPathWff & ')'
+JSONPathPrimary : @JsonPathExpression = '$' => @(new JsonPathExpression.Variable(JsonPathVariableKind.Context))
+                                      | "LAST"i => @(new JsonPathExpression.Variable(JsonPathVariableKind.Last))
+                                      | '(' & w: JSONPathWff & ')' => @(new JsonPathExpression.Parenthesized(w))
 
 // <JSON accessor op>: those of the simplified accessor, and a filter; a member's name is a key name.
-JSONPathAccessorOp
-	= '.' & '*'
-	| '[' & '*' & ']'
-	| '[' & JSONSubscript & (',' & JSONSubscript)* & ']'
-	| '?' & '(' & JSONPathPredicate & ')'
-	| '.' & JSONMethod
+JSONPathAccessorOp : @JsonPathAccessor
+	= '.' & '*' => @(new JsonPathAccessor.WildcardMember())
+	| '[' & '*' & ']' => @(new JsonPathAccessor.WildcardArray())
+	| '[' & first: JSONSubscript & (',' & rest: JSONSubscript)* & ']' => @(new JsonPathAccessor.Array(Nodes.List(first, rest)))
+	| '?' & '(' & p: JSONPathPredicate & ')' => @(new JsonPathAccessor.Filter(p))
+	| '.' & m: JSONMethod => @(new JsonPathAccessor.Method(Nodes.PathMethod(m)))
 
 // <JSON path predicate>. `&&`, `!`, `==` and `!=` are no SQL tokens — `!` is no SQL character at all
 // (§5.1) — so a conjunction of two, a negation and those comparisons are never read; `||` is the
 // concatenation operator's token, and a disjunction is. `like_regex` and `starts with` need a path
 // string literal.
-JSONPathPredicate = JSONPredicatePrimary & ("||" & JSONPredicatePrimary)*
-JSONPredicatePrimary
-	= "EXISTS"i & '(' & JSONPathWff & ')'
-	| '(' & JSONPathPredicate & ')' & ("IS"i & "UNKNOWN"i)?
-	| JSONPathWff & ("<>" | "<=" | ">=" | '<' | '>') & JSONPathWff
+JSONPathPredicate : @JsonPathPredicate = first: JSONPredicatePrimary & ("||" & rest: JSONPredicatePrimary)* => @(Nodes.PathOr(first, rest))
+JSONPredicatePrimary : @JsonPathPredicate
+	= "EXISTS"i & '(' & w: JSONPathWff & ')' => @(new JsonPathPredicate.Exists(w))
+	| '(' & p: JSONPathPredicate & ')' & u: ("IS"i & "UNKNOWN"i)? => @(u is null ? new JsonPathPredicate.Parenthesized(p) : new JsonPathPredicate.IsUnknown(p))
+	| l: JSONPathWff & o: ("<>" | "<=" | ">=" | '<' | '>') & r: JSONPathWff => @(new JsonPathPredicate.Comparison(l, Nodes.PathComparison(o), r))
 
 // ── §7.11 JSON table ─────────────────────────────────────────────────────────
 
@@ -1171,55 +1188,60 @@ Recognized : @bool = RowPatternRecognitionClause & Correlated => @(true)
 
 // ── §7.6 Row pattern recognition clause ─────────────────────────────────────
 
-RowPatternRecognitionClause
-	= "MATCH_RECOGNIZE"i & '(' & RowPatternPartitionBy? & ("ORDER"i & "BY"i & SortSpecificationList)?
-	  & RowPatternMeasures? & RowPatternRowsPerMatch? & RowPatternCommonSyntax & ')'
+RowPatternRecognitionClause : @RowPatternClause
+	= "MATCH_RECOGNIZE"i & '(' & p: RowPatternPartitionBy? & ("ORDER"i & "BY"i & o: SortSpecificationList)?
+	  & m: RowPatternMeasures? & r: RowPatternRowsPerMatch? & c: RowPatternCommonSyntax & ')' => @(Nodes.Recognized(p, o, m, r, c))
 
-RowPatternPartitionBy = "PARTITION"i & "BY"i & ColumnReference & CollateClause? & (',' & ColumnReference & CollateClause?)*
-RowPatternMeasures    = "MEASURES"i & ValueExpression & "AS"i & Identifier & (',' & ValueExpression & "AS"i & Identifier)*
+RowPatternPartitionBy : @IReadOnlyList<Expression> = "PARTITION"i & "BY"i & first: PartitionColumn & (',' & rest: PartitionColumn)* => @(Nodes.List(first, rest))
+RowPatternMeasures    : @IReadOnlyList<RowPatternMeasure> = "MEASURES"i & first: RowPatternMeasure & (',' & rest: RowPatternMeasure)* => @(Nodes.List(first, rest))
+RowPatternMeasure     : @RowPatternMeasure = v: ValueNode & "AS"i & n: Identifier => @(new RowPatternMeasure(v, n))
 
-RowPatternRowsPerMatch
-	= "ONE"i & "ROW"i & "PER"i & "MATCH"i
-	| "ALL"i & "ROWS"i & "PER"i & "MATCH"i & ("SHOW"i & "EMPTY"i & "MATCHES"i | "OMIT"i & "EMPTY"i & "MATCHES"i | "WITH"i & "UNMATCHED"i & "ROWS"i)?
+// A column a partition is by, and the collation it is compared under.
+PartitionColumn : @Expression = c: ColumnReference & o: CollateClause? => @(o is null ? c : new Expression.Collate(c, o))
 
-// <row pattern common syntax>, which a window frame ends in too.
-RowPatternCommonSyntax
-	= ("AFTER"i & "MATCH"i & RowPatternSkipTo)? & ("INITIAL"i | "SEEK"i)? & "PATTERN"i & '(' & RowPattern & ')'
-	  & RowPatternSubsetClause? & "DEFINE"i & RowPatternDefinition & (',' & RowPatternDefinition)*
+RowPatternRowsPerMatch : @RowsPerMatch
+	= "ONE"i & "ROW"i & "PER"i & "MATCH"i => @(RowsPerMatch.One)
+	| "ALL"i & "ROWS"i & "PER"i & "MATCH"i & h: ("SHOW"i & "EMPTY"i & "MATCHES"i | "OMIT"i & "EMPTY"i & "MATCHES"i | "WITH"i & "UNMATCHED"i & "ROWS"i)? => @(Nodes.AllRows(h))
+
+// <row pattern common syntax>, which a window frame ends in too: what `Nodes.Recognized` and
+// `Nodes.Framed` complete a clause with.
+RowPatternCommonSyntax : @RowPatternClause
+	= ("AFTER"i & "MATCH"i & k: RowPatternSkipTo)? & i: ("INITIAL"i | "SEEK"i)? & "PATTERN"i & '(' & p: RowPattern & ')'
+	  & s: RowPatternSubsetClause? & "DEFINE"i & first: RowPatternDefinition & (',' & rest: RowPatternDefinition)* => @(Nodes.Common(k, i, p, s, first, rest))
 
 // <row pattern skip to>. A variable's name is an identifier, and `FIRST`, `LAST` and `NEXT` are none
 // of them reserved: `SKIP TO FIRST A` is asked before `SKIP TO FIRST`, which names a variable `FIRST`.
-RowPatternSkipTo
-	= "SKIP"i & "TO"i & "NEXT"i & "ROW"i
-	| "SKIP"i & "PAST"i & "LAST"i & "ROW"i
-	| "SKIP"i & "TO"i & ("FIRST"i | "LAST"i) & Identifier
-	| "SKIP"i & "TO"i & Identifier
+RowPatternSkipTo : @RowPatternSkip
+	= "SKIP"i & "TO"i & "NEXT"i & "ROW"i => @(new RowPatternSkip(RowPatternSkipKind.NextRow))
+	| "SKIP"i & "PAST"i & "LAST"i & "ROW"i => @(new RowPatternSkip(RowPatternSkipKind.PastLastRow))
+	| "SKIP"i & "TO"i & w: ("FIRST"i | "LAST"i) & v: Identifier => @(new RowPatternSkip((w[0] | 0x20) == 'f' ? RowPatternSkipKind.First : RowPatternSkipKind.Last, v))
+	| "SKIP"i & "TO"i & v: Identifier => @(new RowPatternSkip(RowPatternSkipKind.Variable, v))
 
 // <row pattern>, <row pattern alternation>, <row pattern term>: the BNF recurses through the first
 // and the last on the left, and they are repetitions here.
-RowPattern       = RowPatternTerm & ('|' & RowPatternTerm)*
-RowPatternTerm   = RowPatternFactor & (trivia & RowPatternFactor)*
-RowPatternFactor = RowPatternPrimary & RowPatternQuantifier?
+RowPattern       : @RowPattern = first: RowPatternTerm & ('|' & rest: RowPatternTerm)* => @(Nodes.Alternation(first, rest))
+RowPatternTerm   : @RowPattern = first: RowPatternFactor & (trivia & rest: RowPatternFactor)* => @(Nodes.Sequence(first, rest))
+RowPatternFactor : @RowPattern = p: RowPatternPrimary & q: RowPatternQuantifier? => @(q is null ? p : new RowPattern.Quantified(p, q))
 
 // <row pattern primary>. `PERMUTE` is not reserved, and is asked before a variable of that name.
-RowPatternPrimary
-	= "PERMUTE"i & '(' & RowPattern & (',' & RowPattern)* & ')'
-	| Identifier
-	| '$'
-	| '^'
-	| '(' & RowPattern? & ')'
-	| "{-" & RowPattern & "-}"
+RowPatternPrimary : @RowPattern
+	= "PERMUTE"i & '(' & first: RowPattern & (',' & rest: RowPattern)* & ')' => @(new RowPattern.Permute(Nodes.List(first, rest)))
+	| v: Identifier => @(new RowPattern.Variable(v))
+	| '$' => @(new RowPattern.EndAnchor())
+	| '^' => @(new RowPattern.StartAnchor())
+	| '(' & inner: RowPattern? & ')' => @(new RowPattern.Parenthesized(inner))
+	| "{-" & excluded: RowPattern & "-}" => @(new RowPattern.Excluded(excluded))
 
-RowPatternQuantifier
-	= '*' & PatternQuestionMark?
-	| '+' & PatternQuestionMark?
-	| PatternQuestionMark & PatternQuestionMark?
-	| '{' & UnsignedInteger? & ',' & UnsignedInteger? & '}' & PatternQuestionMark?
-	| '{' & UnsignedInteger & '}'
+RowPatternQuantifier : @RowPatternQuantifier
+	= '*' & r: PatternQuestionMark? => @(new RowPatternQuantifier(RowPatternQuantifierKind.ZeroOrMore, Reluctant: r is not null))
+	| '+' & r: PatternQuestionMark? => @(new RowPatternQuantifier(RowPatternQuantifierKind.OneOrMore, Reluctant: r is not null))
+	| PatternQuestionMark & r: PatternQuestionMark? => @(new RowPatternQuantifier(RowPatternQuantifierKind.ZeroOrOne, Reluctant: r is not null))
+	| '{' & min: UnsignedInteger? & ',' & max: UnsignedInteger? & '}' & r: PatternQuestionMark? => @(new RowPatternQuantifier(RowPatternQuantifierKind.Range, Nodes.Integer(min), Nodes.Integer(max), r is not null))
+	| '{' & exact: UnsignedInteger & '}' => @(new RowPatternQuantifier(RowPatternQuantifierKind.Exact, Nodes.Integer(exact), Nodes.Integer(exact)))
 
-RowPatternSubsetClause = "SUBSET"i & RowPatternSubsetItem & (',' & RowPatternSubsetItem)*
-RowPatternSubsetItem   = Identifier & '=' & '(' & Identifier & (',' & Identifier)* & ')'
-RowPatternDefinition   = Identifier & "AS"i & SearchCondition
+RowPatternSubsetClause : @IReadOnlyList<RowPatternSubset> = "SUBSET"i & first: RowPatternSubsetItem & (',' & rest: RowPatternSubsetItem)* => @(Nodes.List(first, rest))
+RowPatternSubsetItem   : @RowPatternSubset = n: Identifier & '=' & '(' & first: Identifier & (',' & rest: Identifier)* & ')' => @(new RowPatternSubset(n, Nodes.List(first, rest)))
+RowPatternDefinition   : @RowPatternDefinition = v: Identifier & "AS"i & c: SearchCondition => @(new RowPatternDefinition(v, c.Node))
 
 // <table or query name>: a transition table's name and a query's are identifiers, which a table name is.
 TableOrQueryName = TableName
@@ -1257,43 +1279,46 @@ GroupingColumnReference = ColumnReference & CollateClause?
 
 // ── §7.11 Window clause ─────────────────────────────────────────────────────
 
-WindowClause               = "WINDOW"i & { WindowDefinition & (',' & WindowDefinition)* }
-WindowDefinition           = WindowName & "AS"i & WindowSpecification
-WindowSpecification        = '(' & WindowSpecificationDetails & ')'
-WindowSpecificationDetails = ExistingWindowName? & WindowPartitionClause? & WindowOrderClause? & WindowFrameClause?
+WindowClause               : @WindowClause = "WINDOW"i & { first: WindowDefinition & (',' & rest: WindowDefinition)* } => @(new WindowClause(Nodes.List(first, rest)))
+WindowDefinition           : @WindowDefinition = n: WindowName & "AS"i & s: WindowSpecification => @(new WindowDefinition(n, s))
+WindowSpecification        : @WindowSpecification = '(' & s: WindowSpecificationDetails & ')' => @(s)
+WindowSpecificationDetails : @WindowSpecification = e: ExistingWindowName? & p: WindowPartitionClause? & o: WindowOrderClause? & f: WindowFrameClause? => @(new WindowSpecification(e, p ?? [], o, f))
 
 // <existing window name>. A frame may begin with `MEASURES`, which is not reserved, so a name is one
 // only where what may follow a name follows it.
-ExistingWindowName = WindowName & ?=("PARTITION"i | "ORDER"i | "ROWS"i | "RANGE"i | "GROUPS"i | "MEASURES"i | ')')
-WindowName                 = Identifier
+ExistingWindowName : @Identifier = n: WindowName & ?=("PARTITION"i | "ORDER"i | "ROWS"i | "RANGE"i | "GROUPS"i | "MEASURES"i | ')') => @(n)
+WindowName         : @Identifier = i: Identifier => @(i)
 
-WindowPartitionClause = "PARTITION"i & "BY"i & WindowPartitionColumnReference & (',' & WindowPartitionColumnReference)*
-WindowPartitionColumnReference = ColumnReference & CollateClause?
-WindowOrderClause     = "ORDER"i & "BY"i & SortSpecificationList
+WindowPartitionClause : @IReadOnlyList<Expression> = "PARTITION"i & "BY"i & first: PartitionColumn & (',' & rest: PartitionColumn)* => @(Nodes.List(first, rest))
+WindowOrderClause     : @OrderByClause = "ORDER"i & "BY"i & s: SortSpecificationList => @(s)
 
 // <window frame clause>, with the row pattern measures before it and the row pattern syntax after.
-WindowFrameClause = RowPatternMeasures? & ("ROWS"i | "RANGE"i | "GROUPS"i) & WindowFrameExtent & WindowFrameExclusion? & RowPatternCommonSyntax?
+WindowFrameClause : @WindowFrame = m: RowPatternMeasures? & u: ("ROWS"i | "RANGE"i | "GROUPS"i) & e: WindowFrameExtent & x: WindowFrameExclusion? & c: RowPatternCommonSyntax? => @(Nodes.Framed(m, u, e, x, c))
 
-WindowFrameExtent
-	= "BETWEEN"i & WindowFrameBound & "AND"i & WindowFrameBound
-	| WindowFrameStart
+WindowFrameExtent : @WindowFrameExtent
+	= "BETWEEN"i & from: WindowFrameBound & "AND"i & to: WindowFrameBound => @(new WindowFrameExtent.Between(from, to))
+	| b: WindowFrameStart => @(new WindowFrameExtent.Single(b))
 
-WindowFrameStart
-	= "UNBOUNDED"i & "PRECEDING"i
-	| UnsignedValueSpecification & "PRECEDING"i
-	| "CURRENT"i & "ROW"i
+WindowFrameStart : @WindowFrameBound
+	= "UNBOUNDED"i & "PRECEDING"i => @(new WindowFrameBound(WindowBoundKind.UnboundedPreceding))
+	| v: UnsignedValueSpecification & "PRECEDING"i => @(new WindowFrameBound(WindowBoundKind.Preceding, v))
+	| "CURRENT"i & "ROW"i => @(new WindowFrameBound(WindowBoundKind.CurrentRow))
 
-WindowFrameBound
-	= WindowFrameStart
-	| "UNBOUNDED"i & "FOLLOWING"i
-	| UnsignedValueSpecification & "FOLLOWING"i
+WindowFrameBound : @WindowFrameBound
+	= b: WindowFrameStart => @(b)
+	| "UNBOUNDED"i & "FOLLOWING"i => @(new WindowFrameBound(WindowBoundKind.UnboundedFollowing))
+	| v: UnsignedValueSpecification & "FOLLOWING"i => @(new WindowFrameBound(WindowBoundKind.Following, v))
 
-WindowFrameExclusion = "EXCLUDE"i & ("CURRENT"i & "ROW"i | "GROUP"i | "TIES"i | "NO"i & "OTHERS"i)
+WindowFrameExclusion : @WindowFrameExclusion = "EXCLUDE"i & w: ("CURRENT"i & "ROW"i | "GROUP"i | "TIES"i | "NO"i & "OTHERS"i) => @(Nodes.Exclusion(w))
 
 // <unsigned value specification>, <simple value specification>: an SQL parameter reference is an
 // identifier chain, and a host's embedded variable is written as a host parameter is.
-UnsignedValueSpecification = UnsignedLiteral | GeneralValueSpecification | IdentifierChain
-SimpleValueSpecification   = Literal | ':' & Identifier | IdentifierChain
+UnsignedValueSpecification : @Expression = l: UnsignedLiteral => @(new Expression.Literal(l))
+                                          | g: GeneralValueSpecification => @(g)
+                                          | n: IdentifierChain => @(new Expression.Reference(n))
+SimpleValueSpecification   : @Expression = l: Literal => @(new Expression.Literal(l))
+                                          | ':' & h: Identifier => @(new Expression.Parameter(ParameterKind.Host, h))
+                                          | n: IdentifierChain => @(new Expression.Reference(n))
 
 // ── §7.12 Query specification ───────────────────────────────────────────────
 
@@ -1365,9 +1390,8 @@ Subquery       = '(' & QueryExpression & ')'
 
 // ── §10.10 Sort specification list ──────────────────────────────────────────
 
-SortSpecificationList = { SortSpecification & (',' & SortSpecification)* }
-SortSpecification     = ValueExpression & ("ASC"i | "DESC"i)? & ("NULLS"i & ("FIRST"i | "LAST"i))?
-
+SortSpecificationList : @OrderByClause = { first: SortSpecification & (',' & rest: SortSpecification)* } => @(new OrderByClause(Nodes.List(first, rest)))
+SortSpecification     : @SortItem = k: ValueNode & d: ("ASC"i | "DESC"i)? & ("NULLS"i & n: ("FIRST"i | "LAST"i))? => @(Nodes.Sorted(k, d, n))
 // ── §14.8 Delete statement, §14.9 Truncate table statement ──────────────────
 
 // <delete statement: searched>, <delete statement: positioned>.
