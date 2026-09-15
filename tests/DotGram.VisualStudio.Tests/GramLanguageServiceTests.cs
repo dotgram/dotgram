@@ -239,6 +239,19 @@ public sealed class GramLanguageServiceTests
 	}
 
 	[Fact]
+	public void ClassifiesStreamAndBytesAsKeywords()
+	{
+		const string source = "Start = stream & bytes";
+
+		var classified = GramLanguageService.Analyze(source).Classifications
+			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
+			.ToArray();
+
+		Assert.Contains(("stream", GramSyntaxKind.Keyword), classified);
+		Assert.Contains(("bytes", GramSyntaxKind.Keyword), classified);
+	}
+
+	[Fact]
 	public void ClassifiesGrammarConditionsAndIndexesTheirRuleReferences()
 	{
 		const string source =

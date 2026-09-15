@@ -69,7 +69,7 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 {
 	static readonly string[] BuiltIns =
 	[
-		"any", "none", "eol", "eof", "trivia", "wordboundary",
+		"any", "none", "eol", "eof", "trivia", "wordboundary", "stream", "bytes",
 		"using", "namespace", "parse", "find", "as", "when", "recover", "with",
 		"on", "fail", "public", "internal", "private",
 		"is", "not", "and", "or",
