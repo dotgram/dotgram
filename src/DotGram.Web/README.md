@@ -46,6 +46,37 @@ Rfc3986.Decode("hello%20world"); // hello world
 `%2F` inside a path segment is encoded data during parsing; decoding it early would turn
 it into a path separator it is not.
 
+## RFC 6570 URI Templates
+
+[`Rfc6570`](Rfc6570.cs) reads a template once and expands it as often as there are values,
+at all four levels of the RFC.
+
+```csharp
+using DotGram.Web;
+
+var template = Rfc6570.ParseTemplate("/users{/id}{?fields,page:3}{&tags*}");
+
+template.Expand(new Dictionary<string, object?>
+{
+    ["id"]     = "igor",
+    ["fields"] = new[] { "name", "email" },
+    ["page"]   = "12345",
+    ["tags"]   = new[] { "a", "b" },
+});
+// /users/igor?fields=name,email&page=123&tags=a&tags=b
+```
+
+A value is a string, a list (`IEnumerable<string>`) or an associative array
+(`IEnumerable<KeyValuePair<string, string>>`, a dictionary among them); a number is its
+invariant text, and a missing or null value is undefined. `template.Parts` is what the
+template was made of — literals, and expressions with their operator and variables — for a
+caller that wants to know which variables a template asks for.
+
+A template that does not follow the grammar is refused whole, including one using an
+operator the RFC reserves. A prefix on a list or an associative array throws on
+expansion, since the RFC gives it no meaning. It is held to
+[the implementers' test suite](https://github.com/uri-templates/uritemplate-test).
+
 ## RFC 9651 Structured Field Values
 
 [`Rfc9651`](Rfc9651.cs) reads the fields HTTP now defines this way — `Priority`,

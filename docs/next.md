@@ -22558,6 +22558,26 @@ Held by httpwg/structured-field-tests at 1e280c3, vendored under
 passing on the first run — `must_fail` refused, `can_fail` either way, the rest read as expected.
 Serialization (§4.1) is not written yet; its own suite is in the same repository.
 
+## RFC 6570, URI Template
+
+`src/DotGram.Web/Rfc6570.cs`, the second specification written on its own, as Igor asked for
+2026-09-15 rather than built by inheritance on another. §2's ABNF, all four levels, parsed into
+`UriTemplate` — `Literal`, `Expression(Operator, Variables)`, `Variable(Name, Prefix, Explode)`,
+nested so that names this general stay out of the namespace — and `UriTemplate.Expand` after
+Appendix A's table: first, separator, named, if-empty and the allowed set, per operator.
+Values are what .NET has: a string, an `IEnumerable<string>`, an
+`IEnumerable<KeyValuePair<string, string>>`, anything formattable as its invariant text.
+
+Held by uri-templates/uritemplate-test at 4171dac, vendored under
+`tests/DotGram.Tests/Web/UriTemplates/` with its Apache-2.0 licence: 272 cases. Two failed on the
+first run, both an apostrophe in a literal — `'{var}'`, the RFC's own example — which §2.1's ABNF
+leaves out. **Verified erratum 6937 puts it back** (`%x26-3B`), so the suite was right and the
+transcription of the RFC was faithful to a mistake; the grammar follows the erratum and says so.
+Two departures are written beside the grammar: a surrogate pair stands for any astral `ucschar`
+or `iprivate`, letting through the plane-final noncharacters the ABNF excludes, and a malformed
+template is refused whole where Appendix A sketches a processor that copies and carries on. A
+prefix on a composite value throws `ArgumentException` on expansion.
+
 **A build trap met on the way, not a code one.** A project directory created mid-session could not
 be written by `dotnet build`: "Access to the path … is denied" on `obj`, even outside the sandbox. The
 build was joining MSBuild nodes and a compiler server started earlier inside it, with their rights.
