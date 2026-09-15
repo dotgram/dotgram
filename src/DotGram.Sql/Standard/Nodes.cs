@@ -704,13 +704,97 @@ static class Nodes
 			direction is null ? null : (direction[0] | 0x20) == 'a' ? SortDirection.Asc : SortDirection.Desc,
 			nulls is null ? null : (nulls[0] | 0x20) == 'f' ? NullOrdering.First : NullOrdering.Last);
 
-	// ── §11 Schema definition and manipulation ─────────────────────────────────
+	// ── §11 Triggers and SQL-invoked routines ──────────────────────────────────
+
+	/// <summary>A triggered SQL statement: the statements, and whether they were a `BEGIN ATOMIC` block.</summary>
+	public sealed record Triggered(IReadOnlyList<Statement> Statements, bool Atomic);
+
+	/// <summary>`FOR EACH ROW` or `FOR EACH STATEMENT`.</summary>
+	public static TriggerGranularity? GranularityOf(string? word) =>
+		word is null ? null : (word[0] | 0x20) == 'r' ? TriggerGranularity.Row : TriggerGranularity.Statement;
+
+	/// <summary>A parameter's type, and whether `AS LOCATOR` followed it.</summary>
+	public sealed record ParameterTyped(DataType Type, bool Locator);
+
+	/// <summary>A table parameter's semantics, and a set's pruning.</summary>
+	public sealed record TableSemanticsOf(TableSemantics Semantics, TablePruning? Pruning);
+
+	/// <summary>`IN`, `OUT` or `INOUT`.</summary>
+	public static ParameterMode? ModeOf(string? word) =>
+		word is null ? null : word.Length == 2 ? ParameterMode.In : word.Length == 3 ? ParameterMode.Out : ParameterMode.InOut;
+
+	/// <summary>`SQL SECURITY INVOKER` or `SQL SECURITY DEFINER`.</summary>
+	public static SqlSecurity? SecurityOf(string? word) =>
+		word is null ? null : (word[0] | 0x20) == 'i' ? SqlSecurity.Invoker : SqlSecurity.Definer;
+
+	// ── §14, §16–§23 Statements ────────────────────────────────────────────────
+
+	/// <summary>A key word as the member of <typeparamref name="T"/> spelled like it: `ABSOLUTE`, `ROW_COUNT`, `KEY_TYPE`.</summary>
+	public static T EnumOf<T>(string word) where T : struct =>
+		(T)Enum.Parse(typeof(T), word.Replace("_", ""), true);
+
+	/// <summary>A target: a name, or an element of the array it names.</summary>
+	public static Expression Target(QualifiedName name, string? bracket, Expression? index) =>
+		index is null
+			? new Expression.Reference(name)
+			: new Expression.Element(new Expression.Reference(name), index, null, bracket == "??(");
+
+	public static Statement SetValue(string word, Expression value) =>
+		(word[0] | 0x20) switch
+		{
+			'c' => new Statement.SetCatalog { Value = value },
+			's' => new Statement.SetSchema { Value = value },
+			'n' => new Statement.SetNames { Value = value },
+			_   => new Statement.SetPath { Value = value },
+		};
 
 	/// <summary>
-	/// What a statement stands in for until its part of §11 builds its tree: routines, triggers,
-	/// user-defined types, casts, orderings and transforms. Each goes as its part builds.
+	/// The identifier a statement, a descriptor or a cursor is named by, where it was named by one alone;
+	/// with a scope before it, or a value of another kind, the name is an extended one.
 	/// </summary>
-	public static Statement UnbuiltStatement() => new Statement.Extension { Dialect = "SQL:2023", Kind = "Unbuilt" };
+	static Identifier? Alone(string? scope, Expression value) =>
+		scope is null && value is Expression.Reference { Name.Parts.Count: 1 } reference ? reference.Name.Parts[0] : null;
+
+	static bool IsGlobal(string? scope) => scope is not null && (scope[0] | 0x20) == 'g';
+	static bool IsLocal(string? scope) => scope is not null && (scope[0] | 0x20) == 'l';
+
+	public static StatementReference StatementName(string? scope, Expression value) =>
+		Alone(scope, value) is { } name
+			? new StatementReference(name)
+			: new StatementReference(null, value, IsGlobal(scope), IsLocal(scope));
+
+	public static DescriptorReference DescriptorName(string? scope, Expression value, bool ptf) =>
+		Alone(scope, value) is { } name
+			? new DescriptorReference(name, null, ptf)
+			: new DescriptorReference(null, value, ptf, IsGlobal(scope), IsLocal(scope));
+
+	public static CursorReference CursorName(string? scope, Expression value, bool ptf) =>
+		Alone(scope, value) is { } name
+			? new CursorReference(new QualifiedName([name]), null, ptf)
+			: new CursorReference(null, value, ptf, IsGlobal(scope), IsLocal(scope));
+
+	/// <summary>What `ALL` is qualified by in a diagnostics statement, and a condition's number.</summary>
+	public sealed record AllOf(AllInformationQualifier Qualifier, Expression? Number);
+
+	/// <summary>`USING [SQL] DESCRIPTOR d`.</summary>
+	public sealed record UsingDescriptor(bool SqlKeyword, DescriptorReference Descriptor);
+
+	/// <summary>What a copy descriptor statement says after its source: the item's index and what it takes, where an item is copied, and the target.</summary>
+	public sealed record CopyTail(Expression? SourceIndex, IReadOnlyList<DescriptorCopyOption>? Options, DescriptorReference Target, Expression? TargetIndex);
+
+	public static DescriptorCopy Copy(DescriptorReference source, CopyTail tail) =>
+		tail.SourceIndex is null
+			? new DescriptorCopy.Whole(source, tail.Target)
+			: new DescriptorCopy.Item(source, tail.SourceIndex, tail.Options!, tail.Target, tail.TargetIndex!);
+
+	// ── §11 Schema definition and manipulation ─────────────────────────────────
+
+	/// <summary>`TRANSFORMS`, rather than `TRANSFORM`.</summary>
+	public static bool IsPlural(string keyword) => keyword.Length == 10;
+
+	/// <summary>The kinds of transform a group drops, one or both.</summary>
+	public static IReadOnlyList<TransformDirection> Directions(TransformDirection first, TransformDirection? second) =>
+		second is { } other ? [first, other] : [first];
 
 	/// <summary>A schema's name and its authorization, either or both.</summary>
 	public sealed record SchemaNaming(QualifiedName? Name, AuthorizationIdentifier? Authorization);

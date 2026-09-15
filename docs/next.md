@@ -22689,10 +22689,205 @@ nothing (`Assignment`), captured unconditionally and taken apart in C#.
 There is no shared suite for the Link header field. The tests are §3.5's examples unfolded to one line each,
 and each recipient rule of §3 and RFC 8187.
 
+## RFC 8259, JSON, and the JSON Pointer that resolves
+
+Igor, 2026-09-15: go on with the specifications, write a JSON grammar of our own if one is needed, and bring
+in no library. One was needed — JSON Pointer's §4 is a question about a document, and the package had no
+document — so `src/DotGram.Web/Rfc8259.cs` is JSON, and `JsonPointer.Resolve(JsonValue)` is §4.
+
+The grammar is RFC 8259's ABNF with `ws` written where the six structural characters carry it, into
+`JsonValue` with its six cases nested. A number keeps its text (§6 leaves precision to the reader;
+`ToDouble`, `TryToDecimal`, `TryToInt64` read it); an object keeps its members in order and a name written
+twice (§4 leaves duplicates to the reader); an escaped lone surrogate survives (§8.2) and is written back
+escaped. A byte order mark is refused, which §8.1 allows. Nesting needs nothing of the grammar: the reader
+moves to a fresh stack where one runs low (syntax.md §6.5), and a hundred thousand brackets read.
+
+`Resolve` answers null — not `JsonValue.Null` — where the pointer refers to nothing: a missing member, an
+index past the end or with a leading zero, `-`, a step into a value with no parts, and a name an object
+holds twice, whose member §4 calls undefined. The pointer tests evaluate against it now, and no test reads
+`System.Text.Json`.
+
+Held by nst/JSONTestSuite's `test_parsing/` at 1ef36fa, vendored with its MIT licence and marked `-text` in
+`.gitattributes`: the cases are bytes, some UTF-16, some not UTF-8, and `* text eol=crlf` would have
+rewritten them. Each file is decoded as strict UTF-8 first; `y_` must read, `n_` must be refused, `i_`
+must be answered either way. Every text read is also written back and read again to the same value.
+
+## DotGram.Web's values are equal by what they hold
+
+Asked by Igor 2026-09-15 whether `JsonValue` is an ADT: it is — an abstract record with a private constructor
+and its six cases sealed and nested, the same shape as `BareItem` — but a record compares a list it holds by
+reference, so `Rfc8259.ParseJson("[1]")` was not equal to itself read twice. Every record here that holds a
+list now says what equal means through `Structural` (element by element, in order, with a hash C# 8's
+netstandard2.0 has no `HashCode` for): `JsonValue.Object` and `.Array`, `InnerList`, `OrderedMap<T>` (now
+`IEquatable`), `BareItem.ByteSequence` by its bytes, `UriTemplate` and its `Expression`, `JsonPointer`, and
+`WebLink`. A record whose fields already compare by value — `Item`, `FullTime`, `UriParts` — needed nothing.
+
+Two choices worth knowing. **Order counts**: an object with the same members in another order is a
+different object, and so is one with a name written twice, because both are what the parser keeps and what
+`ToString` writes back; `1.0` and `1` are different numbers for the same reason. **`LanguageTag` ignores
+case**: RFC 5646 §2.1.1 says case carries no meaning in a tag, so `en-US` equals `EN-us` though each keeps
+the spelling it was read with. A switch over one of the closed sets is still not checked for exhaustiveness
+by the compiler, which knows nothing of the private constructor.
+
 **A build trap met on the way, not a code one.** A project directory created mid-session could not
 be written by `dotnet build`: "Access to the path … is denied" on `obj`, even outside the sandbox. The
 build was joining MSBuild nodes and a compiler server started earlier inside it, with their rights.
 `-nodeReuse:false -p:UseSharedCompilation=false` (or `MSBUILDDISABLENODEREUSE=1`) is the way out.
+
+## RFC 9110, media types in Content-Type and Accept
+
+Igor, 2026-09-15: go on with the specifications. `src/DotGram.Web/Rfc9110.cs` reads a media type
+(§8.3.1) from `Content-Type` and the media ranges of `Accept` (§12.5.1), over §5.6's token, quoted-string,
+parameters with the empty slots a recipient accepts, and a list with empty elements. `MediaType` keeps what
+was written; its equality ignores the case of the type, the subtype, a parameter name and a `charset`
+value (RFC 2046), so §8.3.1's four spellings are equal. `Quality` takes the weight of the most specific
+matching range.
+
+Where the RFC leaves room: a parameter named `q` is the weight wherever it stands (§12.5.1 asks recipients
+to take it so) and must be a qvalue, or the field is refused; `*/html` is refused; a type and subtype are
+tokens as HTTP reads them, not RFC 6838 §4.2's narrower registration names. Parameters are one text per
+slot taken apart in C#, and the range check is a `when` in a rule with no group — both the shapes the two
+generator defects above leave room for.
+
+A trap in the tests rather than the code: RFC 7231's quality example is not RFC 9110's. 9110 changed the
+field to `text/plain;q=0.7, text/plain;format=flowed, …`, and its table keeps 7231's `text/html;level=3 →
+0.7`, which no longer follows; verified erratum 7138 corrects it to 0.3, and that is what the test holds.
+
+No shared suite exists. Held by the RFC's examples and by the IANA Media Types registry as published on
+2026-09-15, one CSV per top-level type in `tests/DotGram.Tests/Web/MediaTypes/`: every template reads as a
+`Content-Type` and writes back as written.
+
+## RFC 6902, JSON Patch
+
+Igor, 2026-09-15: go on (JSON Patch was proposed as next, over JSON and JSON Pointer already here).
+`src/DotGram.Web/Rfc6902.cs` has no grammar: a patch document's syntax is JSON's and a path's is JSON
+Pointer's. What is new is §4's meaning. `JsonPatch` holds `Operation`, a closed set of six nested records;
+`Rfc6902.ReadPatch` reads one from a `JsonValue`, `Apply`/`TryApply` apply it, `AreEqual` is §4.6.
+
+Applying rebuilds the objects and arrays on the way to each location and shares the rest, so a failed patch
+leaves nothing to undo (§5). Where the RFC leaves room: `op`, `path` and the `value` or `from` an operation
+takes written twice is an error, since this JSON reader keeps both; a name an object holds twice is no
+location, as `Resolve` already answers; removing the root is an error, as erratum 4787 (held for document
+update) asks. The other five errata are rejected. §4.6's numbers compare by value at any precision — sign,
+significant digits, and a `BigInteger` exponent — and objects match members by name and value once each.
+
+Held by json-patch/json-patch-tests at 2a928f9 (Apache-2.0, the licence in its README, vendored with it):
+every record runs, `disabled` ones included, since they are disabled for readers that drop a duplicate
+member or refuse a scalar document. Each patch is also written back and read again to the same patch.
+
+A discussion Igor opened and left open: streaming JSON, to read files too large to hold. The generator has
+no incremental input today; a pull reader over `JsonValue`'s tokens, or a grammar publication per element
+of a top-level array, are the shapes to talk over.
+
+## RFC 6266, Content-Disposition
+
+Igor, 2026-09-15: go on with the specifications. `src/DotGram.Web/Rfc6266.cs` reads the field into
+`ContentDisposition`: a type, parameters, `IsInline`/`IsAttachment` (§4.2: an unknown type is an
+attachment), `Find`, and `Filename`, which takes a `filename*` that decodes over `filename` (§4.3). The
+ext-value is RFC 8187's, read by `Rfc8288.Extended`, which the Link header field already had.
+
+The ABNF is RFC 2616's with implied whitespace, which §4.1 points out, so space is allowed around `;` and
+`=` — unlike RFC 9110's parameters. A name written twice, whatever its case, and an ext-token whose value is
+no ext-value both make the field invalid, and it is refused whole: §3 lets a recipient recover, and says
+the default is to ignore. The one verified erratum, 3475, is in Appendix B and changes nothing read.
+
+Held by Julian Reschke's tc2231 cases, which carry no licence: only each case's name and the field value it
+sends are in the tests, taken from its `.asis` page as ISO-8859-1 and escaped. Seven cases where tc2231
+recovers a type from an invalid field, or calls the meaning undefined, are refused here and marked so; the
+RFC 2231 continuations (`filename*0`, ...) are extension parameters and give no filename, since RFC 6266
+does not take them in.
+
+## RFC 7239, Forwarded
+
+Igor, 2026-09-15: go on with the specifications. `src/DotGram.Web/Rfc7239.cs` reads the field into
+`ForwardedElement`s — pairs, `Find`, and `By`/`For` as `ForwardedNode`, `Host`, `Proto` — and a node
+identifier alone through a second publication, `ParseNode`. No verified errata; 5275 (reported) spells
+out the list rule, and 7973 is rejected.
+
+The list is RFC 9110's with empty elements; an element is its slots with no whitespace around `;` or
+`=`, as §4's ABNF has none. §5's MUSTs on values are checked in one `when` per element: `by` and `for`
+through `TryParseNode` of the same class, `host` through `Rfc3986` as `//host` with no userinfo, path,
+query or fragment, `proto` as a scheme. A nested parse of the same class is safe: a parse rents its tape
+and value stores from a thread-static spare it empties, so the inner one allocates its own. The address
+rules are copied from `Rfc3986`, since a grammar includes no other.
+
+No shared suite exists; the RFC's examples in §4, §6 and §7 and each rule of §4 to §6 are the tests.
+
+## RFC 6265, cookies
+
+Igor, 2026-09-15: go on with the specifications. `src/DotGram.Web/Rfc6265.cs` has the RFC's two readings.
+§5.2's, a user agent's, is `ParseSetCookie` into `SetCookie`: the grammar only divides at `;`, a `when`
+refuses a pair with no `=` or no name, and C# divides at `=` and trims. Every cookie-av is kept; the
+properties are §5.2.x and §5.3's "last attribute of the name", so a later invalid Path means the default
+path and a later empty Domain is ignored. `ExpiryTime(now)` is §5.3 step 3. §4.2.1's, a server's, is
+`ParseCookies`, a strict grammar. `DomainMatches`, `DefaultPath` and `PathMatches` are §5.1.3 and §5.1.4;
+the store is not here.
+
+Dates are §5.1.1 split between the two: the grammar divides a date into tokens and has the four
+productions as `internal parse` publications (a token matches one only whole), and the flag-setting steps
+are C#. Errata: 4148 (verified) makes the tail after a day-of-month optional, as written; 8242 (held)
+orders the quoted cookie-value first, as written; 8877 (reported) makes month names case-insensitive, as
+written; 3444 is in §4.1.1's path-value, not read.
+
+Tests: §3.1's conversation and each step of §5.1 and §5.2, and the http-state working group's parser cases
+— abarth/http-state at 155e45c, `tests/data/parser`, 218 enabled, Set-Cookie in and Cookie out — replayed
+through a store written in the test after §5.3 and §5.4. The repository carries no licence (its content is
+"IETF Contributions" under the Note Well); Igor, asked, said to copy it, and it is in
+`tests/DotGram.Tests/Web/HttpState/` byte for byte with its README, marked `-text`. web-platform-tests has
+since rewritten these cases as browser tests, so they were not taken from there.
+
+The store is what the cases need and no more: a fixed now of 2010-01-01, between the dates the cases mean
+as past and future; a public suffix list of one rule, a domain without a dot (`domain=.org`); and the
+request's host and path taken through `Rfc3986`, since `System.Uri` unescapes `%6F` in a path and one case
+(`path0028`) tests that it is not. Case 0028's expected file holds its own Set-Cookie fields rather than a
+Cookie field, and expects none. All 218 pass with no change to the reader.
+
+## RFC 5322, email addresses
+
+Igor, 2026-09-15: go on. `src/DotGram.Web/Rfc5322.cs` reads §3.4's addresses — addr-spec, mailbox, group,
+mailbox-list, address-list — into `AddrSpec` and the `MailAddress` ADT, their values as §3.2 says they
+mean. §4 says a receiver MUST accept the obsolete syntax and a generator MUST NOT produce it, and one grammar
+gives both: the plain publications are §3 with §4, and the `Strict` ones rebind each piece of §4 with a
+`parse ... with (...)` — `Fws = CurrentFws`, `LocalPart = CurrentLocalPart`, `ObsQp = Never`, and so on.
+
+Two things the rebinding needed. Where §4's form is a superset of §3's (obs-local-part holds dot-atom and
+quoted-string, obs-domain holds dot-atom, obs-phrase holds phrase, obs-FWS holds FWS), the lenient rule is
+the superset alone: ordered choice would take §3's alternative, then fail at what follows, and never come
+back for §4's. And `Never` has to be `?!any & any`: `?!eof & eof` also matches nothing, but it can match
+without consuming, so a repetition over a class rebound to it is GRAM4001.
+
+Errata: verified 1908 (obs-FWS = 1*([CRLF] WSP)) is applied; held 3135, which would refuse `""@x`, is not.
+One thing the grammar cannot do: §3.2.2 forbids, in prose, a folded line of nothing but white space, and two
+FWS side by side from adjacent productions make one; the Strict reading accepts A.6.3's such line.
+
+Held by Appendix A's example messages and by is_email's tests.xml (dominicsayers/isemail at cfeefc3, BSD-3,
+vendored with its licence, marked `-text`), all 164 in both readings. is_email asks more than RFC 5322 in
+three places, named in the test: a hyphen at a label's edge (30, 31, 102) is RFC 1035's objection; CFWS
+beside `@` that is before or after the whole local part or domain is current syntax, and only 86 needs §4;
+and a quoted-pair in a domain literal (115-117) is obs-dtext.
+
+## DotGram.Web's API is the values, not the RFC numbers
+
+Igor, 2026-09-15: the package README goes to NuGet and should list every parser, and `RfcNNNN` is a good
+name for a file and no name for a way in. Agreed shape (option A of the ones put to him): each value type
+has its own `Parse` and `TryParse` — `JsonValue.Parse`, `MediaType.Parse`, `MediaRange.ParseAccept`,
+`SetCookie.Parse`, `EmailAddress.ParseList` — and the grammar classes `Rfc3339` … `Rfc9651` are internal,
+one per file as before. Where a specification has no one value, a small static class stands in:
+`StructuredField` (Item, List, Dictionary, their serialization and `Combine`) and `CookieDate`.
+
+`TryParse` is `bool TryParse(string, [NotNullWhen(true)] out T?)`. The generated `Match<T>` is a type
+nested in each grammar class, so it cannot be public once the class is not; `Parse` still throws the
+generated `FormatException`, whose message names the position. Renamed on the way: `UriParts` is
+`UriReference` (its grammar rule is `Reference`, so the two do not meet), `MailAddress` is `EmailAddress`
+(away from `System.Net.Mail.MailAddress`), and `Timestamp`, `FullDate` and `FullTime` came out of
+`Rfc3339`, which they had been nested in. `EmailAddress.Mailbox` could not carry `ParseList` — a static on
+a derived record hides the base's (CS0108) — so the mailbox-list readings are
+`EmailAddress.ParseMailboxList` and its Strict and Try forms.
+
+The package README was written for nuget.org, where a relative link goes nowhere: badges, absolute links,
+one table of every parser by subject with the type to call, the specification and the suite, and a
+section per group. Its dependency line says what is true — `System.Memory` on netstandard2.0, nothing on
+net10.0 — rather than DotGram's "no runtime dependencies", which is about the parser runtime.
 
 ## The SQL:2023 tree, built by the standard's grammar
 
@@ -22700,7 +22895,10 @@ build was joining MSBuild nodes and a compiler server started earlier inside it,
 names, literals and data types; value expressions and predicates; functions, windows, row pattern
 recognition and JSON; queries — query expressions, table references and joins, `JSON_TABLE`; the data
 change statements of §14; then §11 and §12 but for routines, triggers, user-defined types, casts,
-orderings and transforms, which stand as placeholders until their part. The other statements are next. Each slice kept every verdict: the
+orderings and transforms, which stand as placeholders until their part; then the other statements, §14's
+cursors and §16–§23, before the routines whose bodies they are; then triggers and routines; and last
+user-defined types, casts, orderings and transforms. No placeholder is left: everything the grammar reads
+builds its node. Each slice kept every verdict: the
 1,574 BNF rows unchanged, 50,000 fuzz lines of queries, routines and types agreeing with the oracle.
 
 The towers of §6 were already read once and carried as bit sets; the node now rides beside the bits in
@@ -22733,3 +22931,29 @@ Three traps, each met more than once:
 The cost is construction a guard forces to be eager. Against the grammar that built nothing: value
 expression rows 4.2 → 5.9 ms, routine fuzz 69.9 → 79.7 ms, type fuzz 36.9 → 37.1 ms. Queries, against
 the commit before they were built: 3,000 fuzz lines 533 → 612 ms, 511 → 591, 488 → 547 — 12–16%.
+
+Queries went on slowing while the later chapters were built, though no query rule changed after 48ead9b.
+Taken for noise at first; held against 48ead9b's own build, the two run in turn on the same three files
+twice each, the whole tree is slower in all six pairs — 667 → 717 ms at best, 578 → 712 at worst, 7–23%.
+Not looked into yet. What a query reads that the later chapters touched is a data change delta table's
+statement, now built; the other suspect is the generated class itself, grown by every chapter.
+
+## The SQL:2023 tree written back
+
+T-SQL moves onto the SQL:2023 tree next (Igor, 2026-09-15, in `design/sql-parsers.md`), and its oracle for
+losslessness is a round trip through a writer, so the writer comes first. `Sql2023Writer` writes every node
+the standard's grammar builds, in three partial files: the expressions, the queries and data change
+statements, and the rest of the statements.
+
+It writes what the tree holds and nothing else. The tree keeps every bracket that changed its shape — a
+`Parenthesized` node, a query's count of brackets — so no precedence is worked out again; `a || b[1]` is an
+element of a concatenation and is written back as it was read. Key words are capitals, one space between
+tokens, none inside a name or a call; the few places no space may stand are the literal's own
+(`N'a'`, `_latin1'a'`, `U&"a"UESCAPE''`, `2K`), and a sign is written against its operand, so that two
+minus signs never make a comment.
+
+The harness is `--standard "~production" file`: each line the grammar reads is built, written, read again
+and built again, and both the trees — compared as a dump of every property but the span — and the two
+texts written must be one. Over every fuzz family of the standard's grammar, over 60,000 lines, nothing
+differs. A direct SQL statement's semicolon is the production's and no part of the tree, and the harness
+adds it back. `SqlStandardTreeTests` holds a line or two of each chapter to the same, so a build asks it too.

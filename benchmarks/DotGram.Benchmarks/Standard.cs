@@ -2,7 +2,10 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Text;
 
+using DotGram.Sql.Ast;
 using DotGram.Sql.Standard;
 
 namespace DotGram.Benchmarks;
@@ -62,6 +65,16 @@ static class Standard
 
 				Console.WriteLine($"{(ours ? "ok" : "no"),3} {TimeSpan.FromTicks(ticks).TotalMilliseconds,9:0.000} ms  {line}");
 			}
+
+			return;
+		}
+
+		// `~` before the production puts the grammar's tree to the writer and back: each line the rule
+		// reads is built, written, read again and built again, and the two trees must be one, and the two
+		// texts written from them one text. The BNF is not asked.
+		if (start.StartsWith('~') && path is not null)
+		{
+			RoundTrip(start[1..], path);
 
 			return;
 		}
@@ -133,6 +146,143 @@ static class Standard
 			Console.WriteLine($"\nthe BNF and {parser.Name}: {agree} agree, {differ} differ");
 			Console.WriteLine($"the grammar alone: {grammar.ElapsedMilliseconds} ms, the slowest line {TimeSpan.FromTicks(slowest.Ticks).TotalMilliseconds:0.0} ms: {slowest.Line}");
 		}
+	}
+
+	/// <summary>
+	/// Each line the rule reads, built, written by <see cref="Sql2023Writer"/>, read and built again: the
+	/// trees must be one, and so must the texts written from them. What does not hold is shown, the first
+	/// of them whole.
+	/// </summary>
+	static void RoundTrip(string production, string path)
+	{
+		var parser = typeof(SqlStandardParser).GetMethod("TryParse" + Bnf.RuleName(production), [typeof(string)])
+			?? throw new ArgumentException($"SqlStandardParser publishes no rule for <{production}>");
+		var (read, same, shown) = (0, 0, 0);
+
+		// A direct SQL statement ends in its semicolon, which is the production's and no part of the tree.
+		var terminator = production == "direct SQL statement" ? ";" : "";
+
+		foreach (var line in File.ReadLines(path))
+		{
+			if (line.Trim().Length == 0 || line.TrimStart().StartsWith("--", StringComparison.Ordinal))
+				continue;
+
+			if (Tree(parser, line) is not { } first)
+				continue;
+
+			read++;
+
+			string written, again = "";
+			ISqlNode? second = null;
+			string? failure = null;
+
+			try
+			{
+				written = Sql2023Writer.Write(first) + terminator;
+				second  = Tree(parser, written);
+
+				if (second is not null)
+					again = Sql2023Writer.Write(second) + terminator;
+			}
+			catch (Exception exception)
+			{
+				written = "";
+				failure = exception.GetType().Name + ": " + exception.Message;
+			}
+
+			var (before, after) = (Dump(first), second is null ? "" : Dump(second));
+
+			if (failure is null && second is not null && before == after && written == again)
+			{
+				same++;
+				continue;
+			}
+
+			if (shown++ >= 40)
+				continue;
+
+			Console.WriteLine($"  {line}");
+			Console.WriteLine($"  → {(failure ?? (second is null ? "not read back: " + written : before != after ? "another tree: " + written : "written otherwise: " + again))}");
+
+			if (failure is null && second is not null && before != after)
+			{
+				var at = 0;
+
+				while (at < before.Length && at < after.Length && before[at] == after[at])
+					at++;
+
+				Console.WriteLine($"    was  …{before.Substring(Math.Max(0, at - 60), Math.Min(160, before.Length - Math.Max(0, at - 60)))}");
+				Console.WriteLine($"    now  …{after.Substring(Math.Max(0, at - 60), Math.Min(160, after.Length - Math.Max(0, at - 60)))}");
+			}
+		}
+
+		Console.WriteLine($"\n{read} lines read, {same} written and read back to the same tree, {read - same} not");
+	}
+
+	static ISqlNode? Tree(MethodInfo parser, string text)
+	{
+		var result = parser.Invoke(null, [text])!;
+		var type   = result.GetType();
+
+		return (bool)type.GetProperty("IsSuccess")!.GetValue(result)! ? type.GetProperty("Value")!.GetValue(result) as ISqlNode : null;
+	}
+
+	/// <summary>A tree as text, every property but where it was written: two trees are one where their dumps are.</summary>
+	static string Dump(object? node)
+	{
+		var text = new StringBuilder();
+
+		Dump(text, node);
+
+		return text.ToString();
+	}
+
+	static void Dump(StringBuilder text, object? node)
+	{
+		switch (node)
+		{
+			case null:
+				text.Append("null");
+				return;
+
+			case string value:
+				text.Append('"').Append(value).Append('"');
+				return;
+
+			case System.Collections.IEnumerable list:
+				text.Append('[');
+
+				foreach (var one in list)
+				{
+					Dump(text, one);
+					text.Append(',');
+				}
+
+				text.Append(']');
+				return;
+		}
+
+		var type = node.GetType();
+
+		if (type.IsPrimitive || type.IsEnum)
+		{
+			text.Append(node);
+			return;
+		}
+
+		text.Append(type.Name).Append('(');
+
+		foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+		{
+			if (property.Name is "Span" or "EqualityContract" || property.GetIndexParameters().Length > 0)
+				continue;
+
+			text.Append(property.Name).Append('=');
+			Dump(text, property.GetValue(node));
+			text.Append(';');
+		}
+
+		text.Append(')');
 	}
 
 	static bool HasEmpty(BnfNode node) => node switch

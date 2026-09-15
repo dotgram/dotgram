@@ -39,9 +39,9 @@ public sealed class Rfc3339Tests
 
 		var read = file switch
 		{
-			"date-time.json" => Rfc3339.TryParseTimestamp(text).IsSuccess,
-			"date.json"      => Rfc3339.TryParseFullDate(text).IsSuccess,
-			_                => Rfc3339.TryParseFullTime(text).IsSuccess,
+			"date-time.json" => Timestamp.TryParse(text, out _),
+			"date.json"      => FullDate.TryParse(text, out _),
+			_                => FullTime.TryParse(text, out _),
 		};
 
 		Assert.True(
@@ -56,7 +56,7 @@ public sealed class Rfc3339Tests
 	[InlineData("1937-01-01T12:00:27.87+00:20",  "1937-01-01T12:00:27.8700000+00:20")]
 	public void The_RFC_s_examples_are_the_instants_it_says(string text, string instant)
 	{
-		var timestamp = Rfc3339.ParseTimestamp(text);
+		var timestamp = Timestamp.Parse(text);
 
 		Assert.Equal(DateTimeOffset.Parse(instant, System.Globalization.CultureInfo.InvariantCulture), timestamp.ToDateTimeOffset());
 		Assert.Equal(text, timestamp.ToString());
@@ -68,7 +68,7 @@ public sealed class Rfc3339Tests
 	[InlineData("1990-12-31T15:59:60-08:00")]
 	public void A_leap_second_reads_and_has_no_DateTimeOffset(string text)
 	{
-		var timestamp = Rfc3339.ParseTimestamp(text);
+		var timestamp = Timestamp.Parse(text);
 
 		Assert.Equal(60, timestamp.Time.Second);
 		Assert.Equal(text, timestamp.ToString());
@@ -79,8 +79,8 @@ public sealed class Rfc3339Tests
 	[Fact]
 	public void An_unknown_local_offset_is_told_from_UTC()
 	{
-		var unknown = Rfc3339.ParseFullTime("12:34:56-00:00");
-		var utc     = Rfc3339.ParseFullTime("12:34:56+00:00");
+		var unknown = FullTime.Parse("12:34:56-00:00");
+		var utc     = FullTime.Parse("12:34:56+00:00");
 
 		Assert.True(unknown.LocalOffsetUnknown);
 		Assert.False(utc.LocalOffsetUnknown);
@@ -93,7 +93,7 @@ public sealed class Rfc3339Tests
 	[Fact]
 	public void A_fraction_is_kept_whole()
 	{
-		var timestamp = Rfc3339.ParseTimestamp("1985-04-12T00:59:59.999999999999999Z");
+		var timestamp = Timestamp.Parse("1985-04-12T00:59:59.999999999999999Z");
 
 		Assert.Equal("999999999999999", timestamp.Time.Fraction);
 		Assert.Equal(9_999_999, timestamp.ToDateTimeOffset().Ticks % TimeSpan.TicksPerSecond);

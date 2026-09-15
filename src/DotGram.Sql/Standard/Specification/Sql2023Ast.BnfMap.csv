@@ -181,7 +181,7 @@ host parameter name,name/value,Expression.Parameter; ParameterKind.Host; Express
 SQL parameter name,name/value,Identifier,Identifier / QualifiedName,yes,yes,1,<identifier>
 constraint name,name/value,QualifiedName; Constraint.Name,Identifier / QualifiedName,yes,yes,1,<schema qualified name>
 external routine name,name/value,RoutineCharacteristic.ExternalName.Name; RoutineBody.External.Name,Identifier / QualifiedName,no,yes,2,<identifier> | <character string literal>
-trigger name,name/value,QualifiedName; Statement.CreateTrigger.Name; Statement.DropTrigger.Name,Identifier / QualifiedName,yes,yes,1,<schema qualified name>
+trigger name,name/value,QualifiedName; Statement.CreateTrigger.Name; Statement.DropTrigger.Names,Identifier / QualifiedName,yes,yes,1,<schema qualified name>
 collation name,name/value,CollationName,Identifier / QualifiedName,yes,yes,1,<schema qualified name>
 character set name,name/value,CharacterSetName,Identifier / QualifiedName,no,no,3,[ <schema name> <period> ] <SQL language identifier>
 transliteration name,name/value,QualifiedName; Expression.TranslateUsing.Name,Identifier / QualifiedName,yes,yes,1,<schema qualified name>
@@ -1282,7 +1282,7 @@ maximum returned result sets,erased alias,erased,Referenced AST target,yes,yes,1
 transform group specification,enum/value,TransformGroupSpecification,Enum/value/helper,no,no,2,TRANSFORM GROUP { <single group specification> | <multiple group specification> }
 single group specification,erased alias,erased,Referenced AST target,yes,yes,1,<group name>
 multiple group specification,enum/value,TransformGroupSpecification.Groups,Enum/value/helper,no,no,3,<group specification> [ { <comma> <group specification> }... ]
-group specification,enum/value,TransformGroupSpecification.Groups,Enum/value/helper,no,no,2,<group name> FOR TYPE <path-resolved user-defined type name>
+group specification,record/value,TransformGroupForType,Structural helper AST,no,no,2,<group name> FOR TYPE <path-resolved user-defined type name>
 alter routine statement,statement/property,Statement.AlterRoutine,Statement,no,no,3,ALTER <specific routine designator> <alter routine characteristics> <alter routine behavior>
 alter routine characteristics,enum/value,Statement.AlterRoutine.Characteristics,Enum/value/helper,no,no,1,<alter routine characteristic>...
 alter routine characteristic,enum/value,RoutineCharacteristic; RoutineCharacteristic.ExternalName,Enum/value/helper,no,no,6,<language clause> | <parameter style clause> | <SQL-data access indication> | <null-call clause> | <returned result sets characteristic> | NAME <external routine name>
@@ -1411,7 +1411,7 @@ close statement,statement/property,Statement.CloseCursor,Statement,no,no,1,CLOSE
 select statement: single row,statement/property,Statement.Select; Statement.Select.Into,Statement,no,no,4,SELECT [ <set quantifier> ] <select list> INTO <select target list> <table expression>
 select target list,list property,Statement.Select.Into; IntoClause.Targets,IReadOnlyList<T> property,no,no,3,<target specification> [ { <comma> <target specification> }... ]
 delete statement: positioned,statement/property,Statement.Delete; Statement.Delete.CurrentOf,Statement,no,no,3,DELETE FROM <target table> [ [ AS ] <correlation name> ] WHERE CURRENT OF <cursor name>
-target table,record/value,TableTarget,Structural helper AST,no,no,4,<table name> | ONLY <left paren> <table name> <right paren>
+target table,record/value,TableSource.Named,Structural helper AST,no,no,4,<table name> | ONLY <left paren> <table name> <right paren>
 delete statement: searched,statement/property,Statement.Delete,Statement,no,no,6,DELETE FROM <target table> [ FOR PORTION OF <application time period name> FROM <point in time 1> TO <point in time 2> ] [ [ AS ] <correlation name> ] [ WHERE <search condition> ]
 truncate table statement,statement/property,Statement.TruncateTable,Statement,no,no,2,TRUNCATE TABLE <target table> [ <identity column restart option> ]
 identity column restart option,enum/value,Statement.TruncateTable.Identity; IdentityRestart,Enum/value/helper,no,no,0,CONTINUE IDENTITY | RESTART IDENTITY

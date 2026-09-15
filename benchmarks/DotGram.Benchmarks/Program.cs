@@ -231,7 +231,8 @@ static class Program
 		// Needs a server on the machine, and says so where there is none. See Engine.cs.
 		// `--standard production [file]` puts each line of a file to the ISO BNF of SQL:2023, read by
 		// an Earley recognizer: the standard's authority, as `--engine` is T-SQL's. See Standard.cs
-		// and StandardOracle.cs.
+		// and StandardOracle.cs. `~production` instead writes each tree the grammar builds with
+		// Sql2023Writer and reads it back, which is the writer's oracle.
 		if (args.Length >= 2 && args[0] == "--standard")
 		{
 			Standard.Run(args[1], args.Length > 2 ? args[2] : null);

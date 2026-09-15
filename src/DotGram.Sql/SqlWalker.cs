@@ -20,10 +20,11 @@ namespace DotGram.Sql;
 /// <para>
 /// A node is anything the five roots derive from, which is <see cref="ISqlSpan"/>: a
 /// <see cref="Statement"/>, a <see cref="Query"/>, an <see cref="Expression"/>, a
-/// <see cref="TableReference"/> or a <see cref="Clause"/>. What a node holds of them — one, or
-/// an array — is found from its type once and kept, so a record added to the tree is walked
-/// without this file hearing of it. Everything else a record holds is its own words and not a
-/// node.
+/// <see cref="TableReference"/> or a <see cref="Clause"/> — and every node of the SQL:2023 tree,
+/// whose <c>ISqlNode</c> is one too. What a node holds of them — one, an array, or a list, of nodes
+/// or of lists of them — is found from its type once and kept, so a record added to either tree is
+/// walked without this file hearing of it. Everything else a record holds is its own words and not
+/// a node.
 /// </para>
 /// </remarks>
 public static class SqlWalker
@@ -57,19 +58,7 @@ public static class SqlWalker
 			held.Clear();
 
 			foreach (var field in FieldsOf(node.GetType()))
-				switch (field.GetValue(node))
-				{
-					case ISqlSpan one:
-						held.Add(one);
-						break;
-
-					case Array many:
-						foreach (var item in many)
-							if (item is ISqlSpan one)
-								held.Add(one);
-
-						break;
-				}
+				Gather(field.GetValue(node), held);
 
 			// Backwards onto the stack, so that what the record holds first comes off first.
 			for (var at = held.Count - 1; at >= 0; at--)
@@ -77,6 +66,26 @@ public static class SqlWalker
 		}
 
 		return true;
+	}
+
+	/// <summary>The nodes a value is or holds: a node, or a list or an array of them — or of lists of them, as a session's transaction modes are.</summary>
+	static void Gather(object? value, List<ISqlSpan> held)
+	{
+		switch (value)
+		{
+			case ISqlSpan one:
+				held.Add(one);
+				break;
+
+			case string:
+				break;
+
+			case System.Collections.IEnumerable many:
+				foreach (var item in many)
+					Gather(item, held);
+
+				break;
+		}
 	}
 
 	/// <summary>The properties of a record that can hold a node, in the order they were declared.</summary>
@@ -88,9 +97,15 @@ public static class SqlWalker
 			   select property,
 		]);
 
+	// A node, or anything enumerable whose elements can hold one: an array, an IReadOnlyList.
 	static bool Holds(Type type) =>
 		typeof(ISqlSpan).IsAssignableFrom(type) ||
-		type.IsArray && typeof(ISqlSpan).IsAssignableFrom(type.GetElementType());
+		type != typeof(string) && ElementOf(type) is { } element && Holds(element);
+
+	static Type? ElementOf(Type type) =>
+		type.IsArray
+			? type.GetElementType()
+			: (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>) ? type : type.GetInterfaces().FirstOrDefault(static one => one.IsGenericType && one.GetGenericTypeDefinition() == typeof(IEnumerable<>)))?.GetGenericArguments()[0];
 
 	static readonly ConcurrentDictionary<Type, PropertyInfo[]> Fields = new();
 }

@@ -16,20 +16,20 @@ namespace DotGram.Tests.Web;
 /// </remarks>
 public sealed class Rfc3986Tests
 {
-	static UriParts Parsed(string text) => Rfc3986.ParseReference(text);
+	static UriReference Parsed(string text) => UriReference.Parse(text);
 
 	// ── §1.1.2, the examples the RFC leads with ─────────────────────────────────
 
 	[Fact]
 	public void A_reference_comes_apart_where_the_specification_says_it_does() =>
 		Assert.Equal(
-			new UriParts("ftp", null, "ftp.is.co.za", null, "/rfc/rfc1808.txt", null, null),
+			new UriReference("ftp", null, "ftp.is.co.za", null, "/rfc/rfc1808.txt", null, null),
 			Parsed("ftp://ftp.is.co.za/rfc/rfc1808.txt"));
 
 	[Fact]
 	public void And_a_bracketed_address_is_a_host_like_any_other() =>
 		Assert.Equal(
-			new UriParts("ldap", null, "[2001:db8::7]", null, "/c=GB", "objectClass?one", null),
+			new UriReference("ldap", null, "[2001:db8::7]", null, "/c=GB", "objectClass?one", null),
 			Parsed("ldap://[2001:db8::7]/c=GB?objectClass?one"));
 
 	[Fact]
@@ -38,10 +38,10 @@ public sealed class Rfc3986Tests
 		// there is no authority at all, and the path is everything after the colon.
 		Assert.Equal(
 			[
-				new UriParts("mailto", null, null, null, "John.Doe@example.com", null, null),
-				new UriParts("news", null, null, null, "comp.infosystems.www.servers.unix", null, null),
-				new UriParts("tel", null, null, null, "+1-816-555-1212", null, null),
-				new UriParts("urn", null, null, null, "oasis:names:specification:docbook:dtd:xml:4.1.2", null, null),
+				new UriReference("mailto", null, null, null, "John.Doe@example.com", null, null),
+				new UriReference("news", null, null, null, "comp.infosystems.www.servers.unix", null, null),
+				new UriReference("tel", null, null, null, "+1-816-555-1212", null, null),
+				new UriReference("urn", null, null, null, "oasis:names:specification:docbook:dtd:xml:4.1.2", null, null),
 			],
 			new[]
 			{
@@ -55,7 +55,7 @@ public sealed class Rfc3986Tests
 	[Fact]
 	public void And_a_port_is_the_digits_after_the_colon() =>
 		Assert.Equal(
-			new UriParts("telnet", null, "192.0.2.16", "80", "/", null, null),
+			new UriReference("telnet", null, "192.0.2.16", "80", "/", null, null),
 			Parsed("telnet://192.0.2.16:80/"));
 
 	// ── §4.2, references that are not URIs ──────────────────────────────────────
@@ -80,14 +80,14 @@ public sealed class Rfc3986Tests
 
 	[Fact]
 	public void And_a_leading_double_slash_is_an_authority_even_with_no_scheme() =>
-		Assert.Equal(new UriParts(null, null, "g", null, "", null, null), Parsed("//g"));
+		Assert.Equal(new UriReference(null, null, "g", null, "", null, null), Parsed("//g"));
 
 	[Fact]
 	public void And_a_query_or_a_fragment_may_stand_alone() =>
 		Assert.Equal(
 			[
-				new UriParts(null, null, null, null, "", "y", null),
-				new UriParts(null, null, null, null, "", null, "s"),
+				new UriReference(null, null, null, null, "", "y", null),
+				new UriReference(null, null, null, null, "", null, "s"),
 			],
 			new[] { "?y", "#s" }.Select(Parsed));
 
@@ -97,8 +97,8 @@ public sealed class Rfc3986Tests
 		// written where a scheme cannot begin is a relative reference.
 		Assert.Equal(
 			[
-				new UriParts("a", null, null, null, "b", null, null),
-				new UriParts(null, null, null, null, "./a:b", null, null),
+				new UriReference("a", null, null, null, "b", null, null),
+				new UriReference(null, null, null, null, "./a:b", null, null),
 			],
 			new[] { "a:b", "./a:b" }.Select(Parsed));
 
@@ -155,7 +155,7 @@ public sealed class Rfc3986Tests
 	[InlineData("http://h/%zz")]           // a percent escape is two hex digits
 	[InlineData("1http://h/")]             // a scheme begins with a letter
 	public void A_text_that_is_not_a_reference_is_refused(string text) =>
-		Assert.False(Rfc3986.TryParseReference(text).IsSuccess);
+		Assert.False(UriReference.TryParse(text, out _));
 
 	// ── §2.4, decoding, which is the caller's to ask for ────────────────────────
 
@@ -167,7 +167,7 @@ public sealed class Rfc3986Tests
 	public void An_escape_is_decoded_where_a_caller_asks_and_not_before(string part, string decoded) =>
 		// Not while parsing, and §2.4 says why: `%2F` in a segment is a slash that is not
 		// a separator, and a path decoded on the way in cannot be taken apart again.
-		Assert.Equal(decoded, Rfc3986.Decode(part));
+		Assert.Equal(decoded, UriReference.Decode(part));
 
 	[Fact]
 	public void And_the_parts_come_back_as_they_were_written() =>

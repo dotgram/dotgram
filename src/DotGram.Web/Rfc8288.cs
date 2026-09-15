@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 using DotGram;
@@ -30,6 +31,27 @@ public sealed record WebLink(string Target, IReadOnlyList<WebLink.Parameter> Par
 	/// <c>*</c> or the value is not an ext-value, which a recipient may ignore (RFC 8187 §3.2.1).
 	/// </param>
 	public sealed record Parameter(string Name, string Value, ExtendedValue? Extended);
+
+	/// <summary>A Link field value (RFC 8288 §3): its link-values in order, empty list elements left out.</summary>
+	/// <exception cref="FormatException">The text is no Link field; the message says where.</exception>
+	public static WebLink[] ParseField(string text) =>
+		Rfc8288.ParseLinks(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A Link field value, or false where the text is not one.</summary>
+	public static bool TryParseField(string text, [NotNullWhen(true)] out WebLink[]? links)
+	{
+		var match = Rfc8288.TryParseLinks(text ?? throw new ArgumentNullException(nameof(text)));
+
+		links = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>Equal to another link-value with the same target and equal parameters in the same order.</summary>
+	public bool Equals(WebLink? other) =>
+		other is not null && string.Equals(Target, other.Target, StringComparison.Ordinal) && Structural.Same(Parameters, other.Parameters);
+
+	public override int GetHashCode() => Structural.Combine(StringComparer.Ordinal.GetHashCode(Target), Structural.Hash(Parameters));
 
 	/// <summary>The relation types of the first <c>rel</c> (§3.3), which later ones do not replace.</summary>
 	public IReadOnlyList<string> Relations =>
@@ -131,7 +153,7 @@ public sealed record ExtendedValue(string Charset, string? Language, string? Val
 
 	parse Field as ParseLinks
 	""")]
-public static partial class Rfc8288
+static partial class Rfc8288
 {
 	// ParseLinks and TryParseLinks are generated here.
 

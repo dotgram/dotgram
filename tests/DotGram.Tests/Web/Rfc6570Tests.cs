@@ -22,7 +22,7 @@ namespace DotGram.Tests.Web;
 /// </para>
 /// <para>
 /// A case expecting <c>false</c> is an error, and the error may be the template's — refused by
-/// <see cref="Rfc6570.TryParseTemplate(string)"/> — or the expansion's, a prefix on a composite
+/// <see cref="UriTemplate.TryParse"/> — or the expansion's, a prefix on a composite
 /// value. A case expecting a list accepts any one of them, which is how the suite says an
 /// associative array may be expanded in any order.
 /// </para>
@@ -39,14 +39,14 @@ public sealed class Rfc6570Tests
 		var expected  = test[1];
 		var variables = Variables(set.GetProperty("variables"));
 
-		var template = Rfc6570.TryParseTemplate(text);
+		var accepted = UriTemplate.TryParse(text, out var template);
 		var expanded = default(string);
 
-		if (template.IsSuccess)
+		if (accepted)
 		{
 			try
 			{
-				expanded = template.Value.Expand(variables);
+				expanded = template!.Expand(variables);
 			}
 			catch (ArgumentException)
 			{
@@ -75,7 +75,7 @@ public sealed class Rfc6570Tests
 	[Fact]
 	public void A_template_comes_apart_into_literals_and_expressions()
 	{
-		var template = Rfc6570.ParseTemplate("/users{/id}{?q,page:3,tags*}");
+		var template = UriTemplate.Parse("/users{/id}{?q,page:3,tags*}");
 
 		Assert.Collection(
 			template.Parts,
@@ -106,7 +106,7 @@ public sealed class Rfc6570Tests
 	[Fact]
 	public void Values_are_what_dotnet_has()
 	{
-		var template = Rfc6570.ParseTemplate("/map{?point*,zoom}");
+		var template = UriTemplate.Parse("/map{?point*,zoom}");
 
 		Assert.Equal(
 			"/map?x=1.5&y=-2&zoom=12",
@@ -117,11 +117,22 @@ public sealed class Rfc6570Tests
 			}));
 	}
 
+	/// <summary>A template is equal to another read from the same text.</summary>
+	[Fact]
+	public void Templates_are_equal_by_what_they_hold()
+	{
+		const string Text = "/users{/id}{?q,page:3,tags*}";
+
+		Assert.Equal(UriTemplate.Parse(Text), UriTemplate.Parse(Text));
+		Assert.Equal(UriTemplate.Parse(Text).GetHashCode(), UriTemplate.Parse(Text).GetHashCode());
+		Assert.NotEqual(UriTemplate.Parse(Text), UriTemplate.Parse("/users{/id}{?q,page:4,tags*}"));
+	}
+
 	/// <summary>The example the package's README shows, which has to stay true.</summary>
 	[Fact]
 	public void The_readme_example_expands_as_it_says()
 	{
-		var template = Rfc6570.ParseTemplate("/users{/id}{?fields,page:3}{&tags*}");
+		var template = UriTemplate.Parse("/users{/id}{?fields,page:3}{&tags*}");
 
 		Assert.Equal(
 			"/users/igor?fields=name,email&page=123&tags=a&tags=b",

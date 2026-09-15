@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 
@@ -9,12 +10,27 @@ namespace DotGram.Web;
 
 /// <summary>A URI Template as RFC 6570 divides it: literal text, and expressions between braces.</summary>
 /// <remarks>
-/// What a template <i>is</i> comes from <see cref="Rfc6570.ParseTemplate(string)"/>; what it
+/// What a template <i>is</i> comes from <see cref="Parse(string)"/>; what it
 /// <i>becomes</i> for a set of values is <see cref="Expand"/>. The two are apart because a
 /// template is written once and expanded many times.
 /// </remarks>
 public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 {
+	/// <summary>A URI Template of any of RFC 6570's four levels.</summary>
+	/// <exception cref="FormatException">The text is no template; the message says where.</exception>
+	public static UriTemplate Parse(string text) =>
+		Rfc6570.ParseTemplate(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A URI Template, or false where the text is not one.</summary>
+	public static bool TryParse(string text, [NotNullWhen(true)] out UriTemplate? template)
+	{
+		var match = Rfc6570.TryParseTemplate(text ?? throw new ArgumentNullException(nameof(text)));
+
+		template = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
 	/// <summary>A piece of a template: a <see cref="Literal"/> or an <see cref="Expression"/>.</summary>
 	public abstract record Part;
 
@@ -23,13 +39,24 @@ public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 
 	/// <summary>§2.2: an operator, or none, and the variables it expands.</summary>
 	/// <param name="Operator">One of <c>+ # . / ; ? &amp;</c>, or null for simple string expansion.</param>
-	public sealed record Expression(char? Operator, IReadOnlyList<Variable> Variables) : Part;
+	public sealed record Expression(char? Operator, IReadOnlyList<Variable> Variables) : Part
+	{
+		public bool Equals(Expression? other) =>
+			other is not null && Operator == other.Operator && Structural.Same(Variables, other.Variables);
+
+		public override int GetHashCode() => Structural.Combine(Operator.GetHashCode(), Structural.Hash(Variables));
+	}
 
 	/// <summary>§2.3, §2.4: a variable's name as written, and the one modifier it may have.</summary>
 	/// <param name="Name">Pct-encoded triplets included and not decoded: they are part of the name.</param>
 	/// <param name="Prefix">How many characters of the value to use, from 1 to 9999, or null.</param>
 	/// <param name="Explode">Whether a composite value is expanded member by member.</param>
 	public sealed record Variable(string Name, int? Prefix, bool Explode);
+
+	/// <summary>Equal to another template made of equal parts in the same order.</summary>
+	public bool Equals(UriTemplate? other) => other is not null && Structural.Same(Parts, other.Parts);
+
+	public override int GetHashCode() => Structural.Hash(Parts);
 
 	/// <summary>The URI reference this template stands for, given the values of its variables.</summary>
 	/// <remarks>
@@ -405,7 +432,7 @@ public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 
 	parse Template as ParseTemplate
 	""")]
-public static partial class Rfc6570
+static partial class Rfc6570
 {
 	// ParseTemplate and TryParseTemplate are generated here.
 

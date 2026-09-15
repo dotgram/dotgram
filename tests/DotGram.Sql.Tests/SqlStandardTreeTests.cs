@@ -382,41 +382,41 @@ public sealed class SqlStandardTreeTests
 
 	[Theory]
 	[InlineData("INSERT INTO t (a, b) OVERRIDING SYSTEM VALUE VALUES (1, DEFAULT), ROW(NULL, 2), (DEFAULT), 3",
-		"Insert(Target: t, Columns: [a, b], Override: SystemValue, SourceValue: Values([RowValue([1, Default()], false), RowValue([NULL, 2], true), RowValue([Parenthesized(Default())], false), RowValue([3], false)]))")]
-	[InlineData("INSERT INTO t SELECT a FROM u", "Insert(Target: t, SourceValue: Query(Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(u)]))))")]
-	[InlineData("INSERT INTO t DEFAULT VALUES", "Insert(Target: t, SourceValue: DefaultValues())")]
+		"Insert(Target: Named(t), Columns: [a, b], Override: SystemValue, SourceValue: Values([RowValue([1, Default()], false), RowValue([NULL, 2], true), RowValue([Parenthesized(Default())], false), RowValue([3], false)]))")]
+	[InlineData("INSERT INTO t SELECT a FROM u", "Insert(Target: Named(t), SourceValue: Query(Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(u)]))))")]
+	[InlineData("INSERT INTO t DEFAULT VALUES", "Insert(Target: Named(t), SourceValue: DefaultValues())")]
 	public void An_insert_is_built_as_written(string input, string tree) =>
 		Assert.Equal(tree, Show(SqlStandardParser.ParseInsertStatement(input)));
 
 	[Theory]
 	[InlineData("UPDATE ONLY (t) FOR PORTION OF p FROM a TO b AS x SET c = DEFAULT, (d, e) = ROW(1, 2), f??(1??) = 3, g.h.i = 4 WHERE c > 0",
-		"Update(Target: TableTarget(t, true), Portion: PeriodPortion(p, a, b), Alias: Alias(x, null, true), Assignments: [Assignment([AssignmentTarget(c, null, null, false)], Default(), false), Assignment([AssignmentTarget(d, null, null, false), AssignmentTarget(e, null, null, false)], Row([1, 2], true), true), Assignment([AssignmentTarget(f, 1, null, true)], 3, false), Assignment([AssignmentTarget(g, null, [h, i], false)], 4, false)], Where: Comparison(c, Greater, 0))")]
-	[InlineData("UPDATE t SET (a) = (1)", "Update(Target: TableTarget(t, false), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], Parenthesized(1), true)])")]
+		"Update(Target: Named(t, Only: true), Portion: PeriodPortion(p, a, b), Alias: Alias(x, null, true), Assignments: [Assignment([AssignmentTarget(c, null, null, false)], Default(), false), Assignment([AssignmentTarget(d, null, null, false), AssignmentTarget(e, null, null, false)], Row([1, 2], true), true), Assignment([AssignmentTarget(f, 1, null, true)], 3, false), Assignment([AssignmentTarget(g, null, [h, i], false)], 4, false)], Where: Comparison(c, Greater, 0))")]
+	[InlineData("UPDATE t SET (a) = (1)", "Update(Target: Named(t), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], Parenthesized(1), true)])")]
 	public void A_searched_update_is_built_as_written(string input, string tree) =>
 		Assert.Equal(tree, Show(SqlStandardParser.ParseUpdateStatementSearched(input)));
 
 	[Fact]
 	public void A_positioned_statement_names_its_cursor()
 	{
-		Assert.Equal("Update(Target: TableTarget(t, false), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], 1, false)], CurrentOf: CursorReference(MODULE.c, null, false, false, false))",
+		Assert.Equal("Update(Target: Named(t), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], 1, false)], CurrentOf: CursorReference(MODULE.c, null, false, false, false))",
 			Show(SqlStandardParser.ParseUpdateStatementPositioned("UPDATE t SET a = 1 WHERE CURRENT OF MODULE.c")));
-		Assert.Equal("Delete(Target: TableTarget(t, false), Alias: Alias(x, null, false), CurrentOf: CursorReference(c, null, false, false, false))",
+		Assert.Equal("Delete(Target: Named(t), Alias: Alias(x, null, false), CurrentOf: CursorReference(c, null, false, false, false))",
 			Show(SqlStandardParser.ParseDeleteStatementPositioned("DELETE FROM t x WHERE CURRENT OF c")));
 	}
 
 	[Theory]
-	[InlineData("DELETE FROM t WHERE a = 1", "Delete(Target: TableTarget(t, false), Where: Comparison(a, Equal, 1))")]
+	[InlineData("DELETE FROM t WHERE a = 1", "Delete(Target: Named(t), Where: Comparison(a, Equal, 1))")]
 	public void A_searched_delete_is_built_as_written(string input, string tree) =>
 		Assert.Equal(tree, Show(SqlStandardParser.ParseDeleteStatementSearched(input)));
 
 	[Fact]
 	public void A_merge_keeps_its_clauses_in_order() =>
-		Assert.Equal("Merge(Target: TableTarget(t, false), Alias: Alias(x, null, false), SourceTable: Named(u), On: Comparison(a, Equal, b), Clauses: [Matched(Update([Assignment([AssignmentTarget(c, null, null, false)], 1, false)]), Condition: Comparison(c, Greater, 0)), Matched(Delete()), NotMatched(MergeInsertAction([a], UserValue, [1, Default()]))])",
+		Assert.Equal("Merge(Target: Named(t), Alias: Alias(x, null, false), SourceTable: Named(u), On: Comparison(a, Equal, b), Clauses: [Matched(Update([Assignment([AssignmentTarget(c, null, null, false)], 1, false)]), Condition: Comparison(c, Greater, 0)), Matched(Delete()), NotMatched(MergeInsertAction([a], UserValue, [1, Default()]))])",
 			Show(SqlStandardParser.ParseMergeStatement("MERGE INTO t x USING u ON a = b WHEN MATCHED AND c > 0 THEN UPDATE SET c = 1 WHEN MATCHED THEN DELETE WHEN NOT MATCHED THEN INSERT (a) OVERRIDING USER VALUE VALUES (1, DEFAULT)")));
 
 	[Theory]
-	[InlineData("TRUNCATE TABLE t RESTART IDENTITY", "TruncateTable(Target: TableTarget(t, false), Identity: Restart)")]
-	[InlineData("TRUNCATE TABLE t", "TruncateTable(Target: TableTarget(t, false))")]
+	[InlineData("TRUNCATE TABLE t RESTART IDENTITY", "TruncateTable(Target: Named(t), Identity: Restart)")]
+	[InlineData("TRUNCATE TABLE t", "TruncateTable(Target: Named(t))")]
 	public void A_truncate_is_built_as_written(string input, string tree) =>
 		Assert.Equal(tree, Show(SqlStandardParser.ParseTruncateTableStatement(input)));
 
@@ -430,7 +430,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("CREATE TABLE t AS (SELECT a FROM u) WITH NO DATA",
 		"CreateTable(Name: t, Contents: AsQuery([], Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(u)])), WithNoData))")]
 	[InlineData("ALTER TABLE t ALTER COLUMN a SET GENERATED BY DEFAULT RESTART WITH 5 SET INCREMENT BY 2",
-		"AlterTable(Name: t, Action: AlterColumn(a, SetIdentityGeneration(ByDefault, [Restart(5), Increment(2)]), true))")]
+		"AlterTable(Name: t, Actions: [AlterColumn(a, SetIdentityGeneration(ByDefault, [Restart(5), Increment(2)]), true)])")]
 	[InlineData("CREATE VIEW v (a) AS SELECT a FROM t WITH LOCAL CHECK OPTION",
 		"CreateView(Name: v, Specification: Regular([a]), Query: Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(t)])), CheckOption: Local)")]
 	[InlineData("CREATE SEQUENCE s AS BIGINT START WITH 1 NO MAXVALUE CYCLE",
@@ -445,14 +445,152 @@ public sealed class SqlStandardTreeTests
 		"Revoke(Body: Roles(true, [r1, r2], [Identifier(AuthorizationIdentifier(u))], null, Cascade))")]
 	[InlineData("CREATE SCHEMA s AUTHORIZATION u PATH s, t DEFAULT CHARACTER SET utf8 CREATE TABLE x (a INT) CREATE ROLE r",
 		"CreateSchema(Name: s, PathFirst: true, Authorization: AuthorizationIdentifier(u), DefaultCharacterSet: CharacterSetName(utf8), Path: PathSpecification([s, t]), Elements: [CreateTable(Name: x, Contents: Elements([Column(ColumnDefinition(a, Numeric(Int, null, null), null, [], null))])), CreateRole(Name: r)])")]
-	[InlineData("DROP TRIGGER g", "Extension(Dialect: SQL:2023, Kind: Unbuilt)")]
+	[InlineData("DROP TYPE t CASCADE", "DropType(Names: [t], Behavior: Cascade)")]
+	[InlineData("CREATE TYPE s.t UNDER u AS (a INT DEFAULT 1) NOT FINAL REF IS SYSTEM GENERATED CAST (SOURCE AS DISTINCT) WITH f OVERRIDING METHOD m () RETURNS INT, STATIC METHOD n (x INT) RETURNS INT SELF AS RESULT LANGUAGE SQL",
+		"CreateType(Definition: UserDefinedTypeDefinition(s.t, u, Members([AttributeDefinition(a, Numeric(Int, null, null), 1, null)]), [Final(false), Reference(SystemGenerated()), Cast(ToDistinct, f)], [MethodSpecification(null, m, [], ReturnsDefinition(Numeric(Int, null, null), null, false), null, false, false, [], true), MethodSpecification(Static, n, [ParameterDefinition(null, x, Numeric(Int, null, null), false, null, false)], ReturnsDefinition(Numeric(Int, null, null), null, false), null, true, false, [Language(SQL)], false)]))")]
+	[InlineData("ALTER TYPE t DROP STATIC METHOD m (INT) RESTRICT", "AlterType(Name: t, Action: DropMethod(MethodDesignator(Static, m, [Numeric(Int, null, null)])))")]
+	[InlineData("CREATE CAST (t AS INT) WITH SPECIFIC FUNCTION f AS ASSIGNMENT",
+		"CreateCast(SourceType: UserDefined(t), TargetType: Numeric(Int, null, null), Function: RoutineDesignator(Function, f, null, null, true, null), AsAssignment: true)")]
+	[InlineData("CREATE ORDERING FOR t ORDER FULL BY STATE s", "CreateOrdering(TypeName: t, Ordering: OrderingDefinition(Full, State(s)))")]
+	[InlineData("CREATE TRANSFORMS FOR t g (TO SQL WITH FUNCTION f, FROM SQL WITH FUNCTION h)",
+		"CreateTransform(PluralKeyword: true, TypeName: t, Groups: [TransformGroup(g, [TransformElement(ToSql, RoutineDesignator(Function, f, null, null, false, null)), TransformElement(FromSql, RoutineDesignator(Function, h, null, null, false, null))])])")]
+	[InlineData("ALTER TRANSFORM FOR t g (DROP (TO SQL, FROM SQL RESTRICT))",
+		"AlterTransform(TypeName: t, Groups: [TransformAlterGroup(g, [TransformAlterAction(false, [], [ToSql, FromSql], Restrict)])])")]
+	[InlineData("DROP TRANSFORM ALL FOR t CASCADE", "DropTransform(Target: All(), TypeName: t, Behavior: Cascade)")]
+	[InlineData("DROP TRIGGER g", "DropTrigger(Names: [g])")]
+	[InlineData("CREATE TRIGGER s.g BEFORE UPDATE OF a ON t REFERENCING OLD ROW AS o NEW TABLE n FOR EACH ROW WHEN (a > 1) BEGIN ATOMIC SET SCHEMA 's'; COMMIT; END",
+		"CreateTrigger(Name: s.g, Time: Before, Event: TriggerEvent(Update, [a]), Table: t, Referencing: [TransitionReference(OldRow, o, true, true), TransitionReference(NewTable, n, false, false)], Action: TriggerAction(Row, Comparison(a, Greater, 1), [SetSchema(Value: 's'), Commit()], true))")]
+	[InlineData("CREATE PROCEDURE p (IN a INT, OUT b TABLE PASS THROUGH WITH SET SEMANTICS KEEP ON EMPTY) LANGUAGE SQL NOT DETERMINISTIC SQL SECURITY DEFINER CALL q(a)",
+		"CreateRoutine(Definition: RoutineDefinition(Procedure, p, [ParameterDefinition(In, a, Numeric(Int, null, null), false, null, false), ParameterDefinition(Out, b, GenericTable(PassThrough, Set, KeepOnEmpty), false, null, false)], null, [Language(SQL), Deterministic(false)], Sql(Call(Invocation: Invocation(q, [Argument(a, null, false)])), Definer), null, null, false, false))")]
+	[InlineData("CREATE FUNCTION f (x INT) RETURNS TABLE (a INT) READS SQL DATA RETURNS NULL ON NULL INPUT DYNAMIC RESULT SETS 2 STATIC DISPATCH EXTERNAL NAME 'lib' PARAMETER STYLE GENERAL TRANSFORM GROUP g FOR TYPE t EXTERNAL SECURITY IMPLEMENTATION DEFINED",
+		"CreateRoutine(Definition: RoutineDefinition(Function, f, [ParameterDefinition(null, x, Numeric(Int, null, null), false, null, false)], ReturnsDefinition(null, [FieldDefinition(a, Numeric(Int, null, null))], false, TableKeyword: true), [DataAccess(ReadsSqlData), NullCall(ReturnsNullOnNullInput), DynamicResultSets(2)], External('lib', General, TransformGroupSpecification(null, [TransformGroupForType(g, t)]), ImplementationDefined), null, null, true, false))")]
+	[InlineData("ALTER SPECIFIC PROCEDURE s.p NAME x MODIFIES SQL DATA RESTRICT",
+		"AlterRoutine(Routine: RoutineDesignator(Procedure, s.p, null, null, true, null), Characteristics: [ExternalName(x), DataAccess(ModifiesSqlData)], Behavior: Restrict)")]
+	[InlineData("DROP FUNCTION f (INT, DATE) FOR s.t CASCADE",
+		"DropRoutine(Routines: [RoutineDesignator(Function, f, [Numeric(Int, null, null), DateTime(Date, null, null)], s.t, false, null)], Behavior: Cascade)")]
 	public void A_schema_statement_is_built_as_written(string input, string tree) =>
 		Assert.Equal(tree, Show(SqlStandardParser.ParseSQLSchemaStatement(input)));
 
+	// ── §14, §16–§23 Statements ────────────────────────────────────────────────
+
+	[Theory]
+	[InlineData("DECLARE LOCAL TEMPORARY TABLE t (a INT) ON COMMIT DELETE ROWS;",
+		"DeclareLocalTemporaryTable(Name: t, Elements: [Column(ColumnDefinition(a, Numeric(Int, null, null), null, [], null))], OnCommit: Delete)")]
+	[InlineData("SELECT a FROM t FOR UPDATE OF a;",
+		"Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), Updatability: UpdatabilityClause(false, [a]))")]
+	[InlineData("START TRANSACTION ISOLATION LEVEL READ COMMITTED, READ ONLY, DIAGNOSTICS SIZE 5;",
+		"StartTransaction(Modes: [Isolation(ReadCommitted), Access(ReadOnly), DiagnosticsSize(5)])")]
+	[InlineData("ROLLBACK WORK AND NO CHAIN TO SAVEPOINT s;", "Rollback(Work: true, Chain: NoChain, ToSavepoint: s)")]
+	[InlineData("SET CONSTRAINTS a, s.b DEFERRED;", "SetConstraints(Target: Names([a, s.b]), Timing: Deferred)")]
+	[InlineData("CONNECT TO 'srv' AS 'c' USER 'u';", "Connect(Target: ConnectionTarget('srv', 'c', 'u', false))")]
+	[InlineData("DISCONNECT DEFAULT;", "Disconnect(Object: Connection(Default()))")]
+	[InlineData("SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE, TRANSACTION ISOLATION LEVEL SERIALIZABLE;",
+		"SetSessionCharacteristics(Characteristics: [[Access(ReadWrite)], [Isolation(Serializable)]])")]
+	[InlineData("SET NO COLLATION FOR utf8;", "SetCollation(NoCollation: true, ForCharacterSets: [CharacterSetName(utf8)])")]
+	[InlineData("SET SCHEMA 's';", "SetSchema(Value: 's')")]
+	public void A_direct_statement_is_built_as_written(string input, string tree) =>
+		Assert.Equal(tree, Show(SqlStandardParser.ParseDirectSQLStatement(input)));
+
+	[Theory]
+	[InlineData("FETCH ABSOLUTE 3 FROM c INTO :a, b[1]",
+		"FetchCursor(Orientation: FetchOrientation(Absolute, 3), FromKeyword: true, Cursor: CursorReference(c, null, false, false, false), Into: Values([Parameter(Host, a), Element(b, 1, null, false)]))")]
+	[InlineData("SELECT a INTO :x FROM t",
+		"Select(Items: [ExpressionItem(a, null, false)], Into: IntoClause([Parameter(Host, x)]), From: FromClause([Named(t)]))")]
+	[InlineData("CALL p(1)", "Call(Invocation: Invocation(p, [Argument(1, null, false)]))")]
+	[InlineData("RETURN NULL", "Return(NullKeyword: true)")]
+	[InlineData("GET DIAGNOSTICS :n = ROW_COUNT, m = MORE",
+		"GetDiagnostics(Information: Statement([StatementInformationItem(Parameter(Host, n), RowCount), StatementInformationItem(m, More)]))")]
+	[InlineData("GET DIAGNOSTICS CONDITION 1 :t = RETURNED_SQLSTATE",
+		"GetDiagnostics(Information: Condition(1, [ConditionInformationItem(Parameter(Host, t), ReturnedSqlstate)]))")]
+	[InlineData("PREPARE s ATTRIBUTES 'a' FROM 'SELECT 1'",
+		"Prepare(Statement: StatementReference(s, null, false, false), Attributes: 'a', Sql: 'SELECT 1')")]
+	[InlineData("EXECUTE s INTO SQL DESCRIPTOR GLOBAL 'd' USING :b",
+		"Execute(Statement: StatementReference(s, null, false, false), Result: Descriptor(DescriptorReference(null, 'd', false, true, false), true), Parameters: Values([Parameter(Host, b)]))")]
+	[InlineData("DESCRIBE OUTPUT CURSOR c STRUCTURE USING DESCRIPTOR d WITH NESTING",
+		"Describe(Body: Output(Cursor(CursorReference(c, null, false, false, false)), DescriptorReference(d, null, false, false, false), true, true, false))")]
+	[InlineData("GET SQL DESCRIPTOR d VALUE 1 :a = NAME, :b = DATA",
+		"GetDescriptor(SqlKeyword: true, Descriptor: DescriptorReference(d, null, false, false, false), Body: Value(1, [DescriptorRead(Parameter(Host, a), Name), DescriptorRead(Parameter(Host, b), Data)]))")]
+	[InlineData("ALLOCATE GLOBAL :c INSENSITIVE SCROLL CURSOR WITH HOLD FOR s",
+		"AllocateCursor(Cursor: CursorReference(null, Parameter(Host, c), false, true, false), Properties: CursorProperties(Insensitive, Scroll, WithHold, null), SourceValue: Prepared(StatementReference(s, null, false, false)))")]
+	[InlineData("COPY d VALUE 1 (NAME, TYPE) TO PTF p VALUE 2",
+		"CopyDescriptor(Body: Item(DescriptorReference(d, null, false, false, false), 1, [Name, Type], DescriptorReference(p, null, true, false, false), 2))")]
+	public void A_procedure_statement_is_built_as_written(string input, string tree) =>
+		Assert.Equal(tree, Show(SqlStandardParser.ParseSQLProcedureStatement(input)));
+
 	[Fact]
 	public void A_data_change_delta_table_holds_its_statement() =>
-		Assert.Equal("DataChange(New, Insert(Target: t, SourceValue: Values([RowValue([1], false)])), Alias(x, null, true))",
+		Assert.Equal("DataChange(New, Insert(Target: Named(t), SourceValue: Values([RowValue([1], false)])), Alias(x, null, true))",
 			Show(SqlStandardParser.ParseTableReference("NEW TABLE (INSERT INTO t VALUES 1) AS x")));
+
+	// ── The tree written back ──────────────────────────────────────────────────
+
+	/// <summary>
+	/// <see cref="Sql2023Writer"/> writes what the tree holds, so what it writes reads back into the same
+	/// tree and is written again the same way. `benchmarks --standard "~production" file` asks it of every
+	/// fuzz line; these are a line or two of each chapter, held here so a build asks it too.
+	/// </summary>
+	[Theory]
+	[InlineData("a || b[1] || c COLLATE x")]
+	[InlineData("a * -b[1] + (c) - d / e")]
+	[InlineData("d MULTISET UNION ALL e MULTISET INTERSECT f")]
+	[InlineData("d AT TIME ZONE e")]
+	[InlineData("f AT LOCAL")]
+	[InlineData("(a + b) * c - (d)")]
+	[InlineData("CASE a WHEN < 1, 2 THEN 'x' ELSE NULL END")]
+	[InlineData("CAST(a AS DECIMAL(10, 2) ARRAY[3]) || U&\"a\\0041\"UESCAPE'\\' || N'n' 'm' || _latin1'l' || X'0A'")]
+	[InlineData("SUBSTRING(a SIMILAR b ESCAPE c) || TRIM(LEADING FROM a) || OVERLAY(a PLACING b FROM 1 FOR 2 USING OCTETS)")]
+	[InlineData("RUNNING FIRST(a, 1) + LAG(a, 1, 0) IGNORE NULLS OVER (PARTITION BY b ORDER BY c DESC NULLS LAST ROWS BETWEEN 1 PRECEDING AND CURRENT ROW EXCLUDE TIES)")]
+	[InlineData("JSON_QUERY(a FORMAT JSON, '$.x' PASSING b AS c RETURNING CLOB WITH CONDITIONAL ARRAY WRAPPER KEEP QUOTES ON SCALAR STRING EMPTY OBJECT ON EMPTY)")]
+	[InlineData("a[$ to last, - -$ + $].double() || (a AS t).m(b AS u)")]
+	[InlineData("INTERVAL -'1:30' HOUR(2) TO SECOND(3) + a")]
+	[InlineData("a.SPECIFICTYPE() COLLATE c || b")]
+	public void A_value_expression_is_written_back_as_the_tree_it_was(string input) =>
+		WrittenBack(input, SqlStandardParser.ParseValueExpression);
+
+	[Theory]
+	[InlineData("WITH RECURSIVE r (n) AS (VALUES 1) SEARCH DEPTH FIRST BY n SET s SELECT DISTINCT t.*, u.* AS (x, y), n AS m FROM r")]
+	[InlineData("(SELECT a FROM t ORDER BY a) UNION ALL CORRESPONDING BY (a) TABLE u INTERSECT VALUES (1, 2), ROW(3, 4) ORDER BY 1 OFFSET 1 ROW FETCH NEXT 10 PERCENT ROWS WITH TIES")]
+	[InlineData("SELECT * FROM t PARTITION BY (a) NATURAL FULL OUTER JOIN u PARTITION BY (b), LATERAL (SELECT 1 FROM v) AS w (c) TABLESAMPLE SYSTEM (5) REPEATABLE (7)")]
+	[InlineData("SELECT a FROM t MATCH_RECOGNIZE (PARTITION BY a ORDER BY b MEASURES m AS n ONE ROW PER MATCH AFTER MATCH SKIP TO FIRST A PATTERN (^ A+? {- B -} (C | D){1,3} $) SUBSET S = (A, B) DEFINE A AS a > 1) AS m")]
+	[InlineData("SELECT a FROM JSON_TABLE(j, '$' COLUMNS (id FOR ORDINALITY, NESTED PATH '$.b' AS p COLUMNS (b INTEGER FORMAT JSON OMIT QUOTES)) PLAN DEFAULT (UNION, INNER) EMPTY ON ERROR) AS jt GROUP BY GROUPING SETS (ROLLUP (a), ()) HAVING COUNT(*) > 1 WINDOW w AS (ORDER BY a)")]
+	[InlineData("SELECT a FROM NEW TABLE (INSERT INTO t (a) OVERRIDING SYSTEM VALUE VALUES (DEFAULT), 1) AS x")]
+	public void A_query_is_written_back_as_the_tree_it_was(string input) =>
+		WrittenBack(input, SqlStandardParser.ParseQueryExpression);
+
+	[Theory]
+	[InlineData("CREATE GLOBAL TEMPORARY TABLE t (a INT DEFAULT 1 NOT NULL, CONSTRAINT pk PRIMARY KEY (a) NOT DEFERRABLE, FOREIGN KEY (a) REFERENCES u (b) MATCH FULL ON DELETE CASCADE ON UPDATE SET NULL) ON COMMIT PRESERVE ROWS")]
+	[InlineData("ALTER TABLE t ALTER COLUMN a SET GENERATED BY DEFAULT RESTART WITH 5 SET INCREMENT BY 2")]
+	[InlineData("CREATE SCHEMA s AUTHORIZATION u PATH s, t DEFAULT CHARACTER SET utf8 CREATE TABLE x (a INT) CREATE ROLE r")]
+	[InlineData("GRANT SELECT (a), UPDATE ON TABLE t TO PUBLIC, r WITH GRANT OPTION GRANTED BY CURRENT_ROLE")]
+	[InlineData("CREATE TRIGGER s.g BEFORE UPDATE OF a ON t REFERENCING OLD ROW AS o NEW TABLE n FOR EACH ROW WHEN (a > 1) BEGIN ATOMIC SET SCHEMA 's'; COMMIT; END")]
+	[InlineData("CREATE FUNCTION f (x INT) RETURNS TABLE (a INT) READS SQL DATA STATIC DISPATCH EXTERNAL NAME 'lib' PARAMETER STYLE GENERAL TRANSFORM GROUP g FOR TYPE t EXTERNAL SECURITY IMPLEMENTATION DEFINED")]
+	[InlineData("CREATE TYPE s.t UNDER u AS (a INT DEFAULT 1) NOT FINAL REF IS SYSTEM GENERATED CAST (SOURCE AS DISTINCT) WITH f OVERRIDING METHOD m () RETURNS INT")]
+	[InlineData("ALTER TRANSFORM FOR t g (DROP (TO SQL, FROM SQL RESTRICT))")]
+	public void A_schema_statement_is_written_back_as_the_tree_it_was(string input) =>
+		WrittenBack(input, SqlStandardParser.ParseSQLSchemaStatement);
+
+	[Theory]
+	[InlineData("UPDATE ONLY (t) AS x SET (d, e) = ROW(1, 2), f??(1??) = 3, g.h.i = 4 WHERE CURRENT OF MODULE.c")]
+	[InlineData("UPDATE t FOR PORTION OF p FROM a TO b SET a = DEFAULT WHERE b")]
+	[InlineData("UPDATE t SET a = 1 WHERE CURRENT OF GLOBAL :c")]
+	[InlineData("MERGE INTO t x USING u ON a = b WHEN MATCHED AND c > 0 THEN UPDATE SET c = 1 WHEN NOT MATCHED THEN INSERT (a) VALUES (1, DEFAULT)")]
+	[InlineData("FETCH ABSOLUTE 3 FROM c INTO :a INDICATOR :i, b[1]")]
+	[InlineData("GET DIAGNOSTICS CONDITION 1 :t = RETURNED_SQLSTATE, u = MESSAGE_TEXT")]
+	[InlineData("EXECUTE s INTO SQL DESCRIPTOR GLOBAL 'd' USING :b")]
+	[InlineData("ALLOCATE GLOBAL :c INSENSITIVE SCROLL CURSOR WITH HOLD FOR s")]
+	[InlineData("SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE, TRANSACTION ISOLATION LEVEL SERIALIZABLE")]
+	public void A_procedure_statement_is_written_back_as_the_tree_it_was(string input) =>
+		WrittenBack(input, SqlStandardParser.ParseSQLProcedureStatement);
+
+	static void WrittenBack<T>(string input, Func<string, T> parse) where T : ISqlNode
+	{
+		var tree    = parse(input);
+		var written = Sql2023Writer.Write(tree);
+		var again   = parse(written);
+
+		Assert.Equal(Show(tree), Show(again));
+		Assert.Equal(written, Sql2023Writer.Write(again));
+	}
 
 	/// <summary>
 	/// A node as one line: its record's name and its positional values in order, then what else it

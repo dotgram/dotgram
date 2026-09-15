@@ -472,30 +472,37 @@ Its grammars and model are generated from the official FIX Orchestra repository.
 
 ## DotGram.Web
 
-[`DotGram.Web`](src/DotGram.Web) is the formats of the web, written in .Gram against the
-specifications that define them, and a package of its own.
+[`DotGram.Web`](src/DotGram.Web) is parsers for the formats of the web, written in .Gram
+against the specifications that define them and held to their test suites — a package of its
+own.
 
 ```csharp
-var uri = Rfc3986.ParseUri("https://user@example.com:8080/a/b?q=1#top");
+var accept = MediaRange.ParseAccept("text/*;q=0.3, text/plain;q=0.7, */*;q=0.5");
 
-uri.Host;   // example.com
-uri.Port;   // 8080
-uri.Path;   // /a/b
-uri.Query;  // q=1
+MediaRange.Quality(accept, MediaType.Parse("text/plain"));   // 0.7
+JsonPointer.Parse("/a/1").Resolve(JsonValue.Parse("""{ "a": [0, 42] }"""));   // 42
+EmailAddress.ParseList("Mary Smith <mary@x.test>, jdoe@example.org").Length;  // 2
 ```
 
-| Parser | What it reads |
-| --- | --- |
-| [`Rfc3339`](src/DotGram.Web/Rfc3339.cs) | Internet timestamps — full-date, full-time and date-time, with the days of each month, leap years, leap seconds at 23:59:60 UTC and the unknown local offset; held to the JSON Schema test suite's date, time and date-time formats |
-| [`Rfc3986`](src/DotGram.Web/Rfc3986.cs) | URIs and relative references after RFC 3986 — authority, IPv4, IPv6, `IPvFuture`, paths, queries, fragments, percent encoding |
-| [`Rfc5646`](src/DotGram.Web/Rfc5646.cs) | Language tags, BCP 47 — language, extended languages, script, region, variants, extensions, private use and the grandfathered tags — read as well-formed and written in the recommended case; held to every tag and subtag of the IANA registry |
-| [`Rfc6570`](src/DotGram.Web/Rfc6570.cs) | URI Templates, all four levels — literals, the eight expression types, prefixes and explode — and their expansion over strings, lists and associative arrays; held to the implementers' test suite |
-| [`Rfc6901`](src/DotGram.Web/Rfc6901.cs) | JSON Pointer — its string form and its form in a URI fragment, read into unescaped reference tokens and written back, with the array index rule |
-| [`Rfc8288`](src/DotGram.Web/Rfc8288.cs) | The `Link` header field — targets, relation types, anchors and target attributes, the first of a once-only parameter counting, and `title*` decoded after RFC 8187 |
-| [`Rfc9651`](src/DotGram.Web/Rfc9651.cs) | Structured Field Values for HTTP — Items, Lists and Dictionaries of integers, decimals, strings, tokens, byte sequences, booleans, dates and display strings, with their parameters; held to the HTTP working group's test suite |
+| Format | Read with | Specification, and its grammar |
+| --- | --- | --- |
+| JSON | `JsonValue.Parse` | [RFC 8259](src/DotGram.Web/Rfc8259.cs) |
+| JSON Pointer | `JsonPointer.Parse` | [RFC 6901](src/DotGram.Web/Rfc6901.cs) |
+| JSON Patch | `JsonPatch.Parse` | [RFC 6902](src/DotGram.Web/Rfc6902.cs) |
+| `Content-Type`, `Accept` | `MediaType.Parse`, `MediaRange.ParseAccept` | [RFC 9110](src/DotGram.Web/Rfc9110.cs) |
+| Structured Fields | `StructuredField.ParseItem`, `ParseList`, `ParseDictionary` | [RFC 9651](src/DotGram.Web/Rfc9651.cs) |
+| `Link` | `WebLink.ParseField` | [RFC 8288](src/DotGram.Web/Rfc8288.cs) |
+| `Content-Disposition` | `ContentDisposition.Parse` | [RFC 6266](src/DotGram.Web/Rfc6266.cs) |
+| `Set-Cookie`, `Cookie` | `SetCookie.Parse`, `CookiePair.ParseField`, `CookieDate.Parse` | [RFC 6265](src/DotGram.Web/Rfc6265.cs) |
+| `Forwarded` | `ForwardedElement.ParseField` | [RFC 7239](src/DotGram.Web/Rfc7239.cs) |
+| URI | `UriReference.Parse` | [RFC 3986](src/DotGram.Web/Rfc3986.cs) |
+| URI Template | `UriTemplate.Parse` | [RFC 6570](src/DotGram.Web/Rfc6570.cs) |
+| Email address | `AddrSpec.Parse`, `EmailAddress.ParseList` | [RFC 5322](src/DotGram.Web/Rfc5322.cs) |
+| Timestamp | `Timestamp.Parse` | [RFC 3339](src/DotGram.Web/Rfc3339.cs) |
+| Language tag | `LanguageTag.Parse` | [RFC 5646](src/DotGram.Web/Rfc5646.cs) |
 
-[`src/DotGram.Web/README.md`](src/DotGram.Web/README.md) has what it parses and what it
-hands back.
+[`src/DotGram.Web/README.md`](src/DotGram.Web/README.md), the package's own page, has what each
+reads, what it hands back, and the suite it is held to.
 
 ## DotGram.Sql
 

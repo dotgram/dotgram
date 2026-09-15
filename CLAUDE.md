@@ -116,7 +116,10 @@ src/
 	DotGram.VisualStudio/ the Visual Studio extension: .Gram language support in the
 	                      editor, over DotGram/Language (docs/visual-studio.md)
 	DotGram.Web/          the formats of the web, a package of its own, in the DotGram.Web
-	                      namespace: Rfc3339, Rfc3986, Rfc5646, Rfc6570, Rfc6901, Rfc8288, Rfc9651. Written against whole specifications, not as
+	                      namespace. A file and an internal grammar class per specification
+	                      (Rfc3339 … Rfc9651); what is public is the values, each with its own
+	                      Parse and TryParse (JsonValue.Parse, MediaType.Parse, …). README.md
+	                      ships on NuGet. Written against whole specifications, not as
 	                      teaching material — and, being an ordinary project the generator
 	                      runs over, it is where a real symbol resolver is exercised
 examples/

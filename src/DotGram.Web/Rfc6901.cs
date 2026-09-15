@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 using DotGram;
@@ -20,6 +21,41 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 {
 	/// <summary>The pointer with no tokens, which refers to the whole document.</summary>
 	public static JsonPointer Root { get; } = new([]);
+
+	/// <summary>A JSON Pointer in its string form (RFC 6901 §3): nothing, or tokens each after a <c>/</c>.</summary>
+	/// <exception cref="FormatException">The text is no pointer; the message says where.</exception>
+	public static JsonPointer Parse(string text) =>
+		Rfc6901.ParsePointer(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A JSON Pointer in its string form, or false where the text is not one.</summary>
+	public static bool TryParse(string text, [NotNullWhen(true)] out JsonPointer? pointer)
+	{
+		var match = Rfc6901.TryParsePointer(text ?? throw new ArgumentNullException(nameof(text)));
+
+		pointer = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>A JSON Pointer in a URI fragment (§6): <c>#</c>, and the string form pct-encoded as UTF-8.</summary>
+	/// <exception cref="FormatException">The text is no fragment holding a pointer; the message says where.</exception>
+	public static JsonPointer ParseFragment(string text) =>
+		Rfc6901.ParseFragment(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A JSON Pointer in a URI fragment, or false where the text is not one.</summary>
+	public static bool TryParseFragment(string text, [NotNullWhen(true)] out JsonPointer? pointer)
+	{
+		var match = Rfc6901.TryParseFragment(text ?? throw new ArgumentNullException(nameof(text)));
+
+		pointer = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>Equal to another pointer with the same tokens in the same order.</summary>
+	public bool Equals(JsonPointer? other) => other is not null && Structural.Same(Tokens, other.Tokens);
+
+	public override int GetHashCode() => Structural.Hash(Tokens);
 
 	/// <summary>The pointer as a JSON string holds it (§5): each token after a <c>/</c>, escaped.</summary>
 	public override string ToString()
@@ -94,6 +130,68 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 	/// <summary>Whether a token is <c>-</c>, the element after an array's last (§4).</summary>
 	public static bool IsPastTheEnd(string token) => token == "-";
 
+	/// <summary>The value this pointer refers to in a document (§4), or null where it refers to none.</summary>
+	/// <remarks>
+	/// <para>
+	/// Each token takes one step: to the member of an object with that name, or to the element of an array
+	/// at that index. There is no value — and so null, which is not <see cref="JsonValue.Null"/> — where an
+	/// object has no member of the name or has more than one (§4 calls that member undefined), where an
+	/// array's token is no index or is past its end, <c>-</c> included, and where a step is taken into a value
+	/// that has no members or elements.
+	/// </para>
+	/// <para>
+	/// What an application does with <c>-</c> or with a missing value is the application's (§7): a
+	/// JSON Patch adds there, for one. This answers what the document holds.
+	/// </para>
+	/// </remarks>
+	public JsonValue? Resolve(JsonValue document)
+	{
+		if (document is null)
+			throw new ArgumentNullException(nameof(document));
+
+		var value = document;
+
+		foreach (var token in Tokens)
+		{
+			switch (value)
+			{
+				case JsonValue.Object members:
+				{
+					JsonValue? found = null;
+
+					foreach (var member in members.Members)
+					{
+						if (!string.Equals(member.Key, token, StringComparison.Ordinal))
+							continue;
+
+						if (found is not null)
+							return null;
+
+						found = member.Value;
+					}
+
+					if (found is null)
+						return null;
+
+					value = found;
+					break;
+				}
+
+				case JsonValue.Array items:
+					if (ArrayIndex(token) is not { } index || index >= items.Items.Count)
+						return null;
+
+					value = items.Items[index];
+					break;
+
+				default:
+					return null;
+			}
+		}
+
+		return value;
+	}
+
 	// RFC 3986 §3.5: a fragment is pchar, `/` and `?`; a `%` is always a triplet's.
 	static bool Allowed(char c) =>
 		c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or
@@ -137,7 +235,7 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 	parse Pointer  as ParsePointer
 	parse Fragment as ParseFragment
 	""")]
-public static partial class Rfc6901
+static partial class Rfc6901
 {
 	// ParsePointer, TryParsePointer, ParseFragment and TryParseFragment are generated here.
 
