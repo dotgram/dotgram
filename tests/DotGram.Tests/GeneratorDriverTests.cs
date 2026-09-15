@@ -2308,7 +2308,10 @@ public sealed class GeneratorDriverTests
 				parse Start
 				""")]
 			[GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
-			public static partial class Hidden
+			// Not `Hidden`: this assembly is loaded into the test process, the expression
+			// language looks names up in every loaded assembly, and its tests name a `Hidden`
+			// of their own — which of the two a run found depended on which test ran first.
+			public static partial class HiddenReading
 			{
 				internal static partial class Immediate
 				{
@@ -2327,7 +2330,7 @@ public sealed class GeneratorDriverTests
 
 		var built = Build(source);
 
-		var hidden = built.GetType("Hidden+Immediate")!;
+		var hidden = built.GetType("HiddenReading+Immediate")!;
 		var shown  = built.GetType("Shown+Immediate")!;
 
 		Assert.True(hidden.IsNestedAssembly);
