@@ -1,5 +1,8 @@
 # Benchmarks
 
+FIX message workloads and measured results are in
+[`DotGram.Finance.Benchmarks`](DotGram.Finance.Benchmarks/README.md).
+
 ```console
 dotnet run -c Release --project benchmarks/DotGram.Benchmarks
 dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --filter "*Url*"

@@ -23,6 +23,9 @@
 		<File Path="README.md" />
 	</Folder>
 	<Folder Name="/benchmarks/">
+		<Project Path="benchmarks/DotGram.Finance.Benchmarks/DotGram.Finance.Benchmarks.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<File Path="benchmarks/README.md" />
 		<Project Path="benchmarks/DotGram.Benchmarks/DotGram.Benchmarks.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
@@ -43,6 +46,9 @@
 		</Project>
 	</Folder>
 	<Folder Name="/src/">
+		<Project Path="src/DotGram.Finance/DotGram.Finance.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<Project Path="src/DotGram/DotGram.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
@@ -61,6 +67,9 @@
 		</Project>
 	</Folder>
 	<Folder Name="/tests/">
+		<Project Path="tests/DotGram.Finance.Tests/DotGram.Finance.Tests.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<Project Path="tests/DotGram.VisualStudio.Tests/DotGram.VisualStudio.Tests.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 			<Build Solution="Linux|*" Project="false" />

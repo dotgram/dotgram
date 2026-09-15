@@ -12,3 +12,7 @@
 # normalizing line endings would corrupt them; more to the point, the whole value
 # of a corpus written elsewhere is that it is the text they wrote and not ours.
 tests/Corpus/ScriptDom/** -text
+
+# Pinned upstream FIX definitions and license: preserve their exact source bytes.
+src/DotGram.Finance/Fix/Fix44/Specification/OrchestraFIX44.xml -text
+src/DotGram.Finance/Fix/Fix44/Specification/LICENSE -text

@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
+		<RootNamespace>DotGram.Finance</RootNamespace>
+		<Description>FIX 4.4 tag-value parsing built with DotGram.</Description>
+		<PackageReleaseNotes>FIX 4.4 typed message parsing, strict and lenient validation, nested repeating groups, lossless raw data and vendor length/data pairs.</PackageReleaseNotes>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageTags>fix;finance;parser;dotgram</PackageTags>
+		<PackageLicenseExpression>MIT AND Apache-2.0</PackageLicenseExpression>
+		<DebugType>embedded</DebugType>
+		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+		<EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+		<CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
+	</PropertyGroup>
+	<ItemGroup>
+		<InternalsVisibleTo Include="DotGram.Finance.Tests" />
+		<ProjectReference Include="../DotGram/DotGram.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<AdditionalFiles Include="Fix/Fix44/*.gram" />
+		<None Include="README.md" Pack="true" PackagePath="/" />
+		<None Include="Fix/Fix44/Specification/LICENSE" Pack="true" PackagePath="licenses/FIX-Orchestra/" />
+		<None Include="../../LICENSE" Pack="true" PackagePath="licenses/DotGram/" />
+		<None Include="THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="/" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+		<PackageReference Include="System.Memory" />
+		<PackageReference Include="Meziantou.Polyfill" PrivateAssets="all" />
+	</ItemGroup>
+</Project>

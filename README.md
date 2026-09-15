@@ -463,6 +463,13 @@ it, under its own substitutions.
 [`SqlStandard92`](src/DotGram.Sql/Standard/SqlStandard92.gram) — a dialect the size of its
 difference, with the standard underneath written once.
 
+## DotGram.Finance
+
+[`DotGram.Finance`](src/DotGram.Finance/README.md) parses FIX 4.4 tag-value messages
+into typed messages and nested groups. It provides `Fix44.Parse` and `TryParse`,
+Strict and Lenient policies, exact wire preservation, and length-aware raw data.
+Its grammars and model are generated from the official FIX Orchestra repository.
+
 ## DotGram.Web
 
 [`DotGram.Web`](src/DotGram.Web) is the formats of the web, written in .Gram against the
