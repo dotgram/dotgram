@@ -22813,6 +22813,35 @@ rules are copied from `Rfc3986`, since a grammar includes no other.
 
 No shared suite exists; the RFC's examples in §4, §6 and §7 and each rule of §4 to §6 are the tests.
 
+## RFC 6265, cookies
+
+Igor, 2026-09-15: go on with the specifications. `src/DotGram.Web/Rfc6265.cs` has the RFC's two readings.
+§5.2's, a user agent's, is `ParseSetCookie` into `SetCookie`: the grammar only divides at `;`, a `when`
+refuses a pair with no `=` or no name, and C# divides at `=` and trims. Every cookie-av is kept; the
+properties are §5.2.x and §5.3's "last attribute of the name", so a later invalid Path means the default
+path and a later empty Domain is ignored. `ExpiryTime(now)` is §5.3 step 3. §4.2.1's, a server's, is
+`ParseCookies`, a strict grammar. `DomainMatches`, `DefaultPath` and `PathMatches` are §5.1.3 and §5.1.4;
+the store is not here.
+
+Dates are §5.1.1 split between the two: the grammar divides a date into tokens and has the four
+productions as `internal parse` publications (a token matches one only whole), and the flag-setting steps
+are C#. Errata: 4148 (verified) makes the tail after a day-of-month optional, as written; 8242 (held)
+orders the quoted cookie-value first, as written; 8877 (reported) makes month names case-insensitive, as
+written; 3444 is in §4.1.1's path-value, not read.
+
+Tests: §3.1's conversation and each step of §5.1 and §5.2, and the http-state working group's parser cases
+— abarth/http-state at 155e45c, `tests/data/parser`, 218 enabled, Set-Cookie in and Cookie out — replayed
+through a store written in the test after §5.3 and §5.4. The repository carries no licence (its content is
+"IETF Contributions" under the Note Well); Igor, asked, said to copy it, and it is in
+`tests/DotGram.Tests/Web/HttpState/` byte for byte with its README, marked `-text`. web-platform-tests has
+since rewritten these cases as browser tests, so they were not taken from there.
+
+The store is what the cases need and no more: a fixed now of 2010-01-01, between the dates the cases mean
+as past and future; a public suffix list of one rule, a domain without a dot (`domain=.org`); and the
+request's host and path taken through `Rfc3986`, since `System.Uri` unescapes `%6F` in a path and one case
+(`path0028`) tests that it is not. Case 0028's expected file holds its own Set-Cookie fields rather than a
+Cookie field, and expects none. All 218 pass with no change to the reader.
+
 ## The SQL:2023 tree, built by the standard's grammar
 
 `SqlStandard.gram` now builds `Sql2023Ast.cs` for what it once only recognized, chapter by chapter:

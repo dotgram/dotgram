@@ -16,3 +16,7 @@ tests/Corpus/ScriptDom/** -text
 # JSONTestSuite's parsing cases are the bytes a parser is handed: some are UTF-16, some are not
 # valid UTF-8, and a line ending is part of what several of them test.
 tests/DotGram.Tests/Web/JsonTestSuite/** -text
+
+# The http-state working group's cookie cases are header lines as sent: CRLF, and ISO-8859-1 octets
+# that are not UTF-8.
+tests/DotGram.Tests/Web/HttpState/** -text

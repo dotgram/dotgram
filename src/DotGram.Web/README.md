@@ -96,6 +96,33 @@ A tag is case-insensitive: its parts are kept as written, and `ToString()` write
 nothing but the ABNF; whether every subtag is in the IANA registry — *valid* — is a question
 for the registry, and is not asked.
 
+## RFC 6265 cookies
+
+[`Rfc6265`](Rfc6265.cs) reads `Set-Cookie` the way a user agent must, and `Cookie` the way a
+server receives it.
+
+```csharp
+using DotGram.Web;
+
+var cookie = Rfc6265.ParseSetCookie("SID=31d4d96e407aad42; Path=/; Max-Age=3600; Secure; HttpOnly");
+
+cookie.Name;                         // SID
+cookie.Path;                         // /
+cookie.ExpiryTime(DateTimeOffset.UtcNow);   // an hour from now
+cookie.Secure;                       // true
+
+Rfc6265.ParseCookieDate("Sun, 06-Nov-94 08:49:37 GMT");   // 1994-11-06 08:49:37 +00:00
+Rfc6265.ParseCookies("SID=31d4d96e407aad42; lang=en-US"); // two CookiePairs
+```
+
+`ParseSetCookie` is §5.2's algorithm, which reads nearly anything: it refuses only a field
+with no `=` or no name. Every attribute is kept; the properties take the last one that §5.2
+lets count, so a Path that is not absolute means the default path, and Max-Age comes before
+Expires. `ParseCookieDate` is §5.1.1's, which finds a time, a day, a month and a year among
+the tokens in any order. `ParseCookies` is §4.2.1's grammar. `DomainMatches`, `DefaultPath`
+and `PathMatches` are §5.1's pieces of deciding which request gets a cookie; the store itself
+is the caller's. It is held to the parser cases of the IETF httpstate working group.
+
 ## RFC 6266 Content-Disposition
 
 [`Rfc6266`](Rfc6266.cs) reads the `Content-Disposition` header field.

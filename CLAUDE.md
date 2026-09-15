@@ -116,7 +116,7 @@ src/
 	DotGram.VisualStudio/ the Visual Studio extension: .Gram language support in the
 	                      editor, over DotGram/Language (docs/visual-studio.md)
 	DotGram.Web/          the formats of the web, a package of its own, in the DotGram.Web
-	                      namespace: Rfc3339, Rfc3986, Rfc5646, Rfc6266, Rfc6570, Rfc6901, Rfc6902, Rfc7239, Rfc8259, Rfc8288, Rfc9110, Rfc9651. Written against whole specifications, not as
+	                      namespace: Rfc3339, Rfc3986, Rfc5646, Rfc6265, Rfc6266, Rfc6570, Rfc6901, Rfc6902, Rfc7239, Rfc8259, Rfc8288, Rfc9110, Rfc9651. Written against whole specifications, not as
 	                      teaching material — and, being an ordinary project the generator
 	                      runs over, it is where a real symbol resolver is exercised
 examples/
