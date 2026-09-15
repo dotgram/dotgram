@@ -1194,6 +1194,7 @@ sealed partial class Machine
 	public string RenderEngine(string name)
 	{
 		var file = new Writer(0);
+
 		var strength = _graph.Climbing.Count > 0 ? ", int initialPower" : "";
 		var hasValues = false;
 
@@ -1202,6 +1203,25 @@ sealed partial class Machine
 
 		if (hasValues)
 			EnsureMaterializer();
+
+		PlanLayout();
+		// Large split machines would otherwise put thousands of case labels back
+		// into the outer dispatcher, defeating the JIT budget of the parts.
+		var indexedDispatch = Divided && Dispatching().Count > 1000;
+		if (indexedDispatch)
+		{
+			var dispatch = Dispatching();
+			var numbered = Enumerable.Range(0, _parts.Count)
+				.SelectMany(part => Numbering(dispatch, part).Select(state => (State: state, Part: part)))
+				.ToArray();
+			var table = Enumerable.Repeat(-1, numbered.Max(one => one.State) + 1).ToArray();
+			table[Return] = Return;
+			table[Accept] = Accept;
+			table[Fail] = Fail;
+			foreach (var one in numbered) table[one.State] = one.Part + First;
+			file.Line($"static readonly int[] {name}_Dispatch = new int[] {{ {string.Join(", ", table)} }};");
+			file.Line();
+		}
 
 		using (file.Block(
 			$"static int {name}({InputType} text, int pos, int state, " +
@@ -1283,7 +1303,9 @@ sealed partial class Machine
 				// Fallen into rather than jumped to: the entry above is the line before it.
 				file.Line("Dispatch:");
 
-				using (file.Block("switch (state)"))
+				using (file.Block(indexedDispatch
+					? $"switch ((uint)state < (uint){name}_Dispatch.Length ? {name}_Dispatch[state] : -1)"
+					: "switch (state)"))
 				{
 					file.Line($"case {Return}: goto Return;");
 					file.Line($"case {Accept}: goto Accept;");
@@ -1321,12 +1343,17 @@ sealed partial class Machine
 						{
 							var any = false;
 
-							foreach (var one in Numbering(cases, part))
+							if (indexedDispatch)
 							{
-								file.Line($"case {one}:");
-
-								any = true;
+								any = Numbering(cases, part).Any();
+								if (any) file.Line($"case {part + First}:");
 							}
+							else
+								foreach (var one in Numbering(cases, part))
+								{
+									file.Line($"case {one}:");
+									any = true;
+								}
 
 							if (!any)
 								continue;

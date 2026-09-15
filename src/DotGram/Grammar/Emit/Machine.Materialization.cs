@@ -387,23 +387,38 @@ sealed partial class Machine
 	{
 		using (file.Block("switch (rootRule)"))
 		{
-			foreach (var rule in _rules)
+			if (_rules.Count > 512)
 			{
-				if (ValueRule(rule) < 0)
-					continue;
-
-				file.Line($"case {_ruleIds[rule]}:");
-
-				using (file.Indent())
+				// The number of semantic rules need not multiply identical table reads.
+				foreach (var group in _rules.Where(rule => ValueRule(rule) >= 0).GroupBy(rule =>
+					IsExtent(rule) ? "null" : ValueFrom(_results.QualifiedOf(rule)!, "0")))
 				{
-					// An extent was never put anywhere: the wrapper works it out from the
-					// position it gave and the one it was told.
-					file.Line(IsExtent(rule)
-						? "recognized = null;"
-						: $"recognized = {ValueFrom(_results.QualifiedOf(rule)!, "0")};");
-					file.Line("break;");
+					foreach (var rule in group) file.Line($"case {_ruleIds[rule]}:");
+					using (file.Indent())
+					{
+						file.Line($"recognized = {group.Key};");
+						file.Line("break;");
+					}
 				}
 			}
+			else
+				foreach (var rule in _rules)
+				{
+					if (ValueRule(rule) < 0)
+						continue;
+
+					file.Line($"case {_ruleIds[rule]}:");
+
+					using (file.Indent())
+					{
+						// An extent was never put anywhere: the wrapper works it out from the
+						// position it gave and the one it was told.
+						file.Line(IsExtent(rule)
+							? "recognized = null;"
+							: $"recognized = {ValueFrom(_results.QualifiedOf(rule)!, "0")};");
+						file.Line("break;");
+					}
+				}
 
 			file.Line("default:");
 
