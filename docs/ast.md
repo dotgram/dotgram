@@ -55,8 +55,12 @@ an expression that holds one. A statement that returns rows is not a kind of que
 statement that holds one. Nothing derives from anything but its own root, and no root
 derives from another. Crossing between hierarchies is always a field.
 
-**One level under each root.** A consumer switches over the descendants of the root it holds
-and has seen all of them. A node under another node would be a node half its readers miss.
+**One level under each root, and under `SetExpression` one level under each group.** A
+node is a sealed record nested in its root — `Statement.Select` — except that
+`SetExpression`'s nodes sit in the abstract groups Microsoft's page divides the SET
+statements into, and are named by that path: `SetExpression.Locking.LockTimeout`. A consumer
+switches over the descendants of the root it holds and has seen all of them. A node under
+another node would be a node half its readers miss; a group is not a node.
 
 **A record per production.** A `DROP TABLE` and a `DROP VIEW` are not one shape with a word
 in it; they are two statements spelled alike, and a consumer that reads the word to tell
@@ -157,6 +161,16 @@ name as `Tail`, the words are there and their parts are not — unless the state
 settings as `Options` beside them, which the keys and certificates do: a repeated `SUBJECT`
 or `ALGORITHM` is what the engine refuses there, and a list nested in one of them, a private
 key's or an Always Encrypted value's, is an option holding it.
+
+## The SQL:2023 tree
+
+`src/DotGram.Sql/Standard/Sql2023Ast.cs`, in the namespace `DotGram.Sql.Ast`, is the tree of
+the standard's parser, laid out by `design/sql-ast.md`. `SqlStandardParser` builds it for
+names — an identifier with its spelling and its `IdentifierStyle`, an identifier chain, a
+table name, a column reference as `Ast.Expression.Reference` — through
+`src/DotGram.Sql/Standard/Nodes.cs`, and recognizes the rest of the language without building
+it. Its nodes are not in the tables below, which describe the tree in `SqlSyntax.cs`; its
+shape is in `design/sql-ast.md`.
 
 ## The nodes
 

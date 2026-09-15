@@ -1,8 +1,42 @@
 # Design proposal: separate lexical and syntactic machines
 
-A proposal, not a description of the current compiler and not part of the `.gram`
-language specification. It was discussed, then measured — the numbers at the bottom are
-from a probe that ran, and they are what makes the rest of this worth reading.
+A proposal; what was built differs in the ways listed below, and none of this is part of the
+`.gram` language specification. It was discussed, then measured — the numbers at the bottom
+are from a probe that ran, and they are what makes the rest of this worth reading.
+
+## What was built
+
+The split exists, and where it departs from the proposal below, the code and
+`docs/syntax.md` are right and this document is not:
+
+- **A token buffer, filled before the parse.** `Tokenize_DotGram` reads the whole input
+  into a `Tokens_DotGram` — `char[] Kinds`, `int[] Starts`, `int[] Lengths` — and the
+  syntactic half reads that (`CSharpEmitter.cs`). There is no lazy, rescanning
+  `Peek` / `Consume` / `Mark` / `Restore` cursor, and no token is split: `>>` is written in
+  the grammar as `'>' ~ '>'` (`syntax.md` §4.5), so the lexer never makes a `>>` to split.
+- **New notation, where the proposal hoped for none.** `~` joins two operands with no seam
+  between them. A terminal that is not a regular language is written as a beginning the
+  lexer reads and a rest a rule or the host measures — `Comment = '/*' & Nested`,
+  `Blob = '<' & @ReadBlob` (`syntax.md` §7.1); a terminal that is nothing but `@M` is
+  `GRAM5011` (`docs/diagnostics.md`).
+- **Over kinds the syntactic machine is the reader, not the automaton.** The default is
+  methods (`Machine.Reader.cs`, gated by `CanDirect` in `Machine.Direct.cs`), and a rule's
+  answer stands (`syntax.md` §4; a rule marked `Name?` gives back inside itself only). The
+  goto automaton with its arena and backtracking that the design statement at the bottom
+  keeps is what a machine falls back to where the reader refuses it, and that is reported as
+  `GRAM5005`.
+- **Opt-in, with a fallback.** `Lexical = true` on `[Gram]` or `[GramOptions]` asks for the
+  split; a grammar that cannot be cut — a `find` publication among the reasons, so a grammar
+  publishing one is never cut — is compiled over characters with `GRAM5004`. The hosts that
+  ask are `Sql92Parser`, `TransactSqlParser`, `ExpressionParser` and the example
+  `TokenizedQueryExample`.
+- **The lexer has a table after all.** Each state reads a row of 128 cells placed where its
+  own alphabet lies, and only what the row does not answer goes to the chain of tests
+  (`LexerEmitter.cs`) — not direct code alone, as step 4 below says.
+- **`ExpressionLanguage` asks for the split** (step 7). No test asserts that it is cut;
+  `GRAM5004` and `GRAM5005` are warnings, the repository builds with warnings as errors
+  (`Directory.Build.props`) and suppresses neither, so a build of `DotGram.ExpressionLanguage`
+  that succeeds is one where it was cut and read by methods.
 
 ## The problem
 

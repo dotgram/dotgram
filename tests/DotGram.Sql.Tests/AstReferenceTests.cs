@@ -22,9 +22,12 @@ namespace DotGram.Sql.Tests;
 /// after is in the table. Nothing in either enforces the other, so this does — the same
 /// bargain <see cref="DiagnosticsReferenceTests"/> strikes for the diagnostics.
 /// <para>
-/// The tree has five roots and no root above them, so a node is named by its root as well
-/// — <c>Statement.Select</c>, <c>Clause.Set</c> — and the roots themselves are checked:
-/// a sixth added and not written down is a hierarchy the reference does not know about.
+/// The tree has six roots — <c>Statement</c>, <c>Query</c>, <c>Expression</c>,
+/// <c>TableReference</c>, <c>Clause</c> and <c>SetExpression</c> — and no root above them,
+/// so a node is named by its root as well: <c>Statement.Select</c>, <c>Clause.Set</c>, and
+/// through its group where it has one, <c>SetExpression.Locking.LockTimeout</c>. The roots
+/// are found in the assembly rather than listed, so a seventh added and not written down is
+/// a hierarchy the reference does not know about, and is caught like any other node.
 /// </para>
 /// </remarks>
 public sealed class AstReferenceTests
