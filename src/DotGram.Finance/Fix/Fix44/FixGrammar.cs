@@ -1,103 +1,94 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 
 using DotGram;
 
 namespace DotGram.Finance.Fix;
 
-static class FixGrammar
-{
-	// The grammar recognizes both tags and the length field. This recognizer only
-	// advances across the length-delimited payload, which may contain SOH itself.
-	internal static bool ReadData(ReadOnlySpan<char> input, ref int position)
-	{
-		var dataTagStart = position - 2;
-		while (dataTagStart >= 0 && input[dataTagStart] != '\u0001') dataTagStart--;
-		if (dataTagStart < 0) return false;
-		var lengthEnd = dataTagStart;
-		var lengthStart = lengthEnd - 1;
-		while (lengthStart >= 0 && input[lengthStart] >= '0' && input[lengthStart] <= '9') lengthStart--;
-		if (lengthStart < 0 || input[lengthStart] != '=') return false;
-		if (!int.TryParse(input.Slice(lengthStart + 1, lengthEnd - lengthStart - 1), NumberStyles.None, CultureInfo.InvariantCulture, out var length)) return false;
-		if (length >= input.Length - position || input[position + length] != '\u0001') return false;
-		position += length;
-		return true;
-	}
-}
+[Gram("FixGrammar.gram", SpanCaptures = true, BufferedInput = true, PartSize = 1000, Portable = false)]
+static partial class FixGrammar;
 
 sealed class FixContext
 {
-	readonly List<(FixNode Counter, int Remaining)> groupStack = new();
-	public FixParseError? Error { get; set; }
-	public bool HasEntry => groupStack.Count > 0 && groupStack[groupStack.Count - 1].Remaining > 0;
-
-	public bool BeginGroup(FixNode counter)
+	readonly string? text;
+	readonly byte[]? bytes;
+	public FixContext(string source, FixParseMode mode, FixParseOptions? options = null, char separator = '\u0001')
 	{
-		if (!counter.Field(Source).TryGetInt64(out var count) || count < 0 || count > Source.Length / 4)
-		{
-			Error = new FixParseError(counter.ValuePosition, counter.Tag, MessageType, "Invalid or impossible NumInGroup.");
-			return false;
-		}
-		groupStack.Add((counter, (int)count));
-		return true;
-	}
-
-	public bool ConsumeEntry()
-	{
-		if (!HasEntry) return false;
-		var frame = groupStack[groupStack.Count - 1];
-		groupStack[groupStack.Count - 1] = (frame.Counter, frame.Remaining - 1);
-		return true;
-	}
-
-	public bool EndGroup()
-	{
-		var frame = groupStack[groupStack.Count - 1];
-		if (frame.Remaining != 0)
-		{
-			Error = new FixParseError(frame.Counter.ValuePosition, frame.Counter.Tag, MessageType, "Fewer group entries than NumInGroup specifies.");
-			return false;
-		}
-		groupStack.RemoveAt(groupStack.Count - 1);
-		return true;
-	}
-	public FixContext(string source, FixParseMode mode, FixParseOptions? options = null)
-	{
-		Source = source;
+		text = source;
 		Mode = mode;
 		Options = options;
+		Separator = separator;
 	}
-
-	public string Source { get; }
-	public static FixNode[] Header(FixNode begin, FixNode length, FixNode type, FixNode[] rest)
+	public FixContext(byte[] source, FixParseMode mode, FixParseOptions? options = null, char separator = '\u0001')
 	{
-		var result = new FixNode[rest.Length + 3];
-		result[0] = begin;
-		result[1] = length;
-		result[2] = type;
-		Array.Copy(rest, 0, result, 3, rest.Length);
-		return result;
+		bytes = source;
+		Mode = mode;
+		Options = options;
+		Separator = separator;
 	}
 	public FixParseMode Mode { get; }
 	public FixParseOptions? Options { get; }
+	public char Separator { get; }
 	public string MessageType { get; set; } = "";
-	public bool SetMessageType(FixNode node)
+	int Length => text?.Length ?? bytes!.Length;
+	int At(int index) => text != null ? text[index] : bytes![index];
+	int Number(int start, int count)
 	{
-		MessageType = node.Field(Source).ToString();
-		return true;
+		if (text != null) return Tag(text.AsSpan(start, count));
+		return Tag(bytes.AsSpan(start, count));
 	}
-	public bool IsExtension(int start, int length)
+	public int DataLimit { get; private set; }
+	public bool BeginData(int start) { DataLimit = DataEnd(start); return DataLimit >= start; }
+	int DataEnd(int start)
 	{
-		var tag = TagAt(start, length);
-		return tag > 0 && FixSchema.Type(tag) == null && (Options?.LengthTag(tag) ?? 0) == 0 && (Mode == FixParseMode.Lenient || (Options?.DataTag(tag) ?? 0) != 0);
+		// Only the preceding length/data pair affects token boundaries. All group
+		// interpretation is deferred to the semantic pass. Each atomic Data rule
+		// installs its own bound before consuming bytes; alternatives cannot reuse it.
+		var equal = start - 1;
+		var tagStart = equal - 1;
+		while (tagStart >= 0 && At(tagStart) != Separator) tagStart--;
+		if (tagStart < 0) return -1;
+		var dataTag = Number(tagStart + 1, equal - tagStart - 1);
+		var lengthTag = FixSchema.LengthTag(dataTag);
+		if (lengthTag == 0) lengthTag = Options?.LengthTag(dataTag) ?? 0;
+		if (lengthTag == 0) return -1;
+		var lengthEnd = tagStart;
+		var lengthStart = lengthEnd - 1;
+		while (lengthStart >= 0 && At(lengthStart) >= '0' && At(lengthStart) <= '9') lengthStart--;
+		if (lengthStart < 0 || At(lengthStart) != '=') return -1;
+		var previousStart = lengthStart - 1;
+		while (previousStart >= 0 && At(previousStart) != Separator) previousStart--;
+		if (Number(previousStart + 1, lengthStart - previousStart - 1) != lengthTag) return -1;
+		var length = Number(lengthStart + 1, lengthEnd - lengthStart - 1);
+		return length >= 0 && length < Length - start && At(start + length) == Separator ? start + length : -1;
 	}
-	public bool IsExtensionData(int start, int length) => (Options?.LengthTag(TagAt(start, length)) ?? 0) != 0;
-	public int TagAt(int start, int length) => Tag(Source.AsSpan(start, length));
-	public bool IsPlainBody(int start, int length)
+	public bool UnknownTag(ReadOnlySpan<char> tag) => UnknownTag(Tag(tag));
+	public bool UnknownTag(ReadOnlySpan<byte> tag) => UnknownTag(Tag(tag));
+	bool UnknownTag(int tag) => tag > 0 && FixSchema.Type(tag) == null;
+	public bool IsDataTag(ReadOnlySpan<char> tag) => (Options?.LengthTag(Tag(tag)) ?? 0) != 0;
+	public bool IsDataTag(ReadOnlySpan<byte> tag) => (Options?.LengthTag(Tag(tag)) ?? 0) != 0;
+	public FixValue Unknown(int position, ReadOnlySpan<char> field)
 	{
-		var tag = TagAt(start, length);
-		return tag > 0 && tag != 10 && tag != 89 && tag != 93 && FixSchema.Type(tag) != "data" && (Options?.LengthTag(tag) ?? 0) == 0;
+		var equal = field.IndexOf('=');
+		FixConvert.Data(field.Slice(equal + 1, field.Length - equal - 2), out var value);
+		return new UnknownFixValue(Tag(field.Slice(0, equal)), position, equal + 1, value);
+	}
+	public FixValue Unknown(int position, ReadOnlySpan<byte> field)
+	{
+		var equal = field.IndexOf((byte)'=');
+		return new UnknownFixValue(Tag(field.Slice(0, equal)), position, equal + 1, field.Slice(equal + 1, field.Length - equal - 2).ToArray());
 	}
 	public static int Tag(ReadOnlySpan<char> value) => int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var tag) ? tag : -1;
+	public static int Tag(ReadOnlySpan<byte> value)
+	{
+		var result = 0;
+		if (value.IsEmpty) return -1;
+		foreach (var c in value)
+		{
+			var digit = c - '0';
+			if (digit < 0 || digit > 9 || result > (int.MaxValue - digit) / 10) return -1;
+			result = result * 10 + digit;
+		}
+		return result;
+	}
 }

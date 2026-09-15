@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace DotGram.Finance.Fix;
 
@@ -29,7 +30,9 @@ static class FixSemantics
 		return true;
 	}
 
-	static Dictionary<int, int> Members(SchemaRef[] schema)
+	static readonly ConditionalWeakTable<SchemaRef[], Dictionary<int, int>> scopes = new();
+	static Dictionary<int, int> Members(SchemaRef[] schema) => scopes.GetValue(schema, CreateMembers);
+	static Dictionary<int, int> CreateMembers(SchemaRef[] schema)
 	{
 		var members = new Dictionary<int, int>();
 		Add(schema, members);
@@ -122,7 +125,7 @@ static class FixSemantics
 				}
 				entries.Add(Scope(schema, delimiter: delimiter));
 			}
-			return new FixNode(counter.Tag, counter.Position, counter.ValuePosition, counter.Length, FixFactories.Group(id, source, entries));
+			return new FixNode(counter.Tag, counter.Position, counter.ValuePosition, counter.Length, FixFactories.Group(id, source, entries), counter.TypedValue);
 		}
 	}
 }

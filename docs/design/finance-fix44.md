@@ -2,8 +2,9 @@
 
 ## Scope and sources
 
-Parse one complete contiguous tag-value message. No transport, session engine,
-streaming, persistence or serialization is included. Preserve the original wire.
+Parse complete tag-value messages from strings, character readers or byte streams.
+No transport, session engine, persistence or serialization is included. Preserve
+the original wire and frame each message independently on a shared stream.
 
 The source of schema generation is FIX Trading Community's
 [OrchestraFIX44.xml](https://github.com/FIXTradingCommunity/orchestrations/blob/cd24169a2abd8daba7c360987c7a46ca11873a12/FIX%20Standard/OrchestraFIX44.xml),
@@ -32,8 +33,8 @@ about implementation; `docs/status.md` and the emitter are.
 
 Use generated grammar for recognition and generated schema definitions for
 structural validation and typed access. Raw data cannot be split on SOH: its
-preceding length determines the extent. First prove a bounded external recognizer
-for that extent, with ordinary tags, delimiters and text recognized by grammar.
+preceding length determines the extent. Buffered input does not support external
+recognizers, so guards bound ordinary grammar repetitions to that extent.
 Do not add FIX names, types or switches to DotGram core. Any necessary core
 extension must be specified and tested as a general language capability first.
 
@@ -69,22 +70,44 @@ TryParse must not catch exceptions as its ordinary malformed-input path.
 
 ## Implemented grammar strategy
 
-Each MsgType has a specialized generated grammar. Ordinary body tags share a
-literal-set rule; groups retain specialized delimiters and nested productions.
-Explicit factories combine header arrays: an array-valued rule is not implicitly
-flattened by a surrounding sequence in the current compiler.
+`FixGrammar.gram` is the only field grammar for all 93 message types. Each known
+numeric tag has a named rule constructing its `FixFields` ADT case. Cases share
+`FixValue` as their grammar result, so the machine does not need a separate value
+stack for each concrete case. A shared digit-prefix tree selects the tag without repeatedly comparing its
+prefix. Each leaf constructs its named ADT case from the native value span.
+These helper rules carry no message-specific schema.
 
-`NumInGroup` is interpreted during recognition through caller context. Group and
-entry recognition, entry repetition and body repetition are atomic. This matters:
-the counter stack cannot be replayed after a successful group is abandoned by
-backtracking. A failed group records a sticky error, and the public wrapper rejects
-that context even if another recognition path were to return a value. Malformed
-group-count tests cover every reachable group definition.
+`Separator` is an elementary rule. The pipe publication uses
+`with (Separator = LogSeparator)`. `ValueText` tests the rule with negative lookahead;
+it must retain that reference through specialization rather than flatten a named
+set before `with` is applied.
 
-Raw-data recognition reads the preceding numeric length and advances across the
-payload as one extent. Grammar recognizes the tags and delimiters; validation checks
-the exact length/data association. Core DotGram requires no changes. Internal parser
-hosts use `Portable = false` because their grammar metadata is not a consumer API.
+The parser host requests native character spans and buffered byte/character input.
+Generated conversion hooks have ReadOnlySpan<char> and ReadOnlySpan<byte> overloads.
+Numbers preserve exact precision; FIX calendar values preserve year zero and leap
+seconds. Standard code sets still constrain the underlying primitive in Strict mode.
+
+Raw data uses an atomic grammar rule: a guard computes the end from the immediately
+preceding registered length/data pair, and the grammar consumes blocks of 4096, 256 and 16 octets, then individual
+octets up to that end. Each attempt installs its own bound before consuming input. Guards use the end
+of parserSpan (the current position), which also works when rules are inlined.
+There is no external recognizer and no group-counter stack during recognition.
+
+`FixSemantics` interprets the flat fields using cached schema membership tables,
+constructs typed nested groups, and delegates field/requiredness/order validation
+to `FixValidation`. Group boundaries and counts are checked independently of the
+lexical grammar. Unknown vendor messages retain ordered flat body fields.
+
+A frame adapter reads exactly one BodyLength-delimited message without consuming
+the next one. Byte frames are recognized and converted natively; the legacy model
+also owns a character view for lossless field spans and validation. Streaming bounds
+retention to a frame, not an entire connection, but is not allocation-free.
+
+The shared grammar exposed a general generator size issue. Large split machines now
+use a state-to-part lookup table in their outer dispatcher, and identical root-value
+reads share switch arms. Small machines keep their existing emitted shape. A
+600-rule regression test compares contiguous, character-stream and byte-stream
+results and rejection behavior. Neither emitter change refers to FIX.
 
 ## Coverage matrix
 
@@ -105,6 +128,7 @@ framing, malformed input, primitive boundaries, public API behavior and extensio
 | Length/data | all 16 lengthId references | Every pair tested with embedded SOH, equals, NUL and non-ASCII octets |
 | BodyLength/CheckSum | tag-value specification | Exact octet length/sum, malformed length, overflow and truncation |
 | Extensions | explicit parser policy | Scalar tags, tags inside groups, unknown MsgType, registered vendor data pairs |
+| ADT and input forms | 912 generated cases | Full/minimal fixtures agree for chars, bytes and pipes; tiny-buffer raw-data checks |
 | Wire preservation | field extents | Every fixture reconstructed byte-for-byte from ordered field wire spans |
 | Malformed input | grammar and validation | Every prefix of a message, targeted failures and 1,000 deterministic syntax mutations |
 | Performance | BenchmarkDotNet | Ordinary messages, 64 KiB data and 1,000 entries; allocation and messages/sec recorded |

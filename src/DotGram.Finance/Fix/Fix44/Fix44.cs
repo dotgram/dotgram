@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 
 namespace DotGram.Finance.Fix;
 
@@ -39,47 +40,112 @@ public static partial class Fix44
 	public static bool TryParse(string? input, out FixMessage? message, out FixParseError? error, FixParseMode mode = FixParseMode.Strict)
 		=> TryParseCore(input, out message, out error, mode, null);
 
+	static bool Envelope(string input, char separator, FixValue[]? fields, out string type, out FixParseError? error)
+	{
+		type = "";
+		error = null;
+		for (var i = 0; i < input.Length; i++)
+			if (input[i] > 255) return Fail(i, null, null, "Input must preserve octets as characters U+0000 through U+00FF.", out error);
+		if (!input.StartsWith("8=FIX.4.4" + separator + "9=", StringComparison.Ordinal)) return Fail(0, 8, null, "Expected BeginString FIX.4.4 followed by BodyLength.", out error);
+		var lengthEnd = input.IndexOf(separator, 12);
+		if (lengthEnd < 0) return Fail(input.Length, 9, null, "Truncated BodyLength.", out error);
+		if (!int.TryParse(input.AsSpan(12, lengthEnd - 12), NumberStyles.None, CultureInfo.InvariantCulture, out var bodyLength)) return Fail(12, 9, null, "BodyLength must be a nonnegative integer within the input range.", out error);
+		var bodyStart = lengthEnd + 1;
+		if (input.Length - bodyStart < 4 || !input.AsSpan(bodyStart, 3).SequenceEqual("35=".AsSpan())) return Fail(bodyStart, 35, null, "MsgType must be the third field.", out error);
+		var typeEnd = input.IndexOf(separator, bodyStart + 3);
+		if (typeEnd < 0) return Fail(input.Length, 35, null, "Truncated MsgType.", out error);
+		type = input.Substring(bodyStart + 3, typeEnd - bodyStart - 3);
+		if (bodyLength != input.Length - bodyStart - 7) return Fail(12, 9, type, "BodyLength does not match the octets before CheckSum.", out error);
+		var checksumStart = bodyStart + bodyLength;
+		if (!input.AsSpan(checksumStart, 3).SequenceEqual("10=".AsSpan()) || input[input.Length - 1] != separator) return Fail(checksumStart, 10, type, "Expected final CheckSum field with three digits and SOH.", out error);
+		if (!int.TryParse(input.AsSpan(checksumStart + 3, 3), NumberStyles.None, CultureInfo.InvariantCulture, out var expected)) return Fail(checksumStart + 3, 10, type, "CheckSum must contain exactly three digits.", out error);
+		var checksum = 0;
+		for (var i = 0; i < checksumStart; i++) checksum = (checksum + input[i]) & 255;
+		if (separator != '\u0001')
+		{
+			if (fields == null) return true;
+			foreach (var field in fields)
+				if (field.ValuePosition + field.Length < checksumStart) checksum = (checksum - separator + 1) & 255;
+		}
+		if (checksum != expected) return Fail(checksumStart + 3, 10, type, "CheckSum does not match the octet sum modulo 256.", out error);
+		return true;
+	}
+
 	static bool TryParseCore(string? input, out FixMessage? message, out FixParseError? error, FixParseMode mode, FixParseOptions? options)
 	{
 		message = null;
 		error = null;
 		if (input == null) return Fail(0, null, null, "Input is null.", out error);
 		if (mode != FixParseMode.Strict && mode != FixParseMode.Lenient) return Fail(0, null, null, "Unknown parsing mode.", out error);
-		for (var i = 0; i < input.Length; i++)
-			if (input[i] > 255) return Fail(i, null, null, "Input must preserve octets as characters U+0000 through U+00FF.", out error);
-		if (!input.StartsWith("8=FIX.4.4\u00019=", StringComparison.Ordinal)) return Fail(0, 8, null, "Expected BeginString FIX.4.4 followed by BodyLength.", out error);
-		var lengthEnd = input.IndexOf('\u0001', 12);
-		if (lengthEnd < 0) return Fail(input.Length, 9, null, "Truncated BodyLength.", out error);
-		if (!int.TryParse(input.AsSpan(12, lengthEnd - 12), NumberStyles.None, CultureInfo.InvariantCulture, out var bodyLength)) return Fail(12, 9, null, "BodyLength must be a nonnegative integer within the input range.", out error);
-		var bodyStart = lengthEnd + 1;
-		if (input.Length - bodyStart < 4 || !input.AsSpan(bodyStart, 3).SequenceEqual("35=".AsSpan())) return Fail(bodyStart, 35, null, "MsgType must be the third field.", out error);
-		var typeEnd = input.IndexOf('\u0001', bodyStart + 3);
-		if (typeEnd < 0) return Fail(input.Length, 35, null, "Truncated MsgType.", out error);
-		var type = input.Substring(bodyStart + 3, typeEnd - bodyStart - 3);
-		if (bodyLength != input.Length - bodyStart - 7) return Fail(12, 9, type, "BodyLength does not match the octets before CheckSum.", out error);
-		var checksumStart = bodyStart + bodyLength;
-		if (!input.AsSpan(checksumStart, 3).SequenceEqual("10=".AsSpan()) || input[input.Length - 1] != '\u0001') return Fail(checksumStart, 10, type, "Expected final CheckSum field with three digits and SOH.", out error);
-		if (!int.TryParse(input.AsSpan(checksumStart + 3, 3), NumberStyles.None, CultureInfo.InvariantCulture, out var expected)) return Fail(checksumStart + 3, 10, type, "CheckSum must contain exactly three digits.", out error);
-		var checksum = 0;
-		for (var i = 0; i < checksumStart; i++) checksum = (checksum + input[i]) & 255;
-		if (checksum != expected) return Fail(checksumStart + 3, 10, type, "CheckSum does not match the octet sum modulo 256.", out error);
-		var context = new FixContext(input, mode, options) { MessageType = type };
-		if (!Recognize(input, context, out var parsed, out var position, out var reason))
-		{
-			if (context.Error != null) { error = context.Error; return false; }
-			var start = Math.Min(position, input.Length);
-			while (start > 0 && input[start - 1] != '\u0001') start--;
-			var equal = input.IndexOf('=', start);
-			var tag = equal >= start ? FixContext.Tag(input.AsSpan(start, equal - start)) : -1;
-			return Fail(position, tag > 0 ? tag : null, type, reason ?? "Message does not match FIX 4.4 grammar.", out error);
-		}
-		if (context.Error != null) { error = context.Error; return false; }
-		if (!FixValidation.Validate(parsed!, mode, options, out error)) return false;
-		message = parsed;
-		return true;
+		var separator = options?.Separator ?? '\u0001';
+		if (!Envelope(input, separator, null, out var type, out error)) return false;
+		var context = new FixContext(input, mode, options, separator) { MessageType = type };
+		var match = separator == '|' ? FixGrammar.TryParseLogFields(input, context) : FixGrammar.TryParseFields(input, context);
+		if (!match.IsSuccess) return Fail((int)match.Position, null, type, match.Error ?? "Message does not match FIX field grammar.", out error);
+		if (separator == '|' && !Envelope(input, separator, match.Value, out _, out error)) return false;
+		return FixSemantics.TryBuild(input, type, Nodes(match.Value), mode, options, out message, out error);
 	}
 
+	static bool Envelope(ReadOnlySpan<byte> input, char separator, FixValue[]? fields, out string type, out FixParseError? error)
+	{
+		type = "";
+		error = null;
+		if (input.Length < 12 || !input.Slice(0, 9).SequenceEqual("8=FIX.4.4"u8) || input[9] != separator || input[10] != '9' || input[11] != '=') return Fail(0, 8, null, "Expected BeginString FIX.4.4 followed by BodyLength.", out error);
+		var lengthEnd = input.Slice(12).IndexOf((byte)separator);
+		if (lengthEnd < 0) return Fail(input.Length, 9, null, "Truncated BodyLength.", out error);
+		lengthEnd += 12;
+		var bodyLength = FixContext.Tag(input.Slice(12, lengthEnd - 12));
+		if (bodyLength < 0) return Fail(12, 9, null, "Invalid BodyLength.", out error);
+		var bodyStart = lengthEnd + 1;
+		if (input.Length - bodyStart < 4 || !input.Slice(bodyStart, 3).SequenceEqual("35="u8)) return Fail(bodyStart, 35, null, "MsgType must be the third field.", out error);
+		var typeLength = input.Slice(bodyStart + 3).IndexOf((byte)separator);
+		if (typeLength < 0) return Fail(input.Length, 35, null, "Truncated MsgType.", out error);
+		FixConvert.Text(input.Slice(bodyStart + 3, typeLength), out type);
+		if (bodyLength != input.Length - bodyStart - 7) return Fail(12, 9, type, "BodyLength does not match the octets before CheckSum.", out error);
+		var checksumStart = bodyStart + bodyLength;
+		if (!input.Slice(checksumStart, 3).SequenceEqual("10="u8) || input[input.Length - 1] != separator) return Fail(checksumStart, 10, type, "Expected final CheckSum field.", out error);
+		var expected = FixContext.Tag(input.Slice(checksumStart + 3, 3));
+		if (expected < 0) return Fail(checksumStart + 3, 10, type, "CheckSum must contain exactly three digits.", out error);
+		var checksum = 0;
+		for (var i = 0; i < checksumStart; i++) checksum = (checksum + input[i]) & 255;
+		if (separator != '\u0001')
+		{
+			if (fields == null) return true;
+			foreach (var field in fields)
+				if (field.ValuePosition + field.Length < checksumStart) checksum = (checksum - separator + 1) & 255;
+		}
+		return checksum == expected || Fail(checksumStart + 3, 10, type, "CheckSum does not match the octet sum modulo 256.", out error);
+	}
+
+	static bool TryParseBytes(byte[] input, out FixMessage? message, out FixParseError? error, FixParseMode mode, FixParseOptions? options)
+	{
+		message = null;
+		var separator = options?.Separator ?? '\u0001';
+		if (!Envelope(input, separator, null, out var type, out error)) return false;
+		var context = new FixContext(input, mode, options, separator) { MessageType = type };
+		using var stream = new MemoryStream(input, writable: false);
+		var match = separator == '|' ? FixGrammar.TryParseLogFields(stream, context) : FixGrammar.TryParseFields(stream, context);
+		if (!match.IsSuccess) return Fail((int)match.Position, null, type, match.Error ?? "Message does not match FIX field grammar.", out error);
+		if (separator == '|' && !Envelope(input, separator, match.Value, out _, out error)) return false;
+		FixConvert.Text(input, out var wire);
+		return FixSemantics.TryBuild(wire, type, Nodes(match.Value), mode, options, out message, out error);
+	}
+
+	/// <summary>Parse a pipe-delimited rendering, checking the checksum of the original SOH-delimited message.</summary>
+	public static FixMessage ParseLog(string input, FixParseMode mode = FixParseMode.Strict) => Parse(input, new FixParseOptions('|', mode));
+
 	public static bool TryParse(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error, FixParseMode mode = FixParseMode.Strict) => TryParse(input.ToString(), out message, out error, mode);
+
+	static FixNode[] Nodes(FixValue[] values)
+	{
+		var fields = new FixNode[values.Length];
+		for (var i = 0; i < fields.Length; i++)
+		{
+			var v = values[i];
+			fields[i] = new FixNode(v.Tag, v.Position, v.ValuePosition, v.Length, typedValue: v);
+		}
+		return fields;
+	}
 
 	static bool Fail(int position, int? tag, string? type, string reason, out FixParseError? error)
 	{

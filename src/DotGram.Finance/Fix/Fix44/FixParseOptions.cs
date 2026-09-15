@@ -16,8 +16,13 @@ public sealed class FixParseOptions
 {
 	readonly FixDataPair[] pairs;
 
-	public FixParseOptions(FixParseMode mode = FixParseMode.Strict, params FixDataPair[] dataPairs)
+	public FixParseOptions(FixParseMode mode = FixParseMode.Strict, params FixDataPair[] dataPairs) : this('\u0001', mode, dataPairs) { }
+
+	/// <summary>Use SOH for wire input or pipe for a lossless log rendering.</summary>
+	public FixParseOptions(char separator, FixParseMode mode = FixParseMode.Strict, params FixDataPair[] dataPairs)
 	{
+		if (separator != '\u0001' && separator != '|') throw new ArgumentOutOfRangeException(nameof(separator));
+		Separator = separator;
 		if (mode != FixParseMode.Strict && mode != FixParseMode.Lenient) throw new ArgumentOutOfRangeException(nameof(mode));
 		if (dataPairs == null) throw new ArgumentNullException(nameof(dataPairs));
 		Mode = mode;
@@ -31,6 +36,7 @@ public sealed class FixParseOptions
 		DataPairs = Array.AsReadOnly(pairs);
 	}
 
+	public char Separator { get; }
 	public FixParseMode Mode { get; }
 	public IReadOnlyList<FixDataPair> DataPairs { get; }
 

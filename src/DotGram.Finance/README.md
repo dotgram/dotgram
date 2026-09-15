@@ -1,7 +1,7 @@
 # DotGram.Finance
 
 A standalone FIX 4.4 tag-value parser for `netstandard2.0` and `net10.0`.
-DotGram generates the parsers at build time; applications need no DotGram runtime,
+DotGram generates one shared field grammar at build time; applications need no DotGram runtime,
 grammar files, schema XML, reflection configuration or initialization step.
 
 ```csharp
@@ -46,9 +46,9 @@ var next = Fix44.Parse(single, maxMessageLength: 4 * 1024 * 1024);
 ```
 
 `Parse`, `TryParse`, and `ReadMessages` accept either `TextReader` or `Stream`,
-with a `FixParseMode` or `FixParseOptions`. Byte streams map octets directly to
-U+0000..U+00FF; no text decoder is involved. Character readers must preserve that
-mapping. Non-seekable inputs and short reads are supported. These APIs are
+with a `FixParseMode` or `FixParseOptions`. Byte streams use the generated native
+byte machine and `ReadOnlySpan<byte>` conversion hooks. Character readers preserve
+the lossless octet mapping described below. Non-seekable inputs and short reads are supported. These APIs are
 synchronous and leave the input open, including when enumeration stops early.
 
 The adapter frames messages using `BodyLength`, then performs the same complete
@@ -67,23 +67,25 @@ errors (except clean EOF for enumeration). Diagnostic positions are relative to
 the current frame. I/O exceptions propagate. A failed parse may consume input;
 there is no automatic resynchronization or rollback of the underlying stream.
 
-This FIX-specific framing adapter uses the existing generated string parser.
-It does not enable the generator's optional `Peek/Get` input backend: FIX's
-external raw-data recognizer and source-owning model still require a complete
-message. See the finance benchmarks for the cost of framing and source copies.
+The framing adapter prevents read-ahead from consuming the next message. The byte
+path retains a byte frame and passes it to the generated buffered byte parser;
+field conversion does not transcode numeric input. The existing source-owning model
+also creates a lossless character view after recognition for validation and
+`OriginalWire`. This is not a zero-copy API. Results own their data independently
+of subsequent stream reads. See the finance benchmarks for total parsing costs.
 
 ## Input and ownership
 
 The input is a **lossless octet string**: every character represents one octet,
-U+0000 through U+00FF. The delimiter is SOH (`\u0001`), not the printable `|`
-often used in logs. Characters above U+00FF are rejected. `BodyLength` and
+U+0000 through U+00FF. The default delimiter is SOH (`\u0001`). Use `ParseLog`
+or `new FixParseOptions('|')` for pipe-delimited logs. Characters above U+00FF are rejected. `BodyLength` and
 `CheckSum` therefore count exactly the octets present on the wire, including raw
 and encoded data. Decode a wire file with Latin-1, not UTF-8; an Encoded field's
 payload remains opaque and its declared `MessageEncoding` remains available.
 
 String input is retained without copying. Span input is copied once because the
 returned model owns its source. Keeping a field or message alive retains that
-source. There is no streaming, byte-buffer parser, transport or session engine.
+source. Networking and FIX session state are outside this package.
 
 ## Model
 
@@ -92,7 +94,8 @@ group entries have named properties, including typed nested group collections.
 Flattened component fields are properties of their containing scope.
 
 - Missing scalar fields return null; absent groups return an empty read-only list.
-- String properties allocate their text when accessed, not while parsing fields.
+- Text ADT cases own their converted string. The original named message properties
+  remain available; accessing a text projection may allocate another string.
 - Numeric properties return `FixNumber?`. Its `Value` preserves all decimal digits;
   `TryGetDecimal` uses .NET's decimal conversion rules. Values outside CLR numeric
   ranges can still be parsed and inspected without overflow or loss of wire text.
@@ -128,6 +131,60 @@ Strict validates the explicit machine-readable schema and wire constraints, incl
 validator: prose-only conditional trading requirements, sequence-number state,
 order economics, live ISO registry assignments and announced leap-second dates are
 outside its checks. ISO identifiers are checked for their lexical shape.
+
+## Field ADT and typed values
+
+`FixField.TypedValue` is a `FixValue` with one concrete `FixFields` case per
+standard tag. The tag and primitive type come from the pinned specification:
+
+```csharp
+var order = (NewOrderSingle)Fix44.Parse(wire);
+var symbol = (FixFields.Symbol)order.GetField(55)!.Value.TypedValue!;
+var quantity = (FixFields.OrderQty)order.GetField(38)!.Value.TypedValue!;
+Console.WriteLine(symbol.Value);             // string
+Console.WriteLine(quantity.Value.Coefficient); // BigInteger
+Console.WriteLine(quantity.Value.Scale);       // decimal scale
+```
+
+| FIX primitive | ADT value |
+| --- | --- |
+| int, Length, NumInGroup, SeqNum, TagNum, DayOfMonth | BigInteger |
+| float, Qty, Price, PriceOffset, Amt, Percentage | FixDecimal: exact coefficient and scale |
+| char, Boolean | char, bool |
+| String, Currency, Country, Exchange | string |
+| MultipleValueString | string[] |
+| UTCDateOnly, LocalMktDate | FixDate |
+| UTCTimeOnly, UTCTimestamp, MonthYear | FixTime, FixTimestamp, FixMonthYear |
+| data | ReadOnlyMemory<byte> |
+
+Code sets are validated against the specification in Strict mode; their underlying
+primitive remains the value type. Dates retain year zero and leap-second notation.
+The char numeric hooks use invariant .NET parsing. Byte numeric hooks accumulate
+ASCII digits directly, retaining arbitrary integer and decimal precision.
+`FixDecimal.TryGetDecimal` succeeds only when the value is exactly representable.
+
+Lenient parsing retains malformed primitive text. Such a field has
+`TypedValue.IsValid == false`; `TryGetValue` returns false and `Value` throws.
+This flag describes primitive conversion, not code-set or message-schema validity.
+Unknown tags use `UnknownFixValue` with their original value octets.
+
+## Pipe-delimited logs
+
+```csharp
+var message = Fix44.ParseLog(logLine);
+var options = new FixParseOptions('|', FixParseMode.Lenient);
+foreach (var item in Fix44.ReadMessages(logReader, options))
+    Console.WriteLine(item.MessageType);
+```
+
+The common grammar declares `Separator` and specializes the log publication with
+`with (Separator = LogSeparator)`. Text termination changes with that rule too.
+Only structural SOH separators are rendered as pipes. Raw-data payload octets must
+remain untouched; a log that replaces or escapes payload bytes is not lossless and
+requires its own decoding before this API. Arbitrary log prefixes are not accepted.
+BodyLength is unchanged. CheckSum is verified against the original SOH representation
+by normalizing only the recognized field delimiters, never pipes inside raw data.
+`OriginalWire` preserves the supplied log representation.
 
 ## Vendor data fields
 

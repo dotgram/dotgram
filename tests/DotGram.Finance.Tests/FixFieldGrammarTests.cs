@@ -1,0 +1,121 @@
+﻿using System;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Numerics;
+
+using DotGram.Finance.Fix;
+
+using Xunit;
+
+namespace DotGram.Finance.Tests;
+
+public sealed class FixFieldGrammarTests
+{
+	[Theory]
+	[MemberData(nameof(Fix44Tests.Messages), MemberType = typeof(Fix44Tests))]
+	public void All_fields_have_the_same_ADT_in_char_byte_and_pipe_forms(string name, string wire)
+	{
+		var expected = Fix44.Parse(wire);
+		var log = Log(expected);
+		using var bytes = new MemoryStream(Bytes(wire));
+		using var logBytes = new MemoryStream(Bytes(log));
+		foreach (var message in new[] { Fix44.Parse(bytes), Fix44.ParseLog(log), Fix44.Parse(logBytes, new FixParseOptions('|')) })
+		{
+			Assert.Equal(name, message.GetType().Name);
+			Assert.Equal(expected.AllFields.Select(f => f.Value.ToString()), message.AllFields.Select(f => f.Value.ToString()));
+			Assert.Equal(expected.AllFields.Select(f => f.TypedValue!.GetType()), message.AllFields.Select(f => f.TypedValue!.GetType()));
+			Assert.All(message.AllFields, f => Assert.True(f.TypedValue!.IsValid, $"Tag {f.Tag}"));
+		}
+	}
+
+	[Fact]
+	public void Numeric_boolean_calendar_and_binary_fields_have_native_values()
+	{
+		var orderWire = Fix44Tests.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|");
+		using var stream = new MemoryStream(Bytes(orderWire));
+		foreach (var order in new[] { Fix44.Parse(orderWire), Fix44.Parse(stream) })
+		{
+			Assert.Equal("ABC", Assert.IsType<FixFields.Symbol>(order.GetField(55)!.Value.TypedValue).Value);
+			Assert.Equal('1', Assert.IsType<FixFields.Side>(order.GetField(54)!.Value.TypedValue).Value);
+			var price = Assert.IsType<FixFields.Price>(order.GetField(44)!.Value.TypedValue).Value;
+			Assert.Equal(new BigInteger(1250), price.Coefficient);
+			Assert.Equal(2, price.Scale);
+			Assert.True(price.TryGetDecimal(out var money));
+			Assert.Equal(12.50m, money);
+			var time = Assert.IsType<FixFields.TransactTime>(order.GetField(60)!.Value.TypedValue).Value;
+			Assert.Equal(2026, time.Date.Year);
+			Assert.Equal(12, time.Time.Hour);
+			Assert.Equal(BigInteger.One, Assert.IsType<FixFields.MsgSeqNum>(order.Header.GetField(34)!.Value.TypedValue).Value);
+		}
+		Assert.True(FixConvert.Boolean("Y".AsSpan(), out var flag));
+		Assert.True(flag);
+		Assert.True(FixConvert.Boolean(new byte[] { (byte)'N' }, out flag));
+		Assert.False(flag);
+	}
+
+	[Theory]
+	[InlineData(0)]
+	[InlineData(15)]
+	[InlineData(16)]
+	[InlineData(17)]
+	[InlineData(255)]
+	[InlineData(256)]
+	[InlineData(257)]
+	[InlineData(4095)]
+	[InlineData(4096)]
+	[InlineData(4097)]
+	[InlineData(65536)]
+	public void Length_delimited_data_crosses_every_small_buffer_boundary(int length)
+	{
+		const string seed = "a|b\u0001=\0\u00ff10=000";
+		var raw = new string(Enumerable.Range(0, length).Select(i => seed[i % seed.Length]).ToArray());
+		var body = "35=A\u000149=SENDER\u000156=TARGET\u000134=1\u000152=20260915-12:00:00\u000198=0\u0001108=30\u000195=" + raw.Length + "\u000196=" + raw + "\u0001";
+		var prefix = "8=FIX.4.4\u00019=" + body.Length + "\u0001" + body;
+		var wire = prefix + "10=" + (prefix.Sum(c => (int)c) & 255).ToString("000", CultureInfo.InvariantCulture) + "\u0001";
+		var original = Fix44.Parse(wire);
+		var log = Log(original);
+		foreach (var capacity in new[] { 1, 3, 17, 4096 })
+		{
+			using var stream = new MemoryStream(Bytes(wire));
+			var result = FixGrammar.TryParseFields(stream, new FixContext(Bytes(wire), FixParseMode.Strict), bufferSize: capacity);
+			Assert.True(result.IsSuccess, result.Error);
+			Assert.Equal(Bytes(raw), Assert.IsType<FixFields.RawData>(result.Value.Single(f => f.Tag == 96)).Value.ToArray());
+			using var reader = new StringReader(log);
+			var textResult = FixGrammar.TryParseLogFields(reader, new FixContext(log, FixParseMode.Strict, separator: '|'), bufferSize: capacity);
+			Assert.True(textResult.IsSuccess, textResult.Error);
+			Assert.Equal(Bytes(raw), Assert.IsType<FixFields.RawData>(textResult.Value.Single(f => f.Tag == 96)).Value.ToArray());
+		}
+		Assert.Equal(raw, Fix44.ParseLog(log).GetField(96)!.Value.ToString());
+	}
+
+	[Theory]
+	[InlineData("-9999999999999999999999999999999999999999.000001")]
+	[InlineData(".5")]
+	[InlineData("-.5")]
+	[InlineData("0.0000000000000000000000000000000000000001")]
+	[InlineData("1.")]
+	public void Decimal_conversion_is_exact_and_equal_for_both_domains(string text)
+	{
+		Assert.True(FixConvert.Decimal(text.AsSpan(), out var chars));
+		Assert.True(FixConvert.Decimal(Bytes(text), out var bytes));
+		Assert.Equal(chars.Coefficient, bytes.Coefficient);
+		Assert.Equal(chars.Scale, bytes.Scale);
+	}
+
+	[Fact]
+	public void Log_checksum_still_detects_damage()
+	{
+		var wire = Fix44Tests.Wire("0", "112=TEST|");
+		var log = Log(Fix44.Parse(wire));
+		Assert.Throws<FormatException>(() => Fix44.ParseLog(log.Replace("TEST", "FAIL")));
+	}
+
+	static string Log(FixMessage message)
+	{
+		var text = message.OriginalWire.ToCharArray();
+		foreach (var field in message.AllFields) text[field.ValuePosition + field.Length] = '|';
+		return new string(text);
+	}
+	static byte[] Bytes(string text) => text.Select(c => checked((byte)c)).ToArray();
+}

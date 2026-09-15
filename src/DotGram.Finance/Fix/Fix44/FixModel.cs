@@ -34,15 +34,17 @@ public readonly struct FixField
 {
 	readonly string source;
 
-	internal FixField(string source, int tag, int position, int valuePosition, int length)
+	internal FixField(string source, int tag, int position, int valuePosition, int length, FixValue? typedValue = null)
 	{
 		this.source = source;
+		TypedValue = typedValue;
 		Tag = tag;
 		Position = position;
 		ValuePosition = valuePosition;
 		Length = length;
 	}
 
+	public FixValue? TypedValue { get; }
 	public int Tag { get; }
 	public int Position { get; }
 	public int ValuePosition { get; }
@@ -160,20 +162,22 @@ public sealed class CustomFixMessage : FixMessage
 
 readonly struct FixNode
 {
-	public FixNode(int tag, int position, int valuePosition, int length, IReadOnlyList<FixFieldSet>? entries = null)
+	public FixNode(int tag, int position, int valuePosition, int length, IReadOnlyList<FixFieldSet>? entries = null, FixValue? typedValue = null)
 	{
 		Tag = tag;
 		Position = position;
 		ValuePosition = valuePosition;
 		Length = length;
 		Entries = entries;
+		TypedValue = typedValue;
 	}
 
+	public readonly FixValue? TypedValue;
 	public readonly int Tag;
 	public readonly int Position;
 	public readonly int ValuePosition;
 	public readonly int Length;
 	public readonly IReadOnlyList<FixFieldSet>? Entries;
-	public FixField Field(string source) => new(source, Tag, Position, ValuePosition, Length);
-	public FixNode WithEntries<T>(T[] entries) where T : FixFieldSet => new(Tag, Position, ValuePosition, Length, Array.AsReadOnly(entries));
+	public FixField Field(string source) => new(source, Tag, Position, ValuePosition, Length, TypedValue);
+	public FixNode WithEntries<T>(T[] entries) where T : FixFieldSet => new(Tag, Position, ValuePosition, Length, Array.AsReadOnly(entries), TypedValue);
 }

@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Globalization;
+using System.IO;
+using System.Text;
 
 using DotGram.Finance.Fix;
 
@@ -12,4 +14,16 @@ if (!Fix44.TryParse(wire, out var message, out var error) || message is not Hear
 	throw new Exception(error?.ToString() ?? "Expected Heartbeat.");
 if (message.Header.SenderCompID != "S" || message.OriginalWire != wire)
 	throw new Exception("Package model did not preserve the message.");
-Console.WriteLine("DotGram.Finance package smoke: Heartbeat parsed.");
+if (message.Header.GetField(34)?.TypedValue is not FixFields.MsgSeqNum sequence || sequence.Value != 1)
+	throw new Exception("Expected a typed sequence-number field.");
+if (Fix44.ParseLog(wire.Replace('\u0001', '|')) is not Heartbeat)
+	throw new Exception("Expected a pipe-delimited Heartbeat.");
+using var stream = new MemoryStream(Encoding.Latin1.GetBytes(wire + wire));
+var count = 0;
+foreach (var item in Fix44.ReadMessages(stream))
+{
+	if (item is not Heartbeat || item.OriginalWire != wire) throw new Exception("Byte-stream result differs.");
+	count++;
+}
+if (count != 2) throw new Exception("Expected two messages on one stream.");
+Console.WriteLine("DotGram.Finance package smoke: char, byte stream, pipe and typed ADT passed.");

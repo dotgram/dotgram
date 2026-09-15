@@ -28,7 +28,7 @@ public static partial class Fix44
 			if (error == null) Fail(0, null, null, "Expected a FIX message.", out error);
 			return false;
 		}
-		return TryParseCore(wire, out message, out error, mode, null);
+		return TryParseFrame(wire, out message, out error, mode, null);
 	}
 
 	/// <summary>Read concatenated messages, reusing a frame buffer. The caller owns the input.</summary>
@@ -53,13 +53,13 @@ public static partial class Fix44
 		if (options == null) throw new ArgumentNullException(nameof(options));
 		ValidateStreamArguments(options.Mode, maxMessageLength);
 		message = null;
-		var reader = new FrameReader(input, maxMessageLength);
+		var reader = new FrameReader(input, maxMessageLength, options.Separator);
 		if (!reader.TryRead(out var wire, out error))
 		{
 			if (error == null) Fail(0, null, null, "Expected a FIX message.", out error);
 			return false;
 		}
-		return TryParseCore(wire, out message, out error, options.Mode, options);
+		return TryParseFrame(wire, out message, out error, options.Mode, options);
 	}
 
 	/// <summary>Read concatenated messages, reusing a frame buffer. The caller owns the input.</summary>
@@ -68,7 +68,7 @@ public static partial class Fix44
 		if (input == null) throw new ArgumentNullException(nameof(input));
 		if (options == null) throw new ArgumentNullException(nameof(options));
 		ValidateStreamArguments(options.Mode, maxMessageLength);
-		return ReadFrames(new FrameReader(input, maxMessageLength), options.Mode, options);
+		return ReadFrames(new FrameReader(input, maxMessageLength, options.Separator), options.Mode, options);
 	}
 
 	/// <summary>Read exactly one message without closing or reading beyond it.</summary>
@@ -84,13 +84,13 @@ public static partial class Fix44
 		if (input == null) throw new ArgumentNullException(nameof(input));
 		ValidateStreamArguments(mode, maxMessageLength);
 		message = null;
-		var reader = new FrameReader(new OctetReader(input), maxMessageLength);
+		var reader = new FrameReader(input, maxMessageLength);
 		if (!reader.TryRead(out var wire, out error))
 		{
 			if (error == null) Fail(0, null, null, "Expected a FIX message.", out error);
 			return false;
 		}
-		return TryParseCore(wire, out message, out error, mode, null);
+		return TryParseFrame(wire, out message, out error, mode, null);
 	}
 
 	/// <summary>Read concatenated messages, reusing a frame buffer. The caller owns the input.</summary>
@@ -98,7 +98,7 @@ public static partial class Fix44
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 		ValidateStreamArguments(mode, maxMessageLength);
-		return ReadFrames(new FrameReader(new OctetReader(input), maxMessageLength), mode, null);
+		return ReadFrames(new FrameReader(input, maxMessageLength), mode, null);
 	}
 
 	/// <summary>Read exactly one message without closing or reading beyond it.</summary>
@@ -115,13 +115,13 @@ public static partial class Fix44
 		if (options == null) throw new ArgumentNullException(nameof(options));
 		ValidateStreamArguments(options.Mode, maxMessageLength);
 		message = null;
-		var reader = new FrameReader(new OctetReader(input), maxMessageLength);
+		var reader = new FrameReader(input, maxMessageLength, options.Separator);
 		if (!reader.TryRead(out var wire, out error))
 		{
 			if (error == null) Fail(0, null, null, "Expected a FIX message.", out error);
 			return false;
 		}
-		return TryParseCore(wire, out message, out error, options.Mode, options);
+		return TryParseFrame(wire, out message, out error, options.Mode, options);
 	}
 
 	/// <summary>Read concatenated messages, reusing a frame buffer. The caller owns the input.</summary>
@@ -130,7 +130,7 @@ public static partial class Fix44
 		if (input == null) throw new ArgumentNullException(nameof(input));
 		if (options == null) throw new ArgumentNullException(nameof(options));
 		ValidateStreamArguments(options.Mode, maxMessageLength);
-		return ReadFrames(new FrameReader(new OctetReader(input), maxMessageLength), options.Mode, options);
+		return ReadFrames(new FrameReader(input, maxMessageLength, options.Separator), options.Mode, options);
 	}
 
 	static void ValidateStreamArguments(FixParseMode mode, int maxMessageLength)
@@ -148,57 +148,87 @@ public static partial class Fix44
 				if (error != null) throw new FormatException(error.ToString());
 				yield break;
 			}
-			if (!TryParseCore(wire, out var message, out error, mode, options)) throw new FormatException(error!.ToString());
+			if (!TryParseFrame(wire, out var message, out error, mode, options)) throw new FormatException(error!.ToString());
 			yield return message!;
 		}
 	}
 
+	readonly struct Frame
+	{
+		public Frame(string? text, byte[]? bytes) { Text = text; Bytes = bytes; }
+		public string? Text { get; }
+		public byte[]? Bytes { get; }
+	}
+
+	static bool TryParseFrame(Frame frame, out FixMessage? message, out FixParseError? error, FixParseMode mode, FixParseOptions? options)
+		=> frame.Bytes != null ? TryParseBytes(frame.Bytes, out message, out error, mode, options) : TryParseCore(frame.Text, out message, out error, mode, options);
+
 	sealed class FrameReader
 	{
-		const string Prefix = "8=FIX.4.4\u00019=";
-		readonly TextReader input;
+		readonly string prefix;
+		readonly char separator;
+		readonly TextReader? textInput;
+		readonly Stream? byteInput;
 		readonly int maximum;
-		char[] buffer;
+		char[]? buffer;
+		byte[]? byteBuffer;
 		int count;
 
-		public FrameReader(TextReader input, int maximum)
+		public FrameReader(TextReader input, int maximum, char separator = '\u0001')
 		{
-			this.input = input;
+			textInput = input;
+			this.separator = separator;
+			prefix = "8=FIX.4.4" + separator + "9=";
 			this.maximum = maximum;
 			buffer = new char[Math.Min(4096, maximum)];
 		}
 
+		public FrameReader(Stream input, int maximum, char separator = '\u0001')
+		{
+			byteInput = input;
+			this.separator = separator;
+			prefix = "8=FIX.4.4" + separator + "9=";
+			this.maximum = maximum;
+			byteBuffer = new byte[Math.Min(4096, maximum)];
+		}
+		int At(int index) => byteBuffer != null ? byteBuffer[index] : buffer![index];
 		bool ReadTo(int target)
 		{
 			while (count < target)
 			{
-				if (count == buffer.Length)
-					Array.Resize(ref buffer, (int)Math.Min(maximum, Math.Max((long)count + 1, (long)count * 2)));
-				var read = input.Read(buffer, count, Math.Min(target - count, buffer.Length - count));
+				var capacity = byteBuffer?.Length ?? buffer!.Length;
+				if (count == capacity)
+				{
+					capacity = (int)Math.Min(maximum, Math.Max((long)count + 1, (long)count * 2));
+					if (byteBuffer != null) Array.Resize(ref byteBuffer, capacity);
+					else Array.Resize(ref buffer, capacity);
+				}
+				var wanted = Math.Min(target - count, capacity - count);
+				var read = byteInput != null ? byteInput.Read(byteBuffer!, count, wanted) : textInput!.Read(buffer!, count, wanted);
 				if (read == 0) return false;
 				count += read;
 			}
 			return true;
 		}
 
-		public bool TryRead(out string? wire, out FixParseError? error)
+		public bool TryRead(out Frame wire, out FixParseError? error)
 		{
-			wire = null;
+			wire = default;
 			error = null;
 			count = 0;
 			if (!ReadTo(1)) return false;
-			if (maximum < Prefix.Length) return Fail(count, 9, null, "Message exceeds maxMessageLength.", out error);
-			if (!ReadTo(Prefix.Length)) return Fail(count, 8, null, "Truncated FIX header.", out error);
-			for (var i = 0; i < Prefix.Length; i++)
-				if (buffer[i] != Prefix[i]) return Fail(i, 8, null, "Expected BeginString FIX.4.4 followed by BodyLength.", out error);
+			if (maximum < prefix.Length) return Fail(count, 9, null, "Message exceeds maxMessageLength.", out error);
+			if (!ReadTo(prefix.Length)) return Fail(count, 8, null, "Truncated FIX header.", out error);
+			for (var i = 0; i < prefix.Length; i++)
+				if (At(i) != prefix[i]) return Fail(i, 8, null, "Expected BeginString FIX.4.4 followed by BodyLength.", out error);
 			var length = 0;
 			var digits = 0;
 			while (true)
 			{
 				if (count == maximum) return Fail(count, 9, null, "Message exceeds maxMessageLength.", out error);
 				if (!ReadTo(count + 1)) return Fail(count, 9, null, "Truncated BodyLength.", out error);
-				var c = buffer[count - 1];
-				if (c == '\u0001' && digits != 0) break;
+				var c = At(count - 1);
+				if (c == separator && digits != 0) break;
 				if (c < '0' || c > '9') return Fail(count - 1, 9, null, "BodyLength must contain decimal digits.", out error);
 				if (length > (maximum - (c - '0')) / 10 || c - '0' > maximum)
 					return Fail(count - 1, 9, null, "Message exceeds maxMessageLength.", out error);
@@ -207,22 +237,9 @@ public static partial class Fix44
 			}
 			if ((long)count + length + 7 > maximum) return Fail(count, 9, null, "Message exceeds maxMessageLength.", out error);
 			if (!ReadTo(count + length + 7)) return Fail(count, null, null, "Truncated FIX message.", out error);
-			wire = new string(buffer, 0, count);
+			wire = byteBuffer != null ? new Frame(null, byteBuffer.AsSpan(0, count).ToArray()) : new Frame(new string(buffer!, 0, count), null);
 			return true;
 		}
 	}
 
-	// Lossless octet mapping, without decoding or read-ahead into the next frame.
-	sealed class OctetReader : TextReader
-	{
-		readonly Stream input;
-		readonly byte[] buffer = new byte[4096];
-		public OctetReader(Stream input) => this.input = input;
-		public override int Read(char[] target, int index, int count)
-		{
-			var read = input.Read(buffer, 0, Math.Min(count, buffer.Length));
-			for (var i = 0; i < read; i++) target[index + i] = (char)buffer[i];
-			return read;
-		}
-	}
 }
