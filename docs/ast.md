@@ -169,10 +169,13 @@ the standard's parser, laid out by `design/sql-ast.md`. `SqlStandardParser` buil
 through `src/DotGram.Sql/Standard/Nodes.cs` and `Towers.cs` — for names, literals, data
 types, value expressions and predicates, functions, windows, row pattern recognition, the
 JSON functions and path language, queries — query expressions, table references and
-joins, `JSON_TABLE` — and the data change statements: insert, update, delete, merge,
-truncate. The other statements — schema, control, session, dynamic — it recognizes without
-building yet. Its nodes are not in the tables below, which describe the tree in
-`SqlSyntax.cs`; its shape is in `design/sql-ast.md`.
+joins, `JSON_TABLE` — the data change statements: insert, update, delete, merge,
+truncate — and the schema's: schemas, tables, views, domains, assertions, character sets,
+collations, transliterations, sequence generators, roles and privileges. Routines, triggers,
+user-defined types, casts, orderings and transforms stand as a placeholder `Extension`
+statement, and the control, session and dynamic statements it recognizes without building
+yet. Its nodes are not in the tables below, which describe the tree in `SqlSyntax.cs`; its
+shape is in `design/sql-ast.md`.
 
 ## The nodes
 

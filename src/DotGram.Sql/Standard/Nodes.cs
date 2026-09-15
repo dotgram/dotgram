@@ -704,6 +704,107 @@ static class Nodes
 			direction is null ? null : (direction[0] | 0x20) == 'a' ? SortDirection.Asc : SortDirection.Desc,
 			nulls is null ? null : (nulls[0] | 0x20) == 'f' ? NullOrdering.First : NullOrdering.Last);
 
+	// ── §11 Schema definition and manipulation ─────────────────────────────────
+
+	/// <summary>
+	/// What a statement stands in for until its part of §11 builds its tree: routines, triggers,
+	/// user-defined types, casts, orderings and transforms. Each goes as its part builds.
+	/// </summary>
+	public static Statement UnbuiltStatement() => new Statement.Extension { Dialect = "SQL:2023", Kind = "Unbuilt" };
+
+	/// <summary>A schema's name and its authorization, either or both.</summary>
+	public sealed record SchemaNaming(QualifiedName? Name, AuthorizationIdentifier? Authorization);
+
+	/// <summary>A schema's default character set and path, and whether the path was written first.</summary>
+	public sealed record SchemaDefaults(CharacterSetName? CharacterSet, PathSpecification? Path, bool PathFirst);
+
+	public static Statement.CreateSchema Schema(SchemaNaming naming, SchemaDefaults? defaults, Statement[]? elements) =>
+		new()
+		{
+			Name                = naming.Name,
+			Authorization       = naming.Authorization,
+			DefaultCharacterSet = defaults?.CharacterSet,
+			Path                = defaults?.Path,
+			PathFirst           = defaults?.PathFirst ?? false,
+			Elements            = elements ?? [],
+		};
+
+	/// <summary>`GLOBAL TEMPORARY` or `LOCAL TEMPORARY`.</summary>
+	public static TableScope? ScopeOf(string? words) =>
+		words is null ? null : (words.TrimStart()[0] | 0x20) == 'g' ? TableScope.GlobalTemporary : TableScope.LocalTemporary;
+
+	/// <summary>`PRESERVE` or `DELETE` of `ON COMMIT … ROWS`.</summary>
+	public static TableCommitAction? CommitOf(string? word) =>
+		word is null ? null : (word[0] | 0x20) == 'p' ? TableCommitAction.Preserve : TableCommitAction.Delete;
+
+	public static LikeOption LikeOptionOf(string inclusion, string kind)
+	{
+		var including = (inclusion[0] | 0x20) == 'i';
+
+		return (kind[0] | 0x20) switch
+		{
+			'i' => including ? LikeOption.IncludingIdentity : LikeOption.ExcludingIdentity,
+			'd' => including ? LikeOption.IncludingDefaults : LikeOption.ExcludingDefaults,
+			_   => including ? LikeOption.IncludingGenerated : LikeOption.ExcludingGenerated,
+		};
+	}
+
+	/// <summary>`PERIOD FOR SYSTEM_TIME`, or an application time period's name.</summary>
+	public sealed record PeriodName(PeriodKind Kind, Identifier? Name);
+
+	/// <summary>A period added, and the two columns added with it where they were.</summary>
+	public static AlterTableAction AddPeriod(PeriodDefinition period, ColumnDefinition? first, string? firstKeyword, ColumnDefinition? second, string? secondKeyword) =>
+		new AlterTableAction.AddPeriod(
+			period,
+			first is null || second is null
+				? []
+				: [new AlterTableAction.AddColumn(first, firstKeyword is not null), new AlterTableAction.AddColumn(second, secondKeyword is not null)]);
+
+	public static Expression? LiteralOrNull(LiteralValue? value) =>
+		value is null ? null : new Expression.Literal(value);
+
+	/// <summary>`WITH [CASCADED | LOCAL] CHECK OPTION`, where it was written.</summary>
+	public static CheckOption? CheckOptionOf(string? check, string? level) =>
+		check is null ? null : level is null ? CheckOption.Unqualified : (level[0] | 0x20) == 'c' ? CheckOption.Cascaded : CheckOption.Local;
+
+	/// <summary>A referential triggered action's rules, and whether the delete rule was written first.</summary>
+	public sealed record ReferentialRules(ReferentialAction? OnUpdate, ReferentialAction? OnDelete, bool DeleteFirst);
+
+	/// <summary>`NO PAD` or `PAD SPACE`.</summary>
+	public static PadCharacteristic? PaddingOf(string? words) =>
+		words is null ? null : (words.TrimStart()[0] | 0x20) == 'n' ? PadCharacteristic.NoPad : PadCharacteristic.PadSpace;
+
+	/// <summary>`GRANT OPTION FOR` or `HIERARCHY OPTION FOR`.</summary>
+	public static RevokeOption? RevokeOptionOf(string? word) =>
+		word is null ? null : (word[0] | 0x20) == 'g' ? RevokeOption.GrantOptionFor : RevokeOption.HierarchyOptionFor;
+
+	/// <summary>The privileges granted or revoked, and the object they are on.</summary>
+	public sealed record PrivilegesOn(IReadOnlyList<Privilege> Items, PrivilegeObject Object);
+
+	public static PrivilegeKind PrivilegeKindOf(string word) =>
+		word.ToUpperInvariant() switch
+		{
+			"INSERT"     => PrivilegeKind.Insert,
+			"UPDATE"     => PrivilegeKind.Update,
+			"REFERENCES" => PrivilegeKind.References,
+			"DELETE"     => PrivilegeKind.Delete,
+			"USAGE"      => PrivilegeKind.Usage,
+			"TRIGGER"    => PrivilegeKind.Trigger,
+			"UNDER"      => PrivilegeKind.Under,
+			_            => PrivilegeKind.Execute,
+		};
+
+	/// <summary>A routine type: its kind, and a method's modifier where one was written.</summary>
+	public sealed record RoutineTypeOf(RoutineKind Kind, MethodModifier? Modifier);
+
+	public static RoutineTypeOf Method(string? modifier) =>
+		new(RoutineKind.Method, modifier is null ? null : (modifier[0] | 0x20) switch
+		{
+			'i' => MethodModifier.Instance,
+			's' => MethodModifier.Static,
+			_   => MethodModifier.Constructor,
+		});
+
 	// ── §14 Data change statements ─────────────────────────────────────────────
 
 	/// <summary>What an insert statement says after its table: the columns, the override, and the source.</summary>

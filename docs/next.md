@@ -22699,7 +22699,8 @@ build was joining MSBuild nodes and a compiler server started earlier inside it,
 `SqlStandard.gram` now builds `Sql2023Ast.cs` for what it once only recognized, chapter by chapter:
 names, literals and data types; value expressions and predicates; functions, windows, row pattern
 recognition and JSON; queries — query expressions, table references and joins, `JSON_TABLE`; the data
-change statements of §14. Schema and the other statements are next. Each slice kept every verdict: the
+change statements of §14; then §11 and §12 but for routines, triggers, user-defined types, casts,
+orderings and transforms, which stand as placeholders until their part. The other statements are next. Each slice kept every verdict: the
 1,574 BNF rows unchanged, 50,000 fuzz lines of queries, routines and types agreeing with the oracle.
 
 The towers of §6 were already read once and carried as bit sets; the node now rides beside the bits in

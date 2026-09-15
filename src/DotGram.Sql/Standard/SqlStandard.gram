@@ -1516,87 +1516,89 @@ DataChangeStatement : @Statement = d: DeleteStatementSearched => @(d)
 // transliterations, assertions, triggers, user-defined types, routines, casts, orderings, transforms,
 // sequence generators, roles and privileges — and what alters and drops them.
 
-// <SQL schema statement>: a definition or a manipulation.
-SQLSchemaStatement
-	= SchemaDefinition
-	| TableDefinition
-	| ViewDefinition
-	| SchemaRoutine
-	| GrantStatement
-	| RoleDefinition
-	| DomainDefinition
-	| CharacterSetDefinition
-	| CollationDefinition
-	| TransliterationDefinition
-	| AssertionDefinition
-	| TriggerDefinition
-	| UserDefinedTypeDefinition
-	| UserDefinedCastDefinition
-	| UserDefinedOrderingDefinition
-	| TransformDefinition
-	| SequenceGeneratorDefinition
-	| DropSchemaStatement
-	| AlterTableStatement
-	| DropTableStatement
-	| DropViewStatement
-	| AlterRoutineStatement
-	| DropRoutineStatement
-	| DropUserDefinedCastStatement
-	| RevokeStatement
-	| DropRoleStatement
-	| AlterDomainStatement
-	| DropDomainStatement
-	| DropCharacterSetStatement
-	| DropCollationStatement
-	| DropTransliterationStatement
-	| DropAssertionStatement
-	| DropTriggerStatement
-	| AlterTypeStatement
-	| DropDataTypeStatement
-	| DropUserDefinedOrderingStatement
-	| AlterTransformStatement
-	| DropTransformStatement
-	| AlterSequenceGeneratorStatement
-	| DropSequenceGeneratorStatement
+// <SQL schema statement>: a definition or a manipulation. What does not build its tree yet — routines,
+// triggers, user-defined types, casts, orderings and transforms — stands as `Nodes.UnbuiltStatement`.
+SQLSchemaStatement : @Statement
+	= s: SchemaDefinition => @(s)
+	| t: TableDefinition => @(t)
+	| v: ViewDefinition => @(v)
+	| SchemaRoutine => @(Nodes.UnbuiltStatement())
+	| g: GrantStatement => @(g)
+	| r: RoleDefinition => @(r)
+	| d: DomainDefinition => @(d)
+	| c: CharacterSetDefinition => @(c)
+	| o: CollationDefinition => @(o)
+	| l: TransliterationDefinition => @(l)
+	| a: AssertionDefinition => @(a)
+	| TriggerDefinition => @(Nodes.UnbuiltStatement())
+	| UserDefinedTypeDefinition => @(Nodes.UnbuiltStatement())
+	| UserDefinedCastDefinition => @(Nodes.UnbuiltStatement())
+	| UserDefinedOrderingDefinition => @(Nodes.UnbuiltStatement())
+	| TransformDefinition => @(Nodes.UnbuiltStatement())
+	| q: SequenceGeneratorDefinition => @(q)
+	| ds: DropSchemaStatement => @(ds)
+	| at: AlterTableStatement => @(at)
+	| dt: DropTableStatement => @(dt)
+	| dv: DropViewStatement => @(dv)
+	| AlterRoutineStatement => @(Nodes.UnbuiltStatement())
+	| DropRoutineStatement => @(Nodes.UnbuiltStatement())
+	| DropUserDefinedCastStatement => @(Nodes.UnbuiltStatement())
+	| rv: RevokeStatement => @(rv)
+	| dr: DropRoleStatement => @(dr)
+	| ad: AlterDomainStatement => @(ad)
+	| dd: DropDomainStatement => @(dd)
+	| dc: DropCharacterSetStatement => @(dc)
+	| dl: DropCollationStatement => @(dl)
+	| dx: DropTransliterationStatement => @(dx)
+	| da: DropAssertionStatement => @(da)
+	| DropTriggerStatement => @(Nodes.UnbuiltStatement())
+	| AlterTypeStatement => @(Nodes.UnbuiltStatement())
+	| DropDataTypeStatement => @(Nodes.UnbuiltStatement())
+	| DropUserDefinedOrderingStatement => @(Nodes.UnbuiltStatement())
+	| AlterTransformStatement => @(Nodes.UnbuiltStatement())
+	| DropTransformStatement => @(Nodes.UnbuiltStatement())
+	| aq: AlterSequenceGeneratorStatement => @(aq)
+	| dq: DropSequenceGeneratorStatement => @(dq)
 
 // A drop behavior, which every drop but an assertion's must say.
-DropBehavior = "CASCADE"i | "RESTRICT"i
+DropBehavior : @DropBehavior = "CASCADE"i => @(DropBehavior.Cascade)
+                             | "RESTRICT"i => @(DropBehavior.Restrict)
 
 // ── §11.1 Schema definition, §11.2 Drop schema statement ────────────────────
 
 // <schema definition>. A schema's name and its authorization, or either; the longer is asked first.
-SchemaDefinition = "CREATE"i & "SCHEMA"i & SchemaNameClause & SchemaCharacterSetOrPath? & { (trivia & SchemaElement)* }
+SchemaDefinition : @Statement.CreateSchema = "CREATE"i & "SCHEMA"i & n: SchemaNameClause & p: SchemaCharacterSetOrPath? & { (trivia & elements: SchemaElement)* } => @(Nodes.Schema(n, p, elements))
 
-SchemaNameClause
-	= SchemaName & "AUTHORIZATION"i & Identifier
-	| "AUTHORIZATION"i & Identifier
-	| SchemaName
+SchemaNameClause : @Nodes.SchemaNaming
+	= n: SchemaName & "AUTHORIZATION"i & a: Identifier => @(new Nodes.SchemaNaming(n, new AuthorizationIdentifier(a)))
+	| "AUTHORIZATION"i & a: Identifier => @(new Nodes.SchemaNaming(null, new AuthorizationIdentifier(a)))
+	| n: SchemaName => @(new Nodes.SchemaNaming(n, null))
 
-SchemaCharacterSetOrPath
-	= SchemaCharacterSetSpecification & ("PATH"i & SchemaName & (',' & SchemaName)*)?
-	| "PATH"i & SchemaName & (',' & SchemaName)* & SchemaCharacterSetSpecification?
+SchemaCharacterSetOrPath : @Nodes.SchemaDefaults
+	= c: SchemaCharacterSetSpecification & ("PATH"i & first: SchemaName & (',' & rest: SchemaName)*)? => @(new Nodes.SchemaDefaults(c, first is null ? null : new PathSpecification(Nodes.List(first, rest)), false))
+	| "PATH"i & first: SchemaName & (',' & rest: SchemaName)* & c: SchemaCharacterSetSpecification? => @(new Nodes.SchemaDefaults(c, new PathSpecification(Nodes.List(first, rest)), true))
 
-SchemaCharacterSetSpecification = "DEFAULT"i & "CHARACTER"i & "SET"i & CharacterSetSpecification
+SchemaCharacterSetSpecification : @CharacterSetName = "DEFAULT"i & "CHARACTER"i & "SET"i & c: CharacterSetSpecification => @(c)
 
-SchemaElement
-	= TableDefinition
-	| ViewDefinition
-	| DomainDefinition
-	| CharacterSetDefinition
-	| CollationDefinition
-	| TransliterationDefinition
-	| AssertionDefinition
-	| TriggerDefinition
-	| UserDefinedTypeDefinition
-	| UserDefinedCastDefinition
-	| UserDefinedOrderingDefinition
-	| TransformDefinition
-	| SchemaRoutine
-	| SequenceGeneratorDefinition
-	| GrantStatement
-	| RoleDefinition
+SchemaElement : @Statement
+	= t: TableDefinition => @(t)
+	| v: ViewDefinition => @(v)
+	| d: DomainDefinition => @(d)
+	| c: CharacterSetDefinition => @(c)
+	| o: CollationDefinition => @(o)
+	| l: TransliterationDefinition => @(l)
+	| a: AssertionDefinition => @(a)
+	| TriggerDefinition => @(Nodes.UnbuiltStatement())
+	| UserDefinedTypeDefinition => @(Nodes.UnbuiltStatement())
+	| UserDefinedCastDefinition => @(Nodes.UnbuiltStatement())
+	| UserDefinedOrderingDefinition => @(Nodes.UnbuiltStatement())
+	| TransformDefinition => @(Nodes.UnbuiltStatement())
+	| SchemaRoutine => @(Nodes.UnbuiltStatement())
+	| q: SequenceGeneratorDefinition => @(q)
+	| g: GrantStatement => @(g)
+	| r: RoleDefinition => @(r)
 
-DropSchemaStatement = "DROP"i & "SCHEMA"i & SchemaName & DropBehavior
+DropSchemaStatement : @Statement.DropSchema = "DROP"i & "SCHEMA"i & n: SchemaName & b: DropBehavior => @(new Statement.DropSchema { Name = n, Behavior = b })
 
 // ── §11.3 Table definition ──────────────────────────────────────────────────
 
@@ -1604,38 +1606,51 @@ DropSchemaStatement = "DROP"i & "SCHEMA"i & SchemaName & DropBehavior
 // a query is an element list in shape — `(a, b)` is two columns with no type — so the query is asked
 // first: in a schema's elements, which give nothing back, the element list would end the table before
 // its `AS`.
-TableDefinition = "CREATE"i & (("GLOBAL"i | "LOCAL"i) & "TEMPORARY"i)? & "TABLE"i & TableName & TableContentsSource
-	  & ("WITH"i & "SYSTEM"i & "VERSIONING"i)? & ("ON"i & "COMMIT"i & ("PRESERVE"i | "DELETE"i) & "ROWS"i)?
+TableDefinition : @Statement.CreateTable = "CREATE"i & s: (("GLOBAL"i | "LOCAL"i) & "TEMPORARY"i)? & "TABLE"i & n: TableName & c: TableContentsSource
+	  & v: ("WITH"i & "SYSTEM"i & "VERSIONING"i)? & ("ON"i & "COMMIT"i & o: ("PRESERVE"i | "DELETE"i) & "ROWS"i)?
+	  => @(new Statement.CreateTable { Scope = Nodes.ScopeOf(s), Name = n, Contents = c, SystemVersioning = v is not null, OnCommit = Nodes.CommitOf(o) })
 
-TableContentsSource
-	= ('(' & ColumnNameList & ')')? & "AS"i & TableSubquery & "WITH"i & "NO"i? & "DATA"i
-	| TableElementList
-	| TypedTableClause
+TableContentsSource : @TableContents
+	= ('(' & columns: ColumnNameList & ')')? & "AS"i & q: TableSubquery & "WITH"i & no: "NO"i? & "DATA"i => @(new TableContents.AsQuery(columns ?? System.Array.Empty<Identifier>(), q, no is null ? WithDataMode.WithData : WithDataMode.WithNoData))
+	| e: TableElementList => @(new TableContents.Elements(e))
+	| t: TypedTableClause => @(t)
 
 // <typed table clause>: a table of a structured type, under a supertable, with options for its
 // columns, constraints, and the column that references its rows.
-TypedTableClause      = "OF"i & PathResolvedUserDefinedTypeName & ("UNDER"i & TableName)? & TypedTableElementList?
-TypedTableElementList = '(' & { TypedTableElement & (',' & TypedTableElement)* } & ')'
-TypedTableElement     = SelfReferencingColumnSpecification | TableConstraintDefinition | ColumnOptions
+TypedTableClause      : @TableContents = "OF"i & n: PathResolvedUserDefinedTypeName & ("UNDER"i & u: TableName)? & e: TypedTableElementList? => @(new TableContents.Typed(n, u, e ?? System.Array.Empty<TableElement>()))
+TypedTableElementList : @IReadOnlyList<TableElement> = '(' & { first: TypedTableElement & (',' & rest: TypedTableElement)* } & ')' => @(Nodes.List(first, rest))
+TypedTableElement     : @TableElement = s: SelfReferencingColumnSpecification => @(s)
+                                      | c: TableConstraintDefinition => @(new TableElement.TableConstraint(c))
+                                      | o: ColumnOptions => @(o)
 
-SelfReferencingColumnSpecification = "REF"i & "IS"i & ColumnName & ("SYSTEM"i & "GENERATED"i | "USER"i & "GENERATED"i | "DERIVED"i)?
+SelfReferencingColumnSpecification : @TableElement = "REF"i & "IS"i & n: ColumnName & g: ReferenceGeneration? => @(new TableElement.SelfReference(n, g))
+
+// Not a production: how the values of a self-referencing column are made.
+ReferenceGeneration : @ReferenceGeneration = "SYSTEM"i & "GENERATED"i => @(ReferenceGeneration.SystemGenerated)
+                                           | "USER"i & "GENERATED"i => @(ReferenceGeneration.UserGenerated)
+                                           | "DERIVED"i => @(ReferenceGeneration.Derived)
 
 // <column options>: a scope, a default and constraints, any of them.
-ColumnOptions = ColumnName & "WITH"i & "OPTIONS"i & ("SCOPE"i & TableName)? & DefaultClause? & (trivia & { ColumnConstraintDefinition })*
+ColumnOptions : @TableElement = n: ColumnName & "WITH"i & "OPTIONS"i & ("SCOPE"i & s: TableName)? & d: DefaultClause? & (trivia & { constraints: ColumnConstraintDefinition })* => @(new TableElement.ColumnOptions(n, new ColumnOptionList(s, d, constraints ?? System.Array.Empty<Constraint>())))
 
 // The list is atomic: a list refused at its end gave back its elements, and their shorter readings,
 // and read every later element again for each — a square of its length.
-TableElementList = '(' & { TableElement & (',' & TableElement)* } & ')'
+TableElementList : @IReadOnlyList<TableElement> = '(' & { first: TableElement & (',' & rest: TableElement)* } & ')' => @(Nodes.List(first, rest))
 
 // <table element>. A column begins with its name, which none of the others' key words can be.
-TableElement = ColumnDefinition | TablePeriodDefinition | TableConstraintDefinition | LikeClause
+TableElement : @TableElement = c: ColumnDefinition => @(new TableElement.Column(c))
+                             | p: TablePeriodDefinition => @(new TableElement.Period(p))
+                             | t: TableConstraintDefinition => @(new TableElement.TableConstraint(t))
+                             | l: LikeClause => @(l)
 
 // <like clause>.
-LikeClause = "LIKE"i & TableName & (("INCLUDING"i | "EXCLUDING"i) & ("IDENTITY"i | "DEFAULTS"i | "GENERATED"i))*
+LikeClause : @TableElement = "LIKE"i & n: TableName & (trivia & options: LikeOption)* => @(new TableElement.Like(n, options ?? System.Array.Empty<LikeOption>()))
+LikeOption : @LikeOption = w: ("INCLUDING"i | "EXCLUDING"i) & k: ("IDENTITY"i | "DEFAULTS"i | "GENERATED"i) => @(Nodes.LikeOptionOf(w, k))
 
 // <table period definition>.
-TablePeriodDefinition = PeriodForSpecification & '(' & ColumnName & ',' & ColumnName & ')'
-PeriodForSpecification = "PERIOD"i & "FOR"i & ("SYSTEM_TIME"i | Identifier)
+TablePeriodDefinition  : @PeriodDefinition = p: PeriodForSpecification & '(' & b: ColumnName & ',' & e: ColumnName & ')' => @(new PeriodDefinition(p.Kind, p.Name, b, e))
+PeriodForSpecification : @Nodes.PeriodName = "PERIOD"i & "FOR"i & "SYSTEM_TIME"i => @(new Nodes.PeriodName(PeriodKind.SystemTime, null))
+                                           | "PERIOD"i & "FOR"i & n: Identifier => @(new Nodes.PeriodName(PeriodKind.ApplicationTime, n))
 
 // ── §11.4 Column definition ─────────────────────────────────────────────────
 
@@ -1646,146 +1661,162 @@ PeriodForSpecification = "PERIOD"i & "FOR"i & ("SYSTEM_TIME"i | Identifier)
 // `GENERATED` is not reserved, and a user-defined type may be named so; the list of elements gives
 // nothing back once it is read, so a type is not taken where `GENERATED ALWAYS` or `GENERATED BY`
 // follows, which only a generation can go on from.
-ColumnDefinition = ColumnName & (?!("GENERATED"i & ("ALWAYS"i | "BY"i)) & DataType)? & ColumnValueSource? & (trivia & { ColumnConstraintDefinition })* & CollateClause?
+ColumnDefinition : @ColumnDefinition = n: ColumnName & (?!("GENERATED"i & ("ALWAYS"i | "BY"i)) & t: DataType)? & g: ColumnValueSource? & (trivia & { constraints: ColumnConstraintDefinition })* & c: CollateClause?
+	  => @(new ColumnDefinition(n, t, g, constraints ?? System.Array.Empty<Constraint>(), c))
 
-ColumnValueSource
-	= DefaultClause
-	| "GENERATED"i & ("ALWAYS"i | "BY"i & "DEFAULT"i) & "AS"i & "IDENTITY"i & ('(' & CommonSequenceGeneratorOptions & ')')?
-	| "GENERATED"i & "ALWAYS"i & "AS"i & '(' & ValueExpression & ')'
-	| "GENERATED"i & "ALWAYS"i & "AS"i & "ROW"i & ("START"i | "END"i)
+ColumnValueSource : @ColumnGeneration
+	= d: DefaultClause => @(new ColumnGeneration.Default(d))
+	| "GENERATED"i & i: IdentityGeneration & "AS"i & "IDENTITY"i & ('(' & o: CommonSequenceGeneratorOptions & ')')? => @(new ColumnGeneration.Identity(i, o ?? System.Array.Empty<SequenceOption>()))
+	| "GENERATED"i & "ALWAYS"i & "AS"i & '(' & e: ValueNode & ')' => @(new ColumnGeneration.Generated(e))
+	| "GENERATED"i & "ALWAYS"i & "AS"i & "ROW"i & "START"i => @(new ColumnGeneration.RowStart())
+	| "GENERATED"i & "ALWAYS"i & "AS"i & "ROW"i & "END"i => @(new ColumnGeneration.RowEnd())
 
-ColumnConstraintDefinition = ConstraintNameDefinition? & ColumnConstraint & ConstraintCharacteristics?
+// Not a production: `ALWAYS` or `BY DEFAULT`, an identity column's.
+IdentityGeneration : @IdentityGeneration = "ALWAYS"i => @(IdentityGeneration.Always)
+                                         | "BY"i & "DEFAULT"i => @(IdentityGeneration.ByDefault)
 
-ColumnConstraint
-	= "NOT"i & "NULL"i
-	| "UNIQUE"i
-	| "PRIMARY"i & "KEY"i
-	| ReferencesSpecification
-	| CheckConstraintDefinition
+ColumnConstraintDefinition : @Constraint = n: ConstraintNameDefinition? & c: ColumnConstraint & k: ConstraintCharacteristics? => @(c with { Name = n, Characteristics = k })
+
+ColumnConstraint : @Constraint
+	= "NOT"i & "NULL"i => @(new Constraint.NotNull())
+	| "UNIQUE"i => @(new Constraint.Unique(UniqueKind.Unique, null, System.Array.Empty<Identifier>()))
+	| "PRIMARY"i & "KEY"i => @(new Constraint.Unique(UniqueKind.PrimaryKey, null, System.Array.Empty<Identifier>()))
+	| r: ReferencesSpecification => @(new Constraint.ForeignKey(System.Array.Empty<Identifier>(), null, r))
+	| c: CheckConstraintDefinition => @(c)
 
 // ── §11.5 Default clause ────────────────────────────────────────────────────
 
 // <default clause>: a literal, a datetime value function, a user or a schema of the session, or a
 // value whose type comes from the column; no expression.
-DefaultClause = "DEFAULT"i & DefaultOption
+DefaultClause : @Expression = "DEFAULT"i & o: DefaultOption => @(o)
 
-DefaultOption
-	= Literal
-	| DatetimeValueFunction
-	| "USER"i | "CURRENT_USER"i | "CURRENT_ROLE"i | "SESSION_USER"i | "SYSTEM_USER"i
-	| "CURRENT_CATALOG"i | "CURRENT_SCHEMA"i | "CURRENT_PATH"i
-	| ImplicitlyTypedValueSpecification
+DefaultOption : @Expression
+	= l: Literal => @(new Expression.Literal(l))
+	| f: DatetimeValueFunction => @(f)
+	| w: ("USER"i | "CURRENT_USER"i | "CURRENT_ROLE"i | "SESSION_USER"i | "SYSTEM_USER"i) => @(Nodes.Current(w))
+	| w: ("CURRENT_CATALOG"i | "CURRENT_SCHEMA"i | "CURRENT_PATH"i) => @(Nodes.Current(w))
+	| i: ImplicitlyTypedValueSpecification => @(i)
 
 // ── §11.6 Table constraint definition ───────────────────────────────────────
 
-TableConstraintDefinition = ConstraintNameDefinition? & TableConstraint & ConstraintCharacteristics?
+TableConstraintDefinition : @Constraint = n: ConstraintNameDefinition? & c: TableConstraint & k: ConstraintCharacteristics? => @(c with { Name = n, Characteristics = k })
 
-TableConstraint
-	= "UNIQUE"i & '(' & "VALUE"i & ')'
-	| ("UNIQUE"i | "PRIMARY"i & "KEY"i) & ("NULLS"i & "NOT"i? & "DISTINCT"i)? & '(' & ColumnNameList & (',' & Identifier & "WITHOUT"i & "OVERLAPS"i)? & ')'
-	| "FOREIGN"i & "KEY"i & '(' & ColumnNameList & (',' & "PERIOD"i & Identifier)? & ')' & ReferencesSpecification
-	| CheckConstraintDefinition
+TableConstraint : @Constraint
+	= "UNIQUE"i & '(' & "VALUE"i & ')' => @(new Constraint.Unique(UniqueKind.UniqueValue, null, System.Array.Empty<Identifier>()))
+	| u: ("UNIQUE"i | "PRIMARY"i & "KEY"i) & ("NULLS"i & nn: "NOT"i? & d: "DISTINCT"i)? & '(' & columns: ColumnNameList & (',' & p: Identifier & "WITHOUT"i & "OVERLAPS"i)? & ')'
+	  => @(new Constraint.Unique((u[0] | 0x20) == 'u' ? UniqueKind.Unique : UniqueKind.PrimaryKey, Nodes.Nulls(d, nn), columns, p))
+	| "FOREIGN"i & "KEY"i & '(' & keys: ColumnNameList & (',' & "PERIOD"i & period: Identifier)? & ')' & r: ReferencesSpecification => @(new Constraint.ForeignKey(keys, period, r))
+	| c: CheckConstraintDefinition => @(c)
 
-ConstraintNameDefinition = "CONSTRAINT"i & SchemaQualifiedName
+ConstraintNameDefinition : @QualifiedName = "CONSTRAINT"i & n: SchemaQualifiedName => @(n)
 
 // <constraint characteristics>: when it is checked, whether that may be deferred, and whether it is enforced.
-ConstraintCharacteristics
-	= ConstraintCheckTime & ("NOT"i? & "DEFERRABLE"i)? & ConstraintEnforcement?
-	| "NOT"i? & "DEFERRABLE"i & ConstraintCheckTime? & ConstraintEnforcement?
-	| ConstraintEnforcement
+ConstraintCharacteristics : @ConstraintCharacteristics
+	= t: ConstraintCheckTime & (n: "NOT"i? & d: "DEFERRABLE"i)? & e: ConstraintEnforcement? => @(new ConstraintCharacteristics(t, d is null ? null : n is null, e))
+	| n: "NOT"i? & "DEFERRABLE"i & later: ConstraintCheckTime? & e: ConstraintEnforcement? => @(new ConstraintCharacteristics(later, n is null, e, true))
+	| only: ConstraintEnforcement => @(new ConstraintCharacteristics(null, null, only))
 
-ConstraintCheckTime   = "INITIALLY"i & ("DEFERRED"i | "IMMEDIATE"i)
-ConstraintEnforcement = "NOT"i? & "ENFORCED"i
+ConstraintCheckTime   : @ConstraintTiming = "INITIALLY"i & "DEFERRED"i => @(ConstraintTiming.InitiallyDeferred)
+                                          | "INITIALLY"i & "IMMEDIATE"i => @(ConstraintTiming.InitiallyImmediate)
+ConstraintEnforcement : @bool = n: "NOT"i? & "ENFORCED"i => @(n is null)
 
 // ── §11.8 Referential constraint definition, §11.9 Check constraint definition ─
 
-ReferencesSpecification = "REFERENCES"i & TableName & ('(' & ColumnNameList & (',' & "PERIOD"i & Identifier)? & ')')?
-	  & ("MATCH"i & ("FULL"i | "PARTIAL"i | "SIMPLE"i))? & ReferentialTriggeredAction?
+ReferencesSpecification : @ReferencesSpecification = "REFERENCES"i & n: TableName & ('(' & columns: ColumnNameList & (',' & "PERIOD"i & p: Identifier)? & ')')?
+	  & ("MATCH"i & m: ("FULL"i | "PARTIAL"i | "SIMPLE"i))? & a: ReferentialTriggeredAction?
+	  => @(new ReferencesSpecification(n, columns ?? System.Array.Empty<Identifier>(), p, Nodes.Matching(m), a?.OnUpdate, a?.OnDelete, a?.DeleteFirst ?? false))
 
 // <referential triggered action>: an update rule, a delete rule, or both in either order.
-ReferentialTriggeredAction
-	= UpdateRule & DeleteRule?
-	| DeleteRule & UpdateRule?
+ReferentialTriggeredAction : @Nodes.ReferentialRules
+	= u: UpdateRule & d: DeleteRule? => @(new Nodes.ReferentialRules(u, d, false))
+	| deleted: DeleteRule & updated: UpdateRule? => @(new Nodes.ReferentialRules(updated, deleted, true))
 
-UpdateRule        = "ON"i & "UPDATE"i & ReferentialAction
-DeleteRule        = "ON"i & "DELETE"i & ReferentialAction
-ReferentialAction = "CASCADE"i | "SET"i & ("NULL"i | "DEFAULT"i) | "RESTRICT"i | "NO"i & "ACTION"i
+UpdateRule        : @ReferentialAction = "ON"i & "UPDATE"i & a: ReferentialAction => @(a)
+DeleteRule        : @ReferentialAction = "ON"i & "DELETE"i & a: ReferentialAction => @(a)
+ReferentialAction : @ReferentialAction = "CASCADE"i => @(ReferentialAction.Cascade)
+                                       | "SET"i & "NULL"i => @(ReferentialAction.SetNull)
+                                       | "SET"i & "DEFAULT"i => @(ReferentialAction.SetDefault)
+                                       | "RESTRICT"i => @(ReferentialAction.Restrict)
+                                       | "NO"i & "ACTION"i => @(ReferentialAction.NoAction)
 
-CheckConstraintDefinition = "CHECK"i & '(' & SearchCondition & ')'
+CheckConstraintDefinition : @Constraint = "CHECK"i & '(' & c: SearchCondition & ')' => @(new Constraint.Check(c.Node))
 
 // ── §11.10 Alter table statement and its actions ────────────────────────────
 
-AlterTableStatement = "ALTER"i & "TABLE"i & TableName & AlterTableAction
+AlterTableStatement : @Statement.AlterTable = "ALTER"i & "TABLE"i & n: TableName & a: AlterTableAction => @(new Statement.AlterTable { Name = n, Action = a })
 
 // <alter table action>: one. A column is named with or without `COLUMN`, and a column's name is none
 // of the key words that begin the other actions.
-AlterTableAction
-	= "ADD"i & "COLUMN"i? & ColumnDefinition
-	| "ALTER"i & "COLUMN"i? & ColumnName & AlterColumnAction
-	| "DROP"i & "COLUMN"i? & ColumnName & DropBehavior
-	| "ADD"i & TableConstraintDefinition
-	| "ALTER"i & "CONSTRAINT"i & SchemaQualifiedName & ConstraintEnforcement
-	| "DROP"i & "CONSTRAINT"i & SchemaQualifiedName & DropBehavior
-	| "ADD"i & TablePeriodDefinition & ("ADD"i & "COLUMN"i? & ColumnDefinition & "ADD"i & "COLUMN"i? & ColumnDefinition)?
-	| "DROP"i & PeriodForSpecification & DropBehavior
-	| "ADD"i & "SYSTEM"i & "VERSIONING"i
-	| "DROP"i & "SYSTEM"i & "VERSIONING"i & DropBehavior
+AlterTableAction : @AlterTableAction
+	= "ADD"i & k: "COLUMN"i? & c: ColumnDefinition => @(new AlterTableAction.AddColumn(c, k is not null))
+	| "ALTER"i & k: "COLUMN"i? & n: ColumnName & a: AlterColumnAction => @(new AlterTableAction.AlterColumn(n, a, k is not null))
+	| "DROP"i & k: "COLUMN"i? & n: ColumnName & b: DropBehavior => @(new AlterTableAction.DropColumn(n, b, k is not null))
+	| "ADD"i & t: TableConstraintDefinition => @(new AlterTableAction.AddConstraint(t))
+	| "ALTER"i & "CONSTRAINT"i & q: SchemaQualifiedName & e: ConstraintEnforcement => @(new AlterTableAction.AlterConstraint(q, e))
+	| "DROP"i & "CONSTRAINT"i & q: SchemaQualifiedName & b: DropBehavior => @(new AlterTableAction.DropConstraint(q, b))
+	| "ADD"i & p: TablePeriodDefinition & ("ADD"i & k1: "COLUMN"i? & c1: ColumnDefinition & "ADD"i & k2: "COLUMN"i? & c2: ColumnDefinition)? => @(Nodes.AddPeriod(p, c1, k1, c2, k2))
+	| "DROP"i & f: PeriodForSpecification & b: DropBehavior => @(new AlterTableAction.DropPeriod(f.Kind, f.Name, b))
+	| "ADD"i & "SYSTEM"i & "VERSIONING"i => @(new AlterTableAction.AddSystemVersioning())
+	| "DROP"i & "SYSTEM"i & "VERSIONING"i & b: DropBehavior => @(new AlterTableAction.DropSystemVersioning(b))
 
 // <alter column action>.
-AlterColumnAction
-	= "SET"i & DefaultClause
-	| "DROP"i & "DEFAULT"i
-	| "SET"i & "NOT"i & "NULL"i
-	| "DROP"i & "NOT"i & "NULL"i
-	| "ADD"i & "SCOPE"i & TableName
-	| "DROP"i & "SCOPE"i & DropBehavior
-	| "SET"i & "DATA"i & "TYPE"i & DataType
-	| "SET"i & "GENERATED"i & ("ALWAYS"i | "BY"i & "DEFAULT"i) & (trivia & AlterIdentityColumnOption)*
-	| AlterIdentityColumnOption & (trivia & AlterIdentityColumnOption)*
-	| "DROP"i & "IDENTITY"i
-	| "DROP"i & "EXPRESSION"i
+AlterColumnAction : @AlterColumnAction
+	= "SET"i & d: DefaultClause => @(new AlterColumnAction.SetDefault(d))
+	| "DROP"i & "DEFAULT"i => @(new AlterColumnAction.DropDefault())
+	| "SET"i & "NOT"i & "NULL"i => @(new AlterColumnAction.SetNotNull())
+	| "DROP"i & "NOT"i & "NULL"i => @(new AlterColumnAction.DropNotNull())
+	| "ADD"i & "SCOPE"i & n: TableName => @(new AlterColumnAction.AddScope(n))
+	| "DROP"i & "SCOPE"i & b: DropBehavior => @(new AlterColumnAction.DropScope(b))
+	| "SET"i & "DATA"i & "TYPE"i & t: DataType => @(new AlterColumnAction.SetDataType(t))
+	| "SET"i & "GENERATED"i & g: IdentityGeneration & (trivia & options: AlterIdentityColumnOption)* => @(new AlterColumnAction.SetIdentityGeneration(g, options ?? System.Array.Empty<SequenceOption>()))
+	| first: AlterIdentityColumnOption & (trivia & rest: AlterIdentityColumnOption)* => @(new AlterColumnAction.IdentityOptions(Nodes.List(first, rest)))
+	| "DROP"i & "IDENTITY"i => @(new AlterColumnAction.DropIdentity())
+	| "DROP"i & "EXPRESSION"i => @(new AlterColumnAction.DropExpression())
 
-AlterIdentityColumnOption
-	= "RESTART"i & ("WITH"i & SignedNumericLiteral)?
-	| "SET"i & BasicSequenceGeneratorOption
+AlterIdentityColumnOption : @SequenceOption
+	= "RESTART"i & ("WITH"i & v: SignedNumericLiteral)? => @(new SequenceOption.Restart(Nodes.LiteralOrNull(v)))
+	| "SET"i & o: BasicSequenceGeneratorOption => @(o)
 
-DropTableStatement = "DROP"i & "TABLE"i & TableName & DropBehavior
+DropTableStatement : @Statement.DropTable = "DROP"i & "TABLE"i & n: TableName & b: DropBehavior => @(new Statement.DropTable { Name = n, Behavior = b })
 
 // ── §11.22 View definition, §11.23 Drop view statement ──────────────────────
 
-ViewDefinition = "CREATE"i & "RECURSIVE"i? & "VIEW"i & TableName & ViewSpecification & "AS"i & QueryExpression
-	  & ("WITH"i & ("CASCADED"i | "LOCAL"i)? & "CHECK"i & "OPTION"i)?
+ViewDefinition : @Statement.CreateView = "CREATE"i & r: "RECURSIVE"i? & "VIEW"i & n: TableName & s: ViewSpecification & "AS"i & q: QueryExpression
+	  & ("WITH"i & o: ("CASCADED"i | "LOCAL"i)? & c: "CHECK"i & "OPTION"i)?
+	  => @(new Statement.CreateView { Recursive = r is not null, Name = n, Specification = s, Query = q, CheckOption = Nodes.CheckOptionOf(c, o) })
 
 // <view specification>: a view of a structured type, with its self-referencing column and its columns'
 // scopes, or a regular view with its columns named or not.
-ViewSpecification
-	= "OF"i & PathResolvedUserDefinedTypeName & ("UNDER"i & TableName)? & ViewElementList?
-	| ('(' & ColumnNameList & ')')?
+ViewSpecification : @ViewSpecification
+	= "OF"i & t: PathResolvedUserDefinedTypeName & ("UNDER"i & u: TableName)? & e: ViewElementList? => @(new ViewSpecification.Referenceable(t, u, e ?? System.Array.Empty<ViewElement>()))
+	| ('(' & columns: ColumnNameList & ')')? => @(new ViewSpecification.Regular(columns ?? System.Array.Empty<Identifier>()))
 
-ViewElementList = '(' & { ViewElement & (',' & ViewElement)* } & ')'
-ViewElement     = SelfReferencingColumnSpecification | ColumnName & "WITH"i & "OPTIONS"i & "SCOPE"i & TableName
+ViewElementList : @IReadOnlyList<ViewElement> = '(' & { first: ViewElement & (',' & rest: ViewElement)* } & ')' => @(Nodes.List(first, rest))
+ViewElement     : @ViewElement = "REF"i & "IS"i & n: ColumnName & g: ReferenceGeneration? => @(new ViewElement.SelfReference(n, g))
+                               | n: ColumnName & "WITH"i & "OPTIONS"i & "SCOPE"i & s: TableName => @(new ViewElement.ColumnOption(n, s))
 
-DropViewStatement = "DROP"i & "VIEW"i & TableName & DropBehavior
+DropViewStatement : @Statement.DropView = "DROP"i & "VIEW"i & n: TableName & b: DropBehavior => @(new Statement.DropView { Name = n, Behavior = b })
 
 // ── §11.24 Domain definition, §11.26–11.31 Alter and drop domain ────────────
 
 // <domain definition>: of a predefined type only, which a collection is not.
-DomainDefinition = "CREATE"i & "DOMAIN"i & SchemaQualifiedName & "AS"i? & PredefinedType & DefaultClause? & { (trivia & DomainConstraint)* } & CollateClause?
-DomainConstraint = ConstraintNameDefinition? & CheckConstraintDefinition & ConstraintCharacteristics?
+DomainDefinition : @Statement.CreateDomain = "CREATE"i & "DOMAIN"i & n: SchemaQualifiedName & a: "AS"i? & t: PredefinedType & d: DefaultClause? & { (trivia & constraints: DomainConstraint)* } & c: CollateClause?
+	  => @(new Statement.CreateDomain { Name = n, AsKeyword = a is not null, Type = t, Default = d, Constraints = constraints ?? System.Array.Empty<Constraint>(), Collation = c })
+DomainConstraint : @Constraint = n: ConstraintNameDefinition? & c: CheckConstraintDefinition & k: ConstraintCharacteristics? => @(c with { Name = n, Characteristics = k })
 
-AlterDomainStatement = "ALTER"i & "DOMAIN"i & SchemaQualifiedName & AlterDomainAction
-AlterDomainAction
-	= "SET"i & DefaultClause
-	| "DROP"i & "DEFAULT"i
-	| "ADD"i & DomainConstraint
-	| "DROP"i & "CONSTRAINT"i & SchemaQualifiedName
+AlterDomainStatement : @Statement.AlterDomain = "ALTER"i & "DOMAIN"i & n: SchemaQualifiedName & a: AlterDomainAction => @(new Statement.AlterDomain { Name = n, Action = a })
+AlterDomainAction : @AlterDomainAction
+	= "SET"i & d: DefaultClause => @(new AlterDomainAction.SetDefault(d))
+	| "DROP"i & "DEFAULT"i => @(new AlterDomainAction.DropDefault())
+	| "ADD"i & c: DomainConstraint => @(new AlterDomainAction.AddConstraint(c))
+	| "DROP"i & "CONSTRAINT"i & q: SchemaQualifiedName => @(new AlterDomainAction.DropConstraint(q))
 
-DropDomainStatement = "DROP"i & "DOMAIN"i & SchemaQualifiedName & DropBehavior
+DropDomainStatement : @Statement.DropDomain = "DROP"i & "DOMAIN"i & n: SchemaQualifiedName & b: DropBehavior => @(new Statement.DropDomain { Name = n, Behavior = b })
 
 // ── §11.47 Assertion definition, §11.48 Drop assertion statement ────────────
 
-AssertionDefinition    = "CREATE"i & "ASSERTION"i & SchemaQualifiedName & CheckConstraintDefinition & ConstraintCharacteristics?
-DropAssertionStatement = "DROP"i & "ASSERTION"i & SchemaQualifiedName & DropBehavior?
+AssertionDefinition    : @Statement.CreateAssertion = "CREATE"i & "ASSERTION"i & n: SchemaQualifiedName & c: CheckConstraintDefinition & k: ConstraintCharacteristics? => @(new Statement.CreateAssertion { Name = n, Condition = ((Constraint.Check)c).Condition, Characteristics = k })
+DropAssertionStatement : @Statement.DropAssertion = "DROP"i & "ASSERTION"i & n: SchemaQualifiedName & b: DropBehavior? => @(new Statement.DropAssertion { Name = n, Behavior = b })
 
 // ── §11.49 Trigger definition, §11.50 Drop trigger statement ────────────────
 
@@ -1917,11 +1948,15 @@ AlterRoutineCharacteristic
 DropRoutineStatement = "DROP"i & SpecificRoutineDesignator & DropBehavior
 
 // <specific routine designator>: a routine by its specific name, or by its name and its parameters' types.
-SpecificRoutineDesignator
-	= "SPECIFIC"i & RoutineType & SchemaQualifiedName
-	| RoutineType & SchemaQualifiedName & ('(' & (DataType & (',' & DataType)*)? & ')')? & ("FOR"i & SchemaQualifiedName)?
+SpecificRoutineDesignator : @RoutineDesignator
+	= "SPECIFIC"i & t: RoutineType & n: SchemaQualifiedName => @(new RoutineDesignator(t.Kind, n, null, null, true, t.Modifier))
+	| t: RoutineType & n: SchemaQualifiedName & ('(' & (first: DataType & (',' & rest: DataType)*)? & p: ')')? & ("FOR"i & f: SchemaQualifiedName)?
+	  => @(new RoutineDesignator(t.Kind, n, p is null ? null : Nodes.ListOrEmpty(first, rest), f, false, t.Modifier))
 
-RoutineType = "ROUTINE"i | "FUNCTION"i | "PROCEDURE"i | ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i
+RoutineType : @Nodes.RoutineTypeOf = "ROUTINE"i => @(new Nodes.RoutineTypeOf(RoutineKind.Routine, null))
+                                   | "FUNCTION"i => @(new Nodes.RoutineTypeOf(RoutineKind.Function, null))
+                                   | "PROCEDURE"i => @(new Nodes.RoutineTypeOf(RoutineKind.Procedure, null))
+                                   | m: ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i => @(Nodes.Method(m))
 
 // ── §11 User-defined types ──────────────────────────────────────────────────
 
@@ -1999,78 +2034,106 @@ DropTransformStatement = "DROP"i & TransformKeyword & ("ALL"i | Identifier) & "F
 
 // ── §11 Character sets, collations and transliterations ─────────────────────
 
-CharacterSetDefinition     = "CREATE"i & "CHARACTER"i & "SET"i & CharacterSetSpecification & "AS"i? & "GET"i & CharacterSetSpecification & CollateClause?
-DropCharacterSetStatement  = "DROP"i & "CHARACTER"i & "SET"i & CharacterSetSpecification
+CharacterSetDefinition    : @Statement.CreateCharacterSet = "CREATE"i & "CHARACTER"i & "SET"i & n: CharacterSetSpecification & a: "AS"i? & "GET"i & s: CharacterSetSpecification & c: CollateClause? => @(new Statement.CreateCharacterSet { Name = n, AsKeyword = a is not null, Source = s, Collation = c })
+DropCharacterSetStatement : @Statement.DropCharacterSet = "DROP"i & "CHARACTER"i & "SET"i & n: CharacterSetSpecification => @(new Statement.DropCharacterSet { Name = n })
 
-CollationDefinition    = "CREATE"i & "COLLATION"i & SchemaQualifiedName & "FOR"i & CharacterSetSpecification & "FROM"i & SchemaQualifiedName & ("NO"i & "PAD"i | "PAD"i & "SPACE"i)?
-DropCollationStatement = "DROP"i & "COLLATION"i & SchemaQualifiedName & DropBehavior
+CollationDefinition    : @Statement.CreateCollation = "CREATE"i & "COLLATION"i & n: SchemaQualifiedName & "FOR"i & c: CharacterSetSpecification & "FROM"i & s: SchemaQualifiedName & p: ("NO"i & "PAD"i | "PAD"i & "SPACE"i)?
+	  => @(new Statement.CreateCollation { Name = new CollationName(n), CharacterSet = c, Source = new CollationName(s), Padding = Nodes.PaddingOf(p) })
+DropCollationStatement : @Statement.DropCollation = "DROP"i & "COLLATION"i & n: SchemaQualifiedName & b: DropBehavior => @(new Statement.DropCollation { Name = new CollationName(n), Behavior = b })
 
 // <transliteration definition>: from a routine, asked first since `ROUTINE` is not reserved, or from an
 // existing transliteration.
-TransliterationDefinition    = "CREATE"i & "TRANSLATION"i & SchemaQualifiedName & "FOR"i & CharacterSetSpecification & "TO"i & CharacterSetSpecification
-	  & "FROM"i & (SpecificRoutineDesignator | SchemaQualifiedName)
-DropTransliterationStatement = "DROP"i & "TRANSLATION"i & SchemaQualifiedName
+TransliterationDefinition    : @Statement.CreateTranslation = "CREATE"i & "TRANSLATION"i & n: SchemaQualifiedName & "FOR"i & s: CharacterSetSpecification & "TO"i & t: CharacterSetSpecification
+	  & "FROM"i & f: TransliterationSource => @(new Statement.CreateTranslation { Name = n, SourceCharacterSet = s, TargetCharacterSet = t, Source = f })
+DropTransliterationStatement : @Statement.DropTranslation = "DROP"i & "TRANSLATION"i & n: SchemaQualifiedName => @(new Statement.DropTranslation { Name = n })
+
+// Not a production: what a transliteration is made from.
+TransliterationSource : @TranslationSource = r: SpecificRoutineDesignator => @(new TranslationSource(null, r))
+                                           | n: SchemaQualifiedName => @(new TranslationSource(n, null))
 
 // ── §11.74 Sequence generator definition, §11.75–11.76 Alter and drop ───────
 
-SequenceGeneratorDefinition = "CREATE"i & "SEQUENCE"i & SchemaQualifiedName & (trivia & ("AS"i & DataType | CommonSequenceGeneratorOption))*
+SequenceGeneratorDefinition : @Statement.CreateSequence = "CREATE"i & "SEQUENCE"i & n: SchemaQualifiedName & (trivia & options: SequenceGeneratorOption)* => @(new Statement.CreateSequence { Name = n, Options = options ?? System.Array.Empty<SequenceOption>() })
 
-CommonSequenceGeneratorOptions = CommonSequenceGeneratorOption & (trivia & CommonSequenceGeneratorOption)*
-CommonSequenceGeneratorOption  = "START"i & "WITH"i & SignedNumericLiteral | BasicSequenceGeneratorOption
+// Not a production: an option of a sequence generator's definition, its type among them.
+SequenceGeneratorOption : @SequenceOption = "AS"i & t: DataType => @(new SequenceOption.DataTypeOption(t))
+                                          | o: CommonSequenceGeneratorOption => @(o)
 
-BasicSequenceGeneratorOption
-	= "INCREMENT"i & "BY"i & SignedNumericLiteral
-	| "MAXVALUE"i & SignedNumericLiteral
-	| "MINVALUE"i & SignedNumericLiteral
-	| "NO"i & ("MAXVALUE"i | "MINVALUE"i | "CYCLE"i)
-	| "CYCLE"i
+CommonSequenceGeneratorOptions : @IReadOnlyList<SequenceOption> = first: CommonSequenceGeneratorOption & (trivia & rest: CommonSequenceGeneratorOption)* => @(Nodes.List(first, rest))
+CommonSequenceGeneratorOption  : @SequenceOption = "START"i & "WITH"i & v: SignedNumericLiteral => @(new SequenceOption.Start(new Expression.Literal(v)))
+                                                 | o: BasicSequenceGeneratorOption => @(o)
+
+BasicSequenceGeneratorOption : @SequenceOption
+	= "INCREMENT"i & "BY"i & v: SignedNumericLiteral => @(new SequenceOption.Increment(new Expression.Literal(v)))
+	| "MAXVALUE"i & v: SignedNumericLiteral => @(new SequenceOption.Max(new Expression.Literal(v)))
+	| "MINVALUE"i & v: SignedNumericLiteral => @(new SequenceOption.Min(new Expression.Literal(v)))
+	| "NO"i & "MAXVALUE"i => @(new SequenceOption.Max(null, true))
+	| "NO"i & "MINVALUE"i => @(new SequenceOption.Min(null, true))
+	| "NO"i & "CYCLE"i => @(new SequenceOption.Cycle(false))
+	| "CYCLE"i => @(new SequenceOption.Cycle(true))
 
 // <alter sequence generator statement>: a restart or a basic option, at least one; a start is not
 // altered.
-AlterSequenceGeneratorStatement = "ALTER"i & "SEQUENCE"i & SchemaQualifiedName & AlterSequenceGeneratorOption & (trivia & AlterSequenceGeneratorOption)*
-AlterSequenceGeneratorOption    = "RESTART"i & ("WITH"i & SignedNumericLiteral)? | BasicSequenceGeneratorOption
+AlterSequenceGeneratorStatement : @Statement.AlterSequence = "ALTER"i & "SEQUENCE"i & n: SchemaQualifiedName & first: AlterSequenceGeneratorOption & (trivia & rest: AlterSequenceGeneratorOption)* => @(new Statement.AlterSequence { Name = n, Options = Nodes.List(first, rest) })
+AlterSequenceGeneratorOption    : @SequenceOption = "RESTART"i & ("WITH"i & v: SignedNumericLiteral)? => @(new SequenceOption.Restart(Nodes.LiteralOrNull(v)))
+                                                  | o: BasicSequenceGeneratorOption => @(o)
 
-DropSequenceGeneratorStatement = "DROP"i & "SEQUENCE"i & SchemaQualifiedName & DropBehavior
+DropSequenceGeneratorStatement : @Statement.DropSequence = "DROP"i & "SEQUENCE"i & n: SchemaQualifiedName & b: DropBehavior => @(new Statement.DropSequence { Name = n, Behavior = b })
 
 // ── §12 Access control: roles and privileges ────────────────────────────────
 
-RoleDefinition    = "CREATE"i & "ROLE"i & Identifier & ("WITH"i & "ADMIN"i & Grantor)?
-DropRoleStatement = "DROP"i & "ROLE"i & Identifier & DropBehavior
+RoleDefinition    : @Statement.CreateRole = "CREATE"i & "ROLE"i & n: Identifier & ("WITH"i & "ADMIN"i & g: Grantor)? => @(new Statement.CreateRole { Name = n, Admin = g })
+DropRoleStatement : @Statement.DropRole = "DROP"i & "ROLE"i & n: Identifier & b: DropBehavior => @(new Statement.DropRole { Name = n, Behavior = b })
 
 // <grant statement>: privileges, asked first since they begin with key words, or roles, whose names
 // are identifiers — `USAGE` among them, which is not reserved.
-GrantStatement
-	= "GRANT"i & Privileges & "TO"i & Grantees & ("WITH"i & "HIERARCHY"i & "OPTION"i)? & ("WITH"i & "GRANT"i & "OPTION"i)? & GrantedBy?
-	| "GRANT"i & Identifier & (',' & Identifier)* & "TO"i & Grantees & ("WITH"i & "ADMIN"i & "OPTION"i)? & GrantedBy?
+GrantStatement : @Statement.Grant
+	= "GRANT"i & p: Privileges & "TO"i & to: Grantees & h: ("WITH"i & "HIERARCHY"i & "OPTION"i)? & o: ("WITH"i & "GRANT"i & "OPTION"i)? & granted: GrantedBy?
+	  => @(new Statement.Grant { Body = new GrantBody.Privileges(p.Items, p.Object, to, h is not null, o is not null, granted) })
+	| "GRANT"i & first: Identifier & (',' & rest: Identifier)* & "TO"i & to: Grantees & a: ("WITH"i & "ADMIN"i & "OPTION"i)? & granted: GrantedBy?
+	  => @(new Statement.Grant { Body = new GrantBody.Roles(Nodes.List(first, rest), to, a is not null, granted) })
 
-RevokeStatement
-	= "REVOKE"i & (("GRANT"i | "HIERARCHY"i) & "OPTION"i & "FOR"i)? & Privileges & "FROM"i & Grantees & GrantedBy? & DropBehavior
-	| "REVOKE"i & ("ADMIN"i & "OPTION"i & "FOR"i)? & Identifier & (',' & Identifier)* & "FROM"i & Grantees & GrantedBy? & DropBehavior
+RevokeStatement : @Statement.Revoke
+	= "REVOKE"i & (w: ("GRANT"i | "HIERARCHY"i) & "OPTION"i & "FOR"i)? & p: Privileges & "FROM"i & revoked: Grantees & granted: GrantedBy? & b: DropBehavior
+	  => @(new Statement.Revoke { Body = new RevokeBody.Privileges(Nodes.RevokeOptionOf(w), p.Items, p.Object, revoked, granted, b) })
+	| "REVOKE"i & a: ("ADMIN"i & "OPTION"i & "FOR"i)? & first: Identifier & (',' & rest: Identifier)* & "FROM"i & revoked: Grantees & granted: GrantedBy? & b: DropBehavior
+	  => @(new Statement.Revoke { Body = new RevokeBody.Roles(a is not null, Nodes.List(first, rest), revoked, granted, b) })
 
-Privileges = ("ALL"i & "PRIVILEGES"i | PrivilegeAction & (',' & PrivilegeAction)*) & "ON"i & ObjectName
+Privileges : @Nodes.PrivilegesOn = i: PrivilegeActions & "ON"i & o: ObjectName => @(new Nodes.PrivilegesOn(i, o))
+
+// Not a production: `ALL PRIVILEGES`, or the actions listed.
+PrivilegeActions : @IReadOnlyList<Privilege> = "ALL"i & "PRIVILEGES"i => @(new[] { new Privilege(PrivilegeKind.AllPrivileges, System.Array.Empty<Identifier>(), System.Array.Empty<RoutineDesignator>()) })
+                                             | first: PrivilegeAction & (',' & rest: PrivilegeAction)* => @(Nodes.List(first, rest))
 
 // <action>. A selection names columns or methods; a column's name could be a routine type's word,
 // `ROUTINE`, which is not reserved.
-PrivilegeAction
-	= "SELECT"i & ('(' & (ColumnNameList | SpecificRoutineDesignator & (',' & SpecificRoutineDesignator)*) & ')')?
-	| ("INSERT"i | "UPDATE"i | "REFERENCES"i) & ('(' & ColumnNameList & ')')?
-	| "DELETE"i | "USAGE"i | "TRIGGER"i | "UNDER"i | "EXECUTE"i
+PrivilegeAction : @Privilege
+	= "SELECT"i & '(' & columns: ColumnNameList & ')' => @(new Privilege(PrivilegeKind.Select, columns, System.Array.Empty<RoutineDesignator>()))
+	| "SELECT"i & '(' & first: SpecificRoutineDesignator & (',' & rest: SpecificRoutineDesignator)* & ')' => @(new Privilege(PrivilegeKind.Select, System.Array.Empty<Identifier>(), Nodes.List(first, rest)))
+	| "SELECT"i => @(new Privilege(PrivilegeKind.Select, System.Array.Empty<Identifier>(), System.Array.Empty<RoutineDesignator>()))
+	| w: ("INSERT"i | "UPDATE"i | "REFERENCES"i) & ('(' & listed: ColumnNameList & ')')? => @(new Privilege(Nodes.PrivilegeKindOf(w), listed ?? System.Array.Empty<Identifier>(), System.Array.Empty<RoutineDesignator>()))
+	| w: ("DELETE"i | "USAGE"i | "TRIGGER"i | "UNDER"i | "EXECUTE"i) => @(new Privilege(Nodes.PrivilegeKindOf(w), System.Array.Empty<Identifier>(), System.Array.Empty<RoutineDesignator>()))
 
 // <object name>. A kind of object is named before a table's name, which could be the kind's word:
 // `TYPE`, `SEQUENCE` and `ROUTINE` are not reserved.
-ObjectName
-	= "DOMAIN"i & SchemaQualifiedName
-	| "COLLATION"i & SchemaQualifiedName
-	| "CHARACTER"i & "SET"i & CharacterSetSpecification
-	| "TRANSLATION"i & SchemaQualifiedName
-	| "TYPE"i & SchemaQualifiedName
-	| "SEQUENCE"i & SchemaQualifiedName
-	| SpecificRoutineDesignator
-	| "TABLE"i? & TableName
+ObjectName : @PrivilegeObject
+	= "DOMAIN"i & n: SchemaQualifiedName => @(new PrivilegeObject(PrivilegeObjectKind.Domain, n))
+	| "COLLATION"i & n: SchemaQualifiedName => @(new PrivilegeObject(PrivilegeObjectKind.Collation, n))
+	| "CHARACTER"i & "SET"i & c: CharacterSetSpecification => @(new PrivilegeObject(PrivilegeObjectKind.CharacterSet, c.Name))
+	| "TRANSLATION"i & n: SchemaQualifiedName => @(new PrivilegeObject(PrivilegeObjectKind.Translation, n))
+	| "TYPE"i & n: SchemaQualifiedName => @(new PrivilegeObject(PrivilegeObjectKind.Type, n))
+	| "SEQUENCE"i & n: SchemaQualifiedName => @(new PrivilegeObject(PrivilegeObjectKind.Sequence, n))
+	| r: SpecificRoutineDesignator => @(new PrivilegeObject(PrivilegeObjectKind.Routine, r.Name, r))
+	| k: "TABLE"i? & n: TableName => @(new PrivilegeObject(PrivilegeObjectKind.Table, n, null, k is not null))
 
-Grantees  = ("PUBLIC"i | Identifier) & (',' & ("PUBLIC"i | Identifier))*
-Grantor   = "CURRENT_USER"i | "CURRENT_ROLE"i
-GrantedBy = "GRANTED"i & "BY"i & Grantor
+Grantees  : @IReadOnlyList<Grantee> = first: GranteeItem & (',' & rest: GranteeItem)* => @(Nodes.List(first, rest))
+Grantor   : @Grantor = "CURRENT_USER"i => @(Grantor.CurrentUser)
+                     | "CURRENT_ROLE"i => @(Grantor.CurrentRole)
+GrantedBy : @Grantor = "GRANTED"i & "BY"i & g: Grantor => @(g)
+
+// Not a production: `PUBLIC`, or an authorization identifier.
+GranteeItem : @Grantee = "PUBLIC"i => @(new Grantee.Public())
+                       | n: Identifier => @(new Grantee.Identifier(new AuthorizationIdentifier(n)))
 
 // ── §22 Direct invocation of SQL, and the statements it invokes ─────────────
 //
