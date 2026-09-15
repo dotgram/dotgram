@@ -18,6 +18,7 @@
 // language's literals and names among it — is read as nothing, as `--standard` reads it.
 
 @using System;
+@using DotGram.Sql.Ast;
 @using DotGram.Sql.Standard;
 
 using Lexical;
@@ -290,44 +291,44 @@ IntervalLeadingFieldPrecision      = UnsignedInteger
 // of a type `y`, and `ROW(ab)` a field `a` of a type `b`. §5.2 cuts a text into its longest tokens,
 // so a name is one token, and the braces say so; a refused line no longer tries every place a name
 // could be cut, either.
-Identifier = { ActualIdentifier }
+Identifier : @Identifier = { i: ActualIdentifier } => @(i)
 
 // <actual identifier>. A Unicode one begins `U&`, which a regular identifier would take the
 // `U` of, so it is asked first. §5.4's Syntax Rule is the lookahead: a regular identifier is
 // no reserved word, in any case.
-ActualIdentifier
-	= UnicodeDelimitedIdentifier
-	| ?!ReservedWord & RegularIdentifier
-	| DelimitedIdentifier
+ActualIdentifier : @Identifier
+	= t: UnicodeDelimitedIdentifier => @(Nodes.UnicodeIdentifier(t))
+	| ?!ReservedWord & t: RegularIdentifier => @(new Identifier(t))
+	| t: DelimitedIdentifier => @(new Identifier(t, IdentifierStyle.Delimited))
 
 // <table name>, <local or schema qualified name>: a name, a schema's before it and a catalog's
 // before that, or `MODULE` for a module's own. The standard nests the qualifiers, and an ordered
 // choice would take the longest one and leave no name for the end, so the names are a run.
-TableName                  = LocalOrSchemaQualifiedName
-LocalOrSchemaQualifiedName = LocalQualifier & '.' & QualifiedIdentifier
-                           | Identifier & ('.' & Identifier){0,2}
+TableName                  : @QualifiedName = n: LocalOrSchemaQualifiedName => @(n)
+LocalOrSchemaQualifiedName : @QualifiedName = m: LocalQualifier & '.' & q: QualifiedIdentifier => @(Nodes.Named(m, q))
+                                            | first: Identifier & ('.' & rest: Identifier){0,2} => @(Nodes.Chain(first, rest))
 LocalQualifier             = "MODULE"i
-QualifiedIdentifier        = Identifier
+QualifiedIdentifier        : @Identifier = i: Identifier => @(i)
 
 // <schema name>: a catalog's name may stand before it.
-SchemaName            = CatalogName & ('.' & UnqualifiedSchemaName)?
-UnqualifiedSchemaName = Identifier
-CatalogName           = Identifier
+SchemaName            : @QualifiedName = first: CatalogName & ('.' & rest: UnqualifiedSchemaName)? => @(Nodes.Chain(first, rest))
+UnqualifiedSchemaName : @Identifier = i: Identifier => @(i)
+CatalogName           : @Identifier = i: Identifier => @(i)
 
-ColumnName = Identifier
+ColumnName : @Identifier = i: Identifier => @(i)
 
 // §6.6 <identifier chain>, and a column reference made of one.
-IdentifierChain      = Identifier & ('.' & Identifier)*
-BasicIdentifierChain = IdentifierChain
+IdentifierChain      : @QualifiedName = first: Identifier & ('.' & rest: Identifier)* => @(Nodes.Chain(first, rest))
+BasicIdentifierChain : @QualifiedName = n: IdentifierChain => @(n)
 
-ColumnReference
-	= BasicIdentifierChain
-	| "MODULE"i & '.' & QualifiedIdentifier & '.' & ColumnName
+ColumnReference : @Expression
+	= n: BasicIdentifierChain => @(new Expression.Reference(n))
+	| m: "MODULE"i & '.' & q: QualifiedIdentifier & '.' & c: ColumnName => @(new Expression.Reference(Nodes.Named(m, q, c)))
 
-SchemaQualifiedName             = Identifier & ('.' & Identifier){0,2}
-PathResolvedUserDefinedTypeName = Identifier & ('.' & Identifier){0,2}
-RoutineName                     = Identifier & ('.' & Identifier){0,2}
-MethodName                      = Identifier
+SchemaQualifiedName             : @QualifiedName = first: Identifier & ('.' & rest: Identifier){0,2} => @(Nodes.Chain(first, rest))
+PathResolvedUserDefinedTypeName : @QualifiedName = first: Identifier & ('.' & rest: Identifier){0,2} => @(Nodes.Chain(first, rest))
+RoutineName                     : @QualifiedName = first: Identifier & ('.' & rest: Identifier){0,2} => @(Nodes.Chain(first, rest))
+MethodName                      : @Identifier = i: Identifier => @(i)
 
 // ── §6.1 Data types ─────────────────────────────────────────────────────────
 
