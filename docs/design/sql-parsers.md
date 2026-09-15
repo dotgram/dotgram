@@ -63,7 +63,8 @@ is open until it is built, and `status.md` is what will say when it has been.
   whole schema of §11 and §12 — routines, triggers and user-defined types among it — and the control,
   transaction, connection, session, diagnostics, dynamic and direct statements: every row tried and
   152,000 random verdicts agree with the BNF. Then the tree: begun 2026-09-14 in `sql-ast.md` and
-  `Standard/Sql2023Ast.cs`, and `SqlStandardParser` builds none yet.
+  `Standard/Sql2023Ast.cs`, and since 2026-09-15 `SqlStandardParser` builds its names — identifiers,
+  chains, table names and column references — and recognizes the rest.
 - **A test that says which productions are not written yet.**
 - **Whether the standard reads through a lexical split.** Not for now: its tokens overlap — a
   date string is a character string too, and which one a token is depends on the key word before

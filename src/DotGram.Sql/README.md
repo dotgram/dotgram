@@ -23,9 +23,10 @@ rebinds the rules where T-SQL differs, so what the two languages share is writte
 dialect is the size of the difference.
 
 `TransactSqlParser` builds the tree, and `Sql92Parser` the expressions in it that the two share.
-`SqlStandardParser` recognizes: it says whether a text is the standard's language and builds no
-tree. The tree laid out for the standard is in [`Sql2023Ast.cs`](Standard/Sql2023Ast.cs), in
-`DotGram.Sql.Ast`, and no parser builds it.
+`SqlStandardParser` builds a tree of its own, the standard's, laid out in
+[`Sql2023Ast.cs`](Standard/Sql2023Ast.cs) in `DotGram.Sql.Ast`, for names: an identifier with its
+spelling and style, an identifier chain, a table name, a column reference. Everything else it
+reads, it recognizes: it says whether a text is the standard's language and builds nothing for it.
 
 `SqlStandardParser` publishes the standard's productions under their own names —
 `ParseValueExpression`, `ParseSearchCondition`, `ParseQueryExpression`, `ParseSQLSchemaStatement`
