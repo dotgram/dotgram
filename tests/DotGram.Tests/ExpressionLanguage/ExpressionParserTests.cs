@@ -172,6 +172,44 @@ public sealed class ExpressionParserTests
 		Assert.Equal(8, narrow.Compile().DynamicInvoke(3));
 	}
 
+	/// <summary>
+	/// And it narrows what is read again: a hole of a string and the body of a lambda with no
+	/// types are read by a publication of their own, and read under the same binding.
+	/// </summary>
+	[Theory]
+	[InlineData("(string s) => $\"{s}\"",            true)]
+	[InlineData("(string é) => $\"{é}\"",            false)]
+	[InlineData("(string s) => $\"{s.Length}\"",     true)]
+	[InlineData("(int[] l) => $\"{l.Select(n => n + 1).Count()}\"", true)]
+	[InlineData("(int[] l) => $\"{l.Select(é => é + 1).Count()}\"", false)]
+	[InlineData("(int[] l) => l.Select(n => n * 2)",  true)]
+	[InlineData("(int[] l) => l.Select(n => { var é = n; return é; })", false)]
+	[InlineData("(int[] l) => l.Select(n => $\"{n}\")", true)]
+	public void What_is_read_again_is_read_with_the_narrower_word(string text, bool ascii)
+	{
+		// The text handed to the state as well, which is what `Parse` does and a reading called
+		// directly does not: a lambda with no types is read again from it.
+		var input = "using System; using System.Linq; " + text;
+
+		Assert.True(Reads(() => ExpressionParser.TryParseLambda(input, new ExpressionParser.State { Text = input }).IsSuccess));
+		Assert.Equal(ascii, Reads(() => ExpressionParser.TryParseAsciiLambda(input, new ExpressionParser.State { Text = input }).IsSuccess));
+
+		// A reading called directly refuses what it cannot build by throwing, which `TryParse`
+		// turns into an answer: `l.Select` left without the lambda the hole could not read is a
+		// member `int[]` does not have.
+		static bool Reads(Func<bool> read)
+		{
+			try
+			{
+				return read();
+			}
+			catch (FormatException)
+			{
+				return false;
+			}
+		}
+	}
+
 	[Fact]
 	public void Precedence_is_C_sharp_precedence() =>
 		// One rule per level (§4.3's default), so `*` binds tighter than `+` and the

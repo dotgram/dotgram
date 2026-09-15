@@ -22476,3 +22476,32 @@ random verdicts, half of them on broken lines, and none differ; the routine fuzz
 again after the fix. Every list is atomic; refused at 128
 elements — attributes, methods, options, transform groups and actions, typed columns, schema elements —
 they cost 0.05 to 0.6 ms, and linearly.
+
+## A publication named in an action is read under the clone's substitution
+
+`internal parse Lambda with (Word = AsciiWord) as ParseAsciiLambda` read the lambda in ASCII and
+handed the holes of its strings and the bodies of its untyped lambdas to `TryParseHole` and
+`TryParseBody`, which read Unicode: a clone carries an action's C# across unchanged, and the name in
+it went on meaning the publication without the substitution. `$"{é}"` and `x => { var é = x; … }`
+were read by the narrower parser.
+
+The rule now (syntax.md §5.1): under a publication's `with`, a publication's name in an action or a
+guard of a clone means that publication under the same substitution. `SpecializePublicationWith`
+sets `_renaming` around the cloning; `Redirected` asks `ICSharpScanner.FreeNames` which names the
+text uses, finds `ParseX`/`TryParseX` among the publications the author wrote, and — where the
+substitution changes what that publication reads — spells it as the author's own publication of
+that rule under that substitution, or as a private one it makes and queues (`ParseHole_With…`).
+`ICSharpScanner.Renamed` replaces the free names in the text, by the syntax tree, from the end.
+A queued publication is specialized like a written one, so what its clones name is redirected in
+turn; one method per rule and substitution is what ends it.
+
+**Clones are shared by substitution.** A made publication reaches mostly what the author's does,
+and cloning it again made a second copy of those rules that no machine could join
+(`CSharpEmitter.Joined` folds a publication whose rule another machine reaches — a copy is a
+different rule). `CloneAffected` takes the clones already made for the same substitution and makes
+only the rest, for every publication's `with`.
+
+What is left out: a name written after a dot (`Owner.TryParseHole` is somebody else's), a rebinding
+only a condition asks about, and the two other extents — a `with` expression and a `namespace …
+with` block — whose clones have no publication of their own to name. Held by three tests in
+`SemanticTests` and the ASCII reading's in `ExpressionParserTests`.

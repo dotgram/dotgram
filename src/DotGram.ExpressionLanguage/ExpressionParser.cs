@@ -1229,7 +1229,9 @@ namespace DotGram.ExpressionLanguage;
 	// (§5.1). A binding on a publication clones what the directive reaches and rewrites
 	// every call inside the clones, so every rule that reads a word — a parameter, a
 	// member, a type, a label, a name — reads this one, while `ParseLambda` beside it
-	// goes on reading what Unicode calls a letter.
+	// goes on reading what Unicode calls a letter. What is read again reads it too: the
+	// `TryParseHole` and `TryParseBody` named in the clones mean those publications under the
+	// same binding (§5.1), which the generator publishes privately for this one.
 	// Internal: it is what the tests hold the binding against, and no part of the language.
 	internal parse Lambda with (Word = AsciiWord) as ParseAsciiLambda
 	""", Lexical = true)]

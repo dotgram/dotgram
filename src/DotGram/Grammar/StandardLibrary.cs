@@ -114,5 +114,7 @@ public static class StandardLibrary
 		}
 
 		public IReadOnlyCollection<string>? FreeNames(string expression) => null;
+
+		public string? Renamed(string expression, IReadOnlyDictionary<string, string> names) => null;
 	}
 }

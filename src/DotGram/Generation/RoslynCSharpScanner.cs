@@ -62,7 +62,40 @@ public sealed class RoslynCSharpScanner : ICSharpScanner
 		if (parsed.ContainsDiagnostics)
 			return null;
 
-		var free  = new HashSet<string>(StringComparer.Ordinal);
+		return new HashSet<string>(Free(parsed).Select(name => name.Identifier.ValueText), StringComparer.Ordinal);
+	}
+
+	/// <summary>
+	/// The expression with the free names <paramref name="names"/> maps spelled as it says.
+	/// </summary>
+	/// <remarks>
+	/// Replaced in the text rather than in the tree and printed back: a tree printed back is
+	/// the tree's spacing, and the text is what a line directive points the author at.
+	/// </remarks>
+	public string? Renamed(string expression, IReadOnlyDictionary<string, string> names)
+	{
+		if (expression is null || names is null)
+			return null;
+
+		var parsed = SyntaxFactory.ParseExpression(expression);
+
+		if (parsed.ContainsDiagnostics)
+			return null;
+
+		var text = expression;
+
+		// From the end, so a replacement longer or shorter than its name moves nothing still
+		// to be replaced.
+		foreach (var name in Free(parsed).OrderByDescending(one => one.Identifier.SpanStart))
+			if (names.TryGetValue(name.Identifier.ValueText, out var spelled))
+				text = text.Substring(0, name.Identifier.SpanStart) + spelled + text.Substring(name.Identifier.Span.End);
+
+		return text;
+	}
+
+	/// <summary>Every use of a name the expression does not itself introduce.</summary>
+	static IEnumerable<IdentifierNameSyntax> Free(ExpressionSyntax parsed)
+	{
 		var bound = new HashSet<string>(StringComparer.Ordinal);
 
 		foreach (var declared in parsed.DescendantNodes())
@@ -103,10 +136,8 @@ public sealed class RoslynCSharpScanner : ICSharpScanner
 				continue;
 
 			if (!bound.Contains(name.Identifier.ValueText))
-				free.Add(name.Identifier.ValueText);
+				yield return name;
 		}
-
-		return free;
 	}
 
 	public bool TryFindClosingParenthesis(string text, int openParenthesisIndex, out int closeParenthesisIndex)

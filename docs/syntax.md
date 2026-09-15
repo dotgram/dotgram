@@ -1325,6 +1325,21 @@ block, no name for the substitution beyond the publication's own. A publication'
 enclosing `namespace Name with (...)`'s own rebinding of the same rule rather than instead
 of it.
 
+**A publication named in an action means it under the same substitution.** An action that
+reads a piece of the input again calls a publication by its name — `TryParseHole(…)` — and
+under a publication's `with` that name reads the rule the way the publication does:
+
+```dotgram
+private parse Assignment as ParseHole
+internal parse Lambda with (Word = AsciiWord) as ParseAsciiLambda
+```
+
+`ParseAsciiLambda` reads the holes of its strings with ASCII words too. Where the author
+publishes the same rule under the same substitution, the name is that publication; where
+nobody does, the generator publishes it privately. A name the substitution changes nothing
+for is left as it is, and so is one written after a dot: `Owner.TryParseHole` is somebody
+else's method. A rebinding that only a condition asks about (below) does not redirect a name.
+
 **A rebinding is also what answers a condition.** A guard of the form `when A is B`
 (§3.6) is decided when the parser is generated, against the rules as that parser has
 them — so a publication's own `with` is what gives it an answer:
