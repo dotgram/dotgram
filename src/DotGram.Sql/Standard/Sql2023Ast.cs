@@ -35,7 +35,15 @@ public abstract record Statement : ISqlNode
 		public OrderByClause? OrderBy { get; init; }
 		public OffsetClause? Offset { get; init; }
 		public FetchClause? Fetch { get; init; }
-		public bool IsParenthesized { get; init; }
+		// BNF: a <query expression body> that is no <query specification> — `VALUES (1)`, `TABLE t`, or a
+		// query in brackets — as the first operand. The specification's own properties are then empty.
+		public QueryOperand? Body { get; init; }
+
+		// How many pairs of brackets were written around the whole query: `((SELECT 1))` is two.
+		public int Parentheses { get; init; }
+
+		// BNF: <updatability clause> of a <cursor specification>, `FOR UPDATE OF a`.
+		public UpdatabilityClause? Updatability { get; init; }
 	}
 
 	// BNF: <insert statement>
@@ -129,7 +137,7 @@ public abstract record Statement : ISqlNode
 	public record DropView : Statement { public required QualifiedName Name { get; init; } public required DropBehavior Behavior { get; init; } }
 
 	// BNF: <domain definition>, <alter domain statement>, <drop domain statement>
-	public record CreateDomain : Statement { public required QualifiedName Name { get; init; } public required DataType Type { get; init; } public Expression? Default { get; init; } public IReadOnlyList<Constraint> Constraints { get; init; } = []; public CollationName? Collation { get; init; } }
+	public record CreateDomain : Statement { public required QualifiedName Name { get; init; } public bool AsKeyword { get; init; } public required DataType Type { get; init; } public Expression? Default { get; init; } public IReadOnlyList<Constraint> Constraints { get; init; } = []; public CollationName? Collation { get; init; } }
 	public record AlterDomain : Statement { public required QualifiedName Name { get; init; } public required AlterDomainAction Action { get; init; } }
 	public record DropDomain : Statement { public required QualifiedName Name { get; init; } public required DropBehavior Behavior { get; init; } }
 
@@ -185,10 +193,16 @@ public abstract record Statement : ISqlNode
 
 	// BNF: cursor/data control statements
 	public record DeclareCursor : Statement { public required CursorReference Cursor { get; init; } public required CursorProperties Properties { get; init; } public required CursorSource SourceValue { get; init; } }
-	public record OpenCursor : Statement { public required CursorReference Cursor { get; init; } public IReadOnlyList<Expression> Arguments { get; init; } = []; }
+	public record OpenCursor : Statement { public required CursorReference Cursor { get; init; } public DynamicArguments? Using { get; init; } }
 	public record FetchCursor : Statement { public FetchOrientation? Orientation { get; init; } public required CursorReference Cursor { get; init; } public IReadOnlyList<Expression> Targets { get; init; } = []; public DescriptorReference? Descriptor { get; init; } }
 	public record CloseCursor : Statement { public required CursorReference Cursor { get; init; } }
 	public record AllocateCursor : Statement { public required CursorReference Cursor { get; init; } public CursorProperties? Properties { get; init; } public required CursorAllocationSource SourceValue { get; init; } }
+
+	// BNF: <temporary table declaration>.
+	public record DeclareLocalTemporaryTable : Statement { public required QualifiedName Name { get; init; } public IReadOnlyList<TableElement> Elements { get; init; } = []; public TableCommitAction? OnCommit { get; init; } }
+
+	// BNF: <get diagnostics statement>.
+	public record GetDiagnostics : Statement { public required DiagnosticsInformation Information { get; init; } }
 
 	public record FreeLocator : Statement { public IReadOnlyList<Expression> Locators { get; init; } = []; }
 	public record HoldLocator : Statement { public IReadOnlyList<Expression> Locators { get; init; } = []; }
@@ -310,20 +324,32 @@ public abstract record TableSource : ISqlNode
 	{
 		public required TableSource Left { get; init; }
 		public required TableSource Right { get; init; }
-		public required JoinKind Kind { get; init; }
+		// BNF: <join type>; null where a bare `JOIN` was written, which is not the same text as `INNER JOIN`.
+		public JoinKind? Kind { get; init; }
+		public bool Natural { get; init; }
 		public bool OuterKeyword { get; init; }
+
+		// BNF: <partitioned join table>'s <join column list> on either side, `t PARTITION BY (a) LEFT JOIN u`.
+		public IReadOnlyList<Expression>? LeftPartition { get; init; }
+		public IReadOnlyList<Expression>? RightPartition { get; init; }
 		public JoinSpecification? Specification { get; init; }
 	}
 
 	public record Unnest(IReadOnlyList<Expression> Expressions, bool WithOrdinality, Alias? Alias) : TableSource;
 	public record Function(Expression.Invocation Invocation, Alias? Alias = null) : TableSource;
+
+	// BNF: <table function derived table>, `TABLE (f (a))`.
+	public record TableFunction(Expression Value, Alias? Alias = null) : TableSource;
+
+	// BNF: <row pattern recognition clause> after a table primary, `t MATCH_RECOGNIZE (…) AS m`.
+	public record RowPatternRecognition(TableSource Source, RowPatternClause Clause, Alias? Alias = null) : TableSource;
 	public record JsonTable(JsonTableDefinition Definition, Alias? Alias = null) : TableSource;
 	public record DataChange(ResultOption Option, Statement Change, Alias? Alias = null) : TableSource;
 	public record Parenthesized(TableSource Source) : TableSource;
 	public record Extension(string Dialect, string Kind, IReadOnlyList<ISqlNode> Parts) : TableSource;
 }
 
-public enum JoinKind { Cross, Inner, Left, Right, Full, NaturalInner, NaturalLeft, NaturalRight, NaturalFull }
+public enum JoinKind { Cross, Inner, Left, Right, Full }
 public abstract record JoinSpecification : ISqlNode
 {
 	public record On(Expression Condition) : JoinSpecification;
@@ -339,37 +365,144 @@ public abstract record Expression : ISqlNode
 {
 	public record Literal(LiteralValue Value) : Expression;
 	public record Reference(QualifiedName Name) : Expression;
-	public record Parameter(ParameterKind Kind, Identifier? Name = null) : Expression;
-	public record Current(CurrentValue Kind, QualifiedName? TypeName = null) : Expression;
+
+	// BNF: <host parameter specification>, <embedded variable specification>, <dynamic parameter specification>.
+	public record Parameter(ParameterKind Kind, Identifier? Name = null) : Expression
+	{
+		// BNF: <indicator parameter>, <indicator variable> — `:a INDICATOR :i` or `:a :i`.
+		public Identifier? Indicator { get; init; }
+		public bool IndicatorKeyword { get; init; }
+	}
+
+	// BNF: <general value specification>'s key words, <datetime value function>. Precision is `CURRENT_TIME (3)`'s.
+	public record Current(CurrentValue Kind, QualifiedName? TypeName = null, Expression? Precision = null) : Expression;
+
 	public record Unary(UnaryOperator Operator, Expression Operand) : Expression;
 	public record Binary(Expression Left, BinaryOperator Operator, Expression Right) : Expression;
+
+	// BNF: <multiset value expression>, <multiset term> — `MULTISET UNION ALL`, which carries a quantifier.
+	public record MultisetOperation(Expression Left, MultisetOperator Operator, SetQuantifier? Quantifier, Expression Right) : Expression;
+
 	public record Row(IReadOnlyList<Expression> Items, bool RowKeyword = false) : Expression;
 	public record Parenthesized(Expression Value) : Expression;
 	public record Subquery(Statement.Select Query) : Expression;
+
+	// BNF: <case expression>. In a simple CASE a when operand may be a predicate without its left side,
+	// `WHEN < 5`, whose missing operand is written as CaseOperand.
 	public record Case(Expression? Operand, IReadOnlyList<CaseWhen> Whens, Expression? Else) : Expression;
+
+	// BNF: <case operand> standing where a <when operand> leaves it out. Nothing is written for it.
+	public record CaseOperand : Expression;
+
 	public record Cast(Expression Value, DataType Target, string? Format = null) : Expression;
+
+	// BNF: <routine invocation>, <aggregate function>, <window function>, <row pattern navigation operation>,
+	// and the functions whose arguments are a plain comma list.
 	public record Invocation(QualifiedName Name, IReadOnlyList<Argument> Arguments) : Expression
 	{
+		// BNF: <set quantifier> in a <general set function>, `COUNT (DISTINCT a)`.
+		public SetQuantifier? Quantifier { get; init; }
+
+		// BNF: <sort specification list> inside the brackets, `ARRAY_AGG (a ORDER BY b)`.
+		public OrderByClause? OrderBy { get; init; }
+
+		// BNF: <listagg overflow clause>.
+		public ListaggOverflow? Overflow { get; init; }
+
+		// BNF: <from first or last>, <null treatment>.
+		public FromFirstOrLast? From { get; init; }
+		public NullTreatment? Nulls { get; init; }
+
+		// BNF: <row pattern navigation operation>'s `RUNNING` or `FINAL`.
+		public RowPatternSemantics? Semantics { get; init; }
+
 		public FilterClause? Filter { get; init; }
 		public WindowReference? Over { get; init; }
 		public WithinGroupClause? WithinGroup { get; init; }
 	}
+
+	// BNF: `COUNT (*)`'s <asterisk>, as the one argument.
+	public record Asterisk : Expression;
+
+	// BNF: <method invocation>, <attribute or method reference>, <static method invocation> (`T::m`), <dereference operation>.
 	public record Member(Expression Target, MemberAccessKind Kind, Identifier Name, IReadOnlyList<Argument>? Arguments = null) : Expression;
-	public record Array(IReadOnlyList<Expression> Items) : Expression;
+
+	// BNF: <generalized expression>, `(a AS t).m ()`.
+	public record Generalized(Expression Value, QualifiedName TypeName) : Expression;
+
+	// BNF: <subtype treatment>, <new specification>, <reference resolution>.
+	public record Treat(Expression Value, DataType Target) : Expression;
+	public record New(QualifiedName TypeName, IReadOnlyList<Argument> Arguments) : Expression;
+	public record Dereference(Expression Value) : Expression;
+
+	public record Array(IReadOnlyList<Expression> Items, bool Trigraphs = false) : Expression;
 	public record Multiset(IReadOnlyList<Expression> Items) : Expression;
 	public record CollectionQuery(CollectionKind Kind, Statement.Select Query) : Expression;
-	public record Element(Expression Collection, Expression Index) : Expression;
+
+	// BNF: <array element reference>, and a JSON simplified accessor's `[1 TO 3]`. Trigraphs are `??(` and `??)`.
+	public record Element(Expression Collection, Expression Index, Expression? To = null, bool Trigraphs = false) : Expression;
+
+	// BNF: a JSON simplified accessor's `.*` and `[*]`.
+	public record Wildcard(Expression Target, WildcardKind Kind) : Expression;
+
 	public record NextValue(QualifiedName Sequence) : Expression;
+
+	// BNF: <collate clause> on a character factor.
+	public record Collate(Expression Value, CollationName Collation) : Expression;
+
+	// BNF: <time zone>, `a AT TIME ZONE z` and `a AT LOCAL`, where Zone is null.
+	public record AtTimeZone(Expression Value, Expression? Zone) : Expression;
+
+	// BNF: <interval value expression>'s `(a - b) DAY TO SECOND`.
+	public record IntervalQualified(Expression Value, IntervalQualifier Qualifier) : Expression;
+
+	// BNF: <string value function>s whose arguments are key words and not a comma list.
+	public record Substring(Expression Value, Expression From, Expression? For, CharacterLengthUnits? Using) : Expression;
+	public record SubstringSimilar(Expression Value, Expression Pattern, Expression Escape) : Expression;
+	public record Trim(TrimSpecification? Specification, Expression? Character, bool FromKeyword, Expression Source) : Expression;
+	public record Overlay(Expression Value, Expression Placing, Expression From, Expression? For, CharacterLengthUnits? Using) : Expression;
+	public record Position(Expression Value, Expression Within, CharacterLengthUnits? Using) : Expression;
+	public record Length(LengthFunction Function, Expression Value, CharacterLengthUnits? Using) : Expression;
+	public record Extract(ExtractField Field, Expression Source) : Expression;
+	public record Normalize(Expression Value, NormalForm? Form, Expression? MaxLength) : Expression;
+	public record TranslateUsing(TranslateFunction Function, Expression Value, QualifiedName Name) : Expression;
+
+	// BNF: <regex occurrences function>, <regex position expression>, <regex substring function>, <regex transliteration>.
+	public record Regex(RegexFunction Function, Expression Pattern, Expression Value) : Expression
+	{
+		public Expression? Flag { get; init; }
+		public Expression? From { get; init; }
+		public CharacterLengthUnits? Using { get; init; }
+		public RegexPositionStartOrAfter? StartOrAfter { get; init; }
+		public Expression? Replacement { get; init; }
+		public Expression? Occurrence { get; init; }
+		public bool AllOccurrences { get; init; }
+		public Expression? Group { get; init; }
+	}
 
 	// BNF predicate families collapsed into Expression children rather than a BooleanExpression hierarchy.
 	public record Comparison(Expression Left, ComparisonOperator Operator, Expression Right) : Expression;
 	public record Between(Expression Value, bool Not, BetweenSymmetry? Symmetry, Expression Lower, Expression Upper) : Expression;
 	public record In(Expression Value, bool Not, InSource SourceValue) : Expression;
-	public record Like(Expression Value, bool Not, LikeKind Kind, Expression Pattern, Expression? Escape = null) : Expression;
+
+	// BNF: <like predicate>, <similar predicate>, <regex like predicate> — whose FLAG is Flag.
+	public record Like(Expression Value, bool Not, LikeKind Kind, Expression Pattern, Expression? Escape = null, Expression? Flag = null) : Expression;
+
 	public record IsNull(Expression Value, bool Not) : Expression;
+
+	// BNF: <boolean test>, `a IS NOT UNKNOWN`.
+	public record IsTruth(Expression Value, bool Not, BooleanLiteral Truth) : Expression;
+
 	public record QuantifiedComparison(Expression Left, ComparisonOperator Operator, Quantifier Quantifier, Statement.Select Query) : Expression;
 	public record Exists(Statement.Select Query) : Expression;
-	public record Unique(bool NullsNotDistinct, Statement.Select Query) : Expression;
+	public record Unique(NullDistinctness? Nulls, Statement.Select Query) : Expression;
+
+	// BNF: <match predicate>.
+	public record Match(Expression Value, bool UniqueKeyword, MatchType? Type, Statement.Select Query) : Expression;
+
+	// BNF: <overlaps predicate>, whose two sides are rows.
+	public record Overlaps(Expression Left, Expression Right) : Expression;
+
 	public record IsDistinct(Expression Left, bool Not, Expression Right) : Expression;
 	public record IsNormalized(Expression Value, bool Not, NormalForm? Form) : Expression;
 	public record MemberOf(Expression Value, bool Not, bool OfKeyword, Expression Collection) : Expression;
@@ -379,20 +512,48 @@ public abstract record Expression : ISqlNode
 	public record PeriodPredicate(PeriodValue Left, PeriodOperator Operator, PeriodRight Right) : Expression;
 	public record JsonPredicate(Expression Value, JsonInputClause? Input, bool Not, JsonPredicateType? Type, JsonKeyUniqueness? Uniqueness) : Expression;
 	public record JsonExists(JsonApiCommon Common, JsonExistsErrorBehavior? OnError) : Expression;
+
+	// BNF: <JSON value function>, <JSON query>, the <JSON value constructor>s and <JSON aggregate function>s.
+	public record JsonValue(JsonApiCommon Common, DataType? Returning, JsonValueBehavior? OnEmpty, JsonValueBehavior? OnError) : Expression;
+	public record JsonQuery(JsonApiCommon Common, JsonOutput? Output, JsonWrapperBehavior? Wrapper, JsonQuotes? Quotes, JsonQueryBehavior? OnEmpty, JsonQueryBehavior? OnError) : Expression;
+	public record JsonObject(IReadOnlyList<JsonMember> Members, JsonNullHandling? Nulls, JsonKeyUniqueness? Uniqueness, JsonOutput? Output) : Expression;
+	public record JsonArray(IReadOnlyList<JsonElement> Elements, JsonNullHandling? Nulls, JsonOutput? Output) : Expression;
+	public record JsonArrayQuery(Statement.Select Query, JsonInputClause? Format, JsonOutput? Output) : Expression;
+	public record JsonObjectAggregate(JsonMember Pair, JsonNullHandling? Nulls, JsonKeyUniqueness? Uniqueness, JsonOutput? Output) : Expression;
+	public record JsonArrayAggregate(JsonElement Item, OrderByClause? OrderBy, JsonNullHandling? Nulls, JsonOutput? Output) : Expression;
+	public record JsonParse(Expression Value, JsonInputClause? Input, JsonKeyUniqueness? Uniqueness) : Expression;
+	public record JsonScalar(Expression Value) : Expression;
+	public record JsonSerialize(Expression Value, JsonOutput? Output) : Expression;
+
 	public record Extension(string Dialect, string Kind, IReadOnlyList<ISqlNode> Parts) : Expression;
 }
 
 public enum ParameterKind { Host, Sql, Dynamic, Embedded }
 public enum CurrentValue { Catalog, Date, DefaultTransformGroup, Path, Role, Schema, Time, Timestamp, User, SessionUser, SystemUser, Value, LocalTime, LocalTimestamp }
 public enum UnaryOperator { Plus, Minus, Not }
-public enum BinaryOperator { Add, Subtract, Multiply, Divide, Concatenate, And, Or, MultisetUnion, MultisetExcept, MultisetIntersect }
+public enum BinaryOperator { Add, Subtract, Multiply, Divide, Concatenate, And, Or }
+public enum MultisetOperator { Union, Except, Intersect }
 public enum ComparisonOperator { Equal, NotEqual, Less, Greater, LessOrEqual, GreaterOrEqual }
 public enum BetweenSymmetry { Asymmetric, Symmetric }
 public enum Quantifier { All, Some, Any }
 public enum LikeKind { Like, Similar, Regex }
 public enum CollectionKind { Array, Multiset, Table }
-public enum MemberAccessKind { Dot, Dereference }
+public enum MemberAccessKind { Dot, Dereference, StaticMethod }
+public enum WildcardKind { Member, Array }
 public enum NormalForm { NFC, NFD, NFKC, NFKD }
+public enum FromFirstOrLast { First, Last }
+public enum NullTreatment { RespectNulls, IgnoreNulls }
+public enum RowPatternSemantics { Running, Final }
+public enum CharacterLengthUnits { Characters, Octets }
+public enum TrimSpecification { Leading, Trailing, Both }
+public enum LengthFunction { CharLength, CharacterLength, OctetLength }
+public enum TranslateFunction { Convert, Translate }
+public enum ExtractField { Year, Month, Day, Hour, Minute, Second, TimezoneHour, TimezoneMinute }
+public enum RegexFunction { OccurrencesRegex, PositionRegex, SubstringRegex, TranslateRegex }
+public enum RegexPositionStartOrAfter { Start, After }
+
+// BNF: <listagg overflow clause>: `ON OVERFLOW ERROR`, or `ON OVERFLOW TRUNCATE [filler] WITH|WITHOUT COUNT`.
+public sealed record ListaggOverflow(bool Truncate, Expression? Filler = null, bool? WithCount = null) : ISqlNode;
 
 public abstract record LiteralValue : ISqlNode
 {
@@ -409,7 +570,9 @@ public enum StringLiteralKind { Character, National, Unicode }
 public enum BooleanLiteral { True, False, Unknown }
 public enum DateTimeLiteralKind { Date, Time, Timestamp }
 
-public sealed record CaseWhen(Expression When, Expression Then) : ISqlNode;
+// BNF: <simple when clause>, <searched when clause>. A simple one's <when operand list> is `WHEN 1, 2`; a
+// searched one has a single condition.
+public sealed record CaseWhen(IReadOnlyList<Expression> When, Expression Then) : ISqlNode;
 public sealed record Argument(Expression Value, Identifier? Name = null, bool NamedAssignment = false) : ISqlNode;
 public sealed record FilterClause(Expression Condition) : ISqlNode;
 public sealed record WithinGroupClause(OrderByClause OrderBy) : ISqlNode;
@@ -655,6 +818,22 @@ public enum JsonWrapperBehavior { Without, WithoutArray, With, WithConditional, 
 public enum JsonQuotesBehavior { Keep, Omit }
 public enum JsonQueryBehavior { Error, Null, EmptyArray, EmptyObject }
 
+// BNF: <JSON output clause>: `RETURNING t FORMAT JSON ENCODING UTF8`.
+public sealed record JsonOutput(DataType Type, JsonRepresentation? Format = null) : ISqlNode;
+
+// BNF: <JSON query quotes behavior>: `KEEP QUOTES ON SCALAR STRING`.
+public sealed record JsonQuotes(JsonQuotesBehavior Behavior, bool OnScalarString) : ISqlNode;
+
+// BNF: <JSON name and value>: `KEY k VALUE v`, `k VALUE v` or `k : v`, with the value's format.
+public sealed record JsonMember(Expression Key, Expression Value, JsonMemberSyntax Syntax, JsonInputClause? Format = null) : ISqlNode;
+public enum JsonMemberSyntax { KeyValue, Value, Colon }
+
+// BNF: <JSON value expression> in an array constructor or aggregate, with its format.
+public sealed record JsonElement(Expression Value, JsonInputClause? Format = null) : ISqlNode;
+
+// BNF: <JSON constructor null clause>.
+public enum JsonNullHandling { NullOnNull, AbsentOnNull }
+
 // --- DML helper families ----------------------------------------------------
 public abstract record InsertSource : ISqlNode
 {
@@ -737,15 +916,24 @@ public abstract record UserTypeOption : ISqlNode
 public abstract record UserTypeReference : ISqlNode { public record Using(DataType Type) : UserTypeReference; public record FromAttributes(IReadOnlyList<Identifier> Attributes) : UserTypeReference; public record SystemGenerated : UserTypeReference; }
 public enum UserTypeCastKind { ToRef, ToType, ToDistinct, ToSource }
 public abstract record AlterTypeAction : ISqlNode { public record AddAttribute(AttributeDefinition Attribute) : AlterTypeAction; public record DropAttribute(Identifier Name) : AlterTypeAction; public record AddMethod(MethodSpecification Method, bool Overriding) : AlterTypeAction; public record DropMethod(MethodDesignator Method) : AlterTypeAction; }
-public sealed record MethodSpecification(MethodModifier? Modifier, Identifier Name, IReadOnlyList<ParameterDefinition> Parameters, ReturnsDefinition Returns, Identifier? SpecificName, bool SelfAsResult, bool SelfAsLocator, IReadOnlyList<RoutineCharacteristic> Characteristics) : ISqlNode;
+public sealed record MethodSpecification(MethodModifier? Modifier, Identifier Name, IReadOnlyList<ParameterDefinition> Parameters, ReturnsDefinition Returns, QualifiedName? SpecificName, bool SelfAsResult, bool SelfAsLocator, IReadOnlyList<RoutineCharacteristic> Characteristics, bool Overriding = false) : ISqlNode;
 public enum MethodModifier { Instance, Static, Constructor }
 public sealed record MethodDesignator(MethodModifier? Modifier, Identifier Name, IReadOnlyList<DataType> ParameterTypes) : ISqlNode;
 
-public sealed record RoutineDefinition(RoutineKind Kind, QualifiedName Name, IReadOnlyList<ParameterDefinition> Parameters, ReturnsDefinition? Returns, IReadOnlyList<RoutineCharacteristic> Characteristics, RoutineBody Body, MethodModifier? MethodModifier = null, QualifiedName? ForType = null) : ISqlNode;
+// BNF: <schema procedure>, <schema function>, <method specification designator>. StaticDispatch is <dispatch clause>.
+public sealed record RoutineDefinition(RoutineKind Kind, QualifiedName Name, IReadOnlyList<ParameterDefinition> Parameters, ReturnsDefinition? Returns, IReadOnlyList<RoutineCharacteristic> Characteristics, RoutineBody Body, MethodModifier? MethodModifier = null, QualifiedName? ForType = null, bool StaticDispatch = false, bool SpecificMethod = false) : ISqlNode;
 public enum RoutineKind { Procedure, Function, Method }
-public sealed record ParameterDefinition(ParameterMode? Mode, Identifier? Name, DataType Type, bool Result, Expression? Default) : ISqlNode;
+// BNF: <SQL parameter declaration>. Locator is <locator indication>, `AS LOCATOR`.
+public sealed record ParameterDefinition(ParameterMode? Mode, Identifier? Name, DataType Type, bool Result, Expression? Default, bool Locator = false) : ISqlNode;
 public enum ParameterMode { In, Out, InOut }
-public sealed record ReturnsDefinition(DataType? Type, IReadOnlyList<FieldDefinition>? TableColumns, bool OnlyPassThrough = false) : ISqlNode;
+// BNF: <returns clause>, <returns type>, <result cast>. `RETURNS TABLE` with no columns is TableKeyword alone.
+public sealed record ReturnsDefinition(DataType? Type, IReadOnlyList<FieldDefinition>? TableColumns, bool OnlyPassThrough = false) : ISqlNode
+{
+	public bool TableKeyword { get; init; }
+	public bool Locator { get; init; }
+	public DataType? CastFrom { get; init; }
+	public bool CastFromLocator { get; init; }
+}
 public abstract record RoutineCharacteristic : ISqlNode
 {
 	public record Language(string Name) : RoutineCharacteristic;
@@ -764,7 +952,8 @@ public enum NullCallMode { ReturnsNullOnNullInput, CalledOnNullInput }
 public enum SavepointLevelKind { New, Old }
 public abstract record RoutineBody : ISqlNode
 {
-	public record Sql(IReadOnlyList<Statement> Statements, SqlSecurity? Security = null) : RoutineBody;
+	// BNF: <SQL routine spec>: the rights it runs with and one <SQL procedure statement>.
+	public record Sql(Statement Statement, SqlSecurity? Security = null) : RoutineBody;
 	public record External(string? Name, ParameterStyleKind? ParameterStyle, TransformGroupSpecification? TransformGroup, ExternalSecurity? Security) : RoutineBody;
 	public record PolymorphicTableFunction(PolymorphicTableFunctionBody Body) : RoutineBody;
 }
@@ -811,7 +1000,8 @@ public abstract record RevokeBody : ISqlNode
 }
 public sealed record Privilege(PrivilegeKind Kind, IReadOnlyList<Identifier> Columns, IReadOnlyList<RoutineDesignator> Methods) : ISqlNode;
 public enum PrivilegeKind { AllPrivileges, Select, Delete, Insert, Update, References, Usage, Trigger, Under, Execute }
-public sealed record PrivilegeObject(PrivilegeObjectKind Kind, QualifiedName Name, RoutineDesignator? Routine = null) : ISqlNode;
+// BNF: <object name>. TableKeyword says `ON TABLE t` rather than `ON t`.
+public sealed record PrivilegeObject(PrivilegeObjectKind Kind, QualifiedName Name, RoutineDesignator? Routine = null, bool TableKeyword = false) : ISqlNode;
 public enum PrivilegeObjectKind { Table, Domain, Collation, CharacterSet, Translation, Type, Sequence, Routine }
 public abstract record Grantee : ISqlNode { public record Public : Grantee; public record Identifier(AuthorizationIdentifier Value) : Grantee; }
 public enum Grantor { CurrentUser, CurrentRole }
@@ -852,6 +1042,23 @@ public sealed record ConnectionTarget(Expression? Server, Expression? Name, Expr
 public abstract record ConnectionObject : ISqlNode { public record Default : ConnectionObject; public record Named(Expression Name) : ConnectionObject; }
 public abstract record DisconnectObject : ISqlNode { public record Connection(ConnectionObject Value) : DisconnectObject; public record All : DisconnectObject; public record Current : DisconnectObject; }
 public sealed record TransformGroupCharacteristic(bool DefaultGroup, QualifiedName? ForType, Expression Value) : ISqlNode;
+
+// --- Diagnostics ------------------------------------------------------------
+
+// BNF: <SQL diagnostics information>: a statement's items, a condition's items, or all of either.
+public abstract record DiagnosticsInformation : ISqlNode
+{
+	public record Statement(IReadOnlyList<StatementInformationItem> Items) : DiagnosticsInformation;
+	public record Condition(Expression Number, IReadOnlyList<ConditionInformationItem> Items) : DiagnosticsInformation;
+
+	// BNF: <all information>, `:t = ALL CONDITION 1`; Qualifier null where none was written.
+	public record All(Expression Target, AllInformationQualifier? Qualifier, Expression? ConditionNumber = null) : DiagnosticsInformation;
+}
+public sealed record StatementInformationItem(Expression Target, StatementInformationItemName Name) : ISqlNode;
+public sealed record ConditionInformationItem(Expression Target, ConditionInformationItemName Name) : ISqlNode;
+public enum AllInformationQualifier { Statement, Condition }
+public enum StatementInformationItemName { Number, More, CommandFunction, CommandFunctionCode, DynamicFunction, DynamicFunctionCode, RowCount, TransactionsCommitted, TransactionsRolledBack, TransactionActive }
+public enum ConditionInformationItemName { CatalogName, ClassOrigin, ColumnName, ConditionNumber, ConnectionName, ConstraintCatalog, ConstraintName, ConstraintSchema, CursorName, MessageLength, MessageOctetLength, MessageText, ParameterMode, ParameterName, ParameterOrdinalPosition, ReturnedSqlstate, RoutineCatalog, RoutineName, RoutineSchema, SchemaName, ServerName, SpecificName, SubclassOrigin, TableName, TriggerCatalog, TriggerName, TriggerSchema }
 
 // --- SQL conditions / WHENEVER ---------------------------------------------
 public abstract record SqlCondition : ISqlNode { public record Major(SqlConditionMajor Value) : SqlCondition; public record State(string ClassCode, string? SubclassCode) : SqlCondition; public record Constraint(QualifiedName Name) : SqlCondition; }

@@ -143,3 +143,39 @@ errors.
   `DataType.Domain` already is the first, so a cast's target is a `DataType`.
 - The file is in the repository's format — tabs, CRLF, a byte order mark — and the map has no byte
   order mark, which only C# and project files carry.
+
+**What the grammar already reads has somewhere to go** (2026-09-15). Held against every construct
+`SqlStandard.gram` recognizes, the blank had no place for a number of them, or kept them without a
+word the author wrote (requirement 3).
+
+- *Expressions.* A multiset operator carries its quantifier, so it is `Expression.MultisetOperation` and
+  not three values of `BinaryOperator`. `Invocation` gains an aggregate's quantifier, an `ORDER BY`
+  inside the brackets, `LISTAGG`'s overflow, `FROM FIRST|LAST`, `RESPECT|IGNORE NULLS` and a
+  navigation's `RUNNING|FINAL`; `COUNT (*)`'s star is `Expression.Asterisk`. The functions whose
+  arguments are key words rather than a comma list are records of their own — `Substring`,
+  `SubstringSimilar`, `Trim`, `Overlay`, `Position`, `Length`, `Extract` (with its own field enum, which
+  has `TIMEZONE_HOUR`), `Normalize`, `TranslateUsing` and `Regex` — since an `Argument` cannot say
+  `FROM` or `PLACING`. Added: `Collate`, `AtTimeZone` (`AT LOCAL` has no zone), `IntervalQualified` for
+  `(a - b) DAY TO SECOND`, `Generalized` for `(a AS t).m ()`, `Treat`, `New`, `Dereference`, `IsTruth`,
+  `Match`, the row predicate `Overlaps`, a JSON accessor's `Wildcard` and an element's `TO`, a host
+  parameter's indicator, a `CURRENT_TIME`'s precision, the trigraphs of an array, `LIKE_REGEX`'s flag,
+  and the JSON functions — `JsonValue`, `JsonQuery`, `JsonObject`, `JsonArray`, `JsonArrayQuery`, the
+  two aggregates, `JsonParse`, `JsonScalar`, `JsonSerialize` — with `JsonOutput`, `JsonQuotes`,
+  `JsonMember` (`KEY k VALUE v`, `k VALUE v`, `k : v`), `JsonElement` and `JsonNullHandling`. A static
+  method's `::` is a `MemberAccessKind`. `UNIQUE`'s nulls are `NullDistinctness?`, since `NULLS DISTINCT`
+  may be written.
+- *CASE.* A simple `CASE`'s when clause holds a list, `WHEN 1, 2`, and a when operand may be a predicate
+  without its left side, `WHEN < 5`: the missing side is `Expression.CaseOperand`, for which nothing is
+  written.
+- *Queries.* `Statement.Select` gains `Body`, for a query expression whose first operand is `VALUES`,
+  `TABLE t` or a query in brackets, with the specification's properties then empty; `Parentheses`, a
+  count rather than a flag, since `((SELECT 1))` is two; and `Updatability`, a cursor specification's
+  `FOR UPDATE`. A join's kind is nullable — a bare `JOIN` is not `INNER JOIN` — with `Natural` a flag of
+  its own rather than four more values, and a partitioned join's two column lists. `TABLE (f (a))` is
+  `TableSource.TableFunction` and `MATCH_RECOGNIZE` after a table is `TableSource.RowPatternRecognition`.
+- *Statements.* Added `GetDiagnostics`, with its three forms and both item enums from the BNF, and
+  `DeclareLocalTemporaryTable`. A dynamic cursor's `OPEN` takes `DynamicArguments`. A routine's SQL body
+  is one statement, as `<SQL routine spec>` is; its parameters and result carry `AS LOCATOR`, its result
+  `CAST FROM` and a bare `RETURNS TABLE`, its definition `STATIC DISPATCH` and `SPECIFIC METHOD`; a
+  method specification says whether it overrides and has a qualified specific name. `CREATE DOMAIN d AS
+  INT` keeps its `AS`, and `ON TABLE t` its `TABLE`.
