@@ -8,6 +8,95 @@ namespace DotGram.Grammar.Model;
 
 public sealed partial class GrammarNormalizer
 {
+	/// <summary>Shares committed token prefixes after lexical splitting has succeeded.</summary>
+	internal static void FactorCommittedPrefixes(
+		RecognitionGraph source, IReadOnlyList<RuleSymbol> rules,
+		Dictionary<RuleSymbol, Node> bodies,
+		Dictionary<RuleSymbol, IReadOnlyList<ResultMember>> results)
+	{
+		if (source.Recoveries.Count != 0)
+			return;
+
+		foreach (var rule in rules)
+		{
+			// These rules attach metadata to particular alternatives. Keep their shape.
+			if (rule.GivesBack || source.Folds.ContainsKey(rule) || source.Climbing.ContainsKey(rule))
+				continue;
+
+			var body = bodies[rule];
+			if (NodeWalk.Descendants(body).Any(source.Powers.ContainsKey))
+				continue;
+
+			var rewritten = Walk(body);
+			if (ReferenceEquals(body, rewritten))
+				continue;
+
+			bodies[rule] = rewritten;
+			var slots = CaptureLayout.Of(rewritten,
+				called => source.Types.ContainsKey(called) ||
+					source.Results.TryGetValue(called, out var members) && members.Count != 0).Slots;
+			results[rule] = results[rule].Select(member => member with
+			{
+				Slots = slots.Where(slot => slot.Name == member.Name).Select(slot => slot.Index).ToList(),
+			}).ToList();
+		}
+
+		Node Walk(Node node)
+		{
+			if (node is Node.Sequence(var sequence))
+			{
+				var changed = sequence.Select(Walk).ToList();
+				return changed.Where((part, i) => !ReferenceEquals(part, sequence[i])).Any()
+					? Sequence(changed) : node;
+			}
+
+			// Preserve the established layout: one shared head followed by a choice
+			// of constructions. Nested groups of factories require a different layout.
+			if (node is not Node.Choice(var alternatives) || alternatives.Count < 2 ||
+				alternatives.Any(one => one is not Node.Construct))
+				return node;
+
+			var first = Parts(alternatives[0]);
+			var take = first.Count - 1;
+			foreach (var alternative in alternatives.Skip(1))
+			{
+				var other = Parts(alternative);
+				var shared = 0;
+				while (shared < take && shared < other.Count - 1 &&
+					Shareable(first[shared], other[shared]))
+					shared++;
+				take = shared;
+			}
+			if (take == 0)
+				return node;
+
+			var tails = new List<Node>();
+			foreach (var alternative in alternatives)
+			{
+				Splits(alternative, take, out var how, out _, out var tail);
+				tails.Add(new Node.Construct(tail!, how!));
+			}
+			Splits(alternatives[0], take, out _, out var head, out _);
+			return Sequence([head, new Node.Choice(tails)]);
+		}
+
+		static Node Sequence(IReadOnlyList<Node> parts) =>
+			new Node.Sequence(parts.SelectMany(part =>
+				part is Node.Sequence(var nested) ? nested : new[] { part }).ToList());
+
+		// Only identical bindings may survive together: never rewrite user C# names.
+		// A token rule commits its answer unless explicitly marked as giving back.
+		static bool Shareable(Node one, Node other) => (one, other) switch
+		{
+			(Node.Capture(var a, var x), Node.Capture(var b, var y)) =>
+				a == b && Shareable(x, y),
+			(Node.Call(var a, { Count: 0 }), Node.Call(var b, { Count: 0 })) =>
+				ReferenceEquals(a, b) && !a.GivesBack,
+			(Node.Literal, Node.Literal) or (Node.Element, Node.Element) => SameShape(one, other),
+			_ => false,
+		};
+	}
+
 	/// <summary>
 	/// Reads a shared leading operand once instead of once per alternative, where doing so
 	/// cannot be seen from the outside.

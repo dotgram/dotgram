@@ -326,6 +326,12 @@ public sealed record Publication(
 	IReadOnlyList<ResolvedRebinding> OwnRebindings,
 	int Reading = 0)
 {
+	/// <summary>Adds a character reader form.</summary>
+	public bool BufferedInput { get; init; }
+
+	/// <summary>Adds a byte reader form.</summary>
+	public bool BufferedBytes { get; init; }
+
 	/// <summary>The name the directive produces when it does not give one itself.</summary>
 	public static string DefaultMethodName(PublishKind kind, string ruleName) =>
 		(kind == PublishKind.Parse ? "Parse" : "Find") + ruleName;

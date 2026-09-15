@@ -4,6 +4,34 @@ using DotGram;
 
 namespace DotGram.Compatibility
 {
+	[Gram("Start : @int = text: ['0'..'9']+ => @(ToInt(text))\nparse Start", BufferedInput = true, BufferedBytes = true, SpanCaptures = true)]
+	public partial class NativeCapture
+	{
+		static int ToInt(System.ReadOnlySpan<char> text)
+		{
+			var result = 0;
+			for (var i = 0; i < text.Length; i++) result = checked(result * 10 + text[i] - '0');
+			return result;
+		}
+
+		static int ToInt(System.ReadOnlySpan<byte> text)
+		{
+			var result = 0;
+			for (var i = 0; i < text.Length; i++) result = checked(result * 10 + text[i] - (byte)'0');
+			return result;
+		}
+	}
+
+	[Gram("Start : @int = \"ab\"* & '!' => @(42)\nparse Start", BufferedInput = true, BufferedBytes = true)]
+	public partial class BufferedInput
+	{
+	}
+
+	[Gram("Start : @string = text: any* => @(text)\nparse Start stream")]
+	public partial class BufferedCapture
+	{
+	}
+
 	// One grammar reaching for as much of the language as fits in a few lines, so that the
 	// generated file exercises the shapes the emitter has to be careful about: a declared
 	// type built from captures, a construction expression, a guard, a repetition collecting

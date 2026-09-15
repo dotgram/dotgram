@@ -441,6 +441,8 @@ public sealed class GrammarBinder
 						ChainResolve(EmptyBindings, ownPublicationBindings), ownPublicationBindings)
 					{
 						Access = publish.Access,
+						BufferedInput = publish.BufferedInput,
+						BufferedBytes = publish.BufferedBytes,
 					});
 
 					break;

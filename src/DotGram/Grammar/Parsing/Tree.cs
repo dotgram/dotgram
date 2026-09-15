@@ -104,6 +104,11 @@ public abstract record Decl : ILocated
 	{
 		/// <summary><c>internal parse …</c>, <c>private find …</c>: what the methods are declared as.</summary>
 		public PublishAccess Access { get; init; }
+
+		/// <summary>Requests an additional buffered pull-input publication.</summary>
+		public bool BufferedInput { get; init; }
+
+		public bool BufferedBytes { get; init; }
 	}
 
 	/// <summary>
@@ -297,6 +302,9 @@ static class Dump
 				Write(text, depth, alias is null
 					? $"Publication {access}{kind} {Quote(rule)}"
 					: $"Publication {access}{kind} {Quote(rule)} as {Quote(alias)}");
+
+				if (publish.BufferedInput) Write(text, depth + 1, "Input stream");
+				if (publish.BufferedBytes) Write(text, depth + 1, "Input stream bytes");
 
 				foreach (var rebinding in rebindings)
 					Write(text, depth + 1, Label(rebinding));

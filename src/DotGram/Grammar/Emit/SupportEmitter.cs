@@ -169,6 +169,22 @@ public static class SupportEmitter
 				public GramCarrier Carrier { get; set; }
 
 				/// <summary>
+				/// Typed value storage shared by this compilation's direct tape readers.
+				/// Auto chooses at generation time. Other carriers and the non-direct engine
+				/// do not use these tables. A GramOptions compilation may override this choice.
+				/// </summary>
+				public GramValueStorage ValueStorage { get; set; }
+
+				/// <summary>Add buffered pull-input publications beside existing forms.</summary>
+				public bool BufferedInput { get; set; }
+
+				/// <summary>Add buffered byte-input publications; no text decoding is performed.</summary>
+				public bool BufferedBytes { get; set; }
+
+				/// <summary>Pass character captures as ReadOnlySpan&lt;char&gt; rather than string.</summary>
+				public bool SpanCaptures { get; set; }
+
+				/// <summary>
 				/// How many stacks one parse may take beyond the one it began on.
 				/// </summary>
 				/// <remarks>
@@ -226,7 +242,21 @@ public static class SupportEmitter
 				public bool Portable { get; set; } = true;
 			}
 
-			/// <summary>How a generated reader carries what it has read (docs/next.md, the redesign).</summary>
+			/// <summary>Typed value storage for direct tape readers.</summary>
+			[global::Microsoft.CodeAnalysis.Embedded]
+			internal enum GramValueStorage
+			{
+				/// <summary>Conservative grammar-based selection at generation time.</summary>
+				Auto,
+				/// <summary>One flat array per value type, indexed by record.</summary>
+				Flat,
+				/// <summary>A flat prefix and lazy pages, including for small grammars.</summary>
+				Adaptive,
+				/// <summary>Lazy pages from the first value, without a flat prefix.</summary>
+				Paged,
+			}
+
+			/// <summary>How a generated reader carries what it has read.</summary>
 			[global::Microsoft.CodeAnalysis.Embedded]
 			internal enum GramCarrier
 			{

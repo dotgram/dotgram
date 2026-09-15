@@ -229,6 +229,8 @@ public sealed class LexicalSplit
 			foreach (var rule in valued)
 				results[rule] = [];
 
+			GrammarNormalizer.FactorCommittedPrefixes(graph, rules, bodies, results);
+
 			var syntax = new RecognitionGraph(
 				rules,
 				bodies,

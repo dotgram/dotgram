@@ -31,3 +31,135 @@ a comparison against another FIX engine. Error is the half-width of the
 The measured command appended `--job short --inProcess`. Raw data is represented
 by source extents, so its payload does not allocate another 64 KiB string.
 Group allocations include the returned entry objects and their field arrays.
+
+## Streaming comparison: 2026-09-15
+
+`Fix44InputBenchmarks` compares the existing full strict FIX parser with the
+`TextReader` and lossless byte `Stream` framing overloads. It is not a measurement
+of the generator's optional buffered `Peek/Get` backend. All variants validate
+checksum and schema and construct the same typed models. Setup verifies the
+returned source and type, plus total parsed size for each complete batch.
+
+```powershell
+dotnet run -c Release --project benchmarks/DotGram.Finance.Benchmarks -- --filter '*Fix44InputBenchmarks*' --job short --inProcess --warmupCount 3 --iterationCount 5
+```
+
+One operation processes a whole batch:
+
+| Workload | Messages | Octets/message | Batch size |
+| --- | ---: | ---: | ---: |
+| Orders (NewOrderSingle) | 100,000 | 127 | 12,700,000 octets (12.11 MiB) |
+| RawData (Logon) | 64 | 1,048,671 | 67,114,944 octets (64.01 MiB) |
+| Groups (market-data snapshot, 1,000 entries/message) | 1,000 | 24,090 | 24,090,000 octets (22.97 MiB) |
+
+Inputs are prepared outside timing. The string baseline repeatedly parses one
+fixed, already owned message string. Character input uses `StringReader` over
+concatenated messages; byte input uses `MemoryStream` over their octets.
+`ReadMessages` buffer initialization, framing, source copies and model allocations
+are included. Parsed results are consumed without retaining the whole batch.
+Disk/network I/O and initial corpus creation are excluded. These inputs are
+repeated identical messages, not a diverse production corpus.
+
+BenchmarkDotNet 0.15.8, Windows 11, .NET 10.0.12, SDK 10.0.400;
+InProcessEmitToolchain, one launch, three warmups, five measurement iterations.
+The process could not identify the CPU in its report. Measurements ran without
+concurrent builds or tests. Error below is the 99.9% confidence interval half-width;
+this short run cannot reliably distinguish approximately 1% differences.
+
+| Workload | Input | Mean/batch | Error | Time ratio | MiB/s | Allocated/batch |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Orders | String | 301.90 ms | 14.314 ms | 1.00 | 40.1 | 199.89 MiB |
+| Orders | Characters | 303.59 ms | 3.674 ms | 1.01 | 39.9 | 226.60 MiB |
+| Orders | Bytes | 309.69 ms | 5.571 ms | 1.03 | 39.1 | 226.61 MiB |
+| RawData | String | 37.08 ms | 0.646 ms | 1.00 | 1726.2 | 0.092 MiB |
+| RawData | Characters | 52.81 ms | 1.862 ms | 1.42 | 1212.0 | 136.10 MiB |
+| RawData | Bytes | 67.38 ms | 1.312 ms | 1.82 | 949.9 | 136.10 MiB |
+| Groups | String | 430.37 ms | 13.509 ms | 1.00 | 53.4 | 200.26 MiB |
+| Groups | Characters | 434.62 ms | 10.469 ms | 1.01 | 52.9 | 246.35 MiB |
+| Groups | Bytes | 439.62 ms | 8.600 ms | 1.02 | 52.3 | 246.36 MiB |
+
+Orders and groups spend most of their time parsing and materializing models.
+Raw data uses source extents in the string parser and does not copy the payload;
+stream results must own a new UTF-16 string per message. Across the 64 MiB raw
+batch, these source strings alone require about 128 MiB. Buffer growth accounts
+for most of the remaining extra allocation; byte input also maps each octet to a
+character. Consequently this adapter is a convenience and bounded-input-buffering
+API, not a speed optimization over a preexisting string.
+
+Allocated bytes are cumulative allocation, not peak live memory. The adapter's
+character buffer grows geometrically and remains bounded by `maxMessageLength`;
+it is reused across frames. This benchmark does not measure peak memory or file
+I/O. Its prebuilt character and byte corpora also remain resident outside the
+reported allocation. General buffered generation needs a separate FIX integration
+before it can be compared here.
+
+## Memory observations: 2026-09-15
+
+The persistent `--memory <workload> <input>` mode runs a single batch in a fresh
+process. Workloads are `Orders`, `RawData`, `Groups`; inputs are `String`,
+`Characters`, `Bytes`. For example:
+
+```powershell
+dotnet run -c Release --project benchmarks/DotGram.Finance.Benchmarks -- --memory RawData Bytes
+```
+
+Build once before repeated measurements; then invoke the compiled DLL. Each case
+below ran in three fresh processes, sequentially. Values are medians, in MiB.
+Only the selected input representation is constructed. The string case reuses
+one message; character and byte cases hold the concatenated corpus, as in the
+throughput benchmark. A helper creates inputs and warms the selected parser on
+16 messages, then returns before a full GC establishes the baseline. This avoids
+retaining the temporary StringBuilder through the measured region.
+
+A separate thread samples `GC.GetTotalMemory(false)`, process working set and
+private bytes, requesting a 1 ms wait between observations. Scheduling and sample
+cost increase the actual interval: the raw-data cases had 4-9 samples, orders and
+groups 38-49. These are observed peaks, not guaranteed instantaneous maxima.
+Sampling runs separately from the throughput benchmark. Its small allocations
+can affect observed heap values; allocation totals below count only the parsing
+thread. Results are consumed and discarded rather than accumulated.
+
+| Workload | Input | Managed baseline | Observed managed peak | Peak above baseline | Managed after full GC | Allocated/batch |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Orders | String | 0.36 | 47.44 | 47.08 | 0.58 | 199.89 |
+| Orders | Characters | 24.59 | 70.69 | 46.10 | 24.81 | 226.60 |
+| Orders | Bytes | 12.47 | 59.78 | 47.31 | 12.69 | 226.60 |
+| RawData | String | 2.33 | 2.45 | 0.12 | 2.33 | 0.09 |
+| RawData | Characters | 130.34 | 266.46 | 136.12 | 130.34 | 136.10 |
+| RawData | Bytes | 66.34 | 202.47 | 136.13 | 66.34 | 136.10 |
+| Groups | String | 2.16 | 49.53 | 47.37 | 2.38 | 200.26 |
+| Groups | Characters | 48.11 | 95.68 | 47.57 | 48.33 | 246.35 |
+| Groups | Bytes | 25.13 | 73.63 | 48.49 | 25.36 | 246.35 |
+
+`GetTotalMemory(false)` includes objects that have become unreachable but have
+not yet been collected. It is not a precise measurement of live object size or
+GC-reserved memory. No forced collections occur during the parsing batch.
+The final full-GC column retains the prepared input and runtime/parser caches.
+
+| Workload | Input | Working set baseline | Observed working set peak | Private bytes baseline | Observed private bytes peak |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Orders | String | 49.47 | 100.84 | 27.10 | 75.81 |
+| Orders | Characters | 74.73 | 125.45 | 52.00 | 101.13 |
+| Orders | Bytes | 62.30 | 113.49 | 39.44 | 88.55 |
+| RawData | String | 61.58 | 61.77 | 39.07 | 39.07 |
+| RawData | Characters | 396.92 | 474.15 | 396.92 | 460.84 |
+| RawData | Bytes | 205.31 | 268.51 | 205.28 | 252.11 |
+| Groups | String | 56.84 | 106.69 | 31.89 | 80.19 |
+| Groups | Characters | 151.63 | 192.24 | 129.62 | 170.05 |
+| Groups | Bytes | 82.75 | 133.82 | 59.41 | 108.51 |
+
+Process memory includes runtime, JIT code, stacks and GC capacity. In particular,
+input construction and warmup can leave committed/resident pages after a full GC;
+subtracting the baseline does not produce a precise parser-only memory cost.
+Do not compare process peaks as if every case held an equally sized input: the
+string baseline retains one repeated message, while the reader cases retain a
+whole corpus. A real file/network stream would not need that corpus in managed
+memory; that scenario has not been measured here.
+
+For raw data, the current streaming adapters allocate about 136.10 MiB per batch,
+and the observed managed heap rises by roughly that amount before the next full
+GC. Almost all of it disappears after collection. For orders/groups, about
+200-246 MiB is allocated cumulatively, but collections keep the observed extra
+heap near 46-48 MiB. No batch-sized retained result collection is present.
+These numbers measure the existing byte-to-character FIX adapter, not a future
+native byte parser or lazy field decoding implementation.

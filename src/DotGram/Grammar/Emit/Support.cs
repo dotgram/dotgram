@@ -1198,8 +1198,8 @@ public static partial class CSharpEmitter
 
 	/// <summary>
 	/// The typed value tables a direct materialization writes into, one per type a rule
-	/// can produce and indexed by record — the same tables the engine keeps in its
-	/// <c>Parser</c>, kept here without the arena around them. Rented per parse and kept
+	/// can produce, indexed by record or by a dense per-type index for final walks.
+	/// Unlike the engine's <c>Parser</c>, these need no arena. Rented per parse and kept
 	/// per thread, cleared on the way back so a pooled table holds no document alive.
 	/// </summary>
 	/// <remarks>
@@ -1210,15 +1210,22 @@ public static partial class CSharpEmitter
 	/// The check was a tenth of what building a tree cost. An array of structs is not
 	/// covariant, and a store into a field of one asks nothing.
 	/// </remarks>
-	internal static string DirectValuesClass(IReadOnlyList<string> valueTypes, string? stateType = null)
+	internal static string DirectValuesClass(IReadOnlyList<string> valueTypes, string? stateType = null, bool dense = false, bool adaptive = false, bool paged = false)
 	{
 		var text = new StringBuilder();
 
 		text.Append("sealed class DirectValues\n{\n");
 
 		for (var i = 0; i < valueTypes.Count; i++)
-			text.Append("\tinternal Held<").Append(valueTypes[i]).Append(">[] V").Append(i)
-				.Append(" = new Held<").Append(valueTypes[i]).Append(">[16];\n");
+			if (paged)
+				text.Append("\tinternal PagedValueTable<").Append(valueTypes[i]).Append("> V").Append(i)
+					.Append(" = new PagedValueTable<").Append(valueTypes[i]).Append(">();\n");
+			else if (adaptive)
+				text.Append("\tinternal ValueTable<").Append(valueTypes[i]).Append("> V").Append(i)
+					.Append(" = new ValueTable<").Append(valueTypes[i]).Append(">(16);\n");
+			else
+				text.Append("\tinternal Held<").Append(valueTypes[i]).Append(">[] V").Append(i)
+					.Append(" = new Held<").Append(valueTypes[i]).Append(">[16];\n");
 
 		text.Append("\tinternal bool[] Live   = new bool[16];\n");
 		text.Append("\tinternal int[]  Starts = new int[16];\n");
@@ -1229,31 +1236,78 @@ public static partial class CSharpEmitter
 			text.Append("\tinternal ").Append(stateType).Append("[] MarkState = new ").Append(stateType).Append("[8];\n");
 		}
 
+		if (dense)
+			for (var i = 0; i < valueTypes.Count; i++)
+				text.Append("\tint N").Append(i).Append(";\n");
+
 		text.Append("\tint _used;\n\n");
 		text.Append("\t[global::System.ThreadStatic]\n\tstatic DirectValues? _spare;\n\n");
 		text.Append("\tinternal static DirectValues Rent()\n\t{\n\t\tvar spare = _spare;\n\n\t\tif (spare == null)\n\t\t\treturn new DirectValues();\n\n\t\t_spare = null;\n\n\t\treturn spare;\n\t}\n\n");
 		text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 
-		for (var i = 0; i < valueTypes.Count; i++)
-			text.Append("\t\tglobal::System.Array.Clear(values.V").Append(i).Append(", 0, global::System.Math.Min(values._used, values.V").Append(i).Append(".Length));\n");
+		var capacities = Enumerable.Range(0, valueTypes.Count).Select(i => "values.V" + i + ".Length")
+			.Concat(new[] { "values.Live.Length", "values.Starts.Length", "values.Built.Length" }).ToList();
+		if (stateType is not null)
+			capacities.Add("values.MarkState.Length");
+		text.Append("\t\t// Oversized stores are collected instead of retained by the thread.\n");
+		text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576) return;\n\n");
 
+		for (var i = 0; i < valueTypes.Count; i++)
+			if (dense)
+			{
+				text.Append("\t\tif (values.N").Append(i).Append(" > 0)\n\t\t{\n");
+				text.Append("\t\t\tglobal::System.Array.Clear(values.V").Append(i).Append(", 0, global::System.Math.Min(values.N").Append(i).Append(", values.V").Append(i).Append(".Length));\n");
+				text.Append("\t\t\tvalues.N").Append(i).Append(" = 0;\n\t\t}\n");
+			}
+			else if (adaptive || paged)
+				text.Append("\t\tvalues.V").Append(i).Append(".Clear(values._used);\n");
+			else
+				text.Append("\t\tglobal::System.Array.Clear(values.V").Append(i).Append(", 0, global::System.Math.Min(values._used, values.V").Append(i).Append(".Length));\n");
+
+		if (dense)
+			text.Append("\t\tif (values._used > 0)\n\t");
 		text.Append("\t\tglobal::System.Array.Clear(values.Built, 0, global::System.Math.Min(values._used, values.Built.Length));\n");
 
 		text.Append("\t\tvalues._used = 0;\n\t\t_spare = values;\n\t}\n\n");
 		text.Append("\t/// <summary>Room for a value at every index below the count; what was built stays built.</summary>\n");
-		text.Append("\tinternal void Room(int count, bool live = true)\n\t{\n\t\tif (count > _used) _used = count;\n");
-		text.Append("\t\tif (Live.Length < count)\n\t\t{\n\t\t\tLive   = new bool[global::System.Math.Max(count, Live.Length * 2)];\n\t\t\tStarts = new int[Live.Length];\n\t\t\tvar built = new bool[Live.Length];\n\t\t\tglobal::System.Array.Copy(Built, built, Built.Length);\n\t\t\tBuilt  = built;\n\t\t}\n\t\telse if (live)\n\t\t\tglobal::System.Array.Clear(Live, 0, count);\n");
+		text.Append("\tinternal void Room(int count, bool live = true").Append(dense ? ", bool dense = false" : "").Append(")\n\t{\n\t\tif (").Append(dense ? "!dense && " : "").Append("count > _used) _used = count;\n");
+		if (dense)
+			text.Append("\t\tif (Live.Length < count)\n\t\t{\n\t\t\tLive = new bool[global::System.Math.Max(count, Live.Length * 2)];\n\t\t\tStarts = new int[Live.Length];\n\t\t}\n\t\telse if (live) global::System.Array.Clear(Live, 0, count);\n");
+		else
+			text.Append("\t\tif (Live.Length < count)\n\t\t{\n\t\t\tLive   = new bool[global::System.Math.Max(count, Live.Length * 2)];\n\t\t\tStarts = new int[Live.Length];\n\t\t\tvar built = new bool[Live.Length];\n\t\t\tglobal::System.Array.Copy(Built, built, Built.Length);\n\t\t\tBuilt  = built;\n\t\t}\n\t\telse if (live)\n\t\t\tglobal::System.Array.Clear(Live, 0, count);\n");
+
+		if (dense)
+		{
+			text.Append("\t\tif (dense) return;\n\t\tif (Built.Length < count) global::System.Array.Resize(ref Built, Live.Length);\n");
+			for (var i = 0; i < valueTypes.Count; i++)
+				text.Append("\t\tN").Append(i).Append(" = global::System.Math.Max(N").Append(i).Append(", count);\n");
+		}
 
 		for (var i = 0; i < valueTypes.Count; i++)
-			text.Append("\t\tif (V").Append(i).Append(".Length < count)\n\t\t\tglobal::System.Array.Resize(ref V").Append(i)
-				.Append(", global::System.Math.Max(count, V").Append(i).Append(".Length * 2));\n");
+			if (adaptive)
+				text.Append("\t\tif (V").Append(i).Append(".First.Length < count && V").Append(i).Append(".First.Length < 256) V").Append(i).Append(".Room(count);\n");
+			else if (!paged)
+				text.Append("\t\tif (V").Append(i).Append(".Length < count)\n\t\t\tglobal::System.Array.Resize(ref V").Append(i)
+					.Append(", global::System.Math.Max(count, V").Append(i).Append(".Length * 2));\n");
 
-		text.Append("\t}\n}\n\n");
+		text.Append("\t}\n");
+
+		if (dense)
+			for (var i = 0; i < valueTypes.Count; i++)
+			{
+				text.Append("\tinternal int Add").Append(i).Append("(int record)\n\t{\n");
+				text.Append("\t\tvar index = N").Append(i).Append("++;\n");
+				text.Append("\t\tif (index == V").Append(i).Append(".Length) global::System.Array.Resize(ref V").Append(i).Append(", global::System.Math.Max(16, index * 2));\n");
+				text.Append("\t\tStarts[record] = index;\n\t\treturn index;\n\t}\n");
+			}
+		text.Append("}\n\n");
 
 		text.Append("/// <summary>One value in a table, in a struct so that storing it asks nothing.</summary>\n");
 		text.Append("#pragma warning disable CS0649 // a table nothing writes still declares the field\n");
 		text.Append("struct Held<T>\n{\n\tinternal T Value;\n}\n");
 		text.Append("#pragma warning restore CS0649\n");
+		if (adaptive) text.Append(AdaptiveValuesSupport);
+		if (paged) text.Append(PagedValuesSupport);
 
 		return text.ToString().Replace("\n", Lines.Ending);
 	}
@@ -1439,6 +1493,10 @@ public static partial class CSharpEmitter
 
 			internal static void Return(Ways ways)
 			{
+				// Bound retained capacity, including an earlier parse's high-water size.
+				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length > 1048576)
+					return;
+
 				_spare = ways;
 			}
 
@@ -1654,9 +1712,9 @@ public static partial class CSharpEmitter
 		}
 
 		/// <summary>Records a refusal against the furthest one seen, as the engine's Fail does.</summary>
-		static void Refuse_DotGram(ref Failure failure, int at, string[]? expected, Ways ways)
+		static void Refuse_DotGram(ref Failure failure, int at, string[]? expected, Ways? ways)
 		{
-			if (ways.Lookahead > 0)
+			if (ways != null && ways.Lookahead > 0)
 				return;
 
 			if (at > failure.Position)

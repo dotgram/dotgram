@@ -465,6 +465,8 @@ public sealed class GramParser
 		// … as Name : @T`. It belongs to the expression being lifted, so a directive
 		// that lifts nothing has nowhere to put it.
 		var type = TakeIf(TokenKind.Colon) ? ParseType() : null;
+		var bufferedInput = TakeIfKeyword("stream");
+		var bufferedBytes = bufferedInput && TakeIfKeyword("bytes");
 
 		// A bare name is what this directive has always taken, and it still names the
 		// rule it publishes — including the method name derived from it where no `as`
@@ -478,7 +480,7 @@ public sealed class GramParser
 					"an expression this directive would have to make a rule of.",
 					new Location(typeAt, Current.Position - typeAt));
 
-			return new Decl.Publish(kind, named, rebindings, alias) { At = From(start), Access = access };
+			return new Decl.Publish(kind, named, rebindings, alias) { At = From(start), Access = access, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes };
 		}
 
 		if (alias is null)
@@ -489,12 +491,12 @@ public sealed class GramParser
 				"called: there is no name here to make one from.",
 				new Location(targetAt, Current.Position - targetAt));
 
-			return new Decl.Publish(kind, "", rebindings, null) { At = From(start), Access = access };
+			return new Decl.Publish(kind, "", rebindings, null) { At = From(start), Access = access, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes };
 		}
 
 		_lifted.Add(new Decl.Rule(alias, [], type, target) { At = From(targetAt) });
 
-		return new Decl.Publish(kind, alias, rebindings, alias) { At = From(start), Access = access };
+		return new Decl.Publish(kind, alias, rebindings, alias) { At = From(start), Access = access, BufferedInput = bufferedInput && !bufferedBytes, BufferedBytes = bufferedBytes };
 	}
 
 	/// <summary>

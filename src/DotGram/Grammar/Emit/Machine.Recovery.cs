@@ -70,7 +70,7 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.PendingRecovery, {Resuming(atAsked, asked)}, p, call, reach, repeat, lookahead, 0));");
 		atAsked.Line($"goto {Label(atAsked, scan)};");
 
-		atScan.Line($"if ((uint)p >= (uint)text.Length) goto {Label(atScan, recovered)};");
+		atScan.Line($"if ({Short(1)}) goto {Label(atScan, recovered)};");
 		atScan.Line("syncFrom = p;");
 		atScan.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atScan, advance)}, p, call, atomic, repeat, lookahead, 0));");
 		atScan.Line($"goto {Label(atScan, sync)};");

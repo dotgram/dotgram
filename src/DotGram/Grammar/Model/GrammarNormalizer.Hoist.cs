@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using DotGram.Grammar.Binding;
+
 namespace DotGram.Grammar.Model;
 
 /// <summary>
@@ -34,6 +36,8 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	void HoistTextCaptures()
 	{
+		Dictionary<RuleSymbol, bool>? textRules = null;
+
 		foreach (var rule in _rules)
 		{
 			// A fold's loop and a climb's calls are facts keyed to the nodes they were
@@ -120,22 +124,45 @@ public sealed partial class GrammarNormalizer
 
 			return rebuilt;
 		}
-	}
 
-	/// <summary>
-	/// Whether a node's value could only ever be the text it matched — no rule value, no
-	/// capture of its own, nothing a turn's record would keep that the extent does not.
-	/// </summary>
-	bool PureText(Node node) =>
-		node switch
+		/// <summary>
+		/// Whether a node's value could only ever be the text it matched — no rule value, no
+		/// capture of its own, nothing a turn's record would keep that the extent does not.
+		/// </summary>
+		bool PureText(Node node) =>
+			node switch
+			{
+				Node.Call(var rule, var arguments) => arguments.Count == 0 && PureRule(rule),
+				Node.Empty or Node.Literal or Node.Element or Node.Behind or Node.Glue => true,
+				Node.Sequence(var parts)        => parts.All(PureText),
+				Node.Choice(var alternatives)   => alternatives.All(PureText),
+				Node.Repeat(var body, _, _)     => !_recoveries.ContainsKey(node) && PureText(body),
+				Node.Atomic(var body)           => PureText(body),
+				Node.Marked(var body, _)        => PureText(body),
+				Node.Lookahead(_, var body)     => PureText(body),
+				_                               => false,
+			};
+
+		bool PureRule(RuleSymbol rule)
 		{
-			Node.Empty or Node.Literal or Node.Element or Node.Behind or Node.Glue => true,
-			Node.Sequence(var parts)        => parts.All(PureText),
-			Node.Choice(var alternatives)   => alternatives.All(PureText),
-			Node.Repeat(var body, _, _)     => !_recoveries.ContainsKey(node) && PureText(body),
-			Node.Atomic(var body)           => PureText(body),
-			Node.Marked(var body, _)        => PureText(body),
-			Node.Lookahead(_, var body)     => PureText(body),
-			_                               => false,
-		};
+			textRules ??= [];
+
+			if (textRules.TryGetValue(rule, out var known))
+				return known;
+
+			// Seed before following calls: a recursive component is left to the general
+			// capture machinery. A value or a state mark must keep its own lifetime too.
+			textRules[rule] = false;
+
+			var pure = !_types.ContainsKey(rule) &&
+				!_folds.ContainsKey(rule) && !_climbing.ContainsKey(rule) &&
+				_bodies.TryGetValue(rule, out var body) &&
+				!NodeWalk.Descendants(body).Any(node => node is Node.Marked || _recoveries.ContainsKey(node)) &&
+				PureText(body);
+
+			textRules[rule] = pure;
+
+			return pure;
+		}
+	}
 }

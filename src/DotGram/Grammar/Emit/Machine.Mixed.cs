@@ -709,6 +709,8 @@ sealed partial class Machine
 				if (ways > 1)
 					taken.Insert(0, "byte which");
 
+				if (machine.BorrowedCaptures && taken.Count == 0) taken.Add("bool read");
+
 				file.Line($"private {name}({string.Join(", ", taken)})");
 
 				using (file.Block(""))
@@ -906,13 +908,31 @@ sealed partial class Machine
 		/// <summary>One run, as the author's own array or as the text its pieces join into.</summary>
 		void Gathering(Writer file, RuleSymbol rule, DirectMember member, string run, RuleSymbol? element)
 		{
-			var made = element is null ? "string" : machine._results.ValueOf(member.Member.Rule) + "[]";
+			var made = element is null ? machine.BorrowedCaptures ? machine.CaptureSpanType : "string" : machine._results.ValueOf(member.Member.Rule) + "[]";
 
 			file.Line();
 			file.Line($"private {made} {Named(run)}({Taking})");
 
 			using (file.Block(""))
 			{
+				if (element is null && machine.BorrowedCaptures)
+				{
+					file.Line($"if (this.{run}.Length == 0) return default;");
+					file.Line("int length = 0;");
+					file.Line($"foreach (var piece in this.{run}) length += (int)(uint)piece - (int)(piece >> 32);");
+					file.Line($"var first = (int)(this.{run}[0] >> 32);");
+					file.Line($"var last = (int)(uint)this.{run}[this.{run}.Length - 1];");
+					file.Line($"if (last - first == length) return {machine.Cut("first", "length")};");
+					file.Line("var made = new char[length]; int filled = 0;");
+					using (file.Block($"foreach (var piece in this.{run})"))
+					{
+						file.Line("var from = (int)(piece >> 32); var size = (int)(uint)piece - from;");
+						file.Line($"{machine.Cut("from", "size")}.CopyTo(new global::System.Span<char>(made, filled, size));");
+						file.Line("filled += size;");
+					}
+					file.Line("return made;");
+					return;
+				}
 				if (element is null)
 				{
 					file.Line($"var made = new string[this.{run}.Length];");
@@ -948,6 +968,7 @@ sealed partial class Machine
 		{
 			var mine   = Fields(rule, machine.DirectMembers(rule, Factory(rule, which, steps))).ToList();
 			var passed = new List<string>();
+			if (machine.BorrowedCaptures && !steps && fields.Count == 0 && ways == 1) passed.Add("true");
 
 			if (ways > 1)
 				passed.Add(which.ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -1060,7 +1081,7 @@ sealed partial class Machine
 			var made      = machine._factories[rule][factory];
 			var arguments = machine.DirectArguments(
 				rule, made, members,
-				() => "text.ToString()", () => "default",
+				() => machine.BorrowedCaptures ? "text" : "text.ToString()", () => "default",
 				() => accumulator ?? "default!", Value);
 
 			return $"{made.Method}({string.Join(", ", arguments)})";
@@ -1088,7 +1109,7 @@ sealed partial class Machine
 				member.Shape is MemberShape.Pieces or MemberShape.Records
 					? $"this.{Named(Places(rule, member) is { Count: > 0 } ? $"_g{member.Index}_{member.Slots[0]}" : $"_g{member.Index}")}({Given})"
 				: member.Shape == MemberShape.Text
-					? $"(this._a{member.Index} < 0 ? {(member.Member.IsOptional ? "null" : "string.Empty")} : " +
+					? $"(this._a{member.Index} < 0 ? {(machine.BorrowedCaptures ? machine.EmptyCapture : member.Member.IsOptional ? "null" : "string.Empty")} : " +
 						machine.Cut($"this._a{member.Index}", $"this._b{member.Index} - this._a{member.Index}") + ")"
 					: member.Member.IsOptional
 						? $"({Nothing(member.Member.Rule!, "this._m" + member.Index)} ? default : this._m{member.Index}{Sure(member.Member.Rule!)}.Build({Given}))"

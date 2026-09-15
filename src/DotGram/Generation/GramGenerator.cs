@@ -453,6 +453,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 			StaticImports  = [.. host.Includes.Items.Select(static one => one.ClassName)],
 			Portable       = host.Portable,
 			Carrier        = (CarrierKind)host.Carrier,
+			ValueStorage   = (ValueStorageKind)host.ValueStorage,
+			BufferedInput  = host.BufferedInput,
+			BufferedBytes  = host.BufferedBytes,
+			SpanCaptures   = host.SpanCaptures,
 			Stacks         = host.Stacks,
 			Suffix         = host.Suffix,
 			SuffixDeclared = host.SuffixDeclared,
@@ -737,6 +741,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 		bool      Lexical    = false,
 		bool      Direct     = true,
 		int       Carrier    = 0,
+		int       ValueStorage = 0,
+		bool      BufferedInput = false,
+		bool      BufferedBytes = false,
+		bool      SpanCaptures = false,
 		int       Stacks     = 0,
 		string?   Suffix     = null,
 		bool      SuffixDeclared = false,
@@ -917,6 +925,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.FirstOrDefault(static named => named.Key == nameof(Host.Carrier))
 				.Value.Value as int? ?? first?.Carrier ?? 0;
 
+			// A named compilation inherits storage unless it explicitly overrides it.
+			var valueStorage = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.ValueStorage))
+				.Value.Value as int? ?? first?.ValueStorage ?? 0;
+
 			// How many stacks a parse may take past the one it began on. Nought is as many
 			// as there is memory for, which is the default.
 			var stacks = attribute.NamedArguments
@@ -992,6 +1005,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Lexical:    lexical,
 				Direct:     direct,
 				Carrier:    carrier,
+				ValueStorage: valueStorage,
+				SpanCaptures: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.SpanCaptures)).Value.Value as bool? ?? first?.SpanCaptures ?? false,
+				BufferedBytes: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.BufferedBytes)).Value.Value as bool? ?? first?.BufferedBytes ?? false,
+				BufferedInput: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.BufferedInput)).Value.Value as bool? ?? first?.BufferedInput ?? false,
 				Stacks:     stacks,
 				Suffix:     suffix,
 				SuffixDeclared: suffixDeclared,

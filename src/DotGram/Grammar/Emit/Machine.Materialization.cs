@@ -40,7 +40,7 @@ sealed partial class Machine
 		var helper = new Writer(0);
 
 		using (helper.Block(
-			$"static void Materialize_DotGram{_tag}(global::System.ReadOnlySpan<char> text, Parser parser, " +
+			$"static void Materialize_DotGram{_tag}({InputType} text, Parser parser, " +
 			$"ParserArena entries{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter})"))
 			Materialize(helper, cached: Caches);
 
@@ -250,7 +250,7 @@ sealed partial class Machine
 
 				using (file.Block(
 					$"void Materialize_DotGram{_tag}_Part{part}(" +
-					"global::System.ReadOnlySpan<char> text, int completedAt)"))
+					$"{InputType} text, int completedAt)"))
 				{
 					file.Line("var completed = entries[completedAt];");
 					file.Line();
@@ -631,7 +631,7 @@ sealed partial class Machine
 						for (var part = 0; part < sited.Members.Count; part++)
 							arguments.Add(
 								$"captured{memberIndex}_{part}From < 0 ? " +
-								(sited.Members[part].IsOptional ? "null" : "string.Empty") + " : " +
+								(BorrowedCaptures ? EmptyCapture : sited.Members[part].IsOptional ? "null" : "string.Empty") + " : " +
 								Cut($"captured{memberIndex}_{part}From",
 									$"captured{memberIndex}_{part}To - captured{memberIndex}_{part}From"));
 
@@ -766,7 +766,7 @@ sealed partial class Machine
 				{
 					file.Line(
 						$"var captured{memberIndex} = captured{memberIndex}From < 0 ? " +
-						(member.IsOptional ? "null" : "string.Empty") + " : " +
+						(BorrowedCaptures ? EmptyCapture : member.IsOptional ? "null" : "string.Empty") + " : " +
 						Cut($"captured{memberIndex}From",
 							$"captured{memberIndex}To - captured{memberIndex}From") + ";");
 					file.Line();
@@ -781,10 +781,10 @@ sealed partial class Machine
 				// not tile, what stands between them is not part of the value, and the
 				// pieces are copied out in reading order instead. The walk runs backwards,
 				// so the buffer is filled from its end.
-				file.Line($"string{(member.IsOptional ? "?" : "")} captured{memberIndex};");
+				file.Line($"{(BorrowedCaptures ? CaptureSpanType : "string" + (member.IsOptional ? "?" : ""))} captured{memberIndex};");
 				file.Line();
 				file.Line($"if (captured{memberIndex}From < 0)");
-				file.Then($"captured{memberIndex} = {(member.IsOptional ? "null" : "string.Empty")};");
+				file.Then($"captured{memberIndex} = {(BorrowedCaptures ? EmptyCapture : member.IsOptional ? "null" : "string.Empty")};");
 				file.Line(
 					$"else if (captured{memberIndex}To - captured{memberIndex}From == " +
 					$"captured{memberIndex}Length)");
@@ -807,7 +807,7 @@ sealed partial class Machine
 					}
 					else
 					{
-						file.Line($"var captured{memberIndex}Chars = new char[captured{memberIndex}Length];");
+						file.Line($"var captured{memberIndex}Chars = new {(BufferedBytes ? "byte" : "char")}[captured{memberIndex}Length];");
 						file.Line($"var captured{memberIndex}At    = captured{memberIndex}Length;");
 					}
 
@@ -846,7 +846,7 @@ sealed partial class Machine
 							file.Line($"captured{memberIndex}At -= captured{memberIndex}Piece;");
 							file.Line(
 								$"text.Slice(candidate.Position, captured{memberIndex}Piece).CopyTo(" +
-								$"new global::System.Span<char>(captured{memberIndex}Chars, " +
+								$"new global::System.Span<{(BufferedBytes ? "byte" : "char")}>(captured{memberIndex}Chars, " +
 								$"captured{memberIndex}At, captured{memberIndex}Piece));");
 						}
 					}
@@ -855,7 +855,7 @@ sealed partial class Machine
 					file.Line(
 						OverKinds
 							? $"captured{memberIndex} = captured{memberIndex}Built.ToString();"
-							: $"captured{memberIndex} = new string(captured{memberIndex}Chars);");
+							: BorrowedCaptures ? $"captured{memberIndex} = captured{memberIndex}Chars;" : $"captured{memberIndex} = new string(captured{memberIndex}Chars);");
 				}
 
 				file.Line();
@@ -1336,7 +1336,7 @@ sealed partial class Machine
 
 		file.Line(member.Rule is null
 			? $"var foldCaptured{memberIndex} = foldCaptured{memberIndex}At < 0 ? " +
-				(member.IsOptional ? "null" : "string.Empty") + " : " +
+				(BorrowedCaptures ? EmptyCapture : member.IsOptional ? "null" : "string.Empty") + " : " +
 				Cut(
 					$"entries[foldCaptured{memberIndex}At].Position",
 					$"entries[foldCaptured{memberIndex}At].Value - " +

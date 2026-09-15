@@ -14,6 +14,30 @@ Not run by CI. A number from a shared runner is a number about the runner, and a
 suite that fails when a machine is busy is a test suite people learn to ignore. The
 project is in the solution so that it has to keep compiling.
 
+## Parser resource baselines
+
+`ParserResourceBenchmarks` measures repeated SQL92 conditions at 1, 1000, 10000,
+and 50000 predicates. The larger inputs exercise the capacity limit on retained
+stores; `MemoryDiagnoser` reports allocations, not the memory left in those pools.
+`TinyParserBenchmarks` measures a scalar recursive reader with space trivia,
+including first-character and final-character refusals. Setup verifies the expected
+success and scalar value before any timing. These benchmarks measure warm calls;
+they do not measure cold-process startup or fresh-storage cost.
+
+For a quick baseline after a Release build, run the following in a separate
+PowerShell process, without concurrent tests or builds:
+
+```powershell
+$env:DOTNET_TieredCompilation = '0'
+dotnet benchmarks/DotGram.Benchmarks/bin/Release/net10.0/DotGram.Benchmarks.dll --filter '*ParserResourceBenchmarks*' '*TinyParserBenchmarks*' '*ExpressionBenchmarks*' '*UrlBenchmarks.Grammar' --inProcess --launchCount 1 --warmupCount 3 --iterationCount 5 --iterationTime 100 --artifacts .work/strategy-audit/bdn-baseline
+```
+
+This short in-process run is a baseline for investigation, not a precise speedup
+claim. Preserve its reports and compare candidates under the same runtime settings.
+Use longer isolated-process runs to confirm small timing differences. Check SQL and
+ExpressionLanguage equivalence separately with `--bytes` and `--elbytes`; both commands
+verify their comparison corpus before printing allocations.
+
 ## Why these exist
 
 The architecture makes performance claims — `ReadOnlySpan<char>`, a state machine rather
@@ -1066,3 +1090,36 @@ log-and-walk over the same tree spends 2.79. So there is about a factor of two i
 bookkeeping and only a third in the deferral, which is the opposite of the way it looked
 from the profile alone: the walk is not expensive because it defers, it is expensive
 because of what it carries.
+
+## Generated source and compiled code size
+
+After building baseline and candidate parser projects for Release net10.0, run:
+
+```console
+dotnet run --project benchmarks/DotGram.CodeSize -c Release -- <before-repository> <after-repository>
+```
+
+The tool compares SQL and ExpressionLanguage generated source files, byte counts with
+repository paths normalized, line counts, DLL sizes, and method IL instruction bytes.
+It separates Located and Immediate variants in the IL totals. Both trees must use the
+same grammar revision and build settings; existing files under obj/GeneratedFiles must
+belong to those builds. It does not build or clean either tree.
+
+Raw source bytes include absolute #line paths, and DLLs may contain embedded debug
+information. Use normalized source bytes and IL totals for code-size conclusions.
+IL totals include handwritten partial members and nested types; they exclude metadata,
+method headers, exception tables and native JIT code. The JSON-lines output can be kept
+beside throughput and allocation reports for each optimization.
+
+See [the September 15 comparison](../docs/design/parser-comparison-2026-09-15.md#generated-code-size).
+
+### Tiny parser value storage
+
+`ValueStorageBenchmarks` compares explicit Flat, Adaptive, and Paged storage on a
+valued two-character tape parser. All methods return the same integer. The measured
+steady-state calls reuse thread-local stores; fresh-store allocation needs a separate
+probe and must not be inferred from the MemoryDiagnoser result.
+
+```powershell
+dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --filter '*ValueStorageBenchmarks*'
+```

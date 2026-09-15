@@ -13,8 +13,16 @@ namespace DotGram.Finance.Benchmarks;
 
 static class Program
 {
-	static void Main(string[] args) => BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args,
-		DefaultConfig.Instance.AddColumn(StatisticColumn.OperationsPerSecond));
+	static void Main(string[] args)
+	{
+		if (args.Length == 3 && args[0] == "--memory")
+		{
+			new Fix44InputBenchmarks { Workload = args[1] }.MeasureMemory(args[2]);
+			return;
+		}
+		BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args,
+			DefaultConfig.Instance.AddColumn(StatisticColumn.OperationsPerSecond));
+	}
 }
 
 [MemoryDiagnoser]
@@ -45,7 +53,7 @@ public class Fix44Benchmarks
 	[Benchmark] public FixMessage LargeRawData() => Fix44.Parse(raw);
 	[Benchmark] public FixMessage RepeatingGroups() => Fix44.Parse(groups);
 
-	static string Wire(string type, string fields)
+	internal static string Wire(string type, string fields)
 	{
 		var body = "35=" + type + "|49=S|56=T|34=1|52=20260915-12:00:00|" + fields;
 		body = body.Replace('|', '\u0001');

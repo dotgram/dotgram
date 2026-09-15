@@ -30,8 +30,47 @@ else
 input. `TryParse` returns false and leaves `message` null. Null input also returns
 false in `TryParse`; invalid options passed to an options overload are programming
 errors. String and `ReadOnlySpan<char>` overloads accept one complete message.
-Read a file's contents and pass them to the same API; concatenated messages are
-not one message and are rejected.
+Concatenated messages are rejected by the contiguous-input overloads. Use
+`ReadMessages` to consume a sequence from a reader or stream.
+
+## Streaming input
+
+```csharp
+using var input = File.OpenRead("messages.fix");
+foreach (var message in Fix44.ReadMessages(input))
+    Console.WriteLine(message.MessageType);
+
+// Alternatively, read exactly one frame from a fresh stream:
+using var single = File.OpenRead("messages.fix");
+var next = Fix44.Parse(single, maxMessageLength: 4 * 1024 * 1024);
+```
+
+`Parse`, `TryParse`, and `ReadMessages` accept either `TextReader` or `Stream`,
+with a `FixParseMode` or `FixParseOptions`. Byte streams map octets directly to
+U+0000..U+00FF; no text decoder is involved. Character readers must preserve that
+mapping. Non-seekable inputs and short reads are supported. These APIs are
+synchronous and leave the input open, including when enumeration stops early.
+
+The adapter frames messages using `BodyLength`, then performs the same complete
+checksum, grammar, schema, raw-data and group validation as the string API.
+It reuses a growing buffer across `ReadMessages` iterations and creates an owned
+source string for each result. Buffering is bounded by the largest frame seen,
+not the length of the stream. Keeping all returned messages also keeps all their
+source strings and models alive. The default `maxMessageLength` is 16 MiB per
+message, including header and trailer; callers can set a different positive
+limit. This is a frame-size limit, not a total allocation budget.
+
+Clean EOF ends `ReadMessages`; EOF before a complete frame is an error.
+`TryParse` returns false with a diagnostic for malformed, oversized, truncated,
+or empty input. `Parse` and `ReadMessages` throw `FormatException` for these
+errors (except clean EOF for enumeration). Diagnostic positions are relative to
+the current frame. I/O exceptions propagate. A failed parse may consume input;
+there is no automatic resynchronization or rollback of the underlying stream.
+
+This FIX-specific framing adapter uses the existing generated string parser.
+It does not enable the generator's optional `Peek/Get` input backend: FIX's
+external raw-data recognizer and source-owning model still require a complete
+message. See the finance benchmarks for the cost of framing and source copies.
 
 ## Input and ownership
 
