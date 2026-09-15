@@ -22779,6 +22779,24 @@ A discussion Igor opened and left open: streaming JSON, to read files too large 
 no incremental input today; a pull reader over `JsonValue`'s tokens, or a grammar publication per element
 of a top-level array, are the shapes to talk over.
 
+## RFC 6266, Content-Disposition
+
+Igor, 2026-09-15: go on with the specifications. `src/DotGram.Web/Rfc6266.cs` reads the field into
+`ContentDisposition`: a type, parameters, `IsInline`/`IsAttachment` (§4.2: an unknown type is an
+attachment), `Find`, and `Filename`, which takes a `filename*` that decodes over `filename` (§4.3). The
+ext-value is RFC 8187's, read by `Rfc8288.Extended`, which the Link header field already had.
+
+The ABNF is RFC 2616's with implied whitespace, which §4.1 points out, so space is allowed around `;` and
+`=` — unlike RFC 9110's parameters. A name written twice, whatever its case, and an ext-token whose value is
+no ext-value both make the field invalid, and it is refused whole: §3 lets a recipient recover, and says
+the default is to ignore. The one verified erratum, 3475, is in Appendix B and changes nothing read.
+
+Held by Julian Reschke's tc2231 cases, which carry no licence: only each case's name and the field value it
+sends are in the tests, taken from its `.asis` page as ISO-8859-1 and escaped. Seven cases where tc2231
+recovers a type from an invalid field, or calls the meaning undefined, are refused here and marked so; the
+RFC 2231 continuations (`filename*0`, ...) are extension parameters and give no filename, since RFC 6266
+does not take them in.
+
 ## The SQL:2023 tree, built by the standard's grammar
 
 `SqlStandard.gram` now builds `Sql2023Ast.cs` for what it once only recognized, chapter by chapter:

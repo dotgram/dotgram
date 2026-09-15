@@ -96,6 +96,28 @@ A tag is case-insensitive: its parts are kept as written, and `ToString()` write
 nothing but the ABNF; whether every subtag is in the IANA registry — *valid* — is a question
 for the registry, and is not asked.
 
+## RFC 6266 Content-Disposition
+
+[`Rfc6266`](Rfc6266.cs) reads the `Content-Disposition` header field.
+
+```csharp
+using DotGram.Web;
+
+var field = Rfc6266.ParseContentDisposition(
+    "attachment; filename=\"EURO rates\"; filename*=utf-8''%e2%82%ac%20rates");
+
+field.IsAttachment;   // true
+field.Filename;       // € rates
+field.Find("filename")!.Value;   // EURO rates
+```
+
+The type and parameter names compare without case. `Filename` prefers a `filename*` that
+decodes — UTF-8 or ISO-8859-1, after RFC 8187 — to `filename`. A type other than `inline` is an
+attachment, as §4.2 asks. A field the ABNF does not make, a parameter named twice included, is
+refused whole: §3 leaves recovery to the recipient. The filename is what the sender wrote;
+stripping its path and making it safe to save is the caller's (§4.3). It is held to Julian
+Reschke's [tc2231](http://test.greenbytes.de/tech/tc2231/) test cases.
+
 ## RFC 6570 URI Templates
 
 [`Rfc6570`](Rfc6570.cs) reads a template once and expands it as often as there are values,
