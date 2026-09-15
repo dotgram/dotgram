@@ -68,10 +68,10 @@ public sealed class Rfc5646Tests
 	[InlineData("en-123a",                "en-123a")]
 	public void The_RFC_s_examples_are_well_formed(string tag, string formatted)
 	{
-		var parsed = Rfc5646.TryParseTag(tag);
+		var accepted = LanguageTag.TryParse(tag, out var parsed);
 
-		Assert.True(parsed.IsSuccess, $"'{tag}' was refused.");
-		Assert.Equal(formatted, parsed.Value.ToString());
+		Assert.True(accepted, $"'{tag}' was refused.");
+		Assert.Equal(formatted, parsed!.ToString());
 	}
 
 	/// <summary>What the ABNF does not make, the RFC's own two among them.</summary>
@@ -96,12 +96,12 @@ public sealed class Rfc5646Tests
 	[InlineData("x")]
 	[InlineData("12-US")]
 	public void What_is_not_well_formed_is_refused(string tag) =>
-		Assert.False(Rfc5646.TryParseTag(tag).IsSuccess, $"'{tag}' was read.");
+		Assert.False(LanguageTag.TryParse(tag, out _), $"'{tag}' was read.");
 
 	[Fact]
 	public void A_tag_comes_apart_into_its_subtags()
 	{
-		var tag = Rfc5646.ParseTag("zh-cmn-Hans-CN-pinyin-u-ca-chinese-x-private");
+		var tag = LanguageTag.Parse("zh-cmn-Hans-CN-pinyin-u-ca-chinese-x-private");
 
 		Assert.Equal("zh", tag.Language);
 		Assert.Equal(["cmn"], tag.ExtendedLanguages);
@@ -118,7 +118,7 @@ public sealed class Rfc5646Tests
 	[Fact]
 	public void Case_is_kept_and_carries_no_meaning()
 	{
-		var tag = Rfc5646.ParseTag("MN-cYRL-mn");
+		var tag = LanguageTag.Parse("MN-cYRL-mn");
 
 		Assert.Equal(("MN", "cYRL", "mn"), (tag.Language, tag.Script, tag.Region));
 		Assert.Equal("mn-Cyrl-MN", tag.ToString());
@@ -128,10 +128,10 @@ public sealed class Rfc5646Tests
 	[Fact]
 	public void A_grandfathered_tag_is_one_only_when_it_is_the_whole_tag()
 	{
-		Assert.Equal("zh-min-nan", Rfc5646.ParseTag("ZH-MIN-NAN").Grandfathered?.ToLowerInvariant());
-		Assert.Equal("zh-min", Rfc5646.ParseTag("zh-min").Grandfathered);
+		Assert.Equal("zh-min-nan", LanguageTag.Parse("ZH-MIN-NAN").Grandfathered?.ToLowerInvariant());
+		Assert.Equal("zh-min", LanguageTag.Parse("zh-min").Grandfathered);
 
-		var ordinary = Rfc5646.ParseTag("zh-min-xyz");
+		var ordinary = LanguageTag.Parse("zh-min-xyz");
 
 		Assert.Null(ordinary.Grandfathered);
 		Assert.Equal(["min", "xyz"], ordinary.ExtendedLanguages);
@@ -141,12 +141,12 @@ public sealed class Rfc5646Tests
 	[Fact]
 	public void Tags_are_equal_whatever_their_case()
 	{
-		Assert.Equal(Rfc5646.ParseTag("zh-Hant-TW-u-ca-chinese-x-a"), Rfc5646.ParseTag("ZH-hant-tw-U-CA-Chinese-X-A"));
-		Assert.Equal(Rfc5646.ParseTag("en-US").GetHashCode(), Rfc5646.ParseTag("EN-us").GetHashCode());
-		Assert.Equal(Rfc5646.ParseTag("i-klingon"), Rfc5646.ParseTag("I-KLINGON"));
+		Assert.Equal(LanguageTag.Parse("zh-Hant-TW-u-ca-chinese-x-a"), LanguageTag.Parse("ZH-hant-tw-U-CA-Chinese-X-A"));
+		Assert.Equal(LanguageTag.Parse("en-US").GetHashCode(), LanguageTag.Parse("EN-us").GetHashCode());
+		Assert.Equal(LanguageTag.Parse("i-klingon"), LanguageTag.Parse("I-KLINGON"));
 
-		Assert.NotEqual(Rfc5646.ParseTag("en-US"), Rfc5646.ParseTag("en-GB"));
-		Assert.NotEqual(Rfc5646.ParseTag("sl-rozaj-biske"), Rfc5646.ParseTag("sl-biske-rozaj"));
+		Assert.NotEqual(LanguageTag.Parse("en-US"), LanguageTag.Parse("en-GB"));
+		Assert.NotEqual(LanguageTag.Parse("sl-rozaj-biske"), LanguageTag.Parse("sl-biske-rozaj"));
 	}
 
 	// ── The registry ─────────────────────────────────────────────────────────────
@@ -167,13 +167,13 @@ public sealed class Rfc5646Tests
 
 			foreach (var spelling in new[] { written, written.ToLowerInvariant(), written.ToUpperInvariant() })
 			{
-				var parsed = Rfc5646.TryParseTag(spelling);
+				var accepted = LanguageTag.TryParse(spelling, out var parsed);
 
-				if (!parsed.IsSuccess)
+				if (!accepted)
 					failures.Add($"'{spelling}' was refused");
-				else if (parsed.Value.ToString() != written)
-					failures.Add($"'{spelling}' was written '{parsed.Value}'");
-				else if ((parsed.Value.Grandfathered is not null) != grandfathered)
+				else if (parsed!.ToString() != written)
+					failures.Add($"'{spelling}' was written '{parsed}'");
+				else if ((parsed!.Grandfathered is not null) != grandfathered)
 					failures.Add($"'{spelling}' was {(grandfathered ? "not " : "")}read as grandfathered");
 			}
 		}
@@ -212,14 +212,14 @@ public sealed class Rfc5646Tests
 
 				seen++;
 
-				var parsed = Rfc5646.TryParseTag(tag);
+				var accepted = LanguageTag.TryParse(tag, out var parsed);
 
-				if (!parsed.IsSuccess)
+				if (!accepted)
 					failures.Add($"'{tag}' was refused");
-				else if (part(parsed.Value) != subtag)
+				else if (part(parsed!) != subtag)
 					failures.Add($"'{tag}' did not read '{subtag}' as a {record["Type"][0]}");
-				else if (parsed.Value.ToString() != tag)
-					failures.Add($"'{tag}' was written '{parsed.Value}'");
+				else if (parsed!.ToString() != tag)
+					failures.Add($"'{tag}' was written '{parsed}'");
 			}
 		}
 

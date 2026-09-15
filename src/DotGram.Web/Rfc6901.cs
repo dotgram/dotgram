@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 using DotGram;
@@ -20,6 +21,36 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 {
 	/// <summary>The pointer with no tokens, which refers to the whole document.</summary>
 	public static JsonPointer Root { get; } = new([]);
+
+	/// <summary>A JSON Pointer in its string form (RFC 6901 §3): nothing, or tokens each after a <c>/</c>.</summary>
+	/// <exception cref="FormatException">The text is no pointer; the message says where.</exception>
+	public static JsonPointer Parse(string text) =>
+		Rfc6901.ParsePointer(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A JSON Pointer in its string form, or false where the text is not one.</summary>
+	public static bool TryParse(string text, [NotNullWhen(true)] out JsonPointer? pointer)
+	{
+		var match = Rfc6901.TryParsePointer(text ?? throw new ArgumentNullException(nameof(text)));
+
+		pointer = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>A JSON Pointer in a URI fragment (§6): <c>#</c>, and the string form pct-encoded as UTF-8.</summary>
+	/// <exception cref="FormatException">The text is no fragment holding a pointer; the message says where.</exception>
+	public static JsonPointer ParseFragment(string text) =>
+		Rfc6901.ParseFragment(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A JSON Pointer in a URI fragment, or false where the text is not one.</summary>
+	public static bool TryParseFragment(string text, [NotNullWhen(true)] out JsonPointer? pointer)
+	{
+		var match = Rfc6901.TryParseFragment(text ?? throw new ArgumentNullException(nameof(text)));
+
+		pointer = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
 
 	/// <summary>Equal to another pointer with the same tokens in the same order.</summary>
 	public bool Equals(JsonPointer? other) => other is not null && Structural.Same(Tokens, other.Tokens);
@@ -204,7 +235,7 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 	parse Pointer  as ParsePointer
 	parse Fragment as ParseFragment
 	""")]
-public static partial class Rfc6901
+static partial class Rfc6901
 {
 	// ParsePointer, TryParsePointer, ParseFragment and TryParseFragment are generated here.
 

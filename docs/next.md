@@ -22866,6 +22866,29 @@ three places, named in the test: a hyphen at a label's edge (30, 31, 102) is RFC
 beside `@` that is before or after the whole local part or domain is current syntax, and only 86 needs §4;
 and a quoted-pair in a domain literal (115-117) is obs-dtext.
 
+## DotGram.Web's API is the values, not the RFC numbers
+
+Igor, 2026-09-15: the package README goes to NuGet and should list every parser, and `RfcNNNN` is a good
+name for a file and no name for a way in. Agreed shape (option A of the ones put to him): each value type
+has its own `Parse` and `TryParse` — `JsonValue.Parse`, `MediaType.Parse`, `MediaRange.ParseAccept`,
+`SetCookie.Parse`, `EmailAddress.ParseList` — and the grammar classes `Rfc3339` … `Rfc9651` are internal,
+one per file as before. Where a specification has no one value, a small static class stands in:
+`StructuredField` (Item, List, Dictionary, their serialization and `Combine`) and `CookieDate`.
+
+`TryParse` is `bool TryParse(string, [NotNullWhen(true)] out T?)`. The generated `Match<T>` is a type
+nested in each grammar class, so it cannot be public once the class is not; `Parse` still throws the
+generated `FormatException`, whose message names the position. Renamed on the way: `UriParts` is
+`UriReference` (its grammar rule is `Reference`, so the two do not meet), `MailAddress` is `EmailAddress`
+(away from `System.Net.Mail.MailAddress`), and `Timestamp`, `FullDate` and `FullTime` came out of
+`Rfc3339`, which they had been nested in. `EmailAddress.Mailbox` could not carry `ParseList` — a static on
+a derived record hides the base's (CS0108) — so the mailbox-list readings are
+`EmailAddress.ParseMailboxList` and its Strict and Try forms.
+
+The package README was written for nuget.org, where a relative link goes nowhere: badges, absolute links,
+one table of every parser by subject with the type to call, the specification and the suite, and a
+section per group. Its dependency line says what is true — `System.Memory` on netstandard2.0, nothing on
+net10.0 — rather than DotGram's "no runtime dependencies", which is about the parser runtime.
+
 ## The SQL:2023 tree, built by the standard's grammar
 
 `SqlStandard.gram` now builds `Sql2023Ast.cs` for what it once only recognized, chapter by chapter:

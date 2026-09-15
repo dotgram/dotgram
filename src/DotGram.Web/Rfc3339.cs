@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 using DotGram;
@@ -35,15 +36,15 @@ namespace DotGram.Web;
 	SecFrac      = ('.' & Digit+)?
 
 	// date-time.
-	Timestamp : @Rfc3339.Timestamp = date: FullDate & ['T' | 't'] & time: FullTime => @(new Rfc3339.Timestamp(date, time))
+	Timestamp : @Timestamp = date: FullDate & ['T' | 't'] & time: FullTime => @(new Timestamp(date, time))
 
 	// full-date, and §5.7's days of the month.
-	FullDate : @Rfc3339.FullDate
+	FullDate : @FullDate
 		= year: DateFullYear & '-' & month: TwoDigits & '-' & day: TwoDigits & when @(Rfc3339.IsDate(year!, month!, day!))
-		=> @(new Rfc3339.FullDate(Rfc3339.Number(year), Rfc3339.Number(month), Rfc3339.Number(day)))
+		=> @(new FullDate(Rfc3339.Number(year), Rfc3339.Number(month), Rfc3339.Number(day)))
 
 	// full-time: partial-time and time-offset, and §5.7's hours, minutes and leap second.
-	FullTime : @Rfc3339.FullTime
+	FullTime : @FullTime
 		= hour: TwoDigits & ':' & minute: TwoDigits & ':' & second: TwoDigits & fraction: SecFrac & offset: TimeOffset
 		  & when @(Rfc3339.IsTime(hour!, minute!, second!, offset!))
 		=> @(Rfc3339.Time(hour, minute, second, fraction, offset))
@@ -55,75 +56,10 @@ namespace DotGram.Web;
 	parse FullDate  as ParseFullDate
 	parse FullTime  as ParseFullTime
 	""")]
-public static partial class Rfc3339
+static partial class Rfc3339
 {
-	// ParseTimestamp, ParseFullDate, ParseFullTime and their Try forms are generated here.
-
-	/// <summary>A date-time (§5.6): a full-date, and a full-time on it.</summary>
-	public sealed record Timestamp(FullDate Date, FullTime Time)
-	{
-		/// <summary>The instant, as .NET holds one.</summary>
-		/// <remarks>
-		/// A fraction finer than a tick is cut off, since a tick is as fine as .NET goes. An unknown local
-		/// offset (<c>-00:00</c>) is taken as UTC, which is the instant the RFC says it stands for (§4.3).
-		/// </remarks>
-		/// <exception cref="InvalidOperationException">
-		/// The second is a leap second, which <see cref="DateTimeOffset"/> has no way to hold.
-		/// </exception>
-		public DateTimeOffset ToDateTimeOffset()
-		{
-			if (Time.Second == 60)
-				throw new InvalidOperationException("A leap second has no DateTimeOffset: the second after 59 is the next minute's 00.");
-
-			var ticks = 0L;
-
-			if (Time.Fraction is { } fraction)
-				for (var at = 0; at < 7; at++)
-					ticks = ticks * 10 + (at < fraction.Length ? fraction[at] - '0' : 0);
-
-			return new DateTimeOffset(Date.Year, Date.Month, Date.Day, Time.Hour, Time.Minute, Time.Second, Time.Offset)
-				.AddTicks(ticks);
-		}
-
-		/// <summary>The date-time as §5.6 writes it, with an uppercase <c>T</c> and <c>Z</c> as §5.6 says to.</summary>
-		public override string ToString() => $"{Date}T{Time}";
-	}
-
-	/// <summary>A full-date (§5.6): a day of the Gregorian calendar.</summary>
-	public sealed record FullDate(int Year, int Month, int Day)
-	{
-		public override string ToString() =>
-			string.Format(CultureInfo.InvariantCulture, "{0:D4}-{1:D2}-{2:D2}", Year, Month, Day);
-	}
-
-	/// <summary>A full-time (§5.6): a time of day and the offset from UTC it was written in.</summary>
-	/// <param name="Second">00 to 59, or 60 for a leap second.</param>
-	/// <param name="Fraction">The digits after the point as written, however many, or null.</param>
-	/// <param name="Offset">What to add to UTC to get this time: zero for <c>Z</c>, <c>+00:00</c> and <c>-00:00</c>.</param>
-	/// <param name="LocalOffsetUnknown">
-	/// Whether the offset was written <c>-00:00</c>: the time is UTC and the local offset was not known (§4.3).
-	/// </param>
-	public sealed record FullTime(int Hour, int Minute, int Second, string? Fraction, TimeSpan Offset, bool LocalOffsetUnknown)
-	{
-		public override string ToString()
-		{
-			var text = string.Format(CultureInfo.InvariantCulture, "{0:D2}:{1:D2}:{2:D2}", Hour, Minute, Second);
-
-			if (Fraction is not null)
-				text += "." + Fraction;
-
-			if (LocalOffsetUnknown)
-				return text + "-00:00";
-
-			if (Offset == TimeSpan.Zero)
-				return text + "Z";
-
-			var size = Offset.Duration();
-
-			return text + (Offset < TimeSpan.Zero ? "-" : "+") +
-				string.Format(CultureInfo.InvariantCulture, "{0:D2}:{1:D2}", size.Hours, size.Minutes);
-		}
-	}
+	// ParseTimestamp, ParseFullDate, ParseFullTime and their Try forms are generated here; Timestamp.Parse,
+	// FullDate.Parse and FullTime.Parse are the ways in.
 
 	internal static int Number(string digits) =>
 		int.Parse(digits, NumberStyles.None, CultureInfo.InvariantCulture);
@@ -193,5 +129,116 @@ public static partial class Rfc3339
 		var unknown = offset == "-00:00";
 
 		return new FullTime(Number(hour), Number(minute), Number(second), digits, offset[0] == '-' ? -size : size, unknown);
+	}
+}
+
+/// <summary>A date-time (RFC 3339 §5.6): a full-date, and a full-time on it.</summary>
+public sealed record Timestamp(FullDate Date, FullTime Time)
+{
+	/// <summary>A date-time, with §5.7's days, hours, minutes and leap second.</summary>
+	/// <exception cref="FormatException">The text is no date-time, or names a time that is not; the message says where.</exception>
+	public static Timestamp Parse(string text) =>
+		Rfc3339.ParseTimestamp(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A date-time, or false where the text is not one.</summary>
+	public static bool TryParse(string text, [NotNullWhen(true)] out Timestamp? timestamp)
+	{
+		var match = Rfc3339.TryParseTimestamp(text ?? throw new ArgumentNullException(nameof(text)));
+
+		timestamp = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>The instant, as .NET holds one.</summary>
+	/// <remarks>
+	/// A fraction finer than a tick is cut off, since a tick is as fine as .NET goes. An unknown local
+	/// offset (<c>-00:00</c>) is taken as UTC, which is the instant the RFC says it stands for (§4.3).
+	/// </remarks>
+	/// <exception cref="InvalidOperationException">
+	/// The second is a leap second, which <see cref="DateTimeOffset"/> has no way to hold.
+	/// </exception>
+	public DateTimeOffset ToDateTimeOffset()
+	{
+		if (Time.Second == 60)
+			throw new InvalidOperationException("A leap second has no DateTimeOffset: the second after 59 is the next minute's 00.");
+
+		var ticks = 0L;
+
+		if (Time.Fraction is { } fraction)
+			for (var at = 0; at < 7; at++)
+				ticks = ticks * 10 + (at < fraction.Length ? fraction[at] - '0' : 0);
+
+		return new DateTimeOffset(Date.Year, Date.Month, Date.Day, Time.Hour, Time.Minute, Time.Second, Time.Offset)
+			.AddTicks(ticks);
+	}
+
+	/// <summary>The date-time as §5.6 writes it, with an uppercase <c>T</c> and <c>Z</c> as §5.6 says to.</summary>
+	public override string ToString() => $"{Date}T{Time}";
+}
+
+/// <summary>A full-date (RFC 3339 §5.6): a day of the Gregorian calendar.</summary>
+public sealed record FullDate(int Year, int Month, int Day)
+{
+	/// <summary>A full-date, a day its month has.</summary>
+	/// <exception cref="FormatException">The text is no full-date, or names a day that is not; the message says where.</exception>
+	public static FullDate Parse(string text) =>
+		Rfc3339.ParseFullDate(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A full-date, or false where the text is not one.</summary>
+	public static bool TryParse(string text, [NotNullWhen(true)] out FullDate? date)
+	{
+		var match = Rfc3339.TryParseFullDate(text ?? throw new ArgumentNullException(nameof(text)));
+
+		date = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	public override string ToString() =>
+		string.Format(CultureInfo.InvariantCulture, "{0:D4}-{1:D2}-{2:D2}", Year, Month, Day);
+}
+
+/// <summary>A full-time (RFC 3339 §5.6): a time of day and the offset from UTC it was written in.</summary>
+/// <param name="Second">00 to 59, or 60 for a leap second.</param>
+/// <param name="Fraction">The digits after the point as written, however many, or null.</param>
+/// <param name="Offset">What to add to UTC to get this time: zero for <c>Z</c>, <c>+00:00</c> and <c>-00:00</c>.</param>
+/// <param name="LocalOffsetUnknown">
+/// Whether the offset was written <c>-00:00</c>: the time is UTC and the local offset was not known (§4.3).
+/// </param>
+public sealed record FullTime(int Hour, int Minute, int Second, string? Fraction, TimeSpan Offset, bool LocalOffsetUnknown)
+{
+	/// <summary>A full-time, a leap second only at 23:59 UTC.</summary>
+	/// <exception cref="FormatException">The text is no full-time, or names a time that is not; the message says where.</exception>
+	public static FullTime Parse(string text) =>
+		Rfc3339.ParseFullTime(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A full-time, or false where the text is not one.</summary>
+	public static bool TryParse(string text, [NotNullWhen(true)] out FullTime? time)
+	{
+		var match = Rfc3339.TryParseFullTime(text ?? throw new ArgumentNullException(nameof(text)));
+
+		time = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	public override string ToString()
+	{
+		var text = string.Format(CultureInfo.InvariantCulture, "{0:D2}:{1:D2}:{2:D2}", Hour, Minute, Second);
+
+		if (Fraction is not null)
+			text += "." + Fraction;
+
+		if (LocalOffsetUnknown)
+			return text + "-00:00";
+
+		if (Offset == TimeSpan.Zero)
+			return text + "Z";
+
+		var size = Offset.Duration();
+
+		return text + (Offset < TimeSpan.Zero ? "-" : "+") +
+			string.Format(CultureInfo.InvariantCulture, "{0:D2}:{1:D2}", size.Hours, size.Minutes);
 	}
 }

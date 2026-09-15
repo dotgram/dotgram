@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 
@@ -9,12 +10,27 @@ namespace DotGram.Web;
 
 /// <summary>A URI Template as RFC 6570 divides it: literal text, and expressions between braces.</summary>
 /// <remarks>
-/// What a template <i>is</i> comes from <see cref="Rfc6570.ParseTemplate(string)"/>; what it
+/// What a template <i>is</i> comes from <see cref="Parse(string)"/>; what it
 /// <i>becomes</i> for a set of values is <see cref="Expand"/>. The two are apart because a
 /// template is written once and expanded many times.
 /// </remarks>
 public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 {
+	/// <summary>A URI Template of any of RFC 6570's four levels.</summary>
+	/// <exception cref="FormatException">The text is no template; the message says where.</exception>
+	public static UriTemplate Parse(string text) =>
+		Rfc6570.ParseTemplate(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A URI Template, or false where the text is not one.</summary>
+	public static bool TryParse(string text, [NotNullWhen(true)] out UriTemplate? template)
+	{
+		var match = Rfc6570.TryParseTemplate(text ?? throw new ArgumentNullException(nameof(text)));
+
+		template = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
 	/// <summary>A piece of a template: a <see cref="Literal"/> or an <see cref="Expression"/>.</summary>
 	public abstract record Part;
 
@@ -416,7 +432,7 @@ public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 
 	parse Template as ParseTemplate
 	""")]
-public static partial class Rfc6570
+static partial class Rfc6570
 {
 	// ParseTemplate and TryParseTemplate are generated here.
 

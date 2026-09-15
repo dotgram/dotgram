@@ -42,35 +42,35 @@ public sealed class Rfc5322Tests
 	public void Different_types_of_mailboxes()
 	{
 		Assert.Equal(
-			new MailAddress.Mailbox("Joe Q. Public", new AddrSpec("john.q.public", "example.com")),
-			Rfc5322.ParseStrictMailbox("\"Joe Q. Public\" <john.q.public@example.com>"));
+			new EmailAddress.Mailbox("Joe Q. Public", new AddrSpec("john.q.public", "example.com")),
+			EmailAddress.Mailbox.ParseStrict("\"Joe Q. Public\" <john.q.public@example.com>"));
 
 		Assert.Equal(
 			[
-				new MailAddress.Mailbox("Mary Smith", new AddrSpec("mary", "x.test")),
-				new MailAddress.Mailbox(null, new AddrSpec("jdoe", "example.org")),
-				new MailAddress.Mailbox("Who?", new AddrSpec("one", "y.test")),
+				new EmailAddress.Mailbox("Mary Smith", new AddrSpec("mary", "x.test")),
+				new EmailAddress.Mailbox(null, new AddrSpec("jdoe", "example.org")),
+				new EmailAddress.Mailbox("Who?", new AddrSpec("one", "y.test")),
 			],
-			Rfc5322.ParseStrictAddressList("Mary Smith <mary@x.test>, jdoe@example.org, Who? <one@y.test>"));
+			EmailAddress.ParseStrictList("Mary Smith <mary@x.test>, jdoe@example.org, Who? <one@y.test>"));
 
 		Assert.Equal(
 			[
-				new MailAddress.Mailbox(null, new AddrSpec("boss", "nil.test")),
-				new MailAddress.Mailbox("Giant; \"Big\" Box", new AddrSpec("sysservices", "example.net")),
+				new EmailAddress.Mailbox(null, new AddrSpec("boss", "nil.test")),
+				new EmailAddress.Mailbox("Giant; \"Big\" Box", new AddrSpec("sysservices", "example.net")),
 			],
-			Rfc5322.ParseStrictAddressList("<boss@nil.test>, \"Giant; \\\"Big\\\" Box\" <sysservices@example.net>"));
+			EmailAddress.ParseStrictList("<boss@nil.test>, \"Giant; \\\"Big\\\" Box\" <sysservices@example.net>"));
 	}
 
 	/// <summary>A.1.3: a group of three, and a group of none.</summary>
 	[Fact]
 	public void Group_addresses()
 	{
-		var group = Assert.IsType<MailAddress.Group>(Assert.Single(Rfc5322.ParseStrictAddressList("A Group:Ed Jones <c@a.test>,joe@where.test,John <jdoe@one.test>;")));
+		var group = Assert.IsType<EmailAddress.Group>(Assert.Single(EmailAddress.ParseStrictList("A Group:Ed Jones <c@a.test>,joe@where.test,John <jdoe@one.test>;")));
 
 		Assert.Equal("A Group", group.DisplayName);
 		Assert.Equal(["Ed Jones <c@a.test>", "joe@where.test", "John <jdoe@one.test>"], group.Members.Select(member => member.ToString()).ToArray());
 
-		Assert.Equal(new MailAddress.Group("Undisclosed recipients", []), Assert.Single(Rfc5322.ParseStrictAddressList("Undisclosed recipients:;")));
+		Assert.Equal(new EmailAddress.Group("Undisclosed recipients", []), Assert.Single(EmailAddress.ParseStrictList("Undisclosed recipients:;")));
 	}
 
 	/// <summary>A.5: comments and folding white space nearly everywhere, all of it current syntax.</summary>
@@ -78,23 +78,23 @@ public sealed class Rfc5322Tests
 	public void White_space_comments_and_other_oddities()
 	{
 		Assert.Equal(
-			new MailAddress.Mailbox("Pete", new AddrSpec("pete", "silly.test")),
-			Rfc5322.ParseStrictMailbox("Pete(A nice \\) chap) <pete(his account)@silly.test(his host)>"));
+			new EmailAddress.Mailbox("Pete", new AddrSpec("pete", "silly.test")),
+			EmailAddress.Mailbox.ParseStrict("Pete(A nice \\) chap) <pete(his account)@silly.test(his host)>"));
 
 		var to = "A Group(Some people)\r\n     :Chris Jones <c@(Chris's host.)public.example>,\r\n         joe@example.org,\r\n  John <jdoe@one.test> (my dear friend); (the end of the group)";
 
 		Assert.Equal(
-			new MailAddress.Group("A Group",
+			new EmailAddress.Group("A Group",
 			[
-				new MailAddress.Mailbox("Chris Jones", new AddrSpec("c", "public.example")),
-				new MailAddress.Mailbox(null, new AddrSpec("joe", "example.org")),
-				new MailAddress.Mailbox("John", new AddrSpec("jdoe", "one.test")),
+				new EmailAddress.Mailbox("Chris Jones", new AddrSpec("c", "public.example")),
+				new EmailAddress.Mailbox(null, new AddrSpec("joe", "example.org")),
+				new EmailAddress.Mailbox("John", new AddrSpec("jdoe", "one.test")),
 			]),
-			Assert.Single(Rfc5322.ParseStrictAddressList(to)));
+			Assert.Single(EmailAddress.ParseStrictList(to)));
 
 		Assert.Equal(
-			new MailAddress.Group("Hidden recipients", []),
-			Assert.Single(Rfc5322.ParseStrictAddressList("(Empty list)(start)Hidden recipients  :(nobody(that I know))  ;")));
+			new EmailAddress.Group("Hidden recipients", []),
+			Assert.Single(EmailAddress.ParseStrictList("(Empty list)(start)Hidden recipients  :(nobody(that I know))  ;")));
 	}
 
 	/// <summary>A.6.1: a display name with a period unquoted, a route, a null member and space around a dot.</summary>
@@ -102,33 +102,33 @@ public sealed class Rfc5322Tests
 	public void Obsolete_addressing()
 	{
 		Assert.Equal(
-			new MailAddress.Mailbox("Joe Q. Public", new AddrSpec("john.q.public", "example.com")),
-			Rfc5322.ParseMailbox("Joe Q. Public <john.q.public@example.com>"));
+			new EmailAddress.Mailbox("Joe Q. Public", new AddrSpec("john.q.public", "example.com")),
+			EmailAddress.Mailbox.Parse("Joe Q. Public <john.q.public@example.com>"));
 
 		Assert.Equal(
 			[
-				new MailAddress.Mailbox("Mary Smith", new AddrSpec("mary", "example.net")),
-				new MailAddress.Mailbox(null, new AddrSpec("jdoe", "test.example")),
+				new EmailAddress.Mailbox("Mary Smith", new AddrSpec("mary", "example.net")),
+				new EmailAddress.Mailbox(null, new AddrSpec("jdoe", "test.example")),
 			],
-			Rfc5322.ParseAddressList("Mary Smith <@node.test:mary@example.net>, , jdoe@test  . example"));
+			EmailAddress.ParseList("Mary Smith <@node.test:mary@example.net>, , jdoe@test  . example"));
 
-		Assert.False(Rfc5322.TryParseStrictMailbox("Joe Q. Public <john.q.public@example.com>").IsSuccess);
-		Assert.False(Rfc5322.TryParseStrictAddressList("Mary Smith <@node.test:mary@example.net>, , jdoe@test  . example").IsSuccess);
+		Assert.False(EmailAddress.Mailbox.TryParseStrict("Joe Q. Public <john.q.public@example.com>", out _));
+		Assert.False(EmailAddress.TryParseStrictList("Mary Smith <@node.test:mary@example.net>, , jdoe@test  . example", out _));
 	}
 
 	/// <summary>A.6.3: a comment inside a domain, and a folded line of nothing but white space.</summary>
 	[Fact]
 	public void Obsolete_white_space_and_comments()
 	{
-		Assert.Equal(new AddrSpec("jdoe", "machine.example"), Rfc5322.ParseMailbox("John Doe <jdoe@machine(comment).  example>").Address);
-		Assert.Equal("Mary Smith", Rfc5322.ParseMailbox("Mary Smith\r\n  \r\n          <mary@example.net>").DisplayName);
+		Assert.Equal(new AddrSpec("jdoe", "machine.example"), EmailAddress.Mailbox.Parse("John Doe <jdoe@machine(comment).  example>").Address);
+		Assert.Equal("Mary Smith", EmailAddress.Mailbox.Parse("Mary Smith\r\n  \r\n          <mary@example.net>").DisplayName);
 
-		Assert.False(Rfc5322.TryParseStrictMailbox("John Doe <jdoe@machine(comment).  example>").IsSuccess);
+		Assert.False(EmailAddress.Mailbox.TryParseStrict("John Doe <jdoe@machine(comment).  example>", out _));
 
 		// The folded line of only white space is two FWS side by side — the word's trailing one and angle-addr's
 		// leading one — which §3's ABNF allows; it is §3.2.2's prose that forbids the line, and a grammar does not
 		// see lines.
-		Assert.True(Rfc5322.TryParseStrictMailbox("Mary Smith\r\n  \r\n          <mary@example.net>").IsSuccess);
+		Assert.True(EmailAddress.Mailbox.TryParseStrict("Mary Smith\r\n  \r\n          <mary@example.net>", out _));
 	}
 
 	// ── What an address means ────────────────────────────────────────────────────
@@ -143,7 +143,7 @@ public sealed class Rfc5322Tests
 	[InlineData("\"a b\" . c@x . y", "a b.c", "x.y")]
 	public void An_addr_spec(string text, string localPart, string domain)
 	{
-		Assert.Equal(new AddrSpec(localPart, domain), Rfc5322.ParseAddrSpec(text));
+		Assert.Equal(new AddrSpec(localPart, domain), AddrSpec.Parse(text));
 	}
 
 	[Theory]
@@ -155,10 +155,10 @@ public sealed class Rfc5322Tests
 	[InlineData("test@[RFC-5322-\\]-domain-literal]", "test@[RFC-5322-\\]-domain-literal]")]
 	public void An_addr_spec_as_section_3_writes_it(string text, string written)
 	{
-		var spec = Rfc5322.ParseAddrSpec(text);
+		var spec = AddrSpec.Parse(text);
 
 		Assert.Equal(written, spec.ToString());
-		Assert.Equal(spec, Rfc5322.ParseAddrSpec(written));
+		Assert.Equal(spec, AddrSpec.Parse(written));
 	}
 
 	[Theory]
@@ -169,10 +169,10 @@ public sealed class Rfc5322Tests
 	[InlineData("A Group:Ed Jones <c@a.test>,joe@where.test;", "A Group: Ed Jones <c@a.test>, joe@where.test;")]
 	public void An_address_as_section_3_writes_it(string text, string written)
 	{
-		var address = Assert.Single(Rfc5322.ParseAddressList(text));
+		var address = Assert.Single(EmailAddress.ParseList(text));
 
 		Assert.Equal(written, address.ToString());
-		Assert.Equal(address, Assert.Single(Rfc5322.ParseStrictAddressList(written)));
+		Assert.Equal(address, Assert.Single(EmailAddress.ParseStrictList(written)));
 	}
 
 	[Theory]
@@ -185,7 +185,7 @@ public sealed class Rfc5322Tests
 	[InlineData("Group:a@b")]
 	public void What_is_no_strict_address_list(string text)
 	{
-		Assert.False(Rfc5322.TryParseStrictAddressList(text).IsSuccess, $"'{text}' was read.");
+		Assert.False(EmailAddress.TryParseStrictList(text, out _), $"'{text}' was read.");
 	}
 
 	// ── is_email ─────────────────────────────────────────────────────────────────
@@ -216,8 +216,8 @@ public sealed class Rfc5322Tests
 		var obsolete = category == "ISEMAIL_DEPREC" && diagnosis is not ("ISEMAIL_DEPREC_CFWS_NEAR_AT" or "ISEMAIL_RFC5321_IPV6DEPRECATED")
 			|| ObsoleteBeyondCategory.Contains(id);
 
-		Assert.True(made == Rfc5322.TryParseAddrSpec(address).IsSuccess, $"{id} {diagnosis}: '{address}' read {(made ? "not " : "")}as an addr-spec.");
-		Assert.True((made && !obsolete) == Rfc5322.TryParseStrictAddrSpec(address).IsSuccess, $"{id} {diagnosis}: '{address}' read {(made && !obsolete ? "not " : "")}as a Strict addr-spec.");
+		Assert.True(made == AddrSpec.TryParse(address, out _), $"{id} {diagnosis}: '{address}' read {(made ? "not " : "")}as an addr-spec.");
+		Assert.True((made && !obsolete) == AddrSpec.TryParseStrict(address, out _), $"{id} {diagnosis}: '{address}' read {(made && !obsolete ? "not " : "")}as a Strict addr-spec.");
 	}
 
 	static readonly Dictionary<int, (string Address, string Category, string Diagnosis)> Suite = Read();

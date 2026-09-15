@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 using DotGram;
@@ -27,6 +28,21 @@ public sealed record ContentDisposition(string Type, IReadOnlyList<ContentDispos
 	/// For an ext-token, a name ending in <c>*</c>, the ext-value decoded as RFC 8187 says; null for any other name.
 	/// </param>
 	public sealed record Parameter(string Name, string Value, ExtendedValue? Extended);
+
+	/// <summary>A Content-Disposition field value (RFC 6266 §4.1).</summary>
+	/// <exception cref="FormatException">The text is no Content-Disposition field; the message says where.</exception>
+	public static ContentDisposition Parse(string text) =>
+		Rfc6266.ParseContentDisposition(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A Content-Disposition field value, or false where the text is not one.</summary>
+	public static bool TryParse(string text, [NotNullWhen(true)] out ContentDisposition? field)
+	{
+		var match = Rfc6266.TryParseContentDisposition(text ?? throw new ArgumentNullException(nameof(text)));
+
+		field = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
 
 	/// <summary>Whether the type is <c>inline</c>, whatever its case (§4.2).</summary>
 	public bool IsInline => string.Equals(Type, "inline", StringComparison.OrdinalIgnoreCase);
@@ -162,7 +178,7 @@ public sealed record ContentDisposition(string Type, IReadOnlyList<ContentDispos
 
 	parse DispositionField as ParseContentDisposition
 	""")]
-public static partial class Rfc6266
+static partial class Rfc6266
 {
 	// ParseContentDisposition and TryParseContentDisposition are generated here.
 

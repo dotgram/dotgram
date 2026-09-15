@@ -9,7 +9,7 @@ namespace DotGram.Web;
 /// <summary>A JSON Patch document as RFC 6902 defines one: operations applied in order.</summary>
 /// <remarks>
 /// <para>
-/// A patch is read from JSON by <see cref="Rfc6902.ReadPatch"/> and applied by <see cref="Apply"/>. Applying
+/// A patch is read from JSON by <see cref="Parse"/> or <see cref="Read"/> and applied by <see cref="Apply"/>. Applying
 /// changes nothing it is given: a <see cref="JsonValue"/> cannot change, so the result is a new document that
 /// shares what the patch did not touch, and a patch that fails leaves no half-patched document behind (§5).
 /// </para>
@@ -17,6 +17,27 @@ namespace DotGram.Web;
 /// <param name="Operations">In the order they are applied.</param>
 public sealed record JsonPatch(IReadOnlyList<JsonPatch.Operation> Operations)
 {
+	/// <summary>The patch a JSON text holds (RFC 6902 §3): an array of operation objects.</summary>
+	/// <exception cref="FormatException">The text is not JSON.</exception>
+	/// <exception cref="JsonPatchException">The text is JSON but no patch; the message says where.</exception>
+	public static JsonPatch Parse(string text) => Rfc6902.ReadPatch(JsonValue.Parse(text));
+
+	/// <summary>The patch a JSON document holds.</summary>
+	/// <exception cref="JsonPatchException">The document is no patch; the message says where.</exception>
+	public static JsonPatch Read(JsonValue document) => Rfc6902.ReadPatch(document);
+
+	/// <summary>The patch a JSON document holds, or why it holds none.</summary>
+	public static bool TryRead(JsonValue document, [NotNullWhen(true)] out JsonPatch? patch, [NotNullWhen(false)] out string? error) =>
+		Rfc6902.TryReadPatch(document, out patch, out error);
+
+	/// <summary>Whether two values are equal as §4.6 compares them for <c>test</c>.</summary>
+	/// <remarks>
+	/// Strings by their code units; numbers by value, so <c>1</c>, <c>1.0</c> and <c>10e-1</c> are equal, at any
+	/// precision; arrays element by element; objects by members whatever their order, each matched once by name
+	/// and value; literals by being the same.
+	/// </remarks>
+	public static bool AreEqual(JsonValue left, JsonValue right) => Rfc6902.AreEqual(left, right);
+
 	/// <summary>Equal to another patch with equal operations in the same order.</summary>
 	public bool Equals(JsonPatch? other) => other is not null && Structural.Same(Operations, other.Operations);
 
@@ -45,7 +66,7 @@ public sealed record JsonPatch(IReadOnlyList<JsonPatch.Operation> Operations)
 		/// <summary>§4.5: the value at <see cref="From"/> added at the target location.</summary>
 		public sealed record Copy(JsonPointer From, JsonPointer Path) : Operation(Path);
 
-		/// <summary>§4.6: whether the value at the target location equals <see cref="Value"/>, as <see cref="Rfc6902.AreEqual"/> compares.</summary>
+		/// <summary>§4.6: whether the value at the target location equals <see cref="Value"/>, as <see cref="AreEqual"/> compares.</summary>
 		public sealed record Test(JsonPointer Path, JsonValue Value) : Operation(Path);
 
 		/// <summary>The operation as a patch document writes it.</summary>
@@ -152,7 +173,7 @@ public sealed class JsonPatchException(string message) : Exception(message);
 //     and a document with nothing in it is not a JSON value.
 
 /// <summary>RFC 6902's JSON Patch: reading a patch document, and the equality its <c>test</c> operation asks.</summary>
-public static class Rfc6902
+static class Rfc6902
 {
 	/// <summary>The patch a JSON Patch document holds.</summary>
 	/// <exception cref="JsonPatchException">The document is not a patch; the message says where.</exception>

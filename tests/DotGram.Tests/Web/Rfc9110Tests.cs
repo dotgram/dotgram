@@ -27,7 +27,7 @@ public sealed class Rfc9110Tests
 	[Fact]
 	public void A_media_type_with_a_parameter()
 	{
-		var type = Rfc9110.ParseContentType("text/html; charset=ISO-8859-4");
+		var type = MediaType.Parse("text/html; charset=ISO-8859-4");
 
 		Assert.Equal("text", type.Type);
 		Assert.Equal("html", type.Subtype);
@@ -46,7 +46,7 @@ public sealed class Rfc9110Tests
 			"text/html; charset=\"utf-8\"",
 			"text/html;charset=UTF-8",
 		}
-		.Select(Rfc9110.ParseContentType)
+		.Select(MediaType.Parse)
 		.ToArray();
 
 		foreach (var type in spellings)
@@ -59,23 +59,23 @@ public sealed class Rfc9110Tests
 	[Fact]
 	public void A_value_other_than_a_charset_keeps_its_case()
 	{
-		Assert.NotEqual(Rfc9110.ParseContentType("multipart/mixed; boundary=ABC"), Rfc9110.ParseContentType("multipart/mixed; boundary=abc"));
+		Assert.NotEqual(MediaType.Parse("multipart/mixed; boundary=ABC"), MediaType.Parse("multipart/mixed; boundary=abc"));
 	}
 
 	[Fact]
 	public void A_quoted_value_is_unquoted_and_written_back_quoted()
 	{
-		var type = Rfc9110.ParseContentType("multipart/form-data; boundary=\"a b\\\"c\\\\\"");
+		var type = MediaType.Parse("multipart/form-data; boundary=\"a b\\\"c\\\\\"");
 
 		Assert.Equal("a b\"c\\", type.ParameterValue("BOUNDARY"));
 		Assert.Equal("multipart/form-data;boundary=\"a b\\\"c\\\\\"", type.ToString());
-		Assert.Equal(type, Rfc9110.ParseContentType(type.ToString()));
+		Assert.Equal(type, MediaType.Parse(type.ToString()));
 	}
 
 	[Fact]
 	public void Empty_parameters_are_accepted_and_left_out()
 	{
-		var type = Rfc9110.ParseContentType(" text/plain ; ; charset=utf-8;\t; ");
+		var type = MediaType.Parse(" text/plain ; ; charset=utf-8;\t; ");
 
 		Assert.Equal([new MediaType.Parameter("charset", "utf-8")], type.Parameters);
 	}
@@ -83,9 +83,9 @@ public sealed class Rfc9110Tests
 	[Fact]
 	public void A_suffix_follows_the_last_plus()
 	{
-		Assert.Equal("json", Rfc9110.ParseContentType("application/vnd.api+json").Suffix);
-		Assert.Equal("xml", Rfc9110.ParseContentType("image/svg+xml").Suffix);
-		Assert.Null(Rfc9110.ParseContentType("text/plain").Suffix);
+		Assert.Equal("json", MediaType.Parse("application/vnd.api+json").Suffix);
+		Assert.Equal("xml", MediaType.Parse("image/svg+xml").Suffix);
+		Assert.Null(MediaType.Parse("text/plain").Suffix);
 	}
 
 	[Theory]
@@ -103,7 +103,7 @@ public sealed class Rfc9110Tests
 	[InlineData("t\u00EBxt/html")]
 	public void What_is_no_media_type(string text)
 	{
-		Assert.False(Rfc9110.TryParseContentType(text).IsSuccess, $"'{text}' was read.");
+		Assert.False(MediaType.TryParse(text, out _), $"'{text}' was read.");
 	}
 
 	// ── Accept ───────────────────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ public sealed class Rfc9110Tests
 	[Fact]
 	public void The_audio_example()
 	{
-		var ranges = Rfc9110.ParseAccept("audio/*; q=0.2, audio/basic");
+		var ranges = MediaRange.ParseAccept("audio/*; q=0.2, audio/basic");
 
 		Assert.Equal(
 			[
@@ -125,7 +125,7 @@ public sealed class Rfc9110Tests
 	public void The_text_example()
 	{
 		// The example's line break unfolded to the space a field value carries.
-		var ranges = Rfc9110.ParseAccept("text/plain; q=0.5, text/html, text/x-dvi; q=0.8, text/x-c");
+		var ranges = MediaRange.ParseAccept("text/plain; q=0.5, text/html, text/x-dvi; q=0.8, text/x-c");
 
 		Assert.Equal(["text/plain", "text/html", "text/x-dvi", "text/x-c"], ranges.Select(range => range.Media.ToString()).ToArray());
 		Assert.Equal([0.5m, 1m, 0.8m, 1m], ranges.Select(range => range.Weight).ToArray());
@@ -136,13 +136,13 @@ public sealed class Rfc9110Tests
 	public void More_specific_ranges_override()
 	{
 		// The example's ranges, in its order of precedence, each given a weight to tell which one counted.
-		var accept = Rfc9110.ParseAccept("*/*;q=0.1, text/*;q=0.2, text/plain;q=0.3, text/plain;format=flowed;q=0.4");
+		var accept = MediaRange.ParseAccept("*/*;q=0.1, text/*;q=0.2, text/plain;q=0.3, text/plain;format=flowed;q=0.4");
 
-		Assert.Equal(0.4m, Rfc9110.Quality(accept, Rfc9110.ParseContentType("text/plain; format=flowed")));
-		Assert.Equal(0.3m, Rfc9110.Quality(accept, Rfc9110.ParseContentType("text/plain")));
-		Assert.Equal(0.3m, Rfc9110.Quality(accept, Rfc9110.ParseContentType("text/plain; format=fixed")));
-		Assert.Equal(0.2m, Rfc9110.Quality(accept, Rfc9110.ParseContentType("text/html")));
-		Assert.Equal(0.1m, Rfc9110.Quality(accept, Rfc9110.ParseContentType("image/png")));
+		Assert.Equal(0.4m, MediaRange.Quality(accept, MediaType.Parse("text/plain; format=flowed")));
+		Assert.Equal(0.3m, MediaRange.Quality(accept, MediaType.Parse("text/plain")));
+		Assert.Equal(0.3m, MediaRange.Quality(accept, MediaType.Parse("text/plain; format=fixed")));
+		Assert.Equal(0.2m, MediaRange.Quality(accept, MediaType.Parse("text/html")));
+		Assert.Equal(0.1m, MediaRange.Quality(accept, MediaType.Parse("image/png")));
 	}
 
 	/// <summary>§12.5.1's table, with erratum 7138: <c>text/html;level=3</c> takes <c>text/*</c>'s 0.3, not 0.7.</summary>
@@ -156,22 +156,22 @@ public sealed class Rfc9110Tests
 	public void The_quality_table(string media, string quality)
 	{
 		// The example's line break unfolded to the space a field value carries.
-		var accept = Rfc9110.ParseAccept("text/*;q=0.3, text/plain;q=0.7, text/plain;format=flowed, text/plain;format=fixed;q=0.4, */*;q=0.5");
+		var accept = MediaRange.ParseAccept("text/*;q=0.3, text/plain;q=0.7, text/plain;format=flowed, text/plain;format=fixed;q=0.4, */*;q=0.5");
 
-		Assert.Equal(decimal.Parse(quality, System.Globalization.CultureInfo.InvariantCulture), Rfc9110.Quality(accept, Rfc9110.ParseContentType(media)));
+		Assert.Equal(decimal.Parse(quality, System.Globalization.CultureInfo.InvariantCulture), MediaRange.Quality(accept, MediaType.Parse(media)));
 	}
 
 	[Fact]
 	public void What_no_range_matches_is_not_acceptable()
 	{
-		Assert.Equal(0m, Rfc9110.Quality(Rfc9110.ParseAccept("text/*"), Rfc9110.ParseContentType("image/png")));
-		Assert.Equal(0m, Rfc9110.Quality(Rfc9110.ParseAccept(""), Rfc9110.ParseContentType("image/png")));
+		Assert.Equal(0m, MediaRange.Quality(MediaRange.ParseAccept("text/*"), MediaType.Parse("image/png")));
+		Assert.Equal(0m, MediaRange.Quality(MediaRange.ParseAccept(""), MediaType.Parse("image/png")));
 	}
 
 	[Fact]
 	public void Empty_elements_are_accepted()
 	{
-		var ranges = Rfc9110.ParseAccept(" , text/html ,, ,\t*/* ;q=0 , ");
+		var ranges = MediaRange.ParseAccept(" , text/html ,, ,\t*/* ;q=0 , ");
 
 		Assert.Equal(2, ranges.Length);
 		Assert.Equal(0m, ranges[1].Weight);
@@ -181,7 +181,7 @@ public sealed class Rfc9110Tests
 	[Fact]
 	public void A_q_anywhere_is_the_weight()
 	{
-		var range = Assert.Single(Rfc9110.ParseAccept("text/html;Q=0.25;level=1"));
+		var range = Assert.Single(MediaRange.ParseAccept("text/html;Q=0.25;level=1"));
 
 		Assert.Equal(0.25m, range.Weight);
 		Assert.Equal("text/html;level=1", range.Media.ToString());
@@ -197,7 +197,7 @@ public sealed class Rfc9110Tests
 	[InlineData("1.000", "1")]
 	public void A_qvalue(string text, string weight)
 	{
-		var range = Assert.Single(Rfc9110.ParseAccept("*/*;q=" + text));
+		var range = Assert.Single(MediaRange.ParseAccept("*/*;q=" + text));
 
 		Assert.Equal(decimal.Parse(weight, System.Globalization.CultureInfo.InvariantCulture), range.Weight);
 	}
@@ -213,7 +213,7 @@ public sealed class Rfc9110Tests
 	[InlineData("text")]
 	public void What_is_no_accept_field(string text)
 	{
-		Assert.False(Rfc9110.TryParseAccept(text).IsSuccess, $"'{text}' was read.");
+		Assert.False(MediaRange.TryParseAccept(text, out _), $"'{text}' was read.");
 	}
 
 	// ── The registry ─────────────────────────────────────────────────────────────
@@ -226,10 +226,8 @@ public sealed class Rfc9110Tests
 
 		foreach (var template in Templates())
 		{
-			var match = Rfc9110.TryParseContentType(template);
-
-			Assert.True(match.IsSuccess, $"'{template}' was not read.");
-			Assert.Equal(template, match.Value!.ToString());
+			Assert.True(MediaType.TryParse(template, out var type), $"'{template}' was not read.");
+			Assert.Equal(template, type!.ToString());
 
 			seen++;
 		}

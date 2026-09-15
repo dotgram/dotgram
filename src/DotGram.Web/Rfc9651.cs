@@ -25,6 +25,78 @@ public sealed record InnerList(IReadOnlyList<Item> Items, OrderedMap<BareItem> P
 	public override int GetHashCode() => Structural.Combine(base.GetHashCode(), Structural.Hash(Items));
 }
 
+/// <summary>Structured Field Values for HTTP (RFC 9651): the three types a field is, read and written.</summary>
+/// <remarks>
+/// A field says which of the three it is — an Item, a List or a Dictionary — in the specification that defines
+/// it, not in its value, so the reading to use is the caller's to choose.
+/// </remarks>
+public static class StructuredField
+{
+	/// <summary>An Item field value (§4.2.3).</summary>
+	/// <exception cref="FormatException">The text is no Item; the message says where.</exception>
+	public static Item ParseItem(string text) =>
+		Rfc9651.ParseItem(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>An Item field value, or false where the text is not one.</summary>
+	public static bool TryParseItem(string text, [NotNullWhen(true)] out Item? item)
+	{
+		var match = Rfc9651.TryParseItem(text ?? throw new ArgumentNullException(nameof(text)));
+
+		item = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>A List field value (§4.2.1).</summary>
+	/// <exception cref="FormatException">The text is no List; the message says where.</exception>
+	public static IReadOnlyList<Member> ParseList(string text) =>
+		Rfc9651.ParseList(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A List field value, or false where the text is not one.</summary>
+	public static bool TryParseList(string text, [NotNullWhen(true)] out IReadOnlyList<Member>? list)
+	{
+		var match = Rfc9651.TryParseList(text ?? throw new ArgumentNullException(nameof(text)));
+
+		list = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>A Dictionary field value (§4.2.2).</summary>
+	/// <exception cref="FormatException">The text is no Dictionary; the message says where.</exception>
+	public static OrderedMap<Member> ParseDictionary(string text) =>
+		Rfc9651.ParseDictionary(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A Dictionary field value, or false where the text is not one.</summary>
+	public static bool TryParseDictionary(string text, [NotNullWhen(true)] out OrderedMap<Member>? dictionary)
+	{
+		var match = Rfc9651.TryParseDictionary(text ?? throw new ArgumentNullException(nameof(text)));
+
+		dictionary = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>Several lines of one field as the one value a field is read from.</summary>
+	/// <remarks>
+	/// §4.2: a parser "MUST combine all field lines … into one comma-separated field-value". Members of a List or
+	/// a Dictionary survive that; a String split across two lines does not, and gains the comma, as the RFC warns.
+	/// </remarks>
+	public static string Combine(IEnumerable<string> lines) => Rfc9651.Combine(lines);
+
+	/// <summary>An Item as §4.1.3 serializes it.</summary>
+	/// <exception cref="ArgumentException">The Item holds what has no serialization, as §4.1 lists.</exception>
+	public static string SerializeItem(Item item) => Rfc9651.SerializeItem(item);
+
+	/// <summary>A List as §4.1.1 serializes it.</summary>
+	/// <exception cref="ArgumentException">The List holds what has no serialization, as §4.1 lists.</exception>
+	public static string SerializeList(IReadOnlyList<Member> list) => Rfc9651.SerializeList(list);
+
+	/// <summary>A Dictionary as §4.1.2 serializes it.</summary>
+	/// <exception cref="ArgumentException">The Dictionary holds what has no serialization, as §4.1 lists.</exception>
+	public static string SerializeDictionary(OrderedMap<Member> dictionary) => Rfc9651.SerializeDictionary(dictionary);
+}
+
 /// <summary>One of the eight values RFC 9651 §3.3 defines.</summary>
 /// <remarks>
 /// A closed set: the eight are nested here and nothing outside can add a ninth, so a
@@ -291,7 +363,7 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEqu
 	parse ListField       as ParseList
 	parse DictionaryField as ParseDictionary
 	""")]
-public static partial class Rfc9651
+static partial class Rfc9651
 {
 	// ParseItem, ParseList and ParseDictionary are generated here, each with its Try form.
 

@@ -22,7 +22,7 @@ public sealed class Rfc7239Tests
 	[Fact]
 	public void An_obfuscated_client()
 	{
-		var element = Assert.Single(Rfc7239.ParseForwarded("for=\"_gazonk\""));
+		var element = Assert.Single(ForwardedElement.ParseField("for=\"_gazonk\""));
 
 		Assert.Equal(new ForwardedNode(ForwardedNode.Kinds.Obfuscated, "_gazonk", null), element.For);
 	}
@@ -30,7 +30,7 @@ public sealed class Rfc7239Tests
 	[Fact]
 	public void An_IPv6_client_with_a_port()
 	{
-		var element = Assert.Single(Rfc7239.ParseForwarded("For=\"[2001:db8:cafe::17]:4711\""));
+		var element = Assert.Single(ForwardedElement.ParseField("For=\"[2001:db8:cafe::17]:4711\""));
 
 		Assert.Equal(new ForwardedNode(ForwardedNode.Kinds.IPv6, "2001:db8:cafe::17", "4711"), element.For);
 		Assert.Equal(4711, element.For!.PortNumber);
@@ -40,7 +40,7 @@ public sealed class Rfc7239Tests
 	[Fact]
 	public void Three_parameters_in_one_element()
 	{
-		var element = Assert.Single(Rfc7239.ParseForwarded("for=192.0.2.60;proto=http;by=203.0.113.43"));
+		var element = Assert.Single(ForwardedElement.ParseField("for=192.0.2.60;proto=http;by=203.0.113.43"));
 
 		Assert.Equal(new ForwardedNode(ForwardedNode.Kinds.IPv4, "192.0.2.60", null), element.For);
 		Assert.Equal("http", element.Proto);
@@ -51,7 +51,7 @@ public sealed class Rfc7239Tests
 	[Fact]
 	public void Two_elements()
 	{
-		var elements = Rfc7239.ParseForwarded("for=192.0.2.43, for=198.51.100.17");
+		var elements = ForwardedElement.ParseField("for=192.0.2.43, for=198.51.100.17");
 
 		Assert.Equal(["192.0.2.43", "198.51.100.17"], elements.Select(element => element.For!.Name).ToArray());
 	}
@@ -70,7 +70,7 @@ public sealed class Rfc7239Tests
 	[InlineData("10.0.0.1:99999", ForwardedNode.Kinds.IPv4, "10.0.0.1", "99999")]
 	public void A_node(string text, ForwardedNode.Kinds kind, string name, string? port)
 	{
-		Assert.Equal(new ForwardedNode(kind, name, port), Rfc7239.ParseNode(text));
+		Assert.Equal(new ForwardedNode(kind, name, port), ForwardedNode.Parse(text));
 	}
 
 	[Theory]
@@ -87,13 +87,13 @@ public sealed class Rfc7239Tests
 	[InlineData("")]
 	public void What_is_no_node(string text)
 	{
-		Assert.False(Rfc7239.TryParseNode(text).IsSuccess, $"'{text}' was read.");
+		Assert.False(ForwardedNode.TryParse(text, out _), $"'{text}' was read.");
 	}
 
 	[Fact]
 	public void Obfuscated_identifiers()
 	{
-		var elements = Rfc7239.ParseForwarded("for=_hidden, for=_SEVKISEK");
+		var elements = ForwardedElement.ParseField("for=_hidden, for=_SEVKISEK");
 
 		Assert.All(elements, element => Assert.Equal(ForwardedNode.Kinds.Obfuscated, element.For!.Kind));
 		Assert.All(elements, element => Assert.Null(element.For!.PortNumber));
@@ -105,9 +105,9 @@ public sealed class Rfc7239Tests
 	[Fact]
 	public void Lists_that_are_equivalent()
 	{
-		var tight  = Rfc7239.ParseForwarded("for=192.0.2.43,for=\"[2001:db8:cafe::17]\",for=unknown");
-		var spaced = Rfc7239.ParseForwarded("for=192.0.2.43, for=\"[2001:db8:cafe::17]\", for=unknown");
-		var split  = Rfc7239.ParseForwarded("for=192.0.2.43").Concat(Rfc7239.ParseForwarded("for=\"[2001:db8:cafe::17]\", for=unknown")).ToArray();
+		var tight  = ForwardedElement.ParseField("for=192.0.2.43,for=\"[2001:db8:cafe::17]\",for=unknown");
+		var spaced = ForwardedElement.ParseField("for=192.0.2.43, for=\"[2001:db8:cafe::17]\", for=unknown");
+		var split  = ForwardedElement.ParseField("for=192.0.2.43").Concat(ForwardedElement.ParseField("for=\"[2001:db8:cafe::17]\", for=unknown")).ToArray();
 
 		Assert.Equal(tight, spaced);
 		Assert.Equal(tight, split);
@@ -117,7 +117,7 @@ public sealed class Rfc7239Tests
 	[Fact]
 	public void From_X_Forwarded_For()
 	{
-		var elements = Rfc7239.ParseForwarded("for=192.0.2.43, for=\"[2001:db8:cafe::17]\"");
+		var elements = ForwardedElement.ParseField("for=192.0.2.43, for=\"[2001:db8:cafe::17]\"");
 
 		Assert.Equal([ForwardedNode.Kinds.IPv4, ForwardedNode.Kinds.IPv6], elements.Select(element => element.For!.Kind).ToArray());
 	}
@@ -126,7 +126,7 @@ public sealed class Rfc7239Tests
 	[Fact]
 	public void The_example_usage()
 	{
-		var elements = Rfc7239.ParseForwarded("for=192.0.2.43, for=198.51.100.17;by=203.0.113.60;proto=http;host=example.com");
+		var elements = ForwardedElement.ParseField("for=192.0.2.43, for=198.51.100.17;by=203.0.113.60;proto=http;host=example.com");
 
 		Assert.Equal(2, elements.Length);
 		Assert.Equal("198.51.100.17", elements[1].For!.Name);
@@ -140,7 +140,7 @@ public sealed class Rfc7239Tests
 	[Fact]
 	public void Empty_slots_and_elements_are_left_out()
 	{
-		var elements = Rfc7239.ParseForwarded(" , ;for=_a;; ,, ;;, by=_b; ");
+		var elements = ForwardedElement.ParseField(" , ;for=_a;; ,, ;;, by=_b; ");
 
 		Assert.Equal(2, elements.Length);
 		Assert.Equal([new ForwardedElement.Pair("for", "_a")], elements[0].Pairs);
@@ -150,7 +150,7 @@ public sealed class Rfc7239Tests
 	[Fact]
 	public void Extension_parameters_and_hosts()
 	{
-		var element = Assert.Single(Rfc7239.ParseForwarded("secret=\"a b\";host=\"example.com:8080\";proto=coap+tcp"));
+		var element = Assert.Single(ForwardedElement.ParseField("secret=\"a b\";host=\"example.com:8080\";proto=coap+tcp"));
 
 		Assert.Equal("a b", element.Find("SECRET"));
 		Assert.Equal("example.com:8080", element.Host);
@@ -161,12 +161,12 @@ public sealed class Rfc7239Tests
 	[Fact]
 	public void Equal_whatever_the_case_of_names()
 	{
-		var one   = Assert.Single(Rfc7239.ParseForwarded("for=_a;proto=https"));
-		var other = Assert.Single(Rfc7239.ParseForwarded("FOR=\"_a\";Proto=https"));
+		var one   = Assert.Single(ForwardedElement.ParseField("for=_a;proto=https"));
+		var other = Assert.Single(ForwardedElement.ParseField("FOR=\"_a\";Proto=https"));
 
 		Assert.Equal(one, other);
 		Assert.Equal(one.GetHashCode(), other.GetHashCode());
-		Assert.NotEqual(one, Assert.Single(Rfc7239.ParseForwarded("for=_A;proto=https")));
+		Assert.NotEqual(one, Assert.Single(ForwardedElement.ParseField("for=_A;proto=https")));
 	}
 
 	[Theory]
@@ -174,9 +174,9 @@ public sealed class Rfc7239Tests
 	[InlineData("for=unknown, for=\"192.0.2.1:_p\"")]
 	public void Written_back_and_read_again(string field)
 	{
-		var elements = Rfc7239.ParseForwarded(field);
+		var elements = ForwardedElement.ParseField(field);
 
-		Assert.Equal(elements, Rfc7239.ParseForwarded(string.Join(", ", elements.Select(element => element.ToString()))));
+		Assert.Equal(elements, ForwardedElement.ParseField(string.Join(", ", elements.Select(element => element.ToString()))));
 	}
 
 	[Theory]
@@ -200,6 +200,6 @@ public sealed class Rfc7239Tests
 	[InlineData("for=\"_a")]
 	public void What_is_no_field(string field)
 	{
-		Assert.False(Rfc7239.TryParseForwarded(field).IsSuccess, $"'{field}' was read.");
+		Assert.False(ForwardedElement.TryParseField(field, out _), $"'{field}' was read.");
 	}
 }

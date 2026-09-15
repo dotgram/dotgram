@@ -30,7 +30,7 @@ public sealed class Rfc8259Tests
 	[MemberData(nameof(Cases))]
 	public void Every_case_of_the_suite_is_answered_as_it_says(string file)
 	{
-		var accepted = Read(file) is { } text && Rfc8259.TryParseJson(text).IsSuccess;
+		var accepted = Read(file) is { } text && JsonValue.TryParse(text, out _);
 
 		switch (file[0])
 		{
@@ -49,18 +49,18 @@ public sealed class Rfc8259Tests
 	[MemberData(nameof(Cases))]
 	public void What_is_read_writes_back_as_the_same_value(string file)
 	{
-		if (Read(file) is not { } text || Rfc8259.TryParseJson(text) is not { IsSuccess: true } read)
+		if (Read(file) is not { } text || !JsonValue.TryParse(text, out var read))
 			return;
 
-		var written = read.Value.ToString();
+		var written = read.ToString();
 
-		Assert.Equal(written, Rfc8259.ParseJson(written).ToString());
+		Assert.Equal(written, JsonValue.Parse(written).ToString());
 	}
 
 	[Fact]
 	public void A_value_comes_apart_as_the_RFC_divides_it()
 	{
-		var value = (JsonValue.Object)Rfc8259.ParseJson("""
+		var value = (JsonValue.Object)JsonValue.Parse("""
 			{ "name": "a\u00e9\"b", "list": [1, -0.5e+3, true, false, null], "empty": {}, "name": 2 }
 			""");
 
@@ -80,7 +80,7 @@ public sealed class Rfc8259Tests
 	[Fact]
 	public void A_number_keeps_its_text()
 	{
-		var number = (JsonValue.Number)Rfc8259.ParseJson("3.141592653589793238462643383279");
+		var number = (JsonValue.Number)JsonValue.Parse("3.141592653589793238462643383279");
 
 		Assert.Equal("3.141592653589793238462643383279", number.Text);
 		Assert.True(number.TryToDecimal(out var exact));
@@ -92,7 +92,7 @@ public sealed class Rfc8259Tests
 	[Fact]
 	public void A_lone_surrogate_survives()
 	{
-		var text = (JsonValue.String)Rfc8259.ParseJson("\"\\uDEAD\"");
+		var text = (JsonValue.String)JsonValue.Parse("\"\\uDEAD\"");
 
 		Assert.Equal("\uDEAD", text.Value);
 		Assert.Equal("\"\\udead\"", text.ToString());
@@ -104,7 +104,7 @@ public sealed class Rfc8259Tests
 	{
 		var depth = 100_000;
 		var text  = new string('[', depth) + new string(']', depth);
-		var value = Rfc8259.ParseJson(text);
+		var value = JsonValue.Parse(text);
 
 		for (var level = 1; level < depth; level++)
 			value = ((JsonValue.Array)value).Items[0];
@@ -118,13 +118,13 @@ public sealed class Rfc8259Tests
 	{
 		const string Text = """{ "a": [1, { "b": null }, "c"], "a": 2 }""";
 
-		Assert.Equal(Rfc8259.ParseJson(Text), Rfc8259.ParseJson(Text));
-		Assert.Equal(Rfc8259.ParseJson(Text).GetHashCode(), Rfc8259.ParseJson(Text).GetHashCode());
+		Assert.Equal(JsonValue.Parse(Text), JsonValue.Parse(Text));
+		Assert.Equal(JsonValue.Parse(Text).GetHashCode(), JsonValue.Parse(Text).GetHashCode());
 
-		Assert.NotEqual(Rfc8259.ParseJson("""{ "a": [1] }"""), Rfc8259.ParseJson("""{ "a": [2] }"""));
-		Assert.NotEqual(Rfc8259.ParseJson("""{ "a": 1, "b": 2 }"""), Rfc8259.ParseJson("""{ "b": 2, "a": 1 }"""));
-		Assert.NotEqual(Rfc8259.ParseJson("""{ "a": 1 }"""), Rfc8259.ParseJson("""{ "a": 1, "a": 1 }"""));
-		Assert.NotEqual(Rfc8259.ParseJson("[1.0]"), Rfc8259.ParseJson("[1]"));
+		Assert.NotEqual(JsonValue.Parse("""{ "a": [1] }"""), JsonValue.Parse("""{ "a": [2] }"""));
+		Assert.NotEqual(JsonValue.Parse("""{ "a": 1, "b": 2 }"""), JsonValue.Parse("""{ "b": 2, "a": 1 }"""));
+		Assert.NotEqual(JsonValue.Parse("""{ "a": 1 }"""), JsonValue.Parse("""{ "a": 1, "a": 1 }"""));
+		Assert.NotEqual(JsonValue.Parse("[1.0]"), JsonValue.Parse("[1]"));
 	}
 
 	public static TheoryData<string> Cases =>

@@ -31,7 +31,7 @@ public sealed class Rfc6266Tests
 	[Fact]
 	public void An_attachment_with_a_filename()
 	{
-		var field = Rfc6266.ParseContentDisposition("Attachment; filename=example.html");
+		var field = ContentDisposition.Parse("Attachment; filename=example.html");
 
 		Assert.True(field.IsAttachment);
 		Assert.Equal("example.html", field.Filename);
@@ -40,7 +40,7 @@ public sealed class Rfc6266Tests
 	[Fact]
 	public void Inline_with_a_quoted_filename()
 	{
-		var field = Rfc6266.ParseContentDisposition("INLINE; FILENAME= \"an example.html\"");
+		var field = ContentDisposition.Parse("INLINE; FILENAME= \"an example.html\"");
 
 		Assert.True(field.IsInline);
 		Assert.Equal("an example.html", field.Filename);
@@ -49,7 +49,7 @@ public sealed class Rfc6266Tests
 	[Fact]
 	public void A_filename_past_ISO_8859_1()
 	{
-		var field = Rfc6266.ParseContentDisposition("attachment; filename*= UTF-8''%e2%82%ac%20rates");
+		var field = ContentDisposition.Parse("attachment; filename*= UTF-8''%e2%82%ac%20rates");
 
 		Assert.Equal("\u20AC rates", field.Filename);
 		Assert.Equal(new ExtendedValue("UTF-8", null, "\u20AC rates"), field.Find("FILENAME*")!.Extended);
@@ -60,7 +60,7 @@ public sealed class Rfc6266Tests
 	public void Both_filename_parameters()
 	{
 		// The example's line breaks unfolded to the space a field value carries.
-		var field = Rfc6266.ParseContentDisposition("attachment; filename=\"EURO rates\"; filename*=utf-8''%e2%82%ac%20rates");
+		var field = ContentDisposition.Parse("attachment; filename=\"EURO rates\"; filename*=utf-8''%e2%82%ac%20rates");
 
 		Assert.Equal("\u20AC rates", field.Filename);
 		Assert.Equal("EURO rates", field.Find("filename")!.Value);
@@ -69,7 +69,7 @@ public sealed class Rfc6266Tests
 	[Fact]
 	public void A_filename_star_that_does_not_decode_gives_way()
 	{
-		var field = Rfc6266.ParseContentDisposition("attachment; filename*=ISO-8859-15''euro%A4; filename=euro");
+		var field = ContentDisposition.Parse("attachment; filename*=ISO-8859-15''euro%A4; filename=euro");
 
 		Assert.Equal("euro", field.Filename);
 		Assert.Null(field.Find("filename*")!.Extended!.Value);
@@ -78,12 +78,12 @@ public sealed class Rfc6266Tests
 	[Fact]
 	public void Equal_whatever_the_case_of_type_and_names()
 	{
-		var one   = Rfc6266.ParseContentDisposition("attachment; filename=foo.html");
-		var other = Rfc6266.ParseContentDisposition(" ATTACHMENT ;FILENAME = \"foo.html\" ");
+		var one   = ContentDisposition.Parse("attachment; filename=foo.html");
+		var other = ContentDisposition.Parse(" ATTACHMENT ;FILENAME = \"foo.html\" ");
 
 		Assert.Equal(one, other);
 		Assert.Equal(one.GetHashCode(), other.GetHashCode());
-		Assert.NotEqual(one, Rfc6266.ParseContentDisposition("attachment; filename=FOO.html"));
+		Assert.NotEqual(one, ContentDisposition.Parse("attachment; filename=FOO.html"));
 	}
 
 	// ── tc2231 ───────────────────────────────────────────────────────────────────
@@ -144,18 +144,16 @@ public sealed class Rfc6266Tests
 	[InlineData("attrfc2047quoted", "attachment; filename=\"=?ISO-8859-1?Q?foo-=E4.html?=\"", "=?ISO-8859-1?Q?foo-=E4.html?=")]
 	public void A_valid_case(string name, string value, string? filename)
 	{
-		var match = Rfc6266.TryParseContentDisposition(value);
+		Assert.True(ContentDisposition.TryParse(value, out var parsed), $"{name}: '{value}' was not read.");
 
-		Assert.True(match.IsSuccess, $"{name}: '{value}' was not read.");
-
-		var field = match.Value!;
+		var field = parsed!;
 
 		Assert.Equal(value.Split(';')[0].Trim(), field.Type);
 		Assert.Equal(!value.StartsWith("inline", StringComparison.Ordinal), field.IsAttachment);
 		Assert.Equal(filename, field.Filename);
 
 		// Written back and read again, the field is the same field.
-		Assert.Equal(field, Rfc6266.ParseContentDisposition(field.ToString()));
+		Assert.Equal(field, ContentDisposition.Parse(field.ToString()));
 	}
 
 	/// <summary>A case whose field the ABNF does not make.</summary>
@@ -197,7 +195,7 @@ public sealed class Rfc6266Tests
 	[InlineData("attwithfn2231nbadpct2", "attachment; filename*=UTF-8''f%oo.html")]
 	public void An_invalid_case(string name, string value)
 	{
-		Assert.False(Rfc6266.TryParseContentDisposition(value).IsSuccess, $"{name}: '{value}' was read.");
+		Assert.False(ContentDisposition.TryParse(value, out _), $"{name}: '{value}' was read.");
 	}
 
 	[Theory]
@@ -208,6 +206,6 @@ public sealed class Rfc6266Tests
 	[InlineData("")]
 	public void What_else_is_no_field(string value)
 	{
-		Assert.False(Rfc6266.TryParseContentDisposition(value).IsSuccess, $"'{value}' was read.");
+		Assert.False(ContentDisposition.TryParse(value, out _), $"'{value}' was read.");
 	}
 }

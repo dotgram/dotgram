@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 using DotGram;
@@ -17,6 +18,39 @@ namespace DotGram.Web;
 /// <param name="Domain">A domain name, or a domain literal with its brackets.</param>
 public sealed record AddrSpec(string LocalPart, string Domain)
 {
+	/// <summary>An addr-spec as a receiver reads it: §3's syntax and §4's obsolete syntax both.</summary>
+	/// <exception cref="FormatException">The text is no addr-spec; the message says where.</exception>
+	public static AddrSpec Parse(string text) =>
+		Rfc5322.ParseAddrSpec(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>An addr-spec as a receiver reads it, or false where the text is not one.</summary>
+	public static bool TryParse(string text, [NotNullWhen(true)] out AddrSpec? address)
+	{
+		var match = Rfc5322.TryParseAddrSpec(text ?? throw new ArgumentNullException(nameof(text)));
+
+		address = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>An addr-spec in §3's syntax alone: what a sender may write.</summary>
+	/// <exception cref="FormatException">The text is no addr-spec §3 makes; the message says where.</exception>
+	public static AddrSpec ParseStrict(string text) =>
+		Rfc5322.ParseStrictAddrSpec(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>An addr-spec in §3's syntax alone, or false where the text is not one.</summary>
+	public static bool TryParseStrict(string text, [NotNullWhen(true)] out AddrSpec? address)
+	{
+		var match = Rfc5322.TryParseStrictAddrSpec(text ?? throw new ArgumentNullException(nameof(text)));
+
+		address = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>Whether a local part can be written as a dot-atom: atext, and dots between runs of it.</summary>
+	public static bool IsDotAtom(string text) => Rfc5322.IsDotAtomText(text);
+
 	/// <summary>Whether the domain is a domain literal, <c>[...]</c>.</summary>
 	public bool IsDomainLiteral => Domain.Length > 0 && Domain[0] == '[';
 
@@ -55,10 +89,70 @@ public sealed record AddrSpec(string LocalPart, string Domain)
 
 /// <summary>An address (RFC 5322 §3.4): a mailbox, or a named group of mailboxes.</summary>
 /// <remarks>A closed set: the two are nested here and nothing outside can add a third.</remarks>
-public abstract record MailAddress
+public abstract record EmailAddress
 {
-	MailAddress()
+	EmailAddress()
 	{
+	}
+
+	/// <summary>An address-list as a receiver reads it, null members left out: what <c>To</c> and <c>Cc</c> hold.</summary>
+	/// <exception cref="FormatException">The text is no address-list; the message says where.</exception>
+	public static EmailAddress[] ParseList(string text) =>
+		Rfc5322.ParseAddressList(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>An address-list as a receiver reads it, or false where the text is not one.</summary>
+	public static bool TryParseList(string text, [NotNullWhen(true)] out EmailAddress[]? addresses)
+	{
+		var match = Rfc5322.TryParseAddressList(text ?? throw new ArgumentNullException(nameof(text)));
+
+		addresses = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>An address-list in §3's syntax alone: what a sender may write.</summary>
+	/// <exception cref="FormatException">The text is no address-list §3 makes; the message says where.</exception>
+	public static EmailAddress[] ParseStrictList(string text) =>
+		Rfc5322.ParseStrictAddressList(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>An address-list in §3's syntax alone, or false where the text is not one.</summary>
+	public static bool TryParseStrictList(string text, [NotNullWhen(true)] out EmailAddress[]? addresses)
+	{
+		var match = Rfc5322.TryParseStrictAddressList(text ?? throw new ArgumentNullException(nameof(text)));
+
+		addresses = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>A mailbox-list as a receiver reads it, null members left out: what <c>From</c> holds.</summary>
+	/// <exception cref="FormatException">The text is no mailbox-list; the message says where.</exception>
+	public static Mailbox[] ParseMailboxList(string text) =>
+		Rfc5322.ParseMailboxList(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A mailbox-list as a receiver reads it, or false where the text is not one.</summary>
+	public static bool TryParseMailboxList(string text, [NotNullWhen(true)] out Mailbox[]? mailboxes)
+	{
+		var match = Rfc5322.TryParseMailboxList(text ?? throw new ArgumentNullException(nameof(text)));
+
+		mailboxes = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>A mailbox-list in §3's syntax alone.</summary>
+	/// <exception cref="FormatException">The text is no mailbox-list §3 makes; the message says where.</exception>
+	public static Mailbox[] ParseStrictMailboxList(string text) =>
+		Rfc5322.ParseStrictMailboxList(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A mailbox-list in §3's syntax alone, or false where the text is not one.</summary>
+	public static bool TryParseStrictMailboxList(string text, [NotNullWhen(true)] out Mailbox[]? mailboxes)
+	{
+		var match = Rfc5322.TryParseStrictMailboxList(text ?? throw new ArgumentNullException(nameof(text)));
+
+		mailboxes = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
 	}
 
 	/// <summary>A mailbox: an addr-spec and, where one was given, a display name.</summary>
@@ -66,10 +160,41 @@ public abstract record MailAddress
 	/// The phrase as it reads: comments dropped, each run of whitespace one space, quoted strings unquoted; null where
 	/// there was none.
 	/// </param>
-	public sealed record Mailbox(string? DisplayName, AddrSpec Address) : MailAddress;
+	public sealed record Mailbox(string? DisplayName, AddrSpec Address) : EmailAddress
+	{
+		/// <summary>A mailbox as a receiver reads it (§3.4, §4.4).</summary>
+		/// <exception cref="FormatException">The text is no mailbox; the message says where.</exception>
+		public static Mailbox Parse(string text) =>
+			Rfc5322.ParseMailbox(text ?? throw new ArgumentNullException(nameof(text)));
+
+		/// <summary>A mailbox as a receiver reads it, or false where the text is not one.</summary>
+		public static bool TryParse(string text, [NotNullWhen(true)] out Mailbox? mailbox)
+		{
+			var match = Rfc5322.TryParseMailbox(text ?? throw new ArgumentNullException(nameof(text)));
+
+			mailbox = match.IsSuccess ? match.Value : null;
+
+			return match.IsSuccess;
+		}
+
+		/// <summary>A mailbox in §3's syntax alone.</summary>
+		/// <exception cref="FormatException">The text is no mailbox §3 makes; the message says where.</exception>
+		public static Mailbox ParseStrict(string text) =>
+			Rfc5322.ParseStrictMailbox(text ?? throw new ArgumentNullException(nameof(text)));
+
+		/// <summary>A mailbox in §3's syntax alone, or false where the text is not one.</summary>
+		public static bool TryParseStrict(string text, [NotNullWhen(true)] out Mailbox? mailbox)
+		{
+			var match = Rfc5322.TryParseStrictMailbox(text ?? throw new ArgumentNullException(nameof(text)));
+
+			mailbox = match.IsSuccess ? match.Value : null;
+
+			return match.IsSuccess;
+		}
+	}
 
 	/// <summary>A group: a display name and its mailboxes, of which there may be none.</summary>
-	public sealed record Group(string DisplayName, IReadOnlyList<Mailbox> Members) : MailAddress
+	public sealed record Group(string DisplayName, IReadOnlyList<Mailbox> Members) : EmailAddress
 	{
 		public bool Equals(Group? other) =>
 			other is not null && DisplayName == other.DisplayName && Structural.Same(Members, other.Members);
@@ -214,36 +339,36 @@ public abstract record MailAddress
 
 	// ── §3.4 ─────────────────────────────────────────────────────────────────────
 
-	Address : @MailAddress = mailbox: Mailbox => @(mailbox) | group: Group => @(group)
+	Address : @EmailAddress = mailbox: Mailbox => @(mailbox) | group: Group => @(group)
 
-	Mailbox : @MailAddress.Mailbox
-		= (name: Phrase)? & address: AngleAddr => @(new MailAddress.Mailbox(Rfc5322.DisplayName(name), address))
-		| address: AddrSpecRule                => @(new MailAddress.Mailbox(null, address))
+	Mailbox : @EmailAddress.Mailbox
+		= (name: Phrase)? & address: AngleAddr => @(new EmailAddress.Mailbox(Rfc5322.DisplayName(name), address))
+		| address: AddrSpecRule                => @(new EmailAddress.Mailbox(null, address))
 
 	// angle-addr = [CFWS] "<" addr-spec ">" [CFWS] / obs-angle-addr, which adds a route to ignore.
 	AngleAddr : @AddrSpec = Cfws? & '<' & ObsRoute? & address: AddrSpecRule & '>' & Cfws? => @(address)
 
-	Group : @MailAddress.Group
+	Group : @EmailAddress.Group
 		= name: Phrase & ':' & members: GroupList & ';' & Cfws?
-		=> @(new MailAddress.Group(Rfc5322.DisplayName(name)!, members))
+		=> @(new EmailAddress.Group(Rfc5322.DisplayName(name)!, members))
 
-	GroupList : @MailAddress.Mailbox[]
+	GroupList : @EmailAddress.Mailbox[]
 		= list: MailboxList => @(list)
-		| ObsGroupList      => @(Array.Empty<MailAddress.Mailbox>())
-		| Cfws?             => @(Array.Empty<MailAddress.Mailbox>())
+		| ObsGroupList      => @(Array.Empty<EmailAddress.Mailbox>())
+		| Cfws?             => @(Array.Empty<EmailAddress.Mailbox>())
 
 	// mailbox-list = (mailbox *("," mailbox)) / obs-mbox-list, whose null members the Strict readings refuse.
-	MailboxList : @MailAddress.Mailbox[] = NullMembers & first: Mailbox & rest: NextMailbox* => @(Rfc5322.Joined(first, rest))
+	MailboxList : @EmailAddress.Mailbox[] = NullMembers & first: Mailbox & rest: NextMailbox* => @(Rfc5322.Joined(first, rest))
 
-	NextMailbox : @MailAddress.Mailbox[]
+	NextMailbox : @EmailAddress.Mailbox[]
 		= ',' & mailbox: Mailbox => @(new[] { mailbox })
-		| ',' & NullMember       => @(Array.Empty<MailAddress.Mailbox>())
+		| ',' & NullMember       => @(Array.Empty<EmailAddress.Mailbox>())
 
-	AddressList : @MailAddress[] = NullMembers & first: Address & rest: NextAddress* => @(Rfc5322.Joined(first, rest))
+	AddressList : @EmailAddress[] = NullMembers & first: Address & rest: NextAddress* => @(Rfc5322.Joined(first, rest))
 
-	NextAddress : @MailAddress[]
+	NextAddress : @EmailAddress[]
 		= ',' & address: Address => @(new[] { address })
-		| ',' & NullMember       => @(Array.Empty<MailAddress>())
+		| ',' & NullMember       => @(Array.Empty<EmailAddress>())
 
 	// ── §4 ───────────────────────────────────────────────────────────────────────
 
@@ -276,7 +401,7 @@ public abstract record MailAddress
 	parse MailboxList  with (Fws = CurrentFws, ObsNoWsCtl = Never, ObsQp = Never, ObsDtext = Never, LocalPart = CurrentLocalPart, Domain = CurrentDomain, Phrase = CurrentPhrase, ObsRoute = Never, NullMembers = none, NullMember = Never) as ParseStrictMailboxList
 	parse AddressList  with (Fws = CurrentFws, ObsNoWsCtl = Never, ObsQp = Never, ObsDtext = Never, LocalPart = CurrentLocalPart, Domain = CurrentDomain, Phrase = CurrentPhrase, ObsRoute = Never, NullMembers = none, NullMember = Never, ObsGroupList = Never) as ParseStrictAddressList
 	""")]
-public static partial class Rfc5322
+static partial class Rfc5322
 {
 	// ParseAddrSpec, ParseMailbox, ParseMailboxList, ParseAddressList, their Strict readings and all their Try
 	// forms are generated here.

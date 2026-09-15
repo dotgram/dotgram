@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 
@@ -22,6 +23,21 @@ public abstract record JsonValue
 {
 	JsonValue()
 	{
+	}
+
+	/// <summary>A JSON text (RFC 8259 §2): one value, with whitespace around it.</summary>
+	/// <exception cref="FormatException">The text is not JSON; the message says where it stops being so.</exception>
+	public static JsonValue Parse(string text) =>
+		Rfc8259.ParseJson(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A JSON text, or false where the text is not one.</summary>
+	public static bool TryParse(string text, [NotNullWhen(true)] out JsonValue? value)
+	{
+		var match = Rfc8259.TryParseJson(text ?? throw new ArgumentNullException(nameof(text)));
+
+		value = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
 	}
 
 	/// <summary>§4: members in the order written, names as unescaped strings, duplicates kept.</summary>
@@ -248,9 +264,9 @@ public abstract record JsonValue
 
 	parse JsonText as ParseJson
 	""")]
-public static partial class Rfc8259
+static partial class Rfc8259
 {
-	// ParseJson and TryParseJson are generated here.
+	// ParseJson and TryParseJson are generated here; JsonValue.Parse is the way in.
 
 	internal static JsonValue[] Joined(JsonValue? first, JsonValue[]? rest)
 	{

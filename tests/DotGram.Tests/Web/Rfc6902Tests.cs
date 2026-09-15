@@ -52,7 +52,7 @@ public sealed class Rfc6902Tests
 
 		JsonValue? result = null;
 
-		var applied = Rfc6902.TryReadPatch(Member(record, "patch")!, out var patch, out var error) &&
+		var applied = JsonPatch.TryRead(Member(record, "patch")!, out var patch, out var error) &&
 			patch.TryApply(document, out result, out error);
 
 		if (failure is not null)
@@ -64,10 +64,10 @@ public sealed class Rfc6902Tests
 		Assert.True(applied, $"{comment}: {error}");
 
 		if (expected is not null)
-			Assert.True(Rfc6902.AreEqual(expected, result!), $"{comment}: {result} is not {expected}.");
+			Assert.True(JsonPatch.AreEqual(expected, result!), $"{comment}: {result} is not {expected}.");
 
 		// Written back and read again, the patch is the same patch.
-		Assert.Equal(patch, Rfc6902.ParsePatch(patch!.ToString()));
+		Assert.Equal(patch, JsonPatch.Parse(patch!.ToString()));
 	}
 
 	// ── §4 ───────────────────────────────────────────────────────────────────────
@@ -75,7 +75,7 @@ public sealed class Rfc6902Tests
 	[Fact]
 	public void The_example_of_section_3()
 	{
-		var patch = Rfc6902.ParsePatch("""
+		var patch = JsonPatch.Parse("""
 			[
 			  { "op": "test", "path": "/a/b/c", "value": "foo" },
 			  { "op": "remove", "path": "/a/b/c" },
@@ -86,9 +86,9 @@ public sealed class Rfc6902Tests
 			]
 			""");
 
-		var result = patch.Apply(Rfc8259.ParseJson("""{ "a": { "b": { "c": "foo" } } }"""));
+		var result = patch.Apply(JsonValue.Parse("""{ "a": { "b": { "c": "foo" } } }"""));
 
-		Assert.Equal(Rfc8259.ParseJson("""{ "a": { "b": { "d": 42, "e": 42 } } }"""), result);
+		Assert.Equal(JsonValue.Parse("""{ "a": { "b": { "d": 42, "e": 42 } } }"""), result);
 	}
 
 	/// <summary>§4: the order of an operation's members does not matter, and a member it does not define is ignored.</summary>
@@ -101,7 +101,7 @@ public sealed class Rfc6902Tests
 			"""[{ "path": "/a/b/c", "op": "add", "value": "foo" }]""",
 			"""[{ "value": "foo", "path": "/a/b/c", "op": "add", "from": 1, "from": 2 }]""",
 		}
-		.Select(Rfc6902.ParsePatch)
+		.Select(JsonPatch.Parse)
 		.ToArray();
 
 		Assert.All(patches, patch => Assert.Equal(patches[0], patch));
@@ -118,71 +118,71 @@ public sealed class Rfc6902Tests
 	[InlineData("""[]""", "An operation is an object")]
 	public void What_is_no_operation(string operation, string reason)
 	{
-		Assert.False(Rfc6902.TryReadPatch(Rfc8259.ParseJson("[" + operation + "]"), out _, out var error));
+		Assert.False(JsonPatch.TryRead(JsonValue.Parse("[" + operation + "]"), out _, out var error));
 		Assert.Contains(reason, error!);
 	}
 
 	[Fact]
 	public void A_patch_document_is_an_array()
 	{
-		Assert.Throws<JsonPatchException>(() => Rfc6902.ParsePatch("""{ "op": "remove", "path": "" }"""));
+		Assert.Throws<JsonPatchException>(() => JsonPatch.Parse("""{ "op": "remove", "path": "" }"""));
 	}
 
 	/// <summary>§5: a patch that fails leaves the document as it was, and says which operation failed.</summary>
 	[Fact]
 	public void A_failed_patch_changes_nothing()
 	{
-		var document = Rfc8259.ParseJson("""{ "a": { "b": { "c": "foo" } } }""");
-		var patch    = Rfc6902.ParsePatch("""[{ "op": "replace", "path": "/a/b/c", "value": 42 }, { "op": "test", "path": "/a/b/c", "value": "C" }]""");
+		var document = JsonValue.Parse("""{ "a": { "b": { "c": "foo" } } }""");
+		var patch    = JsonPatch.Parse("""[{ "op": "replace", "path": "/a/b/c", "value": 42 }, { "op": "test", "path": "/a/b/c", "value": "C" }]""");
 
 		var failure = Assert.Throws<JsonPatchException>(() => patch.Apply(document));
 
 		Assert.StartsWith("Operation 1 ", failure.Message);
-		Assert.Equal(Rfc8259.ParseJson("""{ "a": { "b": { "c": "foo" } } }"""), document);
+		Assert.Equal(JsonValue.Parse("""{ "a": { "b": { "c": "foo" } } }"""), document);
 	}
 
 	/// <summary>§4.1: adding needs the object or array the new value goes into.</summary>
 	[Fact]
 	public void Adding_needs_the_parent()
 	{
-		var patch = Rfc6902.ParsePatch("""[{ "op": "add", "path": "/a/b", "value": 1 }]""");
+		var patch = JsonPatch.Parse("""[{ "op": "add", "path": "/a/b", "value": 1 }]""");
 
-		Assert.Equal(Rfc8259.ParseJson("""{ "a": { "foo": 1, "b": 1 } }"""), patch.Apply(Rfc8259.ParseJson("""{ "a": { "foo": 1 } }""")));
-		Assert.False(patch.TryApply(Rfc8259.ParseJson("""{ "q": { "bar": 2 } }"""), out _, out _));
+		Assert.Equal(JsonValue.Parse("""{ "a": { "foo": 1, "b": 1 } }"""), patch.Apply(JsonValue.Parse("""{ "a": { "foo": 1 } }""")));
+		Assert.False(patch.TryApply(JsonValue.Parse("""{ "q": { "bar": 2 } }"""), out _, out _));
 	}
 
 	/// <summary>§4.4: a location cannot be moved into one of its children; moved onto itself, nothing changes.</summary>
 	[Fact]
 	public void Moving_into_a_child()
 	{
-		var document = Rfc8259.ParseJson("""{ "a": { "b": 1 } }""");
+		var document = JsonValue.Parse("""{ "a": { "b": 1 } }""");
 
-		Assert.False(Rfc6902.ParsePatch("""[{ "op": "move", "from": "/a", "path": "/a/c" }]""").TryApply(document, out _, out _));
-		Assert.Same(document, Rfc6902.ParsePatch("""[{ "op": "move", "from": "/a", "path": "/a" }]""").Apply(document));
+		Assert.False(JsonPatch.Parse("""[{ "op": "move", "from": "/a", "path": "/a/c" }]""").TryApply(document, out _, out _));
+		Assert.Same(document, JsonPatch.Parse("""[{ "op": "move", "from": "/a", "path": "/a" }]""").Apply(document));
 	}
 
 	/// <summary>Held for document update, erratum 4787: the whole document cannot be removed.</summary>
 	[Fact]
 	public void The_whole_document_cannot_be_removed()
 	{
-		Assert.False(Rfc6902.ParsePatch("""[{ "op": "remove", "path": "" }]""").TryApply(Rfc8259.ParseJson("1"), out _, out _));
+		Assert.False(JsonPatch.Parse("""[{ "op": "remove", "path": "" }]""").TryApply(JsonValue.Parse("1"), out _, out _));
 	}
 
 	/// <summary>A name written twice is a location that does not exist (RFC 6901 §4).</summary>
 	[Fact]
 	public void A_name_written_twice_is_no_location()
 	{
-		var document = Rfc8259.ParseJson("""{ "a": 1, "a": 2 }""");
+		var document = JsonValue.Parse("""{ "a": 1, "a": 2 }""");
 
-		Assert.False(Rfc6902.ParsePatch("""[{ "op": "remove", "path": "/a" }]""").TryApply(document, out _, out _));
-		Assert.False(Rfc6902.ParsePatch("""[{ "op": "test", "path": "/a", "value": 1 }]""").TryApply(document, out _, out _));
+		Assert.False(JsonPatch.Parse("""[{ "op": "remove", "path": "/a" }]""").TryApply(document, out _, out _));
+		Assert.False(JsonPatch.Parse("""[{ "op": "test", "path": "/a", "value": 1 }]""").TryApply(document, out _, out _));
 	}
 
 	[Fact]
 	public void What_the_patch_did_not_touch_is_shared()
 	{
-		var document = (JsonValue.Object)Rfc8259.ParseJson("""{ "kept": [1, 2, 3], "changed": { "x": 1 } }""");
-		var result   = (JsonValue.Object)Rfc6902.ParsePatch("""[{ "op": "add", "path": "/changed/y", "value": 2 }]""").Apply(document);
+		var document = (JsonValue.Object)JsonValue.Parse("""{ "kept": [1, 2, 3], "changed": { "x": 1 } }""");
+		var result   = (JsonValue.Object)JsonPatch.Parse("""[{ "op": "add", "path": "/changed/y", "value": 2 }]""").Apply(document);
 
 		Assert.Same(document.Members[0].Value, result.Members[0].Value);
 	}
@@ -201,7 +201,7 @@ public sealed class Rfc6902Tests
 	[InlineData("\"\\u00e9\"", "\"\u00E9\"")]
 	public void Values_that_are_equal(string left, string right)
 	{
-		Assert.True(Rfc6902.AreEqual(Rfc8259.ParseJson(left), Rfc8259.ParseJson(right)));
+		Assert.True(JsonPatch.AreEqual(JsonValue.Parse(left), JsonValue.Parse(right)));
 	}
 
 	[Theory]
@@ -216,7 +216,7 @@ public sealed class Rfc6902Tests
 	[InlineData("\"e\\u0301\"", "\"\\u00e9\"")]
 	public void Values_that_are_not_equal(string left, string right)
 	{
-		Assert.False(Rfc6902.AreEqual(Rfc8259.ParseJson(left), Rfc8259.ParseJson(right)));
+		Assert.False(JsonPatch.AreEqual(JsonValue.Parse(left), JsonValue.Parse(right)));
 	}
 
 	// ── The suite's files ────────────────────────────────────────────────────────
@@ -228,7 +228,7 @@ public sealed class Rfc6902Tests
 		lock (Suites)
 		{
 			if (!Suites.TryGetValue(file, out var suite))
-				Suites.Add(file, suite = Rfc8259.ParseJson(File.ReadAllText(Path.Combine(Path.GetDirectoryName(ThisFile)!, "JsonPatch", file))));
+				Suites.Add(file, suite = JsonValue.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(ThisFile)!, "JsonPatch", file))));
 
 			return suite;
 		}

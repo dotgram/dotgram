@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 
@@ -16,8 +17,8 @@ namespace DotGram.Web;
 /// </para>
 /// <para>
 /// What the cookie means for a store — its domain against the request host, its default path, whether it has
-/// expired — needs the request, which is not here; <see cref="Rfc6265.DomainMatches"/>,
-/// <see cref="Rfc6265.DefaultPath"/>, <see cref="Rfc6265.PathMatches"/> and <see cref="ExpiryTime"/> are §5.1
+/// expired — needs the request, which is not here; <see cref="DomainMatches"/>,
+/// <see cref="DefaultPath"/>, <see cref="PathMatches"/> and <see cref="ExpiryTime"/> are §5.1
 /// and §5.3's pieces of that.
 /// </para>
 /// </remarks>
@@ -28,6 +29,31 @@ public sealed record SetCookie(string Name, string Value, IReadOnlyList<SetCooki
 {
 	/// <summary>A cookie-av: its name and its value, empty where there was no <c>=</c> or nothing after it.</summary>
 	public sealed record Attribute(string Name, string Value);
+
+	/// <summary>A Set-Cookie field value, read by RFC 6265 §5.2's algorithm.</summary>
+	/// <exception cref="FormatException">The field is one §5.2 ignores: no <c>=</c> in its pair, or no name.</exception>
+	public static SetCookie Parse(string text) =>
+		Rfc6265.ParseSetCookie(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A Set-Cookie field value, or false where §5.2 ignores it.</summary>
+	public static bool TryParse(string text, [NotNullWhen(true)] out SetCookie? cookie)
+	{
+		var match = Rfc6265.TryParseSetCookie(text ?? throw new ArgumentNullException(nameof(text)));
+
+		cookie = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>§5.1.3: whether a canonicalized host name domain-matches a domain string.</summary>
+	/// <remarks>Both are compared as given; §5.1.2 canonicalizes them to lower case first, and that is the caller's.</remarks>
+	public static bool DomainMatches(string host, string domain) => Rfc6265.DomainMatches(host, domain);
+
+	/// <summary>§5.1.4: the default-path of a request's path — its directory, or <c>/</c>.</summary>
+	public static string DefaultPath(string requestPath) => Rfc6265.DefaultPath(requestPath);
+
+	/// <summary>§5.1.4: whether a request's path path-matches a cookie-path.</summary>
+	public static bool PathMatches(string requestPath, string cookiePath) => Rfc6265.PathMatches(requestPath, cookiePath);
 
 	/// <summary>§5.2.1: the last Expires whose value is a cookie-date, or null.</summary>
 	public DateTimeOffset? Expires
@@ -76,7 +102,7 @@ public sealed record SetCookie(string Name, string Value, IReadOnlyList<SetCooki
 	}
 
 	/// <summary>§5.2.4: the value of the last Path, or null where there is none or its value is not absolute.</summary>
-	/// <remarks>Null means the default-path of the request (<see cref="Rfc6265.DefaultPath"/>), as §5.3 step 7 has it.</remarks>
+	/// <remarks>Null means the default-path of the request (<see cref="DefaultPath"/>), as §5.3 step 7 has it.</remarks>
 	public string? Path
 	{
 		get
@@ -199,7 +225,34 @@ public sealed record SetCookie(string Name, string Value, IReadOnlyList<SetCooki
 
 /// <summary>A cookie-pair of a Cookie header field (RFC 6265 §4.2.1): a name and its value as written.</summary>
 /// <param name="Value">With its double quotes where it had them: §4.1.1 makes them part of the cookie-value.</param>
-public sealed record CookiePair(string Name, string Value);
+public sealed record CookiePair(string Name, string Value)
+{
+	/// <summary>A Cookie field value (RFC 6265 §4.2.1): its pairs, in the order sent.</summary>
+	/// <exception cref="FormatException">The text is no Cookie field; the message says where.</exception>
+	public static CookiePair[] ParseField(string text) =>
+		Rfc6265.ParseCookies(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A Cookie field value, or false where the text is not one.</summary>
+	public static bool TryParseField(string text, [NotNullWhen(true)] out CookiePair[]? pairs)
+	{
+		var match = Rfc6265.TryParseCookies(text ?? throw new ArgumentNullException(nameof(text)));
+
+		pairs = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+}
+
+/// <summary>A cookie-date (RFC 6265 §5.1.1): the loose date of an Expires attribute, as every user agent reads it.</summary>
+public static class CookieDate
+{
+	/// <summary>A cookie-date, in UTC.</summary>
+	/// <exception cref="FormatException">The text is no cookie-date.</exception>
+	public static DateTimeOffset Parse(string text) => Rfc6265.ParseCookieDate(text);
+
+	/// <summary>A cookie-date, in UTC, or false where §5.1.1's steps fail.</summary>
+	public static bool TryParse(string text, out DateTimeOffset date) => Rfc6265.TryParseCookieDate(text, out date);
+}
 
 // RFC 6265, HTTP State Management Mechanism. Two readings, because the RFC has two:
 //
@@ -302,7 +355,7 @@ public sealed record CookiePair(string Name, string Value);
 	internal parse MonthToken as ReadMonth
 	internal parse YearToken  as ReadYear
 	""")]
-public static partial class Rfc6265
+static partial class Rfc6265
 {
 	// ParseSetCookie, ParseCookies and their Try forms are generated here, and the date readings beside them.
 

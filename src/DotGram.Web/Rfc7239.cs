@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 
@@ -22,6 +23,21 @@ public sealed record ForwardedElement(IReadOnlyList<ForwardedElement.Pair> Pairs
 {
 	/// <summary>A parameter-identifier pair: the name as written and the value after unquoting.</summary>
 	public sealed record Pair(string Name, string Value);
+
+	/// <summary>A Forwarded field value (RFC 7239 §4): an element per proxy, empty ones left out.</summary>
+	/// <exception cref="FormatException">The text is no Forwarded field; the message says where.</exception>
+	public static ForwardedElement[] ParseField(string text) =>
+		Rfc7239.ParseForwarded(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A Forwarded field value, or false where the text is not one.</summary>
+	public static bool TryParseField(string text, [NotNullWhen(true)] out ForwardedElement[]? elements)
+	{
+		var match = Rfc7239.TryParseForwarded(text ?? throw new ArgumentNullException(nameof(text)));
+
+		elements = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
 
 	/// <summary>The value of the pair of a name, whatever its case, or null. An element holds each name once.</summary>
 	public string? Find(string name)
@@ -115,6 +131,21 @@ public sealed record ForwardedElement(IReadOnlyList<ForwardedElement.Pair> Pairs
 /// <param name="Port">The digits or the obfuscated port after the <c>:</c>, or null.</param>
 public sealed record ForwardedNode(ForwardedNode.Kinds Kind, string Name, string? Port)
 {
+	/// <summary>A node identifier (§6), after its value's quoted-string unescaping.</summary>
+	/// <exception cref="FormatException">The text is no node identifier; the message says where.</exception>
+	public static ForwardedNode Parse(string text) =>
+		Rfc7239.ParseNode(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A node identifier, or false where the text is not one.</summary>
+	public static bool TryParse(string text, [NotNullWhen(true)] out ForwardedNode? node)
+	{
+		var match = Rfc7239.TryParseNode(text ?? throw new ArgumentNullException(nameof(text)));
+
+		node = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
 	/// <summary>The node identifiers of §6.</summary>
 	public enum Kinds
 	{
@@ -231,7 +262,7 @@ public sealed record ForwardedNode(ForwardedNode.Kinds Kind, string Name, string
 	parse ForwardedField as ParseForwarded
 	parse Node           as ParseNode
 	""")]
-public static partial class Rfc7239
+static partial class Rfc7239
 {
 	// ParseForwarded, ParseNode and their Try forms are generated here.
 

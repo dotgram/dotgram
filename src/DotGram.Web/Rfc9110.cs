@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 
@@ -22,6 +23,21 @@ public sealed record MediaType(string Type, string Subtype, IReadOnlyList<MediaT
 {
 	/// <summary>A parameter: its name as written and its value after unquoting.</summary>
 	public sealed record Parameter(string Name, string Value);
+
+	/// <summary>A Content-Type field value (RFC 9110 §8.3): a media type, with whitespace around it allowed.</summary>
+	/// <exception cref="FormatException">The text is no media type; the message says where.</exception>
+	public static MediaType Parse(string text) =>
+		Rfc9110.ParseContentType(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A Content-Type field value, or false where the text is not one.</summary>
+	public static bool TryParse(string text, [NotNullWhen(true)] out MediaType? type)
+	{
+		var match = Rfc9110.TryParseContentType(text ?? throw new ArgumentNullException(nameof(text)));
+
+		type = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
 
 	/// <summary>The value of the first parameter of this name, whatever its case, or null.</summary>
 	public string? ParameterValue(string name)
@@ -121,6 +137,32 @@ public sealed record MediaType(string Type, string Subtype, IReadOnlyList<MediaT
 /// <param name="Weight">From 0, not acceptable, to 1, the default.</param>
 public sealed record MediaRange(MediaType Media, decimal Weight)
 {
+	/// <summary>An Accept field value (RFC 9110 §12.5.1): media ranges and their weights, empty elements left out.</summary>
+	/// <exception cref="FormatException">The text is no Accept field; the message says where.</exception>
+	public static MediaRange[] ParseAccept(string text) =>
+		Rfc9110.ParseAccept(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>An Accept field value, or false where the text is not one.</summary>
+	public static bool TryParseAccept(string text, [NotNullWhen(true)] out MediaRange[]? ranges)
+	{
+		var match = Rfc9110.TryParseAccept(text ?? throw new ArgumentNullException(nameof(text)));
+
+		ranges = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>
+	/// The quality value an Accept field gives a media type: the weight of the most specific range that matches
+	/// it, or 0 where none does (§12.5.1, §12.4.3).
+	/// </summary>
+	/// <remarks>
+	/// More specific is a media type with more parameters, then a media type, then <c>type/*</c>, then
+	/// <c>*/*</c>. Where two ranges are as specific, the first written counts. An absent field is not an empty
+	/// one — without it any media type is acceptable — and that is the caller's to tell apart.
+	/// </remarks>
+	public static decimal Quality(IReadOnlyList<MediaRange> accept, MediaType type) => Rfc9110.Quality(accept, type);
+
 	/// <summary>Whether this range covers a media type: its type and subtype, and every parameter it names.</summary>
 	public bool Matches(MediaType type)
 	{
@@ -203,7 +245,7 @@ public sealed record MediaRange(MediaType Media, decimal Weight)
 	parse ContentTypeField as ParseContentType
 	parse AcceptField      as ParseAccept
 	""")]
-public static partial class Rfc9110
+static partial class Rfc9110
 {
 	// ParseContentType, ParseAccept and their Try forms are generated here.
 

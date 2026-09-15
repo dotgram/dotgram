@@ -46,9 +46,9 @@ public sealed class Rfc6901Tests
 	[InlineData("/m~0n",  "8")]
 	public void The_string_examples_reach_what_the_RFC_says(string pointer, string value)
 	{
-		var parsed = Rfc6901.ParsePointer(pointer);
+		var parsed = JsonPointer.Parse(pointer);
 
-		Assert.Equal(Rfc8259.ParseJson(value).ToString(), parsed.Resolve(Rfc8259.ParseJson(Document))?.ToString());
+		Assert.Equal(JsonValue.Parse(value).ToString(), parsed.Resolve(JsonValue.Parse(Document))?.ToString());
 		Assert.Equal(pointer, parsed.ToString());
 	}
 
@@ -68,9 +68,9 @@ public sealed class Rfc6901Tests
 	[InlineData("#/m~0n",   "/m~0n")]
 	public void The_fragment_examples_are_the_same_pointers(string fragment, string pointer)
 	{
-		var parsed   = Rfc6901.ParseFragment(fragment);
-		var expected = Rfc6901.ParsePointer(pointer);
-		var document = Rfc8259.ParseJson(Document);
+		var parsed   = JsonPointer.ParseFragment(fragment);
+		var expected = JsonPointer.Parse(pointer);
+		var document = JsonValue.Parse(Document);
 
 		Assert.Equal(expected.Tokens, parsed.Tokens);
 		Assert.Equal(expected.Resolve(document)?.ToString(), parsed.Resolve(document)?.ToString());
@@ -88,34 +88,34 @@ public sealed class Rfc6901Tests
 	[InlineData("/twice")]                // a name that is not unique names an undefined member (§4)
 	public void A_pointer_that_refers_to_nothing_resolves_to_nothing(string pointer)
 	{
-		var document = Rfc8259.ParseJson("""{ "foo": ["bar", "baz"], "twice": 1, "twice": 2, "nothing at all": null }""");
+		var document = JsonValue.Parse("""{ "foo": ["bar", "baz"], "twice": 1, "twice": 2, "nothing at all": null }""");
 
-		Assert.Null(Rfc6901.ParsePointer(pointer).Resolve(document));
+		Assert.Null(JsonPointer.Parse(pointer).Resolve(document));
 	}
 
 	[Fact]
 	public void A_member_whose_value_is_null_resolves_to_null_the_value()
 	{
-		var document = Rfc8259.ParseJson("""{ "empty": null }""");
+		var document = JsonValue.Parse("""{ "empty": null }""");
 
-		Assert.Same(JsonValue.Null.Instance, Rfc6901.ParsePointer("/empty").Resolve(document));
+		Assert.Same(JsonValue.Null.Instance, JsonPointer.Parse("/empty").Resolve(document));
 	}
 
 	/// <summary>A pointer is equal to another with the same tokens, whichever form it was read from.</summary>
 	[Fact]
 	public void Pointers_are_equal_by_their_tokens()
 	{
-		Assert.Equal(Rfc6901.ParsePointer("/a~1b/0"), Rfc6901.ParseFragment("#/a~1b/0"));
-		Assert.Equal(Rfc6901.ParsePointer("/c%d").GetHashCode(), Rfc6901.ParseFragment("#/c%25d").GetHashCode());
-		Assert.NotEqual(Rfc6901.ParsePointer("/a/0"), Rfc6901.ParsePointer("/a/1"));
+		Assert.Equal(JsonPointer.Parse("/a~1b/0"), JsonPointer.ParseFragment("#/a~1b/0"));
+		Assert.Equal(JsonPointer.Parse("/c%d").GetHashCode(), JsonPointer.ParseFragment("#/c%25d").GetHashCode());
+		Assert.NotEqual(JsonPointer.Parse("/a/0"), JsonPointer.Parse("/a/1"));
 	}
 
 	/// <summary>`~1` is undone before `~0`, so `~01` is `~1` and never `/` (§4).</summary>
 	[Fact]
 	public void Escapes_are_undone_in_the_order_the_RFC_gives()
 	{
-		Assert.Equal(["~1"], Rfc6901.ParsePointer("/~01").Tokens);
-		Assert.Equal(["/~"], Rfc6901.ParsePointer("/~1~0").Tokens);
+		Assert.Equal(["~1"], JsonPointer.Parse("/~01").Tokens);
+		Assert.Equal(["/~"], JsonPointer.Parse("/~1~0").Tokens);
 		Assert.Equal("/~01", new JsonPointer(["~1"]).ToString());
 	}
 
@@ -125,7 +125,7 @@ public sealed class Rfc6901Tests
 	[InlineData("/~2")]         // a `~` that escapes nothing
 	[InlineData("/a~b")]
 	public void A_pointer_the_ABNF_does_not_make_is_refused(string pointer) =>
-		Assert.False(Rfc6901.TryParsePointer(pointer).IsSuccess, $"'{pointer}' was read.");
+		Assert.False(JsonPointer.TryParse(pointer, out _), $"'{pointer}' was read.");
 
 	[Theory]
 	[InlineData("/foo")]        // a fragment begins with `#`
@@ -135,7 +135,7 @@ public sealed class Rfc6901Tests
 	[InlineData("#foo")]        // a fragment whose text is no pointer
 	[InlineData("#/%7E2")]      // `~2`, encoded, is still no escape
 	public void A_fragment_that_holds_no_pointer_is_refused(string fragment) =>
-		Assert.False(Rfc6901.TryParseFragment(fragment).IsSuccess, $"'{fragment}' was read.");
+		Assert.False(JsonPointer.TryParseFragment(fragment, out _), $"'{fragment}' was read.");
 
 	[Theory]
 	[InlineData("0",   0)]

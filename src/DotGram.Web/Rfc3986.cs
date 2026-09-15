@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 
@@ -11,7 +12,7 @@ namespace DotGram.Web;
 /// Every part is the text as it was written, undecoded. RFC 3986 §2.4 is explicit that
 /// when to decode a percent-escape is the application's question and not the parser's:
 /// decoding `%2F` inside a path segment would make it a separator it is not. So the parts
-/// come back as they stood, and <see cref="Rfc3986.Decode"/> is beside them for a caller
+/// come back as they stood, and <see cref="Decode"/> is beside them for a caller
 /// that has decided.
 /// </remarks>
 /// <param name="Scheme">`http`, or null in a relative reference.</param>
@@ -21,14 +22,52 @@ namespace DotGram.Web;
 /// <param name="Path">Always present; the empty string where the reference has none.</param>
 /// <param name="Query">What stood after the `?`, or null. Null and empty are different.</param>
 /// <param name="Fragment">What stood after the `#`, or null. Null and empty are different.</param>
-public sealed record UriParts(
+public sealed record UriReference(
 	string? Scheme,
 	string? UserInfo,
 	string? Host,
 	string? Port,
 	string Path,
 	string? Query,
-	string? Fragment);
+	string? Fragment)
+{
+	/// <summary>A URI reference (RFC 3986 §4.1): a URI, or a reference relative to one.</summary>
+	/// <exception cref="FormatException">The text is no URI reference; the message says where.</exception>
+	public static UriReference Parse(string text) =>
+		Rfc3986.ParseReference(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A URI reference, or false where the text is not one.</summary>
+	public static bool TryParse(string text, [NotNullWhen(true)] out UriReference? reference)
+	{
+		var match = Rfc3986.TryParseReference(text ?? throw new ArgumentNullException(nameof(text)));
+
+		reference = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>A URI (§3): a reference with a scheme.</summary>
+	/// <exception cref="FormatException">The text is no URI; the message says where.</exception>
+	public static UriReference ParseUri(string text) =>
+		Rfc3986.ParseUri(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A URI, or false where the text is not one.</summary>
+	public static bool TryParseUri(string text, [NotNullWhen(true)] out UriReference? uri)
+	{
+		var match = Rfc3986.TryParseUri(text ?? throw new ArgumentNullException(nameof(text)));
+
+		uri = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
+	/// <summary>One part with its percent-escapes turned back into the characters they stand for.</summary>
+	/// <remarks>
+	/// Not done while parsing, and §2.4 says why: <c>%2F</c> in a path segment is a slash that is not a
+	/// separator. The escapes are bytes (§2.5), decoded together as UTF-8.
+	/// </remarks>
+	public static string Decode(string part) => Rfc3986.Decode(part);
+}
 
 // RFC 3986, whole. Not the `Url.gram` of the test corpus, which is the same shape cut down
 // to what a benchmark needs — this one is the specification, and the difference is where
@@ -153,18 +192,18 @@ public sealed record UriParts(
 
 	// §4.1. A reference is a URI or a relative one, and which it is turns on whether what
 	// stands before the first `:` is a scheme. Ordered choice asks that by trying.
-	UriReference : @UriParts = u: Uri => @(u) | r: RelativeRef => @(r)
+	Reference : @UriReference = u: Uri => @(u) | r: RelativeRef => @(r)
 
 	// §3.
-	Uri : @UriParts = scheme: SchemeText & ':' & rest: HierPart & ('?' & query: QueryText)? & ('#' & fragment: FragmentText)?
+	Uri : @UriReference = scheme: SchemeText & ':' & rest: HierPart & ('?' & query: QueryText)? & ('#' & fragment: FragmentText)?
 		=> @(rest with { Scheme = scheme, Query = query, Fragment = fragment })
 
 	// §4.2.
-	RelativeRef : @UriParts = rest: RelativePart & ('?' & query: QueryText)? & ('#' & fragment: FragmentText)?
+	RelativeRef : @UriReference = rest: RelativePart & ('?' & query: QueryText)? & ('#' & fragment: FragmentText)?
 		       => @(rest with { Query = query, Fragment = fragment })
 
 	// §3. The order is the RFC's, and `PathEmpty` is last because everything matches it.
-	HierPart : @UriParts = "//" & a: Authority & path: PathAbEmpty => @(a with { Path = path })
+	HierPart : @UriReference = "//" & a: Authority & path: PathAbEmpty => @(a with { Path = path })
 		     | path: PathAbsolute                                  => @(Rfc3986.Only(path))
 		     | path: PathRootless                                  => @(Rfc3986.Only(path))
 		     | ""                                                  => @(Rfc3986.Only(""))
@@ -172,7 +211,7 @@ public sealed record UriParts(
 	// §4.2. The same, with `PathNoScheme` where `PathRootless` stood: a relative
 	// reference may not begin with a segment holding a colon, or the colon would have
 	// made a scheme of what came before it.
-	RelativePart : @UriParts
+	RelativePart : @UriReference
 		= "//" & a: Authority & path: PathAbEmpty => @(a with { Path = path })
 		| path: PathAbsolute                      => @(Rfc3986.Only(path))
 		| path: PathNoScheme                      => @(Rfc3986.Only(path))
@@ -180,14 +219,14 @@ public sealed record UriParts(
 
 	// §3.2. A userinfo is followed by `@` and nothing else is, so trying the group and
 	// giving it back is the whole of "is there a userinfo here".
-	Authority : @UriParts
+	Authority : @UriReference
 		= (user: UserInfoText & '@')? & host: HostText & (':' & port: PortText)?
-		=> @(new UriParts(null, user, host, port, "", null, null))
+		=> @(new UriReference(null, user, host, port, "", null, null))
 
-	parse UriReference as ParseReference
+	parse Reference as ParseReference
 	parse Uri           as ParseUri
 	""")]
-public static partial class Rfc3986
+static partial class Rfc3986
 {
 	// ParseReference, TryParseReference, ParseUri and TryParseUri are generated here.
 
@@ -197,7 +236,7 @@ public static partial class Rfc3986
 	/// fourth carries an authority. Both hand back the same shape so that the rule above
 	/// can fill in the scheme, query and fragment without asking which it got.
 	/// </remarks>
-	public static UriParts Only(string path) =>
+	internal static UriReference Only(string path) =>
 		new(null, null, null, null, path ?? throw new ArgumentNullException(nameof(path)), null, null);
 
 	/// <summary>One part with its percent-escapes turned back into the bytes they stand for.</summary>

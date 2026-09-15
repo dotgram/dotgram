@@ -58,7 +58,7 @@ public sealed class Rfc6265Tests
 		// The Cookie field the user agent sent reads back as the pairs it holds.
 		Assert.Equal(
 			[new CookiePair("SID", "31d4d96e407aad42"), new CookiePair("lang", "en-US")],
-			Rfc6265.ParseCookies("SID=31d4d96e407aad42; lang=en-US"));
+			CookiePair.ParseField("SID=31d4d96e407aad42; lang=en-US"));
 	}
 
 	// ── §5.2 ─────────────────────────────────────────────────────────────────────
@@ -66,7 +66,7 @@ public sealed class Rfc6265Tests
 	[Fact]
 	public void A_cookie_with_its_attributes()
 	{
-		var cookie = Rfc6265.ParseSetCookie("SID=31d4d96e407aad42; Path=/; Secure; HttpOnly");
+		var cookie = SetCookie.Parse("SID=31d4d96e407aad42; Path=/; Secure; HttpOnly");
 
 		Assert.Equal("SID", cookie.Name);
 		Assert.Equal("31d4d96e407aad42", cookie.Value);
@@ -88,7 +88,7 @@ public sealed class Rfc6265Tests
 	[InlineData("$Version=1; foo=bar", "$Version", "1")]
 	public void The_pair_is_divided_and_trimmed(string field, string name, string value)
 	{
-		var cookie = Rfc6265.ParseSetCookie(field);
+		var cookie = SetCookie.Parse(field);
 
 		Assert.Equal((name, value), (cookie.Name, cookie.Value));
 	}
@@ -104,13 +104,13 @@ public sealed class Rfc6265Tests
 	[InlineData("   ")]
 	public void What_a_user_agent_ignores(string field)
 	{
-		Assert.False(Rfc6265.TryParseSetCookie(field).IsSuccess, $"'{field}' was read.");
+		Assert.False(SetCookie.TryParse(field, out _), $"'{field}' was read.");
 	}
 
 	[Fact]
 	public void Every_attribute_is_kept_and_divided()
 	{
-		var cookie = Rfc6265.ParseSetCookie("a=b; Secure =x; qux=\"1; 2\"; ; =v; flag");
+		var cookie = SetCookie.Parse("a=b; Secure =x; qux=\"1; 2\"; ; =v; flag");
 
 		Assert.Equal(
 			[
@@ -136,7 +136,7 @@ public sealed class Rfc6265Tests
 	[InlineData("a=b", null)]
 	public void The_domain(string field, string? domain)
 	{
-		Assert.Equal(domain, Rfc6265.ParseSetCookie(field).Domain);
+		Assert.Equal(domain, SetCookie.Parse(field).Domain);
 	}
 
 	/// <summary>§5.2.4 and §5.3 step 7: the last Path counts, and one that is not absolute is the default-path.</summary>
@@ -150,7 +150,7 @@ public sealed class Rfc6265Tests
 	[InlineData("a=b", null)]
 	public void The_path(string field, string? path)
 	{
-		Assert.Equal(path, Rfc6265.ParseSetCookie(field).Path);
+		Assert.Equal(path, SetCookie.Parse(field).Path);
 	}
 
 	[Theory]
@@ -166,13 +166,13 @@ public sealed class Rfc6265Tests
 	[InlineData("a=b; max-age=-99999999999999999999999", long.MinValue)]
 	public void The_max_age(string field, long? seconds)
 	{
-		Assert.Equal(seconds, Rfc6265.ParseSetCookie(field).MaxAge);
+		Assert.Equal(seconds, SetCookie.Parse(field).MaxAge);
 	}
 
 	[Fact]
 	public void The_last_expires_that_is_a_date()
 	{
-		var cookie = Rfc6265.ParseSetCookie("a=b; expires=Wed, 09 Jun 2021 10:18:14 GMT; expires=never");
+		var cookie = SetCookie.Parse("a=b; expires=Wed, 09 Jun 2021 10:18:14 GMT; expires=never");
 
 		Assert.Equal(new DateTimeOffset(2021, 6, 9, 10, 18, 14, TimeSpan.Zero), cookie.Expires);
 	}
@@ -183,10 +183,10 @@ public sealed class Rfc6265Tests
 	{
 		var now = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
-		Assert.Equal(now.AddSeconds(60), Rfc6265.ParseSetCookie("a=b; expires=Wed, 09 Jun 2021 10:18:14 GMT; max-age=60").ExpiryTime(now));
-		Assert.Equal(DateTimeOffset.MinValue, Rfc6265.ParseSetCookie("a=b; max-age=0").ExpiryTime(now));
-		Assert.Equal(DateTimeOffset.MaxValue, Rfc6265.ParseSetCookie("a=b; max-age=99999999999999").ExpiryTime(now));
-		Assert.Equal(new DateTimeOffset(2021, 6, 9, 10, 18, 14, TimeSpan.Zero), Rfc6265.ParseSetCookie("a=b; expires=Wed, 09 Jun 2021 10:18:14 GMT").ExpiryTime(now));
+		Assert.Equal(now.AddSeconds(60), SetCookie.Parse("a=b; expires=Wed, 09 Jun 2021 10:18:14 GMT; max-age=60").ExpiryTime(now));
+		Assert.Equal(DateTimeOffset.MinValue, SetCookie.Parse("a=b; max-age=0").ExpiryTime(now));
+		Assert.Equal(DateTimeOffset.MaxValue, SetCookie.Parse("a=b; max-age=99999999999999").ExpiryTime(now));
+		Assert.Equal(new DateTimeOffset(2021, 6, 9, 10, 18, 14, TimeSpan.Zero), SetCookie.Parse("a=b; expires=Wed, 09 Jun 2021 10:18:14 GMT").ExpiryTime(now));
 	}
 
 	[Theory]
@@ -196,9 +196,9 @@ public sealed class Rfc6265Tests
 	[InlineData("x=\"q\"; Expires=Wed, 09 Jun 2021 10:18:14 GMT; ext=1=2")]
 	public void Written_back_and_read_again(string field)
 	{
-		var cookie = Rfc6265.ParseSetCookie(field);
+		var cookie = SetCookie.Parse(field);
 
-		Assert.Equal(cookie, Rfc6265.ParseSetCookie(cookie.ToString()));
+		Assert.Equal(cookie, SetCookie.Parse(cookie.ToString()));
 	}
 
 	// ── §5.1.1 ───────────────────────────────────────────────────────────────────
@@ -218,7 +218,7 @@ public sealed class Rfc6265Tests
 	[InlineData("31 Dec 9999 23:59:59", 9999, 12, 31, 23, 59, 59)]
 	public void A_cookie_date(string text, int year, int month, int day, int hour, int minute, int second)
 	{
-		Assert.Equal(new DateTimeOffset(year, month, day, hour, minute, second, TimeSpan.Zero), Rfc6265.ParseCookieDate(text));
+		Assert.Equal(new DateTimeOffset(year, month, day, hour, minute, second, TimeSpan.Zero), CookieDate.Parse(text));
 	}
 
 	[Theory]
@@ -240,7 +240,7 @@ public sealed class Rfc6265Tests
 	[InlineData("123 Jan 2020 00:00:00")]
 	public void What_is_no_cookie_date(string text)
 	{
-		Assert.False(Rfc6265.TryParseCookieDate(text, out _), $"'{text}' was read.");
+		Assert.False(CookieDate.TryParse(text, out _), $"'{text}' was read.");
 	}
 
 	// ── §4.2.1 ───────────────────────────────────────────────────────────────────
@@ -252,7 +252,7 @@ public sealed class Rfc6265Tests
 	[InlineData("a=!#$%&'()*+-./:<=>?@[]^_`{|}~", "a", "!#$%&'()*+-./:<=>?@[]^_`{|}~")]
 	public void A_cookie_pair(string field, string name, string value)
 	{
-		Assert.Equal([new CookiePair(name, value)], Rfc6265.ParseCookies(field));
+		Assert.Equal([new CookiePair(name, value)], CookiePair.ParseField(field));
 	}
 
 	[Theory]
@@ -269,7 +269,7 @@ public sealed class Rfc6265Tests
 	[InlineData("a=\"b")]
 	public void What_is_no_cookie_field(string field)
 	{
-		Assert.False(Rfc6265.TryParseCookies(field).IsSuccess, $"'{field}' was read.");
+		Assert.False(CookiePair.TryParseField(field, out _), $"'{field}' was read.");
 	}
 
 	// ── §5.1.3, §5.1.4 ───────────────────────────────────────────────────────────
@@ -285,7 +285,7 @@ public sealed class Rfc6265Tests
 	[InlineData("example.com", "", false)]
 	public void Domain_matching(string host, string domain, bool matches)
 	{
-		Assert.Equal(matches, Rfc6265.DomainMatches(host, domain));
+		Assert.Equal(matches, SetCookie.DomainMatches(host, domain));
 	}
 
 	[Theory]
@@ -297,7 +297,7 @@ public sealed class Rfc6265Tests
 	[InlineData("/a/b/", "/a/b")]
 	public void The_default_path(string requestPath, string defaultPath)
 	{
-		Assert.Equal(defaultPath, Rfc6265.DefaultPath(requestPath));
+		Assert.Equal(defaultPath, SetCookie.DefaultPath(requestPath));
 	}
 
 	[Theory]
@@ -311,7 +311,7 @@ public sealed class Rfc6265Tests
 	[InlineData("/", "/foo", false)]
 	public void Path_matching(string requestPath, string cookiePath, bool matches)
 	{
-		Assert.Equal(matches, Rfc6265.PathMatches(requestPath, cookiePath));
+		Assert.Equal(matches, SetCookie.PathMatches(requestPath, cookiePath));
 	}
 
 	// ── The http-state working group's cases ─────────────────────────────────────
@@ -396,12 +396,8 @@ public sealed class Rfc6265Tests
 
 		public void Receive(string url, string field)
 		{
-			var read = Rfc6265.TryParseSetCookie(field);
-
-			if (!read.IsSuccess)
+			if (!SetCookie.TryParse(field, out var cookie))
 				return;
-
-			var cookie = read.Value!;
 			var (_, host, path) = Target(url);
 			var domain = cookie.Domain ?? "";
 
@@ -414,7 +410,7 @@ public sealed class Rfc6265Tests
 				domain = "";
 			}
 
-			if (domain.Length > 0 && !Rfc6265.DomainMatches(host, domain))
+			if (domain.Length > 0 && !SetCookie.DomainMatches(host, domain))
 				return;
 
 			var stored = new Stored(
@@ -422,7 +418,7 @@ public sealed class Rfc6265Tests
 				cookie.Value,
 				domain.Length > 0 ? domain : host,
 				HostOnly: domain.Length == 0,
-				cookie.Path ?? Rfc6265.DefaultPath(path),
+				cookie.Path ?? SetCookie.DefaultPath(path),
 				cookie.Secure,
 				cookie.ExpiryTime(Now) ?? DateTimeOffset.MaxValue,
 				_created++);
@@ -444,8 +440,8 @@ public sealed class Rfc6265Tests
 			var (scheme, host, path) = Target(url);
 
 			return string.Join("; ", _cookies
-				.Where(cookie => cookie.HostOnly ? cookie.Domain == host : Rfc6265.DomainMatches(host, cookie.Domain))
-				.Where(cookie => Rfc6265.PathMatches(path, cookie.Path))
+				.Where(cookie => cookie.HostOnly ? cookie.Domain == host : SetCookie.DomainMatches(host, cookie.Domain))
+				.Where(cookie => SetCookie.PathMatches(path, cookie.Path))
 				.Where(cookie => !cookie.Secure || scheme == "https")
 				.OrderByDescending(cookie => cookie.Path.Length)
 				.ThenBy(cookie => cookie.Created)
@@ -455,7 +451,7 @@ public sealed class Rfc6265Tests
 		// The request-uri as §5.1.2 and §5.1.4 take it: the host in lower case, the path as written and not unescaped.
 		static (string Scheme, string Host, string Path) Target(string url)
 		{
-			var parts = Rfc3986.ParseUri(url);
+			var parts = UriReference.ParseUri(url);
 
 			return (parts.Scheme!.ToLowerInvariant(), parts.Host!.ToLowerInvariant(), parts.Path.Length == 0 ? "/" : parts.Path);
 		}

@@ -36,16 +36,16 @@ public sealed class Rfc9651Tests
 	{
 		var test     = Load(file)[index];
 		var name     = test.GetProperty("name").GetString();
-		var field    = Rfc9651.Combine(test.GetProperty("raw").EnumerateArray().Select(line => line.GetString()!));
+		var field    = StructuredField.Combine(test.GetProperty("raw").EnumerateArray().Select(line => line.GetString()!));
 		var kind     = test.GetProperty("header_type").GetString();
 		var mustFail = test.TryGetProperty("must_fail", out var must) && must.GetBoolean();
 		var canFail  = test.TryGetProperty("can_fail", out var can) && can.GetBoolean();
 
 		var (read, value) = kind switch
 		{
-			"item"       => Read(Rfc9651.TryParseItem(field)),
-			"list"       => Read(Rfc9651.TryParseList(field)),
-			"dictionary" => Read(Rfc9651.TryParseDictionary(field)),
+			"item"       => (StructuredField.TryParseItem(field, out var item), (object?)item),
+			"list"       => (StructuredField.TryParseList(field, out var list), (object?)list),
+			"dictionary" => (StructuredField.TryParseDictionary(field, out var dictionary), (object?)dictionary),
 			_            => throw new InvalidOperationException($"{file}: '{name}' is of a kind nobody told this about: {kind}."),
 		};
 
@@ -76,7 +76,7 @@ public sealed class Rfc9651Tests
 	[Fact]
 	public void A_dictionary_is_read_by_position_and_by_key()
 	{
-		var dictionary = Rfc9651.ParseDictionary("a=1, b;q=?0, a=(x y);z");
+		var dictionary = StructuredField.ParseDictionary("a=1, b;q=?0, a=(x y);z");
 
 		Assert.Equal(["a", "b"], dictionary.Select(entry => entry.Key));
 
@@ -91,7 +91,7 @@ public sealed class Rfc9651Tests
 	[Fact]
 	public void Field_lines_are_one_value()
 	{
-		var list = Rfc9651.ParseList(Rfc9651.Combine(["sugar, tea", "rum"]));
+		var list = StructuredField.ParseList(StructuredField.Combine(["sugar, tea", "rum"]));
 
 		Assert.Equal(["sugar", "tea", "rum"], list.Select(member => ((BareItem.Token)((Item)member).Value).Value));
 	}
@@ -145,16 +145,16 @@ public sealed class Rfc9651Tests
 	{
 		const string Field = "a=(1 2);x=?0, b=:aGVsbG8=:, c=%\"f%c3%bc\";y";
 
-		var first  = Rfc9651.ParseDictionary(Field);
-		var second = Rfc9651.ParseDictionary(Field);
+		var first  = StructuredField.ParseDictionary(Field);
+		var second = StructuredField.ParseDictionary(Field);
 
 		Assert.True(first.Equals(second));
 		Assert.Equal(first.GetHashCode(), second.GetHashCode());
 		Assert.Equal(first["a"], second["a"]);
 		Assert.Equal(new BareItem.ByteSequence([1, 2]), new BareItem.ByteSequence([1, 2]));
 
-		Assert.False(first.Equals(Rfc9651.ParseDictionary("a=(1 3);x=?0, b=:aGVsbG8=:, c=%\"f%c3%bc\";y")));
-		Assert.False(Rfc9651.ParseDictionary("a, b").Equals(Rfc9651.ParseDictionary("b, a")));
+		Assert.False(first.Equals(StructuredField.ParseDictionary("a=(1 3);x=?0, b=:aGVsbG8=:, c=%\"f%c3%bc\";y")));
+		Assert.False(StructuredField.ParseDictionary("a, b").Equals(StructuredField.ParseDictionary("b, a")));
 	}
 
 	/// <summary>The serialization the package's README shows, which has to stay true and compile.</summary>
@@ -167,7 +167,7 @@ public sealed class Rfc9651Tests
 			new("i", new Item(BareItem.Boolean.True, new OrderedMap<BareItem>([]))),
 		]);
 
-		Assert.Equal("u=3, i", Rfc9651.SerializeDictionary(priority));
+		Assert.Equal("u=3, i", StructuredField.SerializeDictionary(priority));
 	}
 
 	public static TheoryData<string, int> Cases => Suited("");
@@ -197,9 +197,9 @@ public sealed class Rfc9651Tests
 
 		return test.GetProperty("header_type").GetString() switch
 		{
-			"item" => Rfc9651.SerializeItem(ToItem(expected)),
-			"list" => Rfc9651.SerializeList([.. expected.EnumerateArray().Select(ToMember)]),
-			_      => Rfc9651.SerializeDictionary(new OrderedMap<Member>(
+			"item" => StructuredField.SerializeItem(ToItem(expected)),
+			"list" => StructuredField.SerializeList([.. expected.EnumerateArray().Select(ToMember)]),
+			_      => StructuredField.SerializeDictionary(new OrderedMap<Member>(
 				expected.EnumerateArray().Select(entry => new KeyValuePair<string, Member>(entry[0].GetString()!, ToMember(entry[1]))))),
 		};
 	}
@@ -234,9 +234,6 @@ public sealed class Rfc9651Tests
 			var other       => throw new InvalidOperationException($"A value of a type nobody told this about: {other}."),
 		},
 	};
-
-	static (bool Read, object? Value) Read<T>(Rfc9651.Match<T> match) =>
-		(match.IsSuccess, match.IsSuccess ? match.Value : null);
 
 	// ── The suite's JSON, held against what was read ─────────────────────────────
 

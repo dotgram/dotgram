@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 using DotGram;
@@ -40,6 +41,21 @@ public sealed record LanguageTag(
 	IReadOnlyList<string>     PrivateUse,
 	string?                   Grandfathered)
 {
+	/// <summary>A well-formed language tag (RFC 5646 §2.1), whatever its case.</summary>
+	/// <exception cref="FormatException">The text is no well-formed tag; the message says where.</exception>
+	public static LanguageTag Parse(string text) =>
+		Rfc5646.ParseTag(text ?? throw new ArgumentNullException(nameof(text)));
+
+	/// <summary>A well-formed language tag, or false where the text is not one.</summary>
+	public static bool TryParse(string text, [NotNullWhen(true)] out LanguageTag? tag)
+	{
+		var match = Rfc5646.TryParseTag(text ?? throw new ArgumentNullException(nameof(text)));
+
+		tag = match.IsSuccess ? match.Value : null;
+
+		return match.IsSuccess;
+	}
+
 	/// <summary>§2.2.6: a single letter or digit other than <c>x</c>, and the subtags it introduces.</summary>
 	/// <remarks>Equal to another whatever the case of either, as a tag is (§2.1.1).</remarks>
 	public sealed record Extension(char Singleton, IReadOnlyList<string> Subtags)
@@ -248,7 +264,7 @@ public sealed record LanguageTag(
 
 	parse LanguageTag as ParseTag
 	""")]
-public static partial class Rfc5646
+static partial class Rfc5646
 {
 	// ParseTag and TryParseTag are generated here.
 
