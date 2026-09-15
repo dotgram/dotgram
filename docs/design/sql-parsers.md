@@ -55,6 +55,13 @@ is open until it is built, and `status.md` is what will say when it has been.
     `SqlStandardParser` reads, so that `--roundtrip` works again the moment T-SQL switches.
   - `Sql92Parser`, which T-SQL includes for its expressions, builds the new tree too; removing it is
     a separate step later.
+  - Where the two disagree, decided with Igor the same day: `[x]` is a third `IdentifierStyle`,
+    `Bracketed`; `@x` and `@@x` are T-SQL's `Expression.Variable`, not the standard's parameters; `0xFF`
+    is read by each grammar as its own dialect has it — a binary string in T-SQL, an integer in the
+    standard; T-SQL's `EXECUTE` of a module is a node of its own, the standard's `Statement.Execute` being
+    a prepared statement's; `DROP … IF EXISTS` is a flag on the standard's drop statements, which take a
+    list of names and a behavior that may be left out; `OFFSET` and `FETCH` keep the standard's shape;
+    the walker follows lists as well as arrays, and `ISqlSpan` leaves `SqlSyntax.cs` before the old tree goes.
   - Every commit to `main` keeps T-SQL's measurements where they are — `--engine` with no defects,
     `--roundtrip` at 100% — so the switch itself lands only once they are back.
 - **The specifications are kept beside the parsers that read them**, so that the answer

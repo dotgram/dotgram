@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using DotGram.Sql;
+using DotGram.Sql.Standard;
 using DotGram.Sql.TransactSql;
 
 using Xunit;
@@ -35,6 +36,26 @@ public sealed class SqlWalkerTests
 		Assert.Contains(seen, static node => node is Expression.Add);
 		Assert.Contains(seen, static node => node is Expression.Comparison);
 		Assert.Contains(seen, static node => node is TableReference.Named);
+	}
+
+	/// <summary>The SQL:2023 tree holds its nodes in lists rather than arrays, and they are walked the same.</summary>
+	[Fact]
+	public void The_standard_tree_is_walked_through_its_lists()
+	{
+		var query = SqlStandardParser.ParseQueryExpression("SELECT a + 1 FROM t WHERE b = 2");
+		var seen  = new List<ISqlSpan>();
+
+		Assert.True(SqlWalker.Walk(query, node =>
+		{
+			seen.Add(node);
+
+			return true;
+		}));
+
+		Assert.Same(query, seen[0]);
+		Assert.Contains(seen, static node => node is DotGram.Sql.Ast.SelectItem.ExpressionItem);
+		Assert.Contains(seen, static node => node is DotGram.Sql.Ast.Expression.Binary);
+		Assert.Contains(seen, static node => node is DotGram.Sql.Ast.TableSource.Named);
 	}
 
 	[Fact]
