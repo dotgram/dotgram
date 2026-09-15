@@ -162,6 +162,35 @@ Rfc6901.ParsePointer("/foo/-").Resolve(document);   // null: the element after t
 the end, `-`, or a name an object holds twice, whose member the RFC calls undefined — which
 is not JSON's `null`.
 
+## RFC 6902 JSON Patch
+
+[`Rfc6902`](Rfc6902.cs) reads a JSON Patch document and applies it to a document read by
+`Rfc8259`.
+
+```csharp
+using DotGram.Web;
+
+var patch = Rfc6902.ParsePatch("""
+    [
+      { "op": "test", "path": "/a/b/c", "value": "foo" },
+      { "op": "replace", "path": "/a/b/c", "value": 42 },
+      { "op": "copy", "from": "/a/b/c", "path": "/a/b/d" }
+    ]
+    """);
+
+var result = patch.Apply(Rfc8259.ParseJson("""{ "a": { "b": { "c": "foo" } } }"""));
+
+result.ToString();   // {"a":{"b":{"c":42,"d":42}}}
+```
+
+Applying changes nothing it is given: the result is a new document sharing what the patch did
+not touch, and a patch that fails throws `JsonPatchException` — or `TryApply` answers false —
+with no half-patched document left behind. `test` compares as §4.6 asks: numbers by value at
+any precision, so `1` equals `1.0`, and objects whatever the order of their members;
+`Rfc6902.AreEqual` is that comparison. `op`, `path`, and the `value` or `from` an operation
+takes are each written once; other members are ignored. Removing the whole document is an
+error. It is held to the [JSON Patch test suite](https://github.com/json-patch/json-patch-tests).
+
 ## RFC 8259 JSON
 
 [`Rfc8259`](Rfc8259.cs) reads a JSON text into `JsonValue`.

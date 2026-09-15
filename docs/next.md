@@ -22757,6 +22757,28 @@ No shared suite exists. Held by the RFC's examples and by the IANA Media Types r
 2026-09-15, one CSV per top-level type in `tests/DotGram.Tests/Web/MediaTypes/`: every template reads as a
 `Content-Type` and writes back as written.
 
+## RFC 6902, JSON Patch
+
+Igor, 2026-09-15: go on (JSON Patch was proposed as next, over JSON and JSON Pointer already here).
+`src/DotGram.Web/Rfc6902.cs` has no grammar: a patch document's syntax is JSON's and a path's is JSON
+Pointer's. What is new is §4's meaning. `JsonPatch` holds `Operation`, a closed set of six nested records;
+`Rfc6902.ReadPatch` reads one from a `JsonValue`, `Apply`/`TryApply` apply it, `AreEqual` is §4.6.
+
+Applying rebuilds the objects and arrays on the way to each location and shares the rest, so a failed patch
+leaves nothing to undo (§5). Where the RFC leaves room: `op`, `path` and the `value` or `from` an operation
+takes written twice is an error, since this JSON reader keeps both; a name an object holds twice is no
+location, as `Resolve` already answers; removing the root is an error, as erratum 4787 (held for document
+update) asks. The other five errata are rejected. §4.6's numbers compare by value at any precision — sign,
+significant digits, and a `BigInteger` exponent — and objects match members by name and value once each.
+
+Held by json-patch/json-patch-tests at 2a928f9 (Apache-2.0, the licence in its README, vendored with it):
+every record runs, `disabled` ones included, since they are disabled for readers that drop a duplicate
+member or refuse a scalar document. Each patch is also written back and read again to the same patch.
+
+A discussion Igor opened and left open: streaming JSON, to read files too large to hold. The generator has
+no incremental input today; a pull reader over `JsonValue`'s tokens, or a grammar publication per element
+of a top-level array, are the shapes to talk over.
+
 ## The SQL:2023 tree, built by the standard's grammar
 
 `SqlStandard.gram` now builds `Sql2023Ast.cs` for what it once only recognized, chapter by chapter:
