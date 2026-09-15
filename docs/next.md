@@ -22645,18 +22645,49 @@ JSON Schema's rule and not the RFC's — and by §5.8's examples as instants: 16
 
 **Two generator defects met on the way, worked around in the grammar and not fixed yet.**
 
-- *A `when` is handed the last turn of a repeated text capture.* `year: Digit{4} & … & when @(IsDate(year!, …))`
-  compiled and passed the guard `"0"` for `2020`: every month and day check was made on one digit, so
-  `2020-13-01` read and `2020-06-30` did not. status.md says a repeated capture of text is the text
-  joined, so the guard's reading disagrees with the construction's. Worked around by capturing a rule
-  whose extent is the field — `DateFullYear = Digit{4}`, `year: DateFullYear`.
-- *A capture inside an optional group beside a `when` names a local that is not declared.*
-  `('.' & fraction: SecFrac)?` in `FullTime`, inlined into `Timestamp`, generated
-  `Read_FullTime_Timestamp_Part0(p, pos, lm, ref a3, ref b3)` with no `lm` in scope — CS0103 in the
-  consumer's build. Worked around by making the fraction a rule that may read nothing,
-  `SecFrac = ('.' & Digit+)?`, captured unconditionally.
+- *A `when` is handed the last turn of a repeated text capture of a rule.* `year: Digit{4} & … & when
+  @(IsDate(year!, …))` compiled and passed the guard `"0"` for `2020`, so `2020-13-01` read and `2020-06-30`
+  did not. Smallest form: `D = ['0'..'9']`, `T : @string = y: D{2} & when @(Seen(y!)) => @(y! + "|" + Last)`
+  gives `"12|2"` for `12` — the construction joins the turns as status.md says, the guard does not. A
+  repeated element set (`['0'..'9']{4}`) is one run with one entry and is right. The methods reader
+  refuses such a guard (`Machine.Direct.cs` `DirectGuard`, 169-179) and the rule falls to the engine,
+  silently under Auto and as GRAM5007 under Immediate or Mixed; there `Machine.cs`'s `case Node.Guard`
+  (2419-2443) scans the entries back from the end for the member's capture and stops at the first, where
+  a repeated text member needs the join the rule-valued sequences already get (2397-2417, 2483-2512).
+  Worked around by capturing a rule whose extent is the field: `DateFullYear = Digit{4}`, `year: DateFullYear`.
+- *A guarded rule whose group becomes a part method passes a mark nobody declared.* Smallest form:
+  `T : @string = h: ['0'..'9'] & ('.' & f: ['0'..'9'])? & when @(true) => @(h!)` — no capture in the group,
+  no inlining and no second publication needed; any `when`, any `(…)?` or `(…)*` that becomes a part. It
+  fails under Immediate and Mixed, and under Auto where Auto chooses Immediate; Tape declares the mark and
+  is fine. `Machine.Reader.cs` `Handing` (2212-2220) hands a part `Carrier.RecordMarks("lm")` whenever the
+  rule is guarded, while the body declares it only through `Carrier.MarkRecords("lm")` (1113-1115), which
+  Immediate without marks (`Machine.Immediate.cs:223`) and Mixed (`Machine.Mixed.cs:280`) leave empty;
+  the part's `lmark` is never read under them. Worked around by keeping groups out of guarded rules:
+  `SecFrac = ('.' & Digit+)?` is a rule of its own, captured unconditionally.
 
-Both want a minimal repro in `SemanticTests` before anyone touches the emitter.
+Both were found and cut down by a probe over every carrier with Direct on and off; neither is fixed, and
+the emitter is Igor's to decide about.
+
+## RFC 8288, the Link header field
+
+The fifth of the order. `src/DotGram.Web/Rfc8288.cs`: §3's ABNF over RFC 9110's `token`, `quoted-string`
+and list rule into `WebLink(Target, Parameters)`, with `Relations`, `Anchor`, `Title`, `Type`, `Media` and
+`HrefLangs` read off the parameters by §3's rules — the first of a once-only parameter counts, several
+relation types share one value, `title*` wins where it decodes. The list accepts empty elements, as RFC 9110
+§5.6.1 asks of a recipient: `Field = Ows & (',' & Ows)* & Element*`, each element followed by commas or the
+end. Appendix B is lenient and calls itself advisory; the ABNF is what is read, and a field it does not make
+is refused.
+
+What the ABNF names from elsewhere is asked of what the package already has, by a C# call and not by joining
+grammars: a target is a URI-Reference when `Rfc3986.TryParseReference` says so, and an RFC 8187 language is
+a tag when `Rfc5646.TryParseTag` does. An ext-value is decoded from UTF-8 and ISO-8859-1; one that is
+malformed, or quoted, keeps its text and no decoding, which RFC 8187 lets a recipient do.
+
+Written to stay clear of the two generator defects above: the parameter's value is a rule that may read
+nothing (`Assignment`), captured unconditionally and taken apart in C#.
+
+There is no shared suite for the Link header field. The tests are §3.5's examples unfolded to one line each,
+and each recipient rule of §3 and RFC 8187.
 
 **A build trap met on the way, not a code one.** A project directory created mid-session could not
 be written by `dotnet build`: "Access to the path … is denied" on `obj`, even outside the sandbox. The

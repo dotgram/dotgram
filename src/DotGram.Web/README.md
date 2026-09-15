@@ -152,6 +152,30 @@ What a pointer refers to is a question about a document, and answering it takes 
 library this package does not depend on: `Tokens` is what the pointer says, and an object
 member or an array element is what it reaches, token by token.
 
+## RFC 8288 Link header field
+
+[`Rfc8288`](Rfc8288.cs) reads the `Link` header field into its link-values.
+
+```csharp
+using DotGram.Web;
+
+var links = Rfc8288.ParseLinks(
+    "</TheBook/chapter2>; rel=\"previous\"; title*=UTF-8'de'letztes%20Kapitel, " +
+    "</TheBook/chapter4>; rel=\"next\"; title=\"next chapter\"");
+
+links[0].Target;       // /TheBook/chapter2
+links[0].Relations;    // [previous]
+links[0].Title;        // letztes Kapitel
+links[1].Title;        // next chapter
+links[1].Parameters;   // every link-param, in order
+```
+
+A link-param's value is the same whether written as a token or a quoted string. Where §3
+allows a parameter once — `rel`, `title`, `title*`, `media`, `type` — the first counts, and
+`Title` prefers a `title*` that decodes. RFC 8187 values are decoded from UTF-8, and from
+ISO-8859-1 for older senders. A target and an anchor are kept as written: resolving a
+relative one needs the URL of the response that carried the field.
+
 ## RFC 9651 Structured Field Values
 
 [`Rfc9651`](Rfc9651.cs) reads the fields HTTP defines this way — `Priority`,
