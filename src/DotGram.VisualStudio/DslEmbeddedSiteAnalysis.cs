@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -89,7 +89,7 @@ internal sealed class DslEmbeddedSiteCache
 
 internal static class DslEmbeddedSiteAnalysis
 {
-	const string RecognitionDiagnostic = "GRAM5101";
+	const string RecognitionDiagnostic = "GRAM6101";
 	const string StringSyntaxAttribute = "System.Diagnostics.CodeAnalysis.StringSyntaxAttribute";
 
 	public static async Task<DslEmbeddedSiteResult> AnalyzeAsync(

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -133,7 +133,7 @@ public sealed class DslEmbeddedSiteAnalysisTests
 		var classification = Assert.Single(result.Classifications);
 		Assert.Equal("Keyword", classification.Role);
 		var diagnostic = Assert.Single(result.Diagnostics);
-		Assert.Equal("GRAM5101", diagnostic.Diagnostic.Id);
+		Assert.Equal("GRAM6101", diagnostic.Diagnostic.Id);
 		Assert.Equal(
 			"Expected one of ' ', ['a'..'z'] in DotGram language 'dotgram.test.filter'.",
 			diagnostic.Diagnostic.Message);

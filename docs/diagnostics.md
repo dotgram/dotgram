@@ -7,7 +7,8 @@ argued with. This is the list.
 finds a grammar and hands it to the compiler; `GRAM1xxx` the lexer; `GRAM2xxx` the parser;
 `GRAM3xxx` the binder, which resolves names; `GRAM4xxx` the normalizer, which lowers the
 grammar and checks what it means; `GRAM5xxx` the analyses that decide what a grammar *gets*
-rather than whether it is one.
+rather than whether it is one. `GRAM6xxx` is not the generator's: the Visual Studio extension
+reports it in the editor, and it has a section of its own before the retired numbers.
 
 **A retired number is not reused.** A suppression written against the old meaning would
 silently acquire a new one. The retired numbers are listed at the end.
@@ -126,6 +127,22 @@ These do not say a grammar is wrong. They say what it will not be given, and why
 | `GRAM5009` | An optional or a repetition can take what follows it, where nothing can give it back. | Information. Over characters this is settled by backtracking and the parse succeeds by the second reading, which is `GRAM5002`; over kinds a rule's answer stands (§4), so the optional takes what follows, what follows is not there any more, and the rule fails one token past what it ate. Asked only of a grammar cut in two, and only of what the optional can match in **one token** — an optional that begins like the next clause and cannot match the whole of it fails and gives nothing back. The fix is a lookahead in front of it naming what it may not take, as `?!SourceClause & Identifier` does. Where the sequence has nothing left to read, what follows is what follows the *rule*. |
 | `GRAM5011` | A terminal of a split grammar is nothing but `@M`. | A warning: the lexer has no beginning to stop on, so it asks the host at the start of every token, before its own automaton. Write what the terminal begins with in front of it — `Blob = '<' & @ReadBlob` — and the automaton reads that beginning with every other token, and the host is asked only where it stands, from where it ends. The rest may be a rule instead of a method, where the grammar can say it: `Comment = '/*' & Nested`. |
 | `GRAM5012` | Which carrier the generator chose, where the author left it to choose. | Information. A carrier is how a reader holds what it read until the constructions run. Where nothing a grammar builds can be read for a derivation that is then given up and replaced, it is carried as `Immediate`: every construction runs where it is read, and the walk the tape runs at the end is not there. A parse that fails may then have run the constructions of what it read before failing; `Carrier = GramCarrier.Tape` holds every one back until a parse has accepted (§3.7). Where a rule is read for a derivation that may be given up, or can be read again after it has answered, the grammar stays on the tape, and the message names those rules: a construction that only builds does not mind being run for a reading that is then given up, and `Carrier = GramCarrier.Immediate` says so. Nothing is said where there was nothing to choose between — a grammar that builds nothing, one no part of which is read by methods, or one the immediate carrier cannot carry. |
+
+## GRAM6xxx — the Visual Studio extension
+
+The generator does not report these, and a build never shows them. The Visual Studio extension
+reports them in the editor: `GRAM600x` about the classifications a `[GramClassify]` attribute
+declares for a grammar's language, `GRAM61xx` about a string written in that language at an
+embedded DSL site.
+
+| Id | What it says | What to do |
+| --- | --- | --- |
+| `GRAM6001` | A classification target is neither `Rule` nor `Rule.capture`. | A warning, underlined inside the attribute's target. Name a rule, or a rule and one of its captures, separated by one dot. |
+| `GRAM6002` | The grammar rule a classification target names was not found. | A warning. Name a rule the grammar declares. |
+| `GRAM6003` | The grammar rule a classification target names is ambiguous. | A warning: more than one rule answers to the name. Name the one meant. |
+| `GRAM6004` | The capture a classification target names was not found in its rule. | A warning. Name a capture the rule declares. |
+| `GRAM6005` | A classification target is specified more than once. | A warning. Keep one `[GramClassify]` per target. |
+| `GRAM6101` | The text of an embedded DSL site does not match its language. | An error, underlined at the position where recognition failed. The message names what was expected there. |
 
 ## Retired numbers
 

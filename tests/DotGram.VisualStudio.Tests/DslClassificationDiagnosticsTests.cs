@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -29,7 +29,7 @@ public sealed class DslClassificationDiagnosticsTests
 
 		var diagnostics = await AnalyzeAsync(source);
 
-		Assert.Equal(new[] { "GRAM5002", "GRAM5004" },
+		Assert.Equal(new[] { "GRAM6002", "GRAM6004" },
 			diagnostics.Select(static diagnostic => diagnostic.Diagnostic.Id));
 		Assert.Equal(
 			new[] { "Missing", "Start.missing" },
@@ -51,7 +51,7 @@ public sealed class DslClassificationDiagnosticsTests
 			("Filter.gram", "Start = name: Identifier\nIdentifier = ['a'..'z']+", @"P:\Dsl\Syntax\Filter.gram"));
 
 		var diagnostic = Assert.Single(diagnostics);
-		Assert.Equal("GRAM5004", diagnostic.Diagnostic.Id);
+		Assert.Equal("GRAM6004", diagnostic.Diagnostic.Id);
 		Assert.Equal("Start.unknown", source.Substring(diagnostic.Span.Start, diagnostic.Span.Length));
 	}
 
