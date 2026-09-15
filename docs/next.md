@@ -22842,6 +22842,30 @@ request's host and path taken through `Rfc3986`, since `System.Uri` unescapes `%
 (`path0028`) tests that it is not. Case 0028's expected file holds its own Set-Cookie fields rather than a
 Cookie field, and expects none. All 218 pass with no change to the reader.
 
+## RFC 5322, email addresses
+
+Igor, 2026-09-15: go on. `src/DotGram.Web/Rfc5322.cs` reads §3.4's addresses — addr-spec, mailbox, group,
+mailbox-list, address-list — into `AddrSpec` and the `MailAddress` ADT, their values as §3.2 says they
+mean. §4 says a receiver MUST accept the obsolete syntax and a generator MUST NOT produce it, and one grammar
+gives both: the plain publications are §3 with §4, and the `Strict` ones rebind each piece of §4 with a
+`parse ... with (...)` — `Fws = CurrentFws`, `LocalPart = CurrentLocalPart`, `ObsQp = Never`, and so on.
+
+Two things the rebinding needed. Where §4's form is a superset of §3's (obs-local-part holds dot-atom and
+quoted-string, obs-domain holds dot-atom, obs-phrase holds phrase, obs-FWS holds FWS), the lenient rule is
+the superset alone: ordered choice would take §3's alternative, then fail at what follows, and never come
+back for §4's. And `Never` has to be `?!any & any`: `?!eof & eof` also matches nothing, but it can match
+without consuming, so a repetition over a class rebound to it is GRAM4001.
+
+Errata: verified 1908 (obs-FWS = 1*([CRLF] WSP)) is applied; held 3135, which would refuse `""@x`, is not.
+One thing the grammar cannot do: §3.2.2 forbids, in prose, a folded line of nothing but white space, and two
+FWS side by side from adjacent productions make one; the Strict reading accepts A.6.3's such line.
+
+Held by Appendix A's example messages and by is_email's tests.xml (dominicsayers/isemail at cfeefc3, BSD-3,
+vendored with its licence, marked `-text`), all 164 in both readings. is_email asks more than RFC 5322 in
+three places, named in the test: a hyphen at a label's edge (30, 31, 102) is RFC 1035's objection; CFWS
+beside `@` that is before or after the whole local part or domain is current syntax, and only 86 needs §4;
+and a quoted-pair in a domain literal (115-117) is obs-dtext.
+
 ## The SQL:2023 tree, built by the standard's grammar
 
 `SqlStandard.gram` now builds `Sql2023Ast.cs` for what it once only recognized, chapter by chapter:

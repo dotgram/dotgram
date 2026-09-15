@@ -20,3 +20,6 @@ tests/DotGram.Tests/Web/JsonTestSuite/** -text
 # The http-state working group's cookie cases are header lines as sent: CRLF, and ISO-8859-1 octets
 # that are not UTF-8.
 tests/DotGram.Tests/Web/HttpState/** -text
+
+# is_email's tests, kept as their author wrote them.
+tests/DotGram.Tests/Web/IsEmail/** -text

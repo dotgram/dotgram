@@ -72,6 +72,37 @@ Rfc3986.Decode("hello%20world"); // hello world
 `%2F` inside a path segment is encoded data during parsing; decoding it early would turn
 it into a path separator it is not.
 
+## RFC 5322 email addresses
+
+[`Rfc5322`](Rfc5322.cs) reads the addresses of an Internet message: an addr-spec, a mailbox,
+and the lists in `From`, `To` and `Cc`.
+
+```csharp
+using DotGram.Web;
+
+var list = Rfc5322.ParseAddressList(
+    "\"Joe Q. Public\" <john.q.public@example.com>, jdoe@example.org, Undisclosed recipients:;");
+
+var joe = (MailAddress.Mailbox)list[0];
+joe.DisplayName;          // Joe Q. Public
+joe.Address.LocalPart;    // john.q.public
+joe.Address.Domain;       // example.com
+
+var group = (MailAddress.Group)list[2];
+group.Members.Count;      // 0
+
+Rfc5322.ParseAddrSpec("(comment)\"john smith\"@example.com").LocalPart;   // john smith
+Rfc5322.TryParseStrictAddrSpec("john . smith@example.com").IsSuccess;     // false: obsolete
+```
+
+A value is what the address means: comments and folding are gone, a quoted local part is its
+content, and a display name reads with single spaces. `ParseAddrSpec`, `ParseMailbox`,
+`ParseMailboxList` and `ParseAddressList` accept §4's obsolete syntax, as a receiver must — routes,
+empty list members, space around dots, control characters in quoted text; the `Strict` readings
+accept only what §3 lets a sender write. `ToString` writes §3's form. The domain is RFC 5322's;
+whether RFC 5321 would deliver to it is not asked. It is held to
+[is_email](https://github.com/dominicsayers/isemail)'s test suite in both readings.
+
 ## RFC 5646 language tags (BCP 47)
 
 [`Rfc5646`](Rfc5646.cs) reads a language tag into the subtags §2.1 gives it.
