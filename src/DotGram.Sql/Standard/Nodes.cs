@@ -704,6 +704,66 @@ static class Nodes
 			direction is null ? null : (direction[0] | 0x20) == 'a' ? SortDirection.Asc : SortDirection.Desc,
 			nulls is null ? null : (nulls[0] | 0x20) == 'f' ? NullOrdering.First : NullOrdering.Last);
 
+	// ── §14, §16–§23 Statements ────────────────────────────────────────────────
+
+	/// <summary>A key word as the member of <typeparamref name="T"/> spelled like it: `ABSOLUTE`, `ROW_COUNT`, `KEY_TYPE`.</summary>
+	public static T EnumOf<T>(string word) where T : struct =>
+		(T)Enum.Parse(typeof(T), word.Replace("_", ""), true);
+
+	/// <summary>A target: a name, or an element of the array it names.</summary>
+	public static Expression Target(QualifiedName name, string? bracket, Expression? index) =>
+		index is null
+			? new Expression.Reference(name)
+			: new Expression.Element(new Expression.Reference(name), index, null, bracket == "??(");
+
+	public static Statement SetValue(string word, Expression value) =>
+		(word[0] | 0x20) switch
+		{
+			'c' => new Statement.SetCatalog { Value = value },
+			's' => new Statement.SetSchema { Value = value },
+			'n' => new Statement.SetNames { Value = value },
+			_   => new Statement.SetPath { Value = value },
+		};
+
+	/// <summary>
+	/// The identifier a statement, a descriptor or a cursor is named by, where it was named by one alone;
+	/// with a scope before it, or a value of another kind, the name is an extended one.
+	/// </summary>
+	static Identifier? Alone(string? scope, Expression value) =>
+		scope is null && value is Expression.Reference { Name.Parts.Count: 1 } reference ? reference.Name.Parts[0] : null;
+
+	static bool IsGlobal(string? scope) => scope is not null && (scope[0] | 0x20) == 'g';
+	static bool IsLocal(string? scope) => scope is not null && (scope[0] | 0x20) == 'l';
+
+	public static StatementReference StatementName(string? scope, Expression value) =>
+		Alone(scope, value) is { } name
+			? new StatementReference(name)
+			: new StatementReference(null, value, IsGlobal(scope), IsLocal(scope));
+
+	public static DescriptorReference DescriptorName(string? scope, Expression value, bool ptf) =>
+		Alone(scope, value) is { } name
+			? new DescriptorReference(name, null, ptf)
+			: new DescriptorReference(null, value, ptf, IsGlobal(scope), IsLocal(scope));
+
+	public static CursorReference CursorName(string? scope, Expression value, bool ptf) =>
+		Alone(scope, value) is { } name
+			? new CursorReference(new QualifiedName([name]), null, ptf)
+			: new CursorReference(null, value, ptf, IsGlobal(scope), IsLocal(scope));
+
+	/// <summary>What `ALL` is qualified by in a diagnostics statement, and a condition's number.</summary>
+	public sealed record AllOf(AllInformationQualifier Qualifier, Expression? Number);
+
+	/// <summary>`USING [SQL] DESCRIPTOR d`.</summary>
+	public sealed record UsingDescriptor(bool SqlKeyword, DescriptorReference Descriptor);
+
+	/// <summary>What a copy descriptor statement says after its source: the item's index and what it takes, where an item is copied, and the target.</summary>
+	public sealed record CopyTail(Expression? SourceIndex, IReadOnlyList<DescriptorCopyOption>? Options, DescriptorReference Target, Expression? TargetIndex);
+
+	public static DescriptorCopy Copy(DescriptorReference source, CopyTail tail) =>
+		tail.SourceIndex is null
+			? new DescriptorCopy.Whole(source, tail.Target)
+			: new DescriptorCopy.Item(source, tail.SourceIndex, tail.Options!, tail.Target, tail.TargetIndex!);
+
 	// ── §11 Schema definition and manipulation ─────────────────────────────────
 
 	/// <summary>

@@ -1125,7 +1125,8 @@ public enum RevokeOption { GrantOptionFor, HierarchyOptionFor }
 
 // --- Cursors/dynamic SQL/descriptors ---------------------------------------
 // BNF: <cursor name> (a <local qualified name>, `MODULE.c`), <extended cursor name>, and a dynamic cursor's <scope option>.
-public sealed record CursorReference(QualifiedName Name, Expression? ExtendedName = null, bool Ptf = false, bool Global = false, bool Local = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+// Name is null where the cursor is named by an extended name alone, `GLOBAL :c`.
+public sealed record CursorReference(QualifiedName? Name, Expression? ExtendedName = null, bool Ptf = false, bool Global = false, bool Local = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
 public sealed record CursorProperties(CursorSensitivity? Sensitivity, CursorScrollability? Scrollability, CursorHoldability? Holdability, CursorReturnability? Returnability) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
 public enum CursorSensitivity { Sensitive, Insensitive, Asensitive }
 public enum CursorScrollability { Scroll, NoScroll }

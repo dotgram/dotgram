@@ -236,3 +236,6 @@ must fit it.
   brackets are the author's (requirement 3).
 - `AssignmentTarget.Trigraphs`: a set target's index is written in brackets or in trigraphs, as an array
   element reference's is, and `Expression.Element` already keeps which.
+- `CursorReference.Name` is nullable: a dynamic cursor may be named by an extended name alone —
+  `GLOBAL :c`, `PTF :d` — and then it has no local qualified name, as a statement's and a descriptor's
+  reference already had none.

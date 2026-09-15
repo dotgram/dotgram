@@ -449,6 +449,52 @@ public sealed class SqlStandardTreeTests
 	public void A_schema_statement_is_built_as_written(string input, string tree) =>
 		Assert.Equal(tree, Show(SqlStandardParser.ParseSQLSchemaStatement(input)));
 
+	// ── §14, §16–§23 Statements ────────────────────────────────────────────────
+
+	[Theory]
+	[InlineData("DECLARE LOCAL TEMPORARY TABLE t (a INT) ON COMMIT DELETE ROWS;",
+		"DeclareLocalTemporaryTable(Name: t, Elements: [Column(ColumnDefinition(a, Numeric(Int, null, null), null, [], null))], OnCommit: Delete)")]
+	[InlineData("SELECT a FROM t FOR UPDATE OF a;",
+		"Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), Updatability: UpdatabilityClause(false, [a]))")]
+	[InlineData("START TRANSACTION ISOLATION LEVEL READ COMMITTED, READ ONLY, DIAGNOSTICS SIZE 5;",
+		"StartTransaction(Modes: [Isolation(ReadCommitted), Access(ReadOnly), DiagnosticsSize(5)])")]
+	[InlineData("ROLLBACK WORK AND NO CHAIN TO SAVEPOINT s;", "Rollback(Work: true, Chain: NoChain, ToSavepoint: s)")]
+	[InlineData("SET CONSTRAINTS a, s.b DEFERRED;", "SetConstraints(Target: Names([a, s.b]), Timing: Deferred)")]
+	[InlineData("CONNECT TO 'srv' AS 'c' USER 'u';", "Connect(Target: ConnectionTarget('srv', 'c', 'u', false))")]
+	[InlineData("DISCONNECT DEFAULT;", "Disconnect(Object: Connection(Default()))")]
+	[InlineData("SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE, TRANSACTION ISOLATION LEVEL SERIALIZABLE;",
+		"SetSessionCharacteristics(Characteristics: [[Access(ReadWrite)], [Isolation(Serializable)]])")]
+	[InlineData("SET NO COLLATION FOR utf8;", "SetCollation(NoCollation: true, ForCharacterSets: [CharacterSetName(utf8)])")]
+	[InlineData("SET SCHEMA 's';", "SetSchema(Value: 's')")]
+	public void A_direct_statement_is_built_as_written(string input, string tree) =>
+		Assert.Equal(tree, Show(SqlStandardParser.ParseDirectSQLStatement(input)));
+
+	[Theory]
+	[InlineData("FETCH ABSOLUTE 3 FROM c INTO :a, b[1]",
+		"FetchCursor(Orientation: FetchOrientation(Absolute, 3), FromKeyword: true, Cursor: CursorReference(c, null, false, false, false), Into: Values([Parameter(Host, a), Element(b, 1, null, false)]))")]
+	[InlineData("SELECT a INTO :x FROM t",
+		"Select(Items: [ExpressionItem(a, null, false)], Into: IntoClause([Parameter(Host, x)]), From: FromClause([Named(t)]))")]
+	[InlineData("CALL p(1)", "Call(Invocation: Invocation(p, [Argument(1, null, false)]))")]
+	[InlineData("RETURN NULL", "Return(NullKeyword: true)")]
+	[InlineData("GET DIAGNOSTICS :n = ROW_COUNT, m = MORE",
+		"GetDiagnostics(Information: Statement([StatementInformationItem(Parameter(Host, n), RowCount), StatementInformationItem(m, More)]))")]
+	[InlineData("GET DIAGNOSTICS CONDITION 1 :t = RETURNED_SQLSTATE",
+		"GetDiagnostics(Information: Condition(1, [ConditionInformationItem(Parameter(Host, t), ReturnedSqlstate)]))")]
+	[InlineData("PREPARE s ATTRIBUTES 'a' FROM 'SELECT 1'",
+		"Prepare(Statement: StatementReference(s, null, false, false), Attributes: 'a', Sql: 'SELECT 1')")]
+	[InlineData("EXECUTE s INTO SQL DESCRIPTOR GLOBAL 'd' USING :b",
+		"Execute(Statement: StatementReference(s, null, false, false), Result: Descriptor(DescriptorReference(null, 'd', false, true, false), true), Parameters: Values([Parameter(Host, b)]))")]
+	[InlineData("DESCRIBE OUTPUT CURSOR c STRUCTURE USING DESCRIPTOR d WITH NESTING",
+		"Describe(Body: Output(Cursor(CursorReference(c, null, false, false, false)), DescriptorReference(d, null, false, false, false), true, true, false))")]
+	[InlineData("GET SQL DESCRIPTOR d VALUE 1 :a = NAME, :b = DATA",
+		"GetDescriptor(SqlKeyword: true, Descriptor: DescriptorReference(d, null, false, false, false), Body: Value(1, [DescriptorRead(Parameter(Host, a), Name), DescriptorRead(Parameter(Host, b), Data)]))")]
+	[InlineData("ALLOCATE GLOBAL :c INSENSITIVE SCROLL CURSOR WITH HOLD FOR s",
+		"AllocateCursor(Cursor: CursorReference(null, Parameter(Host, c), false, true, false), Properties: CursorProperties(Insensitive, Scroll, WithHold, null), SourceValue: Prepared(StatementReference(s, null, false, false)))")]
+	[InlineData("COPY d VALUE 1 (NAME, TYPE) TO PTF p VALUE 2",
+		"CopyDescriptor(Body: Item(DescriptorReference(d, null, false, false, false), 1, [Name, Type], DescriptorReference(p, null, true, false, false), 2))")]
+	public void A_procedure_statement_is_built_as_written(string input, string tree) =>
+		Assert.Equal(tree, Show(SqlStandardParser.ParseSQLProcedureStatement(input)));
+
 	[Fact]
 	public void A_data_change_delta_table_holds_its_statement() =>
 		Assert.Equal("DataChange(New, Insert(Target: t, SourceValue: Values([RowValue([1], false)])), Alias(x, null, true))",
