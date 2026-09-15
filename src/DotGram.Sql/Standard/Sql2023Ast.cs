@@ -454,7 +454,7 @@ public abstract record Expression : ISqlNode
 	public record Member(Expression Target, MemberAccessKind Kind, Identifier Name, IReadOnlyList<Argument>? Arguments = null) : Expression;
 
 	// BNF: <generalized expression>, `(a AS t).m ()`.
-	public record Generalized(Expression Value, QualifiedName TypeName) : Expression;
+	public record Generalized(Expression Value, DataType Type) : Expression;
 
 	// BNF: <subtype treatment>, <new specification>, <reference resolution>.
 	public record Treat(Expression Value, DataType Target) : Expression;

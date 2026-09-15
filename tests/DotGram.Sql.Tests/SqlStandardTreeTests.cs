@@ -232,4 +232,109 @@ public sealed class SqlStandardTreeTests
 		Assert.Equal(new[] { "s", "u" }, reference.Scope!.Parts.Select(one => one.Text));
 		Assert.Equal(new IntervalQualifier(DateTimeField.Second, 2, null, 3), Assert.IsType<DataType.Interval>(SqlStandardParser.ParseDataType("INTERVAL SECOND(2, 3)")).Qualifier);
 	}
+
+	// ── §6.28 Value expressions ─────────────────────────────────────────────────
+
+	[Theory]
+	[InlineData("a + b * c", "Binary(a, Add, Binary(b, Multiply, c))")]
+	[InlineData("a - b - c", "Binary(Binary(a, Subtract, b), Subtract, c)")]
+	[InlineData("a * b / c + d", "Binary(Binary(Binary(a, Multiply, b), Divide, c), Add, d)")]
+	[InlineData("-a * b", "Binary(Unary(Minus, a), Multiply, b)")]
+	[InlineData("a || b || c", "Binary(Binary(a, Concatenate, b), Concatenate, c)")]
+	[InlineData("x MULTISET UNION ALL y MULTISET INTERSECT z", "MultisetOperation(x, Union, All, MultisetOperation(y, Intersect, null, z))")]
+	[InlineData("(a)", "Parenthesized(a)")]
+	[InlineData("(a, b)", "Row([a, b], false)")]
+	[InlineData("ROW(a, b)", "Row([a, b], true)")]
+	[InlineData("a.b.c", "a.b.c")]
+	[InlineData("a.b.m(1)", "Invocation(a.b.m, [Argument(1, null, false)])")]
+	[InlineData("a.b.c.m(1)", "Member(a.b.c, Dot, m, [Argument(1, null, false)])")]
+	[InlineData("a[1]", "Element(a, 1, null, false)")]
+	[InlineData("a??(1??)", "Element(a, 1, null, true)")]
+	[InlineData("x DAY", "IntervalQualified(x, IntervalQualifier(Day, null, null, null))")]
+	[InlineData("x AT LOCAL", "AtTimeZone(x, null)")]
+	[InlineData("x AT TIME ZONE y", "AtTimeZone(x, y)")]
+	[InlineData("x COLLATE c", "Collate(x, CollationName(c))")]
+	[InlineData(":h INDICATOR :i", "Parameter(Host, h, Indicator: i, IndicatorKeyword: true)")]
+	[InlineData(":h :i", "Parameter(Host, h, Indicator: i)")]
+	[InlineData("?", "Parameter(Dynamic, null)")]
+	[InlineData("CURRENT_USER", "Current(CurrentUser, null, null)")]
+	[InlineData("USER", "Current(User, null, null)")]
+	[InlineData("CAST(a AS INT)", "Cast(a, Numeric(Int, null, null), null)")]
+	[InlineData("CASE a WHEN 1, 2 THEN 'x' WHEN < 5 THEN 'y' ELSE NULL END", "Case(a, [CaseWhen([1, 2], 'x'), CaseWhen([Comparison(CaseOperand(), Less, 5)], 'y')], NULL)")]
+	[InlineData("CASE WHEN a THEN 1 END", "Case(null, [CaseWhen([a], 1)], null)")]
+	[InlineData("NULLIF(a, b)", "Invocation(NULLIF, [Argument(a, null, false), Argument(b, null, false)])")]
+	[InlineData("f(a => 1, b)", "Invocation(f, [Argument(1, a, true), Argument(b, null, false)])")]
+	[InlineData("T::m(1)", "Member(T, StaticMethod, m, [Argument(1, null, false)])")]
+	[InlineData("NEXT VALUE FOR s.q", "NextValue(s.q)")]
+	[InlineData("ARRAY[1, 2]", "Array([1, 2], false)")]
+	public void A_value_expression_is_built_as_written(string input, string tree) =>
+		Assert.Equal(tree, Show(SqlStandardParser.ParseValueExpression(input)));
+
+	// ── §8 Predicates ───────────────────────────────────────────────────────────
+
+	[Theory]
+	[InlineData("a = 1 AND NOT b IS NULL OR c", "Binary(Binary(Comparison(a, Equal, 1), And, Unary(Not, IsNull(b, false))), Or, c)")]
+	[InlineData("a BETWEEN SYMMETRIC 1 AND 2", "Between(a, false, Symmetric, 1, 2)")]
+	[InlineData("a NOT IN (1, 2)", "In(a, true, Values([1, 2]))")]
+	[InlineData("a NOT LIKE 'x' ESCAPE '!'", "Like(a, true, Like, 'x', '!', null)")]
+	[InlineData("a IS NOT DISTINCT FROM b", "IsDistinct(a, true, b)")]
+	[InlineData("a IS NOT TRUE", "IsTruth(a, true, True)")]
+	[InlineData("x IS JSON OBJECT WITH UNIQUE KEYS", "JsonPredicate(x, null, false, Object, WithUniqueKeys)")]
+	[InlineData("(a, b) OVERLAPS (c, d)", "Overlaps(Row([a, b], false), Row([c, d], false))")]
+	[InlineData("PERIOD(a, b) CONTAINS c", "PeriodPredicate(Range(a, b), Contains, Point(c))")]
+	[InlineData("p IMMEDIATELY PRECEDES q", "PeriodPredicate(Reference(p), ImmediatelyPrecedes, Period(Reference(q)))")]
+	[InlineData("m NOT MEMBER OF n", "MemberOf(m, true, true, n)")]
+	public void A_search_condition_is_built_as_written(string input, string tree) =>
+		Assert.Equal(tree, Show(SqlStandardParser.ParseSearchCondition(input)));
+
+	/// <summary>
+	/// A node as one line: its record's name and its positional values in order, then what else it
+	/// holds that is not a default; a name, a reference and a literal as they were written.
+	/// </summary>
+	static string Show(object? node) =>
+		node switch
+		{
+			null                           => "null",
+			string text                    => text,
+			bool flag                      => flag ? "true" : "false",
+			Enum value                     => value.ToString(),
+			Identifier identifier          => identifier.Text,
+			QualifiedName name             => string.Join(".", name.Parts.Select(one => one.Text)),
+			Ast.Expression.Reference named => Show(named.Name),
+			Ast.Expression.Literal literal => literal.Value switch
+			{
+				LiteralValue.Numeric number => number.Text,
+				LiteralValue.String text    => text.Text,
+				LiteralValue.Null           => "NULL",
+				var other                   => Record(other),
+			},
+			System.Collections.IEnumerable list => "[" + string.Join(", ", list.Cast<object?>().Select(Show)) + "]",
+			_                              => node.GetType().IsPrimitive ? node.ToString()! : Record(node),
+		};
+
+	static string Record(object node)
+	{
+		var type        = node.GetType();
+		var constructor = type.GetConstructors()
+			.Where(one => !(one.GetParameters().Length == 1 && one.GetParameters()[0].ParameterType == type))
+			.OrderByDescending(one => one.GetParameters().Length)
+			.FirstOrDefault();
+		var positional  = constructor?.GetParameters().Select(one => one.Name!).ToArray() ?? [];
+		var parts       = positional.Select(name => Show(type.GetProperty(name)!.GetValue(node))).ToList();
+
+		foreach (var property in type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+		{
+			if (positional.Contains(property.Name) || property.Name is "Span" or "EqualityContract")
+				continue;
+
+			var value = property.GetValue(node);
+
+			if (value is null or false || value is int and 0)
+				continue;
+
+			parts.Add(property.Name + ": " + Show(value));
+		}
+
+		return type.Name + "(" + string.Join(", ", parts) + ")";
+	}
 }

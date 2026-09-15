@@ -5,6 +5,11 @@ using DotGram.Sql.Ast;
 
 namespace DotGram.Sql.Standard;
 
+// Inside the namespace, where they are asked before DotGram.Sql's own Expression and Statement — the
+// tree T-SQL builds, which a using directive above the namespace would lose to.
+using Expression = DotGram.Sql.Ast.Expression;
+using Statement = DotGram.Sql.Ast.Statement;
+
 /// <summary>
 /// How <c>SqlStandard.gram</c> makes the SQL:2023 tree out of what it read: the words and lists a
 /// rule captured, turned into nodes (docs/design/sql-ast.md).
@@ -66,6 +71,288 @@ static class Nodes
 
 		return new CharacterSetName(new QualifiedName(parts));
 	}
+
+	// ── What is not built yet ──────────────────────────────────────────────────
+
+	/// <summary>
+	/// What a chapter not yet building its tree stands in for: the window and JSON functions, a JSON
+	/// subscript, a value function. Each goes as its chapter builds, and none is left when all have.
+	/// </summary>
+	public static Expression Unbuilt() => new Expression.Extension("SQL:2023", "Unbuilt", []);
+
+	/// <summary>The query a subquery holds, until §7 builds its tree.</summary>
+	public static Statement.Select UnbuiltQuery() => new();
+
+	// ── §6.3 Value expression primary ──────────────────────────────────────────
+
+	public static Expression Null() => new Expression.Literal(new LiteralValue.Null());
+
+	/// <summary>A bracket's value expression and what followed it: brackets, a row, or a generalized invocation.</summary>
+	public static Towers.Typed Bracketed(Towers.Typed value, Towers.Bracket tail) =>
+		tail.Kind switch
+		{
+			Towers.Parenthesized => new(new Expression.Parenthesized(value.Node), Towers.Value | Towers.Parenthesized | (value.Roles & Towers.Truth)),
+			Towers.Row           => new(new Expression.Row(List(value.Node, tail.Rest)), Towers.Row),
+			_                    => new(new Expression.Member(new Expression.Generalized(value.Node, tail.Type!), MemberAccessKind.Dot, tail.Method!, tail.Arguments), Towers.Value | Towers.Truth | Towers.Bare),
+		};
+
+	/// <summary>A name and what followed it: a row pattern measure called over a window, or a chain.</summary>
+	public static Towers.Typed ChainOrMeasure(Identifier name, Towers.Chained chained) =>
+		chained.Measure
+			? new(new Expression.Invocation(new QualifiedName([name]), []) { WithoutParentheses = true, Over = null }, Towers.Value | Towers.Truth | Towers.Bare)
+			: new(new Expression.Reference(Chain(name, chained.Rest)), Towers.Value | Towers.Truth | Towers.Bare | Towers.Chain);
+
+	/// <summary>`.SPECIFICTYPE`, with its brackets where they were written.</summary>
+	public static Expression.Member SpecificType(string word, string? brackets) =>
+		new(null!, MemberAccessKind.Dot, new Identifier(word), brackets is null ? null : []);
+
+	/// <summary>A JSON item method: its name, and the numbers in its brackets.</summary>
+	public static Expression Method(string word, string? first, string? second)
+	{
+		var arguments = new List<Argument>();
+
+		if (first is not null)
+			arguments.Add(new Argument(new Expression.Literal(NumericLiteral(first))));
+
+		if (second is not null)
+			arguments.Add(new Argument(new Expression.Literal(NumericLiteral(second))));
+
+		return new Expression.Member(null!, MemberAccessKind.Dot, new Identifier(word), arguments);
+	}
+
+	/// <summary>A host parameter, `:a INDICATOR :i`, and whether the key word stood before its indicator.</summary>
+	public static Expression HostParameter(Identifier name, Identifier? indicator, bool keyword) =>
+		new Expression.Parameter(ParameterKind.Host, name) { Indicator = indicator, IndicatorKeyword = indicator is not null && keyword };
+
+	public static Expression Current(string word) =>
+		new Expression.Current(word.ToUpperInvariant() switch
+		{
+			"CURRENT_CATALOG"                 => CurrentValue.Catalog,
+			"CURRENT_DEFAULT_TRANSFORM_GROUP" => CurrentValue.DefaultTransformGroup,
+			"CURRENT_PATH"                    => CurrentValue.Path,
+			"CURRENT_ROLE"                    => CurrentValue.Role,
+			"CURRENT_SCHEMA"                  => CurrentValue.Schema,
+			"CURRENT_USER"                    => CurrentValue.CurrentUser,
+			"SESSION_USER"                    => CurrentValue.SessionUser,
+			"SYSTEM_USER"                     => CurrentValue.SystemUser,
+			"USER"                            => CurrentValue.User,
+			_                                 => CurrentValue.Value,
+		});
+
+	/// <summary>A function the BNF spells out whose arguments are a comma list: its name as written, and the values.</summary>
+	public static Expression Invoked(string word, Expression first, Expression[]? rest)
+	{
+		var arguments = new Argument[(rest?.Length ?? 0) + 1];
+
+		arguments[0] = new Argument(first);
+
+		for (var at = 1; at < arguments.Length; at++)
+			arguments[at] = new Argument(rest![at - 1]);
+
+		return new Expression.Invocation(new QualifiedName([new Identifier(word)]), arguments);
+	}
+
+	/// <summary>An array or a multiset by enumeration, empty where nothing was written, and whether its brackets were trigraphs.</summary>
+	public static Expression Collection(string word, string bracket, Expression? first, Expression[]? rest)
+	{
+		IReadOnlyList<Expression> items = first is null ? [] : List(first, rest);
+		var trigraphs = bracket == "??(";
+
+		return (word[0] | 0x20) == 'a' ? new Expression.Array(items, trigraphs) : new Expression.Multiset(items, trigraphs);
+	}
+
+	public static CollectionKind CollectionKindOf(string word) =>
+		(word[0] | 0x20) switch
+		{
+			'a' => CollectionKind.Array,
+			'm' => CollectionKind.Multiset,
+			_   => CollectionKind.Table,
+		};
+
+	/// <summary>An SQL argument list: nothing, or the first argument and the rest.</summary>
+	public static IReadOnlyList<Argument> Arguments(Argument? first, Argument[]? rest) =>
+		first is null ? [] : List(first, rest);
+
+	/// <summary>Values read with their towers, as the nodes alone.</summary>
+	public static IReadOnlyList<Expression> Values(Towers.Typed first, Towers.Typed[]? rest)
+	{
+		var all = new Expression[(rest?.Length ?? 0) + 1];
+
+		all[0] = first.Node;
+
+		for (var at = 1; at < all.Length; at++)
+			all[at] = rest![at - 1].Node;
+
+		return all;
+	}
+
+	// ── §6.28 Operators ────────────────────────────────────────────────────────
+
+	public static Ast.MultisetOperator Multiset(string word) =>
+		(word[0] | 0x20) switch
+		{
+			'u' => Ast.MultisetOperator.Union,
+			'e' => Ast.MultisetOperator.Except,
+			_   => Ast.MultisetOperator.Intersect,
+		};
+
+	public static SetQuantifier? Quantifier(string? word) =>
+		word is null ? null : (word[0] | 0x20) == 'a' ? SetQuantifier.All : SetQuantifier.Distinct;
+
+	// ── §8 Predicates ──────────────────────────────────────────────────────────
+
+	/// <summary>What `IS [NOT] TRUE` said: whether it was written, and what it tests.</summary>
+	public readonly record struct Truth(bool Tested, bool Not, Ast.BooleanLiteral Value);
+
+	/// <summary>Whether a truth test was written, asked by a guard, which may see a nullable struct (Towers.RolesOf).</summary>
+	public static bool TestedOf(Truth? truth) => truth?.Tested ?? false;
+
+	public static Ast.BooleanLiteral Truthful(string word) =>
+		(word[0] | 0x20) switch
+		{
+			't' => Ast.BooleanLiteral.True,
+			'f' => Ast.BooleanLiteral.False,
+			_   => Ast.BooleanLiteral.Unknown,
+		};
+
+	/// <summary>A predicate's second part with the predicand it follows put in: the one reading of the row, and the predicate it turned out to be.</summary>
+	public static Expression Predicated(Expression left, Expression tail) =>
+		tail switch
+		{
+			Expression.Comparison c           => c with { Left = left },
+			Expression.QuantifiedComparison q => q with { Left = left },
+			Expression.Between b              => b with { Value = left },
+			Expression.In i                   => i with { Value = left },
+			Expression.Like l                 => l with { Value = left },
+			Expression.IsNull n               => n with { Value = left },
+			Expression.IsDistinct d           => d with { Left = left },
+			Expression.IsNormalized n         => n with { Value = left },
+			Expression.MemberOf m             => m with { Value = left },
+			Expression.SubmultisetOf s        => s with { Value = left },
+			Expression.IsSet s                => s with { Value = left },
+			Expression.IsOf o                 => o with { Value = left },
+			Expression.Match m                => m with { Value = left },
+			Expression.Overlaps o             => o with { Left = left },
+			Expression.JsonPredicate j        => j with { Value = left },
+			Expression.PeriodPredicate p      => p with { Left = left is Expression.Reference r ? new PeriodValue.Reference(r.Name) : throw new ArgumentOutOfRangeException(nameof(left), left, "A period predicate names its period by a chain.") },
+			_                                 => throw new ArgumentOutOfRangeException(nameof(tail), tail, "A predicate this method cannot complete."),
+		};
+
+	/// <summary>A predicate with `NOT` in it, where it was written.</summary>
+	public static Expression Negated(Expression predicate, bool not) =>
+		!not ? predicate : predicate switch
+		{
+			Expression.Between b       => b with { Not = true },
+			Expression.In i            => i with { Not = true },
+			Expression.Like l          => l with { Not = true },
+			Expression.IsNull n        => n with { Not = true },
+			Expression.IsDistinct d    => d with { Not = true },
+			Expression.IsNormalized n  => n with { Not = true },
+			Expression.MemberOf m      => m with { Not = true },
+			Expression.SubmultisetOf s => s with { Not = true },
+			Expression.IsSet s         => s with { Not = true },
+			Expression.IsOf o          => o with { Not = true },
+			Expression.JsonPredicate j => j with { Not = true },
+			_                          => throw new ArgumentOutOfRangeException(nameof(predicate), predicate, "A predicate that takes no NOT."),
+		};
+
+	/// <summary>A comparison, or a quantified one, with the operator written.</summary>
+	public static Expression Compared(Expression tail, string op)
+	{
+		var compared = op switch
+		{
+			"<>" => ComparisonOperator.NotEqual,
+			"<=" => ComparisonOperator.LessOrEqual,
+			">=" => ComparisonOperator.GreaterOrEqual,
+			"="  => ComparisonOperator.Equal,
+			"<"  => ComparisonOperator.Less,
+			_    => ComparisonOperator.Greater,
+		};
+
+		return tail is Expression.QuantifiedComparison q ? q with { Operator = compared } : ((Expression.Comparison)tail) with { Operator = compared };
+	}
+
+	public static Ast.Quantifier Quantified(string word) =>
+		(word[0] | 0x20) switch
+		{
+			's'                              => Ast.Quantifier.Some,
+			'a' when (word[1] | 0x20) == 'l' => Ast.Quantifier.All,
+			_                                => Ast.Quantifier.Any,
+		};
+
+	public static Ast.MatchType? Matching(string? word) =>
+		word is null ? null : (word[0] | 0x20) switch
+		{
+			's' => Ast.MatchType.Simple,
+			'p' => Ast.MatchType.Partial,
+			_   => Ast.MatchType.Full,
+		};
+
+	/// <summary>`UNIQUE NULLS [NOT] DISTINCT`: null where nothing was said.</summary>
+	public static NullDistinctness? Nulls(string? distinct, string? not) =>
+		distinct is null ? null : not is null ? NullDistinctness.Distinct : NullDistinctness.NotDistinct;
+
+	public static BetweenSymmetry? Symmetry(string? word) =>
+		word is null ? null : (word[0] | 0x20) == 'a' ? BetweenSymmetry.Asymmetric : BetweenSymmetry.Symmetric;
+
+	public static Expression Membership(string word, bool of, Expression collection) =>
+		(word[0] | 0x20) == 'm'
+			? new Expression.MemberOf(null!, false, of, collection)
+			: new Expression.SubmultisetOf(null!, false, of, collection);
+
+	public static NormalForm? Form(string? word) =>
+		word?.ToUpperInvariant() switch
+		{
+			null   => null,
+			"NFC"  => NormalForm.NFC,
+			"NFD"  => NormalForm.NFD,
+			"NFKC" => NormalForm.NFKC,
+			_      => NormalForm.NFKD,
+		};
+
+	public static JsonPredicateType? JsonType(string? word) =>
+		word?.ToUpperInvariant() switch
+		{
+			null     => null,
+			"VALUE"  => JsonPredicateType.Value,
+			"ARRAY"  => JsonPredicateType.Array,
+			"OBJECT" => JsonPredicateType.Object,
+			_        => JsonPredicateType.Scalar,
+		};
+
+	/// <summary>`WITH UNIQUE KEYS` and its three fellows, from the words written: null where none were.</summary>
+	public static JsonKeyUniqueness? Uniqueness(string? words)
+	{
+		if (words is null)
+			return null;
+
+		var without = words.TrimStart().StartsWith("WITHOUT", StringComparison.OrdinalIgnoreCase);
+		var keys    = words.TrimEnd().EndsWith("KEYS", StringComparison.OrdinalIgnoreCase);
+
+		return without
+			? keys ? JsonKeyUniqueness.WithoutUniqueKeys : JsonKeyUniqueness.WithoutUnique
+			: keys ? JsonKeyUniqueness.WithUniqueKeys : JsonKeyUniqueness.WithUnique;
+	}
+
+	public static JsonEncoding? Encoding(string? word) =>
+		word?.ToUpperInvariant() switch
+		{
+			null    => null,
+			"UTF8"  => JsonEncoding.Utf8,
+			"UTF16" => JsonEncoding.Utf16,
+			_       => JsonEncoding.Utf32,
+		};
+
+	public static PeriodOperator Period(string word, bool immediately) =>
+		word.ToUpperInvariant() switch
+		{
+			"OVERLAPS"                  => PeriodOperator.Overlaps,
+			"EQUALS"                    => PeriodOperator.Equals,
+			"PRECEDES" when immediately => PeriodOperator.ImmediatelyPrecedes,
+			"PRECEDES"                  => PeriodOperator.Precedes,
+			_ when immediately          => PeriodOperator.ImmediatelySucceeds,
+			_                           => PeriodOperator.Succeeds,
+		};
 
 	// ── Lists ──────────────────────────────────────────────────────────────────
 

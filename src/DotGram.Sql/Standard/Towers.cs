@@ -1,11 +1,16 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+
+using DotGram.Sql.Ast;
 
 namespace DotGram.Sql.Standard;
 
+// Inside the namespace, where it is asked before DotGram.Sql's own Expression, the tree T-SQL builds.
+using Expression = DotGram.Sql.Ast.Expression;
+
 /// <summary>
 /// What a value expression can still be, as the BNF of SQL:2023 types it: a set of its towers,
-/// carried beside the reading by <c>SqlStandard.gram</c>.
+/// carried beside the node by <c>SqlStandard.gram</c>.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -23,6 +28,12 @@ namespace DotGram.Sql.Standard;
 /// an array value expression, and a concatenation is one: `x || y[1]` is `x` joined to `y[1]`, and
 /// it is `(x || y)[1]` too, a primary that a sign may stand before and an interval qualifier after.
 /// So a run of `||` that ends in a subscript folds into one operand before the operators are asked.
+/// The tree says the first: a subscript binds to its primary.
+/// </para>
+/// <para>
+/// <b>The node is built from the same pieces.</b> What the towers are asked of — a primary, its sign,
+/// what follows it, the operators between operands — is what the tree is made of, so each piece
+/// carries its node and <see cref="Expression(Piece, Operated[])"/> answers both questions at once.
 /// </para>
 /// </remarks>
 static class Towers
@@ -74,18 +85,44 @@ static class Towers
 	/// <summary>Whatever a row value predicand is.</summary>
 	public const int Any = Value | Row;
 
+	/// <summary>A node, and what the towers say it can still be.</summary>
+	public readonly record struct Typed(Expression Node, int Roles);
+
+	// ── What a guard asks ──────────────────────────────────────────────────────
+	//
+	// The generator writes a guard into more than one reader, and a captured struct is the struct in
+	// one of them and a nullable struct in another. A parameter of the nullable type takes both.
+
+	public static int RolesOf(Typed? value) => value?.Roles ?? 0;
+
+	public static int RolesOf(Tail? value) => value?.Roles ?? 0;
+
+	public static int RolesOf(Stepping? value) => value?.Roles ?? 0;
+
+	public static int KindOf(Bracket? value) => value?.Kind ?? 0;
+
+	/// <summary>What an operand can be, asked of its parts before they are made one.</summary>
+	public static int OperandRoles(UnaryOperator? sign, Typed? primary, After? postfix) =>
+		Roles(new Piece(sign, primary.GetValueOrDefault(), postfix.GetValueOrDefault()));
+
 	// ── A primary ──────────────────────────────────────────────────────────────
 
 	/// <summary>
-	/// What steps after a primary make of it — `.name`, `->name`, `[i]` — which is a value expression
-	/// primary like any, and not a parenthesized one; nothing, where there are none.
+	/// A step after a primary — `.name`, `->name`, `[i]`, `.*` — and what it makes of the primary. The
+	/// node is the step with its target left empty, filled in by <see cref="Apply(Expression, Step[])"/>.
 	/// </summary>
-	public static int Steps(int[]? steps)
+	public readonly record struct Step(int Roles, Expression Node);
+
+	/// <summary>
+	/// What steps after a primary make of it, which is a value expression primary like any, and not a
+	/// parenthesized one; nothing, where there are none.
+	/// </summary>
+	public static int Steps(Step[]? steps)
 	{
 		var made = 0;
 
 		foreach (var step in steps ?? [])
-			made = made & ~Starred | step;
+			made = made & ~Starred | step.Roles;
 
 		return made;
 	}
@@ -93,13 +130,66 @@ static class Towers
 	public static int Stepped(int primary, int steps) =>
 		steps == 0 ? primary : Value | Truth | Bare | steps;
 
+	/// <summary>Steps read, and what they make of a primary.</summary>
+	public readonly record struct Stepping(int Roles, Step[]? Steps);
+
+	/// <summary>A primary and the steps after it, each taking what stands before it as its target.</summary>
+	public static Typed Stepped(Typed primary, Stepping steps) =>
+		new(Apply(primary.Node, steps.Steps), Stepped(primary.Roles, steps.Roles));
+
+	/// <summary>A value function's subscript and the steps after it.</summary>
+	public static Stepping Subscripted(Step first, Step[]? rest)
+	{
+		var all = new Step[(rest?.Length ?? 0) + 1];
+
+		all[0] = first;
+		rest?.CopyTo(all, 1);
+
+		return new Stepping(Subscript | Steps(rest), all);
+	}
+
+	/// <summary>
+	/// What follows a bracket's value expression: the closing bracket, the rest of a row, or `AS` and a
+	/// type, a method and its arguments.
+	/// </summary>
+	public readonly record struct Bracket(int Kind, Expression[]? Rest = null, DataType? Type = null, Identifier? Method = null, IReadOnlyList<Argument>? Arguments = null);
+
+	/// <summary>What follows a name: the rest of an identifier chain, or `OVER` and a window.</summary>
+	public readonly record struct Chained(bool Measure, Identifier[]? Rest);
+
+	/// <summary>A predicate's second part: the predicate with its left side empty, and what it takes there.</summary>
+	public readonly record struct Tail(int Roles, Expression? Node);
+
+	public static Expression Apply(Expression primary, Step[]? steps)
+	{
+		foreach (var step in steps ?? [])
+			primary = step.Node switch
+			{
+				Expression.Member m   => m with { Target = primary },
+				Expression.Element e  => e with { Collection = primary },
+				Expression.Wildcard w => w with { Target = primary },
+				_                     => throw new ArgumentOutOfRangeException(nameof(steps), step.Node, "A step this method cannot complete."),
+			};
+
+		return primary;
+	}
+
 	// ── An operand ─────────────────────────────────────────────────────────────
 
 	/// <summary>What follows a primary: an interval qualifier, a time zone, a collate clause, a type's name, and a collate clause after that.</summary>
-	public const int Qualified = 1, Zoned = 2, Collated = 3, Typed = 4, TypedCollated = 5;
+	public const int Qualified = 1, Zoned = 2, Collated = 3, Typed_ = 4, TypedCollated = 5;
+
+	/// <summary>
+	/// What follows a primary, and the node it makes of it, the value left empty: an interval qualifier,
+	/// a time zone, a collate clause, `.SPECIFICTYPE`, or `.SPECIFICTYPE` and a collate clause.
+	/// </summary>
+	public readonly record struct After(int Kind, Expression? Node);
 
 	/// <summary>A primary, with its sign and what follows it.</summary>
-	public readonly record struct Piece(bool Signed, int Primary, int Postfix);
+	public readonly record struct Piece(UnaryOperator? Sign, Typed Primary, After Postfix)
+	{
+		public bool Signed => Sign is not null;
+	}
 
 	/// <summary>
 	/// What an operand can be. A sign leaves a numeric and an interval factor; an interval qualifier
@@ -109,14 +199,14 @@ static class Towers
 	/// </summary>
 	public static int Roles(Piece piece)
 	{
-		var primary = piece.Primary;
+		var primary = piece.Primary.Roles;
 
-		var roles = piece.Postfix switch
+		var roles = piece.Postfix.Kind switch
 		{
 			Qualified     => (primary & Value) == Value ? Interval : 0,
 			Zoned         => primary & Datetime,
 			Collated      => primary & Character,
-			Typed         => (primary & Value) == Value ? String : 0,
+			Typed_        => (primary & Value) == Value ? String : 0,
 			TypedCollated => (primary & Value) == Value ? Character : 0,
 			_             => primary & Value,
 		};
@@ -124,27 +214,58 @@ static class Towers
 		if (piece.Signed)
 			return roles & (Numeric | Interval);
 
-		return piece.Postfix == 0 ? roles | primary & (Truth | Chain | Bare | Parenthesized | Row | Invoked | Starred) : roles;
+		return piece.Postfix.Kind == 0 ? roles | primary & (Truth | Chain | Bare | Parenthesized | Row | Invoked | Starred) : roles;
 	}
+
+	/// <summary>An operand's node: its primary, what follows the primary, and its sign around both.</summary>
+	public static Expression Node(Piece piece)
+	{
+		var value = Follow(piece.Primary.Node, piece.Postfix.Node);
+
+		return piece.Sign is { } sign ? new Expression.Unary(sign, value) : value;
+	}
+
+	static Expression Follow(Expression value, Expression? after) =>
+		after switch
+		{
+			null                                   => value,
+			Expression.IntervalQualified q         => q with { Value = value },
+			Expression.AtTimeZone z                => z with { Value = value },
+			Expression.Collate { Value: null } c   => c with { Value = value },
+			Expression.Collate c                   => c with { Value = Follow(value, c.Value) },
+			Expression.Member m                    => m with { Target = value },
+			_                                      => throw new ArgumentOutOfRangeException(nameof(after), after, "What follows a primary this method cannot complete."),
+		};
 
 	// ── The operators ──────────────────────────────────────────────────────────
 
 	public const int Concatenate = 1, MultisetOperator = 2, Times = 3, Divided = 4, Plus = 5, Minus = 6;
 
-	public readonly record struct Operated(int Operator, Piece Operand);
+	/// <summary>An operator: which, and for a multiset's, which of the three and its quantifier.</summary>
+	public readonly record struct Op(int Kind, Ast.MultisetOperator Multiset = default, SetQuantifier? Quantifier = null);
+
+	public readonly record struct Operated(Op Operator, Piece Operand);
+
+	/// <summary>Operands and the operators between them: the node, and what the towers say it can be — nothing, where it can be nothing.</summary>
+	public static Typed Expression(Piece first, Operated[]? rest)
+	{
+		var roles = Common(first, rest);
+
+		return new Typed(roles == 0 ? first.Primary.Node : Build(first, rest), roles);
+	}
 
 	/// <summary>
 	/// What the expression can be, or nothing where it can be nothing. An explicit row is read where a
 	/// bracket is, and is something only alone: no operator joins one.
 	/// </summary>
-	public static int Common(Piece first, Operated[]? rest)
+	public static int Common(Piece? first, Operated[]? rest)
 	{
-		var pieces    = new List<Piece> { first };
+		var pieces    = new List<Piece> { first.GetValueOrDefault() };
 		var operators = new List<int>();
 
 		foreach (var (op, operand) in rest ?? [])
 		{
-			operators.Add(op);
+			operators.Add(op.Kind);
 			pieces.Add(operand);
 		}
 
@@ -154,6 +275,48 @@ static class Towers
 
 		return (roles & (Value | Row)) != 0 ? roles : 0;
 	}
+
+	/// <summary>
+	/// The node of operands and operators: `*`, `/` and `MULTISET INTERSECT` bind tighter than `+`, `-`,
+	/// `||`, `MULTISET UNION` and `MULTISET EXCEPT`, and each strength is read from the left.
+	/// </summary>
+	static Expression Build(Piece first, Operated[]? rest)
+	{
+		if (rest is not { Length: > 0 })
+			return Node(first);
+
+		var terms = new List<Expression> { Node(first) };
+		var loose = new List<Op>();
+
+		foreach (var (op, operand) in rest)
+		{
+			if (op.Kind is Times or Divided || op.Kind == MultisetOperator && op.Multiset == Ast.MultisetOperator.Intersect)
+				terms[terms.Count - 1] = Combine(terms[terms.Count - 1], op, Node(operand));
+			else
+			{
+				loose.Add(op);
+				terms.Add(Node(operand));
+			}
+		}
+
+		var node = terms[0];
+
+		for (var at = 0; at < loose.Count; at++)
+			node = Combine(node, loose[at], terms[at + 1]);
+
+		return node;
+	}
+
+	static Expression Combine(Expression left, Op op, Expression right) =>
+		op.Kind switch
+		{
+			Concatenate      => new Expression.Binary(left, BinaryOperator.Concatenate, right),
+			MultisetOperator => new Expression.MultisetOperation(left, op.Multiset, op.Quantifier, right),
+			Times            => new Expression.Binary(left, BinaryOperator.Multiply, right),
+			Divided          => new Expression.Binary(left, BinaryOperator.Divide, right),
+			Plus             => new Expression.Binary(left, BinaryOperator.Add, right),
+			_                => new Expression.Binary(left, BinaryOperator.Subtract, right),
+		};
 
 	/// <summary>
 	/// A run of `||` that ends in a subscripted operand is also one array element reference: the run
@@ -166,21 +329,21 @@ static class Towers
 	{
 		for (var last = 1; last < pieces.Count; last++)
 		{
-			if ((pieces[last].Primary & Subscript) == 0 || pieces[last].Signed || operators[last - 1] != Concatenate)
+			if ((pieces[last].Primary.Roles & Subscript) == 0 || pieces[last].Signed || operators[last - 1] != Concatenate)
 				continue;
 
 			var first = last;
 
-			while (first > 0 && operators[first - 1] == Concatenate && pieces[first - 1] is { Signed: false, Postfix: 0 } && (pieces[first - 1].Primary & Array) != 0)
+			while (first > 0 && operators[first - 1] == Concatenate && pieces[first - 1] is { Signed: false, Postfix.Kind: 0 } && (pieces[first - 1].Primary.Roles & Array) != 0)
 				first--;
 
-			if (first > 0 && operators[first - 1] == Concatenate && pieces[first - 1] is { Signed: true, Postfix: 0 } && (pieces[first - 1].Primary & Array) != 0)
+			if (first > 0 && operators[first - 1] == Concatenate && pieces[first - 1] is { Signed: true, Postfix.Kind: 0 } && (pieces[first - 1].Primary.Roles & Array) != 0)
 				first--;
 
 			if (first == last)
 				continue;
 
-			var whole = new Piece(pieces[first].Signed, Value | Truth | Bare | Subscript, pieces[last].Postfix);
+			var whole = new Piece(pieces[first].Sign, new Typed(pieces[first].Primary.Node, Value | Truth | Bare | Subscript), pieces[last].Postfix);
 
 			pieces.RemoveRange(first, last - first + 1);
 			pieces.Insert(first, whole);
@@ -299,19 +462,37 @@ static class Towers
 	/// Operands joined by `AND` or `OR` are each a boolean; one alone is whatever it is. A boolean
 	/// predicand is a value expression primary, so `a AND b` is one and `a + 1 AND b` is not.
 	/// </summary>
-	public static int Connect(int first, int[]? rest)
+	public static int Connect(Typed? first, Typed[]? rest)
 	{
-		if (rest is not { Length: > 0 })
-			return first;
+		var roles = RolesOf(first);
 
-		if ((first & Truth) == 0)
+		if (rest is not { Length: > 0 })
+			return roles;
+
+		if ((roles & Truth) == 0)
 			return 0;
 
 		foreach (var one in rest)
-			if ((one & Truth) == 0)
+			if ((one.Roles & Truth) == 0)
 				return 0;
 
 		return Logical | Truth;
+	}
+
+	/// <summary>Operands joined by one of `AND` and `OR`, from the left: the node, and what the whole can be.</summary>
+	public static Typed Connected(Typed first, Typed[]? rest, BinaryOperator op)
+	{
+		var roles = Connect(first, rest);
+
+		if (roles == 0 || rest is not { Length: > 0 })
+			return new Typed(first.Node, roles);
+
+		var node = first.Node;
+
+		foreach (var one in rest)
+			node = new Expression.Binary(node, op, one.Node);
+
+		return new Typed(node, roles);
 	}
 
 	// ── Arguments ──────────────────────────────────────────────────────────────
