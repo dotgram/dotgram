@@ -30,6 +30,33 @@ public sealed class Fix44Tests
 		Assert.Same(wire, message.OriginalWire);
 	}
 
+	[Theory]
+	[MemberData(nameof(Messages))]
+	public void Semantic_assembler_reconstructs_every_message_from_flat_fields(string name, string wire)
+	{
+		var original = Fix44.Parse(wire);
+		var flat = original.AllFields.Select(f => new FixNode(f.Tag, f.Position, f.ValuePosition, f.Length)).ToArray();
+		Assert.True(FixSemantics.TryBuild(wire, original.MessageType, flat, FixParseMode.Strict, null, out var rebuilt, out var error), error?.ToString());
+		Assert.Equal(name, rebuilt!.GetType().Name);
+		Assert.Equal(original.AllFields.Select(f => f.Wire.ToString()), rebuilt.AllFields.Select(f => f.Wire.ToString()));
+		Compare(original.Header, rebuilt.Header);
+		Compare(original, rebuilt);
+		Compare(original.Trailer, rebuilt.Trailer);
+
+		static void Compare(FixFieldSet expected, FixFieldSet actual)
+		{
+			Assert.Equal(expected.GetType(), actual.GetType());
+			Assert.Equal(expected.Fields.Select(f => f.Tag), actual.Fields.Select(f => f.Tag));
+			foreach (var field in expected.Fields)
+			{
+				var left = expected.GetGroup(field.Tag);
+				var right = actual.GetGroup(field.Tag);
+				Assert.Equal(left.Count, right.Count);
+				for (var n = 0; n < left.Count; n++) Compare(left[n], right[n]);
+			}
+		}
+	}
+
 	[Fact]
 	public void Public_order_api_and_optional_values()
 	{
