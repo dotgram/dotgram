@@ -69,6 +69,7 @@ public static class LexerEmitter
 		Tag = tag;
 		Bounds.Clear();
 		Named.Clear();
+		Fields.Clear();
 		Low.Clear();
 		Lows.Clear();
 		Edges.Clear();
@@ -208,6 +209,14 @@ public static class LexerEmitter
 
 	static List<string>            Bounds => _bounds ??= [];
 	static Dictionary<string, int> Named  => _named  ??= [];
+
+	// What `Field` has already declared, by the bits themselves, and the bits it is filling
+	// in now — so that a field already there is found without being printed first.
+	[ThreadStatic] static Dictionary<byte[], int>? _fields;
+	[ThreadStatic] static byte[]?                  _filling;
+
+	static Dictionary<byte[], int> Fields  => _fields  ??= new(SameBytes.Instance);
+	static byte[]                  Filling => _filling ??= new byte[8192];
 	static List<string>            Low    => _low    ??= [];
 	static Dictionary<string, int> Lows   => _lows   ??= [];
 	static List<string>            Edges  => _edges  ??= [];
@@ -1323,21 +1332,62 @@ public static class LexerEmitter
 	/// </remarks>
 	static int Field(IReadOnlyList<CharRange> ranges)
 	{
-		var bits = new byte[8192];
+		var bits = Filling;
 
-		foreach (var range in ranges)
-			for (var c = (int)range.From; c <= range.To; c++)
+		Array.Clear(bits, 0, bits.Length);
+
+		for (var i = 0; i < ranges.Count; i++)
+			for (var c = (int)ranges[i].From; c <= ranges[i].To; c++)
 				bits[c >> 3] |= (byte)(1 << (c & 7));
+
+		// Nearly every field asked for is one already declared. Printed, eight thousand bytes
+		// are eight thousand strings and one of twenty-odd kilobytes, and that was paid to be
+		// told so; the bits say it without any of that.
+		if (Fields.TryGetValue(bits, out var at))
+			return at;
 
 		var text = string.Join(",", bits);
 
-		if (!Named.TryGetValue(text, out var at))
+		if (!Named.TryGetValue(text, out at))
 		{
 			Named[text] = at = Bounds.Count;
 			Bounds.Add(text);
 		}
 
+		Fields[(byte[])bits.Clone()] = at;
+
 		return at;
+	}
+
+	/// <summary>Two runs of bytes are the same when every byte is.</summary>
+	sealed class SameBytes : IEqualityComparer<byte[]>
+	{
+		public static readonly SameBytes Instance = new();
+
+		public bool Equals(byte[]? left, byte[]? right)
+		{
+			if (ReferenceEquals(left, right))
+				return true;
+
+			if (left is null || right is null || left.Length != right.Length)
+				return false;
+
+			for (var i = 0; i < left.Length; i++)
+				if (left[i] != right[i])
+					return false;
+
+			return true;
+		}
+
+		public int GetHashCode(byte[] bytes)
+		{
+			var hash = unchecked((int)2166136261);
+
+			foreach (var one in bytes)
+				hash = (hash ^ one) * 16777619;
+
+			return hash;
+		}
 	}
 
 	/// <summary>The smallest writer that will do, so this file owes the emitter nothing.</summary>
