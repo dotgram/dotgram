@@ -22914,3 +22914,23 @@ Taken for noise at first; held against 48ead9b's own build, the two run in turn 
 twice each, the whole tree is slower in all six pairs — 667 → 717 ms at best, 578 → 712 at worst, 7–23%.
 Not looked into yet. What a query reads that the later chapters touched is a data change delta table's
 statement, now built; the other suspect is the generated class itself, grown by every chapter.
+
+## The SQL:2023 tree written back
+
+T-SQL moves onto the SQL:2023 tree next (Igor, 2026-09-15, in `design/sql-parsers.md`), and its oracle for
+losslessness is a round trip through a writer, so the writer comes first. `Sql2023Writer` writes every node
+the standard's grammar builds, in three partial files: the expressions, the queries and data change
+statements, and the rest of the statements.
+
+It writes what the tree holds and nothing else. The tree keeps every bracket that changed its shape — a
+`Parenthesized` node, a query's count of brackets — so no precedence is worked out again; `a || b[1]` is an
+element of a concatenation and is written back as it was read. Key words are capitals, one space between
+tokens, none inside a name or a call; the few places no space may stand are the literal's own
+(`N'a'`, `_latin1'a'`, `U&"a"UESCAPE''`, `2K`), and a sign is written against its operand, so that two
+minus signs never make a comment.
+
+The harness is `--standard "~production" file`: each line the grammar reads is built, written, read again
+and built again, and both the trees — compared as a dump of every property but the span — and the two
+texts written must be one. Over every fuzz family of the standard's grammar, over 60,000 lines, nothing
+differs. A direct SQL statement's semicolon is the production's and no part of the tree, and the harness
+adds it back. `SqlStandardTreeTests` holds a line or two of each chapter to the same, so a build asks it too.

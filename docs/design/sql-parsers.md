@@ -47,6 +47,16 @@ is open until it is built, and `status.md` is what will say when it has been.
   hierarchies, enums and properties rather than the BNF's structure, validation outside the tree.
   They are in `sql-ast.md`, with the SQL:2023 blank `Standard/Sql2023Ast.cs` they start from and each
   adaptation made to it.
+- **T-SQL moves onto the SQL:2023 tree** (Igor, 2026-09-15), in this order and on these terms:
+  - What T-SQL has and the standard does not — `BACKUP`, `DBCC`, `TOP`, `OUTPUT`, hints, `APPLY`,
+    `PIVOT` — is typed nodes in the same families, declared in a dialect's partial file,
+    `Sql2023Ast.TransactSql.cs`, so the standard's file stays the standard's and its BNF map is untouched.
+  - The writer comes first: a writer for the new tree, held by a round trip over what
+    `SqlStandardParser` reads, so that `--roundtrip` works again the moment T-SQL switches.
+  - `Sql92Parser`, which T-SQL includes for its expressions, builds the new tree too; removing it is
+    a separate step later.
+  - Every commit to `main` keeps T-SQL's measurements where they are — `--engine` with no defects,
+    `--roundtrip` at 100% — so the switch itself lands only once they are back.
 - **The specifications are kept beside the parsers that read them**, so that the answer
   to "why is it written so" is a file in the repository.
 
@@ -63,8 +73,11 @@ is open until it is built, and `status.md` is what will say when it has been.
   whole schema of §11 and §12 — routines, triggers and user-defined types among it — and the control,
   transaction, connection, session, diagnostics, dynamic and direct statements: every row tried and
   152,000 random verdicts agree with the BNF. Then the tree: begun 2026-09-14 in `sql-ast.md` and
-  `Standard/Sql2023Ast.cs`, and since 2026-09-15 `SqlStandardParser` builds its names — identifiers,
-  chains, table names and column references — and recognizes the rest.
+  `Standard/Sql2023Ast.cs`, and since 2026-09-15 `SqlStandardParser` builds the tree for all it reads.
+- ~~**A writer for the SQL:2023 tree.**~~ Done, 2026-09-15: `Standard/Sql2023Writer*.cs`, held by
+  `--standard "~production" file`, which writes each tree the grammar builds, reads the text back and
+  asks for the same tree and the same text — every fuzz family of the standard's grammar, over 60,000
+  lines, with no difference. The first step of moving T-SQL onto the tree.
 - **A test that says which productions are not written yet.**
 - **Whether the standard reads through a lexical split.** Not for now: its tokens overlap — a
   date string is a character string too, and which one a token is depends on the key word before
