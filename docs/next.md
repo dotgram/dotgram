@@ -22441,3 +22441,38 @@ Held by 137 probe lines and `.work/fuzz_routine.py`, whose bodies are made by th
 random verdicts, half of them on broken lines, and none differ. Refused lines nested eight deep —
 procedures in procedures, compound statements in triggers, schemas in routines in schemas — and
 parameter lists of 64 cost under 0.2 ms.
+
+## SQL:2023: user-defined types, and the rest of what a schema holds
+
+User-defined types — a supertype, a representation, options in any order and number, methods original
+and overriding — and `ALTER TYPE`'s attributes and methods added and dropped, and `DROP TYPE`; casts,
+orderings and transforms, created, altered and dropped; character sets, collations and
+transliterations; tables and views of a structured type. With them `SQLSchemaStatement` is every
+definition and manipulation the BNF names, and a schema's elements are all of theirs.
+
+**What the BNF fixes.** A distinct type is represented by a predefined type or a collection of any
+type: `AS u ARRAY` and `AS ROW (a INT) MULTISET` are read, `AS u` and `AS ROW (a INT)` refused, and a
+member list is never empty. An overriding method says no characteristics, and no method says `STATIC
+DISPATCH`, `DYNAMIC RESULT SETS` or `SELF AS LOCATOR` before `SELF AS RESULT`; a type's cast names its
+function with an identifier of one part. `ALTER TYPE` is one action; dropping an attribute or a method
+says `RESTRICT`, and a method is dropped by its parameters' types. A transform group holds one or two
+elements, never none and never three, and an altered group drops one kind or two with a behavior; `DROP
+TRANSFORM` names all groups or one. A cast and an ordering name their function with a routine type, so
+`WITH f` is refused. A character set is got: `AS latin1` is refused. A column of a typed table has
+options — a scope, then a default, then constraints — and never a type; a typed view's column has a
+scope and nothing else.
+
+A regular view's check option first moved into the typed view's element by an edit: the recorded rows
+caught it, three of them, before anything else did.
+
+**A trap the fuzzer found, in the routines of the step before.** A schema's elements give nothing back,
+and a routine's body there was asked as a data statement before a dynamic one: `UPDATE t SET a = 1
+WHERE CURRENT OF GLOBAL :c` read as a searched update ended before its `WHERE`, the schema ended with
+it, and the line was refused. Alone, the same routine was read, which is why no probe saw it. Dynamic
+statements are asked first now; none of them ends where a data statement goes on.
+
+Held by 153 probe lines and `.work/fuzz_types.py`, which reuses the routine fuzzer for bodies: 21,000
+random verdicts, half of them on broken lines, and none differ; the routine fuzzer's 23,000 were run
+again after the fix. Every list is atomic; refused at 128
+elements — attributes, methods, options, transform groups and actions, typed columns, schema elements —
+they cost 0.05 to 0.6 ms, and linearly.

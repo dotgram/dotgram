@@ -1410,37 +1410,52 @@ DataChangeDeltaTable = ("FINAL"i | "NEW"i | "OLD"i) & "TABLE"i & '(' & (DeleteSt
 
 // ── §11 Schema definition and manipulation ──────────────────────────────────
 //
-// Schemas, tables, views, domains, sequence generators, assertions, triggers, routines, roles and
-// privileges, and what alters and drops them. What a schema also holds — user-defined types, typed
-// tables and views, character sets, collations, transliterations, casts, orderings and transforms —
-// is not written yet.
+// Schemas and all a schema holds — tables, views, domains, character sets, collations,
+// transliterations, assertions, triggers, user-defined types, routines, casts, orderings, transforms,
+// sequence generators, roles and privileges — and what alters and drops them.
 
-// <SQL schema statement>, as far as it is written.
+// <SQL schema statement>: a definition or a manipulation.
 SQLSchemaStatement
 	= SchemaDefinition
 	| TableDefinition
 	| ViewDefinition
+	| SchemaRoutine
+	| GrantStatement
+	| RoleDefinition
 	| DomainDefinition
+	| CharacterSetDefinition
+	| CollationDefinition
+	| TransliterationDefinition
 	| AssertionDefinition
 	| TriggerDefinition
-	| SchemaRoutine
+	| UserDefinedTypeDefinition
+	| UserDefinedCastDefinition
+	| UserDefinedOrderingDefinition
+	| TransformDefinition
 	| SequenceGeneratorDefinition
-	| RoleDefinition
-	| GrantStatement
-	| RevokeStatement
 	| DropSchemaStatement
 	| AlterTableStatement
 	| DropTableStatement
 	| DropViewStatement
 	| AlterRoutineStatement
 	| DropRoutineStatement
+	| DropUserDefinedCastStatement
+	| RevokeStatement
+	| DropRoleStatement
 	| AlterDomainStatement
 	| DropDomainStatement
+	| DropCharacterSetStatement
+	| DropCollationStatement
+	| DropTransliterationStatement
 	| DropAssertionStatement
 	| DropTriggerStatement
+	| AlterTypeStatement
+	| DropDataTypeStatement
+	| DropUserDefinedOrderingStatement
+	| AlterTransformStatement
+	| DropTransformStatement
 	| AlterSequenceGeneratorStatement
 	| DropSequenceGeneratorStatement
-	| DropRoleStatement
 
 // A drop behavior, which every drop but an assertion's must say.
 DropBehavior = "CASCADE"i | "RESTRICT"i
@@ -1465,8 +1480,15 @@ SchemaElement
 	= TableDefinition
 	| ViewDefinition
 	| DomainDefinition
+	| CharacterSetDefinition
+	| CollationDefinition
+	| TransliterationDefinition
 	| AssertionDefinition
 	| TriggerDefinition
+	| UserDefinedTypeDefinition
+	| UserDefinedCastDefinition
+	| UserDefinedOrderingDefinition
+	| TransformDefinition
 	| SchemaRoutine
 	| SequenceGeneratorDefinition
 	| GrantStatement
@@ -1486,6 +1508,18 @@ TableDefinition = "CREATE"i & (("GLOBAL"i | "LOCAL"i) & "TEMPORARY"i)? & "TABLE"
 TableContentsSource
 	= ('(' & ColumnNameList & ')')? & "AS"i & TableSubquery & "WITH"i & "NO"i? & "DATA"i
 	| TableElementList
+	| TypedTableClause
+
+// <typed table clause>: a table of a structured type, under a supertable, with options for its
+// columns, constraints, and the column that references its rows.
+TypedTableClause      = "OF"i & PathResolvedUserDefinedTypeName & ("UNDER"i & TableName)? & TypedTableElementList?
+TypedTableElementList = '(' & { TypedTableElement & (',' & TypedTableElement)* } & ')'
+TypedTableElement     = SelfReferencingColumnSpecification | TableConstraintDefinition | ColumnOptions
+
+SelfReferencingColumnSpecification = "REF"i & "IS"i & ColumnName & ("SYSTEM"i & "GENERATED"i | "USER"i & "GENERATED"i | "DERIVED"i)?
+
+// <column options>: a scope, a default and constraints, any of them.
+ColumnOptions = ColumnName & "WITH"i & "OPTIONS"i & ("SCOPE"i & TableName)? & DefaultClause? & (trivia & { ColumnConstraintDefinition })*
 
 // The list is atomic: a list refused at its end gave back its elements, and their shorter readings,
 // and read every later element again for each — a square of its length.
@@ -1617,8 +1651,17 @@ DropTableStatement = "DROP"i & "TABLE"i & TableName & DropBehavior
 
 // ── §11.22 View definition, §11.23 Drop view statement ──────────────────────
 
-ViewDefinition = "CREATE"i & "RECURSIVE"i? & "VIEW"i & TableName & ('(' & ColumnNameList & ')')? & "AS"i & QueryExpression
+ViewDefinition = "CREATE"i & "RECURSIVE"i? & "VIEW"i & TableName & ViewSpecification & "AS"i & QueryExpression
 	  & ("WITH"i & ("CASCADED"i | "LOCAL"i)? & "CHECK"i & "OPTION"i)?
+
+// <view specification>: a view of a structured type, with its self-referencing column and its columns'
+// scopes, or a regular view with its columns named or not.
+ViewSpecification
+	= "OF"i & PathResolvedUserDefinedTypeName & ("UNDER"i & TableName)? & ViewElementList?
+	| ('(' & ColumnNameList & ')')?
+
+ViewElementList = '(' & { ViewElement & (',' & ViewElement)* } & ')'
+ViewElement     = SelfReferencingColumnSpecification | ColumnName & "WITH"i & "OPTIONS"i & "SCOPE"i & TableName
 
 DropViewStatement = "DROP"i & "VIEW"i & TableName & DropBehavior
 
@@ -1745,15 +1788,18 @@ PolymorphicTableFunctionBody = ("PRIVATE"i & "DATA"i? & SQLParameterDeclarationL
 // <SQL procedure statement>, <SQL executable statement>: what a routine's body and a trigger's action are.
 SQLProcedureStatement = SQLExecutableStatement
 
+// Dynamic statements are asked before data statements: a searched `UPDATE` or `DELETE` reads what
+// comes before a dynamic cursor's `WHERE CURRENT OF GLOBAL :c` and ends, and in a schema's elements,
+// which give nothing back, the schema would end there.
 SQLExecutableStatement
 	= SQLSchemaStatement
+	| SQLDynamicStatement
 	| SQLDataStatement
 	| SQLControlStatement
 	| SQLTransactionStatement
 	| SQLConnectionStatement
 	| SQLSessionStatement
 	| SQLDiagnosticsStatement
-	| SQLDynamicStatement
 
 // <alter routine statement>: a characteristic at least, and no behavior but `RESTRICT`.
 AlterRoutineStatement = "ALTER"i & SpecificRoutineDesignator & { (trivia & AlterRoutineCharacteristic)+ } & "RESTRICT"i
@@ -1774,6 +1820,94 @@ SpecificRoutineDesignator
 	| RoutineType & SchemaQualifiedName & ('(' & (DataType & (',' & DataType)*)? & ')')? & ("FOR"i & SchemaQualifiedName)?
 
 RoutineType = "ROUTINE"i | "FUNCTION"i | "PROCEDURE"i | ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i
+
+// ── §11 User-defined types ──────────────────────────────────────────────────
+
+// <user-defined type definition>: a type's name, its supertype, what it is represented by, its options
+// in any order and number, and its methods.
+UserDefinedTypeDefinition = "CREATE"i & "TYPE"i & SchemaQualifiedName & ("UNDER"i & PathResolvedUserDefinedTypeName)? & ("AS"i & Representation)?
+	  & { (trivia & UserDefinedTypeOption)* } & MethodSpecificationList?
+
+// <representation>: a predefined type, a collection — of any type, `ARRAY` or `MULTISET` after it —
+// or attributes. A type of no other kind is refused: `AS ROW (a INT)` and `AS u`.
+Representation
+	= MemberList
+	| PredefinedType & (trivia & CollectionTypeSuffix)*
+	| (RowType | ReferenceType | PathResolvedUserDefinedTypeName) & (trivia & CollectionTypeSuffix)+
+
+MemberList          = '(' & { AttributeDefinition & (',' & AttributeDefinition)* } & ')'
+AttributeDefinition = Identifier & DataType & DefaultClause? & CollateClause?
+
+UserDefinedTypeOption
+	= "NOT"i? & ("INSTANTIABLE"i | "FINAL"i)
+	| "REF"i & ("USING"i & PredefinedType | "FROM"i & '(' & Identifier & (',' & Identifier)* & ')' | "IS"i & "SYSTEM"i & "GENERATED"i)
+	| "CAST"i & '(' & ("SOURCE"i & "AS"i & ("REF"i | "DISTINCT"i) | ("REF"i | "DISTINCT"i) & "AS"i & "SOURCE"i) & ')' & "WITH"i & Identifier
+
+MethodSpecificationList = { MethodSpecification & (',' & MethodSpecification)* }
+
+// <method specification>: an overriding method says no characteristics.
+MethodSpecification
+	= "OVERRIDING"i & PartialMethodSpecification
+	| OriginalMethodSpecification
+
+OriginalMethodSpecification = PartialMethodSpecification & ("SELF"i & "AS"i & "RESULT"i)? & ("SELF"i & "AS"i & "LOCATOR"i)? & { (trivia & MethodCharacteristic)* }
+PartialMethodSpecification  = ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i & MethodName & SQLParameterDeclarationList & ReturnsClause & ("SPECIFIC"i & SchemaQualifiedName)?
+
+MethodCharacteristic = LanguageClause | ParameterStyleClause | "NOT"i? & "DETERMINISTIC"i | SQLDataAccessIndication | NullCallClause
+
+// <alter type statement>: an attribute or a method added or dropped.
+AlterTypeStatement = "ALTER"i & "TYPE"i & SchemaQualifiedName & AlterTypeAction
+
+AlterTypeAction
+	= "ADD"i & ("ATTRIBUTE"i & AttributeDefinition | MethodSpecification)
+	| "DROP"i & ("ATTRIBUTE"i & Identifier | SpecificMethodSpecificationDesignator) & "RESTRICT"i
+
+SpecificMethodSpecificationDesignator = ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i & MethodName & '(' & (DataType & (',' & DataType)*)? & ')'
+
+DropDataTypeStatement = "DROP"i & "TYPE"i & SchemaQualifiedName & DropBehavior
+
+// ── §11 User-defined casts, orderings and transforms ────────────────────────
+
+UserDefinedCastDefinition    = "CREATE"i & "CAST"i & '(' & DataType & "AS"i & DataType & ')' & "WITH"i & SpecificRoutineDesignator & ("AS"i & "ASSIGNMENT"i)?
+DropUserDefinedCastStatement = "DROP"i & "CAST"i & '(' & DataType & "AS"i & DataType & ')' & DropBehavior
+
+UserDefinedOrderingDefinition    = "CREATE"i & "ORDERING"i & "FOR"i & SchemaQualifiedName & ("EQUALS"i & "ONLY"i | "ORDER"i & "FULL"i) & "BY"i & OrderingCategory
+DropUserDefinedOrderingStatement = "DROP"i & "ORDERING"i & "FOR"i & SchemaQualifiedName & DropBehavior
+
+OrderingCategory
+	= ("RELATIVE"i | "MAP"i) & "WITH"i & SpecificRoutineDesignator
+	| "STATE"i & SchemaQualifiedName?
+
+// <transform definition>: groups, one at least, of a transform to SQL and one from it, or either.
+TransformDefinition  = "CREATE"i & TransformKeyword & "FOR"i & SchemaQualifiedName & { (trivia & TransformGroup)+ }
+TransformKeyword     = "TRANSFORMS"i | "TRANSFORM"i
+TransformGroup       = Identifier & '(' & TransformElementList & ')'
+TransformElementList = TransformElement & (',' & TransformElement)?
+TransformElement     = TransformKind & "WITH"i & SpecificRoutineDesignator
+TransformKind        = ("TO"i | "FROM"i) & "SQL"i
+
+AlterTransformStatement = "ALTER"i & TransformKeyword & "FOR"i & SchemaQualifiedName & { (trivia & AlterGroup)+ }
+AlterGroup              = Identifier & '(' & { AlterTransformAction & (',' & AlterTransformAction)* } & ')'
+
+AlterTransformAction
+	= "ADD"i & '(' & TransformElementList & ')'
+	| "DROP"i & '(' & TransformKind & (',' & TransformKind)? & DropBehavior & ')'
+
+DropTransformStatement = "DROP"i & TransformKeyword & ("ALL"i | Identifier) & "FOR"i & SchemaQualifiedName & DropBehavior
+
+// ── §11 Character sets, collations and transliterations ─────────────────────
+
+CharacterSetDefinition     = "CREATE"i & "CHARACTER"i & "SET"i & CharacterSetSpecification & "AS"i? & "GET"i & CharacterSetSpecification & CollateClause?
+DropCharacterSetStatement  = "DROP"i & "CHARACTER"i & "SET"i & CharacterSetSpecification
+
+CollationDefinition    = "CREATE"i & "COLLATION"i & SchemaQualifiedName & "FOR"i & CharacterSetSpecification & "FROM"i & SchemaQualifiedName & ("NO"i & "PAD"i | "PAD"i & "SPACE"i)?
+DropCollationStatement = "DROP"i & "COLLATION"i & SchemaQualifiedName & DropBehavior
+
+// <transliteration definition>: from a routine, asked first since `ROUTINE` is not reserved, or from an
+// existing transliteration.
+TransliterationDefinition    = "CREATE"i & "TRANSLATION"i & SchemaQualifiedName & "FOR"i & CharacterSetSpecification & "TO"i & CharacterSetSpecification
+	  & "FROM"i & (SpecificRoutineDesignator | SchemaQualifiedName)
+DropTransliterationStatement = "DROP"i & "TRANSLATION"i & SchemaQualifiedName
 
 // ── §11.74 Sequence generator definition, §11.75–11.76 Alter and drop ───────
 
