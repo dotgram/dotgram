@@ -43,6 +43,10 @@ is open until it is built, and `status.md` is what will say when it has been.
   named for what they are, `SqlStandardParser` and `TransactSqlParser`, so that no namespace
   shares a name with a type in it. For now T-SQL still includes the standard's grammar; it
   stops when the SQL:2023 grammar replaces `SqlStandard92.gram`.
+- **The reshaped tree has requirements of its own** (Igor, 2026-09-15): lossless, one-level
+  hierarchies, enums and properties rather than the BNF's structure, validation outside the tree.
+  They are in `sql-ast.md`, with the SQL:2023 blank `Standard/Sql2023Ast.cs` they start from and each
+  adaptation made to it.
 - **The specifications are kept beside the parsers that read them**, so that the answer
   to "why is it written so" is a file in the repository.
 

@@ -51,7 +51,8 @@
 	</ItemGroup>
 
 	<PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-		<MeziantouPolyfill_IncludedPolyfills>T:System.Runtime.CompilerServices.IsExternalInit;T:System.Index;T:System.Range;T:System.Diagnostics.CodeAnalysis</MeziantouPolyfill_IncludedPolyfills>
+		<!-- `required` members, which the SQL:2023 tree's records declare, need two more. -->
+		<MeziantouPolyfill_IncludedPolyfills>T:System.Runtime.CompilerServices.IsExternalInit;T:System.Runtime.CompilerServices.RequiredMemberAttribute;T:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute;T:System.Index;T:System.Range;T:System.Diagnostics.CodeAnalysis</MeziantouPolyfill_IncludedPolyfills>
 	</PropertyGroup>
 
 	<ItemGroup>
