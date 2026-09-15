@@ -187,3 +187,44 @@ of it. The span is a property of the node, not a base class: a family's abstract
 and `Locate` once for all its members, and a record that belongs to no family — `SortItem`, `Alias`,
 `Identifier` — declares them itself. The blank's `SourceRange` and `SyntaxTrivia`, which nothing used,
 are gone; `SqlSpan` is the range.
+
+**Every rule of the BNF says where it goes, and a test holds it** (2026-09-15). The map has an `AST`
+column: for each of the Foundation's 1,758 productions, the places in the tree that keep what the rule
+says — a type (`Expression.Cast`), a property (`Expression.Invocation.Quantifier`), an enum or its member
+(`SortDirection.Desc`), several of them separated by semicolons — or `erased`, for a rule with nothing
+of its own (an alias, a classifier of other rules, a precedence layer), or `token`, for a fixed spelling
+its parent already says. `SqlStandardAstMapTests` reads the BNF and the map: every production has a row,
+every row a production, every row says where it goes, and every place it names is found in the tree by
+reflection. A node renamed or removed leaves a row that fails. `.work/ast_paths.py check` answers the
+last question without a build.
+
+The column was written in five parts, each against the requirements, the tree and the BNF, and the
+writing found what the tree could not yet keep: ninety-three notes, several about one place, and every
+place but one closed.
+
+- *Spellings.* An identifier keeps a Unicode escape character. A literal's `Text`, an external routine's
+  name and a JSON path specification are what was written, from the first quote to the last — the
+  segments of `'a' 'b'` and the separators between them included — and a literal's introducer names a
+  schema-qualified character set. An interval literal's sign is `UnaryOperator?`, since `+` may be
+  written. `CURRENT_USER` and `USER` are two values, and `CURRENT_TRANSFORM_GROUP_FOR_TYPE` is one.
+  `!=` in a JSON path is not `<>`. The trigraphs of an array type and a multiset are kept.
+- *Words that may be left out, or written in either order.* `FETCH FROM`, `ALLOCATE c CURSOR`, `USING
+  SQL DESCRIPTOR` in a `DESCRIBE`, `NESTED PATH`, `PRIVATE DATA`, `CREATE CHARACTER SET c AS`, `ALL ROWS
+  PER MATCH` with no empty-match handling; `DEFERRABLE INITIALLY DEFERRED` against the reverse, `ON
+  DELETE` before `ON UPDATE`, `PATH` before `DEFAULT CHARACTER SET`, a JSON table plan's two defaults.
+- *Names.* A schema's, a constraint's and a cursor's name are qualified names — `CREATE SCHEMA c.s`,
+  `CONSTRAINT s.k`, `MODULE.c` — and a dynamic cursor and a descriptor keep `GLOBAL` or `LOCAL`.
+- *Shapes.* `SET SESSION CHARACTERISTICS` keeps one list per `TRANSACTION`; a dynamic `FETCH` goes `INTO`
+  targets or a descriptor through `DynamicArguments`; a preparable positioned `UPDATE` or `DELETE` may
+  name no table; a sample clause may follow any table source, so `Sample` is the family's; an empty row
+  pattern `( )` and window measures with no pattern are allowed; a character large object's length keeps
+  its multiplier, and so does a normalized result's; an embedded declare section's end has its own prefix
+  and terminator.
+- *Nodes.* `Statement.DropSchema`; `Expression.TableArgument`, a polymorphic table function's table with
+  its name, partitioning, pruning and order, and `Invocation.Copartition`; `Expression.DescriptorConstructor`
+  with `DescriptorColumn`; `Expression.CollationFor`; `Expression.Default`; `Expression.RowMarker` and
+  `Expression.ValueOf`, with `RowMarkerKind`; `JsonTablePlan.Parenthesized`; `RoutineKind.Routine`; a row
+  pattern measure called without brackets; and an SQL-client module — `SqlClientModule`, its
+  `ModuleContent` and `HostParameterDeclaration` — which no statement is.
+
+One rule is left where it is: `<cursor attributes>` is defined and used by no other production.
