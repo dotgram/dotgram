@@ -11,8 +11,8 @@ time, no runtime package, and nothing to deploy beside the application.
 
 Everything below is checkable. The full specification is [`docs/syntax.md`][syntax], every
 diagnostic is [`docs/diagnostics.md`][diagnostics], whole parsers to copy are under
-[`examples/`][examples], and the largest grammars written in this notation — RFC 3986, an
-expression language, SQL-92 and T-SQL as a dialect over it — are
+[`examples/`][examples], and the largest grammars written in this notation — RFC 3986 and
+RFC 9651, an expression language, SQL:2023, and SQL-92 with T-SQL as a dialect over it — are
 [`DotGram.Web`][web], [`DotGram.ExpressionLanguage`][expressions] and [`DotGram.Sql`][sql].
 
 [syntax]:      https://github.com/dotgram/dotgram/blob/main/docs/syntax.md
@@ -341,8 +341,14 @@ it entered.
 	Carrier      = GramCarrier.Tape,     // run no construction for a parse that fails (§3.7)
 	Stacks       = 4,                    // how many stacks a deep reading may take; 0 is no limit
 	PartSize     = 60_000,               // how large a generated method may grow
+	Direct       = false,                // keep the automaton even where methods would do
+	IncludedAs   = "Lex",                // the name an including grammar gets without `As`
 	Portable     = false)]               // do not carry the grammar text in the assembly
 ```
+
+`Carrier` is the generator's to choose unless set (`GramCarrier.Auto`), and `GRAM5012` says
+what it chose. `Tape`, `Immediate` and `Mixed` are the author's; a grammar the chosen one
+cannot carry is compiled on the tape.
 
 `[GramOptions]` may be written as many times as there are further readings wanted, each
 naming the nested class it goes into:
@@ -380,6 +386,10 @@ it and does not revisit it. It needs `trivia` in braces and a lexical namespace 
 `trivia` is `none`; where the grammar cannot be cut in two, `GRAM5004` says so and the
 parser is the one it would have been. **A token parse reads from memory only** — there are
 no reader overloads over kinds.
+
+**A terminal of the lexical half is not a bare `@M`** (`GRAM5011`): the lexer has no
+beginning to stop on and asks the host at the start of every token. Write what the terminal
+begins with first — `Blob = '<' & @ReadBlob` — and the host is asked only where that stands.
 
 ## Diagnostics worth knowing before you meet them
 

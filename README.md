@@ -199,7 +199,7 @@ At the other end of the scale the same notation reads T-SQL. The grammars are fa
 to quote here, so this is where to read them:
 
 * [`TransactSql.gram`](src/DotGram.Sql/TransactSql/TransactSql.gram) — T-SQL in
-  over 600 rules, written from Microsoft's published syntax, which is kept beside it in
+  over 1,000 rules, written from Microsoft's published syntax, which is kept beside it in
   [`Specification/syntax.md`](src/DotGram.Sql/TransactSql/Specification/syntax.md).
   It reads over tokens rather than characters, builds a tree of records, and has a parser
   for each SQL Server compatibility level from one grammar
@@ -619,7 +619,7 @@ Complete examples are under [`examples/DotGram.Examples`](examples/DotGram.Examp
 | [`TypedCsvExample.cs`](examples/DotGram.Examples/Formats/TypedCsvExample.cs) | construction of existing C# types |
 | [`GramExample.cs`](examples/DotGram.Examples/Languages/GramExample.cs) | the .Gram notation parsed by .Gram itself |
 
-[`examples/README.md`](examples/README.md) lists all twenty-four, grouped by what they
+[`examples/README.md`](examples/README.md) lists all thirty-one, grouped by what they
 read: formats, feeds, expressions, languages.
 
 ## Documentation

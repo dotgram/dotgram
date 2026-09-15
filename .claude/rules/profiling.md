@@ -351,10 +351,13 @@ analysis is the user's to open.
 
 ## 6. Tests
 
-`dotnet test tests/DotGram.Tests/DotGram.Tests.csproj` reports "Zero tests ran". Build the project,
-then run the assembly with its own xUnit runner:
+`dotnet test tests/DotGram.Tests/DotGram.Tests.csproj` runs them; `dotnet test --project …`
+reports "Zero tests ran". Where one class is what is wanted, build the project and run the
+assembly with its own xUnit runner:
 
 ```powershell
 dotnet build tests/DotGram.Tests/DotGram.Tests.csproj -c Debug
-dotnet tests\DotGram.Tests\bin\Debug\net10.0\DotGram.Tests.dll
+dotnet tests\DotGram.Tests\bin\Debug\net10.0\DotGram.Tests.dll -class DotGram.Tests.ReaderTests
 ```
+
+The full run is minutes, and the runner's own summary line is `Total: …, Failed: …`.

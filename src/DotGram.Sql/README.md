@@ -1,6 +1,6 @@
 # DotGram.Sql
 
-SQL parsers written in `.gram`, and the one tree of records every one of them builds. Where an
+SQL parsers written in `.gram`, and the one tree of records they meet in. Where an
 example shows one feature, a parser here is written against a whole specification.
 
 They are ordinary C# libraries. .Gram generates the parsers into this assembly at compile time,
@@ -18,13 +18,24 @@ in `DotGram.Sql` — the records, [`SqlWriter`](SqlWriter.cs), which prints them
 | [`Sql92Parser`](Standard/SqlStandard92.gram) | `DotGram.Sql.Standard` | SQL-92 as the standard writes it, until SQL:2023 replaces it |
 | [`TransactSqlParser`](TransactSql/TransactSql.gram) | `DotGram.Sql.TransactSql` | SQL Server's T-SQL, as the engine reads it |
 
-For now the second names the first — `[GramInclude(typeof(Sql92Parser), As = "Sql92")]` —
+For now the third names the second — `[GramInclude(typeof(Sql92Parser), As = "Sql92")]` —
 and rebinds the rules where T-SQL differs, so what the two languages share is written once and the
 dialect is the size of the difference.
 
-The last two read through a lexical split (`Lexical = true`): a lexical half makes tokens, and the
-syntactic half above it decides each choice by the token in front of it, which is what a parser
-written by hand does.
+`TransactSqlParser` builds the tree, and `Sql92Parser` the expressions in it that the two share.
+`SqlStandardParser` recognizes: it says whether a text is the standard's language and builds
+nothing yet. The tree it is to build is laid out in [`Sql2023Ast.cs`](Standard/Sql2023Ast.cs), in
+`DotGram.Sql.Ast`, and nothing builds it.
+
+`SqlStandardParser` publishes the standard's productions under their own names —
+`ParseValueExpression`, `ParseSearchCondition`, `ParseQueryExpression`, `ParseSQLSchemaStatement`
+and the rest listed at the end of its grammar. `TransactSqlParser` publishes `ParseSelect`,
+`ParseQuery`, `ParseSearchCondition`, `ParseValueExpression`, `ParseStatement`, `ParseSql` and
+`ParseScript`, each with its `TryParse…`.
+
+`Sql92Parser` and `TransactSqlParser` read through a lexical split (`Lexical = true`): a lexical
+half makes tokens, and the syntactic half above it decides each choice by the token in front of
+it, which is what a parser written by hand does.
 
 ```csharp
 using DotGram.Sql;
@@ -53,7 +64,13 @@ server does. `ParseSql100` to `ParseSql170` are its levels.
 `TransactSqlParser.ParseScript` reads a script — batches cut apart at the lines that say `GO`, the
 way ScriptDom and the management tools cut them — and gives back a `Batch[]`, each with its
 statements and the `GO` line that ended it. `GO 5`, a batch sent five times, is read too.
-`ParseSql` is one batch, and a `GO` in it is refused.
+`ParseScript100` to `ParseScript170` are its levels. `ParseSql` is one batch, and a `GO` in it is
+refused.
+
+Where each node was written is there for whoever asks for it. `TransactSqlParser.Located` is the
+same grammar compiled with `LocationType = typeof(ISqlSpan)` —
+`TransactSqlParser.Located.TryParseStatement` — and every node it builds carries in `Span` the
+range of text it was read from. `TransactSqlParser` itself pays nothing for them.
 
 The tree they build is described in [`docs/ast.md`](https://github.com/dotgram/dotgram/blob/main/docs/ast.md).
 What they read is held against SQL Server itself, against a corpus of somebody else's SQL and

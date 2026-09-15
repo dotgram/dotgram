@@ -82,14 +82,22 @@ docs/
 	                      is expected to be out of date. Read it before believing one
 	syntax.md             the language: notation and its bond with C#
 	status.md             what this version does, held against that specification
+	diagnostics.md        every message the generator reports, by identifier
 	implementation.md     engine plan
+	development.md        standing process: build, test, the snapshot baseline, measuring,
+	                      and the Linux container
+	visual-studio.md      the extension, and the StringSyntax annotations
 	ast.md                the tree the SQL parsers build, and where each node comes from
+	coverage.md           how much of Microsoft's T-SQL reference the T-SQL grammar reads;
+	                      written by --coverage, never edited
 	next.md               the engineering diary, authoritative about nothing present
 	design/               proposals and plans; no statement here is about the compiler
 src/
 	DotGram/              the generator: one analyzer package, no runtime
 		Grammar/          pure: a function of grammar text, no Roslyn
 		Generation/       the Roslyn shell
+		Language/         the editor-neutral analysis of a .gram document — classification,
+		                  symbols, diagnostics — that the Visual Studio extension reads
 		README.md         the package's own front page, not the repository's: what to
 		                  write once it is installed, and links back for the rest
 		SKILL.md          how to write a grammar, for an agent. Ships in the package
@@ -98,13 +106,15 @@ src/
 	DotGram.ExpressionLanguage/ the C#-style expression language, a package of its own:
 	                      ExpressionParser, in the namespace the project is named for
 	DotGram.Sql/          SQL, a package of its own, with room for other databases: the one
-	                      tree every SQL grammar builds, its writer and walker, in the
+	                      tree the SQL grammars meet in, its writer and walker, in the
 	                      DotGram.Sql namespace, and a directory and namespace per dialect
 		Standard/         ISO SQL: SqlStandardParser (SQL:2023) and, for now, Sql92Parser;
 		                  Specification/ holds the ISO BNF
 		TransactSql/      T-SQL, TransactSqlParser; Specification/ holds Microsoft's
 		                  published syntax. Each dialect is its own grammar, meeting the
 		                  others only in the tree (docs/design/sql-parsers.md)
+	DotGram.VisualStudio/ the Visual Studio extension: .Gram language support in the
+	                      editor, over DotGram/Language (docs/visual-studio.md)
 	DotGram.Web/          the formats of the web, a package of its own, in the DotGram.Web
 	                      namespace: Rfc3986, Rfc6570, Rfc9651. Written against whole specifications, not as
 	                      teaching material — and, being an ordinary project the generator
@@ -124,14 +134,21 @@ tests/
 	                      writer and walker
 	DotGram.Compatibility/ the generated code built for netstandard2.0, net472 and
 	                      net8.0 at the C# 8 floor. Building it is the assertion
+	DotGram.PackageSmoke/ the packed package asked what it promises, under the oldest
+	                      Roslyn it supports. Not in the solution; CI runs it after packing
 	DotGram.VisualStudio.Tests/
 	  Playground/         grammars to open in the experimental instance, each with the
 	                      manual check beside it (docs/visual-studio.md)
 	Snapshots/            a grammar and the file it must compile into, checked in so
 	                      a change to code generation shows up as a diff
+	Corpus/               somebody else's SQL: SqlScriptDOM's test corpus, copied byte for
+	                      byte, that the SQL grammars are read against
 benchmarks/
 	DotGram.Benchmarks/   BenchmarkDotNet, run by hand and not by CI. Built by the
 	                      solution so that it has to keep compiling
+	DotGram.HandDeferred/ one small grammar (Deferred.gram) read by hand every safe way,
+	                      side by side, to measure deferred construction; no generator
+	                      reference, and the grammar is there to be read, not compiled
 .work/                    scratch, ignored by git
 ```
 

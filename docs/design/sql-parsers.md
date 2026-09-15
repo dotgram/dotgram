@@ -62,7 +62,8 @@ is open until it is built, and `status.md` is what will say when it has been.
   aggregates, the JSON functions as far as the BNF spells them, §14's data change statements, and the
   whole schema of §11 and §12 — routines, triggers and user-defined types among it — and the control,
   transaction, connection, session, diagnostics, dynamic and direct statements: every row tried and
-  152,000 random verdicts agree with the BNF. Then the tree.
+  152,000 random verdicts agree with the BNF. Then the tree: begun 2026-09-14 in `sql-ast.md` and
+  `Standard/Sql2023Ast.cs`, and `SqlStandardParser` builds none yet.
 - **A test that says which productions are not written yet.**
 - **Whether the standard reads through a lexical split.** Not for now: its tokens overlap — a
   date string is a character string too, and which one a token is depends on the key word before
@@ -74,8 +75,5 @@ is open until it is built, and `status.md` is what will say when it has been.
   with room for other databases beside them. `DotGram.Parsers` keeps the URI.
 - ~~**T-SQL's published syntax as a file.**~~ Done: Microsoft publishes no BNF for T-SQL,
   and `--syntax` gathers the reference's syntax blocks into
-  `src/DotGram.Parsers/Sql/TransactSql/Specification/syntax.md` from a clone of
+  `src/DotGram.Sql/TransactSql/Specification/syntax.md` from a clone of
   MicrosoftDocs/sql-docs. Run again, it shows by diff what the documentation changed.
-
-## Open
-

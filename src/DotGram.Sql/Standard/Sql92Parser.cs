@@ -39,9 +39,9 @@ namespace DotGram.Sql.Standard;
 /// here, which is what every implementation does.
 /// </para>
 /// <para>
-/// Nothing is built yet. The grammar recognizes and the tree comes later, deliberately:
-/// the shape of the node classes is a decision of its own, and getting the language
-/// right first is what makes that decision about the tree rather than about the parse.
+/// What it reads it builds as the expressions of the one tree in <c>SqlSyntax.cs</c> —
+/// <c>Expression.Or</c>, <c>Expression.And</c> and the rest — which is what T-SQL, including
+/// this grammar, builds its statements on (docs/ast.md).
 /// </para>
 /// <para>
 /// <b>Temporary.</b> The standard's parser is <c>SqlStandardParser</c>, written from SQL:2023 down

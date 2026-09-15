@@ -487,20 +487,24 @@ produce more than one such result.
 Highest to lowest:
 
 ```text
-1.  postfix quantifiers   X?  X*  X+  X{n,m}
-2.  prefix lookahead      ?=X  ?!X
-3.  capture               name: X
+1.  capture, lookahead    name: X  ?=X  ?!X
+2.  postfix quantifiers   X?  X*  X+  X{n,m}
+3.  adjacency             a ~ b
 4.  sequence              a & b
 5.  construction          => expr
 6.  alternation           a | b
 ```
 
+Capture and lookahead are prefixes of one level and nest either way round: `n: ?=X` and
+`?=n: X` are both written. A quantifier applies to everything before it on its operand,
+so `name: X*` is `(name: X)*` and `?!X*` is `(?!X)*`.
+
 `=>` binds to a single alternative rather than to the whole rule body, which is what
 lets each branch of a `|` construct its own result.
 
-`recover` (§8.2) and `with (...)` (§5.1) are not in the table: both are optional
-suffixes on row 1 rather than levels of their own, and `with` — when both are written
-on the same operand — always comes after `recover`, applying to everything to its
+`recover` (§8.2), `with (...)` (§5.1) and `with state` (§7.8) are not in the table: all
+are optional suffixes on row 2 rather than levels of their own, and `with` — when both are
+written on the same operand — always comes after `recover`, applying to everything to its
 left, quantifier included. `X* recover S with (A = B)` recovers `X*` first and rebinds
 the result of that as a whole.
 
@@ -623,7 +627,7 @@ is about. Over characters a rule earns its own commit only by being written insi
    a build error.
 3. There are captures — they are matched to the result type by name (§7.3).
 4. None of the above — the result is the matched extent: `string` gives the text,
-   `SourceSpan` gives the bounds. Any other type requires an explicit `=>`.
+   `@SourceSpan` gives the bounds. Any other type requires an explicit `=>`.
 
 ```dotgram
 Feed : FeedItem[] = Header & Row* & Trailer & eof
@@ -899,11 +903,13 @@ The rule `trivia` is always inserted between the operands of a sequence. It is e
 by default, so by default nothing is inserted:
 
 ```dotgram
-// built in
+// built in (§3.1.1)
 none                  = any{0}                 // zero repetitions: succeeds, consumes nothing
 trivia                = none
-Whitespace            = ([' ' | '\t'] | eol)*
-WhitespaceAndComments = (Whitespace | LineComment | BlockComment)*
+
+// the grammar's own, over the standard library (§5.2)
+Whitespace            = Std.Whitespace*
+WhitespaceAndComments = (Std.Spacing | Std.LineComment("//") | Std.BlockComment("/*", "*/"))*
 ```
 
 A grammar to which whitespace is insignificant redefines one rule:
@@ -1075,7 +1081,7 @@ both characters and the inner argument list, which wants one `>`, is handed a sh
 is no order of alternatives that recovers from that, because the choice was made before
 the parser was asked. With `'>' ~ '>'` there is no `>>` for the scanner to make.
 
-**One meaning in both halves of a split grammar** (§10). Over characters `~` is simply the
+**One meaning in both halves of a split grammar** (§4). Over characters `~` is simply the
 seam withheld: with nothing woven between them the operands are adjacent because there is
 nowhere for anything to stand. Over kinds the trivia was skipped before the tokens were
 made, so two operands are two tokens whether or not anything stood between them — and the
@@ -1087,7 +1093,7 @@ refused: `trivia = none` there means there was never a seam to withhold.
 
 ### 4.6 Keyword boundaries
 
-`wordboundary` is a standard-library rule, `none` by default, naming the characters
+`wordboundary` is a built-in rule (§3.1.1), `none` by default, naming the characters
 that continue a word:
 
 ```dotgram
@@ -1146,7 +1152,7 @@ PermissionEnd  = "ON"i | "TO"i | "FROM"i | "WITH"i | "CASCADE"i
 
 `word` in a grammar with no `wordboundary` is `GRAM4019`: it would be a run of nothing.
 
-**Over kinds it is a kind test.** Where the grammar is cut in two (§4.5) the boundary is
+**Over kinds it is a kind test.** Where the grammar is cut in two (§4) the boundary is
 gone with the rest of the lexer, and being a word is a property the token kind already
 has — so `word` becomes one range test over every kind that is a word: a keyword, and a
 class every character of which continues a word. It reads exactly one token there, which
@@ -1177,10 +1183,11 @@ namespace Syntax
 
 The top of a file is an implicit global namespace. The `{ }` after `namespace Name` is
 a block of declarations, not an expression; in expression position braces mean a
-repetition count and nothing else (§3.3). An inner namespace sees the outer one; the
-qualified name `Namespace.Rule` is available from outside. Declaring a rule whose name
-already resolves outside is refused rather than taken as shadowing — replacing a rule is
-what a rebinding is for, and the rule is stated where the two are told apart below.
+repetition count or an atomic group and nothing else (§3.2, §3.3). An inner namespace
+sees the outer one; the qualified name `Namespace.Rule` is available from outside.
+Declaring a rule whose name already resolves outside is refused rather than taken as
+shadowing — replacing a rule is what a rebinding is for, and the rule is stated where the
+two are told apart below.
 
 `using X;` without `@` brings the names of namespace `X` into the current namespace
 unqualified. Import directives stand at the top of the file or at the top of a
@@ -1381,7 +1388,7 @@ an error. A declaration always means a new rule; a rebinding is the only way to 
 one — so a rule declared inside a nested `namespace { ... }` whose name also resolves in
 an enclosing *grammar* scope, or through that namespace's own `using` import, is
 refused — `GRAM3012`. Scoped narrowly, to keep it a real mistake rather than noise:
-shadowing a built-in rule (`trivia`, `wordboundary`, `any`, `none`, `eol`, `eof`),
+shadowing a built-in rule (`trivia`, `wordboundary`, `word`, `any`, `none`, `eol`, `eof`),
 at any depth, is the language's normal, silent mechanism and is never reported; neither
 is shadowing at the top level of a file, where there is no `namespace Name with (...)`
 header nearby to have meant instead.
@@ -1541,8 +1548,9 @@ was written.
 ```csharp
 public readonly struct Match<T>
 {
-    public T?      Value    { get; }   // null when it did not match
-    public string? Error    { get; }
+    public Outcome Outcome  { get; }   // Success | NoMatch | Starved (§7.5)
+    public T       Value    { get; }   // meaningless unless IsSuccess
+    public string? Error    { get; }   // null when it matched
     public long    Position { get; }   // where it matched, or where it gave up
     public int     Length   { get; }
 
@@ -1568,13 +1576,15 @@ position worth naming.
 ### 6.2 Why the signatures use BCL types only
 
 `.Gram` ships no runtime assembly: everything a generated parser needs is emitted
-beside it, `internal`. A consumer therefore takes one analyzer package, acquires no
-dependency, and has nowhere for a "generator of one version, runtime of another" skew
-to come from.
+beside it. What is emitted into a namespace is `internal`; a parser's own types —
+`Match<T>`, `SourceSpan` and the types its grammar generates — are `public` and nested in
+the host class, so their names are the host's. A consumer therefore takes one analyzer
+package, acquires no dependency, and has nowhere for a "generator of one version, runtime
+of another" skew to come from.
 
 The shape of the public API follows: an `internal` type cannot appear in the signature
-of a public method. So by default only BCL types face outward — `string`, `int`,
-`FormatException` (the very type `int.Parse` throws).
+of a public method. So besides the host's own nested types only BCL types face outward —
+`string`, `int`, `FormatException` (the very type `int.Parse` throws).
 
 `Match<T>` and a rule's own type are not exceptions to this. They are generated from
 one grammar into the assembly that uses it, so there are no two versions of them to
@@ -1766,7 +1776,7 @@ neither compilation can see the other. What the host itself declares stays in re
 a nested class reads the static members of the class around it by their simple names,
 which is what a grammar's `=>` calls are.
 
-**What the host's own C# names is the host's.** `SourceSpan` (§7.5) and `Match<T>` (§6.1)
+**What the host's own C# names is the host's.** `SourceSpan` (§4.1) and `Match<T>` (§6.1)
 appear in the signatures a grammar calls and a caller reads, so where a class carries
 several grammars they are written once, in the class itself, and every scope reads them
 from around it. Otherwise a factory handing a span to a method of the host would be
@@ -1920,8 +1930,8 @@ Many = @Foo
 The first call selects `bool Foo(char)`, the second
 `bool Foo(ReadOnlySpan<char>, ref int)` by ordinary C# overload resolution.
 
-The external recognizer's signature is deliberately built from BCL types only: it is
-the same whether or not shared mode is on (§6.2), and it needs no interface dispatch.
+The external recognizer's signature is deliberately built from BCL types only: nothing
+emitted appears in it (§6.2), and it needs no interface dispatch.
 Its value is the text it covered — the same as any rule that captures nothing.
 
 **A recognizer is trusted absolutely, and that is the bargain.** The `ref` is the method
@@ -2024,7 +2034,7 @@ The two quantifier rows are what makes the regex-shaped case behave:
 same principle as §4.1 case 4 — where nothing produces a value of its own, the value
 is the matched extent — applied one level down, at the capture.
 
-A capture binds tighter than a quantifier (§10), so `scheme: ['a'..'z']+` is one capture
+A capture binds tighter than a quantifier (§3.8), so `scheme: ['a'..'z']+` is one capture
 repeated rather than a capture of a run — and the two rows above are how that is read:
 repeated text is the text joined, a repeated rule is an array of its values.
 
@@ -2055,7 +2065,7 @@ hands back the enum instead of the text.
 When no accessible C# type exists for a rule, an ordinary class with the same members
 is generated — a constructor and a get-only property per capture, and nothing else. Not
 a bespoke node framework, and not a `record`: a positional record needs `IsExternalInit`,
-which lives in `System.Runtime.CompilerServices`, and §6.1 is why nothing is ever emitted
+which lives in `System.Runtime.CompilerServices`, and §6.2 is why nothing is ever emitted
 into a namespace that is not ours. A consumer targeting an older framework has their own
 copy of that type from a polyfill package, and a second one is a compile error in their
 build rather than ours.
@@ -2092,7 +2102,7 @@ public readonly struct Match<T>
 ```
 
 `public`, unlike the support types of §6.2, because a published method hands it back
-and an `internal` type cannot appear in a `public` signature (§6.1). `Position` is a
+and an `internal` type cannot appear in a `public` signature (§6.2). `Position` is a
 `long` because an input may be larger than an `int` can index (§6.3), and `Length` an
 `int` because an extent is into a buffer. `Error` is built where it is asked for
 rather than where the match failed, so a caller who only wants to know whether the
@@ -2162,7 +2172,7 @@ for: a `when` runs while the text is read, in the order it is written, and a `=>
 afterwards, against what the guards have by then recorded.
 
 **One per grammar** (`GRAM3014`), and the one at the top of a file is the one a caller
-supplies. A grammar included in another (§5.1) may declare its own, and that is a *contract*
+supplies. A grammar included in another (§6.7) may declare its own, and that is a *contract*
 rather than a second object: the rules written there see the caller's object through the type
 their own grammar named, and an including grammar may strengthen the type for its own rules
 without changing what the included ones were compiled against.
@@ -2529,12 +2539,12 @@ answers.
 
 parse Feed
 
-Feed : FeedItem[] = Header & Row* & Trailer & eof
+Feed : @FeedItem[] = Header & Row* & Trailer & eof
 
-Header  = "H" & '|' & date: Date & '|' & source: Text & eol
-Row     = "D" & '|' & symbol: Text & when @IsSupportedSymbol(symbol)
-        & '|' & qty: Number & '|' & date: Date & eol
-Trailer = "T" & '|' & count: Number & eol
+Header  : @Header  = "H" & '|' & date: Date & '|' & source: Text & eol
+Row     : @Row     = "D" & '|' & symbol: Text & when @IsSupportedSymbol(symbol)
+                   & '|' & qty: Number & '|' & date: Date & eol
+Trailer : @Trailer = "T" & '|' & count: Number & eol
 
 Date : @DateOnly =
     y: Digits(4) & '-' & m: Digits(2) & '-' & d: Digits(2)
@@ -2549,7 +2559,7 @@ Text        : string = [^ '|' | '\r' | '\n']+
 [Gram]
 public partial class FeedGrammar
 {
-    private static partial bool IsSupportedSymbol(string symbol)
+    static bool IsSupportedSymbol(string symbol)
         => Symbols.Contains(symbol);
 }
 
@@ -2560,10 +2570,11 @@ public sealed record Trailer(int Count)                            : FeedItem;
 ```
 
 ```csharp
-var feed = FeedGrammar.ParseFeed(text);
+var feed  = FeedGrammar.ParseFeed(text);
+var match = FeedGrammar.TryParseFeed(text);
 
-if (!FeedGrammar.TryParseFeed(text, out var value, out var error, out var pos))
-    Console.WriteLine($"{error} at {pos}");
+if (!match.IsSuccess)
+    Console.WriteLine($"{match.Error} at {match.Position}");
 ```
 
 ---
@@ -2689,7 +2700,7 @@ None of what follows changes the notation described above.
 
 - **Keyword boundaries** — §4.6, the same mechanism again.
 
-- **`Incomplete`** does not exist. An outcome is `Success`, `NoMatch` or `Error`.
+- **`Incomplete`** does not exist. An outcome is `Success`, `NoMatch` or `Starved`.
   A source that cannot block — an async socket, where control has to go back to the
   caller mid-parse — is what would need it; a file, however large, is read by a reader
   that simply fetches the next chunk. Adding it means a rule for every construct
@@ -2709,5 +2720,5 @@ None of what follows changes the notation described above.
   a failing `when @IsSupportedSymbol(symbol)` is an ordinary non-match, not an error
   carrying a message like "unsupported symbol XYZ". Most of what an author wants to say
   there is not about recognition at all — it is about a value, after a match, which is
-  what a transformation that may fail is for (§7.1), or what a repetition's `recover`
+  what the C# of a construction is for (§8.1), or what a repetition's `recover`
   is for (§8.2). Neither changes what a guard means.

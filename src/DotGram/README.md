@@ -251,7 +251,7 @@ drift apart.
 ## Compatibility
 
 The generated parser is C# 8 and targets whatever the project around it targets.
-`netstandard2.0`, `net472` and `net10.0` all compile it.
+`netstandard2.0`, `net472` and `net8.0` all compile it.
 
 * A grammar written inside `[Gram]` is a raw string literal, which is C# 11. On
   `netstandard2.0` and `net472` the default is C# 7.3, so `<LangVersion>` has to be set.
@@ -271,13 +271,13 @@ the [notation in full](https://github.com/dotgram/dotgram/blob/main/docs/syntax.
 and the [benchmarks](https://github.com/dotgram/dotgram/tree/main/benchmarks).
 
 [`DotGram.Web`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Web) is a
-package of its own — RFC 3986 URIs —
-[`DotGram.Sql`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Sql) another, SQL-92
-with T-SQL written as a dialect over it, and
+package of its own — RFC 3986 URIs and RFC 9651 structured field values —
+[`DotGram.Sql`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Sql) another, ISO
+SQL:2023, and SQL-92 with T-SQL written as a dialect over it, and
 [`DotGram.ExpressionLanguage`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.ExpressionLanguage)
 a third: a C#-style expression language that builds `System.Linq.Expressions` trees. They
 are also the largest grammars there are to read —
-[T-SQL](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/TransactSql/TransactSql.gram) in over 600
+[T-SQL](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/TransactSql/TransactSql.gram) in over 1,000
 rules, and the
 [expression language](https://github.com/dotgram/dotgram/blob/main/src/DotGram.ExpressionLanguage/ExpressionParser.cs) in
 over 80.

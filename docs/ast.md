@@ -1,8 +1,8 @@
 # The tree
 
 `src/DotGram.Sql/SqlSyntax.cs` holds one tree for every dialect this project reads —
-`Sql92Parser`, `TransactSqlParser`, and whatever comes after them. This is what is in it and
-where each node comes from.
+`Sql92Parser` and `TransactSqlParser` build it today. This is what is in it and where each
+node comes from; the SQL:2023 tree it is to be reshaped into is `design/sql-ast.md`'s.
 
 ## The rule
 
@@ -17,7 +17,7 @@ Where a name repeats the hierarchy it is in, the repetition goes: the standard's
 does not, the published name stands whole — `Statement.TableDefinition`,
 `Clause.SortSpecification`.
 
-Five sources appear in the tables:
+Six sources appear in the tables:
 
 | Source | What it means |
 | --- | --- |
@@ -29,15 +29,16 @@ Five sources appear in the tables:
 ## The shape
 
 **A hierarchy per category the standard has, and no root above them.** `Statement`, `Query`,
-`Expression`, `TableReference`, `Clause`. A tree with a single root types nothing: a field
-of it accepts a statement where a value belongs, and the compiler cannot say otherwise. The
-standard does not work that way — §7 puts a `<query expression>` where a table belongs and
+`Expression`, `TableReference`, `Clause` — and `SetExpression`, what follows T-SQL's `SET`.
+A tree with a single root types nothing: a field of it accepts a statement where a value
+belongs, and the compiler cannot say otherwise. The standard does not work that way — §7
+puts a `<query expression>` where a table belongs and
 §6 puts a `<value expression>` where a value belongs — so the roots are its own categories
 and a field says which one it holds. `Statement.Insert.Rows` is a `Query`,
 `Expression.Subquery.Query` is a `Query`, `Query.Specification.From` is a
 `TableReference[]`.
 
-**As many roots as there are sublanguages.** Five is what today's surface needs, not a
+**As many roots as there are sublanguages.** Six is what today's surface needs, not a
 closed list. A JSON path, an XQuery inside `FOR XML`, the drawing inside `MATCH (…)` and a
 full-text `CONTAINS` are each a language with a grammar of its own, and each will get a root
 of its own when it is kept rather than read and dropped. Adding one breaks nothing, which is
@@ -80,28 +81,32 @@ The exception is a keyword that is pure syntax — `SELECT`, `CASE`, `FROM`. Tho
 formatter's to case, which is why ScriptDom's own generator has a `KeywordCasing` option.
 
 **Fields stand in the order the text writes them.** `TableReference.Named(Table, SystemTime,
-Name, Columns, Sample, Hints)` is the order of `t FOR SYSTEM_TIME … AS x (…) TABLESAMPLE …
-WITH (…)`. That was a reading convenience until printing arrived; it is load-bearing now,
-because a printer that walks the tree emits tokens in the order the fields stand in, and
-that order has to be the source's.
+ForPath, Name, Columns, Sample, Hints, Server)` is the order of `t FOR SYSTEM_TIME … FOR PATH
+AS x (…) TABLESAMPLE … WITH (…)`, all but `Server`, the `OPENDATASOURCE (…)` that stands
+before the name and last among the fields. That was a reading convenience until printing
+arrived; it is load-bearing now, because a printer that walks the tree emits tokens in the
+order the fields stand in, and that order has to be the source's.
 
 **The grammar says the shape; this file says which node.** The `.gram` reads `DROP <what>`
 once and hands the words to `Statement.Dropped`, which turns them into the record. So the
 catalogue of names lives in C#, where a catalogue of C# names belongs, and the grammar still
-says one thing. `Dropped`, `Defined`, `OfDatabase`, `Commanded`, `BackedUp`, `Restored` and
-`Permitted` are those factories, and each throws where the grammar has read a word the tree
+says one thing. `Dropped`, `Defined`, `OfDatabase`, `Commanded`, `BackedUp` and `Restored`
+are those factories, and each throws where the grammar has read a word the tree
 has no record for — which is the two catalogues having drifted, and a defect here rather
 than in anybody's SQL.
 
-**The tree prints back.** `SqlWriter.cs` writes any of the five roots out as SQL, which is
+**The tree prints back.** `SqlWriter.cs` writes a statement, a query, an expression, a table
+reference or a clause out as SQL — a `SetExpression` as part of its statement — which is
 what makes the tree checkable rather than merely typed: `benchmarks --roundtrip` parses a
 statement, prints it, and holds the result against what ScriptDom makes of the original. What
 the tree does not hold cannot come back, so that measurement is also the list of what is still
 missing.
 
 **A node knows where it was written, where the grammar asked.**
-`[Gram(…, LocationType = typeof(ISqlSpan))]` and the five roots implement `ISqlSpan`: the
-reader offers each value the range of every rule it came out of, innermost first, and the
+`TransactSqlParser` asks with
+`[GramOptions(LocationType = typeof(ISqlSpan), Suffix = "Located")]`, a second parser beside
+the first, `TransactSqlParser.Located`, and the six roots implement `ISqlSpan`: the reader
+offers each value the range of every rule it came out of, innermost first, and the
 last offer is kept. That is a little wide where a rule hands back a value another rule made —
 `WhereClause` lends the condition its `WHERE` — and never wrong, which is the safe direction.
 It costs fourteen per cent of the parse and no allocation at all, and a grammar that does not
@@ -134,7 +139,7 @@ something asks for one.
 
 `SqlWalker.Walk(root, visit)` hands every node under `root` to `visit` — the root first, each
 node before what it holds — until `visit` answers false, and says whether it went to the end.
-A node is anything that is an `ISqlSpan`, which is what the five roots are; what a record
+A node is anything that is an `ISqlSpan`, which is what the six roots are; what a record
 holds of them, one or an array, is found from its type once, so a record added here is walked
 without the walker being told.
 

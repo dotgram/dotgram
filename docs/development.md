@@ -11,10 +11,15 @@ dotnet test DotGram.slnx --no-build
 ```
 
 `dotnet test` goes through Microsoft.Testing.Platform rather than VSTest, which xunit 4
-requires on the .NET 10 SDK and `global.json` opts into. The runner can also be started
-directly — `tests/DotGram.Tests/bin/Debug/net10.0/DotGram.Tests.exe`, and
-`-filter "/*/*/ClassName/MethodName"` for one test. It runs everything in about two
-minutes.
+requires on the .NET 10 SDK and `global.json` opts into. One project is the same command with
+its path — `dotnet test tests/DotGram.Tests/DotGram.Tests.csproj` — and not `--project`,
+which reports that zero tests ran. Every test project is also an executable, and the runner
+it builds into can be started directly:
+`tests/DotGram.Tests/bin/Debug/net10.0/DotGram.Tests.exe`,
+`tests/DotGram.Sql.Tests/bin/Debug/net10.0/DotGram.Sql.Tests.exe`, and — on Windows only,
+being net472 — `tests/DotGram.VisualStudio.Tests/bin/Debug/net472/DotGram.VisualStudio.Tests.exe`.
+The two on net10.0 also run as `dotnet <path>.dll`. `-filter "/*/*/ClassName/MethodName"`
+runs one test. `DotGram.Tests` runs everything in about two minutes.
 The examples are compiled by the real generator during that build, so a member the
 generator stopped producing fails the build rather than a test.
 
@@ -56,10 +61,12 @@ dotnet test    DotGram.slnx --no-build   --configuration Linux
 The excludes are unanchored so that a name is dropped wherever it sits, and the script is
 written with Unix line endings — a stray `` reaches the shell as part of a path.
 
-A run is then one command, naming a tree under `/src`: `main`, or a worktree.
+A run is then one command, naming a tree under `/src`: `main`, or a worktree as
+`worktrees/<name>`. Name one every time: the default the script falls back to,
+`worktrees/docs`, is not a worktree that exists.
 
 ```
-docker exec dotgram-linux ci worktrees/docs
+docker exec dotgram-linux ci main
 ```
 
 `Linux` is a solution configuration of its own — everything at Release, minus the two
@@ -140,6 +147,12 @@ one parse in a child process and is what to reach for if a change is ever suspec
 putting grammar recursion back on the C# stack — a `StackOverflowException` cannot be
 caught and takes the process with it, which is why it is a child.
 
+The other modes — `--against`, `--hand`, `--speed`, `--roundtrip` and the rest — are in
+[`benchmarks/README.md`](../benchmarks/README.md), with what each was built to ask and what
+it answered. Profiling the generator itself rather than what it generates, over
+`DotGram.Sql`, is `.claude/rules/profiling.md`: the time in the build, a harness a profiler
+can start, and the check that a change to speed changed no output.
+
 What has already been measured, and what came of it, is in [`status.md`](status.md) under
 *What has been measured*.
 
@@ -148,7 +161,8 @@ What has already been measured, and what came of it, is in [`status.md`](status.
 The layout and the file-format rules are in `CLAUDE.md`; the two seams that keep
 `Grammar/` free of Roslyn are in `.claude/rules/grammar-half.md`, and what may be emitted
 into a consumer's assembly is in `.claude/rules/emitted-code.md`. Those three are worth
-reading once before the first change and not again.
+reading once before the first change and not again. The fourth, `.claude/rules/profiling.md`,
+is worth reading before measuring the generator.
 
 ## What a change owes
 
@@ -156,9 +170,10 @@ reading once before the first change and not again.
   it actually reaches — parsed, bound, normalized, emitted, run.
 - A change to what the emitter writes owes a build of `tests/DotGram.Compatibility`. It
   runs no tests and asserts nothing; building it is the assertion, on the frameworks a
-  consumer might be on rather than the one the generator is developed on. A member that
-  stopped being emitted, or a language feature that started being, fails there rather than
-  in somebody else's project. What each framework needs is written at the top of its
+  consumer might be on rather than the one the generator is developed on, and at C# 8, the
+  language version the emitted code declares as its floor. A member that stopped being
+  emitted, or a language feature that started being, fails there rather than in somebody
+  else's project. What each framework needs is written at the top of its
   project file — today, `System.Memory` on netstandard2.0 and net472, and nothing on
   net8.0.
 - A refused construct owes a test that it is refused, and by which diagnostic. A construct
