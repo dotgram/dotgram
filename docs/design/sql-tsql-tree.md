@@ -5,8 +5,8 @@ A proposal, not a description. T-SQL moves from the tree in `SqlSyntax.cs` onto 
 against the new one in [`sql-tsql-tree-inventory.md`](sql-tsql-tree-inventory.md): 381 records and enums,
 67 with the same concept in the new tree, 44 whose shape needs a decision, 270 that only T-SQL has.
 
-What is decided is marked so. The rest is a numbered list of proposals, each with the recommendation, so
-that each can be answered by its number.
+What is decided is marked so. The numbered proposals below, principles and all, were accepted by Igor as
+written on 2026-09-15, and are decided too; they stay numbered so the work can cite them.
 
 ## Decided
 

@@ -1031,7 +1031,7 @@ public static partial class Sql2023Writer
 
 				case Statement.Insert insert:
 					Word("INSERT INTO");
-					PutName(insert.Target);
+					PutSource(insert.Target);
 
 					if (insert.SourceValue is InsertSource.DefaultValues)
 					{
@@ -1060,7 +1060,7 @@ public static partial class Sql2023Writer
 
 				case Statement.Update update:
 					Word("UPDATE");
-					PutTarget(update.Target!);
+					PutSource(update.Target!);
 					PutPortion(update.Portion);
 					PutAlias(update.Alias);
 					Word("SET");
@@ -1070,7 +1070,7 @@ public static partial class Sql2023Writer
 
 				case Statement.Delete delete:
 					Word("DELETE FROM");
-					PutTarget(delete.Target!);
+					PutSource(delete.Target!);
 					PutPortion(delete.Portion);
 					PutAlias(delete.Alias);
 					PutWhereOrCurrent(delete.Where, delete.CurrentOf);
@@ -1078,7 +1078,7 @@ public static partial class Sql2023Writer
 
 				case Statement.Merge merge:
 					Word("MERGE INTO");
-					PutTarget(merge.Target);
+					PutSource(merge.Target);
 					PutAlias(merge.Alias);
 					Word("USING");
 					PutSource(merge.SourceTable);
@@ -1133,7 +1133,7 @@ public static partial class Sql2023Writer
 
 				case Statement.TruncateTable truncate:
 					Word("TRUNCATE TABLE");
-					PutTarget(truncate.Target);
+					PutSource(truncate.Target);
 
 					if (truncate.Identity is { } identity)
 						Word(identity == IdentityRestart.Continue ? "CONTINUE IDENTITY" : "RESTART IDENTITY");
@@ -1150,19 +1150,6 @@ public static partial class Sql2023Writer
 		{
 			if (kind is { } one)
 				Word(one == OverrideKind.UserValue ? "OVERRIDING USER VALUE" : "OVERRIDING SYSTEM VALUE");
-		}
-
-		void PutTarget(TableTarget target)
-		{
-			if (target.Only)
-			{
-				Word("ONLY");
-				Open();
-				PutName(target.Name);
-				Close();
-			}
-			else
-				PutName(target.Name);
 		}
 
 		void PutPortion(PeriodPortion? portion)

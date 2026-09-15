@@ -382,41 +382,41 @@ public sealed class SqlStandardTreeTests
 
 	[Theory]
 	[InlineData("INSERT INTO t (a, b) OVERRIDING SYSTEM VALUE VALUES (1, DEFAULT), ROW(NULL, 2), (DEFAULT), 3",
-		"Insert(Target: t, Columns: [a, b], Override: SystemValue, SourceValue: Values([RowValue([1, Default()], false), RowValue([NULL, 2], true), RowValue([Parenthesized(Default())], false), RowValue([3], false)]))")]
-	[InlineData("INSERT INTO t SELECT a FROM u", "Insert(Target: t, SourceValue: Query(Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(u)]))))")]
-	[InlineData("INSERT INTO t DEFAULT VALUES", "Insert(Target: t, SourceValue: DefaultValues())")]
+		"Insert(Target: Named(t), Columns: [a, b], Override: SystemValue, SourceValue: Values([RowValue([1, Default()], false), RowValue([NULL, 2], true), RowValue([Parenthesized(Default())], false), RowValue([3], false)]))")]
+	[InlineData("INSERT INTO t SELECT a FROM u", "Insert(Target: Named(t), SourceValue: Query(Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(u)]))))")]
+	[InlineData("INSERT INTO t DEFAULT VALUES", "Insert(Target: Named(t), SourceValue: DefaultValues())")]
 	public void An_insert_is_built_as_written(string input, string tree) =>
 		Assert.Equal(tree, Show(SqlStandardParser.ParseInsertStatement(input)));
 
 	[Theory]
 	[InlineData("UPDATE ONLY (t) FOR PORTION OF p FROM a TO b AS x SET c = DEFAULT, (d, e) = ROW(1, 2), f??(1??) = 3, g.h.i = 4 WHERE c > 0",
-		"Update(Target: TableTarget(t, true), Portion: PeriodPortion(p, a, b), Alias: Alias(x, null, true), Assignments: [Assignment([AssignmentTarget(c, null, null, false)], Default(), false), Assignment([AssignmentTarget(d, null, null, false), AssignmentTarget(e, null, null, false)], Row([1, 2], true), true), Assignment([AssignmentTarget(f, 1, null, true)], 3, false), Assignment([AssignmentTarget(g, null, [h, i], false)], 4, false)], Where: Comparison(c, Greater, 0))")]
-	[InlineData("UPDATE t SET (a) = (1)", "Update(Target: TableTarget(t, false), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], Parenthesized(1), true)])")]
+		"Update(Target: Named(t, Only: true), Portion: PeriodPortion(p, a, b), Alias: Alias(x, null, true), Assignments: [Assignment([AssignmentTarget(c, null, null, false)], Default(), false), Assignment([AssignmentTarget(d, null, null, false), AssignmentTarget(e, null, null, false)], Row([1, 2], true), true), Assignment([AssignmentTarget(f, 1, null, true)], 3, false), Assignment([AssignmentTarget(g, null, [h, i], false)], 4, false)], Where: Comparison(c, Greater, 0))")]
+	[InlineData("UPDATE t SET (a) = (1)", "Update(Target: Named(t), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], Parenthesized(1), true)])")]
 	public void A_searched_update_is_built_as_written(string input, string tree) =>
 		Assert.Equal(tree, Show(SqlStandardParser.ParseUpdateStatementSearched(input)));
 
 	[Fact]
 	public void A_positioned_statement_names_its_cursor()
 	{
-		Assert.Equal("Update(Target: TableTarget(t, false), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], 1, false)], CurrentOf: CursorReference(MODULE.c, null, false, false, false))",
+		Assert.Equal("Update(Target: Named(t), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], 1, false)], CurrentOf: CursorReference(MODULE.c, null, false, false, false))",
 			Show(SqlStandardParser.ParseUpdateStatementPositioned("UPDATE t SET a = 1 WHERE CURRENT OF MODULE.c")));
-		Assert.Equal("Delete(Target: TableTarget(t, false), Alias: Alias(x, null, false), CurrentOf: CursorReference(c, null, false, false, false))",
+		Assert.Equal("Delete(Target: Named(t), Alias: Alias(x, null, false), CurrentOf: CursorReference(c, null, false, false, false))",
 			Show(SqlStandardParser.ParseDeleteStatementPositioned("DELETE FROM t x WHERE CURRENT OF c")));
 	}
 
 	[Theory]
-	[InlineData("DELETE FROM t WHERE a = 1", "Delete(Target: TableTarget(t, false), Where: Comparison(a, Equal, 1))")]
+	[InlineData("DELETE FROM t WHERE a = 1", "Delete(Target: Named(t), Where: Comparison(a, Equal, 1))")]
 	public void A_searched_delete_is_built_as_written(string input, string tree) =>
 		Assert.Equal(tree, Show(SqlStandardParser.ParseDeleteStatementSearched(input)));
 
 	[Fact]
 	public void A_merge_keeps_its_clauses_in_order() =>
-		Assert.Equal("Merge(Target: TableTarget(t, false), Alias: Alias(x, null, false), SourceTable: Named(u), On: Comparison(a, Equal, b), Clauses: [Matched(Update([Assignment([AssignmentTarget(c, null, null, false)], 1, false)]), Condition: Comparison(c, Greater, 0)), Matched(Delete()), NotMatched(MergeInsertAction([a], UserValue, [1, Default()]))])",
+		Assert.Equal("Merge(Target: Named(t), Alias: Alias(x, null, false), SourceTable: Named(u), On: Comparison(a, Equal, b), Clauses: [Matched(Update([Assignment([AssignmentTarget(c, null, null, false)], 1, false)]), Condition: Comparison(c, Greater, 0)), Matched(Delete()), NotMatched(MergeInsertAction([a], UserValue, [1, Default()]))])",
 			Show(SqlStandardParser.ParseMergeStatement("MERGE INTO t x USING u ON a = b WHEN MATCHED AND c > 0 THEN UPDATE SET c = 1 WHEN MATCHED THEN DELETE WHEN NOT MATCHED THEN INSERT (a) OVERRIDING USER VALUE VALUES (1, DEFAULT)")));
 
 	[Theory]
-	[InlineData("TRUNCATE TABLE t RESTART IDENTITY", "TruncateTable(Target: TableTarget(t, false), Identity: Restart)")]
-	[InlineData("TRUNCATE TABLE t", "TruncateTable(Target: TableTarget(t, false))")]
+	[InlineData("TRUNCATE TABLE t RESTART IDENTITY", "TruncateTable(Target: Named(t), Identity: Restart)")]
+	[InlineData("TRUNCATE TABLE t", "TruncateTable(Target: Named(t))")]
 	public void A_truncate_is_built_as_written(string input, string tree) =>
 		Assert.Equal(tree, Show(SqlStandardParser.ParseTruncateTableStatement(input)));
 
@@ -430,7 +430,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("CREATE TABLE t AS (SELECT a FROM u) WITH NO DATA",
 		"CreateTable(Name: t, Contents: AsQuery([], Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(u)])), WithNoData))")]
 	[InlineData("ALTER TABLE t ALTER COLUMN a SET GENERATED BY DEFAULT RESTART WITH 5 SET INCREMENT BY 2",
-		"AlterTable(Name: t, Action: AlterColumn(a, SetIdentityGeneration(ByDefault, [Restart(5), Increment(2)]), true))")]
+		"AlterTable(Name: t, Actions: [AlterColumn(a, SetIdentityGeneration(ByDefault, [Restart(5), Increment(2)]), true)])")]
 	[InlineData("CREATE VIEW v (a) AS SELECT a FROM t WITH LOCAL CHECK OPTION",
 		"CreateView(Name: v, Specification: Regular([a]), Query: Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(t)])), CheckOption: Local)")]
 	[InlineData("CREATE SEQUENCE s AS BIGINT START WITH 1 NO MAXVALUE CYCLE",
@@ -445,7 +445,7 @@ public sealed class SqlStandardTreeTests
 		"Revoke(Body: Roles(true, [r1, r2], [Identifier(AuthorizationIdentifier(u))], null, Cascade))")]
 	[InlineData("CREATE SCHEMA s AUTHORIZATION u PATH s, t DEFAULT CHARACTER SET utf8 CREATE TABLE x (a INT) CREATE ROLE r",
 		"CreateSchema(Name: s, PathFirst: true, Authorization: AuthorizationIdentifier(u), DefaultCharacterSet: CharacterSetName(utf8), Path: PathSpecification([s, t]), Elements: [CreateTable(Name: x, Contents: Elements([Column(ColumnDefinition(a, Numeric(Int, null, null), null, [], null))])), CreateRole(Name: r)])")]
-	[InlineData("DROP TYPE t CASCADE", "DropType(Name: t, Behavior: Cascade)")]
+	[InlineData("DROP TYPE t CASCADE", "DropType(Names: [t], Behavior: Cascade)")]
 	[InlineData("CREATE TYPE s.t UNDER u AS (a INT DEFAULT 1) NOT FINAL REF IS SYSTEM GENERATED CAST (SOURCE AS DISTINCT) WITH f OVERRIDING METHOD m () RETURNS INT, STATIC METHOD n (x INT) RETURNS INT SELF AS RESULT LANGUAGE SQL",
 		"CreateType(Definition: UserDefinedTypeDefinition(s.t, u, Members([AttributeDefinition(a, Numeric(Int, null, null), 1, null)]), [Final(false), Reference(SystemGenerated()), Cast(ToDistinct, f)], [MethodSpecification(null, m, [], ReturnsDefinition(Numeric(Int, null, null), null, false), null, false, false, [], true), MethodSpecification(Static, n, [ParameterDefinition(null, x, Numeric(Int, null, null), false, null, false)], ReturnsDefinition(Numeric(Int, null, null), null, false), null, true, false, [Language(SQL)], false)]))")]
 	[InlineData("ALTER TYPE t DROP STATIC METHOD m (INT) RESTRICT", "AlterType(Name: t, Action: DropMethod(MethodDesignator(Static, m, [Numeric(Int, null, null)])))")]
@@ -457,7 +457,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("ALTER TRANSFORM FOR t g (DROP (TO SQL, FROM SQL RESTRICT))",
 		"AlterTransform(TypeName: t, Groups: [TransformAlterGroup(g, [TransformAlterAction(false, [], [ToSql, FromSql], Restrict)])])")]
 	[InlineData("DROP TRANSFORM ALL FOR t CASCADE", "DropTransform(Target: All(), TypeName: t, Behavior: Cascade)")]
-	[InlineData("DROP TRIGGER g", "DropTrigger(Name: g)")]
+	[InlineData("DROP TRIGGER g", "DropTrigger(Names: [g])")]
 	[InlineData("CREATE TRIGGER s.g BEFORE UPDATE OF a ON t REFERENCING OLD ROW AS o NEW TABLE n FOR EACH ROW WHEN (a > 1) BEGIN ATOMIC SET SCHEMA 's'; COMMIT; END",
 		"CreateTrigger(Name: s.g, Time: Before, Event: TriggerEvent(Update, [a]), Table: t, Referencing: [TransitionReference(OldRow, o, true, true), TransitionReference(NewTable, n, false, false)], Action: TriggerAction(Row, Comparison(a, Greater, 1), [SetSchema(Value: 's'), Commit()], true))")]
 	[InlineData("CREATE PROCEDURE p (IN a INT, OUT b TABLE PASS THROUGH WITH SET SEMANTICS KEEP ON EMPTY) LANGUAGE SQL NOT DETERMINISTIC SQL SECURITY DEFINER CALL q(a)",
@@ -467,7 +467,7 @@ public sealed class SqlStandardTreeTests
 	[InlineData("ALTER SPECIFIC PROCEDURE s.p NAME x MODIFIES SQL DATA RESTRICT",
 		"AlterRoutine(Routine: RoutineDesignator(Procedure, s.p, null, null, true, null), Characteristics: [ExternalName(x), DataAccess(ModifiesSqlData)], Behavior: Restrict)")]
 	[InlineData("DROP FUNCTION f (INT, DATE) FOR s.t CASCADE",
-		"DropRoutine(Routine: RoutineDesignator(Function, f, [Numeric(Int, null, null), DateTime(Date, null, null)], s.t, false, null), Behavior: Cascade)")]
+		"DropRoutine(Routines: [RoutineDesignator(Function, f, [Numeric(Int, null, null), DateTime(Date, null, null)], s.t, false, null)], Behavior: Cascade)")]
 	public void A_schema_statement_is_built_as_written(string input, string tree) =>
 		Assert.Equal(tree, Show(SqlStandardParser.ParseSQLSchemaStatement(input)));
 
@@ -519,7 +519,7 @@ public sealed class SqlStandardTreeTests
 
 	[Fact]
 	public void A_data_change_delta_table_holds_its_statement() =>
-		Assert.Equal("DataChange(New, Insert(Target: t, SourceValue: Values([RowValue([1], false)])), Alias(x, null, true))",
+		Assert.Equal("DataChange(New, Insert(Target: Named(t), SourceValue: Values([RowValue([1], false)])), Alias(x, null, true))",
 			Show(SqlStandardParser.ParseTableReference("NEW TABLE (INSERT INTO t VALUES 1) AS x")));
 
 	// ── The tree written back ──────────────────────────────────────────────────

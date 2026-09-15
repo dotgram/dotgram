@@ -61,18 +61,20 @@ public static partial class Sql2023Writer
 				case Statement.AlterTable alter:
 					Word("ALTER TABLE");
 					PutName(alter.Name);
-					PutAlterTable(alter.Action);
+					Each(alter.Actions, PutAlterTable);
 					break;
 
 				case Statement.DropSchema drop:
 					Word("DROP SCHEMA");
-					PutName(drop.Name);
+					PutIfExists(drop.IfExists);
+					Each(drop.Names, PutName);
 					PutBehavior(drop.Behavior);
 					break;
 
 				case Statement.DropTable drop:
 					Word("DROP TABLE");
-					PutName(drop.Name);
+					PutIfExists(drop.IfExists);
+					Each(drop.Names, PutName);
 					PutBehavior(drop.Behavior);
 					break;
 
@@ -129,7 +131,8 @@ public static partial class Sql2023Writer
 
 				case Statement.DropView drop:
 					Word("DROP VIEW");
-					PutName(drop.Name);
+					PutIfExists(drop.IfExists);
+					Each(drop.Names, PutName);
 					PutBehavior(drop.Behavior);
 					break;
 
@@ -279,7 +282,8 @@ public static partial class Sql2023Writer
 
 				case Statement.DropSequence drop:
 					Word("DROP SEQUENCE");
-					PutName(drop.Name);
+					PutIfExists(drop.IfExists);
+					Each(drop.Names, PutName);
 					PutBehavior(drop.Behavior);
 					break;
 
@@ -351,7 +355,8 @@ public static partial class Sql2023Writer
 
 				case Statement.DropRole drop:
 					Word("DROP ROLE");
-					PutIdentifier(drop.Name);
+					PutIfExists(drop.IfExists);
+					Each(drop.Names, PutIdentifier);
 					PutBehavior(drop.Behavior);
 					break;
 
@@ -361,7 +366,8 @@ public static partial class Sql2023Writer
 
 				case Statement.DropTrigger drop:
 					Word("DROP TRIGGER");
-					PutName(drop.Name);
+					PutIfExists(drop.IfExists);
+					Each(drop.Names, PutName);
 					break;
 
 				case Statement.CreateType type:
@@ -408,7 +414,8 @@ public static partial class Sql2023Writer
 
 				case Statement.DropType drop:
 					Word("DROP TYPE");
-					PutName(drop.Name);
+					PutIfExists(drop.IfExists);
+					Each(drop.Names, PutName);
 					PutBehavior(drop.Behavior);
 					break;
 
@@ -546,7 +553,7 @@ public static partial class Sql2023Writer
 
 				case Statement.DropRoutine drop:
 					Word("DROP");
-					PutDesignator(drop.Routine);
+					Each(drop.Routines, PutDesignator);
 					PutBehavior(drop.Behavior);
 					break;
 
@@ -575,6 +582,18 @@ public static partial class Sql2023Writer
 		}
 
 		void PutBehavior(DropBehavior behavior) => Word(behavior == DropBehavior.Cascade ? "CASCADE" : "RESTRICT");
+
+		void PutBehavior(DropBehavior? behavior)
+		{
+			if (behavior is { } one)
+				PutBehavior(one);
+		}
+
+		void PutIfExists(bool ifExists)
+		{
+			if (ifExists)
+				Word("IF EXISTS");
+		}
 
 		void PutCommit(TableCommitAction? commit)
 		{

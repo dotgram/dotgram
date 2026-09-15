@@ -52,7 +52,7 @@ public abstract record Statement : ISqlNode
 	// BNF: <insert statement>
 	public record Insert : Statement
 	{
-		public required QualifiedName Target { get; init; }
+		public required TableSource Target { get; init; }
 		public IReadOnlyList<Identifier> Columns { get; init; } = [];
 		public OverrideKind? Override { get; init; }
 		public InsertSource SourceValue { get; init; } = new InsertSource.DefaultValues();
@@ -62,7 +62,7 @@ public abstract record Statement : ISqlNode
 	public record Update : Statement
 	{
 		// Null in a preparable positioned statement, which may leave its table out.
-		public TableTarget? Target { get; init; }
+		public TableSource? Target { get; init; }
 		public PeriodPortion? Portion { get; init; }
 		public Alias? Alias { get; init; }
 		public IReadOnlyList<Assignment> Assignments { get; init; } = [];
@@ -74,7 +74,7 @@ public abstract record Statement : ISqlNode
 	public record Delete : Statement
 	{
 		// Null in a preparable positioned statement, which may leave its table out.
-		public TableTarget? Target { get; init; }
+		public TableSource? Target { get; init; }
 		public PeriodPortion? Portion { get; init; }
 		public Alias? Alias { get; init; }
 		public Expression? Where { get; init; }
@@ -84,7 +84,7 @@ public abstract record Statement : ISqlNode
 	// BNF: <merge statement>
 	public record Merge : Statement
 	{
-		public required TableTarget Target { get; init; }
+		public required TableSource Target { get; init; }
 		public Alias? Alias { get; init; }
 		public required TableSource SourceTable { get; init; }
 		public required Expression On { get; init; }
@@ -94,7 +94,7 @@ public abstract record Statement : ISqlNode
 	// BNF: <truncate table statement>
 	public record TruncateTable : Statement
 	{
-		public required TableTarget Target { get; init; }
+		public required TableSource Target { get; init; }
 		public IdentityRestart? Identity { get; init; }
 	}
 
@@ -124,14 +124,15 @@ public abstract record Statement : ISqlNode
 	public record AlterTable : Statement
 	{
 		public required QualifiedName Name { get; init; }
-		public required AlterTableAction Action { get; init; }
+		// T-SQL: several actions in one statement; the standard's is a list of one (design/sql-tsql-tree.md, 17).
+		public IReadOnlyList<AlterTableAction> Actions { get; init; } = [];
 	}
 
-	// BNF: <drop schema statement>
-	public record DropSchema : Statement { public required QualifiedName Name { get; init; } public required DropBehavior Behavior { get; init; } }
+	// BNF: <drop schema statement>. T-SQL's drops name a list, say IF EXISTS, and may leave the behavior out (design/sql-tsql-tree.md).
+	public record DropSchema : Statement { public IReadOnlyList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: <drop table statement>
-	public record DropTable : Statement { public required QualifiedName Name { get; init; } public required DropBehavior Behavior { get; init; } }
+	public record DropTable : Statement { public IReadOnlyList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: <view definition>
 	public record CreateView : Statement
@@ -144,7 +145,7 @@ public abstract record Statement : ISqlNode
 	}
 
 	// BNF: <drop view statement>
-	public record DropView : Statement { public required QualifiedName Name { get; init; } public required DropBehavior Behavior { get; init; } }
+	public record DropView : Statement { public IReadOnlyList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: <domain definition>, <alter domain statement>, <drop domain statement>
 	public record CreateDomain : Statement { public required QualifiedName Name { get; init; } public bool AsKeyword { get; init; } public required DataType Type { get; init; } public Expression? Default { get; init; } public IReadOnlyList<Constraint> Constraints { get; init; } = []; public CollationName? Collation { get; init; } }
@@ -171,12 +172,12 @@ public abstract record Statement : ISqlNode
 		public IReadOnlyList<TransitionReference> Referencing { get; init; } = [];
 		public required TriggerAction Action { get; init; }
 	}
-	public record DropTrigger : Statement { public required QualifiedName Name { get; init; } }
+	public record DropTrigger : Statement { public IReadOnlyList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } }
 
 	// BNF: user-defined type/cast/ordering/transform statements
 	public record CreateType : Statement { public required UserDefinedTypeDefinition Definition { get; init; } }
 	public record AlterType : Statement { public required QualifiedName Name { get; init; } public required AlterTypeAction Action { get; init; } }
-	public record DropType : Statement { public required QualifiedName Name { get; init; } public required DropBehavior Behavior { get; init; } }
+	public record DropType : Statement { public IReadOnlyList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 	public record CreateCast : Statement { public required DataType SourceType { get; init; } public required DataType TargetType { get; init; } public required RoutineDesignator Function { get; init; } public bool AsAssignment { get; init; } }
 	public record DropCast : Statement { public required DataType SourceType { get; init; } public required DataType TargetType { get; init; } public required DropBehavior Behavior { get; init; } }
 	public record CreateOrdering : Statement { public required QualifiedName TypeName { get; init; } public required OrderingDefinition Ordering { get; init; } }
@@ -188,18 +189,18 @@ public abstract record Statement : ISqlNode
 	// BNF: schema routine, alter/drop routine
 	public record CreateRoutine : Statement { public required RoutineDefinition Definition { get; init; } }
 	public record AlterRoutine : Statement { public required RoutineDesignator Routine { get; init; } public IReadOnlyList<RoutineCharacteristic> Characteristics { get; init; } = []; public required AlterRoutineBehavior Behavior { get; init; } }
-	public record DropRoutine : Statement { public required RoutineDesignator Routine { get; init; } public required DropBehavior Behavior { get; init; } }
+	public record DropRoutine : Statement { public IReadOnlyList<RoutineDesignator> Routines { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: sequence generator definition/alter/drop
 	public record CreateSequence : Statement { public required QualifiedName Name { get; init; } public IReadOnlyList<SequenceOption> Options { get; init; } = []; }
 	public record AlterSequence : Statement { public required QualifiedName Name { get; init; } public IReadOnlyList<SequenceOption> Options { get; init; } = []; }
-	public record DropSequence : Statement { public required QualifiedName Name { get; init; } public required DropBehavior Behavior { get; init; } }
+	public record DropSequence : Statement { public IReadOnlyList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: GRANT/REVOKE/ROLE
 	public record Grant : Statement { public required GrantBody Body { get; init; } }
 	public record Revoke : Statement { public required RevokeBody Body { get; init; } }
 	public record CreateRole : Statement { public required Identifier Name { get; init; } public Grantor? Admin { get; init; } }
-	public record DropRole : Statement { public required Identifier Name { get; init; } public required DropBehavior Behavior { get; init; } }
+	public record DropRole : Statement { public IReadOnlyList<Identifier> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: cursor/data control statements
 	public record DeclareCursor : Statement { public required CursorReference Cursor { get; init; } public required CursorProperties Properties { get; init; } public required CursorSource SourceValue { get; init; } }
@@ -955,7 +956,6 @@ public sealed record Assignment(IReadOnlyList<AssignmentTarget> Targets, Express
 
 // BNF: <set target>, <update target>, <mutated set clause>. Trigraphs are `??(` and `??)` around the index.
 public sealed record AssignmentTarget(QualifiedName Name, Expression? Index = null, IReadOnlyList<Identifier>? MutationPath = null, bool Trigraphs = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record TableTarget(QualifiedName Name, bool Only = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
 public sealed record PeriodPortion(Identifier Name, Expression From, Expression To) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
 public enum IdentityRestart { Continue, Restart }
 
