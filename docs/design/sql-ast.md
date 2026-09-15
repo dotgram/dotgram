@@ -179,3 +179,11 @@ word the author wrote (requirement 3).
   `CAST FROM` and a bare `RETURNS TABLE`, its definition `STATIC DISPATCH` and `SPECIFIC METHOD`; a
   method specification says whether it overrides and has a qualified specific name. `CREATE DOMAIN d AS
   INT` keeps its `AS`, and `ON TABLE t` its `TABLE`.
+
+**A node knows where it was written, as in the tree built today** (Igor, 2026-09-15). `ISqlNode` extends
+`DotGram.Sql.ISqlSpan`, so a grammar asks for locations the way T-SQL's does —
+`LocationType = typeof(ISqlSpan)` — and the reader offers every rule's range to the value that came out
+of it. The span is a property of the node, not a base class: a family's abstract record declares `Span`
+and `Locate` once for all its members, and a record that belongs to no family — `SortItem`, `Alias`,
+`Identifier` — declares them itself. The blank's `SourceRange` and `SyntaxTrivia`, which nothing used,
+are gone; `SqlSpan` is the range.
