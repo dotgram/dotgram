@@ -22712,6 +22712,23 @@ Held by nst/JSONTestSuite's `test_parsing/` at 1ef36fa, vendored with its MIT li
 rewritten them. Each file is decoded as strict UTF-8 first; `y_` must read, `n_` must be refused, `i_`
 must be answered either way. Every text read is also written back and read again to the same value.
 
+## DotGram.Web's values are equal by what they hold
+
+Asked by Igor 2026-09-15 whether `JsonValue` is an ADT: it is — an abstract record with a private constructor
+and its six cases sealed and nested, the same shape as `BareItem` — but a record compares a list it holds by
+reference, so `Rfc8259.ParseJson("[1]")` was not equal to itself read twice. Every record here that holds a
+list now says what equal means through `Structural` (element by element, in order, with a hash C# 8's
+netstandard2.0 has no `HashCode` for): `JsonValue.Object` and `.Array`, `InnerList`, `OrderedMap<T>` (now
+`IEquatable`), `BareItem.ByteSequence` by its bytes, `UriTemplate` and its `Expression`, `JsonPointer`, and
+`WebLink`. A record whose fields already compare by value — `Item`, `FullTime`, `UriParts` — needed nothing.
+
+Two choices worth knowing. **Order counts**: an object with the same members in another order is a
+different object, and so is one with a name written twice, because both are what the parser keeps and what
+`ToString` writes back; `1.0` and `1` are different numbers for the same reason. **`LanguageTag` ignores
+case**: RFC 5646 §2.1.1 says case carries no meaning in a tag, so `en-US` equals `EN-us` though each keeps
+the spelling it was read with. A switch over one of the closed sets is still not checked for exhaustiveness
+by the compiler, which knows nothing of the private constructor.
+
 **A build trap met on the way, not a code one.** A project directory created mid-session could not
 be written by `dotnet build`: "Access to the path … is denied" on `obj`, even outside the sandbox. The
 build was joining MSBuild nodes and a compiler server started earlier inside it, with their rights.

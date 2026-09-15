@@ -41,7 +41,44 @@ public sealed record LanguageTag(
 	string?                   Grandfathered)
 {
 	/// <summary>§2.2.6: a single letter or digit other than <c>x</c>, and the subtags it introduces.</summary>
-	public sealed record Extension(char Singleton, IReadOnlyList<string> Subtags);
+	/// <remarks>Equal to another whatever the case of either, as a tag is (§2.1.1).</remarks>
+	public sealed record Extension(char Singleton, IReadOnlyList<string> Subtags)
+	{
+		public bool Equals(Extension? other) =>
+			other is not null && Lower(Singleton) == Lower(other.Singleton) && Structural.Same(Subtags, other.Subtags, Cases);
+
+		public override int GetHashCode() => Structural.Combine(Lower(Singleton), Structural.Hash(Subtags, Cases));
+	}
+
+	/// <summary>Equal to another tag whatever the case of either: case carries no meaning in a tag (§2.1.1).</summary>
+	/// <remarks>The parts keep the case they were written in; it is only not asked here.</remarks>
+	public bool Equals(LanguageTag? other) =>
+		other is not null &&
+		Cases.Equals(Language, other.Language) &&
+		Structural.Same(ExtendedLanguages, other.ExtendedLanguages, Cases) &&
+		Cases.Equals(Script, other.Script) &&
+		Cases.Equals(Region, other.Region) &&
+		Structural.Same(Variants, other.Variants, Cases) &&
+		Structural.Same(Extensions, other.Extensions) &&
+		Structural.Same(PrivateUse, other.PrivateUse, Cases) &&
+		Cases.Equals(Grandfathered, other.Grandfathered);
+
+	public override int GetHashCode()
+	{
+		var hash = Cases.GetHashCode(Language ?? "");
+
+		hash = Structural.Combine(hash, Structural.Hash(ExtendedLanguages, Cases));
+		hash = Structural.Combine(hash, Cases.GetHashCode(Script ?? ""));
+		hash = Structural.Combine(hash, Cases.GetHashCode(Region ?? ""));
+		hash = Structural.Combine(hash, Structural.Hash(Variants, Cases));
+		hash = Structural.Combine(hash, Structural.Hash(Extensions));
+		hash = Structural.Combine(hash, Structural.Hash(PrivateUse, Cases));
+
+		return Structural.Combine(hash, Cases.GetHashCode(Grandfathered ?? ""));
+	}
+
+	// Subtags are ASCII, so an ordinal comparison without case is ASCII's.
+	static readonly StringComparer Cases = StringComparer.OrdinalIgnoreCase;
 
 	/// <summary>The tag in the case §2.1.1 recommends, which is the registry's.</summary>
 	/// <remarks>

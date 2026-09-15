@@ -112,6 +112,21 @@ public sealed class Rfc8259Tests
 		Assert.Empty(((JsonValue.Array)value).Items);
 	}
 
+	/// <summary>A value is equal to another read from the same text, as a value and not as an object.</summary>
+	[Fact]
+	public void Values_are_equal_by_what_they_hold()
+	{
+		const string Text = """{ "a": [1, { "b": null }, "c"], "a": 2 }""";
+
+		Assert.Equal(Rfc8259.ParseJson(Text), Rfc8259.ParseJson(Text));
+		Assert.Equal(Rfc8259.ParseJson(Text).GetHashCode(), Rfc8259.ParseJson(Text).GetHashCode());
+
+		Assert.NotEqual(Rfc8259.ParseJson("""{ "a": [1] }"""), Rfc8259.ParseJson("""{ "a": [2] }"""));
+		Assert.NotEqual(Rfc8259.ParseJson("""{ "a": 1, "b": 2 }"""), Rfc8259.ParseJson("""{ "b": 2, "a": 1 }"""));
+		Assert.NotEqual(Rfc8259.ParseJson("""{ "a": 1 }"""), Rfc8259.ParseJson("""{ "a": 1, "a": 1 }"""));
+		Assert.NotEqual(Rfc8259.ParseJson("[1.0]"), Rfc8259.ParseJson("[1]"));
+	}
+
 	public static TheoryData<string> Cases =>
 		[.. Directory.GetFiles(Suite, "*.json").Select(path => Path.GetFileName(path)!).OrderBy(one => one, StringComparer.Ordinal)];
 

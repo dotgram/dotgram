@@ -23,13 +23,24 @@ public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 
 	/// <summary>§2.2: an operator, or none, and the variables it expands.</summary>
 	/// <param name="Operator">One of <c>+ # . / ; ? &amp;</c>, or null for simple string expansion.</param>
-	public sealed record Expression(char? Operator, IReadOnlyList<Variable> Variables) : Part;
+	public sealed record Expression(char? Operator, IReadOnlyList<Variable> Variables) : Part
+	{
+		public bool Equals(Expression? other) =>
+			other is not null && Operator == other.Operator && Structural.Same(Variables, other.Variables);
+
+		public override int GetHashCode() => Structural.Combine(Operator.GetHashCode(), Structural.Hash(Variables));
+	}
 
 	/// <summary>§2.3, §2.4: a variable's name as written, and the one modifier it may have.</summary>
 	/// <param name="Name">Pct-encoded triplets included and not decoded: they are part of the name.</param>
 	/// <param name="Prefix">How many characters of the value to use, from 1 to 9999, or null.</param>
 	/// <param name="Explode">Whether a composite value is expanded member by member.</param>
 	public sealed record Variable(string Name, int? Prefix, bool Explode);
+
+	/// <summary>Equal to another template made of equal parts in the same order.</summary>
+	public bool Equals(UriTemplate? other) => other is not null && Structural.Same(Parts, other.Parts);
+
+	public override int GetHashCode() => Structural.Hash(Parts);
 
 	/// <summary>The URI reference this template stands for, given the values of its variables.</summary>
 	/// <remarks>

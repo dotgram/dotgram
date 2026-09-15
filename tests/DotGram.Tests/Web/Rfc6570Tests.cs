@@ -117,6 +117,17 @@ public sealed class Rfc6570Tests
 			}));
 	}
 
+	/// <summary>A template is equal to another read from the same text.</summary>
+	[Fact]
+	public void Templates_are_equal_by_what_they_hold()
+	{
+		const string Text = "/users{/id}{?q,page:3,tags*}";
+
+		Assert.Equal(Rfc6570.ParseTemplate(Text), Rfc6570.ParseTemplate(Text));
+		Assert.Equal(Rfc6570.ParseTemplate(Text).GetHashCode(), Rfc6570.ParseTemplate(Text).GetHashCode());
+		Assert.NotEqual(Rfc6570.ParseTemplate(Text), Rfc6570.ParseTemplate("/users{/id}{?q,page:4,tags*}"));
+	}
+
 	/// <summary>The example the package's README shows, which has to stay true.</summary>
 	[Fact]
 	public void The_readme_example_expands_as_it_says()

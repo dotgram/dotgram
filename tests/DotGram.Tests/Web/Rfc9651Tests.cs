@@ -139,6 +139,24 @@ public sealed class Rfc9651Tests
 			$"{file}: '{name}' serialized as '{Serialize(test)}'.");
 	}
 
+	/// <summary>What is read from the same field is equal, lists, maps and bytes included.</summary>
+	[Fact]
+	public void Values_are_equal_by_what_they_hold()
+	{
+		const string Field = "a=(1 2);x=?0, b=:aGVsbG8=:, c=%\"f%c3%bc\";y";
+
+		var first  = Rfc9651.ParseDictionary(Field);
+		var second = Rfc9651.ParseDictionary(Field);
+
+		Assert.True(first.Equals(second));
+		Assert.Equal(first.GetHashCode(), second.GetHashCode());
+		Assert.Equal(first["a"], second["a"]);
+		Assert.Equal(new BareItem.ByteSequence([1, 2]), new BareItem.ByteSequence([1, 2]));
+
+		Assert.False(first.Equals(Rfc9651.ParseDictionary("a=(1 3);x=?0, b=:aGVsbG8=:, c=%\"f%c3%bc\";y")));
+		Assert.False(Rfc9651.ParseDictionary("a, b").Equals(Rfc9651.ParseDictionary("b, a")));
+	}
+
 	/// <summary>The serialization the package's README shows, which has to stay true and compile.</summary>
 	[Fact]
 	public void The_readme_serialization_writes_what_it_says()

@@ -76,6 +76,17 @@ public sealed class Rfc8288Tests
 		Assert.Equal(["start", "index"], links.Select(link => link.Relations.Single()).ToArray());
 	}
 
+	/// <summary>A link-value is equal to another read from the same text.</summary>
+	[Fact]
+	public void Links_are_equal_by_what_they_hold()
+	{
+		const string Field = "</a>; rel=\"next\"; title*=UTF-8'de'n%c3%a4chstes, </b>; rel=prev";
+
+		Assert.Equal(Rfc8288.ParseLinks(Field), Rfc8288.ParseLinks(Field));
+		Assert.Equal(Rfc8288.ParseLinks(Field)[0].GetHashCode(), Rfc8288.ParseLinks(Field)[0].GetHashCode());
+		Assert.NotEqual(Rfc8288.ParseLinks("</a>; rel=next")[0], Rfc8288.ParseLinks("</a>; rel=prev")[0]);
+	}
+
 	// ── §3's rules for a recipient ───────────────────────────────────────────────
 
 	/// <summary>A token and a quoted-string are the same value (§3).</summary>

@@ -137,6 +137,18 @@ public sealed class Rfc5646Tests
 		Assert.Equal(["min", "xyz"], ordinary.ExtendedLanguages);
 	}
 
+	/// <summary>Tags are equal whatever their case, since case carries no meaning in one (§2.1.1).</summary>
+	[Fact]
+	public void Tags_are_equal_whatever_their_case()
+	{
+		Assert.Equal(Rfc5646.ParseTag("zh-Hant-TW-u-ca-chinese-x-a"), Rfc5646.ParseTag("ZH-hant-tw-U-CA-Chinese-X-A"));
+		Assert.Equal(Rfc5646.ParseTag("en-US").GetHashCode(), Rfc5646.ParseTag("EN-us").GetHashCode());
+		Assert.Equal(Rfc5646.ParseTag("i-klingon"), Rfc5646.ParseTag("I-KLINGON"));
+
+		Assert.NotEqual(Rfc5646.ParseTag("en-US"), Rfc5646.ParseTag("en-GB"));
+		Assert.NotEqual(Rfc5646.ParseTag("sl-rozaj-biske"), Rfc5646.ParseTag("sl-biske-rozaj"));
+	}
+
 	// ── The registry ─────────────────────────────────────────────────────────────
 
 	/// <summary>Every tag the registry holds reads, and writes back as the registry spells it.</summary>

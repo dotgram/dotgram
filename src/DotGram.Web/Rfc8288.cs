@@ -31,6 +31,12 @@ public sealed record WebLink(string Target, IReadOnlyList<WebLink.Parameter> Par
 	/// </param>
 	public sealed record Parameter(string Name, string Value, ExtendedValue? Extended);
 
+	/// <summary>Equal to another link-value with the same target and equal parameters in the same order.</summary>
+	public bool Equals(WebLink? other) =>
+		other is not null && string.Equals(Target, other.Target, StringComparison.Ordinal) && Structural.Same(Parameters, other.Parameters);
+
+	public override int GetHashCode() => Structural.Combine(StringComparer.Ordinal.GetHashCode(Target), Structural.Hash(Parameters));
+
 	/// <summary>The relation types of the first <c>rel</c> (§3.3), which later ones do not replace.</summary>
 	public IReadOnlyList<string> Relations =>
 		First("rel") is { } rel ? rel.Value.Split([' '], StringSplitOptions.RemoveEmptyEntries) : [];

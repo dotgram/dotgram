@@ -21,6 +21,11 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 	/// <summary>The pointer with no tokens, which refers to the whole document.</summary>
 	public static JsonPointer Root { get; } = new([]);
 
+	/// <summary>Equal to another pointer with the same tokens in the same order.</summary>
+	public bool Equals(JsonPointer? other) => other is not null && Structural.Same(Tokens, other.Tokens);
+
+	public override int GetHashCode() => Structural.Hash(Tokens);
+
 	/// <summary>The pointer as a JSON string holds it (§5): each token after a <c>/</c>, escaped.</summary>
 	public override string ToString()
 	{

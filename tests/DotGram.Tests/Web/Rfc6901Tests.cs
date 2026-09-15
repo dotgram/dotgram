@@ -101,6 +101,15 @@ public sealed class Rfc6901Tests
 		Assert.Same(JsonValue.Null.Instance, Rfc6901.ParsePointer("/empty").Resolve(document));
 	}
 
+	/// <summary>A pointer is equal to another with the same tokens, whichever form it was read from.</summary>
+	[Fact]
+	public void Pointers_are_equal_by_their_tokens()
+	{
+		Assert.Equal(Rfc6901.ParsePointer("/a~1b/0"), Rfc6901.ParseFragment("#/a~1b/0"));
+		Assert.Equal(Rfc6901.ParsePointer("/c%d").GetHashCode(), Rfc6901.ParseFragment("#/c%25d").GetHashCode());
+		Assert.NotEqual(Rfc6901.ParsePointer("/a/0"), Rfc6901.ParsePointer("/a/1"));
+	}
+
 	/// <summary>`~1` is undone before `~0`, so `~01` is `~1` and never `/` (§4).</summary>
 	[Fact]
 	public void Escapes_are_undone_in_the_order_the_RFC_gives()

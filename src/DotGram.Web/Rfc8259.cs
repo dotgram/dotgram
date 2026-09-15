@@ -25,10 +25,43 @@ public abstract record JsonValue
 	}
 
 	/// <summary>§4: members in the order written, names as unescaped strings, duplicates kept.</summary>
-	public sealed record Object(IReadOnlyList<KeyValuePair<string, JsonValue>> Members) : JsonValue;
+	/// <remarks>Equal to another with the same members in the same order, a name written twice counted twice.</remarks>
+	public sealed record Object(IReadOnlyList<KeyValuePair<string, JsonValue>> Members) : JsonValue
+	{
+		public bool Equals(Object? other)
+		{
+			if (other is null || Members.Count != other.Members.Count)
+				return false;
+
+			for (var index = 0; index < Members.Count; index++)
+				if (!string.Equals(Members[index].Key, other.Members[index].Key, StringComparison.Ordinal) ||
+					!Members[index].Value.Equals(other.Members[index].Value))
+				{
+					return false;
+				}
+
+			return true;
+		}
+
+		public override int GetHashCode()
+		{
+			var hash = Members.Count;
+
+			foreach (var member in Members)
+				hash = Structural.Combine(Structural.Combine(hash, StringComparer.Ordinal.GetHashCode(member.Key)), member.Value.GetHashCode());
+
+			return hash;
+		}
+	}
 
 	/// <summary>§5.</summary>
-	public sealed record Array(IReadOnlyList<JsonValue> Items) : JsonValue;
+	/// <remarks>Equal to another with equal elements in the same order.</remarks>
+	public sealed record Array(IReadOnlyList<JsonValue> Items) : JsonValue
+	{
+		public bool Equals(Array? other) => other is not null && Structural.Same(Items, other.Items);
+
+		public override int GetHashCode() => Structural.Hash(Items);
+	}
 
 	/// <summary>§7: the string with its escapes undone. An escaped lone surrogate stays one (§8.2).</summary>
 	public sealed record String(string Value) : JsonValue;

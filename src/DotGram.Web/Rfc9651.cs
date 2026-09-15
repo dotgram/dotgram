@@ -17,7 +17,13 @@ public abstract record Member(OrderedMap<BareItem> Parameters);
 public sealed record Item(BareItem Value, OrderedMap<BareItem> Parameters) : Member(Parameters);
 
 /// <summary>Items in parentheses, and the parameters of the whole (RFC 9651 §3.1.1).</summary>
-public sealed record InnerList(IReadOnlyList<Item> Items, OrderedMap<BareItem> Parameters) : Member(Parameters);
+/// <remarks>Equal to another with equal items in the same order and equal parameters.</remarks>
+public sealed record InnerList(IReadOnlyList<Item> Items, OrderedMap<BareItem> Parameters) : Member(Parameters)
+{
+	public bool Equals(InnerList? other) => base.Equals(other) && Structural.Same(Items, other!.Items);
+
+	public override int GetHashCode() => Structural.Combine(base.GetHashCode(), Structural.Hash(Items));
+}
 
 /// <summary>One of the eight values RFC 9651 §3.3 defines.</summary>
 /// <remarks>
@@ -43,8 +49,13 @@ public abstract record BareItem
 	public sealed record Token(string Value) : BareItem;
 
 	/// <summary>§3.3.5: the bytes the base64 between the colons stands for.</summary>
-	/// <remarks>Equality is the array's own, which is by reference.</remarks>
-	public sealed record ByteSequence(byte[] Value) : BareItem;
+	/// <remarks>Equal to another holding the same bytes.</remarks>
+	public sealed record ByteSequence(byte[] Value) : BareItem
+	{
+		public bool Equals(ByteSequence? other) => other is not null && Structural.Same(Value, other.Value);
+
+		public override int GetHashCode() => Structural.Hash(Value);
+	}
 
 	/// <summary>§3.3.6.</summary>
 	public sealed record Boolean(bool Value) : BareItem
@@ -67,8 +78,41 @@ public abstract record BareItem
 /// "MUST provide access … both by index and by key". A key written twice keeps the place it
 /// was first written in and the value it was last given (§4.2.2, §4.2.3.2).
 /// </remarks>
-public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>
+public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEquatable<OrderedMap<T>>
 {
+	/// <summary>Whether the other map has the same keys with equal values, in the same order.</summary>
+	public bool Equals(OrderedMap<T>? other)
+	{
+		if (ReferenceEquals(this, other))
+			return true;
+
+		if (other is null || other._entries.Count != _entries.Count)
+			return false;
+
+		for (var index = 0; index < _entries.Count; index++)
+			if (!string.Equals(_entries[index].Key, other._entries[index].Key, StringComparison.Ordinal) ||
+				!EqualityComparer<T>.Default.Equals(_entries[index].Value, other._entries[index].Value))
+			{
+				return false;
+			}
+
+		return true;
+	}
+
+	public override bool Equals(object? other) => Equals(other as OrderedMap<T>);
+
+	public override int GetHashCode()
+	{
+		var hash = _entries.Count;
+
+		foreach (var entry in _entries)
+			hash = Structural.Combine(
+				Structural.Combine(hash, StringComparer.Ordinal.GetHashCode(entry.Key)),
+				entry.Value is null ? 0 : EqualityComparer<T>.Default.GetHashCode(entry.Value));
+
+		return hash;
+	}
+
 	readonly List<KeyValuePair<string, T>> _entries = [];
 	readonly Dictionary<string, int>       _places  = new(StringComparer.Ordinal);
 
