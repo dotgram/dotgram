@@ -165,12 +165,14 @@ key's or an Always Encrypted value's, is an option holding it.
 ## The SQL:2023 tree
 
 `src/DotGram.Sql/Standard/Sql2023Ast.cs`, in the namespace `DotGram.Sql.Ast`, is the tree of
-the standard's parser, laid out by `design/sql-ast.md`. `SqlStandardParser` builds it for
-names — an identifier with its spelling and its `IdentifierStyle`, an identifier chain, a
-table name, a column reference as `Ast.Expression.Reference` — through
-`src/DotGram.Sql/Standard/Nodes.cs`, and recognizes the rest of the language without building
-it. Its nodes are not in the tables below, which describe the tree in `SqlSyntax.cs`; its
-shape is in `design/sql-ast.md`.
+the standard's parser, laid out by `design/sql-ast.md`. `SqlStandardParser` builds it —
+through `src/DotGram.Sql/Standard/Nodes.cs` and `Towers.cs` — for names, literals, data
+types, value expressions and predicates, functions, windows, row pattern recognition, the
+JSON functions and path language, and queries: query expressions, table references and
+joins, `JSON_TABLE`. Statements — data change, schema, control, session — it recognizes
+without building yet; a data change delta table holds a placeholder statement where one
+stands. Its nodes are not in the tables below, which describe the tree in `SqlSyntax.cs`;
+its shape is in `design/sql-ast.md`.
 
 ## The nodes
 

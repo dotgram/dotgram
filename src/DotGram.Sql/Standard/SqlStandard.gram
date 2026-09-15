@@ -423,9 +423,6 @@ RightBracketOrTrigraph = "??)" | ']'
 // they share, and what a piece can still be comes back beside its node (Towers.cs): a guard refuses a
 // reading that is none of them. `a || b + c` is refused, `x + y AT LOCAL` read and `x - y AT LOCAL`
 // refused, as the BNF has them.
-//
-// What is not built yet — a subquery's query, the window and JSON functions, a JSON subscript — stands
-// as `Nodes.Unbuilt`, and each goes as its chapter builds its tree.
 
 // <value expression>. A value that is no boolean is a boolean primary with nothing around it, so
 // the boolean reading is the one reading.
@@ -453,9 +450,9 @@ TruthValue  = "TRUE"i | "FALSE"i | "UNKNOWN"i
 // value predicand, so the predicand is read once and what follows it says which: nothing, and it is
 // a predicand; a predicate's second part, and it is that predicate, if the second part takes it.
 BooleanPrimary : @Towers.Typed
-	= "EXISTS"i & TableSubquery => @(new Towers.Typed(new Expression.Exists(Nodes.UnbuiltQuery()), Towers.Logical | Towers.Truth))
+	= "EXISTS"i & q: TableSubquery => @(new Towers.Typed(new Expression.Exists(q), Towers.Logical | Towers.Truth))
 	| j: JSONExistsPredicate => @(new Towers.Typed(j, Towers.Logical | Towers.Truth))
-	| "UNIQUE"i & ("NULLS"i & n: "NOT"i? & d: "DISTINCT"i)? & TableSubquery => @(new Towers.Typed(new Expression.Unique(Nodes.Nulls(d, n), Nodes.UnbuiltQuery()), Towers.Logical | Towers.Truth))
+	| "UNIQUE"i & ("NULLS"i & n: "NOT"i? & d: "DISTINCT"i)? & q: TableSubquery => @(new Towers.Typed(new Expression.Unique(Nodes.Nulls(d, n), q), Towers.Logical | Towers.Truth))
 	| p: PeriodConstructor & t: PeriodPredicatePart2 => @(new Towers.Typed(t with { Left = p }, Towers.Logical | Towers.Truth))
 	| e: RowValuePredicand & takes: PredicatePart2Mark & when @(Towers.RolesOf(takes) == 0 || (Towers.RolesOf(e) & Towers.RolesOf(takes)) != 0) => @(takes.Roles == 0 ? e : new Towers.Typed(Nodes.Predicated(e.Node, takes.Node!), Towers.Logical | Towers.Truth))
 
@@ -477,7 +474,7 @@ Predicate : @Towers.Typed = e: BooleanPrimary & when @((Towers.RolesOf(e) & Towe
 // t)) + 1` — where the quantifier's reading would stop.
 PredicatePart2 : @Towers.Tail
 	= o: CompOp & compared: ComparisonTail => @(new Towers.Tail(Towers.Any, Nodes.Compared(compared, o)))
-	| "MATCH"i & u: "UNIQUE"i? & m: ("SIMPLE"i | "PARTIAL"i | "FULL"i)? & TableSubquery => @(new Towers.Tail(Towers.Any, new Expression.Match(null!, u is not null, Nodes.Matching(m), Nodes.UnbuiltQuery())))
+	| "MATCH"i & u: "UNIQUE"i? & m: ("SIMPLE"i | "PARTIAL"i | "FULL"i)? & q: TableSubquery => @(new Towers.Tail(Towers.Any, new Expression.Match(null!, u is not null, Nodes.Matching(m), q)))
 	| n: "NOT"i? & negatable: NegatablePredicatePart2 => @(new Towers.Tail(Towers.Any, Nodes.Negated(negatable, n is not null)))
 	| "IS"i & n: "NOT"i? & tested: IsPredicatePart2 => @(tested with { Node = Nodes.Negated(tested.Node!, n is not null) })
 	| "OVERLAPS"i & r: RowValuePredicand => @(new Towers.Tail(Towers.Any, new Expression.Overlaps(null!, r.Node)))
@@ -487,7 +484,7 @@ PredicatePart2 : @Towers.Tail
 // What follows a comparison's operator: a row value predicand, or a quantifier and a subquery.
 ComparisonTail : @Expression
 	= r: RowValuePredicand => @(new Expression.Comparison(null!, default, r.Node))
-	| q: ("ALL"i | "SOME"i | "ANY"i) & TableSubquery => @(new Expression.QuantifiedComparison(null!, default, Nodes.Quantified(q), Nodes.UnbuiltQuery()))
+	| w: ("ALL"i | "SOME"i | "ANY"i) & q: TableSubquery => @(new Expression.QuantifiedComparison(null!, default, Nodes.Quantified(w), q))
 
 // <comp op>, the longer operators first.
 CompOp = "<>" | "<=" | ">=" | '=' | '<' | '>'
@@ -497,7 +494,7 @@ CompOp = "<>" | "<=" | ">=" | '=' | '<' | '>'
 // 2>, <regex like predicate part 2>, <member predicate part 2>, <submultiset predicate part 2>.
 NegatablePredicatePart2 : @Expression
 	= "BETWEEN"i & s: ("ASYMMETRIC"i | "SYMMETRIC"i)? & l: RowValuePredicand & "AND"i & h: RowValuePredicand => @(new Expression.Between(null!, false, Nodes.Symmetry(s), l.Node, h.Node))
-	| "IN"i & TableSubquery => @(new Expression.In(null!, false, new InSource.Query(Nodes.UnbuiltQuery())))
+	| "IN"i & q: TableSubquery => @(new Expression.In(null!, false, new InSource.Query(q)))
 	| "IN"i & '(' & { first: RowValueExpression & (',' & rest: RowValueExpression)* } & ')' => @(new Expression.In(null!, false, new InSource.Values(Nodes.Values(first, rest))))
 	| "LIKE"i & p: StringValueExpression & e: LikeEscape & when @((Towers.RolesOf(p) & Towers.RolesOf(e) & Towers.String) != 0) => @(new Expression.Like(null!, false, LikeKind.Like, p.Node, e.Node))
 	| "SIMILAR"i & "TO"i & p: CharacterValueExpression & ("ESCAPE"i & x: CharacterNode)? => @(new Expression.Like(null!, false, LikeKind.Similar, p.Node, x))
@@ -630,7 +627,7 @@ ValueExpressionPrimary : @Towers.Typed = e: CommonValueExpression & when @((Towe
 // A <scalar subquery> is asked before a bracket's value expression: `((SELECT a FROM t))` is both,
 // and only the subquery is a non-parenthesized primary, which an in value list asks for.
 PrimaryReading : @Towers.Typed
-	= ScalarSubquery & s: PrimarySteps => @(Towers.Stepped(new Towers.Typed(new Expression.Subquery(Nodes.UnbuiltQuery()), Towers.Value | Towers.Truth | Towers.Bare), s))
+	= q: ScalarSubquery & s: PrimarySteps => @(Towers.Stepped(new Towers.Typed(new Expression.Subquery(q), Towers.Value | Towers.Truth | Towers.Bare), s))
 	| b: Bracketed & s: PrimarySteps & when @(Towers.RolesOf(s) == 0 || (Towers.RolesOf(b) & Towers.Row) == 0) => @(Towers.Stepped(b, s))
 	| p: PrimaryBase & s: PrimarySteps & when @(Towers.RolesOf(s) == 0 || (Towers.RolesOf(p) & Towers.Row) == 0) => @(Towers.Stepped(p, s))
 
@@ -747,7 +744,7 @@ RoutineInvocation        : @Expression = n: RoutineName & a: SQLArgumentList => 
 // <collection value constructor>: by enumeration, and by query — `TABLE (…)` is a multiset's.
 CollectionValueConstructor : @Expression
 	= w: ("ARRAY"i | "MULTISET"i) & l: LeftBracketOrTrigraph & first: ValueNode & (',' & rest: ValueNode)* & RightBracketOrTrigraph => @(Nodes.Collection(w, l, first, rest))
-	| w: ("ARRAY"i | "MULTISET"i | "TABLE"i) & TableSubquery => @(new Expression.CollectionQuery(Nodes.CollectionKindOf(w), Nodes.UnbuiltQuery()))
+	| w: ("ARRAY"i | "MULTISET"i | "TABLE"i) & q: TableSubquery => @(new Expression.CollectionQuery(Nodes.CollectionKindOf(w), q))
 
 // <SQL argument list>, but table and descriptor arguments. A named argument is asked first, since
 // its name would otherwise be read as a value.
@@ -969,7 +966,7 @@ JSONConstructorNullClause = ("NULL"i | "ABSENT"i) & "ON"i & "NULL"i
 // expression does not, or with a bracket, where the enumeration is asked first.
 JSONArrayConstructor : @Expression
 	= "JSON_ARRAY"i & '(' & (first: JSONInputExpression & (',' & rest: JSONInputExpression)* & n: JSONConstructorNullClause?)? & o: JSONOutputClause? & ')' => @(new Expression.JsonArray(Nodes.ListOrEmpty(first, rest), Nodes.NullHandling(n), o))
-	| "JSON_ARRAY"i & '(' & QueryExpression & f: JSONInputClause? & n: JSONConstructorNullClause? & o: JSONOutputClause? & ')' => @(new Expression.JsonArrayQuery(Nodes.UnbuiltQuery(), f, o, Nodes.NullHandling(n)))
+	| "JSON_ARRAY"i & '(' & q: QueryExpression & f: JSONInputClause? & n: JSONConstructorNullClause? & o: JSONOutputClause? & ')' => @(new Expression.JsonArrayQuery(q, f, o, Nodes.NullHandling(n)))
 
 // <JSON exists predicate>.
 JSONExistsPredicate : @Expression = "JSON_EXISTS"i & '(' & c: JSONAPICommonSyntax & (b: ("TRUE"i | "FALSE"i | "UNKNOWN"i | "ERROR"i) & "ON"i & "ERROR"i)? & ')' => @(new Expression.JsonExists(c, Nodes.ExistsBehavior(b)))
@@ -1038,153 +1035,163 @@ JSONPredicatePrimary : @JsonPathPredicate
 
 // ── §7.11 JSON table ─────────────────────────────────────────────────────────
 
-JSONTable = "JSON_TABLE"i & '(' & JSONAPICommonSyntax & JSONTableColumnsClause & JSONTablePlanClause? & (("ERROR"i | "EMPTY"i) & "ON"i & "ERROR"i)? & ')'
-JSONTablePrimitive = "JSON_TABLE_PRIMITIVE"i & '(' & JSONAPICommonSyntax & "COLUMNS"i & '(' & JSONTablePrimitiveColumn & (',' & JSONTablePrimitiveColumn)* & ')' & ("ERROR"i | "EMPTY"i) & "ON"i & "ERROR"i & ')'
+JSONTable : @JsonTableDefinition = "JSON_TABLE"i & '(' & c: JSONAPICommonSyntax & columns: JSONTableColumnsClause & p: JSONTablePlanClause? & (e: ("ERROR"i | "EMPTY"i) & "ON"i & "ERROR"i)? & ')' => @(new JsonTableDefinition(c, columns, p, Nodes.TableError(e)))
+JSONTablePrimitive : @JsonTableDefinition = "JSON_TABLE_PRIMITIVE"i & '(' & c: JSONAPICommonSyntax & "COLUMNS"i & '(' & first: JSONTablePrimitiveColumn & (',' & rest: JSONTablePrimitiveColumn)* & ')' & e: ("ERROR"i | "EMPTY"i) & "ON"i & "ERROR"i & ')' => @(new JsonTableDefinition(c, Nodes.List(first, rest), null, Nodes.TableError(e), true))
 
-JSONTableColumnsClause = "COLUMNS"i & '(' & JSONTableColumnDefinition & (',' & JSONTableColumnDefinition)* & ')'
+JSONTableColumnsClause : @IReadOnlyList<JsonTableColumn> = "COLUMNS"i & '(' & first: JSONTableColumnDefinition & (',' & rest: JSONTableColumnDefinition)* & ')' => @(Nodes.List(first, rest))
 
-JSONTableColumnDefinition
-	= "NESTED"i & "PATH"i? & CharacterStringLiteral & ("AS"i & Identifier)? & JSONTableColumnsClause
-	| ColumnName & "FOR"i & "ORDINALITY"i
-	| JSONTableTypedColumn
+JSONTableColumnDefinition : @JsonTableColumn
+	= "NESTED"i & k: "PATH"i? & p: CharacterStringLiteral & ("AS"i & n: Identifier)? & columns: JSONTableColumnsClause => @(new JsonTableColumn.Nested(p, n, columns, k is not null))
+	| c: ColumnName & "FOR"i & "ORDINALITY"i => @(new JsonTableColumn.Ordinality(c))
+	| t: JSONTableTypedColumn => @(t)
 
-JSONTablePrimitiveColumn
-	= ColumnName & "FOR"i & ("ORDINALITY"i | "CHAINING"i)
-	| JSONTableTypedColumn
+JSONTablePrimitiveColumn : @JsonTableColumn
+	= c: ColumnName & "FOR"i & w: ("ORDINALITY"i | "CHAINING"i) => @((w[0] | 0x20) == 'o' ? new JsonTableColumn.Ordinality(c) : new JsonTableColumn.Chaining(c))
+	| t: JSONTableTypedColumn => @(t)
 
 // <JSON table regular column definition>, <JSON table formatted column definition>. Both are a name,
 // a type, a path and what happens on empty and on error, and neither needs to say which it is; read
 // once, a guard refuses what only a regular one has (`DEFAULT … ON`, 1) beside what only a formatted
-// one has (`FORMAT`, a wrapper, quotes, `EMPTY ARRAY` or `EMPTY OBJECT`, 2).
-JSONTableTypedColumn : @bool = ColumnName & DataType & f: JSONColumnFormat & ("PATH"i & CharacterStringLiteral)? & w: JSONColumnWrapper & e: JSONColumnOnEmpty & r: JSONColumnOnError & when @((f | w | e | r) != 3) => @(true)
+// one has (`FORMAT`, a wrapper, quotes, `EMPTY ARRAY` or `EMPTY OBJECT`, 2). A column that says neither
+// is a regular one.
+JSONTableTypedColumn : @JsonTableColumn = c: ColumnName & t: DataType & f: JSONColumnFormat & ("PATH"i & p: CharacterStringLiteral)? & w: JSONColumnWrapper & e: JSONColumnOnEmpty & r: JSONColumnOnError & when @(Nodes.ColumnKinds(f, w, e, r) != 3) => @(Nodes.TypedColumn(c, t, f, p, w, e, r))
 
-JSONColumnFormat  : @int = "FORMAT"i & JSONRepresentation => @(2)
-                         | none => @(0)
-JSONColumnWrapper : @int = JSONQueryWrapperBehavior & "WRAPPER"i & JSONColumnQuotes => @(2)
-                         | q: JSONColumnQuotes => @(q)
-JSONColumnQuotes  : @int = ("KEEP"i | "OMIT"i) & "QUOTES"i & ("ON"i & "SCALAR"i & "STRING"i)? => @(2)
-                         | none => @(0)
-JSONColumnOnEmpty : @int = b: JSONColumnBehavior & "ON"i & "EMPTY"i => @(b)
-                         | none => @(0)
-JSONColumnOnError : @int = b: JSONColumnBehavior & "ON"i & "ERROR"i => @(b)
-                         | none => @(0)
-JSONColumnBehavior : @int
-	= "ERROR"i => @(0)
-	| "NULL"i => @(0)
-	| "DEFAULT"i & ValueExpression => @(1)
-	| "EMPTY"i & ("ARRAY"i | "OBJECT"i) => @(2)
+JSONColumnFormat  : @Nodes.ColumnPart = "FORMAT"i & r: JSONRepresentation => @(new Nodes.ColumnPart(2) { Format = r })
+                                      | none => @(new Nodes.ColumnPart(0))
+JSONColumnWrapper : @Nodes.ColumnPart = w: JSONQueryWrapperBehavior & "WRAPPER"i & q: JSONColumnQuotes => @(q with { Kind = 2, Wrapper = Nodes.Wrapper(w) })
+                                      | q: JSONColumnQuotes => @(q)
+JSONColumnQuotes  : @Nodes.ColumnPart = w: ("KEEP"i | "OMIT"i) & "QUOTES"i & s: ("ON"i & "SCALAR"i & "STRING"i)? => @(new Nodes.ColumnPart(2) { Quotes = new JsonQuotes((w[0] | 0x20) == 'k' ? JsonQuotesBehavior.Keep : JsonQuotesBehavior.Omit, s is not null) })
+                                      | none => @(new Nodes.ColumnPart(0))
+JSONColumnOnEmpty : @Nodes.ColumnPart = b: JSONColumnBehavior & "ON"i & "EMPTY"i => @(b)
+                                      | none => @(new Nodes.ColumnPart(0))
+JSONColumnOnError : @Nodes.ColumnPart = b: JSONColumnBehavior & "ON"i & "ERROR"i => @(b)
+                                      | none => @(new Nodes.ColumnPart(0))
+JSONColumnBehavior : @Nodes.ColumnPart
+	= "ERROR"i => @(new Nodes.ColumnPart(0) { Value = new JsonValueBehavior.Error(), Query = JsonQueryBehavior.Error })
+	| "NULL"i => @(new Nodes.ColumnPart(0) { Value = new JsonValueBehavior.Null(), Query = JsonQueryBehavior.Null })
+	| "DEFAULT"i & v: ValueNode => @(new Nodes.ColumnPart(1) { Value = new JsonValueBehavior.Default(v) })
+	| "EMPTY"i & o: ("ARRAY"i | "OBJECT"i) => @(new Nodes.ColumnPart(2) { Query = (o[0] | 0x20) == 'a' ? JsonQueryBehavior.EmptyArray : JsonQueryBehavior.EmptyObject })
 
 // <JSON table plan clause>. A plan is a path's name, a parent and child, or siblings; each begins with
 // a plan primary, which is read once and what follows it says which. A parent is a name, and a plan
 // in brackets alone is no plan.
-JSONTablePlanClause
-	= "PLAN"i & '(' & JSONTablePlan & ')'
-	| "PLAN"i & "DEFAULT"i & '(' & (("INNER"i | "OUTER"i) & (',' & ("UNION"i | "CROSS"i))? | ("UNION"i | "CROSS"i) & (',' & ("INNER"i | "OUTER"i))?) & ')'
+JSONTablePlanClause : @JsonTablePlan
+	= "PLAN"i & '(' & p: JSONTablePlan & ')' => @(p)
+	| "PLAN"i & "DEFAULT"i & '(' & choices: JSONTableDefaultPlanChoices & ')' => @(choices)
 
-JSONTablePlan : @bool = p: JSONTablePlanPrimary & t: JSONTablePlanTail & when @(t == 2 || p == true) => @(true)
+JSONTableDefaultPlanChoices : @JsonTablePlan
+	= i: ("INNER"i | "OUTER"i) & (',' & u: ("UNION"i | "CROSS"i))? => @(Nodes.DefaultPlan(i, u, false))
+	| u: ("UNION"i | "CROSS"i) & (',' & i: ("INNER"i | "OUTER"i))? => @(Nodes.DefaultPlan(i, u, true))
 
-JSONTablePlanPrimary : @bool = Identifier => @(true)
-                             | '(' & JSONTablePlan & ')' => @(false)
+JSONTablePlan : @JsonTablePlan = p: JSONTablePlanPrimary & t: JSONTablePlanTail & when @(Nodes.PlanFits(p, t)) => @(Nodes.Plan(p, t))
 
-JSONTablePlanTail : @int
-	= ("OUTER"i | "INNER"i) & JSONTablePlanPrimary => @(1)
-	| ("UNION"i & JSONTablePlanPrimary)+ => @(2)
-	| ("CROSS"i & JSONTablePlanPrimary)+ => @(2)
-	| none => @(0)
+JSONTablePlanPrimary : @JsonTablePlan = n: Identifier => @(new JsonTablePlan.Name(n))
+                                      | '(' & p: JSONTablePlan & ')' => @(new JsonTablePlan.Parenthesized(p))
+
+JSONTablePlanTail : @Nodes.PlanTail
+	= w: ("OUTER"i | "INNER"i) & child: JSONTablePlanPrimary => @(new Nodes.PlanTail(1, w, [child]))
+	| ("UNION"i & union: JSONTablePlanPrimary)+ => @(new Nodes.PlanTail(2, "UNION", union))
+	| ("CROSS"i & cross: JSONTablePlanPrimary)+ => @(new Nodes.PlanTail(2, "CROSS", cross))
+	| none => @(new Nodes.PlanTail(0, null, null))
 
 // ── §7.2 Row value expression list, §7.3 Table value constructor ────────────
 
 // <table value constructor>. A <table row value expression> is a row value special case or a row
 // value constructor — a common, a boolean or an explicit row value — and a value expression is
 // each of those.
-TableValueConstructor = "VALUES"i & { ValueExpression & (',' & ValueExpression)* }
+TableValueConstructor : @IReadOnlyList<RowValue> = "VALUES"i & { first: ValueNode & (',' & rest: ValueNode)* } => @(Nodes.Rows(first, rest))
 
 // ── §7.4 Table expression, §7.5 From clause ─────────────────────────────────
 
-TableExpression = FromClause & WhereClause? & GroupByClause? & HavingClause? & WindowClause?
-FromClause      = "FROM"i & { TableReference & (',' & TableReference)* }
+TableExpression : @Nodes.TableExpression = f: FromClause & w: WhereClause? & g: GroupByClause? & h: HavingClause? & x: WindowClause? => @(new Nodes.TableExpression(f, w, g, h, x))
+FromClause      : @FromClause = "FROM"i & { first: TableReference & (',' & rest: TableReference)* } => @(new FromClause(Nodes.List(first, rest)))
 
 // ── §7.6 Table reference, §7.10 Joined table ────────────────────────────────
 
 // <table reference>, <joined table>. A join begins with a table reference, which is left recursion
 // through other productions, so the joins are steps after the first table factor, as many as there
-// are. A partitioned join table stands on the left of a qualified or a natural join, and is a table
-// factor with `PARTITION BY` after it; it is read as a factor and its partitioning, and not tried
-// as a whole and then again without, which would read a derived table twice at every depth.
-TableReference = TableFactor & Joins
+// are, folded from the left. A partitioned join table stands on the left of a qualified or a natural
+// join, and is a table factor with `PARTITION BY` after it; it is read as a factor and its
+// partitioning, and not tried as a whole and then again without, which would read a derived table
+// twice at every depth.
+TableReference : @TableSource = f: TableFactor & j: Joins => @(Nodes.Joined(f.Source, j))
 
-// Whether any join follows.
-Joins : @bool
-	= JoinPartitioning & PartitionedJoin & (trivia & JoinStep)* => @(true)
-	| { (trivia & JoinStep)+ } => @(true)
-	| none => @(false)
+// The joins after a factor: none, or steps, the first of which may have the factor's partitioning.
+Joins : @Nodes.Joins
+	= p: JoinPartitioning & first: PartitionedJoin & (trivia & rest: JoinStep)* => @(new Nodes.Joins(p, Nodes.List(first, rest)))
+	| { (trivia & steps: JoinStep)+ } => @(new Nodes.Joins(null, steps))
+	| none => @(new Nodes.Joins(null, null))
 
-JoinStep
-	= "CROSS"i & "JOIN"i & TableFactor
-	| PartitionedJoin
+JoinStep : @Nodes.JoinStep
+	= "CROSS"i & "JOIN"i & f: TableFactor => @(new Nodes.JoinStep(JoinKind.Cross, false, false, f.Source, null, null))
+	| j: PartitionedJoin => @(j)
 
 // Not a production: a <qualified join> or a <natural join>, from `JOIN` on — what a partitioned join
 // table may stand before.
-PartitionedJoin
-	= "NATURAL"i & JoinType? & "JOIN"i & TableFactor & JoinPartitioning?
-	| JoinType? & "JOIN"i & JoinOperand & JoinSpecification
+PartitionedJoin : @Nodes.JoinStep
+	= "NATURAL"i & t: JoinType? & "JOIN"i & f: TableFactor & p: JoinPartitioning? => @(Nodes.Step(t, true, f.Source, null, p))
+	| t: JoinType? & "JOIN"i & o: JoinOperand & s: JoinSpecification => @(Nodes.Step(t, false, o.Source, s, o.Partition))
 
 // A qualified join's right side: a table reference, or a partitioned join table. It is read as far
 // as it goes: a join specification must follow it, and one a join inside it took could not have been
 // the outer join's, since that join would then have none.
-JoinOperand = TableFactor & (JoinPartitioning & (PartitionedJoin & (trivia & JoinStep)*)? | (trivia & JoinStep)*)
+JoinOperand     : @Nodes.JoinOperand = f: TableFactor & t: JoinOperandTail => @(Nodes.Operand(f.Source, t))
+JoinOperandTail : @Nodes.Joins
+	= p: JoinPartitioning & (first: PartitionedJoin & (trivia & rest: JoinStep)*)? => @(new Nodes.Joins(p, first is null ? null : Nodes.List(first, rest)))
+	| (trivia & steps: JoinStep)* => @(new Nodes.Joins(null, steps))
 
 // <partitioned join table>'s partitioning.
-JoinPartitioning = "PARTITION"i & "BY"i & '(' & ColumnReference & (',' & ColumnReference)* & ')'
+JoinPartitioning : @IReadOnlyList<Expression> = "PARTITION"i & "BY"i & '(' & first: ColumnReference & (',' & rest: ColumnReference)* & ')' => @(Nodes.List(first, rest))
 
 JoinType = "INNER"i | ("LEFT"i | "RIGHT"i | "FULL"i) & "OUTER"i?
 
-JoinSpecification
-	= "ON"i & SearchCondition
-	| "USING"i & '(' & ColumnNameList & ')' & ("AS"i & CorrelationName)?
+JoinSpecification : @JoinSpecification
+	= "ON"i & c: SearchCondition => @(new JoinSpecification.On(c.Node))
+	| "USING"i & '(' & columns: ColumnNameList & ')' & ("AS"i & n: CorrelationName)? => @(new JoinSpecification.Using(columns, n))
 
 // <table factor>: whether it is a parenthesized joined table, which a sample clause after it ends.
-TableFactor : @bool = p: TablePrimary & s: Sampled => @(p && !s)
-Sampled     : @bool = SampleClause => @(true)
-                    | none => @(false)
+TableFactor : @Nodes.Factor = p: TablePrimary & s: SampleClause? => @(new Nodes.Factor(s is null ? p.Source : p.Source with { Sample = s }, p.JoinedTable && s is null))
 
-SampleClause = "TABLESAMPLE"i & ("BERNOULLI"i | "SYSTEM"i) & '(' & NumericValueExpression & ')' & ("REPEATABLE"i & '(' & NumericValueExpression & ')')?
+SampleClause : @SampleClause = "TABLESAMPLE"i & m: ("BERNOULLI"i | "SYSTEM"i) & '(' & p: NumericNode & ')' & ("REPEATABLE"i & '(' & r: NumericNode & ')')? => @(new SampleClause((m[0] | 0x20) == 'b' ? SampleMethod.Bernoulli : SampleMethod.System, p, r))
 
 // <table primary>: whether it is a parenthesized joined table. `TABLE (f(x))` is a collection's and
 // then a correlation name must follow, or a polymorphic table function's and one need not: the
 // expression is read once, and a routine's invocation alone (`Towers.Invoked`) is the latter. A JSON
 // table primitive takes a correlation name and nothing else. A <data change delta table> is asked
 // first: `FINAL` is not reserved, and would be taken for a table's name.
-TablePrimary : @bool
-	= DataChangeDeltaTable & CorrelationOrRecognition? => @(false)
-	| TableOrQueryName & QuerySystemTimePeriodSpecification? & CorrelationOrRecognition? => @(false)
-	| "LATERAL"i & TableSubquery & CorrelationOrRecognition => @(false)
-	| "UNNEST"i & '(' & CollectionValueExpression & (',' & CollectionValueExpression)* & ')' & ("WITH"i & "ORDINALITY"i)? & CorrelationOrRecognition => @(false)
-	| "TABLE"i & '(' & e: CollectionValueExpression & ')' & c: Correlated & r: Recognized & when @(c == true || r == true || (Towers.RolesOf(e) & Towers.Invoked) != 0) => @(false)
-	| "ONLY"i & '(' & TableOrQueryName & ')' & CorrelationOrRecognition? => @(false)
-	| TableSubquery & CorrelationOrRecognition => @(false)
-	| JSONTable & CorrelationOrRecognition => @(false)
-	| JSONTablePrimitive & CorrelationName => @(false)
-	| ParenthesizedJoinedTable => @(true)
+TablePrimary : @Nodes.Factor
+	= d: DataChangeDeltaTable & c: CorrelationOrRecognition? => @(Nodes.Correlate(d, c))
+	| n: TableOrQueryName & s: QuerySystemTimePeriodSpecification? & c: CorrelationOrRecognition? => @(Nodes.Correlate(new TableSource.Named(n) { SystemTime = s }, c))
+	| "LATERAL"i & q: TableSubquery & c: CorrelationOrRecognition => @(Nodes.Correlate(new TableSource.Subquery(q) { Lateral = true }, c))
+	| "UNNEST"i & '(' & first: CollectionNode & (',' & rest: CollectionNode)* & ')' & o: ("WITH"i & "ORDINALITY"i)? & c: CorrelationOrRecognition => @(Nodes.Correlate(new TableSource.Unnest(Nodes.List(first, rest), o is not null, null), c))
+	| "TABLE"i & '(' & e: CollectionValueExpression & ')' & a: Correlated & r: Recognized & when @(a is not null || r is not null || (Towers.RolesOf(e) & Towers.Invoked) != 0) => @(Nodes.Correlate(new TableSource.TableFunction(e.Node), new Nodes.Correlation(a, r)))
+	| "ONLY"i & '(' & n: TableOrQueryName & ')' & c: CorrelationOrRecognition? => @(Nodes.Correlate(new TableSource.Named(n) { Only = true }, c))
+	| q: TableSubquery & c: CorrelationOrRecognition => @(Nodes.Correlate(new TableSource.Subquery(q), c))
+	| j: JSONTable & c: CorrelationOrRecognition => @(Nodes.Correlate(new TableSource.JsonTable(j), c))
+	| j: JSONTablePrimitive & k: CorrelationName => @(new Nodes.Factor(new TableSource.JsonTable(j, new Alias(k)), false))
+	| p: ParenthesizedJoinedTable => @(new Nodes.Factor(new TableSource.Parenthesized(p), true))
 
 // <parenthesized joined table>: a joined table in brackets, or one such in brackets again. Both
 // begin with a table factor, which is read once.
-ParenthesizedJoinedTable : @bool = '(' & f: TableFactor & j: Joins & ')' & when @(f || j) => @(true)
+ParenthesizedJoinedTable : @TableSource = '(' & f: TableFactor & j: Joins & ')' & when @(Nodes.JoinsOrJoined(f, j)) => @(Nodes.Joined(f.Source, j))
 
 // <correlation or recognition>: a correlation name, or a row pattern recognition clause with the
 // input's name before it, the output's after it, both or neither. Both begin with a name where they
 // have one, so a name is read and then a clause: `t s (c) MATCH_RECOGNIZE (…)` would otherwise be
 // read as a correlation and leave the clause behind.
-CorrelationOrRecognition : @bool = c: Correlated & r: Recognized & when @(c || r) => @(true)
+CorrelationOrRecognition : @Nodes.Correlation = a: Correlated & r: Recognized & when @(a is not null || r is not null) => @(new Nodes.Correlation(a, r))
 
 // A query's lists give nothing back once read, and a correlation name is a word that is not reserved:
 // in `JSON_ARRAY(SELECT a FROM t FORMAT JSON)` the last table would be called `FORMAT`, and the JSON
 // constructor's own words left unread. So a name is not taken where one of those goes on after it —
 // no table's name could stand there either.
-Correlated : @bool = ?!("FORMAT"i & "JSON"i | "RETURNING"i & DataType | "ABSENT"i & "ON"i & "NULL"i) & "AS"i? & CorrelationName & ('(' & ColumnNameList & ')')? => @(true)
-                   | none => @(false)
-Recognized : @bool = RowPatternRecognitionClause & Correlated => @(true)
-                   | none => @(false)
+Correlated : @Alias = ?!("FORMAT"i & "JSON"i | "RETURNING"i & DataType | "ABSENT"i & "ON"i & "NULL"i) & a: "AS"i? & n: CorrelationName & ('(' & columns: ColumnNameList & ')')? => @(new Alias(n, columns, a is not null))
+                    | none => @(null!)
+Recognized : @Nodes.Recognition = c: RowPatternRecognitionClause & a: Correlated => @(new Nodes.Recognition(c, a))
+                                | none => @(null!)
+
+// Not a production: a collection value expression's node alone.
+CollectionNode : @Expression = e: CollectionValueExpression => @(e.Node)
 
 // ── §7.6 Row pattern recognition clause ─────────────────────────────────────
 
@@ -1244,38 +1251,38 @@ RowPatternSubsetItem   : @RowPatternSubset = n: Identifier & '=' & '(' & first: 
 RowPatternDefinition   : @RowPatternDefinition = v: Identifier & "AS"i & c: SearchCondition => @(new RowPatternDefinition(v, c.Node))
 
 // <table or query name>: a transition table's name and a query's are identifiers, which a table name is.
-TableOrQueryName = TableName
+TableOrQueryName : @QualifiedName = n: TableName => @(n)
 
-QuerySystemTimePeriodSpecification
-	= "FOR"i & "SYSTEM_TIME"i & "AS"i & "OF"i & DatetimeValueExpression
-	| "FOR"i & "SYSTEM_TIME"i & "BETWEEN"i & ("ASYMMETRIC"i | "SYMMETRIC"i)? & DatetimeValueExpression & "AND"i & DatetimeValueExpression
-	| "FOR"i & "SYSTEM_TIME"i & "FROM"i & DatetimeValueExpression & "TO"i & DatetimeValueExpression
+QuerySystemTimePeriodSpecification : @SystemTimeSpecification
+	= "FOR"i & "SYSTEM_TIME"i & "AS"i & "OF"i & p: DatetimeValueExpression => @(new SystemTimeSpecification.AsOf(p.Node))
+	| "FOR"i & "SYSTEM_TIME"i & "BETWEEN"i & s: ("ASYMMETRIC"i | "SYMMETRIC"i)? & lo: DatetimeValueExpression & "AND"i & hi: DatetimeValueExpression => @(new SystemTimeSpecification.Between(lo.Node, hi.Node, Nodes.Symmetry(s)))
+	| "FOR"i & "SYSTEM_TIME"i & "FROM"i & lo: DatetimeValueExpression & "TO"i & hi: DatetimeValueExpression => @(new SystemTimeSpecification.FromTo(lo.Node, hi.Node))
 
-ColumnNameList  = ColumnName & (',' & ColumnName)*
-CorrelationName = Identifier
-QueryName       = Identifier
+ColumnNameList  : @IReadOnlyList<Identifier> = first: ColumnName & (',' & rest: ColumnName)* => @(Nodes.List(first, rest))
+CorrelationName : @Identifier = i: Identifier => @(i)
+QueryName       : @Identifier = i: Identifier => @(i)
 
 // ── §7.8 Where clause, §7.9 Group by clause, §7.10 Having clause ────────────
 
-WhereClause  = "WHERE"i & SearchCondition
-HavingClause = "HAVING"i & SearchCondition
+WhereClause  : @Expression = "WHERE"i & c: SearchCondition => @(c.Node)
+HavingClause : @Expression = "HAVING"i & c: SearchCondition => @(c.Node)
 
-GroupByClause = "GROUP"i & "BY"i & SetQuantifier? & { GroupingElement & (',' & GroupingElement)* }
+GroupByClause : @GroupByClause = "GROUP"i & "BY"i & q: SetQuantifier? & { first: GroupingElement & (',' & rest: GroupingElement)* } => @(new GroupByClause(Nodes.Quantifier(q), Nodes.List(first, rest)))
 
 // <grouping element>, <grouping set>: the two are the same five. `()` is an empty grouping set, and
 // asked before an ordinary one, which would take its bracket.
-GroupingElement
-	= "ROLLUP"i & '(' & OrdinaryGroupingSet & (',' & OrdinaryGroupingSet)* & ')'
-	| "CUBE"i & '(' & OrdinaryGroupingSet & (',' & OrdinaryGroupingSet)* & ')'
-	| "GROUPING"i & "SETS"i & '(' & GroupingElement & (',' & GroupingElement)* & ')'
-	| '(' & ')'
-	| OrdinaryGroupingSet
+GroupingElement : @GroupingElement
+	= "ROLLUP"i & '(' & first: OrdinaryGroupingSet & (',' & rest: OrdinaryGroupingSet)* & ')' => @(new GroupingElement.Rollup(Nodes.List(first, rest)))
+	| "CUBE"i & '(' & first: OrdinaryGroupingSet & (',' & rest: OrdinaryGroupingSet)* & ')' => @(new GroupingElement.Cube(Nodes.List(first, rest)))
+	| "GROUPING"i & "SETS"i & '(' & first: GroupingElement & (',' & rest: GroupingElement)* & ')' => @(new GroupingElement.Sets(Nodes.List(first, rest)))
+	| '(' & ')' => @(new GroupingElement.Empty())
+	| s: OrdinaryGroupingSet => @(s)
 
-OrdinaryGroupingSet
-	= GroupingColumnReference
-	| '(' & GroupingColumnReference & (',' & GroupingColumnReference)* & ')'
+OrdinaryGroupingSet : @GroupingElement
+	= c: GroupingColumnReference => @(new GroupingElement.Ordinary([c]))
+	| '(' & first: GroupingColumnReference & (',' & rest: GroupingColumnReference)* & ')' => @(new GroupingElement.Ordinary(Nodes.List(first, rest), true))
 
-GroupingColumnReference = ColumnReference & CollateClause?
+GroupingColumnReference : @Expression = c: ColumnReference & o: CollateClause? => @(o is null ? c : new Expression.Collate(c, o))
 
 // ── §7.11 Window clause ─────────────────────────────────────────────────────
 
@@ -1322,10 +1329,11 @@ SimpleValueSpecification   : @Expression = l: Literal => @(new Expression.Litera
 
 // ── §7.12 Query specification ───────────────────────────────────────────────
 
-QuerySpecification = "SELECT"i & SetQuantifier? & SelectList & TableExpression
+QuerySpecification : @Statement.Select = "SELECT"i & q: SetQuantifier? & l: SelectList & t: TableExpression => @(Nodes.Specified(q, l, t))
 SetQuantifier      = "DISTINCT"i | "ALL"i
 
-SelectList = '*' | { SelectSublist & (',' & SelectSublist)* }
+SelectList : @IReadOnlyList<SelectItem> = '*' => @(Nodes.Everything())
+                                        | { first: SelectSublist & (',' & rest: SelectSublist)* } => @(Nodes.List(first, rest))
 
 // <select sublist>: a <derived column>, or a <qualified asterisk>. Each begins with a value
 // expression — an <asterisked identifier chain> is a column reference in shape, and an <all fields
@@ -1336,57 +1344,67 @@ SelectList = '*' | { SelectSublist & (',' & SelectSublist)* }
 // Nothing reads a `.*` after the expression: every primary takes it as a step, and what cannot — a
 // row, `(a, b).*` — is no primary to take it. Read there as well, a refused line gave each `.*` back
 // to be read the second way, and a select list of them cost a power of their number.
-SelectSublist : @bool = e: ValueExpression & f: AllFields & when @(f == false || (Towers.RolesOf(e) & Towers.Starred) != 0) => @(true)
-AllFields     : @bool = "AS"i & '(' & ColumnNameList & ')' => @(true)
-                      | AsClause => @(false)
-                      | none => @(false)
+//
+// A `.*` with nothing after it is a qualified asterisk, the reading a select list is written for; with
+// a name after it, the JSON accessor it is too, named.
+SelectSublist : @SelectItem = e: ValueExpression & f: AllFields & when @(!Nodes.RenamesFields(f) || (Towers.RolesOf(e) & Towers.Starred) != 0) => @(Nodes.Selected(e.Node, f))
+AllFields     : @Nodes.Fields = "AS"i & '(' & columns: ColumnNameList & ')' => @(new Nodes.Fields(null, false, columns))
+                              | a: AsClause => @(a)
+                              | none => @(new Nodes.Fields(null, false, null))
 
-AsClause = "AS"i? & ColumnName
+AsClause : @Nodes.Fields = a: "AS"i? & n: ColumnName => @(new Nodes.Fields(n, a is not null, null))
 
 // ── §7.13 Query expression ──────────────────────────────────────────────────
 
-QueryExpression = WithClause? & QueryExpressionBody & OrderByClause? & ResultOffsetClause? & FetchFirstClause?
+// <query expression>. The clauses around a body are the body's own where it has none of them, and a
+// query of their own around it where it has: `(SELECT a FROM t ORDER BY a) ORDER BY b` is two orders.
+QueryExpression : @Statement.Select = w: WithClause? & b: QueryExpressionBody & o: OrderByClause? & f: ResultOffsetClause? & x: FetchFirstClause? => @(Nodes.Expressed(b, w, o, f, x))
 
-WithClause      = "WITH"i & "RECURSIVE"i? & { WithListElement & (',' & WithListElement)* }
-WithListElement = QueryName & ('(' & ColumnNameList & ')')? & "AS"i & TableSubquery & SearchOrCycleClause?
+WithClause      : @WithClause = "WITH"i & r: "RECURSIVE"i? & { first: WithListElement & (',' & rest: WithListElement)* } => @(new WithClause(r is not null, Nodes.List(first, rest)))
+WithListElement : @CommonTableExpression = n: QueryName & ('(' & columns: ColumnNameList & ')')? & "AS"i & q: TableSubquery & s: SearchOrCycleClause? => @(new CommonTableExpression(n, columns ?? System.Array.Empty<Identifier>(), q, s?.Search, s?.Cycle))
 
 // <query expression body>, <query term>: each recurses through itself on the left, so the operators
-// are a repetition here, and `INTERSECT` is read inside a term.
-QueryExpressionBody = { QueryTerm & (("UNION"i | "EXCEPT"i) & ("ALL"i | "DISTINCT"i)? & CorrespondingSpec? & QueryTerm)* }
-QueryTerm           = { QueryPrimary & ("INTERSECT"i & ("ALL"i | "DISTINCT"i)? & CorrespondingSpec? & QueryPrimary)* }
+// are a repetition here, and `INTERSECT` is read inside a term. A term with an `INTERSECT` in it is an
+// operand of its own where `UNION` or `EXCEPT` joins it, so the tree keeps what binds tighter.
+QueryExpressionBody : @Statement.Select = { first: QueryTerm & (trivia & rest: UnionOrExcept)* } => @(Nodes.Combined(first, rest))
+QueryTerm           : @Statement.Select = { first: QueryPrimary & (trivia & rest: Intersected)* } => @(Nodes.Combined(first, rest))
 
-QueryPrimary
-	= SimpleTable
-	| '(' & QueryExpressionBody & OrderByClause? & ResultOffsetClause? & FetchFirstClause? & ')'
+UnionOrExcept : @SetOperation = o: ("UNION"i | "EXCEPT"i) & q: ("ALL"i | "DISTINCT"i)? & c: CorrespondingSpec? & t: QueryTerm => @(Nodes.Operation(o, q, c, t))
+Intersected   : @SetOperation = o: "INTERSECT"i & q: ("ALL"i | "DISTINCT"i)? & c: CorrespondingSpec? & t: QueryPrimary => @(Nodes.Operation(o, q, c, t))
+
+QueryPrimary : @Statement.Select
+	= s: SimpleTable => @(s)
+	| '(' & b: QueryExpressionBody & o: OrderByClause? & f: ResultOffsetClause? & x: FetchFirstClause? & ')' => @(Nodes.InBrackets(Nodes.Expressed(b, null, o, f, x)))
 
 // <simple table>, with <explicit table>.
-SimpleTable
-	= QuerySpecification
-	| TableValueConstructor
-	| "TABLE"i & TableOrQueryName
+SimpleTable : @Statement.Select
+	= s: QuerySpecification => @(s)
+	| v: TableValueConstructor => @(new Statement.Select { Body = new QueryOperand.Values(v) })
+	| "TABLE"i & n: TableOrQueryName => @(new Statement.Select { Body = new QueryOperand.Table(n) })
 
-CorrespondingSpec  = "CORRESPONDING"i & ("BY"i & '(' & ColumnNameList & ')')?
-OrderByClause      = "ORDER"i & "BY"i & SortSpecificationList
-ResultOffsetClause = "OFFSET"i & SimpleValueSpecification & ("ROW"i | "ROWS"i)
+CorrespondingSpec  : @CorrespondingClause = "CORRESPONDING"i & ("BY"i & '(' & columns: ColumnNameList & ')')? => @(new CorrespondingClause(columns is not null, columns ?? System.Array.Empty<Identifier>()))
+OrderByClause      : @OrderByClause = "ORDER"i & "BY"i & s: SortSpecificationList => @(s)
+ResultOffsetClause : @OffsetClause = "OFFSET"i & v: SimpleValueSpecification & w: ("ROW"i | "ROWS"i) => @(new OffsetClause(v, Nodes.RowWordOf(w)))
 
 // <fetch first clause>. A <fetch first percentage> is a row count and `PERCENT`.
-FetchFirstClause   = "FETCH"i & ("FIRST"i | "NEXT"i) & FetchFirstQuantity? & ("ROW"i | "ROWS"i) & ("ONLY"i | "WITH"i & "TIES"i)
-FetchFirstQuantity = SimpleValueSpecification & "PERCENT"i?
+FetchFirstClause   : @FetchClause = "FETCH"i & p: ("FIRST"i | "NEXT"i) & q: FetchFirstQuantity? & w: ("ROW"i | "ROWS"i) & m: ("ONLY"i | "WITH"i & "TIES"i) => @(Nodes.Fetched(p, q, w, m))
+FetchFirstQuantity : @Nodes.Quantity = v: SimpleValueSpecification & p: "PERCENT"i? => @(new Nodes.Quantity(v, p is not null))
 
 // ── §7.14 Search or cycle clause ────────────────────────────────────────────
 
-SearchOrCycleClause
-	= SearchClause & CycleClause?
-	| CycleClause
+SearchOrCycleClause : @Nodes.SearchOrCycle
+	= s: SearchClause & c: CycleClause? => @(new Nodes.SearchOrCycle(s, c))
+	| c: CycleClause => @(new Nodes.SearchOrCycle(null, c))
 
-SearchClause = "SEARCH"i & ("DEPTH"i | "BREADTH"i) & "FIRST"i & "BY"i & ColumnNameList & "SET"i & ColumnName
-CycleClause  = "CYCLE"i & ColumnNameList & "SET"i & ColumnName & ("TO"i & ValueExpression & "DEFAULT"i & ValueExpression)? & "USING"i & ColumnName
+SearchClause : @SearchClause = "SEARCH"i & o: ("DEPTH"i | "BREADTH"i) & "FIRST"i & "BY"i & columns: ColumnNameList & "SET"i & c: ColumnName => @(new SearchClause((o[0] | 0x20) == 'd' ? SearchOrder.DepthFirst : SearchOrder.BreadthFirst, columns, c))
+CycleClause  : @CycleClause = "CYCLE"i & columns: ColumnNameList & "SET"i & m: ColumnName & ("TO"i & v: ValueNode & "DEFAULT"i & d: ValueNode)? & "USING"i & p: ColumnName => @(new CycleClause(columns, m, v, d, p))
 
 // ── §7.15 Subquery ──────────────────────────────────────────────────────────
 
-ScalarSubquery = Subquery
-TableSubquery  = Subquery
-Subquery       = '(' & QueryExpression & ')'
+// A subquery's brackets are the subquery's, and no query's brackets: the query in them has none of its own.
+ScalarSubquery : @Statement.Select = q: Subquery => @(q)
+TableSubquery  : @Statement.Select = q: Subquery => @(q)
+Subquery       : @Statement.Select = '(' & q: QueryExpression & ')' => @(q)
 
 // ── §10.10 Sort specification list ──────────────────────────────────────────
 
@@ -1468,7 +1486,7 @@ SetTarget = ColumnName & (LeftBracketOrTrigraph & SimpleValueSpecification & Rig
 // ── §7.6 Data change delta table ────────────────────────────────────────────
 
 // <data change delta table>, <data change statement>: what a data change statement changed, as a table.
-DataChangeDeltaTable = ("FINAL"i | "NEW"i | "OLD"i) & "TABLE"i & '(' & (DeleteStatementSearched | InsertStatement | MergeStatement | UpdateStatementSearched) & ')'
+DataChangeDeltaTable : @TableSource = o: ("FINAL"i | "NEW"i | "OLD"i) & "TABLE"i & '(' & (DeleteStatementSearched | InsertStatement | MergeStatement | UpdateStatementSearched) & ')' => @(new TableSource.DataChange((o[0] | 0x20) switch { 'f' => ResultOption.Final, 'n' => ResultOption.New, _ => ResultOption.Old }, Nodes.UnbuiltStatement()))
 
 // ── §11 Schema definition and manipulation ──────────────────────────────────
 //

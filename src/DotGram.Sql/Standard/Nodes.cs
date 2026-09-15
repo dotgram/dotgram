@@ -74,15 +74,6 @@ static class Nodes
 
 	// ── What is not built yet ──────────────────────────────────────────────────
 
-	/// <summary>
-	/// What a chapter not yet building its tree stands in for: the window and JSON functions, a JSON
-	/// subscript, a value function. Each goes as its chapter builds, and none is left when all have.
-	/// </summary>
-	public static Expression Unbuilt() => new Expression.Extension("SQL:2023", "Unbuilt", []);
-
-	/// <summary>The query a subquery holds, until §7 builds its tree.</summary>
-	public static Statement.Select UnbuiltQuery() => new();
-
 	// ── §6.3 Value expression primary ──────────────────────────────────────────
 
 	public static Expression Null() => new Expression.Literal(new LiteralValue.Null());
@@ -714,6 +705,268 @@ static class Nodes
 		new(key,
 			direction is null ? null : (direction[0] | 0x20) == 'a' ? SortDirection.Asc : SortDirection.Desc,
 			nulls is null ? null : (nulls[0] | 0x20) == 'f' ? NullOrdering.First : NullOrdering.Last);
+
+	// ── §7 Query expressions ───────────────────────────────────────────────────
+
+	/// <summary>A statement §14 does not build yet, where a data change delta table holds one.</summary>
+	public static Statement UnbuiltStatement() => new Statement.Extension { Dialect = "SQL:2023", Kind = "Unbuilt" };
+
+	/// <summary>What a table expression holds: its clauses, in the order written.</summary>
+	public sealed record TableExpression(FromClause From, Expression? Where, GroupByClause? GroupBy, Expression? Having, WindowClause? Window);
+
+	/// <summary>`SELECT`, its quantifier, its list, and its table expression.</summary>
+	public static Statement.Select Specified(string? quantifier, IReadOnlyList<SelectItem> items, TableExpression table) =>
+		new()
+		{
+			Quantifier = Quantifier(quantifier),
+			Items      = items,
+			From       = table.From,
+			Where      = table.Where,
+			GroupBy    = table.GroupBy,
+			Having     = table.Having,
+			Window     = table.Window,
+		};
+
+	public static IReadOnlyList<SelectItem> Everything() => [new SelectItem.All()];
+
+	/// <summary>What follows a select sublist's expression: a name and whether `AS` stood before it, or `AS` and the fields' names.</summary>
+	public sealed record Fields(Identifier? Alias, bool AsKeyword, IReadOnlyList<Identifier>? Columns);
+
+	public static bool RenamesFields(Fields? fields) => fields?.Columns is not null;
+
+	/// <summary>A select sublist: a qualified asterisk where the expression ends in `.*` and no name follows, a derived column where one does.</summary>
+	public static SelectItem Selected(Expression value, Fields fields)
+	{
+		if (value is Expression.Wildcard { Kind: WildcardKind.Member } all && fields.Alias is null)
+			return new SelectItem.QualifiedAll(all.Target, fields.Columns);
+
+		return new SelectItem.ExpressionItem(value, fields.Alias, fields.AsKeyword);
+	}
+
+	/// <summary>A value of a table value constructor as the row it is: an explicit row's values, or a value alone.</summary>
+	public static IReadOnlyList<RowValue> Rows(Expression first, Expression[]? rest)
+	{
+		var rows = new RowValue[(rest?.Length ?? 0) + 1];
+
+		for (var at = 0; at < rows.Length; at++)
+		{
+			var value = at == 0 ? first : rest![at - 1];
+
+			rows[at] = value is Expression.Row row ? new RowValue(row.Items, row.RowKeyword) : new RowValue([value]);
+		}
+
+		return rows;
+	}
+
+	/// <summary>
+	/// A body and the clauses around it. They are the body's where it has none of its own and no
+	/// brackets; otherwise the body is the operand of a query that has them.
+	/// </summary>
+	public static Statement.Select Expressed(Statement.Select body, WithClause? with, OrderByClause? order, OffsetClause? offset, FetchClause? fetch)
+	{
+		if (with is null && order is null && offset is null && fetch is null)
+			return body;
+
+		if (body.Parentheses == 0 && body.With is null && body.OrderBy is null && body.Offset is null && body.Fetch is null)
+			return body with { With = with, OrderBy = order, Offset = offset, Fetch = fetch };
+
+		return new Statement.Select { Body = new QueryOperand.Select(body), With = with, OrderBy = order, Offset = offset, Fetch = fetch };
+	}
+
+	/// <summary>A query in the brackets of a query primary.</summary>
+	public static Statement.Select InBrackets(Statement.Select query) => query with { Parentheses = query.Parentheses + 1 };
+
+	/// <summary>
+	/// An operand and the operations after it. Where the first operand has operations of its own — a term
+	/// with an `INTERSECT` that a `UNION` follows — it is an operand of its own.
+	/// </summary>
+	public static Statement.Select Combined(Statement.Select first, SetOperation[]? rest)
+	{
+		if (rest is not { Length: > 0 })
+			return first;
+
+		if (first.SetOperations.Count == 0 && first.Parentheses == 0 && first.With is null && first.OrderBy is null && first.Offset is null && first.Fetch is null)
+			return first with { SetOperations = rest };
+
+		return new Statement.Select { Body = new QueryOperand.Select(first), SetOperations = rest };
+	}
+
+	/// <summary>One `UNION`, `EXCEPT` or `INTERSECT`, its quantifier and correspondence, and the operand after it.</summary>
+	public static SetOperation Operation(string word, string? quantifier, CorrespondingClause? corresponding, Statement.Select operand) =>
+		new()
+		{
+			Operator      = (word[0] | 0x20) switch { 'u' => SetOperator.Union, 'e' => SetOperator.Except, _ => SetOperator.Intersect },
+			Quantifier    = Quantifier(quantifier),
+			Corresponding = corresponding,
+			Operand       = OperandOf(operand),
+		};
+
+	/// <summary>An operand as the kind it is: a table value constructor or an explicit table alone, or a query.</summary>
+	static QueryOperand OperandOf(Statement.Select query) =>
+		query.Body is QueryOperand.Values or QueryOperand.Table
+		&& query.Parentheses == 0 && query.SetOperations.Count == 0 && query.With is null && query.OrderBy is null && query.Offset is null && query.Fetch is null
+			? query.Body
+			: new QueryOperand.Select(query);
+
+	public static RowWord RowWordOf(string word) => word.Length == 3 ? RowWord.Row : RowWord.Rows;
+
+	/// <summary>A fetch first quantity and whether `PERCENT` followed it.</summary>
+	public sealed record Quantity(Expression Value, bool Percent);
+
+	public static FetchClause Fetched(string position, Quantity? quantity, string rows, string mode) =>
+		new(
+			(position[0] | 0x20) == 'f' ? FetchPosition.First : FetchPosition.Next,
+			quantity?.Value,
+			quantity?.Percent ?? false,
+			RowWordOf(rows),
+			(mode.TrimStart()[0] | 0x20) == 'o' ? FetchMode.Only : FetchMode.WithTies);
+
+	/// <summary>A with list element's search clause and cycle clause, either or both.</summary>
+	public sealed record SearchOrCycle(SearchClause? Search, CycleClause? Cycle);
+
+	// ── §7.6 Table references ──────────────────────────────────────────────────
+
+	/// <summary>A table source, and whether it is a joined table in brackets, which a sample clause after it ends.</summary>
+	public sealed record Factor(TableSource Source, bool JoinedTable);
+
+	/// <summary>A correlation name, a row pattern recognition clause with the output's name, or both.</summary>
+	public sealed record Correlation(Alias? Alias, Recognition? Recognition);
+
+	public sealed record Recognition(RowPatternClause Clause, Alias? Alias);
+
+	/// <summary>A table source with its correlation name, and the recognition over it where one was written.</summary>
+	public static Factor Correlate(TableSource source, Correlation? correlation)
+	{
+		if (correlation?.Alias is { } alias)
+			source = source switch
+			{
+				TableSource.Named named         => named with { Alias = alias },
+				TableSource.Subquery subquery   => subquery with { Alias = alias },
+				TableSource.Unnest unnest       => unnest with { Alias = alias },
+				TableSource.Function function   => function with { Alias = alias },
+				TableSource.TableFunction table => table with { Alias = alias },
+				TableSource.JsonTable json      => json with { Alias = alias },
+				TableSource.DataChange change   => change with { Alias = alias },
+				_                               => throw new ArgumentOutOfRangeException(nameof(source), source, "A table source that takes no correlation name."),
+			};
+
+		if (correlation?.Recognition is { } recognition)
+			source = new TableSource.RowPatternRecognition(source, recognition.Clause, recognition.Alias);
+
+		return new Factor(source, false);
+	}
+
+	/// <summary>The joins read after a factor, and the partitioning of the factor before the first.</summary>
+	public sealed record Joins(IReadOnlyList<Expression>? Partition, IReadOnlyList<JoinStep>? Steps);
+
+	/// <summary>One join: its type as written, whether it is natural, the table on its right with that table's partitioning, and its specification.</summary>
+	public sealed record JoinStep(JoinKind? Kind, bool Natural, bool Outer, TableSource Right, JoinSpecification? Specification, IReadOnlyList<Expression>? RightPartition);
+
+	/// <summary>A qualified or natural join from its join type's words.</summary>
+	public static JoinStep Step(string? type, bool natural, TableSource right, JoinSpecification? specification, IReadOnlyList<Expression>? partition)
+	{
+		JoinKind? kind = type is null ? null : (type.TrimStart()[0] | 0x20) switch
+		{
+			'i' => JoinKind.Inner,
+			'l' => JoinKind.Left,
+			'r' => JoinKind.Right,
+			_   => JoinKind.Full,
+		};
+
+		var outer = type is not null && type.IndexOf("OUTER", StringComparison.OrdinalIgnoreCase) >= 0;
+
+		return new JoinStep(kind, natural, outer, right, specification, partition);
+	}
+
+	/// <summary>A factor and the joins after it, from the left.</summary>
+	public static TableSource Joined(TableSource left, Joins joins)
+	{
+		if (joins.Steps is not { Count: > 0 } steps)
+			return left;
+
+		for (var at = 0; at < steps.Count; at++)
+		{
+			var step = steps[at];
+
+			left = new TableSource.Join
+			{
+				Left           = left,
+				Right          = step.Right,
+				Kind           = step.Kind,
+				Natural        = step.Natural,
+				OuterKeyword   = step.Outer,
+				Specification  = step.Specification,
+				LeftPartition  = at == 0 ? joins.Partition : null,
+				RightPartition = step.RightPartition,
+			};
+		}
+
+		return left;
+	}
+
+	/// <summary>A qualified join's right side: a table and its partitioning, or the joins it goes on into.</summary>
+	public sealed record JoinOperand(TableSource Source, IReadOnlyList<Expression>? Partition);
+
+	public static JoinOperand Operand(TableSource factor, Joins tail) =>
+		tail.Steps is { Count: > 0 }
+			? new JoinOperand(Joined(factor, tail), null)
+			: new JoinOperand(factor, tail.Partition);
+
+	/// <summary>A parenthesized joined table holds a join, or a joined table in brackets.</summary>
+	public static bool JoinsOrJoined(Factor? factor, Joins? joins) =>
+		(factor?.JoinedTable ?? false) || joins?.Steps is { Count: > 0 };
+
+	// ── §7.11 JSON table ───────────────────────────────────────────────────────
+
+	public static JsonTableErrorBehavior? TableError(string? word) =>
+		word is null ? null : (word[0] | 0x20) == 'e' && (word[1] | 0x20) == 'r' ? JsonTableErrorBehavior.Error : JsonTableErrorBehavior.Empty;
+
+	/// <summary>
+	/// What a part of a JSON table column said, and which kind of column only it belongs to: 0 either, 1 a
+	/// regular column's, 2 a formatted one's.
+	/// </summary>
+	public sealed record ColumnPart(int Kind)
+	{
+		public JsonRepresentation? Format { get; init; }
+		public JsonWrapperBehavior? Wrapper { get; init; }
+		public JsonQuotes? Quotes { get; init; }
+		public JsonValueBehavior? Value { get; init; }
+		public JsonQueryBehavior? Query { get; init; }
+	}
+
+	public static int ColumnKinds(ColumnPart? format, ColumnPart? wrapper, ColumnPart? empty, ColumnPart? error) =>
+		(format?.Kind ?? 0) | (wrapper?.Kind ?? 0) | (empty?.Kind ?? 0) | (error?.Kind ?? 0);
+
+	/// <summary>A regular column, or a formatted one where any part said so.</summary>
+	public static JsonTableColumn TypedColumn(Identifier name, DataType type, ColumnPart format, string? path, ColumnPart wrapper, ColumnPart empty, ColumnPart error) =>
+		ColumnKinds(format, wrapper, empty, error) == 2
+			? new JsonTableColumn.Formatted(name, type, format.Format, path, wrapper.Wrapper, wrapper.Quotes, empty.Query, error.Query)
+			: new JsonTableColumn.Regular(name, type, path, empty.Value, error.Value);
+
+	public static JsonTablePlan DefaultPlan(string? innerOuter, string? unionCross, bool unionCrossFirst) =>
+		new JsonTablePlan.Default(
+			innerOuter is null ? null : (innerOuter[0] | 0x20) == 'i' ? JsonTableDefaultInnerOuter.Inner : JsonTableDefaultInnerOuter.Outer,
+			unionCross is null ? null : (unionCross[0] | 0x20) == 'u' ? JsonTableDefaultUnionCross.Union : JsonTableDefaultUnionCross.Cross,
+			unionCrossFirst && innerOuter is not null);
+
+	/// <summary>What follows a plan primary: `OUTER` or `INNER` and a child (1), `UNION` or `CROSS` and siblings (2), or nothing.</summary>
+	public sealed record PlanTail(int Kind, string? Word, JsonTablePlan[]? Plans);
+
+	/// <summary>A parent is a name; a plan in brackets alone is no plan.</summary>
+	public static bool PlanFits(JsonTablePlan? primary, PlanTail? tail) =>
+		(tail?.Kind ?? 0) == 2 || primary is JsonTablePlan.Name;
+
+	public static JsonTablePlan Plan(JsonTablePlan primary, PlanTail tail) =>
+		tail.Kind switch
+		{
+			1 => (tail.Word![0] | 0x20) == 'o'
+				? new JsonTablePlan.Outer(((JsonTablePlan.Name)primary).Value, tail.Plans![0])
+				: new JsonTablePlan.Inner(((JsonTablePlan.Name)primary).Value, tail.Plans![0]),
+			2 => (tail.Word![0] | 0x20) == 'u'
+				? new JsonTablePlan.Union(List(primary, tail.Plans))
+				: new JsonTablePlan.Cross(List(primary, tail.Plans)),
+			_ => primary,
+		};
 
 	// ── Lists ──────────────────────────────────────────────────────────────────
 

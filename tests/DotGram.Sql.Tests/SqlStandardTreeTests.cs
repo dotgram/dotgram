@@ -331,6 +331,53 @@ public sealed class SqlStandardTreeTests
 	public void A_JSON_exists_predicate_keeps_what_happens_on_error() =>
 		Assert.Equal("JsonExists(JsonApiCommon(a, '$.x', null, [], null), True)", Show(SqlStandardParser.ParseSearchCondition("JSON_EXISTS(a, '$.x' TRUE ON ERROR)")));
 
+	// ── §7 Query expressions ───────────────────────────────────────────────────
+
+	[Theory]
+	[InlineData("SELECT a, b AS c, d e FROM t",
+		"Select(Items: [ExpressionItem(a, null, false), ExpressionItem(b, c, true), ExpressionItem(d, e, false)], From: FromClause([Named(t)]))")]
+	[InlineData("SELECT DISTINCT t.*, u.* AS (x, y) FROM t, u",
+		"Select(Quantifier: Distinct, Items: [QualifiedAll(t, null), QualifiedAll(u, [x, y])], From: FromClause([Named(t), Named(u)]))")]
+	[InlineData("SELECT * FROM t WHERE a = 1 GROUP BY ROLLUP (a, (b, c)), () HAVING COUNT(*) > 1",
+		"Select(Items: [All()], From: FromClause([Named(t)]), Where: Comparison(a, Equal, 1), GroupBy: GroupByClause(null, [Rollup([Ordinary([a], false), Ordinary([b, c], true)]), Empty()]), Having: Comparison(Invocation(COUNT, [Argument(Asterisk(), null, false)]), Greater, 1))")]
+	[InlineData("SELECT a FROM t UNION ALL SELECT b FROM u INTERSECT SELECT c FROM v ORDER BY 1",
+		"Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), SetOperations: [SetOperation(Operator: Union, Quantifier: All, Operand: Select(Select(Items: [ExpressionItem(b, null, false)], From: FromClause([Named(u)]), SetOperations: [SetOperation(Operator: Intersect, Operand: Select(Select(Items: [ExpressionItem(c, null, false)], From: FromClause([Named(v)]))))])))], OrderBy: OrderByClause([SortItem(1, null, null)]))")]
+	[InlineData("SELECT a FROM t INTERSECT SELECT b FROM u EXCEPT CORRESPONDING BY (a) TABLE v",
+		"Select(SetOperations: [SetOperation(Operator: Except, Corresponding: CorrespondingClause(true, [a]), Operand: Table(v))], Body: Select(Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), SetOperations: [SetOperation(Operator: Intersect, Operand: Select(Select(Items: [ExpressionItem(b, null, false)], From: FromClause([Named(u)]))))])))")]
+	[InlineData("(SELECT a FROM t ORDER BY a) ORDER BY b OFFSET 1 ROW FETCH NEXT 10 PERCENT ROWS WITH TIES",
+		"Select(OrderBy: OrderByClause([SortItem(b, null, null)]), Offset: OffsetClause(1, Row), Fetch: FetchClause(Next, 10, true, Rows, WithTies), Body: Select(Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), OrderBy: OrderByClause([SortItem(a, null, null)]), Parentheses: 1)))")]
+	[InlineData("((SELECT a FROM t))", "Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(t)]), Parentheses: 2)")]
+	[InlineData("VALUES (1, 2), ROW(3, 4), 5", "Select(Body: Values([RowValue([1, 2], false), RowValue([3, 4], true), RowValue([5], false)]))")]
+	[InlineData("WITH RECURSIVE r (n) AS (VALUES 1) SEARCH DEPTH FIRST BY n SET s SELECT n FROM r",
+		"Select(With: WithClause(true, [CommonTableExpression(r, [n], Select(Body: Values([RowValue([1], false)])), SearchClause(DepthFirst, [n], s), null)]), Items: [ExpressionItem(n, null, false)], From: FromClause([Named(r)]))")]
+	public void A_query_is_built_as_written(string input, string tree) =>
+		Assert.Equal(tree, Show(SqlStandardParser.ParseQueryExpression(input)));
+
+	[Theory]
+	[InlineData("t AS x (a) LEFT OUTER JOIN u USING (a) CROSS JOIN v TABLESAMPLE BERNOULLI (10)",
+		"Join(Left: Join(Left: Named(t, Alias: Alias(x, [a], true)), Right: Named(u), Kind: Left, OuterKeyword: true, Specification: Using([a], null)), Right: Named(v, Sample: SampleClause(Bernoulli, 10, null)), Kind: Cross)")]
+	[InlineData("t PARTITION BY (a) NATURAL FULL JOIN u", "Join(Left: Named(t), Right: Named(u), Kind: Full, Natural: true, LeftPartition: [a])")]
+	[InlineData("t JOIN u JOIN v ON b ON a", "Join(Left: Named(t), Right: Join(Left: Named(u), Right: Named(v), Specification: On(b)), Specification: On(a))")]
+	[InlineData("(t JOIN u ON a = b)", "Parenthesized(Join(Left: Named(t), Right: Named(u), Specification: On(Comparison(a, Equal, b))))")]
+	[InlineData("LATERAL (SELECT 1 FROM t) AS s", "Subquery(Select(Items: [ExpressionItem(1, null, false)], From: FromClause([Named(t)])), Lateral: true, Alias: Alias(s, null, true))")]
+	[InlineData("ONLY (t)", "Named(t, Only: true)")]
+	[InlineData("t FOR SYSTEM_TIME FROM a TO b s", "Named(t, SystemTime: FromTo(a, b), Alias: Alias(s, null, false))")]
+	[InlineData("UNNEST(a, b) WITH ORDINALITY AS u", "Unnest([a, b], true, Alias(u, null, true))")]
+	[InlineData("TABLE (f(a))", "TableFunction(Invocation(f, [Argument(a, null, false)]), null)")]
+	[InlineData("t MATCH_RECOGNIZE (PATTERN (A) DEFINE A AS a > 1) AS m",
+		"RowPatternRecognition(Named(t), RowPatternClause([], null, [], null, null, null, Variable(A), [], [RowPatternDefinition(A, Comparison(a, Greater, 1))]), Alias(m, null, true))")]
+	[InlineData("JSON_TABLE(j, '$' COLUMNS (id FOR ORDINALITY, a INTEGER PATH '$.a' DEFAULT 0 ON EMPTY, NESTED PATH '$.b' COLUMNS (b INTEGER FORMAT JSON)) ERROR ON ERROR) AS jt",
+		"JsonTable(JsonTableDefinition(JsonApiCommon(j, '$', null, [], null), [Ordinality(id), Regular(a, Numeric(Integer, null, null), '$.a', Default(0), null), Nested('$.b', null, [Formatted(b, Numeric(Integer, null, null), JsonRepresentation(null, null), null, null, null, null, null)], true)], null, Error, false), Alias(jt, null, true))")]
+	public void A_table_reference_is_built_as_written(string input, string tree) =>
+		Assert.Equal(tree, Show(SqlStandardParser.ParseTableReference(input)));
+
+	[Theory]
+	[InlineData("EXISTS (SELECT 1 FROM t)", "Exists(Select(Items: [ExpressionItem(1, null, false)], From: FromClause([Named(t)])))")]
+	[InlineData("a IN (VALUES 1)", "In(a, false, Query(Select(Body: Values([RowValue([1], false)]))))")]
+	[InlineData("a = ANY (TABLE t)", "QuantifiedComparison(a, Equal, Any, Select(Body: Table(t)))")]
+	public void A_subquery_in_a_predicate_is_built_as_written(string input, string tree) =>
+		Assert.Equal(tree, Show(SqlStandardParser.ParseSearchCondition(input)));
+
 	/// <summary>
 	/// A node as one line: its record's name and its positional values in order, then what else it
 	/// holds that is not a default; a name, a reference and a literal as they were written.
@@ -373,7 +420,7 @@ public sealed class SqlStandardTreeTests
 
 			var value = property.GetValue(node);
 
-			if (value is null or false || value is int and 0)
+			if (value is null or false || value is int and 0 || value is System.Collections.ICollection { Count: 0 })
 				continue;
 
 			parts.Add(property.Name + ": " + Show(value));

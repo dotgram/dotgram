@@ -22693,3 +22693,37 @@ and each recipient rule of §3 and RFC 8187.
 be written by `dotnet build`: "Access to the path … is denied" on `obj`, even outside the sandbox. The
 build was joining MSBuild nodes and a compiler server started earlier inside it, with their rights.
 `-nodeReuse:false -p:UseSharedCompilation=false` (or `MSBUILDDISABLENODEREUSE=1`) is the way out.
+
+## The SQL:2023 tree, built by the standard's grammar
+
+`SqlStandard.gram` now builds `Sql2023Ast.cs` for what it once only recognized, chapter by chapter:
+names, literals and data types; value expressions and predicates; functions, windows, row pattern
+recognition and JSON; queries — query expressions, table references and joins, `JSON_TABLE`. Statements
+are next, from §14. Each slice kept every verdict: the 1,574 BNF rows unchanged, 50,000 fuzz lines of
+queries, routines and types agreeing with the oracle.
+
+The towers of §6 were already read once and carried as bit sets; the node now rides beside the bits in
+`Towers.Typed(Node, Roles)`, and a publication of a tower rule goes through a `XTree : @Expression`
+wrapper, so the method keeps its production's name. What a chapter did not build yet stood as an
+`Extension` node, grepped to know what was left; one remains, the statement inside a data change delta
+table.
+
+A query is a `Statement.Select` whose clauses are its body's where the body has none of its own, and a
+query around it where it has: `(SELECT a FROM t ORDER BY a) ORDER BY b` is two orders, and the brackets
+are counted in `Parentheses`. `INTERSECT` binds tighter, so a term with one is an operand of its own
+where `UNION` or `EXCEPT` joins it. Joins are the steps already read after a table factor, folded from
+the left; a partitioning goes to the side it was written on.
+
+Three traps, each met more than once:
+
+- A guard is emitted into more than one reader, and a captured struct is `T` in one and `T?` in another.
+  A member asked directly (`.Roles`, `.Value`) compiles in one and not the other — or, worse, `.Value`
+  of a `Truth` compiles as the struct's own member. Ask through helpers that take `T?`.
+- Inside `DotGram.Sql.Standard`, `Expression` and `Statement` are the old tree's. Aliases after the
+  file-scoped namespace fix the helpers; the generated parser takes `@using DotGram.Sql.Ast;`.
+- One capture name has one type across a rule's alternatives (GRAM4007): `n` a table's name in one
+  alternative and a correlation name in another is refused.
+
+The cost is construction a guard forces to be eager. Against the grammar that built nothing: value
+expression rows 4.2 → 5.9 ms, routine fuzz 69.9 → 79.7 ms, type fuzz 36.9 → 37.1 ms. Queries, against
+the commit before they were built: 3,000 fuzz lines 533 → 612 ms, 511 → 591, 488 → 547 — 12–16%.
