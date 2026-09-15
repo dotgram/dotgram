@@ -5,7 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.TransactSql;
 
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
@@ -174,15 +175,15 @@ static class Engine
 	{
 		var match = version switch
 		{
-			"100" => TransactSql.TryParseStatement100(text),
-			"110" => TransactSql.TryParseStatement110(text),
-			"120" => TransactSql.TryParseStatement120(text),
-			"130" => TransactSql.TryParseStatement130(text),
-			"140" => TransactSql.TryParseStatement140(text),
-			"150" => TransactSql.TryParseStatement150(text),
-			"160" => TransactSql.TryParseStatement160(text),
-			"170" => TransactSql.TryParseStatement170(text),
-			_     => TransactSql.TryParseStatement(text),
+			"100" => TransactSqlParser.TryParseStatement100(text),
+			"110" => TransactSqlParser.TryParseStatement110(text),
+			"120" => TransactSqlParser.TryParseStatement120(text),
+			"130" => TransactSqlParser.TryParseStatement130(text),
+			"140" => TransactSqlParser.TryParseStatement140(text),
+			"150" => TransactSqlParser.TryParseStatement150(text),
+			"160" => TransactSqlParser.TryParseStatement160(text),
+			"170" => TransactSqlParser.TryParseStatement170(text),
+			_     => TransactSqlParser.TryParseStatement(text),
 		};
 
 		return (match.IsSuccess, (int)match.Position);
@@ -196,15 +197,15 @@ static class Engine
 	{
 		var match = version switch
 		{
-			"100" => TransactSql.TryParseSql100(text),
-			"110" => TransactSql.TryParseSql110(text),
-			"120" => TransactSql.TryParseSql120(text),
-			"130" => TransactSql.TryParseSql130(text),
-			"140" => TransactSql.TryParseSql140(text),
-			"150" => TransactSql.TryParseSql150(text),
-			"160" => TransactSql.TryParseSql160(text),
-			"170" => TransactSql.TryParseSql170(text),
-			_     => TransactSql.TryParseSql(text),
+			"100" => TransactSqlParser.TryParseSql100(text),
+			"110" => TransactSqlParser.TryParseSql110(text),
+			"120" => TransactSqlParser.TryParseSql120(text),
+			"130" => TransactSqlParser.TryParseSql130(text),
+			"140" => TransactSqlParser.TryParseSql140(text),
+			"150" => TransactSqlParser.TryParseSql150(text),
+			"160" => TransactSqlParser.TryParseSql160(text),
+			"170" => TransactSqlParser.TryParseSql170(text),
+			_     => TransactSqlParser.TryParseSql(text),
 		};
 
 		return (match.IsSuccess, (int)match.Position);
@@ -334,6 +335,9 @@ static class Engine
 			: null;
 	}
 
+	/// <summary>A statement that sets an option of the session: `SET` and not `SET @a`.</summary>
+	static readonly Regex SetsOption = new(@"(^|\n|;)\s*SET\s+(?!@)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
 	static int Ask(SqlConnection connection, string statement, bool again = false)
 	{
 		if (connection.State != ConnectionState.Open)
@@ -371,6 +375,20 @@ static class Engine
 			Said = failed.Message;
 
 			return failed.Number;
+		}
+		finally
+		{
+			// A `SET` the engine honours under `PARSEONLY` stays with the session and changes how
+			// everything asked after it is read: `SET ANSI_DEFAULTS OFF` in one file turns quoted
+			// identifiers off, and every double-quoted name in the files after it was `Msg 102`.
+			// Each statement is asked of the session as it began.
+			if (SetsOption.IsMatch(statement) && connection.State == ConnectionState.Open)
+			{
+				connection.Close();
+				connection.Open();
+
+				ParseOnly(connection);
+			}
 		}
 	}
 
@@ -505,6 +523,11 @@ static class Engine
 		"MIN_PERCENTAGE_RESOURCE",
 		"CAP_PERCENTAGE_RESOURCE",
 		"REQUEST_MIN_RESOURCE_GRANT_PERCENT",
+		"REQUEST_MAX_RESOURCE_GRANT_PERCENT",
+		"QUERY_EXECUTION_TIMEOUT_SEC",
+		"IMPORTANCE = BELOW_NORMAL",
+		"IMPORTANCE = NORMAL",
+		"IMPORTANCE = ABOVE_NORMAL",
 		"WORKLOAD CLASSIFIER",
 
 		// Synapse dedicated pools: partitions split, merged and switched over data already in
@@ -547,9 +570,15 @@ static class Engine
 	internal static bool AboutNames(int message) =>
 		// 911: a database that does not exist — `USE AdventureWorks2022`, which the reference's
 		// examples open with, read and then objected to by name. 12703: an external data source
-		// that does not exist, named in an `OPENROWSET`.
+		// that does not exist, named in an `OPENROWSET`. Not 4145, "an expression of non-boolean
+		// type specified in a context where a condition is expected": it is the parser finding a
+		// value where a predicate stands — `IF 1`, `WHERE c`, `ON t.c`, `HAVING count(*)` — and it
+		// stops there, so the reference's `IF OBJECT_ID (…) isn't NULL` was read with an unclosed
+		// quote after it. Nor 1003, "… clause allowed only for …": a clause of another statement —
+		// `FOR UPDATE` outside a cursor, `CHECKCONSTRAINTS PLAN` outside `DBCC` — at which it stops as
+		// well, and `OPTION (CHECKCONSTRAINTS PLAN, x) SELECT 1)` was read.
 		message is 117 or 137 or 195 or 207 or 208 or 448 or 911 or 1047 or 1087 or 12703
-			or 4104 or 4112 or 4145
+			or 4104 or 4112
 			or 5369 or 5371 or 5374
 			or 10715
 
@@ -560,7 +589,6 @@ static class Engine
 			//
 			//    135  Cannot use a BREAK statement outside the scope of a WHILE statement.
 			//    148  Incorrect time syntax in time string '…' used with WAITFOR.
-			//   1003  Line …: … clause allowed only for ….
 			//   1020  Sub-entity lists cannot be specified for entity-level permissions.
 			//   1054  Syntax '…' is not allowed in schema-bound objects.
 			//   7801  The required parameter … was not specified.
@@ -571,7 +599,7 @@ static class Engine
 			//  13539  Setting SYSTEM_VERSIONING to ON failed because history table ….
 			//  15151  Cannot … the … , because it does not exist or you do not have permission.
 			or 135 or 148
-			or 1003 or 1020 or 1054
+			or 1020 or 1054
 			or 7801 or 7819 or 7853 or 7861
 			or 13539 or 15151
 

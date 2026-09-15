@@ -14,7 +14,8 @@ void InspectFileSyntax([StringSyntax(".gram")] string grammar);
 ```
 
 Both syntax names are equivalent. String literals passed to either parameter receive DotGram classification, diagnostics,
-Quick Info, navigation, completion, brace matching, and folding. This annotation marks
+Quick Info, completion, signature help, Go To Definition, Find All References, reference
+highlighting, Rename, brace matching, folding, and a rule navigation list. This annotation marks
 the DotGram grammar notation itself.
 
 For a generated DSL, use the identifier declared by its parser host:
@@ -69,16 +70,21 @@ Close Visual Studio, then open `DotGram.VisualStudio.vsix` in File Explorer or r
   "src\DotGram.VisualStudio\bin\Release\net472\DotGram.VisualStudio.vsix"
 ```
 
-Select the Visual Studio 18 instance in the installer and restart Visual Studio after
-installation. The package intentionally does not target Visual Studio 2022.
+Select the Visual Studio instance in the installer and restart Visual Studio after
+installation. The package targets `[17.14,19.0)` in `source.extension.vsixmanifest`: Visual
+Studio 2022 from 17.14, its last minor version, and Visual Studio 18.
 
 To update a local installation, build a package with a higher `Version` in
-`DotGram.VisualStudio.csproj`, then run the new VSIX. Visual Studio identifies updates by
-the stable `DotGram.VisualStudio` extension ID.
+`Directory.Build.props` — the extension has no version of its own and takes the
+repository's, which the `GetVsixVersion` target hands to the manifest — then run the new
+VSIX. Visual Studio identifies updates by the stable `DotGram.VisualStudio` extension ID.
 
 ## Verify
 
-Open `tests/DotGram.VisualStudio.Tests/Playground/VisualStudioToolingPlayground.cs` and
-the `.gram` file beside it. They are compiled by that project, so the editor has a real
-compilation behind them, which is half of what is being checked. The comments beside each
-grammar rule describe the manual checks and their expected results.
+Open the files in `tests/DotGram.VisualStudio.Tests/Playground/`:
+`VisualStudioToolingPlayground.cs`, with grammars embedded in attributes and the
+`StringSyntax` checks; `VisualStudioToolingPlayground.gram`, a standalone grammar, and
+`VisualStudioToolingPlayground.gram.cs`, the class it is attached to; and `ToolingQuery.gram`,
+the DSL those `StringSyntax` checks are written in. They are compiled by that project, so
+the editor has a real compilation behind them, which is half of what is being checked. The
+comments beside each grammar rule describe the manual checks and their expected results.

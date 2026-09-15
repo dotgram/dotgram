@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<!-- The two targets DotGram.Parsers has, for its reasons: netstandard2.0 is what
+		<!-- The two targets DotGram.Web has, for its reasons: netstandard2.0 is what
 		     every consumer can read, and net10.0 is what the newest runtime gets without
 		     the shims. -->
 		<TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
@@ -12,7 +12,7 @@
 		<PackageReleaseNotes>First release. A C#-style expression language — C#'s operators and literals, locals, blocks, loops, switch, try, members, calls and new — read by a generated parser that calls the System.Linq.Expressions factories directly.</PackageReleaseNotes>
 
 		<!-- Symbols inside the assembly, and paths normalized on CI only: both as
-		     DotGram.Parsers has them, and the reasons are written there. -->
+		     DotGram.Web has them, and the reasons are written there. -->
 		<DebugType>embedded</DebugType>
 		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
 
@@ -44,6 +44,16 @@
 
 	<ItemGroup>
 		<None Include="README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- What the tests and the hand-written yardstick read and no caller should: the
+		     factories the grammar builds with, the resolver, a publication written
+		     `internal`. It costs nothing across the boundary since the attributes the
+		     generator writes into each assembly are marked embedded, and neither sees the
+		     other's. -->
+		<InternalsVisibleTo Include="DotGram.Tests" />
+		<InternalsVisibleTo Include="DotGram.Benchmarks" />
 	</ItemGroup>
 
 </Project>

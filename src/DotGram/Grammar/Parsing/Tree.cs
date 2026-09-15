@@ -34,7 +34,22 @@ public sealed record GrammarFile(IReadOnlyList<Using> Usings, IReadOnlyList<Decl
 
 public sealed record Using     (bool IsCSharp, string Name, Location At)                  : ILocated;
 public sealed record Param     (string Name, TypeRef? Type, Location At)                  : ILocated;
-public sealed record TypeRef   (bool IsCSharp, string Name, bool IsSequence, Location At) : ILocated;
+public sealed record TypeRef   (bool IsCSharp, string Name, bool IsSequence, Location At) : ILocated
+{
+	/// <summary>What a generic C# type was given between its brackets, each a C# type itself.</summary>
+	/// <remarks>
+	/// <see cref="Name"/> already spells them — <c>KeyValuePair&lt;string, Row&gt;</c> — because
+	/// the name is what every later stage writes into the generated file. These are for the one
+	/// question the spelling cannot be asked as: whether each type exists.
+	/// </remarks>
+	public IReadOnlyList<TypeRef> TypeArguments { get; init; } = [];
+
+	/// <summary>The type as metadata names its generic definition: <c>KeyValuePair`2</c>.</summary>
+	/// <remarks>The name itself where the type takes no arguments.</remarks>
+	public string Definition =>
+		TypeArguments.Count == 0 ? Name : Name.Substring(0, Name.IndexOf('<')) + "`" + TypeArguments.Count;
+}
+
 public sealed record Rebinding (string Left, string Right, Location At)                   : ILocated;
 
 // ── Sums: flat, one level of alternatives each ───────────────────────────────────
@@ -44,6 +59,9 @@ public sealed record Rebinding (string Left, string Right, Location At)         
 /// input that does not match may sit between the matches.
 /// </summary>
 public enum PublishKind { Parse, Find }
+
+/// <summary>Who may call what a directive publishes (§6): C#'s three, and public unless it says.</summary>
+public enum PublishAccess { Public, Internal, Private }
 
 /// <summary>What a grammar file declares.</summary>
 public abstract record Decl : ILocated
@@ -82,7 +100,11 @@ public abstract record Decl : ILocated
 		string Name, IReadOnlyList<Rebinding> Rebindings, IReadOnlyList<Using> Usings, IReadOnlyList<Decl> Decls) : Decl;
 
 	public sealed record Publish(
-		PublishKind Kind, string RuleName, IReadOnlyList<Rebinding> Rebindings, string? Alias) : Decl;
+		PublishKind Kind, string RuleName, IReadOnlyList<Rebinding> Rebindings, string? Alias) : Decl
+	{
+		/// <summary><c>internal parse …</c>, <c>private find …</c>: what the methods are declared as.</summary>
+		public PublishAccess Access { get; init; }
+	}
 
 	/// <summary>
 	/// <c>context : @T</c> — the name a grammar's own state travels under.
@@ -268,11 +290,13 @@ static class Dump
 
 				break;
 
-			case Decl.Publish(var kind, var rule, var rebindings, var alias):
+			case Decl.Publish(var kind, var rule, var rebindings, var alias) publish:
+
+				var access = publish.Access == PublishAccess.Public ? "" : publish.Access + " ";
 
 				Write(text, depth, alias is null
-					? $"Publication {kind} {Quote(rule)}"
-					: $"Publication {kind} {Quote(rule)} as {Quote(alias)}");
+					? $"Publication {access}{kind} {Quote(rule)}"
+					: $"Publication {access}{kind} {Quote(rule)} as {Quote(alias)}");
 
 				foreach (var rebinding in rebindings)
 					Write(text, depth + 1, Label(rebinding));

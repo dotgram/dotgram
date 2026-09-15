@@ -59,7 +59,7 @@ public static partial class CSharpEmitter
 		file.Line("/// </remarks>");
 
 		using (file.Block(
-			$"public static global::System.Collections.Generic.IEnumerable<{match}> {method}(" +
+			$"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{match}> {method}(" +
 			$"global::System.IO.TextReader input{takes})"))
 		{
 			file.Line($"var window = new {WindowType}(input, {WindowSize});");
@@ -109,7 +109,7 @@ public static partial class CSharpEmitter
 		file.Line();
 
 		EmitOverLines(
-			file, $"global::System.Collections.Generic.IEnumerable<{match}>", method, name, takes);
+			file, AccessOf(publication), $"global::System.Collections.Generic.IEnumerable<{match}>", method, name, takes);
 	}
 
 	/// <summary>
@@ -121,7 +121,7 @@ public static partial class CSharpEmitter
 	/// a <c>List&lt;string&gt;</c> are as ordinary an input as a string is.
 	/// </remarks>
 	static void EmitOverLines(
-		Writer file, string returns, string method, string name, string takes = "")
+		Writer file, string access, string returns, string method, string name, string takes = "")
 	{
 		file.Line($"/// <summary>The same, over a sequence of lines (docs/syntax.md §6.3).</summary>");
 		file.Line("/// <remarks>");
@@ -131,7 +131,7 @@ public static partial class CSharpEmitter
 		file.Line("/// </remarks>");
 
 		using (file.Block(
-			$"public static {returns} {method}(" +
+			$"{access} static {returns} {method}(" +
 			$"global::System.Collections.Generic.IEnumerable<string> input{takes})"))
 		{
 			file.Line($"return {method}(new {LinesType}(input){(takes.Length > 0 ? ", context" : "")});");
@@ -184,7 +184,7 @@ public static partial class CSharpEmitter
 		file.Line("/// </remarks>");
 
 		using (file.Block(
-			$"public static global::System.Collections.Generic.IEnumerable<{element}> " +
+			$"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{element}> " +
 			$"{publication.MethodName}(global::System.IO.TextReader input)"))
 		{
 			file.Line($"var window = new {WindowType}(input, {WindowSize});");
@@ -408,6 +408,7 @@ public static partial class CSharpEmitter
 
 		EmitOverLines(
 			file,
+			AccessOf(publication),
 			$"global::System.Collections.Generic.IEnumerable<{element}>",
 			publication.MethodName,
 			publication.Rule.Name);

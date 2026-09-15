@@ -567,6 +567,32 @@ public sealed class RecognitionGraph(
 	/// </remarks>
 	internal IReadOnlyDictionary<RuleSymbol, FirstSets.First>? FirstByRule { get; set; }
 
+	/// <summary>What may follow each rule, once worked out. A memo, not model state.</summary>
+	/// <remarks>
+	/// The same reasoning as <see cref="FirstByRule"/>: a fixed point over the whole graph,
+	/// asked for by every machine a grammar compiles into — seven of them for T-SQL — and
+	/// the same answer each time. Unlike that one it is set only once settled, because
+	/// nothing asks for it while it is being worked out.
+	/// </remarks>
+	internal IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation>? FollowByRule { get; set; }
+
+	/// <summary>Whether <see cref="FirstByRule"/> has stopped growing.</summary>
+	/// <remarks>
+	/// Not the same as its being there: it is set before its fixed point begins, so that a rule
+	/// reached mid-way reads the estimate, and an answer worked out from an estimate is not one
+	/// to keep.
+	/// </remarks>
+	internal bool FirstSettled { get; set; }
+
+	/// <summary>What each node can begin with, once the rules have settled. A memo, not model state.</summary>
+	/// <remarks>
+	/// The emitter asks it of the same nodes over and over — of a repetition's body for every
+	/// continuation it is compiled against, twice in one expression in places — and each answer
+	/// was a walk that built and merged lists of ranges again. By identity, because a node is a
+	/// record and two equal nodes are still two places in the grammar.
+	/// </remarks>
+	internal Dictionary<Node, FirstSets.First>? FirstByNode { get; set; }
+
 	public string? Context { get; init; }
 
 	/// <summary>

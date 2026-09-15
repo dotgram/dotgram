@@ -40,6 +40,7 @@ then quietly mean nothing.
 | construction `=>` at the end of a rule | ✓ | ✓ | ✓ | ✓ | ✓ |
 | construction `=>` per alternative | ✓ | ✓ | ✓ | ✓ | ✓ |
 | rule types `: @T` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a generic C# type, `: @KeyValuePair<string, Row>`, asked about as its definition and arguments | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `: @string` as the extent §4.1 case 4 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `: @SourceSpan` as the bounds §4.1 case 4 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | publishing a rule whose value is a `SourceSpan` §6.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -109,10 +110,21 @@ then quietly mean nothing.
 | the same reaching a `when`, a `=>` and every rendering §7.7 | — | — | — | ✓ | ✓ |
 | `state : @T` and `Expr with state @(...)` §7.8 | — | — | — | ✓ | ✓ |
 | a mark read by a construction as `parserState` §7.8 | — | — | — | ✓ | ✓ |
-| one `context` and one `state` per assembly §7.7 | — | — | — | ✓ | ✓ |
+| a `context` strengthened, a `state` shared, across a composition (`GRAM3019`, `GRAM3020`) §7.7/§7.8 | — | — | ✓ | ✓ | ✓ |
 | a host inheriting the grammar of its base class | — | — | — | ✓ | ✓ |
 | the same naming itself with `[Gram(IncludedAs = "…")]` | — | — | — | ✓ | ✓ |
-| a base in a referenced assembly | — | — | — | ✗ | ✗ |
+| `[GramInclude(typeof(X), As = "…")]`, several at once §6.7 | — | — | — | ✓ | ✓ |
+| a base or an include in a referenced assembly, read from its `[GramSource]` §6.7 | — | — | — | ✓ | untested |
+| `[GramOptions(Suffix = "…")]`, a second reading of one grammar §6.6 | — | — | — | ✓ | ✓ |
+| a rule's own refusal message, `on fail "…"` §4/§7.5 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `internal parse`, `private find` §6 | ✓ | — | — | ✓ | ✓ |
+| `TryParseR(input, at)` and `TryParseR(input, at, length)` §6.3 | — | — | — | ✓ | ✓ |
+| the publications of one rule sharing a machine, told apart by the reading §5.1 | — | — | ✓ | ✓ | ✓ |
+| a publication another reaches, joined into that one's machine | — | — | — | ✓ | ✓ |
+| a grammar cut into a lexer and a syntactic half, `Lexical = true` §4 | — | — | ✓ | ✓ | ✓ |
+| a terminal the lexer begins and a rule or the host ends, `'<' & @M` §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the carrier chosen by the generator, or named, `Carrier = GramCarrier.…` | — | — | — | ✓ | ✓ |
+| a `@Name` or `[@Name]` the parser cannot call, said on the grammar (`GRAM4025`) §7.1 | — | — | ✓ | — | — |
 
 **Two things this table used to carry as rows are decisions rather than gaps**, and a
 row of crosses read as neither. **Repairing a document** — searching a broken input for
@@ -215,8 +227,9 @@ trailer or other valid continuation from the surrounding grammar.
 
 ## What a rejection is told
 
-All seven names of §8.2 are supplied. Three differ from the specification in ways worth
-knowing:
+All nine names of §8.2 are supplied — the seven a recovery names, and `parserInput` and
+`parserState`, which a construction may ask for too (`SuppliedNames`). Three differ from
+the specification in ways worth knowing:
 
 - **`parserText` and `parserSpan` stop where the synchronization point begins.** `eol`
   separates the elements and is not part of one, so a rejected `b1b\n` is three
@@ -298,11 +311,12 @@ Power = left: Primary & '^' & right: Unary     // right at this level → right-
 can be another `^` and the left one cannot. There is no "right-recursive" in the
 compiler because there is nothing for it to do: `Power` never calls `Power` at all.
 
-**Nothing is built while matching, folds included.** What a match records is a number:
-which alternative it came through, and — for a chain — which step followed which. Both
-ride on the backtracking frame, so an alternative or a step given back is forgotten with
-everything else it did, and the factories run at the accepting state in the recorded
-order.
+**On the tape, nothing is built while matching, folds included.** What a match records is
+a number: which alternative it came through, and — for a chain — which step followed which.
+Both ride on the backtracking frame, so an alternative or a step given back is forgotten
+with everything else it did, and the factories run at the accepting state in the recorded
+order. The immediate carrier is the exception, and says so: there a construction runs
+where it is read (*Carriers*, below).
 
 That is what lets a rule have as many recursive alternatives as it likes. Accumulating
 built values instead would need one type to hold them all, which would have capped a
@@ -426,9 +440,11 @@ it matched, and its recognizer has the signature it always had.
 
 A capture holds `(start, end)` into the input, or the value of the rule it names when
 that rule builds one. The whole value is constructed once, at the accepting state, from
-one expression. Nothing is built during the match, so an attempt that is abandoned
-costs nothing to undo — and any C# a grammar supplies will run on the parse that
-actually happened rather than once per attempt.
+one expression. On the tape nothing is built during the match, so an attempt that is
+abandoned costs nothing to undo — and any C# a grammar supplies will run on the parse that
+actually happened rather than once per attempt. On the immediate carrier a construction
+runs where its alternative is read, so a parse that fails may already have run some
+(*Carriers*, below).
 
 **Backtracking forgets what it captured.** Slots are numbered in the order the notation
 writes them, which makes "everything written since this point" a suffix of them; each
@@ -472,7 +488,7 @@ A method rather than an expression written where the value is assigned, and that
 what makes the capture names usable at all: inside a recognizer they would have to
 dodge every local it has, and a capture called `p` or `state` would collide with the
 machine itself. `parserText` is supplied — the matched extent, §7.3 — and a capture that
-takes that name, or any of the other six, is refused (GRAM4012).
+takes that name, or any of the other eight, is refused (GRAM4012).
 
 **§7.3's first way of filling a type in works**: a rule that declares `: @T` and writes
 no `=>` is built by calling `T`'s constructor, with its captures as the arguments.
@@ -569,8 +585,10 @@ that the alternative it belongs to cannot produce.
 Three things are refused rather than quietly ignored, all `GRAM4008`:
 
 - a `=>` on a rule that declares no type. There would be nothing to build.
-- a declared type where some alternative has no `=>`. §7.3 would fill that by matching
-  captures to a constructor by name, and that does need symbol resolution.
+- a declared type where some alternative has no `=>` and §7.3 cannot fill the rule in:
+  a `=>` on some alternatives and not the rest, or captures no constructor or settable
+  properties of the type can be matched to (*A rule that names its own type*, above).
+  `: @string` is the one type left to the shape of the rule.
 - a `=>` anywhere but on an alternative of the rule — inside a group, say. It builds
   the rule's value, and a group has none.
 
@@ -582,8 +600,14 @@ an `A` with nothing to do with `B`.
 
 Syntactic position now fixes the two recognizer contracts. `[@Name]` is an element
 predicate and emits `Name(c)`; bare `@Name` is an input-consuming recognizer and emits
-`Name(text, ref p)`. Neither name is looked up by the generator. Missing names, wrong
-signatures and overload selection are ordinary diagnostics from the generated C# call.
+`Name(text, ref p)`. Both are now asked of the host
+(`ISymbolResolver.ResolveExternalMethod`), looked for where the generated call will look:
+the host class, the classes around it, its bases, and the classes of the grammars it
+includes. A name with no method, or only methods of another shape or out of reach, is
+`GRAM4025` on the grammar's line (since 2026-09-13 for recognizers, 2026-09-14 for
+predicates). Only a certain no is said: a method of the right shape anywhere in the
+compilation's source is taken to be the one meant, and a grammar compiled without a host
+is not asked. Overload selection among fitting methods is still the C# compiler's.
 
 ## One deviation from §7.3, deliberate
 
@@ -626,7 +650,7 @@ the machine's internals cannot leak in either direction.
 It also means a capture may not be called `parserText`: the parameter is already taken.
 That is the whole reason the supplied names carry a prefix — with it, nothing an author
 would naturally write collides — and `GRAM4012` is the backstop for a capture that takes
-one of the seven anyway. Before it was refused, the generated code simply did not
+one of the nine anyway. Before it was refused, the generated code simply did not
 compile — "no overload takes 2 arguments", in a file the author never wrote, about a
 grammar it did not mention. §8.2 of [`syntax.md`](syntax.md) says why the names are
 separate arguments rather than one context object.
@@ -871,17 +895,19 @@ Exactly one operand may produce it. Two is a rule with two answers and nothing t
 which, so it is left alone and reported: that is a grammar to rewrite, not a choice for
 this compiler to make quietly.
 
-Half built: **a declared parameter type**. §4.2 says a C# type makes the parameter a
-value and anything else makes it a recognizer, and the only value that can be passed is a
-number — so `Digits(n: int)` called as `Digits(4)` works, and the number reaches the
-quantifier.
+**A declared parameter type.** §4.2 says a C# type makes the parameter a value and
+anything else makes it a recognizer, and the argument is read as the declaration says. A
+value is a number, a literal, or a value the calling rule was handed itself — so
+`Digits(n: int)` called as `Digits(4)` works, and the number reaches the quantifier, and
+`Padded(item, pad: char)` handed `' '` passes a `char`. A literal is checked against the
+declared type through the host (`IsAssignable`): `'x'` is a `char` and `"x"` a `string`,
+and one that does not fit is refused (`GRAM4013`).
 
-`Padded(item, pad: char)` handed `' '` does not. It used to: the call judged the argument
-by what it turned out to be rather than by what was declared, so a literal became a
-recognizer and the parameter meant one thing where it was declared and another where it
-was used. It is refused now, which is the whole of the change — a declaration that is
-quietly disregarded is worse than one that is turned down, because the grammar goes on
-compiling and matching something else.
+That `' '` once became a recognizer: the call judged the argument by what it turned out to
+be rather than by what was declared, so the parameter meant one thing where it was declared
+and another where it was used. The declaration decides now. What is still refused is a
+value the parse produces (the row above) — a specialization is made before anything runs,
+and a captured value exists only while it does.
 
 ## A C# method may read the input itself
 
@@ -904,8 +930,9 @@ static bool ParseTimestamp(ReadOnlySpan<char> input, ref int pos, out DateTime v
 ```
 
 Notation does not change; `@ParseTimestamp` is still bare. The host is asked whether the
-name also has this shape — `RoslynSymbolResolver.TryResolveExternalValue`, the one place
-this generator inspects a method's signature at all — and finding one gives the call a
+name also has this shape — `RoslynSymbolResolver.TryResolveExternalValue`; since 2026-09-13
+`ResolveExternalMethod` inspects signatures too, to say whether the call can be made at all
+(`GRAM4025`) — and finding one gives the call a
 rule-shaped identity: a `RuleSymbol` synthesized with no declaration, its body the same
 `Node.External` marked to say it has a value, its type in the ordinary `Types` map right
 alongside every rule that wrote `: @T` itself. Everything downstream — `BuildsValue`,
@@ -957,9 +984,11 @@ The name is written into the generated code as the grammar wrote it, unqualified
 grammar's own `@using` directives are in that file, which is what they are there for.
 
 Bare `@Name` is the other contract: a recognizer taking the span and a position. The
-generator chooses between the two only from brackets versus operand position. It asks
-Roslyn about neither method; the emitted `Name(c)` or `Name(text, ref p)` lets C# select
-the matching overload and report a missing or incompatible one.
+generator chooses between the two only from brackets versus operand position. Which
+contract is meant is never asked of the host; whether a method fits it is, and a missing or
+incompatible one is `GRAM4025` on the grammar's line rather than a C# error in the
+generated file. Among methods that fit, the emitted `Name(c)` or `Name(text, ref p)` lets
+C# select the overload.
 
 ## Where a C# error lands
 
@@ -1032,9 +1061,11 @@ wrote ends up: `rows: Row*` parses as `(rows: Row)*` (§10). The other way round
 holds the text of the whole run.
 
 **Assignability is a question for the host**, so `ISymbolResolver` gained `IsAssignable`
-— the third thing the grammar half asks about C#, alongside "does this type exist" and
-"what shape is this method". It is asked through the same question-and-answer list as
-the other two, so nothing downstream of it holds a `Compilation`, and the pairings are
+— the third thing the grammar half asked about C#, alongside "does this type exist" and
+"what shape is this method". It has since gained constructors, settable properties, an
+external recognizer's value and whether an external method can be called in its role. It
+is asked through the same question-and-answer list as the others, so nothing downstream of
+it holds a `Compilation`, and the pairings are
 collected as a superset from the grammar's syntax the way §7.1's names are. Roslyn's own
 conversion classification answers it, minus numeric widening and user-defined operators:
 what joins a sequence is what already *is* the element type.
@@ -1157,8 +1188,16 @@ should have said.
 `.Gram` emits everything a parser needs into the consumer's own compilation, and every
 type it puts in a namespace is `internal`. That is what makes the claim in the README
 true rather than nearly true: an internal type cannot be seen across an assembly
-boundary, so two assemblies that both emit `DotGram.SourceSpan` never collide, never bind
-to each other's, and have nothing to version.
+boundary, so two assemblies that both emit the same type never collide, never bind to
+each other's, and have nothing to version.
+
+`internal` alone was not quite enough. An assembly granting `InternalsVisibleTo` to one
+that also uses .Gram handed it a second `DotGram.GramAttribute`, and every use warned
+(CS0436). Since 2026-09-13 the attributes and enums written into every assembly —
+`[Gram]`, `[GramOptions]`, `[GramInclude]`, `[GramSource]`, `GramCarrier` and the
+tooling ones — are `[Embedded]`, with the definition asked of Roslyn
+(`AddEmbeddedAttributeDefinition` in `GramGenerator`), and a type marked embedded is not
+seen from another compilation at all.
 
 There was briefly a shared mode — `[assembly: GramRuntime]` published four support types
 as `public` and other assemblies bound to them, having found them by looking up a type by
@@ -1171,8 +1210,9 @@ of the four types, `Outcome`, `Diagnostic` and `RecognitionResult<T>` were refer
 no generated code at all. `SourceSpan` remains, and has since moved out of the
 namespace into each host class, where being public collides with nothing because the name
 is the host's — so a publication can hand one back after all. Three types
-were deleted; §7.5 still specifies them and the table above says they are not built,
-which is this project's ordinary way of holding a plan.
+were deleted then. `Outcome` has since come back, emitted beside `Match<T>` in each host
+as `Success`, `NoMatch` and `Starved`, which is the row the table marks built;
+`Diagnostic` and `RecognitionResult<T>` are still not emitted.
 
 `GRAM0001` went with it — it reported two assemblies both publishing — and is the one
 number that has been used twice: it reports the generator itself failing now. That was
@@ -1180,10 +1220,23 @@ free while nothing had been released, and it stops being free at 0.1.0. From the
 retired number is not reused, because a suppression written against the old meaning would
 silently acquire a new one — which is what `AnalyzerReleases.Shipped.md` is for.
 
-Numbers go by the stage that raises them: `GRAM0002`–`GRAM0004` the Roslyn shell,
-`GRAM1xxx` the lexer, `GRAM2xxx` the parser, `GRAM3xxx` the binder, `GRAM4xxx` the
-normalizer, `GRAM5xxx` the analyses that decide what a grammar gets rather than whether
-it is one. `GRAM4004` is retired. `GRAM0001` was retired with the publisher check and has
+Numbers go by the stage that raises them: `GRAM0002`–`GRAM0008` the Roslyn shell
+(`AnalyzerReleases.Shipped.md`), `GRAM1xxx` the lexer, `GRAM2xxx` the parser, `GRAM3xxx`
+the binder, `GRAM4xxx` the normalizer, `GRAM5xxx` the analyses that decide what a grammar
+gets rather than whether it is one. Retired, and listed at the end of
+[`diagnostics.md`](diagnostics.md): `GRAM3013`, `GRAM3015`, `GRAM3017`, `GRAM3018`,
+`GRAM4004`, `GRAM5006`, `GRAM5008` and `GRAM5010`.
+
+This file talks about the diagnostics a section explains; `diagnostics.md` is the list.
+Several there have no section here beyond a mention: `GRAM4016` (two alternatives read the
+same recursive operand twice, a warning), `GRAM4017` (two rules each with a `with` reaching
+the other), `GRAM4018` (a rule nothing reaches, a warning), `GRAM4019` (`word` with no
+`wordboundary`), `GRAM4020` (a `when … is …` somewhere other than beside an alternative's
+operands) and `GRAM5003` (a generated method past the size the JIT optimizes, a warning).
+`GRAM5004`, `GRAM5005`, `GRAM5007`, `GRAM5009`, `GRAM5011` and `GRAM5012` are under
+*A grammar cut in two* and *Carriers* above.
+
+`GRAM0001` was retired with the publisher check and has
 since been taken up again, by the Roslyn shell, for the one thing outside those ranges: the
 generator itself failing. That is a reuse, and the rule against reusing a retired number
 stands — it was broken deliberately, because a number nobody had ever seen in the wild was
@@ -1231,6 +1284,139 @@ number because none of them is about a particular number.
   ambiguous and never streamed is still told nothing, and whether that is worth an opt-in
   warning is open.
 
+## A generic C# type as a rule's type
+
+`Pair : @KeyValuePair<string, int> = key: … & '=' & value: …` works, and so does its
+sequence, `: @KeyValuePair<string, int>[]` (since 2026-09-14, found by writing RFC 9651).
+A C# type in type position takes arguments, each a C# type and possibly generic itself. The
+name is written whole into the generated file, and whether it exists is asked of the host
+as its definition — ``KeyValuePair`2`` — and each of its arguments, by the binder and ahead
+of it by the question list alike. From there it is any other declared type: its
+constructors and properties are matched as §7.3 says. Pinned by the parser, binder,
+semantic and driver tests.
+
+## A rule says what its own refusal says
+
+`Expression : @Expression on fail "Expected an expression." = …` (§4, §7.5, since
+2026-09-11). Where that rule is the refusal, the message is the text as written rather than
+the list of everything that could have stood there. A rule that vanishes in lowering — one
+that only forwards — leaves its message to the rule that took its place. Nothing reads the
+text.
+
+## Who may call a publication, and from where
+
+**`internal parse …` and `private find …`** declare every method the directive makes with
+that accessibility: the whole form, the positional and windowed forms, and the reader
+overloads. Saying nothing is `public`. The words are modifiers only in front of `parse` or
+`find`, so a rule may still be called `internal`. A `private` publication in a
+`[GramOptions]` reading is private to that nested class.
+
+**A position and a window.** Beside `TryParseR(string input)` a `parse` gets
+`TryParseR(string input, int at)` — read from `at`, not required to reach the end — and
+`TryParseR(string input, int at, int length)`, which sees nothing from `at + length` on
+(both 2026-09-13). Positions stay offsets into the whole input. Over tokens the first form
+has to begin where a token of the whole text begins; the second cuts only the window into
+tokens. A publication compiled as a plain method gets neither, having been proved sound
+only against the end of the input, and is not told so (`GRAM5010`, which used to, is
+retired).
+
+## Readings, and machines that join
+
+**The publications of one rule share one machine.** A `with` that substitutes a rule only
+conditions ask about makes a *reading* of the grammar, and since 2026-09-10 the parsers of
+one rule are one machine told apart by the reading's number: `Node.Reading` tests a bit of
+it where a condition decided an alternative is there in some readings and not others.
+Sixty-four readings fit in the word, and more is `GRAM4023`; a condition that leaves
+different C# behind in different readings is `GRAM4024`, since the C# would need telling
+which reading it runs in.
+
+**A publication another one reaches is read by that one's machine** (2026-09-13,
+`CSharpEmitter.Joined`). A machine holds every rule its root reaches, so the smaller
+publication needs only an entry into the larger. They are joined only where both are
+written the same way — flat stays flat, methods join methods, the engine joins the engine —
+and never where the smaller one streams.
+
+## One grammar, several readings and several sources
+
+**`[GramOptions]`** carries what `[Gram]` does except which grammar: `Suffix`, `PartSize`,
+`Direct`, `Lexical`, `Carrier`, `Stacks`, `LocationType` and `Portable`. `[Gram]` derives
+from it and adds the source and `IncludedAs`. Every `[GramOptions]` on a class is a
+compilation of its own in a nested class named by `Suffix` — `Sql.Immediate.TryParseR` —
+taking from `[Gram]` whatever it does not say. Two wanting one scope is `GRAM0006`; a
+`Suffix` that is not an identifier is `GRAM0007`.
+
+**`[GramInclude(typeof(X), As = "…")]`** splices `X`'s grammar into this one under a
+namespace named `As`, or `X`'s `IncludedAs`, or `X`'s name, and brings `X`'s static
+members into the generated code's scope. It may be written many times, and what it names is
+walked in turn, together with the base classes. Two under one name is `GRAM0008`; an
+`IncludedAs` that is not an identifier is `GRAM0005`. `DotGram.Sql`'s T-SQL grammar
+includes SQL-92 this way.
+
+**`[GramSource]`** is the grammar's text, written by the generator onto a class it
+compiled where `Portable` holds — by default, where the class is visible outside its
+assembly. A base or an include in a referenced assembly has no `.gram` file in reach, so
+its text is read from there; the file wins where both are. This is what the table's
+referenced-assembly row rests on, and no test yet builds two assemblies to pin it.
+
+`LocationType` names an interface with a settable `Span`; every value implementing it is
+handed the range it was read from.
+
+## A grammar cut in two
+
+`[Gram(..., Lexical = true)]`, or the same on `[GramOptions]`, cuts a grammar into a lexer
+over characters and a syntactic half over token kinds (`GramCompiler.Cut`,
+`LexicalSplit`, `TerminalInventory`, `LexicalAutomaton`, `LexerEmitter`; built from
+2026-09-01). The published methods do not change: they take a string and answer as before.
+
+It is a request. Where the grammar cannot be cut it is compiled over characters, as it
+would have been without the request, and `GRAM5004` says which reason applies: no trivia
+at all, so nothing tells a token from a character; terminals that cannot all be read by one
+automaton; a `find`, which hunts through characters for a place to begin, so a grammar
+publishing one is never cut; or `trivia` not written in braces, whose seam is skipped by
+the scanner braces ask for. A warning, because the two readings are not always the same
+parser.
+
+What is different over kinds is said too. `GRAM5005`: a rule of the syntactic half that the
+methods cannot read — a recovery, a stream, a `find`, a captured lookahead, a guard handed
+what a reader cannot give it, a rule called with arguments — runs on the shared engine,
+where a choice that matched can still be revisited, so the committed reading §4 promises
+over kinds is not what runs there. `GRAM5009`: an optional or a repetition that can take,
+in one token, what follows it, which over kinds nothing gives back.
+
+**A terminal the lexer begins and a rule or the host ends** (since 2026-09-13). A
+terminal that is not a regular language — a nested comment, a blob the host measures — is
+written as a regular beginning followed by one operand that is not: `Comment = '/*' &
+Nested`, `Blob = '<' & @ReadBlob`. The automaton reads the beginning with every other token,
+and where it stands the rest is measured by the rule over characters or by the host from the
+position after it. A beginning that can be empty, or is also a token of its own, is refused
+with `GRAM5004`. A terminal that is nothing but `@M` has no beginning, so the host is asked
+at the start of every token before the automaton; that works and is `GRAM5011`, a warning.
+
+## Carriers
+
+How a reader carries what it read until the constructions run: `[Gram(..., Carrier =
+GramCarrier.…)]`, `CarrierKind` on the grammar side, `Machine.Carrier.cs`.
+
+- **`Auto`**, the default: the generator chooses between the next two and says what it
+  chose, `GRAM5012` (since 2026-09-13; `GRAM5008`, which offered `Immediate` instead, is
+  retired). Immediate where every rule the machine builds is read only for the derivation
+  that stands or the one the parse then fails on, and none can be read again after it has
+  answered; the tape everywhere else, naming the rules that kept it there.
+- **`Tape`**: records built into values by a walk once the parse is accepted. The carrier
+  that streams, finds and recovers, and the one that keeps "nothing is built while
+  matching" whole.
+- **`Immediate`**: a construction runs the moment its alternative has been read. A factory
+  is called once per derivation tried rather than accepted, and **a parse that fails may
+  already have run the constructions of what it read**. No walk at the end, which is about
+  two fifths of a parse.
+- **`Mixed`**: deferral without a tape, what a rule read kept in a typed shape of its own.
+  It does not carry a rule whose value is its extent, a recovery, a mark (§7.8) or a rule
+  read at a strength; a grammar with one of those is compiled on the tape.
+
+A carrier is what a reader — the rendering by methods — holds. Where the asked carrier
+refuses the grammar, or nothing in it is read by methods, the tape is used and `GRAM5007`
+says why, as information.
+
 ## What re-runs, and when
 
 Two tests hold this, and they only mean anything as a pair: editing a `.cs` file that no
@@ -1272,12 +1458,16 @@ found not to work:
   handing one out is unequal to itself every run. Hence `EquatableArray<T>`.
 
 **Then the `Compilation` was narrowed to what it is for**, because the transform it fed
-was not cheap: one compile of the URL grammar is 1.5 ms, so twenty grammars in a solution
-is thirty milliseconds of a keystroke and a hundred is a sixth of a second.
+was not cheap: one compile of the URL grammar was 1.5 ms as written on 2026-08-14, so
+twenty grammars in a solution is thirty milliseconds of a keystroke and a hundred is a
+sixth of a second. That figure is for a grammar the size of a URL and has not been
+re-measured since; the SQL grammars of `DotGram.Sql` now take the generator tens of
+seconds, which is why the stages below matter more than they did.
 
-The compilation answers two questions — does this C# type exist, does this method exist
-with this shape — for the handful of `@Name` and `: @T` a grammar mentions. So there are
-three stages:
+The compilation answers the questions `ISymbolResolver` asks — whether a C# type exists,
+whether one is assignable to another, a type's constructors and settable properties, and
+the shape of a method a grammar names — for the handful of `@Name` and `: @T` a grammar
+mentions. So there are three stages:
 
 ```text
 grammar + host  ──►  the questions its C# names raise      cached on the grammar
@@ -1364,9 +1554,12 @@ still no point at which the first may be let go.
 Written as a decomposition rather than as "find the recovering repetition" because that
 generalizes. Two committed runs in one rule are an ordinary feed —
 `Header & Trades* recover eol & Separator & Adjustments* recover eol & Trailer` — and a
-stage may itself be a rule with stages of its own. **Neither is built**: one `recover` per
-rule is still refused, which is an implementation limit that this shape makes visible, and
-it will bite exactly when multi-stage feeds become worth writing.
+stage may itself be a rule with stages of its own. **Neither streams yet**: over a string a
+rule may mark as many repetitions `recover` as it likes, each with a plan of its own, but a
+streamed rule marking more than one is refused its reader overload (`Retention`, reported
+as `GRAM5001`), because the driver steps over a bad element one repetition at a time. That
+is an implementation limit this shape makes visible, and it will bite exactly when
+multi-stage feeds become worth writing.
 
 Both halves are built and emitting: `find` and `parse` take a `TextReader` where the
 analysis allows one, the driver reads stage by stage through the reused window, recovery
@@ -1470,14 +1663,17 @@ remeasured against the current automaton before making performance claims.
 A hundred lines of C# per line of grammar, and the ratio holds because the machines are
 what dominate: one state per position a rule can be in, each with its comment saying
 which notation it came from. The support library at the end is a fixed cost and a small
-one — 19 lines where nothing streams, 281 where it does — so a second grammar in the same
-project pays the machines again and the support again, since both are emitted per host
-class rather than shared (§6.1).
+one — 19 lines where nothing streams, 281 where it does, as written on 2026-08-16 and not
+re-counted since; the lexer, the carriers and the window overloads have been added to what
+may be emitted after that — so a second grammar in the same project pays the machines
+again and the support again, since both are emitted per host class rather than shared
+(§6.1).
 
 Nothing here is optimized for size and it should not be: the file is read by a compiler,
 and every line of it exists so that no allocation, no virtual call and no closure exists
 at run time. What the number is worth knowing for is compile time in a project with many
-grammars — which is measured above, at 1.5 ms each.
+grammars — given above as 1.5 ms for the URL grammar, as of 2026-08-14, which says nothing
+about a grammar the size of SQL's.
 
 **Nesting depth**: bounded by the arena rather than by the machine's stack, which is what
 compiling every rule into one automaton bought. `CSharpEmitterTests` nests a rule inside
@@ -1485,9 +1681,11 @@ itself a hundred thousand times and parses it. The figure this line used to carr
 2700 levels — was the process stack under the generator that gave each rule a method, and
 has not applied since that generator was removed.
 
-**One grammar compiled**: 1.5 ms for the URL grammar of `examples/`, in Release. That is
-what an editor used to pay per keystroke per grammar, and is why the pipeline was
-narrowed rather than left as it was.
+**One grammar compiled**: 1.5 ms for the URL grammar of `examples/`, in Release, as of
+2026-08-14 and not re-measured since. That is what an editor used to pay per keystroke per grammar,
+and is why the pipeline was narrowed rather than left as it was. It is not a figure for a
+large grammar: the generator's time over `DotGram.Sql` is now tens of seconds
+(`.claude/rules/profiling.md` says how it is measured).
 
 **Flat lowering**: a machine every publication of which needs none of the arena's three
 uses compiles without `Recognize_DotGram`, `Parser` or `ParserArena` at all — see
@@ -1555,5 +1753,10 @@ expression through five rules and one, compared as whole trees by record equalit
 number in a test is a number somebody decided; two implementations disagreeing is a
 defect neither of them can hide.
 
-Every diagnostic the compiler can raise has a test that raises it — all twenty-nine, and
-that is checked rather than assumed.
+`DiagnosticsReferenceTests` holds the code and [`diagnostics.md`](diagnostics.md) to each
+other: every `GRAM` identifier in `src/DotGram` is documented, and every documented one is
+either in the code or listed as retired. That is a check on the reference, not on
+coverage. Many diagnostics are raised and asserted by the semantic, driver and emitter
+tests, but no test checks that each of them is, and "every diagnostic has a test that
+raises it" — which this paragraph used to say, of twenty-nine — is not claimed for today's
+eighty-odd.

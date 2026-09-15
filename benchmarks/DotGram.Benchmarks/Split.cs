@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.TransactSql;
 
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 
@@ -133,7 +134,7 @@ static class Split
 	/// <summary>Where each statement begins — or, where the text is not read, where it stopped.</summary>
 	static (int[]? Starts, int At) Read(string text)
 	{
-		var match = TransactSql.Located.TryParseScript(text);
+		var match = TransactSqlParser.Located.TryParseScript(text);
 
 		return match.IsSuccess
 			? ([.. match.Value.SelectMany(static batch => batch.Statements).Select(static statement => statement.Span.At)], 0)

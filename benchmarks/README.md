@@ -1,5 +1,8 @@
 # Benchmarks
 
+FIX message workloads and measured results are in
+[`DotGram.Finance.Benchmarks`](DotGram.Finance.Benchmarks/README.md).
+
 ```console
 dotnet run -c Release --project benchmarks/DotGram.Benchmarks
 dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --filter "*Url*"
@@ -557,10 +560,42 @@ read is a tree that has lost something *structural* rather than decorative — a
 that kept the word and not the thing it was done to, a `CREATE STATISTICS` with no columns.
 Those are nodes to add, not fields.
 
+## What the standard reads
+
+`--standard production file` (`Standard.cs`) puts each line of a file to the BNF of ISO/IEC
+9075-2:2023 — `src/DotGram.Sql/Standard/Specification/ISO_IEC_9075-2(E)_Foundation.bnf.txt`,
+read as ISO publishes it (`Bnf.cs`) — and prints whether the line is the production named, how
+many tokens it is, and the token the reading could not go past. The standard has no engine to
+ask, so this is its authority, as `--engine` is T-SQL's: an Earley recognizer
+(`StandardOracle.cs`) that cuts the text into the standard's own tokens and recognizes them
+against its productions, with the one Syntax Rule it cannot do without — a regular identifier
+is no reserved word — written in by hand.
+
+```
+dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --standard "direct SQL statement" lines.sql
+```
+
+A line that begins `--` is skipped. `--standard ? file` says which lexical productions derive
+each word of a line, and `--standard ! production` which pieces of the BNF read as empty and
+which productions the one named reaches that derive nothing.
+
+Where `SqlStandardParser` publishes a rule of the production's name — `<identifier chain>` as
+`TryParseIdentifierChain` — each line is put to it as well, the two verdicts are printed side by
+side with `≠` where they differ, and the count of both closes the run. That is how the grammar is
+held to the standard: a row goes into `SqlStandardParserTests` once the two agree on it. A line's
+milliseconds are mostly the recognizer's; the grammar's own time, and its slowest line, are said
+after the count, timed on a second reading of each line so that compiling the parser is not counted.
+`--standard =production file` leaves the recognizer out and prints the grammar's verdict and time
+alone, line by line — what to use when looking for a line the grammar is slow on.
+
+`--bnf-gram [file]` (`BnfGram.cs`) writes the same BNF as a `.gram` skeleton — every production
+under a rule named after it, the lexical ones in a namespace of their own — by default to
+`.work/SqlStandard.skeleton.gram`, for the standard's grammar to be written from by hand.
+
 ## The SQL recognizer against a hand-written one
 
 `--hand [rounds] [iterations]` (`SqlAgainst.cs`) measures
-`SqlStandard92.TryParseSearchCondition` against a hand-written recognizer of the same
+`Sql92Parser.TryParseSearchCondition` against a hand-written recognizer of the same
 language, round-robin and in one process, for the reason `--against` exists.
 `SqlComparisonBenchmarks` measures the same methods under BenchmarkDotNet, where the
 absolute numbers and the allocation come from.
@@ -653,7 +688,7 @@ anything, which is not what a consumer does and is not what the generator mostly
 parse records what it read and materializes the value afterwards, and none of that
 machinery had ever appeared in a number.
 
-`SqlStandard92` builds now — `docs/syntax.md`'s constructions on every production of §6
+`Sql92Parser` builds now — `docs/syntax.md`'s constructions on every production of §6
 through §8, into the flat tree in `SqlSyntax.cs` — and `HandSqlTokens` builds the same
 tree, node for node. `Agree()` holds them to it: over all forty-two shapes the two
 answer the same *and* render identically (`SqlTree.cs`), so a difference in the numbers

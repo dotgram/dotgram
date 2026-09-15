@@ -45,8 +45,8 @@ static class EmittedCode
 	/// <summary>Nothing was wrong with the grammar: what it was merely told does not count.</summary>
 	/// <remarks>
 	/// <c>Info</c> is what the compiler offers rather than what it objects to — that a
-	/// carrier was refused (GRAM5007), that the tape is deferring what nothing needs
-	/// deferred (GRAM5008), that a stream was not available (§6.3). A test about whether a
+	/// carrier was refused (GRAM5007), which carrier the generator chose (GRAM5012), that a
+	/// stream was not available (§6.3). A test about whether a
 	/// grammar compiles is about everything else, and a test that asserted on the whole
 	/// list would break whenever the compiler learned to offer something new.
 	/// </remarks>
@@ -72,6 +72,8 @@ static class EmittedCode
 			[
 				CSharpSyntaxTree.ParseText(declaration, Floor),
 				CSharpSyntaxTree.ParseText(GramCompiler.EmitMarkerAttributes().Text, Floor),
+				// What the generator asks Roslyn for beside them, and a harness has to bring.
+				CSharpSyntaxTree.ParseText(SupportEmitter.EmbeddedAttribute, Floor),
 				CSharpSyntaxTree.ParseText(source, Floor),
 			],
 			References,

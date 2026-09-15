@@ -71,6 +71,9 @@ public sealed partial class GrammarNormalizer
 	/// <summary>A `when` that leaves different C# behind in different readings.</summary>
 	public const string ReadingsDisagree = "GRAM4024";
 
+	/// <summary>A bare <c>@Name</c> the parser cannot call as a recognizer.</summary>
+	public const string UnresolvedExternal = "GRAM4025";
+
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
 	readonly Dictionary<RuleSymbol, bool>                      _nullable    = [];

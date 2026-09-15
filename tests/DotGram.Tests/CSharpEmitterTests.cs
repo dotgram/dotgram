@@ -1013,6 +1013,60 @@ public sealed class CSharpEmitterTests
 		Assert.Equal(3 * 100 + 17, match.Value);
 	}
 
+	/// <summary>Terminals whose beginnings share a prefix, each ended by one parameterized rule.</summary>
+	/// <remarks>
+	/// <para>
+	/// A fence of three and a fence of four: the automaton tells `###` from `####` by the longest
+	/// match, as it tells any two tokens apart, and each is ended by the same rule specialized
+	/// for its own closing. What a raw string of C# is, with `#` for the quote and the braces for
+	/// its holes — which are what make the rest no regular language, so that a rule measures it.
+	/// </para>
+	/// <para>
+	/// Held against the question it answers: whether two beginnings where one is a prefix of the
+	/// other are refused as one string read two ways, and whether a rule called with arguments
+	/// can be what ends a terminal.
+	/// </para>
+	/// </remarks>
+	[Theory]
+	[InlineData("ab ### x ## y ### cd",    true,  "three, with two inside")]
+	[InlineData("ab #### x ### y #### cd", true,  "four, with three inside")]
+	[InlineData("ab ### {x ### {y}} ### cd", true, "a closing inside braces closes nothing")]
+	[InlineData("ab ### x #### cd",        false, "three ends at the first three, and the fourth is a token nothing reads")]
+	[InlineData("ab ### x cd",             false, "unclosed")]
+	public void Terminals_whose_beginnings_share_a_prefix_are_each_ended_by_their_own_rule(string input, bool expected, string what)
+	{
+		Assert.NotNull(what);
+
+		const string Grammar = """
+			using Lexical;
+
+			trivia = { ' '* }
+
+			namespace Lexical
+			{
+				trivia = none
+
+				Name         = ['a'..'z']+
+				Braces       = '{' & (Braces | [^ '{' | '}'])* & '}'
+				Fence(close) = (Braces | ?!close & any)* & close
+				Three        = "###" & Fence("###")
+				Four         = "####" & Fence("####")
+			}
+
+			Start = Name & (Three | Four) & Name
+			parse Start
+			""";
+
+		var emitted = EmitSplit(Grammar);
+
+		// Measured by the rule and not read by the automaton, or this is some other test.
+		Assert.Contains("Measure_", emitted, StringComparison.Ordinal);
+
+		Assert.Equal(
+			expected,
+			EmittedCode.Match(EmittedCode.Compile(emitted), "Grammar", "TryParseStart", input).IsSuccess);
+	}
+
 	/// <summary>A terminal that is nothing but <c>@M</c> is said to be asked at every token.</summary>
 	[Fact]
 	public void A_terminal_with_no_beginning_is_warned_about()
@@ -1199,7 +1253,7 @@ public sealed class CSharpEmitterTests
 	/// <summary>Over characters the window's edge is the end of the text.</summary>
 	/// <remarks>
 	/// On the shared automaton: a rule that reaches itself is not lowered, and a lowered one
-	/// gets no positional form at all (<c>GRAM5010</c>).
+	/// gets no positional form at all (§6.3).
 	/// </remarks>
 	[Fact]
 	public void Over_characters_a_window_ends_where_it_says()
@@ -2340,6 +2394,43 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("Recognize_DotGram_Right", source, StringComparison.Ordinal);
 	}
 
+	/// <summary>A publication of a rule named what the file calls one of its own machines.</summary>
+	/// <remarks>
+	/// A machine's tag names everything it writes, and the second read of a terminal's value is
+	/// tagged `_Value`. A grammar publishing a rule called `Value` in a machine of its own wrote
+	/// every name of that machine twice, and the file did not compile.
+	/// </remarks>
+	[Fact]
+	public void A_rule_named_value_is_published_beside_the_second_read()
+	{
+		var result = GramCompiler.Compile(
+			"""
+			using Lexical;
+
+			trivia = { ' '* }
+
+			namespace Lexical
+			{
+				trivia = none
+
+				Num : @int = t: ['0'..'9']+ => @(int.Parse(t))
+			}
+
+			Value : @int = n: Num => @(n + 1)
+			Other : @int = n: Num => @(n * 2)
+			parse Value
+			parse Other
+			""",
+			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = true });
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		var parser = EmittedCode.Compile(Assert.Single(result.Sources).Text);
+
+		Assert.Equal(13, EmittedCode.Match(parser, "Grammar", "TryParseValue", "12").Value);
+		Assert.Equal(24, EmittedCode.Match(parser, "Grammar", "TryParseOther", "12").Value);
+	}
+
 	const string Nested = """
 		Outer = '[' & Inner & ']' | Inner
 		Inner = ['0'..'9']+ | '(' & Inner & ')'
@@ -2365,6 +2456,38 @@ public sealed class CSharpEmitterTests
 		Assert.True(Invoke(Nested, "ParseOuter", "[(2)]").Matched);
 		Assert.True(Invoke(Nested, "ParseInner", "((1))").Matched);
 		Assert.False(Invoke(Nested, "ParseInner", "[1]").Matched);
+	}
+
+	/// <summary>A directive says who may call what it makes, and every method it makes is declared so.</summary>
+	/// <remarks>
+	/// Every one and not the principal pair: the overloads taking a position and a window are
+	/// the same entry, and one left public beside a private pair is what the modifier is for.
+	/// </remarks>
+	[Fact]
+	public void A_directive_declares_its_methods_as_it_says()
+	{
+		var parser = EmittedCode.Compile(Emit("""
+			Outer = '[' & Inner & ']' | Inner
+			Inner = ['0'..'9']+ | '(' & Inner & ')'
+			internal parse Outer
+			private parse Inner
+			find Inner as AllInner
+			"""));
+
+		const BindingFlags Everything = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
+
+		var methods = parser.GetType("Grammar")!.GetMethods(Everything);
+
+		MethodInfo[] Named(params string[] names) => [.. methods.Where(method => names.Contains(method.Name))];
+
+		var outer = Named("ParseOuter", "TryParseOuter");
+		var inner = Named("ParseInner", "TryParseInner");
+
+		Assert.True(outer.Length >= 3, "the whole form, a position and a window");
+		Assert.True(inner.Length >= 3, "the whole form, a position and a window");
+		Assert.All(outer, method => Assert.True(method.IsAssembly, method.ToString()));
+		Assert.All(inner, method => Assert.True(method.IsPrivate, method.ToString()));
+		Assert.All(Named("AllInner"), method => Assert.True(method.IsPublic, method.ToString()));
 	}
 
 	const string NestedNames = """

@@ -32,10 +32,10 @@ public static partial class ExpressionParser
 	/// `nameof(s.Length)` is "Length" and `nameof(x)` is "x": C# answers with the name and
 	/// not with the path to it, and the path is what the parts before the last one are.
 	/// </remarks>
-	public static string Last(string head, string[]? tail) =>
+	internal static string Last(string head, string[]? tail) =>
 		tail is { Length: > 0 } ? tail[tail.Length - 1] : head;
 
-	public static string Dotted(string head, string[]? tail) =>
+	internal static string Dotted(string head, string[]? tail) =>
 		tail is null || tail.Length == 0 ? head : head + "." + string.Join(".", tail);
 
 	/// <summary>A dotted name within a namespace as a type, or null where it is none.</summary>

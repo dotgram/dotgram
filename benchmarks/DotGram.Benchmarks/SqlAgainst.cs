@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.Standard;
 
 namespace DotGram.Benchmarks;
 
@@ -161,7 +162,7 @@ static class SqlAgainst
 	/// </remarks>
 	static readonly (string Name, Func<string, int> Measure)[] Methods =
 	[
-		("generated", static input => SqlStandard92.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
+		("generated", static input => Sql92Parser.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
 		("immediate", static input => ImmediateSql.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
 		("mixed",     static input => MixedSql.TryParseSearchCondition(input).IsSuccess ? 1 : 0),
 		("by hand",   static input => HandSqlTokens.Parse(input) ? 1 : 0),
@@ -180,7 +181,7 @@ static class SqlAgainst
 
 		foreach (var text in Corpus.Concat(Inputs))
 		{
-			var made      = SqlStandard92.TryParseSearchCondition(text);
+			var made      = Sql92Parser.TryParseSearchCondition(text);
 			var built     = HandSqlTokens.Build(text);
 			var generated = made.IsSuccess;
 			var handed    = built is not null;
@@ -294,7 +295,7 @@ static class SqlAgainst
 
 			var measures = new Func<string, int>[]
 			{
-				static one => SqlStandard92.TryParseSearchCondition(one).IsSuccess ? 1 : 0,
+				static one => Sql92Parser.TryParseSearchCondition(one).IsSuccess ? 1 : 0,
 				static one => HandSqlTokens.LexOnly(one),
 			};
 

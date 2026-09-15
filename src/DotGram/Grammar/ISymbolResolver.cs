@@ -79,6 +79,19 @@ public interface ISymbolResolver
 	/// exists to find out.
 	/// </param>
 	ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType);
+
+	/// <summary>
+	/// Whether a C# method a grammar names can be called the way its position calls it: a bare
+	/// <c>@Name</c> operand as a recognizer, §7.1's second row or its third, and an
+	/// <c>[@Name]</c> in an element set as a predicate over one character, its first.
+	/// </summary>
+	/// <remarks>
+	/// Asked so that a method missing or of another shape is said about the grammar, where it
+	/// was written, and not by the C# compiler about a call in a file the author never wrote.
+	/// A no fails the build, so a resolver that cannot be sure answers
+	/// <see cref="ExternalMethodResolution.Found"/>.
+	/// </remarks>
+	ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role);
 }
 
 /// <summary>What asking about an external recognizer's value overload found.</summary>
@@ -95,6 +108,29 @@ public enum ExternalValueResolution
 
 	/// <summary>More than one, with different <c>T</c>. Left as a tie.</summary>
 	Ambiguous,
+}
+
+/// <summary>How a grammar calls a C# method it names, which its position says (§7.1).</summary>
+public enum ExternalMethodRole
+{
+	/// <summary>A bare <c>@Name</c> operand: <c>bool M(ReadOnlySpan&lt;char&gt; input, ref int pos)</c>, with or without <c>out T value</c>.</summary>
+	Recognizer,
+
+	/// <summary>An <c>[@Name]</c> in an element set: <c>bool M(char c)</c>.</summary>
+	Predicate,
+}
+
+/// <summary>What asking whether a C# method can be called in its role found.</summary>
+public enum ExternalMethodResolution
+{
+	/// <summary>It can — or nothing says for certain that it cannot.</summary>
+	Found,
+
+	/// <summary>No method of that name anywhere the call could reach.</summary>
+	NoMethod,
+
+	/// <summary>Methods of that name, and none of them one the parser can call in that role.</summary>
+	NoOverload,
 }
 
 /// <summary>A property an object initializer may write.</summary>
@@ -151,4 +187,11 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 
 		return ExternalValueResolution.NotFound;
 	}
+
+	/// <remarks>
+	/// Yes, unlike the answers above: here a no is an error, and a grammar tested without a host
+	/// names methods that are nowhere.
+	/// </remarks>
+	public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role) =>
+		ExternalMethodResolution.Found;
 }

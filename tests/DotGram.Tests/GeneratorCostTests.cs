@@ -41,9 +41,21 @@ namespace DotGram.Tests;
 /// This is a report and not an assertion: it passes as long as the pipeline runs, and what
 /// it is for is that a change to any stage moves a number somebody is looking at.
 /// </para>
+/// <para>
+/// <b>Run alone.</b> Every run begins with a full, blocking collection, and a collection
+/// stops the whole process rather than this test. Beside the tests that compile every
+/// grammar in the repository the heap is gigabytes, and nine hundred such collections
+/// held the suite for twenty-five minutes — while the numbers taken between them measured
+/// the neighbours as much as the generator.
+/// </para>
 /// </remarks>
+[Collection(typeof(Alone))]
 public sealed class GeneratorCostTests(Xunit.ITestOutputHelper output)
 {
+	/// <summary>The collection xunit runs after every parallel one, with nothing beside it.</summary>
+	[CollectionDefinition(DisableParallelization = true)]
+	public sealed class Alone;
+
 	const int Runs = 9;
 
 	[Fact]
@@ -172,19 +184,19 @@ public sealed class GeneratorCostTests(Xunit.ITestOutputHelper output)
 	/// with <c>[GramInclude]</c>, so compiled from the file alone it is five hundred
 	/// unresolved names and nothing is emitted — a row measuring a compilation that stopped,
 	/// beside rows measuring compilations that finished. What it costs in place is what the
-	/// build of <c>DotGram.Parsers</c> costs, and that is a different measurement.
+	/// build of <c>DotGram.Sql</c> costs, and that is a different measurement.
 	/// </remarks>
 	static (string Name, string Text)[] Grammars() =>
 	[
-		("SqlStandard92.gram", File.ReadAllText(Path.Combine(Parsers, "Sql", "Standard", "SqlStandard92.gram"))),
-		("SqlStandard92.gram, whole", File.ReadAllText(Path.Combine(Parsers, "Sql", "Standard", "SqlStandard92.gram"))),
+		("SqlStandard92.gram", File.ReadAllText(Path.Combine(Sql, "Standard", "SqlStandard92.gram"))),
+		("SqlStandard92.gram, whole", File.ReadAllText(Path.Combine(Sql, "Standard", "SqlStandard92.gram"))),
 		.. Directory
 			.GetFiles(Snapshots, "*.gram")
 			.Select(path => (Path.GetFileName(path), File.ReadAllText(path))),
 	];
 
-	static string Parsers =>
-		Path.Combine(Root, "src", "DotGram.Parsers");
+	static string Sql =>
+		Path.Combine(Root, "src", "DotGram.Sql");
 
 	static string Snapshots =>
 		Path.Combine(Root, "tests", "Snapshots");

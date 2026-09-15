@@ -1,11 +1,12 @@
 ﻿using System;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.Standard;
 
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// <see cref="SqlStandard92"/>'s grammar compiled with the mixed carrier: the same file,
+/// <see cref="Sql92Parser"/>'s grammar compiled with the mixed carrier: the same file,
 /// the same tree, and every construction run after the parse is accepted as the tape runs
 /// them — over a typed shape per rule rather than over a log.
 /// </summary>

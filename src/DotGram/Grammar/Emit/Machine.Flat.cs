@@ -14,9 +14,11 @@ namespace DotGram.Grammar.Emit;
 /// <remarks>
 /// Reuses <see cref="Machine.Compile"/> and <see cref="Machine.PlanLayout"/> completely
 /// unchanged — this is a different rendering of the same states, not a second compiler.
-/// Safe only because the caller (<c>CSharpEmitter.Emit</c>) only reaches here when every
-/// publication in the grammar is <see cref="Machine.CanLower"/>-eligible: this method
-/// mutates <c>_roots</c> and re-runs layout for its own entry alone, which would corrupt
+/// Safe only because the caller (<c>CSharpEmitter.Emit</c>) reaches here for one machine at
+/// a time, and only when every publication of that machine can lower
+/// (<see cref="Machine.CanLower"/> or <c>CanLowerValued</c>) and nothing it reaches
+/// recovers, climbs or streams; what the grammar's other machines need is theirs. This
+/// method mutates <c>_roots</c> and re-runs layout for its own entry alone, which would corrupt
 /// <see cref="Machine.RenderEngine"/>'s output if the two were ever asked of the same
 /// instance. See docs/next.md, "Future optimization gate" — this is the lever it names.
 /// </remarks>

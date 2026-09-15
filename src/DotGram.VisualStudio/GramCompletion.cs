@@ -71,7 +71,7 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 	[
 		"any", "none", "eol", "eof", "trivia", "wordboundary",
 		"using", "namespace", "parse", "find", "as", "when", "recover", "with",
-		"on", "fail",
+		"on", "fail", "public", "internal", "private",
 		"is", "not", "and", "or",
 		"context", "state",
 	];

@@ -2,7 +2,8 @@
 using System.Diagnostics;
 using System.Linq;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.Standard;
 
 namespace DotGram.Benchmarks;
 
@@ -87,9 +88,9 @@ static class SqlSlope
 				{
 					HandSqlTokens.Build(input);
 					HandSqlTokens.LexOnly(input);
-					SqlStandard92.TryParseSearchCondition(input);
+					Sql92Parser.TryParseSearchCondition(input);
 					ImmediateSql.TryParseSearchCondition(input);
-					SqlStandard92.TryParseSearchCondition(")" + input);
+					Sql92Parser.TryParseSearchCondition(")" + input);
 				}
 			}
 
@@ -97,7 +98,7 @@ static class SqlSlope
 		{
 			var input = Input(term, Few);
 
-			if (HandSqlTokens.Build(input) is null || !SqlStandard92.TryParseSearchCondition(input).IsSuccess)
+			if (HandSqlTokens.Build(input) is null || !Sql92Parser.TryParseSearchCondition(input).IsSuccess)
 				Console.WriteLine($"!! {name} is not read");
 		}
 
@@ -135,10 +136,10 @@ static class SqlSlope
 		var refused = ")" + input;
 
 		return (Median(parses, () => HandSqlTokens.Build(input)),
-		        Median(parses, () => SqlStandard92.TryParseSearchCondition(input)),
+		        Median(parses, () => Sql92Parser.TryParseSearchCondition(input)),
 		        Median(parses, () => ImmediateSql.TryParseSearchCondition(input)),
 		        Median(parses, () => HandSqlTokens.LexOnly(input)),
-		        Median(parses, () => SqlStandard92.TryParseSearchCondition(refused)));
+		        Median(parses, () => Sql92Parser.TryParseSearchCondition(refused)));
 	}
 
 	static string Input(string term, int terms) =>

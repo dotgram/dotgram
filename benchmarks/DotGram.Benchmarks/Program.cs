@@ -2,7 +2,8 @@
 
 using BenchmarkDotNet.Running;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.Standard;
 
 namespace DotGram.Benchmarks;
 
@@ -75,7 +76,7 @@ static class Program
 
 				foreach (var (name, what) in new (string Name, Func<string, bool> What)[]
 				{
-					("generated", static one => SqlStandard92.TryParseSearchCondition(one).IsSuccess),
+					("generated", static one => Sql92Parser.TryParseSearchCondition(one).IsSuccess),
 					("by hand",   static one => HandSqlTokens.Parse(one)),
 				})
 				{
@@ -157,7 +158,7 @@ static class Program
 				for (var i = 0; i < 2000; i++)
 					read += byHand  ? HandSqlTokens.Parse(text) ? 1 : 0 :
 					        immediately ? ImmediateSql.TryParseSearchCondition(text).IsSuccess ? 1 : 0 :
-					                  SqlStandard92.TryParseSearchCondition(text).IsSuccess ? 1 : 0;
+					                  Sql92Parser.TryParseSearchCondition(text).IsSuccess ? 1 : 0;
 
 			Console.WriteLine($"{read:N0} parses of \"{text}\"");
 
@@ -228,6 +229,26 @@ static class Program
 		// list with an authority behind it, a defect here where this reads what the engine
 		// will not, and a finding about ScriptDom where it reads what the engine will not.
 		// Needs a server on the machine, and says so where there is none. See Engine.cs.
+		// `--standard production [file]` puts each line of a file to the ISO BNF of SQL:2023, read by
+		// an Earley recognizer: the standard's authority, as `--engine` is T-SQL's. See Standard.cs
+		// and StandardOracle.cs. `~production` instead writes each tree the grammar builds with
+		// Sql2023Writer and reads it back, which is the writer's oracle.
+		if (args.Length >= 2 && args[0] == "--standard")
+		{
+			Standard.Run(args[1], args.Length > 2 ? args[2] : null);
+
+			return;
+		}
+
+		// `--bnf-gram [file]` writes the same BNF as a `.gram` skeleton — every production under its
+		// own name — for the standard's grammar to be written from. See BnfGram.cs.
+		if (args.Length >= 1 && args[0] == "--bnf-gram")
+		{
+			BnfGram.Run(args.Length > 1 ? args[1] : null);
+
+			return;
+		}
+
 		// `--levels [path] [shown]` asks every compatibility level from 100 to 170 about every
 		// statement and keeps the ones whose answer moves: what a level gates on a server
 		// that has one parser. See CompatibilityLevels.cs.

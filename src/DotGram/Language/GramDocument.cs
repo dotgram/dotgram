@@ -160,6 +160,7 @@ public static class GramLanguageService
 		var givesBackMarkers = GivesBackMarkers(parsed.File.Decls, tokens.Tokens);
 		var contextualKeywords = ConditionKeywordPositions(parsed.File.Decls, tokens.Tokens);
 		contextualKeywords.UnionWith(OnFailKeywordPositions(parsed.File.Decls, tokens.Tokens));
+		contextualKeywords.UnionWith(PublicationAccessKeywordPositions(parsed.File.Decls, tokens.Tokens));
 
 		foreach (var token in tokens.Tokens)
 			if (TryClassify(token, contextualKeywords, out var kind))
@@ -321,6 +322,34 @@ public static class GramLanguageService
 								result.Add(tokens[index + 1].Position);
 								break;
 							}
+						break;
+					case Decl.Namespace @namespace:
+						Collect(@namespace.Decls);
+						break;
+				}
+		}
+	}
+
+	static HashSet<int> PublicationAccessKeywordPositions(
+		IReadOnlyList<Decl> declarations,
+		IReadOnlyList<Token> tokens)
+	{
+		var result = new HashSet<int>();
+		Collect(declarations);
+		return result;
+
+		void Collect(IReadOnlyList<Decl> items)
+		{
+			foreach (var declaration in items)
+				switch (declaration)
+				{
+					case Decl.Publish publication:
+						var token = tokens.FirstOrDefault(candidate =>
+							candidate.Position == publication.At.Position &&
+							candidate.Kind == TokenKind.Identifier &&
+							candidate.Value is "public" or "internal" or "private");
+						if (token.Length > 0)
+							result.Add(token.Position);
 						break;
 					case Decl.Namespace @namespace:
 						Collect(@namespace.Decls);

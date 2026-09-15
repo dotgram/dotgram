@@ -69,6 +69,7 @@ public static class LexerEmitter
 		Tag = tag;
 		Bounds.Clear();
 		Named.Clear();
+		Fields.Clear();
 		Low.Clear();
 		Lows.Clear();
 		Edges.Clear();
@@ -208,6 +209,14 @@ public static class LexerEmitter
 
 	static List<string>            Bounds => _bounds ??= [];
 	static Dictionary<string, int> Named  => _named  ??= [];
+
+	// What `Field` has already declared, by the bits themselves, and the bits it is filling
+	// in now — so that a field already there is found without being printed first.
+	[ThreadStatic] static Dictionary<byte[], int>? _fields;
+	[ThreadStatic] static byte[]?                  _filling;
+
+	static Dictionary<byte[], int> Fields  => _fields  ??= new(SameBytes.Instance);
+	static byte[]                  Filling => _filling ??= new byte[8192];
 	static List<string>            Low    => _low    ??= [];
 	static Dictionary<string, int> Lows   => _lows   ??= [];
 	static List<string>            Edges  => _edges  ??= [];
@@ -371,7 +380,7 @@ public static class LexerEmitter
 			text.Line($"static readonly byte[] Scan{tag}_Class =");
 
 			using (text.Braces("", ";"))
-				Numbers(text, [.. classes.Select(one => (int)one)]);
+				Numbers(text, classes);
 
 			text.Line();
 		}
@@ -461,9 +470,10 @@ public static class LexerEmitter
 		// and the characters that *end* a token — the space, the comma, the operator — are
 		// all below 128 in every language there is, so a window that begins part way up
 		// ASCII is never the right answer: it buys Latin-1 letters and sells the space.
-		var best = (Low: 0, Ways: 0L, Chars: 0);
+		var best  = (Low: 0, Ways: 0L, Chars: 0);
+		var ranks = Ranked.Of(ways);
 
-		Weigh(ref best, ways, 0);
+		Weigh(ref best, ranks, 0);
 
 		foreach (var start in ways
 			.SelectMany(way => way.On)
@@ -471,10 +481,80 @@ public static class LexerEmitter
 			.Where(from => from >= Reach)
 			.Distinct())
 		{
-			Weigh(ref best, ways, start);
+			Weigh(ref best, ranks, start);
 		}
 
 		return best.Ways == 0 ? -1 : best.Low;
+	}
+
+	/// <summary>
+	/// Every range of every way out, in one list ordered by where it begins.
+	/// </summary>
+	/// <remarks>
+	/// A state over <c>\p{L}</c> has hundreds of ranges and as many candidate windows, and
+	/// weighing each candidate against every range was the most expensive thing the lexer's
+	/// emitter did. In order, a window only has to look at the ranges that reach it: they
+	/// start at the first one that ends inside or past it and stop at the first one that
+	/// begins past its top. Where the ranges are disjoint — which ways out of a deterministic
+	/// state always are — the first of them is a binary search; where they are not, the walk
+	/// starts at the beginning and reads the same ranges.
+	/// </remarks>
+	sealed class Ranked
+	{
+		public int[] From = [];
+		public int[] To   = [];
+		public int[] Way  = [];
+		public bool Disjoint;
+
+		public static Ranked Of(IReadOnlyList<(IReadOnlyList<CharRange> On, int To)> ways)
+		{
+			var all = new List<(int From, int To, int Way)>();
+
+			for (var at = 0; at < ways.Count; at++)
+				foreach (var range in ways[at].On)
+					all.Add((range.From, range.To, at));
+
+			all.Sort(static (a, b) => a.From.CompareTo(b.From));
+
+			var ranked = new Ranked
+			{
+				From     = new int[all.Count],
+				To       = new int[all.Count],
+				Way      = new int[all.Count],
+				Disjoint = true,
+			};
+
+			for (var i = 0; i < all.Count; i++)
+			{
+				(ranked.From[i], ranked.To[i], ranked.Way[i]) = all[i];
+
+				if (i > 0 && all[i].From <= all[i - 1].To)
+					ranked.Disjoint = false;
+			}
+
+			return ranked;
+		}
+
+		/// <summary>The first range that could reach a window beginning at <paramref name="low"/>.</summary>
+		public int FirstReaching(int low)
+		{
+			if (!Disjoint)
+				return 0;
+
+			int lo = 0, hi = To.Length;
+
+			while (lo < hi)
+			{
+				var mid = (lo + hi) >> 1;
+
+				if (To[mid] < low)
+					lo = mid + 1;
+				else
+					hi = mid;
+			}
+
+			return lo;
+		}
 	}
 
 	/// <summary>One candidate window, scored and kept if it is the best so far.</summary>
@@ -497,7 +577,7 @@ public static class LexerEmitter
 	/// </remarks>
 	static void Weigh(
 		ref (int Low, long Ways, int Chars) best,
-		IReadOnlyList<(IReadOnlyList<CharRange> On, int To)> ways,
+		Ranked ways,
 		int low)
 	{
 		var high  = low + Reach - 1;
@@ -506,29 +586,22 @@ public static class LexerEmitter
 		var least = int.MaxValue;
 		var most  = -1;
 
-		for (var at = 0; at < ways.Count; at++)
+		for (var i = ways.FirstReaching(low); i < ways.From.Length && ways.From[i] <= high; i++)
 		{
-			var inside = false;
+			var from = Math.Max(ways.From[i], low);
+			var to   = Math.Min(ways.To[i], high);
 
-			foreach (var range in ways[at].On)
-			{
-				var from = Math.Max((int)range.From, low);
-				var to   = Math.Min((int)range.To, high);
+			if (from > to)
+				continue;
 
-				if (from > to)
-					continue;
-
-				inside = true;
-				held  += to - from + 1;
-				least  = Math.Min(least, from);
-				most   = Math.Max(most, to);
-			}
+			held  += to - from + 1;
+			least  = Math.Min(least, from);
+			most   = Math.Max(most, to);
 
 			// Sixty-four ways out is more than any state here has, and a state with more
 			// simply shares one bit between two of them — which costs a worse window and
 			// never a wrong one.
-			if (inside)
-				taken |= 1L << (at & 63);
+			taken |= 1L << (ways.Way[i] & 63);
 		}
 
 		if (taken == 0)
@@ -571,23 +644,81 @@ public static class LexerEmitter
 		return many;
 	}
 
-	static void Numbers<T>(Writer text, IReadOnlyList<T> values)
+	// A table's numbers, a row of them to a line. One overload per element type the tables
+	// have, each written straight into the file: these run to hundreds of thousands of
+	// numbers, and a builder per line, a boxed value per number and two strings per line to
+	// trim it was work for nothing.
+
+	static void Numbers(Writer text, byte[] values)
 	{
-		var line = new StringBuilder("	");
+		var row = new Row(text);
 
 		foreach (var value in values)
+			row.Add(value);
+
+		row.End();
+	}
+
+	static void Numbers(Writer text, List<int> values)
+	{
+		var row = new Row(text);
+
+		foreach (var value in values)
+			row.Add(value);
+
+		row.End();
+	}
+
+	static void Numbers(Writer text, List<long> values)
+	{
+		var row = new Row(text);
+
+		foreach (var value in values)
+			row.Add(value);
+
+		row.End();
+	}
+
+	/// <summary>
+	/// A line of numbers being written: a tab in, <c>1, 2, 3,</c>, and a new line once the line
+	/// with its separator would reach 92 characters.
+	/// </summary>
+	struct Row(Writer text)
+	{
+		StringBuilder? _line;
+		int            _width;
+
+		public void Add(long value)
 		{
-			line.Append(value).Append(", ");
+			if (_line is null)
+			{
+				_line  = text.OpenLine().Append('	');
+				_width = 1;
+			}
+			else
+			{
+				_line.Append(' ');
+			}
 
-			if (line.Length < 92)
-				continue;
+			var before = _line.Length;
 
-			text.Line(line.ToString().TrimEnd());
-			line.Clear().Append('	');
+			_line.Append(value).Append(',');
+
+			// Counted with the space that follows, as the line was measured when it carried one.
+			_width += _line.Length - before + 1;
+
+			if (_width >= 92)
+				End();
 		}
 
-		if (line.Length > 1)
-			text.Line(line.ToString().TrimEnd());
+		public void End()
+		{
+			if (_line is null)
+				return;
+
+			text.CloseLine();
+			_line = null;
+		}
 	}
 
 	/// <summary>
@@ -1201,21 +1332,62 @@ public static class LexerEmitter
 	/// </remarks>
 	static int Field(IReadOnlyList<CharRange> ranges)
 	{
-		var bits = new byte[8192];
+		var bits = Filling;
 
-		foreach (var range in ranges)
-			for (var c = (int)range.From; c <= range.To; c++)
+		Array.Clear(bits, 0, bits.Length);
+
+		for (var i = 0; i < ranges.Count; i++)
+			for (var c = (int)ranges[i].From; c <= ranges[i].To; c++)
 				bits[c >> 3] |= (byte)(1 << (c & 7));
+
+		// Nearly every field asked for is one already declared. Printed, eight thousand bytes
+		// are eight thousand strings and one of twenty-odd kilobytes, and that was paid to be
+		// told so; the bits say it without any of that.
+		if (Fields.TryGetValue(bits, out var at))
+			return at;
 
 		var text = string.Join(",", bits);
 
-		if (!Named.TryGetValue(text, out var at))
+		if (!Named.TryGetValue(text, out at))
 		{
 			Named[text] = at = Bounds.Count;
 			Bounds.Add(text);
 		}
 
+		Fields[(byte[])bits.Clone()] = at;
+
 		return at;
+	}
+
+	/// <summary>Two runs of bytes are the same when every byte is.</summary>
+	sealed class SameBytes : IEqualityComparer<byte[]>
+	{
+		public static readonly SameBytes Instance = new();
+
+		public bool Equals(byte[]? left, byte[]? right)
+		{
+			if (ReferenceEquals(left, right))
+				return true;
+
+			if (left is null || right is null || left.Length != right.Length)
+				return false;
+
+			for (var i = 0; i < left.Length; i++)
+				if (left[i] != right[i])
+					return false;
+
+			return true;
+		}
+
+		public int GetHashCode(byte[] bytes)
+		{
+			var hash = unchecked((int)2166136261);
+
+			foreach (var one in bytes)
+				hash = (hash ^ one) * 16777619;
+
+			return hash;
+		}
 	}
 
 	/// <summary>The smallest writer that will do, so this file owes the emitter nothing.</summary>
@@ -1224,17 +1396,29 @@ public static class LexerEmitter
 		readonly StringBuilder _text = new();
 		int _depth;
 
+		/// <summary>What a line loses from its end — one array, where `TrimEnd(' ', '\t')` makes one a call.</summary>
+		static readonly char[] Blanks = [' ', '\t'];
+
 		public void Line(string line = "")
 		{
 			// As the emitter's own writer does: nothing ends in whitespace, and a blank line
 			// is an ending rather than an indentation followed by one.
-			line = line.TrimEnd(' ', '\t');
+			line = line.TrimEnd(Blanks);
 
 			if (line.Length > 0)
 				_text.Append('\t', _depth);
 
 			_text.Append(line).Append("\r\n");
 		}
+
+		/// <summary>
+		/// A line to write into directly, its indentation already there; <see cref="CloseLine"/>
+		/// ends it. Nothing written here may end in whitespace, and an opened line is not left empty.
+		/// </summary>
+		public StringBuilder OpenLine() => _text.Append('\t', _depth);
+
+		/// <summary>Ends a line <see cref="OpenLine"/> began.</summary>
+		public void CloseLine() => _text.Append("\r\n");
 
 		public IDisposable Indent() => new Block(this, null, null);
 

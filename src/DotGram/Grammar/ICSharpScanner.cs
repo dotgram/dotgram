@@ -54,4 +54,21 @@ public interface ICSharpScanner
 	/// </para>
 	/// </remarks>
 	IReadOnlyCollection<string>? FreeNames(string expression);
+
+	/// <summary>
+	/// The expression with some of its free names spelled otherwise.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Free in exactly the sense of <see cref="FreeNames"/>: a name after a dot, inside a
+	/// literal or introduced by a lambda in the expression is left as it is, whatever it is
+	/// spelled. Only the names are replaced, so everything else in the text — its spacing,
+	/// its comments — comes back as it was written.
+	/// </para>
+	/// <para>
+	/// Null where the scanner cannot parse the expression, and then the caller keeps the text
+	/// it has.
+	/// </para>
+	/// </remarks>
+	string? Renamed(string expression, IReadOnlyDictionary<string, string> names);
 }

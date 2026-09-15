@@ -3,7 +3,8 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Diagnosers;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.Standard;
 
 namespace DotGram.Benchmarks;
 
@@ -45,7 +46,7 @@ public class SqlCounters
 	public bool Immediate() => ImmediateSql.TryParseSearchCondition(Long).IsSuccess;
 
 	[Benchmark]
-	public bool Tape() => SqlStandard92.TryParseSearchCondition(Long).IsSuccess;
+	public bool Tape() => Sql92Parser.TryParseSearchCondition(Long).IsSuccess;
 
 	/// <summary>The lexer alone, to take it off all three.</summary>
 	[Benchmark]

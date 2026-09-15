@@ -54,6 +54,7 @@ Record-oriented input, four ways, over one line-oriented format.
 | [`FilterExample.cs`](DotGram.Examples/Languages/FilterExample.cs) | the filter language an API puts in a query string — binding powers, and a tree |
 | [`SelectorExample.cs`](DotGram.Examples/Languages/SelectorExample.cs) | `orders[2].lines.total(net)` read as the chain of steps it is |
 | [`SqlReadOnlyExample.cs`](DotGram.Examples/Languages/SqlReadOnlyExample.cs) | a guard that answers one question: can this statement write anything? |
+| [`SqlDialectExample.cs`](DotGram.Examples/Languages/SqlDialectExample.cs) | one grammar, three parsers — an old dialect, a new one, and one that reads both: `when Version is …` and `parse … with (Version = …)` |
 | [`GramExample.cs`](DotGram.Examples/Languages/GramExample.cs) | the .Gram notation parsed by .Gram itself, building a tree |
 | [`TokenizedQueryExample.cs`](DotGram.Examples/Languages/TokenizedQueryExample.cs) | a query read over tokens — `Lexical = true`, a lexer under the rules, and keywords that end where a word does |
 | [`LexemeLibraryExample.cs`](DotGram.Examples/Languages/LexemeLibraryExample.cs) | one grammar written to be built on and two written on it — `[GramInclude]`, and why the names cannot collide |

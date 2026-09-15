@@ -414,7 +414,25 @@ sealed partial class Machine
 	/// asks for the text or the span, or a terminal the lexer measured and a machine of
 	/// its own rereads. Where none does, the two loads are not made.
 	/// </summary>
+	/// <remarks>
+	/// Asked again by every method the reader writes, and always of the same rules, so the
+	/// last answer is kept with the list it was given for.
+	/// </remarks>
 	public bool DirectPositions(IReadOnlyList<RuleSymbol> rules)
+	{
+		if (!ReferenceEquals(_positionsAskedOf, rules))
+		{
+			_positionsAnswer  = Positions(rules);
+			_positionsAskedOf = rules;
+		}
+
+		return _positionsAnswer;
+	}
+
+	IReadOnlyList<RuleSymbol>? _positionsAskedOf;
+	bool                       _positionsAnswer;
+
+	bool Positions(IReadOnlyList<RuleSymbol> rules)
 	{
 		foreach (var rule in rules)
 		{

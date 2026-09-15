@@ -9,7 +9,8 @@
 
 [![build](https://github.com/dotgram/dotgram/actions/workflows/build.yml/badge.svg)](https://github.com/dotgram/dotgram/actions/workflows/build.yml)
 [![DotGram on NuGet](https://img.shields.io/nuget/v/DotGram?label=DotGram&logo=nuget)](https://www.nuget.org/packages/DotGram)
-[![DotGram.Parsers on NuGet](https://img.shields.io/nuget/v/DotGram.Parsers?label=DotGram.Parsers&logo=nuget)](https://www.nuget.org/packages/DotGram.Parsers)
+[![DotGram.Sql on NuGet](https://img.shields.io/nuget/v/DotGram.Sql?label=DotGram.Sql&logo=nuget)](https://www.nuget.org/packages/DotGram.Sql)
+[![DotGram.Web on NuGet](https://img.shields.io/nuget/v/DotGram.Web?label=DotGram.Web&logo=nuget)](https://www.nuget.org/packages/DotGram.Web)
 [![DotGram.ExpressionLanguage on NuGet](https://img.shields.io/nuget/v/DotGram.ExpressionLanguage?label=DotGram.ExpressionLanguage&logo=nuget)](https://www.nuget.org/packages/DotGram.ExpressionLanguage)
 [![NuGet downloads](https://img.shields.io/nuget/dt/DotGram?logo=nuget)](https://www.nuget.org/packages/DotGram)
 [![.NET Standard 2.0](https://img.shields.io/badge/.NET%20Standard-2.0-512BD4?logo=dotnet)](#compatibility)
@@ -197,9 +198,9 @@ A grammar long enough to want its own place goes in a `.gram` file instead.
 At the other end of the scale the same notation reads T-SQL. The grammars are far too long
 to quote here, so this is where to read them:
 
-* [`TransactSql.gram`](src/DotGram.Parsers/Sql/TransactSql/TransactSql.gram) — T-SQL in
-  over 600 rules, written from Microsoft's published syntax, which is kept beside it in
-  [`Specification/syntax.md`](src/DotGram.Parsers/Sql/TransactSql/Specification/syntax.md).
+* [`TransactSql.gram`](src/DotGram.Sql/TransactSql/TransactSql.gram) — T-SQL in
+  over 1,000 rules, written from Microsoft's published syntax, which is kept beside it in
+  [`Specification/syntax.md`](src/DotGram.Sql/TransactSql/Specification/syntax.md).
   It reads over tokens rather than characters, builds a tree of records, and has a parser
   for each SQL Server compatibility level from one grammar
   ([Versions of one language](#versions-of-one-language)). Held against Microsoft's own
@@ -210,7 +211,7 @@ to quote here, so this is where to read them:
   C# they call. It builds `System.Linq.Expressions` trees directly: C#'s operators and
   literals, locals, blocks, loops, `switch` and `try`, members, calls and `new`.
 
-How to call them is under [DotGram.Parsers](#dotgramparsers) and
+How to call them is under [DotGram.Sql](#dotgramsql) and
 [DotGram.ExpressionLanguage](#dotgramexpressionlanguage).
 
 ## Versions of one language
@@ -270,7 +271,7 @@ Removal is the part a chain of dialects cannot say: each grammar in a chain adds
 below it, so `*=` would have nowhere to be taken out. Here it is one alternative with a
 condition on it.
 
-[`TransactSql`](src/DotGram.Parsers/Sql/TransactSql/TransactSql.gram) reads SQL Server's
+[`TransactSql`](src/DotGram.Sql/TransactSql/TransactSql.gram) reads SQL Server's
 compatibility levels this way — `ParseStatement100` to `ParseStatement170` from one grammar,
 and `ParseStatement` for all of them — with a condition only on what the engine answers
 differently from one level to the next.
@@ -373,9 +374,9 @@ the end. That grammar, over a feed made a line at a time:
 | 40,000,002 | 1.41 GiB | 12.9 s | 37.8 MiB | 83.0 MiB |
 | 600,000,002 | 21.17 GiB | 198.1 s | 48.3 MiB | 78.2 MiB |
 
-Fifteen times the input, and the process was 4.8 MiB smaller at the end of it. A streamed
-parse holds its window and the record in hand; the file is not in the figure.
-[`benchmarks/README.md`](benchmarks/README.md) has the run and what the sampled column
+Fifteen times the input leaves the working set no larger. A streamed parse holds its window
+and the record in hand; the file is not in the figure.
+[`benchmarks/README.md`](benchmarks/README.md) has the method and what the sampled column
 means.
 
 Record-oriented formats can also recover after malformed input:
@@ -458,28 +459,58 @@ own are different rules and cannot collide by accident.
 The include crosses a project reference, which is what makes a grammar a library. What
 travels is the grammar rather than a parser: the including assembly generates its own from
 it, under its own substitutions.
-[`TransactSql`](src/DotGram.Parsers/Sql/TransactSql/TransactSql.gram) is built that way on
-[`SqlStandard92`](src/DotGram.Parsers/Sql/Standard/SqlStandard92.gram) — a dialect the size of its
+[`TransactSql`](src/DotGram.Sql/TransactSql/TransactSql.gram) is built that way on
+[`SqlStandard92`](src/DotGram.Sql/Standard/SqlStandard92.gram) — a dialect the size of its
 difference, with the standard underneath written once.
 
-## DotGram.Parsers
+## DotGram.Finance
 
-[`DotGram.Parsers`](src/DotGram.Parsers) is a set of parsers written in .Gram against
-published specifications, and a package of its own.
+[`DotGram.Finance`](src/DotGram.Finance/README.md) parses FIX 4.4 tag-value messages
+into typed messages and nested groups. It provides `Fix44.Parse` and `TryParse`,
+Strict and Lenient policies, exact wire preservation, and length-aware raw data.
+Its grammars and model are generated from the official FIX Orchestra repository.
+
+## DotGram.Web
+
+[`DotGram.Web`](src/DotGram.Web) is parsers for the formats of the web, written in .Gram
+against the specifications that define them and held to their test suites — a package of its
+own.
 
 ```csharp
-var uri = Rfc3986.ParseUri("https://user@example.com:8080/a/b?q=1#top");
+var accept = MediaRange.ParseAccept("text/*;q=0.3, text/plain;q=0.7, */*;q=0.5");
 
-uri.Host;   // example.com
-uri.Port;   // 8080
-uri.Path;   // /a/b
-uri.Query;  // q=1
+MediaRange.Quality(accept, MediaType.Parse("text/plain"));   // 0.7
+JsonPointer.Parse("/a/1").Resolve(JsonValue.Parse("""{ "a": [0, 42] }"""));   // 42
+EmailAddress.ParseList("Mary Smith <mary@x.test>, jdoe@example.org").Length;  // 2
 ```
 
-The SQL parsers build a tree of their own, and read it back as ordinary records:
+| Format | Read with | Specification, and its grammar |
+| --- | --- | --- |
+| JSON | `JsonValue.Parse` | [RFC 8259](src/DotGram.Web/Rfc8259.cs) |
+| JSON Pointer | `JsonPointer.Parse` | [RFC 6901](src/DotGram.Web/Rfc6901.cs) |
+| JSON Patch | `JsonPatch.Parse` | [RFC 6902](src/DotGram.Web/Rfc6902.cs) |
+| `Content-Type`, `Accept` | `MediaType.Parse`, `MediaRange.ParseAccept` | [RFC 9110](src/DotGram.Web/Rfc9110.cs) |
+| Structured Fields | `StructuredField.ParseItem`, `ParseList`, `ParseDictionary` | [RFC 9651](src/DotGram.Web/Rfc9651.cs) |
+| `Link` | `WebLink.ParseField` | [RFC 8288](src/DotGram.Web/Rfc8288.cs) |
+| `Content-Disposition` | `ContentDisposition.Parse` | [RFC 6266](src/DotGram.Web/Rfc6266.cs) |
+| `Set-Cookie`, `Cookie` | `SetCookie.Parse`, `CookiePair.ParseField`, `CookieDate.Parse` | [RFC 6265](src/DotGram.Web/Rfc6265.cs) |
+| `Forwarded` | `ForwardedElement.ParseField` | [RFC 7239](src/DotGram.Web/Rfc7239.cs) |
+| URI | `UriReference.Parse` | [RFC 3986](src/DotGram.Web/Rfc3986.cs) |
+| URI Template | `UriTemplate.Parse` | [RFC 6570](src/DotGram.Web/Rfc6570.cs) |
+| Email address | `AddrSpec.Parse`, `EmailAddress.ParseList` | [RFC 5322](src/DotGram.Web/Rfc5322.cs) |
+| Timestamp | `Timestamp.Parse` | [RFC 3339](src/DotGram.Web/Rfc3339.cs) |
+| Language tag | `LanguageTag.Parse` | [RFC 5646](src/DotGram.Web/Rfc5646.cs) |
+
+[`src/DotGram.Web/README.md`](src/DotGram.Web/README.md), the package's own page, has what each
+reads, what it hands back, and the suite it is held to.
+
+## DotGram.Sql
+
+[`DotGram.Sql`](src/DotGram.Sql) is SQL, a package of its own: the one tree of records every SQL
+grammar builds, and a parser per dialect beside it, each in a namespace of its own.
 
 ```csharp
-var match  = TransactSql.TryParseSelect("select name from Users where id > @id");
+var match  = TransactSqlParser.TryParseSelect("select name from Users where id > @id");
 var select = (Statement.Select)match.Value;
 var query  = (Query.Specification)select.Of;
 
@@ -488,12 +519,12 @@ query.From[0];  // TableReference.Named { Table = "Users" }
 
 | Parser | What it reads |
 | --- | --- |
-| [`Rfc3986`](src/DotGram.Parsers/Uri/Rfc3986.cs) | URIs and relative references after RFC 3986 — authority, IPv4, IPv6, `IPvFuture`, paths, queries, fragments, percent encoding |
-| [`SqlStandard92`](src/DotGram.Parsers/Sql/Standard/SqlStandard92.gram) | SQL-92, read through a lexical split |
-| [`TransactSql`](src/DotGram.Parsers/Sql/TransactSql/TransactSql.gram) | T-SQL, written as a dialect over SQL-92 rather than as a copy of it |
+| [`SqlStandardParser`](src/DotGram.Sql/Standard/SqlStandard.gram) | ISO SQL:2023, written from its BNF and being written |
+| [`Sql92Parser`](src/DotGram.Sql/Standard/SqlStandard92.gram) | SQL-92, read through a lexical split |
+| [`TransactSqlParser`](src/DotGram.Sql/TransactSql/TransactSql.gram) | T-SQL, written as a dialect over SQL-92 rather than as a copy of it |
 
-[`src/DotGram.Parsers/README.md`](src/DotGram.Parsers/README.md) has what each one parses
-and what it hands back.
+[`src/DotGram.Sql/README.md`](src/DotGram.Sql/README.md) has what each one parses and what it
+hands back.
 
 ## DotGram.ExpressionLanguage
 
@@ -530,7 +561,7 @@ and on every part they pull out of it, before anything is timed.
 So: from a tenth ahead of `RegexOptions.Compiled` to three times ahead of it, and 2.4× to
 8.7× against the interpreted pattern. Both sides are asked for the parsed values rather
 than only whether the input matched. [`benchmarks/README.md`](benchmarks/README.md) has
-the method, the run this came from, and the input that has been both sides of parity.
+the method and the full results.
 
 ## Visual Studio
 
@@ -606,7 +637,7 @@ Complete examples are under [`examples/DotGram.Examples`](examples/DotGram.Examp
 | [`TypedCsvExample.cs`](examples/DotGram.Examples/Formats/TypedCsvExample.cs) | construction of existing C# types |
 | [`GramExample.cs`](examples/DotGram.Examples/Languages/GramExample.cs) | the .Gram notation parsed by .Gram itself |
 
-[`examples/README.md`](examples/README.md) lists all twenty-four, grouped by what they
+[`examples/README.md`](examples/README.md) lists all thirty-one, grouped by what they
 read: formats, feeds, expressions, languages.
 
 ## Documentation

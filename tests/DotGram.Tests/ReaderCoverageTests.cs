@@ -41,7 +41,8 @@ public sealed class ReaderCoverageTests
 	{
 		var root  = Root(AppContext.BaseDirectory);
 		var files = Directory.GetFiles(Path.Combine(root, "examples"), "*.cs", SearchOption.AllDirectories)
-			.Concat(Directory.GetFiles(Path.Combine(root, "src", "DotGram.Parsers"), "*.cs", SearchOption.AllDirectories))
+			.Concat(Directory.GetFiles(Path.Combine(root, "src", "DotGram.Sql"), "*.cs", SearchOption.AllDirectories))
+			.Concat(Directory.GetFiles(Path.Combine(root, "src", "DotGram.Web"), "*.cs", SearchOption.AllDirectories))
 			.Where(one => !one.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar))
 
 			// A host built on another carries half a grammar: what it reads comes from the
@@ -103,7 +104,7 @@ public sealed class ReaderCoverageTests
 				}
 			}
 
-		Assert.True(seen >= 20, $"Only {seen} grammars were found under examples/ and src/DotGram.Parsers/.");
+		Assert.True(seen >= 20, $"Only {seen} grammars were found under examples/, src/DotGram.Sql/ and src/DotGram.Web/.");
 		Assert.True(unresolved <= 1, $"{unresolved} grammars could not be compiled without a symbol resolver.");
 		Assert.Empty(declined);
 	}

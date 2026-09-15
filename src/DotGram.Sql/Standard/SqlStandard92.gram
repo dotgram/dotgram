@@ -1,0 +1,523 @@
+@using System;
+@using DotGram.Sql;
+
+using Lexical;
+
+// ── §5 Lexical elements ─────────────────────────────────────────────────────
+//
+// A namespace with no trivia, so a token is its characters and nothing may stand
+// between them (§4.5). Everything outside it may be spaced and commented freely.
+namespace Lexical
+{
+	trivia = none
+
+	// §5.2. A regular identifier is a letter and then letters, digits or underscores;
+	// a delimited one is anything between double quotes, with "" for a quote inside.
+	// The standard's <identifier body> admits <identifier part> beyond ASCII, which is
+	// what \p{L} and \p{Nd} say here. The parts are kept apart rather than taken from
+	// the library whole, because a dialect builds its own tokens out of them.
+	IdentifierStart     = [\p{L} | '_']
+	IdentifierPart      = [\p{L} | \p{Nd} | '_']
+	RegularIdentifier   = IdentifierStart & IdentifierPart*
+	DelimitedIdentifier = Std.Quoted('"')
+
+	// §5.3 <unsigned numeric literal>. An exact numeric has an optional point; an
+	// approximate one is a mantissa and an exponent. Written in that order so that
+	// `1E5` is read whole rather than as `1` and something the parse cannot place.
+	Digits                    = Std.Digits
+	ExactNumericLiteral       = Digits & ('.' & Digits?)? | '.' & Digits
+	ApproximateNumericLiteral = ExactNumericLiteral & 'E'i & ['+' | '-']? & Digits
+	UnsignedNumericLiteral    = ApproximateNumericLiteral | ExactNumericLiteral
+
+	// §5.3 <character string literal>, with '' for a quote inside. The optional
+	// introducer names a character set.
+	CharacterStringLiteral         = ('_' & RegularIdentifier)? & QuotedString
+	QuotedString                   = Std.Quoted('\'')
+	NationalCharacterStringLiteral = 'N'i & QuotedString
+	BitStringLiteral               = 'B'i & '\'' & ['0' | '1']* & '\''
+	HexStringLiteral               = 'X'i & '\'' & Std.HexDigit* & '\''
+
+	// §5.3 <datetime literal> and <interval literal> carry their type in front of the
+	// string, which is what tells them from a character string.
+	DateLiteral      = "DATE"i      & Space & QuotedString
+	TimeLiteral      = "TIME"i      & Space & QuotedString
+	TimestampLiteral = "TIMESTAMP"i & Space & QuotedString
+	Space            = Std.Spacing
+}
+
+// §5.2, and the reason the keywords below are literals rather than a rule: a keyword
+// is a whole word, so `ANDY` is an identifier and not `AND` followed by `Y`. §4.6
+// weaves this beside every word literal without it being written again.
+wordboundary = IdentifierPart
+
+// §5.4 <comment> is `--` to the end of the line; §5.2 allows the bracketed form in
+// later editions and it costs nothing to read.
+trivia       = { (Std.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "*/"))* }
+
+// ── §8 Predicates, and the tower the standard calls a search condition ──────
+//
+// The names are the standard's, production for production: <search condition> over
+// <boolean term> over <boolean factor> over <boolean test> over <boolean primary>.
+// Left recursive where the standard is left recursive, which §4.3 folds into a loop,
+// so the operand at the head is read once however many operators follow it.
+
+SearchCondition : @Expression
+    = left: SearchCondition & "OR"i & right: BooleanTerm => @(new Expression.Or(left, right))
+    | t: BooleanTerm                                     => @t
+
+BooleanTerm : @Expression
+    = left: BooleanTerm & "AND"i & right: BooleanFactor => @(new Expression.And(left, right))
+    | f: BooleanFactor                                  => @f
+
+BooleanFactor : @Expression
+    = negated: "NOT"i? & t: BooleanTest => @(negated is null ? t : new Expression.Not(t))
+
+// §8.13 <boolean test>. `IS TRUE` and its fellows, and the standard allows them to
+// stack — `x IS TRUE IS NOT FALSE` is legal — so this repeats rather than being one
+// optional tail.
+// Left recursive rather than a repetition, so that §4.3 folds it and each test is
+// built around what stood to its left. The two read the same language.
+BooleanTest : @Expression
+    = operand: BooleanTest & "IS"i & negated: "NOT"i? & truth: TruthValue => @(new Expression.IsTruth(operand, negated is not null, Syntax.TruthOf(truth)))
+    | p: BooleanPrimary => @(p)
+
+TruthValue  = "TRUE"i | "FALSE"i | "UNKNOWN"i
+
+BooleanPrimary : @Expression
+    = p: Predicate => @(p)
+    | '(' & c: SearchCondition & ')' => @(new Expression.Parenthesized(c))
+
+// §8.1. Written in the order the standard lists them, except that the ones sharing a
+// left operand are gathered: <row value constructor> opens six of the nine, and
+// reading it once for all of them is what §4.3's folding is for. The three that do
+// not — EXISTS, UNIQUE and the LIKE whose operand is narrower — stand on their own.
+Predicate : @Expression
+    = "EXISTS"i                & q:    TableSubquery => @(new Expression.Exists(q))
+    | "UNIQUE"i                & q:    TableSubquery => @(new Expression.Unique(q))
+    | row: RowValueConstructor & tail: PredicateTail => @(Expression.Predicated(row, tail))
+
+// What may follow a row on the left of a predicate. One rule so that the row is read
+// once: written as six alternatives of <predicate> each beginning with <row value
+// constructor>, a row would be read six times before the parse found out which
+// predicate it was in — and a row holds whole value expressions.
+//
+// Every alternative leaves its left operand null and `Predicated` fills it in, so a
+// predicate is one record whichever way it was written, and its operands are named
+// rather than numbered.
+PredicateTail : @Expression
+          // §8.2 <comparison predicate> and §8.8 <quantified comparison predicate>
+          // share their operator, and differ only in what stands on the right.
+          // The two comparison forms share their operator, so it is read once and
+          // what may follow it is the choice — which is the same grammar written the
+          // way GRAM4016 asks for, and a row on the right is not cheap to read twice.
+          = op: CompOp & ( some: Quantifier & sub: TableSubquery | right: RowValueConstructor ) =>
+              @(some is null
+                 ? new Expression.Comparison(null!, Syntax.Compared(op), right!)
+                 : new Expression.Quantified(null!, Syntax.Compared(op), Syntax.Quantified(some), sub!))
+
+          // §8.3 <between predicate>
+          | negated: "NOT"i? & "BETWEEN"i & low: RowValueConstructor & "AND"i & high: RowValueConstructor =>
+              @(new Expression.Between(null!, negated is not null, low, high))
+
+          // §8.4 <in predicate>
+          | negated: "NOT"i? & "IN"i & values: InPredicateValue =>
+              @(new Expression.In(null!, negated is not null, values))
+
+          // §8.5 <like predicate>. The standard narrows both sides to character
+          // strings; that is a type rule and not a syntax one, so it is not written
+          // here — see the note on the collapsed towers above.
+          | negated: "NOT"i? & "LIKE"i & pattern: ValueExpression & escape: EscapeClause? =>
+              @(new Expression.Like(null!, negated is not null, pattern, escape))
+
+          // §8.6 <null predicate>
+          | "IS"i & negated: "NOT"i? & "NULL"i => @(new Expression.IsNull(null!, negated is not null))
+
+          // §8.10 <match predicate>
+          | "MATCH"i & unique: "UNIQUE"i? & kind: ("PARTIAL"i | "FULL"i)? & sub: TableSubquery =>
+              @(new Expression.Match(null!, Syntax.Matched(unique, kind), sub))
+
+          // §8.12 <overlaps predicate>
+          | "OVERLAPS"i & right: RowValueConstructor =>
+              @(new Expression.Overlaps(null!, right))
+
+// §8.5 writes the escape as two things, the word and the character after it. They are
+// named together here because a dialect may bracket the pair rather than extend it —
+// T-SQL reads ODBC's `{ESCAPE '%'}` wherever this stands — and a replacement replaces
+// a whole rule. What is inside is the standard's own <escape character>.
+EscapeClause : @Expression = "ESCAPE"i & v: ValueExpression => @(v)
+
+CompOp      = "<>" | "<=" | ">=" | '=' | '<' | '>'
+Quantifier = "ALL"i | "SOME"i | "ANY"i
+
+InPredicateValue : @Expression
+    = q: TableSubquery => @(new Expression.Subquery(q))
+    | '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'
+      => @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
+
+// ── §7.1 Row value constructor ─────────────────────────────────────────────
+//
+// A predicate compares rows, and a single value is a row of one — which is why
+// `a = 1` and `(a, b) = (1, 2)` are one production in the standard rather than two.
+//
+// The single value stands first, and the order is about cost and not about meaning:
+// a row of several needs a comma the single form cannot read, so the two never match
+// the same text and either order accepts the same language. Written the other way
+// round, `(a + 1) * 2` was read to its end as the first element of a row, refused at
+// the missing comma, and read again as a value — once per level of parentheses.
+
+RowValueConstructor : @Expression
+    = e: RowValueConstructorElement => @e
+    | '(' & first: RowValueConstructorElement & (',' & rest: RowValueConstructorElement)+ & ')' => @(new Expression.RowValueConstructor(Syntax.Listed(first, rest)))
+    | q: TableSubquery => @(new Expression.Subquery(q))
+
+RowValueConstructorElement : @Expression
+    = v: ValueExpression => @(v)
+    | "NULL"i    => @(Expression.NullValue)
+    | "DEFAULT"i => @(Expression.DefaultValue)
+
+// ── §6.11 Value expression ─────────────────────────────────────────────────
+//
+// **One tower where the standard has four, and this is a deliberate divergence.**
+// §6.11 defines <value expression> as a choice of <numeric value expression>,
+// <string value expression>, <datetime value expression> and <interval value
+// expression>, each with a ladder of its own, and all four bottoming out in the same
+// <value expression primary>. So `a + b` matches the numeric ladder and the datetime
+// one at once, and which it is depends on the types of `a` and `b` — which a parser
+// does not know and the standard does not expect it to: §6.11 is a description of
+// syntax modulo type resolution, not a grammar anybody can run.
+//
+// Every implementation collapses the four into one untyped ladder, and so does this.
+// What is lost is nothing syntactic: the four ladders have the same shape and the same
+// precedence, and `||` is simply admitted at the additive level where the standard
+// gives it a ladder of its own.
+
+// One rule where there were three, each alternative stating its own strength (§4.3.1)
+// rather than naming the level below it. What the ladder cost was every level of it at
+// every bracket: `((((a + 1) * 2) - 3) / 4)` re-entered the tower five times and paid
+// the additive and multiplicative levels on the way down whether an operator of that
+// strength was there or not. Measured on an arithmetic language written both ways
+// (benchmarks, `--ladders`), climbing is a fifth off nested input and eight per cent
+// onto flat; this tower is deeper than that one, and the numbers are in docs/next.md.
+//
+// The strengths are the standard's own precedence and nothing else: additive and
+// concatenation bind loosest and to the left, multiplicative tighter and to the left, a
+// sign tightest and to the right — so `-a * b` is `(-a) * b`, which is what the three
+// rules said by having the sign apply to a primary.
+ValueExpression : @Expression
+    = left: ValueExpression & op: ('+' | '-' | "||") & right: ValueExpression   << 1
+        => @(Expression.Additive(op, left, right))
+    | left: ValueExpression & op: ('*' | '/') & right: ValueExpression           << 2
+        => @(Expression.Multiplicative(op, left, right))
+    | sign: ['+' | '-'] & v: ValueExpression                                     >> 3
+        => @(Expression.Signed(sign, v))
+    // §6.11 <character factor> is a primary and a collate clause, which says how it is
+    // compared rather than what it is, and is kept all the same, as in a GROUP BY. Written on
+    // the primary rather than as a strength of its own because that is where the
+    // standard puts it, and nothing binds tighter than a primary anyway.
+    | p: ValueExpressionPrimary & how: Collate? => @(how is null ? p : new Expression.Collated(p, how))
+
+// §6.11 <value expression primary>, in the standard's order, plus the value functions
+// §6.16 through §6.18 fold into <numeric primary>, <string value expression> and
+// <datetime value expression>. Gathered here because they are all primaries once the
+// towers are one.
+ValueExpressionPrimary : @Expression
+    = '(' & v: ValueExpression & ')' => @(new Expression.Parenthesized(v))
+    | c: CaseExpression              => @(c)
+    | c: CastSpecification           => @(c)
+    | f: ValueFunction               => @(f)
+    | f: SetFunctionSpecification    => @(f)
+    | q: ScalarSubquery              => @(q)
+    | v: UnsignedValueSpecification  => @(v)
+    | n: ColumnReference             => @(n)
+
+// ── §6.9 Set function, §6.16-6.18 value functions ──────────────────────────
+
+// COUNT(*) is its own shape; the rest take a set quantifier and a value expression.
+SetFunctionSpecification : @Expression
+    = name: "COUNT"i & '(' & '*' & ')'
+        => @(new Expression.RoutineInvocation(name, Expression.None, "*"))
+    | name: SetFunctionType & '(' & quantifier: SetQuantifier? & v: ValueExpression & ')'
+        => @(new Expression.RoutineInvocation(
+            name, new Expression[] { v }, Syntax.Distinctly(quantifier)))
+
+SetFunctionType = "AVG"i | "MAX"i | "MIN"i | "SUM"i | "COUNT"i
+SetQuantifier   = "DISTINCT"i | "ALL"i
+
+// The functions the standard spells out rather than leaving to <routine invocation>.
+// Each is a keyword and a fixed shape, which is why they are here and not a call.
+ValueFunction : @Expression
+    = name: "POSITION"i         & '(' & a: ValueExpression & "IN"i & b: ValueExpression & ')'    => @(new Expression.RoutineInvocation(name, new Expression[] { a, b }))
+    | name: "EXTRACT"i          & '(' & field: ExtractField & "FROM"i & v: ValueExpression & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, field))
+    | name: "CHAR_LENGTH"i      & '(' & v: ValueExpression & ')'                                 => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
+    | name: "CHARACTER_LENGTH"i & '(' & v: ValueExpression & ')'                            => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
+    | name: "OCTET_LENGTH"i     & '(' & v: ValueExpression & ')'                                => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
+    | name: "BIT_LENGTH"i       & '(' & v: ValueExpression & ')'                                 => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
+    | name: "SUBSTRING"i        & '(' & v: ValueExpression & "FROM"i & from: ValueExpression
+                          & ("FOR"i & length: ValueExpression)? & ')'
+        => @(new Expression.RoutineInvocation(
+            "SUBSTRING",
+            length is null
+                ? new Expression[] { v, from }
+                : new Expression[] { v, from, length }))
+    | name: "UPPER"i     & '(' & v: ValueExpression & ')'                                  => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
+    | name: "LOWER"i     & '(' & v: ValueExpression & ')'                                  => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
+    | name: "CONVERT"i   & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, name))
+    | name: "TRANSLATE"i & '(' & v: ValueExpression & "USING"i & name: QualifiedName & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, name))
+    | name: "TRIM"i      & '(' & how: TrimSpecification? & what: ValueExpression?
+                   & "FROM"i & v: ValueExpression & ')'
+        => @(new Expression.RoutineInvocation(
+            name,
+            what is null ? new Expression[] { v } : new Expression[] { what, v },
+            how))
+    | name: "TRIM"i & '(' & v: ValueExpression & ')'      => @(new Expression.RoutineInvocation(name, new Expression[] { v }))
+    | name: "CURRENT_DATE"i                                      => @(new Expression.RoutineInvocation(name, Expression.None))
+    | name: "CURRENT_TIME"i      & ('(' & digits: Digits & ')')? => @(new Expression.RoutineInvocation(name, Expression.None, digits))
+    | name: "CURRENT_TIMESTAMP"i & ('(' & digits: Digits & ')')? => @(new Expression.RoutineInvocation(name, Expression.None, digits))
+
+ExtractField      = "YEAR"i | "MONTH"i | "DAY"i | "HOUR"i | "MINUTE"i | "SECOND"i | "TIMEZONE_HOUR"i | "TIMEZONE_MINUTE"i
+TrimSpecification = "LEADING"i | "TRAILING"i | "BOTH"i
+
+// ── §6.20 Case expression, §6.10 Cast ──────────────────────────────────────
+//
+// The standard's <case abbreviation> — NULLIF and COALESCE — is part of <case
+// expression>, not something beside it, and is written here where the standard puts
+// it.
+CaseExpression : @Expression
+    = name: "NULLIF"i   & '(' & a: ValueExpression & ',' & b: ValueExpression & ')'                           => @(new Expression.RoutineInvocation(name, new Expression[] { a, b }))
+    | name: "COALESCE"i & '(' & first: ValueExpression & (',' & rest: ValueExpression)* & ')'                 => @(new Expression.RoutineInvocation(name, Syntax.Listed(first, rest)))
+    | "CASE"i & operand: ValueExpression & whens: SimpleWhen+ & ("ELSE"i & otherwise: Result)? & "END"i => @(new Expression.Case(operand, whens, otherwise))
+    | "CASE"i & whens: SearchedWhen+ & ("ELSE"i & otherwise: Result)? & "END"i                          => @(new Expression.Case(null, whens, otherwise))
+
+SimpleWhen   : @Clause.When = "WHEN"i & test: ValueExpression & "THEN"i & result: Result => @(new Clause.When(test, result))
+SearchedWhen : @Clause.When = "WHEN"i & test: SearchCondition & "THEN"i & result: Result => @(new Clause.When(test, result))
+
+Result            : @Expression = v: ValueExpression => @(v) | "NULL"i => @(Expression.NullValue)
+CastSpecification : @Expression = name: "CAST"i & '(' & v: CastOperand & "AS"i & type: DataType & ')' => @(new Expression.RoutineInvocation(name, new Expression[] { v }, type))
+CastOperand       : @Expression = v: ValueExpression => @(v) | "NULL"i => @(Expression.NullValue)
+
+// ── §6.1 Data type, cut to what a CAST target can be ───────────────────────
+
+DataType
+    = ("CHARACTER"i & "VARYING"i? | "CHAR"i & "VARYING"i? | "VARCHAR"i) & Length? & ("CHARACTER"i & "SET"i & QualifiedName)?
+    | ("NATIONAL"i & ("CHARACTER"i | "CHAR"i) & "VARYING"i? | "NCHAR"i & "VARYING"i?) & Length?
+    | ("BIT"i & "VARYING"i?) & Length?
+    | ("NUMERIC"i | "DECIMAL"i | "DEC"i) & ('(' & Digits & (',' & Digits)? & ')')?
+    | "INTEGER"i | "INT"i | "SMALLINT"i
+    | ("FLOAT"i & ('(' & Digits & ')')?) | "REAL"i | ("DOUBLE"i & "PRECISION"i)
+    | "DATE"i
+    | ("TIME"i | "TIMESTAMP"i) & ('(' & Digits & ')')? & ("WITH"i & "TIME"i & "ZONE"i)?
+    | "INTERVAL"i & IntervalQualifier
+
+Length = '(' & Digits & ')'
+
+// §10.1 <interval qualifier>, which is what an INTERVAL type and an interval literal
+// both end with.
+IntervalQualifier   = SingleDatetimeField & ("TO"i & SingleDatetimeField)?
+SingleDatetimeField = ExtractField & ('(' & Digits & (',' & Digits)? & ')')?
+
+// ── §6.3 Value specification, §6.4 Column reference ────────────────────────
+
+UnsignedValueSpecification : @Expression = v: UnsignedLiteral => @(v) | v: GeneralValueSpecification => @(v)
+
+UnsignedLiteral : @Expression
+    = t: UnsignedNumericLiteral         => @(new Expression.Literal(SqlLiteralKind.Number,    t))
+    | t: CharacterStringLiteral         => @(new Expression.Literal(SqlLiteralKind.Text,      t))
+    | t: NationalCharacterStringLiteral => @(new Expression.Literal(SqlLiteralKind.National,  t))
+    | t: BitStringLiteral               => @(new Expression.Literal(SqlLiteralKind.Bit,       t))
+    | t: HexStringLiteral               => @(new Expression.Literal(SqlLiteralKind.Hex,       t))
+    | t: DateLiteral                    => @(new Expression.Literal(SqlLiteralKind.Date,      t))
+    | t: TimeLiteral                    => @(new Expression.Literal(SqlLiteralKind.Time,      t))
+    | t: TimestampLiteral               => @(new Expression.Literal(SqlLiteralKind.Timestamp, t))
+    | t: IntervalLiteral                => @(new Expression.Literal(SqlLiteralKind.Interval,  t))
+
+// §5.3. The sign belongs to the literal here and not to <factor>, which is what lets
+// `INTERVAL -'1' DAY` read.
+IntervalLiteral = "INTERVAL"i & ['+' | '-']? & QuotedString & IntervalQualifier
+
+// §6.3 <general value specification>: the parameters and the niladic functions that
+// stand where a value does.
+GeneralValueSpecification : @Expression
+    = t: (':' & Identifier & ("INDICATOR"i? & ':' & Identifier)?)
+        => @(new Expression.Literal(SqlLiteralKind.Parameter, t))
+    | '?'
+        => @(new Expression.Literal(SqlLiteralKind.Parameter, "?"))
+    | t: ("USER"i | "CURRENT_USER"i | "SESSION_USER"i | "SYSTEM_USER"i | "VALUE"i)
+        => @(new Expression.Literal(SqlLiteralKind.Special, t))
+
+// §6.4. A column reference is a qualified name, and how many parts it has is a
+// question about a catalogue rather than about syntax — so the syntax admits the
+// depth the standard allows and says nothing about what the parts mean.
+ColumnReference : @Expression = name: QualifiedName => @(new Expression.ColumnReference(name))
+
+QualifiedName = Identifier & (('.' & Identifier))*
+
+// The lookahead stands in front: an identifier is a word that is *not* reserved,
+// which is what 5.2 says. Behind it, it would be asking whether a reserved word
+// follows one — a different question, and one that refuses `x IN (1, 2)`.
+Identifier = ?!Reserved & RegularIdentifier | DelimitedIdentifier
+
+// ── §7 Query expressions ───────────────────────────────────────────────────
+//
+// The level this grammar used to hold a place for. A subquery was a rule that read a
+// balanced run of characters and handed the text over; it is a query now, and the two
+// productions that named it are the standard's own.
+
+// §7.13 <subquery>, and the two §7.11-§7.12 spellings of it that differ only in what
+// they may return — which is a question about the query and not about its syntax, so
+// both read the same thing and the standard's names are kept for the reader.
+TableSubquery  : @Query      = q: Subquery => @(q)
+ScalarSubquery : @Expression = q: Subquery => @(new Expression.Subquery(q))
+
+Subquery : @Query = '(' & q: QueryExpression & ')' => @(q)
+
+// §7.10. UNION and EXCEPT bind alike and looser than INTERSECT, and all three are left
+// associative — the same three strengths the value tower states, said the same way
+// (§4.3.1). CORRESPONDING is read and dropped: it names columns by matching rather than
+// by position, which is a question for whatever resolves names.
+QueryExpression : @Query
+    = left: QueryExpression & op: ("UNION"i | "EXCEPT"i) & all: "ALL"i? & Corresponding?
+      & right: QueryExpression                                                     << 1
+        => @(Query.Combined(op, all, left, right))
+    | left: QueryExpression & op: "INTERSECT"i & all: "ALL"i? & Corresponding?
+      & right: QueryExpression                                                     << 2
+        => @(Query.Combined(op, all, left, right))
+    | q: QueryPrimary => @(q)
+
+Corresponding = "CORRESPONDING"i & ("BY"i & '(' & ColumnList & ')')?
+
+// §7.10 <non-join query primary>, and the parenthesized form that lets a query
+// expression stand where a primary does.
+QueryPrimary : @Query
+    = q: QuerySpecification            => @(q)
+    | v: TableValueConstructor         => @(v)
+    | "TABLE"i & name: QualifiedName   => @(new Query.ExplicitTable(name))
+    | '(' & q: QueryExpression & ')'   => @(new Query.Parenthesized(q))
+
+// §7.2. A row of one value may be written without its parentheses, which is what makes
+// `VALUES 1, 2` two rows of one column rather than one row of two.
+TableValueConstructor : @Query
+    = "VALUES"i & first: RowValueConstructor & (',' & rest: RowValueConstructor)*
+        => @(new Query.TableValueConstructor(Syntax.Listed(first, rest)))
+
+// §7.9 <query specification> with §7.3 <table expression> folded into it: the clauses
+// are optional rather than alternative, so one record holds them and what tells one
+// query from another is which of them are empty (SqlSyntax.cs).
+QuerySpecification : @Query
+    = "SELECT"i & quantifier: SetQuantifier? & columns: SelectList
+      & from: FromClause & where: WhereClause? & group: GroupByClause? & having: HavingClause?
+        => @(new Query.Specification(
+                 Syntax.Distinctly(quantifier), null, columns, null, from,
+                 where, group, having))
+
+// §7.9 <select list>. A bare `*` is every column of every table in the FROM clause, and
+// `t.*` every column of one — neither is a column reference, so neither is read as one.
+SelectList : @Clause[]
+    = '*' => @(new Clause[] { new Clause.QualifiedAsterisk(null) })
+    | first: SelectSublist & (',' & rest: SelectSublist)* => @(Syntax.Listed(first, rest))
+
+SelectSublist : @Clause
+    = qualifier: QualifiedName & '.' & '*'   => @(new Clause.QualifiedAsterisk(qualifier))
+    | v: ValueExpression & name: AsClause?   => @(new Clause.DerivedColumn(v, name))
+
+AsClause = "AS"i? & Identifier
+
+// §7.4. The comma list is a cross join written the older way, and it is kept as a list
+// rather than folded into joins: what the standard writes is what the tree says.
+FromClause : @TableReference[]
+    = "FROM"i & first: TableReference & (',' & rest: TableReference)*
+        => @(Syntax.Listed(first, rest))
+
+// §7.5 <joined table>, left recursive so that §4.3 folds it and the table at the head
+// is read once however many joins follow it.
+TableReference : @TableReference
+    = left: TableReference & "CROSS"i & "JOIN"i & right: TablePrimary
+        => @(new TableReference.Joined(SqlJoin.Cross, false, false, left, right))
+    | left: TableReference & "UNION"i & "JOIN"i & right: TablePrimary
+        => @(new TableReference.Joined(SqlJoin.Union, false, false, left, right))
+    | left: TableReference & natural: "NATURAL"i? & kind: JoinType? & "JOIN"i & right: TablePrimary
+      & ("ON"i & on: SearchCondition
+        | "USING"i & '(' & columns: ColumnList & ')')?
+        => @(TableReference.Joining(kind, natural, left, right, on, columns))
+    | t: TablePrimary => @(t)
+
+JoinType = ("LEFT"i | "RIGHT"i | "FULL"i) & "OUTER"i? | "INNER"i
+
+// §7.4 <table reference> without a join: a named table or a derived one, and the name
+// it is known by inside the query.
+// The correlation (§6.3) is written where it is read rather than as a rule of its own:
+// its column list renames what the source produces, so it belongs to the reference.
+TablePrimary : @TableReference
+    = name: QualifiedName & ("AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?)?
+        => @(new TableReference.Named(name, null, false, alias, columns, null, Clause.None))
+    | derived: TableSubquery & "AS"i? & alias: Identifier & ('(' & columns: ColumnList & ')')?
+        => @(new TableReference.Derived(derived, false, alias, columns))
+    | '(' & j: TableReference & ')' => @(new TableReference.Parenthesized(j))
+
+// A name as a value of its own, so that a list of them gathers into an array rather
+// than into the text between the first and the last (§4.1 case 4).
+ColumnName : @string   = t: Identifier => @(t)
+ColumnList : @string[] = first: ColumnName & (',' & rest: ColumnName)* => @(Syntax.Named(first, rest))
+
+WhereClause  : @Expression = "WHERE"i  & c: SearchCondition => @(c)
+HavingClause : @Expression = "HAVING"i & c: SearchCondition => @(c)
+
+// §7.7. A grouping column may carry a collation, which says how it is compared rather
+// than what it is; `Expression.Collated` holds it either way.
+GroupByClause : @Clause
+    = "GROUP"i & "BY"i & first: GroupingColumn & (',' & rest: GroupingColumn)*
+        => @(new Clause.GroupBy(false, Syntax.Listed(first, rest), null))
+
+GroupingColumn : @Expression
+    = c: ColumnReference & how: Collate? => @(how is null ? c : new Expression.Collated(c, how))
+
+Collate : @string = "COLLATE"i & t: QualifiedName => @(t)
+
+// §13.1 <order by clause>, and §19's direct select that carries one. Outside §7, and
+// here because a query somebody writes has one and a query expression may not hold it.
+DirectSelect : @Statement
+    = q: QueryExpression & by: OrderByClause? => @(Statement.Selected(q, Clause.Ordered(by, null)))
+
+OrderByClause : @Clause[]
+    = "ORDER"i & "BY"i & first: SortSpecification & (',' & rest: SortSpecification)*
+        => @(Syntax.Listed(first, rest))
+
+SortSpecification : @Clause
+    = v: SortKey & how: Collate? & order: ("ASC"i | "DESC"i)?
+        => @(new Clause.SortSpecification(
+                 how is null ? v : new Expression.Collated(v, how), Syntax.Ordered(order)))
+
+// §13.1 sorts by a column or by its position in the select list.
+SortKey : @Expression
+    = c: ColumnReference          => @(c)
+    | t: UnsignedNumericLiteral   => @(new Expression.Literal(SqlLiteralKind.Number, t))
+
+// ── §5.2 Reserved words ────────────────────────────────────────────────────
+//
+// What an identifier may not be. The standard's list is long and most of it belongs
+// to the statement level; what is here is the part this layer can be confused by —
+// a word that begins or continues an expression or a predicate, the functions
+// included: with them reserved, a name and a function begin with different tokens,
+// and the choice of a primary is decided by its first token without a way back.
+Reserved = ("AND"i | "ALL"i | "ANY"i | "AS"i | "ASC"i | "AVG"i | "BETWEEN"i | name: "BIT_LENGTH"i
+         | "BOTH"i | "BY"i
+         | "CASE"i | name: "CAST"i | name: "CHAR_LENGTH"i | name: "CHARACTER_LENGTH"i | name: "COALESCE"i
+         | "COLLATE"i | name: "CONVERT"i | "CORRESPONDING"i | "COUNT"i | "CROSS"i | name: "CURRENT_DATE"i
+         | name: "CURRENT_TIME"i | name: "CURRENT_TIMESTAMP"i | "CURRENT_USER"i
+         | "DEFAULT"i | "DESC"i | "DISTINCT"i | "ELSE"i | "END"i | "ESCAPE"i | "EXCEPT"i | "EXISTS"i
+         | name: "EXTRACT"i | "FALSE"i | "FOR"i | "FROM"i | "FULL"i | "GROUP"i | "HAVING"i
+         | "IN"i | "INNER"i | "INTERSECT"i | "INTERVAL"i | "IS"i | "JOIN"i
+         | "LEADING"i | "LEFT"i | "LIKE"i | name: "LOWER"i
+         | "MATCH"i | "MAX"i | "MIN"i
+         | "NATURAL"i | "NOT"i | "NULL"i | name: "NULLIF"i | name: "OCTET_LENGTH"i | "ON"i | "OR"i
+         | "ORDER"i | "OUTER"i
+         | "OVERLAPS"i
+         | "PARTIAL"i | name: "POSITION"i | "RIGHT"i | "SELECT"i | "SESSION_USER"i | "SOME"i
+         | name: "SUBSTRING"i | "SUM"i | "SYSTEM_USER"i | "TABLE"i
+         | "THEN"i | "TRAILING"i | name: "TRANSLATE"i | name: "TRIM"i | "TRUE"i | "UNION"i
+         | "UNIQUE"i | "UNKNOWN"i
+         | name: "UPPER"i | "USER"i | "USING"i | "VALUE"i | "VALUES"i | "WHEN"i | "WHERE"i)
+
+parse DirectSelect as ParseSelect
+parse QueryExpression as ParseQuery
+parse SearchCondition as ParseSearchCondition
+parse ValueExpression as ParseValueExpression

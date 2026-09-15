@@ -55,15 +55,15 @@
 		     because the generator's emission does not vary with the referencing project's
 		     target framework. What the library was built with and what would be generated
 		     here are the same C#. -->
-		<ProjectReference Include="..\..\src\DotGram.Parsers\DotGram.Parsers.csproj" />
+		<ProjectReference Include="..\..\src\DotGram.Sql\DotGram.Sql.csproj" />
 		<ProjectReference Include="..\..\src\DotGram.ExpressionLanguage\DotGram.ExpressionLanguage.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<!-- The SQL grammar once more, compiled eagerly (EagerSql.cs): the same file
-		     DotGram.Parsers hosts, linked rather than copied so that it cannot drift, read by
+		     DotGram.Sql hosts, linked rather than copied so that it cannot drift, read by
 		     the generator here under another carrier (docs/next.md, the redesign). -->
-		<AdditionalFiles Include="..\..\src\DotGram.Parsers\Sql\Standard\SqlStandard92.gram" Link="SqlStandard92.gram" />
+		<AdditionalFiles Include="..\..\src\DotGram.Sql\Standard\SqlStandard92.gram" Link="SqlStandard92.gram" />
 	</ItemGroup>
 
 </Project>

@@ -45,8 +45,11 @@ public sealed class EmbeddedGrammarAnalysisTests
 		Assert.Equal(symbols[0].DefinitionSpan, symbols[1].DefinitionSpan);
 		Assert.True(symbols[0].IsDefinition);
 		Assert.False(symbols[1].IsDefinition);
-		Assert.DoesNotContain(analysis.Diagnostics,
-			diagnostic => diagnostic.Diagnostic.Severity == DotGram.Grammar.GramSeverity.Error);
+
+		// Anything but information, which a correct grammar may still be told.
+		Assert.DoesNotContain(
+			analysis.Diagnostics,
+			static item => item.Diagnostic.Severity != DotGram.Grammar.GramSeverity.Info);
 	}
 
 	[Fact]

@@ -21471,3 +21471,1489 @@ ON`, `DATABASE = db`, `NAMESPACE = x` and a name no endpoint knows are 102 or 15
 At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 150: 6,616 both,
 226 and 539; `--split` 783, the round trip 100% of 7,717, the map 7,994 both and 0 defects,
 `--levels` 145 of 145 — unchanged. The suite is 13,664 rows (from 13,551): 47 refusals and 66 readings.
+
+## An external library's files, the resource pools', and a workload group's
+
+A library's file, a resource pool's options, an external pool's and a workload group's were open
+lists. Asked 271 lines.
+
+**A library's file** is its content — a string, a binary string, `NONE`, a name or a number — and
+the platform it is for, `WINDOWS` or `LINUX`, in either order and as often as wanted; a string for
+the platform, any other name and a trailing comma are 102. A library made names its content — `FROM
+(PLATFORM = WINDOWS)` is `Msg 319` — one set or added need not. And every library says its language,
+as a string, once: without `WITH (LANGUAGE = …)` it is 102, and so is a language unquoted, a second
+one or a platform beside it.
+
+**A resource pool** takes its CPU and memory percentages and its IO rates as whole numbers, and its
+affinity to schedulers, `AUTO` or ranges, or to NUMA nodes, ranges only. **An external pool** takes
+its CPU and memory percentages and its processes, and its affinity to CPUs or to NUMA nodes. Each
+refuses the other's (`AFFINITY CPU` in a resource pool, `MIN_CPU_PERCENT` in an external one are
+102), both refuse a number quoted, negative or with a fraction, and both take an option twice. A
+pool made may be told nothing; a pool altered must be told something.
+
+**A workload group** is `LOW`, `MEDIUM` or `HIGH` in importance — the page's `BELOW_NORMAL`,
+`NORMAL` and `ABOVE_NORMAL` are Synapse's, whose block the SQL Server tab of the same page does not
+share, and this server refuses them — takes its memory grant as a number with a fraction allowed and
+its CPU time, grant timeout, parallelism and requests as whole numbers, and uses pools by name:
+`USING 'p'` is 102, `USING "default"` read. Synapse's own options, and the three importances, are
+read by that block and counted apart; three more of Synapse's words join the other products'.
+
+**And what no page publishes.** The first cut was the published blocks and the probe's own
+spellings of them, and the passes found the corpus writing more: ScriptDom's
+`TARGET_MEMORY_PERCENT`, `MIN_IO_PERCENT`, `MAX_IO_PERCENT` and `CAP_IO_PERCENT` for a resource
+pool, and `GROUP_MIN_MEMORY_PERCENT` for a workload group — twelve statements the engine reads
+went to the work list. Asked by name across the three statements, with seven names that might have
+been and are not (`MIN_IOPS`, `CPU_CAP_PERCENT`, `MAX_OUTSTANDING_IO_PER_VOLUME`, …): the four IO and
+memory names are a resource pool's, as whole numbers; `GROUP_MIN_MEMORY_PERCENT` a group's, a whole
+number or `NULL`; and SQL Server 2025's `GROUP_MAX_TEMPDB_DATA_MB` and `_PERCENT` a group's too, a
+number or `NULL`. And one row the old open list had written into a theory, `AFFINITY SCHEDULER =
+NUMANODE = (0)`, was never asked: the engine refuses it and seventeen shapes like it.
+
+At 170: 7,403 both, 5 work, 2 defects, 266 another product's, 641 neither; at 150: 6,616 both, 226 and 539; `--split` 783, the round trip 100% of 7,717, the map 7,994 both and 0 defects, `--levels` 145 of 145 — unchanged, once the corpus's own options were in. The suite is 14,086 rows (from 13,667): 266 refusals, 144 readings and 10 of Synapse's.
+
+## Azure SQL Database's edition options, its copy and its redundancy
+
+Azure SQL Database's and Synapse's `CREATE DATABASE`, `AS COPY OF` and `ALTER DATABASE … MODIFY`
+took a bracket of any options. This server refuses every one of them with `Msg 102`, so the rows are
+the published blocks' and not an engine's: 20 readings and 12 refusals.
+
+**The edition options** are a size in megabytes or gigabytes, an edition and a service objective as
+strings, and an elastic pool by name, in any order. A collation may come before the bracket, and the
+creation's own options after it with `WITH` — `CATALOG_COLLATION`, `LEDGER`, and now
+`BACKUP_STORAGE_REDUNDANCY` as a string. An edition unquoted, a size without its unit, an empty
+bracket or an unknown name are refused.
+
+**A copy** names a database on this server or another, two parts at most; its edition options follow
+in a bracket, and its backups' redundancy in a bracket after `WITH`, where unbracketed or any other
+option is refused.
+
+**A database modified** takes the same bracket, then `WITH MANUAL_CUTOVER` and nothing else, or
+`MODIFY BACKUP_STORAGE_REDUNDANCY = '…'`, which is a record of its own in the tree
+(`AlterDatabaseModifyBackupStorageRedundancy`). The round trip found the ten corpus statements now
+read coming back different: the writer dropped an Azure creation's collation and its options after
+the bracket, and wrote a copy's `WITH` unbracketed. Written back with them, all ten are the same.
+
+At 170: 7,403 both, 5 work, 2 defects, 276 another product's, 631 neither — ten Azure statements
+moved from neither to another product's; at 150: 6,616 both, 236 and 529. `--split` 785 cut the same
+(from 783), the round trip 100% of 7,727 (from 7,717), the map 7,994 both and 0 defects with 81
+another product's and 255 neither (from 73 and 263), `--levels` 145 of 145. The suite is 14,120
+rows (from 14,087).
+
+## The two defects: a session a SET left behind, and a fixed length that is never MAX
+
+`--engine` counted two statements this grammar reads and the engine refuses: a table whose columns
+are typed `"xml"(myCollection)` and the like, and a view named `"Category Sales for 1997"`. Asked
+alone, the engine reads both, column by column and whole. The answer was the harness's:
+`PredicateSetTests.sql` holds `SET ANSI_DEFAULTS OFF`, which the engine honours under `PARSEONLY`,
+and every statement is asked on one session — so quoted identifiers were off for every file after
+it, and a double-quoted name was a string (`SET ANSI_DEFAULTS OFF; CREATE TABLE t (c "xml"(x))` is
+`Msg 102`). A statement that sets an option now gives the session back as it began. Both are read
+by both at 170 and at 150, and nothing else moved.
+
+**And a defect no corpus had.** Probing the columns one by one turned up `char(max)`: a fixed-length
+string or binary — `char`, `character`, `nchar`, `national char`, `national character`, `binary` —
+never takes `MAX`, and is `Msg 156` in a column, a `DECLARE`, a cast, a parameter and a `CREATE TYPE
+… FROM` alike, however its name is written (`[char](max)`, `dbo.char(max)`, `"char"(max)`); its
+`VARYING` spelling and every other type take it as before. Asked of 38 types in five places: 60
+refusals and 130 readings.
+
+At 170: 7,405 both, 5 work, 0 defects, 276 another product's, 631 neither; at 150: 6,618 both, 5,
+0, 236 and 529. `--split` 785, the round trip 100% of 7,727, the map 7,994 both and 0 defects,
+`--levels` 145 of 145 — unchanged. The suite is 14,310 rows (from 14,120).
+
+## The work list: an old plan's open hints, pivots after a join, a source in brackets, ncharacter
+
+`--engine` had five statements the engine reads and this did not: two `OPTION (CHECKCONSTRAINTS
+PLAN, OPTIMIZE CORRELATED UNION ALL)`, two remote joins with a pivot after them, and the corpus's
+table of every scalar type. Asked in five probes, 331 rows.
+
+**An old plan's hints are open.** `OPTIMIZE CORRELATED UNION ALL` is refused alone, and after
+`CHECKCONSTRAINTS PLAN`, `SHRINKDB PLAN` or `ALTERCOLUMN PLAN` and a comma the engine reads anything
+at all — `foo bar baz`, `1 2 3`, `select`, nothing — wherever a statement takes `OPTION`, and with
+any hints before the plan. Not after `USEPLAN 1` or `KEEP UNION`, and not without the comma. What is
+read after it is words and marks in balanced brackets, kept as one hint. The engine's own anything
+is to the end of the batch — `(CHECKCONSTRAINTS PLAN, x) SELECT 1)` and an unclosed bracket are read,
+and so is `FOR XML` after the list — which this does not follow, as with a database audit
+specification's.
+
+**A pivot follows a join.** The published syntax applies `PIVOT` and `UNPIVOT` to any table source,
+and the grammar applied them to a primary: the engine applies them after a qualified join's
+condition, after a join in brackets or braces, after a variable, and one after another — `t PIVOT (…)
+p UNPIVOT (…) q` — after all of these. **The right of a join is joins**: `t1 JOIN t2 CROSS JOIN t3 ON
+…`, with `CROSS APPLY` and `OUTER APPLY` as well, and a qualified join's pivots before the outer `ON`.
+
+**A source in brackets is a join.** `(t1)`, `(dbo.f(1))`, `((select 1 a) d)`, `(openrowset(…) x)`,
+`(t1 WITH (NOLOCK))` and `(t1 PIVOT (…) p)` are `Msg 102`, where the grammar read them, and so are a
+join its pivot ends — `(t1 CROSS JOIN t2 PIVOT (…) p)`, `(t1 JOIN t2 ON … PIVOT (…) p)`, and the same
+in `{ OJ … }` — and a sample, hints or a name after the brackets (`156`, `319`, `102`). A pivot inside
+before an `ON` is read, and so is `(@t)`. A table variable in brackets is looser than that — `(@t)
+x`, `(@t, t2)`, `(@t PIVOT (…) p)` are read — and is not followed.
+
+**`ncharacter varying`** is a type nobody declared, with `VARYING` after it as `nchar`'s: read bare,
+through a schema, quoted and bracketed, where `foo varying` and `nvarchar varying` are `Msg 102`; and
+`ncharacter(max)` is `Msg 156`, as a fixed length's is.
+
+At 170: 7,410 both, 0 work, 0 defects, 276 another product's, 631 neither; at 150: 6,623 both, 0, 0,
+236 and 529. `--split` 788 cut the same (from 785), the round trip 100% of 7,732 (from 7,727), the
+map 7,994 both and 0 defects, `--levels` 145 of 145. The suite is 14,641 rows (from 14,310).
+
+## The map's last eight: a value where a condition stands, AUTOCOMMIT, and what 4145 hid
+
+The reference's map had eight statements on its work list, and an earlier entry had judged all of
+them not work and left them counted. Asked again, one at a time and through `sqlcmd`:
+
+- `IF OBJECT_ID (…) isn't NULL`, a typo in two pages, five statements: the engine answers `Msg 4145`,
+  "an expression of non-boolean type specified in a context where a condition is expected", near
+  `isn`, and stops there — the unclosed quote after it is never looked at (`SELECT 1 isn't` is
+  `102`).
+- `SET AUTOCOMMIT ON` and `OFF`, three statements, Synapse's and Fabric's: `Msg 195`, a `SET` option the
+  engine has not heard of.
+
+**4145 is not about a name.** It had been on `AboutNames` since the harness was first written, and
+it is the parser finding a value where a predicate stands: `IF 1`, `WHERE c`, `WHERE dbo.f(1)`, `ON
+t.c`, `HAVING count(*)`, `CASE WHEN 1`, `WHILE 1`, `MERGE … ON t.c` — twenty shapes, every one of
+which this grammar refuses, where `CONTAINS`, `FREETEXT`, `EXISTS` and `UPDATE (c)` are read by both.
+Off the list, the typo's five statements are neither, and nothing in the corpus moved.
+
+**And what it hid.** `--levels` then counted twenty statements it had called read at every level:
+`REGEXP_LIKE` is a condition from 170 and `Msg 4145` before it, which the grammar read at every
+level. It is now a predicate `when Version is Since170`. Three of the twenty still parted — `IIF
+(REGEXP_LIKE (…), 1, 0)`, read before 170 through the call of a name nobody declared — and asking
+`IIF` on its own found a defect of this grammar's: a bare `IIF` is never such a call. `IIF (1, 2,
+3)`, `IIF (c, 1, 0)`, `IIF (NULL, 1, 0)`, `IIF ((SELECT 1), 1, 0)`, `IIF ()` and `IIF (1)` are all `Msg
+4145`, and `dbo.IIF (1, 2, 3)` and `x.IIF (1, 2, 3)` are read.
+
+**`AUTOCOMMIT`** joins `RESULT_SET_CACHING` and `RECOMMENDATIONS` among the switches, read by both
+the way theirs are.
+
+At 170: 7,410 both, 0 work, 0 defects, 276 another product's, 631 neither; at 150: 6,623 both, 0, 0,
+236 and 529 — unchanged. The map 7,997 both, 0 work, 0 defects, 0 parting at a level, 81 another
+product's and 260 neither (from 7,994, 8, 0, 0, 81 and 255). `--levels` 165 of 165 (from 145 of 145).
+`--split` 788, the round trip 100% of 7,732. The suite is 14,684 rows (from 14,641).
+
+## A table variable, asked declared
+
+The work list's entry left a table variable in brackets as looser than a table — `(@t) x`, `(@t,
+t2)` and `(@t PIVOT (…) p)` read — and not followed, and read `(@t)` on the strength of it. Every
+one of those was asked with `@t` undeclared, and the engine's `Msg 137` for the name hid what came
+after it: the mirage an earlier entry named, which a probe avoids by declaring what it uses. Asked
+again with `DECLARE @t TABLE (…)` in front:
+
+- **In brackets a variable is a source like any other**, and alone is `Msg 102` — `(@t)`, `(@t x)`,
+  `((@t))`, `(@t) PIVOT (…) p`, `(@t x) JOIN t2 ON …` — or `156` with a sample or hints inside. A join
+  that begins or ends with it is read: `(@t CROSS JOIN t2)`, `(t2 CROSS JOIN @t)`, `(@t x JOIN t2 ON
+  …) PIVOT (…) p`.
+- **Out of them it takes a name and pivots**, one after another, and no sample (`156`) and no hints
+  (`319`), which the grammar had read.
+
+The bracket takes no exception for a variable, and a variable no sample or hints. The rows the work
+list's theory had from the undeclared probes are replaced by the declared ones.
+
+At 170: 7,410 both, 0 work, 0 defects, 276 another product's, 631 neither; at 150: 6,623, 0, 0, 236
+and 529. The map 7,997 both, 0 work, 0 defects; `--levels` 165 of 165; `--split` 788; the round trip
+100% of 7,732 — all unchanged. The suite is 14,754 rows (from 14,692).
+
+## Neither reads to the end of the batch: 1003 and 15151
+
+Two behaviours were left as the engine reading anything to the end of a batch: an old plan's hint
+list after `CHECKCONSTRAINTS PLAN,`, which the work list's entry followed in balanced brackets, and
+a database audit specification after an action on an object, which it did not. Asked through
+`sqlcmd`, where the message is whole, both are an answer that stops the parser and was counted as
+reading.
+
+- **`Msg 1003`, "Line …: … clause allowed only for …".** `OPTION (CHECKCONSTRAINTS PLAN)` is
+  "CHECKCONSTRAINTS clause allowed only for DBCC", `SHRINKDB PLAN` the same and `ALTERCOLUMN PLAN`
+  "only for ALTER TABLE" — alone, after other hints, before anything, and executed as well as
+  parsed. Nothing after it is looked at. Sixteen statements of the corpus had it: the eight with one
+  of the three plans, and eight `SELECT … FOR UPDATE [OF …]` and `FOR READ ONLY`, "clause allowed only
+  for DECLARE CURSOR" — as is the same after an `ORDER BY`, a `UNION` or in an `INSERT`'s query, where a
+  cursor declaration reads them. It is the clause of another statement, which is a refusal.
+- **`Msg 15151`, an object that does not exist,** is about a name, and stays on `AboutNames`. But the
+  engine stops at it: with an object that exists, `ADD (SELECT ON sys.objects BY dbo) garbage` is `Msg
+  102`, and so after `OBJECT::`, `SCHEMA::` and `DATABASE::`. The grammar refused the garbage already;
+  its comment said otherwise.
+
+`1003` is off `AboutNames`. The three old plans are gone from the hint catalogue, and with them the
+open list the work list's entry wrote; `FOR UPDATE`, `FOR UPDATE OF` and `FOR READ ONLY` are gone from
+a query's `FOR` and stay the cursor's.
+
+At 170: 7,394 both, 0 work, 0 defects, 276 another product's, 647 neither — the sixteen from both to
+neither; at 150: 6,607, 0, 0, 236 and 545. The round trip 100% of 7,716 (from 7,732), `--split` 784
+(from 788, four files ScriptDom reads whole and this no longer does). The map 7,997 both and 0
+defects, and `--levels` 165 of 165, unchanged. The suite is 14,766 rows (from 14,754).
+
+## An atomic block's list is closed, and it is a natively compiled module's body alone
+
+The last thing left as the engine reading anything was `BEGIN ATOMIC WITH (…)` after something
+"loosened" its list — a level of `READ COMMITTED`, one of the five options named twice, a name the
+engine does not know — and a `§` in what followed, which no lexeme held. Asked through `sqlcmd`, each
+message whole:
+
+- **`READ COMMITTED` and `READ UNCOMMITTED` loosen nothing.** They are `Msg 10794`, "not supported with
+  natively compiled modules", and a list after them is read as strictly as any: `garbage` and `§` are
+  `Msg 102`. They are two more levels of the list.
+- **A name the engine does not know (`Msg 195`), an option named twice (`Msg 1039`), `TEXTSIZE = 1.5`
+  (`Msg 1080`)** are the parser's answer about what was written, and it says nothing of what follows:
+  `NOSUCH = 1, BAR baz qux ) (` has the same three messages as `NOSUCH = 1`. That was the openness. All
+  three are refused when the procedure is made, which is what decides a closed list, so they are
+  refused here, and the loosened alternatives, their open tail and its token soup are gone.
+- **A list names its level and its language**, in either order, `TRAN` for `TRANSACTION`, a comment
+  between the words of the level: without one it is `Msg 10784`. `TEXTSIZE` is a whole number, `-1`
+  among them; `1e3` is `Msg 102`.
+- **The block is a natively compiled module's body and nothing else.** A procedure, a function or a
+  trigger `WITH NATIVE_COMPILATION` has that body and no other (`Msg 10783` for `BEGIN … END` or one
+  statement), and nothing after it (`END; SELECT 2` is `Msg 156`); in a module not compiled natively it
+  is `Msg 10782`, in a batch, nested in another block or under an `IF` `Msg 102`. A plain block inside it
+  is read. It was a kind of `BEGIN … END` any statement list could hold.
+
+**And a harness rule tried and taken back.** `SqlException.Errors` holds every message, and counting a
+statement read only where all of them were about names first looked like the answer to all of this:
+the atomic list's `195` is followed by `102` and `10783`. Across the corpus it made nine defects that
+are not — `137 → 156` in a nested `IF`, `1047 → 319` among conflicting hints, `7887 → 102` on the same
+IPv6 literal — each gone once its first cause is removed. A later message is the parser's recovery as
+often as it is a verdict; the harness keeps the first, and a first cause is removed and asked again.
+
+The theory of a transaction's and a column's options was asked again, every line of it, and rewritten
+from the answers with fifteen more on where a block stands: 134 readings and 1,186 refusals, from 589 and
+719 — every one that moved an atomic list's, and no column option among them.
+
+At 170: 7,394 both, 0 work, 0 defects, 276 another product's, 647 neither; at 150: 6,607, 0, 0, 236
+and 545. The map 7,997 both, 0 work, 0 defects; `--levels` 165 of 165; `--split` 784; the round trip
+100% of 7,716 — all unchanged. The suite is 14,782 rows (from 14,766).
+
+## An extended-event session, closed
+
+The session was the last statement with open lists of its own: any option in `WITH (…)`, any
+setting and value in `SET`, any word for `STATE`, and pieces in any order for `CREATE` and `ALTER`
+alike. Put to the engine in four probes, some two hundred and sixty lines.
+
+**What it spends.** Eight options, each its own kind of value: sizes in whole `KB` or `MB`, a
+latency in whole `SECONDS` or `INFINITE`, a duration in whole seconds, minutes, hours or days or
+`UNLIMITED`, a retention mode and a partition mode of their words, causality and startup `ON` or
+`OFF`. Without the unit, with another or with another option's word it is `Msg 25703`, "the event
+session option has an invalid value" — which no run of the statement gets past, so a refusal; a
+sign, a fraction, a string or a name no option has is `Msg 102`. The comma between two is required
+and an option said twice is read.
+
+**What an event and a target are told.** A setting is a plain name of one part set to the block's
+`number | 'string'`: a number with a minus, a fraction or an exponent, a string, a binary string, in
+as many brackets as are written — never a name, `NULL`, a variable or an expression. An event says
+`SET`, `ACTION` and `WHERE` in that order and each once; a target says `SET` and nothing else, once.
+Names of events, targets, actions and fields have one part, two or three, never four.
+
+**The predicate.** Terms join by `AND` and `OR`, and not by the comma the block writes; `NOT` may be
+said twice; the field comes first; a call names a package and takes the field and a value. The
+block's source in brackets, `(package.source) = 1`, is `Msg 102` both as a comparison and inside a
+call, and the grammar had read it. `!<` and `!>` compare, which it had not.
+
+**The pieces.** A session made has an event, events first with commas, then targets with commas,
+and no comma between the two kinds; nothing dropped. A session altered does one of four things —
+adds events, drops events, adds targets, drops targets — with commas, and then its options; or its
+options alone; or its state alone, `START` or `STOP`. `ADD EVENT a.b, DROP EVENT c.d` is `Msg 156`, an
+event beside a target `102`, a state beside anything `102`. One row of an older theory, `ALTER EVENT
+SESSION es ON SERVER DROP EVENT b.c, ADD TARGET b.d (…)`, was never asked, and is `Msg 156`; it reads
+`ADD TARGET b.d (…)` now. `CREATE OR ALTER` is `Msg 102`.
+
+The rule is two, and the tree the same: the options are still `Clause.Option`s, read through the
+catalogue in front of them, and the pieces the same `Clause.EventPiece`s in the order written.
+
+At 170: 7,394 both, 0 work, 0 defects, 276 another product's, 647 neither; at 150: 6,607, 0, 0, 236
+and 545. The map 7,997 both, 0 work, 0 defects; `--levels` 165 of 165; `--split` 784; the round trip
+100% of 7,716 — all unchanged. The suite is 15,039 rows (from 14,785): 131 refusals and 123 readings.
+
+## SQL is a project of its own: DotGram.Sql
+
+The standard's grammar is next, and the tree will be reshaped to it, so SQL leaves
+`DotGram.Parsers` first — decided with Igor after the options were laid out, 2026-09-13.
+
+**One project, `src/DotGram.Sql`, and a directory and a namespace per dialect.** The records, the
+writer and the walker are `DotGram.Sql`; the standard is `DotGram.Sql.Standard` and T-SQL
+`DotGram.Sql.TransactSql`, and another database is another directory beside them. One project and
+not one per dialect, because T-SQL still names the standard's grammar (`[GramInclude]`) and an
+include inside one assembly needs nothing more; packages can be cut apart later if a consumer of
+the standard should not carry T-SQL.
+
+**The parsers are named for what they are: `SqlStandardParser` and `TransactSqlParser`.** A class
+`TransactSql` in a namespace `DotGram.Sql.TransactSql` makes `TransactSql.TryParseStatement` a
+namespace from outside it (`CS0118`). The grammar files keep their names — `SqlStandard92.gram` is
+the 1992 edition, and `TransactSql.gram` what it says.
+
+**The tests went with them.** `TransactSqlTests`, `SqlWriterTests`, `SqlWalkerTests`,
+`AstReferenceTests` and `SqlStandard92Tests`, now `SqlStandardParserTests`, are
+`tests/DotGram.Sql.Tests`, referencing the project as a consumer would. The generator's own tests
+that read the grammars as files — `GeneratorCostTests`, `ReaderCoverageTests`, `ShapesTests` — stay
+in `DotGram.Tests` and read `src/DotGram.Sql` beside `src/DotGram.Parsers`.
+
+**`DotGram.Parsers` keeps the URI**, and is a package whose next version no longer has SQL in it:
+the 0.1.0 that did is on NuGet, so for anyone who took it for SQL this is a breaking change, and
+the release notes of both packages say where SQL went. CI packs `DotGram.Sql` and holds it to the
+same shape as the other libraries.
+
+Mechanical, and measured as such: the suite is 12,891 rows in `DotGram.Sql.Tests` and 2,148 in
+`DotGram.Tests`, the 15,039 there were; at 170 7,394 both, 0 work, 0 defects; at 150 6,607, 0, 0;
+the map 7,997 both, 0 work, 0 defects; `--levels` 165 of 165; `--split` 784; the round trip 100% of
+7,716 — all unchanged. The diary keeps the old names where it used them.
+## The generator chooses the carrier
+
+`GramCarrier.Auto` is first in the enum now, and a `[Gram]` that names no carrier gets it. A
+machine left to choose reads its rules once on the tape and then settles (`Machine.Choose`, called
+the moment `_opens` is known): `Immediate` where every rule it builds keeps — `Replay` says it
+stands, or is lost only with the whole parse — and no rule opens a way back; the tape anywhere
+else, and anywhere nothing is built or the immediate carrier would refuse. The way back is the part
+the graph cannot see: an alternative that answered and is asked for the next one, a turn given
+back, both read as `Losing` by a walk of the graph. That is why the choice waits for the reader's
+first pass instead of being made from `Replay` up front, and why the reader is written again for
+what was chosen. `GRAM5012` says which, once for a compilation and in the rules' written names;
+an author who named a carrier is told nothing. `GRAM5008`, which offered `Immediate` to a grammar
+compiled on the tape, is retired: the offer is what `Auto` now takes.
+
+What it gives up is written into §3.7: a parse that fails may already have run the constructions
+of what it read. Igor's decision, with `Carrier = GramCarrier.Tape` as the way back. Holding the
+failed parse to the promise as well was not possible here — `Losing` is nearly every rule of any
+grammar, since `A & B` loses `A` whenever `B` fails — so a criterion that excluded it would have
+been the tape under another name.
+
+**Asked by default, the immediate carrier met shapes nothing had asked it about, and answered
+three of them unlike the tape.** Each was a defect of `Immediate` as an author could already choose
+it, found because `Auto` put the reader tests and the semantic tests on it:
+
+- **A run of text gathered over kinds dropped what stood between the tokens** (`aa bb cc` read as
+  `aabbcc`). It pushed each piece's text and joined the strings, which is the fault the tape's walk
+  had fixed for itself. It now pushes positions (`Spans`, a `long` each) and a method of the reader,
+  `Joined_DotGram`, joins as the walk does: one cut from the first start to the last end where the
+  pieces tile, each piece cut on its own where they do not.
+- **An optional capture of a value type was `0` where it was left out.** A local's default was what
+  said "never written", and for an `int` the default is also a value. A slot of an optional member
+  is kept in a `T?`, so a left-out `int` is `null` and a read nought is nought; `IsDefault` on an
+  `int?` tells them apart. The slots of members that must be there are unchanged.
+- **A recognizing entry of a machine that builds handed its reader a store it had not rented**
+  (`CS0103`, `values`). The entry rented only where it built; it now rents wherever the reader
+  takes one.
+
+**What `Auto` chose for the real grammars: the tape, every one.** SQL-92 reads 43 of the 47 rules
+it builds for derivations that may not stand, T-SQL 617 of 632, the expression language 60 of 62;
+RFC 3986 reads its rules again after they have answered. An ordered choice that fails after it has
+read a rule gives that reading up, and that is most of what a real grammar is — so the yardsticks'
+tape columns still measure the tape, and the immediate readings are still the ones asked for by
+name. The earlier note that SQL "opens no ways, so `Immediate` is correct for it" was about ways
+back; it reads rules for alternatives it then abandons, which `Immediate` runs the factories of.
+That is harmless for factories that only build, and saying so is the grammar author's to do.
+
+The suite is 14,786 rows, all passing.
+
+## The standard's authority: an Earley recognizer over the ISO BNF
+
+The standard is next, and it is the standard as a whole: SQL:2023 first and each earlier edition
+after it, as readings of one grammar. Decided with Igor on 2026-09-13, after the options were laid
+out. SQL-92 is a grammar for exercising the generator and no fixed point — neither it nor what leans
+on it now, T-SQL's include and the benchmarks' hand-written yardstick, which is the lowest priority
+there is; when the name `SqlStandardParser` is wanted for 2023 they move to another base or go.
+Where the standard and T-SQL disagree about the tree, the standard wins. The grammar starts from a
+converter's skeleton. And the authority is the BNF itself.
+
+**The standard has no engine to ask, so the BNF is read as one.** `--standard production file`
+(`Standard.cs`) reads `ISO_IEC_9075-2(E)_Foundation.bnf.txt` into productions (`Bnf.cs`) and puts
+each line of a file to them with Earley's recognizer (`StandardOracle.cs`), as `--engine` puts T-SQL
+to SQL Server. Two levels, as §5 has them: a text is cut into the longest `<token>` after the longest
+`<separator>`, over characters, and the tokens are recognized against the production named; a
+lexical production a syntactic one names is a terminal that must derive a whole token, and a key
+word matches a token spelled the same in either case. The 1,758 productions read in 20 to 35 ms, and
+a statement is recognized in one to five.
+
+**What is written by hand is marked so.** The `!!` productions are one-character predicates where
+they are lexical — a space, an identifier's start and continuation, a quote's complement, whitespace,
+a newline — and match nothing where they are not. One Syntax Rule is kept, §5.4's: a `<regular
+identifier>` is no `<reserved word>`, checked wherever one is completed and not only at the top.
+
+**Three things the file needed read with care.**
+
+- It sets five lists with a bar before the first alternative, after an empty line — `<set function
+  specification>`, `<reserved word>`, `<JSON name and value>`, `<SQL/JSON special symbol>`, `<alter
+  identity column specification>` — and read literally that is an alternative deriving nothing.
+  `<set function specification>` alone made every value expression empty, and `WHERE;` and `SELECT
+  FROM t;` read. What stands before such a bar is dropped; no other production has an empty
+  alternative.
+- A character string literal may be introduced by a `<character set specification>`, and following
+  the lexical rules through it made `<identifier>`, `<schema name>` and `<catalog name>` lexical: one
+  token each, with no reserved words refused. The lexical closure stops there, by hand, and a
+  production spelled of single characters alone — `<SQL language identifier>` — is a token where the
+  syntax names it.
+- A body that is one word and nothing else is that word: `<left bracket> ::= [`,
+  `<concatenation operator> ::= ||`, `<not equals operator> ::= <>`.
+
+`--standard ? file` says which lexical productions derive each word of a line, and `--standard !
+production` which pieces of the BNF read as empty and which productions the one named reaches that
+derive nothing — the two questions these three were found by. Over a first probe of twenty lines the
+recognizer reads the fourteen the standard allows and refuses the six it does not.
+
+## The BNF as a .gram skeleton
+
+The standard's grammar starts from its BNF written out once, as decided: `--bnf-gram [file]`
+(`BnfGram.cs`) writes the 1,758 productions of ISO/IEC 9075-2:2023 as a `.gram` file, by default
+`.work/SqlStandard.skeleton.gram`, which is not committed — the command makes it again from the file
+the repository keeps.
+
+**What it keeps is what a hand-written grammar must not lose: every name, and every shape.** A
+production is a rule named after it — each part of the name capitalized and what divides the parts
+dropped, so `<query expression>` is `QueryExpression` and `<SQL/JSON special symbol>`
+`SQLJSONSpecialSymbol`, none of the 1,758 meeting another — with the BNF's name in a comment above it.
+The 138 lexical productions, as the recognizer draws the line, are a `Lexical` namespace with no
+trivia and exact characters; the 1,620 syntactic ones follow it, key words written `"SELECT"i`. `[ … ]`
+is `?`, `…...` is `+`, `[ …... ]` is `*`, `{ … }` a group; 35 productions the BNF leaves to the Syntax
+Rules are `none` and say so, and three it narrows by them say that.
+
+**And what it does not settle, because a skeleton cannot.** The BNF's choice is unordered and a `.gram`
+one takes the first alternative that matches; its left recursion runs through other productions,
+which a rule may only do through itself; and its lexical productions spell classes of characters one
+at a time. Those are the hand's, rule by rule, with `--standard` to say whether what was written reads
+what the BNF reads.
+## A recognizer that is not there is said about the grammar
+
+A bare `@M` was the one reference a grammar could get wrong and hear about only from the C#
+compiler, as `CS0103` or `CS1501` on a line of a generated file. `GRAM4025` says it where it was
+written. The host is asked a second question about a method's signature beside the value overload
+(`ISymbolResolver.ResolveExternalRecognizer`, collected for every bare `@Name` like `ValueOf`):
+whether a static `bool M(ReadOnlySpan<char>, ref int)`, with or without an `out`, is reachable,
+and if not, whether anything of that name is. That breaks §7.1's "the generator never inspects a
+signature" a second time, deliberately, and §7.1 says so now; the role is still read off the
+position, and the answer changes only whether an error is said.
+
+Where it looks is where C# binds the call the generator writes: the host, the classes around it
+and their bases, and the classes of the grammars it includes, which the file imports statically.
+A no fails a build that might have compiled, so it is said only where it is certain — a method of
+the right shape anywhere in the compilation's source is taken as the one meant, and a resolver
+without a host answers yes. No grammar in `src/` or `examples/` has a bare `@M` operand, so this
+changes nothing the SQL work in flight builds.
+
+A predicate in an element set, `[@M]`, is not asked about yet.
+
+The test that a recognizer of an included grammar is found found something else first: the
+`using static` of the included hosts was written only inside the block for the grammar's own
+`@using` directives, so a grammar that included another through `[GramInclude]` and said no
+`@using` called the included class's helpers by names nothing in its file could see (`CS0103`).
+T-SQL has directives of its own and never met it. The block is written where there is either.
+
+## SQL:2023 begins: §5, held to the BNF
+
+`SqlStandardParser` exists (`src/DotGram.Sql/Standard/SqlStandard.gram`), and its first part is §5:
+the tokens and separators, every literal §5.3 has, the names of §5.4 and the 376 reserved words,
+with §10.1's interval qualifier because an interval literal ends in one. Seven publications —
+`Literal`, `UnsignedLiteral`, `Identifier`, `IdentifierChain`, `ColumnReference`, `TableName`,
+`SchemaName` — so that each can be put to the BNF on its own.
+
+**`--standard` now asks both.** Where the grammar publishes a rule named after the production, each
+line goes to the Earley recognizer and to `TryParse…`, the verdicts stand side by side, and `≠`
+marks a difference. Over 121 probe lines, 277 verdicts across six of the publications, there is
+none; the rows went into `SqlStandardParserTests` (118 cases) with the verdicts both gave.
+
+**What the two disagreed about on the way, and who was right.**
+
+- `absolute` was refused as an identifier: the reserved word `ABS` was taken for the start of it.
+  The boundary was `IdentifierPart` written as a choice of `IdentifierStart` and `IdentifierExtend`,
+  and a boundary guards the literals whose characters all fall in a *class* — a choice between
+  rules is not one, so no literal was guarded. One set now.
+- `_select.latin1'a'` was read, and the BNF refuses it: the name after an introducer is an
+  identifier, and §5.4's rule reaches inside the token. Asking the key-word list there did not
+  help, because a key word at the top is guarded on both sides and the `_` before `select` is a
+  connector — a letter, as far as a word goes. The reserved words are lexical now, a whole word
+  checked by `?!IdentifierPart` after it, and asked from both places.
+
+**Shapes an ordered choice needed that the BNF does not have.** The BNF nests a table name's
+qualifiers, and a choice that takes the longest qualifier leaves no name for the end (`a.b` would be
+a schema and nothing after it), so a table name is a run of at most three identifiers. An interval
+string's forms begin alike (`'5'` is a year, a day, an hour, a minute and a second), so each form
+is asked to reach the closing quote before the next is tried. A Unicode identifier is asked before
+a regular one, which would take its `U`. Each says so above it.
+
+**Written over characters, not tokens.** The standard's tokens overlap — `'2020-01-01'` is a date
+string and a character string, and only the key word before it says which — and a choice over
+characters can go back where one over tokens cannot. Asked again once the grammar is whole.
+
+**Where both read less than the standard.** `UESCAPE` may choose another escape character; the
+recognizer takes only the reverse solidus and the grammar follows it, so `U&'#0041' UESCAPE '#'` is
+refused by both. A Syntax Rule to write into both when a statement needs it.
+## A predicate that is not there is said about the grammar too
+
+`[@M]` is asked the question a bare `@M` is (the entry two above), in its own role: `ISymbolResolver.ResolveExternalRecognizer`
+became `ResolveExternalMethod(name, role)`, a day old and unshipped, rather than gaining a twin.
+A predicate is whatever `M(c)` binds to, and the shape is checked no tighter than that: a static
+`bool` method whose first parameter a `char` converts to implicitly and whose others may be left
+out. `bool IsVowel(int c)` compiles as a predicate and is one; checking for `(char c)` exactly
+would have said otherwise about a grammar that builds.
+
+## SQL:2023 §6 and §8: the towers, read once
+
+The standard's grammar now has its scalar expressions and its predicates: data types (§6.1), value
+expression primaries with every step the BNF writes after one, `CASE`, `CAST`, `NEXT VALUE FOR`,
+`TREAT`, `NEW`, `DEREF`, the collection constructors, routine and method invocations with named
+arguments, the numeric, string, datetime, interval, array and multiset value functions, the boolean
+value expression, and every predicate that holds no query. What holds one — a scalar subquery,
+`EXISTS`, `UNIQUE`, `MATCH`, a quantified comparison, `IN (SELECT …)` — waits for §7, and so do
+aggregates, window functions, row pattern navigation and the JSON functions.
+
+**The BNF types its expressions, and a parser has no types.** A numeric, a character, a datetime and
+an interval value expression are towers of their own that meet only in a value expression primary,
+so `a || b + c` is none of them and the BNF refuses it; `x + y AT LOCAL` is a datetime (an interval
+plus a datetime term) and `x - y AT LOCAL` is nothing; `2 * a DAY` is an interval and `2 / a DAY` is
+not; `x IN (a + 1)` is refused, because an in value list holds row value expressions. An ordered
+choice cannot try the towers one after another — each would take the first operand and stop — and
+writing every mixture out is a grammar the size of their product. So an expression is read once, as
+operands and the operators between them, and `Towers.cs` says which towers the whole still belongs
+to; a guard refuses a reading where none is left. A boolean works the same way: `NOT`, `AND`, `OR` and
+`IS TRUE` take boolean predicands, and a boolean predicand is a value expression primary, so
+`(a + 1) IS TRUE` is refused and `((a)) IS TRUE` read, as the BNF has them.
+
+**One production cuts across that shape, and random input found it.** An array element reference
+subscripts an array value expression, and a concatenation is one: `-f(a) || a[1]` is `-((f(a) ||
+a)[1])`, a number. The operands are read flat and a run of `||` that ends in a subscript folds into
+one primary before the operators are asked; folding only takes operators away, so the run is taken as
+far as it goes.
+
+**A repetition of a choice is not spaced** (docs/syntax.md §4.5), and the grammar had leaned on it:
+`INTEGER MULTISET MULTISET` and `CASE WHEN a THEN 1 WHEN b THEN 2 END` were refused. The steps after
+a primary are a valued rule now, whose repetition is a list and spaced; the collection suffixes of a
+data type and the `WHEN` clauses name `trivia` in their turns.
+
+**How it is held.** Besides the probe files, `.work/fuzz_values.py` writes random expressions in three
+moods — operators and postfixes thrown together, one tower kept to, and templates with expressions in
+their holes — and `--standard` put 37,000 verdicts across seven publications to both the BNF and the
+grammar: none differ. Deep nesting costs milliseconds. The probe lines went into
+`SqlStandardParserTests` with the verdicts both gave, taken from `--standard`'s own output.
+
+## SQL:2023 §7: query expressions, and what §6 and §8 held for them
+
+The standard's grammar reads queries now: the query expression with `WITH` and its search and cycle
+clauses, `UNION`, `EXCEPT` and `INTERSECT` with `CORRESPONDING`, `ORDER BY`, `OFFSET` and `FETCH`;
+the query specification and its select list; the table expression with every table primary but a
+data change delta table, `JSON_TABLE` and a row pattern recognition clause; joins of all three
+kinds, partitioned join tables among them; `GROUP BY` with `ROLLUP`, `CUBE`, `GROUPING SETS` and
+`()`; `HAVING`; the window clause but its row pattern parts. And what §6 and §8 waited for: the
+scalar subquery, `EXISTS`, `UNIQUE`, `MATCH`, the quantified comparison, `IN (SELECT …)`, and the
+array, multiset and table value constructors by query. Aggregates, window functions, row pattern
+recognition and the JSON functions are next.
+
+**The oracle was wrong first.** `SELECT a FROM t GROUP BY ()` was refused by `--standard`, while
+`<empty grouping set>` asked alone read `()`. The recognizer takes a syntactic production spelled of
+single characters alone for one token, so that `<SQL language identifier>` in `CHARACTER SET LATIN1`
+is one; `<empty grouping set> ::= <left paren> <right paren>` is spelled that way too, and a token
+`()` the tokenizer never makes could not be matched. A production that begins with an `<SQL special
+character>` — a token by itself, §5.2 — is no longer one token: that took `<empty grouping set>`,
+`<upper limit>` (`, [n]`), `<JSON wildcard member accessor>` (`.*`) and `<Ada assignment operator>`
+out. Every row the tests held before was put to the BNF again, 285 of them, and none changed.
+
+**What an ordered choice would have read twice, read once.** The BNF's alternatives often begin
+alike, and where the common beginning holds a query, trying one alternative and then the next reads
+the query again at every depth — 2ⁿ for n nested subqueries.
+
+- A <select sublist> is a <derived column> or a <qualified asterisk>, and both begin with a value
+  expression: `t.*` is a column reference in shape, `f(x).*` an all fields reference. The expression
+  is read once, and a `.*` after it asks that it be a primary.
+- A <table reference> may begin with a <partitioned join table>, which is a table factor and
+  `PARTITION BY`. It is read as a factor and then its partitioning, which must be followed by a
+  qualified or a natural join.
+- A <parenthesized joined table> is a joined table in brackets or one such in brackets again; both
+  begin with a table factor, and the factor says whether it was one.
+
+**Left recursion through other productions, as steps.** A join begins with a table reference, so the
+joins are steps after the first factor. A qualified join's right side is a table reference too, and
+it is read as far as it goes: a join specification must follow it, and one a join inside it had
+taken could not have been the outer join's, which would then have none — so `t JOIN u JOIN v ON a
+ON b` reads and `t JOIN u JOIN v ON a` does not, as the BNF has them. `UNION`, `EXCEPT` and
+`INTERSECT` recurse through their own productions on the left and are repetitions.
+
+**A scalar subquery is asked before a parenthesized value expression.** `((SELECT a FROM t))` is
+both, and only the subquery reading — a query primary in brackets inside the subquery's own — is a
+non-parenthesized value expression primary, which an in value list holds: `a IN (1, ((SELECT a FROM
+t)))` is read, as the BNF reads it.
+
+**How it is held.** `.work/fuzz_query.py` writes random query expressions — clauses thrown together,
+joins and subqueries nested in each other, and with `broken` a word dropped, doubled or swapped —
+and 11,000 of their verdicts, 3,000 of them on broken lines, agree with the BNF's; none differ. The
+grammar reads 3,000 such lines in about a second, the recognizer in minutes. Two differences the
+first runs found were what is still to come: `a + b.*`
+is `a + b` and a JSON simplified accessor, and `a = ANY (1)` compares with the aggregate `ANY`.
+`--standard` now says the grammar's own time apart from the recognizer's, which is most of a line's.
+The 120 probe lines went into `SqlStandardParserTests`.
+
+## SQL:2023 §6.10 and §10.9: aggregates and window functions
+
+The standard's grammar has its aggregates now — `COUNT(*)`, the general and binary set functions,
+the hypothetical and inverse distribution functions `WITHIN GROUP`, `ARRAY_AGG`, `LISTAGG`,
+`GROUPING`, `FILTER`, `RUNNING` and `FINAL` — and its window functions: an aggregate `OVER` a window,
+the rank functions, `NTILE`, `LEAD` and `LAG`, `FIRST_VALUE`, `LAST_VALUE` and `NTH_VALUE` with their
+null treatment, a row pattern measure `OVER` a window, and the nested window functions `ROW_NUMBER`
+of a row marker and `VALUE_OF`; with them the row pattern navigation operations `FIRST`, `LAST`,
+`PREV` and `NEXT`. A JSON aggregate waits for the JSON functions.
+
+**An aggregate is read once, windowed or not.** A window function's type may be an aggregate, so the
+two are one alternative with `OVER` after it or not; `RUNNING` and `FINAL` stand before one only
+where no window follows, as the BNF has it: `RUNNING SUM(a) OVER w` is refused.
+
+**A name followed by `OVER` is a measure.** The primary that reads an identifier chain reads one
+name and then either the rest of the chain or `OVER` and a window, so `m OVER w` is read and
+`m.n OVER w` is not.
+
+**A compound navigation is a physical one around a logical one, and a logical one is a routine's
+call in shape.** `PREV(FIRST(a) + 1)` is a physical navigation of a value expression, and
+`PREV(RUNNING FIRST(a, 1), 2)` one of a logical navigation. The logical reading is taken only where
+the physical one's offset or its bracket follows it, and otherwise the argument is a value
+expression — which reads `FIRST(a) + 1` as a routine's call and a sum.
+
+**A comparison is asked before a quantified comparison now, and an aggregate is why.** `ANY` and
+`SOME` are aggregates too: `a = ANY ((SELECT a FROM t)) + 1` is a comparison with the aggregate of a
+scalar subquery and a sum, and the quantifier's reading would have stopped before the `+`. Not so for
+`ANY (SELECT a FROM t)`: an aggregate's brackets hold a value expression, which `SELECT` does not
+begin, so that is a quantifier's alone — which is what the first version of the comment above the
+rule said wrongly, and the probe caught.
+
+**How it is held.** Two probe files, 91 lines, and `.work/fuzz_query.py` with aggregates and window
+functions among its values: 6,000 verdicts, 3,000 of them on broken lines, and none differ. One
+difference the probe found, `COUNT(a.b.*)`, is a JSON simplified accessor counted, and waits with it.
+
+`--standard =production file` asks the grammar alone and times each line on a second reading: the
+recognizer takes seconds over a long line, which is no way to look for what makes the grammar slow.
+
+## SQL:2023 row pattern recognition, and a refusal that costs a square
+
+**`MATCH_RECOGNIZE`** is read where the BNF has it: after a table primary, in place of or between
+correlation names, and in a window frame — its measures before the frame units, its pattern and
+definitions after the exclusion. The pattern is alternation of terms of quantified factors: variables,
+`$`, `^`, bracketed patterns, `{- … -}` exclusions and `PERMUTE`.
+
+- **A correlation name and a recognition clause both begin with a name where they have one.** `t s (c)
+  MATCH_RECOGNIZE (…)` names the input `s`; read as a correlation first, the clause is left behind.
+  So a name is read, then a clause, and a guard asks that one of them be there where the BNF
+  requires one — a derived table, `LATERAL`, `UNNEST`.
+- **A frame may begin with `MEASURES`, which is not reserved**, and an existing window name is an
+  identifier: `(MEASURES a AS b ROWS …)` would give the name `MEASURES` and leave `a` unread. A name is
+  a window's only where what may follow one follows it.
+- **`??(` and `??)` are one token each** (§5.2, the trigraph brackets), so `(A??)` is refused by the
+  BNF: its tokens are `A` and `??)`. The grammar reads characters and would have taken a reluctant
+  question mark. A pattern's question mark is lexical now and stands before neither; `(A? ?)`,
+  spaced, is read as the BNF reads it.
+- `FIRST`, `LAST`, `NEXT` and `PERMUTE` are not reserved: `SKIP TO FIRST A` is asked before `SKIP TO
+  FIRST`, which skips to a variable named `FIRST`, and `PERMUTE` before a variable of that name.
+
+Held by 69 probe lines and 6,000 random verdicts, 3,000 of them on broken lines, over half of them
+with a recognition clause or a row pattern in a window. One differs: `SELECT ALL a + t.*, …`, where
+the BNF reads `t.*` as a JSON simplified accessor, which waits for the JSON functions.
+
+**A refused line could cost a power of its depth, and that was the grammar.** The first fuzz run with
+row patterns stopped on one line — 4,034 characters, thirteen `SELECT`s, eight `MATCH_RECOGNIZE`s —
+and the grammar alone did not answer in two minutes. Valid, the same text read in a millisecond and
+a half; refused by `GROUP BY ROLLUP (())` alone, it read for ever. An ordered choice commits to the
+first alternative that succeeds, so a valid line never tries the others; a refused one tries them
+all at every level on its way out, and where alternatives begin alike each reads the same contents
+again. Families of lines refused at their core, nested two to eight deep, found five such places,
+each a factor of two to three a level:
+
+- a bracket: a scalar subquery, a parenthesized value expression, a generalized invocation, and an
+  explicit row where a predicand or an in value list may hold one — `SELECT ((((((((SELECT a FROM t
+  GROUP BY ROLLUP (()))))))))) FROM t`, 46 ms. The bracket is read once now: its value expression,
+  then the closing bracket, a comma or `AS` says which (`Bracketed`). A row is a primary in shape
+  and something only alone, so the towers carry it (`Towers.Row`) and whatever wants a value refuses it.
+- a row pattern navigation and a routine invocation: without `RUNNING` or `FINAL` a navigation is a
+  routine's invocation in shape, `PREV(a, 1)`, and a compound one a routine's invocation whose first
+  argument is a logical navigation. Only what begins with `RUNNING` or `FINAL` is written as a
+  navigation now.
+- `SUBSTRING`'s three forms, and `TRIM`'s operands: read up to where they differ, once.
+- `TABLE (f(x))` as a collection and as a polymorphic table function: the expression is read once,
+  and a routine's invocation alone (`Towers.Invoked`) needs no correlation name.
+
+The line reads in half a second now; eight levels of each family cost well under a millisecond.
+One stays: `a = ANY ((SELECT …))` is an aggregate of a scalar subquery and a quantified comparison,
+the one reading a value expression inside the bracket and the other a query expression, and a line
+refused inside eight of them costs 7 ms. Asked the other way round, `ANY ((SELECT a FROM t)) + 1`
+would be refused; nested that deep, it is not worth a third reading of brackets.
+
+What the one reading decides was put to the BNF again — a row with a step, a sign or an operator, a
+generalized invocation of a sum, `TABLE (…)` of a routine alone and of anything else, the `TRIM`
+and `SUBSTRING` forms, a compound navigation — 57 lines, which went into the tests; and every row
+the tests held before still gets its verdict from both.
+
+## SQL:2023 JSON, as far as the BNF spells it
+
+The standard's grammar has its JSON now: `JSON_VALUE` and `JSON_QUERY` with their behaviours on empty
+and on error, `JSON_EXISTS`, `JSON_OBJECT` and `JSON_ARRAY` by enumeration and by query, `JSON_ARRAYAGG`
+and `JSON_OBJECTAGG`, `JSON(…)`, `JSON_SCALAR` and `JSON_SERIALIZE`, `JSON_TABLE` with nested columns
+and plans, `JSON_TABLE_PRIMITIVE`, and the simplified accessor.
+
+**What the BNF leaves to prose is read as nothing, on both sides.** Decided with Igor: the JSON path
+language's literals, identifiers and key names are `!! See the Syntax Rules.`, which `--standard` reads
+as matching nothing, and the text of those rules is not in the repository. So the grammar writes what
+the BNF spells and no more, and says so: `a[$ to last]`, `a[$?(exists($))]` and `a.decimal(1, 2)` are
+read, `a[1 to last]` and `a.key` as a member accessor are not. The SQL tokens settle the rest: `&&`,
+`==` and `!=` are no tokens, and `!` and `@` no SQL characters (§5.1), so a conjunction, a negation,
+those comparisons and `@` never reach the path language; `||` is the concatenation operator's token,
+and a disjunction does.
+
+**Where the towers put it.** `JSON(…)` and `JSON_SCALAR` are JSON primaries and nothing else, so
+`JSON_SCALAR(a) || 'x'` is refused; a JSON value expression is a primary or one of them
+(`Towers.Json`), so `JSON_SERIALIZE(a + 1)` is refused. `JSON_VALUE`, `JSON_QUERY` and the constructors
+are value expression primaries; `JSON_EXISTS` is a predicate.
+
+**Two readings the accessor changed.** `t.*` is an accessor, so the select list's value expression
+reads the `.*` itself, and `AS (x, y)` after it asks that `.*` was the last step (`Towers.Starred`).
+The item methods' names are mostly reserved words — `double`, `abs`, `date`, `decimal` — so no method
+invocation reads them, and they are asked first, with the arguments the BNF gives each.
+
+**Read once where alternatives begin alike.** A `JSON_TABLE` column is regular or formatted, and
+neither need say which: read as one, a guard refuses a regular one's `DEFAULT … ON` beside a formatted
+one's `FORMAT`, wrapper, quotes or `EMPTY ARRAY`. A plan is a primary and what follows it. Families
+refused at their core, eight deep, stay under half a millisecond for every JSON construct.
+
+**Over characters a rule gives back what it read, and the grammar was written as if it did not.**
+docs/syntax.md §4 says so: a later failure may resume a choice or a repetition inside a called rule.
+The JSON fuzz found it twice.
+
+- `COLUMNS (ORDINALITY)` read, and the BNF refuses it; so did `COLUMNS (xy)` and `ROW(ab)`. A column
+  is a name and a type, both identifiers, and the identifier gave back its letters: `x` of a type `y`.
+  §5.2 cuts a text into its longest tokens, so a name is one; `Identifier = { ActualIdentifier }` now,
+  and an atomic group gives nothing back.
+- The grammar alone took 2.3 seconds over the aggregate fuzz file that took 0.8 before JSON, with no
+  verdict changed; a line-by-line comparison put 70% of it on thirty refused lines full of `t.*`,
+  `(a).*` and `f(a).* AS (x, y)`. The accessor had made `.*` a step of every primary, and the select
+  list still read a `.*` after the expression too: a refused line gave every `.*` back to be read the
+  second way, a power of their number. Only the step reads it now — whatever cannot take one is no
+  primary — and `COUNT(v.*)`, the same text as `COUNT` of a value, is read only as that. The file
+  takes 0.72 seconds, less than before JSON, and the slowest line fell from half a second to 10 ms.
+
+The lesson is older than JSON: two readings of one text in a grammar that backtracks fully cost a
+power of how often the text occurs, on the lines that are refused, and every refusal family in this
+diary was one. Where a lexeme is meant, braces say so. The lines that found the cut name — 19 of
+them, with a key word alone as a column and a field with no type — went into the tests.
+
+Held by 189 probe lines — the rows, less five that two files shared — and 6,000 random verdicts,
+3,000 of them on broken lines, over the grammar as it stands after both fixes: none differ, and the
+grammar reads each 3,000 in under half a second.
+
+## SQL:2023 §14: the data change statements
+
+`INSERT` with a column list, an override clause and a query, a contextually typed `VALUES` or
+`DEFAULT VALUES`; `UPDATE` and `DELETE`, searched — with `FOR PORTION OF` — and positioned, `WHERE
+CURRENT OF` a cursor; `MERGE` with its matched and not matched clauses; `TRUNCATE TABLE`; and the data
+change delta table, `FINAL`, `NEW` or `OLD TABLE (…)`, in a `FROM`. Each statement is published under
+its production's name, and `--standard` asks them all.
+
+**A contextually typed row is a value expression or what gives it a type.** `VALUES DEFAULT`, `(1,
+DEFAULT)` and `ROW (DEFAULT)` are read: `DEFAULT`, `NULL` and an empty collection take their type from
+where they go. `(DEFAULT)` is such a specification in brackets and alone, so `VALUES ((DEFAULT))`,
+`(1, (DEFAULT))`, `SET a = (DEFAULT)` and `DEFAULT + 1` are refused, as the BNF has them.
+
+**What the BNF says about each part's place.** `INSERT INTO ONLY (t)` is refused, where `UPDATE`,
+`DELETE`, `MERGE` and `TRUNCATE` take `ONLY`; `FOR PORTION OF` stands before a correlation name; a
+`DEFAULT VALUES` has no column list and no override; `MERGE` needs a `WHEN` and inserts one row; a set
+target is a column, an element of one by a simple value, or a column's attributes by mutators —
+`SET t.a = 1` is the attribute `a` of a column `t` — and not an element's attribute; a delta table
+holds a searched statement and no `TRUNCATE`. `FINAL` is not reserved, so a delta table is asked
+before a table's name.
+
+**One refusal still costs a power, and is left.** A contextually typed `VALUES` is asked before a
+query, whose table value constructor reads what it reads and may go on — `VALUES (1) UNION SELECT …`
+is a query's alone — so a row refused deep inside is read by the row's forms and then by the query's.
+`INSERT INTO t VALUES ((SELECT a FROM NEW TABLE (INSERT INTO t VALUES (…)) x))`, refused five deep,
+costs 141 ms. Reading both at once would put `DEFAULT` and `NULL` among the towers as operands of
+their own; an insert inside a delta table inside a row is not worth that, and every other data change
+family refused five deep stays under a quarter of a millisecond.
+
+Held by 78 probe lines, put to all eight productions, 624 verdicts; and `.work/fuzz_dml.py`, which
+builds statements of each kind out of the query fuzzer's values, conditions, tables and queries:
+14,000 random verdicts, 7,000 of them on broken lines, none differ.
+
+## SQL:2023 §11 and §12: the schema's core
+
+Schemas with their elements, tables — temporary, system-versioned, from a query, with columns,
+periods, constraints and `LIKE` — views, domains, sequence generators, assertions, roles and
+privileges, and what alters and drops each; published together as `SQLSchemaStatement`. What a schema
+also holds and is written in chapters of its own — routines, triggers, user-defined types and typed
+tables, character sets, collations, transliterations, casts, orderings, transforms — waits, and so
+does a privilege on a routine.
+
+**What the BNF fixes that a dialect would not.** A column's default comes before its constraints and
+excludes an identity or a generation (`a INT NOT NULL DEFAULT 1` is refused), and is a literal, a
+datetime function, a user or schema of the session, or a contextually typed value — never a column or
+an expression. A column may have no type at all. A domain is of a predefined type, not a collection
+nor another domain. `TEMPORARY` needs `GLOBAL` or `LOCAL`; a table from a query takes the query in
+brackets and `WITH [NO] DATA`. Every drop says `CASCADE` or `RESTRICT` but an assertion's; `ALTER
+TABLE` does one thing; `ALTER SEQUENCE` does not alter the start; `GRANTED BY` names the current user
+or role and nobody else.
+
+**Asked in an order that only full backtracking forgives.** `TYPE` and `SEQUENCE` are not reserved, so
+an object's kind is asked before a table's name that could be the same word; privileges before roles,
+since `USAGE` is a role's name as readily; a column list before a query is an element list in shape,
+and read as one before the query is.
+
+**A list refused at its end cost a square, and atomic repetitions are the cure.** The refusal families
+here were quadratic where they were lists: a table of 32 columns refused at its last element took 7
+ms, a domain of 32 checks 3.6. A repetition that cannot reach what follows it gives back its last
+element and tries again, then the one before, and every element given back has shorter readings of its
+own; that is what full backtracking does, and a prefix reading, which never needs to reach the end,
+never pays it — which is why the square was once blamed on the generator (the entry on row pattern
+recognition). Braces around the repetition say it gives nothing back: `TableElementList = '(' & {
+TableElement & (',' & TableElement)* } & ')'`. The table's elements, a column's constraints, a
+domain's checks, a schema's elements and a join's steps are atomic now; the 32-column table refused
+costs 0.19 ms, and `SELECT a FROM t` with 128 `CROSS JOIN v` and a stray `+` costs 0.46 ms where it
+cost 9.6 — what the valid line costs. No verdict changed. The query grammar's other lists are the
+same shape, and are next.
+
+**An atomic group commits the first reading that lets it end, and the fuzz found where that is the
+wrong one.** 42 of the first 6,000 schema verdicts differed, every one a column with no type and
+`GENERATED …`: `c GENERATED ALWAYS AS IDENTITY` was refused. `GENERATED` is not reserved, so the
+column's optional type read it as a user-defined type's name, the element ended there, and the list —
+atomic now, and ending before its closing bracket — kept that reading when the bracket did not follow;
+before, the type was given back. The probe had only columns with a type. A type is not read where
+`GENERATED ALWAYS` or `GENERATED BY` follows now, which only a generation goes on from; nothing else
+that follows a type is unreserved. The lesson for the next atomic repetition: every element's first
+reading must be the one that lets the list go on, or the group must not end before what decides it.
+
+The broken half of the next run found the same trap a level up: `CREATE SCHEMA s CREATE TABLE t (a,
+b) AS (SELECT a FROM u) WITH DATA` was refused, and the table alone was read. A schema's elements are
+atomic, and a table's first reading was two columns with no type, `(a, b)`, which ends a table; the
+elements stopped at `AS` and kept it. Alone, the statement must reach the end, and backtracking found
+the query. The query is asked first now, with its column list, and fails at once where no `AS` follows.
+
+Held by 151 probe lines and `.work/fuzz_ddl.py`, which writes statements of every kind above out of
+the query fuzzer's values, conditions and queries: after both fixes, 6,000 random verdicts, 3,000 of
+them on broken lines, none differ, and the grammar reads each 3,000 in 60 ms. The query and data
+change fuzzers were run again over the atomic join steps — 8,000 verdicts, none differ.
+
+**Every refused line costs a square — and, as the schema's core below found, the grammar is why.** The aggregate fuzz showed a line of
+1,358 characters that took 47 ms. `--standard =…` over families of lines found the shape: none —
+every family is linear where the line is read, and quadratic where it is refused at the end, however
+it is refused. `SELECT a FROM t` and 128 `CROSS JOIN v` takes 0.24 ms; with ` +` after it, 7.9 ms.
+Asked from a console, `TryParseQueryExpression(line, 0)`, which reads a prefix, takes 0.6 ms at 256
+joins on that same refused line, and `TryParseQueryExpression(line)` 9 ms: it is the whole reading, in
+the generated code, and not a re-read in `SqlStandard.gram`. The conclusion drawn here — that
+it is the generator's — was wrong. A prefix reading stops at the first prefix that fits; a whole one,
+refused at the end, gives back its repetitions one element at a time and reads what follows again
+for each, which is what full backtracking means. An atomic repetition gives nothing back and costs
+what a valid line does; see the schema's core.
+
+## SQL:2023: the query grammar's lists give nothing back
+
+What the schema's core found, done for the queries: the lists that no valid reading needs given
+back are atomic — `FROM`, `GROUP BY`, an in value list, an argument list, both `VALUES`, `WITH`, the
+set operators' operands, the select list, `ORDER BY`, `SET`, the window clause, and `CASE`'s and
+`MERGE`'s `WHEN` clauses. A column name list is not: `UNIQUE (a, p WITHOUT OVERLAPS)` gives `, p`
+back. Nor, yet, the chains the towers guard — operands and operators, `AND` and `OR`.
+
+Refused at the end, with n from 16 to 128 elements:
+
+| list | before | after |
+| --- | --- | --- |
+| `AND` chain | 1.1 → 107 ms | 0.24 → 2.3 ms |
+| `VALUES` | 1.3 → 42 ms | 0.20 → 1.6 ms |
+| arguments | 0.7 → 33 ms | 0.19 → 1.2 ms |
+| `FROM` with commas | 0.3 → 8.5 ms | 0.07 → 0.6 ms |
+| `GROUP BY` | 0.3 → 6.4 ms | 0.07 → 0.2 ms |
+
+The `AND` chain was not made atomic and is fast anyway: its operands' own lists were what it paid
+for. A refused schema statement of 1,907 characters took 407 ms and takes 1.2; the aggregate fuzz file
+took 0.7 seconds and takes 0.3. An in value list showed 7.5 ms at 62 and 128 elements and 0.2 between;
+the spike moves with a line's place in the file and not with the line, and is the runtime compiling
+a method again.
+
+**The trap came back, as the schema's core said it would.** `JSON_ARRAY(SELECT a FROM t FORMAT JSON
+…)` was refused: `FORMAT` is not reserved, so it was table `t`'s correlation name, and the list of
+tables, atomic, kept it. A correlation name is not read now where `FORMAT JSON`, `RETURNING` and a
+type, or `ABSENT ON NULL` follow — words no correlation name could stand before, since nothing that
+follows a table begins so. The recorded rows found it; then every fuzzer ran over the atomic lists —
+queries, schema statements and all seven data change statements, 19,000 verdicts, 6,000 of them on
+broken lines — and none differ.
+
+## SQL:2023: the rest of the statements a routine's body and a direct invocation are made of
+
+The transaction statements of §17, the connection statements of §18, the session statements of §19,
+`GET DIAGNOSTICS` of §23, `CALL` and `RETURN` of §16, the data statements a routine's body holds —
+cursors opened, fetched from and closed, `SELECT … INTO`, locators freed and held — and §22's direct
+SQL statement: a directly executable statement and its semicolon, whose data statements are a cursor
+specification, a temporary table declared, and the data changes. Eight publications, one per group.
+Dynamic SQL (§20: prepare, execute, describe, descriptors) is not written yet,
+and without it a routine's body cannot be all a `<SQL procedure statement>` is; routines and triggers
+wait for it.
+
+**What the BNF fixes.** A session's catalog, schema, path and names are given as values — `SET PATH
+'s1, s2'` is read and `SET PATH s1, s2` refused — and so is a connection's server; `SET TIME ZONE 1` is
+read, since a literal is of every tower. `START TRANSACTION,` and `SET CONSTRAINTS ALL` with no mode are
+refused; a savepoint has a one-part name; `ROLLBACK TO` names a `SAVEPOINT`; `CONNECT … USER … AS` is in
+the wrong order. `GET DIAGNOSTICS CONDITION 1 :m = NUMBER` asks a statement's item of a condition and
+is refused. A target is a host parameter with its indicator, an SQL parameter or column with an
+element, or a dynamic parameter — `:a[1]` is none. `FETCH PRIOR c` needs its `FROM`; `SELECT … INTO`
+takes no `ORDER BY`; `CALL p` needs its brackets; `CALL` is no direct statement.
+
+**Four lists paid a square refused, and give nothing back now:** a diagnostics statement's items, the
+targets of `FETCH` and of `SELECT … INTO`, and the character sets of `SET COLLATION … FOR` — 3 to 6 ms
+at 128 before, 0.16 to 0.26 now; a transaction's modes never did.
+
+Held by 122 probe lines and `.work/fuzz_statements.py`, one production per run: 15,982 random
+verdicts over the atomic lists, half of them on broken lines, and none differ.
+
+## SQL:2023 §20: dynamic SQL
+
+`PREPARE`, `DEALLOCATE PREPARE`, `DESCRIBE`, `EXECUTE` and `EXECUTE IMMEDIATE`; descriptors allocated,
+deallocated, read and set, and copied to a polymorphic table function's; `PIPE ROW`; dynamic cursors
+allocated, opened, fetched from and closed, and the positioned data changes through one; with them the
+specific routine designator a received cursor names. One publication, `SQLDynamicStatement`. With it
+a `<SQL procedure statement>` has every kind of statement the foundation gives it, and routines and
+triggers are next.
+
+**What the BNF fixes.** An `EXECUTE`'s results go `INTO` before its arguments come `USING`; an argument
+is a general value specification — a parameter, a host variable, `CURRENT_USER`, `?` — and no
+expression. A descriptor's header items (`COUNT`, `KEY_TYPE`) are set and read without `VALUE`, and an
+item's (`TYPE`, `DATA`) with one, and neither in the other's place. `COPY` and `PIPE ROW` go to a
+polymorphic table function's descriptor, `ALLOCATE DESCRIPTOR` names a conventional one, and `COPY`'s
+options are `NAME`, `TYPE`, `NAME, TYPE` or `DATA`, in that order. `DESCRIBE` needs its descriptor.
+`SQL` is reserved, so `PREPARE s FROM :sql` is refused — a host parameter's name is an identifier.
+`EXECUTE IMMEDIATE` alone is read: it executes a statement named `IMMEDIATE`, and so is `DESCRIBE INPUT
+USING …`, of one named `INPUT`.
+
+Held by 76 probe lines and `.work/fuzz_dynamic.py`: 6,000 random verdicts, 3,000 of them on broken
+lines, and none differ. The lists — arguments, results, a descriptor's items — are atomic from the
+start, and refused at 128 elements cost under 0.2 ms.
+
+## SQL:2023: routines and triggers
+
+Procedures, functions and methods created — parameters with their modes, types, locators, generic
+tables, descriptors and defaults, what a routine returns, its characteristics, and its body: a
+`<SQL procedure statement>` of every kind with the rights it runs with, a reference to an external
+body with its transform groups, or a polymorphic table function's component procedures — and what alters
+and drops them. Triggers with their transition tables and variables, a `WHEN` and a compound triggered
+statement, and what drops them. A privilege on a routine, and a selection's on methods. A schema's
+elements now have routines, triggers, grants and roles, as the BNF gives them. They are read as
+`SQLSchemaStatement`, and a body as `SQLProcedureStatement`, published beside it.
+
+**What the BNF fixes.** A routine's body is one statement: `BEGIN ATOMIC … END` is a trigger's, and a
+procedure's `BEGIN` is SQL/PSM's, not the foundation's; a compound triggered statement has one statement
+at least, each with its semicolon. `SELECT a FROM t` is no body, `SELECT a INTO :x FROM t` is. A
+method's specification has no characteristics, a function's characteristics come in any number and any
+repetition but `STATIC DISPATCH` once, after them. `ALTER` of a routine says a characteristic and
+`RESTRICT`, never `CASCADE`, and no `SPECIFIC` or `DETERMINISTIC`; `DROP` of a routine says its behavior,
+`DROP TRIGGER` none. A trigger's event is one: `INSERT OR DELETE` is refused, and so is `REFERENCING`
+with nothing after it and a `WHEN` without brackets. `CALL` is a control statement, no schema statement.
+
+**One trap, found by a probe.** A parameter list gives nothing back, and `DESCRIPTOR` is not reserved: a
+default of `DESCRIPTOR (a INT)` read as a value expression first stopped at the column `DESCRIPTOR`,
+which let the list end before its bracket, and the declaration was refused. The descriptor is asked
+first now. A parameter's name is asked before its type, which a user-defined type's name could be:
+`(a b)` is `a` of type `b`, `(a)` is of type `a`.
+
+Held by 137 probe lines and `.work/fuzz_routine.py`, whose bodies are made by the other fuzzers: 20,000
+random verdicts, half of them on broken lines, and none differ. Refused lines nested eight deep —
+procedures in procedures, compound statements in triggers, schemas in routines in schemas — and
+parameter lists of 64 cost under 0.2 ms.
+
+## SQL:2023: user-defined types, and the rest of what a schema holds
+
+User-defined types — a supertype, a representation, options in any order and number, methods original
+and overriding — and `ALTER TYPE`'s attributes and methods added and dropped, and `DROP TYPE`; casts,
+orderings and transforms, created, altered and dropped; character sets, collations and
+transliterations; tables and views of a structured type. With them `SQLSchemaStatement` is every
+definition and manipulation the BNF names, and a schema's elements are all of theirs.
+
+**What the BNF fixes.** A distinct type is represented by a predefined type or a collection of any
+type: `AS u ARRAY` and `AS ROW (a INT) MULTISET` are read, `AS u` and `AS ROW (a INT)` refused, and a
+member list is never empty. An overriding method says no characteristics, and no method says `STATIC
+DISPATCH`, `DYNAMIC RESULT SETS` or `SELF AS LOCATOR` before `SELF AS RESULT`; a type's cast names its
+function with an identifier of one part. `ALTER TYPE` is one action; dropping an attribute or a method
+says `RESTRICT`, and a method is dropped by its parameters' types. A transform group holds one or two
+elements, never none and never three, and an altered group drops one kind or two with a behavior; `DROP
+TRANSFORM` names all groups or one. A cast and an ordering name their function with a routine type, so
+`WITH f` is refused. A character set is got: `AS latin1` is refused. A column of a typed table has
+options — a scope, then a default, then constraints — and never a type; a typed view's column has a
+scope and nothing else.
+
+A regular view's check option first moved into the typed view's element by an edit: the recorded rows
+caught it, three of them, before anything else did.
+
+**A trap the fuzzer found, in the routines of the step before.** A schema's elements give nothing back,
+and a routine's body there was asked as a data statement before a dynamic one: `UPDATE t SET a = 1
+WHERE CURRENT OF GLOBAL :c` read as a searched update ended before its `WHERE`, the schema ended with
+it, and the line was refused. Alone, the same routine was read, which is why no probe saw it. Dynamic
+statements are asked first now; none of them ends where a data statement goes on.
+
+Held by 153 probe lines and `.work/fuzz_types.py`, which reuses the routine fuzzer for bodies: 21,000
+random verdicts, half of them on broken lines, and none differ; the routine fuzzer's 23,000 were run
+again after the fix. Every list is atomic; refused at 128
+elements — attributes, methods, options, transform groups and actions, typed columns, schema elements —
+they cost 0.05 to 0.6 ms, and linearly.
+
+## A publication named in an action is read under the clone's substitution
+
+`internal parse Lambda with (Word = AsciiWord) as ParseAsciiLambda` read the lambda in ASCII and
+handed the holes of its strings and the bodies of its untyped lambdas to `TryParseHole` and
+`TryParseBody`, which read Unicode: a clone carries an action's C# across unchanged, and the name in
+it went on meaning the publication without the substitution. `$"{é}"` and `x => { var é = x; … }`
+were read by the narrower parser.
+
+The rule now (syntax.md §5.1): under a publication's `with`, a publication's name in an action or a
+guard of a clone means that publication under the same substitution. `SpecializePublicationWith`
+sets `_renaming` around the cloning; `Redirected` asks `ICSharpScanner.FreeNames` which names the
+text uses, finds `ParseX`/`TryParseX` among the publications the author wrote, and — where the
+substitution changes what that publication reads — spells it as the author's own publication of
+that rule under that substitution, or as a private one it makes and queues (`ParseHole_With…`).
+`ICSharpScanner.Renamed` replaces the free names in the text, by the syntax tree, from the end.
+A queued publication is specialized like a written one, so what its clones name is redirected in
+turn; one method per rule and substitution is what ends it.
+
+**Clones are shared by substitution.** A made publication reaches mostly what the author's does,
+and cloning it again made a second copy of those rules that no machine could join
+(`CSharpEmitter.Joined` folds a publication whose rule another machine reaches — a copy is a
+different rule). `CloneAffected` takes the clones already made for the same substitution and makes
+only the rest, for every publication's `with`.
+
+What is left out: a name written after a dot (`Owner.TryParseHole` is somebody else's), a rebinding
+only a condition asks about, and the two other extents — a `with` expression and a `namespace …
+with` block — whose clones have no publication of their own to name. Held by three tests in
+`SemanticTests` and the ASCII reading's in `ExpressionParserTests`.
+
+## DotGram.Parsers is DotGram.Web
+
+With SQL in `DotGram.Sql` and the expression language in `DotGram.ExpressionLanguage`, what was
+left in `DotGram.Parsers` was RFC 3986 alone, and a package called "parsers" beside three that
+say what they read said nothing. It is `src/DotGram.Web` now, decided with Igor 2026-09-14: a
+family, the way `DotGram.Sql` is one, with room for what else the web specifies in ABNF — URI
+templates, IRIs, HTTP field values, cookies, language tags.
+
+`DotGram.Uri` was the obvious name and is refused for a reason worth keeping: a namespace
+`DotGram.Uri` hides `System.Uri` from every file inside `DotGram.*`, where `new Uri(…)` becomes
+CS0118 — and `DotGram.Rfc3986` does the same to the class of that name. The types keep their
+names, `Rfc3986` and `UriParts`, in the `DotGram.Web` namespace; the file sits at the project's
+root, since a `Uri/` directory would ask for the namespace that hides `System.Uri`. Its tests
+moved to `tests/DotGram.Tests/Web/`. `DotGram.Parsers` was never published, so nothing outside
+the repository names it: the packages' release notes and READMEs say nothing of it.
+
+## A rule may declare a generic C# type
+
+Found writing RFC 9651: `ListField : @IReadOnlyList<Member> = …` was GRAM2001 "Expected '='" at the
+`<`. `GramParser.ParseType` read a name and an optional `[]`, and `TypeRef` had nowhere to keep type
+arguments — a reference `@Name<T>` inside an expression had them all along, through its own
+production, which is why nothing in the repository had met the gap: no rule declared one.
+
+Decided with Igor 2026-09-14 to support it in the notation rather than shape an API around it. A C#
+type's arguments are C# too, with or without an `@` of their own, and may be generic in turn. The
+**name is spelled whole** — `KeyValuePair<string, Row>` — because every later stage writes the name
+into the generated file and already treats a C# type as its spelling; `TypeRef.TypeArguments` keeps
+the arguments beside it for the one question the spelling cannot be asked as. **Whether a type
+exists is asked as its definition and its arguments**: `TypeRef.Definition` is `KeyValuePair`2`, the
+name Roslyn's `GetTypeByMetadataName` finds, and the binder resolves each argument in turn, so a
+missing one is the one GRAM3004 names. `Questions` asks the same set ahead of binding
+(`Exists(TypeRef)`, for a rule's type, a parameter's and `context`'s): the generator refuses a
+question it did not foresee, so the two must agree, and `GeneratorDriverTests` holds that against a
+real compilation. `>>` needed nothing — the lexer makes two `>` tokens, and a binding power is only
+looked for after an operand.
+
+## RFC 9651, Structured Field Values for HTTP
+
+`src/DotGram.Web/Rfc9651.cs`: Appendix C's ABNF rule for rule, with §4.2's algorithms winning where
+they differ — whitespace (a field's own spaces at either end, a tab between the members of a List or
+a Dictionary, only spaces inside an Inner List and after `;`), a base64 body that must decode and may
+lack its padding, a Display String whose bytes must be UTF-8. Those last two are `when`s over C#.
+A Decimal is tried before an Integer; a digit too many is refused by whatever must follow the number,
+which is what §4.2.4 says happens. The model: `Member` (`Item`, `InnerList`), `BareItem` with its
+eight cases nested, and `OrderedMap<T>` for Parameters and Dictionaries — by index and by key, as the
+RFC requires, a repeated key keeping its first place and its last value.
+
+Held by httpwg/structured-field-tests at 1e280c3, vendored under
+`tests/DotGram.Tests/Web/StructuredFields/` with its BSD-3-Clause licence: 1,591 cases, every one
+passing on the first run — `must_fail` refused, `can_fail` either way, the rest read as expected.
+Serialization (§4.1) is not written yet; its own suite is in the same repository.
+
+## RFC 6570, URI Template
+
+`src/DotGram.Web/Rfc6570.cs`, the second specification written on its own, as Igor asked for
+2026-09-15 rather than built by inheritance on another. §2's ABNF, all four levels, parsed into
+`UriTemplate` — `Literal`, `Expression(Operator, Variables)`, `Variable(Name, Prefix, Explode)`,
+nested so that names this general stay out of the namespace — and `UriTemplate.Expand` after
+Appendix A's table: first, separator, named, if-empty and the allowed set, per operator.
+Values are what .NET has: a string, an `IEnumerable<string>`, an
+`IEnumerable<KeyValuePair<string, string>>`, anything formattable as its invariant text.
+
+Held by uri-templates/uritemplate-test at 4171dac, vendored under
+`tests/DotGram.Tests/Web/UriTemplates/` with its Apache-2.0 licence: 272 cases. Two failed on the
+first run, both an apostrophe in a literal — `'{var}'`, the RFC's own example — which §2.1's ABNF
+leaves out. **Verified erratum 6937 puts it back** (`%x26-3B`), so the suite was right and the
+transcription of the RFC was faithful to a mistake; the grammar follows the erratum and says so.
+Two departures are written beside the grammar: a surrogate pair stands for any astral `ucschar`
+or `iprivate`, letting through the plane-final noncharacters the ABNF excludes, and a malformed
+template is refused whole where Appendix A sketches a processor that copies and carries on. A
+prefix on a composite value throws `ArgumentException` on expansion.
+
+## RFC 9651, serialized
+
+§4.1, the first of the order Igor asked for 2026-09-15. `Rfc9651.SerializeItem`, `SerializeList`
+and `SerializeDictionary`, written from the algorithms rather than from a grammar, since there is
+nothing to read: a true Boolean as its key alone, a Decimal rounded half to even to three places
+(`Math.Round(…, 3, MidpointRounding.ToEven)`, exact on `decimal`), a Display String's bytes escaped
+in lowercase hex, and `ArgumentException` wherever the RFC says serialization fails. `OrderedMap`
+gained a public constructor from entries, which a caller needs to build a value at all; parsed maps
+stay built by the parser alone.
+
+Held twice. The suite's `serialisation-tests/` — values nothing could read, keys and tokens with
+every character they may not hold, the rounding cases — vendored beside the parsing cases at the
+same commit. And every parsing case that has an expected value is serialized from that value and
+held to its `canonical`, or to the field as written where the suite gives none, so the two
+directions are checked against the same material rather than against each other.
+
+## RFC 5646, language tags
+
+The second of the order. `src/DotGram.Web/Rfc5646.cs`: Figure 1's ABNF into `LanguageTag` —
+language, up to three extended languages, script, region, variants, extensions (`Extension(Singleton,
+Subtags)`), private use, or the whole of a grandfathered tag. Well-formedness only (§2.2.9): validity
+needs the registry and its date, and is a different question.
+
+What ordered choice had to be told that ABNF does not say: **where a subtag ends**. A subtag's kind is
+its length and content, and a repetition like `2*3ALPHA` stops wherever it is let; `End = ?!Alphanum`
+after each one is the hyphen-or-end the RFC takes for granted. **The grandfathered tags are asked
+first and whole** — `Grandfathered & eof`, `zh-min-nan` before `zh-min` — so `zh-min-xyz` falls through
+to an ordinary tag with two extended languages. Case is kept as written and `ToString()` writes
+§2.1.1's recommended case in ASCII, never the culture's (the Turkish `i`).
+
+There is no suite for BCP 47, so the test is the registry itself, vendored as it stood on 2026-08-08:
+every grandfathered and redundant tag reads — as written, lowercase and uppercase — and writes back as
+registered; every subtag of every type reads where its type puts it, after each prefix the registry
+names; and Appendix A's examples, including the two it calls invalid, which are refused, and
+`ar-a-aaa-b-bbb-a-ccc`, which it calls invalid and the ABNF makes well-formed.
+
+## RFC 6901, JSON Pointer
+
+The third of the order. `src/DotGram.Web/Rfc6901.cs`: §3's ABNF into `JsonPointer(Tokens)`, each token
+unescaped `~1` before `~0`; §6's fragment form as RFC 3986's fragment rule, its triplets decoded as
+strict UTF-8 and the result read again by `TryParsePointer` from inside a `when`. `ToString()` and
+`ToUriFragment()` write the two forms back; `ArrayIndex` is §4's `array-index` and `IsPastTheEnd` its
+`-`.
+
+**Evaluation is left out, and on purpose.** A pointer reaches a value in a document, and the package
+may depend on `System.Memory` alone on netstandard2.0 — CI checks it — so no JSON model is in reach.
+The tests evaluate over `System.Text.Json` with §4's two rules and nothing more, which holds that the
+tokens are the ones the RFC means: every example of §5 and §6 lands on the value it names. There is
+no suite for JSON Pointer on its own; json-patch-tests exercise RFC 6902 whole.
+
+## RFC 3339, timestamps
+
+The fourth of the order. `src/DotGram.Web/Rfc3339.cs`: §5.6's ABNF for `date-time`, `full-date` and
+`full-time`, published as three parsers into `Rfc3339.Timestamp`, `FullDate` and `FullTime` — nested,
+and not `DateTime`, which inside the class would have hidden `System.DateTime`. §5.7 is what the ABNF
+writes as comments, and each piece is a `when` over the digits read: the days of a month with Appendix
+C's leap years, an hour to 23, a minute to 59, and a second of 60 only where the time less its offset is
+23:59 UTC. No date is asked of a leap second, because which days have one is the IERS's to announce.
+
+`-00:00` (§4.3) is kept apart from `Z` as `LocalOffsetUnknown`; the fraction is kept as written, any
+length; `ToDateTimeOffset()` cuts the fraction to a tick and throws for a leap second, which the type
+cannot hold. Held by JSON-Schema-Test-Suite's `date`, `time` and `date-time` format tests at 1d82f70,
+vendored with its MIT licence — their string cases only, since a number ignored by a string format is
+JSON Schema's rule and not the RFC's — and by §5.8's examples as instants: 168 cases, all passing.
+
+**Two generator defects met on the way, worked around in the grammar and not fixed yet.**
+
+- *A `when` is handed the last turn of a repeated text capture of a rule.* `year: Digit{4} & … & when
+  @(IsDate(year!, …))` compiled and passed the guard `"0"` for `2020`, so `2020-13-01` read and `2020-06-30`
+  did not. Smallest form: `D = ['0'..'9']`, `T : @string = y: D{2} & when @(Seen(y!)) => @(y! + "|" + Last)`
+  gives `"12|2"` for `12` — the construction joins the turns as status.md says, the guard does not. A
+  repeated element set (`['0'..'9']{4}`) is one run with one entry and is right. The methods reader
+  refuses such a guard (`Machine.Direct.cs` `DirectGuard`, 169-179) and the rule falls to the engine,
+  silently under Auto and as GRAM5007 under Immediate or Mixed; there `Machine.cs`'s `case Node.Guard`
+  (2419-2443) scans the entries back from the end for the member's capture and stops at the first, where
+  a repeated text member needs the join the rule-valued sequences already get (2397-2417, 2483-2512).
+  Worked around by capturing a rule whose extent is the field: `DateFullYear = Digit{4}`, `year: DateFullYear`.
+- *A guarded rule whose group becomes a part method passes a mark nobody declared.* Smallest form:
+  `T : @string = h: ['0'..'9'] & ('.' & f: ['0'..'9'])? & when @(true) => @(h!)` — no capture in the group,
+  no inlining and no second publication needed; any `when`, any `(…)?` or `(…)*` that becomes a part. It
+  fails under Immediate and Mixed, and under Auto where Auto chooses Immediate; Tape declares the mark and
+  is fine. `Machine.Reader.cs` `Handing` (2212-2220) hands a part `Carrier.RecordMarks("lm")` whenever the
+  rule is guarded, while the body declares it only through `Carrier.MarkRecords("lm")` (1113-1115), which
+  Immediate without marks (`Machine.Immediate.cs:223`) and Mixed (`Machine.Mixed.cs:280`) leave empty;
+  the part's `lmark` is never read under them. Worked around by keeping groups out of guarded rules:
+  `SecFrac = ('.' & Digit+)?` is a rule of its own, captured unconditionally.
+
+Both were found and cut down by a probe over every carrier with Direct on and off; neither is fixed, and
+the emitter is Igor's to decide about.
+
+## RFC 8288, the Link header field
+
+The fifth of the order. `src/DotGram.Web/Rfc8288.cs`: §3's ABNF over RFC 9110's `token`, `quoted-string`
+and list rule into `WebLink(Target, Parameters)`, with `Relations`, `Anchor`, `Title`, `Type`, `Media` and
+`HrefLangs` read off the parameters by §3's rules — the first of a once-only parameter counts, several
+relation types share one value, `title*` wins where it decodes. The list accepts empty elements, as RFC 9110
+§5.6.1 asks of a recipient: `Field = Ows & (',' & Ows)* & Element*`, each element followed by commas or the
+end. Appendix B is lenient and calls itself advisory; the ABNF is what is read, and a field it does not make
+is refused.
+
+What the ABNF names from elsewhere is asked of what the package already has, by a C# call and not by joining
+grammars: a target is a URI-Reference when `Rfc3986.TryParseReference` says so, and an RFC 8187 language is
+a tag when `Rfc5646.TryParseTag` does. An ext-value is decoded from UTF-8 and ISO-8859-1; one that is
+malformed, or quoted, keeps its text and no decoding, which RFC 8187 lets a recipient do.
+
+Written to stay clear of the two generator defects above: the parameter's value is a rule that may read
+nothing (`Assignment`), captured unconditionally and taken apart in C#.
+
+There is no shared suite for the Link header field. The tests are §3.5's examples unfolded to one line each,
+and each recipient rule of §3 and RFC 8187.
+
+## RFC 8259, JSON, and the JSON Pointer that resolves
+
+Igor, 2026-09-15: go on with the specifications, write a JSON grammar of our own if one is needed, and bring
+in no library. One was needed — JSON Pointer's §4 is a question about a document, and the package had no
+document — so `src/DotGram.Web/Rfc8259.cs` is JSON, and `JsonPointer.Resolve(JsonValue)` is §4.
+
+The grammar is RFC 8259's ABNF with `ws` written where the six structural characters carry it, into
+`JsonValue` with its six cases nested. A number keeps its text (§6 leaves precision to the reader;
+`ToDouble`, `TryToDecimal`, `TryToInt64` read it); an object keeps its members in order and a name written
+twice (§4 leaves duplicates to the reader); an escaped lone surrogate survives (§8.2) and is written back
+escaped. A byte order mark is refused, which §8.1 allows. Nesting needs nothing of the grammar: the reader
+moves to a fresh stack where one runs low (syntax.md §6.5), and a hundred thousand brackets read.
+
+`Resolve` answers null — not `JsonValue.Null` — where the pointer refers to nothing: a missing member, an
+index past the end or with a leading zero, `-`, a step into a value with no parts, and a name an object
+holds twice, whose member §4 calls undefined. The pointer tests evaluate against it now, and no test reads
+`System.Text.Json`.
+
+Held by nst/JSONTestSuite's `test_parsing/` at 1ef36fa, vendored with its MIT licence and marked `-text` in
+`.gitattributes`: the cases are bytes, some UTF-16, some not UTF-8, and `* text eol=crlf` would have
+rewritten them. Each file is decoded as strict UTF-8 first; `y_` must read, `n_` must be refused, `i_`
+must be answered either way. Every text read is also written back and read again to the same value.
+
+## DotGram.Web's values are equal by what they hold
+
+Asked by Igor 2026-09-15 whether `JsonValue` is an ADT: it is — an abstract record with a private constructor
+and its six cases sealed and nested, the same shape as `BareItem` — but a record compares a list it holds by
+reference, so `Rfc8259.ParseJson("[1]")` was not equal to itself read twice. Every record here that holds a
+list now says what equal means through `Structural` (element by element, in order, with a hash C# 8's
+netstandard2.0 has no `HashCode` for): `JsonValue.Object` and `.Array`, `InnerList`, `OrderedMap<T>` (now
+`IEquatable`), `BareItem.ByteSequence` by its bytes, `UriTemplate` and its `Expression`, `JsonPointer`, and
+`WebLink`. A record whose fields already compare by value — `Item`, `FullTime`, `UriParts` — needed nothing.
+
+Two choices worth knowing. **Order counts**: an object with the same members in another order is a
+different object, and so is one with a name written twice, because both are what the parser keeps and what
+`ToString` writes back; `1.0` and `1` are different numbers for the same reason. **`LanguageTag` ignores
+case**: RFC 5646 §2.1.1 says case carries no meaning in a tag, so `en-US` equals `EN-us` though each keeps
+the spelling it was read with. A switch over one of the closed sets is still not checked for exhaustiveness
+by the compiler, which knows nothing of the private constructor.
+
+**A build trap met on the way, not a code one.** A project directory created mid-session could not
+be written by `dotnet build`: "Access to the path … is denied" on `obj`, even outside the sandbox. The
+build was joining MSBuild nodes and a compiler server started earlier inside it, with their rights.
+`-nodeReuse:false -p:UseSharedCompilation=false` (or `MSBUILDDISABLENODEREUSE=1`) is the way out.
+
+## RFC 9110, media types in Content-Type and Accept
+
+Igor, 2026-09-15: go on with the specifications. `src/DotGram.Web/Rfc9110.cs` reads a media type
+(§8.3.1) from `Content-Type` and the media ranges of `Accept` (§12.5.1), over §5.6's token, quoted-string,
+parameters with the empty slots a recipient accepts, and a list with empty elements. `MediaType` keeps what
+was written; its equality ignores the case of the type, the subtype, a parameter name and a `charset`
+value (RFC 2046), so §8.3.1's four spellings are equal. `Quality` takes the weight of the most specific
+matching range.
+
+Where the RFC leaves room: a parameter named `q` is the weight wherever it stands (§12.5.1 asks recipients
+to take it so) and must be a qvalue, or the field is refused; `*/html` is refused; a type and subtype are
+tokens as HTTP reads them, not RFC 6838 §4.2's narrower registration names. Parameters are one text per
+slot taken apart in C#, and the range check is a `when` in a rule with no group — both the shapes the two
+generator defects above leave room for.
+
+A trap in the tests rather than the code: RFC 7231's quality example is not RFC 9110's. 9110 changed the
+field to `text/plain;q=0.7, text/plain;format=flowed, …`, and its table keeps 7231's `text/html;level=3 →
+0.7`, which no longer follows; verified erratum 7138 corrects it to 0.3, and that is what the test holds.
+
+No shared suite exists. Held by the RFC's examples and by the IANA Media Types registry as published on
+2026-09-15, one CSV per top-level type in `tests/DotGram.Tests/Web/MediaTypes/`: every template reads as a
+`Content-Type` and writes back as written.
+
+## RFC 6902, JSON Patch
+
+Igor, 2026-09-15: go on (JSON Patch was proposed as next, over JSON and JSON Pointer already here).
+`src/DotGram.Web/Rfc6902.cs` has no grammar: a patch document's syntax is JSON's and a path's is JSON
+Pointer's. What is new is §4's meaning. `JsonPatch` holds `Operation`, a closed set of six nested records;
+`Rfc6902.ReadPatch` reads one from a `JsonValue`, `Apply`/`TryApply` apply it, `AreEqual` is §4.6.
+
+Applying rebuilds the objects and arrays on the way to each location and shares the rest, so a failed patch
+leaves nothing to undo (§5). Where the RFC leaves room: `op`, `path` and the `value` or `from` an operation
+takes written twice is an error, since this JSON reader keeps both; a name an object holds twice is no
+location, as `Resolve` already answers; removing the root is an error, as erratum 4787 (held for document
+update) asks. The other five errata are rejected. §4.6's numbers compare by value at any precision — sign,
+significant digits, and a `BigInteger` exponent — and objects match members by name and value once each.
+
+Held by json-patch/json-patch-tests at 2a928f9 (Apache-2.0, the licence in its README, vendored with it):
+every record runs, `disabled` ones included, since they are disabled for readers that drop a duplicate
+member or refuse a scalar document. Each patch is also written back and read again to the same patch.
+
+A discussion Igor opened and left open: streaming JSON, to read files too large to hold. The generator has
+no incremental input today; a pull reader over `JsonValue`'s tokens, or a grammar publication per element
+of a top-level array, are the shapes to talk over.
+
+## RFC 6266, Content-Disposition
+
+Igor, 2026-09-15: go on with the specifications. `src/DotGram.Web/Rfc6266.cs` reads the field into
+`ContentDisposition`: a type, parameters, `IsInline`/`IsAttachment` (§4.2: an unknown type is an
+attachment), `Find`, and `Filename`, which takes a `filename*` that decodes over `filename` (§4.3). The
+ext-value is RFC 8187's, read by `Rfc8288.Extended`, which the Link header field already had.
+
+The ABNF is RFC 2616's with implied whitespace, which §4.1 points out, so space is allowed around `;` and
+`=` — unlike RFC 9110's parameters. A name written twice, whatever its case, and an ext-token whose value is
+no ext-value both make the field invalid, and it is refused whole: §3 lets a recipient recover, and says
+the default is to ignore. The one verified erratum, 3475, is in Appendix B and changes nothing read.
+
+Held by Julian Reschke's tc2231 cases, which carry no licence: only each case's name and the field value it
+sends are in the tests, taken from its `.asis` page as ISO-8859-1 and escaped. Seven cases where tc2231
+recovers a type from an invalid field, or calls the meaning undefined, are refused here and marked so; the
+RFC 2231 continuations (`filename*0`, ...) are extension parameters and give no filename, since RFC 6266
+does not take them in.
+
+## RFC 7239, Forwarded
+
+Igor, 2026-09-15: go on with the specifications. `src/DotGram.Web/Rfc7239.cs` reads the field into
+`ForwardedElement`s — pairs, `Find`, and `By`/`For` as `ForwardedNode`, `Host`, `Proto` — and a node
+identifier alone through a second publication, `ParseNode`. No verified errata; 5275 (reported) spells
+out the list rule, and 7973 is rejected.
+
+The list is RFC 9110's with empty elements; an element is its slots with no whitespace around `;` or
+`=`, as §4's ABNF has none. §5's MUSTs on values are checked in one `when` per element: `by` and `for`
+through `TryParseNode` of the same class, `host` through `Rfc3986` as `//host` with no userinfo, path,
+query or fragment, `proto` as a scheme. A nested parse of the same class is safe: a parse rents its tape
+and value stores from a thread-static spare it empties, so the inner one allocates its own. The address
+rules are copied from `Rfc3986`, since a grammar includes no other.
+
+No shared suite exists; the RFC's examples in §4, §6 and §7 and each rule of §4 to §6 are the tests.
+
+## RFC 6265, cookies
+
+Igor, 2026-09-15: go on with the specifications. `src/DotGram.Web/Rfc6265.cs` has the RFC's two readings.
+§5.2's, a user agent's, is `ParseSetCookie` into `SetCookie`: the grammar only divides at `;`, a `when`
+refuses a pair with no `=` or no name, and C# divides at `=` and trims. Every cookie-av is kept; the
+properties are §5.2.x and §5.3's "last attribute of the name", so a later invalid Path means the default
+path and a later empty Domain is ignored. `ExpiryTime(now)` is §5.3 step 3. §4.2.1's, a server's, is
+`ParseCookies`, a strict grammar. `DomainMatches`, `DefaultPath` and `PathMatches` are §5.1.3 and §5.1.4;
+the store is not here.
+
+Dates are §5.1.1 split between the two: the grammar divides a date into tokens and has the four
+productions as `internal parse` publications (a token matches one only whole), and the flag-setting steps
+are C#. Errata: 4148 (verified) makes the tail after a day-of-month optional, as written; 8242 (held)
+orders the quoted cookie-value first, as written; 8877 (reported) makes month names case-insensitive, as
+written; 3444 is in §4.1.1's path-value, not read.
+
+Tests: §3.1's conversation and each step of §5.1 and §5.2, and the http-state working group's parser cases
+— abarth/http-state at 155e45c, `tests/data/parser`, 218 enabled, Set-Cookie in and Cookie out — replayed
+through a store written in the test after §5.3 and §5.4. The repository carries no licence (its content is
+"IETF Contributions" under the Note Well); Igor, asked, said to copy it, and it is in
+`tests/DotGram.Tests/Web/HttpState/` byte for byte with its README, marked `-text`. web-platform-tests has
+since rewritten these cases as browser tests, so they were not taken from there.
+
+The store is what the cases need and no more: a fixed now of 2010-01-01, between the dates the cases mean
+as past and future; a public suffix list of one rule, a domain without a dot (`domain=.org`); and the
+request's host and path taken through `Rfc3986`, since `System.Uri` unescapes `%6F` in a path and one case
+(`path0028`) tests that it is not. Case 0028's expected file holds its own Set-Cookie fields rather than a
+Cookie field, and expects none. All 218 pass with no change to the reader.
+
+## RFC 5322, email addresses
+
+Igor, 2026-09-15: go on. `src/DotGram.Web/Rfc5322.cs` reads §3.4's addresses — addr-spec, mailbox, group,
+mailbox-list, address-list — into `AddrSpec` and the `MailAddress` ADT, their values as §3.2 says they
+mean. §4 says a receiver MUST accept the obsolete syntax and a generator MUST NOT produce it, and one grammar
+gives both: the plain publications are §3 with §4, and the `Strict` ones rebind each piece of §4 with a
+`parse ... with (...)` — `Fws = CurrentFws`, `LocalPart = CurrentLocalPart`, `ObsQp = Never`, and so on.
+
+Two things the rebinding needed. Where §4's form is a superset of §3's (obs-local-part holds dot-atom and
+quoted-string, obs-domain holds dot-atom, obs-phrase holds phrase, obs-FWS holds FWS), the lenient rule is
+the superset alone: ordered choice would take §3's alternative, then fail at what follows, and never come
+back for §4's. And `Never` has to be `?!any & any`: `?!eof & eof` also matches nothing, but it can match
+without consuming, so a repetition over a class rebound to it is GRAM4001.
+
+Errata: verified 1908 (obs-FWS = 1*([CRLF] WSP)) is applied; held 3135, which would refuse `""@x`, is not.
+One thing the grammar cannot do: §3.2.2 forbids, in prose, a folded line of nothing but white space, and two
+FWS side by side from adjacent productions make one; the Strict reading accepts A.6.3's such line.
+
+Held by Appendix A's example messages and by is_email's tests.xml (dominicsayers/isemail at cfeefc3, BSD-3,
+vendored with its licence, marked `-text`), all 164 in both readings. is_email asks more than RFC 5322 in
+three places, named in the test: a hyphen at a label's edge (30, 31, 102) is RFC 1035's objection; CFWS
+beside `@` that is before or after the whole local part or domain is current syntax, and only 86 needs §4;
+and a quoted-pair in a domain literal (115-117) is obs-dtext.
+
+## DotGram.Web's API is the values, not the RFC numbers
+
+Igor, 2026-09-15: the package README goes to NuGet and should list every parser, and `RfcNNNN` is a good
+name for a file and no name for a way in. Agreed shape (option A of the ones put to him): each value type
+has its own `Parse` and `TryParse` — `JsonValue.Parse`, `MediaType.Parse`, `MediaRange.ParseAccept`,
+`SetCookie.Parse`, `EmailAddress.ParseList` — and the grammar classes `Rfc3339` … `Rfc9651` are internal,
+one per file as before. Where a specification has no one value, a small static class stands in:
+`StructuredField` (Item, List, Dictionary, their serialization and `Combine`) and `CookieDate`.
+
+`TryParse` is `bool TryParse(string, [NotNullWhen(true)] out T?)`. The generated `Match<T>` is a type
+nested in each grammar class, so it cannot be public once the class is not; `Parse` still throws the
+generated `FormatException`, whose message names the position. Renamed on the way: `UriParts` is
+`UriReference` (its grammar rule is `Reference`, so the two do not meet), `MailAddress` is `EmailAddress`
+(away from `System.Net.Mail.MailAddress`), and `Timestamp`, `FullDate` and `FullTime` came out of
+`Rfc3339`, which they had been nested in. `EmailAddress.Mailbox` could not carry `ParseList` — a static on
+a derived record hides the base's (CS0108) — so the mailbox-list readings are
+`EmailAddress.ParseMailboxList` and its Strict and Try forms.
+
+The package README was written for nuget.org, where a relative link goes nowhere: badges, absolute links,
+one table of every parser by subject with the type to call, the specification and the suite, and a
+section per group. Its dependency line says what is true — `System.Memory` on netstandard2.0, nothing on
+net10.0 — rather than DotGram's "no runtime dependencies", which is about the parser runtime.
+
+## The SQL:2023 tree, built by the standard's grammar
+
+`SqlStandard.gram` now builds `Sql2023Ast.cs` for what it once only recognized, chapter by chapter:
+names, literals and data types; value expressions and predicates; functions, windows, row pattern
+recognition and JSON; queries — query expressions, table references and joins, `JSON_TABLE`; the data
+change statements of §14; then §11 and §12 but for routines, triggers, user-defined types, casts,
+orderings and transforms, which stand as placeholders until their part; then the other statements, §14's
+cursors and §16–§23, before the routines whose bodies they are; then triggers and routines; and last
+user-defined types, casts, orderings and transforms. No placeholder is left: everything the grammar reads
+builds its node. Each slice kept every verdict: the
+1,574 BNF rows unchanged, 50,000 fuzz lines of queries, routines and types agreeing with the oracle.
+
+The towers of §6 were already read once and carried as bit sets; the node now rides beside the bits in
+`Towers.Typed(Node, Roles)`, and a publication of a tower rule goes through a `XTree : @Expression`
+wrapper, so the method keeps its production's name. What a chapter did not build yet stood as an
+`Extension` node, grepped to know what was left; the last, the statement inside a data change delta
+table, went with §14.
+
+The data change statements found two spellings the tree could not tell apart, and it now keeps both: a
+set clause's targets in brackets, `SET (a) = (1)` beside `SET a = (1)`, and a set target's index in
+trigraphs. A contextually typed row in brackets that holds one value is that value in brackets, as a
+value expression's is, so `VALUES (DEFAULT)` and `VALUES DEFAULT` stay two rows of their own.
+
+A query is a `Statement.Select` whose clauses are its body's where the body has none of its own, and a
+query around it where it has: `(SELECT a FROM t ORDER BY a) ORDER BY b` is two orders, and the brackets
+are counted in `Parentheses`. `INTERSECT` binds tighter, so a term with one is an operand of its own
+where `UNION` or `EXCEPT` joins it. Joins are the steps already read after a table factor, folded from
+the left; a partitioning goes to the side it was written on.
+
+Three traps, each met more than once:
+
+- A guard is emitted into more than one reader, and a captured struct is `T` in one and `T?` in another.
+  A member asked directly (`.Roles`, `.Value`) compiles in one and not the other — or, worse, `.Value`
+  of a `Truth` compiles as the struct's own member. Ask through helpers that take `T?`.
+- Inside `DotGram.Sql.Standard`, `Expression` and `Statement` are the old tree's. Aliases after the
+  file-scoped namespace fix the helpers; the generated parser takes `@using DotGram.Sql.Ast;`.
+- One capture name has one type across a rule's alternatives (GRAM4007): `n` a table's name in one
+  alternative and a correlation name in another is refused.
+
+The cost is construction a guard forces to be eager. Against the grammar that built nothing: value
+expression rows 4.2 → 5.9 ms, routine fuzz 69.9 → 79.7 ms, type fuzz 36.9 → 37.1 ms. Queries, against
+the commit before they were built: 3,000 fuzz lines 533 → 612 ms, 511 → 591, 488 → 547 — 12–16%.
+
+Queries went on slowing while the later chapters were built, though no query rule changed after 48ead9b.
+Taken for noise at first; held against 48ead9b's own build, the two run in turn on the same three files
+twice each, the whole tree is slower in all six pairs — 667 → 717 ms at best, 578 → 712 at worst, 7–23%.
+Not looked into yet. What a query reads that the later chapters touched is a data change delta table's
+statement, now built; the other suspect is the generated class itself, grown by every chapter.
+
+## The SQL:2023 tree written back
+
+T-SQL moves onto the SQL:2023 tree next (Igor, 2026-09-15, in `design/sql-parsers.md`), and its oracle for
+losslessness is a round trip through a writer, so the writer comes first. `Sql2023Writer` writes every node
+the standard's grammar builds, in three partial files: the expressions, the queries and data change
+statements, and the rest of the statements.
+
+It writes what the tree holds and nothing else. The tree keeps every bracket that changed its shape — a
+`Parenthesized` node, a query's count of brackets — so no precedence is worked out again; `a || b[1]` is an
+element of a concatenation and is written back as it was read. Key words are capitals, one space between
+tokens, none inside a name or a call; the few places no space may stand are the literal's own
+(`N'a'`, `_latin1'a'`, `U&"a"UESCAPE''`, `2K`), and a sign is written against its operand, so that two
+minus signs never make a comment.
+
+The harness is `--standard "~production" file`: each line the grammar reads is built, written, read again
+and built again, and both the trees — compared as a dump of every property but the span — and the two
+texts written must be one. Over every fuzz family of the standard's grammar, over 60,000 lines, nothing
+differs. A direct SQL statement's semicolon is the production's and no part of the tree, and the harness
+adds it back. `SqlStandardTreeTests` holds a line or two of each chapter to the same, so a build asks it too.

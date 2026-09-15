@@ -147,7 +147,8 @@ public sealed class ShapesTests
 	{
 		var root  = ReaderCoverageTests.Root(AppContext.BaseDirectory);
 		var files = Directory.GetFiles(Path.Combine(root, "examples"), "*.cs", SearchOption.AllDirectories)
-			.Concat(Directory.GetFiles(Path.Combine(root, "src", "DotGram.Parsers"), "*.cs", SearchOption.AllDirectories))
+			.Concat(Directory.GetFiles(Path.Combine(root, "src", "DotGram.Sql"), "*.cs", SearchOption.AllDirectories))
+			.Concat(Directory.GetFiles(Path.Combine(root, "src", "DotGram.Web"), "*.cs", SearchOption.AllDirectories))
 			.Concat(Directory.GetFiles(Path.Combine(root, "tests", "Snapshots"), "*.gram"))
 			.Where(one => !one.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar))
 			.OrderBy(one => one, StringComparer.Ordinal)
@@ -191,7 +192,7 @@ public sealed class ShapesTests
 
 				// The yardstick, in full: the grammar whose generated parser is measured against
 				// the hand-written one.
-				if (file.EndsWith("SqlStandard92.cs", StringComparison.Ordinal))
+				if (file.EndsWith("Sql92Parser.cs", StringComparison.Ordinal))
 				{
 					tables.Append($"\n=== {name}\n{report.Table()}");
 					tables.Append($"on ways: {string.Join(", ", ways.Select(one => one.Name).OrderBy(one => one, StringComparer.Ordinal))}\n");

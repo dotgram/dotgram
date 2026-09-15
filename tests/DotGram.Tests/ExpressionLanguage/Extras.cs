@@ -101,6 +101,38 @@ static class Choosing
 	public static string Given(Money value) => "Money";
 
 	public static string Given(decimal value) => "Decimal";
+
+	/// <summary>
+	/// A lambda with no types, handed to two delegates that take the same and give back
+	/// different things: the body worth exactly one of them chooses it (§12.6.4.5).
+	/// </summary>
+	public static string Measured(Func<string, int> measure) => "Int32";
+
+	public static string Measured(Func<string, long> measure) => "Int64";
+
+	/// <summary>Neither is exact, and one return type converts to the other.</summary>
+	public static string Widened(Func<string, long> measure) => "Int64";
+
+	public static string Widened(Func<string, double> measure) => "Double";
+
+	/// <summary>One gives something back and the other gives nothing.</summary>
+	public static string Kept(Func<string, string> trim) => "String";
+
+	public static string Kept(Action<string> trim) => "Void";
+
+	/// <summary>A body that cannot be what one of them gives back leaves that one out.</summary>
+	public static string Counted(Func<string, bool> count) => "Boolean";
+
+	public static string Counted(Func<string, int> count) => "Int32";
+
+	/// <summary>
+	/// Two generic methods that become the same once inferred, one written more specifically
+	/// than the other (§12.6.4.3) — the shape of `Max(Func&lt;TSource, double&gt;)` beside
+	/// `Max&lt;TSource, TResult&gt;(Func&lt;TSource, TResult&gt;)`.
+	/// </summary>
+	public static string Specific<T>(T value, Func<T, double> map) => "double";
+
+	public static string Specific<T, TResult>(T value, Func<T, TResult> map) => "any";
 }
 
 /// <summary>A type with a conversion of its own, for the rule about conversions of one's own.</summary>
@@ -136,4 +168,19 @@ static class Choices
 	public static string Took(string text) => "string";
 
 	public static string Took(int number) => "int";
+}
+
+/// <summary>What takes an interpolated string as more than a string, and what C# hands it.</summary>
+static class Formats
+{
+	/// <summary>Both apply to an interpolated string, and C# takes the string.</summary>
+	public static string Kind(string text) => "string";
+
+	public static string Kind(FormattableString text) => "formattable";
+
+	/// <summary>What the formattable string was made of.</summary>
+	public static string Shape(FormattableString text) => text.Format + "|" + text.ArgumentCount;
+
+	/// <summary>An interpolated string formatted later, in a culture of the caller's choosing.</summary>
+	public static string Invariant(IFormattable text) => text.ToString(null, System.Globalization.CultureInfo.InvariantCulture);
 }

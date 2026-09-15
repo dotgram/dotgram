@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -83,11 +83,11 @@ public static class DslClassificationDiagnostics
 
 	static string Id(DslClassificationBindingDiagnosticKind kind) => kind switch
 	{
-		DslClassificationBindingDiagnosticKind.MalformedTarget => "GRAM5001",
-		DslClassificationBindingDiagnosticKind.UnknownRule     => "GRAM5002",
-		DslClassificationBindingDiagnosticKind.AmbiguousRule   => "GRAM5003",
-		DslClassificationBindingDiagnosticKind.UnknownCapture  => "GRAM5004",
-		DslClassificationBindingDiagnosticKind.DuplicateTarget => "GRAM5005",
+		DslClassificationBindingDiagnosticKind.MalformedTarget => "GRAM6001",
+		DslClassificationBindingDiagnosticKind.UnknownRule     => "GRAM6002",
+		DslClassificationBindingDiagnosticKind.AmbiguousRule   => "GRAM6003",
+		DslClassificationBindingDiagnosticKind.UnknownCapture  => "GRAM6004",
+		DslClassificationBindingDiagnosticKind.DuplicateTarget => "GRAM6005",
 		_ => throw new ArgumentOutOfRangeException(nameof(kind)),
 	};
 }

@@ -13,14 +13,12 @@ namespace DotGram.Grammar.Emit;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Why a second rendering by methods.</b> The first one (<c>Machine.Direct.cs</c>) was
-/// grown out of the automaton and kept its vocabulary: a rule is one method, but inside it
-/// every construct is a labelled region and every failure is a jump. That shape is right
-/// for one machine of a thousand states, which is a graph and nothing else; for a method it
-/// is a graph nobody asked for. Four passes exist to take dead jumps, dead labels, dead
-/// marks and unused locals back out of it, a fifth was written and was wrong, and the
-/// reason it was wrong is that a question about one construct had to be asked of the whole
-/// method.
+/// <b>Why statements rather than regions.</b> A rendering by methods grown out of the
+/// automaton keeps its vocabulary: a rule is one method, but inside it every construct is a
+/// labelled region and every failure is a jump. That shape is right for one machine of a
+/// thousand states, which is a graph and nothing else; for a method it is a graph nobody
+/// asked for, and taking its dead jumps, labels, marks and locals back out means asking a
+/// question about one construct of the whole method.
 /// </para>
 /// <para>
 /// Here a construct is a statement. A sequence is statements one after another; a failure
@@ -32,11 +30,14 @@ namespace DotGram.Grammar.Emit;
 /// token chose is failing the choice.
 /// </para>
 /// <para>
-/// <b>What it does not do yet</b>, and hands back to the rendering it is replacing: values,
-/// guards, marks, folds, climbing, and the tape of ways back that reading characters needs
-/// (§4 — over kinds a rule's answer stands, and there is no tape at all). Each of those
-/// arrives with its own entry in <c>docs/next.md</c>. <see cref="CanRead"/> is the gate and
-/// it refuses rather than guesses.
+/// <b>What it reads.</b> Values, handed to the carrier (<c>Machine.Direct.Values.cs</c>
+/// and the carriers beside it); guards, marks and folds; a rule written with binding powers,
+/// entered at a strength (§4.3.1); and the tape of ways back that reading characters needs
+/// — over kinds only a rule marked <c>?</c> keeps one, since everywhere else a rule's answer
+/// stands (§4). What it does not read the engine keeps: <see cref="CanDirect"/> is the gate,
+/// refusing a stream, a <c>find</c>, a recovery, a captured lookahead, a call with
+/// arguments, an external recognizer that keeps a value and a guard it cannot hand what the
+/// guard names, and it says why (<see cref="Refusal"/>) rather than guesses.
 /// </para>
 /// </remarks>
 sealed partial class Machine
@@ -202,8 +203,12 @@ sealed partial class Machine
 
 		_opens = Opens(rules, written);
 
+		// And a machine left to choose its carrier chooses now, knowing which rules open a way.
+		Choose(rules, _opens);
+
 		// Written again, because a part that cannot open a way needs no loop around it and
-		// the first pass could not know which those were.
+		// the first pass could not know which those were — nor, where the carrier was left to
+		// the generator, which carrier it would be written for.
 		foreach (var rule in rules)
 		{
 			_seam       = FollowSets.SeamOf(rule, _graph);
@@ -779,6 +784,9 @@ sealed partial class Machine
 				RenderDeepening(file, state, registers);
 
 			file.Line();
+			if (Carrier.ReaderMethods is { Length: > 0 } methods)
+				file.Write(methods);
+
 			file.Write(members.ToString());
 		}
 
@@ -825,7 +833,12 @@ sealed partial class Machine
 			// builds into.
 			file.Line($"var ways = {WaysType}.Rent();");
 
-			if (valued)
+			// The store is rented where the entry builds, and also where the reader is handed
+			// one anyway: a carrier that builds as it reads hands its reader the store in every
+			// entry of a machine that builds anywhere, a recognizing one included.
+			var renting = valued || Carrier.ReaderState.Any(static one => one.Name == "values");
+
+			if (renting)
 				foreach (var line in Carrier.Rent())
 					file.Line(line);
 
@@ -866,7 +879,7 @@ sealed partial class Machine
 			{
 				file.Line($"{WaysType}.Return(ways);");
 
-				if (valued)
+				if (renting)
 					foreach (var line in Carrier.Return())
 						file.Line(line);
 			}
@@ -1121,7 +1134,7 @@ sealed partial class Machine
 						break;
 
 					default:
-						head.Line(machine.Carrier.DeclareRecordLocal(slot, RuleOfSlot(slot)));
+						head.Line(machine.Carrier.DeclareRecordLocal(slot, RuleOfSlot(slot), Optional(slot)));
 						break;
 				}
 			}
@@ -2135,7 +2148,7 @@ sealed partial class Machine
 
 			foreach (var slot in taken)
 				foreach (var name2 in Names(slot))
-					undo.Append(name2[0] == 'r' ? machine.Carrier.ResetRecordLocal(slot) : name2 + " = -1;").Append(' ');
+					undo.Append(name2[0] == 'r' ? machine.Carrier.ResetRecordLocal(slot, Optional(slot)) : name2 + " = -1;").Append(' ');
 
 			// What it wrote itself, what its own parts wrote, and what the rules it calls
 			// were found to write.
@@ -2232,7 +2245,7 @@ sealed partial class Machine
 		/// this is the argument list rather than the parameters.
 		/// </summary>
 		string TypeOf(string type, int slot, string name) =>
-			name[0] == 'r' ? Typed(type, machine.Carrier.RecordLocalType(RuleOfSlot(slot))) : type;
+			name[0] == 'r' ? Typed(type, machine.Carrier.RecordLocalType(RuleOfSlot(slot), Optional(slot))) : type;
 
 		/// <summary>The carrier's type where a type is wanted, nothing where it is not.</summary>
 		static string Typed(string type, string carried) => type.Length > 0 ? carried : "";
@@ -2248,6 +2261,9 @@ sealed partial class Machine
 			machine.Carrier.ByPlace && machine.RuleAt(owner, slot) is { } read
 				? read
 				: machine.MemberOfSlot(owner, slot)!.Member.Rule!;
+
+		/// <summary>Whether the member a slot belongs to may be left out, which a carrier may keep a local for differently.</summary>
+		bool Optional(int slot) => machine.MemberOfSlot(owner, slot)?.Member.IsOptional == true;
 
 		/// <summary>What a position is called: two names where it is a run of text, one where it is a record.</summary>
 		IEnumerable<string> Names(int slot)

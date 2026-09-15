@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 using DotGram.Grammar.Parsing;
@@ -33,6 +34,49 @@ public sealed record RuleSymbol(
 	public string? OnFail => Declaration?.OnFail;
 
 	public override string ToString() => Name;
+
+	// ── Equality ─────────────────────────────────────────────────────────────────
+
+	/// <summary>The same members a record compares, with the hash of them kept.</summary>
+	/// <remarks>
+	/// A rule symbol is the key of half the dictionaries in the compiler, and the hash a
+	/// record works out walks every field — the declaration among them, which is the whole
+	/// body of the rule as it was parsed. For T-SQL that was two seconds of every build spent
+	/// hashing the same trees again. The members are immutable, so the hash is worked out
+	/// once; and because a record compares every field it declares, equality is written out
+	/// here too, or two equal symbols would differ by whether either had been hashed yet.
+	/// </remarks>
+	public bool Equals(RuleSymbol? other) =>
+		ReferenceEquals(this, other) ||
+		other is not null &&
+		(_hash == 0 || other._hash == 0 || _hash == other._hash) &&
+		base.Equals(other) &&
+		ReferenceEquals(Namespace, other.Namespace) &&
+		EqualityComparer<Decl.Rule?>.Default.Equals(Declaration, other.Declaration);
+
+	public override int GetHashCode()
+	{
+		if (_hash == 0)
+		{
+			var hash = base.GetHashCode();
+
+			hash = hash * -1521134295 + RuntimeHelpers.GetHashCode(Namespace);
+			hash = hash * -1521134295 + EqualityComparer<Decl.Rule?>.Default.GetHashCode(Declaration!);
+
+			_hash = hash == 0 ? 1 : hash;
+		}
+
+		return _hash;
+	}
+
+	/// <summary>A copy made by <c>with</c>, which works its own hash out afresh.</summary>
+	RuleSymbol(RuleSymbol original) : base(original)
+	{
+		Namespace   = original.Namespace;
+		Declaration = original.Declaration;
+	}
+
+	int _hash;
 }
 
 /// <summary>A rule's parameter, in scope only inside that rule's body.</summary>
@@ -285,6 +329,14 @@ public sealed record Publication(
 	/// <summary>The name the directive produces when it does not give one itself.</summary>
 	public static string DefaultMethodName(PublishKind kind, string ruleName) =>
 		(kind == PublishKind.Parse ? "Parse" : "Find") + ruleName;
+
+	/// <summary>What every method this publication makes is declared as (§6).</summary>
+	/// <remarks>
+	/// All of them and not the principal pair alone: an overload taking a position or a reader
+	/// is the same entry point, and one left public beside a private pair is what this exists
+	/// to stop.
+	/// </remarks>
+	public PublishAccess Access { get; init; }
 
 	public override string ToString() => $"{Kind} {Rule.Name} -> {MethodName}";
 }

@@ -276,14 +276,35 @@ public sealed partial class GrammarNormalizer
 	Dictionary<RuleSymbol, RuleSymbol> CloneAffected(
 		HashSet<RuleSymbol> affected,
 		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
-		string siteName)
+		string siteName) =>
+		CloneAffected(affected, targets, siteName, []);
+
+	/// <summary>
+	/// The same, into clones already made for the same substitution: a rule already in
+	/// <paramref name="cloneMap"/> is the clone it has, and only the rest are made.
+	/// </summary>
+	/// <remarks>
+	/// Two readings under one substitution reach mostly the same rules, and a clone depends
+	/// on nothing but the substitution and which rules it reaches — so the second is given the
+	/// first one's clones rather than a copy of them, and a machine that reads one of them can
+	/// read the other's publication from inside itself.
+	/// </remarks>
+	Dictionary<RuleSymbol, RuleSymbol> CloneAffected(
+		HashSet<RuleSymbol> affected,
+		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
+		string siteName,
+		Dictionary<RuleSymbol, RuleSymbol> cloneMap)
 	{
-		var cloneMap = new Dictionary<RuleSymbol, RuleSymbol>();
+		var added = new List<RuleSymbol>(affected.Count);
 
 		foreach (var rule in affected)
-			cloneMap[rule] = new RuleSymbol(NameFor(rule, siteName), rule.Namespace, rule.Declaration);
+			if (!cloneMap.ContainsKey(rule))
+			{
+				cloneMap[rule] = new RuleSymbol(NameFor(rule, siteName), rule.Namespace, rule.Declaration);
+				added.Add(rule);
+			}
 
-		foreach (var rule in affected)
+		foreach (var rule in added)
 		{
 			var clone = cloneMap[rule];
 
@@ -391,18 +412,21 @@ public sealed partial class GrammarNormalizer
 			Node.Glue                                                               => Node.Glue.Instance,
 			Node.Element  (var negated, var ranges, var categories, var references) => new Node.Element  (negated, ranges, categories, references),
 			Node.Literal  (var text) { IgnoreCase: var ignoreCase }                 => new Node.Literal  (text) { IgnoreCase = ignoreCase },
-			Node.Guard    (var text, var at)                                        => new Node.Guard    (text, at),
+			Node.Guard    (var text, var at)                                        => new Node.Guard    (Renaming(text), at),
 			Node.External (var name) { HasValue: var hasValue }                     => new Node.External (name) { HasValue = hasValue },
 			Node.Sequence (var nodes)                                               => new Node.Sequence ([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap, siteName))]),
 			Node.Choice   (var nodes)                                               => new Node.Choice   ([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap, siteName))]),
 			Node.Atomic   (var body)                                                => new Node.Atomic   (CloneAndRewrite(body, targets, cloneMap, siteName)),
-			Node.Marked   (var body, var text)                                      => new Node.Marked   (CloneAndRewrite(body, targets, cloneMap, siteName), text),
+			Node.Marked   (var body, var text)                                      => new Node.Marked   (CloneAndRewrite(body, targets, cloneMap, siteName), Renaming(text)),
 			Node.Repeat   (var body, var min, var max)                              => new Node.Repeat   (CloneAndRewrite(body, targets, cloneMap, siteName), min, max),
 			Node.Lookahead(var positive, var body)                                  => new Node.Lookahead(positive, CloneAndRewrite(body, targets, cloneMap, siteName)),
 			Node.Behind   (var test)                                                => new Node.Behind   (Same(test)),
 			Node.Reading  (var readings)                                            => new Node.Reading  (readings),
 			Node.Capture  (var name, var body)                                      => new Node.Capture  (name, CloneAndRewrite(body, targets, cloneMap, siteName)),
-			Node.Construct(var body, var how)                                       => new Node.Construct(CloneAndRewrite(body, targets, cloneMap, siteName), how),
+			Node.Construct(var body, var how)                                       =>
+				new Node.Construct(
+					CloneAndRewrite(body, targets, cloneMap, siteName),
+					how is Construction.Expression written ? written with { Text = Renaming(written.Text) } : how),
 			// Both sides are recognizers and a rebinding is exactly what a condition is
 			// waiting for: `with (Version = "Sql2008")` is what gives `when Version is …`
 			// an answer, so the condition has to be rewritten like anything else.
@@ -429,6 +453,20 @@ public sealed partial class GrammarNormalizer
 
 		return clone;
 	}
+
+	/// <summary>
+	/// What the C# a clone carries is rewritten by while the clone is made, when anything is.
+	/// </summary>
+	/// <remarks>
+	/// Set only around the cloning a publication's own <c>with</c> does
+	/// (<see cref="Redirected"/>), which is the one extent whose clones have a publication to
+	/// name. A field and not a parameter, because every level of the copy would carry it
+	/// through to the three kinds of node that hold text.
+	/// </remarks>
+	Func<string, string>? _renaming;
+
+	string Renaming(string text) =>
+		_renaming is null ? text : _renaming(text);
 
 	RuleSymbol RewriteCall(
 		RuleSymbol called,

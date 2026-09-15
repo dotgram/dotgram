@@ -222,6 +222,34 @@ public sealed partial class GrammarNormalizer
 					goto default;
 
 				default:
+					// And whether it can be called at all. Without this the grammar compiled and the C#
+					// compiler refused the call, in a generated file, at a line of it the author never
+					// wrote. The host says no only where it is sure (RoslynSymbolResolver).
+					switch (_resolver.ResolveExternalMethod(reader.Name, ExternalMethodRole.Recognizer))
+					{
+						case ExternalMethodResolution.NoMethod:
+							Report(
+								UnresolvedExternal,
+								$"'@{reader.Name}' names no method the parser can call. An external recognizer is " +
+								$"'static bool {reader.Name}(System.ReadOnlySpan<char> input, ref int pos)', or the same " +
+								"with 'out T value' after the position, declared in the class the grammar is attached " +
+								"to, a class around it, or one it derives from (docs/syntax.md §7.1).",
+								expression.At);
+
+							break;
+
+						case ExternalMethodResolution.NoOverload:
+							Report(
+								UnresolvedExternal,
+								$"'{reader.Name}' has no overload the parser can call as an external recognizer: " +
+								$"'static bool {reader.Name}(System.ReadOnlySpan<char> input, ref int pos)', or the same " +
+								"with 'out T value' after the position, that the class the grammar is attached to can " +
+								"reach (docs/syntax.md §7.1).",
+								expression.At);
+
+							break;
+					}
+
 					return new Node.External(reader.Name);
 			}
 
@@ -928,9 +956,34 @@ public sealed partial class GrammarNormalizer
 			}
 
 			// The brackets are the contract: this C# method tests exactly one input item.
-			// Emission writes Name(c), and the C# compiler resolves that overload.
-			if (symbol is CSharpSymbol)
+			// Emission writes Name(c), and the C# compiler resolves that overload — once the
+			// host has said there is one it could resolve (GRAM4025), which is said here about
+			// the brackets rather than by C# about a generated file.
+			if (symbol is CSharpSymbol predicate)
 			{
+				switch (_resolver.ResolveExternalMethod(predicate.Name, ExternalMethodRole.Predicate))
+				{
+					case ExternalMethodResolution.NoMethod:
+						Report(
+							UnresolvedExternal,
+							$"'@{predicate.Name}' names no method the parser can call. A predicate in an element " +
+							$"set is 'static bool {predicate.Name}(char c)', declared in the class the grammar is " +
+							"attached to, a class around it, or one it derives from (docs/syntax.md §7.1).",
+							reference.At);
+
+						break;
+
+					case ExternalMethodResolution.NoOverload:
+						Report(
+							UnresolvedExternal,
+							$"'{predicate.Name}' has no overload the parser can call as a predicate in an element " +
+							$"set: 'static bool {predicate.Name}(char c)', that the class the grammar is attached " +
+							"to can reach (docs/syntax.md §7.1).",
+							reference.At);
+
+						break;
+				}
+
 				unresolved.Add(symbol);
 				return;
 			}

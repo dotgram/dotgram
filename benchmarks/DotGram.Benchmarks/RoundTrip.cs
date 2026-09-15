@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.TransactSql;
 
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 
@@ -100,7 +101,7 @@ static class RoundTrip
 
 				try
 				{
-					var match = TransactSql.TryParseStatement(original);
+					var match = TransactSqlParser.TryParseStatement(original);
 
 					made = match.IsSuccess ? match.Value as Statement : null;
 				}

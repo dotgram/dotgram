@@ -23,6 +23,9 @@
 		<File Path="README.md" />
 	</Folder>
 	<Folder Name="/benchmarks/">
+		<Project Path="benchmarks/DotGram.Finance.Benchmarks/DotGram.Finance.Benchmarks.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<File Path="benchmarks/README.md" />
 		<Project Path="benchmarks/DotGram.Benchmarks/DotGram.Benchmarks.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
@@ -43,26 +46,38 @@
 		</Project>
 	</Folder>
 	<Folder Name="/src/">
+		<Project Path="src/DotGram.Finance/DotGram.Finance.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<Project Path="src/DotGram/DotGram.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 		<Project Path="src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
-		<Project Path="src/DotGram.Parsers/DotGram.Parsers.csproj">
+		<Project Path="src/DotGram.Sql/DotGram.Sql.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 		<Project Path="src/DotGram.VisualStudio/DotGram.VisualStudio.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 			<Build Solution="Linux|*" Project="false" />
 		</Project>
+		<Project Path="src/DotGram.Web/DotGram.Web.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 	</Folder>
 	<Folder Name="/tests/">
+		<Project Path="tests/DotGram.Finance.Tests/DotGram.Finance.Tests.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<Project Path="tests/DotGram.VisualStudio.Tests/DotGram.VisualStudio.Tests.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 			<Build Solution="Linux|*" Project="false" />
 		</Project>
 		<Project Path="tests/DotGram.Tests/DotGram.Tests.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
+		<Project Path="tests/DotGram.Sql.Tests/DotGram.Sql.Tests.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 		<Project Path="tests/DotGram.Compatibility/DotGram.Compatibility.csproj">

@@ -1,0 +1,131 @@
+# DotGram.Finance
+
+A standalone FIX 4.4 tag-value parser for `netstandard2.0` and `net10.0`.
+DotGram generates the parsers at build time; applications need no DotGram runtime,
+grammar files, schema XML, reflection configuration or initialization step.
+
+```csharp
+using DotGram.Finance.Fix;
+
+if (Fix44.TryParse(wire, out var message, out var error))
+{
+    if (message is NewOrderSingle order)
+    {
+        Console.WriteLine(order.Symbol);
+        Console.WriteLine(order.OrderQty);
+        Console.WriteLine(order.Header.SenderCompID);
+
+        foreach (var party in order.Parties)
+            Console.WriteLine(party.PartyID);
+    }
+}
+else
+{
+    Console.WriteLine($"{error!.Position}: tag {error.Tag}, " +
+                      $"MsgType {error.MessageType}: {error.Reason}");
+}
+```
+
+`Fix44.Parse(wire)` returns the same model and throws `FormatException` on malformed
+input. `TryParse` returns false and leaves `message` null. Null input also returns
+false in `TryParse`; invalid options passed to an options overload are programming
+errors. String and `ReadOnlySpan<char>` overloads accept one complete message.
+Read a file's contents and pass them to the same API; concatenated messages are
+not one message and are rejected.
+
+## Input and ownership
+
+The input is a **lossless octet string**: every character represents one octet,
+U+0000 through U+00FF. The delimiter is SOH (`\u0001`), not the printable `|`
+often used in logs. Characters above U+00FF are rejected. `BodyLength` and
+`CheckSum` therefore count exactly the octets present on the wire, including raw
+and encoded data. Decode a wire file with Latin-1, not UTF-8; an Encoded field's
+payload remains opaque and its declared `MessageEncoding` remains available.
+
+String input is retained without copying. Span input is copied once because the
+returned model owns its source. Keeping a field or message alive retains that
+source. There is no streaming, byte-buffer parser, transport or session engine.
+
+## Model
+
+All 93 standard message types have public classes. Header, trailer and repeating
+group entries have named properties, including typed nested group collections.
+Flattened component fields are properties of their containing scope.
+
+- Missing scalar fields return null; absent groups return an empty read-only list.
+- String properties allocate their text when accessed, not while parsing fields.
+- Numeric properties return `FixNumber?`. Its `Value` preserves all decimal digits;
+  `TryGetDecimal` uses .NET's decimal conversion rules. Values outside CLR numeric
+  ranges can still be parsed and inspected without overflow or loss of wire text.
+- Temporal properties preserve FIX text, including year zero and leap-second
+  notation, rather than forcing values into `DateTime`.
+- `GetField(tag)` returns the first field in the current scope. `FixField.Value`
+  and `FixField.Wire` expose non-allocating spans. `Fields` preserves scope order;
+  `AllFields` traverses the complete message, including nested groups, in wire order.
+- `OriginalWire` is the exact input. No serializer is necessary to recover it.
+
+## Validation policies
+
+| Check | Strict (default) | Lenient |
+| --- | --- | --- |
+| Complete framing, BeginString, first three fields, terminal CheckSum | Required | Required |
+| BodyLength and CheckSum | Checked | Checked |
+| Length/data pairs, including embedded SOH | Checked | Checked |
+| Standard group delimiters, boundaries and counts | Checked during recognition | Checked during recognition |
+| Explicit schema required fields and component activation | Checked | Relaxed |
+| Primitive lexical/calendar syntax and code sets | Checked | Values preserved |
+| Group field order and duplicate standard fields | Checked | Order/duplicates preserved |
+| Unknown scalar tags | Rejected | Preserved |
+| Unknown vendor MsgType | Rejected | `CustomFixMessage` with an ordered flat body |
+
+Body fields may be reordered. Group entries must begin with their schema's first
+field in both modes. Unknown scalar tags inside an entry belong to the current
+entry until a known delimiter or field establishes the next scope. Without a
+vendor schema, their business meaning or a different intended scope cannot be
+inferred. The exact wire and offsets are always preserved.
+
+Strict validates the explicit machine-readable schema and wire constraints, including
+`MessageEncoding` when Encoded fields occur. It is not a trading or session business
+validator: prose-only conditional trading requirements, sequence-number state,
+order economics, live ISO registry assignments and announced leap-second dates are
+outside its checks. ISO identifiers are checked for their lexical shape.
+
+## Vendor data fields
+
+An unknown data field cannot safely be split at SOH. Register its length/data tags
+before parsing; the immutable options can be reused concurrently:
+
+```csharp
+var options = new FixParseOptions(
+    FixParseMode.Lenient,
+    new FixDataPair(lengthTag: 9000, dataTag: 9001));
+
+var message = Fix44.Parse(wire, options);
+var payload = message.GetField(9001)!.Value.Value;
+```
+
+Registered pairs are also accepted and validated in Strict. Tags must be positive,
+unique and outside the standard schema. Registration does not redefine FIX fields.
+Custom group schemas are not inferred or dynamically compiled: an unknown vendor
+message preserves their fields flat. Extending the generated typed schema requires
+an explicit repository definition and a library build.
+
+## Specification and reproducibility
+
+The source is FIX Trading Community's
+[Orchestra FIX 4.4](https://github.com/FIXTradingCommunity/orchestrations/blob/cd24169a2abd8daba7c360987c7a46ca11873a12/FIX%20Standard/OrchestraFIX44.xml),
+`FIX.4.4_EP311`, pinned to commit
+`cd24169a2abd8daba7c360987c7a46ca11873a12`.
+It contains 912 fields, 247 code sets, 15 components and 92 group definitions;
+91 groups are reachable from the 93 standard messages. Wire rules follow
+[FIX TagValue Encoding](https://www.fixtrading.org/standards/tagvalue-online/).
+
+Run `python tools/generate-fix44.py` from the repository to reproduce checked-in
+grammars, model types, schema tables and test fixtures. Generation uses only the
+Python standard library and the pinned local XML; package consumers do not run it.
+The original source and its Apache 2.0 license remain unmodified. See the packaged
+third-party notices for attribution.
+
+Tests and BenchmarkDotNet workloads are separate solution projects. The coverage
+and measurement records are in `docs/design/finance-fix44.md` and
+`benchmarks/DotGram.Finance.Benchmarks/README.md` in the source repository.

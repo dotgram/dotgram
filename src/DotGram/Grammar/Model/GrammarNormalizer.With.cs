@@ -1,6 +1,7 @@
 ﻿using System;
 
 using DotGram.Grammar.Binding;
+using DotGram.Grammar.Parsing;
 
 namespace DotGram.Grammar.Model;
 
@@ -321,14 +322,27 @@ public sealed partial class GrammarNormalizer
 
 		var forward  = BuildCallGraph();
 		var calledBy = Reverse(forward);
+		var written  = _publications;
 		var remapped = new List<Publication>(_publications.Count);
+		var pending  = new Queue<Publication>(written);
+
+		// What each substitution was cloned into, shared by every reading made under it; and
+		// which method reads a rule under a substitution, the author's first and then the
+		// ones an action's name asked for (`Redirected`).
+		var clonings = new List<(IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets, Dictionary<RuleSymbol, RuleSymbol> Map, string Name)>();
+		var readers  = new List<(RuleSymbol Rule, IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets, string Method)>();
+
+		foreach (var publication in written)
+			if (publication.Rebindings.Count > 0)
+				readers.Add((publication.Rule, publication.Rebindings, publication.MethodName));
 
 		// Numbered afresh, in the order the publications are written: the grammar's own
 		// reading is whatever number the first publication that substitutes nothing gets.
 		_readings.Clear();
 
-		foreach (var publication in _publications)
+		while (pending.Count > 0)
 		{
+			var publication     = pending.Dequeue();
 			var (asked, cloned) = Asked(publication);
 			var numbered        = publication with { Reading = Reading(asked, publication) };
 
@@ -341,17 +355,132 @@ public sealed partial class GrammarNormalizer
 			var reachable = ReachableFromSeed(new HashSet<RuleSymbol> { numbered.Rule }, forward, cloned);
 			var affected  = AffectedSet(BoundCalls(cloned), calledBy, reachable);
 
-			var cloneMap = affected.Count == 0
-				? EmptyClones
-				: CloneAffected(affected, cloned, "With" + (++_withCounter));
+			if (affected.Count == 0)
+			{
+				remapped.Add(numbered);
+				continue;
+			}
+
+			var cloning = clonings.FirstOrDefault(one => Same(one.Targets, cloned));
+
+			if (cloning.Map is null)
+			{
+				cloning = (cloned, [], "With" + (++_withCounter));
+				clonings.Add(cloning);
+			}
+
+			_renaming = text => Redirected(text, publication.Rebindings, written, readers, pending);
+
+			CloneAffected(affected, cloned, cloning.Name, cloning.Map);
+
+			_renaming = null;
 
 			remapped.Add(
-				cloneMap.TryGetValue(numbered.Rule, out var clone)
+				cloning.Map.TryGetValue(numbered.Rule, out var clone)
 					? numbered with { Rule = clone }
 					: numbered);
 		}
 
 		_publications = remapped;
+	}
+
+	/// <summary>
+	/// An action's or a guard's C#, as a clone made under <paramref name="targets"/> means it.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A construction that reads a piece of the input again names a publication to read it
+	/// with — <c>TryParseHole</c>, <c>ParseBody</c> — and a clone carries that text across
+	/// unchanged. Left so, the clone reads its own rules under the substitution and hands
+	/// every piece it reads again to the rules without it: <c>parse Lambda with (Word =
+	/// AsciiWord)</c> read the lambda in ASCII and the holes of its strings in Unicode. The
+	/// name means that publication under the substitution the clone was made for, so it is
+	/// spelled as that one: the author's own where one publishes the same rule under the
+	/// same substitution, and a private one made here where none does.
+	/// </para>
+	/// <para>
+	/// A name is redirected only where the substitution changes what the publication reads.
+	/// One it leaves alone reads the same language, and its name is left alone with it, so a
+	/// grammar with nothing to redirect compiles to what it did. What counts as the name is
+	/// what <see cref="ICSharpScanner.FreeNames"/> says is free: <c>Owner.TryParseHole</c> is a
+	/// member of something else and is not read as this grammar's publication.
+	/// </para>
+	/// <para>
+	/// A made publication is queued behind the rest and specialized like one the author
+	/// wrote, so what its own clones name is redirected in turn; <paramref name="readers"/>
+	/// is what ends that, since a rule under a substitution is given one method however many
+	/// actions ask for it.
+	/// </para>
+	/// </remarks>
+	string Redirected(
+		string text,
+		IReadOnlyDictionary<RuleSymbol, RuleSymbol> targets,
+		IReadOnlyList<Publication> written,
+		List<(RuleSymbol Rule, IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets, string Method)> readers,
+		Queue<Publication> pending)
+	{
+		if (_scanner?.FreeNames(text) is not { Count: > 0 } free)
+			return text;
+
+		Dictionary<string, string>? names = null;
+
+		foreach (var name in free)
+			foreach (var publication in written)
+			{
+				var tried = name == "Try" + publication.MethodName;
+
+				if (!tried && name != publication.MethodName)
+					continue;
+
+				var merged = new Dictionary<RuleSymbol, RuleSymbol>();
+
+				foreach (var pair in publication.Rebindings)
+					merged[pair.Key] = pair.Value;
+
+				foreach (var pair in targets)
+					merged[pair.Key] = pair.Value;
+
+				if (!BoundCalls(targets).Overlaps(Read(publication.Rule, merged)))
+					break;
+
+				var reader = readers.FirstOrDefault(one => one.Rule.Equals(publication.Rule) && Same(one.Targets, merged));
+
+				if (reader.Method is null)
+				{
+					reader = (publication.Rule, merged, Unpublished(publication.MethodName, written, readers));
+					readers.Add(reader);
+
+					pending.Enqueue(publication with
+					{
+						Rebindings    = merged,
+						OwnRebindings = [],
+						MethodName    = reader.Method,
+						Access        = PublishAccess.Private,
+					});
+				}
+
+				if (reader.Method != publication.MethodName)
+					(names ??= new Dictionary<string, string>(StringComparer.Ordinal))[name] = tried ? "Try" + reader.Method : reader.Method;
+
+				break;
+			}
+
+		return names is null ? text : _scanner.Renamed(text, names) ?? text;
+	}
+
+	/// <summary>A method name for a made publication that no other publication has.</summary>
+	string Unpublished(
+		string method,
+		IReadOnlyList<Publication> written,
+		List<(RuleSymbol Rule, IReadOnlyDictionary<RuleSymbol, RuleSymbol> Targets, string Method)> readers)
+	{
+		while (true)
+		{
+			var taken = method + "_With" + (++_withCounter);
+
+			if (written.All(one => one.MethodName != taken) && readers.All(one => one.Method != taken))
+				return taken;
+		}
 	}
 
 	/// <summary>

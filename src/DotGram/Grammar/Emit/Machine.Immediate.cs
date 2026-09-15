@@ -31,6 +31,10 @@ sealed partial class Machine
 		text.Append("sealed class ImmediateValues\n{\n");
 		Stack(text, "string", "Text");
 
+		// Where each piece of a gathered run of text began and ended, as one number: the
+		// run is joined the way the tape joins it, which needs the positions and not the text.
+		Stack(text, "long", "Spans");
+
 		// The marks standing over what is being read (§7.8). An array here rather than in
 		// the reader because it grows and is worth keeping between parses; how deep it
 		// stands is the reader's own field, being written at every mark.
@@ -50,6 +54,7 @@ sealed partial class Machine
 		// count never stands above it.
 		text.Append("\tinternal static void Return(ImmediateValues values)\n\t{\n");
 		Emptied(text, "Text");
+		Emptied(text, "Spans");
 
 		for (var i = 0; i < valueTypes.Count; i++)
 			Emptied(text, i.ToString(global::System.Globalization.CultureInfo.InvariantCulture));
@@ -251,16 +256,32 @@ sealed partial class Machine
 				yield return $"values.Count{stack} = {name}_{stack};";
 		}
 
-		public override string DeclareRecordLocal(int slot, RuleSymbol rule) =>
-			$"{machine._results.ValueOf(rule)} r{slot} = default!;";
+		/// <remarks>
+		/// A default is what says a local was never written, and for a value type the default
+		/// is also a value: an <c>int</c> left out and an <c>int</c> read as nought would be one
+		/// answer. So a member that may be left out is kept in a local that can say nothing.
+		/// </remarks>
+		public override string DeclareRecordLocal(int slot, RuleSymbol rule, bool optional) =>
+			optional
+				? $"{Local(rule, optional)} r{slot} = default;"
+				: $"{Local(rule, optional)} r{slot} = default!;";
+
+		/// <summary>What a record local of a rule is declared as: its type, or one that can be nothing.</summary>
+		string Local(RuleSymbol rule, bool optional)
+		{
+			var type = machine._results.ValueOf(rule);
+
+			return optional && !type.EndsWith("?", StringComparison.Ordinal) ? type + "?" : type;
+		}
 
 		public override string DeclareAccumulator(RuleSymbol rule) => $"{machine._results.ValueOf(rule)} fold = default!;";
 
 		public override IEnumerable<string> DeclareGathered(int slot, string elementType) => [];
 
-		public override string RecordLocalType(RuleSymbol rule) => machine._results.ValueOf(rule) + " ";
+		public override string RecordLocalType(RuleSymbol rule, bool optional = false) => Local(rule, optional) + " ";
 
-		public override string ResetRecordLocal(int slot) => $"r{slot} = default!;";
+		public override string ResetRecordLocal(int slot, bool optional) =>
+			optional ? $"r{slot} = default;" : $"r{slot} = default!;";
 
 		public override string Absent(RuleSymbol rule, string local) => $"ImmediateValues.IsDefault({local})";
 
@@ -318,10 +339,10 @@ sealed partial class Machine
 		/// </summary>
 		public override string Collect(DirectMember member, string from, bool pairs)
 		{
-			var stack = pairs ? "Text" : StackOf(machine._results.ValueOf(member.Member.Rule));
+			var stack = pairs ? "Spans" : StackOf(machine._results.ValueOf(member.Member.Rule));
 			var taken = $"values.Take{stack}({from}_{stack})";
 
-			_puts.Add((member, pairs ? $"string.Concat({taken})" : taken));
+			_puts.Add((member, pairs ? $"Joined_DotGram({taken}, {(member.Member.IsOptional ? "true" : "false")})" : taken));
 
 			return "";
 		}
@@ -390,7 +411,64 @@ sealed partial class Machine
 			valueType == "SourceSpan" ? "lastSpan" : $"last{TableName(valueType)}";
 
 		public override string PushText(int slot, string from, string to) =>
-			$"values.PushText({machine.Cut(from, $"{to} - {from}")});";
+			$"values.PushSpans(((long)({from}) << 32) | (uint)({to}));";
+
+		/// <remarks>
+		/// §10's join, written once for the reader and called where a run of text is collected.
+		/// The tape's walk joins the same way (Machine.Direct.Values.cs): pieces that tile are
+		/// one cut from the first start to the last end, and over kinds that cut is the answer
+		/// and not a shortcut, because what stands between two adjacent tokens is part of the
+		/// value the same reading over characters gives. Pieces that do not tile are cut one
+		/// by one.
+		/// </remarks>
+		public override string ReaderMethods
+		{
+			get
+			{
+				if (machine._directRules is not { } rules ||
+					!rules.Any(rule => machine.DirectMembers(rule).Exists(static one => one.Shape == MemberShape.Pieces)))
+				{
+					return "";
+				}
+
+				var file = new Writer(0);
+
+				file.Line("/// <summary>A run of text gathered across turns, joined: one cut where its pieces tile, each piece on its own where they do not.</summary>");
+
+				using (file.Block("string Joined_DotGram(long[] pieces, bool optional)"))
+				{
+					file.Line("if (pieces.Length == 0)");
+					file.Then("return optional ? null! : string.Empty;");
+					file.Line();
+					file.Line("var first  = (int)(pieces[0] >> 32);");
+					file.Line("var last   = (int)pieces[pieces.Length - 1];");
+					file.Line("var length = 0;");
+					file.Line();
+					file.Line("foreach (var piece in pieces)");
+					file.Then("length += (int)piece - (int)(piece >> 32);");
+					file.Line();
+					file.Line("if (last - first == length)");
+					file.Then($"return {machine.Cut("first", "length")};");
+					file.Line();
+					file.Line("var built = new global::System.Text.StringBuilder();");
+					file.Line();
+
+					using (file.Block("foreach (var piece in pieces)"))
+					{
+						file.Line("var from = (int)(piece >> 32);");
+						file.Line();
+						file.Line($"built.Append({machine.Cut("from", "(int)piece - from")});");
+					}
+
+					file.Line();
+					file.Line("return built.ToString();");
+				}
+
+				file.Line();
+
+				return file.ToString();
+			}
+		}
 
 		public override string PushRecord(int slot, RuleSymbol rule) =>
 			$"values.Push{StackOf(machine._results.ValueOf(rule))}({Last(rule)});";
@@ -474,7 +552,7 @@ sealed partial class Machine
 
 				var stack = member.Shape switch
 				{
-					MemberShape.Pieces  => "Text",
+					MemberShape.Pieces  => "Spans",
 					MemberShape.Records => StackOf(machine._results.ValueOf(member.Member.Rule)),
 					_                   => null,
 				};

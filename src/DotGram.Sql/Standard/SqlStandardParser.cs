@@ -1,0 +1,41 @@
+﻿using System;
+
+using DotGram;
+
+namespace DotGram.Sql.Standard;
+
+/// <summary>
+/// ISO/IEC 9075-2:2023, SQL/Foundation: the standard's grammar, written from its BNF.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <b>The BNF is the authority, and it is asked.</b> The standard has no engine to put a
+/// statement to, so <c>--standard</c> in DotGram.Benchmarks reads the published BNF with an
+/// Earley recognizer and says, line by line, whether a text is the production named — and
+/// whether this grammar's rule of the same name says the same.
+/// </para>
+/// <para>
+/// <b>The rule names are the standard's</b>, production for production: <c>&lt;query
+/// expression&gt;</c> is <c>QueryExpression</c>. A rule that says a production in another shape —
+/// because an ordered choice commits where the BNF's does not — says why above it.
+/// </para>
+/// <para>
+/// Written from the newest edition down, chapter by chapter: so far §5, the lexical elements, §6,
+/// scalar expressions, §7, query expressions with row pattern recognition, §8, predicates, and §10.9,
+/// aggregates, with the JSON functions as far as the BNF spells them, §11 and §12's whole schema, §14's
+/// data change statements and cursors, and the control, transaction, connection, session, dynamic,
+/// direct and diagnostics statements.
+/// What it builds is the SQL:2023 tree of <c>Sql2023Ast.cs</c> (docs/design/sql-ast.md), so far for
+/// names — identifiers, identifier chains, table names and column references; everything else the
+/// grammar recognizes and builds nothing for.
+/// </para>
+/// <para>
+/// <b>The towers are carried, not tried.</b> The BNF types its value expressions — numeric,
+/// character, datetime, interval — as towers that meet only in a primary, and a parser has no
+/// types; an expression is read once and <see cref="Towers"/> says which towers it still belongs to.
+/// </para>
+/// </remarks>
+[Gram("SqlStandard.gram")]
+public abstract partial class SqlStandardParser
+{
+}

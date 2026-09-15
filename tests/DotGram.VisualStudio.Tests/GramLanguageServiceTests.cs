@@ -202,8 +202,10 @@ public sealed class GramLanguageServiceTests
 			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
 			.ToArray();
 
-		Assert.DoesNotContain(document.Diagnostics,
-			diagnostic => diagnostic.Severity == DotGram.Grammar.GramSeverity.Error);
+		// Anything but information, which a correct grammar may still be told.
+		Assert.DoesNotContain(
+			document.Diagnostics,
+			static diagnostic => diagnostic.Severity != DotGram.Grammar.GramSeverity.Info);
 		Assert.Contains(("namespace", GramSyntaxKind.Keyword), classified);
 		Assert.Equal(3, document.Symbols.Count(symbol => symbol.Name == "A"));
 		Assert.Equal(2, document.Symbols.Count(symbol => symbol.Name == "B"));
@@ -297,6 +299,31 @@ public sealed class GramLanguageServiceTests
 		Assert.Contains(("\"Expected a value.\"", GramSyntaxKind.String), classified);
 		Assert.Contains(("on", GramSyntaxKind.Identifier), classified);
 		Assert.Contains(("fail", GramSyntaxKind.Identifier), classified);
+	}
+
+	[Fact]
+	public void ClassifiesAccessWordsOnlyOnPublicationDirectives()
+	{
+		const string source =
+			"Start = public\n" +
+			"public = internal\n" +
+			"internal = private\n" +
+			"private = 'p'\n" +
+			"public parse Start\n" +
+			"internal find Start\n" +
+			"private parse Start";
+
+		var document = GramLanguageService.Analyze(source);
+		var classified = document.Classifications
+			.Select(span => (Text: source.Substring(span.Position, span.Length), span.Kind))
+			.ToArray();
+
+		Assert.Equal(1, classified.Count(item => item is ("public", GramSyntaxKind.Keyword)));
+		Assert.Equal(1, classified.Count(item => item is ("internal", GramSyntaxKind.Keyword)));
+		Assert.Equal(1, classified.Count(item => item is ("private", GramSyntaxKind.Keyword)));
+		Assert.Contains(("public", GramSyntaxKind.Identifier), classified);
+		Assert.Contains(("internal", GramSyntaxKind.Identifier), classified);
+		Assert.Contains(("private", GramSyntaxKind.Identifier), classified);
 	}
 
 	[Fact]

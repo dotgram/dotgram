@@ -129,7 +129,7 @@ public static partial class CSharpEmitter
 	[
 		"static int ", "static bool ", "static void ", "static string ",
 		"internal static int ", "internal static bool ", "internal static void ",
-		"public static ",
+		"public static ", "private static ",
 		// The reader's members, and the reader's own constructor.
 		"public int ", "internal ",
 		"int ", "bool ", "void ",
@@ -152,7 +152,7 @@ public static partial class CSharpEmitter
 		int stacks = 0, string? suffix = null, bool? shared = null, bool inherits = false,
 		string? languageId = null, string? languageSource = null,
 		string? languageClassifications = null, string? languageRecognitionContract = null,
-		IReadOnlyList<string>? statics = null, string? grammarSource = null)
+		IReadOnlyList<string>? statics = null, string? grammarSource = null, bool suffixDeclared = false)
 	{
 		statics ??= [];
 
@@ -177,13 +177,26 @@ public static partial class CSharpEmitter
 		var groups   = Published(graph);
 		var machines = new List<Compiled>();
 
+		// A machine's tag names everything it writes, and two machines sharing one write the same
+		// names twice. The two the file keeps for itself — the second read of a terminal's value
+		// and the seam — are named by what they are, and a rule may be called that too: a
+		// grammar publishing a rule named `Value` wrote `Recognize_DotGram_Value_Expected0` twice.
+		var tags = new HashSet<string>(StringComparer.Ordinal) { "_Value", "_Seam" };
+
+		// What the graph says about readings that may not stand, asked once for every machine
+		// left to choose its own carrier, and not at all where the author chose.
+		var replay = carrier == CarrierKind.Auto ? Replay.Of(graph) : null;
+
 		foreach (var group in groups)
 		{
 			var tag = groups.Count > 1 && group.Rule is not null ? "_" + IdentifierOf(group.Rule) : "";
+
+			while (tag.Length > 0 && !tags.Add(tag))
+				tag += "_";
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
-				lexical?.Valued, carrier, stacks, lexical?.Inventory);
+				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay);
 
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one
@@ -280,8 +293,11 @@ public static partial class CSharpEmitter
 
 		// The grammar's own `@using` directives and no others. Everything this file
 		// generates is written with `global::`; these are here for the C# the grammar
-		// supplied, which was written expecting them (§1).
-		if (graph.CSharpImports.Count > 0)
+		// supplied, which was written expecting them (§1). And the hosts of the grammars this
+		// one includes, whether or not it has any of its own: they used to be written only
+		// beside those, and a grammar that included another and said no `@using` called the
+		// helpers of the included class by names nothing in its file could see.
+		if (graph.CSharpImports.Count > 0 || statics.Count > 0)
 		{
 			foreach (var import in graph.CSharpImports)
 				file.Line($"using {import};");
@@ -341,8 +357,13 @@ public static partial class CSharpEmitter
 			file.Line();
 		}
 
+		// Unless the author declared that class, in which case what the author wrote says who
+		// may see it and this part says nothing: `internal static partial class Immediate { }`
+		// beside `[GramOptions(Suffix = "Immediate")]` is a reading nobody outside can reach.
 		if (suffix is { Length: > 0 })
-			scope.Push(file.Block($"public static partial class {suffix}"));
+			scope.Push(file.Block(suffixDeclared
+				? $"static partial class {suffix}"
+				: $"public static partial class {suffix}"));
 
 		foreach (var compiled in machines)
 			foreach (var publication in compiled.Publications)
@@ -601,7 +622,7 @@ public static partial class CSharpEmitter
 		// that comes out is correct and is the one the tape would have written, and nothing
 		// the author did is wrong — but a carrier chosen and silently not used is a
 		// measurement about to be misread.
-		if (carrier != CarrierKind.Tape && diagnostics is not null)
+		if (carrier is not (CarrierKind.Tape or CarrierKind.Auto) && diagnostics is not null)
 		{
 			// Two ways to end up on the tape after asking not to be, and only one of them
 			// used to be said. A carrier that refuses a machine says so. A machine with no
@@ -631,18 +652,62 @@ public static partial class CSharpEmitter
 					GramSeverity.Info));
 			}
 		}
-		else if (carrier == CarrierKind.Tape && diagnostics is not null && machines.Count > 0)
+		else if (carrier == CarrierKind.Auto && diagnostics is not null)
 		{
-			// Offered only where taking it would do something. A grammar the methods refused
-			// gets the same file whichever carrier is asked for, and one the carrier itself
-			// would refuse gets told so a moment after being told to ask — advice and a
-			// refusal of the same thing, from one compiler, about one grammar.
-			var carrying = machines.FindAll(static one => one.Direct);
-			var takeable = carrying.Count > 0 && carrying.TrueForAll(
-				static one => one.Machine.WouldRefuse(CarrierKind.Immediate) is null);
+			// Left to the generator, which says what it chose (GRAM5012): the one thing a parse
+			// carried immediately gives up is a parse that fails having run constructions, and
+			// an author whose constructions mind has to be told the word that takes it back.
+			// The machines kept on the tape where they could have been carried are said as one,
+			// by the names the grammar gave its rules: a grammar is one thing to its author however
+			// many machines it came out as, and a rule cloned by a `with` or a dialect is still the
+			// rule that was written. Where nothing was chosen between — nothing is read by methods, nothing is
+			// built, or the carrier would refuse — nothing is said.
+			if (machines.Exists(static one => one.Direct && one.Machine.CarriesImmediately))
+				diagnostics.Add(new GramDiagnostic(
+					GramCompiler.CarrierChosen,
+					"This grammar is carried as Immediate: nothing it builds is read for a derivation " +
+					"that is then given up, so every construction runs where it is read and none waits " +
+					"for a walk at the end (§3.7). A parse that fails may already have run the " +
+					"constructions of what it read before failing; Carrier = GramCarrier.Tape holds " +
+					"every one back until a parse has accepted.",
+					0,
+					0,
+					GramSeverity.Info));
 
-			if (takeable)
-				Deferring(graph, results, diagnostics);
+			var kept = machines
+				.Where(static one => one.Direct)
+				.Select(static one => one.Machine.KeptOnTape)
+				.OfType<Machine.Kept>()
+				.ToList();
+
+			if (kept.Count > 0)
+			{
+				var building = Named(kept.SelectMany(static one => one.Building));
+				var replayed = Named(kept.SelectMany(static one => one.Replayed));
+				var again    = Named(kept.SelectMany(static one => one.Again));
+
+				var why = replayed.Count > 0
+					? $"{replayed.Count} of the {building.Count} rules it builds are read for derivations " +
+						$"that may not stand — {Listed(replayed)}"
+					: $"{Listed(again)} can be read again after answering, and what the first reading " +
+						"built would stay built";
+
+				diagnostics.Add(new GramDiagnostic(
+					GramCompiler.CarrierChosen,
+					$"This grammar is carried on the tape: {why}. Under Carrier = GramCarrier.Immediate " +
+					"those constructions would run for readings that were then given up. A construction " +
+					"that only builds does not mind, and for one that does not mind that carrier puts " +
+					"down a walk of about two fifths of a parse.",
+					0,
+					0,
+					GramSeverity.Info));
+			}
+
+			static List<string> Named(IEnumerable<RuleSymbol> rules) =>
+				[.. rules.Select(static rule => rule.Declaration?.Name ?? rule.Name).Distinct(StringComparer.Ordinal)];
+
+			static string Listed(List<string> names) =>
+				string.Join(", ", names.Take(3)) + (names.Count > 3 ? " and " + (names.Count - 3) + " more" : "");
 		}
 
 		while (scope.Count > 0)
@@ -1072,9 +1137,6 @@ public static partial class CSharpEmitter
 		}
 	}
 
-	/// <summary>A publication that gets no overload taking a position, and why.</summary>
-	public const string NoPosition = "GRAM5010";
-
 	/// <param name="direct">
 	/// Whether this machine's rules are read by methods rather than by the engine. Together
 	/// with <paramref name="flat"/> it says which of the three renderings stands behind this
@@ -1170,7 +1232,7 @@ public static partial class CSharpEmitter
 		file.Line($"/// The input is not <c>{name}</c>. <c>Try{method}</c> answers instead.");
 		file.Line("/// </exception>");
 
-		using (file.Block($"public static {value} {method}(string input{takes})"))
+		using (file.Block($"{AccessOf(publication)} static {value} {method}(string input{takes})"))
 		{
 			file.Line($"var match = Try{method}(input{gives});");
 			file.Line();
@@ -1190,25 +1252,12 @@ public static partial class CSharpEmitter
 		// host read one piece of a text it is already holding, with every position in it
 		// still meaning what it meant.
 		//
-		// Offered only where the engine reads this publication. A lowered or a directly
-		// read one was compiled with the single entry a whole parse asks for, and §6.3's
-		// shape is that an overload appears where it provably works and is accounted for
-		// where it does not.
-		if (flat)
-		{
-			var at = publication.Rule.Declaration?.At ?? default;
-
-			diagnostics?.Add(new GramDiagnostic(
-				NoPosition,
-				$"'Try{method}' gets no overload taking a position: the rules this publication " +
-				"reaches need none of what the shared automaton is for, so they are compiled " +
-				"with the one entry a whole parse asks for — the input, from zero. " +
-				"docs/syntax.md §6.3 says which publications get one, and why.",
-				at.Position,
-				at.Length,
-				GramSeverity.Info));
-		}
-		else
+		// Offered where the rules are read by the engine or by methods. A lowered publication
+		// was compiled with the single entry a whole parse asks for — its rules were proved to
+		// need nothing more only against the end of the input — so it has no entry for these
+		// to call. §6.3 says so, and the grammar is not told on every compilation: the
+		// overload's absence is plain where it is called, and nothing in the grammar is wrong.
+		if (!flat)
 		{
 			file.Line();
 			file.Line($"/// <summary>Reads a <c>{name}</c> beginning at <paramref name=\"at\"/>.</summary>");
@@ -1258,7 +1307,7 @@ public static partial class CSharpEmitter
 			// whole form is emitted exactly as it always was.
 			var halt = positional ? "halted" : "at";
 
-			using (file.Block($"public static {match} Try{method}({parameters}{takes})"))
+			using (file.Block($"{AccessOf(publication)} static {match} Try{method}({parameters}{takes})"))
 			{
 				// A window is refused before anything is read where it does not lie in the text.
 				if (windowed)
@@ -1749,7 +1798,7 @@ public static partial class CSharpEmitter
 		file.Line($"/// <summary>Every occurrence of <c>{name}</c>, in order, found as it is asked for.</summary>");
 
 		using (file.Block(
-			$"public static global::System.Collections.Generic.IEnumerable<{match}> {method}(string input{takes})"))
+			$"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{match}> {method}(string input{takes})"))
 		{
 			using (file.Block("for (var start = 0; start <= input.Length; )"))
 			{
@@ -1912,76 +1961,6 @@ public static partial class CSharpEmitter
 				if (one is Node.Capture && layout.SlotOrNone(one) is var slot && slot >= 0)
 					found.Add(slot);
 		}
-	}
-
-	/// <summary>
-	/// What the tape is being kept for, said once where it may not be worth keeping.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// The tape holds every construction until the parse has accepted, which is what §7.3
-	/// promises and what lets an author write a <c>=&gt;</c> that is not safe to run for a
-	/// derivation that then failed. It is not free: the walk that runs them is two fifths of
-	/// a parse of standard SQL, and the reader that writes the log costs more again than a
-	/// reader that simply builds (docs/next.md).
-	/// </para>
-	/// <para>
-	/// <see cref="Replay"/> says which of those constructions the promise is doing any work
-	/// for. Where it is doing none the grammar is paying for a promise it is not using, and
-	/// this says so outright; where it is doing some, this says how much and for which rules,
-	/// so that an author whose constructions are ordinary — a <c>new</c> and nothing else,
-	/// which most are — decides with the facts rather than with a rumour.
-	/// </para>
-	/// <para>
-	/// Information and not a warning: nothing here is wrong, and a grammar whose author
-	/// weighed this and kept the tape is a grammar that got it right.
-	/// </para>
-	/// </remarks>
-	static void Deferring(
-		RecognitionGraph graph, ResultTypes results, ICollection<GramDiagnostic> diagnostics)
-	{
-		var stands   = new List<RuleSymbol>();
-		var replayed = new List<RuleSymbol>();
-		var report   = Replay.Of(graph);
-
-		foreach (var rule in graph.Rules)
-		{
-			if (results.QualifiedOf(rule) is null)
-				continue;
-
-			(report.Keeps(rule) ? stands : replayed).Add(rule);
-		}
-
-		// A grammar that builds nothing has no constructions to defer and no walk to run.
-		if (stands.Count + replayed.Count == 0)
-			return;
-
-		// The ones to name are the ones something could be done about: a rule read
-		// speculatively because something after it can refuse, and not the two dozen above
-		// it that are read speculatively because it is.
-		var roots = replayed
-			.OrderBy(one => report.Rules[one] == Replay.Because.Under ? 1 : 0)
-			.Select(static one => one.Name)
-			.ToList();
-
-		var named = string.Join(", ", roots.Take(3)) +
-			(roots.Count > 3 ? " and " + (roots.Count - 3) + " more" : "");
-
-		diagnostics.Add(new GramDiagnostic(
-			GramCompiler.TapeNotNeeded,
-			replayed.Count == 0
-				? "Nothing this grammar builds is ever read for a derivation that did not stand, so " +
-					"the tape is holding constructions back for a promise nothing here needs (§7.3). " +
-					"Carrier = GramCarrier.Immediate builds where it reads, keeps that promise, and puts " +
-					"down a walk that is about two fifths of a parse."
-				: replayed.Count + " of the " + (stands.Count + replayed.Count) + " rules this grammar " +
-					"builds are read for derivations that may not stand — " + named + " — so under " +
-					"Carrier = GramCarrier.Immediate their constructions would run for readings that were " +
-					"then given up. A construction that only builds does not mind, and for one that does " +
-					"not mind that carrier puts down a walk of about two fifths of a parse.",
-			0,
-			0,
-			GramSeverity.Info));
 	}
 
 	/// <summary>
@@ -2619,6 +2598,15 @@ public static partial class CSharpEmitter
 	internal static string MethodOf(
 		RecognitionGraph graph, RuleSymbol rule, RuleSymbol? owner, string tag) =>
 		MethodOf(rule) + (rule.Equals(owner) || !IsPublished(graph, rule) ? "" : tag);
+
+	/// <summary>What a publication's methods are declared as: what its directive said (§6).</summary>
+	internal static string AccessOf(Publication publication) =>
+		publication.Access switch
+		{
+			PublishAccess.Internal => "internal",
+			PublishAccess.Private  => "private",
+			_                      => "public",
+		};
 
 	/// <summary>Whether a rule is published, and so owns the plain name of its wrapper.</summary>
 	static bool IsPublished(RecognitionGraph graph, RuleSymbol rule)
@@ -3321,10 +3309,13 @@ public static partial class CSharpEmitter
 	/// <summary>Whether an element with no C# predicate in it admits a character.</summary>
 	static bool Admits(Node.Element element, int mask, char c)
 	{
-		var takes = false;
+		var takes  = false;
+		var ranges = element.Ranges;
 
-		foreach (var range in element.Ranges)
-			if (c >= range.From && c <= range.To)
+		// By index: asked for each of the 128 characters of every element written, and a
+		// `foreach` over the interface makes an enumerator each time.
+		for (var i = 0; i < ranges.Count; i++)
+			if (c >= ranges[i].From && c <= ranges[i].To)
 			{
 				takes = true;
 				break;
@@ -3345,7 +3336,17 @@ public static partial class CSharpEmitter
 	/// file with a raw control character in it for the rest — and the emitted text is
 	/// read by people, not only by a compiler.
 	/// </remarks>
-	internal static string Char(char value) => value switch
+	internal static string Char(char value) => _chars[value] ??= Spelled(value);
+
+	/// <summary>Each character's literal, written the first time it is asked for.</summary>
+	/// <remarks>
+	/// Every test of every character a machine makes spells one, and building the string again
+	/// each time was two gigabytes of what generating the SQL parsers allocated. Two threads
+	/// missing one slot spell the same literal, and whichever lands is kept.
+	/// </remarks>
+	static readonly string?[] _chars = new string?[char.MaxValue + 1];
+
+	static string Spelled(char value) => value switch
 	{
 		'\''                         => @"'\''",
 		'\\'                         => @"'\\'",

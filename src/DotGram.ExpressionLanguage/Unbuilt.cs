@@ -31,7 +31,7 @@ public static partial class ExpressionParser
 	/// Everything here that would be misled by that asks <see cref="Typed"/> first.
 	/// </para>
 	/// </remarks>
-	public sealed class Unbuilt : Expression
+	internal sealed class Unbuilt : Expression
 	{
 		public Unbuilt(int arity, Func<Type[], LambdaExpression> build)
 		{
@@ -78,9 +78,16 @@ public static partial class ExpressionParser
 			var made = Built(types);
 
 			// The body decides what it gives back, and the delegate may want that widened —
-			// a body worth an `int` handed to a `Func<int, long>` is the delegate's to say.
+			// a body worth an `int` handed to a `Func<int, long>` is the delegate's to say, and
+			// the widening is written into the body, which is where C# puts it.
 			if (!delegated.IsAssignableFrom(made.Type))
-				made = Expression.Lambda(delegated, made.Body, made.Parameters);
+			{
+				var body = Returned(delegated) is { } returned && returned != typeof(void) && made.Body.Type != returned
+					? Expression.Convert(made.Body, returned)
+					: made.Body;
+
+				made = Expression.Lambda(delegated, body, made.Parameters);
+			}
 
 			return _built[delegated] = made;
 		}
@@ -120,10 +127,50 @@ public static partial class ExpressionParser
 			return true;
 		}
 
+		/// <summary>Whether a tree still holds one, anywhere in it.</summary>
+		internal static bool Remains(Expression tree)
+		{
+			var finder = new Finder();
+
+			finder.Visit(tree);
+
+			return finder.Found;
+		}
+
+		/// <summary>A walk that stops looking once it has seen one.</summary>
+		/// <remarks>
+		/// Its own <c>VisitExtension</c>, since the base one reduces the node to look inside it,
+		/// and this one cannot be reduced.
+		/// </remarks>
+		sealed class Finder : ExpressionVisitor
+		{
+			public bool Found { get; private set; }
+
+			public override Expression? Visit(Expression? node) => Found ? node : base.Visit(node);
+
+			protected override Expression VisitExtension(Expression node)
+			{
+				if (node is Unbuilt)
+				{
+					Found = true;
+
+					return node;
+				}
+
+				return base.VisitExtension(node);
+			}
+		}
+
 		/// <summary>The parameter types a delegate takes, or null where it is no delegate.</summary>
 		internal static Type[]? Taken(Type delegated) =>
 			typeof(Delegate).IsAssignableFrom(delegated) && delegated.GetMethod("Invoke") is { } invoke
 				? Array.ConvertAll(invoke.GetParameters(), one => one.ParameterType)
+				: null;
+
+		/// <summary>What a delegate gives back — <c>void</c> where it gives nothing — or null where it is no delegate.</summary>
+		internal static Type? Returned(Type delegated) =>
+			typeof(Delegate).IsAssignableFrom(delegated) && delegated.GetMethod("Invoke") is { } invoke
+				? invoke.ReturnType
 				: null;
 	}
 

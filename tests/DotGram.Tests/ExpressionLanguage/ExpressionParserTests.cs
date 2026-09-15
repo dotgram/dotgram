@@ -172,6 +172,44 @@ public sealed class ExpressionParserTests
 		Assert.Equal(8, narrow.Compile().DynamicInvoke(3));
 	}
 
+	/// <summary>
+	/// And it narrows what is read again: a hole of a string and the body of a lambda with no
+	/// types are read by a publication of their own, and read under the same binding.
+	/// </summary>
+	[Theory]
+	[InlineData("(string s) => $\"{s}\"",            true)]
+	[InlineData("(string é) => $\"{é}\"",            false)]
+	[InlineData("(string s) => $\"{s.Length}\"",     true)]
+	[InlineData("(int[] l) => $\"{l.Select(n => n + 1).Count()}\"", true)]
+	[InlineData("(int[] l) => $\"{l.Select(é => é + 1).Count()}\"", false)]
+	[InlineData("(int[] l) => l.Select(n => n * 2)",  true)]
+	[InlineData("(int[] l) => l.Select(n => { var é = n; return é; })", false)]
+	[InlineData("(int[] l) => l.Select(n => $\"{n}\")", true)]
+	public void What_is_read_again_is_read_with_the_narrower_word(string text, bool ascii)
+	{
+		// The text handed to the state as well, which is what `Parse` does and a reading called
+		// directly does not: a lambda with no types is read again from it.
+		var input = "using System; using System.Linq; " + text;
+
+		Assert.True(Reads(() => ExpressionParser.TryParseLambda(input, new ExpressionParser.State { Text = input }).IsSuccess));
+		Assert.Equal(ascii, Reads(() => ExpressionParser.TryParseAsciiLambda(input, new ExpressionParser.State { Text = input }).IsSuccess));
+
+		// A reading called directly refuses what it cannot build by throwing, which `TryParse`
+		// turns into an answer: `l.Select` left without the lambda the hole could not read is a
+		// member `int[]` does not have.
+		static bool Reads(Func<bool> read)
+		{
+			try
+			{
+				return read();
+			}
+			catch (FormatException)
+			{
+				return false;
+			}
+		}
+	}
+
 	[Fact]
 	public void Precedence_is_C_sharp_precedence() =>
 		// One rule per level (§4.3's default), so `*` binds tighter than `+` and the
@@ -632,6 +670,74 @@ public sealed class ExpressionParserTests
 				"using System.Collections.Generic; using System.Linq; " +
 				"(List<int> l) => l.Where((int n) => n > 1).Select((int n) => n * 2).ToArray()")(
 				new System.Collections.Generic.List<int> { 1, 2, 3 }));
+
+	/// <summary>A lambda whose parameters say no types takes them from what it is handed to.</summary>
+	/// <remarks>Held against C# itself: each text is also written below as the C# it is.</remarks>
+	[Fact]
+	public void A_lambda_takes_its_parameter_types_from_what_it_is_handed_to()
+	{
+		const string Imports = "using System.Collections.Generic; using System.Linq; ";
+
+		var l = new List<int> { 1, 2, 3 };
+		var k = 3;
+
+		(string Text, object Expected)[] cases =
+		[
+			("l.Where(n => n > 1).Select(n => n * 2).ToArray()", l.Where(n => n > 1).Select(n => n * 2).ToArray()),
+			("l.Aggregate((a, b) => a + b)",                      l.Aggregate((a, b) => a + b)),
+			("l.Select(n => n * k).Sum()",                        l.Select(n => n * k).Sum()),
+			("l.Select(n => l.Where(m => m > n).Count()).ToArray()", l.Select(n => l.Where(m => m > n).Count()).ToArray()),
+			("l.Select(n => { int m = n * 2; return m + 1; }).ToArray()", l.Select(n => { int m = n * 2; return m + 1; }).ToArray()),
+			("l.Select(n => n.ToString()).ToArray()",             l.Select(n => n.ToString()).ToArray()),
+			("(l.Count) + 1",                                     (l.Count) + 1),
+			// Overloads told apart only by what the delegate gives back (§12.6.4.5): `Sum` and
+			// its kin take ten delegates of one parameter each, and the body says which.
+			("l.Sum(n => n * 2)",                                 l.Sum(n => n * 2)),
+			("l.Sum(n => n * 2L)",                                l.Sum(n => n * 2L)),
+			("l.Max(n => n / 2.0)",                               l.Max(n => n / 2.0)),
+			("l.Average(n => n)",                                 l.Average(n => n)),
+			("l.Select(n => n.ToString()).Sum(s => s.Length)",    l.Select(n => n.ToString()).Sum(s => s.Length)),
+			// A body read before its parameters have types, and read again once they do: what asks
+			// what a value is worth — `var`, `foreach (var …)` — waits for the second reading.
+			("l.Select(n => { var m = n * 2; return m + 1; }).ToArray()", l.Select(n => { var m = n * 2; return m + 1; }).ToArray()),
+			("l.Select(n => { var s = n.ToString(); return s.Length; }).ToArray()", l.Select(n => { var s = n.ToString(); return s.Length; }).ToArray()),
+			("l.Select(n => n.ToString()).Select(s => { int t = 0; foreach (var c in s) t += c; return t; }).ToArray()", l.Select(n => n.ToString()).Select(s => { int t = 0; foreach (var c in s) t += c; return t; }).ToArray()),
+			("l.Select(n => l.Where(m => { var d = m - n; return d > 0; }).Count()).ToArray()", l.Select(n => l.Where(m => { var d = m - n; return d > 0; }).Count()).ToArray()),
+			("l.Select(n => n.ToString()?.Length).ToArray()",     l.Select(n => n.ToString()?.Length).ToArray()),
+			("l.Select(n => { int s = 0; foreach (var c in n.ToString()) s += c; return s; }).ToArray()", l.Select(n => { int s = 0; foreach (var c in n.ToString()) s += c; return s; }).ToArray()),
+			("l.Select(n => n.CompareTo(2)).ToArray()",           l.Select(n => n.CompareTo(2)).ToArray()),
+			("l.Select(n => n.ToString().Length).ToArray()",      l.Select(n => n.ToString().Length).ToArray()),
+		];
+
+		var wrong = cases
+			.Select(one => (one.Text, one.Expected, Actual: Answered(() =>
+				ExpressionParser.Compile<Func<List<int>, int, object>>($"{Imports}(List<int> l, int k) => (object)({one.Text})")(l, k))))
+			.Where(one => !Same(one.Actual, one.Expected))
+			.ToArray();
+
+		Assert.Empty(wrong);
+
+		static bool Same(object actual, object expected) =>
+			actual is System.Collections.IEnumerable many && expected is System.Collections.IEnumerable all && actual is not string
+				? many.Cast<object>().SequenceEqual(all.Cast<object>())
+				: Equals(actual, expected);
+
+		static object Answered(Func<object> run)
+		{
+			try
+			{
+				return run();
+			}
+			catch (Exception thrown)
+			{
+				return thrown.GetType().Name + ": " + thrown.Message;
+			}
+		}
+	}
+
+	[Fact]
+	public void A_lambda_that_says_no_types_and_is_handed_to_nothing_is_refused() =>
+		Assert.False(ExpressionParser.TryParse("(int x) => { var f = n => n; return x; }").IsSuccess);
 
 	[Fact]
 	public void And_from_what_the_lambda_gives_back_as_well() =>
@@ -1763,6 +1869,11 @@ public sealed class ExpressionParserTests
 		(string Text, string Expected)[] cases =
 		[
 			("$\"abc\"",                     $"abc"),
+			("$@\"a\\{x}\"",                 $@"a\{x}"),
+			("@$\"a\\{x}\"",                 @$"a\{x}"),
+			("$@\"say \"\"{x}\"\"\"",        $@"say ""{x}"""),
+			("$@\"{{{x,3}}}\"",              $@"{{{x,3}}}"),
+			("$\"<{$@\"\\{x}\"}>\"",         $"<{$@"\{x}"}>"),
 			("$\"a{x}b\"",                   $"a{x}b"),
 			("$\"{{{x}}}\"",                 $"{{{x}}}"),
 			("$\"a\\tb{x}\"",                $"a\tb{x}"),
@@ -1801,12 +1912,179 @@ public sealed class ExpressionParserTests
 		}
 	}
 
+	/// <summary>A keyword that names a type names its static members, as C#'s does.</summary>
+	/// <remarks>Held against C# itself: each text is also written below as the C# it is.</remarks>
+	[Fact]
+	public void A_keyword_type_reaches_its_static_members()
+	{
+		const string s = "12";
+
+		(string Text, object Expected)[] cases =
+		[
+			("string.Concat(s, \"3\")",        string.Concat(s, "3")),
+			("string.Empty + s",               string.Empty + s),
+			("int.Parse(s)",                   int.Parse(s)),
+			("int.MaxValue",                   int.MaxValue),
+			("char.IsDigit(s[0])",             char.IsDigit(s[0])),
+			("long.MinValue",                  long.MinValue),
+			("double.IsNaN(double.NaN)",       double.IsNaN(double.NaN)),
+			("object.ReferenceEquals(s, s)",   object.ReferenceEquals(s, s)),
+			("decimal.One",                    decimal.One),
+		];
+
+		var wrong = cases
+			.Select(one => (one.Text, one.Expected, Actual: Answered(() =>
+				ExpressionParser.Compile<Func<string, object>>($"(string s) => (object)({one.Text})")(s))))
+			.Where(one => !Equals(one.Actual, one.Expected))
+			.ToArray();
+
+		Assert.Empty(wrong);
+
+		static object Answered(Func<object> run)
+		{
+			try
+			{
+				return run();
+			}
+			catch (Exception thrown)
+			{
+				return thrown.GetType().Name + ": " + thrown.Message;
+			}
+		}
+	}
+
 	[Fact]
 	public void A_conditional_in_a_hole_needs_its_brackets_as_in_C_sharp() =>
 		Assert.Contains(
 			"Parenthesize the conditional expression",
 			ExpressionParser.TryParse("(bool c) => $\"{c ? 1 : 2}\"").Error,
 			StringComparison.Ordinal);
+
+	/// <summary>A raw string, held against C# itself: each text is also written as the C# it is.</summary>
+	/// <remarks>
+	/// Up to five quotes and two dollars the grammar reads the literal; past that it is measured
+	/// and cut by hand, and the last rows are those.
+	/// </remarks>
+	[Fact]
+	public void A_raw_string_reads_as_C_sharp_reads_it()
+	{
+		var x = 5;
+
+		(string Text, string Expected)[] cases =
+		[
+			("\"\"\"abc\"\"\"",                         """abc"""),
+			("\"\"\"a \"b\" c\"\"\"",                """a "b" c"""),
+			("\"\"\"\"a\"\"\"b\"\"\"\"",             """"a"""b""""),
+			("\"\"\"\"\"a\"\"\"\"b\"\"\"\"\"",       """""a""""b"""""),
+			("$\"\"\"a{x}b\"\"\"",                      $"""a{x}b"""),
+			("$\"\"\"{x,3}|{x:D3}\"\"\"",               $"""{x,3}|{x:D3}"""),
+			("$$\"\"\"{x} and {{x}}\"\"\"",             $$"""{x} and {{x}}"""),
+			("$$\"\"\"{{{x}}}\"\"\"",                    $$"""{{{x}}}"""),
+			("$\"\"\"\"a\"\"\"{x}\"\"\"\"",           $""""a"""{x}""""),
+			("$\"\"\"{\"}\" + x}\"\"\"",                $"""{"}" + x}"""),
+			("$\"\"\"\n    a {x}\n      b\n    \"\"\"",    "a 5\n  b"),
+			("\"\"\"\r\n\tline\r\n\t\"\"\"",               "line"),
+			("\"\"\"\n  one\n\n  two\n  \"\"\"",         "one\n\ntwo"),
+			// By hand: six quotes, three dollars.
+			("\"\"\"\"\"\"a\"\"\"\"\"b\"\"\"\"\"\"", """"""a"""""b""""""),
+			("$$$\"\"\"{{{x}}} {{x}}\"\"\"",           $$$"""{{{x}}} {{x}}"""),
+			("$\"\"\"\"\"\"{x}\"\"\"\"\"\"",           $""""""{x}""""""),
+			("$$$\"\"\"\n  {{{x}}}\n\n  z\n  \"\"\"",     "5\n\nz"),
+			("$\"\"\"{$$$\"\"\"<{{{x}}}>\"\"\"}\"\"\"",    "<5>"),
+		];
+
+		var wrong = cases
+			.Select(one => (one.Text, one.Expected, Actual: Answered(() =>
+				ExpressionParser.Compile<Func<int, string>>($"(int x) => {one.Text}")(x))))
+			.Where(one => one.Actual != one.Expected)
+			.ToArray();
+
+		Assert.Empty(wrong);
+
+		static string Answered(Func<string> run)
+		{
+			try
+			{
+				return run();
+			}
+			catch (Exception e)
+			{
+				return e.GetType().Name + ": " + e.Message;
+			}
+		}
+	}
+
+	/// <summary>And a raw string C# refuses is refused.</summary>
+	[Theory]
+	[InlineData("\"\"\"a\"\"\"\"",               "a run of quotes at the end would have closed it sooner")]
+	[InlineData("$\"\"\"}\"\"\"",                  "a closing brace outside a hole")]
+	[InlineData("\"\"\"\n  a\n b\n  \"\"\"",     "a line that does not begin with the closing line's indentation")]
+	[InlineData("\"\"\"a\n  \"\"\"",               "text after the opening quotes of a multi-line one")]
+	[InlineData("\"\"\"\n  a\n  b \"\"\"",         "the closing quotes not on a line of their own")]
+	[InlineData("$$$\"\"\"{{{{{{x}}}}}}\"\"\"",     "a run of braces twice the dollars")]
+	public void A_raw_string_C_sharp_refuses_is_refused(string text, string why)
+	{
+		Assert.NotNull(why);
+		Assert.False(ExpressionParser.TryParse($"(int x) => {text}").IsSuccess);
+	}
+
+	/// <summary>
+	/// An interpolated string is a <c>FormattableString</c> or an <c>IFormattable</c> where one is
+	/// wanted, held against C# itself.
+	/// </summary>
+	[Fact]
+	public void An_interpolated_string_is_formattable_where_that_is_wanted()
+	{
+		const string Imports = "using System; using DotGram.Tests.ExpressionLanguage; ";
+
+		var x = 5;
+
+		(string Text, string Expected)[] cases =
+		[
+			("Formats.Kind($\"a{x}\")",                          Formats.Kind($"a{x}")),
+			("Formats.Shape($\"a{x}b{x,3}c{x:D2}\")",            Formats.Shape($"a{x}b{x,3}c{x:D2}")),
+			("Formats.Shape($\"abc\")",                          Formats.Shape($"abc")),
+			("Formats.Shape($\"{{x}}\")",                        Formats.Shape($"{{x}}")),
+			("Formats.Invariant($\"{x / 2.0}\")",                Formats.Invariant($"{x / 2.0}")),
+			("Formats.Shape($$\"\"\"{{x}}\"\"\")",               Formats.Shape($$"""{{x}}""")),
+			("((FormattableString)$\"<{x}>\").Format",           ((FormattableString)$"<{x}>").Format),
+			("((IFormattable)$\"<{x}>\").ToString(null, null)",  ((IFormattable)$"<{x}>").ToString(null, null)),
+		];
+
+		var wrong = cases
+			.Select(one => (one.Text, one.Expected, Actual: Answered(() =>
+				ExpressionParser.Compile<Func<int, string>>($"{Imports}(int x) => {one.Text}")(x))))
+			.Where(one => one.Actual != one.Expected)
+			.ToArray();
+
+		Assert.Empty(wrong);
+
+		// And held where it is declared rather than handed over.
+		Assert.Equal(
+			"{0}|1",
+			ExpressionParser.Compile<Func<int, string>>(
+				$"{Imports}(int x) => {{ FormattableString f = $\"{{x}}\"; return Formats.Shape(f); }}")(x));
+
+		static string Answered(Func<string> run)
+		{
+			try
+			{
+				return run();
+			}
+			catch (Exception e)
+			{
+				return e.GetType().Name + ": " + e.Message;
+			}
+		}
+	}
+
+	/// <summary>And what is made of one, or a string that was never one, is only a string.</summary>
+	[Theory]
+	[InlineData("Formats.Shape(\"a\")")]
+	[InlineData("Formats.Shape($\"a{x}\" + \"b\")")]
+	[InlineData("(FormattableString)\"a\"")]
+	public void But_a_string_that_was_not_interpolated_is_not_formattable(string text) =>
+		Assert.False(ExpressionParser.TryParse($"using System; using DotGram.Tests.ExpressionLanguage; (int x) => {text}").IsSuccess);
 
 	[Fact]
 	public void A_hole_is_read_by_both_carriers_alike() =>

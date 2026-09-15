@@ -4,12 +4,14 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.Standard;
+using DotGram.Sql.TransactSql;
 
 namespace DotGram.Benchmarks;
 
 /// <summary>
-/// What <see cref="SqlStandard92"/> makes of somebody else's corpus.
+/// What <see cref="Sql92Parser"/> makes of somebody else's corpus.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -56,14 +58,14 @@ static class Corpus
 		// and the only number worth anything here is the difference between them.
 		Read("SQL-92", files.Length, statements, shown, static one =>
 		{
-			var match = SqlStandard92.TryParseSelect(one);
+			var match = Sql92Parser.TryParseSelect(one);
 
 			return match.IsSuccess ? -1 : (int)match.Position;
 		});
 
 		Read("T-SQL", files.Length, statements, shown, static one =>
 		{
-			var match = TransactSql.TryParseSelect(one);
+			var match = TransactSqlParser.TryParseSelect(one);
 
 			return match.IsSuccess ? -1 : (int)match.Position;
 		});

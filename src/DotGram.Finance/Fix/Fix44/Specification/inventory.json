@@ -1,0 +1,450 @@
+{
+	"version": "FIX.4.4_EP311",
+	"counts": {
+		"messages": 93,
+		"fields": 912,
+		"components": 15,
+		"groups": 92,
+		"codeSets": 247
+	},
+	"messages": [
+		{
+			"name": "Heartbeat",
+			"msgType": "0"
+		},
+		{
+			"name": "TestRequest",
+			"msgType": "1"
+		},
+		{
+			"name": "ResendRequest",
+			"msgType": "2"
+		},
+		{
+			"name": "Reject",
+			"msgType": "3"
+		},
+		{
+			"name": "SequenceReset",
+			"msgType": "4"
+		},
+		{
+			"name": "Logout",
+			"msgType": "5"
+		},
+		{
+			"name": "IOI",
+			"msgType": "6"
+		},
+		{
+			"name": "Advertisement",
+			"msgType": "7"
+		},
+		{
+			"name": "ExecutionReport",
+			"msgType": "8"
+		},
+		{
+			"name": "OrderCancelReject",
+			"msgType": "9"
+		},
+		{
+			"name": "Logon",
+			"msgType": "A"
+		},
+		{
+			"name": "News",
+			"msgType": "B"
+		},
+		{
+			"name": "Email",
+			"msgType": "C"
+		},
+		{
+			"name": "NewOrderSingle",
+			"msgType": "D"
+		},
+		{
+			"name": "NewOrderList",
+			"msgType": "E"
+		},
+		{
+			"name": "OrderCancelRequest",
+			"msgType": "F"
+		},
+		{
+			"name": "OrderCancelReplaceRequest",
+			"msgType": "G"
+		},
+		{
+			"name": "OrderStatusRequest",
+			"msgType": "H"
+		},
+		{
+			"name": "AllocationInstruction",
+			"msgType": "J"
+		},
+		{
+			"name": "ListCancelRequest",
+			"msgType": "K"
+		},
+		{
+			"name": "ListExecute",
+			"msgType": "L"
+		},
+		{
+			"name": "ListStatusRequest",
+			"msgType": "M"
+		},
+		{
+			"name": "ListStatus",
+			"msgType": "N"
+		},
+		{
+			"name": "AllocationInstructionAck",
+			"msgType": "P"
+		},
+		{
+			"name": "DontKnowTrade",
+			"msgType": "Q"
+		},
+		{
+			"name": "QuoteRequest",
+			"msgType": "R"
+		},
+		{
+			"name": "Quote",
+			"msgType": "S"
+		},
+		{
+			"name": "SettlementInstructions",
+			"msgType": "T"
+		},
+		{
+			"name": "MarketDataRequest",
+			"msgType": "V"
+		},
+		{
+			"name": "MarketDataSnapshotFullRefresh",
+			"msgType": "W"
+		},
+		{
+			"name": "MarketDataIncrementalRefresh",
+			"msgType": "X"
+		},
+		{
+			"name": "MarketDataRequestReject",
+			"msgType": "Y"
+		},
+		{
+			"name": "QuoteCancel",
+			"msgType": "Z"
+		},
+		{
+			"name": "QuoteStatusRequest",
+			"msgType": "a"
+		},
+		{
+			"name": "MassQuoteAcknowledgement",
+			"msgType": "b"
+		},
+		{
+			"name": "SecurityDefinitionRequest",
+			"msgType": "c"
+		},
+		{
+			"name": "SecurityDefinition",
+			"msgType": "d"
+		},
+		{
+			"name": "SecurityStatusRequest",
+			"msgType": "e"
+		},
+		{
+			"name": "SecurityStatus",
+			"msgType": "f"
+		},
+		{
+			"name": "TradingSessionStatusRequest",
+			"msgType": "g"
+		},
+		{
+			"name": "TradingSessionStatus",
+			"msgType": "h"
+		},
+		{
+			"name": "MassQuote",
+			"msgType": "i"
+		},
+		{
+			"name": "BusinessMessageReject",
+			"msgType": "j"
+		},
+		{
+			"name": "BidRequest",
+			"msgType": "k"
+		},
+		{
+			"name": "BidResponse",
+			"msgType": "l"
+		},
+		{
+			"name": "ListStrikePrice",
+			"msgType": "m"
+		},
+		{
+			"name": "XMLnonFIX",
+			"msgType": "n"
+		},
+		{
+			"name": "RegistrationInstructions",
+			"msgType": "o"
+		},
+		{
+			"name": "RegistrationInstructionsResponse",
+			"msgType": "p"
+		},
+		{
+			"name": "OrderMassCancelRequest",
+			"msgType": "q"
+		},
+		{
+			"name": "OrderMassCancelReport",
+			"msgType": "r"
+		},
+		{
+			"name": "NewOrderCross",
+			"msgType": "s"
+		},
+		{
+			"name": "CrossOrderCancelReplaceRequest",
+			"msgType": "t"
+		},
+		{
+			"name": "CrossOrderCancelRequest",
+			"msgType": "u"
+		},
+		{
+			"name": "SecurityTypeRequest",
+			"msgType": "v"
+		},
+		{
+			"name": "SecurityTypes",
+			"msgType": "w"
+		},
+		{
+			"name": "SecurityListRequest",
+			"msgType": "x"
+		},
+		{
+			"name": "SecurityList",
+			"msgType": "y"
+		},
+		{
+			"name": "DerivativeSecurityListRequest",
+			"msgType": "z"
+		},
+		{
+			"name": "DerivativeSecurityList",
+			"msgType": "AA"
+		},
+		{
+			"name": "NewOrderMultileg",
+			"msgType": "AB"
+		},
+		{
+			"name": "MultilegOrderCancelReplace",
+			"msgType": "AC"
+		},
+		{
+			"name": "TradeCaptureReportRequest",
+			"msgType": "AD"
+		},
+		{
+			"name": "TradeCaptureReport",
+			"msgType": "AE"
+		},
+		{
+			"name": "OrderMassStatusRequest",
+			"msgType": "AF"
+		},
+		{
+			"name": "QuoteRequestReject",
+			"msgType": "AG"
+		},
+		{
+			"name": "RFQRequest",
+			"msgType": "AH"
+		},
+		{
+			"name": "QuoteStatusReport",
+			"msgType": "AI"
+		},
+		{
+			"name": "QuoteResponse",
+			"msgType": "AJ"
+		},
+		{
+			"name": "Confirmation",
+			"msgType": "AK"
+		},
+		{
+			"name": "PositionMaintenanceRequest",
+			"msgType": "AL"
+		},
+		{
+			"name": "PositionMaintenanceReport",
+			"msgType": "AM"
+		},
+		{
+			"name": "RequestForPositions",
+			"msgType": "AN"
+		},
+		{
+			"name": "RequestForPositionsAck",
+			"msgType": "AO"
+		},
+		{
+			"name": "PositionReport",
+			"msgType": "AP"
+		},
+		{
+			"name": "TradeCaptureReportRequestAck",
+			"msgType": "AQ"
+		},
+		{
+			"name": "TradeCaptureReportAck",
+			"msgType": "AR"
+		},
+		{
+			"name": "AllocationReport",
+			"msgType": "AS"
+		},
+		{
+			"name": "AllocationReportAck",
+			"msgType": "AT"
+		},
+		{
+			"name": "ConfirmationAck",
+			"msgType": "AU"
+		},
+		{
+			"name": "SettlementInstructionRequest",
+			"msgType": "AV"
+		},
+		{
+			"name": "AssignmentReport",
+			"msgType": "AW"
+		},
+		{
+			"name": "CollateralRequest",
+			"msgType": "AX"
+		},
+		{
+			"name": "CollateralAssignment",
+			"msgType": "AY"
+		},
+		{
+			"name": "CollateralResponse",
+			"msgType": "AZ"
+		},
+		{
+			"name": "CollateralReport",
+			"msgType": "BA"
+		},
+		{
+			"name": "CollateralInquiry",
+			"msgType": "BB"
+		},
+		{
+			"name": "NetworkCounterpartySystemStatusRequest",
+			"msgType": "BC"
+		},
+		{
+			"name": "NetworkCounterpartySystemStatusResponse",
+			"msgType": "BD"
+		},
+		{
+			"name": "UserRequest",
+			"msgType": "BE"
+		},
+		{
+			"name": "UserResponse",
+			"msgType": "BF"
+		},
+		{
+			"name": "CollateralInquiryAck",
+			"msgType": "BG"
+		},
+		{
+			"name": "ConfirmationRequest",
+			"msgType": "BH"
+		}
+	],
+	"lengthDataPairs": [
+		{
+			"lengthTag": 93,
+			"dataTag": 89
+		},
+		{
+			"lengthTag": 90,
+			"dataTag": 91
+		},
+		{
+			"lengthTag": 95,
+			"dataTag": 96
+		},
+		{
+			"lengthTag": 212,
+			"dataTag": 213
+		},
+		{
+			"lengthTag": 348,
+			"dataTag": 349
+		},
+		{
+			"lengthTag": 350,
+			"dataTag": 351
+		},
+		{
+			"lengthTag": 352,
+			"dataTag": 353
+		},
+		{
+			"lengthTag": 354,
+			"dataTag": 355
+		},
+		{
+			"lengthTag": 356,
+			"dataTag": 357
+		},
+		{
+			"lengthTag": 358,
+			"dataTag": 359
+		},
+		{
+			"lengthTag": 360,
+			"dataTag": 361
+		},
+		{
+			"lengthTag": 362,
+			"dataTag": 363
+		},
+		{
+			"lengthTag": 364,
+			"dataTag": 365
+		},
+		{
+			"lengthTag": 445,
+			"dataTag": 446
+		},
+		{
+			"lengthTag": 618,
+			"dataTag": 619
+		},
+		{
+			"lengthTag": 621,
+			"dataTag": 622
+		}
+	]
+}

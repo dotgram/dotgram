@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.Standard;
+using DotGram.Sql.TransactSql;
 
 namespace DotGram.Benchmarks;
 
@@ -120,7 +122,7 @@ static class Preparation
 		new("Levels", "characters", "1", static text => Levels.TryLevelled(text).IsSuccess),
 		new("Url", "characters", "http://a", static text => Urls.TryParseUrl(text).IsSuccess),
 		new("Config", "trivia", "a=b;", static text => Config.Read(text).Length >= 0),
-		new("Sql-92", "kinds", "a > 1", static text => SqlStandard92.TryParseSearchCondition(text).IsSuccess),
-		new("TransactSql", "kinds", "SELECT 1", static text => TransactSql.TryParseStatement(text).IsSuccess),
+		new("Sql-92", "kinds", "a > 1", static text => Sql92Parser.TryParseSearchCondition(text).IsSuccess),
+		new("TransactSql", "kinds", "SELECT 1", static text => TransactSqlParser.TryParseStatement(text).IsSuccess),
 	];
 }

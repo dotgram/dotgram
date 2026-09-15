@@ -332,6 +332,78 @@ public sealed class MemberResolverTests
 							Array.ConvertAll(types, one => Expression.Parameter(one)))),
 					])).Message);
 
+	// ── Delegates told apart by what they give back, the compiler adjudicating ──
+	//
+	// §12.6.4.5 for a lambda: between two delegates that take the same parameters, the one whose
+	// return type the body is worth exactly, then one that gives something back over one that
+	// gives nothing, then the better of the two return types as targets. And a delegate the body
+	// cannot be the return type of is no candidate at all.
+
+	/// <summary>`s => s.Length`, once something says what `s` is.</summary>
+	static ExpressionParser.Unbuilt Length() =>
+		new(1, types =>
+		{
+			var s = Expression.Parameter(types[0], "s");
+
+			return Expression.Lambda(Expression.Property(s, "Length"), s);
+		});
+
+	/// <summary>`s => s.Trim()`, likewise.</summary>
+	static ExpressionParser.Unbuilt Trimmed() =>
+		new(1, types =>
+		{
+			var s = Expression.Parameter(types[0], "s");
+
+			return Expression.Lambda(Expression.Call(s, "Trim", Type.EmptyTypes), s);
+		});
+
+	/// <summary>What the delegate of the overload the resolver chose gives back, by name.</summary>
+	static string Returns(string name, ExpressionParser.Unbuilt lambda) =>
+		((MethodInfo)Asking().Static(typeof(Choosing), name, [lambda]).Member)
+			.GetParameters()[0].ParameterType.GetMethod("Invoke")!.ReturnType.Name;
+
+	[Fact]
+	public void A_body_worth_exactly_what_a_delegate_gives_back_chooses_that_delegate() =>
+		Assert.Equal(Choosing.Measured(s => s.Length), Returns("Measured", Length()));
+
+	[Fact]
+	public void And_where_neither_is_exact_the_better_return_type_wins() =>
+		Assert.Equal(Choosing.Widened(s => s.Length), Returns("Widened", Length()));
+
+	[Fact]
+	public void And_a_delegate_that_gives_something_back_beats_one_that_gives_nothing() =>
+		Assert.Equal(Choosing.Kept(s => s.Trim()), Returns("Kept", Trimmed()));
+
+	[Fact]
+	public void And_a_delegate_the_body_cannot_be_given_back_as_is_no_candidate() =>
+		Assert.Equal(Choosing.Counted(s => s.Length), Returns("Counted", Length()));
+
+	[Fact]
+	public void And_of_two_that_became_the_same_the_one_written_more_specifically_wins()
+	{
+		// `n => n / 2.0`, which both overloads take as a `Func<int, double>` once inferred.
+		var halving = new ExpressionParser.Unbuilt(1, types =>
+		{
+			var n = Expression.Parameter(types[0], "n");
+
+			return Expression.Lambda(Expression.Divide(Expression.Convert(n, typeof(double)), Expression.Constant(2.0)), n);
+		});
+
+		var chosen = (MethodInfo)Asking().Static(typeof(Choosing), "Specific", [Value(1), halving]).Member;
+
+		Assert.Equal(Choosing.Specific(1, n => n / 2.0), chosen.GetGenericArguments().Length == 1 ? "double" : "any");
+	}
+
+	[Fact]
+	public void And_linq_s_sum_takes_the_delegate_the_body_is_worth()
+	{
+		// Ten overloads of one parameter each, `int` to `decimal?`; C# takes `Func<string, int>`.
+		var chosen = Asking("System.Linq").Method(Expression.Parameter(typeof(List<string>), "l"), "Sum", [Length()]);
+
+		Assert.IsType<int>(new List<string>().Sum(s => s.Length));
+		Assert.Equal(typeof(Func<string, int>), ((MethodInfo)chosen.Member).GetParameters()[1].ParameterType);
+	}
+
 	// ── A generic method, an indexer, a constructor, a delegate ─────────────────
 
 	[Fact]

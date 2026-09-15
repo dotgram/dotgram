@@ -20,6 +20,11 @@ jobs:
 
       - run: dotnet restore DotGram.slnx
 
+      - name: Check generated FIX definitions
+        run: |
+          python3 tools/generate-fix44.py
+          git diff --exit-code -- src/DotGram.Finance tests/DotGram.Finance.Tests/Fixtures.json
+
       # The Linux solution configuration: every project built as Release, minus the
       # two that need the Visual Studio SDK and cannot be built off Windows. Being a
       # solution configuration and not a project one, it still writes to bin/Release,
@@ -47,7 +52,9 @@ jobs:
       - name: Pack
         run: |
           dotnet pack src/DotGram/DotGram.csproj         --no-build --configuration Release --output artifacts
-          dotnet pack src/DotGram.Parsers/DotGram.Parsers.csproj --no-build --configuration Release --output artifacts
+          dotnet pack src/DotGram.Sql/DotGram.Sql.csproj         --no-build --configuration Release --output artifacts
+          dotnet pack src/DotGram.Web/DotGram.Web.csproj         --no-build --configuration Release --output artifacts
+          dotnet pack src/DotGram.Finance/DotGram.Finance.csproj --no-build --configuration Release --output artifacts
           dotnet pack src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj --no-build --configuration Release --output artifacts
 
       # Each package is the opposite shape of the other, and getting either one wrong
@@ -98,7 +105,9 @@ jobs:
               echo "$2: the newest target is not dependency-free:"; grep -A3 'net10.0' "$1/$2.nuspec"; exit 1
             }
           }
-          check_library parsers     DotGram.Parsers
+          check_library sql         DotGram.Sql
+          check_library web         DotGram.Web
+          check_library finance     DotGram.Finance
           check_library expressions DotGram.ExpressionLanguage
 
       # Everything above builds the generator from source and trusts the package to be
@@ -107,6 +116,11 @@ jobs:
       # Roslyn the package claims to support, running the parser that came out.
       - name: The package, in somebody else's build
         run: dotnet run --project tests/DotGram.PackageSmoke/DotGram.PackageSmoke.csproj --configuration Release
+
+      - name: The finance package, in somebody else's build
+        run: |
+          dotnet run --project tests/DotGram.Finance.PackageSmoke/DotGram.Finance.PackageSmoke.csproj --configuration Release --framework net10.0
+          dotnet run --project tests/DotGram.Finance.PackageSmoke/DotGram.Finance.PackageSmoke.csproj --configuration Release --framework net8.0
 
       - uses: actions/upload-artifact@v4
         with:

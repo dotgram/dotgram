@@ -307,13 +307,40 @@ public sealed class LexicalAutomaton
 		}
 
 		/// <summary>The atoms a set holds.</summary>
+		/// <remarks>
+		/// One walk over both, both in order: the atoms are disjoint and ascending, and so are a
+		/// known set's ranges. It asked <c>Overlaps</c> of a set made of each atom in turn, which
+		/// was a list, an array and a set for every atom of the alphabet on every edge built.
+		/// </remarks>
 		List<int> Atoms(FirstSets.First set)
 		{
 			var held = new List<int>();
 
-			for (var i = 0; i < _atoms.Count; i++)
-				if (set.Overlaps(FirstSets.First.Chars([_atoms[i]])))
+			if (set.Nothing)
+				return held;
+
+			if (set.Anything)
+			{
+				for (var i = 0; i < _atoms.Count; i++)
 					held.Add(i);
+
+				return held;
+			}
+
+			var ranges = set.Ranges;
+			var at     = 0;
+
+			for (var i = 0; i < _atoms.Count; i++)
+			{
+				while (at < ranges.Count && ranges[at].To < _atoms[i].From)
+					at++;
+
+				if (at == ranges.Count)
+					break;
+
+				if (ranges[at].From <= _atoms[i].To)
+					held.Add(i);
+			}
 
 			return held;
 		}
@@ -750,14 +777,21 @@ public sealed class LexicalAutomaton
 		/// </remarks>
 		LexicalAutomaton Subsets(int start)
 		{
-			var numbered = new Dictionary<ulong[], int>(Bits.Same);
+			var numbered = new Dictionary<int[], int>(Members.Same);
 			var pending  = new Queue<(HashSet<int> States, int Number)>();
 			var sets     = new List<IReadOnlyList<int>>();
 			var named    = new Dictionary<string, int>();
 			var accepts  = new List<int>();
 			var rows     = new List<int[]>();
 
-			var first = Closed([start]);
+			var first = Closed([start], []);
+
+			// Kept across the states rather than made for each: most of what a set reaches on an
+			// atom closes to a state already numbered, and then everything built to find that out
+			// was thrown away at once — a set per atom, a set per closure, a stack per closure.
+			var moves = new Dictionary<int, HashSet<int>>();
+			var free  = new Stack<HashSet<int>>();
+			var spare = (HashSet<int>?)null;
 
 			numbered[Key(first)] = 0;
 			pending.Enqueue((first, 0));
@@ -789,13 +823,19 @@ public sealed class LexicalAutomaton
 				// this replaces was `atoms × states × edges` where the work is `states ×
 				// edges`, and an alphabet of a few hundred ranges made that the whole cost
 				// of cutting a grammar in two.
-				var moves = new Dictionary<int, HashSet<int>>();
+				foreach (var reached in moves.Values)
+				{
+					reached.Clear();
+					free.Push(reached);
+				}
+
+				moves.Clear();
 
 				foreach (var one in here)
 					foreach (var (on, to) in _on[one])
 					{
 						if (!moves.TryGetValue(on, out var reached))
-							moves[on] = reached = [];
+							moves[on] = reached = free.Count > 0 ? free.Pop() : [];
 
 						reached.Add(to);
 					}
@@ -808,7 +848,7 @@ public sealed class LexicalAutomaton
 					if (!moves.TryGetValue(atom, out var next))
 						continue;
 
-					var closed = Closed(next);
+					var closed = Closed(next, spare ??= []);
 					var key    = Key(closed);
 
 					if (!numbered.TryGetValue(key, out var to2))
@@ -817,6 +857,9 @@ public sealed class LexicalAutomaton
 
 						Room(rows, accepts, to2);
 						pending.Enqueue((closed, to2));
+
+						// Kept by the queue now, so the next closure needs a set of its own.
+						spare = null;
 					}
 
 					rows[number][atom] = to2;
@@ -879,10 +922,19 @@ public sealed class LexicalAutomaton
 			}
 		}
 
-		HashSet<int> Closed(IEnumerable<int> states)
+		/// <summary>What <see cref="Closed"/> walks with, one stack for every closure.</summary>
+		readonly Stack<int> _closing = new();
+
+		/// <summary>The states reached from these without reading, written into <paramref name="reached"/>.</summary>
+		HashSet<int> Closed(IEnumerable<int> states, HashSet<int> reached)
 		{
-			var reached = new HashSet<int>();
-			var pending = new Stack<int>(states);
+			var pending = _closing;
+
+			reached.Clear();
+			pending.Clear();
+
+			foreach (var one in states)
+				pending.Push(one);
 
 			while (pending.Count > 0)
 			{
@@ -898,30 +950,30 @@ public sealed class LexicalAutomaton
 			return reached;
 		}
 
-		/// <summary>A subset as one bit per state, which is what identifies it.</summary>
+		/// <summary>A subset as its members in ascending order, which is what identifies it.</summary>
 		/// <remarks>
-		/// It was a comma-joined string of the sorted members, built and hashed once per
-		/// state of the machine under construction and once more per transition into it —
-		/// a sort, an allocation the length of the set, and a walk of that string to hash.
-		/// A bit per state is a walk of the members and nothing else, and the memory is a
-		/// word per sixty-four states held for as long as the generator runs.
+		/// It was a comma-joined string of the sorted members, and then a bit per state of the
+		/// whole nondeterministic machine. The string cost an allocation and a walk of its text;
+		/// the bits cost a word per sixty-four states on every transition — hundreds of words
+		/// for T-SQL, hashed and compared each time, where a subset holds a few dozen members.
+		/// The members themselves are as long as the subset and no longer.
 		/// </remarks>
-		ulong[] Key(HashSet<int> states)
+		static int[] Key(HashSet<int> states)
 		{
-			var key = new ulong[(_on.Count + 63) / 64];
+			var key = new int[states.Count];
 
-			foreach (var one in states)
-				key[one >> 6] |= 1UL << (one & 63);
+			states.CopyTo(key);
+			Array.Sort(key);
 
 			return key;
 		}
 
-		/// <summary>Two subsets are the same when the same bits are set.</summary>
-		sealed class Bits : IEqualityComparer<ulong[]>
+		/// <summary>Two subsets are the same when they hold the same members.</summary>
+		sealed class Members : IEqualityComparer<int[]>
 		{
-			public static readonly Bits Same = new();
+			public static readonly Members Same = new();
 
-			public bool Equals(ulong[]? left, ulong[]? right)
+			public bool Equals(int[]? left, int[]? right)
 			{
 				if (ReferenceEquals(left, right))
 					return true;
@@ -936,12 +988,12 @@ public sealed class LexicalAutomaton
 				return true;
 			}
 
-			public int GetHashCode(ulong[] key)
+			public int GetHashCode(int[] key)
 			{
 				var hash = 17;
 
-				foreach (var word in key)
-					hash = hash * 31 + word.GetHashCode();
+				foreach (var one in key)
+					hash = hash * 31 + one;
 
 				return hash;
 			}

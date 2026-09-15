@@ -90,32 +90,71 @@ public static class FirstSets
 
 		internal static IReadOnlyList<CharRange> Normalized(IEnumerable<CharRange> ranges)
 		{
-			var sorted = new List<CharRange>(ranges);
+			// Worked in a list kept for the thread and handed back as an array of exactly what
+			// it holds: this runs for every union of every first set, and two lists a call —
+			// one to sort, one to merge into — were most of what those unions allocated. Taken
+			// out of its slot while in use, so that anything `ranges` computes as it is read
+			// gets a list of its own rather than this one cleared under it.
+			var sorted = _sorting ?? new List<CharRange>();
 
-			sorted.Sort(static (a, b) => a.From.CompareTo(b.From));
+			_sorting = null;
 
-			var merged = new List<CharRange>(sorted.Count);
-
-			foreach (var range in sorted)
+			try
 			{
-				if (range.To < range.From)
-					continue;
+				sorted.Clear();
+				sorted.AddRange(ranges);
 
-				// Overlapping or adjacent: one maximal range. `To + 1` is int arithmetic,
-				// so the top of the character space does not wrap.
-				if (merged.Count > 0 && merged[^1].To + 1 >= range.From)
+				// Most of what arrives is in order already — `Or` merges two lists that are — and
+				// a sort of what is sorted was a fifth of the time spent working out first sets.
+				for (var i = 1; i < sorted.Count; i++)
+					if (sorted[i].From < sorted[i - 1].From)
+					{
+						sorted.Sort(static (a, b) => a.From.CompareTo(b.From));
+
+						break;
+					}
+
+				// Merged in place: what is written never runs ahead of what is read.
+				var count = 0;
+
+				for (var i = 0; i < sorted.Count; i++)
 				{
-					if (range.To > merged[^1].To)
-						merged[^1] = merged[^1] with { To = range.To };
+					var range = sorted[i];
 
-					continue;
+					if (range.To < range.From)
+						continue;
+
+					// Overlapping or adjacent: one maximal range. `To + 1` is int arithmetic,
+					// so the top of the character space does not wrap.
+					if (count > 0 && sorted[count - 1].To + 1 >= range.From)
+					{
+						if (range.To > sorted[count - 1].To)
+							sorted[count - 1] = sorted[count - 1] with { To = range.To };
+
+						continue;
+					}
+
+					sorted[count++] = range;
 				}
 
-				merged.Add(range);
-			}
+				if (count == 0)
+					return [];
 
-			return merged;
+				var merged = new CharRange[count];
+
+				sorted.CopyTo(0, merged, 0, count);
+
+				return merged;
+			}
+			finally
+			{
+				sorted.Clear();
+				_sorting = sorted;
+			}
 		}
+
+		[ThreadStatic] static List<CharRange>? _sorting;
+		[ThreadStatic] static List<CharRange>? _merging;
 
 		/// <summary>Whether it says anything a repetition can be held to.</summary>
 		public bool IsKnown => !Anything && !Nothing;
@@ -132,12 +171,32 @@ public static class FirstSets
 			if (other.Ends == (Ends || other.Ends) && other.Covers(this))
 				return other;
 
-			var ranges = new List<CharRange>(Ranges.Count + other.Ranges.Count);
+			// Both sorted, so merged in order rather than appended and sorted again — into a
+			// list kept for the thread, for the reason `Normalized` keeps one.
+			var ranges = _merging ?? new List<CharRange>();
+			var mine   = 0;
+			var theirs = 0;
 
-			ranges.AddRange(Ranges);
-			ranges.AddRange(other.Ranges);
+			_merging = null;
 
-			return Chars(ranges, Ends || other.Ends);
+			try
+			{
+				ranges.Clear();
+
+				while (mine < Ranges.Count || theirs < other.Ranges.Count)
+					ranges.Add(
+						theirs >= other.Ranges.Count ||
+						mine < Ranges.Count && Ranges[mine].From <= other.Ranges[theirs].From
+							? Ranges[mine++]
+							: other.Ranges[theirs++]);
+
+				return Chars(ranges, Ends || other.Ends);
+			}
+			finally
+			{
+				ranges.Clear();
+				_merging = ranges;
+			}
 		}
 
 		/// <summary>
@@ -627,7 +686,7 @@ public static class FirstSets
 			if (nothing &&
 				parts[i] is Node.Lookahead(true, var expected) &&
 				!Nullable(expected, graph) &&
-				Of(expected, graph, byRule) is { IsKnown: true } ahead)
+				Inner(expected, graph, byRule) is { IsKnown: true } ahead)
 			{
 				expects = expects is { } held ? held.And(ahead) : ahead;
 
@@ -644,7 +703,7 @@ public static class FirstSets
 			if (nothing &&
 				parts[i] is Node.Lookahead(false, var refused) &&
 				OneCharacter(refused, graph, []) &&
-				Of(refused, graph, byRule) is { IsKnown: true } barred)
+				Inner(refused, graph, byRule) is { IsKnown: true } barred)
 			{
 				var admitted = First.Chars(Complement(First.Normalized(barred.Ranges)));
 
@@ -653,7 +712,7 @@ public static class FirstSets
 				continue;
 			}
 
-			var first = Of(parts[i], graph, byRule);
+			var first = Inner(parts[i], graph, byRule);
 
 			if (expects is { } bound)
 				first = first.And(bound);
@@ -681,7 +740,30 @@ public static class FirstSets
 	}
 
 	/// <summary>What a node can begin with.</summary>
-	public static First Of(Node node, RecognitionGraph graph) => Of(node, graph, ByRule(graph));
+	public static First Of(Node node, RecognitionGraph graph) => Inner(node, graph, ByRule(graph));
+
+	/// <summary>
+	/// What a node begins with, kept on the graph once what the rules begin with has settled
+	/// and asked of the settled answers; worked out afresh while it is still growing.
+	/// </summary>
+	/// <remarks>
+	/// Everything that walks into a node's parts comes through here, and not only the first
+	/// question: a choice's alternatives, a sequence's parts, the body of a repetition are
+	/// asked again by every node around them, and each answer was lists of ranges built,
+	/// sorted and merged once more.
+	/// </remarks>
+	static First Inner(Node node, RecognitionGraph graph, IReadOnlyDictionary<RuleSymbol, First> byRule)
+	{
+		if (!graph.FirstSettled || !ReferenceEquals(byRule, graph.FirstByRule))
+			return Of(node, graph, byRule);
+
+		var known = graph.FirstByNode ??= new Dictionary<Node, First>(NodeIdentity.Instance);
+
+		if (!known.TryGetValue(node, out var first))
+			known[node] = first = Of(node, graph, byRule);
+
+		return first;
+	}
 
 	/// <summary>
 	/// What each rule can begin with, as the least set that satisfies every rule at once.
@@ -739,6 +821,8 @@ public static class FirstSets
 				changed         = true;
 			}
 		}
+
+		graph.FirstSettled = true;
 
 		return estimates;
 	}
@@ -838,11 +922,11 @@ public static class FirstSets
 			case Node.Reading:
 				return First.None;
 
-			case Node.Capture  (_,  var captured): return Of(captured, graph, byRule);
-			case Node.Construct(var built, _):     return Of(built,    graph, byRule);
-			case Node.Atomic   (var body):         return Of(body,     graph, byRule);
-			case Node.Marked   (var body, _):      return Of(body,     graph, byRule);
-			case Node.Repeat   (var body, _, _):   return Of(body,     graph, byRule);
+			case Node.Capture  (_,  var captured): return Inner(captured, graph, byRule);
+			case Node.Construct(var built, _):     return Inner(built,    graph, byRule);
+			case Node.Atomic   (var body):         return Inner(body,     graph, byRule);
+			case Node.Marked   (var body, _):      return Inner(body,     graph, byRule);
+			case Node.Repeat   (var body, _, _):   return Inner(body,     graph, byRule);
 
 			// What has to stop the walk is a cycle, and a cycle is a rule already on the way
 			// down — not one met and left somewhere else. Kept as the path rather than as
@@ -863,7 +947,7 @@ public static class FirstSets
 
 				foreach (var alternative in alternatives)
 				{
-					var first = Of(alternative, graph, byRule);
+					var first = Inner(alternative, graph, byRule);
 
 					if (first.Anything)
 						return First.All;
@@ -977,11 +1061,8 @@ public static class FirstSets
 	/// </summary>
 	static First Folded(char first)
 	{
-		lock (_folded)
-		{
-			if (_folded.TryGetValue(first, out var cached))
-				return cached;
-		}
+		if (_folded[first] is { } cached)
+			return cached;
 
 		var upper  = char.ToUpperInvariant(first);
 		var ranges = new List<CharRange>();
@@ -1005,13 +1086,18 @@ public static class FirstSets
 
 		var folded = First.Chars(ranges);
 
-		lock (_folded)
-			_folded[first] = folded;
+		_folded[first] = folded;
 
 		return folded;
 	}
 
-	static readonly Dictionary<char, First> _folded = [];
+	/// <summary>Each character's answer, by the character.</summary>
+	/// <remarks>
+	/// A slot per character rather than a dictionary behind a lock: asked on every literal of
+	/// every grammar, and the lock was what the asking cost. Two threads missing the same slot
+	/// both work out the same answer, and whichever lands is the one kept.
+	/// </remarks>
+	static readonly First?[] _folded = new First?[char.MaxValue + 1];
 
 	/// <summary>
 	/// What must begin the input where a node begins, given what must begin it where the

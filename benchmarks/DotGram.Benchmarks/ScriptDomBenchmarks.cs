@@ -5,7 +5,8 @@ using System.Linq;
 
 using BenchmarkDotNet.Attributes;
 
-using DotGram.Parsers.Sql;
+using DotGram.Sql;
+using DotGram.Sql.TransactSql;
 
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 
@@ -85,7 +86,7 @@ public class ScriptDomBenchmarks
 
 				try
 				{
-					if (TransactSql.TryParseStatement(one).IsSuccess)
+					if (TransactSqlParser.TryParseStatement(one).IsSuccess)
 						kept.Add(new Timed(one, by));
 				}
 				catch (Exception)
@@ -137,7 +138,7 @@ public class ScriptDomBenchmarks
 		var sink = 0;
 
 		foreach (var (one, _) in _kept)
-			sink += TransactSql.Located.TryParseStatement(one).IsSuccess ? 1 : 0;
+			sink += TransactSqlParser.Located.TryParseStatement(one).IsSuccess ? 1 : 0;
 
 		return sink;
 	}
@@ -148,7 +149,7 @@ public class ScriptDomBenchmarks
 		var sink = 0;
 
 		foreach (var (one, _) in _kept)
-			sink += TransactSql.TryParseStatement(one).IsSuccess ? 1 : 0;
+			sink += TransactSqlParser.TryParseStatement(one).IsSuccess ? 1 : 0;
 
 		return sink;
 	}

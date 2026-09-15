@@ -10,13 +10,16 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// Every identifier the compiler can report is in the reference, and nothing else is.
+/// Every identifier the compiler or the Visual Studio extension can report is in the
+/// reference, and nothing else is.
 /// </summary>
 /// <remarks>
 /// A message carries an identifier so that it can be looked up, and a reference that has
 /// fallen behind the code is worse than none: it answers, and answers wrong. So the two are
 /// compared here rather than by anyone remembering. A number that is retired stays in the
-/// reference and leaves the code, which is the one direction the comparison allows.
+/// reference and leaves the code, which is the one direction the comparison allows. The
+/// extension reports in the editor what the generator does not, and a number means one thing
+/// whichever of the two reports it.
 /// </remarks>
 public sealed class DiagnosticsReferenceTests
 {
@@ -28,6 +31,20 @@ public sealed class DiagnosticsReferenceTests
 		Assert.True(
 			missing.Length == 0,
 			"Not in docs/diagnostics.md: " + string.Join(", ", missing));
+	}
+
+	/// <summary>No number is reported by both the generator and the extension.</summary>
+	[Fact]
+	public void The_generator_and_the_extension_report_different_numbers()
+	{
+		var shared = Reported(Compiler)
+			.Intersect(Reported(Extension))
+			.OrderBy(one => one, StringComparer.Ordinal)
+			.ToArray();
+
+		Assert.True(
+			shared.Length == 0,
+			"Reported by both src/DotGram and src/DotGram.VisualStudio: " + string.Join(", ", shared));
 	}
 
 	/// <summary>And a documented one is either reported or listed as retired.</summary>
@@ -48,11 +65,13 @@ public sealed class DiagnosticsReferenceTests
 			"Documented, reported by nothing, and not listed as retired: " + string.Join(", ", stale));
 	}
 
-	static HashSet<string> Reported()
+	static HashSet<string> Reported() => [.. Reported(Compiler), .. Reported(Extension)];
+
+	static HashSet<string> Reported(string directory)
 	{
 		var found = new HashSet<string>(StringComparer.Ordinal);
 
-		foreach (var file in Directory.GetFiles(Compiler, "*.cs", SearchOption.AllDirectories))
+		foreach (var file in Directory.GetFiles(directory, "*.cs", SearchOption.AllDirectories))
 		{
 			if (file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
 				file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
@@ -74,6 +93,7 @@ public sealed class DiagnosticsReferenceTests
 		Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(ThisFile)!)!)!;
 
 	static string Compiler  => Path.Combine(Root, "src", "DotGram");
+	static string Extension => Path.Combine(Root, "src", "DotGram.VisualStudio");
 	static string Reference => Path.Combine(Root, "docs", "diagnostics.md");
 
 	static string ThisFile { get; } = FilePath();

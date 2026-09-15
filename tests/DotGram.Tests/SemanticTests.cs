@@ -1314,10 +1314,8 @@ public sealed class SemanticTests
 	[Fact]
 	public void A_rule_nothing_reaches_is_reported()
 	{
-		// The one thing the grammar is told is wrong. A remark may stand beside it and one
-		// does: a grammar this small is compiled as a method, so it is also told that its
-		// publication gets no overload taking a position (GRAM5010, Info). What this test
-		// is about is the rule nothing reaches.
+		// The one thing the grammar is told is wrong. A remark may stand beside it — that is
+		// what information is for — and what this test is about is the rule nothing reaches.
 		var told = Assert.Single(
 			Compile(
 				"""
@@ -2266,6 +2264,109 @@ public sealed class SemanticTests
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryTight", "a,b;c").IsSuccess);
 		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryTight", "a,b,c").IsSuccess);
 	}
+
+	/// <summary>
+	/// A publication an action reads the input again with is read under the substitution the
+	/// action was cloned for.
+	/// </summary>
+	/// <remarks>
+	/// <c>Start</c>'s action hands what follows the colon to <c>TryReadName</c>. Under
+	/// <c>Loose</c> that name means <c>ReadName</c> as <c>Loose</c> reads it — capitals and all —
+	/// and nobody published that, so the generator does, privately.
+	/// </remarks>
+	[Theory]
+	[InlineData("TryPlain", "ab:cd", "ab+cd")]
+	[InlineData("TryPlain", "ab:CD", "ab")]
+	[InlineData("TryLoose", "ab:CD", "ab+CD")]
+	[InlineData("TryLoose", "Ab:CD", "Ab+CD")]
+	public void A_publication_named_in_an_action_is_read_under_the_same_substitution(
+		string method, string input, string expected)
+	{
+		var result = Compile(Rereading);
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal(expected, EmittedCode.Match(assembly, "Grammar", method, input).Value);
+	}
+
+	/// <summary>Where the author publishes it under that substitution, the name is theirs.</summary>
+	[Fact]
+	public void And_where_the_author_publishes_that_reading_the_name_is_that_one()
+	{
+		var result = Compile(Rereading + "parse Name with (Word = Wide) as ReadLooseName\n");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var source = result.Sources[0].Text;
+
+		Assert.DoesNotContain("ReadName_With", source);
+		Assert.Contains("TryReadLooseName(rest)", source);
+
+		var assembly = EmittedCode.Compile(source);
+
+		Assert.Equal("Ab+CD", EmittedCode.Match(assembly, "Grammar", "TryLoose", "Ab:CD").Value);
+	}
+
+	/// <summary>A substitution that changes nothing the publication reads leaves its name alone.</summary>
+	[Fact]
+	public void But_a_substitution_that_changes_nothing_it_reads_leaves_the_name_alone()
+	{
+		var result = Compile("""
+			Word  : @string = w: ['a'..'z']+ => @(w)
+			Mark  = ':'
+			Colon = ';'
+			Name  : @string = w: Word => @(w)
+			Start : @string = head: Word & Mark & rest: ['a'..'z']+ => @(TryReadName(rest).IsSuccess ? head + "+" + rest : head)
+
+			parse Name as ReadName
+			parse Start with (Mark = Colon) as Semicolon
+			""");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		Assert.DoesNotContain("ReadName_With", result.Sources[0].Text);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal("ab+cd", EmittedCode.Match(assembly, "Grammar", "TrySemicolon", "ab;cd").Value);
+	}
+
+	/// <summary>A rule may build a generic C# type, and a sequence may collect one.</summary>
+	[Fact]
+	public void A_rule_may_build_a_generic_type()
+	{
+		var result = Compile("""
+			@using System.Collections.Generic;
+
+			Pair  : @KeyValuePair<string, int> = key: ['a'..'z']+ & '=' & value: ['0'..'9']+
+				=> @(new KeyValuePair<string, int>(key, int.Parse(value)))
+			Pairs : @KeyValuePair<string, int>[] = Pair & (',' & Pair)*
+
+			parse Pairs
+			""");
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.Equal(
+			new[] { new KeyValuePair<string, int>("a", 1), new KeyValuePair<string, int>("bc", 23) },
+			EmittedCode.Match(assembly, "Grammar", "TryParsePairs", "a=1,bc=23").Value);
+	}
+
+	const string Rereading = """
+		Word  : @string = w: ['a'..'z']+ => @(w)
+		Wide  : @string = w: ['a'..'z' | 'A'..'Z']+ => @(w)
+		Name  : @string = w: Word => @(w)
+		Start : @string = head: Word & ':' & rest: ['a'..'z' | 'A'..'Z']+ => @(TryReadName(rest).IsSuccess ? head + "+" + rest : head)
+
+		parse Name as ReadName
+		parse Start as Plain
+		parse Start with (Word = Wide) as Loose
+
+		""";
 
 	// ── What a publication answers with (§7.5) ──────────────────────────────────
 

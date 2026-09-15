@@ -203,6 +203,19 @@ public sealed class GramParser
 		if (AtPublication())
 			return ParsePublication();
 
+		if (AtAccess())
+		{
+			var from   = Current.Position;
+			var access = Take().Value switch
+			{
+				"internal" => PublishAccess.Internal,
+				"private"  => PublishAccess.Private,
+				_          => PublishAccess.Public,
+			};
+
+			return ParsePublication(access, from);
+		}
+
 		// `context : @T` and nothing after it. A body would have made it a rule called
 		// `context`, which stays perfectly writable — that is what `StartsRule` decides,
 		// and it is asked first.
@@ -321,6 +334,18 @@ public sealed class GramParser
 			TokenKind.Character or TokenKind.String or
 			TokenKind.CaseInsensitiveCharacter or TokenKind.CaseInsensitiveString;
 
+	/// <summary><c>public</c>, <c>internal</c> or <c>private</c>, where a directive follows it (§6).</summary>
+	/// <remarks>
+	/// Only there. Everywhere else the three are ordinary words, so a rule called
+	/// <c>internal</c> stays one — which is the same bargain <c>parse</c> and <c>find</c>
+	/// themselves make with <see cref="StartsRule"/>.
+	/// </remarks>
+	bool AtAccess() =>
+		(AtKeyword("public") || AtKeyword("internal") || AtKeyword("private")) &&
+		!StartsRule() &&
+		Next.Kind == TokenKind.Identifier &&
+		Next.Value is "parse" or "find";
+
 	/// <remarks>
 	/// `with` is required before the rebindings here (§5.1), matching the other two
 	/// extents an author already writes it for. The bare `Name (A = B)` form is still
@@ -425,9 +450,9 @@ public sealed class GramParser
 	/// something, and the author naming the method has already chosen the word.
 	/// </para>
 	/// </remarks>
-	Decl ParsePublication()
+	Decl ParsePublication(PublishAccess access = PublishAccess.Public, int? from = null)
 	{
-		var start      = Current.Position;
+		var start      = from ?? Current.Position;
 		var word       = Take().Value!;
 		var kind       = word == "parse" ? PublishKind.Parse : PublishKind.Find;
 		var targetAt   = Current.Position;
@@ -453,7 +478,7 @@ public sealed class GramParser
 					"an expression this directive would have to make a rule of.",
 					new Location(typeAt, Current.Position - typeAt));
 
-			return new Decl.Publish(kind, named, rebindings, alias) { At = From(start) };
+			return new Decl.Publish(kind, named, rebindings, alias) { At = From(start), Access = access };
 		}
 
 		if (alias is null)
@@ -464,12 +489,12 @@ public sealed class GramParser
 				"called: there is no name here to make one from.",
 				new Location(targetAt, Current.Position - targetAt));
 
-			return new Decl.Publish(kind, "", rebindings, null) { At = From(start) };
+			return new Decl.Publish(kind, "", rebindings, null) { At = From(start), Access = access };
 		}
 
 		_lifted.Add(new Decl.Rule(alias, [], type, target) { At = From(targetAt) });
 
-		return new Decl.Publish(kind, alias, rebindings, alias) { At = From(start) };
+		return new Decl.Publish(kind, alias, rebindings, alias) { At = From(start), Access = access };
 	}
 
 	/// <summary>
@@ -615,12 +640,42 @@ public sealed class GramParser
 		return new Decl.State(ParseType()) { At = From(start) };
 	}
 
-	TypeRef ParseType()
+	/// <param name="withinCSharp">
+	/// Whether this is an argument of a C# type, which is C# whether or not it was written
+	/// with an <c>@</c> of its own — and so may be generic in turn.
+	/// </param>
+	TypeRef ParseType(bool withinCSharp = false)
 	{
-		var start    = Current.Position;
-		var isCSharp = TakeIf(TokenKind.At);
-		var name     = ExpectQualifiedName();
-		var sequence = false;
+		var start     = Current.Position;
+		var isCSharp  = TakeIf(TokenKind.At) || withinCSharp;
+		var name      = ExpectQualifiedName();
+		var arguments = new List<TypeRef>();
+		var sequence  = false;
+
+		// A C# type may be generic, and what stands between its brackets is C# as well:
+		// `@KeyValuePair<string, Row>` names the type `Row`, not a rule. Only for a C# type,
+		// since a rule and a parameter take no arguments. The arguments are spelled into the
+		// name, which is what the generated file is written from.
+		if (isCSharp && TakeIf(TokenKind.Less))
+		{
+			var spelled = new StringBuilder(name).Append('<');
+
+			do
+			{
+				var argument = ParseType(withinCSharp: true);
+
+				if (arguments.Count > 0)
+					spelled.Append(", ");
+
+				spelled.Append(argument.Name).Append(argument.IsSequence ? "[]" : "");
+				arguments.Add(argument);
+			}
+			while (TakeIf(TokenKind.Comma));
+
+			Expect(TokenKind.Greater);
+
+			name = spelled.Append('>').ToString();
+		}
 
 		if (At(TokenKind.OpenBracket) && Next.Kind == TokenKind.CloseBracket)
 		{
@@ -630,7 +685,7 @@ public sealed class GramParser
 			sequence = true;
 		}
 
-		return new TypeRef(isCSharp, name, sequence, From(start));
+		return new TypeRef(isCSharp, name, sequence, From(start)) { TypeArguments = arguments };
 	}
 
 	// ── Expressions ──────────────────────────────────────────────────────────────

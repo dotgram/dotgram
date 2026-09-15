@@ -162,11 +162,10 @@ public sealed class GramCompilerOptions
 
 	/// <summary>
 	/// How a reader carries what it has read until the author's constructions run
-	/// (<see cref="CarrierKind"/>). The tape by default, which keeps §7.3; the others are
-	/// the author's choice, and a grammar a chosen carrier cannot carry is compiled on the
-	/// tape instead.
+	/// (<see cref="CarrierKind"/>). The generator's choice by default; the others are the
+	/// author's, and a grammar a chosen carrier cannot carry is compiled on the tape instead.
 	/// </summary>
-	public CarrierKind Carrier { get; set; } = CarrierKind.Tape;
+	public CarrierKind Carrier { get; set; } = CarrierKind.Auto;
 
 	/// <summary>
 	/// How many stacks one parse may take beyond the one it began on, or nought for as
@@ -193,6 +192,18 @@ public sealed class GramCompilerOptions
 	/// grammar's <c>=&gt;</c> calls are.
 	/// </remarks>
 	public string? Suffix { get; set; }
+
+	/// <summary>
+	/// Whether the host declares the <see cref="Suffix"/> class itself, and so decides who may
+	/// see it.
+	/// </summary>
+	/// <remarks>
+	/// A nested class written by the author as <c>internal static partial class Immediate { }</c>
+	/// is the author's to make internal, and the generated part then says nothing of its own
+	/// about accessibility. Where the author declares nothing the part is <c>public</c>, which
+	/// is what it has always been — a nested class would otherwise default to private.
+	/// </remarks>
+	public bool SuffixDeclared { get; set; }
 
 	/// <summary>
 	/// Which compilation of a host writes the types the host's own C# names — the span
@@ -245,10 +256,4 @@ public sealed class GramCompilerOptions
 	/// </para>
 	/// </remarks>
 	public int? Own { get; set; }
-
-	/// <summary>
-	/// Whether a publication the reader can write is written by it
-	/// (<c>Machine.Reader.cs</c>) rather than by the rendering it is replacing. Off by
-	/// default while the reader is being taught the rest of the language.
-	/// </summary>
 }

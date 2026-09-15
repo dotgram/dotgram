@@ -1,8 +1,8 @@
 # The tree
 
-`src/DotGram.Parsers/Sql/SqlSyntax.cs` holds one tree for every dialect this project reads —
-`SqlStandard92`, `TransactSql`, and whatever comes after them. This is what is in it and
-where each node comes from.
+`src/DotGram.Sql/SqlSyntax.cs` holds one tree for every dialect this project reads —
+`Sql92Parser` and `TransactSqlParser` build it. This is what is in it and where each node
+comes from; the SQL:2023 tree it is to be reshaped into is `design/sql-ast.md`'s.
 
 ## The rule
 
@@ -17,7 +17,7 @@ Where a name repeats the hierarchy it is in, the repetition goes: the standard's
 does not, the published name stands whole — `Statement.TableDefinition`,
 `Clause.SortSpecification`.
 
-Five sources appear in the tables:
+Six sources appear in the tables:
 
 | Source | What it means |
 | --- | --- |
@@ -29,15 +29,16 @@ Five sources appear in the tables:
 ## The shape
 
 **A hierarchy per category the standard has, and no root above them.** `Statement`, `Query`,
-`Expression`, `TableReference`, `Clause`. A tree with a single root types nothing: a field
-of it accepts a statement where a value belongs, and the compiler cannot say otherwise. The
-standard does not work that way — §7 puts a `<query expression>` where a table belongs and
+`Expression`, `TableReference`, `Clause` — and `SetExpression`, what follows T-SQL's `SET`.
+A tree with a single root types nothing: a field of it accepts a statement where a value
+belongs, and the compiler cannot say otherwise. The standard does not work that way — §7
+puts a `<query expression>` where a table belongs and
 §6 puts a `<value expression>` where a value belongs — so the roots are its own categories
 and a field says which one it holds. `Statement.Insert.Rows` is a `Query`,
 `Expression.Subquery.Query` is a `Query`, `Query.Specification.From` is a
 `TableReference[]`.
 
-**As many roots as there are sublanguages.** Five is what today's surface needs, not a
+**As many roots as there are sublanguages.** Six is what the surface needs, not a
 closed list. A JSON path, an XQuery inside `FOR XML`, the drawing inside `MATCH (…)` and a
 full-text `CONTAINS` are each a language with a grammar of its own, and each will get a root
 of its own when it is kept rather than read and dropped. Adding one breaks nothing, which is
@@ -54,8 +55,12 @@ an expression that holds one. A statement that returns rows is not a kind of que
 statement that holds one. Nothing derives from anything but its own root, and no root
 derives from another. Crossing between hierarchies is always a field.
 
-**One level under each root.** A consumer switches over the descendants of the root it holds
-and has seen all of them. A node under another node would be a node half its readers miss.
+**One level under each root, and under `SetExpression` one level under each group.** A
+node is a sealed record nested in its root — `Statement.Select` — except that
+`SetExpression`'s nodes sit in the abstract groups Microsoft's page divides the SET
+statements into, and are named by that path: `SetExpression.Locking.LockTimeout`. A consumer
+switches over the descendants of the root it holds and has seen all of them. A node under
+another node would be a node half its readers miss; a group is not a node.
 
 **A record per production.** A `DROP TABLE` and a `DROP VIEW` are not one shape with a word
 in it; they are two statements spelled alike, and a consumer that reads the word to tell
@@ -80,34 +85,35 @@ The exception is a keyword that is pure syntax — `SELECT`, `CASE`, `FROM`. Tho
 formatter's to case, which is why ScriptDom's own generator has a `KeywordCasing` option.
 
 **Fields stand in the order the text writes them.** `TableReference.Named(Table, SystemTime,
-Name, Columns, Sample, Hints)` is the order of `t FOR SYSTEM_TIME … AS x (…) TABLESAMPLE …
-WITH (…)`. That was a reading convenience until printing arrived; it is load-bearing now,
-because a printer that walks the tree emits tokens in the order the fields stand in, and
-that order has to be the source's.
+ForPath, Name, Columns, Sample, Hints, Server)` is the order of `t FOR SYSTEM_TIME … FOR PATH
+AS x (…) TABLESAMPLE … WITH (…)`, all but `Server`, the `OPENDATASOURCE (…)` that stands
+before the name and last among the fields. The order is load-bearing: a printer that walks
+the tree emits tokens in the order the fields stand in, and that order has to be the source's.
 
 **The grammar says the shape; this file says which node.** The `.gram` reads `DROP <what>`
 once and hands the words to `Statement.Dropped`, which turns them into the record. So the
 catalogue of names lives in C#, where a catalogue of C# names belongs, and the grammar still
-says one thing. `Dropped`, `Defined`, `OfDatabase`, `Commanded`, `BackedUp`, `Restored` and
-`Permitted` are those factories, and each throws where the grammar has read a word the tree
+says one thing. `Dropped`, `Defined`, `OfDatabase`, `Commanded`, `BackedUp` and `Restored`
+are those factories, and each throws where the grammar has read a word the tree
 has no record for — which is the two catalogues having drifted, and a defect here rather
 than in anybody's SQL.
 
-**The tree prints back.** `SqlWriter.cs` writes any of the five roots out as SQL, which is
+**The tree prints back.** `SqlWriter.cs` writes a statement, a query, an expression, a table
+reference or a clause out as SQL — a `SetExpression` as part of its statement — which is
 what makes the tree checkable rather than merely typed: `benchmarks --roundtrip` parses a
 statement, prints it, and holds the result against what ScriptDom makes of the original. What
-the tree does not hold cannot come back, so that measurement is also the list of what is still
+the tree does not hold cannot come back, so that comparison is also the list of what is
 missing.
 
-**A node knows where it was written, where the grammar asked.**
-`[Gram(…, LocationType = typeof(ISqlSpan))]` and the five roots implement `ISqlSpan`: the
-reader offers each value the range of every rule it came out of, innermost first, and the
-last offer is kept. That is a little wide where a rule hands back a value another rule made —
+**A node knows where it was written, where the grammar asked.** `TransactSqlParser` asks with
+`[GramOptions(LocationType = typeof(ISqlSpan), Suffix = "Located")]`, a second parser beside
+the first, `TransactSqlParser.Located`, and the six roots implement `ISqlSpan`: the reader
+offers each value the range of every rule it came out of, innermost first, and the last offer
+is kept. That is a little wide where a rule hands back a value another rule made —
 `WhereClause` lends the condition its `WHERE` — and never wrong, which is the safe direction.
-It costs fourteen per cent of the parse and no allocation at all, and a grammar that does not
-ask pays neither.
+It allocates nothing, and a grammar that does not ask pays nothing for it.
 
-**But the tree still holds no text and no line numbers.** A span says where, in characters of
+**But the tree holds no text and no line numbers.** A span says where, in characters of
 the input it was measured against; a consumer that wants the text cuts it from that input,
 which is what §7.6 of `syntax.md` is for. What a span is *for* is the thing no tree can hold:
 a comment falls between two spans, and the innermost node containing it is the one it belongs
@@ -115,16 +121,13 @@ to.
 
 ## What the tree does not keep
 
-The reason a field is left out has not changed — a field nobody reads is a field that
-drifts — but the list has, and it is short now. `TOP`, `OVER`, the table and query hints,
-the windows, a named query's `WITH`, `OUTPUT` and the option lists of every DDL statement
-were all read and dropped while nothing held the tree against anything. Something does:
-`benchmarks --roundtrip` prints the tree back out and holds the result against what
-ScriptDom makes of the same input, and a decoration that never reached the tree cannot come
-back. So each of them is a field on a record here, which is what having a record each was
-for.
+A field nobody reads is a field that drifts. `benchmarks --roundtrip` reads them: it prints
+the tree back out and holds the result against what ScriptDom makes of the same input, and a
+decoration that never reached the tree cannot come back. So `TOP`, `OVER`, the table and
+query hints, the windows, a named query's `WITH`, `OUTPUT` and the option lists of every DDL
+statement are each a field on a record here.
 
-What is still read and dropped is what says how something is *matched* rather than what it
+What is read and dropped is what says how something is *matched* rather than what it
 is, and there are two: `CORRESPONDING` on a `UNION`, which names columns by matching rather
 than by position and is a question for whatever resolves names; and the order written
 inside a named query's body, since a `WITH` defines a table and a table has no order until
@@ -134,7 +137,7 @@ something asks for one.
 
 `SqlWalker.Walk(root, visit)` hands every node under `root` to `visit` — the root first, each
 node before what it holds — until `visit` answers false, and says whether it went to the end.
-A node is anything that is an `ISqlSpan`, which is what the five roots are; what a record
+A node is anything that is an `ISqlSpan`, which is what the six roots are; what a record
 holds of them, one or an array, is found from its type once, so a record added here is walked
 without the walker being told.
 
@@ -158,6 +161,21 @@ name as `Tail`, the words are there and their parts are not — unless the state
 settings as `Options` beside them, which the keys and certificates do: a repeated `SUBJECT`
 or `ALGORITHM` is what the engine refuses there, and a list nested in one of them, a private
 key's or an Always Encrypted value's, is an option holding it.
+
+## The SQL:2023 tree
+
+`src/DotGram.Sql/Standard/Sql2023Ast.cs`, in the namespace `DotGram.Sql.Ast`, is the tree of
+the standard's parser, laid out by `design/sql-ast.md`. `SqlStandardParser` builds it —
+through `src/DotGram.Sql/Standard/Nodes.cs` and `Towers.cs` — for names, literals, data
+types, value expressions and predicates, functions, windows, row pattern recognition, the
+JSON functions and path language, queries — query expressions, table references and
+joins, `JSON_TABLE` — the data change statements: insert, update, delete, merge,
+truncate — and the schema's: schemas, tables, views, domains, assertions, character sets,
+collations, transliterations, sequence generators, roles and privileges — and the other
+statements: cursors and locators, control, transaction, connection, session, diagnostics
+and dynamic SQL — triggers and SQL-invoked routines, and user-defined types, casts,
+orderings and transforms: everything the grammar reads. Its nodes are not in the tables below, which describe the tree in `SqlSyntax.cs`; its
+shape is in `design/sql-ast.md`.
 
 ## The nodes
 
@@ -304,6 +322,7 @@ compile, and a test reads this column against every record.
 | `Statement.AlterDatabaseRemoveFile` | T-SQL | ALTER DATABASE … REMOVE FILE | Ddl |
 | `Statement.AlterDatabaseRebuildLog` | T-SQL | ALTER DATABASE … REBUILD LOG | Ddl |
 | `Statement.AlterDatabasePerformCutover` | T-SQL | ALTER DATABASE … PERFORM CUTOVER | Ddl |
+| `Statement.AlterDatabaseModifyBackupStorageRedundancy` | T-SQL | ALTER DATABASE … MODIFY BACKUP_STORAGE_REDUNDANCY, Azure SQL Database's | Ddl |
 | `Statement.SetStatement` | T-SQL | the SET statements: what follows SET, as `SetExpression`s | Session |
 | `Statement.SetVariable` | T-SQL | SET @local_variable | Declaration |
 | `Statement.Grant` | SQL-92 | §12.1 &lt;grant statement&gt; | Dcl |
@@ -553,7 +572,7 @@ together — flags, since a list may mix them. A variable assigned is not here: 
 | `Clause.CommonTableExpression` | SQL:1999 | &lt;with list element&gt;; T-SQL: WITH common_table_expression |
 | `Clause.For` | T-SQL | SELECT — the FOR clause: `FOR XML`, `FOR JSON`, `FOR BROWSE` |
 | `Clause.Hint` | T-SQL | Query Hints, and the table hints, kept as the words they were written as |
-| `Clause.Option` | T-SQL | one option of any of the lists: `WITH (…)`, `SET (…)`, `ALTER DATABASE SET`, `MASKED WITH (…)` — a name, a value, nested options, partitions; and what stands in a `WITH` beside the named queries. In `BEGIN ATOMIC WITH (…)` the option that loosens the list holds the rest of it, as written, for its value |
+| `Clause.Option` | T-SQL | one option of any of the lists: `WITH (…)`, `SET (…)`, `ALTER DATABASE SET`, `MASKED WITH (…)` — a name, a value, nested options, partitions; and what stands in a `WITH` beside the named queries. |
 | `Clause.Placement` | T-SQL | where a table or an index is put: `ON`, `TEXTIMAGE_ON`, `FILESTREAM_ON`, and the target after `MOVE TO` |
 | `Clause.VariableAssignment` | T-SQL | SELECT — `@variable = expression` in a select list |
 | `Clause.When` | SQL-92 | §6.9 &lt;simple when clause&gt;, &lt;searched when clause&gt; |

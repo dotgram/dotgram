@@ -332,5 +332,5 @@ public sealed class DslLanguageDiscoveryTests
 			DslLanguageDiscovery.Discover(compilation, cancellationToken));
 	}
 
-	static string Support => SupportEmitter.Attributes;
+	static string Support => SupportEmitter.Attributes + SupportEmitter.EmbeddedAttribute;
 }

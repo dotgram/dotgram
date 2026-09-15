@@ -68,7 +68,7 @@ namespace DotGram.VisualStudio.Tests.Playground;
 [GramClassify("Sum", GramClassification.Function)]
 [GramClassify("Product.left", GramClassification.Variable)]
 // Uncomment each line separately: only the target text inside the quotes should be
-// underlined, with GRAM5002 for an unknown rule and GRAM5004 for an unknown capture.
+// underlined, with GRAM6002 for an unknown rule and GRAM6004 for an unknown capture.
 //[GramClassify("Missing", GramClassification.Keyword)]
 //[GramClassify("Product.missing", GramClassification.Variable)]
 public static partial class VisualStudioToolingPlayground
@@ -102,7 +102,7 @@ public static class GramStringSyntaxExample
 
 // StringSyntax DSL check. In the ToolingQuery string below, `select` should use the
 // standard keyword color and `customer` the standard local/variable color. Replacing
-// `customer` with `123` should underline the failure position with GRAM5101.
+// `customer` with `123` should underline the failure position with GRAM6101.
 [Gram("ToolingQuery.gram")]
 [GramLanguage("dotgram.tooling.query")]
 [GramClassify("Keyword", GramClassification.Keyword)]

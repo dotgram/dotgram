@@ -294,6 +294,41 @@ public sealed class GeneratorDriverTests
 			.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
 	}
 
+	/// <summary>
+	/// A generic result type is found in a real compilation, by its definition and its
+	/// arguments, and one that is not there is named.
+	/// </summary>
+	/// <remarks>
+	/// The generator asks every question before binding and refuses one it did not foresee, so
+	/// a binder asking about a spelling nobody asked for would throw here rather than report.
+	/// </remarks>
+	[Theory]
+	[InlineData("int",     null)]
+	[InlineData("Missing", "Missing")]
+	public void A_generic_result_type_is_found_by_its_definition_and_its_arguments(string argument, string? missing)
+	{
+		var run = RunGenerator(
+			"[DotGram.Gram] public partial class Pairs;",
+			out var output,
+			("/proj/Pairs.gram",
+				"@using System.Collections.Generic;\n" +
+				$"Pair : @KeyValuePair<string, {argument}> = k: ['a'..'z']+ & '=' & v: ['0'..'9']+ " +
+				$"=> @(new KeyValuePair<string, {argument}>(k, default!))\n" +
+				"parse Pair"));
+
+		var reported = run.Diagnostics.Where(static one => one.Id == "GRAM3004").Select(static one => one.GetMessage()).ToList();
+
+		if (missing is null)
+		{
+			Assert.Empty(run.Diagnostics.Where(static one => one.Severity == DiagnosticSeverity.Error));
+			Assert.Empty(output
+				.GetDiagnostics(TestContext.Current.CancellationToken)
+				.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
+		}
+		else
+			Assert.Equal($"No C# type named '{missing}' is in view here.", Assert.Single(reported));
+	}
+
 	// ── Driving it ───────────────────────────────────────────────────────────────
 
 	// ── A host inheriting a grammar ─────────────────────────────────────────────
@@ -324,7 +359,9 @@ public sealed class GeneratorDriverTests
 				.SelectMany(result => result.GeneratedSources)
 				.Single(source => source.HintName.StartsWith("Reader", StringComparison.Ordinal))
 				.SourceText
-				.ToString(),
+				.ToString() +
+				// The base, which the file imports statically and this harness does not declare.
+				"\npublic partial class Lexemes { }\n",
 			className: "Reader");
 
 		Assert.Equal(
@@ -678,6 +715,15 @@ public sealed class GeneratorDriverTests
 		Assert.Throws<TargetInvocationException>(() => parse.Invoke(null, ["b3ab."]));
 	}
 
+	/// <summary>Whether a generated source is one every compilation gets, rather than a parser.</summary>
+	/// <remarks>
+	/// The attributes are ours, and the definition of <c>[Embedded]</c> they are marked with is
+	/// Roslyn's, asked for beside them and named in its namespace rather than ours.
+	/// </remarks>
+	static bool IsSupport(string hintName) =>
+		hintName.StartsWith("DotGram.", StringComparison.Ordinal) ||
+		hintName.StartsWith("Microsoft.CodeAnalysis.", StringComparison.Ordinal);
+
 	[Fact]
 	public void An_external_recognizer_is_silent_and_the_grammar_lowers()
 	{
@@ -710,7 +756,7 @@ public sealed class GeneratorDriverTests
 
 		var generated = RunGenerator(source).Results
 			.SelectMany(static r => r.GeneratedSources)
-			.Where(static s => !s.HintName.StartsWith("DotGram.", StringComparison.Ordinal))
+			.Where(static s => !IsSupport(s.HintName))
 			.Select(static s => s.SourceText.ToString())
 			.Single();
 
@@ -854,6 +900,107 @@ public sealed class GeneratorDriverTests
 		Assert.Contains(GrammarNormalizer.AmbiguousExternal, diagnostics.Select(d => d.Id));
 	}
 
+	/// <summary>A recognizer the host inherits is one the generated call reaches, and nothing is said.</summary>
+	[Fact]
+	public void An_external_recognizer_inherited_from_a_base_class_is_found()
+	{
+		var parse = Build("""
+			public class Readers
+			{
+				protected static bool ReadRest(System.ReadOnlySpan<char> input, ref int pos)
+				{
+					pos = input.Length;
+
+					return true;
+				}
+			}
+
+			[DotGram.Gram("Start = 'a' & @ReadRest\nparse Start")]
+			public partial class InheritedRecognizer : Readers
+			{
+			}
+			""")
+			.GetType("InheritedRecognizer")!
+			.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal("abc", parse.Invoke(null, ["abc"]));
+	}
+
+	/// <summary>And so is one of an included grammar, where the rule that calls it is used.</summary>
+	/// <remarks>
+	/// Not a base class, which the walk above already covers: the including class derives from
+	/// nothing, and the call reaches the method through the static import the include writes.
+	/// </remarks>
+	[Fact]
+	public void An_external_recognizer_of_an_included_grammar_is_found()
+	{
+		var parse = Build("""
+			[DotGram.Gram("Rest = @ReadRest")]
+			public partial class ReaderGrammar
+			{
+				internal static bool ReadRest(System.ReadOnlySpan<char> input, ref int pos)
+				{
+					pos = input.Length;
+
+					return true;
+				}
+			}
+
+			[DotGram.GramInclude(typeof(ReaderGrammar))]
+			[DotGram.Gram("using ReaderGrammar;\nStart = 'a' & Rest\nparse Start")]
+			public partial class IncludingRecognizer
+			{
+			}
+			""")
+			.GetType("IncludingRecognizer")!
+			.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal("abc", parse.Invoke(null, ["abc"]));
+	}
+
+	/// <summary>A predicate in an element set that is not there, or not one, is said about the brackets.</summary>
+	[Theory]
+	[InlineData("",                                                        "'@IsVowel' names no method")]
+	[InlineData("static bool IsVowel(string text) => text.Length > 0;",    "'IsVowel' has no overload")]
+	[InlineData("static int IsVowel(char c) => c;",                        "'IsVowel' has no overload")]
+	public void A_predicate_the_parser_cannot_call_is_said_about_the_grammar(string members, string said)
+	{
+		var run = RunGenerator($$"""
+			[DotGram.Gram("Start = [@IsVowel]+\nparse Start")]
+			public partial class Vowels
+			{
+				{{members}}
+			}
+			""");
+
+		var reported = Assert.Single(run.Diagnostics, static one => one.Id == GrammarNormalizer.UnresolvedExternal);
+
+		Assert.Contains(said, reported.GetMessage(), StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A predicate is whatever <c>M(c)</c> binds to — a parameter a character converts to is one,
+	/// and so is one with more parameters that need not be passed — and nothing is said.
+	/// </summary>
+	[Theory]
+	[InlineData("static bool IsVowel(char c) => \"aeiou\".IndexOf(c) >= 0;")]
+	[InlineData("static bool IsVowel(int c) => \"aeiou\".IndexOf((char)c) >= 0;")]
+	[InlineData("static bool IsVowel(char c, bool upper = false) => \"aeiou\".IndexOf(c) >= 0;")]
+	public void A_predicate_the_call_binds_to_is_found(string members)
+	{
+		var parse = Build($$"""
+			[DotGram.Gram("Start = [@IsVowel]+\nparse Start")]
+			public partial class Vowels
+			{
+				{{members}}
+			}
+			""")
+			.GetType("Vowels")!
+			.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal("aei", parse.Invoke(null, ["aei"]));
+	}
+
 	[Fact]
 	public void A_value_returning_and_a_classic_external_recognizer_coexist()
 	{
@@ -908,6 +1055,76 @@ public sealed class GeneratorDriverTests
 			parse.Invoke(null, ["2024-03-01T12:00:00 rest"]));
 	}
 
+	[Theory]
+	[InlineData("ab <x> cd",       1)]
+	[InlineData("ab <x<y<z>>> cd", 3)]
+	[InlineData("ab <x<y> cd",     null)]
+	public void A_terminal_the_host_measures_may_say_what_it_is_worth(string input, int? expected)
+	{
+		// §7.1's third row where a terminal ends. The lexer asks the host only how far, and
+		// drops the value; the terminal declares a type, so it is read again where it stands
+		// and the value is taken then. Through a real compilation because only one says the
+		// method has the overload with a value — a resolver without a host says no to all.
+		var parse = Build("""
+			[DotGram.Gram(@"
+				using Lexical;
+
+				trivia = { ' '* }
+
+				namespace Lexical
+				{
+					trivia = none
+
+					Name = ['a'..'z']+
+					Blob : @int = '<' & depth: @ReadBlob => @(depth)
+				}
+
+				Start : @int = Name & b: Blob & Name => @(b)
+				parse Start",
+				Lexical = true)]
+			public partial class Blobs
+			{
+				static bool ReadBlob(System.ReadOnlySpan<char> text, ref int pos, out int deepest)
+				{
+					var depth = 1;
+
+					deepest = 1;
+
+					for (var p = pos; p < text.Length; p++)
+					{
+						if (text[p] == '<')
+						{
+							deepest = System.Math.Max(deepest, ++depth);
+						}
+						else if (text[p] == '>' && --depth == 0)
+						{
+							pos = p + 1;
+
+							return true;
+						}
+					}
+
+					return false;
+				}
+			}
+			""")
+			.GetType("Blobs")!;
+
+		// Cut, or the test passes over characters with no lexer in it at all.
+		Assert.Contains(
+			parse.Assembly.GetTypes().SelectMany(static type => type.GetMethods(
+				BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.DeclaredOnly)),
+			static method => method.Name.StartsWith("Tokenize_DotGram", StringComparison.Ordinal));
+
+		var match = parse.GetMethod("TryParseStart", [typeof(string)])!.Invoke(null, [input])!;
+		var type  = match.GetType();
+
+		Assert.Equal(expected is not null, (bool)type.GetProperty("IsSuccess")!.GetValue(match)!);
+
+		if (expected is not null)
+			Assert.Equal(expected, type.GetProperty("Value")!.GetValue(match));
+	}
+
 	[Fact]
 	public void And_a_grammar_that_reads_its_own_input_is_not_streamed()
 	{
@@ -928,6 +1145,15 @@ public sealed class GeneratorDriverTests
 		Assert.DoesNotContain("TextReader", source, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// A bare operand is an external recognizer whatever the method it names turns out to be,
+	/// and one of another shape is told the shape the position asks for.
+	/// </summary>
+	/// <remarks>
+	/// The role is still the position's (§7.1): `Convert` is not taken for a transformation
+	/// because it returns an `int`. What changed is who says it cannot be called that way —
+	/// the grammar, naming the contract, where it used to be C# about the call it was given.
+	/// </remarks>
 	[Fact]
 	public void A_bare_C_sharp_operand_uses_the_external_recognizer_contract()
 	{
@@ -937,17 +1163,13 @@ public sealed class GeneratorDriverTests
 			{
 				static int Convert(string text) => text.Length;
 			}
-			""", out var output);
+			""");
 
-		var source = GetGeneratedSource(run, "Converting.g.cs");
-		var errors = output
-			.GetDiagnostics(TestContext.Current.CancellationToken)
-			.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-			.ToArray();
+		var said = Assert.Single(run.Diagnostics, static one => one.Id == GrammarNormalizer.UnresolvedExternal);
 
-		Assert.Contains("Convert(text, ref p)", source, StringComparison.Ordinal);
-		Assert.NotEmpty(errors);
-		Assert.All(errors, error => Assert.StartsWith("CS", error.Id, StringComparison.Ordinal));
+		Assert.Contains("'Convert' has no overload", said.GetMessage(), StringComparison.Ordinal);
+		Assert.Contains(
+			"static bool Convert(System.ReadOnlySpan<char> input, ref int pos)", said.GetMessage(), StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -1985,25 +2207,22 @@ public sealed class GeneratorDriverTests
 		});
 	}
 
+	/// <summary>A bare recognizer that is not there is said about the grammar (GRAM4025).</summary>
+	/// <remarks>
+	/// It was left to C#, which said `CS0103` about a call in a generated file, at a line of it
+	/// nobody wrote. The grammar names the method, so the grammar is where it is said.
+	/// </remarks>
 	[Fact]
-	public void A_missing_bare_recognizer_is_reported_by_C_sharp()
+	public void A_missing_bare_recognizer_is_reported_about_the_grammar()
 	{
-		RunGenerator(
+		var run = RunGenerator(
 			"[DotGram.Gram(\"Start = @Unknown & eol\\nparse Start\")]\n" +
-			"public partial class Bare;",
-			out var output);
+			"public partial class Bare;");
 
-		var errors = output
-			.GetDiagnostics(TestContext.Current.CancellationToken)
-			.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-			.ToArray();
+		var said = Assert.Single(run.Diagnostics, static one => one.Id == GrammarNormalizer.UnresolvedExternal);
 
-		Assert.NotEmpty(errors);
-		Assert.All(errors, error =>
-		{
-			Assert.Equal("CS0103", error.Id);
-			Assert.Contains("Unknown", error.GetMessage(), StringComparison.Ordinal);
-		});
+		Assert.Equal(DiagnosticSeverity.Error, said.Severity);
+		Assert.Contains("'@Unknown' names no method", said.GetMessage(), StringComparison.Ordinal);
 	}
 
 	/// <summary>
@@ -2070,6 +2289,53 @@ public sealed class GeneratorDriverTests
 
 		Assert.Equal("abc@3", tape.Invoke(null, ["abc"]));
 		Assert.Equal("abc@3", immediate.Invoke(null, ["abc"]));
+	}
+
+	/// <summary>A reading's nested class the host declares itself is as visible as the host says.</summary>
+	/// <remarks>
+	/// Written by the generator it is public, as it always was — a nested class would
+	/// otherwise be private. Declared by the author, the generated part names no accessibility
+	/// and the author's decides.
+	/// </remarks>
+	[Fact]
+	public void A_reading_the_host_declares_is_as_visible_as_it_says()
+	{
+		const string source = """"
+			using DotGram;
+
+			[Gram("""
+				Start = ['a'..'z']+
+				parse Start
+				""")]
+			[GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+			// Not `Hidden`: this assembly is loaded into the test process, the expression
+			// language looks names up in every loaded assembly, and its tests name a `Hidden`
+			// of their own — which of the two a run found depended on which test ran first.
+			public static partial class HiddenReading
+			{
+				internal static partial class Immediate
+				{
+				}
+			}
+
+			[Gram("""
+				Start = ['a'..'z']+
+				parse Start
+				""")]
+			[GramOptions(Carrier = GramCarrier.Immediate, Suffix = "Immediate")]
+			public static partial class Shown
+			{
+			}
+			"""";
+
+		var built = Build(source);
+
+		var hidden = built.GetType("HiddenReading+Immediate")!;
+		var shown  = built.GetType("Shown+Immediate")!;
+
+		Assert.True(hidden.IsNestedAssembly);
+		Assert.True(shown.IsNestedPublic);
+		Assert.Equal("abc", hidden.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["abc"]));
 	}
 
 	/// <summary>
@@ -2349,7 +2615,7 @@ public sealed class GeneratorDriverTests
 
 		var generatedParser = run.Results
 			.SelectMany(result => result.GeneratedSources)
-			.Any(source => !source.HintName.StartsWith("DotGram.", StringComparison.Ordinal));
+			.Any(source => !IsSupport(source.HintName));
 		var reported = diagnostics.Any(diagnostic =>
 			diagnostic.Id.StartsWith("GRAM", StringComparison.Ordinal) ||
 			diagnostic.Id.StartsWith("CS", StringComparison.Ordinal));
@@ -2516,7 +2782,7 @@ public sealed class GeneratorDriverTests
 			"\n\n" + string.Join(
 				"\n",
 				run.Results.SelectMany(static r => r.GeneratedSources)
-					.Where(static s => !s.HintName.StartsWith("DotGram.", StringComparison.Ordinal))
+					.Where(static s => !IsSupport(s.HintName))
 					.Select(static s => s.SourceText.ToString())));
 
 		return Assembly.Load(stream.ToArray());
@@ -2606,25 +2872,19 @@ public sealed class GeneratorDriverTests
 		Assert.Equal(["ab1"], (List<string>)type.GetField("Bad")!.GetValue(null)!);
 	}
 
+	/// <summary>A predicate missing from an element set beside other items is said about the grammar (GRAM4025).</summary>
+	/// <remarks>It was C#'s `CS0103`, about the call in a generated file.</remarks>
 	[Fact]
-	public void A_missing_predicate_inside_an_element_set_is_reported_by_C_sharp()
+	public void A_missing_predicate_inside_an_element_set_is_reported_about_the_grammar()
 	{
-		RunGenerator(
+		var run = RunGenerator(
 			"[DotGram.Gram(\"Start = [@IsVowel | \'0\'..\'9\']+\\nparse Start\")]\n"
-			+ "public partial class Sets;",
-			out var output);
+			+ "public partial class Sets;");
 
-		var errors = output
-			.GetDiagnostics(TestContext.Current.CancellationToken)
-			.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-			.ToArray();
+		var said = Assert.Single(run.Diagnostics, static one => one.Id == GrammarNormalizer.UnresolvedExternal);
 
-		Assert.NotEmpty(errors);
-		Assert.All(errors, error =>
-		{
-			Assert.Equal("CS0103", error.Id);
-			Assert.Contains("IsVowel", error.GetMessage(), StringComparison.Ordinal);
-		});
+		Assert.Equal(DiagnosticSeverity.Error, said.Severity);
+		Assert.Contains("'@IsVowel' names no method", said.GetMessage(), StringComparison.Ordinal);
 	}
 
 	// ── Publishing one rule several ways ─────────────────────────────────────────

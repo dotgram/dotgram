@@ -46,6 +46,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 		{
 			var source = GramCompiler.EmitMarkerAttributes();
 
+			// What `[Embedded]` on each of them names, shared with every other generator that
+			// asks: the attributes are the assembly's own and are not seen from outside it.
+			postInit.AddEmbeddedAttributeDefinition();
 			postInit.AddSource(source.HintName, source.Text);
 		});
 
@@ -131,7 +134,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 			{
 				Answers = new EquatableArray<Answer>(Questions.Ask(
 					grammar.Questions.Items,
-					new RoslynSymbolResolver(compilation, grammar.Host.MetadataName))),
+					new RoslynSymbolResolver(
+						compilation,
+						grammar.Host.MetadataName,
+						[.. grammar.Host.Includes.Items.Select(static one => one.ClassName)]))),
 			};
 		}
 		catch (Exception exception) when (Recoverable(exception))
@@ -449,6 +455,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			Carrier        = (CarrierKind)host.Carrier,
 			Stacks         = host.Stacks,
 			Suffix         = host.Suffix,
+			SuffixDeclared = host.SuffixDeclared,
 			SharedTypes    = host.Shared,
 			Inherits       = inherits,
 			Own            = inherits ? grammar.Pieces.Items[0].Length : null,
@@ -732,6 +739,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		int       Carrier    = 0,
 		int       Stacks     = 0,
 		string?   Suffix     = null,
+		bool      SuffixDeclared = false,
 		bool      Repeated   = false,
 		bool?     Shared     = null,
 		string?   LocationType = null,
@@ -903,7 +911,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.Value.Value as INamedTypeSymbol)?.ToDisplayString() ?? first?.LocationType;
 
 			// Which carrier the author chose (docs/next.md, the redesign). An enum constant
-			// reaches an analyzer as its underlying integer, and nought is the tape.
+			// reaches an analyzer as its underlying integer, and nought is the generator's own
+			// choice.
 			var carrier = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.Carrier))
 				.Value.Value as int? ?? first?.Carrier ?? 0;
@@ -919,6 +928,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 			var suffix = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.Suffix))
 				.Value.Value as string;
+
+			// Whether the host declares that nested class itself, and so says how visible it
+			// is. What a generator sees is the author's code alone — its own output is not in
+			// the compilation yet — so a member of that name is the author's.
+			var suffixDeclared = suffix is { Length: > 0 } && type.GetTypeMembers(suffix).Length > 0;
 
 			// A request, like `Lexical`: a grammar the reader cannot write is written the
 			// way it was before the reader existed and told so (GRAM5006).
@@ -980,6 +994,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Carrier:    carrier,
 				Stacks:     stacks,
 				Suffix:     suffix,
+				SuffixDeclared: suffixDeclared,
 				LocationType: locationType,
 				Portable:   portable);
 		}
