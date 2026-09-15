@@ -4,10 +4,11 @@
 		<OutputType>Exe</OutputType>
 		<Nullable>enable</Nullable>
 		<IsPackable>false</IsPackable>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<PackageSmokeFeed Condition="'$(PackageSmokeFeed)' == ''">$(MSBuildThisFileDirectory)../../artifacts</PackageSmokeFeed>
 		<RestoreSources>$(PackageSmokeFeed);https://api.nuget.org/v3/index.json</RestoreSources>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="DotGram.Finance" Version="0.1.0" />
+		<PackageReference Include="DotGram.Web" Version="0.1.0" />
 	</ItemGroup>
 </Project>

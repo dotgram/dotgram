@@ -1,6 +1,6 @@
 # DotGram.Sql
 
-SQL parsers written in `.gram`, and the one tree of records they meet in. Where an
+SQL parsers written in `.gram`, with typed syntax trees and SQL writers. Where an
 example shows one feature, a parser here is written against a whole specification.
 
 They are ordinary C# libraries. .Gram generates the parsers into this assembly at compile time,
@@ -8,25 +8,28 @@ so nothing here carries a parser runtime, and neither does anything that referen
 
 ## The dialects
 
-Each dialect is a directory, a namespace and a grammar of its own, and they meet only in the tree
-in `DotGram.Sql` — the records, [`SqlWriter`](SqlWriter.cs), which prints them back, and
-[`SqlWalker`](SqlWalker.cs), which visits them.
+Each dialect has a directory, a namespace and a grammar of its own. SQL-92 and T-SQL use
+the records in `DotGram.Sql`, with [`SqlWriter`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/SqlWriter.cs)
+to print them back and [`SqlWalker`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/SqlWalker.cs)
+to visit them. SQL:2023 uses the separate tree in `DotGram.Sql.Ast` and `Sql2023Writer`.
 
 | Parser | Namespace | What it reads |
 | --- | --- | --- |
-| [`SqlStandardParser`](Standard/SqlStandard.gram) | `DotGram.Sql.Standard` | ISO SQL:2023, in part: its lexical elements, names, scalar expressions, aggregates and window functions, the JSON functions, query expressions with row pattern recognition, predicates, the data change statements, the whole schema — tables, views, domains, sequences, privileges, routines, triggers, user-defined types, casts, orderings, transforms, character sets and collations — and the transaction, session, connection, diagnostics, dynamic and direct statements |
-| [`Sql92Parser`](Standard/SqlStandard92.gram) | `DotGram.Sql.Standard` | SQL-92 as the standard writes it |
-| [`TransactSqlParser`](TransactSql/TransactSql.gram) | `DotGram.Sql.TransactSql` | SQL Server's T-SQL, as the engine reads it |
+| [`SqlStandardParser`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Standard/SqlStandard.gram) | `DotGram.Sql.Standard` | ISO SQL:2023, in part: its lexical elements, names, scalar expressions, aggregates and window functions, the JSON functions, query expressions with row pattern recognition, predicates, the data change statements, the whole schema — tables, views, domains, sequences, privileges, routines, triggers, user-defined types, casts, orderings, transforms, character sets and collations — and the transaction, session, connection, diagnostics, dynamic and direct statements |
+| [`Sql92Parser`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Standard/SqlStandard92.gram) | `DotGram.Sql.Standard` | SQL-92 as the standard writes it |
+| [`TransactSqlParser`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/TransactSql/TransactSql.gram) | `DotGram.Sql.TransactSql` | SQL Server's T-SQL, as the engine reads it |
 
 The third names the second — `[GramInclude(typeof(Sql92Parser), As = "Sql92")]` — and
 rebinds the rules where T-SQL differs, so what the two languages share is written once and the
 dialect is the size of the difference.
 
-`TransactSqlParser` builds the tree, and `Sql92Parser` the expressions in it that the two share.
-`SqlStandardParser` builds a tree of its own, the standard's, laid out in
-[`Sql2023Ast.cs`](Standard/Sql2023Ast.cs) in `DotGram.Sql.Ast`, for names: an identifier with its
-spelling and style, an identifier chain, a table name, a column reference. Everything else it
-reads, it recognizes: it says whether a text is the standard's language and builds nothing for it.
+`TransactSqlParser` builds the T-SQL tree, and `Sql92Parser` the expressions in it that the two share.
+`SqlStandardParser` builds the SQL:2023 tree in
+[`Sql2023Ast.cs`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Standard/Sql2023Ast.cs):
+names, literals, data types, expressions, queries, data change statements, schema definitions,
+and the other statements listed above. Its published productions return typed values.
+[`Sql2023Writer`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Standard/Sql2023Writer.cs)
+writes the tree back as SQL; tests parse that text again and compare the trees.
 
 `SqlStandardParser` publishes the standard's productions under their own names —
 `ParseValueExpression`, `ParseSearchCondition`, `ParseQueryExpression`, `ParseSQLSchemaStatement`
@@ -86,3 +89,6 @@ answers yes and builds the wrong thing.
 
 There is no companion runtime package, and no generator to install alongside it: the parsers
 were generated when this assembly was compiled.
+
+The package targets `netstandard2.0` and `net10.0`. On `netstandard2.0` it depends on
+`System.Memory`; on `net10.0` it has no package dependencies.

@@ -107,6 +107,40 @@ What it catches is what nothing else can: an analyzer that will not load under t
 an emitted file that only compiles because of a setting this repository happens to have,
 and an analyzer folder the compiler does not look in.
 
+## The library packages
+
+`tests/DotGram.Sql.PackageSmoke`, `DotGram.Web.PackageSmoke`,
+`DotGram.ExpressionLanguage.PackageSmoke` and `DotGram.Finance.PackageSmoke` are
+independent consumers, each referencing only its own NuGet package. Empty local props
+files keep the repository's build settings and central package versions out of them.
+They are outside the solution because their packages must exist before restore.
+
+The checks exercise SQL's three dialects and both writers, JSON Pointer and Patch over
+JSON values, compiled expression delegates, and a typed FIX heartbeat. Each runs on
+.NET 8 (consuming `netstandard2.0`) and .NET 10 (consuming `net10.0`). Install both
+runtimes; CI installs SDK 8 explicitly alongside the SDK selected by `global.json`.
+
+Pack the libraries into `artifacts` after a Release build. To check them locally in
+PowerShell, use a fresh package cache for every candidate so an older package with the
+same version cannot satisfy restore:
+
+```powershell
+$smokeCache = Join-Path ([IO.Path]::GetTempPath()) ('dotgram-smoke-' + [Guid]::NewGuid())
+$smokeFeed = (Resolve-Path ./artifacts).Path
+foreach ($library in 'Sql', 'Web', 'ExpressionLanguage', 'Finance') {
+    $project = "tests/DotGram.$library.PackageSmoke/DotGram.$library.PackageSmoke.csproj"
+    dotnet restore $project --packages $smokeCache -p:PackageSmokeFeed=$smokeFeed
+    if ($LASTEXITCODE -ne 0) { throw "Restore failed: $library" }
+    foreach ($framework in 'net8.0', 'net10.0') {
+        dotnet run --project $project --no-restore --configuration Release --framework $framework
+        if ($LASTEXITCODE -ne 0) { throw "Package smoke failed: $library ($framework)" }
+    }
+}
+```
+
+For a downloaded CI candidate, replace `./artifacts` in the feed assignment with that
+candidate's NuGet artifact directory. The package versions in the projects must match it.
+
 ## The snapshot baseline
 
 `tests/Snapshots/*.gram.g.cs` are checked in beside the grammars they come from, and

@@ -40,6 +40,7 @@ and it is out of date from the first change to the grammar until it is run again
 | Document | |
 | --- | --- |
 | [`development.md`](development.md) | Standing process: build, test, the snapshot baseline, measuring, and the Linux container. |
+| [`release.md`](release.md) | Preparing a version, selecting checked CI artifacts, publishing, and verifying the release. |
 | [`implementation.md`](implementation.md) | The engine: how the notation is executed. A plan as much as a description, and the one most likely to lag. |
 | [`visual-studio.md`](visual-studio.md) | The extension, and the `StringSyntax` annotations. |
 

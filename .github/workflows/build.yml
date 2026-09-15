@@ -117,10 +117,22 @@ jobs:
       - name: The package, in somebody else's build
         run: dotnet run --project tests/DotGram.PackageSmoke/DotGram.PackageSmoke.csproj --configuration Release
 
-      - name: The finance package, in somebody else's build
+      # Install .NET 8 explicitly: the net8.0 consumers must run on that runtime,
+      # exercising the libraries' netstandard2.0 assets. global.json still selects SDK 10.
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: The library packages, in somebody else's build
+        shell: bash
+        env:
+          NUGET_PACKAGES: ${{ runner.temp }}/dotgram-library-smoke
         run: |
-          dotnet run --project tests/DotGram.Finance.PackageSmoke/DotGram.Finance.PackageSmoke.csproj --configuration Release --framework net10.0
-          dotnet run --project tests/DotGram.Finance.PackageSmoke/DotGram.Finance.PackageSmoke.csproj --configuration Release --framework net8.0
+          for library in Sql Web ExpressionLanguage Finance; do
+            for framework in net8.0 net10.0; do
+              dotnet run --project "tests/DotGram.$library.PackageSmoke/DotGram.$library.PackageSmoke.csproj" --configuration Release --framework "$framework"
+            done
+          done
 
       - uses: actions/upload-artifact@v4
         with:
