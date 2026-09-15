@@ -207,6 +207,32 @@ allows a parameter once — `rel`, `title`, `title*`, `media`, `type` — the fi
 ISO-8859-1 for older senders. A target and an anchor are kept as written: resolving a
 relative one needs the URL of the response that carried the field.
 
+## RFC 9110 media types
+
+[`Rfc9110`](Rfc9110.cs) reads a media type from the `Content-Type` header field and the
+media ranges of `Accept`.
+
+```csharp
+using DotGram.Web;
+
+var type = Rfc9110.ParseContentType("Text/HTML; Charset=\"UTF-8\"");
+
+type.Charset;                                                  // UTF-8
+type == Rfc9110.ParseContentType("text/html;charset=utf-8");   // true
+
+var accept = Rfc9110.ParseAccept("text/*;q=0.3, text/plain;q=0.7, */*;q=0.5");
+
+Rfc9110.Quality(accept, Rfc9110.ParseContentType("text/plain"));   // 0.7
+Rfc9110.Quality(accept, Rfc9110.ParseContentType("text/html"));    // 0.3
+Rfc9110.Quality(accept, Rfc9110.ParseContentType("image/png"));    // 0.5
+```
+
+A type, a subtype and a parameter name compare without case, and so does a `charset` value;
+other values compare as written. Empty parameters and empty list elements are accepted, as §5.6
+asks of a recipient. A parameter named `q` is the weight wherever it stands, and has to be a
+qvalue. `Quality` takes the weight of the most specific matching range, or 0 where none
+matches. It is held to every media type the IANA registry holds.
+
 ## RFC 9651 Structured Field Values
 
 [`Rfc9651`](Rfc9651.cs) reads the fields HTTP defines this way — `Priority`,

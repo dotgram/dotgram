@@ -486,6 +486,7 @@ uri.Query;  // q=1
 | [`Rfc6901`](src/DotGram.Web/Rfc6901.cs) | JSON Pointer — its string form and its form in a URI fragment, read into unescaped reference tokens, written back, and resolved against a JSON document |
 | [`Rfc8259`](src/DotGram.Web/Rfc8259.cs) | JSON — objects, arrays, numbers kept as written, strings, literal names, nested as deep as the input goes; held to JSONTestSuite's parsing cases |
 | [`Rfc8288`](src/DotGram.Web/Rfc8288.cs) | The `Link` header field — targets, relation types, anchors and target attributes, the first of a once-only parameter counting, and `title*` decoded after RFC 8187 |
+| [`Rfc9110`](src/DotGram.Web/Rfc9110.cs) | Media types in the `Content-Type` and `Accept` header fields — type, subtype, parameters with their empty slots and quoted values, media ranges and their weights, and the quality a field gives a media type; held to every media type of the IANA registry |
 | [`Rfc9651`](src/DotGram.Web/Rfc9651.cs) | Structured Field Values for HTTP — Items, Lists and Dictionaries of integers, decimals, strings, tokens, byte sequences, booleans, dates and display strings, with their parameters; held to the HTTP working group's test suite |
 
 [`src/DotGram.Web/README.md`](src/DotGram.Web/README.md) has what it parses and what it

@@ -22734,6 +22734,29 @@ be written by `dotnet build`: "Access to the path … is denied" on `obj`, even 
 build was joining MSBuild nodes and a compiler server started earlier inside it, with their rights.
 `-nodeReuse:false -p:UseSharedCompilation=false` (or `MSBUILDDISABLENODEREUSE=1`) is the way out.
 
+## RFC 9110, media types in Content-Type and Accept
+
+Igor, 2026-09-15: go on with the specifications. `src/DotGram.Web/Rfc9110.cs` reads a media type
+(§8.3.1) from `Content-Type` and the media ranges of `Accept` (§12.5.1), over §5.6's token, quoted-string,
+parameters with the empty slots a recipient accepts, and a list with empty elements. `MediaType` keeps what
+was written; its equality ignores the case of the type, the subtype, a parameter name and a `charset`
+value (RFC 2046), so §8.3.1's four spellings are equal. `Quality` takes the weight of the most specific
+matching range.
+
+Where the RFC leaves room: a parameter named `q` is the weight wherever it stands (§12.5.1 asks recipients
+to take it so) and must be a qvalue, or the field is refused; `*/html` is refused; a type and subtype are
+tokens as HTTP reads them, not RFC 6838 §4.2's narrower registration names. Parameters are one text per
+slot taken apart in C#, and the range check is a `when` in a rule with no group — both the shapes the two
+generator defects above leave room for.
+
+A trap in the tests rather than the code: RFC 7231's quality example is not RFC 9110's. 9110 changed the
+field to `text/plain;q=0.7, text/plain;format=flowed, …`, and its table keeps 7231's `text/html;level=3 →
+0.7`, which no longer follows; verified erratum 7138 corrects it to 0.3, and that is what the test holds.
+
+No shared suite exists. Held by the RFC's examples and by the IANA Media Types registry as published on
+2026-09-15, one CSV per top-level type in `tests/DotGram.Tests/Web/MediaTypes/`: every template reads as a
+`Content-Type` and writes back as written.
+
 ## The SQL:2023 tree, built by the standard's grammar
 
 `SqlStandard.gram` now builds `Sql2023Ast.cs` for what it once only recognized, chapter by chapter:
