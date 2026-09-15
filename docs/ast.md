@@ -168,11 +168,11 @@ key's or an Always Encrypted value's, is an option holding it.
 the standard's parser, laid out by `design/sql-ast.md`. `SqlStandardParser` builds it —
 through `src/DotGram.Sql/Standard/Nodes.cs` and `Towers.cs` — for names, literals, data
 types, value expressions and predicates, functions, windows, row pattern recognition, the
-JSON functions and path language, and queries: query expressions, table references and
-joins, `JSON_TABLE`. Statements — data change, schema, control, session — it recognizes
-without building yet; a data change delta table holds a placeholder statement where one
-stands. Its nodes are not in the tables below, which describe the tree in `SqlSyntax.cs`;
-its shape is in `design/sql-ast.md`.
+JSON functions and path language, queries — query expressions, table references and
+joins, `JSON_TABLE` — and the data change statements: insert, update, delete, merge,
+truncate. The other statements — schema, control, session, dynamic — it recognizes without
+building yet. Its nodes are not in the tables below, which describe the tree in
+`SqlSyntax.cs`; its shape is in `design/sql-ast.md`.
 
 ## The nodes
 

@@ -228,3 +228,11 @@ place but one closed.
   `ModuleContent` and `HostParameterDeclaration` — which no statement is.
 
 One rule is left where it is: `<cursor attributes>` is defined and used by no other production.
+
+**What building the tree found missing** (2026-09-15). Where the grammar builds a node, what it read
+must fit it.
+
+- `Assignment.Parenthesized`: `SET (a) = (1)` and `SET a = (1)` are two spellings of one target, and the
+  brackets are the author's (requirement 3).
+- `AssignmentTarget.Trigraphs`: a set target's index is written in brackets or in trigraphs, as an array
+  element reference's is, and `Expression.Element` already keeps which.

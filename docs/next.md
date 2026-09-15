@@ -22698,15 +22698,20 @@ build was joining MSBuild nodes and a compiler server started earlier inside it,
 
 `SqlStandard.gram` now builds `Sql2023Ast.cs` for what it once only recognized, chapter by chapter:
 names, literals and data types; value expressions and predicates; functions, windows, row pattern
-recognition and JSON; queries — query expressions, table references and joins, `JSON_TABLE`. Statements
-are next, from §14. Each slice kept every verdict: the 1,574 BNF rows unchanged, 50,000 fuzz lines of
-queries, routines and types agreeing with the oracle.
+recognition and JSON; queries — query expressions, table references and joins, `JSON_TABLE`; the data
+change statements of §14. Schema and the other statements are next. Each slice kept every verdict: the
+1,574 BNF rows unchanged, 50,000 fuzz lines of queries, routines and types agreeing with the oracle.
 
 The towers of §6 were already read once and carried as bit sets; the node now rides beside the bits in
 `Towers.Typed(Node, Roles)`, and a publication of a tower rule goes through a `XTree : @Expression`
 wrapper, so the method keeps its production's name. What a chapter did not build yet stood as an
-`Extension` node, grepped to know what was left; one remains, the statement inside a data change delta
-table.
+`Extension` node, grepped to know what was left; the last, the statement inside a data change delta
+table, went with §14.
+
+The data change statements found two spellings the tree could not tell apart, and it now keeps both: a
+set clause's targets in brackets, `SET (a) = (1)` beside `SET a = (1)`, and a set target's index in
+trigraphs. A contextually typed row in brackets that holds one value is that value in brackets, as a
+value expression's is, so `VALUES (DEFAULT)` and `VALUES DEFAULT` stay two rows of their own.
 
 A query is a `Statement.Select` whose clauses are its body's where the body has none of its own, and a
 query around it where it has: `(SELECT a FROM t ORDER BY a) ORDER BY b` is two orders, and the brackets

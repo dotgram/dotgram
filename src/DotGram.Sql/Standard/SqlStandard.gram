@@ -1413,80 +1413,102 @@ SortSpecification     : @SortItem = k: ValueNode & d: ("ASC"i | "DESC"i)? & ("NU
 // ── §14.8 Delete statement, §14.9 Truncate table statement ──────────────────
 
 // <delete statement: searched>, <delete statement: positioned>.
-DeleteStatementSearched   = "DELETE"i & "FROM"i & TargetTable & ForPortionOf? & ("AS"i? & CorrelationName)? & ("WHERE"i & SearchCondition)?
-DeleteStatementPositioned = "DELETE"i & "FROM"i & TargetTable & ("AS"i? & CorrelationName)? & "WHERE"i & "CURRENT"i & "OF"i & CursorName
+DeleteStatementSearched   : @Statement.Delete = "DELETE"i & "FROM"i & t: TargetTable & p: ForPortionOf? & c: TargetCorrelation? & w: WhereClause? => @(new Statement.Delete { Target = t, Portion = p, Alias = c, Where = w })
+DeleteStatementPositioned : @Statement.Delete = "DELETE"i & "FROM"i & t: TargetTable & c: TargetCorrelation? & "WHERE"i & "CURRENT"i & "OF"i & k: CursorName => @(new Statement.Delete { Target = t, Alias = c, CurrentOf = new CursorReference(k) })
 
-TruncateTableStatement = "TRUNCATE"i & "TABLE"i & TargetTable & (("CONTINUE"i | "RESTART"i) & "IDENTITY"i)?
+TruncateTableStatement : @Statement.TruncateTable = "TRUNCATE"i & "TABLE"i & t: TargetTable & (i: ("CONTINUE"i | "RESTART"i) & "IDENTITY"i)? => @(new Statement.TruncateTable { Target = t, Identity = Nodes.RestartOf(i) })
 
 // <target table>.
-TargetTable = TableName | "ONLY"i & '(' & TableName & ')'
+TargetTable : @TableTarget = n: TableName => @(new TableTarget(n))
+                           | "ONLY"i & '(' & n: TableName & ')' => @(new TableTarget(n, true))
+
+// Not a production: the correlation name a delete, an update and a merge may give their target.
+TargetCorrelation : @Alias = a: "AS"i? & n: CorrelationName => @(new Alias(n, null, a is not null))
 
 // An application time period's portion, which a searched delete and update may name.
-ForPortionOf = "FOR"i & "PORTION"i & "OF"i & Identifier & "FROM"i & DatetimeValueExpression & "TO"i & DatetimeValueExpression
+ForPortionOf : @PeriodPortion = "FOR"i & "PORTION"i & "OF"i & n: Identifier & "FROM"i & lo: DatetimeValueExpression & "TO"i & hi: DatetimeValueExpression => @(new PeriodPortion(n, lo.Node, hi.Node))
 
 // <cursor name>, a <local qualified name>.
-CursorName = ("MODULE"i & '.')? & Identifier
+CursorName : @QualifiedName = m: "MODULE"i & '.' & i: Identifier => @(Nodes.Named(m, i))
+                            | i: Identifier => @(new QualifiedName([i]))
 
 // ── §14.11 Insert statement ─────────────────────────────────────────────────
 
 // <insert statement>. A column list and an override clause stand before a query and before a
 // constructor alike, and are read once; the constructor is asked first, since it reads what a
 // query's table value constructor does and `DEFAULT` too.
-InsertStatement = "INSERT"i & "INTO"i & TableName & InsertColumnsAndSource
+InsertStatement : @Statement.Insert = "INSERT"i & "INTO"i & n: TableName & s: InsertColumnsAndSource => @(new Statement.Insert { Target = n, Columns = s.Columns, Override = s.Override, SourceValue = s.Source })
 
-InsertColumnsAndSource
-	= ('(' & ColumnNameList & ')')? & OverrideClause? & (ContextuallyTypedTableValueConstructor | QueryExpression)
-	| "DEFAULT"i & "VALUES"i
+InsertColumnsAndSource : @Nodes.InsertBody
+	= ('(' & columns: ColumnNameList & ')')? & o: OverrideClause? & v: InsertValues => @(new Nodes.InsertBody(columns ?? System.Array.Empty<Identifier>(), o, v))
+	| "DEFAULT"i & "VALUES"i => @(new Nodes.InsertBody(System.Array.Empty<Identifier>(), null, new InsertSource.DefaultValues()))
 
-OverrideClause = "OVERRIDING"i & ("USER"i | "SYSTEM"i) & "VALUE"i
+// Not a production: what an insert's columns are given, rows or a query.
+InsertValues : @InsertSource = r: ContextuallyTypedTableValueConstructor => @(new InsertSource.Values(r))
+                             | q: QueryExpression => @(new InsertSource.Query(q))
+
+OverrideClause : @OverrideKind = "OVERRIDING"i & w: ("USER"i | "SYSTEM"i) & "VALUE"i => @((w[0] | 0x20) == 'u' ? OverrideKind.UserValue : OverrideKind.SystemValue)
 
 // <contextually typed table value constructor>: rows whose values may be `DEFAULT`, `NULL` or an
 // empty collection, which take their type from where they go.
-ContextuallyTypedTableValueConstructor = "VALUES"i & { ContextuallyTypedRowValueExpression & (',' & ContextuallyTypedRowValueExpression)* }
+ContextuallyTypedTableValueConstructor : @IReadOnlyList<RowValue> = "VALUES"i & { first: ContextuallyTypedRowValueExpression & (',' & rest: ContextuallyTypedRowValueExpression)* } => @(Nodes.Rows(first, rest))
 
 // <contextually typed row value expression>. A bracket holds such a specification alone, or two or
 // more elements; a value expression reads any other row and value.
-ContextuallyTypedRowValueExpression
-	= ContextuallyTypedValueSpecification
-	| '(' & ContextuallyTypedValueSpecification & ')'
-	| '(' & ContextuallyTypedElement & (',' & ContextuallyTypedElement)+ & ')'
-	| "ROW"i & '(' & ContextuallyTypedElement & (',' & ContextuallyTypedElement)* & ')'
-	| ValueExpression
+ContextuallyTypedRowValueExpression : @Expression
+	= c: ContextuallyTypedValueSpecification => @(c)
+	| '(' & p: ContextuallyTypedValueSpecification & ')' => @(new Expression.Parenthesized(p))
+	| '(' & first: ContextuallyTypedElement & (',' & rest: ContextuallyTypedElement)+ & ')' => @(new Expression.Row(Nodes.List(first, rest)))
+	| "ROW"i & '(' & first: ContextuallyTypedElement & (',' & rest: ContextuallyTypedElement)* & ')' => @(new Expression.Row(Nodes.List(first, rest), true))
+	| v: ValueExpression => @(v.Node)
 
-ContextuallyTypedElement = ContextuallyTypedValueSpecification | ValueExpression
+ContextuallyTypedElement : @Expression = c: ContextuallyTypedValueSpecification => @(c)
+                                       | v: ValueExpression => @(v.Node)
 
 // ── §14.12 Merge statement ──────────────────────────────────────────────────
 
-MergeStatement = "MERGE"i & "INTO"i & TargetTable & ("AS"i? & CorrelationName)? & "USING"i & TableReference & "ON"i & SearchCondition & { (trivia & MergeWhenClause)+ }
+MergeStatement : @Statement.Merge = "MERGE"i & "INTO"i & t: TargetTable & c: TargetCorrelation? & "USING"i & s: TableReference & "ON"i & o: SearchCondition & { (trivia & clauses: MergeWhenClause)+ } => @(new Statement.Merge { Target = t, Alias = c, SourceTable = s, On = o.Node, Clauses = clauses })
 
-MergeWhenClause
-	= "WHEN"i & "MATCHED"i & ("AND"i & SearchCondition)? & "THEN"i & ("UPDATE"i & "SET"i & SetClauseList | "DELETE"i)
-	| "WHEN"i & "NOT"i & "MATCHED"i & ("AND"i & SearchCondition)? & "THEN"i & MergeInsertSpecification
+MergeWhenClause : @MergeClause
+	= "WHEN"i & "MATCHED"i & c: MergeCondition? & "THEN"i & a: MergeMatchedThen => @(new MergeClause.Matched(a) { Condition = c })
+	| "WHEN"i & "NOT"i & "MATCHED"i & c: MergeCondition? & "THEN"i & i: MergeInsertSpecification => @(new MergeClause.NotMatched(i) { Condition = c })
 
-MergeInsertSpecification = "INSERT"i & ('(' & ColumnNameList & ')')? & OverrideClause? & "VALUES"i & '(' & ContextuallyTypedElement & (',' & ContextuallyTypedElement)* & ')'
+// Not productions: a merge when clause's search condition, and what a matched row is done.
+MergeCondition   : @Expression = "AND"i & c: SearchCondition => @(c.Node)
+MergeMatchedThen : @MergeMatchedAction = "UPDATE"i & "SET"i & s: SetClauseList => @(new MergeMatchedAction.Update(s))
+                                       | "DELETE"i => @(new MergeMatchedAction.Delete())
+
+MergeInsertSpecification : @MergeInsertAction = "INSERT"i & ('(' & columns: ColumnNameList & ')')? & o: OverrideClause? & "VALUES"i & '(' & first: ContextuallyTypedElement & (',' & rest: ContextuallyTypedElement)* & ')' => @(new MergeInsertAction(columns ?? System.Array.Empty<Identifier>(), o, Nodes.List(first, rest)))
 
 // ── §14.13 Update statement: positioned, §14.14 Update statement: searched ─
 
-UpdateStatementSearched   = "UPDATE"i & TargetTable & ForPortionOf? & ("AS"i? & CorrelationName)? & "SET"i & SetClauseList & ("WHERE"i & SearchCondition)?
-UpdateStatementPositioned = "UPDATE"i & TargetTable & ("AS"i? & CorrelationName)? & "SET"i & SetClauseList & "WHERE"i & "CURRENT"i & "OF"i & CursorName
+UpdateStatementSearched   : @Statement.Update = "UPDATE"i & t: TargetTable & p: ForPortionOf? & c: TargetCorrelation? & "SET"i & s: SetClauseList & w: WhereClause? => @(new Statement.Update { Target = t, Portion = p, Alias = c, Assignments = s, Where = w })
+UpdateStatementPositioned : @Statement.Update = "UPDATE"i & t: TargetTable & c: TargetCorrelation? & "SET"i & s: SetClauseList & "WHERE"i & "CURRENT"i & "OF"i & k: CursorName => @(new Statement.Update { Target = t, Alias = c, Assignments = s, CurrentOf = new CursorReference(k) })
 
 // ── §14.15 Set clause list ──────────────────────────────────────────────────
 
-SetClauseList = { SetClause & (',' & SetClause)* }
+SetClauseList : @IReadOnlyList<Assignment> = { first: SetClause & (',' & rest: SetClause)* } => @(Nodes.List(first, rest))
 
 // <set clause>: several targets and a row, or a target and a value.
-SetClause
-	= '(' & SetTarget & (',' & SetTarget)* & ')' & '=' & ContextuallyTypedRowValueExpression
-	| SetTarget & '=' & (ContextuallyTypedValueSpecification | ValueExpression)
+SetClause : @Assignment
+	= '(' & first: SetTarget & (',' & rest: SetTarget)* & ')' & '=' & r: ContextuallyTypedRowValueExpression => @(new Assignment(Nodes.List(first, rest), r, true))
+	| t: SetTarget & '=' & v: ContextuallyTypedElement => @(new Assignment([t], v))
 
 // <set target>: a column, an element of one, or a column's attribute set by a mutator, as often as
 // there are attributes on the way — <mutated set clause> recurses through <mutated target> on the left.
-SetTarget = ColumnName & (LeftBracketOrTrigraph & SimpleValueSpecification & RightBracketOrTrigraph | ('.' & MethodName)*)
+SetTarget : @AssignmentTarget
+	= c: ColumnName & l: LeftBracketOrTrigraph & i: SimpleValueSpecification & RightBracketOrTrigraph => @(new AssignmentTarget(new QualifiedName([c]), i, null, l == "??("))
+	| c: ColumnName & ('.' & m: MethodName)* => @(new AssignmentTarget(new QualifiedName([c]), null, m is { Length: > 0 } ? m : null))
 
 // ── §7.6 Data change delta table ────────────────────────────────────────────
 
 // <data change delta table>, <data change statement>: what a data change statement changed, as a table.
-DataChangeDeltaTable : @TableSource = o: ("FINAL"i | "NEW"i | "OLD"i) & "TABLE"i & '(' & (DeleteStatementSearched | InsertStatement | MergeStatement | UpdateStatementSearched) & ')' => @(new TableSource.DataChange((o[0] | 0x20) switch { 'f' => ResultOption.Final, 'n' => ResultOption.New, _ => ResultOption.Old }, Nodes.UnbuiltStatement()))
+DataChangeDeltaTable : @TableSource = o: ("FINAL"i | "NEW"i | "OLD"i) & "TABLE"i & '(' & s: DataChangeStatement & ')' => @(new TableSource.DataChange((o[0] | 0x20) switch { 'f' => ResultOption.Final, 'n' => ResultOption.New, _ => ResultOption.Old }, s))
+
+DataChangeStatement : @Statement = d: DeleteStatementSearched => @(d)
+                                 | i: InsertStatement => @(i)
+                                 | m: MergeStatement => @(m)
+                                 | u: UpdateStatementSearched => @(u)
 
 // ── §11 Schema definition and manipulation ──────────────────────────────────
 //

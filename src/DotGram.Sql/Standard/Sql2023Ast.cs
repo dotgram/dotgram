@@ -950,8 +950,11 @@ public abstract record MergeClause : ISqlNode
 }
 public abstract record MergeMatchedAction : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); public record Update(IReadOnlyList<Assignment> Assignments) : MergeMatchedAction; public record Delete : MergeMatchedAction; }
 public sealed record MergeInsertAction(IReadOnlyList<Identifier> Columns, OverrideKind? Override, IReadOnlyList<Expression> Values) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record Assignment(IReadOnlyList<AssignmentTarget> Targets, Expression Value) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
-public sealed record AssignmentTarget(QualifiedName Name, Expression? Index = null, IReadOnlyList<Identifier>? MutationPath = null) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+// BNF: <set clause>, <multiple column assignment>. Parenthesized where the targets were written in brackets: `(a) = (1)` is not `a = (1)`.
+public sealed record Assignment(IReadOnlyList<AssignmentTarget> Targets, Expression Value, bool Parenthesized = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
+
+// BNF: <set target>, <update target>, <mutated set clause>. Trigraphs are `??(` and `??)` around the index.
+public sealed record AssignmentTarget(QualifiedName Name, Expression? Index = null, IReadOnlyList<Identifier>? MutationPath = null, bool Trigraphs = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
 public sealed record TableTarget(QualifiedName Name, bool Only = false) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
 public sealed record PeriodPortion(Identifier Name, Expression From, Expression To) : ISqlNode { public SqlSpan Span { get; private set; } public void Locate(int at, int length) => Span = new SqlSpan(at, length); }
 public enum IdentityRestart { Continue, Restart }

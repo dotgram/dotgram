@@ -72,8 +72,6 @@ static class Nodes
 		return new CharacterSetName(new QualifiedName(parts));
 	}
 
-	// ── What is not built yet ──────────────────────────────────────────────────
-
 	// ── §6.3 Value expression primary ──────────────────────────────────────────
 
 	public static Expression Null() => new Expression.Literal(new LiteralValue.Null());
@@ -706,10 +704,15 @@ static class Nodes
 			direction is null ? null : (direction[0] | 0x20) == 'a' ? SortDirection.Asc : SortDirection.Desc,
 			nulls is null ? null : (nulls[0] | 0x20) == 'f' ? NullOrdering.First : NullOrdering.Last);
 
-	// ── §7 Query expressions ───────────────────────────────────────────────────
+	// ── §14 Data change statements ─────────────────────────────────────────────
 
-	/// <summary>A statement §14 does not build yet, where a data change delta table holds one.</summary>
-	public static Statement UnbuiltStatement() => new Statement.Extension { Dialect = "SQL:2023", Kind = "Unbuilt" };
+	/// <summary>What an insert statement says after its table: the columns, the override, and the source.</summary>
+	public sealed record InsertBody(IReadOnlyList<Identifier> Columns, OverrideKind? Override, InsertSource Source);
+
+	public static IdentityRestart? RestartOf(string? word) =>
+		word is null ? null : (word[0] | 0x20) == 'c' ? IdentityRestart.Continue : IdentityRestart.Restart;
+
+	// ── §7 Query expressions ───────────────────────────────────────────────────
 
 	/// <summary>What a table expression holds: its clauses, in the order written.</summary>
 	public sealed record TableExpression(FromClause From, Expression? Where, GroupByClause? GroupBy, Expression? Having, WindowClause? Window);

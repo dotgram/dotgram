@@ -378,6 +378,53 @@ public sealed class SqlStandardTreeTests
 	public void A_subquery_in_a_predicate_is_built_as_written(string input, string tree) =>
 		Assert.Equal(tree, Show(SqlStandardParser.ParseSearchCondition(input)));
 
+	// ── §14 Data change statements ─────────────────────────────────────────────
+
+	[Theory]
+	[InlineData("INSERT INTO t (a, b) OVERRIDING SYSTEM VALUE VALUES (1, DEFAULT), ROW(NULL, 2), (DEFAULT), 3",
+		"Insert(Target: t, Columns: [a, b], Override: SystemValue, SourceValue: Values([RowValue([1, Default()], false), RowValue([NULL, 2], true), RowValue([Parenthesized(Default())], false), RowValue([3], false)]))")]
+	[InlineData("INSERT INTO t SELECT a FROM u", "Insert(Target: t, SourceValue: Query(Select(Items: [ExpressionItem(a, null, false)], From: FromClause([Named(u)]))))")]
+	[InlineData("INSERT INTO t DEFAULT VALUES", "Insert(Target: t, SourceValue: DefaultValues())")]
+	public void An_insert_is_built_as_written(string input, string tree) =>
+		Assert.Equal(tree, Show(SqlStandardParser.ParseInsertStatement(input)));
+
+	[Theory]
+	[InlineData("UPDATE ONLY (t) FOR PORTION OF p FROM a TO b AS x SET c = DEFAULT, (d, e) = ROW(1, 2), f??(1??) = 3, g.h.i = 4 WHERE c > 0",
+		"Update(Target: TableTarget(t, true), Portion: PeriodPortion(p, a, b), Alias: Alias(x, null, true), Assignments: [Assignment([AssignmentTarget(c, null, null, false)], Default(), false), Assignment([AssignmentTarget(d, null, null, false), AssignmentTarget(e, null, null, false)], Row([1, 2], true), true), Assignment([AssignmentTarget(f, 1, null, true)], 3, false), Assignment([AssignmentTarget(g, null, [h, i], false)], 4, false)], Where: Comparison(c, Greater, 0))")]
+	[InlineData("UPDATE t SET (a) = (1)", "Update(Target: TableTarget(t, false), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], Parenthesized(1), true)])")]
+	public void A_searched_update_is_built_as_written(string input, string tree) =>
+		Assert.Equal(tree, Show(SqlStandardParser.ParseUpdateStatementSearched(input)));
+
+	[Fact]
+	public void A_positioned_statement_names_its_cursor()
+	{
+		Assert.Equal("Update(Target: TableTarget(t, false), Assignments: [Assignment([AssignmentTarget(a, null, null, false)], 1, false)], CurrentOf: CursorReference(MODULE.c, null, false, false, false))",
+			Show(SqlStandardParser.ParseUpdateStatementPositioned("UPDATE t SET a = 1 WHERE CURRENT OF MODULE.c")));
+		Assert.Equal("Delete(Target: TableTarget(t, false), Alias: Alias(x, null, false), CurrentOf: CursorReference(c, null, false, false, false))",
+			Show(SqlStandardParser.ParseDeleteStatementPositioned("DELETE FROM t x WHERE CURRENT OF c")));
+	}
+
+	[Theory]
+	[InlineData("DELETE FROM t WHERE a = 1", "Delete(Target: TableTarget(t, false), Where: Comparison(a, Equal, 1))")]
+	public void A_searched_delete_is_built_as_written(string input, string tree) =>
+		Assert.Equal(tree, Show(SqlStandardParser.ParseDeleteStatementSearched(input)));
+
+	[Fact]
+	public void A_merge_keeps_its_clauses_in_order() =>
+		Assert.Equal("Merge(Target: TableTarget(t, false), Alias: Alias(x, null, false), SourceTable: Named(u), On: Comparison(a, Equal, b), Clauses: [Matched(Update([Assignment([AssignmentTarget(c, null, null, false)], 1, false)]), Condition: Comparison(c, Greater, 0)), Matched(Delete()), NotMatched(MergeInsertAction([a], UserValue, [1, Default()]))])",
+			Show(SqlStandardParser.ParseMergeStatement("MERGE INTO t x USING u ON a = b WHEN MATCHED AND c > 0 THEN UPDATE SET c = 1 WHEN MATCHED THEN DELETE WHEN NOT MATCHED THEN INSERT (a) OVERRIDING USER VALUE VALUES (1, DEFAULT)")));
+
+	[Theory]
+	[InlineData("TRUNCATE TABLE t RESTART IDENTITY", "TruncateTable(Target: TableTarget(t, false), Identity: Restart)")]
+	[InlineData("TRUNCATE TABLE t", "TruncateTable(Target: TableTarget(t, false))")]
+	public void A_truncate_is_built_as_written(string input, string tree) =>
+		Assert.Equal(tree, Show(SqlStandardParser.ParseTruncateTableStatement(input)));
+
+	[Fact]
+	public void A_data_change_delta_table_holds_its_statement() =>
+		Assert.Equal("DataChange(New, Insert(Target: t, SourceValue: Values([RowValue([1], false)])), Alias(x, null, true))",
+			Show(SqlStandardParser.ParseTableReference("NEW TABLE (INSERT INTO t VALUES 1) AS x")));
+
 	/// <summary>
 	/// A node as one line: its record's name and its positional values in order, then what else it
 	/// holds that is not a default; a name, a reference and a literal as they were written.
