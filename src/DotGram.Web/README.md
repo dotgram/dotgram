@@ -46,6 +46,30 @@ Rfc3986.Decode("hello%20world"); // hello world
 `%2F` inside a path segment is encoded data during parsing; decoding it early would turn
 it into a path separator it is not.
 
+## RFC 5646 language tags (BCP 47)
+
+[`Rfc5646`](Rfc5646.cs) reads a language tag into the subtags §2.1 gives it.
+
+```csharp
+using DotGram.Web;
+
+var tag = Rfc5646.ParseTag("zh-cmn-Hans-CN-u-ca-chinese");
+
+tag.Language;            // zh
+tag.ExtendedLanguages;   // [cmn]
+tag.Script;              // Hans
+tag.Region;              // CN
+tag.Extensions[0];       // Extension { Singleton = u, Subtags = [ca, chinese] }
+
+Rfc5646.ParseTag("EN-latn-us").ToString();   // en-Latn-US
+Rfc5646.ParseTag("i-klingon").Grandfathered; // i-klingon
+```
+
+A tag is case-insensitive: its parts are kept as written, and `ToString()` writes the case
+§2.1.1 recommends, which is the registry's. A tag read here is *well-formed*, which needs
+nothing but the ABNF; whether every subtag is in the IANA registry — *valid* — is a question
+for the registry, and is not asked.
+
 ## RFC 6570 URI Templates
 
 [`Rfc6570`](Rfc6570.cs) reads a template once and expands it as often as there are values,

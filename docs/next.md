@@ -22594,6 +22594,26 @@ same commit. And every parsing case that has an expected value is serialized fro
 held to its `canonical`, or to the field as written where the suite gives none, so the two
 directions are checked against the same material rather than against each other.
 
+## RFC 5646, language tags
+
+The second of the order. `src/DotGram.Web/Rfc5646.cs`: Figure 1's ABNF into `LanguageTag` —
+language, up to three extended languages, script, region, variants, extensions (`Extension(Singleton,
+Subtags)`), private use, or the whole of a grandfathered tag. Well-formedness only (§2.2.9): validity
+needs the registry and its date, and is a different question.
+
+What ordered choice had to be told that ABNF does not say: **where a subtag ends**. A subtag's kind is
+its length and content, and a repetition like `2*3ALPHA` stops wherever it is let; `End = ?!Alphanum`
+after each one is the hyphen-or-end the RFC takes for granted. **The grandfathered tags are asked
+first and whole** — `Grandfathered & eof`, `zh-min-nan` before `zh-min` — so `zh-min-xyz` falls through
+to an ordinary tag with two extended languages. Case is kept as written and `ToString()` writes
+§2.1.1's recommended case in ASCII, never the culture's (the Turkish `i`).
+
+There is no suite for BCP 47, so the test is the registry itself, vendored as it stood on 2026-08-08:
+every grandfathered and redundant tag reads — as written, lowercase and uppercase — and writes back as
+registered; every subtag of every type reads where its type puts it, after each prefix the registry
+names; and Appendix A's examples, including the two it calls invalid, which are refused, and
+`ar-a-aaa-b-bbb-a-ccc`, which it calls invalid and the ABNF makes well-formed.
+
 **A build trap met on the way, not a code one.** A project directory created mid-session could not
 be written by `dotnet build`: "Access to the path … is denied" on `obj`, even outside the sandbox. The
 build was joining MSBuild nodes and a compiler server started earlier inside it, with their rights.

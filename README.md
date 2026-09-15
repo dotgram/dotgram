@@ -480,6 +480,7 @@ uri.Query;  // q=1
 | Parser | What it reads |
 | --- | --- |
 | [`Rfc3986`](src/DotGram.Web/Rfc3986.cs) | URIs and relative references after RFC 3986 — authority, IPv4, IPv6, `IPvFuture`, paths, queries, fragments, percent encoding |
+| [`Rfc5646`](src/DotGram.Web/Rfc5646.cs) | Language tags, BCP 47 — language, extended languages, script, region, variants, extensions, private use and the grandfathered tags — read as well-formed and written in the recommended case; held to every tag and subtag of the IANA registry |
 | [`Rfc6570`](src/DotGram.Web/Rfc6570.cs) | URI Templates, all four levels — literals, the eight expression types, prefixes and explode — and their expansion over strings, lists and associative arrays; held to the implementers' test suite |
 | [`Rfc9651`](src/DotGram.Web/Rfc9651.cs) | Structured Field Values for HTTP — Items, Lists and Dictionaries of integers, decimals, strings, tokens, byte sequences, booleans, dates and display strings, with their parameters; held to the HTTP working group's test suite |
 
