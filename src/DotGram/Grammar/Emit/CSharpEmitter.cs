@@ -3333,7 +3333,17 @@ public static partial class CSharpEmitter
 	/// file with a raw control character in it for the rest — and the emitted text is
 	/// read by people, not only by a compiler.
 	/// </remarks>
-	internal static string Char(char value) => value switch
+	internal static string Char(char value) => _chars[value] ??= Spelled(value);
+
+	/// <summary>Each character's literal, written the first time it is asked for.</summary>
+	/// <remarks>
+	/// Every test of every character a machine makes spells one, and building the string again
+	/// each time was two gigabytes of what generating the SQL parsers allocated. Two threads
+	/// missing one slot spell the same literal, and whichever lands is kept.
+	/// </remarks>
+	static readonly string?[] _chars = new string?[char.MaxValue + 1];
+
+	static string Spelled(char value) => value switch
 	{
 		'\''                         => @"'\''",
 		'\\'                         => @"'\\'",

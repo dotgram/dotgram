@@ -5097,6 +5097,21 @@ sealed partial class Machine
 	/// </summary>
 	static string EscapeExpected(string value)
 	{
+		// Almost everything expected is a rule's name or a keyword, which needs nothing
+		// escaped, and is handed back as it is rather than copied a character at a time.
+		var plain = true;
+
+		foreach (var character in value)
+			if (character is < ' ' or > '~' or '\\' or '"')
+			{
+				plain = false;
+
+				break;
+			}
+
+		if (plain)
+			return value;
+
 		var text = new StringBuilder(value.Length);
 
 		foreach (var character in value)

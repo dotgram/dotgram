@@ -371,7 +371,7 @@ public static class LexerEmitter
 			text.Line($"static readonly byte[] Scan{tag}_Class =");
 
 			using (text.Braces("", ";"))
-				Numbers(text, [.. classes.Select(one => (int)one)]);
+				Numbers(text, classes);
 
 			text.Line();
 		}
@@ -635,23 +635,81 @@ public static class LexerEmitter
 		return many;
 	}
 
-	static void Numbers<T>(Writer text, IReadOnlyList<T> values)
+	// A table's numbers, a row of them to a line. One overload per element type the tables
+	// have, each written straight into the file: these run to hundreds of thousands of
+	// numbers, and a builder per line, a boxed value per number and two strings per line to
+	// trim it was work for nothing.
+
+	static void Numbers(Writer text, byte[] values)
 	{
-		var line = new StringBuilder("	");
+		var row = new Row(text);
 
 		foreach (var value in values)
+			row.Add(value);
+
+		row.End();
+	}
+
+	static void Numbers(Writer text, List<int> values)
+	{
+		var row = new Row(text);
+
+		foreach (var value in values)
+			row.Add(value);
+
+		row.End();
+	}
+
+	static void Numbers(Writer text, List<long> values)
+	{
+		var row = new Row(text);
+
+		foreach (var value in values)
+			row.Add(value);
+
+		row.End();
+	}
+
+	/// <summary>
+	/// A line of numbers being written: a tab in, <c>1, 2, 3,</c>, and a new line once the line
+	/// with its separator would reach 92 characters.
+	/// </summary>
+	struct Row(Writer text)
+	{
+		StringBuilder? _line;
+		int            _width;
+
+		public void Add(long value)
 		{
-			line.Append(value).Append(", ");
+			if (_line is null)
+			{
+				_line  = text.OpenLine().Append('	');
+				_width = 1;
+			}
+			else
+			{
+				_line.Append(' ');
+			}
 
-			if (line.Length < 92)
-				continue;
+			var before = _line.Length;
 
-			text.Line(line.ToString().TrimEnd());
-			line.Clear().Append('	');
+			_line.Append(value).Append(',');
+
+			// Counted with the space that follows, as the line was measured when it carried one.
+			_width += _line.Length - before + 1;
+
+			if (_width >= 92)
+				End();
 		}
 
-		if (line.Length > 1)
-			text.Line(line.ToString().TrimEnd());
+		public void End()
+		{
+			if (_line is null)
+				return;
+
+			text.CloseLine();
+			_line = null;
+		}
 	}
 
 	/// <summary>
@@ -1288,17 +1346,29 @@ public static class LexerEmitter
 		readonly StringBuilder _text = new();
 		int _depth;
 
+		/// <summary>What a line loses from its end — one array, where `TrimEnd(' ', '\t')` makes one a call.</summary>
+		static readonly char[] Blanks = [' ', '\t'];
+
 		public void Line(string line = "")
 		{
 			// As the emitter's own writer does: nothing ends in whitespace, and a blank line
 			// is an ending rather than an indentation followed by one.
-			line = line.TrimEnd(' ', '\t');
+			line = line.TrimEnd(Blanks);
 
 			if (line.Length > 0)
 				_text.Append('\t', _depth);
 
 			_text.Append(line).Append("\r\n");
 		}
+
+		/// <summary>
+		/// A line to write into directly, its indentation already there; <see cref="CloseLine"/>
+		/// ends it. Nothing written here may end in whitespace, and an opened line is not left empty.
+		/// </summary>
+		public StringBuilder OpenLine() => _text.Append('\t', _depth);
+
+		/// <summary>Ends a line <see cref="OpenLine"/> began.</summary>
+		public void CloseLine() => _text.Append("\r\n");
 
 		public IDisposable Indent() => new Block(this, null, null);
 

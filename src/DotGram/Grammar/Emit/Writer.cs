@@ -8,6 +8,10 @@ sealed class Writer(int depth)
 {
 	readonly StringBuilder _text = new();
 
+	/// <summary>What a line loses from its end.</summary>
+	/// <remarks>One array for every line: `TrimEnd(' ', '\t')` makes a new one each time it is called.</remarks>
+	static readonly char[] Blanks = [' ', '\t'];
+
 	int _depth = depth;
 
 	/// <summary>How far in the next line will be written — what a nested writer starts at.</summary>
@@ -23,7 +27,7 @@ sealed class Writer(int depth)
 	/// </remarks>
 	public void Line(string text = "")
 	{
-		var trimmed = text.TrimEnd(' ', '\t');
+		var trimmed = text.TrimEnd(Blanks);
 
 		if (trimmed.Length == 0)
 			_text.EndLine();
@@ -84,16 +88,14 @@ sealed class Writer(int depth)
 	/// </remarks>
 	public void Write(string text)
 	{
-		var written = new Writer(0);
+		var normalized = Lines.Normalize(text);
 
-		written._text.Append(Lines.Normalize(text));
-
-		// AppendIndented reads the text as lines, each closed by an ending. Text that
-		// does not end with one — a raw string literal, say — would lose its last line.
+		// The text is read as lines, each closed by an ending. Text that does not end with
+		// one — a raw string literal, say — would lose its last line.
 		if (!text.EndsWith(Lines.Ending, StringComparison.Ordinal))
-			written._text.Append(Lines.Ending);
+			normalized += Lines.Ending;
 
-		AppendIndented(written, 0);
+		AppendLines(normalized, 0);
 	}
 
 	/// <summary>Appends another writer's text, shifted in to this one's depth.</summary>
@@ -102,31 +104,43 @@ sealed class Writer(int depth)
 	/// what puts a C# error under the code the author wrote (§7.6) — so shifting those
 	/// lines in would move every error one tab to the right of where it belongs.
 	/// </remarks>
-	public void AppendIndented(Writer other, int extra = 1)
-	{
-		var lines = other._text.ToString().Split([Lines.Ending], StringSplitOptions.None);
-		var kept  = false;
+	public void AppendIndented(Writer other, int extra = 1) => AppendLines(other.ToString(), extra);
 
-		// The text ends with an ending, so the split leaves a final empty piece that is
-		// not a line at all.
-		for (var i = 0; i < lines.Length - 1; i++)
+	/// <summary>Each line of the text closed by an ending, shifted in; what follows the last ending is not a line.</summary>
+	/// <remarks>
+	/// Read in place rather than split: every state of every machine is appended this way, and
+	/// an array of lines and a string for each was most of what writing a parser allocated.
+	/// </remarks>
+	void AppendLines(string text, int extra)
+	{
+		var kept = false;
+		var at   = 0;
+
+		for (int end; (end = text.IndexOf(Lines.Ending, at, StringComparison.Ordinal)) >= 0; at = end + Lines.Ending.Length)
 		{
-			if (lines[i].StartsWith("#line", StringComparison.Ordinal))
-				kept = !lines[i].StartsWith("#line default", StringComparison.Ordinal);
+			var length = end - at;
+
+			if (Leads(text, at, length, "#line"))
+				kept = !Leads(text, at, length, "#line default");
 
 			// Inside a `#line` region the text is the author's C#, copied as it was written:
 			// its columns are what put an error under the code (§7.6), and a verbatim string
 			// in it may hold whitespace that means something. Everything else is the
 			// generator's, and loses whatever it would have ended in.
-			var line = kept ? lines[i] : lines[i].TrimEnd(' ', '\t');
+			if (!kept)
+				while (length > 0 && text[at + length - 1] is ' ' or '\t')
+					length--;
 
-			if (line.Length == 0)
+			if (length == 0)
 				_text.EndLine();
-			else if (kept || line.StartsWith("#line default", StringComparison.Ordinal))
-				_text.AppendEndingWith(line);
+			else if (kept || Leads(text, at, length, "#line default"))
+				_text.Append(text, at, length).EndLine();
 			else
-				_text.Append('\t', _depth + extra).AppendEndingWith(line);
+				_text.Append('\t', _depth + extra).Append(text, at, length).EndLine();
 		}
+
+		static bool Leads(string text, int at, int length, string prefix) =>
+			length >= prefix.Length && string.CompareOrdinal(text, at, prefix, 0, prefix.Length) == 0;
 	}
 
 	public override string ToString() => _text.ToString();

@@ -757,7 +757,14 @@ public sealed class LexicalAutomaton
 			var accepts  = new List<int>();
 			var rows     = new List<int[]>();
 
-			var first = Closed([start]);
+			var first = Closed([start], []);
+
+			// Kept across the states rather than made for each: most of what a set reaches on an
+			// atom closes to a state already numbered, and then everything built to find that out
+			// was thrown away at once — a set per atom, a set per closure, a stack per closure.
+			var moves = new Dictionary<int, HashSet<int>>();
+			var free  = new Stack<HashSet<int>>();
+			var spare = (HashSet<int>?)null;
 
 			numbered[Key(first)] = 0;
 			pending.Enqueue((first, 0));
@@ -789,13 +796,19 @@ public sealed class LexicalAutomaton
 				// this replaces was `atoms × states × edges` where the work is `states ×
 				// edges`, and an alphabet of a few hundred ranges made that the whole cost
 				// of cutting a grammar in two.
-				var moves = new Dictionary<int, HashSet<int>>();
+				foreach (var reached in moves.Values)
+				{
+					reached.Clear();
+					free.Push(reached);
+				}
+
+				moves.Clear();
 
 				foreach (var one in here)
 					foreach (var (on, to) in _on[one])
 					{
 						if (!moves.TryGetValue(on, out var reached))
-							moves[on] = reached = [];
+							moves[on] = reached = free.Count > 0 ? free.Pop() : [];
 
 						reached.Add(to);
 					}
@@ -808,7 +821,7 @@ public sealed class LexicalAutomaton
 					if (!moves.TryGetValue(atom, out var next))
 						continue;
 
-					var closed = Closed(next);
+					var closed = Closed(next, spare ??= []);
 					var key    = Key(closed);
 
 					if (!numbered.TryGetValue(key, out var to2))
@@ -817,6 +830,9 @@ public sealed class LexicalAutomaton
 
 						Room(rows, accepts, to2);
 						pending.Enqueue((closed, to2));
+
+						// Kept by the queue now, so the next closure needs a set of its own.
+						spare = null;
 					}
 
 					rows[number][atom] = to2;
@@ -879,10 +895,19 @@ public sealed class LexicalAutomaton
 			}
 		}
 
-		HashSet<int> Closed(IEnumerable<int> states)
+		/// <summary>What <see cref="Closed"/> walks with, one stack for every closure.</summary>
+		readonly Stack<int> _closing = new();
+
+		/// <summary>The states reached from these without reading, written into <paramref name="reached"/>.</summary>
+		HashSet<int> Closed(IEnumerable<int> states, HashSet<int> reached)
 		{
-			var reached = new HashSet<int>();
-			var pending = new Stack<int>(states);
+			var pending = _closing;
+
+			reached.Clear();
+			pending.Clear();
+
+			foreach (var one in states)
+				pending.Push(one);
 
 			while (pending.Count > 0)
 			{
