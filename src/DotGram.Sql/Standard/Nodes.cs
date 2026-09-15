@@ -789,11 +789,12 @@ static class Nodes
 
 	// ── §11 Schema definition and manipulation ─────────────────────────────────
 
-	/// <summary>
-	/// What a statement stands in for until its part of §11 builds its tree: user-defined types,
-	/// casts, orderings and transforms. Each goes as its part builds.
-	/// </summary>
-	public static Statement UnbuiltStatement() => new Statement.Extension { Dialect = "SQL:2023", Kind = "Unbuilt" };
+	/// <summary>`TRANSFORMS`, rather than `TRANSFORM`.</summary>
+	public static bool IsPlural(string keyword) => keyword.Length == 10;
+
+	/// <summary>The kinds of transform a group drops, one or both.</summary>
+	public static IReadOnlyList<TransformDirection> Directions(TransformDirection first, TransformDirection? second) =>
+		second is { } other ? [first, other] : [first];
 
 	/// <summary>A schema's name and its authorization, either or both.</summary>
 	public sealed record SchemaNaming(QualifiedName? Name, AuthorizationIdentifier? Authorization);

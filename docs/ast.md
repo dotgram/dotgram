@@ -173,8 +173,8 @@ joins, `JSON_TABLE` — the data change statements: insert, update, delete, merg
 truncate — and the schema's: schemas, tables, views, domains, assertions, character sets,
 collations, transliterations, sequence generators, roles and privileges — and the other
 statements: cursors and locators, control, transaction, connection, session, diagnostics
-and dynamic SQL — and triggers and SQL-invoked routines. User-defined types, casts,
-orderings and transforms stand as a placeholder `Extension` statement. Its nodes are not in the tables below, which describe the tree in `SqlSyntax.cs`; its
+and dynamic SQL — triggers and SQL-invoked routines, and user-defined types, casts,
+orderings and transforms: everything the grammar reads. Its nodes are not in the tables below, which describe the tree in `SqlSyntax.cs`; its
 shape is in `design/sql-ast.md`.
 
 ## The nodes

@@ -1282,7 +1282,7 @@ maximum returned result sets,erased alias,erased,Referenced AST target,yes,yes,1
 transform group specification,enum/value,TransformGroupSpecification,Enum/value/helper,no,no,2,TRANSFORM GROUP { <single group specification> | <multiple group specification> }
 single group specification,erased alias,erased,Referenced AST target,yes,yes,1,<group name>
 multiple group specification,enum/value,TransformGroupSpecification.Groups,Enum/value/helper,no,no,3,<group specification> [ { <comma> <group specification> }... ]
-group specification,enum/value,TransformGroupSpecification.Groups,Enum/value/helper,no,no,2,<group name> FOR TYPE <path-resolved user-defined type name>
+group specification,record/value,TransformGroupForType,Structural helper AST,no,no,2,<group name> FOR TYPE <path-resolved user-defined type name>
 alter routine statement,statement/property,Statement.AlterRoutine,Statement,no,no,3,ALTER <specific routine designator> <alter routine characteristics> <alter routine behavior>
 alter routine characteristics,enum/value,Statement.AlterRoutine.Characteristics,Enum/value/helper,no,no,1,<alter routine characteristic>...
 alter routine characteristic,enum/value,RoutineCharacteristic; RoutineCharacteristic.ExternalName,Enum/value/helper,no,no,6,<language clause> | <parameter style clause> | <SQL-data access indication> | <null-call clause> | <returned result sets characteristic> | NAME <external routine name>

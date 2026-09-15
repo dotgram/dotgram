@@ -22849,8 +22849,9 @@ names, literals and data types; value expressions and predicates; functions, win
 recognition and JSON; queries — query expressions, table references and joins, `JSON_TABLE`; the data
 change statements of §14; then §11 and §12 but for routines, triggers, user-defined types, casts,
 orderings and transforms, which stand as placeholders until their part; then the other statements, §14's
-cursors and §16–§23, before the routines whose bodies they are; then triggers and routines. User-defined
-types, casts, orderings and transforms are the last placeholders. Each slice kept every verdict: the
+cursors and §16–§23, before the routines whose bodies they are; then triggers and routines; and last
+user-defined types, casts, orderings and transforms. No placeholder is left: everything the grammar reads
+builds its node. Each slice kept every verdict: the
 1,574 BNF rows unchanged, 50,000 fuzz lines of queries, routines and types agreeing with the oracle.
 
 The towers of §6 were already read once and carried as bit sets; the node now rides beside the bits in
@@ -22883,3 +22884,9 @@ Three traps, each met more than once:
 The cost is construction a guard forces to be eager. Against the grammar that built nothing: value
 expression rows 4.2 → 5.9 ms, routine fuzz 69.9 → 79.7 ms, type fuzz 36.9 → 37.1 ms. Queries, against
 the commit before they were built: 3,000 fuzz lines 533 → 612 ms, 511 → 591, 488 → 547 — 12–16%.
+
+Queries went on slowing while the later chapters were built, though no query rule changed after 48ead9b.
+Taken for noise at first; held against 48ead9b's own build, the two run in turn on the same three files
+twice each, the whole tree is slower in all six pairs — 667 → 717 ms at best, 578 → 712 at worst, 7–23%.
+Not looked into yet. What a query reads that the later chapters touched is a data change delta table's
+statement, now built; the other suspect is the generated class itself, grown by every chapter.

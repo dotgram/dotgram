@@ -1516,8 +1516,7 @@ DataChangeStatement : @Statement = d: DeleteStatementSearched => @(d)
 // transliterations, assertions, triggers, user-defined types, routines, casts, orderings, transforms,
 // sequence generators, roles and privileges — and what alters and drops them.
 
-// <SQL schema statement>: a definition or a manipulation. What does not build its tree yet — user-defined
-// types, casts, orderings and transforms — stands as `Nodes.UnbuiltStatement`.
+// <SQL schema statement>: a definition or a manipulation.
 SQLSchemaStatement : @Statement
 	= s: SchemaDefinition => @(s)
 	| t: TableDefinition => @(t)
@@ -1531,10 +1530,10 @@ SQLSchemaStatement : @Statement
 	| l: TransliterationDefinition => @(l)
 	| a: AssertionDefinition => @(a)
 	| tr: TriggerDefinition => @(tr)
-	| UserDefinedTypeDefinition => @(Nodes.UnbuiltStatement())
-	| UserDefinedCastDefinition => @(Nodes.UnbuiltStatement())
-	| UserDefinedOrderingDefinition => @(Nodes.UnbuiltStatement())
-	| TransformDefinition => @(Nodes.UnbuiltStatement())
+	| ut: UserDefinedTypeDefinition => @(ut)
+	| uc: UserDefinedCastDefinition => @(uc)
+	| uo: UserDefinedOrderingDefinition => @(uo)
+	| tf: TransformDefinition => @(tf)
 	| q: SequenceGeneratorDefinition => @(q)
 	| ds: DropSchemaStatement => @(ds)
 	| at: AlterTableStatement => @(at)
@@ -1542,7 +1541,7 @@ SQLSchemaStatement : @Statement
 	| dv: DropViewStatement => @(dv)
 	| ar: AlterRoutineStatement => @(ar)
 	| xr: DropRoutineStatement => @(xr)
-	| DropUserDefinedCastStatement => @(Nodes.UnbuiltStatement())
+	| xc: DropUserDefinedCastStatement => @(xc)
 	| rv: RevokeStatement => @(rv)
 	| dr: DropRoleStatement => @(dr)
 	| ad: AlterDomainStatement => @(ad)
@@ -1552,11 +1551,11 @@ SQLSchemaStatement : @Statement
 	| dx: DropTransliterationStatement => @(dx)
 	| da: DropAssertionStatement => @(da)
 	| xt: DropTriggerStatement => @(xt)
-	| AlterTypeStatement => @(Nodes.UnbuiltStatement())
-	| DropDataTypeStatement => @(Nodes.UnbuiltStatement())
-	| DropUserDefinedOrderingStatement => @(Nodes.UnbuiltStatement())
-	| AlterTransformStatement => @(Nodes.UnbuiltStatement())
-	| DropTransformStatement => @(Nodes.UnbuiltStatement())
+	| ay: AlterTypeStatement => @(ay)
+	| xy: DropDataTypeStatement => @(xy)
+	| xo: DropUserDefinedOrderingStatement => @(xo)
+	| af: AlterTransformStatement => @(af)
+	| xf: DropTransformStatement => @(xf)
 	| aq: AlterSequenceGeneratorStatement => @(aq)
 	| dq: DropSequenceGeneratorStatement => @(dq)
 
@@ -1589,10 +1588,10 @@ SchemaElement : @Statement
 	| l: TransliterationDefinition => @(l)
 	| a: AssertionDefinition => @(a)
 	| tr: TriggerDefinition => @(tr)
-	| UserDefinedTypeDefinition => @(Nodes.UnbuiltStatement())
-	| UserDefinedCastDefinition => @(Nodes.UnbuiltStatement())
-	| UserDefinedOrderingDefinition => @(Nodes.UnbuiltStatement())
-	| TransformDefinition => @(Nodes.UnbuiltStatement())
+	| ut: UserDefinedTypeDefinition => @(ut)
+	| uc: UserDefinedCastDefinition => @(uc)
+	| uo: UserDefinedOrderingDefinition => @(uo)
+	| tf: TransformDefinition => @(tf)
 	| sr: SchemaRoutine => @(sr)
 	| q: SequenceGeneratorDefinition => @(q)
 	| g: GrantStatement => @(g)
@@ -2006,75 +2005,115 @@ RoutineType : @Nodes.RoutineTypeOf = "ROUTINE"i => @(new Nodes.RoutineTypeOf(Rou
 
 // <user-defined type definition>: a type's name, its supertype, what it is represented by, its options
 // in any order and number, and its methods.
-UserDefinedTypeDefinition = "CREATE"i & "TYPE"i & SchemaQualifiedName & ("UNDER"i & PathResolvedUserDefinedTypeName)? & ("AS"i & Representation)?
-	  & { (trivia & UserDefinedTypeOption)* } & MethodSpecificationList?
+UserDefinedTypeDefinition : @Statement.CreateType = "CREATE"i & "TYPE"i & n: SchemaQualifiedName & ("UNDER"i & u: PathResolvedUserDefinedTypeName)? & ("AS"i & r: Representation)?
+	  & { (trivia & options: UserDefinedTypeOption)* } & m: MethodSpecificationList?
+	  => @(new Statement.CreateType { Definition = new UserDefinedTypeDefinition(n, u, r, options ?? System.Array.Empty<UserTypeOption>(), m ?? System.Array.Empty<MethodSpecification>()) })
 
 // <representation>: a predefined type, a collection — of any type, `ARRAY` or `MULTISET` after it —
 // or attributes. A type of no other kind is refused: `AS ROW (a INT)` and `AS u`.
-Representation
-	= MemberList
-	| PredefinedType & (trivia & CollectionTypeSuffix)*
-	| (RowType | ReferenceType | PathResolvedUserDefinedTypeName) & (trivia & CollectionTypeSuffix)+
+Representation : @TypeRepresentation
+	= a: MemberList => @(new TypeRepresentation.Members(a))
+	| p: PredefinedType & (trivia & s: CollectionTypeSuffix)* => @(new TypeRepresentation.Type(Nodes.Collected(p, s)))
+	| o: RepresentedElementType & (trivia & more: CollectionTypeSuffix)+ => @(new TypeRepresentation.Type(Nodes.Collected(o, more)))
 
-MemberList          = '(' & { AttributeDefinition & (',' & AttributeDefinition)* } & ')'
-AttributeDefinition = Identifier & DataType & DefaultClause? & CollateClause?
+// A row, a reference or a user-defined type, which a representation holds only as a collection's element.
+RepresentedElementType : @DataType = r: RowType => @(r)
+                                   | f: ReferenceType => @(f)
+                                   | n: PathResolvedUserDefinedTypeName => @(new DataType.UserDefined(n))
 
-UserDefinedTypeOption
-	= "NOT"i? & ("INSTANTIABLE"i | "FINAL"i)
-	| "REF"i & ("USING"i & PredefinedType | "FROM"i & '(' & Identifier & (',' & Identifier)* & ')' | "IS"i & "SYSTEM"i & "GENERATED"i)
-	| "CAST"i & '(' & ("SOURCE"i & "AS"i & ("REF"i | "DISTINCT"i) | ("REF"i | "DISTINCT"i) & "AS"i & "SOURCE"i) & ')' & "WITH"i & Identifier
+MemberList          : @IReadOnlyList<AttributeDefinition> = '(' & { first: AttributeDefinition & (',' & rest: AttributeDefinition)* } & ')' => @(Nodes.List(first, rest))
+AttributeDefinition : @AttributeDefinition = n: Identifier & t: DataType & d: DefaultClause? & c: CollateClause? => @(new AttributeDefinition(n, t, d, c))
 
-MethodSpecificationList = { MethodSpecification & (',' & MethodSpecification)* }
+UserDefinedTypeOption : @UserTypeOption
+	= n: "NOT"i? & "INSTANTIABLE"i => @(new UserTypeOption.Instantiable(n is null))
+	| n: "NOT"i? & "FINAL"i => @(new UserTypeOption.Final(n is null))
+	| "REF"i & "USING"i & t: PredefinedType => @(new UserTypeOption.Reference(new UserTypeReference.Using(t)))
+	| "REF"i & "FROM"i & '(' & first: Identifier & (',' & rest: Identifier)* & ')' => @(new UserTypeOption.Reference(new UserTypeReference.FromAttributes(Nodes.List(first, rest))))
+	| "REF"i & "IS"i & "SYSTEM"i & "GENERATED"i => @(new UserTypeOption.Reference(new UserTypeReference.SystemGenerated()))
+	| "CAST"i & '(' & k: CastOptionKind & ')' & "WITH"i & f: Identifier => @(new UserTypeOption.Cast(k, f))
+
+// A cast option's two sides: the source to a reference or a distinct type, or either back to the source.
+CastOptionKind : @UserTypeCastKind = "SOURCE"i & "AS"i & "REF"i => @(UserTypeCastKind.ToRef)
+                                   | "SOURCE"i & "AS"i & "DISTINCT"i => @(UserTypeCastKind.ToDistinct)
+                                   | "REF"i & "AS"i & "SOURCE"i => @(UserTypeCastKind.ToType)
+                                   | "DISTINCT"i & "AS"i & "SOURCE"i => @(UserTypeCastKind.ToSource)
+
+MethodSpecificationList : @IReadOnlyList<MethodSpecification> = { first: MethodSpecification & (',' & rest: MethodSpecification)* } => @(Nodes.List(first, rest))
 
 // <method specification>: an overriding method says no characteristics.
-MethodSpecification
-	= "OVERRIDING"i & PartialMethodSpecification
-	| OriginalMethodSpecification
+MethodSpecification : @MethodSpecification
+	= "OVERRIDING"i & p: PartialMethodSpecification => @(p with { Overriding = true })
+	| o: OriginalMethodSpecification => @(o)
 
-OriginalMethodSpecification = PartialMethodSpecification & ("SELF"i & "AS"i & "RESULT"i)? & ("SELF"i & "AS"i & "LOCATOR"i)? & { (trivia & MethodCharacteristic)* }
-PartialMethodSpecification  = ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i & MethodName & SQLParameterDeclarationList & ReturnsClause & ("SPECIFIC"i & SchemaQualifiedName)?
+OriginalMethodSpecification : @MethodSpecification = p: PartialMethodSpecification & r: ("SELF"i & "AS"i & "RESULT"i)? & l: ("SELF"i & "AS"i & "LOCATOR"i)? & { (trivia & characteristics: MethodCharacteristic)* }
+	  => @(p with { SelfAsResult = r is not null, SelfAsLocator = l is not null, Characteristics = characteristics ?? System.Array.Empty<RoutineCharacteristic>() })
+PartialMethodSpecification  : @MethodSpecification = m: ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i & n: MethodName & p: SQLParameterDeclarationList & r: ReturnsClause & ("SPECIFIC"i & s: SchemaQualifiedName)?
+	  => @(new MethodSpecification(Nodes.Method(m).Modifier, n, p, r, s, false, false, System.Array.Empty<RoutineCharacteristic>()))
 
-MethodCharacteristic = LanguageClause | ParameterStyleClause | "NOT"i? & "DETERMINISTIC"i | SQLDataAccessIndication | NullCallClause
+MethodCharacteristic : @RoutineCharacteristic
+	= l: LanguageClause => @(l)
+	| s: ParameterStyleClause => @(new RoutineCharacteristic.ParameterStyle(s))
+	| d: "NOT"i? & "DETERMINISTIC"i => @(new RoutineCharacteristic.Deterministic(d is null))
+	| a: SQLDataAccessIndication => @(new RoutineCharacteristic.DataAccess(a))
+	| c: NullCallClause => @(new RoutineCharacteristic.NullCall(c))
 
 // <alter type statement>: an attribute or a method added or dropped.
-AlterTypeStatement = "ALTER"i & "TYPE"i & SchemaQualifiedName & AlterTypeAction
+AlterTypeStatement : @Statement.AlterType = "ALTER"i & "TYPE"i & n: SchemaQualifiedName & a: AlterTypeAction => @(new Statement.AlterType { Name = n, Action = a })
 
-AlterTypeAction
-	= "ADD"i & ("ATTRIBUTE"i & AttributeDefinition | MethodSpecification)
-	| "DROP"i & ("ATTRIBUTE"i & Identifier | SpecificMethodSpecificationDesignator) & "RESTRICT"i
+AlterTypeAction : @AlterTypeAction
+	= "ADD"i & "ATTRIBUTE"i & d: AttributeDefinition => @(new AlterTypeAction.AddAttribute(d))
+	| "ADD"i & m: MethodSpecification => @(new AlterTypeAction.AddMethod(m, m.Overriding))
+	| "DROP"i & "ATTRIBUTE"i & i: Identifier & "RESTRICT"i => @(new AlterTypeAction.DropAttribute(i))
+	| "DROP"i & s: SpecificMethodSpecificationDesignator & "RESTRICT"i => @(new AlterTypeAction.DropMethod(s))
 
-SpecificMethodSpecificationDesignator = ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i & MethodName & '(' & (DataType & (',' & DataType)*)? & ')'
+SpecificMethodSpecificationDesignator : @MethodDesignator = m: ("INSTANCE"i | "STATIC"i | "CONSTRUCTOR"i)? & "METHOD"i & n: MethodName & '(' & (first: DataType & (',' & rest: DataType)*)? & ')'
+	  => @(new MethodDesignator(Nodes.Method(m).Modifier, n, Nodes.ListOrEmpty(first, rest)))
 
-DropDataTypeStatement = "DROP"i & "TYPE"i & SchemaQualifiedName & DropBehavior
+DropDataTypeStatement : @Statement.DropType = "DROP"i & "TYPE"i & n: SchemaQualifiedName & b: DropBehavior => @(new Statement.DropType { Name = n, Behavior = b })
 
 // ── §11 User-defined casts, orderings and transforms ────────────────────────
 
-UserDefinedCastDefinition    = "CREATE"i & "CAST"i & '(' & DataType & "AS"i & DataType & ')' & "WITH"i & SpecificRoutineDesignator & ("AS"i & "ASSIGNMENT"i)?
-DropUserDefinedCastStatement = "DROP"i & "CAST"i & '(' & DataType & "AS"i & DataType & ')' & DropBehavior
+UserDefinedCastDefinition    : @Statement.CreateCast = "CREATE"i & "CAST"i & '(' & s: DataType & "AS"i & t: DataType & ')' & "WITH"i & f: SpecificRoutineDesignator & a: ("AS"i & "ASSIGNMENT"i)?
+	  => @(new Statement.CreateCast { SourceType = s, TargetType = t, Function = f, AsAssignment = a is not null })
+DropUserDefinedCastStatement : @Statement.DropCast = "DROP"i & "CAST"i & '(' & s: DataType & "AS"i & t: DataType & ')' & b: DropBehavior => @(new Statement.DropCast { SourceType = s, TargetType = t, Behavior = b })
 
-UserDefinedOrderingDefinition    = "CREATE"i & "ORDERING"i & "FOR"i & SchemaQualifiedName & ("EQUALS"i & "ONLY"i | "ORDER"i & "FULL"i) & "BY"i & OrderingCategory
-DropUserDefinedOrderingStatement = "DROP"i & "ORDERING"i & "FOR"i & SchemaQualifiedName & DropBehavior
+UserDefinedOrderingDefinition    : @Statement.CreateOrdering = "CREATE"i & "ORDERING"i & "FOR"i & n: SchemaQualifiedName & f: OrderingForm & "BY"i & c: OrderingCategory
+	  => @(new Statement.CreateOrdering { TypeName = n, Ordering = new OrderingDefinition(f, c) })
+DropUserDefinedOrderingStatement : @Statement.DropOrdering = "DROP"i & "ORDERING"i & "FOR"i & n: SchemaQualifiedName & b: DropBehavior => @(new Statement.DropOrdering { TypeName = n, Behavior = b })
 
-OrderingCategory
-	= ("RELATIVE"i | "MAP"i) & "WITH"i & SpecificRoutineDesignator
-	| "STATE"i & SchemaQualifiedName?
+// <ordering form>: `EQUALS ONLY` or `ORDER FULL`.
+OrderingForm : @OrderingForm = "EQUALS"i & "ONLY"i => @(OrderingForm.EqualsOnly)
+                             | "ORDER"i & "FULL"i => @(OrderingForm.Full)
+
+OrderingCategory : @OrderingCategory
+	= "RELATIVE"i & "WITH"i & r: SpecificRoutineDesignator => @(new OrderingCategory.Relative(r))
+	| "MAP"i & "WITH"i & m: SpecificRoutineDesignator => @(new OrderingCategory.Map(m))
+	| "STATE"i & n: SchemaQualifiedName? => @(new OrderingCategory.State(n))
 
 // <transform definition>: groups, one at least, of a transform to SQL and one from it, or either.
-TransformDefinition  = "CREATE"i & TransformKeyword & "FOR"i & SchemaQualifiedName & { (trivia & TransformGroup)+ }
+TransformDefinition  : @Statement.CreateTransform = "CREATE"i & k: TransformKeyword & "FOR"i & n: SchemaQualifiedName & { (trivia & groups: TransformGroup)+ }
+	  => @(new Statement.CreateTransform { PluralKeyword = Nodes.IsPlural(k), TypeName = n, Groups = groups })
 TransformKeyword     = "TRANSFORMS"i | "TRANSFORM"i
-TransformGroup       = Identifier & '(' & TransformElementList & ')'
-TransformElementList = TransformElement & (',' & TransformElement)?
-TransformElement     = TransformKind & "WITH"i & SpecificRoutineDesignator
-TransformKind        = ("TO"i | "FROM"i) & "SQL"i
+TransformGroup       : @TransformGroup = n: Identifier & '(' & e: TransformElementList & ')' => @(new TransformGroup(n, e))
+TransformElementList : @IReadOnlyList<TransformElement> = first: TransformElement & (',' & second: TransformElement)? => @(Nodes.List(first, second is null ? null : new[] { second }))
+TransformElement     : @TransformElement = k: TransformKind & "WITH"i & f: SpecificRoutineDesignator => @(new TransformElement(k, f))
+TransformKind        : @TransformDirection = "TO"i & "SQL"i => @(TransformDirection.ToSql)
+                                           | "FROM"i & "SQL"i => @(TransformDirection.FromSql)
 
-AlterTransformStatement = "ALTER"i & TransformKeyword & "FOR"i & SchemaQualifiedName & { (trivia & AlterGroup)+ }
-AlterGroup              = Identifier & '(' & { AlterTransformAction & (',' & AlterTransformAction)* } & ')'
+AlterTransformStatement : @Statement.AlterTransform = "ALTER"i & k: TransformKeyword & "FOR"i & n: SchemaQualifiedName & { (trivia & groups: AlterGroup)+ }
+	  => @(new Statement.AlterTransform { PluralKeyword = Nodes.IsPlural(k), TypeName = n, Groups = groups })
+AlterGroup              : @TransformAlterGroup = n: Identifier & '(' & { first: AlterTransformAction & (',' & rest: AlterTransformAction)* } & ')' => @(new TransformAlterGroup(n, Nodes.List(first, rest)))
 
-AlterTransformAction
-	= "ADD"i & '(' & TransformElementList & ')'
-	| "DROP"i & '(' & TransformKind & (',' & TransformKind)? & DropBehavior & ')'
+AlterTransformAction : @TransformAlterAction
+	= "ADD"i & '(' & e: TransformElementList & ')' => @(new TransformAlterAction(true, e, System.Array.Empty<TransformDirection>(), null))
+	| "DROP"i & '(' & first: TransformKind & (',' & second: TransformKind)? & b: DropBehavior & ')' => @(new TransformAlterAction(false, System.Array.Empty<TransformElement>(), Nodes.Directions(first, second), b))
 
-DropTransformStatement = "DROP"i & TransformKeyword & ("ALL"i | Identifier) & "FOR"i & SchemaQualifiedName & DropBehavior
+DropTransformStatement : @Statement.DropTransform = "DROP"i & k: TransformKeyword & t: TransformDropTarget & "FOR"i & n: SchemaQualifiedName & b: DropBehavior
+	  => @(new Statement.DropTransform { PluralKeyword = Nodes.IsPlural(k), Target = t, TypeName = n, Behavior = b })
+
+// Not a production: `ALL`, or a group's name.
+TransformDropTarget : @TransformDropTarget = "ALL"i => @(new TransformDropTarget.All())
+                                           | g: Identifier => @(new TransformDropTarget.Group(g))
 
 // ── §11 Character sets, collations and transliterations ─────────────────────
 

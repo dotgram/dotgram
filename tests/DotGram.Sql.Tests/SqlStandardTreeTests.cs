@@ -445,7 +445,18 @@ public sealed class SqlStandardTreeTests
 		"Revoke(Body: Roles(true, [r1, r2], [Identifier(AuthorizationIdentifier(u))], null, Cascade))")]
 	[InlineData("CREATE SCHEMA s AUTHORIZATION u PATH s, t DEFAULT CHARACTER SET utf8 CREATE TABLE x (a INT) CREATE ROLE r",
 		"CreateSchema(Name: s, PathFirst: true, Authorization: AuthorizationIdentifier(u), DefaultCharacterSet: CharacterSetName(utf8), Path: PathSpecification([s, t]), Elements: [CreateTable(Name: x, Contents: Elements([Column(ColumnDefinition(a, Numeric(Int, null, null), null, [], null))])), CreateRole(Name: r)])")]
-	[InlineData("DROP TYPE t CASCADE", "Extension(Dialect: SQL:2023, Kind: Unbuilt)")]
+	[InlineData("DROP TYPE t CASCADE", "DropType(Name: t, Behavior: Cascade)")]
+	[InlineData("CREATE TYPE s.t UNDER u AS (a INT DEFAULT 1) NOT FINAL REF IS SYSTEM GENERATED CAST (SOURCE AS DISTINCT) WITH f OVERRIDING METHOD m () RETURNS INT, STATIC METHOD n (x INT) RETURNS INT SELF AS RESULT LANGUAGE SQL",
+		"CreateType(Definition: UserDefinedTypeDefinition(s.t, u, Members([AttributeDefinition(a, Numeric(Int, null, null), 1, null)]), [Final(false), Reference(SystemGenerated()), Cast(ToDistinct, f)], [MethodSpecification(null, m, [], ReturnsDefinition(Numeric(Int, null, null), null, false), null, false, false, [], true), MethodSpecification(Static, n, [ParameterDefinition(null, x, Numeric(Int, null, null), false, null, false)], ReturnsDefinition(Numeric(Int, null, null), null, false), null, true, false, [Language(SQL)], false)]))")]
+	[InlineData("ALTER TYPE t DROP STATIC METHOD m (INT) RESTRICT", "AlterType(Name: t, Action: DropMethod(MethodDesignator(Static, m, [Numeric(Int, null, null)])))")]
+	[InlineData("CREATE CAST (t AS INT) WITH SPECIFIC FUNCTION f AS ASSIGNMENT",
+		"CreateCast(SourceType: UserDefined(t), TargetType: Numeric(Int, null, null), Function: RoutineDesignator(Function, f, null, null, true, null), AsAssignment: true)")]
+	[InlineData("CREATE ORDERING FOR t ORDER FULL BY STATE s", "CreateOrdering(TypeName: t, Ordering: OrderingDefinition(Full, State(s)))")]
+	[InlineData("CREATE TRANSFORMS FOR t g (TO SQL WITH FUNCTION f, FROM SQL WITH FUNCTION h)",
+		"CreateTransform(PluralKeyword: true, TypeName: t, Groups: [TransformGroup(g, [TransformElement(ToSql, RoutineDesignator(Function, f, null, null, false, null)), TransformElement(FromSql, RoutineDesignator(Function, h, null, null, false, null))])])")]
+	[InlineData("ALTER TRANSFORM FOR t g (DROP (TO SQL, FROM SQL RESTRICT))",
+		"AlterTransform(TypeName: t, Groups: [TransformAlterGroup(g, [TransformAlterAction(false, [], [ToSql, FromSql], Restrict)])])")]
+	[InlineData("DROP TRANSFORM ALL FOR t CASCADE", "DropTransform(Target: All(), TypeName: t, Behavior: Cascade)")]
 	[InlineData("DROP TRIGGER g", "DropTrigger(Name: g)")]
 	[InlineData("CREATE TRIGGER s.g BEFORE UPDATE OF a ON t REFERENCING OLD ROW AS o NEW TABLE n FOR EACH ROW WHEN (a > 1) BEGIN ATOMIC SET SCHEMA 's'; COMMIT; END",
 		"CreateTrigger(Name: s.g, Time: Before, Event: TriggerEvent(Update, [a]), Table: t, Referencing: [TransitionReference(OldRow, o, true, true), TransitionReference(NewTable, n, false, false)], Action: TriggerAction(Row, Comparison(a, Greater, 1), [SetSchema(Value: 's'), Commit()], true))")]
