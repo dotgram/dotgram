@@ -12,3 +12,7 @@
 # normalizing line endings would corrupt them; more to the point, the whole value
 # of a corpus written elsewhere is that it is the text they wrote and not ours.
 tests/Corpus/ScriptDom/** -text
+
+# JSONTestSuite's parsing cases are the bytes a parser is handed: some are UTF-16, some are not
+# valid UTF-8, and a line ending is part of what several of them test.
+tests/DotGram.Tests/Web/JsonTestSuite/** -text

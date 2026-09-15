@@ -148,9 +148,40 @@ JsonPointer.ArrayIndex("01");   // null: a leading zero is no index
 JsonPointer.IsPastTheEnd("-");  // true
 ```
 
-What a pointer refers to is a question about a document, and answering it takes a JSON
-library this package does not depend on: `Tokens` is what the pointer says, and an object
-member or an array element is what it reaches, token by token.
+And what it refers to in a document read by `Rfc8259`:
+
+```csharp
+var document = Rfc8259.ParseJson("""{ "foo": ["bar", "baz"], "a/b": 1 }""");
+
+Rfc6901.ParsePointer("/foo/1").Resolve(document);   // "baz"
+Rfc6901.ParsePointer("/a~1b").Resolve(document);    // 1
+Rfc6901.ParsePointer("/foo/-").Resolve(document);   // null: the element after the last
+```
+
+`Resolve` answers null where the pointer refers to nothing — a missing member, an index past
+the end, `-`, or a name an object holds twice, whose member the RFC calls undefined — which
+is not JSON's `null`.
+
+## RFC 8259 JSON
+
+[`Rfc8259`](Rfc8259.cs) reads a JSON text into `JsonValue`.
+
+```csharp
+using DotGram.Web;
+
+var value = (JsonValue.Object)Rfc8259.ParseJson("""{ "pi": 3.14159265358979323846, "tags": ["a", "b"] }""");
+
+var pi = (JsonValue.Number)value.Members[0].Value;
+pi.Text;                  // 3.14159265358979323846
+pi.ToDouble();            // 3.141592653589793
+value.ToString();         // {"pi":3.14159265358979323846,"tags":["a","b"]}
+```
+
+A number keeps the text it was written with, and `ToDouble`, `TryToDecimal` and
+`TryToInt64` read it at the precision wanted. An object keeps its members in order, a name
+written twice included. Nesting is read as deep as the input goes. The text is characters:
+decoding the bytes, as UTF-8, is the caller's, and a byte order mark is refused rather than
+skipped. It is held to [JSONTestSuite](https://github.com/nst/JSONTestSuite)'s parsing cases.
 
 ## RFC 8288 Link header field
 

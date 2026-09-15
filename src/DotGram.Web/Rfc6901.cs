@@ -94,6 +94,68 @@ public sealed record JsonPointer(IReadOnlyList<string> Tokens)
 	/// <summary>Whether a token is <c>-</c>, the element after an array's last (§4).</summary>
 	public static bool IsPastTheEnd(string token) => token == "-";
 
+	/// <summary>The value this pointer refers to in a document (§4), or null where it refers to none.</summary>
+	/// <remarks>
+	/// <para>
+	/// Each token takes one step: to the member of an object with that name, or to the element of an array
+	/// at that index. There is no value — and so null, which is not <see cref="JsonValue.Null"/> — where an
+	/// object has no member of the name or has more than one (§4 calls that member undefined), where an
+	/// array's token is no index or is past its end, <c>-</c> included, and where a step is taken into a value
+	/// that has no members or elements.
+	/// </para>
+	/// <para>
+	/// What an application does with <c>-</c> or with a missing value is the application's (§7): a
+	/// JSON Patch adds there, for one. This answers what the document holds.
+	/// </para>
+	/// </remarks>
+	public JsonValue? Resolve(JsonValue document)
+	{
+		if (document is null)
+			throw new ArgumentNullException(nameof(document));
+
+		var value = document;
+
+		foreach (var token in Tokens)
+		{
+			switch (value)
+			{
+				case JsonValue.Object members:
+				{
+					JsonValue? found = null;
+
+					foreach (var member in members.Members)
+					{
+						if (!string.Equals(member.Key, token, StringComparison.Ordinal))
+							continue;
+
+						if (found is not null)
+							return null;
+
+						found = member.Value;
+					}
+
+					if (found is null)
+						return null;
+
+					value = found;
+					break;
+				}
+
+				case JsonValue.Array items:
+					if (ArrayIndex(token) is not { } index || index >= items.Items.Count)
+						return null;
+
+					value = items.Items[index];
+					break;
+
+				default:
+					return null;
+			}
+		}
+
+		return value;
+	}
+
 	// RFC 3986 §3.5: a fragment is pchar, `/` and `?`; a `%` is always a triplet's.
 	static bool Allowed(char c) =>
 		c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or

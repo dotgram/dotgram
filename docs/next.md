@@ -22689,6 +22689,29 @@ nothing (`Assignment`), captured unconditionally and taken apart in C#.
 There is no shared suite for the Link header field. The tests are §3.5's examples unfolded to one line each,
 and each recipient rule of §3 and RFC 8187.
 
+## RFC 8259, JSON, and the JSON Pointer that resolves
+
+Igor, 2026-09-15: go on with the specifications, write a JSON grammar of our own if one is needed, and bring
+in no library. One was needed — JSON Pointer's §4 is a question about a document, and the package had no
+document — so `src/DotGram.Web/Rfc8259.cs` is JSON, and `JsonPointer.Resolve(JsonValue)` is §4.
+
+The grammar is RFC 8259's ABNF with `ws` written where the six structural characters carry it, into
+`JsonValue` with its six cases nested. A number keeps its text (§6 leaves precision to the reader;
+`ToDouble`, `TryToDecimal`, `TryToInt64` read it); an object keeps its members in order and a name written
+twice (§4 leaves duplicates to the reader); an escaped lone surrogate survives (§8.2) and is written back
+escaped. A byte order mark is refused, which §8.1 allows. Nesting needs nothing of the grammar: the reader
+moves to a fresh stack where one runs low (syntax.md §6.5), and a hundred thousand brackets read.
+
+`Resolve` answers null — not `JsonValue.Null` — where the pointer refers to nothing: a missing member, an
+index past the end or with a leading zero, `-`, a step into a value with no parts, and a name an object
+holds twice, whose member §4 calls undefined. The pointer tests evaluate against it now, and no test reads
+`System.Text.Json`.
+
+Held by nst/JSONTestSuite's `test_parsing/` at 1ef36fa, vendored with its MIT licence and marked `-text` in
+`.gitattributes`: the cases are bytes, some UTF-16, some not UTF-8, and `* text eol=crlf` would have
+rewritten them. Each file is decoded as strict UTF-8 first; `y_` must read, `n_` must be refused, `i_`
+must be answered either way. Every text read is also written back and read again to the same value.
+
 **A build trap met on the way, not a code one.** A project directory created mid-session could not
 be written by `dotnet build`: "Access to the path … is denied" on `obj`, even outside the sandbox. The
 build was joining MSBuild nodes and a compiler server started earlier inside it, with their rights.
