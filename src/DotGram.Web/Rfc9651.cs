@@ -76,6 +76,18 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>
 	{
 	}
 
+	/// <summary>A map of these entries in their order, for a value to be serialized.</summary>
+	/// <remarks>A key given twice keeps the place it was first given in and the value it was last given.</remarks>
+	/// <exception cref="ArgumentException">A key is null.</exception>
+	public OrderedMap(IEnumerable<KeyValuePair<string, T>> entries)
+	{
+		if (entries is null)
+			throw new ArgumentNullException(nameof(entries));
+
+		foreach (var entry in entries)
+			Set(entry.Key ?? throw new ArgumentException("A key is null.", nameof(entries)), entry.Value);
+	}
+
 	public int Count => _entries.Count;
 
 	public KeyValuePair<string, T> this[int index] => _entries[index];
@@ -371,6 +383,261 @@ public static partial class Rfc9651
 	}
 
 	static int Hex(char digit) => digit <= '9' ? digit - '0' : digit - 'a' + 10;
+
+	// ── Serializing (§4.1) ───────────────────────────────────────────────────────
+
+	/// <summary>An Item as the value of a field (§4.1.3).</summary>
+	/// <exception cref="ArgumentException">Something in it has no serialization: §4.1 fails there.</exception>
+	public static string SerializeItem(Item item)
+	{
+		if (item is null)
+			throw new ArgumentNullException(nameof(item));
+
+		var output = new StringBuilder();
+
+		Serialize(output, item);
+
+		return output.ToString();
+	}
+
+	/// <summary>A List as the value of a field (§4.1.1).</summary>
+	/// <remarks>An empty List is the empty string, and §4.1 says not to send the field at all.</remarks>
+	/// <exception cref="ArgumentException">Something in it has no serialization: §4.1 fails there.</exception>
+	public static string SerializeList(IReadOnlyList<Member> list)
+	{
+		if (list is null)
+			throw new ArgumentNullException(nameof(list));
+
+		var output = new StringBuilder();
+
+		for (var index = 0; index < list.Count; index++)
+		{
+			if (index > 0)
+				output.Append(", ");
+
+			Serialize(output, list[index] ?? throw Refused("a member of a List is null"));
+		}
+
+		return output.ToString();
+	}
+
+	/// <summary>A Dictionary as the value of a field (§4.1.2).</summary>
+	/// <remarks>An empty Dictionary is the empty string, and §4.1 says not to send the field at all.</remarks>
+	/// <exception cref="ArgumentException">Something in it has no serialization: §4.1 fails there.</exception>
+	public static string SerializeDictionary(OrderedMap<Member> dictionary)
+	{
+		if (dictionary is null)
+			throw new ArgumentNullException(nameof(dictionary));
+
+		var output = new StringBuilder();
+
+		for (var index = 0; index < dictionary.Count; index++)
+		{
+			// Not deconstructed: KeyValuePair has no Deconstruct on netstandard2.0.
+			var key    = dictionary[index].Key;
+			var member = dictionary[index].Value;
+
+			if (index > 0)
+				output.Append(", ");
+
+			Key(output, key);
+
+			// A true Boolean is written as the key alone, with its parameters.
+			if (member is Item { Value: BareItem.Boolean { Value: true } } truth)
+				Parameters(output, truth.Parameters);
+			else
+			{
+				output.Append('=');
+				Serialize(output, member ?? throw Refused($"the member '{key}' is null"));
+			}
+		}
+
+		return output.ToString();
+	}
+
+	static void Serialize(StringBuilder output, Member member)
+	{
+		if (member is InnerList inner)
+		{
+			output.Append('(');
+
+			for (var index = 0; index < inner.Items.Count; index++)
+			{
+				if (index > 0)
+					output.Append(' ');
+
+				Serialize(output, inner.Items[index] ?? throw Refused("an item of an Inner List is null"));
+			}
+
+			output.Append(')');
+			Parameters(output, inner.Parameters);
+
+			return;
+		}
+
+		var item = (Item)member;
+
+		Bare(output, item.Value);
+		Parameters(output, item.Parameters);
+	}
+
+	// §4.1.1.2. A true Boolean is written as the key alone.
+	static void Parameters(StringBuilder output, OrderedMap<BareItem> parameters)
+	{
+		foreach (var parameter in parameters ?? throw Refused("parameters are null"))
+		{
+			output.Append(';');
+			Key(output, parameter.Key);
+
+			if (parameter.Value is not BareItem.Boolean { Value: true })
+			{
+				output.Append('=');
+				Bare(output, parameter.Value);
+			}
+		}
+	}
+
+	// §4.1.1.3.
+	static void Key(StringBuilder output, string key)
+	{
+		if (key.Length == 0 || !(key[0] is >= 'a' and <= 'z' or '*'))
+			throw Refused($"the key '{key}' does not begin with a lowercase letter or '*'");
+
+		foreach (var character in key)
+			if (!(character is >= 'a' and <= 'z' or >= '0' and <= '9' or '_' or '-' or '.' or '*'))
+				throw Refused($"the key '{key}' holds a character a key may not");
+
+		output.Append(key);
+	}
+
+	// §4.1.3.1.
+	static void Bare(StringBuilder output, BareItem value)
+	{
+		switch (value)
+		{
+			case BareItem.Integer integer:
+				Integer(output, integer.Value);
+				break;
+
+			case BareItem.Decimal fraction:
+				Decimal(output, fraction.Value);
+				break;
+
+			case BareItem.String text:
+				output.Append('"');
+
+				foreach (var character in text.Value)
+				{
+					if (character is < ' ' or > '~')
+						throw Refused("a String holds a character that is not printable ASCII");
+
+					if (character is '"' or '\\')
+						output.Append('\\');
+
+					output.Append(character);
+				}
+
+				output.Append('"');
+				break;
+
+			case BareItem.Token token:
+				Token(output, token.Value);
+				break;
+
+			case BareItem.ByteSequence bytes:
+				output.Append(':').Append(Convert.ToBase64String(bytes.Value ?? throw Refused("a Byte Sequence is null"))).Append(':');
+				break;
+
+			case BareItem.Boolean truth:
+				output.Append(truth.Value ? "?1" : "?0");
+				break;
+
+			case BareItem.Date date:
+				output.Append('@');
+				Integer(output, date.Value);
+				break;
+
+			case BareItem.DisplayString display:
+				Displayed(output, display.Value);
+				break;
+
+			default:
+				throw Refused("a bare item is null");
+		}
+	}
+
+	// §4.1.4.
+	static void Integer(StringBuilder output, long value)
+	{
+		if (value is < -999_999_999_999_999 or > 999_999_999_999_999)
+			throw Refused($"the Integer {value} has more than fifteen digits");
+
+		output.Append(value.ToString(CultureInfo.InvariantCulture));
+	}
+
+	// §4.1.5. Three places after the point, rounded half to even, and twelve digits before it.
+	static void Decimal(StringBuilder output, decimal value)
+	{
+		var rounded = Math.Round(value, 3, MidpointRounding.ToEven);
+		var size    = Math.Abs(rounded);
+
+		if (decimal.Truncate(size) > 999_999_999_999m)
+			throw Refused($"the Decimal {value} has more than twelve digits before the point");
+
+		if (rounded < 0)
+			output.Append('-');
+
+		output.Append(size.ToString("0.0##", CultureInfo.InvariantCulture));
+	}
+
+	// §4.1.7.
+	static void Token(StringBuilder output, string token)
+	{
+		if (token.Length == 0 || !(token[0] is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or '*'))
+			throw Refused($"the Token '{token}' does not begin with a letter or '*'");
+
+		foreach (var character in token)
+			if (!(character is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or
+				'!' or '#' or '$' or '%' or '&' or '\'' or '*' or '+' or '-' or '.' or '^' or '_' or '`' or '|' or '~' or
+				':' or '/'))
+			{
+				throw Refused($"the Token '{token}' holds a character a token may not");
+			}
+
+		output.Append(token);
+	}
+
+	// §4.1.11. A byte that is `%`, `"` or not printable ASCII is escaped, in lowercase hex.
+	static void Displayed(StringBuilder output, string text)
+	{
+		byte[] bytes;
+
+		try
+		{
+			bytes = Strict.GetBytes(text);
+		}
+		catch (EncoderFallbackException)
+		{
+			throw Refused("a Display String holds a surrogate that is not half of a pair");
+		}
+
+		output.Append("%\"");
+
+		foreach (var octet in bytes)
+		{
+			if (octet is (byte)'%' or (byte)'"' or < 0x20 or > 0x7E)
+				output.Append('%').Append(LowerHex[octet >> 4]).Append(LowerHex[octet & 0xF]);
+			else
+				output.Append((char)octet);
+		}
+
+		output.Append('"');
+	}
+
+	const string LowerHex = "0123456789abcdef";
+
+	static ArgumentException Refused(string why) =>
+		new($"This value has no serialization in RFC 9651 §4.1: {why}.");
 
 	static readonly UTF8Encoding Strict = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 }

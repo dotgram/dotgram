@@ -96,23 +96,126 @@ public sealed class Rfc9651Tests
 		Assert.Equal(["sugar", "tea", "rum"], list.Select(member => ((BareItem.Token)((Item)member).Value).Value));
 	}
 
-	public static TheoryData<string, int> Cases
+	/// <summary>
+	/// What the suite reads serializes back to its canonical form (§4.1): <c>canonical</c> where
+	/// the suite gives one, and the field as written where it does not.
+	/// </summary>
+	/// <remarks>
+	/// Built from what the suite expects rather than from what was read, so a serialization
+	/// fault is not hidden behind a parse that happened to agree with it.
+	/// </remarks>
+	[Theory]
+	[MemberData(nameof(Cases))]
+	public void What_the_suite_reads_serializes_to_its_canonical_form(string file, int index)
 	{
-		get
-		{
-			var cases = new TheoryData<string, int>();
+		var test = Load(file)[index];
 
-			foreach (var path in Directory.GetFiles(Suite, "*.json").OrderBy(one => one, StringComparer.Ordinal))
-			{
-				var file = Path.GetFileName(path);
+		if (test.TryGetProperty("must_fail", out var must) && must.GetBoolean())
+			return;
 
-				for (var index = 0; index < Load(file).Count; index++)
-					cases.Add(file, index);
-			}
+		var canonical = test.TryGetProperty("canonical", out var given)
+			? string.Join(", ", given.EnumerateArray().Select(line => line.GetString()))
+			: test.GetProperty("raw")[0].GetString();
 
-			return cases;
-		}
+		Assert.Equal(canonical, Serialize(test));
 	}
+
+	/// <summary>The suite's own serialization cases: values nothing could read, which must be refused.</summary>
+	[Theory]
+	[MemberData(nameof(SerializationCases))]
+	public void Every_serialization_case_of_the_suite_serializes_as_the_suite_says(string file, int index)
+	{
+		var test = Load(file)[index];
+		var name = test.GetProperty("name").GetString();
+
+		if (test.TryGetProperty("must_fail", out var must) && must.GetBoolean())
+		{
+			Assert.Throws<ArgumentException>(() => Serialize(test));
+			return;
+		}
+
+		Assert.True(
+			test.GetProperty("canonical")[0].GetString() == Serialize(test),
+			$"{file}: '{name}' serialized as '{Serialize(test)}'.");
+	}
+
+	/// <summary>The serialization the package's README shows, which has to stay true and compile.</summary>
+	[Fact]
+	public void The_readme_serialization_writes_what_it_says()
+	{
+		var priority = new OrderedMap<Member>(
+		[
+			new("u", new Item(new BareItem.Integer(3), new OrderedMap<BareItem>([]))),
+			new("i", new Item(BareItem.Boolean.True, new OrderedMap<BareItem>([]))),
+		]);
+
+		Assert.Equal("u=3, i", Rfc9651.SerializeDictionary(priority));
+	}
+
+	public static TheoryData<string, int> Cases => Suited("");
+
+	public static TheoryData<string, int> SerializationCases => Suited("serialisation-tests");
+
+	static TheoryData<string, int> Suited(string directory)
+	{
+		var cases = new TheoryData<string, int>();
+
+		foreach (var path in Directory.GetFiles(Path.Combine(Suite, directory), "*.json").OrderBy(one => one, StringComparer.Ordinal))
+		{
+			var file = directory.Length == 0 ? Path.GetFileName(path) : directory + "/" + Path.GetFileName(path);
+
+			for (var index = 0; index < Load(file).Count; index++)
+				cases.Add(file, index);
+		}
+
+		return cases;
+	}
+
+	// ── The suite's JSON as a value to serialize ─────────────────────────────────
+
+	static string Serialize(JsonElement test)
+	{
+		var expected = test.GetProperty("expected");
+
+		return test.GetProperty("header_type").GetString() switch
+		{
+			"item" => Rfc9651.SerializeItem(ToItem(expected)),
+			"list" => Rfc9651.SerializeList([.. expected.EnumerateArray().Select(ToMember)]),
+			_      => Rfc9651.SerializeDictionary(new OrderedMap<Member>(
+				expected.EnumerateArray().Select(entry => new KeyValuePair<string, Member>(entry[0].GetString()!, ToMember(entry[1]))))),
+		};
+	}
+
+	static Member ToMember(JsonElement member) =>
+		member[0].ValueKind == JsonValueKind.Array
+			? new InnerList([.. member[0].EnumerateArray().Select(ToItem)], ToParameters(member[1]))
+			: ToItem(member);
+
+	static Item ToItem(JsonElement item) =>
+		new(ToBare(item[0]), ToParameters(item[1]));
+
+	static OrderedMap<BareItem> ToParameters(JsonElement parameters) =>
+		new(parameters.EnumerateArray().Select(entry => new KeyValuePair<string, BareItem>(entry[0].GetString()!, ToBare(entry[1]))));
+
+	static BareItem ToBare(JsonElement value) => value.ValueKind switch
+	{
+		JsonValueKind.True   => BareItem.Boolean.True,
+		JsonValueKind.False  => BareItem.Boolean.False,
+		JsonValueKind.String => new BareItem.String(value.GetString()!),
+
+		JsonValueKind.Number => value.GetRawText().IndexOfAny(['.', 'e', 'E']) >= 0
+			? new BareItem.Decimal(value.GetDecimal())
+			: new BareItem.Integer(value.GetInt64()),
+
+		_ => value.GetProperty("__type").GetString() switch
+		{
+			"token"         => new BareItem.Token(value.GetProperty("value").GetString()!),
+			"binary"        => new BareItem.ByteSequence(Base32(value.GetProperty("value").GetString()!)),
+			"date"          => new BareItem.Date(value.GetProperty("value").GetInt64()),
+			"displaystring" => new BareItem.DisplayString(value.GetProperty("value").GetString()!),
+			var other       => throw new InvalidOperationException($"A value of a type nobody told this about: {other}."),
+		},
+	};
 
 	static (bool Read, object? Value) Read<T>(Rfc9651.Match<T> match) =>
 		(match.IsSuccess, match.IsSuccess ? match.Value : null);

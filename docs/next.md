@@ -22578,6 +22578,22 @@ or `iprivate`, letting through the plane-final noncharacters the ABNF excludes, 
 template is refused whole where Appendix A sketches a processor that copies and carries on. A
 prefix on a composite value throws `ArgumentException` on expansion.
 
+## RFC 9651, serialized
+
+§4.1, the first of the order Igor asked for 2026-09-15. `Rfc9651.SerializeItem`, `SerializeList`
+and `SerializeDictionary`, written from the algorithms rather than from a grammar, since there is
+nothing to read: a true Boolean as its key alone, a Decimal rounded half to even to three places
+(`Math.Round(…, 3, MidpointRounding.ToEven)`, exact on `decimal`), a Display String's bytes escaped
+in lowercase hex, and `ArgumentException` wherever the RFC says serialization fails. `OrderedMap`
+gained a public constructor from entries, which a caller needs to build a value at all; parsed maps
+stay built by the parser alone.
+
+Held twice. The suite's `serialisation-tests/` — values nothing could read, keys and tokens with
+every character they may not hold, the rounding cases — vendored beside the parsing cases at the
+same commit. And every parsing case that has an expected value is serialized from that value and
+held to its `canonical`, or to the field as written where the suite gives none, so the two
+directions are checked against the same material rather than against each other.
+
 **A build trap met on the way, not a code one.** A project directory created mid-session could not
 be written by `dotnet build`: "Access to the path … is denied" on `obj`, even outside the sandbox. The
 build was joining MSBuild nodes and a compiler server started earlier inside it, with their rights.

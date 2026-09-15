@@ -106,6 +106,24 @@ arrives in several lines is one value: `Rfc9651.Combine(lines)` joins them as §
 Every `Parse…` has a `TryParse…` beside it, and a field that does not parse is refused
 whole — the RFC allows nothing else.
 
+And back again, as §4.1 serializes:
+
+```csharp
+var priority = new OrderedMap<Member>(
+[
+    new("u", new Item(new BareItem.Integer(3), new OrderedMap<BareItem>([]))),
+    new("i", new Item(BareItem.Boolean.True, new OrderedMap<BareItem>([]))),
+]);
+
+Rfc9651.SerializeDictionary(priority);   // u=3, i
+```
+
+`SerializeItem`, `SerializeList` and `SerializeDictionary` write the canonical form: a true
+Boolean as its key alone, a Decimal rounded half to even to three places. What has no
+serialization — a key with an uppercase letter, a String outside printable ASCII, an Integer
+of sixteen digits — throws `ArgumentException`. An empty List or Dictionary is the empty
+string, and the RFC's advice for it is not to send the field.
+
 It is held to [the HTTP working group's test suite](https://github.com/httpwg/structured-field-tests).
 
 ## Taking it

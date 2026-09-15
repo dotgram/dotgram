@@ -10,7 +10,7 @@
 		<Description>The formats of the web, written in .gram against their specifications: URIs after RFC 3986, URI Templates after RFC 6570, and Structured Field Values for HTTP after RFC 9651.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageTags>parser;uri;rfc3986;uri-template;rfc6570;http;structured-fields;rfc9651;web;dotgram</PackageTags>
-		<PackageReleaseNotes>First release: RFC 3986 URIs and relative references, RFC 6570 URI Templates with their expansion, and RFC 9651 Structured Field Values for HTTP.</PackageReleaseNotes>
+		<PackageReleaseNotes>First release: RFC 3986 URIs and relative references, RFC 6570 URI Templates with their expansion, and RFC 9651 Structured Field Values for HTTP, parsed and serialized.</PackageReleaseNotes>
 
 		<!-- Symbols inside the assembly, as the generator carries them: a stack trace from
 		     a parser here has line numbers without a symbol server. -->
