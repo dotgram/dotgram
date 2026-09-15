@@ -79,7 +79,7 @@ expansion, since the RFC gives it no meaning. It is held to
 
 ## RFC 9651 Structured Field Values
 
-[`Rfc9651`](Rfc9651.cs) reads the fields HTTP now defines this way — `Priority`,
+[`Rfc9651`](Rfc9651.cs) reads the fields HTTP defines this way — `Priority`,
 `Cache-Status`, `Proxy-Status`, signatures — as the three types the RFC gives them: an Item,
 a List and a Dictionary.
 

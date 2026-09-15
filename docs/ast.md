@@ -1,8 +1,8 @@
 # The tree
 
 `src/DotGram.Sql/SqlSyntax.cs` holds one tree for every dialect this project reads —
-`Sql92Parser` and `TransactSqlParser` build it today. This is what is in it and where each
-node comes from; the SQL:2023 tree it is to be reshaped into is `design/sql-ast.md`'s.
+`Sql92Parser` and `TransactSqlParser` build it. This is what is in it and where each node
+comes from; the SQL:2023 tree it is to be reshaped into is `design/sql-ast.md`'s.
 
 ## The rule
 
@@ -38,7 +38,7 @@ and a field says which one it holds. `Statement.Insert.Rows` is a `Query`,
 `Expression.Subquery.Query` is a `Query`, `Query.Specification.From` is a
 `TableReference[]`.
 
-**As many roots as there are sublanguages.** Six is what today's surface needs, not a
+**As many roots as there are sublanguages.** Six is what the surface needs, not a
 closed list. A JSON path, an XQuery inside `FOR XML`, the drawing inside `MATCH (…)` and a
 full-text `CONTAINS` are each a language with a grammar of its own, and each will get a root
 of its own when it is kept rather than read and dropped. Adding one breaks nothing, which is
@@ -83,9 +83,8 @@ formatter's to case, which is why ScriptDom's own generator has a `KeywordCasing
 **Fields stand in the order the text writes them.** `TableReference.Named(Table, SystemTime,
 ForPath, Name, Columns, Sample, Hints, Server)` is the order of `t FOR SYSTEM_TIME … FOR PATH
 AS x (…) TABLESAMPLE … WITH (…)`, all but `Server`, the `OPENDATASOURCE (…)` that stands
-before the name and last among the fields. That was a reading convenience until printing
-arrived; it is load-bearing now, because a printer that walks the tree emits tokens in the
-order the fields stand in, and that order has to be the source's.
+before the name and last among the fields. The order is load-bearing: a printer that walks
+the tree emits tokens in the order the fields stand in, and that order has to be the source's.
 
 **The grammar says the shape; this file says which node.** The `.gram` reads `DROP <what>`
 once and hands the words to `Statement.Dropped`, which turns them into the record. So the
@@ -99,20 +98,18 @@ than in anybody's SQL.
 reference or a clause out as SQL — a `SetExpression` as part of its statement — which is
 what makes the tree checkable rather than merely typed: `benchmarks --roundtrip` parses a
 statement, prints it, and holds the result against what ScriptDom makes of the original. What
-the tree does not hold cannot come back, so that measurement is also the list of what is still
+the tree does not hold cannot come back, so that comparison is also the list of what is
 missing.
 
-**A node knows where it was written, where the grammar asked.**
-`TransactSqlParser` asks with
+**A node knows where it was written, where the grammar asked.** `TransactSqlParser` asks with
 `[GramOptions(LocationType = typeof(ISqlSpan), Suffix = "Located")]`, a second parser beside
 the first, `TransactSqlParser.Located`, and the six roots implement `ISqlSpan`: the reader
-offers each value the range of every rule it came out of, innermost first, and the
-last offer is kept. That is a little wide where a rule hands back a value another rule made —
+offers each value the range of every rule it came out of, innermost first, and the last offer
+is kept. That is a little wide where a rule hands back a value another rule made —
 `WhereClause` lends the condition its `WHERE` — and never wrong, which is the safe direction.
-It costs fourteen per cent of the parse and no allocation at all, and a grammar that does not
-ask pays neither.
+It allocates nothing, and a grammar that does not ask pays nothing for it.
 
-**But the tree still holds no text and no line numbers.** A span says where, in characters of
+**But the tree holds no text and no line numbers.** A span says where, in characters of
 the input it was measured against; a consumer that wants the text cuts it from that input,
 which is what §7.6 of `syntax.md` is for. What a span is *for* is the thing no tree can hold:
 a comment falls between two spans, and the innermost node containing it is the one it belongs
@@ -120,16 +117,13 @@ to.
 
 ## What the tree does not keep
 
-The reason a field is left out has not changed — a field nobody reads is a field that
-drifts — but the list has, and it is short now. `TOP`, `OVER`, the table and query hints,
-the windows, a named query's `WITH`, `OUTPUT` and the option lists of every DDL statement
-were all read and dropped while nothing held the tree against anything. Something does:
-`benchmarks --roundtrip` prints the tree back out and holds the result against what
-ScriptDom makes of the same input, and a decoration that never reached the tree cannot come
-back. So each of them is a field on a record here, which is what having a record each was
-for.
+A field nobody reads is a field that drifts. `benchmarks --roundtrip` reads them: it prints
+the tree back out and holds the result against what ScriptDom makes of the same input, and a
+decoration that never reached the tree cannot come back. So `TOP`, `OVER`, the table and
+query hints, the windows, a named query's `WITH`, `OUTPUT` and the option lists of every DDL
+statement are each a field on a record here.
 
-What is still read and dropped is what says how something is *matched* rather than what it
+What is read and dropped is what says how something is *matched* rather than what it
 is, and there are two: `CORRESPONDING` on a `UNION`, which names columns by matching rather
 than by position and is a question for whatever resolves names; and the order written
 inside a named query's body, since a `WITH` defines a table and a table has no order until

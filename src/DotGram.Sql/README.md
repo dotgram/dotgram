@@ -14,18 +14,18 @@ in `DotGram.Sql` — the records, [`SqlWriter`](SqlWriter.cs), which prints them
 
 | Parser | Namespace | What it reads |
 | --- | --- | --- |
-| [`SqlStandardParser`](Standard/SqlStandard.gram) | `DotGram.Sql.Standard` | ISO SQL:2023, being written: so far its lexical elements, names, scalar expressions, aggregates and window functions, the JSON functions, query expressions with row pattern recognition, predicates, the data change statements, the whole schema — tables, views, domains, sequences, privileges, routines, triggers, user-defined types, casts, orderings, transforms, character sets and collations — and the transaction, session, connection, diagnostics, dynamic and direct statements |
-| [`Sql92Parser`](Standard/SqlStandard92.gram) | `DotGram.Sql.Standard` | SQL-92 as the standard writes it, until SQL:2023 replaces it |
+| [`SqlStandardParser`](Standard/SqlStandard.gram) | `DotGram.Sql.Standard` | ISO SQL:2023, in part: its lexical elements, names, scalar expressions, aggregates and window functions, the JSON functions, query expressions with row pattern recognition, predicates, the data change statements, the whole schema — tables, views, domains, sequences, privileges, routines, triggers, user-defined types, casts, orderings, transforms, character sets and collations — and the transaction, session, connection, diagnostics, dynamic and direct statements |
+| [`Sql92Parser`](Standard/SqlStandard92.gram) | `DotGram.Sql.Standard` | SQL-92 as the standard writes it |
 | [`TransactSqlParser`](TransactSql/TransactSql.gram) | `DotGram.Sql.TransactSql` | SQL Server's T-SQL, as the engine reads it |
 
-For now the third names the second — `[GramInclude(typeof(Sql92Parser), As = "Sql92")]` —
-and rebinds the rules where T-SQL differs, so what the two languages share is written once and the
+The third names the second — `[GramInclude(typeof(Sql92Parser), As = "Sql92")]` — and
+rebinds the rules where T-SQL differs, so what the two languages share is written once and the
 dialect is the size of the difference.
 
 `TransactSqlParser` builds the tree, and `Sql92Parser` the expressions in it that the two share.
-`SqlStandardParser` recognizes: it says whether a text is the standard's language and builds
-nothing yet. The tree it is to build is laid out in [`Sql2023Ast.cs`](Standard/Sql2023Ast.cs), in
-`DotGram.Sql.Ast`, and nothing builds it.
+`SqlStandardParser` recognizes: it says whether a text is the standard's language and builds no
+tree. The tree laid out for the standard is in [`Sql2023Ast.cs`](Standard/Sql2023Ast.cs), in
+`DotGram.Sql.Ast`, and no parser builds it.
 
 `SqlStandardParser` publishes the standard's productions under their own names —
 `ParseValueExpression`, `ParseSearchCondition`, `ParseQueryExpression`, `ParseSQLSchemaStatement`
@@ -53,7 +53,7 @@ A database's compatibility level gates a small part of what SQL Server reads —
 clause from 160, `OPENJSON`'s schema from 130. `TransactSqlParser.ParseStatement130` reads what
 the engine reads at level 130, and so on from `100` to `170`; `ParseStatement` names no level and
 reads them all. The levels are one grammar and one machine, told apart by a number, and what each
-gates was measured against SQL Server rather than remembered.
+gates is held against SQL Server.
 
 `TransactSqlParser.ParseStatement` reads one statement. `TransactSqlParser.ParseSql` reads a text
 of them — what a client sends the server in one call — and gives back a `Statement[]`: each ended

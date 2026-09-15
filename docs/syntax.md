@@ -4,8 +4,8 @@ The engine plan lives in [`implementation.md`](implementation.md). Nothing decid
 there is a decision about the language.
 
 **This is a specification, not a report.** It says what `.Gram` is, in the present
-tense, whether or not the compiler does it yet — and today a good deal of it does not.
-[`status.md`](status.md) says which parts are real.
+tense, whether or not the compiler does it yet. [`status.md`](status.md) says which parts
+are real.
 
 `.Gram` is a typed recognition notation for .NET. A grammar describes how a stream
 of `TIn` input items becomes a typed `TOut` result; a source generator turns it into
@@ -368,10 +368,10 @@ The first reading is what the language does: ordered choice backtracks fully, an
 only thing that commits is an atomic group (§3.2), which this guard is not inside — so a
 failing guard is a non-match and a sibling is tried.
 
-The second is what one would want in the `Row` case, and saying so is the one thing
-still missing — see §11. Note that it is a question about diagnostics, not about
-parsing: whichever way it is answered, the guard's position stays the author's choice
-and still decides how much work is thrown away and where the message points.
+The second is what one would want in the `Row` case, and the notation has no way to say
+it — see §11. Note that it is a question about diagnostics, not about parsing: whichever
+way it is answered, the guard's position stays the author's choice and still decides how
+much work is thrown away and where the message points.
 
 **A guard about the grammar rather than about the input.** The same word asks a second
 kind of question, and the two are told apart by what follows the first operand:
@@ -436,11 +436,11 @@ not invoke an unrequested construction.
 
 **A parse that fails is the one exception, and it can be closed.** Where no reading of a
 rule that builds can be given up and replaced, the generator runs each construction where
-it is read rather than holding it for a walk at the end, which is about two fifths of a
-parse (`GRAM5012` says which it did, and why). A parse that succeeds then runs exactly the
-constructions it would have run anyway. A parse that fails may already have run those of
-what it read before failing, since nothing was held back to be dropped. Where a construction
-must not run for input that is refused — it counts, logs, or throws — say so:
+it is read rather than holding it for a walk at the end (`GRAM5012` says which it did, and
+why). A parse that succeeds then runs exactly the constructions it would have run anyway.
+A parse that fails may already have run those of what it read before failing, since
+nothing was held back to be dropped. Where a construction must not run for input that is
+refused — it counts, logs, or throws — say so:
 
 ```csharp
 [Gram("…", Carrier = GramCarrier.Tape)]
@@ -778,11 +778,9 @@ reads `Unary` twice: once for an alternative that wants a `^` after it and once 
 one that does not. That is a factor of two, and where the shared operand leads back to
 the rule holding it — as `Unary` leads back to `Power` through the parentheses at the
 bottom of every expression grammar — it *compounds*: the second reading reads everything
-inside them twice again. Sixteen parentheses deep is thirty milliseconds written that way
-and a twentieth of one written as above. And a flat cost with no nesting is still a cost
-paid once per alternative: eleven alternatives reading one operand is eleven readings
-where one would do. `GRAM4016` reports the shape wherever the compiler could not share
-the operand itself.
+inside them twice again. And a flat cost with no nesting is still a cost paid once per
+alternative: eleven alternatives reading one operand is eleven readings where one would
+do. `GRAM4016` reports the shape wherever the compiler could not share the operand itself.
 
 The two are not the same grammar, which is why it is reported rather than rewritten. Two
 alternatives prefer every reading of the first over any reading of the second, so a shared
@@ -831,7 +829,7 @@ Three things are rejected when the grammar is built:
   An intermediary that does anything of its own is still refused. Its operands and its
   own `=>` would join the tail of the fold, so a step would have to apply two
   constructions in order against an accumulator that is itself the result of one —
-  arbitrarily many shapes, which is what this rejection has always been about.
+  arbitrarily many shapes, which is what this rejection is about.
 
   **Every postfix step goes in one rule**, and that is not a style choice. Written as
   several rules that each begin with the forwarder — `Member`, `Index`, `Apply` —
@@ -1003,9 +1001,6 @@ so a reading one character shorter cannot be ruled out. The proofs that rest on 
 too — a repetition whose end is not settled writes a way back at every turn, and two
 alternatives that begin with the same lexeme cannot be read as one.
 
-One pair of braces on `DecRun` took 1.8% off the generated expression language, and the
-grammar means what it always meant.
-
 **It is a choice and not a rule of style.** Braces commit the first reading, so a rule that
 is *supposed* to give characters back must not have them:
 
@@ -1157,7 +1152,6 @@ gone with the rest of the lexer, and being a word is a property the token kind a
 has — so `word` becomes one range test over every kind that is a word: a keyword, and a
 class every character of which continues a word. It reads exactly one token there, which
 is what it read over characters too.
-
 
 ---
 
@@ -1518,7 +1512,7 @@ expression has (§8.2), so a choice needs brackets and the `with` that may follo
 directive's own:
 
 ```dotgram
-parse Padded(Word, ' ') as Spaced       // a parameterized rule, reachable at last
+parse Padded(Word, ' ') as Spaced       // a parameterized rule
 parse ('a' | 'b')       as Ab
 find  ['0'..'9']+       as Numbers
 ```
@@ -1594,15 +1588,6 @@ skew, and nothing crosses an assembly boundary.
 exposing a parser in its public API exposes its own generated types, and a consumer uses
 those — exactly as it would use any other type the library declares. There is no mode in
 which two assemblies bind to one copy of anything.
-
-There was one, briefly: an assembly could declare `[assembly: GramRuntime]` and publish
-four support types as `public` for others to bind to. It bought nothing — three of the
-four were used by nothing at all — and it cost the property this section is about, because
-an assembly compiled by one version of the generator was then binding to types emitted by
-another, with no package or version to say so. Emitting everything `internal` makes the
-question unaskable: an internal type cannot be seen across a boundary, so two of them
-cannot disagree. When a type genuinely has to be shared, it comes back with a contract to
-version and a reason to exist.
 
 ### 6.3 The input type picks the execution mode
 
@@ -1696,13 +1681,10 @@ crosses a publication's own boundary out to the caller, so an error at offset
 
 A recognizer too large for one method is written in several. Past about sixty thousand
 bytes of IL the JIT stops optimizing a method altogether, and well before that its code
-quality falls off — a synthetic grammar with a fixed hot core measures 379 ns undivided
-while it is small and 3,423 once it is large, against a flat 520 to 590 divided into
-small parts, whatever its size.
+quality falls off.
 
-How large a part is aimed to be is measured flat anywhere between sixty and two hundred
-and fifty of the generator's estimated basic blocks, and the default sits in the middle
-of that. Measured, but on grammars that are not yours:
+How large a part is aimed to be is counted in the generator's estimated basic blocks, and
+the default is chosen on grammars that are not yours:
 
 ```csharp
 [Gram("…", PartSize = 80)]
@@ -1716,9 +1698,8 @@ taken at its word. A number that made a grammar stop compiling would be a knob n
 could safely turn.
 
 Whether to divide *at all* is not tunable and is not the same question — a grammar
-small enough to hold in one method is faster that way, and dividing one that did not
-need it costs about a quarter where failing to divide one that did costs four times
-over. The generator decides that from the size it estimates.
+small enough to hold in one method is faster that way, and one too large for it is far
+slower undivided. The generator decides that from the size it estimates.
 
 ### 6.5 `Stacks`, how deep a reading may go
 
@@ -1740,12 +1721,12 @@ Say how many is enough where that is not what you want:
 public partial class MyParser { }
 ```
 
-Past that many the parse fails with `InsufficientExecutionStackException`, which is what it
-did before it could carry on at all. Zero, the default, is no limit. A reading that never
-goes deep takes none whatever this says, and a grammar with no cycle in it never probes.
+Past that many the parse fails with `InsufficientExecutionStackException`. Zero, the
+default, is no limit. A reading that never goes deep takes none whatever this says, and a
+grammar with no cycle in it never probes.
 
 One thing is not carried: a reading over a window (§6.3) has no whole input to hand to
-another stack, so a streamed parse that runs low fails as it always did.
+another stack, so a streamed parse that runs low fails.
 
 ### 6.6 `[GramOptions]`, a second reading of the same grammar
 
@@ -1804,8 +1785,6 @@ The value types a grammar generates are the compilation's own, so two compilatio
 grammar that builds its own types build two families of them. Where the types are
 written by hand and named with `@`, both build the same ones, which is what makes two
 carriers over one grammar comparable at all.
-
----
 
 ---
 
@@ -1894,11 +1873,10 @@ method takes as parameters.
 a capture, a rule, a parameter — and that is unchanged, including in the argument list of
 a call to a rule. The line is the `@`, not the bracket.
 
-The reason it stops there is worth stating, because the other way was tried: resolving
-names inside a consumer's C# means keeping up with C#, and every construct this compiler
-has not learnt becomes one the language forbids for no reason of its own. What it bought
-was catching a mistyped capture in that one position a little earlier. What it cost was
-two spellings of the same construction that did not accept the same things.
+It stops there because resolving names inside a consumer's C# would mean keeping up with
+C#, and every construct this compiler has not learnt would become one the language forbids
+for no reason of its own — and two spellings of the same construction would not accept the
+same things.
 
 There is one rule to read this by: **syntactic position determines the call shape.**
 `[@M]` emits `M(c)`, bare `@M` emits `M(text, ref p)`, and `when` and `=>` emit their C#
@@ -1909,8 +1887,8 @@ Two exceptions, narrow and specific, both about bare `@M`. The first: it alone d
 say whether `M` is the second row or the third, since the notation is the same either way.
 The host is asked whether `M` also has a `(ReadOnlySpan<char>, ref int, out T)` overload.
 Finding one hands the rule-shaped identity a value-producing call needs; finding none
-leaves bare `@M` exactly what it always was. More than one such overload with a different
-`T` is a tie, reported rather than guessed at, the same as an ambiguous constructor (§7.3).
+leaves bare `@M` the second row. More than one such overload with a different `T` is a
+tie, reported rather than guessed at, the same as an ambiguous constructor (§7.3).
 
 The second: whether `M` can be called in its role at all — as a recognizer where it is bare,
 as a predicate over a character where it is `[@M]`. Where no method of that row's shape is
@@ -2590,11 +2568,6 @@ That grammar is not printed here, because a printed one is not checked.
 repository — the snapshots on disk and the text of every `[Gram]` in the examples
 assembly, which a new grammar joins without anyone remembering to add it.
 
-What a printed sketch cost, before there was a running one: it named seven things it
-never defined, left comments out of the language entirely, omitted `@(...)` from
-`Primary` although the parser has always accepted it there, and wrote its separated
-lists in the form §4.5 now warns about. None of that could be seen by reading it.
-
 Two things in the running grammar are worth knowing about, since neither is visible in
 a production list:
 
@@ -2606,7 +2579,6 @@ a production list:
   closes it means knowing C#'s own strings and comments, which no grammar can do; the
   rule is a bare external recognizer (§7.1) that reads the input itself. What follows
   is about that seam.
-
 
 `@(` is the only place in the whole language holding raw C# text, and the only one
 needing a foreign lexer. Everything else with `@` (`@Name`, `@Name.Name`, `@Name<T>`,
@@ -2642,7 +2614,7 @@ None of what follows changes the notation described above.
   file in an editor — there is no notation for it: recovery here is scoped to
   one repetition (§8.2), for a feed. A general repair pass over a whole
   broken document — finding the edit an author most likely meant — is a
-  different kind of engine this project has not built.
+  different kind of engine.
 
   The two do not overlap in what they'd answer even if both existed: repair
   answers "what did the author most likely mean" for one document; §8.2
@@ -2686,7 +2658,7 @@ None of what follows changes the notation described above.
   "first that matches" and "longest that matches" is wanted is the author's call —
   .NET regular expressions take the first, POSIX the longest.
 
-  Normalization does still merge alternatives automatically where order provably
+  Normalization does merge alternatives automatically where order provably
   cannot matter: single-element sets, where the match is always exactly one item, so
   `'a' | 'b'` becomes `['a'..'b']`.
 

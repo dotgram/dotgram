@@ -374,9 +374,9 @@ the end. That grammar, over a feed made a line at a time:
 | 40,000,002 | 1.41 GiB | 12.9 s | 37.8 MiB | 83.0 MiB |
 | 600,000,002 | 21.17 GiB | 198.1 s | 48.3 MiB | 78.2 MiB |
 
-Fifteen times the input, and the process was 4.8 MiB smaller at the end of it. A streamed
-parse holds its window and the record in hand; the file is not in the figure.
-[`benchmarks/README.md`](benchmarks/README.md) has the run and what the sampled column
+Fifteen times the input leaves the working set no larger. A streamed parse holds its window
+and the record in hand; the file is not in the figure.
+[`benchmarks/README.md`](benchmarks/README.md) has the method and what the sampled column
 means.
 
 Record-oriented formats can also recover after malformed input:
@@ -543,7 +543,7 @@ and on every part they pull out of it, before anything is timed.
 So: from a tenth ahead of `RegexOptions.Compiled` to three times ahead of it, and 2.4× to
 8.7× against the interpreted pattern. Both sides are asked for the parsed values rather
 than only whether the input matched. [`benchmarks/README.md`](benchmarks/README.md) has
-the method, the run this came from, and the input that has been both sides of parity.
+the method and the full results.
 
 ## Visual Studio
 
