@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -16,9 +16,9 @@ static class Program
 {
 	static void Main(string[] args)
 	{
-		if (args.Length == 5 && args[0] == "profile")
+		if (args.Length is 5 or 6 && args[0] == "profile")
 		{
-			FixProfile.Run(args[1], args[2], args[3], int.Parse(args[4], CultureInfo.InvariantCulture));
+			FixProfile.Run(args[1], args[2], args[3], int.Parse(args[4], CultureInfo.InvariantCulture), args.Length == 6 ? args[5] : "Fix44");
 			return;
 		}
 		if (args.Length == 2 && args[0] == "--fix-jit-probe")

@@ -51,6 +51,31 @@ Malformed field syntax returns false from `TryParse`. Typed values own their dat
 no complete source string is retained by a field. Character-span input is copied
 for recognition; native byte-stream parsing creates no complete character view.
 
+## Alternative computed dispatch parser
+
+`FixDispatch` is an alternative to `Fix44`, with the same flat field types and
+string, character-span, byte-array, `TextReader` and byte `Stream` input forms.
+Its small [grammar](Fix/FixDispatch/FixDispatchGrammar.gram) reads a numeric tag
+once for classification and uses `switch` to select text or a length/data pair.
+C# supplies classification and typed field construction. `Fix44` remains available.
+
+```csharp
+var fields = FixDispatch.ParseLog("55=ABC|38=100|");
+var options = new FixDispatchOptions('|', new Dictionary<int, int>
+{
+    [95] = 96,
+    [5000] = 5001,
+});
+var custom = FixDispatch.Parse("5000=3|5001=a|b|", options);
+```
+
+A supplied length/data dictionary **replaces** the standard pairs and is copied
+at construction. Omit it to use the standard dictionary. Each length tag must
+immediately precede its configured data tag. The pair produces one binary field;
+unknown data tags produce `FixField.Unknown` with binary metadata. Standalone data
+tags are rejected. The parser recognizes binary boundaries; message and business
+validation remain in the explicitly called semantic API.
+
 ## Explicit message semantics
 
 The following APIs belong to `FixMessages` and run only when called explicitly.

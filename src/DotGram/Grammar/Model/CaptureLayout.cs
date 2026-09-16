@@ -156,6 +156,8 @@ public sealed class CaptureLayout
 			case Node.Choice(var alternatives):
 
 				_before[node] = _slots.Count;
+				if (((Node.Choice)node).Selection is { } selection)
+					_before[selection.Selector] = _slots.Count;
 
 				foreach (var alternative in alternatives)
 					Walk(alternative, buildsValue, repeated, inFold);

@@ -11,11 +11,12 @@ namespace DotGram.Finance.Benchmarks;
 
 static class FixProfile
 {
-	public static void Run(string path, string input, string workload, int iterations)
+	public static void Run(string path, string input, string workload, int iterations, string parser = "Fix44")
 	{
 		if (iterations <= 0) throw new ArgumentOutOfRangeException(nameof(iterations));
 		if (input != "Bytes" && input != "Characters" && input != "String") throw new ArgumentException("Unknown input.");
-		var type = new AssemblyLoadContext("Profile target").LoadFromAssemblyPath(Path.GetFullPath(path)).GetType("DotGram.Finance.Fix.Fix44")!;
+		if (parser != "Fix44" && parser != "FixDispatch") throw new ArgumentException("Unknown parser.");
+		var type = new AssemblyLoadContext("Profile target").LoadFromAssemblyPath(Path.GetFullPath(path)).GetType("DotGram.Finance.Fix." + parser)!;
 		var wire = Fix44Benchmarks.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|");
 		if (workload == "Groups")
 		{
@@ -23,12 +24,14 @@ static class FixProfile
 			for (var i = 0; i < 1000; i++) body.Append("269=0|270=12.50|271=100|");
 			wire = Fix44Benchmarks.Wire("W", body.ToString());
 		}
+		else if (workload == "Raw") wire = Fix44Benchmarks.Wire("A", "98=0|108=30|95=65536|96=" + new string('X', 65536) + "|");
 		else if (workload == "Tag1" || workload == "Tag100" || workload == "Tag198") wire = workload.Substring(3) + "=X\u0001";
 		else if (workload != "Order") throw new ArgumentException("Unknown workload.");
 		var operation = FixGrammarComparisonBenchmarks.Operation(FixGrammarComparisonBenchmarks.Bind(type, input), wire, input);
 		var fieldsPerOperation = operation();
-		Measure(operation, workload == "Groups" ? 100 : 50000);
+		Measure(operation, workload is "Groups" or "Raw" ? 100 : 50000);
 		Console.WriteLine($"Assembly SHA256: {Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path)))}");
+		Console.WriteLine($"Parser={parser}");
 		Console.WriteLine($"Workload={workload}, Input={input}, Iterations={iterations}, Fields/operation={fieldsPerOperation}");
 		Action? start = null, stop = null, save = null;
 		if (Environment.GetEnvironmentVariable("DOTGRAM_DOTTRACE_API") is { } apiPath)

@@ -424,6 +424,35 @@ listable set, since the trivia has no bound. And a rule every alternative of whi
 is left is a rule that cannot match, so a caller fails where the construct is written. `is`,
 `not`, `and` and `or` are keywords only after `when`, as `when` itself is.
 
+#### Computed choice: `switch`
+
+```gram
+Field = tag: Digits & '=' & switch @(Kind(tag)) {
+    case 0: Text
+    case 1: Binary
+    default: none
+}
+```
+
+The C# expression is evaluated once each time recognition reaches the switch. Its
+result selects one case directly, without trying other cases. Labels are decimal
+integer literals (including negative values) or string literals; one switch cannot
+mix the two. The expression must return an integral type or `string`. C# checks
+that labels fit the selector's type. String matching is case-sensitive and ordinal.
+A null string selects `default`, if present.
+
+Each body is a grammar expression and may capture values, construct a result, or
+contain ordinary alternatives. Consecutive labels may share one body. Duplicate
+labels and multiple defaults are errors. A semicolon after a body is optional.
+If no label matches, `default` is selected; without it recognition fails.
+Failure inside the selected body fails the switch and never tries another case,
+including `default`. An enclosing ordinary alternative can still backtrack.
+
+The selector sees preceding captures, `context`, `parserText` and `parserSpan`
+under the same rules as a guard. It runs during recognition: outer backtracking
+may reach it again, and side effects are not rolled back. Branch result inference
+and explicit `: @Type` contracts keep their ordinary meaning.
+
 ### 3.7 Construction
 
 ```dotgram

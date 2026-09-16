@@ -210,6 +210,7 @@ sealed partial class Machine
 	bool _materializer;
 	bool _guardValues;
 	int _guards;
+	readonly Dictionary<Node, (Node.SwitchSelection Selection, int[] Targets)> _switches = new(NodeIdentity.Instance);
 	int _sharpens;
 	int _captures;
 
@@ -2025,6 +2026,13 @@ sealed partial class Machine
 				return target;
 			}
 
+			case Node.Choice(var alternatives) { Selection: { } selected }:
+			{
+				var targets = alternatives.Select(branch => Compile(branch, next, following)).ToArray();
+				_switches[selected.Selector] = (selected, targets);
+				return Compile(selected.Selector, next, following);
+			}
+
 			case Node.Choice(var alternatives):
 			{
 				if (_prefixTables && !OverKinds && PrefixPlan(alternatives) is { } prefixes)
@@ -2362,6 +2370,7 @@ sealed partial class Machine
 
 			case Node.Guard(var condition):
 			{
+				var dispatch = _switches.TryGetValue(node, out var selection);
 				var rule = _owners[node];
 				var layout = CaptureLayout.Of(
 					_graph.Bodies[rule],
@@ -2442,9 +2451,31 @@ sealed partial class Machine
 					visible.Add((member with { IsOptional = optional }, slots));
 				}
 
-				helper.Line($"static bool {method}({string.Join(", ", parameters)}) =>");
-				CSharpEmitter.Handed(
-					helper, _lines, node is Node.Guard { At: var at } ? at : -1, condition + ";");
+				if (dispatch)
+				{
+					helper.Line($"static int {method}_Key(int value) => value;");
+					helper.Line($"static uint {method}_Key(uint value) => value;");
+					helper.Line($"static long {method}_Key(long value) => value;");
+					helper.Line($"static ulong {method}_Key(ulong value) => value;");
+					helper.Line($"static string? {method}_Key(string? value) => value;");
+					using (helper.Block($"static int {method}({string.Join(", ", parameters)})"))
+					{
+						helper.Line($"switch ({method}_Key(");
+						CSharpEmitter.Handed(helper, _lines, ((Node.Guard)node).At, condition + "))");
+						using (helper.Block(""))
+						{
+							for (var index = 0; index < selection.Selection.Labels.Count; index++)
+								helper.Line((selection.Selection.Labels[index] is { } label ? $"case {label}" : "default") + $": return {index};");
+							if (!selection.Selection.Labels.Contains(null)) helper.Line("default: return -1;");
+						}
+					}
+				}
+				else
+				{
+					helper.Line($"static bool {method}({string.Join(", ", parameters)}) =>");
+					CSharpEmitter.Handed(
+						helper, _lines, node is Node.Guard { At: var at } ? at : -1, condition + ";");
+				}
 				_extra.Add(helper.ToString());
 
 				var state = Reserve(out var writer);
@@ -2596,6 +2627,16 @@ sealed partial class Machine
 				// `Fail:` everywhere but inside a committed choice, where a refused guard
 				// falls to the next tail rather than into the unwinder. A guard reads
 				// nothing and records nothing, so there is nothing to unwind past.
+				if (dispatch)
+				{
+					using (writer.Block($"switch ({method}({string.Join(", ", arguments)}))"))
+					{
+						for (var index = 0; index < selection.Targets.Length; index++)
+							writer.Line($"case {index}: goto {Label(writer, selection.Targets[index])};");
+						writer.Line($"default: expected = null; goto {Label(writer, _fail)};");
+					}
+					return state;
+				}
 				writer.Line(
 					$"if (!{method}({string.Join(", ", arguments)})) " +
 					$"{{ expected = null; goto {Label(writer, _fail)}; }}");
@@ -2641,7 +2682,7 @@ sealed partial class Machine
 				// atomic boundary, no commit walk — nothing is written that a commit
 				// would have to put out, which is the whole of what the braces meant.
 				if (_recoveries.Count == 0 &&
-					body is Node.Choice(var decided) && decided.Count > 1 &&
+					body is Node.Choice(var decided) { Selection: null } && decided.Count > 1 &&
 					decided.All(Weightless))
 				{
 					var chosen = Compile(decided[decided.Count - 1], next, following);
@@ -2663,7 +2704,7 @@ sealed partial class Machine
 				// `Silent`'s own Atomic case asks — recoveries included, whose owned
 				// mark only the engine's commit writes — so the two agree.
 				if (_recoveries.Count == 0 &&
-					(body is Node.Choice(var options)
+					(body is Node.Choice(var options) { Selection: null }
 						? AllSilent(options, following, sequence: false)
 						: Silent(body, following)))
 				{

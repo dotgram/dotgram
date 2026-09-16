@@ -345,6 +345,10 @@ static class Questions
 					Walk(pattern);
 					return;
 
+				case Expr.Switch(_, var cases):
+					foreach (var branch in cases) Walk(branch.Body);
+					return;
+
 				case Expr.Guard:
 					return;
 

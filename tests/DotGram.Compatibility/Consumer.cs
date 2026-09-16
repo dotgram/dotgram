@@ -33,6 +33,11 @@ namespace DotGram.Compatibility
 	{
 	}
 
+	[Gram("Start : @int = switch @(1) { case 1: 'a' => @(1) default: 'b' => @(2) }\nparse Start stream bytes")]
+	public partial class ComputedDispatch
+	{
+	}
+
 	[Gram("Start : @string = text: any* => @(text)\nparse Start stream")]
 	public partial class BufferedCapture
 	{

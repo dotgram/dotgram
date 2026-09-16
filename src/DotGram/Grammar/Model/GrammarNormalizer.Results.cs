@@ -26,6 +26,8 @@ namespace DotGram.Grammar.Model;
 /// </remarks>
 public sealed partial class GrammarNormalizer
 {
+	static IReadOnlyList<Node> ValueAlternatives(Node body) => body is Node.Choice(var nodes) ? nodes : [body];
+
 	/// <summary>
 	/// The C# type a rule declared for itself, if it declared one.
 	/// </summary>
@@ -218,10 +220,12 @@ public sealed partial class GrammarNormalizer
 
 			var rewritten = new List<Node>();
 
-			foreach (var alternative in Alternatives(body))
+			foreach (var alternative in ValueAlternatives(body))
 				rewritten.Add(new Node.Construct(alternative, new Construction.Expression("parserSpan")));
 
-			_bodies[rule] = rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
+			_bodies[rule] = _bodies[rule] is Node.Choice { Selection: not null } selected
+				? selected.Rebuild(rewritten)
+				: rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
 		}
 	}
 
@@ -244,7 +248,7 @@ public sealed partial class GrammarNormalizer
 			if (pair.Value.IsSequence || !_types.TryGetValue(rule, out var type))
 				continue;
 
-			var alternatives = Alternatives(_bodies[rule]);
+			var alternatives = ValueAlternatives(_bodies[rule]);
 
 			if (alternatives.Any(static alternative => alternative is Node.Construct))
 				continue;
@@ -271,7 +275,9 @@ public sealed partial class GrammarNormalizer
 			if (taken < 0)
 				continue;
 
-			_bodies[rule] = rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
+			_bodies[rule] = _bodies[rule] is Node.Choice { Selection: not null } selected
+				? selected.Rebuild(rewritten)
+				: rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
 		}
 	}
 
@@ -294,7 +300,7 @@ public sealed partial class GrammarNormalizer
 				continue;
 			}
 
-			var alternatives = Alternatives(_bodies[rule]);
+			var alternatives = ValueAlternatives(_bodies[rule]);
 
 			// A rule that says how to build its value has said it.
 			if (alternatives.Any(static alternative => alternative is Node.Construct))
@@ -340,7 +346,9 @@ public sealed partial class GrammarNormalizer
 			foreach (var alternative in alternatives)
 				rewritten.Add(new Node.Construct(alternative, how));
 
-			_bodies[rule] = rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
+			_bodies[rule] = _bodies[rule] is Node.Choice { Selection: not null } selected
+				? selected.Rebuild(rewritten)
+				: rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
 		}
 	}
 
@@ -444,7 +452,7 @@ public sealed partial class GrammarNormalizer
 
 			// A rule that says how to build its value has said it; this is for the one that
 			// left it to the shape of the rule.
-			if (Alternatives(_bodies[rule]).Any(static alternative => alternative is Node.Construct))
+			if (ValueAlternatives(_bodies[rule]).Any(static alternative => alternative is Node.Construct))
 				continue;
 
 			// What the declaration says, unless it named a parameter: a specialization of
@@ -461,7 +469,7 @@ public sealed partial class GrammarNormalizer
 			var rewritten = new List<Node>();
 			var taken     = 0;
 
-			foreach (var alternative in Alternatives(_bodies[rule]))
+			foreach (var alternative in ValueAlternatives(_bodies[rule]))
 				rewritten.Add(new Node.Construct(
 					Gather(alternative, element, ref taken), Construction.Sequence.Instance));
 
@@ -487,7 +495,9 @@ public sealed partial class GrammarNormalizer
 				continue;
 			}
 
-			_bodies[rule] = rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
+			_bodies[rule] = _bodies[rule] is Node.Choice { Selection: not null } selected
+				? selected.Rebuild(rewritten)
+				: rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
 		}
 	}
 
@@ -605,7 +615,7 @@ public sealed partial class GrammarNormalizer
 				foreach (var alternative in alternatives)
 					built.Add(Gather(alternative, element, ref taken));
 
-				return new Node.Choice(built);
+				return ((Node.Choice)node).Rebuild(built);
 			}
 
 			case Node.Repeat(var body, var min, var max):

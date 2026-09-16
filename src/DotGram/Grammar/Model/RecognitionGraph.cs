@@ -98,11 +98,20 @@ public abstract record Node
 		public override string ToString() => string.Join(" & ", Nodes);
 	}
 
+	public sealed record SwitchSelection(Guard Selector, IReadOnlyList<string?> Labels);
+
 	public sealed record Choice(IReadOnlyList<Node> Nodes) : Node
 	{
-		public override IEnumerable<Node> Children => Nodes;
+		/// <summary>A computed dispatch, rather than an ordered backtracking choice.</summary>
+		public SwitchSelection? Selection { get; init; }
+		public Choice Rebuild(IReadOnlyList<Node> nodes) => this with { Nodes = nodes };
+		public override IEnumerable<Node> Children => Selection is { } selection
+			? new Node[] { selection.Selector }.Concat(Nodes) : Nodes;
 
-		public override string ToString() => $"({string.Join(" | ", Nodes)})";
+		public override string ToString() => Selection is { } selection
+			? $"switch {selection.Selector.Text} {{ " + string.Join(" ", Nodes.Select((node, index) =>
+				(selection.Labels[index] is { } label ? $"case {label}" : "default") + $": {node}")) + " }"
+			: $"({string.Join(" | ", Nodes)})";
 	}
 
 	/// <summary>An explicit commit-on-success backtracking boundary.</summary>

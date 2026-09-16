@@ -70,7 +70,7 @@ public sealed partial class GrammarNormalizer
 				{
 					var rebuilt = Rebuilt(alternatives);
 
-					return rebuilt is null ? node : new Node.Choice(rebuilt);
+					return rebuilt is null ? node : ((Node.Choice)node).Rebuild(rebuilt);
 				}
 
 				case Node.Repeat(var body, var min, var max) when !_recoveries.ContainsKey(node):
@@ -135,7 +135,7 @@ public sealed partial class GrammarNormalizer
 				Node.Call(var rule, var arguments) => arguments.Count == 0 && PureRule(rule),
 				Node.Empty or Node.Literal or Node.Element or Node.Behind or Node.Glue => true,
 				Node.Sequence(var parts)        => parts.All(PureText),
-				Node.Choice(var alternatives)   => alternatives.All(PureText),
+				Node.Choice(var alternatives) { Selection: null } => alternatives.All(PureText),
 				Node.Repeat(var body, _, _)     => !_recoveries.ContainsKey(node) && PureText(body),
 				Node.Atomic(var body)           => PureText(body),
 				Node.Marked(var body, _)        => PureText(body),

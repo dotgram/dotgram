@@ -1,0 +1,29 @@
+@using DotGram.Finance.Fix;
+context : @FixDispatchContext
+
+Separator = ['\u0001']
+LogSeparator = ['|']
+Tag = ['1'..'9'] & ['0'..'9']*
+Size = ['0'..'9']+
+Text = (?!Separator & any)+
+
+Block4096 = when @(context.DataLimit - parserSpan.Start - parserSpan.Length >= 4096) & any{4096}
+Block256 = when @(context.DataLimit - parserSpan.Start - parserSpan.Length >= 256) & any{256}
+Block16 = when @(context.DataLimit - parserSpan.Start - parserSpan.Length >= 16) & any{16}
+Octet = when @(parserSpan.Start + parserSpan.Length < context.DataLimit) & any
+Data = { Block4096* & Block256* & Block16* & Octet* & when @(parserSpan.Start + parserSpan.Length == context.DataLimit) }
+
+Field : @FixField =
+	tag: Tag & '=' & switch @(context.Kind(tag)) {
+		case 0: Text
+		case 1:
+			size: Size & Separator & dataTag: Tag & '='
+			& when @(context.BeginData(tag, size, dataTag, parserSpan.Start + parserSpan.Length)) & Data
+	} & Separator
+	=> @(context.Create(parserText, parserSpan.Start))
+
+Fields : @FixField[] = { Field* }
+parse Fields stream bytes
+parse Fields with (Separator = LogSeparator) as ParseLogFields stream bytes
+parse Fields as ReadFields stream bytes yield : @FixField
+parse Fields with (Separator = LogSeparator) as ReadLogFields stream bytes yield : @FixField

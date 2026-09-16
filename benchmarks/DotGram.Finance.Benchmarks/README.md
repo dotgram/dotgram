@@ -270,3 +270,10 @@ per-enumeration input array as the main short-input allocation. Pooling saves
 90.5% for one byte field, 72.1% for byte orders, and 85.3% for character orders.
 Short inputs improve modestly in time; groups regress 2.7%. The report records
 pool ownership, retention semantics, raw measurements and compatibility checks.
+
+## Computed switch and alternative FIX parser: 2026-09-16
+
+[FixDispatch comparison](results/2026-09-16-dispatch.md) compares the new small
+grammar and C# field construction with Fix44 in the same assembly. Byte orders
+are about 2.1x faster, groups 1.65x, binary input 1.34x and string orders 4.0x.
+The report includes all timings, allocation, validation and reproduction commands.
