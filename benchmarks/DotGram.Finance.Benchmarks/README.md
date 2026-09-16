@@ -231,3 +231,10 @@ ordinary FixField streaming and one result per binary pair with the Unit-based
 implementation. Short orders take 8-15% less time; group allocation falls 11-14%.
 Raw string parsing regresses 16%. The report explains the binary output change
 and the normalization used only by correctness checks.
+
+## Lexical mode probe: 2026-09-16
+
+[Lexical mode probe](results/2026-09-16-lexical.md): adding Lexical triggers
+GRAM5004 because the grammar publishes yield. The emitted parser is byte-identical
+to the baseline, so no lexical performance comparison is available. The flag was
+removed after the probe.
