@@ -246,3 +246,10 @@ parser versions after warmup. Materialization explains the short-order regressio
 sequential tag alternatives explain the much higher cost of late tags. The report
 includes unprofiled timings, full function exports, native-frame evidence and
 reproduction commands. No parser optimization is included in this investigation.
+
+## Optional prefix tables: 2026-09-16
+
+[Prefix-table experiment](results/2026-09-16-prefix-tables.md) compares the default
+strategy with `PrefixTables = true`, using identical FIX grammars. It records
+three-run timings, allocations, table/assembly size, scope and validation. The
+option remains disabled by default, including in the Finance host.

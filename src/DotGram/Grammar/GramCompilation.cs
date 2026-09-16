@@ -126,6 +126,9 @@ public sealed class GramCompilerOptions
 	/// </remarks>
 	public bool Lexical { get; set; }
 
+	/// <summary>Experimentally dispatch disjoint literal prefixes through transition tables. Off by default.</summary>
+	public bool PrefixTables { get; set; }
+
 	/// <summary>
 	/// Whether a publication that needs none of the automaton may be compiled as methods
 	/// (<c>Machine.Direct.cs</c>). On by default; off keeps the engine for every publication,

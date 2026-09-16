@@ -41,6 +41,7 @@ that thing is what the notation already means in C# or in .NET regular expressio
   - [5.1 Rebinding](#51-rebinding)
   - [5.2 The standard library, `Std`](#52-the-standard-library-std)
 - [6. Publication](#6-publication)
+  - [Explicit lazy results](#explicit-lazy-results)
   - [6.1 The result](#61-the-result)
   - [6.2 Why the signatures use BCL types only](#62-why-the-signatures-use-bcl-types-only)
   - [6.3 The input type picks the execution mode](#63-the-input-type-picks-the-execution-mode)
@@ -2078,6 +2079,7 @@ of it fails a build.
 | `Portable` | follows the class's visibility | whether the grammar's text travels on the class, for an include across a project reference (§6.7). |
 | `Lexical` | `false` | read the input as tokens, the grammar cut into a lexer and a syntactic half (§4, §7.1). A grammar that cannot be cut is `GRAM5004`. |
 | `Carrier` | `GramCarrier.Auto` | how a reader carries what it read until the constructions run; below. |
+| `PrefixTables` | `false` | experimental table dispatch for disjoint, case-sensitive literal prefixes in the character/byte automaton. Other choices retain their existing strategy. No tokenization is introduced. |
 | `Direct` | `true` | compile as methods where the automaton is not needed; below. |
 | `LocationType` | none | an interface whose implementors are told where they were written; below. |
 

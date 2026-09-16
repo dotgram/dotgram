@@ -52,7 +52,7 @@ public static partial class CSharpEmitter
 
 	static void AddBufferedMachines(
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, List<Compiled> machines,
-		bool requested, bool byteRequested, bool overKinds, ICollection<GramDiagnostic>? diagnostics, int? partSize, bool spanCaptures)
+		bool requested, bool byteRequested, bool overKinds, ICollection<GramDiagnostic>? diagnostics, int? partSize, bool spanCaptures, bool prefixTables)
 	{
 		foreach (var publication in graph.Publications)
 		for (var form = 0; form < 2; form++)
@@ -75,7 +75,7 @@ public static partial class CSharpEmitter
 			{
 				machine = new Machine(graph, results, lines, only: rules, tag: tag,
 					partSize: partSize, bufferedInput: true, bufferedBytes: bytes, spanCaptures: spanCaptures,
-					bufferedFind: publication.Kind != PublishKind.Parse);
+					bufferedFind: publication.Kind != PublishKind.Parse, prefixTables: prefixTables);
 				machine.Register(publication.Rule, whole: publication.Kind == PublishKind.Parse);
 				if (machine.UsesInput)
 					why = "parserInput requires the complete input string";

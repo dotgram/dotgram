@@ -153,7 +153,7 @@ public static partial class CSharpEmitter
 		string? languageId = null, string? languageSource = null,
 		string? languageClassifications = null, string? languageRecognitionContract = null,
 		IReadOnlyList<string>? statics = null, string? grammarSource = null, bool suffixDeclared = false,
-		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false)
+		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = false)
 	{
 		statics ??= [];
 
@@ -197,7 +197,7 @@ public static partial class CSharpEmitter
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
-				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures);
+				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables);
 
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one
@@ -231,7 +231,7 @@ public static partial class CSharpEmitter
 		// entered at its own rule, rather than by a second copy of everything it reaches.
 		Joined(graph, machines, overKinds);
 
-		AddBufferedMachines(graph, results, lines, machines, bufferedInput, bufferedBytes, overKinds, diagnostics, partSize, spanCaptures);
+		AddBufferedMachines(graph, results, lines, machines, bufferedInput, bufferedBytes, overKinds, diagnostics, partSize, spanCaptures, prefixTables);
 
 		// A second machine over the characters, for the terminals whose value the lexer
 		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds

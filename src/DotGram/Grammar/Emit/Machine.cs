@@ -19,6 +19,7 @@ sealed partial class Machine
 {
 	public bool BufferedInput { get; }
 	readonly bool _bufferedFind;
+	readonly bool _prefixTables;
 	public bool BufferedBytes { get; }
 	public bool BorrowedCaptures { get; }
 	string CaptureSpanType => $"global::System.ReadOnlySpan<{(BufferedBytes ? "byte" : "char")}>";
@@ -294,10 +295,11 @@ sealed partial class Machine
 		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "", int? partSize = null,
 		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null,
 		CarrierKind carrier = CarrierKind.Tape, int stacks = 0, TerminalInventory? inventory = null,
-		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool bufferedFind = false)
+		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool bufferedFind = false, bool prefixTables = false)
 	{
 		BufferedInput = bufferedInput;
 		_bufferedFind = bufferedFind;
+		_prefixTables = prefixTables;
 		BufferedBytes = bufferedBytes;
 		BorrowedCaptures = bufferedBytes || spanCaptures;
 		_graph = graph;
@@ -2025,6 +2027,9 @@ sealed partial class Machine
 
 			case Node.Choice(var alternatives):
 			{
+				if (_prefixTables && !OverKinds && PrefixPlan(alternatives) is { } prefixes)
+					return CompilePrefixChoice(alternatives, prefixes, next, following);
+
 				if (Predictive(alternatives) is { } predicted)
 					return CompilePredictedChoice(alternatives, predicted, next, following);
 
@@ -3457,13 +3462,14 @@ sealed partial class Machine
 	/// </remarks>
 	int CompileChainedChoice(
 		IReadOnlyList<Node> alternatives, int next, FollowSets.Continuation following,
-		FirstSets.First? proven = null)
+		FirstSets.First? proven = null, Dictionary<Node, int>? prefixHeads = null)
 	{
 		var last   = alternatives.Count - 1;
 		var run    = LiteralGroup(alternatives, last, following.Plain);
 		var target = run > 0
 			? CompileLiterals(alternatives, last - run + 1, last, next, Fail)
 			: Compile(alternatives[last], next, following);
+		if (prefixHeads is not null) prefixHeads[alternatives[last]] = target;
 		var rest   = run > 0 ? Begins(alternatives, last - run + 1, last) : Decidable(alternatives[last]);
 
 		for (var i = last - run - (run > 0 ? 0 : 1); i >= 0; i--)
@@ -3485,6 +3491,7 @@ sealed partial class Machine
 			}
 
 			var first = Compile(alternatives[i], next, following);
+			if (prefixHeads is not null) prefixHeads[alternatives[i]] = first;
 			var mine  = Decidable(alternatives[i]);
 			var state = Reserve(out var writer);
 
@@ -3610,12 +3617,12 @@ sealed partial class Machine
 		IReadOnlyList<Node> alternatives,
 		IReadOnlyList<(FirstSets.First Set, List<Node> Members)> groups,
 		int next,
-		FollowSets.Continuation following)
+		FollowSets.Continuation following, Dictionary<Node, int>? prefixHeads = null)
 	{
 		var heads = new int[groups.Count];
 
 		for (var i = 0; i < groups.Count; i++)
-			heads[i] = CompileChainedChoice(groups[i].Members, next, following, groups[i].Set);
+			heads[i] = CompileChainedChoice(groups[i].Members, next, following, groups[i].Set, prefixHeads);
 
 		var state     = Reserve(out var writer);
 		var arrayName = DeclareExpected([.. alternatives.SelectMany(Displays).Distinct()]);

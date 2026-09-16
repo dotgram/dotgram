@@ -444,6 +444,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// setting it to nought means: take the measured default either way.
 			PartSize       = host.PartSize == 0 ? null : host.PartSize,
 			Lexical        = host.Lexical,
+			PrefixTables   = host.PrefixTables,
 			Direct         = host.Direct,
 			LocationType   = host.LocationType,
 
@@ -739,6 +740,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<Included> Includes = default,
 		int       PartSize   = 0,
 		bool      Lexical    = false,
+		bool      PrefixTables = false,
 		bool      Direct     = true,
 		int       Carrier    = 0,
 		int       ValueStorage = 0,
@@ -900,6 +902,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.FirstOrDefault(static named => named.Key == nameof(Host.Lexical))
 				.Value.Value as bool? ?? first?.Lexical ?? false;
 
+			var prefixTables = attribute.NamedArguments
+				.FirstOrDefault(static named => named.Key == nameof(Host.PrefixTables))
+				.Value.Value as bool? ?? first?.PrefixTables ?? false;
+
 			var direct = attribute.NamedArguments
 				.FirstOrDefault(static named => named.Key == nameof(Host.Direct))
 				.Value.Value as bool? ?? first?.Direct ?? true;
@@ -1003,6 +1009,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 				Includes:   new EquatableArray<Included>(Inherited(type)),
 				PartSize:   partSize,
 				Lexical:    lexical,
+				PrefixTables: prefixTables,
 				Direct:     direct,
 				Carrier:    carrier,
 				ValueStorage: valueStorage,
