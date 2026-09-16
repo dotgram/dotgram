@@ -1,0 +1,116 @@
+<Report>
+	<Function Id="0x00000002" FQN="[Garbage collection]()" TotalTime="16" OwnTime="16" Samples="6" Instances="1" />
+	<Function Id="0x00000005" FQN="[Native or optimized code]()" TotalTime="0" OwnTime="0" Samples="50" Instances="1" />
+	<Function Id="0x0020004D" FQN="DotGram.Finance.Benchmarks.FixGrammarComparisonBenchmarks+&lt;&gt;c__DisplayClass13_0.&lt;Operation&gt;b__0()" TotalTime="13047" OwnTime="47" Samples="2290" Instances="1" />
+	<Function Id="0x00200034" FQN="DotGram.Finance.Benchmarks.FixProfile.Measure(Func[Int32], Int32)" TotalTime="13047" OwnTime="0" Samples="2292" Instances="1" />
+	<Function Id="0x00200033" FQN="DotGram.Finance.Benchmarks.FixProfile.Run(String, String, String, Int32)" TotalTime="13047" OwnTime="0" Samples="2292" Instances="1" />
+	<Function Id="0x00200035" FQN="DotGram.Finance.Benchmarks.Program.Main(String[])" TotalTime="13047" OwnTime="0" Samples="2292" Instances="1" />
+	<Function Id="0x00A03623" FQN="DotGram.Finance.Fix.Fix44+&lt;&gt;c__DisplayClass4_0+&lt;&lt;Parse&gt;g__Read|0&gt;d.MoveNext()" TotalTime="13000" OwnTime="141" Samples="2274" Instances="1" />
+	<Function Id="0x00A00065" FQN="DotGram.Finance.Fix.FixConvert.Integer(ReadOnlySpan[Byte], BigInteger&amp;)" TotalTime="31" OwnTime="16" Samples="4" Instances="1" />
+	<Function Id="0x00A0155B" FQN="DotGram.Finance.Fix.FixGrammar.&lt;Materialize_DotGram_Buffered_ReadFields_Bytes&gt;g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part0|11089_0(BufferedBytes, Int32, &lt;&gt;c__DisplayClass11089_0&amp;)" TotalTime="469" OwnTime="313" Samples="72" Instances="1" />
+	<Function Id="0x00A0155C" FQN="DotGram.Finance.Fix.FixGrammar.&lt;Materialize_DotGram_Buffered_ReadFields_Bytes&gt;g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part1|11089_1(BufferedBytes, Int32, &lt;&gt;c__DisplayClass11089_0&amp;)" TotalTime="7109" OwnTime="5938" Samples="1282" Instances="1" />
+	<Function Id="0x00A014B7" FQN="DotGram.Finance.Fix.FixGrammar.&lt;Recognize_DotGram_Buffered_ReadFields_Bytes&gt;g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part0|3724_0(BufferedBytes, Failure&amp;, &lt;&gt;c__DisplayClass3724_0&amp;, &lt;&gt;c__DisplayClass3724_1&amp;)" TotalTime="453" OwnTime="453" Samples="86" Instances="1" />
+	<Function Id="0x00A014B8" FQN="DotGram.Finance.Fix.FixGrammar.&lt;Recognize_DotGram_Buffered_ReadFields_Bytes&gt;g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part1|3724_1(BufferedBytes, Failure&amp;, &lt;&gt;c__DisplayClass3724_0&amp;, &lt;&gt;c__DisplayClass3724_1&amp;)" TotalTime="16" OwnTime="16" Samples="5" Instances="1" />
+	<Function Id="0x00A014C6" FQN="DotGram.Finance.Fix.FixGrammar.&lt;Recognize_DotGram_Buffered_ReadFields_Bytes&gt;g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part15|3724_15(BufferedBytes, Failure&amp;, &lt;&gt;c__DisplayClass3724_0&amp;, &lt;&gt;c__DisplayClass3724_1&amp;)" TotalTime="109" OwnTime="94" Samples="16" Instances="1" />
+	<Function Id="0x00A014CB" FQN="DotGram.Finance.Fix.FixGrammar.&lt;Recognize_DotGram_Buffered_ReadFields_Bytes&gt;g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part20|3724_20(BufferedBytes, Failure&amp;, &lt;&gt;c__DisplayClass3724_0&amp;, &lt;&gt;c__DisplayClass3724_1&amp;)" TotalTime="297" OwnTime="125" Samples="44" Instances="1" />
+	<Function Id="0x00A014CC" FQN="DotGram.Finance.Fix.FixGrammar.&lt;Recognize_DotGram_Buffered_ReadFields_Bytes&gt;g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part21|3724_21(BufferedBytes, Failure&amp;, &lt;&gt;c__DisplayClass3724_0&amp;, &lt;&gt;c__DisplayClass3724_1&amp;)" TotalTime="219" OwnTime="109" Samples="36" Instances="1" />
+	<Function Id="0x00A014D1" FQN="DotGram.Finance.Fix.FixGrammar.&lt;Recognize_DotGram_Buffered_ReadFields_Bytes&gt;g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part26|3724_26(BufferedBytes, Failure&amp;, &lt;&gt;c__DisplayClass3724_0&amp;, &lt;&gt;c__DisplayClass3724_1&amp;)" TotalTime="297" OwnTime="219" Samples="55" Instances="1" />
+	<Function Id="0x00A014D7" FQN="DotGram.Finance.Fix.FixGrammar.&lt;Recognize_DotGram_Buffered_ReadFields_Bytes&gt;g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part32|3724_32(BufferedBytes, Failure&amp;, &lt;&gt;c__DisplayClass3724_0&amp;, &lt;&gt;c__DisplayClass3724_1&amp;)" TotalTime="297" OwnTime="94" Samples="47" Instances="1" />
+	<Function Id="0x00A014BB" FQN="DotGram.Finance.Fix.FixGrammar.&lt;Recognize_DotGram_Buffered_ReadFields_Bytes&gt;g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part4|3724_4(BufferedBytes, Failure&amp;, &lt;&gt;c__DisplayClass3724_0&amp;, &lt;&gt;c__DisplayClass3724_1&amp;)" TotalTime="109" OwnTime="109" Samples="12" Instances="1" />
+	<Function Id="0x00A014E0" FQN="DotGram.Finance.Fix.FixGrammar.&lt;Recognize_DotGram_Buffered_ReadFields_Bytes&gt;g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part41|3724_41(BufferedBytes, Failure&amp;, &lt;&gt;c__DisplayClass3724_0&amp;, &lt;&gt;c__DisplayClass3724_1&amp;)" TotalTime="281" OwnTime="141" Samples="44" Instances="1" />
+	<Function Id="0x00A014E5" FQN="DotGram.Finance.Fix.FixGrammar.&lt;Recognize_DotGram_Buffered_ReadFields_Bytes&gt;g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part46|3724_46(BufferedBytes, Failure&amp;, &lt;&gt;c__DisplayClass3724_0&amp;, &lt;&gt;c__DisplayClass3724_1&amp;)" TotalTime="719" OwnTime="688" Samples="113" Instances="1" />
+	<Function Id="0x00A00106" FQN="DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_10_Bytes(SourceSpan, ReadOnlySpan[Byte])" TotalTime="31" OwnTime="31" Samples="6" Instances="1" />
+	<Function Id="0x00A00130" FQN="DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_31_Bytes(SourceSpan, ReadOnlySpan[Byte])" TotalTime="16" OwnTime="16" Samples="2" Instances="1" />
+	<Function Id="0x00A00132" FQN="DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_32_Bytes(SourceSpan, ReadOnlySpan[Byte])" TotalTime="16" OwnTime="0" Samples="4" Instances="1" />
+	<Function Id="0x00A00138" FQN="DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_35_Bytes(SourceSpan, ReadOnlySpan[Byte])" TotalTime="31" OwnTime="0" Samples="6" Instances="1" />
+	<Function Id="0x00A0013C" FQN="DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_37_Bytes(SourceSpan, ReadOnlySpan[Byte])" TotalTime="16" OwnTime="16" Samples="1" Instances="1" />
+	<Function Id="0x00A00144" FQN="DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_41_Bytes(SourceSpan, ReadOnlySpan[Byte])" TotalTime="16" OwnTime="16" Samples="5" Instances="1" />
+	<Function Id="0x00A0014A" FQN="DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_44_Bytes(SourceSpan, ReadOnlySpan[Byte])" TotalTime="47" OwnTime="47" Samples="7" Instances="1" />
+	<Function Id="0x00A0014E" FQN="DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_46_Bytes(SourceSpan, ReadOnlySpan[Byte])" TotalTime="47" OwnTime="47" Samples="7" Instances="1" />
+	<Function Id="0x00A00152" FQN="DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_48_Bytes(SourceSpan, ReadOnlySpan[Byte])" TotalTime="31" OwnTime="31" Samples="2" Instances="1" />
+	<Function Id="0x00A00154" FQN="DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_49_Bytes(SourceSpan, ReadOnlySpan[Byte])" TotalTime="16" OwnTime="16" Samples="13" Instances="1" />
+	<Function Id="0x00A00156" FQN="DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_50_Bytes(SourceSpan, ReadOnlySpan[Byte])" TotalTime="31" OwnTime="31" Samples="4" Instances="1" />
+	<Function Id="0x00A0015E" FQN="DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_54_Bytes(SourceSpan, ReadOnlySpan[Byte])" TotalTime="63" OwnTime="63" Samples="8" Instances="1" />
+	<Function Id="0x00A00100" FQN="DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_7_Bytes(SourceSpan, ReadOnlySpan[Byte])" TotalTime="47" OwnTime="31" Samples="10" Instances="1" />
+	<Function Id="0x00A00102" FQN="DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_8_Bytes(SourceSpan, ReadOnlySpan[Byte])" TotalTime="47" OwnTime="47" Samples="4" Instances="1" />
+	<Function Id="0x00A00104" FQN="DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_9_Bytes(SourceSpan, ReadOnlySpan[Byte])" TotalTime="16" OwnTime="0" Samples="6" Instances="1" />
+	<Function Id="0x00A0128A" FQN="DotGram.Finance.Fix.FixGrammar.Materialize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Parser, ParserArena, FixContext)" TotalTime="8188" OwnTime="609" Samples="1466" Instances="1" />
+	<Function Id="0x00A000A4" FQN="DotGram.Finance.Fix.FixGrammar.ReadFields(Stream, FixContext, Int32, Int32)" TotalTime="0" OwnTime="0" Samples="2" Instances="1" />
+	<Function Id="0x00A00F15" FQN="DotGram.Finance.Fix.FixGrammar.Recognize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Int32, Int32, Int32, Boolean, Boolean, FixContext, Failure&amp;, Object&amp;)" TotalTime="12250" OwnTime="719" Samples="2159" Instances="1" />
+	<Function Id="0x00A0136D" FQN="DotGram.Finance.Fix.FixGrammar.Recycled()" TotalTime="63" OwnTime="63" Samples="10" Instances="1" />
+	<Function Id="0x00A035C1" FQN="DotGram.Finance.Fix.FixGrammar+&lt;ReadFields&gt;d__19.GetEnumerator()" TotalTime="0" OwnTime="0" Samples="1" Instances="1" />
+	<Function Id="0x00A035BD" FQN="DotGram.Finance.Fix.FixGrammar+&lt;ReadFields&gt;d__19.MoveNext()" TotalTime="12859" OwnTime="172" Samples="2250" Instances="1" />
+	<Function Id="0x00A0358A" FQN="DotGram.Finance.Fix.FixGrammar+BufferedBytes..ctor(Stream, Int32, Int32)" TotalTime="391" OwnTime="391" Samples="47" Instances="1" />
+	<Function Id="0x00A0358E" FQN="DotGram.Finance.Fix.FixGrammar+BufferedBytes.Ensure(Int32, Int32)" TotalTime="281" OwnTime="281" Samples="46" Instances="6">
+	  <Instance TotalTime="94" OwnTime="94" Samples="17" />
+	  <Instance TotalTime="0" OwnTime="0" Samples="2" />
+	  <Instance TotalTime="47" OwnTime="47" Samples="8" />
+	  <Instance TotalTime="47" OwnTime="47" Samples="6" />
+	  <Instance TotalTime="47" OwnTime="47" Samples="7" />
+	  <Instance TotalTime="47" OwnTime="47" Samples="6" />
+	</Function>
+	<Function Id="0x00A0358F" FQN="DotGram.Finance.Fix.FixGrammar+BufferedBytes.Fill(Int32, Int32)" TotalTime="16" OwnTime="16" Samples="9" Instances="1" />
+	<Function Id="0x00A0358D" FQN="DotGram.Finance.Fix.FixGrammar+BufferedBytes.Get(Int32)" TotalTime="109" OwnTime="109" Samples="22" Instances="7">
+	  <Instance TotalTime="16" OwnTime="16" Samples="3" />
+	  <Instance TotalTime="31" OwnTime="31" Samples="7" />
+	  <Instance TotalTime="0" OwnTime="0" Samples="1" />
+	  <Instance TotalTime="16" OwnTime="16" Samples="2" />
+	  <Instance TotalTime="0" OwnTime="0" Samples="1" />
+	  <Instance TotalTime="16" OwnTime="16" Samples="2" />
+	  <Instance TotalTime="31" OwnTime="31" Samples="6" />
+	</Function>
+	<Function Id="0x00A0358B" FQN="DotGram.Finance.Fix.FixGrammar+BufferedBytes.Matches(Int32, String)" TotalTime="109" OwnTime="109" Samples="13" Instances="5">
+	  <Instance TotalTime="16" OwnTime="16" Samples="2" />
+	  <Instance TotalTime="16" OwnTime="16" Samples="1" />
+	  <Instance TotalTime="0" OwnTime="0" Samples="2" />
+	  <Instance TotalTime="31" OwnTime="31" Samples="3" />
+	  <Instance TotalTime="47" OwnTime="47" Samples="5" />
+	</Function>
+	<Function Id="0x00A03590" FQN="DotGram.Finance.Fix.FixGrammar+BufferedBytes.Slice(Int32, Int32)" TotalTime="94" OwnTime="47" Samples="11" Instances="1" />
+	<Function Id="0x00A0359D" FQN="DotGram.Finance.Fix.FixGrammar+Parser.Reset()" TotalTime="469" OwnTime="313" Samples="91" Instances="1" />
+	<Function Id="0x00A035A4" FQN="DotGram.Finance.Fix.FixGrammar+ParserArena.Add(ParserEntry)" TotalTime="281" OwnTime="281" Samples="51" Instances="5">
+	  <Instance TotalTime="31" OwnTime="31" Samples="6" />
+	  <Instance TotalTime="94" OwnTime="94" Samples="13" />
+	  <Instance TotalTime="0" OwnTime="0" Samples="8" />
+	  <Instance TotalTime="125" OwnTime="125" Samples="18" />
+	  <Instance TotalTime="31" OwnTime="31" Samples="6" />
+	</Function>
+	<Function Id="0x00A035A2" FQN="DotGram.Finance.Fix.FixGrammar+ParserArena.get_Item(Int32)" TotalTime="188" OwnTime="188" Samples="38" Instances="1" />
+	<Function Id="0x00A035A9" FQN="DotGram.Finance.Fix.FixGrammar+ParserEntry..ctor(Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32)" TotalTime="16" OwnTime="16" Samples="6" Instances="2">
+	  <Instance TotalTime="16" OwnTime="16" Samples="3" />
+	  <Instance TotalTime="0" OwnTime="0" Samples="3" />
+	</Function>
+	<Function Id="0x00A035AD" FQN="DotGram.Finance.Fix.FixGrammar+ParserEntry.get_CallIndex()" TotalTime="16" OwnTime="16" Samples="4" Instances="1" />
+	<Function Id="0x00A035AA" FQN="DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Kind()" TotalTime="31" OwnTime="31" Samples="6" Instances="1" />
+	<Function Id="0x00A035AC" FQN="DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Position()" TotalTime="78" OwnTime="78" Samples="18" Instances="1" />
+	<Function Id="0x00A035B2" FQN="DotGram.Finance.Fix.FixGrammar+ParserEntry.get_RuleIndex()" TotalTime="47" OwnTime="47" Samples="13" Instances="1" />
+	<Function Id="0x00A035AB" FQN="DotGram.Finance.Fix.FixGrammar+ParserEntry.get_State()" TotalTime="63" OwnTime="63" Samples="13" Instances="1" />
+	<Function Id="0x00A035B1" FQN="DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Value()" TotalTime="31" OwnTime="31" Samples="6" Instances="1" />
+	<Function Id="0x00A03574" FQN="DotGram.Finance.Fix.FixGrammar+SourceSpan..ctor(Int32, Int32)" TotalTime="16" OwnTime="16" Samples="4" Instances="1" />
+	<Function Id="0x01200110" FQN="System.Numerics.BigInteger..ctor(Int64)" TotalTime="16" OwnTime="16" Samples="2" Instances="2">
+	  <Instance TotalTime="0" OwnTime="0" Samples="1" />
+	  <Instance TotalTime="16" OwnTime="16" Samples="1" />
+	</Function>
+	<Function Id="0x00108098" FQN="System.Runtime.CompilerServices.CastHelpers.ChkCastClass(Void*, Object)" TotalTime="31" OwnTime="31" Samples="6" Instances="1" />
+	<Function Id="0x0010809E" FQN="System.Runtime.CompilerServices.CastHelpers.StelemRef(Object[], IntPtr, Object)" TotalTime="78" OwnTime="78" Samples="14" Instances="4">
+	  <Instance TotalTime="16" OwnTime="16" Samples="3" />
+	  <Instance TotalTime="0" OwnTime="0" Samples="2" />
+	  <Instance TotalTime="47" OwnTime="47" Samples="5" />
+	  <Instance TotalTime="16" OwnTime="16" Samples="4" />
+	</Function>
+	<Function Id="0x0010809F" FQN="System.Runtime.CompilerServices.CastHelpers.StelemRef_Helper(Object&amp;, Void*, Object)" TotalTime="234" OwnTime="234" Samples="43" Instances="2">
+	  <Instance TotalTime="109" OwnTime="109" Samples="17" />
+	  <Instance TotalTime="125" OwnTime="125" Samples="26" />
+	</Function>
+	<Function Id="0x00101EAB" FQN="System.SpanHelpers.ClearWithoutReferences(Byte&amp;, UIntPtr)" TotalTime="47" OwnTime="47" Samples="12" Instances="1" />
+	<Function Id="0x00101EB6" FQN="System.SpanHelpers.ClearWithReferences(IntPtr&amp;, UIntPtr)" TotalTime="109" OwnTime="109" Samples="20" Instances="1" />
+	<Function Id="0x00101EAA" FQN="System.SpanHelpers.Memmove(Byte&amp;, Byte&amp;, UIntPtr)" TotalTime="0" OwnTime="0" Samples="2" Instances="1" />
+	<Function Id="0x0010099E" FQN="System.String.Ctor(Char[])" TotalTime="31" OwnTime="31" Samples="14" Instances="6">
+	  <Instance TotalTime="0" OwnTime="0" Samples="1" />
+	  <Instance TotalTime="16" OwnTime="16" Samples="2" />
+	  <Instance TotalTime="0" OwnTime="0" Samples="2" />
+	  <Instance TotalTime="0" OwnTime="0" Samples="5" />
+	  <Instance TotalTime="0" OwnTime="0" Samples="1" />
+	  <Instance TotalTime="16" OwnTime="16" Samples="3" />
+	</Function>
+</Report>

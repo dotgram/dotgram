@@ -254,3 +254,11 @@ strategy with `PrefixTables = true`, using identical FIX grammars. It records
 three-run timings, allocations, table/assembly size, scope and validation. The
 report describes the original opt-in experiment. Prefix tables are now enabled by
 default, including in Finance; set `PrefixTables = false` for the previous strategy.
+
+## Partitioned materialization: 2026-09-16
+
+[Materialization results and CPU evidence](results/2026-09-16-materialization.md)
+compare the table-default parser with construction choices split into smaller
+methods. Byte orders and groups are about 1.9-2.0x faster; character/string orders
+improve 1.5-1.7x. Allocations are unchanged; the managed assembly grows 0.93%.
+The grammar and public API remain the same.
