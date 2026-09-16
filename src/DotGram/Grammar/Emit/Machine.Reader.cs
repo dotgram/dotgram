@@ -1100,13 +1100,14 @@ sealed partial class Machine
 
 			code.Line("return p;");
 
-			var written = code.ToString();
-			var head    = new Writer(0);
+			// The body tells us which locals are needed. Insert only those declarations
+			// into the same builder instead of copying the whole body into a second one.
+			var prefix = 0;
 
-			head.Line("var p = pos;");
+			Declare("var p = pos;");
 
 			if (_character)
-				head.Line("var c = '\\0';");
+				Declare("var c = '\\0';");
 
 			// The refs mark: where this method writes a record, and where the rule gathers
 			// and this is its body, which hands the mark to every part whether or not it
@@ -1118,20 +1119,20 @@ sealed partial class Machine
 					if (member.Shape is MemberShape.Pieces or MemberShape.Records)
 						foreach (var slot in member.Slots)
 							foreach (var line in machine.Carrier.DeclareGathered(slot, member.Shape == MemberShape.Pieces ? "string" : machine._results.ValueOf(member.Member.Rule)))
-								head.Line(line);
+								Declare(line);
 
 			if (_records || (_gathers && !_part))
 				foreach (var line in machine.Carrier.MarkGathered(owner, "rb"))
-					head.Line(line);
+					Declare(line);
 
 			// Only where something in the method names it: a rule folds, but a method of it
 			// that neither writes a record nor hands the value on has nothing to do with it,
 			// and a local nothing reads is an error in somebody else's build.
 			if (_folds && !handed)
 				foreach (var (_, name) in machine.Carrier.FoldState(owner))
-					if (written.Contains(name, StringComparison.Ordinal))
+					if (code.Contains(name, prefix))
 					{
-						head.Line(machine.Carrier.DeclareAccumulator(owner));
+						Declare(machine.Carrier.DeclareAccumulator(owner));
 
 						break;
 					}
@@ -1140,7 +1141,7 @@ sealed partial class Machine
 			// what has been recorded since.
 			if (_guarded && !_part)
 				foreach (var line in machine.Carrier.MarkRecords("lm"))
-					head.Line(line);
+					Declare(line);
 
 			foreach (var slot in _kept.OrderBy(static one => one))
 			{
@@ -1151,25 +1152,25 @@ sealed partial class Machine
 				switch (machine.MemberOfSlot(owner, slot)?.Shape)
 				{
 					case MemberShape.Text:
-						head.Line($"var a{slot} = -1;");
-						head.Line($"var b{slot} = -1;");
+						Declare($"var a{slot} = -1;");
+						Declare($"var b{slot} = -1;");
 						break;
 
 					// Where it was pushed from is all a gathered run of text keeps: the end
 					// is the position the push is written at.
 					case MemberShape.Pieces:
-						head.Line($"var a{slot} = -1;");
+						Declare($"var a{slot} = -1;");
 						break;
 
 					default:
-						head.Line(machine.Carrier.DeclareRecordLocal(slot, RuleOfSlot(slot), Optional(slot)));
+						Declare(machine.Carrier.DeclareRecordLocal(slot, RuleOfSlot(slot), Optional(slot)));
 						break;
 				}
 			}
 
-			head.Write(written);
+			return code.ToString();
 
-			return head.ToString();
+			void Declare(string text) => prefix = code.InsertLine(prefix, text);
 		}
 
 		/// <param name="loaded">

@@ -34,6 +34,51 @@ sealed class Writer(int depth)
 			_text.Append('\t', _depth).Append(text, 0, length).EndLine();
 	}
 
+	/// <summary>Inserts a declaration before an existing body and returns the next insertion position.</summary>
+	public int InsertLine(int at, string text)
+	{
+		var length = text.Length;
+
+		while (length > 0 && text[length - 1] is ' ' or '\t')
+			length--;
+
+		if (length > 0)
+		{
+			for (var i = 0; i < _depth; i++)
+				_text.Insert(at++, '\t');
+
+			_text.Insert(at, length == text.Length ? text : text.Substring(0, length));
+			at += length;
+		}
+
+		_text.Insert(at, Lines.Ending);
+
+		return at + Lines.Ending.Length;
+	}
+
+	/// <summary>Checks emitted text without materializing a copy of the buffer.</summary>
+	public bool Contains(string value, int start)
+	{
+		if (value.Length == 0)
+			return true;
+
+		for (var at = start; at <= _text.Length - value.Length; at++)
+		{
+			if (_text[at] != value[0])
+				continue;
+
+			var length = 1;
+
+			while (length < value.Length && _text[at + length] == value[length])
+				length++;
+
+			if (length == value.Length)
+				return true;
+		}
+
+		return false;
+	}
+
 	/// <summary>A line written exactly as given, at no indent at all.</summary>
 	/// <remarks>
 	/// For the two things whose column is the point rather than an accident: a `#line`

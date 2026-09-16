@@ -410,3 +410,66 @@ The change reduces source-writing allocations and has favorable SQL/Finance timi
 ### Fifth-batch final validation
 
 All **8,176 DotGram.Tests tests passed**, zero errors/failures/skips, in 156.577 seconds. This includes the sixteen new writer cases, existing mapped-C# diagnostics and golden-source tests. Release build had zero warnings/errors; all 127 representative generated source hashes and BOM/CRLF/tab/whitespace checks passed. The peak-working-set regression above remains a measured limitation of this candidate, not a test failure or an improvement claim. Full test log: `tests-step5-all.log`.
+
+## Buffer reuse feasibility audit
+
+This is a source/lifetime audit of `c386380`, not a pooling benchmark or an implemented pool.
+
+| Buffer or result | Reuse assessment |
+|---|---|
+| Local `code` / `head` writers in ReaderWriter.Render | Good initial candidate. Each method returns independent strings, so builders can be returned after their final use through explicit scoped ownership. Nested rendering must rent a distinct active buffer. |
+| Trial writers in materializer/direct-value budget calculations | Good candidate with an explicit end of scope after branch counting. |
+| Machine state writers | Longer-lived: Reserve stores them in `_states`; `_edges` also uses writer identity. PlanLayout creates `_raw` strings while retaining the writers. A later buffer-release boundary may remove simultaneous builder/string storage, but repeated PlanLayout/rendering and graph access must be audited before releasing anything. Returning the Writer object itself early would be unsafe. |
+| Whole-file writer and Numbered's `StringBuilder(text.Length)` | Technically reusable after final output creation, but unsuitable for an unbounded static pool. Retaining their large capacities across grammar compilations may increase persistent memory and process peak. |
+| FirstSets sorting/merging lists | Already reused per thread, removed from their slots while borrowed and restored in finally. Their returned CharRange arrays belong to First results and cannot simply be returned to a temporary-buffer pool. |
+| LexerEmitter bit-table scratch | Already reuses an 8,192-byte thread-local Filling array. Dictionary keys are cloned because modifying a retained key would invalidate lookup; those clones are not interchangeable scratch while the table remains in use. |
+| Generated strings / SourceText | Owned by the consumer and Roslyn driver. Ordinary mutable-buffer pooling cannot reclaim them while the result remains live. |
+
+Writer.ToString is non-consuming: for example, the reader members writer is inspected for `ways.` and read again when the reader is emitted. A pool return hidden inside ToString would break existing callers. Explicit rent/return (or disposal) must restore indentation and return only after the final use, including exception paths.
+
+Recommended first experiment: a small bounded pool of temporary writer builders within an emission scope, limited by both retained capacity and entry count, discarding oversized buffers before resetting them. A giant builder must not be kept merely because Clear resets Length; retained capacity and reset behavior need accounting. Per-thread storage alone does not bound total IDE retention when several compiler threads participate. Keep the whole-file buffers and public result arrays out of the initial experiment.
+
+The first comparison should include allocation, CPU time, process peak and post-release memory, exact generated hashes, nested use, concurrent compilations and exceptions. Existing profiles support the candidate selection but do not establish how much pooling would save or whether it would reverse the observed peak regression.
+
+## Sixth optimization batch: one builder per reader method
+
+ReaderWriter.Render now inserts the required local declarations before the body in its existing Writer. It no longer materializes the body as a string and copies that string into a second header/body writer. Fold-state detection searches the existing builder, starting beyond inserted declarations so that declarations cannot make an unused accumulator appear necessary. Mapped body columns are preserved.
+
+This is one builder per rendered reader method, not yet one builder for the entire generated file. Method/part strings, the two reader-rendering passes and final file assembly remain. No static buffer pool or long-lived capacity cache was introduced. The user's preference for eliminating intermediate buffers takes precedence over the pool experiment proposed in the preceding audit.
+
+### Measurements
+
+Saved step-5 binaries were compared with the candidate over the same six fixtures. Library runs have two warm observations after a discarded cold cycle; tiny fixtures have nine. The table contains warm medians from the final control and candidate runs. No builds or tests ran concurrently with the measurements.
+
+| Fixture | Step 5 time | Step 6 time | Step 5 allocation | Step 6 allocation |
+|---|---:|---:|---:|---:|
+| SQL | 22,450.47 ms | 20,634.67 ms | 20,021.85 MiB | 19,296.65 MiB |
+| Finance | 2,885.81 ms | 3,305.65 ms | 4,985.49 MiB | 4,759.26 MiB |
+| ExpressionLanguage | 925.93 ms | 1,030.20 ms | 370.34 MiB | 363.73 MiB |
+| Web | 421.53 ms | 451.60 ms | 181.89 MiB | 185.57 MiB |
+| Tiny | 4.80 ms | 5.02 ms | 0.90 MiB | 0.90 MiB |
+| TinyStreams | 5.59 ms | 5.98 ms | 1.96 MiB | 1.96 MiB |
+
+SQL allocated 725.20 MiB less (3.6%) and Finance 226.23 MiB less (4.5%) in this comparison. These are whole-generator allocation measurements, including runtime/cache variation, not an isolated count of removed builder allocations. Web allocation increased slightly. All **127 generated sources matched exactly** by hash, with no generator errors.
+
+Timing does not establish an overall speed improvement: Finance and ExpressionLanguage were slower, while SQL was faster in the final pair. An earlier run of the same final candidate measured SQL at 27,649.62 ms and Finance at 4,174.94 ms; the subsequent control was 22,450.47 / 2,885.81 ms. That large run-to-run variation prevents attributing the final SQL speedup to this change. Builder searching and repeated prefix insertion also remain possible CPU costs; neither has been isolated by this experiment. This batch reduces intermediate body storage, but is not presented as a general build-speed win.
+
+### Process memory
+
+The corrected unprofiled retention harness ran three fresh SQL generations followed by five unrelated C# edits, then released its current driver. The control and candidate processes ran sequentially.
+
+| Measurement | Step 5 | Step 6 |
+|---|---:|---:|
+| Peak working set | 4.749 GiB | 4.906 GiB |
+| Working set after release | 2.478 GiB | 2.982 GiB |
+| Managed live data after edits | 294.62 MiB | 294.61 MiB |
+| Managed live data after release | 28.04 MiB | 28.03 MiB |
+| Prior/current drivers alive after release | 0 of 8 | 0 of 8 |
+
+Peak working set increased approximately 3.3% in this pair; post-release working set also increased. Removing one intermediate builder did **not** solve peak memory consumption. Managed live data was essentially unchanged and previous results collected in both versions. Reducing the overlap of the remaining method strings, retained machine-state writers and whole-file buffers remains the next ownership/lifetime investigation. No full Visual Studio solution-build improvement is claimed.
+
+Artifacts under `.work/generator-analysis/`: `*-step5/6-single-writer.jsonl` and `.hashes`, the earlier candidate observations in `*-step6-single-writer-first-final.*`, `memory-sql-step5/6-single-writer/metrics.jsonl`, `measure-single-writer-final.py`, `measure-single-writer-control.py`, and `check-writer-memory.py`.
+
+### Validation
+
+Release build of the test project and dependencies passed with zero warnings/errors. All 19 focused Writer cases passed, including three new cases for prefix insertion, mapped columns and searching only the original body across builder chunks. Exact output hashes matched for all six fixtures. All **8,179 tests passed** with zero errors, failures or skips in 155.131 seconds (`tests-step6-all.log`). BOM, CRLF, tab indentation and `git diff --check` passed. A fetch confirmed that no commits from origin/main were missing from this branch at validation time.

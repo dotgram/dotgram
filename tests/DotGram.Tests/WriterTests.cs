@@ -61,6 +61,42 @@ public sealed class WriterTests
 		Assert.Equal(expected, writer.ToString());
 	}
 
+	[Theory]
+	[InlineData(0)]
+	[InlineData(2)]
+	public void Inserted_declarations_preserve_body_and_mapped_columns(int depth)
+	{
+		var writer = Create(depth);
+		Call(writer, "Write", "#line 7\r\n  body \t\r\n#line default\r\nreturn p;");
+		var original = writer.ToString();
+		var at = Insert(writer, 0, "var p = pos; \t");
+		at = Insert(writer, at, " \t");
+		Insert(writer, at, "var c = '\\0';");
+		var indent = new string('\t', depth);
+		Assert.Equal(indent + "var p = pos;\r\n\r\n" + indent + "var c = '\\0';\r\n" + original, writer.ToString());
+	}
+
+	[Fact]
+	public void Body_search_excludes_inserted_declarations_and_crosses_builder_chunks()
+	{
+		var writer = Create(0);
+		Call(writer, "Line", new string('x', 20000));
+		Call(writer, "Line", "accumulator_marker");
+		var at = Insert(writer, 0, "header_only");
+		Assert.True(Contains(writer, "accumulator_marker", at));
+		Assert.True(Contains(writer, "xxx\r\naccumulator", at));
+		Assert.False(Contains(writer, "header_only", at));
+		Assert.True(Contains(writer, "header_only", 0));
+		Assert.False(Contains(writer, "missing", at));
+		Assert.True(Contains(writer, "", at));
+	}
+
+	static int Insert(object writer, int at, string text) =>
+		(int)WriterType.GetMethod("InsertLine")!.Invoke(writer, [at, text])!;
+
+	static bool Contains(object writer, string text, int at) =>
+		(bool)WriterType.GetMethod("Contains")!.Invoke(writer, [text, at])!;
+
 	static object Create(int depth) => Activator.CreateInstance(WriterType, [depth])!;
 
 	static void Call(object writer, string method, params object[] arguments) =>
