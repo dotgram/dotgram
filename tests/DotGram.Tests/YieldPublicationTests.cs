@@ -103,8 +103,8 @@ public sealed class YieldPublicationTests
 		var publication = Assert.IsType<Decl.Publish>(Assert.Single(parsed.File.Decls));
 		Assert.True(publication.BufferedBytes);
 		Assert.True(publication.Yield);
-		Assert.Equal("BaseNode", publication.YieldType!.Name);
-		Assert.True(publication.YieldType.IsCSharp);
+		Assert.Equal("BaseNode", publication.ResultType!.Name);
+		Assert.True(publication.ResultType.IsCSharp);
 	}
 
 	[Theory]
@@ -113,7 +113,7 @@ public sealed class YieldPublicationTests
 	public void Explicit_yield_type_is_checked_with_the_real_CSharp_type_system(string type, bool accepted)
 	{
 		const string declarations = "public class BaseNode {} public class Leaf : BaseNode {} public class OtherNode {}";
-		var host = CSharpCompilation.Create("YieldTypes", [CSharpSyntaxTree.ParseText("public partial class Grammar { " + declarations + " }", cancellationToken: TestContext.Current.CancellationToken)],
+		var host = CSharpCompilation.Create("ResultTypes", [CSharpSyntaxTree.ParseText("public partial class Grammar { " + declarations + " }", cancellationToken: TestContext.Current.CancellationToken)],
 			[MetadataReference.CreateFromFile(typeof(object).Assembly.Location)], new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 		var options = Options();
 		options.SymbolResolver = new RoslynSymbolResolver(host, "Grammar");

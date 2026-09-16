@@ -111,7 +111,7 @@ public abstract record Decl : ILocated
 		public bool BufferedBytes { get; init; }
 
 		public bool Yield { get; init; }
-		public TypeRef? YieldType { get; init; }
+		public TypeRef? ResultType { get; init; }
 	}
 
 	/// <summary>
@@ -308,7 +308,8 @@ static class Dump
 
 				if (publish.BufferedInput) Write(text, depth + 1, "Input stream");
 				if (publish.BufferedBytes) Write(text, depth + 1, "Input stream bytes");
-				if (publish.Yield) Write(text, depth + 1, "Yield" + (publish.YieldType is { } yielded ? " " + Label(yielded) : ""));
+				if (publish.Yield) Write(text, depth + 1, "Yield" + (publish.ResultType is { } yielded ? " " + Label(yielded) : ""));
+				else if (publish.ResultType is { } result) Write(text, depth + 1, "Result " + Label(result));
 
 				foreach (var rebinding in rebindings)
 					Write(text, depth + 1, Label(rebinding));

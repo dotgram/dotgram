@@ -75,6 +75,7 @@ public sealed partial class GrammarNormalizer
 	public const string UnresolvedExternal = "GRAM4025";
 
 	public const string UnsafeYield = "GRAM4027";
+	public const string PublicationTypeMismatch = "GRAM4028";
 
 	readonly GrammarModel                                      _model;
 	readonly Dictionary<RuleSymbol, Node>                      _bodies      = [];
@@ -208,6 +209,7 @@ public sealed partial class GrammarNormalizer
 		normalizer.ReconcileState();
 
 		// Last of all, because what it drops is what nothing else left a way to.
+		normalizer.CheckPublicationTypes();
 		normalizer.LowerYieldPublications();
 
 		normalizer.Prune();

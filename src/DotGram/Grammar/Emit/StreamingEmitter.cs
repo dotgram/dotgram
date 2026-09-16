@@ -572,6 +572,7 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	static bool Streams(RecognitionGraph graph, Publication publication, bool overKinds = false) =>
 		!overKinds && publication.Kind != PublishKind.Yield &&
+		(publication.Kind != PublishKind.Parse || publication.ResultType is null) &&
 		(publication.Kind == PublishKind.Find
 			? Retention.Reads(graph, publication.Rule) is null &&
 				Retention.ExtentOf(graph).TryGetValue(publication.Rule, out var extent) &&

@@ -73,7 +73,7 @@ public sealed partial class GrammarNormalizer
 			{
 				var element = call.Rule;
 				var collectedType = _types[root].Substring(0, _types[root].Length - 2);
-				var type = publication.YieldType ?? new TypeRef(true, collectedType, false, publication.At);
+				var type = publication.ResultType ?? new TypeRef(true, collectedType, false, publication.At);
 				if (_recoveries.ContainsKey(repeat))
 					reason = "Yield with recovery is not supported yet.";
 				else if ((_nullable.TryGetValue(element, out var nullable) && nullable) || element.GivesBack)
@@ -82,10 +82,10 @@ public sealed partial class GrammarNormalizer
 					reason = "The yield element type must be a C# type written as '@T'.";
 				else if (!_types.TryGetValue(element, out var actual) || !_resolver.IsAssignable(actual, collectedType))
 					reason = $"The result of '{element.Name}' is not an element of the published collection '{collectedType}[]'.";
-				else if (!_resolver.IsAssignable(actual, type.Name))
+				else if (!PublicationFits(_resolver, actual, type.Name, publication.DeclaredIn))
 					reason = $"The result of '{element.Name}' is not assignable to the yield type '{type.Name}'.";
 				else
-					publications[i] = publication with { Kind = PublishKind.Yield, Rule = element, YieldType = type, YieldMinimum = repeat.Min };
+					publications[i] = publication with { Kind = PublishKind.Yield, Rule = element, ResultType = type, YieldMinimum = repeat.Min };
 			}
 			if (reason is not null)
 				_diagnostics.Add(new GramDiagnostic(UnsafeYield, reason, publication.At.Position, publication.At.Length, GramSeverity.Error));

@@ -1203,7 +1203,7 @@ public static partial class CSharpEmitter
 		// looks — not in the summary, and not in what a refusal says.
 		var name   = publication.Rule.Declaration?.Name ?? publication.Rule.Name;
 		var built  = results.QualifiedOf(publication.Rule);
-		var value  = built ?? "string";
+		var value  = publication.ResultType is { } contract ? contract.Name + (contract.IsSequence ? "[]" : "") : built ?? "string";
 		var match  = $"{MatchType}<{value}>";
 
 		// A rule that builds hands its value back through the recognizer; one that does

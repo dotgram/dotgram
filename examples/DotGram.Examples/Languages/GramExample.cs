@@ -129,11 +129,15 @@ namespace DotGram.Examples.Languages;
 	// Who may call the methods it makes comes first, and public is what saying nothing means.
 	Publication : @GramDecl
 		= access: ("public" | "internal" | "private")?
-		& kind: ("parse" | "find") & target: QuantifiedCore & With?
-		& ("as" & alias: Identifier & (':' & type: Type)?)?
+		& kind: ("parse" | "find") & target: PublicationTarget & With?
+		& ("as" & alias: Identifier)? & (':' & type: Type)?
 		& (stream: "stream" & bytes: "bytes"?)?
 		& (yielded: "yield" & (':' & yieldType: Type)?)?
 		=> @(new GramPublication(kind, target, alias, type, access, stream != null, bytes != null, yielded != null, yieldType))
+
+	PublicationTarget : @GramExpr
+		= value: Reference & ?=':' => @(value)
+		| value: QuantifiedCore => @(value)
 
 	// `?` after the name says the rule may give back (§4); over characters, where this
 	// grammar reads, every rule does, and the mark is kept for what it says.

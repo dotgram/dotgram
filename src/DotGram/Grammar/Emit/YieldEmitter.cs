@@ -7,7 +7,7 @@ public static partial class CSharpEmitter
 	static void EmitYield(Writer file, Publication publication, string hands, string takes)
 	{
 		file.Line("/// <summary>Lazily parses consecutive elements; malformed input throws during enumeration.</summary>");
-		using (file.Block($"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{publication.YieldType!.Name}> {publication.MethodName}(string input{takes})"))
+		using (file.Block($"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{publication.ResultType!.Name}> {publication.MethodName}(string input{takes})"))
 		{
 			file.Line("if (input == null) throw new global::System.ArgumentNullException(nameof(input));");
 			if (publication.YieldMinimum > 0)

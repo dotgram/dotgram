@@ -98,7 +98,7 @@ public static partial class CSharpEmitter
 		var type = results.QualifiedOf(publication.Rule);
 		var bytes = machine.BufferedBytes;
 		var inputType = bytes ? "global::System.IO.Stream" : "global::System.IO.TextReader";
-		var value = type ?? (bytes ? "byte[]" : "string");
+		var value = publication.ResultType is { } contract ? contract.Name + (contract.IsSequence ? "[]" : "") : type ?? (bytes ? "byte[]" : "string");
 		var match = $"{MatchType}<{value}>";
 		var method = publication.MethodName;
 		var context = machine.UsesContext ? $", {graph.Context} context" : "";
@@ -109,7 +109,7 @@ public static partial class CSharpEmitter
 		if (publication.Kind == PublishKind.Yield)
 		{
 			file.Line("/// <summary>Lazily parses consecutive buffered elements; leaves input open.</summary>");
-			using (file.Block($"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{publication.YieldType!.Name}> {method}(" +
+			using (file.Block($"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{publication.ResultType!.Name}> {method}(" +
 				$"{inputType} input{context}, int bufferSize = 4096, int maxRetained = int.MaxValue)"))
 			{
 				file.Line($"var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize, maxRetained);");

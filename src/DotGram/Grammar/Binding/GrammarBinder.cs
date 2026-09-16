@@ -404,7 +404,7 @@ public sealed class GrammarBinder
 						break;
 					}
 
-					if (publish.YieldType is { } yieldType) ResolveType(yieldType, ns, []);
+					if (publish.ResultType is { } resultType) ResolveType(resultType, ns, []);
 
 					var method = publish.Alias ?? Publication.DefaultMethodName(publish.Kind, published.Name);
 
@@ -446,7 +446,7 @@ public sealed class GrammarBinder
 						BufferedInput = publish.BufferedInput,
 						BufferedBytes = publish.BufferedBytes,
 						Yield = publish.Yield,
-						YieldType = publish.YieldType,
+						ResultType = publish.ResultType,
 					});
 
 					break;

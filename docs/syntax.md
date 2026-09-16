@@ -1575,9 +1575,26 @@ parse (v: Padded(Word, '#') => @(v)) as Marked : @string
 
 With a type declared, everything §4.1 offers is reachable from the directive, a `=>`
 included; without one a construction is refused where it always is (`GRAM4008`). The
-type belongs to the expression being lifted, so a directive that names a rule has
-nowhere to put one and says so (`GRAM2008`) — that rule declared its own type where it
-was written.
+type supplies construction for an inline expression. On a named rule, it instead
+sets the public result contract while preserving the rule's construction:
+
+```dotgram
+parse Trade : @FeedNode
+parse Trades as All : @FeedNode[] stream bytes
+find Trade : @IFeedNode
+```
+
+`parse` returns the specified type, and its `TryParse` forms return `Match<T>`.
+`find` returns `IEnumerable<Match<T>>`. The rule's actual result must be assignable
+to `T` through identity, reference conversion or boxing; no numeric or user-defined
+conversion is introduced. An incompatible contract receives `GRAM4028`. Without a
+contract, the existing type inference is unchanged. An extent-only rule returns
+`string` for text and `byte[]` for byte input, so a shared contract must accept both.
+
+A named publication with an explicit contract uses `stream` to request buffered
+reader input. It does not infer the legacy reader API that changes an array result
+into an enumerable. Use `yield : @T` to request enumerable output explicitly;
+place its element type after `yield` (`GRAM2008` if written before it).
 
 ### 6.1 The result
 

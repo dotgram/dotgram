@@ -10,7 +10,7 @@ namespace DotGram.Compatibility
 	{
 	}
 
-	[Gram("Start : @int = text: ['0'..'9']+ => @(ToInt(text))\nparse Start", BufferedInput = true, BufferedBytes = true, SpanCaptures = true)]
+	[Gram("Start : @int = text: ['0'..'9']+ => @(ToInt(text))\nparse Start\nparse Start as Boxed : @object", BufferedInput = true, BufferedBytes = true, SpanCaptures = true)]
 	public partial class NativeCapture
 	{
 		static int ToInt(System.ReadOnlySpan<char> text)
@@ -70,6 +70,8 @@ namespace DotGram.Compatibility
 		"Nest   : @string  = '(' & inner: Nest & ')' => @(\"(\" + inner + \")\")\n" +
 		"                  | t: Key => @(t)\n" +
 		"\n" +
+		"parse Doc as Objects : @object[] stream\n" +
+		"find Entry as Entries : @object stream\n" +
 		"parse Doc\n" +
 		"parse Nest as Nested\n" +
 		"parse Where as Span\n" +
