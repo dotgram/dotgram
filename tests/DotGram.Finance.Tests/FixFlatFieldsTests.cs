@@ -85,12 +85,14 @@ public sealed class FixFlatFieldsTests
 	}
 
 	[Fact]
-	public void Vendor_raw_fields_use_syntax_options_on_the_native_stream()
+	public void Custom_fields_are_not_interpreted_as_binary_pairs()
 	{
-		using var stream = new ShortStream(Encoding.Latin1.GetBytes("9000=3|9001=a|b|55=X|"));
-		var fields = Fix44.Parse(stream, new FixFieldOptions('|', new FixDataPair(9000, 9001)), bufferSize: 1).ToArray();
-		Assert.Equal(new byte[] { 97, 124, 98 }, Assert.IsType<FixField.Unknown>(fields[0]).Value.ToArray());
-		Assert.Equal("X", Assert.IsType<FixField.Symbol>(fields[1]).Value);
+		var fields = Fix44.ParseLog("9000=3|9001=abc|");
+		Assert.Equal(new[] { 9000, 9001 }, fields.Select(f => f.Tag));
+		Assert.All(fields, field => Assert.IsType<FixField.Unknown>(field));
+		Assert.False(Fix44.TryParse("9000=3|9001=a|b|", out _, out _, new FixFieldOptions('|')));
+		using var stream = new ShortStream(Encoding.Latin1.GetBytes("9000=3|9001=a|b|"));
+		Assert.False(Fix44.TryParse(stream, out _, out _, new FixFieldOptions('|'), bufferSize: 1));
 	}
 
 	[Theory]

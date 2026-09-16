@@ -41,18 +41,15 @@ KnownBinary : @FixField =
 	| "618=" & value: Binary("619=") => @(new FixField.EncodedLegIssuer(value.Data).WithBinary(value, parserSpan.Start))
 	| "621=" & value: Binary("622=") => @(new FixField.EncodedLegSecurityDesc(value.Data).WithBinary(value, parserSpan.Start))
 
-VendorBinary : @FixField =
-	tag: Digits & when @(context.IsVendorLength(tag)) & '=' & size: Size & Separator
-	& dataTag: Digits & when @(context.IsVendorPair(tag, dataTag)) & '=' & start: Position
-	& when @(context.BeginData(size, start)) & value: Data
-	=> @(new FixBinaryValue(FixConvert.Data(value), start).Unknown(FixContext.Tag(dataTag), parserSpan.Start))
+// Reserved for a future grammar extension; never matches by default.
+CustomFiled : @FixField = when @(false) => @(null!)
 
 Unknown : @FixField =
-	tag: Digits & when @(context.IsUnknownText(tag)) & '=' & value: ValueText
+	tag: Digits & when @(FixContext.IsUnknownText(tag)) & '=' & value: ValueText
 	=> @(new FixField.Unknown(FixContext.Tag(tag), FixConvert.Data(value)))
 
 Field : @FixField =
-	(v: KnownField(ValueText) | v: KnownBinary | v: VendorBinary | v: Unknown) & Separator => @(v)
+	(v: KnownField(ValueText) | v: KnownBinary | v: CustomFiled | v: Unknown) & Separator => @(v)
 
 Fields : @FixField[] = { Field* }
 

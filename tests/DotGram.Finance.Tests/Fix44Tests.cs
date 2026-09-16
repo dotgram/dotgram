@@ -200,13 +200,11 @@ public sealed class Fix44Tests
 	}
 
 	[Fact]
-	public void Registered_vendor_data_pairs_preserve_embedded_soh()
+	public void Unregistered_binary_pairs_are_not_inferred()
 	{
-		var options = new FixParseOptions(FixParseMode.Strict, new FixDataPair(9000, 9001));
 		var wire = Wire("0", "9000=3\u00019001=A\u0001B\u0001");
-		Assert.True(FixMessages.TryParse(wire, out var result, out var error, options), error?.ToString());
-		Assert.Equal("A\u0001B", result!.GetField(9001)!.Value.ToString());
-		Assert.False(FixMessages.TryParse(Wire("0", "9000=3|9001=AB|"), out _, out _, options));
+		Assert.False(FixMessages.TryParse(wire, out _, out _, FixParseMode.Strict));
+		Assert.False(FixMessages.TryParse(wire, out _, out _, FixParseMode.Lenient));
 	}
 
 	[Fact]

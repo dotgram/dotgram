@@ -35,12 +35,12 @@ public sealed class FixFieldGrammarTests
 	public void Location_covers_whole_fields_and_conversion_does_not_need_coordinates(char separator)
 	{
 		var wire = "1=arbitrary text|10=007|607=invalid|9001=vendor|".Replace('|', separator);
-		var context = new FixContext(new FixFieldOptions(separator));
+		var context = new FixContext();
 		var direct = separator == '|' ? FixGrammar.ParseLogFields(wire, context) : FixGrammar.ParseFields(wire, context);
 		using var reader = new StringReader(wire);
 		var chars = separator == '|' ? FixGrammar.ParseLogFields(reader, context, bufferSize: 1) : FixGrammar.ParseFields(reader, context, bufferSize: 1);
 		using var stream = new MemoryStream(Bytes(wire));
-		var byteContext = new FixContext(new FixFieldOptions(separator));
+		var byteContext = new FixContext();
 		var bytes = separator == '|' ? FixGrammar.ParseLogFields(stream, byteContext, bufferSize: 1) : FixGrammar.ParseFields(stream, byteContext, bufferSize: 1);
 		foreach (var fields in new[] { direct, chars, bytes })
 		{
@@ -128,7 +128,7 @@ public sealed class FixFieldGrammarTests
 			AssertExtents(wire, result.Value);
 			Assert.Equal(Bytes(raw), Assert.IsType<FixField.RawData>(result.Value.Single(f => f.Tag == 96)).Value.ToArray());
 			using var reader = new StringReader(log);
-			var textResult = FixGrammar.TryParseLogFields(reader, new FixContext(new FixFieldOptions('|')), bufferSize: capacity);
+			var textResult = FixGrammar.TryParseLogFields(reader, new FixContext(), bufferSize: capacity);
 			Assert.True(textResult.IsSuccess, textResult.Error);
 			AssertExtents(log, textResult.Value);
 			Assert.Equal(Bytes(raw), Assert.IsType<FixField.RawData>(textResult.Value.Single(f => f.Tag == 96)).Value.ToArray());

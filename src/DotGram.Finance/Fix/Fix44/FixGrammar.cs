@@ -13,8 +13,6 @@ abstract partial class FixFieldGrammar;
 
 sealed class FixContext
 {
-	readonly FixFieldOptions? options;
-	public FixContext(FixFieldOptions? options = null) => this.options = options;
 	public long DataLimit { get; private set; }
 
 	public bool BeginData(ReadOnlySpan<char> size, int start) => BeginData(Tag(size), start);
@@ -25,21 +23,9 @@ sealed class FixContext
 		return size >= 0;
 	}
 
-	int VendorDataTag(int tag)
-	{
-		if (options != null && FixSchema.Type(tag) == null)
-			foreach (var pair in options.DataPairs)
-				if (pair.LengthTag == tag && FixSchema.Type(pair.DataTag) == null) return pair.DataTag;
-		return 0;
-	}
-
-	bool IsUnknownText(int tag) => tag > 0 && FixSchema.Type(tag) == null && VendorDataTag(tag) == 0 && !(options?.IsDataTag(tag) ?? false);
-	public bool IsUnknownText(ReadOnlySpan<char> tag) => IsUnknownText(Tag(tag));
-	public bool IsUnknownText(ReadOnlySpan<byte> tag) => IsUnknownText(Tag(tag));
-	public bool IsVendorLength(ReadOnlySpan<char> tag) => VendorDataTag(Tag(tag)) > 0;
-	public bool IsVendorLength(ReadOnlySpan<byte> tag) => VendorDataTag(Tag(tag)) > 0;
-	public bool IsVendorPair(ReadOnlySpan<char> tag, ReadOnlySpan<char> dataTag) => VendorDataTag(Tag(tag)) == Tag(dataTag);
-	public bool IsVendorPair(ReadOnlySpan<byte> tag, ReadOnlySpan<byte> dataTag) => VendorDataTag(Tag(tag)) == Tag(dataTag);
+	static bool IsUnknownText(int tag) => tag > 0 && FixSchema.Type(tag) == null;
+	public static bool IsUnknownText(ReadOnlySpan<char> tag) => IsUnknownText(Tag(tag));
+	public static bool IsUnknownText(ReadOnlySpan<byte> tag) => IsUnknownText(Tag(tag));
 	public static int Tag(ReadOnlySpan<char> value) => int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var tag) ? tag : -1;
 	public static int Tag(ReadOnlySpan<byte> value)
 	{

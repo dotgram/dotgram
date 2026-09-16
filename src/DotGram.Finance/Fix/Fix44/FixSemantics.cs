@@ -96,7 +96,7 @@ static class FixSemantics
 					// Header extensions start the body; unknown group fields remain in
 					// the current entry until a known delimiter or enclosing field.
 					var extension = FixSchema.Type(field.Tag) == null &&
-						(mode == FixParseMode.Lenient || options?.Type(field.Tag) != null);
+						mode == FixParseMode.Lenient;
 					if (!(body || delimiter != 0) || field.Tag is 10 or 89 or 93 || !(extension || custom)) break;
 				}
 				Position++;

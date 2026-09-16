@@ -167,7 +167,6 @@ public static partial class FixMessages
 			if (field.IsBinary)
 			{
 				var lengthTag = FixSchema.LengthTag(field.Tag);
-				if (lengthTag == 0) lengthTag = options?.LengthTag(field.Tag) ?? 0;
 				var lengthPrefix = lengthTag.ToString(CultureInfo.InvariantCulture) + "=";
 				var header = source.AsSpan(position, tagPosition - position);
 				if (header.Length <= lengthPrefix.Length || !header.StartsWith(lengthPrefix.AsSpan()) || header[header.Length - 1] != separator ||
@@ -292,12 +291,10 @@ static class FixValidation
 			else if (mode == FixParseMode.Strict && !(extendedSeen ??= new HashSet<int>()).Add(node.Tag))
 				return Fail(field, type, "Duplicate extension field in the same scope.", out error);
 			var lengthTag = FixSchema.LengthTag(node.Tag);
-			if (lengthTag == 0) lengthTag = options?.LengthTag(node.Tag) ?? 0;
 			if (lengthTag != 0 && (i == 0 || scope.Nodes[i - 1].Tag != lengthTag || !scope.Nodes[i - 1].Field(scope.Source).TryGetInt64(out var count) || count != node.Length)) return Fail(field, type, "Data field must immediately follow its matching length field.", out error);
 			var dataTag = FixSchema.DataTag(node.Tag);
-			if (dataTag == 0) dataTag = options?.DataTag(node.Tag) ?? 0;
 			if (dataTag != 0 && (i + 1 == scope.Nodes.Length || scope.Nodes[i + 1].Tag != dataTag)) return Fail(field, type, "Length field must immediately precede its matching data field.", out error);
-			if (mode == FixParseMode.Strict && !FixPrimitives.Valid(field, FixSchema.Type(node.Tag) ?? options?.Type(node.Tag), FixSchema.Codes(node.Tag))) return Fail(field, type, "Invalid FIX primitive value or code set value.", out error);
+			if (mode == FixParseMode.Strict && !FixPrimitives.Valid(field, FixSchema.Type(node.Tag), FixSchema.Codes(node.Tag))) return Fail(field, type, "Invalid FIX primitive value or code set value.", out error);
 		}
 		return References(scope, schema, type, mode, options, out error);
 	}

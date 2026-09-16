@@ -42,7 +42,7 @@ Use `.ToArray()` when a complete list is needed. String/span/byte-array overload
 and `TryParse` still materialize the complete result. Empty input returns no fields.
 Concatenated messages are read as one ordered field sequence.
 
-`FixFieldOptions` configures SOH or pipe delimiters and optional vendor data pairs.
+`FixFieldOptions` configures SOH or pipe delimiters.
 Raw data and its immediately preceding Length field form one grammar rule.
 The parser requires the correct tag pair and consumes exactly the declared number
 of data bytes, including any delimiter bytes inside the payload. An orphaned
@@ -241,25 +241,12 @@ BodyLength is unchanged. CheckSum is verified against the original SOH represent
 by normalizing only the recognized field delimiters, never pipes inside raw data.
 `OriginalWire` preserves the supplied log representation.
 
-## Vendor data fields
+## Custom fields
 
-An unknown data field cannot safely be split at SOH. Register its length/data tags
-before parsing; the immutable options can be reused concurrently:
-
-```csharp
-var options = new FixParseOptions(
-    FixParseMode.Lenient,
-    new FixDataPair(lengthTag: 9000, dataTag: 9001));
-
-var message = FixMessages.Parse(wire, options);
-var payload = message.GetField(9001)!.Value.Value;
-```
-
-Registered pairs are also accepted and validated in Strict. Tags must be positive,
-unique and outside the standard schema. Registration does not redefine FIX fields.
-Custom group schemas are not inferred or dynamically compiled: an unknown vendor
-message preserves their fields flat. Extending the generated typed schema requires
-an explicit repository definition and a library build.
+Unknown tags are read as delimiter-terminated text. Runtime registration of vendor
+binary pairs is not supported. The handwritten grammar reserves `CustomFiled`,
+which never matches by default, for a future extension through inheritance and
+`with`. The extension mechanism is not implemented yet.
 
 ## Specification and reproducibility
 

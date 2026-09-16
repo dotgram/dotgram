@@ -13,7 +13,7 @@ public static class Fix44
 	public static FixField[] Parse(string input, FixFieldOptions? options = null)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
-		var context = new FixContext(options);
+		var context = new FixContext();
 		return options?.Separator == '|'
 			? FixGrammar.ParseLogFields(input, context)
 			: FixGrammar.ParseFields(input, context);
@@ -32,7 +32,7 @@ public static class Fix44
 
 		IEnumerable<FixField> Read()
 		{
-			var state = new FixContext(options);
+			var state = new FixContext();
 			var fields = options?.Separator == '|'
 				? FixGrammar.ReadLogFields(input, state, bufferSize, maxRetained)
 				: FixGrammar.ReadFields(input, state, bufferSize, maxRetained);
@@ -50,7 +50,7 @@ public static class Fix44
 
 		IEnumerable<FixField> Read()
 		{
-			var state = new FixContext(options);
+			var state = new FixContext();
 			var fields = options?.Separator == '|'
 				? FixGrammar.ReadLogFields(input, state, bufferSize, maxRetained)
 				: FixGrammar.ReadFields(input, state, bufferSize, maxRetained);
@@ -75,7 +75,7 @@ public static class Fix44
 			error = new FixParseError(0, null, null, "Input is null.");
 			return false;
 		}
-		var context = new FixContext(options);
+		var context = new FixContext();
 		return Result(options?.Separator == '|'
 			? FixGrammar.TryParseLogFields(input, context)
 			: FixGrammar.TryParseFields(input, context), out fields, out error);
@@ -88,7 +88,7 @@ public static class Fix44
 	public static bool TryParse(TextReader input, out FixField[]? fields, out FixParseError? error, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
-		var context = new FixContext(options);
+		var context = new FixContext();
 		return Result(options?.Separator == '|'
 			? FixGrammar.TryParseLogFields(input, context, bufferSize, maxRetained)
 			: FixGrammar.TryParseFields(input, context, bufferSize, maxRetained), out fields, out error);
@@ -98,7 +98,7 @@ public static class Fix44
 	public static bool TryParse(Stream input, out FixField[]? fields, out FixParseError? error, FixFieldOptions? options = null, int bufferSize = 4096, int maxRetained = int.MaxValue)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
-		var context = new FixContext(options);
+		var context = new FixContext();
 		return Result(options?.Separator == '|'
 			? FixGrammar.TryParseLogFields(input, context, bufferSize, maxRetained)
 			: FixGrammar.TryParseFields(input, context, bufferSize, maxRetained), out fields, out error);
