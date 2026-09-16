@@ -101,20 +101,8 @@ sealed partial class Machine
 	/// </summary>
 	HashSet<RuleSymbol>? _opens;
 
-	HashSet<RuleSymbol> Opens(
-		IReadOnlyList<RuleSymbol> rules,
-		Dictionary<RuleSymbol, (string Body, List<(string Name, string Taken, string Body)> Parts)> written)
+	HashSet<RuleSymbol> Opens(IReadOnlyList<RuleSymbol> rules, HashSet<RuleSymbol> opens)
 	{
-		var opens = new HashSet<RuleSymbol>();
-
-		foreach (var rule in rules)
-		{
-			var (body, parts) = written[rule];
-
-			if (Writes(body) || parts.Exists(one => Writes(one.Body)))
-				opens.Add(rule);
-		}
-
 		// A rule that calls one is one, which takes as many passes as the call chain is
 		// deep and settles because nothing is ever taken out.
 		//
@@ -140,8 +128,6 @@ sealed partial class Machine
 		}
 
 		return opens;
-
-		static bool Writes(string text) => text.Contains("ways.Open(", StringComparison.Ordinal);
 	}
 
 	/// <summary>
@@ -189,9 +175,9 @@ sealed partial class Machine
 
 		_directRules = rules;
 
-		// Written before any of it is emitted, because whether a rule needs a way back into
-		// it depends on what the rules it calls turned out to write.
-		var written = new Dictionary<RuleSymbol, (string Body, List<(string Name, string Taken, string Body)> Parts)>();
+		// Only retain which rules open a way: the first-pass bodies are no longer needed
+		// once inspected, and keeping them all would overlap the second rendering pass.
+		var opens = new HashSet<RuleSymbol>();
 
 		foreach (var rule in rules)
 		{
@@ -200,38 +186,30 @@ sealed partial class Machine
 
 			var reader = new ReaderWriter(this, rule);
 
-			written[rule] = (reader.Render(_graph.Bodies[rule], FollowOf(rule)), reader.Parts);
+			var body = reader.Render(_graph.Bodies[rule], FollowOf(rule));
+
+			if (body.Contains("ways.Open(", StringComparison.Ordinal) ||
+				reader.Parts.Exists(one => one.Body.Contains("ways.Open(", StringComparison.Ordinal)))
+				opens.Add(rule);
 		}
 
-		_opens = Opens(rules, written);
+		_opens = Opens(rules, opens);
 
 		// And a machine left to choose its carrier chooses now, knowing which rules open a way.
 		Choose(rules, _opens);
 
-		// Written again, because a part that cannot open a way needs no loop around it and
-		// the first pass could not know which those were — nor, where the carrier was left to
-		// the generator, which carrier it would be written for.
+		// Render again with the selected carrier and known open rules. Append each rule
+		// and its parts immediately so completed method strings need not all stay alive.
+		var members = new Writer(0);
+
 		foreach (var rule in rules)
 		{
 			_seam       = FollowSets.SeamOf(rule, _graph);
 			_readerPart = 0;
 
 			var reader = new ReaderWriter(this, rule);
-
-			written[rule] = (reader.Render(_graph.Bodies[rule], FollowOf(rule)), reader.Parts);
-		}
-
-		// The rules and their parts are members of one reader, which holds what they all read
-		// from: a call between them passes a position and nothing else.
-		var members = new Writer(0);
-
-		foreach (var rule in rules)
-		{
-			_seam = FollowSets.SeamOf(rule, _graph);
-
-			var (body, parts) = written[rule];
-			var tape          = _opens.Contains(rule);
-			var inner         = tape ? ReaderOf(rule) + "_Body" : ReaderOf(rule);
+			var tape   = _opens.Contains(rule);
+			var inner  = tape ? ReaderOf(rule) + "_Body" : ReaderOf(rule);
 
 			if (tape)
 				RenderWayBack(
@@ -269,12 +247,12 @@ sealed partial class Machine
 				if (!tape && Deepens(rule))
 					Probe(members, rule);
 
-				members.Write(body);
+				reader.Render(members, _graph.Bodies[rule], FollowOf(rule));
 			}
 
 			members.Line();
 
-			foreach (var (name, taken, part) in parts)
+			foreach (var (name, taken, part) in reader.Parts)
 			{
 				members.Line($"/// <summary>One alternative of <c>{rule.Name}</c>, read where it stood.</summary>");
 
@@ -1071,6 +1049,15 @@ sealed partial class Machine
 			Node body, FollowSets.Continuation following, bool entry = false, bool ends = false)
 		{
 			var code = new Writer(0);
+			Render(code, body, following, entry, ends);
+			return code.ToString();
+		}
+
+		/// <summary>Writes a method body directly into its destination, inserting locals at its start.</summary>
+		public void Render(
+			Writer code, Node body, FollowSets.Continuation following, bool entry = false, bool ends = false)
+		{
+			var prefix = code.Length;
 
 			_entry = entry;
 
@@ -1101,8 +1088,7 @@ sealed partial class Machine
 			code.Line("return p;");
 
 			// The body tells us which locals are needed. Insert only those declarations
-			// into the same builder instead of copying the whole body into a second one.
-			var prefix = 0;
+			// at this method's start, leaving previously emitted methods untouched.
 
 			Declare("var p = pos;");
 
@@ -1167,8 +1153,6 @@ sealed partial class Machine
 						break;
 				}
 			}
-
-			return code.ToString();
 
 			void Declare(string text) => prefix = code.InsertLine(prefix, text);
 		}

@@ -3,7 +3,7 @@ using System.Text;
 
 namespace DotGram.Grammar.Emit;
 
-/// <summary>Indent-aware output. One per generated function, so nothing interleaves.</summary>
+/// <summary>Indent-aware output for generated code, including bodies written into a shared destination.</summary>
 sealed class Writer(int depth)
 {
 	readonly StringBuilder _text = new();
@@ -12,6 +12,9 @@ sealed class Writer(int depth)
 
 	/// <summary>How far in the next line will be written — what a nested writer starts at.</summary>
 	public int Depth => _depth;
+
+	/// <summary>The insertion position after everything already written.</summary>
+	public int Length => _text.Length;
 
 	/// <summary>One line at the current depth, ending in no whitespace.</summary>
 	/// <remarks>

@@ -473,3 +473,50 @@ Artifacts under `.work/generator-analysis/`: `*-step5/6-single-writer.jsonl` and
 ### Validation
 
 Release build of the test project and dependencies passed with zero warnings/errors. All 19 focused Writer cases passed, including three new cases for prefix insertion, mapped columns and searching only the original body across builder chunks. Exact output hashes matched for all six fixtures. All **8,179 tests passed** with zero errors, failures or skips in 155.131 seconds (`tests-step6-all.log`). BOM, CRLF, tab indentation and `git diff --check` passed. A fetch confirmed that no commits from origin/main were missing from this branch at validation time.
+
+## Seventh optimization batch: emit reader methods into the shared buffer
+
+The first reader pass now retains only the set of rules that open replay paths. Each provisional body and its extracted parts can become unreachable immediately after that rule is inspected. Previously a dictionary retained every provisional body until the second pass replaced it.
+
+The second pass now writes each main rule body directly into the shared reader-members Writer, inserting its local declarations at that method's starting offset. It no longer creates an independent builder and string for each main rule body, nor a dictionary of all second-pass bodies and parts. Extracted parts are appended after their owning rule and can then become unreachable. This preserves the two-pass strategy selection and the existing ordering of generated methods.
+
+The shared buffer is currently the reader-members buffer. Provisional first-pass rendering, extracted parts, entry bodies and outer file assembly still use intermediate strings. This is not yet a single buffer for every part of an emitted file. No pool or static capacity cache was added.
+
+### Sequential fixture comparison
+
+The baseline is commit `cb7e2ac`, saved as `step6-bin`; the candidate includes both shorter retention and direct main-body writing. Library medians exclude the cold cycle and contain two warm observations; tiny fixtures contain nine. No build or test ran alongside the measurements.
+
+| Fixture | Step 6 time | Step 7 time | Step 6 allocation | Step 7 allocation |
+|---|---:|---:|---:|---:|
+| SQL | 20,140.30 ms | 20,842.68 ms | 19,445.59 MiB | 19,282.94 MiB |
+| Finance | 3,267.88 ms | 2,712.70 ms | 4,758.87 MiB | 4,714.29 MiB |
+| ExpressionLanguage | 1,030.98 ms | 933.87 ms | 362.63 MiB | 360.04 MiB |
+| Web | 462.60 ms | 456.46 ms | 173.17 MiB | 183.42 MiB |
+| Tiny | 4.90 ms | 4.71 ms | 0.90 MiB | 0.89 MiB |
+| TinyStreams | 5.81 ms | 5.72 ms | 1.96 MiB | 1.96 MiB |
+
+SQL allocated approximately 162.65 MiB less and Finance 44.58 MiB less. Whole-generator measurements include cache/runtime variation: Web allocation increased by 10.25 MiB despite removal of intermediate output storage. SQL time increased 3.5%, while Finance decreased 17.0% and ExpressionLanguage decreased 9.4% in this small sample. These are observations, not established speed guarantees or a measurement of Visual Studio solution-build time.
+
+All **127 generated source hashes matched exactly**, and all fixture runs reported no generator errors. A preliminary retention-only candidate was also measured; its raw observations are preserved separately and are not the implementation summarized in the table.
+
+Local artifacts under `.work/generator-analysis/`: `*-step6/7-reader-lifetime.jsonl` and `.hashes`, `*-step7-retention-only-reader-lifetime.*`, `measure-reader-lifetime.py`, `measure-reader-direct.py`, `tests-step7-build.log`, and `memory-step7-build.log`. Both Release builds completed with zero warnings/errors.
+
+### Process memory and lifetime
+
+The unprofiled corrected harness ran three fresh SQL generations, five unrelated C# edits and release, sequentially for the baseline and candidate. Tests began only after both memory processes exited.
+
+| Measurement | Step 6 | Step 7 |
+|---|---:|---:|
+| Peak working set | 4.898 GiB | 3.784 GiB |
+| Working set after release | 3.619 GiB | 1.787 GiB |
+| Managed live data after edits | 294.61 MiB | 294.61 MiB |
+| Managed live data after release | 28.03 MiB | 28.03 MiB |
+| Prior/current drivers alive after release | 0 of 8 | 0 of 8 |
+
+Peak working set fell approximately **22.7%** in this pair. The first-generation peaks were similar (3.761 versus 3.784 GiB); the baseline's larger peak occurred over subsequent fresh generations. The current generation's retained data was essentially identical and all prior drivers collected. Thus this is an observed improvement in transient process memory, not a reduction in the size of the retained parser result.
+
+This is one unprofiled process pair, not a guarantee of the same reduction in Visual Studio. GC timing and fragmentation still vary: at the edited checkpoint the candidate reported a larger GC heap (including fragmentation) despite a smaller process working set. These counters measure different things; no forced collection was added to the production generator. Raw counters are in `memory-sql-step6/7-reader-lifetime/metrics.jsonl`.
+
+### Validation
+
+All **8,179 tests passed**, with zero errors, failures or skips, in 153.683 seconds (`tests-step7-all.log`). This includes existing golden-source, folding, replay, mapped-C# and writer cases. All 127 representative output hashes matched, both Release builds had zero warnings/errors, and BOM/CRLF/tab/whitespace checks plus `git diff --check` passed. No new tests were added solely to mirror the changed rendering order.
