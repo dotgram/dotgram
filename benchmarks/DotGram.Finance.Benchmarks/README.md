@@ -209,3 +209,10 @@ fixtures are compared by field case, typed value and location before timing.
 The simpler grammar reduces assembly size by 25.6%, but performance is mixed:
 group workloads improve while short orders regress. Allocations are unchanged.
 The report documents the visible `GRAM5003` warning and reproduction commands.
+
+## Short-input regression investigation: 2026-09-16
+
+[Initialization measurements and JIT evidence](results/2026-09-16-initialization.md)
+separate lazy creation, empty enumeration and per-field costs. The large generated
+materialization helper clears about 28 KiB of stack per invocation. Parser startup
+alone does not explain the warm regression. No compiler fix is included yet.

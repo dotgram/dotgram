@@ -52,7 +52,7 @@ public class FixGrammarComparisonBenchmarks
 		simplified = Operation(Bind(current, Input), wire, Input);
 	}
 
-	static Func<object, IEnumerable> Bind(Type type, string input)
+	internal static Func<object, IEnumerable> Bind(Type type, string input)
 	{
 		var domain = input == "String" ? typeof(string) : input == "Bytes" ? typeof(Stream) : typeof(TextReader);
 		var method = type.GetMethods().Single(m => m.Name == "Parse" && m.GetParameters()[0].ParameterType == domain);

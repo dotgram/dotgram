@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -16,6 +16,11 @@ static class Program
 {
 	static void Main(string[] args)
 	{
+		if (args.Length == 2 && args[0] == "--fix-jit-probe")
+		{
+			FixInitializationBenchmarks.Probe(args[1] == "previous");
+			return;
+		}
 		if (args.Length == 3 && args[0] == "--memory")
 		{
 			new Fix44InputBenchmarks { Workload = args[1] }.MeasureMemory(args[2]);
