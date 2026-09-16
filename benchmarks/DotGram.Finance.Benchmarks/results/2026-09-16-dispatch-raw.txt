@@ -1,0 +1,210 @@
+Round=1
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Tag1, Input=Bytes, Iterations=500000, Fields/operation=1
+Seconds=0.301588; ns/op=603.18; B/op=432.00; GC=4/0/0; Fields=500000
+Round=1
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Tag1, Input=Bytes, Iterations=500000, Fields/operation=1
+Seconds=0.293393; ns/op=586.79; B/op=440.00; GC=4/0/0; Fields=500000
+Round=1
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Tag198, Input=Bytes, Iterations=500000, Fields/operation=1
+Seconds=0.329717; ns/op=659.43; B/op=432.00; GC=4/0/0; Fields=500000
+Round=1
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Tag198, Input=Bytes, Iterations=500000, Fields/operation=1
+Seconds=0.296430; ns/op=592.86; B/op=440.00; GC=4/0/0; Fields=500000
+Round=1
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=1.556310; ns/op=3112.62; B/op=1592.00; GC=15/0/0; Fields=7500000
+Round=1
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=0.750478; ns/op=1500.96; B/op=1600.00; GC=15/0/0; Fields=7500000
+Round=1
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Groups, Input=Bytes, Iterations=1000, Fields/operation=3011
+Seconds=0.611618; ns/op=611617.70; B/op=169352.00; GC=3/0/0; Fields=3011000
+Round=1
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Groups, Input=Bytes, Iterations=1000, Fields/operation=3011
+Seconds=0.370574; ns/op=370573.50; B/op=169360.00; GC=3/0/0; Fields=3011000
+Round=1
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Raw, Input=Bytes, Iterations=10000, Fields/operation=11
+Seconds=0.491925; ns/op=49192.51; B/op=67944.00; GC=13/0/0; Fields=110000
+Round=1
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Raw, Input=Bytes, Iterations=10000, Fields/operation=11
+Seconds=0.367665; ns/op=36766.51; B/op=66808.00; GC=13/0/0; Fields=110000
+Round=1
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Order, Input=Characters, Iterations=500000, Fields/operation=15
+Seconds=2.189896; ns/op=4379.79; B/op=1416.00; GC=14/0/0; Fields=7500000
+Round=1
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Order, Input=Characters, Iterations=500000, Fields/operation=15
+Seconds=0.875219; ns/op=1750.44; B/op=1424.00; GC=14/0/0; Fields=7500000
+Round=1
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Order, Input=String, Iterations=500000, Fields/operation=15
+Seconds=2.746147; ns/op=5492.29; B/op=1376.00; GC=13/0/0; Fields=7500000
+Round=1
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Order, Input=String, Iterations=500000, Fields/operation=15
+Seconds=0.670903; ns/op=1341.81; B/op=1296.00; GC=12/0/0; Fields=7500000
+Round=2
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Tag1, Input=Bytes, Iterations=500000, Fields/operation=1
+Seconds=0.210347; ns/op=420.69; B/op=440.00; GC=4/0/0; Fields=500000
+Round=2
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Tag1, Input=Bytes, Iterations=500000, Fields/operation=1
+Seconds=0.337833; ns/op=675.67; B/op=432.00; GC=4/0/0; Fields=500000
+Round=2
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Tag198, Input=Bytes, Iterations=500000, Fields/operation=1
+Seconds=0.294312; ns/op=588.62; B/op=440.00; GC=4/0/0; Fields=500000
+Round=2
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Tag198, Input=Bytes, Iterations=500000, Fields/operation=1
+Seconds=0.329955; ns/op=659.91; B/op=432.00; GC=4/0/0; Fields=500000
+Round=2
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=0.727213; ns/op=1454.43; B/op=1600.00; GC=15/0/0; Fields=7500000
+Round=2
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=1.540313; ns/op=3080.63; B/op=1592.00; GC=15/0/0; Fields=7500000
+Round=2
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Groups, Input=Bytes, Iterations=1000, Fields/operation=3011
+Seconds=0.368324; ns/op=368324.30; B/op=169360.00; GC=3/0/0; Fields=3011000
+Round=2
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Groups, Input=Bytes, Iterations=1000, Fields/operation=3011
+Seconds=0.578207; ns/op=578207.00; B/op=169352.00; GC=3/0/0; Fields=3011000
+Round=2
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Raw, Input=Bytes, Iterations=10000, Fields/operation=11
+Seconds=0.365904; ns/op=36590.38; B/op=66808.00; GC=13/0/0; Fields=110000
+Round=2
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Raw, Input=Bytes, Iterations=10000, Fields/operation=11
+Seconds=0.495023; ns/op=49502.33; B/op=67944.00; GC=13/0/0; Fields=110000
+Round=2
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Order, Input=Characters, Iterations=500000, Fields/operation=15
+Seconds=0.835325; ns/op=1670.65; B/op=1424.00; GC=14/0/0; Fields=7500000
+Round=2
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Order, Input=Characters, Iterations=500000, Fields/operation=15
+Seconds=2.161939; ns/op=4323.88; B/op=1416.00; GC=14/0/0; Fields=7500000
+Round=2
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Order, Input=String, Iterations=500000, Fields/operation=15
+Seconds=0.671850; ns/op=1343.70; B/op=1296.00; GC=12/0/0; Fields=7500000
+Round=2
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Order, Input=String, Iterations=500000, Fields/operation=15
+Seconds=2.711364; ns/op=5422.73; B/op=1376.00; GC=13/0/0; Fields=7500000
+Round=3
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Tag1, Input=Bytes, Iterations=500000, Fields/operation=1
+Seconds=0.334347; ns/op=668.69; B/op=432.00; GC=4/0/0; Fields=500000
+Round=3
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Tag1, Input=Bytes, Iterations=500000, Fields/operation=1
+Seconds=0.212557; ns/op=425.11; B/op=440.00; GC=4/0/0; Fields=500000
+Round=3
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Tag198, Input=Bytes, Iterations=500000, Fields/operation=1
+Seconds=0.332312; ns/op=664.62; B/op=432.00; GC=4/0/0; Fields=500000
+Round=3
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Tag198, Input=Bytes, Iterations=500000, Fields/operation=1
+Seconds=0.213027; ns/op=426.05; B/op=440.00; GC=4/0/0; Fields=500000
+Round=3
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=1.554976; ns/op=3109.95; B/op=1592.00; GC=15/0/0; Fields=7500000
+Round=3
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=0.751962; ns/op=1503.92; B/op=1600.00; GC=15/0/0; Fields=7500000
+Round=3
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Groups, Input=Bytes, Iterations=1000, Fields/operation=3011
+Seconds=0.639334; ns/op=639333.80; B/op=169352.00; GC=3/0/0; Fields=3011000
+Round=3
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Groups, Input=Bytes, Iterations=1000, Fields/operation=3011
+Seconds=0.373212; ns/op=373212.00; B/op=169360.00; GC=3/0/0; Fields=3011000
+Round=3
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Raw, Input=Bytes, Iterations=10000, Fields/operation=11
+Seconds=0.487767; ns/op=48776.68; B/op=67944.00; GC=13/0/0; Fields=110000
+Round=3
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Raw, Input=Bytes, Iterations=10000, Fields/operation=11
+Seconds=0.372731; ns/op=37273.15; B/op=66808.00; GC=13/0/0; Fields=110000
+Round=3
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Order, Input=Characters, Iterations=500000, Fields/operation=15
+Seconds=2.183945; ns/op=4367.89; B/op=1416.00; GC=14/0/0; Fields=7500000
+Round=3
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Order, Input=Characters, Iterations=500000, Fields/operation=15
+Seconds=0.866470; ns/op=1732.94; B/op=1424.00; GC=14/0/0; Fields=7500000
+Round=3
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=Fix44
+Workload=Order, Input=String, Iterations=500000, Fields/operation=15
+Seconds=2.722530; ns/op=5445.06; B/op=1376.00; GC=13/0/0; Fields=7500000
+Round=3
+Assembly SHA256: 53772E80BB6C5CE6796A89B474A3B1C6E381B3B49FCD5C1ACE15D1C0EA76C975
+Parser=FixDispatch
+Workload=Order, Input=String, Iterations=500000, Fields/operation=15
+Seconds=0.672377; ns/op=1344.75; B/op=1296.00; GC=12/0/0; Fields=7500000

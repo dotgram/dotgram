@@ -12,6 +12,7 @@ public interface IFixLocation
 public abstract partial class FixField : IFixLocation
 {
 	int prefixLength;
+	int terminatorLength = 1;
 	internal bool IsBinary => prefixLength != TagPrefixLength;
 	internal int DataPosition => ValuePosition - TagPrefixLength;
 	int TagPrefixLength
@@ -41,7 +42,13 @@ public abstract partial class FixField : IFixLocation
 	public void Locate(int position, int length)
 	{
 		Position = position;
-		Length = length - prefixLength - 1;
+		Length = length - prefixLength - terminatorLength;
+	}
+
+	internal FixField WithTerminator(int length)
+	{
+		terminatorLength = length;
+		return this;
 	}
 
 	internal FixField WithBinary(FixBinaryValue value, int start)

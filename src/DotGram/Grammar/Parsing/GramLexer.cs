@@ -240,6 +240,7 @@ public static class GramLexer
 			'?' => TokenKind.Question,
 			'*' => TokenKind.Star,
 			'+' => TokenKind.Plus,
+			'-' => TokenKind.Minus,
 			'^' => TokenKind.Caret,
 			'.' => TokenKind.Dot,
 			'<' => TokenKind.Less,

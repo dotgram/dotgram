@@ -32,6 +32,8 @@ public static partial class CSharpEmitter
 		.Replace("BufferedText", "BufferedBytes")
 		.Replace("global::System.IO.TextReader", "global::System.IO.Stream")
 		.Replace("char[]", "byte[]")
+		.Replace("ArrayPool<char>", "ArrayPool<byte>")
+		.Replace("Array.Empty<char>", "Array.Empty<byte>")
 		.Replace("new char[", "new byte[")
 		.Replace("out char value", "out byte value")
 		.Replace("public char Get", "public byte Get")
@@ -113,7 +115,7 @@ public static partial class CSharpEmitter
 			using (file.Block($"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{publication.ResultType!.Name}> {method}(" +
 				$"{inputType} input{context}, int bufferSize = 4096, int maxRetained = int.MaxValue)"))
 			{
-				file.Line($"var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize, maxRetained);");
+				file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize, maxRetained);");
 				file.Line("var start = 0;");
 				if (publication.YieldMinimum > 0)
 					file.Line("if (!text.Peek(0, out _)) throw new global::System.FormatException(\"Expected at least one element at offset 0.\");");
@@ -139,7 +141,7 @@ public static partial class CSharpEmitter
 			using (file.Block($"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{match}> {method}(" +
 				$"{inputType} input{context}, int bufferSize = 4096, int maxRetained = int.MaxValue)"))
 			{
-				file.Line($"var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize, maxRetained);");
+				file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize, maxRetained);");
 				file.Line("var start = 0;");
 				using (file.Block("while (true)"))
 				{
@@ -159,7 +161,7 @@ public static partial class CSharpEmitter
 		using (file.Block($"{AccessOf(publication)} static {match} Try{method}(" +
 			$"{inputType} input{context}, int bufferSize = 4096, int maxRetained = int.MaxValue)"))
 		{
-			file.Line($"var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize, maxRetained);");
+			file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize, maxRetained);");
 			file.Line($"var failure = new {FailureType}();");
 			file.Line($"var end = {BufferedMethod(publication, bytes)}(text, 0{hands});");
 			using (file.Block("if (end < 0)"))
@@ -181,11 +183,13 @@ public static partial class CSharpEmitter
 	}
 
 	const string BufferedTextClass = """
-		private sealed class BufferedText
+		private sealed class BufferedText : global::System.IDisposable
 		{
 			private readonly global::System.IO.TextReader _input;
 			private readonly int _limit;
 			private char[] _buffer;
+			// Pool buckets may be larger: read size and retention use the requested capacity.
+			private int _capacity;
 			private int _start;
 			private int _released;
 			private int _count;
@@ -198,7 +202,16 @@ public static partial class CSharpEmitter
 				if (limit <= 0) throw new global::System.ArgumentOutOfRangeException(nameof(limit));
 				_input = input;
 				_limit = limit;
-				_buffer = new char[global::System.Math.Min(capacity, limit)];
+				_capacity = global::System.Math.Min(capacity, limit);
+				_buffer = global::System.Buffers.ArrayPool<char>.Shared.Rent(_capacity);
+			}
+
+			public void Dispose()
+			{
+				if (_capacity == 0) return;
+				global::System.Buffers.ArrayPool<char>.Shared.Return(_buffer, clearArray: true);
+				_buffer = global::System.Array.Empty<char>();
+				_capacity = 0;
 			}
 
 			public bool Peek(int position, out char value)
@@ -225,24 +238,28 @@ public static partial class CSharpEmitter
 			{
 				while (!_ended && (position > _count || length > _count - position))
 				{
-					if (_count - _start == _buffer.Length && _released > _start)
+					if (_count - _start == _capacity && _released > _start)
 					{
 						global::System.Array.Copy(_buffer, _released - _start, _buffer, 0, _count - _released);
 						_start = _released;
 					}
-					if (_count - _start == _buffer.Length)
+					if (_count - _start == _capacity)
 					{
-						if (_buffer.Length == _limit)
+						if (_capacity == _limit)
 						{
 							// TextReader.Peek is optional; verify EOF with the block-read contract.
 							var probe = new char[1];
 							if (_input.Read(probe, 0, 1) == 0) { _ended = true; break; }
 							throw new global::System.IO.IOException("Buffered input retention limit exceeded.");
 						}
-						var capacity = _buffer.Length <= _limit / 2 ? _buffer.Length * 2 : _limit;
-						global::System.Array.Resize(ref _buffer, capacity);
+						var capacity = _capacity <= _limit / 2 ? _capacity * 2 : _limit;
+						var grown = global::System.Buffers.ArrayPool<char>.Shared.Rent(capacity);
+						global::System.Array.Copy(_buffer, 0, grown, 0, _count - _start);
+						global::System.Buffers.ArrayPool<char>.Shared.Return(_buffer, clearArray: true);
+						_buffer = grown;
+						_capacity = capacity;
 					}
-					var room = global::System.Math.Min(_buffer.Length - (_count - _start), int.MaxValue - _count);
+					var room = global::System.Math.Min(_capacity - (_count - _start), int.MaxValue - _count);
 					if (room == 0) throw new global::System.IO.IOException("Buffered input position limit exceeded.");
 					var read = _input.Read(_buffer, _count - _start, room);
 					if (read == 0) _ended = true;

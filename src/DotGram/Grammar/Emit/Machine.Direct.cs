@@ -123,6 +123,9 @@ sealed partial class Machine
 
 					switch (node)
 					{
+						case Node.Choice { Selection: not null }:
+							return Refused(rule, "it uses computed switch dispatch");
+
 						case Node.Empty or Node.Literal or Node.Element or Node.Sequence or Node.Choice
 							or Node.Repeat or Node.Lookahead or Node.Behind or Node.Atomic or Node.Glue
 							or Node.Reading:

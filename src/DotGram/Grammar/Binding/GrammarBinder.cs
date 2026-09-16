@@ -745,6 +745,11 @@ public sealed class GrammarBinder
 				ResolveExpression(value, ns, parameters, csharpValue: true);
 				return;
 
+			case Expr.Switch(var selected, var cases):
+				ResolveExpression(selected, ns, parameters, csharpValue: true);
+				foreach (var branch in cases) ResolveExpression(branch.Body, ns, parameters);
+				return;
+
 			case Expr.Guard(var guarded):
 				ResolveExpression(guarded, ns, parameters, csharpValue: true);
 				return;

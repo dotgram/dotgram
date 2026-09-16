@@ -269,7 +269,11 @@ public sealed partial class GrammarNormalizer
 			Node.Guard    (var text, var at)                                        => new Node.Guard(text, at),
 			Node.External (var name) { HasValue: var hasValue }                     => new Node.External(name) { HasValue = hasValue },
 			Node.Sequence (var nodes)                                               => new Node.Sequence([.. nodes.Select(child => SpliceWithSites(child, rewrites))]),
-			Node.Choice   (var nodes)                                               => new Node.Choice([.. nodes.Select(child => SpliceWithSites(child, rewrites))]),
+			Node.Choice   (var nodes)                                               => ((Node.Choice)node).Rebuild([.. nodes.Select(child => SpliceWithSites(child, rewrites))]) with
+			{
+				Selection = ((Node.Choice)node).Selection is { } selected
+					? selected with { Selector = (Node.Guard)SpliceWithSites(selected.Selector, rewrites) } : null,
+			},
 			Node.Atomic   (var body)                                                => new Node.Atomic(SpliceWithSites(body, rewrites)),
 			Node.Marked   (var body, var text)                                      => new Node.Marked(SpliceWithSites(body, rewrites), text),
 			Node.Repeat   (var body, var min, var max)                              => new Node.Repeat(SpliceWithSites(body, rewrites), min, max),

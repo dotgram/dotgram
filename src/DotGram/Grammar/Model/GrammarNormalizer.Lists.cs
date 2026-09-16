@@ -90,7 +90,7 @@ public sealed partial class GrammarNormalizer
 				{
 					var rebuilt = Rebuilt(alternatives, seam);
 
-					return rebuilt is null ? node : new Node.Choice(rebuilt);
+					return rebuilt is null ? node : ((Node.Choice)node).Rebuild(rebuilt);
 				}
 
 				case Node.Repeat(var body, var min, var max) other:

@@ -469,7 +469,7 @@ public sealed partial class GrammarNormalizer
 
 	/// <summary>What the rule offers: its alternatives, or the body when it offers one.</summary>
 	static IReadOnlyList<Node> Alternatives(Node body) =>
-		body is Node.Choice(var alternatives) ? alternatives : [body];
+		body is Node.Choice(var alternatives) { Selection: null } ? alternatives : [body];
 
 	static IEnumerable<Node> Constructs(Node node)
 	{

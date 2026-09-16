@@ -42,14 +42,15 @@ KnownBinary : @FixField =
 	| "621=" & value: Binary("622=") => @(new FixField.EncodedLegSecurityDesc(value.Data).WithBinary(value, parserSpan.Start))
 
 // Reserved for a future grammar extension; never matches by default.
-CustomFiled : @FixField = when @(false) => @(null!)
+// The consuming shape keeps the yielded Field non-nullable even with an EOF terminator.
+CustomFiled : @FixField = any & when @(false) => @(null!)
 
 Unknown : @FixField =
 	tag: Digits & when @(FixContext.IsUnknownText(tag)) & '=' & value: ValueText
 	=> @(new FixField.Unknown(FixContext.Tag(tag), FixConvert.Data(value)))
 
 Field : @FixField =
-	(v: KnownField(ValueText) | v: KnownBinary | v: CustomFiled | v: Unknown) & Separator => @(v)
+	(v: KnownField(ValueText) | v: KnownBinary | v: CustomFiled | v: Unknown) & end: (Separator | eof) => @(v.WithTerminator(end.Length))
 
 Fields : @FixField[] = { Field* }
 

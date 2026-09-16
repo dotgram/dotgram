@@ -1,0 +1,43 @@
+sampled allocations: 4,579 MB
+collections: gen0 93, gen1 1, gen2 2; paused 0.0 s
+
+== by type ==
+	4,185 MB  91.4%  System.Byte[]
+	82 MB   1.8%  <ReadFields>d__19
+	55 MB   1.2%  System.IO.MemoryStream
+	54 MB   1.2%  BufferedBytes
+	47 MB   1.0%  Account
+	37 MB   0.8%  <<Parse>g__Read|0>d
+	36 MB   0.8%  <>c__DisplayClass4_0
+	36 MB   0.8%  System.Char[]
+	25 MB   0.6%  System.String
+	19 MB   0.4%  DotGram.Finance.Fix.FixContext
+	1 MB   0.0%  System.Int32[]
+	1 MB   0.0%  System.String[]
+
+== by first DotGram frame ==
+	3,579 MB  78.2%  DotGram.Finance.Fix.FixGrammar+<ReadFields>d__19.MoveNext()
+	645 MB  14.1%  DotGram.Finance.Fix.FixGrammar+BufferedBytes..ctor(class System.IO.Stream,int32,int32)
+	129 MB   2.8%  DotGram.Finance.Benchmarks.FixGrammarComparisonBenchmarks+<>c__DisplayClass13_0.<Operation>b__0()
+	90 MB   2.0%  DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Construct32_Part0|11089_0(class BufferedBytes,int32,int32,value class <>c__DisplayClass11089_0&)
+	88 MB   1.9%  DotGram.Finance.Fix.Fix44+<>c__DisplayClass4_0+<<Parse>g__Read|0>d.MoveNext()
+	15 MB   0.3%  DotGram.Finance.Benchmarks.FixProfile.Run(class System.String,class System.String,class System.String,int32)
+	13 MB   0.3%  DotGram.Finance.Fix.FixGrammar.ReadFields(class System.IO.Stream,class DotGram.Finance.Fix.FixContext,int32,int32)
+	9 MB   0.2%  DotGram.Finance.Fix.FixConvert.Text(value class System.ReadOnlySpan`1<unsigned int8>)
+	9 MB   0.2%  DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_Bytes(value class SourceSpan,value class System.ReadOnlySpan`1<unsigned int8>)
+	1 MB   0.0%  DotGram.Finance.Fix.FixGrammar..cctor()
+	1 MB   0.0%  (no DotGram frame)
+
+== by type and frame ==
+	3,524 MB  77.0%  System.Byte[]  <=  DotGram.Finance.Fix.FixGrammar+<ReadFields>d__19.MoveNext()
+	645 MB  14.1%  System.Byte[]  <=  DotGram.Finance.Fix.FixGrammar+BufferedBytes..ctor(class System.IO.Stream,int32,int32)
+	70 MB   1.5%  <ReadFields>d__19  <=  DotGram.Finance.Fix.Fix44+<>c__DisplayClass4_0+<<Parse>g__Read|0>d.MoveNext()
+	55 MB   1.2%  System.IO.MemoryStream  <=  DotGram.Finance.Benchmarks.FixGrammarComparisonBenchmarks+<>c__DisplayClass13_0.<Operation>b__0()
+	54 MB   1.2%  BufferedBytes  <=  DotGram.Finance.Fix.FixGrammar+<ReadFields>d__19.MoveNext()
+	38 MB   0.8%  Account  <=  DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Construct32_Part0|11089_0(class BufferedBytes,int32,int32,value class <>c__DisplayClass11089_0&)
+	37 MB   0.8%  <<Parse>g__Read|0>d  <=  DotGram.Finance.Benchmarks.FixGrammarComparisonBenchmarks+<>c__DisplayClass13_0.<Operation>b__0()
+	36 MB   0.8%  <>c__DisplayClass4_0  <=  DotGram.Finance.Benchmarks.FixGrammarComparisonBenchmarks+<>c__DisplayClass13_0.<Operation>b__0()
+	30 MB   0.7%  System.Char[]  <=  DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Construct32_Part0|11089_0(class BufferedBytes,int32,int32,value class <>c__DisplayClass11089_0&)
+	22 MB   0.5%  System.String  <=  DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Construct32_Part0|11089_0(class BufferedBytes,int32,int32,value class <>c__DisplayClass11089_0&)
+	19 MB   0.4%  DotGram.Finance.Fix.FixContext  <=  DotGram.Finance.Fix.Fix44+<>c__DisplayClass4_0+<<Parse>g__Read|0>d.MoveNext()
+	15 MB   0.3%  System.Byte[]  <=  DotGram.Finance.Benchmarks.FixProfile.Run(class System.String,class System.String,class System.String,int32)

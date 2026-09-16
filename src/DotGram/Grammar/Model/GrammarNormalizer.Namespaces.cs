@@ -415,7 +415,11 @@ public sealed partial class GrammarNormalizer
 			Node.Guard    (var text, var at)                                        => new Node.Guard    (Renaming(text), at),
 			Node.External (var name) { HasValue: var hasValue }                     => new Node.External (name) { HasValue = hasValue },
 			Node.Sequence (var nodes)                                               => new Node.Sequence ([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap, siteName))]),
-			Node.Choice   (var nodes)                                               => new Node.Choice   ([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap, siteName))]),
+			Node.Choice   (var nodes)                                               => ((Node.Choice)node).Rebuild([.. nodes.Select(child => CloneAndRewrite(child, targets, cloneMap, siteName))]) with
+			{
+				Selection = ((Node.Choice)node).Selection is { } selected
+					? selected with { Selector = (Node.Guard)CloneAndRewrite(selected.Selector, targets, cloneMap, siteName) } : null,
+			},
 			Node.Atomic   (var body)                                                => new Node.Atomic   (CloneAndRewrite(body, targets, cloneMap, siteName)),
 			Node.Marked   (var body, var text)                                      => new Node.Marked   (CloneAndRewrite(body, targets, cloneMap, siteName), Renaming(text)),
 			Node.Repeat   (var body, var min, var max)                              => new Node.Repeat   (CloneAndRewrite(body, targets, cloneMap, siteName), min, max),

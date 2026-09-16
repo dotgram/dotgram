@@ -157,6 +157,8 @@ public abstract record Expr : ILocated
 	/// <summary>A repetition that survives a bad element (§8.2).</summary>
 	public sealed record Recovering(Expr Body, Expr Sync, Expr? Factory)       : Expr;
 
+	public sealed record Switch(Expr Value, IReadOnlyList<SwitchCase> Cases) : Expr;
+	public sealed record SwitchCase(string? Label, Expr Body);
 	public sealed record Guard     (Expr Value)                                : Expr;
 
 	/// <summary>
@@ -346,6 +348,7 @@ static class Dump
 		Expr.Glued(var operands)            => operands,
 		Expr.Construct(var pattern, var value) => [pattern, value],
 		Expr.Guard(var value)               => [value],
+		Expr.Switch(var value, var cases)    => new[] { value }.Concat(cases.Select(one => one.Body)).ToArray(),
 		Expr.Condition(var test)            => Test.Operands(test),
 		Expr.Capture(_, var operand)        => [operand],
 		Expr.Bound(var body, _, _)          => [body],
@@ -381,6 +384,7 @@ static class Dump
 		Expr.Sequence                             => "Sequence",
 		Expr.Glued                                => "Glued",
 		Expr.Guard                                => "Guard",
+		Expr.Switch                               => "Switch",
 		Expr.Condition                            => "Condition",
 		Expr.Capture(var name, _)                 => $"Capture {Quote(name)}",
 		Expr.Group                                => "Group",

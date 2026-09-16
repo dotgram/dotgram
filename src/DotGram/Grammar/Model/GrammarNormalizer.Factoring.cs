@@ -43,6 +43,7 @@ public sealed partial class GrammarNormalizer
 
 		Node Walk(Node node)
 		{
+			if (node is Node.Choice { Selection: not null }) return node;
 			if (node is Node.Sequence(var sequence))
 			{
 				var changed = sequence.Select(Walk).ToList();
@@ -214,7 +215,7 @@ public sealed partial class GrammarNormalizer
 	/// </remarks>
 	Node Inlined(Node node, RuleSymbol owner)
 	{
-		if (node is not Node.Choice(var alternatives))
+		if (node is not Node.Choice(var alternatives) { Selection: null })
 			return node;
 
 		List<Node>? rewritten = null;
@@ -360,7 +361,7 @@ public sealed partial class GrammarNormalizer
 	/// or null where it is not that shape.
 	/// </summary>
 	Node.Choice? Given(Node body) =>
-		body is Node.Construct(Node.Choice(var shared), Construction.Expression(var text, _) how) &&
+		body is Node.Construct(Node.Choice(var shared) { Selection: null }, Construction.Expression(var text, _) how) &&
 		Handed(text) is { } handed &&
 		Handing(shared, handed)
 			? new Node.Choice([.. shared.Select(one => (Node)new Node.Construct(one, how))])
@@ -392,6 +393,7 @@ public sealed partial class GrammarNormalizer
 			case Node.Choice(var alternatives):
 			{
 				var inner = Each(alternatives, following, graph, owner, sequence: false) ?? alternatives;
+				if (node is Node.Choice { Selection: not null } selected) return Instead(node, selected.Rebuild(inner));
 
 				// An alternative that only hands on a call is replaced by the body it would
 				// have called, but only where the fold then takes: on its own it duplicates
@@ -738,7 +740,7 @@ public sealed partial class GrammarNormalizer
 		Node.Choice residue, FollowSets.Continuation following, RecognitionGraph graph,
 		RuleSymbol owner)
 	{
-		if (_insideNamed)
+		if (_insideNamed || residue.Selection is not null)
 			return residue;
 
 		var seam     = FollowSets.SeamOf(owner, graph);
