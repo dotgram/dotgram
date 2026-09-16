@@ -183,14 +183,43 @@ public static class FirstSets
 			{
 				ranges.Clear();
 
+				var ordered = true;
+
 				while (mine < Ranges.Count || theirs < other.Ranges.Count)
-					ranges.Add(
-						theirs >= other.Ranges.Count ||
+				{
+					var range = theirs >= other.Ranges.Count ||
 						mine < Ranges.Count && Ranges[mine].From <= other.Ranges[theirs].From
 							? Ranges[mine++]
-							: other.Ranges[theirs++]);
+							: other.Ranges[theirs++];
 
-				return Chars(ranges, Ends || other.Ends);
+					if (range.To < range.From)
+						continue;
+
+					if (ordered && ranges.Count > 0)
+					{
+						var last = ranges[ranges.Count - 1];
+
+						// Public construction can supply unsorted ranges. Keep their union and
+						// use the general normalizer if the ordered merge encounters one.
+						if (range.From < last.From)
+							ordered = false;
+						else if (last.To + 1 >= range.From)
+						{
+							if (range.To > last.To)
+								ranges[ranges.Count - 1] = last with { To = range.To };
+							continue;
+						}
+					}
+
+					ranges.Add(range);
+				}
+
+				if (!ordered)
+					return Chars(ranges, Ends || other.Ends);
+
+				return ranges.Count == 0 && !Ends && !other.Ends
+					? None
+					: new First(false, false, ranges.ToArray(), Ends || other.Ends);
 			}
 			finally
 			{

@@ -1334,11 +1334,7 @@ public static class LexerEmitter
 	{
 		var bits = Filling;
 
-		Array.Clear(bits, 0, bits.Length);
-
-		for (var i = 0; i < ranges.Count; i++)
-			for (var c = (int)ranges[i].From; c <= ranges[i].To; c++)
-				bits[c >> 3] |= (byte)(1 << (c & 7));
+		Fill(bits, ranges);
 
 		// Nearly every field asked for is one already declared. Printed, eight thousand bytes
 		// are eight thousand strings and one of twenty-odd kilobytes, and that was paid to be
@@ -1357,6 +1353,34 @@ public static class LexerEmitter
 		Fields[(byte[])bits.Clone()] = at;
 
 		return at;
+	}
+
+	/// <summary>Sets range interiors a byte at a time, with masks only at the boundaries.</summary>
+	static void Fill(byte[] bits, IReadOnlyList<CharRange> ranges)
+	{
+		Array.Clear(bits, 0, bits.Length);
+
+		for (var i = 0; i < ranges.Count; i++)
+		{
+			var range = ranges[i];
+			if (range.To < range.From)
+				continue;
+
+			var first = range.From >> 3;
+			var last = range.To >> 3;
+			var startMask = (byte)(0xff << (range.From & 7));
+			var endMask = (byte)(0xff >> (7 - (range.To & 7)));
+
+			if (first == last)
+				bits[first] |= (byte)(startMask & endMask);
+			else
+			{
+				bits[first] |= startMask;
+				for (var at = first + 1; at < last; at++)
+					bits[at] = 0xff;
+				bits[last] |= endMask;
+			}
+		}
 	}
 
 	/// <summary>Two runs of bytes are the same when every byte is.</summary>

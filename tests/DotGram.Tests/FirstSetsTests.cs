@@ -46,6 +46,76 @@ public sealed class FirstSetsTests
 		Assert.Equal(one.Ranges, two.Ranges);
 	}
 
+	[Fact]
+	public void Union_matches_character_membership_and_preserves_end_markers()
+	{
+		var random = new Random(1701);
+
+		for (var trial = 0; trial < 1000; trial++)
+		{
+			var left = Make();
+			var right = Make();
+			var union = left.Or(right);
+			var expected = new bool[256];
+			var actual = new bool[256];
+
+			foreach (var range in left.Ranges.Concat(right.Ranges))
+				for (var c = (int)range.From; c <= range.To; c++)
+					expected[c] = true;
+			foreach (var range in union.Ranges)
+				for (var c = (int)range.From; c <= range.To; c++)
+					actual[c] = true;
+
+			Assert.Equal(expected, actual);
+			Assert.Equal(left.Ends || right.Ends, union.Ends);
+			for (var i = 1; i < union.Ranges.Count; i++)
+				Assert.True(union.Ranges[i - 1].To + 1 < union.Ranges[i].From);
+		}
+
+		FirstSets.First Make()
+		{
+			var ranges = new List<CharRange>();
+			var count = random.Next(12);
+			for (var i = 0; i < count; i++)
+			{
+				var start = random.Next(256);
+				ranges.Add(new CharRange((char)start, (char)Math.Min(255, start + random.Next(12))));
+			}
+			return FirstSets.First.Chars(ranges, random.Next(2) == 0);
+		}
+	}
+
+	[Fact]
+	public void Union_normalizes_unsorted_public_ranges_after_a_partial_merge()
+	{
+		var left = new FirstSets.First(false, false,
+			[new CharRange('c', 'e'), new CharRange('z', 'z'), new CharRange('a', 'b')]);
+		var right = FirstSets.First.Chars([new CharRange('f', 'm')], ends: true);
+		var result = left.Or(right);
+		Assert.Equal([new CharRange('a', 'm'), new CharRange('z', 'z')], result.Ranges);
+		Assert.True(result.Ends);
+	}
+
+	[Fact]
+	public void Union_skips_reversed_ranges_and_merges_at_the_character_limit()
+	{
+		var left = new FirstSets.First(false, false,
+			[new CharRange('a', 'a'), new CharRange('z', 'b'), new CharRange('\ufffd', '\ufffe')]);
+		var right = FirstSets.First.Chars([new CharRange('b', 'b'), new CharRange('\uffff', '\uffff')]);
+		var result = left.Or(right);
+		Assert.Equal([new CharRange('a', 'b'), new CharRange('\ufffd', '\uffff')], result.Ranges);
+	}
+
+	[Fact]
+	public void Union_preserves_sentinel_and_covered_instances()
+	{
+		var chars = FirstSets.First.Chars([new CharRange('a', 'z')], ends: true);
+		Assert.Same(FirstSets.First.All, chars.Or(FirstSets.First.All));
+		Assert.Same(chars, FirstSets.First.None.Or(chars));
+		Assert.Same(chars, chars.Or(FirstSets.First.End));
+		Assert.Same(chars, chars.Or(FirstSets.First.Chars([new CharRange('b', 'c')])));
+	}
+
 	[Theory]
 	[InlineData('a', 'c', 'c', 'e', true)]
 	[InlineData('a', 'c', 'd', 'e', false)]

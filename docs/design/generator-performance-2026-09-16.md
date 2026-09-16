@@ -606,3 +606,56 @@ The 1.2% peak decrease in this single pair is small relative to earlier run-to-r
 ### Final validation after synchronization
 
 All **8,228 general tests passed** in 187.000 seconds and **3,596 Finance tests passed** in 1.435 seconds, with zero errors, failures or skips. The Finance Release build also passed with zero warnings/errors, validating the newly merged materialization changes together with this optimization. All 35 output hashes matched; BOM/CRLF/tab checks and `git diff --check` passed. No commits from the local main were missing at final validation. Logs: `tests-step9-all.log`, `tests-step9-finance-build.log`, and `tests-step9-finance.log`.
+
+## Tenth optimization batch: follow CPU profiles beyond source buffers
+
+The control is commit `e132ef8`. The current generator was rebuilt before saving `step10-base-bin` and capturing a new dotTrace Sampling / ThreadTime profile over two fresh SQL generations (cold and warm). The profile includes harness setup, GC and both runs; it is not a complete solution-build profile. The installed dotTrace 2026.2.0.1 ConsoleProfiler and Reporter were used. The first sandboxed capture failed while registering the profiler in HKCU; the approved retry completed successfully, as did the later captures.
+
+### Changes selected from the profile
+
+1. First.Or now coalesces overlapping and adjacent character ranges as it merges them. The normal case avoids copying the temporary merged list into the normalization scratch list and scanning it again. Public First construction can supply unsorted ranges; a descending range start switches to the existing general normalizer. Reversed ranges are ignored as before, range-end arithmetic remains integer arithmetic, and the existing Anything/Nothing/Ends and coverage shortcuts are unchanged. Result arrays remain independently owned; the existing scratch-list lease/finally discipline is preserved.
+2. LexerEmitter fills the interiors of character ranges a byte at a time. Only the first and last byte need masks; overlapping ranges still union their bits, and the scratch array is cleared for every request. Table identity lookup, immutable dictionary-key clones and emitted bytes are unchanged.
+
+The union-only experiment did not show a whole-generator timing benefit: SQL measured 19,663.15 ms for the control and 19,636.07 ms for the candidate. A second profile nevertheless showed the local union/normalization own-time reduction, motivating retention of the algorithm together with the independent bit-table improvement rather than claiming a union-only wall-time win.
+
+### CPU evidence
+
+| Sampled own CPU, two-generation SQL process | Baseline | Union only | Final candidate |
+|---|---:|---:|---:|
+| Sum of all reported own times | 51.335 s | 49.225 s | 47.936 s |
+| GC | 12.797 s | 12.094 s | 11.844 s |
+| First.Or + First.Normalized | 3.454 s | 2.656 s | 2.703 s |
+| LexerEmitter.Field + extracted Fill | 1.547 s | 1.516 s | 0.266 s |
+
+These are sampling observations, with changing inlining/native attribution and GC behavior. The own-time sums for distinct functions are additive; inclusive times are not. They identify a local CPU reduction, not a promised percentage reduction in Visual Studio build time.
+
+### Unprofiled fixture comparison
+
+Libraries have two warm observations after a discarded cold cycle; tiny fixtures have nine. No builds or tests ran alongside these measurements. The final candidate followed the control and the intermediate union-only experiment.
+
+| Fixture | Baseline time | Final time | Baseline allocation | Final allocation |
+|---|---:|---:|---:|---:|
+| SQL | 19,663.15 ms | 18,894.87 ms | 18,713.60 MiB | 18,717.51 MiB |
+| Finance | 2,462.10 ms | 2,458.25 ms | 3,382.84 MiB | 3,382.84 MiB |
+| ExpressionLanguage | 949.66 ms | 957.72 ms | 367.45 MiB | 367.41 MiB |
+| Web | 495.17 ms | 475.80 ms | 181.58 MiB | 181.86 MiB |
+| Tiny | 5.15 ms | 5.34 ms | 0.95 MiB | 0.95 MiB |
+| TinyStreams | 6.15 ms | 6.09 ms | 2.07 MiB | 2.07 MiB |
+
+SQL time fell approximately 3.9% in this ordering; Finance was effectively unchanged. Allocations were essentially unchanged. The small timing movements of other fixtures are not presented as established changes. All **35 generated source hashes matched exactly** for both experimental candidates, with no generator errors. No new peak-memory reduction is claimed for this CPU-focused batch.
+
+### Focused correctness checks
+
+All 25 focused FirstSets/bit-table cases passed. Seven new cases include 1,000 deterministic randomized union comparisons against character-membership sets; end markers and normalized maximal ranges; unsorted public construction after partial coalescing; invalid ranges and the U+FFFF boundary; sentinel/coverage reuse; every boundary alignment across four bytes; overlapping/full-space masks; and clearing a reused bit-table buffer. Release builds had zero warnings/errors.
+
+Local artifacts in `.work/generator-analysis/`: `sql-step10-base/union/final.dtp*`, corresponding `*-report.xml` and profile/reporter logs, `*-step10-base/step10/step10-final-first-union.jsonl` and `.hashes`, `measure-first-union.py`, `measure-first-bits.py`, and the step-10 build/focused-test logs.
+
+### SQL control in reverse executable order
+
+The final candidate then ran before the saved baseline, again with one cold and two warm observations each and no profiling/build/test overlap. Warm medians were **18,701.33 ms candidate versus 19,842.21 ms baseline**, a 5.7% decrease. Allocation was **18,717.32 versus 18,714.74 MiB**; the difference is negligible for this workload. Generated hashes matched in this repetition as well.
+
+Both orderings therefore observed a SQL generation improvement (approximately 4–6%), consistent with the local sampled CPU reduction. This is still a small controlled harness sample, not a confidence interval or a measured full-solution build improvement. Raw repetition results are `DotGram.Sql-step10-base/step10-final-first-union-repeat.jsonl` and `.hashes`; the runner is `measure-first-bits-repeat.py`.
+
+### Final validation
+
+All **8,235 tests passed** in 164.460 seconds, with zero errors, failures or skips (`tests-step10-all.log`). Release builds and 25 focused cases passed, all 35 representative generated hashes matched (including the repeated SQL comparison), and BOM/CRLF/tab checks plus `git diff --check` passed. Parser runtime behavior and generated source size are unchanged.
