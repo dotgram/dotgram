@@ -8,21 +8,33 @@ namespace DotGram.Finance.Fix;
 /// <summary>FIX 4.4 Heartbeat, MsgType 0.</summary>
 public sealed class Heartbeat : FixMessage
 {
-	internal Heartbeat(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "0", header, body, trailer) { }
+	internal Heartbeat(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "0", header, body, trailer)
+	{
+	}
+
 	public string? TestReqID => GetText(112);
 }
 
 /// <summary>FIX 4.4 TestRequest, MsgType 1.</summary>
 public sealed class TestRequest : FixMessage
 {
-	internal TestRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "1", header, body, trailer) { }
+	internal TestRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "1", header, body, trailer)
+	{
+	}
+
 	public string? TestReqID => GetText(112);
 }
 
 /// <summary>FIX 4.4 ResendRequest, MsgType 2.</summary>
 public sealed class ResendRequest : FixMessage
 {
-	internal ResendRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "2", header, body, trailer) { }
+	internal ResendRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "2", header, body, trailer)
+	{
+	}
+
 	public FixNumber? BeginSeqNo => GetNumber(7);
 	public FixNumber? EndSeqNo => GetNumber(16);
 }
@@ -30,7 +42,11 @@ public sealed class ResendRequest : FixMessage
 /// <summary>FIX 4.4 Reject, MsgType 3.</summary>
 public sealed class Reject : FixMessage
 {
-	internal Reject(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "3", header, body, trailer) { }
+	internal Reject(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "3", header, body, trailer)
+	{
+	}
+
 	public FixNumber? RefSeqNum => GetNumber(45);
 	public FixNumber? RefTagID => GetNumber(371);
 	public string? RefMsgType => GetText(372);
@@ -43,7 +59,11 @@ public sealed class Reject : FixMessage
 /// <summary>FIX 4.4 SequenceReset, MsgType 4.</summary>
 public sealed class SequenceReset : FixMessage
 {
-	internal SequenceReset(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "4", header, body, trailer) { }
+	internal SequenceReset(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "4", header, body, trailer)
+	{
+	}
+
 	public string? GapFillFlag => GetText(123);
 	public FixNumber? NewSeqNo => GetNumber(36);
 }
@@ -51,7 +71,11 @@ public sealed class SequenceReset : FixMessage
 /// <summary>FIX 4.4 Logout, MsgType 5.</summary>
 public sealed class Logout : FixMessage
 {
-	internal Logout(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "5", header, body, trailer) { }
+	internal Logout(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "5", header, body, trailer)
+	{
+	}
+
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
 	public string? EncodedText => GetText(355);
@@ -60,7 +84,11 @@ public sealed class Logout : FixMessage
 /// <summary>FIX 4.4 IOI, MsgType 6.</summary>
 public sealed class IOI : FixMessage
 {
-	internal IOI(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "6", header, body, trailer) { }
+	internal IOI(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "6", header, body, trailer)
+	{
+	}
+
 	public string? IOIID => GetText(23);
 	public string? IOITransType => GetText(28);
 	public string? IOIRefID => GetText(26);
@@ -159,7 +187,11 @@ public sealed class IOI : FixMessage
 /// <summary>FIX 4.4 Advertisement, MsgType 7.</summary>
 public sealed class Advertisement : FixMessage
 {
-	internal Advertisement(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "7", header, body, trailer) { }
+	internal Advertisement(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "7", header, body, trailer)
+	{
+	}
+
 	public string? AdvId => GetText(2);
 	public string? AdvTransType => GetText(5);
 	public string? AdvRefID => GetText(3);
@@ -227,7 +259,11 @@ public sealed class Advertisement : FixMessage
 /// <summary>FIX 4.4 ExecutionReport, MsgType 8.</summary>
 public sealed class ExecutionReport : FixMessage
 {
-	internal ExecutionReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "8", header, body, trailer) { }
+	internal ExecutionReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "8", header, body, trailer)
+	{
+	}
+
 	public string? OrderID => GetText(37);
 	public string? SecondaryOrderID => GetText(198);
 	public string? SecondaryClOrdID => GetText(526);
@@ -451,7 +487,11 @@ public sealed class ExecutionReport : FixMessage
 /// <summary>FIX 4.4 OrderCancelReject, MsgType 9.</summary>
 public sealed class OrderCancelReject : FixMessage
 {
-	internal OrderCancelReject(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "9", header, body, trailer) { }
+	internal OrderCancelReject(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "9", header, body, trailer)
+	{
+	}
+
 	public string? OrderID => GetText(37);
 	public string? SecondaryOrderID => GetText(198);
 	public string? SecondaryClOrdID => GetText(526);
@@ -478,7 +518,11 @@ public sealed class OrderCancelReject : FixMessage
 /// <summary>FIX 4.4 Logon, MsgType A.</summary>
 public sealed class Logon : FixMessage
 {
-	internal Logon(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "A", header, body, trailer) { }
+	internal Logon(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "A", header, body, trailer)
+	{
+	}
+
 	public FixNumber? EncryptMethod => GetNumber(98);
 	public FixNumber? HeartBtInt => GetNumber(108);
 	public FixNumber? RawDataLength => GetNumber(95);
@@ -495,7 +539,11 @@ public sealed class Logon : FixMessage
 /// <summary>FIX 4.4 News, MsgType B.</summary>
 public sealed class News : FixMessage
 {
-	internal News(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "B", header, body, trailer) { }
+	internal News(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "B", header, body, trailer)
+	{
+	}
+
 	public string? OrigTime => GetText(42);
 	public string? Urgency => GetText(61);
 	public string? Headline => GetText(148);
@@ -514,7 +562,11 @@ public sealed class News : FixMessage
 /// <summary>FIX 4.4 Email, MsgType C.</summary>
 public sealed class Email : FixMessage
 {
-	internal Email(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "C", header, body, trailer) { }
+	internal Email(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "C", header, body, trailer)
+	{
+	}
+
 	public string? EmailThreadID => GetText(164);
 	public string? EmailType => GetText(94);
 	public string? OrigTime => GetText(42);
@@ -535,7 +587,11 @@ public sealed class Email : FixMessage
 /// <summary>FIX 4.4 NewOrderSingle, MsgType D.</summary>
 public sealed class NewOrderSingle : FixMessage
 {
-	internal NewOrderSingle(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "D", header, body, trailer) { }
+	internal NewOrderSingle(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "D", header, body, trailer)
+	{
+	}
+
 	public string? ClOrdID => GetText(11);
 	public string? SecondaryClOrdID => GetText(526);
 	public string? ClOrdLinkID => GetText(583);
@@ -697,7 +753,11 @@ public sealed class NewOrderSingle : FixMessage
 /// <summary>FIX 4.4 NewOrderList, MsgType E.</summary>
 public sealed class NewOrderList : FixMessage
 {
-	internal NewOrderList(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "E", header, body, trailer) { }
+	internal NewOrderList(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "E", header, body, trailer)
+	{
+	}
+
 	public string? ListID => GetText(66);
 	public string? BidID => GetText(390);
 	public string? ClientBidID => GetText(391);
@@ -722,7 +782,11 @@ public sealed class NewOrderList : FixMessage
 /// <summary>FIX 4.4 OrderCancelRequest, MsgType F.</summary>
 public sealed class OrderCancelRequest : FixMessage
 {
-	internal OrderCancelRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "F", header, body, trailer) { }
+	internal OrderCancelRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "F", header, body, trailer)
+	{
+	}
+
 	public string? OrigClOrdID => GetText(41);
 	public string? OrderID => GetText(37);
 	public string? ClOrdID => GetText(11);
@@ -803,7 +867,11 @@ public sealed class OrderCancelRequest : FixMessage
 /// <summary>FIX 4.4 OrderCancelReplaceRequest, MsgType G.</summary>
 public sealed class OrderCancelReplaceRequest : FixMessage
 {
-	internal OrderCancelReplaceRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "G", header, body, trailer) { }
+	internal OrderCancelReplaceRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "G", header, body, trailer)
+	{
+	}
+
 	public string? OrderID => GetText(37);
 	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
 	public string? TradeOriginationDate => GetText(229);
@@ -964,7 +1032,11 @@ public sealed class OrderCancelReplaceRequest : FixMessage
 /// <summary>FIX 4.4 OrderStatusRequest, MsgType H.</summary>
 public sealed class OrderStatusRequest : FixMessage
 {
-	internal OrderStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "H", header, body, trailer) { }
+	internal OrderStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "H", header, body, trailer)
+	{
+	}
+
 	public string? OrderID => GetText(37);
 	public string? ClOrdID => GetText(11);
 	public string? SecondaryClOrdID => GetText(526);
@@ -1032,7 +1104,11 @@ public sealed class OrderStatusRequest : FixMessage
 /// <summary>FIX 4.4 AllocationInstruction, MsgType J.</summary>
 public sealed class AllocationInstruction : FixMessage
 {
-	internal AllocationInstruction(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "J", header, body, trailer) { }
+	internal AllocationInstruction(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "J", header, body, trailer)
+	{
+	}
+
 	public string? AllocID => GetText(70);
 	public string? AllocTransType => GetText(71);
 	public FixNumber? AllocType => GetNumber(626);
@@ -1165,7 +1241,11 @@ public sealed class AllocationInstruction : FixMessage
 /// <summary>FIX 4.4 ListCancelRequest, MsgType K.</summary>
 public sealed class ListCancelRequest : FixMessage
 {
-	internal ListCancelRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "K", header, body, trailer) { }
+	internal ListCancelRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "K", header, body, trailer)
+	{
+	}
+
 	public string? ListID => GetText(66);
 	public string? TransactTime => GetText(60);
 	public string? TradeOriginationDate => GetText(229);
@@ -1178,7 +1258,11 @@ public sealed class ListCancelRequest : FixMessage
 /// <summary>FIX 4.4 ListExecute, MsgType L.</summary>
 public sealed class ListExecute : FixMessage
 {
-	internal ListExecute(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "L", header, body, trailer) { }
+	internal ListExecute(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "L", header, body, trailer)
+	{
+	}
+
 	public string? ListID => GetText(66);
 	public string? ClientBidID => GetText(391);
 	public string? BidID => GetText(390);
@@ -1191,7 +1275,11 @@ public sealed class ListExecute : FixMessage
 /// <summary>FIX 4.4 ListStatusRequest, MsgType M.</summary>
 public sealed class ListStatusRequest : FixMessage
 {
-	internal ListStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "M", header, body, trailer) { }
+	internal ListStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "M", header, body, trailer)
+	{
+	}
+
 	public string? ListID => GetText(66);
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
@@ -1201,7 +1289,11 @@ public sealed class ListStatusRequest : FixMessage
 /// <summary>FIX 4.4 ListStatus, MsgType N.</summary>
 public sealed class ListStatus : FixMessage
 {
-	internal ListStatus(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "N", header, body, trailer) { }
+	internal ListStatus(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "N", header, body, trailer)
+	{
+	}
+
 	public string? ListID => GetText(66);
 	public FixNumber? ListStatusType => GetNumber(429);
 	public FixNumber? NoRpts => GetNumber(82);
@@ -1219,7 +1311,11 @@ public sealed class ListStatus : FixMessage
 /// <summary>FIX 4.4 AllocationInstructionAck, MsgType P.</summary>
 public sealed class AllocationInstructionAck : FixMessage
 {
-	internal AllocationInstructionAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "P", header, body, trailer) { }
+	internal AllocationInstructionAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "P", header, body, trailer)
+	{
+	}
+
 	public string? AllocID => GetText(70);
 	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
 	public string? SecondaryAllocID => GetText(793);
@@ -1241,7 +1337,11 @@ public sealed class AllocationInstructionAck : FixMessage
 /// <summary>FIX 4.4 DontKnowTrade, MsgType Q.</summary>
 public sealed class DontKnowTrade : FixMessage
 {
-	internal DontKnowTrade(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "Q", header, body, trailer) { }
+	internal DontKnowTrade(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "Q", header, body, trailer)
+	{
+	}
+
 	public string? OrderID => GetText(37);
 	public string? SecondaryOrderID => GetText(198);
 	public string? ExecID => GetText(17);
@@ -1307,7 +1407,11 @@ public sealed class DontKnowTrade : FixMessage
 /// <summary>FIX 4.4 QuoteRequest, MsgType R.</summary>
 public sealed class QuoteRequest : FixMessage
 {
-	internal QuoteRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "R", header, body, trailer) { }
+	internal QuoteRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "R", header, body, trailer)
+	{
+	}
+
 	public string? QuoteReqID => GetText(131);
 	public string? RFQReqID => GetText(644);
 	public string? ClOrdID => GetText(11);
@@ -1321,7 +1425,11 @@ public sealed class QuoteRequest : FixMessage
 /// <summary>FIX 4.4 Quote, MsgType S.</summary>
 public sealed class Quote : FixMessage
 {
-	internal Quote(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "S", header, body, trailer) { }
+	internal Quote(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "S", header, body, trailer)
+	{
+	}
+
 	public string? QuoteReqID => GetText(131);
 	public string? QuoteID => GetText(117);
 	public string? QuoteRespID => GetText(693);
@@ -1452,7 +1560,11 @@ public sealed class Quote : FixMessage
 /// <summary>FIX 4.4 SettlementInstructions, MsgType T.</summary>
 public sealed class SettlementInstructions : FixMessage
 {
-	internal SettlementInstructions(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "T", header, body, trailer) { }
+	internal SettlementInstructions(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "T", header, body, trailer)
+	{
+	}
+
 	public string? SettlInstMsgID => GetText(777);
 	public string? SettlInstReqID => GetText(791);
 	public string? SettlInstMode => GetText(160);
@@ -1468,7 +1580,11 @@ public sealed class SettlementInstructions : FixMessage
 /// <summary>FIX 4.4 MarketDataRequest, MsgType V.</summary>
 public sealed class MarketDataRequest : FixMessage
 {
-	internal MarketDataRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "V", header, body, trailer) { }
+	internal MarketDataRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "V", header, body, trailer)
+	{
+	}
+
 	public string? MDReqID => GetText(262);
 	public string? SubscriptionRequestType => GetText(263);
 	public FixNumber? MarketDepth => GetNumber(264);
@@ -1487,7 +1603,11 @@ public sealed class MarketDataRequest : FixMessage
 /// <summary>FIX 4.4 MarketDataSnapshotFullRefresh, MsgType W.</summary>
 public sealed class MarketDataSnapshotFullRefresh : FixMessage
 {
-	internal MarketDataSnapshotFullRefresh(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "W", header, body, trailer) { }
+	internal MarketDataSnapshotFullRefresh(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "W", header, body, trailer)
+	{
+	}
+
 	public string? MDReqID => GetText(262);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
@@ -1545,7 +1665,11 @@ public sealed class MarketDataSnapshotFullRefresh : FixMessage
 /// <summary>FIX 4.4 MarketDataIncrementalRefresh, MsgType X.</summary>
 public sealed class MarketDataIncrementalRefresh : FixMessage
 {
-	internal MarketDataIncrementalRefresh(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "X", header, body, trailer) { }
+	internal MarketDataIncrementalRefresh(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "X", header, body, trailer)
+	{
+	}
+
 	public string? MDReqID => GetText(262);
 	public IReadOnlyList<MDIncGrpEntry> MDIncGrp => GetTypedGroup<MDIncGrpEntry>(268);
 	public FixNumber? ApplQueueDepth => GetNumber(813);
@@ -1555,7 +1679,11 @@ public sealed class MarketDataIncrementalRefresh : FixMessage
 /// <summary>FIX 4.4 MarketDataRequestReject, MsgType Y.</summary>
 public sealed class MarketDataRequestReject : FixMessage
 {
-	internal MarketDataRequestReject(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "Y", header, body, trailer) { }
+	internal MarketDataRequestReject(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "Y", header, body, trailer)
+	{
+	}
+
 	public string? MDReqID => GetText(262);
 	public string? MDReqRejReason => GetText(281);
 	public IReadOnlyList<MDRjctGrpEntry> MDRjctGrp => GetTypedGroup<MDRjctGrpEntry>(816);
@@ -1567,7 +1695,11 @@ public sealed class MarketDataRequestReject : FixMessage
 /// <summary>FIX 4.4 QuoteCancel, MsgType Z.</summary>
 public sealed class QuoteCancel : FixMessage
 {
-	internal QuoteCancel(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "Z", header, body, trailer) { }
+	internal QuoteCancel(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "Z", header, body, trailer)
+	{
+	}
+
 	public string? QuoteReqID => GetText(131);
 	public string? QuoteID => GetText(117);
 	public FixNumber? QuoteCancelType => GetNumber(298);
@@ -1584,7 +1716,11 @@ public sealed class QuoteCancel : FixMessage
 /// <summary>FIX 4.4 QuoteStatusRequest, MsgType a.</summary>
 public sealed class QuoteStatusRequest : FixMessage
 {
-	internal QuoteStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "a", header, body, trailer) { }
+	internal QuoteStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "a", header, body, trailer)
+	{
+	}
+
 	public string? QuoteStatusReqID => GetText(649);
 	public string? QuoteID => GetText(117);
 	public string? Symbol => GetText(55);
@@ -1653,7 +1789,11 @@ public sealed class QuoteStatusRequest : FixMessage
 /// <summary>FIX 4.4 MassQuoteAcknowledgement, MsgType b.</summary>
 public sealed class MassQuoteAcknowledgement : FixMessage
 {
-	internal MassQuoteAcknowledgement(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "b", header, body, trailer) { }
+	internal MassQuoteAcknowledgement(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "b", header, body, trailer)
+	{
+	}
+
 	public string? QuoteReqID => GetText(131);
 	public string? QuoteID => GetText(117);
 	public FixNumber? QuoteStatus => GetNumber(297);
@@ -1673,7 +1813,11 @@ public sealed class MassQuoteAcknowledgement : FixMessage
 /// <summary>FIX 4.4 SecurityDefinitionRequest, MsgType c.</summary>
 public sealed class SecurityDefinitionRequest : FixMessage
 {
-	internal SecurityDefinitionRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "c", header, body, trailer) { }
+	internal SecurityDefinitionRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "c", header, body, trailer)
+	{
+	}
+
 	public string? SecurityReqID => GetText(320);
 	public FixNumber? SecurityRequestType => GetNumber(321);
 	public string? Symbol => GetText(55);
@@ -1737,7 +1881,11 @@ public sealed class SecurityDefinitionRequest : FixMessage
 /// <summary>FIX 4.4 SecurityDefinition, MsgType d.</summary>
 public sealed class SecurityDefinition : FixMessage
 {
-	internal SecurityDefinition(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "d", header, body, trailer) { }
+	internal SecurityDefinition(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "d", header, body, trailer)
+	{
+	}
+
 	public string? SecurityReqID => GetText(320);
 	public string? SecurityResponseID => GetText(322);
 	public FixNumber? SecurityResponseType => GetNumber(323);
@@ -1803,7 +1951,11 @@ public sealed class SecurityDefinition : FixMessage
 /// <summary>FIX 4.4 SecurityStatusRequest, MsgType e.</summary>
 public sealed class SecurityStatusRequest : FixMessage
 {
-	internal SecurityStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "e", header, body, trailer) { }
+	internal SecurityStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "e", header, body, trailer)
+	{
+	}
+
 	public string? SecurityStatusReqID => GetText(324);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
@@ -1862,7 +2014,11 @@ public sealed class SecurityStatusRequest : FixMessage
 /// <summary>FIX 4.4 SecurityStatus, MsgType f.</summary>
 public sealed class SecurityStatus : FixMessage
 {
-	internal SecurityStatus(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "f", header, body, trailer) { }
+	internal SecurityStatus(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "f", header, body, trailer)
+	{
+	}
+
 	public string? SecurityStatusReqID => GetText(324);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
@@ -1937,7 +2093,11 @@ public sealed class SecurityStatus : FixMessage
 /// <summary>FIX 4.4 TradingSessionStatusRequest, MsgType g.</summary>
 public sealed class TradingSessionStatusRequest : FixMessage
 {
-	internal TradingSessionStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "g", header, body, trailer) { }
+	internal TradingSessionStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "g", header, body, trailer)
+	{
+	}
+
 	public string? TradSesReqID => GetText(335);
 	public string? TradingSessionID => GetText(336);
 	public string? TradingSessionSubID => GetText(625);
@@ -1949,7 +2109,11 @@ public sealed class TradingSessionStatusRequest : FixMessage
 /// <summary>FIX 4.4 TradingSessionStatus, MsgType h.</summary>
 public sealed class TradingSessionStatus : FixMessage
 {
-	internal TradingSessionStatus(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "h", header, body, trailer) { }
+	internal TradingSessionStatus(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "h", header, body, trailer)
+	{
+	}
+
 	public string? TradSesReqID => GetText(335);
 	public string? TradingSessionID => GetText(336);
 	public string? TradingSessionSubID => GetText(625);
@@ -1972,7 +2136,11 @@ public sealed class TradingSessionStatus : FixMessage
 /// <summary>FIX 4.4 MassQuote, MsgType i.</summary>
 public sealed class MassQuote : FixMessage
 {
-	internal MassQuote(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "i", header, body, trailer) { }
+	internal MassQuote(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "i", header, body, trailer)
+	{
+	}
+
 	public string? QuoteReqID => GetText(131);
 	public string? QuoteID => GetText(117);
 	public FixNumber? QuoteType => GetNumber(537);
@@ -1989,7 +2157,11 @@ public sealed class MassQuote : FixMessage
 /// <summary>FIX 4.4 BusinessMessageReject, MsgType j.</summary>
 public sealed class BusinessMessageReject : FixMessage
 {
-	internal BusinessMessageReject(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "j", header, body, trailer) { }
+	internal BusinessMessageReject(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "j", header, body, trailer)
+	{
+	}
+
 	public FixNumber? RefSeqNum => GetNumber(45);
 	public string? RefMsgType => GetText(372);
 	public string? BusinessRejectRefID => GetText(379);
@@ -2002,7 +2174,11 @@ public sealed class BusinessMessageReject : FixMessage
 /// <summary>FIX 4.4 BidRequest, MsgType k.</summary>
 public sealed class BidRequest : FixMessage
 {
-	internal BidRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "k", header, body, trailer) { }
+	internal BidRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "k", header, body, trailer)
+	{
+	}
+
 	public string? BidID => GetText(390);
 	public string? ClientBidID => GetText(391);
 	public string? BidRequestTransType => GetText(374);
@@ -2037,7 +2213,11 @@ public sealed class BidRequest : FixMessage
 /// <summary>FIX 4.4 BidResponse, MsgType l.</summary>
 public sealed class BidResponse : FixMessage
 {
-	internal BidResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "l", header, body, trailer) { }
+	internal BidResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "l", header, body, trailer)
+	{
+	}
+
 	public string? BidID => GetText(390);
 	public string? ClientBidID => GetText(391);
 	public IReadOnlyList<BidCompRspGrpEntry> BidCompRspGrp => GetTypedGroup<BidCompRspGrpEntry>(420);
@@ -2046,7 +2226,11 @@ public sealed class BidResponse : FixMessage
 /// <summary>FIX 4.4 ListStrikePrice, MsgType m.</summary>
 public sealed class ListStrikePrice : FixMessage
 {
-	internal ListStrikePrice(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "m", header, body, trailer) { }
+	internal ListStrikePrice(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "m", header, body, trailer)
+	{
+	}
+
 	public string? ListID => GetText(66);
 	public FixNumber? TotNoStrikes => GetNumber(422);
 	public string? LastFragment => GetText(893);
@@ -2057,13 +2241,21 @@ public sealed class ListStrikePrice : FixMessage
 /// <summary>FIX 4.4 XMLnonFIX, MsgType n.</summary>
 public sealed class XMLnonFIX : FixMessage
 {
-	internal XMLnonFIX(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "n", header, body, trailer) { }
+	internal XMLnonFIX(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "n", header, body, trailer)
+	{
+	}
+
 }
 
 /// <summary>FIX 4.4 RegistrationInstructions, MsgType o.</summary>
 public sealed class RegistrationInstructions : FixMessage
 {
-	internal RegistrationInstructions(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "o", header, body, trailer) { }
+	internal RegistrationInstructions(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "o", header, body, trailer)
+	{
+	}
+
 	public string? RegistID => GetText(513);
 	public string? RegistTransType => GetText(514);
 	public string? RegistRefID => GetText(508);
@@ -2081,7 +2273,11 @@ public sealed class RegistrationInstructions : FixMessage
 /// <summary>FIX 4.4 RegistrationInstructionsResponse, MsgType p.</summary>
 public sealed class RegistrationInstructionsResponse : FixMessage
 {
-	internal RegistrationInstructionsResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "p", header, body, trailer) { }
+	internal RegistrationInstructionsResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "p", header, body, trailer)
+	{
+	}
+
 	public string? RegistID => GetText(513);
 	public string? RegistTransType => GetText(514);
 	public string? RegistRefID => GetText(508);
@@ -2097,7 +2293,11 @@ public sealed class RegistrationInstructionsResponse : FixMessage
 /// <summary>FIX 4.4 OrderMassCancelRequest, MsgType q.</summary>
 public sealed class OrderMassCancelRequest : FixMessage
 {
-	internal OrderMassCancelRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "q", header, body, trailer) { }
+	internal OrderMassCancelRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "q", header, body, trailer)
+	{
+	}
+
 	public string? ClOrdID => GetText(11);
 	public string? SecondaryClOrdID => GetText(526);
 	public string? MassCancelRequestType => GetText(530);
@@ -2203,7 +2403,11 @@ public sealed class OrderMassCancelRequest : FixMessage
 /// <summary>FIX 4.4 OrderMassCancelReport, MsgType r.</summary>
 public sealed class OrderMassCancelReport : FixMessage
 {
-	internal OrderMassCancelReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "r", header, body, trailer) { }
+	internal OrderMassCancelReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "r", header, body, trailer)
+	{
+	}
+
 	public string? ClOrdID => GetText(11);
 	public string? SecondaryClOrdID => GetText(526);
 	public string? OrderID => GetText(37);
@@ -2315,7 +2519,11 @@ public sealed class OrderMassCancelReport : FixMessage
 /// <summary>FIX 4.4 NewOrderCross, MsgType s.</summary>
 public sealed class NewOrderCross : FixMessage
 {
-	internal NewOrderCross(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "s", header, body, trailer) { }
+	internal NewOrderCross(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "s", header, body, trailer)
+	{
+	}
+
 	public string? CrossID => GetText(548);
 	public FixNumber? CrossType => GetNumber(549);
 	public FixNumber? CrossPrioritization => GetNumber(550);
@@ -2431,7 +2639,11 @@ public sealed class NewOrderCross : FixMessage
 /// <summary>FIX 4.4 CrossOrderCancelReplaceRequest, MsgType t.</summary>
 public sealed class CrossOrderCancelReplaceRequest : FixMessage
 {
-	internal CrossOrderCancelReplaceRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "t", header, body, trailer) { }
+	internal CrossOrderCancelReplaceRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "t", header, body, trailer)
+	{
+	}
+
 	public string? OrderID => GetText(37);
 	public string? CrossID => GetText(548);
 	public string? OrigCrossID => GetText(551);
@@ -2549,7 +2761,11 @@ public sealed class CrossOrderCancelReplaceRequest : FixMessage
 /// <summary>FIX 4.4 CrossOrderCancelRequest, MsgType u.</summary>
 public sealed class CrossOrderCancelRequest : FixMessage
 {
-	internal CrossOrderCancelRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "u", header, body, trailer) { }
+	internal CrossOrderCancelRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "u", header, body, trailer)
+	{
+	}
+
 	public string? OrderID => GetText(37);
 	public string? CrossID => GetText(548);
 	public string? OrigCrossID => GetText(551);
@@ -2607,7 +2823,11 @@ public sealed class CrossOrderCancelRequest : FixMessage
 /// <summary>FIX 4.4 SecurityTypeRequest, MsgType v.</summary>
 public sealed class SecurityTypeRequest : FixMessage
 {
-	internal SecurityTypeRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "v", header, body, trailer) { }
+	internal SecurityTypeRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "v", header, body, trailer)
+	{
+	}
+
 	public string? SecurityReqID => GetText(320);
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
@@ -2622,7 +2842,11 @@ public sealed class SecurityTypeRequest : FixMessage
 /// <summary>FIX 4.4 SecurityTypes, MsgType w.</summary>
 public sealed class SecurityTypes : FixMessage
 {
-	internal SecurityTypes(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "w", header, body, trailer) { }
+	internal SecurityTypes(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "w", header, body, trailer)
+	{
+	}
+
 	public string? SecurityReqID => GetText(320);
 	public string? SecurityResponseID => GetText(322);
 	public FixNumber? SecurityResponseType => GetNumber(323);
@@ -2640,7 +2864,11 @@ public sealed class SecurityTypes : FixMessage
 /// <summary>FIX 4.4 SecurityListRequest, MsgType x.</summary>
 public sealed class SecurityListRequest : FixMessage
 {
-	internal SecurityListRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "x", header, body, trailer) { }
+	internal SecurityListRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "x", header, body, trailer)
+	{
+	}
+
 	public string? SecurityReqID => GetText(320);
 	public FixNumber? SecurityListRequestType => GetNumber(559);
 	public string? Symbol => GetText(55);
@@ -2712,7 +2940,11 @@ public sealed class SecurityListRequest : FixMessage
 /// <summary>FIX 4.4 SecurityList, MsgType y.</summary>
 public sealed class SecurityList : FixMessage
 {
-	internal SecurityList(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "y", header, body, trailer) { }
+	internal SecurityList(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "y", header, body, trailer)
+	{
+	}
+
 	public string? SecurityReqID => GetText(320);
 	public string? SecurityResponseID => GetText(322);
 	public FixNumber? SecurityRequestResult => GetNumber(560);
@@ -2724,7 +2956,11 @@ public sealed class SecurityList : FixMessage
 /// <summary>FIX 4.4 DerivativeSecurityListRequest, MsgType z.</summary>
 public sealed class DerivativeSecurityListRequest : FixMessage
 {
-	internal DerivativeSecurityListRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "z", header, body, trailer) { }
+	internal DerivativeSecurityListRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "z", header, body, trailer)
+	{
+	}
+
 	public string? SecurityReqID => GetText(320);
 	public FixNumber? SecurityListRequestType => GetNumber(559);
 	public string? UnderlyingSymbol => GetText(311);
@@ -2787,7 +3023,11 @@ public sealed class DerivativeSecurityListRequest : FixMessage
 /// <summary>FIX 4.4 DerivativeSecurityList, MsgType AA.</summary>
 public sealed class DerivativeSecurityList : FixMessage
 {
-	internal DerivativeSecurityList(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AA", header, body, trailer) { }
+	internal DerivativeSecurityList(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AA", header, body, trailer)
+	{
+	}
+
 	public string? SecurityReqID => GetText(320);
 	public string? SecurityResponseID => GetText(322);
 	public FixNumber? SecurityRequestResult => GetNumber(560);
@@ -2846,7 +3086,11 @@ public sealed class DerivativeSecurityList : FixMessage
 /// <summary>FIX 4.4 NewOrderMultileg, MsgType AB.</summary>
 public sealed class NewOrderMultileg : FixMessage
 {
-	internal NewOrderMultileg(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AB", header, body, trailer) { }
+	internal NewOrderMultileg(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AB", header, body, trailer)
+	{
+	}
+
 	public string? ClOrdID => GetText(11);
 	public string? SecondaryClOrdID => GetText(526);
 	public string? ClOrdLinkID => GetText(583);
@@ -2983,7 +3227,11 @@ public sealed class NewOrderMultileg : FixMessage
 /// <summary>FIX 4.4 MultilegOrderCancelReplace, MsgType AC.</summary>
 public sealed class MultilegOrderCancelReplace : FixMessage
 {
-	internal MultilegOrderCancelReplace(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AC", header, body, trailer) { }
+	internal MultilegOrderCancelReplace(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AC", header, body, trailer)
+	{
+	}
+
 	public string? OrderID => GetText(37);
 	public string? OrigClOrdID => GetText(41);
 	public string? ClOrdID => GetText(11);
@@ -3123,7 +3371,11 @@ public sealed class MultilegOrderCancelReplace : FixMessage
 /// <summary>FIX 4.4 TradeCaptureReportRequest, MsgType AD.</summary>
 public sealed class TradeCaptureReportRequest : FixMessage
 {
-	internal TradeCaptureReportRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AD", header, body, trailer) { }
+	internal TradeCaptureReportRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AD", header, body, trailer)
+	{
+	}
+
 	public string? TradeRequestID => GetText(568);
 	public FixNumber? TradeRequestType => GetNumber(569);
 	public string? SubscriptionRequestType => GetText(263);
@@ -3217,7 +3469,11 @@ public sealed class TradeCaptureReportRequest : FixMessage
 /// <summary>FIX 4.4 TradeCaptureReport, MsgType AE.</summary>
 public sealed class TradeCaptureReport : FixMessage
 {
-	internal TradeCaptureReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AE", header, body, trailer) { }
+	internal TradeCaptureReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AE", header, body, trailer)
+	{
+	}
+
 	public string? TradeReportID => GetText(571);
 	public FixNumber? TradeReportTransType => GetNumber(487);
 	public FixNumber? TradeReportType => GetNumber(856);
@@ -3346,7 +3602,11 @@ public sealed class TradeCaptureReport : FixMessage
 /// <summary>FIX 4.4 OrderMassStatusRequest, MsgType AF.</summary>
 public sealed class OrderMassStatusRequest : FixMessage
 {
-	internal OrderMassStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AF", header, body, trailer) { }
+	internal OrderMassStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AF", header, body, trailer)
+	{
+	}
+
 	public string? MassStatusReqID => GetText(584);
 	public FixNumber? MassStatusReqType => GetNumber(585);
 	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
@@ -3450,7 +3710,11 @@ public sealed class OrderMassStatusRequest : FixMessage
 /// <summary>FIX 4.4 QuoteRequestReject, MsgType AG.</summary>
 public sealed class QuoteRequestReject : FixMessage
 {
-	internal QuoteRequestReject(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AG", header, body, trailer) { }
+	internal QuoteRequestReject(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AG", header, body, trailer)
+	{
+	}
+
 	public string? QuoteReqID => GetText(131);
 	public string? RFQReqID => GetText(644);
 	public FixNumber? QuoteRequestRejectReason => GetNumber(658);
@@ -3463,7 +3727,11 @@ public sealed class QuoteRequestReject : FixMessage
 /// <summary>FIX 4.4 RFQRequest, MsgType AH.</summary>
 public sealed class RFQRequest : FixMessage
 {
-	internal RFQRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AH", header, body, trailer) { }
+	internal RFQRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AH", header, body, trailer)
+	{
+	}
+
 	public string? RFQReqID => GetText(644);
 	public IReadOnlyList<RFQReqGrpEntry> RFQReqGrp => GetTypedGroup<RFQReqGrpEntry>(146);
 	public string? SubscriptionRequestType => GetText(263);
@@ -3472,7 +3740,11 @@ public sealed class RFQRequest : FixMessage
 /// <summary>FIX 4.4 QuoteStatusReport, MsgType AI.</summary>
 public sealed class QuoteStatusReport : FixMessage
 {
-	internal QuoteStatusReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AI", header, body, trailer) { }
+	internal QuoteStatusReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AI", header, body, trailer)
+	{
+	}
+
 	public string? QuoteStatusReqID => GetText(649);
 	public string? QuoteReqID => GetText(131);
 	public string? QuoteID => GetText(117);
@@ -3605,7 +3877,11 @@ public sealed class QuoteStatusReport : FixMessage
 /// <summary>FIX 4.4 QuoteResponse, MsgType AJ.</summary>
 public sealed class QuoteResponse : FixMessage
 {
-	internal QuoteResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AJ", header, body, trailer) { }
+	internal QuoteResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AJ", header, body, trailer)
+	{
+	}
+
 	public string? QuoteRespID => GetText(693);
 	public string? QuoteID => GetText(117);
 	public FixNumber? QuoteRespType => GetNumber(694);
@@ -3738,7 +4014,11 @@ public sealed class QuoteResponse : FixMessage
 /// <summary>FIX 4.4 Confirmation, MsgType AK.</summary>
 public sealed class Confirmation : FixMessage
 {
-	internal Confirmation(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AK", header, body, trailer) { }
+	internal Confirmation(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AK", header, body, trailer)
+	{
+	}
+
 	public string? ConfirmID => GetText(664);
 	public string? ConfirmRefID => GetText(772);
 	public string? ConfirmReqID => GetText(859);
@@ -3880,7 +4160,11 @@ public sealed class Confirmation : FixMessage
 /// <summary>FIX 4.4 PositionMaintenanceRequest, MsgType AL.</summary>
 public sealed class PositionMaintenanceRequest : FixMessage
 {
-	internal PositionMaintenanceRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AL", header, body, trailer) { }
+	internal PositionMaintenanceRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AL", header, body, trailer)
+	{
+	}
+
 	public string? PosReqID => GetText(710);
 	public FixNumber? PosTransType => GetNumber(709);
 	public FixNumber? PosMaintAction => GetNumber(712);
@@ -3954,7 +4238,11 @@ public sealed class PositionMaintenanceRequest : FixMessage
 /// <summary>FIX 4.4 PositionMaintenanceReport, MsgType AM.</summary>
 public sealed class PositionMaintenanceReport : FixMessage
 {
-	internal PositionMaintenanceReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AM", header, body, trailer) { }
+	internal PositionMaintenanceReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AM", header, body, trailer)
+	{
+	}
+
 	public string? PosMaintRptID => GetText(721);
 	public FixNumber? PosTransType => GetNumber(709);
 	public string? PosReqID => GetText(710);
@@ -4029,7 +4317,11 @@ public sealed class PositionMaintenanceReport : FixMessage
 /// <summary>FIX 4.4 RequestForPositions, MsgType AN.</summary>
 public sealed class RequestForPositions : FixMessage
 {
-	internal RequestForPositions(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AN", header, body, trailer) { }
+	internal RequestForPositions(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AN", header, body, trailer)
+	{
+	}
+
 	public string? PosReqID => GetText(710);
 	public FixNumber? PosReqType => GetNumber(724);
 	public string? MatchStatus => GetText(573);
@@ -4099,7 +4391,11 @@ public sealed class RequestForPositions : FixMessage
 /// <summary>FIX 4.4 RequestForPositionsAck, MsgType AO.</summary>
 public sealed class RequestForPositionsAck : FixMessage
 {
-	internal RequestForPositionsAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AO", header, body, trailer) { }
+	internal RequestForPositionsAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AO", header, body, trailer)
+	{
+	}
+
 	public string? PosMaintRptID => GetText(721);
 	public string? PosReqID => GetText(710);
 	public FixNumber? TotalNumPosReports => GetNumber(727);
@@ -4166,7 +4462,11 @@ public sealed class RequestForPositionsAck : FixMessage
 /// <summary>FIX 4.4 PositionReport, MsgType AP.</summary>
 public sealed class PositionReport : FixMessage
 {
-	internal PositionReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AP", header, body, trailer) { }
+	internal PositionReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AP", header, body, trailer)
+	{
+	}
+
 	public string? PosMaintRptID => GetText(721);
 	public string? PosReqID => GetText(710);
 	public FixNumber? PosReqType => GetNumber(724);
@@ -4242,7 +4542,11 @@ public sealed class PositionReport : FixMessage
 /// <summary>FIX 4.4 TradeCaptureReportRequestAck, MsgType AQ.</summary>
 public sealed class TradeCaptureReportRequestAck : FixMessage
 {
-	internal TradeCaptureReportRequestAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AQ", header, body, trailer) { }
+	internal TradeCaptureReportRequestAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AQ", header, body, trailer)
+	{
+	}
+
 	public string? TradeRequestID => GetText(568);
 	public FixNumber? TradeRequestType => GetNumber(569);
 	public string? SubscriptionRequestType => GetText(263);
@@ -4305,7 +4609,11 @@ public sealed class TradeCaptureReportRequestAck : FixMessage
 /// <summary>FIX 4.4 TradeCaptureReportAck, MsgType AR.</summary>
 public sealed class TradeCaptureReportAck : FixMessage
 {
-	internal TradeCaptureReportAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AR", header, body, trailer) { }
+	internal TradeCaptureReportAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AR", header, body, trailer)
+	{
+	}
+
 	public string? TradeReportID => GetText(571);
 	public FixNumber? TradeReportTransType => GetNumber(487);
 	public FixNumber? TradeReportType => GetNumber(856);
@@ -4390,7 +4698,11 @@ public sealed class TradeCaptureReportAck : FixMessage
 /// <summary>FIX 4.4 AllocationReport, MsgType AS.</summary>
 public sealed class AllocationReport : FixMessage
 {
-	internal AllocationReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AS", header, body, trailer) { }
+	internal AllocationReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AS", header, body, trailer)
+	{
+	}
+
 	public string? AllocReportID => GetText(755);
 	public string? AllocID => GetText(70);
 	public string? AllocTransType => GetText(71);
@@ -4527,7 +4839,11 @@ public sealed class AllocationReport : FixMessage
 /// <summary>FIX 4.4 AllocationReportAck, MsgType AT.</summary>
 public sealed class AllocationReportAck : FixMessage
 {
-	internal AllocationReportAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AT", header, body, trailer) { }
+	internal AllocationReportAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AT", header, body, trailer)
+	{
+	}
+
 	public string? AllocReportID => GetText(755);
 	public string? AllocID => GetText(70);
 	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
@@ -4550,7 +4866,11 @@ public sealed class AllocationReportAck : FixMessage
 /// <summary>FIX 4.4 ConfirmationAck, MsgType AU.</summary>
 public sealed class ConfirmationAck : FixMessage
 {
-	internal ConfirmationAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AU", header, body, trailer) { }
+	internal ConfirmationAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AU", header, body, trailer)
+	{
+	}
+
 	public string? ConfirmID => GetText(664);
 	public string? TradeDate => GetText(75);
 	public string? TransactTime => GetText(60);
@@ -4565,7 +4885,11 @@ public sealed class ConfirmationAck : FixMessage
 /// <summary>FIX 4.4 SettlementInstructionRequest, MsgType AV.</summary>
 public sealed class SettlementInstructionRequest : FixMessage
 {
-	internal SettlementInstructionRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AV", header, body, trailer) { }
+	internal SettlementInstructionRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AV", header, body, trailer)
+	{
+	}
+
 	public string? SettlInstReqID => GetText(791);
 	public string? TransactTime => GetText(60);
 	public IReadOnlyList<PartiesEntry> Parties => GetTypedGroup<PartiesEntry>(453);
@@ -4586,7 +4910,11 @@ public sealed class SettlementInstructionRequest : FixMessage
 /// <summary>FIX 4.4 AssignmentReport, MsgType AW.</summary>
 public sealed class AssignmentReport : FixMessage
 {
-	internal AssignmentReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AW", header, body, trailer) { }
+	internal AssignmentReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AW", header, body, trailer)
+	{
+	}
+
 	public string? AsgnRptID => GetText(833);
 	public FixNumber? TotNumAssignmentReports => GetNumber(832);
 	public string? LastRptRequested => GetText(912);
@@ -4661,7 +4989,11 @@ public sealed class AssignmentReport : FixMessage
 /// <summary>FIX 4.4 CollateralRequest, MsgType AX.</summary>
 public sealed class CollateralRequest : FixMessage
 {
-	internal CollateralRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AX", header, body, trailer) { }
+	internal CollateralRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AX", header, body, trailer)
+	{
+	}
+
 	public string? CollReqID => GetText(894);
 	public FixNumber? CollAsgnReason => GetNumber(895);
 	public string? TransactTime => GetText(60);
@@ -4767,7 +5099,11 @@ public sealed class CollateralRequest : FixMessage
 /// <summary>FIX 4.4 CollateralAssignment, MsgType AY.</summary>
 public sealed class CollateralAssignment : FixMessage
 {
-	internal CollateralAssignment(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AY", header, body, trailer) { }
+	internal CollateralAssignment(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AY", header, body, trailer)
+	{
+	}
+
 	public string? CollAsgnID => GetText(902);
 	public string? CollReqID => GetText(894);
 	public FixNumber? CollAsgnReason => GetNumber(895);
@@ -4881,7 +5217,11 @@ public sealed class CollateralAssignment : FixMessage
 /// <summary>FIX 4.4 CollateralResponse, MsgType AZ.</summary>
 public sealed class CollateralResponse : FixMessage
 {
-	internal CollateralResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "AZ", header, body, trailer) { }
+	internal CollateralResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "AZ", header, body, trailer)
+	{
+	}
+
 	public string? CollRespID => GetText(904);
 	public string? CollAsgnID => GetText(902);
 	public string? CollReqID => GetText(894);
@@ -4986,7 +5326,11 @@ public sealed class CollateralResponse : FixMessage
 /// <summary>FIX 4.4 CollateralReport, MsgType BA.</summary>
 public sealed class CollateralReport : FixMessage
 {
-	internal CollateralReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "BA", header, body, trailer) { }
+	internal CollateralReport(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "BA", header, body, trailer)
+	{
+	}
+
 	public string? CollRptID => GetText(908);
 	public string? CollInquiryID => GetText(909);
 	public FixNumber? CollStatus => GetNumber(910);
@@ -5098,7 +5442,11 @@ public sealed class CollateralReport : FixMessage
 /// <summary>FIX 4.4 CollateralInquiry, MsgType BB.</summary>
 public sealed class CollateralInquiry : FixMessage
 {
-	internal CollateralInquiry(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "BB", header, body, trailer) { }
+	internal CollateralInquiry(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "BB", header, body, trailer)
+	{
+	}
+
 	public string? CollInquiryID => GetText(909);
 	public IReadOnlyList<CollInqQualGrpEntry> CollInqQualGrp => GetTypedGroup<CollInqQualGrpEntry>(938);
 	public string? SubscriptionRequestType => GetText(263);
@@ -5209,7 +5557,11 @@ public sealed class CollateralInquiry : FixMessage
 /// <summary>FIX 4.4 NetworkCounterpartySystemStatusRequest, MsgType BC.</summary>
 public sealed class NetworkCounterpartySystemStatusRequest : FixMessage
 {
-	internal NetworkCounterpartySystemStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "BC", header, body, trailer) { }
+	internal NetworkCounterpartySystemStatusRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "BC", header, body, trailer)
+	{
+	}
+
 	public FixNumber? NetworkRequestType => GetNumber(935);
 	public string? NetworkRequestID => GetText(933);
 	public IReadOnlyList<CompIDReqGrpEntry> CompIDReqGrp => GetTypedGroup<CompIDReqGrpEntry>(936);
@@ -5218,7 +5570,11 @@ public sealed class NetworkCounterpartySystemStatusRequest : FixMessage
 /// <summary>FIX 4.4 NetworkCounterpartySystemStatusResponse, MsgType BD.</summary>
 public sealed class NetworkCounterpartySystemStatusResponse : FixMessage
 {
-	internal NetworkCounterpartySystemStatusResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "BD", header, body, trailer) { }
+	internal NetworkCounterpartySystemStatusResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "BD", header, body, trailer)
+	{
+	}
+
 	public FixNumber? NetworkStatusResponseType => GetNumber(937);
 	public string? NetworkRequestID => GetText(933);
 	public string? NetworkResponseID => GetText(932);
@@ -5229,7 +5585,11 @@ public sealed class NetworkCounterpartySystemStatusResponse : FixMessage
 /// <summary>FIX 4.4 UserRequest, MsgType BE.</summary>
 public sealed class UserRequest : FixMessage
 {
-	internal UserRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "BE", header, body, trailer) { }
+	internal UserRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "BE", header, body, trailer)
+	{
+	}
+
 	public string? UserRequestID => GetText(923);
 	public FixNumber? UserRequestType => GetNumber(924);
 	public string? Username => GetText(553);
@@ -5242,7 +5602,11 @@ public sealed class UserRequest : FixMessage
 /// <summary>FIX 4.4 UserResponse, MsgType BF.</summary>
 public sealed class UserResponse : FixMessage
 {
-	internal UserResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "BF", header, body, trailer) { }
+	internal UserResponse(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "BF", header, body, trailer)
+	{
+	}
+
 	public string? UserRequestID => GetText(923);
 	public string? Username => GetText(553);
 	public FixNumber? UserStatus => GetNumber(926);
@@ -5252,7 +5616,11 @@ public sealed class UserResponse : FixMessage
 /// <summary>FIX 4.4 CollateralInquiryAck, MsgType BG.</summary>
 public sealed class CollateralInquiryAck : FixMessage
 {
-	internal CollateralInquiryAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "BG", header, body, trailer) { }
+	internal CollateralInquiryAck(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "BG", header, body, trailer)
+	{
+	}
+
 	public string? CollInquiryID => GetText(909);
 	public FixNumber? CollInquiryStatus => GetNumber(945);
 	public FixNumber? CollInquiryResult => GetNumber(946);
@@ -5340,7 +5708,11 @@ public sealed class CollateralInquiryAck : FixMessage
 /// <summary>FIX 4.4 ConfirmationRequest, MsgType BH.</summary>
 public sealed class ConfirmationRequest : FixMessage
 {
-	internal ConfirmationRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer) : base(source, "BH", header, body, trailer) { }
+	internal ConfirmationRequest(string source, FixNode[] header, FixNode[] body, FixNode[] trailer)
+		: base(source, "BH", header, body, trailer)
+	{
+	}
+
 	public string? ConfirmReqID => GetText(859);
 	public FixNumber? ConfirmType => GetNumber(773);
 	public IReadOnlyList<OrdAllocGrpEntry> OrdAllocGrp => GetTypedGroup<OrdAllocGrpEntry>(73);
@@ -5359,7 +5731,11 @@ public sealed class ConfirmationRequest : FixMessage
 /// <summary>FIX 4.4 LegStipulationsEntry field scope.</summary>
 public sealed class LegStipulationsEntry : FixFieldSet
 {
-	internal LegStipulationsEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal LegStipulationsEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? LegStipulationType => GetText(688);
 	public string? LegStipulationValue => GetText(689);
 }
@@ -5367,7 +5743,11 @@ public sealed class LegStipulationsEntry : FixFieldSet
 /// <summary>FIX 4.4 NestedPartiesEntry field scope.</summary>
 public sealed class NestedPartiesEntry : FixFieldSet
 {
-	internal NestedPartiesEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal NestedPartiesEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? NestedPartyID => GetText(524);
 	public string? NestedPartyIDSource => GetText(525);
 	public FixNumber? NestedPartyRole => GetNumber(538);
@@ -5377,7 +5757,11 @@ public sealed class NestedPartiesEntry : FixFieldSet
 /// <summary>FIX 4.4 NestedParties2Entry field scope.</summary>
 public sealed class NestedParties2Entry : FixFieldSet
 {
-	internal NestedParties2Entry(string source, FixNode[] fields) : base(source, fields) { }
+	internal NestedParties2Entry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? Nested2PartyID => GetText(757);
 	public string? Nested2PartyIDSource => GetText(758);
 	public FixNumber? Nested2PartyRole => GetNumber(759);
@@ -5387,7 +5771,11 @@ public sealed class NestedParties2Entry : FixFieldSet
 /// <summary>FIX 4.4 NestedParties3Entry field scope.</summary>
 public sealed class NestedParties3Entry : FixFieldSet
 {
-	internal NestedParties3Entry(string source, FixNode[] fields) : base(source, fields) { }
+	internal NestedParties3Entry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? Nested3PartyID => GetText(949);
 	public string? Nested3PartyIDSource => GetText(950);
 	public FixNumber? Nested3PartyRole => GetNumber(951);
@@ -5397,7 +5785,11 @@ public sealed class NestedParties3Entry : FixFieldSet
 /// <summary>FIX 4.4 PartiesEntry field scope.</summary>
 public sealed class PartiesEntry : FixFieldSet
 {
-	internal PartiesEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal PartiesEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? PartyID => GetText(448);
 	public string? PartyIDSource => GetText(447);
 	public FixNumber? PartyRole => GetNumber(452);
@@ -5407,7 +5799,11 @@ public sealed class PartiesEntry : FixFieldSet
 /// <summary>FIX 4.4 PositionAmountDataEntry field scope.</summary>
 public sealed class PositionAmountDataEntry : FixFieldSet
 {
-	internal PositionAmountDataEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal PositionAmountDataEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? PosAmtType => GetText(707);
 	public FixNumber? PosAmt => GetNumber(708);
 }
@@ -5415,7 +5811,11 @@ public sealed class PositionAmountDataEntry : FixFieldSet
 /// <summary>FIX 4.4 PositionQtyEntry field scope.</summary>
 public sealed class PositionQtyEntry : FixFieldSet
 {
-	internal PositionQtyEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal PositionQtyEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? PosType => GetText(703);
 	public FixNumber? LongQty => GetNumber(704);
 	public FixNumber? ShortQty => GetNumber(705);
@@ -5426,7 +5826,11 @@ public sealed class PositionQtyEntry : FixFieldSet
 /// <summary>FIX 4.4 SettlPartiesEntry field scope.</summary>
 public sealed class SettlPartiesEntry : FixFieldSet
 {
-	internal SettlPartiesEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal SettlPartiesEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? SettlPartyID => GetText(782);
 	public string? SettlPartyIDSource => GetText(783);
 	public FixNumber? SettlPartyRole => GetNumber(784);
@@ -5436,7 +5840,11 @@ public sealed class SettlPartiesEntry : FixFieldSet
 /// <summary>FIX 4.4 StipulationsEntry field scope.</summary>
 public sealed class StipulationsEntry : FixFieldSet
 {
-	internal StipulationsEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal StipulationsEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? StipulationType => GetText(233);
 	public string? StipulationValue => GetText(234);
 }
@@ -5444,7 +5852,11 @@ public sealed class StipulationsEntry : FixFieldSet
 /// <summary>FIX 4.4 TrdRegTimestampsEntry field scope.</summary>
 public sealed class TrdRegTimestampsEntry : FixFieldSet
 {
-	internal TrdRegTimestampsEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal TrdRegTimestampsEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? TrdRegTimestamp => GetText(769);
 	public FixNumber? TrdRegTimestampType => GetNumber(770);
 	public string? TrdRegTimestampOrigin => GetText(771);
@@ -5453,7 +5865,11 @@ public sealed class TrdRegTimestampsEntry : FixFieldSet
 /// <summary>FIX 4.4 UnderlyingStipulationsEntry field scope.</summary>
 public sealed class UnderlyingStipulationsEntry : FixFieldSet
 {
-	internal UnderlyingStipulationsEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal UnderlyingStipulationsEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? UnderlyingStipType => GetText(888);
 	public string? UnderlyingStipValue => GetText(889);
 }
@@ -5461,7 +5877,11 @@ public sealed class UnderlyingStipulationsEntry : FixFieldSet
 /// <summary>FIX 4.4 AffectedOrdGrpEntry field scope.</summary>
 public sealed class AffectedOrdGrpEntry : FixFieldSet
 {
-	internal AffectedOrdGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal AffectedOrdGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? OrigClOrdID => GetText(41);
 	public string? AffectedOrderID => GetText(535);
 	public string? AffectedSecondaryOrderID => GetText(536);
@@ -5470,7 +5890,11 @@ public sealed class AffectedOrdGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 AllocAckGrpEntry field scope.</summary>
 public sealed class AllocAckGrpEntry : FixFieldSet
 {
-	internal AllocAckGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal AllocAckGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? AllocAccount => GetText(79);
 	public FixNumber? AllocAcctIDSource => GetNumber(661);
 	public FixNumber? AllocPrice => GetNumber(366);
@@ -5484,7 +5908,11 @@ public sealed class AllocAckGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 AllocGrpEntry field scope.</summary>
 public sealed class AllocGrpEntry : FixFieldSet
 {
-	internal AllocGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal AllocGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? AllocAccount => GetText(79);
 	public FixNumber? AllocAcctIDSource => GetNumber(661);
 	public string? MatchStatus => GetText(573);
@@ -5525,7 +5953,11 @@ public sealed class AllocGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 BidCompReqGrpEntry field scope.</summary>
 public sealed class BidCompReqGrpEntry : FixFieldSet
 {
-	internal BidCompReqGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal BidCompReqGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? ListID => GetText(66);
 	public string? Side => GetText(54);
 	public string? TradingSessionID => GetText(336);
@@ -5540,7 +5972,11 @@ public sealed class BidCompReqGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 BidCompRspGrpEntry field scope.</summary>
 public sealed class BidCompRspGrpEntry : FixFieldSet
 {
-	internal BidCompRspGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal BidCompRspGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public FixNumber? Commission => GetNumber(12);
 	public string? CommType => GetText(13);
 	public string? CommCurrency => GetText(479);
@@ -5564,7 +6000,11 @@ public sealed class BidCompRspGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 BidDescReqGrpEntry field scope.</summary>
 public sealed class BidDescReqGrpEntry : FixFieldSet
 {
-	internal BidDescReqGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal BidDescReqGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public FixNumber? BidDescriptorType => GetNumber(399);
 	public string? BidDescriptor => GetText(400);
 	public FixNumber? SideValueInd => GetNumber(401);
@@ -5581,21 +6021,33 @@ public sealed class BidDescReqGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 ClrInstGrpEntry field scope.</summary>
 public sealed class ClrInstGrpEntry : FixFieldSet
 {
-	internal ClrInstGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal ClrInstGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public FixNumber? ClearingInstruction => GetNumber(577);
 }
 
 /// <summary>FIX 4.4 CollInqQualGrpEntry field scope.</summary>
 public sealed class CollInqQualGrpEntry : FixFieldSet
 {
-	internal CollInqQualGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal CollInqQualGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public FixNumber? CollInquiryQualifier => GetNumber(896);
 }
 
 /// <summary>FIX 4.4 CompIDReqGrpEntry field scope.</summary>
 public sealed class CompIDReqGrpEntry : FixFieldSet
 {
-	internal CompIDReqGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal CompIDReqGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? RefCompID => GetText(930);
 	public string? RefSubID => GetText(931);
 	public string? LocationID => GetText(283);
@@ -5605,7 +6057,11 @@ public sealed class CompIDReqGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 CompIDStatGrpEntry field scope.</summary>
 public sealed class CompIDStatGrpEntry : FixFieldSet
 {
-	internal CompIDStatGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal CompIDStatGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? RefCompID => GetText(930);
 	public string? RefSubID => GetText(931);
 	public string? LocationID => GetText(283);
@@ -5617,7 +6073,11 @@ public sealed class CompIDStatGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 ContAmtGrpEntry field scope.</summary>
 public sealed class ContAmtGrpEntry : FixFieldSet
 {
-	internal ContAmtGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal ContAmtGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public FixNumber? ContAmtType => GetNumber(519);
 	public FixNumber? ContAmtValue => GetNumber(520);
 	public string? ContAmtCurr => GetText(521);
@@ -5626,7 +6086,11 @@ public sealed class ContAmtGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 ContraGrpEntry field scope.</summary>
 public sealed class ContraGrpEntry : FixFieldSet
 {
-	internal ContraGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal ContraGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? ContraBroker => GetText(375);
 	public string? ContraTrader => GetText(337);
 	public FixNumber? ContraTradeQty => GetNumber(437);
@@ -5637,7 +6101,11 @@ public sealed class ContraGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 CpctyConfGrpEntry field scope.</summary>
 public sealed class CpctyConfGrpEntry : FixFieldSet
 {
-	internal CpctyConfGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal CpctyConfGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? OrderCapacity => GetText(528);
 	public string? OrderRestrictions => GetText(529);
 	public FixNumber? OrderCapacityQty => GetNumber(863);
@@ -5646,7 +6114,11 @@ public sealed class CpctyConfGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 ExecAllocGrpEntry field scope.</summary>
 public sealed class ExecAllocGrpEntry : FixFieldSet
 {
-	internal ExecAllocGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal ExecAllocGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public FixNumber? LastQty => GetNumber(32);
 	public string? ExecID => GetText(17);
 	public string? SecondaryExecID => GetText(527);
@@ -5658,21 +6130,33 @@ public sealed class ExecAllocGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 ExecCollGrpEntry field scope.</summary>
 public sealed class ExecCollGrpEntry : FixFieldSet
 {
-	internal ExecCollGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal ExecCollGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? ExecID => GetText(17);
 }
 
 /// <summary>FIX 4.4 ExecsGrpEntry field scope.</summary>
 public sealed class ExecsGrpEntry : FixFieldSet
 {
-	internal ExecsGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal ExecsGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? ExecID => GetText(17);
 }
 
 /// <summary>FIX 4.4 InstrmtGrpEntry field scope.</summary>
 public sealed class InstrmtGrpEntry : FixFieldSet
 {
-	internal InstrmtGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal InstrmtGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
@@ -5721,7 +6205,11 @@ public sealed class InstrmtGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 InstrmtLegExecGrpEntry field scope.</summary>
 public sealed class InstrmtLegExecGrpEntry : FixFieldSet
 {
-	internal InstrmtLegExecGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal InstrmtLegExecGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? LegSymbol => GetText(600);
 	public string? LegSymbolSfx => GetText(601);
 	public string? LegSecurityID => GetText(602);
@@ -5780,7 +6268,11 @@ public sealed class InstrmtLegExecGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 InstrmtLegGrpEntry field scope.</summary>
 public sealed class InstrmtLegGrpEntry : FixFieldSet
 {
-	internal InstrmtLegGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal InstrmtLegGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? LegSymbol => GetText(600);
 	public string? LegSymbolSfx => GetText(601);
 	public string? LegSecurityID => GetText(602);
@@ -5828,7 +6320,11 @@ public sealed class InstrmtLegGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 InstrmtLegIOIGrpEntry field scope.</summary>
 public sealed class InstrmtLegIOIGrpEntry : FixFieldSet
 {
-	internal InstrmtLegIOIGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal InstrmtLegIOIGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? LegSymbol => GetText(600);
 	public string? LegSymbolSfx => GetText(601);
 	public string? LegSecurityID => GetText(602);
@@ -5878,7 +6374,11 @@ public sealed class InstrmtLegIOIGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 InstrmtLegSecListGrpEntry field scope.</summary>
 public sealed class InstrmtLegSecListGrpEntry : FixFieldSet
 {
-	internal InstrmtLegSecListGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal InstrmtLegSecListGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? LegSymbol => GetText(600);
 	public string? LegSymbolSfx => GetText(601);
 	public string? LegSecurityID => GetText(602);
@@ -5934,7 +6434,11 @@ public sealed class InstrmtLegSecListGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 InstrmtMDReqGrpEntry field scope.</summary>
 public sealed class InstrmtMDReqGrpEntry : FixFieldSet
 {
-	internal InstrmtMDReqGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal InstrmtMDReqGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
@@ -5985,7 +6489,11 @@ public sealed class InstrmtMDReqGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 InstrmtStrkPxGrpEntry field scope.</summary>
 public sealed class InstrmtStrkPxGrpEntry : FixFieldSet
 {
-	internal InstrmtStrkPxGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal InstrmtStrkPxGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
@@ -6034,14 +6542,22 @@ public sealed class InstrmtStrkPxGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 IOIQualGrpEntry field scope.</summary>
 public sealed class IOIQualGrpEntry : FixFieldSet
 {
-	internal IOIQualGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal IOIQualGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? IOIQualifier => GetText(104);
 }
 
 /// <summary>FIX 4.4 LegOrdGrpEntry field scope.</summary>
 public sealed class LegOrdGrpEntry : FixFieldSet
 {
-	internal LegOrdGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal LegOrdGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? LegSymbol => GetText(600);
 	public string? LegSymbolSfx => GetText(601);
 	public string? LegSecurityID => GetText(602);
@@ -6100,7 +6616,11 @@ public sealed class LegOrdGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 LegPreAllocGrpEntry field scope.</summary>
 public sealed class LegPreAllocGrpEntry : FixFieldSet
 {
-	internal LegPreAllocGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal LegPreAllocGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? LegAllocAccount => GetText(671);
 	public string? LegIndividualAllocID => GetText(672);
 	public IReadOnlyList<NestedParties2Entry> NestedParties2 => GetTypedGroup<NestedParties2Entry>(756);
@@ -6112,7 +6632,11 @@ public sealed class LegPreAllocGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 LegQuotGrpEntry field scope.</summary>
 public sealed class LegQuotGrpEntry : FixFieldSet
 {
-	internal LegQuotGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal LegQuotGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? LegSymbol => GetText(600);
 	public string? LegSymbolSfx => GetText(601);
 	public string? LegSecurityID => GetText(602);
@@ -6174,7 +6698,11 @@ public sealed class LegQuotGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 LegQuotStatGrpEntry field scope.</summary>
 public sealed class LegQuotStatGrpEntry : FixFieldSet
 {
-	internal LegQuotStatGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal LegQuotStatGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? LegSymbol => GetText(600);
 	public string? LegSymbolSfx => GetText(601);
 	public string? LegSecurityID => GetText(602);
@@ -6228,7 +6756,11 @@ public sealed class LegQuotStatGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 LinesOfTextGrpEntry field scope.</summary>
 public sealed class LinesOfTextGrpEntry : FixFieldSet
 {
-	internal LinesOfTextGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal LinesOfTextGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? Text => GetText(58);
 	public FixNumber? EncodedTextLen => GetNumber(354);
 	public string? EncodedText => GetText(355);
@@ -6237,7 +6769,11 @@ public sealed class LinesOfTextGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 ListOrdGrpEntry field scope.</summary>
 public sealed class ListOrdGrpEntry : FixFieldSet
 {
-	internal ListOrdGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal ListOrdGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? ClOrdID => GetText(11);
 	public string? SecondaryClOrdID => GetText(526);
 	public FixNumber? ListSeqNo => GetNumber(67);
@@ -6390,7 +6926,11 @@ public sealed class ListOrdGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 MDFullGrpEntry field scope.</summary>
 public sealed class MDFullGrpEntry : FixFieldSet
 {
-	internal MDFullGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal MDFullGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? MDEntryType => GetText(269);
 	public FixNumber? MDEntryPx => GetNumber(270);
 	public string? Currency => GetText(15);
@@ -6429,7 +6969,11 @@ public sealed class MDFullGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 MDIncGrpEntry field scope.</summary>
 public sealed class MDIncGrpEntry : FixFieldSet
 {
-	internal MDIncGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal MDIncGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? MDUpdateAction => GetText(279);
 	public string? DeleteReason => GetText(285);
 	public string? MDEntryType => GetText(269);
@@ -6520,21 +7064,33 @@ public sealed class MDIncGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 MDReqGrpEntry field scope.</summary>
 public sealed class MDReqGrpEntry : FixFieldSet
 {
-	internal MDReqGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal MDReqGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? MDEntryType => GetText(269);
 }
 
 /// <summary>FIX 4.4 MDRjctGrpEntry field scope.</summary>
 public sealed class MDRjctGrpEntry : FixFieldSet
 {
-	internal MDRjctGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal MDRjctGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? AltMDSourceID => GetText(817);
 }
 
 /// <summary>FIX 4.4 MiscFeesGrpEntry field scope.</summary>
 public sealed class MiscFeesGrpEntry : FixFieldSet
 {
-	internal MiscFeesGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal MiscFeesGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public FixNumber? MiscFeeAmt => GetNumber(137);
 	public string? MiscFeeCurr => GetText(138);
 	public string? MiscFeeType => GetText(139);
@@ -6544,7 +7100,11 @@ public sealed class MiscFeesGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 OrdAllocGrpEntry field scope.</summary>
 public sealed class OrdAllocGrpEntry : FixFieldSet
 {
-	internal OrdAllocGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal OrdAllocGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? ClOrdID => GetText(11);
 	public string? OrderID => GetText(37);
 	public string? SecondaryOrderID => GetText(198);
@@ -6559,7 +7119,11 @@ public sealed class OrdAllocGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 OrdListStatGrpEntry field scope.</summary>
 public sealed class OrdListStatGrpEntry : FixFieldSet
 {
-	internal OrdListStatGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal OrdListStatGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? ClOrdID => GetText(11);
 	public string? SecondaryClOrdID => GetText(526);
 	public FixNumber? CumQty => GetNumber(14);
@@ -6577,7 +7141,11 @@ public sealed class OrdListStatGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 PosUndInstrmtGrpEntry field scope.</summary>
 public sealed class PosUndInstrmtGrpEntry : FixFieldSet
 {
-	internal PosUndInstrmtGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal PosUndInstrmtGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? UnderlyingSymbol => GetText(311);
 	public string? UnderlyingSymbolSfx => GetText(312);
 	public string? UnderlyingSecurityID => GetText(309);
@@ -6632,7 +7200,11 @@ public sealed class PosUndInstrmtGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 PreAllocGrpEntry field scope.</summary>
 public sealed class PreAllocGrpEntry : FixFieldSet
 {
-	internal PreAllocGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal PreAllocGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? AllocAccount => GetText(79);
 	public FixNumber? AllocAcctIDSource => GetNumber(661);
 	public string? AllocSettlCurrency => GetText(736);
@@ -6644,7 +7216,11 @@ public sealed class PreAllocGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 PreAllocMlegGrpEntry field scope.</summary>
 public sealed class PreAllocMlegGrpEntry : FixFieldSet
 {
-	internal PreAllocMlegGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal PreAllocMlegGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? AllocAccount => GetText(79);
 	public FixNumber? AllocAcctIDSource => GetNumber(661);
 	public string? AllocSettlCurrency => GetText(736);
@@ -6656,7 +7232,11 @@ public sealed class PreAllocMlegGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 QuotCxlEntriesGrpEntry field scope.</summary>
 public sealed class QuotCxlEntriesGrpEntry : FixFieldSet
 {
-	internal QuotCxlEntriesGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal QuotCxlEntriesGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
@@ -6716,7 +7296,11 @@ public sealed class QuotCxlEntriesGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 QuotEntryAckGrpEntry field scope.</summary>
 public sealed class QuotEntryAckGrpEntry : FixFieldSet
 {
-	internal QuotEntryAckGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal QuotEntryAckGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? QuoteEntryID => GetText(299);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
@@ -6791,7 +7375,11 @@ public sealed class QuotEntryAckGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 QuotEntryGrpEntry field scope.</summary>
 public sealed class QuotEntryGrpEntry : FixFieldSet
 {
-	internal QuotEntryGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal QuotEntryGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? QuoteEntryID => GetText(299);
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
@@ -6865,14 +7453,22 @@ public sealed class QuotEntryGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 QuotQualGrpEntry field scope.</summary>
 public sealed class QuotQualGrpEntry : FixFieldSet
 {
-	internal QuotQualGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal QuotQualGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? QuoteQualifier => GetText(695);
 }
 
 /// <summary>FIX 4.4 QuotReqGrpEntry field scope.</summary>
 public sealed class QuotReqGrpEntry : FixFieldSet
 {
-	internal QuotReqGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal QuotReqGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
@@ -6978,7 +7574,11 @@ public sealed class QuotReqGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 QuotReqLegsGrpEntry field scope.</summary>
 public sealed class QuotReqLegsGrpEntry : FixFieldSet
 {
-	internal QuotReqLegsGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal QuotReqLegsGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? LegSymbol => GetText(600);
 	public string? LegSymbolSfx => GetText(601);
 	public string? LegSecurityID => GetText(602);
@@ -7037,7 +7637,11 @@ public sealed class QuotReqLegsGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 QuotReqRjctGrpEntry field scope.</summary>
 public sealed class QuotReqRjctGrpEntry : FixFieldSet
 {
-	internal QuotReqRjctGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal QuotReqRjctGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
@@ -7142,7 +7746,11 @@ public sealed class QuotReqRjctGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 QuotSetAckGrpEntry field scope.</summary>
 public sealed class QuotSetAckGrpEntry : FixFieldSet
 {
-	internal QuotSetAckGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal QuotSetAckGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? QuoteSetID => GetText(302);
 	public string? UnderlyingSymbol => GetText(311);
 	public string? UnderlyingSymbolSfx => GetText(312);
@@ -7199,7 +7807,11 @@ public sealed class QuotSetAckGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 QuotSetGrpEntry field scope.</summary>
 public sealed class QuotSetGrpEntry : FixFieldSet
 {
-	internal QuotSetGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal QuotSetGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? QuoteSetID => GetText(302);
 	public string? UnderlyingSymbol => GetText(311);
 	public string? UnderlyingSymbolSfx => GetText(312);
@@ -7257,7 +7869,11 @@ public sealed class QuotSetGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 RelSymDerivSecGrpEntry field scope.</summary>
 public sealed class RelSymDerivSecGrpEntry : FixFieldSet
 {
-	internal RelSymDerivSecGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal RelSymDerivSecGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
@@ -7317,7 +7933,11 @@ public sealed class RelSymDerivSecGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 RFQReqGrpEntry field scope.</summary>
 public sealed class RFQReqGrpEntry : FixFieldSet
 {
-	internal RFQReqGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal RFQReqGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
@@ -7373,7 +7993,11 @@ public sealed class RFQReqGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 RgstDistInstGrpEntry field scope.</summary>
 public sealed class RgstDistInstGrpEntry : FixFieldSet
 {
-	internal RgstDistInstGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal RgstDistInstGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public FixNumber? DistribPaymentMethod => GetNumber(477);
 	public FixNumber? DistribPercentage => GetNumber(512);
 	public string? CashDistribCurr => GetText(478);
@@ -7387,7 +8011,11 @@ public sealed class RgstDistInstGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 RgstDtlsGrpEntry field scope.</summary>
 public sealed class RgstDtlsGrpEntry : FixFieldSet
 {
-	internal RgstDtlsGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal RgstDtlsGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? RegistDtls => GetText(509);
 	public string? RegistEmail => GetText(511);
 	public string? MailingDtls => GetText(474);
@@ -7401,7 +8029,11 @@ public sealed class RgstDtlsGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 RoutingGrpEntry field scope.</summary>
 public sealed class RoutingGrpEntry : FixFieldSet
 {
-	internal RoutingGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal RoutingGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public FixNumber? RoutingType => GetNumber(216);
 	public string? RoutingID => GetText(217);
 }
@@ -7409,7 +8041,11 @@ public sealed class RoutingGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 SecListGrpEntry field scope.</summary>
 public sealed class SecListGrpEntry : FixFieldSet
 {
-	internal SecListGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal SecListGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? Symbol => GetText(55);
 	public string? SymbolSfx => GetText(65);
 	public string? SecurityID => GetText(48);
@@ -7496,7 +8132,11 @@ public sealed class SecListGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 SecTypesGrpEntry field scope.</summary>
 public sealed class SecTypesGrpEntry : FixFieldSet
 {
-	internal SecTypesGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal SecTypesGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? SecurityType => GetText(167);
 	public string? SecuritySubType => GetText(762);
 	public FixNumber? Product => GetNumber(460);
@@ -7506,7 +8146,11 @@ public sealed class SecTypesGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 SettlInstGrpEntry field scope.</summary>
 public sealed class SettlInstGrpEntry : FixFieldSet
 {
-	internal SettlInstGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal SettlInstGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? SettlInstID => GetText(162);
 	public string? SettlInstTransType => GetText(163);
 	public string? SettlInstRefID => GetText(214);
@@ -7537,7 +8181,11 @@ public sealed class SettlInstGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 SideCrossOrdCxlGrpEntry field scope.</summary>
 public sealed class SideCrossOrdCxlGrpEntry : FixFieldSet
 {
-	internal SideCrossOrdCxlGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal SideCrossOrdCxlGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? Side => GetText(54);
 	public string? OrigClOrdID => GetText(41);
 	public string? ClOrdID => GetText(11);
@@ -7561,7 +8209,11 @@ public sealed class SideCrossOrdCxlGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 SideCrossOrdModGrpEntry field scope.</summary>
 public sealed class SideCrossOrdModGrpEntry : FixFieldSet
 {
-	internal SideCrossOrdModGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal SideCrossOrdModGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? Side => GetText(54);
 	public string? ClOrdID => GetText(11);
 	public string? SecondaryClOrdID => GetText(526);
@@ -7608,7 +8260,11 @@ public sealed class SideCrossOrdModGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 TrdAllocGrpEntry field scope.</summary>
 public sealed class TrdAllocGrpEntry : FixFieldSet
 {
-	internal TrdAllocGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal TrdAllocGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? AllocAccount => GetText(79);
 	public FixNumber? AllocAcctIDSource => GetNumber(661);
 	public string? AllocSettlCurrency => GetText(736);
@@ -7620,7 +8276,11 @@ public sealed class TrdAllocGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 TrdCapRptSideGrpEntry field scope.</summary>
 public sealed class TrdCapRptSideGrpEntry : FixFieldSet
 {
-	internal TrdCapRptSideGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal TrdCapRptSideGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? Side => GetText(54);
 	public string? OrderID => GetText(37);
 	public string? SecondaryOrderID => GetText(198);
@@ -7688,7 +8348,11 @@ public sealed class TrdCapRptSideGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 TrdCollGrpEntry field scope.</summary>
 public sealed class TrdCollGrpEntry : FixFieldSet
 {
-	internal TrdCollGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal TrdCollGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? TradeReportID => GetText(571);
 	public string? SecondaryTradeReportID => GetText(818);
 }
@@ -7696,7 +8360,11 @@ public sealed class TrdCollGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 TrdInstrmtLegGrpEntry field scope.</summary>
 public sealed class TrdInstrmtLegGrpEntry : FixFieldSet
 {
-	internal TrdInstrmtLegGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal TrdInstrmtLegGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? LegSymbol => GetText(600);
 	public string? LegSymbolSfx => GetText(601);
 	public string? LegSecurityID => GetText(602);
@@ -7755,7 +8423,11 @@ public sealed class TrdInstrmtLegGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 TrdgSesGrpEntry field scope.</summary>
 public sealed class TrdgSesGrpEntry : FixFieldSet
 {
-	internal TrdgSesGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal TrdgSesGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? TradingSessionID => GetText(336);
 	public string? TradingSessionSubID => GetText(625);
 }
@@ -7763,7 +8435,11 @@ public sealed class TrdgSesGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 UndInstrmtCollGrpEntry field scope.</summary>
 public sealed class UndInstrmtCollGrpEntry : FixFieldSet
 {
-	internal UndInstrmtCollGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal UndInstrmtCollGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? UnderlyingSymbol => GetText(311);
 	public string? UnderlyingSymbolSfx => GetText(312);
 	public string? UnderlyingSecurityID => GetText(309);
@@ -7817,7 +8493,11 @@ public sealed class UndInstrmtCollGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 UndInstrmtGrpEntry field scope.</summary>
 public sealed class UndInstrmtGrpEntry : FixFieldSet
 {
-	internal UndInstrmtGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal UndInstrmtGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? UnderlyingSymbol => GetText(311);
 	public string? UnderlyingSymbolSfx => GetText(312);
 	public string? UnderlyingSecurityID => GetText(309);
@@ -7870,7 +8550,11 @@ public sealed class UndInstrmtGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 UndInstrmtStrkPxGrpEntry field scope.</summary>
 public sealed class UndInstrmtStrkPxGrpEntry : FixFieldSet
 {
-	internal UndInstrmtStrkPxGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal UndInstrmtStrkPxGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? UnderlyingSymbol => GetText(311);
 	public string? UnderlyingSymbolSfx => GetText(312);
 	public string? UnderlyingSecurityID => GetText(309);
@@ -7932,7 +8616,11 @@ public sealed class UndInstrmtStrkPxGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 TrdCapDtGrpEntry field scope.</summary>
 public sealed class TrdCapDtGrpEntry : FixFieldSet
 {
-	internal TrdCapDtGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal TrdCapDtGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? TradeDate => GetText(75);
 	public string? TransactTime => GetText(60);
 }
@@ -7940,7 +8628,11 @@ public sealed class TrdCapDtGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 EvntGrpEntry field scope.</summary>
 public sealed class EvntGrpEntry : FixFieldSet
 {
-	internal EvntGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal EvntGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public FixNumber? EventType => GetNumber(865);
 	public string? EventDate => GetText(866);
 	public FixNumber? EventPx => GetNumber(867);
@@ -7950,7 +8642,11 @@ public sealed class EvntGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 SecAltIDGrpEntry field scope.</summary>
 public sealed class SecAltIDGrpEntry : FixFieldSet
 {
-	internal SecAltIDGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal SecAltIDGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? SecurityAltID => GetText(455);
 	public string? SecurityAltIDSource => GetText(456);
 }
@@ -7958,7 +8654,11 @@ public sealed class SecAltIDGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 LegSecAltIDGrpEntry field scope.</summary>
 public sealed class LegSecAltIDGrpEntry : FixFieldSet
 {
-	internal LegSecAltIDGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal LegSecAltIDGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? LegSecurityAltID => GetText(605);
 	public string? LegSecurityAltIDSource => GetText(606);
 }
@@ -7966,7 +8666,11 @@ public sealed class LegSecAltIDGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 UndSecAltIDGrpEntry field scope.</summary>
 public sealed class UndSecAltIDGrpEntry : FixFieldSet
 {
-	internal UndSecAltIDGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal UndSecAltIDGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? UnderlyingSecurityAltID => GetText(458);
 	public string? UnderlyingSecurityAltIDSource => GetText(459);
 }
@@ -7974,7 +8678,11 @@ public sealed class UndSecAltIDGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 AttrbGrpEntry field scope.</summary>
 public sealed class AttrbGrpEntry : FixFieldSet
 {
-	internal AttrbGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal AttrbGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public FixNumber? InstrAttribType => GetNumber(871);
 	public string? InstrAttribValue => GetText(872);
 }
@@ -7982,7 +8690,11 @@ public sealed class AttrbGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 DlvyInstGrpEntry field scope.</summary>
 public sealed class DlvyInstGrpEntry : FixFieldSet
 {
-	internal DlvyInstGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal DlvyInstGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? SettlInstSource => GetText(165);
 	public string? DlvyInstType => GetText(787);
 	public IReadOnlyList<SettlPartiesEntry> SettlParties => GetTypedGroup<SettlPartiesEntry>(781);
@@ -7991,7 +8703,11 @@ public sealed class DlvyInstGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 SettlPtysSubGrpEntry field scope.</summary>
 public sealed class SettlPtysSubGrpEntry : FixFieldSet
 {
-	internal SettlPtysSubGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal SettlPtysSubGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? SettlPartySubID => GetText(785);
 	public FixNumber? SettlPartySubIDType => GetNumber(786);
 }
@@ -7999,7 +8715,11 @@ public sealed class SettlPtysSubGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 PtysSubGrpEntry field scope.</summary>
 public sealed class PtysSubGrpEntry : FixFieldSet
 {
-	internal PtysSubGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal PtysSubGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? PartySubID => GetText(523);
 	public FixNumber? PartySubIDType => GetNumber(803);
 }
@@ -8007,7 +8727,11 @@ public sealed class PtysSubGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 NstdPtysSubGrpEntry field scope.</summary>
 public sealed class NstdPtysSubGrpEntry : FixFieldSet
 {
-	internal NstdPtysSubGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal NstdPtysSubGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? NestedPartySubID => GetText(545);
 	public FixNumber? NestedPartySubIDType => GetNumber(805);
 }
@@ -8015,7 +8739,11 @@ public sealed class NstdPtysSubGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 NstdPtys2SubGrpEntry field scope.</summary>
 public sealed class NstdPtys2SubGrpEntry : FixFieldSet
 {
-	internal NstdPtys2SubGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal NstdPtys2SubGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? Nested2PartySubID => GetText(760);
 	public FixNumber? Nested2PartySubIDType => GetNumber(807);
 }
@@ -8023,7 +8751,11 @@ public sealed class NstdPtys2SubGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 NstdPtys3SubGrpEntry field scope.</summary>
 public sealed class NstdPtys3SubGrpEntry : FixFieldSet
 {
-	internal NstdPtys3SubGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal NstdPtys3SubGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? Nested3PartySubID => GetText(953);
 	public FixNumber? Nested3PartySubIDType => GetNumber(954);
 }
@@ -8031,7 +8763,11 @@ public sealed class NstdPtys3SubGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 HopGrpEntry field scope.</summary>
 public sealed class HopGrpEntry : FixFieldSet
 {
-	internal HopGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal HopGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? HopCompID => GetText(628);
 	public string? HopSendingTime => GetText(629);
 	public FixNumber? HopRefID => GetNumber(630);
@@ -8040,7 +8776,11 @@ public sealed class HopGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 MsgTypeGrpEntry field scope.</summary>
 public sealed class MsgTypeGrpEntry : FixFieldSet
 {
-	internal MsgTypeGrpEntry(string source, FixNode[] fields) : base(source, fields) { }
+	internal MsgTypeGrpEntry(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? RefMsgType => GetText(372);
 	public string? MsgDirection => GetText(385);
 }
@@ -8048,7 +8788,11 @@ public sealed class MsgTypeGrpEntry : FixFieldSet
 /// <summary>FIX 4.4 StandardHeader field scope.</summary>
 public sealed class StandardHeader : FixFieldSet
 {
-	internal StandardHeader(string source, FixNode[] fields) : base(source, fields) { }
+	internal StandardHeader(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public string? BeginString => GetText(8);
 	public FixNumber? BodyLength => GetNumber(9);
 	public string? MsgType => GetText(35);
@@ -8081,7 +8825,11 @@ public sealed class StandardHeader : FixFieldSet
 /// <summary>FIX 4.4 StandardTrailer field scope.</summary>
 public sealed class StandardTrailer : FixFieldSet
 {
-	internal StandardTrailer(string source, FixNode[] fields) : base(source, fields) { }
+	internal StandardTrailer(string source, FixNode[] fields)
+		: base(source, fields)
+	{
+	}
+
 	public FixNumber? SignatureLength => GetNumber(93);
 	public string? Signature => GetText(89);
 	public string? CheckSum => GetText(10);

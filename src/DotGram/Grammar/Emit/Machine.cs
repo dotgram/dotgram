@@ -18,6 +18,8 @@ namespace DotGram.Grammar.Emit;
 sealed partial class Machine
 {
 	public bool BufferedInput { get; }
+	readonly bool _bufferedFind;
+	readonly bool _prefixTables;
 	public bool BufferedBytes { get; }
 	public bool BorrowedCaptures { get; }
 	string CaptureSpanType => $"global::System.ReadOnlySpan<{(BufferedBytes ? "byte" : "char")}>";
@@ -30,7 +32,7 @@ sealed partial class Machine
 	{
 		get
 		{
-			if (!BufferedInput || _rules.Count != 1 || _textCaptures.Count != 0) return false;
+			if (!BufferedInput || _bufferedFind || _rules.Count != 1 || _textCaptures.Count != 0) return false;
 			if (_factories.Values.SelectMany(factories => factories).Any(factory => CSharpEmitter.WantsText(_graph, factory))) return false;
 			var rule = _rules.First();
 			if (!_graph.Types.ContainsKey(rule)) return false;
@@ -296,11 +298,13 @@ sealed partial class Machine
 		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "", int? partSize = null,
 		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null,
 		CarrierKind carrier = CarrierKind.Tape, int stacks = 0, TerminalInventory? inventory = null,
-		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false,
+		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool bufferedFind = false, bool prefixTables = false,
 		Dictionary<string, (string Name, string Declaration)>? expectedTables = null)
 	{
 		_expectedTables = expectedTables;
 		BufferedInput = bufferedInput;
+		_bufferedFind = bufferedFind;
+		_prefixTables = prefixTables;
 		BufferedBytes = bufferedBytes;
 		BorrowedCaptures = bufferedBytes || spanCaptures;
 		_graph = graph;
@@ -1196,6 +1200,7 @@ sealed partial class Machine
 	public string RenderEngine(string name)
 	{
 		var file = new Writer(0);
+
 		var strength = _graph.Climbing.Count > 0 ? ", int initialPower" : "";
 		var hasValues = false;
 
@@ -1204,6 +1209,25 @@ sealed partial class Machine
 
 		if (hasValues)
 			EnsureMaterializer();
+
+		PlanLayout();
+		// Large split machines would otherwise put thousands of case labels back
+		// into the outer dispatcher, defeating the JIT budget of the parts.
+		var indexedDispatch = Divided && Dispatching().Count > 1000;
+		if (indexedDispatch)
+		{
+			var dispatch = Dispatching();
+			var numbered = Enumerable.Range(0, _parts.Count)
+				.SelectMany(part => Numbering(dispatch, part).Select(state => (State: state, Part: part)))
+				.ToArray();
+			var table = Enumerable.Repeat(-1, numbered.Max(one => one.State) + 1).ToArray();
+			table[Return] = Return;
+			table[Accept] = Accept;
+			table[Fail] = Fail;
+			foreach (var one in numbered) table[one.State] = one.Part + First;
+			file.Line($"static readonly int[] {name}_Dispatch = new int[] {{ {string.Join(", ", table)} }};");
+			file.Line();
+		}
 
 		using (file.Block(
 			$"static int {name}({InputType} text, int pos, int state, " +
@@ -1285,7 +1309,9 @@ sealed partial class Machine
 				// Fallen into rather than jumped to: the entry above is the line before it.
 				file.Line("Dispatch:");
 
-				using (file.Block("switch (state)"))
+				using (file.Block(indexedDispatch
+					? $"switch ((uint)state < (uint){name}_Dispatch.Length ? {name}_Dispatch[state] : -1)"
+					: "switch (state)"))
 				{
 					file.Line($"case {Return}: goto Return;");
 					file.Line($"case {Accept}: goto Accept;");
@@ -1323,12 +1349,17 @@ sealed partial class Machine
 						{
 							var any = false;
 
-							foreach (var one in Numbering(cases, part))
+							if (indexedDispatch)
 							{
-								file.Line($"case {one}:");
-
-								any = true;
+								any = Numbering(cases, part).Any();
+								if (any) file.Line($"case {part + First}:");
 							}
+							else
+								foreach (var one in Numbering(cases, part))
+								{
+									file.Line($"case {one}:");
+									any = true;
+								}
 
 							if (!any)
 								continue;
@@ -1998,6 +2029,9 @@ sealed partial class Machine
 
 			case Node.Choice(var alternatives):
 			{
+				if (_prefixTables && !OverKinds && PrefixPlan(alternatives) is { } prefixes)
+					return CompilePrefixChoice(alternatives, prefixes, next, following);
+
 				if (Predictive(alternatives) is { } predicted)
 					return CompilePredictedChoice(alternatives, predicted, next, following);
 
@@ -3430,13 +3464,14 @@ sealed partial class Machine
 	/// </remarks>
 	int CompileChainedChoice(
 		IReadOnlyList<Node> alternatives, int next, FollowSets.Continuation following,
-		FirstSets.First? proven = null)
+		FirstSets.First? proven = null, Dictionary<Node, int>? prefixHeads = null)
 	{
 		var last   = alternatives.Count - 1;
 		var run    = LiteralGroup(alternatives, last, following.Plain);
 		var target = run > 0
 			? CompileLiterals(alternatives, last - run + 1, last, next, Fail)
 			: Compile(alternatives[last], next, following);
+		if (prefixHeads is not null) prefixHeads[alternatives[last]] = target;
 		var rest   = run > 0 ? Begins(alternatives, last - run + 1, last) : Decidable(alternatives[last]);
 
 		for (var i = last - run - (run > 0 ? 0 : 1); i >= 0; i--)
@@ -3458,6 +3493,7 @@ sealed partial class Machine
 			}
 
 			var first = Compile(alternatives[i], next, following);
+			if (prefixHeads is not null) prefixHeads[alternatives[i]] = first;
 			var mine  = Decidable(alternatives[i]);
 			var state = Reserve(out var writer);
 
@@ -3583,12 +3619,12 @@ sealed partial class Machine
 		IReadOnlyList<Node> alternatives,
 		IReadOnlyList<(FirstSets.First Set, List<Node> Members)> groups,
 		int next,
-		FollowSets.Continuation following)
+		FollowSets.Continuation following, Dictionary<Node, int>? prefixHeads = null)
 	{
 		var heads = new int[groups.Count];
 
 		for (var i = 0; i < groups.Count; i++)
-			heads[i] = CompileChainedChoice(groups[i].Members, next, following, groups[i].Set);
+			heads[i] = CompileChainedChoice(groups[i].Members, next, following, groups[i].Set, prefixHeads);
 
 		var state     = Reserve(out var writer);
 		var arrayName = DeclareExpected([.. alternatives.SelectMany(Displays).Distinct()]);

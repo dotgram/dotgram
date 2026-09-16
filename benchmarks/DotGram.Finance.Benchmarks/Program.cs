@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Globalization;
+using System.IO;
 using System.Text;
 
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Columns;
+using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Running;
 
 using DotGram.Finance.Fix;
@@ -15,6 +16,16 @@ static class Program
 {
 	static void Main(string[] args)
 	{
+		if (args.Length == 5 && args[0] == "profile")
+		{
+			FixProfile.Run(args[1], args[2], args[3], int.Parse(args[4], CultureInfo.InvariantCulture));
+			return;
+		}
+		if (args.Length == 2 && args[0] == "--fix-jit-probe")
+		{
+			FixInitializationBenchmarks.Probe(args[1] == "previous");
+			return;
+		}
 		if (args.Length == 3 && args[0] == "--memory")
 		{
 			new Fix44InputBenchmarks { Workload = args[1] }.MeasureMemory(args[2]);
@@ -32,6 +43,8 @@ public class Fix44Benchmarks
 	string order = "";
 	string raw = "";
 	string groups = "";
+	byte[] orderBytes = Array.Empty<byte>();
+	byte[] rawBytes = Array.Empty<byte>();
 
 	[GlobalSetup]
 	public void Setup()
@@ -45,13 +58,35 @@ public class Fix44Benchmarks
 		// may be reordered independently of the entry field order.
 		body.Insert(0, "55=ABC|");
 		groups = Wire("W", body.ToString());
-		foreach (var input in new[] { heartbeat, order, raw, groups }) Fix44.Parse(input);
+		foreach (var input in new[] { heartbeat, order, raw, groups }) FixMessages.Parse(input);
+		orderBytes = Encoding.Latin1.GetBytes(order);
+		rawBytes = Encoding.Latin1.GetBytes(raw);
+		using var orderInput = new MemoryStream(orderBytes);
+		using var rawInput = new MemoryStream(rawBytes);
+		if (FixMessages.Parse(orderInput).OriginalWire != order || FixMessages.Parse(rawInput).OriginalWire != raw) throw new InvalidOperationException("Input paths differ.");
 	}
 
-	[Benchmark] public FixMessage Heartbeat() => Fix44.Parse(heartbeat);
-	[Benchmark] public FixMessage NewOrderSingle() => Fix44.Parse(order);
-	[Benchmark] public FixMessage LargeRawData() => Fix44.Parse(raw);
-	[Benchmark] public FixMessage RepeatingGroups() => Fix44.Parse(groups);
+	[Benchmark] public FixField[] FlatOrderFields() => Fix44.Parse(order);
+	[Benchmark] public FixField[] FlatRawFields() => Fix44.Parse(raw);
+	[Benchmark] public FixField[] FlatGroupFields() => Fix44.Parse(groups);
+
+	[Benchmark] public FixMessage Heartbeat() => FixMessages.Parse(heartbeat);
+	[Benchmark] public FixMessage NewOrderSingle() => FixMessages.Parse(order);
+	[Benchmark] public FixMessage LargeRawData() => FixMessages.Parse(raw);
+	[Benchmark] public FixMessage RepeatingGroups() => FixMessages.Parse(groups);
+
+	[Benchmark]
+	public FixMessage NewOrderSingleBytes()
+	{
+		using var input = new MemoryStream(orderBytes, writable: false);
+		return FixMessages.Parse(input);
+	}
+	[Benchmark]
+	public FixMessage LargeRawDataBytes()
+	{
+		using var input = new MemoryStream(rawBytes, writable: false);
+		return FixMessages.Parse(input);
+	}
 
 	internal static string Wire(string type, string fields)
 	{

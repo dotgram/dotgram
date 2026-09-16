@@ -404,6 +404,8 @@ public sealed class GrammarBinder
 						break;
 					}
 
+					if (publish.ResultType is { } resultType) ResolveType(resultType, ns, []);
+
 					var method = publish.Alias ?? Publication.DefaultMethodName(publish.Kind, published.Name);
 
 					// Two directives producing one name would generate two methods with the
@@ -443,6 +445,8 @@ public sealed class GrammarBinder
 						Access = publish.Access,
 						BufferedInput = publish.BufferedInput,
 						BufferedBytes = publish.BufferedBytes,
+						Yield = publish.Yield,
+						ResultType = publish.ResultType,
 					});
 
 					break;

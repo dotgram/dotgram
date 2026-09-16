@@ -78,6 +78,18 @@ A rule on its own generates no API. A directive does:
 | --- | --- | --- |
 | `parse R` | the whole input is an `R` | `ParseR` — throws `FormatException`; `TryParseR` — a `Match<R>` |
 | `find R` | there are `R`s inside other text | `FindR` — a lazy sequence of `Match<R>` |
+| `parse Feed yield : @T` | a complete sequence of consecutive elements | `ParseFeed` — a lazy `IEnumerable<T>` |
+
+Named publications accept a public result contract: `parse R : @Base` returns
+`Base` / `Match<Base>` and `find R : @Base` returns `IEnumerable<Match<Base>>`.
+Construction stays with the rule; incompatible contracts produce `GRAM4028`.
+Use explicit `stream` for reader input on a contracted parse publication.
+
+`yield` is independent of input: add `stream` for a buffered `TextReader`, or
+`stream bytes` for a native byte `Stream`. Without `yield`, explicitly buffered
+`parse` materializes its declared result. Bare `yield` infers the element type.
+Currently the collection must be `Rule*` / `Rule+` through transparent wrappers;
+unsafe or unsupported shapes produce `GRAM4027`. Errors occur during enumeration.
 
 `as` names the method instead: `find Row as AllRows`.
 

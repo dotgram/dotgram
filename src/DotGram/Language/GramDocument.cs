@@ -141,7 +141,7 @@ public static class GramLanguageService
 	static readonly HashSet<string> Keywords = new(StringComparer.Ordinal)
 	{
 		"using", "namespace", "parse", "find", "as", "when", "recover", "with",
-		"context", "state",
+		"context", "state", "stream", "bytes", "yield",
 		"any", "none", "eol", "eof", "trivia", "word", "wordboundary",
 	};
 

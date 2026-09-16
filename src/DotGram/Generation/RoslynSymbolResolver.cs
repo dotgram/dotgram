@@ -50,7 +50,27 @@ public sealed class RoslynSymbolResolver(
 		if (string.Equals(from, to, StringComparison.Ordinal))
 			return true;
 
-		return TypeNamed(from) is { } source && TypeNamed(to) is { } target && IsAssignableSymbol(source, target);
+		return ValueTypeNamed(from) is { } source && ValueTypeNamed(to) is { } target && IsAssignableSymbol(source, target);
+	}
+
+	ITypeSymbol? ValueTypeNamed(string name)
+	{
+		if (name.StartsWith("global::", StringComparison.Ordinal)) name = name.Substring(8);
+		if (name.EndsWith("[]", StringComparison.Ordinal))
+			return ValueTypeNamed(name.Substring(0, name.Length - 2)) is { } element
+				? _compilation.CreateArrayTypeSymbol(element) : null;
+		if (name.IndexOf('<') is var open && open >= 0)
+		{
+			var syntax = Microsoft.CodeAnalysis.CSharp.SyntaxFactory.ParseTypeName(name);
+			var generic = syntax as Microsoft.CodeAnalysis.CSharp.Syntax.GenericNameSyntax ??
+				(syntax as Microsoft.CodeAnalysis.CSharp.Syntax.QualifiedNameSyntax)?.Right as Microsoft.CodeAnalysis.CSharp.Syntax.GenericNameSyntax;
+			if (generic is null) return null;
+			var arguments = generic.TypeArgumentList.Arguments.Select(arg => ValueTypeNamed(arg.ToString())).ToArray();
+			if (arguments.Any(arg => arg is null) || TypeNamed(name.Substring(0, open) + "`" + arguments.Length) is not { } definition)
+				return null;
+			return definition.Construct(arguments!);
+		}
+		return TypeNamed(name);
 	}
 
 	/// <summary>
@@ -373,6 +393,12 @@ public sealed class RoslynSymbolResolver(
 		{
 			return nested;
 		}
+
+		// A sibling type in the host's namespace is visible without qualification.
+		if (_host is not null && _compilation.GetTypeByMetadataName(_host) is { } hostType)
+			for (var ns = hostType.ContainingNamespace; !ns.IsGlobalNamespace; ns = ns.ContainingNamespace)
+				if (_compilation.GetTypeByMetadataName(ns.ToDisplayString() + "." + name) is { } sibling)
+					return sibling;
 
 		if (_compilation.GetTypeByMetadataName(name) is { } found)
 			return found;

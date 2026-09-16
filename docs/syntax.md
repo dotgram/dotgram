@@ -41,6 +41,7 @@ that thing is what the notation already means in C# or in .NET regular expressio
   - [5.1 Rebinding](#51-rebinding)
   - [5.2 The standard library, `Std`](#52-the-standard-library-std)
 - [6. Publication](#6-publication)
+  - [Explicit lazy results](#explicit-lazy-results)
   - [6.1 The result](#61-the-result)
   - [6.2 Why the signatures use BCL types only](#62-why-the-signatures-use-bcl-types-only)
   - [6.3 The input type picks the execution mode](#63-the-input-type-picks-the-execution-mode)
@@ -1487,6 +1488,47 @@ like any other, and what comes back is that sequence. Reading a feed is not a th
 directive: it is one `parse` of a rule that happens to be a list, and §6.3 decides
 whether the list is materialized or walked.
 
+### Explicit lazy results
+
+`yield` is an output modifier on `parse`, independent of the `stream` input modifier:
+
+```dotgram
+Node : @FeedNode = v: Header => @(v) | v: Record => @(v)
+Feed : @FeedNode[] = { Node* }
+
+parse Feed as Array
+parse Feed as ByteArray stream bytes
+parse Feed as Nodes yield : @FeedNode
+parse Feed as ByteNodes stream bytes yield : @FeedNode
+```
+
+The first two publications return `FeedNode[]`. The last two return
+`IEnumerable<FeedNode>`; `Nodes(string)` is lazy even with contiguous input.
+`stream` adds a `TextReader` input; `stream bytes` adds a native byte `Stream` input.
+Both forms also keep their string overload. An explicitly buffered publication
+without `yield` materializes its declared result.
+
+`yield : @T` states the element type. Bare `yield` infers it from the collection's
+`@T[]` type. Elements must be assignable to that type; derived nodes preserve their
+concrete types. The optional type belongs to the publication's output contract,
+not to the collection rule, and cannot change how its elements are constructed.
+
+The current proof accepts a complete `Rule*` or `Rule+` collection, optionally
+inside atomic groups or transparent collection wrappers. The element rule must
+consume input and cannot be marked as giving back a successful match. The
+collection must have no custom factory, outer choice, prefix/suffix, recovery or
+implicit trivia. Unsupported shapes receive `GRAM4027`; the compiler does not
+silently materialize the collection or change its backtracking behavior.
+
+Enumeration parses consecutive elements and stops at clean EOF. Malformed input
+throws `FormatException` from `MoveNext`; earlier elements may already have been
+returned. No input is skipped, and there is no `Try` companion for the lazy
+publication. Publish the ordinary `parse` form separately for an all-or-nothing
+`TryParse`. Each buffered element is constructed before yielding; completed input
+can then be released when lookbehind or location tracking does not require it.
+Readers remain caller-owned. Stopping early may leave read-ahead in the iterator's
+buffer; a new enumeration does not recover that buffered input.
+
 Anything else is a consequence rather than a directive. Where a match may sit is the
 grammar's business, how much is held is the input's (§6.3), and picking things out of
 a sequence is the caller's.
@@ -1534,9 +1576,26 @@ parse (v: Padded(Word, '#') => @(v)) as Marked : @string
 
 With a type declared, everything §4.1 offers is reachable from the directive, a `=>`
 included; without one a construction is refused where it always is (`GRAM4008`). The
-type belongs to the expression being lifted, so a directive that names a rule has
-nowhere to put one and says so (`GRAM2008`) — that rule declared its own type where it
-was written.
+type supplies construction for an inline expression. On a named rule, it instead
+sets the public result contract while preserving the rule's construction:
+
+```dotgram
+parse Trade : @FeedNode
+parse Trades as All : @FeedNode[] stream bytes
+find Trade : @IFeedNode
+```
+
+`parse` returns the specified type, and its `TryParse` forms return `Match<T>`.
+`find` returns `IEnumerable<Match<T>>`. The rule's actual result must be assignable
+to `T` through identity, reference conversion or boxing; no numeric or user-defined
+conversion is introduced. An incompatible contract receives `GRAM4028`. Without a
+contract, the existing type inference is unchanged. An extent-only rule returns
+`string` for text and `byte[]` for byte input, so a shared contract must accept both.
+
+A named publication with an explicit contract uses `stream` to request buffered
+reader input. It does not infer the legacy reader API that changes an array result
+into an enumerable. Use `yield : @T` to request enumerable output explicitly;
+place its element type after `yield` (`GRAM2008` if written before it).
 
 ### 6.1 The result
 
@@ -1627,17 +1686,19 @@ cannot take one back. docs/syntax.md §6.3 says which rules get one, and why.
 Which is the shared responsibility: the author picks an overload, and the compiler
 offers one only where it provably works.
 
-**An additional buffered input form.** `stream` on a `parse` publication requests
+**An additional buffered input form.** `stream` on a `parse` or `find` publication requests
 a synchronous pull reader that continues recognition when its buffer is refilled:
 
 ```gram
 parse Document stream
 parse Packet stream bytes
+find Row stream
+find Packet stream bytes
 ```
 
 The modifier follows any `with`, `as`, or publication result-type clause. It adds
-methods; all existing publications, including eligible reader overloads above,
-remain available. The added methods use the same names, overloaded by input type:
+methods. An explicitly requested buffered character form replaces the legacy
+reader overload for that publication. The added methods use the same names, overloaded by input type:
 
 ```csharp
 Match<Document> TryParseDocument(TextReader input,
@@ -1646,10 +1707,10 @@ Document ParseDocument(TextReader input,
     int bufferSize = 4096, int maxRetained = int.MaxValue);
 ```
 
-The byte form uses `Stream` under the same method names. Where the legacy
-`ParseX(TextReader)` overload exists, a call with just the reader still selects it
-and returns the existing sequence. Use `TryParseX(reader)` or specify
-`ParseX(reader, bufferSize: 4096)` to select the new whole-result form.
+The byte form uses `Stream` under the same method names. Explicit buffered input
+does not imply a lazy result: `parse` returns its declared result unless `yield`
+is present. Older inferred reader forms remain available for publications that
+do not request buffered character input.
 
 An untyped root returns
 an owned `string` for characters or an owned `byte[]` for bytes. Typed roots retain
@@ -1658,10 +1719,16 @@ The caller owns the reader or stream; parsing does not dispose it. Parsing consu
 input and may read ahead, including when recognition fails; it cannot restore the
 underlying source for another consumer.
 
-`[Gram(..., BufferedInput = true)]` adds the character form to parse publications;
+`[Gram(..., BufferedInput = true)]` adds the character form to parse and find publications;
 `BufferedBytes = true` adds the byte form. Both default to false. `GramOptions`
 inherits these settings and can override either with false. An explicit publication
-modifier still requests its form. Host options do not add forms to `find`.
+modifier still requests its form. Buffered `find` returns a lazy
+`IEnumerable<Match<T>>` for `TextReader` or `Stream`. It finds the same non-overlapping
+occurrences as contiguous `find`, including empty matches; it skips unmatched input.
+A completed occurrence is yielded without probing for EOF first. Once enumeration
+resumes, its consumed prefix can be released unless lookbehind or line/column
+tracking requires earlier input. Buffered character `find` replaces the legacy
+reader overload when explicitly requested or enabled by host options.
 
 The generated machine uses a concrete buffered reader and block I/O, with no input
 interface dispatch per symbol. A short nonempty read is not EOF. Refilling does not
@@ -1679,7 +1746,8 @@ Release analysis is currently conservative: source-independent, single-rule
 deterministic loops can release completed iterations. Other grammars retain input
 until completion, including roots returning the entire matched text. This form
 does not promise bounded memory for arbitrary grammars, nor incremental result
-delivery. Captured strings own their contents; a `SourceSpan` remains an extent,
+delivery for ordinary `parse`; `yield` delivers elements and `find` delivers
+occurrences incrementally. Captured strings own their contents; a `SourceSpan` remains an extent,
 not an owner of the input. Positions currently fit in `int`, including after buffer
 compaction; inputs approaching that limit produce a resource error rather than wrap.
 
@@ -2011,6 +2079,7 @@ of it fails a build.
 | `Portable` | follows the class's visibility | whether the grammar's text travels on the class, for an include across a project reference (§6.7). |
 | `Lexical` | `false` | read the input as tokens, the grammar cut into a lexer and a syntactic half (§4, §7.1). A grammar that cannot be cut is `GRAM5004`. |
 | `Carrier` | `GramCarrier.Auto` | how a reader carries what it read until the constructions run; below. |
+| `PrefixTables` | `true` | table dispatch for disjoint, case-sensitive literal prefixes in the character/byte automaton. Set `false` to select the previous strategy. Other choices retain their existing strategy. No tokenization is introduced. |
 | `Direct` | `true` | compile as methods where the automaton is not needed; below. |
 | `LocationType` | none | an interface whose implementors are told where they were written; below. |
 

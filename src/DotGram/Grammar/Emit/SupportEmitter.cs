@@ -158,6 +158,9 @@ public static class SupportEmitter
 				/// </remarks>
 				public bool Lexical { get; set; }
 
+				/// <summary>Use literal-prefix transition tables. Set false to use the previous strategy.</summary>
+				public bool PrefixTables { get; set; } = true;
+
 				/// <summary>
 				/// How the reader carries what it has read until the constructions run.
 				/// </summary>

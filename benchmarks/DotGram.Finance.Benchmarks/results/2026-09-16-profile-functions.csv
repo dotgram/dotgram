@@ -1,0 +1,452 @@
+Profile,Method,OwnMs,InclusiveMs,Samples,CallTreeInstances
+named,[Garbage collection](),16,16,1,1
+named,[Native or optimized code](),0,0,68,1
+named,DotGram.Finance.Benchmarks.FixGrammarComparisonBenchmarks+<>c__DisplayClass13_0.<Operation>b__0(),63,13172,2327,1
+named,"DotGram.Finance.Benchmarks.FixProfile.Measure(Func[Int32], Int32)",47,13219,2331,1
+named,"DotGram.Finance.Benchmarks.FixProfile.Run(String, String, String, Int32)",0,13219,2331,1
+named,DotGram.Finance.Benchmarks.Program.Main(String[]),0,13219,2331,1
+named,DotGram.Finance.Fix.Fix44+<>c__DisplayClass4_0+<<Parse>g__Read|0>d.MoveNext(),109,13094,2314,1
+named,"DotGram.Finance.Fix.FixConvert.Integer(ReadOnlySpan[Byte], BigInteger&)",31,31,3,1
+named,"DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part0|15825_0(BufferedBytes, Int32, <>c__DisplayClass15825_0&)",313,594,84,1
+named,"DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part10|15825_10(BufferedBytes, Int32, <>c__DisplayClass15825_0&)",1953,2906,484,1
+named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part0|7372_0(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",953,1109,176,1
+named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part18|7372_18(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",109,297,46,1
+named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part25|7372_25(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",609,1344,253,1
+named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part31|7372_31(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",109,172,21,1
+named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part32|7372_32(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",484,1156,179,1
+named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part38|7372_38(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",531,938,195,1
+named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part39|7372_39(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",0,94,25,1
+named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part4|7372_4(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",63,109,20,1
+named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part52|7372_52(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",125,234,64,1
+named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part58|7372_58(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",16,16,6,1
+named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_BeginString_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,31,4,1
+named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_BodyLength_LengthValue_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,16,3,1
+named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_CheckSum_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,47,7,1
+named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_ClOrdID_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",0,0,2,1
+named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_MsgSeqNum_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",78,78,6,1
+named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_MsgType_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,16,3,1
+named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_OrderQty_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,47,4,1
+named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_OrdType_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",0,0,2,1
+named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_Price_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",47,47,6,1
+named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_SenderCompID_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",0,0,3,1
+named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_SendingTime_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",78,78,10,1
+named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_Side_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,16,2,1
+named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_Symbol_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",0,0,7,1
+named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_TargetCompID_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",31,47,5,1
+named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_TransactTime_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",31,31,10,1
+named,"DotGram.Finance.Fix.FixGrammar.Materialize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Parser, ParserArena, FixContext)",781,4313,727,1
+named,"DotGram.Finance.Fix.FixGrammar.ReadFields(Stream, FixContext, Int32, Int32)",47,47,3,1
+named,"DotGram.Finance.Fix.FixGrammar.Recognize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Int32, Int32, Int32, Boolean, Boolean, FixContext, Failure&, Object&)",2000,12422,2193,1
+named,"DotGram.Finance.Fix.FixGrammar.Recognize_DotGram_Buffered_ReadFields_Bytes_Guard154(ReadOnlySpan[Byte], SourceSpan, FixContext)",16,16,1,1
+named,DotGram.Finance.Fix.FixGrammar.Recycled(),109,109,20,1
+named,DotGram.Finance.Fix.FixGrammar+<ReadFields>d__19.MoveNext(),94,12938,2289,1
+named,"DotGram.Finance.Fix.FixGrammar+BufferedBytes..ctor(Stream, Int32, Int32)",328,328,55,1
+named,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Ensure(Int32, Int32)",219,219,58,10
+named,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Fill(Int32, Int32)",31,47,7,1
+named,DotGram.Finance.Fix.FixGrammar+BufferedBytes.Get(Int32),359,359,68,8
+named,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Matches(Int32, String)",234,234,33,8
+named,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Slice(Int32, Int32)",16,16,12,2
+named,DotGram.Finance.Fix.FixGrammar+Parser.Reset(),188,266,55,1
+named,DotGram.Finance.Fix.FixGrammar+ParserArena.Add(ParserEntry),1469,1469,256,8
+named,DotGram.Finance.Fix.FixGrammar+ParserArena.get_Item(Int32),125,125,16,1
+named,"DotGram.Finance.Fix.FixGrammar+ParserEntry..ctor(Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32)",172,172,21,6
+named,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_CallIndex(),47,47,3,1
+named,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Position(),0,0,1,1
+named,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_State(),47,47,10,1
+named,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Value(),0,0,2,1
+named,"System.Array.Copy(Array, Array, Int32)",63,63,12,1
+named,System.Collections.Generic.List`1.AddWithResize(T),172,266,51,1
+named,System.Numerics.BigInteger..ctor(Int32),0,0,1,1
+named,"System.Runtime.CompilerServices.CastHelpers.ChkCastClass(Void*, Object)",63,63,9,2
+named,"System.Runtime.CompilerServices.CastHelpers.StelemRef(Object[], IntPtr, Object)",188,188,29,4
+named,"System.Runtime.CompilerServices.CastHelpers.StelemRef_Helper(Object&, Void*, Object)",422,422,54,2
+named,"System.SpanHelpers.ClearWithReferences(IntPtr&, UIntPtr)",78,78,14,1
+named,"System.SpanHelpers.Memmove(Byte&, Byte&, UIntPtr)",31,31,5,4
+named,System.String.Ctor(Char[]),31,47,10,7
+flat,[Garbage collection](),0,0,2,1
+flat,[Native or optimized code](),0,0,44,1
+flat,[Unsafe stack walking](),16,16,1,1
+flat,DotGram.Finance.Benchmarks.FixGrammarComparisonBenchmarks+<>c__DisplayClass13_0.<Operation>b__0(),63,15828,2798,1
+flat,"DotGram.Finance.Benchmarks.FixProfile.Measure(Func[Int32], Int32)",0,15828,2800,1
+flat,"DotGram.Finance.Benchmarks.FixProfile.Run(String, String, String, Int32)",0,15828,2800,1
+flat,DotGram.Finance.Benchmarks.Program.Main(String[]),0,15828,2800,1
+flat,DotGram.Finance.Fix.Fix44+<>c__DisplayClass4_0+<<Parse>g__Read|0>d.MoveNext(),141,15766,2782,1
+flat,"DotGram.Finance.Fix.FixConvert.Integer(ReadOnlySpan[Byte], BigInteger&)",0,0,5,1
+flat,"DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part0|12175_0(BufferedBytes, Int32, <>c__DisplayClass12175_0&)",250,359,65,1
+flat,"DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part1|12175_1(BufferedBytes, Int32, <>c__DisplayClass12175_0&)",5828,7313,1302,1
+flat,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part0|3722_0(BufferedBytes, Failure&, <>c__DisplayClass3722_0&, <>c__DisplayClass3722_1&)",625,781,128,1
+flat,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part14|3722_14(BufferedBytes, Failure&, <>c__DisplayClass3722_0&, <>c__DisplayClass3722_1&)",31,63,7,1
+flat,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part15|3722_15(BufferedBytes, Failure&, <>c__DisplayClass3722_0&, <>c__DisplayClass3722_1&)",31,63,12,1
+flat,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part20|3722_20(BufferedBytes, Failure&, <>c__DisplayClass3722_0&, <>c__DisplayClass3722_1&)",406,844,159,1
+flat,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part21|3722_21(BufferedBytes, Failure&, <>c__DisplayClass3722_0&, <>c__DisplayClass3722_1&)",172,313,58,1
+flat,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part26|3722_26(BufferedBytes, Failure&, <>c__DisplayClass3722_0&, <>c__DisplayClass3722_1&)",484,922,171,1
+flat,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part3|3722_3(BufferedBytes, Failure&, <>c__DisplayClass3722_0&, <>c__DisplayClass3722_1&)",78,109,21,1
+flat,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part31|3722_31(BufferedBytes, Failure&, <>c__DisplayClass3722_0&, <>c__DisplayClass3722_1&)",156,188,31,1
+flat,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part32|3722_32(BufferedBytes, Failure&, <>c__DisplayClass3722_0&, <>c__DisplayClass3722_1&)",266,734,146,1
+flat,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part43|3722_43(BufferedBytes, Failure&, <>c__DisplayClass3722_0&, <>c__DisplayClass3722_1&)",391,656,93,1
+flat,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part48|3722_48(BufferedBytes, Failure&, <>c__DisplayClass3722_0&, <>c__DisplayClass3722_1&)",31,31,12,1
+flat,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_LengthValue_Data_10_Bytes(SourceSpan, ReadOnlySpan[Byte])",0,0,2,1
+flat,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_LengthValue_Data_31_Bytes(SourceSpan, ReadOnlySpan[Byte])",31,63,6,1
+flat,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_LengthValue_Data_32_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,16,4,1
+flat,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_LengthValue_Data_35_Bytes(SourceSpan, ReadOnlySpan[Byte])",31,31,7,1
+flat,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_LengthValue_Data_37_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,16,3,1
+flat,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_LengthValue_Data_41_Bytes(SourceSpan, ReadOnlySpan[Byte])",78,94,15,1
+flat,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_LengthValue_Data_44_Bytes(SourceSpan, ReadOnlySpan[Byte])",78,78,9,1
+flat,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_LengthValue_Data_46_Bytes(SourceSpan, ReadOnlySpan[Byte])",47,47,5,1
+flat,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_LengthValue_Data_49_Bytes(SourceSpan, ReadOnlySpan[Byte])",0,0,2,1
+flat,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_LengthValue_Data_50_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,31,5,1
+flat,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_LengthValue_Data_54_Bytes(SourceSpan, ReadOnlySpan[Byte])",47,47,10,1
+flat,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_LengthValue_Data_7_Bytes(SourceSpan, ReadOnlySpan[Byte])",0,0,5,1
+flat,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_LengthValue_Data_8_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,16,6,1
+flat,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_LengthValue_Data_9_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,31,7,1
+flat,"DotGram.Finance.Fix.FixGrammar.Materialize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Parser, ParserArena, FixContext)",563,8281,1466,1
+flat,"DotGram.Finance.Fix.FixGrammar.ReadFields(Stream, FixContext, Int32, Int32)",16,16,4,1
+flat,"DotGram.Finance.Fix.FixGrammar.Recognize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Int32, Int32, Int32, Boolean, Boolean, FixContext, Failure&, Object&)",1500,15109,2667,1
+flat,"DotGram.Finance.Fix.FixGrammar.Recognize_DotGram_Buffered_ReadFields_Bytes_Guard154(ReadOnlySpan[Byte], SourceSpan, FixContext)",0,0,2,1
+flat,DotGram.Finance.Fix.FixGrammar.Recycled(),63,63,12,1
+flat,DotGram.Finance.Fix.FixGrammar+<ReadFields>d__19.GetEnumerator(),0,0,2,1
+flat,DotGram.Finance.Fix.FixGrammar+<ReadFields>d__19.MoveNext(),172,15609,2758,1
+flat,"DotGram.Finance.Fix.FixGrammar+BufferedBytes..ctor(Stream, Int32, Int32)",297,297,59,1
+flat,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Ensure(Int32, Int32)",344,344,51,9
+flat,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Fill(Int32, Int32)",31,31,6,1
+flat,DotGram.Finance.Fix.FixGrammar+BufferedBytes.Get(Int32),297,297,64,8
+flat,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Matches(Int32, String)",234,234,47,8
+flat,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Slice(Int32, Int32)",63,109,9,2
+flat,DotGram.Finance.Fix.FixGrammar+Parser.Reset(),203,281,45,1
+flat,DotGram.Finance.Fix.FixGrammar+ParserArena.Add(ParserEntry),1094,1094,169,9
+flat,DotGram.Finance.Fix.FixGrammar+ParserArena.get_Item(Int32),516,516,71,1
+flat,"DotGram.Finance.Fix.FixGrammar+ParserEntry..ctor(Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32)",78,78,20,5
+flat,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_CallIndex(),16,16,6,1
+flat,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Kind(),0,0,7,1
+flat,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Position(),109,109,13,1
+flat,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_RuleIndex(),31,31,10,1
+flat,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_State(),78,78,13,1
+flat,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Value(),31,31,6,1
+flat,"DotGram.Finance.Fix.FixGrammar+SourceSpan..ctor(Int32, Int32)",0,0,3,1
+flat,"System.Array.Copy(Array, Array, Int32)",47,47,10,1
+flat,System.Collections.Generic.List`1.AddWithResize(T),219,281,42,1
+flat,System.Numerics.BigInteger..ctor(Int64),47,47,6,3
+flat,"System.Runtime.CompilerServices.CastHelpers.ChkCastClass(Void*, Object)",0,0,6,1
+flat,"System.Runtime.CompilerServices.CastHelpers.StelemRef(Object[], IntPtr, Object)",63,63,13,4
+flat,"System.Runtime.CompilerServices.CastHelpers.StelemRef_Helper(Object&, Void*, Object)",266,266,41,2
+flat,"System.SpanHelpers.ClearWithReferences(IntPtr&, UIntPtr)",78,78,12,1
+flat,"System.SpanHelpers.Memmove(Byte&, Byte&, UIntPtr)",0,0,2,2
+flat,System.String.Ctor(Char[]),31,31,10,6
+units,[Garbage collection](),16,16,5,1
+units,[Native or optimized code](),0,0,55,1
+units,[Thread suspended](),0,0,1,1
+units,[Unsafe stack walking](),0,0,1,1
+units,DotGram.Finance.Benchmarks.FixGrammarComparisonBenchmarks+<>c__DisplayClass13_0.<Operation>b__0(),31,20422,3596,1
+units,"DotGram.Finance.Benchmarks.FixProfile.Measure(Func[Int32], Int32)",31,20453,3600,1
+units,"DotGram.Finance.Benchmarks.FixProfile.Run(String, String, String, Int32)",0,20453,3600,1
+units,DotGram.Finance.Benchmarks.Program.Main(String[]),0,20453,3600,1
+units,DotGram.Finance.Fix.Fix44+<>c__DisplayClass4_0+<<Parse>g__Read|0>d.MoveNext(),219,20391,3584,1
+units,DotGram.Finance.Fix.FixContext.DataTag(Int32),63,94,14,1
+units,DotGram.Finance.Fix.FixContext.Tag(ReadOnlySpan[Byte]),63,63,23,1
+units,"DotGram.Finance.Fix.FixConvert.Integer(ReadOnlySpan[Byte], BigInteger&)",16,16,4,1
+units,"DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part0|11137_0(BufferedBytes, Int32, <>c__DisplayClass11137_0&)",469,594,104,1
+units,"DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part1|11137_1(BufferedBytes, Int32, <>c__DisplayClass11137_0&)",6234,7766,1353,1
+units,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part0|3726_0(BufferedBytes, Failure&, <>c__DisplayClass3726_0&, <>c__DisplayClass3726_1&)",1141,1672,280,1
+units,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part15|3726_15(BufferedBytes, Failure&, <>c__DisplayClass3726_0&, <>c__DisplayClass3726_1&)",78,141,18,1
+units,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part20|3726_20(BufferedBytes, Failure&, <>c__DisplayClass3726_0&, <>c__DisplayClass3726_1&)",141,250,41,1
+units,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part21|3726_21(BufferedBytes, Failure&, <>c__DisplayClass3726_0&, <>c__DisplayClass3726_1&)",328,766,121,1
+units,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part26|3726_26(BufferedBytes, Failure&, <>c__DisplayClass3726_0&, <>c__DisplayClass3726_1&)",297,641,132,1
+units,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part27|3726_27(BufferedBytes, Failure&, <>c__DisplayClass3726_0&, <>c__DisplayClass3726_1&)",16,16,12,1
+units,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part3|3726_3(BufferedBytes, Failure&, <>c__DisplayClass3726_0&, <>c__DisplayClass3726_1&)",31,47,16,1
+units,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part31|3726_31(BufferedBytes, Failure&, <>c__DisplayClass3726_0&, <>c__DisplayClass3726_1&)",94,125,22,1
+units,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part32|3726_32(BufferedBytes, Failure&, <>c__DisplayClass3726_0&, <>c__DisplayClass3726_1&)",500,875,163,1
+units,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part43|3726_43(BufferedBytes, Failure&, <>c__DisplayClass3726_0&, <>c__DisplayClass3726_1&)",16,31,15,1
+units,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part44|3726_44(BufferedBytes, Failure&, <>c__DisplayClass3726_0&, <>c__DisplayClass3726_1&)",156,250,39,1
+units,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part48|3726_48(BufferedBytes, Failure&, <>c__DisplayClass3726_0&, <>c__DisplayClass3726_1&)",1609,2172,388,1
+units,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_Data_10_Bytes(SourceSpan, ReadOnlySpan[Byte])",31,47,7,1
+units,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_Data_31_Bytes(SourceSpan, ReadOnlySpan[Byte])",31,31,5,1
+units,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_Data_32_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,47,12,1
+units,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_Data_35_Bytes(SourceSpan, ReadOnlySpan[Byte])",31,47,6,1
+units,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_Data_41_Bytes(SourceSpan, ReadOnlySpan[Byte])",47,47,9,1
+units,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_Data_44_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,31,5,1
+units,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_Data_46_Bytes(SourceSpan, ReadOnlySpan[Byte])",31,31,8,1
+units,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_Data_48_Bytes(SourceSpan, ReadOnlySpan[Byte])",0,0,3,1
+units,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_Data_49_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,47,8,1
+units,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_Data_50_Bytes(SourceSpan, ReadOnlySpan[Byte])",31,47,4,1
+units,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_Data_54_Bytes(SourceSpan, ReadOnlySpan[Byte])",94,94,12,1
+units,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_Data_7_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,31,13,1
+units,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_Data_8_Bytes(SourceSpan, ReadOnlySpan[Byte])",47,47,5,1
+units,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_Data_9_Bytes(SourceSpan, ReadOnlySpan[Byte])",63,63,9,1
+units,"DotGram.Finance.Fix.FixGrammar.Materialize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Parser, ParserArena, FixContext)",1266,9656,1705,1
+units,"DotGram.Finance.Fix.FixGrammar.ReadFields(Stream, FixContext, Int32, Int32)",0,0,5,1
+units,"DotGram.Finance.Fix.FixGrammar.Recognize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Int32, Int32, Int32, Boolean, Boolean, FixContext, Failure&, Object&)",2063,19703,3449,1
+units,DotGram.Finance.Fix.FixGrammar.Recycled(),16,16,10,1
+units,DotGram.Finance.Fix.FixGrammar+<ReadFields>d__19.MoveNext(),125,20172,3527,1
+units,"DotGram.Finance.Fix.FixGrammar+BufferedBytes..ctor(Stream, Int32, Int32)",297,297,52,1
+units,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Ensure(Int32, Int32)",219,219,48,10
+units,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Fill(Int32, Int32)",31,47,7,1
+units,DotGram.Finance.Fix.FixGrammar+BufferedBytes.Get(Int32),500,500,85,10
+units,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Matches(Int32, String)",156,156,36,6
+units,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Slice(Int32, Int32)",109,188,32,2
+units,DotGram.Finance.Fix.FixGrammar+Parser.Reset(),391,719,108,1
+units,"DotGram.Finance.Fix.FixGrammar+Parser.Truncate(Int32, ParserArena)",31,31,6,1
+units,DotGram.Finance.Fix.FixGrammar+ParserArena.Add(ParserEntry),1500,1500,286,10
+units,DotGram.Finance.Fix.FixGrammar+ParserArena.get_Item(Int32),188,188,28,1
+units,"DotGram.Finance.Fix.FixGrammar+ParserEntry..ctor(Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32)",16,16,7,3
+units,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_CallIndex(),31,31,5,1
+units,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Kind(),16,16,9,1
+units,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Position(),172,172,28,1
+units,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_RuleIndex(),0,0,1,1
+units,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_State(),94,94,15,1
+units,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Value(),63,63,5,1
+units,"DotGram.Finance.Fix.FixGrammar+SourceSpan..ctor(Int32, Int32)",16,16,5,1
+units,DotGram.Finance.Fix.FixSchema.DataTag(Int32),31,31,4,1
+units,DotGram.Finance.Fix.FixSchema.LengthTag(Int32),0,0,1,1
+units,"System.Array.Copy(Array, Array, Int32)",47,47,4,1
+units,System.Collections.Generic.List`1.AddWithResize(T),172,250,38,1
+units,System.Numerics.BigInteger..ctor(Int32),0,0,1,1
+units,System.Numerics.BigInteger..ctor(Int64),0,0,1,1
+units,"System.Runtime.CompilerServices.CastHelpers.StelemRef(Object[], IntPtr, Object)",94,94,22,5
+units,"System.Runtime.CompilerServices.CastHelpers.StelemRef_Helper(Object&, Void*, Object)",344,344,50,2
+units,"System.SpanHelpers.ClearWithoutReferences(Byte&, UIntPtr)",78,78,10,1
+units,"System.SpanHelpers.ClearWithReferences(IntPtr&, UIntPtr)",250,250,31,1
+units,"System.SpanHelpers.Memmove(Byte&, Byte&, UIntPtr)",47,47,7,4
+units,System.String.Ctor(Char[]),78,109,13,6
+current,[Garbage collection](),31,31,6,1
+current,[Native or optimized code](),0,0,59,1
+current,DotGram.Finance.Benchmarks.FixGrammarComparisonBenchmarks+<>c__DisplayClass13_0.<Operation>b__0(),47,16938,2988,1
+current,"DotGram.Finance.Benchmarks.FixProfile.Measure(Func[Int32], Int32)",16,16953,2991,1
+current,"DotGram.Finance.Benchmarks.FixProfile.Run(String, String, String, Int32)",0,16953,2991,1
+current,DotGram.Finance.Benchmarks.Program.Main(String[]),0,16953,2991,1
+current,DotGram.Finance.Fix.Fix44+<>c__DisplayClass4_0+<<Parse>g__Read|0>d.MoveNext(),63,16891,2980,1
+current,"DotGram.Finance.Fix.FixConvert.Integer(ReadOnlySpan[Byte], BigInteger&)",47,47,6,1
+current,"DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part0|11057_0(BufferedBytes, Int32, <>c__DisplayClass11057_0&)",281,422,74,1
+current,"DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part1|11057_1(BufferedBytes, Int32, <>c__DisplayClass11057_0&)",6031,7219,1278,1
+current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part0|3724_0(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",297,406,70,1
+current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part14|3724_14(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",188,328,56,1
+current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part19|3724_19(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",219,250,57,1
+current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part20|3724_20(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",344,906,149,1
+current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part25|3724_25(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",500,906,139,1
+current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part26|3724_26(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",16,31,4,1
+current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part3|3724_3(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",16,78,13,1
+current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part30|3724_30(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",141,313,45,1
+current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part31|3724_31(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",328,844,143,1
+current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part40|3724_40(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",141,313,45,1
+current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part41|3724_41(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",47,63,16,1
+current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part45|3724_45(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",672,750,132,1
+current,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_10_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,16,4,1
+current,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_31_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,16,4,1
+current,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_32_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,31,3,1
+current,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_35_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,63,8,1
+current,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_37_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,16,2,1
+current,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_41_Bytes(SourceSpan, ReadOnlySpan[Byte])",31,47,8,1
+current,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_44_Bytes(SourceSpan, ReadOnlySpan[Byte])",31,63,7,1
+current,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_46_Bytes(SourceSpan, ReadOnlySpan[Byte])",47,47,9,1
+current,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_49_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,16,3,1
+current,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_50_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,16,5,1
+current,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_54_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,16,7,1
+current,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_7_Bytes(SourceSpan, ReadOnlySpan[Byte])",0,31,9,1
+current,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_8_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,31,6,1
+current,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_9_Bytes(SourceSpan, ReadOnlySpan[Byte])",0,0,4,1
+current,"DotGram.Finance.Fix.FixGrammar.Materialize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Parser, ParserArena, FixContext)",1063,8750,1536,1
+current,"DotGram.Finance.Fix.FixGrammar.ReadFields(Stream, FixContext, Int32, Int32)",16,16,5,1
+current,"DotGram.Finance.Fix.FixGrammar.Recognize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Int32, Int32, Int32, Boolean, Boolean, FixContext, Failure&, Object&)",1438,16328,2871,1
+current,DotGram.Finance.Fix.FixGrammar.Recycled(),109,109,20,1
+current,DotGram.Finance.Fix.FixGrammar+<ReadFields>d__19.GetEnumerator(),0,0,4,1
+current,DotGram.Finance.Fix.FixGrammar+<ReadFields>d__19.MoveNext(),188,16813,2960,1
+current,"DotGram.Finance.Fix.FixGrammar+BufferedBytes..ctor(Stream, Int32, Int32)",172,172,47,1
+current,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Ensure(Int32, Int32)",406,406,55,8
+current,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Fill(Int32, Int32)",16,47,8,1
+current,DotGram.Finance.Fix.FixGrammar+BufferedBytes.Get(Int32),516,516,91,12
+current,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Matches(Int32, String)",234,234,37,6
+current,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Slice(Int32, Int32)",16,94,20,1
+current,DotGram.Finance.Fix.FixGrammar+Parser.Reset(),328,547,109,1
+current,DotGram.Finance.Fix.FixGrammar+ParserArena.Add(ParserEntry),1063,1063,182,8
+current,DotGram.Finance.Fix.FixGrammar+ParserArena.get_Item(Int32),203,203,39,1
+current,"DotGram.Finance.Fix.FixGrammar+ParserEntry..ctor(Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32)",141,141,17,5
+current,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_CallIndex(),47,47,6,1
+current,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Kind(),63,63,7,1
+current,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Position(),109,109,20,1
+current,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_RuleIndex(),31,31,3,1
+current,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_State(),63,63,8,1
+current,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Value(),31,31,4,1
+current,"DotGram.Finance.Fix.FixGrammar+SourceSpan..ctor(Int32, Int32)",31,31,2,1
+current,"System.Array.Copy(Array, Array, Int32)",63,63,10,1
+current,System.Collections.Generic.List`1.AddWithResize(T),203,281,43,1
+current,System.Numerics.BigInteger..ctor(Int64),31,31,5,3
+current,"System.Runtime.CompilerServices.CastHelpers.ChkCastClass(Void*, Object)",78,78,8,1
+current,"System.Runtime.CompilerServices.CastHelpers.StelemRef(Object[], IntPtr, Object)",125,125,17,5
+current,"System.Runtime.CompilerServices.CastHelpers.StelemRef_Helper(Object&, Void*, Object)",203,203,45,2
+current,"System.SpanHelpers.ClearWithoutReferences(Byte&, UIntPtr)",47,47,9,1
+current,"System.SpanHelpers.ClearWithReferences(IntPtr&, UIntPtr)",172,172,34,1
+current,"System.SpanHelpers.Memmove(Byte&, Byte&, UIntPtr)",31,31,5,2
+current,System.String.Ctor(Char[]),47,47,10,6
+groups-named,[Native or optimized code](),0,0,75,1
+groups-named,DotGram.Finance.Benchmarks.FixGrammarComparisonBenchmarks+<>c__DisplayClass13_0.<Operation>b__0(),16,16203,2838,1
+groups-named,"DotGram.Finance.Benchmarks.FixProfile.Measure(Func[Int32], Int32)",16,16219,2840,1
+groups-named,"DotGram.Finance.Benchmarks.FixProfile.Run(String, String, String, Int32)",0,16219,2840,1
+groups-named,DotGram.Finance.Benchmarks.Program.Main(String[]),0,16219,2840,1
+groups-named,DotGram.Finance.Fix.Fix44+<>c__DisplayClass4_0+<<Parse>g__Read|0>d.MoveNext(),47,16188,2832,1
+groups-named,"DotGram.Finance.Fix.FixConvert.Integer(ReadOnlySpan[Byte], BigInteger&)",16,16,5,1
+groups-named,"DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part0|15825_0(BufferedBytes, Int32, <>c__DisplayClass15825_0&)",94,141,20,1
+groups-named,"DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part10|15825_10(BufferedBytes, Int32, <>c__DisplayClass15825_0&)",0,16,2,1
+groups-named,"DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part8|15825_8(BufferedBytes, Int32, <>c__DisplayClass15825_0&)",250,422,80,1
+groups-named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part0|7372_0(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",156,234,41,1
+groups-named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part32|7372_32(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",0,0,1,1
+groups-named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part46|7372_46(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",1188,2359,398,1
+groups-named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part47|7372_47(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",1250,2469,440,1
+groups-named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part48|7372_48(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",1406,2578,427,1
+groups-named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part49|7372_49(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",1219,2531,437,1
+groups-named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part50|7372_50(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",1250,2453,472,1
+groups-named,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part51|7372_51(BufferedBytes, Failure&, <>c__DisplayClass7372_0&, <>c__DisplayClass7372_1&)",16,94,18,1
+groups-named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_CheckSum_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",0,0,1,1
+groups-named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_MDEntryPx_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",31,47,9,1
+groups-named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_MDEntrySize_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,31,7,1
+groups-named,"DotGram.Finance.Fix.FixGrammar.Construct_Known_MDEntryType_ValueText_Separator_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,16,2,1
+groups-named,"DotGram.Finance.Fix.FixGrammar.Materialize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Parser, ParserArena, FixContext)",234,844,139,1
+groups-named,"DotGram.Finance.Fix.FixGrammar.Recognize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Int32, Int32, Int32, Boolean, Boolean, FixContext, Failure&, Object&)",2219,16031,2806,1
+groups-named,DotGram.Finance.Fix.FixGrammar.Recycled(),16,16,4,1
+groups-named,DotGram.Finance.Fix.FixGrammar+<ReadFields>d__19.MoveNext(),47,16141,2818,1
+groups-named,"DotGram.Finance.Fix.FixGrammar+BufferedBytes..ctor(Stream, Int32, Int32)",16,16,1,1
+groups-named,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Ensure(Int32, Int32)",375,375,70,7
+groups-named,DotGram.Finance.Fix.FixGrammar+BufferedBytes.Get(Int32),1000,1000,153,8
+groups-named,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Matches(Int32, String)",688,688,122,6
+groups-named,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Slice(Int32, Int32)",0,16,4,1
+groups-named,DotGram.Finance.Fix.FixGrammar+Parser.Reset(),78,125,16,1
+groups-named,DotGram.Finance.Fix.FixGrammar+ParserArena.Add(ParserEntry),3641,3641,619,6
+groups-named,DotGram.Finance.Fix.FixGrammar+ParserArena.get_Item(Int32),16,16,3,1
+groups-named,"DotGram.Finance.Fix.FixGrammar+ParserEntry..ctor(Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32)",547,547,106,5
+groups-named,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Kind(),0,0,1,1
+groups-named,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Position(),16,16,1,1
+groups-named,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Value(),0,0,1,1
+groups-named,"System.Array.Copy(Array, Array, Int32)",16,16,5,1
+groups-named,System.Collections.Generic.List`1.AddWithResize(T),78,109,24,1
+groups-named,System.Numerics.BigInteger..ctor(Int32),16,16,2,1
+groups-named,System.Numerics.BigInteger..ctor(Int64),0,0,1,1
+groups-named,"System.Runtime.CompilerServices.CastHelpers.ChkCastClass(Void*, Object)",47,47,5,1
+groups-named,"System.Runtime.CompilerServices.CastHelpers.StelemRef(Object[], IntPtr, Object)",63,63,11,3
+groups-named,"System.Runtime.CompilerServices.CastHelpers.StelemRef_Helper(Object&, Void*, Object)",78,78,9,3
+groups-named,"System.SpanHelpers.ClearWithReferences(IntPtr&, UIntPtr)",47,47,7,2
+groups-named,System.String.Ctor(Char[]),0,0,1,1
+groups-current,[Garbage collection](),16,16,1,1
+groups-current,[Native or optimized code](),0,0,33,1
+groups-current,DotGram.Finance.Benchmarks.FixGrammarComparisonBenchmarks+<>c__DisplayClass13_0.<Operation>b__0(),0,14656,1067,1
+groups-current,"DotGram.Finance.Benchmarks.FixProfile.Measure(Func[Int32], Int32)",0,14656,1067,1
+groups-current,"DotGram.Finance.Benchmarks.FixProfile.Run(String, String, String, Int32)",0,14656,1067,1
+groups-current,DotGram.Finance.Benchmarks.Program.Main(String[]),0,14656,1067,1
+groups-current,DotGram.Finance.Fix.Fix44+<>c__DisplayClass4_0+<<Parse>g__Read|0>d.MoveNext(),16,14656,1066,1
+groups-current,"DotGram.Finance.Fix.FixConvert.Integer(ReadOnlySpan[Byte], BigInteger&)",16,31,2,1
+groups-current,"DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part0|11057_0(BufferedBytes, Int32, <>c__DisplayClass11057_0&)",94,141,9,1
+groups-current,"DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part1|11057_1(BufferedBytes, Int32, <>c__DisplayClass11057_0&)",1031,1234,91,1
+groups-current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part0|3724_0(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",31,78,5,1
+groups-current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part35|3724_35(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",750,1313,95,1
+groups-current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part36|3724_36(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",1328,2594,198,1
+groups-current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part37|3724_37(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",1031,2172,163,1
+groups-current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part38|3724_38(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",1281,2609,185,1
+groups-current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part39|3724_39(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",656,1313,93,1
+groups-current,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part45|3724_45(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",172,203,15,1
+groups-current,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_229_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,47,6,1
+groups-current,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_230_Bytes(SourceSpan, ReadOnlySpan[Byte])",16,47,3,1
+groups-current,"DotGram.Finance.Fix.FixGrammar.Materialize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Parser, ParserArena, FixContext)",125,1500,110,1
+groups-current,"DotGram.Finance.Fix.FixGrammar.Recognize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Int32, Int32, Int32, Boolean, Boolean, FixContext, Failure&, Object&)",2422,14594,1060,1
+groups-current,DotGram.Finance.Fix.FixGrammar.Recycled(),16,16,1,1
+groups-current,DotGram.Finance.Fix.FixGrammar+<ReadFields>d__19.MoveNext(),31,14641,1064,1
+groups-current,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Ensure(Int32, Int32)",625,625,42,5
+groups-current,DotGram.Finance.Fix.FixGrammar+BufferedBytes.Get(Int32),1078,1078,76,7
+groups-current,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Matches(Int32, String)",813,813,57,5
+groups-current,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Slice(Int32, Int32)",16,16,1,1
+groups-current,DotGram.Finance.Fix.FixGrammar+Parser.Reset(),63,141,10,1
+groups-current,DotGram.Finance.Fix.FixGrammar+ParserArena.Add(ParserEntry),2000,2000,156,5
+groups-current,"DotGram.Finance.Fix.FixGrammar+ParserEntry..ctor(Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32)",516,516,35,4
+groups-current,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Position(),16,16,2,1
+groups-current,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_RuleIndex(),31,31,2,1
+groups-current,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_State(),16,16,1,1
+groups-current,"System.Array.Copy(Array, Array, Int32)",63,63,4,1
+groups-current,System.Collections.Generic.List`1.AddWithResize(T),125,219,14,1
+groups-current,System.Numerics.BigInteger..ctor(Int64),31,31,2,2
+groups-current,"System.Runtime.CompilerServices.CastHelpers.ChkCastClass(Void*, Object)",16,16,1,1
+groups-current,"System.Runtime.CompilerServices.CastHelpers.StelemRef(Object[], IntPtr, Object)",16,16,1,1
+groups-current,"System.Runtime.CompilerServices.CastHelpers.StelemRef_Helper(Object&, Void*, Object)",78,78,5,2
+groups-current,"System.SpanHelpers.ClearWithoutReferences(Byte&, UIntPtr)",16,16,1,1
+groups-current,"System.SpanHelpers.ClearWithReferences(IntPtr&, UIntPtr)",78,78,5,2
+groups-current,"System.SpanHelpers.NonPackedIndexOfValueType(TValue&, TValue, Int32)",16,16,1,1
+Tag1,[Garbage collection](),94,94,7,1
+Tag1,[Native or optimized code](),125,125,70,1
+Tag1,DotGram.Finance.Benchmarks.FixGrammarComparisonBenchmarks+<>c__DisplayClass13_0.<Operation>b__0(),94,3438,449,1
+Tag1,"DotGram.Finance.Benchmarks.FixProfile.Measure(Func[Int32], Int32)",0,3438,449,1
+Tag1,"DotGram.Finance.Benchmarks.FixProfile.Run(String, String, String, Int32)",0,3438,449,1
+Tag1,DotGram.Finance.Benchmarks.Program.Main(String[]),0,3438,449,1
+Tag1,DotGram.Finance.Fix.Fix44+<>c__DisplayClass4_0+<<Parse>g__Read|0>d.<>m__Finally1(),0,0,1,1
+Tag1,DotGram.Finance.Fix.Fix44+<>c__DisplayClass4_0+<<Parse>g__Read|0>d.MoveNext(),141,3344,433,1
+Tag1,DotGram.Finance.Fix.FixContext..ctor(),0,16,1,1
+Tag1,"DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part0|11057_0(BufferedBytes, Int32, <>c__DisplayClass11057_0&)",31,47,6,1
+Tag1,"DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part1|11057_1(BufferedBytes, Int32, <>c__DisplayClass11057_0&)",922,1266,165,2
+Tag1,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part0|3724_0(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",16,47,11,2
+Tag1,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part40|3724_40(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",125,313,32,2
+Tag1,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part45|3724_45(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",156,172,20,2
+Tag1,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_Bytes(SourceSpan, ReadOnlySpan[Byte])",78,203,20,2
+Tag1,"DotGram.Finance.Fix.FixGrammar.Materialize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Parser, ParserArena, FixContext)",156,1469,190,2
+Tag1,"DotGram.Finance.Fix.FixGrammar.ReadBuffered_ReadFields_Bytes(BufferedBytes, Int32, Failure&, FixField&, FixContext)",0,172,26,1
+Tag1,"DotGram.Finance.Fix.FixGrammar.Recognize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Int32, Int32, Int32, Boolean, Boolean, FixContext, Failure&, Object&)",328,2500,328,2
+Tag1,DotGram.Finance.Fix.FixGrammar.Recycle(Parser),0,0,1,1
+Tag1,DotGram.Finance.Fix.FixGrammar.Recycled(),63,63,4,1
+Tag1,DotGram.Finance.Fix.FixGrammar+<ReadFields>d__19.GetEnumerator(),0,0,1,1
+Tag1,DotGram.Finance.Fix.FixGrammar+<ReadFields>d__19.MoveNext(),672,3188,415,1
+Tag1,"DotGram.Finance.Fix.FixGrammar+BufferedBytes..ctor(Stream, Int32, Int32)",0,0,1,1
+Tag1,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Ensure(Int32, Int32)",0,0,3,2
+Tag1,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Fill(Int32, Int32)",16,16,7,2
+Tag1,DotGram.Finance.Fix.FixGrammar+BufferedBytes.Get(Int32),47,47,5,3
+Tag1,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Peek(Int32, Byte&)",0,0,2,1
+Tag1,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Slice(Int32, Int32)",31,31,3,1
+Tag1,DotGram.Finance.Fix.FixGrammar+Parser.Reset(),78,94,14,2
+Tag1,DotGram.Finance.Fix.FixGrammar+ParserArena.Add(ParserEntry),188,188,16,2
+Tag1,DotGram.Finance.Fix.FixGrammar+ParserArena.get_Item(Int32),47,47,6,2
+Tag1,"DotGram.Finance.Fix.FixGrammar+ParserArena.set_Item(Int32, ParserEntry)",0,0,1,1
+Tag1,"DotGram.Finance.Fix.FixGrammar+ParserEntry..ctor(Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32)",0,0,1,1
+Tag1,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_CallIndex(),0,0,1,1
+Tag1,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Position(),16,16,1,1
+Tag1,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_State(),16,16,2,2
+Tag1,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Value(),0,0,1,1
+Tag1,"System.Array.Clear(Array, Int32, Int32)",0,0,2,2
+Tag1,System.Object..ctor(),16,16,1,1
+Tag1,"System.Runtime.CompilerServices.CastHelpers.StelemRef(Object[], IntPtr, Object)",31,31,2,2
+Tag1,"System.Runtime.CompilerServices.CastHelpers.StelemRef_Helper(Object&, Void*, Object)",31,31,4,2
+Tag1,System.Runtime.CompilerServices.StaticsHelpers.GetOptimizedGCThreadStaticBase(Int32),0,0,1,1
+Tag1,"System.SpanHelpers.ClearWithoutReferences(Byte&, UIntPtr)",0,0,2,2
+Tag1,"System.SpanHelpers.ClearWithReferences(IntPtr&, UIntPtr)",16,16,2,1
+Tag1,System.String.Ctor(Char[]),31,31,4,1
+Tag198,[Garbage collection](),0,0,1,1
+Tag198,[Native or optimized code](),0,0,54,1
+Tag198,[Unsafe stack walking](),0,0,1,1
+Tag198,DotGram.Finance.Benchmarks.FixGrammarComparisonBenchmarks+<>c__DisplayClass13_0.<Operation>b__0(),141,19469,1422,1
+Tag198,"DotGram.Finance.Benchmarks.FixProfile.Measure(Func[Int32], Int32)",31,19500,1424,1
+Tag198,"DotGram.Finance.Benchmarks.FixProfile.Run(String, String, String, Int32)",0,19500,1424,1
+Tag198,DotGram.Finance.Benchmarks.Program.Main(String[]),0,19500,1424,1
+Tag198,DotGram.Finance.Fix.Fix44+<>c__DisplayClass4_0+<<Parse>g__Read|0>d.MoveNext(),109,19297,1408,1
+Tag198,"DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part0|11057_0(BufferedBytes, Int32, <>c__DisplayClass11057_0&)",94,109,7,1
+Tag198,"DotGram.Finance.Fix.FixGrammar.<Materialize_DotGram_Buffered_ReadFields_Bytes>g__Materialize_DotGram_Buffered_ReadFields_Bytes_Part1|11057_1(BufferedBytes, Int32, <>c__DisplayClass11057_0&)",781,1109,87,1
+Tag198,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part0|3724_0(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",0,47,4,1
+Tag198,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part40|3724_40(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",47,156,11,1
+Tag198,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part41|3724_41(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",1188,2266,170,1
+Tag198,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part42|3724_42(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",1406,2844,210,1
+Tag198,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part43|3724_43(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",1281,2484,173,1
+Tag198,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part44|3724_44(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",1047,2313,169,1
+Tag198,"DotGram.Finance.Fix.FixGrammar.<Recognize_DotGram_Buffered_ReadFields_Bytes>g__Recognize_DotGram_Buffered_ReadFields_Bytes_Part45|3724_45(BufferedBytes, Failure&, <>c__DisplayClass3724_0&, <>c__DisplayClass3724_1&)",2219,3375,250,1
+Tag198,"DotGram.Finance.Fix.FixGrammar.Construct_Known_KnownField_ValueText_163_Bytes(SourceSpan, ReadOnlySpan[Byte])",63,125,10,1
+Tag198,"DotGram.Finance.Fix.FixGrammar.Materialize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Parser, ParserArena, FixContext)",266,1484,111,1
+Tag198,"DotGram.Finance.Fix.FixGrammar.Recognize_DotGram_Buffered_ReadFields_Bytes(BufferedBytes, Int32, Int32, Int32, Boolean, Boolean, FixContext, Failure&, Object&)",2766,18391,1336,1
+Tag198,DotGram.Finance.Fix.FixGrammar.Recycled(),47,47,3,1
+Tag198,DotGram.Finance.Fix.FixGrammar+<ReadFields>d__19.MoveNext(),656,19188,1401,1
+Tag198,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Ensure(Int32, Int32)",516,516,37,6
+Tag198,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Fill(Int32, Int32)",141,141,9,1
+Tag198,DotGram.Finance.Fix.FixGrammar+BufferedBytes.Get(Int32),1656,1656,111,7
+Tag198,"DotGram.Finance.Fix.FixGrammar+BufferedBytes.Matches(Int32, String)",781,781,54,6
+Tag198,DotGram.Finance.Fix.FixGrammar+Parser.Reset(),125,172,11,1
+Tag198,DotGram.Finance.Fix.FixGrammar+ParserArena.Add(ParserEntry),2547,2547,192,6
+Tag198,DotGram.Finance.Fix.FixGrammar+ParserArena.get_Item(Int32),63,63,4,1
+Tag198,"DotGram.Finance.Fix.FixGrammar+ParserEntry..ctor(Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32, Int32)",797,797,56,5
+Tag198,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Kind(),16,16,1,1
+Tag198,DotGram.Finance.Fix.FixGrammar+ParserEntry.get_Value(),31,31,2,1
+Tag198,"DotGram.Finance.Fix.FixGrammar+SourceSpan..ctor(Int32, Int32)",16,16,1,1
+Tag198,"System.Array.Copy(Array, Array, Int32)",78,78,8,1
+Tag198,System.Collections.Generic.List`1.AddWithResize(T),344,438,34,1
+Tag198,"System.Runtime.CompilerServices.CastHelpers.ChkCastClass(Void*, Object)",31,31,2,1
+Tag198,"System.Runtime.CompilerServices.CastHelpers.StelemRef(Object[], IntPtr, Object)",63,63,4,2
+Tag198,"System.Runtime.CompilerServices.CastHelpers.StelemRef_Helper(Object&, Void*, Object)",47,47,6,2
+Tag198,"System.SpanHelpers.ClearWithReferences(IntPtr&, UIntPtr)",47,47,3,1
+Tag198,System.String.Ctor(Char[]),63,63,5,1

@@ -52,21 +52,18 @@ public static partial class CSharpEmitter
 
 	static void AddBufferedMachines(
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, List<Compiled> machines,
-		bool requested, bool byteRequested, bool overKinds, ICollection<GramDiagnostic>? diagnostics, int? partSize, bool spanCaptures,
+		bool requested, bool byteRequested, bool overKinds, ICollection<GramDiagnostic>? diagnostics, int? partSize, bool spanCaptures, bool prefixTables,
 		Dictionary<string, (string Name, string Declaration)>? expectedTables)
 	{
 		foreach (var publication in graph.Publications)
 		for (var form = 0; form < 2; form++)
 		{
 			var bytes = form == 1;
-			if (publication.Kind != PublishKind.Parse && !publication.BufferedInput && !publication.BufferedBytes)
-				continue;
 			if (bytes ? !byteRequested && !publication.BufferedBytes : !requested && !publication.BufferedInput)
 				continue;
 
 			var rules = Reaches(graph, publication.Rule);
-			var why = publication.Kind != PublishKind.Parse ? "only parse publications are supported" :
-				overKinds ? "token-kind input is not supported by this form yet" :
+			var why = overKinds ? "token-kind input is not supported by this form yet" :
 				rules.Any(rule => NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.External))
 					? "external recognizers require contiguous input" : null;
 			if (why is null && bytes) why = ByteRefusal(graph, rules);
@@ -78,8 +75,9 @@ public static partial class CSharpEmitter
 			if (why is null)
 			{
 				machine = new Machine(graph, results, lines, only: rules, tag: tag,
-					partSize: partSize, bufferedInput: true, bufferedBytes: bytes, spanCaptures: spanCaptures, expectedTables: expectedTables);
-				machine.Register(publication.Rule, whole: true);
+					partSize: partSize, bufferedInput: true, bufferedBytes: bytes, spanCaptures: spanCaptures,
+					bufferedFind: publication.Kind != PublishKind.Parse, prefixTables: prefixTables, expectedTables: expectedTables);
+				machine.Register(publication.Rule, whole: publication.Kind == PublishKind.Parse);
 				if (machine.UsesInput)
 					why = "parserInput requires the complete input string";
 			}
@@ -101,7 +99,7 @@ public static partial class CSharpEmitter
 		var type = results.QualifiedOf(publication.Rule);
 		var bytes = machine.BufferedBytes;
 		var inputType = bytes ? "global::System.IO.Stream" : "global::System.IO.TextReader";
-		var value = type ?? (bytes ? "byte[]" : "string");
+		var value = publication.ResultType is { } contract ? contract.Name + (contract.IsSequence ? "[]" : "") : type ?? (bytes ? "byte[]" : "string");
 		var match = $"{MatchType}<{value}>";
 		var method = publication.MethodName;
 		var context = machine.UsesContext ? $", {graph.Context} context" : "";
@@ -109,6 +107,53 @@ public static partial class CSharpEmitter
 			", ref failure" + (type is null ? "" : ", out var value") +
 			(machine.UsesContext ? ", context" : "") +
 			(machine.UsesReading ? $", {publication.Reading}" : "");
+		if (publication.Kind == PublishKind.Yield)
+		{
+			file.Line("/// <summary>Lazily parses consecutive buffered elements; leaves input open.</summary>");
+			using (file.Block($"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{publication.ResultType!.Name}> {method}(" +
+				$"{inputType} input{context}, int bufferSize = 4096, int maxRetained = int.MaxValue)"))
+			{
+				file.Line($"var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize, maxRetained);");
+				file.Line("var start = 0;");
+				if (publication.YieldMinimum > 0)
+					file.Line("if (!text.Peek(0, out _)) throw new global::System.FormatException(\"Expected at least one element at offset 0.\");");
+				using (file.Block("while (text.Peek(start, out _))"))
+				{
+					file.Line($"var failure = new {FailureType}();");
+					file.Line($"var end = {BufferedMethod(publication, bytes)}(text, start{hands});");
+					file.Line("if (end <= start) throw new global::System.FormatException(\"Invalid element at offset \" + failure.Position.ToString() + \".\");");
+					file.Line("yield return value;");
+					file.Line("start = end;");
+					if (!Locating(graph) && !Reaches(graph, publication.Rule).Any(rule =>
+						NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.Behind)))
+						file.Line("text.ReleaseBefore(start);");
+				}
+			}
+			return;
+		}
+		if (publication.Kind == PublishKind.Find)
+		{
+			var retain = Locating(graph) || Reaches(graph, publication.Rule).Any(rule =>
+				NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.Behind));
+			file.Line("/// <summary>Lazily finds occurrences through a reusable buffer; leaves input open.</summary>");
+			using (file.Block($"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{match}> {method}(" +
+				$"{inputType} input{context}, int bufferSize = 4096, int maxRetained = int.MaxValue)"))
+			{
+				file.Line($"var text = new {(bytes ? "BufferedBytes" : "BufferedText")}(input, bufferSize, maxRetained);");
+				file.Line("var start = 0;");
+				using (file.Block("while (true)"))
+				{
+					file.Line($"var failure = new {FailureType}();");
+					file.Line($"var end = {BufferedMethod(publication, bytes)}(text, start{hands});");
+					using (file.Block("if (end >= 0)"))
+						file.Line($"yield return {match}.Success({(type is null ? bytes ? "text.Slice(start, end - start).ToArray()" : "text.Slice(start, end - start).ToString()" : "value")}, start, end - start);");
+					file.Line("if (end <= start && !text.Peek(start, out _)) yield break;");
+					file.Line("start = end > start ? end : checked(start + 1);");
+					if (!retain) file.Line("text.ReleaseBefore(start);");
+				}
+			}
+			return;
+		}
 		file.Line("/// <summary>Parses buffered input synchronously without retrying at refill boundaries.</summary>");
 		file.Line("/// <remarks>The caller owns input. Pending backtracking and captures may retain the whole input.</remarks>");
 		using (file.Block($"{AccessOf(publication)} static {match} Try{method}(" +

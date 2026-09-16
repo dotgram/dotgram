@@ -1,0 +1,119 @@
+plain-current-0.log
+Assembly SHA256: 9EE8AF9433D63C0F3B10277665E8E52C52DDD75CFC4A64460E8E24DA3D6F87C3
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=4.227780; ns/op=8455.56; B/op=6944.00; GC=69/0/0; Fields=7500000
+
+plain-current-1.log
+Assembly SHA256: 9EE8AF9433D63C0F3B10277665E8E52C52DDD75CFC4A64460E8E24DA3D6F87C3
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=4.419660; ns/op=8839.32; B/op=6944.00; GC=69/0/0; Fields=7500000
+
+plain-current-2.log
+Assembly SHA256: 9EE8AF9433D63C0F3B10277665E8E52C52DDD75CFC4A64460E8E24DA3D6F87C3
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=4.219002; ns/op=8438.00; B/op=6944.00; GC=69/0/0; Fields=7500000
+
+plain-flat-0.log
+Assembly SHA256: 6EAFDC62459D3CA301F651F7F3B015F9D12901A87A3BFE47054245595551CB38
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=4.081545; ns/op=8163.09; B/op=6968.00; GC=69/0/0; Fields=7500000
+
+plain-flat-1.log
+Assembly SHA256: 6EAFDC62459D3CA301F651F7F3B015F9D12901A87A3BFE47054245595551CB38
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=3.943781; ns/op=7887.56; B/op=6968.00; GC=69/0/0; Fields=7500000
+
+plain-flat-2.log
+Assembly SHA256: 6EAFDC62459D3CA301F651F7F3B015F9D12901A87A3BFE47054245595551CB38
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=3.964262; ns/op=7928.52; B/op=6968.00; GC=69/0/0; Fields=7500000
+
+plain-named-0.log
+Assembly SHA256: 9253A3E86644EB743E54FC2234C03979FC95D69672EC37C0A03058942C5479F6
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=3.263775; ns/op=6527.55; B/op=6968.00; GC=69/0/0; Fields=7500000
+
+plain-named-1.log
+Assembly SHA256: 9253A3E86644EB743E54FC2234C03979FC95D69672EC37C0A03058942C5479F6
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=3.331048; ns/op=6662.10; B/op=6968.00; GC=69/0/0; Fields=7500000
+
+plain-named-2.log
+Assembly SHA256: 9253A3E86644EB743E54FC2234C03979FC95D69672EC37C0A03058942C5479F6
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=3.150406; ns/op=6300.81; B/op=6968.00; GC=69/0/0; Fields=7500000
+
+plain-units-0.log
+Assembly SHA256: 4893E157141C428D303F6A96216AEE8BCEDD0B11403949B30A0E0ABDE1EAE819
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=5.036119; ns/op=10072.24; B/op=7464.00; GC=74/0/0; Fields=7500000
+
+plain-units-1.log
+Assembly SHA256: 4893E157141C428D303F6A96216AEE8BCEDD0B11403949B30A0E0ABDE1EAE819
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=5.253232; ns/op=10506.46; B/op=7464.00; GC=74/0/0; Fields=7500000
+
+plain-units-2.log
+Assembly SHA256: 4893E157141C428D303F6A96216AEE8BCEDD0B11403949B30A0E0ABDE1EAE819
+Workload=Order, Input=Bytes, Iterations=500000, Fields/operation=15
+Seconds=5.011638; ns/op=10023.28; B/op=7464.00; GC=74/0/0; Fields=7500000
+
+tag-current-Tag1-0.log
+Assembly SHA256: 9EE8AF9433D63C0F3B10277665E8E52C52DDD75CFC4A64460E8E24DA3D6F87C3
+Workload=Tag1, Input=Bytes, Iterations=1000000, Fields/operation=1
+Seconds=0.855899; ns/op=855.90; B/op=4552.00; GC=90/0/0; Fields=1000000
+
+tag-current-Tag1-1.log
+Assembly SHA256: 9EE8AF9433D63C0F3B10277665E8E52C52DDD75CFC4A64460E8E24DA3D6F87C3
+Workload=Tag1, Input=Bytes, Iterations=1000000, Fields/operation=1
+Seconds=0.783638; ns/op=783.64; B/op=4552.00; GC=90/0/0; Fields=1000000
+
+tag-current-Tag100-0.log
+Assembly SHA256: 9EE8AF9433D63C0F3B10277665E8E52C52DDD75CFC4A64460E8E24DA3D6F87C3
+Workload=Tag100, Input=Bytes, Iterations=1000000, Fields/operation=1
+Seconds=1.195538; ns/op=1195.54; B/op=4552.00; GC=90/0/0; Fields=1000000
+
+tag-current-Tag100-1.log
+Assembly SHA256: 9EE8AF9433D63C0F3B10277665E8E52C52DDD75CFC4A64460E8E24DA3D6F87C3
+Workload=Tag100, Input=Bytes, Iterations=1000000, Fields/operation=1
+Seconds=1.110399; ns/op=1110.40; B/op=4552.00; GC=90/0/0; Fields=1000000
+
+tag-current-Tag198-0.log
+Assembly SHA256: 9EE8AF9433D63C0F3B10277665E8E52C52DDD75CFC4A64460E8E24DA3D6F87C3
+Workload=Tag198, Input=Bytes, Iterations=1000000, Fields/operation=1
+Seconds=3.588138; ns/op=3588.14; B/op=4880.00; GC=97/0/0; Fields=1000000
+
+tag-current-Tag198-1.log
+Assembly SHA256: 9EE8AF9433D63C0F3B10277665E8E52C52DDD75CFC4A64460E8E24DA3D6F87C3
+Workload=Tag198, Input=Bytes, Iterations=1000000, Fields/operation=1
+Seconds=3.807634; ns/op=3807.63; B/op=4880.00; GC=97/0/0; Fields=1000000
+
+tag-named-Tag1-0.log
+Assembly SHA256: 9253A3E86644EB743E54FC2234C03979FC95D69672EC37C0A03058942C5479F6
+Workload=Tag1, Input=Bytes, Iterations=1000000, Fields/operation=1
+Seconds=0.556923; ns/op=556.92; B/op=4576.00; GC=91/0/0; Fields=1000000
+
+tag-named-Tag1-1.log
+Assembly SHA256: 9253A3E86644EB743E54FC2234C03979FC95D69672EC37C0A03058942C5479F6
+Workload=Tag1, Input=Bytes, Iterations=1000000, Fields/operation=1
+Seconds=0.548017; ns/op=548.02; B/op=4576.00; GC=91/0/0; Fields=1000000
+
+tag-named-Tag100-0.log
+Assembly SHA256: 9253A3E86644EB743E54FC2234C03979FC95D69672EC37C0A03058942C5479F6
+Workload=Tag100, Input=Bytes, Iterations=1000000, Fields/operation=1
+Seconds=0.954638; ns/op=954.64; B/op=4576.00; GC=91/0/0; Fields=1000000
+
+tag-named-Tag100-1.log
+Assembly SHA256: 9253A3E86644EB743E54FC2234C03979FC95D69672EC37C0A03058942C5479F6
+Workload=Tag100, Input=Bytes, Iterations=1000000, Fields/operation=1
+Seconds=0.915889; ns/op=915.89; B/op=4576.00; GC=91/0/0; Fields=1000000
+
+tag-named-Tag198-0.log
+Assembly SHA256: 9253A3E86644EB743E54FC2234C03979FC95D69672EC37C0A03058942C5479F6
+Workload=Tag198, Input=Bytes, Iterations=1000000, Fields/operation=1
+Seconds=3.892819; ns/op=3892.82; B/op=4904.00; GC=97/0/0; Fields=1000000
+
+tag-named-Tag198-1.log
+Assembly SHA256: 9253A3E86644EB743E54FC2234C03979FC95D69672EC37C0A03058942C5479F6
+Workload=Tag198, Input=Bytes, Iterations=1000000, Fields/operation=1
+Seconds=4.149009; ns/op=4149.01; B/op=4904.00; GC=97/0/0; Fields=1000000

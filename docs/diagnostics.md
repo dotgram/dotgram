@@ -59,7 +59,7 @@ underlined where it was written, in the base's own file — see §5.1.
 | `GRAM2005` | A binding power is a whole number. | `<< 2`, `>> 3` (§4.3.1). |
 | `GRAM2006` | A namespace header's rebindings need `with`. | `namespace Name with (A = B) { … }` (§5.1). |
 | `GRAM2007` | A publication of anything but a rule's name needs `as`. | `parse` and `find` name the method after the rule; an expression has no name to make one from, so give it one: `parse X & Y as Both`. |
-| `GRAM2008` | A type here belongs to an expression, not to a rule that already declares one. | The rule says its own type where it is written (§6). |
+| `GRAM2008` | A named yield publication places a result type before `yield`. | Write the element contract after `yield : @T` (§6). |
 | `GRAM2009` | A condition after `when` whose operand is not followed by `is`. | A `when` is either a C# guard, written `when @(…)` and asked while the parser runs, or a condition about the grammar, written `when A is B` and answered while it is built. Both sides of that question are written out, so an operand with no `is` after it is neither one thing nor the other. |
 
 ## GRAM3xxx — resolving the names
@@ -112,6 +112,8 @@ underlined where it was written, in the base's own file — see §5.1.
 | `GRAM4024` | A `when` that leaves different C# behind in different readings. | The parsers of one rule share a machine, and a condition decides per reading whether its alternative is there. Where the C# beside it survives in two readings as two different pieces of C#, the C# would have to be told which reading it runs in, and it is not. Write the condition so that the C# that survives is the same wherever it does. |
 | `GRAM4025` | A C# method a grammar names cannot be called the way its position calls it. | A bare `@Name` is an external recognizer, `static bool M(ReadOnlySpan<char> input, ref int pos)` or the same with `out T value` after the position; an `[@Name]` in an element set is a predicate, `static bool M(char c)` — any method a character can be passed to (§7.1). It is looked for where the generated call will look: the class the grammar is attached to, the classes around it, what they derive from, and the classes of the grammars it includes. The message says which it is — no method of that name, or only methods of another shape or out of reach. Said only where that is certain: a method of the right shape anywhere in the compilation's source is taken to be the one meant, and a grammar compiled without a host is not asked. |
 | `GRAM4026` | An explicitly requested buffered input form is unsupported. | The diagnostic names the unsupported construct or input domain. Existing text and legacy reader forms are not replacements for this explicit request. See syntax §6.3 for the current supported subset. |
+| `GRAM4027` | A `yield` publication cannot safely produce the requested element sequence. | Publish a complete non-nullable `Rule*` or `Rule+` sequence, optionally through transparent wrappers. Collection factories, outer choices, suffixes, recovery and implicit collection trivia are not supported yet. Use a compatible C# element type after `yield : @T`. |
+| `GRAM4028` | A publication result does not fit its explicit C# contract. | Choose a compatible base type, interface or array type. The contract changes the public API, not construction. Byte extent publications must also accept `byte[]`. |
 
 ## GRAM5xxx — what a grammar gets
 

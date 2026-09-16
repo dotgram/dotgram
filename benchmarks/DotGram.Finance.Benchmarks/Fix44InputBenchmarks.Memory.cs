@@ -32,16 +32,16 @@ public partial class Fix44InputBenchmarks
 		// Warm the selected parsing path without processing or retaining a whole batch.
 		for (var i = 0; i < 16; i++)
 		{
-			if (input == "String") Fix44.Parse(message);
+			if (input == "String") FixMessages.Parse(message);
 			else if (input == "Characters")
 			{
 				using var reader = new StringReader(message);
-				foreach (var parsed in Fix44.ReadMessages(reader)) GC.KeepAlive(parsed);
+				foreach (var parsed in FixMessages.ReadMessages(reader)) GC.KeepAlive(parsed);
 			}
 			else
 			{
 				using var stream = new MemoryStream(bytes, 0, message.Length, false);
-				foreach (var parsed in Fix44.ReadMessages(stream)) GC.KeepAlive(parsed);
+				foreach (var parsed in FixMessages.ReadMessages(stream)) GC.KeepAlive(parsed);
 			}
 		}
 

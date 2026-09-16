@@ -2254,6 +2254,38 @@ public sealed class GeneratorDriverTests
 		Assert.Equal("ab|12", parse.Invoke(null, ["ab/12"]));
 	}
 
+	[Theory]
+	[InlineData("", true)]
+	[InlineData(", PrefixTables = false", false)]
+	public void Prefix_tables_default_and_named_reading_overrides_are_honored(string hostOptions, bool expected)
+	{
+		var source = """"
+			using DotGram;
+			[Gram("""
+				Start : @int = "1=" & 'X'+ => @(1)
+					| "10=" & 'X'+ => @(10)
+					| "198=" & 'X'+ => @(198)
+					| "900=" & 'X'+ => @(900)
+				parse Start
+				""", Direct = false HOST_OPTIONS)]
+			[GramOptions(Suffix = "Inherited")]
+			[GramOptions(Suffix = "Override", PrefixTables = OVERRIDE)]
+			public static partial class PrefixDefaults { }
+			"""";
+		source = source.Replace("HOST_OPTIONS", hostOptions, StringComparison.Ordinal)
+			.Replace("OVERRIDE", expected ? "false" : "true", StringComparison.Ordinal);
+		var built = Build(source);
+		foreach (var (name, tables) in new[] { ("PrefixDefaults", expected), ("PrefixDefaults+Inherited", expected), ("PrefixDefaults+Override", !expected) })
+		{
+			var type = built.GetType(name)!;
+			Assert.Equal(tables, type.GetFields(BindingFlags.NonPublic | BindingFlags.Static)
+				.Any(field => field.Name.StartsWith("Prefix_DotGram", StringComparison.Ordinal)));
+			Assert.Equal(198, type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["198=XX"]));
+		}
+		var attribute = built.GetType("DotGram.GramOptionsAttribute")!;
+		Assert.Equal(true, attribute.GetProperty("PrefixTables")!.GetValue(Activator.CreateInstance(attribute)));
+	}
+
 	// ── Two readings of one grammar ─────────────────────────────────────────
 
 	/// <summary>

@@ -36,6 +36,18 @@ namespace DotGram.Tests;
 /// </remarks>
 public sealed class SelfHostingTests(Xunit.ITestOutputHelper output)
 {
+	[Theory]
+	[InlineData("parse R : @object")]
+	[InlineData("find R : @object")]
+	[InlineData("parse R as Read : @object stream bytes")]
+	[InlineData("parse R yield : @object")]
+	public void Both_implementations_accept_publication_contracts(string publication)
+	{
+		var text = "R = 'a'\n" + publication;
+		Assert.False(GramParser.Parse(GramLexer.Tokenize(text, RoslynCSharpScanner.Instance)).HasErrors);
+		Assert.True(GramGrammar.TryParseFile(text).IsSuccess);
+	}
+
 	[Fact]
 	public void Both_implementations_agree_on_the_corpus()
 	{

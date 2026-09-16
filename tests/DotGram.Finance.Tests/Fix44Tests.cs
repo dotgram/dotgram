@@ -25,15 +25,42 @@ public sealed class Fix44Tests
 	[MemberData(nameof(Messages))]
 	public void Every_standard_message_has_a_typed_result(string name, string wire)
 	{
-		Assert.True(Fix44.TryParse(wire, out var message, out var error), error?.ToString());
+		Assert.True(FixMessages.TryParse(wire, out var message, out var error), error?.ToString());
 		Assert.Equal(name, message!.GetType().Name);
 		Assert.Same(wire, message.OriginalWire);
+	}
+
+	[Theory]
+	[MemberData(nameof(Messages))]
+	public void Semantic_assembler_reconstructs_every_message_from_flat_fields(string name, string wire)
+	{
+		var original = FixMessages.Parse(wire);
+		var flat = original.AllFields.Select(f => new FixNode(f.Tag, f.Position, f.ValuePosition, f.Length)).ToArray();
+		Assert.True(FixSemantics.TryBuild(wire, original.MessageType, flat, FixParseMode.Strict, null, out var rebuilt, out var error), error?.ToString());
+		Assert.Equal(name, rebuilt!.GetType().Name);
+		Assert.Equal(original.AllFields.Select(f => f.Wire.ToString()), rebuilt.AllFields.Select(f => f.Wire.ToString()));
+		Compare(original.Header, rebuilt.Header);
+		Compare(original, rebuilt);
+		Compare(original.Trailer, rebuilt.Trailer);
+
+		static void Compare(FixFieldSet expected, FixFieldSet actual)
+		{
+			Assert.Equal(expected.GetType(), actual.GetType());
+			Assert.Equal(expected.Fields.Select(f => f.Tag), actual.Fields.Select(f => f.Tag));
+			foreach (var field in expected.Fields)
+			{
+				var left = expected.GetGroup(field.Tag);
+				var right = actual.GetGroup(field.Tag);
+				Assert.Equal(left.Count, right.Count);
+				for (var n = 0; n < left.Count; n++) Compare(left[n], right[n]);
+			}
+		}
 	}
 
 	[Fact]
 	public void Public_order_api_and_optional_values()
 	{
-		var order = Assert.IsType<NewOrderSingle>(Fix44.Parse(Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|")));
+		var order = Assert.IsType<NewOrderSingle>(FixMessages.Parse(Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|")));
 		Assert.Equal("ABC", order.Symbol);
 		Assert.True(order.OrderQty!.Value.TryGetDecimal(out var quantity));
 		Assert.Equal(100m, quantity);
@@ -43,13 +70,13 @@ public sealed class Fix44Tests
 	[Fact]
 	public void Body_fields_may_be_reordered()
 	{
-		Assert.True(Fix44.TryParse(Wire("D", "40=1|38=100|60=20260915-12:00:00|54=1|55=ABC|11=ORDER|"), out _, out var error), error?.ToString());
+		Assert.True(FixMessages.TryParse(Wire("D", "40=1|38=100|60=20260915-12:00:00|54=1|55=ABC|11=ORDER|"), out _, out var error), error?.ToString());
 	}
 
 	[Fact]
 	public void Nested_groups_preserve_entry_boundaries()
 	{
-		var message = Fix44.Parse(Wire("D", "11=ORDER|453=2|448=P1|447=D|452=1|802=2|523=S1|803=1|523=S2|803=2|448=P2|447=D|452=3|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|"));
+		var message = FixMessages.Parse(Wire("D", "11=ORDER|453=2|448=P1|447=D|452=1|802=2|523=S1|803=1|523=S2|803=2|448=P2|447=D|452=3|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|"));
 		var parties = message.GetGroup(453);
 		Assert.Equal(2, parties.Count);
 		Assert.Equal("P2", parties[1].GetField(448)!.Value.ToString());
@@ -65,7 +92,7 @@ public sealed class Fix44Tests
 		var wire = Wire("0", "112=TEST|");
 		for (var length = 0; length < wire.Length; length++)
 		{
-			Assert.False(Fix44.TryParse(wire[..length], out var message, out var error));
+			Assert.False(FixMessages.TryParse(wire[..length], out var message, out var error));
 			Assert.Null(message);
 			Assert.NotNull(error);
 		}
@@ -80,7 +107,7 @@ public sealed class Fix44Tests
 	[InlineData("D", "11=X|453=2|448=P1|447=D|452=1|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|")]
 	public void Invalid_schema_is_rejected(string type, string body)
 	{
-		Assert.False(Fix44.TryParse(Wire(type, body), out _, out var error));
+		Assert.False(FixMessages.TryParse(Wire(type, body), out _, out var error));
 		Assert.NotNull(error);
 		Assert.Equal(type, error.MessageType);
 	}
@@ -89,8 +116,8 @@ public sealed class Fix44Tests
 	public void Lenient_preserves_unknown_fields_in_order()
 	{
 		var wire = Wire("0", "9001=A|112=TEST|9002=B|");
-		Assert.False(Fix44.TryParse(wire, out _, out _));
-		Assert.True(Fix44.TryParse(wire, out var result, out var error, FixParseMode.Lenient), error?.ToString());
+		Assert.False(FixMessages.TryParse(wire, out _, out _));
+		Assert.True(FixMessages.TryParse(wire, out var result, out var error, FixParseMode.Lenient), error?.ToString());
 		Assert.Equal(new[] { 9001, 112, 9002 }, result!.Fields.Select(f => f.Tag));
 	}
 
@@ -100,7 +127,7 @@ public sealed class Fix44Tests
 		var raw = "a\u0001=\0\u00ff";
 		var body = "98=0\u0001108=30\u000195=" + raw.Length + "\u000196=" + raw + "\u0001";
 		var wire = Wire("A", body);
-		var message = Fix44.Parse(wire);
+		var message = FixMessages.Parse(wire);
 		Assert.Equal(raw, message.GetField(96)!.Value.ToString());
 		Assert.Equal(wire, message.OriginalWire);
 	}
@@ -109,9 +136,9 @@ public sealed class Fix44Tests
 	public void Framing_errors_identify_the_field()
 	{
 		var wire = Wire("0", "");
-		Assert.False(Fix44.TryParse(wire[..^4] + "999\u0001", out _, out var checksum));
+		Assert.False(FixMessages.TryParse(wire[..^4] + "999\u0001", out _, out var checksum));
 		Assert.Equal(10, checksum!.Tag);
-		Assert.False(Fix44.TryParse(wire.Replace("9=", "9=1", StringComparison.Ordinal), out _, out var length));
+		Assert.False(FixMessages.TryParse(wire.Replace("9=", "9=1", StringComparison.Ordinal), out _, out var length));
 		Assert.Equal(9, length!.Tag);
 	}
 
@@ -123,20 +150,20 @@ public sealed class Fix44Tests
 	public void Invalid_length_data_pairs_fail_in_both_modes(string body)
 	{
 		foreach (var mode in new[] { FixParseMode.Strict, FixParseMode.Lenient })
-			Assert.False(Fix44.TryParse(Wire("A", body), out _, out _, mode));
+			Assert.False(FixMessages.TryParse(Wire("A", body), out _, out _, mode));
 	}
 
 	[Fact]
 	public void Empty_raw_payload_is_preserved()
 	{
-		Assert.Equal("", Fix44.Parse(Wire("A", "98=0|108=30|95=0|96=|")).GetField(96)!.Value.ToString());
+		Assert.Equal("", FixMessages.Parse(Wire("A", "98=0|108=30|95=0|96=|")).GetField(96)!.Value.ToString());
 	}
 
 	[Fact]
 	public void Custom_fields_inside_groups_are_preserved()
 	{
 		var wire = Wire("D", "11=ORDER|453=1|448=P1|9001=X|447=D|452=1|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|");
-		Assert.True(Fix44.TryParse(wire, out var message, out var error, FixParseMode.Lenient), error?.ToString());
+		Assert.True(FixMessages.TryParse(wire, out var message, out var error, FixParseMode.Lenient), error?.ToString());
 		Assert.Equal("X", message!.GetGroup(453)[0].GetField(9001)!.Value.ToString());
 		Assert.Equal(wire, string.Concat(message.AllFields.Select(f => f.Tag.ToString(CultureInfo.InvariantCulture) + "=" + f.Value.ToString() + "\u0001")));
 	}
@@ -145,16 +172,16 @@ public sealed class Fix44Tests
 	public void Strict_group_order_and_lenient_group_order_are_distinct()
 	{
 		var wire = Wire("D", "11=ORDER|453=1|448=P1|452=1|447=D|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|");
-		Assert.False(Fix44.TryParse(wire, out _, out _));
-		Assert.True(Fix44.TryParse(wire, out _, out var error, FixParseMode.Lenient), error?.ToString());
+		Assert.False(FixMessages.TryParse(wire, out _, out _));
+		Assert.True(FixMessages.TryParse(wire, out _, out var error, FixParseMode.Lenient), error?.ToString());
 	}
 
 	[Fact]
 	public void Vendor_message_types_have_a_lossless_lenient_result()
 	{
 		var wire = Wire("U1", "9001=X|9002=Y|");
-		Assert.False(Fix44.TryParse(wire, out _, out _));
-		Assert.True(Fix44.TryParse(wire, out var result, out var error, FixParseMode.Lenient), error?.ToString());
+		Assert.False(FixMessages.TryParse(wire, out _, out _));
+		Assert.True(FixMessages.TryParse(wire, out var result, out var error, FixParseMode.Lenient), error?.ToString());
 		Assert.IsType<CustomFixMessage>(result);
 		Assert.Equal(wire, result!.OriginalWire);
 	}
@@ -168,27 +195,25 @@ public sealed class Fix44Tests
 		{
 			var body = new char[random.Next(1, 150)];
 			for (var i = 0; i < body.Length; i++) body[i] = alphabet[random.Next(alphabet.Length)];
-			Fix44.TryParse(Wire("0", new string(body)), out _, out _, FixParseMode.Lenient);
+			FixMessages.TryParse(Wire("0", new string(body)), out _, out _, FixParseMode.Lenient);
 		}
 	}
 
 	[Fact]
-	public void Registered_vendor_data_pairs_preserve_embedded_soh()
+	public void Unregistered_binary_pairs_are_not_inferred()
 	{
-		var options = new FixParseOptions(FixParseMode.Strict, new FixDataPair(9000, 9001));
 		var wire = Wire("0", "9000=3\u00019001=A\u0001B\u0001");
-		Assert.True(Fix44.TryParse(wire, out var result, out var error, options), error?.ToString());
-		Assert.Equal("A\u0001B", result!.GetField(9001)!.Value.ToString());
-		Assert.False(Fix44.TryParse(Wire("0", "9000=3|9001=AB|"), out _, out _, options));
+		Assert.False(FixMessages.TryParse(wire, out _, out _, FixParseMode.Strict));
+		Assert.False(FixMessages.TryParse(wire, out _, out _, FixParseMode.Lenient));
 	}
 
 	[Fact]
 	public void Encoded_fields_require_message_encoding_in_strict_mode()
 	{
 		var order = Wire("D", "11=X|55=ABC|54=1|60=20260915-12:00:00|38=1|40=1|354=1|355=X|");
-		Assert.False(Fix44.TryParse(order, out _, out var error));
+		Assert.False(FixMessages.TryParse(order, out _, out var error));
 		Assert.Equal(347, error!.Tag);
-		Assert.True(Fix44.TryParse(order, out _, out _, FixParseMode.Lenient));
+		Assert.True(FixMessages.TryParse(order, out _, out _, FixParseMode.Lenient));
 	}
 
 	[Fact]
@@ -198,7 +223,7 @@ public sealed class Fix44Tests
 		foreach (var data in Messages())
 		{
 			var wire = (string)data[1];
-			var message = Fix44.Parse(wire);
+			var message = FixMessages.Parse(wire);
 			var fields = message.AllFields.ToArray();
 			Assert.Equal(wire, string.Concat(fields.Select(f => f.Wire.ToString())));
 			foreach (var field in fields) tags.Add(field.Tag);
@@ -218,7 +243,7 @@ public sealed class Fix44Tests
 		foreach (var data in Messages())
 		{
 			var wire = (string)data[1];
-			var fields = Fix44.Parse(wire).AllFields.ToArray();
+			var fields = FixMessages.Parse(wire).AllFields.ToArray();
 			for (var i = 1; i < fields.Length; i++)
 			{
 				var current = fields[i];
@@ -227,7 +252,7 @@ public sealed class Fix44Tests
 				var preceding = fields[i - 1];
 				Assert.Equal(lengthTag, preceding.Tag);
 				var changed = wire[..preceding.Position] + lengthTag + "=5\u0001" + current.Tag + "=" + payload + "\u0001" + wire[(current.ValuePosition + current.Length + 1)..];
-				var result = Fix44.Parse(Reframe(changed));
+				var result = FixMessages.Parse(Reframe(changed));
 				Assert.Equal(payload, result.AllFields.First(f => f.Tag == current.Tag).Value.ToString());
 			}
 		}
@@ -241,13 +266,13 @@ public sealed class Fix44Tests
 		foreach (var data in Messages())
 		{
 			var wire = (string)data[1];
-			var message = Fix44.Parse(wire);
+			var message = FixMessages.Parse(wire);
 			foreach (var scope in new FixFieldSet[] { message.Header, message })
 				foreach (var node in GroupNodes(scope))
 				{
 					if (node.Entries!.Count == 0 || !covered.Add(node.Entries[0].GetType().Name)) continue;
 					var changed = wire[..node.ValuePosition] + "2" + wire[(node.ValuePosition + node.Length)..];
-					Assert.False(Fix44.TryParse(Reframe(changed), out _, out _), node.Entries[0].GetType().Name);
+					Assert.False(FixMessages.TryParse(Reframe(changed), out _, out _), node.Entries[0].GetType().Name);
 				}
 		}
 		Assert.Equal(91, covered.Count);

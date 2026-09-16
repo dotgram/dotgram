@@ -99,6 +99,18 @@ public static class GramCompiler
 				if (!Inside(broken, diagnostic))
 					diagnostics.Add(diagnostic);
 
+			// An extent-only byte publication returns byte[], while its string form
+			// returns string. The explicit contract must accept both input domains.
+			foreach (var publication in graph.Publications)
+				if (publication.Kind != PublishKind.Yield && publication.ResultType is { } contract &&
+					(options.BufferedBytes || publication.BufferedBytes) &&
+					!graph.Types.ContainsKey(publication.Rule) && graph.Results[publication.Rule].Count == 0 &&
+					!GrammarNormalizer.PublicationFits(options.SymbolResolver ?? PermissiveSymbolResolver.Instance,
+						"byte[]", contract.Name + (contract.IsSequence ? "[]" : ""), publication.DeclaredIn))
+					diagnostics.Add(new GramDiagnostic(GrammarNormalizer.PublicationTypeMismatch,
+						"The byte input form returns byte[], which is not assignable to the publication type.",
+						contract.At.Position, contract.At.Length, GramSeverity.Error));
+
 			diagnostics.AddRange(Retention.Check(graph));
 			diagnostics.AddRange(FirstSets.Check(graph));
 		}
@@ -145,7 +157,7 @@ public static class GramCompiler
 					options.Suffix, options.SharedTypes, options.Inherits,
 					options.LanguageId, options.LanguageSource, options.LanguageClassifications,
 					options.LanguageRecognitionContract, options.StaticImports,
-					options.Portable ? grammarText : null, options.SuffixDeclared, options.ValueStorage, options.BufferedInput, options.BufferedBytes, options.SpanCaptures)));
+					options.Portable ? grammarText : null, options.SuffixDeclared, options.ValueStorage, options.BufferedInput, options.BufferedBytes, options.SpanCaptures, options.PrefixTables)));
 
 		return new GramCompilation(sources, OnePerPosition(diagnostics));
 	}
@@ -181,6 +193,12 @@ public static class GramCompiler
 				0,
 				0,
 				GramSeverity.Warning));
+
+		if (graph.Publications.Any(one => one.Kind == PublishKind.Yield))
+		{
+			Say("Yield publications currently use character recognition rather than token-kind input.");
+			return null;
+		}
 
 		if (graph.Publications.Any(one => one.Kind == PublishKind.Find))
 		{

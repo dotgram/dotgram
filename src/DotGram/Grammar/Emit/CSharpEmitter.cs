@@ -173,7 +173,7 @@ public static partial class CSharpEmitter
 		string? languageId = null, string? languageSource = null,
 		string? languageClassifications = null, string? languageRecognitionContract = null,
 		IReadOnlyList<string>? statics = null, string? grammarSource = null, bool suffixDeclared = false,
-		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false)
+		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = true)
 	{
 		statics ??= [];
 
@@ -223,7 +223,7 @@ public static partial class CSharpEmitter
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
-				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, expectedTables: expectedTables);
+				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables);
 
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one
@@ -257,7 +257,7 @@ public static partial class CSharpEmitter
 		// entered at its own rule, rather than by a second copy of everything it reaches.
 		Joined(graph, machines, overKinds);
 
-		AddBufferedMachines(graph, results, lines, machines, bufferedInput, bufferedBytes, overKinds, diagnostics, partSize, spanCaptures, expectedTables);
+		AddBufferedMachines(graph, results, lines, machines, bufferedInput, bufferedBytes, overKinds, diagnostics, partSize, spanCaptures, prefixTables, expectedTables);
 
 		// A second machine over the characters, for the terminals whose value the lexer
 		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds
@@ -409,7 +409,8 @@ public static partial class CSharpEmitter
 					publication,
 					results,
 					graph.Climbing.ContainsKey(publication.Rule),
-					Streams(graph, publication, overKinds),
+					Streams(graph, publication, overKinds) &&
+						!bufferedInput && !publication.BufferedInput,
 					compiled.Flat,
 					compiled.Machine.Ties,
 					compiled.Machine.UsesInput,
@@ -499,7 +500,7 @@ public static partial class CSharpEmitter
 			// §6.3 over a reader. The parts that are not calls — `eof`, a separator, the
 			// trivia normalization inserted — have no recognizer of their own, so each gets
 			// one: the driver runs them in order and they have to be runnable one at a time.
-			if (Streams(graph, publication, overKinds) && StagesOf(graph, publication.Rule) is { } stages)
+			if (!bufferedInput && !publication.BufferedInput && Streams(graph, publication, overKinds) && StagesOf(graph, publication.Rule) is { } stages)
 			{
 				var parts = new List<string>(stages.Count);
 
@@ -924,10 +925,10 @@ public static partial class CSharpEmitter
 		if (machine.BufferedInput)
 		{
 			foreach (var publication in compiled.Publications)
-				machine.Register(publication.Rule, whole: true);
+				machine.Register(publication.Rule, whole: publication.Kind == PublishKind.Parse);
 			file.Write(machine.RenderEngine(engine));
 			foreach (var publication in compiled.Publications)
-				file.Write(machine.RenderWrapper(publication.Rule, BufferedMethod(publication, machine.BufferedBytes), engine, whole: true));
+				file.Write(machine.RenderWrapper(publication.Rule, BufferedMethod(publication, machine.BufferedBytes), engine, whole: publication.Kind == PublishKind.Parse));
 			return;
 		}
 
@@ -1231,7 +1232,7 @@ public static partial class CSharpEmitter
 		// looks — not in the summary, and not in what a refusal says.
 		var name   = publication.Rule.Declaration?.Name ?? publication.Rule.Name;
 		var built  = results.QualifiedOf(publication.Rule);
-		var value  = built ?? "string";
+		var value  = publication.ResultType is { } contract ? contract.Name + (contract.IsSequence ? "[]" : "") : built ?? "string";
 		var match  = $"{MatchType}<{value}>";
 
 		// A rule that builds hands its value back through the recognizer; one that does
@@ -1271,6 +1272,12 @@ public static partial class CSharpEmitter
 		var reader   = WholeOf(publication.Rule);
 		var position = "0";
 		var extent   = overKinds ? "over" : "end";
+
+		if (publication.Kind == PublishKind.Yield)
+		{
+			EmitYield(file, publication, hands, takes);
+			return;
+		}
 
 		if (publication.Kind == PublishKind.Find)
 		{
