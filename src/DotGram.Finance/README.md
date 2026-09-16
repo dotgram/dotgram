@@ -225,3 +225,16 @@ third-party notices for attribution.
 Tests and BenchmarkDotNet workloads are separate solution projects. The coverage
 and measurement records are in `docs/design/finance-fix44.md` and
 `benchmarks/DotGram.Finance.Benchmarks/README.md` in the source repository.
+
+### Field construction and locations
+
+The grammar constructs field cases directly, for example
+`new FixFields.LegProduct(FixConvert.Integer(value))`. Primitive conversions return
+`(Valid, Value)` for the field constructor. Plain text conversion returns a string
+without a validation flag; a string's typed value is always available. Restrictions
+on a particular field (such as currency syntax or a code set) remain semantic checks.
+
+`LocationType = typeof(IFixLocation)` supplies field coordinates through `Locate`.
+Forwarding rules offer progressively wider ranges; the outer `Field` rule supplies
+the complete tag, equals sign, value and separator. `Position`, `ValuePosition` and
+`Length` retain their existing meanings, including for unknown and binary fields.

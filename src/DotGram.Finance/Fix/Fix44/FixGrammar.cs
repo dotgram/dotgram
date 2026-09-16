@@ -5,7 +5,7 @@ using DotGram;
 
 namespace DotGram.Finance.Fix;
 
-[Gram("FixGrammar.gram", SpanCaptures = true, BufferedInput = true, PartSize = 1000, Portable = false)]
+[Gram("FixGrammar.gram", LocationType = typeof(IFixLocation), SpanCaptures = true, BufferedInput = true, PartSize = 1000, Portable = false)]
 static partial class FixGrammar;
 
 sealed class FixContext
@@ -67,17 +67,6 @@ sealed class FixContext
 	bool UnknownTag(int tag) => tag > 0 && FixSchema.Type(tag) == null;
 	public bool IsDataTag(ReadOnlySpan<char> tag) => (Options?.LengthTag(Tag(tag)) ?? 0) != 0;
 	public bool IsDataTag(ReadOnlySpan<byte> tag) => (Options?.LengthTag(Tag(tag)) ?? 0) != 0;
-	public FixValue Unknown(int position, ReadOnlySpan<char> field)
-	{
-		var equal = field.IndexOf('=');
-		FixConvert.Data(field.Slice(equal + 1, field.Length - equal - 2), out var value);
-		return new UnknownFixValue(Tag(field.Slice(0, equal)), position, equal + 1, value);
-	}
-	public FixValue Unknown(int position, ReadOnlySpan<byte> field)
-	{
-		var equal = field.IndexOf((byte)'=');
-		return new UnknownFixValue(Tag(field.Slice(0, equal)), position, equal + 1, field.Slice(equal + 1, field.Length - equal - 2).ToArray());
-	}
 	public static int Tag(ReadOnlySpan<char> value) => int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var tag) ? tag : -1;
 	public static int Tag(ReadOnlySpan<byte> value)
 	{

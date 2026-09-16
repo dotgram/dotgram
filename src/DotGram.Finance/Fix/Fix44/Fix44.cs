@@ -100,7 +100,7 @@ public static partial class Fix44
 		if (input.Length - bodyStart < 4 || !input.Slice(bodyStart, 3).SequenceEqual("35="u8)) return Fail(bodyStart, 35, null, "MsgType must be the third field.", out error);
 		var typeLength = input.Slice(bodyStart + 3).IndexOf((byte)separator);
 		if (typeLength < 0) return Fail(input.Length, 35, null, "Truncated MsgType.", out error);
-		FixConvert.Text(input.Slice(bodyStart + 3, typeLength), out type);
+		type = FixConvert.Text(input.Slice(bodyStart + 3, typeLength));
 		if (bodyLength != input.Length - bodyStart - 7) return Fail(12, 9, type, "BodyLength does not match the octets before CheckSum.", out error);
 		var checksumStart = bodyStart + bodyLength;
 		if (!input.Slice(checksumStart, 3).SequenceEqual("10="u8) || input[input.Length - 1] != separator) return Fail(checksumStart, 10, type, "Expected final CheckSum field.", out error);
@@ -127,7 +127,7 @@ public static partial class Fix44
 		var match = separator == '|' ? FixGrammar.TryParseLogFields(stream, context) : FixGrammar.TryParseFields(stream, context);
 		if (!match.IsSuccess) return Fail((int)match.Position, null, type, match.Error ?? "Message does not match FIX field grammar.", out error);
 		if (separator == '|' && !Envelope(input, separator, match.Value, out _, out error)) return false;
-		FixConvert.Text(input, out var wire);
+		var wire = FixConvert.Text(input);
 		return FixSemantics.TryBuild(wire, type, Nodes(match.Value), mode, options, out message, out error);
 	}
 

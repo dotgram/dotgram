@@ -29,6 +29,46 @@ public sealed class FixFieldGrammarTests
 		}
 	}
 
+	[Theory]
+	[InlineData('\u0001')]
+	[InlineData('|')]
+	public void Location_covers_whole_fields_and_conversion_does_not_need_coordinates(char separator)
+	{
+		var wire = "1=arbitrary text|10=007|607=invalid|9001=vendor|".Replace('|', separator);
+		var context = new FixContext(wire, FixParseMode.Lenient, separator: separator);
+		var direct = separator == '|' ? FixGrammar.ParseLogFields(wire, context) : FixGrammar.ParseFields(wire, context);
+		using var reader = new StringReader(wire);
+		var chars = separator == '|' ? FixGrammar.ParseLogFields(reader, context, bufferSize: 1) : FixGrammar.ParseFields(reader, context, bufferSize: 1);
+		using var stream = new MemoryStream(Bytes(wire));
+		var byteContext = new FixContext(Bytes(wire), FixParseMode.Lenient, separator: separator);
+		var bytes = separator == '|' ? FixGrammar.ParseLogFields(stream, byteContext, bufferSize: 1) : FixGrammar.ParseFields(stream, byteContext, bufferSize: 1);
+		foreach (var fields in new[] { direct, chars, bytes })
+		{
+			AssertExtents(wire, fields);
+			Assert.Equal("arbitrary text", Assert.IsType<FixFields.Account>(fields[0]).Value);
+			Assert.True(fields[0].IsValid);
+			var invalid = Assert.IsType<FixFields.LegProduct>(fields[2]);
+			Assert.False(invalid.TryGetValue(out _));
+			Assert.Throws<InvalidOperationException>(() => invalid.Value);
+			Assert.Equal(Bytes("vendor"), Assert.IsType<UnknownFixValue>(fields[3]).Value.ToArray());
+		}
+	}
+
+	static void AssertExtents(string wire, FixValue[] fields)
+	{
+		var position = 0;
+		foreach (var field in fields)
+		{
+			var prefix = field.Tag.ToString(CultureInfo.InvariantCulture) + "=";
+			Assert.Equal(position, field.Position);
+			Assert.Equal(prefix, wire.Substring(field.Position, prefix.Length));
+			Assert.Equal(position + prefix.Length, field.ValuePosition);
+			Assert.True(field.Length >= 0);
+			position = field.ValuePosition + field.Length + 1;
+		}
+		Assert.Equal(wire.Length, position);
+	}
+
 	[Fact]
 	public void Numeric_boolean_calendar_and_binary_fields_have_native_values()
 	{
@@ -80,10 +120,12 @@ public sealed class FixFieldGrammarTests
 			using var stream = new MemoryStream(Bytes(wire));
 			var result = FixGrammar.TryParseFields(stream, new FixContext(Bytes(wire), FixParseMode.Strict), bufferSize: capacity);
 			Assert.True(result.IsSuccess, result.Error);
+			AssertExtents(wire, result.Value);
 			Assert.Equal(Bytes(raw), Assert.IsType<FixFields.RawData>(result.Value.Single(f => f.Tag == 96)).Value.ToArray());
 			using var reader = new StringReader(log);
 			var textResult = FixGrammar.TryParseLogFields(reader, new FixContext(log, FixParseMode.Strict, separator: '|'), bufferSize: capacity);
 			Assert.True(textResult.IsSuccess, textResult.Error);
+			AssertExtents(log, textResult.Value);
 			Assert.Equal(Bytes(raw), Assert.IsType<FixFields.RawData>(textResult.Value.Single(f => f.Tag == 96)).Value.ToArray());
 		}
 		Assert.Equal(raw, Fix44.ParseLog(log).GetField(96)!.Value.ToString());

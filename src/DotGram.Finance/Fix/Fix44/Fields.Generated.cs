@@ -8,3650 +8,3650 @@ public static class FixFields
 {
 	public sealed class Account : FixValue<string>
 	{
-		internal Account(int position, int length, string value, bool valid) : base(1, position, 2, length, value, valid) { }
+		internal Account(string value) : base(1, 2, value, true) { }
 	}
 	public sealed class AdvId : FixValue<string>
 	{
-		internal AdvId(int position, int length, string value, bool valid) : base(2, position, 2, length, value, valid) { }
+		internal AdvId(string value) : base(2, 2, value, true) { }
 	}
 	public sealed class AdvRefID : FixValue<string>
 	{
-		internal AdvRefID(int position, int length, string value, bool valid) : base(3, position, 2, length, value, valid) { }
+		internal AdvRefID(string value) : base(3, 2, value, true) { }
 	}
 	public sealed class AdvSide : FixValue<char>
 	{
-		internal AdvSide(int position, int length, char value, bool valid) : base(4, position, 2, length, value, valid) { }
+		internal AdvSide((bool Valid, char Value) parsed) : base(4, 2, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AdvTransType : FixValue<string>
 	{
-		internal AdvTransType(int position, int length, string value, bool valid) : base(5, position, 2, length, value, valid) { }
+		internal AdvTransType(string value) : base(5, 2, value, true) { }
 	}
 	public sealed class AvgPx : FixValue<FixDecimal>
 	{
-		internal AvgPx(int position, int length, FixDecimal value, bool valid) : base(6, position, 2, length, value, valid) { }
+		internal AvgPx((bool Valid, FixDecimal Value) parsed) : base(6, 2, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BeginSeqNo : FixValue<System.Numerics.BigInteger>
 	{
-		internal BeginSeqNo(int position, int length, System.Numerics.BigInteger value, bool valid) : base(7, position, 2, length, value, valid) { }
+		internal BeginSeqNo((bool Valid, System.Numerics.BigInteger Value) parsed) : base(7, 2, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BeginString : FixValue<string>
 	{
-		internal BeginString(int position, int length, string value, bool valid) : base(8, position, 2, length, value, valid) { }
+		internal BeginString(string value) : base(8, 2, value, true) { }
 	}
 	public sealed class BodyLength : FixValue<System.Numerics.BigInteger>
 	{
-		internal BodyLength(int position, int length, System.Numerics.BigInteger value, bool valid) : base(9, position, 2, length, value, valid) { }
+		internal BodyLength((bool Valid, System.Numerics.BigInteger Value) parsed) : base(9, 2, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CheckSum : FixValue<string>
 	{
-		internal CheckSum(int position, int length, string value, bool valid) : base(10, position, 3, length, value, valid) { }
+		internal CheckSum(string value) : base(10, 3, value, true) { }
 	}
 	public sealed class ClOrdID : FixValue<string>
 	{
-		internal ClOrdID(int position, int length, string value, bool valid) : base(11, position, 3, length, value, valid) { }
+		internal ClOrdID(string value) : base(11, 3, value, true) { }
 	}
 	public sealed class Commission : FixValue<FixDecimal>
 	{
-		internal Commission(int position, int length, FixDecimal value, bool valid) : base(12, position, 3, length, value, valid) { }
+		internal Commission((bool Valid, FixDecimal Value) parsed) : base(12, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CommType : FixValue<char>
 	{
-		internal CommType(int position, int length, char value, bool valid) : base(13, position, 3, length, value, valid) { }
+		internal CommType((bool Valid, char Value) parsed) : base(13, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CumQty : FixValue<FixDecimal>
 	{
-		internal CumQty(int position, int length, FixDecimal value, bool valid) : base(14, position, 3, length, value, valid) { }
+		internal CumQty((bool Valid, FixDecimal Value) parsed) : base(14, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Currency : FixValue<string>
 	{
-		internal Currency(int position, int length, string value, bool valid) : base(15, position, 3, length, value, valid) { }
+		internal Currency(string value) : base(15, 3, value, true) { }
 	}
 	public sealed class EndSeqNo : FixValue<System.Numerics.BigInteger>
 	{
-		internal EndSeqNo(int position, int length, System.Numerics.BigInteger value, bool valid) : base(16, position, 3, length, value, valid) { }
+		internal EndSeqNo((bool Valid, System.Numerics.BigInteger Value) parsed) : base(16, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ExecID : FixValue<string>
 	{
-		internal ExecID(int position, int length, string value, bool valid) : base(17, position, 3, length, value, valid) { }
+		internal ExecID(string value) : base(17, 3, value, true) { }
 	}
 	public sealed class ExecInst : FixValue<string[]>
 	{
-		internal ExecInst(int position, int length, string[] value, bool valid) : base(18, position, 3, length, value, valid) { }
+		internal ExecInst((bool Valid, string[] Value) parsed) : base(18, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ExecRefID : FixValue<string>
 	{
-		internal ExecRefID(int position, int length, string value, bool valid) : base(19, position, 3, length, value, valid) { }
+		internal ExecRefID(string value) : base(19, 3, value, true) { }
 	}
 	public sealed class HandlInst : FixValue<char>
 	{
-		internal HandlInst(int position, int length, char value, bool valid) : base(21, position, 3, length, value, valid) { }
+		internal HandlInst((bool Valid, char Value) parsed) : base(21, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SecurityIDSource : FixValue<string>
 	{
-		internal SecurityIDSource(int position, int length, string value, bool valid) : base(22, position, 3, length, value, valid) { }
+		internal SecurityIDSource(string value) : base(22, 3, value, true) { }
 	}
 	public sealed class IOIID : FixValue<string>
 	{
-		internal IOIID(int position, int length, string value, bool valid) : base(23, position, 3, length, value, valid) { }
+		internal IOIID(string value) : base(23, 3, value, true) { }
 	}
 	public sealed class IOIQltyInd : FixValue<char>
 	{
-		internal IOIQltyInd(int position, int length, char value, bool valid) : base(25, position, 3, length, value, valid) { }
+		internal IOIQltyInd((bool Valid, char Value) parsed) : base(25, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class IOIRefID : FixValue<string>
 	{
-		internal IOIRefID(int position, int length, string value, bool valid) : base(26, position, 3, length, value, valid) { }
+		internal IOIRefID(string value) : base(26, 3, value, true) { }
 	}
 	public sealed class IOIQty : FixValue<string>
 	{
-		internal IOIQty(int position, int length, string value, bool valid) : base(27, position, 3, length, value, valid) { }
+		internal IOIQty(string value) : base(27, 3, value, true) { }
 	}
 	public sealed class IOITransType : FixValue<char>
 	{
-		internal IOITransType(int position, int length, char value, bool valid) : base(28, position, 3, length, value, valid) { }
+		internal IOITransType((bool Valid, char Value) parsed) : base(28, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LastCapacity : FixValue<char>
 	{
-		internal LastCapacity(int position, int length, char value, bool valid) : base(29, position, 3, length, value, valid) { }
+		internal LastCapacity((bool Valid, char Value) parsed) : base(29, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LastMkt : FixValue<string>
 	{
-		internal LastMkt(int position, int length, string value, bool valid) : base(30, position, 3, length, value, valid) { }
+		internal LastMkt(string value) : base(30, 3, value, true) { }
 	}
 	public sealed class LastPx : FixValue<FixDecimal>
 	{
-		internal LastPx(int position, int length, FixDecimal value, bool valid) : base(31, position, 3, length, value, valid) { }
+		internal LastPx((bool Valid, FixDecimal Value) parsed) : base(31, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LastQty : FixValue<FixDecimal>
 	{
-		internal LastQty(int position, int length, FixDecimal value, bool valid) : base(32, position, 3, length, value, valid) { }
+		internal LastQty((bool Valid, FixDecimal Value) parsed) : base(32, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoLinesOfText : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoLinesOfText(int position, int length, System.Numerics.BigInteger value, bool valid) : base(33, position, 3, length, value, valid) { }
+		internal NoLinesOfText((bool Valid, System.Numerics.BigInteger Value) parsed) : base(33, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MsgSeqNum : FixValue<System.Numerics.BigInteger>
 	{
-		internal MsgSeqNum(int position, int length, System.Numerics.BigInteger value, bool valid) : base(34, position, 3, length, value, valid) { }
+		internal MsgSeqNum((bool Valid, System.Numerics.BigInteger Value) parsed) : base(34, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MsgType : FixValue<string>
 	{
-		internal MsgType(int position, int length, string value, bool valid) : base(35, position, 3, length, value, valid) { }
+		internal MsgType(string value) : base(35, 3, value, true) { }
 	}
 	public sealed class NewSeqNo : FixValue<System.Numerics.BigInteger>
 	{
-		internal NewSeqNo(int position, int length, System.Numerics.BigInteger value, bool valid) : base(36, position, 3, length, value, valid) { }
+		internal NewSeqNo((bool Valid, System.Numerics.BigInteger Value) parsed) : base(36, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OrderID : FixValue<string>
 	{
-		internal OrderID(int position, int length, string value, bool valid) : base(37, position, 3, length, value, valid) { }
+		internal OrderID(string value) : base(37, 3, value, true) { }
 	}
 	public sealed class OrderQty : FixValue<FixDecimal>
 	{
-		internal OrderQty(int position, int length, FixDecimal value, bool valid) : base(38, position, 3, length, value, valid) { }
+		internal OrderQty((bool Valid, FixDecimal Value) parsed) : base(38, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OrdStatus : FixValue<char>
 	{
-		internal OrdStatus(int position, int length, char value, bool valid) : base(39, position, 3, length, value, valid) { }
+		internal OrdStatus((bool Valid, char Value) parsed) : base(39, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OrdType : FixValue<char>
 	{
-		internal OrdType(int position, int length, char value, bool valid) : base(40, position, 3, length, value, valid) { }
+		internal OrdType((bool Valid, char Value) parsed) : base(40, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OrigClOrdID : FixValue<string>
 	{
-		internal OrigClOrdID(int position, int length, string value, bool valid) : base(41, position, 3, length, value, valid) { }
+		internal OrigClOrdID(string value) : base(41, 3, value, true) { }
 	}
 	public sealed class OrigTime : FixValue<FixTimestamp>
 	{
-		internal OrigTime(int position, int length, FixTimestamp value, bool valid) : base(42, position, 3, length, value, valid) { }
+		internal OrigTime((bool Valid, FixTimestamp Value) parsed) : base(42, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PossDupFlag : FixValue<bool>
 	{
-		internal PossDupFlag(int position, int length, bool value, bool valid) : base(43, position, 3, length, value, valid) { }
+		internal PossDupFlag((bool Valid, bool Value) parsed) : base(43, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Price : FixValue<FixDecimal>
 	{
-		internal Price(int position, int length, FixDecimal value, bool valid) : base(44, position, 3, length, value, valid) { }
+		internal Price((bool Valid, FixDecimal Value) parsed) : base(44, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RefSeqNum : FixValue<System.Numerics.BigInteger>
 	{
-		internal RefSeqNum(int position, int length, System.Numerics.BigInteger value, bool valid) : base(45, position, 3, length, value, valid) { }
+		internal RefSeqNum((bool Valid, System.Numerics.BigInteger Value) parsed) : base(45, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SecurityID : FixValue<string>
 	{
-		internal SecurityID(int position, int length, string value, bool valid) : base(48, position, 3, length, value, valid) { }
+		internal SecurityID(string value) : base(48, 3, value, true) { }
 	}
 	public sealed class SenderCompID : FixValue<string>
 	{
-		internal SenderCompID(int position, int length, string value, bool valid) : base(49, position, 3, length, value, valid) { }
+		internal SenderCompID(string value) : base(49, 3, value, true) { }
 	}
 	public sealed class SenderSubID : FixValue<string>
 	{
-		internal SenderSubID(int position, int length, string value, bool valid) : base(50, position, 3, length, value, valid) { }
+		internal SenderSubID(string value) : base(50, 3, value, true) { }
 	}
 	public sealed class SendingTime : FixValue<FixTimestamp>
 	{
-		internal SendingTime(int position, int length, FixTimestamp value, bool valid) : base(52, position, 3, length, value, valid) { }
+		internal SendingTime((bool Valid, FixTimestamp Value) parsed) : base(52, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Quantity : FixValue<FixDecimal>
 	{
-		internal Quantity(int position, int length, FixDecimal value, bool valid) : base(53, position, 3, length, value, valid) { }
+		internal Quantity((bool Valid, FixDecimal Value) parsed) : base(53, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Side : FixValue<char>
 	{
-		internal Side(int position, int length, char value, bool valid) : base(54, position, 3, length, value, valid) { }
+		internal Side((bool Valid, char Value) parsed) : base(54, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Symbol : FixValue<string>
 	{
-		internal Symbol(int position, int length, string value, bool valid) : base(55, position, 3, length, value, valid) { }
+		internal Symbol(string value) : base(55, 3, value, true) { }
 	}
 	public sealed class TargetCompID : FixValue<string>
 	{
-		internal TargetCompID(int position, int length, string value, bool valid) : base(56, position, 3, length, value, valid) { }
+		internal TargetCompID(string value) : base(56, 3, value, true) { }
 	}
 	public sealed class TargetSubID : FixValue<string>
 	{
-		internal TargetSubID(int position, int length, string value, bool valid) : base(57, position, 3, length, value, valid) { }
+		internal TargetSubID(string value) : base(57, 3, value, true) { }
 	}
 	public sealed class Text : FixValue<string>
 	{
-		internal Text(int position, int length, string value, bool valid) : base(58, position, 3, length, value, valid) { }
+		internal Text(string value) : base(58, 3, value, true) { }
 	}
 	public sealed class TimeInForce : FixValue<char>
 	{
-		internal TimeInForce(int position, int length, char value, bool valid) : base(59, position, 3, length, value, valid) { }
+		internal TimeInForce((bool Valid, char Value) parsed) : base(59, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TransactTime : FixValue<FixTimestamp>
 	{
-		internal TransactTime(int position, int length, FixTimestamp value, bool valid) : base(60, position, 3, length, value, valid) { }
+		internal TransactTime((bool Valid, FixTimestamp Value) parsed) : base(60, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Urgency : FixValue<char>
 	{
-		internal Urgency(int position, int length, char value, bool valid) : base(61, position, 3, length, value, valid) { }
+		internal Urgency((bool Valid, char Value) parsed) : base(61, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ValidUntilTime : FixValue<FixTimestamp>
 	{
-		internal ValidUntilTime(int position, int length, FixTimestamp value, bool valid) : base(62, position, 3, length, value, valid) { }
+		internal ValidUntilTime((bool Valid, FixTimestamp Value) parsed) : base(62, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SettlType : FixValue<char>
 	{
-		internal SettlType(int position, int length, char value, bool valid) : base(63, position, 3, length, value, valid) { }
+		internal SettlType((bool Valid, char Value) parsed) : base(63, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SettlDate : FixValue<FixDate>
 	{
-		internal SettlDate(int position, int length, FixDate value, bool valid) : base(64, position, 3, length, value, valid) { }
+		internal SettlDate((bool Valid, FixDate Value) parsed) : base(64, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SymbolSfx : FixValue<string>
 	{
-		internal SymbolSfx(int position, int length, string value, bool valid) : base(65, position, 3, length, value, valid) { }
+		internal SymbolSfx(string value) : base(65, 3, value, true) { }
 	}
 	public sealed class ListID : FixValue<string>
 	{
-		internal ListID(int position, int length, string value, bool valid) : base(66, position, 3, length, value, valid) { }
+		internal ListID(string value) : base(66, 3, value, true) { }
 	}
 	public sealed class ListSeqNo : FixValue<System.Numerics.BigInteger>
 	{
-		internal ListSeqNo(int position, int length, System.Numerics.BigInteger value, bool valid) : base(67, position, 3, length, value, valid) { }
+		internal ListSeqNo((bool Valid, System.Numerics.BigInteger Value) parsed) : base(67, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TotNoOrders : FixValue<System.Numerics.BigInteger>
 	{
-		internal TotNoOrders(int position, int length, System.Numerics.BigInteger value, bool valid) : base(68, position, 3, length, value, valid) { }
+		internal TotNoOrders((bool Valid, System.Numerics.BigInteger Value) parsed) : base(68, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ListExecInst : FixValue<string>
 	{
-		internal ListExecInst(int position, int length, string value, bool valid) : base(69, position, 3, length, value, valid) { }
+		internal ListExecInst(string value) : base(69, 3, value, true) { }
 	}
 	public sealed class AllocID : FixValue<string>
 	{
-		internal AllocID(int position, int length, string value, bool valid) : base(70, position, 3, length, value, valid) { }
+		internal AllocID(string value) : base(70, 3, value, true) { }
 	}
 	public sealed class AllocTransType : FixValue<char>
 	{
-		internal AllocTransType(int position, int length, char value, bool valid) : base(71, position, 3, length, value, valid) { }
+		internal AllocTransType((bool Valid, char Value) parsed) : base(71, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RefAllocID : FixValue<string>
 	{
-		internal RefAllocID(int position, int length, string value, bool valid) : base(72, position, 3, length, value, valid) { }
+		internal RefAllocID(string value) : base(72, 3, value, true) { }
 	}
 	public sealed class NoOrders : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoOrders(int position, int length, System.Numerics.BigInteger value, bool valid) : base(73, position, 3, length, value, valid) { }
+		internal NoOrders((bool Valid, System.Numerics.BigInteger Value) parsed) : base(73, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AvgPxPrecision : FixValue<System.Numerics.BigInteger>
 	{
-		internal AvgPxPrecision(int position, int length, System.Numerics.BigInteger value, bool valid) : base(74, position, 3, length, value, valid) { }
+		internal AvgPxPrecision((bool Valid, System.Numerics.BigInteger Value) parsed) : base(74, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradeDate : FixValue<FixDate>
 	{
-		internal TradeDate(int position, int length, FixDate value, bool valid) : base(75, position, 3, length, value, valid) { }
+		internal TradeDate((bool Valid, FixDate Value) parsed) : base(75, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PositionEffect : FixValue<char>
 	{
-		internal PositionEffect(int position, int length, char value, bool valid) : base(77, position, 3, length, value, valid) { }
+		internal PositionEffect((bool Valid, char Value) parsed) : base(77, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoAllocs : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoAllocs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(78, position, 3, length, value, valid) { }
+		internal NoAllocs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(78, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocAccount : FixValue<string>
 	{
-		internal AllocAccount(int position, int length, string value, bool valid) : base(79, position, 3, length, value, valid) { }
+		internal AllocAccount(string value) : base(79, 3, value, true) { }
 	}
 	public sealed class AllocQty : FixValue<FixDecimal>
 	{
-		internal AllocQty(int position, int length, FixDecimal value, bool valid) : base(80, position, 3, length, value, valid) { }
+		internal AllocQty((bool Valid, FixDecimal Value) parsed) : base(80, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ProcessCode : FixValue<char>
 	{
-		internal ProcessCode(int position, int length, char value, bool valid) : base(81, position, 3, length, value, valid) { }
+		internal ProcessCode((bool Valid, char Value) parsed) : base(81, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoRpts : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoRpts(int position, int length, System.Numerics.BigInteger value, bool valid) : base(82, position, 3, length, value, valid) { }
+		internal NoRpts((bool Valid, System.Numerics.BigInteger Value) parsed) : base(82, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RptSeq : FixValue<System.Numerics.BigInteger>
 	{
-		internal RptSeq(int position, int length, System.Numerics.BigInteger value, bool valid) : base(83, position, 3, length, value, valid) { }
+		internal RptSeq((bool Valid, System.Numerics.BigInteger Value) parsed) : base(83, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CxlQty : FixValue<FixDecimal>
 	{
-		internal CxlQty(int position, int length, FixDecimal value, bool valid) : base(84, position, 3, length, value, valid) { }
+		internal CxlQty((bool Valid, FixDecimal Value) parsed) : base(84, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoDlvyInst : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoDlvyInst(int position, int length, System.Numerics.BigInteger value, bool valid) : base(85, position, 3, length, value, valid) { }
+		internal NoDlvyInst((bool Valid, System.Numerics.BigInteger Value) parsed) : base(85, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocStatus : FixValue<System.Numerics.BigInteger>
 	{
-		internal AllocStatus(int position, int length, System.Numerics.BigInteger value, bool valid) : base(87, position, 3, length, value, valid) { }
+		internal AllocStatus((bool Valid, System.Numerics.BigInteger Value) parsed) : base(87, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocRejCode : FixValue<System.Numerics.BigInteger>
 	{
-		internal AllocRejCode(int position, int length, System.Numerics.BigInteger value, bool valid) : base(88, position, 3, length, value, valid) { }
+		internal AllocRejCode((bool Valid, System.Numerics.BigInteger Value) parsed) : base(88, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Signature : FixValue<ReadOnlyMemory<byte>>
 	{
-		internal Signature(int position, int length, ReadOnlyMemory<byte> value, bool valid) : base(89, position, 3, length, value, valid) { }
+		internal Signature((bool Valid, ReadOnlyMemory<byte> Value) parsed) : base(89, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SecureDataLen : FixValue<System.Numerics.BigInteger>
 	{
-		internal SecureDataLen(int position, int length, System.Numerics.BigInteger value, bool valid) : base(90, position, 3, length, value, valid) { }
+		internal SecureDataLen((bool Valid, System.Numerics.BigInteger Value) parsed) : base(90, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SecureData : FixValue<ReadOnlyMemory<byte>>
 	{
-		internal SecureData(int position, int length, ReadOnlyMemory<byte> value, bool valid) : base(91, position, 3, length, value, valid) { }
+		internal SecureData((bool Valid, ReadOnlyMemory<byte> Value) parsed) : base(91, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SignatureLength : FixValue<System.Numerics.BigInteger>
 	{
-		internal SignatureLength(int position, int length, System.Numerics.BigInteger value, bool valid) : base(93, position, 3, length, value, valid) { }
+		internal SignatureLength((bool Valid, System.Numerics.BigInteger Value) parsed) : base(93, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EmailType : FixValue<char>
 	{
-		internal EmailType(int position, int length, char value, bool valid) : base(94, position, 3, length, value, valid) { }
+		internal EmailType((bool Valid, char Value) parsed) : base(94, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RawDataLength : FixValue<System.Numerics.BigInteger>
 	{
-		internal RawDataLength(int position, int length, System.Numerics.BigInteger value, bool valid) : base(95, position, 3, length, value, valid) { }
+		internal RawDataLength((bool Valid, System.Numerics.BigInteger Value) parsed) : base(95, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RawData : FixValue<ReadOnlyMemory<byte>>
 	{
-		internal RawData(int position, int length, ReadOnlyMemory<byte> value, bool valid) : base(96, position, 3, length, value, valid) { }
+		internal RawData((bool Valid, ReadOnlyMemory<byte> Value) parsed) : base(96, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PossResend : FixValue<bool>
 	{
-		internal PossResend(int position, int length, bool value, bool valid) : base(97, position, 3, length, value, valid) { }
+		internal PossResend((bool Valid, bool Value) parsed) : base(97, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncryptMethod : FixValue<System.Numerics.BigInteger>
 	{
-		internal EncryptMethod(int position, int length, System.Numerics.BigInteger value, bool valid) : base(98, position, 3, length, value, valid) { }
+		internal EncryptMethod((bool Valid, System.Numerics.BigInteger Value) parsed) : base(98, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class StopPx : FixValue<FixDecimal>
 	{
-		internal StopPx(int position, int length, FixDecimal value, bool valid) : base(99, position, 3, length, value, valid) { }
+		internal StopPx((bool Valid, FixDecimal Value) parsed) : base(99, 3, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ExDestination : FixValue<string>
 	{
-		internal ExDestination(int position, int length, string value, bool valid) : base(100, position, 4, length, value, valid) { }
+		internal ExDestination(string value) : base(100, 4, value, true) { }
 	}
 	public sealed class CxlRejReason : FixValue<System.Numerics.BigInteger>
 	{
-		internal CxlRejReason(int position, int length, System.Numerics.BigInteger value, bool valid) : base(102, position, 4, length, value, valid) { }
+		internal CxlRejReason((bool Valid, System.Numerics.BigInteger Value) parsed) : base(102, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OrdRejReason : FixValue<System.Numerics.BigInteger>
 	{
-		internal OrdRejReason(int position, int length, System.Numerics.BigInteger value, bool valid) : base(103, position, 4, length, value, valid) { }
+		internal OrdRejReason((bool Valid, System.Numerics.BigInteger Value) parsed) : base(103, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class IOIQualifier : FixValue<char>
 	{
-		internal IOIQualifier(int position, int length, char value, bool valid) : base(104, position, 4, length, value, valid) { }
+		internal IOIQualifier((bool Valid, char Value) parsed) : base(104, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Issuer : FixValue<string>
 	{
-		internal Issuer(int position, int length, string value, bool valid) : base(106, position, 4, length, value, valid) { }
+		internal Issuer(string value) : base(106, 4, value, true) { }
 	}
 	public sealed class SecurityDesc : FixValue<string>
 	{
-		internal SecurityDesc(int position, int length, string value, bool valid) : base(107, position, 4, length, value, valid) { }
+		internal SecurityDesc(string value) : base(107, 4, value, true) { }
 	}
 	public sealed class HeartBtInt : FixValue<System.Numerics.BigInteger>
 	{
-		internal HeartBtInt(int position, int length, System.Numerics.BigInteger value, bool valid) : base(108, position, 4, length, value, valid) { }
+		internal HeartBtInt((bool Valid, System.Numerics.BigInteger Value) parsed) : base(108, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MinQty : FixValue<FixDecimal>
 	{
-		internal MinQty(int position, int length, FixDecimal value, bool valid) : base(110, position, 4, length, value, valid) { }
+		internal MinQty((bool Valid, FixDecimal Value) parsed) : base(110, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MaxFloor : FixValue<FixDecimal>
 	{
-		internal MaxFloor(int position, int length, FixDecimal value, bool valid) : base(111, position, 4, length, value, valid) { }
+		internal MaxFloor((bool Valid, FixDecimal Value) parsed) : base(111, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TestReqID : FixValue<string>
 	{
-		internal TestReqID(int position, int length, string value, bool valid) : base(112, position, 4, length, value, valid) { }
+		internal TestReqID(string value) : base(112, 4, value, true) { }
 	}
 	public sealed class ReportToExch : FixValue<bool>
 	{
-		internal ReportToExch(int position, int length, bool value, bool valid) : base(113, position, 4, length, value, valid) { }
+		internal ReportToExch((bool Valid, bool Value) parsed) : base(113, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LocateReqd : FixValue<bool>
 	{
-		internal LocateReqd(int position, int length, bool value, bool valid) : base(114, position, 4, length, value, valid) { }
+		internal LocateReqd((bool Valid, bool Value) parsed) : base(114, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OnBehalfOfCompID : FixValue<string>
 	{
-		internal OnBehalfOfCompID(int position, int length, string value, bool valid) : base(115, position, 4, length, value, valid) { }
+		internal OnBehalfOfCompID(string value) : base(115, 4, value, true) { }
 	}
 	public sealed class OnBehalfOfSubID : FixValue<string>
 	{
-		internal OnBehalfOfSubID(int position, int length, string value, bool valid) : base(116, position, 4, length, value, valid) { }
+		internal OnBehalfOfSubID(string value) : base(116, 4, value, true) { }
 	}
 	public sealed class QuoteID : FixValue<string>
 	{
-		internal QuoteID(int position, int length, string value, bool valid) : base(117, position, 4, length, value, valid) { }
+		internal QuoteID(string value) : base(117, 4, value, true) { }
 	}
 	public sealed class NetMoney : FixValue<FixDecimal>
 	{
-		internal NetMoney(int position, int length, FixDecimal value, bool valid) : base(118, position, 4, length, value, valid) { }
+		internal NetMoney((bool Valid, FixDecimal Value) parsed) : base(118, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SettlCurrAmt : FixValue<FixDecimal>
 	{
-		internal SettlCurrAmt(int position, int length, FixDecimal value, bool valid) : base(119, position, 4, length, value, valid) { }
+		internal SettlCurrAmt((bool Valid, FixDecimal Value) parsed) : base(119, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SettlCurrency : FixValue<string>
 	{
-		internal SettlCurrency(int position, int length, string value, bool valid) : base(120, position, 4, length, value, valid) { }
+		internal SettlCurrency(string value) : base(120, 4, value, true) { }
 	}
 	public sealed class ForexReq : FixValue<bool>
 	{
-		internal ForexReq(int position, int length, bool value, bool valid) : base(121, position, 4, length, value, valid) { }
+		internal ForexReq((bool Valid, bool Value) parsed) : base(121, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OrigSendingTime : FixValue<FixTimestamp>
 	{
-		internal OrigSendingTime(int position, int length, FixTimestamp value, bool valid) : base(122, position, 4, length, value, valid) { }
+		internal OrigSendingTime((bool Valid, FixTimestamp Value) parsed) : base(122, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class GapFillFlag : FixValue<bool>
 	{
-		internal GapFillFlag(int position, int length, bool value, bool valid) : base(123, position, 4, length, value, valid) { }
+		internal GapFillFlag((bool Valid, bool Value) parsed) : base(123, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoExecs : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoExecs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(124, position, 4, length, value, valid) { }
+		internal NoExecs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(124, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ExpireTime : FixValue<FixTimestamp>
 	{
-		internal ExpireTime(int position, int length, FixTimestamp value, bool valid) : base(126, position, 4, length, value, valid) { }
+		internal ExpireTime((bool Valid, FixTimestamp Value) parsed) : base(126, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DKReason : FixValue<char>
 	{
-		internal DKReason(int position, int length, char value, bool valid) : base(127, position, 4, length, value, valid) { }
+		internal DKReason((bool Valid, char Value) parsed) : base(127, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DeliverToCompID : FixValue<string>
 	{
-		internal DeliverToCompID(int position, int length, string value, bool valid) : base(128, position, 4, length, value, valid) { }
+		internal DeliverToCompID(string value) : base(128, 4, value, true) { }
 	}
 	public sealed class DeliverToSubID : FixValue<string>
 	{
-		internal DeliverToSubID(int position, int length, string value, bool valid) : base(129, position, 4, length, value, valid) { }
+		internal DeliverToSubID(string value) : base(129, 4, value, true) { }
 	}
 	public sealed class IOINaturalFlag : FixValue<bool>
 	{
-		internal IOINaturalFlag(int position, int length, bool value, bool valid) : base(130, position, 4, length, value, valid) { }
+		internal IOINaturalFlag((bool Valid, bool Value) parsed) : base(130, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class QuoteReqID : FixValue<string>
 	{
-		internal QuoteReqID(int position, int length, string value, bool valid) : base(131, position, 4, length, value, valid) { }
+		internal QuoteReqID(string value) : base(131, 4, value, true) { }
 	}
 	public sealed class BidPx : FixValue<FixDecimal>
 	{
-		internal BidPx(int position, int length, FixDecimal value, bool valid) : base(132, position, 4, length, value, valid) { }
+		internal BidPx((bool Valid, FixDecimal Value) parsed) : base(132, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OfferPx : FixValue<FixDecimal>
 	{
-		internal OfferPx(int position, int length, FixDecimal value, bool valid) : base(133, position, 4, length, value, valid) { }
+		internal OfferPx((bool Valid, FixDecimal Value) parsed) : base(133, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BidSize : FixValue<FixDecimal>
 	{
-		internal BidSize(int position, int length, FixDecimal value, bool valid) : base(134, position, 4, length, value, valid) { }
+		internal BidSize((bool Valid, FixDecimal Value) parsed) : base(134, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OfferSize : FixValue<FixDecimal>
 	{
-		internal OfferSize(int position, int length, FixDecimal value, bool valid) : base(135, position, 4, length, value, valid) { }
+		internal OfferSize((bool Valid, FixDecimal Value) parsed) : base(135, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoMiscFees : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoMiscFees(int position, int length, System.Numerics.BigInteger value, bool valid) : base(136, position, 4, length, value, valid) { }
+		internal NoMiscFees((bool Valid, System.Numerics.BigInteger Value) parsed) : base(136, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MiscFeeAmt : FixValue<FixDecimal>
 	{
-		internal MiscFeeAmt(int position, int length, FixDecimal value, bool valid) : base(137, position, 4, length, value, valid) { }
+		internal MiscFeeAmt((bool Valid, FixDecimal Value) parsed) : base(137, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MiscFeeCurr : FixValue<string>
 	{
-		internal MiscFeeCurr(int position, int length, string value, bool valid) : base(138, position, 4, length, value, valid) { }
+		internal MiscFeeCurr(string value) : base(138, 4, value, true) { }
 	}
 	public sealed class MiscFeeType : FixValue<string>
 	{
-		internal MiscFeeType(int position, int length, string value, bool valid) : base(139, position, 4, length, value, valid) { }
+		internal MiscFeeType(string value) : base(139, 4, value, true) { }
 	}
 	public sealed class PrevClosePx : FixValue<FixDecimal>
 	{
-		internal PrevClosePx(int position, int length, FixDecimal value, bool valid) : base(140, position, 4, length, value, valid) { }
+		internal PrevClosePx((bool Valid, FixDecimal Value) parsed) : base(140, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ResetSeqNumFlag : FixValue<bool>
 	{
-		internal ResetSeqNumFlag(int position, int length, bool value, bool valid) : base(141, position, 4, length, value, valid) { }
+		internal ResetSeqNumFlag((bool Valid, bool Value) parsed) : base(141, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SenderLocationID : FixValue<string>
 	{
-		internal SenderLocationID(int position, int length, string value, bool valid) : base(142, position, 4, length, value, valid) { }
+		internal SenderLocationID(string value) : base(142, 4, value, true) { }
 	}
 	public sealed class TargetLocationID : FixValue<string>
 	{
-		internal TargetLocationID(int position, int length, string value, bool valid) : base(143, position, 4, length, value, valid) { }
+		internal TargetLocationID(string value) : base(143, 4, value, true) { }
 	}
 	public sealed class OnBehalfOfLocationID : FixValue<string>
 	{
-		internal OnBehalfOfLocationID(int position, int length, string value, bool valid) : base(144, position, 4, length, value, valid) { }
+		internal OnBehalfOfLocationID(string value) : base(144, 4, value, true) { }
 	}
 	public sealed class DeliverToLocationID : FixValue<string>
 	{
-		internal DeliverToLocationID(int position, int length, string value, bool valid) : base(145, position, 4, length, value, valid) { }
+		internal DeliverToLocationID(string value) : base(145, 4, value, true) { }
 	}
 	public sealed class NoRelatedSym : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoRelatedSym(int position, int length, System.Numerics.BigInteger value, bool valid) : base(146, position, 4, length, value, valid) { }
+		internal NoRelatedSym((bool Valid, System.Numerics.BigInteger Value) parsed) : base(146, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Subject : FixValue<string>
 	{
-		internal Subject(int position, int length, string value, bool valid) : base(147, position, 4, length, value, valid) { }
+		internal Subject(string value) : base(147, 4, value, true) { }
 	}
 	public sealed class Headline : FixValue<string>
 	{
-		internal Headline(int position, int length, string value, bool valid) : base(148, position, 4, length, value, valid) { }
+		internal Headline(string value) : base(148, 4, value, true) { }
 	}
 	public sealed class URLLink : FixValue<string>
 	{
-		internal URLLink(int position, int length, string value, bool valid) : base(149, position, 4, length, value, valid) { }
+		internal URLLink(string value) : base(149, 4, value, true) { }
 	}
 	public sealed class ExecType : FixValue<char>
 	{
-		internal ExecType(int position, int length, char value, bool valid) : base(150, position, 4, length, value, valid) { }
+		internal ExecType((bool Valid, char Value) parsed) : base(150, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LeavesQty : FixValue<FixDecimal>
 	{
-		internal LeavesQty(int position, int length, FixDecimal value, bool valid) : base(151, position, 4, length, value, valid) { }
+		internal LeavesQty((bool Valid, FixDecimal Value) parsed) : base(151, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CashOrderQty : FixValue<FixDecimal>
 	{
-		internal CashOrderQty(int position, int length, FixDecimal value, bool valid) : base(152, position, 4, length, value, valid) { }
+		internal CashOrderQty((bool Valid, FixDecimal Value) parsed) : base(152, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocAvgPx : FixValue<FixDecimal>
 	{
-		internal AllocAvgPx(int position, int length, FixDecimal value, bool valid) : base(153, position, 4, length, value, valid) { }
+		internal AllocAvgPx((bool Valid, FixDecimal Value) parsed) : base(153, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocNetMoney : FixValue<FixDecimal>
 	{
-		internal AllocNetMoney(int position, int length, FixDecimal value, bool valid) : base(154, position, 4, length, value, valid) { }
+		internal AllocNetMoney((bool Valid, FixDecimal Value) parsed) : base(154, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SettlCurrFxRate : FixValue<FixDecimal>
 	{
-		internal SettlCurrFxRate(int position, int length, FixDecimal value, bool valid) : base(155, position, 4, length, value, valid) { }
+		internal SettlCurrFxRate((bool Valid, FixDecimal Value) parsed) : base(155, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SettlCurrFxRateCalc : FixValue<char>
 	{
-		internal SettlCurrFxRateCalc(int position, int length, char value, bool valid) : base(156, position, 4, length, value, valid) { }
+		internal SettlCurrFxRateCalc((bool Valid, char Value) parsed) : base(156, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NumDaysInterest : FixValue<System.Numerics.BigInteger>
 	{
-		internal NumDaysInterest(int position, int length, System.Numerics.BigInteger value, bool valid) : base(157, position, 4, length, value, valid) { }
+		internal NumDaysInterest((bool Valid, System.Numerics.BigInteger Value) parsed) : base(157, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AccruedInterestRate : FixValue<FixDecimal>
 	{
-		internal AccruedInterestRate(int position, int length, FixDecimal value, bool valid) : base(158, position, 4, length, value, valid) { }
+		internal AccruedInterestRate((bool Valid, FixDecimal Value) parsed) : base(158, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AccruedInterestAmt : FixValue<FixDecimal>
 	{
-		internal AccruedInterestAmt(int position, int length, FixDecimal value, bool valid) : base(159, position, 4, length, value, valid) { }
+		internal AccruedInterestAmt((bool Valid, FixDecimal Value) parsed) : base(159, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SettlInstMode : FixValue<char>
 	{
-		internal SettlInstMode(int position, int length, char value, bool valid) : base(160, position, 4, length, value, valid) { }
+		internal SettlInstMode((bool Valid, char Value) parsed) : base(160, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocText : FixValue<string>
 	{
-		internal AllocText(int position, int length, string value, bool valid) : base(161, position, 4, length, value, valid) { }
+		internal AllocText(string value) : base(161, 4, value, true) { }
 	}
 	public sealed class SettlInstID : FixValue<string>
 	{
-		internal SettlInstID(int position, int length, string value, bool valid) : base(162, position, 4, length, value, valid) { }
+		internal SettlInstID(string value) : base(162, 4, value, true) { }
 	}
 	public sealed class SettlInstTransType : FixValue<char>
 	{
-		internal SettlInstTransType(int position, int length, char value, bool valid) : base(163, position, 4, length, value, valid) { }
+		internal SettlInstTransType((bool Valid, char Value) parsed) : base(163, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EmailThreadID : FixValue<string>
 	{
-		internal EmailThreadID(int position, int length, string value, bool valid) : base(164, position, 4, length, value, valid) { }
+		internal EmailThreadID(string value) : base(164, 4, value, true) { }
 	}
 	public sealed class SettlInstSource : FixValue<char>
 	{
-		internal SettlInstSource(int position, int length, char value, bool valid) : base(165, position, 4, length, value, valid) { }
+		internal SettlInstSource((bool Valid, char Value) parsed) : base(165, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SecurityType : FixValue<string>
 	{
-		internal SecurityType(int position, int length, string value, bool valid) : base(167, position, 4, length, value, valid) { }
+		internal SecurityType(string value) : base(167, 4, value, true) { }
 	}
 	public sealed class EffectiveTime : FixValue<FixTimestamp>
 	{
-		internal EffectiveTime(int position, int length, FixTimestamp value, bool valid) : base(168, position, 4, length, value, valid) { }
+		internal EffectiveTime((bool Valid, FixTimestamp Value) parsed) : base(168, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class StandInstDbType : FixValue<System.Numerics.BigInteger>
 	{
-		internal StandInstDbType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(169, position, 4, length, value, valid) { }
+		internal StandInstDbType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(169, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class StandInstDbName : FixValue<string>
 	{
-		internal StandInstDbName(int position, int length, string value, bool valid) : base(170, position, 4, length, value, valid) { }
+		internal StandInstDbName(string value) : base(170, 4, value, true) { }
 	}
 	public sealed class StandInstDbID : FixValue<string>
 	{
-		internal StandInstDbID(int position, int length, string value, bool valid) : base(171, position, 4, length, value, valid) { }
+		internal StandInstDbID(string value) : base(171, 4, value, true) { }
 	}
 	public sealed class SettlDeliveryType : FixValue<System.Numerics.BigInteger>
 	{
-		internal SettlDeliveryType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(172, position, 4, length, value, valid) { }
+		internal SettlDeliveryType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(172, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BidSpotRate : FixValue<FixDecimal>
 	{
-		internal BidSpotRate(int position, int length, FixDecimal value, bool valid) : base(188, position, 4, length, value, valid) { }
+		internal BidSpotRate((bool Valid, FixDecimal Value) parsed) : base(188, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BidForwardPoints : FixValue<FixDecimal>
 	{
-		internal BidForwardPoints(int position, int length, FixDecimal value, bool valid) : base(189, position, 4, length, value, valid) { }
+		internal BidForwardPoints((bool Valid, FixDecimal Value) parsed) : base(189, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OfferSpotRate : FixValue<FixDecimal>
 	{
-		internal OfferSpotRate(int position, int length, FixDecimal value, bool valid) : base(190, position, 4, length, value, valid) { }
+		internal OfferSpotRate((bool Valid, FixDecimal Value) parsed) : base(190, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OfferForwardPoints : FixValue<FixDecimal>
 	{
-		internal OfferForwardPoints(int position, int length, FixDecimal value, bool valid) : base(191, position, 4, length, value, valid) { }
+		internal OfferForwardPoints((bool Valid, FixDecimal Value) parsed) : base(191, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OrderQty2 : FixValue<FixDecimal>
 	{
-		internal OrderQty2(int position, int length, FixDecimal value, bool valid) : base(192, position, 4, length, value, valid) { }
+		internal OrderQty2((bool Valid, FixDecimal Value) parsed) : base(192, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SettlDate2 : FixValue<FixDate>
 	{
-		internal SettlDate2(int position, int length, FixDate value, bool valid) : base(193, position, 4, length, value, valid) { }
+		internal SettlDate2((bool Valid, FixDate Value) parsed) : base(193, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LastSpotRate : FixValue<FixDecimal>
 	{
-		internal LastSpotRate(int position, int length, FixDecimal value, bool valid) : base(194, position, 4, length, value, valid) { }
+		internal LastSpotRate((bool Valid, FixDecimal Value) parsed) : base(194, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LastForwardPoints : FixValue<FixDecimal>
 	{
-		internal LastForwardPoints(int position, int length, FixDecimal value, bool valid) : base(195, position, 4, length, value, valid) { }
+		internal LastForwardPoints((bool Valid, FixDecimal Value) parsed) : base(195, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocLinkID : FixValue<string>
 	{
-		internal AllocLinkID(int position, int length, string value, bool valid) : base(196, position, 4, length, value, valid) { }
+		internal AllocLinkID(string value) : base(196, 4, value, true) { }
 	}
 	public sealed class AllocLinkType : FixValue<System.Numerics.BigInteger>
 	{
-		internal AllocLinkType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(197, position, 4, length, value, valid) { }
+		internal AllocLinkType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(197, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SecondaryOrderID : FixValue<string>
 	{
-		internal SecondaryOrderID(int position, int length, string value, bool valid) : base(198, position, 4, length, value, valid) { }
+		internal SecondaryOrderID(string value) : base(198, 4, value, true) { }
 	}
 	public sealed class NoIOIQualifiers : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoIOIQualifiers(int position, int length, System.Numerics.BigInteger value, bool valid) : base(199, position, 4, length, value, valid) { }
+		internal NoIOIQualifiers((bool Valid, System.Numerics.BigInteger Value) parsed) : base(199, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MaturityMonthYear : FixValue<FixMonthYear>
 	{
-		internal MaturityMonthYear(int position, int length, FixMonthYear value, bool valid) : base(200, position, 4, length, value, valid) { }
+		internal MaturityMonthYear((bool Valid, FixMonthYear Value) parsed) : base(200, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PutOrCall : FixValue<System.Numerics.BigInteger>
 	{
-		internal PutOrCall(int position, int length, System.Numerics.BigInteger value, bool valid) : base(201, position, 4, length, value, valid) { }
+		internal PutOrCall((bool Valid, System.Numerics.BigInteger Value) parsed) : base(201, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class StrikePrice : FixValue<FixDecimal>
 	{
-		internal StrikePrice(int position, int length, FixDecimal value, bool valid) : base(202, position, 4, length, value, valid) { }
+		internal StrikePrice((bool Valid, FixDecimal Value) parsed) : base(202, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CoveredOrUncovered : FixValue<System.Numerics.BigInteger>
 	{
-		internal CoveredOrUncovered(int position, int length, System.Numerics.BigInteger value, bool valid) : base(203, position, 4, length, value, valid) { }
+		internal CoveredOrUncovered((bool Valid, System.Numerics.BigInteger Value) parsed) : base(203, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OptAttribute : FixValue<char>
 	{
-		internal OptAttribute(int position, int length, char value, bool valid) : base(206, position, 4, length, value, valid) { }
+		internal OptAttribute((bool Valid, char Value) parsed) : base(206, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SecurityExchange : FixValue<string>
 	{
-		internal SecurityExchange(int position, int length, string value, bool valid) : base(207, position, 4, length, value, valid) { }
+		internal SecurityExchange(string value) : base(207, 4, value, true) { }
 	}
 	public sealed class NotifyBrokerOfCredit : FixValue<bool>
 	{
-		internal NotifyBrokerOfCredit(int position, int length, bool value, bool valid) : base(208, position, 4, length, value, valid) { }
+		internal NotifyBrokerOfCredit((bool Valid, bool Value) parsed) : base(208, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocHandlInst : FixValue<System.Numerics.BigInteger>
 	{
-		internal AllocHandlInst(int position, int length, System.Numerics.BigInteger value, bool valid) : base(209, position, 4, length, value, valid) { }
+		internal AllocHandlInst((bool Valid, System.Numerics.BigInteger Value) parsed) : base(209, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MaxShow : FixValue<FixDecimal>
 	{
-		internal MaxShow(int position, int length, FixDecimal value, bool valid) : base(210, position, 4, length, value, valid) { }
+		internal MaxShow((bool Valid, FixDecimal Value) parsed) : base(210, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PegOffsetValue : FixValue<FixDecimal>
 	{
-		internal PegOffsetValue(int position, int length, FixDecimal value, bool valid) : base(211, position, 4, length, value, valid) { }
+		internal PegOffsetValue((bool Valid, FixDecimal Value) parsed) : base(211, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class XmlDataLen : FixValue<System.Numerics.BigInteger>
 	{
-		internal XmlDataLen(int position, int length, System.Numerics.BigInteger value, bool valid) : base(212, position, 4, length, value, valid) { }
+		internal XmlDataLen((bool Valid, System.Numerics.BigInteger Value) parsed) : base(212, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class XmlData : FixValue<ReadOnlyMemory<byte>>
 	{
-		internal XmlData(int position, int length, ReadOnlyMemory<byte> value, bool valid) : base(213, position, 4, length, value, valid) { }
+		internal XmlData((bool Valid, ReadOnlyMemory<byte> Value) parsed) : base(213, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SettlInstRefID : FixValue<string>
 	{
-		internal SettlInstRefID(int position, int length, string value, bool valid) : base(214, position, 4, length, value, valid) { }
+		internal SettlInstRefID(string value) : base(214, 4, value, true) { }
 	}
 	public sealed class NoRoutingIDs : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoRoutingIDs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(215, position, 4, length, value, valid) { }
+		internal NoRoutingIDs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(215, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RoutingType : FixValue<System.Numerics.BigInteger>
 	{
-		internal RoutingType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(216, position, 4, length, value, valid) { }
+		internal RoutingType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(216, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RoutingID : FixValue<string>
 	{
-		internal RoutingID(int position, int length, string value, bool valid) : base(217, position, 4, length, value, valid) { }
+		internal RoutingID(string value) : base(217, 4, value, true) { }
 	}
 	public sealed class Spread : FixValue<FixDecimal>
 	{
-		internal Spread(int position, int length, FixDecimal value, bool valid) : base(218, position, 4, length, value, valid) { }
+		internal Spread((bool Valid, FixDecimal Value) parsed) : base(218, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BenchmarkCurveCurrency : FixValue<string>
 	{
-		internal BenchmarkCurveCurrency(int position, int length, string value, bool valid) : base(220, position, 4, length, value, valid) { }
+		internal BenchmarkCurveCurrency(string value) : base(220, 4, value, true) { }
 	}
 	public sealed class BenchmarkCurveName : FixValue<string>
 	{
-		internal BenchmarkCurveName(int position, int length, string value, bool valid) : base(221, position, 4, length, value, valid) { }
+		internal BenchmarkCurveName(string value) : base(221, 4, value, true) { }
 	}
 	public sealed class BenchmarkCurvePoint : FixValue<string>
 	{
-		internal BenchmarkCurvePoint(int position, int length, string value, bool valid) : base(222, position, 4, length, value, valid) { }
+		internal BenchmarkCurvePoint(string value) : base(222, 4, value, true) { }
 	}
 	public sealed class CouponRate : FixValue<FixDecimal>
 	{
-		internal CouponRate(int position, int length, FixDecimal value, bool valid) : base(223, position, 4, length, value, valid) { }
+		internal CouponRate((bool Valid, FixDecimal Value) parsed) : base(223, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CouponPaymentDate : FixValue<FixDate>
 	{
-		internal CouponPaymentDate(int position, int length, FixDate value, bool valid) : base(224, position, 4, length, value, valid) { }
+		internal CouponPaymentDate((bool Valid, FixDate Value) parsed) : base(224, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class IssueDate : FixValue<FixDate>
 	{
-		internal IssueDate(int position, int length, FixDate value, bool valid) : base(225, position, 4, length, value, valid) { }
+		internal IssueDate((bool Valid, FixDate Value) parsed) : base(225, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RepurchaseTerm : FixValue<System.Numerics.BigInteger>
 	{
-		internal RepurchaseTerm(int position, int length, System.Numerics.BigInteger value, bool valid) : base(226, position, 4, length, value, valid) { }
+		internal RepurchaseTerm((bool Valid, System.Numerics.BigInteger Value) parsed) : base(226, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RepurchaseRate : FixValue<FixDecimal>
 	{
-		internal RepurchaseRate(int position, int length, FixDecimal value, bool valid) : base(227, position, 4, length, value, valid) { }
+		internal RepurchaseRate((bool Valid, FixDecimal Value) parsed) : base(227, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Factor : FixValue<FixDecimal>
 	{
-		internal Factor(int position, int length, FixDecimal value, bool valid) : base(228, position, 4, length, value, valid) { }
+		internal Factor((bool Valid, FixDecimal Value) parsed) : base(228, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradeOriginationDate : FixValue<FixDate>
 	{
-		internal TradeOriginationDate(int position, int length, FixDate value, bool valid) : base(229, position, 4, length, value, valid) { }
+		internal TradeOriginationDate((bool Valid, FixDate Value) parsed) : base(229, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ExDate : FixValue<FixDate>
 	{
-		internal ExDate(int position, int length, FixDate value, bool valid) : base(230, position, 4, length, value, valid) { }
+		internal ExDate((bool Valid, FixDate Value) parsed) : base(230, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ContractMultiplier : FixValue<FixDecimal>
 	{
-		internal ContractMultiplier(int position, int length, FixDecimal value, bool valid) : base(231, position, 4, length, value, valid) { }
+		internal ContractMultiplier((bool Valid, FixDecimal Value) parsed) : base(231, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoStipulations : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoStipulations(int position, int length, System.Numerics.BigInteger value, bool valid) : base(232, position, 4, length, value, valid) { }
+		internal NoStipulations((bool Valid, System.Numerics.BigInteger Value) parsed) : base(232, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class StipulationType : FixValue<string>
 	{
-		internal StipulationType(int position, int length, string value, bool valid) : base(233, position, 4, length, value, valid) { }
+		internal StipulationType(string value) : base(233, 4, value, true) { }
 	}
 	public sealed class StipulationValue : FixValue<string>
 	{
-		internal StipulationValue(int position, int length, string value, bool valid) : base(234, position, 4, length, value, valid) { }
+		internal StipulationValue(string value) : base(234, 4, value, true) { }
 	}
 	public sealed class YieldType : FixValue<string>
 	{
-		internal YieldType(int position, int length, string value, bool valid) : base(235, position, 4, length, value, valid) { }
+		internal YieldType(string value) : base(235, 4, value, true) { }
 	}
 	public sealed class Yield : FixValue<FixDecimal>
 	{
-		internal Yield(int position, int length, FixDecimal value, bool valid) : base(236, position, 4, length, value, valid) { }
+		internal Yield((bool Valid, FixDecimal Value) parsed) : base(236, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TotalTakedown : FixValue<FixDecimal>
 	{
-		internal TotalTakedown(int position, int length, FixDecimal value, bool valid) : base(237, position, 4, length, value, valid) { }
+		internal TotalTakedown((bool Valid, FixDecimal Value) parsed) : base(237, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Concession : FixValue<FixDecimal>
 	{
-		internal Concession(int position, int length, FixDecimal value, bool valid) : base(238, position, 4, length, value, valid) { }
+		internal Concession((bool Valid, FixDecimal Value) parsed) : base(238, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RepoCollateralSecurityType : FixValue<string>
 	{
-		internal RepoCollateralSecurityType(int position, int length, string value, bool valid) : base(239, position, 4, length, value, valid) { }
+		internal RepoCollateralSecurityType(string value) : base(239, 4, value, true) { }
 	}
 	public sealed class RedemptionDate : FixValue<FixDate>
 	{
-		internal RedemptionDate(int position, int length, FixDate value, bool valid) : base(240, position, 4, length, value, valid) { }
+		internal RedemptionDate((bool Valid, FixDate Value) parsed) : base(240, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingCouponPaymentDate : FixValue<FixDate>
 	{
-		internal UnderlyingCouponPaymentDate(int position, int length, FixDate value, bool valid) : base(241, position, 4, length, value, valid) { }
+		internal UnderlyingCouponPaymentDate((bool Valid, FixDate Value) parsed) : base(241, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingIssueDate : FixValue<FixDate>
 	{
-		internal UnderlyingIssueDate(int position, int length, FixDate value, bool valid) : base(242, position, 4, length, value, valid) { }
+		internal UnderlyingIssueDate((bool Valid, FixDate Value) parsed) : base(242, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingRepoCollateralSecurityType : FixValue<string>
 	{
-		internal UnderlyingRepoCollateralSecurityType(int position, int length, string value, bool valid) : base(243, position, 4, length, value, valid) { }
+		internal UnderlyingRepoCollateralSecurityType(string value) : base(243, 4, value, true) { }
 	}
 	public sealed class UnderlyingRepurchaseTerm : FixValue<System.Numerics.BigInteger>
 	{
-		internal UnderlyingRepurchaseTerm(int position, int length, System.Numerics.BigInteger value, bool valid) : base(244, position, 4, length, value, valid) { }
+		internal UnderlyingRepurchaseTerm((bool Valid, System.Numerics.BigInteger Value) parsed) : base(244, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingRepurchaseRate : FixValue<FixDecimal>
 	{
-		internal UnderlyingRepurchaseRate(int position, int length, FixDecimal value, bool valid) : base(245, position, 4, length, value, valid) { }
+		internal UnderlyingRepurchaseRate((bool Valid, FixDecimal Value) parsed) : base(245, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingFactor : FixValue<FixDecimal>
 	{
-		internal UnderlyingFactor(int position, int length, FixDecimal value, bool valid) : base(246, position, 4, length, value, valid) { }
+		internal UnderlyingFactor((bool Valid, FixDecimal Value) parsed) : base(246, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingRedemptionDate : FixValue<FixDate>
 	{
-		internal UnderlyingRedemptionDate(int position, int length, FixDate value, bool valid) : base(247, position, 4, length, value, valid) { }
+		internal UnderlyingRedemptionDate((bool Valid, FixDate Value) parsed) : base(247, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegCouponPaymentDate : FixValue<FixDate>
 	{
-		internal LegCouponPaymentDate(int position, int length, FixDate value, bool valid) : base(248, position, 4, length, value, valid) { }
+		internal LegCouponPaymentDate((bool Valid, FixDate Value) parsed) : base(248, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegIssueDate : FixValue<FixDate>
 	{
-		internal LegIssueDate(int position, int length, FixDate value, bool valid) : base(249, position, 4, length, value, valid) { }
+		internal LegIssueDate((bool Valid, FixDate Value) parsed) : base(249, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegRepoCollateralSecurityType : FixValue<string>
 	{
-		internal LegRepoCollateralSecurityType(int position, int length, string value, bool valid) : base(250, position, 4, length, value, valid) { }
+		internal LegRepoCollateralSecurityType(string value) : base(250, 4, value, true) { }
 	}
 	public sealed class LegRepurchaseTerm : FixValue<System.Numerics.BigInteger>
 	{
-		internal LegRepurchaseTerm(int position, int length, System.Numerics.BigInteger value, bool valid) : base(251, position, 4, length, value, valid) { }
+		internal LegRepurchaseTerm((bool Valid, System.Numerics.BigInteger Value) parsed) : base(251, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegRepurchaseRate : FixValue<FixDecimal>
 	{
-		internal LegRepurchaseRate(int position, int length, FixDecimal value, bool valid) : base(252, position, 4, length, value, valid) { }
+		internal LegRepurchaseRate((bool Valid, FixDecimal Value) parsed) : base(252, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegFactor : FixValue<FixDecimal>
 	{
-		internal LegFactor(int position, int length, FixDecimal value, bool valid) : base(253, position, 4, length, value, valid) { }
+		internal LegFactor((bool Valid, FixDecimal Value) parsed) : base(253, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegRedemptionDate : FixValue<FixDate>
 	{
-		internal LegRedemptionDate(int position, int length, FixDate value, bool valid) : base(254, position, 4, length, value, valid) { }
+		internal LegRedemptionDate((bool Valid, FixDate Value) parsed) : base(254, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CreditRating : FixValue<string>
 	{
-		internal CreditRating(int position, int length, string value, bool valid) : base(255, position, 4, length, value, valid) { }
+		internal CreditRating(string value) : base(255, 4, value, true) { }
 	}
 	public sealed class UnderlyingCreditRating : FixValue<string>
 	{
-		internal UnderlyingCreditRating(int position, int length, string value, bool valid) : base(256, position, 4, length, value, valid) { }
+		internal UnderlyingCreditRating(string value) : base(256, 4, value, true) { }
 	}
 	public sealed class LegCreditRating : FixValue<string>
 	{
-		internal LegCreditRating(int position, int length, string value, bool valid) : base(257, position, 4, length, value, valid) { }
+		internal LegCreditRating(string value) : base(257, 4, value, true) { }
 	}
 	public sealed class TradedFlatSwitch : FixValue<bool>
 	{
-		internal TradedFlatSwitch(int position, int length, bool value, bool valid) : base(258, position, 4, length, value, valid) { }
+		internal TradedFlatSwitch((bool Valid, bool Value) parsed) : base(258, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BasisFeatureDate : FixValue<FixDate>
 	{
-		internal BasisFeatureDate(int position, int length, FixDate value, bool valid) : base(259, position, 4, length, value, valid) { }
+		internal BasisFeatureDate((bool Valid, FixDate Value) parsed) : base(259, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BasisFeaturePrice : FixValue<FixDecimal>
 	{
-		internal BasisFeaturePrice(int position, int length, FixDecimal value, bool valid) : base(260, position, 4, length, value, valid) { }
+		internal BasisFeaturePrice((bool Valid, FixDecimal Value) parsed) : base(260, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MDReqID : FixValue<string>
 	{
-		internal MDReqID(int position, int length, string value, bool valid) : base(262, position, 4, length, value, valid) { }
+		internal MDReqID(string value) : base(262, 4, value, true) { }
 	}
 	public sealed class SubscriptionRequestType : FixValue<char>
 	{
-		internal SubscriptionRequestType(int position, int length, char value, bool valid) : base(263, position, 4, length, value, valid) { }
+		internal SubscriptionRequestType((bool Valid, char Value) parsed) : base(263, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MarketDepth : FixValue<System.Numerics.BigInteger>
 	{
-		internal MarketDepth(int position, int length, System.Numerics.BigInteger value, bool valid) : base(264, position, 4, length, value, valid) { }
+		internal MarketDepth((bool Valid, System.Numerics.BigInteger Value) parsed) : base(264, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MDUpdateType : FixValue<System.Numerics.BigInteger>
 	{
-		internal MDUpdateType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(265, position, 4, length, value, valid) { }
+		internal MDUpdateType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(265, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AggregatedBook : FixValue<bool>
 	{
-		internal AggregatedBook(int position, int length, bool value, bool valid) : base(266, position, 4, length, value, valid) { }
+		internal AggregatedBook((bool Valid, bool Value) parsed) : base(266, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoMDEntryTypes : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoMDEntryTypes(int position, int length, System.Numerics.BigInteger value, bool valid) : base(267, position, 4, length, value, valid) { }
+		internal NoMDEntryTypes((bool Valid, System.Numerics.BigInteger Value) parsed) : base(267, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoMDEntries : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoMDEntries(int position, int length, System.Numerics.BigInteger value, bool valid) : base(268, position, 4, length, value, valid) { }
+		internal NoMDEntries((bool Valid, System.Numerics.BigInteger Value) parsed) : base(268, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MDEntryType : FixValue<char>
 	{
-		internal MDEntryType(int position, int length, char value, bool valid) : base(269, position, 4, length, value, valid) { }
+		internal MDEntryType((bool Valid, char Value) parsed) : base(269, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MDEntryPx : FixValue<FixDecimal>
 	{
-		internal MDEntryPx(int position, int length, FixDecimal value, bool valid) : base(270, position, 4, length, value, valid) { }
+		internal MDEntryPx((bool Valid, FixDecimal Value) parsed) : base(270, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MDEntrySize : FixValue<FixDecimal>
 	{
-		internal MDEntrySize(int position, int length, FixDecimal value, bool valid) : base(271, position, 4, length, value, valid) { }
+		internal MDEntrySize((bool Valid, FixDecimal Value) parsed) : base(271, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MDEntryDate : FixValue<FixDate>
 	{
-		internal MDEntryDate(int position, int length, FixDate value, bool valid) : base(272, position, 4, length, value, valid) { }
+		internal MDEntryDate((bool Valid, FixDate Value) parsed) : base(272, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MDEntryTime : FixValue<FixTime>
 	{
-		internal MDEntryTime(int position, int length, FixTime value, bool valid) : base(273, position, 4, length, value, valid) { }
+		internal MDEntryTime((bool Valid, FixTime Value) parsed) : base(273, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TickDirection : FixValue<char>
 	{
-		internal TickDirection(int position, int length, char value, bool valid) : base(274, position, 4, length, value, valid) { }
+		internal TickDirection((bool Valid, char Value) parsed) : base(274, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MDMkt : FixValue<string>
 	{
-		internal MDMkt(int position, int length, string value, bool valid) : base(275, position, 4, length, value, valid) { }
+		internal MDMkt(string value) : base(275, 4, value, true) { }
 	}
 	public sealed class QuoteCondition : FixValue<string[]>
 	{
-		internal QuoteCondition(int position, int length, string[] value, bool valid) : base(276, position, 4, length, value, valid) { }
+		internal QuoteCondition((bool Valid, string[] Value) parsed) : base(276, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradeCondition : FixValue<string[]>
 	{
-		internal TradeCondition(int position, int length, string[] value, bool valid) : base(277, position, 4, length, value, valid) { }
+		internal TradeCondition((bool Valid, string[] Value) parsed) : base(277, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MDEntryID : FixValue<string>
 	{
-		internal MDEntryID(int position, int length, string value, bool valid) : base(278, position, 4, length, value, valid) { }
+		internal MDEntryID(string value) : base(278, 4, value, true) { }
 	}
 	public sealed class MDUpdateAction : FixValue<char>
 	{
-		internal MDUpdateAction(int position, int length, char value, bool valid) : base(279, position, 4, length, value, valid) { }
+		internal MDUpdateAction((bool Valid, char Value) parsed) : base(279, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MDEntryRefID : FixValue<string>
 	{
-		internal MDEntryRefID(int position, int length, string value, bool valid) : base(280, position, 4, length, value, valid) { }
+		internal MDEntryRefID(string value) : base(280, 4, value, true) { }
 	}
 	public sealed class MDReqRejReason : FixValue<char>
 	{
-		internal MDReqRejReason(int position, int length, char value, bool valid) : base(281, position, 4, length, value, valid) { }
+		internal MDReqRejReason((bool Valid, char Value) parsed) : base(281, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MDEntryOriginator : FixValue<string>
 	{
-		internal MDEntryOriginator(int position, int length, string value, bool valid) : base(282, position, 4, length, value, valid) { }
+		internal MDEntryOriginator(string value) : base(282, 4, value, true) { }
 	}
 	public sealed class LocationID : FixValue<string>
 	{
-		internal LocationID(int position, int length, string value, bool valid) : base(283, position, 4, length, value, valid) { }
+		internal LocationID(string value) : base(283, 4, value, true) { }
 	}
 	public sealed class DeskID : FixValue<string>
 	{
-		internal DeskID(int position, int length, string value, bool valid) : base(284, position, 4, length, value, valid) { }
+		internal DeskID(string value) : base(284, 4, value, true) { }
 	}
 	public sealed class DeleteReason : FixValue<char>
 	{
-		internal DeleteReason(int position, int length, char value, bool valid) : base(285, position, 4, length, value, valid) { }
+		internal DeleteReason((bool Valid, char Value) parsed) : base(285, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OpenCloseSettlFlag : FixValue<string[]>
 	{
-		internal OpenCloseSettlFlag(int position, int length, string[] value, bool valid) : base(286, position, 4, length, value, valid) { }
+		internal OpenCloseSettlFlag((bool Valid, string[] Value) parsed) : base(286, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SellerDays : FixValue<System.Numerics.BigInteger>
 	{
-		internal SellerDays(int position, int length, System.Numerics.BigInteger value, bool valid) : base(287, position, 4, length, value, valid) { }
+		internal SellerDays((bool Valid, System.Numerics.BigInteger Value) parsed) : base(287, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MDEntryBuyer : FixValue<string>
 	{
-		internal MDEntryBuyer(int position, int length, string value, bool valid) : base(288, position, 4, length, value, valid) { }
+		internal MDEntryBuyer(string value) : base(288, 4, value, true) { }
 	}
 	public sealed class MDEntrySeller : FixValue<string>
 	{
-		internal MDEntrySeller(int position, int length, string value, bool valid) : base(289, position, 4, length, value, valid) { }
+		internal MDEntrySeller(string value) : base(289, 4, value, true) { }
 	}
 	public sealed class MDEntryPositionNo : FixValue<System.Numerics.BigInteger>
 	{
-		internal MDEntryPositionNo(int position, int length, System.Numerics.BigInteger value, bool valid) : base(290, position, 4, length, value, valid) { }
+		internal MDEntryPositionNo((bool Valid, System.Numerics.BigInteger Value) parsed) : base(290, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class FinancialStatus : FixValue<string[]>
 	{
-		internal FinancialStatus(int position, int length, string[] value, bool valid) : base(291, position, 4, length, value, valid) { }
+		internal FinancialStatus((bool Valid, string[] Value) parsed) : base(291, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CorporateAction : FixValue<string[]>
 	{
-		internal CorporateAction(int position, int length, string[] value, bool valid) : base(292, position, 4, length, value, valid) { }
+		internal CorporateAction((bool Valid, string[] Value) parsed) : base(292, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DefBidSize : FixValue<FixDecimal>
 	{
-		internal DefBidSize(int position, int length, FixDecimal value, bool valid) : base(293, position, 4, length, value, valid) { }
+		internal DefBidSize((bool Valid, FixDecimal Value) parsed) : base(293, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DefOfferSize : FixValue<FixDecimal>
 	{
-		internal DefOfferSize(int position, int length, FixDecimal value, bool valid) : base(294, position, 4, length, value, valid) { }
+		internal DefOfferSize((bool Valid, FixDecimal Value) parsed) : base(294, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoQuoteEntries : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoQuoteEntries(int position, int length, System.Numerics.BigInteger value, bool valid) : base(295, position, 4, length, value, valid) { }
+		internal NoQuoteEntries((bool Valid, System.Numerics.BigInteger Value) parsed) : base(295, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoQuoteSets : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoQuoteSets(int position, int length, System.Numerics.BigInteger value, bool valid) : base(296, position, 4, length, value, valid) { }
+		internal NoQuoteSets((bool Valid, System.Numerics.BigInteger Value) parsed) : base(296, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class QuoteStatus : FixValue<System.Numerics.BigInteger>
 	{
-		internal QuoteStatus(int position, int length, System.Numerics.BigInteger value, bool valid) : base(297, position, 4, length, value, valid) { }
+		internal QuoteStatus((bool Valid, System.Numerics.BigInteger Value) parsed) : base(297, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class QuoteCancelType : FixValue<System.Numerics.BigInteger>
 	{
-		internal QuoteCancelType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(298, position, 4, length, value, valid) { }
+		internal QuoteCancelType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(298, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class QuoteEntryID : FixValue<string>
 	{
-		internal QuoteEntryID(int position, int length, string value, bool valid) : base(299, position, 4, length, value, valid) { }
+		internal QuoteEntryID(string value) : base(299, 4, value, true) { }
 	}
 	public sealed class QuoteRejectReason : FixValue<System.Numerics.BigInteger>
 	{
-		internal QuoteRejectReason(int position, int length, System.Numerics.BigInteger value, bool valid) : base(300, position, 4, length, value, valid) { }
+		internal QuoteRejectReason((bool Valid, System.Numerics.BigInteger Value) parsed) : base(300, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class QuoteResponseLevel : FixValue<System.Numerics.BigInteger>
 	{
-		internal QuoteResponseLevel(int position, int length, System.Numerics.BigInteger value, bool valid) : base(301, position, 4, length, value, valid) { }
+		internal QuoteResponseLevel((bool Valid, System.Numerics.BigInteger Value) parsed) : base(301, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class QuoteSetID : FixValue<string>
 	{
-		internal QuoteSetID(int position, int length, string value, bool valid) : base(302, position, 4, length, value, valid) { }
+		internal QuoteSetID(string value) : base(302, 4, value, true) { }
 	}
 	public sealed class QuoteRequestType : FixValue<System.Numerics.BigInteger>
 	{
-		internal QuoteRequestType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(303, position, 4, length, value, valid) { }
+		internal QuoteRequestType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(303, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TotNoQuoteEntries : FixValue<System.Numerics.BigInteger>
 	{
-		internal TotNoQuoteEntries(int position, int length, System.Numerics.BigInteger value, bool valid) : base(304, position, 4, length, value, valid) { }
+		internal TotNoQuoteEntries((bool Valid, System.Numerics.BigInteger Value) parsed) : base(304, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingSecurityIDSource : FixValue<string>
 	{
-		internal UnderlyingSecurityIDSource(int position, int length, string value, bool valid) : base(305, position, 4, length, value, valid) { }
+		internal UnderlyingSecurityIDSource(string value) : base(305, 4, value, true) { }
 	}
 	public sealed class UnderlyingIssuer : FixValue<string>
 	{
-		internal UnderlyingIssuer(int position, int length, string value, bool valid) : base(306, position, 4, length, value, valid) { }
+		internal UnderlyingIssuer(string value) : base(306, 4, value, true) { }
 	}
 	public sealed class UnderlyingSecurityDesc : FixValue<string>
 	{
-		internal UnderlyingSecurityDesc(int position, int length, string value, bool valid) : base(307, position, 4, length, value, valid) { }
+		internal UnderlyingSecurityDesc(string value) : base(307, 4, value, true) { }
 	}
 	public sealed class UnderlyingSecurityExchange : FixValue<string>
 	{
-		internal UnderlyingSecurityExchange(int position, int length, string value, bool valid) : base(308, position, 4, length, value, valid) { }
+		internal UnderlyingSecurityExchange(string value) : base(308, 4, value, true) { }
 	}
 	public sealed class UnderlyingSecurityID : FixValue<string>
 	{
-		internal UnderlyingSecurityID(int position, int length, string value, bool valid) : base(309, position, 4, length, value, valid) { }
+		internal UnderlyingSecurityID(string value) : base(309, 4, value, true) { }
 	}
 	public sealed class UnderlyingSecurityType : FixValue<string>
 	{
-		internal UnderlyingSecurityType(int position, int length, string value, bool valid) : base(310, position, 4, length, value, valid) { }
+		internal UnderlyingSecurityType(string value) : base(310, 4, value, true) { }
 	}
 	public sealed class UnderlyingSymbol : FixValue<string>
 	{
-		internal UnderlyingSymbol(int position, int length, string value, bool valid) : base(311, position, 4, length, value, valid) { }
+		internal UnderlyingSymbol(string value) : base(311, 4, value, true) { }
 	}
 	public sealed class UnderlyingSymbolSfx : FixValue<string>
 	{
-		internal UnderlyingSymbolSfx(int position, int length, string value, bool valid) : base(312, position, 4, length, value, valid) { }
+		internal UnderlyingSymbolSfx(string value) : base(312, 4, value, true) { }
 	}
 	public sealed class UnderlyingMaturityMonthYear : FixValue<FixMonthYear>
 	{
-		internal UnderlyingMaturityMonthYear(int position, int length, FixMonthYear value, bool valid) : base(313, position, 4, length, value, valid) { }
+		internal UnderlyingMaturityMonthYear((bool Valid, FixMonthYear Value) parsed) : base(313, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingPutOrCall : FixValue<System.Numerics.BigInteger>
 	{
-		internal UnderlyingPutOrCall(int position, int length, System.Numerics.BigInteger value, bool valid) : base(315, position, 4, length, value, valid) { }
+		internal UnderlyingPutOrCall((bool Valid, System.Numerics.BigInteger Value) parsed) : base(315, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingStrikePrice : FixValue<FixDecimal>
 	{
-		internal UnderlyingStrikePrice(int position, int length, FixDecimal value, bool valid) : base(316, position, 4, length, value, valid) { }
+		internal UnderlyingStrikePrice((bool Valid, FixDecimal Value) parsed) : base(316, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingOptAttribute : FixValue<char>
 	{
-		internal UnderlyingOptAttribute(int position, int length, char value, bool valid) : base(317, position, 4, length, value, valid) { }
+		internal UnderlyingOptAttribute((bool Valid, char Value) parsed) : base(317, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingCurrency : FixValue<string>
 	{
-		internal UnderlyingCurrency(int position, int length, string value, bool valid) : base(318, position, 4, length, value, valid) { }
+		internal UnderlyingCurrency(string value) : base(318, 4, value, true) { }
 	}
 	public sealed class SecurityReqID : FixValue<string>
 	{
-		internal SecurityReqID(int position, int length, string value, bool valid) : base(320, position, 4, length, value, valid) { }
+		internal SecurityReqID(string value) : base(320, 4, value, true) { }
 	}
 	public sealed class SecurityRequestType : FixValue<System.Numerics.BigInteger>
 	{
-		internal SecurityRequestType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(321, position, 4, length, value, valid) { }
+		internal SecurityRequestType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(321, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SecurityResponseID : FixValue<string>
 	{
-		internal SecurityResponseID(int position, int length, string value, bool valid) : base(322, position, 4, length, value, valid) { }
+		internal SecurityResponseID(string value) : base(322, 4, value, true) { }
 	}
 	public sealed class SecurityResponseType : FixValue<System.Numerics.BigInteger>
 	{
-		internal SecurityResponseType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(323, position, 4, length, value, valid) { }
+		internal SecurityResponseType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(323, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SecurityStatusReqID : FixValue<string>
 	{
-		internal SecurityStatusReqID(int position, int length, string value, bool valid) : base(324, position, 4, length, value, valid) { }
+		internal SecurityStatusReqID(string value) : base(324, 4, value, true) { }
 	}
 	public sealed class UnsolicitedIndicator : FixValue<bool>
 	{
-		internal UnsolicitedIndicator(int position, int length, bool value, bool valid) : base(325, position, 4, length, value, valid) { }
+		internal UnsolicitedIndicator((bool Valid, bool Value) parsed) : base(325, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SecurityTradingStatus : FixValue<System.Numerics.BigInteger>
 	{
-		internal SecurityTradingStatus(int position, int length, System.Numerics.BigInteger value, bool valid) : base(326, position, 4, length, value, valid) { }
+		internal SecurityTradingStatus((bool Valid, System.Numerics.BigInteger Value) parsed) : base(326, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class HaltReason : FixValue<char>
 	{
-		internal HaltReason(int position, int length, char value, bool valid) : base(327, position, 4, length, value, valid) { }
+		internal HaltReason((bool Valid, char Value) parsed) : base(327, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class InViewOfCommon : FixValue<bool>
 	{
-		internal InViewOfCommon(int position, int length, bool value, bool valid) : base(328, position, 4, length, value, valid) { }
+		internal InViewOfCommon((bool Valid, bool Value) parsed) : base(328, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DueToRelated : FixValue<bool>
 	{
-		internal DueToRelated(int position, int length, bool value, bool valid) : base(329, position, 4, length, value, valid) { }
+		internal DueToRelated((bool Valid, bool Value) parsed) : base(329, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BuyVolume : FixValue<FixDecimal>
 	{
-		internal BuyVolume(int position, int length, FixDecimal value, bool valid) : base(330, position, 4, length, value, valid) { }
+		internal BuyVolume((bool Valid, FixDecimal Value) parsed) : base(330, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SellVolume : FixValue<FixDecimal>
 	{
-		internal SellVolume(int position, int length, FixDecimal value, bool valid) : base(331, position, 4, length, value, valid) { }
+		internal SellVolume((bool Valid, FixDecimal Value) parsed) : base(331, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class HighPx : FixValue<FixDecimal>
 	{
-		internal HighPx(int position, int length, FixDecimal value, bool valid) : base(332, position, 4, length, value, valid) { }
+		internal HighPx((bool Valid, FixDecimal Value) parsed) : base(332, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LowPx : FixValue<FixDecimal>
 	{
-		internal LowPx(int position, int length, FixDecimal value, bool valid) : base(333, position, 4, length, value, valid) { }
+		internal LowPx((bool Valid, FixDecimal Value) parsed) : base(333, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Adjustment : FixValue<System.Numerics.BigInteger>
 	{
-		internal Adjustment(int position, int length, System.Numerics.BigInteger value, bool valid) : base(334, position, 4, length, value, valid) { }
+		internal Adjustment((bool Valid, System.Numerics.BigInteger Value) parsed) : base(334, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradSesReqID : FixValue<string>
 	{
-		internal TradSesReqID(int position, int length, string value, bool valid) : base(335, position, 4, length, value, valid) { }
+		internal TradSesReqID(string value) : base(335, 4, value, true) { }
 	}
 	public sealed class TradingSessionID : FixValue<string>
 	{
-		internal TradingSessionID(int position, int length, string value, bool valid) : base(336, position, 4, length, value, valid) { }
+		internal TradingSessionID(string value) : base(336, 4, value, true) { }
 	}
 	public sealed class ContraTrader : FixValue<string>
 	{
-		internal ContraTrader(int position, int length, string value, bool valid) : base(337, position, 4, length, value, valid) { }
+		internal ContraTrader(string value) : base(337, 4, value, true) { }
 	}
 	public sealed class TradSesMethod : FixValue<System.Numerics.BigInteger>
 	{
-		internal TradSesMethod(int position, int length, System.Numerics.BigInteger value, bool valid) : base(338, position, 4, length, value, valid) { }
+		internal TradSesMethod((bool Valid, System.Numerics.BigInteger Value) parsed) : base(338, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradSesMode : FixValue<System.Numerics.BigInteger>
 	{
-		internal TradSesMode(int position, int length, System.Numerics.BigInteger value, bool valid) : base(339, position, 4, length, value, valid) { }
+		internal TradSesMode((bool Valid, System.Numerics.BigInteger Value) parsed) : base(339, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradSesStatus : FixValue<System.Numerics.BigInteger>
 	{
-		internal TradSesStatus(int position, int length, System.Numerics.BigInteger value, bool valid) : base(340, position, 4, length, value, valid) { }
+		internal TradSesStatus((bool Valid, System.Numerics.BigInteger Value) parsed) : base(340, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradSesStartTime : FixValue<FixTimestamp>
 	{
-		internal TradSesStartTime(int position, int length, FixTimestamp value, bool valid) : base(341, position, 4, length, value, valid) { }
+		internal TradSesStartTime((bool Valid, FixTimestamp Value) parsed) : base(341, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradSesOpenTime : FixValue<FixTimestamp>
 	{
-		internal TradSesOpenTime(int position, int length, FixTimestamp value, bool valid) : base(342, position, 4, length, value, valid) { }
+		internal TradSesOpenTime((bool Valid, FixTimestamp Value) parsed) : base(342, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradSesPreCloseTime : FixValue<FixTimestamp>
 	{
-		internal TradSesPreCloseTime(int position, int length, FixTimestamp value, bool valid) : base(343, position, 4, length, value, valid) { }
+		internal TradSesPreCloseTime((bool Valid, FixTimestamp Value) parsed) : base(343, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradSesCloseTime : FixValue<FixTimestamp>
 	{
-		internal TradSesCloseTime(int position, int length, FixTimestamp value, bool valid) : base(344, position, 4, length, value, valid) { }
+		internal TradSesCloseTime((bool Valid, FixTimestamp Value) parsed) : base(344, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradSesEndTime : FixValue<FixTimestamp>
 	{
-		internal TradSesEndTime(int position, int length, FixTimestamp value, bool valid) : base(345, position, 4, length, value, valid) { }
+		internal TradSesEndTime((bool Valid, FixTimestamp Value) parsed) : base(345, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NumberOfOrders : FixValue<System.Numerics.BigInteger>
 	{
-		internal NumberOfOrders(int position, int length, System.Numerics.BigInteger value, bool valid) : base(346, position, 4, length, value, valid) { }
+		internal NumberOfOrders((bool Valid, System.Numerics.BigInteger Value) parsed) : base(346, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MessageEncoding : FixValue<string>
 	{
-		internal MessageEncoding(int position, int length, string value, bool valid) : base(347, position, 4, length, value, valid) { }
+		internal MessageEncoding(string value) : base(347, 4, value, true) { }
 	}
 	public sealed class EncodedIssuerLen : FixValue<System.Numerics.BigInteger>
 	{
-		internal EncodedIssuerLen(int position, int length, System.Numerics.BigInteger value, bool valid) : base(348, position, 4, length, value, valid) { }
+		internal EncodedIssuerLen((bool Valid, System.Numerics.BigInteger Value) parsed) : base(348, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedIssuer : FixValue<ReadOnlyMemory<byte>>
 	{
-		internal EncodedIssuer(int position, int length, ReadOnlyMemory<byte> value, bool valid) : base(349, position, 4, length, value, valid) { }
+		internal EncodedIssuer((bool Valid, ReadOnlyMemory<byte> Value) parsed) : base(349, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedSecurityDescLen : FixValue<System.Numerics.BigInteger>
 	{
-		internal EncodedSecurityDescLen(int position, int length, System.Numerics.BigInteger value, bool valid) : base(350, position, 4, length, value, valid) { }
+		internal EncodedSecurityDescLen((bool Valid, System.Numerics.BigInteger Value) parsed) : base(350, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedSecurityDesc : FixValue<ReadOnlyMemory<byte>>
 	{
-		internal EncodedSecurityDesc(int position, int length, ReadOnlyMemory<byte> value, bool valid) : base(351, position, 4, length, value, valid) { }
+		internal EncodedSecurityDesc((bool Valid, ReadOnlyMemory<byte> Value) parsed) : base(351, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedListExecInstLen : FixValue<System.Numerics.BigInteger>
 	{
-		internal EncodedListExecInstLen(int position, int length, System.Numerics.BigInteger value, bool valid) : base(352, position, 4, length, value, valid) { }
+		internal EncodedListExecInstLen((bool Valid, System.Numerics.BigInteger Value) parsed) : base(352, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedListExecInst : FixValue<ReadOnlyMemory<byte>>
 	{
-		internal EncodedListExecInst(int position, int length, ReadOnlyMemory<byte> value, bool valid) : base(353, position, 4, length, value, valid) { }
+		internal EncodedListExecInst((bool Valid, ReadOnlyMemory<byte> Value) parsed) : base(353, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedTextLen : FixValue<System.Numerics.BigInteger>
 	{
-		internal EncodedTextLen(int position, int length, System.Numerics.BigInteger value, bool valid) : base(354, position, 4, length, value, valid) { }
+		internal EncodedTextLen((bool Valid, System.Numerics.BigInteger Value) parsed) : base(354, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedText : FixValue<ReadOnlyMemory<byte>>
 	{
-		internal EncodedText(int position, int length, ReadOnlyMemory<byte> value, bool valid) : base(355, position, 4, length, value, valid) { }
+		internal EncodedText((bool Valid, ReadOnlyMemory<byte> Value) parsed) : base(355, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedSubjectLen : FixValue<System.Numerics.BigInteger>
 	{
-		internal EncodedSubjectLen(int position, int length, System.Numerics.BigInteger value, bool valid) : base(356, position, 4, length, value, valid) { }
+		internal EncodedSubjectLen((bool Valid, System.Numerics.BigInteger Value) parsed) : base(356, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedSubject : FixValue<ReadOnlyMemory<byte>>
 	{
-		internal EncodedSubject(int position, int length, ReadOnlyMemory<byte> value, bool valid) : base(357, position, 4, length, value, valid) { }
+		internal EncodedSubject((bool Valid, ReadOnlyMemory<byte> Value) parsed) : base(357, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedHeadlineLen : FixValue<System.Numerics.BigInteger>
 	{
-		internal EncodedHeadlineLen(int position, int length, System.Numerics.BigInteger value, bool valid) : base(358, position, 4, length, value, valid) { }
+		internal EncodedHeadlineLen((bool Valid, System.Numerics.BigInteger Value) parsed) : base(358, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedHeadline : FixValue<ReadOnlyMemory<byte>>
 	{
-		internal EncodedHeadline(int position, int length, ReadOnlyMemory<byte> value, bool valid) : base(359, position, 4, length, value, valid) { }
+		internal EncodedHeadline((bool Valid, ReadOnlyMemory<byte> Value) parsed) : base(359, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedAllocTextLen : FixValue<System.Numerics.BigInteger>
 	{
-		internal EncodedAllocTextLen(int position, int length, System.Numerics.BigInteger value, bool valid) : base(360, position, 4, length, value, valid) { }
+		internal EncodedAllocTextLen((bool Valid, System.Numerics.BigInteger Value) parsed) : base(360, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedAllocText : FixValue<ReadOnlyMemory<byte>>
 	{
-		internal EncodedAllocText(int position, int length, ReadOnlyMemory<byte> value, bool valid) : base(361, position, 4, length, value, valid) { }
+		internal EncodedAllocText((bool Valid, ReadOnlyMemory<byte> Value) parsed) : base(361, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedUnderlyingIssuerLen : FixValue<System.Numerics.BigInteger>
 	{
-		internal EncodedUnderlyingIssuerLen(int position, int length, System.Numerics.BigInteger value, bool valid) : base(362, position, 4, length, value, valid) { }
+		internal EncodedUnderlyingIssuerLen((bool Valid, System.Numerics.BigInteger Value) parsed) : base(362, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedUnderlyingIssuer : FixValue<ReadOnlyMemory<byte>>
 	{
-		internal EncodedUnderlyingIssuer(int position, int length, ReadOnlyMemory<byte> value, bool valid) : base(363, position, 4, length, value, valid) { }
+		internal EncodedUnderlyingIssuer((bool Valid, ReadOnlyMemory<byte> Value) parsed) : base(363, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedUnderlyingSecurityDescLen : FixValue<System.Numerics.BigInteger>
 	{
-		internal EncodedUnderlyingSecurityDescLen(int position, int length, System.Numerics.BigInteger value, bool valid) : base(364, position, 4, length, value, valid) { }
+		internal EncodedUnderlyingSecurityDescLen((bool Valid, System.Numerics.BigInteger Value) parsed) : base(364, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedUnderlyingSecurityDesc : FixValue<ReadOnlyMemory<byte>>
 	{
-		internal EncodedUnderlyingSecurityDesc(int position, int length, ReadOnlyMemory<byte> value, bool valid) : base(365, position, 4, length, value, valid) { }
+		internal EncodedUnderlyingSecurityDesc((bool Valid, ReadOnlyMemory<byte> Value) parsed) : base(365, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocPrice : FixValue<FixDecimal>
 	{
-		internal AllocPrice(int position, int length, FixDecimal value, bool valid) : base(366, position, 4, length, value, valid) { }
+		internal AllocPrice((bool Valid, FixDecimal Value) parsed) : base(366, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class QuoteSetValidUntilTime : FixValue<FixTimestamp>
 	{
-		internal QuoteSetValidUntilTime(int position, int length, FixTimestamp value, bool valid) : base(367, position, 4, length, value, valid) { }
+		internal QuoteSetValidUntilTime((bool Valid, FixTimestamp Value) parsed) : base(367, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class QuoteEntryRejectReason : FixValue<System.Numerics.BigInteger>
 	{
-		internal QuoteEntryRejectReason(int position, int length, System.Numerics.BigInteger value, bool valid) : base(368, position, 4, length, value, valid) { }
+		internal QuoteEntryRejectReason((bool Valid, System.Numerics.BigInteger Value) parsed) : base(368, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LastMsgSeqNumProcessed : FixValue<System.Numerics.BigInteger>
 	{
-		internal LastMsgSeqNumProcessed(int position, int length, System.Numerics.BigInteger value, bool valid) : base(369, position, 4, length, value, valid) { }
+		internal LastMsgSeqNumProcessed((bool Valid, System.Numerics.BigInteger Value) parsed) : base(369, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RefTagID : FixValue<System.Numerics.BigInteger>
 	{
-		internal RefTagID(int position, int length, System.Numerics.BigInteger value, bool valid) : base(371, position, 4, length, value, valid) { }
+		internal RefTagID((bool Valid, System.Numerics.BigInteger Value) parsed) : base(371, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RefMsgType : FixValue<string>
 	{
-		internal RefMsgType(int position, int length, string value, bool valid) : base(372, position, 4, length, value, valid) { }
+		internal RefMsgType(string value) : base(372, 4, value, true) { }
 	}
 	public sealed class SessionRejectReason : FixValue<System.Numerics.BigInteger>
 	{
-		internal SessionRejectReason(int position, int length, System.Numerics.BigInteger value, bool valid) : base(373, position, 4, length, value, valid) { }
+		internal SessionRejectReason((bool Valid, System.Numerics.BigInteger Value) parsed) : base(373, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BidRequestTransType : FixValue<char>
 	{
-		internal BidRequestTransType(int position, int length, char value, bool valid) : base(374, position, 4, length, value, valid) { }
+		internal BidRequestTransType((bool Valid, char Value) parsed) : base(374, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ContraBroker : FixValue<string>
 	{
-		internal ContraBroker(int position, int length, string value, bool valid) : base(375, position, 4, length, value, valid) { }
+		internal ContraBroker(string value) : base(375, 4, value, true) { }
 	}
 	public sealed class ComplianceID : FixValue<string>
 	{
-		internal ComplianceID(int position, int length, string value, bool valid) : base(376, position, 4, length, value, valid) { }
+		internal ComplianceID(string value) : base(376, 4, value, true) { }
 	}
 	public sealed class SolicitedFlag : FixValue<bool>
 	{
-		internal SolicitedFlag(int position, int length, bool value, bool valid) : base(377, position, 4, length, value, valid) { }
+		internal SolicitedFlag((bool Valid, bool Value) parsed) : base(377, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ExecRestatementReason : FixValue<System.Numerics.BigInteger>
 	{
-		internal ExecRestatementReason(int position, int length, System.Numerics.BigInteger value, bool valid) : base(378, position, 4, length, value, valid) { }
+		internal ExecRestatementReason((bool Valid, System.Numerics.BigInteger Value) parsed) : base(378, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BusinessRejectRefID : FixValue<string>
 	{
-		internal BusinessRejectRefID(int position, int length, string value, bool valid) : base(379, position, 4, length, value, valid) { }
+		internal BusinessRejectRefID(string value) : base(379, 4, value, true) { }
 	}
 	public sealed class BusinessRejectReason : FixValue<System.Numerics.BigInteger>
 	{
-		internal BusinessRejectReason(int position, int length, System.Numerics.BigInteger value, bool valid) : base(380, position, 4, length, value, valid) { }
+		internal BusinessRejectReason((bool Valid, System.Numerics.BigInteger Value) parsed) : base(380, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class GrossTradeAmt : FixValue<FixDecimal>
 	{
-		internal GrossTradeAmt(int position, int length, FixDecimal value, bool valid) : base(381, position, 4, length, value, valid) { }
+		internal GrossTradeAmt((bool Valid, FixDecimal Value) parsed) : base(381, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoContraBrokers : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoContraBrokers(int position, int length, System.Numerics.BigInteger value, bool valid) : base(382, position, 4, length, value, valid) { }
+		internal NoContraBrokers((bool Valid, System.Numerics.BigInteger Value) parsed) : base(382, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MaxMessageSize : FixValue<System.Numerics.BigInteger>
 	{
-		internal MaxMessageSize(int position, int length, System.Numerics.BigInteger value, bool valid) : base(383, position, 4, length, value, valid) { }
+		internal MaxMessageSize((bool Valid, System.Numerics.BigInteger Value) parsed) : base(383, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoMsgTypes : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoMsgTypes(int position, int length, System.Numerics.BigInteger value, bool valid) : base(384, position, 4, length, value, valid) { }
+		internal NoMsgTypes((bool Valid, System.Numerics.BigInteger Value) parsed) : base(384, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MsgDirection : FixValue<char>
 	{
-		internal MsgDirection(int position, int length, char value, bool valid) : base(385, position, 4, length, value, valid) { }
+		internal MsgDirection((bool Valid, char Value) parsed) : base(385, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoTradingSessions : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoTradingSessions(int position, int length, System.Numerics.BigInteger value, bool valid) : base(386, position, 4, length, value, valid) { }
+		internal NoTradingSessions((bool Valid, System.Numerics.BigInteger Value) parsed) : base(386, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TotalVolumeTraded : FixValue<FixDecimal>
 	{
-		internal TotalVolumeTraded(int position, int length, FixDecimal value, bool valid) : base(387, position, 4, length, value, valid) { }
+		internal TotalVolumeTraded((bool Valid, FixDecimal Value) parsed) : base(387, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DiscretionInst : FixValue<char>
 	{
-		internal DiscretionInst(int position, int length, char value, bool valid) : base(388, position, 4, length, value, valid) { }
+		internal DiscretionInst((bool Valid, char Value) parsed) : base(388, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DiscretionOffsetValue : FixValue<FixDecimal>
 	{
-		internal DiscretionOffsetValue(int position, int length, FixDecimal value, bool valid) : base(389, position, 4, length, value, valid) { }
+		internal DiscretionOffsetValue((bool Valid, FixDecimal Value) parsed) : base(389, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BidID : FixValue<string>
 	{
-		internal BidID(int position, int length, string value, bool valid) : base(390, position, 4, length, value, valid) { }
+		internal BidID(string value) : base(390, 4, value, true) { }
 	}
 	public sealed class ClientBidID : FixValue<string>
 	{
-		internal ClientBidID(int position, int length, string value, bool valid) : base(391, position, 4, length, value, valid) { }
+		internal ClientBidID(string value) : base(391, 4, value, true) { }
 	}
 	public sealed class ListName : FixValue<string>
 	{
-		internal ListName(int position, int length, string value, bool valid) : base(392, position, 4, length, value, valid) { }
+		internal ListName(string value) : base(392, 4, value, true) { }
 	}
 	public sealed class TotNoRelatedSym : FixValue<System.Numerics.BigInteger>
 	{
-		internal TotNoRelatedSym(int position, int length, System.Numerics.BigInteger value, bool valid) : base(393, position, 4, length, value, valid) { }
+		internal TotNoRelatedSym((bool Valid, System.Numerics.BigInteger Value) parsed) : base(393, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BidType : FixValue<System.Numerics.BigInteger>
 	{
-		internal BidType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(394, position, 4, length, value, valid) { }
+		internal BidType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(394, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NumTickets : FixValue<System.Numerics.BigInteger>
 	{
-		internal NumTickets(int position, int length, System.Numerics.BigInteger value, bool valid) : base(395, position, 4, length, value, valid) { }
+		internal NumTickets((bool Valid, System.Numerics.BigInteger Value) parsed) : base(395, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SideValue1 : FixValue<FixDecimal>
 	{
-		internal SideValue1(int position, int length, FixDecimal value, bool valid) : base(396, position, 4, length, value, valid) { }
+		internal SideValue1((bool Valid, FixDecimal Value) parsed) : base(396, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SideValue2 : FixValue<FixDecimal>
 	{
-		internal SideValue2(int position, int length, FixDecimal value, bool valid) : base(397, position, 4, length, value, valid) { }
+		internal SideValue2((bool Valid, FixDecimal Value) parsed) : base(397, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoBidDescriptors : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoBidDescriptors(int position, int length, System.Numerics.BigInteger value, bool valid) : base(398, position, 4, length, value, valid) { }
+		internal NoBidDescriptors((bool Valid, System.Numerics.BigInteger Value) parsed) : base(398, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BidDescriptorType : FixValue<System.Numerics.BigInteger>
 	{
-		internal BidDescriptorType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(399, position, 4, length, value, valid) { }
+		internal BidDescriptorType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(399, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BidDescriptor : FixValue<string>
 	{
-		internal BidDescriptor(int position, int length, string value, bool valid) : base(400, position, 4, length, value, valid) { }
+		internal BidDescriptor(string value) : base(400, 4, value, true) { }
 	}
 	public sealed class SideValueInd : FixValue<System.Numerics.BigInteger>
 	{
-		internal SideValueInd(int position, int length, System.Numerics.BigInteger value, bool valid) : base(401, position, 4, length, value, valid) { }
+		internal SideValueInd((bool Valid, System.Numerics.BigInteger Value) parsed) : base(401, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LiquidityPctLow : FixValue<FixDecimal>
 	{
-		internal LiquidityPctLow(int position, int length, FixDecimal value, bool valid) : base(402, position, 4, length, value, valid) { }
+		internal LiquidityPctLow((bool Valid, FixDecimal Value) parsed) : base(402, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LiquidityPctHigh : FixValue<FixDecimal>
 	{
-		internal LiquidityPctHigh(int position, int length, FixDecimal value, bool valid) : base(403, position, 4, length, value, valid) { }
+		internal LiquidityPctHigh((bool Valid, FixDecimal Value) parsed) : base(403, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LiquidityValue : FixValue<FixDecimal>
 	{
-		internal LiquidityValue(int position, int length, FixDecimal value, bool valid) : base(404, position, 4, length, value, valid) { }
+		internal LiquidityValue((bool Valid, FixDecimal Value) parsed) : base(404, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EFPTrackingError : FixValue<FixDecimal>
 	{
-		internal EFPTrackingError(int position, int length, FixDecimal value, bool valid) : base(405, position, 4, length, value, valid) { }
+		internal EFPTrackingError((bool Valid, FixDecimal Value) parsed) : base(405, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class FairValue : FixValue<FixDecimal>
 	{
-		internal FairValue(int position, int length, FixDecimal value, bool valid) : base(406, position, 4, length, value, valid) { }
+		internal FairValue((bool Valid, FixDecimal Value) parsed) : base(406, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OutsideIndexPct : FixValue<FixDecimal>
 	{
-		internal OutsideIndexPct(int position, int length, FixDecimal value, bool valid) : base(407, position, 4, length, value, valid) { }
+		internal OutsideIndexPct((bool Valid, FixDecimal Value) parsed) : base(407, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ValueOfFutures : FixValue<FixDecimal>
 	{
-		internal ValueOfFutures(int position, int length, FixDecimal value, bool valid) : base(408, position, 4, length, value, valid) { }
+		internal ValueOfFutures((bool Valid, FixDecimal Value) parsed) : base(408, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LiquidityIndType : FixValue<System.Numerics.BigInteger>
 	{
-		internal LiquidityIndType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(409, position, 4, length, value, valid) { }
+		internal LiquidityIndType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(409, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class WtAverageLiquidity : FixValue<FixDecimal>
 	{
-		internal WtAverageLiquidity(int position, int length, FixDecimal value, bool valid) : base(410, position, 4, length, value, valid) { }
+		internal WtAverageLiquidity((bool Valid, FixDecimal Value) parsed) : base(410, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ExchangeForPhysical : FixValue<bool>
 	{
-		internal ExchangeForPhysical(int position, int length, bool value, bool valid) : base(411, position, 4, length, value, valid) { }
+		internal ExchangeForPhysical((bool Valid, bool Value) parsed) : base(411, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OutMainCntryUIndex : FixValue<FixDecimal>
 	{
-		internal OutMainCntryUIndex(int position, int length, FixDecimal value, bool valid) : base(412, position, 4, length, value, valid) { }
+		internal OutMainCntryUIndex((bool Valid, FixDecimal Value) parsed) : base(412, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CrossPercent : FixValue<FixDecimal>
 	{
-		internal CrossPercent(int position, int length, FixDecimal value, bool valid) : base(413, position, 4, length, value, valid) { }
+		internal CrossPercent((bool Valid, FixDecimal Value) parsed) : base(413, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ProgRptReqs : FixValue<System.Numerics.BigInteger>
 	{
-		internal ProgRptReqs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(414, position, 4, length, value, valid) { }
+		internal ProgRptReqs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(414, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ProgPeriodInterval : FixValue<System.Numerics.BigInteger>
 	{
-		internal ProgPeriodInterval(int position, int length, System.Numerics.BigInteger value, bool valid) : base(415, position, 4, length, value, valid) { }
+		internal ProgPeriodInterval((bool Valid, System.Numerics.BigInteger Value) parsed) : base(415, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class IncTaxInd : FixValue<System.Numerics.BigInteger>
 	{
-		internal IncTaxInd(int position, int length, System.Numerics.BigInteger value, bool valid) : base(416, position, 4, length, value, valid) { }
+		internal IncTaxInd((bool Valid, System.Numerics.BigInteger Value) parsed) : base(416, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NumBidders : FixValue<System.Numerics.BigInteger>
 	{
-		internal NumBidders(int position, int length, System.Numerics.BigInteger value, bool valid) : base(417, position, 4, length, value, valid) { }
+		internal NumBidders((bool Valid, System.Numerics.BigInteger Value) parsed) : base(417, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BidTradeType : FixValue<char>
 	{
-		internal BidTradeType(int position, int length, char value, bool valid) : base(418, position, 4, length, value, valid) { }
+		internal BidTradeType((bool Valid, char Value) parsed) : base(418, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BasisPxType : FixValue<char>
 	{
-		internal BasisPxType(int position, int length, char value, bool valid) : base(419, position, 4, length, value, valid) { }
+		internal BasisPxType((bool Valid, char Value) parsed) : base(419, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoBidComponents : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoBidComponents(int position, int length, System.Numerics.BigInteger value, bool valid) : base(420, position, 4, length, value, valid) { }
+		internal NoBidComponents((bool Valid, System.Numerics.BigInteger Value) parsed) : base(420, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Country : FixValue<string>
 	{
-		internal Country(int position, int length, string value, bool valid) : base(421, position, 4, length, value, valid) { }
+		internal Country(string value) : base(421, 4, value, true) { }
 	}
 	public sealed class TotNoStrikes : FixValue<System.Numerics.BigInteger>
 	{
-		internal TotNoStrikes(int position, int length, System.Numerics.BigInteger value, bool valid) : base(422, position, 4, length, value, valid) { }
+		internal TotNoStrikes((bool Valid, System.Numerics.BigInteger Value) parsed) : base(422, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PriceType : FixValue<System.Numerics.BigInteger>
 	{
-		internal PriceType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(423, position, 4, length, value, valid) { }
+		internal PriceType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(423, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DayOrderQty : FixValue<FixDecimal>
 	{
-		internal DayOrderQty(int position, int length, FixDecimal value, bool valid) : base(424, position, 4, length, value, valid) { }
+		internal DayOrderQty((bool Valid, FixDecimal Value) parsed) : base(424, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DayCumQty : FixValue<FixDecimal>
 	{
-		internal DayCumQty(int position, int length, FixDecimal value, bool valid) : base(425, position, 4, length, value, valid) { }
+		internal DayCumQty((bool Valid, FixDecimal Value) parsed) : base(425, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DayAvgPx : FixValue<FixDecimal>
 	{
-		internal DayAvgPx(int position, int length, FixDecimal value, bool valid) : base(426, position, 4, length, value, valid) { }
+		internal DayAvgPx((bool Valid, FixDecimal Value) parsed) : base(426, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class GTBookingInst : FixValue<System.Numerics.BigInteger>
 	{
-		internal GTBookingInst(int position, int length, System.Numerics.BigInteger value, bool valid) : base(427, position, 4, length, value, valid) { }
+		internal GTBookingInst((bool Valid, System.Numerics.BigInteger Value) parsed) : base(427, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoStrikes : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoStrikes(int position, int length, System.Numerics.BigInteger value, bool valid) : base(428, position, 4, length, value, valid) { }
+		internal NoStrikes((bool Valid, System.Numerics.BigInteger Value) parsed) : base(428, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ListStatusType : FixValue<System.Numerics.BigInteger>
 	{
-		internal ListStatusType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(429, position, 4, length, value, valid) { }
+		internal ListStatusType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(429, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NetGrossInd : FixValue<System.Numerics.BigInteger>
 	{
-		internal NetGrossInd(int position, int length, System.Numerics.BigInteger value, bool valid) : base(430, position, 4, length, value, valid) { }
+		internal NetGrossInd((bool Valid, System.Numerics.BigInteger Value) parsed) : base(430, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ListOrderStatus : FixValue<System.Numerics.BigInteger>
 	{
-		internal ListOrderStatus(int position, int length, System.Numerics.BigInteger value, bool valid) : base(431, position, 4, length, value, valid) { }
+		internal ListOrderStatus((bool Valid, System.Numerics.BigInteger Value) parsed) : base(431, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ExpireDate : FixValue<FixDate>
 	{
-		internal ExpireDate(int position, int length, FixDate value, bool valid) : base(432, position, 4, length, value, valid) { }
+		internal ExpireDate((bool Valid, FixDate Value) parsed) : base(432, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ListExecInstType : FixValue<char>
 	{
-		internal ListExecInstType(int position, int length, char value, bool valid) : base(433, position, 4, length, value, valid) { }
+		internal ListExecInstType((bool Valid, char Value) parsed) : base(433, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CxlRejResponseTo : FixValue<char>
 	{
-		internal CxlRejResponseTo(int position, int length, char value, bool valid) : base(434, position, 4, length, value, valid) { }
+		internal CxlRejResponseTo((bool Valid, char Value) parsed) : base(434, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingCouponRate : FixValue<FixDecimal>
 	{
-		internal UnderlyingCouponRate(int position, int length, FixDecimal value, bool valid) : base(435, position, 4, length, value, valid) { }
+		internal UnderlyingCouponRate((bool Valid, FixDecimal Value) parsed) : base(435, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingContractMultiplier : FixValue<FixDecimal>
 	{
-		internal UnderlyingContractMultiplier(int position, int length, FixDecimal value, bool valid) : base(436, position, 4, length, value, valid) { }
+		internal UnderlyingContractMultiplier((bool Valid, FixDecimal Value) parsed) : base(436, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ContraTradeQty : FixValue<FixDecimal>
 	{
-		internal ContraTradeQty(int position, int length, FixDecimal value, bool valid) : base(437, position, 4, length, value, valid) { }
+		internal ContraTradeQty((bool Valid, FixDecimal Value) parsed) : base(437, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ContraTradeTime : FixValue<FixTimestamp>
 	{
-		internal ContraTradeTime(int position, int length, FixTimestamp value, bool valid) : base(438, position, 4, length, value, valid) { }
+		internal ContraTradeTime((bool Valid, FixTimestamp Value) parsed) : base(438, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LiquidityNumSecurities : FixValue<System.Numerics.BigInteger>
 	{
-		internal LiquidityNumSecurities(int position, int length, System.Numerics.BigInteger value, bool valid) : base(441, position, 4, length, value, valid) { }
+		internal LiquidityNumSecurities((bool Valid, System.Numerics.BigInteger Value) parsed) : base(441, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MultiLegReportingType : FixValue<char>
 	{
-		internal MultiLegReportingType(int position, int length, char value, bool valid) : base(442, position, 4, length, value, valid) { }
+		internal MultiLegReportingType((bool Valid, char Value) parsed) : base(442, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class StrikeTime : FixValue<FixTimestamp>
 	{
-		internal StrikeTime(int position, int length, FixTimestamp value, bool valid) : base(443, position, 4, length, value, valid) { }
+		internal StrikeTime((bool Valid, FixTimestamp Value) parsed) : base(443, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ListStatusText : FixValue<string>
 	{
-		internal ListStatusText(int position, int length, string value, bool valid) : base(444, position, 4, length, value, valid) { }
+		internal ListStatusText(string value) : base(444, 4, value, true) { }
 	}
 	public sealed class EncodedListStatusTextLen : FixValue<System.Numerics.BigInteger>
 	{
-		internal EncodedListStatusTextLen(int position, int length, System.Numerics.BigInteger value, bool valid) : base(445, position, 4, length, value, valid) { }
+		internal EncodedListStatusTextLen((bool Valid, System.Numerics.BigInteger Value) parsed) : base(445, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedListStatusText : FixValue<ReadOnlyMemory<byte>>
 	{
-		internal EncodedListStatusText(int position, int length, ReadOnlyMemory<byte> value, bool valid) : base(446, position, 4, length, value, valid) { }
+		internal EncodedListStatusText((bool Valid, ReadOnlyMemory<byte> Value) parsed) : base(446, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PartyIDSource : FixValue<char>
 	{
-		internal PartyIDSource(int position, int length, char value, bool valid) : base(447, position, 4, length, value, valid) { }
+		internal PartyIDSource((bool Valid, char Value) parsed) : base(447, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PartyID : FixValue<string>
 	{
-		internal PartyID(int position, int length, string value, bool valid) : base(448, position, 4, length, value, valid) { }
+		internal PartyID(string value) : base(448, 4, value, true) { }
 	}
 	public sealed class NetChgPrevDay : FixValue<FixDecimal>
 	{
-		internal NetChgPrevDay(int position, int length, FixDecimal value, bool valid) : base(451, position, 4, length, value, valid) { }
+		internal NetChgPrevDay((bool Valid, FixDecimal Value) parsed) : base(451, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PartyRole : FixValue<System.Numerics.BigInteger>
 	{
-		internal PartyRole(int position, int length, System.Numerics.BigInteger value, bool valid) : base(452, position, 4, length, value, valid) { }
+		internal PartyRole((bool Valid, System.Numerics.BigInteger Value) parsed) : base(452, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoPartyIDs : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoPartyIDs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(453, position, 4, length, value, valid) { }
+		internal NoPartyIDs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(453, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoSecurityAltID : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoSecurityAltID(int position, int length, System.Numerics.BigInteger value, bool valid) : base(454, position, 4, length, value, valid) { }
+		internal NoSecurityAltID((bool Valid, System.Numerics.BigInteger Value) parsed) : base(454, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SecurityAltID : FixValue<string>
 	{
-		internal SecurityAltID(int position, int length, string value, bool valid) : base(455, position, 4, length, value, valid) { }
+		internal SecurityAltID(string value) : base(455, 4, value, true) { }
 	}
 	public sealed class SecurityAltIDSource : FixValue<string>
 	{
-		internal SecurityAltIDSource(int position, int length, string value, bool valid) : base(456, position, 4, length, value, valid) { }
+		internal SecurityAltIDSource(string value) : base(456, 4, value, true) { }
 	}
 	public sealed class NoUnderlyingSecurityAltID : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoUnderlyingSecurityAltID(int position, int length, System.Numerics.BigInteger value, bool valid) : base(457, position, 4, length, value, valid) { }
+		internal NoUnderlyingSecurityAltID((bool Valid, System.Numerics.BigInteger Value) parsed) : base(457, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingSecurityAltID : FixValue<string>
 	{
-		internal UnderlyingSecurityAltID(int position, int length, string value, bool valid) : base(458, position, 4, length, value, valid) { }
+		internal UnderlyingSecurityAltID(string value) : base(458, 4, value, true) { }
 	}
 	public sealed class UnderlyingSecurityAltIDSource : FixValue<string>
 	{
-		internal UnderlyingSecurityAltIDSource(int position, int length, string value, bool valid) : base(459, position, 4, length, value, valid) { }
+		internal UnderlyingSecurityAltIDSource(string value) : base(459, 4, value, true) { }
 	}
 	public sealed class Product : FixValue<System.Numerics.BigInteger>
 	{
-		internal Product(int position, int length, System.Numerics.BigInteger value, bool valid) : base(460, position, 4, length, value, valid) { }
+		internal Product((bool Valid, System.Numerics.BigInteger Value) parsed) : base(460, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CFICode : FixValue<string>
 	{
-		internal CFICode(int position, int length, string value, bool valid) : base(461, position, 4, length, value, valid) { }
+		internal CFICode(string value) : base(461, 4, value, true) { }
 	}
 	public sealed class UnderlyingProduct : FixValue<System.Numerics.BigInteger>
 	{
-		internal UnderlyingProduct(int position, int length, System.Numerics.BigInteger value, bool valid) : base(462, position, 4, length, value, valid) { }
+		internal UnderlyingProduct((bool Valid, System.Numerics.BigInteger Value) parsed) : base(462, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingCFICode : FixValue<string>
 	{
-		internal UnderlyingCFICode(int position, int length, string value, bool valid) : base(463, position, 4, length, value, valid) { }
+		internal UnderlyingCFICode(string value) : base(463, 4, value, true) { }
 	}
 	public sealed class TestMessageIndicator : FixValue<bool>
 	{
-		internal TestMessageIndicator(int position, int length, bool value, bool valid) : base(464, position, 4, length, value, valid) { }
+		internal TestMessageIndicator((bool Valid, bool Value) parsed) : base(464, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BookingRefID : FixValue<string>
 	{
-		internal BookingRefID(int position, int length, string value, bool valid) : base(466, position, 4, length, value, valid) { }
+		internal BookingRefID(string value) : base(466, 4, value, true) { }
 	}
 	public sealed class IndividualAllocID : FixValue<string>
 	{
-		internal IndividualAllocID(int position, int length, string value, bool valid) : base(467, position, 4, length, value, valid) { }
+		internal IndividualAllocID(string value) : base(467, 4, value, true) { }
 	}
 	public sealed class RoundingDirection : FixValue<char>
 	{
-		internal RoundingDirection(int position, int length, char value, bool valid) : base(468, position, 4, length, value, valid) { }
+		internal RoundingDirection((bool Valid, char Value) parsed) : base(468, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RoundingModulus : FixValue<FixDecimal>
 	{
-		internal RoundingModulus(int position, int length, FixDecimal value, bool valid) : base(469, position, 4, length, value, valid) { }
+		internal RoundingModulus((bool Valid, FixDecimal Value) parsed) : base(469, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CountryOfIssue : FixValue<string>
 	{
-		internal CountryOfIssue(int position, int length, string value, bool valid) : base(470, position, 4, length, value, valid) { }
+		internal CountryOfIssue(string value) : base(470, 4, value, true) { }
 	}
 	public sealed class StateOrProvinceOfIssue : FixValue<string>
 	{
-		internal StateOrProvinceOfIssue(int position, int length, string value, bool valid) : base(471, position, 4, length, value, valid) { }
+		internal StateOrProvinceOfIssue(string value) : base(471, 4, value, true) { }
 	}
 	public sealed class LocaleOfIssue : FixValue<string>
 	{
-		internal LocaleOfIssue(int position, int length, string value, bool valid) : base(472, position, 4, length, value, valid) { }
+		internal LocaleOfIssue(string value) : base(472, 4, value, true) { }
 	}
 	public sealed class NoRegistDtls : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoRegistDtls(int position, int length, System.Numerics.BigInteger value, bool valid) : base(473, position, 4, length, value, valid) { }
+		internal NoRegistDtls((bool Valid, System.Numerics.BigInteger Value) parsed) : base(473, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MailingDtls : FixValue<string>
 	{
-		internal MailingDtls(int position, int length, string value, bool valid) : base(474, position, 4, length, value, valid) { }
+		internal MailingDtls(string value) : base(474, 4, value, true) { }
 	}
 	public sealed class InvestorCountryOfResidence : FixValue<string>
 	{
-		internal InvestorCountryOfResidence(int position, int length, string value, bool valid) : base(475, position, 4, length, value, valid) { }
+		internal InvestorCountryOfResidence(string value) : base(475, 4, value, true) { }
 	}
 	public sealed class PaymentRef : FixValue<string>
 	{
-		internal PaymentRef(int position, int length, string value, bool valid) : base(476, position, 4, length, value, valid) { }
+		internal PaymentRef(string value) : base(476, 4, value, true) { }
 	}
 	public sealed class DistribPaymentMethod : FixValue<System.Numerics.BigInteger>
 	{
-		internal DistribPaymentMethod(int position, int length, System.Numerics.BigInteger value, bool valid) : base(477, position, 4, length, value, valid) { }
+		internal DistribPaymentMethod((bool Valid, System.Numerics.BigInteger Value) parsed) : base(477, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CashDistribCurr : FixValue<string>
 	{
-		internal CashDistribCurr(int position, int length, string value, bool valid) : base(478, position, 4, length, value, valid) { }
+		internal CashDistribCurr(string value) : base(478, 4, value, true) { }
 	}
 	public sealed class CommCurrency : FixValue<string>
 	{
-		internal CommCurrency(int position, int length, string value, bool valid) : base(479, position, 4, length, value, valid) { }
+		internal CommCurrency(string value) : base(479, 4, value, true) { }
 	}
 	public sealed class CancellationRights : FixValue<char>
 	{
-		internal CancellationRights(int position, int length, char value, bool valid) : base(480, position, 4, length, value, valid) { }
+		internal CancellationRights((bool Valid, char Value) parsed) : base(480, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MoneyLaunderingStatus : FixValue<char>
 	{
-		internal MoneyLaunderingStatus(int position, int length, char value, bool valid) : base(481, position, 4, length, value, valid) { }
+		internal MoneyLaunderingStatus((bool Valid, char Value) parsed) : base(481, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MailingInst : FixValue<string>
 	{
-		internal MailingInst(int position, int length, string value, bool valid) : base(482, position, 4, length, value, valid) { }
+		internal MailingInst(string value) : base(482, 4, value, true) { }
 	}
 	public sealed class TransBkdTime : FixValue<FixTimestamp>
 	{
-		internal TransBkdTime(int position, int length, FixTimestamp value, bool valid) : base(483, position, 4, length, value, valid) { }
+		internal TransBkdTime((bool Valid, FixTimestamp Value) parsed) : base(483, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ExecPriceType : FixValue<char>
 	{
-		internal ExecPriceType(int position, int length, char value, bool valid) : base(484, position, 4, length, value, valid) { }
+		internal ExecPriceType((bool Valid, char Value) parsed) : base(484, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ExecPriceAdjustment : FixValue<FixDecimal>
 	{
-		internal ExecPriceAdjustment(int position, int length, FixDecimal value, bool valid) : base(485, position, 4, length, value, valid) { }
+		internal ExecPriceAdjustment((bool Valid, FixDecimal Value) parsed) : base(485, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DateOfBirth : FixValue<FixDate>
 	{
-		internal DateOfBirth(int position, int length, FixDate value, bool valid) : base(486, position, 4, length, value, valid) { }
+		internal DateOfBirth((bool Valid, FixDate Value) parsed) : base(486, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradeReportTransType : FixValue<System.Numerics.BigInteger>
 	{
-		internal TradeReportTransType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(487, position, 4, length, value, valid) { }
+		internal TradeReportTransType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(487, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CardHolderName : FixValue<string>
 	{
-		internal CardHolderName(int position, int length, string value, bool valid) : base(488, position, 4, length, value, valid) { }
+		internal CardHolderName(string value) : base(488, 4, value, true) { }
 	}
 	public sealed class CardNumber : FixValue<string>
 	{
-		internal CardNumber(int position, int length, string value, bool valid) : base(489, position, 4, length, value, valid) { }
+		internal CardNumber(string value) : base(489, 4, value, true) { }
 	}
 	public sealed class CardExpDate : FixValue<FixDate>
 	{
-		internal CardExpDate(int position, int length, FixDate value, bool valid) : base(490, position, 4, length, value, valid) { }
+		internal CardExpDate((bool Valid, FixDate Value) parsed) : base(490, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CardIssNum : FixValue<string>
 	{
-		internal CardIssNum(int position, int length, string value, bool valid) : base(491, position, 4, length, value, valid) { }
+		internal CardIssNum(string value) : base(491, 4, value, true) { }
 	}
 	public sealed class PaymentMethod : FixValue<System.Numerics.BigInteger>
 	{
-		internal PaymentMethod(int position, int length, System.Numerics.BigInteger value, bool valid) : base(492, position, 4, length, value, valid) { }
+		internal PaymentMethod((bool Valid, System.Numerics.BigInteger Value) parsed) : base(492, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RegistAcctType : FixValue<string>
 	{
-		internal RegistAcctType(int position, int length, string value, bool valid) : base(493, position, 4, length, value, valid) { }
+		internal RegistAcctType(string value) : base(493, 4, value, true) { }
 	}
 	public sealed class Designation : FixValue<string>
 	{
-		internal Designation(int position, int length, string value, bool valid) : base(494, position, 4, length, value, valid) { }
+		internal Designation(string value) : base(494, 4, value, true) { }
 	}
 	public sealed class TaxAdvantageType : FixValue<System.Numerics.BigInteger>
 	{
-		internal TaxAdvantageType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(495, position, 4, length, value, valid) { }
+		internal TaxAdvantageType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(495, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RegistRejReasonText : FixValue<string>
 	{
-		internal RegistRejReasonText(int position, int length, string value, bool valid) : base(496, position, 4, length, value, valid) { }
+		internal RegistRejReasonText(string value) : base(496, 4, value, true) { }
 	}
 	public sealed class FundRenewWaiv : FixValue<char>
 	{
-		internal FundRenewWaiv(int position, int length, char value, bool valid) : base(497, position, 4, length, value, valid) { }
+		internal FundRenewWaiv((bool Valid, char Value) parsed) : base(497, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CashDistribAgentName : FixValue<string>
 	{
-		internal CashDistribAgentName(int position, int length, string value, bool valid) : base(498, position, 4, length, value, valid) { }
+		internal CashDistribAgentName(string value) : base(498, 4, value, true) { }
 	}
 	public sealed class CashDistribAgentCode : FixValue<string>
 	{
-		internal CashDistribAgentCode(int position, int length, string value, bool valid) : base(499, position, 4, length, value, valid) { }
+		internal CashDistribAgentCode(string value) : base(499, 4, value, true) { }
 	}
 	public sealed class CashDistribAgentAcctNumber : FixValue<string>
 	{
-		internal CashDistribAgentAcctNumber(int position, int length, string value, bool valid) : base(500, position, 4, length, value, valid) { }
+		internal CashDistribAgentAcctNumber(string value) : base(500, 4, value, true) { }
 	}
 	public sealed class CashDistribPayRef : FixValue<string>
 	{
-		internal CashDistribPayRef(int position, int length, string value, bool valid) : base(501, position, 4, length, value, valid) { }
+		internal CashDistribPayRef(string value) : base(501, 4, value, true) { }
 	}
 	public sealed class CashDistribAgentAcctName : FixValue<string>
 	{
-		internal CashDistribAgentAcctName(int position, int length, string value, bool valid) : base(502, position, 4, length, value, valid) { }
+		internal CashDistribAgentAcctName(string value) : base(502, 4, value, true) { }
 	}
 	public sealed class CardStartDate : FixValue<FixDate>
 	{
-		internal CardStartDate(int position, int length, FixDate value, bool valid) : base(503, position, 4, length, value, valid) { }
+		internal CardStartDate((bool Valid, FixDate Value) parsed) : base(503, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PaymentDate : FixValue<FixDate>
 	{
-		internal PaymentDate(int position, int length, FixDate value, bool valid) : base(504, position, 4, length, value, valid) { }
+		internal PaymentDate((bool Valid, FixDate Value) parsed) : base(504, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PaymentRemitterID : FixValue<string>
 	{
-		internal PaymentRemitterID(int position, int length, string value, bool valid) : base(505, position, 4, length, value, valid) { }
+		internal PaymentRemitterID(string value) : base(505, 4, value, true) { }
 	}
 	public sealed class RegistStatus : FixValue<char>
 	{
-		internal RegistStatus(int position, int length, char value, bool valid) : base(506, position, 4, length, value, valid) { }
+		internal RegistStatus((bool Valid, char Value) parsed) : base(506, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RegistRejReasonCode : FixValue<System.Numerics.BigInteger>
 	{
-		internal RegistRejReasonCode(int position, int length, System.Numerics.BigInteger value, bool valid) : base(507, position, 4, length, value, valid) { }
+		internal RegistRejReasonCode((bool Valid, System.Numerics.BigInteger Value) parsed) : base(507, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RegistRefID : FixValue<string>
 	{
-		internal RegistRefID(int position, int length, string value, bool valid) : base(508, position, 4, length, value, valid) { }
+		internal RegistRefID(string value) : base(508, 4, value, true) { }
 	}
 	public sealed class RegistDtls : FixValue<string>
 	{
-		internal RegistDtls(int position, int length, string value, bool valid) : base(509, position, 4, length, value, valid) { }
+		internal RegistDtls(string value) : base(509, 4, value, true) { }
 	}
 	public sealed class NoDistribInsts : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoDistribInsts(int position, int length, System.Numerics.BigInteger value, bool valid) : base(510, position, 4, length, value, valid) { }
+		internal NoDistribInsts((bool Valid, System.Numerics.BigInteger Value) parsed) : base(510, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RegistEmail : FixValue<string>
 	{
-		internal RegistEmail(int position, int length, string value, bool valid) : base(511, position, 4, length, value, valid) { }
+		internal RegistEmail(string value) : base(511, 4, value, true) { }
 	}
 	public sealed class DistribPercentage : FixValue<FixDecimal>
 	{
-		internal DistribPercentage(int position, int length, FixDecimal value, bool valid) : base(512, position, 4, length, value, valid) { }
+		internal DistribPercentage((bool Valid, FixDecimal Value) parsed) : base(512, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RegistID : FixValue<string>
 	{
-		internal RegistID(int position, int length, string value, bool valid) : base(513, position, 4, length, value, valid) { }
+		internal RegistID(string value) : base(513, 4, value, true) { }
 	}
 	public sealed class RegistTransType : FixValue<char>
 	{
-		internal RegistTransType(int position, int length, char value, bool valid) : base(514, position, 4, length, value, valid) { }
+		internal RegistTransType((bool Valid, char Value) parsed) : base(514, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ExecValuationPoint : FixValue<FixTimestamp>
 	{
-		internal ExecValuationPoint(int position, int length, FixTimestamp value, bool valid) : base(515, position, 4, length, value, valid) { }
+		internal ExecValuationPoint((bool Valid, FixTimestamp Value) parsed) : base(515, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OrderPercent : FixValue<FixDecimal>
 	{
-		internal OrderPercent(int position, int length, FixDecimal value, bool valid) : base(516, position, 4, length, value, valid) { }
+		internal OrderPercent((bool Valid, FixDecimal Value) parsed) : base(516, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OwnershipType : FixValue<char>
 	{
-		internal OwnershipType(int position, int length, char value, bool valid) : base(517, position, 4, length, value, valid) { }
+		internal OwnershipType((bool Valid, char Value) parsed) : base(517, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoContAmts : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoContAmts(int position, int length, System.Numerics.BigInteger value, bool valid) : base(518, position, 4, length, value, valid) { }
+		internal NoContAmts((bool Valid, System.Numerics.BigInteger Value) parsed) : base(518, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ContAmtType : FixValue<System.Numerics.BigInteger>
 	{
-		internal ContAmtType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(519, position, 4, length, value, valid) { }
+		internal ContAmtType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(519, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ContAmtValue : FixValue<FixDecimal>
 	{
-		internal ContAmtValue(int position, int length, FixDecimal value, bool valid) : base(520, position, 4, length, value, valid) { }
+		internal ContAmtValue((bool Valid, FixDecimal Value) parsed) : base(520, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ContAmtCurr : FixValue<string>
 	{
-		internal ContAmtCurr(int position, int length, string value, bool valid) : base(521, position, 4, length, value, valid) { }
+		internal ContAmtCurr(string value) : base(521, 4, value, true) { }
 	}
 	public sealed class OwnerType : FixValue<System.Numerics.BigInteger>
 	{
-		internal OwnerType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(522, position, 4, length, value, valid) { }
+		internal OwnerType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(522, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PartySubID : FixValue<string>
 	{
-		internal PartySubID(int position, int length, string value, bool valid) : base(523, position, 4, length, value, valid) { }
+		internal PartySubID(string value) : base(523, 4, value, true) { }
 	}
 	public sealed class NestedPartyID : FixValue<string>
 	{
-		internal NestedPartyID(int position, int length, string value, bool valid) : base(524, position, 4, length, value, valid) { }
+		internal NestedPartyID(string value) : base(524, 4, value, true) { }
 	}
 	public sealed class NestedPartyIDSource : FixValue<char>
 	{
-		internal NestedPartyIDSource(int position, int length, char value, bool valid) : base(525, position, 4, length, value, valid) { }
+		internal NestedPartyIDSource((bool Valid, char Value) parsed) : base(525, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SecondaryClOrdID : FixValue<string>
 	{
-		internal SecondaryClOrdID(int position, int length, string value, bool valid) : base(526, position, 4, length, value, valid) { }
+		internal SecondaryClOrdID(string value) : base(526, 4, value, true) { }
 	}
 	public sealed class SecondaryExecID : FixValue<string>
 	{
-		internal SecondaryExecID(int position, int length, string value, bool valid) : base(527, position, 4, length, value, valid) { }
+		internal SecondaryExecID(string value) : base(527, 4, value, true) { }
 	}
 	public sealed class OrderCapacity : FixValue<char>
 	{
-		internal OrderCapacity(int position, int length, char value, bool valid) : base(528, position, 4, length, value, valid) { }
+		internal OrderCapacity((bool Valid, char Value) parsed) : base(528, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OrderRestrictions : FixValue<string[]>
 	{
-		internal OrderRestrictions(int position, int length, string[] value, bool valid) : base(529, position, 4, length, value, valid) { }
+		internal OrderRestrictions((bool Valid, string[] Value) parsed) : base(529, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MassCancelRequestType : FixValue<char>
 	{
-		internal MassCancelRequestType(int position, int length, char value, bool valid) : base(530, position, 4, length, value, valid) { }
+		internal MassCancelRequestType((bool Valid, char Value) parsed) : base(530, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MassCancelResponse : FixValue<char>
 	{
-		internal MassCancelResponse(int position, int length, char value, bool valid) : base(531, position, 4, length, value, valid) { }
+		internal MassCancelResponse((bool Valid, char Value) parsed) : base(531, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MassCancelRejectReason : FixValue<System.Numerics.BigInteger>
 	{
-		internal MassCancelRejectReason(int position, int length, System.Numerics.BigInteger value, bool valid) : base(532, position, 4, length, value, valid) { }
+		internal MassCancelRejectReason((bool Valid, System.Numerics.BigInteger Value) parsed) : base(532, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TotalAffectedOrders : FixValue<System.Numerics.BigInteger>
 	{
-		internal TotalAffectedOrders(int position, int length, System.Numerics.BigInteger value, bool valid) : base(533, position, 4, length, value, valid) { }
+		internal TotalAffectedOrders((bool Valid, System.Numerics.BigInteger Value) parsed) : base(533, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoAffectedOrders : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoAffectedOrders(int position, int length, System.Numerics.BigInteger value, bool valid) : base(534, position, 4, length, value, valid) { }
+		internal NoAffectedOrders((bool Valid, System.Numerics.BigInteger Value) parsed) : base(534, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AffectedOrderID : FixValue<string>
 	{
-		internal AffectedOrderID(int position, int length, string value, bool valid) : base(535, position, 4, length, value, valid) { }
+		internal AffectedOrderID(string value) : base(535, 4, value, true) { }
 	}
 	public sealed class AffectedSecondaryOrderID : FixValue<string>
 	{
-		internal AffectedSecondaryOrderID(int position, int length, string value, bool valid) : base(536, position, 4, length, value, valid) { }
+		internal AffectedSecondaryOrderID(string value) : base(536, 4, value, true) { }
 	}
 	public sealed class QuoteType : FixValue<System.Numerics.BigInteger>
 	{
-		internal QuoteType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(537, position, 4, length, value, valid) { }
+		internal QuoteType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(537, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NestedPartyRole : FixValue<System.Numerics.BigInteger>
 	{
-		internal NestedPartyRole(int position, int length, System.Numerics.BigInteger value, bool valid) : base(538, position, 4, length, value, valid) { }
+		internal NestedPartyRole((bool Valid, System.Numerics.BigInteger Value) parsed) : base(538, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoNestedPartyIDs : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoNestedPartyIDs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(539, position, 4, length, value, valid) { }
+		internal NoNestedPartyIDs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(539, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TotalAccruedInterestAmt : FixValue<FixDecimal>
 	{
-		internal TotalAccruedInterestAmt(int position, int length, FixDecimal value, bool valid) : base(540, position, 4, length, value, valid) { }
+		internal TotalAccruedInterestAmt((bool Valid, FixDecimal Value) parsed) : base(540, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MaturityDate : FixValue<FixDate>
 	{
-		internal MaturityDate(int position, int length, FixDate value, bool valid) : base(541, position, 4, length, value, valid) { }
+		internal MaturityDate((bool Valid, FixDate Value) parsed) : base(541, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingMaturityDate : FixValue<FixDate>
 	{
-		internal UnderlyingMaturityDate(int position, int length, FixDate value, bool valid) : base(542, position, 4, length, value, valid) { }
+		internal UnderlyingMaturityDate((bool Valid, FixDate Value) parsed) : base(542, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class InstrRegistry : FixValue<string>
 	{
-		internal InstrRegistry(int position, int length, string value, bool valid) : base(543, position, 4, length, value, valid) { }
+		internal InstrRegistry(string value) : base(543, 4, value, true) { }
 	}
 	public sealed class CashMargin : FixValue<char>
 	{
-		internal CashMargin(int position, int length, char value, bool valid) : base(544, position, 4, length, value, valid) { }
+		internal CashMargin((bool Valid, char Value) parsed) : base(544, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NestedPartySubID : FixValue<string>
 	{
-		internal NestedPartySubID(int position, int length, string value, bool valid) : base(545, position, 4, length, value, valid) { }
+		internal NestedPartySubID(string value) : base(545, 4, value, true) { }
 	}
 	public sealed class Scope : FixValue<string[]>
 	{
-		internal Scope(int position, int length, string[] value, bool valid) : base(546, position, 4, length, value, valid) { }
+		internal Scope((bool Valid, string[] Value) parsed) : base(546, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MDImplicitDelete : FixValue<bool>
 	{
-		internal MDImplicitDelete(int position, int length, bool value, bool valid) : base(547, position, 4, length, value, valid) { }
+		internal MDImplicitDelete((bool Valid, bool Value) parsed) : base(547, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CrossID : FixValue<string>
 	{
-		internal CrossID(int position, int length, string value, bool valid) : base(548, position, 4, length, value, valid) { }
+		internal CrossID(string value) : base(548, 4, value, true) { }
 	}
 	public sealed class CrossType : FixValue<System.Numerics.BigInteger>
 	{
-		internal CrossType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(549, position, 4, length, value, valid) { }
+		internal CrossType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(549, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CrossPrioritization : FixValue<System.Numerics.BigInteger>
 	{
-		internal CrossPrioritization(int position, int length, System.Numerics.BigInteger value, bool valid) : base(550, position, 4, length, value, valid) { }
+		internal CrossPrioritization((bool Valid, System.Numerics.BigInteger Value) parsed) : base(550, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OrigCrossID : FixValue<string>
 	{
-		internal OrigCrossID(int position, int length, string value, bool valid) : base(551, position, 4, length, value, valid) { }
+		internal OrigCrossID(string value) : base(551, 4, value, true) { }
 	}
 	public sealed class NoSides : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoSides(int position, int length, System.Numerics.BigInteger value, bool valid) : base(552, position, 4, length, value, valid) { }
+		internal NoSides((bool Valid, System.Numerics.BigInteger Value) parsed) : base(552, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Username : FixValue<string>
 	{
-		internal Username(int position, int length, string value, bool valid) : base(553, position, 4, length, value, valid) { }
+		internal Username(string value) : base(553, 4, value, true) { }
 	}
 	public sealed class Password : FixValue<string>
 	{
-		internal Password(int position, int length, string value, bool valid) : base(554, position, 4, length, value, valid) { }
+		internal Password(string value) : base(554, 4, value, true) { }
 	}
 	public sealed class NoLegs : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoLegs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(555, position, 4, length, value, valid) { }
+		internal NoLegs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(555, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegCurrency : FixValue<string>
 	{
-		internal LegCurrency(int position, int length, string value, bool valid) : base(556, position, 4, length, value, valid) { }
+		internal LegCurrency(string value) : base(556, 4, value, true) { }
 	}
 	public sealed class TotNoSecurityTypes : FixValue<System.Numerics.BigInteger>
 	{
-		internal TotNoSecurityTypes(int position, int length, System.Numerics.BigInteger value, bool valid) : base(557, position, 4, length, value, valid) { }
+		internal TotNoSecurityTypes((bool Valid, System.Numerics.BigInteger Value) parsed) : base(557, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoSecurityTypes : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoSecurityTypes(int position, int length, System.Numerics.BigInteger value, bool valid) : base(558, position, 4, length, value, valid) { }
+		internal NoSecurityTypes((bool Valid, System.Numerics.BigInteger Value) parsed) : base(558, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SecurityListRequestType : FixValue<System.Numerics.BigInteger>
 	{
-		internal SecurityListRequestType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(559, position, 4, length, value, valid) { }
+		internal SecurityListRequestType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(559, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SecurityRequestResult : FixValue<System.Numerics.BigInteger>
 	{
-		internal SecurityRequestResult(int position, int length, System.Numerics.BigInteger value, bool valid) : base(560, position, 4, length, value, valid) { }
+		internal SecurityRequestResult((bool Valid, System.Numerics.BigInteger Value) parsed) : base(560, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RoundLot : FixValue<FixDecimal>
 	{
-		internal RoundLot(int position, int length, FixDecimal value, bool valid) : base(561, position, 4, length, value, valid) { }
+		internal RoundLot((bool Valid, FixDecimal Value) parsed) : base(561, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MinTradeVol : FixValue<FixDecimal>
 	{
-		internal MinTradeVol(int position, int length, FixDecimal value, bool valid) : base(562, position, 4, length, value, valid) { }
+		internal MinTradeVol((bool Valid, FixDecimal Value) parsed) : base(562, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MultiLegRptTypeReq : FixValue<System.Numerics.BigInteger>
 	{
-		internal MultiLegRptTypeReq(int position, int length, System.Numerics.BigInteger value, bool valid) : base(563, position, 4, length, value, valid) { }
+		internal MultiLegRptTypeReq((bool Valid, System.Numerics.BigInteger Value) parsed) : base(563, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegPositionEffect : FixValue<char>
 	{
-		internal LegPositionEffect(int position, int length, char value, bool valid) : base(564, position, 4, length, value, valid) { }
+		internal LegPositionEffect((bool Valid, char Value) parsed) : base(564, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegCoveredOrUncovered : FixValue<System.Numerics.BigInteger>
 	{
-		internal LegCoveredOrUncovered(int position, int length, System.Numerics.BigInteger value, bool valid) : base(565, position, 4, length, value, valid) { }
+		internal LegCoveredOrUncovered((bool Valid, System.Numerics.BigInteger Value) parsed) : base(565, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegPrice : FixValue<FixDecimal>
 	{
-		internal LegPrice(int position, int length, FixDecimal value, bool valid) : base(566, position, 4, length, value, valid) { }
+		internal LegPrice((bool Valid, FixDecimal Value) parsed) : base(566, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradSesStatusRejReason : FixValue<System.Numerics.BigInteger>
 	{
-		internal TradSesStatusRejReason(int position, int length, System.Numerics.BigInteger value, bool valid) : base(567, position, 4, length, value, valid) { }
+		internal TradSesStatusRejReason((bool Valid, System.Numerics.BigInteger Value) parsed) : base(567, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradeRequestID : FixValue<string>
 	{
-		internal TradeRequestID(int position, int length, string value, bool valid) : base(568, position, 4, length, value, valid) { }
+		internal TradeRequestID(string value) : base(568, 4, value, true) { }
 	}
 	public sealed class TradeRequestType : FixValue<System.Numerics.BigInteger>
 	{
-		internal TradeRequestType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(569, position, 4, length, value, valid) { }
+		internal TradeRequestType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(569, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PreviouslyReported : FixValue<bool>
 	{
-		internal PreviouslyReported(int position, int length, bool value, bool valid) : base(570, position, 4, length, value, valid) { }
+		internal PreviouslyReported((bool Valid, bool Value) parsed) : base(570, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradeReportID : FixValue<string>
 	{
-		internal TradeReportID(int position, int length, string value, bool valid) : base(571, position, 4, length, value, valid) { }
+		internal TradeReportID(string value) : base(571, 4, value, true) { }
 	}
 	public sealed class TradeReportRefID : FixValue<string>
 	{
-		internal TradeReportRefID(int position, int length, string value, bool valid) : base(572, position, 4, length, value, valid) { }
+		internal TradeReportRefID(string value) : base(572, 4, value, true) { }
 	}
 	public sealed class MatchStatus : FixValue<char>
 	{
-		internal MatchStatus(int position, int length, char value, bool valid) : base(573, position, 4, length, value, valid) { }
+		internal MatchStatus((bool Valid, char Value) parsed) : base(573, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MatchType : FixValue<string>
 	{
-		internal MatchType(int position, int length, string value, bool valid) : base(574, position, 4, length, value, valid) { }
+		internal MatchType(string value) : base(574, 4, value, true) { }
 	}
 	public sealed class OddLot : FixValue<bool>
 	{
-		internal OddLot(int position, int length, bool value, bool valid) : base(575, position, 4, length, value, valid) { }
+		internal OddLot((bool Valid, bool Value) parsed) : base(575, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoClearingInstructions : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoClearingInstructions(int position, int length, System.Numerics.BigInteger value, bool valid) : base(576, position, 4, length, value, valid) { }
+		internal NoClearingInstructions((bool Valid, System.Numerics.BigInteger Value) parsed) : base(576, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ClearingInstruction : FixValue<System.Numerics.BigInteger>
 	{
-		internal ClearingInstruction(int position, int length, System.Numerics.BigInteger value, bool valid) : base(577, position, 4, length, value, valid) { }
+		internal ClearingInstruction((bool Valid, System.Numerics.BigInteger Value) parsed) : base(577, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradeInputSource : FixValue<string>
 	{
-		internal TradeInputSource(int position, int length, string value, bool valid) : base(578, position, 4, length, value, valid) { }
+		internal TradeInputSource(string value) : base(578, 4, value, true) { }
 	}
 	public sealed class TradeInputDevice : FixValue<string>
 	{
-		internal TradeInputDevice(int position, int length, string value, bool valid) : base(579, position, 4, length, value, valid) { }
+		internal TradeInputDevice(string value) : base(579, 4, value, true) { }
 	}
 	public sealed class NoDates : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoDates(int position, int length, System.Numerics.BigInteger value, bool valid) : base(580, position, 4, length, value, valid) { }
+		internal NoDates((bool Valid, System.Numerics.BigInteger Value) parsed) : base(580, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AccountType : FixValue<System.Numerics.BigInteger>
 	{
-		internal AccountType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(581, position, 4, length, value, valid) { }
+		internal AccountType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(581, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CustOrderCapacity : FixValue<System.Numerics.BigInteger>
 	{
-		internal CustOrderCapacity(int position, int length, System.Numerics.BigInteger value, bool valid) : base(582, position, 4, length, value, valid) { }
+		internal CustOrderCapacity((bool Valid, System.Numerics.BigInteger Value) parsed) : base(582, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ClOrdLinkID : FixValue<string>
 	{
-		internal ClOrdLinkID(int position, int length, string value, bool valid) : base(583, position, 4, length, value, valid) { }
+		internal ClOrdLinkID(string value) : base(583, 4, value, true) { }
 	}
 	public sealed class MassStatusReqID : FixValue<string>
 	{
-		internal MassStatusReqID(int position, int length, string value, bool valid) : base(584, position, 4, length, value, valid) { }
+		internal MassStatusReqID(string value) : base(584, 4, value, true) { }
 	}
 	public sealed class MassStatusReqType : FixValue<System.Numerics.BigInteger>
 	{
-		internal MassStatusReqType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(585, position, 4, length, value, valid) { }
+		internal MassStatusReqType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(585, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OrigOrdModTime : FixValue<FixTimestamp>
 	{
-		internal OrigOrdModTime(int position, int length, FixTimestamp value, bool valid) : base(586, position, 4, length, value, valid) { }
+		internal OrigOrdModTime((bool Valid, FixTimestamp Value) parsed) : base(586, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegSettlType : FixValue<char>
 	{
-		internal LegSettlType(int position, int length, char value, bool valid) : base(587, position, 4, length, value, valid) { }
+		internal LegSettlType((bool Valid, char Value) parsed) : base(587, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegSettlDate : FixValue<FixDate>
 	{
-		internal LegSettlDate(int position, int length, FixDate value, bool valid) : base(588, position, 4, length, value, valid) { }
+		internal LegSettlDate((bool Valid, FixDate Value) parsed) : base(588, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DayBookingInst : FixValue<char>
 	{
-		internal DayBookingInst(int position, int length, char value, bool valid) : base(589, position, 4, length, value, valid) { }
+		internal DayBookingInst((bool Valid, char Value) parsed) : base(589, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BookingUnit : FixValue<char>
 	{
-		internal BookingUnit(int position, int length, char value, bool valid) : base(590, position, 4, length, value, valid) { }
+		internal BookingUnit((bool Valid, char Value) parsed) : base(590, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PreallocMethod : FixValue<char>
 	{
-		internal PreallocMethod(int position, int length, char value, bool valid) : base(591, position, 4, length, value, valid) { }
+		internal PreallocMethod((bool Valid, char Value) parsed) : base(591, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingCountryOfIssue : FixValue<string>
 	{
-		internal UnderlyingCountryOfIssue(int position, int length, string value, bool valid) : base(592, position, 4, length, value, valid) { }
+		internal UnderlyingCountryOfIssue(string value) : base(592, 4, value, true) { }
 	}
 	public sealed class UnderlyingStateOrProvinceOfIssue : FixValue<string>
 	{
-		internal UnderlyingStateOrProvinceOfIssue(int position, int length, string value, bool valid) : base(593, position, 4, length, value, valid) { }
+		internal UnderlyingStateOrProvinceOfIssue(string value) : base(593, 4, value, true) { }
 	}
 	public sealed class UnderlyingLocaleOfIssue : FixValue<string>
 	{
-		internal UnderlyingLocaleOfIssue(int position, int length, string value, bool valid) : base(594, position, 4, length, value, valid) { }
+		internal UnderlyingLocaleOfIssue(string value) : base(594, 4, value, true) { }
 	}
 	public sealed class UnderlyingInstrRegistry : FixValue<string>
 	{
-		internal UnderlyingInstrRegistry(int position, int length, string value, bool valid) : base(595, position, 4, length, value, valid) { }
+		internal UnderlyingInstrRegistry(string value) : base(595, 4, value, true) { }
 	}
 	public sealed class LegCountryOfIssue : FixValue<string>
 	{
-		internal LegCountryOfIssue(int position, int length, string value, bool valid) : base(596, position, 4, length, value, valid) { }
+		internal LegCountryOfIssue(string value) : base(596, 4, value, true) { }
 	}
 	public sealed class LegStateOrProvinceOfIssue : FixValue<string>
 	{
-		internal LegStateOrProvinceOfIssue(int position, int length, string value, bool valid) : base(597, position, 4, length, value, valid) { }
+		internal LegStateOrProvinceOfIssue(string value) : base(597, 4, value, true) { }
 	}
 	public sealed class LegLocaleOfIssue : FixValue<string>
 	{
-		internal LegLocaleOfIssue(int position, int length, string value, bool valid) : base(598, position, 4, length, value, valid) { }
+		internal LegLocaleOfIssue(string value) : base(598, 4, value, true) { }
 	}
 	public sealed class LegInstrRegistry : FixValue<string>
 	{
-		internal LegInstrRegistry(int position, int length, string value, bool valid) : base(599, position, 4, length, value, valid) { }
+		internal LegInstrRegistry(string value) : base(599, 4, value, true) { }
 	}
 	public sealed class LegSymbol : FixValue<string>
 	{
-		internal LegSymbol(int position, int length, string value, bool valid) : base(600, position, 4, length, value, valid) { }
+		internal LegSymbol(string value) : base(600, 4, value, true) { }
 	}
 	public sealed class LegSymbolSfx : FixValue<string>
 	{
-		internal LegSymbolSfx(int position, int length, string value, bool valid) : base(601, position, 4, length, value, valid) { }
+		internal LegSymbolSfx(string value) : base(601, 4, value, true) { }
 	}
 	public sealed class LegSecurityID : FixValue<string>
 	{
-		internal LegSecurityID(int position, int length, string value, bool valid) : base(602, position, 4, length, value, valid) { }
+		internal LegSecurityID(string value) : base(602, 4, value, true) { }
 	}
 	public sealed class LegSecurityIDSource : FixValue<string>
 	{
-		internal LegSecurityIDSource(int position, int length, string value, bool valid) : base(603, position, 4, length, value, valid) { }
+		internal LegSecurityIDSource(string value) : base(603, 4, value, true) { }
 	}
 	public sealed class NoLegSecurityAltID : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoLegSecurityAltID(int position, int length, System.Numerics.BigInteger value, bool valid) : base(604, position, 4, length, value, valid) { }
+		internal NoLegSecurityAltID((bool Valid, System.Numerics.BigInteger Value) parsed) : base(604, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegSecurityAltID : FixValue<string>
 	{
-		internal LegSecurityAltID(int position, int length, string value, bool valid) : base(605, position, 4, length, value, valid) { }
+		internal LegSecurityAltID(string value) : base(605, 4, value, true) { }
 	}
 	public sealed class LegSecurityAltIDSource : FixValue<string>
 	{
-		internal LegSecurityAltIDSource(int position, int length, string value, bool valid) : base(606, position, 4, length, value, valid) { }
+		internal LegSecurityAltIDSource(string value) : base(606, 4, value, true) { }
 	}
 	public sealed class LegProduct : FixValue<System.Numerics.BigInteger>
 	{
-		internal LegProduct(int position, int length, System.Numerics.BigInteger value, bool valid) : base(607, position, 4, length, value, valid) { }
+		internal LegProduct((bool Valid, System.Numerics.BigInteger Value) parsed) : base(607, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegCFICode : FixValue<string>
 	{
-		internal LegCFICode(int position, int length, string value, bool valid) : base(608, position, 4, length, value, valid) { }
+		internal LegCFICode(string value) : base(608, 4, value, true) { }
 	}
 	public sealed class LegSecurityType : FixValue<string>
 	{
-		internal LegSecurityType(int position, int length, string value, bool valid) : base(609, position, 4, length, value, valid) { }
+		internal LegSecurityType(string value) : base(609, 4, value, true) { }
 	}
 	public sealed class LegMaturityMonthYear : FixValue<FixMonthYear>
 	{
-		internal LegMaturityMonthYear(int position, int length, FixMonthYear value, bool valid) : base(610, position, 4, length, value, valid) { }
+		internal LegMaturityMonthYear((bool Valid, FixMonthYear Value) parsed) : base(610, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegMaturityDate : FixValue<FixDate>
 	{
-		internal LegMaturityDate(int position, int length, FixDate value, bool valid) : base(611, position, 4, length, value, valid) { }
+		internal LegMaturityDate((bool Valid, FixDate Value) parsed) : base(611, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegStrikePrice : FixValue<FixDecimal>
 	{
-		internal LegStrikePrice(int position, int length, FixDecimal value, bool valid) : base(612, position, 4, length, value, valid) { }
+		internal LegStrikePrice((bool Valid, FixDecimal Value) parsed) : base(612, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegOptAttribute : FixValue<char>
 	{
-		internal LegOptAttribute(int position, int length, char value, bool valid) : base(613, position, 4, length, value, valid) { }
+		internal LegOptAttribute((bool Valid, char Value) parsed) : base(613, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegContractMultiplier : FixValue<FixDecimal>
 	{
-		internal LegContractMultiplier(int position, int length, FixDecimal value, bool valid) : base(614, position, 4, length, value, valid) { }
+		internal LegContractMultiplier((bool Valid, FixDecimal Value) parsed) : base(614, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegCouponRate : FixValue<FixDecimal>
 	{
-		internal LegCouponRate(int position, int length, FixDecimal value, bool valid) : base(615, position, 4, length, value, valid) { }
+		internal LegCouponRate((bool Valid, FixDecimal Value) parsed) : base(615, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegSecurityExchange : FixValue<string>
 	{
-		internal LegSecurityExchange(int position, int length, string value, bool valid) : base(616, position, 4, length, value, valid) { }
+		internal LegSecurityExchange(string value) : base(616, 4, value, true) { }
 	}
 	public sealed class LegIssuer : FixValue<string>
 	{
-		internal LegIssuer(int position, int length, string value, bool valid) : base(617, position, 4, length, value, valid) { }
+		internal LegIssuer(string value) : base(617, 4, value, true) { }
 	}
 	public sealed class EncodedLegIssuerLen : FixValue<System.Numerics.BigInteger>
 	{
-		internal EncodedLegIssuerLen(int position, int length, System.Numerics.BigInteger value, bool valid) : base(618, position, 4, length, value, valid) { }
+		internal EncodedLegIssuerLen((bool Valid, System.Numerics.BigInteger Value) parsed) : base(618, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedLegIssuer : FixValue<ReadOnlyMemory<byte>>
 	{
-		internal EncodedLegIssuer(int position, int length, ReadOnlyMemory<byte> value, bool valid) : base(619, position, 4, length, value, valid) { }
+		internal EncodedLegIssuer((bool Valid, ReadOnlyMemory<byte> Value) parsed) : base(619, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegSecurityDesc : FixValue<string>
 	{
-		internal LegSecurityDesc(int position, int length, string value, bool valid) : base(620, position, 4, length, value, valid) { }
+		internal LegSecurityDesc(string value) : base(620, 4, value, true) { }
 	}
 	public sealed class EncodedLegSecurityDescLen : FixValue<System.Numerics.BigInteger>
 	{
-		internal EncodedLegSecurityDescLen(int position, int length, System.Numerics.BigInteger value, bool valid) : base(621, position, 4, length, value, valid) { }
+		internal EncodedLegSecurityDescLen((bool Valid, System.Numerics.BigInteger Value) parsed) : base(621, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EncodedLegSecurityDesc : FixValue<ReadOnlyMemory<byte>>
 	{
-		internal EncodedLegSecurityDesc(int position, int length, ReadOnlyMemory<byte> value, bool valid) : base(622, position, 4, length, value, valid) { }
+		internal EncodedLegSecurityDesc((bool Valid, ReadOnlyMemory<byte> Value) parsed) : base(622, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegRatioQty : FixValue<FixDecimal>
 	{
-		internal LegRatioQty(int position, int length, FixDecimal value, bool valid) : base(623, position, 4, length, value, valid) { }
+		internal LegRatioQty((bool Valid, FixDecimal Value) parsed) : base(623, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegSide : FixValue<char>
 	{
-		internal LegSide(int position, int length, char value, bool valid) : base(624, position, 4, length, value, valid) { }
+		internal LegSide((bool Valid, char Value) parsed) : base(624, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradingSessionSubID : FixValue<string>
 	{
-		internal TradingSessionSubID(int position, int length, string value, bool valid) : base(625, position, 4, length, value, valid) { }
+		internal TradingSessionSubID(string value) : base(625, 4, value, true) { }
 	}
 	public sealed class AllocType : FixValue<System.Numerics.BigInteger>
 	{
-		internal AllocType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(626, position, 4, length, value, valid) { }
+		internal AllocType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(626, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoHops : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoHops(int position, int length, System.Numerics.BigInteger value, bool valid) : base(627, position, 4, length, value, valid) { }
+		internal NoHops((bool Valid, System.Numerics.BigInteger Value) parsed) : base(627, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class HopCompID : FixValue<string>
 	{
-		internal HopCompID(int position, int length, string value, bool valid) : base(628, position, 4, length, value, valid) { }
+		internal HopCompID(string value) : base(628, 4, value, true) { }
 	}
 	public sealed class HopSendingTime : FixValue<FixTimestamp>
 	{
-		internal HopSendingTime(int position, int length, FixTimestamp value, bool valid) : base(629, position, 4, length, value, valid) { }
+		internal HopSendingTime((bool Valid, FixTimestamp Value) parsed) : base(629, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class HopRefID : FixValue<System.Numerics.BigInteger>
 	{
-		internal HopRefID(int position, int length, System.Numerics.BigInteger value, bool valid) : base(630, position, 4, length, value, valid) { }
+		internal HopRefID((bool Valid, System.Numerics.BigInteger Value) parsed) : base(630, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MidPx : FixValue<FixDecimal>
 	{
-		internal MidPx(int position, int length, FixDecimal value, bool valid) : base(631, position, 4, length, value, valid) { }
+		internal MidPx((bool Valid, FixDecimal Value) parsed) : base(631, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BidYield : FixValue<FixDecimal>
 	{
-		internal BidYield(int position, int length, FixDecimal value, bool valid) : base(632, position, 4, length, value, valid) { }
+		internal BidYield((bool Valid, FixDecimal Value) parsed) : base(632, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MidYield : FixValue<FixDecimal>
 	{
-		internal MidYield(int position, int length, FixDecimal value, bool valid) : base(633, position, 4, length, value, valid) { }
+		internal MidYield((bool Valid, FixDecimal Value) parsed) : base(633, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OfferYield : FixValue<FixDecimal>
 	{
-		internal OfferYield(int position, int length, FixDecimal value, bool valid) : base(634, position, 4, length, value, valid) { }
+		internal OfferYield((bool Valid, FixDecimal Value) parsed) : base(634, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ClearingFeeIndicator : FixValue<string>
 	{
-		internal ClearingFeeIndicator(int position, int length, string value, bool valid) : base(635, position, 4, length, value, valid) { }
+		internal ClearingFeeIndicator(string value) : base(635, 4, value, true) { }
 	}
 	public sealed class WorkingIndicator : FixValue<bool>
 	{
-		internal WorkingIndicator(int position, int length, bool value, bool valid) : base(636, position, 4, length, value, valid) { }
+		internal WorkingIndicator((bool Valid, bool Value) parsed) : base(636, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegLastPx : FixValue<FixDecimal>
 	{
-		internal LegLastPx(int position, int length, FixDecimal value, bool valid) : base(637, position, 4, length, value, valid) { }
+		internal LegLastPx((bool Valid, FixDecimal Value) parsed) : base(637, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PriorityIndicator : FixValue<System.Numerics.BigInteger>
 	{
-		internal PriorityIndicator(int position, int length, System.Numerics.BigInteger value, bool valid) : base(638, position, 4, length, value, valid) { }
+		internal PriorityIndicator((bool Valid, System.Numerics.BigInteger Value) parsed) : base(638, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PriceImprovement : FixValue<FixDecimal>
 	{
-		internal PriceImprovement(int position, int length, FixDecimal value, bool valid) : base(639, position, 4, length, value, valid) { }
+		internal PriceImprovement((bool Valid, FixDecimal Value) parsed) : base(639, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Price2 : FixValue<FixDecimal>
 	{
-		internal Price2(int position, int length, FixDecimal value, bool valid) : base(640, position, 4, length, value, valid) { }
+		internal Price2((bool Valid, FixDecimal Value) parsed) : base(640, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LastForwardPoints2 : FixValue<FixDecimal>
 	{
-		internal LastForwardPoints2(int position, int length, FixDecimal value, bool valid) : base(641, position, 4, length, value, valid) { }
+		internal LastForwardPoints2((bool Valid, FixDecimal Value) parsed) : base(641, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BidForwardPoints2 : FixValue<FixDecimal>
 	{
-		internal BidForwardPoints2(int position, int length, FixDecimal value, bool valid) : base(642, position, 4, length, value, valid) { }
+		internal BidForwardPoints2((bool Valid, FixDecimal Value) parsed) : base(642, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OfferForwardPoints2 : FixValue<FixDecimal>
 	{
-		internal OfferForwardPoints2(int position, int length, FixDecimal value, bool valid) : base(643, position, 4, length, value, valid) { }
+		internal OfferForwardPoints2((bool Valid, FixDecimal Value) parsed) : base(643, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class RFQReqID : FixValue<string>
 	{
-		internal RFQReqID(int position, int length, string value, bool valid) : base(644, position, 4, length, value, valid) { }
+		internal RFQReqID(string value) : base(644, 4, value, true) { }
 	}
 	public sealed class MktBidPx : FixValue<FixDecimal>
 	{
-		internal MktBidPx(int position, int length, FixDecimal value, bool valid) : base(645, position, 4, length, value, valid) { }
+		internal MktBidPx((bool Valid, FixDecimal Value) parsed) : base(645, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MktOfferPx : FixValue<FixDecimal>
 	{
-		internal MktOfferPx(int position, int length, FixDecimal value, bool valid) : base(646, position, 4, length, value, valid) { }
+		internal MktOfferPx((bool Valid, FixDecimal Value) parsed) : base(646, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MinBidSize : FixValue<FixDecimal>
 	{
-		internal MinBidSize(int position, int length, FixDecimal value, bool valid) : base(647, position, 4, length, value, valid) { }
+		internal MinBidSize((bool Valid, FixDecimal Value) parsed) : base(647, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MinOfferSize : FixValue<FixDecimal>
 	{
-		internal MinOfferSize(int position, int length, FixDecimal value, bool valid) : base(648, position, 4, length, value, valid) { }
+		internal MinOfferSize((bool Valid, FixDecimal Value) parsed) : base(648, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class QuoteStatusReqID : FixValue<string>
 	{
-		internal QuoteStatusReqID(int position, int length, string value, bool valid) : base(649, position, 4, length, value, valid) { }
+		internal QuoteStatusReqID(string value) : base(649, 4, value, true) { }
 	}
 	public sealed class LegalConfirm : FixValue<bool>
 	{
-		internal LegalConfirm(int position, int length, bool value, bool valid) : base(650, position, 4, length, value, valid) { }
+		internal LegalConfirm((bool Valid, bool Value) parsed) : base(650, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingLastPx : FixValue<FixDecimal>
 	{
-		internal UnderlyingLastPx(int position, int length, FixDecimal value, bool valid) : base(651, position, 4, length, value, valid) { }
+		internal UnderlyingLastPx((bool Valid, FixDecimal Value) parsed) : base(651, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingLastQty : FixValue<FixDecimal>
 	{
-		internal UnderlyingLastQty(int position, int length, FixDecimal value, bool valid) : base(652, position, 4, length, value, valid) { }
+		internal UnderlyingLastQty((bool Valid, FixDecimal Value) parsed) : base(652, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegRefID : FixValue<string>
 	{
-		internal LegRefID(int position, int length, string value, bool valid) : base(654, position, 4, length, value, valid) { }
+		internal LegRefID(string value) : base(654, 4, value, true) { }
 	}
 	public sealed class ContraLegRefID : FixValue<string>
 	{
-		internal ContraLegRefID(int position, int length, string value, bool valid) : base(655, position, 4, length, value, valid) { }
+		internal ContraLegRefID(string value) : base(655, 4, value, true) { }
 	}
 	public sealed class SettlCurrBidFxRate : FixValue<FixDecimal>
 	{
-		internal SettlCurrBidFxRate(int position, int length, FixDecimal value, bool valid) : base(656, position, 4, length, value, valid) { }
+		internal SettlCurrBidFxRate((bool Valid, FixDecimal Value) parsed) : base(656, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SettlCurrOfferFxRate : FixValue<FixDecimal>
 	{
-		internal SettlCurrOfferFxRate(int position, int length, FixDecimal value, bool valid) : base(657, position, 4, length, value, valid) { }
+		internal SettlCurrOfferFxRate((bool Valid, FixDecimal Value) parsed) : base(657, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class QuoteRequestRejectReason : FixValue<System.Numerics.BigInteger>
 	{
-		internal QuoteRequestRejectReason(int position, int length, System.Numerics.BigInteger value, bool valid) : base(658, position, 4, length, value, valid) { }
+		internal QuoteRequestRejectReason((bool Valid, System.Numerics.BigInteger Value) parsed) : base(658, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SideComplianceID : FixValue<string>
 	{
-		internal SideComplianceID(int position, int length, string value, bool valid) : base(659, position, 4, length, value, valid) { }
+		internal SideComplianceID(string value) : base(659, 4, value, true) { }
 	}
 	public sealed class AcctIDSource : FixValue<System.Numerics.BigInteger>
 	{
-		internal AcctIDSource(int position, int length, System.Numerics.BigInteger value, bool valid) : base(660, position, 4, length, value, valid) { }
+		internal AcctIDSource((bool Valid, System.Numerics.BigInteger Value) parsed) : base(660, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocAcctIDSource : FixValue<System.Numerics.BigInteger>
 	{
-		internal AllocAcctIDSource(int position, int length, System.Numerics.BigInteger value, bool valid) : base(661, position, 4, length, value, valid) { }
+		internal AllocAcctIDSource((bool Valid, System.Numerics.BigInteger Value) parsed) : base(661, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BenchmarkPrice : FixValue<FixDecimal>
 	{
-		internal BenchmarkPrice(int position, int length, FixDecimal value, bool valid) : base(662, position, 4, length, value, valid) { }
+		internal BenchmarkPrice((bool Valid, FixDecimal Value) parsed) : base(662, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BenchmarkPriceType : FixValue<System.Numerics.BigInteger>
 	{
-		internal BenchmarkPriceType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(663, position, 4, length, value, valid) { }
+		internal BenchmarkPriceType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(663, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ConfirmID : FixValue<string>
 	{
-		internal ConfirmID(int position, int length, string value, bool valid) : base(664, position, 4, length, value, valid) { }
+		internal ConfirmID(string value) : base(664, 4, value, true) { }
 	}
 	public sealed class ConfirmStatus : FixValue<System.Numerics.BigInteger>
 	{
-		internal ConfirmStatus(int position, int length, System.Numerics.BigInteger value, bool valid) : base(665, position, 4, length, value, valid) { }
+		internal ConfirmStatus((bool Valid, System.Numerics.BigInteger Value) parsed) : base(665, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ConfirmTransType : FixValue<System.Numerics.BigInteger>
 	{
-		internal ConfirmTransType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(666, position, 4, length, value, valid) { }
+		internal ConfirmTransType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(666, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ContractSettlMonth : FixValue<FixMonthYear>
 	{
-		internal ContractSettlMonth(int position, int length, FixMonthYear value, bool valid) : base(667, position, 4, length, value, valid) { }
+		internal ContractSettlMonth((bool Valid, FixMonthYear Value) parsed) : base(667, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DeliveryForm : FixValue<System.Numerics.BigInteger>
 	{
-		internal DeliveryForm(int position, int length, System.Numerics.BigInteger value, bool valid) : base(668, position, 4, length, value, valid) { }
+		internal DeliveryForm((bool Valid, System.Numerics.BigInteger Value) parsed) : base(668, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LastParPx : FixValue<FixDecimal>
 	{
-		internal LastParPx(int position, int length, FixDecimal value, bool valid) : base(669, position, 4, length, value, valid) { }
+		internal LastParPx((bool Valid, FixDecimal Value) parsed) : base(669, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoLegAllocs : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoLegAllocs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(670, position, 4, length, value, valid) { }
+		internal NoLegAllocs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(670, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegAllocAccount : FixValue<string>
 	{
-		internal LegAllocAccount(int position, int length, string value, bool valid) : base(671, position, 4, length, value, valid) { }
+		internal LegAllocAccount(string value) : base(671, 4, value, true) { }
 	}
 	public sealed class LegIndividualAllocID : FixValue<string>
 	{
-		internal LegIndividualAllocID(int position, int length, string value, bool valid) : base(672, position, 4, length, value, valid) { }
+		internal LegIndividualAllocID(string value) : base(672, 4, value, true) { }
 	}
 	public sealed class LegAllocQty : FixValue<FixDecimal>
 	{
-		internal LegAllocQty(int position, int length, FixDecimal value, bool valid) : base(673, position, 4, length, value, valid) { }
+		internal LegAllocQty((bool Valid, FixDecimal Value) parsed) : base(673, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegAllocAcctIDSource : FixValue<System.Numerics.BigInteger>
 	{
-		internal LegAllocAcctIDSource(int position, int length, System.Numerics.BigInteger value, bool valid) : base(674, position, 4, length, value, valid) { }
+		internal LegAllocAcctIDSource((bool Valid, System.Numerics.BigInteger Value) parsed) : base(674, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegSettlCurrency : FixValue<string>
 	{
-		internal LegSettlCurrency(int position, int length, string value, bool valid) : base(675, position, 4, length, value, valid) { }
+		internal LegSettlCurrency(string value) : base(675, 4, value, true) { }
 	}
 	public sealed class LegBenchmarkCurveCurrency : FixValue<string>
 	{
-		internal LegBenchmarkCurveCurrency(int position, int length, string value, bool valid) : base(676, position, 4, length, value, valid) { }
+		internal LegBenchmarkCurveCurrency(string value) : base(676, 4, value, true) { }
 	}
 	public sealed class LegBenchmarkCurveName : FixValue<string>
 	{
-		internal LegBenchmarkCurveName(int position, int length, string value, bool valid) : base(677, position, 4, length, value, valid) { }
+		internal LegBenchmarkCurveName(string value) : base(677, 4, value, true) { }
 	}
 	public sealed class LegBenchmarkCurvePoint : FixValue<string>
 	{
-		internal LegBenchmarkCurvePoint(int position, int length, string value, bool valid) : base(678, position, 4, length, value, valid) { }
+		internal LegBenchmarkCurvePoint(string value) : base(678, 4, value, true) { }
 	}
 	public sealed class LegBenchmarkPrice : FixValue<FixDecimal>
 	{
-		internal LegBenchmarkPrice(int position, int length, FixDecimal value, bool valid) : base(679, position, 4, length, value, valid) { }
+		internal LegBenchmarkPrice((bool Valid, FixDecimal Value) parsed) : base(679, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegBenchmarkPriceType : FixValue<System.Numerics.BigInteger>
 	{
-		internal LegBenchmarkPriceType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(680, position, 4, length, value, valid) { }
+		internal LegBenchmarkPriceType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(680, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegBidPx : FixValue<FixDecimal>
 	{
-		internal LegBidPx(int position, int length, FixDecimal value, bool valid) : base(681, position, 4, length, value, valid) { }
+		internal LegBidPx((bool Valid, FixDecimal Value) parsed) : base(681, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegIOIQty : FixValue<string>
 	{
-		internal LegIOIQty(int position, int length, string value, bool valid) : base(682, position, 4, length, value, valid) { }
+		internal LegIOIQty(string value) : base(682, 4, value, true) { }
 	}
 	public sealed class NoLegStipulations : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoLegStipulations(int position, int length, System.Numerics.BigInteger value, bool valid) : base(683, position, 4, length, value, valid) { }
+		internal NoLegStipulations((bool Valid, System.Numerics.BigInteger Value) parsed) : base(683, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegOfferPx : FixValue<FixDecimal>
 	{
-		internal LegOfferPx(int position, int length, FixDecimal value, bool valid) : base(684, position, 4, length, value, valid) { }
+		internal LegOfferPx((bool Valid, FixDecimal Value) parsed) : base(684, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegPriceType : FixValue<System.Numerics.BigInteger>
 	{
-		internal LegPriceType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(686, position, 4, length, value, valid) { }
+		internal LegPriceType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(686, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegQty : FixValue<FixDecimal>
 	{
-		internal LegQty(int position, int length, FixDecimal value, bool valid) : base(687, position, 4, length, value, valid) { }
+		internal LegQty((bool Valid, FixDecimal Value) parsed) : base(687, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegStipulationType : FixValue<string>
 	{
-		internal LegStipulationType(int position, int length, string value, bool valid) : base(688, position, 4, length, value, valid) { }
+		internal LegStipulationType(string value) : base(688, 4, value, true) { }
 	}
 	public sealed class LegStipulationValue : FixValue<string>
 	{
-		internal LegStipulationValue(int position, int length, string value, bool valid) : base(689, position, 4, length, value, valid) { }
+		internal LegStipulationValue(string value) : base(689, 4, value, true) { }
 	}
 	public sealed class LegSwapType : FixValue<System.Numerics.BigInteger>
 	{
-		internal LegSwapType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(690, position, 4, length, value, valid) { }
+		internal LegSwapType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(690, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Pool : FixValue<string>
 	{
-		internal Pool(int position, int length, string value, bool valid) : base(691, position, 4, length, value, valid) { }
+		internal Pool(string value) : base(691, 4, value, true) { }
 	}
 	public sealed class QuotePriceType : FixValue<System.Numerics.BigInteger>
 	{
-		internal QuotePriceType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(692, position, 4, length, value, valid) { }
+		internal QuotePriceType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(692, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class QuoteRespID : FixValue<string>
 	{
-		internal QuoteRespID(int position, int length, string value, bool valid) : base(693, position, 4, length, value, valid) { }
+		internal QuoteRespID(string value) : base(693, 4, value, true) { }
 	}
 	public sealed class QuoteRespType : FixValue<System.Numerics.BigInteger>
 	{
-		internal QuoteRespType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(694, position, 4, length, value, valid) { }
+		internal QuoteRespType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(694, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class QuoteQualifier : FixValue<char>
 	{
-		internal QuoteQualifier(int position, int length, char value, bool valid) : base(695, position, 4, length, value, valid) { }
+		internal QuoteQualifier((bool Valid, char Value) parsed) : base(695, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class YieldRedemptionDate : FixValue<FixDate>
 	{
-		internal YieldRedemptionDate(int position, int length, FixDate value, bool valid) : base(696, position, 4, length, value, valid) { }
+		internal YieldRedemptionDate((bool Valid, FixDate Value) parsed) : base(696, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class YieldRedemptionPrice : FixValue<FixDecimal>
 	{
-		internal YieldRedemptionPrice(int position, int length, FixDecimal value, bool valid) : base(697, position, 4, length, value, valid) { }
+		internal YieldRedemptionPrice((bool Valid, FixDecimal Value) parsed) : base(697, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class YieldRedemptionPriceType : FixValue<System.Numerics.BigInteger>
 	{
-		internal YieldRedemptionPriceType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(698, position, 4, length, value, valid) { }
+		internal YieldRedemptionPriceType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(698, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BenchmarkSecurityID : FixValue<string>
 	{
-		internal BenchmarkSecurityID(int position, int length, string value, bool valid) : base(699, position, 4, length, value, valid) { }
+		internal BenchmarkSecurityID(string value) : base(699, 4, value, true) { }
 	}
 	public sealed class ReversalIndicator : FixValue<bool>
 	{
-		internal ReversalIndicator(int position, int length, bool value, bool valid) : base(700, position, 4, length, value, valid) { }
+		internal ReversalIndicator((bool Valid, bool Value) parsed) : base(700, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class YieldCalcDate : FixValue<FixDate>
 	{
-		internal YieldCalcDate(int position, int length, FixDate value, bool valid) : base(701, position, 4, length, value, valid) { }
+		internal YieldCalcDate((bool Valid, FixDate Value) parsed) : base(701, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoPositions : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoPositions(int position, int length, System.Numerics.BigInteger value, bool valid) : base(702, position, 4, length, value, valid) { }
+		internal NoPositions((bool Valid, System.Numerics.BigInteger Value) parsed) : base(702, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PosType : FixValue<string>
 	{
-		internal PosType(int position, int length, string value, bool valid) : base(703, position, 4, length, value, valid) { }
+		internal PosType(string value) : base(703, 4, value, true) { }
 	}
 	public sealed class LongQty : FixValue<FixDecimal>
 	{
-		internal LongQty(int position, int length, FixDecimal value, bool valid) : base(704, position, 4, length, value, valid) { }
+		internal LongQty((bool Valid, FixDecimal Value) parsed) : base(704, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ShortQty : FixValue<FixDecimal>
 	{
-		internal ShortQty(int position, int length, FixDecimal value, bool valid) : base(705, position, 4, length, value, valid) { }
+		internal ShortQty((bool Valid, FixDecimal Value) parsed) : base(705, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PosQtyStatus : FixValue<System.Numerics.BigInteger>
 	{
-		internal PosQtyStatus(int position, int length, System.Numerics.BigInteger value, bool valid) : base(706, position, 4, length, value, valid) { }
+		internal PosQtyStatus((bool Valid, System.Numerics.BigInteger Value) parsed) : base(706, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PosAmtType : FixValue<string>
 	{
-		internal PosAmtType(int position, int length, string value, bool valid) : base(707, position, 4, length, value, valid) { }
+		internal PosAmtType(string value) : base(707, 4, value, true) { }
 	}
 	public sealed class PosAmt : FixValue<FixDecimal>
 	{
-		internal PosAmt(int position, int length, FixDecimal value, bool valid) : base(708, position, 4, length, value, valid) { }
+		internal PosAmt((bool Valid, FixDecimal Value) parsed) : base(708, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PosTransType : FixValue<System.Numerics.BigInteger>
 	{
-		internal PosTransType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(709, position, 4, length, value, valid) { }
+		internal PosTransType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(709, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PosReqID : FixValue<string>
 	{
-		internal PosReqID(int position, int length, string value, bool valid) : base(710, position, 4, length, value, valid) { }
+		internal PosReqID(string value) : base(710, 4, value, true) { }
 	}
 	public sealed class NoUnderlyings : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoUnderlyings(int position, int length, System.Numerics.BigInteger value, bool valid) : base(711, position, 4, length, value, valid) { }
+		internal NoUnderlyings((bool Valid, System.Numerics.BigInteger Value) parsed) : base(711, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PosMaintAction : FixValue<System.Numerics.BigInteger>
 	{
-		internal PosMaintAction(int position, int length, System.Numerics.BigInteger value, bool valid) : base(712, position, 4, length, value, valid) { }
+		internal PosMaintAction((bool Valid, System.Numerics.BigInteger Value) parsed) : base(712, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OrigPosReqRefID : FixValue<string>
 	{
-		internal OrigPosReqRefID(int position, int length, string value, bool valid) : base(713, position, 4, length, value, valid) { }
+		internal OrigPosReqRefID(string value) : base(713, 4, value, true) { }
 	}
 	public sealed class PosMaintRptRefID : FixValue<string>
 	{
-		internal PosMaintRptRefID(int position, int length, string value, bool valid) : base(714, position, 4, length, value, valid) { }
+		internal PosMaintRptRefID(string value) : base(714, 4, value, true) { }
 	}
 	public sealed class ClearingBusinessDate : FixValue<FixDate>
 	{
-		internal ClearingBusinessDate(int position, int length, FixDate value, bool valid) : base(715, position, 4, length, value, valid) { }
+		internal ClearingBusinessDate((bool Valid, FixDate Value) parsed) : base(715, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SettlSessID : FixValue<string>
 	{
-		internal SettlSessID(int position, int length, string value, bool valid) : base(716, position, 4, length, value, valid) { }
+		internal SettlSessID(string value) : base(716, 4, value, true) { }
 	}
 	public sealed class SettlSessSubID : FixValue<string>
 	{
-		internal SettlSessSubID(int position, int length, string value, bool valid) : base(717, position, 4, length, value, valid) { }
+		internal SettlSessSubID(string value) : base(717, 4, value, true) { }
 	}
 	public sealed class AdjustmentType : FixValue<System.Numerics.BigInteger>
 	{
-		internal AdjustmentType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(718, position, 4, length, value, valid) { }
+		internal AdjustmentType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(718, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ContraryInstructionIndicator : FixValue<bool>
 	{
-		internal ContraryInstructionIndicator(int position, int length, bool value, bool valid) : base(719, position, 4, length, value, valid) { }
+		internal ContraryInstructionIndicator((bool Valid, bool Value) parsed) : base(719, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PriorSpreadIndicator : FixValue<bool>
 	{
-		internal PriorSpreadIndicator(int position, int length, bool value, bool valid) : base(720, position, 4, length, value, valid) { }
+		internal PriorSpreadIndicator((bool Valid, bool Value) parsed) : base(720, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PosMaintRptID : FixValue<string>
 	{
-		internal PosMaintRptID(int position, int length, string value, bool valid) : base(721, position, 4, length, value, valid) { }
+		internal PosMaintRptID(string value) : base(721, 4, value, true) { }
 	}
 	public sealed class PosMaintStatus : FixValue<System.Numerics.BigInteger>
 	{
-		internal PosMaintStatus(int position, int length, System.Numerics.BigInteger value, bool valid) : base(722, position, 4, length, value, valid) { }
+		internal PosMaintStatus((bool Valid, System.Numerics.BigInteger Value) parsed) : base(722, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PosMaintResult : FixValue<System.Numerics.BigInteger>
 	{
-		internal PosMaintResult(int position, int length, System.Numerics.BigInteger value, bool valid) : base(723, position, 4, length, value, valid) { }
+		internal PosMaintResult((bool Valid, System.Numerics.BigInteger Value) parsed) : base(723, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PosReqType : FixValue<System.Numerics.BigInteger>
 	{
-		internal PosReqType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(724, position, 4, length, value, valid) { }
+		internal PosReqType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(724, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ResponseTransportType : FixValue<System.Numerics.BigInteger>
 	{
-		internal ResponseTransportType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(725, position, 4, length, value, valid) { }
+		internal ResponseTransportType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(725, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ResponseDestination : FixValue<string>
 	{
-		internal ResponseDestination(int position, int length, string value, bool valid) : base(726, position, 4, length, value, valid) { }
+		internal ResponseDestination(string value) : base(726, 4, value, true) { }
 	}
 	public sealed class TotalNumPosReports : FixValue<System.Numerics.BigInteger>
 	{
-		internal TotalNumPosReports(int position, int length, System.Numerics.BigInteger value, bool valid) : base(727, position, 4, length, value, valid) { }
+		internal TotalNumPosReports((bool Valid, System.Numerics.BigInteger Value) parsed) : base(727, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PosReqResult : FixValue<System.Numerics.BigInteger>
 	{
-		internal PosReqResult(int position, int length, System.Numerics.BigInteger value, bool valid) : base(728, position, 4, length, value, valid) { }
+		internal PosReqResult((bool Valid, System.Numerics.BigInteger Value) parsed) : base(728, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PosReqStatus : FixValue<System.Numerics.BigInteger>
 	{
-		internal PosReqStatus(int position, int length, System.Numerics.BigInteger value, bool valid) : base(729, position, 4, length, value, valid) { }
+		internal PosReqStatus((bool Valid, System.Numerics.BigInteger Value) parsed) : base(729, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SettlPrice : FixValue<FixDecimal>
 	{
-		internal SettlPrice(int position, int length, FixDecimal value, bool valid) : base(730, position, 4, length, value, valid) { }
+		internal SettlPrice((bool Valid, FixDecimal Value) parsed) : base(730, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SettlPriceType : FixValue<System.Numerics.BigInteger>
 	{
-		internal SettlPriceType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(731, position, 4, length, value, valid) { }
+		internal SettlPriceType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(731, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingSettlPrice : FixValue<FixDecimal>
 	{
-		internal UnderlyingSettlPrice(int position, int length, FixDecimal value, bool valid) : base(732, position, 4, length, value, valid) { }
+		internal UnderlyingSettlPrice((bool Valid, FixDecimal Value) parsed) : base(732, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingSettlPriceType : FixValue<System.Numerics.BigInteger>
 	{
-		internal UnderlyingSettlPriceType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(733, position, 4, length, value, valid) { }
+		internal UnderlyingSettlPriceType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(733, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PriorSettlPrice : FixValue<FixDecimal>
 	{
-		internal PriorSettlPrice(int position, int length, FixDecimal value, bool valid) : base(734, position, 4, length, value, valid) { }
+		internal PriorSettlPrice((bool Valid, FixDecimal Value) parsed) : base(734, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoQuoteQualifiers : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoQuoteQualifiers(int position, int length, System.Numerics.BigInteger value, bool valid) : base(735, position, 4, length, value, valid) { }
+		internal NoQuoteQualifiers((bool Valid, System.Numerics.BigInteger Value) parsed) : base(735, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocSettlCurrency : FixValue<string>
 	{
-		internal AllocSettlCurrency(int position, int length, string value, bool valid) : base(736, position, 4, length, value, valid) { }
+		internal AllocSettlCurrency(string value) : base(736, 4, value, true) { }
 	}
 	public sealed class AllocSettlCurrAmt : FixValue<FixDecimal>
 	{
-		internal AllocSettlCurrAmt(int position, int length, FixDecimal value, bool valid) : base(737, position, 4, length, value, valid) { }
+		internal AllocSettlCurrAmt((bool Valid, FixDecimal Value) parsed) : base(737, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class InterestAtMaturity : FixValue<FixDecimal>
 	{
-		internal InterestAtMaturity(int position, int length, FixDecimal value, bool valid) : base(738, position, 4, length, value, valid) { }
+		internal InterestAtMaturity((bool Valid, FixDecimal Value) parsed) : base(738, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegDatedDate : FixValue<FixDate>
 	{
-		internal LegDatedDate(int position, int length, FixDate value, bool valid) : base(739, position, 4, length, value, valid) { }
+		internal LegDatedDate((bool Valid, FixDate Value) parsed) : base(739, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegPool : FixValue<string>
 	{
-		internal LegPool(int position, int length, string value, bool valid) : base(740, position, 4, length, value, valid) { }
+		internal LegPool(string value) : base(740, 4, value, true) { }
 	}
 	public sealed class AllocInterestAtMaturity : FixValue<FixDecimal>
 	{
-		internal AllocInterestAtMaturity(int position, int length, FixDecimal value, bool valid) : base(741, position, 4, length, value, valid) { }
+		internal AllocInterestAtMaturity((bool Valid, FixDecimal Value) parsed) : base(741, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocAccruedInterestAmt : FixValue<FixDecimal>
 	{
-		internal AllocAccruedInterestAmt(int position, int length, FixDecimal value, bool valid) : base(742, position, 4, length, value, valid) { }
+		internal AllocAccruedInterestAmt((bool Valid, FixDecimal Value) parsed) : base(742, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DeliveryDate : FixValue<FixDate>
 	{
-		internal DeliveryDate(int position, int length, FixDate value, bool valid) : base(743, position, 4, length, value, valid) { }
+		internal DeliveryDate((bool Valid, FixDate Value) parsed) : base(743, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AssignmentMethod : FixValue<char>
 	{
-		internal AssignmentMethod(int position, int length, char value, bool valid) : base(744, position, 4, length, value, valid) { }
+		internal AssignmentMethod((bool Valid, char Value) parsed) : base(744, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AssignmentUnit : FixValue<FixDecimal>
 	{
-		internal AssignmentUnit(int position, int length, FixDecimal value, bool valid) : base(745, position, 4, length, value, valid) { }
+		internal AssignmentUnit((bool Valid, FixDecimal Value) parsed) : base(745, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OpenInterest : FixValue<FixDecimal>
 	{
-		internal OpenInterest(int position, int length, FixDecimal value, bool valid) : base(746, position, 4, length, value, valid) { }
+		internal OpenInterest((bool Valid, FixDecimal Value) parsed) : base(746, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ExerciseMethod : FixValue<char>
 	{
-		internal ExerciseMethod(int position, int length, char value, bool valid) : base(747, position, 4, length, value, valid) { }
+		internal ExerciseMethod((bool Valid, char Value) parsed) : base(747, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TotNumTradeReports : FixValue<System.Numerics.BigInteger>
 	{
-		internal TotNumTradeReports(int position, int length, System.Numerics.BigInteger value, bool valid) : base(748, position, 4, length, value, valid) { }
+		internal TotNumTradeReports((bool Valid, System.Numerics.BigInteger Value) parsed) : base(748, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradeRequestResult : FixValue<System.Numerics.BigInteger>
 	{
-		internal TradeRequestResult(int position, int length, System.Numerics.BigInteger value, bool valid) : base(749, position, 4, length, value, valid) { }
+		internal TradeRequestResult((bool Valid, System.Numerics.BigInteger Value) parsed) : base(749, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradeRequestStatus : FixValue<System.Numerics.BigInteger>
 	{
-		internal TradeRequestStatus(int position, int length, System.Numerics.BigInteger value, bool valid) : base(750, position, 4, length, value, valid) { }
+		internal TradeRequestStatus((bool Valid, System.Numerics.BigInteger Value) parsed) : base(750, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradeReportRejectReason : FixValue<System.Numerics.BigInteger>
 	{
-		internal TradeReportRejectReason(int position, int length, System.Numerics.BigInteger value, bool valid) : base(751, position, 4, length, value, valid) { }
+		internal TradeReportRejectReason((bool Valid, System.Numerics.BigInteger Value) parsed) : base(751, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SideMultiLegReportingType : FixValue<System.Numerics.BigInteger>
 	{
-		internal SideMultiLegReportingType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(752, position, 4, length, value, valid) { }
+		internal SideMultiLegReportingType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(752, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoPosAmt : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoPosAmt(int position, int length, System.Numerics.BigInteger value, bool valid) : base(753, position, 4, length, value, valid) { }
+		internal NoPosAmt((bool Valid, System.Numerics.BigInteger Value) parsed) : base(753, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AutoAcceptIndicator : FixValue<bool>
 	{
-		internal AutoAcceptIndicator(int position, int length, bool value, bool valid) : base(754, position, 4, length, value, valid) { }
+		internal AutoAcceptIndicator((bool Valid, bool Value) parsed) : base(754, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocReportID : FixValue<string>
 	{
-		internal AllocReportID(int position, int length, string value, bool valid) : base(755, position, 4, length, value, valid) { }
+		internal AllocReportID(string value) : base(755, 4, value, true) { }
 	}
 	public sealed class NoNested2PartyIDs : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoNested2PartyIDs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(756, position, 4, length, value, valid) { }
+		internal NoNested2PartyIDs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(756, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Nested2PartyID : FixValue<string>
 	{
-		internal Nested2PartyID(int position, int length, string value, bool valid) : base(757, position, 4, length, value, valid) { }
+		internal Nested2PartyID(string value) : base(757, 4, value, true) { }
 	}
 	public sealed class Nested2PartyIDSource : FixValue<char>
 	{
-		internal Nested2PartyIDSource(int position, int length, char value, bool valid) : base(758, position, 4, length, value, valid) { }
+		internal Nested2PartyIDSource((bool Valid, char Value) parsed) : base(758, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Nested2PartyRole : FixValue<System.Numerics.BigInteger>
 	{
-		internal Nested2PartyRole(int position, int length, System.Numerics.BigInteger value, bool valid) : base(759, position, 4, length, value, valid) { }
+		internal Nested2PartyRole((bool Valid, System.Numerics.BigInteger Value) parsed) : base(759, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Nested2PartySubID : FixValue<string>
 	{
-		internal Nested2PartySubID(int position, int length, string value, bool valid) : base(760, position, 4, length, value, valid) { }
+		internal Nested2PartySubID(string value) : base(760, 4, value, true) { }
 	}
 	public sealed class BenchmarkSecurityIDSource : FixValue<string>
 	{
-		internal BenchmarkSecurityIDSource(int position, int length, string value, bool valid) : base(761, position, 4, length, value, valid) { }
+		internal BenchmarkSecurityIDSource(string value) : base(761, 4, value, true) { }
 	}
 	public sealed class SecuritySubType : FixValue<string>
 	{
-		internal SecuritySubType(int position, int length, string value, bool valid) : base(762, position, 4, length, value, valid) { }
+		internal SecuritySubType(string value) : base(762, 4, value, true) { }
 	}
 	public sealed class UnderlyingSecuritySubType : FixValue<string>
 	{
-		internal UnderlyingSecuritySubType(int position, int length, string value, bool valid) : base(763, position, 4, length, value, valid) { }
+		internal UnderlyingSecuritySubType(string value) : base(763, 4, value, true) { }
 	}
 	public sealed class LegSecuritySubType : FixValue<string>
 	{
-		internal LegSecuritySubType(int position, int length, string value, bool valid) : base(764, position, 4, length, value, valid) { }
+		internal LegSecuritySubType(string value) : base(764, 4, value, true) { }
 	}
 	public sealed class AllowableOneSidednessPct : FixValue<FixDecimal>
 	{
-		internal AllowableOneSidednessPct(int position, int length, FixDecimal value, bool valid) : base(765, position, 4, length, value, valid) { }
+		internal AllowableOneSidednessPct((bool Valid, FixDecimal Value) parsed) : base(765, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllowableOneSidednessValue : FixValue<FixDecimal>
 	{
-		internal AllowableOneSidednessValue(int position, int length, FixDecimal value, bool valid) : base(766, position, 4, length, value, valid) { }
+		internal AllowableOneSidednessValue((bool Valid, FixDecimal Value) parsed) : base(766, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllowableOneSidednessCurr : FixValue<string>
 	{
-		internal AllowableOneSidednessCurr(int position, int length, string value, bool valid) : base(767, position, 4, length, value, valid) { }
+		internal AllowableOneSidednessCurr(string value) : base(767, 4, value, true) { }
 	}
 	public sealed class NoTrdRegTimestamps : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoTrdRegTimestamps(int position, int length, System.Numerics.BigInteger value, bool valid) : base(768, position, 4, length, value, valid) { }
+		internal NoTrdRegTimestamps((bool Valid, System.Numerics.BigInteger Value) parsed) : base(768, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TrdRegTimestamp : FixValue<FixTimestamp>
 	{
-		internal TrdRegTimestamp(int position, int length, FixTimestamp value, bool valid) : base(769, position, 4, length, value, valid) { }
+		internal TrdRegTimestamp((bool Valid, FixTimestamp Value) parsed) : base(769, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TrdRegTimestampType : FixValue<System.Numerics.BigInteger>
 	{
-		internal TrdRegTimestampType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(770, position, 4, length, value, valid) { }
+		internal TrdRegTimestampType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(770, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TrdRegTimestampOrigin : FixValue<string>
 	{
-		internal TrdRegTimestampOrigin(int position, int length, string value, bool valid) : base(771, position, 4, length, value, valid) { }
+		internal TrdRegTimestampOrigin(string value) : base(771, 4, value, true) { }
 	}
 	public sealed class ConfirmRefID : FixValue<string>
 	{
-		internal ConfirmRefID(int position, int length, string value, bool valid) : base(772, position, 4, length, value, valid) { }
+		internal ConfirmRefID(string value) : base(772, 4, value, true) { }
 	}
 	public sealed class ConfirmType : FixValue<System.Numerics.BigInteger>
 	{
-		internal ConfirmType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(773, position, 4, length, value, valid) { }
+		internal ConfirmType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(773, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ConfirmRejReason : FixValue<System.Numerics.BigInteger>
 	{
-		internal ConfirmRejReason(int position, int length, System.Numerics.BigInteger value, bool valid) : base(774, position, 4, length, value, valid) { }
+		internal ConfirmRejReason((bool Valid, System.Numerics.BigInteger Value) parsed) : base(774, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class BookingType : FixValue<System.Numerics.BigInteger>
 	{
-		internal BookingType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(775, position, 4, length, value, valid) { }
+		internal BookingType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(775, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class IndividualAllocRejCode : FixValue<System.Numerics.BigInteger>
 	{
-		internal IndividualAllocRejCode(int position, int length, System.Numerics.BigInteger value, bool valid) : base(776, position, 4, length, value, valid) { }
+		internal IndividualAllocRejCode((bool Valid, System.Numerics.BigInteger Value) parsed) : base(776, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SettlInstMsgID : FixValue<string>
 	{
-		internal SettlInstMsgID(int position, int length, string value, bool valid) : base(777, position, 4, length, value, valid) { }
+		internal SettlInstMsgID(string value) : base(777, 4, value, true) { }
 	}
 	public sealed class NoSettlInst : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoSettlInst(int position, int length, System.Numerics.BigInteger value, bool valid) : base(778, position, 4, length, value, valid) { }
+		internal NoSettlInst((bool Valid, System.Numerics.BigInteger Value) parsed) : base(778, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LastUpdateTime : FixValue<FixTimestamp>
 	{
-		internal LastUpdateTime(int position, int length, FixTimestamp value, bool valid) : base(779, position, 4, length, value, valid) { }
+		internal LastUpdateTime((bool Valid, FixTimestamp Value) parsed) : base(779, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocSettlInstType : FixValue<System.Numerics.BigInteger>
 	{
-		internal AllocSettlInstType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(780, position, 4, length, value, valid) { }
+		internal AllocSettlInstType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(780, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoSettlPartyIDs : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoSettlPartyIDs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(781, position, 4, length, value, valid) { }
+		internal NoSettlPartyIDs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(781, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SettlPartyID : FixValue<string>
 	{
-		internal SettlPartyID(int position, int length, string value, bool valid) : base(782, position, 4, length, value, valid) { }
+		internal SettlPartyID(string value) : base(782, 4, value, true) { }
 	}
 	public sealed class SettlPartyIDSource : FixValue<char>
 	{
-		internal SettlPartyIDSource(int position, int length, char value, bool valid) : base(783, position, 4, length, value, valid) { }
+		internal SettlPartyIDSource((bool Valid, char Value) parsed) : base(783, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SettlPartyRole : FixValue<System.Numerics.BigInteger>
 	{
-		internal SettlPartyRole(int position, int length, System.Numerics.BigInteger value, bool valid) : base(784, position, 4, length, value, valid) { }
+		internal SettlPartyRole((bool Valid, System.Numerics.BigInteger Value) parsed) : base(784, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SettlPartySubID : FixValue<string>
 	{
-		internal SettlPartySubID(int position, int length, string value, bool valid) : base(785, position, 4, length, value, valid) { }
+		internal SettlPartySubID(string value) : base(785, 4, value, true) { }
 	}
 	public sealed class SettlPartySubIDType : FixValue<System.Numerics.BigInteger>
 	{
-		internal SettlPartySubIDType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(786, position, 4, length, value, valid) { }
+		internal SettlPartySubIDType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(786, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DlvyInstType : FixValue<char>
 	{
-		internal DlvyInstType(int position, int length, char value, bool valid) : base(787, position, 4, length, value, valid) { }
+		internal DlvyInstType((bool Valid, char Value) parsed) : base(787, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TerminationType : FixValue<System.Numerics.BigInteger>
 	{
-		internal TerminationType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(788, position, 4, length, value, valid) { }
+		internal TerminationType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(788, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NextExpectedMsgSeqNum : FixValue<System.Numerics.BigInteger>
 	{
-		internal NextExpectedMsgSeqNum(int position, int length, System.Numerics.BigInteger value, bool valid) : base(789, position, 4, length, value, valid) { }
+		internal NextExpectedMsgSeqNum((bool Valid, System.Numerics.BigInteger Value) parsed) : base(789, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OrdStatusReqID : FixValue<string>
 	{
-		internal OrdStatusReqID(int position, int length, string value, bool valid) : base(790, position, 4, length, value, valid) { }
+		internal OrdStatusReqID(string value) : base(790, 4, value, true) { }
 	}
 	public sealed class SettlInstReqID : FixValue<string>
 	{
-		internal SettlInstReqID(int position, int length, string value, bool valid) : base(791, position, 4, length, value, valid) { }
+		internal SettlInstReqID(string value) : base(791, 4, value, true) { }
 	}
 	public sealed class SettlInstReqRejCode : FixValue<System.Numerics.BigInteger>
 	{
-		internal SettlInstReqRejCode(int position, int length, System.Numerics.BigInteger value, bool valid) : base(792, position, 4, length, value, valid) { }
+		internal SettlInstReqRejCode((bool Valid, System.Numerics.BigInteger Value) parsed) : base(792, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SecondaryAllocID : FixValue<string>
 	{
-		internal SecondaryAllocID(int position, int length, string value, bool valid) : base(793, position, 4, length, value, valid) { }
+		internal SecondaryAllocID(string value) : base(793, 4, value, true) { }
 	}
 	public sealed class AllocReportType : FixValue<System.Numerics.BigInteger>
 	{
-		internal AllocReportType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(794, position, 4, length, value, valid) { }
+		internal AllocReportType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(794, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocReportRefID : FixValue<string>
 	{
-		internal AllocReportRefID(int position, int length, string value, bool valid) : base(795, position, 4, length, value, valid) { }
+		internal AllocReportRefID(string value) : base(795, 4, value, true) { }
 	}
 	public sealed class AllocCancReplaceReason : FixValue<System.Numerics.BigInteger>
 	{
-		internal AllocCancReplaceReason(int position, int length, System.Numerics.BigInteger value, bool valid) : base(796, position, 4, length, value, valid) { }
+		internal AllocCancReplaceReason((bool Valid, System.Numerics.BigInteger Value) parsed) : base(796, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CopyMsgIndicator : FixValue<bool>
 	{
-		internal CopyMsgIndicator(int position, int length, bool value, bool valid) : base(797, position, 4, length, value, valid) { }
+		internal CopyMsgIndicator((bool Valid, bool Value) parsed) : base(797, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocAccountType : FixValue<System.Numerics.BigInteger>
 	{
-		internal AllocAccountType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(798, position, 4, length, value, valid) { }
+		internal AllocAccountType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(798, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OrderAvgPx : FixValue<FixDecimal>
 	{
-		internal OrderAvgPx(int position, int length, FixDecimal value, bool valid) : base(799, position, 4, length, value, valid) { }
+		internal OrderAvgPx((bool Valid, FixDecimal Value) parsed) : base(799, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OrderBookingQty : FixValue<FixDecimal>
 	{
-		internal OrderBookingQty(int position, int length, FixDecimal value, bool valid) : base(800, position, 4, length, value, valid) { }
+		internal OrderBookingQty((bool Valid, FixDecimal Value) parsed) : base(800, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoSettlPartySubIDs : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoSettlPartySubIDs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(801, position, 4, length, value, valid) { }
+		internal NoSettlPartySubIDs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(801, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoPartySubIDs : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoPartySubIDs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(802, position, 4, length, value, valid) { }
+		internal NoPartySubIDs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(802, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PartySubIDType : FixValue<System.Numerics.BigInteger>
 	{
-		internal PartySubIDType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(803, position, 4, length, value, valid) { }
+		internal PartySubIDType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(803, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoNestedPartySubIDs : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoNestedPartySubIDs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(804, position, 4, length, value, valid) { }
+		internal NoNestedPartySubIDs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(804, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NestedPartySubIDType : FixValue<System.Numerics.BigInteger>
 	{
-		internal NestedPartySubIDType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(805, position, 4, length, value, valid) { }
+		internal NestedPartySubIDType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(805, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoNested2PartySubIDs : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoNested2PartySubIDs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(806, position, 4, length, value, valid) { }
+		internal NoNested2PartySubIDs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(806, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Nested2PartySubIDType : FixValue<System.Numerics.BigInteger>
 	{
-		internal Nested2PartySubIDType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(807, position, 4, length, value, valid) { }
+		internal Nested2PartySubIDType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(807, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocIntermedReqType : FixValue<System.Numerics.BigInteger>
 	{
-		internal AllocIntermedReqType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(808, position, 4, length, value, valid) { }
+		internal AllocIntermedReqType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(808, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingPx : FixValue<FixDecimal>
 	{
-		internal UnderlyingPx(int position, int length, FixDecimal value, bool valid) : base(810, position, 4, length, value, valid) { }
+		internal UnderlyingPx((bool Valid, FixDecimal Value) parsed) : base(810, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PriceDelta : FixValue<FixDecimal>
 	{
-		internal PriceDelta(int position, int length, FixDecimal value, bool valid) : base(811, position, 4, length, value, valid) { }
+		internal PriceDelta((bool Valid, FixDecimal Value) parsed) : base(811, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ApplQueueMax : FixValue<System.Numerics.BigInteger>
 	{
-		internal ApplQueueMax(int position, int length, System.Numerics.BigInteger value, bool valid) : base(812, position, 4, length, value, valid) { }
+		internal ApplQueueMax((bool Valid, System.Numerics.BigInteger Value) parsed) : base(812, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ApplQueueDepth : FixValue<System.Numerics.BigInteger>
 	{
-		internal ApplQueueDepth(int position, int length, System.Numerics.BigInteger value, bool valid) : base(813, position, 4, length, value, valid) { }
+		internal ApplQueueDepth((bool Valid, System.Numerics.BigInteger Value) parsed) : base(813, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ApplQueueResolution : FixValue<System.Numerics.BigInteger>
 	{
-		internal ApplQueueResolution(int position, int length, System.Numerics.BigInteger value, bool valid) : base(814, position, 4, length, value, valid) { }
+		internal ApplQueueResolution((bool Valid, System.Numerics.BigInteger Value) parsed) : base(814, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ApplQueueAction : FixValue<System.Numerics.BigInteger>
 	{
-		internal ApplQueueAction(int position, int length, System.Numerics.BigInteger value, bool valid) : base(815, position, 4, length, value, valid) { }
+		internal ApplQueueAction((bool Valid, System.Numerics.BigInteger Value) parsed) : base(815, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoAltMDSource : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoAltMDSource(int position, int length, System.Numerics.BigInteger value, bool valid) : base(816, position, 4, length, value, valid) { }
+		internal NoAltMDSource((bool Valid, System.Numerics.BigInteger Value) parsed) : base(816, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AltMDSourceID : FixValue<string>
 	{
-		internal AltMDSourceID(int position, int length, string value, bool valid) : base(817, position, 4, length, value, valid) { }
+		internal AltMDSourceID(string value) : base(817, 4, value, true) { }
 	}
 	public sealed class SecondaryTradeReportID : FixValue<string>
 	{
-		internal SecondaryTradeReportID(int position, int length, string value, bool valid) : base(818, position, 4, length, value, valid) { }
+		internal SecondaryTradeReportID(string value) : base(818, 4, value, true) { }
 	}
 	public sealed class AvgPxIndicator : FixValue<System.Numerics.BigInteger>
 	{
-		internal AvgPxIndicator(int position, int length, System.Numerics.BigInteger value, bool valid) : base(819, position, 4, length, value, valid) { }
+		internal AvgPxIndicator((bool Valid, System.Numerics.BigInteger Value) parsed) : base(819, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradeLinkID : FixValue<string>
 	{
-		internal TradeLinkID(int position, int length, string value, bool valid) : base(820, position, 4, length, value, valid) { }
+		internal TradeLinkID(string value) : base(820, 4, value, true) { }
 	}
 	public sealed class OrderInputDevice : FixValue<string>
 	{
-		internal OrderInputDevice(int position, int length, string value, bool valid) : base(821, position, 4, length, value, valid) { }
+		internal OrderInputDevice(string value) : base(821, 4, value, true) { }
 	}
 	public sealed class UnderlyingTradingSessionID : FixValue<string>
 	{
-		internal UnderlyingTradingSessionID(int position, int length, string value, bool valid) : base(822, position, 4, length, value, valid) { }
+		internal UnderlyingTradingSessionID(string value) : base(822, 4, value, true) { }
 	}
 	public sealed class UnderlyingTradingSessionSubID : FixValue<string>
 	{
-		internal UnderlyingTradingSessionSubID(int position, int length, string value, bool valid) : base(823, position, 4, length, value, valid) { }
+		internal UnderlyingTradingSessionSubID(string value) : base(823, 4, value, true) { }
 	}
 	public sealed class TradeLegRefID : FixValue<string>
 	{
-		internal TradeLegRefID(int position, int length, string value, bool valid) : base(824, position, 4, length, value, valid) { }
+		internal TradeLegRefID(string value) : base(824, 4, value, true) { }
 	}
 	public sealed class ExchangeRule : FixValue<string>
 	{
-		internal ExchangeRule(int position, int length, string value, bool valid) : base(825, position, 4, length, value, valid) { }
+		internal ExchangeRule(string value) : base(825, 4, value, true) { }
 	}
 	public sealed class TradeAllocIndicator : FixValue<System.Numerics.BigInteger>
 	{
-		internal TradeAllocIndicator(int position, int length, System.Numerics.BigInteger value, bool valid) : base(826, position, 4, length, value, valid) { }
+		internal TradeAllocIndicator((bool Valid, System.Numerics.BigInteger Value) parsed) : base(826, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ExpirationCycle : FixValue<System.Numerics.BigInteger>
 	{
-		internal ExpirationCycle(int position, int length, System.Numerics.BigInteger value, bool valid) : base(827, position, 4, length, value, valid) { }
+		internal ExpirationCycle((bool Valid, System.Numerics.BigInteger Value) parsed) : base(827, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TrdType : FixValue<System.Numerics.BigInteger>
 	{
-		internal TrdType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(828, position, 4, length, value, valid) { }
+		internal TrdType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(828, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TrdSubType : FixValue<System.Numerics.BigInteger>
 	{
-		internal TrdSubType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(829, position, 4, length, value, valid) { }
+		internal TrdSubType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(829, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TransferReason : FixValue<string>
 	{
-		internal TransferReason(int position, int length, string value, bool valid) : base(830, position, 4, length, value, valid) { }
+		internal TransferReason(string value) : base(830, 4, value, true) { }
 	}
 	public sealed class TotNumAssignmentReports : FixValue<System.Numerics.BigInteger>
 	{
-		internal TotNumAssignmentReports(int position, int length, System.Numerics.BigInteger value, bool valid) : base(832, position, 4, length, value, valid) { }
+		internal TotNumAssignmentReports((bool Valid, System.Numerics.BigInteger Value) parsed) : base(832, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AsgnRptID : FixValue<string>
 	{
-		internal AsgnRptID(int position, int length, string value, bool valid) : base(833, position, 4, length, value, valid) { }
+		internal AsgnRptID(string value) : base(833, 4, value, true) { }
 	}
 	public sealed class ThresholdAmount : FixValue<FixDecimal>
 	{
-		internal ThresholdAmount(int position, int length, FixDecimal value, bool valid) : base(834, position, 4, length, value, valid) { }
+		internal ThresholdAmount((bool Valid, FixDecimal Value) parsed) : base(834, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PegMoveType : FixValue<System.Numerics.BigInteger>
 	{
-		internal PegMoveType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(835, position, 4, length, value, valid) { }
+		internal PegMoveType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(835, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PegOffsetType : FixValue<System.Numerics.BigInteger>
 	{
-		internal PegOffsetType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(836, position, 4, length, value, valid) { }
+		internal PegOffsetType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(836, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PegLimitType : FixValue<System.Numerics.BigInteger>
 	{
-		internal PegLimitType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(837, position, 4, length, value, valid) { }
+		internal PegLimitType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(837, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PegRoundDirection : FixValue<System.Numerics.BigInteger>
 	{
-		internal PegRoundDirection(int position, int length, System.Numerics.BigInteger value, bool valid) : base(838, position, 4, length, value, valid) { }
+		internal PegRoundDirection((bool Valid, System.Numerics.BigInteger Value) parsed) : base(838, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PeggedPrice : FixValue<FixDecimal>
 	{
-		internal PeggedPrice(int position, int length, FixDecimal value, bool valid) : base(839, position, 4, length, value, valid) { }
+		internal PeggedPrice((bool Valid, FixDecimal Value) parsed) : base(839, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PegScope : FixValue<System.Numerics.BigInteger>
 	{
-		internal PegScope(int position, int length, System.Numerics.BigInteger value, bool valid) : base(840, position, 4, length, value, valid) { }
+		internal PegScope((bool Valid, System.Numerics.BigInteger Value) parsed) : base(840, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DiscretionMoveType : FixValue<System.Numerics.BigInteger>
 	{
-		internal DiscretionMoveType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(841, position, 4, length, value, valid) { }
+		internal DiscretionMoveType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(841, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DiscretionOffsetType : FixValue<System.Numerics.BigInteger>
 	{
-		internal DiscretionOffsetType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(842, position, 4, length, value, valid) { }
+		internal DiscretionOffsetType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(842, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DiscretionLimitType : FixValue<System.Numerics.BigInteger>
 	{
-		internal DiscretionLimitType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(843, position, 4, length, value, valid) { }
+		internal DiscretionLimitType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(843, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DiscretionRoundDirection : FixValue<System.Numerics.BigInteger>
 	{
-		internal DiscretionRoundDirection(int position, int length, System.Numerics.BigInteger value, bool valid) : base(844, position, 4, length, value, valid) { }
+		internal DiscretionRoundDirection((bool Valid, System.Numerics.BigInteger Value) parsed) : base(844, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DiscretionPrice : FixValue<FixDecimal>
 	{
-		internal DiscretionPrice(int position, int length, FixDecimal value, bool valid) : base(845, position, 4, length, value, valid) { }
+		internal DiscretionPrice((bool Valid, FixDecimal Value) parsed) : base(845, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class DiscretionScope : FixValue<System.Numerics.BigInteger>
 	{
-		internal DiscretionScope(int position, int length, System.Numerics.BigInteger value, bool valid) : base(846, position, 4, length, value, valid) { }
+		internal DiscretionScope((bool Valid, System.Numerics.BigInteger Value) parsed) : base(846, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TargetStrategy : FixValue<System.Numerics.BigInteger>
 	{
-		internal TargetStrategy(int position, int length, System.Numerics.BigInteger value, bool valid) : base(847, position, 4, length, value, valid) { }
+		internal TargetStrategy((bool Valid, System.Numerics.BigInteger Value) parsed) : base(847, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TargetStrategyParameters : FixValue<string>
 	{
-		internal TargetStrategyParameters(int position, int length, string value, bool valid) : base(848, position, 4, length, value, valid) { }
+		internal TargetStrategyParameters(string value) : base(848, 4, value, true) { }
 	}
 	public sealed class ParticipationRate : FixValue<FixDecimal>
 	{
-		internal ParticipationRate(int position, int length, FixDecimal value, bool valid) : base(849, position, 4, length, value, valid) { }
+		internal ParticipationRate((bool Valid, FixDecimal Value) parsed) : base(849, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TargetStrategyPerformance : FixValue<FixDecimal>
 	{
-		internal TargetStrategyPerformance(int position, int length, FixDecimal value, bool valid) : base(850, position, 4, length, value, valid) { }
+		internal TargetStrategyPerformance((bool Valid, FixDecimal Value) parsed) : base(850, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LastLiquidityInd : FixValue<System.Numerics.BigInteger>
 	{
-		internal LastLiquidityInd(int position, int length, System.Numerics.BigInteger value, bool valid) : base(851, position, 4, length, value, valid) { }
+		internal LastLiquidityInd((bool Valid, System.Numerics.BigInteger Value) parsed) : base(851, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class PublishTrdIndicator : FixValue<bool>
 	{
-		internal PublishTrdIndicator(int position, int length, bool value, bool valid) : base(852, position, 4, length, value, valid) { }
+		internal PublishTrdIndicator((bool Valid, bool Value) parsed) : base(852, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ShortSaleReason : FixValue<System.Numerics.BigInteger>
 	{
-		internal ShortSaleReason(int position, int length, System.Numerics.BigInteger value, bool valid) : base(853, position, 4, length, value, valid) { }
+		internal ShortSaleReason((bool Valid, System.Numerics.BigInteger Value) parsed) : base(853, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class QtyType : FixValue<System.Numerics.BigInteger>
 	{
-		internal QtyType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(854, position, 4, length, value, valid) { }
+		internal QtyType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(854, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SecondaryTrdType : FixValue<System.Numerics.BigInteger>
 	{
-		internal SecondaryTrdType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(855, position, 4, length, value, valid) { }
+		internal SecondaryTrdType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(855, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TradeReportType : FixValue<System.Numerics.BigInteger>
 	{
-		internal TradeReportType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(856, position, 4, length, value, valid) { }
+		internal TradeReportType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(856, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AllocNoOrdersType : FixValue<System.Numerics.BigInteger>
 	{
-		internal AllocNoOrdersType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(857, position, 4, length, value, valid) { }
+		internal AllocNoOrdersType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(857, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class SharedCommission : FixValue<FixDecimal>
 	{
-		internal SharedCommission(int position, int length, FixDecimal value, bool valid) : base(858, position, 4, length, value, valid) { }
+		internal SharedCommission((bool Valid, FixDecimal Value) parsed) : base(858, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ConfirmReqID : FixValue<string>
 	{
-		internal ConfirmReqID(int position, int length, string value, bool valid) : base(859, position, 4, length, value, valid) { }
+		internal ConfirmReqID(string value) : base(859, 4, value, true) { }
 	}
 	public sealed class AvgParPx : FixValue<FixDecimal>
 	{
-		internal AvgParPx(int position, int length, FixDecimal value, bool valid) : base(860, position, 4, length, value, valid) { }
+		internal AvgParPx((bool Valid, FixDecimal Value) parsed) : base(860, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class ReportedPx : FixValue<FixDecimal>
 	{
-		internal ReportedPx(int position, int length, FixDecimal value, bool valid) : base(861, position, 4, length, value, valid) { }
+		internal ReportedPx((bool Valid, FixDecimal Value) parsed) : base(861, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoCapacities : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoCapacities(int position, int length, System.Numerics.BigInteger value, bool valid) : base(862, position, 4, length, value, valid) { }
+		internal NoCapacities((bool Valid, System.Numerics.BigInteger Value) parsed) : base(862, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class OrderCapacityQty : FixValue<FixDecimal>
 	{
-		internal OrderCapacityQty(int position, int length, FixDecimal value, bool valid) : base(863, position, 4, length, value, valid) { }
+		internal OrderCapacityQty((bool Valid, FixDecimal Value) parsed) : base(863, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoEvents : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoEvents(int position, int length, System.Numerics.BigInteger value, bool valid) : base(864, position, 4, length, value, valid) { }
+		internal NoEvents((bool Valid, System.Numerics.BigInteger Value) parsed) : base(864, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EventType : FixValue<System.Numerics.BigInteger>
 	{
-		internal EventType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(865, position, 4, length, value, valid) { }
+		internal EventType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(865, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EventDate : FixValue<FixDate>
 	{
-		internal EventDate(int position, int length, FixDate value, bool valid) : base(866, position, 4, length, value, valid) { }
+		internal EventDate((bool Valid, FixDate Value) parsed) : base(866, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EventPx : FixValue<FixDecimal>
 	{
-		internal EventPx(int position, int length, FixDecimal value, bool valid) : base(867, position, 4, length, value, valid) { }
+		internal EventPx((bool Valid, FixDecimal Value) parsed) : base(867, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EventText : FixValue<string>
 	{
-		internal EventText(int position, int length, string value, bool valid) : base(868, position, 4, length, value, valid) { }
+		internal EventText(string value) : base(868, 4, value, true) { }
 	}
 	public sealed class PctAtRisk : FixValue<FixDecimal>
 	{
-		internal PctAtRisk(int position, int length, FixDecimal value, bool valid) : base(869, position, 4, length, value, valid) { }
+		internal PctAtRisk((bool Valid, FixDecimal Value) parsed) : base(869, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoInstrAttrib : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoInstrAttrib(int position, int length, System.Numerics.BigInteger value, bool valid) : base(870, position, 4, length, value, valid) { }
+		internal NoInstrAttrib((bool Valid, System.Numerics.BigInteger Value) parsed) : base(870, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class InstrAttribType : FixValue<System.Numerics.BigInteger>
 	{
-		internal InstrAttribType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(871, position, 4, length, value, valid) { }
+		internal InstrAttribType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(871, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class InstrAttribValue : FixValue<string>
 	{
-		internal InstrAttribValue(int position, int length, string value, bool valid) : base(872, position, 4, length, value, valid) { }
+		internal InstrAttribValue(string value) : base(872, 4, value, true) { }
 	}
 	public sealed class DatedDate : FixValue<FixDate>
 	{
-		internal DatedDate(int position, int length, FixDate value, bool valid) : base(873, position, 4, length, value, valid) { }
+		internal DatedDate((bool Valid, FixDate Value) parsed) : base(873, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class InterestAccrualDate : FixValue<FixDate>
 	{
-		internal InterestAccrualDate(int position, int length, FixDate value, bool valid) : base(874, position, 4, length, value, valid) { }
+		internal InterestAccrualDate((bool Valid, FixDate Value) parsed) : base(874, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CPProgram : FixValue<System.Numerics.BigInteger>
 	{
-		internal CPProgram(int position, int length, System.Numerics.BigInteger value, bool valid) : base(875, position, 4, length, value, valid) { }
+		internal CPProgram((bool Valid, System.Numerics.BigInteger Value) parsed) : base(875, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CPRegType : FixValue<string>
 	{
-		internal CPRegType(int position, int length, string value, bool valid) : base(876, position, 4, length, value, valid) { }
+		internal CPRegType(string value) : base(876, 4, value, true) { }
 	}
 	public sealed class UnderlyingCPProgram : FixValue<string>
 	{
-		internal UnderlyingCPProgram(int position, int length, string value, bool valid) : base(877, position, 4, length, value, valid) { }
+		internal UnderlyingCPProgram(string value) : base(877, 4, value, true) { }
 	}
 	public sealed class UnderlyingCPRegType : FixValue<string>
 	{
-		internal UnderlyingCPRegType(int position, int length, string value, bool valid) : base(878, position, 4, length, value, valid) { }
+		internal UnderlyingCPRegType(string value) : base(878, 4, value, true) { }
 	}
 	public sealed class UnderlyingQty : FixValue<FixDecimal>
 	{
-		internal UnderlyingQty(int position, int length, FixDecimal value, bool valid) : base(879, position, 4, length, value, valid) { }
+		internal UnderlyingQty((bool Valid, FixDecimal Value) parsed) : base(879, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TrdMatchID : FixValue<string>
 	{
-		internal TrdMatchID(int position, int length, string value, bool valid) : base(880, position, 4, length, value, valid) { }
+		internal TrdMatchID(string value) : base(880, 4, value, true) { }
 	}
 	public sealed class SecondaryTradeReportRefID : FixValue<string>
 	{
-		internal SecondaryTradeReportRefID(int position, int length, string value, bool valid) : base(881, position, 4, length, value, valid) { }
+		internal SecondaryTradeReportRefID(string value) : base(881, 4, value, true) { }
 	}
 	public sealed class UnderlyingDirtyPrice : FixValue<FixDecimal>
 	{
-		internal UnderlyingDirtyPrice(int position, int length, FixDecimal value, bool valid) : base(882, position, 4, length, value, valid) { }
+		internal UnderlyingDirtyPrice((bool Valid, FixDecimal Value) parsed) : base(882, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingEndPrice : FixValue<FixDecimal>
 	{
-		internal UnderlyingEndPrice(int position, int length, FixDecimal value, bool valid) : base(883, position, 4, length, value, valid) { }
+		internal UnderlyingEndPrice((bool Valid, FixDecimal Value) parsed) : base(883, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingStartValue : FixValue<FixDecimal>
 	{
-		internal UnderlyingStartValue(int position, int length, FixDecimal value, bool valid) : base(884, position, 4, length, value, valid) { }
+		internal UnderlyingStartValue((bool Valid, FixDecimal Value) parsed) : base(884, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingCurrentValue : FixValue<FixDecimal>
 	{
-		internal UnderlyingCurrentValue(int position, int length, FixDecimal value, bool valid) : base(885, position, 4, length, value, valid) { }
+		internal UnderlyingCurrentValue((bool Valid, FixDecimal Value) parsed) : base(885, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingEndValue : FixValue<FixDecimal>
 	{
-		internal UnderlyingEndValue(int position, int length, FixDecimal value, bool valid) : base(886, position, 4, length, value, valid) { }
+		internal UnderlyingEndValue((bool Valid, FixDecimal Value) parsed) : base(886, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoUnderlyingStips : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoUnderlyingStips(int position, int length, System.Numerics.BigInteger value, bool valid) : base(887, position, 4, length, value, valid) { }
+		internal NoUnderlyingStips((bool Valid, System.Numerics.BigInteger Value) parsed) : base(887, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingStipType : FixValue<string>
 	{
-		internal UnderlyingStipType(int position, int length, string value, bool valid) : base(888, position, 4, length, value, valid) { }
+		internal UnderlyingStipType(string value) : base(888, 4, value, true) { }
 	}
 	public sealed class UnderlyingStipValue : FixValue<string>
 	{
-		internal UnderlyingStipValue(int position, int length, string value, bool valid) : base(889, position, 4, length, value, valid) { }
+		internal UnderlyingStipValue(string value) : base(889, 4, value, true) { }
 	}
 	public sealed class MaturityNetMoney : FixValue<FixDecimal>
 	{
-		internal MaturityNetMoney(int position, int length, FixDecimal value, bool valid) : base(890, position, 4, length, value, valid) { }
+		internal MaturityNetMoney((bool Valid, FixDecimal Value) parsed) : base(890, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MiscFeeBasis : FixValue<System.Numerics.BigInteger>
 	{
-		internal MiscFeeBasis(int position, int length, System.Numerics.BigInteger value, bool valid) : base(891, position, 4, length, value, valid) { }
+		internal MiscFeeBasis((bool Valid, System.Numerics.BigInteger Value) parsed) : base(891, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TotNoAllocs : FixValue<System.Numerics.BigInteger>
 	{
-		internal TotNoAllocs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(892, position, 4, length, value, valid) { }
+		internal TotNoAllocs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(892, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LastFragment : FixValue<bool>
 	{
-		internal LastFragment(int position, int length, bool value, bool valid) : base(893, position, 4, length, value, valid) { }
+		internal LastFragment((bool Valid, bool Value) parsed) : base(893, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CollReqID : FixValue<string>
 	{
-		internal CollReqID(int position, int length, string value, bool valid) : base(894, position, 4, length, value, valid) { }
+		internal CollReqID(string value) : base(894, 4, value, true) { }
 	}
 	public sealed class CollAsgnReason : FixValue<System.Numerics.BigInteger>
 	{
-		internal CollAsgnReason(int position, int length, System.Numerics.BigInteger value, bool valid) : base(895, position, 4, length, value, valid) { }
+		internal CollAsgnReason((bool Valid, System.Numerics.BigInteger Value) parsed) : base(895, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CollInquiryQualifier : FixValue<System.Numerics.BigInteger>
 	{
-		internal CollInquiryQualifier(int position, int length, System.Numerics.BigInteger value, bool valid) : base(896, position, 4, length, value, valid) { }
+		internal CollInquiryQualifier((bool Valid, System.Numerics.BigInteger Value) parsed) : base(896, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoTrades : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoTrades(int position, int length, System.Numerics.BigInteger value, bool valid) : base(897, position, 4, length, value, valid) { }
+		internal NoTrades((bool Valid, System.Numerics.BigInteger Value) parsed) : base(897, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MarginRatio : FixValue<FixDecimal>
 	{
-		internal MarginRatio(int position, int length, FixDecimal value, bool valid) : base(898, position, 4, length, value, valid) { }
+		internal MarginRatio((bool Valid, FixDecimal Value) parsed) : base(898, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class MarginExcess : FixValue<FixDecimal>
 	{
-		internal MarginExcess(int position, int length, FixDecimal value, bool valid) : base(899, position, 4, length, value, valid) { }
+		internal MarginExcess((bool Valid, FixDecimal Value) parsed) : base(899, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TotalNetValue : FixValue<FixDecimal>
 	{
-		internal TotalNetValue(int position, int length, FixDecimal value, bool valid) : base(900, position, 4, length, value, valid) { }
+		internal TotalNetValue((bool Valid, FixDecimal Value) parsed) : base(900, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CashOutstanding : FixValue<FixDecimal>
 	{
-		internal CashOutstanding(int position, int length, FixDecimal value, bool valid) : base(901, position, 4, length, value, valid) { }
+		internal CashOutstanding((bool Valid, FixDecimal Value) parsed) : base(901, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CollAsgnID : FixValue<string>
 	{
-		internal CollAsgnID(int position, int length, string value, bool valid) : base(902, position, 4, length, value, valid) { }
+		internal CollAsgnID(string value) : base(902, 4, value, true) { }
 	}
 	public sealed class CollAsgnTransType : FixValue<System.Numerics.BigInteger>
 	{
-		internal CollAsgnTransType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(903, position, 4, length, value, valid) { }
+		internal CollAsgnTransType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(903, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CollRespID : FixValue<string>
 	{
-		internal CollRespID(int position, int length, string value, bool valid) : base(904, position, 4, length, value, valid) { }
+		internal CollRespID(string value) : base(904, 4, value, true) { }
 	}
 	public sealed class CollAsgnRespType : FixValue<System.Numerics.BigInteger>
 	{
-		internal CollAsgnRespType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(905, position, 4, length, value, valid) { }
+		internal CollAsgnRespType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(905, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CollAsgnRejectReason : FixValue<System.Numerics.BigInteger>
 	{
-		internal CollAsgnRejectReason(int position, int length, System.Numerics.BigInteger value, bool valid) : base(906, position, 4, length, value, valid) { }
+		internal CollAsgnRejectReason((bool Valid, System.Numerics.BigInteger Value) parsed) : base(906, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CollAsgnRefID : FixValue<string>
 	{
-		internal CollAsgnRefID(int position, int length, string value, bool valid) : base(907, position, 4, length, value, valid) { }
+		internal CollAsgnRefID(string value) : base(907, 4, value, true) { }
 	}
 	public sealed class CollRptID : FixValue<string>
 	{
-		internal CollRptID(int position, int length, string value, bool valid) : base(908, position, 4, length, value, valid) { }
+		internal CollRptID(string value) : base(908, 4, value, true) { }
 	}
 	public sealed class CollInquiryID : FixValue<string>
 	{
-		internal CollInquiryID(int position, int length, string value, bool valid) : base(909, position, 4, length, value, valid) { }
+		internal CollInquiryID(string value) : base(909, 4, value, true) { }
 	}
 	public sealed class CollStatus : FixValue<System.Numerics.BigInteger>
 	{
-		internal CollStatus(int position, int length, System.Numerics.BigInteger value, bool valid) : base(910, position, 4, length, value, valid) { }
+		internal CollStatus((bool Valid, System.Numerics.BigInteger Value) parsed) : base(910, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TotNumReports : FixValue<System.Numerics.BigInteger>
 	{
-		internal TotNumReports(int position, int length, System.Numerics.BigInteger value, bool valid) : base(911, position, 4, length, value, valid) { }
+		internal TotNumReports((bool Valid, System.Numerics.BigInteger Value) parsed) : base(911, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LastRptRequested : FixValue<bool>
 	{
-		internal LastRptRequested(int position, int length, bool value, bool valid) : base(912, position, 4, length, value, valid) { }
+		internal LastRptRequested((bool Valid, bool Value) parsed) : base(912, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AgreementDesc : FixValue<string>
 	{
-		internal AgreementDesc(int position, int length, string value, bool valid) : base(913, position, 4, length, value, valid) { }
+		internal AgreementDesc(string value) : base(913, 4, value, true) { }
 	}
 	public sealed class AgreementID : FixValue<string>
 	{
-		internal AgreementID(int position, int length, string value, bool valid) : base(914, position, 4, length, value, valid) { }
+		internal AgreementID(string value) : base(914, 4, value, true) { }
 	}
 	public sealed class AgreementDate : FixValue<FixDate>
 	{
-		internal AgreementDate(int position, int length, FixDate value, bool valid) : base(915, position, 4, length, value, valid) { }
+		internal AgreementDate((bool Valid, FixDate Value) parsed) : base(915, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class StartDate : FixValue<FixDate>
 	{
-		internal StartDate(int position, int length, FixDate value, bool valid) : base(916, position, 4, length, value, valid) { }
+		internal StartDate((bool Valid, FixDate Value) parsed) : base(916, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EndDate : FixValue<FixDate>
 	{
-		internal EndDate(int position, int length, FixDate value, bool valid) : base(917, position, 4, length, value, valid) { }
+		internal EndDate((bool Valid, FixDate Value) parsed) : base(917, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AgreementCurrency : FixValue<string>
 	{
-		internal AgreementCurrency(int position, int length, string value, bool valid) : base(918, position, 4, length, value, valid) { }
+		internal AgreementCurrency(string value) : base(918, 4, value, true) { }
 	}
 	public sealed class DeliveryType : FixValue<System.Numerics.BigInteger>
 	{
-		internal DeliveryType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(919, position, 4, length, value, valid) { }
+		internal DeliveryType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(919, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EndAccruedInterestAmt : FixValue<FixDecimal>
 	{
-		internal EndAccruedInterestAmt(int position, int length, FixDecimal value, bool valid) : base(920, position, 4, length, value, valid) { }
+		internal EndAccruedInterestAmt((bool Valid, FixDecimal Value) parsed) : base(920, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class StartCash : FixValue<FixDecimal>
 	{
-		internal StartCash(int position, int length, FixDecimal value, bool valid) : base(921, position, 4, length, value, valid) { }
+		internal StartCash((bool Valid, FixDecimal Value) parsed) : base(921, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class EndCash : FixValue<FixDecimal>
 	{
-		internal EndCash(int position, int length, FixDecimal value, bool valid) : base(922, position, 4, length, value, valid) { }
+		internal EndCash((bool Valid, FixDecimal Value) parsed) : base(922, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UserRequestID : FixValue<string>
 	{
-		internal UserRequestID(int position, int length, string value, bool valid) : base(923, position, 4, length, value, valid) { }
+		internal UserRequestID(string value) : base(923, 4, value, true) { }
 	}
 	public sealed class UserRequestType : FixValue<System.Numerics.BigInteger>
 	{
-		internal UserRequestType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(924, position, 4, length, value, valid) { }
+		internal UserRequestType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(924, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NewPassword : FixValue<string>
 	{
-		internal NewPassword(int position, int length, string value, bool valid) : base(925, position, 4, length, value, valid) { }
+		internal NewPassword(string value) : base(925, 4, value, true) { }
 	}
 	public sealed class UserStatus : FixValue<System.Numerics.BigInteger>
 	{
-		internal UserStatus(int position, int length, System.Numerics.BigInteger value, bool valid) : base(926, position, 4, length, value, valid) { }
+		internal UserStatus((bool Valid, System.Numerics.BigInteger Value) parsed) : base(926, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UserStatusText : FixValue<string>
 	{
-		internal UserStatusText(int position, int length, string value, bool valid) : base(927, position, 4, length, value, valid) { }
+		internal UserStatusText(string value) : base(927, 4, value, true) { }
 	}
 	public sealed class StatusValue : FixValue<System.Numerics.BigInteger>
 	{
-		internal StatusValue(int position, int length, System.Numerics.BigInteger value, bool valid) : base(928, position, 4, length, value, valid) { }
+		internal StatusValue((bool Valid, System.Numerics.BigInteger Value) parsed) : base(928, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class StatusText : FixValue<string>
 	{
-		internal StatusText(int position, int length, string value, bool valid) : base(929, position, 4, length, value, valid) { }
+		internal StatusText(string value) : base(929, 4, value, true) { }
 	}
 	public sealed class RefCompID : FixValue<string>
 	{
-		internal RefCompID(int position, int length, string value, bool valid) : base(930, position, 4, length, value, valid) { }
+		internal RefCompID(string value) : base(930, 4, value, true) { }
 	}
 	public sealed class RefSubID : FixValue<string>
 	{
-		internal RefSubID(int position, int length, string value, bool valid) : base(931, position, 4, length, value, valid) { }
+		internal RefSubID(string value) : base(931, 4, value, true) { }
 	}
 	public sealed class NetworkResponseID : FixValue<string>
 	{
-		internal NetworkResponseID(int position, int length, string value, bool valid) : base(932, position, 4, length, value, valid) { }
+		internal NetworkResponseID(string value) : base(932, 4, value, true) { }
 	}
 	public sealed class NetworkRequestID : FixValue<string>
 	{
-		internal NetworkRequestID(int position, int length, string value, bool valid) : base(933, position, 4, length, value, valid) { }
+		internal NetworkRequestID(string value) : base(933, 4, value, true) { }
 	}
 	public sealed class LastNetworkResponseID : FixValue<string>
 	{
-		internal LastNetworkResponseID(int position, int length, string value, bool valid) : base(934, position, 4, length, value, valid) { }
+		internal LastNetworkResponseID(string value) : base(934, 4, value, true) { }
 	}
 	public sealed class NetworkRequestType : FixValue<System.Numerics.BigInteger>
 	{
-		internal NetworkRequestType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(935, position, 4, length, value, valid) { }
+		internal NetworkRequestType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(935, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoCompIDs : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoCompIDs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(936, position, 4, length, value, valid) { }
+		internal NoCompIDs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(936, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NetworkStatusResponseType : FixValue<System.Numerics.BigInteger>
 	{
-		internal NetworkStatusResponseType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(937, position, 4, length, value, valid) { }
+		internal NetworkStatusResponseType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(937, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoCollInquiryQualifier : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoCollInquiryQualifier(int position, int length, System.Numerics.BigInteger value, bool valid) : base(938, position, 4, length, value, valid) { }
+		internal NoCollInquiryQualifier((bool Valid, System.Numerics.BigInteger Value) parsed) : base(938, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class TrdRptStatus : FixValue<System.Numerics.BigInteger>
 	{
-		internal TrdRptStatus(int position, int length, System.Numerics.BigInteger value, bool valid) : base(939, position, 4, length, value, valid) { }
+		internal TrdRptStatus((bool Valid, System.Numerics.BigInteger Value) parsed) : base(939, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class AffirmStatus : FixValue<System.Numerics.BigInteger>
 	{
-		internal AffirmStatus(int position, int length, System.Numerics.BigInteger value, bool valid) : base(940, position, 4, length, value, valid) { }
+		internal AffirmStatus((bool Valid, System.Numerics.BigInteger Value) parsed) : base(940, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class UnderlyingStrikeCurrency : FixValue<string>
 	{
-		internal UnderlyingStrikeCurrency(int position, int length, string value, bool valid) : base(941, position, 4, length, value, valid) { }
+		internal UnderlyingStrikeCurrency(string value) : base(941, 4, value, true) { }
 	}
 	public sealed class LegStrikeCurrency : FixValue<string>
 	{
-		internal LegStrikeCurrency(int position, int length, string value, bool valid) : base(942, position, 4, length, value, valid) { }
+		internal LegStrikeCurrency(string value) : base(942, 4, value, true) { }
 	}
 	public sealed class TimeBracket : FixValue<string>
 	{
-		internal TimeBracket(int position, int length, string value, bool valid) : base(943, position, 4, length, value, valid) { }
+		internal TimeBracket(string value) : base(943, 4, value, true) { }
 	}
 	public sealed class CollAction : FixValue<System.Numerics.BigInteger>
 	{
-		internal CollAction(int position, int length, System.Numerics.BigInteger value, bool valid) : base(944, position, 4, length, value, valid) { }
+		internal CollAction((bool Valid, System.Numerics.BigInteger Value) parsed) : base(944, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CollInquiryStatus : FixValue<System.Numerics.BigInteger>
 	{
-		internal CollInquiryStatus(int position, int length, System.Numerics.BigInteger value, bool valid) : base(945, position, 4, length, value, valid) { }
+		internal CollInquiryStatus((bool Valid, System.Numerics.BigInteger Value) parsed) : base(945, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class CollInquiryResult : FixValue<System.Numerics.BigInteger>
 	{
-		internal CollInquiryResult(int position, int length, System.Numerics.BigInteger value, bool valid) : base(946, position, 4, length, value, valid) { }
+		internal CollInquiryResult((bool Valid, System.Numerics.BigInteger Value) parsed) : base(946, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class StrikeCurrency : FixValue<string>
 	{
-		internal StrikeCurrency(int position, int length, string value, bool valid) : base(947, position, 4, length, value, valid) { }
+		internal StrikeCurrency(string value) : base(947, 4, value, true) { }
 	}
 	public sealed class NoNested3PartyIDs : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoNested3PartyIDs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(948, position, 4, length, value, valid) { }
+		internal NoNested3PartyIDs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(948, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Nested3PartyID : FixValue<string>
 	{
-		internal Nested3PartyID(int position, int length, string value, bool valid) : base(949, position, 4, length, value, valid) { }
+		internal Nested3PartyID(string value) : base(949, 4, value, true) { }
 	}
 	public sealed class Nested3PartyIDSource : FixValue<char>
 	{
-		internal Nested3PartyIDSource(int position, int length, char value, bool valid) : base(950, position, 4, length, value, valid) { }
+		internal Nested3PartyIDSource((bool Valid, char Value) parsed) : base(950, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Nested3PartyRole : FixValue<System.Numerics.BigInteger>
 	{
-		internal Nested3PartyRole(int position, int length, System.Numerics.BigInteger value, bool valid) : base(951, position, 4, length, value, valid) { }
+		internal Nested3PartyRole((bool Valid, System.Numerics.BigInteger Value) parsed) : base(951, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class NoNested3PartySubIDs : FixValue<System.Numerics.BigInteger>
 	{
-		internal NoNested3PartySubIDs(int position, int length, System.Numerics.BigInteger value, bool valid) : base(952, position, 4, length, value, valid) { }
+		internal NoNested3PartySubIDs((bool Valid, System.Numerics.BigInteger Value) parsed) : base(952, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class Nested3PartySubID : FixValue<string>
 	{
-		internal Nested3PartySubID(int position, int length, string value, bool valid) : base(953, position, 4, length, value, valid) { }
+		internal Nested3PartySubID(string value) : base(953, 4, value, true) { }
 	}
 	public sealed class Nested3PartySubIDType : FixValue<System.Numerics.BigInteger>
 	{
-		internal Nested3PartySubIDType(int position, int length, System.Numerics.BigInteger value, bool valid) : base(954, position, 4, length, value, valid) { }
+		internal Nested3PartySubIDType((bool Valid, System.Numerics.BigInteger Value) parsed) : base(954, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegContractSettlMonth : FixValue<FixMonthYear>
 	{
-		internal LegContractSettlMonth(int position, int length, FixMonthYear value, bool valid) : base(955, position, 4, length, value, valid) { }
+		internal LegContractSettlMonth((bool Valid, FixMonthYear Value) parsed) : base(955, 4, parsed.Value, parsed.Valid) { }
 	}
 	public sealed class LegInterestAccrualDate : FixValue<FixDate>
 	{
-		internal LegInterestAccrualDate(int position, int length, FixDate value, bool valid) : base(956, position, 4, length, value, valid) { }
+		internal LegInterestAccrualDate((bool Valid, FixDate Value) parsed) : base(956, 4, parsed.Value, parsed.Valid) { }
 	}
 }

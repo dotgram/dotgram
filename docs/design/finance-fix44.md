@@ -74,7 +74,10 @@ TryParse must not catch exceptions as its ordinary malformed-input path.
 numeric tag has a named rule constructing its `FixFields` ADT case. Cases share
 `FixValue` as their grammar result, so the machine does not need a separate value
 stack for each concrete case. A shared digit-prefix tree selects the tag without repeatedly comparing its
-prefix. Each leaf constructs its named ADT case from the native value span.
+prefix. Each leaf constructs its named ADT case directly from the native value span,
+without a per-field factory. Conversions return `(Valid, Value)`; plain text returns
+a string directly. `LocationType = typeof(IFixLocation)` locates the value as rules
+forward it, with the outer `Field` rule supplying the complete field range.
 These helper rules carry no message-specific schema.
 
 `Separator` is an elementary rule. The pipe publication uses

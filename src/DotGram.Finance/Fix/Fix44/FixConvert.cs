@@ -6,6 +6,106 @@ namespace DotGram.Finance.Fix;
 
 static class FixConvert
 {
+	public static (bool Valid, BigInteger Value) Integer(ReadOnlySpan<char> raw)
+	{
+		var valid = Integer(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, BigInteger Value) Integer(ReadOnlySpan<byte> raw)
+	{
+		var valid = Integer(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, FixDecimal Value) Decimal(ReadOnlySpan<char> raw)
+	{
+		var valid = Decimal(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, FixDecimal Value) Decimal(ReadOnlySpan<byte> raw)
+	{
+		var valid = Decimal(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, bool Value) Boolean(ReadOnlySpan<char> raw)
+	{
+		var valid = Boolean(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, bool Value) Boolean(ReadOnlySpan<byte> raw)
+	{
+		var valid = Boolean(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, char Value) Character(ReadOnlySpan<char> raw)
+	{
+		var valid = Character(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, char Value) Character(ReadOnlySpan<byte> raw)
+	{
+		var valid = Character(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, ReadOnlyMemory<byte> Value) Data(ReadOnlySpan<char> raw)
+	{
+		var valid = Data(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, ReadOnlyMemory<byte> Value) Data(ReadOnlySpan<byte> raw)
+	{
+		var valid = Data(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, FixTimestamp Value) Timestamp(ReadOnlySpan<char> raw)
+	{
+		var valid = Timestamp(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, FixTimestamp Value) Timestamp(ReadOnlySpan<byte> raw)
+	{
+		var valid = Timestamp(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, FixTime Value) Time(ReadOnlySpan<char> raw)
+	{
+		var valid = Time(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, FixTime Value) Time(ReadOnlySpan<byte> raw)
+	{
+		var valid = Time(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, FixDate Value) Date(ReadOnlySpan<char> raw)
+	{
+		var valid = Date(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, FixDate Value) Date(ReadOnlySpan<byte> raw)
+	{
+		var valid = Date(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, FixMonthYear Value) MonthYear(ReadOnlySpan<char> raw)
+	{
+		var valid = MonthYear(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, FixMonthYear Value) MonthYear(ReadOnlySpan<byte> raw)
+	{
+		var valid = MonthYear(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, string[] Value) Multiple(ReadOnlySpan<char> raw)
+	{
+		var valid = Multiple(raw, out var value);
+		return (valid, value);
+	}
+	public static (bool Valid, string[] Value) Multiple(ReadOnlySpan<byte> raw)
+	{
+		var valid = Multiple(raw, out var value);
+		return (valid, value);
+	}
 	public static bool Integer(ReadOnlySpan<char> raw, out BigInteger value)
 	{
 		value = default;
@@ -74,13 +174,12 @@ static class FixConvert
 	}
 	static int Part(ReadOnlySpan<char> raw) => int.TryParse(raw, NumberStyles.None, CultureInfo.InvariantCulture, out var value) ? value : -1;
 	static int Part(ReadOnlySpan<byte> raw) => FixContext.Tag(raw);
-	public static bool Text(ReadOnlySpan<char> raw, out string value) { value = raw.ToString(); return true; }
-	public static bool Text(ReadOnlySpan<byte> raw, out string value)
+	public static string Text(ReadOnlySpan<char> raw) => raw.ToString();
+	public static string Text(ReadOnlySpan<byte> raw)
 	{
 		var chars = new char[raw.Length];
 		for (var i = 0; i < raw.Length; i++) chars[i] = (char)raw[i];
-		value = new string(chars);
-		return true;
+		return new string(chars);
 	}
 	public static bool Data(ReadOnlySpan<char> raw, out ReadOnlyMemory<byte> value)
 	{
@@ -103,7 +202,7 @@ static class FixConvert
 	}
 	public static bool Multiple(ReadOnlySpan<char> raw, out string[] value)
 	{
-		Text(raw, out var text);
+		var text = Text(raw);
 		value = text.Split(' ');
 		foreach (var item in value) if (item.Length != 1) return false;
 		return true;
@@ -132,7 +231,7 @@ static class FixConvert
 		{
 			if (raw.Length < 10 || raw[8] != '.') return false;
 			foreach (var c in raw.Slice(9)) if (c < '0' || c > '9') return false;
-			Text(raw.Slice(9), out fraction);
+			fraction = Text(raw.Slice(9));
 		}
 		value = new FixTime(hour, minute, second, fraction);
 		return true;
@@ -172,7 +271,7 @@ static class FixConvert
 	}
 	public static bool Multiple(ReadOnlySpan<byte> raw, out string[] value)
 	{
-		Text(raw, out var text);
+		var text = Text(raw);
 		value = text.Split(' ');
 		foreach (var item in value) if (item.Length != 1) return false;
 		return true;
@@ -201,7 +300,7 @@ static class FixConvert
 		{
 			if (raw.Length < 10 || raw[8] != '.') return false;
 			foreach (var c in raw.Slice(9)) if (c < '0' || c > '9') return false;
-			Text(raw.Slice(9), out fraction);
+			fraction = Text(raw.Slice(9));
 		}
 		value = new FixTime(hour, minute, second, fraction);
 		return true;
