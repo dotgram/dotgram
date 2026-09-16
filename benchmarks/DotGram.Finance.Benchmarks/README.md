@@ -13,7 +13,10 @@ Workloads cover a heartbeat, NewOrderSingle, 64 KiB raw data and a market-data
 snapshot with 1,000 repeating group entries. For comparisons, run both variants
 in the same BenchmarkDotNet invocation on the same machine.
 
-## Shared ADT grammar: 2026-09-15
+## Historical shared ADT grammar with a prefix tree: 2026-09-15
+
+These measurements predate the split into inherited field rules with complete tag
+literals and the singular `FixField` API. They do not measure the current grammar.
 
 BenchmarkDotNet 0.15.8; Windows 11; AMD Ryzen 9 9950X3D; .NET 10.0.12;
 SDK 10.0.400. ShortRun, InProcessEmitToolchain, one launch, three warmups and

@@ -70,15 +70,22 @@ TryParse must not catch exceptions as its ordinary malformed-input path.
 
 ## Implemented grammar strategy
 
-`FixGrammar.gram` is the only field grammar for all 93 message types. Each known
-numeric tag has a named rule constructing its `FixFields` ADT case. Cases share
-`FixValue` as their grammar result, so the machine does not need a separate value
-stack for each concrete case. A shared digit-prefix tree selects the tag without repeatedly comparing its
-prefix. Each leaf constructs its named ADT case directly from the native value span,
-without a per-field factory. Conversions return `(Valid, Value)`; plain text returns
-a string directly. `LocationType = typeof(IFixLocation)` locates the value as rules
-forward it, with the outer `Field` rule supplying the complete field range.
-These helper rules carry no message-specific schema.
+The handwritten `FixGrammar` host inherits `FixFieldGrammar`. Its generated
+`FixField.gram` declares one rule per standard numeric tag plus the `KnownField`
+choice. Rules contain full literals such as `"607="` and accept content and
+separator rules as parameters. There is no manually expanded prefix tree.
+The handwritten `FixGrammar.gram` provides `ValueText`, length-delimited `Data`,
+`Separator`, unknown-field recognition and the two parse publications.
+
+`FixField.Generated.cs` supplies only nested case declarations in `partial class
+FixField`. The handwritten `FixField.cs` owns location and typed-value behavior;
+`FixConvert.cs` owns primitive conversions. Cases share `FixField` as their grammar
+result, so the machine does not need a separate value stack per case. The original
+wire view is called `FixFieldView`.
+
+Each field directly constructs its named case from the native value span.
+Conversions return `(Valid, Value)`; plain text returns a string.
+`LocationType = typeof(IFixLocation)` supplies the complete field extent.
 
 `Separator` is an elementary rule. The pipe publication uses
 `with (Separator = LogSeparator)`. `ValueText` tests the rule with negative lookahead;
@@ -86,7 +93,7 @@ it must retain that reference through specialization rather than flatten a named
 set before `with` is applied.
 
 The parser host requests native character spans and buffered byte/character input.
-Generated conversion hooks have ReadOnlySpan<char> and ReadOnlySpan<byte> overloads.
+Handwritten conversion hooks have ReadOnlySpan<char> and ReadOnlySpan<byte> overloads.
 Numbers preserve exact precision; FIX calendar values preserve year zero and leap
 seconds. Standard code sets still constrain the underlying primitive in Strict mode.
 
@@ -106,7 +113,12 @@ the next one. Byte frames are recognized and converted natively; the legacy mode
 also owns a character view for lossless field spans and validation. Streaming bounds
 retention to a frame, not an entire connection, but is not allocation-free.
 
-The shared grammar exposed a general generator size issue. Large split machines now
+The shared grammar exposed general generator size issues. Identity alternatives
+that all return the same typed capture now share one materialization call, rather
+than a switch with hundreds of equivalent bodies. The parser uses `Direct = false`
+to keep large choices in the split automaton.
+
+The earlier shared grammar exposed another generator size issue. Large split machines now
 use a state-to-part lookup table in their outer dispatcher, and identical root-value
 reads share switch arms. Small machines keep their existing emitted shape. A
 600-rule regression test compares contiguous, character-stream and byte-stream

@@ -40,7 +40,7 @@ public static partial class Fix44
 	public static bool TryParse(string? input, out FixMessage? message, out FixParseError? error, FixParseMode mode = FixParseMode.Strict)
 		=> TryParseCore(input, out message, out error, mode, null);
 
-	static bool Envelope(string input, char separator, FixValue[]? fields, out string type, out FixParseError? error)
+	static bool Envelope(string input, char separator, FixField[]? fields, out string type, out FixParseError? error)
 	{
 		type = "";
 		error = null;
@@ -86,7 +86,7 @@ public static partial class Fix44
 		return FixSemantics.TryBuild(input, type, Nodes(match.Value), mode, options, out message, out error);
 	}
 
-	static bool Envelope(ReadOnlySpan<byte> input, char separator, FixValue[]? fields, out string type, out FixParseError? error)
+	static bool Envelope(ReadOnlySpan<byte> input, char separator, FixField[]? fields, out string type, out FixParseError? error)
 	{
 		type = "";
 		error = null;
@@ -136,7 +136,7 @@ public static partial class Fix44
 
 	public static bool TryParse(ReadOnlySpan<char> input, out FixMessage? message, out FixParseError? error, FixParseMode mode = FixParseMode.Strict) => TryParse(input.ToString(), out message, out error, mode);
 
-	static FixNode[] Nodes(FixValue[] values)
+	static FixNode[] Nodes(FixField[] values)
 	{
 		var fields = new FixNode[values.Length];
 		for (var i = 0; i < fields.Length; i++)
@@ -279,7 +279,7 @@ static class FixValidation
 		return -1;
 	}
 
-	static bool Fail(FixField field, string type, string reason, out FixParseError? error)
+	static bool Fail(FixFieldView field, string type, string reason, out FixParseError? error)
 	{
 		error = new FixParseError(field.ValuePosition, field.Tag, type, reason);
 		return false;

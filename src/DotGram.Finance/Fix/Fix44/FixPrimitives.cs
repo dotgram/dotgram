@@ -4,7 +4,7 @@ namespace DotGram.Finance.Fix;
 
 static class FixPrimitives
 {
-	public static bool Valid(FixField field, string? type, string[]? codes)
+	public static bool Valid(FixFieldView field, string? type, string[]? codes)
 	{
 		var value = field.Value;
 		if (type == null) return false;

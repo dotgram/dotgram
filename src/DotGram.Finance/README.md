@@ -1,7 +1,7 @@
 # DotGram.Finance
 
 A standalone FIX 4.4 tag-value parser for `netstandard2.0` and `net10.0`.
-DotGram generates one shared field grammar at build time; applications need no DotGram runtime,
+DotGram compiles the composed field grammar into one parser at build time; applications need no DotGram runtime,
 grammar files, schema XML, reflection configuration or initialization step.
 
 ```csharp
@@ -101,8 +101,8 @@ Flattened component fields are properties of their containing scope.
   ranges can still be parsed and inspected without overflow or loss of wire text.
 - Temporal properties preserve FIX text, including year zero and leap-second
   notation, rather than forcing values into `DateTime`.
-- `GetField(tag)` returns the first field in the current scope. `FixField.Value`
-  and `FixField.Wire` expose non-allocating spans. `Fields` preserves scope order;
+- `GetField(tag)` returns the first field in the current scope. `FixFieldView.Value`
+  and `FixFieldView.Wire` expose non-allocating spans. `Fields` preserves scope order;
   `AllFields` traverses the complete message, including nested groups, in wire order.
 - `OriginalWire` is the exact input. No serializer is necessary to recover it.
 
@@ -134,13 +134,13 @@ outside its checks. ISO identifiers are checked for their lexical shape.
 
 ## Field ADT and typed values
 
-`FixField.TypedValue` is a `FixValue` with one concrete `FixFields` case per
+`FixFieldView.TypedValue` is a `FixField` with one concrete `FixField` case per
 standard tag. The tag and primitive type come from the pinned specification:
 
 ```csharp
 var order = (NewOrderSingle)Fix44.Parse(wire);
-var symbol = (FixFields.Symbol)order.GetField(55)!.Value.TypedValue!;
-var quantity = (FixFields.OrderQty)order.GetField(38)!.Value.TypedValue!;
+var symbol = (FixField.Symbol)order.GetField(55)!.Value.TypedValue!;
+var quantity = (FixField.OrderQty)order.GetField(38)!.Value.TypedValue!;
 Console.WriteLine(symbol.Value);             // string
 Console.WriteLine(quantity.Value.Coefficient); // BigInteger
 Console.WriteLine(quantity.Value.Scale);       // decimal scale
@@ -166,7 +166,7 @@ ASCII digits directly, retaining arbitrary integer and decimal precision.
 Lenient parsing retains malformed primitive text. Such a field has
 `TypedValue.IsValid == false`; `TryGetValue` returns false and `Value` throws.
 This flag describes primitive conversion, not code-set or message-schema validity.
-Unknown tags use `UnknownFixValue` with their original value octets.
+Unknown tags use `FixField.Unknown` with their original value octets.
 
 ## Pipe-delimited logs
 
@@ -217,8 +217,10 @@ It contains 912 fields, 247 code sets, 15 components and 92 group definitions;
 [FIX TagValue Encoding](https://www.fixtrading.org/standards/tagvalue-online/).
 
 Run `python tools/generate-fix44.py` from the repository to reproduce checked-in
-grammars, model types, schema tables and test fixtures. Generation uses only the
-Python standard library and the pinned local XML; package consumers do not run it.
+field declarations, model types, schema tables and test fixtures. The generator owns
+`FixField.gram` and `FixField.Generated.cs`; it never rewrites `FixGrammar.gram`,
+`FixField.cs`, `FixConvert.cs` or the parser host. It uses only the Python standard
+library and the pinned local XML; package consumers do not run it.
 The original source and its Apache 2.0 license remain unmodified. See the packaged
 third-party notices for attribution.
 
@@ -228,13 +230,24 @@ and measurement records are in `docs/design/finance-fix44.md` and
 
 ### Field construction and locations
 
+`FixGrammar` inherits `FixFieldGrammar`, whose `FixField.gram` contains only the
+standard field rules and their `KnownField` choice. Each rule spells out the full
+tag, for example `"607="`. The handwritten `FixGrammar.gram` supplies text, raw-data
+and separator rules as grammar parameters and defines the parse publications.
+There are no manually expanded digit-prefix branches.
+
+`FixField.Generated.cs` declares the nested cases of `partial class FixField`.
+The handwritten `FixField.cs` implements locations and typed-value access; the
+generated declarations contain no conversion or location logic. `FixFieldView`
+provides access to the original source text.
+
 The grammar constructs field cases directly, for example
-`new FixFields.LegProduct(FixConvert.Integer(value))`. Primitive conversions return
+`new FixField.LegProduct(FixConvert.Integer(value))`. Primitive conversions return
 `(Valid, Value)` for the field constructor. Plain text conversion returns a string
 without a validation flag; a string's typed value is always available. Restrictions
 on a particular field (such as currency syntax or a code set) remain semantic checks.
 
 `LocationType = typeof(IFixLocation)` supplies field coordinates through `Locate`.
-Forwarding rules offer progressively wider ranges; the outer `Field` rule supplies
-the complete tag, equals sign, value and separator. `Position`, `ValuePosition` and
+Each field rule covers the complete tag, equals sign, value and separator;
+forwarding rules preserve that extent. `Position`, `ValuePosition` and
 `Length` retain their existing meanings, including for unknown and binary fields.

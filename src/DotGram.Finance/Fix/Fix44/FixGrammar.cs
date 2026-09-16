@@ -5,8 +5,11 @@ using DotGram;
 
 namespace DotGram.Finance.Fix;
 
-[Gram("FixGrammar.gram", LocationType = typeof(IFixLocation), SpanCaptures = true, BufferedInput = true, PartSize = 1000, Portable = false)]
-static partial class FixGrammar;
+[Gram("FixGrammar.gram", LocationType = typeof(IFixLocation), SpanCaptures = true, BufferedInput = true, Direct = false, PartSize = 1000, Portable = false)]
+sealed partial class FixGrammar : FixFieldGrammar;
+
+[Gram("FixField.gram", IncludedAs = "Known", Portable = false)]
+abstract partial class FixFieldGrammar;
 
 sealed class FixContext
 {

@@ -30,11 +30,11 @@ public sealed class FixParseError
 }
 
 /// <summary>A field backed by the original message; reading Value allocates nothing.</summary>
-public readonly struct FixField
+public readonly struct FixFieldView
 {
 	readonly string source;
 
-	internal FixField(string source, int tag, int position, int valuePosition, int length, FixValue? typedValue = null)
+	internal FixFieldView(string source, int tag, int position, int valuePosition, int length, FixField? typedValue = null)
 	{
 		this.source = source;
 		TypedValue = typedValue;
@@ -44,7 +44,7 @@ public readonly struct FixField
 		Length = length;
 	}
 
-	public FixValue? TypedValue { get; }
+	public FixField? TypedValue { get; }
 	public int Tag { get; }
 	public int Position { get; }
 	public int ValuePosition { get; }
@@ -60,8 +60,8 @@ public readonly struct FixField
 /// <summary>A decimal wire value without a CLR decimal range or precision restriction.</summary>
 public readonly struct FixNumber
 {
-	readonly FixField wireField;
-	internal FixNumber(FixField field) => wireField = field;
+	readonly FixFieldView wireField;
+	internal FixNumber(FixFieldView field) => wireField = field;
 	public ReadOnlySpan<char> Value => wireField.Value;
 	public bool TryGetDecimal(out decimal value) => wireField.TryGetDecimal(out value);
 	public override string ToString() => wireField.ToString();
@@ -80,7 +80,7 @@ public class FixFieldSet
 	}
 
 	/// <summary>Fields in this scope, including group counters but excluding group entries.</summary>
-	public IEnumerable<FixField> Fields
+	public IEnumerable<FixFieldView> Fields
 	{
 		get
 		{
@@ -89,7 +89,7 @@ public class FixFieldSet
 		}
 	}
 
-	public FixField? GetField(int tag)
+	public FixFieldView? GetField(int tag)
 	{
 		foreach (var node in Nodes)
 			if (node.Tag == tag) return node.Field(Source);
@@ -132,7 +132,7 @@ public abstract class FixMessage : FixFieldSet
 	public StandardTrailer Trailer { get; }
 
 	/// <summary>All fields in wire order, recursively including group entries.</summary>
-	public IEnumerable<FixField> AllFields
+	public IEnumerable<FixFieldView> AllFields
 	{
 		get
 		{
@@ -142,7 +142,7 @@ public abstract class FixMessage : FixFieldSet
 		}
 	}
 
-	static IEnumerable<FixField> Walk(FixFieldSet scope)
+	static IEnumerable<FixFieldView> Walk(FixFieldSet scope)
 	{
 		foreach (var node in scope.Nodes)
 		{
@@ -162,7 +162,7 @@ public sealed class CustomFixMessage : FixMessage
 
 readonly struct FixNode
 {
-	public FixNode(int tag, int position, int valuePosition, int length, IReadOnlyList<FixFieldSet>? entries = null, FixValue? typedValue = null)
+	public FixNode(int tag, int position, int valuePosition, int length, IReadOnlyList<FixFieldSet>? entries = null, FixField? typedValue = null)
 	{
 		Tag = tag;
 		Position = position;
@@ -172,12 +172,12 @@ readonly struct FixNode
 		TypedValue = typedValue;
 	}
 
-	public readonly FixValue? TypedValue;
+	public readonly FixField? TypedValue;
 	public readonly int Tag;
 	public readonly int Position;
 	public readonly int ValuePosition;
 	public readonly int Length;
 	public readonly IReadOnlyList<FixFieldSet>? Entries;
-	public FixField Field(string source) => new(source, Tag, Position, ValuePosition, Length, TypedValue);
+	public FixFieldView Field(string source) => new(source, Tag, Position, ValuePosition, Length, TypedValue);
 	public FixNode WithEntries<T>(T[] entries) where T : FixFieldSet => new(Tag, Position, ValuePosition, Length, Array.AsReadOnly(entries), TypedValue);
 }
