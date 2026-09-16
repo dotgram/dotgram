@@ -246,3 +246,34 @@ The complete Debug solution rebuild also succeeded with the same Visual Studio M
 Observed solution wall time fell by **29.069 s (11.5%)**, from approximately **4 min 13 s to 3 min 44 s**. This is a single controlled sequential rebuild comparison, not a guarantee for Visual Studio incremental builds. Finance output is byte-identical, yet its compilation also became faster in this run; therefore the entire observed solution improvement cannot be attributed to diagnostic sharing. The separate paired SQL build and the verified source/DLL reductions provide more direct evidence for this change. SQL and Finance still account for 176.244 s of Csc time, so further build optimization remains necessary.
 
 Artifacts: `solution-step3.binlog`, `solution-step3.log` and `solution-step3-timings.txt` under `.work/generator-analysis/`, alongside the step-2 baseline.
+
+## Fourth optimization batch: scan method budgets without copying bodies
+
+The final-file oversized-method warning pass now scans line and method ranges directly in the emitted string. It no longer splits the entire file into line strings, trims a copy of each line, or rebuilds method bodies in StringBuilder. Method-name recognition retains the same prefixes, whitespace handling and identifier-character rules. Branch counting accepts a bounded range; existing callers still count their complete strings. No new runtime parser infrastructure is emitted.
+
+### Initial measurements
+
+Saved step-3 binaries and the candidate were run sequentially per fixture. Medians exclude cycle zero: two warm observations for library projects, nine for tiny fixtures. All **127 generated source hashes matched exactly**. Calling the old and new warning pass on these 127 files also produced identical diagnostics (none of these files triggers the oversized-method warning). Separate regression cases exercise non-empty warnings, the 2,000/2,001 boundary, nested local functions, Unicode whitespace/names, CRLF/LF and a final unterminated line.
+
+| Fixture | Step 3 time | Step 4 time | Step 3 allocation | Step 4 allocation |
+|---|---:|---:|---:|---:|
+| SQL | 19,431.84 ms | 20,554.29 ms | 22,596.86 MiB | 21,463.78 MiB |
+| Finance | 3,442.80 ms | 3,152.44 ms | 6,375.03 MiB | 5,706.95 MiB |
+| ExpressionLanguage | 1,107.91 ms | 1,031.85 ms | 434.74 MiB | 404.75 MiB |
+| Web | 496.71 ms | 426.29 ms | 231.87 MiB | 209.73 MiB |
+| Tiny | 4.41 ms | 4.64 ms | 1.05 MiB | 0.94 MiB |
+| TinyStreams | 5.52 ms | 5.46 ms | 2.70 MiB | 2.20 MiB |
+
+The initial SQL timing regressed despite eliminating **1,133.08 MiB** of allocation. Finance allocated **668.08 MiB** less. An isolated invocation of the warning pass across all 127 already-generated files took 1,142.35 / 351.34 ms (step 3 / step 4), excluding file loading, in one sequential check. This supports the local optimization but is not a full-generation timing result; a reverse-order repeat is required before interpreting the initial SQL timing.
+
+Artifacts are `*-step3/4-oversee.jsonl`, matching `.hashes`, `compare-oversee.ps1` and `oversee-comparison.txt` under `.work/generator-analysis/`.
+
+### Reverse-order repeat
+
+A separate five-cycle SQL run executed the candidate before the saved baseline, without builds or tests running alongside it. Excluding cycle zero, medians were **21,141.04 / 19,971.92 ms** (step 3 / step 4). Warm ranges were 20,951.30–21,644.78 / 18,776.18–20,413.59 ms. Allocation was **22,471.65 / 21,449.47 MiB**, a reduction of **1,022.17 MiB**. This repeat favors the candidate by 5.5%, but the initial ordering favored the baseline; no stable full-generation speedup percentage is established. Allocation reductions reproduced in both runs.
+
+A reverse-order thirty-cycle tiny-grammar repeat gave warm medians of **4.587 / 4.683 ms** and **1.049 / 0.944 MiB**. Timing ranges overlap widely (4.22–10.54 / 4.22–8.36 ms), so there is no established small-parser generation timing improvement. Generated parser code and runtime behavior are unchanged; this batch does not measure parser throughput or peak memory. The full solution rebuild was not repeated for this batch, and its earlier 3 min 44 s result must not be presented as a new measurement.
+
+### Fourth-batch validation
+
+Release build of DotGram.Tests and dependencies succeeded with zero warnings/errors using one MSBuild node and shared compilation disabled. All **8,160 tests passed**, zero errors/failures/skips, in 157.509 seconds, including the five additional warning-scan regression cases and the existing oversized-method and snapshot coverage. All 127 source hashes matched, and BOM/CRLF/tab indentation and git whitespace checks passed. Logs: `tests-step4-build.log` and `tests-step4-all.log` under `.work/generator-analysis/`.

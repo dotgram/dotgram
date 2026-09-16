@@ -69,22 +69,38 @@ public static partial class CSharpEmitter
 		if (diagnostics is null)
 			return;
 
-		var lines = file.Split('\n');
-		var name  = default(string);
-		var body  = default(StringBuilder);
+		var name = default(string);
+		var bodyStart = 0;
 
-		for (var i = 0; i <= lines.Length; i++)
+		// Inspect slices of the emitted file. Splitting every line and rebuilding each
+		// method body duplicates a large fraction of the SQL output just for warnings.
+		for (var at = 0; at <= file.Length;)
 		{
-			var header = i < lines.Length ? MethodHeader(lines[i]) : "";
+			var end = file.IndexOf('\n', at);
 
-			if (header is null)
+			if (end < 0)
+				end = file.Length;
+
+			var header = MethodHeader(file, at, end);
+
+			if (header is not null)
 			{
-				body?.Append(lines[i]).Append('\n');
-
-				continue;
+				Warn(at);
+				name = header;
+				bodyStart = end < file.Length ? end + 1 : end;
 			}
 
-			if (name is not null && Machine.Branches(body!.ToString()) is var cost && cost > 2000)
+			if (end == file.Length)
+				break;
+
+			at = end + 1;
+		}
+
+		Warn(file.Length);
+
+		void Warn(int end)
+		{
+			if (name is not null && Machine.Branches(file, bodyStart, end) is var cost && cost > 2000)
 			{
 				var at = anchor?.Declaration?.At ?? default;
 
@@ -99,27 +115,31 @@ public static partial class CSharpEmitter
 					"Splitting that rule restores optimization.",
 					at.Position, at.Length, GramSeverity.Warning));
 			}
-
-			name = header.Length > 0 ? header : null;
-			body = header.Length > 0 ? new StringBuilder() : null;
 		}
 	}
 
 	/// <summary>The name a line declares a method or local function under, if it does.</summary>
-	static string? MethodHeader(string line)
+	static string? MethodHeader(string text, int start, int end)
 	{
-		var text = line.TrimStart();
+		while (start < end && char.IsWhiteSpace(text[start]))
+			start++;
 
 		foreach (var opening in Openings)
 		{
-			if (!text.StartsWith(opening, StringComparison.Ordinal))
+			if (end - start < opening.Length ||
+				string.CompareOrdinal(text, start, opening, 0, opening.Length) != 0)
+			{
 				continue;
+			}
 
-			var rest  = text.Substring(opening.Length);
-			var paren = rest.IndexOf('(');
+			var first = start + opening.Length;
+			var at = first;
 
-			if (paren > 0 && rest.Take(paren).All(c => char.IsLetterOrDigit(c) || c == '_'))
-				return rest.Substring(0, paren);
+			while (at < end && (char.IsLetterOrDigit(text[at]) || text[at] == '_'))
+				at++;
+
+			if (at > first && at < end && text[at] == '(')
+				return text.Substring(first, at - first);
 		}
 
 		return null;

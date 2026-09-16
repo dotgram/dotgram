@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 using DotGram.Generation;
 using DotGram.Grammar;
+using DotGram.Grammar.Emit;
 
 using Xunit;
 
@@ -52,6 +55,59 @@ public sealed class OversizeTests
 		});
 
 		Assert.DoesNotContain(compiled.Diagnostics, d => d.Id == "GRAM5003");
+	}
+
+	[Theory]
+	[InlineData("\r\n", true)]
+	[InlineData("\n", false)]
+	public void Warning_scan_keeps_method_boundaries_and_the_last_unterminated_line(string ending, bool terminate)
+	{
+		var text = new StringBuilder();
+
+		// Text before the first method is not a body. Unicode whitespace and names
+		// exercise the same header recognition as the generated source's old scan.
+		Repeat("if (ignored)", 2001);
+		Line("\u2003static int Méthod_1()");
+		Repeat("if (condition)", 2001);
+		Line("\tbool Local()");
+		Repeat("if (condition)", 2000);
+		Line("static void Last()");
+		Repeat("if (condition)", 2000);
+		text.Append("goto done;");
+
+		if (terminate)
+			text.Append(ending);
+
+		var diagnostics = Inspect(text.ToString());
+
+		Assert.Equal(2, diagnostics.Count);
+		Assert.Contains("'Méthod_1' is estimated at 2001 basic blocks", diagnostics[0].Message, StringComparison.Ordinal);
+		Assert.Contains("'Last' is estimated at 2001 basic blocks", diagnostics[1].Message, StringComparison.Ordinal);
+
+		void Line(string line) => text.Append(line).Append(ending);
+
+		void Repeat(string line, int count)
+		{
+			for (var i = 0; i < count; i++)
+				Line(line);
+		}
+	}
+
+	[Theory]
+	[InlineData("")]
+	[InlineData("static void Empty()")]
+	[InlineData("static void Empty()\n")]
+	public void Empty_method_bodies_do_not_warn(string text) => Assert.Empty(Inspect(text));
+
+	static List<GramDiagnostic> Inspect(string text)
+	{
+		var diagnostics = new List<GramDiagnostic>();
+
+		// Exercise the final-file warning pass independently of grammar lowering.
+		typeof(CSharpEmitter).GetMethod("Oversee", BindingFlags.NonPublic | BindingFlags.Static)!
+			.Invoke(null, [text, null, diagnostics]);
+
+		return diagnostics;
 	}
 
 	/// <summary>

@@ -375,15 +375,18 @@ sealed partial class Machine
 	/// nothing, because it divides a little sooner than it had to.
 	/// </para>
 	/// </remarks>
-	public static int Branches(string body)
+	public static int Branches(string body) => Branches(body, 0, body.Length);
+
+	/// <summary>Counts a method directly in the emitted file, within [start, end).</summary>
+	public static int Branches(string body, int start, int end)
 	{
 		var branches = 0;
 
-		for (var i = 0; i < body.Length; i++)
+		for (var i = start; i < end; i++)
 			switch (body[i])
 			{
-				case '|' when i + 1 < body.Length && body[i + 1] == '|':
-				case '&' when i + 1 < body.Length && body[i + 1] == '&':
+				case '|' when i + 1 < end && body[i + 1] == '|':
+				case '&' when i + 1 < end && body[i + 1] == '&':
 					branches++;
 					i++;
 
@@ -391,23 +394,23 @@ sealed partial class Machine
 
 				// The two arms it chooses between. ` ? ` and not `?`, so that a nullable
 				// annotation or a `??` in the same text says nothing here.
-				case '?' when i > 0 && body[i - 1] == ' ' &&
-					i + 1 < body.Length && body[i + 1] == ' ':
+				case '?' when i > start && body[i - 1] == ' ' &&
+					i + 1 < end && body[i + 1] == ' ':
 					branches += 2;
 
 					break;
 
 				// Condition, body, step: what falls out of a loop's shape however it runs.
-				case 'f' when Word(body, i, "for ("):
-				case 'w' when Word(body, i, "while ("):
+				case 'f' when Word(body, start, end, i, "for ("):
+				case 'w' when Word(body, start, end, i, "while ("):
 					branches += 3;
 
 					break;
 
-				case 'i' when Word(body, i, "if ("):
-				case 'g' when Word(body, i, "goto "):
-				case 'c' when Word(body, i, "case "):
-				case 'b' when Word(body, i, "break;"):
+				case 'i' when Word(body, start, end, i, "if ("):
+				case 'g' when Word(body, start, end, i, "goto "):
+				case 'c' when Word(body, start, end, i, "case "):
+				case 'b' when Word(body, start, end, i, "break;"):
 					branches++;
 
 					break;
@@ -417,10 +420,10 @@ sealed partial class Machine
 	}
 
 	/// <summary>Whether a word stands here, and is a word rather than the end of one.</summary>
-	static bool Word(string body, int at, string word)
+	static bool Word(string body, int start, int end, int at, string word)
 	{
-		if (at + word.Length > body.Length ||
-			at > 0 && (char.IsLetterOrDigit(body[at - 1]) || body[at - 1] == '_'))
+		if (at + word.Length > end ||
+			at > start && (char.IsLetterOrDigit(body[at - 1]) || body[at - 1] == '_'))
 		{
 			return false;
 		}
