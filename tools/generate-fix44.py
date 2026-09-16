@@ -229,8 +229,10 @@ def generate_fields():
 		"@using DotGram.Finance.Fix;",
 		"",
 	]
-	grammar.append("KnownField(text, data) : @FixField =")
-	for index, (number, field) in enumerate(fields.items()):
+	grammar.append("KnownField(text) : @FixField =")
+	index = 0
+	paired_lengths = {int(f.attrib["lengthId"]) for f in fields.values() if "lengthId" in f.attrib}
+	for number, field in fields.items():
 		name = field.attrib["name"]
 		fix_type = field_type(field)
 		cs_type, conversion = primitive.get(fix_type, ("string", "Text"))
@@ -242,13 +244,16 @@ def generate_fields():
 			f"\t\t: FixField<{cs_type}>({number}, value);",
 			"",
 		])
-		content = "data" if fix_type == "data" else "text"
+		if fix_type == "data" or number in paired_lengths:
+			continue
+		content = "text"
 		grammar.extend([
 			f"\t// {number}: {name} ({fix_type})",
 			f'\t{"" if index == 0 else "| "}{{ "{number}=" & value: {content} }}',
 			f"\t  => @(new FixField.{name}(FixConvert.{conversion}(value)))",
 			"",
 		])
+		index += 1
 	adt[-1] = "}"
 	write("FixField.Generated.cs", "\n".join(adt))
 	write("FixField.gram", "\n".join(grammar))

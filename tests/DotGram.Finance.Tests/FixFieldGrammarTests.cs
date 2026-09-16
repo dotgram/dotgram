@@ -61,8 +61,13 @@ public sealed class FixFieldGrammarTests
 		{
 			var prefix = field.Tag.ToString(CultureInfo.InvariantCulture) + "=";
 			Assert.Equal(position, field.Position);
-			Assert.Equal(prefix, wire.Substring(field.Position, prefix.Length));
-			Assert.Equal(position + prefix.Length, field.ValuePosition);
+			Assert.Equal(prefix, wire.Substring(field.DataPosition, prefix.Length));
+			if (field.IsBinary)
+			{
+				var lengthEnd = wire.IndexOf(wire[field.ValuePosition + field.Length], position);
+				Assert.Equal(lengthEnd + 1, field.DataPosition);
+			}
+			else Assert.Equal(position + prefix.Length, field.ValuePosition);
 			Assert.True(field.Length >= 0);
 			position = field.ValuePosition + field.Length + 1;
 		}

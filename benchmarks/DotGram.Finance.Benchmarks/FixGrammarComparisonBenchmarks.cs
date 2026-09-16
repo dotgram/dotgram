@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.IO;
 using System.Linq;
@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using System.Runtime.Loader;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using BenchmarkDotNet.Attributes;
 using DotGram.Finance.Fix;
 
@@ -85,7 +86,18 @@ public class FixGrammarComparisonBenchmarks
 			using var reader = new StringReader(wire);
 			using var stream = new MemoryStream(Encoding.Latin1.GetBytes(wire));
 			var source = input == "String" ? (object)wire : input == "Bytes" ? stream : reader;
-			return parse(source).Cast<object>().Select(field => field.GetType().Name + ":" + JsonSerializer.Serialize(field, field.GetType())).ToArray();
+			var combine = Environment.GetEnvironmentVariable("DOTGRAM_FIX_COMBINED_BINARY") == "1";
+			var lengthTags = new[] { 90, 93, 95, 212, 348, 350, 352, 354, 356, 358, 360, 362, 364, 445, 618, 621 };
+			var dataTags = new[] { 89, 91, 96, 213, 349, 351, 353, 355, 357, 359, 361, 363, 365, 446, 619, 622 };
+			return parse(source).Cast<object>().Select(field =>
+			{
+				var json = JsonSerializer.SerializeToNode(field, field.GetType())!;
+				var tag = json["Tag"]!.GetValue<int>();
+				if (combine && lengthTags.Contains(tag)) return null;
+				// A binary result now spans the whole pair; its payload coordinates stay identical.
+				if (combine && dataTags.Contains(tag)) json.AsObject().Remove("Position");
+				return field.GetType().Name + ":" + json.ToJsonString();
+			}).Where(value => value != null).Select(value => value!).ToArray();
 		}
 		if (!Read(left).SequenceEqual(Read(right))) throw new InvalidOperationException("Field types, values or locations differ.");
 	}

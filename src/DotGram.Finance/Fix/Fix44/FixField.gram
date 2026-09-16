@@ -2,7 +2,7 @@
 // Reading policy is supplied by the handwritten FixGrammar.gram.
 @using DotGram.Finance.Fix;
 
-KnownField(text, data) : @FixField =
+KnownField(text) : @FixField =
 	// 1: Account (String)
 	{ "1=" & value: text }
 	  => @(new FixField.Account(FixConvert.Text(value)))
@@ -327,33 +327,9 @@ KnownField(text, data) : @FixField =
 	| { "88=" & value: text }
 	  => @(new FixField.AllocRejCode(FixConvert.Integer(value)))
 
-	// 89: Signature (data)
-	| { "89=" & value: data }
-	  => @(new FixField.Signature(FixConvert.Data(value)))
-
-	// 90: SecureDataLen (Length)
-	| { "90=" & value: text }
-	  => @(new FixField.SecureDataLen(FixConvert.Integer(value)))
-
-	// 91: SecureData (data)
-	| { "91=" & value: data }
-	  => @(new FixField.SecureData(FixConvert.Data(value)))
-
-	// 93: SignatureLength (Length)
-	| { "93=" & value: text }
-	  => @(new FixField.SignatureLength(FixConvert.Integer(value)))
-
 	// 94: EmailType (char)
 	| { "94=" & value: text }
 	  => @(new FixField.EmailType(FixConvert.Character(value)))
-
-	// 95: RawDataLength (Length)
-	| { "95=" & value: text }
-	  => @(new FixField.RawDataLength(FixConvert.Integer(value)))
-
-	// 96: RawData (data)
-	| { "96=" & value: data }
-	  => @(new FixField.RawData(FixConvert.Data(value)))
 
 	// 97: PossResend (Boolean)
 	| { "97=" & value: text }
@@ -726,14 +702,6 @@ KnownField(text, data) : @FixField =
 	// 211: PegOffsetValue (float)
 	| { "211=" & value: text }
 	  => @(new FixField.PegOffsetValue(FixConvert.Decimal(value)))
-
-	// 212: XmlDataLen (Length)
-	| { "212=" & value: text }
-	  => @(new FixField.XmlDataLen(FixConvert.Integer(value)))
-
-	// 213: XmlData (data)
-	| { "213=" & value: data }
-	  => @(new FixField.XmlData(FixConvert.Data(value)))
 
 	// 214: SettlInstRefID (String)
 	| { "214=" & value: text }
@@ -1255,78 +1223,6 @@ KnownField(text, data) : @FixField =
 	| { "347=" & value: text }
 	  => @(new FixField.MessageEncoding(FixConvert.Text(value)))
 
-	// 348: EncodedIssuerLen (Length)
-	| { "348=" & value: text }
-	  => @(new FixField.EncodedIssuerLen(FixConvert.Integer(value)))
-
-	// 349: EncodedIssuer (data)
-	| { "349=" & value: data }
-	  => @(new FixField.EncodedIssuer(FixConvert.Data(value)))
-
-	// 350: EncodedSecurityDescLen (Length)
-	| { "350=" & value: text }
-	  => @(new FixField.EncodedSecurityDescLen(FixConvert.Integer(value)))
-
-	// 351: EncodedSecurityDesc (data)
-	| { "351=" & value: data }
-	  => @(new FixField.EncodedSecurityDesc(FixConvert.Data(value)))
-
-	// 352: EncodedListExecInstLen (Length)
-	| { "352=" & value: text }
-	  => @(new FixField.EncodedListExecInstLen(FixConvert.Integer(value)))
-
-	// 353: EncodedListExecInst (data)
-	| { "353=" & value: data }
-	  => @(new FixField.EncodedListExecInst(FixConvert.Data(value)))
-
-	// 354: EncodedTextLen (Length)
-	| { "354=" & value: text }
-	  => @(new FixField.EncodedTextLen(FixConvert.Integer(value)))
-
-	// 355: EncodedText (data)
-	| { "355=" & value: data }
-	  => @(new FixField.EncodedText(FixConvert.Data(value)))
-
-	// 356: EncodedSubjectLen (Length)
-	| { "356=" & value: text }
-	  => @(new FixField.EncodedSubjectLen(FixConvert.Integer(value)))
-
-	// 357: EncodedSubject (data)
-	| { "357=" & value: data }
-	  => @(new FixField.EncodedSubject(FixConvert.Data(value)))
-
-	// 358: EncodedHeadlineLen (Length)
-	| { "358=" & value: text }
-	  => @(new FixField.EncodedHeadlineLen(FixConvert.Integer(value)))
-
-	// 359: EncodedHeadline (data)
-	| { "359=" & value: data }
-	  => @(new FixField.EncodedHeadline(FixConvert.Data(value)))
-
-	// 360: EncodedAllocTextLen (Length)
-	| { "360=" & value: text }
-	  => @(new FixField.EncodedAllocTextLen(FixConvert.Integer(value)))
-
-	// 361: EncodedAllocText (data)
-	| { "361=" & value: data }
-	  => @(new FixField.EncodedAllocText(FixConvert.Data(value)))
-
-	// 362: EncodedUnderlyingIssuerLen (Length)
-	| { "362=" & value: text }
-	  => @(new FixField.EncodedUnderlyingIssuerLen(FixConvert.Integer(value)))
-
-	// 363: EncodedUnderlyingIssuer (data)
-	| { "363=" & value: data }
-	  => @(new FixField.EncodedUnderlyingIssuer(FixConvert.Data(value)))
-
-	// 364: EncodedUnderlyingSecurityDescLen (Length)
-	| { "364=" & value: text }
-	  => @(new FixField.EncodedUnderlyingSecurityDescLen(FixConvert.Integer(value)))
-
-	// 365: EncodedUnderlyingSecurityDesc (data)
-	| { "365=" & value: data }
-	  => @(new FixField.EncodedUnderlyingSecurityDesc(FixConvert.Data(value)))
-
 	// 366: AllocPrice (Price)
 	| { "366=" & value: text }
 	  => @(new FixField.AllocPrice(FixConvert.Decimal(value)))
@@ -1630,14 +1526,6 @@ KnownField(text, data) : @FixField =
 	// 444: ListStatusText (String)
 	| { "444=" & value: text }
 	  => @(new FixField.ListStatusText(FixConvert.Text(value)))
-
-	// 445: EncodedListStatusTextLen (Length)
-	| { "445=" & value: text }
-	  => @(new FixField.EncodedListStatusTextLen(FixConvert.Integer(value)))
-
-	// 446: EncodedListStatusText (data)
-	| { "446=" & value: data }
-	  => @(new FixField.EncodedListStatusText(FixConvert.Data(value)))
 
 	// 447: PartyIDSource (char)
 	| { "447=" & value: text }
@@ -2311,25 +2199,9 @@ KnownField(text, data) : @FixField =
 	| { "617=" & value: text }
 	  => @(new FixField.LegIssuer(FixConvert.Text(value)))
 
-	// 618: EncodedLegIssuerLen (Length)
-	| { "618=" & value: text }
-	  => @(new FixField.EncodedLegIssuerLen(FixConvert.Integer(value)))
-
-	// 619: EncodedLegIssuer (data)
-	| { "619=" & value: data }
-	  => @(new FixField.EncodedLegIssuer(FixConvert.Data(value)))
-
 	// 620: LegSecurityDesc (String)
 	| { "620=" & value: text }
 	  => @(new FixField.LegSecurityDesc(FixConvert.Text(value)))
-
-	// 621: EncodedLegSecurityDescLen (Length)
-	| { "621=" & value: text }
-	  => @(new FixField.EncodedLegSecurityDescLen(FixConvert.Integer(value)))
-
-	// 622: EncodedLegSecurityDesc (data)
-	| { "622=" & value: data }
-	  => @(new FixField.EncodedLegSecurityDesc(FixConvert.Data(value)))
 
 	// 623: LegRatioQty (float)
 	| { "623=" & value: text }

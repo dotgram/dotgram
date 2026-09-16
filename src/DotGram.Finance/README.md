@@ -27,12 +27,12 @@ field boundary. Text values need no conversion validity check.
 
 String, character-span, `TextReader`, byte-array and `Stream` inputs are supported.
 `Parse(TextReader)` and `Parse(Stream)` return a lazy `IEnumerable<FixField>`.
-The grammar streams units containing an ordinary field or a complete length/data
-pair; the public API yields their fields individually in source order. An ordinary
-field is returned immediately. A length field is returned after its matching data
-field has been read, without waiting for the following field or EOF.
-Recognition uses native char/byte buffers and releases completed units' input;
-memory and `maxRetained` apply to the current field or pair, not the total stream length.
+The grammar directly yields `FixField`. Ordinary fields are returned immediately;
+a binary length/data pair produces one typed data field after its payload is read.
+For example, `95=3|96=a|b|` produces one `FixField.RawData`, without a separate
+`RawDataLength` result. Its `Position` points to the start of the pair and
+`ValuePosition`/`Length` describe the payload. Native char/byte buffers release each
+completed field; `maxRetained` must accommodate the whole binary pair.
 Locations remain relative to the complete input. The input stays open on completion,
 error or early disposal. Keep one enumeration per input: buffering can read ahead,
 so restarting after an early stop can lose unread buffered data.
@@ -54,6 +54,8 @@ for recognition; native byte-stream parsing creates no complete character view.
 ## Explicit message semantics
 
 The following APIs belong to `FixMessages` and run only when called explicitly.
+This layer restores separate length nodes for the wire message model; that work
+is not part of flat field parsing.
 `Build(source, fields)` requires fields parsed from that exact source and performs
 validation and group assembly without parsing it again. `Parse` combines both steps.
 

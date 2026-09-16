@@ -11,7 +11,18 @@ public interface IFixLocation
 /// <summary>One case in the FIX field algebra, with its original source extent.</summary>
 public abstract partial class FixField : IFixLocation
 {
-	readonly int prefixLength;
+	int prefixLength;
+	internal bool IsBinary => prefixLength != TagPrefixLength;
+	internal int DataPosition => ValuePosition - TagPrefixLength;
+	int TagPrefixLength
+	{
+		get
+		{
+			var prefix = 2;
+			for (var digits = Tag; digits >= 10; digits /= 10) prefix++;
+			return prefix;
+		}
+	}
 
 	protected FixField(int tag, bool valid)
 	{
@@ -31,6 +42,13 @@ public abstract partial class FixField : IFixLocation
 	{
 		Position = position;
 		Length = length - prefixLength - 1;
+	}
+
+	internal FixField WithBinary(FixBinaryValue value, int start)
+	{
+		// The source extent begins at the length tag; the value begins after both headers.
+		prefixLength = value.Position - start;
+		return this;
 	}
 
 	/// <summary>Whether conversion to the declared primitive succeeded. Raw input is retained in Lenient mode.</summary>

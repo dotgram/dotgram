@@ -65,7 +65,10 @@ public static partial class FixMessages
 		{
 			if (fields == null) return true;
 			foreach (var field in fields)
+			{
 				if (field.ValuePosition + field.Length < checksumStart) checksum = (checksum - separator + 1) & 255;
+				if (field.IsBinary && field.DataPosition - 1 < checksumStart) checksum = (checksum - separator + 1) & 255;
+			}
 		}
 		if (checksum != expected) return Fail(checksumStart + 3, 10, type, "CheckSum does not match the octet sum modulo 256.", out error);
 		return true;
@@ -81,7 +84,7 @@ public static partial class FixMessages
 		if (!Envelope(input, separator, null, out var type, out error)) return false;
 		if (!Fix44.TryParse(input, out var fields, out error, options?.FieldOptions)) return false;
 		if (separator == '|' && !Envelope(input, separator, fields, out _, out error)) return false;
-		return FixSemantics.TryBuild(input, type, Nodes(fields!), mode, options, out message, out error);
+		return FixSemantics.TryBuild(input, type, Nodes(input, fields!), mode, options, out message, out error);
 	}
 
 	static bool Envelope(ReadOnlySpan<byte> input, char separator, FixField[]? fields, out string type, out FixParseError? error)
@@ -110,7 +113,10 @@ public static partial class FixMessages
 		{
 			if (fields == null) return true;
 			foreach (var field in fields)
+			{
 				if (field.ValuePosition + field.Length < checksumStart) checksum = (checksum - separator + 1) & 255;
+				if (field.IsBinary && field.DataPosition - 1 < checksumStart) checksum = (checksum - separator + 1) & 255;
+			}
 		}
 		return checksum == expected || Fail(checksumStart + 3, 10, type, "CheckSum does not match the octet sum modulo 256.", out error);
 	}
@@ -124,7 +130,7 @@ public static partial class FixMessages
 		if (!Fix44.TryParse(stream, out var fields, out error, options?.FieldOptions)) return false;
 		if (separator == '|' && !Envelope(input, separator, fields, out _, out error)) return false;
 		var wire = FixConvert.Text(input);
-		return FixSemantics.TryBuild(wire, type, Nodes(fields!), mode, options, out message, out error);
+		return FixSemantics.TryBuild(wire, type, Nodes(wire, fields!), mode, options, out message, out error);
 	}
 
 	/// <summary>Parse a pipe-delimited rendering, checking the checksum of the original SOH-delimited message.</summary>
@@ -154,26 +160,70 @@ public static partial class FixMessages
 				field.Length >= source.Length - field.ValuePosition)
 				return Fail(position, null, type, "Field locations do not cover the supplied source.", out error);
 			var prefix = field.Tag.ToString(CultureInfo.InvariantCulture) + "=";
-			if (field.ValuePosition - position != prefix.Length || !source.AsSpan(position, prefix.Length).SequenceEqual(prefix.AsSpan()) ||
+			var tagPosition = field.IsBinary ? field.DataPosition : position;
+			if (tagPosition < position || field.ValuePosition - tagPosition != prefix.Length || !source.AsSpan(tagPosition, prefix.Length).SequenceEqual(prefix.AsSpan()) ||
 				source[field.ValuePosition + field.Length] != separator)
 				return Fail(position, field.Tag, type, "Field locations do not match the supplied source.", out error);
+			if (field.IsBinary)
+			{
+				var lengthTag = FixSchema.LengthTag(field.Tag);
+				if (lengthTag == 0) lengthTag = options?.LengthTag(field.Tag) ?? 0;
+				var lengthPrefix = lengthTag.ToString(CultureInfo.InvariantCulture) + "=";
+				var header = source.AsSpan(position, tagPosition - position);
+				if (header.Length <= lengthPrefix.Length || !header.StartsWith(lengthPrefix.AsSpan()) || header[header.Length - 1] != separator ||
+					FixContext.Tag(header.Slice(lengthPrefix.Length, header.Length - lengthPrefix.Length - 1)) != field.Length)
+					return Fail(position, lengthTag, type, "Binary length does not match the supplied source.", out error);
+			}
 			position = field.ValuePosition + field.Length + 1;
 		}
 		if (position != source.Length) return Fail(position, null, type, "Field locations do not cover the supplied source.", out error);
 		if (separator == '|' && !Envelope(source, separator, fields, out _, out error)) return false;
-		return FixSemantics.TryBuild(source, type, Nodes(fields), options?.Mode ?? FixParseMode.Strict, options, out message, out error);
+		return FixSemantics.TryBuild(source, type, Nodes(source, fields), options?.Mode ?? FixParseMode.Strict, options, out message, out error);
 	}
 
-	static FixNode[] Nodes(FixField[] values)
+	static FixNode[] Nodes(string source, FixField[] values)
 	{
-		var fields = new FixNode[values.Length];
-		for (var i = 0; i < fields.Length; i++)
+		var count = values.Length;
+		foreach (var value in values) if (value.IsBinary) count++;
+		var fields = new FixNode[count];
+		var index = 0;
+		foreach (var value in values)
 		{
-			var v = values[i];
-			fields[i] = new FixNode(v.Tag, v.Position, v.ValuePosition, v.Length, typedValue: v);
+			if (value.IsBinary)
+			{
+				var header = source.AsSpan(value.Position, value.DataPosition - value.Position - 1);
+				var equals = header.IndexOf('=');
+				var tag = FixContext.Tag(header.Slice(0, equals));
+				var length = LengthField(tag, header.Slice(equals + 1));
+				length.Locate(value.Position, value.DataPosition - value.Position);
+				fields[index++] = new FixNode(tag, length.Position, length.ValuePosition, length.Length, typedValue: length);
+			}
+			fields[index++] = new FixNode(value.Tag, value.IsBinary ? value.DataPosition : value.Position, value.ValuePosition, value.Length, typedValue: value);
 		}
 		return fields;
 	}
+
+	// The optional message model exposes both wire fields; the parser returns only data.
+	static FixField LengthField(int tag, ReadOnlySpan<char> value) => tag switch
+	{
+		90 => new FixField.SecureDataLen(FixConvert.Integer(value)),
+		93 => new FixField.SignatureLength(FixConvert.Integer(value)),
+		95 => new FixField.RawDataLength(FixConvert.Integer(value)),
+		212 => new FixField.XmlDataLen(FixConvert.Integer(value)),
+		348 => new FixField.EncodedIssuerLen(FixConvert.Integer(value)),
+		350 => new FixField.EncodedSecurityDescLen(FixConvert.Integer(value)),
+		352 => new FixField.EncodedListExecInstLen(FixConvert.Integer(value)),
+		354 => new FixField.EncodedTextLen(FixConvert.Integer(value)),
+		356 => new FixField.EncodedSubjectLen(FixConvert.Integer(value)),
+		358 => new FixField.EncodedHeadlineLen(FixConvert.Integer(value)),
+		360 => new FixField.EncodedAllocTextLen(FixConvert.Integer(value)),
+		362 => new FixField.EncodedUnderlyingIssuerLen(FixConvert.Integer(value)),
+		364 => new FixField.EncodedUnderlyingSecurityDescLen(FixConvert.Integer(value)),
+		445 => new FixField.EncodedListStatusTextLen(FixConvert.Integer(value)),
+		618 => new FixField.EncodedLegIssuerLen(FixConvert.Integer(value)),
+		621 => new FixField.EncodedLegSecurityDescLen(FixConvert.Integer(value)),
+		_ => new FixField.Unknown(tag, FixConvert.Data(value)),
+	};
 
 	static bool Fail(int position, int? tag, string? type, string reason, out FixParseError? error)
 	{

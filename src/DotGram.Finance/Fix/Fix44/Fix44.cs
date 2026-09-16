@@ -36,11 +36,7 @@ public static class Fix44
 			var fields = options?.Separator == '|'
 				? FixGrammar.ReadLogFields(input, state, bufferSize, maxRetained)
 				: FixGrammar.ReadFields(input, state, bufferSize, maxRetained);
-			foreach (var unit in fields)
-			{
-				yield return unit.First;
-				if (unit.Second != null) yield return unit.Second;
-			}
+			foreach (var field in fields) yield return field;
 		}
 	}
 
@@ -58,11 +54,7 @@ public static class Fix44
 			var fields = options?.Separator == '|'
 				? FixGrammar.ReadLogFields(input, state, bufferSize, maxRetained)
 				: FixGrammar.ReadFields(input, state, bufferSize, maxRetained);
-			foreach (var unit in fields)
-			{
-				yield return unit.First;
-				if (unit.Second != null) yield return unit.Second;
-			}
+			foreach (var field in fields) yield return field;
 		}
 	}
 

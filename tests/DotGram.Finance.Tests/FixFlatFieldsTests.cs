@@ -27,8 +27,8 @@ public sealed class FixFlatFieldsTests
 		var fields = Fix44.Parse(wire);
 		var message = FixMessages.Build(wire, fields);
 		Assert.Equal(name, message.GetType().Name);
-		Assert.Equal(fields.Length, message.AllFields.Count());
-		foreach (var pair in fields.Zip(message.AllFields)) Assert.Same(pair.First, pair.Second.TypedValue);
+		Assert.Equal(fields.Length, message.AllFields.Count(f => fields.Contains(f.TypedValue!)));
+		foreach (var pair in fields.Zip(message.AllFields.Where(f => fields.Contains(f.TypedValue!)))) Assert.Same(pair.First, pair.Second.TypedValue);
 		var corrupt = wire.Substring(0, wire.Length - 4) + "999" + wire[^1];
 		var corruptFields = Fix44.Parse(corrupt);
 		Assert.False(FixMessages.TryBuild(corrupt, corruptFields, out _, out _));
@@ -80,8 +80,8 @@ public sealed class FixFlatFieldsTests
 		var input = "95=" + size + "|96=" + payload + "|55=END|";
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(input));
 		var fields = Fix44.Parse(stream, new FixFieldOptions('|'), bufferSize: 3).ToArray();
-		Assert.Equal(Encoding.Latin1.GetBytes(payload), Assert.IsType<FixField.RawData>(fields[1]).Value.ToArray());
-		Assert.Equal("END", Assert.IsType<FixField.Symbol>(fields[2]).Value);
+		Assert.Equal(Encoding.Latin1.GetBytes(payload), Assert.IsType<FixField.RawData>(fields[0]).Value.ToArray());
+		Assert.Equal("END", Assert.IsType<FixField.Symbol>(fields[1]).Value);
 	}
 
 	[Fact]
@@ -89,8 +89,8 @@ public sealed class FixFlatFieldsTests
 	{
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes("9000=3|9001=a|b|55=X|"));
 		var fields = Fix44.Parse(stream, new FixFieldOptions('|', new FixDataPair(9000, 9001)), bufferSize: 1).ToArray();
-		Assert.Equal(new byte[] { 97, 124, 98 }, Assert.IsType<FixField.Unknown>(fields[1]).Value.ToArray());
-		Assert.Equal("X", Assert.IsType<FixField.Symbol>(fields[2]).Value);
+		Assert.Equal(new byte[] { 97, 124, 98 }, Assert.IsType<FixField.Unknown>(fields[0]).Value.ToArray());
+		Assert.Equal("X", Assert.IsType<FixField.Symbol>(fields[1]).Value);
 	}
 
 	[Theory]
@@ -121,14 +121,11 @@ public sealed class FixFlatFieldsTests
 	}
 
 	[Fact]
-	public void Streaming_pair_returns_both_fields_without_reading_the_next_field()
+	public void Streaming_pair_returns_one_binary_field_without_reading_the_next_field()
 	{
 		const string pair = "95=3|96=a|b|";
 		using var stream = new ShortStream(Encoding.Latin1.GetBytes(pair + "55=X|")) { ReadLimit = pair.Length };
 		using var fields = Fix44.Parse(stream, new FixFieldOptions('|'), bufferSize: 1).GetEnumerator();
-		Assert.True(fields.MoveNext());
-		Assert.IsType<FixField.RawDataLength>(fields.Current);
-		Assert.Equal(pair.Length, stream.ReadCount);
 		Assert.True(fields.MoveNext());
 		Assert.Equal(new byte[] { 97, 124, 98 }, Assert.IsType<FixField.RawData>(fields.Current).Value.ToArray());
 		Assert.Equal(pair.Length, stream.ReadCount);
@@ -181,8 +178,8 @@ public sealed class FixFlatFieldsTests
 		var wire = string.Concat(Enumerable.Repeat("95=3|96=a|b|55=X|", 1000));
 		using var stream = new ShortStream(Encoding.ASCII.GetBytes(wire));
 		var fields = Fix44.Parse(stream, new FixFieldOptions('|'), bufferSize: 3, maxRetained: 32).ToArray();
-		Assert.Equal(3000, fields.Length);
-		Assert.Equal(new byte[] { 97, 124, 98 }, Assert.IsType<FixField.RawData>(fields[1]).Value.ToArray());
+		Assert.Equal(2000, fields.Length);
+		Assert.Equal(new byte[] { 97, 124, 98 }, Assert.IsType<FixField.RawData>(fields[0]).Value.ToArray());
 		Assert.Equal(wire.Length - 5, fields[^1].Position);
 		Assert.True(stream.CanRead);
 	}

@@ -223,3 +223,11 @@ alone does not explain the warm regression. No compiler fix is included yet.
 its predecessor. Pair parsing simplifies the grammar but does not speed it up:
 short byte orders take 31% more time, while group allocations rise 12-17%.
 The full report includes all input forms, uncertainty and assembly hashes.
+
+## Dedicated binary fields: 2026-09-16
+
+[Dedicated binary-field results](results/2026-09-16-binary-fields.md) compare
+ordinary FixField streaming and one result per binary pair with the Unit-based
+implementation. Short orders take 8-15% less time; group allocation falls 11-14%.
+Raw string parsing regresses 16%. The report explains the binary output change
+and the normalization used only by correctness checks.
