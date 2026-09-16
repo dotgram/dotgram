@@ -668,7 +668,7 @@ sealed partial class Machine
 			// Alternatives that each consume exactly one character and keep nothing are a
 			// disjunction, not a choice: whichever one matched, the position afterwards is the
 			// same and so is the continuation, so there is nothing to come back to.
-			case Node.Choice(var alternatives):
+			case Node.Choice(var alternatives) { Selection: null }:
 			{
 				var tests = new string[alternatives.Count];
 

@@ -19,7 +19,7 @@ public sealed class SwitchTests
 		{
 			BufferedInput = !lexical, BufferedBytes = !lexical, Lexical = lexical, CSharpScanner = RoslynCSharpScanner.Instance,
 		});
-		EmittedCode.Quiet(result.Diagnostics.Where(one => !lexical || one.Id != "GRAM5005"));
+		EmittedCode.Quiet(result.Diagnostics);
 		return EmittedCode.Compile(Assert.Single(result.Sources).Text, declarationMembers: members);
 	}
 
@@ -132,6 +132,155 @@ public sealed class SwitchTests
 	{
 		var assembly = Compile("Start = switch @(" + selector + ") { case " + label + ": 'a' }\nparse Start");
 		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "a").IsSuccess);
+	}
+
+
+	static Assembly CompileDirect(string grammar, string members = "", bool lexical = false, bool direct = true)
+	{
+		var result = GramCompiler.Compile((lexical ? "trivia = { ' '* }\n" : "") + grammar,
+			new GramCompilerOptions { Direct = direct, Lexical = lexical, CSharpScanner = RoslynCSharpScanner.Instance });
+		EmittedCode.Quiet(result.Diagnostics);
+		var source = Assert.Single(result.Sources).Text;
+		if (direct)
+			Assert.Contains("Read_", source);
+		return EmittedCode.Compile(source, declarationMembers: members);
+	}
+
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void Direct_selector_uses_typed_and_text_captures_once(bool lexical)
+	{
+		var assembly = CompileDirect("""
+			Number : @int = '1' => @(Build())
+			Start : @int = tag: 'x' & n: Number & switch @(Pick(tag, n)) {
+				case 1: 'a' => @(n)
+				default: 'b' => @(0)
+			}
+			parse Start
+			""", """public static int Builds, Calls; static int Build() { Builds++; return 7; } static int Pick(string tag, int n) { Calls++; return tag == "x" && n == 7 ? 1 : 0; }""", lexical);
+		var match = EmittedCode.Match(assembly, "Grammar", "TryParseStart", "x1a");
+		Assert.True(match.IsSuccess, match.Error);
+		Assert.Equal(7, match.Value);
+		Assert.Equal(1, assembly.GetType("Grammar")!.GetField("Builds")!.GetValue(null));
+		Assert.Equal(1, assembly.GetType("Grammar")!.GetField("Calls")!.GetValue(null));
+	}
+
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void Direct_selected_failure_preserves_outer_choice(bool lexical)
+	{
+		var assembly = CompileDirect("""
+			Selected : @int = switch @(Pick()) { case 1: 'a' & 'b' => @(1) default: 'a' => @(2) }
+			Outer : @int = v: Selected => @(v) | 'a' => @(3)
+			parse Selected
+			parse Outer
+			""", "public static int Calls; static int Pick() { Calls++; return 1; }", lexical);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseSelected", "a").IsSuccess);
+		Assert.Equal(3, EmittedCode.Match(assembly, "Grammar", "TryParseOuter", "a").Value);
+		Assert.Equal(2, assembly.GetType("Grammar")!.GetField("Calls")!.GetValue(null));
+	}
+
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void Repeated_switch_cannot_be_replaced_by_a_character_set(bool direct)
+	{
+		var assembly = CompileDirect("Start = (switch @(Pick()) { case 1: 'a' default: 'b' })+ & eof\nparse Start",
+			"public static int Calls; static int Pick() { Calls++; return 1; }", direct: direct);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "aaa").IsSuccess);
+		Assert.True((int)assembly.GetType("Grammar")!.GetField("Calls")!.GetValue(null)! >= 3);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "b").IsSuccess);
+	}
+
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void Selected_branch_keeps_its_own_backtracking(bool direct)
+	{
+		var assembly = CompileDirect("Start = switch @(1) { case 1: ('a' | ('a' & 'b')) default: 'z' } & 'c' & eof\nparse Start", direct: direct);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "abc").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "zc").IsSuccess);
+	}
+
+
+	[Theory]
+	[InlineData("-9223372036854775808L", "-9223372036854775808")]
+	[InlineData("18446744073709551615UL", "18446744073709551615")]
+	[InlineData("\"kind\"", "\"kind\"")]
+	public void Direct_selector_preserves_key_types(string selector, string label)
+	{
+		var assembly = CompileDirect("Start = switch @(" + selector + ") { case " + label + ": 'a' }\nparse Start", lexical: true);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "a").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "b").IsSuccess);
+	}
+
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void Direct_null_string_uses_default_and_missing_label_fails(bool lexical)
+	{
+		var assembly = CompileDirect("""
+			Start = switch @((string?)null) { case "key": 'b' default: 'a' }
+			Missing = switch @(2) { case 1: 'a' }
+			parse Start
+			parse Missing
+			""", lexical: lexical);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "a").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseMissing", "a").IsSuccess);
+	}
+
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void Direct_observations_are_not_pruned_by_the_selected_body(bool lexical)
+	{
+		var assembly = CompileDirect("Start = switch @(Pick()) { case 1: 'a' } | 'b'\nparse Start",
+			"public static int Calls; static int Pick() { Calls++; return 1; }", lexical);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "b").IsSuccess);
+		Assert.Equal(1, assembly.GetType("Grammar")!.GetField("Calls")!.GetValue(null));
+	}
+
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void Direct_switch_materialization_is_invalidated_after_outer_rollback(bool lexical)
+	{
+		var assembly = CompileDirect("""
+			A : @int = 'a' => @(++Calls)
+			B : @int = 'a' => @(10 + ++Calls)
+			Start : @int = n: A & switch @(Key(n)) { case 1: '?' => @(n) }
+				| n: B & switch @(Key(n)) { case 12: '!' => @(n) }
+			parse Start
+			""", "public static int Calls; static int Key(int? value) => value ?? -1;", lexical);
+		Assert.Equal(12, EmittedCode.Match(assembly, "Grammar", "TryParseStart", "a!").Value);
+		Assert.Equal(2, assembly.GetType("Grammar")!.GetField("Calls")!.GetValue(null));
+	}
+
+
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void Retrying_inside_a_case_does_not_reselect_the_case(bool direct)
+	{
+		var assembly = CompileDirect("Start = switch @(++Calls) { case 1: ('a' | ('a' & 'b')) default: 'z' } & 'c' & eof\nparse Start",
+			"public static int Calls;", direct: direct);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "abc").IsSuccess);
+		Assert.Equal(1, assembly.GetType("Grammar")!.GetField("Calls")!.GetValue(null));
+	}
+
+
+	[Fact]
+	public void Lexical_computed_selection_keeps_committed_rule_calls()
+	{
+		var assembly = CompileDirect("""
+			Part = 'a' | ('a' & 'b')
+			Start = switch @(1) { case 1: Part } & 'c' & eof
+			parse Start
+			""", lexical: true);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "ac").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "abc").IsSuccess);
 	}
 
 }

@@ -1249,6 +1249,10 @@ sealed partial class Machine
 					break;
 				}
 
+				case Node.Choice { Selection: { } selection } choice:
+					EmitSelection(code, choice, selection, following);
+					break;
+
 				case Node.Choice(var alternatives):
 					EmitChoice(code, alternatives, following);
 					break;
@@ -2987,16 +2991,16 @@ sealed partial class Machine
 		}
 
 		/// <summary>
-		/// A <c>when</c>, run where it stands with what the rule has captured so far (§7.7).
+		/// A guard or selector helper, handed what the rule has captured so far (§7.7).
 		/// </summary>
 		/// <remarks>
 		/// A text capture is cut from the locals that hold it; a captured rule's value is
 		/// built now, from the records already in the log, and stays built — the walk at
 		/// the end skips what a guard built, so no factory runs twice. The predicate itself
 		/// is a method of its own under a <c>#line</c> pointing at the grammar, handed the
-		/// captures by name. A refused guard is a failure with nothing expected.
+		/// captures by name. A selector uses the same arguments and returns a branch index.
 		/// </remarks>
-		void EmitGuard(Writer code, Node.Guard guard)
+		string EmitGuardCall(Writer code, Node.Guard guard, Node.SwitchSelection? selection = null)
 		{
 			var rule       = machine._owners[guard];
 			var method     = $"Recognize_DotGram{machine._tag}_Guard" + machine._guards++;
@@ -3069,11 +3073,78 @@ sealed partial class Machine
 				machine.Carrier.Gathered(code, Refs, slots, handed, type, build, member.Rule is null);
 			}
 
-			helper.Line($"static bool {method}({string.Join(", ", parameters)}) =>");
-			CSharpEmitter.Handed(helper, machine._lines, guard.At, text + ";");
+			if (selection is null)
+			{
+				helper.Line($"static bool {method}({string.Join(", ", parameters)}) =>");
+				CSharpEmitter.Handed(helper, machine._lines, guard.At, text + ";");
+			}
+			else
+			{
+				foreach (var type in new[] { "int", "uint", "long", "ulong", "string?" })
+					helper.Line($"static {type} {method}_Key({type} value) => value;");
+				using (helper.Block($"static int {method}({string.Join(", ", parameters)})"))
+				{
+					helper.Line($"switch ({method}_Key(");
+					CSharpEmitter.Handed(helper, machine._lines, guard.At, text + "))");
+					using (helper.Block(""))
+					{
+						for (var i = 0; i < selection.Labels.Count; i++)
+							helper.Line((selection.Labels[i] is { } label ? $"case {label}" : "default") + $": return {i};");
+						if (!selection.Labels.Contains(null))
+							helper.Line("default: return -1;");
+					}
+				}
+			}
 			machine._extra.Add(helper.ToString());
+			return $"{method}({string.Join(", ", arguments)})";
+		}
 
-			using (code.Block($"if (!{method}({string.Join(", ", arguments)}))"))
+		void EmitSelection(Writer code, Node.Choice choice, Node.SwitchSelection selection, FollowSets.Continuation following)
+		{
+			string call;
+			if (_tape && machine._opens is { Count: > 0 })
+			{
+				// Replaying a decision inside the selected body must keep its selector's
+				// answer. A way before this switch discards this sealed entry on retry.
+				call = $"selected{_ways++}";
+				code.Line($"int {call};");
+				using (code.Block("if (ways.Cursor < ways.Count)"))
+					code.Line($"{call} = ways.Items[ways.Cursor++ * 2];");
+				code.Line("else");
+				using (code.Block(""))
+				{
+					var selector = EmitGuardCall(code, selection.Selector, selection);
+					code.Line($"{call} = {selector};");
+					code.Line($"ways.Open({call}, {call});");
+				}
+			}
+			else
+				call = EmitGuardCall(code, selection.Selector, selection);
+			using (code.Block($"switch ({call})"))
+			{
+				for (var i = 0; i < choice.Nodes.Count; i++)
+				{
+					code.Line($"case {i}:");
+					using (code.Indent())
+					using (code.Block(""))
+					{
+						Emit(code, choice.Nodes[i], following);
+						code.Line("break;");
+					}
+				}
+				code.Line("default:");
+				using (code.Indent())
+				{
+					code.Line($"{Refusing}(ref failure, p, null, ways);");
+					code.Line("return -1;");
+				}
+			}
+		}
+
+		void EmitGuard(Writer code, Node.Guard guard)
+		{
+			var call = EmitGuardCall(code, guard);
+			using (code.Block($"if (!{call})"))
 			{
 				code.Line($"{Refusing}(ref failure, p, null, ways);");
 				code.Line("return -1;");

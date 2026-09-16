@@ -146,10 +146,13 @@ span access on character and byte inputs, including yielded streams. A selected
 branch never falls through to a sibling on failure. Ordinary result inference is
 unchanged. Numeric/string labels, shared bodies and an optional default are supported.
 
-Computed dispatch currently uses the shared machine, not the direct-reader emitter.
-Lexical syntax reports the existing GRAM5005 fallback warning; computed switches
-inside token patterns cannot be compiled into the lexer's static tables. Buffered
-input retains its existing restriction on token-kind input (GRAM4026).
+Computed dispatch is supported by both the shared machine and the direct-reader emitter.
+The direct reader uses the same capture and value-materialization machinery as guards;
+the usual guard restrictions still apply. Computed selection alone does not cause a
+GRAM5005 fallback. On replay inside a selected case, the reader retains the selected
+branch in its existing backtracking tape. Computed switches inside token patterns
+cannot be compiled into the lexer's static tables. Buffered input retains its existing
+restriction on token-kind input (GRAM4026).
 
 ## Backtracking, and where it stops
 

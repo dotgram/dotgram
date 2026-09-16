@@ -1,5 +1,7 @@
 # Computed switch: performance assessment, 2026-09-16
 
+This is the assessment before direct-reader support. See [the implementation and SQL experiment](computed-switch-reader-2026-09-16.md) for the subsequent change and measurements.
+
 ## Scope and conclusion
 
 Main at `88ffd5a` was merged into the performance branch as `f2ed357`. The merge includes computed switch (`e75e5fe`), buffered-input pooling and final FIX fields ending at EOF. This assessment changes no production grammar or switch implementation.
