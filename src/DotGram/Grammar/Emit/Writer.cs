@@ -8,10 +8,6 @@ sealed class Writer(int depth)
 {
 	readonly StringBuilder _text = new();
 
-	/// <summary>What a line loses from its end.</summary>
-	/// <remarks>One array for every line: `TrimEnd(' ', '\t')` makes a new one each time it is called.</remarks>
-	static readonly char[] Blanks = [' ', '\t'];
-
 	int _depth = depth;
 
 	/// <summary>How far in the next line will be written — what a nested writer starts at.</summary>
@@ -27,12 +23,15 @@ sealed class Writer(int depth)
 	/// </remarks>
 	public void Line(string text = "")
 	{
-		var trimmed = text.TrimEnd(Blanks);
+		var length = text.Length;
 
-		if (trimmed.Length == 0)
+		while (length > 0 && text[length - 1] is ' ' or '\t')
+			length--;
+
+		if (length == 0)
 			_text.EndLine();
 		else
-			_text.Append('\t', _depth).AppendEndingWith(trimmed);
+			_text.Append('\t', _depth).Append(text, 0, length).EndLine();
 	}
 
 	/// <summary>A line written exactly as given, at no indent at all.</summary>
@@ -79,24 +78,11 @@ sealed class Writer(int depth)
 	/// Writes text that is already laid out, each line at the current depth.
 	/// </summary>
 	/// <remarks>
-	/// The endings are normalized first, and that is not tidiness. What arrives here is a
-	/// raw string literal, whose content is whatever the file it was typed in was saved
-	/// with — so a generator whose own source went from CRLF to LF would silently start
-	/// emitting every one of these blocks as a single unsplit line, indented once and
-	/// flattened after that. Generated code must not depend on how the generator was
-	/// saved.
+	/// Raw literals may use LF or CRLF depending on how the generator source was saved.
+	/// Read their line ranges directly and emit CRLF, without copying the whole block to
+	/// normalize its endings or to append a final ending.
 	/// </remarks>
-	public void Write(string text)
-	{
-		var normalized = Lines.Normalize(text);
-
-		// The text is read as lines, each closed by an ending. Text that does not end with
-		// one — a raw string literal, say — would lose its last line.
-		if (!text.EndsWith(Lines.Ending, StringComparison.Ordinal))
-			normalized += Lines.Ending;
-
-		AppendLines(normalized, 0);
-	}
+	public void Write(string text) => AppendLines(text, 0, normalize: true);
 
 	/// <summary>Appends another writer's text, shifted in to this one's depth.</summary>
 	/// <remarks>
@@ -106,19 +92,37 @@ sealed class Writer(int depth)
 	/// </remarks>
 	public void AppendIndented(Writer other, int extra = 1) => AppendLines(other.ToString(), extra);
 
-	/// <summary>Each line of the text closed by an ending, shifted in; what follows the last ending is not a line.</summary>
+	/// <summary>Appends line ranges, optionally normalizing raw text and closing its last line.</summary>
 	/// <remarks>
 	/// Read in place rather than split: every state of every machine is appended this way, and
 	/// an array of lines and a string for each was most of what writing a parser allocated.
 	/// </remarks>
-	void AppendLines(string text, int extra)
+	void AppendLines(string text, int extra, bool normalize = false)
 	{
 		var kept = false;
 		var at   = 0;
 
-		for (int end; (end = text.IndexOf(Lines.Ending, at, StringComparison.Ordinal)) >= 0; at = end + Lines.Ending.Length)
+		for (;;)
 		{
+			var end = normalize
+				? text.IndexOf('\n', at)
+				: text.IndexOf(Lines.Ending, at, StringComparison.Ordinal);
+			var final = end < 0;
+
+			if (final)
+			{
+				// Preserve Write's final-line convention, including the extra blank line
+				// for raw text ending in a bare LF rather than CRLF.
+				if (!normalize || text.EndsWith(Lines.Ending, StringComparison.Ordinal))
+					break;
+
+				end = text.Length;
+			}
+
 			var length = end - at;
+
+			if (normalize && !final && length > 0 && text[end - 1] == '\r')
+				length--;
 
 			if (Leads(text, at, length, "#line"))
 				kept = !Leads(text, at, length, "#line default");
@@ -137,6 +141,11 @@ sealed class Writer(int depth)
 				_text.Append(text, at, length).EndLine();
 			else
 				_text.Append('\t', _depth + extra).Append(text, at, length).EndLine();
+
+			if (final)
+				break;
+
+			at = end + (normalize ? 1 : Lines.Ending.Length);
 		}
 
 		static bool Leads(string text, int at, int length, string prefix) =>

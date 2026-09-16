@@ -277,3 +277,136 @@ A reverse-order thirty-cycle tiny-grammar repeat gave warm medians of **4.587 / 
 ### Fourth-batch validation
 
 Release build of DotGram.Tests and dependencies succeeded with zero warnings/errors using one MSBuild node and shared compilation disabled. All **8,160 tests passed**, zero errors/failures/skips, in 157.509 seconds, including the five additional warning-scan regression cases and the existing oversized-method and snapshot coverage. All 127 source hashes matched, and BOM/CRLF/tab indentation and git whitespace checks passed. Logs: `tests-step4-build.log` and `tests-step4-all.log` under `.work/generator-analysis/`.
+
+## Refreshed CPU and allocation profiles after step 4
+
+Profiled commit `b276f8d` using the existing Release generator harness. The harness generator DLL SHA-256 matched the current Release build (`F827CED35D8953A5D58CE76D49AF575458056687AA6C7A0124E8E678D481029E`). No production code was changed for this investigation.
+
+### Method and scope
+
+- dotTrace 2026.2.0.1 Sampling / ThreadTime, two fresh generator runs per process (initial and warm), separately for SQL and Finance. CPU percentages below use the sum of reported own times, including GC and unattributed/native work. The profile includes harness setup and both runs; it does not isolate only the warm run.
+- dotnet-trace 10.0.745401 `gc-verbose`, one fresh generation per project in separate processes. Runtime allocation samples were grouped by type and first DotGram stack frame using the existing TraceEvent reader. Its output labels MiB as MB; the values below use the correct binary units.
+- The source generator ran successfully with no error diagnostics in both CPU profiles. Both allocation collection processes exited successfully.
+- These profiles cover the generator, not Roslyn compilation of its emitted source or the complete solution build. Profiling overhead changes elapsed time and GC pauses; none of these timings is a new solution build benchmark. Own-time percentages can be added across disjoint functions; inclusive times overlap and must not be added.
+
+### CPU findings
+
+| Sampled work | SQL | Finance |
+|---|---:|---:|
+| Sum of reported own time, two-run process | 56.375 s | 15.139 s |
+| GC own time | 11.859 s (21.0%) | 1.656 s (10.9%) |
+| First.Or + First.Normalized own time | 3.922 s (7.0%) | 0 ms sampled |
+| LexerEmitter.Field own time | 1.859 s (3.3%) | Not a leading cost |
+| NodeWalk iterator own time | 1.328 s (2.4%) | 0.156 s (1.0%) |
+| GrammarNormalizer.Sources own time | 0.406 s (0.7%) | 0.375 s (2.5%) |
+| Oversee inclusive time | 0.344 s (0.6%) | 0.156 s (1.0%) |
+
+Zero sampled time is not proof of zero cost. First.Normalized's inclusive time is 4.203 s and First.Or's is 4.359 s in SQL; these overlap. Writer.Write inclusive time is 1.141 s for SQL and 0.875 s for Finance. Native/optimized attribution accounts for 10.3% / 25.5%, so this is a prioritization profile rather than a complete attribution of every instruction.
+
+### Allocation findings
+
+Sampled allocation totals are **21,541 MiB for SQL** and **5,762 MiB for Finance**. They describe cumulative allocation, not simultaneously live memory or peak working set. String plus char-array allocations account for about 41.8% / 54.0% respectively. SQL also allocates approximately 2,659 MiB of CharRange arrays.
+
+| First DotGram frame on allocation stack | SQL | Finance |
+|---|---:|---:|
+| First.Normalized | 1,639 MiB (7.6%) | Not in top 20 |
+| Writer.Write | 1,487 MiB (6.9%) | 677 MiB (11.8%) |
+| ReaderWriter.Render | 1,277 MiB (5.9%) | 366 MiB (6.4%) |
+| Writer.Line | 1,213 MiB (5.6%) | 219 MiB (3.8%) |
+| NodeWalk iterator | 975 MiB (4.5%) | 130 MiB (2.3%) |
+| GrammarNormalizer.Sources | 658 MiB (3.1%) | 462 MiB (8.0%) |
+| CaptureLayout.Walk | 539 MiB (2.5%) | 317 MiB (5.5%) |
+| CSharpEmitter.Numbered | 466 MiB (2.2%) | 282 MiB (4.9%) |
+
+These stack buckets are sampled attribution, not exact allocation counters or exclusive costs of all descendants of a method. Inlining can affect which frame is visible.
+
+### Next experiments, based on the profile and code inspection
+
+1. **Writer.Write / line-ending handling:** avoid normalizing and copying already-normalized blocks; eventually append line ranges directly. This is a shared allocation source for SQL and Finance. Preserve CRLF output, blank lines, trailing whitespace rules and mapped user-code columns, verified with exact source hashes.
+2. **FIRST-set unions:** First.Or merges sorted ranges into a temporary list, then calls Chars/Normalized, which copies and merges them again. Try a single normalized merge and reuse unchanged results. Preserve Nothing/Anything/Ends semantics, range invariants and fixed-point convergence; current public First construction means input invariants must be checked before bypassing normalization. Do not predict savings equal to all Normalized allocations: other callers still need normalization.
+3. **LexerEmitter.Field:** it fills each bit individually for every range before checking whether a table already exists. Test full-byte filling of range interiors with boundary masks. Its CPU cost is visible, but its maximum direct benefit is bounded by the sampled 3.3% own time.
+4. **Finance forwarding analysis:** Sources allocates a list before knowing whether a rule forwards anything and is repeatedly reached by forwarding resolution. Inspect call frequency and mutation lifetime before caching; lazy allocation is a smaller experiment. The current profile's first-frame allocation estimate is 462 MiB.
+
+The method-size warning pass is no longer a primary target. After generator experiments, remeasure a real SQL build with analyzer timing and a binlog, then profile the C# compilation phase if it remains dominant. Generator CPU savings do not translate one-for-one into solution wall-time savings.
+
+Artifacts under `.work/generator-analysis/`: `sql-current.dtp*`, `finance-current.dtp*`, `*-current-report.xml`, `*-current-profile.log`, `*-current-gc.nettrace`, `*-current-gc.nettrace.etlx`, `*-current-allocations.txt`, and `current-cpu-summary.json`. Raw profiler files remain local and ignored by git.
+
+## dotMemory retention investigation
+
+Used dotMemory Console 2026.2.1 with the existing installed dotMemory UI available for opening the resulting workspace. A separate Release harness exercises SQL generation at commit `b276f8d` and takes five named snapshots. The production generator is unchanged. Incremental-step history recording is disabled, and only the current GeneratorDriver is held deliberately. Every checkpoint forces full garbage collection before measuring.
+
+Sequence: build the input compilation; generate once; perform two more fresh generations, replacing the current driver; perform five unrelated C# edits through the current incremental driver; release the current driver. Old drivers are recorded only as weak references. This tests a bounded sequence in a harness, not a long Visual Studio session, grammar changes or compilation of the generated C#.
+
+The dotMemory command-line tool captures snapshots but does not export heap/root reports. At the same paused checkpoints, a supplemental ClrMD 3.1.512801 inspector enumerates non-free objects and follows GC-root paths. The numerical type breakdown and root chains below come from that inspector, not an unperformed analysis through the dotMemory GUI. GC.GetTotalMemory values are measured before the snapshot; ClrMD enumerates shortly after it, accounting for small differences caused by checkpoint bookkeeping.
+
+### Live memory under dotMemory
+
+| Checkpoint | Managed live data after GC | Prior drivers still alive |
+|---|---:|---:|
+| Input compilation, before generation | 13.34 MiB | 0 |
+| First generation retained | 295.95 MiB | 0 |
+| Third fresh generation retained | 296.53 MiB | 0 of 2 |
+| Five unrelated C# edits completed | 296.55 MiB | 0 of 7 |
+| Current driver released | 29.97 MiB | 0 of 8 |
+
+There is no observed accumulation of previous drivers or their generated source in this sequence. The roughly 0.6 MiB growth after the first generation is small compared with a retained generation; this is not proof that every workload or a long-lived IDE session is leak-free.
+
+While the result is retained, the largest type buckets are strings (**237.73–237.74 MiB**), Answer arrays (**20.93 MiB**) and Question arrays (**8.97 MiB**). The largest string has a measured root chain through the harness's current CSharpGeneratorDriver, GeneratorState, GeneratedSyntaxTree and StringText: it is the generated source. An Answer-array root chain goes through the driver's incremental DriverStateTable / StateTableStore. Their retention is expected while the current generator result is cached.
+
+After release, strings fall to **5.31 MiB** and the large Answer/Question arrays are absent from the leading retained types. The largest remaining buckets include Int32 arrays (**7.05 MiB**) and Roslyn token/string caches. A directly observed static-root chain retains the approximately **0.5 MiB First[]** array; code inspection identifies the fixed-size character-folding cache in FirstSets. The original input compilation and grammar inputs remain alive deliberately, so the released checkpoint is not an empty-process baseline.
+
+### Measurement trap found and corrected
+
+The first exploratory harness version loaded old/current drivers directly in its outer method. JIT stack lifetimes retained those temporary references across checkpoints even after the static current-driver field was cleared. ClrMD found a stack root to a released driver; this was an instrumentation artifact, not evidence of a generator leak. Moving replacement, edits and release into separate non-inlined methods eliminated that root and allowed all eight old/current drivers to collect. The initial workspace in `memory-sql/` is excluded from the conclusions; the corrected workspace is in `memory-sql-isolated/`.
+
+### Heap fragmentation and process memory
+
+Under dotMemory, the third-generation GC heap reports 611.53 MiB, of which 315.00 MiB is fragmentation, while managed live data is 296.53 MiB. After release the values are 139.37 / 109.39 / 29.97 MiB respectively. Live data, heap extent/fragmentation, cumulative allocation and process working set are different measures and must not be conflated. Process working set includes additional runtime/native/profiler state; it cannot be explained by live object size alone. Profiling changes GC behavior, so a separate unprofiled run is recorded below.
+
+Corrected dotMemory workspace: `.work/generator-analysis/memory-sql-isolated/sql-retention.dmw` (384,672,730 bytes), containing `baseline`, `first`, `repeated`, `edited` and `released`. The directory also contains `metrics.jsonl`, five `*-heap.json` reports and `profiler.log`. Local reproducibility helpers are `memory-harness/`, `heap-inspector/`, `capture-memory.py` and `check-retention.py`. These diagnostic artifacts remain ignored by git.
+
+### Control without the profiler
+
+The same corrected harness was then run without dotMemory or heap inspection, releasing checkpoints immediately after reading their counters. Live data again stayed at approximately **295.96 / 296.53 / 296.55 MiB** (first / third generation / edits), fell to **29.97 MiB** on release, and all eight prior/current drivers were collected. This independently reproduces the retention result.
+
+The process peak working set reached **4,945,256,448 bytes (4.61 GiB)** across the three fresh generations. After release the working set was still **3,216,236,544 bytes (3.00 GiB)**, despite only 29.97 MiB of live managed data; the checkpoint's GC heap size was 191.27 MiB with 161.30 MiB fragmentation. These are Windows process measurements from one run, not a Visual Studio memory measurement or a memory-leak diagnosis. The retained input compilation, runtime caches, committed memory and native state also matter, and this experiment does not attribute the whole working set to one cause.
+
+The practical priority remains reducing transient allocation and large intermediate buffers, then measuring peak working set again. The current experiment gives no evidence that old generator results accumulate indefinitely. Unprofiled control counters and output are in `memory-sql-unprofiled/metrics.jsonl` and `run.log`. Both corrected runs completed successfully with six generated sources per generation and no generator errors; no production sources were changed, so the runtime test suite was not rerun for this investigation.
+
+## Fifth optimization batch: write original line ranges
+
+Writer.Write now reads LF/CRLF line ranges directly from the original block and appends normalized CRLF output. It no longer creates a normalized copy (previously two Replace passes) or concatenates a final newline onto the whole block. Writer.Line trims trailing spaces/tabs by shortening the appended range instead of allocating a trimmed string. AppendIndented retains its CRLF-only interpretation and mapped-source handling. The existing bare-LF final blank-line convention is deliberately preserved.
+
+Six fixtures were measured sequentially with saved step-4 and candidate binaries. Fresh-generation medians exclude cycle zero (two warm observations per library, nine per tiny fixture). No tests or builds ran alongside these measurements.
+
+| Fixture | Step 4 time | Step 5 time | Step 4 allocation | Step 5 allocation |
+|---|---:|---:|---:|---:|
+| SQL | 20,837.84 ms | 20,272.68 ms | 21,459.29 MiB | 19,910.85 MiB |
+| Finance | 3,292.27 ms | 2,985.06 ms | 5,707.01 MiB | 4,987.01 MiB |
+| ExpressionLanguage | 1,059.82 ms | 1,003.11 ms | 403.69 MiB | 370.38 MiB |
+| Web | 433.54 ms | 445.28 ms | 199.47 MiB | 185.38 MiB |
+| Tiny | 4.89 ms | 4.86 ms | 0.94 MiB | 0.90 MiB |
+| TinyStreams | 6.03 ms | 5.93 ms | 2.20 MiB | 1.96 MiB |
+
+SQL allocated **1,548.44 MiB less (7.2%)**, Finance **720.00 MiB less (12.6%)**. SQL time fell 2.7% and Finance 9.3% in this small sample; Web time increased despite lower allocation. These are observations from one ordering, not established timing guarantees. No parser runtime or emitted-code-size improvement is claimed: **all 127 generated source hashes matched exactly**.
+
+Sixteen new focused writer cases passed, covering empty/blank lines, CRLF/LF/mixed endings, lone carriage returns, an unterminated last line, whitespace in mapped C# and nested writer indentation. The Release test project and dependencies built without warnings/errors. Artifacts: `*-step4/5-writer.jsonl`, `.hashes`, `tests-step5-build.log`, `tests-step5-writer.log` and `measure-writer.py` under `.work/generator-analysis/`.
+
+### Process-memory comparison and limitation
+
+The corrected retention harness was run without profiling, using saved step-4 and candidate binaries, three fresh SQL generations and five unrelated C# edits per process. A second pair reversed the executable order. Neither pair ran concurrently with compilation or tests.
+
+| Process measurement | Step 4, first pair | Step 5, first pair | Step 4, reverse pair | Step 5, reverse pair |
+|---|---:|---:|---:|---:|
+| Peak working set | 4.316 GiB | 4.737 GiB | 4.181 GiB | 4.744 GiB |
+| Working set after releasing the result | 3.770 GiB | 3.135 GiB | 3.270 GiB | 3.197 GiB |
+
+**Peak working set increased in both comparisons**, by 9.7% and 13.4%, despite lower cumulative allocation. This batch must not be described as a peak-memory improvement. The cause of the peak increase was not established; altered allocation/GC timing is a hypothesis, not a measured explanation. No forced GC or heap-size tuning was added to the production generator to disguise that result.
+
+All old/current drivers collected in both versions. Candidate live data after the edits was approximately 294.6 MiB and after release 28.0 MiB, compared with 296.6 / 30.0 MiB for the baseline. Those small differences do not explain the working-set peak. The earlier 4.61 GiB baseline result also shows that absolute process peaks vary between runs; the two fresh comparisons nevertheless both favored the baseline on this metric.
+
+The change reduces source-writing allocations and has favorable SQL/Finance timing observations, with an observed peak-memory tradeoff. Further work on peak consumption must locate when large buffers coexist and measure their lifetime; lower cumulative allocation alone is insufficient evidence. Raw counters: `memory-sql-step4/5-writer/metrics.jsonl` and `memory-sql-step4/5-writer-repeat/metrics.jsonl`, with `check-writer-memory.py` reproducing the phases. A full solution rebuild was not repeated for this batch.
+
+### Fifth-batch final validation
+
+All **8,176 DotGram.Tests tests passed**, zero errors/failures/skips, in 156.577 seconds. This includes the sixteen new writer cases, existing mapped-C# diagnostics and golden-source tests. Release build had zero warnings/errors; all 127 representative generated source hashes and BOM/CRLF/tab/whitespace checks passed. The peak-working-set regression above remains a measured limitation of this candidate, not a test failure or an improvement claim. Full test log: `tests-step5-all.log`.
