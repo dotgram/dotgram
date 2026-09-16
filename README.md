@@ -19,6 +19,9 @@
 [![Runtime dependencies: none](https://img.shields.io/badge/runtime%20dependencies-none-brightgreen)](#no-runtime-parser-library)
 [![License: MIT](https://img.shields.io/github/license/dotgram/dotgram)](LICENSE)
 
+> [!NOTE]
+> **Totally vibecoded™** — accidentally got 20,000+ tests, somehow learned dozens of specifications and notations, survived thousands of profiling runs, reviewed 200,000+ lines the agents wrote — including roughly 150,000 lines of C# — defended the architecture with both fists, nearly got into fights with the agents over it, got fuzzed, benchmarked, differential-tested, stress-tested, cross-platform tested, allocation-profiled, JIT-inspected, and survived verification against thousands of real SQL Server scripts; argued with Claude and Codex, made up, fired Claude twice and Codex three times, hired everyone back, nearly went drinking together, and somehow ended up friends.
+
 .Gram is a source generator that compiles grammars into strongly typed C# parsers, from
 single-character rules to the SQL standard.
 
