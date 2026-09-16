@@ -146,6 +146,9 @@ sealed partial class Machine
 	readonly Dictionary<string, string> _expectedByItems = new(StringComparer.Ordinal);
 	int _expectedCount;
 
+	// Shared only by sibling machines emitted into the same parser class.
+	readonly Dictionary<string, (string Name, string Declaration)>? _expectedTables;
+
 	/// <summary>The character classes read from a table rather than written out.</summary>
 	readonly List<(string Name, string Declaration)> _classes = [];
 
@@ -293,8 +296,10 @@ sealed partial class Machine
 		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "", int? partSize = null,
 		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null,
 		CarrierKind carrier = CarrierKind.Tape, int stacks = 0, TerminalInventory? inventory = null,
-		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false)
+		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false,
+		Dictionary<string, (string Name, string Declaration)>? expectedTables = null)
 	{
+		_expectedTables = expectedTables;
 		BufferedInput = bufferedInput;
 		BufferedBytes = bufferedBytes;
 		BorrowedCaptures = bufferedBytes || spanCaptures;
@@ -582,29 +587,26 @@ sealed partial class Machine
 	/// what it left behind was a static field, allocated when the type is first touched and
 	/// held for the life of the program. In the URL grammar that was 564 of 1,137.
 	/// </remarks>
-	public IReadOnlyList<string> Extra
+	public IReadOnlyList<string> Extras(HashSet<string>? writtenExpected = null)
 	{
-		get
-		{
-			var kept = new List<string>(_extra);
+		var kept = new List<string>(_extra);
 
-			// The one thing a machine over kinds needs that a machine over characters does
-			// not: a way from two token positions to the text between them. Emitted here
-			// rather than beside the support types because it is tagged like everything else
-			// this machine writes, and two machines in one class must not collide.
-			if (OverKinds)
-				kept.Add(Provenance());
+		// The one thing a machine over kinds needs that a machine over characters does
+		// not: a way from two token positions to the text between them. Emitted here
+		// rather than beside the support types because it is tagged like everything else
+		// this machine writes, and two machines in one class must not collide.
+		if (OverKinds)
+			kept.Add(Provenance());
 
-			foreach (var (name, declaration) in _expected)
-				if (_expectedUsed.Contains(name))
-					kept.Add(declaration);
+		foreach (var (name, declaration) in _expected)
+			if (_expectedUsed.Contains(name) && (writtenExpected is null || writtenExpected.Add(name)))
+				kept.Add(declaration);
 
-			foreach (var (name, declaration) in _classes)
-				if (_classesUsed.Contains(name))
-					kept.Add(declaration);
+		foreach (var (name, declaration) in _classes)
+			if (_classesUsed.Contains(name))
+				kept.Add(declaration);
 
-			return kept;
-		}
+		return kept;
 	}
 
 	/// <summary>
@@ -5162,12 +5164,18 @@ sealed partial class Machine
 		if (_expectedByItems.TryGetValue(items, out var already))
 			return already;
 
-		var name = $"Recognize_DotGram{_tag}_Expected" + _expectedCount++;
+		if (_expectedTables is null || !_expectedTables.TryGetValue(items, out var entry))
+		{
+			var name = $"Recognize_DotGram{_tag}_Expected" + _expectedCount++;
 
-		_expectedByItems[items] = name;
-		_expected.Add((name, $"static readonly string[] {name} = {{ {items} }};"));
+			entry = (name, $"static readonly string[] {name} = {{ {items} }};");
+			_expectedTables?.Add(items, entry);
+		}
 
-		return name;
+		_expectedByItems[items] = entry.Name;
+		_expected.Add(entry);
+
+		return entry.Name;
 	}
 
 	/// <summary>
@@ -5202,11 +5210,18 @@ sealed partial class Machine
 		var text = new StringBuilder(value.Length);
 
 		foreach (var character in value)
+		{
+			if (character is >= ' ' and <= '~' and not '\\' and not '"')
+			{
+				text.Append(character);
+
+				continue;
+			}
+
 			text.Append(character switch
 			{
 				'\\'              => "\\\\",
 				'"'               => "\\\"",
-				>= ' ' and <= '~' => character.ToString(),
 				'\0'              => "\\0",
 				'\a'              => "\\a",
 				'\b'              => "\\b",
@@ -5217,6 +5232,7 @@ sealed partial class Machine
 				'\v'              => "\\v",
 				_                 => $"\\u{(int)character:X4}",
 			});
+		}
 
 		return text.ToString();
 	}

@@ -177,6 +177,12 @@ public static partial class CSharpEmitter
 		// caller asking only for the recognizers wants.
 		var groups   = Published(graph);
 		var machines = new List<Compiled>();
+		// Exact ordered diagnostic lists may be shared by sibling machines in this scope.
+		// Single-machine parsers retain their existing names and need no shared registry.
+		var expectedTables = groups.Count > 1 || bufferedInput || bufferedBytes ||
+			graph.Publications.Any(static one => one.BufferedInput || one.BufferedBytes)
+			? new Dictionary<string, (string Name, string Declaration)>(StringComparer.Ordinal)
+			: null;
 
 		// A machine's tag names everything it writes, and two machines sharing one write the same
 		// names twice. The two the file keeps for itself — the second read of a terminal's value
@@ -197,7 +203,7 @@ public static partial class CSharpEmitter
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
-				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures);
+				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, expectedTables: expectedTables);
 
 			// Every publication of this rule needs none of the three things the arena is
 			// for: no recursion, no backtracking, no deferred construction. Asked of one
@@ -231,7 +237,7 @@ public static partial class CSharpEmitter
 		// entered at its own rule, rather than by a second copy of everything it reaches.
 		Joined(graph, machines, overKinds);
 
-		AddBufferedMachines(graph, results, lines, machines, bufferedInput, bufferedBytes, overKinds, diagnostics, partSize, spanCaptures);
+		AddBufferedMachines(graph, results, lines, machines, bufferedInput, bufferedBytes, overKinds, diagnostics, partSize, spanCaptures, expectedTables);
 
 		// A second machine over the characters, for the terminals whose value the lexer
 		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds
@@ -515,9 +521,12 @@ public static partial class CSharpEmitter
 		}
 
 		// Every machine's, not one machine's: a materializer and its guards belong to the
-		// machine that named them, and a file has one set per machine.
+		// machine that named them, and a file has one set per machine. Identical expected
+		// arrays have shared names and are emitted once, by the first machine that uses them.
+		var writtenExpected = expectedTables is null ? null : new HashSet<string>(StringComparer.Ordinal);
+
 		foreach (var compiled in machines)
-			foreach (var extra in compiled.Machine.Extra)
+			foreach (var extra in compiled.Machine.Extras(writtenExpected))
 			{
 				file.Write(extra);
 				file.Line();
@@ -1551,7 +1560,7 @@ public static partial class CSharpEmitter
 			.Select(rule => (Rule: rule, Name: seam.Scanner(rule)))
 			.FirstOrDefault(one => one.Name is not null);
 
-		foreach (var extra in seam.Extra)
+		foreach (var extra in seam.Extras())
 		{
 			file.Write(extra);
 			file.Line();
@@ -2934,7 +2943,7 @@ public static partial class CSharpEmitter
 		var body     = valuing.RenderEngine(engine);
 		var scanners = valuing.RenderScanners();
 
-		foreach (var extra in valuing.Extra)
+		foreach (var extra in valuing.Extras())
 		{
 			file.Write(extra);
 			file.Line();

@@ -86,7 +86,25 @@ sealed partial class Machine
 		return false;
 	}
 
+	// Capture slots and factories are fixed before rendering starts. Callers only read
+	// these lists; keep each shape once for this machine, including its factory index.
+	readonly Dictionary<(RuleSymbol Rule, int Factory), List<DirectMember>> _directMembers = [];
+
 	List<DirectMember> DirectMembers(RuleSymbol rule, int factory = -1)
+	{
+		var key = (rule, factory);
+
+		if (_directMembers.TryGetValue(key, out var known))
+			return known;
+
+		var shaped = BuildDirectMembers(rule, factory);
+
+		_directMembers.Add(key, shaped);
+
+		return shaped;
+	}
+
+	List<DirectMember> BuildDirectMembers(RuleSymbol rule, int factory)
 	{
 		var members  = _graph.Results[rule];
 		var shaped   = new List<DirectMember>(members.Count);
@@ -143,10 +161,17 @@ sealed partial class Machine
 	}
 
 	/// <summary>How a record holds one member: the text it stands on, or the record it names.</summary>
-	static MemberShape Shaped(ResultMember member, IReadOnlyList<int> slots, HashSet<int> repeated) =>
-		member.Rule is null
-			? slots.Any(repeated.Contains) ? MemberShape.Pieces : MemberShape.Text
-			: member.IsSequence ? MemberShape.Records : MemberShape.Record;
+	static MemberShape Shaped(ResultMember member, IReadOnlyList<int> slots, HashSet<int> repeated)
+	{
+		if (member.Rule is not null)
+			return member.IsSequence ? MemberShape.Records : MemberShape.Record;
+
+		for (var i = 0; i < slots.Count; i++)
+			if (repeated.Contains(slots[i]))
+				return MemberShape.Pieces;
+
+		return MemberShape.Text;
+	}
 
 	/// <summary>The capture slots of a rule under its fold's loop: those a step writes, rule-local.</summary>
 	HashSet<int> DirectStepSlots(RuleSymbol rule)

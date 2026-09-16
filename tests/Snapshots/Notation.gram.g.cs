@@ -1219,13 +1219,13 @@ namespace DotGram.Snapshots
 				if ((uint)p >= (uint)text.Length)
 				{
 					failure.Starved = true;
-					expected = Recognize_DotGram_Marked_Expected0;
+					expected = Recognize_DotGram_Hashed_Expected0;
 					goto Fail;
 				}
 				c = text[p];
 				if (!(((c >= 'a' && c <= 'z'))))
 				{
-					expected = Recognize_DotGram_Marked_Expected0;
+					expected = Recognize_DotGram_Hashed_Expected0;
 					goto Fail;
 				}
 				p++;
@@ -1236,13 +1236,13 @@ namespace DotGram.Snapshots
 				if ((uint)p >= (uint)text.Length)
 				{
 					failure.Starved = true;
-					expected = Recognize_DotGram_Marked_Expected0;
+					expected = Recognize_DotGram_Hashed_Expected0;
 					goto S8;
 				}
 				c = text[p];
 				if (!(((c >= 'a' && c <= 'z'))))
 				{
-					expected = Recognize_DotGram_Marked_Expected0;
+					expected = Recognize_DotGram_Hashed_Expected0;
 					goto S8;
 				}
 				p++;
@@ -1443,7 +1443,7 @@ namespace DotGram.Snapshots
 
 				if (p < m0 + 1)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_List_With1_Expected1, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected0, ways);
 					return -1;
 				}
 
@@ -1478,13 +1478,13 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				if ((uint)p >= (uint)text.Length)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_List_With1_Expected2, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_List_With1_Expected1, ways);
 					return -1;
 				}
 				c = text[p];
 				if (!((c == ',' || c == ';')))
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_List_With1_Expected2, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_List_With1_Expected1, ways);
 					return -1;
 				}
 				p++;
@@ -1837,7 +1837,7 @@ namespace DotGram.Snapshots
 
 				if (p < m0 + 1)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_List_Expected1, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected0, ways);
 					return -1;
 				}
 
@@ -2310,7 +2310,7 @@ namespace DotGram.Snapshots
 
 				if (p < m0 + 1)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_Expected3, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_Expected2, ways);
 					return -1;
 				}
 
@@ -2374,7 +2374,7 @@ namespace DotGram.Snapshots
 
 				if (p < m0 + 1)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_Expected2, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Hashed_Expected0, ways);
 					return -1;
 				}
 
@@ -2767,14 +2767,14 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				if ((uint)p >= (uint)text.Length)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected2, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected1, ways);
 					return -1;
 				}
 				c = text[p];
 
 				if (!((c >= '0' && c <= '9')))
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected2, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected1, ways);
 					return -1;
 				}
 
@@ -2849,7 +2849,7 @@ namespace DotGram.Snapshots
 				r0 = ways.Last;
 				if ((uint)(p + 2) > (uint)text.Length || !global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("()")))
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected1, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected0, ways);
 					return -1;
 				}
 				p += 2;
@@ -2869,7 +2869,7 @@ namespace DotGram.Snapshots
 
 					if (!o1)
 					{
-						Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected3, ways);
+						Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected2, ways);
 						break;
 					}
 
@@ -2905,7 +2905,7 @@ namespace DotGram.Snapshots
 				var rb = ways.RefsCount;
 				if ((uint)(p + 2) > (uint)text.Length || !global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("()")))
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected1, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected0, ways);
 					return -1;
 				}
 				p += 2;
@@ -2941,7 +2941,7 @@ namespace DotGram.Snapshots
 
 				if (p < m0 + 1)
 				{
-					Refuse_DotGram(ref failure, p, Recognize_DotGram_Primary_Expected0, ways);
+					Refuse_DotGram(ref failure, p, Recognize_DotGram_Small_Expected2, ways);
 					return -1;
 				}
 
@@ -3240,7 +3240,7 @@ namespace DotGram.Snapshots
 					}
 					if (p < runStart + 1)
 					{
-						expected = Recognize_DotGram_Word_Expected0;
+						expected = Recognize_DotGram_Hashed_Expected0;
 						goto Fail;
 					}
 					if (p > runStart + 1)
@@ -3435,17 +3435,11 @@ namespace DotGram.Snapshots
 
 		static readonly string[] Recognize_DotGram_Hashed_Expected0 = { "['a'..'z']" };
 
-		static readonly string[] Recognize_DotGram_Marked_Expected0 = { "['a'..'z']" };
-
 		static readonly string[] Recognize_DotGram_List_With1_Expected0 = { "Sep_With1" };
 
-		static readonly string[] Recognize_DotGram_List_With1_Expected1 = { "['a'..'z']" };
-
-		static readonly string[] Recognize_DotGram_List_With1_Expected2 = { "[',' | ';']" };
+		static readonly string[] Recognize_DotGram_List_With1_Expected1 = { "[',' | ';']" };
 
 		static readonly string[] Recognize_DotGram_List_Expected0 = { "','" };
-
-		static readonly string[] Recognize_DotGram_List_Expected1 = { "['a'..'z']" };
 
 		static bool Recognize_DotGram_Small_Guard0(int? n) =>
 #line 31 "Notation.gram"
@@ -3481,19 +3475,15 @@ namespace DotGram.Snapshots
 
 		static readonly string[] Recognize_DotGram_Small_Expected1 = { "['0'..'9' | 'a'..'z']" };
 
-		static readonly string[] Recognize_DotGram_Small_Expected2 = { "['a'..'z']" };
-
-		static readonly string[] Recognize_DotGram_Small_Expected3 = { "['0'..'9']" };
+		static readonly string[] Recognize_DotGram_Small_Expected2 = { "['0'..'9']" };
 
 		static readonly string[] Recognize_DotGram_Ab_Expected0 = { "['a'..'b']" };
 
-		static readonly string[] Recognize_DotGram_Primary_Expected0 = { "['0'..'9']" };
+		static readonly string[] Recognize_DotGram_Primary_Expected0 = { "\"()\"" };
 
-		static readonly string[] Recognize_DotGram_Primary_Expected1 = { "\"()\"" };
+		static readonly string[] Recognize_DotGram_Primary_Expected1 = { "['0'..'9' | '0'..'9']" };
 
-		static readonly string[] Recognize_DotGram_Primary_Expected2 = { "['0'..'9' | '0'..'9']" };
-
-		static readonly string[] Recognize_DotGram_Primary_Expected3 = { "['(']" };
+		static readonly string[] Recognize_DotGram_Primary_Expected2 = { "['(']" };
 
 		static void Materialize_DotGram_Word(global::System.ReadOnlySpan<char> text, Parser parser, ParserArena entries)
 		{
@@ -3577,8 +3567,6 @@ namespace DotGram.Snapshots
 				}
 			}
 		}
-
-		static readonly string[] Recognize_DotGram_Word_Expected0 = { "['a'..'z']" };
 
 		/// <summary>What kind of answer a publication gave (docs/syntax.md §7.5).</summary>
 		public enum Outcome

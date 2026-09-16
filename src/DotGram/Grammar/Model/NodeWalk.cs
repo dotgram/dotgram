@@ -52,9 +52,29 @@ static class NodeWalk
 
 			yield return current;
 
+			// Unary nodes need no temporary collection to put their one operand on the stack.
+			var body = current switch
+			{
+				Node.Atomic one    => one.Body,
+				Node.Marked one    => one.Body,
+				Node.Repeat one    => one.Body,
+				Node.Lookahead one => one.Body,
+				Node.Capture one   => one.Body,
+				Node.Construct one => one.Body,
+				_                  => null,
+			};
+
+			if (body is not null)
+			{
+				pending.Push(body);
+
+				continue;
+			}
+
 			// Backwards, because a stack hands back what went in last: pushing the operands
 			// in reverse is what makes them come out in the order they were written.
-			var children = current.Children as IReadOnlyList<Node> ?? [.. current.Children];
+			var operands = current.Children;
+			var children = operands as IReadOnlyList<Node> ?? [.. operands];
 
 			for (var i = children.Count - 1; i >= 0; i--)
 				pending.Push(children[i]);

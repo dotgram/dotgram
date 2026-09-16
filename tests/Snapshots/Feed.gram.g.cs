@@ -1469,7 +1469,7 @@ namespace DotGram.Snapshots
 					}
 					if (p < runStart + 1)
 					{
-						expected = Recognize_DotGram_Name_Expected0;
+						expected = Recognize_DotGram_Feed_Expected15;
 						goto Fail;
 					}
 					if (p > runStart + 1)
@@ -1647,12 +1647,12 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Row_Expected5;
+						expected = Recognize_DotGram_Feed_Expected16;
 						goto Fail;
 					}
 					if (text[p] != 'R')
 					{
-						expected = Recognize_DotGram_Row_Expected5;
+						expected = Recognize_DotGram_Feed_Expected16;
 						goto Fail;
 					}
 					p += 1;
@@ -1663,12 +1663,12 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Row_Expected3;
+						expected = Recognize_DotGram_Feed_Expected8;
 						goto Fail;
 					}
 					if (text[p] != '|')
 					{
-						expected = Recognize_DotGram_Row_Expected3;
+						expected = Recognize_DotGram_Feed_Expected8;
 						goto Fail;
 					}
 					p += 1;
@@ -1683,13 +1683,13 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Row_Expected4;
+						expected = Recognize_DotGram_Feed_Expected15;
 						goto Fail;
 					}
 					c = text[p];
 					if (!(!(c == '\n' || c == '\r' || c == '|')))
 					{
-						expected = Recognize_DotGram_Row_Expected4;
+						expected = Recognize_DotGram_Feed_Expected15;
 						goto Fail;
 					}
 					p++;
@@ -1700,13 +1700,13 @@ namespace DotGram.Snapshots
 					if ((uint)p >= (uint)text.Length)
 					{
 						failure.Starved = true;
-						expected = Recognize_DotGram_Row_Expected4;
+						expected = Recognize_DotGram_Feed_Expected15;
 						goto S8;
 					}
 					c = text[p];
 					if (!(!(c == '\n' || c == '\r' || c == '|')))
 					{
-						expected = Recognize_DotGram_Row_Expected4;
+						expected = Recognize_DotGram_Feed_Expected15;
 						goto S8;
 					}
 					p++;
@@ -1749,12 +1749,12 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Row_Expected3;
+						expected = Recognize_DotGram_Feed_Expected8;
 						goto Fail;
 					}
 					if (text[p] != '|')
 					{
-						expected = Recognize_DotGram_Row_Expected3;
+						expected = Recognize_DotGram_Feed_Expected8;
 						goto Fail;
 					}
 					p += 1;
@@ -1770,7 +1770,7 @@ namespace DotGram.Snapshots
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
-						expected = Recognize_DotGram_Row_Expected2;
+						expected = Recognize_DotGram_Feed_Expected14;
 						goto Fail;
 					}
 					p = scanned;
@@ -1817,7 +1817,7 @@ namespace DotGram.Snapshots
 						p += 1;
 						goto Return;
 					}
-					expected = Recognize_DotGram_Row_Expected1;
+					expected = Recognize_DotGram_Feed_Expected11;
 				}
 
 				{
@@ -1825,12 +1825,12 @@ namespace DotGram.Snapshots
 					{
 						failure.Starved = true;
 						failure.OutOfInput = p + 1;
-						expected = Recognize_DotGram_Row_Expected0;
+						expected = Recognize_DotGram_Feed_Expected10;
 						goto Fail;
 					}
 					if (text[p] != '\r')
 					{
-						expected = Recognize_DotGram_Row_Expected0;
+						expected = Recognize_DotGram_Feed_Expected10;
 						goto Fail;
 					}
 					p += 1;
@@ -2174,8 +2174,6 @@ namespace DotGram.Snapshots
 
 		static readonly string[] Recognize_DotGram_Feed_Expected21 = { "['\\r' | '\\n' | '\\r']" };
 
-		static readonly string[] Recognize_DotGram_Name_Expected0 = { "[^ '\\n' | '\\r' | '|']" };
-
 		static void Materialize_DotGram_Row(global::System.ReadOnlySpan<char> text, Parser parser, ParserArena entries)
 		{
 			var values = parser.Materialization(entries.Count);
@@ -2278,26 +2276,6 @@ namespace DotGram.Snapshots
 				}
 			}
 		}
-
-		static readonly string[] Recognize_DotGram_Row_Expected0 = { "'\\r'" };
-
-		static readonly string[] Recognize_DotGram_Row_Expected1 = { "\"\r\n\"", "'\\n'" };
-
-		static readonly string[] Recognize_DotGram_Row_Expected2 = { "Amount" };
-
-		static readonly string[] Recognize_DotGram_Row_Expected3 = { "'|'" };
-
-		static readonly string[] Recognize_DotGram_Row_Expected4 = { "[^ '\\n' | '\\r' | '|']" };
-
-		static readonly string[] Recognize_DotGram_Row_Expected5 = { "'R'" };
-
-		static readonly string[] Recognize_DotGram_Row_Expected6 = { "Digit" };
-
-		static readonly string[] Recognize_DotGram_Row_Expected7 = { "'.'" };
-
-		static readonly string[] Recognize_DotGram_Row_Expected8 = { "'-'" };
-
-		static readonly string[] Recognize_DotGram_Row_Expected9 = { "['0'..'9']" };
 
 		/// <summary>What kind of answer a publication gave (docs/syntax.md §7.5).</summary>
 		public enum Outcome

@@ -30,6 +30,8 @@ public sealed class RoslynSymbolResolver(
 	readonly string?               _host        = host;
 	readonly IReadOnlyList<string> _statics     = statics ?? [];
 
+	readonly Dictionary<string, INamedTypeSymbol?> _types = new(StringComparer.Ordinal);
+
 	public bool TypeExists(string qualifiedName) => TypeNamed(qualifiedName) is not null;
 
 	/// <summary>
@@ -345,6 +347,19 @@ public sealed class RoslynSymbolResolver(
 	/// beside a nested <c>Row</c> would mean only a top-level type.
 	/// </remarks>
 	INamedTypeSymbol? TypeNamed(string qualifiedName)
+	{
+		if (_types.TryGetValue(qualifiedName, out var known))
+			return known;
+
+		var resolved = ResolveType(qualifiedName);
+
+		// Both hits and misses belong to this resolver's fixed compilation and host.
+		_types.Add(qualifiedName, resolved);
+
+		return resolved;
+	}
+
+	INamedTypeSymbol? ResolveType(string qualifiedName)
 	{
 		var name = Keywords.TryGetValue(qualifiedName, out var framework) ? framework : qualifiedName;
 
