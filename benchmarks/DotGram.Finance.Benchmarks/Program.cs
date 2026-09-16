@@ -16,6 +16,11 @@ static class Program
 {
 	static void Main(string[] args)
 	{
+		if (args.Length == 5 && args[0] == "profile")
+		{
+			FixProfile.Run(args[1], args[2], args[3], int.Parse(args[4], CultureInfo.InvariantCulture));
+			return;
+		}
 		if (args.Length == 2 && args[0] == "--fix-jit-probe")
 		{
 			FixInitializationBenchmarks.Probe(args[1] == "previous");

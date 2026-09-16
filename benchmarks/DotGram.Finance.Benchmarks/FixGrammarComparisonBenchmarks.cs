@@ -64,7 +64,7 @@ public class FixGrammarComparisonBenchmarks
 		return Expression.Lambda<Func<object, IEnumerable>>(Expression.Convert(Expression.Call(method, arguments), typeof(IEnumerable)), argument).Compile();
 	}
 
-	static Func<int> Operation(Func<object, IEnumerable> parse, string wire, string input)
+	internal static Func<int> Operation(Func<object, IEnumerable> parse, string wire, string input)
 	{
 		var bytes = Encoding.Latin1.GetBytes(wire);
 		return () =>

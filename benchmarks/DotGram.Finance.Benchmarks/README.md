@@ -238,3 +238,11 @@ and the normalization used only by correctness checks.
 GRAM5004 because the grammar publishes yield. The emitted parser is byte-identical
 to the baseline, so no lexical performance comparison is available. The flag was
 removed after the probe.
+
+## Runtime profiling across versions: 2026-09-16
+
+[dotTrace investigation](results/2026-09-16-runtime-profile.md) compares four
+parser versions after warmup. Materialization explains the short-order regression;
+sequential tag alternatives explain the much higher cost of late tags. The report
+includes unprofiled timings, full function exports, native-frame evidence and
+reproduction commands. No parser optimization is included in this investigation.
