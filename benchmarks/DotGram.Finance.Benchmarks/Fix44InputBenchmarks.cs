@@ -50,11 +50,11 @@ public partial class Fix44InputBenchmarks
 		for (var i = 0; i < bytes.Length; i++) bytes[i] = checked((byte)corpus[i]);
 		var expected = String();
 		if (Characters() != expected || Bytes() != expected) throw new InvalidOperationException("Input results differ.");
-		var type = Fix44.Parse(message).GetType();
-		foreach (var parsed in Fix44.ReadMessages(new StringReader(message)))
+		var type = FixMessages.Parse(message).GetType();
+		foreach (var parsed in FixMessages.ReadMessages(new StringReader(message)))
 			if (parsed.OriginalWire != message || parsed.GetType() != type) throw new InvalidOperationException("Character result differs.");
 		using var one = new MemoryStream(bytes, 0, message.Length, false);
-		var result = Fix44.Parse(one);
+		var result = FixMessages.Parse(one);
 		if (result.OriginalWire != message || result.GetType() != type) throw new InvalidOperationException("Byte result differs.");
 		Console.WriteLine($"FIX corpus: {Workload}, {count} messages, {message.Length} octets/message, {corpus.Length} octets total.");
 	}
@@ -63,7 +63,7 @@ public partial class Fix44InputBenchmarks
 	public long String()
 	{
 		long total = 0;
-		for (var i = 0; i < count; i++) total += Fix44.Parse(message).OriginalWire.Length;
+		for (var i = 0; i < count; i++) total += FixMessages.Parse(message).OriginalWire.Length;
 		return total;
 	}
 
@@ -72,7 +72,7 @@ public partial class Fix44InputBenchmarks
 	{
 		using var input = new StringReader(corpus);
 		long total = 0;
-		foreach (var parsed in Fix44.ReadMessages(input)) total += parsed.OriginalWire.Length;
+		foreach (var parsed in FixMessages.ReadMessages(input)) total += parsed.OriginalWire.Length;
 		return total;
 	}
 
@@ -81,7 +81,7 @@ public partial class Fix44InputBenchmarks
 	{
 		using var input = new MemoryStream(bytes, false);
 		long total = 0;
-		foreach (var parsed in Fix44.ReadMessages(input)) total += parsed.OriginalWire.Length;
+		foreach (var parsed in FixMessages.ReadMessages(input)) total += parsed.OriginalWire.Length;
 		return total;
 	}
 }

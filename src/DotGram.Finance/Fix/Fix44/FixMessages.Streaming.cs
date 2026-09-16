@@ -4,7 +4,7 @@ using System.IO;
 
 namespace DotGram.Finance.Fix;
 
-public static partial class Fix44
+public static partial class FixMessages
 {
 	/// <summary>Default maximum size of one streamed message, in octets.</summary>
 	public const int DefaultMaxMessageLength = 16 * 1024 * 1024;

@@ -1,5 +1,17 @@
 # DotGram.Finance: FIX 4.4 parser
 
+## Flat parser and explicit semantics
+
+`Fix44.Parse` returns only `FixField[]`, preserving source order and locations.
+It reads `TextReader` and native byte `Stream` inputs through the generated buffered
+machine to EOF. The syntax path uses no message schema or envelope validator.
+Length fields provide raw-data boundaries; matching tag pairs are checked later.
+
+`FixMessages` owns framing, message/group assembly and validation. Call
+`FixMessages.Build(source, fields)` to validate an already parsed field array, or
+`FixMessages.Parse` / `ReadMessages` to combine parsing with semantic processing.
+The historical measurements below include semantics, not only field recognition.
+
 ## Scope and sources
 
 Parse complete tag-value messages from strings, character readers or byte streams.

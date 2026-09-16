@@ -16,11 +16,11 @@ public sealed class FixFieldGrammarTests
 	[MemberData(nameof(Fix44Tests.Messages), MemberType = typeof(Fix44Tests))]
 	public void All_fields_have_the_same_ADT_in_char_byte_and_pipe_forms(string name, string wire)
 	{
-		var expected = Fix44.Parse(wire);
+		var expected = FixMessages.Parse(wire);
 		var log = Log(expected);
 		using var bytes = new MemoryStream(Bytes(wire));
 		using var logBytes = new MemoryStream(Bytes(log));
-		foreach (var message in new[] { Fix44.Parse(bytes), Fix44.ParseLog(log), Fix44.Parse(logBytes, new FixParseOptions('|')) })
+		foreach (var message in new[] { FixMessages.Parse(bytes), FixMessages.ParseLog(log), FixMessages.Parse(logBytes, new FixParseOptions('|')) })
 		{
 			Assert.Equal(name, message.GetType().Name);
 			Assert.Equal(expected.AllFields.Select(f => f.Value.ToString()), message.AllFields.Select(f => f.Value.ToString()));
@@ -35,12 +35,12 @@ public sealed class FixFieldGrammarTests
 	public void Location_covers_whole_fields_and_conversion_does_not_need_coordinates(char separator)
 	{
 		var wire = "1=arbitrary text|10=007|607=invalid|9001=vendor|".Replace('|', separator);
-		var context = new FixContext(wire, FixParseMode.Lenient, separator: separator);
+		var context = new FixContext(new FixFieldOptions(separator));
 		var direct = separator == '|' ? FixGrammar.ParseLogFields(wire, context) : FixGrammar.ParseFields(wire, context);
 		using var reader = new StringReader(wire);
 		var chars = separator == '|' ? FixGrammar.ParseLogFields(reader, context, bufferSize: 1) : FixGrammar.ParseFields(reader, context, bufferSize: 1);
 		using var stream = new MemoryStream(Bytes(wire));
-		var byteContext = new FixContext(Bytes(wire), FixParseMode.Lenient, separator: separator);
+		var byteContext = new FixContext(new FixFieldOptions(separator));
 		var bytes = separator == '|' ? FixGrammar.ParseLogFields(stream, byteContext, bufferSize: 1) : FixGrammar.ParseFields(stream, byteContext, bufferSize: 1);
 		foreach (var fields in new[] { direct, chars, bytes })
 		{
@@ -74,7 +74,7 @@ public sealed class FixFieldGrammarTests
 	{
 		var orderWire = Fix44Tests.Wire("D", "11=ORDER|55=ABC|54=1|60=20260915-12:00:00|38=100|40=2|44=12.50|");
 		using var stream = new MemoryStream(Bytes(orderWire));
-		foreach (var order in new[] { Fix44.Parse(orderWire), Fix44.Parse(stream) })
+		foreach (var order in new[] { FixMessages.Parse(orderWire), FixMessages.Parse(stream) })
 		{
 			Assert.Equal("ABC", Assert.IsType<FixField.Symbol>(order.GetField(55)!.Value.TypedValue).Value);
 			Assert.Equal('1', Assert.IsType<FixField.Side>(order.GetField(54)!.Value.TypedValue).Value);
@@ -113,22 +113,22 @@ public sealed class FixFieldGrammarTests
 		var body = "35=A\u000149=SENDER\u000156=TARGET\u000134=1\u000152=20260915-12:00:00\u000198=0\u0001108=30\u000195=" + raw.Length + "\u000196=" + raw + "\u0001";
 		var prefix = "8=FIX.4.4\u00019=" + body.Length + "\u0001" + body;
 		var wire = prefix + "10=" + (prefix.Sum(c => (int)c) & 255).ToString("000", CultureInfo.InvariantCulture) + "\u0001";
-		var original = Fix44.Parse(wire);
+		var original = FixMessages.Parse(wire);
 		var log = Log(original);
 		foreach (var capacity in new[] { 1, 3, 17, 4096 })
 		{
 			using var stream = new MemoryStream(Bytes(wire));
-			var result = FixGrammar.TryParseFields(stream, new FixContext(Bytes(wire), FixParseMode.Strict), bufferSize: capacity);
+			var result = FixGrammar.TryParseFields(stream, new FixContext(), bufferSize: capacity);
 			Assert.True(result.IsSuccess, result.Error);
 			AssertExtents(wire, result.Value);
 			Assert.Equal(Bytes(raw), Assert.IsType<FixField.RawData>(result.Value.Single(f => f.Tag == 96)).Value.ToArray());
 			using var reader = new StringReader(log);
-			var textResult = FixGrammar.TryParseLogFields(reader, new FixContext(log, FixParseMode.Strict, separator: '|'), bufferSize: capacity);
+			var textResult = FixGrammar.TryParseLogFields(reader, new FixContext(new FixFieldOptions('|')), bufferSize: capacity);
 			Assert.True(textResult.IsSuccess, textResult.Error);
 			AssertExtents(log, textResult.Value);
 			Assert.Equal(Bytes(raw), Assert.IsType<FixField.RawData>(textResult.Value.Single(f => f.Tag == 96)).Value.ToArray());
 		}
-		Assert.Equal(raw, Fix44.ParseLog(log).GetField(96)!.Value.ToString());
+		Assert.Equal(raw, FixMessages.ParseLog(log).GetField(96)!.Value.ToString());
 	}
 
 	[Theory]
@@ -149,8 +149,8 @@ public sealed class FixFieldGrammarTests
 	public void Log_checksum_still_detects_damage()
 	{
 		var wire = Fix44Tests.Wire("0", "112=TEST|");
-		var log = Log(Fix44.Parse(wire));
-		Assert.Throws<FormatException>(() => Fix44.ParseLog(log.Replace("TEST", "FAIL")));
+		var log = Log(FixMessages.Parse(wire));
+		Assert.Throws<FormatException>(() => FixMessages.ParseLog(log.Replace("TEST", "FAIL")));
 	}
 
 	static string Log(FixMessage message)

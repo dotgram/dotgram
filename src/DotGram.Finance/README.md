@@ -4,10 +4,49 @@ A standalone FIX 4.4 tag-value parser for `netstandard2.0` and `net10.0`.
 DotGram compiles the composed field grammar into one parser at build time; applications need no DotGram runtime,
 grammar files, schema XML, reflection configuration or initialization step.
 
+## Flat field parsing
+
 ```csharp
 using DotGram.Finance.Fix;
 
-if (Fix44.TryParse(wire, out var message, out var error))
+FixField[] fields = Fix44.Parse(wire);
+var logFields = Fix44.ParseLog("55=ABC|38=100|");
+using var input = File.OpenRead("messages.fix");
+FixField[] allFields = Fix44.Parse(input);
+
+// Explicit, optional semantics; reuses the already parsed field objects.
+FixMessage message = FixMessages.Build(wire, fields);
+```
+
+`Fix44` returns fields in source order, including repeated and unknown tags. It does
+not assemble messages or groups, check required fields, code sets, BodyLength or
+CheckSum. A failed primitive conversion sets `FixField.IsValid` to false; it does
+not reject the field. Text values need no conversion validity check.
+
+String, character-span, `TextReader`, byte-array and `Stream` inputs are supported.
+Readers and streams go directly through DotGram's buffered char/byte machines to
+EOF and remain open. Concatenated messages yield one flat array; an empty input
+yields an empty array. Locations are relative to the complete input. This API
+waits for EOF and materializes the complete result, so use the framed semantic
+API below when consuming messages incrementally from a live connection.
+
+`FixFieldOptions` configures SOH or pipe delimiters and optional vendor data pairs.
+Raw data consumes the length given by the immediately preceding Length field;
+the semantic API checks that the length and data tags form the correct pair.
+Malformed field syntax returns false from `TryParse`. Typed values own their data;
+no complete source string is retained by a field. Character-span input is copied
+for recognition; native byte-stream parsing creates no complete character view.
+
+## Explicit message semantics
+
+The following APIs belong to `FixMessages` and run only when called explicitly.
+`Build(source, fields)` requires fields parsed from that exact source and performs
+validation and group assembly without parsing it again. `Parse` combines both steps.
+
+```csharp
+using DotGram.Finance.Fix;
+
+if (FixMessages.TryParse(wire, out var message, out var error))
 {
     if (message is NewOrderSingle order)
     {
@@ -26,7 +65,7 @@ else
 }
 ```
 
-`Fix44.Parse(wire)` returns the same model and throws `FormatException` on malformed
+`FixMessages.Parse(wire)` returns the same model and throws `FormatException` on malformed
 input. `TryParse` returns false and leaves `message` null. Null input also returns
 false in `TryParse`; invalid options passed to an options overload are programming
 errors. String and `ReadOnlySpan<char>` overloads accept one complete message.
@@ -37,12 +76,12 @@ Concatenated messages are rejected by the contiguous-input overloads. Use
 
 ```csharp
 using var input = File.OpenRead("messages.fix");
-foreach (var message in Fix44.ReadMessages(input))
+foreach (var message in FixMessages.ReadMessages(input))
     Console.WriteLine(message.MessageType);
 
 // Alternatively, read exactly one frame from a fresh stream:
 using var single = File.OpenRead("messages.fix");
-var next = Fix44.Parse(single, maxMessageLength: 4 * 1024 * 1024);
+var next = FixMessages.Parse(single, maxMessageLength: 4 * 1024 * 1024);
 ```
 
 `Parse`, `TryParse`, and `ReadMessages` accept either `TextReader` or `Stream`,
@@ -113,7 +152,7 @@ Flattened component fields are properties of their containing scope.
 | Complete framing, BeginString, first three fields, terminal CheckSum | Required | Required |
 | BodyLength and CheckSum | Checked | Checked |
 | Length/data pairs, including embedded SOH | Checked | Checked |
-| Standard group delimiters, boundaries and counts | Checked during recognition | Checked during recognition |
+| Standard group delimiters, boundaries and counts | Checked during semantic assembly | Checked during semantic assembly |
 | Explicit schema required fields and component activation | Checked | Relaxed |
 | Primitive lexical/calendar syntax and code sets | Checked | Values preserved |
 | Group field order and duplicate standard fields | Checked | Order/duplicates preserved |
@@ -138,7 +177,7 @@ outside its checks. ISO identifiers are checked for their lexical shape.
 standard tag. The tag and primitive type come from the pinned specification:
 
 ```csharp
-var order = (NewOrderSingle)Fix44.Parse(wire);
+var order = (NewOrderSingle)FixMessages.Parse(wire);
 var symbol = (FixField.Symbol)order.GetField(55)!.Value.TypedValue!;
 var quantity = (FixField.OrderQty)order.GetField(38)!.Value.TypedValue!;
 Console.WriteLine(symbol.Value);             // string
@@ -163,7 +202,7 @@ The char numeric hooks use invariant .NET parsing. Byte numeric hooks accumulate
 ASCII digits directly, retaining arbitrary integer and decimal precision.
 `FixDecimal.TryGetDecimal` succeeds only when the value is exactly representable.
 
-Lenient parsing retains malformed primitive text. Such a field has
+The source-backed semantic model retains malformed primitive text in Lenient mode. Such a field has
 `TypedValue.IsValid == false`; `TryGetValue` returns false and `Value` throws.
 This flag describes primitive conversion, not code-set or message-schema validity.
 Unknown tags use `FixField.Unknown` with their original value octets.
@@ -171,9 +210,9 @@ Unknown tags use `FixField.Unknown` with their original value octets.
 ## Pipe-delimited logs
 
 ```csharp
-var message = Fix44.ParseLog(logLine);
+var message = FixMessages.ParseLog(logLine);
 var options = new FixParseOptions('|', FixParseMode.Lenient);
-foreach (var item in Fix44.ReadMessages(logReader, options))
+foreach (var item in FixMessages.ReadMessages(logReader, options))
     Console.WriteLine(item.MessageType);
 ```
 
@@ -196,7 +235,7 @@ var options = new FixParseOptions(
     FixParseMode.Lenient,
     new FixDataPair(lengthTag: 9000, dataTag: 9001));
 
-var message = Fix44.Parse(wire, options);
+var message = FixMessages.Parse(wire, options);
 var payload = message.GetField(9001)!.Value.Value;
 ```
 
@@ -231,7 +270,7 @@ and measurement records are in `docs/design/finance-fix44.md` and
 ### Field construction and locations
 
 `FixGrammar` inherits `FixFieldGrammar`, whose `FixField.gram` contains only the
-standard field rules and their `KnownField` choice. Each rule spells out the full
+standard field rules and their `KnownField` choice and tag lookahead. Each rule spells out the full
 tag, for example `"607="`. The handwritten `FixGrammar.gram` supplies text, raw-data
 and separator rules as grammar parameters and defines the parse publications.
 There are no manually expanded digit-prefix branches.

@@ -48,30 +48,34 @@ public class Fix44Benchmarks
 		// may be reordered independently of the entry field order.
 		body.Insert(0, "55=ABC|");
 		groups = Wire("W", body.ToString());
-		foreach (var input in new[] { heartbeat, order, raw, groups }) Fix44.Parse(input);
+		foreach (var input in new[] { heartbeat, order, raw, groups }) FixMessages.Parse(input);
 		orderBytes = Encoding.Latin1.GetBytes(order);
 		rawBytes = Encoding.Latin1.GetBytes(raw);
 		using var orderInput = new MemoryStream(orderBytes);
 		using var rawInput = new MemoryStream(rawBytes);
-		if (Fix44.Parse(orderInput).OriginalWire != order || Fix44.Parse(rawInput).OriginalWire != raw) throw new InvalidOperationException("Input paths differ.");
+		if (FixMessages.Parse(orderInput).OriginalWire != order || FixMessages.Parse(rawInput).OriginalWire != raw) throw new InvalidOperationException("Input paths differ.");
 	}
 
-	[Benchmark] public FixMessage Heartbeat() => Fix44.Parse(heartbeat);
-	[Benchmark] public FixMessage NewOrderSingle() => Fix44.Parse(order);
-	[Benchmark] public FixMessage LargeRawData() => Fix44.Parse(raw);
-	[Benchmark] public FixMessage RepeatingGroups() => Fix44.Parse(groups);
+	[Benchmark] public FixField[] FlatOrderFields() => Fix44.Parse(order);
+	[Benchmark] public FixField[] FlatRawFields() => Fix44.Parse(raw);
+	[Benchmark] public FixField[] FlatGroupFields() => Fix44.Parse(groups);
+
+	[Benchmark] public FixMessage Heartbeat() => FixMessages.Parse(heartbeat);
+	[Benchmark] public FixMessage NewOrderSingle() => FixMessages.Parse(order);
+	[Benchmark] public FixMessage LargeRawData() => FixMessages.Parse(raw);
+	[Benchmark] public FixMessage RepeatingGroups() => FixMessages.Parse(groups);
 
 	[Benchmark]
 	public FixMessage NewOrderSingleBytes()
 	{
 		using var input = new MemoryStream(orderBytes, writable: false);
-		return Fix44.Parse(input);
+		return FixMessages.Parse(input);
 	}
 	[Benchmark]
 	public FixMessage LargeRawDataBytes()
 	{
 		using var input = new MemoryStream(rawBytes, writable: false);
-		return Fix44.Parse(input);
+		return FixMessages.Parse(input);
 	}
 
 	internal static string Wire(string type, string fields)

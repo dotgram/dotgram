@@ -249,13 +249,15 @@ def generate_fields():
 			f"\t=> @(new FixField.{name}(FixConvert.{conversion}(value)))",
 			"",
 		])
-		content = "data" if fix_type == "data" else "text"
+		content = "data" if fix_type == "data" else "length" if fix_type == "Length" else "text"
 		alternatives.append(f"value: {name}({content}, separator)")
 	adt[-1] = "}"
-	grammar.append("KnownField(text, data, separator) : @FixField =")
+	grammar.append("KnownField(text, length, data, separator) : @FixField =")
 	grammar.append("\t(")
 	grammar.extend("\t\t" + ("" if index == 0 else "| ") + choice for index, choice in enumerate(alternatives))
 	grammar.extend(["\t)", "\t=> @(value)"])
+	grammar.extend(["", "// Tag recognition prevents malformed standard fields from falling back to extensions.", "KnownTag ="])
+	grammar.extend("\t" + ("" if index == 0 else "| ") + f'"{number}="' for index, number in enumerate(fields))
 	write("FixField.Generated.cs", "\n".join(adt))
 	write("FixField.gram", "\n".join(grammar))
 

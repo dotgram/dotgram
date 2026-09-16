@@ -195,3 +195,8 @@ GC. Almost all of it disappears after collection. For orders/groups, about
 heap near 46-48 MiB. No batch-sized retained result collection is present.
 These numbers measure the existing byte-to-character FIX adapter, not a future
 native byte parser or lazy field decoding implementation.
+
+The `FlatOrderFields`, `FlatRawFields`, and `FlatGroupFields` workloads call
+`Fix44.Parse` and return only fields. Existing message workloads explicitly call
+`FixMessages.Parse`; their costs include semantic assembly and validation.
+Previously recorded results predate this separation.

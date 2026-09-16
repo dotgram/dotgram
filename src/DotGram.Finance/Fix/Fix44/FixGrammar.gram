@@ -8,6 +8,8 @@ LogSeparator = ['|']
 ValueText    = (?!Separator & any)+
 Digits       = ['1'..'9'] & ['0'..'9']*
 
+LengthValue = { when @(context.BeginLength(parserSpan.Start + parserSpan.Length)) & ValueText & when @(context.RecordLength(parserSpan.Start + parserSpan.Length, parserText)) }
+
 // Raw data is bounded by the preceding length field, not by a delimiter.
 Block4096 = when @(context.DataLimit - parserSpan.Start - parserSpan.Length >= 4096) & any{4096}
 Block256  = when @(context.DataLimit - parserSpan.Start - parserSpan.Length >= 256) & any{256}
@@ -21,21 +23,31 @@ Data =
 	}
 
 UnknownData : @FixField =
-	tag: Digits & when @(context.UnknownTag(tag) && context.IsDataTag(tag))
+	?!KnownTag & tag: Digits & when @(FixContext.Tag(tag) > 0 && context.IsDataTag(tag))
 	& '=' & value: Data & Separator
 	=> @(new FixField.Unknown(FixContext.Tag(tag), FixConvert.Data(value)))
 
 UnknownText : @FixField =
-	tag: Digits & when @(context.UnknownTag(tag) && !context.IsDataTag(tag))
+	?!KnownTag & tag: Digits & when @(FixContext.Tag(tag) > 0 && !context.IsDataTag(tag) && !context.IsLengthTag(tag))
 	& '=' & value: ValueText & Separator
 	=> @(new FixField.Unknown(FixContext.Tag(tag), FixConvert.Data(value)))
 
-Field : @FixField =
-	v: KnownField(ValueText, Data, Separator) => @(v)
-	| v: UnknownData => @(v)
-	| v: UnknownText => @(v)
+UnknownLength : @FixField =
+	?!KnownTag & tag: Digits & when @(FixContext.Tag(tag) > 0 && context.IsLengthTag(tag))
+	& '=' & value: LengthValue & Separator
+	=> @(new FixField.Unknown(FixContext.Tag(tag), FixConvert.Data(value)))
 
-Fields : @FixField[] = { Field+ }
+Field : @FixField =
+	when @(context.BeginField(parserSpan.Start + parserSpan.Length))
+	& (
+		v: KnownField(ValueText, LengthValue, Data, Separator)
+		| v: UnknownData
+		| v: UnknownLength
+		| v: UnknownText
+	)
+	=> @(v)
+
+Fields : @FixField[] = { Field* }
 
 parse Fields stream bytes
 parse Fields with (Separator = LogSeparator) as ParseLogFields stream bytes
