@@ -15,13 +15,11 @@ public sealed class BufferedInputTests
 	[Fact]
 	public void Large_split_dispatch_keeps_char_and_byte_backtracking_correct()
 	{
-		const int count = 600;
+		const int count = 912;
 		var rules = Enumerable.Range(0, count).Select(i => $"R{i} : @int = \"{i}=\" & ['0'..'9']+ & ';' => @({i})");
-		var groups = Enumerable.Range(0, (count + 23) / 24).Select(g =>
-			$"G{g} : @int = " + string.Join(" | ", Enumerable.Range(g * 24, Math.Min(24, count - g * 24)).Select(i => $"v: R{i} => @(v)")));
-		var grammar = string.Join("\n", rules.Concat(groups)) + "\nItem : @int = " +
-			string.Join(" | ", Enumerable.Range(0, (count + 23) / 24).Select(g => $"v: G{g} => @(v)")) +
-			"\nStart : @int[] = Item+\nparse Start stream bytes";
+		var grammar = string.Join("\n", rules) + "\nItem : @int = (" +
+			string.Join(" | ", Enumerable.Range(0, count).Select(i => $"v: R{i}")) +
+			") => @(v)\nStart : @int[] = Item+\nparse Start stream bytes";
 		var compilation = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
 			BufferedInput = true, Direct = false, PartSize = 128, CSharpScanner = RoslynCSharpScanner.Instance,
@@ -29,6 +27,7 @@ public sealed class BufferedInputTests
 		EmittedCode.Quiet(compilation.Diagnostics);
 		var source = Assert.Single(compilation.Sources).Text;
 		Assert.Contains("_Dispatch = new int[]", source);
+		Assert.DoesNotContain("switch (chosen)", source);
 		var assembly = EmittedCode.Compile(source);
 		var expected = Enumerable.Range(0, count).Reverse().ToArray();
 		var text = string.Concat(expected.Select(i => $"{i}=123;"));

@@ -886,11 +886,11 @@ sealed partial class Machine
 						$"captured{i}{(members[i].IsOptional ? "" : "!")}" +
 						(i + 1 < members.Count ? "," : ");"));
 		}
-		else if (factories.Count == 1)
+		else if (factories.Count == 1 || SameIdentityConstruction(factories))
 		{
-			// One factory means the question the Construct entry answered — which
-			// construction ran — has only one answer, so no entry was written and
-			// there is nothing to walk for.
+			// A single construction needs no choice. Neither do alternatives that
+			// all return the same typed capture: their factories differ only in source
+			// location, and running one still applies Locate exactly once.
 			file.Line(
 				$"{ValueInto(type, "completedAt")} = " +
 				$"{factories[0].Method}({string.Join(", ", FactoryArguments(file, factories[0], members, "completedAt"))});");
@@ -934,6 +934,27 @@ sealed partial class Machine
 
 		file.Line("break;");
 	}
+	}
+
+	bool SameIdentityConstruction(IReadOnlyList<Factory> factories)
+	{
+		var first = factories[0];
+		if (first.Members.Count != 1) return false;
+		var member = first.Members[0];
+		if (member.Rule is null || member.IsSequence || member.IsOptional) return false;
+		var type = _results.ValueOf(member.Rule);
+
+		foreach (var factory in factories)
+		{
+			if (factory.Located != first.Located || factory.Accumulator is not null ||
+				factory.Members.Count != 1 ||
+				factory.Of is not Node.Construct { How: Construction.Expression expression }) return false;
+			var other = factory.Members[0];
+			if (other.Rule is null || other.IsSequence || other.IsOptional || other.Name != member.Name ||
+				_results.ValueOf(other.Rule) != type ||
+				(expression.Text.Trim() != other.Name && expression.Text.Trim() != "(" + other.Name + ")")) return false;
+		}
+		return true;
 	}
 
 	/// <summary>
