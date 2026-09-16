@@ -1735,8 +1735,11 @@ interface dispatch per symbol. A short nonempty read is not EOF. Refilling does 
 restart recognition or rerun semantic guards. Backtracking changes a logical index
 into retained input; the source need not support seeking.
 
-`bufferSize` is the initial capacity. `maxRetained` bounds buffer capacity in input
-elements, not total parser memory; both must be positive. The buffer grows when
+`bufferSize` is the initial logical capacity. `maxRetained` bounds retained input
+elements, not total parser memory; both must be positive. Storage is rented from
+`ArrayPool<T>`; a larger pool bucket does not increase the read size or retention
+limit. Buffers are cleared and returned on completion, failure, or disposal of a
+partially consumed iterator. The caller still owns the input reader or stream. The buffer grows when
 needed and reuses a proven-dead prefix, compacting on refill rather than on every
 symbol. Exceeding retention or position capacity throws `IOException`, separately
 from a grammar mismatch. Determining EOF at the retention limit may consume one

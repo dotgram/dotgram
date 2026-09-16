@@ -262,3 +262,11 @@ compare the table-default parser with construction choices split into smaller
 methods. Byte orders and groups are about 1.9-2.0x faster; character/string orders
 improve 1.5-1.7x. Allocations are unchanged; the managed assembly grows 0.93%.
 The grammar and public API remain the same.
+
+## Pooled input buffers: 2026-09-16
+
+[Allocation profile and comparison](results/2026-09-16-buffer-pool.md) identify the
+per-enumeration input array as the main short-input allocation. Pooling saves
+90.5% for one byte field, 72.1% for byte orders, and 85.3% for character orders.
+Short inputs improve modestly in time; groups regress 2.7%. The report records
+pool ownership, retention semantics, raw measurements and compatibility checks.
